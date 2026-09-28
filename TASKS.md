@@ -27,7 +27,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 회전, 줌, 이동
   - 완료 조건: 씬에서 정거장을 자유롭게 돌려볼 수 있음
   - `OrbitCameraRig`(순수 계산) + `OrbitCameraController`(Main Camera에 부착)
-  - 조작: 휠 드래그 회전 / Shift+휠 드래그 화면 이동 / 휠 줌 / WASD 수평 이동 / Space·C 상하 / Q·E 회전
+  - 조작: 휠 드래그 회전 / Shift+휠 드래그 화면 이동 / 휠 줌 / WASD 수평 이동 / Space 위·Ctrl 아래 / Q·E 회전
 - [ ] **1-4. 면 클릭 고스트 배치**
   - 레이캐스트로 면 판별 → 인접 셀에 고스트 표시
   - 초록/빨강 표시, 클릭 확정, ESC 취소, R 회전

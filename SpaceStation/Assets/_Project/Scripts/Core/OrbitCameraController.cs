@@ -6,7 +6,7 @@ namespace SpaceStation.Core
     /// <summary>
     /// 궤도 카메라 입력. 계산은 <see cref="OrbitCameraRig"/>이 담당한다.
     /// 휠 드래그: 회전 / Shift+휠 드래그: 화면 평행 이동 / 휠: 줌
-    /// WASD: 수평 이동 / Space·C: 상하 이동 / Q·E: 좌우 회전
+    /// WASD: 수평 이동 / Space: 위, Ctrl: 아래 / Q·E: 좌우 회전
     /// </summary>
     public sealed class OrbitCameraController : MonoBehaviour
     {
@@ -71,7 +71,8 @@ namespace SpaceStation.Core
             float dt = Time.unscaledDeltaTime; // 시뮬레이션 배속/일시정지와 무관하게 카메라는 움직여야 함
             float right = Axis(keyboard.dKey, keyboard.aKey);
             float forward = Axis(keyboard.wKey, keyboard.sKey);
-            float up = Axis(keyboard.spaceKey, keyboard.cKey);
+            float up = (keyboard.spaceKey.isPressed ? 1f : 0f)
+                - (keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed ? 1f : 0f);
             float yawKey = Axis(keyboard.eKey, keyboard.qKey);
 
             if (right != 0f || forward != 0f)
