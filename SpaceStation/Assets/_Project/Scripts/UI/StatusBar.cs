@@ -1,0 +1,150 @@
+using SpaceStation.Building;
+using SpaceStation.Core;
+using SpaceStation.Data;
+using SpaceStation.Simulation;
+using TMPro;
+using UnityEngine;
+
+namespace SpaceStation.UI
+{
+    /// <summary>
+    /// 하단 상태 표시줄.
+    /// 안내 줄: 현재 모드(대기/배치/선택) 조작 안내와 배치 불가 사유 — 상태가 바뀔 때만 갱신.
+    /// 알림 줄: 철거·분리·고갈 등 일시 메시지.
+    /// </summary>
+    public sealed class StatusBar : MonoBehaviour
+    {
+        [SerializeField] private BuildController _build;
+        [SerializeField] private ModuleSelectionController _selection;
+        [SerializeField] private StationController _station;
+        [SerializeField] private ResourceController _resources;
+        [SerializeField] private TMP_Text _hintText;
+        [SerializeField] private TMP_Text _messageText;
+        [SerializeField] private float _messageSeconds = 3f;
+        [SerializeField] private string _idleHint = "숫자키 1~7 또는 아래 메뉴로 모듈 선택  ·  모듈 클릭: 선택  ·  휠 드래그: 카메라 회전";
+
+        private float _messageUntil;
+        private int _disconnectedThisFrame;
+
+        // 안내 줄 캐시 키
+        private ModuleData _shownBuild;
+        private ModuleInstance _shownSelection;
+        private bool _shownSelectionActive;
+        private bool _shownHasTarget;
+        private PlacementResult _shownResult;
+        private bool _hintInitialized;
+
+        private void Start()
+        {
+            _selection.Removed += HandleRemoved;
+            _selection.RemoveRejected += HandleRemoveRejected;
+            _station.Connectivity.ActiveStateChanged += HandleActiveStateChanged;
+            _resources.Simulation.DepletionChanged += HandleDepletionChanged;
+            _messageText.SetText(string.Empty);
+        }
+
+        private void OnDestroy()
+        {
+            if (_selection != null)
+            {
+                _selection.Removed -= HandleRemoved;
+                _selection.RemoveRejected -= HandleRemoveRejected;
+            }
+            if (_station != null && _station.Connectivity != null)
+                _station.Connectivity.ActiveStateChanged -= HandleActiveStateChanged;
+            if (_resources != null && _resources.Simulation != null)
+                _resources.Simulation.DepletionChanged -= HandleDepletionChanged;
+        }
+
+        private void Update()
+        {
+            UpdateHint();
+            if (_messageUntil > 0f && Time.unscaledTime >= _messageUntil)
+            {
+                _messageUntil = 0f;
+                _messageText.SetText(string.Empty);
+            }
+        }
+
+        private void LateUpdate()
+        {
+            _disconnectedThisFrame = 0;
+        }
+
+        private void UpdateHint()
+        {
+            var build = _build.Selected;
+            var selected = build == null ? _selection.Selected : null;
+            bool selectedActive = selected != null && _station.Connectivity.IsActive(selected);
+            bool hasTarget = build != null && _build.HasTarget;
+            var result = hasTarget ? _build.TargetResult : PlacementResult.Valid;
+
+            if (_hintInitialized && build == _shownBuild && selected == _shownSelection && selectedActive == _shownSelectionActive
+                && hasTarget == _shownHasTarget && result == _shownResult)
+                return;
+
+            _hintInitialized = true;
+            _shownBuild = build;
+            _shownSelection = selected;
+            _shownSelectionActive = selectedActive;
+            _shownHasTarget = hasTarget;
+            _shownResult = result;
+
+            if (build != null)
+            {
+                string text = $"<b>{build.DisplayName}</b> 배치  ·  좌클릭: 배치  ·  R: 회전  ·  우클릭/ESC: 취소";
+                if (hasTarget && result != PlacementResult.Valid)
+                    text += $"\n<color={HudText.Red}>배치 불가: {HudText.PlacementReason(result)}</color>";
+                _hintText.SetText(text);
+            }
+            else if (selected != null)
+            {
+                string name = selected.Data != null ? selected.Data.DisplayName : selected.ToString();
+                string state = selectedActive ? string.Empty : $"  <color={HudText.Orange}>(비활성: 코어와 분리됨)</color>";
+                string action = _station.CanRemove(selected)
+                    ? $"Delete/X: 철거 (환급 {HudText.Cost(selected.Data != null ? selected.Data.BuildCost : null, _resources.Balance.DemolishRefundRate)})"
+                    : "철거 불가";
+                _hintText.SetText($"선택: <b>{name}</b>{state}  ·  {action}  ·  ESC: 선택 해제");
+            }
+            else
+            {
+                _hintText.SetText(_idleHint);
+            }
+        }
+
+        private void ShowMessage(string message)
+        {
+            _messageText.SetText(message);
+            _messageUntil = Time.unscaledTime + _messageSeconds;
+        }
+
+        private void HandleActiveStateChanged(ModuleInstance module, bool active)
+        {
+            // 철거 직후 같은 프레임에 비활성이 된 모듈 수 (Removed보다 먼저 발생)
+            if (!active)
+                _disconnectedThisFrame++;
+        }
+
+        private void HandleRemoved(ModuleInstance module)
+        {
+            string name = module.Data != null ? module.Data.DisplayName : module.ToString();
+            string refund = HudText.Cost(module.Data != null ? module.Data.BuildCost : null, _resources.Balance.DemolishRefundRate);
+            string message = $"{name} 철거  ·  환급 {refund}";
+            if (_disconnectedThisFrame > 0)
+                message += $"\n<color={HudText.Orange}>모듈 {_disconnectedThisFrame}개가 코어와 분리되어 비활성화됨</color>";
+            ShowMessage(message);
+        }
+
+        private void HandleRemoveRejected(ModuleInstance module)
+        {
+            bool isCore = module == _station.Core;
+            ShowMessage($"<color={HudText.Red}>{(isCore ? "코어는 철거할 수 없습니다" : "철거할 수 없는 모듈입니다")}</color>");
+        }
+
+        private void HandleDepletionChanged(ResourceType type, bool depleted)
+        {
+            if (depleted && type != ResourceType.Metal)
+                ShowMessage($"<color={HudText.Red}>{HudText.ResourceName(type)} 고갈!</color>");
+        }
+    }
+}

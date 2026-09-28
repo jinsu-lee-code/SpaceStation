@@ -6,7 +6,7 @@ using UnityEngine;
 namespace SpaceStation.Building
 {
     /// <summary>
-    /// 정거장 하나의 씬 진입점. <see cref="StationGrid"/>를 소유하고,
+    /// 정거장 하나의 씬 진입점. <see cref="StationGrid"/>와 <see cref="StationConnectivity"/>를 소유하고,
     /// 그리드 이벤트를 받아 모듈 프리팹을 생성/제거한다. 시작 시 코어를 원점에 배치한다.
     /// </summary>
     public sealed class StationController : MonoBehaviour
@@ -15,10 +15,12 @@ namespace SpaceStation.Building
         [Tooltip("생성된 모듈 오브젝트의 부모. 비우면 이 오브젝트 아래에 둔다.")]
         [SerializeField] private Transform _moduleRoot;
 
-        private readonly Dictionary<ModuleInstance, GameObject> _views = new Dictionary<ModuleInstance, GameObject>();
+        private readonly Dictionary<ModuleInstance, ModuleView> _views = new Dictionary<ModuleInstance, ModuleView>();
         private StationGrid _grid;
+        private StationConnectivity _connectivity;
 
         public StationGrid Grid => _grid;
+        public StationConnectivity Connectivity => _connectivity;
         public ModuleInstance Core { get; private set; }
 
         private void Awake()
@@ -27,8 +29,10 @@ namespace SpaceStation.Building
                 _moduleRoot = transform;
 
             _grid = new StationGrid();
+            _connectivity = new StationConnectivity(_grid, new FaceAdjacencyConnectionRule());
             _grid.ModulePlaced += HandleModulePlaced;
             _grid.ModuleRemoved += HandleModuleRemoved;
+            _connectivity.ActiveStateChanged += HandleActiveStateChanged;
 
             if (_coreModule == null)
             {
@@ -37,6 +41,8 @@ namespace SpaceStation.Building
             }
             _grid.TryPlace(_coreModule, Vector3Int.zero, 0, out var core);
             Core = core;
+            _connectivity.Root = core;
+            _connectivity.Recalculate();
         }
 
         private void OnDestroy()
@@ -45,15 +51,39 @@ namespace SpaceStation.Building
                 return;
             _grid.ModulePlaced -= HandleModulePlaced;
             _grid.ModuleRemoved -= HandleModuleRemoved;
+            _connectivity.ActiveStateChanged -= HandleActiveStateChanged;
         }
 
+        /// <summary>건설 비용 창구. 없으면 비용 없이 배치된다 (ResourceController가 Start에서 등록).</summary>
+        public IBuildCostHandler CostHandler { get; set; }
+
+        /// <summary>공간 배치 규칙(<see cref="PlacementRules"/>) + 비용 지불 가능 여부.</summary>
         public bool CanPlace(ModuleData data, Vector3Int origin, int rotation)
         {
-            return _grid.CanPlace(data, origin, rotation);
+            return EvaluatePlacement(data, origin, rotation) == PlacementResult.Valid;
+        }
+
+        /// <summary>배치 가능 여부와 불가 사유. 공간 규칙을 먼저 보고, 통과하면 비용을 본다.</summary>
+        public PlacementResult EvaluatePlacement(ModuleData data, Vector3Int origin, int rotation)
+        {
+            var result = PlacementRules.Evaluate(_grid, data, origin, rotation);
+            if (result == PlacementResult.Valid && !CanAfford(data))
+                return PlacementResult.InsufficientResources;
+            return result;
+        }
+
+        public bool CanAfford(ModuleData data)
+        {
+            return data != null && (CostHandler == null || CostHandler.CanAfford(data.BuildCost));
         }
 
         public bool TryPlace(ModuleData data, Vector3Int origin, int rotation, out ModuleInstance module)
         {
+            module = null;
+            if (!CanPlace(data, origin, rotation))
+                return false;
+            if (CostHandler != null && !CostHandler.TrySpend(data.BuildCost))
+                return false;
             return _grid.TryPlace(data, origin, rotation, out module);
         }
 
@@ -62,12 +92,17 @@ namespace SpaceStation.Building
             return module != null && module != Core && (module.Data == null || module.Data.Removable);
         }
 
+        /// <summary>철거. 건설 비용의 일부(BalanceConfig 환급률)를 돌려받는다.</summary>
         public bool TryRemove(ModuleInstance module)
         {
-            return CanRemove(module) && _grid.Remove(module);
+            if (!CanRemove(module) || !_grid.Remove(module))
+                return false;
+            if (CostHandler != null && module.Data != null)
+                CostHandler.Refund(module.Data.BuildCost);
+            return true;
         }
 
-        public bool TryGetView(ModuleInstance module, out GameObject view)
+        public bool TryGetView(ModuleInstance module, out ModuleView view)
         {
             return _views.TryGetValue(module, out view);
         }
@@ -78,15 +113,23 @@ namespace SpaceStation.Building
             if (prefab == null)
             {
                 Debug.LogWarning($"{module}: 프리팹이 없어 표시하지 않음", this);
-                return;
+            }
+            else
+            {
+                var go = Instantiate(prefab,
+                    GridConfig.CellToWorld(module.Origin),
+                    GridDirections.ToQuaternion(module.Rotation),
+                    _moduleRoot);
+                go.name = module.ToString();
+                if (!go.TryGetComponent<ModuleView>(out var view))
+                    view = go.AddComponent<ModuleView>();
+                view.Initialize(module);
+                _views.Add(module, view);
             }
 
-            var view = Instantiate(prefab,
-                GridConfig.CellToWorld(module.Origin),
-                GridDirections.ToQuaternion(module.Rotation),
-                _moduleRoot);
-            view.name = module.ToString();
-            _views.Add(module, view);
+            // 코어 배치 시점에는 Root가 아직 없으므로 Awake에서 따로 계산
+            if (_connectivity.Root != null)
+                _connectivity.Recalculate();
         }
 
         private void HandleModuleRemoved(ModuleInstance module)
@@ -94,8 +137,15 @@ namespace SpaceStation.Building
             if (_views.TryGetValue(module, out var view))
             {
                 _views.Remove(module);
-                Destroy(view);
+                Destroy(view.gameObject);
             }
+            _connectivity.Recalculate();
+        }
+
+        private void HandleActiveStateChanged(ModuleInstance module, bool active)
+        {
+            if (_views.TryGetValue(module, out var view))
+                view.SetOperational(active);
         }
     }
 }

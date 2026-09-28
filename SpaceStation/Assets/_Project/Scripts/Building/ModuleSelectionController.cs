@@ -1,3 +1,4 @@
+using System;
 using SpaceStation.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -10,26 +11,27 @@ namespace SpaceStation.Building
     /// </summary>
     public sealed class ModuleSelectionController : MonoBehaviour
     {
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-
         [SerializeField] private StationController _station;
         [SerializeField] private BuildController _build;
         [SerializeField] private Camera _camera;
-        [SerializeField] private Color _highlightColor = new Color(1f, 0.9f, 0.3f, 1f);
 
         [Header("Raycast")]
         [SerializeField] private LayerMask _moduleMask = ~0;
         [SerializeField] private float _maxRayDistance = 500f;
 
         private ModuleInstance _selected;
-        private Renderer[] _selectedRenderers;
-        private MaterialPropertyBlock _propertyBlock;
+
+        /// <summary>선택 모듈이 바뀔 때 (null = 해제).</summary>
+        public event Action<ModuleInstance> SelectionChanged;
+        /// <summary>철거를 시도했으나 불가 (코어 등).</summary>
+        public event Action<ModuleInstance> RemoveRejected;
+        /// <summary>철거 성공.</summary>
+        public event Action<ModuleInstance> Removed;
 
         public ModuleInstance Selected => _selected;
 
         private void Awake()
         {
-            _propertyBlock = new MaterialPropertyBlock();
             if (_camera == null)
                 _camera = Camera.main;
         }
@@ -59,7 +61,7 @@ namespace SpaceStation.Building
                 return;
             }
 
-            if (mouse.leftButton.wasPressedThisFrame)
+            if (mouse.leftButton.wasPressedThisFrame && !UiPointer.IsOverUi())
                 Select(PickModule(mouse.position.ReadValue()));
 
             if (_selected == null)
@@ -72,10 +74,7 @@ namespace SpaceStation.Building
             }
 
             if (keyboard.deleteKey.wasPressedThisFrame || keyboard.xKey.wasPressedThisFrame)
-            {
-                if (!_station.TryRemove(_selected))
-                    Debug.Log($"{_selected}: 철거할 수 없는 모듈"); // 경고 UI는 2-6 HUD에서
-            }
+                RemoveSelected();
         }
 
         public void Select(ModuleInstance module)
@@ -83,15 +82,23 @@ namespace SpaceStation.Building
             if (module == _selected)
                 return;
 
-            ClearHighlight();
+            if (_selected != null && _station.TryGetView(_selected, out var previous))
+                previous.SetHighlighted(false);
             _selected = module;
             if (_selected != null && _station.TryGetView(_selected, out var view))
-            {
-                _selectedRenderers = view.GetComponentsInChildren<Renderer>();
-                _propertyBlock.SetColor(BaseColorId, _highlightColor);
-                foreach (var r in _selectedRenderers)
-                    r.SetPropertyBlock(_propertyBlock);
-            }
+                view.SetHighlighted(true);
+            SelectionChanged?.Invoke(_selected);
+        }
+
+        public void RemoveSelected()
+        {
+            if (_selected == null)
+                return;
+            var target = _selected;
+            if (_station.TryRemove(target))
+                Removed?.Invoke(target);
+            else
+                RemoveRejected?.Invoke(target);
         }
 
         private ModuleInstance PickModule(Vector2 screenPosition)
@@ -105,23 +112,10 @@ namespace SpaceStation.Building
 
         private void HandleModuleRemoved(ModuleInstance module)
         {
-            if (module == _selected)
-            {
-                _selectedRenderers = null; // 뷰는 곧 파괴되므로 MPB 정리 불필요
-                _selected = null;
-            }
-        }
-
-        private void ClearHighlight()
-        {
-            if (_selectedRenderers == null)
+            if (module != _selected)
                 return;
-            foreach (var r in _selectedRenderers)
-            {
-                if (r != null)
-                    r.SetPropertyBlock(null);
-            }
-            _selectedRenderers = null;
+            _selected = null; // 뷰는 곧 파괴되므로 강조 해제 불필요
+            SelectionChanged?.Invoke(null);
         }
     }
 }

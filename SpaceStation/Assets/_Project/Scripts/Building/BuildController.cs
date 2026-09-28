@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using SpaceStation.Core;
 using SpaceStation.Data;
@@ -37,10 +38,19 @@ namespace SpaceStation.Building
         private MaterialPropertyBlock _propertyBlock;
         private bool _hasTarget;
         private bool _targetValid;
+        private PlacementResult _targetResult;
         private bool? _appliedValid;
         private Vector3Int _targetCell;
 
+        /// <summary>선택된 모듈이 바뀔 때 (null = 배치 모드 해제).</summary>
+        public event Action<ModuleData> SelectionChanged;
+
         public ModuleData Selected => _selected;
+        public IReadOnlyList<ModuleData> BuildableModules => _buildableModules;
+        /// <summary>고스트를 놓을 대상 면이 있는지 (마우스가 모듈 위에 있고 UI 위가 아님).</summary>
+        public bool HasTarget => _hasTarget;
+        /// <summary>현재 대상 셀의 배치 판정 결과. HasTarget일 때만 의미 있음.</summary>
+        public PlacementResult TargetResult => _targetResult;
 
         private void Awake()
         {
@@ -69,7 +79,10 @@ namespace SpaceStation.Building
             if (keyboard.rKey.wasPressedThisFrame)
                 _rotation = GridDirections.NormalizeRotation(_rotation + 1);
 
-            UpdateTarget(mouse.position.ReadValue());
+            if (UiPointer.IsOverUi())
+                _hasTarget = false; // HUD 위에서는 고스트 숨김, 클릭 무시
+            else
+                UpdateTarget(mouse.position.ReadValue());
             UpdateGhost();
 
             if (_hasTarget && _targetValid && mouse.leftButton.wasPressedThisFrame)
@@ -86,7 +99,15 @@ namespace SpaceStation.Building
 
             _selected = data;
             _rotation = 0;
+            _hasTarget = false;
             RebuildGhost();
+            SelectionChanged?.Invoke(_selected);
+        }
+
+        /// <summary>건설 메뉴 버튼용: 같은 모듈을 다시 고르면 해제.</summary>
+        public void ToggleSelect(ModuleData data)
+        {
+            Select(_selected == data ? null : data);
         }
 
         private void HandleSelectionKeys(Keyboard keyboard)
@@ -96,8 +117,7 @@ namespace SpaceStation.Building
             {
                 if (keyboard[Key.Digit1 + i].wasPressedThisFrame)
                 {
-                    // 같은 키를 다시 누르면 선택 해제
-                    Select(_selected == _buildableModules[i] ? null : _buildableModules[i]);
+                    ToggleSelect(_buildableModules[i]);
                     return;
                 }
             }
@@ -115,7 +135,8 @@ namespace SpaceStation.Building
                 return; // 모듈이 아닌 콜라이더
 
             _targetCell = GridConfig.GetAdjacentCell(hit.point, hit.normal);
-            _targetValid = _station.CanPlace(_selected, _targetCell, _rotation);
+            _targetResult = _station.EvaluatePlacement(_selected, _targetCell, _rotation);
+            _targetValid = _targetResult == PlacementResult.Valid;
             _hasTarget = true;
         }
 

@@ -18,17 +18,30 @@ namespace SpaceStation.Data
         [Tooltip("철거 가능 여부. 코어는 false")]
         [SerializeField] private bool _removable = true;
 
+        [Tooltip("말단 배치 전용 (채굴 도킹): 정거장과 맞닿은 면이 정확히 1개여야 하고, 배치 후 나머지 면에는 다른 모듈을 붙일 수 없다")]
+        [SerializeField] private bool _terminalOnly;
+
         [SerializeField] private List<ResourceAmount> _buildCost = new List<ResourceAmount>();
         [SerializeField] private List<ResourceAmount> _production = new List<ResourceAmount>();
+        [Tooltip("Power 항목 = 전력 수요")]
         [SerializeField] private List<ResourceAmount> _consumption = new List<ResourceAmount>();
+
+        [Header("Capacity")]
+        [Tooltip("수용 인구")]
+        [SerializeField, Min(0)] private int _housingCapacity;
+        [Tooltip("스톡 자원(산소/물/식량/금속) 각각의 저장 한도 증가량")]
+        [SerializeField, Min(0f)] private float _storageBonus;
 
         public string DisplayName => _displayName;
         public IReadOnlyList<Vector3Int> CellOffsets => _cellOffsets;
         public GameObject Prefab => _prefab;
         public bool Removable => _removable;
+        public bool TerminalOnly => _terminalOnly;
         public IReadOnlyList<ResourceAmount> BuildCost => _buildCost;
         public IReadOnlyList<ResourceAmount> Production => _production;
         public IReadOnlyList<ResourceAmount> Consumption => _consumption;
+        public int HousingCapacity => _housingCapacity;
+        public float StorageBonus => _storageBonus;
 
         private void OnValidate()
         {

@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 836aecb7513c6944ba7e371278fced20, type: 3}
+  m_Name: BalanceConfig
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.BalanceConfig
+  _startingPopulation: 4
+  _consumptionPerResident:
+  - Type: 1
+    Amount: 0.2
+  - Type: 2
+    Amount: 0.1
+  - Type: 3
+    Amount: 0.1
+  _startingResources:
+  - Type: 1
+    Amount: 200
+  - Type: 2
+    Amount: 150
+  - Type: 3
+    Amount: 150
+  - Type: 4
+    Amount: 150
+  _baseStorageCapacity:
+  - Type: 1
+    Amount: 200
+  - Type: 2
+    Amount: 200
+  - Type: 3
+    Amount: 200
+  - Type: 4
+    Amount: 200
+  _minPowerEfficiency: 0.25
+  _demolishRefundRate: 0.5
+  _repairCostRate: 0.3

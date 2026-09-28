@@ -34,30 +34,48 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 완료 조건: 코어에서 시작해 3방향으로 모듈을 붙여나갈 수 있음
   - `StationController`(그리드 소유·코어 배치·프리팹 생성) + `BuildController`(입력·고스트)
   - 모듈 선택은 숫자키 1~9 임시 방식 (2-6 건설 메뉴에서 교체). 고스트는 `M_Ghost`(URP Lit 투명) + MPB 틴트
-- [ ] **1-5. 철거**
+- [x] **1-5. 철거**
   - 모듈 선택 후 철거, 코어 철거 불가
-  - (코드 완료, Play 모드 확인 대기) `ModuleSelectionController`: 배치 모드 아닐 때 좌클릭 선택(노랑 MPB), Delete·X 철거, ESC/빈 곳 클릭 해제
+  - `ModuleSelectionController`: 배치 모드 아닐 때 좌클릭 선택(노랑 MPB), Delete·X 철거, ESC/빈 곳 클릭 해제
   - 철거 가능 여부는 `ModuleData.Removable`(코어 false) + `StationController.TryRemove`에서 판정
 
 ## Phase 2. 연결과 시뮬레이션
-- [ ] **2-1. 연결 판정**
+- [x] **2-1. 연결 판정**
   - `IConnectionRule` + 인접 자동 연결 구현
   - 코어 기준 BFS로 활성/비활성 판정
   - 비활성 모듈은 시각적으로 어둡게 표시
   - 완료 조건: 중간 모듈 철거 시 끊어진 쪽이 비활성으로 바뀜
-- [ ] **2-2. 틱 시스템**
+  - `IConnectionRule`/`FaceAdjacencyConnectionRule` + `StationConnectivity`(BFS, 바뀐 모듈만 이벤트). 배치/철거 시에만 재계산
+  - `ModuleView`(프리팹에 부착): 활성/비활성·선택 강조를 합쳐 MPB 적용, 기본 상태는 블록 비움(SRP Batcher 유지)
+- [x] **2-2. 틱 시스템**
   - 고정 간격 틱, 일시정지/배속(1x, 2x, 4x)
-- [ ] **2-3. 자원 시스템**
+  - `TickClock`(순수, 프레임당 최대 틱 제한) + `SimulationClock`(씬 `Simulation` 오브젝트). timeScale 미사용
+  - 임시 키: P 일시정지, F1/F2/F3 = 1x/2x/4x (2-6 HUD 버튼으로 교체). `_logTicks`로 콘솔 확인
+- [x] **2-3. 자원 시스템**
   - 5종 자원, 활성 모듈 기준 생산/소비 집계
   - 전력 부족 시 효율 저하 처리
   - 저장 한도(창고)
-- [ ] **2-4. 건설 비용**
+  - 수치는 BALANCE.md 기준. `BalanceConfig`(Data/BalanceConfig.asset) + `ModuleData`에 수용 인구·저장 한도 증가 추가
+  - `ResourceSimulation`(순수, BALANCE 5번 틱 순서) + `ResourceController`(Simulation 오브젝트). BALANCE 4번 검산 케이스는 단위 테스트로 검증
+  - 입력 고갈로 정지한 모듈은 전력 수요도 0으로 처리 (BALANCE 미명시 → 임의 결정)
+  - 임시 IMGUI `ResourceDebugOverlay`(인구 +1/-1 포함). 2-6 HUD에서 제거
+- [x] **2-4. 건설 비용**
   - 금속 소모, 자원 부족 시 배치 불가, 철거 환급
-- [ ] **2-5. 나머지 모듈 5종 추가** (데이터 작업 중심)
+  - `ResourceSimulation.CanAfford/TrySpend/RefundBuildCost`(전부 또는 전무, 환급은 한도 clamp)
+  - `IBuildCostHandler`(Building) ← `ResourceController`가 구현·Start에서 등록. `StationController.CanPlace/TryPlace/TryRemove`에서 사용 → 부족 시 고스트 빨강
+- [x] **2-5. 나머지 모듈 5종 추가** (데이터 작업 중심)
   - 채굴 도킹은 말단 배치 규칙 포함: 배치 검증(맞닿은 면 정확히 1개), 나머지 면 배치 차단
   - 등급별 채굴 도킹 최대 설치 수 제한은 3-4에서 연동
+  - 5종 에셋(MD_/PF_/M_Greybox_ Oxygen, WaterRecycler, Farm, Storage, MiningDock), BALANCE 3번 수치
+  - `PlacementRules`(Core): 점유 → 도킹 인접 차단(`BlockedByTerminal`) → 말단 1면 조건. `ModuleData.TerminalOnly`
+  - 숫자키: 1 태양광 / 2 거주 / 3 산소 / 4 물 / 5 농장 / 6 창고 / 7 채굴 도킹
 - [ ] **2-6. 기본 HUD**
   - 자원 수치, 생산/소비 표시, 건설 메뉴, 시간 배속 버튼
+  - (코드 완료, Play 모드 확인 대기) 씬 `HUD`(Canvas 1920x1080 스케일) + `EventSystem`(InputSystemUIInputModule)
+  - 우측 `ResourcePanel`(전력·스톡 자원 상세, 인구 +1/-1 디버그 버튼은 3-1에서 제거) / 우측 상단 `TimeControlPanel`
+  - 하단 `BuildMenu`(PF_BuildButton, 이름·단축키·비용, 툴팁 `TooltipView`, 비용 부족 시 비활성) / `StatusBar`(모드 안내·배치 불가 사유·철거/분리/고갈 알림)
+  - 단축키(숫자키, P, F1~F3) 유지. UI 위 클릭은 월드 배치/선택 무시(`UiPointer`). IMGUI 오버레이 제거
+  - 폰트: 임시로 맑은 고딕(`Art/Fonts/malgun.ttf` → `Malgun SDF` 동적, TMP 기본 폰트). **배포 전 무료 폰트로 교체 필요**
 
 ## Phase 3. 거주자와 위기
 - [ ] **3-1. 인구/만족도 시스템**

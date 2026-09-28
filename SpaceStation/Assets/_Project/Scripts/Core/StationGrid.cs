@@ -102,18 +102,25 @@ namespace SpaceStation.Core
         public List<ModuleInstance> GetNeighborModules(ModuleInstance module)
         {
             var result = new List<ModuleInstance>();
+            GetNeighborModules(module, result);
+            return result;
+        }
+
+        /// <summary>할당 없는 버전. results를 비우고 채운다.</summary>
+        public void GetNeighborModules(ModuleInstance module, List<ModuleInstance> results)
+        {
+            results.Clear();
             if (module == null)
-                return result;
+                return;
 
             foreach (var cell in module.Cells)
             {
                 foreach (var dir in GridDirections.Faces)
                 {
-                    if (_occupancy.TryGetValue(cell + dir, out var other) && other != module && !result.Contains(other))
-                        result.Add(other);
+                    if (_occupancy.TryGetValue(cell + dir, out var other) && other != module && !results.Contains(other))
+                        results.Add(other);
                 }
             }
-            return result;
         }
 
         /// <summary>셀과 면이 맞닿은 점유 셀 개수 (0~6).</summary>
