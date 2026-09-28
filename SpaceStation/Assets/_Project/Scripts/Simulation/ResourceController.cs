@@ -17,13 +17,16 @@ namespace SpaceStation.Simulation
 
         private readonly List<ModuleData> _activeModules = new List<ModuleData>();
         private ResourceSimulation _simulation;
+        private PopulationSimulation _population;
 
         public ResourceSimulation Simulation => _simulation;
+        public PopulationSimulation Population => _population;
         public BalanceConfig Balance => _balance;
 
         private void Awake()
         {
             _simulation = new ResourceSimulation(_balance);
+            _population = new PopulationSimulation(_balance, _simulation);
             _simulation.DepletionChanged += HandleDepletionChanged;
         }
 
@@ -59,7 +62,9 @@ namespace SpaceStation.Simulation
         private void HandleTicked(long tick)
         {
             CollectActiveModules();
-            _simulation.Tick(_activeModules, _clock.Clock.TickInterval);
+            float dt = _clock.Clock.TickInterval;
+            _simulation.Tick(_activeModules, dt);
+            _population.Tick(dt); // 이번 틱의 고갈 상태를 기준으로 인구·만족도 반영
         }
 
         /// <summary>건설/철거 직후 한도·수용 인구를 바로 반영 (다음 틱을 기다리지 않음).</summary>

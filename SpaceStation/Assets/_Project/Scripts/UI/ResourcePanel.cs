@@ -5,12 +5,11 @@ using SpaceStation.Data;
 using SpaceStation.Simulation;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace SpaceStation.UI
 {
     /// <summary>
-    /// 우측 자원 패널: 전력(공급/수요/효율), 스톡 자원(재고/한도/순수지 + 생산·소비), 인구, 경고.
+    /// 우측 자원 패널: 전력(공급/수요/효율), 스톡 자원(재고/한도/순수지 + 생산·소비), 인구·만족도, 경고.
     /// 값이 바뀐 프레임에만 문자열을 다시 만든다.
     /// </summary>
     public sealed class ResourcePanel : MonoBehaviour
@@ -24,24 +23,22 @@ namespace SpaceStation.UI
         [SerializeField] private StationController _station;
         [SerializeField] private TMP_Text _body;
 
-        [Header("Population (3-1 전까지 임시 디버그 버튼)")]
+        [Header("Population")]
         [SerializeField] private TMP_Text _populationText;
-        [SerializeField] private Button _populationMinus;
-        [SerializeField] private Button _populationPlus;
 
         private readonly StringBuilder _sb = new StringBuilder(1024);
+        private readonly StringBuilder _popSb = new StringBuilder(256);
         private ResourceSimulation _sim;
+        private PopulationSimulation _population;
         private bool _dirty = true;
 
         private void Start()
         {
             _sim = _resources.Simulation;
+            _population = _resources.Population;
             _sim.Changed += MarkDirty;
+            _population.Changed += MarkDirty;
             _station.Connectivity.ActiveStateChanged += HandleActiveStateChanged;
-            if (_populationMinus != null)
-                _populationMinus.onClick.AddListener(() => _sim.TryAdjustPopulation(-1));
-            if (_populationPlus != null)
-                _populationPlus.onClick.AddListener(() => _sim.TryAdjustPopulation(1));
             Refresh();
         }
 
@@ -49,6 +46,8 @@ namespace SpaceStation.UI
         {
             if (_sim != null)
                 _sim.Changed -= MarkDirty;
+            if (_population != null)
+                _population.Changed -= MarkDirty;
             if (_station != null && _station.Connectivity != null)
                 _station.Connectivity.ActiveStateChanged -= HandleActiveStateChanged;
         }
@@ -94,7 +93,62 @@ namespace SpaceStation.UI
             _body.SetText(_sb);
 
             if (_populationText != null)
-                _populationText.SetText("<b>인구</b>  {0:0} / {1:0}", _sim.Population, _sim.HousingCapacity);
+                RefreshPopulation();
+        }
+
+        private void RefreshPopulation()
+        {
+            var pop = _population;
+            _popSb.Clear();
+
+            _popSb.Append("<b>인구</b><pos=30%>");
+            if (pop.IsOvercrowded)
+                _popSb.Append("<color=").Append(HudText.Red).Append('>');
+            _popSb.Append(_sim.Population).Append(" / ").Append(_sim.HousingCapacity);
+            if (pop.IsOvercrowded)
+                _popSb.Append("</color>");
+            _popSb.Append('\n');
+
+            float s = pop.Satisfaction;
+            string sColor = s < _resources.Balance.LowSatisfactionThreshold ? HudText.Red
+                : s < _resources.Balance.GrowthMinSatisfaction ? HudText.Yellow : "#FFFFFF";
+            _popSb.Append("<b>만족도</b><pos=30%><color=").Append(sColor).Append('>').Append(s.ToString("0"))
+                  .Append("</color><pos=72%>");
+            if (pop.SatisfactionRate < 0f)
+                _popSb.Append("<color=").Append(HudText.Red).Append('>');
+            _popSb.Append(pop.SatisfactionRate.ToString("+0.0#;-0.0#;0")).Append("/s");
+            if (pop.SatisfactionRate < 0f)
+                _popSb.Append("</color>");
+            _popSb.Append('\n');
+
+            _popSb.Append("<size=80%><color=").Append(HudText.Muted).Append('>');
+            if (pop.IsGrowing)
+            {
+                _popSb.Append("다음 주민 ").Append((pop.GrowthProgress * 100f).ToString("0")).Append("%  (")
+                      .Append(pop.GetGrowthInterval(s).ToString("0")).Append("초 주기)");
+            }
+            else if (pop.IsGrowthBlockedByShortage)
+            {
+                _popSb.Append("증가 정지: 산소·물·식량 고갈");
+            }
+            else if (_sim.Population >= _sim.HousingCapacity)
+            {
+                _popSb.Append("증가 정지: 수용 인구 가득 (거주 모듈 필요)");
+            }
+            else
+            {
+                _popSb.Append("증가 정지: 만족도 ").Append(_resources.Balance.GrowthMinSatisfaction.ToString("0")).Append(" 미만");
+            }
+            _popSb.Append("</color></size>");
+
+            if (pop.IsLosingFromOxygen)
+                _popSb.Append("\n<color=").Append(HudText.Red).Append(">산소 고갈: 인구 감소 중</color>");
+            if (pop.IsLosingFromLowSatisfaction)
+                _popSb.Append("\n<color=").Append(HudText.Red).Append(">만족도 낮음: 주민 이탈 중</color>");
+            if (pop.IsOvercrowded)
+                _popSb.Append("\n<color=").Append(HudText.Red).Append(">수용 인구 초과: 인구 감소 중</color>");
+
+            _populationText.SetText(_popSb);
         }
 
         private void AppendStockRow(ResourceType type)

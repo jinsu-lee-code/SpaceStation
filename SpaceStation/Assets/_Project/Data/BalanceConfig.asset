@@ -39,5 +39,24 @@ MonoBehaviour:
   - Type: 4
     Amount: 200
   _minPowerEfficiency: 0.25
+  _startingSatisfaction: 70
+  _satisfactionPenaltyPerSecond:
+  - Type: 1
+    Amount: 2
+  - Type: 2
+    Amount: 1
+  - Type: 3
+    Amount: 1
+  _satisfactionRecoveryPerSecond: 0.5
+  _growthMinSatisfaction: 50
+  _growthIntervalAtMinSatisfaction: 30
+  _growthIntervalAtMaxSatisfaction: 10
+  _oxygenDepletedLossInterval: 10
+  _lowSatisfactionThreshold: 25
+  _lowSatisfactionLossInterval: 15
+  _overcrowdedLossInterval: 5
+  _eventGracePeriod: 180
+  _eventIntervalMin: 90
+  _eventIntervalMax: 150
   _demolishRefundRate: 0.5
   _repairCostRate: 0.3

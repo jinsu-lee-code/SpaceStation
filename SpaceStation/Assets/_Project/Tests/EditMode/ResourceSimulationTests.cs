@@ -132,18 +132,34 @@ namespace SpaceStation.Tests
         }
 
         [Test]
-        public void Population_LimitedByHousing()
+        public void HousingCapacity_SumsActiveModules()
         {
             var sim = new ResourceSimulation(_config);
             sim.RefreshCapacities(new[] { _core });
             Assert.AreEqual(4, sim.HousingCapacity);
-            Assert.IsFalse(sim.TryAdjustPopulation(1));
 
             sim.RefreshCapacities(new[] { _core, _habitat });
             Assert.AreEqual(10, sim.HousingCapacity);
-            Assert.IsTrue(sim.TryAdjustPopulation(1));
-            Assert.AreEqual(5, sim.Population);
-            Assert.IsFalse(sim.TryAdjustPopulation(-6));
+        }
+
+        [Test]
+        public void SetPopulation_NeverNegative_AllowsOvercrowding()
+        {
+            var sim = new ResourceSimulation(_config);
+            sim.RefreshCapacities(new[] { _core });
+            sim.SetPopulation(7);
+            Assert.AreEqual(7, sim.Population, "수용 초과 허용 (감소는 PopulationSimulation이 처리)");
+            sim.SetPopulation(-3);
+            Assert.AreEqual(0, sim.Population);
+        }
+
+        [Test]
+        public void Population_DrivesResidentConsumption()
+        {
+            var sim = new ResourceSimulation(_config);
+            sim.SetPopulation(10);
+            sim.Tick(new[] { _core }, 1f);
+            Assert.AreEqual(2f, sim.GetConsumption(ResourceType.Oxygen), Eps);
         }
 
         [Test]

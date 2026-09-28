@@ -69,17 +69,24 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 5종 에셋(MD_/PF_/M_Greybox_ Oxygen, WaterRecycler, Farm, Storage, MiningDock), BALANCE 3번 수치
   - `PlacementRules`(Core): 점유 → 도킹 인접 차단(`BlockedByTerminal`) → 말단 1면 조건. `ModuleData.TerminalOnly`
   - 숫자키: 1 태양광 / 2 거주 / 3 산소 / 4 물 / 5 농장 / 6 창고 / 7 채굴 도킹
-- [ ] **2-6. 기본 HUD**
+- [x] **2-6. 기본 HUD**
   - 자원 수치, 생산/소비 표시, 건설 메뉴, 시간 배속 버튼
-  - (코드 완료, Play 모드 확인 대기) 씬 `HUD`(Canvas 1920x1080 스케일) + `EventSystem`(InputSystemUIInputModule)
+  - 씬 `HUD`(Canvas 1920x1080 스케일) + `EventSystem`(InputSystemUIInputModule)
   - 우측 `ResourcePanel`(전력·스톡 자원 상세, 인구 +1/-1 디버그 버튼은 3-1에서 제거) / 우측 상단 `TimeControlPanel`
   - 하단 `BuildMenu`(PF_BuildButton, 이름·단축키·비용, 툴팁 `TooltipView`, 비용 부족 시 비활성) / `StatusBar`(모드 안내·배치 불가 사유·철거/분리/고갈 알림)
   - 단축키(숫자키, P, F1~F3) 유지. UI 위 클릭은 월드 배치/선택 무시(`UiPointer`). IMGUI 오버레이 제거
   - 폰트: 임시로 맑은 고딕(`Art/Fonts/malgun.ttf` → `Malgun SDF` 동적, TMP 기본 폰트). **배포 전 무료 폰트로 교체 필요**
 
 ## Phase 3. 거주자와 위기
-- [ ] **3-1. 인구/만족도 시스템**
+- [x] **3-1. 인구/만족도 시스템**
+  - 수치는 BALANCE.md 8번. `PopulationSimulation`(순수) — 자원 틱 직후 `ResourceController`가 호출
+  - 만족도 증감형 / 증가는 만족도 비례(50→30초, 100→10초), 산소·물·식량 고갈 시 증가 정지 / 감소 3경로(산소 고갈 10초, 만족도<25 15초, 수용 초과 5초)
+  - HUD: 인구·만족도·증가 진행도·감소 경고 표시, 감소 알림. 인구 디버그 버튼 제거
 - [ ] **3-2. 이벤트 시스템** (이벤트 SO + 랜덤 발생기)
+  - (코드 완료, Play 모드 확인 대기) `GameEventData`(SO, 3-3에서 상속해 효과 필드 추가) + `EventScheduler`(순수, 난수 주입) + `EventController`(Simulation 오브젝트, 틱 연동)
+  - BALANCE 9번: 유예 180초, 간격 90~150초, 가중치 랜덤, 겹침 허용(같은 이벤트 중복 금지)
+  - 에셋 `Data/Events/EV_Meteor·OxygenLeak·SolarStorm·SupplyShip` (효과 없음, 가중치·지속시간 임시)
+  - HUD: 상단 `EventBanner`, 자원 패널 `ActiveEventList`. 디버그 F5 = 즉시 발생 (Phase 4 이후 제거)
 - [ ] **3-3. 이벤트 4종 구현**
   - 운석 충돌 구현 시 모듈 파손 상태 도입: 외곽 판정(노출 면 여부), 코어 면역
   - 파손 효과(효율 50%, 산소 누출), 수리(금속 30%, 10초), 120초 방치 시 파괴

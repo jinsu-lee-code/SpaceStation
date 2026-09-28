@@ -40,6 +40,7 @@ namespace SpaceStation.UI
             _selection.RemoveRejected += HandleRemoveRejected;
             _station.Connectivity.ActiveStateChanged += HandleActiveStateChanged;
             _resources.Simulation.DepletionChanged += HandleDepletionChanged;
+            _resources.Population.PopulationChanged += HandlePopulationChanged;
             _messageText.SetText(string.Empty);
         }
 
@@ -54,6 +55,8 @@ namespace SpaceStation.UI
                 _station.Connectivity.ActiveStateChanged -= HandleActiveStateChanged;
             if (_resources != null && _resources.Simulation != null)
                 _resources.Simulation.DepletionChanged -= HandleDepletionChanged;
+            if (_resources != null && _resources.Population != null)
+                _resources.Population.PopulationChanged -= HandlePopulationChanged;
         }
 
         private void Update()
@@ -139,6 +142,21 @@ namespace SpaceStation.UI
         {
             bool isCore = module == _station.Core;
             ShowMessage($"<color={HudText.Red}>{(isCore ? "코어는 철거할 수 없습니다" : "철거할 수 없는 모듈입니다")}</color>");
+        }
+
+        private void HandlePopulationChanged(int delta, PopulationChangeReason reason)
+        {
+            if (delta >= 0)
+                return; // 증가는 패널 진행도로 충분 (알림 과다 방지)
+            string cause;
+            switch (reason)
+            {
+                case PopulationChangeReason.OxygenDepleted: cause = "산소 고갈"; break;
+                case PopulationChangeReason.LowSatisfaction: cause = "만족도 낮음"; break;
+                case PopulationChangeReason.Overcrowded: cause = "수용 인구 초과"; break;
+                default: cause = reason.ToString(); break;
+            }
+            ShowMessage($"<color={HudText.Red}>주민 {-delta}명 감소 ({cause})</color>");
         }
 
         private void HandleDepletionChanged(ResourceType type, bool depleted)

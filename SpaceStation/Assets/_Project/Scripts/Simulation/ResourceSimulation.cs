@@ -73,15 +73,17 @@ namespace SpaceStation.Simulation
         public float GetNetRate(ResourceType type) => _production[(int)type] - _consumption[(int)type];
         public bool IsDepleted(ResourceType type) => _depleted[(int)type];
 
-        /// <summary>인구를 0~수용 인구 범위로 변경한다 (2-3 임시 디버그용, 3-1에서 대체).</summary>
-        public bool TryAdjustPopulation(int delta)
+        /// <summary>
+        /// 인구 설정 (0 이상). 증감 규칙은 <see cref="PopulationSimulation"/>이 판단하며,
+        /// 수용 인구 초과도 허용한다 (거주 모듈 철거 직후 등).
+        /// </summary>
+        public void SetPopulation(int population)
         {
-            int next = Population + delta;
-            if (next < 0 || next > HousingCapacity)
-                return false;
-            Population = next;
+            population = Mathf.Max(0, population);
+            if (population == Population)
+                return;
+            Population = population;
             Changed?.Invoke();
-            return true;
         }
 
         /// <summary>현재 재고를 직접 설정 (디버그/테스트용). 0~한도로 clamp.</summary>

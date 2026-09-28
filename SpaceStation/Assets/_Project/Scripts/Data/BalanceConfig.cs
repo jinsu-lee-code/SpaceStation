@@ -21,6 +21,39 @@ namespace SpaceStation.Data
         [Tooltip("전력이 아무리 부족해도 소비 모듈이 유지하는 최소 효율")]
         [SerializeField, Range(0f, 1f)] private float _minPowerEfficiency;
 
+        [Header("Satisfaction (BALANCE 8번)")]
+        [SerializeField, Range(0f, 100f)] private float _startingSatisfaction;
+        [Tooltip("해당 자원이 고갈된 동안 초당 만족도 감소량 (고갈된 자원끼리 합산)")]
+        [SerializeField] private List<ResourceAmount> _satisfactionPenaltyPerSecond = new List<ResourceAmount>();
+        [Tooltip("고갈된 자원이 하나도 없을 때 초당 만족도 회복량")]
+        [SerializeField, Min(0f)] private float _satisfactionRecoveryPerSecond;
+
+        [Header("Population Growth")]
+        [Tooltip("이 만족도 이상이고 수용 인구에 여유가 있을 때만 증가")]
+        [SerializeField, Range(0f, 100f)] private float _growthMinSatisfaction;
+        [Tooltip("만족도가 최소값일 때 +1까지 걸리는 초")]
+        [SerializeField, Min(0.1f)] private float _growthIntervalAtMinSatisfaction = 1f;
+        [Tooltip("만족도 100일 때 +1까지 걸리는 초")]
+        [SerializeField, Min(0.1f)] private float _growthIntervalAtMaxSatisfaction = 1f;
+
+        [Header("Population Loss")]
+        [Tooltip("산소 고갈 상태가 이어질 때 -1 간격(초)")]
+        [SerializeField, Min(0.1f)] private float _oxygenDepletedLossInterval = 1f;
+        [Tooltip("이 만족도 미만이면 이탈 시작")]
+        [SerializeField, Range(0f, 100f)] private float _lowSatisfactionThreshold;
+        [Tooltip("만족도 미달 시 -1 간격(초)")]
+        [SerializeField, Min(0.1f)] private float _lowSatisfactionLossInterval = 1f;
+        [Tooltip("수용 인구 초과 시 -1 간격(초)")]
+        [SerializeField, Min(0.1f)] private float _overcrowdedLossInterval = 1f;
+
+        [Header("Events (BALANCE 9번)")]
+        [Tooltip("게임 시작 후 이 시간(초) 동안은 랜덤 이벤트가 없다")]
+        [SerializeField, Min(0f)] private float _eventGracePeriod;
+        [Tooltip("이벤트 사이 간격 최소(초)")]
+        [SerializeField, Min(1f)] private float _eventIntervalMin = 1f;
+        [Tooltip("이벤트 사이 간격 최대(초)")]
+        [SerializeField, Min(1f)] private float _eventIntervalMax = 1f;
+
         [Header("Cost")]
         [Tooltip("철거 환급 비율 (건설 비용 대비)")]
         [SerializeField, Range(0f, 1f)] private float _demolishRefundRate;
@@ -32,6 +65,19 @@ namespace SpaceStation.Data
         public IReadOnlyList<ResourceAmount> StartingResources => _startingResources;
         public IReadOnlyList<ResourceAmount> BaseStorageCapacity => _baseStorageCapacity;
         public float MinPowerEfficiency => _minPowerEfficiency;
+        public float StartingSatisfaction => _startingSatisfaction;
+        public IReadOnlyList<ResourceAmount> SatisfactionPenaltyPerSecond => _satisfactionPenaltyPerSecond;
+        public float SatisfactionRecoveryPerSecond => _satisfactionRecoveryPerSecond;
+        public float GrowthMinSatisfaction => _growthMinSatisfaction;
+        public float GrowthIntervalAtMinSatisfaction => _growthIntervalAtMinSatisfaction;
+        public float GrowthIntervalAtMaxSatisfaction => _growthIntervalAtMaxSatisfaction;
+        public float OxygenDepletedLossInterval => _oxygenDepletedLossInterval;
+        public float LowSatisfactionThreshold => _lowSatisfactionThreshold;
+        public float LowSatisfactionLossInterval => _lowSatisfactionLossInterval;
+        public float OvercrowdedLossInterval => _overcrowdedLossInterval;
+        public float EventGracePeriod => _eventGracePeriod;
+        public float EventIntervalMin => _eventIntervalMin;
+        public float EventIntervalMax => _eventIntervalMax;
         public float DemolishRefundRate => _demolishRefundRate;
         public float RepairCostRate => _repairCostRate;
     }
