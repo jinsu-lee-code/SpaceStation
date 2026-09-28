@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SpaceStation.Data;
 using UnityEngine;
 
 namespace SpaceStation.Core
@@ -46,7 +47,27 @@ namespace SpaceStation.Core
             return AreCellsFree(ResolveCells(localOffsets, origin, rotation));
         }
 
+        public bool CanPlace(ModuleData data, Vector3Int origin, int rotation)
+        {
+            return data != null && CanPlace(data.CellOffsets, origin, rotation);
+        }
+
+        public bool TryPlace(ModuleData data, Vector3Int origin, int rotation, out ModuleInstance module)
+        {
+            if (data == null)
+            {
+                module = null;
+                return false;
+            }
+            return TryPlace(data.CellOffsets, origin, rotation, out module, data);
+        }
+
         public bool TryPlace(IReadOnlyList<Vector3Int> localOffsets, Vector3Int origin, int rotation, out ModuleInstance module)
+        {
+            return TryPlace(localOffsets, origin, rotation, out module, null);
+        }
+
+        private bool TryPlace(IReadOnlyList<Vector3Int> localOffsets, Vector3Int origin, int rotation, out ModuleInstance module, ModuleData data)
         {
             module = null;
             if (localOffsets == null || localOffsets.Count == 0)
@@ -56,7 +77,7 @@ namespace SpaceStation.Core
             if (!AreCellsFree(cells))
                 return false;
 
-            module = new ModuleInstance(_nextId++, origin, GridDirections.NormalizeRotation(rotation), cells);
+            module = new ModuleInstance(_nextId++, data, origin, GridDirections.NormalizeRotation(rotation), cells);
             foreach (var cell in cells)
                 _occupancy.Add(cell, module);
             _modules.Add(module);

@@ -23,7 +23,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - `ModuleData` ScriptableObject (이름, 점유 셀 오프셋, 비용, 생산/소비)
   - 코어, 태양광, 거주 모듈 3종 에셋 생성 (컬러 큐브 프리팹)
   - 에셋: `Data/Modules/MD_*`, `Prefabs/Modules/PF_*`, `Art/Materials/M_Greybox_*` (URP Lit, 인스턴싱 켬). 수치는 임시값
-- [ ] **1-3. 궤도 카메라** (코드 완료, Play 모드 확인 대기)
+- [x] **1-3. 궤도 카메라**
   - 회전, 줌, 이동
   - 완료 조건: 씬에서 정거장을 자유롭게 돌려볼 수 있음
   - `OrbitCameraRig`(순수 계산) + `OrbitCameraController`(Main Camera에 부착)
@@ -32,6 +32,8 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 레이캐스트로 면 판별 → 인접 셀에 고스트 표시
   - 초록/빨강 표시, 클릭 확정, ESC 취소, R 회전
   - 완료 조건: 코어에서 시작해 3방향으로 모듈을 붙여나갈 수 있음
+  - (코드 완료, Play 모드 확인 대기) `StationController`(그리드 소유·코어 배치·프리팹 생성) + `BuildController`(입력·고스트)
+  - 모듈 선택은 숫자키 1~9 임시 방식 (2-6 건설 메뉴에서 교체). 고스트는 `M_Ghost`(URP Lit 투명) + MPB 틴트
 - [ ] **1-5. 철거**
   - 모듈 선택 후 철거, 코어 철거 불가
 

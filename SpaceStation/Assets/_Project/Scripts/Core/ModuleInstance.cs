@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using SpaceStation.Data;
 using UnityEngine;
 
 namespace SpaceStation.Core
@@ -7,13 +8,16 @@ namespace SpaceStation.Core
     public sealed class ModuleInstance
     {
         public int Id { get; }
+        /// <summary>모듈 정의. 오프셋만으로 배치한 경우(테스트 등) null.</summary>
+        public ModuleData Data { get; }
         public Vector3Int Origin { get; }
         public int Rotation { get; }
         public IReadOnlyList<Vector3Int> Cells { get; }
 
-        internal ModuleInstance(int id, Vector3Int origin, int rotation, Vector3Int[] cells)
+        internal ModuleInstance(int id, ModuleData data, Vector3Int origin, int rotation, Vector3Int[] cells)
         {
             Id = id;
+            Data = data;
             Origin = origin;
             Rotation = rotation;
             Cells = cells;
@@ -21,7 +25,7 @@ namespace SpaceStation.Core
 
         public override string ToString()
         {
-            return $"Module#{Id}@{Origin}";
+            return Data != null ? $"{Data.DisplayName}#{Id}@{Origin}" : $"Module#{Id}@{Origin}";
         }
     }
 }

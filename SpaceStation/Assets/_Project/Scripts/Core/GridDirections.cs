@@ -31,5 +31,11 @@ namespace SpaceStation.Core
                 default: return offset;
             }
         }
+
+        /// <summary><see cref="Rotate"/>와 같은 회전을 Transform용 Quaternion으로 변환한다.</summary>
+        public static Quaternion ToQuaternion(int rotation)
+        {
+            return Quaternion.Euler(0f, 90f * NormalizeRotation(rotation), 0f);
+        }
     }
 }
