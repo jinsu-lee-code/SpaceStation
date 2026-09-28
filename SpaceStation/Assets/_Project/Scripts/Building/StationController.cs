@@ -57,6 +57,21 @@ namespace SpaceStation.Building
             return _grid.TryPlace(data, origin, rotation, out module);
         }
 
+        public bool CanRemove(ModuleInstance module)
+        {
+            return module != null && module != Core && (module.Data == null || module.Data.Removable);
+        }
+
+        public bool TryRemove(ModuleInstance module)
+        {
+            return CanRemove(module) && _grid.Remove(module);
+        }
+
+        public bool TryGetView(ModuleInstance module, out GameObject view)
+        {
+            return _views.TryGetValue(module, out view);
+        }
+
         private void HandleModulePlaced(ModuleInstance module)
         {
             var prefab = module.Data != null ? module.Data.Prefab : null;

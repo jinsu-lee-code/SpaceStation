@@ -28,14 +28,16 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 완료 조건: 씬에서 정거장을 자유롭게 돌려볼 수 있음
   - `OrbitCameraRig`(순수 계산) + `OrbitCameraController`(Main Camera에 부착)
   - 조작: 휠 드래그 회전 / Shift+휠 드래그 화면 이동 / 휠 줌 / WASD 수평 이동 / Space 위·Ctrl 아래 / Q·E 회전
-- [ ] **1-4. 면 클릭 고스트 배치**
+- [x] **1-4. 면 클릭 고스트 배치**
   - 레이캐스트로 면 판별 → 인접 셀에 고스트 표시
   - 초록/빨강 표시, 클릭 확정, ESC 취소, R 회전
   - 완료 조건: 코어에서 시작해 3방향으로 모듈을 붙여나갈 수 있음
-  - (코드 완료, Play 모드 확인 대기) `StationController`(그리드 소유·코어 배치·프리팹 생성) + `BuildController`(입력·고스트)
+  - `StationController`(그리드 소유·코어 배치·프리팹 생성) + `BuildController`(입력·고스트)
   - 모듈 선택은 숫자키 1~9 임시 방식 (2-6 건설 메뉴에서 교체). 고스트는 `M_Ghost`(URP Lit 투명) + MPB 틴트
 - [ ] **1-5. 철거**
   - 모듈 선택 후 철거, 코어 철거 불가
+  - (코드 완료, Play 모드 확인 대기) `ModuleSelectionController`: 배치 모드 아닐 때 좌클릭 선택(노랑 MPB), Delete·X 철거, ESC/빈 곳 클릭 해제
+  - 철거 가능 여부는 `ModuleData.Removable`(코어 false) + `StationController.TryRemove`에서 판정
 
 ## Phase 2. 연결과 시뮬레이션
 - [ ] **2-1. 연결 판정**

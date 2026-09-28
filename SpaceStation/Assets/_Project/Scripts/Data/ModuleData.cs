@@ -15,6 +15,9 @@ namespace SpaceStation.Data
         [Tooltip("모듈 원점 셀 중심에 피벗이 있는 프리팹")]
         [SerializeField] private GameObject _prefab;
 
+        [Tooltip("철거 가능 여부. 코어는 false")]
+        [SerializeField] private bool _removable = true;
+
         [SerializeField] private List<ResourceAmount> _buildCost = new List<ResourceAmount>();
         [SerializeField] private List<ResourceAmount> _production = new List<ResourceAmount>();
         [SerializeField] private List<ResourceAmount> _consumption = new List<ResourceAmount>();
@@ -22,6 +25,7 @@ namespace SpaceStation.Data
         public string DisplayName => _displayName;
         public IReadOnlyList<Vector3Int> CellOffsets => _cellOffsets;
         public GameObject Prefab => _prefab;
+        public bool Removable => _removable;
         public IReadOnlyList<ResourceAmount> BuildCost => _buildCost;
         public IReadOnlyList<ResourceAmount> Production => _production;
         public IReadOnlyList<ResourceAmount> Consumption => _consumption;
