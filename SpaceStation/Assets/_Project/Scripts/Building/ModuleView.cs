@@ -26,6 +26,9 @@ namespace SpaceStation.Building
         [SerializeField, Range(0f, 1f)] private float _damagedTintAmount = 0.65f;
         [SerializeField] private Color _repairingTint = new Color(0.3f, 0.8f, 1f, 1f);
         [SerializeField, Range(0f, 1f)] private float _repairingTintAmount = 0.5f;
+        [Tooltip("노후(효율 저하) 틴트")]
+        [SerializeField] private Color _wornTint = new Color(0.45f, 0.35f, 0.25f, 1f);
+        [SerializeField, Range(0f, 1f)] private float _wornTintAmount = 0.6f;
 
         private Renderer[] _renderers;
         private Color[] _baseColors;
@@ -33,6 +36,7 @@ namespace SpaceStation.Building
         private bool _operational = true;
         private bool _highlighted;
         private ModuleDamageVisual _damage;
+        private bool _worn;
 
         public ModuleInstance Module { get; private set; }
 
@@ -75,6 +79,15 @@ namespace SpaceStation.Building
             Apply();
         }
 
+        /// <summary>내구도가 낮아 효율이 떨어진 상태 (4-3).</summary>
+        public void SetWorn(bool worn)
+        {
+            if (_worn == worn)
+                return;
+            _worn = worn;
+            Apply();
+        }
+
         private void Apply()
         {
             if (_renderers == null)
@@ -82,7 +95,7 @@ namespace SpaceStation.Building
 
             for (int i = 0; i < _renderers.Length; i++)
             {
-                if (_operational && !_highlighted && _damage == ModuleDamageVisual.None)
+                if (_operational && !_highlighted && _damage == ModuleDamageVisual.None && !_worn)
                 {
                     _renderers[i].SetPropertyBlock(null);
                     continue;
@@ -95,6 +108,8 @@ namespace SpaceStation.Building
                     color = Color.Lerp(_baseColors[i], _damagedTint, _damagedTintAmount);
                 else if (_damage == ModuleDamageVisual.Repairing)
                     color = Color.Lerp(_baseColors[i], _repairingTint, _repairingTintAmount);
+                else if (_worn)
+                    color = Color.Lerp(_baseColors[i], _wornTint, _wornTintAmount);
                 else
                     color = _baseColors[i];
 

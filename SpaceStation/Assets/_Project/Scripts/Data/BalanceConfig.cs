@@ -76,6 +76,20 @@ namespace SpaceStation.Data
         [Tooltip("밤의 태양광 출력 배율")]
         [SerializeField, Range(0f, 1f)] private float _nightSolarMultiplier;
 
+        [Header("Durability / Maintenance (BALANCE 15번)")]
+        [Tooltip("내구도 초당 감소량 (최대 100)")]
+        [SerializeField, Min(0f)] private float _durabilityDecayPerSecond;
+        [Tooltip("이 내구도 이상이면 효율 100%, 아래로는 0까지 선형으로 0%")]
+        [SerializeField, Range(0f, 100f)] private float _durabilityEfficiencyThreshold = 50f;
+        [Tooltip("정비 비용 = 건설비 × 이 비율 × (최대 − 현재)/100")]
+        [SerializeField, Min(0f)] private float _maintenanceCostRate;
+        [Tooltip("정비할 때마다 최대 내구도 감소량")]
+        [SerializeField, Min(0f)] private float _maintenanceMaxLoss;
+        [Tooltip("최대 내구도 하한")]
+        [SerializeField, Range(0f, 100f)] private float _maxDurabilityFloor;
+        [Tooltip("운석 피격 시 내구도 감소량 (파손과 별개)")]
+        [SerializeField, Min(0f)] private float _meteorDurabilityDamage;
+
         [Header("Cost")]
         [Tooltip("철거 환급 비율 (건설 비용 대비)")]
         [SerializeField, Range(0f, 1f)] private float _demolishRefundRate;
@@ -109,6 +123,12 @@ namespace SpaceStation.Data
         public float DayLength => _dayLength;
         public float DayNightTransition => _dayNightTransition;
         public float NightSolarMultiplier => _nightSolarMultiplier;
+        public float DurabilityDecayPerSecond => _durabilityDecayPerSecond;
+        public float DurabilityEfficiencyThreshold => _durabilityEfficiencyThreshold;
+        public float MaintenanceCostRate => _maintenanceCostRate;
+        public float MaintenanceMaxLoss => _maintenanceMaxLoss;
+        public float MaxDurabilityFloor => _maxDurabilityFloor;
+        public float MeteorDurabilityDamage => _meteorDurabilityDamage;
         public float DemolishRefundRate => _demolishRefundRate;
         public float RepairCostRate => _repairCostRate;
     }

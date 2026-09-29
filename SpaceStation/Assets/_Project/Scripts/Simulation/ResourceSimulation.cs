@@ -190,12 +190,12 @@ namespace SpaceStation.Simulation
             return true;
         }
 
-        /// <summary>철거 환급: 건설 비용 × 환급률. 저장 한도를 넘는 분은 버린다.</summary>
-        public void RefundBuildCost(IReadOnlyList<ResourceAmount> cost)
+        /// <summary>철거 환급: 건설 비용 × 환급률 × multiplier(내구도 비율 등). 저장 한도를 넘는 분은 버린다.</summary>
+        public void RefundBuildCost(IReadOnlyList<ResourceAmount> cost, float multiplier = 1f)
         {
             if (cost == null)
                 return;
-            float rate = _config.DemolishRefundRate;
+            float rate = _config.DemolishRefundRate * Mathf.Max(0f, multiplier);
             foreach (var a in cost)
             {
                 if (!IsStock(a.Type))

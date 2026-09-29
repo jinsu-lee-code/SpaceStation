@@ -27,6 +27,7 @@ namespace SpaceStation.Simulation
         private readonly List<ModuleData> _activeModules = new List<ModuleData>();
         private readonly List<float> _productionMultipliers = new List<float>();
         private readonly List<ModuleInstance> _meteorCandidates = new List<ModuleInstance>();
+        private readonly List<ModuleInstance> _meteorTargetsCopy = new List<ModuleInstance>();
         private readonly List<GameEventData> _eventPool;
         private readonly Func<float> _random01;
 
@@ -41,6 +42,7 @@ namespace SpaceStation.Simulation
         public ResourceSimulation Resources { get; }
         public PopulationSimulation Population { get; }
         public DamageSystem Damage { get; }
+        public DurabilitySystem Durability { get; }
         public EventScheduler Events { get; }
         public StationProgression Progression { get; }
         public GameSession Session { get; }
@@ -64,6 +66,7 @@ namespace SpaceStation.Simulation
             Resources = new ResourceSimulation(Balance);
             Population = new PopulationSimulation(Balance, Resources);
             Damage = new DamageSystem(Balance);
+            Durability = new DurabilitySystem(Balance);
             Events = new EventScheduler(Balance.EventGracePeriod, Balance.EventIntervalMin, Balance.EventIntervalMax, _random01);
             Progression = new StationProgression(settings.Grades);
             Session = new GameSession();
@@ -77,6 +80,7 @@ namespace SpaceStation.Simulation
             Grid.ModulePlaced += HandleModulePlaced;
             Grid.ModuleRemoved += HandleModuleRemoved;
             Damage.Destroyed += HandleDestroyed;
+            Durability.WornOut += HandleDestroyed;
             Events.EventStarted += HandleEventStarted;
             Events.EventEnded += HandleEventEnded;
             Resources.Changed += EvaluateProgression;
@@ -96,6 +100,7 @@ namespace SpaceStation.Simulation
         public void Tick(float dt)
         {
             Damage.Tick(dt);
+            Durability.Tick(dt); // 내구도 0 → 파괴
             CollectActiveModules();
             Resources.SetExternalDrain(ResourceType.Oxygen, Damage.OxygenLeakPerSecond);
             Resources.SolarMultiplier = DayNight.SolarMultiplier(ElapsedSeconds); // 이번 틱 시작 시점의 낮/밤
@@ -139,14 +144,77 @@ namespace SpaceStation.Simulation
             return module != null && module != Core && (module.Data == null || module.Data.Removable);
         }
 
-        /// <summary>철거: 건설 비용 × 환급률을 돌려받는다.</summary>
+        /// <summary>철거: 건설 비용 × 환급률 × 내구도 비율을 돌려받는다.</summary>
         public bool TryRemove(ModuleInstance module)
         {
-            if (!CanRemove(module) || !Grid.Remove(module))
+            if (!CanRemove(module))
+                return false;
+            float refundMultiplier = Durability.GetRefundMultiplier(module); // 제거 전에 읽음
+            if (!Grid.Remove(module))
                 return false;
             if (module.Data != null)
-                Resources.RefundBuildCost(module.Data.BuildCost);
+                Resources.RefundBuildCost(module.Data.BuildCost, refundMultiplier);
             return true;
+        }
+
+        /// <summary>철거 시 실제 환급액 (미리보기).</summary>
+        public List<ResourceAmount> GetRefund(ModuleInstance module)
+        {
+            var refund = new List<ResourceAmount>();
+            if (module?.Data == null)
+                return refund;
+            float rate = Balance.DemolishRefundRate * Durability.GetRefundMultiplier(module);
+            foreach (var a in module.Data.BuildCost)
+                refund.Add(new ResourceAmount(a.Type, a.Amount * rate));
+            return refund;
+        }
+
+        // ---------------- 정비 / 재건축 (4-3) ----------------
+
+        public MaintainResult TryMaintain(ModuleInstance module)
+        {
+            if (!Durability.TryGetInfo(module, out var info))
+                return MaintainResult.NotApplicable;
+            if (info.Current >= info.Max - 1e-4f)
+                return MaintainResult.AlreadyAtMax;
+            if (!Resources.TrySpend(Durability.GetMaintenanceCost(module)))
+                return MaintainResult.InsufficientResources;
+            Durability.Maintain(module);
+            EvaluateProgression(); // UI 갱신 트리거
+            return MaintainResult.Done;
+        }
+
+        /// <summary>재건축 순비용 = 건설비 − 철거 환급 (자원별, 0 이상).</summary>
+        public List<ResourceAmount> GetRebuildCost(ModuleInstance module)
+        {
+            var net = new List<ResourceAmount>();
+            if (module?.Data == null)
+                return net;
+            float rate = Balance.DemolishRefundRate * Durability.GetRefundMultiplier(module);
+            foreach (var a in module.Data.BuildCost)
+                net.Add(new ResourceAmount(a.Type, Math.Max(0f, a.Amount * (1f - rate))));
+            return net;
+        }
+
+        /// <summary>같은 자리에 철거 후 새로 건설 (내구도·최대 내구도 100, 파손 해제). 순비용만 지불.</summary>
+        public RebuildResult TryRebuild(ModuleInstance module, out ModuleInstance rebuilt)
+        {
+            rebuilt = null;
+            if (!CanRemove(module) || module.Data == null || !Durability.TryGetInfo(module, out _))
+                return RebuildResult.NotAllowed;
+            var data = module.Data;
+            if (!Progression.IsUnlocked(data))
+                return RebuildResult.Locked;
+            if (data == Progression.LimitedModule && Progression.CountLimited(Grid) - 1 >= Progression.Current.MaxLimitedModules)
+                return RebuildResult.Locked;
+            if (!Resources.TrySpend(GetRebuildCost(module)))
+                return RebuildResult.InsufficientResources;
+
+            var origin = module.Origin;
+            int rotation = module.Rotation;
+            Grid.Remove(module);
+            Grid.TryPlace(data, origin, rotation, out rebuilt); // 같은 셀이므로 항상 성공
+            return RebuildResult.Done;
         }
 
         /// <summary>파괴 (방치 등): 환급 없음. 코어는 파괴되지 않는다.</summary>
@@ -176,6 +244,8 @@ namespace SpaceStation.Simulation
 
         private void HandleModulePlaced(ModuleInstance module)
         {
+            if (module.Data != null && module.Data.Removable)
+                Durability.Track(module); // 코어(철거 불가)는 노후화 없음
             if (Connectivity.Root != null)
                 Connectivity.Recalculate();
             RefreshCapacities();
@@ -185,6 +255,7 @@ namespace SpaceStation.Simulation
         private void HandleModuleRemoved(ModuleInstance module)
         {
             Damage.Forget(module); // 파손 중 철거된 경우
+            Durability.Forget(module);
             Connectivity.Recalculate();
             RefreshCapacities();
             EvaluateProgression();
@@ -211,7 +282,8 @@ namespace SpaceStation.Simulation
                 if (module.Data == null || !Connectivity.IsActive(module))
                     continue;
                 _activeModules.Add(module.Data);
-                _productionMultipliers.Add(Damage.GetProductionMultiplier(module));
+                // 파손 배율 × 내구도 효율 (BALANCE 1번: 곱셈)
+                _productionMultipliers.Add(Damage.GetProductionMultiplier(module) * Durability.GetEfficiency(module));
             }
         }
 
@@ -273,9 +345,12 @@ namespace SpaceStation.Simulation
             }
 
             var sb = new StringBuilder();
-            foreach (var target in _meteorCandidates)
+            _meteorTargetsCopy.Clear();
+            _meteorTargetsCopy.AddRange(_meteorCandidates); // 내구도 0으로 파괴되면 목록이 바뀔 수 있어 복사
+            foreach (var target in _meteorTargetsCopy)
             {
                 Damage.Damage(target);
+                Durability.ApplyImpact(target, Balance.MeteorDurabilityDamage); // 4-3: 내구도도 깎음
                 if (sb.Length > 0)
                     sb.Append(", ");
                 sb.Append(target.Data != null ? target.Data.DisplayName : target.ToString());

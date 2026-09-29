@@ -124,12 +124,15 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - BALANCE.md 13번. `StationGrade`에 운석 수·간격·강도 배율 필드
   - `DamageSystem.PickMeteorTargets`(가중치 = 3×(노출 면−1)+1, 기울기는 BalanceConfig, 중복 없음), `EventScheduler.IntervalMultiplier/DurationProvider`
   - 측정: 이벤트 2배·파손 12배지만 무제한 병렬 수리로 파괴 0 → 4-3/4-6/4-7에서 압박 완성
-- [ ] **4-2. 태양광 낮/밤 주기 + 배터리 모듈**
-  - (코드 완료, Play 모드 확인 대기) BALANCE.md 14번. `DayNightCycle`(순수), `ResourceSimulation` 배터리 충·방전·`SolarMultiplier`
+- [x] **4-2. 태양광 낮/밤 주기 + 배터리 모듈**
+  - BALANCE.md 14번. `DayNightCycle`(순수), `ResourceSimulation` 배터리 충·방전·`SolarMultiplier`
   - `ModuleData.SolarPowered/BatteryCapacity/BatteryRate`, `MD_Battery`(키 8, 초소형 해금). HUD 전력 줄에 배터리·낮/밤·태양광 %
   - 봇: 밤 부족량 기준으로 태양광(낮 충전분 포함)·배터리(용량·속도) 판단
   - 측정: 진행 약 2배 느려짐, 첫 산소 고갈·전력 부족 발생, 배터리 과다(70/125) → 4-10에서 검토
 - [ ] **4-3. 모듈 노후화 / 정비** (누적 노후도, 내구도 비례 철거 환급, 재건축 이득 구간)
+  - (코드 완료, Play 모드 확인 대기) BALANCE.md 15번. 조정: 코어 금속 +0.5/s, 정비 비율 20%. `DurabilitySystem`(순수), `StationSimulation.TryMaintain/TryRebuild/GetRefund`
+  - UI: 선택 패널 [수리 R][정비 M][재건축 B][철거 Del] + 내구도 표시, 노후 모듈 갈색 틴트, 자원 패널 노후 경고, 노후 파괴 알림
+  - 측정: 원안은 성장 정체(소형 4/20) → 조정 후 소형 20/20(6.8분), 중형 정체(인구 23)
 - [ ] **4-4. 공간 인접 효과**
 - [ ] **4-5. 건설 메뉴 카테고리 탭** (신규 모듈 증가 대비)
 - [ ] **4-6. 수리 인력 제한** (정비 베이 모듈)

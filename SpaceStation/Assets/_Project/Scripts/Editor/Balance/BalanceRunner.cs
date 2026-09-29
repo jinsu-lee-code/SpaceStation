@@ -40,6 +40,9 @@ namespace SpaceStation.Editor.Balance
         public int ModulesDestroyed;
         public int RepairsStarted;
         public float MetalSpentOnRepairs;
+        public int Maintenances;
+        public int Rebuilds;
+        public float MetalSpentOnUpkeep;
         /// <summary>산소·물·식량·금속 최저 재고 (첫 등급 이후 전체 구간).</summary>
         public float[] MinStock = new float[4];
         /// <summary>산소·물·식량 고갈 상태였던 누적 시간(초).</summary>
@@ -161,6 +164,9 @@ namespace SpaceStation.Editor.Balance
             result.ModulesDestroyed = sim.Session.ModulesDestroyed;
             result.RepairsStarted = bot.RepairsStarted;
             result.MetalSpentOnRepairs = bot.MetalSpentOnRepairs;
+            result.Maintenances = bot.Maintenances;
+            result.Rebuilds = bot.Rebuilds;
+            result.MetalSpentOnUpkeep = bot.MetalSpentOnUpkeep;
             result.AverageEfficiency = ticks > 0 ? effSum / ticks : 1f;
             result.FinalSatisfaction = sim.Population.Satisfaction;
             return result;
@@ -195,6 +201,7 @@ namespace SpaceStation.Editor.Balance
             for (int i = 1; i < report.GradeNames.Length; i++)
                 sb.Append(",reach_grade").Append(i).Append("_s");
             sb.AppendLine(",final_grade,max_grade,final_pop,max_pop,final_modules,modules_built,events,damaged,destroyed,repairs,repair_metal," +
+                          "maintenances,rebuilds,upkeep_metal," +
                           "min_oxygen,min_water,min_food,min_metal,oxygen_depleted_s,water_depleted_s,food_depleted_s," +
                           "low_power_s,avg_efficiency,final_satisfaction,min_satisfaction");
 
@@ -207,7 +214,8 @@ namespace SpaceStation.Editor.Balance
                   .Append(',').Append(r.FinalPopulation).Append(',').Append(r.MaxPopulation)
                   .Append(',').Append(r.FinalModules).Append(',').Append(r.ModulesBuilt)
                   .Append(',').Append(r.Events).Append(',').Append(r.ModulesDamaged).Append(',').Append(r.ModulesDestroyed)
-                  .Append(',').Append(r.RepairsStarted).Append(',').Append(F(r.MetalSpentOnRepairs));
+                  .Append(',').Append(r.RepairsStarted).Append(',').Append(F(r.MetalSpentOnRepairs))
+                  .Append(',').Append(r.Maintenances).Append(',').Append(r.Rebuilds).Append(',').Append(F(r.MetalSpentOnUpkeep));
                 foreach (var v in r.MinStock) sb.Append(',').Append(F(v));
                 foreach (var v in r.DepletedSeconds) sb.Append(',').Append(F(v));
                 sb.Append(',').Append(F(r.LowPowerSeconds)).Append(',').Append(F(r.AverageEfficiency))
@@ -239,6 +247,7 @@ namespace SpaceStation.Editor.Balance
             }
             sb.AppendLine($"최종 인구 평균 {Avg(results, r => r.FinalPopulation):0.0}, 최대 인구 평균 {Avg(results, r => r.MaxPopulation):0.0}, 최종 모듈 평균 {Avg(results, r => r.FinalModules):0.0}");
             sb.AppendLine($"이벤트 평균 {Avg(results, r => r.Events):0.0}, 파손 {Avg(results, r => r.ModulesDamaged):0.0}, 파괴 {Avg(results, r => r.ModulesDestroyed):0.00}");
+            sb.AppendLine($"수리 금속 평균 {Avg(results, r => r.MetalSpentOnRepairs):0}, 정비 {Avg(results, r => r.Maintenances):0.0}회, 재건축 {Avg(results, r => r.Rebuilds):0.0}회, 유지비 금속 {Avg(results, r => r.MetalSpentOnUpkeep):0}");
             sb.AppendLine($"최저 재고 평균  산소 {Avg(results, r => r.MinStock[0]):0}  물 {Avg(results, r => r.MinStock[1]):0}  식량 {Avg(results, r => r.MinStock[2]):0}  금속 {Avg(results, r => r.MinStock[3]):0}");
             sb.AppendLine($"고갈 시간 평균(초)  산소 {Avg(results, r => r.DepletedSeconds[0]):0}  물 {Avg(results, r => r.DepletedSeconds[1]):0}  식량 {Avg(results, r => r.DepletedSeconds[2]):0}");
             sb.AppendLine($"전력 효율<100% 시간 평균 {Avg(results, r => r.LowPowerSeconds):0}초, 평균 효율 {Avg(results, r => r.AverageEfficiency) * 100f:0.0}%");

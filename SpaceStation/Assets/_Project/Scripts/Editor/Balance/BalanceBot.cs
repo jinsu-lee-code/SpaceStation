@@ -15,6 +15,12 @@ namespace SpaceStation.Editor.Balance
     {
         private const float NetMargin = 0.2f;      // 순수지가 이보다 낮으면 생산 모듈 추가
         private const float PowerHeadroom = 2f;    // 전력 여유가 이보다 낮으면 발전 추가
+        private const float MaintainAt = 55f;      // 이 내구도 미만이면 정비/재건축 (효율 저하 기준 50 직전)
+        // 정비 후 최대 내구도가 이보다 낮으면 재건축. 정비의 초당 비용은 최대치와 무관하게 일정하므로
+        // 효율 기준(50)을 유지할 수 있는 동안(최대 55 이상)은 정비가 재건축보다 싸다.
+        private const float RebuildBelowMax = 55f;
+
+        private readonly List<DurabilityInfo> _maintainQueue = new List<DurabilityInfo>();
 
         private readonly StationSimulation _sim;
         private readonly ModuleData _power, _oxygen, _water, _food, _housing, _storage, _metal, _battery;
@@ -47,10 +53,20 @@ namespace SpaceStation.Editor.Balance
             }
         }
 
+        public int Maintenances { get; private set; }
+        public int Rebuilds { get; private set; }
+        public float MetalSpentOnUpkeep { get; private set; }
+
         public void Decide()
         {
             RepairDamaged();
+            bool upkeepPending = MaintainWorn();
             UpdatePowerModel();
+            if (upkeepPending)
+            {
+                LastNeed = "upkeep";
+                return; // 정비비를 못 냈으면 새 건설 대신 저축
+            }
 
             var need = PickNeed();
             if (need == null)
@@ -130,6 +146,75 @@ namespace SpaceStation.Editor.Balance
                         MetalSpentOnRepairs += c.Type == ResourceType.Metal ? c.Amount : 0f;
                 }
             }
+        }
+
+        /// <summary>
+        /// 효율이 떨어지기 직전(내구도 55 미만)인 모듈을 관리. 금속 생산 모듈(수입원)을 먼저, 그다음 내구도 낮은 순.
+        /// 정비해도 최대치가 60 미만으로 떨어지면(곧 다시 효율 저하) 재건축, 아니면 정비.
+        /// 반환: 비용이 모자라 처리하지 못한 모듈이 있는지 (있으면 새 건설을 멈추고 저축).
+        /// </summary>
+        private bool MaintainWorn()
+        {
+            var durability = _sim.Durability;
+            _maintainQueue.Clear();
+            foreach (var info in durability.Modules)
+            {
+                if (info.Current < MaintainAt)
+                    _maintainQueue.Add(info);
+            }
+            if (_maintainQueue.Count == 0)
+                return false;
+            _maintainQueue.Sort((a, b) =>
+            {
+                bool am = a.Module.Data == _metal, bm = b.Module.Data == _metal;
+                if (am != bm) return am ? -1 : 1;
+                return a.Current.CompareTo(b.Current);
+            });
+
+            bool pending = false;
+            foreach (var info in _maintainQueue)
+            {
+                var module = info.Module;
+                if (durability.MaxAfterMaintenance(info) < RebuildBelowMax)
+                {
+                    float cost = MetalOf(_sim.GetRebuildCost(module));
+                    var result = _sim.TryRebuild(module, out _);
+                    if (result == RebuildResult.Done)
+                    {
+                        Rebuilds++;
+                        MetalSpentOnUpkeep += cost;
+                    }
+                    else if (result == RebuildResult.InsufficientResources)
+                    {
+                        pending = true;
+                        break; // 우선순위가 높은 것부터 돈을 모음
+                    }
+                }
+                else
+                {
+                    float cost = MetalOf(durability.GetMaintenanceCost(module));
+                    var result = _sim.TryMaintain(module);
+                    if (result == MaintainResult.Done)
+                    {
+                        Maintenances++;
+                        MetalSpentOnUpkeep += cost;
+                    }
+                    else if (result == MaintainResult.InsufficientResources)
+                    {
+                        pending = true;
+                        break;
+                    }
+                }
+            }
+            return pending;
+        }
+
+        private static float MetalOf(List<ResourceAmount> cost)
+        {
+            float total = 0f;
+            foreach (var c in cost)
+                if (c.Type == ResourceType.Metal) total += c.Amount;
+            return total;
         }
 
         /// <summary>기존 모듈 주변 빈 셀 × 회전 중 유효한 자리. 맞닿는 면이 많을수록(조밀), 원점에 가까울수록 우선.</summary>

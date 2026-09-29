@@ -29,6 +29,8 @@ namespace SpaceStation.Building
         public event Action<ModuleInstance> Removed;
 
         public ModuleInstance Selected => _selected;
+        /// <summary>마지막 철거의 실제 환급액 (내구도 반영, 철거 직전에 계산).</summary>
+        public System.Collections.Generic.IReadOnlyList<SpaceStation.Data.ResourceAmount> LastRemovedRefund { get; private set; }
 
         private void Awake()
         {
@@ -95,6 +97,7 @@ namespace SpaceStation.Building
             if (_selected == null)
                 return;
             var target = _selected;
+            LastRemovedRefund = _station.GetRefund(target);
             if (_station.TryRemove(target))
                 Removed?.Invoke(target);
             else

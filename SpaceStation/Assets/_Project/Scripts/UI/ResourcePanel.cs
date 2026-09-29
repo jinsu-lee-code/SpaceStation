@@ -118,7 +118,18 @@ namespace SpaceStation.UI
 
             int inactive = _station.Grid.ModuleCount - _station.Connectivity.ActiveCount;
             if (inactive > 0)
-                _sb.Append("<color=").Append(HudText.Orange).Append(">코어와 분리된 모듈: ").Append(inactive).Append("개 (비활성)</color>");
+                _sb.Append("<color=").Append(HudText.Orange).Append(">코어와 분리된 모듈: ").Append(inactive).Append("개 (비활성)</color>\n");
+
+            // 4-3: 노후 모듈 (효율 저하 중)
+            int worn = 0;
+            var durability = _resources.Durability;
+            foreach (var info in durability.Modules)
+            {
+                if (durability.EfficiencyFor(info.Current) < 1f)
+                    worn++;
+            }
+            if (worn > 0)
+                _sb.Append("<color=").Append(HudText.Yellow).Append(">노후 모듈(효율 저하): ").Append(worn).Append("개 · 정비(M) 또는 재건축(B)</color>");
 
             _body.SetText(_sb);
 

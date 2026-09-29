@@ -41,6 +41,8 @@ namespace SpaceStation.Building
             _sim.Damage.Damaged += HandleDamaged;
             _sim.Damage.RepairStarted += HandleRepairStarted;
             _sim.Damage.Repaired += HandleRepaired;
+            _sim.Resources.Ticked += RefreshWornVisuals;
+            _sim.Durability.Maintained += HandleMaintained;
         }
 
         private void OnDestroy()
@@ -53,6 +55,24 @@ namespace SpaceStation.Building
             _sim.Damage.Damaged -= HandleDamaged;
             _sim.Damage.RepairStarted -= HandleRepairStarted;
             _sim.Damage.Repaired -= HandleRepaired;
+            _sim.Resources.Ticked -= RefreshWornVisuals;
+            _sim.Durability.Maintained -= HandleMaintained;
+        }
+
+        /// <summary>틱마다 내구도 효율 저하 여부를 뷰에 반영 (상태가 바뀐 뷰만 MPB 갱신).</summary>
+        private void RefreshWornVisuals()
+        {
+            foreach (var info in _sim.Durability.Modules)
+            {
+                if (_views.TryGetValue(info.Module, out var view))
+                    view.SetWorn(_sim.Durability.EfficiencyFor(info.Current) < 1f);
+            }
+        }
+
+        private void HandleMaintained(DurabilityInfo info)
+        {
+            if (_views.TryGetValue(info.Module, out var view))
+                view.SetWorn(false);
         }
 
         public bool CanPlace(ModuleData data, Vector3Int origin, int rotation)
@@ -69,6 +89,7 @@ namespace SpaceStation.Building
 
         public bool CanRemove(ModuleInstance module) => _sim.CanRemove(module);
         public bool TryRemove(ModuleInstance module) => _sim.TryRemove(module);
+        public List<ResourceAmount> GetRefund(ModuleInstance module) => _sim.GetRefund(module);
         public bool DestroyModule(ModuleInstance module) => _sim.DestroyModule(module);
 
         public bool TryGetView(ModuleInstance module, out ModuleView view)

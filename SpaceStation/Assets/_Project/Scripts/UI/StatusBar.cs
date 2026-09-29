@@ -47,10 +47,14 @@ namespace SpaceStation.UI
             _resources.Population.PopulationChanged += HandlePopulationChanged;
             _resources.Damage.Destroyed += HandleDestroyed;
             _resources.Damage.Repaired += HandleRepaired;
+            _resources.Durability.WornOut += HandleWornOut;
             if (_eventEffects != null)
                 _eventEffects.Reported += HandleEffectReported;
             if (_selectionActions != null)
-                _selectionActions.RepairFailed += HandleRepairFailed;
+            {
+                _selectionActions.ActionFailed += HandleActionFailed;
+                _selectionActions.ActionDone += HandleActionDone;
+            }
             if (_progression != null)
                 _progression.Progression.GradeChanged += HandleGradeChanged;
             _messageText.SetText(string.Empty);
@@ -73,11 +77,15 @@ namespace SpaceStation.UI
             {
                 _resources.Damage.Destroyed -= HandleDestroyed;
                 _resources.Damage.Repaired -= HandleRepaired;
+                _resources.Durability.WornOut -= HandleWornOut;
             }
             if (_eventEffects != null)
                 _eventEffects.Reported -= HandleEffectReported;
             if (_selectionActions != null)
-                _selectionActions.RepairFailed -= HandleRepairFailed;
+            {
+                _selectionActions.ActionFailed -= HandleActionFailed;
+                _selectionActions.ActionDone -= HandleActionDone;
+            }
             if (_progression != null && _progression.Progression != null)
                 _progression.Progression.GradeChanged -= HandleGradeChanged;
         }
@@ -130,9 +138,7 @@ namespace SpaceStation.UI
             {
                 string name = selected.Data != null ? selected.Data.DisplayName : selected.ToString();
                 string state = selectedActive ? string.Empty : $"  <color={HudText.Orange}>(비활성: 코어와 분리됨)</color>";
-                string action = _station.CanRemove(selected)
-                    ? $"Delete/X: 철거 (환급 {HudText.Cost(selected.Data != null ? selected.Data.BuildCost : null, _resources.Balance.DemolishRefundRate)})"
-                    : "철거 불가";
+                string action = _station.CanRemove(selected) ? "M: 정비  ·  B: 재건축  ·  Delete/X: 철거" : "철거 불가";
                 string repair = damageState == 1 ? $"  ·  <color={HudText.Red}>R: 수리</color>" : string.Empty;
                 _hintText.SetText($"선택: <b>{name}</b>{state}{repair}  ·  {action}  ·  ESC: 선택 해제");
             }
@@ -193,12 +199,23 @@ namespace SpaceStation.UI
             ShowMessage($"<color=#7FD8FF>{name} 수리 완료</color>");
         }
 
-        private void HandleRepairFailed(ModuleInstance module, RepairResult result)
+        private void HandleWornOut(ModuleInstance module)
         {
-            string reason = result == RepairResult.InsufficientResources ? "수리 비용(금속)이 부족합니다"
-                : result == RepairResult.AlreadyRepairing ? "이미 수리 중입니다"
-                : "파손된 모듈이 아닙니다";
+            string name = module.Data != null ? module.Data.DisplayName : module.ToString();
+            string message = $"<color={HudText.Red}>{name} 노후로 파괴됨 (내구도 0)</color>";
+            if (_disconnectedThisFrame > 0)
+                message += $"\n<color={HudText.Orange}>모듈 {_disconnectedThisFrame}개가 코어와 분리되어 비활성화됨</color>";
+            ShowMessage(message);
+        }
+
+        private void HandleActionFailed(string reason)
+        {
             ShowMessage($"<color={HudText.Red}>{reason}</color>");
+        }
+
+        private void HandleActionDone(string message)
+        {
+            ShowMessage($"<color=#7FD8FF>{message}</color>");
         }
 
         private void HandleActiveStateChanged(ModuleInstance module, bool active)
@@ -211,7 +228,7 @@ namespace SpaceStation.UI
         private void HandleRemoved(ModuleInstance module)
         {
             string name = module.Data != null ? module.Data.DisplayName : module.ToString();
-            string refund = HudText.Cost(module.Data != null ? module.Data.BuildCost : null, _resources.Balance.DemolishRefundRate);
+            string refund = HudText.Cost(_selection.LastRemovedRefund); // 내구도 반영, 철거 직전에 계산됨
             string message = $"{name} 철거  ·  환급 {refund}";
             if (_disconnectedThisFrame > 0)
                 message += $"\n<color={HudText.Orange}>모듈 {_disconnectedThisFrame}개가 코어와 분리되어 비활성화됨</color>";

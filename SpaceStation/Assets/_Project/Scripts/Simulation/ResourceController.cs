@@ -18,7 +18,13 @@ namespace SpaceStation.Simulation
         public DayNightCycle DayNight => _host.Simulation.DayNight;
         public float ElapsedSeconds => _host.Simulation.ElapsedSeconds;
 
+        public DurabilitySystem Durability => _host.Simulation.Durability;
+
         /// <summary>파손 모듈 수리 시작: 수리 비용(건설 비용 × 수리 비율)을 지불하고 타이머 시작.</summary>
         public RepairResult TryRepair(ModuleInstance module) => _host.Simulation.TryRepair(module);
+        public MaintainResult TryMaintain(ModuleInstance module) => _host.Simulation.TryMaintain(module);
+        public RebuildResult TryRebuild(ModuleInstance module, out ModuleInstance rebuilt) => _host.Simulation.TryRebuild(module, out rebuilt);
+        public System.Collections.Generic.List<ResourceAmount> GetRefund(ModuleInstance module) => _host.Simulation.GetRefund(module);
+        public System.Collections.Generic.List<ResourceAmount> GetRebuildCost(ModuleInstance module) => _host.Simulation.GetRebuildCost(module);
     }
 }
