@@ -14,6 +14,7 @@ namespace SpaceStation.Editor.Balance
         public ModuleData CoreModule;
         public IReadOnlyList<GameEventData> Events;
         public IReadOnlyList<ModuleData> Buildable;
+        public AdjacencyRuleSet AdjacencyRules;
         public float DurationSeconds = 1800f;
         public int Runs = 20;
         public int BaseSeed = 1;
@@ -94,6 +95,7 @@ namespace SpaceStation.Editor.Balance
                 Grades = s.Grades,
                 CoreModule = s.CoreModule,
                 Events = s.Events,
+                AdjacencyRules = s.AdjacencyRules,
                 Random01 = () => (float)rng.NextDouble(),
             });
             var bot = new BalanceBot(sim, s.Buildable);

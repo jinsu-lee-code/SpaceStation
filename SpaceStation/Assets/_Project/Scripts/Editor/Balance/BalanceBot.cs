@@ -245,7 +245,10 @@ namespace SpaceStation.Editor.Balance
                 {
                     if (PlacementRules.Evaluate(_sim.Grid, data, origin, rot) != PlacementResult.Valid)
                         continue;
-                    float score = Contacts(data, origin, rot) * 10f - origin.sqrMagnitude * 0.01f;
+                    // 조밀 배치(운석 노출 감소) 선호. 태양광은 그늘 때문에 접촉 가산을 줄임.
+                    float contactWeight = data.SolarPowered ? 1f : 10f;
+                    float score = Contacts(data, origin, rot) * contactWeight - origin.sqrMagnitude * 0.01f
+                                  + AdjacencyScore(data, origin, rot);
                     if (score > bestScore)
                     {
                         bestScore = score;
@@ -257,6 +260,26 @@ namespace SpaceStation.Editor.Balance
             }
             return found;
         }
+
+        /// <summary>인접 효과 점수: 자신에게 생길 효과(생산 +, 소비 −, 수용 인구 +)와 이웃에게 줄 효과 개수.</summary>
+        private float AdjacencyScore(ModuleData data, Vector3Int origin, int rotation)
+        {
+            _sim.PreviewAdjacency(data, origin, rotation, _previewSelf, _previewNeighbors);
+            float score = 0f;
+            foreach (var a in _previewSelf)
+            {
+                switch (a.Rule.Effect)
+                {
+                    case AdjacencyEffect.Production: score += a.Total * 30f; break;
+                    case AdjacencyEffect.Consumption: score -= a.Total * 15f; break;
+                    case AdjacencyEffect.Housing: score += a.Total * 3f; break;
+                }
+            }
+            return score + _previewNeighbors.Count * 2f; // 이웃 효과는 부호를 모르므로 약하게
+        }
+
+        private readonly List<AppliedAdjacency> _previewSelf = new List<AppliedAdjacency>();
+        private readonly List<string> _previewNeighbors = new List<string>();
 
         private int Contacts(ModuleData data, Vector3Int origin, int rotation)
         {
@@ -290,11 +313,12 @@ namespace SpaceStation.Editor.Balance
             {
                 if (m.Data == null || !_sim.Connectivity.IsActive(m))
                     continue;
+                float adjacency = _sim.Adjacency.GetProductionMultiplier(m); // 태양광 그늘 등 (4-4)
                 foreach (var a in m.Data.Production)
                 {
                     if (a.Type != ResourceType.Power) continue;
-                    if (m.Data.SolarPowered) solar += a.Amount;
-                    else other += a.Amount;
+                    if (m.Data.SolarPowered) solar += a.Amount * adjacency;
+                    else other += a.Amount * adjacency;
                 }
                 demand += PowerDemandOf(m.Data);
             }

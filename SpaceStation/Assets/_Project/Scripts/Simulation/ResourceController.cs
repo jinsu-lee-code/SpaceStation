@@ -19,6 +19,7 @@ namespace SpaceStation.Simulation
         public float ElapsedSeconds => _host.Simulation.ElapsedSeconds;
 
         public DurabilitySystem Durability => _host.Simulation.Durability;
+        public AdjacencySystem Adjacency => _host.Simulation.Adjacency;
 
         /// <summary>파손 모듈 수리 시작: 수리 비용(건설 비용 × 수리 비율)을 지불하고 타이머 시작.</summary>
         public RepairResult TryRepair(ModuleInstance module) => _host.Simulation.TryRepair(module);

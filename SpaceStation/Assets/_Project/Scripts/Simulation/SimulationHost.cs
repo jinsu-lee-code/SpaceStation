@@ -17,6 +17,7 @@ namespace SpaceStation.Simulation
         [SerializeField] private BalanceConfig _balance;
         [SerializeField] private StationGradeConfig _grades;
         [SerializeField] private ModuleData _coreModule;
+        [SerializeField] private AdjacencyRuleSet _adjacencyRules;
         [Tooltip("랜덤 이벤트 후보")]
         [SerializeField] private List<GameEventData> _events = new List<GameEventData>();
         [SerializeField] private SimulationClock _clock;
@@ -33,6 +34,7 @@ namespace SpaceStation.Simulation
                 Grades = _grades,
                 CoreModule = _coreModule,
                 Events = _events,
+                AdjacencyRules = _adjacencyRules,
                 Random01 = () => Random.value * 0.99999f, // [0, 1) 보장
             });
             Simulation.Resources.DepletionChanged += HandleDepletionChanged;

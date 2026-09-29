@@ -136,6 +136,18 @@ namespace SpaceStation.UI
         private void HandleActiveStateChanged(ModuleInstance _, bool __) => _dirty = true;
         private void MarkDirty() => _dirty = true;
 
+        private static bool UsesPower(SpaceStation.Data.ModuleData data)
+        {
+            if (data == null)
+                return false;
+            foreach (var c in data.Consumption)
+            {
+                if (c.Type == SpaceStation.Data.ResourceType.Power && c.Amount > 0f)
+                    return true;
+            }
+            return false;
+        }
+
         private static string Name(ModuleInstance module) => module.Data != null ? module.Data.DisplayName : module.ToString();
 
         private void Refresh()
@@ -161,6 +173,10 @@ namespace SpaceStation.UI
             {
                 state = $"<color={HudText.Orange}>비활성 (코어와 분리됨)</color>";
             }
+            else if (_resources.Simulation.PowerEfficiency < 1f && UsesPower(module.Data))
+            {
+                state = $"<color={HudText.Yellow}>전력 부족: 가동률 {_resources.Simulation.PowerEfficiency * 100f:0}%</color>";
+            }
             else
             {
                 state = "정상";
@@ -177,7 +193,11 @@ namespace SpaceStation.UI
                                  (eff < 1f ? $"  <color={HudText.Red}>효율 {eff * 100f:0}%</color>" : "") +
                                  (dur.MaintenanceCount > 0 ? $"  <color={HudText.Muted}>정비 {dur.MaintenanceCount}회</color>" : "") + "</size>";
             }
-            _title.SetText($"<b>{Name(module)}</b>\n<size=85%>{state}</size>{durabilityLine}");
+            string adjacencyLine = string.Empty;
+            var applied = _resources.Adjacency.GetApplied(module);
+            if (applied.Count > 0)
+                adjacencyLine = $"\n<size=85%><color={HudText.Muted}>인접</color> {AdjacencySystem.DescribeAll(applied)}</size>";
+            _title.SetText($"<b>{Name(module)}</b>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}");
 
             var sim = _resources.Simulation;
 

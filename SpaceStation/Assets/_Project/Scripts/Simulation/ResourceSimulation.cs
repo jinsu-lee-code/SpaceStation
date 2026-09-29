@@ -35,6 +35,8 @@ namespace SpaceStation.Simulation
         /// <summary>발전량 (배터리 방전 제외, 낮/밤·폭풍·파손 반영).</summary>
         public float PowerSupply { get; private set; }
         public float PowerDemand { get; private set; }
+        /// <summary>모듈 외 수용 인구 가감 (인접 효과 합계). RefreshCapacities에서 반영.</summary>
+        public int ExtraHousing { get; set; }
         /// <summary>태양광(SolarPowered) 모듈 출력 배율 — 낮/밤 주기. 다음 틱부터 반영.</summary>
         public float SolarMultiplier { get; set; } = 1f;
         public float BatteryCharge { get; private set; }
@@ -227,7 +229,7 @@ namespace SpaceStation.Simulation
                     }
                 }
             }
-            HousingCapacity = housing;
+            HousingCapacity = Math.Max(0, housing + ExtraHousing);
             BatteryCapacity = batteryCapacity;
             BatteryRate = batteryRate;
             if (BatteryCharge > BatteryCapacity)
@@ -245,6 +247,13 @@ namespace SpaceStation.Simulation
         /// 전력 공급을 포함한 생산에만 곱하고, 소비는 유지한다.
         /// </param>
         public void Tick(IReadOnlyList<ModuleData> activeModules, IReadOnlyList<float> productionMultipliers, float deltaSeconds)
+        {
+            Tick(activeModules, productionMultipliers, null, deltaSeconds);
+        }
+
+        /// <param name="consumptionMultipliers">모듈별 전력 외 입력 소비 배율 (인접 효과 등). null이면 모두 1.</param>
+        public void Tick(IReadOnlyList<ModuleData> activeModules, IReadOnlyList<float> productionMultipliers,
+            IReadOnlyList<float> consumptionMultipliers, float deltaSeconds)
         {
             RefreshCapacities(activeModules);
 
@@ -310,10 +319,11 @@ namespace SpaceStation.Simulation
                     if (IsStock(a.Type))
                         _production[(int)a.Type] += a.Amount * productionFactor;
                 }
+                float consumptionFactor = efficiency * Multiplier(consumptionMultipliers, k); // 인접 효과 (4-4)
                 foreach (var a in m.Consumption)
                 {
                     if (IsStock(a.Type))
-                        _consumption[(int)a.Type] += a.Amount * efficiency;
+                        _consumption[(int)a.Type] += a.Amount * consumptionFactor;
                 }
             }
 

@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf0788885066fc44db98bfb8b87bdb51, type: 3}
+  m_Name: AdjacencyRules
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.AdjacencyRuleSet
+  _minMultiplier: 0
+  _maxMultiplier: 2
+  _rules:
+  - _target: {fileID: 11400000, guid: 650c0912820571249b07312aa1677c0d, type: 2}
+    _neighbor: {fileID: 11400000, guid: c63f0c523b6d5fd47881a68cd635fbf2, type: 2}
+    _excludeSameType: 0
+    _effect: 1
+    _valuePerNeighbor: -0.25
+    _freeNeighbors: 0
+    _maxStacks: 3
+    _label: "\uC218\uB85C \uACF5\uC720"
+  - _target: {fileID: 11400000, guid: c7e25e386c31fb54c84913570c72a259, type: 2}
+    _neighbor: {fileID: 11400000, guid: 650c0912820571249b07312aa1677c0d, type: 2}
+    _excludeSameType: 0
+    _effect: 0
+    _valuePerNeighbor: 0.15
+    _freeNeighbors: 0
+    _maxStacks: 3
+    _label: "\uAD11\uD569\uC131 \uBCF4\uC870"
+  - _target: {fileID: 11400000, guid: 0cfe3d85b68f446419d9c2c70715d7d2, type: 2}
+    _neighbor: {fileID: 0}
+    _excludeSameType: 1
+    _effect: 0
+    _valuePerNeighbor: -0.1
+    _freeNeighbors: 1
+    _maxStacks: 3
+    _label: "\uADF8\uB298"
+  - _target: {fileID: 11400000, guid: 71046e0678fea324aac0dc3c263a698c, type: 2}
+    _neighbor: {fileID: 11400000, guid: fb65ff1f6a335b84cb001bc80e2bb704, type: 2}
+    _excludeSameType: 0
+    _effect: 2
+    _valuePerNeighbor: -2
+    _freeNeighbors: 0
+    _maxStacks: 3
+    _label: "\uC18C\uC74C"
+  - _target: {fileID: 11400000, guid: 71046e0678fea324aac0dc3c263a698c, type: 2}
+    _neighbor: {fileID: 11400000, guid: 71046e0678fea324aac0dc3c263a698c, type: 2}
+    _excludeSameType: 0
+    _effect: 2
+    _valuePerNeighbor: 1
+    _freeNeighbors: 0
+    _maxStacks: 3
+    _label: "\uC8FC\uAC70 \uB2E8\uC9C0"

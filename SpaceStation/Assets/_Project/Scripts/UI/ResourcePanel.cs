@@ -87,6 +87,9 @@ namespace SpaceStation.UI
             _sb.Append("<b>전력</b><pos=30%>공급 ").Append(_sim.PowerSupply.ToString("0.#"))
                .Append("  /  수요 ").Append(_sim.PowerDemand.ToString("0.#")).Append('\n');
             _sb.Append("<pos=30%><color=").Append(effColor).Append(">효율 ").Append((eff * 100f).ToString("0")).Append("%</color>\n");
+            if (eff < 1f) // 전력을 쓰는 모듈의 생산·소비가 효율만큼 함께 줄어듦을 알림
+                _sb.Append("<size=80%><color=").Append(effColor).Append("><pos=30%>전력 부족: 전력 사용 모듈 가동률 ")
+                   .Append((eff * 100f).ToString("0")).Append("%</color></size>\n");
 
             // 4-2: 배터리 + 낮/밤
             if (_sim.BatteryCapacity > 0f)

@@ -51,6 +51,8 @@ namespace SpaceStation.Building
         public bool HasTarget => _hasTarget;
         /// <summary>현재 대상 셀의 배치 판정 결과. HasTarget일 때만 의미 있음.</summary>
         public PlacementResult TargetResult => _targetResult;
+        public Vector3Int TargetCell => _targetCell;
+        public int Rotation => _rotation;
 
         private void Awake()
         {

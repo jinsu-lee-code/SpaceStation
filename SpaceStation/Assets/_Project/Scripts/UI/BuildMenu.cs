@@ -22,6 +22,7 @@ namespace SpaceStation.UI
         [SerializeField] private TooltipView _tooltip;
 
         private readonly List<BuildButtonView> _buttons = new List<BuildButtonView>();
+        private readonly List<string> _ruleLines = new List<string>();
         private bool _stateDirty = true;
 
         private void Start()
@@ -75,6 +76,9 @@ namespace SpaceStation.UI
             if (_tooltip == null)
                 return;
             string text = HudText.ModuleTooltip(data);
+            _station.Simulation.Adjacency.DescribeRulesFor(data, _ruleLines);
+            if (_ruleLines.Count > 0)
+                text += $"\n<color={HudText.Muted}>인접 효과</color>\n" + string.Join("\n", _ruleLines);
             var buildable = _station.CheckBuildable(data);
             if (buildable != PlacementResult.Valid)
                 text += $"\n<color={HudText.Red}>{BlockedDetail(data, buildable)}</color>";

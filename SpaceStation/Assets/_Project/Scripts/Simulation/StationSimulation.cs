@@ -13,6 +13,8 @@ namespace SpaceStation.Simulation
         public StationGradeConfig Grades;
         public ModuleData CoreModule;
         public IReadOnlyList<GameEventData> Events;
+        /// <summary>공간 인접 효과 규칙 (null이면 효과 없음).</summary>
+        public AdjacencyRuleSet AdjacencyRules;
         /// <summary>[0, 1) 난수. 이벤트 선택·간격, 운석 대상에 사용 (시드 고정 가능).</summary>
         public Func<float> Random01;
     }
@@ -26,6 +28,7 @@ namespace SpaceStation.Simulation
     {
         private readonly List<ModuleData> _activeModules = new List<ModuleData>();
         private readonly List<float> _productionMultipliers = new List<float>();
+        private readonly List<float> _consumptionMultipliers = new List<float>();
         private readonly List<ModuleInstance> _meteorCandidates = new List<ModuleInstance>();
         private readonly List<ModuleInstance> _meteorTargetsCopy = new List<ModuleInstance>();
         private readonly List<GameEventData> _eventPool;
@@ -43,6 +46,7 @@ namespace SpaceStation.Simulation
         public PopulationSimulation Population { get; }
         public DamageSystem Damage { get; }
         public DurabilitySystem Durability { get; }
+        public AdjacencySystem Adjacency { get; }
         public EventScheduler Events { get; }
         public StationProgression Progression { get; }
         public GameSession Session { get; }
@@ -67,6 +71,7 @@ namespace SpaceStation.Simulation
             Population = new PopulationSimulation(Balance, Resources);
             Damage = new DamageSystem(Balance);
             Durability = new DurabilitySystem(Balance);
+            Adjacency = new AdjacencySystem(settings.AdjacencyRules);
             Events = new EventScheduler(Balance.EventGracePeriod, Balance.EventIntervalMin, Balance.EventIntervalMax, _random01);
             Progression = new StationProgression(settings.Grades);
             Session = new GameSession();
@@ -104,7 +109,7 @@ namespace SpaceStation.Simulation
             CollectActiveModules();
             Resources.SetExternalDrain(ResourceType.Oxygen, Damage.OxygenLeakPerSecond);
             Resources.SolarMultiplier = DayNight.SolarMultiplier(ElapsedSeconds); // 이번 틱 시작 시점의 낮/밤
-            Resources.Tick(_activeModules, _productionMultipliers, dt);
+            Resources.Tick(_activeModules, _productionMultipliers, _consumptionMultipliers, dt);
             Population.Tick(dt);
             Events.Tick(dt, _eventPool);
             ElapsedSeconds += dt;
@@ -122,6 +127,13 @@ namespace SpaceStation.Simulation
             if (result == PlacementResult.Valid && !Resources.CanAfford(data.BuildCost))
                 return PlacementResult.InsufficientResources;
             return result;
+        }
+
+        /// <summary>배치 미리보기: 새 모듈 자신의 인접 효과와, 이웃에게 새로 생길 효과 설명.</summary>
+        public void PreviewAdjacency(ModuleData data, UnityEngine.Vector3Int origin, int rotation,
+            List<AppliedAdjacency> self, List<string> neighborLines)
+        {
+            Adjacency.Preview(Grid, data, origin, rotation, self, neighborLines);
         }
 
         /// <summary>위치와 무관한 건설 가능 여부 (해금·최대 설치 수).</summary>
@@ -246,6 +258,7 @@ namespace SpaceStation.Simulation
         {
             if (module.Data != null && module.Data.Removable)
                 Durability.Track(module); // 코어(철거 불가)는 노후화 없음
+            Adjacency.Recalculate(Grid);
             if (Connectivity.Root != null)
                 Connectivity.Recalculate();
             RefreshCapacities();
@@ -256,6 +269,7 @@ namespace SpaceStation.Simulation
         {
             Damage.Forget(module); // 파손 중 철거된 경우
             Durability.Forget(module);
+            Adjacency.Recalculate(Grid);
             Connectivity.Recalculate();
             RefreshCapacities();
             EvaluateProgression();
@@ -277,14 +291,21 @@ namespace SpaceStation.Simulation
         {
             _activeModules.Clear();
             _productionMultipliers.Clear();
+            _consumptionMultipliers.Clear();
+            int extraHousing = 0;
             foreach (var module in Grid.Modules)
             {
                 if (module.Data == null || !Connectivity.IsActive(module))
                     continue;
                 _activeModules.Add(module.Data);
-                // 파손 배율 × 내구도 효율 (BALANCE 1번: 곱셈)
-                _productionMultipliers.Add(Damage.GetProductionMultiplier(module) * Durability.GetEfficiency(module));
+                // 파손 배율 × 내구도 효율 × 인접 효과 (BALANCE 1번: 곱셈)
+                _productionMultipliers.Add(Damage.GetProductionMultiplier(module) * Durability.GetEfficiency(module)
+                                           * Adjacency.GetProductionMultiplier(module));
+                _consumptionMultipliers.Add(Adjacency.GetConsumptionMultiplier(module));
+                // 인접 수용 인구 가감 (모듈 자체 수용 인구 아래로는 내려가지 않음)
+                extraHousing += Math.Max(-module.Data.HousingCapacity, Adjacency.GetHousingBonus(module));
             }
+            Resources.ExtraHousing = extraHousing;
         }
 
         private void EvaluateProgression()

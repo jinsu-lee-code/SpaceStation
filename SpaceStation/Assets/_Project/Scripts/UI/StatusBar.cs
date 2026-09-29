@@ -36,7 +36,11 @@ namespace SpaceStation.UI
         private bool _shownHasTarget;
         private PlacementResult _shownResult;
         private int _shownDamageState;
+        private Vector3Int _shownTargetCell;
+        private int _shownRotation;
         private bool _hintInitialized;
+        private readonly System.Collections.Generic.List<AppliedAdjacency> _previewSelf = new System.Collections.Generic.List<AppliedAdjacency>();
+        private readonly System.Collections.Generic.List<string> _previewNeighbors = new System.Collections.Generic.List<string>();
 
         private void Start()
         {
@@ -115,9 +119,15 @@ namespace SpaceStation.UI
             // 0 정상, 1 파손, 2 수리 중
             int damageState = selected != null && _resources.Damage.TryGetInfo(selected, out var info) ? (info.IsRepairing ? 2 : 1) : 0;
 
+            var targetCell = hasTarget ? _build.TargetCell : Vector3Int.zero;
+            int rotation = build != null ? _build.Rotation : 0;
+
             if (_hintInitialized && build == _shownBuild && selected == _shownSelection && selectedActive == _shownSelectionActive
-                && hasTarget == _shownHasTarget && result == _shownResult && damageState == _shownDamageState)
+                && hasTarget == _shownHasTarget && result == _shownResult && damageState == _shownDamageState
+                && targetCell == _shownTargetCell && rotation == _shownRotation)
                 return;
+            _shownTargetCell = targetCell;
+            _shownRotation = rotation;
 
             _hintInitialized = true;
             _shownBuild = build;
@@ -132,6 +142,8 @@ namespace SpaceStation.UI
                 string text = $"<b>{build.DisplayName}</b> 배치  ·  좌클릭: 배치  ·  R: 회전  ·  우클릭/ESC: 취소";
                 if (hasTarget && result != PlacementResult.Valid)
                     text += $"\n<color={HudText.Red}>배치 불가: {HudText.PlacementReason(result)}</color>";
+                else if (hasTarget)
+                    text += AdjacencyPreviewLine(build, targetCell, rotation);
                 _hintText.SetText(text);
             }
             else if (selected != null)
@@ -146,6 +158,31 @@ namespace SpaceStation.UI
             {
                 _hintText.SetText(_idleHint);
             }
+        }
+
+        /// <summary>4-4: 이 자리에 놓으면 생길 인접 효과 (자신 / 이웃). 없으면 빈 문자열.</summary>
+        private string AdjacencyPreviewLine(ModuleData data, Vector3Int cell, int rotation)
+        {
+            _station.Simulation.PreviewAdjacency(data, cell, rotation, _previewSelf, _previewNeighbors);
+            if (_previewSelf.Count == 0 && _previewNeighbors.Count == 0)
+                return string.Empty;
+            var sb = new System.Text.StringBuilder("\n<size=90%>인접: ");
+            bool first = true;
+            foreach (var a in _previewSelf)
+            {
+                if (!first) sb.Append("  ·  ");
+                first = false;
+                sb.Append(a.Total >= 0f ? "<color=#7CFF9A>" : $"<color={HudText.Orange}>")
+                  .Append(AdjacencySystem.Describe(a.Rule, a.Stacks)).Append("</color>");
+            }
+            foreach (var line in _previewNeighbors)
+            {
+                if (!first) sb.Append("  ·  ");
+                first = false;
+                sb.Append($"<color={HudText.Muted}>이웃</color> ").Append(line);
+            }
+            sb.Append("</size>");
+            return sb.ToString();
         }
 
         private void ShowMessage(string message)

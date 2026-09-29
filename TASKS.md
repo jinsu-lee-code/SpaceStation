@@ -129,11 +129,15 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - `ModuleData.SolarPowered/BatteryCapacity/BatteryRate`, `MD_Battery`(키 8, 초소형 해금). HUD 전력 줄에 배터리·낮/밤·태양광 %
   - 봇: 밤 부족량 기준으로 태양광(낮 충전분 포함)·배터리(용량·속도) 판단
   - 측정: 진행 약 2배 느려짐, 첫 산소 고갈·전력 부족 발생, 배터리 과다(70/125) → 4-10에서 검토
-- [ ] **4-3. 모듈 노후화 / 정비** (누적 노후도, 내구도 비례 철거 환급, 재건축 이득 구간)
-  - (코드 완료, Play 모드 확인 대기) BALANCE.md 15번. 조정: 코어 금속 +0.5/s, 정비 비율 20%. `DurabilitySystem`(순수), `StationSimulation.TryMaintain/TryRebuild/GetRefund`
+- [x] **4-3. 모듈 노후화 / 정비** (누적 노후도, 내구도 비례 철거 환급, 재건축 이득 구간)
+  - BALANCE.md 15번. 조정: 코어 금속 +0.5/s, 정비 비율 20%. `DurabilitySystem`(순수), `StationSimulation.TryMaintain/TryRebuild/GetRefund`
   - UI: 선택 패널 [수리 R][정비 M][재건축 B][철거 Del] + 내구도 표시, 노후 모듈 갈색 틴트, 자원 패널 노후 경고, 노후 파괴 알림
   - 측정: 원안은 성장 정체(소형 4/20) → 조정 후 소형 20/20(6.8분), 중형 정체(인구 23)
 - [ ] **4-4. 공간 인접 효과**
+  - (코드 완료, Play 모드 확인 대기) BALANCE.md 16번. 규칙 5개(보너스+페널티), 이웃 수만큼 최대 3회. 추가 규칙은 Phase 6 이후
+  - `AdjacencyRuleSet`(SO) + `AdjacencySystem`(순수, 그리드 변경 시 재계산·캐시, 배치 미리보기)
+  - `ResourceSimulation`: 모듈별 소비 배율, `ExtraHousing`. 생산 배율은 파손×내구도×인접
+  - UI: 배치 중 상태 표시줄 미리보기, 선택 패널 적용 효과, 건설 메뉴 툴팁 규칙. 봇: 배치 점수에 인접 효과, 전력 계산에 그늘 반영
 - [ ] **4-5. 건설 메뉴 카테고리 탭** (신규 모듈 증가 대비)
 - [ ] **4-6. 수리 인력 제한** (정비 베이 모듈)
 - [ ] **4-7. 연쇄 파손 확산**
