@@ -67,9 +67,20 @@ namespace SpaceStation.Building
         public PlacementResult EvaluatePlacement(ModuleData data, Vector3Int origin, int rotation)
         {
             var result = PlacementRules.Evaluate(_grid, data, origin, rotation);
+            if (result == PlacementResult.Valid)
+                result = CheckBuildable(data);
             if (result == PlacementResult.Valid && !CanAfford(data))
                 return PlacementResult.InsufficientResources;
             return result;
+        }
+
+        /// <summary>진행도 제한 창구 (ProgressionController가 Start에서 등록). 없으면 제한 없음.</summary>
+        public IPlacementPolicy PlacementPolicy { get; set; }
+
+        /// <summary>위치와 무관한 건설 가능 여부 (해금·최대 설치 수).</summary>
+        public PlacementResult CheckBuildable(ModuleData data)
+        {
+            return PlacementPolicy != null ? PlacementPolicy.CheckBuildable(data, _grid) : PlacementResult.Valid;
         }
 
         public bool CanAfford(ModuleData data)
@@ -100,6 +111,14 @@ namespace SpaceStation.Building
             if (CostHandler != null && module.Data != null)
                 CostHandler.Refund(module.Data.BuildCost);
             return true;
+        }
+
+        /// <summary>파괴 (파손 방치 등). 환급 없음. 코어는 파괴되지 않는다.</summary>
+        public bool DestroyModule(ModuleInstance module)
+        {
+            if (module == null || module == Core)
+                return false;
+            return _grid.Remove(module);
         }
 
         public bool TryGetView(ModuleInstance module, out ModuleView view)

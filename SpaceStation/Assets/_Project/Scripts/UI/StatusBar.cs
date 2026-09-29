@@ -18,6 +18,9 @@ namespace SpaceStation.UI
         [SerializeField] private ModuleSelectionController _selection;
         [SerializeField] private StationController _station;
         [SerializeField] private ResourceController _resources;
+        [SerializeField] private EventEffectController _eventEffects;
+        [SerializeField] private SelectionActionsPanel _selectionActions;
+        [SerializeField] private ProgressionController _progression;
         [SerializeField] private TMP_Text _hintText;
         [SerializeField] private TMP_Text _messageText;
         [SerializeField] private float _messageSeconds = 3f;
@@ -32,6 +35,7 @@ namespace SpaceStation.UI
         private bool _shownSelectionActive;
         private bool _shownHasTarget;
         private PlacementResult _shownResult;
+        private int _shownDamageState;
         private bool _hintInitialized;
 
         private void Start()
@@ -41,6 +45,14 @@ namespace SpaceStation.UI
             _station.Connectivity.ActiveStateChanged += HandleActiveStateChanged;
             _resources.Simulation.DepletionChanged += HandleDepletionChanged;
             _resources.Population.PopulationChanged += HandlePopulationChanged;
+            _resources.Damage.Destroyed += HandleDestroyed;
+            _resources.Damage.Repaired += HandleRepaired;
+            if (_eventEffects != null)
+                _eventEffects.Reported += HandleEffectReported;
+            if (_selectionActions != null)
+                _selectionActions.RepairFailed += HandleRepairFailed;
+            if (_progression != null)
+                _progression.Progression.GradeChanged += HandleGradeChanged;
             _messageText.SetText(string.Empty);
         }
 
@@ -57,6 +69,17 @@ namespace SpaceStation.UI
                 _resources.Simulation.DepletionChanged -= HandleDepletionChanged;
             if (_resources != null && _resources.Population != null)
                 _resources.Population.PopulationChanged -= HandlePopulationChanged;
+            if (_resources != null && _resources.Damage != null)
+            {
+                _resources.Damage.Destroyed -= HandleDestroyed;
+                _resources.Damage.Repaired -= HandleRepaired;
+            }
+            if (_eventEffects != null)
+                _eventEffects.Reported -= HandleEffectReported;
+            if (_selectionActions != null)
+                _selectionActions.RepairFailed -= HandleRepairFailed;
+            if (_progression != null && _progression.Progression != null)
+                _progression.Progression.GradeChanged -= HandleGradeChanged;
         }
 
         private void Update()
@@ -81,9 +104,11 @@ namespace SpaceStation.UI
             bool selectedActive = selected != null && _station.Connectivity.IsActive(selected);
             bool hasTarget = build != null && _build.HasTarget;
             var result = hasTarget ? _build.TargetResult : PlacementResult.Valid;
+            // 0 정상, 1 파손, 2 수리 중
+            int damageState = selected != null && _resources.Damage.TryGetInfo(selected, out var info) ? (info.IsRepairing ? 2 : 1) : 0;
 
             if (_hintInitialized && build == _shownBuild && selected == _shownSelection && selectedActive == _shownSelectionActive
-                && hasTarget == _shownHasTarget && result == _shownResult)
+                && hasTarget == _shownHasTarget && result == _shownResult && damageState == _shownDamageState)
                 return;
 
             _hintInitialized = true;
@@ -92,6 +117,7 @@ namespace SpaceStation.UI
             _shownSelectionActive = selectedActive;
             _shownHasTarget = hasTarget;
             _shownResult = result;
+            _shownDamageState = damageState;
 
             if (build != null)
             {
@@ -107,7 +133,8 @@ namespace SpaceStation.UI
                 string action = _station.CanRemove(selected)
                     ? $"Delete/X: 철거 (환급 {HudText.Cost(selected.Data != null ? selected.Data.BuildCost : null, _resources.Balance.DemolishRefundRate)})"
                     : "철거 불가";
-                _hintText.SetText($"선택: <b>{name}</b>{state}  ·  {action}  ·  ESC: 선택 해제");
+                string repair = damageState == 1 ? $"  ·  <color={HudText.Red}>R: 수리</color>" : string.Empty;
+                _hintText.SetText($"선택: <b>{name}</b>{state}{repair}  ·  {action}  ·  ESC: 선택 해제");
             }
             else
             {
@@ -119,6 +146,59 @@ namespace SpaceStation.UI
         {
             _messageText.SetText(message);
             _messageUntil = Time.unscaledTime + _messageSeconds;
+        }
+
+        private void HandleGradeChanged(int previous, int current)
+        {
+            var p = _progression.Progression;
+            var grade = p.GetGrade(current);
+            if (current > previous)
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.Append($"<color=#7CFF9A><b>등급 상승: {grade.DisplayName}!</b>");
+                // 이전 등급 초과 ~ 현재 등급까지의 해금 목록
+                for (int i = previous + 1; i <= current; i++)
+                {
+                    foreach (var m in p.GetGrade(i).Unlocks)
+                        sb.Append($"  ·  {m.DisplayName} 해금");
+                }
+                if (p.LimitedModule != null)
+                    sb.Append($"  ·  {p.LimitedModule.DisplayName} 최대 {grade.MaxLimitedModules}개");
+                sb.Append("</color>");
+                ShowMessage(sb.ToString());
+            }
+            else
+            {
+                ShowMessage($"<color={HudText.Orange}>등급 하락: {grade.DisplayName} (조건 미달)</color>");
+            }
+        }
+
+        private void HandleEffectReported(string message, bool positive)
+        {
+            ShowMessage($"<color={(positive ? "#7CFF9A" : HudText.Orange)}>{message}</color>");
+        }
+
+        private void HandleDestroyed(ModuleInstance module)
+        {
+            string name = module.Data != null ? module.Data.DisplayName : module.ToString();
+            string message = $"<color={HudText.Red}>{name} 파괴됨 (수리하지 않고 방치)</color>";
+            if (_disconnectedThisFrame > 0)
+                message += $"\n<color={HudText.Orange}>모듈 {_disconnectedThisFrame}개가 코어와 분리되어 비활성화됨</color>";
+            ShowMessage(message);
+        }
+
+        private void HandleRepaired(ModuleInstance module)
+        {
+            string name = module.Data != null ? module.Data.DisplayName : module.ToString();
+            ShowMessage($"<color=#7FD8FF>{name} 수리 완료</color>");
+        }
+
+        private void HandleRepairFailed(ModuleInstance module, RepairResult result)
+        {
+            string reason = result == RepairResult.InsufficientResources ? "수리 비용(금속)이 부족합니다"
+                : result == RepairResult.AlreadyRepairing ? "이미 수리 중입니다"
+                : "파손된 모듈이 아닙니다";
+            ShowMessage($"<color={HudText.Red}>{reason}</color>");
         }
 
         private void HandleActiveStateChanged(ModuleInstance module, bool active)

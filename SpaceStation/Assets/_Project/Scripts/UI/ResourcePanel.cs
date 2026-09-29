@@ -26,6 +26,10 @@ namespace SpaceStation.UI
         [Header("Population")]
         [SerializeField] private TMP_Text _populationText;
 
+        [Header("Grade")]
+        [SerializeField] private ProgressionController _progression;
+        [SerializeField] private TMP_Text _gradeText;
+
         private readonly StringBuilder _sb = new StringBuilder(1024);
         private readonly StringBuilder _popSb = new StringBuilder(256);
         private ResourceSimulation _sim;
@@ -39,6 +43,8 @@ namespace SpaceStation.UI
             _sim.Changed += MarkDirty;
             _population.Changed += MarkDirty;
             _station.Connectivity.ActiveStateChanged += HandleActiveStateChanged;
+            if (_progression != null)
+                _progression.Changed += MarkDirty;
             Refresh();
         }
 
@@ -48,6 +54,8 @@ namespace SpaceStation.UI
                 _sim.Changed -= MarkDirty;
             if (_population != null)
                 _population.Changed -= MarkDirty;
+            if (_progression != null)
+                _progression.Changed -= MarkDirty;
             if (_station != null && _station.Connectivity != null)
                 _station.Connectivity.ActiveStateChanged -= HandleActiveStateChanged;
         }
@@ -94,6 +102,47 @@ namespace SpaceStation.UI
 
             if (_populationText != null)
                 RefreshPopulation();
+            if (_gradeText != null && _progression != null)
+                RefreshGrade();
+        }
+
+        private void RefreshGrade()
+        {
+            var p = _progression.Progression;
+            _popSb.Clear();
+            _popSb.Append("<b>등급</b><pos=30%><b>").Append(p.Current.DisplayName).Append("</b>");
+            if (p.LimitedModule != null)
+            {
+                _popSb.Append("<pos=62%><size=85%>").Append(p.LimitedModule.DisplayName).Append(' ')
+                      .Append(p.CountLimited(_station.Grid)).Append('/').Append(p.Current.MaxLimitedModules).Append("</size>");
+            }
+            _popSb.Append('\n');
+
+            var next = p.Next;
+            _popSb.Append("<size=80%><color=").Append(HudText.Muted).Append('>');
+            if (next == null)
+            {
+                _popSb.Append("최고 등급 달성");
+            }
+            else
+            {
+                int pop = _sim.Population, modules = _station.Grid.ModuleCount;
+                _popSb.Append("다음 ").Append(next.DisplayName).Append(":  인구 ");
+                AppendProgress(pop, next.MinPopulation);
+                _popSb.Append("  ·  모듈 ");
+                AppendProgress(modules, next.MinModules);
+            }
+            _popSb.Append("</color></size>");
+            _gradeText.SetText(_popSb);
+        }
+
+        private void AppendProgress(int value, int target)
+        {
+            if (value >= target)
+                _popSb.Append("<color=#7CFF9A>");
+            _popSb.Append(value).Append('/').Append(target);
+            if (value >= target)
+                _popSb.Append("</color>");
         }
 
         private void RefreshPopulation()

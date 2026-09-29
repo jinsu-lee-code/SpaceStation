@@ -21,7 +21,9 @@ namespace SpaceStation.Simulation
         private readonly float[] _production = new float[ResourceCount];
         private readonly float[] _consumption = new float[ResourceCount];
         private readonly bool[] _depleted = new bool[ResourceCount];
+        private readonly float[] _externalDrain = new float[ResourceCount];
         private readonly List<bool> _stopped = new List<bool>();
+        private float _powerSupplyMultiplier = 1f;
 
         /// <summary>틱 처리가 끝난 뒤 발생.</summary>
         public event Action Ticked;
@@ -38,6 +40,51 @@ namespace SpaceStation.Simulation
         public int HousingCapacity { get; private set; }
         /// <summary>입력 자원 부족으로 이번 틱에 정지한 모듈 수.</summary>
         public int StoppedModuleCount { get; private set; }
+
+        /// <summary>모든 전력 생산에 곱하는 전역 배율 (태양 폭풍). 다음 틱부터 반영.</summary>
+        public float PowerSupplyMultiplier
+        {
+            get => _powerSupplyMultiplier;
+            set
+            {
+                _powerSupplyMultiplier = Mathf.Max(0f, value);
+                Changed?.Invoke();
+            }
+        }
+
+        /// <summary>모듈과 무관한 초당 추가 소비 (파손 모듈 누출 등). 다음 틱부터 반영.</summary>
+        public void SetExternalDrain(ResourceType type, float perSecond)
+        {
+            _externalDrain[(int)type] = Mathf.Max(0f, perSecond);
+        }
+
+        public float GetExternalDrain(ResourceType type) => _externalDrain[(int)type];
+
+        /// <summary>재고 추가 (보급 등). 한도 초과분은 버린다. 실제로 더해진 양을 반환.</summary>
+        public float AddStock(ResourceType type, float amount)
+        {
+            if (!IsStock(type) || amount <= 0f)
+                return 0f;
+            int i = (int)type;
+            float before = _stock[i];
+            _stock[i] = Mathf.Min(_capacity[i], before + amount);
+            UpdateDepletion();
+            Changed?.Invoke();
+            return _stock[i] - before;
+        }
+
+        /// <summary>재고 차감 (누출 등). 0 미만으로 내려가지 않는다. 실제로 빠진 양을 반환.</summary>
+        public float RemoveStock(ResourceType type, float amount)
+        {
+            if (!IsStock(type) || amount <= 0f)
+                return 0f;
+            int i = (int)type;
+            float before = _stock[i];
+            _stock[i] = Mathf.Max(0f, before - amount);
+            UpdateDepletion();
+            Changed?.Invoke();
+            return before - _stock[i];
+        }
 
         public ResourceSimulation(BalanceConfig config)
         {
@@ -174,14 +221,24 @@ namespace SpaceStation.Simulation
 
         public void Tick(IReadOnlyList<ModuleData> activeModules, float deltaSeconds)
         {
+            Tick(activeModules, null, deltaSeconds);
+        }
+
+        /// <param name="productionMultipliers">
+        /// 모듈별 생산 배율 (파손 0.5, 수리 중 0 등). activeModules와 같은 순서·길이. null이면 모두 1.
+        /// 전력 공급을 포함한 생산에만 곱하고, 소비는 유지한다.
+        /// </param>
+        public void Tick(IReadOnlyList<ModuleData> activeModules, IReadOnlyList<float> productionMultipliers, float deltaSeconds)
+        {
             RefreshCapacities(activeModules);
 
             // 입력 자원(전력 제외)이 이전 틱 재고 기준 0이면 정지. 정지한 모듈은 전력도 쓰지 않는다.
             _stopped.Clear();
             int stoppedCount = 0;
             float supply = 0f, demand = 0f;
-            foreach (var m in activeModules)
+            for (int k = 0; k < activeModules.Count; k++)
             {
+                var m = activeModules[k];
                 bool stopped = HasDepletedInput(m);
                 _stopped.Add(stopped);
                 if (stopped)
@@ -189,9 +246,10 @@ namespace SpaceStation.Simulation
                     stoppedCount++;
                     continue;
                 }
-                supply += Sum(m.Production, ResourceType.Power);
+                supply += Sum(m.Production, ResourceType.Power) * Multiplier(productionMultipliers, k);
                 demand += Sum(m.Consumption, ResourceType.Power);
             }
+            supply *= PowerSupplyMultiplier; // 태양 폭풍 등 전역 배율
             StoppedModuleCount = stoppedCount;
             PowerSupply = supply;
             PowerDemand = demand;
@@ -207,10 +265,11 @@ namespace SpaceStation.Simulation
                     continue;
                 var m = activeModules[k];
                 float efficiency = Sum(m.Consumption, ResourceType.Power) > 0f ? PowerEfficiency : 1f;
+                float productionFactor = efficiency * Multiplier(productionMultipliers, k); // BALANCE 1번: 파손 배율과 곱셈
                 foreach (var a in m.Production)
                 {
                     if (IsStock(a.Type))
-                        _production[(int)a.Type] += a.Amount * efficiency;
+                        _production[(int)a.Type] += a.Amount * productionFactor;
                 }
                 foreach (var a in m.Consumption)
                 {
@@ -224,6 +283,9 @@ namespace SpaceStation.Simulation
                 if (IsStock(a.Type))
                     _consumption[(int)a.Type] += a.Amount * Population;
             }
+
+            for (int i = 0; i < ResourceCount; i++)
+                _consumption[i] += _externalDrain[i]; // 파손 모듈 산소 누출 등
 
             _production[(int)ResourceType.Power] = supply;
             _consumption[(int)ResourceType.Power] = demand;
@@ -239,6 +301,11 @@ namespace SpaceStation.Simulation
             UpdateDepletion();
             Ticked?.Invoke();
             Changed?.Invoke();
+        }
+
+        private static float Multiplier(IReadOnlyList<float> multipliers, int index)
+        {
+            return multipliers != null && index < multipliers.Count ? multipliers[index] : 1f;
         }
 
         private bool HasDepletedInput(ModuleData module)

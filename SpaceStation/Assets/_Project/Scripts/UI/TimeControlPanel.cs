@@ -22,7 +22,11 @@ namespace SpaceStation.UI
         private void Start()
         {
             _tickClock = _clock.Clock;
-            _pauseButton.onClick.AddListener(_tickClock.TogglePause);
+            _pauseButton.onClick.AddListener(() =>
+            {
+                if (!_clock.InputLocked)
+                    _tickClock.TogglePause();
+            });
             for (int i = 0; i < _speedButtons.Length; i++)
             {
                 int index = i;

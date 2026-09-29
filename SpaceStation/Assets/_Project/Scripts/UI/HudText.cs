@@ -13,18 +13,7 @@ namespace SpaceStation.UI
         public const string Orange = "#FFA040";
         public const string Muted = "#9AA4B2";
 
-        public static string ResourceName(ResourceType type)
-        {
-            switch (type)
-            {
-                case ResourceType.Power: return "전력";
-                case ResourceType.Oxygen: return "산소";
-                case ResourceType.Water: return "물";
-                case ResourceType.Food: return "식량";
-                case ResourceType.Metal: return "금속";
-                default: return type.ToString();
-            }
-        }
+        public static string ResourceName(ResourceType type) => type.DisplayName();
 
         public static string PlacementReason(PlacementResult result)
         {
@@ -34,6 +23,8 @@ namespace SpaceStation.UI
                 case PlacementResult.TerminalNeedsSingleContact: return "채굴 도킹은 정거장과 한 면만 맞닿아야 함";
                 case PlacementResult.BlockedByTerminal: return "채굴 도킹의 다른 면에는 붙일 수 없음";
                 case PlacementResult.InsufficientResources: return "자원 부족";
+                case PlacementResult.ModuleLocked: return "아직 해금되지 않은 모듈 (등급 필요)";
+                case PlacementResult.LimitReached: return "현재 등급의 최대 설치 수에 도달";
                 case PlacementResult.InvalidDefinition: return "잘못된 모듈 정의";
                 default: return string.Empty;
             }

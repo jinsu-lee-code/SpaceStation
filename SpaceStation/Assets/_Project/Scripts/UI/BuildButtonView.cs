@@ -18,19 +18,30 @@ namespace SpaceStation.UI
 
         public ModuleData Data { get; private set; }
 
+        private int _hotkey;
+        private string _shownStatus;
+
         public void Initialize(BuildMenu menu, ModuleData data, int hotkey)
         {
             _menu = menu;
             Data = data;
+            _hotkey = hotkey;
             name = "Build_" + data.name;
-            _label.SetText($"<size=75%><color={HudText.Muted}>{hotkey}</color></size>  {data.DisplayName}\n<size=80%>{HudText.Cost(data.BuildCost)}</size>");
             _button.onClick.AddListener(() => _menu.HandleButtonClicked(Data));
+            SetState(true, null);
             SetSelected(false);
         }
 
-        public void SetAffordable(bool affordable)
+        /// <param name="interactable">해금 + 설치 가능 + 비용 충분</param>
+        /// <param name="blockedStatus">둘째 줄에 비용 대신 표시할 사유 (잠김/최대). null이면 비용 표시</param>
+        public void SetState(bool interactable, string blockedStatus)
         {
-            _button.interactable = affordable;
+            _button.interactable = interactable;
+            if (_shownStatus == blockedStatus && _shownStatus != null)
+                return;
+            _shownStatus = blockedStatus;
+            string second = blockedStatus ?? HudText.Cost(Data.BuildCost);
+            _label.SetText($"<size=75%><color={HudText.Muted}>{_hotkey}</color></size>  {Data.DisplayName}\n<size=80%>{second}</size>");
         }
 
         public void SetSelected(bool selected)

@@ -15,6 +15,10 @@ namespace SpaceStation.Core
         BlockedByTerminal,
         /// <summary>공간 규칙은 통과했으나 건설 비용이 부족함 (StationController가 판정).</summary>
         InsufficientResources,
+        /// <summary>현재 등급에서 아직 해금되지 않은 모듈 (IPlacementPolicy가 판정).</summary>
+        ModuleLocked,
+        /// <summary>등급별 최대 설치 수 도달 (채굴 도킹, IPlacementPolicy가 판정).</summary>
+        LimitReached,
     }
 
     /// <summary>

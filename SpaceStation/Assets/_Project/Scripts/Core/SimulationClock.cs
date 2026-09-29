@@ -21,6 +21,8 @@ namespace SpaceStation.Core
 
         public TickClock Clock => _clock;
         public float[] SpeedPresets => _speedPresets;
+        /// <summary>결과 화면 등에서 true: 단축키·배속 버튼으로 일시정지를 풀 수 없다.</summary>
+        public bool InputLocked { get; set; }
 
         private void Awake()
         {
@@ -42,7 +44,7 @@ namespace SpaceStation.Core
 
         public void SetSpeedPreset(int index)
         {
-            if (index < 0 || index >= _speedPresets.Length)
+            if (InputLocked || index < 0 || index >= _speedPresets.Length)
                 return;
             _clock.SetSpeed(_speedPresets[index]);
             _clock.SetPaused(false);
@@ -51,7 +53,7 @@ namespace SpaceStation.Core
         private void HandleDebugKeys()
         {
             var keyboard = Keyboard.current;
-            if (keyboard == null)
+            if (keyboard == null || InputLocked)
                 return;
 
             if (keyboard.pKey.wasPressedThisFrame)

@@ -82,19 +82,28 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 수치는 BALANCE.md 8번. `PopulationSimulation`(순수) — 자원 틱 직후 `ResourceController`가 호출
   - 만족도 증감형 / 증가는 만족도 비례(50→30초, 100→10초), 산소·물·식량 고갈 시 증가 정지 / 감소 3경로(산소 고갈 10초, 만족도<25 15초, 수용 초과 5초)
   - HUD: 인구·만족도·증가 진행도·감소 경고 표시, 감소 알림. 인구 디버그 버튼 제거
-- [ ] **3-2. 이벤트 시스템** (이벤트 SO + 랜덤 발생기)
-  - (코드 완료, Play 모드 확인 대기) `GameEventData`(SO, 3-3에서 상속해 효과 필드 추가) + `EventScheduler`(순수, 난수 주입) + `EventController`(Simulation 오브젝트, 틱 연동)
+- [x] **3-2. 이벤트 시스템** (이벤트 SO + 랜덤 발생기)
+  - `GameEventData`(SO, 3-3에서 상속해 효과 필드 추가) + `EventScheduler`(순수, 난수 주입) + `EventController`(Simulation 오브젝트, 틱 연동)
   - BALANCE 9번: 유예 180초, 간격 90~150초, 가중치 랜덤, 겹침 허용(같은 이벤트 중복 금지)
   - 에셋 `Data/Events/EV_Meteor·OxygenLeak·SolarStorm·SupplyShip` (효과 없음, 가중치·지속시간 임시)
   - HUD: 상단 `EventBanner`, 자원 패널 `ActiveEventList`. 디버그 F5 = 즉시 발생 (Phase 4 이후 제거)
-- [ ] **3-3. 이벤트 4종 구현**
+- [x] **3-3. 이벤트 4종 구현**
   - 운석 충돌 구현 시 모듈 파손 상태 도입: 외곽 판정(노출 면 여부), 코어 면역
   - 파손 효과(효율 50%, 산소 누출), 수리(금속 30%, 10초), 120초 방치 시 파괴
   - 파괴로 인한 분리는 2-1 연결 판정 재사용
+  - 수치는 BALANCE.md 10번
+  - 이벤트 SO 서브클래스 `MeteorEventData`/`OxygenLeakEventData`/`SolarStormEventData`/`SupplyShipEventData` + `EventEffectController`(타입 분기로 효과 적용)
+  - `DamageSystem`(순수): 파손·수리·방치 파괴, 외곽 후보 판정. `ResourceController`가 틱 순서(파손 → 자원 → 인구) 관리, `TryRepair`
+  - `ResourceSimulation` 확장: 모듈별 생산 배율, `PowerSupplyMultiplier`(폭풍), `SetExternalDrain`(누출), `AddStock`/`RemoveStock`
+  - UI: `ModuleView` 파손(주황)/수리(하늘) 틴트, `DamageMarkers`(모듈 위 남은 시간), 좌측 하단 `SelectionActionsPanel`([수리 R] [철거 Del]), 상태 표시줄 효과·파괴·수리 알림
 - [ ] **3-4. 정거장 등급 및 승패 조건**
   - 등급 조건 (인구/모듈 수)을 ScriptableObject로 정의, 등급별 채굴 도킹 최대 수 연동
   - 대형 등급 도달 시 결과 화면 + 계속 플레이 옵션
   - 인구 0 시 게임 오버
+  - (코드 완료, Play 모드 확인 대기) 수치는 BALANCE.md 11번. `StationGradeConfig`(Data/StationGrades.asset)
+  - `StationProgression`(순수: 실시간 등급·해금·채굴 도킹 제한) + `GameSession`(순수: 통계·게임 오버) + `ProgressionController`(IPlacementPolicy로 StationController에 등록)
+  - 배치 불가 사유 추가: `ModuleLocked`, `LimitReached`. 건설 메뉴 잠김/최대 표시, 툴팁에 해금 등급
+  - UI: 자원 패널 등급 줄(다음 등급 진행도, 채굴 도킹 n/최대), 등급 상승·하락 알림, `ResultScreen`(대형 첫 도달 / 게임 오버, 일시정지 + `SimulationClock.InputLocked`)
 
 ## Phase 4. 재미 검증 (여기서 멈추고 플레이)
 - [ ] 30분 플레이 테스트

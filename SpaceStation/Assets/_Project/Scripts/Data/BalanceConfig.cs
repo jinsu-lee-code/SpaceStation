@@ -54,6 +54,16 @@ namespace SpaceStation.Data
         [Tooltip("이벤트 사이 간격 최대(초)")]
         [SerializeField, Min(1f)] private float _eventIntervalMax = 1f;
 
+        [Header("Damage / Repair (BALANCE 10번)")]
+        [Tooltip("파손 모듈의 생산 배율 (소비는 유지)")]
+        [SerializeField, Range(0f, 1f)] private float _damagedProductionMultiplier = 1f;
+        [Tooltip("파손 모듈 1개당 초당 산소 누출량 (수리 시작 시 멈춤)")]
+        [SerializeField, Min(0f)] private float _damagedOxygenLeakPerSecond;
+        [Tooltip("수리에 걸리는 시간(초). 수리 중 생산 0")]
+        [SerializeField, Min(0.1f)] private float _repairDuration = 1f;
+        [Tooltip("파손 후 수리하지 않으면 파괴되기까지 시간(초)")]
+        [SerializeField, Min(0.1f)] private float _destroyAfterSeconds = 1f;
+
         [Header("Cost")]
         [Tooltip("철거 환급 비율 (건설 비용 대비)")]
         [SerializeField, Range(0f, 1f)] private float _demolishRefundRate;
@@ -78,6 +88,10 @@ namespace SpaceStation.Data
         public float EventGracePeriod => _eventGracePeriod;
         public float EventIntervalMin => _eventIntervalMin;
         public float EventIntervalMax => _eventIntervalMax;
+        public float DamagedProductionMultiplier => _damagedProductionMultiplier;
+        public float DamagedOxygenLeakPerSecond => _damagedOxygenLeakPerSecond;
+        public float RepairDuration => _repairDuration;
+        public float DestroyAfterSeconds => _destroyAfterSeconds;
         public float DemolishRefundRate => _demolishRefundRate;
         public float RepairCostRate => _repairCostRate;
     }

@@ -232,6 +232,55 @@ namespace SpaceStation.Tests
             Assert.AreEqual(200f, sim.GetStock(ResourceType.Metal), Eps, "한도 초과분은 버림");
         }
 
+        [Test]
+        public void SolarStorm_PowerSupplyMultiplier_AppliesToAllPower()
+        {
+            var sim = new ResourceSimulation(_config);
+            sim.PowerSupplyMultiplier = 0.6f; // -40%
+            sim.Tick(new[] { _core, _solar, _oxygen, _water, _mining }, 1f);
+            Assert.AreEqual(9f, sim.PowerSupply, Eps, "(5 + 10) × 0.6");
+            Assert.AreEqual(0.9f, sim.PowerEfficiency, Eps);
+        }
+
+        [Test]
+        public void DamagedModule_ProductionHalved_ConsumptionKept()
+        {
+            var sim = new ResourceSimulation(_config);
+            sim.Tick(new[] { _core, _solar, _oxygen }, new[] { 1f, 1f, 0.5f }, 1f);
+            Assert.AreEqual(1.5f, sim.GetProduction(ResourceType.Oxygen), Eps);
+            Assert.AreEqual(0.5f + 0.4f, sim.GetConsumption(ResourceType.Water), Eps, "산소 생성기 물 소비 0.5 유지 + 거주자 0.4");
+            Assert.AreEqual(4f, sim.PowerDemand, Eps, "전력 수요 유지");
+        }
+
+        [Test]
+        public void DamagedPowerProducer_SuppliesLess()
+        {
+            var sim = new ResourceSimulation(_config);
+            sim.Tick(new[] { _core, _solar }, new[] { 1f, 0.5f }, 1f);
+            Assert.AreEqual(10f, sim.PowerSupply, Eps, "5 + 10 × 0.5");
+        }
+
+        [Test]
+        public void ExternalDrain_AddsToConsumption()
+        {
+            var sim = new ResourceSimulation(_config);
+            sim.SetExternalDrain(ResourceType.Oxygen, 0.6f);
+            sim.Tick(new[] { _core }, 1f);
+            Assert.AreEqual(0.8f + 0.6f, sim.GetConsumption(ResourceType.Oxygen), Eps);
+        }
+
+        [Test]
+        public void AddAndRemoveStock_ClampAndReportActualAmount()
+        {
+            var sim = new ResourceSimulation(_config); // 금속 150 / 200, 산소 200 / 200
+            Assert.AreEqual(50f, sim.AddStock(ResourceType.Metal, 60f), Eps, "한도 초과분 버림");
+            Assert.AreEqual(200f, sim.GetStock(ResourceType.Metal), Eps);
+            Assert.AreEqual(50f, sim.RemoveStock(ResourceType.Oxygen, 200f * 0.25f), Eps);
+            Assert.AreEqual(150f, sim.GetStock(ResourceType.Oxygen), Eps);
+            Assert.AreEqual(150f, sim.RemoveStock(ResourceType.Oxygen, 999f), Eps);
+            Assert.IsTrue(sim.IsDepleted(ResourceType.Oxygen));
+        }
+
         // ---- helpers ----
 
         private static ResourceAmount R(ResourceType type, float amount) => new ResourceAmount(type, amount);

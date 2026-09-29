@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe839868e90ff5c4b8d4c4d18155ea00, type: 3}
+  m_Name: StationGrades
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.StationGradeConfig
+  _grades:
+  - _displayName: "\uCD08\uC18C\uD615"
+    _minPopulation: 0
+    _minModules: 0
+    _maxLimitedModules: 1
+    _unlocks:
+    - {fileID: 11400000, guid: 0cfe3d85b68f446419d9c2c70715d7d2, type: 2}
+    - {fileID: 11400000, guid: 71046e0678fea324aac0dc3c263a698c, type: 2}
+    - {fileID: 11400000, guid: c7e25e386c31fb54c84913570c72a259, type: 2}
+    - {fileID: 11400000, guid: c63f0c523b6d5fd47881a68cd635fbf2, type: 2}
+    - {fileID: 11400000, guid: 650c0912820571249b07312aa1677c0d, type: 2}
+    - {fileID: 11400000, guid: fb65ff1f6a335b84cb001bc80e2bb704, type: 2}
+  - _displayName: "\uC18C\uD615"
+    _minPopulation: 10
+    _minModules: 8
+    _maxLimitedModules: 2
+    _unlocks:
+    - {fileID: 11400000, guid: 373f8d20bbedd74469e7875858728843, type: 2}
+  - _displayName: "\uC911\uD615"
+    _minPopulation: 30
+    _minModules: 20
+    _maxLimitedModules: 4
+    _unlocks: []
+  - _displayName: "\uB300\uD615"
+    _minPopulation: 60
+    _minModules: 40
+    _maxLimitedModules: 6
+    _unlocks: []
+  _limitedModule: {fileID: 11400000, guid: fb65ff1f6a335b84cb001bc80e2bb704, type: 2}
