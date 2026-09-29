@@ -31,6 +31,8 @@ namespace SpaceStation.Simulation
         private readonly BalanceConfig _config;
         private readonly Dictionary<ModuleInstance, DamageInfo> _damaged = new Dictionary<ModuleInstance, DamageInfo>();
         private readonly List<DamageInfo> _finished = new List<DamageInfo>();
+        private readonly List<float> _weights = new List<float>();
+        private readonly List<ModuleInstance> _picked = new List<ModuleInstance>();
 
         public event Action<DamageInfo> Damaged;
         public event Action<DamageInfo> RepairStarted;
@@ -167,6 +169,71 @@ namespace SpaceStation.Simulation
                 if (IsExterior(grid, module))
                     results.Add(module);
             }
+        }
+
+        /// <summary>
+        /// 운석 대상 여러 개 선택 (분산 타격, 중복 없음). 후보마다 가중치 = <see cref="GetMeteorWeight"/> (빈 면이 많을수록 잘 맞음).
+        /// 후보가 count보다 적으면 후보 전부.
+        /// </summary>
+        public void PickMeteorTargets(StationGrid grid, ModuleInstance core, int count, Func<float> random01, List<ModuleInstance> results)
+        {
+            FindMeteorCandidates(grid, core, results);
+            if (results.Count <= count)
+                return;
+
+            _weights.Clear();
+            float total = 0f;
+            foreach (var m in results)
+            {
+                float w = GetMeteorWeight(CountExposedFaces(grid, m));
+                _weights.Add(w);
+                total += w;
+            }
+
+            _picked.Clear();
+            for (int n = 0; n < count && results.Count > 0; n++)
+            {
+                float roll = random01() * total;
+                int index = results.Count - 1;
+                for (int i = 0; i < results.Count; i++)
+                {
+                    if (roll < _weights[i])
+                    {
+                        index = i;
+                        break;
+                    }
+                    roll -= _weights[i];
+                }
+                _picked.Add(results[index]);
+                total -= _weights[index];
+                results.RemoveAt(index);
+                _weights.RemoveAt(index);
+            }
+            results.Clear();
+            results.AddRange(_picked);
+        }
+
+        /// <summary>피격 가중치 = 기울기 × (노출 면 − 1) + 1 (BALANCE 13번). 노출 1면 = 1.</summary>
+        public float GetMeteorWeight(int exposedFaces)
+        {
+            if (exposedFaces <= 0)
+                return 0f;
+            return _config.MeteorExposureSlope * (exposedFaces - 1) + 1f;
+        }
+
+        /// <summary>모듈의 모든 셀에서 빈 셀과 맞닿은 면의 수.</summary>
+        public static int CountExposedFaces(StationGrid grid, ModuleInstance module)
+        {
+            int exposed = 0;
+            foreach (var cell in module.Cells)
+            {
+                foreach (var dir in GridDirections.Faces)
+                {
+                    if (!grid.IsOccupied(cell + dir))
+                        exposed++;
+                }
+            }
+            return exposed;
         }
 
         public static bool IsExterior(StationGrid grid, ModuleInstance module)

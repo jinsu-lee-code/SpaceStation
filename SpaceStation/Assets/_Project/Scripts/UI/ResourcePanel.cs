@@ -87,6 +87,28 @@ namespace SpaceStation.UI
             _sb.Append("<b>전력</b><pos=30%>공급 ").Append(_sim.PowerSupply.ToString("0.#"))
                .Append("  /  수요 ").Append(_sim.PowerDemand.ToString("0.#")).Append('\n');
             _sb.Append("<pos=30%><color=").Append(effColor).Append(">효율 ").Append((eff * 100f).ToString("0")).Append("%</color>\n");
+
+            // 4-2: 배터리 + 낮/밤
+            if (_sim.BatteryCapacity > 0f)
+            {
+                float flow = _sim.BatteryFlow;
+                string flowColor = flow < 0f ? HudText.Orange : "#7CFF9A";
+                _sb.Append("<pos=30%>배터리 ").Append(_sim.BatteryCharge.ToString("0")).Append(" / ").Append(_sim.BatteryCapacity.ToString("0"))
+                   .Append("<pos=72%><color=").Append(flowColor).Append('>').Append(flow.ToString("+0.#;-0.#;0")).Append("/s</color>\n");
+            }
+            var cycle = _resources.DayNight;
+            if (cycle.Enabled)
+            {
+                float time = _resources.ElapsedSeconds;
+                bool day = cycle.IsDay(time);
+                int remaining = Mathf.CeilToInt(cycle.TimeUntilPhaseChange(time));
+                _sb.Append("<pos=30%>").Append(day ? "<color=#FFE08A>낮</color>" : "<color=#8FA8FF>밤</color>")
+                   .Append(" · ").Append(day ? "밤까지 " : "낮까지 ").Append(remaining).Append("초");
+                float solar = cycle.SolarMultiplier(time);
+                if (solar < 0.999f)
+                    _sb.Append("  <size=80%><color=").Append(HudText.Muted).Append(">태양광 ").Append((solar * 100f).ToString("0")).Append("%</color></size>");
+                _sb.Append('\n');
+            }
             if (_sim.StoppedModuleCount > 0)
                 _sb.Append("<color=").Append(HudText.Red).Append(">입력 자원 부족으로 정지: ").Append(_sim.StoppedModuleCount).Append("개</color>\n");
             _sb.Append('\n');

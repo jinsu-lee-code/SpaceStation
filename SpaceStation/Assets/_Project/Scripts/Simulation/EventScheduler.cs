@@ -8,13 +8,16 @@ namespace SpaceStation.Simulation
     public sealed class ActiveEvent
     {
         public GameEventData Data { get; }
+        /// <summary>실제 적용된 지속시간 (등급 강도 배율 반영).</summary>
+        public float Duration { get; }
         public float Remaining { get; internal set; }
-        public float Elapsed => Data.Duration - Remaining;
+        public float Elapsed => Duration - Remaining;
 
-        internal ActiveEvent(GameEventData data)
+        internal ActiveEvent(GameEventData data, float duration)
         {
             Data = data;
-            Remaining = data.Duration;
+            Duration = duration;
+            Remaining = duration;
         }
     }
 
@@ -41,6 +44,11 @@ namespace SpaceStation.Simulation
         public IReadOnlyList<ActiveEvent> ActiveEvents => _active;
         /// <summary>다음 랜덤 이벤트까지 남은 시간(초).</summary>
         public float TimeUntilNext { get; private set; }
+
+        /// <summary>새 간격을 정할 때 곱하는 배율 (등급별 빈도). null이면 1.</summary>
+        public Func<float> IntervalMultiplier { get; set; }
+        /// <summary>지속형 이벤트의 실제 지속시간 (등급별 강도). null이면 데이터 값.</summary>
+        public Func<GameEventData, float> DurationProvider { get; set; }
 
         /// <param name="random01">[0, 1) 난수. 테스트에서 결과를 고정할 수 있도록 주입한다.</param>
         public EventScheduler(float gracePeriod, float intervalMin, float intervalMax, Func<float> random01)
@@ -109,7 +117,10 @@ namespace SpaceStation.Simulation
         private void Start(GameEventData data)
         {
             if (data.IsTimed)
-                _active.Add(new ActiveEvent(data));
+            {
+                float duration = DurationProvider != null ? DurationProvider(data) : data.Duration;
+                _active.Add(new ActiveEvent(data, Math.Max(0.01f, duration)));
+            }
             EventStarted?.Invoke(data);
         }
 
@@ -161,7 +172,8 @@ namespace SpaceStation.Simulation
 
         private float NextInterval()
         {
-            return _intervalMin + _random01() * (_intervalMax - _intervalMin);
+            float multiplier = IntervalMultiplier != null ? Math.Max(0.01f, IntervalMultiplier()) : 1f;
+            return (_intervalMin + _random01() * (_intervalMax - _intervalMin)) * multiplier;
         }
     }
 }

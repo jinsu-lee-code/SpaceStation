@@ -96,20 +96,48 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - `DamageSystem`(순수): 파손·수리·방치 파괴, 외곽 후보 판정. `ResourceController`가 틱 순서(파손 → 자원 → 인구) 관리, `TryRepair`
   - `ResourceSimulation` 확장: 모듈별 생산 배율, `PowerSupplyMultiplier`(폭풍), `SetExternalDrain`(누출), `AddStock`/`RemoveStock`
   - UI: `ModuleView` 파손(주황)/수리(하늘) 틴트, `DamageMarkers`(모듈 위 남은 시간), 좌측 하단 `SelectionActionsPanel`([수리 R] [철거 Del]), 상태 표시줄 효과·파괴·수리 알림
-- [ ] **3-4. 정거장 등급 및 승패 조건**
+- [x] **3-4. 정거장 등급 및 승패 조건**
   - 등급 조건 (인구/모듈 수)을 ScriptableObject로 정의, 등급별 채굴 도킹 최대 수 연동
   - 대형 등급 도달 시 결과 화면 + 계속 플레이 옵션
   - 인구 0 시 게임 오버
-  - (코드 완료, Play 모드 확인 대기) 수치는 BALANCE.md 11번. `StationGradeConfig`(Data/StationGrades.asset)
+  - 수치는 BALANCE.md 11번. `StationGradeConfig`(Data/StationGrades.asset)
   - `StationProgression`(순수: 실시간 등급·해금·채굴 도킹 제한) + `GameSession`(순수: 통계·게임 오버) + `ProgressionController`(IPlacementPolicy로 StationController에 등록)
   - 배치 불가 사유 추가: `ModuleLocked`, `LimitReached`. 건설 메뉴 잠김/최대 표시, 툴팁에 해금 등급
   - UI: 자원 패널 등급 줄(다음 등급 진행도, 채굴 도킹 n/최대), 등급 상승·하락 알림, `ResultScreen`(대형 첫 도달 / 게임 오버, 일시정지 + `SimulationClock.InputLocked`)
 
 ## Phase 4. 재미 검증 (여기서 멈추고 플레이)
-- [ ] 30분 플레이 테스트
-- [ ] 체크: 배치가 직관적인가? 자원 균형을 맞추는 게 재미있는가? 위기가 긴장감을 주는가?
-- [ ] 수치 밸런싱 (ScriptableObject 수정만으로 가능해야 함)
-- [ ] 결과에 따라 GDD 수정
+- [x] 30분 플레이 테스트 (1차) — 로직 정상, **난이도 체감 없음** (GDD 13-1)
+- [x] 체크: 배치가 직관적인가? 자원 균형을 맞추는 게 재미있는가? 위기가 긴장감을 주는가?
+- [ ] 수치 밸런싱 (ScriptableObject 수정만으로 가능해야 함) → 4-10에서
+- [x] 결과에 따라 GDD 수정 → GDD 13번 "난이도 확장"
+
+### 난이도 확장 (GDD 13번, 한 항목씩 진행)
+- [x] **4-0. 측정 도구**
+  - 틱 순서(파손 → 자원 → 인구 → 이벤트/등급)를 순수 C# `StationSimulation`으로 분리, MonoBehaviour는 얇은 어댑터로
+  - 에디터 메뉴에서 실행: 빌드 봇으로 30분을 빠르게 시뮬레이션, 여러 시드 반복
+  - 리포트: 등급 도달 시간, 자원 최저치·고갈 시간, 인구 곡선, 이벤트·파괴 수, 게임 오버 여부
+  - 구조: `StationSimulation`(순수, 배치·비용·수리·이벤트 효과 포함) ← `SimulationHost`(씬 소유, 틱 연결, F5).
+    `StationController`는 뷰 어댑터, `ResourceController`/`EventController`/`EventEffectController`/`ProgressionController`는 UI 창구. `IBuildCostHandler`·`IPlacementPolicy` 삭제
+  - 도구: `Scripts/Editor/`(asmdef `SpaceStation.Editor`) `BalanceBot`·`BalanceRunner`·`BalanceSimulatorWindow`. 출력 `SpaceStation/BalanceReports/`(.gitignore)
+  - 기준선: BALANCE.md 12번 (대형 평균 13.3분, 위기·파괴 0회)
+- [x] **4-1. 등급별 이벤트 규모 비례 + 다중 운석** (분산 타격 + 노출 가중)
+  - BALANCE.md 13번. `StationGrade`에 운석 수·간격·강도 배율 필드
+  - `DamageSystem.PickMeteorTargets`(가중치 = 3×(노출 면−1)+1, 기울기는 BalanceConfig, 중복 없음), `EventScheduler.IntervalMultiplier/DurationProvider`
+  - 측정: 이벤트 2배·파손 12배지만 무제한 병렬 수리로 파괴 0 → 4-3/4-6/4-7에서 압박 완성
+- [ ] **4-2. 태양광 낮/밤 주기 + 배터리 모듈**
+  - (코드 완료, Play 모드 확인 대기) BALANCE.md 14번. `DayNightCycle`(순수), `ResourceSimulation` 배터리 충·방전·`SolarMultiplier`
+  - `ModuleData.SolarPowered/BatteryCapacity/BatteryRate`, `MD_Battery`(키 8, 초소형 해금). HUD 전력 줄에 배터리·낮/밤·태양광 %
+  - 봇: 밤 부족량 기준으로 태양광(낮 충전분 포함)·배터리(용량·속도) 판단
+  - 측정: 진행 약 2배 느려짐, 첫 산소 고갈·전력 부족 발생, 배터리 과다(70/125) → 4-10에서 검토
+- [ ] **4-3. 모듈 노후화 / 정비** (누적 노후도, 내구도 비례 철거 환급, 재건축 이득 구간)
+- [ ] **4-4. 공간 인접 효과**
+- [ ] **4-5. 건설 메뉴 카테고리 탭** (신규 모듈 증가 대비)
+- [ ] **4-6. 수리 인력 제한** (정비 베이 모듈)
+- [ ] **4-7. 연쇄 파손 확산**
+- [ ] **4-8. 방어 모듈** (실드/포탑)
+- [ ] **4-9. 거주자 요구 단계** (의료·여가 등 신규 모듈)
+- [ ] **4-10. A: 전체 수치 조정** (측정 도구 기준 목표 난이도 곡선)
+- [ ] 30분 플레이 테스트 (2차)
 
 ## Phase 5. 비주얼 교체 (재미 검증 후)
 기본 원칙: 아래 순서대로 진행하면 적은 노력으로 룩이 크게 바뀐다.
@@ -144,3 +172,4 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
 ## Phase 6. 확장 후보
 - [ ] 포트 방식 연결 (B안) 도입
 - [ ] 연구 트리, 세이브/로드, 회전 링 모듈
+  - 연구소 + 연구: 난이도 확장(4-x) 완료 후. 첫 효과 후보는 이벤트 조기 경보 (GDD 10번)

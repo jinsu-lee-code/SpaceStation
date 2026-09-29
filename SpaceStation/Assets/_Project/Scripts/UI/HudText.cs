@@ -72,6 +72,11 @@ namespace SpaceStation.UI
                 if (a.Type != ResourceType.Power)
                     sb.Append("소비: ").Append(ResourceName(a.Type)).Append(" -").Append(a.Amount.ToString("0.##")).Append("/s\n");
             }
+            if (data.SolarPowered)
+                sb.Append($"<color={Yellow}>낮/밤 주기에 따라 발전 (밤에는 발전 안 함)</color>\n");
+            if (data.BatteryCapacity > 0f)
+                sb.Append("배터리 용량 ").Append(data.BatteryCapacity.ToString("0"))
+                  .Append(" · 충·방전 초당 ").Append(data.BatteryRate.ToString("0.#")).Append('\n');
             if (data.HousingCapacity > 0)
                 sb.Append("수용 인구 +").Append(data.HousingCapacity).Append('\n');
             if (data.StorageBonus > 0f)

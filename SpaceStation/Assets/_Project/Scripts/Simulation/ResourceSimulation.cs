@@ -32,8 +32,17 @@ namespace SpaceStation.Simulation
         /// <summary>표시할 값(재고·한도·수지·인구)이 바뀔 수 있는 모든 시점에 발생 (UI 갱신용).</summary>
         public event Action Changed;
 
+        /// <summary>발전량 (배터리 방전 제외, 낮/밤·폭풍·파손 반영).</summary>
         public float PowerSupply { get; private set; }
         public float PowerDemand { get; private set; }
+        /// <summary>태양광(SolarPowered) 모듈 출력 배율 — 낮/밤 주기. 다음 틱부터 반영.</summary>
+        public float SolarMultiplier { get; set; } = 1f;
+        public float BatteryCharge { get; private set; }
+        public float BatteryCapacity { get; private set; }
+        /// <summary>활성 배터리 충·방전 최대 속도 합 (초당).</summary>
+        public float BatteryRate { get; private set; }
+        /// <summary>마지막 틱의 배터리 흐름 (초당, +충전 / −방전).</summary>
+        public float BatteryFlow { get; private set; }
         /// <summary>전력 소비 모듈에 적용되는 효율 (최소 효율 ~ 1). 수요가 없으면 1.</summary>
         public float PowerEfficiency { get; private set; } = 1f;
         public int Population { get; private set; }
@@ -203,9 +212,12 @@ namespace SpaceStation.Simulation
         {
             Array.Copy(_baseCapacity, _capacity, ResourceCount);
             int housing = 0;
+            float batteryCapacity = 0f, batteryRate = 0f;
             foreach (var m in activeModules)
             {
                 housing += m.HousingCapacity;
+                batteryCapacity += m.BatteryCapacity;
+                batteryRate += m.BatteryRate;
                 if (m.StorageBonus > 0f)
                 {
                     for (int i = 0; i < ResourceCount; i++)
@@ -216,6 +228,10 @@ namespace SpaceStation.Simulation
                 }
             }
             HousingCapacity = housing;
+            BatteryCapacity = batteryCapacity;
+            BatteryRate = batteryRate;
+            if (BatteryCharge > BatteryCapacity)
+                BatteryCharge = BatteryCapacity; // 배터리 철거·분리 시 초과분 손실
             Changed?.Invoke();
         }
 
@@ -246,15 +262,38 @@ namespace SpaceStation.Simulation
                     stoppedCount++;
                     continue;
                 }
-                supply += Sum(m.Production, ResourceType.Power) * Multiplier(productionMultipliers, k);
+                float solar = m.SolarPowered ? SolarMultiplier : 1f; // 낮/밤 (4-2)
+                supply += Sum(m.Production, ResourceType.Power) * Multiplier(productionMultipliers, k) * solar;
                 demand += Sum(m.Consumption, ResourceType.Power);
             }
             supply *= PowerSupplyMultiplier; // 태양 폭풍 등 전역 배율
             StoppedModuleCount = stoppedCount;
             PowerSupply = supply;
             PowerDemand = demand;
+
+            // 배터리 (4-2): 남는 전력은 충전, 모자라면 방전. 둘 다 초당 BatteryRate까지.
+            float effectiveSupply = supply;
+            float net = supply - demand;
+            float dt = Mathf.Max(deltaSeconds, 1e-6f);
+            if (net >= 0f)
+            {
+                float charge = Mathf.Min(net, BatteryRate, (BatteryCapacity - BatteryCharge) / dt);
+                charge = Mathf.Max(0f, charge);
+                BatteryCharge += charge * deltaSeconds;
+                BatteryFlow = charge;
+            }
+            else
+            {
+                float discharge = Mathf.Min(-net, BatteryRate, BatteryCharge / dt);
+                discharge = Mathf.Max(0f, discharge);
+                BatteryCharge -= discharge * deltaSeconds;
+                effectiveSupply += discharge;
+                BatteryFlow = -discharge;
+            }
+            BatteryCharge = Mathf.Clamp(BatteryCharge, 0f, BatteryCapacity);
+
             PowerEfficiency = demand > 0f
-                ? Mathf.Clamp(supply / demand, _config.MinPowerEfficiency, 1f)
+                ? Mathf.Clamp(effectiveSupply / demand, _config.MinPowerEfficiency, 1f)
                 : 1f;
 
             Array.Clear(_production, 0, ResourceCount);

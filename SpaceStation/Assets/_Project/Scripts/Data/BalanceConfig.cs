@@ -63,6 +63,18 @@ namespace SpaceStation.Data
         [SerializeField, Min(0.1f)] private float _repairDuration = 1f;
         [Tooltip("파손 후 수리하지 않으면 파괴되기까지 시간(초)")]
         [SerializeField, Min(0.1f)] private float _destroyAfterSeconds = 1f;
+        [Tooltip("운석 피격 가중치 기울기: 가중치 = 기울기 × (노출 면 − 1) + 1. 1이면 노출 면 수에 비례")]
+        [SerializeField, Min(0f)] private float _meteorExposureSlope = 3f;
+
+        [Header("Day / Night (BALANCE 14번)")]
+        [Tooltip("낮+밤 한 주기(초). 0이면 주기 없음(항상 낮)")]
+        [SerializeField, Min(0f)] private float _dayNightPeriod;
+        [Tooltip("주기 중 낮 길이(초). 나머지가 밤")]
+        [SerializeField, Min(0f)] private float _dayLength;
+        [Tooltip("해질녘·새벽 전환 시간(초). 이 동안 출력이 서서히 변함. 0이면 계단식")]
+        [SerializeField, Min(0f)] private float _dayNightTransition;
+        [Tooltip("밤의 태양광 출력 배율")]
+        [SerializeField, Range(0f, 1f)] private float _nightSolarMultiplier;
 
         [Header("Cost")]
         [Tooltip("철거 환급 비율 (건설 비용 대비)")]
@@ -92,6 +104,11 @@ namespace SpaceStation.Data
         public float DamagedOxygenLeakPerSecond => _damagedOxygenLeakPerSecond;
         public float RepairDuration => _repairDuration;
         public float DestroyAfterSeconds => _destroyAfterSeconds;
+        public float MeteorExposureSlope => _meteorExposureSlope;
+        public float DayNightPeriod => _dayNightPeriod;
+        public float DayLength => _dayLength;
+        public float DayNightTransition => _dayNightTransition;
+        public float NightSolarMultiplier => _nightSolarMultiplier;
         public float DemolishRefundRate => _demolishRefundRate;
         public float RepairCostRate => _repairCostRate;
     }

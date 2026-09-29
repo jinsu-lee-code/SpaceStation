@@ -1,154 +1,101 @@
 using System.Collections.Generic;
 using SpaceStation.Core;
 using SpaceStation.Data;
+using SpaceStation.Simulation;
 using UnityEngine;
 
 namespace SpaceStation.Building
 {
     /// <summary>
-    /// 정거장 하나의 씬 진입점. <see cref="StationGrid"/>와 <see cref="StationConnectivity"/>를 소유하고,
-    /// 그리드 이벤트를 받아 모듈 프리팹을 생성/제거한다. 시작 시 코어를 원점에 배치한다.
+    /// 정거장의 씬 표현. <see cref="StationSimulation"/>의 그리드를 따라 모듈 프리팹을 생성/제거하고,
+    /// 연결(활성/비활성)·파손 상태를 <see cref="ModuleView"/>에 반영한다.
+    /// 배치·철거 명령은 시뮬레이션으로 그대로 전달한다 (규칙·비용 판정은 시뮬레이션이 한다).
     /// </summary>
+    [DefaultExecutionOrder(-90)]
     public sealed class StationController : MonoBehaviour
     {
-        [SerializeField] private ModuleData _coreModule;
+        [SerializeField] private SimulationHost _host;
         [Tooltip("생성된 모듈 오브젝트의 부모. 비우면 이 오브젝트 아래에 둔다.")]
         [SerializeField] private Transform _moduleRoot;
 
         private readonly Dictionary<ModuleInstance, ModuleView> _views = new Dictionary<ModuleInstance, ModuleView>();
-        private StationGrid _grid;
-        private StationConnectivity _connectivity;
+        private StationSimulation _sim;
 
-        public StationGrid Grid => _grid;
-        public StationConnectivity Connectivity => _connectivity;
-        public ModuleInstance Core { get; private set; }
+        public StationSimulation Simulation => _sim;
+        public StationGrid Grid => _sim.Grid;
+        public StationConnectivity Connectivity => _sim.Connectivity;
+        public ModuleInstance Core => _sim.Core;
 
         private void Awake()
         {
             if (_moduleRoot == null)
                 _moduleRoot = transform;
 
-            _grid = new StationGrid();
-            _connectivity = new StationConnectivity(_grid, new FaceAdjacencyConnectionRule());
-            _grid.ModulePlaced += HandleModulePlaced;
-            _grid.ModuleRemoved += HandleModuleRemoved;
-            _connectivity.ActiveStateChanged += HandleActiveStateChanged;
+            _sim = _host.Simulation; // SimulationHost.Awake(-100) 이후
+            foreach (var module in _sim.Grid.Modules)
+                CreateView(module); // 코어 등 이미 배치된 모듈
 
-            if (_coreModule == null)
-            {
-                Debug.LogError("StationController: 코어 모듈 데이터가 지정되지 않음", this);
-                return;
-            }
-            _grid.TryPlace(_coreModule, Vector3Int.zero, 0, out var core);
-            Core = core;
-            _connectivity.Root = core;
-            _connectivity.Recalculate();
+            _sim.Grid.ModulePlaced += CreateView;
+            _sim.Grid.ModuleRemoved += HandleModuleRemoved;
+            _sim.Connectivity.ActiveStateChanged += HandleActiveStateChanged;
+            _sim.Damage.Damaged += HandleDamaged;
+            _sim.Damage.RepairStarted += HandleRepairStarted;
+            _sim.Damage.Repaired += HandleRepaired;
         }
 
         private void OnDestroy()
         {
-            if (_grid == null)
+            if (_sim == null)
                 return;
-            _grid.ModulePlaced -= HandleModulePlaced;
-            _grid.ModuleRemoved -= HandleModuleRemoved;
-            _connectivity.ActiveStateChanged -= HandleActiveStateChanged;
+            _sim.Grid.ModulePlaced -= CreateView;
+            _sim.Grid.ModuleRemoved -= HandleModuleRemoved;
+            _sim.Connectivity.ActiveStateChanged -= HandleActiveStateChanged;
+            _sim.Damage.Damaged -= HandleDamaged;
+            _sim.Damage.RepairStarted -= HandleRepairStarted;
+            _sim.Damage.Repaired -= HandleRepaired;
         }
 
-        /// <summary>건설 비용 창구. 없으면 비용 없이 배치된다 (ResourceController가 Start에서 등록).</summary>
-        public IBuildCostHandler CostHandler { get; set; }
-
-        /// <summary>공간 배치 규칙(<see cref="PlacementRules"/>) + 비용 지불 가능 여부.</summary>
         public bool CanPlace(ModuleData data, Vector3Int origin, int rotation)
-        {
-            return EvaluatePlacement(data, origin, rotation) == PlacementResult.Valid;
-        }
+            => _sim.EvaluatePlacement(data, origin, rotation) == PlacementResult.Valid;
 
-        /// <summary>배치 가능 여부와 불가 사유. 공간 규칙을 먼저 보고, 통과하면 비용을 본다.</summary>
         public PlacementResult EvaluatePlacement(ModuleData data, Vector3Int origin, int rotation)
-        {
-            var result = PlacementRules.Evaluate(_grid, data, origin, rotation);
-            if (result == PlacementResult.Valid)
-                result = CheckBuildable(data);
-            if (result == PlacementResult.Valid && !CanAfford(data))
-                return PlacementResult.InsufficientResources;
-            return result;
-        }
+            => _sim.EvaluatePlacement(data, origin, rotation);
 
-        /// <summary>진행도 제한 창구 (ProgressionController가 Start에서 등록). 없으면 제한 없음.</summary>
-        public IPlacementPolicy PlacementPolicy { get; set; }
-
-        /// <summary>위치와 무관한 건설 가능 여부 (해금·최대 설치 수).</summary>
-        public PlacementResult CheckBuildable(ModuleData data)
-        {
-            return PlacementPolicy != null ? PlacementPolicy.CheckBuildable(data, _grid) : PlacementResult.Valid;
-        }
-
-        public bool CanAfford(ModuleData data)
-        {
-            return data != null && (CostHandler == null || CostHandler.CanAfford(data.BuildCost));
-        }
+        public PlacementResult CheckBuildable(ModuleData data) => _sim.CheckBuildable(data);
+        public bool CanAfford(ModuleData data) => _sim.CanAfford(data);
 
         public bool TryPlace(ModuleData data, Vector3Int origin, int rotation, out ModuleInstance module)
-        {
-            module = null;
-            if (!CanPlace(data, origin, rotation))
-                return false;
-            if (CostHandler != null && !CostHandler.TrySpend(data.BuildCost))
-                return false;
-            return _grid.TryPlace(data, origin, rotation, out module);
-        }
+            => _sim.TryPlace(data, origin, rotation, out module);
 
-        public bool CanRemove(ModuleInstance module)
-        {
-            return module != null && module != Core && (module.Data == null || module.Data.Removable);
-        }
-
-        /// <summary>철거. 건설 비용의 일부(BalanceConfig 환급률)를 돌려받는다.</summary>
-        public bool TryRemove(ModuleInstance module)
-        {
-            if (!CanRemove(module) || !_grid.Remove(module))
-                return false;
-            if (CostHandler != null && module.Data != null)
-                CostHandler.Refund(module.Data.BuildCost);
-            return true;
-        }
-
-        /// <summary>파괴 (파손 방치 등). 환급 없음. 코어는 파괴되지 않는다.</summary>
-        public bool DestroyModule(ModuleInstance module)
-        {
-            if (module == null || module == Core)
-                return false;
-            return _grid.Remove(module);
-        }
+        public bool CanRemove(ModuleInstance module) => _sim.CanRemove(module);
+        public bool TryRemove(ModuleInstance module) => _sim.TryRemove(module);
+        public bool DestroyModule(ModuleInstance module) => _sim.DestroyModule(module);
 
         public bool TryGetView(ModuleInstance module, out ModuleView view)
         {
             return _views.TryGetValue(module, out view);
         }
 
-        private void HandleModulePlaced(ModuleInstance module)
+        private void CreateView(ModuleInstance module)
         {
             var prefab = module.Data != null ? module.Data.Prefab : null;
             if (prefab == null)
             {
                 Debug.LogWarning($"{module}: 프리팹이 없어 표시하지 않음", this);
-            }
-            else
-            {
-                var go = Instantiate(prefab,
-                    GridConfig.CellToWorld(module.Origin),
-                    GridDirections.ToQuaternion(module.Rotation),
-                    _moduleRoot);
-                go.name = module.ToString();
-                if (!go.TryGetComponent<ModuleView>(out var view))
-                    view = go.AddComponent<ModuleView>();
-                view.Initialize(module);
-                _views.Add(module, view);
+                return;
             }
 
-            // 코어 배치 시점에는 Root가 아직 없으므로 Awake에서 따로 계산
-            if (_connectivity.Root != null)
-                _connectivity.Recalculate();
+            var go = Instantiate(prefab,
+                GridConfig.CellToWorld(module.Origin),
+                GridDirections.ToQuaternion(module.Rotation),
+                _moduleRoot);
+            go.name = module.ToString();
+            if (!go.TryGetComponent<ModuleView>(out var view))
+                view = go.AddComponent<ModuleView>();
+            view.Initialize(module);
+            // 연결 재계산은 시뮬레이션이 이미 끝냈으므로 현재 상태를 바로 반영
+            view.SetOperational(_sim.Connectivity.IsActive(module));
+            _views.Add(module, view);
         }
 
         private void HandleModuleRemoved(ModuleInstance module)
@@ -158,13 +105,22 @@ namespace SpaceStation.Building
                 _views.Remove(module);
                 Destroy(view.gameObject);
             }
-            _connectivity.Recalculate();
         }
 
         private void HandleActiveStateChanged(ModuleInstance module, bool active)
         {
             if (_views.TryGetValue(module, out var view))
                 view.SetOperational(active);
+        }
+
+        private void HandleDamaged(DamageInfo info) => SetDamageVisual(info.Module, ModuleDamageVisual.Damaged);
+        private void HandleRepairStarted(DamageInfo info) => SetDamageVisual(info.Module, ModuleDamageVisual.Repairing);
+        private void HandleRepaired(ModuleInstance module) => SetDamageVisual(module, ModuleDamageVisual.None);
+
+        private void SetDamageVisual(ModuleInstance module, ModuleDamageVisual visual)
+        {
+            if (_views.TryGetValue(module, out var view))
+                view.SetDamageVisual(visual);
         }
     }
 }

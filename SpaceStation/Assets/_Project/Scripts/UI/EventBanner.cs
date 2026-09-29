@@ -52,10 +52,21 @@ namespace SpaceStation.UI
         private void HandleStarted(GameEventData data)
         {
             _background.color = data.IsPositive ? _positiveColor : _negativeColor;
-            _title.SetText(data.IsTimed ? $"{data.DisplayName}  <size=70%>({data.Duration:0}초)</size>" : data.DisplayName);
+            _title.SetText(data.IsTimed ? $"{data.DisplayName}  <size=70%>({ActiveDuration(data):0}초)</size>" : data.DisplayName);
             _description.SetText(data.Description);
             _description.gameObject.SetActive(!string.IsNullOrEmpty(data.Description));
             Show(_showSeconds);
+        }
+
+        /// <summary>등급 강도 배율이 반영된 실제 지속시간.</summary>
+        private float ActiveDuration(GameEventData data)
+        {
+            foreach (var a in _events.Scheduler.ActiveEvents)
+            {
+                if (a.Data == data)
+                    return a.Duration;
+            }
+            return data.Duration;
         }
 
         private void HandleEnded(ActiveEvent active)

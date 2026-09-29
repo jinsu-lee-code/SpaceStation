@@ -29,6 +29,7 @@ namespace SpaceStation.Tests
             so.FindProperty("_repairDuration").floatValue = 10f;
             so.FindProperty("_destroyAfterSeconds").floatValue = 120f;
             so.FindProperty("_repairCostRate").floatValue = 0.3f;
+            so.FindProperty("_meteorExposureSlope").floatValue = 3f;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             _block = ScriptableObject.CreateInstance<ModuleData>();
@@ -149,6 +150,55 @@ namespace SpaceStation.Tests
             var damagedOne = results[0];
             _damage.FindMeteorCandidates(_grid, core, results);
             CollectionAssert.DoesNotContain(results, damagedOne, "이미 파손된 모듈 제외");
+        }
+
+        [Test]
+        public void ExposedFaces_CountsEmptyNeighbors()
+        {
+            var a = Place(0);
+            Assert.AreEqual(6, DamageSystem.CountExposedFaces(_grid, a));
+            Place(1);
+            Assert.AreEqual(5, DamageSystem.CountExposedFaces(_grid, a));
+        }
+
+        [Test]
+        public void MeteorTargets_DistinctAndCapped()
+        {
+            var core = Place(0);
+            Place(1); Place(2); Place(3);
+            var results = new List<ModuleInstance>();
+
+            _damage.PickMeteorTargets(_grid, core, 2, () => 0.5f, results);
+            Assert.AreEqual(2, results.Count);
+            Assert.AreNotSame(results[0], results[1], "중복 없음");
+            CollectionAssert.DoesNotContain(results, core);
+
+            _damage.PickMeteorTargets(_grid, core, 10, () => 0.5f, results);
+            Assert.AreEqual(3, results.Count, "후보보다 많이 요청하면 후보 전부");
+        }
+
+        [Test]
+        public void MeteorWeight_LinearSlope3()
+        {
+            Assert.AreEqual(0f, _damage.GetMeteorWeight(0));
+            Assert.AreEqual(1f, _damage.GetMeteorWeight(1), Eps);
+            Assert.AreEqual(4f, _damage.GetMeteorWeight(2), Eps);
+            Assert.AreEqual(13f, _damage.GetMeteorWeight(5), Eps, "가지 끝(5면)은 1면 대비 13배");
+        }
+
+        [Test]
+        public void MeteorTargets_WeightedByExposure()
+        {
+            // 코어(0,0,0) 기준 +X로 뻗은 가지: (1,0,0) 노출 4 → 가중치 10, (2,0,0) 노출 5(끝) → 13, 합 23
+            var core = Place(0);
+            var middle = Place(1);
+            var tip = Place(2);
+            var results = new List<ModuleInstance>();
+            _damage.PickMeteorTargets(_grid, core, 1, () => 0.5f, results); // 11.5 ≥ 10 → 끝 모듈
+            Assert.AreSame(tip, results[0]);
+
+            _damage.PickMeteorTargets(_grid, core, 1, () => 0.4f, results); // 9.2 < 10 → 첫 후보
+            Assert.AreSame(middle, results[0]);
         }
 
         [Test]

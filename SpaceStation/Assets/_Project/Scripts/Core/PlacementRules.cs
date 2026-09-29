@@ -13,11 +13,11 @@ namespace SpaceStation.Core
         TerminalNeedsSingleContact,
         /// <summary>기존 말단 모듈(채굴 도킹)의 면에 붙이려 함.</summary>
         BlockedByTerminal,
-        /// <summary>공간 규칙은 통과했으나 건설 비용이 부족함 (StationController가 판정).</summary>
+        /// <summary>공간 규칙은 통과했으나 건설 비용이 부족함 (StationSimulation이 판정).</summary>
         InsufficientResources,
-        /// <summary>현재 등급에서 아직 해금되지 않은 모듈 (IPlacementPolicy가 판정).</summary>
+        /// <summary>현재 등급에서 아직 해금되지 않은 모듈 (StationProgression이 판정).</summary>
         ModuleLocked,
-        /// <summary>등급별 최대 설치 수 도달 (채굴 도킹, IPlacementPolicy가 판정).</summary>
+        /// <summary>등급별 최대 설치 수 도달 (채굴 도킹, StationProgression이 판정).</summary>
         LimitReached,
     }
 

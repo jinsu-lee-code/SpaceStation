@@ -10,23 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cb58bbe16188d524dbc82c9b3c050e29, type: 3}
-  m_Name: MD_Solar
+  m_Name: MD_Battery
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ModuleData
-  _displayName: "\uD0DC\uC591\uAD11 \uD328\uB110"
+  _displayName: "\uBC30\uD130\uB9AC"
   _cellOffsets:
   - {x: 0, y: 0, z: 0}
-  _prefab: {fileID: 1536195265730828895, guid: 8881fe708ec6cd74caf619e4ebde2297, type: 3}
+  _prefab: {fileID: 5314745806978021579, guid: bcf11f611dc5ce648931c7069cb7756f, type: 3}
   _removable: 1
   _terminalOnly: 0
   _buildCost:
   - Type: 4
-    Amount: 20
-  _production:
-  - Type: 0
-    Amount: 10
+    Amount: 30
+  _production: []
   _consumption: []
   _housingCapacity: 0
   _storageBonus: 0
-  _solarPowered: 1
-  _batteryCapacity: 0
-  _batteryRate: 0
+  _solarPowered: 0
+  _batteryCapacity: 200
+  _batteryRate: 10

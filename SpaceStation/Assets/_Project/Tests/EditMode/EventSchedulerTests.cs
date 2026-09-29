@@ -146,6 +146,35 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void IntervalMultiplier_AppliesToNextIntervals()
+        {
+            var a = Event("A");
+            var s = Create(grace: 0f, min: 100f, max: 100f); // 첫 간격 100 (배율 설정 전)
+            float multiplier = 0.4f;
+            s.IntervalMultiplier = () => multiplier;
+            Ticks(s, 100, a);
+            Assert.AreEqual(1, _started.Count);
+            Ticks(s, 39, a);
+            Assert.AreEqual(1, _started.Count);
+            Ticks(s, 1, a);
+            Assert.AreEqual(2, _started.Count, "다음 간격 100 × 0.4 = 40");
+        }
+
+        [Test]
+        public void DurationProvider_OverridesTimedDuration()
+        {
+            var storm = Event("Storm", duration: 60f);
+            var s = Create();
+            s.DurationProvider = d => d.Duration * 2f;
+            s.Trigger(storm);
+            Assert.AreEqual(120f, s.ActiveEvents[0].Duration, 1e-3f);
+            Ticks(s, 119, null);
+            Assert.IsTrue(s.IsActive(storm));
+            Ticks(s, 1, null);
+            Assert.IsFalse(s.IsActive(storm));
+        }
+
+        [Test]
         public void InvalidInterval_Throws()
         {
             Assert.Throws<System.ArgumentOutOfRangeException>(() => new EventScheduler(0f, 100f, 50f, Roll));

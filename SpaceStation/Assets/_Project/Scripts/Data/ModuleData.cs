@@ -32,6 +32,14 @@ namespace SpaceStation.Data
         [Tooltip("스톡 자원(산소/물/식량/금속) 각각의 저장 한도 증가량")]
         [SerializeField, Min(0f)] private float _storageBonus;
 
+        [Header("Power (BALANCE 14번)")]
+        [Tooltip("전력 생산이 낮/밤 주기를 따름 (태양광)")]
+        [SerializeField] private bool _solarPowered;
+        [Tooltip("배터리 저장 용량 (전력×초)")]
+        [SerializeField, Min(0f)] private float _batteryCapacity;
+        [Tooltip("배터리 충·방전 최대 속도 (초당)")]
+        [SerializeField, Min(0f)] private float _batteryRate;
+
         public string DisplayName => _displayName;
         public IReadOnlyList<Vector3Int> CellOffsets => _cellOffsets;
         public GameObject Prefab => _prefab;
@@ -42,6 +50,9 @@ namespace SpaceStation.Data
         public IReadOnlyList<ResourceAmount> Consumption => _consumption;
         public int HousingCapacity => _housingCapacity;
         public float StorageBonus => _storageBonus;
+        public bool SolarPowered => _solarPowered;
+        public float BatteryCapacity => _batteryCapacity;
+        public float BatteryRate => _batteryRate;
 
         private void OnValidate()
         {
