@@ -49,6 +49,11 @@ namespace SpaceStation.Simulation
         public DamageSystem Damage { get; }
         public DurabilitySystem Durability { get; }
         public AdjacencySystem Adjacency { get; }
+        public DefenseSystem Defense { get; }
+        public NeedsSystem Needs { get; }
+        private readonly List<ResidentNeed> _activeNeeds = new List<ResidentNeed>();
+        /// <summary>현재 등급까지 생긴 거주자 요구 (4-9).</summary>
+        public IReadOnlyList<ResidentNeed> ActiveNeeds => _activeNeeds;
         public EventScheduler Events { get; }
         public StationProgression Progression { get; }
         public GameSession Session { get; }
@@ -74,6 +79,8 @@ namespace SpaceStation.Simulation
             Damage = new DamageSystem(Balance);
             Durability = new DurabilitySystem(Balance);
             Adjacency = new AdjacencySystem(settings.AdjacencyRules);
+            Defense = new DefenseSystem(Balance, ModuleStrength);
+            Needs = new NeedsSystem(Balance, ModuleStrength, EffectiveHousing);
             Events = new EventScheduler(Balance.EventGracePeriod, Balance.EventIntervalMin, Balance.EventIntervalMax, _random01);
             Progression = new StationProgression(settings.Grades);
             Session = new GameSession();
@@ -116,6 +123,7 @@ namespace SpaceStation.Simulation
             Resources.SetExternalDrain(ResourceType.Oxygen, Damage.OxygenLeakPerSecond);
             Resources.SolarMultiplier = DayNight.SolarMultiplier(ElapsedSeconds); // 이번 틱 시작 시점의 낮/밤
             Resources.Tick(_activeModules, _productionMultipliers, _consumptionMultipliers, dt);
+            RefreshNeeds(); // 4-9: 이번 틱 전력 효율·인구 기준 요구 충족 → 만족도 상한
             Population.Tick(dt);
             Events.Tick(dt, _eventPool);
             ElapsedSeconds += dt;
@@ -351,6 +359,83 @@ namespace SpaceStation.Simulation
         }
 
         private readonly List<ModuleInstance> _spreadCandidates = new List<ModuleInstance>();
+        private readonly List<ModuleInstance> _ricochetCandidates = new List<ModuleInstance>();
+
+        /// <summary>
+        /// 운석 1발의 결과 (4-8). 맞을 모듈을 돌려주고, 격추·빗겨냄으로 피해가 없으면 null.
+        /// 실드가 빗겨내면 튕김 확률로 그 실드 범위 밖 외곽 모듈(노출 가중, 이번 운석 무리에서 이미 맞을 곳 제외)을 다시 판정한다.
+        /// 튕긴 운석도 포탑 격추는 받지만, 다른 실드에 또 막히면 우주로 (튕김 1회).
+        /// </summary>
+        private ModuleInstance ResolveMeteor(ModuleInstance target, bool canRicochet, ref int intercepted, ref int deflected, ref int ricochets)
+        {
+            float turret = Defense.GetInterceptChance(Grid, target);
+            if (turret > 0f && _random01() < turret)
+            {
+                intercepted++;
+                return null;
+            }
+            float shield = Defense.GetShieldBlockChance(Grid, target, out var shieldModule);
+            if (shield <= 0f || _random01() >= shield)
+                return target;
+
+            deflected++;
+            if (!canRicochet || _random01() >= Balance.ShieldRicochetChance)
+                return null; // 우주로
+
+            Damage.FindMeteorCandidates(Grid, Core, _ricochetCandidates);
+            for (int i = _ricochetCandidates.Count - 1; i >= 0; i--)
+            {
+                var c = _ricochetCandidates[i];
+                if (DefenseSystem.IsInShieldRange(shieldModule, c) || _meteorTargetsCopy.Contains(c) || _meteorCandidates.Contains(c))
+                    _ricochetCandidates.RemoveAt(i);
+            }
+            var next = Damage.PickWeighted(Grid, _ricochetCandidates, _random01);
+            if (next == null)
+                return null; // 튕길 곳 없음 → 우주로
+            var hit = ResolveMeteor(next, false, ref intercepted, ref deflected, ref ricochets);
+            if (hit != null)
+                ricochets++;
+            return hit;
+        }
+
+        /// <summary>활성 모듈의 실제 수용 인구 (인접 가감 포함, 비활성 0). 4-9 주민 배분용.</summary>
+        private float EffectiveHousing(ModuleInstance module)
+        {
+            if (module.Data == null || module.Data.HousingCapacity <= 0 || !Connectivity.IsActive(module))
+                return 0f;
+            return module.Data.HousingCapacity + Math.Max(-module.Data.HousingCapacity, Adjacency.GetHousingBonus(module));
+        }
+
+        private void RefreshNeeds()
+        {
+            _activeNeeds.Clear();
+            for (int i = 0; i <= Progression.GradeIndex; i++)
+            {
+                foreach (var need in Progression.GetGrade(i).NewNeeds)
+                {
+                    if (need != ResidentNeed.None && !_activeNeeds.Contains(need))
+                        _activeNeeds.Add(need);
+                }
+            }
+            Needs.Evaluate(Grid, Resources.Population, _activeNeeds);
+            Population.SatisfactionCap = Needs.SatisfactionCap;
+        }
+
+        /// <summary>
+        /// 방어·서비스 모듈 가동률 (4-8, 4-9): 비활성·파손이면 0, 아니면 전력 효율(전력을 쓰는 경우) × 내구도 효율.
+        /// </summary>
+        private float ModuleStrength(ModuleInstance defender)
+        {
+            if (defender.Data == null || !Connectivity.IsActive(defender) || Damage.IsDamaged(defender))
+                return 0f;
+            float power = 1f;
+            foreach (var c in defender.Data.Consumption)
+            {
+                if (c.Type == ResourceType.Power && c.Amount > 0f)
+                    power = Resources.PowerEfficiency;
+            }
+            return power * Durability.GetEfficiency(defender);
+        }
 
         private void HandleDestroyed(ModuleInstance module)
         {
@@ -443,9 +528,27 @@ namespace SpaceStation.Simulation
                 return;
             }
 
-            var sb = new StringBuilder();
+            // 4-8: 포탑 격추(완전 제거) → 실드 빗겨냄(일부는 범위 밖 모듈로 튕김). 피해 적용 전에 모두 판정
             _meteorTargetsCopy.Clear();
-            _meteorTargetsCopy.AddRange(_meteorCandidates); // 내구도 0으로 파괴되면 목록이 바뀔 수 있어 복사
+            int intercepted = 0, deflected = 0, ricochets = 0;
+            foreach (var target in _meteorCandidates)
+            {
+                var hit = ResolveMeteor(target, true, ref intercepted, ref deflected, ref ricochets);
+                if (hit != null)
+                    _meteorTargetsCopy.Add(hit); // 내구도 0으로 파괴되면 목록이 바뀔 수 있어 복사
+            }
+            Session.RecordIntercepted(intercepted);
+            Session.RecordShieldBlocked(deflected);
+            Session.RecordRicochet(ricochets);
+            string interceptText = (intercepted > 0 ? $"포탑 격추 {intercepted} · " : "")
+                                   + (deflected > 0 ? $"실드 빗겨냄 {deflected}" + (ricochets > 0 ? $"(튕겨서 {ricochets}개 명중)" : "") + " · " : "");
+            if (_meteorTargetsCopy.Count == 0)
+            {
+                Report($"운석 {_meteorCandidates.Count}개 접근 · {interceptText}피해 없음", true);
+                return;
+            }
+
+            var sb = new StringBuilder();
             foreach (var target in _meteorTargetsCopy)
             {
                 Damage.Damage(target);
@@ -454,7 +557,7 @@ namespace SpaceStation.Simulation
                     sb.Append(", ");
                 sb.Append(target.Data != null ? target.Data.DisplayName : target.ToString());
             }
-            string head = _meteorCandidates.Count > 1 ? $"운석 {_meteorCandidates.Count}개 충돌! 파손: " : "파손: ";
+            string head = (_meteorCandidates.Count > 1 ? $"운석 {_meteorCandidates.Count}개 충돌! " : "") + interceptText + "파손: ";
             string spread = Balance.SpreadAfterSeconds > 0f ? $", {Balance.SpreadAfterSeconds:0}초 방치 시 이웃으로 확산" : "";
             Report($"{head}{sb}  ·  {Balance.DestroyAfterSeconds:0}초 안에 수리 (선택 후 R){spread}", false);
         }

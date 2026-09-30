@@ -76,6 +76,18 @@ namespace SpaceStation.Data
         [Tooltip("수리 대기 취소 시 돌려받는 비율 (4-7: 대기로 확산을 막고 취소하는 허점 방지)")]
         [SerializeField, Range(0f, 1f)] private float _repairCancelRefundRate = 1f;
 
+        [Header("Defense (BALANCE 19번)")]
+        [Tooltip("한 모듈에 대한 포탑 격추 확률 합산 상한")]
+        [SerializeField, Range(0f, 1f)] private float _turretMaxIntercept = 0.6f;
+        [Tooltip("실드가 빗겨낸 운석이 그 실드 범위 밖 외곽 모듈에 맞을 확률 (나머지는 우주로)")]
+        [SerializeField, Range(0f, 1f)] private float _shieldRicochetChance;
+
+        [Header("Resident Needs (BALANCE 20번)")]
+        [Tooltip("요구 하나가 전부 미충족일 때 만족도 상한 감소량 (미충족 비율에 비례)")]
+        [SerializeField, Min(0f)] private float _needSatisfactionCapPenalty;
+        [Tooltip("만족도가 상한보다 높을 때 초당 감소량")]
+        [SerializeField, Min(0f)] private float _satisfactionAboveCapDecayPerSecond = 1f;
+
         [Header("Day / Night (BALANCE 14번)")]
         [Tooltip("낮+밤 한 주기(초). 0이면 주기 없음(항상 낮)")]
         [SerializeField, Min(0f)] private float _dayNightPeriod;
@@ -134,6 +146,10 @@ namespace SpaceStation.Data
         public float SpreadDurabilityDamage => _spreadDurabilityDamage;
         public bool QueuePausesSpread => _queuePausesSpread;
         public float RepairCancelRefundRate => _repairCancelRefundRate;
+        public float TurretMaxIntercept => _turretMaxIntercept;
+        public float ShieldRicochetChance => _shieldRicochetChance;
+        public float NeedSatisfactionCapPenalty => _needSatisfactionCapPenalty;
+        public float SatisfactionAboveCapDecayPerSecond => _satisfactionAboveCapDecayPerSecond;
         public float DayNightPeriod => _dayNightPeriod;
         public float DayLength => _dayLength;
         public float DayNightTransition => _dayNightTransition;

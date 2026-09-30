@@ -20,6 +20,8 @@ namespace SpaceStation.Simulation
 
         public DurabilitySystem Durability => _host.Simulation.Durability;
         public AdjacencySystem Adjacency => _host.Simulation.Adjacency;
+        public DefenseSystem Defense => _host.Simulation.Defense;
+        public NeedsSystem Needs => _host.Simulation.Needs;
 
         /// <summary>파손 모듈 수리 시작: 수리 비용(건설 비용 × 수리 비율)을 지불하고 타이머 시작.</summary>
         public RepairResult TryRepair(ModuleInstance module) => _host.Simulation.TryRepair(module);

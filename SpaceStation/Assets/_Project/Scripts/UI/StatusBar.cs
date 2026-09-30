@@ -144,7 +144,16 @@ namespace SpaceStation.UI
                 if (hasTarget && result != PlacementResult.Valid)
                     text += $"\n<color={HudText.Red}>배치 불가: {HudText.PlacementReason(result)}</color>";
                 else if (hasTarget)
+                {
                     text += AdjacencyPreviewLine(build, targetCell, rotation);
+                    if (build.IsDefense) // 4-8: 범위 안에 들어올 모듈 수
+                    {
+                        var cells = StationGrid.ResolveCells(build.CellOffsets, targetCell, rotation);
+                        int covered = DefenseSystem.CountCovered(_station.Grid, build, cells);
+                        int radius = Mathf.Max(build.ShieldRadius, build.TurretRadius);
+                        text += $"\n<size=90%><color=#7FD8FF>방어 범위 (반경 {radius}칸): 모듈 {covered}개 보호</color></size>";
+                    }
+                }
                 _hintText.SetText(text);
             }
             else if (selected != null)

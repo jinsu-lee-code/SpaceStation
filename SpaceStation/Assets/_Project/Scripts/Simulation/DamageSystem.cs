@@ -371,6 +371,25 @@ namespace SpaceStation.Simulation
             results.AddRange(_picked);
         }
 
+        /// <summary>후보 중 1곳을 노출 가중치로 고른다 (4-8 실드 튕김). 후보가 없거나 가중치 합이 0이면 null.</summary>
+        public ModuleInstance PickWeighted(StationGrid grid, IReadOnlyList<ModuleInstance> candidates, Func<float> random01)
+        {
+            float total = 0f;
+            foreach (var m in candidates)
+                total += GetMeteorWeight(CountExposedFaces(grid, m));
+            if (total <= 0f)
+                return null;
+            float roll = random01() * total;
+            foreach (var m in candidates)
+            {
+                float w = GetMeteorWeight(CountExposedFaces(grid, m));
+                if (roll < w)
+                    return m;
+                roll -= w;
+            }
+            return candidates[candidates.Count - 1];
+        }
+
         /// <summary>피격 가중치 = 기울기 × (노출 면 − 1) + 1 (BALANCE 13번). 노출 1면 = 1.</summary>
         public float GetMeteorWeight(int exposedFaces)
         {

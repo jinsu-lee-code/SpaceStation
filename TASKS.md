@@ -149,12 +149,16 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - `DamageSystem`: `RepairCapacity`, 대기열(`Queue`, `Prioritize`, `CancelQueued`), `StationSimulation.CountRepairSlots/TryPrioritizeRepair/TryCancelRepair`, `RepairResult.Queued/AlreadyQueued`
   - `MD_MaintenanceBay`(금속 100, 전력 5, 2칸, 소형 해금, 산업 탭) + `PF_MaintenanceBay`(주황)
   - UI: 선택 패널 대기 순번·우선 수리(R)·[대기 취소 (C)], 자원 패널 수리 슬롯 줄, 파손 마커 "대기 n", 툴팁 "동시 수리 슬롯 +1". 봇: 대기 판단 + 필요 슬롯만큼 베이 건설
-- [ ] **4-7. 연쇄 파손 확산**
-  - (코드 완료, Play 모드 확인 대기) BALANCE.md 18번. 60초 방치 시 이웃 1곳으로 1회 확산(연쇄 허용, 코어 제외, 내구도 -20), 수리 시작·대기열 등록 시 멈춤(`queuePausesSpread`)
+- [x] **4-7. 연쇄 파손 확산**
+  - BALANCE.md 18번. 60초 방치 시 이웃 1곳으로 1회 확산(연쇄 허용, 코어 제외, 내구도 -20), 수리 시작·대기열 등록 시 멈춤(`queuePausesSpread`)
   - `DamageInfo.TimeUntilSpread/HasSpread/SpreadPending`, `DamageSystem.SpreadDue` → `StationSimulation.HandleSpreadDue`(대상 선택), `DamageSpread` 이벤트, `GameSession.DamageSpreads`
   - UI: 마커 "확산 N초"(15초 이하 강조), 선택 패널 확산 시간, 번짐 알림. 측정 도구에 확산 횟수 열 추가
   - B안: 대기 = 확산 멈춤 유지, 대기 취소 환불 50%(`repairCancelRefundRate`)로 허점 차단. 우선 수리 점검 + 같은 틱 파괴/베이 복구 겹침 버그 수정(회귀 테스트)
-- [ ] **4-8. 방어 모듈** (실드/포탑)
+- [x] **4-8. 방어 모듈** (실드/포탑)
+  - BALANCE.md 19번. 둘 다 범위형(반경 2칸, 체비셰프): 실드 빗겨냄 70%(중첩 없음, 그중 70%는 범위 밖 외곽 모듈로 튕김·1회), 포탑 완전 격추 20%(합산 최대 60%). 금속 120, 전력 6, 1칸, 소형 해금, 방어 탭
+  - `ModuleData` 방어 필드, `DefenseSystem`(순수: 차단·격추 확률, 범위 계산), `StationSimulation.ApplyMeteor`에서 격추→차단 판정, 가동률 = 활성·정상 × 전력 × 내구도
+  - `MD_Shield`/`MD_Turret` + 프리팹(받침 + 구/원기둥), `DefenseRangeView`(반투명 범위 상자), UI(상태 표시줄 범위, 선택 패널 방어·보호 줄, 툴팁, 운석 알림)
+  - 봇: 금속 여유 시 모듈 15개당 1개. 측정: 우선 건설 시 파손 -27%지만 인구 -36% → 4-10에서 재조정
 - [ ] **4-9. 거주자 요구 단계** (의료·여가 등 신규 모듈)
 - [ ] **4-10. A: 전체 수치 조정** (측정 도구 기준 목표 난이도 곡선)
 - [ ] 30분 플레이 테스트 (2차)

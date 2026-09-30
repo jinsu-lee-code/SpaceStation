@@ -23,7 +23,11 @@ namespace SpaceStation.Editor.Balance
         private readonly List<DurabilityInfo> _maintainQueue = new List<DurabilityInfo>();
 
         private readonly StationSimulation _sim;
-        private readonly ModuleData _power, _oxygen, _water, _food, _housing, _storage, _metal, _battery, _bay;
+        private readonly ModuleData _power, _oxygen, _water, _food, _housing, _storage, _metal, _battery, _bay, _shield, _turret;
+        private const int ModulesPerDefense = 15; // 방어 모듈 1개당 모듈 수 (4-8)
+        /// <summary>비교 측정용: 방어 모듈을 금속 여유와 무관하게 우선 건설 (기본 false).</summary>
+        public static bool DefenseFirst;
+        private readonly List<ModuleInstance> _covered = new List<ModuleInstance>();
         // 전력 모델 (Decide마다 갱신): 낮 여유 = 낮 발전 - 수요 - 밤 대비 충전분
         private float _nightDeficit;     // 밤 동안 초당 부족량
         private float _spareDayPower;    // 밤 충전분을 뺀 낮 여유 (초당)
@@ -51,6 +55,8 @@ namespace SpaceStation.Editor.Balance
                 if (_storage == null && m.StorageBonus > 0f) _storage = m;
                 if (_battery == null && m.BatteryCapacity > 0f) _battery = m;
                 if (_bay == null && m.RepairSlots > 0) _bay = m;
+                if (_shield == null && m.IsShield) _shield = m;
+                if (_turret == null && m.IsTurret) _turret = m;
             }
         }
 
@@ -114,6 +120,11 @@ namespace SpaceStation.Editor.Balance
                 return _bay;
             if (CanBuildMetal())
                 return _metal; // 설치 한도까지 채굴 도킹
+            // 4-8: 모듈 15개당 방어 모듈 1개 (실드·포탑 번갈아). 금속이 건설비 + 거주 모듈 1개분 이상 남을 때만 → 성장을 막지 않음
+            // DefenseFirst(비교 측정용)이면 금속 여유와 무관하게 먼저 짓는다
+            var defense = PickDefense();
+            if (defense != null && (DefenseFirst || r.GetStock(ResourceType.Metal) >= Cost(defense) + (_housing != null ? Cost(_housing) : 0f)))
+                return defense;
             if (_housing != null && r.Population >= r.HousingCapacity - 1)
                 return _housing;
             if (_storage != null && _sim.CheckBuildable(_storage) == PlacementResult.Valid
@@ -124,6 +135,51 @@ namespace SpaceStation.Editor.Balance
             if (next != null && _sim.Grid.ModuleCount < next.MinModules)
                 return _housing;
             return null;
+        }
+
+        private static float Cost(ModuleData data)
+        {
+            float metal = 0f;
+            foreach (var c in data.BuildCost)
+                metal += c.Type == ResourceType.Metal ? c.Amount : 0f;
+            return metal;
+        }
+
+        private ModuleData PickDefense()
+        {
+            int shields = 0, turrets = 0;
+            foreach (var m in _sim.Grid.Modules)
+            {
+                if (m.Data == null) continue;
+                if (m.Data.IsShield) shields++;
+                if (m.Data.IsTurret) turrets++;
+            }
+            if ((shields + turrets + 1) * ModulesPerDefense > _sim.Grid.ModuleCount)
+                return null;
+            bool shieldOk = _shield != null && _sim.CheckBuildable(_shield) == PlacementResult.Valid;
+            bool turretOk = _turret != null && _sim.CheckBuildable(_turret) == PlacementResult.Valid;
+            if (shieldOk && (!turretOk || shields <= turrets))
+                return _shield;
+            return turretOk ? _turret : null;
+        }
+
+        /// <summary>방어 모듈 배치 점수: 아직 같은 종류의 보호를 받지 않는 모듈을 범위에 많이 넣을수록.</summary>
+        private float DefenseScore(ModuleData data, Vector3Int origin, int rotation)
+        {
+            if (!data.IsDefense)
+                return 0f;
+            var cells = StationGrid.ResolveCells(data.CellOffsets, origin, rotation);
+            DefenseSystem.CountCovered(_sim.Grid, data, cells, _covered);
+            int fresh = 0;
+            foreach (var m in _covered)
+            {
+                bool already = data.IsShield
+                    ? _sim.Defense.GetShieldBlockChance(_sim.Grid, m) > 0.001f
+                    : _sim.Defense.GetInterceptChance(_sim.Grid, m) >= _sim.Balance.TurretMaxIntercept - 1e-3f;
+                if (!already)
+                    fresh++;
+            }
+            return fresh * 8f;
         }
 
         private int DesiredRepairSlots()
@@ -286,7 +342,7 @@ namespace SpaceStation.Editor.Balance
                     // 조밀 배치(운석 노출 감소) 선호. 태양광은 그늘 때문에 접촉 가산을 줄임.
                     float contactWeight = data.SolarPowered ? 1f : 10f;
                     float score = Contacts(data, origin, rot) * contactWeight - origin.sqrMagnitude * 0.01f
-                                  + AdjacencyScore(data, origin, rot);
+                                  + AdjacencyScore(data, origin, rot) + DefenseScore(data, origin, rot);
                     if (score > bestScore)
                     {
                         bestScore = score;

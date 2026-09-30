@@ -36,5 +36,14 @@ namespace SpaceStation.Simulation
         public void RecordEvent() => EventsExperienced++;
         public void RecordDestroyed() => ModulesDestroyed++;
         public void RecordSpread() => DamageSpreads++;
+        /// <summary>포탑이 격추한 운석 수 (4-8).</summary>
+        public int MeteorsIntercepted { get; private set; }
+        public void RecordIntercepted(int count) => MeteorsIntercepted += count;
+        /// <summary>실드가 막은 운석 수 (4-8).</summary>
+        public int MeteorsBlocked { get; private set; }
+        public void RecordShieldBlocked(int count) => MeteorsBlocked += count;
+        /// <summary>실드가 빗겨낸 운석이 다른 모듈에 맞은 수 (4-8).</summary>
+        public int Ricochets { get; private set; }
+        public void RecordRicochet(int count) => Ricochets += count;
     }
 }

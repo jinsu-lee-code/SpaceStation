@@ -47,7 +47,37 @@ namespace SpaceStation.Data
         [Tooltip("동시 수리 슬롯 추가 수 (정비 베이 1). 활성이고 파손되지 않았을 때만. 코어 몫은 BalanceConfig.BaseRepairSlots")]
         [SerializeField, Min(0)] private int _repairSlots;
 
+        [Header("Defense (BALANCE 19번)")]
+        [Tooltip("실드 반경 (격자 칸, 체비셰프 거리). 0이면 실드 아님")]
+        [SerializeField, Min(0)] private int _shieldRadius;
+        [Tooltip("범위 안 모듈로 오는 운석 1발당 차단 확률 (0.7 = 피격 -70%). 여러 실드는 중첩 없이 가장 강한 것")]
+        [SerializeField, Range(0f, 1f)] private float _shieldReduction;
+        [Tooltip("포탑 반경 (격자 칸, 체비셰프 거리). 0이면 포탑 아님")]
+        [SerializeField, Min(0)] private int _turretRadius;
+        [Tooltip("범위 안으로 오는 운석 1발당 격추 확률 (포탑끼리 합산, 상한은 BalanceConfig)")]
+        [SerializeField, Range(0f, 1f)] private float _turretInterceptChance;
+
+        [Header("Resident Service (BALANCE 20번)")]
+        [Tooltip("충족하는 거주자 요구. None이면 서비스 모듈 아님")]
+        [SerializeField] private ResidentNeed _serviceNeed;
+        [Tooltip("서비스 반경 (격자 칸, 체비셰프). 이 안의 거주 모듈 주민만 담당")]
+        [SerializeField, Min(0)] private int _serviceRadius;
+        [Tooltip("담당 주민 수 (가동률만큼 감소)")]
+        [SerializeField, Min(0)] private int _serviceCapacity;
+
+        public ResidentNeed ServiceNeed => _serviceCapacity > 0 ? _serviceNeed : ResidentNeed.None;
+        public int ServiceRadius => _serviceRadius;
+        public int ServiceCapacity => _serviceCapacity;
+        public bool IsService => ServiceNeed != ResidentNeed.None;
+
         public int RepairSlots => _repairSlots;
+        public int ShieldRadius => _shieldReduction > 0f ? _shieldRadius : 0;
+        public float ShieldReduction => _shieldReduction;
+        public int TurretRadius => _turretInterceptChance > 0f ? _turretRadius : 0;
+        public float TurretInterceptChance => _turretInterceptChance;
+        public bool IsShield => ShieldRadius > 0;
+        public bool IsTurret => TurretRadius > 0;
+        public bool IsDefense => IsShield || IsTurret;
         public string DisplayName => _displayName;
         public ModuleCategory Category => _category;
         public IReadOnlyList<Vector3Int> CellOffsets => _cellOffsets;

@@ -165,6 +165,30 @@ namespace SpaceStation.UI
         private void HandleActiveStateChanged(ModuleInstance _, bool __) => _dirty = true;
         private void MarkDirty() => _dirty = true;
 
+        /// <summary>4-8: 방어 모듈이면 가동률·보호 수, 보호받는 모듈이면 받는 효과.</summary>
+        private string DefenseLine(ModuleInstance module)
+        {
+            var defense = _resources.Defense;
+            var grid = _station.Grid;
+            string line = string.Empty;
+            if (module.Data != null && module.Data.IsDefense)
+            {
+                float strength = defense.GetStrength(module);
+                int covered = DefenseSystem.CountCovered(grid, module.Data, module.Cells) - 1; // 자신 제외
+                string color = strength < 1f ? HudText.Yellow : "#FFFFFF";
+                line += $"\n<size=85%><color={HudText.Muted}>방어</color> 범위 안 모듈 {covered}개 · <color={color}>가동률 {strength * 100f:0}%</color></size>";
+            }
+            float shield = defense.GetShieldBlockChance(grid, module);
+            float intercept = defense.GetInterceptChance(grid, module);
+            if (shield > 0.001f || intercept > 0.001f)
+            {
+                line += $"\n<size=85%><color={HudText.Muted}>보호</color>"
+                        + (shield > 0.001f ? $" 실드 빗겨냄 {shield * 100f:0}%" : "")
+                        + (intercept > 0.001f ? $" 포탑 격추 {intercept * 100f:0}%" : "") + "</size>";
+            }
+            return line;
+        }
+
         private static bool UsesPower(SpaceStation.Data.ModuleData data)
         {
             if (data == null)
@@ -229,7 +253,7 @@ namespace SpaceStation.UI
             var applied = _resources.Adjacency.GetApplied(module);
             if (applied.Count > 0)
                 adjacencyLine = $"\n<size=85%><color={HudText.Muted}>인접</color> {AdjacencySystem.DescribeAll(applied)}</size>";
-            _title.SetText($"<b>{Name(module)}</b>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}");
+            _title.SetText($"<b>{Name(module)}</b>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{DefenseLine(module)}");
 
             var sim = _resources.Simulation;
 

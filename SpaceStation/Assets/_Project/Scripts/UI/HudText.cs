@@ -83,6 +83,15 @@ namespace SpaceStation.UI
                 sb.Append("저장 한도 +").Append(data.StorageBonus.ToString("0")).Append(" (산소·물·식량·금속)\n");
             if (data.TerminalOnly)
                 sb.Append($"<color={Yellow}>말단 배치 전용: 정거장과 한 면만 맞닿아야 함</color>\n");
+            if (data.IsShield)
+                sb.Append("실드: 반경 ").Append(data.ShieldRadius).Append("칸 안 모듈로 오는 운석을 ")
+                  .Append((data.ShieldReduction * 100f).ToString("0")).Append($"% 빗겨냄 <color={Muted}>(중첩 없음)</color>\n")
+                  .Append($"<color={Yellow}>빗겨낸 운석 일부는 실드 범위 밖 모듈에 맞음</color>\n");
+            if (data.IsTurret)
+                sb.Append("포탑: 반경 ").Append(data.TurretRadius).Append("칸 안으로 오는 운석 완전 격추 ")
+                  .Append((data.TurretInterceptChance * 100f).ToString("0")).Append($"% <color={Muted}>(포탑끼리 합산, 상한 있음)</color>\n");
+            if (data.IsDefense)
+                sb.Append($"<color={Muted}>파손·비활성·전력 부족·노후 시 효과 감소</color>\n");
             if (data.RepairSlots > 0)
                 sb.Append("동시 수리 슬롯 +").Append(data.RepairSlots).Append($" <color={Muted}>(파손·비활성 시 슬롯 없음)</color>\n");
 

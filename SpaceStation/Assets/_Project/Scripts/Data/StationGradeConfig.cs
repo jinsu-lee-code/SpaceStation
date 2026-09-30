@@ -16,6 +16,8 @@ namespace SpaceStation.Data
         [SerializeField, Min(0)] private int _maxLimitedModules;
         [Tooltip("이 등급에 도달하면 건설 가능해지는 모듈")]
         [SerializeField] private List<ModuleData> _unlocks = new List<ModuleData>();
+        [Tooltip("이 등급부터 생기는 거주자 요구 (누적, 4-9)")]
+        [SerializeField] private List<ResidentNeed> _newNeeds = new List<ResidentNeed>();
 
         [Header("Event Scaling (BALANCE 13번)")]
         [Tooltip("운석 1회당 파손 모듈 수 (최소~최대 무작위)")]
@@ -31,6 +33,7 @@ namespace SpaceStation.Data
         public int MinModules => _minModules;
         public int MaxLimitedModules => _maxLimitedModules;
         public IReadOnlyList<ModuleData> Unlocks => _unlocks;
+        public IReadOnlyList<ResidentNeed> NewNeeds => _newNeeds;
         // 직렬화 기본값이 0으로 들어온 경우를 대비해 최소값을 보정한다.
         public int MeteorHitsMin => Mathf.Max(1, _meteorHitsMin);
         public int MeteorHitsMax => Mathf.Max(MeteorHitsMin, _meteorHitsMax);
