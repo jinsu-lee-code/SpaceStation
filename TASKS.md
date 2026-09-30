@@ -216,6 +216,13 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - URP Lit 머티리얼로 교체, 분홍색 깨짐 확인
   - 창문/불빛 부분에 Emission 적용
   - 모듈 1종씩 교체하며 톤이 맞는지 확인
+  - 진행: 사용자 모델 12종(`Art/Models/Modules/SM_X.fbx`) 연결 — `StationArtBuilder`가 FBX 있으면 "Model" 자식으로 넣고 재질 슬롯을 공용 재질 + `M_Accent_X`로 리맵(임포터 remap). Visual은 셀 판정 콜라이더만. 태양광은 기존 그레이박스 유지
+  - 창고: 사용자 컨셉 이미지 기반 코드 조립 `Editor/StorageModelBuilder`(메뉴 Rebuild Storage Model) → `Art/Meshes/SM_Storage.asset` (서브메시 Hull/HullDark/Accent). `M_Accent_Storage` 색을 진한 갈색(0.56, 0.34, 0.19)으로
+  - `ModuleView`: 상태 틴트를 재질 슬롯 단위(`SetPropertyBlock(block, index)`)로 — 한 메시에 여러 재질이 있어도 슬롯별 색 유지
+  - 1차 변환(재질 슬롯 4색 + 2~3천 삼각형) 폐기: 과도한 감량으로 형태가 뭉개지고, 텍스처(색·노멀·ORM)를 버려 디테일이 사라지고, 슬롯이 면 단위로 조각남
+  - 2차 변환(현재): Blender `BlenderWork/Modules_Work.blend`의 원본 AI 모델(SRC_*)을 형태 비교로 1차 모델과 짝지어 같은 회전·크기로 복제(`TEX_*` 컬렉션, `SMT_*` 오브젝트) → 1칸 8천 / 2칸 1만 / 몸체 5천 / Head·Emitter 3천 삼각형 → `SM_X.fbx` 덮어쓰기(1차본은 `BlenderWork/Backup_Unity/`)
+    - 원본 대응: 배터리=SpaceStation, 코어=CoreModule, 농장=FoodFarmModule, 거주=SurvivorModule, 정비=FixModule, 채굴=FarmingModule, 산소=OxygenModule, 의료=HospitalModule, 휴게=RestRoomModule, 물=WaterGeneratorModule, 실드=ShieldModule(Body/Head→Emitter), 포탑=CanonModule(Body/Head)
+    - FBX 슬롯 `Tex_{이름}` → `Editor/ModuleTextureMaterials`가 `Textures/{모듈}/T_{이름}_*.png`로 `M_{이름}_Tex` 생성 (ORM→URP 마스크맵 변환, 채도 높은 영역을 발광 맵으로)
 - [ ] **5-6. 연결 통로/조인트 자동 생성**
 - [ ] **5-7. 배경 연출 (선택)**
   - 우주 먼지 파티클, 멀리 떠다니는 소행성

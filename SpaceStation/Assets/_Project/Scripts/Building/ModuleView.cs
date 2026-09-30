@@ -40,6 +40,8 @@ namespace SpaceStation.Building
         [SerializeField, Range(0f, 1f)] private float _wornEmission = 0.35f;
 
         private Renderer[] _renderers;
+        private Renderer[] _slotRenderers; // 재질 슬롯마다 한 칸 (렌더러, 재질 인덱스)
+        private int[] _slotIndices;
         private Color[] _baseColors;
         private Color[] _baseEmission;
         private MaterialPropertyBlock _propertyBlock;
@@ -62,15 +64,28 @@ namespace SpaceStation.Building
             _seed = Random.value * 100f;
             _propertyBlock = new MaterialPropertyBlock();
             _renderers = GetComponentsInChildren<Renderer>();
-            _baseColors = new Color[_renderers.Length];
-            _baseEmission = new Color[_renderers.Length];
-            for (int i = 0; i < _renderers.Length; i++)
+            // 재질 슬롯 단위로 색을 기억한다 (모델 한 메시에 Hull/Accent 등 여러 재질이 있을 때 슬롯마다 다른 색 유지)
+            var slotRenderers = new System.Collections.Generic.List<Renderer>();
+            var slotIndices = new System.Collections.Generic.List<int>();
+            var baseColors = new System.Collections.Generic.List<Color>();
+            var baseEmission = new System.Collections.Generic.List<Color>();
+            foreach (var r in _renderers)
             {
-                var mat = _renderers[i].sharedMaterial;
-                _baseColors[i] = mat != null && mat.HasProperty(BaseColorId) ? mat.GetColor(BaseColorId) : Color.white;
-                _baseEmission[i] = mat != null && mat.HasProperty(EmissionColorId) && mat.IsKeywordEnabled("_EMISSION")
-                    ? mat.GetColor(EmissionColorId) : Color.black;
+                var mats = r.sharedMaterials;
+                for (int m = 0; m < mats.Length; m++)
+                {
+                    var mat = mats[m];
+                    slotRenderers.Add(r);
+                    slotIndices.Add(m);
+                    baseColors.Add(mat != null && mat.HasProperty(BaseColorId) ? mat.GetColor(BaseColorId) : Color.white);
+                    baseEmission.Add(mat != null && mat.HasProperty(EmissionColorId) && mat.IsKeywordEnabled("_EMISSION")
+                        ? mat.GetColor(EmissionColorId) : Color.black);
+                }
             }
+            _slotRenderers = slotRenderers.ToArray();
+            _slotIndices = slotIndices.ToArray();
+            _baseColors = baseColors.ToArray();
+            _baseEmission = baseEmission.ToArray();
             Apply(0f);
         }
 
@@ -117,16 +132,16 @@ namespace SpaceStation.Building
 
         private void Apply(float time)
         {
-            if (_renderers == null)
+            if (_slotRenderers == null)
                 return;
 
             bool normal = _operational && !_highlighted && _damage == ModuleDamageVisual.None && !_worn;
             float emissionScale = EmissionScale(time);
-            for (int i = 0; i < _renderers.Length; i++)
+            for (int i = 0; i < _slotRenderers.Length; i++)
             {
                 if (normal)
                 {
-                    _renderers[i].SetPropertyBlock(null);
+                    _slotRenderers[i].SetPropertyBlock(null, _slotIndices[i]);
                     continue;
                 }
 
@@ -146,7 +161,7 @@ namespace SpaceStation.Building
                 _propertyBlock.SetColor(BaseColorId, color);
                 if (_baseEmission[i].maxColorComponent > 0f)
                     _propertyBlock.SetColor(EmissionColorId, _baseEmission[i] * emissionScale);
-                _renderers[i].SetPropertyBlock(_propertyBlock);
+                _slotRenderers[i].SetPropertyBlock(_propertyBlock, _slotIndices[i]);
             }
         }
 

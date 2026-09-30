@@ -10,18 +10,25 @@ namespace SpaceStation.Editor
     /// 5-3 공용 재질 세트 + 그레이박스 모듈 조립 (메뉴 SpaceStation/Art/Rebuild Greybox Modules).
     /// 선체(공통 금속) + 모듈색 띠(은은한 발광) + 창문 불빛. 모듈 구분은 띠·불빛 색으로.
     /// "Visual" 자식(BoxCollider = 셀 판정용)은 유지하고 크기만 셀 경계에 맞춘다. 장식 자식에는 콜라이더를 두지 않는다.
-    /// 5-5에서 AI 모델로 교체할 때 재질은 그대로 재사용한다.
+    /// 5-5: Art/Models/Modules/SM_{모듈}.fbx가 있으면 그 모델을 "Model" 자식으로 넣고 재질 슬롯을 공용 재질에 연결한다.
+    /// 모델이 없는 모듈(태양광)은 그레이박스, 창고는 StorageModelBuilder 코드 조립.
     /// </summary>
     public static class StationArtBuilder
     {
         private const string MatRoot = "Assets/_Project/Art/Materials/";
         private const string StationMats = MatRoot + "Station/";
+        private const string ModelRoot = "Assets/_Project/Art/Models/Modules/";
         private const float Inset = 0.92f; // 모듈 사이 이음새가 보이도록 셀보다 약간 작게
 
         private enum Style { Standard, Solar, Battery, Storage, Core, Topped }
 
         [MenuItem("SpaceStation/Art/Rebuild Greybox Modules")]
-        public static void RebuildAll()
+        public static void RebuildAll() => RebuildModules(null);
+
+        /// <summary>모듈 하나만 다시 조립 (예: "Storage").</summary>
+        public static void RebuildModule(string key) => RebuildModules(key);
+
+        private static void RebuildModules(string only)
         {
             var hull = Mat("M_Hull", new Color(0.72f, 0.72f, 0.75f), 0.6f, 0.55f);
             var hullDark = Mat("M_HullDark", new Color(0.22f, 0.23f, 0.26f), 0.7f, 0.45f);
@@ -35,17 +42,82 @@ namespace SpaceStation.Editor
                 if (data == null || data.Prefab == null)
                     continue;
                 string key = data.name.Replace("MD_", "");
+                if (only != null && key != only)
+                    continue;
                 var accent = AccentFor(key);
                 if (accent == null)
                 {
                     log.Add($"{key}: 강조 재질 없음, 건너뜀");
                     continue;
                 }
-                Rebuild(data, key, StyleFor(key), hull, hullDark, window, solar, accent);
-                log.Add(key);
+                var model = ImportedModel(key, hull, hullDark, window, solar, accent);
+                Rebuild(data, key, StyleFor(key), model, hull, hullDark, window, solar, accent);
+                log.Add(model != null ? key + "(모델)" : key);
             }
             AssetDatabase.SaveAssets();
             Debug.Log("[StationArtBuilder] 조립: " + string.Join(", ", log));
+        }
+
+        /// <summary>
+        /// 5-5 제작 모델: Art/Models/Modules/SM_{key}.fbx가 있으면 그 모델을 쓴다.
+        /// FBX의 재질 슬롯(Hull/HullDark/Window/Accent/SolarPanel)을 공용 재질과 모듈 강조 재질로 연결한다.
+        /// 파일이 없으면 null (태양광·창고처럼 그레이박스/코드 조립 유지).
+        /// </summary>
+        private static GameObject ImportedModel(string key, Material hull, Material hullDark, Material window,
+            Material solar, Material accent)
+        {
+            string path = ModelRoot + $"SM_{key}.fbx";
+            if (!(AssetImporter.GetAtPath(path) is ModelImporter importer))
+                return null;
+            var slots = new Dictionary<string, Material>
+            {
+                { "Hull", hull }, { "HullDark", hullDark }, { "Window", window }, { "Accent", accent }, { "SolarPanel", solar },
+            };
+            // 원본 텍스처를 쓰는 모델: 슬롯 "Tex_{이름}" → M_{이름}_Tex (ModuleTextureMaterials)
+            foreach (var textured in ModuleTextureMaterials.EnsureAll(key))
+                slots[textured.Key] = textured.Value;
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            var used = new HashSet<string>();
+            foreach (var r in model.GetComponentsInChildren<Renderer>(true))
+                foreach (var m in r.sharedMaterials)
+                    if (m != null)
+                        used.Add(m.name);
+
+            var existing = importer.GetExternalObjectMap();
+            bool changed = false;
+            foreach (var slot in slots)
+            {
+                if (!used.Contains(slot.Key) && !used.Contains(slot.Value.name))
+                    continue;
+                var id = new AssetImporter.SourceAssetIdentifier(typeof(Material), slot.Key);
+                if (existing.TryGetValue(id, out var current) && current == slot.Value)
+                    continue;
+                importer.AddRemap(id, slot.Value);
+                changed = true;
+            }
+            foreach (var name in used)
+            {
+                if (!slots.ContainsKey(name) && !IsSharedMaterial(name, slots))
+                    Debug.LogWarning($"[StationArtBuilder] {key}: 알 수 없는 재질 슬롯 '{name}' (공용 재질에 연결되지 않음)");
+            }
+            if (importer.importAnimation || importer.importCameras || importer.importLights)
+            {
+                importer.importAnimation = false;
+                importer.importCameras = false;
+                importer.importLights = false;
+                changed = true;
+            }
+            if (changed)
+                importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        }
+
+        private static bool IsSharedMaterial(string name, Dictionary<string, Material> slots)
+        {
+            foreach (var m in slots.Values)
+                if (m.name == name)
+                    return true;
+            return false;
         }
 
         private static Style StyleFor(string key)
@@ -110,7 +182,7 @@ namespace SpaceStation.Editor
             m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
         }
 
-        private static void Rebuild(ModuleData data, string key, Style style, Material hull, Material hullDark,
+        private static void Rebuild(ModuleData data, string key, Style style, GameObject model, Material hull, Material hullDark,
             Material window, Material solar, Material accent)
         {
             string path = AssetDatabase.GetAssetPath(data.Prefab);
@@ -148,9 +220,39 @@ namespace SpaceStation.Editor
                 var box = visual.GetComponent<BoxCollider>();
                 box.center = new Vector3(0f, (0f - bodyY) / body.y, 0f);
                 box.size = new Vector3(size.x / body.x, size.y / body.y, size.z / body.z); // 월드 기준 셀 크기 유지
-                visual.GetComponent<MeshRenderer>().sharedMaterial = style == Style.Solar || style == Style.Battery ? hullDark : hull;
+                var visualRenderer = visual.GetComponent<MeshRenderer>();
+                if (model != null || style == Style.Storage)
+                {
+                    // 제작 모델(FBX) 또는 전용 모델(StorageModelBuilder)을 쓰므로 Visual은 셀 판정 콜라이더만 남긴다
+                    visual.localPosition = center;
+                    visual.localScale = Vector3.one;
+                    box.center = Vector3.zero;
+                    box.size = size;
+                    if (visualRenderer != null)
+                        Object.DestroyImmediate(visualRenderer);
+                    var filter = visual.GetComponent<MeshFilter>();
+                    if (filter != null)
+                        Object.DestroyImmediate(filter);
+                }
+                else
+                {
+                    if (visualRenderer == null)
+                    {
+                        visual.gameObject.AddComponent<MeshFilter>().sharedMesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+                        visualRenderer = visual.gameObject.AddComponent<MeshRenderer>();
+                    }
+                    visualRenderer.sharedMaterial = style == Style.Solar || style == Style.Battery ? hullDark : hull;
+                }
 
-                switch (style)
+                if (model != null)
+                {
+                    var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, root.transform);
+                    instance.name = "Model";
+                    instance.transform.localPosition = Vector3.zero;
+                    instance.transform.localRotation = model.transform.localRotation; // 임포트 축 보정은 유지
+                    instance.transform.localScale = model.transform.localScale;
+                }
+                else switch (style)
                 {
                     case Style.Solar:
                     {
@@ -171,8 +273,7 @@ namespace SpaceStation.Editor
                         Part(root, "Terminal", hull, new Vector3(center.x, body.y * 0.5f + 0.04f, center.z), new Vector3(0.25f, 0.08f, 0.25f));
                         break;
                     case Style.Storage:
-                        Band(root, accent, center, body, 0.25f, 0.14f);
-                        Part(root, "Hatch", hullDark, new Vector3(center.x, 0f, center.z + body.z * 0.5f + 0.005f), new Vector3(body.x * 0.55f, body.y * 0.55f, 0.02f));
+                        StorageModelBuilder.Build(root.transform, hull, hullDark, accent);
                         break;
                     case Style.Core:
                         Band(root, accent, center, body, 0.3f, 0.12f);
