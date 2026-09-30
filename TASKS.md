@@ -191,8 +191,9 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - `CrisisVignette`: 실패 조건 경고 중 비네팅이 붉게 맥박(남은 30초 이하부터 빨라짐), 런타임 프로필 복사본 사용
   - 글로벌 Volume 생성: Bloom, Color Adjustments, Vignette
   - 완료 조건: 밝은 부분이 은은하게 번지고 전체 톤이 통일됨
-- [ ] **5-3. 머티리얼 체계 정리**
-  - (적용 완료, Play 모드 확인 대기) 결정: 공용 세트 + 그레이박스 개선, 선체는 공통 금속·모듈 구분은 색 띠와 불빛
+- [x] **5-3. 머티리얼 체계 정리**
+  - 피드백 반영: 태양광 패널이 `SunFacingPanel`로 모듈 회전과 무관하게 태양(+Z 위)을 향해 최대 38° 기울어짐(받침 + 기둥 + 회전 패널). 형태 구분 문제는 사용자 직접 모델링(5-5)으로 해결 → 규격서 `MODELING_SPEC.md`
+  - 결정: 공용 세트 + 그레이박스 개선, 선체는 공통 금속·모듈 구분은 색 띠와 불빛
   - 공용 재질 `Art/Materials/Station/`: M_Hull(밝은 금속), M_HullDark, M_Window(따뜻한 발광 ×2.2), M_SolarPanel. 모듈색 `M_Greybox_X` → `M_Accent_X`(GUID 유지, 은은한 발광)
   - `Editor/StationArtBuilder`(메뉴 SpaceStation/Art/Rebuild Greybox Modules): 선체(셀 92%) + 띠 + 창문, 태양광은 패널, 배터리·창고·코어·실드·포탑 개별 형태. 셀 판정 콜라이더는 Visual 1개만 유지
   - SRP Batcher 켬, 전 재질 GPU Instancing. ModuleView는 정상 상태에서 MPB를 비워 배처 호환 유지
@@ -204,7 +205,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 비활성/활성 모듈 표현 (Emission on/off)
   - 선택 하이라이트
   - MaterialPropertyBlock으로 연동
-- [ ] **5-5. 모듈 모델 교체**
+- [ ] **5-5. 모듈 모델 교체** (사용자 모델링, 규격 `MODELING_SPEC.md`: 1셀=1유닛, 피벗=첫 셀 중심, 재질 슬롯 Hull/HullDark/Window/Accent/SolarPanel, 분리 부품 Panel/Head/Emitter, 우선순위 거주→농장→산소→물→의료→코어)
   - AI 모델링 결과물을 셀 규격에 맞게 정리 (피벗, 스케일)
   - URP Lit 머티리얼로 교체, 분홍색 깨짐 확인
   - 창문/불빛 부분에 Emission 적용

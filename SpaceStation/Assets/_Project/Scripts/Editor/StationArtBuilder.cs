@@ -137,8 +137,10 @@ namespace SpaceStation.Editor
                 }
 
                 var visual = root.transform.Find("Visual");
-                float bodyHeight = style == Style.Solar ? 0.35f : style == Style.Topped ? 0.55f : 1f;
-                Vector3 body = new Vector3(size.x - (1f - Inset), bodyHeight * Inset, size.z - (1f - Inset));
+                float bodyHeight = style == Style.Solar ? 0.3f : style == Style.Topped ? 0.55f : 1f;
+                Vector3 body = style == Style.Solar
+                    ? new Vector3(0.4f, bodyHeight * Inset, 0.4f) // 작은 받침 (패널이 기울어도 몸체와 겹치지 않게)
+                    : new Vector3(size.x - (1f - Inset), bodyHeight * Inset, size.z - (1f - Inset));
                 float bodyY = style == Style.Solar || style == Style.Topped ? -0.5f + body.y * 0.5f + 0.04f : 0f;
                 visual.localPosition = new Vector3(center.x, bodyY, center.z);
                 visual.localRotation = Quaternion.identity;
@@ -151,9 +153,18 @@ namespace SpaceStation.Editor
                 switch (style)
                 {
                     case Style.Solar:
-                        Part(root, "Panel", solar, new Vector3(center.x, bodyY + body.y * 0.5f + 0.02f, center.z), new Vector3(size.x * 0.96f, 0.04f, size.z * 0.96f));
-                        Part(root, "Frame", accent, new Vector3(center.x, bodyY + body.y * 0.5f + 0.005f, center.z), new Vector3(size.x * 0.98f, 0.02f, size.z * 0.98f));
+                    {
+                        // 받침 위 기둥 + 태양을 향해 기우는 패널 (SunFacingPanel, 모듈 회전과 무관하게 월드 기준)
+                        float pedestalTop = bodyY + body.y * 0.5f;
+                        Part(root, "Mast", hullDark, new Vector3(center.x, pedestalTop + 0.09f, center.z), new Vector3(0.08f, 0.18f, 0.08f));
+                        var mount = new GameObject("PanelMount");
+                        mount.transform.SetParent(root.transform, false);
+                        mount.transform.localPosition = new Vector3(center.x, pedestalTop + 0.2f, center.z);
+                        mount.AddComponent<SpaceStation.Building.SunFacingPanel>();
+                        Part(mount, "Panel", solar, new Vector3(0f, 0.012f, 0f), new Vector3(0.86f, 0.03f, 0.86f));
+                        Part(mount, "Frame", accent, Vector3.zero, new Vector3(0.9f, 0.02f, 0.9f));
                         break;
+                    }
                     case Style.Battery:
                         Band(root, accent, center, body, 0.3f, 0.1f);
                         Band(root, accent, center, body, -0.3f, 0.1f);
