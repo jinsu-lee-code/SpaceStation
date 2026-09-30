@@ -185,13 +185,18 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 우주 스카이박스 머티리얼 적용 (별/성운)
   - 환경광 색을 어두운 톤으로 조정
   - 완료 조건: 그레이박스 정거장이 우주 배경 위에 또렷하게 보임
-- [ ] **5-2. 포스트 프로세싱**
-  - (적용 완료, Play 모드 확인 대기) `Settings/PP_Main.asset` + 씬 `GlobalVolume`: Bloom(임계 1.0, 강도 0.6, 은은하게), Tonemapping ACES, Color Adjustments(노출 +0.35, 대비 +8, 채도 +6), Vignette(검정 0.22)
+- [x] **5-2. 포스트 프로세싱**
+  - `Settings/PP_Main.asset` + 씬 `GlobalVolume`: Bloom(임계 1.0, 강도 0.6, 은은하게), Tonemapping ACES, Color Adjustments(노출 +0.35, 대비 +8, 채도 +6), Vignette(검정 0.22)
   - 카메라 후처리 켜기 + SMAA, URP 색보정 HDR 모드. asmdef에 URP 런타임 참조 추가
   - `CrisisVignette`: 실패 조건 경고 중 비네팅이 붉게 맥박(남은 30초 이하부터 빨라짐), 런타임 프로필 복사본 사용
   - 글로벌 Volume 생성: Bloom, Color Adjustments, Vignette
   - 완료 조건: 밝은 부분이 은은하게 번지고 전체 톤이 통일됨
 - [ ] **5-3. 머티리얼 체계 정리**
+  - (적용 완료, Play 모드 확인 대기) 결정: 공용 세트 + 그레이박스 개선, 선체는 공통 금속·모듈 구분은 색 띠와 불빛
+  - 공용 재질 `Art/Materials/Station/`: M_Hull(밝은 금속), M_HullDark, M_Window(따뜻한 발광 ×2.2), M_SolarPanel. 모듈색 `M_Greybox_X` → `M_Accent_X`(GUID 유지, 은은한 발광)
+  - `Editor/StationArtBuilder`(메뉴 SpaceStation/Art/Rebuild Greybox Modules): 선체(셀 92%) + 띠 + 창문, 태양광은 패널, 배터리·창고·코어·실드·포탑 개별 형태. 셀 판정 콜라이더는 Visual 1개만 유지
+  - SRP Batcher 켬, 전 재질 GPU Instancing. ModuleView는 정상 상태에서 MPB를 비워 배처 호환 유지
+  - 남은 것(5-4): 비활성·파손 시 창문·띠 발광이 그대로 → Emission on/off
   - 공용 URP Lit 머티리얼 세트 제작 (금속 패널, 창문, 태양광 패널 등)
   - SRP Batcher/GPU Instancing 호환 확인
 - [ ] **5-4. 상태 표현 셰이더 (Shader Graph)**
