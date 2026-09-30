@@ -51,6 +51,8 @@ namespace SpaceStation.Simulation
         public AdjacencySystem Adjacency { get; }
         public DefenseSystem Defense { get; }
         public NeedsSystem Needs { get; }
+        public FailureMonitor Failure { get; }
+        private readonly List<ModuleInstance> _coreNeighbors = new List<ModuleInstance>();
         private readonly List<ResidentNeed> _activeNeeds = new List<ResidentNeed>();
         /// <summary>현재 등급까지 생긴 거주자 요구 (4-9).</summary>
         public IReadOnlyList<ResidentNeed> ActiveNeeds => _activeNeeds;
@@ -81,6 +83,7 @@ namespace SpaceStation.Simulation
             Adjacency = new AdjacencySystem(settings.AdjacencyRules);
             Defense = new DefenseSystem(Balance, ModuleStrength);
             Needs = new NeedsSystem(Balance, ModuleStrength, EffectiveHousing);
+            Failure = new FailureMonitor(Balance);
             Events = new EventScheduler(Balance.EventGracePeriod, Balance.EventIntervalMin, Balance.EventIntervalMax, _random01);
             Progression = new StationProgression(settings.Grades);
             Session = new GameSession();
@@ -128,6 +131,22 @@ namespace SpaceStation.Simulation
             Events.Tick(dt, _eventPool);
             ElapsedSeconds += dt;
             EvaluateProgression();
+            EvaluateFailure(dt);
+        }
+
+        /// <summary>4-10 추가 실패 조건 (산소 고갈·만족도 0·코어 주변 붕괴 지속).</summary>
+        private void EvaluateFailure(float dt)
+        {
+            Grid.GetNeighborModules(Core, _coreNeighbors);
+            int down = 0;
+            foreach (var n in _coreNeighbors)
+            {
+                if (Damage.TryGetInfo(n, out var info) && !info.IsRepairing)
+                    down++;
+            }
+            var reason = Failure.Tick(dt, Resources.IsDepleted(ResourceType.Oxygen), Population.Satisfaction, _coreNeighbors.Count, down);
+            if (reason != GameOverReason.None)
+                Session.Fail(reason);
         }
 
         // ---------------- 명령 ----------------

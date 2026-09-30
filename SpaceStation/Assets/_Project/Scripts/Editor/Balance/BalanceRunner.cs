@@ -27,6 +27,7 @@ namespace SpaceStation.Editor.Balance
     {
         public int Seed;
         public bool GameOver;
+        public GameOverReason Reason; // 4-10
         public float EndSeconds;
         /// <summary>등급 인덱스별 첫 도달 시간(초). 미도달은 NaN. [0]은 항상 0.</summary>
         public float[] GradeReachSeconds;
@@ -52,6 +53,8 @@ namespace SpaceStation.Editor.Balance
         public float[] MinStock = new float[4];
         /// <summary>산소·물·식량 고갈 상태였던 누적 시간(초).</summary>
         public float[] DepletedSeconds = new float[3];
+        public int DepletionEvents; // 4-10
+        public const float RearmStock = 20f;
         public float LowPowerSeconds;
         public float AverageEfficiency;
         public float FinalSatisfaction;
@@ -125,6 +128,7 @@ namespace SpaceStation.Editor.Balance
 
             float effSum = 0f;
             int ticks = 0;
+            var wasDepleted = new bool[3];
             float nextSample = 0f;
             while (sim.ElapsedSeconds < s.DurationSeconds - 1e-4f)
             {
@@ -140,8 +144,20 @@ namespace SpaceStation.Editor.Balance
                     result.MinStock[i] = Math.Min(result.MinStock[i], r.GetStock(Stocks[i]));
                 for (int i = 0; i < 3; i++)
                 {
-                    if (r.IsDepleted(Stocks[i]))
+                    bool depleted = r.IsDepleted(Stocks[i]);
+                    if (depleted)
                         result.DepletedSeconds[i] += s.TickInterval;
+                    // 4-10: 고갈 "횟수" (산소·물·식량 합). 0 근처에서 깜빡이는 것을 한 번으로 세도록
+                    // 재고가 다시 RearmStock 이상으로 회복되어야 다음 고갈을 새로 센다.
+                    if (depleted && !wasDepleted[i])
+                    {
+                        result.DepletionEvents++;
+                        wasDepleted[i] = true;
+                    }
+                    else if (wasDepleted[i] && r.GetStock(Stocks[i]) >= BalanceRunResult.RearmStock)
+                    {
+                        wasDepleted[i] = false;
+                    }
                 }
                 result.MaxGrade = Math.Max(result.MaxGrade, sim.Progression.GradeIndex);
                 result.MinSatisfaction = Math.Min(result.MinSatisfaction, sim.Population.Satisfaction);
@@ -154,6 +170,7 @@ namespace SpaceStation.Editor.Balance
                 if (sim.Session.IsGameOver)
                 {
                     result.GameOver = true;
+                    result.Reason = sim.Session.Reason;
                     AppendSample(series, seed, sim);
                     break;
                 }
@@ -212,7 +229,7 @@ namespace SpaceStation.Editor.Balance
                 sb.Append(",reach_grade").Append(i).Append("_s");
             sb.AppendLine(",final_grade,max_grade,final_pop,max_pop,final_modules,modules_built,events,damaged,destroyed,spreads,intercepted,shield_deflected,ricochets,repairs,repair_metal," +
                           "maintenances,rebuilds,upkeep_metal," +
-                          "min_oxygen,min_water,min_food,min_metal,oxygen_depleted_s,water_depleted_s,food_depleted_s," +
+                          "min_oxygen,min_water,min_food,min_metal,oxygen_depleted_s,water_depleted_s,food_depleted_s,depletion_events," +
                           "low_power_s,avg_efficiency,final_satisfaction,min_satisfaction");
 
             foreach (var r in report.Results)
@@ -228,6 +245,7 @@ namespace SpaceStation.Editor.Balance
                   .Append(',').Append(r.Maintenances).Append(',').Append(r.Rebuilds).Append(',').Append(F(r.MetalSpentOnUpkeep));
                 foreach (var v in r.MinStock) sb.Append(',').Append(F(v));
                 foreach (var v in r.DepletedSeconds) sb.Append(',').Append(F(v));
+                sb.Append(',').Append(r.DepletionEvents);
                 sb.Append(',').Append(F(r.LowPowerSeconds)).Append(',').Append(F(r.AverageEfficiency))
                   .Append(',').Append(F(r.FinalSatisfaction)).Append(',').Append(F(r.MinSatisfaction)).AppendLine();
             }
@@ -243,7 +261,18 @@ namespace SpaceStation.Editor.Balance
             var sb = new StringBuilder();
             int overs = 0;
             foreach (var r in results) if (r.GameOver) overs++;
-            sb.AppendLine($"runs={n}  game_over={overs}/{n}");
+            float overAt = 0f;
+            var reasons = new Dictionary<GameOverReason, int>();
+            foreach (var r in results)
+            {
+                if (!r.GameOver) continue;
+                overAt += r.EndSeconds;
+                reasons.TryGetValue(r.Reason, out var c);
+                reasons[r.Reason] = c + 1;
+            }
+            string why = "";
+            foreach (var kv in reasons) why += $" {kv.Key}:{kv.Value}";
+            sb.AppendLine($"runs={n}  game_over={overs}/{n}" + (overs > 0 ? $" (평균 {overAt / overs / 60f:0.0}분,{why})" : ""));
             for (int g = 1; g < report.GradeNames.Length; g++)
             {
                 int reached = 0; float sum = 0f;
@@ -259,7 +288,7 @@ namespace SpaceStation.Editor.Balance
             sb.AppendLine($"이벤트 평균 {Avg(results, r => r.Events):0.0}, 파손 {Avg(results, r => r.ModulesDamaged):0.0}, 파괴 {Avg(results, r => r.ModulesDestroyed):0.00}, 확산 {Avg(results, r => r.DamageSpreads):0.00}, 격추 {Avg(results, r => r.MeteorsIntercepted):0.00}, 실드 빗겨냄 {Avg(results, r => r.MeteorsBlocked):0.00} (튕겨 명중 {Avg(results, r => r.Ricochets):0.00})");
             sb.AppendLine($"수리 금속 평균 {Avg(results, r => r.MetalSpentOnRepairs):0}, 정비 {Avg(results, r => r.Maintenances):0.0}회, 재건축 {Avg(results, r => r.Rebuilds):0.0}회, 유지비 금속 {Avg(results, r => r.MetalSpentOnUpkeep):0}");
             sb.AppendLine($"최저 재고 평균  산소 {Avg(results, r => r.MinStock[0]):0}  물 {Avg(results, r => r.MinStock[1]):0}  식량 {Avg(results, r => r.MinStock[2]):0}  금속 {Avg(results, r => r.MinStock[3]):0}");
-            sb.AppendLine($"고갈 시간 평균(초)  산소 {Avg(results, r => r.DepletedSeconds[0]):0}  물 {Avg(results, r => r.DepletedSeconds[1]):0}  식량 {Avg(results, r => r.DepletedSeconds[2]):0}");
+            sb.AppendLine($"고갈 시간 평균(초)  산소 {Avg(results, r => r.DepletedSeconds[0]):0}  물 {Avg(results, r => r.DepletedSeconds[1]):0}  식량 {Avg(results, r => r.DepletedSeconds[2]):0}  · 고갈 횟수 {Avg(results, r => r.DepletionEvents):0.0}회");
             sb.AppendLine($"전력 효율<100% 시간 평균 {Avg(results, r => r.LowPowerSeconds):0}초, 평균 효율 {Avg(results, r => r.AverageEfficiency) * 100f:0.0}%");
             sb.Append($"만족도  최종 평균 {Avg(results, r => r.FinalSatisfaction):0}, 최저 평균 {Avg(results, r => r.MinSatisfaction):0}");
             return sb.ToString();

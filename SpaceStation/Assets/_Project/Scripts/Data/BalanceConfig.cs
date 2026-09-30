@@ -88,6 +88,16 @@ namespace SpaceStation.Data
         [Tooltip("만족도가 상한보다 높을 때 초당 감소량")]
         [SerializeField, Min(0f)] private float _satisfactionAboveCapDecayPerSecond = 1f;
 
+        [Header("Failure (BALANCE 21번, 0이면 해당 조건 없음)")]
+        [Tooltip("산소 고갈이 이 시간(초) 지속되면 게임 오버")]
+        [SerializeField, Min(0f)] private float _oxygenFailSeconds;
+        [Tooltip("만족도 0이 이 시간(초) 지속되면 게임 오버")]
+        [SerializeField, Min(0f)] private float _satisfactionFailSeconds;
+        [Tooltip("코어에 맞닿은 모듈이 모두 파손(수리 중 제외)된 채 이 시간(초) 지속되면 게임 오버")]
+        [SerializeField, Min(0f)] private float _coreCollapseSeconds;
+        [Tooltip("코어 붕괴 판정에 필요한 최소 코어 이웃 수 (초반 1개 연결 상태 보호)")]
+        [SerializeField, Min(1)] private int _coreCollapseMinNeighbors = 2;
+
         [Header("Day / Night (BALANCE 14번)")]
         [Tooltip("낮+밤 한 주기(초). 0이면 주기 없음(항상 낮)")]
         [SerializeField, Min(0f)] private float _dayNightPeriod;
@@ -150,6 +160,10 @@ namespace SpaceStation.Data
         public float ShieldRicochetChance => _shieldRicochetChance;
         public float NeedSatisfactionCapPenalty => _needSatisfactionCapPenalty;
         public float SatisfactionAboveCapDecayPerSecond => _satisfactionAboveCapDecayPerSecond;
+        public float OxygenFailSeconds => _oxygenFailSeconds;
+        public float SatisfactionFailSeconds => _satisfactionFailSeconds;
+        public float CoreCollapseSeconds => _coreCollapseSeconds;
+        public int CoreCollapseMinNeighbors => Mathf.Max(1, _coreCollapseMinNeighbors);
         public float DayNightPeriod => _dayNightPeriod;
         public float DayLength => _dayLength;
         public float DayNightTransition => _dayNightTransition;

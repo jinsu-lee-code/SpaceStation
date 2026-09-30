@@ -56,7 +56,8 @@ namespace SpaceStation.UI
 
         private void HandleGameOver()
         {
-            Show(Mode.GameOver, $"<color={HudText.Red}>게임 오버</color>\n<size=55%>정거장에 남은 주민이 없습니다</size>", "재시작", "종료");
+            string reason = FailureMonitor.Describe(_progression.Session.Reason);
+            Show(Mode.GameOver, $"<color={HudText.Red}>게임 오버</color>\n<size=55%>{reason}</size>", "재시작", "종료");
         }
 
         private void Show(Mode mode, string title, string primary, string secondary)

@@ -2,9 +2,22 @@ using System;
 
 namespace SpaceStation.Simulation
 {
+    public enum GameOverReason
+    {
+        None,
+        /// <summary>인구 0.</summary>
+        Population,
+        /// <summary>산소 고갈이 일정 시간 지속 (4-10).</summary>
+        Oxygen,
+        /// <summary>만족도 0이 일정 시간 지속 (4-10).</summary>
+        Satisfaction,
+        /// <summary>코어에 맞닿은 모듈이 모두 파손된 채 일정 시간 지속 (4-10).</summary>
+        CoreCollapse,
+    }
+
     /// <summary>
     /// 한 판의 통계와 패배 판정 (GDD 12-3).
-    /// 패배: 인구가 한 번이라도 1 이상이 된 뒤 0이 되면 게임 오버 (한 번만 발생).
+    /// 패배: 인구가 한 번이라도 1 이상이 된 뒤 0이 되면, 또는 <see cref="FailureMonitor"/>의 실패 조건 (한 번만 발생).
     /// </summary>
     public sealed class GameSession
     {
@@ -13,6 +26,16 @@ namespace SpaceStation.Simulation
 
         public bool HasEverHadPopulation { get; private set; }
         public bool IsGameOver { get; private set; }
+        public GameOverReason Reason { get; private set; }
+
+        public void Fail(GameOverReason reason)
+        {
+            if (IsGameOver || reason == GameOverReason.None)
+                return;
+            IsGameOver = true;
+            Reason = reason;
+            GameOver?.Invoke();
+        }
         public int MaxPopulation { get; private set; }
         public int EventsExperienced { get; private set; }
         public int ModulesDestroyed { get; private set; }
@@ -26,11 +49,8 @@ namespace SpaceStation.Simulation
             if (population >= 1)
                 HasEverHadPopulation = true;
 
-            if (!IsGameOver && HasEverHadPopulation && population <= 0)
-            {
-                IsGameOver = true;
-                GameOver?.Invoke();
-            }
+            if (HasEverHadPopulation && population <= 0)
+                Fail(GameOverReason.Population);
         }
 
         public void RecordEvent() => EventsExperienced++;

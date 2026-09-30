@@ -112,6 +112,11 @@ namespace SpaceStation.UI
                     _sb.Append("  <size=80%><color=").Append(HudText.Muted).Append(">태양광 ").Append((solar * 100f).ToString("0")).Append("%</color></size>");
                 _sb.Append('\n');
             }
+            // 4-10: 실패 조건 진행 중 경고 (남은 시간)
+            var failure = _resources.Failure;
+            AppendFailureWarning(failure.OxygenRemaining, "산소 고갈");
+            AppendFailureWarning(failure.SatisfactionRemaining, "만족도 0 · 폭동");
+            AppendFailureWarning(failure.CoreRemaining, "코어 주변 전부 파손");
             if (_sim.StoppedModuleCount > 0)
                 _sb.Append("<color=").Append(HudText.Red).Append(">입력 자원 부족으로 정지: ").Append(_sim.StoppedModuleCount).Append("개</color>\n");
             _sb.Append('\n');
@@ -149,6 +154,14 @@ namespace SpaceStation.UI
                 RefreshPopulation();
             if (_gradeText != null && _progression != null)
                 RefreshGrade();
+        }
+
+        private void AppendFailureWarning(float remaining, string what)
+        {
+            if (remaining < 0f)
+                return;
+            _sb.Append("<color=").Append(HudText.Red).Append("><b>경고: ").Append(what).Append(" · ")
+               .Append(Mathf.CeilToInt(remaining)).Append("초 후 게임 오버</b></color>\n");
         }
 
         private void RefreshGrade()
