@@ -16,16 +16,18 @@ namespace SpaceStation.Building
 
         private static Light _sun;
         private Vector3 _appliedNormal;
+        private bool _applied; // 첫 적용 여부 (영벡터와의 Vector3.Angle은 0이라 비교로 판단할 수 없음)
 
         private void OnEnable()
         {
-            _appliedNormal = Vector3.zero;
+            _applied = false;
             Face();
         }
 
         private void LateUpdate() => Face();
 
-        private void Face()
+        /// <summary>즉시 태양 쪽으로 맞춘다 (에디터 미리보기·테스트용).</summary>
+        public void Face()
         {
             var sun = FindSun();
             if (sun == null)
@@ -33,8 +35,9 @@ namespace SpaceStation.Building
             Vector3 toSun = -sun.transform.forward;
             // 위쪽 기준으로 태양 방향까지의 각도를 최대 기울기로 제한
             Vector3 normal = Vector3.RotateTowards(Vector3.up, toSun, _maxTilt * Mathf.Deg2Rad, 0f);
-            if (Vector3.Angle(normal, _appliedNormal) < _epsilonDegrees)
+            if (_applied && Vector3.Angle(normal, _appliedNormal) < _epsilonDegrees)
                 return;
+            _applied = true;
             _appliedNormal = normal;
             // 패널 방위는 태양 쪽 수평 방향에 맞춰 긴 변이 태양을 가로지르도록
             Vector3 flat = Vector3.ProjectOnPlane(toSun, Vector3.up);

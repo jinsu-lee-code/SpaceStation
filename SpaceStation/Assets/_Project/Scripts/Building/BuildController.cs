@@ -26,6 +26,10 @@ namespace SpaceStation.Building
         [SerializeField] private Material _ghostMaterial;
         [SerializeField] private Color _validColor = new Color(0.2f, 1f, 0.3f, 0.45f);
         [SerializeField] private Color _invalidColor = new Color(1f, 0.2f, 0.2f, 0.45f);
+        [Tooltip("배치 가능/불가 색 전환 속도")]
+        [SerializeField, Min(0.1f)] private float _colorBlendSpeed = 14f;
+        private Color _ghostColor;
+        private Color _appliedGhostColor = new Color(-1f, -1f, -1f, -1f);
 
         [Header("Raycast")]
         [SerializeField] private LayerMask _moduleMask = ~0;
@@ -182,10 +186,17 @@ namespace SpaceStation.Building
                 GridConfig.CellToWorld(_targetCell),
                 GridDirections.ToQuaternion(_rotation));
 
-            if (_appliedValid != _targetValid)
+            // 5-4: 초록 ↔ 빨강을 부드럽게 전환 (홀로그램 셰이더의 _BaseColor)
+            var target = _targetValid ? _validColor : _invalidColor;
+            if (_appliedValid == null)
+                _ghostColor = target;
+            _appliedValid = _targetValid;
+            if (_ghostColor != target)
+                _ghostColor = Color.Lerp(_ghostColor, target, 1f - Mathf.Exp(-_colorBlendSpeed * Time.unscaledDeltaTime));
+            if ((Vector4)_ghostColor != (Vector4)_appliedGhostColor)
             {
-                _appliedValid = _targetValid;
-                _propertyBlock.SetColor(BaseColorId, _targetValid ? _validColor : _invalidColor);
+                _appliedGhostColor = _ghostColor;
+                _propertyBlock.SetColor(BaseColorId, _ghostColor);
                 foreach (var r in _ghostRenderers)
                     r.SetPropertyBlock(_propertyBlock);
             }
@@ -198,6 +209,7 @@ namespace SpaceStation.Building
             _ghost = null;
             _ghostRenderers = null;
             _appliedValid = null;
+            _appliedGhostColor = new Color(-1f, -1f, -1f, -1f); // 새 렌더러에 색을 다시 적용
 
             if (_selected == null || _selected.Prefab == null)
                 return;

@@ -201,6 +201,12 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 공용 URP Lit 머티리얼 세트 제작 (금속 패널, 창문, 태양광 패널 등)
   - SRP Batcher/GPU Instancing 호환 확인
 - [ ] **5-4. 상태 표현 셰이더 (Shader Graph)**
+  - (적용 완료, Play 모드 확인 대기) 결정: 선택 = 가장자리 빛 + 약한 틴트, 고스트 = 홀로그램, 상태 = 불빛으로 표현. Shader Graph 대신 텍스트로 관리하는 HLSL(`Art/Shaders/`)
+  - `Hologram.shader`(프레넬 + 흐르는 스캔라인 + 약한 깜빡임) → `M_Hologram`, BuildController 고스트 색 초록↔빨강 부드럽게 전환. 기존 `M_Ghost` 삭제
+  - `SelectionRim.shader`(가산 프레넬 + 맥동) → `M_SelectionRim`: ModuleView가 선택 시 각 메시 복제 렌더러를 켬 (회전 부품도 따라감)
+  - `ModuleView`: 비활성 = 어둡게 + 발광 0, 파손 = 붉은 틴트 + 불규칙 깜빡임, 수리 = 하늘색 맥동 + 발광 50%, 노후 = 갈색 + 발광 35%. 기본 상태는 MPB 비움(SRP Batcher 유지), 애니메이션 상태만 매 프레임 갱신
+  - 버그 수정: 태양광 패널이 기울지 않던 문제 (`SunFacingPanel`이 첫 적용 때 영벡터와 각도를 비교 → `Vector3.Angle`이 0이라 항상 건너뜀). 첫 적용 플래그로 수정 + 회전 4방향 회귀 테스트
+  - 참고: 그레이박스 상자는 면이 평평해 가장자리 빛이 면 단위로 보임 → 모델 교체(5-5) 후 자연스러워짐
   - 고스트 셰이더 (반투명 + 틴트, 초록/빨강 전환)
   - 비활성/활성 모듈 표현 (Emission on/off)
   - 선택 하이라이트

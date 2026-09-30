@@ -17,6 +17,8 @@ namespace SpaceStation.Building
         [SerializeField] private SimulationHost _host;
         [Tooltip("생성된 모듈 오브젝트의 부모. 비우면 이 오브젝트 아래에 둔다.")]
         [SerializeField] private Transform _moduleRoot;
+        [Tooltip("선택 가장자리 빛 재질 (SpaceStation/SelectionRim, 5-4)")]
+        [SerializeField] private Material _selectionRimMaterial;
 
         private readonly Dictionary<ModuleInstance, ModuleView> _views = new Dictionary<ModuleInstance, ModuleView>();
         private StationSimulation _sim;
@@ -113,7 +115,7 @@ namespace SpaceStation.Building
             go.name = module.ToString();
             if (!go.TryGetComponent<ModuleView>(out var view))
                 view = go.AddComponent<ModuleView>();
-            view.Initialize(module);
+            view.Initialize(module, _selectionRimMaterial);
             // 연결 재계산은 시뮬레이션이 이미 끝냈으므로 현재 상태를 바로 반영
             view.SetOperational(_sim.Connectivity.IsActive(module));
             _views.Add(module, view);

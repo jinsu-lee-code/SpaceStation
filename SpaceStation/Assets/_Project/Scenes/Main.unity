@@ -2476,9 +2476,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9964b2780a8d7b7469845963a26e9f6c, type: 2}
   - {fileID: 11400000, guid: 84154bcd603872b4484fcdf49e3cf090, type: 2}
   - {fileID: 11400000, guid: 121f148dbad6ad14ba4fbda33183095a, type: 2}
-  _ghostMaterial: {fileID: 2100000, guid: 0ab034dc0727293468fdeb83d1e03da0, type: 2}
+  _ghostMaterial: {fileID: 2100000, guid: c967a8ec04b83f643ba2e8df6df29642, type: 2}
   _validColor: {r: 0.2, g: 1, b: 0.3, a: 0.45}
   _invalidColor: {r: 1, g: 0.2, b: 0.2, a: 0.45}
+  _colorBlendSpeed: 14
   _moduleMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -2497,6 +2498,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.StationController
   _host: {fileID: 1600923283}
   _moduleRoot: {fileID: 0}
+  _selectionRimMaterial: {fileID: 2100000, guid: 6e59c7a47411f9f4c9421a736a7f872e, type: 2}
 --- !u!4 &968511356
 Transform:
   m_ObjectHideFlags: 0
