@@ -90,6 +90,9 @@ namespace SpaceStation.UI
             if (data.IsTurret)
                 sb.Append("포탑: 반경 ").Append(data.TurretRadius).Append("칸 안으로 오는 운석 완전 격추 ")
                   .Append((data.TurretInterceptChance * 100f).ToString("0")).Append($"% <color={Muted}>(포탑끼리 합산, 상한 있음)</color>\n");
+            if (data.IsService)
+                sb.Append(data.ServiceNeed.DisplayName()).Append(": 반경 ").Append(data.ServiceRadius)
+                  .Append("칸 안 거주 모듈 주민 ").Append(data.ServiceCapacity).Append($"명 담당 <color={Muted}>(파손·비활성·전력 부족·노후 시 감소)</color>\n");
             if (data.IsDefense)
                 sb.Append($"<color={Muted}>파손·비활성·전력 부족·노후 시 효과 감소</color>\n");
             if (data.RepairSlots > 0)

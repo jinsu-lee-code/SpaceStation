@@ -1,6 +1,7 @@
 using System;
 using SpaceStation.Building;
 using SpaceStation.Core;
+using SpaceStation.Data;
 using SpaceStation.Simulation;
 using TMPro;
 using UnityEngine;
@@ -189,6 +190,34 @@ namespace SpaceStation.UI
             return line;
         }
 
+        /// <summary>4-9: 서비스 모듈이면 담당 주민, 거주 모듈이면 요구별 충족 비율.</summary>
+        private string NeedsLine(ModuleInstance module)
+        {
+            var needs = _resources.Needs;
+            var data = module.Data;
+            if (data == null)
+                return string.Empty;
+            if (data.IsService)
+            {
+                float strength = needs.GetStrength(module);
+                string color = strength < 1f ? HudText.Yellow : "#FFFFFF";
+                return $"\n<size=85%><color={HudText.Muted}>{data.ServiceNeed.DisplayName()}</color> 담당 주민 {needs.GetServed(module):0}/{data.ServiceCapacity * strength:0}"
+                       + $" · <color={color}>가동률 {strength * 100f:0}%</color></size>";
+            }
+            if (data.HousingCapacity <= 0 || needs.Statuses.Count == 0)
+                return string.Empty;
+            var sb = new System.Text.StringBuilder($"\n<size=85%><color={HudText.Muted}>주민 요구</color>");
+            foreach (var status in needs.Statuses)
+            {
+                float coverage = needs.GetHabitatCoverage(module, status.Need);
+                if (coverage < 0f)
+                    continue;
+                string c = coverage >= 0.999f ? "#7CFF9A" : coverage > 0.001f ? HudText.Yellow : HudText.Red;
+                sb.Append($" {status.Need.DisplayName()} <color={c}>{coverage * 100f:0}%</color>");
+            }
+            return sb.Append("</size>").ToString();
+        }
+
         private static bool UsesPower(SpaceStation.Data.ModuleData data)
         {
             if (data == null)
@@ -253,7 +282,7 @@ namespace SpaceStation.UI
             var applied = _resources.Adjacency.GetApplied(module);
             if (applied.Count > 0)
                 adjacencyLine = $"\n<size=85%><color={HudText.Muted}>인접</color> {AdjacencySystem.DescribeAll(applied)}</size>";
-            _title.SetText($"<b>{Name(module)}</b>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{DefenseLine(module)}");
+            _title.SetText($"<b>{Name(module)}</b>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{DefenseLine(module)}{NeedsLine(module)}");
 
             var sim = _resources.Simulation;
 

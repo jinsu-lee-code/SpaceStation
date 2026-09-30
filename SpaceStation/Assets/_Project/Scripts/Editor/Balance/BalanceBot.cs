@@ -28,6 +28,7 @@ namespace SpaceStation.Editor.Balance
         /// <summary>비교 측정용: 방어 모듈을 금속 여유와 무관하게 우선 건설 (기본 false).</summary>
         public static bool DefenseFirst;
         private readonly List<ModuleInstance> _covered = new List<ModuleInstance>();
+        private readonly List<ModuleData> _services = new List<ModuleData>(); // 4-9 의료·여가
         // 전력 모델 (Decide마다 갱신): 낮 여유 = 낮 발전 - 수요 - 밤 대비 충전분
         private float _nightDeficit;     // 밤 동안 초당 부족량
         private float _spareDayPower;    // 밤 충전분을 뺀 낮 여유 (초당)
@@ -57,6 +58,7 @@ namespace SpaceStation.Editor.Balance
                 if (_bay == null && m.RepairSlots > 0) _bay = m;
                 if (_shield == null && m.IsShield) _shield = m;
                 if (_turret == null && m.IsTurret) _turret = m;
+                if (m.IsService) _services.Add(m);
             }
         }
 
@@ -115,6 +117,10 @@ namespace SpaceStation.Editor.Balance
                 return _water;
             if (_food != null && r.GetNetRate(ResourceType.Food) < NetMargin)
                 return _food;
+            // 4-9: 충족률이 낮은 요구의 서비스 모듈 (만족도 상한 → 성장 속도)
+            var service = PickService();
+            if (service != null)
+                return service;
             // 4-6: 현재 등급 최대 운석 수를 파괴 전에(여유 25%) 다 고칠 수 있을 만큼 수리 슬롯
             if (_bay != null && _sim.CheckBuildable(_bay) == PlacementResult.Valid && _sim.CountRepairSlots() < DesiredRepairSlots())
                 return _bay;
@@ -135,6 +141,38 @@ namespace SpaceStation.Editor.Balance
             if (next != null && _sim.Grid.ModuleCount < next.MinModules)
                 return _housing;
             return null;
+        }
+
+        private ModuleData PickService()
+        {
+            foreach (var status in _sim.Needs.Statuses)
+            {
+                if (status.Ratio >= 0.95f)
+                    continue;
+                foreach (var m in _services)
+                {
+                    if (m.ServiceNeed == status.Need && _sim.CheckBuildable(m) == PlacementResult.Valid)
+                        return m;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>서비스 모듈 배치 점수: 범위 안 거주 모듈의 아직 충족되지 않은 수용 인원.</summary>
+        private float ServiceScore(ModuleData data, Vector3Int origin, int rotation)
+        {
+            if (!data.IsService)
+                return 0f;
+            var cells = StationGrid.ResolveCells(data.CellOffsets, origin, rotation);
+            float unmet = 0f;
+            foreach (var m in _sim.Grid.Modules)
+            {
+                if (m.Data == null || m.Data.HousingCapacity <= 0 || !DefenseSystem.InRange(cells, m.Cells, data.ServiceRadius))
+                    continue;
+                float coverage = _sim.Needs.GetHabitatCoverage(m, data.ServiceNeed);
+                unmet += m.Data.HousingCapacity * (1f - Mathf.Max(0f, coverage));
+            }
+            return unmet * 5f;
         }
 
         private static float Cost(ModuleData data)
@@ -342,7 +380,7 @@ namespace SpaceStation.Editor.Balance
                     // 조밀 배치(운석 노출 감소) 선호. 태양광은 그늘 때문에 접촉 가산을 줄임.
                     float contactWeight = data.SolarPowered ? 1f : 10f;
                     float score = Contacts(data, origin, rot) * contactWeight - origin.sqrMagnitude * 0.01f
-                                  + AdjacencyScore(data, origin, rot) + DefenseScore(data, origin, rot);
+                                  + AdjacencyScore(data, origin, rot) + DefenseScore(data, origin, rot) + ServiceScore(data, origin, rot);
                     if (score > bestScore)
                     {
                         bestScore = score;

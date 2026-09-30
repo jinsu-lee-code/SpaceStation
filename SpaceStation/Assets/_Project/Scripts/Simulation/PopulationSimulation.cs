@@ -34,6 +34,11 @@ namespace SpaceStation.Simulation
         public event Action Changed;
 
         public float Satisfaction { get; private set; }
+        /// <summary>
+        /// 만족도 상한 (4-9 거주자 요구, 소유자가 매 틱 갱신). 회복은 상한까지만,
+        /// 상한보다 높으면 초당 SatisfactionAboveCapDecayPerSecond씩 상한으로 내려간다.
+        /// </summary>
+        public float SatisfactionCap { get; set; } = MaxSatisfaction;
         /// <summary>마지막 틱의 초당 만족도 변화량.</summary>
         public float SatisfactionRate { get; private set; }
         /// <summary>다음 +1까지 진행도 0~1. 증가 조건이 아니면 0.</summary>
@@ -91,8 +96,28 @@ namespace SpaceStation.Simulation
             if (!anyDepleted)
                 rate += _config.SatisfactionRecoveryPerSecond;
 
+            float cap = Mathf.Clamp(SatisfactionCap, 0f, MaxSatisfaction);
+            float next;
+            if (Satisfaction > cap)
+            {
+                // 상한 초과: 적어도 감소 속도만큼 내려가되, 고갈 벌점이 없으면 상한 아래로는 안 내려감
+                rate = Mathf.Min(rate, -_config.SatisfactionAboveCapDecayPerSecond);
+                next = Satisfaction + rate * dt;
+                if (!anyDepleted)
+                    next = Mathf.Max(next, cap);
+            }
+            else
+            {
+                next = Satisfaction + rate * dt;
+                if (rate > 0f)
+                {
+                    next = Mathf.Min(next, cap); // 회복은 상한까지만
+                    if (Satisfaction >= cap - 1e-4f)
+                        rate = 0f; // 상한에 붙어 있음 (UI 표시용)
+                }
+            }
             SatisfactionRate = rate;
-            Satisfaction = Mathf.Clamp(Satisfaction + rate * dt, 0f, MaxSatisfaction);
+            Satisfaction = Mathf.Clamp(next, 0f, MaxSatisfaction);
         }
 
         private void ApplyLosses(float dt)

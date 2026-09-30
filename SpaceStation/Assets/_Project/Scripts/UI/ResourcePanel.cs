@@ -215,6 +215,26 @@ namespace SpaceStation.UI
                 _popSb.Append("</color>");
             _popSb.Append('\n');
 
+            // 4-9: 거주자 요구 충족 (등급이 오르면 생김) → 만족도 상한
+            var needs = _resources.Needs;
+            if (needs.Statuses.Count > 0)
+            {
+                _popSb.Append("<size=85%><b>요구</b><pos=30%>");
+                for (int i = 0; i < needs.Statuses.Count; i++)
+                {
+                    var n = needs.Statuses[i];
+                    float ratio = n.Ratio;
+                    string c = ratio >= 0.999f ? "#7CFF9A" : ratio >= 0.5f ? HudText.Yellow : HudText.Red;
+                    if (i > 0)
+                        _popSb.Append("  ");
+                    _popSb.Append(n.Need.DisplayName()).Append(" <color=").Append(c).Append('>')
+                          .Append(Mathf.FloorToInt(n.Served + 1e-3f)).Append('/').Append(Mathf.CeilToInt(n.Demand - 1e-3f)).Append("</color>");
+                }
+                if (needs.SatisfactionCap < PopulationSimulation.MaxSatisfaction - 0.5f)
+                    _popSb.Append("<pos=72%><color=").Append(HudText.Yellow).Append(">상한 ").Append(needs.SatisfactionCap.ToString("0")).Append("</color>");
+                _popSb.Append("</size>\n");
+            }
+
             _popSb.Append("<size=80%><color=").Append(HudText.Muted).Append('>');
             if (pop.IsGrowing)
             {
@@ -228,6 +248,11 @@ namespace SpaceStation.UI
             else if (_sim.Population >= _sim.HousingCapacity)
             {
                 _popSb.Append("증가 정지: 수용 인구 가득 (거주 모듈 필요)");
+            }
+            else if (needs.SatisfactionCap < _resources.Balance.GrowthMinSatisfaction)
+            {
+                _popSb.Append("증가 정지: 요구 미충족으로 만족도 상한 ").Append(needs.SatisfactionCap.ToString("0"))
+                      .Append(" (의료·여가 모듈을 거주 모듈 근처에)");
             }
             else
             {

@@ -153,6 +153,13 @@ namespace SpaceStation.UI
                         int radius = Mathf.Max(build.ShieldRadius, build.TurretRadius);
                         text += $"\n<size=90%><color=#7FD8FF>방어 범위 (반경 {radius}칸): 모듈 {covered}개 보호</color></size>";
                     }
+                    if (build.IsService) // 4-9: 범위 안 거주 모듈·주민
+                    {
+                        var cells = StationGrid.ResolveCells(build.CellOffsets, targetCell, rotation);
+                        int habitats = _resources.Needs.CountHabitatsInRange(_station.Grid, build, cells, _resources.Simulation.Population, out float residents);
+                        string color = habitats > 0 ? "#7CFF9A" : HudText.Orange;
+                        text += $"\n<size=90%><color={color}>{build.ServiceNeed.DisplayName()} 범위 (반경 {build.ServiceRadius}칸): 거주 모듈 {habitats}개 · 주민 약 {residents:0}명 (담당 최대 {build.ServiceCapacity}명)</color></size>";
+                    }
                 }
                 _hintText.SetText(text);
             }
