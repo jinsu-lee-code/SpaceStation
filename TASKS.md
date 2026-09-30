@@ -180,12 +180,15 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 결정: 따뜻한 항성광 톤, 무료 에셋 스토어 스카이박스(사용자 임포트 대기), 낮/밤 주기를 조명에 반영
   - 완료: `DayNightLighting`(태양 색·밝기·기울기, 평면 환경광, 스카이박스 `_Exposure`를 태양광 배율로 보간, 밤 최소 밝기 유지)
   - 스카이박스: SpaceSkies Free(6 Sided, 3종) 중 **Purple 2K** 적용, 태양은 은하 중심(+Z) 쪽 yaw 180 / 기울기 낮 32°·밤 10°
-  - 정리 후보: `SpaceSkies Free/Demo`(레거시 Input 사용, 이 프로젝트에선 실행 시 오류), 안 쓰는 1K·4K 텍스처(4K는 임포트 최대 2048이라 효과 없음), 다른 2종 → 사용자 확인 후 삭제
+  - 정리: 사용하는 Purple 2K(재질 + 텍스처 6장)만 남기고 Demo·1K·4K·다른 2종 삭제 (482 MB → 24 MB)
   - Directional Light 1개 세팅 (각도, 색, 강도)
   - 우주 스카이박스 머티리얼 적용 (별/성운)
   - 환경광 색을 어두운 톤으로 조정
   - 완료 조건: 그레이박스 정거장이 우주 배경 위에 또렷하게 보임
 - [ ] **5-2. 포스트 프로세싱**
+  - (적용 완료, Play 모드 확인 대기) `Settings/PP_Main.asset` + 씬 `GlobalVolume`: Bloom(임계 1.0, 강도 0.6, 은은하게), Tonemapping ACES, Color Adjustments(노출 +0.35, 대비 +8, 채도 +6), Vignette(검정 0.22)
+  - 카메라 후처리 켜기 + SMAA, URP 색보정 HDR 모드. asmdef에 URP 런타임 참조 추가
+  - `CrisisVignette`: 실패 조건 경고 중 비네팅이 붉게 맥박(남은 30초 이하부터 빨라짐), 런타임 프로필 복사본 사용
   - 글로벌 Volume 생성: Bloom, Color Adjustments, Vignette
   - 완료 조건: 밝은 부분이 은은하게 번지고 전체 톤이 통일됨
 - [ ] **5-3. 머티리얼 체계 정리**
