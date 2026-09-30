@@ -23,6 +23,9 @@ namespace SpaceStation.Simulation
 
         /// <summary>파손 모듈 수리 시작: 수리 비용(건설 비용 × 수리 비율)을 지불하고 타이머 시작.</summary>
         public RepairResult TryRepair(ModuleInstance module) => _host.Simulation.TryRepair(module);
+        public bool TryPrioritizeRepair(ModuleInstance module) => _host.Simulation.TryPrioritizeRepair(module);
+        public bool TryCancelRepair(ModuleInstance module) => _host.Simulation.TryCancelRepair(module);
+        public System.Collections.Generic.List<ResourceAmount> GetCancelRefund(ModuleInstance module) => _host.Simulation.GetCancelRefund(module);
         public MaintainResult TryMaintain(ModuleInstance module) => _host.Simulation.TryMaintain(module);
         public RebuildResult TryRebuild(ModuleInstance module, out ModuleInstance rebuilt) => _host.Simulation.TryRebuild(module, out rebuilt);
         public System.Collections.Generic.List<ResourceAmount> GetRefund(ModuleInstance module) => _host.Simulation.GetRefund(module);

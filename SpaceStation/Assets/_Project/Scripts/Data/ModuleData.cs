@@ -9,6 +9,9 @@ namespace SpaceStation.Data
     {
         [SerializeField] private string _displayName = "Module";
 
+        [Tooltip("건설 메뉴 탭 (4-5)")]
+        [SerializeField] private ModuleCategory _category = ModuleCategory.Life;
+
         [Tooltip("원점(0,0,0) 기준 점유 셀 오프셋. 회전 0 기준으로 정의한다.")]
         [SerializeField] private List<Vector3Int> _cellOffsets = new List<Vector3Int> { Vector3Int.zero };
 
@@ -40,7 +43,13 @@ namespace SpaceStation.Data
         [Tooltip("배터리 충·방전 최대 속도 (초당)")]
         [SerializeField, Min(0f)] private float _batteryRate;
 
+        [Header("Support (BALANCE 17번)")]
+        [Tooltip("동시 수리 슬롯 추가 수 (정비 베이 1). 활성이고 파손되지 않았을 때만. 코어 몫은 BalanceConfig.BaseRepairSlots")]
+        [SerializeField, Min(0)] private int _repairSlots;
+
+        public int RepairSlots => _repairSlots;
         public string DisplayName => _displayName;
+        public ModuleCategory Category => _category;
         public IReadOnlyList<Vector3Int> CellOffsets => _cellOffsets;
         public GameObject Prefab => _prefab;
         public bool Removable => _removable;

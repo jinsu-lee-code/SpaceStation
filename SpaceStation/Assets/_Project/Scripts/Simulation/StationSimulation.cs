@@ -36,6 +36,8 @@ namespace SpaceStation.Simulation
 
         /// <summary>(요약 메시지, 긍정 여부). 이벤트 효과 알림.</summary>
         public event Action<string, bool> EffectReported;
+        /// <summary>파손이 번짐 (원본, 대상). 4-7</summary>
+        public event Action<ModuleInstance, ModuleInstance> DamageSpread;
         /// <summary>등급·승패 재판정 직후 (UI 갱신용).</summary>
         public event Action ProgressionEvaluated;
 
@@ -85,6 +87,10 @@ namespace SpaceStation.Simulation
             Grid.ModulePlaced += HandleModulePlaced;
             Grid.ModuleRemoved += HandleModuleRemoved;
             Damage.Destroyed += HandleDestroyed;
+            // 4-6: 정비 베이가 파손·복구되면 즉시 슬롯 수 갱신
+            Damage.Damaged += _ => RefreshRepairCapacity();
+            Damage.Repaired += _ => RefreshRepairCapacity();
+            Damage.SpreadDue += HandleSpreadDue; // 4-7
             Durability.WornOut += HandleDestroyed;
             Events.EventStarted += HandleEventStarted;
             Events.EventEnded += HandleEventEnded;
@@ -243,11 +249,52 @@ namespace SpaceStation.Simulation
                 return RepairResult.NotDamaged;
             if (info.IsRepairing)
                 return RepairResult.AlreadyRepairing;
+            if (info.IsQueued)
+                return RepairResult.AlreadyQueued;
             if (!Resources.TrySpend(Damage.GetRepairCost(module)))
                 return RepairResult.InsufficientResources;
+            RefreshRepairCapacity();
             Damage.StartRepair(module);
-            return RepairResult.Started;
+            return info.IsRepairing ? RepairResult.Started : RepairResult.Queued;
         }
+
+        /// <summary>대기 중인 수리를 맨 앞으로 (4-6).</summary>
+        public bool TryPrioritizeRepair(ModuleInstance module) => Damage.Prioritize(module);
+
+        /// <summary>대기 취소: 낸 수리 비용 × 취소 환불률(BALANCE 18번, 50%)을 돌려받는다.</summary>
+        public bool TryCancelRepair(ModuleInstance module)
+        {
+            if (!Damage.CancelQueued(module))
+                return false;
+            foreach (var a in GetCancelRefund(module))
+                Resources.AddStock(a.Type, a.Amount); // 철거 환급률과 별개
+            return true;
+        }
+
+        /// <summary>대기 취소 시 돌려받을 양 (미리보기).</summary>
+        public List<ResourceAmount> GetCancelRefund(ModuleInstance module)
+        {
+            var refund = Damage.GetRepairCost(module);
+            for (int i = 0; i < refund.Count; i++)
+                refund[i] = new ResourceAmount(refund[i].Type, refund[i].Amount * Balance.RepairCancelRefundRate);
+            return refund;
+        }
+
+        /// <summary>동시 수리 슬롯 = 기본(코어) + 활성이고 파손되지 않은 정비 베이의 슬롯 합 (BALANCE 17번).</summary>
+        public int CountRepairSlots()
+        {
+            int slots = Balance.BaseRepairSlots;
+            foreach (var module in Grid.Modules)
+            {
+                if (module.Data == null || module.Data.RepairSlots <= 0)
+                    continue;
+                if (Connectivity.IsActive(module) && !Damage.IsDamaged(module))
+                    slots += module.Data.RepairSlots;
+            }
+            return slots;
+        }
+
+        private void RefreshRepairCapacity() => Damage.RepairCapacity = CountRepairSlots();
 
         /// <summary>가중치 랜덤 이벤트 즉시 발생 (디버그 F5).</summary>
         public GameEventData TriggerRandomEvent() => Events.TriggerRandom(_eventPool);
@@ -274,6 +321,36 @@ namespace SpaceStation.Simulation
             RefreshCapacities();
             EvaluateProgression();
         }
+
+        /// <summary>
+        /// 4-7 연쇄 파손: 면이 맞닿은 정상 모듈(코어 제외) 중 1곳을 무작위로 파손시키고 내구도를 깎는다.
+        /// 번진 파손도 60초 방치되면 다시 번진다. 대상이 없으면 조용히 끝.
+        /// </summary>
+        private void HandleSpreadDue(ModuleInstance source)
+        {
+            if (!Grid.TryGetModule(source.Origin, out var placed) || placed != source)
+                return; // 같은 틱에 파괴됨
+            Grid.GetNeighborModules(source, _spreadCandidates);
+            for (int i = _spreadCandidates.Count - 1; i >= 0; i--)
+            {
+                var n = _spreadCandidates[i];
+                if (n == Core || Damage.IsDamaged(n))
+                    _spreadCandidates.RemoveAt(i);
+            }
+            if (_spreadCandidates.Count == 0)
+                return;
+            int index = Math.Min(_spreadCandidates.Count - 1, (int)(_random01() * _spreadCandidates.Count));
+            var target = _spreadCandidates[index];
+            Damage.Damage(target);
+            Durability.ApplyImpact(target, Balance.SpreadDurabilityDamage);
+            Session.RecordSpread();
+            DamageSpread?.Invoke(source, target);
+            string from = source.Data != null ? source.Data.DisplayName : source.ToString();
+            string to = target.Data != null ? target.Data.DisplayName : target.ToString();
+            Report($"파손 확산! {from} → {to}  ·  방치된 파손은 번집니다 (수리 또는 대기열 등록으로 멈춤)", false);
+        }
+
+        private readonly List<ModuleInstance> _spreadCandidates = new List<ModuleInstance>();
 
         private void HandleDestroyed(ModuleInstance module)
         {
@@ -306,6 +383,7 @@ namespace SpaceStation.Simulation
                 extraHousing += Math.Max(-module.Data.HousingCapacity, Adjacency.GetHousingBonus(module));
             }
             Resources.ExtraHousing = extraHousing;
+            RefreshRepairCapacity(); // 연결·파손 상태 반영 (4-6)
         }
 
         private void EvaluateProgression()
@@ -377,7 +455,8 @@ namespace SpaceStation.Simulation
                 sb.Append(target.Data != null ? target.Data.DisplayName : target.ToString());
             }
             string head = _meteorCandidates.Count > 1 ? $"운석 {_meteorCandidates.Count}개 충돌! 파손: " : "파손: ";
-            Report($"{head}{sb}  ·  {Balance.DestroyAfterSeconds:0}초 안에 수리 (선택 후 R)", false);
+            string spread = Balance.SpreadAfterSeconds > 0f ? $", {Balance.SpreadAfterSeconds:0}초 방치 시 이웃으로 확산" : "";
+            Report($"{head}{sb}  ·  {Balance.DestroyAfterSeconds:0}초 안에 수리 (선택 후 R){spread}", false);
         }
 
         private float ActiveDuration(GameEventData data)

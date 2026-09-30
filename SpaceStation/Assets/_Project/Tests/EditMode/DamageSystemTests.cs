@@ -128,6 +128,193 @@ namespace SpaceStation.Tests
             Assert.IsFalse(_damage.StartRepair(Place(0)));
         }
 
+        // ---------------- 4-6 수리 슬롯 / 대기열 ----------------
+
+        [Test]
+        public void Capacity_ExtraRequestsQueue_AndStartWhenSlotFrees()
+        {
+            _damage.RepairCapacity = 1;
+            var a = Place(0); var b = Place(1); var c = Place(2);
+            _damage.Damage(a); _damage.Damage(b); _damage.Damage(c);
+
+            Assert.IsTrue(_damage.StartRepair(a));
+            Assert.IsTrue(_damage.StartRepair(b));
+            Assert.IsTrue(_damage.StartRepair(c));
+            Assert.IsFalse(_damage.StartRepair(b), "이미 대기 중");
+            Assert.AreEqual(1, _damage.RepairingCount);
+            Assert.AreEqual(1, _damage.GetQueuePosition(b));
+            Assert.AreEqual(2, _damage.GetQueuePosition(c));
+            Assert.AreEqual(0.6f, _damage.OxygenLeakPerSecond, Eps, "대기 중에는 계속 누출");
+
+            Ticks(10); // a 완료 → b 시작
+            Assert.IsFalse(_damage.IsDamaged(a));
+            _damage.TryGetInfo(b, out var ib);
+            Assert.IsTrue(ib.IsRepairing);
+            Assert.AreEqual(1, _damage.GetQueuePosition(c));
+            _damage.TryGetInfo(c, out var ic);
+            Assert.AreEqual(110f, ic.TimeUntilDestroyed, Eps, "대기 중에도 파괴 타이머 진행");
+        }
+
+        [Test]
+        public void Prioritize_MovesToFront_Cancel_RemovesFromQueue()
+        {
+            _damage.RepairCapacity = 1;
+            var a = Place(0); var b = Place(1); var c = Place(2);
+            foreach (var m in new[] { a, b, c }) { _damage.Damage(m); _damage.StartRepair(m); }
+
+            Assert.IsFalse(_damage.Prioritize(b), "이미 맨 앞");
+            Assert.IsTrue(_damage.Prioritize(c));
+            Assert.AreEqual(1, _damage.GetQueuePosition(c));
+            Assert.AreEqual(2, _damage.GetQueuePosition(b));
+
+            Assert.IsTrue(_damage.CancelQueued(c));
+            _damage.TryGetInfo(c, out var ic);
+            Assert.IsFalse(ic.IsQueued);
+            Assert.IsTrue(_damage.IsDamaged(c), "취소해도 파손 상태는 유지");
+            Assert.AreEqual(1, _damage.GetQueuePosition(b));
+            Assert.IsFalse(_damage.CancelQueued(a), "수리 중은 취소 불가");
+        }
+
+        [Test]
+        public void QueuedModule_DestroyedIfWaitTooLong()
+        {
+            _damage.RepairCapacity = 0;
+            var m = Place(0);
+            ModuleInstance destroyed = null;
+            _damage.Destroyed += d => destroyed = d;
+            _damage.Damage(m);
+            _damage.StartRepair(m);
+            Ticks(120);
+            Assert.AreSame(m, destroyed);
+            Assert.AreEqual(0, _damage.Queue.Count);
+        }
+
+        // ---------------- 4-7 확산 ----------------
+
+        private void EnableSpread(float seconds)
+        {
+            var so = new SerializedObject(_config);
+            so.FindProperty("_spreadAfterSeconds").floatValue = seconds;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            _damage = new DamageSystem(_config);
+        }
+
+        [Test]
+        public void Spread_FiresOnceAfter60s_WhenLeftAlone()
+        {
+            EnableSpread(60f);
+            var m = Place(0);
+            int fired = 0;
+            _damage.SpreadDue += s => { Assert.AreSame(m, s); fired++; };
+            _damage.Damage(m);
+            Ticks(59);
+            Assert.AreEqual(0, fired);
+            _damage.TryGetInfo(m, out var info);
+            Assert.AreEqual(1f, info.TimeUntilSpread, Eps);
+            Ticks(1);
+            Assert.AreEqual(1, fired);
+            Assert.IsTrue(info.HasSpread);
+            Assert.IsFalse(info.SpreadPending);
+            Ticks(59);
+            Assert.AreEqual(1, fired, "한 번만 번짐");
+        }
+
+        [Test]
+        public void Spread_PausedWhileQueued_StoppedByRepair_DisabledAtZero()
+        {
+            EnableSpread(60f);
+            _damage.RepairCapacity = 0;
+            var m = Place(0);
+            int fired = 0;
+            _damage.SpreadDue += _ => fired++;
+            _damage.Damage(m);
+            Ticks(30);
+            _damage.StartRepair(m); // 슬롯 0 → 대기
+            Ticks(60);
+            Assert.AreEqual(0, fired, "대기 중에는 확산 멈춤");
+            _damage.TryGetInfo(m, out var info);
+            Assert.AreEqual(30f, info.TimeUntilSpread, Eps, "멈춘 시점 그대로");
+            _damage.CancelQueued(m);
+            Ticks(29);
+            Assert.AreEqual(0, fired);
+
+            _damage.RepairCapacity = 1;
+            _damage.StartRepair(m); // 수리 시작 → 확산 없음
+            Ticks(5);
+            Assert.AreEqual(0, fired);
+
+            EnableSpread(0f);
+            var n = Place(1);
+            _damage.Damage(n);
+            _damage.TryGetInfo(n, out var off);
+            Assert.IsFalse(off.SpreadPending, "0이면 확산 없음");
+        }
+
+        [Test]
+        public void Prioritize_KeepsTimers_DoesNotPreemptRunningRepair()
+        {
+            EnableSpread(60f);
+            _damage.RepairCapacity = 1;
+            var a = Place(0); var b = Place(1); var c = Place(2);
+            int spread = 0;
+            _damage.SpreadDue += _ => spread++;
+            foreach (var m in new[] { a, b, c }) _damage.Damage(m);
+            _damage.StartRepair(a); // 수리 중
+            Ticks(5);
+            _damage.StartRepair(b); // 대기 1
+            _damage.StartRepair(c); // 대기 2
+            _damage.TryGetInfo(c, out var ic);
+            float spreadBefore = ic.TimeUntilSpread, destroyBefore = ic.TimeUntilDestroyed;
+
+            Assert.IsTrue(_damage.Prioritize(c));
+            Assert.AreEqual(1, _damage.RepairingCount, "진행 중인 수리를 밀어내지 않음");
+            _damage.TryGetInfo(a, out var ia);
+            Assert.IsTrue(ia.IsRepairing);
+            Assert.IsTrue(ic.IsQueued);
+            Assert.AreEqual(spreadBefore, ic.TimeUntilSpread, Eps, "순서 변경이 타이머를 건드리지 않음");
+            Assert.AreEqual(destroyBefore, ic.TimeUntilDestroyed, Eps);
+
+            Ticks(5); // a 완료 → c(맨 앞) 시작
+            Assert.IsTrue(ic.IsRepairing);
+            _damage.TryGetInfo(b, out var ib);
+            Assert.IsTrue(ib.IsQueued);
+            Assert.AreEqual(1, _damage.GetQueuePosition(b));
+            Assert.AreEqual(0, spread, "대기 중 확산 없음");
+            Assert.IsFalse(_damage.Prioritize(a), "대기 중이 아니면 순서 변경 불가");
+        }
+
+        [Test]
+        public void Spread_ContinuesWhileQueued_WhenOptionOff()
+        {
+            var so = new SerializedObject(_config);
+            so.FindProperty("_queuePausesSpread").boolValue = false;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EnableSpread(60f);
+            _damage.RepairCapacity = 0;
+            var m = Place(0);
+            int fired = 0;
+            _damage.SpreadDue += _ => fired++;
+            _damage.Damage(m);
+            _damage.StartRepair(m);
+            Ticks(60);
+            Assert.AreEqual(1, fired, "대기 중에도 번짐");
+        }
+
+        [Test]
+        public void CapacityIncrease_StartsQueuedImmediately()
+        {
+            _damage.RepairCapacity = 1;
+            var a = Place(0); var b = Place(1);
+            _damage.Damage(a); _damage.Damage(b);
+            _damage.StartRepair(a); _damage.StartRepair(b);
+            _damage.RepairCapacity = 2;
+            Assert.AreEqual(2, _damage.RepairingCount);
+            Assert.AreEqual(0, _damage.Queue.Count);
+
+            _damage.RepairCapacity = 1; // 줄어도 진행 중인 수리는 유지
+            Assert.AreEqual(2, _damage.RepairingCount);
+        }
+
         [Test]
         public void MeteorCandidates_ExteriorOnly_ExcludingCoreAndDamaged()
         {

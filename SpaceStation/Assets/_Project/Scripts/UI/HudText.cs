@@ -83,6 +83,8 @@ namespace SpaceStation.UI
                 sb.Append("저장 한도 +").Append(data.StorageBonus.ToString("0")).Append(" (산소·물·식량·금속)\n");
             if (data.TerminalOnly)
                 sb.Append($"<color={Yellow}>말단 배치 전용: 정거장과 한 면만 맞닿아야 함</color>\n");
+            if (data.RepairSlots > 0)
+                sb.Append("동시 수리 슬롯 +").Append(data.RepairSlots).Append($" <color={Muted}>(파손·비활성 시 슬롯 없음)</color>\n");
 
             // 마지막 줄바꿈 제거
             if (sb.Length > 0 && sb[sb.Length - 1] == '\n')

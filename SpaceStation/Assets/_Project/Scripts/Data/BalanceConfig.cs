@@ -65,6 +65,16 @@ namespace SpaceStation.Data
         [SerializeField, Min(0.1f)] private float _destroyAfterSeconds = 1f;
         [Tooltip("운석 피격 가중치 기울기: 가중치 = 기울기 × (노출 면 − 1) + 1. 1이면 노출 면 수에 비례")]
         [SerializeField, Min(0f)] private float _meteorExposureSlope = 3f;
+        [Tooltip("코어가 제공하는 기본 동시 수리 슬롯 (코어는 파손되지 않아 항상 유지, 4-6). 정비 베이가 모듈별로 추가")]
+        [SerializeField, Min(0)] private int _baseRepairSlots = 1;
+        [Tooltip("파손 후 수리(대기 포함) 없이 이 시간이 지나면 이웃 1곳으로 번짐 (1회, 4-7). 0이면 확산 없음")]
+        [SerializeField, Min(0f)] private float _spreadAfterSeconds;
+        [Tooltip("번진 모듈의 내구도 감소량 (4-7)")]
+        [SerializeField, Min(0f)] private float _spreadDurabilityDamage;
+        [Tooltip("수리 대기열에 있으면 확산 타이머가 멈춤. 끄면 수리가 실제로 시작돼야 멈춤")]
+        [SerializeField] private bool _queuePausesSpread = true;
+        [Tooltip("수리 대기 취소 시 돌려받는 비율 (4-7: 대기로 확산을 막고 취소하는 허점 방지)")]
+        [SerializeField, Range(0f, 1f)] private float _repairCancelRefundRate = 1f;
 
         [Header("Day / Night (BALANCE 14번)")]
         [Tooltip("낮+밤 한 주기(초). 0이면 주기 없음(항상 낮)")]
@@ -119,6 +129,11 @@ namespace SpaceStation.Data
         public float RepairDuration => _repairDuration;
         public float DestroyAfterSeconds => _destroyAfterSeconds;
         public float MeteorExposureSlope => _meteorExposureSlope;
+        public int BaseRepairSlots => _baseRepairSlots;
+        public float SpreadAfterSeconds => _spreadAfterSeconds;
+        public float SpreadDurabilityDamage => _spreadDurabilityDamage;
+        public bool QueuePausesSpread => _queuePausesSpread;
+        public float RepairCancelRefundRate => _repairCancelRefundRate;
         public float DayNightPeriod => _dayNightPeriod;
         public float DayLength => _dayLength;
         public float DayNightTransition => _dayNightTransition;

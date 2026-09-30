@@ -22,6 +22,7 @@ namespace SpaceStation.UI
         }
 
         [SerializeField] private ResourceController _resources;
+        private const int SpreadWarnSeconds = 15; // 이 이하면 확산 경고 강조
         [SerializeField] private Camera _camera;
         [Tooltip("비활성 상태의 라벨 템플릿 (자식에 TMP_Text)")]
         [SerializeField] private RectTransform _template;
@@ -90,13 +91,20 @@ namespace SpaceStation.UI
 
             // 초 단위가 바뀔 때만 문자열 갱신 (수리 중은 음수 키로 구분)
             int seconds = Mathf.CeilToInt(info.IsRepairing ? info.RepairRemaining : info.TimeUntilDestroyed);
-            int key = info.IsRepairing ? -1 - seconds : seconds;
+            int position = info.IsQueued ? _resources.Damage.GetQueuePosition(info.Module) : 0; // 4-6 대기 순번
+            int spread = info.SpreadPending ? Mathf.CeilToInt(info.TimeUntilSpread) : 0; // 4-7 확산까지
+            int key = info.IsRepairing ? -1 - seconds : seconds + position * 100000 + spread * 1000;
             if (key == marker.ShownKey)
                 return;
             marker.ShownKey = key;
+            string spreadText = spread <= 0 ? ""
+                : spread <= SpreadWarnSeconds ? $"\n<color={HudText.Orange}><b>확산 {spread}초</b></color>"
+                : $"\n<size=85%><color={HudText.Muted}>확산 {spread}초</color></size>";
             marker.Text.SetText(info.IsRepairing
                 ? $"<color=#7FD8FF>수리 {seconds}초</color>"
-                : $"<color={HudText.Red}><b>!</b> {seconds}초</color>");
+                : position > 0
+                    ? $"<color={HudText.Yellow}>대기 {position}</color> <color={HudText.Red}>{seconds}초</color>{spreadText}"
+                    : $"<color={HudText.Red}><b>!</b> {seconds}초</color>{spreadText}");
         }
 
         private Marker Acquire()

@@ -3,8 +3,11 @@ namespace SpaceStation.Simulation
     public enum RepairResult
     {
         Started,
+        /// <summary>비용을 내고 수리 대기열에 들어감 (슬롯이 모두 사용 중, 4-6).</summary>
+        Queued,
         NotDamaged,
         AlreadyRepairing,
+        AlreadyQueued,
         InsufficientResources,
     }
 

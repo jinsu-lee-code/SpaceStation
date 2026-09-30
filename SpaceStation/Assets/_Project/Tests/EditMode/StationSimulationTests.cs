@@ -165,6 +165,113 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void RepairSlots_CoreOnePlusBays_DamagedBayLosesSlot_CancelRefunds()
+        {
+            var bay = Module("Bay", cost: 100);
+            var so = new SerializedObject(bay);
+            so.FindProperty("_repairSlots").intValue = 1;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var sim = Sim();
+            Assert.AreEqual(1, sim.CountRepairSlots(), "코어 기본 1");
+            sim.Grid.TryPlace(bay, Vector3Int.left, 0, out var bayModule); // 해금 판정 우회
+            Assert.AreEqual(2, sim.CountRepairSlots());
+            Assert.AreEqual(2, sim.Damage.RepairCapacity);
+
+            sim.Damage.Damage(bayModule);
+            Assert.AreEqual(1, sim.Damage.RepairCapacity, "파손된 베이는 슬롯 없음");
+
+            sim.TryPlace(_solar, Vector3Int.right, 0, out var a);
+            sim.TryPlace(_solar, Vector3Int.up, 0, out var b);
+            sim.Damage.Damage(a);
+            sim.Damage.Damage(b);
+            Assert.AreEqual(RepairResult.Started, sim.TryRepair(a));
+            float before = sim.Resources.GetStock(ResourceType.Metal);
+            Assert.AreEqual(RepairResult.Queued, sim.TryRepair(b));
+            Assert.AreEqual(before - 6f, sim.Resources.GetStock(ResourceType.Metal), Eps, "대기도 선불");
+            Assert.AreEqual(RepairResult.AlreadyQueued, sim.TryRepair(b));
+
+            Assert.IsTrue(sim.TryCancelRepair(b));
+            Assert.AreEqual(before, sim.Resources.GetStock(ResourceType.Metal), Eps, "취소 시 전액 환불");
+        }
+
+        [Test]
+        public void QueuedModule_DestroyedSameTickAsBayRepair_IsDestroyedNotRepaired()
+        {
+            // 회귀: 베이 수리 완료(슬롯 증가)와 대기 모듈의 파괴가 같은 틱이면, 파괴가 수리 완료로 뒤바뀌면 안 됨
+            var bay = Module("Bay", cost: 100);
+            var so = new SerializedObject(bay);
+            so.FindProperty("_repairSlots").intValue = 1;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var sim = Sim();
+            sim.Resources.AddStock(ResourceType.Metal, 100);
+            sim.Grid.TryPlace(bay, Vector3Int.left, 0, out var bayModule);
+            sim.TryPlace(_solar, Vector3Int.right, 0, out var q);
+
+            sim.Damage.Damage(bayModule); // 먼저 파손 → 사전 순회에서 먼저 처리됨
+            sim.Damage.Damage(q);
+            Assert.AreEqual(1, sim.Damage.RepairCapacity);
+            for (int i = 0; i < 110; i++)
+                sim.Tick(1f);
+            Assert.AreEqual(RepairResult.Started, sim.TryRepair(bayModule)); // 10초 → t=120 완료
+            Assert.AreEqual(RepairResult.Queued, sim.TryRepair(q));           // t=120 파괴 예정
+
+            bool qRepaired = false;
+            sim.Damage.Repaired += m => { if (m == q) qRepaired = true; };
+            for (int i = 0; i < 10; i++)
+                sim.Tick(1f);
+            Assert.IsFalse(qRepaired, "파괴될 모듈이 수리 완료로 처리되면 안 됨");
+            Assert.IsFalse(sim.Grid.IsOccupied(Vector3Int.right), "q는 파괴");
+            Assert.IsFalse(sim.Damage.IsDamaged(bayModule), "베이는 수리 완료");
+            Assert.AreEqual(2, sim.Damage.RepairCapacity);
+            Assert.AreEqual(0, sim.Damage.RepairingCount);
+        }
+
+        [Test]
+        public void CancelRepair_RefundsConfiguredRate()
+        {
+            var b = new SerializedObject(_balance);
+            b.FindProperty("_repairCancelRefundRate").floatValue = 0.5f;
+            b.ApplyModifiedPropertiesWithoutUndo();
+            var sim = Sim();
+            sim.TryPlace(_solar, Vector3Int.right, 0, out var a);
+            sim.TryPlace(_solar, Vector3Int.up, 0, out var c);
+            sim.Damage.Damage(a);
+            sim.Damage.Damage(c);
+            sim.TryRepair(a);
+            float before = sim.Resources.GetStock(ResourceType.Metal);
+            Assert.AreEqual(RepairResult.Queued, sim.TryRepair(c)); // 6 지불
+            Assert.AreEqual(3f, sim.GetCancelRefund(c)[0].Amount, Eps);
+            Assert.IsTrue(sim.TryCancelRepair(c));
+            Assert.AreEqual(before - 3f, sim.Resources.GetStock(ResourceType.Metal), Eps, "50%만 환불");
+        }
+
+        [Test]
+        public void Spread_DamagesHealthyNeighbor_NotCore_AndChains()
+        {
+            var b = new SerializedObject(_balance);
+            b.FindProperty("_spreadAfterSeconds").floatValue = 60f;
+            b.ApplyModifiedPropertiesWithoutUndo();
+            var sim = Sim();
+            sim.TryPlace(_solar, Vector3Int.right, 0, out var a);        // 코어 옆
+            sim.TryPlace(_solar, new Vector3Int(2, 0, 0), 0, out var c); // a 옆
+            ModuleInstance spreadTo = null;
+            sim.DamageSpread += (_, to) => spreadTo = to;
+
+            sim.Damage.Damage(a);
+            for (int i = 0; i < 60; i++)
+                sim.Tick(1f);
+            Assert.AreSame(c, spreadTo, "a의 이웃은 코어와 c → 코어 제외");
+            Assert.IsTrue(sim.Damage.IsDamaged(c));
+            Assert.AreEqual(1, sim.Session.DamageSpreads);
+
+            // c도 60초 방치 → 이웃 a는 이미 파손 → 번질 곳 없음
+            for (int i = 0; i < 60; i++)
+                sim.Tick(1f);
+            Assert.AreEqual(1, sim.Session.DamageSpreads);
+        }
+
+        [Test]
         public void GradeScaling_MeteorCountAndIntensity()
         {
             // 두 번째 등급(소형): 운석 2~3개, 강도 ×1.3 / 조건을 낮춰 바로 도달

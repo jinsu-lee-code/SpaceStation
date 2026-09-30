@@ -10,24 +10,26 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cb58bbe16188d524dbc82c9b3c050e29, type: 3}
-  m_Name: MD_Core
+  m_Name: MD_MaintenanceBay
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ModuleData
-  _displayName: "\uCF54\uC5B4"
+  _displayName: "\uC815\uBE44 \uBCA0\uC774"
   _category: 2
   _cellOffsets:
   - {x: 0, y: 0, z: 0}
-  _prefab: {fileID: 7168885055362873339, guid: aad9b66af9206ea42ada815a67ea150b, type: 3}
-  _removable: 0
+  - {x: 1, y: 0, z: 0}
+  _prefab: {fileID: 3274071869459268426, guid: ce9243543be24f243b9b0e92f2f7dccf, type: 3}
+  _removable: 1
   _terminalOnly: 0
-  _buildCost: []
-  _production:
+  _buildCost:
+  - Type: 4
+    Amount: 100
+  _production: []
+  _consumption:
   - Type: 0
     Amount: 5
-  - Type: 4
-    Amount: 0.5
-  _consumption: []
-  _housingCapacity: 4
+  _housingCapacity: 0
   _storageBonus: 0
   _solarPowered: 0
   _batteryCapacity: 0
   _batteryRate: 0
+  _repairSlots: 1

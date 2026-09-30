@@ -23,7 +23,7 @@ namespace SpaceStation.Editor.Balance
         private readonly List<DurabilityInfo> _maintainQueue = new List<DurabilityInfo>();
 
         private readonly StationSimulation _sim;
-        private readonly ModuleData _power, _oxygen, _water, _food, _housing, _storage, _metal, _battery;
+        private readonly ModuleData _power, _oxygen, _water, _food, _housing, _storage, _metal, _battery, _bay;
         // 전력 모델 (Decide마다 갱신): 낮 여유 = 낮 발전 - 수요 - 밤 대비 충전분
         private float _nightDeficit;     // 밤 동안 초당 부족량
         private float _spareDayPower;    // 밤 충전분을 뺀 낮 여유 (초당)
@@ -50,6 +50,7 @@ namespace SpaceStation.Editor.Balance
                 if (_housing == null && m.HousingCapacity > 0) _housing = m;
                 if (_storage == null && m.StorageBonus > 0f) _storage = m;
                 if (_battery == null && m.BatteryCapacity > 0f) _battery = m;
+                if (_bay == null && m.RepairSlots > 0) _bay = m;
             }
         }
 
@@ -108,6 +109,9 @@ namespace SpaceStation.Editor.Balance
                 return _water;
             if (_food != null && r.GetNetRate(ResourceType.Food) < NetMargin)
                 return _food;
+            // 4-6: 현재 등급 최대 운석 수를 파괴 전에(여유 25%) 다 고칠 수 있을 만큼 수리 슬롯
+            if (_bay != null && _sim.CheckBuildable(_bay) == PlacementResult.Valid && _sim.CountRepairSlots() < DesiredRepairSlots())
+                return _bay;
             if (CanBuildMetal())
                 return _metal; // 설치 한도까지 채굴 도킹
             if (_housing != null && r.Population >= r.HousingCapacity - 1)
@@ -122,12 +126,22 @@ namespace SpaceStation.Editor.Balance
             return null;
         }
 
+        private int DesiredRepairSlots()
+        {
+            var b = _sim.Balance;
+            float hits = _sim.Progression.Current.MeteorHitsMax;
+            int desired = Mathf.CeilToInt(hits * b.RepairDuration / (b.DestroyAfterSeconds * 0.75f));
+            if (_sim.Damage.Queue.Count > 0)
+                desired = Mathf.Max(desired, _sim.CountRepairSlots() + 1); // 지금 대기가 생겼으면 하나 더
+            return desired;
+        }
+
         private void RepairDamaged()
         {
             _repairQueue.Clear();
             foreach (var info in _sim.Damage.DamagedModules)
             {
-                if (!info.IsRepairing)
+                if (!info.IsRepairing && !info.IsQueued)
                     _repairQueue.Add(info.Module);
             }
             _repairQueue.Sort((a, b) =>
@@ -136,15 +150,39 @@ namespace SpaceStation.Editor.Balance
                 _sim.Damage.TryGetInfo(b, out var ib);
                 return ia.TimeUntilDestroyed.CompareTo(ib.TimeUntilDestroyed);
             });
+            var damage = _sim.Damage;
             foreach (var module in _repairQueue)
             {
-                var cost = _sim.Damage.GetRepairCost(module);
-                if (_sim.TryRepair(module) == RepairResult.Started)
+                // 대기열에 넣어도 파괴 전에 시작 못 할 모듈에는 돈을 쓰지 않음
+                // (보수적 예상 시작 = ceil((대기 수 + 1) / 슬롯) × 수리 시간)
+                damage.TryGetInfo(module, out var info);
+                int capacity = Mathf.Max(1, damage.RepairCapacity);
+                float expectedStart = damage.HasFreeRepairSlot ? 0f
+                    : Mathf.Ceil((damage.Queue.Count + 1f) / capacity) * _sim.Balance.RepairDuration;
+                // 단, 대기열 등록만으로 확산이 멈추는 설정이면 확산 전 모듈은 등록한다 (4-7)
+                if (expectedStart >= info.TimeUntilDestroyed && !(info.SpreadPending && _sim.Balance.QueuePausesSpread))
+                    continue;
+                var cost = damage.GetRepairCost(module);
+                var result = _sim.TryRepair(module);
+                if (result == RepairResult.Started || result == RepairResult.Queued)
                 {
                     RepairsStarted++;
                     foreach (var c in cost)
                         MetalSpentOnRepairs += c.Type == ResourceType.Metal ? c.Amount : 0f;
                 }
+            }
+
+            // 대기 중에도 확산이 흐르는 설정이면, 확산이 가장 임박한 대기 모듈을 우선 수리
+            if (!_sim.Balance.QueuePausesSpread && damage.Queue.Count > 1)
+            {
+                DamageInfo urgent = null;
+                foreach (var q in damage.Queue)
+                {
+                    if (q.SpreadPending && (urgent == null || q.TimeUntilSpread < urgent.TimeUntilSpread))
+                        urgent = q;
+                }
+                if (urgent != null)
+                    _sim.TryPrioritizeRepair(urgent.Module);
             }
         }
 

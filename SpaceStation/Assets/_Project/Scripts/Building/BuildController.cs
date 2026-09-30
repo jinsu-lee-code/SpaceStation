@@ -10,7 +10,7 @@ namespace SpaceStation.Building
 {
     /// <summary>
     /// 면 클릭 고스트 배치.
-    /// 숫자키 1~9: 모듈 선택 (건설 메뉴 UI 전까지 임시) / 좌클릭: 배치 확정 (선택 유지)
+    /// Tab / Shift+Tab: 건설 탭 전환 (4-5) / 숫자키 1~9: 현재 탭 안의 모듈 선택 / 좌클릭: 배치 확정 (선택 유지)
     /// R: 90도 회전 / 우클릭·ESC: 선택 취소
     /// </summary>
     public sealed class BuildController : MonoBehaviour
@@ -19,7 +19,7 @@ namespace SpaceStation.Building
 
         [SerializeField] private StationController _station;
         [SerializeField] private Camera _camera;
-        [Tooltip("숫자키 1~9 순서대로 선택")]
+        [Tooltip("건설 메뉴 순서. 탭은 ModuleData.Category로 나뉘고, 숫자키는 탭 안의 순서")]
         [SerializeField] private List<ModuleData> _buildableModules = new List<ModuleData>();
 
         [Header("Ghost")]
@@ -41,12 +41,22 @@ namespace SpaceStation.Building
         private PlacementResult _targetResult;
         private bool? _appliedValid;
         private Vector3Int _targetCell;
+        private readonly List<ModuleCategory> _categories = new List<ModuleCategory>();
+        private readonly List<ModuleData> _categoryModules = new List<ModuleData>();
+        private ModuleCategory _category;
 
         /// <summary>선택된 모듈이 바뀔 때 (null = 배치 모드 해제).</summary>
         public event Action<ModuleData> SelectionChanged;
+        /// <summary>건설 탭이 바뀔 때.</summary>
+        public event Action<ModuleCategory> CategoryChanged;
 
         public ModuleData Selected => _selected;
         public IReadOnlyList<ModuleData> BuildableModules => _buildableModules;
+        /// <summary>모듈이 있는 탭만 (방어 탭은 모듈이 생기면 나타남).</summary>
+        public IReadOnlyList<ModuleCategory> Categories => _categories;
+        public ModuleCategory Category => _category;
+        /// <summary>현재 탭의 모듈 (숫자키 순서).</summary>
+        public IReadOnlyList<ModuleData> CategoryModules => _categoryModules;
         /// <summary>고스트를 놓을 대상 면이 있는지 (마우스가 모듈 위에 있고 UI 위가 아님).</summary>
         public bool HasTarget => _hasTarget;
         /// <summary>현재 대상 셀의 배치 판정 결과. HasTarget일 때만 의미 있음.</summary>
@@ -59,6 +69,18 @@ namespace SpaceStation.Building
             _propertyBlock = new MaterialPropertyBlock();
             if (_camera == null)
                 _camera = Camera.main;
+            BuildCategories.GetAvailable(_buildableModules, _categories);
+            _category = _categories.Count > 0 ? _categories[0] : default;
+            BuildCategories.Filter(_buildableModules, _category, _categoryModules);
+        }
+
+        public void SetCategory(ModuleCategory category)
+        {
+            if (category == _category || !_categories.Contains(category))
+                return;
+            _category = category;
+            BuildCategories.Filter(_buildableModules, _category, _categoryModules);
+            CategoryChanged?.Invoke(_category); // 배치 중인 모듈은 유지
         }
 
         private void Update()
@@ -114,12 +136,17 @@ namespace SpaceStation.Building
 
         private void HandleSelectionKeys(Keyboard keyboard)
         {
-            int count = Mathf.Min(_buildableModules.Count, 9);
+            if (keyboard.tabKey.wasPressedThisFrame)
+            {
+                SetCategory(BuildCategories.Cycle(_categories, _category, keyboard.shiftKey.isPressed ? -1 : 1));
+                return;
+            }
+            int count = Mathf.Min(_categoryModules.Count, 9);
             for (int i = 0; i < count; i++)
             {
                 if (keyboard[Key.Digit1 + i].wasPressedThisFrame)
                 {
-                    ToggleSelect(_buildableModules[i]);
+                    ToggleSelect(_categoryModules[i]);
                     return;
                 }
             }

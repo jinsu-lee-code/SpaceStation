@@ -39,6 +39,7 @@ namespace SpaceStation.Editor.Balance
         public int Events;
         public int ModulesDamaged;
         public int ModulesDestroyed;
+        public int DamageSpreads; // 4-7
         public int RepairsStarted;
         public float MetalSpentOnRepairs;
         public int Maintenances;
@@ -164,6 +165,7 @@ namespace SpaceStation.Editor.Balance
             result.Events = sim.Session.EventsExperienced;
             result.ModulesDamaged = damaged;
             result.ModulesDestroyed = sim.Session.ModulesDestroyed;
+            result.DamageSpreads = sim.Session.DamageSpreads;
             result.RepairsStarted = bot.RepairsStarted;
             result.MetalSpentOnRepairs = bot.MetalSpentOnRepairs;
             result.Maintenances = bot.Maintenances;
@@ -202,7 +204,7 @@ namespace SpaceStation.Editor.Balance
             sb.Append("seed,game_over,end_s");
             for (int i = 1; i < report.GradeNames.Length; i++)
                 sb.Append(",reach_grade").Append(i).Append("_s");
-            sb.AppendLine(",final_grade,max_grade,final_pop,max_pop,final_modules,modules_built,events,damaged,destroyed,repairs,repair_metal," +
+            sb.AppendLine(",final_grade,max_grade,final_pop,max_pop,final_modules,modules_built,events,damaged,destroyed,spreads,repairs,repair_metal," +
                           "maintenances,rebuilds,upkeep_metal," +
                           "min_oxygen,min_water,min_food,min_metal,oxygen_depleted_s,water_depleted_s,food_depleted_s," +
                           "low_power_s,avg_efficiency,final_satisfaction,min_satisfaction");
@@ -215,7 +217,7 @@ namespace SpaceStation.Editor.Balance
                 sb.Append(',').Append(r.FinalGrade).Append(',').Append(r.MaxGrade)
                   .Append(',').Append(r.FinalPopulation).Append(',').Append(r.MaxPopulation)
                   .Append(',').Append(r.FinalModules).Append(',').Append(r.ModulesBuilt)
-                  .Append(',').Append(r.Events).Append(',').Append(r.ModulesDamaged).Append(',').Append(r.ModulesDestroyed)
+                  .Append(',').Append(r.Events).Append(',').Append(r.ModulesDamaged).Append(',').Append(r.ModulesDestroyed).Append(',').Append(r.DamageSpreads)
                   .Append(',').Append(r.RepairsStarted).Append(',').Append(F(r.MetalSpentOnRepairs))
                   .Append(',').Append(r.Maintenances).Append(',').Append(r.Rebuilds).Append(',').Append(F(r.MetalSpentOnUpkeep));
                 foreach (var v in r.MinStock) sb.Append(',').Append(F(v));
@@ -248,7 +250,7 @@ namespace SpaceStation.Editor.Balance
                 sb.AppendLine($"{report.GradeNames[g]}: 도달 {reached}/{n}, 평균 {avg}");
             }
             sb.AppendLine($"최종 인구 평균 {Avg(results, r => r.FinalPopulation):0.0}, 최대 인구 평균 {Avg(results, r => r.MaxPopulation):0.0}, 최종 모듈 평균 {Avg(results, r => r.FinalModules):0.0}");
-            sb.AppendLine($"이벤트 평균 {Avg(results, r => r.Events):0.0}, 파손 {Avg(results, r => r.ModulesDamaged):0.0}, 파괴 {Avg(results, r => r.ModulesDestroyed):0.00}");
+            sb.AppendLine($"이벤트 평균 {Avg(results, r => r.Events):0.0}, 파손 {Avg(results, r => r.ModulesDamaged):0.0}, 파괴 {Avg(results, r => r.ModulesDestroyed):0.00}, 확산 {Avg(results, r => r.DamageSpreads):0.00}");
             sb.AppendLine($"수리 금속 평균 {Avg(results, r => r.MetalSpentOnRepairs):0}, 정비 {Avg(results, r => r.Maintenances):0.0}회, 재건축 {Avg(results, r => r.Rebuilds):0.0}회, 유지비 금속 {Avg(results, r => r.MetalSpentOnUpkeep):0}");
             sb.AppendLine($"최저 재고 평균  산소 {Avg(results, r => r.MinStock[0]):0}  물 {Avg(results, r => r.MinStock[1]):0}  식량 {Avg(results, r => r.MinStock[2]):0}  금속 {Avg(results, r => r.MinStock[3]):0}");
             sb.AppendLine($"고갈 시간 평균(초)  산소 {Avg(results, r => r.DepletedSeconds[0]):0}  물 {Avg(results, r => r.DepletedSeconds[1]):0}  식량 {Avg(results, r => r.DepletedSeconds[2]):0}");

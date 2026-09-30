@@ -23,6 +23,9 @@ namespace SpaceStation.UI
         [SerializeField] private TMP_Text _title;
         [SerializeField] private Button _repairButton;
         [SerializeField] private TMP_Text _repairLabel;
+        [Tooltip("수리 대기 중일 때만 보임 (4-6)")]
+        [SerializeField] private Button _cancelRepairButton;
+        [SerializeField] private TMP_Text _cancelRepairLabel;
         [SerializeField] private Button _maintainButton;
         [SerializeField] private TMP_Text _maintainLabel;
         [SerializeField] private Button _rebuildButton;
@@ -40,6 +43,8 @@ namespace SpaceStation.UI
         private void Start()
         {
             _repairButton.onClick.AddListener(RepairSelected);
+            if (_cancelRepairButton != null)
+                _cancelRepairButton.onClick.AddListener(CancelRepairSelected);
             _maintainButton.onClick.AddListener(MaintainSelected);
             _rebuildButton.onClick.AddListener(RebuildSelected);
             _demolishButton.onClick.AddListener(_selection.RemoveSelected);
@@ -74,6 +79,8 @@ namespace SpaceStation.UI
                 MaintainSelected();
             else if (keyboard.bKey.wasPressedThisFrame)
                 RebuildSelected();
+            else if (keyboard.cKey.wasPressedThisFrame) // X는 철거
+                CancelRepairSelected();
         }
 
         private void LateUpdate()
@@ -87,13 +94,35 @@ namespace SpaceStation.UI
             var module = _selection.Selected;
             if (module == null)
                 return;
+            var damage = _resources.Damage;
+            if (damage.TryGetInfo(module, out var info) && info.IsQueued)
+            {
+                // 대기 중이면 R = 우선 수리 (맨 앞으로)
+                if (_resources.TryPrioritizeRepair(module))
+                    ActionDone?.Invoke($"{Name(module)} 우선 수리 · 대기 1번째");
+                else
+                    ActionFailed?.Invoke("이미 대기열 맨 앞입니다");
+                return;
+            }
             var result = _resources.TryRepair(module);
-            if (result == RepairResult.InsufficientResources)
+            if (result == RepairResult.Queued)
+                ActionDone?.Invoke($"수리 슬롯이 모두 사용 중 · {Name(module)} 대기 {damage.GetQueuePosition(module)}번째 (R: 우선 수리, C: 취소)");
+            else if (result == RepairResult.InsufficientResources)
                 ActionFailed?.Invoke("수리 비용(금속)이 부족합니다");
             else if (result == RepairResult.AlreadyRepairing)
                 ActionFailed?.Invoke("이미 수리 중입니다");
             else if (result == RepairResult.NotDamaged)
                 ActionFailed?.Invoke("파손된 모듈이 아닙니다");
+        }
+
+        public void CancelRepairSelected()
+        {
+            var module = _selection.Selected;
+            if (module == null || !_resources.Damage.TryGetInfo(module, out var info) || !info.IsQueued)
+                return;
+            var refund = _resources.GetCancelRefund(module);
+            if (_resources.TryCancelRepair(module))
+                ActionDone?.Invoke($"{Name(module)} 수리 대기 취소 · 환불 {HudText.Cost(refund)} ({_resources.Balance.RepairCancelRefundRate * 100f:0}%)");
         }
 
         public void MaintainSelected()
@@ -167,7 +196,10 @@ namespace SpaceStation.UI
             {
                 state = dmg.IsRepairing
                     ? $"<color=#7FD8FF>수리 중 {Mathf.CeilToInt(dmg.RepairRemaining)}초</color>"
-                    : $"<color={HudText.Red}>파손: {Mathf.CeilToInt(dmg.TimeUntilDestroyed)}초 후 파괴</color>";
+                    : (dmg.IsQueued
+                        ? $"<color={HudText.Yellow}>수리 대기 {damage.GetQueuePosition(module)}번째</color> · <color={HudText.Red}>{Mathf.CeilToInt(dmg.TimeUntilDestroyed)}초 후 파괴</color>"
+                        : $"<color={HudText.Red}>파손: {Mathf.CeilToInt(dmg.TimeUntilDestroyed)}초 후 파괴</color>")
+                      + (dmg.SpreadPending ? $" · <color={HudText.Orange}>{Mathf.CeilToInt(dmg.TimeUntilSpread)}초 후 이웃으로 확산</color>" : "");
             }
             else if (!_station.Connectivity.IsActive(module))
             {
@@ -204,11 +236,29 @@ namespace SpaceStation.UI
             // 수리
             bool damaged = dmg != null;
             bool repairing = damaged && dmg.IsRepairing;
+            bool queued = damaged && dmg.IsQueued;
             var repairCost = damaged ? damage.GetRepairCost(module) : null;
-            _repairButton.interactable = damaged && !repairing && sim.CanAfford(repairCost);
-            _repairLabel.SetText(!damaged ? "수리 (R)\n<size=80%>파손 아님</size>"
-                : repairing ? "수리 중\n<size=80%>진행 중</size>"
-                : $"수리 (R)\n<size=80%>{HudText.Cost(repairCost)}</size>");
+            if (queued)
+            {
+                int position = damage.GetQueuePosition(module);
+                _repairButton.interactable = position > 1;
+                _repairLabel.SetText(position > 1 ? $"우선 수리 (R)\n<size=80%>대기 {position}번째 → 1번째</size>" : "대기 1번째\n<size=80%>다음 차례</size>");
+            }
+            else
+            {
+                _repairButton.interactable = damaged && !repairing && sim.CanAfford(repairCost);
+                string slotNote = damage.HasFreeRepairSlot ? "" : $" · <color={HudText.Yellow}>대기</color>";
+                _repairLabel.SetText(!damaged ? "수리 (R)\n<size=80%>파손 아님</size>"
+                    : repairing ? "수리 중\n<size=80%>진행 중</size>"
+                    : $"수리 (R)\n<size=80%>{HudText.Cost(repairCost)}{slotNote}</size>");
+            }
+            if (_cancelRepairButton != null)
+            {
+                if (_cancelRepairButton.gameObject.activeSelf != queued)
+                    _cancelRepairButton.gameObject.SetActive(queued);
+                if (queued)
+                    _cancelRepairLabel.SetText($"대기 취소 (C)\n<size=80%>환불 {HudText.Cost(_resources.GetCancelRefund(module))}</size>");
+            }
 
             // 정비
             if (tracked)

@@ -16,6 +16,8 @@ namespace SpaceStation.Simulation
         public int MaxPopulation { get; private set; }
         public int EventsExperienced { get; private set; }
         public int ModulesDestroyed { get; private set; }
+        /// <summary>파손이 번진 횟수 (4-7).</summary>
+        public int DamageSpreads { get; private set; }
 
         public void ObservePopulation(int population)
         {
@@ -33,5 +35,6 @@ namespace SpaceStation.Simulation
 
         public void RecordEvent() => EventsExperienced++;
         public void RecordDestroyed() => ModulesDestroyed++;
+        public void RecordSpread() => DamageSpreads++;
     }
 }

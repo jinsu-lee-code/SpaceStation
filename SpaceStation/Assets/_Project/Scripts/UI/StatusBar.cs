@@ -24,7 +24,7 @@ namespace SpaceStation.UI
         [SerializeField] private TMP_Text _hintText;
         [SerializeField] private TMP_Text _messageText;
         [SerializeField] private float _messageSeconds = 3f;
-        [SerializeField] private string _idleHint = "숫자키 1~7 또는 아래 메뉴로 모듈 선택  ·  모듈 클릭: 선택  ·  휠 드래그: 카메라 회전";
+        [SerializeField] private string _idleHint = "Tab: 건설 탭 전환  ·  숫자키 또는 아래 메뉴로 모듈 선택  ·  모듈 클릭: 선택  ·  휠 드래그: 카메라 회전";
 
         private float _messageUntil;
         private int _disconnectedThisFrame;
@@ -117,7 +117,8 @@ namespace SpaceStation.UI
             bool hasTarget = build != null && _build.HasTarget;
             var result = hasTarget ? _build.TargetResult : PlacementResult.Valid;
             // 0 정상, 1 파손, 2 수리 중
-            int damageState = selected != null && _resources.Damage.TryGetInfo(selected, out var info) ? (info.IsRepairing ? 2 : 1) : 0;
+            // 3 수리 대기 (4-6)
+            int damageState = selected != null && _resources.Damage.TryGetInfo(selected, out var info) ? (info.IsRepairing ? 2 : info.IsQueued ? 3 : 1) : 0;
 
             var targetCell = hasTarget ? _build.TargetCell : Vector3Int.zero;
             int rotation = build != null ? _build.Rotation : 0;
@@ -151,7 +152,8 @@ namespace SpaceStation.UI
                 string name = selected.Data != null ? selected.Data.DisplayName : selected.ToString();
                 string state = selectedActive ? string.Empty : $"  <color={HudText.Orange}>(비활성: 코어와 분리됨)</color>";
                 string action = _station.CanRemove(selected) ? "M: 정비  ·  B: 재건축  ·  Delete/X: 철거" : "철거 불가";
-                string repair = damageState == 1 ? $"  ·  <color={HudText.Red}>R: 수리</color>" : string.Empty;
+                string repair = damageState == 1 ? $"  ·  <color={HudText.Red}>R: 수리</color>"
+                    : damageState == 3 ? $"  ·  <color={HudText.Yellow}>R: 우선 수리  ·  C: 대기 취소</color>" : string.Empty;
                 _hintText.SetText($"선택: <b>{name}</b>{state}{repair}  ·  {action}  ·  ESC: 선택 해제");
             }
             else

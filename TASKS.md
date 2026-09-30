@@ -133,14 +133,27 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - BALANCE.md 15번. 조정: 코어 금속 +0.5/s, 정비 비율 20%. `DurabilitySystem`(순수), `StationSimulation.TryMaintain/TryRebuild/GetRefund`
   - UI: 선택 패널 [수리 R][정비 M][재건축 B][철거 Del] + 내구도 표시, 노후 모듈 갈색 틴트, 자원 패널 노후 경고, 노후 파괴 알림
   - 측정: 원안은 성장 정체(소형 4/20) → 조정 후 소형 20/20(6.8분), 중형 정체(인구 23)
-- [ ] **4-4. 공간 인접 효과**
-  - (코드 완료, Play 모드 확인 대기) BALANCE.md 16번. 규칙 5개(보너스+페널티), 이웃 수만큼 최대 3회. 추가 규칙은 Phase 6 이후
+- [x] **4-4. 공간 인접 효과**
+  - BALANCE.md 16번. 규칙 5개(보너스+페널티), 이웃 수만큼 최대 3회. 추가 규칙은 Phase 6 이후
+  - 피드백 반영: 태양광끼리는 그늘 없음(`excludeSameType`), 전력 부족 시 "가동률 N%" 표시(자원·선택 패널)
   - `AdjacencyRuleSet`(SO) + `AdjacencySystem`(순수, 그리드 변경 시 재계산·캐시, 배치 미리보기)
   - `ResourceSimulation`: 모듈별 소비 배율, `ExtraHousing`. 생산 배율은 파손×내구도×인접
   - UI: 배치 중 상태 표시줄 미리보기, 선택 패널 적용 효과, 건설 메뉴 툴팁 규칙. 봇: 배치 점수에 인접 효과, 전력 계산에 그늘 반영
-- [ ] **4-5. 건설 메뉴 카테고리 탭** (신규 모듈 증가 대비)
-- [ ] **4-6. 수리 인력 제한** (정비 베이 모듈)
+- [x] **4-5. 건설 메뉴 카테고리 탭** (신규 모듈 증가 대비)
+  - `ModuleCategory`(전력/생활/산업/방어) + `ModuleData.Category`. 모듈이 없는 탭은 숨김(방어는 4-8에서 등장)
+  - 분류: 전력=태양광·배터리 / 생활=거주·산소·물·농장(+의료·여가) / 산업=창고·채굴 도킹(+정비 베이) / 방어=실드·포탑
+  - `BuildCategories`(순수: 탭 목록·필터·순환), `BuildController` Tab/Shift+Tab 전환, 숫자키 1~9 = 탭 안 순서, 탭을 바꿔도 배치 중 모듈 유지
+  - UI: 건설 메뉴 위 탭 줄(`BuildTabs`, `PF_BuildTab`, 탭 이름 + 모듈 수, "Tab / Shift+Tab" 안내), 상태 표시줄은 y 140으로 올림
+- [x] **4-6. 수리 인력 제한** (정비 베이 모듈)
+  - BALANCE.md 17번. 슬롯 = 코어 1(`baseRepairSlots`) + 활성·정상 정비 베이(`ModuleData.RepairSlots`), 수리 30초
+  - `DamageSystem`: `RepairCapacity`, 대기열(`Queue`, `Prioritize`, `CancelQueued`), `StationSimulation.CountRepairSlots/TryPrioritizeRepair/TryCancelRepair`, `RepairResult.Queued/AlreadyQueued`
+  - `MD_MaintenanceBay`(금속 100, 전력 5, 2칸, 소형 해금, 산업 탭) + `PF_MaintenanceBay`(주황)
+  - UI: 선택 패널 대기 순번·우선 수리(R)·[대기 취소 (C)], 자원 패널 수리 슬롯 줄, 파손 마커 "대기 n", 툴팁 "동시 수리 슬롯 +1". 봇: 대기 판단 + 필요 슬롯만큼 베이 건설
 - [ ] **4-7. 연쇄 파손 확산**
+  - (코드 완료, Play 모드 확인 대기) BALANCE.md 18번. 60초 방치 시 이웃 1곳으로 1회 확산(연쇄 허용, 코어 제외, 내구도 -20), 수리 시작·대기열 등록 시 멈춤(`queuePausesSpread`)
+  - `DamageInfo.TimeUntilSpread/HasSpread/SpreadPending`, `DamageSystem.SpreadDue` → `StationSimulation.HandleSpreadDue`(대상 선택), `DamageSpread` 이벤트, `GameSession.DamageSpreads`
+  - UI: 마커 "확산 N초"(15초 이하 강조), 선택 패널 확산 시간, 번짐 알림. 측정 도구에 확산 횟수 열 추가
+  - B안: 대기 = 확산 멈춤 유지, 대기 취소 환불 50%(`repairCancelRefundRate`)로 허점 차단. 우선 수리 점검 + 같은 틱 파괴/베이 복구 겹침 버그 수정(회귀 테스트)
 - [ ] **4-8. 방어 모듈** (실드/포탑)
 - [ ] **4-9. 거주자 요구 단계** (의료·여가 등 신규 모듈)
 - [ ] **4-10. A: 전체 수치 조정** (측정 도구 기준 목표 난이도 곡선)

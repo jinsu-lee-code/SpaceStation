@@ -8,8 +8,8 @@ using UnityEngine;
 namespace SpaceStation.UI
 {
     /// <summary>
-    /// 하단 건설 메뉴. BuildController의 건설 목록 순서대로 버튼을 만든다 (숫자키와 동일한 순서).
-    /// 버튼 상태: 등급 잠김 / 최대 설치 수 / 비용 부족이면 비활성.
+    /// 하단 건설 메뉴. 위쪽 탭 줄(4-5, Tab/Shift+Tab)에서 고른 분류의 모듈만 버튼으로 보인다.
+    /// 버튼 번호 = 탭 안의 숫자키. 버튼 상태: 등급 잠김 / 최대 설치 수 / 비용 부족이면 비활성.
     /// </summary>
     public sealed class BuildMenu : MonoBehaviour
     {
@@ -20,21 +20,41 @@ namespace SpaceStation.UI
         [SerializeField] private BuildButtonView _buttonPrefab;
         [SerializeField] private RectTransform _container;
         [SerializeField] private TooltipView _tooltip;
+        [Header("Tabs (4-5)")]
+        [SerializeField] private BuildTabView _tabPrefab;
+        [SerializeField] private RectTransform _tabContainer;
+        [SerializeField] private RectTransform _tabHint;
 
         private readonly List<BuildButtonView> _buttons = new List<BuildButtonView>();
+        private readonly List<BuildTabView> _tabs = new List<BuildTabView>();
+        private readonly List<ModuleData> _scratch = new List<ModuleData>();
         private readonly List<string> _ruleLines = new List<string>();
         private bool _stateDirty = true;
 
         private void Start()
         {
-            var modules = _build.BuildableModules;
-            for (int i = 0; i < modules.Count; i++)
+            // 탭 순서대로 버튼 생성, 번호는 탭 안의 순서
+            foreach (var category in _build.Categories)
             {
-                var button = Instantiate(_buttonPrefab, _container);
-                button.Initialize(this, modules[i], i + 1);
-                _buttons.Add(button);
+                BuildCategories.Filter(_build.BuildableModules, category, _scratch);
+                for (int i = 0; i < _scratch.Count; i++)
+                {
+                    var button = Instantiate(_buttonPrefab, _container);
+                    button.Initialize(this, _scratch[i], i + 1);
+                    _buttons.Add(button);
+                }
+                if (_tabPrefab != null && _tabContainer != null)
+                {
+                    var tab = Instantiate(_tabPrefab, _tabContainer);
+                    tab.Initialize(this, category, _scratch.Count);
+                    _tabs.Add(tab);
+                }
             }
+            if (_tabHint != null)
+                _tabHint.SetAsLastSibling(); // "Tab 전환" 안내를 탭 오른쪽 끝으로
 
+            _build.CategoryChanged += HandleCategoryChanged;
+            HandleCategoryChanged(_build.Category);
             _build.SelectionChanged += HandleSelectionChanged;
             _resources.Simulation.Changed += MarkDirty;
             if (_progression != null)
@@ -45,7 +65,10 @@ namespace SpaceStation.UI
         private void OnDestroy()
         {
             if (_build != null)
+            {
                 _build.SelectionChanged -= HandleSelectionChanged;
+                _build.CategoryChanged -= HandleCategoryChanged;
+            }
             if (_resources != null && _resources.Simulation != null)
                 _resources.Simulation.Changed -= MarkDirty;
             if (_progression != null)
@@ -69,6 +92,20 @@ namespace SpaceStation.UI
         public void HandleButtonClicked(ModuleData data)
         {
             _build.ToggleSelect(data);
+        }
+
+        public void HandleTabClicked(ModuleCategory category)
+        {
+            _build.SetCategory(category);
+        }
+
+        private void HandleCategoryChanged(ModuleCategory category)
+        {
+            foreach (var tab in _tabs)
+                tab.SetSelected(tab.Category == category);
+            foreach (var button in _buttons)
+                button.gameObject.SetActive(button.Data.Category == category);
+            HideTooltip(); // 숨겨진 버튼의 툴팁이 남지 않도록
         }
 
         public void ShowTooltip(ModuleData data, RectTransform anchor)

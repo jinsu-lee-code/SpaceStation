@@ -123,6 +123,15 @@ namespace SpaceStation.UI
             if (inactive > 0)
                 _sb.Append("<color=").Append(HudText.Orange).Append(">코어와 분리된 모듈: ").Append(inactive).Append("개 (비활성)</color>\n");
 
+            // 4-6: 수리 슬롯 (코어 1 + 정비 베이)
+            var damage = _resources.Damage;
+            int repairing = damage.RepairingCount, capacity = damage.RepairCapacity, waiting = damage.Queue.Count;
+            string slotColor = waiting > 0 ? HudText.Red : repairing >= capacity && repairing > 0 ? HudText.Yellow : HudText.Muted;
+            _sb.Append("<color=").Append(slotColor).Append(">수리 슬롯 ").Append(repairing).Append('/').Append(capacity);
+            if (waiting > 0)
+                _sb.Append(" · 대기 ").Append(waiting).Append(" (정비 베이로 슬롯 추가)");
+            _sb.Append("</color>\n");
+
             // 4-3: 노후 모듈 (효율 저하 중)
             int worn = 0;
             var durability = _resources.Durability;
