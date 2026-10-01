@@ -2,7 +2,6 @@ using SpaceStation.Core;
 using SpaceStation.Simulation;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace SpaceStation.UI
@@ -10,7 +9,7 @@ namespace SpaceStation.UI
     /// <summary>
     /// 결과 화면 (GDD 12-3).
     /// 최고 등급 첫 도달: "정거장 완성" 요약 + [계속 플레이] [재시작].
-    /// 게임 오버(인구 0): 요약 + [재시작] [종료].
+    /// 게임 오버: 요약 + [재시작] [메인 메뉴] (5-9, 씬 전환은 SceneFader).
     /// 표시 중에는 시뮬레이션을 일시정지하고 배속 입력을 잠근다.
     /// </summary>
     public sealed class ResultScreen : MonoBehaviour
@@ -57,7 +56,7 @@ namespace SpaceStation.UI
         private void HandleGameOver()
         {
             string reason = FailureMonitor.Describe(_progression.Session.Reason);
-            Show(Mode.GameOver, $"<color={HudText.Red}>게임 오버</color>\n<size=55%>{reason}</size>", "재시작", "종료");
+            Show(Mode.GameOver, $"<color={HudText.Red}>게임 오버</color>\n<size=55%>{reason}</size>", "재시작", "메인 메뉴");
         }
 
         private void Show(Mode mode, string title, string primary, string secondary)
@@ -98,7 +97,7 @@ namespace SpaceStation.UI
             if (_mode == Mode.Victory)
                 Restart();
             else
-                Quit();
+                SceneFader.Load(SceneNames.MainMenu);
         }
 
         private void Continue()
@@ -109,19 +108,7 @@ namespace SpaceStation.UI
             _clock.Clock.SetPaused(false);
         }
 
-        private static void Restart()
-        {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-        }
-
-        private static void Quit()
-        {
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#else
-            Application.Quit();
-#endif
-        }
+        private static void Restart() => SceneFader.Reload();
 
         private void SetVisible(bool visible)
         {

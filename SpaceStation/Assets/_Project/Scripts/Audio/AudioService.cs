@@ -60,6 +60,7 @@ namespace SpaceStation.Audio
         private SoundCue _music;
         private float _musicDuck = 1f;
         private float _musicDuckTarget = 1f;
+        private float _musicDuckSpeed = 0.8f;
 
         private void Awake()
         {
@@ -198,7 +199,12 @@ namespace SpaceStation.Audio
         }
 
         /// <summary>음악을 잠시 낮춤 (1 = 원래, 0 = 무음).</summary>
-        public void DuckMusic(float level) => _musicDuckTarget = Mathf.Clamp01(level);
+        /// <param name="speed">초당 변화량</param>
+        public void DuckMusic(float level, float speed = 0.8f)
+        {
+            _musicDuckTarget = Mathf.Clamp01(level);
+            _musicDuckSpeed = Mathf.Max(0.01f, speed);
+        }
 
         private void StartTrack(AudioClip clip)
         {
@@ -235,7 +241,7 @@ namespace SpaceStation.Audio
                 s.pitch = loop.Pitch;
             }
 
-            _musicDuck = Mathf.MoveTowards(_musicDuck, _musicDuckTarget, dt * 0.8f);
+            _musicDuck = Mathf.MoveTowards(_musicDuck, _musicDuckTarget, dt * _musicDuckSpeed);
             float fadeSpeed = 1f / _musicCrossfade;
             float baseVolume = _music != null ? _music.Volume : 0.5f;
             for (int i = 0; i < 2; i++)

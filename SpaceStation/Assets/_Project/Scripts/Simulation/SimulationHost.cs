@@ -22,16 +22,23 @@ namespace SpaceStation.Simulation
         [SerializeField] private List<GameEventData> _events = new List<GameEventData>();
         [SerializeField] private SimulationClock _clock;
         [SerializeField] private bool _enableDebugEventTrigger = true;
+        [Tooltip("메인 메뉴를 거치지 않고 이 씬을 바로 실행할 때의 난이도 (5-9)")]
+        [SerializeField] private DifficultyPreset _defaultDifficulty;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
+        /// <summary>이번 판에 적용된 난이도 (없으면 null = 에셋 값 그대로).</summary>
+        public DifficultyPreset Difficulty { get; private set; }
 
         private void Awake()
         {
+            Difficulty = GameStartOptions.Difficulty != null ? GameStartOptions.Difficulty : _defaultDifficulty;
+            var balance = Difficulty != null ? Difficulty.ApplyTo(_balance) : _balance;
+            var grades = Difficulty != null ? Difficulty.ApplyTo(_grades) : _grades;
             Simulation = new StationSimulation(new StationSimulationSettings
             {
-                Balance = _balance,
-                Grades = _grades,
+                Balance = balance,
+                Grades = grades,
                 CoreModule = _coreModule,
                 Events = _events,
                 AdjacencyRules = _adjacencyRules,

@@ -100,7 +100,7 @@ namespace SpaceStation.Building
         {
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
-            if (keyboard == null || mouse == null)
+            if (keyboard == null || mouse == null || InputGate.Blocked)
                 return;
 
             HandleSelectionKeys(keyboard);

@@ -126,7 +126,7 @@ namespace SpaceStation.Editor
         // ---------------- 도우미 ----------------
 
         /// <summary>바탕 + Frame 자식 (레이아웃 무시, 전체 늘림, 입력 무시).</summary>
-        private static void Panel(GameObject go, Color fill, Color frame)
+        internal static void Panel(GameObject go, Color fill, Color frame)
         {
             var img = go.GetComponent<Image>();
             img.sprite = HudArtBuilder.Fill;
@@ -153,7 +153,7 @@ namespace SpaceStation.Editor
             fi.raycastTarget = false;
         }
 
-        private static void StyleButton(Button b, float fontSize)
+        internal static void StyleButton(Button b, float fontSize)
         {
             var img = b.targetGraphic as Image;
             if (img != null)
@@ -175,7 +175,7 @@ namespace SpaceStation.Editor
                 StyleText(t, fontSize);
         }
 
-        private static void StyleText(TMP_Text t, float size, bool muted = false)
+        internal static void StyleText(TMP_Text t, float size, bool muted = false)
         {
             if (t == null)
                 return;

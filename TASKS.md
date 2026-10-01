@@ -263,11 +263,18 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
     - 배선 메뉴 `SpaceStation/Audio/Setup` (가져오기 설정·라이브러리 클립 채우기·씬 Audio 오브젝트·버튼 UiSound)
     - 주민 증가음은 너무 잦아 제외. 메뉴 음악(`MusicMenu`)은 5-9에서 연결
   - Phase 5 마무리 후 Phase 6(연구 시스템)으로
-- [ ] **5-9. 메인 메뉴 씬**
+- [ ] **5-9. 메인 메뉴 씬** (구현 완료, 플레이 확인 대기)
   - 별도 씬(`MainMenu`)을 빌드 첫 씬으로: 새 게임 / 이어하기(세이브 생기면) / 설정 / 종료
   - 배경은 우주 스카이박스 + 천천히 도는 정거장(완성 모듈 전시) + 배경 연출(5-7 `AmbientSpace`) 재사용, HUD 홀로그램 스타일·아이콘 재사용
   - 새 게임 시 난이도 선택 → 4단계 "난이도 프리셋"(이지 = G안 / 노멀 / 하드, BALANCE 21번)을 여기서 연결
   - 씬 전환(페이드), 게임 중 ESC 일시정지 메뉴(재개 / 설정 / 메인 메뉴로)
+  - 결정: 게임 이름 **Another Earth**, 전시 정거장 약 100모듈, 하드는 봇 측정 후 확정, ESC 메뉴 = 재개/설정/재시작/메인 메뉴
+  - 난이도: `Data/DifficultyPreset`(SO, 음수 = 기본값 유지) → `SimulationHost`가 시작 때 밸런스·등급 **복사본**에 적용(원본 에셋 = 노멀). 선택은 `GameStartOptions.Difficulty`(재시작해도 유지), 씬 단독 실행 시 `_defaultDifficulty`(노멀). 에셋 `Data/Difficulty/DIFF_Easy/Normal/Hard`, 측정 기록 BALANCE 21번 "난이도 프리셋 확정"
+  - 전시 정거장: `ShowcaseLayout`(SO) ← `ShowcaseBaker.Generate`(메뉴 Generate Showcase Layout: 배치 규칙으로 유효한 자리만, 점수로 허브+십자 팔 모양·종류 고르게 100개). `ShowcaseStation`이 비용 없이 그리드에 놓고 시간 정지. 봇 정거장 저장(Bake … (Bot))은 배터리 덩어리라 미사용
+  - `MenuCameraOrbit`(정거장 크기에 맞춘 거리, 오른쪽으로 비켜 보기, 천천히 회전), `MainMenuController`(새 게임 → 난이도 3개 카드, ESC 뒤로), `SceneFader`(검은 화면 + 음악 줄임, 씬 넘어 유지), `MenuAudio`(메뉴 음악 + 험)
+  - `PauseMenu`(실행 순서 -200: 배치·선택 중 ESC는 기존 취소, 아무것도 없을 때만 열림 · 결과 화면 중엔 안 열림), 열려 있으면 시간 정지 + `InputGate.Blocked`로 건설·선택·단축키 차단. 결과 화면 게임 오버 두 번째 버튼 종료 → 메인 메뉴
+  - 생성 메뉴: `SpaceStation/Menu/Build Pause Menu`(Main HUD), `Build Main Menu Scene`(Main을 복사해 게임 전용 요소 제거 + 메뉴 구성, 빌드 설정 [MainMenu, Main]) — Main 씬을 바꾸면 메뉴 씬을 다시 생성
+  - 설정 버튼은 비활성("준비 중") → 5-10에서 연결
 - [ ] **5-10. 설정창**
   - 메인 메뉴와 게임 중 일시정지 메뉴 양쪽에서 여는 공용 패널
   - 사운드: 마스터 / 음악 / 효과음 / 환경음 볼륨 (5-8 `AudioVolumes`와 연결)

@@ -108,7 +108,7 @@ namespace SpaceStation.UI
         private void Update()
         {
             var keyboard = UnityEngine.InputSystem.Keyboard.current;
-            if (keyboard != null && keyboard.hKey.wasPressedThisFrame)
+            if (keyboard != null && !InputGate.Blocked && keyboard.hKey.wasPressedThisFrame)
             {
                 _helpPinned = !_helpPinned;
                 _hintInitialized = false; // 다시 그림

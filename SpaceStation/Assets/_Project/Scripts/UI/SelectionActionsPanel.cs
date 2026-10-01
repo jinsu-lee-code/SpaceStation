@@ -74,7 +74,7 @@ namespace SpaceStation.UI
         private void Update()
         {
             var keyboard = Keyboard.current;
-            if (keyboard == null || _build.Selected != null || _selection.Selected == null)
+            if (keyboard == null || InputGate.Blocked || _build.Selected != null || _selection.Selected == null)
                 return;
             if (keyboard.rKey.wasPressedThisFrame)
                 RepairSelected();

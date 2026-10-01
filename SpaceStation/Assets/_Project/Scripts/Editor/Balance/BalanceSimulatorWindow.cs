@@ -128,6 +128,30 @@ namespace SpaceStation.Editor.Balance
             }
         }
 
+        /// <summary>난이도 프리셋을 적용한 복사본으로 실행 (5-9 측정용, 에셋은 바뀌지 않음).</summary>
+        public static (string folder, string summary) RunWithDifficulty(DifficultyPreset preset, float durationMinutes = 60f, int runs = 20, int baseSeed = 1)
+        {
+            var window = CreateInstance<BalanceSimulatorWindow>();
+            try
+            {
+                window.LoadDefaults(true);
+                window._durationMinutes = durationMinutes;
+                window._runs = runs;
+                window._baseSeed = baseSeed;
+                var settings = window.BuildSettings();
+                if (preset != null)
+                {
+                    settings.Balance = preset.ApplyTo(settings.Balance);
+                    settings.Grades = preset.ApplyTo(settings.Grades);
+                }
+                return RunAndSave(settings, null);
+            }
+            finally
+            {
+                DestroyImmediate(window);
+            }
+        }
+
         private static (string folder, string summary) RunAndSave(BalanceRunSettings settings, Action<int, float> progress)
         {
             var report = BalanceRunner.Run(settings, progress);

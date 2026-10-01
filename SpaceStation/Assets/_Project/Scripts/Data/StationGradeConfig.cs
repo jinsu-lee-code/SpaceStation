@@ -39,6 +39,8 @@ namespace SpaceStation.Data
         public int MeteorHitsMax => Mathf.Max(MeteorHitsMin, _meteorHitsMax);
         public float EventIntervalMultiplier => _eventIntervalMultiplier > 0f ? _eventIntervalMultiplier : 1f;
         public float EventIntensityMultiplier => _eventIntensityMultiplier > 0f ? _eventIntensityMultiplier : 1f;
+
+        internal void SetEventIntervalMultiplier(float value) => _eventIntervalMultiplier = Mathf.Max(0.05f, value);
     }
 
     /// <summary>
@@ -54,5 +56,17 @@ namespace SpaceStation.Data
 
         public IReadOnlyList<StationGrade> Grades => _grades;
         public ModuleData LimitedModule => _limitedModule;
+
+        /// <summary>난이도 덮어쓰기 — 복사본에만 호출. 음수 항목은 유지.</summary>
+        internal void ApplyEventIntervals(IReadOnlyList<float> multipliers)
+        {
+            if (multipliers == null)
+                return;
+            for (int i = 0; i < multipliers.Count && i < _grades.Count; i++)
+            {
+                if (multipliers[i] >= 0f)
+                    _grades[i].SetEventIntervalMultiplier(multipliers[i]);
+            }
+        }
     }
 }

@@ -176,5 +176,14 @@ namespace SpaceStation.Data
         public float MeteorDurabilityDamage => _meteorDurabilityDamage;
         public float DemolishRefundRate => _demolishRefundRate;
         public float RepairCostRate => _repairCostRate;
+
+        /// <summary>난이도 덮어쓰기 — <see cref="DifficultyPreset.ApplyTo(BalanceConfig)"/>가 만든 복사본에만 호출.</summary>
+        internal void ApplyDifficulty(DifficultyPreset preset)
+        {
+            if (preset.DurabilityDecayPerSecond >= 0f) _durabilityDecayPerSecond = preset.DurabilityDecayPerSecond;
+            if (preset.OxygenFailSeconds >= 0f) _oxygenFailSeconds = preset.OxygenFailSeconds;
+            if (preset.SatisfactionFailSeconds >= 0f) _satisfactionFailSeconds = preset.SatisfactionFailSeconds;
+            if (preset.CoreCollapseSeconds >= 0f) _coreCollapseSeconds = preset.CoreCollapseSeconds;
+        }
     }
 }
