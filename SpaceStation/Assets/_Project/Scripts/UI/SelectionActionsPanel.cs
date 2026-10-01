@@ -330,7 +330,8 @@ namespace SpaceStation.UI
 
             // 재건축
             bool removable = _station.CanRemove(module);
-            if (tracked && removable)
+            bool supporting = _station.IsSupportingOthers(module);
+            if (tracked && _station.Simulation.IsRemovableKind(module)) // 받침 모듈도 재건축은 가능 (같은 자리에 다시 지음)
             {
                 var net = _resources.GetRebuildCost(module);
                 _rebuildButton.interactable = sim.CanAfford(net);
@@ -346,7 +347,7 @@ namespace SpaceStation.UI
             _demolishButton.interactable = removable;
             _demolishLabel.SetText(removable
                 ? $"철거 (Del)\n<size=80%>환급 {HudText.Cost(_resources.GetRefund(module))}</size>"
-                : "철거 불가");
+                : supporting ? "철거 불가\n<size=80%>다른 모듈의 받침</size>" : "철거 불가");
         }
     }
 }

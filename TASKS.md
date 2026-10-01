@@ -222,6 +222,13 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 1차 변환(재질 슬롯 4색 + 2~3천 삼각형) 폐기: 과도한 감량으로 형태가 뭉개지고, 텍스처(색·노멀·ORM)를 버려 디테일이 사라지고, 슬롯이 면 단위로 조각남
   - 2차 변환(현재): Blender `BlenderWork/Modules_Work.blend`의 원본 AI 모델(SRC_*)을 형태 비교로 1차 모델과 짝지어 같은 회전·크기로 복제(`TEX_*` 컬렉션, `SMT_*` 오브젝트) → 1칸 8천 / 2칸 1만 / 몸체 5천 / Head·Emitter 3천 삼각형 → `SM_X.fbx` 덮어쓰기(1차본은 `BlenderWork/Backup_Unity/`)
     - 원본 대응: 배터리=SpaceStation, 코어=CoreModule, 농장=FoodFarmModule, 거주=SurvivorModule, 정비=FixModule, 채굴=FarmingModule, 산소=OxygenModule, 의료=HospitalModule, 휴게=RestRoomModule, 물=WaterGeneratorModule, 실드=ShieldModule(Body/Head→Emitter), 포탑=CanonModule(Body/Head)
+    - 창고·태양광: 원본 AI 모델이 없어 Blender에서 직접 제작(텍스트 블록 `tex_builder`: 둥근 모서리 부품 조립, Unity 좌표 기준) → 색·AO·거칠기·금속 1024 베이크 → `T_X_BaseColor/ORM`. 창고는 컨셉 이미지 형태, 태양광은 받침 + 기둥 + 분리 부품 `Panel`(피벗 = 패널 중심). 빌더가 모델의 `Panel`에 `SunFacingPanel`을 붙임
+    - 원본 컨셉 이미지 대조(3차): 배터리(AI 메시 찢어짐)·의료(분홍 십자 없음, 형태 다름)·휴게실(은하 창 없음)은 `tex_builder`로 이미지 기준 재제작(이전 버전은 `SMT_X_v1`로 숨겨 보관). 채굴 도킹은 텍스처 색 보정(몸체 어둡게, 보라 강조, 원본은 `Backup_Unity/`). 나머지 8종은 이미지와 일치해 유지. 참고: 원본 오브젝트 이름 `SpaceStation`=배터리, 고리형 정거장 이미지=코어
+    - 각진 재제작(4차, Blender `NEW_*` 컬렉션 `SMN_X`): 실드·포탑·산소·물 재활용·정비 베이(내부 로봇팔)·코어. 전부 반영 완료 (이전 텍스처 버전 FBX는 `Backup_Unity/SM_X_tex1.fbx`)
+    - 실드 연출: Emitter = 고정 허브 + `EmitterRingA/B`(세로축 반대 방향 회전) + `EmitterShell`(반투명, `SpaceStation/ShieldShell`) + `EmitterCore`. `ShieldEmitterFx`가 궤도 빛점 4개 + 꼬리(TrailRenderer), 비활성 = 감속·소등, 파손 = 덜컥임·깜빡임, `StationSimulation.ShieldDeflected` → `ModuleView.PlayImpulse` → 코어 번쩍임·회전 가속. 재질 슬롯 `FX_{이름}` → `Art/Materials/FX/M_{이름}` (`ModuleFxMaterials`)
+    - 코어 2×2×2 (칸 기준) + 받침 규칙: 모델은 1층 고리 정거장(2×2 바닥) + 위층 칸으로 솟는 중앙 탑. `PlacementRules`: 바닥층(y=0)은 자유, 위층은 칸 하나라도 바로 아래에 모듈, 아래층(매달기)은 바로 위에 모듈 필요(`NeedsSupport`). `ModuleData.SupportsTop`(코어 false)로 코어 위에 뜬 모듈 방지. 받치는 모듈은 철거 불가(재건축은 가능), 운석 파괴는 허용. 카메라 초점 (0.5, 0, 0.5)
+    - 밸런스(노멀, 60분 20회): 이전 게임오버 3/20·중형 12.6분·대형 10/20(45.2분) → 받침 규칙만 3/20·12.7분·14/20 → 2×2×2 코어 + 규칙 4/20·16.0분·11/20(45.3분). 중형 도달이 약 3분 늦어짐 (추후 확인)
+    - 주의: Blender FBX 내보내기에서 2단 이상 중첩된 부품은 축 변환이 틀어짐 → 부품은 몸체 바로 아래 1단으로
     - FBX 슬롯 `Tex_{이름}` → `Editor/ModuleTextureMaterials`가 `Textures/{모듈}/T_{이름}_*.png`로 `M_{이름}_Tex` 생성 (ORM→URP 마스크맵 변환, 채도 높은 영역을 발광 맵으로)
 - [ ] **5-6. 연결 통로/조인트 자동 생성**
 - [ ] **5-7. 배경 연출 (선택)**

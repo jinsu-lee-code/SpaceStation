@@ -89,12 +89,17 @@ namespace SpaceStation.Tests
         public void Integration_ShieldBlocksMeteor()
         {
             var sim = MakeSim(out var meteor);
-            sim.Grid.TryPlace(_shield, Vector3Int.right, 0, out _);
+            sim.Grid.TryPlace(_shield, Vector3Int.right, 0, out var shield);
             sim.Grid.TryPlace(_block, Vector3Int.left, 0, out _);
+            ModuleInstance deflectedBy = null;
+            int deflectEvents = 0;
+            sim.ShieldDeflected += m => { deflectedBy = m; deflectEvents++; };
             sim.Events.Trigger(meteor);
             Assert.AreEqual(0, sim.Damage.DamagedCount, "차단 → 피해 없음");
             Assert.AreEqual(1, sim.Session.MeteorsBlocked);
             Assert.AreEqual(0, sim.Session.MeteorsIntercepted);
+            Assert.AreEqual(1, deflectEvents, "빗겨냄 이벤트 (실드 연출)");
+            Assert.AreSame(shield, deflectedBy);
         }
 
         private void SetRicochet(float chance)

@@ -54,6 +54,13 @@ namespace SpaceStation.Building
         private float _seed;
 
         public ModuleInstance Module { get; private set; }
+        /// <summary>코어와 연결되어 동작 중인지 (모듈 전용 연출이 읽음).</summary>
+        public bool Operational => _operational;
+        public ModuleDamageVisual DamageVisual => _damage;
+        /// <summary>모듈 전용 순간 연출 (예: 실드가 운석을 빗겨냄).</summary>
+        public event System.Action Impulse;
+
+        public void PlayImpulse() => Impulse?.Invoke();
 
         private bool Animating => _damage != ModuleDamageVisual.None;
 

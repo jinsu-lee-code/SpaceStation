@@ -293,7 +293,10 @@ namespace SpaceStation.UI
         private void HandleRemoveRejected(ModuleInstance module)
         {
             bool isCore = module == _station.Core;
-            ShowMessage($"<color={HudText.Red}>{(isCore ? "코어는 철거할 수 없습니다" : "철거할 수 없는 모듈입니다")}</color>");
+            string reason = isCore ? "코어는 철거할 수 없습니다"
+                : _station.IsSupportingOthers(module) ? "위·아래 모듈을 받치고 있어 철거할 수 없습니다 (받친 모듈을 먼저 철거)"
+                : "철거할 수 없는 모듈입니다";
+            ShowMessage($"<color={HudText.Red}>{reason}</color>");
         }
 
         private void HandlePopulationChanged(int delta, PopulationChangeReason reason)

@@ -45,6 +45,7 @@ namespace SpaceStation.Building
             _sim.Damage.Repaired += HandleRepaired;
             _sim.Resources.Ticked += RefreshWornVisuals;
             _sim.Durability.Maintained += HandleMaintained;
+            _sim.ShieldDeflected += HandleShieldDeflected;
         }
 
         private void OnDestroy()
@@ -59,6 +60,13 @@ namespace SpaceStation.Building
             _sim.Damage.Repaired -= HandleRepaired;
             _sim.Resources.Ticked -= RefreshWornVisuals;
             _sim.Durability.Maintained -= HandleMaintained;
+            _sim.ShieldDeflected -= HandleShieldDeflected;
+        }
+
+        private void HandleShieldDeflected(ModuleInstance shield)
+        {
+            if (shield != null && _views.TryGetValue(shield, out var view))
+                view.PlayImpulse();
         }
 
         /// <summary>틱마다 내구도 효율 저하 여부를 뷰에 반영 (상태가 바뀐 뷰만 MPB 갱신).</summary>
@@ -90,6 +98,7 @@ namespace SpaceStation.Building
             => _sim.TryPlace(data, origin, rotation, out module);
 
         public bool CanRemove(ModuleInstance module) => _sim.CanRemove(module);
+        public bool IsSupportingOthers(ModuleInstance module) => _sim.IsSupportingOthers(module);
         public bool TryRemove(ModuleInstance module) => _sim.TryRemove(module);
         public List<ResourceAmount> GetRefund(ModuleInstance module) => _sim.GetRefund(module);
         public bool DestroyModule(ModuleInstance module) => _sim.DestroyModule(module);

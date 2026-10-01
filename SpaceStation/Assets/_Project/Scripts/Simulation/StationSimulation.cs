@@ -40,6 +40,8 @@ namespace SpaceStation.Simulation
         public event Action<ModuleInstance, ModuleInstance> DamageSpread;
         /// <summary>등급·승패 재판정 직후 (UI 갱신용).</summary>
         public event Action ProgressionEvaluated;
+        /// <summary>실드가 운석을 빗겨냄 (빗겨낸 실드 모듈). 5-5 실드 연출용.</summary>
+        public event Action<ModuleInstance> ShieldDeflected;
 
         public BalanceConfig Balance { get; }
         public StationGrid Grid { get; }
@@ -184,10 +186,20 @@ namespace SpaceStation.Simulation
             return Grid.TryPlace(data, origin, rotation, out module);
         }
 
+        /// <summary>철거 가능: 철거 가능한 종류이고, 다른 모듈을 받치고 있지 않음 (5-5 받침 규칙).</summary>
         public bool CanRemove(ModuleInstance module)
+        {
+            return IsRemovableKind(module) && !PlacementRules.SupportsOthers(Grid, module);
+        }
+
+        /// <summary>코어·철거 불가 모듈이 아님 (재건축은 같은 자리에 다시 짓으므로 받침 여부와 무관).</summary>
+        public bool IsRemovableKind(ModuleInstance module)
         {
             return module != null && module != Core && (module.Data == null || module.Data.Removable);
         }
+
+        /// <summary>위·아래 모듈의 받침이라 철거할 수 없는지.</summary>
+        public bool IsSupportingOthers(ModuleInstance module) => PlacementRules.SupportsOthers(Grid, module);
 
         /// <summary>철거: 건설 비용 × 환급률 × 내구도 비율을 돌려받는다.</summary>
         public bool TryRemove(ModuleInstance module)
@@ -245,7 +257,7 @@ namespace SpaceStation.Simulation
         public RebuildResult TryRebuild(ModuleInstance module, out ModuleInstance rebuilt)
         {
             rebuilt = null;
-            if (!CanRemove(module) || module.Data == null || !Durability.TryGetInfo(module, out _))
+            if (!IsRemovableKind(module) || module.Data == null || !Durability.TryGetInfo(module, out _))
                 return RebuildResult.NotAllowed;
             var data = module.Data;
             if (!Progression.IsUnlocked(data))
@@ -398,6 +410,7 @@ namespace SpaceStation.Simulation
                 return target;
 
             deflected++;
+            ShieldDeflected?.Invoke(shieldModule);
             if (!canRicochet || _random01() >= Balance.ShieldRicochetChance)
                 return null; // 우주로
 

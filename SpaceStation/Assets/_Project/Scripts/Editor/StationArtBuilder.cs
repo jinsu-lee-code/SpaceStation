@@ -82,6 +82,17 @@ namespace SpaceStation.Editor
                 foreach (var m in r.sharedMaterials)
                     if (m != null)
                         used.Add(m.name);
+            // 연출 재질: 슬롯 "FX_{이름}" → Art/Materials/FX/M_{이름} (ModuleFxMaterials)
+            foreach (var name in used)
+            {
+                // 처음엔 "FX_ShieldShell", 리맵 후엔 "M_ShieldShell" — 둘 다 재질 값을 갱신
+                bool slot = name.StartsWith(ModuleFxMaterials.SlotPrefix);
+                if (!slot && !name.StartsWith("M_"))
+                    continue;
+                var fx = ModuleFxMaterials.Get(name.Substring(slot ? ModuleFxMaterials.SlotPrefix.Length : 2));
+                if (fx != null && slot)
+                    slots[name] = fx;
+            }
 
             var existing = importer.GetExternalObjectMap();
             bool changed = false;
@@ -97,7 +108,8 @@ namespace SpaceStation.Editor
             }
             foreach (var name in used)
             {
-                if (!slots.ContainsKey(name) && !IsSharedMaterial(name, slots))
+                // "M_"로 시작 = 이미 프로젝트 재질로 리맵된 슬롯
+                if (!slots.ContainsKey(name) && !IsSharedMaterial(name, slots) && !name.StartsWith("M_"))
                     Debug.LogWarning($"[StationArtBuilder] {key}: 알 수 없는 재질 슬롯 '{name}' (공용 재질에 연결되지 않음)");
             }
             if (importer.importAnimation || importer.importCameras || importer.importLights)
@@ -110,6 +122,34 @@ namespace SpaceStation.Editor
             if (changed)
                 importer.SaveAndReimport();
             return AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        }
+
+        private static void WireShieldFx(Transform emitter, Transform ringA, Transform ringB, Transform core)
+        {
+            var fx = emitter.gameObject.AddComponent<SpaceStation.Building.ShieldEmitterFx>();
+            var so = new SerializedObject(fx);
+            so.FindProperty("_ringA").objectReferenceValue = ringA;
+            so.FindProperty("_ringB").objectReferenceValue = ringB;
+            so.FindProperty("_core").objectReferenceValue = core;
+            so.FindProperty("_orbMaterial").objectReferenceValue = ModuleFxMaterials.Get("ShieldOrb");
+            so.FindProperty("_trailMaterial").objectReferenceValue = ModuleFxMaterials.Get("ShieldTrail");
+            // 게임 카메라 거리(약 12m)에서도 읽히도록 크고 빠르게
+            so.FindProperty("_ringASpeed").floatValue = 120f;
+            so.FindProperty("_ringBSpeed").floatValue = -80f;
+            so.FindProperty("_orbCount").intValue = 4;
+            so.FindProperty("_orbRadius").floatValue = 0.125f;
+            so.FindProperty("_orbSize").floatValue = 0.05f;
+            so.FindProperty("_orbSpeed").floatValue = 260f;
+            so.FindProperty("_trailTime").floatValue = 0.45f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static Transform FindChild(Transform root, string name)
+        {
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                if (t.name == name)
+                    return t;
+            return null;
         }
 
         private static bool IsSharedMaterial(string name, Dictionary<string, Material> slots)
@@ -251,6 +291,15 @@ namespace SpaceStation.Editor
                     instance.transform.localPosition = Vector3.zero;
                     instance.transform.localRotation = model.transform.localRotation; // 임포트 축 보정은 유지
                     instance.transform.localScale = model.transform.localScale;
+                    // 태양광: 모델의 "Panel" 부품이 태양을 향해 기운다 (MODELING_SPEC 1-5)
+                    var panel = FindChild(instance.transform, "Panel");
+                    if (panel != null)
+                        panel.gameObject.AddComponent<SpaceStation.Building.SunFacingPanel>();
+                    // 실드: Emitter 회전 띠 + 궤도 빛점 연출
+                    var ringA = FindChild(instance.transform, "EmitterRingA");
+                    var emitter = FindChild(instance.transform, "Emitter");
+                    if (ringA != null && emitter != null)
+                        WireShieldFx(emitter, ringA, FindChild(instance.transform, "EmitterRingB"), FindChild(instance.transform, "EmitterCore"));
                 }
                 else switch (style)
                 {
@@ -307,8 +356,10 @@ namespace SpaceStation.Editor
 
                 foreach (var r in root.GetComponentsInChildren<MeshRenderer>())
                 {
-                    r.shadowCastingMode = ShadowCastingMode.On;
-                    r.receiveShadows = true;
+                    // 연출 재질(빛나는 코어·반투명 외피)은 그림자 없음
+                    bool fx = r.sharedMaterial != null && AssetDatabase.GetAssetPath(r.sharedMaterial).Contains("/Materials/FX/");
+                    r.shadowCastingMode = fx ? ShadowCastingMode.Off : ShadowCastingMode.On;
+                    r.receiveShadows = !fx;
                 }
                 PrefabUtility.SaveAsPrefabAsset(root, path);
             }
