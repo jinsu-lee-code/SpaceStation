@@ -63,10 +63,54 @@ namespace SpaceStation.Building
             _sim.ShieldDeflected -= HandleShieldDeflected;
         }
 
+        /// <summary>
+        /// 5-7 운석 연출(MeteorFx)이 있으면 true: 실드 번쩍임은 운석이 실드에 닿는 순간,
+        /// 파손 표시는 운석이 모듈에 닿는 순간 연출 쪽에서 적용한다.
+        /// </summary>
+        public bool DeferMeteorVisuals { get; set; }
+
+        private readonly Dictionary<ModuleInstance, float> _damageHold = new Dictionary<ModuleInstance, float>();
+        private readonly List<ModuleInstance> _releaseBuffer = new List<ModuleInstance>();
+
         private void HandleShieldDeflected(ModuleInstance shield)
         {
+            if (DeferMeteorVisuals)
+                return;
             if (shield != null && _views.TryGetValue(shield, out var view))
                 view.PlayImpulse();
+        }
+
+        /// <summary>운석이 도착할 때까지 이 모듈의 파손 표시를 미룬다 (최대 seconds 뒤에는 자동 적용).</summary>
+        public void HoldDamageVisual(ModuleInstance module, float seconds)
+        {
+            if (module != null)
+                _damageHold[module] = seconds;
+        }
+
+        /// <summary>미뤄 둔 파손 표시를 지금 적용 (운석 충돌 순간).</summary>
+        public void ReleaseDamageVisual(ModuleInstance module)
+        {
+            if (module == null || !_damageHold.Remove(module))
+                return;
+            if (_sim.Damage.TryGetInfo(module, out var info))
+                SetDamageVisual(module, info.IsRepairing ? ModuleDamageVisual.Repairing : ModuleDamageVisual.Damaged);
+        }
+
+        private void Update()
+        {
+            if (_damageHold.Count == 0)
+                return;
+            _releaseBuffer.Clear();
+            foreach (var module in new List<ModuleInstance>(_damageHold.Keys))
+            {
+                float left = _damageHold[module] - Time.deltaTime;
+                if (left <= 0f)
+                    _releaseBuffer.Add(module);
+                else
+                    _damageHold[module] = left;
+            }
+            foreach (var module in _releaseBuffer)
+                ReleaseDamageVisual(module); // 연출이 놓쳐도 안전하게 적용
         }
 
         /// <summary>틱마다 내구도 효율 저하 여부를 뷰에 반영 (상태가 바뀐 뷰만 MPB 갱신).</summary>
@@ -145,9 +189,22 @@ namespace SpaceStation.Building
                 view.SetOperational(active);
         }
 
-        private void HandleDamaged(DamageInfo info) => SetDamageVisual(info.Module, ModuleDamageVisual.Damaged);
-        private void HandleRepairStarted(DamageInfo info) => SetDamageVisual(info.Module, ModuleDamageVisual.Repairing);
-        private void HandleRepaired(ModuleInstance module) => SetDamageVisual(module, ModuleDamageVisual.None);
+        private void HandleDamaged(DamageInfo info)
+        {
+            if (_damageHold.ContainsKey(info.Module))
+                return; // 운석 도착 순간에 ReleaseDamageVisual로 적용
+            SetDamageVisual(info.Module, ModuleDamageVisual.Damaged);
+        }
+        private void HandleRepairStarted(DamageInfo info)
+        {
+            _damageHold.Remove(info.Module);
+            SetDamageVisual(info.Module, ModuleDamageVisual.Repairing);
+        }
+        private void HandleRepaired(ModuleInstance module)
+        {
+            _damageHold.Remove(module);
+            SetDamageVisual(module, ModuleDamageVisual.None);
+        }
 
         private void SetDamageVisual(ModuleInstance module, ModuleDamageVisual visual)
         {

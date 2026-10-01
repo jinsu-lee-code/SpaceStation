@@ -2442,6 +2442,9 @@ GameObject:
   - component: {fileID: 968511354}
   - component: {fileID: 968511357}
   - component: {fileID: 968511358}
+  - component: {fileID: 968511361}
+  - component: {fileID: 968511360}
+  - component: {fileID: 968511359}
   m_Layer: 0
   m_Name: Station
   m_TagString: Untagged
@@ -2557,6 +2560,79 @@ MonoBehaviour:
   _ghostMaterial: {fileID: 2100000, guid: c967a8ec04b83f643ba2e8df6df29642, type: 2}
   _stripOffset: 0.088
   _inactiveBrightness: 0.35
+--- !u!114 &968511359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 968511353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63d2e5518c7e61548954311fe5551a41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.AmbientSpace
+  _station: {fileID: 968511355}
+  _dustMaterial: {fileID: 2100000, guid: 52f2ab4be2868de49aae74066a860221, type: 2}
+  _dustMax: 350
+  _dustRange: 28
+  _rockMaterial: {fileID: 2100000, guid: db3404358e08eb6488e26aa4cb226597, type: 2}
+  _asteroidCount: 14
+  _asteroidDistance: {x: 45, y: 90}
+  _asteroidScale: {x: 1.5, y: 5.5}
+  _orbitSpeed: 0.6
+  _shipMesh: {fileID: 3628378207891537518, guid: d35e4907fdc1b4f428708a0e4a653978, type: 3}
+  _shipMaterial: {fileID: 2100000, guid: 72e4e7817c8931f408812bf26d77c22b, type: 2}
+  _engineMaterial: {fileID: 2100000, guid: 573f78b07118b28499e506a6b3ef78fc, type: 2}
+  _shipInterval: {x: 40, y: 90}
+  _shipCrossSeconds: 28
+  _shipScale: 0.9
+--- !u!114 &968511360
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 968511353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c6f39aa66decc9438e66f27a1681828, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.SolarStormFx
+  _station: {fileID: 968511355}
+  _sparkMaterial: {fileID: 2100000, guid: af970297927b1a342bc6ca272c6e9907, type: 2}
+  _tint: {r: 1, g: 0.88, b: 0.72, a: 1}
+  _strength: 0.8
+  _fadeSeconds: 1.5
+  _flicker: 0.35
+  _baseExposure: 0.35
+  _sparksPerSecond: 1.2
+--- !u!114 &968511361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 968511353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79ea8413c8ad07a42a67bb537f23c33f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.MeteorFx
+  _station: {fileID: 968511355}
+  _rockMaterial: {fileID: 2100000, guid: db3404358e08eb6488e26aa4cb226597, type: 2}
+  _glowMaterial: {fileID: 2100000, guid: 9d8ef1c9ad5a5b64aa668e97dbb1114d, type: 2}
+  _trailMaterial: {fileID: 2100000, guid: 2c3d8510407eb2248b3423df0dd04871, type: 2}
+  _flashMaterial: {fileID: 2100000, guid: 0a97c4a37a0297b479a14f639f6361a1, type: 2}
+  _laserMaterial: {fileID: 2100000, guid: 33cac054aeed1f942af4e0b25c798579, type: 2}
+  _rippleMaterial: {fileID: 2100000, guid: e3a7195c13eef89408f00bfc33863d38, type: 2}
+  _sparkMaterial: {fileID: 2100000, guid: eed6c2a66fde9244aad0aced0623c2cd, type: 2}
+  _flightTime: 1.6
+  _startDistance: 22
+  _stagger: 0.22
+  _ricochetTime: 0.7
+  _interceptAt: 0.85
+  _meteorSize: 0.22
 --- !u!1 &972990902
 GameObject:
   m_ObjectHideFlags: 0

@@ -42,6 +42,8 @@ namespace SpaceStation.Simulation
         public event Action ProgressionEvaluated;
         /// <summary>실드가 운석을 빗겨냄 (빗겨낸 실드 모듈). 5-5 실드 연출용.</summary>
         public event Action<ModuleInstance> ShieldDeflected;
+        /// <summary>운석 한 발의 경로 (5-7 연출). 피해 적용 전에 발생한다.</summary>
+        public event Action<MeteorFlight> MeteorResolved;
 
         public BalanceConfig Balance { get; }
         public StationGrid Grid { get; }
@@ -397,12 +399,14 @@ namespace SpaceStation.Simulation
         /// 실드가 빗겨내면 튕김 확률로 그 실드 범위 밖 외곽 모듈(노출 가중, 이번 운석 무리에서 이미 맞을 곳 제외)을 다시 판정한다.
         /// 튕긴 운석도 포탑 격추는 받지만, 다른 실드에 또 막히면 우주로 (튕김 1회).
         /// </summary>
-        private ModuleInstance ResolveMeteor(ModuleInstance target, bool canRicochet, ref int intercepted, ref int deflected, ref int ricochets)
+        private ModuleInstance ResolveMeteor(ModuleInstance target, bool canRicochet, ref int intercepted, ref int deflected, ref int ricochets,
+            MeteorFlight flight)
         {
             float turret = Defense.GetInterceptChance(Grid, target);
             if (turret > 0f && _random01() < turret)
             {
                 intercepted++;
+                flight.InterceptedAt = target;
                 return null;
             }
             float shield = Defense.GetShieldBlockChance(Grid, target, out var shieldModule);
@@ -411,6 +415,8 @@ namespace SpaceStation.Simulation
 
             deflected++;
             ShieldDeflected?.Invoke(shieldModule);
+            if (flight.DeflectedBy == null)
+                flight.DeflectedBy = shieldModule;
             if (!canRicochet || _random01() >= Balance.ShieldRicochetChance)
                 return null; // 우주로
 
@@ -424,7 +430,8 @@ namespace SpaceStation.Simulation
             var next = Damage.PickWeighted(Grid, _ricochetCandidates, _random01);
             if (next == null)
                 return null; // 튕길 곳 없음 → 우주로
-            var hit = ResolveMeteor(next, false, ref intercepted, ref deflected, ref ricochets);
+            flight.RicochetTarget = next;
+            var hit = ResolveMeteor(next, false, ref intercepted, ref deflected, ref ricochets, flight);
             if (hit != null)
                 ricochets++;
             return hit;
@@ -565,7 +572,10 @@ namespace SpaceStation.Simulation
             int intercepted = 0, deflected = 0, ricochets = 0;
             foreach (var target in _meteorCandidates)
             {
-                var hit = ResolveMeteor(target, true, ref intercepted, ref deflected, ref ricochets);
+                var flight = new MeteorFlight { Target = target };
+                var hit = ResolveMeteor(target, true, ref intercepted, ref deflected, ref ricochets, flight);
+                flight.Hit = hit;
+                MeteorResolved?.Invoke(flight);
                 if (hit != null)
                     _meteorTargetsCopy.Add(hit); // 내구도 0으로 파괴되면 목록이 바뀔 수 있어 복사
             }

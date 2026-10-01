@@ -24,6 +24,17 @@ namespace SpaceStation.Editor
                 case "ShieldOrb": return Unlit("M_ShieldOrb", new Color(2.2f, 4.2f, 6.0f, 1f));
                 case "ShieldTrail": return Additive("M_ShieldTrail", new Color(0.6f, 1.8f, 4.2f, 1f));
                 case "ConnectorFlow": return ConnectorFlow();
+                // 5-7 이벤트·배경 연출
+                case "MeteorGlow": return Additive("M_MeteorGlow", new Color(2.4f, 0.9f, 0.25f, 0.6f), soft: false);
+                case "MeteorTrail": return Additive("M_MeteorTrail", new Color(2.0f, 0.7f, 0.2f, 1f));
+                case "MeteorFlash": return Additive("M_MeteorFlash", new Color(2.5f, 1.2f, 0.4f, 1f), soft: false);
+                case "TurretLaser": return Additive("M_TurretLaser", new Color(4f, 0.35f, 0.3f, 1f));
+                case "Spark": return Additive("M_Spark", new Color(2.2f, 1.4f, 0.7f, 1f));
+                case "StormSpark": return Additive("M_StormSpark", new Color(1.6f, 2.2f, 4f, 1f));
+                case "Dust": return Additive("M_Dust", new Color(0.9f, 0.95f, 1.1f, 1f));
+                case "ShipEngine": return Additive("M_ShipEngine", new Color(0.6f, 1.6f, 3.5f, 1f));
+                case "ShieldRipple": return ShieldRipple();
+                case "Rock": return Rock();
                 default: return null;
             }
         }
@@ -38,6 +49,33 @@ namespace SpaceStation.Editor
             m.SetFloat("_RimPower", 2.6f);
             m.SetFloat("_RimStrength", 1.5f);
             m.SetFloat("_WaveStrength", 0.28f);
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>5-7 실드가 운석을 빗겨낼 때 범위 구면 파문 (알파는 MeteorFx가 _BaseColor로 페이드).</summary>
+        private static Material ShieldRipple()
+        {
+            var m = Load("M_ShieldRipple", Shader.Find("SpaceStation/ShieldShell"));
+            m.SetColor("_BaseColor", Color.white);
+            m.SetColor("_ShellColor", new Color(0.3f, 1.0f, 2.6f, 1f));
+            m.SetFloat("_FillAlpha", 0f);
+            m.SetFloat("_RimPower", 4.5f);
+            m.SetFloat("_RimStrength", 1.8f);
+            m.SetFloat("_WaveStrength", 0.12f);
+            m.SetFloat("_WaveScale", 3f);
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>5-7 운석·배경 소행성 바위.</summary>
+        private static Material Rock()
+        {
+            var m = Load("M_Rock", Shader.Find("Universal Render Pipeline/Lit"));
+            m.SetColor("_BaseColor", new Color(0.24f, 0.21f, 0.19f, 1f));
+            m.SetFloat("_Metallic", 0.05f);
+            m.SetFloat("_Smoothness", 0.15f);
+            m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             return m;
         }
@@ -61,9 +99,44 @@ namespace SpaceStation.Editor
             return m;
         }
 
-        private static Material Additive(string name, Color hdr)
+        /// <summary>둥근 부드러운 점 텍스처 (입자·꼬리가 네모로 보이지 않도록). 없으면 만든다.</summary>
+        private static Texture2D SoftDot()
+        {
+            string path = $"{Folder}/T_SoftDot.png";
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (tex != null)
+                return tex;
+            const int size = 64;
+            var t = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x + 0.5f) / size * 2f - 1f, dy = (y + 0.5f) / size * 2f - 1f;
+                    float a = Mathf.Clamp01(1f - Mathf.Sqrt(dx * dx + dy * dy));
+                    a = a * a * (3f - 2f * a); // 부드러운 가장자리
+                    t.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+                }
+            }
+            t.Apply();
+            System.IO.File.WriteAllBytes(path, t.EncodeToPNG());
+            Object.DestroyImmediate(t);
+            AssetDatabase.ImportAsset(path);
+            if (AssetImporter.GetAtPath(path) is TextureImporter ti)
+            {
+                ti.alphaIsTransparency = true;
+                ti.wrapMode = TextureWrapMode.Clamp;
+                ti.mipmapEnabled = true;
+                ti.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        private static Material Additive(string name, Color hdr, bool soft = true)
         {
             var m = Load(name, Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            // 메시(구·바위)에 쓰는 재질은 UV가 없거나 의미가 없으므로 텍스처 없이
+            m.SetTexture("_BaseMap", soft ? SoftDot() : null);
             m.SetFloat("_Surface", 1f);    // Transparent
             m.SetFloat("_Blend", 2f);      // Additive
             m.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);

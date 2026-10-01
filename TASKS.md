@@ -108,7 +108,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
 ## Phase 4. 재미 검증 (여기서 멈추고 플레이)
 - [x] 30분 플레이 테스트 (1차) — 로직 정상, **난이도 체감 없음** (GDD 13-1)
 - [x] 체크: 배치가 직관적인가? 자원 균형을 맞추는 게 재미있는가? 위기가 긴장감을 주는가?
-- [ ] 수치 밸런싱 (ScriptableObject 수정만으로 가능해야 함) → 4-10에서
+- [x] 수치 밸런싱 (ScriptableObject 수정만으로 가능해야 함) → 4-10에서 완료
 - [x] 결과에 따라 GDD 수정 → GDD 13번 "난이도 확장"
 
 ### 난이도 확장 (GDD 13번, 한 항목씩 진행)
@@ -176,8 +176,8 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
 ## Phase 5. 비주얼 교체 (재미 검증 후)
 기본 원칙: 아래 순서대로 진행하면 적은 노력으로 룩이 크게 바뀐다.
 
-- [ ] **5-1. 조명과 배경 (수동 + Claude Code 안내)**
-  - 결정: 따뜻한 항성광 톤, 무료 에셋 스토어 스카이박스(사용자 임포트 대기), 낮/밤 주기를 조명에 반영
+- [x] **5-1. 조명과 배경 (수동 + Claude Code 안내)**
+  - 결정: 따뜻한 항성광 톤, 무료 에셋 스토어 스카이박스, 낮/밤 주기를 조명에 반영
   - 완료: `DayNightLighting`(태양 색·밝기·기울기, 평면 환경광, 스카이박스 `_Exposure`를 태양광 배율로 보간, 밤 최소 밝기 유지)
   - 스카이박스: SpaceSkies Free(6 Sided, 3종) 중 **Purple 2K** 적용, 태양은 은하 중심(+Z) 쪽 yaw 180 / 기울기 낮 32°·밤 10°
   - 정리: 사용하는 Purple 2K(재질 + 텍스처 6장)만 남기고 Demo·1K·4K·다른 2종 삭제 (482 MB → 24 MB)
@@ -200,8 +200,8 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 남은 것(5-4): 비활성·파손 시 창문·띠 발광이 그대로 → Emission on/off
   - 공용 URP Lit 머티리얼 세트 제작 (금속 패널, 창문, 태양광 패널 등)
   - SRP Batcher/GPU Instancing 호환 확인
-- [ ] **5-4. 상태 표현 셰이더 (Shader Graph)**
-  - (적용 완료, Play 모드 확인 대기) 결정: 선택 = 가장자리 빛 + 약한 틴트, 고스트 = 홀로그램, 상태 = 불빛으로 표현. Shader Graph 대신 텍스트로 관리하는 HLSL(`Art/Shaders/`)
+- [x] **5-4. 상태 표현 셰이더 (Shader Graph)**
+  - 결정: 선택 = 가장자리 빛 + 약한 틴트, 고스트 = 홀로그램, 상태 = 불빛으로 표현. Shader Graph 대신 텍스트로 관리하는 HLSL(`Art/Shaders/`)
   - `Hologram.shader`(프레넬 + 흐르는 스캔라인 + 약한 깜빡임) → `M_Hologram`, BuildController 고스트 색 초록↔빨강 부드럽게 전환. 기존 `M_Ghost` 삭제
   - `SelectionRim.shader`(가산 프레넬 + 맥동) → `M_SelectionRim`: ModuleView가 선택 시 각 메시 복제 렌더러를 켬 (회전 부품도 따라감)
   - `ModuleView`: 비활성 = 어둡게 + 발광 0, 파손 = 붉은 틴트 + 불규칙 깜빡임, 수리 = 하늘색 맥동 + 발광 50%, 노후 = 갈색 + 발광 35%. 기본 상태는 MPB 비움(SRP Batcher 유지), 애니메이션 상태만 매 프레임 갱신
@@ -211,7 +211,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 비활성/활성 모듈 표현 (Emission on/off)
   - 선택 하이라이트
   - MaterialPropertyBlock으로 연동
-- [ ] **5-5. 모듈 모델 교체** (사용자 모델링, 규격 `MODELING_SPEC.md`: 1셀=1유닛, 피벗=첫 셀 중심, 재질 슬롯 Hull/HullDark/Window/Accent/SolarPanel, 분리 부품 Panel/Head/Emitter, 우선순위 거주→농장→산소→물→의료→코어)
+- [x] **5-5. 모듈 모델 교체** (사용자 모델링, 규격 `MODELING_SPEC.md`: 1셀=1유닛, 피벗=첫 셀 중심, 재질 슬롯 Hull/HullDark/Window/Accent/SolarPanel, 분리 부품 Panel/Head/Emitter, 우선순위 거주→농장→산소→물→의료→코어)
   - AI 모델링 결과물을 셀 규격에 맞게 정리 (피벗, 스케일)
   - URP Lit 머티리얼로 교체, 분홍색 깨짐 확인
   - 창문/불빛 부분에 Emission 적용
@@ -230,14 +230,20 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
     - 밸런스(노멀, 60분 20회): 이전 게임오버 3/20·중형 12.6분·대형 10/20(45.2분) → 받침 규칙만 3/20·12.7분·14/20 → 2×2×2 코어 + 규칙 4/20·16.0분·11/20(45.3분). 중형 도달이 약 3분 늦어짐 (추후 확인)
     - 주의: Blender FBX 내보내기에서 2단 이상 중첩된 부품은 축 변환이 틀어짐 → 부품은 몸체 바로 아래 1단으로
     - FBX 슬롯 `Tex_{이름}` → `Editor/ModuleTextureMaterials`가 `Textures/{모듈}/T_{이름}_*.png`로 `M_{이름}_Tex` 생성 (ORM→URP 마스크맵 변환, 채도 높은 영역을 발광 맵으로)
-- [ ] **5-6. 연결 통로/조인트 자동 생성**
+- [x] **5-6. 연결 통로/조인트 자동 생성**
   - 결정: 수평 = 팔각 여압 통로(양끝 칼라 + 불빛 띠), 수직 = 기둥 조인트(받침판 + 양옆 불빛 띠). 길이는 모델 표면 깊이 자동 측정. 비활성 연결 어둡게 + 코어에서 바깥으로 빛 흐름 + 배치 미리보기
   - `Core/ConnectorLayout`(순수 로직): 서로 다른 모듈 칸이 면으로 맞닿으면 통로 1개, 길이 = 1 − 양쪽 표면 깊이, 연결점 없는 면(깊이 음수, 예: 코어 위층·태양광 윗면)은 제외. 회전 반영
   - `ModuleData.FaceDepths` ← `Editor/ConnectorDepthBaker`(메뉴 Measure Connector Depths, 모듈 조립 시 자동): 임시 MeshCollider + 칸 경계 밖→안 광선
   - `Building/StationConnectors`(StationController 오브젝트): 배치/철거 시 생성·삭제, 연결 상태·코어 거리로 `ConnectorFlow` 셰이더(_Flow/_Energy/_Length), `ShowPreview/HidePreview`(BuildController 고스트와 같은 색)
   - 피드백: 태양광 앞뒤 면 통로가 기울어진 패널에 닿지 않고 허공에 생김 → 태양광(`SolarPowered`)은 패널 회전축과 나란한 옆면에만 수평 통로 (`ConnectorLayout.SolarSideAxis`, 시작 시 태양 방향에서 계산, 현재 월드 X). 아래쪽 기둥 조인트는 유지
   - 모델 `SM_Connectors.fbx`(CN_Tube/Collar/Strut/Plate, 길이 방향 단면 일정 → 늘려도 텍스처 유지), 배선 메뉴 Setup Connectors
-- [ ] **5-7. 배경 연출 (선택)**
+- [x] **5-7. 배경 연출 (선택)**
+  - 결정: 운석 = 날아오는 운석 + 방어 연출, 태양 폭풍 = 화면 톤 + 패널 스파크, 배경 = 먼지·소행성·우주선(보급선 도착), 카메라 흔들림 없음
+  - `StationSimulation.MeteorResolved(MeteorFlight)`: 운석 한 발 경로(노림/격추 지점/빗겨낸 실드/튕긴 대상/명중) — 판정 불변, 피해 적용 전 발생
+  - `Building/MeteorFx`: 꼬리 끄는 운석(RockMesh) → 명중 섬광·불빛·파편 / 포탑 머리 회전 + 레이저 공중 폭발(비행 85%) / 실드 범위 구면 파문 + 실드 코어 번쩍 → 튕김 또는 우주로. `StationController.HoldDamageVisual/ReleaseDamageVisual`로 파손 표시를 충돌 순간에 맞춤(안전 타임아웃). `Preview(flight)`로 연출만 재생 가능
+  - `Building/SolarStormFx`: 전용 전역 Volume(주황 필터 + 노출 일렁임, 최대 가중치 0.8) + 활성 태양광 패널 전기 스파크
+  - `Building/AmbientSpace`: 카메라 주변 먼지(월드 공간 → 시차), 소행성 14개 자전·공전, 40~90초마다 먼 배경 우주선, 보급선 이벤트 때 정거장 옆 도착→대기→출발. 우주선 모델 `SM_Shuttle.fbx`
+  - 재질 `ModuleFxMaterials`(T_SoftDot 둥근 입자 텍스처 포함), 배선 메뉴 Setup Ambient Fx
   - 우주 먼지 파티클, 멀리 떠다니는 소행성
   - 이벤트 화면 효과 (운석 충돌, 태양 폭풍)
 - [ ] **5-8. 사운드, UI 다듬기**

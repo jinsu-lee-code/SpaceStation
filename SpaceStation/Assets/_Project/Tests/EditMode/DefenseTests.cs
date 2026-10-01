@@ -118,8 +118,17 @@ namespace SpaceStation.Tests
             sim.Grid.TryPlace(_block, Vector3Int.left, 0, out var inside);         // 실드와 거리 2
             sim.Grid.TryPlace(_block, new Vector3Int(4, 0, 0), 0, out var outside); // 실드와 거리 3
 
+            var flights = new List<MeteorFlight>();
+            sim.MeteorResolved += flights.Add;
             sim.Events.Trigger(meteor); // 운석 1발, 모든 확률 판정 성공(Random01 = 0)
             Assert.IsTrue(sim.Damage.IsDamaged(outside), "보호받는 곳을 노렸으면 튕겨서, 아니면 직접 → 어느 쪽이든 범위 밖 모듈");
+            Assert.AreEqual(1, flights.Count, "운석 1발 = 경로 1개 (5-7 연출)");
+            Assert.AreSame(outside, flights[0].Hit);
+            if (flights[0].Deflected)
+            {
+                Assert.AreSame(shield, flights[0].DeflectedBy);
+                Assert.AreSame(outside, flights[0].RicochetTarget);
+            }
             Assert.IsFalse(sim.Damage.IsDamaged(inside));
             Assert.IsFalse(sim.Damage.IsDamaged(shield));
             Assert.AreEqual(sim.Session.MeteorsBlocked, sim.Session.Ricochets, "빗겨냈다면 튕겨서 명중");
