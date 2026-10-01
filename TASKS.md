@@ -231,6 +231,12 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
     - 주의: Blender FBX 내보내기에서 2단 이상 중첩된 부품은 축 변환이 틀어짐 → 부품은 몸체 바로 아래 1단으로
     - FBX 슬롯 `Tex_{이름}` → `Editor/ModuleTextureMaterials`가 `Textures/{모듈}/T_{이름}_*.png`로 `M_{이름}_Tex` 생성 (ORM→URP 마스크맵 변환, 채도 높은 영역을 발광 맵으로)
 - [ ] **5-6. 연결 통로/조인트 자동 생성**
+  - 결정: 수평 = 팔각 여압 통로(양끝 칼라 + 불빛 띠), 수직 = 기둥 조인트(받침판 + 양옆 불빛 띠). 길이는 모델 표면 깊이 자동 측정. 비활성 연결 어둡게 + 코어에서 바깥으로 빛 흐름 + 배치 미리보기
+  - `Core/ConnectorLayout`(순수 로직): 서로 다른 모듈 칸이 면으로 맞닿으면 통로 1개, 길이 = 1 − 양쪽 표면 깊이, 연결점 없는 면(깊이 음수, 예: 코어 위층·태양광 윗면)은 제외. 회전 반영
+  - `ModuleData.FaceDepths` ← `Editor/ConnectorDepthBaker`(메뉴 Measure Connector Depths, 모듈 조립 시 자동): 임시 MeshCollider + 칸 경계 밖→안 광선
+  - `Building/StationConnectors`(StationController 오브젝트): 배치/철거 시 생성·삭제, 연결 상태·코어 거리로 `ConnectorFlow` 셰이더(_Flow/_Energy/_Length), `ShowPreview/HidePreview`(BuildController 고스트와 같은 색)
+  - 피드백: 태양광 앞뒤 면 통로가 기울어진 패널에 닿지 않고 허공에 생김 → 태양광(`SolarPowered`)은 패널 회전축과 나란한 옆면에만 수평 통로 (`ConnectorLayout.SolarSideAxis`, 시작 시 태양 방향에서 계산, 현재 월드 X). 아래쪽 기둥 조인트는 유지
+  - 모델 `SM_Connectors.fbx`(CN_Tube/Collar/Strut/Plate, 길이 방향 단면 일정 → 늘려도 텍스처 유지), 배선 메뉴 Setup Connectors
 - [ ] **5-7. 배경 연출 (선택)**
   - 우주 먼지 파티클, 멀리 떠다니는 소행성
   - 이벤트 화면 효과 (운석 충돌, 태양 폭풍)

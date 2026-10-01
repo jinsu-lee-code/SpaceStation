@@ -2441,6 +2441,7 @@ GameObject:
   - component: {fileID: 968511355}
   - component: {fileID: 968511354}
   - component: {fileID: 968511357}
+  - component: {fileID: 968511358}
   m_Layer: 0
   m_Name: Station
   m_TagString: Untagged
@@ -2533,6 +2534,29 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   _maxRayDistance: 500
+--- !u!114 &968511358
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 968511353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f98a044464ee0ea479a6c84548eda8fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.StationConnectors
+  _station: {fileID: 968511355}
+  _tubeMesh: {fileID: 641165103467047181, guid: 60f8fc434aa3b9e4892ec4101cafed2b, type: 3}
+  _collarMesh: {fileID: -8571952648568465285, guid: 60f8fc434aa3b9e4892ec4101cafed2b, type: 3}
+  _strutMesh: {fileID: -4512612227063660164, guid: 60f8fc434aa3b9e4892ec4101cafed2b, type: 3}
+  _plateMesh: {fileID: -2982742369733701173, guid: 60f8fc434aa3b9e4892ec4101cafed2b, type: 3}
+  _stripMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  _hullMaterial: {fileID: 2100000, guid: cf3793d55ffcd104fa4c13cc451e550e, type: 2}
+  _flowMaterial: {fileID: 2100000, guid: d69bb2bc0a864bd479860435f1b09522, type: 2}
+  _ghostMaterial: {fileID: 2100000, guid: c967a8ec04b83f643ba2e8df6df29642, type: 2}
+  _stripOffset: 0.088
+  _inactiveBrightness: 0.35
 --- !u!1 &972990902
 GameObject:
   m_ObjectHideFlags: 0

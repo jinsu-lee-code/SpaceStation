@@ -52,6 +52,7 @@ namespace SpaceStation.Editor
                 }
                 var model = ImportedModel(key, hull, hullDark, window, solar, accent);
                 Rebuild(data, key, StyleFor(key), model, hull, hullDark, window, solar, accent);
+                ConnectorDepthBaker.Measure(data); // 5-6: 모델이 바뀌었으니 통로 표면 깊이도 다시 측정
                 log.Add(model != null ? key + "(모델)" : key);
             }
             AssetDatabase.SaveAssets();

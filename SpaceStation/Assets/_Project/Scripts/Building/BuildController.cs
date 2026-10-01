@@ -48,6 +48,7 @@ namespace SpaceStation.Building
         private readonly List<ModuleCategory> _categories = new List<ModuleCategory>();
         private readonly List<ModuleData> _categoryModules = new List<ModuleData>();
         private ModuleCategory _category;
+        private StationConnectors _connectors; // 5-6 고스트 통로 미리보기
 
         /// <summary>선택된 모듈이 바뀔 때 (null = 배치 모드 해제).</summary>
         public event Action<ModuleData> SelectionChanged;
@@ -73,6 +74,8 @@ namespace SpaceStation.Building
             _propertyBlock = new MaterialPropertyBlock();
             if (_camera == null)
                 _camera = Camera.main;
+            if (_station != null)
+                _connectors = _station.GetComponent<StationConnectors>();
             BuildCategories.GetAvailable(_buildableModules, _categories);
             _category = _categories.Count > 0 ? _categories[0] : default;
             BuildCategories.Filter(_buildableModules, _category, _categoryModules);
@@ -180,7 +183,11 @@ namespace SpaceStation.Building
 
             _ghost.SetActive(_hasTarget);
             if (!_hasTarget)
+            {
+                if (_connectors != null)
+                    _connectors.HidePreview();
                 return;
+            }
 
             _ghost.transform.SetPositionAndRotation(
                 GridConfig.CellToWorld(_targetCell),
@@ -200,6 +207,8 @@ namespace SpaceStation.Building
                 foreach (var r in _ghostRenderers)
                     r.SetPropertyBlock(_propertyBlock);
             }
+            if (_connectors != null)
+                _connectors.ShowPreview(_selected, _targetCell, _rotation, _ghostColor);
         }
 
         private void RebuildGhost()
@@ -210,6 +219,8 @@ namespace SpaceStation.Building
             _ghostRenderers = null;
             _appliedValid = null;
             _appliedGhostColor = new Color(-1f, -1f, -1f, -1f); // 새 렌더러에 색을 다시 적용
+            if (_connectors != null)
+                _connectors.HidePreview();
 
             if (_selected == null || _selected.Prefab == null)
                 return;

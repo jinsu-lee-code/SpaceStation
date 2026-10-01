@@ -23,6 +23,7 @@ namespace SpaceStation.Editor
                 case "ShieldCore": return Unlit("M_ShieldCore", new Color(1.4f, 3.0f, 5.0f, 1f));
                 case "ShieldOrb": return Unlit("M_ShieldOrb", new Color(2.2f, 4.2f, 6.0f, 1f));
                 case "ShieldTrail": return Additive("M_ShieldTrail", new Color(0.6f, 1.8f, 4.2f, 1f));
+                case "ConnectorFlow": return ConnectorFlow();
                 default: return null;
             }
         }
@@ -37,6 +38,16 @@ namespace SpaceStation.Editor
             m.SetFloat("_RimPower", 2.6f);
             m.SetFloat("_RimStrength", 1.5f);
             m.SetFloat("_WaveStrength", 0.28f);
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>5-6 연결 통로 불빛 띠 (코어에서 바깥으로 흐름).</summary>
+        private static Material ConnectorFlow()
+        {
+            var m = Load("M_ConnectorFlow", Shader.Find("SpaceStation/ConnectorFlow"));
+            m.SetColor("_BaseColor", new Color(0.25f, 1.1f, 2.6f, 1f));
+            m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             return m;
         }

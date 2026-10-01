@@ -27,6 +27,9 @@ namespace SpaceStation.Data
         [Tooltip("윗면에 다른 모듈을 얹을 수 있는지 (받침 규칙). 코어는 위층이 탑뿐이라 false → 코어 위에 뜬 모듈 방지")]
         [SerializeField] private bool _supportsTop = true;
 
+        [Tooltip("5-6 연결 통로: 칸·면 방향별 모델 표면 깊이 (칸 중심에서). 메뉴 SpaceStation/Art/Measure Connector Depths가 채움. 음수 = 연결점 없음")]
+        [SerializeField] private List<FaceDepth> _faceDepths = new List<FaceDepth>();
+
         [SerializeField] private List<ResourceAmount> _buildCost = new List<ResourceAmount>();
         [SerializeField] private List<ResourceAmount> _production = new List<ResourceAmount>();
         [Tooltip("Power 항목 = 전력 수요")]
@@ -88,6 +91,36 @@ namespace SpaceStation.Data
         public bool Removable => _removable;
         public bool TerminalOnly => _terminalOnly;
         public bool SupportsTop => _supportsTop;
+        public IReadOnlyList<FaceDepth> FaceDepths => _faceDepths;
+
+        /// <summary>측정값이 없을 때의 표면 깊이 (셀 92% 상자 기준).</summary>
+        public const float DefaultFaceDepth = 0.46f;
+
+        /// <summary>
+        /// 회전 0 기준 칸·면 방향의 표면 깊이. 측정값이 없으면 기본값.
+        /// false = 그 면에는 연결점이 없음 (모델이 비어 있는 칸).
+        /// </summary>
+        public bool TryGetFaceDepth(Vector3Int localCell, Vector3Int localDir, out float depth)
+        {
+            for (int i = 0; i < _faceDepths.Count; i++)
+            {
+                if (_faceDepths[i].Cell == localCell && _faceDepths[i].Direction == localDir)
+                {
+                    depth = _faceDepths[i].Depth;
+                    return depth >= 0f;
+                }
+            }
+            depth = DefaultFaceDepth;
+            return true;
+        }
+
+#if UNITY_EDITOR
+        /// <summary>측정 도구 전용.</summary>
+        public void SetFaceDepths(List<FaceDepth> depths)
+        {
+            _faceDepths = depths;
+        }
+#endif
         public IReadOnlyList<ResourceAmount> BuildCost => _buildCost;
         public IReadOnlyList<ResourceAmount> Production => _production;
         public IReadOnlyList<ResourceAmount> Consumption => _consumption;
