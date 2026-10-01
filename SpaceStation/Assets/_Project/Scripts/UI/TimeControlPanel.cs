@@ -13,9 +13,6 @@ namespace SpaceStation.UI
         [SerializeField] private TMP_Text _pauseLabel;
         [Tooltip("SimulationClock의 배속 프리셋 순서와 동일")]
         [SerializeField] private Button[] _speedButtons;
-        [SerializeField] private Color _normalColor = new Color(0.18f, 0.2f, 0.24f, 0.9f);
-        [SerializeField] private Color _activeColor = new Color(0.25f, 0.55f, 0.9f, 1f);
-        [SerializeField] private Color _pausedColor = new Color(0.85f, 0.45f, 0.15f, 1f);
 
         private TickClock _tickClock;
 
@@ -51,14 +48,19 @@ namespace SpaceStation.UI
         private void Refresh()
         {
             bool paused = _tickClock.IsPaused;
-            _pauseLabel.SetText(paused ? "재개 (P)" : "일시정지 (P)");
-            SetColor(_pauseButton, paused ? _pausedColor : _normalColor);
+            _pauseLabel.SetText(paused
+                ? $"{HudTheme.Icon("play")} 재개 <size=75%><color={HudText.Muted}>P</color></size>"
+                : $"{HudTheme.Icon("pause")} 일시정지 <size=75%><color={HudText.Muted}>P</color></size>");
+            SetColor(_pauseButton, paused ? HudTheme.ButtonWarning : HudTheme.ButtonNormal);
 
             var presets = _clock.SpeedPresets;
             for (int i = 0; i < _speedButtons.Length; i++)
             {
                 bool active = !paused && i < presets.Length && Mathf.Approximately(presets[i], _tickClock.Speed);
-                SetColor(_speedButtons[i], active ? _activeColor : _normalColor);
+                SetColor(_speedButtons[i], active ? HudTheme.ButtonSelected : HudTheme.ButtonNormal);
+                var label = _speedButtons[i].GetComponentInChildren<TMP_Text>();
+                if (label != null && i < presets.Length)
+                    label.SetText($"{presets[i]:0}x <size=70%><color={HudText.Muted}>F{i + 1}</color></size>");
             }
         }
 

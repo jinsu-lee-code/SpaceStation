@@ -8,6 +8,7 @@ namespace SpaceStation.UI
 {
     /// <summary>
     /// 화면 상단 중앙 이벤트 배너. 발생 시 이름·설명을 잠시 보여주고, 지속형 이벤트 종료도 짧게 알린다.
+    /// 5-8: 홀로그램 패널(어두운 바탕 + 위험도 색 테두리), 아이콘, 설명은 첫 문장만, 위에서 내려오는 등장 애니메이션.
     /// CanvasGroup 알파로 숨긴다 (오브젝트를 끄지 않음).
     /// </summary>
     public sealed class EventBanner : MonoBehaviour
@@ -15,21 +16,29 @@ namespace SpaceStation.UI
         [SerializeField] private EventController _events;
         [SerializeField] private CanvasGroup _group;
         [SerializeField] private Image _background;
+        [Tooltip("위험도 색 테두리 (HUD 스타일 적용 시 생기는 Frame)")]
+        [SerializeField] private Image _frame;
         [SerializeField] private TMP_Text _title;
         [SerializeField] private TMP_Text _description;
         [SerializeField] private float _showSeconds = 5f;
         [SerializeField] private float _endedSeconds = 3f;
-        [SerializeField] private Color _negativeColor = new Color(0.45f, 0.12f, 0.08f, 0.92f);
-        [SerializeField] private Color _positiveColor = new Color(0.1f, 0.35f, 0.18f, 0.92f);
-        [SerializeField] private Color _endedColor = new Color(0.12f, 0.14f, 0.18f, 0.9f);
 
         private float _hideAt;
+        private UiTween _tween;
 
         private void Start()
         {
             _events.Scheduler.EventStarted += HandleStarted;
             _events.Scheduler.EventEnded += HandleEnded;
-            SetVisible(false);
+            if (_frame == null)
+            {
+                var f = transform.Find("Frame");
+                if (f != null)
+                    _frame = f.GetComponent<Image>();
+            }
+            _group.blocksRaycasts = false;
+            _group.interactable = false;
+            _tween = new UiTween((RectTransform)transform, _group, new Vector2(0f, 36f));
         }
 
         private void OnDestroy()
@@ -42,19 +51,24 @@ namespace SpaceStation.UI
 
         private void Update()
         {
+            _tween?.Update();
             if (_hideAt > 0f && Time.unscaledTime >= _hideAt)
             {
                 _hideAt = 0f;
-                SetVisible(false);
+                _tween?.Hide();
             }
         }
 
         private void HandleStarted(GameEventData data)
         {
-            _background.color = data.IsPositive ? _positiveColor : _negativeColor;
-            _title.SetText(data.IsTimed ? $"{data.DisplayName}  <size=70%>({ActiveDuration(data):0}초)</size>" : data.DisplayName);
-            _description.SetText(data.Description);
-            _description.gameObject.SetActive(!string.IsNullOrEmpty(data.Description));
+            Color tone = data.IsPositive ? HudTheme.Positive : HudTheme.Negative;
+            SetTone(tone, 0.28f);
+            string icon = HudTheme.Icon(data.IsPositive ? "event" : "warning");
+            string title = data.IsTimed ? $"{data.DisplayName}  <size=70%><color={HudText.Muted}>{ActiveDuration(data):0}초</color></size>" : data.DisplayName;
+            _title.SetText($"{icon} {title}");
+            string description = FirstSentence(data.Description);
+            _description.SetText(description);
+            _description.gameObject.SetActive(!string.IsNullOrEmpty(description));
             Show(_showSeconds);
         }
 
@@ -71,23 +85,34 @@ namespace SpaceStation.UI
 
         private void HandleEnded(ActiveEvent active)
         {
-            _background.color = _endedColor;
-            _title.SetText($"<size=80%>{active.Data.DisplayName} 종료</size>");
+            SetTone(HudTheme.Neutral, 0.15f);
+            _title.SetText($"<size=80%>{HudTheme.Icon("info")} {active.Data.DisplayName} 종료</size>");
             _description.gameObject.SetActive(false);
             Show(_endedSeconds);
         }
 
-        private void Show(float seconds)
+        /// <summary>바탕은 어두운 패널에 위험도 색을 살짝 섞고, 테두리는 위험도 색.</summary>
+        private void SetTone(Color tone, float tint)
         {
-            SetVisible(true);
-            _hideAt = Time.unscaledTime + seconds;
+            var fill = Color.Lerp(HudTheme.PanelFill, tone * 0.5f, tint);
+            fill.a = 0.9f;
+            _background.color = fill;
+            if (_frame != null)
+                _frame.color = new Color(tone.r, tone.g, tone.b, 0.95f);
         }
 
-        private void SetVisible(bool visible)
+        private static string FirstSentence(string text)
         {
-            _group.alpha = visible ? 1f : 0f;
-            _group.blocksRaycasts = false;
-            _group.interactable = false;
+            if (string.IsNullOrEmpty(text))
+                return text;
+            int end = text.IndexOf(". ", System.StringComparison.Ordinal);
+            return end > 0 ? text.Substring(0, end + 1) : text;
+        }
+
+        private void Show(float seconds)
+        {
+            _tween?.Play(restart: !_tween.Visible);
+            _hideAt = Time.unscaledTime + seconds;
         }
     }
 }

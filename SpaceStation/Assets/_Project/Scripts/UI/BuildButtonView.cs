@@ -11,8 +11,8 @@ namespace SpaceStation.UI
     {
         [SerializeField] private Button _button;
         [SerializeField] private TMP_Text _label;
-        [SerializeField] private Color _normalColor = new Color(0.18f, 0.2f, 0.24f, 0.92f);
-        [SerializeField] private Color _selectedColor = new Color(0.25f, 0.55f, 0.9f, 1f);
+        [Tooltip("5-8 모듈 썸네일 (ModuleData.Icon)")]
+        [SerializeField] private Image _thumb;
 
         private BuildMenu _menu;
 
@@ -27,6 +27,12 @@ namespace SpaceStation.UI
             Data = data;
             _hotkey = hotkey;
             name = "Build_" + data.name;
+            if (_thumb != null)
+            {
+                _thumb.sprite = data.Icon;
+                _thumb.enabled = data.Icon != null;
+                _thumb.preserveAspect = true;
+            }
             _button.onClick.AddListener(() => _menu.HandleButtonClicked(Data));
             SetState(true, null);
             SetSelected(false);
@@ -37,17 +43,19 @@ namespace SpaceStation.UI
         public void SetState(bool interactable, string blockedStatus)
         {
             _button.interactable = interactable;
+            if (_thumb != null)
+                _thumb.color = interactable ? Color.white : new Color(1f, 1f, 1f, 0.35f);
             if (_shownStatus == blockedStatus && _shownStatus != null)
                 return;
             _shownStatus = blockedStatus;
-            string second = blockedStatus ?? HudText.Cost(Data.BuildCost);
-            _label.SetText($"<size=75%><color={HudText.Muted}>{_hotkey}</color></size>  {Data.DisplayName}\n<size=80%>{second}</size>");
+            string second = blockedStatus != null ? $"<color={HudText.Orange}>{blockedStatus}</color>" : HudText.Cost(Data.BuildCost);
+            _label.SetText($"<size=72%><color={HudTheme.AccentHex}>{_hotkey}</color></size> {Data.DisplayName}\n<size=78%>{second}</size>");
         }
 
         public void SetSelected(bool selected)
         {
             if (_button.targetGraphic != null)
-                _button.targetGraphic.color = selected ? _selectedColor : _normalColor;
+                _button.targetGraphic.color = selected ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
         }
 
         public void OnPointerEnter(PointerEventData eventData)

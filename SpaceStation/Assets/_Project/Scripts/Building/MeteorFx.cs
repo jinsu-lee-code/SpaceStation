@@ -39,6 +39,20 @@ namespace SpaceStation.Building
         [Header("Look")]
         [SerializeField] private float _meteorSize = 0.22f;
 
+        // 5-8 소리용 순간 알림 (위치는 월드 좌표)
+        /// <summary>운석이 날아오기 시작 (첫 목표까지 걸리는 시간).</summary>
+        public event System.Action<Vector3, float> Launched;
+        /// <summary>실드 구면에 닿음.</summary>
+        public event System.Action<Vector3> Deflected;
+        /// <summary>포탑 레이저 (포구, 맞은 지점).</summary>
+        public event System.Action<Vector3, Vector3> LaserFired;
+        /// <summary>공중 폭발 (격추).</summary>
+        public event System.Action<Vector3> Exploded;
+        /// <summary>모듈에 충돌 (파손된 모듈, 없으면 null).</summary>
+        public event System.Action<Vector3, ModuleInstance> Impacted;
+
+        public float FlightTime => _flightTime;
+
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private readonly List<Mesh> _rocks = new List<Mesh>();
         private MaterialPropertyBlock _block;
@@ -104,8 +118,11 @@ namespace SpaceStation.Building
                 Vector3 center = ModuleCenter(flight.DeflectedBy);
                 float radius = flight.DeflectedBy.Data != null ? flight.DeflectedBy.Data.ShieldRadius + 0.6f : 2.5f;
                 Vector3 contact = SphereEntry(start, target, center, radius, out Vector3 normal);
-                yield return Fly(meteor, start, contact, _flightTime * Vector3.Distance(start, contact) / Vector3.Distance(start, target), null);
+                float toContact = _flightTime * Vector3.Distance(start, contact) / Vector3.Distance(start, target);
+                Launched?.Invoke(contact, toContact);
+                yield return Fly(meteor, start, contact, toContact, null);
                 Ripple(center, radius, contact);
+                Deflected?.Invoke(contact);
                 if (_station.TryGetView(flight.DeflectedBy, out var shieldView))
                     shieldView.PlayImpulse();
 
@@ -137,18 +154,21 @@ namespace SpaceStation.Building
             if (flight.Intercepted)
             {
                 var turret = FindTurret(flight.InterceptedAt);
+                Launched?.Invoke(Vector3.Lerp(start, target, _interceptAt), _flightTime * _interceptAt);
                 yield return Fly(meteor, start, target, _flightTime, (_, p) => p >= _interceptAt);
                 if (turret != null)
                     yield return Intercept(meteor, turret);
                 else
                 {
                     Explode(meteor.Root.transform.position, 0.6f);
+                    Exploded?.Invoke(meteor.Root.transform.position);
                     Destroy(meteor.Root);
                 }
                 yield break;
             }
 
             Vector3 hitPoint = Surface(target, -dir);
+            Launched?.Invoke(hitPoint, _flightTime);
             yield return Fly(meteor, start, hitPoint, _flightTime, null);
             Impact(meteor, hitPoint, flight.Hit);
         }
@@ -224,6 +244,8 @@ namespace SpaceStation.Building
             laser.widthMultiplier = 0.05f;
             laser.shadowCastingMode = ShadowCastingMode.Off;
             Explode(hitAt, 0.6f);
+            LaserFired?.Invoke(muzzle, hitAt);
+            Exploded?.Invoke(hitAt);
             Destroy(m.Root);
             float t = 0f;
             while (t < 0.18f)
@@ -241,6 +263,7 @@ namespace SpaceStation.Building
             Explode(point, 1f);
             if (hit != null)
                 _station.ReleaseDamageVisual(hit);
+            Impacted?.Invoke(point, hit);
         }
 
         // ---------------- 효과 ----------------

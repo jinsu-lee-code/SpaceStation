@@ -25,8 +25,13 @@ namespace SpaceStation.UI
         [SerializeField] private TMP_Text _messageText;
         [SerializeField] private float _messageSeconds = 3f;
         [SerializeField] private string _idleHint = "Tab: 건설 탭 전환  ·  숫자키 또는 아래 메뉴로 모듈 선택  ·  모듈 클릭: 선택  ·  휠 드래그: 카메라 회전";
+        [Tooltip("5-8: 시작 후 이 시간(실시간 초) 동안만 조작 안내를 보여주고, 이후에는 H로 켜고 끈다")]
+        [SerializeField] private float _idleHintSeconds = 60f;
 
         private float _messageUntil;
+        private bool _helpPinned;      // H로 켠 상태
+        private bool _helpDismissed;   // 시간이 지났거나 첫 건설을 함
+        private UiTween _messageTween;
         private int _disconnectedThisFrame;
 
         // 안내 줄 캐시 키
@@ -62,6 +67,12 @@ namespace SpaceStation.UI
             if (_progression != null)
                 _progression.Progression.GradeChanged += HandleGradeChanged;
             _messageText.SetText(string.Empty);
+            var group = _messageText.GetComponent<CanvasGroup>();
+            if (group == null)
+                group = _messageText.gameObject.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            // 레이아웃 그룹 안이라 위치는 그대로 두고 알파만 (offset 0)
+            _messageTween = new UiTween(null, group, Vector2.zero, 0.15f, 0.45f);
         }
 
         private void OnDestroy()
@@ -96,11 +107,23 @@ namespace SpaceStation.UI
 
         private void Update()
         {
+            var keyboard = UnityEngine.InputSystem.Keyboard.current;
+            if (keyboard != null && keyboard.hKey.wasPressedThisFrame)
+            {
+                _helpPinned = !_helpPinned;
+                _hintInitialized = false; // 다시 그림
+            }
+            if (!_helpDismissed && (Time.unscaledTime > _idleHintSeconds || _build.Selected != null))
+            {
+                _helpDismissed = true;
+                _hintInitialized = false;
+            }
             UpdateHint();
+            _messageTween?.Update();
             if (_messageUntil > 0f && Time.unscaledTime >= _messageUntil)
             {
                 _messageUntil = 0f;
-                _messageText.SetText(string.Empty);
+                _messageTween?.Hide();
             }
         }
 
@@ -174,7 +197,11 @@ namespace SpaceStation.UI
             }
             else
             {
-                _hintText.SetText(_idleHint);
+                // 5-8: 조작 안내는 처음 잠시만, 이후에는 작게 "H: 도움말"
+                bool full = _helpPinned || !_helpDismissed;
+                _hintText.SetText(full
+                    ? $"{_idleHint}  <size=85%><color={HudText.Muted}>·  H: 안내 {(_helpPinned ? "숨기기" : "고정")}</color></size>"
+                    : $"<size=85%><color={HudText.Muted}>{HudTheme.Icon("info")} H: 조작 안내</color></size>");
             }
         }
 
@@ -205,8 +232,12 @@ namespace SpaceStation.UI
 
         private void ShowMessage(string message)
         {
-            _messageText.SetText(message);
+            // 5-8: 색으로 중요도를 판단해 아이콘을 붙이고, 짧게 나타났다 사라짐
+            string icon = message.Contains(HudText.Red) || message.Contains(HudText.Orange) ? "warning"
+                : message.Contains(HudTheme.GreenHex) ? "event" : "info";
+            _messageText.SetText($"{HudTheme.Icon(icon)} {message}");
             _messageUntil = Time.unscaledTime + _messageSeconds;
+            _messageTween?.Play(restart: !_messageTween.Visible);
         }
 
         private void HandleGradeChanged(int previous, int current)

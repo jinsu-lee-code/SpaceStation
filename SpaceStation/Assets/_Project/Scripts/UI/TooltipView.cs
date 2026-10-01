@@ -24,10 +24,22 @@ namespace SpaceStation.UI
         {
             _text.SetText(text);
             _root.gameObject.SetActive(true);
+            _root.pivot = new Vector2(0.5f, 0f);
 
             var rect = anchor.rect;
             Vector3 top = anchor.TransformPoint(new Vector3(rect.center.x, rect.yMax, 0f));
             _root.position = top + anchor.up * (_gap * anchor.lossyScale.y);
+        }
+
+        /// <summary>anchor의 왼쪽에 위쪽을 맞춰 띄운다 (화면 오른쪽 패널용, 5-8).</summary>
+        public void ShowLeftOf(string text, RectTransform anchor)
+        {
+            _text.SetText(text);
+            _root.gameObject.SetActive(true);
+            _root.pivot = new Vector2(1f, 1f);
+            var rect = anchor.rect;
+            Vector3 topLeft = anchor.TransformPoint(new Vector3(rect.xMin, rect.yMax, 0f));
+            _root.position = topLeft - anchor.right * (_gap * anchor.lossyScale.x);
         }
 
         public void Hide()

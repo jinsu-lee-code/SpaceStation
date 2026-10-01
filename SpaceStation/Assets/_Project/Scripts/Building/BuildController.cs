@@ -54,6 +54,12 @@ namespace SpaceStation.Building
         public event Action<ModuleData> SelectionChanged;
         /// <summary>건설 탭이 바뀔 때.</summary>
         public event Action<ModuleCategory> CategoryChanged;
+        /// <summary>배치 중 회전 (R).</summary>
+        public event Action Rotated;
+        /// <summary>배치 확정 성공.</summary>
+        public event Action<ModuleInstance> Placed;
+        /// <summary>배치할 수 없는 자리에 클릭함.</summary>
+        public event Action<PlacementResult> PlaceRejected;
 
         public ModuleData Selected => _selected;
         public IReadOnlyList<ModuleData> BuildableModules => _buildableModules;
@@ -108,7 +114,10 @@ namespace SpaceStation.Building
             }
 
             if (keyboard.rKey.wasPressedThisFrame)
+            {
                 _rotation = GridDirections.NormalizeRotation(_rotation + 1);
+                Rotated?.Invoke();
+            }
 
             if (UiPointer.IsOverUi())
                 _hasTarget = false; // HUD 위에서는 고스트 숨김, 클릭 무시
@@ -116,9 +125,12 @@ namespace SpaceStation.Building
                 UpdateTarget(mouse.position.ReadValue());
             UpdateGhost();
 
-            if (_hasTarget && _targetValid && mouse.leftButton.wasPressedThisFrame)
+            if (_hasTarget && mouse.leftButton.wasPressedThisFrame)
             {
-                _station.TryPlace(_selected, _targetCell, _rotation, out _);
+                if (!_targetValid)
+                    PlaceRejected?.Invoke(_targetResult);
+                else if (_station.TryPlace(_selected, _targetCell, _rotation, out var placed))
+                    Placed?.Invoke(placed);
                 // 배치 직후 같은 셀은 점유되므로 다음 프레임에 다시 판정된다.
             }
         }

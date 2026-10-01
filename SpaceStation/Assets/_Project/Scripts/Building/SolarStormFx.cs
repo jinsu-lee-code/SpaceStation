@@ -35,6 +35,8 @@ namespace SpaceStation.Building
         private float _seed;
 
         public bool StormActive { get; private set; }
+        /// <summary>패널 스파크 (월드 위치, 5-8 소리용).</summary>
+        public event System.Action<Vector3> Sparked;
 
         private void Start()
         {
@@ -104,6 +106,7 @@ namespace SpaceStation.Building
 
         private void Spark(Vector3 position, Vector3 normal)
         {
+            Sparked?.Invoke(position);
             var go = new GameObject("StormSpark");
             go.transform.SetParent(transform, false);
             go.transform.SetPositionAndRotation(position, Quaternion.LookRotation(normal));

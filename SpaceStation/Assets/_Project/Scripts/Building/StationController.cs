@@ -87,6 +87,9 @@ namespace SpaceStation.Building
                 _damageHold[module] = seconds;
         }
 
+        /// <summary>운석 도착을 기다리며 파손 표시를 미뤄 둔 모듈인지 (소리도 충돌 순간에 낸다).</summary>
+        public bool IsDamageHeld(ModuleInstance module) => module != null && _damageHold.ContainsKey(module);
+
         /// <summary>미뤄 둔 파손 표시를 지금 적용 (운석 충돌 순간).</summary>
         public void ReleaseDamageVisual(ModuleInstance module)
         {

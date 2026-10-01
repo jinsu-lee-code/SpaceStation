@@ -40,6 +40,8 @@ namespace SpaceStation.UI
         public event Action<string> ActionFailed;
         /// <summary>정비·재건축 성공 알림.</summary>
         public event Action<string> ActionDone;
+        /// <summary>재건축 성공 (새 모듈).</summary>
+        public event Action<ModuleInstance> Rebuilt;
 
         private void Start()
         {
@@ -155,6 +157,7 @@ namespace SpaceStation.UI
                 case RebuildResult.Done:
                     _selection.Select(rebuilt);
                     ActionDone?.Invoke($"{name} 재건축 완료 · 내구도 100");
+                    Rebuilt?.Invoke(rebuilt);
                     break;
                 case RebuildResult.InsufficientResources: ActionFailed?.Invoke("재건축 비용(금속)이 부족합니다"); break;
                 case RebuildResult.Locked: ActionFailed?.Invoke("현재 등급에서 다시 지을 수 없는 모듈입니다"); break;

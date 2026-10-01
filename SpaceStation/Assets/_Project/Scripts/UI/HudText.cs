@@ -31,7 +31,7 @@ namespace SpaceStation.UI
             }
         }
 
-        /// <summary>"금속 20" 형식. 비용이 없으면 "무료".</summary>
+        /// <summary>"(금속 아이콘) 20" 형식 (5-8: 자원 이름 대신 아이콘). 비용이 없으면 "무료".</summary>
         public static string Cost(IReadOnlyList<ResourceAmount> cost, float multiplier = 1f)
         {
             if (cost == null || cost.Count == 0)
@@ -40,8 +40,8 @@ namespace SpaceStation.UI
             foreach (var a in cost)
             {
                 if (sb.Length > 0)
-                    sb.Append(", ");
-                sb.Append(ResourceName(a.Type)).Append(' ').Append((a.Amount * multiplier).ToString("0.#"));
+                    sb.Append("  ");
+                sb.Append(HudTheme.Icon(a.Type)).Append(' ').Append((a.Amount * multiplier).ToString("0.#"));
             }
             return sb.ToString();
         }

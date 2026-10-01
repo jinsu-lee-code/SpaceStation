@@ -18,6 +18,9 @@ namespace SpaceStation.Data
         [Tooltip("모듈 원점 셀 중심에 피벗이 있는 프리팹")]
         [SerializeField] private GameObject _prefab;
 
+        [Tooltip("건설 메뉴 썸네일 (메뉴 SpaceStation/UI/Build Hud Art가 프리팹을 렌더링해 채움)")]
+        [SerializeField] private Sprite _icon;
+
         [Tooltip("철거 가능 여부. 코어는 false")]
         [SerializeField] private bool _removable = true;
 
@@ -88,6 +91,7 @@ namespace SpaceStation.Data
         public ModuleCategory Category => _category;
         public IReadOnlyList<Vector3Int> CellOffsets => _cellOffsets;
         public GameObject Prefab => _prefab;
+        public Sprite Icon => _icon;
         public bool Removable => _removable;
         public bool TerminalOnly => _terminalOnly;
         public bool SupportsTop => _supportsTop;

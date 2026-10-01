@@ -10,8 +10,6 @@ namespace SpaceStation.UI
     {
         [SerializeField] private Button _button;
         [SerializeField] private TMP_Text _label;
-        [SerializeField] private Color _normalColor = new Color(0.14f, 0.16f, 0.2f, 0.92f);
-        [SerializeField] private Color _selectedColor = new Color(0.25f, 0.55f, 0.9f, 1f);
 
         public ModuleCategory Category { get; private set; }
 
@@ -27,7 +25,7 @@ namespace SpaceStation.UI
         public void SetSelected(bool selected)
         {
             if (_button.targetGraphic != null)
-                _button.targetGraphic.color = selected ? _selectedColor : _normalColor;
+                _button.targetGraphic.color = selected ? HudTheme.ButtonSelected : HudTheme.ButtonNormal * new Color(0.75f, 0.75f, 0.75f, 1f);
             _label.fontStyle = selected ? FontStyles.Bold : FontStyles.Normal;
         }
     }
