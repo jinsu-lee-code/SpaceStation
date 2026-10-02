@@ -27,8 +27,8 @@ namespace SpaceStation.Data
         [Tooltip("말단 배치 전용 (채굴 도킹): 정거장과 맞닿은 면이 정확히 1개여야 하고, 배치 후 나머지 면에는 다른 모듈을 붙일 수 없다")]
         [SerializeField] private bool _terminalOnly;
 
-        [Tooltip("윗면에 다른 모듈을 얹을 수 있는지 (받침 규칙). 코어는 위층이 탑뿐이라 false → 코어 위에 뜬 모듈 방지")]
-        [SerializeField] private bool _supportsTop = true;
+        [Tooltip("7-7 받침 규칙: 이 모듈 맨 위층의 옆면에 맞닿는 칸은 바로 아래에 모듈이 있어야 설치 가능 (코어 2층 = 연결점 없는 탑). 나머지 칸은 자유")]
+        [SerializeField] private bool _upperSidesNeedSupport;
 
         [Tooltip("5-6 연결 통로: 칸·면 방향별 모델 표면 깊이 (칸 중심에서). 메뉴 SpaceStation/Art/Measure Connector Depths가 채움. 음수 = 연결점 없음")]
         [SerializeField] private List<FaceDepth> _faceDepths = new List<FaceDepth>();
@@ -97,7 +97,7 @@ namespace SpaceStation.Data
         public Sprite Icon => _icon;
         public bool Removable => _removable;
         public bool TerminalOnly => _terminalOnly;
-        public bool SupportsTop => _supportsTop;
+        public bool UpperSidesNeedSupport => _upperSidesNeedSupport;
         public IReadOnlyList<FaceDepth> FaceDepths => _faceDepths;
 
         /// <summary>측정값이 없을 때의 표면 깊이 (셀 92% 상자 기준).</summary>

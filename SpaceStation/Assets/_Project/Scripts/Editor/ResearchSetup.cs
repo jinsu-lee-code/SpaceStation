@@ -181,7 +181,7 @@ namespace SpaceStation.Editor
             so.FindProperty("_prefab").objectReferenceValue = prefab;
             so.FindProperty("_removable").boolValue = true;
             so.FindProperty("_terminalOnly").boolValue = false;
-            so.FindProperty("_supportsTop").boolValue = true;
+            so.FindProperty("_upperSidesNeedSupport").boolValue = false;
             SetAmounts(so.FindProperty("_buildCost"), (ResourceType.Metal, 50f));
             SetAmounts(so.FindProperty("_production"));
             SetAmounts(so.FindProperty("_consumption"), (ResourceType.Power, 2f));

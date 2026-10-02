@@ -19,20 +19,18 @@ namespace SpaceStation.Core
         ModuleLocked,
         /// <summary>등급별 최대 설치 수 도달 (채굴 도킹, StationProgression이 판정).</summary>
         LimitReached,
-        /// <summary>바닥층이 아닌데 받침이 없음 (위층은 아래, 아래층은 위에 모듈 필요).</summary>
+        /// <summary>코어 2층 옆 칸인데 바로 아래에 모듈이 없음 (7-7).</summary>
         NeedsSupport,
     }
 
     /// <summary>
     /// 공간 배치 규칙 (비용 제외). 그리드는 점유 충돌만 보고, 모듈 종류별 규칙은 여기서 판정한다.
-    /// 받침 규칙 (5-5): 바닥층(<see cref="GroundLevel"/>, 코어 1층)은 자유. 그보다 위층은 모듈 칸 중 하나라도
-    /// 바로 아래에 모듈이 있어야 하고, 아래층(매달기)은 하나라도 바로 위에 모듈이 있어야 한다 → 공중에 뜬 배치 방지.
-    /// 다른 모듈을 받치고 있는 모듈은 철거할 수 없다(<see cref="SupportsOthers"/>). 운석 파괴는 막지 않는다.
+    /// 받침 규칙 (7-7, 5-5 규칙을 완화): 어느 방향·층이든 자유. 단 <see cref="ModuleData.UpperSidesNeedSupport"/> 모듈(코어)의
+    /// 맨 위층 옆면에 맞닿는 칸은 바로 아래에 모듈이 있어야 한다 (코어 2층은 연결점 없는 탑이라 바로 붙이지 못함).
+    /// 그 칸을 받치고 있는 모듈은 철거할 수 없다(<see cref="SupportsOthers"/>). 운석 파괴는 막지 않는다.
     /// </summary>
     public static class PlacementRules
     {
-        /// <summary>바닥층 높이 (코어 1층).</summary>
-        public const int GroundLevel = 0;
 
         public static bool CanPlace(StationGrid grid, ModuleData data, Vector3Int origin, int rotation)
         {
@@ -69,52 +67,59 @@ namespace SpaceStation.Core
         }
 
         /// <summary>
-        /// 받침 판정. 바닥층에 걸치면 항상 참. 위층이면 맨 아래 칸들 중 하나라도 바로 아래에, 아래층이면 맨 위 칸들 중
-        /// 하나라도 바로 위에 (ignore가 아닌) 모듈이 있어야 한다.
+        /// 받침 판정 (7-7). 코어 2층 옆 칸(<see cref="NeedsSupportAt"/>)에 놓인 칸마다 바로 아래에 (ignore가 아닌) 모듈이
+        /// 있거나 같은 모듈의 칸이 있어야 한다. 그 밖의 칸은 조건 없음.
         /// </summary>
         public static bool IsSupported(StationGrid grid, IReadOnlyList<Vector3Int> cells, ModuleInstance ignore)
         {
-            int minY = int.MaxValue, maxY = int.MinValue;
             for (int i = 0; i < cells.Count; i++)
             {
-                minY = Mathf.Min(minY, cells[i].y);
-                maxY = Mathf.Max(maxY, cells[i].y);
-            }
-            if (minY <= GroundLevel && maxY >= GroundLevel)
-                return true;
-            bool above = minY > GroundLevel;
-            int edge = above ? minY : maxY;
-            var dir = above ? Vector3Int.down : Vector3Int.up;
-            for (int i = 0; i < cells.Count; i++)
-            {
-                if (cells[i].y != edge)
+                if (!NeedsSupportAt(grid, cells[i], ignore))
                     continue;
-                var below = cells[i] + dir;
+                var below = cells[i] + Vector3Int.down;
                 if (Contains(cells, below))
                     continue;
                 if (!grid.TryGetModule(below, out var other) || other == ignore)
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// 이 칸이 받침이 필요한 칸인지: 수평으로 맞닿은 칸이 <see cref="ModuleData.UpperSidesNeedSupport"/> 모듈의
+        /// 맨 위층(여러 층일 때만)에 속하면 참.
+        /// </summary>
+        public static bool NeedsSupportAt(StationGrid grid, Vector3Int cell, ModuleInstance ignore = null)
+        {
+            foreach (var dir in GridDirections.Faces)
+            {
+                if (dir.y != 0)
                     continue;
-                if (above && other.Data != null && !other.Data.SupportsTop)
-                    continue; // 윗면 받침 불가 모듈 (코어)
-                return true;
+                if (!grid.TryGetModule(cell + dir, out var other) || other == ignore || other.Data == null || !other.Data.UpperSidesNeedSupport)
+                    continue;
+                int minY = int.MaxValue, maxY = int.MinValue;
+                foreach (var c in other.Cells)
+                {
+                    minY = Mathf.Min(minY, c.y);
+                    maxY = Mathf.Max(maxY, c.y);
+                }
+                if (maxY > minY && cell.y == maxY)
+                    return true;
             }
             return false;
         }
 
-        /// <summary>이 모듈이 없어지면 받침을 잃는 모듈이 있는지 (철거 불가 판정).</summary>
+        /// <summary>이 모듈이 없어지면 받침을 잃는 모듈이 있는지 (철거 불가 판정). 바로 위 칸의 모듈만 영향받는다.</summary>
         public static bool SupportsOthers(StationGrid grid, ModuleInstance module)
         {
             if (module == null)
                 return false;
             foreach (var cell in module.Cells)
             {
-                for (int s = -1; s <= 1; s += 2)
-                {
-                    if (!grid.TryGetModule(cell + Vector3Int.up * s, out var other) || other == module)
-                        continue;
-                    if (!IsSupported(grid, other.Cells, module))
-                        return true;
-                }
+                if (!grid.TryGetModule(cell + Vector3Int.up, out var other) || other == module)
+                    continue;
+                if (!IsSupported(grid, other.Cells, module))
+                    return true;
             }
             return false;
         }
