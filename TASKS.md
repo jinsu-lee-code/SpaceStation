@@ -384,6 +384,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 입력 교체: BuildController(회전·탭), ModuleSelectionController(철거 Del/X), OrbitCameraController(WASD·Space·Ctrl·QE), SimulationClock(P·F1~F3), ResearchPanel(T), SelectionActionsPanel(R·M·B·C), StatusBar(H)
   - 키 표시 교체(바꾸면 즉시 갱신): 상태 표시줄 안내·대기 안내(씬의 `_idleHint` 문자열 대신 코드 생성), 선택 패널 버튼·알림, 배속·일시정지 버튼, 연구 버튼, 건설 탭 "Tab / Shift+Tab", 자원 패널 노후 경고, 불러오기 알림
   - `SettingsPanel` 조작 탭: 상단 안내 줄(대기·맞바꿈·거부 메시지) + 그룹별 키 버튼(누르면 "키를 누르세요…", ESC 취소는 설정창을 닫지 않음) + "마우스 · 고정 키" 안내 7줄, 기본값 복원 = 전체 키 초기화
+  - 피드백: 상단 안내 줄만으로는 맞바꿈을 놓치기 쉬움 → 맞바꿈·고정 키 거부·기본값 복원 때 창 가운데 팝업(단색 바탕, 맞바꿈 노랑·거부 빨강·복원 청록 테두리, 2.6초 후 페이드, 클릭 막지 않음). 단순 변경은 안내 줄만
   - 테스트 `KeyBindingsTests` 6개(기본값, 맞바꿈, 건설↔선택 공유, '항상' 충돌, 고정 키 거부, 오른쪽 Ctrl) — 전체 221개 통과. 테스트 asmdef에 Unity.InputSystem 참조 추가
 - [ ] **7-6. 인접 효과 추가** — 기존 5개 규칙(BALANCE 16번)에 새 규칙 추가. Phase 8 신규 모듈과 묶어 설계 (규칙 후보는 착수 시 제안)
 - [ ] **7-7. 받침 규칙 완화** — 현재: 바닥층(y=0) 자유, 위층은 바로 아래·아래층은 바로 위에 모듈 필요. 변경: **코어 주변부의 위칸 범위만** 아래에 모듈이 있어야 설치 가능, 그 밖은 자유 배치 (범위 크기는 착수 시 확정)

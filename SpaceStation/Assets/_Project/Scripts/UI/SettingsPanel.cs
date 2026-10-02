@@ -49,6 +49,13 @@ namespace SpaceStation.UI
         private SpaceStation.Core.GameAction? _capturing;
         private TMP_Text _controlsStatus;
         private string _controlsNotice;
+        // 맞바꿈·거부·초기화 알림 팝업 (창 가운데, 잠시 뒤 사라짐)
+        private const float PopupSeconds = 2.6f;
+        private const float PopupFade = 0.4f;
+        private CanvasGroup _popup;
+        private TMP_Text _popupText;
+        private Image _popupFrame;
+        private float _popupUntil = -1f;
         private ScrollRect _scroll;
         private readonly List<Action> _refreshers = new List<Action>();
 
@@ -97,6 +104,7 @@ namespace SpaceStation.UI
                 RevertScreen();
             _capturing = null;
             _controlsNotice = null;
+            HidePopup();
             _open = false;
             SetVisible(false);
             _tween.Hide();
@@ -109,6 +117,7 @@ namespace SpaceStation.UI
             if (!_built)
                 return;
             _tween.Update();
+            UpdatePopup();
             if (_confirmUntil > 0f)
             {
                 float left = _confirmUntil - Time.unscaledTime;
@@ -209,6 +218,7 @@ namespace SpaceStation.UI
             crt.sizeDelta = new Vector2(200f, 50f);
 
             BuildConfirm(root);
+            BuildPopup();
             _tween = new UiTween(_window, _group, new Vector2(0f, -24f), 0.2f, 0.15f);
         }
 
@@ -348,20 +358,85 @@ namespace SpaceStation.UI
             if (key == Key.None)
                 return;
             var action = _capturing.Value;
+            string name = SpaceStation.Core.KeyBindings.InfoOf(action).Label;
             if (!SpaceStation.Core.KeyBindings.Set(action, key))
             {
-                _controlsNotice = $"<color={HudText.Orange}>{SpaceStation.Core.KeyBindings.KeyName(key)} 키는 고정 키라 쓸 수 없습니다 (ESC · 숫자 1~9 · Shift · F5)</color>";
+                string keyName = SpaceStation.Core.KeyBindings.KeyName(key);
+                _controlsNotice = $"<color={HudText.Orange}>{keyName} 키는 고정 키라 쓸 수 없습니다 (ESC · 숫자 1~9 · Shift · F5)</color>";
+                ShowPopup($"<b>{keyName}</b> 키는 쓸 수 없습니다\n<size=75%><color=#AFC4D8>고정 키: ESC · 숫자 1~9 · Shift · F5  ·  다른 키를 누르세요</color></size>", HudTheme.Negative);
                 AudioService.TryPlay(l => l.UiError);
                 RefreshAll();
                 return; // 계속 대기
             }
             _capturing = null;
             var swapped = SpaceStation.Core.KeyBindings.LastSwapped;
-            string name = SpaceStation.Core.KeyBindings.InfoOf(action).Label;
-            _controlsNotice = swapped.HasValue
-                ? $"<color={HudText.Yellow}>{name} = {SpaceStation.Core.KeyBindings.Label(action)}  ·  겹치던 '{SpaceStation.Core.KeyBindings.InfoOf(swapped.Value).Label}'은(는) {SpaceStation.Core.KeyBindings.Label(swapped.Value)}(으)로 바뀜</color>"
-                : $"<color={HudTheme.GreenHex}>{name} = {SpaceStation.Core.KeyBindings.Label(action)}</color>";
+            string newKey = SpaceStation.Core.KeyBindings.Label(action);
+            if (swapped.HasValue)
+            {
+                string other = SpaceStation.Core.KeyBindings.InfoOf(swapped.Value).Label;
+                string otherKey = SpaceStation.Core.KeyBindings.Label(swapped.Value);
+                _controlsNotice = $"<color={HudText.Yellow}>{name} = {newKey}  ·  겹치던 '{other}'은(는) {otherKey}(으)로 바뀜</color>";
+                ShowPopup($"{name} = <b>{newKey}</b>\n<color={HudText.Yellow}>겹치던 '{other}'은(는) <b>{otherKey}</b>(으)로 바뀜</color>", HudTheme.ButtonWarning);
+            }
+            else
+            {
+                _controlsNotice = $"<color={HudTheme.GreenHex}>{name} = {newKey}</color>";
+            }
             RefreshAll();
+        }
+
+        private void BuildPopup()
+        {
+            var box = Rect("KeyNotice", _window);
+            box.anchorMin = box.anchorMax = box.pivot = new Vector2(0.5f, 0.5f);
+            box.sizeDelta = new Vector2(600f, 150f);
+            Panel(box.gameObject, new Color(0.02f, 0.05f, 0.08f, 0.97f), HudTheme.ButtonWarning);
+            var fill = box.GetComponent<Image>();
+            fill.sprite = null; // 홀로그램 바탕은 반투명이라 뒤의 버튼이 비침 → 단색
+            fill.color = new Color(0.02f, 0.05f, 0.08f, 1f);
+            fill.raycastTarget = false; // 뒤의 키 버튼 클릭을 막지 않음
+            _popupFrame = box.Find("Frame").GetComponent<Image>();
+            _popupText = Label(box, "", 24f, TextAlignmentOptions.Center);
+            _popupText.textWrappingMode = TextWrappingModes.Normal;
+            var trt = _popupText.rectTransform;
+            trt.anchorMin = Vector2.zero;
+            trt.anchorMax = Vector2.one;
+            trt.offsetMin = new Vector2(24f, 12f);
+            trt.offsetMax = new Vector2(-24f, -12f);
+            _popup = box.gameObject.AddComponent<CanvasGroup>();
+            _popup.blocksRaycasts = false;
+            _popup.interactable = false;
+            _popup.alpha = 0f;
+        }
+
+        /// <summary>맞바꿈·거부·초기화 알림을 창 가운데에 잠시 띄운다.</summary>
+        private void ShowPopup(string text, Color frame)
+        {
+            if (_popup == null)
+                return;
+            _popupText.SetText(text);
+            _popupFrame.color = frame;
+            _popup.transform.SetAsLastSibling();
+            _popup.alpha = 1f;
+            _popupUntil = Time.unscaledTime + PopupSeconds;
+        }
+
+        private void HidePopup()
+        {
+            _popupUntil = -1f;
+            if (_popup != null)
+                _popup.alpha = 0f;
+        }
+
+        private void UpdatePopup()
+        {
+            if (_popupUntil < 0f)
+                return;
+            float left = _popupUntil - Time.unscaledTime;
+            if (left <= 0f)
+                HidePopup();
+            else
+                _popup.alpha = Mathf.Clamp01(left / PopupFade);
         }
 
         private void RefreshControlsStatus()
@@ -377,6 +452,7 @@ namespace SpaceStation.UI
         private void SelectTab(int tab)
         {
             _tab = tab;
+            HidePopup();
             if (_capturing.HasValue)
             {
                 _capturing = null;
@@ -412,6 +488,7 @@ namespace SpaceStation.UI
                     _capturing = null;
                     SpaceStation.Core.KeyBindings.ResetAll();
                     _controlsNotice = $"<color={HudTheme.GreenHex}>모든 조작키를 기본값으로 되돌렸습니다</color>";
+                    ShowPopup("모든 조작키를 기본값으로 되돌렸습니다", HudTheme.Accent);
                     break;
             }
             RefreshAll();
