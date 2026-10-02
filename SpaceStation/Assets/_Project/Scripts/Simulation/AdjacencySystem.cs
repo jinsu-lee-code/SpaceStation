@@ -19,6 +19,17 @@ namespace SpaceStation.Simulation
         public float Total => PerNeighbor * Stacks;
     }
 
+    /// <summary>배치 미리보기: 새 모듈 때문에 이웃 모듈 하나에 새로 생길 효과 (7-3 화면 표시용).</summary>
+    public struct NeighborAdjacencyPreview
+    {
+        public ModuleInstance Module;
+        public AdjacencyRule Rule;
+        /// <summary>새로 더해지는 중첩 수.</summary>
+        public int AddedStacks;
+        public float Boost;
+        public float Total => (Rule.ValuePerNeighbor + Boost) * AddedStacks;
+    }
+
     /// <summary>
     /// 공간 인접 효과 (GDD 13번, BALANCE 16번). 면이 맞닿은 이웃 모듈(물리적 인접, 활성 여부 무관)을 세어 규칙을 적용한다.
     /// 그리드가 바뀔 때만 <see cref="Recalculate"/>로 다시 계산하고 결과를 캐시한다.
@@ -126,8 +137,20 @@ namespace SpaceStation.Simulation
         public void Preview(StationGrid grid, ModuleData data, Vector3Int origin, int rotation,
             List<AppliedAdjacency> self, List<string> neighborLines)
         {
-            self.Clear();
+            Preview(grid, data, origin, rotation, self, _previewScratch);
             neighborLines.Clear();
+            foreach (var p in _previewScratch)
+                neighborLines.Add($"{p.Module.Data.DisplayName} {Describe(p.Rule, p.AddedStacks, p.Boost)}");
+        }
+
+        private readonly List<NeighborAdjacencyPreview> _previewScratch = new List<NeighborAdjacencyPreview>();
+
+        /// <summary>배치 미리보기 (구조체 버전): 이웃 효과를 모듈·규칙 단위로 돌려준다 (7-3 모듈 위 아이콘 표시).</summary>
+        public void Preview(StationGrid grid, ModuleData data, Vector3Int origin, int rotation,
+            List<AppliedAdjacency> self, List<NeighborAdjacencyPreview> neighborEffects)
+        {
+            self.Clear();
+            neighborEffects.Clear();
             if (!HasRules || data == null)
                 return;
 
@@ -173,7 +196,10 @@ namespace SpaceStation.Simulation
                     }
                     int after = Math.Min(rule.MaxStacks, Math.Max(0, matching + 1 - rule.FreeNeighbors));
                     if (after > current)
-                        neighborLines.Add($"{neighbor.Data.DisplayName} {Describe(rule, after - current, BoostFor(rule))}");
+                        neighborEffects.Add(new NeighborAdjacencyPreview
+                        {
+                            Module = neighbor, Rule = rule, AddedStacks = after - current, Boost = BoostFor(rule),
+                        });
                 }
             }
         }
@@ -221,6 +247,28 @@ namespace SpaceStation.Simulation
                     lines.Add($"{rule.Target.DisplayName} 옆에 두면 그 모듈 {Describe(rule, 1, BoostFor(rule))}");
                 }
             }
+        }
+
+        /// <summary>좋은 효과인지 (생산 +, 소비 −, 수용 인구 +). 색 구분용.</summary>
+        public static bool IsBeneficial(AdjacencyRule rule, float total)
+            => rule.Effect == AdjacencyEffect.Consumption ? total < 0f : total >= 0f;
+
+        /// <summary>"+15%" / "-2" 같은 수치만 (7-3 아이콘 옆).</summary>
+        public static string ShortValue(AdjacencyRule rule, float total)
+            => rule.Effect == AdjacencyEffect.Housing ? total.ToString("+0;-0") : (total * 100f).ToString("+0;-0") + "%";
+
+        /// <summary>효과가 걸리는 자원 (아이콘 선택용). 수용 인구면 null.</summary>
+        public static ResourceType? EffectResource(AdjacencyRule rule)
+        {
+            if (rule.Target == null || rule.Effect == AdjacencyEffect.Housing)
+                return null;
+            var list = rule.Effect == AdjacencyEffect.Production ? rule.Target.Production : rule.Target.Consumption;
+            foreach (var a in list)
+            {
+                if (a.Amount > 0f && (rule.Effect == AdjacencyEffect.Production || a.Type != ResourceType.Power))
+                    return a.Type;
+            }
+            return null;
         }
 
         public static string DescribeAll(IReadOnlyList<AppliedAdjacency> applied)

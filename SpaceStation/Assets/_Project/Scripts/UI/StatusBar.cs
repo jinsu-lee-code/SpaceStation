@@ -256,7 +256,7 @@ namespace SpaceStation.UI
             {
                 if (!first) sb.Append("  ·  ");
                 first = false;
-                sb.Append(a.Total >= 0f ? "<color=#7CFF9A>" : $"<color={HudText.Orange}>")
+                sb.Append(AdjacencySystem.IsBeneficial(a.Rule, a.Total) ? "<color=#7CFF9A>" : $"<color={HudText.Orange}>") // 소비 −는 좋은 효과
                   .Append(AdjacencySystem.Describe(a)).Append("</color>");
             }
             foreach (var line in _previewNeighbors)

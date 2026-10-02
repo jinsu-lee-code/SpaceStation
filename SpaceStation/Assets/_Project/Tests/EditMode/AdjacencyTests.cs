@@ -176,6 +176,28 @@ namespace SpaceStation.Tests
             StringAssert.Contains("-25%", neighbors[0]);
         }
 
+        [Test]
+        public void Preview_Structured_GivesNeighborModuleAndBenefit()
+        {
+            var sim = Sim();
+            sim.TryPlace(_farm, Vector3Int.right, 0, out var farm);
+            var self = new List<AppliedAdjacency>();
+            var neighbors = new List<NeighborAdjacencyPreview>();
+            sim.PreviewAdjacency(_water, new Vector3Int(2, 0, 0), 0, self, neighbors);
+            Assert.AreEqual(1, neighbors.Count);
+            Assert.AreSame(farm, neighbors[0].Module);
+            Assert.AreEqual(1, neighbors[0].AddedStacks);
+            Assert.AreEqual(-0.25f, neighbors[0].Total, Eps);
+            Assert.IsTrue(AdjacencySystem.IsBeneficial(neighbors[0].Rule, neighbors[0].Total), "소비 −25%는 좋은 효과");
+            Assert.AreEqual("-25%", AdjacencySystem.ShortValue(neighbors[0].Rule, neighbors[0].Total));
+            Assert.AreEqual(ResourceType.Water, AdjacencySystem.EffectResource(neighbors[0].Rule));
+
+            sim.PreviewAdjacency(_oxygen, new Vector3Int(2, 0, 0), 0, self, neighbors);
+            Assert.AreEqual(1, self.Count);
+            Assert.IsTrue(AdjacencySystem.IsBeneficial(self[0].Rule, self[0].Total), "생산 +15%");
+            Assert.AreEqual(ResourceType.Oxygen, AdjacencySystem.EffectResource(self[0].Rule));
+        }
+
         // ---- helpers ----
 
         private T Create<T>() where T : ScriptableObject

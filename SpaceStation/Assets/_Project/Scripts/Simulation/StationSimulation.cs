@@ -211,6 +211,13 @@ namespace SpaceStation.Simulation
             Adjacency.Preview(Grid, data, origin, rotation, self, neighborLines);
         }
 
+        /// <summary>7-3: 배치 미리보기 (이웃 효과를 모듈 단위로).</summary>
+        public void PreviewAdjacency(ModuleData data, UnityEngine.Vector3Int origin, int rotation,
+            List<AppliedAdjacency> self, List<NeighborAdjacencyPreview> neighborEffects)
+        {
+            Adjacency.Preview(Grid, data, origin, rotation, self, neighborEffects);
+        }
+
         /// <summary>위치와 무관한 건설 가능 여부 (해금·최대 설치 수).</summary>
         public PlacementResult CheckBuildable(ModuleData data) => Progression.CheckBuildable(data, Grid);
 
