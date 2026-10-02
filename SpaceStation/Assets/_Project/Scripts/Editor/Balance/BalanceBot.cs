@@ -25,6 +25,7 @@ namespace SpaceStation.Editor.Balance
         private readonly StationSimulation _sim;
         private readonly ModuleData _power, _oxygen, _water, _food, _housing, _storage, _metal, _battery, _bay, _shield, _turret, _lab;
         private readonly ModuleData _fusion; // 8-1 상시 대량 발전 (태양광이 아닌 발전 모듈 중 가장 큰 것)
+        private readonly ModuleData _refinery; // 8-2 맞닿은 채굴 도킹 생산 증폭
         /// <summary>Phase 6: 연구를 하는지 (비교 측정용, 기본 true).</summary>
         public static bool UseResearch = true;
         /// <summary>연구 우선순위: 유지보수 → 생산 → 에너지 → 건설·경제 → 거주 → 방어.</summary>
@@ -78,7 +79,15 @@ namespace SpaceStation.Editor.Balance
                 _power = _fusion; // 태양광이 없는 목록 (테스트 등)
             if (_fusion == _power)
                 _fusion = null;
+            // 8-2 채굴 도킹을 늘려 주는 모듈 (인접 규칙에서 찾음, 건설 목록에 있을 때만)
+            var booster = sim.Adjacency.FindProductionBooster(_metal);
+            foreach (var m in buildable)
+                if (m != null && m == booster)
+                    _refinery = m;
         }
+
+        /// <summary>8-2: 새 제련소가 증폭할 수 있는(아직 제련소가 없는) 채굴 도킹이 이만큼 이상 맞닿는 자리가 있을 때 짓는다 (비교 측정용으로 바꿀 수 있음).</summary>
+        public static int RefineryMinDocks = 1;
 
         private static float PowerOutput(ModuleData m)
         {
@@ -174,6 +183,10 @@ namespace SpaceStation.Editor.Balance
                 return _bay;
             if (CanBuildMetal())
                 return _metal; // 설치 한도까지 채굴 도킹
+            // 8-2: 도킹 한도에 닿았으면, 증폭 안 된 도킹에 붙일 자리가 있는 동안 제련소 (금속 수입을 더 늘리는 유일한 방법 → 저축해서 산다)
+            if (_refinery != null && _sim.CheckBuildable(_refinery) == PlacementResult.Valid
+                && TryFindPlacement(_refinery, out var refOrigin, out int refRot) && FreshDocksAt(refOrigin, refRot) >= RefineryMinDocks)
+                return _refinery;
             // Phase 6: 소형부터 연구소 1개, 중형부터 2개
             if (UseResearch && _lab != null && _sim.Research.Categories.Count > 0 && CountLabs() < LabsWanted()
                 && _sim.CheckBuildable(_lab) == PlacementResult.Valid)
@@ -479,6 +492,8 @@ namespace SpaceStation.Editor.Balance
                     float contactWeight = data.SolarPowered ? 1f : 10f;
                     float score = Contacts(data, origin, rot) * contactWeight - origin.sqrMagnitude * 0.01f
                                   + AdjacencyScore(data, origin, rot) + DefenseScore(data, origin, rot) + ServiceScore(data, origin, rot);
+                    if (data == _refinery)
+                        score += FreshDocksAt(origin, rot) * 40f;
                     if (score > bestScore)
                     {
                         bestScore = score;
@@ -510,6 +525,32 @@ namespace SpaceStation.Editor.Balance
 
         private readonly List<AppliedAdjacency> _previewSelf = new List<AppliedAdjacency>();
         private readonly List<string> _previewNeighbors = new List<string>();
+
+        /// <summary>제련소를 이 자리에 놓으면 맞닿게 되는 채굴 도킹 중 아직 제련소와 맞닿지 않은 것의 수.</summary>
+        private int FreshDocksAt(Vector3Int origin, int rotation)
+        {
+            var cells = StationGrid.ResolveCells(_refinery.CellOffsets, origin, rotation);
+            _freshDocks.Clear();
+            foreach (var c in cells)
+            {
+                foreach (var dir in GridDirections.Faces)
+                {
+                    if (_sim.Grid.TryGetModule(c + dir, out var n) && n.Data == _metal && !_freshDocks.Contains(n))
+                    {
+                        _sim.Grid.GetNeighborModules(n, _neighborScratch);
+                        bool boosted = false;
+                        foreach (var nn in _neighborScratch)
+                            boosted |= nn.Data == _refinery;
+                        if (!boosted)
+                            _freshDocks.Add(n);
+                    }
+                }
+            }
+            return _freshDocks.Count;
+        }
+
+        private readonly List<ModuleInstance> _freshDocks = new List<ModuleInstance>();
+        private readonly List<ModuleInstance> _neighborScratch = new List<ModuleInstance>();
 
         private int Contacts(ModuleData data, Vector3Int origin, int rotation)
         {

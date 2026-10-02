@@ -11,6 +11,7 @@ namespace SpaceStation.Editor
     /// - M_ShieldTrail: 빛점 꼬리 (가산 반투명 파티클)
     /// - M_FarmGlass: 수경 농장 온실 유리 (반투명 Lit)
     /// - M_FarmGrow: 수경 농장 생장등 (불투명 Lit + HDR 발광)
+    /// - M_FusionPlasma / M_RefineryGlow: 핵융합로 플라스마, 제련소 용광로 불빛 (불투명 Lit + HDR 발광)
     /// </summary>
     public static class ModuleFxMaterials
     {
@@ -39,6 +40,7 @@ namespace SpaceStation.Editor
                 case "FarmGlass": return Glass("M_FarmGlass", new Color(0.62f, 1f, 0.84f, 0.26f), new Color(0.05f, 0.16f, 0.11f));
                 case "FarmGrow": return Emissive("M_FarmGrow", new Color(0.35f, 0.9f, 0.4f, 1f), new Color(0.5f, 2.6f, 0.7f, 1f));
                 case "FusionPlasma": return Emissive("M_FusionPlasma", new Color(0.3f, 0.75f, 1f, 1f), new Color(0.3f, 1.3f, 3.0f, 1f));
+                case "RefineryGlow": return Emissive("M_RefineryGlow", new Color(0.9f, 0.22f, 0.03f, 1f), new Color(1.9f, 0.26f, 0.02f, 1f)); // 초록 성분이 크면 톤매핑 뒤 노랗게 보임
                 case "Rock": return Rock();
                 default: return null;
             }

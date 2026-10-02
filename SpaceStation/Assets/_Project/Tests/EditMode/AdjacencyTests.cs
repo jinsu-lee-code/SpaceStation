@@ -116,6 +116,16 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void FindProductionBooster_ReturnsPositiveProductionNeighbor()
+        {
+            var adj = new AdjacencySystem(_rules);
+            Assert.AreEqual(_farm, adj.FindProductionBooster(_oxygen), "광합성: 산소 ← 농장");
+            Assert.IsNull(adj.FindProductionBooster(_solar), "그늘은 감소 + 이웃 지정 없음");
+            Assert.IsNull(adj.FindProductionBooster(_farm), "소비 규칙은 해당 없음");
+            Assert.IsNull(new AdjacencySystem(null).FindProductionBooster(_oxygen));
+        }
+
+        [Test]
         public void Integration_FarmNextToWater_ConsumesLess()
         {
             var sim = Sim();

@@ -46,6 +46,30 @@ namespace SpaceStation.Editor
                 Cost = 250f, Production = new[] { (ResourceType.Power, 40f) }, Consumption = new[] { (ResourceType.Water, 0.5f) },
                 UnlockGrade = 2, AccentHex = "#FFB040", SpreadTimeMultiplier = 0.5f,
             },
+            // 8-2 제련소: 자체 생산 없음, 맞닿은 채굴 도킹 증폭 (아래 인접 규칙)
+            new Def
+            {
+                Key = "Refinery", Name = "제련소", Category = ModuleCategory.Industry, Cells = TwoCells,
+                Cost = 150f, Consumption = new[] { (ResourceType.Power, 5f), (ResourceType.Water, 0.3f) },
+                UnlockGrade = 2, AccentHex = "#FF6A2E",
+            },
+        };
+
+        /// <summary>신규 모듈이 쓰는 인접 규칙 (AdjacencyRules.asset, 대상+이웃+효과가 같으면 갱신).</summary>
+        private sealed class AdjDef
+        {
+            public string Target;
+            public string Neighbor;
+            public AdjacencyEffect Effect;
+            public float Value;
+            public int MaxStacks;
+            public string Label;
+        }
+
+        private static readonly AdjDef[] Rules =
+        {
+            // 8-2 채굴 도킹 옆 제련소: 금속 생산 +50% (제련소 여러 개여도 1번만)
+            new AdjDef { Target = "MiningDock", Neighbor = "Refinery", Effect = AdjacencyEffect.Production, Value = 0.5f, MaxStacks = 1, Label = "제련 가공" },
         };
 
         [MenuItem("SpaceStation/Modules/Phase 8 Setup")]
@@ -58,6 +82,8 @@ namespace SpaceStation.Editor
                 Unlock(data, def.UnlockGrade);
                 built.Add(data.name);
             }
+            foreach (var rule in Rules)
+                EnsureRule(rule);
             AssetDatabase.SaveAssets();
             WireScene();
             HudArtBuilder.BuildThumbnails(); // 건설 메뉴 썸네일 (프리팹 렌더)
@@ -116,6 +142,39 @@ namespace SpaceStation.Editor
             else
                 Debug.LogWarning($"[ModuleExpansionSetup] {def.Key}: SM_{def.Key}.fbx 없음 — 빈 프리팹 (모델 제작 후 다시 실행)");
             return data;
+        }
+
+        private static void EnsureRule(AdjDef def)
+        {
+            var set = AssetDatabase.LoadAssetAtPath<AdjacencyRuleSet>($"{DataRoot}/AdjacencyRules.asset");
+            var target = AssetDatabase.LoadAssetAtPath<ModuleData>($"{ModuleDir}/MD_{def.Target}.asset");
+            var neighbor = AssetDatabase.LoadAssetAtPath<ModuleData>($"{ModuleDir}/MD_{def.Neighbor}.asset");
+            var so = new SerializedObject(set);
+            var list = so.FindProperty("_rules");
+            SerializedProperty rule = null;
+            for (int i = 0; i < list.arraySize && rule == null; i++)
+            {
+                var r = list.GetArrayElementAtIndex(i);
+                if (r.FindPropertyRelative("_target").objectReferenceValue == target
+                    && r.FindPropertyRelative("_neighbor").objectReferenceValue == neighbor
+                    && r.FindPropertyRelative("_effect").enumValueIndex == (int)def.Effect)
+                    rule = r;
+            }
+            if (rule == null)
+            {
+                list.arraySize++;
+                rule = list.GetArrayElementAtIndex(list.arraySize - 1);
+            }
+            rule.FindPropertyRelative("_target").objectReferenceValue = target;
+            rule.FindPropertyRelative("_neighbor").objectReferenceValue = neighbor;
+            rule.FindPropertyRelative("_excludeSameType").boolValue = false;
+            rule.FindPropertyRelative("_effect").enumValueIndex = (int)def.Effect;
+            rule.FindPropertyRelative("_valuePerNeighbor").floatValue = def.Value;
+            rule.FindPropertyRelative("_freeNeighbors").intValue = 0;
+            rule.FindPropertyRelative("_maxStacks").intValue = def.MaxStacks;
+            rule.FindPropertyRelative("_label").stringValue = def.Label;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(set);
         }
 
         /// <summary>강조 재질: 다른 모듈의 강조 재질을 복사해 색만 바꾼다.</summary>

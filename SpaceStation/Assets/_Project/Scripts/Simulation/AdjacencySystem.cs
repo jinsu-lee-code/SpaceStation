@@ -57,6 +57,22 @@ namespace SpaceStation.Simulation
 
         public bool HasRules => _rules != null && _rules.Rules.Count > 0;
 
+        /// <summary>
+        /// 대상 모듈의 생산을 늘려 주는 이웃 모듈 (생산 + 규칙의 첫 이웃, 예: 채굴 도킹 → 제련소). 없으면 null.
+        /// </summary>
+        public ModuleData FindProductionBooster(ModuleData target)
+        {
+            if (!HasRules || target == null)
+                return null;
+            foreach (var rule in _rules.Rules)
+            {
+                if (rule.Target == target && rule.Neighbor != null && rule.Neighbor != target
+                    && rule.Effect == AdjacencyEffect.Production && rule.ValuePerNeighbor > 0f)
+                    return rule.Neighbor;
+            }
+            return null;
+        }
+
         /// <summary>Phase 6 생산 연구: 좋은 인접 효과(생산 +, 소비 −)를 이웃당 이만큼 더 강하게. null이면 0.</summary>
         public ResearchEffects Effects { get; set; }
 
