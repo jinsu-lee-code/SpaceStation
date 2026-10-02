@@ -28,6 +28,15 @@ namespace SpaceStation.Building
         [SerializeField] private Color _invalidColor = new Color(1f, 0.2f, 0.2f, 0.45f);
         [Tooltip("배치 가능/불가 색 전환 속도")]
         [SerializeField, Min(0.1f)] private float _colorBlendSpeed = 14f;
+        [Header("Dock Lane (8-0)")]
+        [Tooltip("배치 중 이미 지은 채굴 도킹의 접근로 표시 색")]
+        [SerializeField] private Color _existingLaneColor = new Color(1f, 0.72f, 0.2f, 0.16f);
+        [Tooltip("고스트 도킹 접근로: 고스트 색에 곱하는 알파")]
+        [SerializeField, Range(0f, 1f)] private float _ghostLaneAlpha = 0.5f;
+        [Tooltip("접근로 판 크기 (칸 대비 가로·세로)")]
+        [SerializeField, Range(0.3f, 1f)] private float _laneCellScale = 0.7f;
+        [Tooltip("접근로 판 두께 (칸 대비) — 얇은 활주로처럼")]
+        [SerializeField, Range(0.01f, 1f)] private float _laneThickness = 0.05f;
         private Color _ghostColor;
         private Color _appliedGhostColor = new Color(-1f, -1f, -1f, -1f);
 
@@ -49,6 +58,13 @@ namespace SpaceStation.Building
         private readonly List<ModuleData> _categoryModules = new List<ModuleData>();
         private ModuleCategory _category;
         private StationConnectors _connectors; // 5-6 고스트 통로 미리보기
+        // 8-0 도킹 접근로 표시 (반투명 홀로그램 칸, 풀링)
+        private readonly List<GameObject> _laneCells = new List<GameObject>();
+        private readonly List<Renderer> _laneRenderers = new List<Renderer>();
+        private readonly List<Vector3Int> _existingLanes = new List<Vector3Int>();
+        private readonly List<Vector3Int> _laneScratch = new List<Vector3Int>();
+        private bool _existingLanesDirty = true;
+        private int _laneUsed;
 
         /// <summary>선택된 모듈이 바뀔 때 (null = 배치 모드 해제).</summary>
         public event Action<ModuleData> SelectionChanged;
@@ -88,6 +104,26 @@ namespace SpaceStation.Building
             BuildCategories.Filter(_buildableModules, _category, _categoryModules);
         }
 
+        private void Start()
+        {
+            // StationController.Awake에서 그리드가 만들어진 뒤 구독
+            if (_station == null || _station.Grid == null)
+                return;
+            _station.Grid.ModulePlaced += MarkLanesDirty;
+            _station.Grid.ModuleRemoved += MarkLanesDirty;
+        }
+
+        private void OnDestroy()
+        {
+            if (_station != null && _station.Grid != null)
+            {
+                _station.Grid.ModulePlaced -= MarkLanesDirty;
+                _station.Grid.ModuleRemoved -= MarkLanesDirty;
+            }
+        }
+
+        private void MarkLanesDirty(ModuleInstance _) => _existingLanesDirty = true;
+
         public void SetCategory(ModuleCategory category)
         {
             if (category == _category || !_categories.Contains(category))
@@ -125,6 +161,7 @@ namespace SpaceStation.Building
             else
                 UpdateTarget(mouse.position.ReadValue());
             UpdateGhost();
+            UpdateLanes();
 
             if (_hasTarget && mouse.leftButton.wasPressedThisFrame)
             {
@@ -145,6 +182,7 @@ namespace SpaceStation.Building
             _rotation = 0;
             _hasTarget = false;
             RebuildGhost();
+            UpdateLanes(); // 해제하면 접근로 표시도 숨김
             SelectionChanged?.Invoke(_selected);
         }
 
@@ -184,9 +222,98 @@ namespace SpaceStation.Building
                 return; // 모듈이 아닌 콜라이더
 
             _targetCell = GridConfig.GetAdjacentCell(hit.point, hit.normal);
+            if (_selected.TerminalOnly)
+                AutoOrientDock(_targetCell - hitCell);
             _targetResult = _station.EvaluatePlacement(_selected, _targetCell, _rotation);
             _targetValid = _targetResult == PlacementResult.Valid;
             _hasTarget = true;
+        }
+
+        /// <summary>
+        /// 8-0: 도킹은 클릭한 면에서 바깥쪽(normal)으로 입구가 향하도록 회전을 자동으로 맞춘다 (뒷면 = 클릭한 모듈).
+        /// 위·아래 면이면 입구가 수평이라 맞출 수 없으므로 수동 회전 유지.
+        /// </summary>
+        private void AutoOrientDock(Vector3Int outward)
+        {
+            if (outward.y != 0)
+                return;
+            for (int r = 0; r < 4; r++)
+            {
+                if (PlacementRules.DockFrontWorld(_selected, r) == outward)
+                {
+                    _rotation = r;
+                    return;
+                }
+            }
+        }
+
+        /// <summary>8-0: 배치 중 도킹 접근로 표시. 이미 지은 도킹 = 호박색, 고스트 도킹 = 고스트 색.</summary>
+        private void UpdateLanes()
+        {
+            _laneUsed = 0;
+            if (_selected != null)
+            {
+                if (_existingLanesDirty)
+                    RebuildExistingLanes();
+                foreach (var cell in _existingLanes)
+                    AddLane(cell, _existingLaneColor);
+                if (_hasTarget && _selected.TerminalOnly)
+                {
+                    PlacementRules.GetDockLane(_selected, _targetCell, _rotation, _laneScratch);
+                    var c = _ghostColor;
+                    c.a *= _ghostLaneAlpha;
+                    foreach (var cell in _laneScratch)
+                        AddLane(cell, c);
+                }
+            }
+            for (int i = _laneUsed; i < _laneCells.Count; i++)
+            {
+                if (_laneCells[i].activeSelf)
+                    _laneCells[i].SetActive(false);
+            }
+        }
+
+        private void RebuildExistingLanes()
+        {
+            _existingLanesDirty = false;
+            _existingLanes.Clear();
+            foreach (var m in _station.Grid.Modules)
+            {
+                if (m.Data == null || !m.Data.TerminalOnly)
+                    continue;
+                PlacementRules.GetDockLane(m.Data, m.Origin, m.Rotation, _laneScratch);
+                foreach (var cell in _laneScratch)
+                {
+                    if (!_station.Grid.IsOccupied(cell)) // 예전 규칙 도킹은 막혀 있을 수 있음
+                        _existingLanes.Add(cell);
+                }
+            }
+        }
+
+        private void AddLane(Vector3Int cell, Color color)
+        {
+            if (_laneUsed >= _laneCells.Count)
+            {
+                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                go.name = "DockLane";
+                Destroy(go.GetComponent<Collider>());
+                go.transform.SetParent(transform, false);
+                go.transform.localScale = new Vector3(_laneCellScale, _laneThickness, _laneCellScale) * GridConfig.CellSize;
+                var r = go.GetComponent<Renderer>();
+                r.shadowCastingMode = ShadowCastingMode.Off;
+                r.receiveShadows = false;
+                if (_ghostMaterial != null)
+                    r.sharedMaterial = _ghostMaterial;
+                _laneCells.Add(go);
+                _laneRenderers.Add(r);
+            }
+            var cellGo = _laneCells[_laneUsed];
+            cellGo.transform.position = GridConfig.CellToWorld(cell);
+            if (!cellGo.activeSelf)
+                cellGo.SetActive(true);
+            _propertyBlock.SetColor(BaseColorId, color);
+            _laneRenderers[_laneUsed].SetPropertyBlock(_propertyBlock);
+            _laneUsed++;
         }
 
         private void UpdateGhost()

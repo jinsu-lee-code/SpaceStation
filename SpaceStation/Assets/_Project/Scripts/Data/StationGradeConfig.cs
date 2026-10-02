@@ -53,9 +53,12 @@ namespace SpaceStation.Data
         [SerializeField] private List<StationGrade> _grades = new List<StationGrade>();
         [Tooltip("등급별 최대 설치 수가 적용되는 모듈 (채굴 도킹)")]
         [SerializeField] private ModuleData _limitedModule;
+        [Tooltip("8-0: 최고 등급에서 그 등급 최소 모듈 수를 넘는 모듈 N개마다 제한 모듈 최대 수 +1 (0 = 확장 없음)")]
+        [SerializeField, Min(0)] private int _extraLimitEveryModules;
 
         public IReadOnlyList<StationGrade> Grades => _grades;
         public ModuleData LimitedModule => _limitedModule;
+        public int ExtraLimitEveryModules => _extraLimitEveryModules;
 
         /// <summary>난이도 덮어쓰기 — 복사본에만 호출. 음수 항목은 유지.</summary>
         internal void ApplyEventIntervals(IReadOnlyList<float> multipliers)

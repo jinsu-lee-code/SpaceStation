@@ -43,65 +43,85 @@ namespace SpaceStation.Tests
             Assert.AreEqual(PlacementResult.Occupied, PlacementRules.Evaluate(_grid, _block, Vector3Int.zero, 0));
         }
 
-        [Test]
-        public void Dock_WithExactlyOneContact_IsValid()
+        // ---- 도킹 규칙 (8-0: 뒷면 연결 + 앞쪽 접근로 2칸) ----
+
+        private static readonly Vector3Int Fwd = new Vector3Int(0, 0, 1); // 회전 0 입구 방향 (ModuleData 기본값)
+
+        private int RotationFacing(Vector3Int front)
         {
-            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _dock, Vector3Int.up, 0));
+            for (int r = 0; r < 4; r++)
+                if (PlacementRules.DockFrontWorld(_dock, r) == front)
+                    return r;
+            Assert.Fail($"입구를 {front}로 돌릴 수 없음");
+            return 0;
         }
 
         [Test]
-        public void Dock_WithTwoContacts_IsRejected()
+        public void Dock_BackAttached_LaneFree_IsValid()
         {
-            // (1,0,1)은 (1,0,0)과 (0,0,1) 두 면에 닿음
+            Assert.AreEqual(Fwd, PlacementRules.DockFrontWorld(_dock, 0));
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _dock, Fwd, 0), "뒷면 = 코어(0,0,0)");
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _dock, Vector3Int.right, RotationFacing(Vector3Int.right)), "+X로 돌리면 뒷면이 코어");
+        }
+
+        [Test]
+        public void Dock_WithoutBackContact_IsRejected()
+        {
+            // (1,0,0)에 회전 0: 뒷면 칸 (1,0,-1)이 비어 있음 (코어와는 옆면으로만 닿음)
+            Assert.AreEqual(PlacementResult.DockNeedsBackContact, PlacementRules.Evaluate(_grid, _dock, Vector3Int.right, 0));
+            Assert.AreEqual(PlacementResult.DockNeedsBackContact, PlacementRules.Evaluate(_grid, _dock, new Vector3Int(5, 5, 5), 0));
+        }
+
+        [Test]
+        public void Dock_LaneAlreadyBlocked_IsRejected()
+        {
+            _grid.TryPlace(_block, new Vector3Int(0, 0, 3), 0, out _); // 접근로 두 번째 칸
+            Assert.AreEqual(PlacementResult.DockLaneBlocked, PlacementRules.Evaluate(_grid, _dock, Fwd, 0));
+        }
+
+        [Test]
+        public void AfterDock_OnlyLaneIsBlocked_SidesAreFree()
+        {
+            _grid.TryPlace(_dock, Fwd, 0, out _); // (0,0,1), 접근로 (0,0,2)·(0,0,3)
+            Assert.AreEqual(PlacementResult.BlockedByDockLane, PlacementRules.Evaluate(_grid, _block, new Vector3Int(0, 0, 2), 0));
+            Assert.AreEqual(PlacementResult.BlockedByDockLane, PlacementRules.Evaluate(_grid, _block, new Vector3Int(0, 0, 3), 0));
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _block, new Vector3Int(0, 0, 4), 0), "접근로 너머");
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _block, new Vector3Int(1, 0, 1), 0), "도킹 옆");
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _block, new Vector3Int(0, 1, 1), 0), "도킹 위");
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _block, new Vector3Int(0, -1, 1), 0), "도킹 아래");
+        }
+
+        [Test]
+        public void Docks_CanStandSideBySide()
+        {
+            _grid.TryPlace(_dock, Fwd, 0, out _);
             _grid.TryPlace(_block, Vector3Int.right, 0, out _);
-            _grid.TryPlace(_block, new Vector3Int(0, 0, 1), 0, out _);
-            Assert.AreEqual(PlacementResult.TerminalNeedsSingleContact,
-                PlacementRules.Evaluate(_grid, _dock, new Vector3Int(1, 0, 1), 0));
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _dock, new Vector3Int(1, 0, 1), 0), "옆 도킹 (뒷면 = (1,0,0))");
         }
 
         [Test]
-        public void Dock_WithNoContact_IsRejected()
+        public void MultiCellModule_OverlappingLane_IsBlocked()
         {
-            Assert.AreEqual(PlacementResult.TerminalNeedsSingleContact,
-                PlacementRules.Evaluate(_grid, _dock, new Vector3Int(5, 5, 5), 0));
+            _grid.TryPlace(_dock, Fwd, 0, out _);
+            // bar (-1,0,2)-(0,0,2): (0,0,2)가 접근로
+            Assert.AreEqual(PlacementResult.BlockedByDockLane, PlacementRules.Evaluate(_grid, _bar, new Vector3Int(-1, 0, 2), 0));
         }
 
         [Test]
-        public void AfterDock_ItsOtherFacesAreBlocked()
+        public void AfterDockRemoved_LaneIsFreeAgain()
         {
-            _grid.TryPlace(_dock, Vector3Int.up, 0, out _); // (0,1,0)
-            foreach (var dir in GridDirections.Faces)
-            {
-                var cell = Vector3Int.up + dir;
-                if (cell == Vector3Int.zero)
-                    continue; // 부모(코어) 셀
-                Assert.AreEqual(PlacementResult.BlockedByTerminal, PlacementRules.Evaluate(_grid, _block, cell, 0), $"cell {cell}");
-            }
-        }
-
-        [Test]
-        public void MultiCellModule_TouchingDockWithFarCell_IsBlocked()
-        {
-            _grid.TryPlace(_dock, Vector3Int.up, 0, out _); // (0,1,0)
-            // bar (−1,2,0)-(0,2,0): (0,2,0)이 도킹 윗면에 닿음
-            Assert.AreEqual(PlacementResult.BlockedByTerminal,
-                PlacementRules.Evaluate(_grid, _bar, new Vector3Int(-1, 2, 0), 0));
-        }
-
-        [Test]
-        public void DockOnDock_IsBlocked()
-        {
-            _grid.TryPlace(_dock, Vector3Int.up, 0, out _);
-            Assert.AreEqual(PlacementResult.BlockedByTerminal, PlacementRules.Evaluate(_grid, _dock, new Vector3Int(0, 2, 0), 0));
-        }
-
-        [Test]
-        public void AfterDockRemoved_FacesAreFreeAgain()
-        {
-            _grid.TryPlace(_dock, Vector3Int.up, 0, out var dock);
+            _grid.TryPlace(_dock, Fwd, 0, out var dock);
             _grid.Remove(dock);
-            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _block, Vector3Int.right, 0));
-            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _block, Vector3Int.up, 0));
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _block, new Vector3Int(0, 0, 2), 0));
+        }
+
+        [Test]
+        public void ModuleBetween_StopsLaneScan()
+        {
+            // 접근로가 이미 막힌 예전 도킹: 막은 모듈 너머 칸은 접근로로 보지 않음
+            _grid.TryPlace(_dock, Fwd, 0, out _);
+            _grid.TryPlace(_block, new Vector3Int(0, 0, 2), 0, out _); // 그리드 직접 배치 (예전 세이브처럼)
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _block, new Vector3Int(0, 0, 3), 0));
         }
 
         // ---- 받침 규칙 (7-7: 코어 2층 옆 칸만 받침 필요) ----

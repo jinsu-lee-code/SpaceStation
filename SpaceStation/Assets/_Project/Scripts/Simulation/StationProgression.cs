@@ -115,6 +115,30 @@ namespace SpaceStation.Simulation
             return count;
         }
 
+        /// <summary>
+        /// 제한 모듈(채굴 도킹) 최대 수. 최고 등급에서는 그 등급 최소 모듈 수를 넘는 모듈 N개마다 +1 (8-0, 후반 금속 수급).
+        /// </summary>
+        public int LimitFor(int moduleCount)
+        {
+            int limit = Current.MaxLimitedModules;
+            int every = _config.ExtraLimitEveryModules;
+            if (IsFinalGrade && every > 0)
+                limit += Math.Max(0, moduleCount - Current.MinModules) / every;
+            return limit;
+        }
+
+        public int CurrentLimit(StationGrid grid) => LimitFor(grid.ModuleCount);
+
+        /// <summary>최고 등급에서 다음 +1까지 남은 모듈 수 (확장 없음·최고 등급 아님이면 -1).</summary>
+        public int ModulesUntilNextExtra(int moduleCount)
+        {
+            int every = _config.ExtraLimitEveryModules;
+            if (!IsFinalGrade || every <= 0)
+                return -1;
+            int over = Math.Max(0, moduleCount - Current.MinModules);
+            return every - over % every;
+        }
+
         /// <summary>위치와 무관한 건설 가능 여부: Valid / ModuleLocked / LimitReached.</summary>
         public PlacementResult CheckBuildable(ModuleData data, StationGrid grid)
         {
@@ -122,7 +146,7 @@ namespace SpaceStation.Simulation
                 return PlacementResult.InvalidDefinition;
             if (!IsUnlocked(data))
                 return PlacementResult.ModuleLocked;
-            if (data == _config.LimitedModule && CountLimited(grid) >= Current.MaxLimitedModules)
+            if (data == _config.LimitedModule && CountLimited(grid) >= CurrentLimit(grid))
                 return PlacementResult.LimitReached;
             return PlacementResult.Valid;
         }

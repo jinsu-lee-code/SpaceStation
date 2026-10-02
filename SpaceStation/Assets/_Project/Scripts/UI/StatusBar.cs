@@ -70,6 +70,10 @@ namespace SpaceStation.UI
             _station.Simulation.Automation.Performed += HandleAutomationPerformed;
             Save.SaveManager.Notice += HandleSaveNotice;
             KeyBindings.Changed += HandleKeysChanged;
+            _station.Grid.ModulePlaced += HandleModulePlaced;
+            _station.Grid.ModuleRemoved += HandleModuleRemovedForLimit;
+            if (_progression != null)
+                _shownLimit = _progression.Progression.CurrentLimit(_station.Grid);
             _messageText.SetText(string.Empty);
             var group = _messageText.GetComponent<CanvasGroup>();
             if (group == null)
@@ -114,6 +118,34 @@ namespace SpaceStation.UI
             }
             Save.SaveManager.Notice -= HandleSaveNotice;
             KeyBindings.Changed -= HandleKeysChanged;
+            if (_station != null && _station.Grid != null)
+            {
+                _station.Grid.ModulePlaced -= HandleModulePlaced;
+                _station.Grid.ModuleRemoved -= HandleModuleRemovedForLimit;
+            }
+        }
+
+        /// <summary>철거·등급 변화로 바뀐 한도는 알림 없이 기준값만 갱신 (다시 늘 때만 알림).</summary>
+        private void HandleModuleRemovedForLimit(ModuleInstance _) => SyncShownLimit();
+
+        private void SyncShownLimit()
+        {
+            if (_progression != null)
+                _shownLimit = _progression.Progression.CurrentLimit(_station.Grid);
+        }
+
+        private int _shownLimit = -1;
+
+        /// <summary>8-0: 최고 등급에서 모듈 수로 채굴 도킹 최대 수가 늘면 알림.</summary>
+        private void HandleModulePlaced(ModuleInstance _)
+        {
+            if (_progression == null)
+                return;
+            var p = _progression.Progression;
+            int limit = p.CurrentLimit(_station.Grid);
+            if (_shownLimit >= 0 && limit > _shownLimit && p.IsFinalGrade && p.LimitedModule != null)
+                ShowMessage($"<color={HudTheme.GreenHex}>{p.LimitedModule.DisplayName} 최대 {limit}개로 증가 (모듈 {_station.Grid.ModuleCount}개)</color>");
+            _shownLimit = limit;
         }
 
         private void HandleKeysChanged() => _hintInitialized = false; // 7-5: 안내 문구의 키 이름 다시 그림
@@ -290,6 +322,7 @@ namespace SpaceStation.UI
 
         private void HandleGradeChanged(int previous, int current)
         {
+            SyncShownLimit(); // 등급으로 바뀐 한도는 아래 등급 알림에 포함
             var p = _progression.Progression;
             var grade = p.GetGrade(current);
             if (current > previous)
@@ -303,7 +336,7 @@ namespace SpaceStation.UI
                         sb.Append($"  ·  {m.DisplayName} 해금");
                 }
                 if (p.LimitedModule != null)
-                    sb.Append($"  ·  {p.LimitedModule.DisplayName} 최대 {grade.MaxLimitedModules}개");
+                    sb.Append($"  ·  {p.LimitedModule.DisplayName} 최대 {p.CurrentLimit(_station.Grid)}개");
                 sb.Append("</color>");
                 ShowMessage(sb.ToString());
             }

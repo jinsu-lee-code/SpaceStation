@@ -20,8 +20,9 @@ namespace SpaceStation.UI
             switch (result)
             {
                 case PlacementResult.Occupied: return "이미 사용 중인 공간";
-                case PlacementResult.TerminalNeedsSingleContact: return "채굴 도킹은 정거장과 한 면만 맞닿아야 함";
-                case PlacementResult.BlockedByTerminal: return "채굴 도킹의 다른 면에는 붙일 수 없음";
+                case PlacementResult.DockNeedsBackContact: return "채굴 도킹은 뒷면(연결 칼라)으로 정거장에 붙여야 함";
+                case PlacementResult.DockLaneBlocked: return "채굴 도킹 앞쪽 접근로가 막혀 있음 (입구 앞 2칸은 비어 있어야 함)";
+                case PlacementResult.BlockedByDockLane: return "채굴 도킹 접근로 (채굴선이 드나드는 길이라 지을 수 없음)";
                 case PlacementResult.NeedsSupport: return "코어 2층 옆에는 바로 붙일 수 없음 (바로 아래 1층에 모듈을 먼저 지어야 함)";
                 case PlacementResult.CoreTopNeedsSideContact: return "코어 윗면에는 옆에 다른 모듈이 닿아야 설치 가능 (연결 통로 필요)";
                 case PlacementResult.InsufficientResources: return "자원 부족";
@@ -93,7 +94,7 @@ namespace SpaceStation.UI
             if (data.ResearchSlots > 0)
                 sb.Append("동시 연구 +").Append(data.ResearchSlots).Append($" <color={Muted}>(선택 후 연구 창에서 시작, 파손·비활성 시 멈춤)</color>\n");
             if (data.TerminalOnly)
-                sb.Append($"<color={Yellow}>말단 배치 전용: 정거장과 한 면만 맞닿아야 함</color>\n");
+                sb.Append($"<color={Yellow}>뒷면으로 정거장에 붙음 · 입구 앞 {data.ApproachLaneLength}칸은 접근로 (건설 불가)</color>\n");
             if (data.IsShield)
                 sb.Append("실드: 반경 ").Append(shieldRadius).Append("칸 안 모듈로 오는 운석을 ")
                   .Append((data.ShieldReduction * 100f).ToString("0")).Append($"% 빗겨냄 <color={Muted}>(중첩 없음)</color>\n")

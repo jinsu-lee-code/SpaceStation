@@ -120,6 +120,26 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void FinalGrade_LimitGrowsWithModuleCount()
+        {
+            var so = new SerializedObject(_config);
+            so.FindProperty("_extraLimitEveryModules").intValue = 30;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            _progression.Evaluate(30, 20); // 중형: 확장 없음
+            Assert.AreEqual(4, _progression.LimitFor(500), "최고 등급이 아니면 그대로");
+            Assert.AreEqual(-1, _progression.ModulesUntilNextExtra(500));
+
+            _progression.Evaluate(60, 40); // 대형 (최소 모듈 40)
+            Assert.AreEqual(6, _progression.LimitFor(40));
+            Assert.AreEqual(6, _progression.LimitFor(69));
+            Assert.AreEqual(7, _progression.LimitFor(70), "40 + 30");
+            Assert.AreEqual(28, _progression.LimitFor(700), "6 + 660/30 = 6 + 22");
+            Assert.AreEqual(30, _progression.ModulesUntilNextExtra(40));
+            Assert.AreEqual(1, _progression.ModulesUntilNextExtra(69));
+        }
+
+        [Test]
         public void GameOver_OnlyAfterHavingPopulation_Once()
         {
             var session = new GameSession();

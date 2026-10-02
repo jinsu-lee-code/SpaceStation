@@ -309,7 +309,7 @@ namespace SpaceStation.Simulation
             var data = module.Data;
             if (!Progression.IsUnlocked(data))
                 return RebuildResult.Locked;
-            if (data == Progression.LimitedModule && Progression.CountLimited(Grid) - 1 >= Progression.Current.MaxLimitedModules)
+            if (data == Progression.LimitedModule && Progression.CountLimited(Grid) - 1 >= Progression.CurrentLimit(Grid))
                 return RebuildResult.Locked;
             return RebuildResult.Done;
         }

@@ -90,6 +90,8 @@ namespace SpaceStation.Editor
             m.SetKeyword(new LocalKeyword(m.shader, "_SURFACE_TYPE_TRANSPARENT"), true);
             m.SetKeyword(new LocalKeyword(m.shader, "_EMISSION"), true);
             m.SetColor("_EmissionColor", emission);
+            // GI 플래그가 EmissiveIsBlack이면 URP 재질 검사가 _EMISSION을 꺼 버린다 (2026-10-03 발견)
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             m.renderQueue = (int)RenderQueue.Transparent;
             m.SetOverrideTag("RenderType", "Transparent");
             m.enableInstancing = true;

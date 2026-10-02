@@ -9,10 +9,12 @@ namespace SpaceStation.Core
         Valid,
         InvalidDefinition,
         Occupied,
-        /// <summary>말단 전용 모듈인데 맞닿은 면이 정확히 1개가 아님.</summary>
-        TerminalNeedsSingleContact,
-        /// <summary>기존 말단 모듈(채굴 도킹)의 면에 붙이려 함.</summary>
-        BlockedByTerminal,
+        /// <summary>도킹(8-0)의 뒷면 칸에 붙을 모듈이 없음 (뒷면으로만 정거장에 연결).</summary>
+        DockNeedsBackContact,
+        /// <summary>도킹의 앞쪽 접근로 칸이 이미 막혀 있음.</summary>
+        DockLaneBlocked,
+        /// <summary>기존 도킹의 접근로 칸에 지으려 함.</summary>
+        BlockedByDockLane,
         /// <summary>공간 규칙은 통과했으나 건설 비용이 부족함 (StationSimulation이 판정).</summary>
         InsufficientResources,
         /// <summary>현재 등급에서 아직 해금되지 않은 모듈 (StationProgression이 판정).</summary>
@@ -31,6 +33,9 @@ namespace SpaceStation.Core
     /// - 맨 위층 옆면에 맞닿는 칸: 바로 아래에 모듈이 있어야 한다 (코어 2층은 연결점 없는 탑이라 바로 붙이지 못함)
     /// - 윗면 위에 놓는 모듈: 코어가 아닌 모듈과 옆면이 하나 이상 닿아야 한다 (코어 윗면도 연결점이 없어 통로가 하나는 필요)
     /// 그 조건을 채워 주는 모듈은 철거할 수 없다(<see cref="SupportsOthers"/>). 운석 파괴는 막지 않는다.
+    /// 도킹 규칙 (8-0, A안 "앞쪽 접근로"): <see cref="ModuleData.TerminalOnly"/> 모듈은 뒷면 칸에 모듈이 있어야 하고,
+    /// 앞쪽 접근로(<see cref="ModuleData.ApproachLaneLength"/>칸)는 비어 있어야 하며 이후에도 그 칸에는 아무것도 못 짓는다.
+    /// 옆·위·아래는 자유 (도킹끼리 나란히 가능). 예전 규칙으로 지은 도킹은 그대로 인정한다 (배치할 때만 검사).
     /// </summary>
     public static class PlacementRules
     {
@@ -48,23 +53,60 @@ namespace SpaceStation.Core
                 return PlacementResult.Occupied;
 
             var cells = StationGrid.ResolveCells(data.CellOffsets, origin, rotation);
-            int contacts = 0;
+            // 8-0: 기존 도킹의 앞쪽 접근로에는 아무것도 못 지음
             foreach (var cell in cells)
             {
-                foreach (var dir in GridDirections.Faces)
+                if (IsInDockLane(grid, cell))
+                    return PlacementResult.BlockedByDockLane;
+            }
+            if (data.TerminalOnly)
+            {
+                // 도킹: 뒷면 칸에 모듈이 있어야 하고(연결), 앞쪽 접근로는 비어 있어야 한다. 옆·위·아래는 자유
+                var front = DockFrontWorld(data, rotation);
+                if (!grid.IsOccupied(origin - front))
+                    return PlacementResult.DockNeedsBackContact;
+                for (int k = 1; k <= data.ApproachLaneLength; k++)
                 {
-                    var neighbor = cell + dir;
-                    if (Contains(cells, neighbor) || !grid.TryGetModule(neighbor, out var other))
-                        continue;
-                    if (other.Data != null && other.Data.TerminalOnly)
-                        return PlacementResult.BlockedByTerminal;
-                    contacts++;
+                    if (grid.IsOccupied(origin + front * k))
+                        return PlacementResult.DockLaneBlocked;
                 }
             }
-
-            if (data.TerminalOnly && contacts != 1)
-                return PlacementResult.TerminalNeedsSingleContact;
             return CheckSupport(grid, cells, null);
+        }
+
+        /// <summary>도킹 입구(앞) 방향 (월드 격자, 회전 반영).</summary>
+        public static Vector3Int DockFrontWorld(ModuleData data, int rotation)
+            => GridDirections.Rotate(data.DockFront, rotation);
+
+        /// <summary>도킹 접근로 칸 목록 (원점 앞으로 1~길이 칸).</summary>
+        public static void GetDockLane(ModuleData data, Vector3Int origin, int rotation, List<Vector3Int> results)
+        {
+            results.Clear();
+            if (data == null || !data.TerminalOnly)
+                return;
+            var front = DockFrontWorld(data, rotation);
+            for (int k = 1; k <= data.ApproachLaneLength; k++)
+                results.Add(origin + front * k);
+        }
+
+        private const int MaxLaneScan = 8;
+
+        /// <summary>이 칸이 이미 지어진 도킹의 접근로인지.</summary>
+        public static bool IsInDockLane(StationGrid grid, Vector3Int cell)
+        {
+            foreach (var dir in GridDirections.Faces)
+            {
+                for (int k = 1; k <= MaxLaneScan; k++)
+                {
+                    if (!grid.TryGetModule(cell - dir * k, out var other))
+                        continue;
+                    if (other.Data != null && other.Data.TerminalOnly && other.Origin == cell - dir * k
+                        && k <= other.Data.ApproachLaneLength && DockFrontWorld(other.Data, other.Rotation) == dir)
+                        return true;
+                    break; // 접근로 사이에 다른 모듈이 끼면 그 너머 도킹은 이 칸과 무관
+                }
+            }
+            return false;
         }
 
         /// <summary>받침 조건 둘 (코어 2층 옆 = 아래 모듈, 코어 윗면 위 = 옆 모듈). ignore = 없다고 치는 모듈 (철거 판정).</summary>

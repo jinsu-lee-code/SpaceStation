@@ -24,8 +24,12 @@ namespace SpaceStation.Data
         [Tooltip("철거 가능 여부. 코어는 false")]
         [SerializeField] private bool _removable = true;
 
-        [Tooltip("말단 배치 전용 (채굴 도킹): 정거장과 맞닿은 면이 정확히 1개여야 하고, 배치 후 나머지 면에는 다른 모듈을 붙일 수 없다")]
+        [Tooltip("도킹 배치 규칙 (8-0, 채굴 도킹): 뒷면으로만 정거장에 붙고, 앞쪽 접근로는 항상 비어 있어야 한다. 옆·위·아래는 자유")]
         [SerializeField] private bool _terminalOnly;
+        [Tooltip("도킹 입구(앞) 방향, 모듈 로컬 기준 (회전 0일 때). 뒷면 = 반대쪽")]
+        [SerializeField] private Vector3Int _dockFront = new Vector3Int(0, 0, 1);
+        [Tooltip("앞쪽 접근로 길이 (칸). 이 칸들에는 아무것도 지을 수 없다")]
+        [SerializeField, Min(1)] private int _approachLaneLength = 2;
 
         [Tooltip("7-7 받침 규칙: 이 모듈 맨 위층의 옆면에 맞닿는 칸은 바로 아래에 모듈이 있어야 설치 가능 (코어 2층 = 연결점 없는 탑). 나머지 칸은 자유")]
         [SerializeField] private bool _upperSidesNeedSupport;
@@ -97,6 +101,8 @@ namespace SpaceStation.Data
         public Sprite Icon => _icon;
         public bool Removable => _removable;
         public bool TerminalOnly => _terminalOnly;
+        public Vector3Int DockFront => _dockFront;
+        public int ApproachLaneLength => Mathf.Max(1, _approachLaneLength);
         public bool UpperSidesNeedSupport => _upperSidesNeedSupport;
         public IReadOnlyList<FaceDepth> FaceDepths => _faceDepths;
 

@@ -240,7 +240,7 @@ namespace SpaceStation.UI
             if (p.LimitedModule != null)
             {
                 _popSb.Append("<pos=66%><size=80%><color=").Append(HudText.Muted).Append('>').Append(p.LimitedModule.DisplayName).Append(' ')
-                      .Append(p.CountLimited(_station.Grid)).Append('/').Append(p.Current.MaxLimitedModules).Append("</color></size>");
+                      .Append(p.CountLimited(_station.Grid)).Append('/').Append(p.CurrentLimit(_station.Grid)).Append("</color></size>");
             }
             _popSb.Append('\n');
 

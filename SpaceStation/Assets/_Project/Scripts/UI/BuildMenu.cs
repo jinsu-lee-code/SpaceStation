@@ -154,7 +154,7 @@ namespace SpaceStation.UI
                     int grade = p.GetUnlockGrade(data);
                     return grade >= 0 ? $"<color={HudText.Muted}>잠김 · {p.GetGrade(grade).DisplayName}</color>" : $"<color={HudText.Muted}>잠김</color>";
                 case PlacementResult.LimitReached:
-                    return $"<color={HudText.Yellow}>최대 {p.Current.MaxLimitedModules}개</color>";
+                    return $"<color={HudText.Yellow}>최대 {p.CurrentLimit(_station.Grid)}개</color>";
                 default:
                     return null;
             }
@@ -169,7 +169,13 @@ namespace SpaceStation.UI
                 return grade >= 0 ? $"{p.GetGrade(grade).DisplayName} 등급에서 해금" : "해금 조건 없음";
             }
             if (buildable == PlacementResult.LimitReached)
-                return $"{p.Current.DisplayName} 등급 최대 {p.Current.MaxLimitedModules}개 (등급을 올리면 증가)";
+            {
+                int limit = p.CurrentLimit(_station.Grid);
+                int until = p.ModulesUntilNextExtra(_station.Grid.ModuleCount);
+                return until > 0
+                    ? $"{p.Current.DisplayName} 등급 최대 {limit}개 (모듈 {until}개 더 지으면 +1)"
+                    : $"{p.Current.DisplayName} 등급 최대 {limit}개 (등급을 올리면 증가)";
+            }
             return HudText.PlacementReason(buildable);
         }
 
