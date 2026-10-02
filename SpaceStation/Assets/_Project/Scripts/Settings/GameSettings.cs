@@ -8,6 +8,8 @@ namespace SpaceStation.Settings
     public enum ShadowLevel { Off, Low, Medium, High }
     public enum AntiAliasingMode { Off, Fxaa, Smaa, Msaa4 }
     public enum HintMode { Always, FirstMinute, Off }
+    /// <summary>7-2 노후 모듈 표시: 기존(갈색 틴트) / 밝은 테두리.</summary>
+    public enum WornDisplay { Tint, Rim }
 
     /// <summary>
     /// 5-10 설정값 (화면·게임). PlayerPrefs에 즉시 저장되고, 바뀌면 Changed로 알린다.
@@ -42,6 +44,7 @@ namespace SpaceStation.Settings
         private static int _defaultSpeedIndex;
         private static bool _pauseWhenUnfocused;
         private static int _autosaveIndex = DefaultAutosaveIndex;
+        private static WornDisplay _wornDisplay = WornDisplay.Rim;
 
         public static event Action Changed;
 
@@ -61,6 +64,8 @@ namespace SpaceStation.Settings
         public static bool PauseWhenUnfocused { get { Load(); return _pauseWhenUnfocused; } set => Set(ref _pauseWhenUnfocused, value, "pauseUnfocused"); }
 
         public static int AutosaveIndex { get { Load(); return _autosaveIndex; } set => Set(ref _autosaveIndex, Mathf.Clamp(value, 0, AutosaveChoices.Length - 1), "autosave"); }
+
+        public static WornDisplay WornDisplay { get { Load(); return _wornDisplay; } set => Set(ref _wornDisplay, value, "wornDisplay"); }
 
         public static int FrameLimit => FrameLimits[FrameLimitIndex];
         public static int AutosaveMinutes => AutosaveChoices[AutosaveIndex];
@@ -107,6 +112,7 @@ namespace SpaceStation.Settings
             _defaultSpeedIndex = 0;
             _pauseWhenUnfocused = false;
             _autosaveIndex = DefaultAutosaveIndex;
+            _wornDisplay = WornDisplay.Rim;
             SaveAll();
             Changed?.Invoke();
         }
@@ -133,6 +139,7 @@ namespace SpaceStation.Settings
             _defaultSpeedIndex = Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "speed", _defaultSpeedIndex), 0, SpeedChoices.Length - 1);
             _pauseWhenUnfocused = PlayerPrefs.GetInt(Prefix + "pauseUnfocused", _pauseWhenUnfocused ? 1 : 0) == 1;
             _autosaveIndex = Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "autosave", _autosaveIndex), 0, AutosaveChoices.Length - 1);
+            _wornDisplay = (WornDisplay)Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "wornDisplay", (int)_wornDisplay), 0, 1);
         }
 
         private static void SaveAll()
@@ -152,6 +159,7 @@ namespace SpaceStation.Settings
             PlayerPrefs.SetInt(Prefix + "speed", _defaultSpeedIndex);
             PlayerPrefs.SetInt(Prefix + "pauseUnfocused", _pauseWhenUnfocused ? 1 : 0);
             PlayerPrefs.SetInt(Prefix + "autosave", _autosaveIndex);
+            PlayerPrefs.SetInt(Prefix + "wornDisplay", (int)_wornDisplay);
             PlayerPrefs.Save();
         }
 

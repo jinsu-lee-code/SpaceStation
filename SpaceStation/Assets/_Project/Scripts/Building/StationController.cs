@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using SpaceStation.Core;
 using SpaceStation.Data;
+using SpaceStation.Settings;
 using SpaceStation.Simulation;
 using UnityEngine;
 
@@ -19,9 +20,15 @@ namespace SpaceStation.Building
         [SerializeField] private Transform _moduleRoot;
         [Tooltip("선택 가장자리 빛 재질 (SpaceStation/SelectionRim, 5-4)")]
         [SerializeField] private Material _selectionRimMaterial;
+        [Tooltip("7-2 노후 테두리 빛 색 (HDR). 선택 테두리 재질을 복제해 만든 공용 재질에 쓴다")]
+        [SerializeField, ColorUsage(false, true)] private Color _wornRimColor = new Color(1.9f, 0.95f, 0.3f, 1f);
+        [SerializeField] private float _wornRimPulseSpeed = 1.2f;
+        [SerializeField, Range(0f, 1f)] private float _wornRimPulseAmount = 0.35f;
 
         private readonly Dictionary<ModuleInstance, ModuleView> _views = new Dictionary<ModuleInstance, ModuleView>();
         private StationSimulation _sim;
+        private Material _wornRimMaterial;
+        private bool _wornRimStyle;
 
         public StationSimulation Simulation => _sim;
         public StationGrid Grid => _sim.Grid;
@@ -34,6 +41,9 @@ namespace SpaceStation.Building
                 _moduleRoot = transform;
 
             _sim = _host.Simulation; // SimulationHost.Awake(-100) 이후
+            CreateWornRimMaterial();
+            _wornRimStyle = GameSettings.WornDisplay == WornDisplay.Rim;
+            GameSettings.Changed += HandleSettingsChanged;
             foreach (var module in _sim.Grid.Modules)
                 CreateView(module); // 코어 등 이미 배치된 모듈
 
@@ -50,6 +60,9 @@ namespace SpaceStation.Building
 
         private void OnDestroy()
         {
+            GameSettings.Changed -= HandleSettingsChanged;
+            if (_wornRimMaterial != null)
+                Destroy(_wornRimMaterial);
             if (_sim == null)
                 return;
             _sim.Grid.ModulePlaced -= CreateView;
@@ -116,6 +129,30 @@ namespace SpaceStation.Building
                 ReleaseDamageVisual(module); // 연출이 놓쳐도 안전하게 적용
         }
 
+        /// <summary>7-2: 노후 테두리 공용 재질 (선택 테두리 재질 복제 + 호박색·느린 맥동). 모든 노후 모듈이 같은 재질을 공유한다.</summary>
+        private void CreateWornRimMaterial()
+        {
+            if (_selectionRimMaterial == null)
+                return;
+            _wornRimMaterial = new Material(_selectionRimMaterial) { name = "M_WornRim (Runtime)" };
+            _wornRimMaterial.SetColor("_RimColor", _wornRimColor);
+            _wornRimMaterial.SetFloat("_PulseSpeed", _wornRimPulseSpeed);
+            _wornRimMaterial.SetFloat("_PulseAmount", _wornRimPulseAmount);
+        }
+
+        private void HandleSettingsChanged()
+        {
+            bool rim = GameSettings.WornDisplay == WornDisplay.Rim;
+            if (rim == _wornRimStyle)
+                return;
+            _wornRimStyle = rim;
+            foreach (var view in _views.Values)
+            {
+                if (view != null)
+                    view.SetWornRimStyle(rim);
+            }
+        }
+
         /// <summary>틱마다 내구도 효율 저하 여부를 뷰에 반영 (상태가 바뀐 뷰만 MPB 갱신).</summary>
         private void RefreshWornVisuals()
         {
@@ -171,7 +208,7 @@ namespace SpaceStation.Building
             go.name = module.ToString();
             if (!go.TryGetComponent<ModuleView>(out var view))
                 view = go.AddComponent<ModuleView>();
-            view.Initialize(module, _selectionRimMaterial);
+            view.Initialize(module, _selectionRimMaterial, _wornRimMaterial, _wornRimStyle);
             // 연결 재계산은 시뮬레이션이 이미 끝냈으므로 현재 상태를 바로 반영
             view.SetOperational(_sim.Connectivity.IsActive(module));
             // 불러온 판: 이미 파손·노후된 모듈은 생성 즉시 표시 (평소 새 모듈은 둘 다 해당 없음)

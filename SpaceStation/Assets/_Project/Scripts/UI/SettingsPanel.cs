@@ -249,6 +249,8 @@ namespace SpaceStation.UI
             ChoiceRow(page, "자동 저장 간격 (게임 시간)", () => GameSettings.AutosaveChoices.Length,
                 i => GameSettings.AutosaveChoices[i] == 0 ? "끔" : $"{GameSettings.AutosaveChoices[i]}분",
                 () => GameSettings.AutosaveIndex, i => GameSettings.AutosaveIndex = i);
+            ChoiceRow(page, "노후 모듈 표시", () => 2, i => new[] { "갈색 틴트 (기존)", "밝은 테두리" }[i],
+                () => (int)GameSettings.WornDisplay, i => GameSettings.WornDisplay = (WornDisplay)i);
         }
 
         private void SelectTab(int tab)

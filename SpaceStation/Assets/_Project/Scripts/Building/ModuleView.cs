@@ -15,7 +15,7 @@ namespace SpaceStation.Building
     /// - 비활성(코어와 분리): 어둡게 + 창문·띠 발광 꺼짐
     /// - 파손: 붉은 틴트 + 발광이 불규칙하게 깜빡임
     /// - 수리 중: 하늘색 틴트가 천천히 맥동
-    /// - 노후: 갈색 틴트 + 발광 약하게
+    /// - 노후: 발광 약하게 + 설정(7-2)에 따라 갈색 틴트 또는 밝은 호박색 테두리
     /// - 선택: 효율 구간 색(7-1: 청록/노랑/빨강/빨강 깜빡임) 약한 틴트 + 가장자리 빛(SelectionRim 복제 렌더러)
     /// 기본 상태(활성 + 정상 + 비선택)에서는 블록을 비워 SRP Batcher 호환을 유지한다.
     /// 깜빡임·맥동이 필요한 상태에서만 매 프레임 갱신한다.
@@ -50,6 +50,8 @@ namespace SpaceStation.Building
         private ModuleDamageVisual _damage;
         private bool _worn;
         private Material _rimMaterial;
+        private Material _wornRimMaterial;
+        private bool _wornRimStyle;
         private System.Collections.Generic.List<GameObject> _rimCopies;
         private System.Collections.Generic.List<Renderer> _rimRenderers;
         private MaterialPropertyBlock _rimBlock;
@@ -67,10 +69,13 @@ namespace SpaceStation.Building
 
         private bool Animating => _damage != ModuleDamageVisual.None || (_highlighted && _band == EfficiencyBand.Critical);
 
-        public void Initialize(ModuleInstance module, Material rimMaterial = null)
+        /// <param name="wornRimMaterial">7-2 노후 테두리 재질 (모든 모듈 공용, null이면 테두리 방식 없음)</param>
+        public void Initialize(ModuleInstance module, Material rimMaterial = null, Material wornRimMaterial = null, bool wornRimStyle = false)
         {
             Module = module;
             _rimMaterial = rimMaterial;
+            _wornRimMaterial = wornRimMaterial;
+            _wornRimStyle = wornRimStyle;
             _seed = Random.value * 100f;
             _propertyBlock = new MaterialPropertyBlock();
             _renderers = GetComponentsInChildren<Renderer>();
@@ -113,7 +118,17 @@ namespace SpaceStation.Building
             if (_highlighted == highlighted)
                 return;
             _highlighted = highlighted;
-            SetRimVisible(highlighted);
+            RefreshRim();
+            Apply(Time.time);
+        }
+
+        /// <summary>7-2: 노후 표시 방식 (true = 밝은 테두리, false = 갈색 틴트). 설정이 바뀌면 StationController가 모든 뷰에 알린다.</summary>
+        public void SetWornRimStyle(bool rim)
+        {
+            if (_wornRimStyle == rim)
+                return;
+            _wornRimStyle = rim;
+            RefreshRim();
             Apply(Time.time);
         }
 
@@ -140,6 +155,7 @@ namespace SpaceStation.Building
             if (_worn == worn)
                 return;
             _worn = worn;
+            RefreshRim();
             Apply(Time.time);
         }
 
@@ -170,7 +186,7 @@ namespace SpaceStation.Building
                     color = Color.Lerp(color, _damagedTint, _damagedTintAmount);
                 else if (_damage == ModuleDamageVisual.Repairing)
                     color = Color.Lerp(color, _repairingTint, _repairingTintAmount * (0.6f + 0.4f * Mathf.Sin(time * 3f)));
-                else if (_worn)
+                else if (_worn && !_wornRimStyle) // 테두리 방식이면 원래 색 유지 (발광만 약하게)
                     color = Color.Lerp(color, _wornTint, _wornTintAmount);
                 if (_highlighted)
                     color = Color.Lerp(color, EfficiencyBands.Tint(_band), _highlightTintAmount);
@@ -203,42 +219,67 @@ namespace SpaceStation.Building
         }
 
         /// <summary>
-        /// 선택 가장자리 빛: 각 메시를 SelectionRim 재질로 한 번 더 그리는 복제본을 처음 선택될 때 만든다.
+        /// 가장자리 빛: 각 메시를 SelectionRim 셰이더 재질로 한 번 더 그리는 복제본을 처음 필요할 때 만든다.
+        /// 선택 중이면 선택 재질(효율 구간 색 MPB), 아니고 노후 + 테두리 방식이면 공용 노후 재질(MPB 없음 → 노후 모듈이 많아도 배처 유지).
         /// 복제본은 원본 렌더러의 자식이라 회전하는 부품(태양광 패널 등)도 따라간다. 상태 틴트 대상(_renderers)에는 포함되지 않는다.
         /// </summary>
-        private void SetRimVisible(bool visible)
+        private void RefreshRim()
         {
-            if (_rimMaterial == null || _renderers == null)
-                return;
-            if (visible && _rimCopies == null)
-            {
-                _rimCopies = new System.Collections.Generic.List<GameObject>();
-                foreach (var r in _renderers)
-                {
-                    var filter = r.GetComponent<MeshFilter>();
-                    if (filter == null || filter.sharedMesh == null)
-                        continue;
-                    var copy = new GameObject(r.name + "_Rim");
-                    copy.transform.SetParent(r.transform, false); // 원본의 위치·회전·스케일을 그대로 따름
-                    copy.AddComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
-                    var rr = copy.AddComponent<MeshRenderer>();
-                    var mats = new Material[filter.sharedMesh.subMeshCount];
-                    for (int m = 0; m < mats.Length; m++)
-                        mats[m] = _rimMaterial;
-                    rr.sharedMaterials = mats;
-                    rr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                    rr.receiveShadows = false;
-                    _rimCopies.Add(copy);
-                    (_rimRenderers ??= new System.Collections.Generic.List<Renderer>()).Add(rr);
-                }
-                ApplyRimColor(Time.time);
-            }
+            var material = _highlighted ? _rimMaterial
+                : _worn && _wornRimStyle ? _wornRimMaterial
+                : null;
+            if (material != null)
+                EnsureRimCopies();
             if (_rimCopies == null)
                 return;
-            foreach (var copy in _rimCopies)
+            bool visible = material != null;
+            for (int i = 0; i < _rimCopies.Count; i++)
             {
-                if (copy != null)
-                    copy.SetActive(visible);
+                var copy = _rimCopies[i];
+                if (copy == null)
+                    continue;
+                if (visible)
+                {
+                    var rr = _rimRenderers[i];
+                    if (rr.sharedMaterial != material)
+                    {
+                        var mats = rr.sharedMaterials;
+                        for (int m = 0; m < mats.Length; m++)
+                            mats[m] = material;
+                        rr.sharedMaterials = mats;
+                    }
+                    if (!_highlighted)
+                        rr.SetPropertyBlock(null); // 노후 테두리: 재질 색 그대로
+                }
+                copy.SetActive(visible);
+            }
+            ApplyRimColor(Time.time);
+        }
+
+        private void EnsureRimCopies()
+        {
+            if (_rimCopies != null || _rimMaterial == null || _renderers == null)
+                return;
+            _rimCopies = new System.Collections.Generic.List<GameObject>();
+            _rimRenderers = new System.Collections.Generic.List<Renderer>();
+            foreach (var r in _renderers)
+            {
+                var filter = r.GetComponent<MeshFilter>();
+                if (filter == null || filter.sharedMesh == null)
+                    continue;
+                var copy = new GameObject(r.name + "_Rim");
+                copy.transform.SetParent(r.transform, false); // 원본의 위치·회전·스케일을 그대로 따름
+                copy.AddComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
+                var rr = copy.AddComponent<MeshRenderer>();
+                var mats = new Material[filter.sharedMesh.subMeshCount];
+                for (int m = 0; m < mats.Length; m++)
+                    mats[m] = _rimMaterial;
+                rr.sharedMaterials = mats;
+                rr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                rr.receiveShadows = false;
+                copy.SetActive(false);
+                _rimCopies.Add(copy);
+                _rimRenderers.Add(rr);
             }
         }
 
