@@ -330,7 +330,7 @@ namespace SpaceStation.UI
             var research = _sim.Research;
             int running = Mathf.Min(research.Projects.Count, research.LabSlots);
             string labs = research.LabSlots == 0
-                ? $"<color={HudText.Orange}>연구소가 없습니다 — 산업 탭에서 연구소를 지으세요</color>"
+                ? $"<color={HudText.Orange}>연구소가 없습니다 · 산업 탭에서 연구소를 지으세요</color>"
                 : $"연구소 {running} / {research.LabSlots} 사용 중  <color=#AFC4D8>(연구소마다 동시에 하나씩, 같은 분야는 한 번에 하나)</color>";
             if (_open)
             {

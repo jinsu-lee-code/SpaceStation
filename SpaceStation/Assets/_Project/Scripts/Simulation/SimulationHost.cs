@@ -9,7 +9,7 @@ namespace SpaceStation.Simulation
     /// <summary>
     /// 씬에서 <see cref="StationSimulation"/>을 소유하고 SimulationClock 틱에 연결한다.
     /// 다른 컨트롤러(StationController, ResourceController 등)는 이 호스트를 통해 시뮬레이션에 접근한다.
-    /// 디버그: F5 = 가중치 랜덤 이벤트 즉시 발생 (Phase 4 이후 제거 예정).
+    /// 디버그: F5 = 가중치 랜덤 이벤트 즉시 발생 — 에디터·Development Build에서만 (배포 빌드에서는 꺼짐).
     /// </summary>
     [DefaultExecutionOrder(-100)]
     public sealed class SimulationHost : MonoBehaviour
@@ -72,9 +72,12 @@ namespace SpaceStation.Simulation
                 if (LoadMissingCount > 0)
                     Debug.LogWarning($"[Save] 불러오기: 찾을 수 없는 항목 {LoadMissingCount}개 건너뜀");
             }
-            Simulation.Resources.DepletionChanged += HandleDepletionChanged;
-            Simulation.Events.EventStarted += HandleEventStarted;
-            Simulation.Events.EventEnded += HandleEventEnded;
+            if (Debug.isDebugBuild) // 진단 로그는 개발 빌드에서만
+            {
+                Simulation.Resources.DepletionChanged += HandleDepletionChanged;
+                Simulation.Events.EventStarted += HandleEventStarted;
+                Simulation.Events.EventEnded += HandleEventEnded;
+            }
         }
 
         private void Start()
@@ -91,7 +94,8 @@ namespace SpaceStation.Simulation
 
         private void Update()
         {
-            if (!_enableDebugEventTrigger || _clock.InputLocked)
+            // 배포 빌드에서는 끔 (에디터·Development Build에서만)
+            if (!_enableDebugEventTrigger || !Debug.isDebugBuild || _clock.InputLocked)
                 return;
             var keyboard = Keyboard.current;
             if (keyboard != null && keyboard.f5Key.wasPressedThisFrame && Simulation.TriggerRandomEvent() == null)
