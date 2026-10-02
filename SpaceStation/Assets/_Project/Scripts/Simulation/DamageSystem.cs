@@ -169,7 +169,9 @@ namespace SpaceStation.Simulation
         {
             if (module == null || _damaged.ContainsKey(module))
                 return false;
-            var info = new DamageInfo(module, _config.DestroyAfterSeconds, _config.SpreadAfterSeconds, _config.QueuePausesSpread);
+            // 8-1: 모듈별 확산 시간 배율 (핵융합로 0.5 = 2배 빠름)
+            float spreadAfter = _config.SpreadAfterSeconds * (module.Data != null ? module.Data.SpreadTimeMultiplier : 1f);
+            var info = new DamageInfo(module, _config.DestroyAfterSeconds, spreadAfter, _config.QueuePausesSpread);
             _damaged.Add(module, info);
             Damaged?.Invoke(info);
             Changed?.Invoke();

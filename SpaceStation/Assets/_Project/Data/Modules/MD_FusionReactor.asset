@@ -10,14 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cb58bbe16188d524dbc82c9b3c050e29, type: 3}
-  m_Name: MD_ResearchLab
+  m_Name: MD_FusionReactor
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ModuleData
-  _displayName: "\uC5F0\uAD6C\uC18C"
-  _category: 2
+  _displayName: "\uD575\uC735\uD569\uB85C"
+  _category: 0
   _cellOffsets:
   - {x: 0, y: 0, z: 0}
-  _prefab: {fileID: 3646743755886927599, guid: 84dab322df27dc046b3a702fb3797aee, type: 3}
-  _icon: {fileID: -1149079367067632191, guid: 5252299b340535848b00dee1dc6e0246, type: 3}
+  - {x: 1, y: 0, z: 0}
+  _prefab: {fileID: 7399284333704692027, guid: 6a3e055f078010147bea49fabec1102c, type: 3}
+  _icon: {fileID: 8752105933315337259, guid: 746961dc6f57d1b4cb80b142a6376941, type: 3}
   _removable: 1
   _terminalOnly: 0
   _dockFront: {x: 0, y: 0, z: 1}
@@ -25,38 +26,52 @@ MonoBehaviour:
   _upperSidesNeedSupport: 0
   _faceDepths:
   - Cell: {x: 0, y: 0, z: 0}
-    Direction: {x: 1, y: 0, z: 0}
-    Depth: 0.28780836
-  - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: -1, y: 0, z: 0}
-    Depth: 0.28780827
+    Depth: 0.46019533
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 1, z: 0}
-    Depth: 0.28719535
+    Depth: 0.19019553
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: -1, z: 0}
-    Depth: 0.46519533
+    Depth: 0.40019536
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 0, z: 1}
-    Depth: 0.2878083
+    Depth: 0.44019532
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 0, z: -1}
-    Depth: 0.28780836
+    Depth: 0.44019532
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: 0.46019536
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.19019532
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.40019536
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: 0.44019532
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: 0.44019532
   _buildCost:
   - Type: 4
-    Amount: 50
-  _production: []
-  _consumption:
+    Amount: 250
+  _production:
   - Type: 0
-    Amount: 2
+    Amount: 40
+  _consumption:
+  - Type: 2
+    Amount: 0.5
   _housingCapacity: 0
   _storageBonus: 0
   _solarPowered: 0
   _batteryCapacity: 0
   _batteryRate: 0
   _repairSlots: 0
-  _researchSlots: 1
-  _spreadTimeMultiplier: 1
+  _researchSlots: 0
+  _spreadTimeMultiplier: 0.5
   _shieldRadius: 0
   _shieldReduction: 0
   _turretRadius: 0

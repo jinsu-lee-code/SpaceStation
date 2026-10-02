@@ -200,6 +200,26 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Spread_ModuleMultiplier_ShortensTimer()
+        {
+            // 8-1 핵융합로: 확산 시간 배율 0.5 → 60초가 30초
+            EnableSpread(60f);
+            var fast = ScriptableObject.CreateInstance<ModuleData>();
+            _created.Add(fast);
+            var so = new SerializedObject(fast);
+            so.FindProperty("_spreadTimeMultiplier").floatValue = 0.5f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Assert.IsTrue(_grid.TryPlace(fast, new Vector3Int(5, 0, 0), 0, out var reactor));
+            var normal = Place(0);
+            _damage.Damage(reactor);
+            _damage.Damage(normal);
+            _damage.TryGetInfo(reactor, out var ri);
+            _damage.TryGetInfo(normal, out var ni);
+            Assert.AreEqual(30f, ri.TimeUntilSpread, Eps);
+            Assert.AreEqual(60f, ni.TimeUntilSpread, Eps);
+        }
+
+        [Test]
         public void Spread_FiresOnceAfter60s_WhenLeftAlone()
         {
             EnableSpread(60f);

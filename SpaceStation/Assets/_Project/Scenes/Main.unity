@@ -4649,6 +4649,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: fb65ff1f6a335b84cb001bc80e2bb704, type: 2}
   - {fileID: 11400000, guid: baf883a30124ece408a78a2d102218bf, type: 2}
   - {fileID: 11400000, guid: 9964b2780a8d7b7469845963a26e9f6c, type: 2}
+  - {fileID: 11400000, guid: 0af3291fd0d56e040b442377ae1bc48c, type: 2}
   - {fileID: 11400000, guid: 84154bcd603872b4484fcdf49e3cf090, type: 2}
   - {fileID: 11400000, guid: 121f148dbad6ad14ba4fbda33183095a, type: 2}
   - {fileID: 11400000, guid: e535e9aa2bfade046a856410ed9f1f42, type: 2}
@@ -4656,6 +4657,10 @@ MonoBehaviour:
   _validColor: {r: 0.2, g: 1, b: 0.3, a: 0.45}
   _invalidColor: {r: 1, g: 0.2, b: 0.2, a: 0.45}
   _colorBlendSpeed: 14
+  _existingLaneColor: {r: 1, g: 0.72, b: 0.2, a: 0.16}
+  _ghostLaneAlpha: 0.5
+  _laneCellScale: 0.7
+  _laneThickness: 0.05
   _moduleMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -11211,10 +11216,6 @@ MonoBehaviour:
   _hintText: {fileID: 262210107}
   _messageText: {fileID: 1216487103}
   _messageSeconds: 3
-  _idleHint: "Tab: \uAC74\uC124 \uD0ED \uC804\uD658  \xB7  \uC22B\uC790\uD0A4 \uB610\uB294
-    \uC544\uB798 \uBA54\uB274\uB85C \uBAA8\uB4C8 \uC120\uD0DD  \xB7  \uBAA8\uB4C8
-    \uD074\uB9AD: \uC120\uD0DD  \xB7  \uD720 \uB4DC\uB798\uADF8: \uCE74\uBA54\uB77C
-    \uD68C\uC804"
   _idleHintSeconds: 60
 --- !u!114 &1963244402
 MonoBehaviour:

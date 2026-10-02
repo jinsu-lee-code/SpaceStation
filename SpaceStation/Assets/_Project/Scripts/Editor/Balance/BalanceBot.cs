@@ -24,6 +24,7 @@ namespace SpaceStation.Editor.Balance
 
         private readonly StationSimulation _sim;
         private readonly ModuleData _power, _oxygen, _water, _food, _housing, _storage, _metal, _battery, _bay, _shield, _turret, _lab;
+        private readonly ModuleData _fusion; // 8-1 상시 대량 발전 (태양광이 아닌 발전 모듈 중 가장 큰 것)
         /// <summary>Phase 6: 연구를 하는지 (비교 측정용, 기본 true).</summary>
         public static bool UseResearch = true;
         /// <summary>연구 우선순위: 유지보수 → 생산 → 에너지 → 건설·경제 → 거주 → 방어.</summary>
@@ -56,7 +57,7 @@ namespace SpaceStation.Editor.Balance
             foreach (var m in buildable)
             {
                 if (m == null) continue;
-                if (_power == null && Produces(m, ResourceType.Power)) _power = m;
+                if (_power == null && Produces(m, ResourceType.Power) && m.SolarPowered) _power = m; // 기본 발전 = 태양광 (목록 순서와 무관)
                 if (_oxygen == null && Produces(m, ResourceType.Oxygen)) _oxygen = m;
                 if (_water == null && Produces(m, ResourceType.Water)) _water = m;
                 if (_food == null && Produces(m, ResourceType.Food)) _food = m;
@@ -69,8 +70,35 @@ namespace SpaceStation.Editor.Balance
                 if (_turret == null && m.IsTurret) _turret = m;
                 if (_lab == null && m.ResearchSlots > 0) _lab = m;
                 if (m.IsService) _services.Add(m);
+                if (!m.SolarPowered && m.Removable && Produces(m, ResourceType.Power)
+                    && (_fusion == null || PowerOutput(m) > PowerOutput(_fusion)))
+                    _fusion = m;
             }
+            if (_power == null)
+                _power = _fusion; // 태양광이 없는 목록 (테스트 등)
+            if (_fusion == _power)
+                _fusion = null;
         }
+
+        private static float PowerOutput(ModuleData m)
+        {
+            float sum = 0f;
+            foreach (var a in m.Production)
+                if (a.Type == ResourceType.Power)
+                    sum += a.Amount;
+            return sum;
+        }
+
+        private bool LifeSupportStable(ResourceSimulation r)
+        {
+            return (_oxygen == null || r.GetNetRate(ResourceType.Oxygen) >= NetMargin)
+                && (_water == null || r.GetNetRate(ResourceType.Water) >= NetMargin)
+                && (_food == null || r.GetNetRate(ResourceType.Food) >= NetMargin);
+        }
+
+        /// <summary>8-1: 밤 부족량이 크고 금속 여유가 있으면 배터리·태양광 대신 핵융합로 (상시 발전).</summary>
+        private const float FusionNightDeficit = 15f;
+        private const float FusionMetalReserve = 60f;
 
         public int Maintenances { get; private set; }
         public int Rebuilds { get; private set; }
@@ -115,6 +143,15 @@ namespace SpaceStation.Editor.Balance
             var r = _sim.Resources;
             if (_power != null && PowerSurplus() < PowerHeadroom)
                 return _power;
+            // 8-1: 밤 부족이 크면 핵융합로 (금속을 모아서 산다 — 저장 한도가 모자라면 창고부터)
+            if (_fusion != null && _nightDeficit >= FusionNightDeficit && _sim.CheckBuildable(_fusion) == PlacementResult.Valid
+                && LifeSupportStable(r)) // 생존 자원이 줄고 있으면 큰 구매(저축)보다 그쪽이 먼저
+            {
+                if (r.GetCapacity(ResourceType.Metal) >= Cost(_fusion) + FusionMetalReserve)
+                    return _fusion;
+                if (_storage != null && _sim.CheckBuildable(_storage) == PlacementResult.Valid)
+                    return _storage;
+            }
             // 밤을 버틸 배터리: 용량(밤 길이 × 부족량 × 1.1)과 방전 속도(부족량) 둘 다
             if (_battery != null && _nightDeficit > 0f && _sim.CheckBuildable(_battery) == PlacementResult.Valid
                 && (r.BatteryCapacity < _nightDeficit * _sim.DayNight.NightLength * 1.1f || r.BatteryRate < _nightDeficit))

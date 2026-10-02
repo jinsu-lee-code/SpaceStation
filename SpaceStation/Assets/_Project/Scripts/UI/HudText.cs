@@ -107,6 +107,8 @@ namespace SpaceStation.UI
                   .Append("칸 안 거주 모듈 주민 ").Append(data.ServiceCapacity).Append($"명 담당 <color={Muted}>(파손·비활성·전력 부족·노후 시 감소)</color>\n");
             if (data.IsDefense)
                 sb.Append($"<color={Muted}>파손·비활성·전력 부족·노후 시 효과 감소</color>\n");
+            if (data.SpreadTimeMultiplier < 0.999f)
+                sb.Append($"<color={Orange}>파손되면 이웃으로 {1f / data.SpreadTimeMultiplier:0.#}배 빨리 번짐</color>\n");
             if (data.RepairSlots > 0)
                 sb.Append("동시 수리 슬롯 +").Append(data.RepairSlots).Append($" <color={Muted}>(파손·비활성 시 슬롯 없음)</color>\n");
 

@@ -306,7 +306,8 @@ namespace SpaceStation.Editor
 
         // ---------------- 모듈 썸네일 ----------------
 
-        private static void BuildThumbnails()
+        /// <summary>모든 모듈 프리팹을 렌더해 건설 메뉴 썸네일(ModuleData.Icon)로 저장. 새 모듈 추가 때도 호출(ModuleExpansionSetup).</summary>
+        internal static void BuildThumbnails()
         {
             const int size = 160;
             var origin = new Vector3(8000f, 8000f, 8000f);

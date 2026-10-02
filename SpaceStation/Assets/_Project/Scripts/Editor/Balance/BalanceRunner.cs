@@ -65,6 +65,8 @@ namespace SpaceStation.Editor.Balance
         public float AverageEfficiency;
         public float FinalSatisfaction;
         public float MinSatisfaction;
+        /// <summary>8-x: 마지막 시점 모듈 종류별 개수 (표시 이름 → 개수). 신규 모듈을 봇이 실제로 짓는지 확인용.</summary>
+        public Dictionary<string, int> FinalModuleCounts = new Dictionary<string, int>();
     }
 
     public sealed class BalanceReport
@@ -207,6 +209,13 @@ namespace SpaceStation.Editor.Balance
             result.MetalSpentOnUpkeep = bot.MetalSpentOnUpkeep;
             result.AverageEfficiency = ticks > 0 ? effSum / ticks : 1f;
             result.FinalSatisfaction = sim.Population.Satisfaction;
+            foreach (var m in sim.Grid.Modules)
+            {
+                if (m.Data == null || m == sim.Core)
+                    continue;
+                result.FinalModuleCounts.TryGetValue(m.Data.DisplayName, out int c);
+                result.FinalModuleCounts[m.Data.DisplayName] = c + 1;
+            }
             return result;
         }
 
@@ -304,6 +313,20 @@ namespace SpaceStation.Editor.Balance
             sb.AppendLine($"만족도  최종 평균 {Avg(results, r => r.FinalSatisfaction):0}, 최저 평균 {Avg(results, r => r.MinSatisfaction):0}");
             sb.Append($"연구  시작 {Avg(results, r => r.ResearchStarted):0.0}회, 최종 레벨 평균  유지보수 {Avg(results, r => r.ResearchLevels[0]):0.0}  방어 {Avg(results, r => r.ResearchLevels[1]):0.0}"
                       + $"  생산 {Avg(results, r => r.ResearchLevels[2]):0.0}  에너지 {Avg(results, r => r.ResearchLevels[3]):0.0}  거주 {Avg(results, r => r.ResearchLevels[4]):0.0}  건설 {Avg(results, r => r.ResearchLevels[5]):0.0}");
+            // 모듈 구성 평균 (많은 순)
+            var totals = new Dictionary<string, float>();
+            foreach (var r in results)
+                foreach (var kv in r.FinalModuleCounts)
+                {
+                    totals.TryGetValue(kv.Key, out float t);
+                    totals[kv.Key] = t + kv.Value;
+                }
+            var names = new List<string>(totals.Keys);
+            names.Sort((a, b) => totals[b].CompareTo(totals[a]));
+            sb.AppendLine();
+            sb.Append("모듈 구성 평균 ");
+            foreach (var name in names)
+                sb.Append($" {name} {totals[name] / n:0.0}");
             return sb.ToString();
         }
 
