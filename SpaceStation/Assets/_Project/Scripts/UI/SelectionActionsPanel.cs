@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using SpaceStation.Building;
 using SpaceStation.Core;
 using SpaceStation.Data;
@@ -35,6 +35,8 @@ namespace SpaceStation.UI
         [SerializeField] private TMP_Text _demolishLabel;
 
         private bool _dirty = true;
+        private bool _blinking;
+        private bool _blinkOn;
 
         /// <summary>명령 실패 사유 (상태 표시줄 알림용).</summary>
         public event Action<string> ActionFailed;
@@ -88,6 +90,9 @@ namespace SpaceStation.UI
 
         private void LateUpdate()
         {
+            // 7-1: 25% 미만이면 글자 깜빡임 (켜짐/꺼짐이 바뀔 때만 다시 그림)
+            if (_blinking && EfficiencyBands.BlinkOn(Time.time) != _blinkOn)
+                _dirty = true;
             if (_dirty)
                 Refresh();
         }
@@ -179,7 +184,7 @@ namespace SpaceStation.UI
             {
                 float strength = defense.GetStrength(module);
                 int covered = defense.CountCoveredWithResearch(grid, module.Data, module.Cells) - 1; // 자신 제외, 연구 반경 반영
-                string color = strength < 1f ? HudText.Yellow : "#FFFFFF";
+                string color = EfficiencyBands.Hex(EfficiencyBands.Classify(strength), Time.time);
                 line += $"\n<size=85%><color={HudText.Muted}>방어</color> 범위 안 모듈 {covered}개 · <color={color}>가동률 {strength * 100f:0}%</color></size>";
             }
             float shield = defense.GetShieldBlockChance(grid, module);
@@ -203,7 +208,7 @@ namespace SpaceStation.UI
             if (data.IsService)
             {
                 float strength = needs.GetStrength(module);
-                string color = strength < 1f ? HudText.Yellow : "#FFFFFF";
+                string color = EfficiencyBands.Hex(EfficiencyBands.Classify(strength), Time.time);
                 return $"\n<size=85%><color={HudText.Muted}>{data.ServiceNeed.DisplayName()}</color> 담당 주민 {needs.GetServed(module):0}/{data.ServiceCapacity * strength:0}"
                        + $" · <color={color}>가동률 {strength * 100f:0}%</color></size>";
             }
@@ -243,8 +248,16 @@ namespace SpaceStation.UI
             _group.alpha = visible ? 1f : 0f;
             _group.blocksRaycasts = visible;
             _group.interactable = visible;
+            _blinking = false;
             if (!visible)
                 return;
+
+            // 7-1: 모듈 자체 효율 (선택 테두리와 같은 구간 색)
+            float efficiency = _station.Simulation.GetModuleEfficiency(module);
+            var band = EfficiencyBands.Classify(efficiency);
+            _blinkOn = EfficiencyBands.BlinkOn(Time.time);
+            _blinking = band == EfficiencyBand.Critical;
+            string efficiencyText = $"<color={EfficiencyBands.Hex(band, Time.time)}>효율 {efficiency * 100f:0}%</color>";
 
             string state;
             var damage = _resources.Damage;
@@ -263,7 +276,7 @@ namespace SpaceStation.UI
             }
             else if (_resources.Simulation.PowerEfficiency < 1f && UsesPower(module.Data))
             {
-                state = $"<color={HudText.Yellow}>전력 부족: 가동률 {_resources.Simulation.PowerEfficiency * 100f:0}%</color>";
+                state = $"<color={EfficiencyBands.Hex(EfficiencyBands.Classify(_resources.Simulation.PowerEfficiency), Time.time)}>전력 부족: 가동률 {_resources.Simulation.PowerEfficiency * 100f:0}%</color>";
             }
             else
             {
@@ -278,14 +291,14 @@ namespace SpaceStation.UI
                 float eff = durability.EfficiencyFor(dur.Current);
                 string color = eff < 1f ? HudText.Red : dur.Current < 60f ? HudText.Yellow : "#FFFFFF";
                 durabilityLine = $"\n<size=85%>내구도 <color={color}>{dur.Current:0}</color> / 최대 {dur.Max:0}" +
-                                 (eff < 1f ? $"  <color={HudText.Red}>효율 {eff * 100f:0}%</color>" : "") +
+                                 (eff < 1f ? $"  <color={EfficiencyBands.Hex(EfficiencyBands.Classify(eff), Time.time)}>노후 효율 {eff * 100f:0}%</color>" : "") +
                                  (dur.MaintenanceCount > 0 ? $"  <color={HudText.Muted}>정비 {dur.MaintenanceCount}회</color>" : "") + "</size>";
             }
             string adjacencyLine = string.Empty;
             var applied = _resources.Adjacency.GetApplied(module);
             if (applied.Count > 0)
                 adjacencyLine = $"\n<size=85%><color={HudText.Muted}>인접</color> {AdjacencySystem.DescribeAll(applied)}</size>";
-            _title.SetText($"<b>{Name(module)}</b>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{DefenseLine(module)}{NeedsLine(module)}");
+            _title.SetText($"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{DefenseLine(module)}{NeedsLine(module)}");
 
             var sim = _resources.Simulation;
 

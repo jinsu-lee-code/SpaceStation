@@ -535,6 +535,28 @@ namespace SpaceStation.Simulation
             return power * Durability.GetEfficiency(defender);
         }
 
+        /// <summary>
+        /// 7-1: 모듈 자체 효율 (선택 테두리·패널 색). 비활성 0.
+        /// 방어·서비스 모듈은 가동률(파손 시 0), 나머지는 자원 틱과 같은 최종 생산 배율
+        /// = 전력 효율(전력을 쓰는 경우) × 파손 × 내구도 × 인접 × 생산 연구.
+        /// 낮/밤·태양 폭풍처럼 정거장 전체에 걸리는 배율은 모듈 탓이 아니므로 제외한다.
+        /// </summary>
+        public float GetModuleEfficiency(ModuleInstance module)
+        {
+            if (module == null || module.Data == null || !Connectivity.IsActive(module))
+                return 0f;
+            if (module.Data.IsDefense || module.Data.IsService)
+                return ModuleStrength(module);
+            float power = 1f;
+            foreach (var c in module.Data.Consumption)
+            {
+                if (c.Type == ResourceType.Power && c.Amount > 0f)
+                    power = Resources.PowerEfficiency;
+            }
+            return power * Damage.GetProductionMultiplier(module) * Durability.GetEfficiency(module)
+                   * Adjacency.GetProductionMultiplier(module) * Effects.ProductionMultiplier(module.Data);
+        }
+
         private void HandleDestroyed(ModuleInstance module)
         {
             Session.RecordDestroyed();

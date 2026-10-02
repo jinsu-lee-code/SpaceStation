@@ -1,4 +1,4 @@
-using SpaceStation.Core;
+﻿using SpaceStation.Core;
 using UnityEngine;
 
 namespace SpaceStation.Building
@@ -16,7 +16,7 @@ namespace SpaceStation.Building
     /// - 파손: 붉은 틴트 + 발광이 불규칙하게 깜빡임
     /// - 수리 중: 하늘색 틴트가 천천히 맥동
     /// - 노후: 갈색 틴트 + 발광 약하게
-    /// - 선택: 약한 노란 틴트 + 가장자리 빛(SelectionRim 복제 렌더러)
+    /// - 선택: 효율 구간 색(7-1: 청록/노랑/빨강/빨강 깜빡임) 약한 틴트 + 가장자리 빛(SelectionRim 복제 렌더러)
     /// 기본 상태(활성 + 정상 + 비선택)에서는 블록을 비워 SRP Batcher 호환을 유지한다.
     /// 깜빡임·맥동이 필요한 상태에서만 매 프레임 갱신한다.
     /// </summary>
@@ -24,10 +24,10 @@ namespace SpaceStation.Building
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+        private static readonly int RimColorId = Shader.PropertyToID("_RimColor");
 
         [SerializeField, Range(0f, 1f)] private float _inactiveBrightness = 0.25f;
-        [SerializeField] private Color _highlightColor = new Color(1f, 0.9f, 0.3f, 1f);
-        [Tooltip("선택 시 틴트 비율 (가장자리 빛과 함께 쓰므로 약하게)")]
+        [Tooltip("선택 시 틴트 비율 (가장자리 빛과 함께 쓰므로 약하게). 색은 효율 구간(EfficiencyBands)")]
         [SerializeField, Range(0f, 1f)] private float _highlightTintAmount = 0.18f;
         [Tooltip("파손(경고 톤) 틴트 색과 섞는 비율")]
         [SerializeField] private Color _damagedTint = new Color(1f, 0.3f, 0.15f, 1f);
@@ -51,6 +51,9 @@ namespace SpaceStation.Building
         private bool _worn;
         private Material _rimMaterial;
         private System.Collections.Generic.List<GameObject> _rimCopies;
+        private System.Collections.Generic.List<Renderer> _rimRenderers;
+        private MaterialPropertyBlock _rimBlock;
+        private EfficiencyBand _band = EfficiencyBand.Normal;
         private float _seed;
 
         public ModuleInstance Module { get; private set; }
@@ -62,7 +65,7 @@ namespace SpaceStation.Building
 
         public void PlayImpulse() => Impulse?.Invoke();
 
-        private bool Animating => _damage != ModuleDamageVisual.None;
+        private bool Animating => _damage != ModuleDamageVisual.None || (_highlighted && _band == EfficiencyBand.Critical);
 
         public void Initialize(ModuleInstance module, Material rimMaterial = null)
         {
@@ -114,6 +117,15 @@ namespace SpaceStation.Building
             Apply(Time.time);
         }
 
+        /// <summary>7-1: 선택 테두리·틴트 색을 정하는 효율 구간 (선택 컨트롤러가 갱신).</summary>
+        public void SetEfficiencyBand(EfficiencyBand band)
+        {
+            if (_band == band)
+                return;
+            _band = band;
+            Apply(Time.time);
+        }
+
         public void SetDamageVisual(ModuleDamageVisual damage)
         {
             if (_damage == damage)
@@ -142,6 +154,7 @@ namespace SpaceStation.Building
             if (_slotRenderers == null)
                 return;
 
+            ApplyRimColor(time);
             bool normal = _operational && !_highlighted && _damage == ModuleDamageVisual.None && !_worn;
             float emissionScale = EmissionScale(time);
             for (int i = 0; i < _slotRenderers.Length; i++)
@@ -160,7 +173,7 @@ namespace SpaceStation.Building
                 else if (_worn)
                     color = Color.Lerp(color, _wornTint, _wornTintAmount);
                 if (_highlighted)
-                    color = Color.Lerp(color, _highlightColor, _highlightTintAmount);
+                    color = Color.Lerp(color, EfficiencyBands.Tint(_band), _highlightTintAmount);
                 color.a = _baseColors[i].a; // 반투명 재질(온실 유리)은 상태 색이 바뀌어도 투명도 유지
                 if (!_operational)
                     color = new Color(color.r * _inactiveBrightness, color.g * _inactiveBrightness, color.b * _inactiveBrightness, color.a);
@@ -216,7 +229,9 @@ namespace SpaceStation.Building
                     rr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                     rr.receiveShadows = false;
                     _rimCopies.Add(copy);
+                    (_rimRenderers ??= new System.Collections.Generic.List<Renderer>()).Add(rr);
                 }
+                ApplyRimColor(Time.time);
             }
             if (_rimCopies == null)
                 return;
@@ -224,6 +239,21 @@ namespace SpaceStation.Building
             {
                 if (copy != null)
                     copy.SetActive(visible);
+            }
+        }
+
+        /// <summary>가장자리 빛 색 = 효율 구간 색 (Critical은 깜빡임). 선택된 모듈 하나만 블록을 쓰므로 배처 영향 없음.</summary>
+        private void ApplyRimColor(float time)
+        {
+            if (!_highlighted || _rimRenderers == null)
+                return;
+            _rimBlock ??= new MaterialPropertyBlock();
+            _rimBlock.Clear();
+            _rimBlock.SetColor(RimColorId, EfficiencyBands.Rim(_band, time));
+            foreach (var r in _rimRenderers)
+            {
+                if (r != null)
+                    r.SetPropertyBlock(_rimBlock);
             }
         }
     }

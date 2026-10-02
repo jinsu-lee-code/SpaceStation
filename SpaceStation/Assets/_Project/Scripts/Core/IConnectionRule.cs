@@ -3,8 +3,7 @@ using System.Collections.Generic;
 namespace SpaceStation.Core
 {
     /// <summary>
-    /// 모듈 간 연결 판정 규칙. 현재는 면 인접(A안)만 있고,
-    /// 포트 방식(B안)은 이 인터페이스의 다른 구현으로 추가한다.
+    /// 모듈 간 연결 판정 규칙. 면 인접(A안)을 사용한다 (포트 방식 B안은 폐기).
     /// </summary>
     public interface IConnectionRule
     {

@@ -92,6 +92,13 @@ namespace SpaceStation.Building
                 RemoveSelected();
         }
 
+        /// <summary>7-1: 선택 모듈의 효율 구간을 테두리 색에 반영 (값 조회만, 구간이 바뀔 때만 뷰 갱신).</summary>
+        private void LateUpdate()
+        {
+            if (_selected != null && _station.TryGetView(_selected, out var view))
+                view.SetEfficiencyBand(EfficiencyBands.Classify(_station.Simulation.GetModuleEfficiency(_selected)));
+        }
+
         public void Select(ModuleInstance module)
         {
             if (module == _selected)
@@ -101,7 +108,10 @@ namespace SpaceStation.Building
                 previous.SetHighlighted(false);
             _selected = module;
             if (_selected != null && _station.TryGetView(_selected, out var view))
+            {
+                view.SetEfficiencyBand(EfficiencyBands.Classify(_station.Simulation.GetModuleEfficiency(_selected)));
                 view.SetHighlighted(true);
+            }
             SelectionChanged?.Invoke(_selected);
         }
 

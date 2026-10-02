@@ -317,6 +317,39 @@ namespace SpaceStation.Tests
             return o;
         }
 
+        [Test]
+        public void ModuleEfficiency_HealthyDamagedAndDisconnected()
+        {
+            var sim = Sim();
+            sim.TryPlace(_solar, Vector3Int.right, 0, out var near);
+            sim.TryPlace(_solar, Vector3Int.right * 2, 0, out var far);
+            Assert.AreEqual(1f, sim.GetModuleEfficiency(near), Eps);
+            Assert.AreEqual(EfficiencyBand.Normal, EfficiencyBands.Classify(sim.GetModuleEfficiency(near)));
+
+            sim.Damage.Damage(near);
+            Assert.AreEqual(0.5f, sim.GetModuleEfficiency(near), Eps, "파손 배율");
+            Assert.AreEqual(EfficiencyBand.Warning, EfficiencyBands.Classify(sim.GetModuleEfficiency(near)));
+
+            Assert.IsTrue(sim.TryRemove(near));
+            Assert.IsFalse(sim.Connectivity.IsActive(far));
+            Assert.AreEqual(0f, sim.GetModuleEfficiency(far), Eps, "코어와 분리되면 0");
+            Assert.AreEqual(EfficiencyBand.Critical, EfficiencyBands.Classify(sim.GetModuleEfficiency(far)));
+        }
+
+        [Test]
+        public void EfficiencyBands_BoundariesBelongToUpperBand()
+        {
+            Assert.AreEqual(EfficiencyBand.Normal, EfficiencyBands.Classify(1.2f), "인접·연구 보너스로 100% 초과");
+            Assert.AreEqual(EfficiencyBand.Normal, EfficiencyBands.Classify(0.9f));
+            Assert.AreEqual(EfficiencyBand.Normal, EfficiencyBands.Classify(0.3f * 3f), "부동소수 오차 0.8999…");
+            Assert.AreEqual(EfficiencyBand.Warning, EfficiencyBands.Classify(0.89f));
+            Assert.AreEqual(EfficiencyBand.Warning, EfficiencyBands.Classify(0.5f));
+            Assert.AreEqual(EfficiencyBand.Danger, EfficiencyBands.Classify(0.49f));
+            Assert.AreEqual(EfficiencyBand.Danger, EfficiencyBands.Classify(0.25f));
+            Assert.AreEqual(EfficiencyBand.Critical, EfficiencyBands.Classify(0.24f));
+            Assert.AreEqual(EfficiencyBand.Critical, EfficiencyBands.Classify(0f));
+        }
+
         private ModuleData Module(string name, float cost, float supply = 0, int housing = 0, float storage = 0, bool removable = true)
         {
             var m = Create<ModuleData>();
