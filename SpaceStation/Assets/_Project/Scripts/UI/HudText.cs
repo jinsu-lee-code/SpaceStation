@@ -23,6 +23,7 @@ namespace SpaceStation.UI
                 case PlacementResult.TerminalNeedsSingleContact: return "채굴 도킹은 정거장과 한 면만 맞닿아야 함";
                 case PlacementResult.BlockedByTerminal: return "채굴 도킹의 다른 면에는 붙일 수 없음";
                 case PlacementResult.NeedsSupport: return "코어 2층 옆에는 바로 붙일 수 없음 (바로 아래 1층에 모듈을 먼저 지어야 함)";
+                case PlacementResult.CoreTopNeedsSideContact: return "코어 윗면에는 옆에 다른 모듈이 닿아야 설치 가능 (연결 통로 필요)";
                 case PlacementResult.InsufficientResources: return "자원 부족";
                 case PlacementResult.ModuleLocked: return "아직 해금되지 않은 모듈 (등급 필요)";
                 case PlacementResult.LimitReached: return "현재 등급의 최대 설치 수에 도달";

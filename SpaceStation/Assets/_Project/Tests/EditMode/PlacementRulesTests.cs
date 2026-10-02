@@ -138,7 +138,6 @@ namespace SpaceStation.Tests
         {
             var grid = BigCoreGrid();
             Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(grid, _block, new Vector3Int(2, 0, 0), 0), "1층 옆");
-            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(grid, _block, new Vector3Int(0, 2, 0), 0), "코어 위");
             Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(grid, _block, new Vector3Int(0, -1, 0), 0), "코어 아래");
             Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(grid, _block, new Vector3Int(2, -1, 0), 0), "코어 옆 아래층");
             Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(grid, _block, new Vector3Int(3, 1, 0), 0), "코어에서 한 칸 떨어진 2층");
@@ -167,6 +166,34 @@ namespace SpaceStation.Tests
             Assert.IsFalse(PlacementRules.SupportsOthers(grid, upper));
             grid.Remove(upper);
             Assert.IsFalse(PlacementRules.SupportsOthers(grid, lower));
+        }
+
+        [Test]
+        public void CoreTop_NeedsSideContactWithNonCoreModule()
+        {
+            var grid = BigCoreGrid();
+            var top = new Vector3Int(0, 2, 0);
+            Assert.AreEqual(PlacementResult.CoreTopNeedsSideContact, PlacementRules.Evaluate(grid, _block, top, 0), "코어하고만 닿음");
+            // 코어 옆 3층 (2층 옆이 아니므로 자유) → 그 옆이면 코어 위 가능
+            Assert.IsTrue(grid.TryPlace(_block, new Vector3Int(-1, 2, 0), 0, out var side));
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(grid, _block, top, 0));
+            grid.TryPlace(_block, top, 0, out var onTop);
+            // 코어 위끼리 이어 붙이기: 코어 위 모듈이 옆에 있으면 됨
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(grid, _block, new Vector3Int(1, 2, 0), 0));
+            // 유일한 옆 연결은 철거 불가, 코어 위 모듈을 먼저 치우면 가능
+            Assert.IsTrue(PlacementRules.SupportsOthers(grid, side));
+            grid.Remove(onTop);
+            Assert.IsFalse(PlacementRules.SupportsOthers(grid, side));
+        }
+
+        [Test]
+        public void ExistingInvalidLayout_DoesNotLockNeighbors()
+        {
+            // 예전 규칙 세이브처럼 이미 조건을 못 채우는 코어 위 모듈이 있어도 이웃 철거는 막지 않음
+            var grid = BigCoreGrid();
+            grid.TryPlace(_block, new Vector3Int(2, 1, 0), 0, out _); // 코어 2층 옆, 아래 받침 없음 (그리드 직접 배치 = 규칙 우회)
+            grid.TryPlace(_block, new Vector3Int(3, 1, 0), 0, out var neighbor);
+            Assert.IsFalse(PlacementRules.SupportsOthers(grid, neighbor), "원래부터 조건 밖인 모듈 때문에 잠기지 않음");
         }
 
         [Test]

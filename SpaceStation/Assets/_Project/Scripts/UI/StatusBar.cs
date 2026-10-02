@@ -373,7 +373,7 @@ namespace SpaceStation.UI
         {
             bool isCore = module == _station.Core;
             string reason = isCore ? "코어는 철거할 수 없습니다"
-                : _station.IsSupportingOthers(module) ? "코어 2층 옆 모듈을 받치고 있어 철거할 수 없습니다 (위 모듈을 먼저 철거)"
+                : _station.IsSupportingOthers(module) ? "코어 2층 옆·코어 위 모듈을 받치고 있어 철거할 수 없습니다 (그 모듈을 먼저 철거)"
                 : "철거할 수 없는 모듈입니다";
             ShowMessage($"<color={HudText.Red}>{reason}</color>");
         }
