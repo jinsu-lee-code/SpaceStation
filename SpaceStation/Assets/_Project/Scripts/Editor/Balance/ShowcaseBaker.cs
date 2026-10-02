@@ -26,9 +26,10 @@ namespace SpaceStation.Editor.Balance
         /// <summary>전시용 구성 (모듈 이름 → 개수). 모든 종류를 고르게 보여 준다.</summary>
         private static readonly (string file, int count)[] Mix =
         {
-            ("MD_Habitat", 18), ("MD_Solar", 18), ("MD_Battery", 6), ("MD_Oxygen", 7), ("MD_WaterRecycler", 6),
+            ("MD_Habitat", 16), ("MD_Solar", 16), ("MD_Battery", 6), ("MD_Oxygen", 7), ("MD_WaterRecycler", 6),
             ("MD_Farm", 8), ("MD_Storage", 6), ("MD_Medical", 5), ("MD_Recreation", 5), ("MD_MaintenanceBay", 3),
-            ("MD_MiningDock", 6), ("MD_Shield", 5), ("MD_Turret", 7),
+            ("MD_MiningDock", 6), ("MD_Shield", 5), ("MD_Turret", 7), ("MD_ResearchLab", 4), // Phase 6 연구소
+
         };
 
         /// <summary>

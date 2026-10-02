@@ -321,11 +321,23 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 게임 씬: `SimulationHost`가 `GameStartOptions.PendingLoad`를 받아 뷰 생성 전에 복원(난이도는 이름으로 `_difficulties`에서), `Save/SaveManager`(자동 저장·썸네일 384×216·게임 오버 시 자동 저장 삭제·불러온 판 카메라·일시정지·알림, `LoadAndPlay`), `StationController`가 생성 시 파손·노후 표시 반영
   - UI: `UI/SaveLoadPanel`(저장 = 수동 3칸·덮어쓰기 확인 / 불러오기 = 자동+수동·삭제 확인·게임 중 "진행이 사라집니다" 확인), ESC 메뉴 [재개][저장][불러오기][설정][재시작][메인 메뉴], 메인 메뉴 [이어하기](최근 저장 요약, 없으면 숨김)[새 게임][불러오기][설정][종료], 설정 게임 탭 "자동 저장 간격", 상태 표시줄 알림. 생성: 메뉴 `SpaceStation/Save/Setup` (MenuSceneBuilder, 메뉴 씬 재생성 시에도 포함·SaveManager 제거)
   - 테스트 `SaveTests` 3개(전체 상태 왕복·이어서 진행 결과 동일, 없어진 데이터 건너뛰기, 슬롯·버전·최근 슬롯) — 전체 210개 통과
-- [x] **조기 경보 (방어 연구)** (2026-10-02, RESEARCH.md 3-2) — 플레이 확인 대기
+- [x] **조기 경보 (방어 연구)** (2026-10-02, RESEARCH.md 3-2) — 플레이 확인 완료
   - 결정: 방어 카드에 합침 / 운석·태양 폭풍만 / 배너+카운트다운+경보음 + 운석 대상 모듈 표시 / 15초 통일 / Lv.1 경보, Lv.2 대상 표시
   - `ResearchStat.EarlyWarningSeconds`·`MeteorTargetPreview`(enum 끝에 추가 — 에셋에 정수로 저장되므로), `EventScheduler.WarningLead/WarningFilter/Upcoming/UpcomingChanged`(미리 뽑기, 발생 후 경보 해제), `StationSimulation.PlannedMeteorTargets/MeteorPlanChanged`(경보 시 개수·대상 결정, 철거 시 다시 뽑기, 발생 때 사용)
   - UI `UI/EarlyWarningView`(HUD `EarlyWarning`, 파손 표시 바로 위·결과 화면 아래, 게임 오버면 숨김), 소리 `SoundLibrary.EarlyWarning` ← `Audio/Event/early_warning.wav`(build_audio.py 합성)
   - 세이브: `StationState.UpcomingEvent/PlannedMeteorHits/PlannedMeteorTargets`
   - HUD 순서 수정: 연구 창을 결과 화면 아래로 (결과 화면이 연구 창·추적기를 가림)
   - 테스트 2개(15초 전 경보 → 같은 이벤트 발생·해제, 대상 표시 → 철거 시 다시 뽑기 → 예정 대상 명중) — 전체 212개 통과
+- [x] **연구소 모델 교체 + 메뉴 정거장 갱신** (2026-10-02) — 플레이 확인 완료
+  - 결정: 관측 돔 + 망원경 / 강조색 보라 #9E80FF 유지 / 전시 배치 새로 생성 + 메뉴 씬 재구성
+  - Blender `NEW_ResearchLab`/`SMN_ResearchLab` (tex_builder 키트: 팔각 몸체 + 보라 띠 2줄 + 실험실 창 4면·연결 해치 4면 + 각진 반구 돔(위도 프레임 2줄·슬릿) + 기울어진 망원경 + 안테나, 약 2,900 삼각형, 셀 ±0.42) → 1024 굽기 `Textures/ResearchLab/T_ResearchLab_BaseColor/ORM` → `SM_ResearchLab.fbx`
+  - `ResearchSetup`: FBX가 있으면 빈 기본 프리팹(ModuleView + Visual 콜라이더) → `StationArtBuilder.RebuildModule("ResearchLab")`(모델·텍스처 재질 `M_ResearchLab_Tex`·통로 깊이), 강조 재질 `M_Accent_ResearchLab`(보라). FBX가 없으면 이전 임시 모델
+  - 전시 배치: `ShowcaseBaker.Mix`에 연구소 4 (거주·태양광 18→16, 총 100) → `Generate(100, 7)`, `MenuSceneBuilder.BuildMainMenuScene`으로 메뉴 씬 재구성(이어하기·불러오기 포함, 버전 표기 v0.6 · Phase 6)
+- [x] **거주·수경 농장·채굴 도킹 각진 재제작 (5차)** (2026-10-02) — 플레이 확인 대기
+  - 요청: AI 원본 메시의 울퉁불퉁한 표면을 다른 각진 모듈처럼 깔끔하게 (형태·색은 유지)
+  - Blender `NEW_Habitat/Farm/MiningDock` (`SMN_X`, tex_builder 키트): 거주 = 팔각 캡슐 + 좁아지는 양끝·연결 해치 + 주황 띠 2·윗면 대각 주황 줄 + 양옆 창문 14개 줄 + 윗면 회색 패널·통풍구 (약 2,500) / 농장 = 팔각 캡슐 + 초록 띠·줄 + 반팔각 아치 온실(양끝 좁아짐, 흰 갈비 8·레일 4, 잎 조각) (약 1,900) / 채굴 = 어두운 상자 + 모서리 기둥·보라 불빛 + 옆 패널 + 윗면 팔각 해치 + 뒤 연결 칼라 + 앞 도킹 입구·꺾인 집게 팔(집게 3) (약 1,400)
+  - 굽기 → `Textures/X/T_X_BaseColor/ORM` (이전 노멀맵 제거) → `SM_X.fbx` → `StationArtBuilder.RebuildModule`. N각형은 삼각형으로 나눠 내보냄(반으로 자른 면이 Unity에서 "self-intersecting"으로 버려짐)
+  - 이전 버전 백업: `BlenderWork/Backup_Unity/SM_X_tex1.fbx`, `Textures_X_tex1/`, Blender `SMT_X`는 숨김
+  - 농장 2차(사용자 참고 이미지): 몸체 윗면을 불리언으로 파낸 홈(깊이 0.075) + 재배 베드·홈통 3줄·식물 21포기(잎·꽃) + 흰 코밍 테두리 + 흰 유리 프레임(벽 기둥·아치 갈비·능선 레일, 양끝 경사). 유리는 굽지 않는 별도 부품 `Glass`(슬롯 `FX_FarmGlass` → `M_FarmGlass`: URP Lit 반투명 민트, 양면, 은은한 발광, `ModuleFxMaterials`)
+  - `ModuleView`: 상태 색(파손·선택 등)을 섞어도 재질 알파 유지 (반투명 유리가 불투명해지지 않게)
 - [ ] 회전 링 모듈

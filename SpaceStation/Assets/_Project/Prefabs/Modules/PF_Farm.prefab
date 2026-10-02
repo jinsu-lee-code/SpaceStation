@@ -31,7 +31,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2429007591529051351}
-  - {fileID: 510290075399323636}
+  - {fileID: 1232063121145151724}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5134681732479214629
@@ -109,7 +109,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!1001 &44564734378776607
+--- !u!1001 &1626806192830031623
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -161,13 +161,21 @@ PrefabInstance:
       propertyPath: m_Name
       value: Model
       objectReference: {fileID: 0}
+    - target: {fileID: 8029106800918022278, guid: 1f2aa8f9ddfad6044a4c44db956b30fe, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8029106800918022278, guid: 1f2aa8f9ddfad6044a4c44db956b30fe, type: 3}
+      propertyPath: m_ReceiveShadows
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1f2aa8f9ddfad6044a4c44db956b30fe, type: 3}
---- !u!4 &510290075399323636 stripped
+--- !u!4 &1232063121145151724 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 1f2aa8f9ddfad6044a4c44db956b30fe, type: 3}
-  m_PrefabInstance: {fileID: 44564734378776607}
+  m_PrefabInstance: {fileID: 1626806192830031623}
   m_PrefabAsset: {fileID: 0}

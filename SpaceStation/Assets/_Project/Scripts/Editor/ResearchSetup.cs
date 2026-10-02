@@ -12,7 +12,8 @@ namespace SpaceStation.Editor
     /// <summary>
     /// Phase 6 연구 데이터·연구소 일괄 생성 (메뉴 SpaceStation/Research/Setup). 여러 번 실행해도 결과가 같다.
     /// - 카테고리 6개 RC_* (RESEARCH.md 2·3번 표, 9번 결정 반영) + 단일 레벨 RC_Automation, 레벨 상한 ResearchLevelCaps (4번 표)
-    /// - 연구소 모듈 MD_ResearchLab (금속 50, 전력 2, 연구 슬롯 1, 산업 탭, 초소형부터 해금) + 임시 모델 PF_ResearchLab
+    /// - 연구소 모듈 MD_ResearchLab (금속 50, 전력 2, 연구 슬롯 1, 산업 탭, 초소형부터 해금) + PF_ResearchLab
+    ///   (Art/Models/Modules/SM_ResearchLab.fbx가 있으면 그 모델 — Blender 관측 돔 + 망원경, 없으면 임시 기본 도형)
     /// - Main 씬: SimulationHost 연구 데이터, 건설 목록에 연구소 추가
     /// </summary>
     public static class ResearchSetup
@@ -172,7 +173,8 @@ namespace SpaceStation.Editor
                 AssetDatabase.CopyAsset(DataRoot + "/Modules/MD_Medical.asset", LabData); // 1칸 모듈을 바탕으로
                 data = AssetDatabase.LoadAssetAtPath<ModuleData>(LabData);
             }
-            var prefab = BuildTempPrefab();
+            bool hasModel = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath) != null;
+            var prefab = hasModel ? BuildBasePrefab() : BuildTempPrefab();
             var so = new SerializedObject(data);
             so.FindProperty("_displayName").stringValue = "연구소";
             SetEnum(so.FindProperty("_category"), "Industry");
@@ -193,8 +195,50 @@ namespace SpaceStation.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(data);
             AssetDatabase.SaveAssets();
-            ConnectorDepthBaker.Measure(data); // 통로 길이용 면 깊이
+            if (hasModel)
+            {
+                // Blender 모델(관측 돔 + 망원경, 2026-10-02): 다른 모듈과 같은 조립기로 모델·재질·통로 깊이까지
+                EnsureAccent();
+                StationArtBuilder.RebuildModule("ResearchLab");
+            }
+            else
+            {
+                ConnectorDepthBaker.Measure(data); // 통로 길이용 면 깊이
+            }
             return data;
+        }
+
+        private const string ModelPath = "Assets/_Project/Art/Models/Modules/SM_ResearchLab.fbx";
+        private const string AccentPath = "Assets/_Project/Art/Materials/M_Accent_ResearchLab.mat";
+
+        /// <summary>모듈 강조 재질 (보라 #9E80FF) — 다른 모듈의 강조 재질을 복사해 색만 바꾼다.</summary>
+        private static void EnsureAccent()
+        {
+            if (AssetDatabase.LoadAssetAtPath<Material>(AccentPath) == null)
+                AssetDatabase.CopyAsset("Assets/_Project/Art/Materials/M_Accent_Recreation.mat", AccentPath);
+            var m = AssetDatabase.LoadAssetAtPath<Material>(AccentPath);
+            ColorUtility.TryParseHtmlString("#9E80FF", out var purple);
+            m.SetColor("_BaseColor", purple);
+            EditorUtility.SetDirty(m);
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>모델용 빈 프리팹: ModuleView + Visual(셀 판정 콜라이더). 모델은 StationArtBuilder가 "Model"로 넣는다.</summary>
+        private static GameObject BuildBasePrefab()
+        {
+            var root = new GameObject("PF_ResearchLab");
+            try
+            {
+                root.AddComponent<ModuleView>();
+                var visual = new GameObject("Visual");
+                visual.transform.SetParent(root.transform, false);
+                visual.AddComponent<BoxCollider>().size = Vector3.one;
+                return PrefabUtility.SaveAsPrefabAsset(root, LabPrefab);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
         }
 
         private static void SetEnum(SerializedProperty p, string name)

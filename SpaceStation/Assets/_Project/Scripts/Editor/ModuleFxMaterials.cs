@@ -9,6 +9,7 @@ namespace SpaceStation.Editor
     /// - M_ShieldShell: 반투명 외피 (SpaceStation/ShieldShell)
     /// - M_ShieldCore / M_ShieldOrb: HDR 단색 (블룸으로 빛남)
     /// - M_ShieldTrail: 빛점 꼬리 (가산 반투명 파티클)
+    /// - M_FarmGlass: 수경 농장 온실 유리 (반투명 Lit)
     /// </summary>
     public static class ModuleFxMaterials
     {
@@ -34,6 +35,7 @@ namespace SpaceStation.Editor
                 case "Dust": return Additive("M_Dust", new Color(0.9f, 0.95f, 1.1f, 1f));
                 case "ShipEngine": return Additive("M_ShipEngine", new Color(0.6f, 1.6f, 3.5f, 1f));
                 case "ShieldRipple": return ShieldRipple();
+                case "FarmGlass": return Glass("M_FarmGlass", new Color(0.62f, 1f, 0.84f, 0.26f), new Color(0.05f, 0.16f, 0.11f));
                 case "Rock": return Rock();
                 default: return null;
             }
@@ -64,6 +66,31 @@ namespace SpaceStation.Editor
             m.SetFloat("_RimStrength", 1.8f);
             m.SetFloat("_WaveStrength", 0.12f);
             m.SetFloat("_WaveScale", 3f);
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>반투명 유리 (수경 농장 온실, 2026-10-02): URP Lit 투명 + 반사 + 은은한 발광 (밤에도 윤곽이 보이게).</summary>
+        private static Material Glass(string name, Color tint, Color emission)
+        {
+            var m = Load(name, Shader.Find("Universal Render Pipeline/Lit"));
+            m.SetColor("_BaseColor", tint);
+            m.SetFloat("_Metallic", 0f);
+            m.SetFloat("_Smoothness", 0.92f);
+            m.SetFloat("_Surface", 1f);   // Transparent
+            m.SetFloat("_Blend", 0f);     // Alpha
+            m.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+            m.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+            m.SetFloat("_SrcBlendAlpha", (float)BlendMode.One);
+            m.SetFloat("_DstBlendAlpha", (float)BlendMode.OneMinusSrcAlpha);
+            m.SetFloat("_ZWrite", 0f);
+            m.SetFloat("_Cull", (float)CullMode.Off);
+            m.SetKeyword(new LocalKeyword(m.shader, "_SURFACE_TYPE_TRANSPARENT"), true);
+            m.SetKeyword(new LocalKeyword(m.shader, "_EMISSION"), true);
+            m.SetColor("_EmissionColor", emission);
+            m.renderQueue = (int)RenderQueue.Transparent;
+            m.SetOverrideTag("RenderType", "Transparent");
+            m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             return m;
         }

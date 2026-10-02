@@ -161,6 +161,7 @@ namespace SpaceStation.Building
                     color = Color.Lerp(color, _wornTint, _wornTintAmount);
                 if (_highlighted)
                     color = Color.Lerp(color, _highlightColor, _highlightTintAmount);
+                color.a = _baseColors[i].a; // 반투명 재질(온실 유리)은 상태 색이 바뀌어도 투명도 유지
                 if (!_operational)
                     color = new Color(color.r * _inactiveBrightness, color.g * _inactiveBrightness, color.b * _inactiveBrightness, color.a);
 
