@@ -289,9 +289,9 @@ namespace SpaceStation.UI
             if (tracked)
             {
                 float eff = durability.EfficiencyFor(dur.Current);
+                // 노후로 효율이 깎이면 내구도 숫자가 빨강 (퍼센트는 이름 옆 "효율 N%" 하나로 통일, 7-1)
                 string color = eff < 1f ? HudText.Red : dur.Current < 60f ? HudText.Yellow : "#FFFFFF";
                 durabilityLine = $"\n<size=85%>내구도 <color={color}>{dur.Current:0}</color> / 최대 {dur.Max:0}" +
-                                 (eff < 1f ? $"  <color={EfficiencyBands.Hex(EfficiencyBands.Classify(eff), Time.time)}>노후 효율 {eff * 100f:0}%</color>" : "") +
                                  (dur.MaintenanceCount > 0 ? $"  <color={HudText.Muted}>정비 {dur.MaintenanceCount}회</color>" : "") + "</size>";
             }
             string adjacencyLine = string.Empty;
