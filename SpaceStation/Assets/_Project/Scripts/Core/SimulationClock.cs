@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace SpaceStation.Core
@@ -60,13 +60,13 @@ namespace SpaceStation.Core
             if (keyboard == null || InputLocked)
                 return;
 
-            if (keyboard.pKey.wasPressedThisFrame)
+            if (KeyBindings.WasPressed(GameAction.Pause))
                 _clock.TogglePause();
-            if (keyboard.f1Key.wasPressedThisFrame)
+            if (KeyBindings.WasPressed(GameAction.Speed1))
                 SetSpeedPreset(0);
-            if (keyboard.f2Key.wasPressedThisFrame)
+            if (KeyBindings.WasPressed(GameAction.Speed2))
                 SetSpeedPreset(1);
-            if (keyboard.f3Key.wasPressedThisFrame)
+            if (KeyBindings.WasPressed(GameAction.Speed3))
                 SetSpeedPreset(2);
         }
 

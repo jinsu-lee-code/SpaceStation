@@ -1,4 +1,4 @@
-using SpaceStation.Building;
+﻿using SpaceStation.Building;
 using SpaceStation.Core;
 using SpaceStation.Data;
 using SpaceStation.Simulation;
@@ -24,7 +24,6 @@ namespace SpaceStation.UI
         [SerializeField] private TMP_Text _hintText;
         [SerializeField] private TMP_Text _messageText;
         [SerializeField] private float _messageSeconds = 3f;
-        [SerializeField] private string _idleHint = "Tab: 건설 탭 전환  ·  숫자키 또는 아래 메뉴로 모듈 선택  ·  모듈 클릭: 선택  ·  휠 드래그: 카메라 회전";
         [Tooltip("5-8: 시작 후 이 시간(실시간 초) 동안만 조작 안내를 보여주고, 이후에는 H로 켜고 끈다")]
         [SerializeField] private float _idleHintSeconds = 60f;
 
@@ -70,6 +69,7 @@ namespace SpaceStation.UI
             _station.Simulation.Research.Completed += HandleResearchCompleted;
             _station.Simulation.Automation.Performed += HandleAutomationPerformed;
             Save.SaveManager.Notice += HandleSaveNotice;
+            KeyBindings.Changed += HandleKeysChanged;
             _messageText.SetText(string.Empty);
             var group = _messageText.GetComponent<CanvasGroup>();
             if (group == null)
@@ -113,7 +113,16 @@ namespace SpaceStation.UI
                 _station.Simulation.Automation.Performed -= HandleAutomationPerformed;
             }
             Save.SaveManager.Notice -= HandleSaveNotice;
+            KeyBindings.Changed -= HandleKeysChanged;
         }
+
+        private void HandleKeysChanged() => _hintInitialized = false; // 7-5: 안내 문구의 키 이름 다시 그림
+
+        private static string K(GameAction action) => KeyBindings.Label(action);
+
+        /// <summary>대기 중 조작 안내 (현재 키 설정 반영).</summary>
+        private static string IdleHint =>
+            $"{K(GameAction.NextCategory)}: 건설 탭 전환  ·  숫자키 또는 아래 메뉴로 모듈 선택  ·  모듈 클릭: 선택  ·  휠 드래그: 카메라 회전";
 
         private void HandleSaveNotice(string message, bool warning)
         {
@@ -140,7 +149,7 @@ namespace SpaceStation.UI
         private void Update()
         {
             var keyboard = UnityEngine.InputSystem.Keyboard.current;
-            if (keyboard != null && !InputGate.Blocked && keyboard.hKey.wasPressedThisFrame)
+            if (keyboard != null && !InputGate.Blocked && KeyBindings.WasPressed(GameAction.ToggleHelp))
             {
                 _helpPinned = !_helpPinned;
                 _hintInitialized = false; // 다시 그림
@@ -200,7 +209,7 @@ namespace SpaceStation.UI
 
             if (build != null)
             {
-                string text = $"<b>{build.DisplayName}</b> 배치  ·  좌클릭: 배치  ·  R: 회전  ·  우클릭/ESC: 취소";
+                string text = $"<b>{build.DisplayName}</b> 배치  ·  좌클릭: 배치  ·  {K(GameAction.Rotate)}: 회전  ·  우클릭/ESC: 취소";
                 if (hasTarget && result != PlacementResult.Valid)
                     text += $"\n<color={HudText.Red}>배치 불가: {HudText.PlacementReason(result)}</color>";
                 else if (hasTarget)
@@ -227,10 +236,10 @@ namespace SpaceStation.UI
             {
                 string name = selected.Data != null ? selected.Data.DisplayName : selected.ToString();
                 string state = selectedActive ? string.Empty : $"  <color={HudText.Orange}>(비활성: 코어와 분리됨)</color>";
-                string action = _station.CanRemove(selected) ? "M: 정비  ·  B: 재건축  ·  Delete/X: 철거" : "철거 불가";
-                string repair = damageState == 1 ? $"  ·  <color={HudText.Red}>R: 수리</color>"
-                    : damageState == 3 ? $"  ·  <color={HudText.Yellow}>R: 우선 수리  ·  C: 대기 취소</color>" : string.Empty;
-                string lab = selected.Data != null && selected.Data.ResearchSlots > 0 ? "  ·  <color=#B79CFF>T: 연구 창</color>" : string.Empty;
+                string action = _station.CanRemove(selected) ? $"{K(GameAction.Maintain)}: 정비  ·  {K(GameAction.Rebuild)}: 재건축  ·  {K(GameAction.Demolish)}/{K(GameAction.DemolishAlt)}: 철거" : "철거 불가";
+                string repair = damageState == 1 ? $"  ·  <color={HudText.Red}>{K(GameAction.Repair)}: 수리</color>"
+                    : damageState == 3 ? $"  ·  <color={HudText.Yellow}>{K(GameAction.Repair)}: 우선 수리  ·  {K(GameAction.CancelRepair)}: 대기 취소</color>" : string.Empty;
+                string lab = selected.Data != null && selected.Data.ResearchSlots > 0 ? $"  ·  <color=#B79CFF>{K(GameAction.Research)}: 연구 창</color>" : string.Empty;
                 _hintText.SetText($"선택: <b>{name}</b>{state}{repair}{lab}  ·  {action}  ·  ESC: 선택 해제");
             }
             else
@@ -239,8 +248,8 @@ namespace SpaceStation.UI
                 var hints = Settings.GameSettings.Hints;
                 bool full = _helpPinned || hints == Settings.HintMode.Always || (!_helpDismissed && hints == Settings.HintMode.FirstMinute);
                 _hintText.SetText(full
-                    ? $"{_idleHint}  <size=85%><color={HudText.Muted}>·  H: 안내 {(_helpPinned ? "숨기기" : "고정")}</color></size>"
-                    : $"<size=85%><color={HudText.Muted}>{HudTheme.Icon("info")} H: 조작 안내</color></size>");
+                    ? $"{IdleHint}  <size=85%><color={HudText.Muted}>·  {K(GameAction.ToggleHelp)}: 안내 {(_helpPinned ? "숨기기" : "고정")}</color></size>"
+                    : $"<size=85%><color={HudText.Muted}>{HudTheme.Icon("info")} {K(GameAction.ToggleHelp)}: 조작 안내</color></size>");
             }
         }
 

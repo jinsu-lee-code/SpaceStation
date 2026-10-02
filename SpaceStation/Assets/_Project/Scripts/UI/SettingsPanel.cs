@@ -11,7 +11,8 @@ using UnityEngine.UI;
 namespace SpaceStation.UI
 {
     /// <summary>
-    /// 5-10 설정창 (메인 메뉴·ESC 메뉴 공용). 탭 3개(사운드 / 화면 / 게임), 바꾸면 바로 적용·저장.
+    /// 5-10 설정창 (메인 메뉴·ESC 메뉴 공용). 탭 4개(사운드 / 화면 / 게임 / 조작), 바꾸면 바로 적용·저장.
+    /// 조작 탭(7-5): 동작별 키 버튼 → 다음에 누른 키로 변경(KeyBindings), 아래에 마우스·고정 키 안내.
     /// 해상도·화면 모드만 바꾼 뒤 "유지할까요?"를 묻고 10초 안에 답이 없으면 되돌린다.
     /// 화면 탭: 품질 프리셋(낮음/중간/높음) 아래에 세부 항목 — 세부 항목을 바꾸면 프리셋이 "사용자 지정".
     /// 내용은 처음 열 때 코드로 만든다 (씬에는 글꼴·스프라이트만 연결된 빈 오브젝트).
@@ -28,7 +29,7 @@ namespace SpaceStation.UI
 
         private static readonly Color TextColor = new Color(0.91f, 0.96f, 1f, 1f);
         private static readonly Color MutedColor = new Color(0.68f, 0.76f, 0.85f, 1f);
-        private static readonly string[] TabNames = { "사운드", "화면", "게임" };
+        private static readonly string[] TabNames = { "사운드", "화면", "게임", "조작" };
         private const float WindowHeight = 900f;
 
         private static int _escapeConsumedFrame = -1;
@@ -41,8 +42,13 @@ namespace SpaceStation.UI
         private RectTransform _window;
         private UiTween _tween;
         private int _tab;
-        private readonly RectTransform[] _pages = new RectTransform[3];
-        private readonly Button[] _tabButtons = new Button[3];
+        private readonly RectTransform[] _pages = new RectTransform[TabNames.Length];
+        private readonly Button[] _tabButtons = new Button[TabNames.Length];
+
+        // 7-5 조작 탭: 키 변경 대기
+        private SpaceStation.Core.GameAction? _capturing;
+        private TMP_Text _controlsStatus;
+        private string _controlsNotice;
         private ScrollRect _scroll;
         private readonly List<Action> _refreshers = new List<Action>();
 
@@ -89,6 +95,8 @@ namespace SpaceStation.UI
                 return;
             if (_confirmUntil > 0f)
                 RevertScreen();
+            _capturing = null;
+            _controlsNotice = null;
             _open = false;
             SetVisible(false);
             _tween.Hide();
@@ -110,6 +118,11 @@ namespace SpaceStation.UI
                     _confirmText.SetText($"이 화면 설정을 유지할까요?\n<size=75%><color=#AFC4D8>{Mathf.CeilToInt(left)}초 후 원래대로 돌아갑니다</color></size>");
             }
             var keyboard = Keyboard.current;
+            if (_open && _capturing.HasValue && keyboard != null)
+            {
+                UpdateCapture(keyboard);
+                return;
+            }
             if (!_open || keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
                 return;
             _escapeConsumedFrame = Time.frameCount;
@@ -145,7 +158,7 @@ namespace SpaceStation.UI
             title.fontStyle = FontStyles.Bold;
             Place(title.rectTransform, new Vector2(44f, -28f), new Vector2(400f, 48f));
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < TabNames.Length; i++)
             {
                 int index = i;
                 var b = MakeButton(_window, TabNames[i], 20f, () => { SelectTab(index); AudioService.TryPlay(l => l.UiTab); }, click: false);
@@ -166,7 +179,7 @@ namespace SpaceStation.UI
             _scroll.movementType = ScrollRect.MovementType.Clamped;
             _scroll.scrollSensitivity = 30f;
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < TabNames.Length; i++)
             {
                 var page = Rect(TabNames[i] + "Page", viewport);
                 page.anchorMin = new Vector2(0f, 1f);
@@ -185,6 +198,7 @@ namespace SpaceStation.UI
             BuildSoundPage(_pages[0]);
             BuildDisplayPage(_pages[1]);
             BuildGamePage(_pages[2]);
+            BuildControlsPage(_pages[3]);
 
             var reset = MakeButton(_window, "기본값 복원", 19f, ResetCurrentTab);
             Place((RectTransform)reset.transform, new Vector2(44f, -(WindowHeight - 30f - 50f)), new Vector2(220f, 50f));
@@ -253,10 +267,122 @@ namespace SpaceStation.UI
                 () => (int)GameSettings.WornDisplay, i => GameSettings.WornDisplay = (WornDisplay)i);
         }
 
+        // ---------------- 7-5 조작 탭 ----------------
+
+        private void BuildControlsPage(RectTransform page)
+        {
+            var statusRow = Rect("Status", page);
+            statusRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 34f;
+            _controlsStatus = Label(statusRow, "", 16f, TextAlignmentOptions.MidlineLeft);
+            var srt = _controlsStatus.rectTransform;
+            srt.anchorMin = Vector2.zero;
+            srt.anchorMax = Vector2.one;
+            srt.offsetMin = new Vector2(6f, 0f);
+            srt.offsetMax = Vector2.zero;
+            _refreshers.Add(RefreshControlsStatus);
+
+            string group = null;
+            foreach (var info in SpaceStation.Core.KeyBindings.All)
+            {
+                if (info.Group != group)
+                {
+                    group = info.Group;
+                    Header(page, group);
+                }
+                KeyRow(page, info.Label, info.Action);
+            }
+            Header(page, "마우스 · 고정 키 (변경 불가)");
+            foreach (var (label, keys) in SpaceStation.Core.KeyBindings.Fixed)
+            {
+                Row(page, label, out var control);
+                var value = Label(control, keys, 18f, TextAlignmentOptions.Center);
+                value.color = MutedColor;
+                var vrt = value.rectTransform;
+                vrt.anchorMin = Vector2.zero;
+                vrt.anchorMax = Vector2.one;
+                vrt.offsetMin = Vector2.zero;
+                vrt.offsetMax = Vector2.zero;
+            }
+        }
+
+        private void KeyRow(RectTransform page, string label, SpaceStation.Core.GameAction action)
+        {
+            Row(page, label, out var control);
+            var button = MakeButton(control, "", 19f, () => BeginCapture(action));
+            var brt = (RectTransform)button.transform;
+            brt.anchorMin = new Vector2(0.5f, 0.5f);
+            brt.anchorMax = new Vector2(0.5f, 0.5f);
+            brt.pivot = new Vector2(0.5f, 0.5f);
+            brt.anchoredPosition = Vector2.zero;
+            brt.sizeDelta = new Vector2(220f, 34f);
+            var text = button.GetComponentInChildren<TMP_Text>();
+            _refreshers.Add(() =>
+            {
+                bool waiting = _capturing == action;
+                text.SetText(waiting ? "키를 누르세요…" : SpaceStation.Core.KeyBindings.Label(action));
+                text.color = waiting ? HudTheme.Accent : TextColor;
+                if (button.targetGraphic != null)
+                    button.targetGraphic.color = waiting ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
+            });
+        }
+
+        private void BeginCapture(SpaceStation.Core.GameAction action)
+        {
+            _capturing = action;
+            _controlsNotice = null;
+            RefreshAll();
+        }
+
+        /// <summary>키 변경 대기 중: 다음에 누른 키로 바꾼다. ESC = 취소 (설정창은 닫지 않음).</summary>
+        private void UpdateCapture(Keyboard keyboard)
+        {
+            if (keyboard.escapeKey.wasPressedThisFrame)
+            {
+                _escapeConsumedFrame = Time.frameCount;
+                _capturing = null;
+                _controlsNotice = null;
+                RefreshAll();
+                return;
+            }
+            var key = SpaceStation.Core.KeyBindings.PressedThisFrame();
+            if (key == Key.None)
+                return;
+            var action = _capturing.Value;
+            if (!SpaceStation.Core.KeyBindings.Set(action, key))
+            {
+                _controlsNotice = $"<color={HudText.Orange}>{SpaceStation.Core.KeyBindings.KeyName(key)} 키는 고정 키라 쓸 수 없습니다 (ESC · 숫자 1~9 · Shift · F5)</color>";
+                AudioService.TryPlay(l => l.UiError);
+                RefreshAll();
+                return; // 계속 대기
+            }
+            _capturing = null;
+            var swapped = SpaceStation.Core.KeyBindings.LastSwapped;
+            string name = SpaceStation.Core.KeyBindings.InfoOf(action).Label;
+            _controlsNotice = swapped.HasValue
+                ? $"<color={HudText.Yellow}>{name} = {SpaceStation.Core.KeyBindings.Label(action)}  ·  겹치던 '{SpaceStation.Core.KeyBindings.InfoOf(swapped.Value).Label}'은(는) {SpaceStation.Core.KeyBindings.Label(swapped.Value)}(으)로 바뀜</color>"
+                : $"<color={HudTheme.GreenHex}>{name} = {SpaceStation.Core.KeyBindings.Label(action)}</color>";
+            RefreshAll();
+        }
+
+        private void RefreshControlsStatus()
+        {
+            if (_controlsStatus == null)
+                return;
+            _controlsStatus.SetText(_controlsNotice
+                ?? (_capturing.HasValue
+                    ? $"<color={HudTheme.AccentHex}>'{SpaceStation.Core.KeyBindings.InfoOf(_capturing.Value).Label}'에 쓸 키를 누르세요  ·  ESC: 취소</color>"
+                    : $"<color=#AFC4D8>바꿀 동작의 키 버튼을 누른 뒤 새 키를 누르세요. 같은 상황에서 겹치는 키는 서로 맞바뀝니다</color>"));
+        }
+
         private void SelectTab(int tab)
         {
             _tab = tab;
-            for (int i = 0; i < 3; i++)
+            if (_capturing.HasValue)
+            {
+                _capturing = null;
+                _controlsNotice = null;
+            }
+            for (int i = 0; i < TabNames.Length; i++)
             {
                 _pages[i].gameObject.SetActive(i == tab);
                 if (_tabButtons[i].targetGraphic != null)
@@ -279,8 +405,13 @@ namespace SpaceStation.UI
                 case 1:
                     GameSettings.ResetDisplay(); // 해상도·화면 모드는 그대로
                     break;
-                default:
+                case 2:
                     GameSettings.ResetGame();
+                    break;
+                default:
+                    _capturing = null;
+                    SpaceStation.Core.KeyBindings.ResetAll();
+                    _controlsNotice = $"<color={HudTheme.GreenHex}>모든 조작키를 기본값으로 되돌렸습니다</color>";
                     break;
             }
             RefreshAll();

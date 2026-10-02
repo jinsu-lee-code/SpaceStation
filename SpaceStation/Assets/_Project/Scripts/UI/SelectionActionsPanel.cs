@@ -57,6 +57,7 @@ namespace SpaceStation.UI
             _resources.Simulation.Changed += MarkDirty;
             _resources.Damage.Changed += MarkDirty;
             _station.Connectivity.ActiveStateChanged += HandleActiveStateChanged;
+            KeyBindings.Changed += MarkDirty; // 7-5: 버튼의 키 표시
             Refresh();
         }
 
@@ -71,20 +72,23 @@ namespace SpaceStation.UI
             }
             if (_station != null && _station.Connectivity != null)
                 _station.Connectivity.ActiveStateChanged -= HandleActiveStateChanged;
+            KeyBindings.Changed -= MarkDirty;
         }
+
+        private static string K(GameAction action) => KeyBindings.Label(action);
 
         private void Update()
         {
             var keyboard = Keyboard.current;
             if (keyboard == null || InputGate.Blocked || _build.Selected != null || _selection.Selected == null)
                 return;
-            if (keyboard.rKey.wasPressedThisFrame)
+            if (KeyBindings.WasPressed(GameAction.Repair))
                 RepairSelected();
-            else if (keyboard.mKey.wasPressedThisFrame)
+            else if (KeyBindings.WasPressed(GameAction.Maintain))
                 MaintainSelected();
-            else if (keyboard.bKey.wasPressedThisFrame)
+            else if (KeyBindings.WasPressed(GameAction.Rebuild))
                 RebuildSelected();
-            else if (keyboard.cKey.wasPressedThisFrame) // X는 철거
+            else if (KeyBindings.WasPressed(GameAction.CancelRepair))
                 CancelRepairSelected();
         }
 
@@ -114,7 +118,7 @@ namespace SpaceStation.UI
             }
             var result = _resources.TryRepair(module);
             if (result == RepairResult.Queued)
-                ActionDone?.Invoke($"수리 슬롯이 모두 사용 중 · {Name(module)} 대기 {damage.GetQueuePosition(module)}번째 (R: 우선 수리, C: 취소)");
+                ActionDone?.Invoke($"수리 슬롯이 모두 사용 중 · {Name(module)} 대기 {damage.GetQueuePosition(module)}번째 ({K(GameAction.Repair)}: 우선 수리, {K(GameAction.CancelRepair)}: 취소)");
             else if (result == RepairResult.InsufficientResources)
                 ActionFailed?.Invoke("수리 비용(금속)이 부족합니다");
             else if (result == RepairResult.AlreadyRepairing)
@@ -311,22 +315,22 @@ namespace SpaceStation.UI
             {
                 int position = damage.GetQueuePosition(module);
                 _repairButton.interactable = position > 1;
-                _repairLabel.SetText(position > 1 ? $"우선 수리 (R)\n<size=80%>대기 {position}번째 → 1번째</size>" : "대기 1번째\n<size=80%>다음 차례</size>");
+                _repairLabel.SetText(position > 1 ? $"우선 수리 ({K(GameAction.Repair)})\n<size=80%>대기 {position}번째 → 1번째</size>" : "대기 1번째\n<size=80%>다음 차례</size>");
             }
             else
             {
                 _repairButton.interactable = damaged && !repairing && sim.CanAfford(repairCost);
                 string slotNote = damage.HasFreeRepairSlot ? "" : $" · <color={HudText.Yellow}>대기</color>";
-                _repairLabel.SetText(!damaged ? "수리 (R)\n<size=80%>파손 아님</size>"
+                _repairLabel.SetText(!damaged ? $"수리 ({K(GameAction.Repair)})\n<size=80%>파손 아님</size>"
                     : repairing ? "수리 중\n<size=80%>진행 중</size>"
-                    : $"수리 (R)\n<size=80%>{HudText.Cost(repairCost)}{slotNote}</size>");
+                    : $"수리 ({K(GameAction.Repair)})\n<size=80%>{HudText.Cost(repairCost)}{slotNote}</size>");
             }
             if (_cancelRepairButton != null)
             {
                 if (_cancelRepairButton.gameObject.activeSelf != queued)
                     _cancelRepairButton.gameObject.SetActive(queued);
                 if (queued)
-                    _cancelRepairLabel.SetText($"대기 취소 (C)\n<size=80%>환불 {HudText.Cost(_resources.GetCancelRefund(module))}</size>");
+                    _cancelRepairLabel.SetText($"대기 취소 ({K(GameAction.CancelRepair)})\n<size=80%>환불 {HudText.Cost(_resources.GetCancelRefund(module))}</size>");
             }
 
             // 정비
@@ -335,13 +339,13 @@ namespace SpaceStation.UI
                 bool atMax = dur.Current >= dur.Max - 0.5f;
                 var cost = durability.GetMaintenanceCost(module);
                 _maintainButton.interactable = !atMax && sim.CanAfford(cost);
-                _maintainLabel.SetText(atMax ? "정비 (M)\n<size=80%>최대 내구도</size>"
-                    : $"정비 (M) → {durability.MaxAfterMaintenance(dur):0}\n<size=80%>{HudText.Cost(cost)}</size>");
+                _maintainLabel.SetText(atMax ? $"정비 ({K(GameAction.Maintain)})\n<size=80%>최대 내구도</size>"
+                    : $"정비 ({K(GameAction.Maintain)}) →{durability.MaxAfterMaintenance(dur):0}\n<size=80%>{HudText.Cost(cost)}</size>");
             }
             else
             {
                 _maintainButton.interactable = false;
-                _maintainLabel.SetText("정비 (M)\n<size=80%>노후화 없음</size>");
+                _maintainLabel.SetText($"정비 ({K(GameAction.Maintain)})\n<size=80%>노후화 없음</size>");
             }
 
             // 재건축
@@ -351,18 +355,18 @@ namespace SpaceStation.UI
             {
                 var net = _resources.GetRebuildCost(module);
                 _rebuildButton.interactable = sim.CanAfford(net);
-                _rebuildLabel.SetText($"재건축 (B) → 100\n<size=80%>{HudText.Cost(net)}</size>");
+                _rebuildLabel.SetText($"재건축 ({K(GameAction.Rebuild)}) → 100\n<size=80%>{HudText.Cost(net)}</size>");
             }
             else
             {
                 _rebuildButton.interactable = false;
-                _rebuildLabel.SetText("재건축 (B)\n<size=80%>불가</size>");
+                _rebuildLabel.SetText($"재건축 ({K(GameAction.Rebuild)})\n<size=80%>불가</size>");
             }
 
             // 철거
             _demolishButton.interactable = removable;
             _demolishLabel.SetText(removable
-                ? $"철거 (Del)\n<size=80%>환급 {HudText.Cost(_resources.GetRefund(module))}</size>"
+                ? $"철거 ({K(GameAction.Demolish)})\n<size=80%>환급 {HudText.Cost(_resources.GetRefund(module))}</size>"
                 : supporting ? "철거 불가\n<size=80%>다른 모듈의 받침</size>" : "철거 불가");
         }
     }

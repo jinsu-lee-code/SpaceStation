@@ -77,7 +77,7 @@ namespace SpaceStation.Save
         private IEnumerator NotifyLoaded(int missing)
         {
             yield return null; // 상태 표시줄이 구독한 뒤
-            Notice?.Invoke("저장을 불러왔습니다 · 일시정지 상태 (P 또는 배속 버튼으로 재개)", false);
+            Notice?.Invoke($"저장을 불러왔습니다 · 일시정지 상태 ({KeyBindings.Label(GameAction.Pause)} 또는 배속 버튼으로 재개)", false);
             if (missing > 0)
             {
                 yield return new WaitForSecondsRealtime(3f);

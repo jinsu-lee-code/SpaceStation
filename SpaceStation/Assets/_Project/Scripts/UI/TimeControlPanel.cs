@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace SpaceStation.UI
 {
-    /// <summary>우측 상단 일시정지/배속 버튼. 단축키(P, F1~F3)는 SimulationClock이 계속 처리한다.</summary>
+    /// <summary>우측 상단 일시정지/배속 버튼. 단축키(기본 P, F1~F3, 7-5에서 변경 가능)는 SimulationClock이 처리한다.</summary>
     public sealed class TimeControlPanel : MonoBehaviour
     {
         [SerializeField] private SimulationClock _clock;
@@ -31,11 +31,13 @@ namespace SpaceStation.UI
             }
             _tickClock.SpeedChanged += HandleSpeedChanged;
             _tickClock.PausedChanged += HandlePausedChanged;
+            KeyBindings.Changed += Refresh; // 7-5: 버튼의 키 표시
             Refresh();
         }
 
         private void OnDestroy()
         {
+            KeyBindings.Changed -= Refresh;
             if (_tickClock == null)
                 return;
             _tickClock.SpeedChanged -= HandleSpeedChanged;
@@ -48,9 +50,10 @@ namespace SpaceStation.UI
         private void Refresh()
         {
             bool paused = _tickClock.IsPaused;
+            string pauseKey = KeyBindings.Label(GameAction.Pause);
             _pauseLabel.SetText(paused
-                ? $"{HudTheme.Icon("play")} 재개 <size=75%><color={HudText.Muted}>P</color></size>"
-                : $"{HudTheme.Icon("pause")} 일시정지 <size=75%><color={HudText.Muted}>P</color></size>");
+                ? $"{HudTheme.Icon("play")} 재개 <size=75%><color={HudText.Muted}>{pauseKey}</color></size>"
+                : $"{HudTheme.Icon("pause")} 일시정지 <size=75%><color={HudText.Muted}>{pauseKey}</color></size>");
             SetColor(_pauseButton, paused ? HudTheme.ButtonWarning : HudTheme.ButtonNormal);
 
             var presets = _clock.SpeedPresets;
@@ -60,9 +63,12 @@ namespace SpaceStation.UI
                 SetColor(_speedButtons[i], active ? HudTheme.ButtonSelected : HudTheme.ButtonNormal);
                 var label = _speedButtons[i].GetComponentInChildren<TMP_Text>();
                 if (label != null && i < presets.Length)
-                    label.SetText($"{presets[i]:0}x <size=70%><color={HudText.Muted}>F{i + 1}</color></size>");
+                    label.SetText($"{presets[i]:0}x <size=70%><color={HudText.Muted}>{KeyBindings.Label(SpeedAction(i))}</color></size>");
             }
         }
+
+        private static GameAction SpeedAction(int index)
+            => index == 0 ? GameAction.Speed1 : index == 1 ? GameAction.Speed2 : GameAction.Speed3;
 
         private static void SetColor(Button button, Color color)
         {

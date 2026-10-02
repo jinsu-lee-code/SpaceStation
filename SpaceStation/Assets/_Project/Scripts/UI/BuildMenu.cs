@@ -51,7 +51,11 @@ namespace SpaceStation.UI
                 }
             }
             if (_tabHint != null)
+            {
                 _tabHint.SetAsLastSibling(); // "Tab 전환" 안내를 탭 오른쪽 끝으로
+                RefreshTabHint();
+                KeyBindings.Changed += RefreshTabHint; // 7-5: 바꾼 키 표시
+            }
 
             _build.CategoryChanged += HandleCategoryChanged;
             HandleCategoryChanged(_build.Category);
@@ -62,8 +66,19 @@ namespace SpaceStation.UI
             HandleSelectionChanged(_build.Selected);
         }
 
+        private void RefreshTabHint()
+        {
+            var text = _tabHint != null ? _tabHint.GetComponent<TMPro.TMP_Text>() : null;
+            if (text != null)
+            {
+                string key = KeyBindings.Label(GameAction.NextCategory);
+                text.SetText($"<color=#9AA3B2>{key} / Shift+{key}</color>");
+            }
+        }
+
         private void OnDestroy()
         {
+            KeyBindings.Changed -= RefreshTabHint;
             if (_build != null)
             {
                 _build.SelectionChanged -= HandleSelectionChanged;

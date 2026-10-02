@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using SpaceStation.Audio;
 using SpaceStation.Building;
 using SpaceStation.Core;
@@ -90,6 +90,7 @@ namespace SpaceStation.UI
 
         private void OnDestroy()
         {
+            KeyBindings.Changed -= RefreshLauncher;
             if (_sim != null)
                 _sim.Research.Completed -= HandleCompleted;
         }
@@ -102,7 +103,7 @@ namespace SpaceStation.UI
             var keyboard = Keyboard.current;
             if (keyboard != null && !InputGate.Blocked)
             {
-                if (keyboard.tKey.wasPressedThisFrame)
+                if (KeyBindings.WasPressed(GameAction.Research))
                     Toggle();
                 else if (_open && keyboard.escapeKey.wasPressedThisFrame)
                 {
@@ -154,11 +155,24 @@ namespace SpaceStation.UI
 
         // ---------------- 구성 ----------------
 
+        private TMP_Text _launcherLabel;
+
+        private static string LauncherText()
+            => $"{HudTheme.Icon("research")} 연구  <size=70%><color=#AFC4D8>{KeyBindings.Label(GameAction.Research)}</color></size>";
+
+        private void RefreshLauncher()
+        {
+            if (_launcherLabel != null)
+                _launcherLabel.SetText(LauncherText());
+        }
+
         private void BuildLauncher()
         {
             var root = (RectTransform)transform;
-            var button = _ui.Button(root, $"{HudTheme.Icon("research")} 연구  <size=70%><color=#AFC4D8>T</color></size>", 19f, Toggle);
+            var button = _ui.Button(root, LauncherText(), 19f, Toggle);
             HoloUi.Place((RectTransform)button.transform, new Vector2(24f, -24f), new Vector2(170f, 44f));
+            _launcherLabel = button.GetComponentInChildren<TMP_Text>();
+            KeyBindings.Changed += RefreshLauncher; // 7-5: 버튼의 키 표시
             _tracker = _ui.Label(root, "", 15f, TextAlignmentOptions.TopLeft);
             HoloUi.Place(_tracker.rectTransform, new Vector2(28f, -76f), new Vector2(420f, 120f));
         }

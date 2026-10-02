@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using SpaceStation.Core;
 using SpaceStation.Data;
@@ -11,7 +11,7 @@ namespace SpaceStation.Building
     /// <summary>
     /// 면 클릭 고스트 배치.
     /// Tab / Shift+Tab: 건설 탭 전환 (4-5) / 숫자키 1~9: 현재 탭 안의 모듈 선택 / 좌클릭: 배치 확정 (선택 유지)
-    /// R: 90도 회전 / 우클릭·ESC: 선택 취소
+    /// 회전(기본 R) / 우클릭·ESC: 선택 취소. 키는 KeyBindings(7-5)에서 바꿀 수 있다
     /// </summary>
     public sealed class BuildController : MonoBehaviour
     {
@@ -114,7 +114,7 @@ namespace SpaceStation.Building
                 return;
             }
 
-            if (keyboard.rKey.wasPressedThisFrame)
+            if (KeyBindings.WasPressed(GameAction.Rotate))
             {
                 _rotation = GridDirections.NormalizeRotation(_rotation + 1);
                 Rotated?.Invoke();
@@ -156,7 +156,7 @@ namespace SpaceStation.Building
 
         private void HandleSelectionKeys(Keyboard keyboard)
         {
-            if (keyboard.tabKey.wasPressedThisFrame)
+            if (KeyBindings.WasPressed(GameAction.NextCategory))
             {
                 SetCategory(BuildCategories.Cycle(_categories, _category, keyboard.shiftKey.isPressed ? -1 : 1));
                 return;

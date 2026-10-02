@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace SpaceStation.Core
@@ -6,7 +6,7 @@ namespace SpaceStation.Core
     /// <summary>
     /// 궤도 카메라 입력. 계산은 <see cref="OrbitCameraRig"/>이 담당한다.
     /// 휠 드래그: 회전 / Shift+휠 드래그: 화면 평행 이동 / 휠: 줌
-    /// WASD: 수평 이동 / Space: 위, Ctrl: 아래 / Q·E: 좌우 회전
+    /// WASD: 수평 이동 / Space: 위, Ctrl: 아래 / Q·E: 좌우 회전 (기본 키, 7-5 KeyBindings에서 변경 가능)
     /// </summary>
     public sealed class OrbitCameraController : MonoBehaviour
     {
@@ -70,11 +70,11 @@ namespace SpaceStation.Core
                 _rig.Zoom(Mathf.Sign(scroll) * _zoomPerNotch * Settings.GameSettings.ZoomSensitivity);
 
             float dt = Time.unscaledDeltaTime; // 시뮬레이션 배속/일시정지와 무관하게 카메라는 움직여야 함
-            float right = Axis(keyboard.dKey, keyboard.aKey);
-            float forward = Axis(keyboard.wKey, keyboard.sKey);
-            float up = (keyboard.spaceKey.isPressed ? 1f : 0f)
-                - (keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed ? 1f : 0f);
-            float yawKey = Axis(keyboard.eKey, keyboard.qKey);
+            // 7-5: 키는 KeyBindings에서 바꿀 수 있다
+            float right = Axis(GameAction.CameraRight, GameAction.CameraLeft);
+            float forward = Axis(GameAction.CameraForward, GameAction.CameraBack);
+            float up = Axis(GameAction.CameraUp, GameAction.CameraDown);
+            float yawKey = Axis(GameAction.CameraYawRight, GameAction.CameraYawLeft);
 
             if (right != 0f || forward != 0f)
                 _rig.PanHorizontal(right * _moveUnitsPerSecond * dt, forward * _moveUnitsPerSecond * dt);
@@ -98,9 +98,9 @@ namespace SpaceStation.Core
             transform.SetPositionAndRotation(_rig.Position, _rig.Rotation);
         }
 
-        private static float Axis(UnityEngine.InputSystem.Controls.KeyControl positive, UnityEngine.InputSystem.Controls.KeyControl negative)
+        private static float Axis(GameAction positive, GameAction negative)
         {
-            return (positive.isPressed ? 1f : 0f) - (negative.isPressed ? 1f : 0f);
+            return (KeyBindings.IsPressed(positive) ? 1f : 0f) - (KeyBindings.IsPressed(negative) ? 1f : 0f);
         }
     }
 }

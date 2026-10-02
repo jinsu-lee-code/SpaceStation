@@ -212,7 +212,8 @@ namespace SpaceStation.UI
                     worn++;
             }
             if (worn > 0)
-                _sb.Append("<color=").Append(HudText.Yellow).Append(">노후 모듈(효율 저하): ").Append(worn).Append("개 · 정비(M) 또는 재건축(B)</color>");
+                _sb.Append("<color=").Append(HudText.Yellow).Append(">노후 모듈(효율 저하): ").Append(worn).Append("개 · 정비(").Append(KeyBindings.Label(GameAction.Maintain))
+                   .Append(") 또는 재건축(").Append(KeyBindings.Label(GameAction.Rebuild)).Append(")</color>");
 
             _body.SetText(_sb);
 
