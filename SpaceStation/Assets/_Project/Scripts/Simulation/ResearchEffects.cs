@@ -32,6 +32,10 @@ namespace SpaceStation.Simulation
         public float RicochetChance => Get(ResearchStat.RicochetChance, _config.ShieldRicochetChance);
         public float TurretInterceptMultiplier => Get(ResearchStat.TurretInterceptMultiplier, 1f);
         public float TurretMaxIntercept => Get(ResearchStat.TurretMaxIntercept, _config.TurretMaxIntercept);
+        /// <summary>운석·태양 폭풍을 몇 초 전에 알리는지 (0 = 경보 없음).</summary>
+        public float EarlyWarningSeconds => Math.Max(0f, Get(ResearchStat.EarlyWarningSeconds, 0f));
+        /// <summary>경보 중인 운석의 대상 모듈을 미리 정해 보여주는지.</summary>
+        public bool MeteorTargetPreview => Get(ResearchStat.MeteorTargetPreview, 0f) > 0.5f;
         public float LifeSupportProductionMultiplier => Get(ResearchStat.LifeSupportProductionMultiplier, 1f);
         public float AdjacencyBonusBoost => Get(ResearchStat.AdjacencyBonusBoost, 0f);
         public float MiningBonus => Get(ResearchStat.MiningBonus, 0f);

@@ -49,6 +49,7 @@ namespace SpaceStation.Editor
             { "EventNegative", new[] { "event_negative" } },
             { "EventPositive", new[] { "event_positive" } },
             { "EventEnd", new[] { "event_end" } },
+            { "EarlyWarning", new[] { "early_warning" } },
             { "MeteorIncoming", new[] { "meteor_incoming" } },
             { "MeteorImpact", new[] { "meteor_impact" } },
             { "MeteorExplode", new[] { "meteor_explode" } },

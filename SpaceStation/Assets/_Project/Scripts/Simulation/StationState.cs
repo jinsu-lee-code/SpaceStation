@@ -30,6 +30,10 @@ namespace SpaceStation.Simulation
 
         public float TimeUntilNextEvent;
         public List<EventState> ActiveEvents = new List<EventState>();
+        /// <summary>조기 경보 중인 다음 이벤트 (없으면 빈 문자열), 운석 예정 대상 (Modules 순번).</summary>
+        public string UpcomingEvent;
+        public int PlannedMeteorHits;
+        public List<int> PlannedMeteorTargets = new List<int>();
 
         public bool ReachedFinalGrade;
         public SessionState Session = new SessionState();

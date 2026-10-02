@@ -431,6 +431,18 @@ ph *= round(ph[-1] / (2 * np.pi)) * 2 * np.pi / ph[-1]  # 마지막 위상을 2�
 x = np.sin(ph) + 0.3 * np.sin(2 * ph) + 0.12 * np.sin(3 * ph) + 0.4 * np.sin(0.5 * ph)
 save("Event/alarm_loop.wav", onepole_lp(x, 3500), -15)
 
+# 조기 경보 (합성, Phase 6 방어 연구): 레이더 핑 두 번 + 낮은 확인음
+def pip(dur, f):
+    t = t_axis(dur)
+    tone = np.sin(2 * np.pi * f * t) + 0.25 * np.sin(4 * np.pi * f * t)
+    return fade(tone * env_exp(dur, dur * 0.6, 0.003), 0.003, 0.02)
+
+ew = np.zeros(int(0.9 * SR))
+place(ew, pip(0.1, 1180), 0.0)
+place(ew, pip(0.1, 1180), 0.16)
+place(ew, 0.9 * pip(0.26, 880), 0.32)
+save("Event/early_warning.wav", trim_tail(reverb(onepole_lp(ew, 5000), 0.18, 0.3, 0.5)), -12)
+
 
 # ================= 배경 =================
 

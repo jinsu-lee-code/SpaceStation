@@ -69,6 +69,11 @@ namespace SpaceStation.Simulation
             s.TimeUntilNextEvent = sim.Events.TimeUntilNext;
             foreach (var a in sim.Events.ActiveEvents)
                 s.ActiveEvents.Add(new EventState { Data = a.Data.name, Duration = a.Duration, Remaining = a.Remaining });
+            s.UpcomingEvent = sim.Events.Upcoming != null ? sim.Events.Upcoming.name : "";
+            s.PlannedMeteorHits = sim.PlannedMeteorHits;
+            foreach (var t in sim.PlannedMeteorTargets)
+                if (index.TryGetValue(t, out int i))
+                    s.PlannedMeteorTargets.Add(i);
 
             s.ReachedFinalGrade = sim.Progression.HasReachedFinalGrade;
             var session = sim.Session;
@@ -194,6 +199,21 @@ namespace SpaceStation.Simulation
                     continue;
                 }
                 sim.Events.RestoreActive(data, e.Duration, e.Remaining);
+            }
+            if (!string.IsNullOrEmpty(s.UpcomingEvent))
+            {
+                var upcoming = FindEvent(sim, s.UpcomingEvent);
+                if (upcoming == null)
+                    missing++;
+                else
+                {
+                    sim.Events.RestoreUpcoming(upcoming);
+                    var targets = new List<ModuleInstance>();
+                    foreach (int i in s.PlannedMeteorTargets ?? new List<int>())
+                        if (i >= 0 && i < placed.Length)
+                            targets.Add(placed[i]);
+                    sim.RestoreMeteorPlan(s.PlannedMeteorHits, targets); // 사라진 대상은 다시 뽑아 채움
+                }
             }
 
             // 6. 통계·타이머·만족도

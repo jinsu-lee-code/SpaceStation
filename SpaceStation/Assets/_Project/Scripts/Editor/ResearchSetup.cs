@@ -54,8 +54,8 @@ namespace SpaceStation.Editor
                     L("수리 비용 15%, 수리 시간 15초, 노후화 속도 -20%", M(ResearchStat.RepairCostRate, 0.15f), M(ResearchStat.RepairDuration, 15f), M(ResearchStat.DecayMultiplier, 0.8f)),
                     L("재건축 비용 -50%, 노후화 속도 -40%, 노후 효율 최저 30%", M(ResearchStat.RebuildCostMultiplier, 0.5f), M(ResearchStat.DecayMultiplier, 0.6f), M(ResearchStat.DurabilityEfficiencyFloor, 0.3f))),
                 Category("RC_Defense", ResearchCategory.Defense, "방어", "shield",
-                    L("실드·포탑 방어 반경 2칸 → 3칸", M(ResearchStat.DefenseRadiusBonus, 1f)),
-                    L("운석 명중 시 파손 면역 20%", M(ResearchStat.HitImmunityChance, 0.2f)),
+                    L("실드·포탑 반경 2칸 → 3칸, 운석·태양 폭풍 15초 전 경보", M(ResearchStat.DefenseRadiusBonus, 1f), M(ResearchStat.EarlyWarningSeconds, 15f)),
+                    L("운석 명중 시 파손 면역 20%, 경보 중 운석 대상 모듈 표시", M(ResearchStat.HitImmunityChance, 0.2f), M(ResearchStat.MeteorTargetPreview, 1f)),
                     L("실드가 빗겨낸 운석의 튕김 명중 70% → 45%", M(ResearchStat.RicochetChance, 0.45f)),
                     L("포탑 격추 20% → 26%, 격추 상한 60% → 75%, 파손 면역 40%", M(ResearchStat.TurretInterceptMultiplier, 1.3f), M(ResearchStat.TurretMaxIntercept, 0.75f), M(ResearchStat.HitImmunityChance, 0.4f))),
                 Category("RC_Production", ResearchCategory.Production, "생산", "production",
@@ -362,8 +362,37 @@ namespace SpaceStation.Editor
             }
             bso.ApplyModifiedPropertiesWithoutUndo();
             BuildResearchPanel(Object.FindFirstObjectByType<StationController>());
+            BuildEarlyWarning(Object.FindFirstObjectByType<StationController>());
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
+        }
+
+        /// <summary>HUD에 조기 경보 배너·대상 표시 자리 (방어 연구). 연구 창보다 아래 순서(창이 열리면 가림).</summary>
+        private static void BuildEarlyWarning(StationController station)
+        {
+            var hud = GameObject.Find("HUD");
+            if (hud == null)
+                return;
+            var old = hud.transform.Find("EarlyWarning");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+            var go = new GameObject("EarlyWarning", typeof(RectTransform));
+            go.transform.SetParent(hud.transform, false);
+            var rt = (RectTransform)go.transform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            var markers = hud.transform.Find("DamageMarkers"); // 월드 표시 바로 위, 다른 HUD·결과 화면 아래
+            go.transform.SetSiblingIndex(markers != null ? markers.GetSiblingIndex() + 1 : 0);
+            var view = go.AddComponent<SpaceStation.UI.EarlyWarningView>();
+            var so = new SerializedObject(view);
+            so.FindProperty("_station").objectReferenceValue = station;
+            so.FindProperty("_font").objectReferenceValue = hud.GetComponentInChildren<TMPro.TMP_Text>(true).font;
+            so.FindProperty("_fillSprite").objectReferenceValue = HudArtBuilder.Fill;
+            so.FindProperty("_frameSprite").objectReferenceValue = HudArtBuilder.Frame;
+            so.FindProperty("_camera").objectReferenceValue = Camera.main;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>HUD에 연구 창 자리 (내용은 런타임 생성). 일시정지·설정창보다 아래 순서.</summary>
@@ -382,8 +411,11 @@ namespace SpaceStation.Editor
             rt.anchorMax = Vector2.one;
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
+            var result = hud.transform.Find("ResultScreen"); // 결과 화면이 연구 창·추적기를 가리도록 그 아래
             var pause = hud.transform.Find("PauseMenu");
-            if (pause != null)
+            if (result != null)
+                go.transform.SetSiblingIndex(result.GetSiblingIndex());
+            else if (pause != null)
                 go.transform.SetSiblingIndex(pause.GetSiblingIndex());
             var panel = go.AddComponent<SpaceStation.UI.ResearchPanel>();
             var so = new SerializedObject(panel);

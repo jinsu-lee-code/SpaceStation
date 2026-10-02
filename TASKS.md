@@ -312,7 +312,8 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
     - 밸런스 봇은 연구하지 않음(이미 같은 규칙으로 수동 정비), `BalanceRunner.ResearchLevels` 크기를 카테고리 수에 맞춤
     - 남은 것: 자동화 설정은 판마다 기본값(세이브/로드 때 함께 저장)
   - 참고: 배치 규칙(`PlacementRules`)은 인접을 검사하지 않음 (게임에서는 모듈 면을 클릭해야 해서 문제없음, 코드로 놓을 때 주의)
-- [x] **세이브/로드** (2026-10-02) — 플레이 확인 대기
+- [x] **세이브/로드** (2026-10-02) — 플레이 확인 완료
+  - 참고: 게임 오버 후 수동 저장을 불러와 바로 나가도 "나갈 때·종료 시 자동 저장" 규칙대로 자동 저장이 다시 생긴다 (의도대로 유지, 2026-10-02 결정). 저장·삭제 시점은 콘솔 `[Save]` 로그로 확인
   - 결정: 자동 1 + 수동 3 / 자동 저장 = 게임 시간 간격(설정: 끔·1·3·5분, 기본 3분) + 메인 메뉴로 나갈 때·게임 종료 시 / 게임 오버 시 자동 저장만 삭제 / 시뮬레이션 전부 정확히 복원(날아가는 운석 연출만 제외) / ESC 메뉴 [저장] [불러오기] / 칸 = 텍스트 + 썸네일 / 카메라 복원, 불러오면 일시정지로 시작 / 형식 버전 기록, 없어진 데이터는 건너뛰고 알림
   - 상태: `Simulation/StationState`(JsonUtility, 에셋·자원은 이름으로) + `StationStateSerializer.Capture/Restore` — 모듈(배치 순서·회전)·내구도, 재고·배터리·인구·태양 폭풍 배율, 만족도·성장·인구 감소 타이머, 파손(파괴·수리·확산 타이머, 대기열 순서), 다음 이벤트 타이머·진행 중 이벤트, 최고 등급 도달 기록, 통계, 실패 타이머, 연구 레벨·진행 중 연구(순서·진행률), 자동화 설정. 복원 순서: 연구 레벨 → 모듈 → 재고 → 파손 → 이벤트 → 통계 → 연구 진행 → 0초 틱으로 파생값 재계산
   - 각 시스템에 internal 복원 메서드 추가(`Durability/Damage/Population/Events/Failure/Session/Research.Restore*`, `StationProgression.FindModule`·`RestoreReachedFinal`, `StationSimulation.RestoreElapsed`)
@@ -320,4 +321,11 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 게임 씬: `SimulationHost`가 `GameStartOptions.PendingLoad`를 받아 뷰 생성 전에 복원(난이도는 이름으로 `_difficulties`에서), `Save/SaveManager`(자동 저장·썸네일 384×216·게임 오버 시 자동 저장 삭제·불러온 판 카메라·일시정지·알림, `LoadAndPlay`), `StationController`가 생성 시 파손·노후 표시 반영
   - UI: `UI/SaveLoadPanel`(저장 = 수동 3칸·덮어쓰기 확인 / 불러오기 = 자동+수동·삭제 확인·게임 중 "진행이 사라집니다" 확인), ESC 메뉴 [재개][저장][불러오기][설정][재시작][메인 메뉴], 메인 메뉴 [이어하기](최근 저장 요약, 없으면 숨김)[새 게임][불러오기][설정][종료], 설정 게임 탭 "자동 저장 간격", 상태 표시줄 알림. 생성: 메뉴 `SpaceStation/Save/Setup` (MenuSceneBuilder, 메뉴 씬 재생성 시에도 포함·SaveManager 제거)
   - 테스트 `SaveTests` 3개(전체 상태 왕복·이어서 진행 결과 동일, 없어진 데이터 건너뛰기, 슬롯·버전·최근 슬롯) — 전체 210개 통과
+- [x] **조기 경보 (방어 연구)** (2026-10-02, RESEARCH.md 3-2) — 플레이 확인 대기
+  - 결정: 방어 카드에 합침 / 운석·태양 폭풍만 / 배너+카운트다운+경보음 + 운석 대상 모듈 표시 / 15초 통일 / Lv.1 경보, Lv.2 대상 표시
+  - `ResearchStat.EarlyWarningSeconds`·`MeteorTargetPreview`(enum 끝에 추가 — 에셋에 정수로 저장되므로), `EventScheduler.WarningLead/WarningFilter/Upcoming/UpcomingChanged`(미리 뽑기, 발생 후 경보 해제), `StationSimulation.PlannedMeteorTargets/MeteorPlanChanged`(경보 시 개수·대상 결정, 철거 시 다시 뽑기, 발생 때 사용)
+  - UI `UI/EarlyWarningView`(HUD `EarlyWarning`, 파손 표시 바로 위·결과 화면 아래, 게임 오버면 숨김), 소리 `SoundLibrary.EarlyWarning` ← `Audio/Event/early_warning.wav`(build_audio.py 합성)
+  - 세이브: `StationState.UpcomingEvent/PlannedMeteorHits/PlannedMeteorTargets`
+  - HUD 순서 수정: 연구 창을 결과 화면 아래로 (결과 화면이 연구 창·추적기를 가림)
+  - 테스트 2개(15초 전 경보 → 같은 이벤트 발생·해제, 대상 표시 → 철거 시 다시 뽑기 → 예정 대상 명중) — 전체 212개 통과
 - [ ] 회전 링 모듈

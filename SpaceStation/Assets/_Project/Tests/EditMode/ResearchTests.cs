@@ -251,6 +251,78 @@ namespace SpaceStation.Tests
             Assert.AreEqual(1f, sim.Durability.EfficiencyFor(60f), Eps);
         }
 
+        // ---------------- 조기 경보 (방어 연구) ----------------
+
+        [Test]
+        public void EarlyWarning_AnnouncesThenFiresSameEvent()
+        {
+            var (sim, category) = WarningSim(preview: false);
+            Ticks(sim, 20);
+            Assert.IsNull(sim.Events.Upcoming, "연구 전에는 경보 없음");
+
+            sim.Research.SetLevel(category, 1);
+            GameEventData announced = null;
+            sim.Events.UpcomingChanged += e => { if (e != null) announced = e; };
+            int events = sim.Session.EventsExperienced;
+            while (sim.Events.TimeUntilNext > 15.5f)
+                sim.Tick(1f);
+            sim.Tick(1f);
+            Assert.AreSame(_meteor, sim.Events.Upcoming, "15초 전 경보");
+            Assert.AreSame(_meteor, announced);
+            Assert.AreEqual(0, sim.PlannedMeteorTargets.Count, "Lv.1은 대상 표시 없음");
+            while (sim.Session.EventsExperienced == events)
+                sim.Tick(1f);
+            Assert.IsNull(sim.Events.Upcoming, "발생하면 경보 해제");
+        }
+
+        [Test]
+        public void EarlyWarning_TargetPreview_HitsPlannedModule_ReplansOnRemoval()
+        {
+            var (sim, category) = WarningSim(preview: true);
+            sim.Grid.TryPlace(_block, Vector3Int.left, 0, out var a);
+            sim.Grid.TryPlace(_block, Vector3Int.right, 0, out var b);
+            sim.Research.SetLevel(category, 1);
+            while (sim.Events.Upcoming == null)
+                sim.Tick(1f);
+            Assert.AreEqual(1, sim.PlannedMeteorTargets.Count, "등급 기본 운석 1개");
+            var planned = sim.PlannedMeteorTargets[0];
+            var other = planned == a ? b : a;
+
+            Assert.IsTrue(sim.TryRemove(planned));
+            Assert.AreEqual(1, sim.PlannedMeteorTargets.Count);
+            Assert.AreSame(other, sim.PlannedMeteorTargets[0], "철거하면 남은 모듈로 다시 뽑음");
+
+            while (sim.Events.Upcoming != null)
+                sim.Tick(1f);
+            Assert.IsTrue(sim.Damage.IsDamaged(other), "예정 대상이 맞음");
+            Assert.AreEqual(0, sim.PlannedMeteorTargets.Count);
+        }
+
+        /// <summary>운석만 있는 이벤트 풀, 30초 간격 고정, 경보 15초 (+ 대상 표시).</summary>
+        private (StationSimulation sim, ResearchCategoryData category) WarningSim(bool preview)
+        {
+            var so = new SerializedObject(_config);
+            so.FindProperty("_eventGracePeriod").floatValue = 0f;
+            so.FindProperty("_eventIntervalMin").floatValue = 30f;
+            so.FindProperty("_eventIntervalMax").floatValue = 30f;
+            so.FindProperty("_durabilityDecayPerSecond").floatValue = 0f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var category = preview
+                ? Category(ResearchStat.EarlyWarningSeconds, 15f, ResearchStat.MeteorTargetPreview, 1f)
+                : Category(ResearchStat.EarlyWarningSeconds, 15f);
+            var sim = new StationSimulation(new StationSimulationSettings
+            {
+                Balance = _config,
+                Grades = _grades,
+                CoreModule = _core,
+                Events = new List<GameEventData> { _meteor },
+                Random01 = () => 0f,
+                ResearchCategories = new[] { category },
+                ResearchCaps = _caps,
+            });
+            return (sim, category);
+        }
+
         // ---------------- 자동화 (정비 자동화 연구) ----------------
 
         [Test]

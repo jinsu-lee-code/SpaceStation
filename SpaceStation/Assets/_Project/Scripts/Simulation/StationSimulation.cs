@@ -118,6 +118,9 @@ namespace SpaceStation.Simulation
             // 4-1: 등급별 이벤트 빈도·강도 (새 간격을 정할 때 / 지속형 이벤트가 시작될 때의 등급 기준)
             Events.IntervalMultiplier = () => Progression.Current.EventIntervalMultiplier;
             Events.DurationProvider = data => data.Duration * EventIntensity;
+            // Phase 6 방어 연구: 바깥에서 오는 위협(운석·태양 폭풍)만 조기 경보
+            Events.WarningFilter = data => data is MeteorEventData || data is SolarStormEventData;
+            Events.UpcomingChanged += HandleUpcomingChanged;
 
             // 이 구독들이 뷰(StationController)보다 먼저 등록되어, 뷰가 생성될 때 연결 상태가 이미 최신이다.
             Grid.ModulePlaced += HandleModulePlaced;
@@ -157,6 +160,7 @@ namespace SpaceStation.Simulation
             Automation.Tick(dt); // 자동화 연구: 기준값 미만 모듈 정비·재건축
             RefreshNeeds(); // 4-9: 이번 틱 전력 효율·인구 기준 요구 충족 → 만족도 상한
             Population.Tick(dt);
+            Events.WarningLead = Effects.EarlyWarningSeconds;
             Events.Tick(dt, _eventPool);
             ElapsedSeconds += dt;
             EvaluateProgression();
@@ -409,6 +413,11 @@ namespace SpaceStation.Simulation
             Connectivity.Recalculate();
             RefreshCapacities();
             EvaluateProgression();
+            if (_plannedHits > 0 && _plannedTargets.Contains(module))
+            {
+                RefillPlannedTargets(); // 예정 대상이 철거·재건축되면 다른 모듈로 다시 뽑음
+                MeteorPlanChanged?.Invoke();
+            }
         }
 
         /// <summary>
@@ -643,16 +652,95 @@ namespace SpaceStation.Simulation
                 Resources.PowerSupplyMultiplier = 1f;
         }
 
-        /// <summary>
-        /// 4-1: 등급별 개수만큼 외곽 모듈을 노출 면 수로 가중해 서로 다르게 선택 (분산 타격).
-        /// </summary>
-        private void ApplyMeteor()
+        // ---------------- 조기 경보 (Phase 6 방어 연구) ----------------
+
+        private readonly List<ModuleInstance> _plannedTargets = new List<ModuleInstance>();
+        private readonly List<ModuleInstance> _planBuffer = new List<ModuleInstance>();
+        private int _plannedHits;
+
+        /// <summary>경보 중인 운석이 맞을 예정인 모듈 (대상 표시 연구가 있을 때만, 없으면 비어 있음).</summary>
+        public IReadOnlyList<ModuleInstance> PlannedMeteorTargets => _plannedTargets;
+        /// <summary>예정 대상이 바뀜 (경보 시작·해제, 대상 철거로 다시 뽑음).</summary>
+        public event Action MeteorPlanChanged;
+
+        private void HandleUpcomingChanged(GameEventData upcoming)
+        {
+            bool had = _plannedHits > 0;
+            _plannedTargets.Clear();
+            _plannedHits = 0;
+            if (upcoming is MeteorEventData && Effects.MeteorTargetPreview)
+            {
+                _plannedHits = RollMeteorHits();
+                Damage.PickMeteorTargets(Grid, Core, _plannedHits, _random01, _plannedTargets);
+            }
+            if (had || _plannedHits > 0)
+                MeteorPlanChanged?.Invoke();
+        }
+
+        private int RollMeteorHits()
         {
             var grade = Progression.Current;
             int span = grade.MeteorHitsMax - grade.MeteorHitsMin + 1;
-            int hits = grade.MeteorHitsMin + Math.Min(span - 1, (int)(_random01() * span));
+            return grade.MeteorHitsMin + Math.Min(span - 1, (int)(_random01() * span));
+        }
 
-            Damage.PickMeteorTargets(Grid, Core, hits, _random01, _meteorCandidates);
+        /// <summary>예정 대상이 사라지거나(철거·파괴) 맞을 수 없게 되면(파손·내부로 묻힘) 남은 후보에서 다시 뽑아 개수를 채운다.</summary>
+        private void RefillPlannedTargets()
+        {
+            for (int i = _plannedTargets.Count - 1; i >= 0; i--)
+            {
+                var m = _plannedTargets[i];
+                if (!Grid.TryGetModule(m.Origin, out var placed) || placed != m || Damage.IsDamaged(m) || !DamageSystem.IsExterior(Grid, m))
+                    _plannedTargets.RemoveAt(i);
+            }
+            if (_plannedTargets.Count >= _plannedHits)
+                return;
+            Damage.FindMeteorCandidates(Grid, Core, _planBuffer);
+            _planBuffer.RemoveAll(_plannedTargets.Contains);
+            while (_plannedTargets.Count < _plannedHits && _planBuffer.Count > 0)
+            {
+                var pick = Damage.PickWeighted(Grid, _planBuffer, _random01);
+                if (pick == null)
+                    break;
+                _plannedTargets.Add(pick);
+                _planBuffer.Remove(pick);
+            }
+        }
+
+        /// <summary>세이브 복원: 경보 중이던 운석의 예정 대상.</summary>
+        internal void RestoreMeteorPlan(int hits, IEnumerable<ModuleInstance> targets)
+        {
+            _plannedTargets.Clear();
+            _plannedHits = Math.Max(0, hits);
+            if (_plannedHits == 0)
+                return;
+            foreach (var t in targets)
+                if (t != null && !_plannedTargets.Contains(t))
+                    _plannedTargets.Add(t);
+            RefillPlannedTargets();
+        }
+
+        public int PlannedMeteorHits => _plannedHits;
+
+        /// <summary>
+        /// 4-1: 등급별 개수만큼 외곽 모듈을 노출 면 수로 가중해 서로 다르게 선택 (분산 타격).
+        /// 조기 경보로 대상을 미리 정해 두었으면 그 대상 (사라진 대상은 다시 뽑아 채움).
+        /// </summary>
+        private void ApplyMeteor()
+        {
+            if (_plannedHits > 0)
+            {
+                RefillPlannedTargets();
+                _meteorCandidates.Clear();
+                _meteorCandidates.AddRange(_plannedTargets);
+                _plannedTargets.Clear();
+                _plannedHits = 0;
+                MeteorPlanChanged?.Invoke();
+            }
+            else
+            {
+                Damage.PickMeteorTargets(Grid, Core, RollMeteorHits(), _random01, _meteorCandidates);
+            }
             if (_meteorCandidates.Count == 0)
             {
                 Report("운석이 정거장을 빗나갔습니다", true);

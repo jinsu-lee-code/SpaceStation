@@ -50,6 +50,21 @@ namespace SpaceStation.Simulation
         /// <summary>지속형 이벤트의 실제 지속시간 (등급별 강도). null이면 데이터 값.</summary>
         public Func<GameEventData, float> DurationProvider { get; set; }
 
+        /// <summary>
+        /// 조기 경보 (Phase 6 방어 연구): 다음 이벤트까지 이 시간(초) 이하가 되면 다음 이벤트를 미리 뽑는다. 0이면 기존과 같이 발생 순간에 뽑음
+        /// (난수 순서가 같아 연구가 없으면 결과가 바뀌지 않는다).
+        /// </summary>
+        public float WarningLead { get; set; }
+        /// <summary>미리 뽑은 이벤트 중 경보할 종류 (null이면 전부).</summary>
+        public Func<GameEventData, bool> WarningFilter { get; set; }
+        /// <summary>경보 중인 다음 이벤트 (없으면 null). 남은 시간은 <see cref="TimeUntilNext"/>.</summary>
+        public GameEventData Upcoming { get; private set; }
+        /// <summary>경보 시작(이벤트) / 해제(null).</summary>
+        public event Action<GameEventData> UpcomingChanged;
+
+        private bool _preRolled;
+        private GameEventData _preRolledEvent;
+
         /// <param name="random01">[0, 1) 난수. 테스트에서 결과를 고정할 수 있도록 주입한다.</param>
         public EventScheduler(float gracePeriod, float intervalMin, float intervalMax, Func<float> random01)
         {
@@ -65,6 +80,26 @@ namespace SpaceStation.Simulation
         internal void RestoreTimer(float timeUntilNext)
         {
             TimeUntilNext = Math.Max(0.01f, timeUntilNext);
+        }
+
+        private void ClearPreRoll()
+        {
+            _preRolled = false;
+            _preRolledEvent = null;
+            if (Upcoming == null)
+                return;
+            Upcoming = null;
+            UpcomingChanged?.Invoke(null);
+        }
+
+        /// <summary>세이브 복원: 경보 중이던 다음 이벤트 (이벤트 없음).</summary>
+        internal void RestoreUpcoming(GameEventData data)
+        {
+            if (data == null)
+                return;
+            _preRolled = true;
+            _preRolledEvent = data;
+            Upcoming = data;
         }
 
         /// <summary>세이브 복원: 진행 중이던 지속형 이벤트 (시작 효과는 다시 적용하지 않음).</summary>
@@ -95,11 +130,23 @@ namespace SpaceStation.Simulation
             if (TimeUntilNext <= 0f)
             {
                 TimeUntilNext += NextInterval();
-                var picked = PickRandom(pool);
+                // 미리 뽑은 이벤트가 그사이 진행 중이 되었으면(F5 등) 다시 뽑는다
+                var picked = _preRolled && _preRolledEvent != null && !IsActive(_preRolledEvent) ? _preRolledEvent : PickRandom(pool);
                 if (picked != null)
                 {
-                    Start(picked);
+                    Start(picked); // 경보 해제는 시작 뒤 (운석은 미리 정한 대상을 시작 때 쓴다)
                     changed = true;
+                }
+                ClearPreRoll();
+            }
+            else if (!_preRolled && WarningLead > 0f && TimeUntilNext <= WarningLead)
+            {
+                _preRolled = true;
+                _preRolledEvent = PickRandom(pool);
+                if (_preRolledEvent != null && (WarningFilter == null || WarningFilter(_preRolledEvent)))
+                {
+                    Upcoming = _preRolledEvent;
+                    UpcomingChanged?.Invoke(Upcoming);
                 }
             }
 

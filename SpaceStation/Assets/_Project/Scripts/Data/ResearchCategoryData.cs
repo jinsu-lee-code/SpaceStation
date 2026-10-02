@@ -52,6 +52,9 @@ namespace SpaceStation.Data
         StorageBonusAdd,         // 창고 저장 한도 증가량 +N, 기본 0
         // 자동화
         MaintenanceAutomation,   // 1이면 자동 정비·재건축·일괄 정비 개방, 기본 0
+        // 방어 (조기 경보) — 에셋에 정수로 저장되므로 새 값은 항상 끝에 추가
+        EarlyWarningSeconds,     // 운석·태양 폭풍 조기 경보 (초 전), 기본 0 = 없음
+        MeteorTargetPreview,     // 1이면 경보 중 운석 대상 모듈 미리 표시, 기본 0
     }
 
     [Serializable]
