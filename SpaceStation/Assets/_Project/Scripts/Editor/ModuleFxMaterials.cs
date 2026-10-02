@@ -10,6 +10,7 @@ namespace SpaceStation.Editor
     /// - M_ShieldCore / M_ShieldOrb: HDR 단색 (블룸으로 빛남)
     /// - M_ShieldTrail: 빛점 꼬리 (가산 반투명 파티클)
     /// - M_FarmGlass: 수경 농장 온실 유리 (반투명 Lit)
+    /// - M_FarmGrow: 수경 농장 생장등 (불투명 Lit + HDR 발광)
     /// </summary>
     public static class ModuleFxMaterials
     {
@@ -36,6 +37,7 @@ namespace SpaceStation.Editor
                 case "ShipEngine": return Additive("M_ShipEngine", new Color(0.6f, 1.6f, 3.5f, 1f));
                 case "ShieldRipple": return ShieldRipple();
                 case "FarmGlass": return Glass("M_FarmGlass", new Color(0.62f, 1f, 0.84f, 0.26f), new Color(0.05f, 0.16f, 0.11f));
+                case "FarmGrow": return Emissive("M_FarmGrow", new Color(0.35f, 0.9f, 0.4f, 1f), new Color(0.5f, 2.6f, 0.7f, 1f));
                 case "Rock": return Rock();
                 default: return null;
             }
@@ -90,6 +92,24 @@ namespace SpaceStation.Editor
             m.SetColor("_EmissionColor", emission);
             m.renderQueue = (int)RenderQueue.Transparent;
             m.SetOverrideTag("RenderType", "Transparent");
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>
+        /// 불투명 발광체 (7-4 수경 농장 생장등): URP Lit + HDR 발광 → 블룸으로 빛남.
+        /// Lit이라 ModuleView가 발광 세기를 상태별로 조절한다 (비활성 소등, 파손 깜빡임).
+        /// </summary>
+        private static Material Emissive(string name, Color baseColor, Color hdrEmission)
+        {
+            var m = Load(name, Shader.Find("Universal Render Pipeline/Lit"));
+            m.SetColor("_BaseColor", baseColor);
+            m.SetFloat("_Metallic", 0f);
+            m.SetFloat("_Smoothness", 0.6f);
+            m.SetKeyword(new LocalKeyword(m.shader, "_EMISSION"), true);
+            m.SetColor("_EmissionColor", hdrEmission);
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             return m;
