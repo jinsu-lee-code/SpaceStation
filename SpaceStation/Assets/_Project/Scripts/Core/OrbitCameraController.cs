@@ -49,10 +49,11 @@ namespace SpaceStation.Core
         {
             var mouse = Mouse.current;
             var keyboard = Keyboard.current;
-            if (mouse == null || keyboard == null)
+            if (mouse == null || keyboard == null || InputGate.Blocked)
                 return;
 
             bool shift = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
+            float orbit = _orbitDegreesPerPixel * Settings.GameSettings.OrbitSensitivity; // 5-10 감도
 
             if (mouse.middleButton.isPressed)
             {
@@ -60,13 +61,13 @@ namespace SpaceStation.Core
                 if (shift)
                     _rig.PanScreen(-delta.x * _panScreenPerPixel, -delta.y * _panScreenPerPixel);
                 else
-                    _rig.Orbit(delta.x * _orbitDegreesPerPixel, -delta.y * _orbitDegreesPerPixel);
+                    _rig.Orbit(delta.x * orbit, -delta.y * orbit);
             }
 
             // Input System 스크롤은 한 칸당 약 120 (Windows 기준)
             float scroll = mouse.scroll.ReadValue().y;
             if (scroll != 0f)
-                _rig.Zoom(Mathf.Sign(scroll) * _zoomPerNotch);
+                _rig.Zoom(Mathf.Sign(scroll) * _zoomPerNotch * Settings.GameSettings.ZoomSensitivity);
 
             float dt = Time.unscaledDeltaTime; // 시뮬레이션 배속/일시정지와 무관하게 카메라는 움직여야 함
             float right = Axis(keyboard.dKey, keyboard.aKey);
@@ -80,7 +81,7 @@ namespace SpaceStation.Core
             if (up != 0f)
                 _rig.MoveVertical(up * _moveUnitsPerSecond * dt);
             if (yawKey != 0f)
-                _rig.Orbit(-yawKey * _keyOrbitDegreesPerSecond * dt, 0f);
+                _rig.Orbit(-yawKey * _keyOrbitDegreesPerSecond * Settings.GameSettings.OrbitSensitivity * dt, 0f);
 
             Apply();
         }

@@ -80,12 +80,12 @@ namespace SpaceStation.UI
             if (!_stateDirty)
                 return;
             _stateDirty = false;
-            var sim = _resources.Simulation;
+            var station = _station.Simulation;
             foreach (var button in _buttons)
             {
                 var buildable = _station.CheckBuildable(button.Data);
-                bool affordable = sim.CanAfford(button.Data.BuildCost);
-                button.SetState(buildable == PlacementResult.Valid && affordable, BlockedStatus(button.Data, buildable));
+                bool affordable = station.CanAfford(button.Data); // 건설·경제 연구 할인 반영
+                button.SetState(buildable == PlacementResult.Valid && affordable, BlockedStatus(button.Data, buildable), station.GetBuildCost(button.Data));
             }
         }
 
@@ -112,7 +112,7 @@ namespace SpaceStation.UI
         {
             if (_tooltip == null)
                 return;
-            string text = HudText.ModuleTooltip(data);
+            string text = HudText.ModuleTooltip(data, _station.Simulation.Effects);
             _station.Simulation.Adjacency.DescribeRulesFor(data, _ruleLines);
             if (_ruleLines.Count > 0)
                 text += $"\n<color={HudText.Muted}>인접 효과</color>\n" + string.Join("\n", _ruleLines);

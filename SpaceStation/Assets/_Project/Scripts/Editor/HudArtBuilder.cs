@@ -143,6 +143,16 @@ namespace SpaceStation.Editor
                 && !Poly(p, new Vector2(0f, 0.55f), new Vector2(-0.55f, 0f), new Vector2(0f, -0.55f), new Vector2(0.55f, 0f))),
             ("module", new Color(0.31f, 0.85f, 1f), p => Hex(p, 0.9f) && !Hex(p, 0.6f) || Hex(p, 0.32f)),
             ("info", new Color(0.31f, 0.85f, 1f), p => Ring(p, Vector2.zero, 0.82f, 0.16f) || Capsule(p, new Vector2(0f, -0.45f), new Vector2(0f, 0.05f), 0.11f) || Disc(p, new Vector2(0f, 0.35f), 0.12f)),
+            // Phase 6 연구: 플라스크 / 실드 / 생산(막대 + 위 화살표) / 렌치
+            ("research", new Color(0.7f, 0.55f, 1f), p => (Poly(p, new Vector2(-0.22f, 0.9f), new Vector2(0.22f, 0.9f), new Vector2(0.22f, 0.25f), new Vector2(0.8f, -0.85f), new Vector2(-0.8f, -0.85f), new Vector2(-0.22f, 0.25f))
+                && !Poly(p, new Vector2(-0.08f, 0.8f), new Vector2(0.08f, 0.8f), new Vector2(0.08f, 0.2f), new Vector2(0.55f, -0.72f), new Vector2(-0.55f, -0.72f), new Vector2(-0.08f, 0.2f)))
+                || Poly(p, new Vector2(-0.4f, -0.25f), new Vector2(0.4f, -0.25f), new Vector2(0.55f, -0.72f), new Vector2(-0.55f, -0.72f))),
+            ("shield", new Color(0.45f, 0.85f, 1f), p => Poly(p, new Vector2(0f, 0.95f), new Vector2(0.8f, 0.65f), new Vector2(0.7f, -0.1f), new Vector2(0f, -0.95f), new Vector2(-0.7f, -0.1f), new Vector2(-0.8f, 0.65f))
+                && !Poly(p, new Vector2(0f, 0.72f), new Vector2(0.58f, 0.5f), new Vector2(0.5f, -0.05f), new Vector2(0f, -0.68f), new Vector2(-0.5f, -0.05f), new Vector2(-0.58f, 0.5f))),
+            ("production", new Color(0.5f, 0.95f, 0.6f), p => Box(p, new Vector2(-0.55f, -0.55f), new Vector2(0.17f, 0.3f)) || Box(p, new Vector2(0f, -0.38f), new Vector2(0.17f, 0.47f))
+                || Box(p, new Vector2(0.55f, -0.2f), new Vector2(0.17f, 0.65f)) || Poly(p, new Vector2(-0.75f, 0.2f), new Vector2(0.2f, 0.85f), new Vector2(0.05f, 0.55f), new Vector2(-0.6f, 0.05f))),
+            ("construct", new Color(1f, 0.75f, 0.35f), p => Capsule(p, new Vector2(-0.65f, -0.65f), new Vector2(0.25f, 0.25f), 0.14f)
+                || (Disc(p, new Vector2(0.45f, 0.45f), 0.42f) && !Box(p, new Vector2(0.62f, 0.62f), new Vector2(0.16f, 0.16f)))),
         };
 
         private static void BuildIcons()

@@ -17,6 +17,10 @@ namespace SpaceStation.Simulation
         public AdjacencyRuleSet AdjacencyRules;
         /// <summary>[0, 1) 난수. 이벤트 선택·간격, 운석 대상에 사용 (시드 고정 가능).</summary>
         public Func<float> Random01;
+        /// <summary>Phase 6 연구 카테고리 (null·비면 연구 없음).</summary>
+        public IReadOnlyList<ResearchCategoryData> ResearchCategories;
+        /// <summary>연구 레벨 상한 (null이면 조건 없음).</summary>
+        public ResearchLevelCapConfig ResearchCaps;
     }
 
     /// <summary>
@@ -56,6 +60,10 @@ namespace SpaceStation.Simulation
         public DefenseSystem Defense { get; }
         public NeedsSystem Needs { get; }
         public FailureMonitor Failure { get; }
+        /// <summary>Phase 6 연구 (진행·레벨). 효과는 <see cref="Effects"/>.</summary>
+        public ResearchSystem Research { get; }
+        /// <summary>현재 연구 효과 (각 시스템이 공유).</summary>
+        public ResearchEffects Effects { get; }
         private readonly List<ModuleInstance> _coreNeighbors = new List<ModuleInstance>();
         private readonly List<ResidentNeed> _activeNeeds = new List<ResidentNeed>();
         /// <summary>현재 등급까지 생긴 거주자 요구 (4-9).</summary>
@@ -93,6 +101,17 @@ namespace SpaceStation.Simulation
             Session = new GameSession();
             DayNight = new DayNightCycle(Balance.DayNightPeriod, Balance.DayLength, Balance.DayNightTransition, Balance.NightSolarMultiplier);
 
+            // Phase 6 연구: 효과 하나를 모든 시스템이 공유 (연구가 없으면 밸런스 값 그대로)
+            Effects = new ResearchEffects(Balance);
+            Resources.Effects = Effects;
+            Damage.Effects = Effects;
+            Durability.Effects = Effects;
+            Adjacency.Effects = Effects;
+            Defense.Effects = Effects;
+            Needs.Effects = Effects;
+            Research = new ResearchSystem(settings.ResearchCategories, settings.ResearchCaps, Effects);
+            Effects.Changed += HandleResearchEffectsChanged;
+
             // 4-1: 등급별 이벤트 빈도·강도 (새 간격을 정할 때 / 지속형 이벤트가 시작될 때의 등급 기준)
             Events.IntervalMultiplier = () => Progression.Current.EventIntervalMultiplier;
             Events.DurationProvider = data => data.Duration * EventIntensity;
@@ -129,7 +148,9 @@ namespace SpaceStation.Simulation
             CollectActiveModules();
             Resources.SetExternalDrain(ResourceType.Oxygen, Damage.OxygenLeakPerSecond);
             Resources.SolarMultiplier = DayNight.SolarMultiplier(ElapsedSeconds); // 이번 틱 시작 시점의 낮/밤
+            Resources.ExtraPowerDemand = Research.RunningPowerDemand; // 진행 중인 연구 (Phase 6)
             Resources.Tick(_activeModules, _productionMultipliers, _consumptionMultipliers, dt);
+            Research.Tick(dt, Resources.PowerEfficiency); // 이번 틱 전력 효율만큼 진행
             RefreshNeeds(); // 4-9: 이번 틱 전력 효율·인구 기준 요구 충족 → 만족도 상한
             Population.Tick(dt);
             Events.Tick(dt, _eventPool);
@@ -161,10 +182,13 @@ namespace SpaceStation.Simulation
             var result = PlacementRules.Evaluate(Grid, data, origin, rotation);
             if (result == PlacementResult.Valid)
                 result = CheckBuildable(data);
-            if (result == PlacementResult.Valid && !Resources.CanAfford(data.BuildCost))
+            if (result == PlacementResult.Valid && !Resources.CanAfford(GetBuildCost(data)))
                 return PlacementResult.InsufficientResources;
             return result;
         }
+
+        /// <summary>실제 건설 비용 (건설·경제 연구 할인 반영).</summary>
+        public List<ResourceAmount> GetBuildCost(ModuleData data) => Effects.BuildCost(data);
 
         /// <summary>배치 미리보기: 새 모듈 자신의 인접 효과와, 이웃에게 새로 생길 효과 설명.</summary>
         public void PreviewAdjacency(ModuleData data, UnityEngine.Vector3Int origin, int rotation,
@@ -176,14 +200,14 @@ namespace SpaceStation.Simulation
         /// <summary>위치와 무관한 건설 가능 여부 (해금·최대 설치 수).</summary>
         public PlacementResult CheckBuildable(ModuleData data) => Progression.CheckBuildable(data, Grid);
 
-        public bool CanAfford(ModuleData data) => data != null && Resources.CanAfford(data.BuildCost);
+        public bool CanAfford(ModuleData data) => data != null && Resources.CanAfford(GetBuildCost(data));
 
         public bool TryPlace(ModuleData data, UnityEngine.Vector3Int origin, int rotation, out ModuleInstance module)
         {
             module = null;
             if (EvaluatePlacement(data, origin, rotation) != PlacementResult.Valid)
                 return false;
-            if (!Resources.TrySpend(data.BuildCost))
+            if (!Resources.TrySpend(GetBuildCost(data)))
                 return false;
             return Grid.TryPlace(data, origin, rotation, out module);
         }
@@ -222,7 +246,7 @@ namespace SpaceStation.Simulation
             var refund = new List<ResourceAmount>();
             if (module?.Data == null)
                 return refund;
-            float rate = Balance.DemolishRefundRate * Durability.GetRefundMultiplier(module);
+            float rate = Effects.DemolishRefundRate * Durability.GetRefundMultiplier(module);
             foreach (var a in module.Data.BuildCost)
                 refund.Add(new ResourceAmount(a.Type, a.Amount * rate));
             return refund;
@@ -243,15 +267,16 @@ namespace SpaceStation.Simulation
             return MaintainResult.Done;
         }
 
-        /// <summary>재건축 순비용 = 건설비 − 철거 환급 (자원별, 0 이상).</summary>
+        /// <summary>재건축 순비용 = 건설비 − 철거 환급 (자원별, 0 이상) × 유지보수 연구 할인.</summary>
         public List<ResourceAmount> GetRebuildCost(ModuleInstance module)
         {
             var net = new List<ResourceAmount>();
             if (module?.Data == null)
                 return net;
-            float rate = Balance.DemolishRefundRate * Durability.GetRefundMultiplier(module);
+            float rate = Effects.DemolishRefundRate * Durability.GetRefundMultiplier(module);
+            float discount = Effects.RebuildCostMultiplier;
             foreach (var a in module.Data.BuildCost)
-                net.Add(new ResourceAmount(a.Type, Math.Max(0f, a.Amount * (1f - rate))));
+                net.Add(new ResourceAmount(a.Type, Math.Max(0f, a.Amount * (1f - rate)) * discount));
             return net;
         }
 
@@ -392,6 +417,7 @@ namespace SpaceStation.Simulation
         }
 
         private readonly List<ModuleInstance> _spreadCandidates = new List<ModuleInstance>();
+        private readonly HashSet<ModuleInstance> _immuneHits = new HashSet<ModuleInstance>();
         private readonly List<ModuleInstance> _ricochetCandidates = new List<ModuleInstance>();
 
         /// <summary>
@@ -417,14 +443,14 @@ namespace SpaceStation.Simulation
             ShieldDeflected?.Invoke(shieldModule);
             if (flight.DeflectedBy == null)
                 flight.DeflectedBy = shieldModule;
-            if (!canRicochet || _random01() >= Balance.ShieldRicochetChance)
+            if (!canRicochet || _random01() >= Effects.RicochetChance)
                 return null; // 우주로
 
             Damage.FindMeteorCandidates(Grid, Core, _ricochetCandidates);
             for (int i = _ricochetCandidates.Count - 1; i >= 0; i--)
             {
                 var c = _ricochetCandidates[i];
-                if (DefenseSystem.IsInShieldRange(shieldModule, c) || _meteorTargetsCopy.Contains(c) || _meteorCandidates.Contains(c))
+                if (Defense.IsInShieldRange(shieldModule, c) || _meteorTargetsCopy.Contains(c) || _meteorCandidates.Contains(c))
                     _ricochetCandidates.RemoveAt(i);
             }
             var next = Damage.PickWeighted(Grid, _ricochetCandidates, _random01);
@@ -442,7 +468,8 @@ namespace SpaceStation.Simulation
         {
             if (module.Data == null || module.Data.HousingCapacity <= 0 || !Connectivity.IsActive(module))
                 return 0f;
-            return module.Data.HousingCapacity + Math.Max(-module.Data.HousingCapacity, Adjacency.GetHousingBonus(module));
+            int housing = Effects.Housing(module.Data); // 거주 연구 +N
+            return housing + Math.Max(-housing, Adjacency.GetHousingBonus(module));
         }
 
         private void RefreshNeeds()
@@ -494,20 +521,62 @@ namespace SpaceStation.Simulation
             _productionMultipliers.Clear();
             _consumptionMultipliers.Clear();
             int extraHousing = 0;
+            int labSlots = 0;
             foreach (var module in Grid.Modules)
             {
                 if (module.Data == null || !Connectivity.IsActive(module))
                     continue;
                 _activeModules.Add(module.Data);
-                // 파손 배율 × 내구도 효율 × 인접 효과 (BALANCE 1번: 곱셈)
+                // 파손 배율 × 내구도 효율 × 인접 효과 × 생산 연구 (BALANCE 1번: 곱셈)
                 _productionMultipliers.Add(Damage.GetProductionMultiplier(module) * Durability.GetEfficiency(module)
-                                           * Adjacency.GetProductionMultiplier(module));
+                                           * Adjacency.GetProductionMultiplier(module) * Effects.ProductionMultiplier(module.Data));
+                if (module.Data.ResearchSlots > 0 && !Damage.IsDamaged(module))
+                    labSlots += module.Data.ResearchSlots; // 연결되고 파손되지 않은 연구소만
                 _consumptionMultipliers.Add(Adjacency.GetConsumptionMultiplier(module));
                 // 인접 수용 인구 가감 (모듈 자체 수용 인구 아래로는 내려가지 않음)
                 extraHousing += Math.Max(-module.Data.HousingCapacity, Adjacency.GetHousingBonus(module));
             }
             Resources.ExtraHousing = extraHousing;
+            Research.LabSlots = labSlots;
             RefreshRepairCapacity(); // 연결·파손 상태 반영 (4-6)
+        }
+
+        // ---------------- 연구 (Phase 6) ----------------
+
+        /// <summary>다음 레벨 연구를 시작할 수 있는지 (등급·인구·연구소·자원).</summary>
+        public ResearchStartResult CanStartResearch(ResearchCategoryData category)
+            => Research.CanStart(category, Progression.GradeIndex, Resources.Population, Resources.CanAfford);
+
+        /// <summary>시작 비용을 내고 다음 레벨 연구 시작 (환급 없음).</summary>
+        public ResearchStartResult TryStartResearch(ResearchCategoryData category)
+        {
+            CollectActiveModules(); // 방금 지은 연구소도 슬롯으로 인정
+            var result = CanStartResearch(category);
+            if (result != ResearchStartResult.Ok)
+                return result;
+            var level = category.GetLevel(Research.GetLevel(category) + 1);
+            if (!Resources.TrySpend(level.StartCost))
+                return ResearchStartResult.InsufficientResources;
+            Research.Begin(category);
+            EvaluateProgression(); // UI 갱신 트리거
+            return ResearchStartResult.Ok;
+        }
+
+        /// <summary>진행 중인 연구 취소 (시작 비용·진행률 모두 잃음).</summary>
+        public bool CancelResearch(ResearchCategoryData category)
+        {
+            bool done = Research.Cancel(category);
+            if (done)
+                EvaluateProgression();
+            return done;
+        }
+
+        /// <summary>연구 효과가 바뀌면 캐시된 값(인접 효과, 저장 한도·수용 인구·배터리)을 다시 계산.</summary>
+        private void HandleResearchEffectsChanged()
+        {
+            Adjacency.Recalculate(Grid);
+            if (Core != null)
+                RefreshCapacities();
         }
 
         private void EvaluateProgression()
@@ -575,6 +644,12 @@ namespace SpaceStation.Simulation
                 var flight = new MeteorFlight { Target = target };
                 var hit = ResolveMeteor(target, true, ref intercepted, ref deflected, ref ricochets, flight);
                 flight.Hit = hit;
+                // Phase 6 방어 연구: 명중해도 일정 확률로 파손 면역 (확률이 0이면 난수를 쓰지 않아 기존 결과 유지)
+                if (hit != null && Effects.HitImmunityChance > 0f && _random01() < Effects.HitImmunityChance)
+                {
+                    flight.Immune = true;
+                    _immuneHits.Add(hit);
+                }
                 MeteorResolved?.Invoke(flight);
                 if (hit != null)
                     _meteorTargetsCopy.Add(hit); // 내구도 0으로 파괴되면 목록이 바뀔 수 있어 복사
@@ -591,13 +666,28 @@ namespace SpaceStation.Simulation
             }
 
             var sb = new StringBuilder();
+            int immune = 0;
             foreach (var target in _meteorTargetsCopy)
             {
-                Damage.Damage(target);
+                bool isImmune = _immuneHits.Contains(target);
+                if (!isImmune)
+                    Damage.Damage(target);
+                else
+                    immune++;
                 Durability.ApplyImpact(target, Balance.MeteorDurabilityDamage); // 4-3: 내구도도 깎음
+                if (isImmune)
+                    continue;
                 if (sb.Length > 0)
                     sb.Append(", ");
                 sb.Append(target.Data != null ? target.Data.DisplayName : target.ToString());
+            }
+            _immuneHits.Clear();
+            if (immune > 0)
+                interceptText += $"방어 연구로 파손 면함 {immune} · ";
+            if (sb.Length == 0)
+            {
+                Report($"운석 {_meteorCandidates.Count}개 충돌 · {interceptText}파손 없음", true);
+                return;
             }
             string head = (_meteorCandidates.Count > 1 ? $"운석 {_meteorCandidates.Count}개 충돌! " : "") + interceptText + "파손: ";
             string spread = Balance.SpreadAfterSeconds > 0f ? $", {Balance.SpreadAfterSeconds:0}초 방치 시 이웃으로 확산" : "";

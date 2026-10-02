@@ -59,8 +59,10 @@ namespace SpaceStation.UI
 
         private void Apply(float blend, float pulse)
         {
+            // 5-10: 비네팅을 끄면 평소 어두운 테두리만 없앤다 (위기 경고의 붉은 맥박은 게임 정보라 유지)
+            float baseIntensity = Settings.GameSettings.Vignette ? _baseIntensity : 0f;
             _vignette.color.value = Color.Lerp(_baseColor, _crisisColor, blend);
-            _vignette.intensity.value = Mathf.Lerp(_baseIntensity, _crisisIntensity * pulse, blend);
+            _vignette.intensity.value = Mathf.Lerp(baseIntensity, _crisisIntensity * pulse, blend);
         }
 
         /// <summary>−1(진행 안 함)을 무시한 최소값.</summary>

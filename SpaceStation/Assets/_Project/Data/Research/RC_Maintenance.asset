@@ -1,0 +1,84 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa4f2b2b21ab57a4c921e7a31aae9a15, type: 3}
+  m_Name: RC_Maintenance
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ResearchCategoryData
+  _category: 0
+  _displayName: "\uC720\uC9C0\uBCF4\uC218"
+  _icon: repair
+  _levels:
+  - StartCost:
+    - Type: 1
+      Amount: 20
+    - Type: 2
+      Amount: 20
+    - Type: 4
+      Amount: 30
+    PowerDemand: 5
+    Duration: 60
+    Description: "\uC218\uB9AC \uBE44\uC6A9 25%, \uC218\uB9AC \uC2DC\uAC04 25\uCD08"
+    Modifiers:
+    - Stat: 0
+      Value: 0.25
+    - Stat: 1
+      Value: 25
+  - StartCost:
+    - Type: 1
+      Amount: 40
+    - Type: 2
+      Amount: 40
+    - Type: 4
+      Amount: 60
+    PowerDemand: 8
+    Duration: 120
+    Description: "\uC218\uB9AC \uBE44\uC6A9 20%, \uC218\uB9AC \uC2DC\uAC04 20\uCD08"
+    Modifiers:
+    - Stat: 0
+      Value: 0.2
+    - Stat: 1
+      Value: 20
+  - StartCost:
+    - Type: 1
+      Amount: 70
+    - Type: 2
+      Amount: 70
+    - Type: 4
+      Amount: 100
+    PowerDemand: 12
+    Duration: 180
+    Description: "\uC218\uB9AC \uBE44\uC6A9 15%, \uC218\uB9AC \uC2DC\uAC04 15\uCD08,
+      \uB178\uD6C4\uD654 \uC18D\uB3C4 \u221220%"
+    Modifiers:
+    - Stat: 0
+      Value: 0.15
+    - Stat: 1
+      Value: 15
+    - Stat: 2
+      Value: 0.8
+  - StartCost:
+    - Type: 1
+      Amount: 110
+    - Type: 2
+      Amount: 110
+    - Type: 4
+      Amount: 150
+    PowerDemand: 18
+    Duration: 240
+    Description: "\uC7AC\uAC74\uCD95 \uBE44\uC6A9 \u221250%, \uB178\uD6C4\uD654 \uC18D\uB3C4
+      \u221240%, \uB178\uD6C4 \uD6A8\uC728 \uCD5C\uC800 30%"
+    Modifiers:
+    - Stat: 4
+      Value: 0.5
+    - Stat: 2
+      Value: 0.6
+    - Stat: 3
+      Value: 0.3

@@ -57,7 +57,11 @@ namespace SpaceStation.Building
             if (!show)
                 return;
 
-            int radius = Mathf.Max(data.ShieldRadius, Mathf.Max(data.TurretRadius, data.IsService ? data.ServiceRadius : 0));
+            // Phase 6 연구 반경 반영
+            var fx = _build.Station != null && _build.Station.Simulation != null ? _build.Station.Simulation.Effects : null;
+            int radius = fx != null
+                ? Mathf.Max(fx.ShieldRadius(data), Mathf.Max(fx.TurretRadius(data), fx.ServiceRadius(data)))
+                : Mathf.Max(data.ShieldRadius, Mathf.Max(data.TurretRadius, data.IsService ? data.ServiceRadius : 0));
             var min = cells[0];
             var max = cells[0];
             foreach (var c in cells)

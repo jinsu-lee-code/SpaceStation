@@ -263,7 +263,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
     - 배선 메뉴 `SpaceStation/Audio/Setup` (가져오기 설정·라이브러리 클립 채우기·씬 Audio 오브젝트·버튼 UiSound)
     - 주민 증가음은 너무 잦아 제외. 메뉴 음악(`MusicMenu`)은 5-9에서 연결
   - Phase 5 마무리 후 Phase 6(연구 시스템)으로
-- [ ] **5-9. 메인 메뉴 씬** (구현 완료, 플레이 확인 대기)
+- [x] **5-9. 메인 메뉴 씬** (플레이 확인 완료)
   - 별도 씬(`MainMenu`)을 빌드 첫 씬으로: 새 게임 / 이어하기(세이브 생기면) / 설정 / 종료
   - 배경은 우주 스카이박스 + 천천히 도는 정거장(완성 모듈 전시) + 배경 연출(5-7 `AmbientSpace`) 재사용, HUD 홀로그램 스타일·아이콘 재사용
   - 새 게임 시 난이도 선택 → 4단계 "난이도 프리셋"(이지 = G안 / 노멀 / 하드, BALANCE 21번)을 여기서 연결
@@ -275,26 +275,33 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - `PauseMenu`(실행 순서 -200: 배치·선택 중 ESC는 기존 취소, 아무것도 없을 때만 열림 · 결과 화면 중엔 안 열림), 열려 있으면 시간 정지 + `InputGate.Blocked`로 건설·선택·단축키 차단. 결과 화면 게임 오버 두 번째 버튼 종료 → 메인 메뉴
   - 생성 메뉴: `SpaceStation/Menu/Build Pause Menu`(Main HUD), `Build Main Menu Scene`(Main을 복사해 게임 전용 요소 제거 + 메뉴 구성, 빌드 설정 [MainMenu, Main]) — Main 씬을 바꾸면 메뉴 씬을 다시 생성
   - 설정 버튼은 비활성("준비 중") → 5-10에서 연결
-- [ ] **5-10. 설정창**
+- [x] **5-10. 설정창** (플레이 확인 완료)
   - 메인 메뉴와 게임 중 일시정지 메뉴 양쪽에서 여는 공용 패널
   - 사운드: 마스터 / 음악 / 효과음 / 환경음 볼륨 (5-8 `AudioVolumes`와 연결)
   - 화면: 해상도, 창 모드, 그래픽 품질, 후처리(블룸·비네팅) 켜기/끄기
   - 게임: 조작 안내 표시, 카메라 회전·줌 감도, 기본 배속
   - 설정 저장(PlayerPrefs 등) 및 시작 시 적용
+  - 결정: 탭 3개, 즉시 적용(해상도·화면 모드만 10초 확인 후 되돌림), 그래픽 = 프리셋 3개(낮음/중간/높음) + 아래 세부 항목(바꾸면 "사용자 지정"), 추가 = UI 크기·프레임 제한/수직 동기화·창 비활성 시 일시정지·탭별 기본값 복원
+  - `Settings/GameSettings`(정적, PlayerPrefs `settings.*`, Changed 이벤트), `Settings/SettingsApplier`(시작 시 자동 생성·씬 유지: URP 에셋 **복사본**을 파이프라인으로 써서 원본 에셋 보존·종료 시 복원 / 그림자 = 방향광 그림자 + 해상도·단계·거리, AA = 카메라 FXAA·SMAA 또는 MSAA 4x, 렌더 해상도, 블룸이 든 볼륨의 프로필 복사본, 프레임·VSync, CanvasScaler 기준 해상도 ÷ UI 크기, 창 비활성 일시정지 — 씬 로드마다 다시 적용)
+  - `UI/SettingsPanel`(실행 순서 -300, 내용은 처음 열 때 코드로 생성: 행 = 슬라이더 / &lt; 값 &gt; 순환 선택, 화면 탭은 스크롤) — ESC는 확인창 → 되돌리기, 아니면 닫기, 같은 프레임 다른 ESC 처리는 `EscapeConsumedThisFrame`으로 건너뜀
+  - 사용처: `OrbitCameraController` 감도(+ 메뉴 열림 중 카메라 입력 차단), `StatusBar` 조작 안내 모드, `SimulationClock` 기본 배속, `CrisisVignette` 비네팅 끄면 평소 테두리만 끔(위기 붉은 맥박은 유지)
+  - 프리셋 값: 낮음 = 그림자 낮음(하드, 1024, 1단계, 30m)·AA 끔·75%·블룸 끔 / 중간 = 그림자 중간(2048, 2단계, 40m)·FXAA·90% / 높음 = 그림자 높음(2048, 4단계, 50m = 기존 값)·SMAA·100%
+  - 생성: `MenuSceneBuilder`가 HUD·메뉴 캔버스에 `SettingsPanel` 자리(글꼴·스프라이트 연결) 생성
 - 순서: 5-8 사운드 → 5-9 메인 메뉴 → 5-10 설정창 → Phase 6
 
 ## Phase 6. 확장 후보
 - [ ] 포트 방식 연결 (B안) 도입
-- [ ] 연구 시스템 도입 (RESEARCH.md 참고)
+- [ ] 연구 시스템 도입 (RESEARCH.md 참고) — 구현 완료, 플레이 확인 대기
   - 연구소 + 연구: 난이도 확장(4-x) 완료 후. 첫 효과 후보는 이벤트 조기 경보 (GDD 10번)
-  - [ ] 연구소(ResearchLab) 모듈 추가
-  - [ ] 카테고리별 레벨업 데이터 구조 (`ResearchCategoryData`, `ResearchLevelCapConfig`)
-  - [ ] 연구 틱 진행(전력 효율 연동), 일시정지/재개
-  - [ ] 각 시스템에 연구 효과 조회 지점 연결 (수리, 전력 효율, 생산량, 방어 반경 등)
-  - [ ] 노후화 시스템과의 수치/변수명 동기화 확인 (RESEARCH.md 8번 대조표 기준)
-  - [ ] 착수 전 결정 (RESEARCH.md 9번 질문 목록): 수리 시간 단계, 효율 하한선 처리, 방어 효과 대체안, 방어 반경 상한, 거주 "기본 만족도"의 의미, Lv.4 인구 조건
-  - [ ] 연구 UI (RESEARCH.md 5번): 연구소 선택 패널(카테고리 6개·레벨·다음 비용·상한 사유), 진행률·남은 시간·일시정지 표시. HUD 홀로그램 스타일·아이콘 재사용
-  - [ ] 밸런스 측정: `BalanceBot`이 연구를 시작하도록 확장 → 노멀 기준(게임 오버 비율, 중형·대형 도달 시간) 재측정
-  - [ ] 테스트: 연구 진행·일시정지·상한 판정·효과 조회 지점
+  - [x] 연구소(ResearchLab) 모듈 추가: `MD_ResearchLab` (1칸, 금속 50, 전력 2, `ModuleData.ResearchSlots` 1, 산업 탭, 초소형부터 해금), **임시 모델** `PF_ResearchLab`(기본 도형 조합, 나중에 교체)
+  - [x] 카테고리별 레벨업 데이터 구조: `ResearchCategoryData`(레벨 1~4: 시작 비용·전력 수요·소요 시간·설명·효과 목록 `ResearchModifier{Stat, Value}` = 그 레벨의 최종값), `ResearchLevelCapConfig`(레벨별 필요 등급·인구). 에셋 `Data/Research/RC_*`, `ResearchLevelCaps`
+  - [x] 연구 틱 진행(전력 효율 연동), 일시정지/재개: `Simulation/ResearchSystem` (슬롯 = 연결·정상 연구소 슬롯 합, 슬롯이 줄면 나중 연구부터 멈춤·진행률 유지, 카테고리당 1개, 취소 시 환급 없음), 연구 중 전력 수요 추가 `ResourceSimulation.ExtraPowerDemand`
+  - [x] 각 시스템에 연구 효과 조회 지점 연결: `Simulation/ResearchEffects`(연구 없으면 밸런스 값 그대로) 하나를 Resources·Damage·Durability·Adjacency·Defense·Needs가 공유. 수리 비용·시간, 노후 배율·효율 최저값, 재건축 할인, 방어 반경·파손 면역(`MeteorFlight.Immune`)·튕김·격추 배율/상한, 산소·물·식량 생산·좋은 인접 효과 +%p·채굴 +N, 최소 전력 효율·태양광·배터리, 만족도 상한·서비스 반경·거주 +N, 건설 비용(`StationSimulation.GetBuildCost`)·철거 환급·창고 증가량. UI(건설 버튼 비용·툴팁·범위 상자·배치 미리보기·선택 패널·운석 연출)도 같은 값
+  - [x] 노후화 동기화: `durabilityDecayPerSecond × DecayMultiplier`, `DurabilitySystem.EfficiencyFor`에 최저값
+  - [x] 착수 전 결정 (RESEARCH.md 9번 → 결정 반영, 3번 표 수정)
+  - [x] 연구 UI: `UI/ResearchPanel` (T 키 / 왼쪽 위 [연구] 버튼, 게임 시간 안 멈춤): 카드 6개(현재·다음 효과, 비용·전력·시간, [연구 시작] / 진행률·남은 시간·전력 배율·[취소] / 잠김 사유), 왼쪽 위 진행 추적기, 완료 알림(상태 표시줄 + 소리), 연구소 선택 시 "T: 연구 창" 안내. 공용 위젯 `UI/HoloUi`, 창 ESC 처리 `InputGate.ConsumeEscape`. 아이콘 4종 추가(research/shield/production/construct). 생성: 메뉴 `SpaceStation/Research/Setup`
+  - [x] 밸런스 측정: `BalanceBot` 연구 (소형부터 연구소 1, 중형부터 2 / 우선순위 유지보수→생산→에너지→건설→거주→방어 / 전력 여유 ≥ 연구 수요, 시작 후에도 산소·물 40%·금속 40 이상 남을 때만), `BalanceBot.UseResearch`로 비교. 결과는 BALANCE.md 22번
+  - [x] 테스트: `ResearchTests` 11개 (기본값 동일, 연구소 필요·비용, 진행·완료·효과, 전력 부족 감속, 파손 시 멈춤·진행률 유지, 등급 상한, 취소 환급 없음, 건설 비용·거주·수리 시간, 방어 반경, 파손 면역, 노후 배율·효율 최저) — 전체 202개 통과
+  - 참고: 배치 규칙(`PlacementRules`)은 인접을 검사하지 않음 (게임에서는 모듈 면을 클릭해야 해서 문제없음, 코드로 놓을 때 주의)
 - [ ] 세이브/로드, 회전 링 모듈
   - 세이브에는 연구 레벨·진행률·진행 중인 연구소도 포함

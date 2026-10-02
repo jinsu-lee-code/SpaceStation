@@ -23,7 +23,11 @@ namespace SpaceStation.Simulation
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _strength = strength ?? (_ => 1f);
+            Effects = new ResearchEffects(config);
         }
+
+        /// <summary>Phase 6 연구 효과 (반경 +칸, 격추 배율·상한). StationSimulation이 공유 인스턴스로 바꿔 끼운다.</summary>
+        public ResearchEffects Effects { get; set; }
 
         /// <summary>방어 모듈의 현재 가동률 (0~1).</summary>
         public float GetStrength(ModuleInstance defender) => Mathf.Clamp01(_strength(defender));
@@ -39,7 +43,7 @@ namespace SpaceStation.Simulation
             foreach (var d in grid.Modules)
             {
                 var data = d.Data;
-                if (data == null || !data.IsShield || !InRange(d.Cells, target.Cells, data.ShieldRadius))
+                if (data == null || !data.IsShield || !InRange(d.Cells, target.Cells, Effects.ShieldRadius(data)))
                     continue;
                 float chance = data.ShieldReduction * GetStrength(d);
                 if (chance > best)
@@ -52,8 +56,8 @@ namespace SpaceStation.Simulation
         }
 
         /// <summary>이 실드의 범위 안인지 (튕김 대상 제외용).</summary>
-        public static bool IsInShieldRange(ModuleInstance shield, ModuleInstance module)
-            => shield?.Data != null && InRange(shield.Cells, module.Cells, shield.Data.ShieldRadius);
+        public bool IsInShieldRange(ModuleInstance shield, ModuleInstance module)
+            => shield?.Data != null && InRange(shield.Cells, module.Cells, Effects.ShieldRadius(shield.Data));
 
         /// <summary>이 모듈로 오는 운석 1발의 격추 확률.</summary>
         public float GetInterceptChance(StationGrid grid, ModuleInstance target)
@@ -62,22 +66,29 @@ namespace SpaceStation.Simulation
             foreach (var d in grid.Modules)
             {
                 var data = d.Data;
-                if (data == null || !data.IsTurret || !InRange(d.Cells, target.Cells, data.TurretRadius))
+                if (data == null || !data.IsTurret || !InRange(d.Cells, target.Cells, Effects.TurretRadius(data)))
                     continue;
-                sum += data.TurretInterceptChance * GetStrength(d);
+                sum += data.TurretInterceptChance * Effects.TurretInterceptMultiplier * GetStrength(d);
             }
-            return Mathf.Min(sum, _config.TurretMaxIntercept);
+            return Mathf.Min(sum, Effects.TurretMaxIntercept);
         }
+
+        /// <summary>미리보기 반경 (연구 반영). 방어 모듈이 아니면 0.</summary>
+        public int RangeOf(ModuleData data) => Math.Max(Effects.ShieldRadius(data), Effects.TurretRadius(data));
+
+        /// <summary>연구 반경을 반영한 CountCovered (배치 미리보기·선택 패널).</summary>
+        public int CountCoveredWithResearch(StationGrid grid, ModuleData data, IReadOnlyList<Vector3Int> cells)
+            => CountCovered(grid, data, cells, null, Effects.DefenseRadiusBonus);
 
         /// <summary>
         /// 이 자리에 방어 모듈을 두면 범위 안에 들어올 기존 모듈 수 (배치 미리보기·봇용). 방어 모듈이 아니면 0.
         /// </summary>
-        public static int CountCovered(StationGrid grid, ModuleData data, IReadOnlyList<Vector3Int> cells, List<ModuleInstance> results = null)
+        public static int CountCovered(StationGrid grid, ModuleData data, IReadOnlyList<Vector3Int> cells, List<ModuleInstance> results = null, int radiusBonus = 0)
         {
             results?.Clear();
             if (data == null || !data.IsDefense)
                 return 0;
-            int radius = Math.Max(data.ShieldRadius, data.TurretRadius);
+            int radius = Math.Max(data.ShieldRadius, data.TurretRadius) + radiusBonus;
             int count = 0;
             foreach (var m in grid.Modules)
             {

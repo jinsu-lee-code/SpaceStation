@@ -46,12 +46,19 @@ namespace SpaceStation.UI
             return sb.ToString();
         }
 
-        public static string ModuleTooltip(ModuleData data)
+        /// <param name="fx">Phase 6 연구 효과 (null이면 기본값). 비용·반경·수용·저장·배터리를 연구 반영 값으로 표시</param>
+        public static string ModuleTooltip(ModuleData data, SpaceStation.Simulation.ResearchEffects fx = null)
         {
             var sb = new StringBuilder(256);
             sb.Append("<b>").Append(data.DisplayName).Append("</b>");
             sb.Append($"  <color={Muted}>{data.CellOffsets.Count}칸</color>\n");
-            sb.Append("비용: ").Append(Cost(data.BuildCost)).Append('\n');
+            sb.Append("비용: ").Append(Cost(fx != null ? fx.BuildCost(data) : (IReadOnlyList<ResourceAmount>)data.BuildCost)).Append('\n');
+            int shieldRadius = fx != null ? fx.ShieldRadius(data) : data.ShieldRadius;
+            int turretRadius = fx != null ? fx.TurretRadius(data) : data.TurretRadius;
+            int serviceRadius = fx != null ? fx.ServiceRadius(data) : data.ServiceRadius;
+            int housing = fx != null ? fx.Housing(data) : data.HousingCapacity;
+            float storage = fx != null ? fx.StorageBonus(data) : data.StorageBonus;
+            float battery = fx != null ? fx.BatteryCapacity(data) : data.BatteryCapacity;
 
             foreach (var a in data.Production)
             {
@@ -75,24 +82,26 @@ namespace SpaceStation.UI
             }
             if (data.SolarPowered)
                 sb.Append($"<color={Yellow}>낮/밤 주기에 따라 발전 (밤에는 발전 안 함)</color>\n");
-            if (data.BatteryCapacity > 0f)
-                sb.Append("배터리 용량 ").Append(data.BatteryCapacity.ToString("0"))
+            if (battery > 0f)
+                sb.Append("배터리 용량 ").Append(battery.ToString("0"))
                   .Append(" · 충·방전 초당 ").Append(data.BatteryRate.ToString("0.#")).Append('\n');
-            if (data.HousingCapacity > 0)
-                sb.Append("수용 인구 +").Append(data.HousingCapacity).Append('\n');
-            if (data.StorageBonus > 0f)
-                sb.Append("저장 한도 +").Append(data.StorageBonus.ToString("0")).Append(" (산소·물·식량·금속)\n");
+            if (housing > 0)
+                sb.Append("수용 인구 +").Append(housing).Append('\n');
+            if (storage > 0f)
+                sb.Append("저장 한도 +").Append(storage.ToString("0")).Append(" (산소·물·식량·금속)\n");
+            if (data.ResearchSlots > 0)
+                sb.Append("동시 연구 +").Append(data.ResearchSlots).Append($" <color={Muted}>(선택 후 연구 창에서 시작, 파손·비활성 시 멈춤)</color>\n");
             if (data.TerminalOnly)
                 sb.Append($"<color={Yellow}>말단 배치 전용: 정거장과 한 면만 맞닿아야 함</color>\n");
             if (data.IsShield)
-                sb.Append("실드: 반경 ").Append(data.ShieldRadius).Append("칸 안 모듈로 오는 운석을 ")
+                sb.Append("실드: 반경 ").Append(shieldRadius).Append("칸 안 모듈로 오는 운석을 ")
                   .Append((data.ShieldReduction * 100f).ToString("0")).Append($"% 빗겨냄 <color={Muted}>(중첩 없음)</color>\n")
                   .Append($"<color={Yellow}>빗겨낸 운석 일부는 실드 범위 밖 모듈에 맞음</color>\n");
             if (data.IsTurret)
-                sb.Append("포탑: 반경 ").Append(data.TurretRadius).Append("칸 안으로 오는 운석 완전 격추 ")
-                  .Append((data.TurretInterceptChance * 100f).ToString("0")).Append($"% <color={Muted}>(포탑끼리 합산, 상한 있음)</color>\n");
+                sb.Append("포탑: 반경 ").Append(turretRadius).Append("칸 안으로 오는 운석 완전 격추 ")
+                  .Append((data.TurretInterceptChance * (fx != null ? fx.TurretInterceptMultiplier : 1f) * 100f).ToString("0")).Append($"% <color={Muted}>(포탑끼리 합산, 상한 있음)</color>\n");
             if (data.IsService)
-                sb.Append(data.ServiceNeed.DisplayName()).Append(": 반경 ").Append(data.ServiceRadius)
+                sb.Append(data.ServiceNeed.DisplayName()).Append(": 반경 ").Append(serviceRadius)
                   .Append("칸 안 거주 모듈 주민 ").Append(data.ServiceCapacity).Append($"명 담당 <color={Muted}>(파손·비활성·전력 부족·노후 시 감소)</color>\n");
             if (data.IsDefense)
                 sb.Append($"<color={Muted}>파손·비활성·전력 부족·노후 시 효과 감소</color>\n");

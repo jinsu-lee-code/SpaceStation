@@ -62,6 +62,7 @@ namespace SpaceStation.Building
         public event Action<PlacementResult> PlaceRejected;
 
         public ModuleData Selected => _selected;
+        public StationController Station => _station;
         public IReadOnlyList<ModuleData> BuildableModules => _buildableModules;
         /// <summary>모듈이 있는 탭만 (방어 탭은 모듈이 생기면 나타남).</summary>
         public IReadOnlyList<ModuleCategory> Categories => _categories;
@@ -107,7 +108,7 @@ namespace SpaceStation.Building
             if (_selected == null)
                 return;
 
-            if (keyboard.escapeKey.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame)
+            if ((keyboard.escapeKey.wasPressedThisFrame && !InputGate.EscapeConsumedThisFrame) || mouse.rightButton.wasPressedThisFrame)
             {
                 Select(null);
                 return;

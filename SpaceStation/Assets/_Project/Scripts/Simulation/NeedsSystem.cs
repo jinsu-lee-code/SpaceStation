@@ -41,7 +41,11 @@ namespace SpaceStation.Simulation
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _strength = strength ?? (_ => 1f);
             _housing = housing ?? (m => m.Data != null ? m.Data.HousingCapacity : 0);
+            Effects = new ResearchEffects(config);
         }
+
+        /// <summary>Phase 6 연구 효과 (서비스 반경 +칸, 만족도 상한 +N). StationSimulation이 공유 인스턴스로 바꿔 끼운다.</summary>
+        public ResearchEffects Effects { get; set; }
 
         /// <summary>현재 등급까지 생긴 요구들의 충족 현황.</summary>
         public IReadOnlyList<NeedStatus> Statuses => _statuses;
@@ -92,7 +96,7 @@ namespace SpaceStation.Simulation
                     float used = 0f;
                     for (int i = 0; i < _habitats.Count && capacity - used > 1e-4f; i++)
                     {
-                        if (_remaining[i] <= 0f || !DefenseSystem.InRange(s.Cells, _habitats[i].Cells, data.ServiceRadius))
+                        if (_remaining[i] <= 0f || !DefenseSystem.InRange(s.Cells, _habitats[i].Cells, Effects.ServiceRadius(data)))
                             continue;
                         float take = Mathf.Min(_remaining[i], capacity - used);
                         _remaining[i] -= take;
@@ -113,6 +117,7 @@ namespace SpaceStation.Simulation
                 _statuses.Add(status);
                 cap -= (1f - status.Ratio) * _config.NeedSatisfactionCapPenalty;
             }
+            cap += Effects.SatisfactionCapBonus; // 연구: 감점을 받아도 상한이 그만큼 높음 (100은 넘지 않음)
             SatisfactionCap = Mathf.Clamp(cap, 0f, PopulationSimulation.MaxSatisfaction);
         }
 
@@ -129,7 +134,7 @@ namespace SpaceStation.Simulation
             foreach (var m in grid.Modules)
             {
                 float h = _housing(m);
-                if (h <= 0f || !DefenseSystem.InRange(cells, m.Cells, data.ServiceRadius))
+                if (h <= 0f || !DefenseSystem.InRange(cells, m.Cells, Effects.ServiceRadius(data)))
                     continue;
                 count++;
                 residents += totalHousing > 0f ? population * h / totalHousing : 0f;

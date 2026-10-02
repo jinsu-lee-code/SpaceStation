@@ -18,6 +18,8 @@ namespace SpaceStation.Simulation
         public ModuleInstance InterceptedAt;
         /// <summary>최종 명중 모듈 (없으면 null).</summary>
         public ModuleInstance Hit;
+        /// <summary>명중했지만 방어 연구로 파손을 면함 (내구도만 깎임, Phase 6).</summary>
+        public bool Immune;
 
         public bool Intercepted => InterceptedAt != null;
         public bool Deflected => DeflectedBy != null;

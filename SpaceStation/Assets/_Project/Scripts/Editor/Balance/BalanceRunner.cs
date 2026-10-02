@@ -15,6 +15,9 @@ namespace SpaceStation.Editor.Balance
         public IReadOnlyList<GameEventData> Events;
         public IReadOnlyList<ModuleData> Buildable;
         public AdjacencyRuleSet AdjacencyRules;
+        /// <summary>Phase 6 연구 (null이면 연구 없음).</summary>
+        public IReadOnlyList<ResearchCategoryData> ResearchCategories;
+        public ResearchLevelCapConfig ResearchCaps;
         public float DurationSeconds = 1800f;
         public int Runs = 20;
         public int BaseSeed = 1;
@@ -48,6 +51,9 @@ namespace SpaceStation.Editor.Balance
         public float MetalSpentOnRepairs;
         public int Maintenances;
         public int Rebuilds;
+        /// <summary>Phase 6: 카테고리별 최종 연구 레벨 (ResearchCategory 순서), 시작한 연구 수.</summary>
+        public int[] ResearchLevels = new int[6];
+        public int ResearchStarted;
         public float MetalSpentOnUpkeep;
         /// <summary>산소·물·식량·금속 최저 재고 (첫 등급 이후 전체 구간).</summary>
         public float[] MinStock = new float[4];
@@ -104,6 +110,8 @@ namespace SpaceStation.Editor.Balance
                 Events = s.Events,
                 AdjacencyRules = s.AdjacencyRules,
                 Random01 = () => (float)rng.NextDouble(),
+                ResearchCategories = s.ResearchCategories,
+                ResearchCaps = s.ResearchCaps,
             });
             var bot = new BalanceBot(sim, s.Buildable);
 
@@ -193,6 +201,9 @@ namespace SpaceStation.Editor.Balance
             result.MetalSpentOnRepairs = bot.MetalSpentOnRepairs;
             result.Maintenances = bot.Maintenances;
             result.Rebuilds = bot.Rebuilds;
+            result.ResearchStarted = bot.ResearchStarted;
+            foreach (var c in sim.Research.Categories)
+                result.ResearchLevels[(int)c.Category] = sim.Research.GetLevel(c);
             result.MetalSpentOnUpkeep = bot.MetalSpentOnUpkeep;
             result.AverageEfficiency = ticks > 0 ? effSum / ticks : 1f;
             result.FinalSatisfaction = sim.Population.Satisfaction;
@@ -290,7 +301,9 @@ namespace SpaceStation.Editor.Balance
             sb.AppendLine($"최저 재고 평균  산소 {Avg(results, r => r.MinStock[0]):0}  물 {Avg(results, r => r.MinStock[1]):0}  식량 {Avg(results, r => r.MinStock[2]):0}  금속 {Avg(results, r => r.MinStock[3]):0}");
             sb.AppendLine($"고갈 시간 평균(초)  산소 {Avg(results, r => r.DepletedSeconds[0]):0}  물 {Avg(results, r => r.DepletedSeconds[1]):0}  식량 {Avg(results, r => r.DepletedSeconds[2]):0}  · 고갈 횟수 {Avg(results, r => r.DepletionEvents):0.0}회");
             sb.AppendLine($"전력 효율<100% 시간 평균 {Avg(results, r => r.LowPowerSeconds):0}초, 평균 효율 {Avg(results, r => r.AverageEfficiency) * 100f:0.0}%");
-            sb.Append($"만족도  최종 평균 {Avg(results, r => r.FinalSatisfaction):0}, 최저 평균 {Avg(results, r => r.MinSatisfaction):0}");
+            sb.AppendLine($"만족도  최종 평균 {Avg(results, r => r.FinalSatisfaction):0}, 최저 평균 {Avg(results, r => r.MinSatisfaction):0}");
+            sb.Append($"연구  시작 {Avg(results, r => r.ResearchStarted):0.0}회, 최종 레벨 평균  유지보수 {Avg(results, r => r.ResearchLevels[0]):0.0}  방어 {Avg(results, r => r.ResearchLevels[1]):0.0}"
+                      + $"  생산 {Avg(results, r => r.ResearchLevels[2]):0.0}  에너지 {Avg(results, r => r.ResearchLevels[3]):0.0}  거주 {Avg(results, r => r.ResearchLevels[4]):0.0}  건설 {Avg(results, r => r.ResearchLevels[5]):0.0}");
             return sb.ToString();
         }
 

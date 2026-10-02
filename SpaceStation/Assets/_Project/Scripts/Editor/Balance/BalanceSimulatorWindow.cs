@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -22,6 +22,8 @@ namespace SpaceStation.Editor.Balance
         [SerializeField] private AdjacencyRuleSet _adjacency;
         [SerializeField] private List<GameEventData> _events = new List<GameEventData>();
         [SerializeField] private List<ModuleData> _buildable = new List<ModuleData>();
+        [SerializeField] private List<ResearchCategoryData> _research = new List<ResearchCategoryData>();
+        [SerializeField] private ResearchLevelCapConfig _researchCaps;
         [SerializeField] private float _durationMinutes = 30f;
         [SerializeField] private int _runs = 20;
         [SerializeField] private int _baseSeed = 1;
@@ -54,6 +56,8 @@ namespace SpaceStation.Editor.Balance
             EditorGUILayout.PropertyField(_so.FindProperty("_adjacency"));
             EditorGUILayout.PropertyField(_so.FindProperty("_events"), true);
             EditorGUILayout.PropertyField(_so.FindProperty("_buildable"), true);
+            EditorGUILayout.PropertyField(_so.FindProperty("_research"), true);
+            EditorGUILayout.PropertyField(_so.FindProperty("_researchCaps"));
             if (GUILayout.Button("기본 에셋 다시 불러오기"))
                 LoadDefaults(true);
 
@@ -104,6 +108,8 @@ namespace SpaceStation.Editor.Balance
                 Events = _events,
                 Buildable = _buildable,
                 AdjacencyRules = _adjacency,
+                ResearchCategories = _research,
+                ResearchCaps = _researchCaps,
                 DurationSeconds = _durationMinutes * 60f,
                 Runs = Mathf.Max(1, _runs),
                 BaseSeed = _baseSeed,
@@ -186,6 +192,14 @@ namespace SpaceStation.Editor.Balance
                 foreach (var guid in AssetDatabase.FindAssets("t:GameEventData", new[] { $"{DataRoot}/Events" }))
                     _events.Add(AssetDatabase.LoadAssetAtPath<GameEventData>(AssetDatabase.GUIDToAssetPath(guid)));
             }
+            if (overwrite || _research.Count == 0)
+            {
+                _research.Clear();
+                foreach (var guid in AssetDatabase.FindAssets("t:ResearchCategoryData", new[] { $"{DataRoot}/Research" }))
+                    _research.Add(AssetDatabase.LoadAssetAtPath<ResearchCategoryData>(AssetDatabase.GUIDToAssetPath(guid)));
+            }
+            if (overwrite || _researchCaps == null)
+                _researchCaps = AssetDatabase.LoadAssetAtPath<ResearchLevelCapConfig>($"{DataRoot}/Research/ResearchLevelCaps.asset");
             if (overwrite || _buildable.Count == 0)
             {
                 _buildable.Clear();

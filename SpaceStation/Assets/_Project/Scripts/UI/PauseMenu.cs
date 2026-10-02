@@ -10,7 +10,7 @@ using UnityEngine.UI;
 namespace SpaceStation.UI
 {
     /// <summary>
-    /// 5-9 게임 중 ESC 메뉴: [재개] [설정](5-10) [재시작] [메인 메뉴].
+    /// 5-9 게임 중 ESC 메뉴: [재개] [설정](5-10 SettingsPanel) [재시작] [메인 메뉴].
     /// 배치·선택 중의 ESC는 기존처럼 취소이고, 아무것도 없을 때만 메뉴가 열린다 (그래서 다른 처리기보다 먼저 판단).
     /// 열려 있는 동안 시뮬레이션을 멈추고 조작 키를 막는다. 결과 화면이 떠 있으면 열리지 않는다.
     /// </summary>
@@ -28,6 +28,7 @@ namespace SpaceStation.UI
         [SerializeField] private Button _settingsButton;
         [SerializeField] private Button _restartButton;
         [SerializeField] private Button _mainMenuButton;
+        [SerializeField] private SettingsPanel _settingsPanel;
 
         private UiTween _tween;
         private bool _open;
@@ -42,7 +43,11 @@ namespace SpaceStation.UI
             _restartButton.onClick.AddListener(() => Leave(true));
             _mainMenuButton.onClick.AddListener(() => Leave(false));
             if (_settingsButton != null)
-                _settingsButton.interactable = false; // 5-10에서 연결
+            {
+                _settingsButton.interactable = _settingsPanel != null;
+                if (_settingsPanel != null)
+                    _settingsButton.onClick.AddListener(_settingsPanel.Open);
+            }
             SetVisible(false);
             InputGate.Blocked = false;
         }
@@ -59,6 +64,8 @@ namespace SpaceStation.UI
             var keyboard = Keyboard.current;
             if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame || SceneFader.Busy)
                 return;
+            if (SettingsPanel.EscapeConsumedThisFrame || InputGate.EscapeConsumedThisFrame || (_settingsPanel != null && _settingsPanel.IsOpen))
+                return; // 설정창이 먼저 닫힌다
             if (_open)
                 Close();
             else if (!_clock.InputLocked && (_build == null || _build.Selected == null) && (_selection == null || _selection.Selected == null))

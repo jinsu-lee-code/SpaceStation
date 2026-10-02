@@ -13,7 +13,10 @@ namespace SpaceStation.Simulation
         public AdjacencyRule Rule;
         /// <summary>실제 적용된 중첩 수 (면제·최대 반영).</summary>
         public int Stacks;
-        public float Total => Rule.ValuePerNeighbor * Stacks;
+        /// <summary>연구로 더해진 이웃당 값 (좋은 효과 쪽 부호, Phase 6).</summary>
+        public float Boost;
+        public float PerNeighbor => Rule.ValuePerNeighbor + Boost;
+        public float Total => PerNeighbor * Stacks;
     }
 
     /// <summary>
@@ -42,6 +45,22 @@ namespace SpaceStation.Simulation
         }
 
         public bool HasRules => _rules != null && _rules.Rules.Count > 0;
+
+        /// <summary>Phase 6 생산 연구: 좋은 인접 효과(생산 +, 소비 −)를 이웃당 이만큼 더 강하게. null이면 0.</summary>
+        public ResearchEffects Effects { get; set; }
+
+        /// <summary>규칙에 더해질 연구 보정 (이웃당, 부호 포함). 수용 인구·나쁜 효과는 0.</summary>
+        public float BoostFor(AdjacencyRule rule)
+        {
+            float boost = Effects != null ? Effects.AdjacencyBonusBoost : 0f;
+            if (boost <= 0f || rule == null)
+                return 0f;
+            if (rule.Effect == AdjacencyEffect.Production && rule.ValuePerNeighbor > 0f)
+                return boost;
+            if (rule.Effect == AdjacencyEffect.Consumption && rule.ValuePerNeighbor < 0f)
+                return -boost;
+            return 0f;
+        }
 
         public void Recalculate(StationGrid grid)
         {
@@ -84,7 +103,7 @@ namespace SpaceStation.Simulation
                 }
                 int stacks = Math.Min(rule.MaxStacks, Math.Max(0, count - rule.FreeNeighbors));
                 if (stacks > 0)
-                    results.Add(new AppliedAdjacency { Rule = rule, Stacks = stacks });
+                    results.Add(new AppliedAdjacency { Rule = rule, Stacks = stacks, Boost = BoostFor(rule) });
             }
         }
 
@@ -154,17 +173,20 @@ namespace SpaceStation.Simulation
                     }
                     int after = Math.Min(rule.MaxStacks, Math.Max(0, matching + 1 - rule.FreeNeighbors));
                     if (after > current)
-                        neighborLines.Add($"{neighbor.Data.DisplayName} {Describe(rule, after - current)}");
+                        neighborLines.Add($"{neighbor.Data.DisplayName} {Describe(rule, after - current, BoostFor(rule))}");
                 }
             }
         }
 
         private readonly List<ModuleInstance> _scratchNeighbors = new List<ModuleInstance>();
 
-        /// <summary>"물 소비 -25%" 같은 짧은 설명.</summary>
-        public static string Describe(AdjacencyRule rule, int stacks)
+        /// <summary>적용 중인 효과 설명 (연구 보정 포함).</summary>
+        public static string Describe(AppliedAdjacency applied) => Describe(applied.Rule, applied.Stacks, applied.Boost);
+
+        /// <summary>"물 소비 -25%" 같은 짧은 설명. boost = 연구로 더해진 이웃당 값.</summary>
+        public static string Describe(AdjacencyRule rule, int stacks, float boost = 0f)
         {
-            float total = rule.ValuePerNeighbor * stacks;
+            float total = (rule.ValuePerNeighbor + boost) * stacks;
             string what;
             switch (rule.Effect)
             {
@@ -192,11 +214,11 @@ namespace SpaceStation.Simulation
                     string who = rule.Neighbor != null ? rule.Neighbor.DisplayName
                         : rule.ExcludeSameType ? $"{data.DisplayName} 외 모든 모듈" : "모든 모듈";
                     string free = rule.FreeNeighbors > 0 ? $", {rule.FreeNeighbors}개 면제" : "";
-                    lines.Add($"{who} 옆: {Describe(rule, 1)} / 개 (최대 {rule.MaxStacks}회{free})");
+                    lines.Add($"{who} 옆: {Describe(rule, 1, BoostFor(rule))} / 개 (최대 {rule.MaxStacks}회{free})");
                 }
                 else if (rule.Neighbor == data && rule.Target != null)
                 {
-                    lines.Add($"{rule.Target.DisplayName} 옆에 두면 그 모듈 {Describe(rule, 1)}");
+                    lines.Add($"{rule.Target.DisplayName} 옆에 두면 그 모듈 {Describe(rule, 1, BoostFor(rule))}");
                 }
             }
         }
@@ -208,7 +230,7 @@ namespace SpaceStation.Simulation
             {
                 if (sb.Length > 0)
                     sb.Append(", ");
-                sb.Append(Describe(a.Rule, a.Stacks));
+                sb.Append(Describe(a));
             }
             return sb.ToString();
         }

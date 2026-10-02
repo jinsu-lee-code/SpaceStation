@@ -9,7 +9,7 @@ using UnityEngine.UI;
 namespace SpaceStation.UI
 {
     /// <summary>
-    /// 5-9 메인 메뉴: [새 게임] → 난이도 선택(이지/노멀/하드) → 게임 씬, [설정](5-10), [종료].
+    /// 5-9 메인 메뉴: [새 게임] → 난이도 선택(이지/노멀/하드) → 게임 씬, [설정](5-10 SettingsPanel), [종료].
     /// 이어하기는 세이브가 생기면 추가. 패널 전환은 UiTween, ESC는 뒤로.
     /// </summary>
     public sealed class MainMenuController : MonoBehaviour
@@ -20,6 +20,7 @@ namespace SpaceStation.UI
         [SerializeField] private Button _settingsButton;
         [SerializeField] private Button _quitButton;
         [SerializeField] private Button _backButton;
+        [SerializeField] private SettingsPanel _settingsPanel;
         [Tooltip("이지 / 노멀 / 하드 순서")]
         [SerializeField] private DifficultyPreset[] _difficulties = new DifficultyPreset[0];
         [SerializeField] private Button[] _difficultyButtons = new Button[0];
@@ -40,7 +41,11 @@ namespace SpaceStation.UI
             _quitButton.onClick.AddListener(Quit);
             _backButton.onClick.AddListener(ShowMain);
             if (_settingsButton != null)
-                _settingsButton.interactable = false; // 5-10에서 연결
+            {
+                _settingsButton.interactable = _settingsPanel != null;
+                if (_settingsPanel != null)
+                    _settingsButton.onClick.AddListener(_settingsPanel.Open);
+            }
 
             for (int i = 0; i < _difficultyButtons.Length && i < _difficulties.Length; i++)
             {
@@ -63,6 +68,8 @@ namespace SpaceStation.UI
             _mainTween.Update();
             _difficultyTween.Update();
             var keyboard = Keyboard.current;
+            if (SettingsPanel.EscapeConsumedThisFrame || (_settingsPanel != null && _settingsPanel.IsOpen))
+                return;
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame && _choosingDifficulty)
                 ShowMain();
         }

@@ -116,7 +116,7 @@ namespace SpaceStation.Building
             {
                 // 실드 구면에 닿는 지점까지
                 Vector3 center = ModuleCenter(flight.DeflectedBy);
-                float radius = flight.DeflectedBy.Data != null ? flight.DeflectedBy.Data.ShieldRadius + 0.6f : 2.5f;
+                float radius = flight.DeflectedBy.Data != null ? _station.Simulation.Effects.ShieldRadius(flight.DeflectedBy.Data) + 0.6f : 2.5f;
                 Vector3 contact = SphereEntry(start, target, center, radius, out Vector3 normal);
                 float toContact = _flightTime * Vector3.Distance(start, contact) / Vector3.Distance(start, target);
                 Launched?.Invoke(contact, toContact);
@@ -428,7 +428,7 @@ namespace SpaceStation.Building
                 if (m.Data == null || !m.Data.IsTurret || !_station.Connectivity.IsActive(m))
                     continue;
                 int d = Chebyshev(m, near);
-                if (d <= m.Data.TurretRadius && d < bestDist)
+                if (d <= _station.Simulation.Effects.TurretRadius(m.Data) && d < bestDist)
                 {
                     best = m;
                     bestDist = d;

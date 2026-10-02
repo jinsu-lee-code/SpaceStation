@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa4f2b2b21ab57a4c921e7a31aae9a15, type: 3}
+  m_Name: RC_Habitation
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ResearchCategoryData
+  _category: 4
+  _displayName: "\uAC70\uC8FC\uD658\uACBD"
+  _icon: population
+  _levels:
+  - StartCost:
+    - Type: 1
+      Amount: 20
+    - Type: 2
+      Amount: 20
+    - Type: 4
+      Amount: 30
+    PowerDemand: 5
+    Duration: 60
+    Description: "\uB9CC\uC871\uB3C4 \uC0C1\uD55C +5"
+    Modifiers:
+    - Stat: 16
+      Value: 5
+  - StartCost:
+    - Type: 1
+      Amount: 40
+    - Type: 2
+      Amount: 40
+    - Type: 4
+      Amount: 60
+    PowerDemand: 8
+    Duration: 120
+    Description: "\uC758\uB8CC\uC2E4\xB7\uD734\uAC8C\uC2E4 \uBC18\uACBD 3\uCE78 \u2192
+      4\uCE78"
+    Modifiers:
+    - Stat: 17
+      Value: 1
+  - StartCost:
+    - Type: 1
+      Amount: 70
+    - Type: 2
+      Amount: 70
+    - Type: 4
+      Amount: 100
+    PowerDemand: 12
+    Duration: 180
+    Description: "\uAC70\uC8FC \uBAA8\uB4C8 \uC218\uC6A9 \uC778\uC6D0 +6 \u2192 +7"
+    Modifiers:
+    - Stat: 18
+      Value: 1
+  - StartCost:
+    - Type: 1
+      Amount: 110
+    - Type: 2
+      Amount: 110
+    - Type: 4
+      Amount: 150
+    PowerDemand: 18
+    Duration: 240
+    Description: "\uB9CC\uC871\uB3C4 \uC0C1\uD55C +10, \uC218\uC6A9 \uC778\uC6D0
+      +8"
+    Modifiers:
+    - Stat: 16
+      Value: 10
+    - Stat: 18
+      Value: 2

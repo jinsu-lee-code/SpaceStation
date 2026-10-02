@@ -28,6 +28,10 @@ namespace SpaceStation.Core
         {
             _clock = new TickClock(_tickInterval, _maxTicksPerFrame);
             _clock.Ticked += HandleTicked;
+            // 5-10 기본 배속
+            float speed = Settings.GameSettings.SpeedChoices[Settings.GameSettings.DefaultSpeedIndex];
+            if (!Mathf.Approximately(speed, _clock.Speed))
+                _clock.SetSpeed(speed);
         }
 
         private void OnDestroy()

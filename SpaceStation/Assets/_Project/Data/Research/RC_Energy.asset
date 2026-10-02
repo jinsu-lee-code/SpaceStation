@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa4f2b2b21ab57a4c921e7a31aae9a15, type: 3}
+  m_Name: RC_Energy
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ResearchCategoryData
+  _category: 3
+  _displayName: "\uC5D0\uB108\uC9C0"
+  _icon: power
+  _levels:
+  - StartCost:
+    - Type: 1
+      Amount: 20
+    - Type: 2
+      Amount: 20
+    - Type: 4
+      Amount: 30
+    PowerDemand: 5
+    Duration: 60
+    Description: "\uC804\uB825 \uCD5C\uC18C \uD6A8\uC728 25% \u2192 30%"
+    Modifiers:
+    - Stat: 13
+      Value: 0.3
+  - StartCost:
+    - Type: 1
+      Amount: 40
+    - Type: 2
+      Amount: 40
+    - Type: 4
+      Amount: 60
+    PowerDemand: 8
+    Duration: 120
+    Description: "\uD0DC\uC591\uAD11 \uBC1C\uC804 +15%"
+    Modifiers:
+    - Stat: 14
+      Value: 1.15
+  - StartCost:
+    - Type: 1
+      Amount: 70
+    - Type: 2
+      Amount: 70
+    - Type: 4
+      Amount: 100
+    PowerDemand: 12
+    Duration: 180
+    Description: "\uC804\uB825 \uCD5C\uC18C \uD6A8\uC728 40%, \uBC30\uD130\uB9AC
+      \uC800\uC7A5\uB7C9 +20%"
+    Modifiers:
+    - Stat: 13
+      Value: 0.4
+    - Stat: 15
+      Value: 1.2
+  - StartCost:
+    - Type: 1
+      Amount: 110
+    - Type: 2
+      Amount: 110
+    - Type: 4
+      Amount: 150
+    PowerDemand: 18
+    Duration: 240
+    Description: "\uD0DC\uC591\uAD11 \uBC1C\uC804 +30%, \uC804\uB825 \uCD5C\uC18C
+      \uD6A8\uC728 50%"
+    Modifiers:
+    - Stat: 14
+      Value: 1.3
+    - Stat: 13
+      Value: 0.5

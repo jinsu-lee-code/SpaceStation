@@ -24,6 +24,9 @@ namespace SpaceStation.Simulation
         [SerializeField] private bool _enableDebugEventTrigger = true;
         [Tooltip("메인 메뉴를 거치지 않고 이 씬을 바로 실행할 때의 난이도 (5-9)")]
         [SerializeField] private DifficultyPreset _defaultDifficulty;
+        [Header("Research (Phase 6)")]
+        [SerializeField] private List<ResearchCategoryData> _researchCategories = new List<ResearchCategoryData>();
+        [SerializeField] private ResearchLevelCapConfig _researchCaps;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -43,6 +46,8 @@ namespace SpaceStation.Simulation
                 Events = _events,
                 AdjacencyRules = _adjacencyRules,
                 Random01 = () => Random.value * 0.99999f, // [0, 1) 보장
+                ResearchCategories = _researchCategories,
+                ResearchCaps = _researchCaps,
             });
             Simulation.Resources.DepletionChanged += HandleDepletionChanged;
             Simulation.Events.EventStarted += HandleEventStarted;

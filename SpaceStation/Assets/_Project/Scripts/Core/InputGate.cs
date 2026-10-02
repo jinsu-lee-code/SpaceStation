@@ -6,6 +6,13 @@ namespace SpaceStation.Core
     public static class InputGate
     {
         public static bool Blocked;
+
+        private static int _escapeConsumedFrame = -1;
+
+        /// <summary>창(연구 등)이 이번 프레임 ESC를 써서 닫혔음을 알린다 — 다른 ESC 처리(배치 취소·일시정지 메뉴)는 건너뛴다.</summary>
+        public static void ConsumeEscape() => _escapeConsumedFrame = UnityEngine.Time.frameCount;
+
+        public static bool EscapeConsumedThisFrame => _escapeConsumedFrame == UnityEngine.Time.frameCount;
     }
 
     /// <summary>빌드 설정의 씬 이름.</summary>

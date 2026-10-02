@@ -55,6 +55,8 @@ namespace SpaceStation.Data
         [Header("Support (BALANCE 17번)")]
         [Tooltip("동시 수리 슬롯 추가 수 (정비 베이 1). 활성이고 파손되지 않았을 때만. 코어 몫은 BalanceConfig.BaseRepairSlots")]
         [SerializeField, Min(0)] private int _repairSlots;
+        [Tooltip("동시 연구 슬롯 (연구소 1, Phase 6). 활성이고 파손되지 않았을 때만")]
+        [SerializeField, Min(0)] private int _researchSlots;
 
         [Header("Defense (BALANCE 19번)")]
         [Tooltip("실드 반경 (격자 칸, 체비셰프 거리). 0이면 실드 아님")]
@@ -80,6 +82,7 @@ namespace SpaceStation.Data
         public bool IsService => ServiceNeed != ResidentNeed.None;
 
         public int RepairSlots => _repairSlots;
+        public int ResearchSlots => _researchSlots;
         public int ShieldRadius => _shieldReduction > 0f ? _shieldRadius : 0;
         public float ShieldReduction => _shieldReduction;
         public int TurretRadius => _turretInterceptChance > 0f ? _turretRadius : 0;

@@ -178,7 +178,7 @@ namespace SpaceStation.UI
             if (module.Data != null && module.Data.IsDefense)
             {
                 float strength = defense.GetStrength(module);
-                int covered = DefenseSystem.CountCovered(grid, module.Data, module.Cells) - 1; // 자신 제외
+                int covered = defense.CountCoveredWithResearch(grid, module.Data, module.Cells) - 1; // 자신 제외, 연구 반경 반영
                 string color = strength < 1f ? HudText.Yellow : "#FFFFFF";
                 line += $"\n<size=85%><color={HudText.Muted}>방어</color> 범위 안 모듈 {covered}개 · <color={color}>가동률 {strength * 100f:0}%</color></size>";
             }

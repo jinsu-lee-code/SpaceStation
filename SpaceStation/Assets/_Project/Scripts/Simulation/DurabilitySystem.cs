@@ -54,7 +54,11 @@ namespace SpaceStation.Simulation
         public DurabilitySystem(BalanceConfig config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            Effects = new ResearchEffects(config);
         }
+
+        /// <summary>Phase 6 연구 효과 (노후 속도 배율, 효율 최저값). StationSimulation이 공유 인스턴스로 바꿔 끼운다.</summary>
+        public ResearchEffects Effects { get; set; }
 
         public void Track(ModuleInstance module)
         {
@@ -85,7 +89,7 @@ namespace SpaceStation.Simulation
             float threshold = _config.DurabilityEfficiencyThreshold;
             if (durability >= threshold || threshold <= 0f)
                 return 1f;
-            return Math.Max(0f, durability / threshold);
+            return Math.Max(Effects.DurabilityEfficiencyFloor, Math.Max(0f, durability / threshold)); // 연구: 효율 최저값
         }
 
         /// <summary>철거 환급 배율 (내구도/100). 추적하지 않는 모듈은 1.</summary>
@@ -136,7 +140,7 @@ namespace SpaceStation.Simulation
 
         public void Tick(float dt)
         {
-            float decay = _config.DurabilityDecayPerSecond * dt;
+            float decay = _config.DurabilityDecayPerSecond * Effects.DecayMultiplier * dt; // 연구: 노후 완화
             if (decay <= 0f || _states.Count == 0)
                 return;
 

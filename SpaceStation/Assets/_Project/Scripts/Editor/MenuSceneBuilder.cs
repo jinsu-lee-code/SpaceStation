@@ -67,7 +67,7 @@ namespace SpaceStation.Editor
             var info = Text(panel.transform, "Info", "난이도", font, 17f, TextAlignmentOptions.Center, 30f);
             Spacer(panel.transform, 6f);
             var resume = MakeButton(panel.transform, "Resume", "재개  <size=70%><color=#AFC4D8>ESC</color></size>", font, 22f, 58f);
-            var settings = MakeButton(panel.transform, "Settings", "설정  <size=70%><color=#AFC4D8>준비 중</color></size>", font, 22f, 58f);
+            var settings = MakeButton(panel.transform, "Settings", "설정", font, 22f, 58f);
             var restart = MakeButton(panel.transform, "Restart", "재시작", font, 22f, 58f);
             var menu = MakeButton(panel.transform, "MainMenu", "메인 메뉴로", font, 22f, 58f);
 
@@ -83,6 +83,7 @@ namespace SpaceStation.Editor
             Set(pause, "_settingsButton", settings);
             Set(pause, "_restartButton", restart);
             Set(pause, "_mainMenuButton", menu);
+            Set(pause, "_settingsPanel", MakeSettingsPanel(hud.transform, font));
             var group = root.GetComponent<CanvasGroup>();
             group.alpha = 0f;
             group.blocksRaycasts = false;
@@ -177,7 +178,7 @@ namespace SpaceStation.Editor
             // 메인 패널
             var main = Column(canvasGo.transform, "MainPanel", new Vector2(140f, -430f), 440f);
             var newGame = MakeButton(main.transform, "NewGame", "새 게임", font, 26f, 66f);
-            var settings = MakeButton(main.transform, "Settings", "설정  <size=70%><color=#AFC4D8>준비 중</color></size>", font, 26f, 66f);
+            var settings = MakeButton(main.transform, "Settings", "설정", font, 26f, 66f);
             var quit = MakeButton(main.transform, "Quit", "종료", font, 26f, 66f);
 
             // 난이도 패널
@@ -217,9 +218,33 @@ namespace SpaceStation.Editor
             Set(controller, "_settingsButton", settings);
             Set(controller, "_quitButton", quit);
             Set(controller, "_backButton", back);
+            Set(controller, "_settingsPanel", MakeSettingsPanel(canvasGo.transform, font));
             SetArray(controller, "_difficulties", presets.ToArray());
             SetArray(controller, "_difficultyButtons", buttons.ToArray());
             SetArray(controller, "_difficultyLabels", labels.ToArray());
+        }
+
+        /// <summary>5-10 설정창 자리 (내용은 런타임에 SettingsPanel이 만든다). 캔버스 맨 위에 둔다.</summary>
+        private static SettingsPanel MakeSettingsPanel(Transform canvas, TMP_FontAsset font)
+        {
+            var old = canvas.Find("SettingsPanel");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+            var go = new GameObject("SettingsPanel", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
+            go.transform.SetParent(canvas, false);
+            Stretch((RectTransform)go.transform);
+            go.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
+            var group = go.GetComponent<CanvasGroup>();
+            group.alpha = 0f;
+            group.blocksRaycasts = false;
+            group.interactable = false;
+            go.transform.SetAsLastSibling();
+            var panel = go.AddComponent<SettingsPanel>();
+            Set(panel, "_font", font);
+            Set(panel, "_fillSprite", HudArtBuilder.Fill);
+            Set(panel, "_frameSprite", HudArtBuilder.Frame);
+            Set(panel, "_buttonSprite", HudArtBuilder.Button);
+            return panel;
         }
 
         // ---------------- 도우미 ----------------

@@ -63,6 +63,12 @@ namespace SpaceStation.Simulation
             }
         }
 
+        /// <summary>Phase 6 연구 효과 (최소 전력 효율, 태양광·배터리·창고·거주·환급). StationSimulation이 공유 인스턴스로 바꿔 끼운다.</summary>
+        public ResearchEffects Effects { get; set; }
+
+        /// <summary>모듈 외 전력 수요 (진행 중인 연구, Phase 6). 다음 틱부터 반영.</summary>
+        public float ExtraPowerDemand { get; set; }
+
         /// <summary>모듈과 무관한 초당 추가 소비 (파손 모듈 누출 등). 다음 틱부터 반영.</summary>
         public void SetExternalDrain(ResourceType type, float perSecond)
         {
@@ -100,6 +106,7 @@ namespace SpaceStation.Simulation
         public ResourceSimulation(BalanceConfig config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            Effects = new ResearchEffects(config);
 
             foreach (var a in config.BaseStorageCapacity)
                 _baseCapacity[(int)a.Type] += a.Amount;
@@ -197,7 +204,7 @@ namespace SpaceStation.Simulation
         {
             if (cost == null)
                 return;
-            float rate = _config.DemolishRefundRate * Mathf.Max(0f, multiplier);
+            float rate = Effects.DemolishRefundRate * Mathf.Max(0f, multiplier);
             foreach (var a in cost)
             {
                 if (!IsStock(a.Type))
@@ -217,15 +224,17 @@ namespace SpaceStation.Simulation
             float batteryCapacity = 0f, batteryRate = 0f;
             foreach (var m in activeModules)
             {
-                housing += m.HousingCapacity;
-                batteryCapacity += m.BatteryCapacity;
+                // Phase 6 연구: 거주 +N, 배터리 배율, 창고 증가량 +N
+                housing += Effects.Housing(m);
+                batteryCapacity += Effects.BatteryCapacity(m);
                 batteryRate += m.BatteryRate;
-                if (m.StorageBonus > 0f)
+                float storage = Effects.StorageBonus(m);
+                if (storage > 0f)
                 {
                     for (int i = 0; i < ResourceCount; i++)
                     {
                         if (IsStock((ResourceType)i))
-                            _capacity[i] += m.StorageBonus;
+                            _capacity[i] += storage;
                     }
                 }
             }
@@ -271,10 +280,11 @@ namespace SpaceStation.Simulation
                     stoppedCount++;
                     continue;
                 }
-                float solar = m.SolarPowered ? SolarMultiplier : 1f; // 낮/밤 (4-2)
+                float solar = m.SolarPowered ? SolarMultiplier * Effects.SolarMultiplier : 1f; // 낮/밤 (4-2) × 연구
                 supply += Sum(m.Production, ResourceType.Power) * Multiplier(productionMultipliers, k) * solar;
                 demand += Sum(m.Consumption, ResourceType.Power);
             }
+            demand += Mathf.Max(0f, ExtraPowerDemand); // 진행 중인 연구 (Phase 6)
             supply *= PowerSupplyMultiplier; // 태양 폭풍 등 전역 배율
             StoppedModuleCount = stoppedCount;
             PowerSupply = supply;
@@ -302,7 +312,7 @@ namespace SpaceStation.Simulation
             BatteryCharge = Mathf.Clamp(BatteryCharge, 0f, BatteryCapacity);
 
             PowerEfficiency = demand > 0f
-                ? Mathf.Clamp(effectiveSupply / demand, _config.MinPowerEfficiency, 1f)
+                ? Mathf.Clamp(effectiveSupply / demand, Effects.MinPowerEfficiency, 1f)
                 : 1f;
 
             Array.Clear(_production, 0, ResourceCount);

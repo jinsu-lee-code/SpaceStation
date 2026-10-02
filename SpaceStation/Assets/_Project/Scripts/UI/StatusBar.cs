@@ -44,6 +44,7 @@ namespace SpaceStation.UI
         private Vector3Int _shownTargetCell;
         private int _shownRotation;
         private bool _hintInitialized;
+        private Settings.HintMode _shownHints;
         private readonly System.Collections.Generic.List<AppliedAdjacency> _previewSelf = new System.Collections.Generic.List<AppliedAdjacency>();
         private readonly System.Collections.Generic.List<string> _previewNeighbors = new System.Collections.Generic.List<string>();
 
@@ -66,6 +67,7 @@ namespace SpaceStation.UI
             }
             if (_progression != null)
                 _progression.Progression.GradeChanged += HandleGradeChanged;
+            _station.Simulation.Research.Completed += HandleResearchCompleted;
             _messageText.SetText(string.Empty);
             var group = _messageText.GetComponent<CanvasGroup>();
             if (group == null)
@@ -103,6 +105,14 @@ namespace SpaceStation.UI
             }
             if (_progression != null && _progression.Progression != null)
                 _progression.Progression.GradeChanged -= HandleGradeChanged;
+            if (_station != null && _station.Simulation != null)
+                _station.Simulation.Research.Completed -= HandleResearchCompleted;
+        }
+
+        private void HandleResearchCompleted(ResearchCategoryData category, int level)
+        {
+            var def = category.GetLevel(level);
+            ShowMessage($"<color=#7CFF9A><b>연구 완료: {category.DisplayName} Lv.{level}</b>  ·  {def?.Description}</color>");
         }
 
         private void Update()
@@ -116,6 +126,11 @@ namespace SpaceStation.UI
             if (!_helpDismissed && (Time.unscaledTime > _idleHintSeconds || _build.Selected != null))
             {
                 _helpDismissed = true;
+                _hintInitialized = false;
+            }
+            if (Settings.GameSettings.Hints != _shownHints)
+            {
+                _shownHints = Settings.GameSettings.Hints;
                 _hintInitialized = false;
             }
             UpdateHint();
@@ -172,8 +187,8 @@ namespace SpaceStation.UI
                     if (build.IsDefense) // 4-8: 범위 안에 들어올 모듈 수
                     {
                         var cells = StationGrid.ResolveCells(build.CellOffsets, targetCell, rotation);
-                        int covered = DefenseSystem.CountCovered(_station.Grid, build, cells);
-                        int radius = Mathf.Max(build.ShieldRadius, build.TurretRadius);
+                        int covered = _resources.Defense.CountCoveredWithResearch(_station.Grid, build, cells);
+                        int radius = _resources.Defense.RangeOf(build); // 연구 반경 반영
                         text += $"\n<size=90%><color=#7FD8FF>방어 범위 (반경 {radius}칸): 모듈 {covered}개 보호</color></size>";
                     }
                     if (build.IsService) // 4-9: 범위 안 거주 모듈·주민
@@ -181,7 +196,7 @@ namespace SpaceStation.UI
                         var cells = StationGrid.ResolveCells(build.CellOffsets, targetCell, rotation);
                         int habitats = _resources.Needs.CountHabitatsInRange(_station.Grid, build, cells, _resources.Simulation.Population, out float residents);
                         string color = habitats > 0 ? "#7CFF9A" : HudText.Orange;
-                        text += $"\n<size=90%><color={color}>{build.ServiceNeed.DisplayName()} 범위 (반경 {build.ServiceRadius}칸): 거주 모듈 {habitats}개 · 주민 약 {residents:0}명 (담당 최대 {build.ServiceCapacity}명)</color></size>";
+                        text += $"\n<size=90%><color={color}>{build.ServiceNeed.DisplayName()} 범위 (반경 {_station.Simulation.Effects.ServiceRadius(build)}칸): 거주 모듈 {habitats}개 · 주민 약 {residents:0}명 (담당 최대 {build.ServiceCapacity}명)</color></size>";
                     }
                 }
                 _hintText.SetText(text);
@@ -193,12 +208,14 @@ namespace SpaceStation.UI
                 string action = _station.CanRemove(selected) ? "M: 정비  ·  B: 재건축  ·  Delete/X: 철거" : "철거 불가";
                 string repair = damageState == 1 ? $"  ·  <color={HudText.Red}>R: 수리</color>"
                     : damageState == 3 ? $"  ·  <color={HudText.Yellow}>R: 우선 수리  ·  C: 대기 취소</color>" : string.Empty;
-                _hintText.SetText($"선택: <b>{name}</b>{state}{repair}  ·  {action}  ·  ESC: 선택 해제");
+                string lab = selected.Data != null && selected.Data.ResearchSlots > 0 ? "  ·  <color=#B79CFF>T: 연구 창</color>" : string.Empty;
+                _hintText.SetText($"선택: <b>{name}</b>{state}{repair}{lab}  ·  {action}  ·  ESC: 선택 해제");
             }
             else
             {
-                // 5-8: 조작 안내는 처음 잠시만, 이후에는 작게 "H: 도움말"
-                bool full = _helpPinned || !_helpDismissed;
+                // 5-8: 조작 안내는 처음 잠시만, 이후에는 작게 "H: 도움말" (5-10 설정: 항상 / 처음 1분 / 끔)
+                var hints = Settings.GameSettings.Hints;
+                bool full = _helpPinned || hints == Settings.HintMode.Always || (!_helpDismissed && hints == Settings.HintMode.FirstMinute);
                 _hintText.SetText(full
                     ? $"{_idleHint}  <size=85%><color={HudText.Muted}>·  H: 안내 {(_helpPinned ? "숨기기" : "고정")}</color></size>"
                     : $"<size=85%><color={HudText.Muted}>{HudTheme.Icon("info")} H: 조작 안내</color></size>");
@@ -218,7 +235,7 @@ namespace SpaceStation.UI
                 if (!first) sb.Append("  ·  ");
                 first = false;
                 sb.Append(a.Total >= 0f ? "<color=#7CFF9A>" : $"<color={HudText.Orange}>")
-                  .Append(AdjacencySystem.Describe(a.Rule, a.Stacks)).Append("</color>");
+                  .Append(AdjacencySystem.Describe(a)).Append("</color>");
             }
             foreach (var line in _previewNeighbors)
             {

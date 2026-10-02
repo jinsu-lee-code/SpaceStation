@@ -40,7 +40,8 @@ namespace SpaceStation.UI
 
         /// <param name="interactable">해금 + 설치 가능 + 비용 충분</param>
         /// <param name="blockedStatus">둘째 줄에 비용 대신 표시할 사유 (잠김/최대). null이면 비용 표시</param>
-        public void SetState(bool interactable, string blockedStatus)
+        /// <param name="cost">표시할 실제 비용 (연구 할인 반영). null이면 기본 비용</param>
+        public void SetState(bool interactable, string blockedStatus, System.Collections.Generic.IReadOnlyList<ResourceAmount> cost = null)
         {
             _button.interactable = interactable;
             if (_thumb != null)
@@ -48,7 +49,7 @@ namespace SpaceStation.UI
             if (_shownStatus == blockedStatus && _shownStatus != null)
                 return;
             _shownStatus = blockedStatus;
-            string second = blockedStatus != null ? $"<color={HudText.Orange}>{blockedStatus}</color>" : HudText.Cost(Data.BuildCost);
+            string second = blockedStatus != null ? $"<color={HudText.Orange}>{blockedStatus}</color>" : HudText.Cost(cost ?? Data.BuildCost);
             _label.SetText($"<size=72%><color={HudTheme.AccentHex}>{_hotkey}</color></size> {Data.DisplayName}\n<size=78%>{second}</size>");
         }
 

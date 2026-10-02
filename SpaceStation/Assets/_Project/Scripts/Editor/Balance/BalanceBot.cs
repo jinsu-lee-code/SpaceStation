@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using SpaceStation.Core;
 using SpaceStation.Data;
 using SpaceStation.Simulation;
@@ -23,7 +23,16 @@ namespace SpaceStation.Editor.Balance
         private readonly List<DurabilityInfo> _maintainQueue = new List<DurabilityInfo>();
 
         private readonly StationSimulation _sim;
-        private readonly ModuleData _power, _oxygen, _water, _food, _housing, _storage, _metal, _battery, _bay, _shield, _turret;
+        private readonly ModuleData _power, _oxygen, _water, _food, _housing, _storage, _metal, _battery, _bay, _shield, _turret, _lab;
+        /// <summary>Phase 6: 연구를 하는지 (비교 측정용, 기본 true).</summary>
+        public static bool UseResearch = true;
+        /// <summary>연구 우선순위: 유지보수 → 생산 → 에너지 → 건설·경제 → 거주 → 방어.</summary>
+        private static readonly ResearchCategory[] ResearchOrder =
+        {
+            ResearchCategory.Maintenance, ResearchCategory.Production, ResearchCategory.Energy,
+            ResearchCategory.Construction, ResearchCategory.Habitation, ResearchCategory.Defense,
+        };
+        public int ResearchStarted { get; private set; }
         private const int ModulesPerDefense = 15; // 방어 모듈 1개당 모듈 수 (4-8)
         /// <summary>비교 측정용: 방어 모듈을 금속 여유와 무관하게 우선 건설 (기본 false).</summary>
         public static bool DefenseFirst;
@@ -58,6 +67,7 @@ namespace SpaceStation.Editor.Balance
                 if (_bay == null && m.RepairSlots > 0) _bay = m;
                 if (_shield == null && m.IsShield) _shield = m;
                 if (_turret == null && m.IsTurret) _turret = m;
+                if (_lab == null && m.ResearchSlots > 0) _lab = m;
                 if (m.IsService) _services.Add(m);
             }
         }
@@ -76,6 +86,7 @@ namespace SpaceStation.Editor.Balance
                 LastNeed = "upkeep";
                 return; // 정비비를 못 냈으면 새 건설 대신 저축
             }
+            TryResearch();
 
             var need = PickNeed();
             if (need == null)
@@ -126,6 +137,10 @@ namespace SpaceStation.Editor.Balance
                 return _bay;
             if (CanBuildMetal())
                 return _metal; // 설치 한도까지 채굴 도킹
+            // Phase 6: 소형부터 연구소 1개, 중형부터 2개
+            if (UseResearch && _lab != null && _sim.Research.Categories.Count > 0 && CountLabs() < LabsWanted()
+                && _sim.CheckBuildable(_lab) == PlacementResult.Valid)
+                return _lab;
             // 4-8: 모듈 15개당 방어 모듈 1개 (실드·포탑 번갈아). 금속이 건설비 + 거주 모듈 1개분 이상 남을 때만 → 성장을 막지 않음
             // DefenseFirst(비교 측정용)이면 금속 여유와 무관하게 먼저 짓는다
             var defense = PickDefense();
@@ -141,6 +156,52 @@ namespace SpaceStation.Editor.Balance
             if (next != null && _sim.Grid.ModuleCount < next.MinModules)
                 return _housing;
             return null;
+        }
+
+        private int LabsWanted() => _sim.Progression.GradeIndex >= 2 ? 2 : _sim.Progression.GradeIndex >= 1 ? 1 : 0;
+
+        private int CountLabs()
+        {
+            int n = 0;
+            foreach (var m in _sim.Grid.Modules)
+                if (m.Data == _lab)
+                    n++;
+            return n;
+        }
+
+        /// <summary>
+        /// 빈 연구소가 있으면 우선순위대로 시작 가능한 연구 하나. 전력 여유가 연구 수요 이상이고,
+        /// 시작 비용을 내도 산소·물이 저장 한도의 40%, 금속이 40 이상 남을 때만 (위기 방지).
+        /// </summary>
+        private void TryResearch()
+        {
+            var research = _sim.Research;
+            if (!UseResearch || research.Categories.Count == 0 || !research.HasFreeSlot)
+                return;
+            var r = _sim.Resources;
+            foreach (var kind in ResearchOrder)
+            {
+                var category = research.Find(kind);
+                if (category == null || _sim.CanStartResearch(category) != ResearchStartResult.Ok)
+                    continue;
+                var level = category.GetLevel(research.GetLevel(category) + 1);
+                if (PowerSurplus() < level.PowerDemand)
+                    continue;
+                bool safe = true;
+                foreach (var a in level.StartCost)
+                {
+                    float reserve = a.Type == ResourceType.Metal ? 40f : r.GetCapacity(a.Type) * 0.4f;
+                    if (r.GetStock(a.Type) - a.Amount < reserve)
+                        safe = false;
+                }
+                if (!safe)
+                    continue;
+                if (_sim.TryStartResearch(category) == ResearchStartResult.Ok)
+                {
+                    ResearchStarted++;
+                    return;
+                }
+            }
         }
 
         private ModuleData PickService()
@@ -167,7 +228,7 @@ namespace SpaceStation.Editor.Balance
             float unmet = 0f;
             foreach (var m in _sim.Grid.Modules)
             {
-                if (m.Data == null || m.Data.HousingCapacity <= 0 || !DefenseSystem.InRange(cells, m.Cells, data.ServiceRadius))
+                if (m.Data == null || m.Data.HousingCapacity <= 0 || !DefenseSystem.InRange(cells, m.Cells, _sim.Effects.ServiceRadius(data)))
                     continue;
                 float coverage = _sim.Needs.GetHabitatCoverage(m, data.ServiceNeed);
                 unmet += m.Data.HousingCapacity * (1f - Mathf.Max(0f, coverage));
@@ -207,13 +268,13 @@ namespace SpaceStation.Editor.Balance
             if (!data.IsDefense)
                 return 0f;
             var cells = StationGrid.ResolveCells(data.CellOffsets, origin, rotation);
-            DefenseSystem.CountCovered(_sim.Grid, data, cells, _covered);
+            DefenseSystem.CountCovered(_sim.Grid, data, cells, _covered, _sim.Effects.DefenseRadiusBonus);
             int fresh = 0;
             foreach (var m in _covered)
             {
                 bool already = data.IsShield
                     ? _sim.Defense.GetShieldBlockChance(_sim.Grid, m) > 0.001f
-                    : _sim.Defense.GetInterceptChance(_sim.Grid, m) >= _sim.Balance.TurretMaxIntercept - 1e-3f;
+                    : _sim.Defense.GetInterceptChance(_sim.Grid, m) >= _sim.Effects.TurretMaxIntercept - 1e-3f;
                 if (!already)
                     fresh++;
             }
@@ -224,7 +285,7 @@ namespace SpaceStation.Editor.Balance
         {
             var b = _sim.Balance;
             float hits = _sim.Progression.Current.MeteorHitsMax;
-            int desired = Mathf.CeilToInt(hits * b.RepairDuration / (b.DestroyAfterSeconds * 0.75f));
+            int desired = Mathf.CeilToInt(hits * _sim.Effects.RepairDuration / (b.DestroyAfterSeconds * 0.75f));
             if (_sim.Damage.Queue.Count > 0)
                 desired = Mathf.Max(desired, _sim.CountRepairSlots() + 1); // 지금 대기가 생겼으면 하나 더
             return desired;
@@ -252,7 +313,7 @@ namespace SpaceStation.Editor.Balance
                 damage.TryGetInfo(module, out var info);
                 int capacity = Mathf.Max(1, damage.RepairCapacity);
                 float expectedStart = damage.HasFreeRepairSlot ? 0f
-                    : Mathf.Ceil((damage.Queue.Count + 1f) / capacity) * _sim.Balance.RepairDuration;
+                    : Mathf.Ceil((damage.Queue.Count + 1f) / capacity) * _sim.Effects.RepairDuration;
                 // 단, 대기열 등록만으로 확산이 멈추는 설정이면 확산 전 모듈은 등록한다 (4-7)
                 if (expectedStart >= info.TimeUntilDestroyed && !(info.SpreadPending && _sim.Balance.QueuePausesSpread))
                     continue;
@@ -454,6 +515,8 @@ namespace SpaceStation.Editor.Balance
                 }
                 demand += PowerDemandOf(m.Data);
             }
+            solar *= _sim.Effects.SolarMultiplier;          // 에너지 연구
+            demand += _sim.Research.RunningPowerDemand;     // 진행 중인 연구 (Phase 6)
 
             var cycle = _sim.DayNight;
             if (!cycle.Enabled)

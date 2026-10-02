@@ -116,7 +116,11 @@ namespace SpaceStation.Simulation
         public DamageSystem(BalanceConfig config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            Effects = new ResearchEffects(config);
         }
+
+        /// <summary>Phase 6 연구 효과 (수리 비용·시간). StationSimulation이 공유 인스턴스로 바꿔 끼운다.</summary>
+        public ResearchEffects Effects { get; set; }
 
         public bool IsDamaged(ModuleInstance module) => module != null && _damaged.ContainsKey(module);
 
@@ -156,7 +160,7 @@ namespace SpaceStation.Simulation
             if (module?.Data == null)
                 return cost;
             foreach (var a in module.Data.BuildCost)
-                cost.Add(new ResourceAmount(a.Type, a.Amount * _config.RepairCostRate));
+                cost.Add(new ResourceAmount(a.Type, a.Amount * Effects.RepairCostRate));
             return cost;
         }
 
@@ -233,7 +237,7 @@ namespace SpaceStation.Simulation
         {
             info.IsQueued = false;
             info.IsRepairing = true;
-            info.RepairRemaining = _config.RepairDuration;
+            info.RepairRemaining = Effects.RepairDuration;
             RepairStarted?.Invoke(info);
         }
 

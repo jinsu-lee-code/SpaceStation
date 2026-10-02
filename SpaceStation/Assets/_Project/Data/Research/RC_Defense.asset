@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa4f2b2b21ab57a4c921e7a31aae9a15, type: 3}
+  m_Name: RC_Defense
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ResearchCategoryData
+  _category: 1
+  _displayName: "\uBC29\uC5B4"
+  _icon: shield
+  _levels:
+  - StartCost:
+    - Type: 1
+      Amount: 20
+    - Type: 2
+      Amount: 20
+    - Type: 4
+      Amount: 30
+    PowerDemand: 5
+    Duration: 60
+    Description: "\uC2E4\uB4DC\xB7\uD3EC\uD0D1 \uBC29\uC5B4 \uBC18\uACBD 2\uCE78
+      \u2192 3\uCE78"
+    Modifiers:
+    - Stat: 5
+      Value: 1
+  - StartCost:
+    - Type: 1
+      Amount: 40
+    - Type: 2
+      Amount: 40
+    - Type: 4
+      Amount: 60
+    PowerDemand: 8
+    Duration: 120
+    Description: "\uC6B4\uC11D \uBA85\uC911 \uC2DC \uD30C\uC190 \uBA74\uC5ED 20%"
+    Modifiers:
+    - Stat: 6
+      Value: 0.2
+  - StartCost:
+    - Type: 1
+      Amount: 70
+    - Type: 2
+      Amount: 70
+    - Type: 4
+      Amount: 100
+    PowerDemand: 12
+    Duration: 180
+    Description: "\uC2E4\uB4DC\uAC00 \uBE57\uACA8\uB0B8 \uC6B4\uC11D\uC758 \uD295\uAE40
+      \uBA85\uC911 70% \u2192 45%"
+    Modifiers:
+    - Stat: 7
+      Value: 0.45
+  - StartCost:
+    - Type: 1
+      Amount: 110
+    - Type: 2
+      Amount: 110
+    - Type: 4
+      Amount: 150
+    PowerDemand: 18
+    Duration: 240
+    Description: "\uD3EC\uD0D1 \uACA9\uCD94 20% \u2192 26%, \uACA9\uCD94 \uC0C1\uD55C
+      60% \u2192 75%, \uD30C\uC190 \uBA74\uC5ED 40%"
+    Modifiers:
+    - Stat: 8
+      Value: 1.3
+    - Stat: 9
+      Value: 0.75
+    - Stat: 6
+      Value: 0.4

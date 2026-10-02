@@ -69,7 +69,7 @@ namespace SpaceStation.Building
             if (_selected == null)
                 return;
 
-            if (keyboard.escapeKey.wasPressedThisFrame)
+            if (keyboard.escapeKey.wasPressedThisFrame && !InputGate.EscapeConsumedThisFrame)
             {
                 Select(null);
                 return;
