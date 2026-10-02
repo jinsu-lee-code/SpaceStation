@@ -13,6 +13,7 @@ namespace SpaceStation.Data
         Energy,
         Habitation,
         Construction,
+        Automation,
     }
 
     /// <summary>
@@ -49,6 +50,8 @@ namespace SpaceStation.Data
         BuildCostMultiplier,     // 건설 비용 배율, 기본 1
         DemolishRefundRate,      // 철거 환급률, 기본 demolishRefundRate
         StorageBonusAdd,         // 창고 저장 한도 증가량 +N, 기본 0
+        // 자동화
+        MaintenanceAutomation,   // 1이면 자동 정비·재건축·일괄 정비 개방, 기본 0
     }
 
     [Serializable]
@@ -81,10 +84,13 @@ namespace SpaceStation.Data
         [SerializeField] private string _icon = "event";
         [Tooltip("레벨 1부터 순서대로")]
         [SerializeField] private List<ResearchLevel> _levels = new List<ResearchLevel>();
+        [Tooltip("이 카테고리의 모든 레벨에 필요한 최소 정거장 등급 (레벨 상한 표와 큰 쪽을 쓴다)")]
+        [SerializeField, Min(0)] private int _minGrade;
 
         public ResearchCategory Category => _category;
         public string DisplayName => _displayName;
         public string Icon => _icon;
+        public int MinGrade => _minGrade;
         public IReadOnlyList<ResearchLevel> Levels => _levels;
         public int MaxLevel => _levels.Count;
 
@@ -92,12 +98,13 @@ namespace SpaceStation.Data
         public ResearchLevel GetLevel(int level) => level >= 1 && level <= _levels.Count ? _levels[level - 1] : null;
 
 #if UNITY_EDITOR
-        public void EditorSet(ResearchCategory category, string displayName, string icon, List<ResearchLevel> levels)
+        public void EditorSet(ResearchCategory category, string displayName, string icon, List<ResearchLevel> levels, int minGrade = 0)
         {
             _category = category;
             _displayName = displayName;
             _icon = icon;
             _levels = levels;
+            _minGrade = minGrade;
         }
 #endif
     }

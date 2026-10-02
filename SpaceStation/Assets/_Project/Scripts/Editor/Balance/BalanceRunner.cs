@@ -52,7 +52,7 @@ namespace SpaceStation.Editor.Balance
         public int Maintenances;
         public int Rebuilds;
         /// <summary>Phase 6: 카테고리별 최종 연구 레벨 (ResearchCategory 순서), 시작한 연구 수.</summary>
-        public int[] ResearchLevels = new int[6];
+        public int[] ResearchLevels = new int[Enum.GetValues(typeof(ResearchCategory)).Length];
         public int ResearchStarted;
         public float MetalSpentOnUpkeep;
         /// <summary>산소·물·식량·금속 최저 재고 (첫 등급 이후 전체 구간).</summary>

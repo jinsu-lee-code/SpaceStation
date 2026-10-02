@@ -42,10 +42,10 @@ namespace SpaceStation.Simulation
 
     /// <summary>
     /// Phase 6 연구 (RESEARCH.md). 순수 C#.
-    /// - 카테고리 6개 × 레벨 1~4, 레벨은 되돌릴 수 없음. 카테고리당 동시 1개.
+    /// - 카테고리 6개 × 레벨 1~4 + 단일 레벨 자동화, 레벨은 되돌릴 수 없음. 카테고리당 동시 1개.
     /// - 동시 연구 수 = 가동 중인 연구소 슬롯 합. 슬롯이 줄면 나중에 시작한 연구부터 멈춤(진행률 유지).
     /// - 시작 비용 1회(환급 없음), 진행 중 전력 수요 추가, 진행 속도 = 전력 효율 × 1/소요 시간.
-    /// - 시작 조건: 정거장 등급 + 인구 (ResearchLevelCapConfig).
+    /// - 시작 조건: 정거장 등급 + 인구 (ResearchLevelCapConfig), 카테고리 최소 등급(MinGrade)이 더 높으면 그것.
     /// </summary>
     public sealed class ResearchSystem
     {
@@ -114,20 +114,25 @@ namespace SpaceStation.Simulation
                 return ResearchStartResult.MaxLevel;
             if (GetProject(category) != null)
                 return ResearchStartResult.AlreadyResearching;
-            if (_caps != null)
-            {
-                var req = _caps.Get(next);
-                if (grade < req.Grade)
-                    return ResearchStartResult.GradeTooLow;
-                if (population < req.MinPopulation)
-                    return ResearchStartResult.PopulationTooLow;
-            }
+            if (grade < RequiredGrade(category, next))
+                return ResearchStartResult.GradeTooLow;
+            if (population < RequiredPopulation(next))
+                return ResearchStartResult.PopulationTooLow;
             if (!HasFreeSlot)
                 return ResearchStartResult.NoFreeLab;
             if (canAfford != null && !canAfford(category.GetLevel(next).StartCost))
                 return ResearchStartResult.InsufficientResources;
             return ResearchStartResult.Ok;
         }
+
+        /// <summary>레벨 시작에 필요한 등급 = 레벨 상한 표와 카테고리 최소 등급 중 큰 쪽.</summary>
+        public int RequiredGrade(ResearchCategoryData category, int level)
+        {
+            int grade = _caps != null ? _caps.Get(level).Grade : 0;
+            return category != null ? Math.Max(grade, category.MinGrade) : grade;
+        }
+
+        public int RequiredPopulation(int level) => _caps != null ? _caps.Get(level).MinPopulation : 0;
 
         /// <summary>시작 (비용 차감은 호출자가 먼저 성공시켜야 함 — StationSimulation.TryStartResearch).</summary>
         internal ResearchProject Begin(ResearchCategoryData category)

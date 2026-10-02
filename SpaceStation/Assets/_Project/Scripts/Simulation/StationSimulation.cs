@@ -64,6 +64,8 @@ namespace SpaceStation.Simulation
         public ResearchSystem Research { get; }
         /// <summary>현재 연구 효과 (각 시스템이 공유).</summary>
         public ResearchEffects Effects { get; }
+        /// <summary>자동 정비·재건축·일괄 정비 (자동화 연구 완료 후 동작).</summary>
+        public MaintenanceAutomation Automation { get; }
         private readonly List<ModuleInstance> _coreNeighbors = new List<ModuleInstance>();
         private readonly List<ResidentNeed> _activeNeeds = new List<ResidentNeed>();
         /// <summary>현재 등급까지 생긴 거주자 요구 (4-9).</summary>
@@ -111,6 +113,7 @@ namespace SpaceStation.Simulation
             Needs.Effects = Effects;
             Research = new ResearchSystem(settings.ResearchCategories, settings.ResearchCaps, Effects);
             Effects.Changed += HandleResearchEffectsChanged;
+            Automation = new MaintenanceAutomation(this);
 
             // 4-1: 등급별 이벤트 빈도·강도 (새 간격을 정할 때 / 지속형 이벤트가 시작될 때의 등급 기준)
             Events.IntervalMultiplier = () => Progression.Current.EventIntervalMultiplier;
@@ -151,6 +154,7 @@ namespace SpaceStation.Simulation
             Resources.ExtraPowerDemand = Research.RunningPowerDemand; // 진행 중인 연구 (Phase 6)
             Resources.Tick(_activeModules, _productionMultipliers, _consumptionMultipliers, dt);
             Research.Tick(dt, Resources.PowerEfficiency); // 이번 틱 전력 효율만큼 진행
+            Automation.Tick(dt); // 자동화 연구: 기준값 미만 모듈 정비·재건축
             RefreshNeeds(); // 4-9: 이번 틱 전력 효율·인구 기준 요구 충족 → 만족도 상한
             Population.Tick(dt);
             Events.Tick(dt, _eventPool);
@@ -280,10 +284,9 @@ namespace SpaceStation.Simulation
             return net;
         }
 
-        /// <summary>같은 자리에 철거 후 새로 건설 (내구도·최대 내구도 100, 파손 해제). 순비용만 지불.</summary>
-        public RebuildResult TryRebuild(ModuleInstance module, out ModuleInstance rebuilt)
+        /// <summary>비용을 빼고 재건축할 수 있는지 (가능하면 Done).</summary>
+        private RebuildResult CheckRebuild(ModuleInstance module)
         {
-            rebuilt = null;
             if (!IsRemovableKind(module) || module.Data == null || !Durability.TryGetInfo(module, out _))
                 return RebuildResult.NotAllowed;
             var data = module.Data;
@@ -291,6 +294,20 @@ namespace SpaceStation.Simulation
                 return RebuildResult.Locked;
             if (data == Progression.LimitedModule && Progression.CountLimited(Grid) - 1 >= Progression.Current.MaxLimitedModules)
                 return RebuildResult.Locked;
+            return RebuildResult.Done;
+        }
+
+        /// <summary>비용과 무관하게 재건축이 허용되는 모듈인지 (자동화 계획용).</summary>
+        public bool CanRebuildKind(ModuleInstance module) => CheckRebuild(module) == RebuildResult.Done;
+
+        /// <summary>같은 자리에 철거 후 새로 건설 (내구도·최대 내구도 100, 파손 해제). 순비용만 지불.</summary>
+        public RebuildResult TryRebuild(ModuleInstance module, out ModuleInstance rebuilt)
+        {
+            rebuilt = null;
+            var check = CheckRebuild(module);
+            if (check != RebuildResult.Done)
+                return check;
+            var data = module.Data;
             if (!Resources.TrySpend(GetRebuildCost(module)))
                 return RebuildResult.InsufficientResources;
 

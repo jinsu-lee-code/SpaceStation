@@ -68,6 +68,7 @@ namespace SpaceStation.UI
             if (_progression != null)
                 _progression.Progression.GradeChanged += HandleGradeChanged;
             _station.Simulation.Research.Completed += HandleResearchCompleted;
+            _station.Simulation.Automation.Performed += HandleAutomationPerformed;
             _messageText.SetText(string.Empty);
             var group = _messageText.GetComponent<CanvasGroup>();
             if (group == null)
@@ -106,13 +107,27 @@ namespace SpaceStation.UI
             if (_progression != null && _progression.Progression != null)
                 _progression.Progression.GradeChanged -= HandleGradeChanged;
             if (_station != null && _station.Simulation != null)
+            {
                 _station.Simulation.Research.Completed -= HandleResearchCompleted;
+                _station.Simulation.Automation.Performed -= HandleAutomationPerformed;
+            }
         }
 
         private void HandleResearchCompleted(ResearchCategoryData category, int level)
         {
             var def = category.GetLevel(level);
-            ShowMessage($"<color=#7CFF9A><b>연구 완료: {category.DisplayName} Lv.{level}</b>  ·  {def?.Description}</color>");
+            string name = category.MaxLevel == 1 ? category.DisplayName : $"{category.DisplayName} Lv.{level}";
+            ShowMessage($"<color=#7CFF9A><b>연구 완료: {name}</b>  ·  {def?.Description}</color>");
+        }
+
+        private void HandleAutomationPerformed(int maintained, int rebuilt, bool batch)
+        {
+            var sb = new System.Text.StringBuilder(batch ? "일괄 정비: " : "자동 정비: ");
+            if (maintained > 0)
+                sb.Append("정비 ").Append(maintained).Append("개");
+            if (rebuilt > 0)
+                sb.Append(maintained > 0 ? " · " : "").Append("재건축 ").Append(rebuilt).Append("개");
+            ShowMessage($"<color=#7FD8FF>{sb}</color>");
         }
 
         private void Update()

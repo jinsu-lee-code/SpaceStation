@@ -2524,7 +2524,7 @@ RectTransform:
   - {fileID: 866002072}
   - {fileID: 2039522121}
   - {fileID: 1647844434}
-  - {fileID: 1353442781}
+  - {fileID: 1100097313}
   - {fileID: 1449107004}
   - {fileID: 1942415852}
   m_Father: {fileID: 0}
@@ -5061,6 +5061,60 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1081284158}
   m_CullTransparentMesh: 1
+--- !u!1 &1100097312
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1100097313}
+  - component: {fileID: 1100097314}
+  m_Layer: 0
+  m_Name: ResearchPanel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1100097313
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1100097312}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 577544477}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1100097314
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1100097312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2dc125c3c064daf469781605f92d72a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.ResearchPanel
+  _station: {fileID: 968511355}
+  _font: {fileID: 11400000, guid: af4d8ff5789cd214e810e3011473fa74, type: 2}
+  _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
+  _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
+  _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
+  _refreshSeconds: 0.25
 --- !u!1 &1101403997
 GameObject:
   m_ObjectHideFlags: 0
@@ -6845,60 +6899,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1353442780
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1353442781}
-  - component: {fileID: 1353442782}
-  m_Layer: 0
-  m_Name: ResearchPanel
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &1353442781
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1353442780}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 577544477}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1353442782
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1353442780}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2dc125c3c064daf469781605f92d72a2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.ResearchPanel
-  _station: {fileID: 968511355}
-  _font: {fileID: 11400000, guid: af4d8ff5789cd214e810e3011473fa74, type: 2}
-  _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
-  _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
-  _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
-  _refreshSeconds: 0.25
 --- !u!1 &1353722802
 GameObject:
   m_ObjectHideFlags: 0
@@ -8288,6 +8288,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0a93a3322babd5749b750025b07e10fc, type: 2}
   - {fileID: 11400000, guid: 97d6f1a81771774458ab061140cd9690, type: 2}
   - {fileID: 11400000, guid: 5067dc717d0ff75478d42bf7cc47505a, type: 2}
+  - {fileID: 11400000, guid: 3a83f5d534e1fca46ad899e90bf7402f, type: 2}
   _researchCaps: {fileID: 11400000, guid: f5b810e043ecf41489f654cc84d78a46, type: 2}
 --- !u!1 &1601193810
 GameObject:

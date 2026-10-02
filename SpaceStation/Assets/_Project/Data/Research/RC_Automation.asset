@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa4f2b2b21ab57a4c921e7a31aae9a15, type: 3}
+  m_Name: RC_Automation
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ResearchCategoryData
+  _category: 6
+  _displayName: "\uC815\uBE44 \uC790\uB3D9\uD654"
+  _icon: module
+  _levels:
+  - StartCost:
+    - Type: 1
+      Amount: 40
+    - Type: 2
+      Amount: 40
+    - Type: 4
+      Amount: 60
+    PowerDemand: 8
+    Duration: 120
+    Description: "\uC790\uB3D9 \uC815\uBE44\xB7\uC790\uB3D9 \uC7AC\uAC74\uCD95\xB7\uC77C\uAD04
+      \uC815\uBE44 \uAC1C\uBC29 (\uC815\uBE44 \uAE30\uC900 \uB0B4\uAD6C\uB3C4\xB7\uC790\uC6D0
+      \uBCF4\uD638\uC120 \uC870\uC808)"
+    Modifiers:
+    - Stat: 22
+      Value: 1
+  _minGrade: 1

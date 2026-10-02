@@ -44,6 +44,8 @@ namespace SpaceStation.Simulation
         public float BuildCostMultiplier => Get(ResearchStat.BuildCostMultiplier, 1f);
         public float DemolishRefundRate => Get(ResearchStat.DemolishRefundRate, _config.DemolishRefundRate);
         public float StorageBonusAdd => Get(ResearchStat.StorageBonusAdd, 0f);
+        /// <summary>자동 정비·재건축·일괄 정비 개방 (자동화 연구).</summary>
+        public bool MaintenanceAutomation => Get(ResearchStat.MaintenanceAutomation, 0f) > 0.5f;
 
         // ---------------- 모듈별 값 (UI·연출도 이걸 쓴다) ----------------
 

@@ -291,7 +291,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
 
 ## Phase 6. 확장 후보
 - [ ] 포트 방식 연결 (B안) 도입
-- [ ] 연구 시스템 도입 (RESEARCH.md 참고) — 구현 완료, 플레이 확인 대기
+- [ ] 연구 시스템 도입 (RESEARCH.md 참고) — 6개 분야 확인 완료, 정비 자동화 플레이 확인 대기
   - 연구소 + 연구: 난이도 확장(4-x) 완료 후. 첫 효과 후보는 이벤트 조기 경보 (GDD 10번)
   - [x] 연구소(ResearchLab) 모듈 추가: `MD_ResearchLab` (1칸, 금속 50, 전력 2, `ModuleData.ResearchSlots` 1, 산업 탭, 초소형부터 해금), **임시 모델** `PF_ResearchLab`(기본 도형 조합, 나중에 교체)
   - [x] 카테고리별 레벨업 데이터 구조: `ResearchCategoryData`(레벨 1~4: 시작 비용·전력 수요·소요 시간·설명·효과 목록 `ResearchModifier{Stat, Value}` = 그 레벨의 최종값), `ResearchLevelCapConfig`(레벨별 필요 등급·인구). 에셋 `Data/Research/RC_*`, `ResearchLevelCaps`
@@ -302,6 +302,15 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - [x] 연구 UI: `UI/ResearchPanel` (T 키 / 왼쪽 위 [연구] 버튼, 게임 시간 안 멈춤): 카드 6개(현재·다음 효과, 비용·전력·시간, [연구 시작] / 진행률·남은 시간·전력 배율·[취소] / 잠김 사유), 왼쪽 위 진행 추적기, 완료 알림(상태 표시줄 + 소리), 연구소 선택 시 "T: 연구 창" 안내. 공용 위젯 `UI/HoloUi`, 창 ESC 처리 `InputGate.ConsumeEscape`. 아이콘 4종 추가(research/shield/production/construct). 생성: 메뉴 `SpaceStation/Research/Setup`
   - [x] 밸런스 측정: `BalanceBot` 연구 (소형부터 연구소 1, 중형부터 2 / 우선순위 유지보수→생산→에너지→건설→거주→방어 / 전력 여유 ≥ 연구 수요, 시작 후에도 산소·물 40%·금속 40 이상 남을 때만), `BalanceBot.UseResearch`로 비교. 결과는 BALANCE.md 22번
   - [x] 테스트: `ResearchTests` 11개 (기본값 동일, 연구소 필요·비용, 진행·완료·효과, 전력 부족 감속, 파손 시 멈춤·진행률 유지, 등급 상한, 취소 환급 없음, 건설 비용·거주·수리 시간, 방어 반경, 파손 면역, 노후 배율·효율 최저) — 전체 202개 통과
+  - [x] 연구 시스템 플레이 확인 (2026-10-02)
+  - [x] **정비 자동화 연구** (RESEARCH.md 3-7, 2026-10-02 결정) — 플레이 확인 대기
+    - 결정: 7번째 카드(단일 연구, 소형부터, Lv.2 수준 비용) / 켜기·끄기 + 기준값 조절 / 재건축 = 정비해도 최대 내구도가 기준 미만일 때 / 자원 보호선 + 조절 / 설정은 연구 창 자동화 카드 / 일괄 정비 버튼 포함 / 운석 파손 모듈은 건너뜀
+    - `ResearchCategory.Automation`, `ResearchStat.MaintenanceAutomation`, `ResearchCategoryData.MinGrade`(레벨 상한 표와 큰 쪽 — `ResearchSystem.RequiredGrade`), 에셋 `RC_Automation`
+    - `Simulation/MaintenanceAutomation` (`StationSimulation.Automation`, 1초마다 검사): `Plan()`·`TotalCost`·`RunBatch()`, 이벤트 `Performed`·`ModuleRebuilt`. `StationSimulation.CanRebuildKind`(재건축 가능 조건 분리)
+    - UI: 연구 창 맨 아래 가로 카드 → 완료 후 설정(토글 2·기준 −/+·보호선 −/+·상태·[지금 일괄 정비]), 창 1180×930·위로 40 이동. 상태 표시줄 "자동 정비: 정비 N개 · 재건축 N개", 단일 연구 완료 알림은 "Lv." 없이. 선택 모듈 자동 재건축 시 새 모듈 다시 선택
+    - 테스트 5개 추가(최소 등급, 연구 전 미동작·정비, 재건축, 보호선·일괄 정비, 파손 건너뜀·끄기) — 전체 207개 통과
+    - 밸런스 봇은 연구하지 않음(이미 같은 규칙으로 수동 정비), `BalanceRunner.ResearchLevels` 크기를 카테고리 수에 맞춤
+    - 남은 것: 자동화 설정은 판마다 기본값(세이브/로드 때 함께 저장)
   - 참고: 배치 규칙(`PlacementRules`)은 인접을 검사하지 않음 (게임에서는 모듈 면을 클릭해야 해서 문제없음, 코드로 놓을 때 주의)
 - [ ] 세이브/로드, 회전 링 모듈
   - 세이브에는 연구 레벨·진행률·진행 중인 연구소도 포함

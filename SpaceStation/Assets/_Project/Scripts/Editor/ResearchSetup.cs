@@ -11,7 +11,7 @@ namespace SpaceStation.Editor
 {
     /// <summary>
     /// Phase 6 연구 데이터·연구소 일괄 생성 (메뉴 SpaceStation/Research/Setup). 여러 번 실행해도 결과가 같다.
-    /// - 카테고리 6개 RC_* (RESEARCH.md 2·3번 표, 9번 결정 반영), 레벨 상한 ResearchLevelCaps (4번 표)
+    /// - 카테고리 6개 RC_* (RESEARCH.md 2·3번 표, 9번 결정 반영) + 단일 레벨 RC_Automation, 레벨 상한 ResearchLevelCaps (4번 표)
     /// - 연구소 모듈 MD_ResearchLab (금속 50, 전력 2, 연구 슬롯 1, 산업 탭, 초소형부터 해금) + 임시 모델 PF_ResearchLab
     /// - Main 씬: SimulationHost 연구 데이터, 건설 목록에 연구소 추가
     /// </summary>
@@ -39,7 +39,7 @@ namespace SpaceStation.Editor
             UnlockLab(lab);
             WireScene(categories, caps, lab);
             AssetDatabase.SaveAssets();
-            Debug.Log("[ResearchSetup] 연구 카테고리 6개, 레벨 상한, 연구소 생성·연결 완료");
+            Debug.Log($"[ResearchSetup] 연구 카테고리 {categories.Count}개, 레벨 상한, 연구소 생성·연결 완료");
         }
 
         // ---------------- 카테고리 ----------------
@@ -79,7 +79,32 @@ namespace SpaceStation.Editor
                     L("건설 비용 -10%", M(ResearchStat.BuildCostMultiplier, 0.9f)),
                     L("창고 저장 한도 +150 → +200, 철거 환급 70%", M(ResearchStat.StorageBonusAdd, 50f), M(ResearchStat.DemolishRefundRate, 0.7f))),
             };
+            // 자동화: 단일 레벨, 소형 등급부터, 비용은 Lv.2 수준 (2026-10-02 결정)
+            var automation = Category("RC_Automation", ResearchCategory.Automation, "정비 자동화", "module",
+                L("자동 정비·자동 재건축·일괄 정비 개방 (정비 기준 내구도·자원 보호선 조절)", M(ResearchStat.MaintenanceAutomation, 1f)));
+            ApplyLevelCost(automation, 1, 1);
+            list.Add(automation);
             return list;
+        }
+
+        /// <summary>레벨(1부터)의 비용·전력·시간을 다른 레벨 표 값으로 바꾸고 최소 등급 지정.</summary>
+        private static void ApplyLevelCost(ResearchCategoryData asset, int costTier, int minGrade)
+        {
+            var levels = new List<ResearchLevel>(asset.Levels);
+            int t = costTier;
+            foreach (var level in levels)
+            {
+                level.StartCost = new List<ResourceAmount>
+                {
+                    new ResourceAmount(ResourceType.Oxygen, StartCost[t, 0]),
+                    new ResourceAmount(ResourceType.Water, StartCost[t, 1]),
+                    new ResourceAmount(ResourceType.Metal, StartCost[t, 2]),
+                };
+                level.PowerDemand = PowerDemand[t];
+                level.Duration = Duration[t];
+            }
+            asset.EditorSet(asset.Category, asset.DisplayName, asset.Icon, levels, minGrade);
+            EditorUtility.SetDirty(asset);
         }
 
         private static ResearchModifier M(ResearchStat stat, float value) => new ResearchModifier { Stat = stat, Value = value };

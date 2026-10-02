@@ -28,6 +28,8 @@ namespace SpaceStation.Building
         /// <summary>철거 성공.</summary>
         public event Action<ModuleInstance> Removed;
 
+        private ModuleInstance _removedSelection;
+
         public ModuleInstance Selected => _selected;
         /// <summary>마지막 철거의 실제 환급액 (내구도 반영, 철거 직전에 계산).</summary>
         public System.Collections.Generic.IReadOnlyList<SpaceStation.Data.ResourceAmount> LastRemovedRefund { get; private set; }
@@ -42,12 +44,23 @@ namespace SpaceStation.Building
         {
             // StationController.Awake에서 그리드가 만들어진 뒤 구독
             _station.Grid.ModuleRemoved += HandleModuleRemoved;
+            _station.Simulation.Automation.ModuleRebuilt += HandleAutoRebuilt;
         }
 
         private void OnDestroy()
         {
             if (_station != null && _station.Grid != null)
                 _station.Grid.ModuleRemoved -= HandleModuleRemoved;
+            if (_station != null && _station.Simulation != null)
+                _station.Simulation.Automation.ModuleRebuilt -= HandleAutoRebuilt;
+        }
+
+        /// <summary>선택한 모듈이 자동 재건축되면 새 모듈을 계속 선택한다.</summary>
+        private void HandleAutoRebuilt(ModuleInstance previous, ModuleInstance rebuilt)
+        {
+            if (previous != null && previous == _removedSelection)
+                Select(rebuilt);
+            _removedSelection = null;
         }
 
         private void Update()
@@ -117,6 +130,7 @@ namespace SpaceStation.Building
         {
             if (module != _selected)
                 return;
+            _removedSelection = module; // 자동 재건축이면 곧 새 모듈로 다시 선택
             _selected = null; // 뷰는 곧 파괴되므로 강조 해제 불필요
             SelectionChanged?.Invoke(null);
         }

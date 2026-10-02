@@ -251,6 +251,127 @@ namespace SpaceStation.Tests
             Assert.AreEqual(1f, sim.Durability.EfficiencyFor(60f), Eps);
         }
 
+        // ---------------- 자동화 (정비 자동화 연구) ----------------
+
+        [Test]
+        public void Automation_MinGrade_GatesFirstLevel()
+        {
+            var category = Category(ResearchStat.MaintenanceAutomation, 1f);
+            category.EditorSet(ResearchCategory.Automation, "자동화", "module", new List<ResearchLevel>(category.Levels), minGrade: 1);
+            var sim = Sim(category);
+            sim.Grid.TryPlace(_lab, Vector3Int.left, 0, out _);
+            Assert.AreEqual(ResearchStartResult.GradeTooLow, sim.CanStartResearch(category), "레벨 상한 표는 Lv.1 = 등급 0이지만 카테고리 최소 등급 1");
+        }
+
+        [Test]
+        public void Automation_LockedUntilResearched_ThenMaintains()
+        {
+            var (sim, category) = AutomationSim();
+            sim.Grid.TryPlace(_block, Vector3Int.left, 0, out var block);
+            sim.Durability.ApplyImpact(block, 60f); // 내구도 40 < 기준 55
+            Ticks(sim, 2);
+            sim.Durability.TryGetInfo(block, out var d);
+            Assert.AreEqual(40f, d.Current, Eps, "연구 전에는 동작하지 않음");
+
+            sim.Research.SetLevel(category, 1);
+            float metal = sim.Resources.GetStock(ResourceType.Metal);
+            Ticks(sim, 2);
+            Assert.AreEqual(85f, d.Current, Eps, "자동 정비: 최대 100 - 15");
+            Assert.AreEqual(metal - 24f, sim.Resources.GetStock(ResourceType.Metal), Eps, "비용은 그대로 냄 (40 × 1.0 × 0.6)");
+            Assert.AreEqual(1, sim.Automation.AutoMaintainCount);
+        }
+
+        [Test]
+        public void Automation_RebuildsWhenMaintenanceNotEnough()
+        {
+            var (sim, category) = AutomationSim();
+            sim.Research.SetLevel(category, 1);
+            sim.Automation.AutoMaintain = false; // 준비 중 끼어들지 않게
+            sim.Grid.TryPlace(_block, Vector3Int.left, 0, out var block);
+            for (int i = 0; i < 3; i++)
+            {
+                sim.Durability.ApplyImpact(block, 50f);
+                sim.Durability.Maintain(block); // 최대 100 → 85 → 70 → 55
+            }
+            sim.Durability.ApplyImpact(block, 10f); // 45, 정비해도 최대 40 < 55 → 재건축
+            sim.Automation.AutoMaintain = true;
+            ModuleInstance rebuilt = null;
+            sim.Automation.ModuleRebuilt += (old, now) => rebuilt = now;
+            Ticks(sim, 2);
+
+            Assert.IsNotNull(rebuilt, "재건축됨");
+            Assert.AreNotSame(block, rebuilt);
+            Assert.IsTrue(sim.Durability.TryGetInfo(rebuilt, out var d));
+            Assert.AreEqual(100f, d.Max, Eps);
+            Assert.AreEqual(1, sim.Automation.AutoRebuildCount);
+        }
+
+        [Test]
+        public void Automation_ReserveBlocksAuto_BatchIgnoresIt()
+        {
+            var (sim, category) = AutomationSim();
+            sim.Research.SetLevel(category, 1);
+            sim.Grid.TryPlace(_block, Vector3Int.left, 0, out var block);
+            sim.Durability.ApplyImpact(block, 60f);
+            sim.Resources.SetStock(ResourceType.Metal, 100f); // 정비 24 → 76 남음 < 보호선 200 × 40% = 80
+            Ticks(sim, 2);
+            sim.Durability.TryGetInfo(block, out var d);
+            Assert.AreEqual(40f, d.Current, Eps, "보호선 아래라 미룸");
+            Assert.IsTrue(sim.Automation.WaitingForReserve);
+
+            sim.Automation.ReserveRatio = 0.3f; // 76 ≥ 60
+            Ticks(sim, 2);
+            Assert.AreEqual(85f, d.Current, Eps, "보호선을 낮추면 진행");
+
+            sim.Durability.ApplyImpact(block, 50f);
+            sim.Automation.ReserveRatio = 0.8f;
+            sim.Automation.AutoMaintain = false;
+            var (maintained, rebuilt) = sim.Automation.RunBatch();
+            Assert.AreEqual(1, maintained + rebuilt, "일괄 정비는 보호선 무시");
+        }
+
+        [Test]
+        public void Automation_SkipsDamagedAndRespectsToggle()
+        {
+            var (sim, category) = AutomationSim();
+            sim.Research.SetLevel(category, 1);
+            sim.Grid.TryPlace(_block, Vector3Int.left, 0, out var damaged);
+            sim.Grid.TryPlace(_block, Vector3Int.right, 0, out var worn);
+            sim.Durability.ApplyImpact(damaged, 60f);
+            sim.Durability.ApplyImpact(worn, 60f);
+            sim.Damage.Damage(damaged);
+            Assert.AreEqual(1, sim.Automation.Plan().Count, "운석 파손 모듈은 수리 시스템에 맡김");
+
+            sim.Automation.AutoMaintain = false;
+            Ticks(sim, 2);
+            sim.Durability.TryGetInfo(worn, out var d);
+            Assert.AreEqual(40f, d.Current, Eps, "자동 정비 꺼짐");
+        }
+
+        /// <summary>자동화 카테고리 + 노후 없음 + 정비 비용 비율 1 (비용 = 건설비 × 손실 비율).</summary>
+        private (StationSimulation sim, ResearchCategoryData category) AutomationSim()
+        {
+            var so = new SerializedObject(_config);
+            so.FindProperty("_durabilityDecayPerSecond").floatValue = 0f;
+            so.FindProperty("_maintenanceCostRate").floatValue = 1f;
+            so.FindProperty("_maintenanceMaxLoss").floatValue = 15f;
+            so.FindProperty("_maxDurabilityFloor").floatValue = 25f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var g = new SerializedObject(_grades); // 재건축은 해금된 모듈만
+            var unlocks = g.FindProperty("_grades").GetArrayElementAtIndex(0).FindPropertyRelative("_unlocks");
+            unlocks.arraySize = 1;
+            unlocks.GetArrayElementAtIndex(0).objectReferenceValue = _block;
+            g.ApplyModifiedPropertiesWithoutUndo();
+            var category = Category(ResearchStat.MaintenanceAutomation, 1f);
+            return (Sim(category), category);
+        }
+
+        private static void Ticks(StationSimulation sim, int seconds)
+        {
+            for (int i = 0; i < seconds; i++)
+                sim.Tick(1f);
+        }
+
         // ---------------- 도우미 ----------------
 
         /// <summary>랜덤 이벤트 없음 (간격 기본값 1초라 넣으면 매 틱 운석) — 운석은 Events.Trigger로 직접.</summary>
