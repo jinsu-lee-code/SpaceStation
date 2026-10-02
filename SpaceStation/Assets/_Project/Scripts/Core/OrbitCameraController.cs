@@ -86,6 +86,13 @@ namespace SpaceStation.Core
             Apply();
         }
 
+        /// <summary>세이브 복원: 저장 당시 보던 위치로.</summary>
+        public void Restore(Vector3 focus, float yaw, float pitch, float distance)
+        {
+            _rig.Set(focus, yaw, pitch, distance);
+            Apply();
+        }
+
         private void Apply()
         {
             transform.SetPositionAndRotation(_rig.Position, _rig.Rotation);

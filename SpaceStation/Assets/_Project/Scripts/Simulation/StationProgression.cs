@@ -35,6 +35,24 @@ namespace SpaceStation.Simulation
 
         public StationGrade GetGrade(int index) => _config.Grades[index];
 
+        /// <summary>세이브 복원: 최고 등급 도달 기록 (결과 화면이 다시 뜨지 않게, 이벤트 없음).</summary>
+        internal void RestoreReachedFinal(bool reached)
+        {
+            HasReachedFinalGrade = reached;
+        }
+
+        /// <summary>세이브·전시용: 이 모듈 정의를 이름으로 찾는다 (등급 해금 목록 기준). 없으면 null.</summary>
+        public ModuleData FindModule(string assetName)
+        {
+            if (string.IsNullOrEmpty(assetName))
+                return null;
+            foreach (var g in _config.Grades)
+                foreach (var m in g.Unlocks)
+                    if (m != null && m.name == assetName)
+                        return m;
+            return null;
+        }
+
         /// <summary>조건을 만족하는 가장 높은 등급 (첫 등급은 조건과 무관하게 항상 만족).</summary>
         public int ComputeGrade(int population, int moduleCount)
         {

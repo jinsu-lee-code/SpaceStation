@@ -177,6 +177,28 @@ namespace SpaceStation.Simulation
         }
 
         /// <summary>
+        /// 세이브 복원: 파손 상태를 그대로 만든다 (이벤트 없음). 대기 중이면 호출 순서대로 대기열 끝에 들어간다.
+        /// spreadAfter가 음수면 확산 없음(무한대).
+        /// </summary>
+        internal void Restore(ModuleInstance module, float timeUntilDestroyed, bool repairing, float repairRemaining,
+            float spreadAfter, bool hasSpread, bool queued)
+        {
+            if (module == null || _damaged.ContainsKey(module))
+                return;
+            var info = new DamageInfo(module, Math.Max(0.01f, timeUntilDestroyed), 0f, _config.QueuePausesSpread)
+            {
+                IsRepairing = repairing,
+                RepairRemaining = repairing ? Math.Max(0.01f, repairRemaining) : 0f,
+                TimeUntilSpread = spreadAfter < 0f ? float.PositiveInfinity : spreadAfter,
+                HasSpread = hasSpread,
+                IsQueued = !repairing && queued,
+            };
+            _damaged.Add(module, info);
+            if (info.IsQueued)
+                _queue.Add(info);
+        }
+
+        /// <summary>
         /// 수리 요청 (비용 지불은 호출자가 먼저 한다). 빈 슬롯이 있으면 바로 시작, 없으면 대기열 끝에 넣는다.
         /// 파손이 아니거나 이미 수리 중·대기 중이면 false.
         /// </summary>

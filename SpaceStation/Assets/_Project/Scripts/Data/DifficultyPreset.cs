@@ -62,5 +62,8 @@ namespace SpaceStation.Data
     {
         /// <summary>null이면 게임 씬의 기본 난이도.</summary>
         public static DifficultyPreset Difficulty;
+
+        /// <summary>불러올 저장 (메인 메뉴 [이어하기]/[불러오기], ESC [불러오기]). 게임 씬의 SimulationHost가 한 번 쓰고 비운다.</summary>
+        public static SpaceStation.Save.SaveFile PendingLoad;
     }
 }

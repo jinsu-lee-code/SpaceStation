@@ -291,7 +291,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
 
 ## Phase 6. 확장 후보
 - [ ] 포트 방식 연결 (B안) 도입
-- [ ] 연구 시스템 도입 (RESEARCH.md 참고) — 6개 분야 확인 완료, 정비 자동화 플레이 확인 대기
+- [x] 연구 시스템 도입 (RESEARCH.md 참고) — 플레이 확인 완료 (2026-10-02), 노멀 난이도는 연구 반영 후에도 그대로 (BALANCE.md 22번)
   - 연구소 + 연구: 난이도 확장(4-x) 완료 후. 첫 효과 후보는 이벤트 조기 경보 (GDD 10번)
   - [x] 연구소(ResearchLab) 모듈 추가: `MD_ResearchLab` (1칸, 금속 50, 전력 2, `ModuleData.ResearchSlots` 1, 산업 탭, 초소형부터 해금), **임시 모델** `PF_ResearchLab`(기본 도형 조합, 나중에 교체)
   - [x] 카테고리별 레벨업 데이터 구조: `ResearchCategoryData`(레벨 1~4: 시작 비용·전력 수요·소요 시간·설명·효과 목록 `ResearchModifier{Stat, Value}` = 그 레벨의 최종값), `ResearchLevelCapConfig`(레벨별 필요 등급·인구). 에셋 `Data/Research/RC_*`, `ResearchLevelCaps`
@@ -303,7 +303,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - [x] 밸런스 측정: `BalanceBot` 연구 (소형부터 연구소 1, 중형부터 2 / 우선순위 유지보수→생산→에너지→건설→거주→방어 / 전력 여유 ≥ 연구 수요, 시작 후에도 산소·물 40%·금속 40 이상 남을 때만), `BalanceBot.UseResearch`로 비교. 결과는 BALANCE.md 22번
   - [x] 테스트: `ResearchTests` 11개 (기본값 동일, 연구소 필요·비용, 진행·완료·효과, 전력 부족 감속, 파손 시 멈춤·진행률 유지, 등급 상한, 취소 환급 없음, 건설 비용·거주·수리 시간, 방어 반경, 파손 면역, 노후 배율·효율 최저) — 전체 202개 통과
   - [x] 연구 시스템 플레이 확인 (2026-10-02)
-  - [x] **정비 자동화 연구** (RESEARCH.md 3-7, 2026-10-02 결정) — 플레이 확인 대기
+  - [x] **정비 자동화 연구** (RESEARCH.md 3-7, 2026-10-02 결정) — 플레이 확인 완료
     - 결정: 7번째 카드(단일 연구, 소형부터, Lv.2 수준 비용) / 켜기·끄기 + 기준값 조절 / 재건축 = 정비해도 최대 내구도가 기준 미만일 때 / 자원 보호선 + 조절 / 설정은 연구 창 자동화 카드 / 일괄 정비 버튼 포함 / 운석 파손 모듈은 건너뜀
     - `ResearchCategory.Automation`, `ResearchStat.MaintenanceAutomation`, `ResearchCategoryData.MinGrade`(레벨 상한 표와 큰 쪽 — `ResearchSystem.RequiredGrade`), 에셋 `RC_Automation`
     - `Simulation/MaintenanceAutomation` (`StationSimulation.Automation`, 1초마다 검사): `Plan()`·`TotalCost`·`RunBatch()`, 이벤트 `Performed`·`ModuleRebuilt`. `StationSimulation.CanRebuildKind`(재건축 가능 조건 분리)
@@ -312,5 +312,12 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
     - 밸런스 봇은 연구하지 않음(이미 같은 규칙으로 수동 정비), `BalanceRunner.ResearchLevels` 크기를 카테고리 수에 맞춤
     - 남은 것: 자동화 설정은 판마다 기본값(세이브/로드 때 함께 저장)
   - 참고: 배치 규칙(`PlacementRules`)은 인접을 검사하지 않음 (게임에서는 모듈 면을 클릭해야 해서 문제없음, 코드로 놓을 때 주의)
-- [ ] 세이브/로드, 회전 링 모듈
-  - 세이브에는 연구 레벨·진행률·진행 중인 연구소도 포함
+- [x] **세이브/로드** (2026-10-02) — 플레이 확인 대기
+  - 결정: 자동 1 + 수동 3 / 자동 저장 = 게임 시간 간격(설정: 끔·1·3·5분, 기본 3분) + 메인 메뉴로 나갈 때·게임 종료 시 / 게임 오버 시 자동 저장만 삭제 / 시뮬레이션 전부 정확히 복원(날아가는 운석 연출만 제외) / ESC 메뉴 [저장] [불러오기] / 칸 = 텍스트 + 썸네일 / 카메라 복원, 불러오면 일시정지로 시작 / 형식 버전 기록, 없어진 데이터는 건너뛰고 알림
+  - 상태: `Simulation/StationState`(JsonUtility, 에셋·자원은 이름으로) + `StationStateSerializer.Capture/Restore` — 모듈(배치 순서·회전)·내구도, 재고·배터리·인구·태양 폭풍 배율, 만족도·성장·인구 감소 타이머, 파손(파괴·수리·확산 타이머, 대기열 순서), 다음 이벤트 타이머·진행 중 이벤트, 최고 등급 도달 기록, 통계, 실패 타이머, 연구 레벨·진행 중 연구(순서·진행률), 자동화 설정. 복원 순서: 연구 레벨 → 모듈 → 재고 → 파손 → 이벤트 → 통계 → 연구 진행 → 0초 틱으로 파생값 재계산
+  - 각 시스템에 internal 복원 메서드 추가(`Durability/Damage/Population/Events/Failure/Session/Research.Restore*`, `StationProgression.FindModule`·`RestoreReachedFinal`, `StationSimulation.RestoreElapsed`)
+  - 파일: `Save/SaveService` (`{persistentDataPath}/Saves/{auto|slot1~3}.json` + `.png`, 임시 파일 후 교체, 버전 `CurrentVersion` 1 — 더 높은 버전·깨진 파일은 "호환되지 않음"), `Save/SaveFile`(메타: 시각·난이도·등급·인구·모듈·플레이 시간 / 카메라 / 정거장)
+  - 게임 씬: `SimulationHost`가 `GameStartOptions.PendingLoad`를 받아 뷰 생성 전에 복원(난이도는 이름으로 `_difficulties`에서), `Save/SaveManager`(자동 저장·썸네일 384×216·게임 오버 시 자동 저장 삭제·불러온 판 카메라·일시정지·알림, `LoadAndPlay`), `StationController`가 생성 시 파손·노후 표시 반영
+  - UI: `UI/SaveLoadPanel`(저장 = 수동 3칸·덮어쓰기 확인 / 불러오기 = 자동+수동·삭제 확인·게임 중 "진행이 사라집니다" 확인), ESC 메뉴 [재개][저장][불러오기][설정][재시작][메인 메뉴], 메인 메뉴 [이어하기](최근 저장 요약, 없으면 숨김)[새 게임][불러오기][설정][종료], 설정 게임 탭 "자동 저장 간격", 상태 표시줄 알림. 생성: 메뉴 `SpaceStation/Save/Setup` (MenuSceneBuilder, 메뉴 씬 재생성 시에도 포함·SaveManager 제거)
+  - 테스트 `SaveTests` 3개(전체 상태 왕복·이어서 진행 결과 동일, 없어진 데이터 건너뛰기, 슬롯·버전·최근 슬롯) — 전체 210개 통과
+- [ ] 회전 링 모듈

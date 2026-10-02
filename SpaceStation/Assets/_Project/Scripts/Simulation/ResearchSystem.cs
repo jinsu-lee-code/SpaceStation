@@ -189,6 +189,18 @@ namespace SpaceStation.Simulation
             }
         }
 
+        /// <summary>세이브 복원: 진행 중이던 연구 (비용 없이, 저장 순서대로 = 멈춤 우선순위 유지).</summary>
+        internal bool RestoreProject(ResearchCategoryData category, int targetLevel, float progress)
+        {
+            if (category == null || !_levels.ContainsKey(category) || GetProject(category) != null)
+                return false;
+            if (targetLevel != GetLevel(category) + 1 || category.GetLevel(targetLevel) == null)
+                return false;
+            var project = new ResearchProject(category, targetLevel) { Progress = Math.Max(0f, Math.Min(0.999f, progress)) };
+            _projects.Add(project);
+            return true;
+        }
+
         /// <summary>테스트·세이브용: 레벨 직접 설정.</summary>
         public void SetLevel(ResearchCategoryData category, int level)
         {

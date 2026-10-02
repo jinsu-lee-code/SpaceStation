@@ -174,6 +174,11 @@ namespace SpaceStation.Building
             view.Initialize(module, _selectionRimMaterial);
             // 연결 재계산은 시뮬레이션이 이미 끝냈으므로 현재 상태를 바로 반영
             view.SetOperational(_sim.Connectivity.IsActive(module));
+            // 불러온 판: 이미 파손·노후된 모듈은 생성 즉시 표시 (평소 새 모듈은 둘 다 해당 없음)
+            if (_sim.Damage.TryGetInfo(module, out var damage))
+                view.SetDamageVisual(damage.IsRepairing ? ModuleDamageVisual.Repairing : ModuleDamageVisual.Damaged);
+            if (_sim.Durability.TryGetInfo(module, out var durability))
+                view.SetWorn(_sim.Durability.EfficiencyFor(durability.Current) < 1f);
             _views.Add(module, view);
         }
 

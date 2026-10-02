@@ -53,6 +53,20 @@ namespace SpaceStation.Simulation
                 Fail(GameOverReason.Population);
         }
 
+        /// <summary>세이브 복원: 통계 (게임 오버 상태는 저장하지 않으므로 복원하지 않음).</summary>
+        internal void Restore(bool hasEverHadPopulation, int maxPopulation, int events, int destroyed, int spreads,
+            int intercepted, int blocked, int ricochets)
+        {
+            HasEverHadPopulation = hasEverHadPopulation;
+            MaxPopulation = maxPopulation;
+            EventsExperienced = events;
+            ModulesDestroyed = destroyed;
+            DamageSpreads = spreads;
+            MeteorsIntercepted = intercepted;
+            MeteorsBlocked = blocked;
+            Ricochets = ricochets;
+        }
+
         public void RecordEvent() => EventsExperienced++;
         public void RecordDestroyed() => ModulesDestroyed++;
         public void RecordSpread() => DamageSpreads++;

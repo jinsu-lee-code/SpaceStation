@@ -30,6 +30,16 @@ namespace SpaceStation.Core
         public Quaternion Rotation => Quaternion.Euler(Pitch, Yaw, 0f);
         public Vector3 Position => Focus - Rotation * Vector3.forward * Distance;
 
+        /// <summary>상태를 직접 설정 (세이브 복원). 한계값으로 잘린다.</summary>
+        public void Set(Vector3 focus, float yaw, float pitch, float distance)
+        {
+            Focus = focus;
+            Yaw = Mathf.Repeat(yaw, 360f);
+            Pitch = pitch;
+            Distance = distance;
+            Clamp();
+        }
+
         public void Orbit(float deltaYaw, float deltaPitch)
         {
             Yaw = Mathf.Repeat(Yaw + deltaYaw, 360f);

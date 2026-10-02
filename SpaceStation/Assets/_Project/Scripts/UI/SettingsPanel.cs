@@ -246,6 +246,9 @@ namespace SpaceStation.UI
             ChoiceRow(page, "기본 배속 (게임 시작 시)", () => GameSettings.SpeedChoices.Length, i => $"{GameSettings.SpeedChoices[i]:0}x",
                 () => GameSettings.DefaultSpeedIndex, i => GameSettings.DefaultSpeedIndex = i);
             ToggleRow(page, "창 비활성 시 자동 일시정지", () => GameSettings.PauseWhenUnfocused, v => GameSettings.PauseWhenUnfocused = v);
+            ChoiceRow(page, "자동 저장 간격 (게임 시간)", () => GameSettings.AutosaveChoices.Length,
+                i => GameSettings.AutosaveChoices[i] == 0 ? "끔" : $"{GameSettings.AutosaveChoices[i]}분",
+                () => GameSettings.AutosaveIndex, i => GameSettings.AutosaveIndex = i);
         }
 
         private void SelectTab(int tab)

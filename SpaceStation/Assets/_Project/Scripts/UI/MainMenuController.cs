@@ -1,6 +1,7 @@
 using SpaceStation.Audio;
 using SpaceStation.Core;
 using SpaceStation.Data;
+using SpaceStation.Save;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -10,7 +11,7 @@ namespace SpaceStation.UI
 {
     /// <summary>
     /// 5-9 메인 메뉴: [새 게임] → 난이도 선택(이지/노멀/하드) → 게임 씬, [설정](5-10 SettingsPanel), [종료].
-    /// 이어하기는 세이브가 생기면 추가. 패널 전환은 UiTween, ESC는 뒤로.
+    /// Phase 6: [이어하기](가장 최근 저장, 없으면 숨김) · [불러오기](저장 창). 패널 전환은 UiTween, ESC는 뒤로.
     /// </summary>
     public sealed class MainMenuController : MonoBehaviour
     {
@@ -27,6 +28,11 @@ namespace SpaceStation.UI
         [SerializeField] private TMP_Text[] _difficultyLabels = new TMP_Text[0];
         [Tooltip("처음 강조할 난이도 (노멀)")]
         [SerializeField] private int _recommendedIndex = 1;
+        [Header("Save (Phase 6)")]
+        [SerializeField] private Button _continueButton;
+        [SerializeField] private TMP_Text _continueLabel;
+        [SerializeField] private Button _loadButton;
+        [SerializeField] private SaveLoadPanel _saveLoadPanel;
 
         private UiTween _mainTween;
         private UiTween _difficultyTween;
@@ -58,9 +64,39 @@ namespace SpaceStation.UI
                     _difficultyLabels[i].SetText($"<b>{d.DisplayName}</b>{tag}\n<size=68%><color=#AFC4D8>{d.Description}</color></size>");
                 }
             }
+            SetupSaveButtons();
             SetInteractable(_difficultyPanel, false);
             SetInteractable(_mainPanel, true);
             _mainTween.Play();
+        }
+
+        /// <summary>[이어하기] = 가장 최근 저장 (없으면 숨김), [불러오기] = 저장 창.</summary>
+        private void SetupSaveButtons()
+        {
+            string recent = SaveService.MostRecentSlot();
+            if (_continueButton != null)
+            {
+                _continueButton.gameObject.SetActive(recent != null);
+                if (recent != null)
+                {
+                    var meta = SaveService.Describe(recent).Meta;
+                    if (_continueLabel != null && meta != null)
+                        _continueLabel.SetText($"이어하기  <size=62%><color=#AFC4D8>{meta.GradeName} · 인구 {meta.Population} · {meta.SavedAt:MM-dd HH:mm}</color></size>");
+                    _continueButton.onClick.AddListener(() =>
+                    {
+                        if (!SaveManager.LoadAndPlay(recent))
+                            AudioService.TryPlay(l => l.UiError);
+                        else
+                            SetInteractable(_mainPanel, false);
+                    });
+                }
+            }
+            if (_loadButton != null)
+            {
+                _loadButton.interactable = _saveLoadPanel != null;
+                if (_saveLoadPanel != null)
+                    _loadButton.onClick.AddListener(_saveLoadPanel.OpenLoad);
+            }
         }
 
         private void Update()
@@ -68,7 +104,8 @@ namespace SpaceStation.UI
             _mainTween.Update();
             _difficultyTween.Update();
             var keyboard = Keyboard.current;
-            if (SettingsPanel.EscapeConsumedThisFrame || (_settingsPanel != null && _settingsPanel.IsOpen))
+            if (SettingsPanel.EscapeConsumedThisFrame || InputGate.EscapeConsumedThisFrame || (_settingsPanel != null && _settingsPanel.IsOpen)
+                || (_saveLoadPanel != null && _saveLoadPanel.IsOpen))
                 return;
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame && _choosingDifficulty)
                 ShowMain();

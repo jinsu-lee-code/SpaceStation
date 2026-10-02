@@ -57,6 +57,20 @@ namespace SpaceStation.Simulation
             Satisfaction = Mathf.Clamp(config.StartingSatisfaction, 0f, MaxSatisfaction);
         }
 
+        public float OxygenLossTimer => _oxygenLossTimer;
+        public float LowSatisfactionLossTimer => _lowSatisfactionLossTimer;
+        public float OvercrowdedLossTimer => _overcrowdedLossTimer;
+
+        /// <summary>세이브 복원 (이벤트 없음).</summary>
+        internal void Restore(float satisfaction, float growthProgress, float oxygenLoss, float lowSatisfactionLoss, float overcrowdedLoss)
+        {
+            Satisfaction = Mathf.Clamp(satisfaction, 0f, MaxSatisfaction);
+            GrowthProgress = Mathf.Clamp01(growthProgress);
+            _oxygenLossTimer = Mathf.Max(0f, oxygenLoss);
+            _lowSatisfactionLossTimer = Mathf.Max(0f, lowSatisfactionLoss);
+            _overcrowdedLossTimer = Mathf.Max(0f, overcrowdedLoss);
+        }
+
         /// <summary>테스트/디버그용.</summary>
         public void SetSatisfaction(float value)
         {

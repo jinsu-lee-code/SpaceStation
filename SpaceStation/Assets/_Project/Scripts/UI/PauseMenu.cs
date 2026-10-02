@@ -29,6 +29,10 @@ namespace SpaceStation.UI
         [SerializeField] private Button _restartButton;
         [SerializeField] private Button _mainMenuButton;
         [SerializeField] private SettingsPanel _settingsPanel;
+        [Header("Save (Phase 6)")]
+        [SerializeField] private Button _saveButton;
+        [SerializeField] private Button _loadButton;
+        [SerializeField] private SaveLoadPanel _saveLoadPanel;
 
         private UiTween _tween;
         private bool _open;
@@ -48,6 +52,13 @@ namespace SpaceStation.UI
                 if (_settingsPanel != null)
                     _settingsButton.onClick.AddListener(_settingsPanel.Open);
             }
+            if (_saveLoadPanel != null)
+            {
+                if (_saveButton != null)
+                    _saveButton.onClick.AddListener(_saveLoadPanel.OpenSave);
+                if (_loadButton != null)
+                    _loadButton.onClick.AddListener(_saveLoadPanel.OpenLoad);
+            }
             SetVisible(false);
             InputGate.Blocked = false;
         }
@@ -64,8 +75,9 @@ namespace SpaceStation.UI
             var keyboard = Keyboard.current;
             if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame || SceneFader.Busy)
                 return;
-            if (SettingsPanel.EscapeConsumedThisFrame || InputGate.EscapeConsumedThisFrame || (_settingsPanel != null && _settingsPanel.IsOpen))
-                return; // 설정창이 먼저 닫힌다
+            if (SettingsPanel.EscapeConsumedThisFrame || InputGate.EscapeConsumedThisFrame || (_settingsPanel != null && _settingsPanel.IsOpen)
+                || (_saveLoadPanel != null && _saveLoadPanel.IsOpen))
+                return; // 설정창·저장 창이 먼저 닫힌다
             if (_open)
                 Close();
             else if (!_clock.InputLocked && (_build == null || _build.Selected == null) && (_selection == null || _selection.Selected == null))
@@ -84,6 +96,8 @@ namespace SpaceStation.UI
                 var d = _host != null ? _host.Difficulty : null;
                 _info.SetText($"<color=#AFC4D8>난이도</color> {(d != null ? d.DisplayName : "-")}");
             }
+            if (_saveButton != null)
+                _saveButton.interactable = _saveLoadPanel != null && Save.SaveManager.Instance != null && Save.SaveManager.Instance.CanSave;
             SetVisible(true);
             _tween.Play();
             AudioService.TryPlay(l => l.UiOpen);
@@ -106,9 +120,14 @@ namespace SpaceStation.UI
         {
             SetVisible(false);
             if (restart)
+            {
                 SceneFader.Reload();
+            }
             else
+            {
+                Save.SaveManager.Instance?.SaveBeforeLeaving(); // 메인 메뉴로 나갈 때 자동 저장
                 SceneFader.Load(SceneNames.MainMenu);
+            }
         }
 
         private void SetVisible(bool on)

@@ -163,6 +163,12 @@ namespace SpaceStation.Simulation
             EvaluateFailure(dt);
         }
 
+        /// <summary>세이브 복원: 경과 시간 (낮/밤 위상·플레이 시간).</summary>
+        internal void RestoreElapsed(float seconds)
+        {
+            ElapsedSeconds = Math.Max(0f, seconds);
+        }
+
         /// <summary>4-10 추가 실패 조건 (산소 고갈·만족도 0·코어 주변 붕괴 지속).</summary>
         private void EvaluateFailure(float dt)
         {

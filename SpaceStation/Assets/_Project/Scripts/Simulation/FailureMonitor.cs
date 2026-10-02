@@ -17,6 +17,14 @@ namespace SpaceStation.Simulation
             _config = config ?? throw new ArgumentNullException(nameof(config));
         }
 
+        /// <summary>세이브 복원.</summary>
+        internal void Restore(float oxygen, float satisfaction, float core)
+        {
+            OxygenTimer = Math.Max(0f, oxygen);
+            SatisfactionTimer = Math.Max(0f, satisfaction);
+            CoreTimer = Math.Max(0f, core);
+        }
+
         public float OxygenTimer { get; private set; }
         public float SatisfactionTimer { get; private set; }
         public float CoreTimer { get; private set; }

@@ -71,8 +71,8 @@ namespace SpaceStation.Simulation
             set => _reserveRatio = Math.Max(0f, Math.Min(MaxReserveRatio, value));
         }
 
-        public int AutoMaintainCount { get; private set; }
-        public int AutoRebuildCount { get; private set; }
+        public int AutoMaintainCount { get; internal set; }
+        public int AutoRebuildCount { get; internal set; }
         /// <summary>마지막 자동 검사에서 보호선 때문에 미룬 모듈이 있었는지.</summary>
         public bool WaitingForReserve { get; private set; }
 

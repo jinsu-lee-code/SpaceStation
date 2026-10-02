@@ -128,6 +128,16 @@ namespace SpaceStation.Simulation
             return true;
         }
 
+        /// <summary>세이브 복원: 추적 중인 모듈의 내구도 상태를 그대로 설정 (이벤트 없음).</summary>
+        internal void Restore(ModuleInstance module, float current, float max, int maintenanceCount)
+        {
+            if (!TryGetInfo(module, out var info))
+                return;
+            info.Max = Math.Max(0f, Math.Min(DurabilityInfo.FullDurability, max));
+            info.Current = Math.Max(ZeroEpsilon * 2f, Math.Min(info.Max, current));
+            info.MaintenanceCount = Math.Max(0, maintenanceCount);
+        }
+
         /// <summary>충격(운석)으로 내구도 감소. 0이 되면 즉시 WornOut.</summary>
         public void ApplyImpact(ModuleInstance module, float amount)
         {

@@ -27,14 +27,30 @@ namespace SpaceStation.Simulation
         [Header("Research (Phase 6)")]
         [SerializeField] private List<ResearchCategoryData> _researchCategories = new List<ResearchCategoryData>();
         [SerializeField] private ResearchLevelCapConfig _researchCaps;
+        [Header("Save (Phase 6)")]
+        [Tooltip("저장의 난이도 이름을 찾을 목록 (이지/노멀/하드)")]
+        [SerializeField] private List<DifficultyPreset> _difficulties = new List<DifficultyPreset>();
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
         /// <summary>이번 판에 적용된 난이도 (없으면 null = 에셋 값 그대로).</summary>
         public DifficultyPreset Difficulty { get; private set; }
+        /// <summary>이번 판을 저장에서 불러왔으면 그 저장 (카메라 복원·알림용), 새 게임이면 null.</summary>
+        public Save.SaveFile LoadedSave { get; private set; }
+        /// <summary>불러올 때 찾지 못해 건너뛴 항목 수.</summary>
+        public int LoadMissingCount { get; private set; }
 
         private void Awake()
         {
+            // 불러오기는 게임 씬에서만 (메인 메뉴 전시 정거장도 이 호스트를 쓴다)
+            var pending = gameObject.scene.name == SceneNames.Game ? GameStartOptions.PendingLoad : null;
+            if (pending != null)
+            {
+                GameStartOptions.PendingLoad = null;
+                var saved = FindDifficulty(pending.Meta.Difficulty);
+                if (saved != null)
+                    GameStartOptions.Difficulty = saved; // 재시작해도 같은 난이도
+            }
             Difficulty = GameStartOptions.Difficulty != null ? GameStartOptions.Difficulty : _defaultDifficulty;
             var balance = Difficulty != null ? Difficulty.ApplyTo(_balance) : _balance;
             var grades = Difficulty != null ? Difficulty.ApplyTo(_grades) : _grades;
@@ -49,6 +65,13 @@ namespace SpaceStation.Simulation
                 ResearchCategories = _researchCategories,
                 ResearchCaps = _researchCaps,
             });
+            if (pending != null)
+            {
+                LoadedSave = pending;
+                LoadMissingCount = StationStateSerializer.Restore(Simulation, pending.Station); // 뷰·UI가 생기기 전에 복원
+                if (LoadMissingCount > 0)
+                    Debug.LogWarning($"[Save] 불러오기: 찾을 수 없는 항목 {LoadMissingCount}개 건너뜀");
+            }
             Simulation.Resources.DepletionChanged += HandleDepletionChanged;
             Simulation.Events.EventStarted += HandleEventStarted;
             Simulation.Events.EventEnded += HandleEventEnded;
@@ -73,6 +96,17 @@ namespace SpaceStation.Simulation
             var keyboard = Keyboard.current;
             if (keyboard != null && keyboard.f5Key.wasPressedThisFrame && Simulation.TriggerRandomEvent() == null)
                 Debug.Log("[이벤트] 발생 가능한 이벤트 없음 (모두 진행 중)");
+        }
+
+        /// <summary>난이도 에셋 이름 → 프리셋 (목록·기본값에서 찾음).</summary>
+        public DifficultyPreset FindDifficulty(string assetName)
+        {
+            if (string.IsNullOrEmpty(assetName))
+                return null;
+            foreach (var d in _difficulties)
+                if (d != null && d.name == assetName)
+                    return d;
+            return _defaultDifficulty != null && _defaultDifficulty.name == assetName ? _defaultDifficulty : null;
         }
 
         private void HandleTicked(long tick)

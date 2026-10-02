@@ -69,6 +69,7 @@ namespace SpaceStation.UI
                 _progression.Progression.GradeChanged += HandleGradeChanged;
             _station.Simulation.Research.Completed += HandleResearchCompleted;
             _station.Simulation.Automation.Performed += HandleAutomationPerformed;
+            Save.SaveManager.Notice += HandleSaveNotice;
             _messageText.SetText(string.Empty);
             var group = _messageText.GetComponent<CanvasGroup>();
             if (group == null)
@@ -111,6 +112,12 @@ namespace SpaceStation.UI
                 _station.Simulation.Research.Completed -= HandleResearchCompleted;
                 _station.Simulation.Automation.Performed -= HandleAutomationPerformed;
             }
+            Save.SaveManager.Notice -= HandleSaveNotice;
+        }
+
+        private void HandleSaveNotice(string message, bool warning)
+        {
+            ShowMessage($"<color={(warning ? HudText.Orange : "#7FD8FF")}>{message}</color>");
         }
 
         private void HandleResearchCompleted(ResearchCategoryData category, int level)

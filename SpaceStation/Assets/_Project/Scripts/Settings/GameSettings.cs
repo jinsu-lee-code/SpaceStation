@@ -18,6 +18,9 @@ namespace SpaceStation.Settings
     {
         public static readonly int[] FrameLimits = { 30, 60, 120, 144, 0 }; // 0 = 무제한
         public static readonly float[] SpeedChoices = { 1f, 2f, 4f };
+        /// <summary>자동 저장 간격(게임 시간 분), 0 = 끔.</summary>
+        public static readonly int[] AutosaveChoices = { 0, 1, 3, 5 };
+        private const int DefaultAutosaveIndex = 2;
 
         private const string Prefix = "settings.";
         private static bool _loaded;
@@ -38,6 +41,7 @@ namespace SpaceStation.Settings
         private static float _zoomSensitivity = 1f;
         private static int _defaultSpeedIndex;
         private static bool _pauseWhenUnfocused;
+        private static int _autosaveIndex = DefaultAutosaveIndex;
 
         public static event Action Changed;
 
@@ -56,7 +60,10 @@ namespace SpaceStation.Settings
         public static int DefaultSpeedIndex { get { Load(); return _defaultSpeedIndex; } set => Set(ref _defaultSpeedIndex, Mathf.Clamp(value, 0, SpeedChoices.Length - 1), "speed"); }
         public static bool PauseWhenUnfocused { get { Load(); return _pauseWhenUnfocused; } set => Set(ref _pauseWhenUnfocused, value, "pauseUnfocused"); }
 
+        public static int AutosaveIndex { get { Load(); return _autosaveIndex; } set => Set(ref _autosaveIndex, Mathf.Clamp(value, 0, AutosaveChoices.Length - 1), "autosave"); }
+
         public static int FrameLimit => FrameLimits[FrameLimitIndex];
+        public static int AutosaveMinutes => AutosaveChoices[AutosaveIndex];
 
         /// <summary>그래픽 프리셋: 아래 세부 항목을 한꺼번에 바꾼다 (세부 항목을 따로 바꾸면 "사용자 지정").</summary>
         public static void ApplyPreset(GraphicsPreset preset)
@@ -99,6 +106,7 @@ namespace SpaceStation.Settings
             _zoomSensitivity = 1f;
             _defaultSpeedIndex = 0;
             _pauseWhenUnfocused = false;
+            _autosaveIndex = DefaultAutosaveIndex;
             SaveAll();
             Changed?.Invoke();
         }
@@ -124,6 +132,7 @@ namespace SpaceStation.Settings
             _zoomSensitivity = PlayerPrefs.GetFloat(Prefix + "zoom", _zoomSensitivity);
             _defaultSpeedIndex = Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "speed", _defaultSpeedIndex), 0, SpeedChoices.Length - 1);
             _pauseWhenUnfocused = PlayerPrefs.GetInt(Prefix + "pauseUnfocused", _pauseWhenUnfocused ? 1 : 0) == 1;
+            _autosaveIndex = Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "autosave", _autosaveIndex), 0, AutosaveChoices.Length - 1);
         }
 
         private static void SaveAll()
@@ -142,6 +151,7 @@ namespace SpaceStation.Settings
             PlayerPrefs.SetFloat(Prefix + "zoom", _zoomSensitivity);
             PlayerPrefs.SetInt(Prefix + "speed", _defaultSpeedIndex);
             PlayerPrefs.SetInt(Prefix + "pauseUnfocused", _pauseWhenUnfocused ? 1 : 0);
+            PlayerPrefs.SetInt(Prefix + "autosave", _autosaveIndex);
             PlayerPrefs.Save();
         }
 

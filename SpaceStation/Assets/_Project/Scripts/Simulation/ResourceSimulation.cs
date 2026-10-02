@@ -151,6 +151,12 @@ namespace SpaceStation.Simulation
             Changed?.Invoke();
         }
 
+        /// <summary>세이브 복원: 배터리 충전량 (현재 용량까지).</summary>
+        internal void RestoreBattery(float charge)
+        {
+            BatteryCharge = Mathf.Clamp(charge, 0f, BatteryCapacity);
+        }
+
         /// <summary>현재 재고를 직접 설정 (디버그/테스트용). 0~한도로 clamp.</summary>
         public void SetStock(ResourceType type, float amount)
         {

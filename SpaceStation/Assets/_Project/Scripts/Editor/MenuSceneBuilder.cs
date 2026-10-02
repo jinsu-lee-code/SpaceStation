@@ -18,6 +18,7 @@ namespace SpaceStation.Editor
     /// - Build Pause Menu: 게임 씬(Main) HUD에 ESC 일시정지 메뉴 생성·연결
     /// - Build Main Menu Scene: 게임 씬을 복사해 연출(정거장·조명·배경·후처리)만 남기고 전시 정거장·궤도 카메라·메뉴 UI를 얹음.
     ///   빌드 설정 = [MainMenu, Main]
+    /// - Save/Setup (Phase 6): 두 씬에 세이브/로드 버튼·저장 창·SaveManager 연결
     /// </summary>
     public static class MenuSceneBuilder
     {
@@ -88,10 +89,122 @@ namespace SpaceStation.Editor
             group.alpha = 0f;
             group.blocksRaycasts = false;
             group.interactable = false;
+            AddPauseSaveButtons(pause, hud.transform, font);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("[MenuSceneBuilder] 일시정지 메뉴 생성");
+        }
+
+        // ---------------- 세이브/로드 (Phase 6) ----------------
+
+        /// <summary>
+        /// 기존 씬에 세이브/로드 연결 (여러 번 실행해도 같음): 게임 씬 = SaveManager·난이도 목록·ESC 메뉴 [저장][불러오기]·저장 창,
+        /// 메인 메뉴 씬 = [이어하기][불러오기]·저장 창.
+        /// </summary>
+        [MenuItem("SpaceStation/Save/Setup")]
+        public static void SetupSave()
+        {
+            var game = EditorSceneManager.OpenScene(GameScenePath, OpenSceneMode.Single);
+            var hud = GameObject.Find("HUD");
+            var font = hud.GetComponentInChildren<TMP_Text>(true).font;
+            var host = Object.FindFirstObjectByType<SimulationHost>();
+            SetArray(host, "_difficulties", LoadDifficulties());
+
+            var managerGo = GameObject.Find("SaveManager");
+            if (managerGo == null)
+                managerGo = new GameObject("SaveManager");
+            var manager = GetOrAdd<Save.SaveManager>(managerGo);
+            Set(manager, "_host", host);
+            Set(manager, "_clock", Object.FindFirstObjectByType<SimulationClock>());
+            Set(manager, "_cameraController", Object.FindFirstObjectByType<OrbitCameraController>());
+            Set(manager, "_camera", Camera.main);
+
+            var pause = Object.FindFirstObjectByType<PauseMenu>(FindObjectsInactive.Include);
+            AddPauseSaveButtons(pause, hud.transform, font);
+            EditorSceneManager.MarkSceneDirty(game);
+            EditorSceneManager.SaveScene(game);
+
+            var menu = EditorSceneManager.OpenScene(MenuScenePath, OpenSceneMode.Single);
+            var controller = Object.FindFirstObjectByType<MainMenuController>(FindObjectsInactive.Include);
+            AddMainMenuSaveButtons(controller, font);
+            EditorSceneManager.MarkSceneDirty(menu);
+            EditorSceneManager.SaveScene(menu);
+
+            EditorSceneManager.OpenScene(GameScenePath, OpenSceneMode.Single);
+            Debug.Log("[MenuSceneBuilder] 세이브/로드 연결 완료 (게임 씬·메인 메뉴 씬)");
+        }
+
+        private static Object[] LoadDifficulties()
+        {
+            var list = new List<Object>();
+            foreach (var file in new[] { "DIFF_Easy", "DIFF_Normal", "DIFF_Hard" })
+                list.Add(AssetDatabase.LoadAssetAtPath<DifficultyPreset>(DifficultyRoot + file + ".asset"));
+            return list.ToArray();
+        }
+
+        /// <summary>ESC 메뉴: [재개] 아래에 [저장] [불러오기], HUD에 저장 창.</summary>
+        private static void AddPauseSaveButtons(PauseMenu pause, Transform hud, TMP_FontAsset font)
+        {
+            var panel = pause.transform.Find("Panel");
+            var resume = panel.Find("Resume");
+            var save = FindOrMakeButton(panel, "Save", "저장", font, 22f, 58f);
+            var load = FindOrMakeButton(panel, "Load", "불러오기", font, 22f, 58f);
+            save.transform.SetSiblingIndex(resume.GetSiblingIndex() + 1);
+            load.transform.SetSiblingIndex(save.transform.GetSiblingIndex() + 1);
+            Set(pause, "_saveButton", save);
+            Set(pause, "_loadButton", load);
+            Set(pause, "_saveLoadPanel", MakeSaveLoadPanel(hud, font, true));
+        }
+
+        /// <summary>메인 메뉴: 맨 위 [이어하기], [새 게임] 아래 [불러오기], 캔버스에 저장 창.</summary>
+        private static void AddMainMenuSaveButtons(MainMenuController controller, TMP_FontAsset font)
+        {
+            var so = new SerializedObject(controller);
+            var main = ((CanvasGroup)so.FindProperty("_mainPanel").objectReferenceValue).transform;
+            var newGame = main.Find("NewGame");
+            var cont = FindOrMakeButton(main, "Continue", "이어하기", font, 26f, 66f);
+            var load = FindOrMakeButton(main, "Load", "불러오기", font, 26f, 66f);
+            cont.transform.SetSiblingIndex(0);
+            load.transform.SetSiblingIndex(newGame.GetSiblingIndex() + 1);
+            Set(controller, "_continueButton", cont);
+            Set(controller, "_continueLabel", cont.GetComponentInChildren<TMP_Text>());
+            Set(controller, "_loadButton", load);
+            Set(controller, "_saveLoadPanel", MakeSaveLoadPanel(controller.transform, font, false));
+        }
+
+        private static Button FindOrMakeButton(Transform parent, string name, string label, TMP_FontAsset font, float size, float height)
+        {
+            var existing = parent.Find(name);
+            if (existing != null)
+                return existing.GetComponent<Button>();
+            return MakeButton(parent, name, label, font, size, height);
+        }
+
+        /// <summary>저장 창 자리 (내용은 런타임에 SaveLoadPanel이 만든다).</summary>
+        private static SaveLoadPanel MakeSaveLoadPanel(Transform canvas, TMP_FontAsset font, bool inGame)
+        {
+            var old = canvas.Find("SaveLoadPanel");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+            var go = new GameObject("SaveLoadPanel", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
+            go.transform.SetParent(canvas, false);
+            Stretch((RectTransform)go.transform);
+            go.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
+            var group = go.GetComponent<CanvasGroup>();
+            group.alpha = 0f;
+            group.blocksRaycasts = false;
+            group.interactable = false;
+            go.transform.SetAsLastSibling();
+            var panel = go.AddComponent<SaveLoadPanel>();
+            Set(panel, "_font", font);
+            Set(panel, "_fillSprite", HudArtBuilder.Fill);
+            Set(panel, "_frameSprite", HudArtBuilder.Frame);
+            Set(panel, "_buttonSprite", HudArtBuilder.Button);
+            var so = new SerializedObject(panel);
+            so.FindProperty("_inGame").boolValue = inGame;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return panel;
         }
 
         // ---------------- 메인 메뉴 씬 ----------------
@@ -107,6 +220,7 @@ namespace SpaceStation.Editor
             // 게임 전용 오브젝트·컴포넌트 제거
             DestroyRoot("HUD");
             DestroyRoot("DefenseRange");
+            DestroyRoot("SaveManager"); // 전시 정거장을 자동 저장하지 않게
             var station = Object.FindFirstObjectByType<StationController>();
             Remove<BuildController>(station.gameObject);
             Remove<ModuleSelectionController>(station.gameObject);
@@ -222,6 +336,7 @@ namespace SpaceStation.Editor
             SetArray(controller, "_difficulties", presets.ToArray());
             SetArray(controller, "_difficultyButtons", buttons.ToArray());
             SetArray(controller, "_difficultyLabels", labels.ToArray());
+            AddMainMenuSaveButtons(controller, font);
         }
 
         /// <summary>5-10 설정창 자리 (내용은 런타임에 SettingsPanel이 만든다). 캔버스 맨 위에 둔다.</summary>

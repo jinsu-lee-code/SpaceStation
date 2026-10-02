@@ -61,6 +61,21 @@ namespace SpaceStation.Simulation
             TimeUntilNext = gracePeriod + NextInterval();
         }
 
+        /// <summary>세이브 복원: 다음 이벤트까지 남은 시간 (이벤트 없음).</summary>
+        internal void RestoreTimer(float timeUntilNext)
+        {
+            TimeUntilNext = Math.Max(0.01f, timeUntilNext);
+        }
+
+        /// <summary>세이브 복원: 진행 중이던 지속형 이벤트 (시작 효과는 다시 적용하지 않음).</summary>
+        internal void RestoreActive(GameEventData data, float duration, float remaining)
+        {
+            if (data == null || !data.IsTimed || IsActive(data))
+                return;
+            float d = Math.Max(0.01f, duration);
+            _active.Add(new ActiveEvent(data, d) { Remaining = Math.Max(0.01f, Math.Min(d, remaining)) });
+        }
+
         public bool IsActive(GameEventData data)
         {
             foreach (var a in _active)
