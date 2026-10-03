@@ -73,6 +73,12 @@ namespace SpaceStation.Data
         [SerializeField, Min(0)] private int _turretRadius;
         [Tooltip("범위 안으로 오는 운석 1발당 격추 확률 (포탑끼리 합산, 상한은 BalanceConfig)")]
         [SerializeField, Range(0f, 1f)] private float _turretInterceptChance;
+        [Tooltip("8-3 손상 통제 반경 (격자 칸, 체비셰프 거리). 0이면 손상 통제 모듈 아님")]
+        [SerializeField, Min(0)] private int _controlRadius;
+        [Tooltip("범위 안 파손 모듈의 확산 시간 배율 (2 = 2배 늦게 번짐). 여러 통제실은 중첩 없이 가장 강한 것")]
+        [SerializeField, Min(1f)] private float _controlSpreadMultiplier = 1f;
+        [Tooltip("범위 안 파손 모듈의 방치 파괴 시간 배율 (1.5 = 120초 → 180초)")]
+        [SerializeField, Min(1f)] private float _controlDestroyMultiplier = 1f;
 
         [Header("Resident Service (BALANCE 20번)")]
         [Tooltip("충족하는 거주자 요구. None이면 서비스 모듈 아님")]
@@ -96,7 +102,11 @@ namespace SpaceStation.Data
         public float TurretInterceptChance => _turretInterceptChance;
         public bool IsShield => ShieldRadius > 0;
         public bool IsTurret => TurretRadius > 0;
-        public bool IsDefense => IsShield || IsTurret;
+        public int ControlRadius => _controlSpreadMultiplier > 1f || _controlDestroyMultiplier > 1f ? _controlRadius : 0;
+        public float ControlSpreadMultiplier => Mathf.Max(1f, _controlSpreadMultiplier);
+        public float ControlDestroyMultiplier => Mathf.Max(1f, _controlDestroyMultiplier);
+        public bool IsDamageControl => ControlRadius > 0;
+        public bool IsDefense => IsShield || IsTurret || IsDamageControl;
         public string DisplayName => _displayName;
         public ModuleCategory Category => _category;
         public IReadOnlyList<Vector3Int> CellOffsets => _cellOffsets;

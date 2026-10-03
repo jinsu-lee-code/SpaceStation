@@ -23,6 +23,11 @@ namespace SpaceStation.Simulation
         public bool HasSpread { get; internal set; }
         /// <summary>아직 번지지 않았고 확산 타이머가 흐르는 중.</summary>
         public bool SpreadPending => !HasSpread && !IsRepairing && !(IsQueued && _queuePausesSpread) && !float.IsPositiveInfinity(TimeUntilSpread);
+        /// <summary>8-3 지금 적용 중인 손상 통제 배율 (1 = 없음). 남은 시간은 이 배율이 반영된 실제 초.</summary>
+        public DamageControlEffect Control { get; internal set; } = DamageControlEffect.None;
+        public bool IsControlled => Control.DestroyMultiplier > 1.001f || Control.SpreadMultiplier > 1.001f;
+        /// <summary>세이브 복원 직후: 저장된 시간에 이미 배율이 반영돼 있으므로 다음 갱신 때 배율만 받아들인다.</summary>
+        internal bool AdoptControl;
 
         private readonly bool _queuePausesSpread;
 
@@ -122,6 +127,12 @@ namespace SpaceStation.Simulation
         /// <summary>Phase 6 연구 효과 (수리 비용·시간). StationSimulation이 공유 인스턴스로 바꿔 끼운다.</summary>
         public ResearchEffects Effects { get; set; }
 
+        /// <summary>
+        /// 8-3 손상 통제: 모듈별 (확산, 파괴) 시간 배율. 소유자가 그리드 기준으로 제공 (null = 없음).
+        /// 파손 시점과 매 틱에 다시 읽어, 배율이 바뀌면 남은 시간을 비례로 늘이고 줄인다 (통제실 건설·파손·전력 변화 즉시 반영).
+        /// </summary>
+        public Func<ModuleInstance, DamageControlEffect> ControlLookup { get; set; }
+
         public bool IsDamaged(ModuleInstance module) => module != null && _damaged.ContainsKey(module);
 
         public bool TryGetInfo(ModuleInstance module, out DamageInfo info)
@@ -172,6 +183,7 @@ namespace SpaceStation.Simulation
             // 8-1: 모듈별 확산 시간 배율 (핵융합로 0.5 = 2배 빠름)
             float spreadAfter = _config.SpreadAfterSeconds * (module.Data != null ? module.Data.SpreadTimeMultiplier : 1f);
             var info = new DamageInfo(module, _config.DestroyAfterSeconds, spreadAfter, _config.QueuePausesSpread);
+            ApplyControl(info);
             _damaged.Add(module, info);
             Damaged?.Invoke(info);
             Changed?.Invoke();
@@ -194,6 +206,7 @@ namespace SpaceStation.Simulation
                 TimeUntilSpread = spreadAfter < 0f ? float.PositiveInfinity : spreadAfter,
                 HasSpread = hasSpread,
                 IsQueued = !repairing && queued,
+                AdoptControl = true,
             };
             _damaged.Add(module, info);
             if (info.IsQueued)
@@ -289,6 +302,7 @@ namespace SpaceStation.Simulation
             _finished.Clear();
             foreach (var info in _damaged.Values)
             {
+                ApplyControl(info);
                 if (info.IsRepairing)
                 {
                     info.RepairRemaining -= deltaSeconds;
@@ -340,6 +354,26 @@ namespace SpaceStation.Simulation
                 _spreading.Clear();
             }
             Changed?.Invoke();
+        }
+
+        /// <summary>8-3: 현재 손상 통제 배율을 읽어, 바뀌었으면 남은 파괴·확산 시간을 비례로 조정한다.</summary>
+        private void ApplyControl(DamageInfo info)
+        {
+            if (ControlLookup == null)
+                return;
+            var next = ControlLookup(info.Module);
+            var prev = info.Control;
+            info.Control = next;
+            if (info.AdoptControl)
+            {
+                info.AdoptControl = false;
+                return;
+            }
+            if (Math.Abs(next.DestroyMultiplier - prev.DestroyMultiplier) > 1e-5f)
+                info.TimeUntilDestroyed *= next.DestroyMultiplier / prev.DestroyMultiplier;
+            if (!info.HasSpread && !float.IsPositiveInfinity(info.TimeUntilSpread)
+                && Math.Abs(next.SpreadMultiplier - prev.SpreadMultiplier) > 1e-5f)
+                info.TimeUntilSpread *= next.SpreadMultiplier / prev.SpreadMultiplier;
         }
 
         /// <summary>

@@ -96,6 +96,7 @@ namespace SpaceStation.Simulation
             Durability = new DurabilitySystem(Balance);
             Adjacency = new AdjacencySystem(settings.AdjacencyRules);
             Defense = new DefenseSystem(Balance, ModuleStrength);
+            Damage.ControlLookup = m => Defense.GetDamageControl(Grid, m); // 8-3 손상 통제실
             Needs = new NeedsSystem(Balance, ModuleStrength, EffectiveHousing);
             Failure = new FailureMonitor(Balance);
             Events = new EventScheduler(Balance.EventGracePeriod, Balance.EventIntervalMin, Balance.EventIntervalMax, _random01);

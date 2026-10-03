@@ -219,6 +219,69 @@ namespace SpaceStation.Tests
             Assert.AreEqual(60f, ni.TimeUntilSpread, Eps);
         }
 
+        // ---------------- 8-3 손상 통제 ----------------
+
+        [Test]
+        public void Control_AtDamage_ScalesDestroyAndSpreadTimers()
+        {
+            EnableSpread(60f);
+            var m = Place(0);
+            _damage.ControlLookup = _ => new DamageControlEffect { SpreadMultiplier = 2f, DestroyMultiplier = 1.5f };
+            _damage.Damage(m);
+            _damage.TryGetInfo(m, out var info);
+            Assert.AreEqual(180f, info.TimeUntilDestroyed, Eps);
+            Assert.AreEqual(120f, info.TimeUntilSpread, Eps);
+            Assert.IsTrue(info.IsControlled);
+        }
+
+        [Test]
+        public void Control_AddedOrLostMidway_RescalesRemainingTime()
+        {
+            EnableSpread(60f);
+            var m = Place(0);
+            var effect = DamageControlEffect.None;
+            _damage.ControlLookup = _ => effect;
+            _damage.Damage(m);
+            Ticks(20); // 남은 100 / 40
+            effect = new DamageControlEffect { SpreadMultiplier = 2f, DestroyMultiplier = 1.5f };
+            _damage.Tick(0f);
+            _damage.TryGetInfo(m, out var info);
+            Assert.AreEqual(150f, info.TimeUntilDestroyed, Eps, "통제실이 생기면 남은 시간 × 1.5");
+            Assert.AreEqual(80f, info.TimeUntilSpread, Eps);
+
+            Ticks(30); // 120 / 50
+            effect = DamageControlEffect.None;
+            _damage.Tick(0f);
+            Assert.AreEqual(80f, info.TimeUntilDestroyed, Eps, "통제실이 사라지면 원래 비율로");
+            Assert.AreEqual(25f, info.TimeUntilSpread, Eps);
+        }
+
+        [Test]
+        public void DefenseSystem_DamageControl_RangeStrongestAndStrength()
+        {
+            var control = ScriptableObject.CreateInstance<ModuleData>();
+            _created.Add(control);
+            var so = new SerializedObject(control);
+            so.FindProperty("_controlRadius").intValue = 2;
+            so.FindProperty("_controlSpreadMultiplier").floatValue = 2f;
+            so.FindProperty("_controlDestroyMultiplier").floatValue = 1.5f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Assert.IsTrue(control.IsDamageControl && control.IsDefense);
+
+            float strength = 1f;
+            var defense = new DefenseSystem(_config, _ => strength);
+            Assert.IsTrue(_grid.TryPlace(control, Vector3Int.zero, 0, out _));
+            var near = Place(2);
+            var far = Place(3);
+            Assert.AreEqual(1.5f, defense.GetDamageControl(_grid, near).DestroyMultiplier, Eps);
+            Assert.AreEqual(2f, defense.GetDamageControl(_grid, near).SpreadMultiplier, Eps);
+            Assert.AreEqual(1f, defense.GetDamageControl(_grid, far).DestroyMultiplier, Eps, "범위 밖");
+            strength = 0.5f;
+            Assert.AreEqual(1.25f, defense.GetDamageControl(_grid, near).DestroyMultiplier, Eps, "가동률 반영");
+            strength = 0f;
+            Assert.AreEqual(1f, defense.GetDamageControl(_grid, near).DestroyMultiplier, Eps, "파손·비활성이면 효과 없음");
+        }
+
         [Test]
         public void Spread_FiresOnceAfter60s_WhenLeftAlone()
         {

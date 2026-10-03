@@ -418,7 +418,14 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - 모델: Blender `NEW_Refinery`/`SMN_Refinery` (약 1,300 삼각형) — 받침 + 가운데 그을린 강철 용광로(위 방열 핀) + 양 끝 광석 투입구 깔때기 + 이송관 + 칸마다 앞뒷면·끝면 연결 해치. 굽지 않는 발광 부품 `Glow`(슬롯 `FX_RefineryGlow` → `M_RefineryGlow`: Lit + HDR 주황 (1.9, 0.26, 0.02) — 초록 성분이 크면 톤매핑 뒤 노랗게 보임)
   - `AdjacencySystem.FindProductionBooster(target)` (봇이 데이터로 증폭 모듈을 찾음). 봇: 도킹 한도 후 증폭 안 된 도킹 옆 자리가 있으면 저축해서 제련소, 배치 점수 +40/도킹
   - 테스트 1개(증폭 모듈 찾기) — 전체 225개 통과. 밸런스: BALANCE.md 23번 (대형 13→15/20, 모듈 88→118)
-- [ ] **8-3. 손상 통제실** (방어, 1칸, 중형) — 범위 안 파손 확산 방지 + 방치 파괴 시간 연장
+- [x] **8-3. 손상 통제실** (2026-10-03, 방어, 1칸, 중형) — 범위 안 파손 확산 방지 + 방치 파괴 시간 연장 — 플레이 확인 대기
+  - 결정: 확산은 완전 차단 대신 **확산 시간 ×2**, 방치 파괴 ×1.5, 범위 2칸. 금속 120 / 전력 5. 중첩 없음, 가동률 비례
+  - `ModuleData._controlRadius/_controlSpreadMultiplier/_controlDestroyMultiplier` (`IsDamageControl`, `IsDefense`에 포함 → 범위 표시·건설 미리보기·선택 패널 가동률 재사용). `DefenseSystem.GetDamageControl`, `ResearchEffects.ControlRadius`
+  - `DamageSystem.ControlLookup`: 파손 시점 + 매 틱 배율을 다시 읽어 남은 파괴·확산 시간을 비례 조정 (`DamageInfo.Control/IsControlled`, 세이브 복원 시 `AdoptControl`로 이중 적용 방지)
+  - UI: 툴팁 "손상 통제" 줄, 선택 패널 보호 줄에 "손상 통제 (확산 ×2 · 파괴 ×1.5)", 범위 상자 노랑 (`DefenseRangeView._controlColor`)
+  - 모델: Blender `NEW_DamageControl`/`SMN_DamageControl` (약 1,500 삼각형) — 받침 + 본체(노랑·검정 경고 띠) + 옆면 빨간 소화제 탱크 4개 + 앞면 상황창 + 위 유리 띠 큐폴라·경광등·센서 안테나 + 4면 연결 해치. 발광 부품 `Lamp`(`FX_ControlLamp` → `M_ControlLamp` 호박색)
+  - 봇: 방어 순환에 포함(실드 → 포탑 → 통제실 중 가장 적은 종류)
+  - 테스트 3개(파손 시 배율, 도중 생김·사라짐 비례 조정, 범위·가동률) — 전체 228개 통과. 밸런스: BALANCE.md 23번 (봇에서는 효과 미미 — 8-6 재검토)
 - [ ] **8-4. 회전 링** (생활, 대형) — 3×1×3 고리(가운데 칸은 링이 차지, 다른 모듈 배치 불가), Y축 회전 연출. 대량 수용 인구 + 범위 만족도 상한 + 인구 증가 속도
 - [ ] **8-5. 추가 후보 3종** (핵심 4개 이후)
   - 연료전지 (전력, 1칸, 소형): 물 → 전력

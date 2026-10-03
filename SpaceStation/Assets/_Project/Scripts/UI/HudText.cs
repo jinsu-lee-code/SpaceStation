@@ -102,6 +102,13 @@ namespace SpaceStation.UI
             if (data.IsTurret)
                 sb.Append("포탑: 반경 ").Append(turretRadius).Append("칸 안으로 오는 운석 완전 격추 ")
                   .Append((data.TurretInterceptChance * (fx != null ? fx.TurretInterceptMultiplier : 1f) * 100f).ToString("0")).Append($"% <color={Muted}>(포탑끼리 합산, 상한 있음)</color>\n");
+            if (data.IsDamageControl)
+            {
+                int controlRadius = fx != null ? fx.ControlRadius(data) : data.ControlRadius;
+                sb.Append("손상 통제: 반경 ").Append(controlRadius).Append("칸 안 파손 모듈이 ")
+                  .Append($"{data.ControlSpreadMultiplier:0.#}배 늦게 번지고, 방치 파괴까지 {data.ControlDestroyMultiplier:0.#}배 오래 버팀")
+                  .Append($" <color={Muted}>(중첩 없음)</color>\n");
+            }
             if (data.IsService)
                 sb.Append(data.ServiceNeed.DisplayName()).Append(": 반경 ").Append(serviceRadius)
                   .Append("칸 안 거주 모듈 주민 ").Append(data.ServiceCapacity).Append($"명 담당 <color={Muted}>(파손·비활성·전력 부족·노후 시 감소)</color>\n");

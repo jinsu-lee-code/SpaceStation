@@ -20,6 +20,7 @@ namespace SpaceStation.Building
         [SerializeField] private Color _shieldColor = new Color(0.3f, 0.8f, 1f, 0.12f);
         [SerializeField] private Color _turretColor = new Color(1f, 0.6f, 0.2f, 0.12f);
         [SerializeField] private Color _serviceColor = new Color(0.45f, 1f, 0.55f, 0.12f); // 4-9 의료·여가
+        [SerializeField] private Color _controlColor = new Color(1f, 0.85f, 0.25f, 0.12f); // 8-3 손상 통제실
 
         private static bool HasRange(ModuleData data) => data != null && (data.IsDefense || data.IsService);
 
@@ -60,8 +61,8 @@ namespace SpaceStation.Building
             // Phase 6 연구 반경 반영
             var fx = _build.Station != null && _build.Station.Simulation != null ? _build.Station.Simulation.Effects : null;
             int radius = fx != null
-                ? Mathf.Max(fx.ShieldRadius(data), Mathf.Max(fx.TurretRadius(data), fx.ServiceRadius(data)))
-                : Mathf.Max(data.ShieldRadius, Mathf.Max(data.TurretRadius, data.IsService ? data.ServiceRadius : 0));
+                ? Mathf.Max(fx.ControlRadius(data), Mathf.Max(fx.ShieldRadius(data), Mathf.Max(fx.TurretRadius(data), fx.ServiceRadius(data))))
+                : Mathf.Max(data.ControlRadius, Mathf.Max(data.ShieldRadius, Mathf.Max(data.TurretRadius, data.IsService ? data.ServiceRadius : 0)));
             var min = cells[0];
             var max = cells[0];
             foreach (var c in cells)
@@ -74,7 +75,7 @@ namespace SpaceStation.Building
             t.rotation = Quaternion.identity;
             t.localScale = (Vector3)(max - min + Vector3Int.one * (1 + 2 * radius)) * GridConfig.CellSize;
 
-            var color = data.IsService ? _serviceColor : data.IsShield ? _shieldColor : _turretColor;
+            var color = data.IsService ? _serviceColor : data.IsShield ? _shieldColor : data.IsDamageControl ? _controlColor : _turretColor;
             if (_appliedColor != color)
             {
                 _appliedColor = color;

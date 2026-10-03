@@ -26,6 +26,7 @@ namespace SpaceStation.Editor.Balance
         private readonly ModuleData _power, _oxygen, _water, _food, _housing, _storage, _metal, _battery, _bay, _shield, _turret, _lab;
         private readonly ModuleData _fusion; // 8-1 상시 대량 발전 (태양광이 아닌 발전 모듈 중 가장 큰 것)
         private readonly ModuleData _refinery; // 8-2 맞닿은 채굴 도킹 생산 증폭
+        private readonly ModuleData _control;  // 8-3 손상 통제실 (방어 모듈 순환에 포함)
         /// <summary>Phase 6: 연구를 하는지 (비교 측정용, 기본 true).</summary>
         public static bool UseResearch = true;
         /// <summary>연구 우선순위: 유지보수 → 생산 → 에너지 → 건설·경제 → 거주 → 방어.</summary>
@@ -69,6 +70,7 @@ namespace SpaceStation.Editor.Balance
                 if (_bay == null && m.RepairSlots > 0) _bay = m;
                 if (_shield == null && m.IsShield) _shield = m;
                 if (_turret == null && m.IsTurret) _turret = m;
+                if (_control == null && m.IsDamageControl) _control = m;
                 if (_lab == null && m.ResearchSlots > 0) _lab = m;
                 if (m.IsService) _services.Add(m);
                 if (!m.SolarPowered && m.Removable && Produces(m, ResourceType.Power)
@@ -296,20 +298,31 @@ namespace SpaceStation.Editor.Balance
 
         private ModuleData PickDefense()
         {
-            int shields = 0, turrets = 0;
+            int shields = 0, turrets = 0, controls = 0;
             foreach (var m in _sim.Grid.Modules)
             {
                 if (m.Data == null) continue;
                 if (m.Data.IsShield) shields++;
                 if (m.Data.IsTurret) turrets++;
+                if (m.Data.IsDamageControl) controls++;
             }
-            if ((shields + turrets + 1) * ModulesPerDefense > _sim.Grid.ModuleCount)
+            if ((shields + turrets + controls + 1) * ModulesPerDefense > _sim.Grid.ModuleCount)
                 return null;
-            bool shieldOk = _shield != null && _sim.CheckBuildable(_shield) == PlacementResult.Valid;
-            bool turretOk = _turret != null && _sim.CheckBuildable(_turret) == PlacementResult.Valid;
-            if (shieldOk && (!turretOk || shields <= turrets))
-                return _shield;
-            return turretOk ? _turret : null;
+            // 실드 → 포탑 → 손상 통제실(8-3) 순으로 가장 적은 종류
+            ModuleData best = null;
+            int bestCount = int.MaxValue;
+            void Consider(ModuleData data, int count)
+            {
+                if (data != null && count < bestCount && _sim.CheckBuildable(data) == PlacementResult.Valid)
+                {
+                    best = data;
+                    bestCount = count;
+                }
+            }
+            Consider(_shield, shields);
+            Consider(_turret, turrets);
+            Consider(_control, controls);
+            return best;
         }
 
         /// <summary>방어 모듈 배치 점수: 아직 같은 종류의 보호를 받지 않는 모듈을 범위에 많이 넣을수록.</summary>
@@ -322,8 +335,8 @@ namespace SpaceStation.Editor.Balance
             int fresh = 0;
             foreach (var m in _covered)
             {
-                bool already = data.IsShield
-                    ? _sim.Defense.GetShieldBlockChance(_sim.Grid, m) > 0.001f
+                bool already = data.IsShield ? _sim.Defense.GetShieldBlockChance(_sim.Grid, m) > 0.001f
+                    : data.IsDamageControl ? _sim.Defense.GetDamageControl(_sim.Grid, m).DestroyMultiplier > 1.001f
                     : _sim.Defense.GetInterceptChance(_sim.Grid, m) >= _sim.Effects.TurretMaxIntercept - 1e-3f;
                 if (!already)
                     fresh++;

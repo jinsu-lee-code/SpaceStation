@@ -33,7 +33,13 @@ namespace SpaceStation.Editor
             public int UnlockGrade; // 0 초소형 / 1 소형 / 2 중형 / 3 대형
             public string AccentHex;
             public float SpreadTimeMultiplier = 1f;
+            public Vector3Int[] CellsOrDefault => Cells ?? OneCell;
+            public int ControlRadius;
+            public float ControlSpread = 1f;
+            public float ControlDestroy = 1f;
         }
+
+        private static readonly Vector3Int[] OneCell = { Vector3Int.zero };
 
         private static readonly Vector3Int[] TwoCells = { Vector3Int.zero, Vector3Int.right };
 
@@ -52,6 +58,14 @@ namespace SpaceStation.Editor
                 Key = "Refinery", Name = "제련소", Category = ModuleCategory.Industry, Cells = TwoCells,
                 Cost = 150f, Consumption = new[] { (ResourceType.Power, 5f), (ResourceType.Water, 0.3f) },
                 UnlockGrade = 2, AccentHex = "#FF6A2E",
+            },
+            // 8-3 손상 통제실: 범위 2칸 안 파손 모듈 확산 2배 늦게, 방치 파괴 1.5배 오래 (중첩 없음)
+            new Def
+            {
+                Key = "DamageControl", Name = "손상 통제실", Category = ModuleCategory.Defense,
+                Cost = 120f, Consumption = new[] { (ResourceType.Power, 5f) },
+                UnlockGrade = 2, AccentHex = "#FFC83A",
+                ControlRadius = 2, ControlSpread = 2f, ControlDestroy = 1.5f,
             },
         };
 
@@ -108,9 +122,10 @@ namespace SpaceStation.Editor
             so.FindProperty("_displayName").stringValue = def.Name;
             SetEnum(so.FindProperty("_category"), def.Category.ToString());
             var cells = so.FindProperty("_cellOffsets");
-            cells.arraySize = def.Cells.Length;
-            for (int i = 0; i < def.Cells.Length; i++)
-                cells.GetArrayElementAtIndex(i).vector3IntValue = def.Cells[i];
+            var offsets = def.CellsOrDefault;
+            cells.arraySize = offsets.Length;
+            for (int i = 0; i < offsets.Length; i++)
+                cells.GetArrayElementAtIndex(i).vector3IntValue = offsets[i];
             so.FindProperty("_prefab").objectReferenceValue = prefab;
             so.FindProperty("_removable").boolValue = true;
             so.FindProperty("_terminalOnly").boolValue = false;
@@ -130,6 +145,9 @@ namespace SpaceStation.Editor
             so.FindProperty("_shieldReduction").floatValue = 0f;
             so.FindProperty("_turretRadius").intValue = 0;
             so.FindProperty("_turretInterceptChance").floatValue = 0f;
+            so.FindProperty("_controlRadius").intValue = def.ControlRadius;
+            so.FindProperty("_controlSpreadMultiplier").floatValue = def.ControlSpread;
+            so.FindProperty("_controlDestroyMultiplier").floatValue = def.ControlDestroy;
             SetEnum(so.FindProperty("_serviceNeed"), "None");
             so.FindProperty("_serviceRadius").intValue = 0;
             so.FindProperty("_serviceCapacity").intValue = 0;

@@ -193,11 +193,14 @@ namespace SpaceStation.UI
             }
             float shield = defense.GetShieldBlockChance(grid, module);
             float intercept = defense.GetInterceptChance(grid, module);
-            if (shield > 0.001f || intercept > 0.001f)
+            var control = defense.GetDamageControl(grid, module); // 8-3
+            bool controlled = control.DestroyMultiplier > 1.001f || control.SpreadMultiplier > 1.001f;
+            if (shield > 0.001f || intercept > 0.001f || controlled)
             {
                 line += $"\n<size=85%><color={HudText.Muted}>보호</color>"
                         + (shield > 0.001f ? $" 실드 빗겨냄 {shield * 100f:0}%" : "")
-                        + (intercept > 0.001f ? $" 포탑 격추 {intercept * 100f:0}%" : "") + "</size>";
+                        + (intercept > 0.001f ? $" 포탑 격추 {intercept * 100f:0}%" : "")
+                        + (controlled ? $" 손상 통제 (확산 ×{control.SpreadMultiplier:0.#} · 파괴 ×{control.DestroyMultiplier:0.#})" : "") + "</size>";
             }
             return line;
         }

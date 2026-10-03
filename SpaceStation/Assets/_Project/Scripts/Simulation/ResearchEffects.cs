@@ -55,6 +55,7 @@ namespace SpaceStation.Simulation
 
         public int ShieldRadius(ModuleData data) => data != null && data.ShieldRadius > 0 ? data.ShieldRadius + DefenseRadiusBonus : 0;
         public int TurretRadius(ModuleData data) => data != null && data.TurretRadius > 0 ? data.TurretRadius + DefenseRadiusBonus : 0;
+        public int ControlRadius(ModuleData data) => data != null && data.ControlRadius > 0 ? data.ControlRadius + DefenseRadiusBonus : 0;
         public int ServiceRadius(ModuleData data) => data != null && data.IsService ? data.ServiceRadius + ServiceRadiusBonus : 0;
         public int Housing(ModuleData data) => data != null && data.HousingCapacity > 0 ? data.HousingCapacity + HousingBonus : 0;
         public float BatteryCapacity(ModuleData data) => data != null ? data.BatteryCapacity * BatteryMultiplier : 0f;

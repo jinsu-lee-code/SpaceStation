@@ -6,6 +6,14 @@ using UnityEngine;
 
 namespace SpaceStation.Simulation
 {
+    /// <summary>8-3 손상 통제 효과 (파손 모듈의 확산·파괴 시간 배율, 1 = 효과 없음).</summary>
+    public struct DamageControlEffect
+    {
+        public float SpreadMultiplier;
+        public float DestroyMultiplier;
+        public static DamageControlEffect None => new DamageControlEffect { SpreadMultiplier = 1f, DestroyMultiplier = 1f };
+    }
+
     /// <summary>
     /// 방어 모듈 (4-8, BALANCE 19번). 둘 다 범위형, 거리는 격자 칸 기준 체비셰프 거리(셀끼리 최소값).
     /// 포탑: 범위 안 모듈로 오는 운석 1발당 격추(완전 제거) 확률 = Σ(확률 × 가동률), 상한 BalanceConfig.
@@ -74,7 +82,30 @@ namespace SpaceStation.Simulation
         }
 
         /// <summary>미리보기 반경 (연구 반영). 방어 모듈이 아니면 0.</summary>
-        public int RangeOf(ModuleData data) => Math.Max(Effects.ShieldRadius(data), Effects.TurretRadius(data));
+        public int RangeOf(ModuleData data) => Math.Max(Effects.ControlRadius(data), Math.Max(Effects.ShieldRadius(data), Effects.TurretRadius(data)));
+
+        /// <summary>
+        /// 8-3 손상 통제: 이 모듈이 파손됐을 때 적용될 (확산 시간 배율, 파괴 시간 배율). 범위 안 통제실 중 가장 강한 것 하나,
+        /// 배율 = 1 + (배율 − 1) × 가동률. 통제실이 없으면 (1, 1).
+        /// </summary>
+        public DamageControlEffect GetDamageControl(StationGrid grid, ModuleInstance target)
+        {
+            var best = DamageControlEffect.None;
+            foreach (var d in grid.Modules)
+            {
+                var data = d.Data;
+                if (data == null || !data.IsDamageControl || !InRange(d.Cells, target.Cells, Effects.ControlRadius(data)))
+                    continue;
+                float s = GetStrength(d);
+                if (s <= 0f)
+                    continue;
+                float spread = 1f + (data.ControlSpreadMultiplier - 1f) * s;
+                float destroy = 1f + (data.ControlDestroyMultiplier - 1f) * s;
+                if (spread > best.SpreadMultiplier) best.SpreadMultiplier = spread;
+                if (destroy > best.DestroyMultiplier) best.DestroyMultiplier = destroy;
+            }
+            return best;
+        }
 
         /// <summary>연구 반경을 반영한 CountCovered (배치 미리보기·선택 패널).</summary>
         public int CountCoveredWithResearch(StationGrid grid, ModuleData data, IReadOnlyList<Vector3Int> cells)
@@ -88,7 +119,7 @@ namespace SpaceStation.Simulation
             results?.Clear();
             if (data == null || !data.IsDefense)
                 return 0;
-            int radius = Math.Max(data.ShieldRadius, data.TurretRadius) + radiusBonus;
+            int radius = Math.Max(data.ControlRadius, Math.Max(data.ShieldRadius, data.TurretRadius)) + radiusBonus;
             int count = 0;
             foreach (var m in grid.Modules)
             {
