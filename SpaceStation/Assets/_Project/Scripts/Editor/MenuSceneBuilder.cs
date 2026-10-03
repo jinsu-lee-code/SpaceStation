@@ -318,7 +318,7 @@ namespace SpaceStation.Editor
             var back = MakeButton(diff.transform, "Back", "뒤로  <size=70%><color=#AFC4D8>ESC</color></size>", font, 20f, 50f);
             back.GetComponent<LayoutElement>().preferredWidth = 220f;
 
-            var version = Text(canvasGo.transform, "Version", "v0.6 · Phase 6", font, 15f, TextAlignmentOptions.BottomRight, 30f);
+            var version = Text(canvasGo.transform, "Version", "v0.8 · Phase 8", font, 15f, TextAlignmentOptions.BottomRight, 30f);
             version.color = new Color(0.6f, 0.7f, 0.8f, 0.7f);
             var vrt = (RectTransform)version.transform;
             vrt.anchorMin = vrt.anchorMax = vrt.pivot = new Vector2(1f, 0f);

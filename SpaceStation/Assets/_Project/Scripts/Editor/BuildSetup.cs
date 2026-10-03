@@ -16,7 +16,7 @@ namespace SpaceStation.Editor
     {
         public const string CompanyName = "BinaryCompany";
         public const string ProductName = "Another Earth";
-        public const string Version = "0.6.0";
+        public const string Version = "0.8.0"; // Phase 8 (2026-10-03)
         private const string OutputFolder = "Builds/Windows";
         private const string ExeName = "AnotherEarth.exe";
 
