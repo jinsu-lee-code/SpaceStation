@@ -305,6 +305,15 @@ namespace SpaceStation.Editor
                     var spin = FindChild(instance.transform, "Spin");
                     if (spin != null)
                         spin.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
+                    // 8-5 연료전지: 보조 발전 중에만 "Lamp" 켜짐
+                    var lamp = FindChild(instance.transform, "Lamp");
+                    if (lamp != null && data.OnDemandPower)
+                    {
+                        var fx = instance.AddComponent<SpaceStation.Building.OnDemandPowerFx>();
+                        var fso = new SerializedObject(fx);
+                        fso.FindProperty("_lamp").objectReferenceValue = lamp.gameObject;
+                        fso.ApplyModifiedPropertiesWithoutUndo();
+                    }
                 }
                 else switch (style)
                 {

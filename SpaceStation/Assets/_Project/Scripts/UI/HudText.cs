@@ -65,8 +65,12 @@ namespace SpaceStation.UI
             foreach (var a in data.Production)
             {
                 if (a.Type == ResourceType.Power)
-                    sb.Append("전력 공급 +").Append(a.Amount.ToString("0.#")).Append('\n');
+                    sb.Append(data.OnDemandPower ? "전력 공급 최대 +" : "전력 공급 +").Append(a.Amount.ToString("0.#")).Append('\n');
             }
+            if (data.OnDemandPower)
+                sb.Append($"<color={Yellow}>다른 발전·배터리로 모자랄 때만 모자란 만큼 발전 (소비도 그 비율만큼)</color>\n");
+            if (data.InputReserveRatio > 0f)
+                sb.Append($"<color={Muted}>입력 자원이 저장 한도의 {data.InputReserveRatio * 100f:0}% 이하면 정지 (주민 몫 보호)</color>\n");
             foreach (var a in data.Consumption)
             {
                 if (a.Type == ResourceType.Power)

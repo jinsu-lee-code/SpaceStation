@@ -42,6 +42,8 @@ namespace SpaceStation.Editor
             public int ServiceRadius;
             public int ServiceCapacity;
             public float GrowthInterval = 1f;
+            public bool OnDemandPower;
+            public float InputReserve;
         }
 
         private static Vector3Int[] Square3()
@@ -89,6 +91,13 @@ namespace SpaceStation.Editor
                 Cost = 300f, Consumption = new[] { (ResourceType.Power, 10f) },
                 UnlockGrade = 3, AccentHex = "#7FD0FF",
                 Housing = 30, ServiceNeed = ResidentNeed.Recreation, ServiceRadius = 2, ServiceCapacity = 20, GrowthInterval = 0.8f,
+            },
+            // 8-5 연료전지: 부족할 때만 최대 +8 발전, 가동 비율만큼 물 소비(최대 1.0/s), 물 20% 이하면 정지
+            new Def
+            {
+                Key = "FuelCell", Name = "연료전지", Category = ModuleCategory.Power,
+                Cost = 50f, Production = new[] { (ResourceType.Power, 8f) }, Consumption = new[] { (ResourceType.Water, 1f) },
+                UnlockGrade = 1, AccentHex = "#3FE0D0", OnDemandPower = true, InputReserve = 0.2f,
             },
         };
 
@@ -162,6 +171,8 @@ namespace SpaceStation.Editor
             so.FindProperty("_solarPowered").boolValue = false;
             so.FindProperty("_batteryCapacity").floatValue = 0f;
             so.FindProperty("_batteryRate").floatValue = 0f;
+            so.FindProperty("_onDemandPower").boolValue = def.OnDemandPower;
+            so.FindProperty("_inputReserveRatio").floatValue = def.InputReserve;
             so.FindProperty("_repairSlots").intValue = 0;
             so.FindProperty("_researchSlots").intValue = 0;
             so.FindProperty("_spreadTimeMultiplier").floatValue = def.SpreadTimeMultiplier;

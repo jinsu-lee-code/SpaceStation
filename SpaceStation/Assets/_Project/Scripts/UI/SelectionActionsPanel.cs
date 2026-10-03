@@ -281,6 +281,15 @@ namespace SpaceStation.UI
             {
                 state = $"<color={HudText.Orange}>비활성 (코어와 분리됨)</color>";
             }
+            else if (module.Data != null && module.Data.OnDemandPower) // 8-5 연료전지
+            {
+                var res = _resources.Simulation;
+                state = res.IsHeldByReserve(module.Data)
+                    ? $"<color={HudText.Orange}>정지: 물이 저장 한도의 {module.Data.InputReserveRatio * 100f:0}% 이하 (주민 몫 보호)</color>"
+                    : res.OnDemandLoad > 0.005f
+                        ? $"<color=#7FE8DA>보조 발전 중 {res.OnDemandLoad * 100f:0}%</color>"
+                        : $"<color={HudText.Muted}>대기 (전력 충분)</color>";
+            }
             else if (_resources.Simulation.PowerEfficiency < 1f && UsesPower(module.Data))
             {
                 state = $"<color={EfficiencyBands.Hex(EfficiencyBands.Classify(_resources.Simulation.PowerEfficiency), Time.time)}>전력 부족: 가동률 {_resources.Simulation.PowerEfficiency * 100f:0}%</color>";

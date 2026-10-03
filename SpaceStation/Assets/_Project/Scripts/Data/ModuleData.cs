@@ -55,6 +55,10 @@ namespace SpaceStation.Data
         [SerializeField, Min(0f)] private float _batteryCapacity;
         [Tooltip("배터리 충·방전 최대 속도 (초당)")]
         [SerializeField, Min(0f)] private float _batteryRate;
+        [Tooltip("8-5 보조 발전 (연료전지): 다른 발전 + 배터리 방전으로 모자랄 때만, 모자란 만큼만 발전하고 그 비율만큼만 입력 자원을 쓴다. 전력 생산량 = 최대 출력")]
+        [SerializeField] private bool _onDemandPower;
+        [Tooltip("입력 자원(전력 제외) 재고가 저장 한도의 이 비율 이하이면 정지 (0.2 = 물 20% 이하면 멈춰 주민 몫을 남김). 0이면 바닥날 때만 정지")]
+        [SerializeField, Range(0f, 1f)] private float _inputReserveRatio;
 
         [Header("Support (BALANCE 17번)")]
         [Tooltip("동시 수리 슬롯 추가 수 (정비 베이 1). 활성이고 파손되지 않았을 때만. 코어 몫은 BalanceConfig.BaseRepairSlots")]
@@ -159,6 +163,8 @@ namespace SpaceStation.Data
         public bool SolarPowered => _solarPowered;
         public float BatteryCapacity => _batteryCapacity;
         public float BatteryRate => _batteryRate;
+        public bool OnDemandPower => _onDemandPower;
+        public float InputReserveRatio => _inputReserveRatio;
 
         private void OnValidate()
         {

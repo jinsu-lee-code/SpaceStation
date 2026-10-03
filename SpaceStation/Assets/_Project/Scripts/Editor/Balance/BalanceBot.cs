@@ -28,6 +28,9 @@ namespace SpaceStation.Editor.Balance
         private readonly ModuleData _refinery; // 8-2 맞닿은 채굴 도킹 생산 증폭
         private readonly ModuleData _control;  // 8-3 손상 통제실 (방어 모듈 순환에 포함)
         private readonly ModuleData _ring;     // 8-4 회전 링 (대량 수용 + 여가 + 인구 증가 속도)
+        private readonly ModuleData _fuelCell; // 8-5 보조 발전 (부족할 때만, 물 소비)
+        private const int FuelCellMax = 2;          // 밤·폭풍 대비 보조 발전은 이만큼까지
+        private const float FuelCellWaterMargin = 1f; // 물 순증가가 이 이상일 때만 (주민 몫 보호)
         private const float RingMetalSpare = 100f; // 두 번째 링부터: 건설비 + 이만큼 금속이 있을 때만
         /// <summary>Phase 6: 연구를 하는지 (비교 측정용, 기본 true).</summary>
         public static bool UseResearch = true;
@@ -61,7 +64,7 @@ namespace SpaceStation.Editor.Balance
             foreach (var m in buildable)
             {
                 if (m == null) continue;
-                if (_power == null && Produces(m, ResourceType.Power) && m.SolarPowered) _power = m; // 기본 발전 = 태양광 (목록 순서와 무관)
+                if (_power == null && Produces(m, ResourceType.Power) && m.SolarPowered && !m.OnDemandPower) _power = m; // 기본 발전 = 태양광 (목록 순서와 무관)
                 if (_oxygen == null && Produces(m, ResourceType.Oxygen)) _oxygen = m;
                 if (_water == null && Produces(m, ResourceType.Water)) _water = m;
                 if (_food == null && Produces(m, ResourceType.Food)) _food = m;
@@ -76,7 +79,8 @@ namespace SpaceStation.Editor.Balance
                 if (_lab == null && m.ResearchSlots > 0) _lab = m;
                 if (m.IsService && m.HousingCapacity <= 0) _services.Add(m);
                 if (_ring == null && m.HousingCapacity > 0 && m.GrowthIntervalMultiplier < 1f) _ring = m; // 8-4 (거주 겸 서비스)
-                if (!m.SolarPowered && m.Removable && Produces(m, ResourceType.Power)
+                if (_fuelCell == null && m.OnDemandPower && Produces(m, ResourceType.Power)) _fuelCell = m; // 8-5
+                if (!m.SolarPowered && !m.OnDemandPower && m.Removable && Produces(m, ResourceType.Power)
                     && (_fusion == null || PowerOutput(m) > PowerOutput(_fusion)))
                     _fusion = m;
             }
@@ -188,6 +192,12 @@ namespace SpaceStation.Editor.Balance
                 return _bay;
             if (CanBuildMetal())
                 return _metal; // 설치 한도까지 채굴 도킹
+            // 8-5: 폭풍·배터리 부족 대비 보조 발전(연료전지) 2개까지 — 금속 여유(건설비 + 거주 1개분)와 물 순증가가 있을 때만
+            // (측정: 배터리 대신·초반 우선으로 지으면 물 고갈 또는 확장 지연)
+            if (_fuelCell != null && CountOf(_fuelCell) < FuelCellMax && _sim.CheckBuildable(_fuelCell) == PlacementResult.Valid
+                && r.GetNetRate(ResourceType.Water) >= FuelCellWaterMargin
+                && r.GetStock(ResourceType.Metal) >= Cost(_fuelCell) + (_housing != null ? Cost(_housing) : 0f))
+                return _fuelCell;
             // 8-2: 도킹 한도에 닿았으면, 증폭 안 된 도킹에 붙일 자리가 있는 동안 제련소 (금속 수입을 더 늘리는 유일한 방법 → 저축해서 산다)
             if (_refinery != null && _sim.CheckBuildable(_refinery) == PlacementResult.Valid
                 && TryFindPlacement(_refinery, out var refOrigin, out int refRot) && FreshDocksAt(refOrigin, refRot) >= RefineryMinDocks)
@@ -629,6 +639,7 @@ namespace SpaceStation.Editor.Balance
                 foreach (var a in m.Data.Production)
                 {
                     if (a.Type != ResourceType.Power) continue;
+                    if (m.Data.OnDemandPower) continue; // 8-5 보조 발전: 계획에 넣지 않음 (아래 밤 부족 주석)
                     if (m.Data.SolarPowered) solar += a.Amount * adjacency;
                     else other += a.Amount * adjacency;
                 }
@@ -644,6 +655,7 @@ namespace SpaceStation.Editor.Balance
                 _spareDayPower = solar + other - demand;
                 return;
             }
+            // 8-5: 보조 발전은 물을 쓰므로 밤 계획(배터리)에는 넣지 않는다 — 폭풍·배터리 부족 때의 예비 (측정: 넣으면 물 고갈)
             _nightDeficit = System.Math.Max(0f, demand - other - solar * cycle.NightMultiplier);
             float chargeNeed = _nightDeficit * cycle.NightLength / System.Math.Max(1f, cycle.DayLength);
             _spareDayPower = solar + other - demand - chargeNeed;

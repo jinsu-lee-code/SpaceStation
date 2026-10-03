@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb58bbe16188d524dbc82c9b3c050e29, type: 3}
+  m_Name: MD_FuelCell
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ModuleData
+  _displayName: "\uC5F0\uB8CC\uC804\uC9C0"
+  _category: 0
+  _cellOffsets:
+  - {x: 0, y: 0, z: 0}
+  _prefab: {fileID: 8373009241626456014, guid: 35af5df7a2647d24499361210bfb39e1, type: 3}
+  _icon: {fileID: -1616720720839163297, guid: d2d4f2b0e83f8174d9346302fa2d2232, type: 3}
+  _removable: 1
+  _terminalOnly: 0
+  _dockFront: {x: 0, y: 0, z: 1}
+  _approachLaneLength: 2
+  _upperSidesNeedSupport: 0
+  _faceDepths:
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: 0.44019532
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: 0.44019532
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.25119537
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.41019532
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: 0.3501953
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: 0.44019532
+  _buildCost:
+  - Type: 4
+    Amount: 50
+  _production:
+  - Type: 0
+    Amount: 8
+  _consumption:
+  - Type: 2
+    Amount: 1
+  _housingCapacity: 0
+  _storageBonus: 0
+  _solarPowered: 0
+  _batteryCapacity: 0
+  _batteryRate: 0
+  _onDemandPower: 1
+  _inputReserveRatio: 0.2
+  _repairSlots: 0
+  _researchSlots: 0
+  _spreadTimeMultiplier: 1
+  _shieldRadius: 0
+  _shieldReduction: 0
+  _turretRadius: 0
+  _turretInterceptChance: 0
+  _controlRadius: 0
+  _controlSpreadMultiplier: 1
+  _controlDestroyMultiplier: 1
+  _growthIntervalMultiplier: 1
+  _serviceNeed: 0
+  _serviceRadius: 0
+  _serviceCapacity: 0

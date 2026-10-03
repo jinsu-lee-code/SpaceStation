@@ -275,7 +275,7 @@ namespace SpaceStation.Simulation
             // 입력 자원(전력 제외)이 이전 틱 재고 기준 0이면 정지. 정지한 모듈은 전력도 쓰지 않는다.
             _stopped.Clear();
             int stoppedCount = 0;
-            float supply = 0f, demand = 0f;
+            float supply = 0f, demand = 0f, onDemandMax = 0f;
             for (int k = 0; k < activeModules.Count; k++)
             {
                 var m = activeModules[k];
@@ -286,14 +286,19 @@ namespace SpaceStation.Simulation
                     stoppedCount++;
                     continue;
                 }
+                demand += Sum(m.Consumption, ResourceType.Power);
+                if (m.OnDemandPower) // 8-5 보조 발전: 최대 출력만 모아 두고 부족분이 있을 때만 쓴다
+                {
+                    onDemandMax += Sum(m.Production, ResourceType.Power) * Multiplier(productionMultipliers, k);
+                    continue;
+                }
                 float solar = m.SolarPowered ? SolarMultiplier * Effects.SolarMultiplier : 1f; // 낮/밤 (4-2) × 연구
                 supply += Sum(m.Production, ResourceType.Power) * Multiplier(productionMultipliers, k) * solar;
-                demand += Sum(m.Consumption, ResourceType.Power);
             }
             demand += Mathf.Max(0f, ExtraPowerDemand); // 진행 중인 연구 (Phase 6)
             supply *= PowerSupplyMultiplier; // 태양 폭풍 등 전역 배율
+            onDemandMax *= PowerSupplyMultiplier;
             StoppedModuleCount = stoppedCount;
-            PowerSupply = supply;
             PowerDemand = demand;
 
             // 배터리 (4-2): 남는 전력은 충전, 모자라면 방전. 둘 다 초당 BatteryRate까지.
@@ -317,6 +322,18 @@ namespace SpaceStation.Simulation
             }
             BatteryCharge = Mathf.Clamp(BatteryCharge, 0f, BatteryCapacity);
 
+            // 8-5 보조 발전: 다른 발전 + 배터리 방전으로도 모자란 만큼만 (최대 출력까지)
+            float onDemandUsed = 0f;
+            if (onDemandMax > 0f && effectiveSupply < demand)
+            {
+                onDemandUsed = Mathf.Min(demand - effectiveSupply, onDemandMax);
+                effectiveSupply += onDemandUsed;
+                supply += onDemandUsed;
+            }
+            OnDemandCapacity = onDemandMax;
+            OnDemandLoad = onDemandMax > 0f ? onDemandUsed / onDemandMax : 0f;
+            PowerSupply = supply;
+
             PowerEfficiency = demand > 0f
                 ? Mathf.Clamp(effectiveSupply / demand, Effects.MinPowerEfficiency, 1f)
                 : 1f;
@@ -329,6 +346,8 @@ namespace SpaceStation.Simulation
                     continue;
                 var m = activeModules[k];
                 float efficiency = Sum(m.Consumption, ResourceType.Power) > 0f ? PowerEfficiency : 1f;
+                if (m.OnDemandPower)
+                    efficiency *= OnDemandLoad; // 보조 발전: 가동 비율만큼만 입력 소비
                 float productionFactor = efficiency * Multiplier(productionMultipliers, k); // BALANCE 1번: 파손 배율과 곱셈
                 foreach (var a in m.Production)
                 {
@@ -377,7 +396,32 @@ namespace SpaceStation.Simulation
         {
             foreach (var a in module.Consumption)
             {
-                if (IsStock(a.Type) && a.Amount > 0f && _stock[(int)a.Type] <= 0f)
+                if (!IsStock(a.Type) || a.Amount <= 0f)
+                    continue;
+                int i = (int)a.Type;
+                // 8-5: 입력 보호 비율 (연료전지: 물 20% 이하면 정지해 주민 몫을 남김)
+                if (_stock[i] <= 0f || (module.InputReserveRatio > 0f && _stock[i] <= _capacity[i] * module.InputReserveRatio))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>8-5 보조 발전(연료전지)이 지금 낼 수 있는 최대 출력 (정지·폭풍 반영).</summary>
+        public float OnDemandCapacity { get; private set; }
+        /// <summary>8-5 보조 발전 가동 비율 0~1 (부족분 ÷ 최대 출력). 입력 소비도 이 비율.</summary>
+        public float OnDemandLoad { get; private set; }
+
+        /// <summary>이 모듈이 입력 보호 비율 때문에 멈춰 있는지 (바닥나서 멈춘 것은 제외, UI용).</summary>
+        public bool IsHeldByReserve(ModuleData module)
+        {
+            if (module == null || module.InputReserveRatio <= 0f)
+                return false;
+            foreach (var a in module.Consumption)
+            {
+                if (!IsStock(a.Type) || a.Amount <= 0f)
+                    continue;
+                int i = (int)a.Type;
+                if (_stock[i] > 0f && _stock[i] <= _capacity[i] * module.InputReserveRatio)
                     return true;
             }
             return false;

@@ -281,6 +281,52 @@ namespace SpaceStation.Tests
             Assert.IsTrue(sim.IsDepleted(ResourceType.Oxygen));
         }
 
+        // ---- 8-5 보조 발전 (연료전지) ----
+
+        private ModuleData FuelCell()
+        {
+            var fuel = Module("FuelCell", supply: 8, cons: new[] { R(ResourceType.Water, 1f) });
+            var so = new SerializedObject(fuel);
+            so.FindProperty("_onDemandPower").boolValue = true;
+            so.FindProperty("_inputReserveRatio").floatValue = 0.2f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return fuel;
+        }
+
+        [Test]
+        public void OnDemand_PowerSufficient_Idles_NoWater()
+        {
+            var sim = new ResourceSimulation(_config);
+            sim.Tick(new[] { _core, _solar, FuelCell() }, 1f);
+            Assert.AreEqual(0f, sim.OnDemandLoad, Eps);
+            Assert.AreEqual(15f, sim.PowerSupply, Eps);
+            Assert.AreEqual(0.4f, sim.GetConsumption(ResourceType.Water), Eps, "주민 몫만");
+        }
+
+        [Test]
+        public void OnDemand_CoversDeficit_UsesWaterProportionally()
+        {
+            var sim = new ResourceSimulation(_config);
+            // 공급 5 (코어), 수요 10 → 부족 5 → 연료전지 5/8 가동
+            sim.Tick(new[] { _core, _oxygen, _water, _mining, FuelCell() }, 1f);
+            Assert.AreEqual(0.625f, sim.OnDemandLoad, Eps);
+            Assert.AreEqual(10f, sim.PowerSupply, Eps);
+            Assert.AreEqual(1f, sim.PowerEfficiency, Eps);
+            Assert.AreEqual(0.5f + 0.4f + 0.625f, sim.GetConsumption(ResourceType.Water), Eps);
+        }
+
+        [Test]
+        public void OnDemand_WaterAtReserve_Stops()
+        {
+            var sim = new ResourceSimulation(_config);
+            var fuel = FuelCell();
+            sim.SetStock(ResourceType.Water, 30f); // 한도 200의 20%(40) 미만
+            sim.Tick(new[] { _core, _oxygen, _water, _mining, fuel }, 1f);
+            Assert.IsTrue(sim.IsHeldByReserve(fuel));
+            Assert.AreEqual(0f, sim.OnDemandCapacity, Eps);
+            Assert.AreEqual(0.5f, sim.PowerEfficiency, Eps);
+        }
+
         // ---- helpers ----
 
         private static ResourceAmount R(ResourceType type, float amount) => new ResourceAmount(type, amount);
