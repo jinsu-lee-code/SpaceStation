@@ -52,6 +52,7 @@ namespace SpaceStation.Editor
             public float RepairTime = 1f;
             public int DecoyRadius;
             public float DecoyChance;
+            public bool CountsTowardGrade = true; // 8-6: 등급 모듈 수에 들어가는지
         }
 
         private static Vector3Int[] Square3()
@@ -120,6 +121,7 @@ namespace SpaceStation.Editor
                 Key = "ArmorBulkhead", Name = "장갑 격벽", Category = ModuleCategory.Defense,
                 Cost = 25f, UnlockGrade = 1, AccentHex = "#E8C547",
                 MeteorWeight = 3f, Armored = true, RepairTime = 0.5f, DecoyRadius = 2, DecoyChance = 0.5f,
+                CountsTowardGrade = false,
             },
         };
 
@@ -192,6 +194,7 @@ namespace SpaceStation.Editor
             so.FindProperty("_repairTimeMultiplier").floatValue = def.RepairTime;
             so.FindProperty("_decoyRadius").intValue = def.DecoyRadius;
             so.FindProperty("_decoyChance").floatValue = def.DecoyChance;
+            so.FindProperty("_countsTowardGrade").boolValue = def.CountsTowardGrade;
             so.FindProperty("_upperSidesNeedSupport").boolValue = false;
             SetAmounts(so.FindProperty("_buildCost"), (ResourceType.Metal, def.Cost));
             SetAmounts(so.FindProperty("_production"), def.Production);

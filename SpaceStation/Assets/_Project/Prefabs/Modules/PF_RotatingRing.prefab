@@ -84,7 +84,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4246257715948910708}
-  - {fileID: 3880340050175803857}
+  - {fileID: 2464076523174131246}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &460265017973468850
@@ -108,7 +108,7 @@ MonoBehaviour:
   _wornTint: {r: 0.45, g: 0.35, b: 0.25, a: 1}
   _wornTintAmount: 0.5
   _wornEmission: 0.35
---- !u!1001 &3626248490185532986
+--- !u!1001 &2718082867737465285
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -166,20 +166,25 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: -7583360344053514665, guid: bdd3aa8a4de35914290dfffb71b0d7e2, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 5708595312493384005}
+      addedObject: {fileID: 5359894201250008951}
   m_SourcePrefab: {fileID: 100100000, guid: bdd3aa8a4de35914290dfffb71b0d7e2, type: 3}
---- !u!1 &2635019439106021485 stripped
+--- !u!4 &2464076523174131246 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: bdd3aa8a4de35914290dfffb71b0d7e2, type: 3}
+  m_PrefabInstance: {fileID: 2718082867737465285}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &3709536751752507282 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -7583360344053514665, guid: bdd3aa8a4de35914290dfffb71b0d7e2, type: 3}
-  m_PrefabInstance: {fileID: 3626248490185532986}
+  m_PrefabInstance: {fileID: 2718082867737465285}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &5708595312493384005
+--- !u!114 &5359894201250008951
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2635019439106021485}
+  m_GameObject: {fileID: 3709536751752507282}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7ac438563565caa4e9808e4c3eb47481, type: 3}
@@ -187,8 +192,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.ModuleSpinner
   _speed: 12
   _acceleration: 0.25
---- !u!4 &3880340050175803857 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: bdd3aa8a4de35914290dfffb71b0d7e2, type: 3}
-  m_PrefabInstance: {fileID: 3626248490185532986}
-  m_PrefabAsset: {fileID: 0}

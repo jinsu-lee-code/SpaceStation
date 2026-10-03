@@ -144,7 +144,7 @@ namespace SpaceStation.UI
             var p = _progression.Progression;
             int limit = p.CurrentLimit(_station.Grid);
             if (_shownLimit >= 0 && limit > _shownLimit && p.IsFinalGrade && p.LimitedModule != null)
-                ShowMessage($"<color={HudTheme.GreenHex}>{p.LimitedModule.DisplayName} 최대 {limit}개로 증가 (모듈 {_station.Grid.ModuleCount}개)</color>");
+                ShowMessage($"<color={HudTheme.GreenHex}>{p.LimitedModule.DisplayName} 최대 {limit}개로 증가 (모듈 {SpaceStation.Simulation.StationProgression.CountGradeModules(_station.Grid)}개)</color>");
             _shownLimit = limit;
         }
 

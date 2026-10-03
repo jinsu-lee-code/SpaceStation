@@ -252,7 +252,7 @@ namespace SpaceStation.UI
             }
             else
             {
-                int pop = _sim.Population, modules = _station.Grid.ModuleCount;
+                int pop = _sim.Population, modules = StationProgression.CountGradeModules(_station.Grid); // 8-6: 장갑 격벽 제외
                 _popSb.Append("다음 ").Append(next.DisplayName).Append(":  인구 ");
                 AppendProgress(pop, next.MinPopulation);
                 _popSb.Append("  ·  모듈 ");

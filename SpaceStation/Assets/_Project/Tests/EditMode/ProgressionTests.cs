@@ -140,6 +140,23 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void GradeModuleCount_ExcludesNonCountingModules()
+        {
+            // 8-6: 장갑 격벽(_countsTowardGrade false)은 등급 모듈 수에 안 들어감
+            var wall = Module("Wall");
+            var so = new SerializedObject(wall);
+            so.FindProperty("_countsTowardGrade").boolValue = false;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var grid = new StationGrid();
+            grid.TryPlace(_basic, Vector3Int.zero, 0, out _);
+            grid.TryPlace(_basic, Vector3Int.right, 0, out _);
+            grid.TryPlace(wall, Vector3Int.left, 0, out _);
+            grid.TryPlace(wall, Vector3Int.up, 0, out _);
+            Assert.AreEqual(4, grid.ModuleCount);
+            Assert.AreEqual(2, StationProgression.CountGradeModules(grid));
+        }
+
+        [Test]
         public void GameOver_OnlyAfterHavingPopulation_Once()
         {
             var session = new GameSession();

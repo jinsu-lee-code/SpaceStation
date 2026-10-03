@@ -171,7 +171,7 @@ namespace SpaceStation.UI
             if (buildable == PlacementResult.LimitReached)
             {
                 int limit = p.CurrentLimit(_station.Grid);
-                int until = p.ModulesUntilNextExtra(_station.Grid.ModuleCount);
+                int until = p.ModulesUntilNextExtra(SpaceStation.Simulation.StationProgression.CountGradeModules(_station.Grid));
                 return until > 0
                     ? $"{p.Current.DisplayName} 등급 최대 {limit}개 (모듈 {until}개 더 지으면 +1)"
                     : $"{p.Current.DisplayName} 등급 최대 {limit}개 (등급을 올리면 증가)";

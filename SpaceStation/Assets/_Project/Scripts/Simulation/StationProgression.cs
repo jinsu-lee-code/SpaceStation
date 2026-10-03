@@ -127,7 +127,19 @@ namespace SpaceStation.Simulation
             return limit;
         }
 
-        public int CurrentLimit(StationGrid grid) => LimitFor(grid.ModuleCount);
+        public int CurrentLimit(StationGrid grid) => LimitFor(CountGradeModules(grid));
+
+        /// <summary>8-6: 등급 조건·도킹 추가 한도에 쓰는 모듈 수 (<see cref="ModuleData.CountsTowardGrade"/>가 false인 장갑 격벽 등 제외).</summary>
+        public static int CountGradeModules(StationGrid grid)
+        {
+            int count = 0;
+            foreach (var m in grid.Modules)
+            {
+                if (m.Data == null || m.Data.CountsTowardGrade)
+                    count++;
+            }
+            return count;
+        }
 
         /// <summary>최고 등급에서 다음 +1까지 남은 모듈 수 (확장 없음·최고 등급 아님이면 -1).</summary>
         public int ModulesUntilNextExtra(int moduleCount)

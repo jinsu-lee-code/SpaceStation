@@ -77,6 +77,8 @@ namespace SpaceStation.Data
         [SerializeField, Range(0f, 1f)] private float _decoyChance;
         [Tooltip("장갑: 파손돼도 산소 누출·이웃 확산이 없고, 방치해도 파괴되지 않음 (파손 중에는 운석 대상에서 빠짐)")]
         [SerializeField] private bool _armored;
+        [Tooltip("8-6: 등급 조건·채굴 도킹 추가 한도의 '모듈 수'에 들어가는지 (장갑 격벽처럼 싼 구조물은 false)")]
+        [SerializeField] private bool _countsTowardGrade = true;
         [Tooltip("수리 시간 배율 (0.5 = 절반)")]
         [SerializeField, Min(0.05f)] private float _repairTimeMultiplier = 1f;
 
@@ -184,6 +186,7 @@ namespace SpaceStation.Data
         public bool OnDemandPower => _onDemandPower;
         public float MeteorWeightMultiplier => Mathf.Max(0f, _meteorWeightMultiplier);
         public bool Armored => _armored;
+        public bool CountsTowardGrade => _countsTowardGrade;
         public int DecoyRadius => _decoyChance > 0f ? _decoyRadius : 0;
         public float DecoyChance => _decoyChance;
         public bool IsDecoy => DecoyRadius > 0;

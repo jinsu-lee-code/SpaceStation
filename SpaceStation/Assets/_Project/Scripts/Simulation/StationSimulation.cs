@@ -673,7 +673,7 @@ namespace SpaceStation.Simulation
             if (Progression == null || Session == null)
                 return; // 생성자 도중
             int population = Resources.Population;
-            Progression.Evaluate(population, Grid.ModuleCount);
+            Progression.Evaluate(population, StationProgression.CountGradeModules(Grid)); // 8-6: 장갑 격벽 제외
             Session.ObservePopulation(population);
             ProgressionEvaluated?.Invoke();
         }

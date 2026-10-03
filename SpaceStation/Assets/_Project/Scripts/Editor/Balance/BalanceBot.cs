@@ -65,6 +65,7 @@ namespace SpaceStation.Editor.Balance
         public BalanceBot(StationSimulation sim, IReadOnlyList<ModuleData> buildable)
         {
             _sim = sim;
+            _buildable = buildable;
             foreach (var m in buildable)
             {
                 if (m == null) continue;
@@ -229,12 +230,17 @@ namespace SpaceStation.Editor.Balance
                 return defense;
             if (_housing != null && r.Population >= r.HousingCapacity - 1)
                 return PickHousing(r);
+            // 금속이 차 있어도, 저장 한도가 해금된 가장 비싼 모듈을 살 만큼 되면 창고는 그만 (8-6: 90분에 창고 167개 → 한도만큼만)
             if (_storage != null && _sim.CheckBuildable(_storage) == PlacementResult.Valid
-                && r.GetStock(ResourceType.Metal) >= r.GetCapacity(ResourceType.Metal) * 0.95f)
+                && r.GetStock(ResourceType.Metal) >= r.GetCapacity(ResourceType.Metal) * 0.95f
+                && r.GetCapacity(ResourceType.Metal) < MaxUnlockedCost() + FusionMetalReserve)
                 return _storage;
+            // 금속이 넘치는데 할 일이 없으면 수용을 늘려 인구 성장 (넘치는 금속을 버리지 않게)
+            if (_housing != null && r.GetStock(ResourceType.Metal) >= r.GetCapacity(ResourceType.Metal) * 0.95f)
+                return PickHousing(r);
             // 다음 등급 모듈 수가 모자라면 수용 인구도 늘리는 거주 모듈로 채움
             var next = _sim.Progression.Next;
-            if (next != null && _sim.Grid.ModuleCount < next.MinModules)
+            if (next != null && StationProgression.CountGradeModules(_sim.Grid) < next.MinModules)
                 return _housing;
             return null;
         }
@@ -256,6 +262,18 @@ namespace SpaceStation.Editor.Balance
                 if (m.Data == data)
                     n++;
             return n;
+        }
+
+        private readonly IReadOnlyList<ModuleData> _buildable;
+
+        /// <summary>지금 지을 수 있는(해금된) 모듈 중 가장 비싼 금속 비용.</summary>
+        private float MaxUnlockedCost()
+        {
+            float max = 0f;
+            foreach (var m in _buildable)
+                if (m != null && _sim.Progression.IsUnlocked(m))
+                    max = Mathf.Max(max, Cost(m));
+            return max;
         }
 
         private int LabsWanted() => _sim.Progression.GradeIndex >= 2 ? 2 : _sim.Progression.GradeIndex >= 1 ? 1 : 0;
