@@ -113,7 +113,7 @@ namespace SpaceStation.Simulation
         private static DamageState ToState(DamageInfo info, int module) => new DamageState
         {
             Module = module,
-            TimeUntilDestroyed = info.TimeUntilDestroyed,
+            TimeUntilDestroyed = info.NeverDestroyed ? -1f : info.TimeUntilDestroyed, // 8-5 장갑: 음수 = 파괴 없음
             Repairing = info.IsRepairing,
             RepairRemaining = info.RepairRemaining,
             TimeUntilSpread = float.IsPositiveInfinity(info.TimeUntilSpread) ? -1f : info.TimeUntilSpread,

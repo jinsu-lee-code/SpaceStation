@@ -68,6 +68,14 @@ namespace SpaceStation.Data
         [Tooltip("8-1: 파손 확산 시간 배율 (1 = 기본 60초, 0.5 = 2배 빨리 번짐 — 핵융합로)")]
         [SerializeField, Min(0.05f)] private float _spreadTimeMultiplier = 1f;
 
+        [Header("Armor (8-5 장갑 격벽)")]
+        [Tooltip("운석 피격 가중치 배율 (노출 면 가중치에 곱함, 3 = 같은 노출의 모듈보다 3배 잘 맞음 → 미끼)")]
+        [SerializeField, Min(0f)] private float _meteorWeightMultiplier = 1f;
+        [Tooltip("장갑: 파손돼도 산소 누출·이웃 확산이 없고, 방치해도 파괴되지 않음 (파손 중에는 운석 대상에서 빠짐)")]
+        [SerializeField] private bool _armored;
+        [Tooltip("수리 시간 배율 (0.5 = 절반)")]
+        [SerializeField, Min(0.05f)] private float _repairTimeMultiplier = 1f;
+
         [Header("Cargo (8-5 화물 터미널)")]
         [Tooltip("화물선 도착 간격(초, 가동률만큼 느려짐). 0이면 화물 터미널 아님")]
         [SerializeField, Min(0f)] private float _cargoInterval;
@@ -170,6 +178,9 @@ namespace SpaceStation.Data
         public float BatteryCapacity => _batteryCapacity;
         public float BatteryRate => _batteryRate;
         public bool OnDemandPower => _onDemandPower;
+        public float MeteorWeightMultiplier => Mathf.Max(0f, _meteorWeightMultiplier);
+        public bool Armored => _armored;
+        public float RepairTimeMultiplier => _repairTimeMultiplier > 0f ? _repairTimeMultiplier : 1f;
         public float CargoInterval => _cargoFraction > 0f ? _cargoInterval : 0f;
         public float CargoFraction => _cargoFraction;
         public bool IsCargoTerminal => CargoInterval > 0f;

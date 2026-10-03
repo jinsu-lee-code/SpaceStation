@@ -10,15 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cb58bbe16188d524dbc82c9b3c050e29, type: 3}
-  m_Name: MD_Recreation
+  m_Name: MD_ArmorBulkhead
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ModuleData
-  _displayName: "\uD734\uAC8C\uC2E4"
-  _category: 1
+  _displayName: "\uC7A5\uAC11 \uACA9\uBCBD"
+  _category: 3
   _cellOffsets:
   - {x: 0, y: 0, z: 0}
-  - {x: 1, y: 0, z: 0}
-  _prefab: {fileID: 3274071869459268426, guid: bdd222fd48befb140ad5d9d8cbec46c2, type: 3}
-  _icon: {fileID: -6375587354579328012, guid: 106372d35ade70648b43aea7d65845f0, type: 3}
+  _prefab: {fileID: 7987136338350635382, guid: 50b2c631cf2cec442a45b7a6b571029e, type: 3}
+  _icon: {fileID: -6585415276724045637, guid: 68bb5d5037330ff46b637c8540757d0d, type: 3}
   _removable: 1
   _terminalOnly: 0
   _dockFront: {x: 0, y: 0, z: 1}
@@ -26,42 +25,28 @@ MonoBehaviour:
   _upperSidesNeedSupport: 0
   _faceDepths:
   - Cell: {x: 0, y: 0, z: 0}
-    Direction: {x: -1, y: 0, z: 0}
-    Depth: 0.45519534
-  - Cell: {x: 0, y: 0, z: 0}
-    Direction: {x: 0, y: 1, z: 0}
-    Depth: 0.34703833
-  - Cell: {x: 0, y: 0, z: 0}
-    Direction: {x: 0, y: -1, z: 0}
-    Depth: 0.34203076
-  - Cell: {x: 0, y: 0, z: 0}
-    Direction: {x: 0, y: 0, z: 1}
-    Depth: 0.35703832
-  - Cell: {x: 0, y: 0, z: 0}
-    Direction: {x: 0, y: 0, z: -1}
-    Depth: 0.35703832
-  - Cell: {x: 1, y: 0, z: 0}
     Direction: {x: 1, y: 0, z: 0}
-    Depth: 0.45519537
-  - Cell: {x: 1, y: 0, z: 0}
+    Depth: 0.44019532
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: 0.44019532
+  - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 1, z: 0}
-    Depth: 0.34703833
-  - Cell: {x: 1, y: 0, z: 0}
+    Depth: 0.3951953
+  - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: -1, z: 0}
-    Depth: 0.34203076
-  - Cell: {x: 1, y: 0, z: 0}
+    Depth: 0.41019532
+  - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 0, z: 1}
-    Depth: 0.35703832
-  - Cell: {x: 1, y: 0, z: 0}
+    Depth: 0.44019532
+  - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 0, z: -1}
-    Depth: 0.35703832
+    Depth: 0.44019532
   _buildCost:
   - Type: 4
-    Amount: 100
+    Amount: 25
   _production: []
-  _consumption:
-  - Type: 0
-    Amount: 3
+  _consumption: []
   _housingCapacity: 0
   _storageBonus: 0
   _solarPowered: 0
@@ -72,9 +57,9 @@ MonoBehaviour:
   _repairSlots: 0
   _researchSlots: 0
   _spreadTimeMultiplier: 1
-  _meteorWeightMultiplier: 1
-  _armored: 0
-  _repairTimeMultiplier: 1
+  _meteorWeightMultiplier: 3
+  _armored: 1
+  _repairTimeMultiplier: 0.5
   _cargoInterval: 0
   _cargoFraction: 0
   _shieldRadius: 0
@@ -85,6 +70,6 @@ MonoBehaviour:
   _controlSpreadMultiplier: 1
   _controlDestroyMultiplier: 1
   _growthIntervalMultiplier: 1
-  _serviceNeed: 2
-  _serviceRadius: 3
-  _serviceCapacity: 15
+  _serviceNeed: 0
+  _serviceRadius: 0
+  _serviceCapacity: 0

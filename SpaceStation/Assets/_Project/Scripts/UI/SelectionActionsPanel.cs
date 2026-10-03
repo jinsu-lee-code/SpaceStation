@@ -272,6 +272,9 @@ namespace SpaceStation.UI
             {
                 state = dmg.IsRepairing
                     ? $"<color=#7FD8FF>수리 중 {Mathf.CeilToInt(dmg.RepairRemaining)}초</color>"
+                    : dmg.NeverDestroyed // 8-5 장갑 격벽
+                    ? (dmg.IsQueued ? $"<color={HudText.Yellow}>수리 대기 {damage.GetQueuePosition(module)}번째</color> · " : "")
+                      + $"<color={HudText.Orange}>장갑 파손</color> <color={HudText.Muted}>(파괴·누출·확산 없음, 고칠 때까지 미끼 효과 없음)</color>"
                     : (dmg.IsQueued
                         ? $"<color={HudText.Yellow}>수리 대기 {damage.GetQueuePosition(module)}번째</color> · <color={HudText.Red}>{Mathf.CeilToInt(dmg.TimeUntilDestroyed)}초 후 파괴</color>"
                         : $"<color={HudText.Red}>파손: {Mathf.CeilToInt(dmg.TimeUntilDestroyed)}초 후 파괴</color>")

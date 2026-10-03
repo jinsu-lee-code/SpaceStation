@@ -33,6 +33,8 @@ namespace SpaceStation.Editor.Balance
         private const float FuelCellWaterMargin = 1f; // 물 순증가가 이 이상일 때만 (주민 몫 보호)
         private readonly ModuleData _cargo;    // 8-5 화물 터미널
         private const int CargoMax = 2;
+        private readonly ModuleData _armor;    // 8-5 장갑 격벽 (운석 미끼)
+        private const int ModulesPerArmor = 20;
         private const float RingMetalSpare = 100f; // 두 번째 링부터: 건설비 + 이만큼 금속이 있을 때만
         /// <summary>Phase 6: 연구를 하는지 (비교 측정용, 기본 true).</summary>
         public static bool UseResearch = true;
@@ -83,6 +85,7 @@ namespace SpaceStation.Editor.Balance
                 if (_ring == null && m.HousingCapacity > 0 && m.GrowthIntervalMultiplier < 1f) _ring = m; // 8-4 (거주 겸 서비스)
                 if (_fuelCell == null && m.OnDemandPower && Produces(m, ResourceType.Power)) _fuelCell = m; // 8-5
                 if (_cargo == null && m.IsCargoTerminal) _cargo = m;
+                if (_armor == null && m.MeteorWeightMultiplier > 1f) _armor = m;
                 if (!m.SolarPowered && !m.OnDemandPower && m.Removable && Produces(m, ResourceType.Power)
                     && (_fusion == null || PowerOutput(m) > PowerOutput(_fusion)))
                     _fusion = m;
@@ -201,6 +204,11 @@ namespace SpaceStation.Editor.Balance
                 && r.GetNetRate(ResourceType.Water) >= FuelCellWaterMargin
                 && r.GetStock(ResourceType.Metal) >= Cost(_fuelCell) + (_housing != null ? Cost(_housing) : 0f))
                 return _fuelCell;
+            // 8-5: 장갑 격벽 — 모듈 20개당 1개, 금속 여유가 있을 때 (외곽 미끼)
+            if (_armor != null && (CountOf(_armor) + 1) * ModulesPerArmor <= _sim.Grid.ModuleCount
+                && _sim.CheckBuildable(_armor) == PlacementResult.Valid
+                && r.GetStock(ResourceType.Metal) >= Cost(_armor) + (_housing != null ? Cost(_housing) : 0f))
+                return _armor;
             // 8-5: 화물 터미널 2개까지 — 금속 여유가 있고 도킹 규칙을 만족하는 자리가 있을 때만
             if (_cargo != null && CountOf(_cargo) < CargoMax && _sim.CheckBuildable(_cargo) == PlacementResult.Valid
                 && r.GetStock(ResourceType.Metal) >= Cost(_cargo) + (_housing != null ? Cost(_housing) : 0f)
@@ -553,6 +561,8 @@ namespace SpaceStation.Editor.Balance
                                   + AdjacencyScore(data, origin, rot) + DefenseScore(data, origin, rot) + ServiceScore(data, origin, rot);
                     if (data == _refinery)
                         score += FreshDocksAt(origin, rot) * 40f;
+                    if (data == _armor) // 미끼는 바깥으로 튀어나올수록 (조밀 가산을 뒤집음)
+                        score -= Contacts(data, origin, rot) * contactWeight * 2f;
                     if (score > bestScore)
                     {
                         bestScore = score;

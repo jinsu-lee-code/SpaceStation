@@ -47,6 +47,9 @@ namespace SpaceStation.Editor
             public bool Terminal; // 도킹 규칙 (뒷면 연결 + 앞 접근로 2칸)
             public float CargoInterval;
             public float CargoFraction;
+            public float MeteorWeight = 1f;
+            public bool Armored;
+            public float RepairTime = 1f;
         }
 
         private static Vector3Int[] Square3()
@@ -108,6 +111,13 @@ namespace SpaceStation.Editor
                 Key = "CargoTerminal", Name = "화물 터미널", Category = ModuleCategory.Industry, Cells = TwoCells,
                 Cost = 120f, Consumption = new[] { (ResourceType.Power, 4f) },
                 UnlockGrade = 2, AccentHex = "#7CD957", Terminal = true, CargoInterval = 180f, CargoFraction = 0.15f,
+            },
+            // 8-5 장갑 격벽: 운석 미끼 ×3, 파손돼도 누출·확산·파괴 없음, 수리 시간 절반, 전력 없음
+            new Def
+            {
+                Key = "ArmorBulkhead", Name = "장갑 격벽", Category = ModuleCategory.Defense,
+                Cost = 25f, UnlockGrade = 1, AccentHex = "#E8C547",
+                MeteorWeight = 3f, Armored = true, RepairTime = 0.5f,
             },
         };
 
@@ -175,6 +185,9 @@ namespace SpaceStation.Editor
             so.FindProperty("_approachLaneLength").intValue = 2;
             so.FindProperty("_cargoInterval").floatValue = def.CargoInterval;
             so.FindProperty("_cargoFraction").floatValue = def.CargoFraction;
+            so.FindProperty("_meteorWeightMultiplier").floatValue = def.MeteorWeight;
+            so.FindProperty("_armored").boolValue = def.Armored;
+            so.FindProperty("_repairTimeMultiplier").floatValue = def.RepairTime;
             so.FindProperty("_upperSidesNeedSupport").boolValue = false;
             SetAmounts(so.FindProperty("_buildCost"), (ResourceType.Metal, def.Cost));
             SetAmounts(so.FindProperty("_production"), def.Production);

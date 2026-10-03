@@ -25,6 +25,8 @@ namespace SpaceStation.Simulation
         public bool SpreadPending => !HasSpread && !IsRepairing && !(IsQueued && _queuePausesSpread) && !float.IsPositiveInfinity(TimeUntilSpread);
         /// <summary>8-3 지금 적용 중인 손상 통제 배율 (1 = 없음). 남은 시간은 이 배율이 반영된 실제 초.</summary>
         public DamageControlEffect Control { get; internal set; } = DamageControlEffect.None;
+        /// <summary>방치해도 파괴되지 않음 (8-5 장갑 격벽).</summary>
+        public bool NeverDestroyed => float.IsPositiveInfinity(TimeUntilDestroyed);
         public bool IsControlled => Control.DestroyMultiplier > 1.001f || Control.SpreadMultiplier > 1.001f;
         /// <summary>세이브 복원 직후: 저장된 시간에 이미 배율이 반영돼 있으므로 다음 갱신 때 배율만 받아들인다.</summary>
         internal bool AdoptControl;
@@ -157,7 +159,7 @@ namespace SpaceStation.Simulation
                 int leaking = 0;
                 foreach (var info in _damaged.Values)
                 {
-                    if (!info.IsRepairing)
+                    if (!info.IsRepairing && !(info.Module.Data != null && info.Module.Data.Armored))
                         leaking++;
                 }
                 return leaking * _config.DamagedOxygenLeakPerSecond;
@@ -182,7 +184,13 @@ namespace SpaceStation.Simulation
                 return false;
             // 8-1: 모듈별 확산 시간 배율 (핵융합로 0.5 = 2배 빠름)
             float spreadAfter = _config.SpreadAfterSeconds * (module.Data != null ? module.Data.SpreadTimeMultiplier : 1f);
-            var info = new DamageInfo(module, _config.DestroyAfterSeconds, spreadAfter, _config.QueuePausesSpread);
+            float destroyAfter = _config.DestroyAfterSeconds;
+            if (module.Data != null && module.Data.Armored) // 8-5 장갑 격벽: 확산·파괴 없음 (누출은 OxygenLeakPerSecond에서 제외)
+            {
+                spreadAfter = 0f;
+                destroyAfter = float.PositiveInfinity;
+            }
+            var info = new DamageInfo(module, destroyAfter, spreadAfter, _config.QueuePausesSpread);
             ApplyControl(info);
             _damaged.Add(module, info);
             Damaged?.Invoke(info);
@@ -199,7 +207,8 @@ namespace SpaceStation.Simulation
         {
             if (module == null || _damaged.ContainsKey(module))
                 return;
-            var info = new DamageInfo(module, Math.Max(0.01f, timeUntilDestroyed), 0f, _config.QueuePausesSpread)
+            // 음수 = 파괴 없음 (8-5 장갑)
+            var info = new DamageInfo(module, timeUntilDestroyed < 0f ? float.PositiveInfinity : Math.Max(0.01f, timeUntilDestroyed), 0f, _config.QueuePausesSpread)
             {
                 IsRepairing = repairing,
                 RepairRemaining = repairing ? Math.Max(0.01f, repairRemaining) : 0f,
@@ -274,7 +283,7 @@ namespace SpaceStation.Simulation
         {
             info.IsQueued = false;
             info.IsRepairing = true;
-            info.RepairRemaining = Effects.RepairDuration;
+            info.RepairRemaining = Effects.RepairDuration * (info.Module.Data != null ? info.Module.Data.RepairTimeMultiplier : 1f); // 8-5 장갑 격벽 절반
             RepairStarted?.Invoke(info);
         }
 
@@ -405,7 +414,7 @@ namespace SpaceStation.Simulation
             float total = 0f;
             foreach (var m in results)
             {
-                float w = GetMeteorWeight(CountExposedFaces(grid, m));
+                float w = ModuleMeteorWeight(grid, m);
                 _weights.Add(w);
                 total += w;
             }
@@ -438,19 +447,23 @@ namespace SpaceStation.Simulation
         {
             float total = 0f;
             foreach (var m in candidates)
-                total += GetMeteorWeight(CountExposedFaces(grid, m));
+                total += ModuleMeteorWeight(grid, m);
             if (total <= 0f)
                 return null;
             float roll = random01() * total;
             foreach (var m in candidates)
             {
-                float w = GetMeteorWeight(CountExposedFaces(grid, m));
+                float w = ModuleMeteorWeight(grid, m);
                 if (roll < w)
                     return m;
                 roll -= w;
             }
             return candidates[candidates.Count - 1];
         }
+
+        /// <summary>모듈 피격 가중치 = 노출 면 가중치 × 모듈 배율 (8-5 장갑 격벽 ×3 = 미끼).</summary>
+        public float ModuleMeteorWeight(StationGrid grid, ModuleInstance module)
+            => GetMeteorWeight(CountExposedFaces(grid, module)) * (module.Data != null ? module.Data.MeteorWeightMultiplier : 1f);
 
         /// <summary>피격 가중치 = 기울기 × (노출 면 − 1) + 1 (BALANCE 13번). 노출 1면 = 1.</summary>
         public float GetMeteorWeight(int exposedFaces)

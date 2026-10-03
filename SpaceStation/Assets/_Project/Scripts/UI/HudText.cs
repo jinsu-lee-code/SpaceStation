@@ -124,6 +124,12 @@ namespace SpaceStation.UI
                   .Append($"% <color={Muted}>(중첩 없음, 파손·비활성·전력 부족·노후 시 감소)</color>\n");
             if (data.IsDefense)
                 sb.Append($"<color={Muted}>파손·비활성·전력 부족·노후 시 효과 감소</color>\n");
+            if (data.MeteorWeightMultiplier > 1.001f)
+                sb.Append("운석을 ").Append(data.MeteorWeightMultiplier.ToString("0.#")).Append($"배 잘 끌어당김 <color={Muted}>(외곽에 두면 다른 모듈 대신 맞음, 파손 중에는 효과 없음)</color>\n");
+            if (data.Armored)
+                sb.Append($"<color={Muted}>장갑: 파손돼도 산소 누출·이웃 확산 없음, 방치해도 파괴되지 않음</color>\n");
+            if (data.RepairTimeMultiplier < 0.999f)
+                sb.Append("수리 시간 ×").Append(data.RepairTimeMultiplier.ToString("0.##")).Append('\n');
             if (data.SpreadTimeMultiplier < 0.999f)
                 sb.Append($"<color={Orange}>파손되면 이웃으로 {1f / data.SpreadTimeMultiplier:0.#}배 빨리 번짐</color>\n");
             if (data.RepairSlots > 0)

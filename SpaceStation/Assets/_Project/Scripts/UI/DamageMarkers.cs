@@ -90,7 +90,8 @@ namespace SpaceStation.UI
             marker.Rect.position = new Vector3(screen.x, screen.y, 0f);
 
             // 초 단위가 바뀔 때만 문자열 갱신 (수리 중은 음수 키로 구분)
-            int seconds = Mathf.CeilToInt(info.IsRepairing ? info.RepairRemaining : info.TimeUntilDestroyed);
+            // 8-5 장갑: 파괴 시간 없음 → 0초로 두고 아래에서 "장갑" 표시
+            int seconds = info.IsRepairing ? Mathf.CeilToInt(info.RepairRemaining) : info.NeverDestroyed ? 0 : Mathf.CeilToInt(info.TimeUntilDestroyed);
             int position = info.IsQueued ? _resources.Damage.GetQueuePosition(info.Module) : 0; // 4-6 대기 순번
             int spread = info.SpreadPending ? Mathf.CeilToInt(info.TimeUntilSpread) : 0; // 4-7 확산까지
             int key = info.IsRepairing ? -1 - seconds : seconds + position * 100000 + spread * 1000;
@@ -102,6 +103,8 @@ namespace SpaceStation.UI
                 : $"\n<size=85%><color={HudText.Muted}>확산 {spread}초</color></size>";
             marker.Text.SetText(info.IsRepairing
                 ? $"<color=#7FD8FF>수리 {seconds}초</color>"
+                : info.NeverDestroyed
+                    ? (position > 0 ? $"<color={HudText.Yellow}>대기 {position}</color> " : "") + $"<color={HudText.Muted}>장갑 파손</color>"
                 : position > 0
                     ? $"<color={HudText.Yellow}>대기 {position}</color> <color={HudText.Red}>{seconds}초</color>{spreadText}"
                     : $"<color={HudText.Red}><b>!</b> {seconds}초</color>{spreadText}");

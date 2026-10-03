@@ -219,6 +219,47 @@ namespace SpaceStation.Tests
             Assert.AreEqual(60f, ni.TimeUntilSpread, Eps);
         }
 
+        // ---------------- 8-5 장갑 격벽 ----------------
+
+        private ModuleData Armor()
+        {
+            var armor = ScriptableObject.CreateInstance<ModuleData>();
+            _created.Add(armor);
+            var so = new SerializedObject(armor);
+            so.FindProperty("_meteorWeightMultiplier").floatValue = 3f;
+            so.FindProperty("_armored").boolValue = true;
+            so.FindProperty("_repairTimeMultiplier").floatValue = 0.5f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return armor;
+        }
+
+        [Test]
+        public void Armored_NoLeak_NoSpread_NeverDestroyed_HalfRepair()
+        {
+            EnableSpread(60f);
+            Assert.IsTrue(_grid.TryPlace(Armor(), new Vector3Int(5, 0, 0), 0, out var wall));
+            ModuleInstance destroyed = null, spread = null;
+            _damage.Destroyed += d => destroyed = d;
+            _damage.SpreadDue += s => spread = s;
+            _damage.Damage(wall);
+            Assert.AreEqual(0f, _damage.OxygenLeakPerSecond, Eps, "누출 없음");
+            Ticks(500);
+            Assert.IsNull(destroyed, "방치해도 파괴 없음");
+            Assert.IsNull(spread, "확산 없음");
+            _damage.TryGetInfo(wall, out var info);
+            Assert.IsTrue(info.NeverDestroyed);
+            _damage.StartRepair(wall);
+            Assert.AreEqual(5f, info.RepairRemaining, Eps, "수리 10초의 절반");
+        }
+
+        [Test]
+        public void Armored_MeteorWeight_TripledForSameExposure()
+        {
+            Assert.IsTrue(_grid.TryPlace(Armor(), new Vector3Int(5, 0, 0), 0, out var wall));
+            var normal = Place(-5);
+            Assert.AreEqual(_damage.ModuleMeteorWeight(_grid, normal) * 3f, _damage.ModuleMeteorWeight(_grid, wall), Eps);
+        }
+
         // ---------------- 8-3 손상 통제 ----------------
 
         [Test]
