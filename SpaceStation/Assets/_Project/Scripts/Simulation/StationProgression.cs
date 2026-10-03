@@ -15,14 +15,22 @@ namespace SpaceStation.Simulation
 
         /// <summary>(이전 등급 인덱스, 새 등급 인덱스).</summary>
         public event Action<int, int> GradeChanged;
-        /// <summary>최고 등급에 처음 도달했을 때 한 번.</summary>
-        public event Action FinalGradeReached;
+        /// <summary>승리 등급(대형)에 처음 도달했을 때 한 번 → 결과 화면.</summary>
+        public event Action VictoryReached;
+        /// <summary>8-6: 최고 등급(초대형, 승리 등급 위의 추가 목표)에 처음 도달했을 때 한 번.</summary>
+        public event Action TopGradeReached;
 
         public int GradeIndex { get; private set; }
         public StationGrade Current => _config.Grades[GradeIndex];
         public StationGrade Next => GradeIndex + 1 < _config.Grades.Count ? _config.Grades[GradeIndex + 1] : null;
+        /// <summary>마지막(최고) 등급인지.</summary>
         public bool IsFinalGrade => GradeIndex == _config.Grades.Count - 1;
-        public bool HasReachedFinalGrade { get; private set; }
+        public int VictoryGradeIndex => _config.VictoryGradeIndex;
+        /// <summary>승리 등급 이상인지 (도킹 추가 한도 적용).</summary>
+        public bool IsAtOrAboveVictory => GradeIndex >= VictoryGradeIndex;
+        public bool HasReachedVictory { get; private set; }
+        /// <summary>최고 등급에 한 번이라도 도달 (세이브 목록 '초대형 달성' 표시).</summary>
+        public bool HasReachedTopGrade { get; private set; }
         public int GradeCount => _config.Grades.Count;
         public ModuleData LimitedModule => _config.LimitedModule;
 
@@ -35,10 +43,11 @@ namespace SpaceStation.Simulation
 
         public StationGrade GetGrade(int index) => _config.Grades[index];
 
-        /// <summary>세이브 복원: 최고 등급 도달 기록 (결과 화면이 다시 뜨지 않게, 이벤트 없음).</summary>
-        internal void RestoreReachedFinal(bool reached)
+        /// <summary>세이브 복원: 승리·최고 등급 도달 기록 (결과 화면이 다시 뜨지 않게, 이벤트 없음).</summary>
+        internal void RestoreReached(bool victory, bool topGrade)
         {
-            HasReachedFinalGrade = reached;
+            HasReachedVictory = victory;
+            HasReachedTopGrade = topGrade;
         }
 
         /// <summary>세이브·전시용: 이 모듈 정의를 이름으로 찾는다 (등급 해금 목록 기준). 없으면 null.</summary>
@@ -75,10 +84,15 @@ namespace SpaceStation.Simulation
             GradeIndex = next;
             GradeChanged?.Invoke(previous, next);
 
-            if (IsFinalGrade && !HasReachedFinalGrade)
+            if (IsAtOrAboveVictory && !HasReachedVictory)
             {
-                HasReachedFinalGrade = true;
-                FinalGradeReached?.Invoke();
+                HasReachedVictory = true;
+                VictoryReached?.Invoke();
+            }
+            if (IsFinalGrade && GradeIndex > VictoryGradeIndex && !HasReachedTopGrade)
+            {
+                HasReachedTopGrade = true;
+                TopGradeReached?.Invoke();
             }
         }
 
@@ -116,13 +130,13 @@ namespace SpaceStation.Simulation
         }
 
         /// <summary>
-        /// 제한 모듈(채굴 도킹) 최대 수. 최고 등급에서는 그 등급 최소 모듈 수를 넘는 모듈 N개마다 +1 (8-0, 후반 금속 수급).
+        /// 제한 모듈(채굴 도킹) 최대 수. 승리 등급(대형) 이상에서는 현재 등급 최소 모듈 수를 넘는 모듈 N개마다 +1 (8-0, 후반 금속 수급).
         /// </summary>
         public int LimitFor(int moduleCount)
         {
             int limit = Current.MaxLimitedModules;
             int every = _config.ExtraLimitEveryModules;
-            if (IsFinalGrade && every > 0)
+            if (IsAtOrAboveVictory && every > 0)
                 limit += Math.Max(0, moduleCount - Current.MinModules) / every;
             return limit;
         }
@@ -141,11 +155,11 @@ namespace SpaceStation.Simulation
             return count;
         }
 
-        /// <summary>최고 등급에서 다음 +1까지 남은 모듈 수 (확장 없음·최고 등급 아님이면 -1).</summary>
+        /// <summary>승리 등급 이상에서 다음 +1까지 남은 모듈 수 (확장 없음·승리 등급 미만이면 -1).</summary>
         public int ModulesUntilNextExtra(int moduleCount)
         {
             int every = _config.ExtraLimitEveryModules;
-            if (!IsFinalGrade || every <= 0)
+            if (!IsAtOrAboveVictory || every <= 0)
                 return -1;
             int over = Math.Max(0, moduleCount - Current.MinModules);
             return every - over % every;

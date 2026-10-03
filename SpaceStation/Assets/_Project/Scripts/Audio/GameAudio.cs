@@ -96,7 +96,7 @@ namespace SpaceStation.Audio
                     _sim.Events.EventStarted += HandleEventStarted;
                     _sim.Events.EventEnded += HandleEventEnded;
                     _sim.Progression.GradeChanged += HandleGradeChanged;
-                    _sim.Progression.FinalGradeReached += HandleVictory;
+                    _sim.Progression.VictoryReached += HandleVictory;
                     _sim.Session.GameOver += HandleGameOver;
                     _sim.Resources.DepletionChanged += HandleDepletion;
                 }
@@ -111,7 +111,7 @@ namespace SpaceStation.Audio
                     _sim.Events.EventStarted -= HandleEventStarted;
                     _sim.Events.EventEnded -= HandleEventEnded;
                     _sim.Progression.GradeChanged -= HandleGradeChanged;
-                    _sim.Progression.FinalGradeReached -= HandleVictory;
+                    _sim.Progression.VictoryReached -= HandleVictory;
                     _sim.Session.GameOver -= HandleGameOver;
                     _sim.Resources.DepletionChanged -= HandleDepletion;
                 }
@@ -403,8 +403,8 @@ namespace SpaceStation.Audio
             var p = _sim.Progression;
             if (current > previous)
             {
-                if (p.IsFinalGrade && !p.HasReachedFinalGrade)
-                    return; // 곧 FinalGradeReached → 완성 소리
+                if (p.IsAtOrAboveVictory && !p.HasReachedVictory)
+                    return; // 곧 VictoryReached → 완성 소리
                 _audio.Play(_lib.GradeUp);
             }
             else

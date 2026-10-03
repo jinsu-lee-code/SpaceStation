@@ -213,11 +213,11 @@ namespace SpaceStation.Editor.Balance
             // 8-5: 화물 터미널 2개까지 — 금속 여유가 있고 도킹 규칙을 만족하는 자리가 있을 때만
             if (_cargo != null && CountOf(_cargo) < CargoMax && _sim.CheckBuildable(_cargo) == PlacementResult.Valid
                 && r.GetStock(ResourceType.Metal) >= Cost(_cargo) + (_housing != null ? Cost(_housing) : 0f)
-                && TryFindPlacement(_cargo, out _, out _))
+                && CachedPlacement(_cargo, out _, out _))
                 return _cargo;
             // 8-2: 도킹 한도에 닿았으면, 증폭 안 된 도킹에 붙일 자리가 있는 동안 제련소 (금속 수입을 더 늘리는 유일한 방법 → 저축해서 산다)
             if (_refinery != null && _sim.CheckBuildable(_refinery) == PlacementResult.Valid
-                && TryFindPlacement(_refinery, out var refOrigin, out int refRot) && FreshDocksAt(refOrigin, refRot) >= RefineryMinDocks)
+                && CachedPlacement(_refinery, out var refOrigin, out int refRot) && FreshDocksAt(refOrigin, refRot) >= RefineryMinDocks)
                 return _refinery;
             // Phase 6: 소형부터 연구소 1개, 중형부터 2개
             if (UseResearch && _lab != null && _sim.Research.Categories.Count > 0 && CountLabs() < LabsWanted()
@@ -250,10 +250,43 @@ namespace SpaceStation.Editor.Balance
         {
             if (_ring != null && _sim.CheckBuildable(_ring) == PlacementResult.Valid
                 && (CountOf(_ring) == 0 || r.GetStock(ResourceType.Metal) >= Cost(_ring) + RingMetalSpare)
-                && TryFindPlacement(_ring, out _, out _)) // 3×3 자리가 없으면 거주 모듈로 (저축하다 멈추지 않게)
+                && RingFits()) // 3×3 자리가 없으면 거주 모듈로 (저축하다 멈추지 않게)
                 return _ring;
             return _housing;
         }
+
+        // 3×3 자리 탐색은 비싸므로 그리드가 바뀔 때만 다시 (8-6: 90분 측정이 매 결정마다 탐색해 매우 느려짐)
+        private int _ringCheckedVersion = -1;
+        private bool _ringFits;
+
+        private bool RingFits()
+        {
+            int version = _sim.Grid.ModuleCount;
+            if (version != _ringCheckedVersion)
+            {
+                _ringCheckedVersion = version;
+                _ringFits = TryFindPlacement(_ring, out _, out _);
+            }
+            return _ringFits;
+        }
+
+        /// <summary>배치 탐색 결과를 모듈 수가 바뀔 때까지 재사용 (규칙 판단용, 실제 배치는 매번 새로 탐색).</summary>
+        private bool CachedPlacement(ModuleData data, out Vector3Int origin, out int rotation)
+        {
+            int version = _sim.Grid.ModuleCount;
+            if (!_placementCache.TryGetValue(data, out var c) || c.version != version)
+            {
+                bool ok = TryFindPlacement(data, out var o, out int rot);
+                c = (version, ok, o, rot);
+                _placementCache[data] = c;
+            }
+            origin = c.origin;
+            rotation = c.rotation;
+            return c.ok;
+        }
+
+        private readonly Dictionary<ModuleData, (int version, bool ok, Vector3Int origin, int rotation)> _placementCache
+            = new Dictionary<ModuleData, (int, bool, Vector3Int, int)>();
 
         private int CountOf(ModuleData data)
         {

@@ -143,7 +143,7 @@ namespace SpaceStation.UI
                 return;
             var p = _progression.Progression;
             int limit = p.CurrentLimit(_station.Grid);
-            if (_shownLimit >= 0 && limit > _shownLimit && p.IsFinalGrade && p.LimitedModule != null)
+            if (_shownLimit >= 0 && limit > _shownLimit && p.IsAtOrAboveVictory && p.LimitedModule != null)
                 ShowMessage($"<color={HudTheme.GreenHex}>{p.LimitedModule.DisplayName} 최대 {limit}개로 증가 (모듈 {SpaceStation.Simulation.StationProgression.CountGradeModules(_station.Grid)}개)</color>");
             _shownLimit = limit;
         }
@@ -329,6 +329,8 @@ namespace SpaceStation.UI
             {
                 var sb = new System.Text.StringBuilder();
                 sb.Append($"<color=#7CFF9A><b>등급 상승: {grade.DisplayName}!</b>");
+                if (p.IsFinalGrade && current > p.VictoryGradeIndex && !p.HasReachedTopGrade)
+                    sb.Append("  <color=#FFD36A>★ 최고 등급 달성 (추가 목표)</color>"); // 8-6 초대형
                 // 이전 등급 초과 ~ 현재 등급까지의 해금 목록
                 for (int i = previous + 1; i <= current; i++)
                 {

@@ -44,7 +44,7 @@ namespace SpaceStation.Data
     }
 
     /// <summary>
-    /// 정거장 등급 목록 (낮은 등급부터). 첫 등급은 시작 등급, 마지막 등급 도달이 클리어.
+    /// 정거장 등급 목록 (낮은 등급부터). 첫 등급은 시작 등급, 승리 등급(<see cref="VictoryGradeIndex"/>) 도달이 클리어.
     /// 등급은 인구·모듈 수로 실시간 판정한다 (BALANCE 11번).
     /// </summary>
     [CreateAssetMenu(menuName = "SpaceStation/Station Grade Config", fileName = "StationGrades")]
@@ -53,12 +53,15 @@ namespace SpaceStation.Data
         [SerializeField] private List<StationGrade> _grades = new List<StationGrade>();
         [Tooltip("등급별 최대 설치 수가 적용되는 모듈 (채굴 도킹)")]
         [SerializeField] private ModuleData _limitedModule;
-        [Tooltip("8-0: 최고 등급에서 그 등급 최소 모듈 수를 넘는 모듈 N개마다 제한 모듈 최대 수 +1 (0 = 확장 없음)")]
+        [Tooltip("8-0: 승리 등급 이상에서 현재 등급 최소 모듈 수를 넘는 모듈 N개마다 제한 모듈 최대 수 +1 (0 = 확장 없음)")]
         [SerializeField, Min(0)] private int _extraLimitEveryModules;
+        [Tooltip("8-6: 처음 도달하면 결과 화면이 뜨는 등급 인덱스 (대형 = 3). 음수면 마지막 등급. 그 위 등급(초대형)은 추가 목표")]
+        [SerializeField] private int _victoryGradeIndex = -1;
 
         public IReadOnlyList<StationGrade> Grades => _grades;
         public ModuleData LimitedModule => _limitedModule;
         public int ExtraLimitEveryModules => _extraLimitEveryModules;
+        public int VictoryGradeIndex => _victoryGradeIndex < 0 || _victoryGradeIndex >= _grades.Count ? _grades.Count - 1 : _victoryGradeIndex;
 
         /// <summary>난이도 덮어쓰기 — 복사본에만 호출. 음수 항목은 유지.</summary>
         internal void ApplyEventIntervals(IReadOnlyList<float> multipliers)

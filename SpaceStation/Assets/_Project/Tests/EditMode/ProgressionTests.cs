@@ -78,12 +78,42 @@ namespace SpaceStation.Tests
         public void FinalGrade_FiresOnlyOnce()
         {
             int fired = 0;
-            _progression.FinalGradeReached += () => fired++;
+            _progression.VictoryReached += () => fired++;
             _progression.Evaluate(60, 40);
             _progression.Evaluate(59, 40);
             _progression.Evaluate(60, 40);
             Assert.AreEqual(1, fired);
-            Assert.IsTrue(_progression.HasReachedFinalGrade);
+            Assert.IsTrue(_progression.HasReachedVictory);
+        }
+
+        [Test]
+        public void TopGrade_AboveVictory_ResultAtVictory_ExtraDocksFromVictory()
+        {
+            // 8-6: 초대형(5번째) 추가, 결과 화면은 대형(인덱스 3)
+            var so = new SerializedObject(_config);
+            var grades = so.FindProperty("_grades");
+            grades.arraySize = 5;
+            SetGrade(grades.GetArrayElementAtIndex(4), "초대형", 120, 80, 8);
+            so.FindProperty("_victoryGradeIndex").intValue = 3;
+            so.FindProperty("_extraLimitEveryModules").intValue = 30;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var progression = new StationProgression(_config);
+            int victory = 0, top = 0;
+            progression.VictoryReached += () => victory++;
+            progression.TopGradeReached += () => top++;
+
+            progression.Evaluate(60, 40);
+            Assert.AreEqual(1, victory, "대형에서 결과 화면");
+            Assert.AreEqual(0, top);
+            Assert.IsFalse(progression.IsFinalGrade);
+            Assert.AreEqual(7, progression.LimitFor(70), "추가 한도는 대형부터 (6 + 30개당 1)");
+
+            progression.Evaluate(120, 80);
+            Assert.AreEqual(1, victory, "초대형에서 결과 화면 다시 없음");
+            Assert.AreEqual(1, top);
+            Assert.IsTrue(progression.HasReachedTopGrade);
+            Assert.AreEqual(8, progression.LimitFor(80));
+            Assert.AreEqual(9, progression.LimitFor(110));
         }
 
         [Test]

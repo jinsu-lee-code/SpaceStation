@@ -31,7 +31,7 @@ namespace SpaceStation.UI
 
         private void Start()
         {
-            _progression.Progression.FinalGradeReached += HandleVictory;
+            _progression.Progression.VictoryReached += HandleVictory;
             _progression.Session.GameOver += HandleGameOver;
             _primaryButton.onClick.AddListener(HandlePrimary);
             _secondaryButton.onClick.AddListener(HandleSecondary);
@@ -42,7 +42,7 @@ namespace SpaceStation.UI
         {
             if (_progression == null || _progression.Progression == null)
                 return;
-            _progression.Progression.FinalGradeReached -= HandleVictory;
+            _progression.Progression.VictoryReached -= HandleVictory;
             _progression.Session.GameOver -= HandleGameOver;
         }
 

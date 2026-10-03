@@ -35,7 +35,8 @@ namespace SpaceStation.Simulation
         public int PlannedMeteorHits;
         public List<int> PlannedMeteorTargets = new List<int>();
 
-        public bool ReachedFinalGrade;
+        public bool ReachedFinalGrade; // 승리 등급(대형) 도달 — 이름은 이전 세이브 호환용
+        public bool ReachedTopGrade;   // 8-6 최고 등급(초대형) 도달
         public SessionState Session = new SessionState();
         public float OxygenFailTimer;
         public float SatisfactionFailTimer;

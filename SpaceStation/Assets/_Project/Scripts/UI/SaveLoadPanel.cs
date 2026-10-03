@@ -274,7 +274,8 @@ namespace SpaceStation.UI
             var m = info.Meta;
             int t = Mathf.FloorToInt(m.PlaySeconds);
             string difficulty = string.IsNullOrEmpty(m.DifficultyName) ? "" : $" · 난이도 {m.DifficultyName}";
-            return $"{m.SavedAt:yyyy-MM-dd HH:mm}  ·  {m.GradeName}\n" +
+            string top = m.ReachedTopGrade ? $"  <color=#FFD36A>★ {m.TopGradeName} 달성</color>" : ""; // 8-6
+            return $"{m.SavedAt:yyyy-MM-dd HH:mm}  ·  {m.GradeName}{top}\n" +
                    $"<color=#AFC4D8>인구 {m.Population} · 모듈 {m.Modules} · 플레이 {t / 60}:{t % 60:00}{difficulty}</color>";
         }
 

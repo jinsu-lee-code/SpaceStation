@@ -117,6 +117,8 @@ namespace SpaceStation.Save
                 Population = _sim.Resources.Population,
                 Modules = _sim.Grid.ModuleCount,
                 PlaySeconds = _sim.ElapsedSeconds,
+                ReachedTopGrade = _sim.Progression.HasReachedTopGrade,
+                TopGradeName = _sim.Progression.GetGrade(_sim.Progression.GradeCount - 1).DisplayName,
             };
             if (_cameraController != null && _cameraController.Rig != null)
             {

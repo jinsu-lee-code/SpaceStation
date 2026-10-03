@@ -75,7 +75,8 @@ namespace SpaceStation.Simulation
                 if (index.TryGetValue(t, out int i))
                     s.PlannedMeteorTargets.Add(i);
 
-            s.ReachedFinalGrade = sim.Progression.HasReachedFinalGrade;
+            s.ReachedFinalGrade = sim.Progression.HasReachedVictory;
+            s.ReachedTopGrade = sim.Progression.HasReachedTopGrade;
             var session = sim.Session;
             s.Session = new SessionState
             {
@@ -234,7 +235,9 @@ namespace SpaceStation.Simulation
 
             // 8. 파생값 다시 계산 (시간은 흐르지 않음), 최고 등급 기록은 그 뒤에 덮어씀
             sim.Tick(0f);
-            sim.Progression.RestoreReachedFinal(s.ReachedFinalGrade || sim.Progression.IsFinalGrade);
+            var prog = sim.Progression;
+            prog.RestoreReached(s.ReachedFinalGrade || prog.IsAtOrAboveVictory,
+                s.ReachedTopGrade || (prog.IsFinalGrade && prog.GradeIndex > prog.VictoryGradeIndex));
             return missing;
         }
 

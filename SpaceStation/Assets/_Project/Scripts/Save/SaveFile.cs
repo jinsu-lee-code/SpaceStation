@@ -27,6 +27,9 @@ namespace SpaceStation.Save
         public int Population;
         public int Modules;
         public float PlaySeconds;
+        /// <summary>8-6: 최고 등급(초대형)에 한 번이라도 도달 → 세이브 목록에 '달성' 표시.</summary>
+        public bool ReachedTopGrade;
+        public string TopGradeName;
 
         public DateTime SavedAt => new DateTime(SavedAtTicks, DateTimeKind.Local);
     }
