@@ -58,6 +58,8 @@ namespace SpaceStation.Simulation
         public DurabilitySystem Durability { get; }
         public AdjacencySystem Adjacency { get; }
         public DefenseSystem Defense { get; }
+        /// <summary>8-5 화물 터미널 화물선.</summary>
+        public CargoSystem Cargo { get; } = new CargoSystem();
         public NeedsSystem Needs { get; }
         public FailureMonitor Failure { get; }
         /// <summary>Phase 6 연구 (진행·레벨). 효과는 <see cref="Effects"/>.</summary>
@@ -158,6 +160,7 @@ namespace SpaceStation.Simulation
             Resources.ExtraPowerDemand = Research.RunningPowerDemand; // 진행 중인 연구 (Phase 6)
             Resources.Tick(_activeModules, _productionMultipliers, _consumptionMultipliers, dt);
             Research.Tick(dt, Resources.PowerEfficiency); // 이번 틱 전력 효율만큼 진행
+            Cargo.Tick(Grid, Resources, ModuleStrength, dt); // 8-5 화물선 (가동률만큼)
             Automation.Tick(dt); // 자동화 연구: 기준값 미만 모듈 정비·재건축
             RefreshNeeds(); // 4-9: 이번 틱 전력 효율·인구 기준 요구 충족 → 만족도 상한
             Population.Tick(dt);
@@ -417,6 +420,7 @@ namespace SpaceStation.Simulation
         {
             Damage.Forget(module); // 파손 중 철거된 경우
             Durability.Forget(module);
+            Cargo.Forget(module);
             Adjacency.Recalculate(Grid);
             Connectivity.Recalculate();
             RefreshCapacities();

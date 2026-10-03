@@ -84,7 +84,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4246257715948910708}
-  - {fileID: 643132195569749046}
+  - {fileID: 4570533350409458713}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &460265017973468850
@@ -108,7 +108,7 @@ MonoBehaviour:
   _wornTint: {r: 0.45, g: 0.35, b: 0.25, a: 1}
   _wornTintAmount: 0.5
   _wornEmission: 0.35
---- !u!1001 &1109684508840438749
+--- !u!1001 &4100372020209267698
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -166,25 +166,20 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: -7583360344053514665, guid: bdd3aa8a4de35914290dfffb71b0d7e2, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4925192443757049903}
+      addedObject: {fileID: 3270911381427737454}
   m_SourcePrefab: {fileID: 100100000, guid: bdd3aa8a4de35914290dfffb71b0d7e2, type: 3}
---- !u!4 &643132195569749046 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: bdd3aa8a4de35914290dfffb71b0d7e2, type: 3}
-  m_PrefabInstance: {fileID: 1109684508840438749}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &1847630181873210762 stripped
+--- !u!1 &3325080747552918949 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -7583360344053514665, guid: bdd3aa8a4de35914290dfffb71b0d7e2, type: 3}
-  m_PrefabInstance: {fileID: 1109684508840438749}
+  m_PrefabInstance: {fileID: 4100372020209267698}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &4925192443757049903
+--- !u!114 &3270911381427737454
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1847630181873210762}
+  m_GameObject: {fileID: 3325080747552918949}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7ac438563565caa4e9808e4c3eb47481, type: 3}
@@ -192,3 +187,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.ModuleSpinner
   _speed: 12
   _acceleration: 0.25
+--- !u!4 &4570533350409458713 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: bdd3aa8a4de35914290dfffb71b0d7e2, type: 3}
+  m_PrefabInstance: {fileID: 4100372020209267698}
+  m_PrefabAsset: {fileID: 0}

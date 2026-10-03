@@ -23,13 +23,22 @@ namespace SpaceStation.UI
         [SerializeField] private float _showSeconds = 5f;
         [SerializeField] private float _endedSeconds = 3f;
 
+        [Tooltip("8-5 화물선 도착 알림 표시 시간")]
+        [SerializeField] private float _cargoSeconds = 3f;
+
         private float _hideAt;
         private UiTween _tween;
+        private CargoSystem _cargo;
 
         private void Start()
         {
             _events.Scheduler.EventStarted += HandleStarted;
             _events.Scheduler.EventEnded += HandleEnded;
+            // 8-5 화물 터미널 화물선 (씬 연결 없이 한 번만 찾음)
+            var station = FindFirstObjectByType<SpaceStation.Building.StationController>();
+            _cargo = station != null && station.Simulation != null ? station.Simulation.Cargo : null;
+            if (_cargo != null)
+                _cargo.Delivered += HandleCargo;
             if (_frame == null)
             {
                 var f = transform.Find("Frame");
@@ -43,6 +52,8 @@ namespace SpaceStation.UI
 
         private void OnDestroy()
         {
+            if (_cargo != null)
+                _cargo.Delivered -= HandleCargo;
             if (_events == null || _events.Scheduler == null)
                 return;
             _events.Scheduler.EventStarted -= HandleStarted;
@@ -89,6 +100,16 @@ namespace SpaceStation.UI
             _title.SetText($"<size=80%>{HudTheme.Icon("info")} {active.Data.DisplayName} 종료</size>");
             _description.gameObject.SetActive(false);
             Show(_endedSeconds);
+        }
+
+        /// <summary>8-5: 화물선 도착 — 짧고 작게 (가장 부족한 자원).</summary>
+        private void HandleCargo(SpaceStation.Core.ModuleInstance terminal, ResourceType type, float amount)
+        {
+            SetTone(HudTheme.Positive, 0.15f);
+            string extra = amount > 0.5f ? $"{HudTheme.Icon(type)} {HudText.ResourceName(type)} +{amount:0}" : $"{HudText.ResourceName(type)} (저장 한도 가득)";
+            _title.SetText($"<size=80%>{HudTheme.Icon("event")} 화물선 도착 · {extra}</size>");
+            _description.gameObject.SetActive(false);
+            Show(_cargoSeconds);
         }
 
         /// <summary>바탕은 어두운 패널에 위험도 색을 살짝 섞고, 테두리는 위험도 색.</summary>

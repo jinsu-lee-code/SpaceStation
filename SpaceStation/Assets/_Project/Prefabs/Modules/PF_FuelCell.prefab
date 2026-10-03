@@ -84,7 +84,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5232974101625463057}
-  - {fileID: 5637557834982535843}
+  - {fileID: 5976322466860355353}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2323434282675105725
@@ -108,7 +108,7 @@ MonoBehaviour:
   _wornTint: {r: 0.45, g: 0.35, b: 0.25, a: 1}
   _wornTintAmount: 0.5
   _wornEmission: 0.35
---- !u!1001 &5311460874457175368
+--- !u!1001 &6159394748686182642
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -174,34 +174,34 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 18d9f7977f0f91b43b87f3d76bb8ede8, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2152842210253206606}
+      addedObject: {fileID: 6404882331183234697}
   m_SourcePrefab: {fileID: 100100000, guid: 18d9f7977f0f91b43b87f3d76bb8ede8, type: 3}
---- !u!1 &3623336335617462953 stripped
+--- !u!1 &3351843977887346451 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8934777400606672865, guid: 18d9f7977f0f91b43b87f3d76bb8ede8, type: 3}
-  m_PrefabInstance: {fileID: 5311460874457175368}
+  m_PrefabInstance: {fileID: 6159394748686182642}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &5005593033038293017 stripped
+--- !u!4 &5976322466860355353 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 18d9f7977f0f91b43b87f3d76bb8ede8, type: 3}
+  m_PrefabInstance: {fileID: 6159394748686182642}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6466035684218344867 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 18d9f7977f0f91b43b87f3d76bb8ede8, type: 3}
-  m_PrefabInstance: {fileID: 5311460874457175368}
+  m_PrefabInstance: {fileID: 6159394748686182642}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2152842210253206606
+--- !u!114 &6404882331183234697
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5005593033038293017}
+  m_GameObject: {fileID: 6466035684218344867}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fa828a38cace9ec418efe38aa6487b30, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.OnDemandPowerFx
-  _lamp: {fileID: 3623336335617462953}
+  _lamp: {fileID: 3351843977887346451}
   _threshold: 0.005
---- !u!4 &5637557834982535843 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 18d9f7977f0f91b43b87f3d76bb8ede8, type: 3}
-  m_PrefabInstance: {fileID: 5311460874457175368}
-  m_PrefabAsset: {fileID: 0}

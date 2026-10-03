@@ -290,6 +290,14 @@ namespace SpaceStation.UI
                         ? $"<color=#7FE8DA>보조 발전 중 {res.OnDemandLoad * 100f:0}%</color>"
                         : $"<color={HudText.Muted}>대기 (전력 충분)</color>";
             }
+            else if (module.Data != null && module.Data.IsCargoTerminal) // 8-5 화물 터미널
+            {
+                float strength = _station.Simulation.Defense.GetStrength(module);
+                float left = (1f - _station.Simulation.Cargo.GetProgress(module)) * module.Data.CargoInterval / Mathf.Max(0.01f, strength);
+                state = strength > 0.01f
+                    ? $"다음 화물선 {Mathf.CeilToInt(left)}초 <color={HudText.Muted}>(가장 부족한 자원 · 가동률 {strength * 100f:0}%)</color>"
+                    : $"<color={HudText.Orange}>화물선 대기 중지 (가동률 0)</color>";
+            }
             else if (_resources.Simulation.PowerEfficiency < 1f && UsesPower(module.Data))
             {
                 state = $"<color={EfficiencyBands.Hex(EfficiencyBands.Classify(_resources.Simulation.PowerEfficiency), Time.time)}>전력 부족: 가동률 {_resources.Simulation.PowerEfficiency * 100f:0}%</color>";

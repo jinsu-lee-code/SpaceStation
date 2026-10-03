@@ -31,6 +31,8 @@ namespace SpaceStation.Editor.Balance
         private readonly ModuleData _fuelCell; // 8-5 보조 발전 (부족할 때만, 물 소비)
         private const int FuelCellMax = 2;          // 밤·폭풍 대비 보조 발전은 이만큼까지
         private const float FuelCellWaterMargin = 1f; // 물 순증가가 이 이상일 때만 (주민 몫 보호)
+        private readonly ModuleData _cargo;    // 8-5 화물 터미널
+        private const int CargoMax = 2;
         private const float RingMetalSpare = 100f; // 두 번째 링부터: 건설비 + 이만큼 금속이 있을 때만
         /// <summary>Phase 6: 연구를 하는지 (비교 측정용, 기본 true).</summary>
         public static bool UseResearch = true;
@@ -80,6 +82,7 @@ namespace SpaceStation.Editor.Balance
                 if (m.IsService && m.HousingCapacity <= 0) _services.Add(m);
                 if (_ring == null && m.HousingCapacity > 0 && m.GrowthIntervalMultiplier < 1f) _ring = m; // 8-4 (거주 겸 서비스)
                 if (_fuelCell == null && m.OnDemandPower && Produces(m, ResourceType.Power)) _fuelCell = m; // 8-5
+                if (_cargo == null && m.IsCargoTerminal) _cargo = m;
                 if (!m.SolarPowered && !m.OnDemandPower && m.Removable && Produces(m, ResourceType.Power)
                     && (_fusion == null || PowerOutput(m) > PowerOutput(_fusion)))
                     _fusion = m;
@@ -198,6 +201,11 @@ namespace SpaceStation.Editor.Balance
                 && r.GetNetRate(ResourceType.Water) >= FuelCellWaterMargin
                 && r.GetStock(ResourceType.Metal) >= Cost(_fuelCell) + (_housing != null ? Cost(_housing) : 0f))
                 return _fuelCell;
+            // 8-5: 화물 터미널 2개까지 — 금속 여유가 있고 도킹 규칙을 만족하는 자리가 있을 때만
+            if (_cargo != null && CountOf(_cargo) < CargoMax && _sim.CheckBuildable(_cargo) == PlacementResult.Valid
+                && r.GetStock(ResourceType.Metal) >= Cost(_cargo) + (_housing != null ? Cost(_housing) : 0f)
+                && TryFindPlacement(_cargo, out _, out _))
+                return _cargo;
             // 8-2: 도킹 한도에 닿았으면, 증폭 안 된 도킹에 붙일 자리가 있는 동안 제련소 (금속 수입을 더 늘리는 유일한 방법 → 저축해서 산다)
             if (_refinery != null && _sim.CheckBuildable(_refinery) == PlacementResult.Valid
                 && TryFindPlacement(_refinery, out var refOrigin, out int refRot) && FreshDocksAt(refOrigin, refRot) >= RefineryMinDocks)

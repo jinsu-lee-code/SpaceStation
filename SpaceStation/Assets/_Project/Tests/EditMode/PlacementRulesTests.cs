@@ -134,6 +134,25 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void TwoCellTerminal_OneBackContactEnough_LaneForEveryFrontCell()
+        {
+            // 8-5 화물 터미널: (0,0,1)-(1,0,1), 입구 +Z. 뒷면 칸 (0,0,0)=코어, (1,0,0)=비어 있음 → 하나면 충분
+            var terminal = Module("Terminal", new[] { Vector3Int.zero, Vector3Int.right }, terminal: true);
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, terminal, Fwd, 0));
+            // 두 번째 칸 앞 접근로가 막혀 있으면 불가
+            _grid.TryPlace(_block, new Vector3Int(1, 0, 3), 0, out var blocker);
+            Assert.AreEqual(PlacementResult.DockLaneBlocked, PlacementRules.Evaluate(_grid, terminal, Fwd, 0));
+            _grid.Remove(blocker);
+
+            _grid.TryPlace(terminal, Fwd, 0, out _);
+            Assert.AreEqual(PlacementResult.BlockedByDockLane, PlacementRules.Evaluate(_grid, _block, new Vector3Int(1, 0, 2), 0), "두 번째 칸 접근로");
+            Assert.AreEqual(PlacementResult.BlockedByDockLane, PlacementRules.Evaluate(_grid, _block, new Vector3Int(0, 0, 3), 0));
+            var lane = new List<Vector3Int>();
+            PlacementRules.GetDockLane(terminal, Fwd, 0, lane);
+            Assert.AreEqual(4, lane.Count, "앞면 칸 2개 × 2칸");
+        }
+
+        [Test]
         public void MultiCellModule_OverlappingLane_IsBlocked()
         {
             _grid.TryPlace(_dock, Fwd, 0, out _);

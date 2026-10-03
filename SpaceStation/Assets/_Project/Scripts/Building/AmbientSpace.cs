@@ -53,13 +53,51 @@ namespace SpaceStation.Building
             CreateAsteroids();
             _nextShip = Time.time + Random.Range(8f, 20f);
             if (_station != null && _station.Simulation != null)
+            {
                 _station.Simulation.Events.EventStarted += HandleEventStarted;
+                _station.Simulation.Cargo.Delivered += HandleCargoDelivered;
+            }
         }
 
         private void OnDestroy()
         {
             if (_station != null && _station.Simulation != null)
+            {
                 _station.Simulation.Events.EventStarted -= HandleEventStarted;
+                _station.Simulation.Cargo.Delivered -= HandleCargoDelivered;
+            }
+        }
+
+        private void HandleCargoDelivered(ModuleInstance terminal, SpaceStation.Data.ResourceType type, float amount)
+        {
+            if (terminal?.Data != null)
+                StartCoroutine(CargoShip(terminal));
+        }
+
+        /// <summary>8-5 화물선: 터미널 앞 접근로를 따라 들어와 입구 앞에 잠시 머물렀다가 같은 길로 나간다.</summary>
+        private IEnumerator CargoShip(ModuleInstance terminal)
+        {
+            if (_shipMesh == null)
+                yield break;
+            var front = (Vector3)PlacementRules.DockFrontWorld(terminal.Data, terminal.Rotation);
+            Vector3 center = Vector3.zero;
+            foreach (var c in terminal.Cells)
+                center += GridConfig.CellToWorld(c);
+            center /= terminal.Cells.Count;
+            Vector3 hold = center + front * (GridConfig.CellSize * 1.4f) + Vector3.up * 0.15f;
+            Vector3 far = hold + front * 40f + Vector3.up * 6f;
+            var ship = SpawnShip(_shipScale);
+            yield return Move(ship.transform, far, hold, 4.5f, ease: true);
+            ship.transform.rotation = Quaternion.LookRotation(-front); // 입구를 바라봄
+            float wait = 0f;
+            while (wait < 2.5f)
+            {
+                wait += Time.deltaTime;
+                ship.transform.position = hold + Vector3.up * Mathf.Sin(wait * 2f) * 0.04f;
+                yield return null;
+            }
+            yield return Move(ship.transform, hold, far + Vector3.up * 4f, 5f, ease: false);
+            Destroy(ship);
         }
 
         private void Update()

@@ -61,14 +61,26 @@ namespace SpaceStation.Core
             }
             if (data.TerminalOnly)
             {
-                // 도킹: 뒷면 칸에 모듈이 있어야 하고(연결), 앞쪽 접근로는 비어 있어야 한다. 옆·위·아래는 자유
+                // 도킹: 뒷면 칸 중 하나 이상에 모듈이 있어야 하고(연결), 앞면 칸마다 앞쪽 접근로는 비어 있어야 한다. 옆·위·아래는 자유
+                // (8-5 화물 터미널처럼 여러 칸이면 뒷면·앞면 = 그 방향으로 같은 모듈 칸이 없는 칸들)
                 var front = DockFrontWorld(data, rotation);
-                if (!grid.IsOccupied(origin - front))
-                    return PlacementResult.DockNeedsBackContact;
-                for (int k = 1; k <= data.ApproachLaneLength; k++)
+                bool backContact = false;
+                foreach (var cell in cells)
                 {
-                    if (grid.IsOccupied(origin + front * k))
-                        return PlacementResult.DockLaneBlocked;
+                    if (!Contains(cells, cell - front) && grid.IsOccupied(cell - front))
+                        backContact = true;
+                }
+                if (!backContact)
+                    return PlacementResult.DockNeedsBackContact;
+                foreach (var cell in cells)
+                {
+                    if (Contains(cells, cell + front))
+                        continue;
+                    for (int k = 1; k <= data.ApproachLaneLength; k++)
+                    {
+                        if (grid.IsOccupied(cell + front * k))
+                            return PlacementResult.DockLaneBlocked;
+                    }
                 }
             }
             return CheckSupport(grid, cells, null);
@@ -97,15 +109,21 @@ namespace SpaceStation.Core
         public static Vector3Int DockFrontWorld(ModuleData data, int rotation)
             => GridDirections.Rotate(data.DockFront, rotation);
 
-        /// <summary>도킹 접근로 칸 목록 (원점 앞으로 1~길이 칸).</summary>
+        /// <summary>도킹 접근로 칸 목록 (앞면 칸마다 앞으로 1~길이 칸).</summary>
         public static void GetDockLane(ModuleData data, Vector3Int origin, int rotation, List<Vector3Int> results)
         {
             results.Clear();
             if (data == null || !data.TerminalOnly)
                 return;
             var front = DockFrontWorld(data, rotation);
-            for (int k = 1; k <= data.ApproachLaneLength; k++)
-                results.Add(origin + front * k);
+            var cells = StationGrid.ResolveCells(data.CellOffsets, origin, rotation);
+            foreach (var cell in cells)
+            {
+                if (Contains(cells, cell + front))
+                    continue;
+                for (int k = 1; k <= data.ApproachLaneLength; k++)
+                    results.Add(cell + front * k);
+            }
         }
 
         private const int MaxLaneScan = 8;
@@ -119,7 +137,8 @@ namespace SpaceStation.Core
                 {
                     if (!grid.TryGetModule(cell - dir * k, out var other))
                         continue;
-                    if (other.Data != null && other.Data.TerminalOnly && other.Origin == cell - dir * k
+                    // 사이 칸이 비어 있으므로 찾은 칸은 그 도킹의 앞면 칸 (여러 칸 도킹도 앞면 칸마다 접근로)
+                    if (other.Data != null && other.Data.TerminalOnly
                         && k <= other.Data.ApproachLaneLength && DockFrontWorld(other.Data, other.Rotation) == dir)
                         return true;
                     break; // 접근로 사이에 다른 모듈이 끼면 그 너머 도킹은 이 칸과 무관

@@ -43,6 +43,7 @@ namespace SpaceStation.Editor
                 case "RefineryGlow": return Emissive("M_RefineryGlow", new Color(0.9f, 0.22f, 0.03f, 1f), new Color(1.9f, 0.26f, 0.02f, 1f)); // 초록 성분이 크면 톤매핑 뒤 노랗게 보임
                 case "ControlLamp": return Emissive("M_ControlLamp", new Color(1f, 0.55f, 0.08f, 1f), new Color(2.0f, 0.6f, 0.04f, 1f)); // 8-3 경광등·상황창
                 case "FuelCellGlow": return Emissive("M_FuelCellGlow", new Color(0.2f, 0.9f, 0.8f, 1f), new Color(0.15f, 1.5f, 1.35f, 1f)); // 8-5 연료전지 (보조 발전 중에만 켜짐)
+                case "CargoLights": return Emissive("M_CargoLights", new Color(0.5f, 1f, 0.4f, 1f), new Color(0.6f, 2.2f, 0.4f, 1f)); // 8-5 화물 터미널 유도등
                 case "Rock": return Rock();
                 default: return null;
             }

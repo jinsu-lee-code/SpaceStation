@@ -44,6 +44,9 @@ namespace SpaceStation.Editor
             public float GrowthInterval = 1f;
             public bool OnDemandPower;
             public float InputReserve;
+            public bool Terminal; // 도킹 규칙 (뒷면 연결 + 앞 접근로 2칸)
+            public float CargoInterval;
+            public float CargoFraction;
         }
 
         private static Vector3Int[] Square3()
@@ -98,6 +101,13 @@ namespace SpaceStation.Editor
                 Key = "FuelCell", Name = "연료전지", Category = ModuleCategory.Power,
                 Cost = 50f, Production = new[] { (ResourceType.Power, 8f) }, Consumption = new[] { (ResourceType.Water, 1f) },
                 UnlockGrade = 1, AccentHex = "#3FE0D0", OnDemandPower = true, InputReserve = 0.2f,
+            },
+            // 8-5 화물 터미널: 도킹 규칙, 터미널마다 180초마다 화물선 → 가장 부족한 저장 자원을 한도의 15%
+            new Def
+            {
+                Key = "CargoTerminal", Name = "화물 터미널", Category = ModuleCategory.Industry, Cells = TwoCells,
+                Cost = 120f, Consumption = new[] { (ResourceType.Power, 4f) },
+                UnlockGrade = 2, AccentHex = "#7CD957", Terminal = true, CargoInterval = 180f, CargoFraction = 0.15f,
             },
         };
 
@@ -160,7 +170,11 @@ namespace SpaceStation.Editor
                 cells.GetArrayElementAtIndex(i).vector3IntValue = offsets[i];
             so.FindProperty("_prefab").objectReferenceValue = prefab;
             so.FindProperty("_removable").boolValue = true;
-            so.FindProperty("_terminalOnly").boolValue = false;
+            so.FindProperty("_terminalOnly").boolValue = def.Terminal;
+            so.FindProperty("_dockFront").vector3IntValue = new Vector3Int(0, 0, 1);
+            so.FindProperty("_approachLaneLength").intValue = 2;
+            so.FindProperty("_cargoInterval").floatValue = def.CargoInterval;
+            so.FindProperty("_cargoFraction").floatValue = def.CargoFraction;
             so.FindProperty("_upperSidesNeedSupport").boolValue = false;
             SetAmounts(so.FindProperty("_buildCost"), (ResourceType.Metal, def.Cost));
             SetAmounts(so.FindProperty("_production"), def.Production);

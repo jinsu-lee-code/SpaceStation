@@ -97,6 +97,9 @@ namespace SpaceStation.UI
                 sb.Append("저장 한도 +").Append(storage.ToString("0")).Append(" (산소·물·식량·금속)\n");
             if (data.ResearchSlots > 0)
                 sb.Append("동시 연구 +").Append(data.ResearchSlots).Append($" <color={Muted}>(선택 후 연구 창에서 시작, 파손·비활성 시 멈춤)</color>\n");
+            if (data.IsCargoTerminal)
+                sb.Append("화물선: ").Append(data.CargoInterval.ToString("0")).Append("초마다 가장 부족한 자원을 저장 한도의 ")
+                  .Append((data.CargoFraction * 100f).ToString("0")).Append($"%만큼 <color={Muted}>(터미널마다 따로, 가동률만큼 느려짐)</color>\n");
             if (data.TerminalOnly)
                 sb.Append($"<color={Yellow}>뒷면으로 정거장에 붙음 · 입구 앞 {data.ApproachLaneLength}칸은 접근로 (건설 불가)</color>\n");
             if (data.IsShield)

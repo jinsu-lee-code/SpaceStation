@@ -68,6 +68,12 @@ namespace SpaceStation.Data
         [Tooltip("8-1: 파손 확산 시간 배율 (1 = 기본 60초, 0.5 = 2배 빨리 번짐 — 핵융합로)")]
         [SerializeField, Min(0.05f)] private float _spreadTimeMultiplier = 1f;
 
+        [Header("Cargo (8-5 화물 터미널)")]
+        [Tooltip("화물선 도착 간격(초, 가동률만큼 느려짐). 0이면 화물 터미널 아님")]
+        [SerializeField, Min(0f)] private float _cargoInterval;
+        [Tooltip("도착 때 가장 부족한(저장 한도 대비 재고 비율이 가장 낮은) 저장 자원을 그 한도의 이 비율만큼 가져옴")]
+        [SerializeField, Range(0f, 1f)] private float _cargoFraction;
+
         [Header("Defense (BALANCE 19번)")]
         [Tooltip("실드 반경 (격자 칸, 체비셰프 거리). 0이면 실드 아님")]
         [SerializeField, Min(0)] private int _shieldRadius;
@@ -164,6 +170,9 @@ namespace SpaceStation.Data
         public float BatteryCapacity => _batteryCapacity;
         public float BatteryRate => _batteryRate;
         public bool OnDemandPower => _onDemandPower;
+        public float CargoInterval => _cargoFraction > 0f ? _cargoInterval : 0f;
+        public float CargoFraction => _cargoFraction;
+        public bool IsCargoTerminal => CargoInterval > 0f;
         public float InputReserveRatio => _inputReserveRatio;
 
         private void OnValidate()
