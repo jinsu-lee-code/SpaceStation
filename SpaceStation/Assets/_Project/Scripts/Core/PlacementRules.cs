@@ -74,6 +74,25 @@ namespace SpaceStation.Core
             return CheckSupport(grid, cells, null);
         }
 
+        /// <summary>
+        /// 8-4: 모듈 면을 가리켜 지을 때의 원점. 회전한 셀 중 클릭한 면 쪽(outward 반대)으로 가장 튀어나온 층이
+        /// 바로 그 면에 붙도록 원점을 바깥으로 민다 (원점이 가운데인 회전 링을 옆면에 붙일 때 기존 모듈과 겹치지 않게).
+        /// 원점 층이 이미 가장 안쪽인 모듈(1칸·도킹, 바깥쪽으로 뻗는 2칸, 위·아래 면의 평평한 모듈)은 그대로.
+        /// </summary>
+        public static Vector3Int AnchorOnFace(ModuleData data, Vector3Int faceCell, Vector3Int outward, int rotation)
+        {
+            if (data == null || data.CellOffsets.Count <= 1 || outward == Vector3Int.zero)
+                return faceCell;
+            int min = 0;
+            foreach (var c in StationGrid.ResolveCells(data.CellOffsets, Vector3Int.zero, rotation))
+            {
+                int d = c.x * outward.x + c.y * outward.y + c.z * outward.z;
+                if (d < min)
+                    min = d;
+            }
+            return faceCell - outward * min;
+        }
+
         /// <summary>도킹 입구(앞) 방향 (월드 격자, 회전 반영).</summary>
         public static Vector3Int DockFrontWorld(ModuleData data, int rotation)
             => GridDirections.Rotate(data.DockFront, rotation);

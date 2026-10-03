@@ -222,8 +222,11 @@ namespace SpaceStation.Building
                 return; // 모듈이 아닌 콜라이더
 
             _targetCell = GridConfig.GetAdjacentCell(hit.point, hit.normal);
+            var outward = _targetCell - hitCell;
             if (_selected.TerminalOnly)
-                AutoOrientDock(_targetCell - hitCell);
+                AutoOrientDock(outward);
+            // 8-4: 면 안쪽으로 뻗는 셀이 있는 모듈(가운데 원점인 회전 링 등)은 그만큼 바깥으로 띄워 면에 붙인다
+            _targetCell = PlacementRules.AnchorOnFace(_selected, _targetCell, outward, _rotation);
             _targetResult = _station.EvaluatePlacement(_selected, _targetCell, _rotation);
             _targetValid = _targetResult == PlacementResult.Valid;
             _hasTarget = true;

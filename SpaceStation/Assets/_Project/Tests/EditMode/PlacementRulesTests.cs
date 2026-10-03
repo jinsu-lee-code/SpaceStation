@@ -43,6 +43,40 @@ namespace SpaceStation.Tests
             Assert.AreEqual(PlacementResult.Occupied, PlacementRules.Evaluate(_grid, _block, Vector3Int.zero, 0));
         }
 
+        // ---- 8-4 면에 붙이는 원점 (가운데 원점 모듈) ----
+
+        private ModuleData Ring()
+        {
+            var cells = new List<Vector3Int>();
+            for (int x = -1; x <= 1; x++)
+                for (int z = -1; z <= 1; z++)
+                    cells.Add(new Vector3Int(x, 0, z));
+            return Module("Ring", cells.ToArray(), terminal: false);
+        }
+
+        [Test]
+        public void AnchorOnFace_CenteredRing_SideFace_ShiftsOutward_AndIsValid()
+        {
+            var ring = Ring();
+            // 블록(0,0,0)의 +x 면을 가리킴 → 맞닿은 칸 (1,0,0)
+            var origin = PlacementRules.AnchorOnFace(ring, Vector3Int.right, Vector3Int.right, 0);
+            Assert.AreEqual(new Vector3Int(2, 0, 0), origin, "가운데 원점이 한 칸 더 바깥 → 안쪽 열이 면에 붙음");
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, ring, origin, 0));
+            Assert.AreEqual(new Vector3Int(0, 0, -2), PlacementRules.AnchorOnFace(ring, Vector3Int.back, Vector3Int.back, 0));
+            Assert.AreEqual(Vector3Int.up, PlacementRules.AnchorOnFace(ring, Vector3Int.up, Vector3Int.up, 0), "위 면은 평평해서 그대로");
+        }
+
+        [Test]
+        public void AnchorOnFace_OtherModules_OnlyShiftWhenTheyWouldReachBack()
+        {
+            Assert.AreEqual(Vector3Int.left, PlacementRules.AnchorOnFace(_block, Vector3Int.left, Vector3Int.left, 0), "1칸은 그대로");
+            Assert.AreEqual(Vector3Int.right, PlacementRules.AnchorOnFace(_bar, Vector3Int.right, Vector3Int.right, 0), "바깥으로 뻗는 2칸은 그대로");
+            // 왼쪽 면에 2칸(원점 + 오른쪽)을 대면 오른쪽 칸이 블록과 겹침 → 한 칸 더 바깥
+            var origin = PlacementRules.AnchorOnFace(_bar, Vector3Int.left, Vector3Int.left, 0);
+            Assert.AreEqual(new Vector3Int(-2, 0, 0), origin);
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _bar, origin, 0));
+        }
+
         // ---- 도킹 규칙 (8-0: 뒷면 연결 + 앞쪽 접근로 2칸) ----
 
         private static readonly Vector3Int Fwd = new Vector3Int(0, 0, 1); // 회전 0 입구 방향 (ModuleData 기본값)
