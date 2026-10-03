@@ -37,6 +37,8 @@ namespace SpaceStation.Building
         [SerializeField] private Vector2 _shipInterval = new Vector2(40f, 90f);
         [SerializeField] private float _shipCrossSeconds = 28f;
         [SerializeField] private float _shipScale = 0.9f;
+        [Tooltip("8-5 화물 터미널 화물선 길이 (격자 칸 기준, 모듈 크기에 맞춤)")]
+        [SerializeField] private float _cargoShipLength = 0.7f;
 
         private readonly List<(Transform t, Vector3 spin)> _asteroids = new List<(Transform, Vector3)>();
         private Transform _asteroidRoot;
@@ -84,16 +86,19 @@ namespace SpaceStation.Building
             foreach (var c in terminal.Cells)
                 center += GridConfig.CellToWorld(c);
             center /= terminal.Cells.Count;
-            Vector3 hold = center + front * (GridConfig.CellSize * 1.4f) + Vector3.up * 0.15f;
-            Vector3 far = hold + front * 40f + Vector3.up * 6f;
-            var ship = SpawnShip(_shipScale);
+            // 모듈 크기에 맞춘 작은 화물선 (기존 보급선 메시를 길이 기준으로 축소), 접근로 첫 칸에 머묾
+            float length = Mathf.Max(0.01f, _shipMesh.bounds.size.z);
+            float scale = _cargoShipLength * GridConfig.CellSize / length;
+            Vector3 hold = center + front * (GridConfig.CellSize * 1.0f) + Vector3.up * 0.05f;
+            Vector3 far = hold + front * 30f + Vector3.up * 5f;
+            var ship = SpawnShip(scale);
             yield return Move(ship.transform, far, hold, 4.5f, ease: true);
             ship.transform.rotation = Quaternion.LookRotation(-front); // 입구를 바라봄
             float wait = 0f;
             while (wait < 2.5f)
             {
                 wait += Time.deltaTime;
-                ship.transform.position = hold + Vector3.up * Mathf.Sin(wait * 2f) * 0.04f;
+                ship.transform.position = hold + Vector3.up * Mathf.Sin(wait * 2f) * 0.02f;
                 yield return null;
             }
             yield return Move(ship.transform, hold, far + Vector3.up * 4f, 5f, ease: false);
