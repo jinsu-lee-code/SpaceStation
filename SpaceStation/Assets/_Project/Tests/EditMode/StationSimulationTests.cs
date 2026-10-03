@@ -196,6 +196,28 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void RotatingRing_ShortensGrowthInterval_NoStacking_StopsWhenDamaged()
+        {
+            // 8-4: 가동 중인 링 → 인구 증가 간격 ×0.8, 여러 개 중첩 없음, 파손이면 효과 없음
+            var ring = Module("Ring", cost: 0, housing: 30);
+            var so = new SerializedObject(ring);
+            so.FindProperty("_growthIntervalMultiplier").floatValue = 0.8f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var sim = Sim();
+            sim.Tick(1f);
+            Assert.AreEqual(1f, sim.Population.GrowthIntervalMultiplier, Eps);
+            sim.Grid.TryPlace(ring, Vector3Int.right, 0, out var a); // 해금 판정 우회
+            sim.Grid.TryPlace(ring, Vector3Int.left, 0, out var b);
+            sim.Tick(1f);
+            Assert.AreEqual(0.8f, sim.Population.GrowthIntervalMultiplier, Eps, "중첩 없음");
+            sim.Damage.Damage(a);
+            sim.Damage.Damage(b);
+            sim.Tick(1f);
+            Assert.AreEqual(1f, sim.Population.GrowthIntervalMultiplier, Eps, "파손이면 효과 없음");
+        }
+
+        [Test]
         public void QueuedModule_DestroyedSameTickAsBayRepair_IsDestroyedNotRepaired()
         {
             // 회귀: 베이 수리 완료(슬롯 증가)와 대기 모듈의 파괴가 같은 틱이면, 파괴가 수리 완료로 뒤바뀌면 안 됨

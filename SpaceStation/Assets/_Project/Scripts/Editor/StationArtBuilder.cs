@@ -301,6 +301,10 @@ namespace SpaceStation.Editor
                     var emitter = FindChild(instance.transform, "Emitter");
                     if (ringA != null && emitter != null)
                         WireShieldFx(emitter, ringA, FindChild(instance.transform, "EmitterRingB"), FindChild(instance.transform, "EmitterCore"));
+                    // 8-4 회전 링: "Spin" 부품이 모듈 Y축으로 회전
+                    var spin = FindChild(instance.transform, "Spin");
+                    if (spin != null)
+                        spin.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
                 }
                 else switch (style)
                 {

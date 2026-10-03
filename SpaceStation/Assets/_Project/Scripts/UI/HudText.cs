@@ -112,6 +112,9 @@ namespace SpaceStation.UI
             if (data.IsService)
                 sb.Append(data.ServiceNeed.DisplayName()).Append(": 반경 ").Append(serviceRadius)
                   .Append("칸 안 거주 모듈 주민 ").Append(data.ServiceCapacity).Append($"명 담당 <color={Muted}>(파손·비활성·전력 부족·노후 시 감소)</color>\n");
+            if (data.GrowthIntervalMultiplier < 0.999f)
+                sb.Append("정거장 인구 증가 간격 -").Append(((1f - data.GrowthIntervalMultiplier) * 100f).ToString("0"))
+                  .Append($"% <color={Muted}>(중첩 없음, 파손·비활성·전력 부족·노후 시 감소)</color>\n");
             if (data.IsDefense)
                 sb.Append($"<color={Muted}>파손·비활성·전력 부족·노후 시 효과 감소</color>\n");
             if (data.SpreadTimeMultiplier < 0.999f)

@@ -85,8 +85,11 @@ namespace SpaceStation.Simulation
             if (satisfaction < min)
                 return float.PositiveInfinity;
             float t = Mathf.InverseLerp(min, MaxSatisfaction, satisfaction);
-            return Mathf.Lerp(_config.GrowthIntervalAtMinSatisfaction, _config.GrowthIntervalAtMaxSatisfaction, t);
+            return Mathf.Lerp(_config.GrowthIntervalAtMinSatisfaction, _config.GrowthIntervalAtMaxSatisfaction, t) * GrowthIntervalMultiplier;
         }
+
+        /// <summary>8-4 회전 링: 인구 증가 간격 배율 (1 = 기본, 0.8 = 20% 빨리). 소유자가 매 틱 갱신.</summary>
+        public float GrowthIntervalMultiplier { get; set; } = 1f;
 
         public void Tick(float deltaSeconds)
         {

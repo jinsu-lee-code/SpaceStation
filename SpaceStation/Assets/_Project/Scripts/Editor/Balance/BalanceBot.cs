@@ -27,6 +27,8 @@ namespace SpaceStation.Editor.Balance
         private readonly ModuleData _fusion; // 8-1 상시 대량 발전 (태양광이 아닌 발전 모듈 중 가장 큰 것)
         private readonly ModuleData _refinery; // 8-2 맞닿은 채굴 도킹 생산 증폭
         private readonly ModuleData _control;  // 8-3 손상 통제실 (방어 모듈 순환에 포함)
+        private readonly ModuleData _ring;     // 8-4 회전 링 (대량 수용 + 여가 + 인구 증가 속도)
+        private const float RingMetalSpare = 100f; // 두 번째 링부터: 건설비 + 이만큼 금속이 있을 때만
         /// <summary>Phase 6: 연구를 하는지 (비교 측정용, 기본 true).</summary>
         public static bool UseResearch = true;
         /// <summary>연구 우선순위: 유지보수 → 생산 → 에너지 → 건설·경제 → 거주 → 방어.</summary>
@@ -64,7 +66,7 @@ namespace SpaceStation.Editor.Balance
                 if (_water == null && Produces(m, ResourceType.Water)) _water = m;
                 if (_food == null && Produces(m, ResourceType.Food)) _food = m;
                 if (_metal == null && Produces(m, ResourceType.Metal)) _metal = m;
-                if (_housing == null && m.HousingCapacity > 0) _housing = m;
+                if (_housing == null && m.HousingCapacity > 0 && m.GrowthIntervalMultiplier >= 1f) _housing = m;
                 if (_storage == null && m.StorageBonus > 0f) _storage = m;
                 if (_battery == null && m.BatteryCapacity > 0f) _battery = m;
                 if (_bay == null && m.RepairSlots > 0) _bay = m;
@@ -72,7 +74,8 @@ namespace SpaceStation.Editor.Balance
                 if (_turret == null && m.IsTurret) _turret = m;
                 if (_control == null && m.IsDamageControl) _control = m;
                 if (_lab == null && m.ResearchSlots > 0) _lab = m;
-                if (m.IsService) _services.Add(m);
+                if (m.IsService && m.HousingCapacity <= 0) _services.Add(m);
+                if (_ring == null && m.HousingCapacity > 0 && m.GrowthIntervalMultiplier < 1f) _ring = m; // 8-4 (거주 겸 서비스)
                 if (!m.SolarPowered && m.Removable && Produces(m, ResourceType.Power)
                     && (_fusion == null || PowerOutput(m) > PowerOutput(_fusion)))
                     _fusion = m;
@@ -199,7 +202,7 @@ namespace SpaceStation.Editor.Balance
             if (defense != null && (DefenseFirst || r.GetStock(ResourceType.Metal) >= Cost(defense) + (_housing != null ? Cost(_housing) : 0f)))
                 return defense;
             if (_housing != null && r.Population >= r.HousingCapacity - 1)
-                return _housing;
+                return PickHousing(r);
             if (_storage != null && _sim.CheckBuildable(_storage) == PlacementResult.Valid
                 && r.GetStock(ResourceType.Metal) >= r.GetCapacity(ResourceType.Metal) * 0.95f)
                 return _storage;
@@ -208,6 +211,25 @@ namespace SpaceStation.Editor.Balance
             if (next != null && _sim.Grid.ModuleCount < next.MinModules)
                 return _housing;
             return null;
+        }
+
+        /// <summary>8-4: 수용이 필요할 때 첫 회전 링은 저축해서라도(인구 증가 속도는 1개면 충분), 그다음 링은 금속 여유가 있을 때만. 아니면 거주 모듈.</summary>
+        private ModuleData PickHousing(ResourceSimulation r)
+        {
+            if (_ring != null && _sim.CheckBuildable(_ring) == PlacementResult.Valid
+                && (CountOf(_ring) == 0 || r.GetStock(ResourceType.Metal) >= Cost(_ring) + RingMetalSpare)
+                && TryFindPlacement(_ring, out _, out _)) // 3×3 자리가 없으면 거주 모듈로 (저축하다 멈추지 않게)
+                return _ring;
+            return _housing;
+        }
+
+        private int CountOf(ModuleData data)
+        {
+            int n = 0;
+            foreach (var m in _sim.Grid.Modules)
+                if (m.Data == data)
+                    n++;
+            return n;
         }
 
         private int LabsWanted() => _sim.Progression.GradeIndex >= 2 ? 2 : _sim.Progression.GradeIndex >= 1 ? 1 : 0;
@@ -486,8 +508,14 @@ namespace SpaceStation.Editor.Balance
                     foreach (var dir in GridDirections.Faces)
                     {
                         var c = cell + dir;
-                        if (!_sim.Grid.IsOccupied(c))
-                            _candidates.Add(c);
+                        if (_sim.Grid.IsOccupied(c))
+                            continue;
+                        _candidates.Add(c);
+                        // 8-4: 3칸 이상 모듈(회전 링, 원점 = 가운데)은 다른 칸이 정거장에 닿는 원점도 후보
+                        if (data.CellOffsets.Count > 2)
+                            foreach (var o in data.CellOffsets)
+                                if (o.y == 0)
+                                    _candidates.Add(c - o);
                     }
                 }
             }

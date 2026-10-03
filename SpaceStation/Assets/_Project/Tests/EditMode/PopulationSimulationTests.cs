@@ -96,6 +96,16 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void GrowthInterval_RingMultiplier_Shortens()
+        {
+            // 8-4 회전 링: 간격 ×0.8
+            _population.GrowthIntervalMultiplier = 0.8f;
+            Assert.AreEqual(24f, _population.GetGrowthInterval(50f), Eps);
+            Assert.AreEqual(8f, _population.GetGrowthInterval(100f), Eps);
+            Assert.IsTrue(float.IsPositiveInfinity(_population.GetGrowthInterval(49.9f)));
+        }
+
+        [Test]
         public void Growth_AtMaxSatisfaction_Every10Seconds()
         {
             _population.SetSatisfaction(100f);

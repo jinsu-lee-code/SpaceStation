@@ -37,6 +37,21 @@ namespace SpaceStation.Editor
             public int ControlRadius;
             public float ControlSpread = 1f;
             public float ControlDestroy = 1f;
+            public int Housing;
+            public ResidentNeed ServiceNeed = ResidentNeed.None;
+            public int ServiceRadius;
+            public int ServiceCapacity;
+            public float GrowthInterval = 1f;
+        }
+
+        private static Vector3Int[] Square3()
+        {
+            var cells = new List<Vector3Int> { Vector3Int.zero }; // 원점 = 가운데 칸 (회전 중심)
+            for (int x = -1; x <= 1; x++)
+                for (int z = -1; z <= 1; z++)
+                    if (x != 0 || z != 0)
+                        cells.Add(new Vector3Int(x, 0, z));
+            return cells.ToArray();
         }
 
         private static readonly Vector3Int[] OneCell = { Vector3Int.zero };
@@ -66,6 +81,14 @@ namespace SpaceStation.Editor
                 Cost = 120f, Consumption = new[] { (ResourceType.Power, 5f) },
                 UnlockGrade = 2, AccentHex = "#FFC83A",
                 ControlRadius = 2, ControlSpread = 2f, ControlDestroy = 1.5f,
+            },
+            // 8-4 회전 링: 3×1×3 (가운데 칸 포함), 대량 수용 + 여가 요구 담당(범위 만족도 상한) + 인구 증가 간격 ×0.8 (중첩 없음)
+            new Def
+            {
+                Key = "RotatingRing", Name = "회전 링", Category = ModuleCategory.Life, Cells = Square3(),
+                Cost = 300f, Consumption = new[] { (ResourceType.Power, 10f) },
+                UnlockGrade = 3, AccentHex = "#7FD0FF",
+                Housing = 30, ServiceNeed = ResidentNeed.Recreation, ServiceRadius = 2, ServiceCapacity = 20, GrowthInterval = 0.8f,
             },
         };
 
@@ -133,7 +156,8 @@ namespace SpaceStation.Editor
             SetAmounts(so.FindProperty("_buildCost"), (ResourceType.Metal, def.Cost));
             SetAmounts(so.FindProperty("_production"), def.Production);
             SetAmounts(so.FindProperty("_consumption"), def.Consumption);
-            so.FindProperty("_housingCapacity").intValue = 0;
+            so.FindProperty("_housingCapacity").intValue = def.Housing;
+            so.FindProperty("_growthIntervalMultiplier").floatValue = def.GrowthInterval;
             so.FindProperty("_storageBonus").floatValue = 0f;
             so.FindProperty("_solarPowered").boolValue = false;
             so.FindProperty("_batteryCapacity").floatValue = 0f;
@@ -148,9 +172,9 @@ namespace SpaceStation.Editor
             so.FindProperty("_controlRadius").intValue = def.ControlRadius;
             so.FindProperty("_controlSpreadMultiplier").floatValue = def.ControlSpread;
             so.FindProperty("_controlDestroyMultiplier").floatValue = def.ControlDestroy;
-            SetEnum(so.FindProperty("_serviceNeed"), "None");
-            so.FindProperty("_serviceRadius").intValue = 0;
-            so.FindProperty("_serviceCapacity").intValue = 0;
+            SetEnum(so.FindProperty("_serviceNeed"), def.ServiceNeed.ToString());
+            so.FindProperty("_serviceRadius").intValue = def.ServiceRadius;
+            so.FindProperty("_serviceCapacity").intValue = def.ServiceCapacity;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(data);
             AssetDatabase.SaveAssets();

@@ -1,0 +1,150 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb58bbe16188d524dbc82c9b3c050e29, type: 3}
+  m_Name: MD_RotatingRing
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ModuleData
+  _displayName: "\uD68C\uC804 \uB9C1"
+  _category: 1
+  _cellOffsets:
+  - {x: 0, y: 0, z: 0}
+  - {x: -1, y: 0, z: -1}
+  - {x: -1, y: 0, z: 0}
+  - {x: -1, y: 0, z: 1}
+  - {x: 0, y: 0, z: -1}
+  - {x: 0, y: 0, z: 1}
+  - {x: 1, y: 0, z: -1}
+  - {x: 1, y: 0, z: 0}
+  - {x: 1, y: 0, z: 1}
+  _prefab: {fileID: 4059460374553967079, guid: 52cd748ab7d6130488449a2f5fb67347, type: 3}
+  _icon: {fileID: -8055644826871055201, guid: f956eeba97dd5aa48908caa091513896, type: 3}
+  _removable: 1
+  _terminalOnly: 0
+  _dockFront: {x: 0, y: 0, z: 1}
+  _approachLaneLength: 2
+  _upperSidesNeedSupport: 0
+  _faceDepths:
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.43019533
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.43019533
+  - Cell: {x: -1, y: 0, z: -1}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: 0.46019536
+  - Cell: {x: -1, y: 0, z: -1}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.4251954
+  - Cell: {x: -1, y: 0, z: -1}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.42519534
+  - Cell: {x: -1, y: 0, z: -1}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: 0.46019536
+  - Cell: {x: -1, y: 0, z: 0}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: 0.46019536
+  - Cell: {x: -1, y: 0, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.10513702
+  - Cell: {x: -1, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.10513702
+  - Cell: {x: -1, y: 0, z: 1}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: 0.46019536
+  - Cell: {x: -1, y: 0, z: 1}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.42519525
+  - Cell: {x: -1, y: 0, z: 1}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.42519534
+  - Cell: {x: -1, y: 0, z: 1}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: 0.46019536
+  - Cell: {x: 0, y: 0, z: -1}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.10513702
+  - Cell: {x: 0, y: 0, z: -1}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.10513702
+  - Cell: {x: 0, y: 0, z: -1}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: 0.46019536
+  - Cell: {x: 0, y: 0, z: 1}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.10513693
+  - Cell: {x: 0, y: 0, z: 1}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.10513702
+  - Cell: {x: 0, y: 0, z: 1}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: 0.46019536
+  - Cell: {x: 1, y: 0, z: -1}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: 0.46019536
+  - Cell: {x: 1, y: 0, z: -1}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.4251954
+  - Cell: {x: 1, y: 0, z: -1}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.42519534
+  - Cell: {x: 1, y: 0, z: -1}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: 0.46019536
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: 0.46019536
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.10513699
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.10513702
+  - Cell: {x: 1, y: 0, z: 1}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: 0.46019536
+  - Cell: {x: 1, y: 0, z: 1}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.42519525
+  - Cell: {x: 1, y: 0, z: 1}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.42519534
+  - Cell: {x: 1, y: 0, z: 1}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: 0.46019536
+  _buildCost:
+  - Type: 4
+    Amount: 300
+  _production: []
+  _consumption:
+  - Type: 0
+    Amount: 10
+  _housingCapacity: 30
+  _storageBonus: 0
+  _solarPowered: 0
+  _batteryCapacity: 0
+  _batteryRate: 0
+  _repairSlots: 0
+  _researchSlots: 0
+  _spreadTimeMultiplier: 1
+  _shieldRadius: 0
+  _shieldReduction: 0
+  _turretRadius: 0
+  _turretInterceptChance: 0
+  _controlRadius: 0
+  _controlSpreadMultiplier: 1
+  _controlDestroyMultiplier: 1
+  _growthIntervalMultiplier: 0.8
+  _serviceNeed: 2
+  _serviceRadius: 2
+  _serviceCapacity: 20

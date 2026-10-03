@@ -525,6 +525,29 @@ namespace SpaceStation.Simulation
             }
             Needs.Evaluate(Grid, Resources.Population, _activeNeeds);
             Population.SatisfactionCap = Needs.SatisfactionCap;
+            Population.GrowthIntervalMultiplier = GrowthIntervalMultiplier();
+        }
+
+        /// <summary>
+        /// 8-4 회전 링: 가동 중인(활성·정상) 모듈 중 가장 강한 인구 증가 간격 배율 (중첩 없음).
+        /// 배율 = 1 − (1 − 값) × 가동률. 없으면 1.
+        /// </summary>
+        public float GrowthIntervalMultiplier()
+        {
+            float best = 1f;
+            foreach (var m in Grid.Modules)
+            {
+                var data = m.Data;
+                if (data == null || data.GrowthIntervalMultiplier >= 1f)
+                    continue;
+                float s = ModuleStrength(m);
+                if (s <= 0f)
+                    continue;
+                float value = 1f - (1f - data.GrowthIntervalMultiplier) * s;
+                if (value < best)
+                    best = value;
+            }
+            return best;
         }
 
         /// <summary>

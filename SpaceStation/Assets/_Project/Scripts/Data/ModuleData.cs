@@ -80,6 +80,9 @@ namespace SpaceStation.Data
         [Tooltip("범위 안 파손 모듈의 방치 파괴 시간 배율 (1.5 = 120초 → 180초)")]
         [SerializeField, Min(1f)] private float _controlDestroyMultiplier = 1f;
 
+        [Tooltip("8-4 회전 링: 가동 중이면 정거장 전체 인구 증가 간격에 곱함 (0.8 = 20% 빨리, 1 = 효과 없음). 여러 개는 중첩 없이 가장 강한 것")]
+        [SerializeField, Range(0.1f, 1f)] private float _growthIntervalMultiplier = 1f;
+
         [Header("Resident Service (BALANCE 20번)")]
         [Tooltip("충족하는 거주자 요구. None이면 서비스 모듈 아님")]
         [SerializeField] private ResidentNeed _serviceNeed;
@@ -92,6 +95,7 @@ namespace SpaceStation.Data
         public int ServiceRadius => _serviceRadius;
         public int ServiceCapacity => _serviceCapacity;
         public bool IsService => ServiceNeed != ResidentNeed.None;
+        public float GrowthIntervalMultiplier => _growthIntervalMultiplier > 0f ? Mathf.Min(1f, _growthIntervalMultiplier) : 1f;
 
         public int RepairSlots => _repairSlots;
         public int ResearchSlots => _researchSlots;
