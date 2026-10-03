@@ -144,6 +144,171 @@ namespace SpaceStation.Editor.Balance
             return score / cells.Length;
         }
 
+        // ---------------- Phase 8 이후: ISS형 전시 정거장 ----------------
+
+        [MenuItem("SpaceStation/Menu/Generate Showcase Layout (ISS)")]
+        public static void GenerateIssMenu() => GenerateIss(3);
+
+        private enum Role { Ring, Spine, Industry, Dock, Solar, TopDefense, Turret, Armor, Under }
+
+        /// <summary>
+        /// ISS형 구성 (배치 순서 = 표 순서): 회전 링을 먼저 축 위에 놓고, 생활 모듈로 X축 중앙 축을 양쪽으로 늘린 뒤,
+        /// +Z 쪽 산업동 가지, 양 끝 태양광 날개, 축 위 실드·포탑, 아래 통제실, 바깥 끝 장갑 격벽 순.
+        /// </summary>
+        private static readonly (string file, int count, Role role)[] IssMix =
+        {
+            ("MD_RotatingRing", 1, Role.Ring),
+            ("MD_Habitat", 10, Role.Spine), ("MD_Medical", 3, Role.Spine), ("MD_Recreation", 3, Role.Spine),
+            ("MD_ResearchLab", 2, Role.Spine), ("MD_Oxygen", 4, Role.Spine), ("MD_WaterRecycler", 4, Role.Spine),
+            ("MD_Farm", 4, Role.Spine), ("MD_Storage", 3, Role.Spine), ("MD_Battery", 4, Role.Spine),
+            ("MD_MaintenanceBay", 2, Role.Spine), ("MD_FuelCell", 2, Role.Spine),
+            ("MD_FusionReactor", 2, Role.Industry), ("MD_Refinery", 1, Role.Industry),
+            ("MD_MiningDock", 4, Role.Dock), ("MD_CargoTerminal", 1, Role.Dock),
+            ("MD_Solar", 24, Role.Solar),
+            ("MD_Shield", 2, Role.TopDefense), ("MD_Turret", 4, Role.Turret),
+            ("MD_DamageControl", 2, Role.Under), ("MD_ArmorBulkhead", 4, Role.Armor),
+        };
+
+        private const int SpineHalfLength = 9;   // 축은 x -9..10 (코어 x 0..1)
+        private const int RingCenterX = -5;      // 링은 왼쪽 축 위
+        private const int BranchX = 5;           // 산업동 가지 시작 (오른쪽)
+
+        public static string GenerateIss(int seed)
+        {
+            var core = AssetDatabase.LoadAssetAtPath<ModuleData>($"{DataRoot}/Modules/MD_Core.asset");
+            var grid = new SpaceStation.Core.StationGrid();
+            grid.TryPlace(core, Vector3Int.zero, 0, out _);
+            var rng = new Random(seed);
+            var entries = new List<ShowcaseLayout.Entry>();
+            var candidates = new HashSet<Vector3Int>();
+            int failed = 0;
+            foreach (var (file, n, role) in IssMix)
+            {
+                var data = AssetDatabase.LoadAssetAtPath<ModuleData>($"{DataRoot}/Modules/{file}.asset");
+                if (data == null)
+                {
+                    failed += n;
+                    continue;
+                }
+                for (int k = 0; k < n; k++)
+                {
+                    candidates.Clear();
+                    foreach (var m in grid.Modules)
+                        foreach (var c in m.Cells)
+                            foreach (var d in SpaceStation.Core.GridDirections.Faces)
+                            {
+                                var nb = c + d;
+                                if (!grid.IsOccupied(nb) && nb.y >= -1 && nb.y <= 2)
+                                    candidates.Add(nb);
+                            }
+                    float bestScore = float.MinValue;
+                    Vector3Int bestOrigin = default;
+                    int bestRotation = 0;
+                    foreach (var cell in candidates)
+                        for (int rot = 0; rot < 4; rot++)
+                            foreach (var offset in data.CellOffsets)
+                            {
+                                var origin = cell - SpaceStation.Core.GridDirections.Rotate(offset, rot);
+                                if (SpaceStation.Core.PlacementRules.Evaluate(grid, data, origin, rot) != SpaceStation.Core.PlacementResult.Valid)
+                                    continue;
+                                var cells = SpaceStation.Core.StationGrid.ResolveCells(data.CellOffsets, origin, rot);
+                                float score = IssScore(cells, role, k) + (float)rng.NextDouble() * 0.3f;
+                                if (score > bestScore)
+                                {
+                                    bestScore = score;
+                                    bestOrigin = origin;
+                                    bestRotation = rot;
+                                }
+                            }
+                    if (bestScore == float.MinValue || !grid.TryPlace(data, bestOrigin, bestRotation, out _))
+                    {
+                        failed++;
+                        continue;
+                    }
+                    entries.Add(new ShowcaseLayout.Entry { Module = data, Origin = bestOrigin, Rotation = bestRotation });
+                }
+            }
+
+            var layout = AssetDatabase.LoadAssetAtPath<ShowcaseLayout>(LayoutPath);
+            if (layout == null)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(LayoutPath));
+                layout = ScriptableObject.CreateInstance<ShowcaseLayout>();
+                AssetDatabase.CreateAsset(layout, LayoutPath);
+            }
+            layout.SetEntries(entries, $"ISS형 전시 생성기 seed {seed}, 모듈 {entries.Count} (+코어)");
+            EditorUtility.SetDirty(layout);
+            AssetDatabase.SaveAssets();
+            string summary = $"[ShowcaseBaker] {layout.Source}, 자리 없음 {failed}";
+            Debug.Log(summary);
+            return summary;
+        }
+
+        /// <summary>
+        /// 역할별 목표 위치 점수 (칸 평균). 축 = z 0..1, y 0..1 띠를 따라 X로 뻗는 형태.
+        /// k = 같은 종류 중 몇 번째인지: 축·태양광은 k로 왼쪽/오른쪽(태양광은 위/아래 날개도)을 번갈아 대칭으로 키운다.
+        /// </summary>
+        private static float IssScore(Vector3Int[] cells, Role role, int k)
+        {
+            int side = k % 2 == 0 ? -1 : 1;                 // -1 왼쪽(-X) / +1 오른쪽(+X)
+            int wing = (k / 2) % 2 == 0 ? 1 : -1;           // 태양광 날개 +Z / -Z
+            float score = 0f;
+            foreach (var c in cells)
+            {
+                int cellSide = c.x < 0 ? -1 : c.x > 1 ? 1 : 0;
+                float ax = Mathf.Abs(c.x - 0.5f);                       // 코어 중심에서 X 거리
+                float offZ = Mathf.Max(0f, Mathf.Max(-c.z, c.z - 1));    // 축 띠(z 0..1)에서 벗어난 정도
+                float offY = Mathf.Max(0f, Mathf.Max(-c.y, c.y - 1));    // 축 층(y 0..1)에서 벗어난 정도
+                switch (role)
+                {
+                    case Role.Ring:
+                        score -= Mathf.Abs(c.x - RingCenterX) * 2f + Mathf.Abs(c.z - 0.5f) * 1.5f + Mathf.Abs(c.y) * 3f;
+                        break;
+                    case Role.Spine:
+                        score -= offZ * 4f + offY * 4f;
+                        score -= ax * 0.25f;                              // 안쪽부터 채움
+                        if (ax > SpineHalfLength) score -= (ax - SpineHalfLength) * 5f;
+                        if (c.x >= BranchX - 1 && c.x <= BranchX + 2 && c.z > 1) score -= 6f; // 산업동 자리 비워 둠
+                        if (cellSide != 0 && cellSide != side) score -= 2f; // 양쪽 번갈아 (대칭)
+                        break;
+                    case Role.Industry:
+                        // +Z 가지: x BranchX..BranchX+1, z 2..6
+                        score -= Mathf.Abs(c.x - (BranchX + 0.5f)) * 2f + Mathf.Abs(c.y) * 3f;
+                        score -= Mathf.Max(0f, 2 - c.z) * 4f + Mathf.Max(0f, c.z - 6) * 4f;
+                        score += c.z * 0.4f;
+                        break;
+                    case Role.Dock:
+                        // 산업동 가지 끝과 옆 (바깥으로 갈수록)
+                        score -= Mathf.Abs(c.x - (BranchX + 0.5f)) * 1.2f + Mathf.Abs(c.y) * 3f;
+                        score += c.z * 0.8f;
+                        break;
+                    case Role.Solar:
+                        // 양 끝 날개: |x| 11..14, z -4..5 로 넓게
+                        score -= Mathf.Max(0f, SpineHalfLength + 2 - ax) * 3f + Mathf.Max(0f, ax - (SpineHalfLength + 5)) * 3f;
+                        score -= Mathf.Abs(c.y) * 3f;
+                        if (cellSide != side) score -= 20f;                                  // 왼쪽·오른쪽 끝 번갈아
+                        score += Mathf.Clamp(wing * (c.z - 0.5f), -1f, 4.5f) * 0.8f;          // +Z·-Z 날개 번갈아
+                        break;
+                    case Role.TopDefense:
+                        score -= Mathf.Abs(c.y - 2) * 4f + offZ * 3f + Mathf.Abs(ax - 3f) * 0.6f;
+                        break;
+                    case Role.Turret:
+                        score -= offZ * 2f + Mathf.Abs(ax - 7f) * 0.5f;
+                        score -= Mathf.Min(Mathf.Abs(c.y - 2), Mathf.Abs(c.y + 1)) * 3f; // 축 위나 아래
+                        break;
+                    case Role.Under:
+                        score -= Mathf.Abs(c.y + 1) * 4f + offZ * 3f + Mathf.Abs(ax - 2f) * 0.5f;
+                        break;
+                    case Role.Armor:
+                        // 산업동 가지 바깥 옆면 (운석 미끼로 산업동을 감쌈)
+                        score -= Mathf.Abs(Mathf.Abs(c.x - (BranchX + 0.5f)) - 1.5f) * 2f + Mathf.Abs(c.y) * 2f;
+                        score -= Mathf.Abs(c.z - 4f) * 0.5f;
+                        break;
+                }
+            }
+            return score / cells.Length;
+        }
+
         /// <returns>요약</returns>
         public static string Bake(int targetModules, int firstSeed, int seeds, float maxMinutes)
         {
