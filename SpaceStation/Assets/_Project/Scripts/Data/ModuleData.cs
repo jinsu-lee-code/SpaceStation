@@ -71,6 +71,10 @@ namespace SpaceStation.Data
         [Header("Armor (8-5 장갑 격벽)")]
         [Tooltip("운석 피격 가중치 배율 (노출 면 가중치에 곱함, 3 = 같은 노출의 모듈보다 3배 잘 맞음 → 미끼)")]
         [SerializeField, Min(0f)] private float _meteorWeightMultiplier = 1f;
+        [Tooltip("미끼 반경 (격자 칸, 체비셰프). 이 안의 모듈을 노린 운석을 끌어온다. 0이면 끌어오기 없음")]
+        [SerializeField, Min(0)] private int _decoyRadius;
+        [Tooltip("반경 안 모듈을 노린 운석 1발을 대신 맞을 확률 (한 이벤트에 격벽 하나당 1발까지)")]
+        [SerializeField, Range(0f, 1f)] private float _decoyChance;
         [Tooltip("장갑: 파손돼도 산소 누출·이웃 확산이 없고, 방치해도 파괴되지 않음 (파손 중에는 운석 대상에서 빠짐)")]
         [SerializeField] private bool _armored;
         [Tooltip("수리 시간 배율 (0.5 = 절반)")]
@@ -128,7 +132,7 @@ namespace SpaceStation.Data
         public float ControlSpreadMultiplier => Mathf.Max(1f, _controlSpreadMultiplier);
         public float ControlDestroyMultiplier => Mathf.Max(1f, _controlDestroyMultiplier);
         public bool IsDamageControl => ControlRadius > 0;
-        public bool IsDefense => IsShield || IsTurret || IsDamageControl;
+        public bool IsDefense => IsShield || IsTurret || IsDamageControl || IsDecoy;
         public string DisplayName => _displayName;
         public ModuleCategory Category => _category;
         public IReadOnlyList<Vector3Int> CellOffsets => _cellOffsets;
@@ -180,6 +184,9 @@ namespace SpaceStation.Data
         public bool OnDemandPower => _onDemandPower;
         public float MeteorWeightMultiplier => Mathf.Max(0f, _meteorWeightMultiplier);
         public bool Armored => _armored;
+        public int DecoyRadius => _decoyChance > 0f ? _decoyRadius : 0;
+        public float DecoyChance => _decoyChance;
+        public bool IsDecoy => DecoyRadius > 0;
         public float RepairTimeMultiplier => _repairTimeMultiplier > 0f ? _repairTimeMultiplier : 1f;
         public float CargoInterval => _cargoFraction > 0f ? _cargoInterval : 0f;
         public float CargoFraction => _cargoFraction;

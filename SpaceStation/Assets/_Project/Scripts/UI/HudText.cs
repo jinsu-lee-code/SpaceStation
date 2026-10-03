@@ -124,6 +124,12 @@ namespace SpaceStation.UI
                   .Append($"% <color={Muted}>(중첩 없음, 파손·비활성·전력 부족·노후 시 감소)</color>\n");
             if (data.IsDefense)
                 sb.Append($"<color={Muted}>파손·비활성·전력 부족·노후 시 효과 감소</color>\n");
+            if (data.IsDecoy)
+            {
+                int decoyRadius = fx != null ? fx.DecoyRadius(data) : data.DecoyRadius;
+                sb.Append("미끼: 반경 ").Append(decoyRadius).Append("칸 안 모듈을 노린 운석을 ")
+                  .Append((data.DecoyChance * 100f).ToString("0")).Append($"% 확률로 대신 맞음 <color={Muted}>(한 번에 격벽 하나당 1발, 파손 중에는 효과 없음)</color>\n");
+            }
             if (data.MeteorWeightMultiplier > 1.001f)
                 sb.Append("운석을 ").Append(data.MeteorWeightMultiplier.ToString("0.#")).Append($"배 잘 끌어당김 <color={Muted}>(외곽에 두면 다른 모듈 대신 맞음, 파손 중에는 효과 없음)</color>\n");
             if (data.Armored)

@@ -729,6 +729,7 @@ namespace SpaceStation.Simulation
             {
                 _plannedHits = RollMeteorHits();
                 Damage.PickMeteorTargets(Grid, Core, _plannedHits, _random01, _plannedTargets);
+                Defense.RedirectToDecoys(Grid, _plannedTargets, _random01); // 8-5 장갑 격벽 (예정 표시에도 반영)
             }
             if (had || _plannedHits > 0)
                 MeteorPlanChanged?.Invoke();
@@ -797,6 +798,7 @@ namespace SpaceStation.Simulation
             else
             {
                 Damage.PickMeteorTargets(Grid, Core, RollMeteorHits(), _random01, _meteorCandidates);
+                Defense.RedirectToDecoys(Grid, _meteorCandidates, _random01); // 8-5 장갑 격벽 끌어오기
             }
             if (_meteorCandidates.Count == 0)
             {

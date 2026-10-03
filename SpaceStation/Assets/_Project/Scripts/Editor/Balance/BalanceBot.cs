@@ -385,11 +385,22 @@ namespace SpaceStation.Editor.Balance
             {
                 bool already = data.IsShield ? _sim.Defense.GetShieldBlockChance(_sim.Grid, m) > 0.001f
                     : data.IsDamageControl ? _sim.Defense.GetDamageControl(_sim.Grid, m).DestroyMultiplier > 1.001f
+                    : data.IsDecoy ? IsNearDecoy(m)
                     : _sim.Defense.GetInterceptChance(_sim.Grid, m) >= _sim.Effects.TurretMaxIntercept - 1e-3f;
                 if (!already)
                     fresh++;
             }
             return fresh * 8f;
+        }
+
+        /// <summary>이미 다른 장갑 격벽의 끌어오기 범위 안인지.</summary>
+        private bool IsNearDecoy(ModuleInstance m)
+        {
+            foreach (var d in _sim.Grid.Modules)
+                if (d != m && d.Data != null && d.Data.IsDecoy
+                    && DefenseSystem.Distance(d.Cells, m.Cells) <= _sim.Effects.DecoyRadius(d.Data))
+                    return true;
+            return false;
         }
 
         private int DesiredRepairSlots()

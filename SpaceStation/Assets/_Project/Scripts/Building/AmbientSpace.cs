@@ -37,8 +37,10 @@ namespace SpaceStation.Building
         [SerializeField] private Vector2 _shipInterval = new Vector2(40f, 90f);
         [SerializeField] private float _shipCrossSeconds = 28f;
         [SerializeField] private float _shipScale = 0.9f;
-        [Tooltip("8-5 화물 터미널 화물선 길이 (격자 칸 기준, 모듈 크기에 맞춤)")]
+        [Tooltip("8-5 화물 터미널 화물선·채굴 도킹 채굴선 길이 (격자 칸 기준, 모듈 크기에 맞춤)")]
         [SerializeField] private float _cargoShipLength = 0.7f;
+        [Tooltip("8-5 채굴 도킹마다 채굴선이 오가는 간격 (초, 연출만)")]
+        [SerializeField] private Vector2 _miningShipInterval = new Vector2(60f, 90f);
 
         private readonly List<(Transform t, Vector3 spin)> _asteroids = new List<(Transform, Vector3)>();
         private Transform _asteroidRoot;
@@ -73,11 +75,57 @@ namespace SpaceStation.Building
         private void HandleCargoDelivered(ModuleInstance terminal, SpaceStation.Data.ResourceType type, float amount)
         {
             if (terminal?.Data != null)
-                StartCoroutine(CargoShip(terminal));
+                StartCoroutine(DockShip(terminal));
         }
 
-        /// <summary>8-5 화물선: 터미널 앞 접근로를 따라 들어와 입구 앞에 잠시 머물렀다가 같은 길로 나간다.</summary>
-        private IEnumerator CargoShip(ModuleInstance terminal)
+        /// <summary>
+        /// 8-5 채굴선 (연출만): 가동 중인 채굴 도킹마다 일정 간격으로 작은 채굴선이 접근로로 들어왔다 나간다.
+        /// 1초마다 확인하고, 처음 본 도킹은 간격 안 무작위 시점부터 (한꺼번에 몰리지 않게).
+        /// </summary>
+        private void UpdateMiningShips()
+        {
+            if (Time.time < _nextMiningCheck || _station == null || _station.Simulation == null)
+                return;
+            _nextMiningCheck = Time.time + 1f;
+            var sim = _station.Simulation;
+            _miningSeen.Clear();
+            foreach (var m in sim.Grid.Modules)
+            {
+                var data = m.Data;
+                if (data == null || !data.TerminalOnly || data.IsCargoTerminal)
+                    continue;
+                _miningSeen.Add(m);
+                if (!_station.Connectivity.IsActive(m) || sim.Damage.IsDamaged(m))
+                    continue;
+                if (!_nextMiningShip.TryGetValue(m, out float at))
+                {
+                    _nextMiningShip[m] = Time.time + Random.Range(5f, _miningShipInterval.y);
+                    continue;
+                }
+                if (Time.time < at)
+                    continue;
+                _nextMiningShip[m] = Time.time + Random.Range(_miningShipInterval.x, _miningShipInterval.y);
+                StartCoroutine(DockShip(m));
+            }
+            // 철거·파괴된 도킹 정리
+            _miningRemove.Clear();
+            foreach (var key in _nextMiningShip.Keys)
+                if (!_miningSeen.Contains(key))
+                    _miningRemove.Add(key);
+            foreach (var key in _miningRemove)
+                _nextMiningShip.Remove(key);
+        }
+
+        private readonly Dictionary<ModuleInstance, float> _nextMiningShip = new Dictionary<ModuleInstance, float>();
+        private readonly HashSet<ModuleInstance> _miningSeen = new HashSet<ModuleInstance>();
+        private readonly List<ModuleInstance> _miningRemove = new List<ModuleInstance>();
+        private float _nextMiningCheck;
+
+        /// <summary>지금까지 띄운 화물선·채굴선 수 (확인용).</summary>
+        public int DockShipsLaunched { get; private set; }
+
+        /// <summary>8-5 화물선·채굴선: 도킹 앞 접근로를 따라 들어와 입구 앞에 잠시 머물렀다가 같은 길로 나간다 (모듈 크기에 맞춘 작은 배).</summary>
+        private IEnumerator DockShip(ModuleInstance terminal)
         {
             if (_shipMesh == null)
                 yield break;
@@ -92,6 +140,8 @@ namespace SpaceStation.Building
             Vector3 hold = center + front * (GridConfig.CellSize * 1.0f) + Vector3.up * 0.05f;
             Vector3 far = hold + front * 30f + Vector3.up * 5f;
             var ship = SpawnShip(scale);
+            ship.name = "DockShip";
+            DockShipsLaunched++;
             yield return Move(ship.transform, far, hold, 4.5f, ease: true);
             ship.transform.rotation = Quaternion.LookRotation(-front); // 입구를 바라봄
             float wait = 0f;
@@ -119,6 +169,7 @@ namespace SpaceStation.Building
                 _nextShip = Time.time + Random.Range(_shipInterval.x, _shipInterval.y);
                 StartCoroutine(PassingShip());
             }
+            UpdateMiningShips();
         }
 
         // ---------------- 먼지 ----------------

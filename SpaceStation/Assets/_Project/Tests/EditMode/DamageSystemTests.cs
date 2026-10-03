@@ -260,6 +260,36 @@ namespace SpaceStation.Tests
             Assert.AreEqual(_damage.ModuleMeteorWeight(_grid, normal) * 3f, _damage.ModuleMeteorWeight(_grid, wall), Eps);
         }
 
+        [Test]
+        public void Decoy_RedirectsNearbyTargets_ByChance_OncePerArmor()
+        {
+            var armor = Armor();
+            var so = new SerializedObject(armor);
+            so.FindProperty("_decoyRadius").intValue = 2;
+            so.FindProperty("_decoyChance").floatValue = 0.5f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Assert.IsTrue(armor.IsDecoy && armor.IsDefense);
+
+            Assert.IsTrue(_grid.TryPlace(armor, Vector3Int.zero, 0, out var wall));
+            var near1 = Place(2);
+            var near2 = Place(0, 0, 2);
+            var far = Place(6);
+            float strength = 1f;
+            var defense = new DefenseSystem(_config, _ => strength);
+
+            var targets = new List<ModuleInstance> { near1, far, near2 };
+            defense.RedirectToDecoys(_grid, targets, () => 0.9f);
+            CollectionAssert.AreEqual(new[] { near1, far, near2 }, targets, "확률 실패면 그대로");
+
+            defense.RedirectToDecoys(_grid, targets, () => 0.1f);
+            CollectionAssert.AreEqual(new[] { wall, far, near2 }, targets, "첫 근처 대상만 격벽으로 (격벽 하나당 1발), 범위 밖은 그대로");
+
+            targets = new List<ModuleInstance> { near1 };
+            strength = 0f;
+            defense.RedirectToDecoys(_grid, targets, () => 0.1f);
+            Assert.AreSame(near1, targets[0], "파손·비활성 격벽은 끌어오지 않음");
+        }
+
         // ---------------- 8-3 손상 통제 ----------------
 
         [Test]

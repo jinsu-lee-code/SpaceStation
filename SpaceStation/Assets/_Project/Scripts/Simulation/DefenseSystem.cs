@@ -82,7 +82,61 @@ namespace SpaceStation.Simulation
         }
 
         /// <summary>미리보기 반경 (연구 반영). 방어 모듈이 아니면 0.</summary>
-        public int RangeOf(ModuleData data) => Math.Max(Effects.ControlRadius(data), Math.Max(Effects.ShieldRadius(data), Effects.TurretRadius(data)));
+        public int RangeOf(ModuleData data) => Math.Max(Math.Max(Effects.DecoyRadius(data), Effects.ControlRadius(data)), Math.Max(Effects.ShieldRadius(data), Effects.TurretRadius(data)));
+
+        /// <summary>
+        /// 8-5 장갑 격벽 끌어오기: 운석 대상 목록에서, 가동 중인(활성·정상) 미끼 반경 안의 모듈을 노린 운석을 확률로 가장 가까운 미끼로 돌린다.
+        /// 미끼 하나는 한 이벤트에 1발까지 (맞으면 파손돼 다음부터 대상에서 빠짐). 이미 대상인 미끼는 쓰지 않는다.
+        /// </summary>
+        public void RedirectToDecoys(StationGrid grid, List<ModuleInstance> targets, Func<float> random01)
+        {
+            _decoys.Clear();
+            foreach (var m in grid.Modules)
+            {
+                if (m.Data != null && m.Data.IsDecoy && GetStrength(m) > 0f && !targets.Contains(m))
+                    _decoys.Add(m);
+            }
+            if (_decoys.Count == 0)
+                return;
+            for (int i = 0; i < targets.Count; i++)
+            {
+                var target = targets[i];
+                if (target.Data != null && target.Data.IsDecoy)
+                    continue;
+                ModuleInstance best = null;
+                int bestDist = int.MaxValue;
+                foreach (var d in _decoys)
+                {
+                    int dist = Distance(d.Cells, target.Cells);
+                    if (dist <= Effects.DecoyRadius(d.Data) && dist < bestDist)
+                    {
+                        best = d;
+                        bestDist = dist;
+                    }
+                }
+                if (best == null || random01() >= best.Data.DecoyChance)
+                    continue;
+                targets[i] = best;
+                _decoys.Remove(best);
+                if (_decoys.Count == 0)
+                    return;
+            }
+        }
+
+        private readonly List<ModuleInstance> _decoys = new List<ModuleInstance>();
+
+        /// <summary>두 셀 집합 사이의 최소 체비셰프 거리.</summary>
+        public static int Distance(IReadOnlyList<Vector3Int> a, IReadOnlyList<Vector3Int> b)
+        {
+            int best = int.MaxValue;
+            for (int i = 0; i < a.Count; i++)
+                for (int j = 0; j < b.Count; j++)
+                {
+                    var d = a[i] - b[j];
+                    best = Math.Min(best, Math.Max(Math.Abs(d.x), Math.Max(Math.Abs(d.y), Math.Abs(d.z))));
+                }
+            return best;
+        }
 
         /// <summary>
         /// 8-3 손상 통제: 이 모듈이 파손됐을 때 적용될 (확산 시간 배율, 파괴 시간 배율). 범위 안 통제실 중 가장 강한 것 하나,
@@ -119,7 +173,7 @@ namespace SpaceStation.Simulation
             results?.Clear();
             if (data == null || !data.IsDefense)
                 return 0;
-            int radius = Math.Max(data.ControlRadius, Math.Max(data.ShieldRadius, data.TurretRadius)) + radiusBonus;
+            int radius = Math.Max(Math.Max(data.DecoyRadius, data.ControlRadius), Math.Max(data.ShieldRadius, data.TurretRadius)) + radiusBonus;
             int count = 0;
             foreach (var m in grid.Modules)
             {
