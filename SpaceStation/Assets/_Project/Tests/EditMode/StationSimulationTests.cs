@@ -196,6 +196,21 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void OxygenLeak_LossCappedByMaxRatio()
+        {
+            // 8-6: 손실 비율 × 등급 강도가 상한(70%)을 넘지 않음
+            var leak = Create<OxygenLeakEventData>();
+            var so = new SerializedObject(leak);
+            so.FindProperty("_stockLossRatio").floatValue = 0.9f;
+            so.FindProperty("_maxLossRatio").floatValue = 0.7f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var sim = Sim();
+            sim.Resources.SetStock(ResourceType.Oxygen, 100f);
+            Assert.IsTrue(sim.Events.Trigger(leak));
+            Assert.AreEqual(30f, sim.Resources.GetStock(ResourceType.Oxygen), Eps);
+        }
+
+        [Test]
         public void RotatingRing_ShortensGrowthInterval_NoStacking_StopsWhenDamaged()
         {
             // 8-4: 가동 중인 링 → 인구 증가 간격 ×0.8, 여러 개 중첩 없음, 파손이면 효과 없음

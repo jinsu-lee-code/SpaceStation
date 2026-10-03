@@ -689,7 +689,7 @@ namespace SpaceStation.Simulation
                     ApplyMeteor();
                     break;
                 case OxygenLeakEventData leak:
-                    float ratio = Math.Min(1f, leak.StockLossRatio * EventIntensity);
+                    float ratio = Math.Min(leak.MaxLossRatio, leak.StockLossRatio * EventIntensity); // 8-6 상한 (노멀 70%)
                     float lost = Resources.RemoveStock(ResourceType.Oxygen, Resources.GetStock(ResourceType.Oxygen) * ratio);
                     Report($"산소 -{lost:0.#} ({ratio * 100f:0}%)", false);
                     break;
