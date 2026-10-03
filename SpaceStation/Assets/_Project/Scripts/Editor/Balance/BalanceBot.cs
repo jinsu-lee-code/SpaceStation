@@ -637,25 +637,34 @@ namespace SpaceStation.Editor.Balance
             return found;
         }
 
-        /// <summary>인접 효과 점수: 자신에게 생길 효과(생산 +, 소비 −, 수용 인구 +)와 이웃에게 줄 효과 개수.</summary>
+        /// <summary>
+        /// 인접 효과 점수: 자신에게 생길 효과와 이웃에게 새로 생길 효과를 같은 가중치로 (생산 +, 소비 −, 수용 인구 +).
+        /// 7-6: 이웃 효과도 부호를 반영 (예전엔 개수만 세어 핵융합로를 거주 옆에 두는 것도 가산됐음).
+        /// </summary>
         private float AdjacencyScore(ModuleData data, Vector3Int origin, int rotation)
         {
             _sim.PreviewAdjacency(data, origin, rotation, _previewSelf, _previewNeighbors);
             float score = 0f;
             foreach (var a in _previewSelf)
+                score += EffectScore(a.Rule.Effect, a.Total);
+            foreach (var n in _previewNeighbors)
+                score += EffectScore(n.Rule.Effect, n.Total);
+            return score;
+        }
+
+        private static float EffectScore(AdjacencyEffect effect, float total)
+        {
+            switch (effect)
             {
-                switch (a.Rule.Effect)
-                {
-                    case AdjacencyEffect.Production: score += a.Total * 30f; break;
-                    case AdjacencyEffect.Consumption: score -= a.Total * 15f; break;
-                    case AdjacencyEffect.Housing: score += a.Total * 3f; break;
-                }
+                case AdjacencyEffect.Production: return total * 30f;
+                case AdjacencyEffect.Consumption: return -total * 15f;
+                case AdjacencyEffect.Housing: return total * 3f;
+                default: return 0f;
             }
-            return score + _previewNeighbors.Count * 2f; // 이웃 효과는 부호를 모르므로 약하게
         }
 
         private readonly List<AppliedAdjacency> _previewSelf = new List<AppliedAdjacency>();
-        private readonly List<string> _previewNeighbors = new List<string>();
+        private readonly List<NeighborAdjacencyPreview> _previewNeighbors = new List<NeighborAdjacencyPreview>();
 
         /// <summary>제련소를 이 자리에 놓으면 맞닿게 되는 채굴 도킹 중 아직 제련소와 맞닿지 않은 것의 수.</summary>
         private int FreshDocksAt(Vector3Int origin, int rotation)

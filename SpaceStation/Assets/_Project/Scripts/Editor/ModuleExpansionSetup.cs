@@ -140,6 +140,13 @@ namespace SpaceStation.Editor
         {
             // 8-2 채굴 도킹 옆 제련소: 금속 생산 +50% (제련소 여러 개여도 1번만)
             new AdjDef { Target = "MiningDock", Neighbor = "Refinery", Effect = AdjacencyEffect.Production, Value = 0.5f, MaxStacks = 1, Label = "제련 가공" },
+            // 7-6 인접 효과 추가 (Phase 8 모듈과 묶음)
+            new AdjDef { Target = "Habitat", Neighbor = "FusionReactor", Effect = AdjacencyEffect.Housing, Value = -2f, MaxStacks = 2, Label = "방사선" },
+            new AdjDef { Target = "FusionReactor", Neighbor = "WaterRecycler", Effect = AdjacencyEffect.Consumption, Value = -0.25f, MaxStacks = 2, Label = "냉각수 공유" },
+            new AdjDef { Target = "Oxygen", Neighbor = "WaterRecycler", Effect = AdjacencyEffect.Consumption, Value = -0.2f, MaxStacks = 2, Label = "전기분해 보조" },
+            new AdjDef { Target = "FuelCell", Neighbor = "WaterRecycler", Effect = AdjacencyEffect.Consumption, Value = -0.25f, MaxStacks = 1, Label = "연료 공급" },
+            new AdjDef { Target = "Habitat", Neighbor = "Refinery", Effect = AdjacencyEffect.Housing, Value = -2f, MaxStacks = 3, Label = "공장 소음" },
+            new AdjDef { Target = "Habitat", Neighbor = "Farm", Effect = AdjacencyEffect.Housing, Value = 1f, MaxStacks = 2, Label = "녹지" },
         };
 
         [MenuItem("SpaceStation/Modules/Phase 8 Setup")]
