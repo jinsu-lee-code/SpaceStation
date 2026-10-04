@@ -31,6 +31,9 @@ namespace SpaceStation.Editor
         public const string GrowPath = MaterialFolder + "/M_InteriorGrow.mat";
         public const string LiquidPath = MaterialFolder + "/M_InteriorO2Liquid.mat";
         public const string ScreenPath = MaterialFolder + "/M_InteriorScreen.mat";
+        public const string MetalPath = MaterialFolder + "/M_InteriorMetal.mat";
+        public const string DevicePath = MaterialFolder + "/M_InteriorDevice.mat";
+        public const string LockerPath = MaterialFolder + "/M_InteriorLocker.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
         private const string RpAssetPath = "Assets/Settings/PC_RPAsset.asset";
         private const string RendererPath = "Assets/Settings/PC_Renderer.asset";
@@ -336,7 +339,13 @@ namespace SpaceStation.Editor
             EditorUtility.SetDirty(grow);
 
             // 11-5 산소 생성기: 탱크 속 청록 액체(발광, 매끈) · 콘솔 화면(어두운 청록 발광)
-            Emissive(LiquidPath, new Color(0.3f, 0.85f, 0.95f), new Color(0.15f, 0.75f, 0.95f) * 1.6f, 0.9f);
+            // 액체 광택 0.9는 방 조명이 한쪽에 강한 반사 줄을 만들어 한쪽만 밝아 보였음 → 0.5
+            Emissive(LiquidPath, new Color(0.3f, 0.85f, 0.95f), new Color(0.15f, 0.75f, 0.95f) * 1.6f, 0.5f);
+
+            // 장비 재질 (벽 패널 무늬 없는 단색): 배관 금속 · 장비(이음·책상·화면 테두리) · 도장 사물함
+            Plain(MetalPath, new Color(0.62f, 0.64f, 0.67f), 0.75f, 0.55f);
+            Plain(DevicePath, new Color(0.2f, 0.21f, 0.23f), 0.2f, 0.45f);
+            Plain(LockerPath, new Color(0.5f, 0.55f, 0.6f), 0.35f, 0.4f);
             Emissive(ScreenPath, new Color(0.05f, 0.18f, 0.22f), new Color(0.1f, 0.55f, 0.7f) * 1.8f, 0.85f);
 
             // 11-4 템플릿 창 유리: 반투명, 살짝 푸른 반사
@@ -363,6 +372,17 @@ namespace SpaceStation.Editor
             status.enableInstancing = true;
             EditorUtility.SetDirty(status);
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>단색 URP Lit 재질 (장비·가구: 벽 패널 트라이플래너를 쓰지 않음)</summary>
+        private static void Plain(string path, Color color, float metallic, float smoothness)
+        {
+            var m = LoadOrCreate(path, Shader.Find("Universal Render Pipeline/Lit"));
+            m.SetColor("_BaseColor", color);
+            m.SetFloat("_Metallic", metallic);
+            m.SetFloat("_Smoothness", smoothness);
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
         }
 
         /// <summary>발광 URP Lit 재질 (조명 판·액체·화면 등)</summary>

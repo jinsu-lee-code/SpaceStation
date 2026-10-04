@@ -177,9 +177,9 @@ namespace SpaceStation.Editor
                 LightSpec.Point(new Vector3(2.2f, F + 3.0f, 2.2f), 4.5f, 1.6f, room),
                 LightSpec.Point(new Vector3(-2.2f, F + 3.0f, -2.2f), 4.5f, 1.6f, room),
                 LightSpec.Point(new Vector3(2.2f, F + 3.0f, -2.2f), 4.5f, 1.6f, room),
-                // 탱크 관찰창의 청록 번짐 + 위 수직 공간
-                LightSpec.Point(new Vector3(-1.2f, F + 1.65f, -1.0f), 3.5f, 1.4f, cyan),
-                LightSpec.Point(new Vector3(1.2f, F + 1.65f, 1.0f), 3.5f, 1.4f, cyan),
+                // 탱크 관찰창의 청록 번짐: 탱크 중심에 두어 사방으로 고르게 (바깥 한쪽에 두면 그쪽만 과하게 밝았음)
+                LightSpec.Point(new Vector3(-1.2f, F + 1.65f, 0f), 4f, 1.6f, cyan),
+                LightSpec.Point(new Vector3(1.2f, F + 1.65f, 0f), 4f, 1.6f, cyan),
                 LightSpec.Point(new Vector3(0f, 3.1f, 0f), 4f, 1.6f, cyan),
             };
             Build("Oxygen", "MD_Oxygen", sockets, new Vector3(0f, F, -2.6f), 0f, lights);
@@ -230,6 +230,9 @@ namespace SpaceStation.Editor
                 { "Grow", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.GrowPath) },
                 { "O2Liquid", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.LiquidPath) },
                 { "Screen", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath) },
+                { "Metal", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.MetalPath) },
+                { "Device", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.DevicePath) },
+                { "Locker", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.LockerPath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);
