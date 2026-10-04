@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using SpaceStation.Core;
 using SpaceStation.Data;
 using UnityEngine;
@@ -14,22 +14,19 @@ namespace SpaceStation.Interior
     }
 
     /// <summary>
-    /// Phase 11 내부 생성: <see cref="InteriorLayout"/>을 벽 키트(<see cref="InteriorKit"/>, 11-2a)로 만든다.
-    /// 칸 하나 = <see cref="RoomSize"/>m 정육면체. 충돌은 보이지 않는 상자 콜라이더(벽·바닥·천장·문 구멍)로 따로 둔다.
-    /// 키트의 강조 슬롯은 그 모듈의 강조색 재질로 바꾸고, 문 상태등은 너머 방 상태(정상 청록 / 비활성·파손 빨강).
-    /// 키트가 없으면 11-1 그레이박스 큐브(분류별 색)로 대신한다.
-    /// 비활성·파손 방은 슬롯별 MaterialPropertyBlock으로 어둡게 (정상 방은 블록을 비워 SRP Batcher 유지).
+    /// Phase 11 내부 생성 (11-3: 1칸 = 8m, <see cref="InteriorGeometry"/>).
+    /// 모듈마다 템플릿(<see cref="InteriorTemplate"/>)이 있으면 그 프리팹 + 문 자리 채우기, 없으면 벽 키트 대체 방(+ 여러 층이면 11-2b 발코니·나선 계단).
+    /// 통로(<see cref="InteriorLayout"/>의 문·해치 면)는 양쪽 방이 모두 문을 낼 수 있을 때만 열린다 (템플릿은 문 자리가 있어야 함).
+    /// 수평 통로는 양쪽 벽 바깥면을 잇는 연결 튜브 + 방마다 미닫이 문(에어록), 수직 통로는 해치(F 이동).
+    /// 충돌은 보이지 않는 상자(Colliders)로 따로 둔다 (템플릿 프리팹은 자기 콜라이더를 가짐).
+    /// 키트 강조 슬롯 = 그 방 모듈의 강조색, 문 상태등 = 너머 방 상태(청록 / 빨강).
+    /// 비활성·파손 방은 슬롯별 MaterialPropertyBlock으로 어둡게 (정상 방은 블록을 비워 SRP Batcher 유지). 키트가 없으면 큐브로 대신한다.
     /// </summary>
     public sealed class InteriorBuilder
     {
-        /// <summary>내부 1칸의 크기 (m). 외부 1칸(1유닛)을 사람 크기로 키운 값.</summary>
-        public const float RoomSize = 4f;
-        public const float Thickness = 0.2f;
-        public const float DoorWidth = 1.4f;
-        public const float DoorHeight = 2.4f;
-        public const float HatchSize = 1.4f;
         private const float LightIntensity = 5f;
         private const float Dark = 0.35f;
+        private const float RailPostSpacing = 1.6f;
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
@@ -38,6 +35,7 @@ namespace SpaceStation.Interior
         private static readonly Color FloorShade = new Color(0.55f, 0.55f, 0.57f);
         private static readonly Color DoorFrame = new Color(0.30f, 0.75f, 0.85f);
         private static readonly Color HatchColor = new Color(0.95f, 0.75f, 0.20f);
+        private static readonly Color TubeColor = new Color(0.75f, 0.77f, 0.80f);
         private static readonly Color StatusOk = new Color(0.25f, 0.9f, 1f) * 3f;
         private static readonly Color StatusWarn = new Color(1f, 0.12f, 0.08f) * 4f;
 
@@ -53,6 +51,7 @@ namespace SpaceStation.Interior
         private readonly Transform _root;
         private readonly InteriorKit _kit;
         private readonly Material _material;
+        private readonly Dictionary<ModuleData, InteriorTemplate> _templates = new Dictionary<ModuleData, InteriorTemplate>();
         private readonly MaterialPropertyBlock _block = new MaterialPropertyBlock();
         private readonly MaterialPropertyBlock _empty = new MaterialPropertyBlock();
         private readonly Dictionary<ModuleInstance, List<Piece>> _roomPieces = new Dictionary<ModuleInstance, List<Piece>>();
@@ -62,27 +61,53 @@ namespace SpaceStation.Interior
         private readonly List<(Piece Piece, ModuleInstance Other)> _statusLights = new List<(Piece, ModuleInstance)>();
         private readonly HashSet<ModuleInstance> _dimmed = new HashSet<ModuleInstance>();
         private readonly List<InteriorDoor> _doors = new List<InteriorDoor>();
+        /// <summary>열린 통로 면 (칸, 방향) — 양쪽 모두 들어 있다.</summary>
+        private readonly HashSet<(Vector3Int, Vector3Int)> _open = new HashSet<(Vector3Int, Vector3Int)>();
+        private readonly List<WallPanel> _wallBuffer = new List<WallPanel>();
+        private readonly List<FloorRect> _floorBuffer = new List<FloorRect>();
         private Transform _colliders;
+        private InteriorLayout _layout;
 
-        public InteriorBuilder(Transform root, InteriorKit kit, Material fallbackMaterial)
+        public InteriorBuilder(Transform root, InteriorKit kit, Material fallbackMaterial, IEnumerable<InteriorTemplate> templates)
         {
             _root = root;
             _kit = kit != null && kit.IsComplete ? kit : null;
             _material = fallbackMaterial;
+            if (templates != null)
+            {
+                foreach (var t in templates)
+                {
+                    if (t != null && t.Module != null && t.Prefab != null)
+                        _templates[t.Module] = t;
+                }
+            }
         }
 
         public bool UsesKit => _kit != null;
 
         /// <summary>칸 중심의 월드 위치.</summary>
-        public Vector3 CellCenter(Vector3Int cell) => _root.position + new Vector3(cell.x, cell.y, cell.z) * RoomSize;
+        public Vector3 CellCenter(Vector3Int cell) => _root.position + InteriorGeometry.CellCenter(cell);
 
         /// <summary>칸 바닥 윗면 높이의 중심점.</summary>
-        public Vector3 FloorPoint(Vector3Int cell) => CellCenter(cell) + Vector3.up * (-RoomSize * 0.5f + Thickness);
+        public Vector3 FloorPoint(Vector3Int cell) => CellCenter(cell) + Vector3.up * InteriorGeometry.FloorOffset;
 
         public Vector3Int WorldToCell(Vector3 world)
         {
-            var local = (world - _root.position) / RoomSize;
+            var local = (world - _root.position) / InteriorGeometry.CellSize;
             return new Vector3Int(Mathf.RoundToInt(local.x), Mathf.RoundToInt(local.y), Mathf.RoundToInt(local.z));
+        }
+
+        /// <summary>들어갈 때 서는 곳 (템플릿 지정 또는 원점 칸 바닥 가운데).</summary>
+        public Vector3 SpawnPoint(ModuleInstance module, out float yaw)
+        {
+            if (module.Data != null && _templates.TryGetValue(module.Data, out var t))
+            {
+                var rotation = GridDirections.ToQuaternion(module.Rotation);
+                yaw = module.Rotation * 90f + t.SpawnYaw;
+                return CellCenter(module.Origin) + rotation * t.Spawn;
+            }
+            yaw = module.Rotation * 90f;
+            return FloorPoint(module.Origin);
         }
 
         public void Clear()
@@ -95,13 +120,28 @@ namespace SpaceStation.Interior
             _statusLights.Clear();
             _dimmed.Clear();
             _doors.Clear();
+            _open.Clear();
+            _layout = null;
         }
 
         public void Build(InteriorLayout layout, Transform player)
         {
             Clear();
+            _layout = layout;
             _colliders = new GameObject("Colliders").transform;
             _colliders.SetParent(_root, false);
+
+            // 1) 열린 통로: 양쪽 방이 모두 그 면에 문을 낼 수 있어야
+            foreach (var face in layout.Faces)
+            {
+                if (face.Kind != InteriorFaceKind.Door && face.Kind != InteriorFaceKind.Hatch)
+                    continue;
+                layout.TryGetRoom(face.Cell, out var a);
+                layout.TryGetRoom(face.OtherCell, out var b);
+                if (Accepts(a.Module, face.Cell, face.Direction) && Accepts(b.Module, face.OtherCell, -face.Direction))
+                    _open.Add((face.Cell, face.Direction));
+            }
+
             var parents = new Dictionary<ModuleInstance, Transform>();
             foreach (var room in layout.Rooms)
             {
@@ -110,105 +150,53 @@ namespace SpaceStation.Interior
                 parents.Add(room.Module, go.transform);
                 _roomPieces.Add(room.Module, new List<Piece>());
                 _roomColors.Add(room.Module, RoomColor(room.Module.Data));
-                BuildRoomLight(room, go.transform);
-            }
-            foreach (var face in layout.Faces)
-            {
-                if (face.Kind == InteriorFaceKind.Open)
-                    continue;
-                layout.TryGetRoom(face.Cell, out var room);
-                layout.TryGetRoom(face.OtherCell, out var other);
-                BuildFace(face, room.Module, other?.Module, parents[room.Module]);
             }
             foreach (var room in layout.Rooms)
-                BuildBalcony(room, parents[room.Module]);
+            {
+                var parent = parents[room.Module];
+                if (room.Module.Data != null && _templates.TryGetValue(room.Module.Data, out var template))
+                    BuildTemplateRoom(room, template, parent);
+                else
+                    BuildFallbackRoom(room, parent);
+                BuildRoomLights(room, parent);
+            }
+
+            // 2) 수평 통로마다 튜브 하나 (키상 작은 칸 쪽에서)
+            var tubes = new GameObject("Tubes").transform;
+            tubes.SetParent(_root, false);
+            foreach (var (cell, dir) in _open)
+            {
+                if (dir.y != 0 || ConnectorLayout.MakeKey(cell, cell + dir).Item1 != cell)
+                    continue;
+                layout.TryGetRoom(cell, out var a);
+                layout.TryGetRoom(cell + dir, out var b);
+                var span = InteriorGeometry.Tube(cell, dir, DoorDepth(a.Module, cell, dir), DoorDepth(b.Module, cell + dir, -dir));
+                BuildTube(span, tubes);
+            }
+
             foreach (var door in _doors)
                 door.SetPlayer(player);
         }
 
-        // ---------------- 11-2b 발코니·나선 계단 ----------------
-
-        private const float RailPostSpacing = 1.6f;
-
-        private void BuildBalcony(InteriorRoom room, Transform parent)
+        private bool Accepts(ModuleInstance module, Vector3Int cell, Vector3Int dir)
         {
-            var plan = InteriorBalcony.Build(room.Cells, RoomSize, Thickness);
-            if (plan.IsEmpty)
-                return;
-            var origin = _root.position;
-            var module = room.Module;
-            bool art = _kit != null && _kit.HasBalcony;
-            var color = _roomColors[module];
-
-            foreach (var deck in plan.Decks)
-                Deck(deck, origin, module, parent, art, color);
-            foreach (var rail in plan.Rails)
-                Rail(rail, origin, module, parent, art, color);
-            if (!plan.HasStair)
-                return;
-
-            Deck(plan.Bridge, origin, module, parent, art, color);
-            var stair = new GameObject("SpiralStair").transform;
-            stair.SetParent(parent, false);
-            var basePoint = origin + plan.StairBase;
-            float stepAngle = 360f / InteriorBalcony.StairSteps;
-            float lastAngle = Mathf.Atan2(plan.BridgeDirection.z, plan.BridgeDirection.x) * Mathf.Rad2Deg;
-            float stepRise = plan.StairRise / InteriorBalcony.StairSteps;
-            for (int i = 0; i < InteriorBalcony.StairSteps; i++)
-            {
-                float angle = lastAngle - (InteriorBalcony.StairSteps - 1 - i) * stepAngle;
-                var rotation = Quaternion.Euler(0f, -angle, 0f); // +X → (cos, 0, sin)
-                var top = basePoint + Vector3.up * (stepRise * (i + 1));
-                var dir = rotation * Vector3.right;
-                Solid(top + dir * 0.8f - Vector3.up * 0.04f, rotation, new Vector3(1.25f, 0.08f, 0.36f));
-                if (art)
-                    KitPiece(_kit.StairStep, module, stair, top, rotation);
-                else
-                    Cube(stair, module, top + dir * 0.8f - Vector3.up * 0.04f, rotation, new Vector3(1.25f, 0.08f, 0.36f), color);
-            }
-            float poleHeight = plan.StairRise + 1.1f;
-            Solid(basePoint + Vector3.up * (poleHeight * 0.5f), Quaternion.identity, new Vector3(0.34f, poleHeight, 0.34f));
-            if (art)
-                KitPiece(_kit.StairPole, module, stair, basePoint, Quaternion.identity, new Vector3(1f, poleHeight, 1f));
-            else
-                Cube(stair, module, basePoint + Vector3.up * (poleHeight * 0.5f), Quaternion.identity, new Vector3(0.34f, poleHeight, 0.34f), DoorFrame);
+            if (module.Data == null || !_templates.TryGetValue(module.Data, out var t))
+                return true;
+            return t.TryGetSocket(module.Origin, module.Rotation, cell, dir, out _);
         }
 
-        private void Deck(BalconyDeck deck, Vector3 origin, ModuleInstance module, Transform parent, bool art, Color color)
+        /// <summary>칸 중심에서 그 면의 문 벽 바깥면까지 (템플릿 문 자리 깊이 / 대체 방 벽 깊이).</summary>
+        private float DoorDepth(ModuleInstance module, Vector3Int cell, Vector3Int dir)
         {
-            // 키트 띠는 로컬 Z = 길이, +X = 트인 쪽
-            var rotation = Quaternion.LookRotation(deck.Along, Vector3.up);
-            if (Vector3.Dot(rotation * Vector3.right, deck.Inward) < 0f)
-                rotation = Quaternion.LookRotation(-deck.Along, Vector3.up);
-            var top = origin + deck.Center;
-            var size = new Vector3(InteriorBalcony.DeckWidth, Thickness, deck.Length);
-            Solid(top - Vector3.up * (Thickness * 0.5f), rotation, size);
-            if (art)
-                KitPiece(_kit.Deck, module, parent, top, rotation, new Vector3(1f, 1f, deck.Length));
-            else
-                Cube(parent, module, top - Vector3.up * (Thickness * 0.5f), rotation, size, Multiply(color, FloorShade));
+            if (module.Data != null && _templates.TryGetValue(module.Data, out var t) && t.TryGetSocket(module.Origin, module.Rotation, cell, dir, out var s))
+                return s.Depth;
+            return InteriorGeometry.FallbackDepth;
         }
 
-        private void Rail(BalconyRail rail, Vector3 origin, ModuleInstance module, Transform parent, bool art, Color color)
+        private ModuleInstance OtherRoom(Vector3Int cell, Vector3Int dir)
         {
-            var start = origin + rail.Start;
-            var end = origin + rail.End;
-            var dir = (end - start).normalized;
-            float length = rail.Length;
-            var rotation = Quaternion.LookRotation(Vector3.Cross(dir, Vector3.up), Vector3.up); // 로컬 X = dir
-            var mid = (start + end) * 0.5f;
-            Solid(mid + Vector3.up * 0.55f, rotation, new Vector3(length, 1.1f, 0.1f));
-            if (!art)
-            {
-                Cube(parent, module, mid + Vector3.up * 1.0f, rotation, new Vector3(length, 0.06f, 0.06f), DoorFrame);
-                return;
-            }
-            KitPiece(_kit.RailBar, module, parent, mid, rotation, new Vector3(length, 1f, 1f));
-            int posts = Mathf.Max(1, Mathf.CeilToInt(length / RailPostSpacing));
-            for (int i = 0; i <= posts; i++)
-                KitPiece(_kit.RailPost, module, parent, Vector3.Lerp(start, end, i / (float)posts), rotation);
+            return _layout.TryGetRoom(cell + dir, out var r) ? r.Module : null;
         }
-
 
         /// <summary>비활성·파손 방은 어둡게 (색·발광 낮춤 + 조명 약하게). 그 방으로 가는 문 상태등은 빨강.</summary>
         public void SetRoomDim(ModuleInstance module, bool dim)
@@ -269,66 +257,107 @@ namespace SpaceStation.Interior
             piece.Renderer.SetPropertyBlock(_block, piece.StatusSlot);
         }
 
-        // ---------------- 면 ----------------
+        // ---------------- 템플릿 방 ----------------
 
-        private void BuildFace(InteriorFace face, ModuleInstance module, ModuleInstance other, Transform parent)
+        private void BuildTemplateRoom(InteriorRoom room, InteriorTemplate template, Transform parent)
         {
-            var center = CellCenter(face.Cell);
-            float half = RoomSize * 0.5f;
-            var dir = (Vector3)face.Direction;
+            var module = room.Module;
+            var rotation = GridDirections.ToQuaternion(module.Rotation);
+            var instance = Object.Instantiate(template.Prefab, CellCenter(module.Origin), rotation, parent);
+            instance.name = template.Prefab.name;
+            foreach (var r in instance.GetComponentsInChildren<Renderer>())
+                _roomPieces[module].Add(new Piece { Renderer = r, BaseColors = BaseColors(r.sharedMaterials) });
 
-            if (face.Direction.y != 0)
+            foreach (var socket in template.Sockets)
             {
-                BuildFloorOrCeiling(face, module, parent, center, half);
-                return;
+                var cell = module.Origin + GridDirections.Rotate(socket.Cell, module.Rotation);
+                var dir = GridDirections.Rotate(socket.Direction, module.Rotation);
+                bool open = _open.Contains((cell, dir));
+                if (dir.y != 0)
+                {
+                    if (open)
+                        BuildHatch(module, parent, CellCenter(cell) + (Vector3)dir * socket.Depth, dir.y < 0, cell, dir);
+                    continue;
+                }
+                var center = CellCenter(cell) + (Vector3)dir * socket.Depth;
+                center.y = _root.position.y + InteriorGeometry.FloorY(cell) + InteriorGeometry.PanelCenterAboveFloor;
+                Panel(new WallPanel(center - _root.position, dir, InteriorGeometry.PanelWidth, open), module, parent, open ? OtherRoom(cell, dir) : null);
             }
+        }
 
-            // 벽: 면 로컬 right = 가로, up = 위, forward = 바깥 (키트 벽은 -Z 쪽 방 안으로 두께)
-            var rotation = Quaternion.LookRotation(dir, Vector3.up);
+        // ---------------- 대체 방 (벽 키트) ----------------
+
+        private void BuildFallbackRoom(InteriorRoom room, Transform parent)
+        {
+            var module = room.Module;
+            var doors = new HashSet<(Vector3Int, Vector3Int)>();
+            foreach (var (cell, dir) in _open)
+            {
+                if (_layout.TryGetRoom(cell, out var r) && r.Module == module)
+                    doors.Add((cell, dir));
+            }
+            InteriorGeometry.FallbackWalls(room.Cells, doors, _wallBuffer);
+            foreach (var panel in _wallBuffer)
+            {
+                ModuleInstance other = null;
+                if (panel.Door)
+                {
+                    var cell = WorldToCell(_root.position + panel.Center - panel.Normal * InteriorGeometry.FallbackDepth);
+                    other = OtherRoom(cell, Vector3Int.RoundToInt(panel.Normal));
+                }
+                Panel(panel, module, parent, other);
+            }
+            InteriorGeometry.FallbackFloors(room.Cells, doors, _floorBuffer);
+            foreach (var rect in _floorBuffer)
+                FloorPanel(rect, module, parent);
+            BuildBalcony(room, parent);
+        }
+
+        private void Panel(WallPanel panel, ModuleInstance module, Transform parent, ModuleInstance other)
+        {
+            var rotation = Quaternion.LookRotation(panel.Normal, Vector3.up);
+            var center = _root.position + panel.Center;
             var right = rotation * Vector3.right;
-            var facePoint = center + dir * half;
-            var panelCenter = center + dir * (half - Thickness * 0.5f);
+            float t = InteriorGeometry.Thickness;
+            float h = InteriorGeometry.PanelHeight;
+            var solidCenter = center - panel.Normal * (t * 0.5f);
             var color = _roomColors[module];
 
-            if (face.Kind == InteriorFaceKind.Wall)
+            if (!panel.Door)
             {
-                Solid(panelCenter, rotation, new Vector3(RoomSize, RoomSize, Thickness));
+                Solid(solidCenter, rotation, new Vector3(panel.Width, h, t));
                 if (_kit != null)
-                    KitPiece(_kit.Wall, module, parent, facePoint, rotation);
+                    KitPiece(_kit.Wall, module, parent, center, rotation, new Vector3(panel.Width / InteriorGeometry.PanelWidth, 1f, 1f));
                 else
-                    Cube(parent, module, panelCenter, rotation, new Vector3(RoomSize, RoomSize, Thickness), color);
+                    Cube(parent, module, solidCenter, rotation, new Vector3(panel.Width, h, t), color);
                 return;
             }
 
-            // 문: 충돌 = 왼쪽·오른쪽 기둥, 위 인방 (문턱은 바닥 판이 막음)
-            float side = (RoomSize - DoorWidth) * 0.5f;
-            float floorTop = -half + Thickness;
-            float lintel = half - (floorTop + DoorHeight);
+            // 문 패널: 충돌 = 양옆 기둥 + 위 인방 (문턱은 바닥이 막음)
+            float dw = InteriorGeometry.DoorWidth;
+            float side = (panel.Width - dw) * 0.5f;
+            float doorBottom = -InteriorGeometry.PanelCenterAboveFloor; // 패널 가운데 기준
+            float doorTop = doorBottom + InteriorGeometry.DoorHeight;
+            float lintel = h * 0.5f - doorTop;
             var up = Vector3.up;
-            Solid(panelCenter - right * (DoorWidth * 0.5f + side * 0.5f), rotation, new Vector3(side, RoomSize, Thickness));
-            Solid(panelCenter + right * (DoorWidth * 0.5f + side * 0.5f), rotation, new Vector3(side, RoomSize, Thickness));
-            Solid(panelCenter + up * (half - lintel * 0.5f), rotation, new Vector3(DoorWidth, lintel, Thickness));
-
+            Solid(solidCenter - right * (dw * 0.5f + side * 0.5f), rotation, new Vector3(side, h, t));
+            Solid(solidCenter + right * (dw * 0.5f + side * 0.5f), rotation, new Vector3(side, h, t));
+            Solid(solidCenter + up * (doorTop + lintel * 0.5f), rotation, new Vector3(dw, lintel, t));
             if (_kit == null)
             {
-                Cube(parent, module, panelCenter - right * (DoorWidth * 0.5f + side * 0.5f), rotation, new Vector3(side, RoomSize, Thickness), color);
-                Cube(parent, module, panelCenter + right * (DoorWidth * 0.5f + side * 0.5f), rotation, new Vector3(side, RoomSize, Thickness), color);
-                Cube(parent, module, panelCenter + up * (half - lintel * 0.5f), rotation, new Vector3(DoorWidth, lintel, Thickness), color);
-                var frameCenter = panelCenter - dir * (Thickness * 0.5f + 0.02f) + up * (floorTop + DoorHeight * 0.5f);
-                Cube(parent, module, frameCenter - right * (DoorWidth * 0.5f + 0.04f), rotation, new Vector3(0.08f, DoorHeight, 0.04f), DoorFrame);
-                Cube(parent, module, frameCenter + right * (DoorWidth * 0.5f + 0.04f), rotation, new Vector3(0.08f, DoorHeight, 0.04f), DoorFrame);
+                Cube(parent, module, solidCenter - right * (dw * 0.5f + side * 0.5f), rotation, new Vector3(side, h, t), color);
+                Cube(parent, module, solidCenter + right * (dw * 0.5f + side * 0.5f), rotation, new Vector3(side, h, t), color);
+                Cube(parent, module, solidCenter + up * (doorTop + lintel * 0.5f), rotation, new Vector3(dw, lintel, t), DoorFrame);
                 return;
             }
-
-            var wall = KitPiece(_kit.WallDoor, module, parent, facePoint, rotation);
+            var wall = KitPiece(_kit.WallDoor, module, parent, center, rotation);
             if (wall.StatusSlot >= 0 && other != null)
             {
                 _statusLights.Add((wall, other));
                 ApplyStatus(wall);
             }
-            // 문짝은 통로 하나에 한 쌍 (키상 작은 칸 쪽에서), 두 벽 경계면에 놓여 열리면 벽 속으로 숨는다
-            if (ConnectorLayout.MakeKey(face.Cell, face.OtherCell).Item1 == face.Cell)
-                BuildDoor(module, parent, facePoint + up * (floorTop + DoorHeight * 0.5f), rotation);
+            // 방마다 문 한 쌍 (튜브 양 끝 = 에어록). 벽 두께 안에서 미끄러져 숨는다
+            BuildDoor(module, parent, center + up * (doorBottom + InteriorGeometry.DoorHeight * 0.5f) - panel.Normal * (t * 0.5f), rotation);
         }
 
         private void BuildDoor(ModuleInstance module, Transform parent, Vector3 position, Quaternion rotation)
@@ -342,50 +371,200 @@ namespace SpaceStation.Interior
             left.name = "LeafLeft";
             var door = go.AddComponent<InteriorDoor>();
             float leafWidth = _kit.DoorLeaf.Mesh.bounds.size.x;
-            door.Initialize(left, right, leafWidth, new Vector3(DoorWidth, DoorHeight, 0.1f));
+            // 문틀(구멍 가장자리 + 0.16)보다 안쪽 끝이 멀어지도록
+            door.Initialize(left, right, leafWidth, InteriorGeometry.DoorWidth * 0.5f + 0.3f,
+                new Vector3(InteriorGeometry.DoorWidth, InteriorGeometry.DoorHeight, 0.1f));
             _doors.Add(door);
         }
 
-        private void BuildFloorOrCeiling(InteriorFace face, ModuleInstance module, Transform parent, Vector3 center, float half)
+        private void FloorPanel(FloorRect rect, ModuleInstance module, Transform parent)
         {
-            bool floor = face.Direction.y < 0;
-            var dir = (Vector3)face.Direction;
-            var surface = center + dir * (half - Thickness); // 바닥 윗면 / 천장 아랫면
-            Solid(center + dir * (half - Thickness * 0.5f), Quaternion.identity, new Vector3(RoomSize, Thickness, RoomSize));
-            bool hatch = face.Kind == InteriorFaceKind.Hatch;
-            var flip = floor ? Quaternion.identity : Quaternion.Euler(180f, 0f, 0f);
-
+            var surface = _root.position + rect.Center;
+            float t = InteriorGeometry.Thickness;
+            var size = new Vector3(rect.Size.x, t, rect.Size.y);
+            var slab = surface + Vector3.up * (rect.Ceiling ? t * 0.5f : -t * 0.5f);
+            Solid(slab, Quaternion.identity, size);
             if (_kit != null)
-            {
-                KitPiece(floor ? _kit.Floor : _kit.Ceiling, module, parent, surface, Quaternion.identity);
-                if (hatch)
-                    KitPiece(_kit.HatchFrame, module, parent, surface, flip);
-            }
+                KitPiece(rect.Ceiling ? _kit.Ceiling : _kit.Floor, module, parent, surface, Quaternion.identity, new Vector3(rect.Size.x / 4f, 1f, rect.Size.y / 4f));
             else
+                Cube(parent, module, slab, Quaternion.identity, size, rect.Ceiling ? _roomColors[module] : Multiply(_roomColors[module], FloorShade));
+            if (rect.Hatch)
             {
-                var color = _roomColors[module];
-                Cube(parent, module, center + dir * (half - Thickness * 0.5f), Quaternion.identity, new Vector3(RoomSize, Thickness, RoomSize),
-                    floor ? Multiply(color, FloorShade) : color);
+                var cellCenter = CellCenter(rect.Cell);
+                var hatchPoint = new Vector3(cellCenter.x, surface.y, cellCenter.z);
+                BuildHatch(module, parent, hatchPoint, !rect.Ceiling, rect.Cell, rect.Ceiling ? Vector3Int.up : Vector3Int.down);
             }
+        }
 
-            if (!hatch)
-                return;
-            var lidCenter = surface - dir * 0.04f;
+        /// <summary>해치 틀 + 뚜껑 (뚜껑에 상호작용 콜라이더). surface = 바닥 윗면 / 천장 아랫면.</summary>
+        private void BuildHatch(ModuleInstance module, Transform parent, Vector3 surface, bool floor, Vector3Int cell, Vector3Int dir)
+        {
+            var flip = floor ? Quaternion.identity : Quaternion.Euler(180f, 0f, 0f);
+            var lidCenter = surface + (floor ? Vector3.up : Vector3.down) * 0.04f;
             GameObject lid;
             if (_kit != null)
             {
+                KitPiece(_kit.HatchFrame, module, parent, surface, flip);
                 lid = KitPiece(_kit.HatchLid, module, parent, lidCenter, flip).Renderer.gameObject;
                 var box = lid.AddComponent<BoxCollider>();
                 box.center = Vector3.zero;
-                box.size = new Vector3(HatchSize, 0.08f, HatchSize);
+                box.size = new Vector3(InteriorGeometry.HatchSize, 0.08f, InteriorGeometry.HatchSize);
             }
             else
             {
-                lid = Cube(parent, module, lidCenter, Quaternion.identity, new Vector3(HatchSize, 0.08f, HatchSize), HatchColor, true).Renderer.gameObject;
+                lid = Cube(parent, module, lidCenter, Quaternion.identity, new Vector3(InteriorGeometry.HatchSize, 0.08f, InteriorGeometry.HatchSize), HatchColor, true)
+                    .Renderer.gameObject;
             }
             var h = lid.AddComponent<InteriorHatch>();
-            h.FromCell = face.Cell;
-            h.ToCell = face.OtherCell;
+            h.FromCell = cell;
+            h.ToCell = cell + dir;
+        }
+
+        // ---------------- 연결 튜브 ----------------
+
+        private void BuildTube(TubeSpan span, Transform parent)
+        {
+            var start = _root.position + span.Start;
+            var end = _root.position + span.End;
+            var mid = (start + end) * 0.5f;
+            var rotation = Quaternion.LookRotation(span.Direction, Vector3.up);
+            var right = rotation * Vector3.right;
+            var up = Vector3.up;
+            float len = span.Length;
+            float hw = InteriorGeometry.TubeHalfWidth;
+            float height = InteriorGeometry.TubeHeight;
+            float t = InteriorGeometry.Thickness;
+
+            Solid(mid - up * (t * 0.5f), rotation, new Vector3(hw * 2f + 0.4f, t, len));
+            Solid(mid + up * (height + t * 0.5f), rotation, new Vector3(hw * 2f + 0.4f, t, len));
+            Solid(mid - right * (hw + t * 0.5f) + up * (height * 0.5f), rotation, new Vector3(t, height, len));
+            Solid(mid + right * (hw + t * 0.5f) + up * (height * 0.5f), rotation, new Vector3(t, height, len));
+
+            var go = new GameObject("Tube");
+            go.transform.SetParent(parent, false);
+            if (_kit != null && _kit.HasTube)
+            {
+                Tube(_kit.Tube, go.transform, mid, rotation, new Vector3(1f, 1f, len));
+                Tube(_kit.TubeCollar, go.transform, start, rotation, Vector3.one);
+                Tube(_kit.TubeCollar, go.transform, end, rotation, Vector3.one);
+            }
+            else
+            {
+                var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                Object.Destroy(cube.GetComponent<Collider>());
+                cube.transform.SetParent(go.transform, false);
+                cube.transform.SetPositionAndRotation(mid - up * (t * 0.5f), rotation);
+                cube.transform.localScale = new Vector3(hw * 2f, t, len);
+                var r = cube.GetComponent<Renderer>();
+                r.sharedMaterial = _material;
+                _block.Clear();
+                _block.SetColor(BaseColorId, TubeColor);
+                r.SetPropertyBlock(_block);
+            }
+            var lightGo = new GameObject("Light");
+            lightGo.transform.SetParent(go.transform, false);
+            lightGo.transform.position = mid + up * (height - 0.4f);
+            var light = lightGo.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.shadows = LightShadows.None;
+            light.color = new Color(0.85f, 0.95f, 1f);
+            light.range = Mathf.Max(3f, len + 2f);
+            light.intensity = 2f;
+        }
+
+        /// <summary>튜브 조각 (방 소속 아님: 어둡게 하지 않음, 강조색은 기본색).</summary>
+        private void Tube(InteriorKitPiece kitPiece, Transform parent, Vector3 position, Quaternion rotation, Vector3 scale)
+        {
+            var go = new GameObject(kitPiece.Mesh.name);
+            go.transform.SetParent(parent, false);
+            go.transform.SetPositionAndRotation(position, rotation);
+            go.transform.localScale = scale;
+            go.AddComponent<MeshFilter>().sharedMesh = kitPiece.Mesh;
+            var r = go.AddComponent<MeshRenderer>();
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.sharedMaterials = MaterialsFor(kitPiece, null);
+        }
+
+        // ---------------- 11-2b 발코니·나선 계단 (대체 방이 여러 층일 때) ----------------
+
+        private void BuildBalcony(InteriorRoom room, Transform parent)
+        {
+            var plan = InteriorBalcony.Build(room.Cells, InteriorGeometry.CellSize, InteriorGeometry.FallbackDepth, InteriorGeometry.FloorOffset);
+            if (plan.IsEmpty)
+                return;
+            var origin = _root.position;
+            var module = room.Module;
+            bool art = _kit != null && _kit.HasBalcony;
+            var color = _roomColors[module];
+
+            foreach (var deck in plan.Decks)
+                Deck(deck, origin, module, parent, art, color);
+            foreach (var rail in plan.Rails)
+                Rail(rail, origin, module, parent, art, color);
+            if (!plan.HasStair)
+                return;
+
+            Deck(plan.Bridge, origin, module, parent, art, color);
+            var stair = new GameObject("SpiralStair").transform;
+            stair.SetParent(parent, false);
+            var basePoint = origin + plan.StairBase;
+            float lastAngle = Mathf.Atan2(plan.BridgeDirection.z, plan.BridgeDirection.x) * Mathf.Rad2Deg;
+            int steps = plan.StairSteps;
+            float stepRise = plan.StairRise / steps;
+            for (int i = 0; i < steps; i++)
+            {
+                float angle = lastAngle - (steps - 1 - i) * InteriorBalcony.StepAngle;
+                var rotation = Quaternion.Euler(0f, -angle, 0f); // +X → (cos, 0, sin)
+                var top = basePoint + Vector3.up * (stepRise * (i + 1));
+                var dir = rotation * Vector3.right;
+                Solid(top + dir * 0.8f - Vector3.up * 0.04f, rotation, new Vector3(1.25f, 0.08f, 0.36f));
+                if (art)
+                    KitPiece(_kit.StairStep, module, stair, top, rotation);
+                else
+                    Cube(stair, module, top + dir * 0.8f - Vector3.up * 0.04f, rotation, new Vector3(1.25f, 0.08f, 0.36f), color);
+            }
+            float poleHeight = plan.StairRise + 1.1f;
+            Solid(basePoint + Vector3.up * (poleHeight * 0.5f), Quaternion.identity, new Vector3(0.34f, poleHeight, 0.34f));
+            if (art)
+                KitPiece(_kit.StairPole, module, stair, basePoint, Quaternion.identity, new Vector3(1f, poleHeight, 1f));
+            else
+                Cube(stair, module, basePoint + Vector3.up * (poleHeight * 0.5f), Quaternion.identity, new Vector3(0.34f, poleHeight, 0.34f), DoorFrame);
+        }
+
+        private void Deck(BalconyDeck deck, Vector3 origin, ModuleInstance module, Transform parent, bool art, Color color)
+        {
+            // 키트 띠는 로컬 Z = 길이, +X = 트인 쪽
+            var rotation = Quaternion.LookRotation(deck.Along, Vector3.up);
+            if (Vector3.Dot(rotation * Vector3.right, deck.Inward) < 0f)
+                rotation = Quaternion.LookRotation(-deck.Along, Vector3.up);
+            var top = origin + deck.Center;
+            float t = InteriorGeometry.Thickness;
+            var size = new Vector3(InteriorBalcony.DeckWidth, t, deck.Length);
+            Solid(top - Vector3.up * (t * 0.5f), rotation, size);
+            if (art)
+                KitPiece(_kit.Deck, module, parent, top, rotation, new Vector3(1f, 1f, deck.Length));
+            else
+                Cube(parent, module, top - Vector3.up * (t * 0.5f), rotation, size, Multiply(color, FloorShade));
+        }
+
+        private void Rail(BalconyRail rail, Vector3 origin, ModuleInstance module, Transform parent, bool art, Color color)
+        {
+            var start = origin + rail.Start;
+            var end = origin + rail.End;
+            var dir = (end - start).normalized;
+            float length = rail.Length;
+            var rotation = Quaternion.LookRotation(Vector3.Cross(dir, Vector3.up), Vector3.up); // 로컬 X = dir
+            var mid = (start + end) * 0.5f;
+            Solid(mid + Vector3.up * 0.55f, rotation, new Vector3(length, 1.1f, 0.1f));
+            if (!art)
+            {
+                Cube(parent, module, mid + Vector3.up * 1.0f, rotation, new Vector3(length, 0.06f, 0.06f), DoorFrame);
+                return;
+            }
+            KitPiece(_kit.RailBar, module, parent, mid, rotation, new Vector3(length, 1f, 1f));
+            int posts = Mathf.Max(1, Mathf.CeilToInt(length / RailPostSpacing));
+            for (int i = 0; i <= posts; i++)
+                KitPiece(_kit.RailPost, module, parent, Vector3.Lerp(start, end, i / (float)posts), rotation);
         }
 
         // ---------------- 조각 ----------------
@@ -423,7 +602,7 @@ namespace SpaceStation.Interior
                 result[i] = source[i];
             if (kitPiece.AccentSlot >= 0)
             {
-                var accent = _kit.AccentFor(module.Data);
+                var accent = _kit.AccentFor(module != null ? module.Data : null);
                 if (accent != null)
                     result[kitPiece.AccentSlot] = accent;
             }
@@ -456,8 +635,8 @@ namespace SpaceStation.Interior
             return piece;
         }
 
-        /// <summary>방마다 점광원 하나 (그림자 없음). 칸들의 가로 가운데, 맨 아래층 천장 아래 (걷는 높이를 밝힘).</summary>
-        private void BuildRoomLight(InteriorRoom room, Transform parent)
+        /// <summary>층마다 점광원 하나 (그림자 없음): 바닥 넓이 가운데, 천장 조금 아래.</summary>
+        private void BuildRoomLights(InteriorRoom room, Transform parent)
         {
             var min = room.Cells[0];
             var max = room.Cells[0];
@@ -466,12 +645,13 @@ namespace SpaceStation.Interior
                 min = Vector3Int.Min(min, c);
                 max = Vector3Int.Max(max, c);
             }
-            var extent = new Vector3(max.x - min.x, 0f, max.z - min.z) * RoomSize;
-            // 층마다 하나 (11-2b 높은 홀은 위층 발코니도 밝힘)
+            var extent = new Vector3(max.x - min.x + 1, 0f, max.z - min.z + 1) * InteriorGeometry.CellSize;
+            var lights = new List<Light>();
+            _roomLights.Add(room.Module, lights);
             for (int y = min.y; y <= max.y; y++)
             {
                 var center = (CellCenter(min) + CellCenter(max)) * 0.5f;
-                center.y = CellCenter(new Vector3Int(min.x, y, min.z)).y + RoomSize * 0.5f - 0.6f;
+                center.y = _root.position.y + InteriorGeometry.FloorY(new Vector3Int(0, y, 0)) + InteriorGeometry.RoomHeight - 0.5f;
                 var go = new GameObject("Light");
                 go.transform.SetParent(parent, false);
                 go.transform.position = center;
@@ -479,11 +659,9 @@ namespace SpaceStation.Interior
                 light.type = LightType.Point;
                 light.shadows = LightShadows.None;
                 light.color = new Color(1f, 0.96f, 0.9f);
-                light.range = RoomSize * 2f + extent.magnitude * 0.6f;
+                light.range = extent.magnitude * 0.75f + 2f;
                 light.intensity = LightIntensity;
-                if (!_roomLights.TryGetValue(room.Module, out var list))
-                    _roomLights.Add(room.Module, list = new List<Light>());
-                list.Add(light);
+                lights.Add(light);
             }
         }
 

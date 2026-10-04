@@ -32,7 +32,8 @@ namespace SpaceStation.Data
 
     /// <summary>
     /// Phase 11-2a 내부 벽 키트 (Blender `BlenderWork/Interior_Kit.blend` → `Art/Models/Interior/SM_InteriorKit.fbx`).
-    /// 조각 규격 (1칸 = 4m): 벽 = 칸 면 가운데 피벗, +Z = 바깥, 방 쪽(-Z)으로 두께 0.2 + 장식 / 바닥 = 윗면 가운데 / 천장 = 아랫면 가운데.
+    /// 조각 규격: 벽 패널 = 폭 3.2 × 높이 4 (11-3, 여러 장 이어 붙임), 피벗 = 바깥면 가운데, +Z = 바깥, 방 쪽(-Z)으로 두께 0.2 + 장식, 바닥은 피벗 −1.8 /
+    /// 바닥·천장 = 4×4 (방 크기에 맞춰 늘림), 윗면·아랫면 가운데 피벗.
     /// 생성·갱신은 에디터 `InteriorSetup`.
     /// </summary>
     [CreateAssetMenu(menuName = "SpaceStation/Interior Kit", fileName = "InteriorKit")]
@@ -55,6 +56,11 @@ namespace SpaceStation.Data
         [SerializeField] private InteriorKitPiece _stairStep;
         [Tooltip("계단 기둥: 높이 1m(늘려 씀)")]
         [SerializeField] private InteriorKitPiece _stairPole;
+        [Header("11-3 연결 튜브")]
+        [Tooltip("튜브: 길이 방향 Z 1m(늘려 씀), 피벗 = 바닥 높이 축 아래 점, 안쪽 팔각 아포템 1.5")]
+        [SerializeField] private InteriorKitPiece _tube;
+        [Tooltip("튜브 끝 고리 (벽에 닿는 쪽)")]
+        [SerializeField] private InteriorKitPiece _tubeCollar;
         [Header("방별 강조색")]
         [SerializeField] private List<ModuleData> _accentModules = new List<ModuleData>();
         [SerializeField] private List<Material> _accentMaterials = new List<Material>();
@@ -72,6 +78,10 @@ namespace SpaceStation.Data
         public InteriorKitPiece RailPost => _railPost;
         public InteriorKitPiece StairStep => _stairStep;
         public InteriorKitPiece StairPole => _stairPole;
+
+        public InteriorKitPiece Tube => _tube;
+        public InteriorKitPiece TubeCollar => _tubeCollar;
+        public bool HasTube => _tube != null && _tube.IsValid && _tubeCollar != null && _tubeCollar.IsValid;
 
         public bool HasBalcony => _deck != null && _deck.IsValid && _railBar != null && _railBar.IsValid && _railPost != null && _railPost.IsValid
                                   && _stairStep != null && _stairStep.IsValid && _stairPole != null && _stairPole.IsValid;
@@ -110,6 +120,12 @@ namespace SpaceStation.Data
             _railPost = railPost;
             _stairStep = stairStep;
             _stairPole = stairPole;
+        }
+
+        public void EditorSetTube(InteriorKitPiece tube, InteriorKitPiece tubeCollar)
+        {
+            _tube = tube;
+            _tubeCollar = tubeCollar;
         }
 #endif
     }

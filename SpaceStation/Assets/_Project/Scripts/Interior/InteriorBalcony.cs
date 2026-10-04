@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceStation.Interior
@@ -47,7 +47,9 @@ namespace SpaceStation.Interior
     {
         public const float DeckWidth = 1.4f;
         public const float StairRadius = 1.4f;
-        public const int StairSteps = 20;
+        /// <summary>디딤판 높이·회전 (높이 8m면 40장, 두 바퀴).</summary>
+        public const float StepRise = 0.2f;
+        public const float StepAngle = 18f;
         public const float BridgeWidth = 1.4f;
 
         public sealed class Plan
@@ -58,6 +60,7 @@ namespace SpaceStation.Interior
             /// <summary>계단 축 바닥점 (아래층 바닥 윗면).</summary>
             public Vector3 StairBase;
             public float StairRise;
+            public int StairSteps => Mathf.RoundToInt(StairRise / StepRise);
             /// <summary>맨 위 디딤판·다리 방향 (수평 단위).</summary>
             public Vector3 BridgeDirection;
             public BalconyDeck Bridge;
@@ -71,7 +74,9 @@ namespace SpaceStation.Interior
         };
 
         /// <param name="cells">한 모듈의 칸 (월드 셀).</param>
-        public static Plan Build(IReadOnlyList<Vector3Int> cells, float roomSize, float thickness)
+        /// <param name="wallDepth">칸 중심에서 벽 바깥면까지 (같은 모듈 쪽 면은 칸 경계).</param>
+        /// <param name="floorOffset">칸 중심 기준 바닥 윗면 높이.</param>
+        public static Plan Build(IReadOnlyList<Vector3Int> cells, float roomSize, float wallDepth, float floorOffset)
         {
             var plan = new Plan();
             var set = new HashSet<Vector3Int>(cells);
@@ -86,7 +91,7 @@ namespace SpaceStation.Interior
                 if (!set.Contains(c + Vector3Int.down))
                     continue;
                 var center = new Vector3(c.x, c.y, c.z) * roomSize;
-                float floorY = center.y - half + thickness;
+                float floorY = center.y + floorOffset;
                 foreach (var d in Horizontal)
                 {
                     if (set.Contains(c + d))
@@ -96,13 +101,15 @@ namespace SpaceStation.Interior
                     // 길이 방향 양 끝의 수직 벽 유무
                     bool wallMinus = !set.Contains(c - new Vector3Int((int)along.x, 0, (int)along.z));
                     bool wallPlus = !set.Contains(c + new Vector3Int((int)along.x, 0, (int)along.z));
-                    float railFrom = -half + (wallMinus ? DeckWidth : 0f);
-                    float railTo = half - (wallPlus ? DeckWidth : 0f);
-                    float deckFrom = d.z != 0 ? -half : railFrom;
-                    float deckTo = d.z != 0 ? half : railTo;
-                    var edge = center + dir * (half - DeckWidth);
+                    float extMinus = wallMinus ? wallDepth : half;
+                    float extPlus = wallPlus ? wallDepth : half;
+                    float railFrom = -extMinus + (wallMinus ? DeckWidth : 0f);
+                    float railTo = extPlus - (wallPlus ? DeckWidth : 0f);
+                    float deckFrom = d.z != 0 ? -extMinus : railFrom;
+                    float deckTo = d.z != 0 ? extPlus : railTo;
+                    var edge = center + dir * (wallDepth - DeckWidth);
                     edge.y = floorY;
-                    var deckCenter = center + dir * (half - DeckWidth * 0.5f) + along * ((deckFrom + deckTo) * 0.5f);
+                    var deckCenter = center + dir * (wallDepth - DeckWidth * 0.5f) + along * ((deckFrom + deckTo) * 0.5f);
                     deckCenter.y = floorY;
                     plan.Decks.Add(new BalconyDeck(deckCenter, along, -dir, deckTo - deckFrom));
                     if (railTo > railFrom + 0.01f)
@@ -125,13 +132,13 @@ namespace SpaceStation.Interior
                 lo = Vector3Int.Min(lo, c);
                 hi = Vector3Int.Max(hi, c);
             }
-            float spanX = (hi.x - lo.x + 1) * roomSize;
-            float spanZ = (hi.z - lo.z + 1) * roomSize;
+            float spanX = (hi.x - lo.x) * roomSize + wallDepth * 2f;
+            float spanZ = (hi.z - lo.z) * roomSize + wallDepth * 2f;
             float voidHalf = Mathf.Min(spanX, spanZ) * 0.5f - DeckWidth;
             if (voidHalf < StairRadius + 0.5f)
                 return plan;
             var mid = (new Vector3(lo.x, minY, lo.z) + new Vector3(hi.x, minY, hi.z)) * 0.5f * roomSize;
-            var stairBase = new Vector3(mid.x, minY * roomSize - half + thickness, mid.z);
+            var stairBase = new Vector3(mid.x, minY * roomSize + floorOffset, mid.z);
             float upperFloor = stairBase.y + roomSize;
             plan.HasStair = true;
             plan.StairBase = stairBase;

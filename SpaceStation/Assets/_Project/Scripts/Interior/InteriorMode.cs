@@ -36,6 +36,8 @@ namespace SpaceStation.Interior
         [SerializeField] private Data.InteriorKit _kit;
         [Tooltip("키트가 없을 때 쓰는 그레이박스 재질")]
         [SerializeField] private Material _material;
+        [Tooltip("11-3 모듈별 내부 템플릿 (없는 모듈은 벽 키트 대체 방)")]
+        [SerializeField] private List<Data.InteriorTemplate> _templates = new List<Data.InteriorTemplate>();
         [SerializeField] private float _interactDistance = 2.6f;
 
         [Header("HUD")]
@@ -88,7 +90,7 @@ namespace SpaceStation.Interior
             var rootGo = new GameObject("InteriorRoot");
             _root = rootGo.transform;
             _root.position = _origin;
-            _builder = new InteriorBuilder(_root, _kit, _material);
+            _builder = new InteriorBuilder(_root, _kit, _material, _templates);
         }
 
         private void Start()
@@ -168,7 +170,8 @@ namespace SpaceStation.Interior
             _layout = InteriorLayout.Build(_station.Grid, _station.Connectivity.IsActive, module);
             _builder.Build(_layout, _player.transform);
             RefreshAllDim();
-            _player.Teleport(_builder.FloorPoint(module.Origin) + Vector3.up * 0.05f, module.Rotation * 90f);
+            var spawn = _builder.SpawnPoint(module, out float spawnYaw);
+            _player.Teleport(spawn + Vector3.up * 0.05f, spawnYaw);
 
             _orbit = _camera.GetComponent<OrbitCameraController>();
             if (_orbit != null)

@@ -102,6 +102,7 @@ namespace SpaceStation.Editor
             kit.EditorSet(Piece("KIT_Wall"), Piece("KIT_WallDoor"), Piece("KIT_DoorLeaf"), Piece("KIT_Floor"), Piece("KIT_Ceiling"),
                 Piece("KIT_HatchFrame"), Piece("KIT_HatchLid"), modules, accents, defaultAccent);
             kit.EditorSetBalcony(Piece("KIT_Deck"), Piece("KIT_RailBar"), Piece("KIT_RailPost"), Piece("KIT_StairStep"), Piece("KIT_StairPole"));
+            kit.EditorSetTube(Piece("KIT_Tube"), Piece("KIT_TubeCollar"));
             EditorUtility.SetDirty(kit);
             AssetDatabase.SaveAssets();
             Debug.Log($"[InteriorSetup] 키트 {(kit.IsComplete ? "완성" : "불완전")} · 강조색 {modules.Count}종");
@@ -133,6 +134,12 @@ namespace SpaceStation.Editor
             so.FindProperty("_sun").objectReferenceValue = sun != null ? sun.GetComponent<Light>() : null;
             so.FindProperty("_material").objectReferenceValue = greybox;
             so.FindProperty("_kit").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Data.InteriorKit>(KitPath);
+            // 11-3 모듈별 템플릿: Data/Interior 아래의 InteriorTemplate 전부
+            var templates = so.FindProperty("_templates");
+            var guids = AssetDatabase.FindAssets("t:InteriorTemplate", new[] { System.IO.Path.GetDirectoryName(KitPath).Replace('\\', '/') });
+            templates.arraySize = guids.Length;
+            for (int i = 0; i < guids.Length; i++)
+                templates.GetArrayElementAtIndex(i).objectReferenceValue = AssetDatabase.LoadAssetAtPath<Data.InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guids[i]));
             so.FindProperty("_hud").objectReferenceValue = hud != null ? hud.transform : null;
             so.FindProperty("_font").objectReferenceValue = hud != null ? hud.GetComponentInChildren<TMP_Text>(true).font : null;
             so.FindProperty("_fillSprite").objectReferenceValue = HudArtBuilder.Fill;

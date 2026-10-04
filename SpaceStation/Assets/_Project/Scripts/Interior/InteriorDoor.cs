@@ -15,15 +15,20 @@ namespace SpaceStation.Interior
         private Transform _right;
         private BoxCollider _blocker;
         private Transform _player;
-        private float _slide;
+        private float _leafWidth;
+        private float _travel;
         private float _open;
 
-        /// <summary>문짝(오른쪽 기준 메시)과 막는 콜라이더를 만든다. 문 로컬 X = 가로, Y = 위 (피벗 = 문 구멍 가운데).</summary>
-        public void Initialize(Transform left, Transform right, float slide, Vector3 blockerSize)
+        /// <summary>
+        /// 문짝(오른쪽 기준 메시)과 막는 콜라이더를 만든다. 문 로컬 X = 가로, Y = 위 (피벗 = 문 구멍 가운데).
+        /// travel = 열릴 때 미끄러지는 거리 (문틀 뒤까지 완전히 숨도록 문짝 폭보다 조금 길게).
+        /// </summary>
+        public void Initialize(Transform left, Transform right, float leafWidth, float travel, Vector3 blockerSize)
         {
             _left = left;
             _right = right;
-            _slide = slide;
+            _leafWidth = leafWidth;
+            _travel = travel;
             _blocker = gameObject.AddComponent<BoxCollider>();
             _blocker.size = blockerSize;
             Apply();
@@ -50,9 +55,9 @@ namespace SpaceStation.Interior
         private void Apply()
         {
             float eased = _open * _open * (3f - 2f * _open);
-            float closedX = _slide * 0.5f;
-            _right.localPosition = new Vector3(closedX + eased * _slide, 0f, 0f);
-            _left.localPosition = new Vector3(-closedX - eased * _slide, 0f, 0f);
+            float closedX = _leafWidth * 0.5f;
+            _right.localPosition = new Vector3(closedX + eased * _travel, 0f, 0f);
+            _left.localPosition = new Vector3(-closedX - eased * _travel, 0f, 0f);
             _blocker.enabled = _open < 0.9f;
         }
     }
