@@ -18,6 +18,8 @@ namespace SpaceStation.Editor.Balance
         /// <summary>Phase 6 연구 (null이면 연구 없음).</summary>
         public IReadOnlyList<ResearchCategoryData> ResearchCategories;
         public ResearchLevelCapConfig ResearchCaps;
+        /// <summary>Phase 10 주민 특성 (null이면 명단 없음).</summary>
+        public ResidentConfig Residents;
         public float DurationSeconds = 1800f;
         public int Runs = 20;
         public int BaseSeed = 1;
@@ -65,6 +67,10 @@ namespace SpaceStation.Editor.Balance
         public float AverageEfficiency;
         public float FinalSatisfaction;
         public float MinSatisfaction;
+        /// <summary>Phase 10 주민 특성 만족도 보정 (평균·최저·최종).</summary>
+        public float AverageResidentMood;
+        public float MinResidentMood = float.MaxValue;
+        public float FinalResidentMood;
         /// <summary>8-x: 마지막 시점 모듈 종류별 개수 (표시 이름 → 개수). 신규 모듈을 봇이 실제로 짓는지 확인용.</summary>
         public Dictionary<string, int> FinalModuleCounts = new Dictionary<string, int>();
     }
@@ -104,8 +110,11 @@ namespace SpaceStation.Editor.Balance
         private static BalanceRunResult RunOne(BalanceRunSettings s, int seed, StringBuilder series)
         {
             var rng = new Random(seed);
+            var residentRng = new Random(seed * 7919 + 13); // 이름·특성 난수 분리 (시드별 고정)
             var sim = new StationSimulation(new StationSimulationSettings
             {
+                Residents = s.Residents,
+                ResidentRandom01 = () => (float)residentRng.NextDouble(),
                 Balance = s.Balance,
                 Grades = s.Grades,
                 CoreModule = s.CoreModule,
@@ -138,6 +147,8 @@ namespace SpaceStation.Editor.Balance
 
             float effSum = 0f;
             int ticks = 0;
+            float moodSum = 0f;
+            int moodTicks = 0;
             var wasDepleted = new bool[3];
             float nextSample = 0f;
             while (sim.ElapsedSeconds < s.DurationSeconds - 1e-4f)
@@ -171,6 +182,12 @@ namespace SpaceStation.Editor.Balance
                 }
                 result.MaxGrade = Math.Max(result.MaxGrade, sim.Progression.GradeIndex);
                 result.MinSatisfaction = Math.Min(result.MinSatisfaction, sim.Population.Satisfaction);
+                if (sim.Residents != null)
+                {
+                    moodSum += sim.Residents.MoodTotal;
+                    moodTicks++;
+                    result.MinResidentMood = Math.Min(result.MinResidentMood, sim.Residents.MoodTotal);
+                }
 
                 if (sim.ElapsedSeconds >= nextSample - 1e-4f)
                 {
@@ -209,6 +226,10 @@ namespace SpaceStation.Editor.Balance
             result.MetalSpentOnUpkeep = bot.MetalSpentOnUpkeep;
             result.AverageEfficiency = ticks > 0 ? effSum / ticks : 1f;
             result.FinalSatisfaction = sim.Population.Satisfaction;
+            result.AverageResidentMood = moodTicks > 0 ? moodSum / moodTicks : 0f;
+            result.FinalResidentMood = sim.Residents != null ? sim.Residents.MoodTotal : 0f;
+            if (result.MinResidentMood == float.MaxValue)
+                result.MinResidentMood = 0f;
             foreach (var m in sim.Grid.Modules)
             {
                 if (m.Data == null || m == sim.Core)
@@ -311,6 +332,7 @@ namespace SpaceStation.Editor.Balance
             sb.AppendLine($"고갈 시간 평균(초)  산소 {Avg(results, r => r.DepletedSeconds[0]):0}  물 {Avg(results, r => r.DepletedSeconds[1]):0}  식량 {Avg(results, r => r.DepletedSeconds[2]):0}  · 고갈 횟수 {Avg(results, r => r.DepletionEvents):0.0}회");
             sb.AppendLine($"전력 효율<100% 시간 평균 {Avg(results, r => r.LowPowerSeconds):0}초, 평균 효율 {Avg(results, r => r.AverageEfficiency) * 100f:0.0}%");
             sb.AppendLine($"만족도  최종 평균 {Avg(results, r => r.FinalSatisfaction):0}, 최저 평균 {Avg(results, r => r.MinSatisfaction):0}");
+            sb.AppendLine($"주민 특성 보정  평균 {Avg(results, r => r.AverageResidentMood):+0.0;-0.0;0}, 최저 평균 {Avg(results, r => r.MinResidentMood):+0.0;-0.0;0}, 최종 평균 {Avg(results, r => r.FinalResidentMood):+0.0;-0.0;0}");
             sb.Append($"연구  시작 {Avg(results, r => r.ResearchStarted):0.0}회, 최종 레벨 평균  유지보수 {Avg(results, r => r.ResearchLevels[0]):0.0}  방어 {Avg(results, r => r.ResearchLevels[1]):0.0}"
                       + $"  생산 {Avg(results, r => r.ResearchLevels[2]):0.0}  에너지 {Avg(results, r => r.ResearchLevels[3]):0.0}  거주 {Avg(results, r => r.ResearchLevels[4]):0.0}  건설 {Avg(results, r => r.ResearchLevels[5]):0.0}");
             // 모듈 구성 평균 (많은 순)

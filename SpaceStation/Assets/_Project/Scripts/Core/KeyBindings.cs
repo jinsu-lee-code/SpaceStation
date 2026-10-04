@@ -30,6 +30,7 @@ namespace SpaceStation.Core
         Speed3,
         Research,
         ToggleHelp,
+        Roster, // Phase 10 주민 명단
     }
 
     /// <summary>키가 쓰이는 상황. 건설 중과 선택 중은 동시에 일어나지 않으므로 같은 키를 써도 된다.</summary>
@@ -84,6 +85,7 @@ namespace SpaceStation.Core
             new Info { Action = GameAction.Speed2, Group = "시간", Label = "배속 2x", Default = Key.F2, Context = ActionContext.Always },
             new Info { Action = GameAction.Speed3, Group = "시간", Label = "배속 4x", Default = Key.F3, Context = ActionContext.Always },
             new Info { Action = GameAction.Research, Group = "창", Label = "연구 창", Default = Key.T, Context = ActionContext.Always },
+            new Info { Action = GameAction.Roster, Group = "창", Label = "주민 명단", Default = Key.U, Context = ActionContext.Always },
             new Info { Action = GameAction.ToggleHelp, Group = "창", Label = "조작 안내 고정 / 숨기기", Default = Key.H, Context = ActionContext.Always },
         };
 

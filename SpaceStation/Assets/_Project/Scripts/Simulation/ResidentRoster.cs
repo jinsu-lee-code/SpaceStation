@@ -135,6 +135,21 @@ namespace SpaceStation.Simulation
             return sum;
         }
 
+        /// <summary>이 집에 산다면 본인 만족도 보정 (이사 미리보기).</summary>
+        public float MoodAt(Resident r, ModuleInstance home)
+        {
+            var env = GetEnvironment(home);
+            float sum = 0f;
+            foreach (var t in r.Traits)
+            {
+                var def = _config.Get(t);
+                if (def == null)
+                    continue;
+                sum += t == ResidentTrait.Optimist || t == ResidentTrait.Complainer ? def.PerResident : EnvironmentMood(t, env);
+            }
+            return sum;
+        }
+
         /// <summary>본인 소비 배율 (대식가·소식가).</summary>
         public float PersonalConsumption(Resident r, ResourceType type)
         {

@@ -493,7 +493,10 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
     - 효과: 기술자 수리 시간·정비공 노후·원예가 식량 생산·과학자 연구 속도(`ResearchEffects.Trait*`), 대식가·소식가(`ResourceSimulation.SetResidentConsumptionMultiplier`), 만족도 보정 합계 → `SatisfactionCap`에 더함
     - 세이브 `StationState.Residents`(집 = 모듈 순번, 코어 -2), 이전 세이브는 인원수만큼 새로 생성. 이름·특성 난수는 이벤트 난수와 분리(`ResidentRandom01`)
     - 에디터 `Editor/ResidentSetup` (메뉴 SpaceStation/Residents/Setup). 테스트 7개 → 258개
-  - [ ] 10-3 명단 창(U)·선택 패널 입주민·도착/이탈 알림·수동 이사
+  - [x] 10-3 명단 창(U)·선택 패널 입주민·도착/이탈 알림·수동 이사 (2026-10-04)
+    - `UI/RosterPanel`(왼쪽 위 [주민] 버튼·U 키, 조작키 설정에 "주민 명단"): 인원·집 없음·만족도 보정 합계, 특성별 효과 요약, 목록 13명씩 쪽 넘김(불만 큰 순: 이름·특성·집과 주변·본인 보정·[이사]), 이사 = 빈자리 있는 집을 그 주민에게 맞는 순으로 → [여기로], 옮긴 주민 "고정"
+    - 선택 패널: 거주 모듈이면 "입주 n/m · 주변 태그" + 이름 3명(외 N명). 상태 표시줄: "새 주민 이름 · 특성 · 집", "이름 떠남 (사유)" (`UI/ResidentText` 공용 문구)
+    - 에디터 `ResidentSetup`이 HUD "RosterPanel"도 만듦
   - [ ] 10-4 봇·밸런스 측정 (BALANCE 26번)
 
 ## Phase 11. 1인칭 내부 방문 모드 (검토)

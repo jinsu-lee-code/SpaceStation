@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using SpaceStation.Building;
 using SpaceStation.Core;
 using SpaceStation.Data;
@@ -238,6 +239,30 @@ namespace SpaceStation.UI
             return sb.Append("</size>").ToString();
         }
 
+        private readonly List<Resident> _occupants = new List<Resident>();
+
+        /// <summary>Phase 10: 거주 모듈이면 입주 인원·환경·주민 이름 (3명까지 + 외 N명).</summary>
+        private string ResidentsLine(ModuleInstance module)
+        {
+            var roster = _station.Simulation.Residents;
+            if (roster == null || module.Data == null || module.Data.HousingCapacity <= 0)
+                return string.Empty;
+            roster.GetOccupants(module, _occupants);
+            string env = ResidentText.Environment(roster.GetEnvironment(module));
+            var sb = new System.Text.StringBuilder($"\n<size=85%><color={HudText.Muted}>입주</color> {_occupants.Count}/{roster.GetCapacity(module)}");
+            if (env.Length > 0)
+                sb.Append($" · {env}");
+            if (_occupants.Count > 0)
+            {
+                sb.Append('\n');
+                // 패널 폭에 맞게 이름만 (특성은 명단 창)
+                for (int i = 0; i < _occupants.Count && i < 3; i++)
+                    sb.Append(i > 0 ? ", " : "").Append(_occupants[i].Name);
+                sb.Append($" <color={HudText.Muted}>{(_occupants.Count > 3 ? $"외 {_occupants.Count - 3}명 · " : "")}{KeyBindings.Label(GameAction.Roster)} 명단</color>");
+            }
+            return sb.Append("</size>").ToString();
+        }
+
         private static bool UsesPower(SpaceStation.Data.ModuleData data)
         {
             if (data == null)
@@ -330,7 +355,7 @@ namespace SpaceStation.UI
             var applied = _resources.Adjacency.GetApplied(module);
             if (applied.Count > 0)
                 adjacencyLine = $"\n<size=85%><color={HudText.Muted}>인접</color> {AdjacencySystem.DescribeAll(applied)}</size>";
-            _title.SetText($"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{DefenseLine(module)}{NeedsLine(module)}");
+            _title.SetText($"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{DefenseLine(module)}{NeedsLine(module)}{ResidentsLine(module)}");
 
             var sim = _resources.Simulation;
 

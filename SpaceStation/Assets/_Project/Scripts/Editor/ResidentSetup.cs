@@ -27,9 +27,42 @@ namespace SpaceStation.Editor
             var so = new SerializedObject(host);
             so.FindProperty("_residents").objectReferenceValue = data;
             so.ApplyModifiedPropertiesWithoutUndo();
+            BuildRosterPanel();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log($"[ResidentSetup] 특성 {data.Traits.Count}종, 이름 {data.GivenNames.Count}×{data.Surnames.Count}");
+        }
+
+        /// <summary>HUD에 명단 창 자리 (내용은 런타임 생성). 연구 창과 같은 층 (결과 화면·일시정지 아래).</summary>
+        private static void BuildRosterPanel()
+        {
+            var hud = GameObject.Find("HUD");
+            if (hud == null)
+            {
+                Debug.LogError("[ResidentSetup] HUD 없음");
+                return;
+            }
+            var old = hud.transform.Find("RosterPanel");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+            var go = new GameObject("RosterPanel", typeof(RectTransform));
+            go.transform.SetParent(hud.transform, false);
+            var rt = (RectTransform)go.transform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            var research = hud.transform.Find("ResearchPanel");
+            if (research != null)
+                go.transform.SetSiblingIndex(research.GetSiblingIndex() + 1);
+            var panel = go.AddComponent<SpaceStation.UI.RosterPanel>();
+            var so = new SerializedObject(panel);
+            so.FindProperty("_station").objectReferenceValue = Object.FindFirstObjectByType<SpaceStation.Building.StationController>();
+            so.FindProperty("_font").objectReferenceValue = hud.GetComponentInChildren<TMPro.TMP_Text>(true).font;
+            so.FindProperty("_fillSprite").objectReferenceValue = HudArtBuilder.Fill;
+            so.FindProperty("_frameSprite").objectReferenceValue = HudArtBuilder.Frame;
+            so.FindProperty("_buttonSprite").objectReferenceValue = HudArtBuilder.Button;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static ModuleData Module(string name) => AssetDatabase.LoadAssetAtPath<ModuleData>(ModuleFolder + name + ".asset");

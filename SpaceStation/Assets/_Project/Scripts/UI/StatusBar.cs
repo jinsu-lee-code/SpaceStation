@@ -54,6 +54,11 @@ namespace SpaceStation.UI
             _station.Connectivity.ActiveStateChanged += HandleActiveStateChanged;
             _resources.Simulation.DepletionChanged += HandleDepletionChanged;
             _resources.Population.PopulationChanged += HandlePopulationChanged;
+            if (_station.Simulation.Residents != null)
+            {
+                _station.Simulation.Residents.Arrived += HandleResidentArrived;
+                _station.Simulation.Residents.Left += HandleResidentLeft;
+            }
             _resources.Damage.Destroyed += HandleDestroyed;
             _resources.Damage.Repaired += HandleRepaired;
             _resources.Durability.WornOut += HandleWornOut;
@@ -96,6 +101,11 @@ namespace SpaceStation.UI
                 _resources.Simulation.DepletionChanged -= HandleDepletionChanged;
             if (_resources != null && _resources.Population != null)
                 _resources.Population.PopulationChanged -= HandlePopulationChanged;
+            if (_station != null && _station.Simulation != null && _station.Simulation.Residents != null)
+            {
+                _station.Simulation.Residents.Arrived -= HandleResidentArrived;
+                _station.Simulation.Residents.Left -= HandleResidentLeft;
+            }
             if (_resources != null && _resources.Damage != null)
             {
                 _resources.Damage.Destroyed -= HandleDestroyed;
@@ -413,8 +423,25 @@ namespace SpaceStation.UI
             ShowMessage($"<color={HudText.Red}>{reason}</color>");
         }
 
+        // Phase 10: 명단이 있으면 이름으로 알림
+        private void HandleResidentArrived(Resident r, PopulationChangeReason? reason)
+        {
+            if (reason == null)
+                return; // 불러오기·명단 보정
+            var roster = _station.Simulation.Residents;
+            ShowMessage($"<color={HudTheme.AccentHex}>새 주민 {r.Name}</color> · {ResidentText.Traits(roster.Config, r)} · {ResidentText.HomeName(roster, r.Home)}");
+        }
+
+        private void HandleResidentLeft(Resident r, PopulationChangeReason? reason)
+        {
+            string cause = ResidentText.Reason(reason);
+            ShowMessage($"<color={HudText.Red}>{r.Name} 떠남{(cause != null ? $" ({cause})" : "")}</color>");
+        }
+
         private void HandlePopulationChanged(int delta, PopulationChangeReason reason)
         {
+            if (_station.Simulation.Residents != null)
+                return; // 이름 알림 (HandleResidentLeft)
             if (delta >= 0)
                 return; // 증가는 패널 진행도로 충분 (알림 과다 방지)
             string cause;

@@ -24,7 +24,12 @@ namespace SpaceStation.Editor.Balance
         [SerializeField] private List<ModuleData> _buildable = new List<ModuleData>();
         [SerializeField] private List<ResearchCategoryData> _research = new List<ResearchCategoryData>();
         [SerializeField] private ResearchLevelCapConfig _researchCaps;
+        [Tooltip("Phase 10 주민 특성 (비우면 명단 없이 측정)")]
+        [SerializeField] private ResidentConfig _residents;
         [SerializeField] private float _durationMinutes = 30f;
+
+        /// <summary>Phase 10 비교 측정용: true면 기본 에셋 실행에서도 주민 특성을 끈다.</summary>
+        public static bool DisableResidents;
         [SerializeField] private int _runs = 20;
         [SerializeField] private int _baseSeed = 1;
 
@@ -58,6 +63,7 @@ namespace SpaceStation.Editor.Balance
             EditorGUILayout.PropertyField(_so.FindProperty("_buildable"), true);
             EditorGUILayout.PropertyField(_so.FindProperty("_research"), true);
             EditorGUILayout.PropertyField(_so.FindProperty("_researchCaps"));
+            EditorGUILayout.PropertyField(_so.FindProperty("_residents"));
             if (GUILayout.Button("기본 에셋 다시 불러오기"))
                 LoadDefaults(true);
 
@@ -110,6 +116,7 @@ namespace SpaceStation.Editor.Balance
                 AdjacencyRules = _adjacency,
                 ResearchCategories = _research,
                 ResearchCaps = _researchCaps,
+                Residents = DisableResidents ? null : _residents,
                 DurationSeconds = _durationMinutes * 60f,
                 Runs = Mathf.Max(1, _runs),
                 BaseSeed = _baseSeed,
@@ -200,6 +207,8 @@ namespace SpaceStation.Editor.Balance
             }
             if (overwrite || _researchCaps == null)
                 _researchCaps = AssetDatabase.LoadAssetAtPath<ResearchLevelCapConfig>($"{DataRoot}/Research/ResearchLevelCaps.asset");
+            if (overwrite || _residents == null)
+                _residents = AssetDatabase.LoadAssetAtPath<ResidentConfig>($"{DataRoot}/Residents/ResidentConfig.asset");
             if (overwrite || _buildable.Count == 0)
             {
                 _buildable.Clear();
