@@ -43,6 +43,7 @@ namespace SpaceStation.Editor
             BuildOxygen();
             BuildWaterRecycler();
             BuildMedical();
+            BuildRecreation();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -255,6 +256,39 @@ namespace SpaceStation.Editor
             Build("Medical", "MD_Medical", sockets, new Vector3(0f, F, -2.6f), 0f, lights);
         }
 
+        /// <summary>
+        /// 11-5 휴게실 (2칸, 로컬 칸 (0,0,0)·(1,0,0)): 8각 라운지(안쪽 아포템 2.8 = 천장 2.8, x −2.4~10.4) + −z 파노라마 창(x 2.1~5.9, 세로벽 + 위 경사면),
+        /// 창을 바라보는 소파·러그·탁자·화분, +z 간식 카운터·스툴. 문 자리·해치는 거주 모듈과 같음 (위 해치 = 천장 2.8).
+        /// </summary>
+        private static void BuildRecreation()
+        {
+            const float ceiling = 2.8f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling));
+            }
+            var warm = new Color(1f, 0.85f, 0.7f);
+            var mood = new Color(0.7f, 0.45f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, 2.1f, 0f), 6f, 2.2f, warm),
+                LightSpec.Point(new Vector3(4f, 2.1f, 0.4f), 6f, 2.4f, warm),
+                LightSpec.Point(new Vector3(8f, 2.1f, 0f), 6f, 2.2f, warm),
+                // 창가 보랏빛 무드 + 카운터 위 따뜻한 빛
+                LightSpec.Point(new Vector3(2.8f, 0.6f, -2.1f), 3.5f, 1.2f, mood),
+                LightSpec.Point(new Vector3(5.2f, 0.6f, -2.1f), 3.5f, 1.2f, mood),
+                LightSpec.Point(new Vector3(4f, F + 2.2f, 2.0f), 3.5f, 1.0f, warm),
+            };
+            // 스폰 = 서쪽에서 소파 너머 파노라마 창을 비스듬히 바라봄
+            Build("Recreation", "MD_Recreation", sockets, new Vector3(1.0f, F, 0.3f), 115f, lights);
+        }
+
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
         private struct LightSpec
         {
@@ -305,6 +339,8 @@ namespace SpaceStation.Editor
                 { "Device", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.DevicePath) },
                 { "Locker", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.LockerPath) },
                 { "Clinic", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ClinicPath) },
+                { "Sofa", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SofaPath) },
+                { "Rug", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.RugPath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);

@@ -36,6 +36,8 @@ namespace SpaceStation.Editor
         public const string DevicePath = MaterialFolder + "/M_InteriorDevice.mat";
         public const string LockerPath = MaterialFolder + "/M_InteriorLocker.mat";
         public const string ClinicPath = MaterialFolder + "/M_InteriorClinic.mat";
+        public const string SofaPath = MaterialFolder + "/M_InteriorSofa.mat";
+        public const string RugPath = MaterialFolder + "/M_InteriorRug.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
         private const string RpAssetPath = "Assets/Settings/PC_RPAsset.asset";
         private const string RendererPath = "Assets/Settings/PC_Renderer.asset";
@@ -313,6 +315,8 @@ namespace SpaceStation.Editor
             }
             Fabric(FabricPath, new Color(0.86f, 0.85f, 0.81f));
             Fabric(BlanketPath, new Color(0.56f, 0.42f, 0.27f)); // 차분한 황토색 (거주 강조색 노랑과 어울리게)
+            Fabric(SofaPath, new Color(0.3f, 0.29f, 0.36f));     // 11-5 휴게실 소파 (보랏빛 회색)
+            Fabric(RugPath, new Color(0.38f, 0.24f, 0.5f));      // 휴게실 러그·쿠션 (보라)
 
             // 11-5 농장: 잎(무광 초록) · 흙(어두운 갈색) · 생장등(분홍 발광)
             void Leaf(string path, Color color)
