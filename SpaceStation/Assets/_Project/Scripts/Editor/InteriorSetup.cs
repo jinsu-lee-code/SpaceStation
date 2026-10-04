@@ -183,7 +183,7 @@ namespace SpaceStation.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void CreateMaterials()
+        internal static void CreateMaterials()
         {
             System.IO.Directory.CreateDirectory(MaterialFolder);
             AssetDatabase.Refresh();
@@ -202,6 +202,21 @@ namespace SpaceStation.Editor
             light.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             light.enableInstancing = true;
             EditorUtility.SetDirty(light);
+
+            // 11-4 템플릿 창 유리: 반투명, 살짝 푸른 반사
+            var glass = LoadOrCreate(MaterialFolder + "/M_InteriorGlass.mat", lit);
+            glass.SetFloat("_Surface", 1f); // Transparent
+            glass.SetFloat("_Blend", 0f);   // Alpha
+            glass.SetFloat("_ZWrite", 0f);
+            glass.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            glass.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            glass.SetOverrideTag("RenderType", "Transparent");
+            glass.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            glass.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            glass.SetColor("_BaseColor", new Color(0.55f, 0.75f, 0.9f, 0.12f));
+            glass.SetFloat("_Smoothness", 0.95f);
+            glass.SetFloat("_Metallic", 0f);
+            EditorUtility.SetDirty(glass);
 
             // 문 상태등: 색은 런타임 MaterialPropertyBlock (정상 청록 / 경고 빨강)
             var status = LoadOrCreate(StatusPath, lit);

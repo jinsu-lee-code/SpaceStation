@@ -545,7 +545,11 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
     - Blender `kit_builder`: 벽 패널 폭 4 → 3.2(이음 기둥), 문 벽 바깥쪽 문틀, KIT_Tube(팔각 아포템 1.5, 바닥 판·천장 조명·강조 줄, 길이로 늘림)·KIT_TubeCollar 추가
     - 11-2b 발코니·나선 계단은 새 규격으로 (벽 깊이·바닥 높이 인자, 높이 8m = 디딤판 40장 두 바퀴). 문짝은 문틀 뒤까지 완전히 숨도록 이동 거리 1.0
     - `InteriorSetup`이 `Data/Interior`의 템플릿을 `InteriorMode._templates`에 연결 (아직 템플릿 없음 → 전부 대체 방). 테스트 `InteriorGeometryTests` 6개 → 276개
-  - [ ] 11-4 코어 템플릿 (시범): 원형 고리 복도 + 중앙 통신탑 — 플레이 확인 후 나머지 진행 방식 확정
+  - [x] 11-4 코어 템플릿 (시범) (2026-10-04) — 플레이 확인 대기, 확인 후 나머지 진행 방식 확정
+    - 바깥 모델 측정(`Modules_Work.blend` SMN_Core, 칸 단위): 12조각 포드 고리 바깥 반지름 0.93·높이 −0.43~+0.15, 허브 0.28, 팔각 통신탑이 단을 이루며 1.5까지(+안테나). 연결 지점 = 아래층 네 칸 바깥 면 8곳 + 아래 4곳, 위층 없음
+    - Blender `Interior_Kit.blend` 텍스트 블록 `core_builder`(컬렉션 INT_Core, Blender에서 직접 만든 도형 + 불리언) → `Art/Models/Interior/SM_Interior_Core.fbx`: INT_Core_Shell(12각 고리 복도 반지름 4.4~7.0·높이 3.6, 바깥 연결 통로 8곳(폭 3.2, 끝 = 문 자리 3.2), 안쪽벽 큰 창 12, 강조 띠·걸레받이·위 몰딩·바닥 안쪽 강조선·천장 조명 고리) / INT_Core_Glass / INT_Core_Tower(허브 + 3단 팔각탑 + 안테나·표지등, 창 너머 우주에 솟음)
+    - `Editor/InteriorTemplateBuilder` (메뉴 SpaceStation/Interior/Build Templates): FBX → 프리팹 `Prefabs/Interior/PF_Interior_Core`(재질 슬롯 → M_Hull·M_HullDark·M_Accent_Core·M_InteriorLight·M_InteriorGlass, Shell·Glass에 MeshCollider, 복도 조명 6 + 탑 조명 3) + 템플릿 `Data/Interior/IT_Core`(문 자리 수평 8·아래 4, 스폰 = 고리 남쪽에서 탑을 바라봄) → Interior/Setup 연결. 유리 재질 `M_InteriorGlass`(URP Lit 반투명)
+    - 확인: 창 너머 성운 배경에 탑, 곡선 고리 복도, 연결 통로 끝 문(거주 쪽 청록 상태등). 테스트 276개 통과
   - [ ] 11-5 생활 모듈 템플릿 (거주·농장·산소·물 재활용·의료·휴게실·회전 링)
   - [ ] 11-6 산업 모듈 템플릿 (창고·채굴 도킹·정비 베이·제련소·연구소·화물 터미널·핵융합로)
   - [ ] 11-7 방어·전력 모듈 (태양광·포탑·실드·배터리 = 정비 통로 + 특성 표시, 장갑 격벽·손상 통제·연료전지)
