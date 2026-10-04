@@ -45,6 +45,16 @@ namespace SpaceStation.Data
         [SerializeField] private InteriorKitPiece _ceiling;
         [SerializeField] private InteriorKitPiece _hatchFrame;
         [SerializeField] private InteriorKitPiece _hatchLid;
+        [Header("11-2b 발코니·나선 계단")]
+        [Tooltip("발코니 띠: 길이 방향 Z 1m(늘려 씀), 폭 X 1.4, +X = 트인 쪽, 윗면 y = 0")]
+        [SerializeField] private InteriorKitPiece _deck;
+        [Tooltip("난간: 길이 방향 X 1m(늘려 씀), 바닥 y = 0")]
+        [SerializeField] private InteriorKitPiece _railBar;
+        [SerializeField] private InteriorKitPiece _railPost;
+        [Tooltip("나선 디딤판: 가운데가 +X, 각도 폭 20도, 윗면 y = 0")]
+        [SerializeField] private InteriorKitPiece _stairStep;
+        [Tooltip("계단 기둥: 높이 1m(늘려 씀)")]
+        [SerializeField] private InteriorKitPiece _stairPole;
         [Header("방별 강조색")]
         [SerializeField] private List<ModuleData> _accentModules = new List<ModuleData>();
         [SerializeField] private List<Material> _accentMaterials = new List<Material>();
@@ -57,6 +67,14 @@ namespace SpaceStation.Data
         public InteriorKitPiece Ceiling => _ceiling;
         public InteriorKitPiece HatchFrame => _hatchFrame;
         public InteriorKitPiece HatchLid => _hatchLid;
+        public InteriorKitPiece Deck => _deck;
+        public InteriorKitPiece RailBar => _railBar;
+        public InteriorKitPiece RailPost => _railPost;
+        public InteriorKitPiece StairStep => _stairStep;
+        public InteriorKitPiece StairPole => _stairPole;
+
+        public bool HasBalcony => _deck != null && _deck.IsValid && _railBar != null && _railBar.IsValid && _railPost != null && _railPost.IsValid
+                                  && _stairStep != null && _stairStep.IsValid && _stairPole != null && _stairPole.IsValid;
 
         public bool IsComplete => _wall != null && _wall.IsValid && _wallDoor != null && _wallDoor.IsValid && _doorLeaf != null && _doorLeaf.IsValid
                                   && _floor != null && _floor.IsValid && _ceiling != null && _ceiling.IsValid
@@ -83,6 +101,15 @@ namespace SpaceStation.Data
             _accentModules = accentModules;
             _accentMaterials = accentMaterials;
             _defaultAccent = defaultAccent;
+        }
+
+        public void EditorSetBalcony(InteriorKitPiece deck, InteriorKitPiece railBar, InteriorKitPiece railPost, InteriorKitPiece stairStep, InteriorKitPiece stairPole)
+        {
+            _deck = deck;
+            _railBar = railBar;
+            _railPost = railPost;
+            _stairStep = stairStep;
+            _stairPole = stairPole;
         }
 #endif
     }

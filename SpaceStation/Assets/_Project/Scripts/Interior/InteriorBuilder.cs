@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using SpaceStation.Core;
 using SpaceStation.Data;
 using UnityEngine;
@@ -56,7 +56,7 @@ namespace SpaceStation.Interior
         private readonly MaterialPropertyBlock _block = new MaterialPropertyBlock();
         private readonly MaterialPropertyBlock _empty = new MaterialPropertyBlock();
         private readonly Dictionary<ModuleInstance, List<Piece>> _roomPieces = new Dictionary<ModuleInstance, List<Piece>>();
-        private readonly Dictionary<ModuleInstance, Light> _roomLights = new Dictionary<ModuleInstance, Light>();
+        private readonly Dictionary<ModuleInstance, List<Light>> _roomLights = new Dictionary<ModuleInstance, List<Light>>();
         private readonly Dictionary<ModuleInstance, Color> _roomColors = new Dictionary<ModuleInstance, Color>();
         /// <summary>문 상태등: (렌더러 조각, 너머 방).</summary>
         private readonly List<(Piece Piece, ModuleInstance Other)> _statusLights = new List<(Piece, ModuleInstance)>();
@@ -120,9 +120,95 @@ namespace SpaceStation.Interior
                 layout.TryGetRoom(face.OtherCell, out var other);
                 BuildFace(face, room.Module, other?.Module, parents[room.Module]);
             }
+            foreach (var room in layout.Rooms)
+                BuildBalcony(room, parents[room.Module]);
             foreach (var door in _doors)
                 door.SetPlayer(player);
         }
+
+        // ---------------- 11-2b 발코니·나선 계단 ----------------
+
+        private const float RailPostSpacing = 1.6f;
+
+        private void BuildBalcony(InteriorRoom room, Transform parent)
+        {
+            var plan = InteriorBalcony.Build(room.Cells, RoomSize, Thickness);
+            if (plan.IsEmpty)
+                return;
+            var origin = _root.position;
+            var module = room.Module;
+            bool art = _kit != null && _kit.HasBalcony;
+            var color = _roomColors[module];
+
+            foreach (var deck in plan.Decks)
+                Deck(deck, origin, module, parent, art, color);
+            foreach (var rail in plan.Rails)
+                Rail(rail, origin, module, parent, art, color);
+            if (!plan.HasStair)
+                return;
+
+            Deck(plan.Bridge, origin, module, parent, art, color);
+            var stair = new GameObject("SpiralStair").transform;
+            stair.SetParent(parent, false);
+            var basePoint = origin + plan.StairBase;
+            float stepAngle = 360f / InteriorBalcony.StairSteps;
+            float lastAngle = Mathf.Atan2(plan.BridgeDirection.z, plan.BridgeDirection.x) * Mathf.Rad2Deg;
+            float stepRise = plan.StairRise / InteriorBalcony.StairSteps;
+            for (int i = 0; i < InteriorBalcony.StairSteps; i++)
+            {
+                float angle = lastAngle - (InteriorBalcony.StairSteps - 1 - i) * stepAngle;
+                var rotation = Quaternion.Euler(0f, -angle, 0f); // +X → (cos, 0, sin)
+                var top = basePoint + Vector3.up * (stepRise * (i + 1));
+                var dir = rotation * Vector3.right;
+                Solid(top + dir * 0.8f - Vector3.up * 0.04f, rotation, new Vector3(1.25f, 0.08f, 0.36f));
+                if (art)
+                    KitPiece(_kit.StairStep, module, stair, top, rotation);
+                else
+                    Cube(stair, module, top + dir * 0.8f - Vector3.up * 0.04f, rotation, new Vector3(1.25f, 0.08f, 0.36f), color);
+            }
+            float poleHeight = plan.StairRise + 1.1f;
+            Solid(basePoint + Vector3.up * (poleHeight * 0.5f), Quaternion.identity, new Vector3(0.34f, poleHeight, 0.34f));
+            if (art)
+                KitPiece(_kit.StairPole, module, stair, basePoint, Quaternion.identity, new Vector3(1f, poleHeight, 1f));
+            else
+                Cube(stair, module, basePoint + Vector3.up * (poleHeight * 0.5f), Quaternion.identity, new Vector3(0.34f, poleHeight, 0.34f), DoorFrame);
+        }
+
+        private void Deck(BalconyDeck deck, Vector3 origin, ModuleInstance module, Transform parent, bool art, Color color)
+        {
+            // 키트 띠는 로컬 Z = 길이, +X = 트인 쪽
+            var rotation = Quaternion.LookRotation(deck.Along, Vector3.up);
+            if (Vector3.Dot(rotation * Vector3.right, deck.Inward) < 0f)
+                rotation = Quaternion.LookRotation(-deck.Along, Vector3.up);
+            var top = origin + deck.Center;
+            var size = new Vector3(InteriorBalcony.DeckWidth, Thickness, deck.Length);
+            Solid(top - Vector3.up * (Thickness * 0.5f), rotation, size);
+            if (art)
+                KitPiece(_kit.Deck, module, parent, top, rotation, new Vector3(1f, 1f, deck.Length));
+            else
+                Cube(parent, module, top - Vector3.up * (Thickness * 0.5f), rotation, size, Multiply(color, FloorShade));
+        }
+
+        private void Rail(BalconyRail rail, Vector3 origin, ModuleInstance module, Transform parent, bool art, Color color)
+        {
+            var start = origin + rail.Start;
+            var end = origin + rail.End;
+            var dir = (end - start).normalized;
+            float length = rail.Length;
+            var rotation = Quaternion.LookRotation(Vector3.Cross(dir, Vector3.up), Vector3.up); // 로컬 X = dir
+            var mid = (start + end) * 0.5f;
+            Solid(mid + Vector3.up * 0.55f, rotation, new Vector3(length, 1.1f, 0.1f));
+            if (!art)
+            {
+                Cube(parent, module, mid + Vector3.up * 1.0f, rotation, new Vector3(length, 0.06f, 0.06f), DoorFrame);
+                return;
+            }
+            KitPiece(_kit.RailBar, module, parent, mid, rotation, new Vector3(length, 1f, 1f));
+            int posts = Mathf.Max(1, Mathf.CeilToInt(length / RailPostSpacing));
+            for (int i = 0; i <= posts; i++)
+                KitPiece(_kit.RailPost, module, parent, Vector3.Lerp(start, end, i / (float)posts), rotation);
+        }
+
 
         /// <summary>비활성·파손 방은 어둡게 (색·발광 낮춤 + 조명 약하게). 그 방으로 가는 문 상태등은 빨강.</summary>
         public void SetRoomDim(ModuleInstance module, bool dim)
@@ -135,8 +221,11 @@ namespace SpaceStation.Interior
                 _dimmed.Remove(module);
             foreach (var piece in pieces)
                 ApplyColors(piece, dim);
-            if (_roomLights.TryGetValue(module, out var light))
-                light.intensity = dim ? LightIntensity * 0.25f : LightIntensity;
+            if (_roomLights.TryGetValue(module, out var lights))
+            {
+                foreach (var light in lights)
+                    light.intensity = dim ? LightIntensity * 0.25f : LightIntensity;
+            }
             foreach (var (piece, other) in _statusLights)
             {
                 if (other == module)
@@ -310,11 +399,13 @@ namespace SpaceStation.Interior
             go.AddComponent<BoxCollider>().size = size;
         }
 
-        private Piece KitPiece(InteriorKitPiece kitPiece, ModuleInstance module, Transform parent, Vector3 position, Quaternion rotation)
+        private Piece KitPiece(InteriorKitPiece kitPiece, ModuleInstance module, Transform parent, Vector3 position, Quaternion rotation, Vector3? scale = null)
         {
             var go = new GameObject(kitPiece.Mesh.name);
             go.transform.SetParent(parent, false);
             go.transform.SetPositionAndRotation(position, rotation);
+            if (scale.HasValue)
+                go.transform.localScale = scale.Value;
             go.AddComponent<MeshFilter>().sharedMesh = kitPiece.Mesh;
             var r = go.AddComponent<MeshRenderer>();
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -375,19 +466,25 @@ namespace SpaceStation.Interior
                 min = Vector3Int.Min(min, c);
                 max = Vector3Int.Max(max, c);
             }
-            var center = (CellCenter(min) + CellCenter(max)) * 0.5f;
-            center.y = CellCenter(min).y + RoomSize * 0.5f - 0.6f;
-            var extent = (Vector3)(max - min) * RoomSize;
-            var go = new GameObject("Light");
-            go.transform.SetParent(parent, false);
-            go.transform.position = center;
-            var light = go.AddComponent<Light>();
-            light.type = LightType.Point;
-            light.shadows = LightShadows.None;
-            light.color = new Color(1f, 0.96f, 0.9f);
-            light.range = RoomSize * 2f + extent.magnitude * 0.6f;
-            light.intensity = LightIntensity;
-            _roomLights.Add(room.Module, light);
+            var extent = new Vector3(max.x - min.x, 0f, max.z - min.z) * RoomSize;
+            // 층마다 하나 (11-2b 높은 홀은 위층 발코니도 밝힘)
+            for (int y = min.y; y <= max.y; y++)
+            {
+                var center = (CellCenter(min) + CellCenter(max)) * 0.5f;
+                center.y = CellCenter(new Vector3Int(min.x, y, min.z)).y + RoomSize * 0.5f - 0.6f;
+                var go = new GameObject("Light");
+                go.transform.SetParent(parent, false);
+                go.transform.position = center;
+                var light = go.AddComponent<Light>();
+                light.type = LightType.Point;
+                light.shadows = LightShadows.None;
+                light.color = new Color(1f, 0.96f, 0.9f);
+                light.range = RoomSize * 2f + extent.magnitude * 0.6f;
+                light.intensity = LightIntensity;
+                if (!_roomLights.TryGetValue(room.Module, out var list))
+                    _roomLights.Add(room.Module, list = new List<Light>());
+                list.Add(light);
+            }
         }
 
         private static Color RoomColor(ModuleData data)
