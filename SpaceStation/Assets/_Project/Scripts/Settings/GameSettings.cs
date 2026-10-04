@@ -46,6 +46,7 @@ namespace SpaceStation.Settings
         private static int _autosaveIndex = DefaultAutosaveIndex;
         private static WornDisplay _wornDisplay = WornDisplay.Rim;
         private static bool _tutorialPending = true;
+        private static bool _interiorPause = true;
 
         public static event Action Changed;
 
@@ -70,6 +71,9 @@ namespace SpaceStation.Settings
 
         /// <summary>Phase 9: 다음 새 게임에서 튜토리얼 시작 (처음엔 켜짐, 끝내거나 건너뛰면 꺼짐).</summary>
         public static bool TutorialPending { get { Load(); return _tutorialPending; } set => Set(ref _tutorialPending, value, "tutorial"); }
+
+        /// <summary>Phase 11: 내부 방문 중 시뮬레이션 일시정지 (끄면 시간이 계속 흐름).</summary>
+        public static bool InteriorPause { get { Load(); return _interiorPause; } set => Set(ref _interiorPause, value, "interiorPause"); }
 
         public static int FrameLimit => FrameLimits[FrameLimitIndex];
         public static int AutosaveMinutes => AutosaveChoices[AutosaveIndex];
@@ -117,6 +121,7 @@ namespace SpaceStation.Settings
             _pauseWhenUnfocused = false;
             _autosaveIndex = DefaultAutosaveIndex;
             _wornDisplay = WornDisplay.Rim;
+            _interiorPause = true;
             SaveAll();
             Changed?.Invoke();
         }
@@ -145,6 +150,7 @@ namespace SpaceStation.Settings
             _autosaveIndex = Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "autosave", _autosaveIndex), 0, AutosaveChoices.Length - 1);
             _wornDisplay = (WornDisplay)Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "wornDisplay", (int)_wornDisplay), 0, 1);
             _tutorialPending = PlayerPrefs.GetInt(Prefix + "tutorial", _tutorialPending ? 1 : 0) == 1;
+            _interiorPause = PlayerPrefs.GetInt(Prefix + "interiorPause", _interiorPause ? 1 : 0) == 1;
         }
 
         private static void SaveAll()
@@ -166,6 +172,7 @@ namespace SpaceStation.Settings
             PlayerPrefs.SetInt(Prefix + "autosave", _autosaveIndex);
             PlayerPrefs.SetInt(Prefix + "wornDisplay", (int)_wornDisplay);
             PlayerPrefs.SetInt(Prefix + "tutorial", _tutorialPending ? 1 : 0);
+            PlayerPrefs.SetInt(Prefix + "interiorPause", _interiorPause ? 1 : 0);
             PlayerPrefs.Save();
         }
 

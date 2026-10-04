@@ -34,6 +34,10 @@ namespace SpaceStation.UI
         [SerializeField] private TMP_Text _rebuildLabel;
         [SerializeField] private Button _demolishButton;
         [SerializeField] private TMP_Text _demolishLabel;
+        [Header("Phase 11 내부 방문")]
+        [SerializeField] private SpaceStation.Interior.InteriorMode _interior;
+        [SerializeField] private Button _enterButton;
+        [SerializeField] private TMP_Text _enterLabel;
 
         private bool _dirty = true;
         private bool _blinking;
@@ -59,6 +63,10 @@ namespace SpaceStation.UI
             _maintainButton.onClick.AddListener(MaintainSelected);
             _rebuildButton.onClick.AddListener(RebuildSelected);
             _demolishButton.onClick.AddListener(_selection.RemoveSelected);
+            if (_enterButton != null)
+                _enterButton.onClick.AddListener(EnterSelected);
+            if (_interior != null)
+                _interior.Notice += HandleInteriorNotice;
             _selection.SelectionChanged += HandleSelectionChanged;
             _resources.Simulation.Changed += MarkDirty;
             _resources.Damage.Changed += MarkDirty;
@@ -79,6 +87,16 @@ namespace SpaceStation.UI
             if (_station != null && _station.Connectivity != null)
                 _station.Connectivity.ActiveStateChanged -= HandleActiveStateChanged;
             KeyBindings.Changed -= MarkDirty;
+            if (_interior != null)
+                _interior.Notice -= HandleInteriorNotice;
+        }
+
+        private void HandleInteriorNotice(string message) => ActionFailed?.Invoke(message);
+
+        public void EnterSelected()
+        {
+            if (_interior != null && _selection.Selected != null)
+                _interior.Enter(_selection.Selected);
         }
 
         private static string K(GameAction action) => KeyBindings.Label(action);
@@ -96,6 +114,8 @@ namespace SpaceStation.UI
                 RebuildSelected();
             else if (KeyBindings.WasPressed(GameAction.CancelRepair))
                 CancelRepairSelected();
+            else if (KeyBindings.WasPressed(GameAction.EnterInterior))
+                EnterSelected();
         }
 
         private void LateUpdate()
@@ -421,6 +441,13 @@ namespace SpaceStation.UI
             _demolishLabel.SetText(removable
                 ? $"철거 ({K(GameAction.Demolish)})\n<size=80%>환급 {HudText.Cost(_resources.GetRefund(module))}</size>"
                 : supporting ? "철거 불가\n<size=80%>다른 모듈의 받침</size>" : "철거 불가");
+
+            // 내부 방문
+            if (_enterButton != null)
+            {
+                _enterButton.interactable = _interior != null && _interior.CheckEnter(module) == null;
+                _enterLabel.SetText($"들어가기 ({K(GameAction.EnterInterior)})\n<size=80%>1인칭 내부 둘러보기</size>");
+            }
         }
     }
 }

@@ -31,6 +31,8 @@ namespace SpaceStation.Core
         Research,
         ToggleHelp,
         Roster, // Phase 10 주민 명단
+        EnterInterior, // Phase 11 내부 방문
+        Interact,
     }
 
     /// <summary>키가 쓰이는 상황. 건설 중과 선택 중은 동시에 일어나지 않으므로 같은 키를 써도 된다.</summary>
@@ -42,6 +44,8 @@ namespace SpaceStation.Core
         Build,
         /// <summary>모듈 선택 중</summary>
         Selection,
+        /// <summary>Phase 11 내부 방문 중 (이동은 카메라 이동 키를 같이 쓴다)</summary>
+        Interior,
     }
 
     /// <summary>
@@ -80,6 +84,8 @@ namespace SpaceStation.Core
             new Info { Action = GameAction.CancelRepair, Group = "선택한 모듈", Label = "수리 대기 취소", Default = Key.C, Context = ActionContext.Selection },
             new Info { Action = GameAction.Demolish, Group = "선택한 모듈", Label = "철거", Default = Key.Delete, Context = ActionContext.Selection },
             new Info { Action = GameAction.DemolishAlt, Group = "선택한 모듈", Label = "철거 (보조 키)", Default = Key.X, Context = ActionContext.Selection },
+            new Info { Action = GameAction.EnterInterior, Group = "선택한 모듈", Label = "내부 들어가기", Default = Key.I, Context = ActionContext.Selection },
+            new Info { Action = GameAction.Interact, Group = "내부 방문", Label = "해치 이용", Default = Key.F, Context = ActionContext.Interior },
             new Info { Action = GameAction.Pause, Group = "시간", Label = "일시정지 / 재개", Default = Key.P, Context = ActionContext.Always },
             new Info { Action = GameAction.Speed1, Group = "시간", Label = "배속 1x", Default = Key.F1, Context = ActionContext.Always },
             new Info { Action = GameAction.Speed2, Group = "시간", Label = "배속 2x", Default = Key.F2, Context = ActionContext.Always },
@@ -99,6 +105,7 @@ namespace SpaceStation.Core
             ("건설 메뉴 모듈 고르기", "숫자 1~9"),
             ("배치 취소", "오른쪽 클릭 / ESC"),
             ("선택 해제 · 창 닫기 · 메뉴", "ESC"),
+            ("내부 방문: 둘러보기 · 달리기 · 나가기", "마우스 · Shift · ESC"),
         };
 
         private static Key[] _keys;
