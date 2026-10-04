@@ -37,6 +37,8 @@ namespace SpaceStation.Editor
         public const string LockerPath = MaterialFolder + "/M_InteriorLocker.mat";
         public const string ClinicPath = MaterialFolder + "/M_InteriorClinic.mat";
         public const string CratePath = MaterialFolder + "/M_InteriorCrate.mat";
+        public const string HazardPath = MaterialFolder + "/M_InteriorHazard.mat";
+        public const string RockPath = MaterialFolder + "/M_InteriorRock.mat";
         public const string SofaPath = MaterialFolder + "/M_InteriorSofa.mat";
         public const string RugPath = MaterialFolder + "/M_InteriorRug.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
@@ -358,6 +360,8 @@ namespace SpaceStation.Editor
             Plain(LockerPath, new Color(0.5f, 0.55f, 0.6f), 0.35f, 0.4f);
             Plain(ClinicPath, new Color(0.88f, 0.9f, 0.92f), 0.05f, 0.55f); // 11-5 의료 장비 흰 플라스틱
             Plain(CratePath, new Color(0.78f, 0.47f, 0.18f), 0.25f, 0.35f); // 11-6 화물 상자·컨테이너 주황 도장
+            Plain(HazardPath, new Color(0.9f, 0.68f, 0.1f), 0.2f, 0.4f);    // 11-6 경고 줄무늬 노랑 (검정 칸 = Device)
+            Plain(RockPath, new Color(0.3f, 0.27f, 0.25f), 0.35f, 0.25f);   // 11-6 광석 (컨베이어 고무 벨트도)
             Emissive(ScreenPath, new Color(0.05f, 0.18f, 0.22f), new Color(0.1f, 0.55f, 0.7f) * 1.8f, 0.85f);
 
             // 11-4 템플릿 창 유리: 반투명, 살짝 푸른 반사

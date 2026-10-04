@@ -46,6 +46,7 @@ namespace SpaceStation.Editor
             BuildRecreation();
             BuildRotatingRing();
             BuildStorage();
+            BuildMiningDock();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -363,6 +364,36 @@ namespace SpaceStation.Editor
             Build("Storage", "MD_Storage", sockets, new Vector3(0f, F, -2.6f), 0f, lights);
         }
 
+        /// <summary>
+        /// 11-6 채굴 도킹 (1칸, 말단): 앞면(+z) = 채굴선 접근로라 문 자리 없음 — 앞벽에 닫힌 에어록 문(경고 줄무늬)·관제 창(아래 콘솔)·광석 투입구.
+        /// 투입구 → 기운 컨베이어 → 호퍼 → 광석 통, 광석 통 2, 우주복 사물함·벤치. 문 자리 = 뒤·양옆 + 위·아래 해치(칸 중심).
+        /// </summary>
+        private static void BuildMiningDock()
+        {
+            const float ceiling = F + 3.6f;
+            var cell = Vector3Int.zero;
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(cell, Vector3Int.left, Socket),
+                new InteriorSocket(cell, Vector3Int.right, Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(cell, Vector3Int.up, ceiling),
+                new InteriorSocket(cell, Vector3Int.down, -F),
+            };
+            var warm = new Color(1f, 0.88f, 0.74f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-2.0f, F + 3.0f, 2.0f), 4.5f, 1.5f, new Color(0.8f, 0.9f, 1f)),
+                LightSpec.Point(new Vector3(2.0f, F + 3.0f, 2.0f), 4.5f, 1.8f, warm),
+                LightSpec.Point(new Vector3(-2.0f, F + 3.0f, -2.0f), 4.5f, 1.7f, warm),
+                LightSpec.Point(new Vector3(2.0f, F + 3.0f, -2.0f), 4.5f, 1.7f, warm),
+                // 에어록 앞 경고 주황빛
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 1.6f), 3.2f, 0.6f, new Color(1f, 0.7f, 0.3f)),
+            };
+            // 스폰 = 뒤(정거장 쪽 문)에서 에어록·관제 창을 바라봄
+            Build("MiningDock", "MD_MiningDock", sockets, new Vector3(0f, F, -2.6f), 0f, lights);
+        }
+
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
         private struct LightSpec
         {
@@ -416,6 +447,8 @@ namespace SpaceStation.Editor
                 { "Sofa", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SofaPath) },
                 { "Rug", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.RugPath) },
                 { "Crate", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.CratePath) },
+                { "Hazard", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.HazardPath) },
+                { "Rock", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.RockPath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);
