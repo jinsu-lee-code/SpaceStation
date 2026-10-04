@@ -39,6 +39,7 @@ namespace SpaceStation.Editor
         public const string CratePath = MaterialFolder + "/M_InteriorCrate.mat";
         public const string HazardPath = MaterialFolder + "/M_InteriorHazard.mat";
         public const string RockPath = MaterialFolder + "/M_InteriorRock.mat";
+        public const string MoltenPath = MaterialFolder + "/M_InteriorMolten.mat";
         public const string SofaPath = MaterialFolder + "/M_InteriorSofa.mat";
         public const string RugPath = MaterialFolder + "/M_InteriorRug.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
@@ -353,6 +354,8 @@ namespace SpaceStation.Editor
 
             // 11-5 물 재활용기: 탱크 속 물 (푸른빛 은은한 발광, 광택 0.5 — MODELING.md 6-1)
             Emissive(WaterPath, new Color(0.22f, 0.58f, 0.88f), new Color(0.1f, 0.38f, 0.7f) * 1.4f, 0.5f);
+            // 11-6 제련소 쇳물·갓 부은 주괴. 첫 값(발광 ×2.6, 녹색 0.38)은 블룸에 노랗게 날아가 버터처럼 보였음 → 붉은 주황으로 낮춤
+            Emissive(MoltenPath, new Color(0.9f, 0.25f, 0.04f), new Color(1f, 0.19f, 0.015f) * 1.6f, 0.3f);
 
             // 장비 재질 (벽 패널 무늬 없는 단색): 배관 금속 · 장비(이음·책상·화면 테두리) · 도장 사물함
             Plain(MetalPath, new Color(0.62f, 0.64f, 0.67f), 0.75f, 0.55f);

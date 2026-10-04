@@ -48,6 +48,7 @@ namespace SpaceStation.Editor
             BuildStorage();
             BuildMiningDock();
             BuildMaintenanceBay();
+            BuildRefinery();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -427,6 +428,39 @@ namespace SpaceStation.Editor
             Build("MaintenanceBay", "MD_MaintenanceBay", sockets, new Vector3(-2.0f, F, 0.6f), 90f, lights);
         }
 
+        /// <summary>
+        /// 11-6 제련소 (2칸, 로컬 칸 (0,0,0)·(1,0,0)): 천장이 높은(F + 4.8) 제련 홀. 가운데 전기로(주황 관찰창·전극 3·배기 후드와 덕트)
+        /// → 출탕 홈통 → 래들, +z 벽 주괴 롤러 컨베이어, −z 벽 제어 콘솔·광석 통, 모서리 냉각수 탱크·주괴 더미·슬래그 통·집게 걸이.
+        /// 문 자리 = 양 끝 + 칸마다 앞뒤 + 위·아래 해치(칸 중심).
+        /// </summary>
+        private static void BuildRefinery()
+        {
+            const float ceiling = F + 4.8f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling));
+            }
+            var neutral = new Color(0.95f, 0.92f, 0.88f);
+            var molten = new Color(1f, 0.5f, 0.15f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-0.5f, F + 4.0f, 0f), 6f, 1.6f, neutral),
+                LightSpec.Point(new Vector3(8.5f, F + 4.0f, 0f), 6f, 1.6f, neutral),
+                // 쇳물빛: 관찰창 양쪽 + 래들 위 (전기로 몸통 바깥, 중심에 두면 몸통에 가려짐)
+                LightSpec.Point(new Vector3(4f, F + 1.1f, -1.6f), 3.5f, 1.4f, molten),
+                LightSpec.Point(new Vector3(4f, F + 1.2f, 2.0f), 4f, 2.0f, molten),
+                LightSpec.Point(new Vector3(4f, F + 2.0f, -2.4f), 3.5f, 0.8f, neutral), // 콘솔
+            };
+            // 스폰 = 서쪽 끝에서 전기로를 바라봄
+            Build("Refinery", "MD_Refinery", sockets, new Vector3(-2.0f, F, 0.6f), 90f, lights);
+        }
+
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
         private struct LightSpec
         {
@@ -482,6 +516,7 @@ namespace SpaceStation.Editor
                 { "Crate", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.CratePath) },
                 { "Hazard", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.HazardPath) },
                 { "Rock", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.RockPath) },
+                { "Molten", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.MoltenPath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);
