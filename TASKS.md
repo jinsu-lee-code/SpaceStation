@@ -550,6 +550,10 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
     - Blender `Interior_Kit.blend` 텍스트 블록 `core_builder`(컬렉션 INT_Core, Blender에서 직접 만든 도형 + 불리언) → `Art/Models/Interior/SM_Interior_Core.fbx`: INT_Core_Shell(12각 고리 복도 반지름 4.4~7.0·높이 3.6, 바깥 연결 통로 8곳(폭 3.2, 끝 = 문 자리 3.2), 안쪽벽 큰 창 12, 강조 띠·걸레받이·위 몰딩·바닥 안쪽 강조선·천장 조명 고리) / INT_Core_Glass / INT_Core_Tower(허브 + 3단 팔각탑 + 안테나·표지등, 창 너머 우주에 솟음)
     - `Editor/InteriorTemplateBuilder` (메뉴 SpaceStation/Interior/Build Templates): FBX → 프리팹 `Prefabs/Interior/PF_Interior_Core`(재질 슬롯 → M_Hull·M_HullDark·M_Accent_Core·M_InteriorLight·M_InteriorGlass, Shell·Glass에 MeshCollider, 복도 조명 6 + 탑 조명 3) + 템플릿 `Data/Interior/IT_Core`(문 자리 수평 8·아래 4, 스폰 = 고리 남쪽에서 탑을 바라봄) → Interior/Setup 연결. 유리 재질 `M_InteriorGlass`(URP Lit 반투명)
     - 확인: 창 너머 성운 배경에 탑, 곡선 고리 복도, 연결 통로 끝 문(거주 쪽 청록 상태등). 테스트 276개 통과
+    - 피드백 수정 (2026-10-04):
+      - 모서리 칸마다 연결 통로 둘이 직각으로 붙어 고리 쪽으로 쐐기 벽이 튀어나와 진입을 막고, 아래 연결 해치(칸 중심)를 가로지름 → 모서리마다 두 문 자리를 품는 **사각 로비**(4.8×4.8, 바깥벽을 터서 고리와 한 공간, 둘레 강조 띠·천장 조명 패널)로 바꿈. 해치는 로비 바닥 가운데
+      - 불리언 결과의 자기 교차 다각형을 Unity가 버림(경고 5개) → 내보내기 전 퇴화 면 정리 + 삼각형화(`core_builder` clean)
+      - 해치 틀 무늬 없는 두 변이 바닥처럼 밝게 보임 → `kit_builder`의 베벨이 면을 새로 만들며 재질 번호가 0(Hull)으로 초기화되던 문제. 상자마다 새 면 전체에 재질 재지정 (벽 이음 기둥 등 다른 키트의 어두운 부분도 함께 바로잡힘)
   - [ ] 11-5 생활 모듈 템플릿 (거주·농장·산소·물 재활용·의료·휴게실·회전 링)
   - [ ] 11-6 산업 모듈 템플릿 (창고·채굴 도킹·정비 베이·제련소·연구소·화물 터미널·핵융합로)
   - [ ] 11-7 방어·전력 모듈 (태양광·포탑·실드·배터리 = 정비 통로 + 특성 표시, 장갑 격벽·손상 통제·연료전지)
