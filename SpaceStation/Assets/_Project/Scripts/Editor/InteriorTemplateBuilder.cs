@@ -254,7 +254,7 @@ namespace SpaceStation.Editor
                 LightSpec.Point(new Vector3(-2.0f, F + 3.0f, -2.0f), 4.5f, 1.7f, clinic),
                 LightSpec.Point(new Vector3(2.0f, F + 3.0f, -2.0f), 4.5f, 1.7f, clinic),
                 // 스캐너 아치 안쪽 빛 (아치 중심)
-                LightSpec.Point(new Vector3(2.0f, F + 0.9f, 2.0f), 2.5f, 0.8f, new Color(0.45f, 0.85f, 1f)),
+                LightSpec.Point(new Vector3(2.0f, F + 0.9f, 2.22f), 2.5f, 0.8f, new Color(0.45f, 0.85f, 1f)),
             };
             Build("Medical", "MD_Medical", sockets, new Vector3(0f, F, -2.6f), 0f, lights);
         }
