@@ -104,6 +104,24 @@ namespace SpaceStation.UI
             }
         }
 
+        /// <summary>Phase 9 튜토리얼 강조: 모듈 버튼 (없으면 null).</summary>
+        public RectTransform FindButton(ModuleData data)
+        {
+            foreach (var button in _buttons)
+                if (button.Data == data)
+                    return (RectTransform)button.transform;
+            return null;
+        }
+
+        /// <summary>Phase 9 튜토리얼 강조: 분류 탭 (없으면 null).</summary>
+        public RectTransform FindTab(ModuleCategory category)
+        {
+            foreach (var tab in _tabs)
+                if (tab.Category == category)
+                    return (RectTransform)tab.transform;
+            return null;
+        }
+
         public void HandleButtonClicked(ModuleData data)
         {
             _build.ToggleSelect(data);

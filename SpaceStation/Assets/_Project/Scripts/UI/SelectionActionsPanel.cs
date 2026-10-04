@@ -45,6 +45,11 @@ namespace SpaceStation.UI
         /// <summary>재건축 성공 (새 모듈).</summary>
         public event Action<ModuleInstance> Rebuilt;
 
+        /// <summary>Phase 9 튜토리얼 강조: 패널이 보이고 수리 버튼이 켜져 있을 때만 수리 버튼, 아니면 null.</summary>
+        public RectTransform RepairButtonIfShown =>
+            _group != null && _group.alpha > 0.5f && _repairButton.gameObject.activeInHierarchy && _repairButton.interactable
+                ? (RectTransform)_repairButton.transform : null;
+
         private void Start()
         {
             _repairButton.onClick.AddListener(RepairSelected);

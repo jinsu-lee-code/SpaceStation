@@ -108,6 +108,8 @@ namespace SpaceStation.Simulation
                 AutoMaintainCount = auto.AutoMaintainCount,
                 AutoRebuildCount = auto.AutoRebuildCount,
             };
+            if (sim.Tutorial != null && sim.Tutorial.Active)
+                s.Tutorial = sim.Tutorial.Capture();
             return s;
         }
 
@@ -232,6 +234,9 @@ namespace SpaceStation.Simulation
                 if (category == null || !sim.Research.RestoreProject(category, p.TargetLevel, p.Progress))
                     missing++;
             }
+
+            // 7-1. 튜토리얼 (호스트가 저장에 진행 중 튜토리얼이 있으면 미리 StartTutorial)
+            sim.Tutorial?.Restore(s.Tutorial);
 
             // 8. 파생값 다시 계산 (시간은 흐르지 않음), 최고 등급 기록은 그 뒤에 덮어씀
             sim.Tick(0f);

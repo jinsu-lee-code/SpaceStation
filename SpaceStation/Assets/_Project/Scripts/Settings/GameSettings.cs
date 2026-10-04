@@ -45,6 +45,7 @@ namespace SpaceStation.Settings
         private static bool _pauseWhenUnfocused;
         private static int _autosaveIndex = DefaultAutosaveIndex;
         private static WornDisplay _wornDisplay = WornDisplay.Rim;
+        private static bool _tutorialPending = true;
 
         public static event Action Changed;
 
@@ -66,6 +67,9 @@ namespace SpaceStation.Settings
         public static int AutosaveIndex { get { Load(); return _autosaveIndex; } set => Set(ref _autosaveIndex, Mathf.Clamp(value, 0, AutosaveChoices.Length - 1), "autosave"); }
 
         public static WornDisplay WornDisplay { get { Load(); return _wornDisplay; } set => Set(ref _wornDisplay, value, "wornDisplay"); }
+
+        /// <summary>Phase 9: 다음 새 게임에서 튜토리얼 시작 (처음엔 켜짐, 끝내거나 건너뛰면 꺼짐).</summary>
+        public static bool TutorialPending { get { Load(); return _tutorialPending; } set => Set(ref _tutorialPending, value, "tutorial"); }
 
         public static int FrameLimit => FrameLimits[FrameLimitIndex];
         public static int AutosaveMinutes => AutosaveChoices[AutosaveIndex];
@@ -140,6 +144,7 @@ namespace SpaceStation.Settings
             _pauseWhenUnfocused = PlayerPrefs.GetInt(Prefix + "pauseUnfocused", _pauseWhenUnfocused ? 1 : 0) == 1;
             _autosaveIndex = Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "autosave", _autosaveIndex), 0, AutosaveChoices.Length - 1);
             _wornDisplay = (WornDisplay)Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "wornDisplay", (int)_wornDisplay), 0, 1);
+            _tutorialPending = PlayerPrefs.GetInt(Prefix + "tutorial", _tutorialPending ? 1 : 0) == 1;
         }
 
         private static void SaveAll()
@@ -160,6 +165,7 @@ namespace SpaceStation.Settings
             PlayerPrefs.SetInt(Prefix + "pauseUnfocused", _pauseWhenUnfocused ? 1 : 0);
             PlayerPrefs.SetInt(Prefix + "autosave", _autosaveIndex);
             PlayerPrefs.SetInt(Prefix + "wornDisplay", (int)_wornDisplay);
+            PlayerPrefs.SetInt(Prefix + "tutorial", _tutorialPending ? 1 : 0);
             PlayerPrefs.Save();
         }
 

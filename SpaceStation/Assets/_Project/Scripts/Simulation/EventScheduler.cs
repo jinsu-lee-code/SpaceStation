@@ -121,11 +121,30 @@ namespace SpaceStation.Simulation
             return false;
         }
 
+        /// <summary>
+        /// Phase 9 튜토리얼: true면 무작위 이벤트 타이머가 멈춘다 (진행 중인 지속형 이벤트와 <see cref="Trigger"/>는 그대로).
+        /// </summary>
+        public bool Held { get; set; }
+
+        /// <summary>다음 무작위 이벤트를 최소 이 시간(초) 뒤로 미룬다 (미리 뽑은 경보도 해제).</summary>
+        public void Postpone(float atLeastSeconds)
+        {
+            if (TimeUntilNext < atLeastSeconds)
+                TimeUntilNext = atLeastSeconds;
+            ClearPreRoll();
+        }
+
         public void Tick(float deltaSeconds, IReadOnlyList<GameEventData> pool)
         {
             bool changed = _active.Count > 0;
             AdvanceActive(deltaSeconds);
 
+            if (Held)
+            {
+                if (changed)
+                    Changed?.Invoke();
+                return;
+            }
             TimeUntilNext -= deltaSeconds;
             if (TimeUntilNext <= 0f)
             {

@@ -46,6 +46,8 @@ namespace SpaceStation.Simulation
         /// <summary>진행 중인 연구 (순서 = 연구소가 모자랄 때 멈추는 우선순위).</summary>
         public List<ProjectState> Projects = new List<ProjectState>();
         public AutomationState Automation = new AutomationState();
+        /// <summary>Phase 9 튜토리얼 진행 (Active false = 없음·끝남).</summary>
+        public TutorialState Tutorial = new TutorialState();
     }
 
     [Serializable]

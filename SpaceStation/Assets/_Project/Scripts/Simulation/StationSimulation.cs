@@ -150,8 +150,25 @@ namespace SpaceStation.Simulation
 
         // ---------------- 틱 ----------------
 
+        /// <summary>Phase 9 튜토리얼 (시작하지 않았으면 null).</summary>
+        public TutorialRunner Tutorial { get; private set; }
+
+        /// <summary>튜토리얼 시작 (무작위 이벤트 정지). 세이브 복원 전에 부르면 복원이 진행 단계를 덮어쓴다.</summary>
+        public TutorialRunner StartTutorial(TutorialData data)
+        {
+            Tutorial = new TutorialRunner(this, data);
+            return Tutorial;
+        }
+
         public void Tick(float dt)
         {
+            // Phase 9: 첫 밤 대비 단계가 끝나기 전 해질녘 직전이면 시간이 흐르지 않는다 (건설·안내만)
+            if (Tutorial != null && dt > 0f && Tutorial.UpdateHold())
+            {
+                Tutorial.Tick(dt);
+                EvaluateProgression();
+                return;
+            }
             Damage.Tick(dt);
             Durability.Tick(dt); // 내구도 0 → 파괴
             CollectActiveModules();
@@ -167,6 +184,7 @@ namespace SpaceStation.Simulation
             Events.WarningLead = Effects.EarlyWarningSeconds;
             Events.Tick(dt, _eventPool);
             ElapsedSeconds += dt;
+            Tutorial?.Tick(dt);
             EvaluateProgression();
             EvaluateFailure(dt);
         }

@@ -475,7 +475,14 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
 - 모듈마다: SO 데이터 · Blender 모델 · 봇 규칙 · 테스트 · BALANCE.md 기록 · 전시 정거장 갱신
 
 ## Phase 9. 튜토리얼
-- [ ] 단계별 안내 + 목표 달성 확인 + UI 하이라이트. 필수 단계: 채굴 도킹 건설, 첫 밤 전에 배터리 건설
+- [x] 단계별 안내 + 목표 달성 확인 + UI 하이라이트. 필수 단계: 채굴 도킹 건설, 첫 밤 전에 배터리 건설 — 2026-10-04 구현, 플레이 확인 대기
+  - 결정: **첫 새 게임에 자동**(설정 > 게임 "다음 새 게임에서 튜토리얼"로 다시 켬, 카드의 [건너뛰기] 두 번 눌러 종료), 시간은 흐르되 **무작위 이벤트는 정지 + 마지막에 대본 운석**, **핵심 8단계**, **왼쪽 위 목표 카드 + 깜빡이는 테두리**, 진행 단계는 **세이브에 저장·이어서**, 배터리 전 첫 밤은 **해질녘 직전 시간 정지**, 비용이 모자라면 **부족분 보급**
+  - 단계 (BALANCE 25번): 카메라 → 채굴 도킹 → 생명 유지(산소·물·농장) → 태양광 → 배터리 → 거주 → 배속·밤 넘기기 → 운석 수리. 생명 유지는 산소가 시작부터 줄어 앞으로 당김 (플레이 측정)
+  - `Data/TutorialData`(단계 목록·수치), `Simulation/TutorialRunner`(순수 C#: 목표 판정, `EventScheduler.Held/Postpone`, 시간 정지 `HoldsTime` → `StationSimulation.Tick`이 건너뜀, 보급, 대본 운석 `Events.Trigger`), `StationSimulation.StartTutorial`, 세이브 `StationState.Tutorial`
+  - `SimulationHost._tutorial`: 새 게임 = `GameSettings.TutorialPending`, 불러온 판 = 저장에 진행 중일 때만. 끝내거나 건너뛰면 설정 끔
+  - 화면 `UI/TutorialView`(코드로 생성): 단계·설명·체크 목록·상태(시간 정지·보급 대기·배치 안내), 강조는 다음 모듈의 탭(다른 분류일 때) → 버튼, 자원 표시, 시간 조절, 수리 버튼(`BuildMenu.FindButton/FindTab`, `SelectionActionsPanel.RepairButtonIfShown`). 카메라 조작은 리그 변화량 누적으로 판정
+  - 에디터 `Editor/TutorialSetup` (메뉴 SpaceStation/Tutorial/Setup): 에셋 생성·호스트 연결·HUD "Tutorial" 오브젝트
+  - 테스트 6개(진행·이벤트 정지, 첫 밤 정지, 보급, 대본 운석·수리 완료, 세이브 복원, 건너뛰기) — 전체 251개 통과
 
 ## Phase 10. 거주자 특성 (림월드식)
 - [ ] 거주자 개별 명단(이름·특성) + 특성이 수치에 영향. 이동 AI 없음 (GDD 10번 "개별 거주자 AI" 제외 유지)

@@ -30,6 +30,9 @@ namespace SpaceStation.Simulation
         [Header("Save (Phase 6)")]
         [Tooltip("저장의 난이도 이름을 찾을 목록 (이지/노멀/하드)")]
         [SerializeField] private List<DifficultyPreset> _difficulties = new List<DifficultyPreset>();
+        [Header("Tutorial (Phase 9)")]
+        [Tooltip("첫 새 게임(설정 '다음 새 게임에서 튜토리얼')에서 시작할 튜토리얼")]
+        [SerializeField] private TutorialData _tutorial;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -65,6 +68,15 @@ namespace SpaceStation.Simulation
                 ResearchCategories = _researchCategories,
                 ResearchCaps = _researchCaps,
             });
+            // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
+            if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
+            {
+                bool start = pending != null
+                    ? pending.Station != null && pending.Station.Tutorial != null && pending.Station.Tutorial.Active
+                    : Settings.GameSettings.TutorialPending;
+                if (start)
+                    Simulation.StartTutorial(_tutorial);
+            }
             if (pending != null)
             {
                 LoadedSave = pending;
