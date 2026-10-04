@@ -38,14 +38,14 @@ namespace SpaceStation.Interior
         }
 
         /// <summary>발 위치·바라보는 방향으로 순간 이동 (입장·해치).</summary>
-        public void Teleport(Vector3 feet, float yaw)
+        public void Teleport(Vector3 feet, float yaw, float pitch = 0f)
         {
             _body.enabled = false;
             transform.SetPositionAndRotation(feet, Quaternion.Euler(0f, yaw, 0f));
             _body.enabled = true;
-            _pitch = 0f;
+            _pitch = Mathf.Clamp(pitch, -85f, 85f);
             _fallSpeed = 0f;
-            _eye.localRotation = Quaternion.identity;
+            _eye.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
         }
 
         private void Update()

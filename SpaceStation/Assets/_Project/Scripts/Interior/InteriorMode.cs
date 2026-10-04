@@ -162,6 +162,7 @@ namespace SpaceStation.Interior
 
             var playerGo = new GameObject("InteriorPlayer", typeof(CharacterController));
             playerGo.transform.SetParent(transform, true); // 내부 루트 밖 (다시 만들 때 지워지지 않게)
+            playerGo.layer = 2; // Ignore Raycast: 내려다볼 때 시선 광선이 자기 몸에 맞지 않게
             _player = playerGo.AddComponent<FirstPersonController>();
 
             _layout = InteriorLayout.Build(_station.Grid, _station.Connectivity.IsActive, module);
@@ -296,7 +297,7 @@ namespace SpaceStation.Interior
         {
             var eye = _player.Eye;
             InteriorHatch hatch = null;
-            if (Physics.Raycast(eye.position, eye.forward, out var hit, _interactDistance, ~0, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(eye.position, eye.forward, out var hit, _interactDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
                 hatch = hit.collider.GetComponent<InteriorHatch>();
             if (hatch == null)
             {
