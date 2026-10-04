@@ -47,6 +47,7 @@ namespace SpaceStation.Editor
             BuildRotatingRing();
             BuildStorage();
             BuildMiningDock();
+            BuildMaintenanceBay();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -392,6 +393,38 @@ namespace SpaceStation.Editor
             };
             // 스폰 = 뒤(정거장 쪽 문)에서 에어록·관제 창을 바라봄
             Build("MiningDock", "MD_MiningDock", sockets, new Vector3(0f, F, -2.6f), 0f, lights);
+        }
+
+        /// <summary>
+        /// 11-6 정비 베이 (2칸, 로컬 칸 (0,0,0)·(1,0,0)): 천장이 높은(F + 4.8) 작업 홀 x −3.2~11.2. 천장 레일 로봇 팔 → 작업 단 위 수리 중인 드론,
+        /// +z 벽 작업대·공구 벽, −z 벽 부품 선반, 모서리 드론 충전 거치대 2·공구 수레·가스 실린더. 문 자리 = 양 끝 + 칸마다 앞뒤 + 위·아래 해치(칸 중심).
+        /// </summary>
+        private static void BuildMaintenanceBay()
+        {
+            const float ceiling = F + 4.8f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling));
+            }
+            var warm = new Color(1f, 0.88f, 0.74f);
+            var cool = new Color(0.88f, 0.94f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-0.5f, F + 4.0f, 0f), 6f, 2.0f, warm),
+                LightSpec.Point(new Vector3(8.5f, F + 4.0f, 0f), 6f, 2.0f, warm),
+                // 작업 단을 내리비추는 차가운 작업등
+                LightSpec.Spot(new Vector3(4f, F + 4.4f, -1.2f), new Vector3(0f, -1f, 0.35f), 7f, 3.0f, 60f, cool),
+                LightSpec.Point(new Vector3(4f, F + 2.2f, 2.2f), 3.5f, 1.0f, warm),   // 작업대
+                LightSpec.Point(new Vector3(4f, F + 2.2f, -2.2f), 3.5f, 0.9f, warm),  // 부품 선반
+            };
+            // 스폰 = 서쪽 끝에서 로봇 팔·작업 단을 바라봄
+            Build("MaintenanceBay", "MD_MaintenanceBay", sockets, new Vector3(-2.0f, F, 0.6f), 90f, lights);
         }
 
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
