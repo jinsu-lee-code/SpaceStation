@@ -33,6 +33,7 @@ namespace SpaceStation.Editor
             BuildCore();
             BuildHabitat();
             BuildFarm();
+            BuildOxygen();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -151,6 +152,39 @@ namespace SpaceStation.Editor
             Build("Farm", "MD_Farm", sockets, new Vector3(-2.0f, F, 0f), 90f, lights);
         }
 
+        /// <summary>
+        /// 11-5 산소 생성기 (1칸): 모서리 깎은 6.4m 기계실 + 가운데 단 위 전기분해 탱크 2개(x ±1.2, 천장 가운데를 터서 위로 3.6까지),
+        /// 청록 액체 관찰창·배관·콘솔·사물함. 해치는 탱크를 피해 위 = z +2.0, 아래 = z −2.0.
+        /// </summary>
+        private static void BuildOxygen()
+        {
+            const float ceiling = F + 3.6f;
+            var cell = Vector3Int.zero;
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(cell, Vector3Int.left, Socket),
+                new InteriorSocket(cell, Vector3Int.right, Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(cell, Vector3Int.up, ceiling, new Vector3(0f, 0f, 2.0f)),
+                new InteriorSocket(cell, Vector3Int.down, -F, new Vector3(0f, 0f, -2.0f)),
+            };
+            var room = new Color(0.92f, 0.96f, 1f);
+            var cyan = new Color(0.35f, 0.9f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-2.2f, F + 3.0f, 2.2f), 4.5f, 1.6f, room),
+                LightSpec.Point(new Vector3(2.2f, F + 3.0f, 2.2f), 4.5f, 1.6f, room),
+                LightSpec.Point(new Vector3(-2.2f, F + 3.0f, -2.2f), 4.5f, 1.6f, room),
+                LightSpec.Point(new Vector3(2.2f, F + 3.0f, -2.2f), 4.5f, 1.6f, room),
+                // 탱크 관찰창의 청록 번짐 + 위 수직 공간
+                LightSpec.Point(new Vector3(-1.2f, F + 1.65f, -1.0f), 3.5f, 1.4f, cyan),
+                LightSpec.Point(new Vector3(1.2f, F + 1.65f, 1.0f), 3.5f, 1.4f, cyan),
+                LightSpec.Point(new Vector3(0f, 3.1f, 0f), 4f, 1.6f, cyan),
+            };
+            Build("Oxygen", "MD_Oxygen", sockets, new Vector3(0f, F, -2.6f), 0f, lights);
+        }
+
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
         private struct LightSpec
         {
@@ -194,6 +228,8 @@ namespace SpaceStation.Editor
                 { "PlantLight", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PlantLightPath) },
                 { "Soil", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SoilPath) },
                 { "Grow", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.GrowPath) },
+                { "O2Liquid", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.LiquidPath) },
+                { "Screen", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);

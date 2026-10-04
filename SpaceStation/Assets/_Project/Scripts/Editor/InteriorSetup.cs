@@ -29,6 +29,8 @@ namespace SpaceStation.Editor
         public const string PlantLightPath = MaterialFolder + "/M_InteriorPlantLight.mat";
         public const string SoilPath = MaterialFolder + "/M_InteriorSoil.mat";
         public const string GrowPath = MaterialFolder + "/M_InteriorGrow.mat";
+        public const string LiquidPath = MaterialFolder + "/M_InteriorO2Liquid.mat";
+        public const string ScreenPath = MaterialFolder + "/M_InteriorScreen.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
         private const string RpAssetPath = "Assets/Settings/PC_RPAsset.asset";
         private const string RendererPath = "Assets/Settings/PC_Renderer.asset";
@@ -333,6 +335,10 @@ namespace SpaceStation.Editor
             grow.enableInstancing = true;
             EditorUtility.SetDirty(grow);
 
+            // 11-5 산소 생성기: 탱크 속 청록 액체(발광, 매끈) · 콘솔 화면(어두운 청록 발광)
+            Emissive(LiquidPath, new Color(0.3f, 0.85f, 0.95f), new Color(0.15f, 0.75f, 0.95f) * 1.6f, 0.9f);
+            Emissive(ScreenPath, new Color(0.05f, 0.18f, 0.22f), new Color(0.1f, 0.55f, 0.7f) * 1.8f, 0.85f);
+
             // 11-4 템플릿 창 유리: 반투명, 살짝 푸른 반사
             var glass = LoadOrCreate(MaterialFolder + "/M_InteriorGlass.mat", lit);
             glass.SetFloat("_Surface", 1f); // Transparent
@@ -357,6 +363,20 @@ namespace SpaceStation.Editor
             status.enableInstancing = true;
             EditorUtility.SetDirty(status);
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>발광 URP Lit 재질 (조명 판·액체·화면 등)</summary>
+        private static void Emissive(string path, Color baseColor, Color emission, float smoothness)
+        {
+            var m = LoadOrCreate(path, Shader.Find("Universal Render Pipeline/Lit"));
+            m.SetColor("_BaseColor", baseColor);
+            m.SetFloat("_Smoothness", smoothness);
+            m.SetFloat("_Metallic", 0f);
+            m.EnableKeyword("_EMISSION");
+            m.SetColor("_EmissionColor", emission);
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
         }
 
         private static Material LoadOrCreate(string path, Shader shader)
