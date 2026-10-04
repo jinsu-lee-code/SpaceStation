@@ -35,6 +35,7 @@ namespace SpaceStation.Editor
         public const string WaterPath = MaterialFolder + "/M_InteriorWater.mat";
         public const string DevicePath = MaterialFolder + "/M_InteriorDevice.mat";
         public const string LockerPath = MaterialFolder + "/M_InteriorLocker.mat";
+        public const string ClinicPath = MaterialFolder + "/M_InteriorClinic.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
         private const string RpAssetPath = "Assets/Settings/PC_RPAsset.asset";
         private const string RendererPath = "Assets/Settings/PC_Renderer.asset";
@@ -350,6 +351,7 @@ namespace SpaceStation.Editor
             Plain(MetalPath, new Color(0.62f, 0.64f, 0.67f), 0.75f, 0.55f);
             Plain(DevicePath, new Color(0.2f, 0.21f, 0.23f), 0.2f, 0.45f);
             Plain(LockerPath, new Color(0.5f, 0.55f, 0.6f), 0.35f, 0.4f);
+            Plain(ClinicPath, new Color(0.88f, 0.9f, 0.92f), 0.05f, 0.55f); // 11-5 의료 장비 흰 플라스틱
             Emissive(ScreenPath, new Color(0.05f, 0.18f, 0.22f), new Color(0.1f, 0.55f, 0.7f) * 1.8f, 0.85f);
 
             // 11-4 템플릿 창 유리: 반투명, 살짝 푸른 반사

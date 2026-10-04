@@ -42,6 +42,7 @@ namespace SpaceStation.Editor
             BuildFarm();
             BuildOxygen();
             BuildWaterRecycler();
+            BuildMedical();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -224,6 +225,36 @@ namespace SpaceStation.Editor
             Build("WaterRecycler", "MD_WaterRecycler", sockets, new Vector3(0f, F, -2.6f), 0f, lights);
         }
 
+        /// <summary>
+        /// 11-5 의료실 (1칸): 6.4m 진료실, 문 4곳을 잇는 십자 통로는 비우고 네 구역에 스캐너 아치 침대 / 침대·수액 거치대·생체 모니터 /
+        /// 약품 보관함 / 진료 책상·의자, 남쪽 벽 둥근 장비 포트 6. 해치는 통로 교차점(칸 중심).
+        /// </summary>
+        private static void BuildMedical()
+        {
+            const float ceiling = F + 3.6f;
+            var cell = Vector3Int.zero;
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(cell, Vector3Int.left, Socket),
+                new InteriorSocket(cell, Vector3Int.right, Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(cell, Vector3Int.up, ceiling),
+                new InteriorSocket(cell, Vector3Int.down, -F),
+            };
+            var clinic = new Color(0.98f, 0.99f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-2.0f, F + 3.0f, 2.0f), 4.5f, 1.7f, clinic),
+                LightSpec.Point(new Vector3(2.0f, F + 3.0f, 2.0f), 4.5f, 1.7f, clinic),
+                LightSpec.Point(new Vector3(-2.0f, F + 3.0f, -2.0f), 4.5f, 1.7f, clinic),
+                LightSpec.Point(new Vector3(2.0f, F + 3.0f, -2.0f), 4.5f, 1.7f, clinic),
+                // 스캐너 아치 안쪽 빛 (아치 중심)
+                LightSpec.Point(new Vector3(2.0f, F + 0.9f, 2.0f), 2.5f, 0.8f, new Color(0.45f, 0.85f, 1f)),
+            };
+            Build("Medical", "MD_Medical", sockets, new Vector3(0f, F, -2.6f), 0f, lights);
+        }
+
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
         private struct LightSpec
         {
@@ -273,6 +304,7 @@ namespace SpaceStation.Editor
                 { "Water", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.WaterPath) },
                 { "Device", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.DevicePath) },
                 { "Locker", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.LockerPath) },
+                { "Clinic", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ClinicPath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);
