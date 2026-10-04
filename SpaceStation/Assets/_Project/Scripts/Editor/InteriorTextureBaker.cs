@@ -57,6 +57,63 @@ namespace SpaceStation.Editor
             Debug.Log("[InteriorTextureBaker] 패널 텍스처 생성");
         }
 
+        public const string FabricNormalPath = Folder + "T_InteriorFabric_N.png";
+        public const string FabricMaskPath = Folder + "T_InteriorFabric_M.png";
+        private const int FabricThreads = 16; // 한 장에 실 16가닥 (재질 타일링 4 → 0.25m 타일, 실 약 1.5cm)
+
+        /// <summary>
+        /// 11-5 천 재질(베개·매트리스·담요) 텍스처: 평직(실이 한 가닥씩 위아래로 엇갈림) 높이 → 노멀 + 마스크(R 실 사이 그늘, G 잔잔한 얼룩).
+        /// 크기 = 패널과 같은 N, 실 주기 = N / 16 이라 이어 붙여도 끊기지 않는다.
+        /// </summary>
+        [MenuItem("SpaceStation/Interior/Bake Fabric Textures")]
+        public static void BakeFabric()
+        {
+            var h = new float[N * N];
+            int period = N / FabricThreads;
+            for (int y = 0; y < N; y++)
+            {
+                for (int x = 0; x < N; x++)
+                {
+                    int i = x / period, j = y / period;
+                    float u = (x % period + 0.5f) / period, v = (y % period + 0.5f) / period;
+                    // 날실(세로): 단면은 둥글고, 씨실을 하나 건너 위로 올라옴
+                    float warp = 0.35f * Mathf.Sqrt(Mathf.Sin(Mathf.PI * u)) + 0.3f * (0.5f + 0.5f * Mathf.Cos(Mathf.PI * (y / (float)period) + Mathf.PI * i));
+                    float weft = 0.35f * Mathf.Sqrt(Mathf.Sin(Mathf.PI * v)) + 0.3f * (0.5f + 0.5f * Mathf.Cos(Mathf.PI * (x / (float)period) + Mathf.PI * (j + 1)));
+                    // 실 사이 틈은 낮게
+                    float gapU = Smooth(0f, 0.12f, Mathf.Min(u, 1f - u)), gapV = Smooth(0f, 0.12f, Mathf.Min(v, 1f - v));
+                    float hh = Mathf.Max(warp * gapU, weft * gapV);
+                    // 섬유 결 (실 방향으로 늘어난 잔 노이즈)
+                    hh += (Noise(x, y, 128, 31) - 0.5f) * 0.05f;
+                    h[y * N + x] = hh;
+                }
+            }
+            var blur = BoxBlur(h, 4);
+            var normal = new Color32[N * N];
+            var mask = new Color32[N * N];
+            const float strength = 3.0f;
+            for (int y = 0; y < N; y++)
+            {
+                for (int x = 0; x < N; x++)
+                {
+                    float dx = (H(h, x + 1, y) - H(h, x - 1, y)) * strength;
+                    float dy = (H(h, x, y + 1) - H(h, x, y - 1)) * strength;
+                    var n = new Vector3(-dx, -dy, 1f).normalized;
+                    normal[y * N + x] = new Color32(To8(n.x * 0.5f + 0.5f), To8(n.y * 0.5f + 0.5f), To8(n.z * 0.5f + 0.5f), 255);
+                    float cavity = Mathf.Clamp01(1f - Mathf.Max(0f, blur[y * N + x] - h[y * N + x]) * 4f);
+                    float ao = Mathf.Lerp(0.55f, 1f, cavity);
+                    float mottle = Mathf.Lerp(0.85f, 1f, Noise(x, y, 4, 41) * 0.6f + Noise(x, y, 16, 43) * 0.4f);
+                    mask[y * N + x] = new Color32(To8(ao), To8(mottle), 255, 255);
+                }
+            }
+            System.IO.Directory.CreateDirectory(Folder);
+            Save(FabricNormalPath, normal);
+            Save(FabricMaskPath, mask);
+            AssetDatabase.Refresh();
+            Configure(FabricNormalPath, true);
+            Configure(FabricMaskPath, false);
+            Debug.Log("[InteriorTextureBaker] 천 텍스처 생성");
+        }
+
         private static byte To8(float v) => (byte)Mathf.Clamp(Mathf.RoundToInt(v * 255f), 0, 255);
 
         private static float H(float[] h, int x, int y) => h[((y % N + N) % N) * N + (x % N + N) % N];

@@ -23,6 +23,8 @@ namespace SpaceStation.Editor
         private const string LightPath = MaterialFolder + "/M_InteriorLight.mat";
         private const string StatusPath = MaterialFolder + "/M_InteriorStatus.mat";
         public const string InteriorHullPath = MaterialFolder + "/M_InteriorHull.mat";
+        public const string FabricPath = MaterialFolder + "/M_InteriorFabric.mat";
+        public const string BlanketPath = MaterialFolder + "/M_InteriorBlanket.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
         private const string RpAssetPath = "Assets/Settings/PC_RPAsset.asset";
         private const string RendererPath = "Assets/Settings/PC_Renderer.asset";
@@ -276,6 +278,30 @@ namespace SpaceStation.Editor
             }
             Panel(InteriorHullPath, "M_Hull.mat", 0.3f, 0.3f);
             Panel(InteriorHullDarkPath, "M_HullDark.mat", 0.2f, 0.45f);
+
+            // 11-5 천 재질 (베개·매트리스 = 흰 천, 담요 = 색 천): 같은 트라이플래너 셰이더에 직물 결 텍스처, 금속 0·광택 낮게
+            if (!System.IO.File.Exists(InteriorTextureBaker.FabricNormalPath) || !System.IO.File.Exists(InteriorTextureBaker.FabricMaskPath))
+                InteriorTextureBaker.BakeFabric();
+            var fabricN = AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.FabricNormalPath);
+            var fabricM = AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.FabricMaskPath);
+            void Fabric(string path, Color color)
+            {
+                var m = LoadOrCreate(path, tri);
+                m.shader = tri;
+                m.SetColor("_BaseColor", color);
+                m.SetFloat("_Smoothness", 0.04f); // 천은 거의 반사 없음 (0.12도 가까운 조명에 플라스틱처럼 번들거림)
+                m.SetFloat("_Metallic", 0f);
+                m.SetTexture("_DetailNormal", fabricN);
+                m.SetTexture("_DetailMask", fabricM);
+                m.SetFloat("_Tiling", 4f);
+                m.SetFloat("_NormalStrength", 0.8f);
+                m.SetFloat("_OcclusionStrength", 0.6f);
+                m.SetFloat("_GrimeStrength", 0.5f);
+                m.enableInstancing = true;
+                EditorUtility.SetDirty(m);
+            }
+            Fabric(FabricPath, new Color(0.86f, 0.85f, 0.81f));
+            Fabric(BlanketPath, new Color(0.56f, 0.42f, 0.27f)); // 차분한 황토색 (거주 강조색 노랑과 어울리게)
 
             // 11-4 템플릿 창 유리: 반투명, 살짝 푸른 반사
             var glass = LoadOrCreate(MaterialFolder + "/M_InteriorGlass.mat", lit);

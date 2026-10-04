@@ -105,10 +105,10 @@ namespace SpaceStation.Editor
                 LightSpec.Point(new Vector3(4f, F + 1.6f, -1.6f), 4f, 1.0f, new Color(0.6f, 0.78f, 1f)),
             };
             // 침실 캡슐마다 은은한 읽기등
-            foreach (float bx in new[] { 3.075f, 4.925f })
+            foreach (float bx in new[] { 3.025f, 4.975f })
             {
                 foreach (float by in new[] { F + 1.0f, F + 2.2f })
-                    lights.Add(LightSpec.Point(new Vector3(bx, by, 2.7f), 1.8f, 0.5f, new Color(1f, 0.8f, 0.6f)));
+                    lights.Add(LightSpec.Point(new Vector3(bx, by, 3.1f), 2f, 0.55f, new Color(1f, 0.8f, 0.6f)));
             }
             Build("Habitat", "MD_Habitat", sockets, new Vector3(-1.2f, F, 0f), 90f, lights);
         }
@@ -150,6 +150,8 @@ namespace SpaceStation.Editor
                 { "Accent", accent },
                 { "Light", AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorLight.mat") },
                 { "Glass", AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorGlass.mat") },
+                { "Fabric", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FabricPath) },
+                { "Blanket", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.BlanketPath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);
