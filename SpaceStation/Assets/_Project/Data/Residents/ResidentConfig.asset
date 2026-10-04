@@ -1,0 +1,254 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7561ee76e38d5cd4281dc6d5463859f3, type: 3}
+  m_Name: ResidentConfig
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ResidentConfig
+  _traits:
+  - _trait: 0
+    _displayName: "\uAE30\uC220\uC790"
+    _description: "\uC218\uB9AC \uC2DC\uAC04 -4%/\uBA85 (\uCD5C\uB300 -20%)"
+    _weight: 1
+    _positive: 1
+    _conflictsWith: 0
+    _hasConflict: 0
+    _perResident: 0.04
+    _perResidentOtherwise: 0
+    _maxTotal: 0.2
+  - _trait: 1
+    _displayName: "\uACFC\uD559\uC790"
+    _description: "\uC5F0\uAD6C \uC18D\uB3C4 +4%/\uBA85 (\uCD5C\uB300 +20%)"
+    _weight: 1
+    _positive: 1
+    _conflictsWith: 0
+    _hasConflict: 0
+    _perResident: 0.04
+    _perResidentOtherwise: 0
+    _maxTotal: 0.2
+  - _trait: 2
+    _displayName: "\uC6D0\uC608\uAC00"
+    _description: "\uC2DD\uB7C9 \uC0DD\uC0B0 +3%/\uBA85 (\uCD5C\uB300 +15%)"
+    _weight: 1
+    _positive: 1
+    _conflictsWith: 0
+    _hasConflict: 0
+    _perResident: 0.03
+    _perResidentOtherwise: 0
+    _maxTotal: 0.15
+  - _trait: 3
+    _displayName: "\uC815\uBE44\uACF5"
+    _description: "\uB178\uD6C4 \uC18D\uB3C4 -3%/\uBA85 (\uCD5C\uB300 -15%)"
+    _weight: 1
+    _positive: 1
+    _conflictsWith: 0
+    _hasConflict: 0
+    _perResident: 0.03
+    _perResidentOtherwise: 0
+    _maxTotal: 0.15
+  - _trait: 4
+    _displayName: "\uB099\uCC9C\uAC00"
+    _description: "\uB9CC\uC871\uB3C4 \uC0C1\uD55C +2/\uBA85 (\uCD5C\uB300 +10)"
+    _weight: 1
+    _positive: 1
+    _conflictsWith: 5
+    _hasConflict: 1
+    _perResident: 2
+    _perResidentOtherwise: 0
+    _maxTotal: 10
+  - _trait: 5
+    _displayName: "\uBD88\uD3C9\uAFBC"
+    _description: "\uB9CC\uC871\uB3C4 \uC0C1\uD55C -2/\uBA85 (\uCD5C\uB300 -10) \xB7
+      \uBA3C\uC800 \uB5A0\uB0A8"
+    _weight: 0.8
+    _positive: 0
+    _conflictsWith: 0
+    _hasConflict: 0
+    _perResident: -2
+    _perResidentOtherwise: 0
+    _maxTotal: 10
+  - _trait: 6
+    _displayName: "\uB300\uC2DD\uAC00"
+    _description: "\uBCF8\uC778 \uC2DD\uB7C9 \uC18C\uBE44 +50%"
+    _weight: 0.8
+    _positive: 0
+    _conflictsWith: 7
+    _hasConflict: 1
+    _perResident: 0.5
+    _perResidentOtherwise: 0
+    _maxTotal: 0
+  - _trait: 7
+    _displayName: "\uC18C\uC2DD\uAC00"
+    _description: "\uBCF8\uC778 \uC2DD\uB7C9\xB7\uBB3C \uC18C\uBE44 -30%"
+    _weight: 0.8
+    _positive: 1
+    _conflictsWith: 0
+    _hasConflict: 0
+    _perResident: -0.3
+    _perResidentOtherwise: 0
+    _maxTotal: 0
+  - _trait: 8
+    _displayName: "\uC0AC\uAD50\uC801"
+    _description: "\uC5EC\uAC00 \uC2DC\uC124(\uD734\uAC8C\uC2E4\xB7\uD68C\uC804 \uB9C1)
+      \uBC94\uC704 \uC548 \uC9D1\uC774\uBA74 \uC0C1\uD55C +2, \uBC16\uC774\uBA74
+      -1 (\uCD5C\uB300 \xB110)"
+    _weight: 1
+    _positive: 1
+    _conflictsWith: 0
+    _hasConflict: 0
+    _perResident: 2
+    _perResidentOtherwise: -1
+    _maxTotal: 10
+  - _trait: 9
+    _displayName: "\uC911\uB825 \uC560\uD638\uAC00"
+    _description: "\uD68C\uC804 \uB9C1 \uBC94\uC704 \uC548 \uC9D1\uC774\uBA74 \uC0C1\uD55C
+      +2 (\uCD5C\uB300 +10)"
+    _weight: 0.7
+    _positive: 1
+    _conflictsWith: 0
+    _hasConflict: 0
+    _perResident: 2
+    _perResidentOtherwise: 0
+    _maxTotal: 10
+  - _trait: 10
+    _displayName: "\uBC29\uC0AC\uC120 \uBBFC\uAC10"
+    _description: "\uD575\uC735\uD569\uB85C \uC606 \uC9D1\uC774\uBA74 \uC0C1\uD55C
+      -3 (\uCD5C\uB300 -15) \xB7 \uBA3C\uC800 \uB5A0\uB0A8"
+    _weight: 0.7
+    _positive: 0
+    _conflictsWith: 11
+    _hasConflict: 1
+    _perResident: -3
+    _perResidentOtherwise: 0
+    _maxTotal: 15
+  - _trait: 11
+    _displayName: "\uBC29\uC0AC\uC120 \uB0B4\uC131"
+    _description: "\uD575\uC735\uD569\uB85C \uC606 \uC9D1\uC5D0 \uC0B4\uC544\uB3C4
+      \uBD88\uB9CC \uC5C6\uC74C \xB7 \uADF8\uB7F0 \uC9D1\uC5D0 \uBA3C\uC800 \uBC30\uC815"
+    _weight: 0.6
+    _positive: 1
+    _conflictsWith: 0
+    _hasConflict: 0
+    _perResident: 0
+    _perResidentOtherwise: 0
+    _maxTotal: 0
+  - _trait: 12
+    _displayName: "\uC18C\uC74C \uBBFC\uAC10"
+    _description: "\uC81C\uB828\uC18C \uC606 \uC9D1\uC774\uBA74 \uC0C1\uD55C -3 (\uCD5C\uB300
+      -15)"
+    _weight: 0.8
+    _positive: 0
+    _conflictsWith: 0
+    _hasConflict: 0
+    _perResident: -3
+    _perResidentOtherwise: 0
+    _maxTotal: 15
+  - _trait: 13
+    _displayName: "\uC790\uC5F0 \uC560\uD638\uAC00"
+    _description: "\uC218\uACBD \uB18D\uC7A5 \uC606 \uC9D1\uC774\uBA74 \uC0C1\uD55C
+      +2 (\uCD5C\uB300 +10)"
+    _weight: 0.8
+    _positive: 1
+    _conflictsWith: 0
+    _hasConflict: 0
+    _perResident: 2
+    _perResidentOtherwise: 0
+    _maxTotal: 10
+  _secondTraitChance: 0.35
+  _radiationSources:
+  - {fileID: 11400000, guid: 0af3291fd0d56e040b442377ae1bc48c, type: 2}
+  _noiseSources:
+  - {fileID: 11400000, guid: 585783da322cda94eb46e8b23b149a25, type: 2}
+  _natureSources:
+  - {fileID: 11400000, guid: 650c0912820571249b07312aa1677c0d, type: 2}
+  _homelessDiscontent: 10
+  _leaveFirstDiscontent: 3
+  _givenNames:
+  - "\uC5D8\uB808\uB098"
+  - "\uB77C\uC9C0\uBE0C"
+  - "\uBBFC\uC11C"
+  - "\uC544\uB9C8\uB77C"
+  - "\uCE74\uC774"
+  - "\uC18C\uD53C\uC544"
+  - "\uB2E4\uB2C8\uC5D8"
+  - "\uC720\uD0A4"
+  - "\uB9C8\uD14C\uC624"
+  - "\uD558\uB098"
+  - "\uC774\uBC18"
+  - "\uB808\uC77C\uB77C"
+  - "\uC624\uB9C8\uB974"
+  - "\uC9C0\uC6B0"
+  - "\uD074\uB77C\uB77C"
+  - "\uD0C0\uC624"
+  - "\uB2C8\uCF5C\uB77C"
+  - "\uC544\uC774\uC0E4"
+  - "\uB8E8\uCE74\uC2A4"
+  - "\uBBF8\uB77C"
+  - "\uCF00\uC774"
+  - "\uC0AC\uB77C"
+  - "\uC54C\uB809\uC138\uC774"
+  - "\uB098\uB514\uC544"
+  - "\uC900\uD638"
+  - "\uD504\uB9AC\uC57C"
+  - "\uD1A0\uB9C8\uC2A4"
+  - "\uB9B0"
+  - "\uC5D0\uBC00"
+  - "\uC790\uB77C"
+  - "\uD558\uBE55"
+  - "\uB3C4\uC724"
+  - "\uC5D0\uC2A4\uB354"
+  - "\uD30C\uBE14\uB85C"
+  - "\uC544\uD0A4\uB77C"
+  - "\uB9D0\uB9AC\uC544"
+  - "\uBE45\uD1A0\uB974"
+  - "\uC138\uB9B0"
+  - "\uB178\uC544"
+  - "\uC774\uB124\uC2A4"
+  _surnames:
+  - "\uBC15"
+  - "\uC624\uCE74\uBAA8\uD1A0"
+  - "\uCE74\uB974\uB3C4\uC18C"
+  - "\uC751\uC6B0\uC60C"
+  - "\uCF54\uC648\uC2A4\uD0A4"
+  - "\uBA58\uC0AC"
+  - "\uC774\uBC14\uB178\uBC14"
+  - "\uAC00\uB974\uC2DC\uC544"
+  - "\uCCB8"
+  - "\uC0E4\uB974\uB9C8"
+  - "\uBB90\uB7EC"
+  - "\uC624\uCF54\uB108"
+  - "\uAE40"
+  - "\uB2E4\uC2E4\uBC14"
+  - "\uD558\uC0B0"
+  - "\uB85C\uC2DC"
+  - "\uD0C4"
+  - "\uB178\uBC15"
+  - "\uC544\uB370\uC608\uBBF8"
+  - "\uBAA8\uB85C"
+  - "\uD53C\uC154"
+  - "\uC57C\uB9C8\uB2E4"
+  - "\uB85C\uD398\uC2A4"
+  - "\uBCA0\uB974\uADF8"
+  - "\uCE78"
+  - "\uB808\uC608\uC2A4"
+  - "\uC18C\uB80C\uC13C"
+  - "\uC774"
+  - "\uC5D0\uB974\uB09C\uB370\uC2A4"
+  - "\uBCFC\uCF54\uD504"
+  - "\uC0AC\uD1A0"
+  - "\uB9C8\uB974\uD2F0\uB124\uC988"
+  - "\uC624\uC6EC\uC2A4"
+  - "\uCE74\uD478\uB974"
+  - "\uB9B0\uB4DC"
+  - "\uC544\uCF70"
+  - "\uD398\uD2B8\uB85C\uD504"
+  - "\uCD5C"
+  - "\uBE0C\uB77C\uC6B4"
+  - "\uD558\uC57C\uC2DC"

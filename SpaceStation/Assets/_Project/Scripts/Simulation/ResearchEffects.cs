@@ -22,9 +22,15 @@ namespace SpaceStation.Simulation
             _config = config ?? throw new ArgumentNullException(nameof(config));
         }
 
+        // Phase 10 주민 특성 보정 (StationSimulation이 매 틱 명단에서 갱신, 명단이 없으면 1)
+        public float TraitRepairMultiplier { get; set; } = 1f;       // 기술자
+        public float TraitDecayMultiplier { get; set; } = 1f;        // 정비공
+        public float TraitFoodProductionMultiplier { get; set; } = 1f; // 원예가
+        public float TraitResearchSpeedMultiplier { get; set; } = 1f;  // 과학자
+
         public float RepairCostRate => Get(ResearchStat.RepairCostRate, _config.RepairCostRate);
-        public float RepairDuration => Math.Max(0.1f, Get(ResearchStat.RepairDuration, _config.RepairDuration));
-        public float DecayMultiplier => Get(ResearchStat.DecayMultiplier, 1f);
+        public float RepairDuration => Math.Max(0.1f, Get(ResearchStat.RepairDuration, _config.RepairDuration) * TraitRepairMultiplier);
+        public float DecayMultiplier => Get(ResearchStat.DecayMultiplier, 1f) * TraitDecayMultiplier;
         public float DurabilityEfficiencyFloor => Get(ResearchStat.DurabilityEfficiencyFloor, 0f);
         public float RebuildCostMultiplier => Get(ResearchStat.RebuildCostMultiplier, 1f);
         public int DefenseRadiusBonus => (int)Math.Round(Get(ResearchStat.DefenseRadiusBonus, 0f));
@@ -83,14 +89,18 @@ namespace SpaceStation.Simulation
                 return 1f;
             float metal = 0f;
             bool lifeSupport = false;
+            bool food = false;
             foreach (var p in data.Production)
             {
                 if (p.Type == ResourceType.Oxygen || p.Type == ResourceType.Water || p.Type == ResourceType.Food)
                     lifeSupport = true;
                 else if (p.Type == ResourceType.Metal)
                     metal += p.Amount;
+                food |= p.Type == ResourceType.Food && p.Amount > 0f;
             }
             float m = lifeSupport ? LifeSupportProductionMultiplier : 1f;
+            if (food)
+                m *= TraitFoodProductionMultiplier; // Phase 10 원예가
             if (metal > 0f && MiningBonus > 0f)
                 m *= (metal + MiningBonus) / metal;
             return m;

@@ -21,6 +21,10 @@ namespace SpaceStation.Simulation
         public IReadOnlyList<ResearchCategoryData> ResearchCategories;
         /// <summary>연구 레벨 상한 (null이면 조건 없음).</summary>
         public ResearchLevelCapConfig ResearchCaps;
+        /// <summary>Phase 10 주민 특성 (null이면 명단 없음 = 이전과 같은 결과).</summary>
+        public ResidentConfig Residents;
+        /// <summary>주민 이름·특성 난수 [0, 1). null이면 시스템 난수 (이벤트 난수 순서와 분리).</summary>
+        public Func<float> ResidentRandom01;
     }
 
     /// <summary>
@@ -73,6 +77,8 @@ namespace SpaceStation.Simulation
         /// <summary>현재 등급까지 생긴 거주자 요구 (4-9).</summary>
         public IReadOnlyList<ResidentNeed> ActiveNeeds => _activeNeeds;
         public EventScheduler Events { get; }
+        /// <summary>Phase 10 주민 명단 (설정에 ResidentConfig가 없으면 null).</summary>
+        public ResidentRoster Residents { get; }
         public StationProgression Progression { get; }
         public GameSession Session { get; }
         public DayNightCycle DayNight { get; }
@@ -145,7 +151,41 @@ namespace SpaceStation.Simulation
             Connectivity.Root = core;
             Connectivity.Recalculate();
             RefreshCapacities();
+
+            if (settings.Residents != null)
+            {
+                Func<float> residentRandom = settings.ResidentRandom01;
+                if (residentRandom == null)
+                {
+                    var rng = new Random();
+                    residentRandom = () => (float)rng.NextDouble();
+                }
+                Residents = new ResidentRoster(settings.Residents, residentRandom)
+                {
+                    Grid = Grid,
+                    Connectivity = Connectivity,
+                    Housing = EffectiveHousing,
+                    Strength = ModuleStrength,
+                    Effects = Effects,
+                };
+                Population.PopulationChanged += (delta, reason) => Residents.Update(Resources.Population, reason);
+                Residents.Update(Resources.Population);
+                ApplyResidentEffects();
+            }
             EvaluateProgression();
+        }
+
+        /// <summary>Phase 10: 명단의 특성 효과를 각 시스템에 반영 (다음 계산부터).</summary>
+        private void ApplyResidentEffects()
+        {
+            if (Residents == null)
+                return;
+            Effects.TraitRepairMultiplier = 1f - Residents.Ability(ResidentTrait.Technician);
+            Effects.TraitDecayMultiplier = 1f - Residents.Ability(ResidentTrait.Mechanic);
+            Effects.TraitFoodProductionMultiplier = 1f + Residents.Ability(ResidentTrait.Gardener);
+            Effects.TraitResearchSpeedMultiplier = 1f + Residents.Ability(ResidentTrait.Scientist);
+            Resources.SetResidentConsumptionMultiplier(ResourceType.Food, Residents.ConsumptionMultiplier(ResourceType.Food));
+            Resources.SetResidentConsumptionMultiplier(ResourceType.Water, Residents.ConsumptionMultiplier(ResourceType.Water));
         }
 
         // ---------------- 틱 ----------------
@@ -176,11 +216,16 @@ namespace SpaceStation.Simulation
             Resources.SolarMultiplier = DayNight.SolarMultiplier(ElapsedSeconds); // 이번 틱 시작 시점의 낮/밤
             Resources.ExtraPowerDemand = Research.RunningPowerDemand; // 진행 중인 연구 (Phase 6)
             Resources.Tick(_activeModules, _productionMultipliers, _consumptionMultipliers, dt);
-            Research.Tick(dt, Resources.PowerEfficiency); // 이번 틱 전력 효율만큼 진행
+            Research.Tick(dt, Resources.PowerEfficiency * Effects.TraitResearchSpeedMultiplier); // 이번 틱 전력 효율만큼 진행 (Phase 10 과학자 배율 포함)
             Cargo.Tick(Grid, Resources, ModuleStrength, dt); // 8-5 화물선 (가동률만큼)
             Automation.Tick(dt); // 자동화 연구: 기준값 미만 모듈 정비·재건축
             RefreshNeeds(); // 4-9: 이번 틱 전력 효율·인구 기준 요구 충족 → 만족도 상한
             Population.Tick(dt);
+            if (Residents != null)
+            {
+                Residents.Update(Resources.Population); // 집 검사·환경·효과 (인원 변화는 PopulationChanged에서 사유와 함께)
+                ApplyResidentEffects();
+            }
             Events.WarningLead = Effects.EarlyWarningSeconds;
             Events.Tick(dt, _eventPool);
             ElapsedSeconds += dt;
@@ -546,7 +591,9 @@ namespace SpaceStation.Simulation
                 }
             }
             Needs.Evaluate(Grid, Resources.Population, _activeNeeds);
-            Population.SatisfactionCap = Needs.SatisfactionCap;
+            // Phase 10: 주민 특성 보정은 요구·연구를 반영한 상한에 더함 (0~100)
+            float mood = Residents != null ? Residents.MoodTotal : 0f;
+            Population.SatisfactionCap = Math.Max(0f, Math.Min(PopulationSimulation.MaxSatisfaction, Needs.SatisfactionCap + mood));
             Population.GrowthIntervalMultiplier = GrowthIntervalMultiplier();
         }
 

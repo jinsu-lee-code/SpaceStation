@@ -33,6 +33,8 @@ namespace SpaceStation.Simulation
         [Header("Tutorial (Phase 9)")]
         [Tooltip("첫 새 게임(설정 '다음 새 게임에서 튜토리얼')에서 시작할 튜토리얼")]
         [SerializeField] private TutorialData _tutorial;
+        [Header("Residents (Phase 10)")]
+        [SerializeField] private ResidentConfig _residents;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -67,6 +69,7 @@ namespace SpaceStation.Simulation
                 Random01 = () => Random.value * 0.99999f, // [0, 1) 보장
                 ResearchCategories = _researchCategories,
                 ResearchCaps = _researchCaps,
+                Residents = _residents,
             });
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)

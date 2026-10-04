@@ -77,6 +77,18 @@ namespace SpaceStation.Simulation
 
         public float GetExternalDrain(ResourceType type) => _externalDrain[(int)type];
 
+        private readonly float[] _residentConsumption = { 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f };
+
+        /// <summary>Phase 10 주민 소비 배율 (대식가·소식가 평균). 다음 틱부터 반영.</summary>
+        public void SetResidentConsumptionMultiplier(ResourceType type, float multiplier)
+        {
+            if ((int)type < _residentConsumption.Length)
+                _residentConsumption[(int)type] = Mathf.Max(0f, multiplier);
+        }
+
+        public float GetResidentConsumptionMultiplier(ResourceType type) =>
+            (int)type < _residentConsumption.Length ? _residentConsumption[(int)type] : 1f;
+
         /// <summary>재고 추가 (보급 등). 한도 초과분은 버린다. 실제로 더해진 양을 반환.</summary>
         public float AddStock(ResourceType type, float amount)
         {
@@ -365,7 +377,7 @@ namespace SpaceStation.Simulation
             foreach (var a in _config.ConsumptionPerResident)
             {
                 if (IsStock(a.Type))
-                    _consumption[(int)a.Type] += a.Amount * Population;
+                    _consumption[(int)a.Type] += a.Amount * Population * GetResidentConsumptionMultiplier(a.Type);
             }
 
             for (int i = 0; i < ResourceCount; i++)

@@ -48,6 +48,8 @@ namespace SpaceStation.Simulation
         public AutomationState Automation = new AutomationState();
         /// <summary>Phase 9 튜토리얼 진행 (Active false = 없음·끝남).</summary>
         public TutorialState Tutorial = new TutorialState();
+        /// <summary>Phase 10 주민 명단 (이전 세이브는 비어 있음 → 인원수만큼 새로 생성).</summary>
+        public List<ResidentState> Residents = new List<ResidentState>();
     }
 
     [Serializable]

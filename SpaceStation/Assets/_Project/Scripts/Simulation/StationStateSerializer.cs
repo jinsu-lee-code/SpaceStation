@@ -110,6 +110,7 @@ namespace SpaceStation.Simulation
             };
             if (sim.Tutorial != null && sim.Tutorial.Active)
                 s.Tutorial = sim.Tutorial.Capture();
+            sim.Residents?.Capture(s.Residents, m => m == sim.Core ? -2 : index.TryGetValue(m, out int i) ? i : -1);
             return s;
         }
 
@@ -176,6 +177,8 @@ namespace SpaceStation.Simulation
                     sim.Resources.SetStock(type, v.Value);
             }
             sim.Resources.SetPopulation(s.Population);
+            // Phase 10 주민 (집은 모듈 순번, 코어 -2). 인원과 다르면 다음 갱신에서 맞춤
+            sim.Residents?.Restore(s.Residents, i => i == -2 ? sim.Core : i >= 0 && i < placed.Length ? placed[i] : null);
             sim.Resources.RestoreBattery(s.BatteryCharge);
             sim.Resources.PowerSupplyMultiplier = s.PowerSupplyMultiplier;
 
