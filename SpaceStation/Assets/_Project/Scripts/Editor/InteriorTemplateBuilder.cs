@@ -44,6 +44,7 @@ namespace SpaceStation.Editor
             BuildWaterRecycler();
             BuildMedical();
             BuildRecreation();
+            BuildRotatingRing();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -287,6 +288,48 @@ namespace SpaceStation.Editor
             };
             // 스폰 = 서쪽에서 소파 너머 파노라마 창을 비스듬히 바라봄
             Build("Recreation", "MD_Recreation", sockets, new Vector3(1.0f, F, 0.3f), 115f, lights);
+        }
+
+        /// <summary>
+        /// 11-5 회전 링 (3×3칸, 로컬 칸 x,z ∈ {-1,0,1}): 수평 고리(바깥 모델과 같은 방향) — 원형 허브(반지름 3.2, 천장 높이 5.0, 빛나는 회전축 기둥·둥근 벤치)
+        /// + 살 통로 4 + 고리 복도(반지름 5.3~8.3, 바깥벽 창 8·벤치, 안쪽벽 화분 8) + 변 가운데 통로 4 + 모서리 로비 4. 바닥은 평평(중력 그대로).
+        /// 바깥 문 자리 12 (둘레 칸의 바깥 면 전부), 해치 = 9칸 모두 칸 중심 (허브만 기둥을 피해 +x 2.1, 천장 높이 다름).
+        /// </summary>
+        private static void BuildRotatingRing()
+        {
+            const float ceiling = F + 3.6f;
+            const float hubCeiling = F + 5.0f;
+            var hubOffset = new Vector3(2.1f, 0f, 0f);
+            var sockets = new List<InteriorSocket>();
+            for (int x = -1; x <= 1; x++)
+            {
+                for (int z = -1; z <= 1; z++)
+                {
+                    var cell = new Vector3Int(x, 0, z);
+                    if (x == -1) sockets.Add(new InteriorSocket(cell, Vector3Int.left, Socket));
+                    if (x == 1) sockets.Add(new InteriorSocket(cell, Vector3Int.right, Socket));
+                    if (z == -1) sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                    if (z == 1) sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                    bool hub = x == 0 && z == 0;
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, hub ? hubOffset : Vector3.zero));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.up, hub ? hubCeiling : ceiling, hub ? hubOffset : Vector3.zero));
+                }
+            }
+            var warm = new Color(1f, 0.88f, 0.74f);
+            var lights = new List<LightSpec>
+            {
+                // 허브: 회전축 기둥 빛 + 둘레
+                LightSpec.Point(new Vector3(0f, F + 2.4f, 0f), 5f, 2.2f, new Color(0.85f, 0.92f, 1f)),
+            };
+            for (int k = 0; k < 8; k++)
+            {
+                float a = k * Mathf.PI / 4f;
+                lights.Add(LightSpec.Point(new Vector3(Mathf.Cos(a) * 6.8f, F + 3.0f, Mathf.Sin(a) * 6.8f), 5.5f, 2.0f, warm));
+            }
+            foreach (var (lx, lz) in new[] { (-8f, -8f), (8f, -8f), (-8f, 8f), (8f, 8f) })
+                lights.Add(LightSpec.Point(new Vector3(lx, F + 3.0f, lz), 5f, 1.6f, warm));
+            // 스폰 = 고리 남쪽에서 동쪽으로 휘어 가는 복도를 바라봄
+            Build("RotatingRing", "MD_RotatingRing", sockets, new Vector3(0f, F, -6.8f), 90f, lights);
         }
 
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
