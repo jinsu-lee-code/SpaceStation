@@ -1,0 +1,89 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace SpaceStation.Data
+{
+    /// <summary>내부 키트 조각 하나: 메시 + 재질 슬롯 (강조색·상태등 슬롯 번호).</summary>
+    [Serializable]
+    public sealed class InteriorKitPiece
+    {
+        [SerializeField] private Mesh _mesh;
+        [SerializeField] private Material[] _materials;
+        [Tooltip("방마다 모듈 강조색(M_Accent_X)으로 바꾸는 슬롯, 없으면 -1")]
+        [SerializeField] private int _accentSlot = -1;
+        [Tooltip("문 상태등 슬롯 (MaterialPropertyBlock 색), 없으면 -1")]
+        [SerializeField] private int _statusSlot = -1;
+
+        public Mesh Mesh => _mesh;
+        public IReadOnlyList<Material> Materials => _materials;
+        public int AccentSlot => _accentSlot;
+        public int StatusSlot => _statusSlot;
+        public bool IsValid => _mesh != null && _materials != null && _materials.Length == _mesh.subMeshCount;
+
+        public InteriorKitPiece(Mesh mesh, Material[] materials, int accentSlot, int statusSlot)
+        {
+            _mesh = mesh;
+            _materials = materials;
+            _accentSlot = accentSlot;
+            _statusSlot = statusSlot;
+        }
+    }
+
+    /// <summary>
+    /// Phase 11-2a 내부 벽 키트 (Blender `BlenderWork/Interior_Kit.blend` → `Art/Models/Interior/SM_InteriorKit.fbx`).
+    /// 조각 규격 (1칸 = 4m): 벽 = 칸 면 가운데 피벗, +Z = 바깥, 방 쪽(-Z)으로 두께 0.2 + 장식 / 바닥 = 윗면 가운데 / 천장 = 아랫면 가운데.
+    /// 생성·갱신은 에디터 `InteriorSetup`.
+    /// </summary>
+    [CreateAssetMenu(menuName = "SpaceStation/Interior Kit", fileName = "InteriorKit")]
+    public sealed class InteriorKit : ScriptableObject
+    {
+        [SerializeField] private InteriorKitPiece _wall;
+        [SerializeField] private InteriorKitPiece _wallDoor;
+        [SerializeField] private InteriorKitPiece _doorLeaf;
+        [SerializeField] private InteriorKitPiece _floor;
+        [SerializeField] private InteriorKitPiece _ceiling;
+        [SerializeField] private InteriorKitPiece _hatchFrame;
+        [SerializeField] private InteriorKitPiece _hatchLid;
+        [Header("방별 강조색")]
+        [SerializeField] private List<ModuleData> _accentModules = new List<ModuleData>();
+        [SerializeField] private List<Material> _accentMaterials = new List<Material>();
+        [SerializeField] private Material _defaultAccent;
+
+        public InteriorKitPiece Wall => _wall;
+        public InteriorKitPiece WallDoor => _wallDoor;
+        public InteriorKitPiece DoorLeaf => _doorLeaf;
+        public InteriorKitPiece Floor => _floor;
+        public InteriorKitPiece Ceiling => _ceiling;
+        public InteriorKitPiece HatchFrame => _hatchFrame;
+        public InteriorKitPiece HatchLid => _hatchLid;
+
+        public bool IsComplete => _wall != null && _wall.IsValid && _wallDoor != null && _wallDoor.IsValid && _doorLeaf != null && _doorLeaf.IsValid
+                                  && _floor != null && _floor.IsValid && _ceiling != null && _ceiling.IsValid
+                                  && _hatchFrame != null && _hatchFrame.IsValid && _hatchLid != null && _hatchLid.IsValid;
+
+        public Material AccentFor(ModuleData data)
+        {
+            int i = data != null ? _accentModules.IndexOf(data) : -1;
+            return i >= 0 && i < _accentMaterials.Count && _accentMaterials[i] != null ? _accentMaterials[i] : _defaultAccent;
+        }
+
+#if UNITY_EDITOR
+        public void EditorSet(InteriorKitPiece wall, InteriorKitPiece wallDoor, InteriorKitPiece doorLeaf, InteriorKitPiece floor,
+            InteriorKitPiece ceiling, InteriorKitPiece hatchFrame, InteriorKitPiece hatchLid,
+            List<ModuleData> accentModules, List<Material> accentMaterials, Material defaultAccent)
+        {
+            _wall = wall;
+            _wallDoor = wallDoor;
+            _doorLeaf = doorLeaf;
+            _floor = floor;
+            _ceiling = ceiling;
+            _hatchFrame = hatchFrame;
+            _hatchLid = hatchLid;
+            _accentModules = accentModules;
+            _accentMaterials = accentMaterials;
+            _defaultAccent = defaultAccent;
+        }
+#endif
+    }
+}

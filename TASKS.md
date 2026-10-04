@@ -506,7 +506,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
 ## Phase 11. 1인칭 내부 방문 모드
 - [ ] 선택 모듈에서 "들어가기" → 정거장 배치대로 내부 생성(모듈 = 방, 통로 = 문), WASD + 마우스, ESC 복귀. 공용 복도·벽 키트 + 모듈별 소품
   - 결정 (2026-10-04): 내부는 **같은 씬의 별도 공간에 확대 생성**(외부 정거장과 분리, 들어가면 외부 숨김·나오면 내부 제거), 범위는 **Core에 연결된 정거장 전체**(면 맞닿은 곳 = 문, 비활성 모듈은 어둡게), 방문 중 시간은 **설정으로 선택**(설정 > 게임, 기본 일시정지), 1셀 = 약 4m, 위아래 층은 **바닥·천장 해치 + E키 이동**(페이드)
-  - [x] 11-1 그레이박스 골격 (2026-10-04) — 플레이 확인 대기
+  - [x] 11-1 그레이박스 골격 (2026-10-04) — 플레이 확인 완료
     - `Interior/InteriorLayout`(순수 C#): 시작 모듈에서 외부 연결 통로(`ConnectorLayout`, 태양광 옆면 규칙 포함)를 따라 활성 모듈로 BFS → 칸의 면마다 벽 / 열림(같은 모듈) / 문(수평 통로) / 해치(수직 통로). 시작 모듈이 비활성이면 그 방만
     - `Interior/InteriorBuilder`: 1칸 = 4m 정육면체, 기본 큐브 조각(벽 두께 0.2, 문 1.4×2.4 + 청록 문틀, 해치 뚜껑 1.4 노랑), 분류별 방 색(MPB), 방마다 그림자 없는 점광원 + 천장 발광 패널, 비활성·파손 방은 어둡게
     - `Interior/FirstPersonController`: 카메라 이동 키(WASD, 조작키 설정 공유) + 마우스 시점(카메라 회전 감도), Shift 달리기, 중력
@@ -515,4 +515,13 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
     - 에디터 `Editor/InteriorSetup` (메뉴 SpaceStation/Interior/Setup): 재질 `Art/Materials/Interior/M_InteriorGreybox`·`M_InteriorLight`, 씬 "Interior" 오브젝트, 선택 패널 Row3. 테스트 `InteriorLayoutTests` 7개 → 265개
     - 참고: 2층 이상 모듈(코어 2×2×2)은 위층 바닥이 없는 큰 방 하나라 위층은 걸을 수 없음 — 11-2에서 층 바닥·계단 여부 결정
   - [ ] 11-2 공용 복도·벽 키트 아트 (그레이박스 교체)
+    - 결정 (2026-10-04): **Blender에서 Claude가 제작**(tex_builder 방식, 베이크 → FBX), 스타일 **밝은 금속 패널 + 바닥 격자 + 모듈 강조색(M_Accent_X) 발광 띠**, 문은 **자동 미닫이**(다가가면 열림, 비활성·파손 방 쪽은 빨간 등이지만 통과 가능), 여러 층 모듈(코어 2×2×2 뿐)은 **높은 홀 유지 + 위층 난간 발코니 + 계단**
+    - [x] 11-2a 벽 키트 + 자동 미닫이 문 (2026-10-04) — 플레이 확인 대기
+      - Blender `BlenderWork/Interior_Kit.blend` (텍스트 블록 `kit_builder`, Unity 좌표로 작성 → Blender (-x, -z, y)로 변환해야 FBX(-Z forward, Y up) 내보내기 후 축이 맞음) → `Art/Models/Interior/SM_InteriorKit.fbx`: KIT_Wall(모서리 기둥·위 몰딩·걸레받이·패널 4장·강조 띠) / KIT_WallDoor(1.4×2.4 구멍·문틀·상태등) / KIT_DoorLeaf / KIT_Floor(타일 4장·미끄럼 홈) / KIT_Ceiling(패널 + 조명 띠 2줄, 가운데 해치 자리 비움) / KIT_HatchFrame(경고 줄무늬) / KIT_HatchLid. 약 1,900 삼각형
+      - 텍스처 베이크 대신 재질 슬롯으로: Hull·HullDark = 외부 공용 `M_Hull`·`M_HullDark`, Accent = 그 방 모듈의 `M_Accent_X`(22종, 없으면 코어색), Light = `M_InteriorLight`, Status = `M_InteriorStatus`(MPB 색)
+      - `Data/InteriorKit`(조각별 메시·재질·강조/상태 슬롯 + 모듈→강조 재질) ← `InteriorSetup`이 FBX 슬롯 이름으로 생성(`Data/Interior/InteriorKit.asset`). 키트가 없으면 11-1 큐브로 대체
+      - `InteriorBuilder`: 충돌은 보이지 않는 상자(Colliders)로 분리, 키트는 콜라이더 없음. 비활성·파손 방은 슬롯별 MPB(색 ×0.35·발광 끔), 정상 방은 블록 비움. 문 상태등 = 너머 방 상태(청록 / 빨강)
+      - `Interior/InteriorDoor`: 통로마다 문짝 한 쌍(키상 작은 칸 쪽), 2.2m 안에 오면 열림(초당 4, 양옆 벽 속으로), 열림 90% 미만이면 막는 콜라이더
+      - 확인: 문 열림·닫힘, 파손 방 문 빨강·방 어둡게, 테스트 265개 통과
+    - [ ] 11-2b 코어 발코니 + 계단
   - [ ] 11-3 모듈별 소품

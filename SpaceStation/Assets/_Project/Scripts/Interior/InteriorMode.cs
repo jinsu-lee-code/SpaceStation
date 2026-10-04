@@ -32,8 +32,10 @@ namespace SpaceStation.Interior
         [SerializeField] private Light _sun;
         [Tooltip("내부를 만드는 위치 (외부 정거장이 카메라 시야 거리 밖에 있도록 멀리)")]
         [SerializeField] private Vector3 _origin = new Vector3(0f, -5000f, 0f);
+        [Tooltip("11-2a 벽 키트. 비어 있거나 불완전하면 그레이박스 큐브")]
+        [SerializeField] private Data.InteriorKit _kit;
+        [Tooltip("키트가 없을 때 쓰는 그레이박스 재질")]
         [SerializeField] private Material _material;
-        [SerializeField] private Material _lightMaterial;
         [SerializeField] private float _interactDistance = 2.6f;
 
         [Header("HUD")]
@@ -86,7 +88,7 @@ namespace SpaceStation.Interior
             var rootGo = new GameObject("InteriorRoot");
             _root = rootGo.transform;
             _root.position = _origin;
-            _builder = new InteriorBuilder(_root, _material, _lightMaterial);
+            _builder = new InteriorBuilder(_root, _kit, _material);
         }
 
         private void Start()
@@ -158,13 +160,13 @@ namespace SpaceStation.Interior
                 _clock.InputLocked = true;
             }
 
-            _layout = InteriorLayout.Build(_station.Grid, _station.Connectivity.IsActive, module);
-            _builder.Build(_layout);
-            RefreshAllDim();
-
             var playerGo = new GameObject("InteriorPlayer", typeof(CharacterController));
             playerGo.transform.SetParent(transform, true); // 내부 루트 밖 (다시 만들 때 지워지지 않게)
             _player = playerGo.AddComponent<FirstPersonController>();
+
+            _layout = InteriorLayout.Build(_station.Grid, _station.Connectivity.IsActive, module);
+            _builder.Build(_layout, _player.transform);
+            RefreshAllDim();
             _player.Teleport(_builder.FloorPoint(module.Origin) + Vector3.up * 0.05f, module.Rotation * 90f);
 
             _orbit = _camera.GetComponent<OrbitCameraController>();
@@ -331,7 +333,7 @@ namespace SpaceStation.Interior
                 return;
             }
             _layout = InteriorLayout.Build(_station.Grid, _station.Connectivity.IsActive, module);
-            _builder.Build(_layout);
+            _builder.Build(_layout, _player.transform);
             RefreshAllDim();
             _currentModule = null; // 제목 다시
         }

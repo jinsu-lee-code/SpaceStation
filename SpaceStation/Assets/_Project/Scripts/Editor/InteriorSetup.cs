@@ -11,8 +11,8 @@ using UnityEngine.UI;
 namespace SpaceStation.Editor
 {
     /// <summary>
-    /// Phase 11-1 내부 방문 설정 (메뉴 SpaceStation/Interior/Setup):
-    /// 그레이박스 재질 2개(URP Lit: 벽 공용 / 천장 조명 발광) → 게임 씬에 InteriorMode 배치·연결 → 선택 패널에 [들어가기] 줄 추가.
+    /// Phase 11 내부 방문 설정 (메뉴 SpaceStation/Interior/Setup):
+    /// 재질(URP Lit: 그레이박스 대체용 / 천장 조명 발광 / 문 상태등) → 벽 키트 에셋(11-2a, FBX에서) → 게임 씬에 InteriorMode 배치·연결 → 선택 패널에 [들어가기] 줄 추가.
     /// 다시 실행하면 같은 구성으로 덮어쓴다.
     /// </summary>
     public static class InteriorSetup
@@ -21,14 +21,98 @@ namespace SpaceStation.Editor
         private const string MaterialFolder = "Assets/_Project/Art/Materials/Interior";
         private const string GreyboxPath = MaterialFolder + "/M_InteriorGreybox.mat";
         private const string LightPath = MaterialFolder + "/M_InteriorLight.mat";
+        private const string StatusPath = MaterialFolder + "/M_InteriorStatus.mat";
+        private const string KitModelPath = "Assets/_Project/Art/Models/Interior/SM_InteriorKit.fbx";
+        private const string KitPath = "Assets/_Project/Data/Interior/InteriorKit.asset";
+        private const string StationMaterials = "Assets/_Project/Art/Materials/Station/";
+        private const string AccentFolder = "Assets/_Project/Art/Materials/";
+        private const string ModuleFolder = "Assets/_Project/Data/Modules/";
+
+        /// <summary>
+        /// 11-2a: FBX 조각(KIT_*)을 키트 에셋으로. 재질 슬롯 이름 → Hull·HullDark = 외부 공용 재질, Light = 천장 조명, Status = 문 상태등,
+        /// Accent = 방마다 모듈 강조색(MD_X → M_Accent_X, 없으면 코어색).
+        /// </summary>
+        private static void CreateKit()
+        {
+            var parts = new System.Collections.Generic.Dictionary<string, GameObject>();
+            foreach (var o in AssetDatabase.LoadAllAssetsAtPath(KitModelPath))
+            {
+                if (o is GameObject g && g.GetComponent<MeshFilter>() != null)
+                    parts[g.name] = g;
+            }
+            if (parts.Count == 0)
+            {
+                Debug.LogError($"[InteriorSetup] 키트 모델 없음: {KitModelPath}");
+                return;
+            }
+            var hull = AssetDatabase.LoadAssetAtPath<Material>(StationMaterials + "M_Hull.mat");
+            var hullDark = AssetDatabase.LoadAssetAtPath<Material>(StationMaterials + "M_HullDark.mat");
+            var light = AssetDatabase.LoadAssetAtPath<Material>(LightPath);
+            var status = AssetDatabase.LoadAssetAtPath<Material>(StatusPath);
+            var defaultAccent = AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Accent_Core.mat");
+
+            Data.InteriorKitPiece Piece(string name)
+            {
+                if (!parts.TryGetValue(name, out var g))
+                {
+                    Debug.LogError($"[InteriorSetup] 키트 조각 없음: {name}");
+                    return null;
+                }
+                var slots = g.GetComponent<MeshRenderer>().sharedMaterials;
+                var mats = new Material[slots.Length];
+                int accent = -1, statusSlot = -1;
+                for (int i = 0; i < slots.Length; i++)
+                {
+                    string slot = slots[i] != null ? slots[i].name : "";
+                    switch (slot)
+                    {
+                        case "Hull": mats[i] = hull; break;
+                        case "HullDark": mats[i] = hullDark; break;
+                        case "Light": mats[i] = light; break;
+                        case "Status": mats[i] = status; statusSlot = i; break;
+                        case "Accent": mats[i] = defaultAccent; accent = i; break;
+                        default:
+                            Debug.LogWarning($"[InteriorSetup] {name}: 모르는 재질 슬롯 '{slot}' → Hull");
+                            mats[i] = hull;
+                            break;
+                    }
+                }
+                return new Data.InteriorKitPiece(g.GetComponent<MeshFilter>().sharedMesh, mats, accent, statusSlot);
+            }
+
+            var modules = new System.Collections.Generic.List<Data.ModuleData>();
+            var accents = new System.Collections.Generic.List<Material>();
+            foreach (var guid in AssetDatabase.FindAssets("t:ModuleData", new[] { ModuleFolder.TrimEnd('/') }))
+            {
+                var data = AssetDatabase.LoadAssetAtPath<Data.ModuleData>(AssetDatabase.GUIDToAssetPath(guid));
+                var m = AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Accent_" + data.name.Replace("MD_", "") + ".mat");
+                if (m == null)
+                    continue;
+                modules.Add(data);
+                accents.Add(m);
+            }
+
+            var kit = AssetDatabase.LoadAssetAtPath<Data.InteriorKit>(KitPath);
+            if (kit == null)
+            {
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(KitPath));
+                kit = ScriptableObject.CreateInstance<Data.InteriorKit>();
+                AssetDatabase.CreateAsset(kit, KitPath);
+            }
+            kit.EditorSet(Piece("KIT_Wall"), Piece("KIT_WallDoor"), Piece("KIT_DoorLeaf"), Piece("KIT_Floor"), Piece("KIT_Ceiling"),
+                Piece("KIT_HatchFrame"), Piece("KIT_HatchLid"), modules, accents, defaultAccent);
+            EditorUtility.SetDirty(kit);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[InteriorSetup] 키트 {(kit.IsComplete ? "완성" : "불완전")} · 강조색 {modules.Count}종");
+        }
 
         [MenuItem("SpaceStation/Interior/Setup")]
         public static void Setup()
         {
             CreateMaterials();
+            CreateKit();
             var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
             var greybox = AssetDatabase.LoadAssetAtPath<Material>(GreyboxPath);
-            var light = AssetDatabase.LoadAssetAtPath<Material>(LightPath);
 
             var hud = GameObject.Find("HUD");
             var station = Object.FindFirstObjectByType<StationController>();
@@ -47,7 +131,7 @@ namespace SpaceStation.Editor
             var sun = GameObject.Find("Directional Light");
             so.FindProperty("_sun").objectReferenceValue = sun != null ? sun.GetComponent<Light>() : null;
             so.FindProperty("_material").objectReferenceValue = greybox;
-            so.FindProperty("_lightMaterial").objectReferenceValue = light;
+            so.FindProperty("_kit").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Data.InteriorKit>(KitPath);
             so.FindProperty("_hud").objectReferenceValue = hud != null ? hud.transform : null;
             so.FindProperty("_font").objectReferenceValue = hud != null ? hud.GetComponentInChildren<TMP_Text>(true).font : null;
             so.FindProperty("_fillSprite").objectReferenceValue = HudArtBuilder.Fill;
@@ -110,6 +194,15 @@ namespace SpaceStation.Editor
             light.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             light.enableInstancing = true;
             EditorUtility.SetDirty(light);
+
+            // 문 상태등: 색은 런타임 MaterialPropertyBlock (정상 청록 / 경고 빨강)
+            var status = LoadOrCreate(StatusPath, lit);
+            status.SetColor("_BaseColor", Color.white);
+            status.EnableKeyword("_EMISSION");
+            status.SetColor("_EmissionColor", Color.white * 2f);
+            status.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            status.enableInstancing = true;
+            EditorUtility.SetDirty(status);
             AssetDatabase.SaveAssets();
         }
 
