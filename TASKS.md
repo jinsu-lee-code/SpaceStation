@@ -557,6 +557,9 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
     - 피드백 수정 2 (2026-10-04):
       - 해치가 칸 중심이라 고리 안쪽 창틀에 붙음 → `InteriorSocket.Offset`(수직 문 자리만, 모듈 로컬 수평 이동), 코어 아래 해치는 바깥 모서리 쪽으로 1.2씩(로비 가운데 근처). 해치 이동 도착점 = 맞은편 해치 자리(`InteriorHatch.Arrival`)
       - 해치 틀이 보는 각도에 따라 뚫려 보이고 깜빡임 → (1) 키트 부품의 면 감김 방향이 베벨 뒤 섞여 있었음: `kit_builder` build()에서 면 방향 재계산 후 뒤집어 통일 (2) 줄무늬를 얇은 판으로 덧붙여 같은 높이 면이 겹침: 어두운 칸·줄무늬 칸을 번갈아 이은 한 높이로, 틀·뚜껑을 바닥에서 0.003 띄움
+    - 다듬기 A·B (2026-10-04, 추천안 A 표면 디테일 + B 조명 깊이감 선택 / C 형태 디테일·D 안내 표지는 보류):
+      - A: `Art/Shaders/InteriorTriplanar.shader`(HLSL, 월드 위치 트라이플래너 + URP PBR, Forward+ 추가 조명·SSAO, DepthNormals 패스, SRP Batcher·MPB 상태 표현 호환) + `Editor/InteriorTextureBaker`(메뉴 Bake Panel Textures: 2m 타일 1024px, 패널 2×2 이음 홈·안쪽 판·볼트/가로 리브/환기 슬롯/미끄럼 점·잔잔한 굴곡 → `Art/Textures/Interior/T_InteriorPanel_N`(노멀)·`_M`(R 틈 AO, G 얼룩)). 내부 재질 `M_InteriorHull`·`M_InteriorHullDark`(외부와 같은 색·광택, 금속도는 실내용으로 0.3/0.45) → 키트·템플릿의 Hull·HullDark 슬롯
+      - B: 내부 전용 렌더러 `Settings/PC_InteriorRenderer`(PC_Renderer 복제, SSAO 세기 1.1·반경 0.6·직접광 0.55; 바깥 기준 0.4·0.3은 8m 내부에서 안 보임) → 파이프라인 에셋 목록 2번째, 들어가 있는 동안만 카메라가 사용(`InteriorMode._interiorRenderer`). 조명 색 대비: 방·복도·로비 = 따뜻한 빛, 튜브·창가 = 차가운 빛, 코어 탑은 허브 위 차가운 스포트 3개가 올려 비춤. 템플릿 방은 프리팹 조명만(어둡게 할 때 원래 세기 비율 유지), 대체 방 조명 세기 5→6
   - [ ] 11-5 생활 모듈 템플릿 (거주·농장·산소·물 재활용·의료·휴게실·회전 링)
   - [ ] 11-6 산업 모듈 템플릿 (창고·채굴 도킹·정비 베이·제련소·연구소·화물 터미널·핵융합로)
   - [ ] 11-7 방어·전력 모듈 (태양광·포탑·실드·배터리 = 정비 통로 + 특성 표시, 장갑 격벽·손상 통제·연료전지)

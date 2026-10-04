@@ -51,24 +51,52 @@ namespace SpaceStation.Editor
                     sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, outward));
                 }
             }
-            // 고리 복도 남쪽, 탑을 바라보며
-            var lights = new List<(Vector3, float, float, Color)>();
+            // 다듬기 B: 복도는 따뜻한 빛, 창 너머 탑은 차가운 빛으로 대비
+            var lights = new List<LightSpec>();
             for (int k = 0; k < 6; k++)
             {
                 float a = k * Mathf.PI / 3f + Mathf.PI / 6f;
-                lights.Add((new Vector3(4f + Mathf.Cos(a) * 5.7f, F + 3.1f, 4f + Mathf.Sin(a) * 5.7f), 6.5f, 3.5f, new Color(1f, 0.96f, 0.9f)));
+                lights.Add(LightSpec.Point(new Vector3(4f + Mathf.Cos(a) * 5.7f, F + 3.1f, 4f + Mathf.Sin(a) * 5.7f), 6.5f, 3.2f, new Color(1f, 0.88f, 0.74f)));
             }
-            // 창 너머 탑을 비추는 조명 (허브 위)
+            // 로비마다 따뜻한 빛 하나
+            foreach (var (lx, lz) in new[] { (-0.8f, -0.8f), (8.8f, -0.8f), (-0.8f, 8.8f), (8.8f, 8.8f) })
+                lights.Add(LightSpec.Point(new Vector3(lx, F + 3.0f, lz), 5.5f, 2.6f, new Color(1f, 0.88f, 0.74f)));
+            // 허브 위에서 탑을 올려 비추는 차가운 스포트 3개 + 창가 쪽 차가운 보조광
             for (int k = 0; k < 3; k++)
             {
                 float a = k * Mathf.PI * 2f / 3f;
-                lights.Add((new Vector3(4f + Mathf.Cos(a) * 3.0f, 3.5f, 4f + Mathf.Sin(a) * 3.0f), 7f, 2.5f, new Color(0.85f, 0.92f, 1f)));
+                var p = new Vector3(4f + Mathf.Cos(a) * 2.6f, 0.9f, 4f + Mathf.Sin(a) * 2.6f);
+                var aim = (new Vector3(4f, 9f, 4f) - p).normalized;
+                lights.Add(LightSpec.Spot(p, aim, 14f, 9f, 38f, new Color(0.62f, 0.8f, 1f)));
+            }
+            for (int k = 0; k < 4; k++)
+            {
+                float a = k * Mathf.PI / 2f + Mathf.PI / 4f;
+                lights.Add(LightSpec.Point(new Vector3(4f + Mathf.Cos(a) * 4.0f, F + 1.2f, 4f + Mathf.Sin(a) * 4.0f), 4f, 1.2f, new Color(0.6f, 0.78f, 1f)));
             }
             Build("Core", "MD_Core", sockets, new Vector3(4f, F, 4f - 5.7f), 0f, lights);
         }
 
+        /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
+        private struct LightSpec
+        {
+            public Vector3 Position;
+            public Vector3 Direction;
+            public float Range;
+            public float Intensity;
+            public float SpotAngle;
+            public Color Color;
+            public bool IsSpot;
+
+            public static LightSpec Point(Vector3 p, float range, float intensity, Color color) =>
+                new LightSpec { Position = p, Range = range, Intensity = intensity, Color = color };
+
+            public static LightSpec Spot(Vector3 p, Vector3 dir, float range, float intensity, float angle, Color color) =>
+                new LightSpec { Position = p, Direction = dir, Range = range, Intensity = intensity, SpotAngle = angle, Color = color, IsSpot = true };
+        }
+
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
-            List<(Vector3 Position, float Range, float Intensity, Color Color)> lights)
+            List<LightSpec> lights)
         {
             string modelPath = ModelFolder + "SM_Interior_" + name + ".fbx";
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
@@ -81,8 +109,8 @@ namespace SpaceStation.Editor
             var accent = AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Accent_" + moduleName.Replace("MD_", "") + ".mat");
             var materials = new Dictionary<string, Material>
             {
-                { "Hull", AssetDatabase.LoadAssetAtPath<Material>(StationMaterials + "M_Hull.mat") },
-                { "HullDark", AssetDatabase.LoadAssetAtPath<Material>(StationMaterials + "M_HullDark.mat") },
+                { "Hull", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.InteriorHullPath) },
+                { "HullDark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.InteriorHullDarkPath) },
                 { "Accent", accent },
                 { "Light", AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorLight.mat") },
                 { "Glass", AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorGlass.mat") },
@@ -119,17 +147,24 @@ namespace SpaceStation.Editor
             }
             var lightRoot = new GameObject("Lights");
             lightRoot.transform.SetParent(root.transform, false);
-            foreach (var (position, range, intensity, color) in lights)
+            foreach (var spec in lights)
             {
-                var go = new GameObject("Light");
+                var go = new GameObject(spec.IsSpot ? "Spot" : "Light");
                 go.transform.SetParent(lightRoot.transform, false);
-                go.transform.localPosition = position;
+                go.transform.localPosition = spec.Position;
+                if (spec.IsSpot)
+                    go.transform.localRotation = Quaternion.LookRotation(spec.Direction);
                 var light = go.AddComponent<Light>();
-                light.type = LightType.Point;
+                light.type = spec.IsSpot ? LightType.Spot : LightType.Point;
                 light.shadows = LightShadows.None;
-                light.range = range;
-                light.intensity = intensity;
-                light.color = color;
+                light.range = spec.Range;
+                light.intensity = spec.Intensity;
+                light.color = spec.Color;
+                if (spec.IsSpot)
+                {
+                    light.spotAngle = spec.SpotAngle;
+                    light.innerSpotAngle = spec.SpotAngle * 0.6f;
+                }
             }
 
             System.IO.Directory.CreateDirectory(PrefabFolder);

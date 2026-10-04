@@ -22,6 +22,50 @@ namespace SpaceStation.Editor
         private const string GreyboxPath = MaterialFolder + "/M_InteriorGreybox.mat";
         private const string LightPath = MaterialFolder + "/M_InteriorLight.mat";
         private const string StatusPath = MaterialFolder + "/M_InteriorStatus.mat";
+        public const string InteriorHullPath = MaterialFolder + "/M_InteriorHull.mat";
+        public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
+        private const string RpAssetPath = "Assets/Settings/PC_RPAsset.asset";
+        private const string RendererPath = "Assets/Settings/PC_Renderer.asset";
+        private const string InteriorRendererPath = "Assets/Settings/PC_InteriorRenderer.asset";
+
+        /// <summary>
+        /// 11-4 다듬기 B: 내부 전용 렌더러 (PC_Renderer 복제 + SSAO 강하게·넓게). 바깥(1칸 = 1유닛) 기준 SSAO는 8m 내부에서 거의 안 보이므로
+        /// 들어가 있는 동안만 카메라가 이 렌더러를 쓴다. 파이프라인 에셋의 렌더러 목록에 넣고 그 번호를 돌려준다.
+        /// </summary>
+        private static int CreateInteriorRenderer()
+        {
+            if (AssetDatabase.LoadMainAssetAtPath(InteriorRendererPath) == null)
+                AssetDatabase.CopyAsset(RendererPath, InteriorRendererPath);
+            var renderer = AssetDatabase.LoadMainAssetAtPath(InteriorRendererPath);
+            foreach (var sub in AssetDatabase.LoadAllAssetsAtPath(InteriorRendererPath))
+            {
+                if (sub == null || sub.name != "ScreenSpaceAmbientOcclusion")
+                    continue;
+                var so = new SerializedObject(sub);
+                so.FindProperty("m_Settings.Intensity").floatValue = 1.1f;
+                so.FindProperty("m_Settings.Radius").floatValue = 0.6f;
+                so.FindProperty("m_Settings.DirectLightingStrength").floatValue = 0.55f;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+            var rp = AssetDatabase.LoadMainAssetAtPath(RpAssetPath);
+            var rpSo = new SerializedObject(rp);
+            var list = rpSo.FindProperty("m_RendererDataList");
+            int index = -1;
+            for (int i = 0; i < list.arraySize; i++)
+            {
+                if (list.GetArrayElementAtIndex(i).objectReferenceValue == renderer)
+                    index = i;
+            }
+            if (index < 0)
+            {
+                index = list.arraySize;
+                list.arraySize++;
+                list.GetArrayElementAtIndex(index).objectReferenceValue = renderer;
+                rpSo.ApplyModifiedPropertiesWithoutUndo();
+            }
+            AssetDatabase.SaveAssets();
+            return index;
+        }
         private const string KitModelPath = "Assets/_Project/Art/Models/Interior/SM_InteriorKit.fbx";
         private const string KitPath = "Assets/_Project/Data/Interior/InteriorKit.asset";
         private const string StationMaterials = "Assets/_Project/Art/Materials/Station/";
@@ -45,8 +89,9 @@ namespace SpaceStation.Editor
                 Debug.LogError($"[InteriorSetup] 키트 모델 없음: {KitModelPath}");
                 return;
             }
-            var hull = AssetDatabase.LoadAssetAtPath<Material>(StationMaterials + "M_Hull.mat");
-            var hullDark = AssetDatabase.LoadAssetAtPath<Material>(StationMaterials + "M_HullDark.mat");
+            // 11-4 다듬기 A: 내부는 외부 공용 재질 대신 같은 색의 트라이플래너 패널 재질
+            var hull = AssetDatabase.LoadAssetAtPath<Material>(InteriorHullPath);
+            var hullDark = AssetDatabase.LoadAssetAtPath<Material>(InteriorHullDarkPath);
             var light = AssetDatabase.LoadAssetAtPath<Material>(LightPath);
             var status = AssetDatabase.LoadAssetAtPath<Material>(StatusPath);
             var defaultAccent = AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Accent_Core.mat");
@@ -113,6 +158,7 @@ namespace SpaceStation.Editor
         {
             CreateMaterials();
             CreateKit();
+            int interiorRenderer = CreateInteriorRenderer();
             var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
             var greybox = AssetDatabase.LoadAssetAtPath<Material>(GreyboxPath);
 
@@ -133,6 +179,7 @@ namespace SpaceStation.Editor
             var sun = GameObject.Find("Directional Light");
             so.FindProperty("_sun").objectReferenceValue = sun != null ? sun.GetComponent<Light>() : null;
             so.FindProperty("_material").objectReferenceValue = greybox;
+            so.FindProperty("_interiorRenderer").intValue = interiorRenderer;
             so.FindProperty("_kit").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Data.InteriorKit>(KitPath);
             // 11-3 모듈별 템플릿: Data/Interior 아래의 InteriorTemplate 전부
             var templates = so.FindProperty("_templates");
@@ -202,6 +249,33 @@ namespace SpaceStation.Editor
             light.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             light.enableInstancing = true;
             EditorUtility.SetDirty(light);
+
+            // 11-4 다듬기 A: 트라이플래너 패널 재질 (외부 M_Hull·M_HullDark와 같은 색·광택 + 패널 디테일)
+            if (!System.IO.File.Exists(InteriorTextureBaker.NormalPath) || !System.IO.File.Exists(InteriorTextureBaker.MaskPath))
+                InteriorTextureBaker.Bake();
+            var tri = Shader.Find("SpaceStation/InteriorTriplanar");
+            var detailN = AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.NormalPath);
+            var detailM = AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.MaskPath);
+            // 금속도는 외부보다 낮춤: 실내는 주변광이 약해 금속도가 높으면 점광원만 반사하고 전체가 어둡게 보임
+            void Panel(string path, string sourceName, float grime, float metallic)
+            {
+                var source = AssetDatabase.LoadAssetAtPath<Material>(StationMaterials + sourceName);
+                var m = LoadOrCreate(path, tri);
+                m.shader = tri;
+                m.SetColor("_BaseColor", source.GetColor("_BaseColor"));
+                m.SetFloat("_Smoothness", source.GetFloat("_Smoothness"));
+                m.SetFloat("_Metallic", metallic);
+                m.SetTexture("_DetailNormal", detailN);
+                m.SetTexture("_DetailMask", detailM);
+                m.SetFloat("_Tiling", 0.5f);
+                m.SetFloat("_NormalStrength", 1f);
+                m.SetFloat("_OcclusionStrength", 0.85f);
+                m.SetFloat("_GrimeStrength", grime);
+                m.enableInstancing = true;
+                EditorUtility.SetDirty(m);
+            }
+            Panel(InteriorHullPath, "M_Hull.mat", 0.3f, 0.3f);
+            Panel(InteriorHullDarkPath, "M_HullDark.mat", 0.2f, 0.45f);
 
             // 11-4 템플릿 창 유리: 반투명, 살짝 푸른 반사
             var glass = LoadOrCreate(MaterialFolder + "/M_InteriorGlass.mat", lit);

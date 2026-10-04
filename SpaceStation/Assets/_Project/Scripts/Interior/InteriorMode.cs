@@ -9,6 +9,7 @@ using SpaceStation.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 namespace SpaceStation.Interior
@@ -36,6 +37,8 @@ namespace SpaceStation.Interior
         [SerializeField] private Data.InteriorKit _kit;
         [Tooltip("키트가 없을 때 쓰는 그레이박스 재질")]
         [SerializeField] private Material _material;
+        [Tooltip("들어가 있는 동안 카메라가 쓰는 렌더러 번호 (파이프라인 에셋 목록, SSAO 강한 내부 전용). -1이면 바꾸지 않음")]
+        [SerializeField] private int _interiorRenderer = -1;
         [Tooltip("11-3 모듈별 내부 템플릿 (없는 모듈은 벽 키트 대체 방)")]
         [SerializeField] private List<Data.InteriorTemplate> _templates = new List<Data.InteriorTemplate>();
         [SerializeField] private float _interactDistance = 2.6f;
@@ -185,6 +188,8 @@ namespace SpaceStation.Interior
             cam.localPosition = Vector3.zero;
             cam.localRotation = Quaternion.identity;
             _camera.nearClipPlane = 0.05f;
+            if (_interiorRenderer >= 0)
+                _camera.GetUniversalAdditionalCameraData().SetRenderer(_interiorRenderer);
 
             if (_sun != null)
             {
@@ -219,6 +224,8 @@ namespace SpaceStation.Interior
             cam.SetParent(_cameraParent, false);
             cam.SetPositionAndRotation(_cameraPosition, _cameraRotation);
             _camera.nearClipPlane = _cameraNear;
+            if (_interiorRenderer >= 0)
+                _camera.GetUniversalAdditionalCameraData().SetRenderer(-1); // 기본 렌더러로
             if (_orbit != null)
                 _orbit.enabled = true;
             if (_sun != null)

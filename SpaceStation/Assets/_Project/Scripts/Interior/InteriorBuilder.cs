@@ -26,7 +26,7 @@ namespace SpaceStation.Interior
     /// </summary>
     public sealed class InteriorBuilder
     {
-        private const float LightIntensity = 5f;
+        private const float LightIntensity = 6f;
         private const float Dark = 0.35f;
         private const float RailPostSpacing = 1.6f;
 
@@ -58,6 +58,7 @@ namespace SpaceStation.Interior
         private readonly MaterialPropertyBlock _empty = new MaterialPropertyBlock();
         private readonly Dictionary<ModuleInstance, List<Piece>> _roomPieces = new Dictionary<ModuleInstance, List<Piece>>();
         private readonly Dictionary<ModuleInstance, List<Light>> _roomLights = new Dictionary<ModuleInstance, List<Light>>();
+        private readonly Dictionary<Light, float> _lightBase = new Dictionary<Light, float>();
         private readonly Dictionary<ModuleInstance, Color> _roomColors = new Dictionary<ModuleInstance, Color>();
         /// <summary>문 상태등: (렌더러 조각, 너머 방).</summary>
         private readonly List<(Piece Piece, ModuleInstance Other)> _statusLights = new List<(Piece, ModuleInstance)>();
@@ -119,6 +120,7 @@ namespace SpaceStation.Interior
                 Object.Destroy(_root.GetChild(i).gameObject);
             _roomPieces.Clear();
             _roomLights.Clear();
+            _lightBase.Clear();
             _roomColors.Clear();
             _statusLights.Clear();
             _dimmed.Clear();
@@ -159,10 +161,14 @@ namespace SpaceStation.Interior
             {
                 var parent = parents[room.Module];
                 if (room.Module.Data != null && _templates.TryGetValue(room.Module.Data, out var template))
-                    BuildTemplateRoom(room, template, parent);
+                {
+                    BuildTemplateRoom(room, template, parent); // 조명은 템플릿 프리팹 것
+                }
                 else
+                {
                     BuildFallbackRoom(room, parent);
-                BuildRoomLights(room, parent);
+                    BuildRoomLights(room, parent);
+                }
             }
 
             // 2) 수평 통로마다 튜브 하나 (키상 작은 칸 쪽에서)
@@ -230,7 +236,10 @@ namespace SpaceStation.Interior
             if (_roomLights.TryGetValue(module, out var lights))
             {
                 foreach (var light in lights)
-                    light.intensity = dim ? LightIntensity * 0.25f : LightIntensity;
+                {
+                    float full = _lightBase.TryGetValue(light, out float b) ? b : LightIntensity;
+                    light.intensity = dim ? full * 0.25f : full;
+                }
             }
             foreach (var (piece, other) in _statusLights)
             {
@@ -285,6 +294,11 @@ namespace SpaceStation.Interior
             instance.name = template.Prefab.name;
             foreach (var r in instance.GetComponentsInChildren<Renderer>())
                 _roomPieces[module].Add(new Piece { Renderer = r, BaseColors = BaseColors(r.sharedMaterials) });
+            // 템플릿 조명도 어둡게 할 수 있게 (세기 비율 유지)
+            var lights = new List<Light>(instance.GetComponentsInChildren<Light>());
+            _roomLights[module] = lights;
+            foreach (var l in lights)
+                _lightBase[l] = l.intensity;
 
             foreach (var socket in template.Sockets)
             {
@@ -677,7 +691,7 @@ namespace SpaceStation.Interior
                 var light = go.AddComponent<Light>();
                 light.type = LightType.Point;
                 light.shadows = LightShadows.None;
-                light.color = new Color(1f, 0.96f, 0.9f);
+                light.color = new Color(1f, 0.9f, 0.78f); // 다듬기 B: 방은 따뜻하게 (튜브는 차갑게)
                 light.range = extent.magnitude * 0.75f + 2f;
                 light.intensity = LightIntensity;
                 lights.Add(light);
