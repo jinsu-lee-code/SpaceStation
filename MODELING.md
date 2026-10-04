@@ -2,7 +2,7 @@
 
 Phase 11(모듈 내부) 키트·템플릿을 Blender로 만들며 실제로 겪은 문제와 예방 규칙. **새 모델·템플릿을 만들기 전에 읽고, 내보내기 전에 아래 "검증 절차"를 반드시 돌린다.**
 
-작업 파일: `BlenderWork/Interior_Kit.blend` (텍스트 블록 `kit_builder` = 공용 키트, `core_builder`·`habitat_builder`·`farm_builder` = 모듈 템플릿, `int_common` = 템플릿 공용 헬퍼(상자·원기둥·고리·돔·살대·둥근 소품·잎 덩어리·정리·검사), `overlap_check` = 겹침 검사)
+작업 파일: `BlenderWork/Interior_Kit.blend` (텍스트 블록 `kit_builder` = 공용 키트, `core_builder`·`habitat_builder`·`farm_builder`·…·`storage_builder` = 모듈 템플릿, `int_common` = 템플릿 공용 헬퍼(상자·원기둥·고리·돔·살대·둥근 소품·잎 덩어리·정리·검사), `overlap_check` = 겹침 검사)
 
 ## 1. 좌표·면 방향
 - **두 가지 작성 방식을 섞지 않는다.**
@@ -10,6 +10,8 @@ Phase 11(모듈 내부) 키트·템플릿을 Blender로 만들며 실제로 겪�
   - `core_builder` 방식: `U(x, y, z)`로 위치만 바꿔 Blender 도형(create_cone/cube + 불리언)으로 만든다 → 법선 바깥 그대로.
 - FBX 내보내기 고정값: `axis_forward='-Z'`, `axis_up='Y'`, `bake_space_transform=True`, `apply_scale_options='FBX_SCALE_ALL'`, `mesh_smooth_type='FACE'`.
 - 축이 180° 돌아 들어온 적 있음 → 새 파일은 내보낸 뒤 Unity에서 문 자리 방향부터 확인.
+- **오브젝트가 하나뿐인 FBX는 Unity가 메시를 루트에 바로 붙여 가져온다** (자식 없음). 창고(Shell 하나)에서 프리팹에 조각이 하나도 안 들어가 바닥 없이 떨어졌음 → `InteriorTemplateBuilder.Build`가 루트 메시도 조각으로 처리(이름 = 메시 이름). 새 템플릿은 프리팹에 `_Shell`과 MeshCollider가 있는지 확인.
+- 천장이 키트 패널(바닥 −0.2 ~ +3.8)보다 높은 방은 문 자리 구멍을 패널 위 끝 − JAMB(F + 3.74)까지만 판다 (천장까지 파면 패널 위가 뚫림).
 
 ## 2. 베벨
 - `bmesh.ops.bevel`이 새로 만든 면은 **재질 번호가 0으로 초기화**된다 → 상자마다 새로 생긴 면 전체에 재질 재지정.

@@ -45,6 +45,7 @@ namespace SpaceStation.Editor
             BuildMedical();
             BuildRecreation();
             BuildRotatingRing();
+            BuildStorage();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -332,6 +333,36 @@ namespace SpaceStation.Editor
             Build("RotatingRing", "MD_RotatingRing", sockets, new Vector3(0f, F, -6.8f), 90f, lights);
         }
 
+        /// <summary>
+        /// 11-6 창고 (1칸): 천장이 높은(F + 4.8) 6.4m 창고, 문 4곳을 잇는 십자 통로(바닥 유도선)는 비우고 네 모서리에 L자 5단 선반 랙,
+        /// 구역 안쪽에 상자 더미 / 큰 컨테이너 / 화물 카트 / 드럼통·재고 단말. 해치는 통로 교차점(칸 중심), 위 해치 깊이 = 높은 천장.
+        /// </summary>
+        private static void BuildStorage()
+        {
+            const float ceiling = F + 4.8f;
+            var cell = Vector3Int.zero;
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(cell, Vector3Int.left, Socket),
+                new InteriorSocket(cell, Vector3Int.right, Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(cell, Vector3Int.up, ceiling),
+                new InteriorSocket(cell, Vector3Int.down, -F),
+            };
+            var cool = new Color(0.9f, 0.95f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(1.95f, F + 4.1f, 0f), 5.5f, 2.0f, cool),
+                LightSpec.Point(new Vector3(-1.95f, F + 4.1f, 0f), 5.5f, 2.0f, cool),
+                LightSpec.Point(new Vector3(0f, F + 4.1f, 1.95f), 5.5f, 2.0f, cool),
+                LightSpec.Point(new Vector3(0f, F + 4.1f, -1.95f), 5.5f, 2.0f, cool),
+                // 랙 사이 구석이 어둡지 않게 낮은 보조광
+                LightSpec.Point(new Vector3(0f, F + 1.8f, 0f), 4.5f, 0.8f, new Color(1f, 0.9f, 0.78f)),
+            };
+            Build("Storage", "MD_Storage", sockets, new Vector3(0f, F, -2.6f), 0f, lights);
+        }
+
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
         private struct LightSpec
         {
@@ -384,19 +415,28 @@ namespace SpaceStation.Editor
                 { "Clinic", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ClinicPath) },
                 { "Sofa", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SofaPath) },
                 { "Rug", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.RugPath) },
+                { "Crate", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.CratePath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);
-            foreach (Transform part in model.transform)
+            // 오브젝트가 하나뿐인 FBX는 Unity가 그 메시를 루트에 바로 붙여 가져옴 (11-6 창고) → 루트를 조각 하나로, 이름은 메시 이름
+            var partList = new List<Transform>();
+            if (model.GetComponent<MeshFilter>() != null)
+                partList.Add(model.transform);
+            foreach (Transform child in model.transform)
+                partList.Add(child);
+            foreach (var part in partList)
             {
                 var filter = part.GetComponent<MeshFilter>();
                 if (filter == null)
                     continue;
-                var go = new GameObject(part.name);
+                bool isRoot = part == model.transform;
+                string partName = isRoot ? filter.sharedMesh.name : part.name;
+                var go = new GameObject(partName);
                 go.transform.SetParent(root.transform, false);
-                go.transform.localPosition = part.localPosition;
-                go.transform.localRotation = part.localRotation;
-                go.transform.localScale = part.localScale;
+                go.transform.localPosition = isRoot ? Vector3.zero : part.localPosition;
+                go.transform.localRotation = isRoot ? Quaternion.identity : part.localRotation;
+                go.transform.localScale = isRoot ? Vector3.one : part.localScale;
                 go.AddComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
                 var r = go.AddComponent<MeshRenderer>();
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -407,12 +447,12 @@ namespace SpaceStation.Editor
                     string slot = slots[i] != null ? slots[i].name : "";
                     if (!materials.TryGetValue(slot, out mats[i]) || mats[i] == null)
                     {
-                        Debug.LogWarning($"[InteriorTemplateBuilder] {part.name}: 재질 슬롯 '{slot}' → Hull");
+                        Debug.LogWarning($"[InteriorTemplateBuilder] {partName}: 재질 슬롯 '{slot}' → Hull");
                         mats[i] = materials["Hull"];
                     }
                 }
                 r.sharedMaterials = mats;
-                if (part.name.EndsWith("_Shell") || part.name.EndsWith("_Glass"))
+                if (partName.EndsWith("_Shell") || partName.EndsWith("_Glass"))
                     go.AddComponent<MeshCollider>().sharedMesh = filter.sharedMesh;
             }
             var lightRoot = new GameObject("Lights");
