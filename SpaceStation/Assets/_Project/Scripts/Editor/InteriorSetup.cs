@@ -32,6 +32,7 @@ namespace SpaceStation.Editor
         public const string LiquidPath = MaterialFolder + "/M_InteriorO2Liquid.mat";
         public const string ScreenPath = MaterialFolder + "/M_InteriorScreen.mat";
         public const string MetalPath = MaterialFolder + "/M_InteriorMetal.mat";
+        public const string WaterPath = MaterialFolder + "/M_InteriorWater.mat";
         public const string DevicePath = MaterialFolder + "/M_InteriorDevice.mat";
         public const string LockerPath = MaterialFolder + "/M_InteriorLocker.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
@@ -257,7 +258,7 @@ namespace SpaceStation.Editor
             light.SetColor("_BaseColor", new Color(0.95f, 0.95f, 0.9f));
             light.EnableKeyword("_EMISSION");
             light.SetColor("_EmissionColor", new Color(1f, 0.95f, 0.85f) * 2.5f);
-            light.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            light.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive; // None이면 URP 재질 검사가 _EMISSION을 꺼 버림 (ModuleFxMaterials 2026-10-03)
             light.enableInstancing = true;
             EditorUtility.SetDirty(light);
 
@@ -334,13 +335,16 @@ namespace SpaceStation.Editor
             grow.SetColor("_BaseColor", new Color(1f, 0.55f, 0.9f));
             grow.EnableKeyword("_EMISSION");
             grow.SetColor("_EmissionColor", new Color(1f, 0.32f, 0.82f) * 2.2f);
-            grow.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            grow.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive; // None이면 URP 재질 검사가 _EMISSION을 꺼 버림 (ModuleFxMaterials 2026-10-03)
             grow.enableInstancing = true;
             EditorUtility.SetDirty(grow);
 
             // 11-5 산소 생성기: 탱크 속 청록 액체(발광, 매끈) · 콘솔 화면(어두운 청록 발광)
             // 액체 광택 0.9는 방 조명이 한쪽에 강한 반사 줄을 만들어 한쪽만 밝아 보였음 → 0.5
             Emissive(LiquidPath, new Color(0.3f, 0.85f, 0.95f), new Color(0.15f, 0.75f, 0.95f) * 1.6f, 0.5f);
+
+            // 11-5 물 재활용기: 탱크 속 물 (푸른빛 은은한 발광, 광택 0.5 — MODELING.md 6-1)
+            Emissive(WaterPath, new Color(0.22f, 0.58f, 0.88f), new Color(0.1f, 0.38f, 0.7f) * 1.4f, 0.5f);
 
             // 장비 재질 (벽 패널 무늬 없는 단색): 배관 금속 · 장비(이음·책상·화면 테두리) · 도장 사물함
             Plain(MetalPath, new Color(0.62f, 0.64f, 0.67f), 0.75f, 0.55f);
@@ -368,7 +372,7 @@ namespace SpaceStation.Editor
             status.SetColor("_BaseColor", Color.white);
             status.EnableKeyword("_EMISSION");
             status.SetColor("_EmissionColor", Color.white * 2f);
-            status.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            status.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive; // None이면 URP 재질 검사가 _EMISSION을 꺼 버림 (ModuleFxMaterials 2026-10-03)
             status.enableInstancing = true;
             EditorUtility.SetDirty(status);
             AssetDatabase.SaveAssets();
@@ -394,7 +398,7 @@ namespace SpaceStation.Editor
             m.SetFloat("_Metallic", 0f);
             m.EnableKeyword("_EMISSION");
             m.SetColor("_EmissionColor", emission);
-            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive; // None이면 URP 재질 검사가 _EMISSION을 꺼 버림 (ModuleFxMaterials 2026-10-03)
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);
         }
