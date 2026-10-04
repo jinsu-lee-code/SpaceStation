@@ -25,6 +25,10 @@ namespace SpaceStation.Editor
         public const string InteriorHullPath = MaterialFolder + "/M_InteriorHull.mat";
         public const string FabricPath = MaterialFolder + "/M_InteriorFabric.mat";
         public const string BlanketPath = MaterialFolder + "/M_InteriorBlanket.mat";
+        public const string PlantPath = MaterialFolder + "/M_InteriorPlant.mat";
+        public const string PlantLightPath = MaterialFolder + "/M_InteriorPlantLight.mat";
+        public const string SoilPath = MaterialFolder + "/M_InteriorSoil.mat";
+        public const string GrowPath = MaterialFolder + "/M_InteriorGrow.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
         private const string RpAssetPath = "Assets/Settings/PC_RPAsset.asset";
         private const string RendererPath = "Assets/Settings/PC_Renderer.asset";
@@ -302,6 +306,32 @@ namespace SpaceStation.Editor
             }
             Fabric(FabricPath, new Color(0.86f, 0.85f, 0.81f));
             Fabric(BlanketPath, new Color(0.56f, 0.42f, 0.27f)); // 차분한 황토색 (거주 강조색 노랑과 어울리게)
+
+            // 11-5 농장: 잎(무광 초록) · 흙(어두운 갈색) · 생장등(분홍 발광)
+            void Leaf(string path, Color color)
+            {
+                var m = LoadOrCreate(path, lit);
+                m.SetColor("_BaseColor", color);
+                m.SetFloat("_Smoothness", 0.35f); // 잎의 은은한 윤기
+                m.SetFloat("_Metallic", 0f);
+                m.enableInstancing = true;
+                EditorUtility.SetDirty(m);
+            }
+            Leaf(PlantPath, new Color(0.3f, 0.62f, 0.22f));
+            Leaf(PlantLightPath, new Color(0.55f, 0.78f, 0.3f));
+            var soil = LoadOrCreate(SoilPath, lit);
+            soil.SetColor("_BaseColor", new Color(0.2f, 0.14f, 0.1f));
+            soil.SetFloat("_Smoothness", 0.05f);
+            soil.SetFloat("_Metallic", 0f);
+            soil.enableInstancing = true;
+            EditorUtility.SetDirty(soil);
+            var grow = LoadOrCreate(GrowPath, lit);
+            grow.SetColor("_BaseColor", new Color(1f, 0.55f, 0.9f));
+            grow.EnableKeyword("_EMISSION");
+            grow.SetColor("_EmissionColor", new Color(1f, 0.32f, 0.82f) * 2.2f);
+            grow.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            grow.enableInstancing = true;
+            EditorUtility.SetDirty(grow);
 
             // 11-4 템플릿 창 유리: 반투명, 살짝 푸른 반사
             var glass = LoadOrCreate(MaterialFolder + "/M_InteriorGlass.mat", lit);
