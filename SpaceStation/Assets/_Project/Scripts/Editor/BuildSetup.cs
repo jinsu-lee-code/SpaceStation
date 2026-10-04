@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
@@ -16,7 +16,7 @@ namespace SpaceStation.Editor
     {
         public const string CompanyName = "BinaryCompany";
         public const string ProductName = "Another Earth";
-        public const string Version = "0.8.0"; // Phase 8 (2026-10-03)
+        public const string Version = "0.10.0"; // Phase 10 (2026-10-04)
         private const string OutputFolder = "Builds/Windows";
         private const string ExeName = "AnotherEarth.exe";
 
