@@ -11,6 +11,8 @@ namespace SpaceStation.Interior
         public Vector3Int FromCell { get; set; }
         public Vector3Int ToCell { get; set; }
         public bool Up => ToCell.y > FromCell.y;
+        /// <summary>너머 방의 맞은편 해치 아래 바닥점 (월드). 없으면 너머 칸 바닥 가운데.</summary>
+        public Vector3? Arrival { get; set; }
     }
 
     /// <summary>
@@ -61,6 +63,7 @@ namespace SpaceStation.Interior
         private readonly List<(Piece Piece, ModuleInstance Other)> _statusLights = new List<(Piece, ModuleInstance)>();
         private readonly HashSet<ModuleInstance> _dimmed = new HashSet<ModuleInstance>();
         private readonly List<InteriorDoor> _doors = new List<InteriorDoor>();
+        private readonly List<InteriorHatch> _hatches = new List<InteriorHatch>();
         /// <summary>열린 통로 면 (칸, 방향) — 양쪽 모두 들어 있다.</summary>
         private readonly HashSet<(Vector3Int, Vector3Int)> _open = new HashSet<(Vector3Int, Vector3Int)>();
         private readonly List<WallPanel> _wallBuffer = new List<WallPanel>();
@@ -120,6 +123,7 @@ namespace SpaceStation.Interior
             _statusLights.Clear();
             _dimmed.Clear();
             _doors.Clear();
+            _hatches.Clear();
             _open.Clear();
             _layout = null;
         }
@@ -172,6 +176,20 @@ namespace SpaceStation.Interior
                 layout.TryGetRoom(cell + dir, out var b);
                 var span = InteriorGeometry.Tube(cell, dir, DoorDepth(a.Module, cell, dir), DoorDepth(b.Module, cell + dir, -dir));
                 BuildTube(span, tubes);
+            }
+
+            // 해치 도착점 = 맞은편 해치 자리 (템플릿은 칸 중심에서 옮겨 둘 수 있음)
+            foreach (var hatch in _hatches)
+            {
+                var key = (hatch.ToCell, hatch.FromCell - hatch.ToCell);
+                foreach (var other in _hatches)
+                {
+                    if ((other.FromCell, other.ToCell - other.FromCell) != key)
+                        continue;
+                    var p = other.transform.position;
+                    p.y = _root.position.y + InteriorGeometry.FloorY(hatch.ToCell);
+                    hatch.Arrival = p;
+                }
             }
 
             foreach (var door in _doors)
@@ -276,7 +294,7 @@ namespace SpaceStation.Interior
                 if (dir.y != 0)
                 {
                     if (open)
-                        BuildHatch(module, parent, CellCenter(cell) + (Vector3)dir * socket.Depth, dir.y < 0, cell, dir);
+                        BuildHatch(module, parent, CellCenter(cell) + (Vector3)dir * socket.Depth + rotation * socket.Offset, dir.y < 0, cell, dir);
                     continue;
                 }
                 var center = CellCenter(cell) + (Vector3)dir * socket.Depth;
@@ -418,6 +436,7 @@ namespace SpaceStation.Interior
             var h = lid.AddComponent<InteriorHatch>();
             h.FromCell = cell;
             h.ToCell = cell + dir;
+            _hatches.Add(h);
         }
 
         // ---------------- 연결 튜브 ----------------

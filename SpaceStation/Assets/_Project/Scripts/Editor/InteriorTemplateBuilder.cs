@@ -46,7 +46,9 @@ namespace SpaceStation.Editor
                     var cell = new Vector3Int(x, 0, z);
                     sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
                     sockets.Add(new InteriorSocket(cell, z == 0 ? new Vector3Int(0, 0, -1) : new Vector3Int(0, 0, 1), Socket));
-                    sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F)); // 매달린 모듈: 고리 바닥 해치
+                    // 매달린 모듈: 로비 바닥 해치. 칸 중심은 고리 안쪽 창틀에 붙으므로 바깥 모서리 쪽(로비 가운데 근처)으로 1.2씩
+                    var outward = new Vector3(x == 0 ? -1.2f : 1.2f, 0f, z == 0 ? -1.2f : 1.2f);
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, outward));
                 }
             }
             // 고리 복도 남쪽, 탑을 바라보며

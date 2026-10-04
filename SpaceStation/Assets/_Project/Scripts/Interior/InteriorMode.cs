@@ -310,10 +310,11 @@ namespace SpaceStation.Interior
             string target = _layout.TryGetRoom(hatch.ToCell, out var room) && room.Module.Data != null ? room.Module.Data.DisplayName : "";
             _prompt.SetText($"<b>{KeyBindings.Label(GameAction.Interact)}</b>  {(hatch.Up ? "위층으로" : "아래층으로")} <color={HudText.Muted}>{target}</color>");
             if (KeyBindings.WasPressed(GameAction.Interact))
-                StartCoroutine(UseHatch(hatch.FromCell, hatch.ToCell));
+                StartCoroutine(UseHatch(hatch.Arrival ?? _builder.FloorPoint(hatch.ToCell)));
         }
 
-        private IEnumerator UseHatch(Vector3Int from, Vector3Int to)
+        /// <param name="arrival">맞은편 해치 아래 바닥점 (월드).</param>
+        private IEnumerator UseHatch(Vector3 arrival)
         {
             _busy = true;
             _prompt.SetText(string.Empty);
@@ -322,7 +323,7 @@ namespace SpaceStation.Interior
             var forward = _player.transform.forward;
             forward.y = 0f;
             var offset = forward.sqrMagnitude > 0.01f ? forward.normalized * 1.1f : Vector3.forward * 1.1f;
-            _player.Teleport(_builder.FloorPoint(to) + offset + Vector3.up * 0.05f, _player.transform.eulerAngles.y);
+            _player.Teleport(arrival + offset + Vector3.up * 0.05f, _player.transform.eulerAngles.y);
             yield return Fade(1f, 0f, 0.2f);
             _busy = false;
         }
