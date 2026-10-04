@@ -31,6 +31,7 @@ namespace SpaceStation.Editor
         {
             InteriorSetup.CreateMaterials(); // 유리 재질 등이 먼저 있어야 함
             BuildCore();
+            BuildHabitat();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -75,6 +76,41 @@ namespace SpaceStation.Editor
                 lights.Add(LightSpec.Point(new Vector3(4f + Mathf.Cos(a) * 4.0f, F + 1.2f, 4f + Mathf.Sin(a) * 4.0f), 4f, 1.2f, new Color(0.6f, 0.78f, 1f)));
             }
             Build("Core", "MD_Core", sockets, new Vector3(4f, F, 4f - 5.7f), 0f, lights);
+        }
+
+        /// <summary>
+        /// 11-5 거주 (2칸, 로컬 칸 (0,0,0)·(1,0,0)): x 방향 8각 복도(안쪽 아포템 2.3, x −2.4~10.4) + 칸마다 양옆·끝 문 자리 대기 공간,
+        /// +z 쪽 2층 침실 캡슐 4칸, -z 쪽 창 2개·벤치. 위·아래 해치는 칸 중심 (천장 조명은 그 자리를 비움).
+        /// </summary>
+        private static void BuildHabitat()
+        {
+            const float ceiling = F + 3.6f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling));
+            }
+            var warm = new Color(1f, 0.88f, 0.74f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 0f), 6f, 2.6f, warm),
+                LightSpec.Point(new Vector3(4f, F + 3.0f, 0f), 6f, 2.8f, warm),
+                LightSpec.Point(new Vector3(8f, F + 3.0f, 0f), 6f, 2.6f, warm),
+                // 창가 차가운 보조광
+                LightSpec.Point(new Vector3(4f, F + 1.6f, -1.6f), 4f, 1.0f, new Color(0.6f, 0.78f, 1f)),
+            };
+            // 침실 캡슐마다 은은한 읽기등
+            foreach (float bx in new[] { 3.075f, 4.925f })
+            {
+                foreach (float by in new[] { F + 1.0f, F + 2.2f })
+                    lights.Add(LightSpec.Point(new Vector3(bx, by, 2.7f), 1.8f, 0.5f, new Color(1f, 0.8f, 0.6f)));
+            }
+            Build("Habitat", "MD_Habitat", sockets, new Vector3(-1.2f, F, 0f), 90f, lights);
         }
 
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
