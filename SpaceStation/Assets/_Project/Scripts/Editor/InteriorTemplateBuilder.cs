@@ -49,6 +49,7 @@ namespace SpaceStation.Editor
             BuildMiningDock();
             BuildMaintenanceBay();
             BuildRefinery();
+            BuildResearchLab();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -459,6 +460,38 @@ namespace SpaceStation.Editor
             };
             // 스폰 = 서쪽 끝에서 전기로를 바라봄
             Build("Refinery", "MD_Refinery", sockets, new Vector3(-2.0f, F, 0.6f), 90f, lights);
+        }
+
+        /// <summary>
+        /// 11-6 연구소 (1칸): 가운데 홀로그램 테이블 위 행성 홀로그램(궤도 고리 3·위성 2), (+x,+z) L자 실험대(현미경·시약병·원심분리기·분석기),
+        /// (−x,+z) 유리문 샘플 냉장고·표본 탱크, (+x,−z) 대형 벽 스크린·책상, (−x,−z) 서버 랙 3. 해치는 테이블을 피해 z ±2.0 (산소 생성기와 같음).
+        /// </summary>
+        private static void BuildResearchLab()
+        {
+            const float ceiling = F + 3.6f;
+            var cell = Vector3Int.zero;
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(cell, Vector3Int.left, Socket),
+                new InteriorSocket(cell, Vector3Int.right, Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(cell, Vector3Int.up, ceiling, new Vector3(0f, 0f, 2.0f)),
+                new InteriorSocket(cell, Vector3Int.down, -F, new Vector3(0f, 0f, -2.0f)),
+            };
+            var white = new Color(0.92f, 0.96f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-2.0f, F + 3.0f, 2.0f), 4.5f, 1.4f, white),
+                LightSpec.Point(new Vector3(2.0f, F + 3.0f, 2.0f), 4.5f, 1.5f, white),
+                LightSpec.Point(new Vector3(-2.0f, F + 3.0f, -2.0f), 4.5f, 1.3f, white),
+                LightSpec.Point(new Vector3(2.0f, F + 3.0f, -2.0f), 4.5f, 1.4f, white),
+                // 홀로그램 청록빛 (테이블 위) + 표본 탱크 앞 푸른빛 (표본을 비춤)
+                LightSpec.Point(new Vector3(0f, F + 1.5f, 0f), 3.5f, 1.4f, new Color(0.4f, 0.9f, 1f)),
+                LightSpec.Point(new Vector3(-1.6f, F + 0.9f, 2.1f), 2.2f, 0.6f, new Color(0.45f, 0.75f, 1f)),
+            };
+            // 스폰 = 남쪽 문 앞에서 홀로그램 테이블을 바라봄
+            Build("ResearchLab", "MD_ResearchLab", sockets, new Vector3(0f, F, -2.6f), 0f, lights);
         }
 
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
