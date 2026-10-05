@@ -120,6 +120,7 @@ namespace SpaceStation.Editor
             var hullDark = AssetDatabase.LoadAssetAtPath<Material>(InteriorHullDarkPath);
             var light = AssetDatabase.LoadAssetAtPath<Material>(LightPath);
             var status = AssetDatabase.LoadAssetAtPath<Material>(StatusPath);
+            var window = AssetDatabase.LoadAssetAtPath<Material>(WindowPath);
             var defaultAccent = AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Accent_Core.mat");
 
             Data.InteriorKitPiece Piece(string name)
@@ -142,6 +143,7 @@ namespace SpaceStation.Editor
                         case "Light": mats[i] = light; break;
                         case "Status": mats[i] = status; statusSlot = i; break;
                         case "Accent": mats[i] = defaultAccent; accent = i; break;
+                        case "Window": mats[i] = window; break; // 11-8 튜브 현창 유리 (바깥 카메라 화면)
                         default:
                             Debug.LogWarning($"[InteriorSetup] {name}: 모르는 재질 슬롯 '{slot}' → Hull");
                             mats[i] = hull;
@@ -173,7 +175,7 @@ namespace SpaceStation.Editor
             kit.EditorSet(Piece("KIT_Wall"), Piece("KIT_WallDoor"), Piece("KIT_DoorLeaf"), Piece("KIT_Floor"), Piece("KIT_Ceiling"),
                 Piece("KIT_HatchFrame"), Piece("KIT_HatchLid"), modules, accents, defaultAccent);
             kit.EditorSetBalcony(Piece("KIT_Deck"), Piece("KIT_RailBar"), Piece("KIT_RailPost"), Piece("KIT_StairStep"), Piece("KIT_StairPole"));
-            kit.EditorSetTube(Piece("KIT_Tube"), Piece("KIT_TubeCollar"));
+            kit.EditorSetTube(Piece("KIT_Tube"), Piece("KIT_TubeCollar"), Piece("KIT_TubeWindow"));
             EditorUtility.SetDirty(kit);
             AssetDatabase.SaveAssets();
             Debug.Log($"[InteriorSetup] 키트 {(kit.IsComplete ? "완성" : "불완전")} · 강조색 {modules.Count}종");

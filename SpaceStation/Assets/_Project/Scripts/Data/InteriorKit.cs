@@ -61,6 +61,8 @@ namespace SpaceStation.Data
         [SerializeField] private InteriorKitPiece _tube;
         [Tooltip("튜브 끝 고리 (벽에 닿는 쪽)")]
         [SerializeField] private InteriorKitPiece _tubeCollar;
+        [Tooltip("11-8 튜브 현창: 위쪽 45도 면 양쪽 둥근 창 한 벌 (늘리지 않음, 피벗은 튜브와 같음), 유리 = 바깥 창 재질")]
+        [SerializeField] private InteriorKitPiece _tubeWindow;
         [Header("방별 강조색")]
         [SerializeField] private List<ModuleData> _accentModules = new List<ModuleData>();
         [SerializeField] private List<Material> _accentMaterials = new List<Material>();
@@ -82,6 +84,7 @@ namespace SpaceStation.Data
         public InteriorKitPiece Tube => _tube;
         public InteriorKitPiece TubeCollar => _tubeCollar;
         public bool HasTube => _tube != null && _tube.IsValid && _tubeCollar != null && _tubeCollar.IsValid;
+        public InteriorKitPiece TubeWindow => _tubeWindow != null && _tubeWindow.IsValid ? _tubeWindow : null;
 
         public bool HasBalcony => _deck != null && _deck.IsValid && _railBar != null && _railBar.IsValid && _railPost != null && _railPost.IsValid
                                   && _stairStep != null && _stairStep.IsValid && _stairPole != null && _stairPole.IsValid;
@@ -122,10 +125,11 @@ namespace SpaceStation.Data
             _stairPole = stairPole;
         }
 
-        public void EditorSetTube(InteriorKitPiece tube, InteriorKitPiece tubeCollar)
+        public void EditorSetTube(InteriorKitPiece tube, InteriorKitPiece tubeCollar, InteriorKitPiece tubeWindow)
         {
             _tube = tube;
             _tubeCollar = tubeCollar;
+            _tubeWindow = tubeWindow;
         }
 #endif
     }

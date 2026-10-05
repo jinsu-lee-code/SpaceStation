@@ -30,6 +30,7 @@ namespace SpaceStation.Interior
         private const float Dark = 0.35f;
         private const float RailPostSpacing = 1.6f;
         private const float CollarSink = 0.153f; // 튜브 끝 고리 반 두께(0.15) + 0.003: 고리를 벽 속으로
+        private const float TubeWindowMinLength = 1.2f; // 현창 바깥 지름 1.09
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
@@ -504,6 +505,9 @@ namespace SpaceStation.Interior
                 var sink = span.Direction.normalized * CollarSink;
                 Tube(_kit.TubeCollar, go.transform, start + sink, rotation, Vector3.one);
                 Tube(_kit.TubeCollar, go.transform, end - sink, rotation, Vector3.one);
+                // 11-8 현창 한 벌 (위쪽 45도 면 양쪽, 지름 약 1.1) — 가장 짧은 튜브(1.6)에도 들어감. 고리는 튜브 벽 바깥(아포템 1.55~)이라 닿지 않음
+                if (_kit.TubeWindow != null && len >= TubeWindowMinLength)
+                    Tube(_kit.TubeWindow, go.transform, mid, rotation, Vector3.one);
             }
             else
             {
