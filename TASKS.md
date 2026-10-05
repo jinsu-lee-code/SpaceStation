@@ -754,5 +754,10 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
     - `FirstPersonController`: 실제로 움직인 수평 거리로 걸음 위상 진행(보폭 걷기 1.45 / 달리기 1.9 m, 벽에 막히면 멈춤) → 걸음마다 `Footstep` 이벤트, 시점은 발이 닿을 때 가장 낮게(−cos 2φ, 걷기 3.5cm / 달리기 5.5cm) + 두 걸음에 한 번 좌우(1.8 / 2.8cm), 멈추면 0으로 부드럽게 돌아감. `GameSettings.HeadBob` + 설정 > 게임 "내부 걸음 시점 흔들림"(끄면 흔들림만 없음, 발소리는 그대로)
     - `Interior/InteriorAudio`: 처음 들어갈 때 환경음 루프 6을 만들어 두고 지금 방 묶음만 올림(초당 0.7 교차 페이드), 발소리(걷기 0.75 / 달리기 1.0 배율), 나오면 모두 내림. `InteriorMode`가 방 제목이 바뀔 때 묶음 지정. `GameAudio`: 내부 방문 중 바깥 정거장 험 ×0.25
     - 확인: 확인용 세이브에서 거주 → 생활 환경음, 걸을 때 발소리(걷기 볼륨)·시점 흔들림, 제련소로 옮기면 고열 환경음으로 교차 페이드·정거장 험 낮아짐
+    - [ ] **다른 PC에서 할 일 (빠진 음원 통합)**: `.gitignore`를 고쳐(`Temp`·`Build`·`Builds`는 `/SpaceStation/` 바로 아래만 무시) 예전에 무시되던 폴더가 이제 추적됨. 원래 작업하던 PC에서 pull한 뒤(무시되던 파일은 pull해도 그대로 남음):
+      1. `git status`로 새로 잡힌 파일 확인 — `AudioOriginals/Build/`(원본), `SpaceStation/Assets/_Project/Audio/Build/`(결과물 + .meta), `SpaceStation/Assets/_Project/Art/Models/Modules/Temp/`(무엇인지 확인 후 필요하면 포함)
+      2. `Audio/Build/*.wav.meta`의 guid가 `Data/Audio/SoundLibrary.asset`의 BuildSelect·BuildRotate·BuildPlace·BuildRemove·BuildConnect·RepairStart·RepairDone·Maintain 연결 guid와 같은지 확인 (같으면 그대로 소리가 남, 다르면 메뉴 SpaceStation/Audio/Setup으로 다시 연결)
+      3. 전체 `build_audio.py`가 끝까지 도는지 확인 (`blender -b --factory-startup --python AudioOriginals/build_audio.py`) — 같은 시드라 기존 결과물과 같아야 함
+      4. 커밋·push (메시지 예: `MM.DD/11-9/RestoreBuildAudio`)
   - [ ] 11-10 상태가 공간에 드러남: 전력 부족 = 조명 깜빡임, 파손 = 연기·스파크·경보등, 노후 = 칙칙한 조명
   - [ ] 11-11 주민 배치 (정지 인물, 걸어 다니는 AI 없음 — GDD 10번 유지): 명단 주민이 집·일하는 방에 서 있거나 앉아 있음, 바라보면 이름·특성

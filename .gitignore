@@ -4,10 +4,13 @@
 #
 .utmp/
 **/[Ll]ibrary/
-**/[Tt]emp/
+# Temp·Build·Builds는 Unity 프로젝트(SpaceStation/) 바로 아래 출력 폴더만 무시 (2026-10-06)
+# — 예전 **/[Bb]uild/ 규칙이 Assets/_Project/Audio/Build/·AudioOriginals/Build/(건설·수리 소리)까지,
+#   **/[Tt]emp/가 Assets/_Project/Art/Models/Modules/Temp/까지 무시해 저장소에 올라가지 않았음
+/SpaceStation/[Tt]emp/
 **/[Oo]bj/
-**/[Bb]uild/
-**/[Bb]uilds/
+/SpaceStation/[Bb]uild/
+/SpaceStation/[Bb]uilds/
 **/[Ll]ogs/
 **/[Uu]ser[Ss]ettings/
 *.log
