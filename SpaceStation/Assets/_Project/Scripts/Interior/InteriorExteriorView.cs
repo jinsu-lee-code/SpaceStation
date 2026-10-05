@@ -243,7 +243,7 @@ namespace SpaceStation.Interior
             RestoreHidden();
         }
 
-        /// <summary>창이 속한 방 모듈 + 카메라를 품은 연결 통로를 숨김.</summary>
+        /// <summary>창이 속한 방 모듈 + 그 모듈에 닿은 연결 통로 + 카메라를 품은 연결 통로를 숨김.</summary>
         private void Hide(ModuleInstance module, Vector3 point)
         {
             _hidden.Clear();
@@ -260,11 +260,13 @@ namespace SpaceStation.Interior
             if (_connectors != null)
             {
                 int before = _hidden.Count;
+                if (module != null)
+                    _connectors.CollectRenderersTouching(module.Cells, _hidden); // 창 바로 앞 통로 끝(팔각 칼라)이 가리지 않게
                 _connectors.CollectRenderersContaining(point, 0.02f, _hidden);
                 for (int i = before; i < _hidden.Count; i++)
                 {
                     var r = _hidden[i];
-                    if (r.forceRenderingOff)
+                    if (r == null || r.forceRenderingOff)
                         _hidden[i] = null; // 원래 꺼져 있던 것은 되돌리지 않음
                     else
                         r.forceRenderingOff = true;

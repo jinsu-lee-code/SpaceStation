@@ -95,6 +95,27 @@ namespace SpaceStation.Building
 
         private void HandleActiveChanged(ModuleInstance module, bool active) => _stateDirty = true;
 
+        /// <summary>11-8 바깥 창 카메라: 모듈(칸 목록)에 닿은 통로 렌더러를 모음 (창 바로 앞을 통로 끝이 가리지 않게).</summary>
+        public void CollectRenderersTouching(IEnumerable<Vector3Int> cells, List<Renderer> into)
+        {
+            foreach (var pair in _connectors)
+            {
+                bool touches = false;
+                foreach (var cell in cells)
+                {
+                    if (pair.Key.Item1 == cell || pair.Key.Item2 == cell)
+                    {
+                        touches = true;
+                        break;
+                    }
+                }
+                if (!touches || pair.Value.Root == null)
+                    continue;
+                into.AddRange(pair.Value.Hull);
+                into.AddRange(pair.Value.Strips);
+            }
+        }
+
         /// <summary>11-8 바깥 창 카메라: 경계 상자(여유 margin)가 점을 품은 통로 렌더러를 모음 (통로 속에서 자기 껍데기를 숨기려고).</summary>
         public void CollectRenderersContaining(Vector3 point, float margin, List<Renderer> into)
         {
