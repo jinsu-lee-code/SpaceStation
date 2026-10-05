@@ -56,6 +56,7 @@ namespace SpaceStation.Editor
             BuildSolar();
             BuildTurret();
             BuildShield();
+            BuildBattery();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -700,6 +701,38 @@ namespace SpaceStation.Editor
             };
             // 스폰 = 남쪽 문 앞에서 봉쇄실을 바라봄
             Build("Shield", "MD_Shield", sockets, new Vector3(0f, F, -2.6f), 0f, lights, orbits);
+        }
+
+        /// <summary>
+        /// 11-7 배터리 정비 통로 (1칸): x 방향 일자 통로(폭 3.7) 양옆 네 사분면에 배터리 랙 뱅크(셀 모듈 5단 × 2열, 구리 버스바, 케이블 다발),
+        /// 가운데는 ±z 문으로 가는 교차 통로. 랙의 가운데 쪽 끝면마다 큰 저장량 게이지(세로 10칸 — 실제 저장량 연동은 11-10).
+        /// 문 자리 = 네 옆면, 위·아래 해치 = 칸 중심.
+        /// </summary>
+        private static void BuildBattery()
+        {
+            const float ceiling = F + 3.6f;
+            var cell = Vector3Int.zero;
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(cell, Vector3Int.left, Socket),
+                new InteriorSocket(cell, Vector3Int.right, Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(cell, Vector3Int.up, ceiling),
+                new InteriorSocket(cell, Vector3Int.down, -F),
+            };
+            var white = new Color(0.92f, 0.95f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(1.85f, F + 3.0f, 0f), 4f, 1.3f, white),
+                LightSpec.Point(new Vector3(-1.85f, F + 3.0f, 0f), 4f, 1.3f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 1.85f), 4f, 1.1f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, -1.85f), 4f, 1.1f, white),
+                // 교차부: 게이지 4개가 마주 보는 곳의 은은한 청록빛
+                LightSpec.Point(new Vector3(0f, F + 1.3f, 0f), 3f, 0.6f, new Color(0.45f, 0.85f, 1f)),
+            };
+            // 스폰 = 서쪽 문 앞에서 일자 통로를 바라봄
+            Build("Battery", "MD_Battery", sockets, new Vector3(-2.4f, F, 0f), 90f, lights);
         }
 
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
