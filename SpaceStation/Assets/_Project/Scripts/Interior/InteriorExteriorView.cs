@@ -47,6 +47,7 @@ namespace SpaceStation.Interior
         private readonly List<Renderer> _hidden = new List<Renderer>();
         private readonly Dictionary<ModuleView, Renderer[]> _moduleRenderers = new Dictionary<ModuleView, Renderer[]>();
         private readonly Plane[] _planes = new Plane[6];
+        private readonly HashSet<ModuleInstance> _nearModules = new HashSet<ModuleInstance>();
         private MaterialPropertyBlock _block;
         private ModuleInstance _hideModule;
         private bool _sunWasEnabled;
@@ -243,19 +244,43 @@ namespace SpaceStation.Interior
             RestoreHidden();
         }
 
-        /// <summary>창이 속한 방 모듈 + 그 모듈에 닿은 연결 통로 + 카메라를 품은 연결 통로를 숨김.</summary>
+        /// <summary>창이 속한 방 모듈 + 그 모듈에 닿은 연결 통로 + 카메라를 품은 모듈·연결 통로를 숨김.</summary>
         private void Hide(ModuleInstance module, Vector3 point)
         {
             _hidden.Clear();
-            if (module != null && _station != null && _station.TryGetView(module, out var view) && view != null)
+            if (module != null)
+                HideModule(module);
+            // 카메라를 품은 이웃 모듈: 바깥 모델(칸의 약 92%)이 내부 방(80%)보다 커서, 튜브 끝·문가에서는 바깥 카메라가
+            // 옆 모듈 바깥 모델 속에 들어가 안쪽 면이 창을 덮음 (장갑 격벽 → 채굴 도킹 튜브에서 검은 창)
+            if (_station != null && _station.Grid != null)
             {
-                if (!_moduleRenderers.TryGetValue(view, out var rs))
+                _nearModules.Clear();
+                var center = GridConfig.WorldToCell(point);
+                for (int x = -1; x <= 1; x++)
+                for (int y = -1; y <= 1; y++)
+                for (int z = -1; z <= 1; z++)
                 {
-                    rs = view.GetComponentsInChildren<Renderer>(true);
-                    _moduleRenderers[view] = rs;
+                    if (_station.Grid.TryGetModule(center + new Vector3Int(x, y, z), out var near) && near != module)
+                        _nearModules.Add(near);
                 }
-                foreach (var r in rs)
-                    HideOne(r);
+                foreach (var near in _nearModules)
+                {
+                    var rs = RenderersOf(near);
+                    if (rs == null)
+                        continue;
+                    foreach (var r in rs)
+                    {
+                        if (r == null)
+                            continue;
+                        var b = r.bounds;
+                        b.Expand(0.04f);
+                        if (b.Contains(point))
+                        {
+                            HideModule(near);
+                            break;
+                        }
+                    }
+                }
             }
             if (_connectors != null)
             {
@@ -272,6 +297,27 @@ namespace SpaceStation.Interior
                         r.forceRenderingOff = true;
                 }
             }
+        }
+
+        private Renderer[] RenderersOf(ModuleInstance module)
+        {
+            if (_station == null || !_station.TryGetView(module, out var view) || view == null)
+                return null;
+            if (!_moduleRenderers.TryGetValue(view, out var rs))
+            {
+                rs = view.GetComponentsInChildren<Renderer>(true);
+                _moduleRenderers[view] = rs;
+            }
+            return rs;
+        }
+
+        private void HideModule(ModuleInstance module)
+        {
+            var rs = RenderersOf(module);
+            if (rs == null)
+                return;
+            foreach (var r in rs)
+                HideOne(r);
         }
 
         private void HideOne(Renderer r)
