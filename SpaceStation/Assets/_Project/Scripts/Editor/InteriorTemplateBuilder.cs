@@ -58,6 +58,7 @@ namespace SpaceStation.Editor
             BuildShield();
             BuildBattery();
             BuildArmorBulkhead();
+            BuildDamageControl();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -765,6 +766,43 @@ namespace SpaceStation.Editor
             };
             // 스폰 = 남쪽 문 앞에서 맞은편 문을 바라봄
             Build("ArmorBulkhead", "MD_ArmorBulkhead", sockets, new Vector3(0f, F, -2.4f), 0f, lights);
+        }
+
+        /// <summary>
+        /// 11-7 손상 통제실 (1칸, 수리반 대기실): 가운데 상황판 테이블(정거장 손상 지도)·의자 2, 위에 매단 회전 경광등(<see cref="InteriorOrbit"/>).
+        /// 모서리: 사물함·벤치 · 공구 걸이판·용접기 수레 · 보수판 더미·밀봉제 통 · 경보 패널. 문 자리 = 네 옆면, 위·아래 해치는 테이블을 피해 (−2.25, −2.25).
+        /// </summary>
+        private static void BuildDamageControl()
+        {
+            const float ceiling = F + 3.6f;
+            var cell = Vector3Int.zero;
+            var hatch = new Vector3(-2.25f, 0f, -2.25f);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(cell, Vector3Int.left, Socket),
+                new InteriorSocket(cell, Vector3Int.right, Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(cell, Vector3Int.up, ceiling, hatch),
+                new InteriorSocket(cell, Vector3Int.down, -F, hatch),
+            };
+            var white = new Color(0.95f, 0.95f, 0.92f);
+            var beacon = new Vector3(0f, ceiling - 0.42f, 0f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(2.05f, F + 3.0f, 0f), 4f, 1.2f, white),
+                LightSpec.Point(new Vector3(-2.05f, F + 3.0f, 0f), 4f, 1.2f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 2.05f), 4f, 1.2f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, -2.05f), 4f, 1.2f, white),
+                // 경광등 주황빛 (테이블 위로 번짐)
+                LightSpec.Point(beacon - new Vector3(0f, 0.25f, 0f), 3.5f, 0.9f, new Color(1f, 0.55f, 0.15f)),
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_Damage_Beacon", beacon, Vector3.up, 150f),
+            };
+            // 스폰 = 남쪽 문 앞에서 상황판 테이블을 바라봄
+            Build("DamageControl", "MD_DamageControl", sockets, new Vector3(0.6f, F, -2.4f), -15f, lights, orbits);
         }
 
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
