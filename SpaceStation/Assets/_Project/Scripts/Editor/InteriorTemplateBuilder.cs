@@ -54,6 +54,7 @@ namespace SpaceStation.Editor
             BuildCargoTerminal();
             BuildFusionReactor();
             BuildSolar();
+            BuildTurret();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -615,6 +616,46 @@ namespace SpaceStation.Editor
             }
             // 스폰 = 남쪽 통로에서 유리 천장 쪽을 바라봄
             Build("Solar", "MD_Solar", sockets, new Vector3(0f, F, -2.4f), 0f, lights, null, tilts);
+        }
+
+        /// <summary>
+        /// 11-7 포탑 정비 통로 (1칸): 가운데 회전 받침 — 고정 받침대 위 톱니 48 회전판(포신 기둥·탄약 공급 슈트·평형추, 천장 막힌 홈 속으로)과
+        /// 맞물린 모터 피니언 8톱니가 돈다(<see cref="InteriorOrbit"/>, 6배 빠르게 반대로). 둘레 경고 난간(반지름 1.8) 바깥 = 정비 통로.
+        /// 모서리: 탄약 랙 · 사격 통제 콘솔·레이더 화면 · 예비 포신·공구함 · 서보 제어함. 문 자리 = 네 옆면, 위·아래 해치는 기둥을 피해 (−2.25, −2.25).
+        /// </summary>
+        private static void BuildTurret()
+        {
+            const float ceiling = F + 3.6f;
+            var cell = Vector3Int.zero;
+            var hatch = new Vector3(-2.25f, 0f, -2.25f);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(cell, Vector3Int.left, Socket),
+                new InteriorSocket(cell, Vector3Int.right, Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(cell, Vector3Int.up, ceiling, hatch),
+                new InteriorSocket(cell, Vector3Int.down, -F, hatch),
+            };
+            var white = new Color(0.92f, 0.95f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(2.15f, F + 3.0f, 0f), 4f, 1.3f, white),
+                LightSpec.Point(new Vector3(-2.15f, F + 3.0f, 0f), 4f, 1.3f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 2.15f), 4f, 1.3f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, -2.15f), 4f, 1.3f, white),
+                // 회전 받침을 비추는 작업등 + 콘솔·레이더 빛
+                LightSpec.Spot(new Vector3(1.2f, F + 3.4f, -1.2f), new Vector3(-0.45f, -1f, 0.45f), 5f, 2.2f, 60f, new Color(1f, 0.95f, 0.85f)),
+                LightSpec.Point(new Vector3(-2.3f, F + 1.6f, 2.3f), 2.5f, 0.6f, new Color(0.5f, 0.85f, 1f)),
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_Turret_Rotor", Vector3.zero, Vector3.up, 6f),
+                // 피니언 8톱니 : 회전판 48톱니 → 6배 빠르게 반대로 (turret_builder PIN_C = 1.3 + 1.3·8/48)
+                new OrbitSpec("INT_Turret_Pinion", new Vector3(1.3f + 1.3f * 8f / 48f, 0f, 0f), Vector3.up, -36f),
+            };
+            // 스폰 = 남쪽 문 앞에서 회전 받침을 바라봄
+            Build("Turret", "MD_Turret", sockets, new Vector3(0f, F, -2.6f), 0f, lights, orbits);
         }
 
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
