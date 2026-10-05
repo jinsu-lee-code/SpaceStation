@@ -51,6 +51,7 @@ namespace SpaceStation.Editor
             BuildMaintenanceBay();
             BuildRefinery();
             BuildResearchLab();
+            BuildCargoTerminal();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -502,6 +503,38 @@ namespace SpaceStation.Editor
             };
             // 스폰 = 남쪽 문 앞에서 홀로그램 테이블을 바라봄
             Build("ResearchLab", "MD_ResearchLab", sockets, new Vector3(0f, F, -2.6f), 0f, lights, orbits);
+        }
+
+        /// <summary>
+        /// 11-6 화물 터미널 (2칸 도킹, 로컬 칸 (0,0,0)·(1,0,0)): 앞면(+z) = 화물선 접근로(연결 불가) → 앞벽에 대형 화물문(경고 줄무늬 틀·경광등)과
+        /// 관제창 2·관제 콘솔. 천장이 높은(F + 4.8) 홀에 갠트리 크레인이 컨테이너를 매달고, 바닥 유도선, 뒤 벽·구석 컨테이너 더미·화물 팔레트.
+        /// 문 자리 = 양 끝 + 칸마다 뒤(−z) + 위·아래 해치(칸 중심).
+        /// </summary>
+        private static void BuildCargoTerminal()
+        {
+            const float ceiling = F + 4.8f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling));
+            }
+            var warm = new Color(1f, 0.88f, 0.74f);
+            var cool = new Color(0.85f, 0.92f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-0.5f, F + 4.0f, 0f), 6f, 1.8f, warm),
+                LightSpec.Point(new Vector3(8.5f, F + 4.0f, 0f), 6f, 1.8f, warm),
+                // 화물문·하역 구역을 비추는 차가운 스포트 + 관제 콘솔 + 경광등 주황빛
+                LightSpec.Spot(new Vector3(4f, F + 4.4f, -0.5f), new Vector3(0f, -0.8f, 0.6f), 8f, 2.6f, 70f, cool),
+                LightSpec.Point(new Vector3(9.5f, F + 2.0f, 2.2f), 3.5f, 0.9f, cool),
+                LightSpec.Point(new Vector3(4f, F + 3.6f, 2.6f), 4.5f, 0.8f, new Color(1f, 0.55f, 0.2f)),
+            };
+            // 스폰 = 0번 칸 뒤 문(정거장 쪽) 앞에서 화물문·크레인을 비스듬히 바라봄
+            Build("CargoTerminal", "MD_CargoTerminal", sockets, new Vector3(0.4f, F, -2.4f), 40f, lights);
         }
 
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
