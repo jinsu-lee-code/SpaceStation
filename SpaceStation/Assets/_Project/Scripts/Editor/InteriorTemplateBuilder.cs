@@ -59,6 +59,7 @@ namespace SpaceStation.Editor
             BuildBattery();
             BuildArmorBulkhead();
             BuildDamageControl();
+            BuildFuelCell();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -803,6 +804,39 @@ namespace SpaceStation.Editor
             };
             // 스폰 = 남쪽 문 앞에서 상황판 테이블을 바라봄
             Build("DamageControl", "MD_DamageControl", sockets, new Vector3(0.6f, F, -2.4f), -15f, lights, orbits);
+        }
+
+        /// <summary>
+        /// 11-7 연료전지 (1칸, 발전 장치실): 가운데 연료전지 스택(판 36장·끝판·조임 막대, 위 출력 단자함·케이블), 수소 탱크 2·산소 탱크 2(머리 위 배관으로 스택에),
+        /// 부산물 물 회수 탱크·펌프, 출력 계기 패널(아날로그 게이지·막대). 문 자리 = 네 옆면, 위·아래 해치는 스택을 피해 (−2.25, −2.25).
+        /// </summary>
+        private static void BuildFuelCell()
+        {
+            const float ceiling = F + 3.6f;
+            var cell = Vector3Int.zero;
+            var hatch = new Vector3(-2.25f, 0f, -2.25f);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(cell, Vector3Int.left, Socket),
+                new InteriorSocket(cell, Vector3Int.right, Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(cell, Vector3Int.up, ceiling, hatch),
+                new InteriorSocket(cell, Vector3Int.down, -F, hatch),
+            };
+            var white = new Color(0.94f, 0.96f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(2.05f, F + 3.0f, 0f), 4f, 1.2f, white),
+                LightSpec.Point(new Vector3(-2.05f, F + 3.0f, 0f), 4f, 1.2f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 2.05f), 4f, 1.2f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, -2.05f), 4f, 1.2f, white),
+                LightSpec.Point(new Vector3(0f, F + 2.0f, 0f), 3f, 0.8f, white), // 스택 위
+                LightSpec.Point(new Vector3(2.3f, F + 1.4f, 2.3f), 2.2f, 0.5f, white), // 탱크 모서리
+                LightSpec.Point(new Vector3(-2.3f, F + 1.4f, 2.3f), 2.2f, 0.5f, white),
+            };
+            // 스폰 = 남쪽 문 앞에서 스택을 바라봄
+            Build("FuelCell", "MD_FuelCell", sockets, new Vector3(0.4f, F, -2.4f), -10f, lights);
         }
 
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
