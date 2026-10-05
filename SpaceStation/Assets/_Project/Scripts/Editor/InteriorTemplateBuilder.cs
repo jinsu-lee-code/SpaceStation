@@ -57,6 +57,7 @@ namespace SpaceStation.Editor
             BuildTurret();
             BuildShield();
             BuildBattery();
+            BuildArmorBulkhead();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -735,6 +736,37 @@ namespace SpaceStation.Editor
             Build("Battery", "MD_Battery", sockets, new Vector3(-2.4f, F, 0f), 90f, lights);
         }
 
+        /// <summary>
+        /// 11-7 장갑 격벽 (1칸): 두꺼운 통로 방 — 모서리 I빔 기둥, 문 사이 벽 겹 장갑판(볼트), 천장 사각 거더 틀(해치 둘레)·대각 거더,
+        /// 문마다 압력 격벽 문틀(경고 줄무늬 기둥·경광등). 모서리: 비상 산소함 · 소화기함·소화기·경보 버튼 · 예비 장갑판·두께 화면 · 압력 감시 패널·밀폐 핸들.
+        /// 문 자리 = 네 옆면, 위·아래 해치 = 칸 중심.
+        /// </summary>
+        private static void BuildArmorBulkhead()
+        {
+            const float ceiling = F + 3.6f;
+            var cell = Vector3Int.zero;
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(cell, Vector3Int.left, Socket),
+                new InteriorSocket(cell, Vector3Int.right, Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(cell, Vector3Int.up, ceiling),
+                new InteriorSocket(cell, Vector3Int.down, -F),
+            };
+            var white = new Color(0.95f, 0.95f, 0.92f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(2.05f, F + 3.0f, 0f), 4f, 1.2f, white),
+                LightSpec.Point(new Vector3(-2.05f, F + 3.0f, 0f), 4f, 1.2f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 2.05f), 4f, 1.2f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, -2.05f), 4f, 1.2f, white),
+                LightSpec.Point(new Vector3(0f, F + 2.6f, 0f), 3.5f, 0.8f, white), // 거더 틀 안 (해치 둘레)
+            };
+            // 스폰 = 남쪽 문 앞에서 맞은편 문을 바라봄
+            Build("ArmorBulkhead", "MD_ArmorBulkhead", sockets, new Vector3(0f, F, -2.4f), 0f, lights);
+        }
+
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
         private struct LightSpec
         {
@@ -810,6 +842,7 @@ namespace SpaceStation.Editor
                 { "Plasma", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PlasmaPath) },
                 { "SolarCell", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SolarCellPath) },
                 { "Shield", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ShieldPath) },
+                { "Red", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.RedPath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);

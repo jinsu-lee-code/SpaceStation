@@ -45,6 +45,7 @@ namespace SpaceStation.Editor
         public const string PlasmaPath = MaterialFolder + "/M_InteriorPlasma.mat";
         public const string SolarCellPath = MaterialFolder + "/M_InteriorSolarCell.mat";
         public const string ShieldPath = MaterialFolder + "/M_InteriorShield.mat";
+        public const string RedPath = MaterialFolder + "/M_InteriorRed.mat";
         public const string SofaPath = MaterialFolder + "/M_InteriorSofa.mat";
         public const string RugPath = MaterialFolder + "/M_InteriorRug.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
@@ -378,6 +379,7 @@ namespace SpaceStation.Editor
             Plain(HazardPath, new Color(0.9f, 0.68f, 0.1f), 0.2f, 0.4f);    // 11-6 경고 줄무늬 노랑 (검정 칸 = Device)
             Plain(RockPath, new Color(0.3f, 0.27f, 0.25f), 0.35f, 0.25f);   // 11-6 광석 (컨베이어 고무 벨트도)
             Plain(SolarCellPath, new Color(0.06f, 0.12f, 0.32f), 0.7f, 0.85f); // 11-7 태양전지 면 (짙은 남색, 매끈)
+            Plain(RedPath, new Color(0.72f, 0.1f, 0.08f), 0.3f, 0.45f);        // 11-7 소화기·비상 설비 빨강 도장
             Emissive(ScreenPath, new Color(0.05f, 0.18f, 0.22f), new Color(0.1f, 0.55f, 0.7f) * 1.8f, 0.85f);
 
             // 11-4 템플릿 창 유리: 반투명, 살짝 푸른 반사
