@@ -55,6 +55,7 @@ namespace SpaceStation.Editor
             BuildFusionReactor();
             BuildSolar();
             BuildTurret();
+            BuildShield();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -660,6 +661,47 @@ namespace SpaceStation.Editor
             Build("Turret", "MD_Turret", sockets, new Vector3(0f, F, -2.6f), 0f, lights, orbits);
         }
 
+        /// <summary>
+        /// 11-7 실드 정비 통로 (1칸): 가운데 유리 봉쇄실(반지름 1.5) 안에 떠 있는 방출기 코어 + 위아래 투사기·에너지 빔 +
+        /// 서로 다른 축으로 도는 고리 2(<see cref="InteriorOrbit"/>). 둘레 = 정비 통로. 모서리: 축전기 뱅크 · 제어 콘솔·실드 돔 화면 ·
+        /// 전력 변환기 · 비상 차단 패널. 문 자리 = 네 옆면, 위·아래 해치는 봉쇄실을 피해 (−2.25, −2.25).
+        /// </summary>
+        private static void BuildShield()
+        {
+            const float ceiling = F + 3.6f;
+            var cell = Vector3Int.zero;
+            var hatch = new Vector3(-2.25f, 0f, -2.25f);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(cell, Vector3Int.left, Socket),
+                new InteriorSocket(cell, Vector3Int.right, Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(cell, Vector3Int.up, ceiling, hatch),
+                new InteriorSocket(cell, Vector3Int.down, -F, hatch),
+            };
+            var white = new Color(0.9f, 0.94f, 1f);
+            var shield = new Color(0.4f, 0.75f, 1f);
+            var core = new Vector3(0f, F + 1.8f, 0f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(2.15f, F + 3.0f, 0f), 4f, 1.1f, white),
+                LightSpec.Point(new Vector3(-2.15f, F + 3.0f, 0f), 4f, 1.1f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 2.15f), 4f, 1.1f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, -2.15f), 4f, 1.1f, white),
+                // 코어 빛: 봉쇄실 안(고리·기둥을 비춤) + 유리 밖으로 번지는 푸른빛
+                LightSpec.Point(core, 4.5f, 2.0f, shield),
+                LightSpec.Point(new Vector3(2.3f, F + 2.3f, 1.9f), 2.6f, 0.8f, new Color(1f, 0.93f, 0.82f)), // 축전기 뱅크
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_Shield_Ring1", core, Vector3.up, 30f),
+                new OrbitSpec("INT_Shield_Ring2", core, new Vector3(0.35f, 1f, -0.25f), -20f),
+            };
+            // 스폰 = 남쪽 문 앞에서 봉쇄실을 바라봄
+            Build("Shield", "MD_Shield", sockets, new Vector3(0f, F, -2.6f), 0f, lights, orbits);
+        }
+
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
         private struct LightSpec
         {
@@ -734,6 +776,7 @@ namespace SpaceStation.Editor
                 { "ScreenGrid", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath) },
                 { "Plasma", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PlasmaPath) },
                 { "SolarCell", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SolarCellPath) },
+                { "Shield", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ShieldPath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);
