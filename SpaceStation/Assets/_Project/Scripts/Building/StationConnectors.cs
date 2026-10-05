@@ -95,6 +95,31 @@ namespace SpaceStation.Building
 
         private void HandleActiveChanged(ModuleInstance module, bool active) => _stateDirty = true;
 
+        /// <summary>11-8 바깥 창 카메라: 경계 상자(여유 margin)가 점을 품은 통로 렌더러를 모음 (통로 속에서 자기 껍데기를 숨기려고).</summary>
+        public void CollectRenderersContaining(Vector3 point, float margin, List<Renderer> into)
+        {
+            foreach (var c in _connectors.Values)
+            {
+                if (c.Root == null)
+                    continue;
+                bool inside = false;
+                foreach (var r in c.Hull)
+                {
+                    var b = r.bounds;
+                    b.Expand(margin * 2f);
+                    if (b.Contains(point))
+                    {
+                        inside = true;
+                        break;
+                    }
+                }
+                if (!inside)
+                    continue;
+                into.AddRange(c.Hull);
+                into.AddRange(c.Strips);
+            }
+        }
+
         /// <summary>태양 수평 방향에 수직인 격자 축 = 패널 회전축 (SunFacingPanel과 같은 기준).</summary>
         private static Vector3Int SolarSideAxisFromSun()
         {

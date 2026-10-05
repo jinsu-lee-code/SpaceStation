@@ -915,6 +915,7 @@ namespace SpaceStation.Editor
                 { "SolarCell", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SolarCellPath) },
                 { "Shield", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ShieldPath) },
                 { "Red", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.RedPath) },
+                { "Window", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.WindowPath) }, // 11-8 바깥 창
             };
 
             var root = new GameObject("PF_Interior_" + name);

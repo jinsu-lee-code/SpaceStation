@@ -46,6 +46,7 @@ namespace SpaceStation.Editor
         public const string SolarCellPath = MaterialFolder + "/M_InteriorSolarCell.mat";
         public const string ShieldPath = MaterialFolder + "/M_InteriorShield.mat";
         public const string RedPath = MaterialFolder + "/M_InteriorRed.mat";
+        public const string WindowPath = MaterialFolder + "/M_InteriorWindow.mat";
         public const string SofaPath = MaterialFolder + "/M_InteriorSofa.mat";
         public const string RugPath = MaterialFolder + "/M_InteriorRug.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
@@ -396,6 +397,14 @@ namespace SpaceStation.Editor
             glass.SetFloat("_Smoothness", 0.95f);
             glass.SetFloat("_Metallic", 0f);
             EditorUtility.SetDirty(glass);
+
+            // 11-8 바깥 창: 바깥 카메라 화면을 보여주는 유리 (InteriorExteriorView). 안쪽 유리(탱크·냉장고 등)는 위 M_InteriorGlass 그대로
+            var window = LoadOrCreate(WindowPath, Shader.Find(Interior.InteriorExteriorView.WindowShaderName));
+            window.SetColor("_Tint", new Color(0.9f, 0.96f, 1f));
+            window.SetColor("_RimColor", new Color(0.3f, 0.4f, 0.5f));
+            window.SetFloat("_RimPower", 4f);
+            window.SetFloat("_Streak", 0.03f);
+            EditorUtility.SetDirty(window);
 
             // 문 상태등: 색은 런타임 MaterialPropertyBlock (정상 청록 / 경고 빨강)
             var status = LoadOrCreate(StatusPath, lit);

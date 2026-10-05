@@ -71,6 +71,7 @@ namespace SpaceStation.Interior
         private float _cameraNear;
         private bool _sunEnabled;
         private OrbitCameraController _orbit;
+        private InteriorExteriorView _exteriorView;
         private readonly List<GameObject> _hiddenNow = new List<GameObject>();
 
         // 오버레이
@@ -196,6 +197,9 @@ namespace SpaceStation.Interior
                 _sunEnabled = _sun.enabled;
                 _sun.enabled = false;
             }
+            _exteriorView = InteriorExteriorView.Create(_camera, _root, _station, _sun, _camera.farClipPlane);
+            _exteriorView.transform.SetParent(transform, false);
+            _exteriorView.CollectWindows();
             HidePanels(true);
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -228,6 +232,9 @@ namespace SpaceStation.Interior
                 _camera.GetUniversalAdditionalCameraData().SetRenderer(-1); // 기본 렌더러로
             if (_orbit != null)
                 _orbit.enabled = true;
+            if (_exteriorView != null)
+                Destroy(_exteriorView.gameObject);
+            _exteriorView = null;
             if (_sun != null)
                 _sun.enabled = _sunEnabled;
 
@@ -347,6 +354,8 @@ namespace SpaceStation.Interior
             _layout = InteriorLayout.Build(_station.Grid, _station.Connectivity.IsActive, module);
             _builder.Build(_layout, _player.transform);
             RefreshAllDim();
+            if (_exteriorView != null)
+                _exteriorView.CollectWindows();
             _currentModule = null; // 제목 다시
         }
 
