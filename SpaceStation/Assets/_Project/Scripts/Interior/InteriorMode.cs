@@ -197,7 +197,9 @@ namespace SpaceStation.Interior
                 _sunEnabled = _sun.enabled;
                 _sun.enabled = false;
             }
-            _exteriorView = InteriorExteriorView.Create(_camera, _root, _station, _sun, _camera.farClipPlane);
+            _exteriorView = InteriorExteriorView.Create(_camera, _root, _station, _sun, _camera.farClipPlane,
+                p => _layout != null && _layout.TryGetRoom(_builder.WorldToCell(p), out var r) ? r.Module : null,
+                _builder.CollectLinkedRooms);
             _exteriorView.transform.SetParent(transform, false);
             _exteriorView.CollectWindows();
             HidePanels(true);

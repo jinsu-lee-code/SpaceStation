@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using SpaceStation.Building;
 using SpaceStation.Core;
@@ -10,11 +11,13 @@ namespace SpaceStation.Interior
     /// <summary>
     /// 11-8 바깥 창: 내부 카메라와 같은 자리·방향을 바깥 정거장 축척(내부 1칸 8m → 바깥 1칸 1m)으로 옮긴 카메라가
     /// 실제 정거장·우주를 화면 크기 텍스처에 그리고, 바깥 창 재질(<c>SpaceStation/InteriorWindow</c>)이 그 화면을 화면 좌표 그대로 보여준다.
-    /// - 바깥 카메라가 그리는 동안만 태양을 켠다 (내부는 태양 없이 방 조명만).
-    /// - 지금 있는 칸의 모듈과 카메라를 품은 연결 통로는 숨긴다 (바깥 모델 속에서 자기 껍데기가 비치지 않게).
-    /// - 바깥 창이 하나도 보이지 않는 프레임에는 그리지 않는다.
+    /// - 창이 있는 방(모듈)마다 따로 그린다: 그 방 모듈의 바깥 모델을 숨겨야 창이 자기 껍데기를 비추지 않는데,
+    ///   문 너머 옆방의 창은 플레이어가 선 방과 숨길 모듈이 다르기 때문 (텍스처는 창 렌더러마다 MaterialPropertyBlock).
+    /// - 창이 보이는지는 그 프레임의 내부 카메라 시야(경계 상자)로 미리 판정 → 닫힌 문 너머 창도 시야 안이면 미리 그려 둬서 문이 열리는 순간 맞는 화면.
+    /// - 그리는 동안만 태양을 켠다 (내부는 태양 없이 방 조명만). 카메라를 품은 연결 통로도 숨김.
     /// <see cref="InteriorMode"/>가 들어갈 때 만들고 나올 때 없앤다.
     /// </summary>
+    [DefaultExecutionOrder(1000)] // 시점 이동(FirstPersonController) 뒤
     public sealed class InteriorExteriorView : MonoBehaviour
     {
         public const string WindowShaderName = "SpaceStation/InteriorWindow";
@@ -22,62 +25,96 @@ namespace SpaceStation.Interior
         private static readonly int TexId = Shader.PropertyToID("_InteriorExteriorTex");
         private static readonly int OnId = Shader.PropertyToID("_InteriorExteriorOn");
 
+        /// <summary>같은 방(모듈)의 바깥 창들 + 그 방 전용 화면.</summary>
+        private sealed class Group
+        {
+            public ModuleInstance Module;
+            public readonly List<Renderer> Windows = new List<Renderer>();
+            public RenderTexture Texture;
+        }
+
         private Camera _source;
         private Camera _camera;
         private Transform _interiorRoot;
         private StationController _station;
         private StationConnectors _connectors;
         private Light _sun;
-        private RenderTexture _texture;
-        private readonly List<Renderer> _windows = new List<Renderer>();
+        private Func<Vector3, ModuleInstance> _roomAt;
+        private Action<ModuleInstance, HashSet<ModuleInstance>> _linkedRooms;
+        private readonly HashSet<ModuleInstance> _linked = new HashSet<ModuleInstance>();
+        private ModuleInstance _linkedFrom;
+        private readonly List<Group> _groups = new List<Group>();
         private readonly List<Renderer> _hidden = new List<Renderer>();
         private readonly Dictionary<ModuleView, Renderer[]> _moduleRenderers = new Dictionary<ModuleView, Renderer[]>();
+        private readonly Plane[] _planes = new Plane[6];
+        private MaterialPropertyBlock _block;
+        private ModuleInstance _hideModule;
         private bool _sunWasEnabled;
 
-        public static InteriorExteriorView Create(Camera source, Transform interiorRoot, StationController station, Light sun, float farClip)
+        /// <param name="roomAt">내부 월드 위치 → 그 칸의 방 모듈 (없으면 null)</param>
+        /// <param name="linkedRooms">방 → 그 방 + 열린 통로로 바로 이어진 방들 (창을 그릴 방 범위)</param>
+        public static InteriorExteriorView Create(Camera source, Transform interiorRoot, StationController station, Light sun, float farClip,
+            Func<Vector3, ModuleInstance> roomAt, Action<ModuleInstance, HashSet<ModuleInstance>> linkedRooms)
         {
             var go = new GameObject("InteriorExteriorCamera");
             var view = go.AddComponent<InteriorExteriorView>();
             view._source = source;
             view._interiorRoot = interiorRoot;
             view._station = station;
+            view._roomAt = roomAt;
+            view._linkedRooms = linkedRooms;
             view._connectors = station != null ? station.GetComponent<StationConnectors>() : null;
             if (view._connectors == null)
                 view._connectors = FindFirstObjectByType<StationConnectors>();
             view._sun = sun;
+            view._block = new MaterialPropertyBlock();
             var cam = go.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.Skybox;
             cam.nearClipPlane = 0.01f;
             cam.farClipPlane = farClip;
             cam.cullingMask = source.cullingMask;
-            cam.depth = source.depth - 1f;
             cam.allowMSAA = false;
             cam.allowHDR = true;
             var data = cam.GetUniversalAdditionalCameraData();
             data.renderPostProcessing = false; // 블룸 등은 내부 카메라가 창까지 한 번에
             data.renderShadows = true;
-            cam.enabled = false;
+            cam.enabled = false; // 방마다 직접 Render()
             view._camera = cam;
-            Shader.SetGlobalFloat(OnId, 0f);
+            Shader.SetGlobalFloat(OnId, 1f);
             return view;
         }
 
-        /// <summary>내부를 새로 만든 뒤: 바깥 창 렌더러 목록 갱신.</summary>
+        /// <summary>내부를 새로 만든 뒤: 바깥 창 렌더러를 방별로 다시 모음.</summary>
         public void CollectWindows()
         {
-            _windows.Clear();
+            ReleaseTextures();
+            _groups.Clear();
+            _moduleRenderers.Clear();
+            _linked.Clear();
+            _linkedFrom = null; // 통로가 바뀌었을 수 있음 → 다음 프레임에 다시 계산
             foreach (var r in _interiorRoot.GetComponentsInChildren<Renderer>(true))
             {
-                foreach (var m in r.sharedMaterials)
+                if (!IsWindow(r))
+                    continue;
+                var module = _roomAt != null ? _roomAt(r.bounds.center) : null;
+                var group = _groups.Find(g => g.Module == module);
+                if (group == null)
                 {
-                    if (m != null && m.shader != null && m.shader.name == WindowShaderName)
-                    {
-                        _windows.Add(r);
-                        break;
-                    }
+                    group = new Group { Module = module };
+                    _groups.Add(group);
                 }
+                group.Windows.Add(r);
             }
-            _moduleRenderers.Clear();
+        }
+
+        private static bool IsWindow(Renderer r)
+        {
+            foreach (var m in r.sharedMaterials)
+            {
+                if (m != null && m.shader != null && m.shader.name == WindowShaderName)
+                    return true;
+            }
+            return false;
         }
 
         private void OnEnable()
@@ -91,45 +128,50 @@ namespace SpaceStation.Interior
             RenderPipelineManager.beginCameraRendering -= HandleBegin;
             RenderPipelineManager.endCameraRendering -= HandleEnd;
             RestoreHidden();
-            if (_sun != null && _camera != null && _sun.enabled && !_sunWasEnabled)
-                _sun.enabled = false;
         }
 
         private void OnDestroy()
         {
             Shader.SetGlobalFloat(OnId, 0f);
-            if (_texture != null)
-            {
-                _texture.Release();
-                Destroy(_texture);
-            }
+            ReleaseTextures();
         }
 
         private void LateUpdate()
         {
-            if (_source == null)
+            if (_source == null || _groups.Count == 0)
                 return;
-            bool any = false;
-            foreach (var w in _windows)
+            // 지금 방 + 문·해치로 바로 이어진 방의 창만 (큰 정거장에서 그리는 횟수 제한)
+            var here = _roomAt != null ? _roomAt(_source.transform.position) : null;
+            if (here != _linkedFrom)
             {
-                if (w != null && w.isVisible)
-                {
-                    any = true;
-                    break;
-                }
+                _linkedFrom = here;
+                _linkedRooms?.Invoke(here, _linked);
             }
-            // 처음 한 번(isVisible이 아직 갱신 전)도 그려 둠
-            _camera.enabled = any || _texture == null;
-            if (!_camera.enabled)
-                return;
-
-            EnsureTexture();
-            SyncPose();
-            Shader.SetGlobalTexture(TexId, _texture);
-            Shader.SetGlobalFloat(OnId, 1f);
+            GeometryUtility.CalculateFrustumPlanes(_source, _planes);
+            foreach (var group in _groups)
+            {
+                if (!_linked.Contains(group.Module) || !InView(group))
+                    continue;
+                EnsureTexture(group);
+                _hideModule = group.Module;
+                _camera.targetTexture = group.Texture;
+                _camera.Render();
+            }
+            _camera.targetTexture = null;
+            _hideModule = null;
         }
 
-        /// <summary>내부 카메라 자리·방향 → 바깥 축척. 렌더 직전에도 다시 맞춰 시점 이동보다 한 프레임 늦지 않게.</summary>
+        private bool InView(Group group)
+        {
+            foreach (var w in group.Windows)
+            {
+                if (w != null && w.enabled && w.gameObject.activeInHierarchy && GeometryUtility.TestPlanesAABB(_planes, w.bounds))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>내부 카메라 자리·방향 → 바깥 축척.</summary>
         private void SyncPose()
         {
             var src = _source.transform;
@@ -139,34 +181,57 @@ namespace SpaceStation.Interior
             _camera.aspect = _source.aspect;
         }
 
-        private void EnsureTexture()
+        private void EnsureTexture(Group group)
         {
             int w = Mathf.Max(16, _source.pixelWidth);
             int h = Mathf.Max(16, _source.pixelHeight);
-            if (_texture != null && _texture.width == w && _texture.height == h)
+            if (group.Texture != null && group.Texture.width == w && group.Texture.height == h)
                 return;
-            if (_texture != null)
+            if (group.Texture != null)
             {
-                _texture.Release();
-                Destroy(_texture);
+                group.Texture.Release();
+                Destroy(group.Texture);
             }
-            _texture = new RenderTexture(w, h, 24, RenderTextureFormat.DefaultHDR) { name = "InteriorExterior" };
-            _texture.Create();
-            _camera.targetTexture = _texture;
+            group.Texture = new RenderTexture(w, h, 24, RenderTextureFormat.DefaultHDR) { name = "InteriorExterior" };
+            group.Texture.Create();
+            _block.Clear();
+            _block.SetTexture(TexId, group.Texture);
+            foreach (var r in group.Windows)
+            {
+                if (r == null)
+                    continue;
+                var mats = r.sharedMaterials; // 창 칸에만 (방 어둡게 하기는 칸별 블록을 쓰므로 칸 단위로 맞춤)
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    if (mats[i] != null && mats[i].shader.name == WindowShaderName)
+                        r.SetPropertyBlock(_block, i);
+                }
+            }
+        }
+
+        private void ReleaseTextures()
+        {
+            foreach (var g in _groups)
+            {
+                if (g.Texture == null)
+                    continue;
+                g.Texture.Release();
+                Destroy(g.Texture);
+                g.Texture = null;
+            }
         }
 
         private void HandleBegin(ScriptableRenderContext context, Camera cam)
         {
             if (cam != _camera)
                 return;
-            if (_source != null)
-                SyncPose();
+            SyncPose();
             if (_sun != null)
             {
                 _sunWasEnabled = _sun.enabled;
                 _sun.enabled = true;
             }
-            HideNear(cam.transform.position);
+            Hide(_hideModule, cam.transform.position);
         }
 
         private void HandleEnd(ScriptableRenderContext context, Camera cam)
@@ -178,23 +243,19 @@ namespace SpaceStation.Interior
             RestoreHidden();
         }
 
-        /// <summary>바깥 카메라 자리의 칸을 차지한 모듈 + 카메라를 품은 연결 통로를 숨김.</summary>
-        private void HideNear(Vector3 point)
+        /// <summary>창이 속한 방 모듈 + 카메라를 품은 연결 통로를 숨김.</summary>
+        private void Hide(ModuleInstance module, Vector3 point)
         {
             _hidden.Clear();
-            if (_station != null && _station.Grid != null)
+            if (module != null && _station != null && _station.TryGetView(module, out var view) && view != null)
             {
-                var cell = GridConfig.WorldToCell(point);
-                if (_station.Grid.TryGetModule(cell, out var module) && _station.TryGetView(module, out var view) && view != null)
+                if (!_moduleRenderers.TryGetValue(view, out var rs))
                 {
-                    if (!_moduleRenderers.TryGetValue(view, out var rs))
-                    {
-                        rs = view.GetComponentsInChildren<Renderer>(true);
-                        _moduleRenderers[view] = rs;
-                    }
-                    foreach (var r in rs)
-                        Hide(r);
+                    rs = view.GetComponentsInChildren<Renderer>(true);
+                    _moduleRenderers[view] = rs;
                 }
+                foreach (var r in rs)
+                    HideOne(r);
             }
             if (_connectors != null)
             {
@@ -211,7 +272,7 @@ namespace SpaceStation.Interior
             }
         }
 
-        private void Hide(Renderer r)
+        private void HideOne(Renderer r)
         {
             if (r == null || r.forceRenderingOff)
                 return;

@@ -102,6 +102,20 @@ namespace SpaceStation.Interior
             return new Vector3Int(Mathf.RoundToInt(local.x), Mathf.RoundToInt(local.y), Mathf.RoundToInt(local.z));
         }
 
+        /// <summary>그 방 + 열린 통로(문·해치, 6방향)로 바로 이어진 방들의 모듈.</summary>
+        public void CollectLinkedRooms(ModuleInstance module, HashSet<ModuleInstance> into)
+        {
+            into.Clear();
+            if (module == null || _layout == null)
+                return;
+            into.Add(module);
+            foreach (var (cell, dir) in _open)
+            {
+                if (_layout.TryGetRoom(cell, out var room) && room.Module == module && _layout.TryGetRoom(cell + dir, out var other))
+                    into.Add(other.Module);
+            }
+        }
+
         /// <summary>들어갈 때 서는 곳 (템플릿 지정 또는 원점 칸 바닥 가운데).</summary>
         public Vector3 SpawnPoint(ModuleInstance module, out float yaw)
         {
@@ -252,9 +266,13 @@ namespace SpaceStation.Interior
         private void ApplyColors(Piece piece, bool dim)
         {
             var r = piece.Renderer;
+            var mats = r.sharedMaterials;
             for (int i = 0; i < piece.BaseColors.Length; i++)
             {
                 if (i == piece.StatusSlot)
+                    continue;
+                // 11-8 바깥 창 칸은 InteriorExteriorView가 블록(바깥 화면 텍스처)을 씀
+                if (i < mats.Length && mats[i] != null && mats[i].shader.name == InteriorExteriorView.WindowShaderName)
                     continue;
                 if (!dim && !piece.Tinted)
                 {
