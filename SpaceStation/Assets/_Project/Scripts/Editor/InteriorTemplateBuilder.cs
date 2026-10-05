@@ -52,6 +52,7 @@ namespace SpaceStation.Editor
             BuildRefinery();
             BuildResearchLab();
             BuildCargoTerminal();
+            BuildFusionReactor();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -537,6 +538,45 @@ namespace SpaceStation.Editor
             Build("CargoTerminal", "MD_CargoTerminal", sockets, new Vector3(0.4f, F, -2.4f), 40f, lights);
         }
 
+        /// <summary>
+        /// 11-6 핵융합로 (2칸, 로컬 칸 (0,0,0)·(1,0,0)): 천장이 높은(F + 4.8) 원자로 홀. 가운데(x 4) 둥근 구덩이(반지름 2.0, 깊이 0.9) 속 토카막
+        /// (도넛 몸통·구리 토로이달 코일 12·중앙 솔레노이드 기둥·분홍 플라스마 관찰창 8·진단 포트 4)을 난간 관찰 통로가 한 바퀴 두름.
+        /// 앞뒤 벽·난간 방사선 표지, 모서리 제어 콘솔·극저온 탱크·축전기 뱅크·방사성 폐기물 드럼. 문 자리 = 양 끝 + 칸마다 앞뒤 + 위·아래 해치(칸 중심).
+        /// </summary>
+        private static void BuildFusionReactor()
+        {
+            const float ceiling = F + 4.8f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling));
+            }
+            var neutral = new Color(0.9f, 0.93f, 1f);
+            var plasma = new Color(0.85f, 0.45f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-0.5f, F + 4.0f, 0f), 6f, 1.7f, neutral),
+                LightSpec.Point(new Vector3(8.5f, F + 4.0f, 0f), 6f, 1.7f, neutral),
+                // 관찰 통로 앞뒤 (구덩이 양옆)
+                LightSpec.Point(new Vector3(4f, F + 3.4f, 2.6f), 4.5f, 1.2f, neutral),
+                LightSpec.Point(new Vector3(4f, F + 3.4f, -2.6f), 4.5f, 1.2f, neutral),
+                LightSpec.Point(new Vector3(-2.5f, F + 2.0f, 2.2f), 3f, 0.7f, new Color(0.6f, 0.8f, 1f)), // 콘솔
+            };
+            // 플라스마 관찰창 빛: 구덩이 속 몸통 바깥 4곳 (관찰창 근처, 몸통에 가리지 않게)
+            for (int k = 0; k < 4; k++)
+            {
+                float a = (15f + 90f * k) * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(4f + Mathf.Cos(a) * 1.9f, F + 0.2f, Mathf.Sin(a) * 1.9f), 3f, 1.2f, plasma));
+            }
+            // 스폰 = 서쪽 끝에서 토카막을 바라봄
+            Build("FusionReactor", "MD_FusionReactor", sockets, new Vector3(-2.0f, F, 0.6f), 90f, lights);
+        }
+
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
         private struct LightSpec
         {
@@ -609,6 +649,7 @@ namespace SpaceStation.Editor
                 { "Molten", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.MoltenPath) },
                 { "ScreenDark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenDarkPath) },
                 { "ScreenGrid", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath) },
+                { "Plasma", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PlasmaPath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);
