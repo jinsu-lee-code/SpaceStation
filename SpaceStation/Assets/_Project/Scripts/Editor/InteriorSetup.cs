@@ -40,6 +40,8 @@ namespace SpaceStation.Editor
         public const string HazardPath = MaterialFolder + "/M_InteriorHazard.mat";
         public const string RockPath = MaterialFolder + "/M_InteriorRock.mat";
         public const string MoltenPath = MaterialFolder + "/M_InteriorMolten.mat";
+        public const string ScreenDarkPath = MaterialFolder + "/M_InteriorScreenDark.mat";
+        public const string ScreenGridPath = MaterialFolder + "/M_InteriorScreenGrid.mat";
         public const string SofaPath = MaterialFolder + "/M_InteriorSofa.mat";
         public const string RugPath = MaterialFolder + "/M_InteriorRug.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
@@ -356,6 +358,9 @@ namespace SpaceStation.Editor
             Emissive(WaterPath, new Color(0.22f, 0.58f, 0.88f), new Color(0.1f, 0.38f, 0.7f) * 1.4f, 0.5f);
             // 11-6 제련소 쇳물·갓 부은 주괴. 첫 값(발광 ×2.6, 녹색 0.38)은 블룸에 노랗게 날아가 버터처럼 보였음 → 붉은 주황으로 낮춤
             Emissive(MoltenPath, new Color(0.9f, 0.25f, 0.04f), new Color(1f, 0.19f, 0.015f) * 1.6f, 0.3f);
+            // 11-6 화면 바탕(어두운 남색, 약한 발광) + 격자 줄(흐린 청록) — 그 위에 밝은 Screen 요소로 화면 구성
+            Emissive(ScreenDarkPath, new Color(0.02f, 0.05f, 0.08f), new Color(0.015f, 0.07f, 0.11f), 0.85f);
+            Emissive(ScreenGridPath, new Color(0.04f, 0.15f, 0.2f), new Color(0.04f, 0.2f, 0.26f) * 1.2f, 0.85f);
 
             // 장비 재질 (벽 패널 무늬 없는 단색): 배관 금속 · 장비(이음·책상·화면 테두리) · 도장 사물함
             Plain(MetalPath, new Color(0.62f, 0.64f, 0.67f), 0.75f, 0.55f);

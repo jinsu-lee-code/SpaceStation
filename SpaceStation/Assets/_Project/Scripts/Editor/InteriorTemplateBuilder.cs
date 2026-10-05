@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using SpaceStation.Data;
+using SpaceStation.Interior;
 using UnityEditor;
 using UnityEngine;
 
@@ -490,8 +491,17 @@ namespace SpaceStation.Editor
                 LightSpec.Point(new Vector3(0f, F + 1.5f, 0f), 3.5f, 1.4f, new Color(0.4f, 0.9f, 1f)),
                 LightSpec.Point(new Vector3(-1.6f, F + 0.9f, 2.1f), 2.2f, 0.6f, new Color(0.45f, 0.75f, 1f)),
             };
+            // 홀로그램: 위성 3이 각자 궤도 고리(research_builder MOON_ORBITS와 같은 축)를 따라 돌고, 핵은 천천히 자전
+            var holo = new Vector3(0f, F + 1.45f, 0f);
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_Research_Moon1", holo, new Vector3(0f, 1f, 0f), 40f),
+                new OrbitSpec("INT_Research_Moon2", holo, new Vector3(0.5f, 1f, 0.2f), -28f),
+                new OrbitSpec("INT_Research_Moon3", holo, new Vector3(-0.6f, 1f, 0.4f), 18f),
+                new OrbitSpec("INT_Research_HoloCore", holo, new Vector3(0.15f, 1f, 0f), 12f),
+            };
             // 스폰 = 남쪽 문 앞에서 홀로그램 테이블을 바라봄
-            Build("ResearchLab", "MD_ResearchLab", sockets, new Vector3(0f, F, -2.6f), 0f, lights);
+            Build("ResearchLab", "MD_ResearchLab", sockets, new Vector3(0f, F, -2.6f), 0f, lights, orbits);
         }
 
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
@@ -512,8 +522,22 @@ namespace SpaceStation.Editor
                 new LightSpec { Position = p, Direction = dir, Range = range, Intensity = intensity, SpotAngle = angle, Color = color, IsSpot = true };
         }
 
+        /// <summary>장식 회전 하나: FBX 조각 이름 + 템플릿 로컬 회전 중심·축·속도 (<see cref="InteriorOrbit"/>).</summary>
+        private struct OrbitSpec
+        {
+            public string Part;
+            public Vector3 Center;
+            public Vector3 Axis;
+            public float DegreesPerSecond;
+
+            public OrbitSpec(string part, Vector3 center, Vector3 axis, float degreesPerSecond)
+            {
+                Part = part; Center = center; Axis = axis; DegreesPerSecond = degreesPerSecond;
+            }
+        }
+
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
-            List<LightSpec> lights)
+            List<LightSpec> lights, List<OrbitSpec> orbits = null)
         {
             string modelPath = ModelFolder + "SM_Interior_" + name + ".fbx";
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
@@ -550,6 +574,8 @@ namespace SpaceStation.Editor
                 { "Hazard", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.HazardPath) },
                 { "Rock", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.RockPath) },
                 { "Molten", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.MoltenPath) },
+                { "ScreenDark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenDarkPath) },
+                { "ScreenGrid", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);
@@ -588,6 +614,14 @@ namespace SpaceStation.Editor
                 r.sharedMaterials = mats;
                 if (partName.EndsWith("_Shell") || partName.EndsWith("_Glass"))
                     go.AddComponent<MeshCollider>().sharedMesh = filter.sharedMesh;
+                if (orbits != null)
+                {
+                    foreach (var orbit in orbits)
+                    {
+                        if (orbit.Part == partName)
+                            go.AddComponent<InteriorOrbit>().Configure(orbit.Center, orbit.Axis, orbit.DegreesPerSecond);
+                    }
+                }
             }
             var lightRoot = new GameObject("Lights");
             lightRoot.transform.SetParent(root.transform, false);
