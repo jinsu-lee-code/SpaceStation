@@ -647,6 +647,8 @@ namespace SpaceStation.Editor
                 // 회전 받침을 비추는 작업등 + 콘솔·레이더 빛
                 LightSpec.Spot(new Vector3(1.2f, F + 3.4f, -1.2f), new Vector3(-0.45f, -1f, 0.45f), 5f, 2.2f, 60f, new Color(1f, 0.95f, 0.85f)),
                 LightSpec.Point(new Vector3(-2.3f, F + 1.6f, 2.3f), 2.5f, 0.6f, new Color(0.5f, 0.85f, 1f)),
+                // 탄약 랙 앞 (모서리라 통로 조명이 닿지 않아 어두웠음)
+                LightSpec.Point(new Vector3(2.25f, F + 2.3f, 1.9f), 2.6f, 0.9f, new Color(1f, 0.93f, 0.82f)),
             };
             var orbits = new List<OrbitSpec>
             {
