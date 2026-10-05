@@ -53,6 +53,7 @@ namespace SpaceStation.Editor
             BuildResearchLab();
             BuildCargoTerminal();
             BuildFusionReactor();
+            BuildSolar();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -577,6 +578,45 @@ namespace SpaceStation.Editor
             Build("FusionReactor", "MD_FusionReactor", sockets, new Vector3(-2.0f, F, 0.6f), 90f, lights);
         }
 
+        /// <summary>
+        /// 11-7 태양광 정비 통로 (1칸): 네 모서리를 장비 덩어리(인버터·배전반·냉각 펌프·점검 화면)가 채운 폭 3.2 십자 통로,
+        /// 가운데 유리 천장(3.4m) 너머 지붕 위 패널 3×3이 바깥 패널처럼 태양 쪽으로 기움(<see cref="InteriorSunTilt"/>).
+        /// 문 자리 = 네 옆면 (바깥 통로는 패널 회전축과 나란한 두 옆면에만 생겨 그 둘만 열림) + 아래 해치(칸 중심). 위 면은 연결 불가.
+        /// </summary>
+        private static void BuildSolar()
+        {
+            var cell = Vector3Int.zero;
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(cell, Vector3Int.left, Socket),
+                new InteriorSocket(cell, Vector3Int.right, Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(cell, Vector3Int.down, -F),
+            };
+            var white = new Color(0.92f, 0.95f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(2.25f, F + 3.0f, 0f), 4f, 1.3f, white),
+                LightSpec.Point(new Vector3(-2.25f, F + 3.0f, 0f), 4f, 1.3f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 2.25f), 4f, 1.3f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, -2.25f), 4f, 1.3f, white),
+                // 유리 천장으로 들어오는 햇빛 (통로 교차점) + 패널 뒷면을 비추는 빛 (없으면 검은 판으로 보임)
+                LightSpec.Spot(new Vector3(0f, F + 4.4f, 0f), Vector3.down, 6f, 2.2f, 75f, new Color(1f, 0.97f, 0.88f)),
+                LightSpec.Point(new Vector3(0f, F + 4.15f, 0f), 4.5f, 1.4f, new Color(0.85f, 0.9f, 1f)),
+            };
+            // 패널 3×3: solar_builder와 같은 순서 (x −2.2 → 2.2, 그 안에서 z −2.2 → 2.2), 피벗 = 패널 아랫면 중심
+            var tilts = new Dictionary<string, Vector3>();
+            int i = 0;
+            for (int a = -1; a <= 1; a++)
+            {
+                for (int b = -1; b <= 1; b++)
+                    tilts["INT_Solar_Panel" + (++i)] = new Vector3(a * 2.2f, 3.3f, b * 2.2f);
+            }
+            // 스폰 = 남쪽 통로에서 유리 천장 쪽을 바라봄
+            Build("Solar", "MD_Solar", sockets, new Vector3(0f, F, -2.4f), 0f, lights, null, tilts);
+        }
+
         /// <summary>템플릿 조명 하나 (점광원 또는 스포트, 그림자 없음).</summary>
         private struct LightSpec
         {
@@ -610,7 +650,7 @@ namespace SpaceStation.Editor
         }
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
-            List<LightSpec> lights, List<OrbitSpec> orbits = null)
+            List<LightSpec> lights, List<OrbitSpec> orbits = null, Dictionary<string, Vector3> sunTilts = null)
         {
             string modelPath = ModelFolder + "SM_Interior_" + name + ".fbx";
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
@@ -650,6 +690,7 @@ namespace SpaceStation.Editor
                 { "ScreenDark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenDarkPath) },
                 { "ScreenGrid", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath) },
                 { "Plasma", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PlasmaPath) },
+                { "SolarCell", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SolarCellPath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);
@@ -695,6 +736,15 @@ namespace SpaceStation.Editor
                         if (orbit.Part == partName)
                             go.AddComponent<InteriorOrbit>().Configure(orbit.Center, orbit.Axis, orbit.DegreesPerSecond);
                     }
+                }
+                // 태양 쪽으로 기우는 패널: 패널 중심에 피벗을 두고 그 아래로 옮김 (FBX 조각 원점은 템플릿 원점)
+                if (sunTilts != null && sunTilts.TryGetValue(partName, out var pivotPosition))
+                {
+                    var pivot = new GameObject(partName + "_Pivot");
+                    pivot.transform.SetParent(root.transform, false);
+                    pivot.transform.localPosition = pivotPosition;
+                    go.transform.SetParent(pivot.transform, true);
+                    pivot.AddComponent<InteriorSunTilt>();
                 }
             }
             var lightRoot = new GameObject("Lights");
