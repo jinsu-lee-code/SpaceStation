@@ -29,6 +29,7 @@ namespace SpaceStation.Interior
         private const float LightIntensity = 6f;
         private const float Dark = 0.35f;
         private const float RailPostSpacing = 1.6f;
+        private const float CollarSink = 0.153f; // 튜브 끝 고리 반 두께(0.15) + 0.003: 고리를 벽 속으로
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
@@ -403,8 +404,10 @@ namespace SpaceStation.Interior
             left.name = "LeafLeft";
             var door = go.AddComponent<InteriorDoor>();
             float leafWidth = _kit.DoorLeaf.Mesh.bounds.size.x;
-            // 문틀(구멍 가장자리 + 0.16)보다 안쪽 끝이 멀어지도록
-            door.Initialize(left, right, leafWidth, InteriorGeometry.DoorWidth * 0.5f + 0.3f,
+            // 안쪽 끝은 문 구멍(±0.7) 밖, 바깥 끝은 문 패널 주머니(±1.6) 안에서 멈추게.
+            // 처음 값(구멍 반 폭 + 0.3 = 1.0)은 바깥 끝이 1.72까지 나가 패널 옆으로 문짝 끝(강조색 줄)이 보였음 (튜브 고리에 가려 있다 고리를 벽 속에 묻으며 드러남)
+            float travel = InteriorGeometry.PanelWidth * 0.5f - leafWidth - 0.04f;
+            door.Initialize(left, right, leafWidth, travel,
                 new Vector3(InteriorGeometry.DoorWidth, InteriorGeometry.DoorHeight, 0.1f));
             _doors.Add(door);
         }
@@ -478,8 +481,11 @@ namespace SpaceStation.Interior
             if (_kit != null && _kit.HasTube)
             {
                 Tube(_kit.Tube, go.transform, mid, rotation, new Vector3(1f, 1f, len));
-                Tube(_kit.TubeCollar, go.transform, start, rotation, Vector3.one);
-                Tube(_kit.TubeCollar, go.transform, end, rotation, Vector3.one);
+                // 고리(두께 ±0.15, 바깥 반지름 1.87)를 벽면 중심에 두면 절반이 방 안으로 나와 문 패널(폭 ±1.6) 옆에 보였음 →
+                // 통로 쪽으로 반 두께 + 0.003 밀어 벽 속에 묻음 (방 쪽 면이 벽면과 같은 평면이 되지 않게)
+                var sink = span.Direction.normalized * CollarSink;
+                Tube(_kit.TubeCollar, go.transform, start + sink, rotation, Vector3.one);
+                Tube(_kit.TubeCollar, go.transform, end - sink, rotation, Vector3.one);
             }
             else
             {
