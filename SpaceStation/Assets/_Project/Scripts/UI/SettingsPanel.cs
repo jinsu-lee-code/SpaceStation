@@ -276,6 +276,7 @@ namespace SpaceStation.UI
             ChoiceRow(page, "노후 모듈 표시", () => 2, i => new[] { "갈색 틴트 (기존)", "밝은 테두리" }[i],
                 () => (int)GameSettings.WornDisplay, i => GameSettings.WornDisplay = (WornDisplay)i);
             ToggleRow(page, "내부 방문 중 일시정지", () => GameSettings.InteriorPause, v => GameSettings.InteriorPause = v);
+            ToggleRow(page, "내부 걸음 시점 흔들림", () => GameSettings.HeadBob, v => GameSettings.HeadBob = v);
             ToggleRow(page, "다음 새 게임에서 튜토리얼", () => GameSettings.TutorialPending, v => GameSettings.TutorialPending = v);
         }
 

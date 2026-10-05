@@ -68,6 +68,13 @@ namespace SpaceStation.Editor
             { "AlarmLoop", new[] { "alarm_loop" } },
             { "StormLoop", new[] { "solar_storm_loop" } },
             { "StationHum", new[] { "amb_station_loop" } },
+            { "Footstep", new[] { "step_metal_" } },
+            { "RoomLife", new[] { "amb_room_life_loop" } },
+            { "RoomWater", new[] { "amb_room_water_loop" } },
+            { "RoomMachine", new[] { "amb_room_machine_loop" } },
+            { "RoomHeat", new[] { "amb_room_heat_loop" } },
+            { "RoomElectric", new[] { "amb_room_electric_loop" } },
+            { "RoomHall", new[] { "amb_room_hall_loop" } },
             { "MusicDay", new[] { "amb_in_game_loop", "amb_space_loop" } },
             { "MusicNight", new[] { "amb_night_loop" } },
             { "MusicCrisis", new[] { "amb_crisis_loop" } },
@@ -164,7 +171,12 @@ namespace SpaceStation.Editor
                     continue;
                 }
                 if (found.Count == 0)
-                    Debug.LogWarning($"[AudioSetup] {pair.Key}: 파일 없음 ({string.Join(", ", pair.Value)})");
+                {
+                    // 파일이 없으면 기존 연결을 지우지 않음 (2026-10-06: Audio/Build가 .gitignore의 **/[Bb]uild/에 걸려 이 PC에 없어,
+                    // 실행할 때마다 건설 소리 연결이 비워졌음)
+                    Debug.LogWarning($"[AudioSetup] {pair.Key}: 파일 없음 ({string.Join(", ", pair.Value)}) — 기존 연결 유지");
+                    continue;
+                }
                 arr.arraySize = found.Count;
                 for (int i = 0; i < found.Count; i++)
                     arr.GetArrayElementAtIndex(i).objectReferenceValue = found[i];

@@ -450,5 +450,84 @@ amb = load("Ambient/amb_station_loop.wav")
 amb = sl(amb, 0.03, 6.2)
 save("Ambient/amb_station_loop.wav", loop_xfade(amb, 1.2), -16)
 
+# ================= 11-9 내부 걸음·방 환경음 (합성) =================
+
+# 금속 바닥 발소리 6: 뒤꿈치 "쿵"(낮은 몸통) + 바닥판 울림(짧은 금속 공진) + 신발 마찰 "슥". 변형마다 높이·울림을 조금씩
+for k in range(6):
+    d = 0.42
+    pitch = 1.0 + (k - 2.5) * 0.035
+    body = sweep_sine(d, 150 * pitch, 72 * pitch, 0.02) * env_exp(d, 0.045, attack=0.0015)
+    ring = modal(d, [612 * pitch, 1290 * pitch, 2240 * pitch, 3410 * pitch], [0.06, 0.04, 0.025, 0.015],
+                 [0.35, 0.22, 0.12, 0.06])
+    scuff = bandnoise(d, 900, 5200) * env_exp(d, 0.018, attack=0.004)
+    x = 1.0 * body + (0.55 + 0.1 * (k % 3)) * ring + 0.32 * scuff
+    x = onepole_lp(x, 7000)
+    save("Interior/step_metal_%02d.wav" % (k + 1), fade(trim_tail(reverb(x, 0.12, 0.12, 0.25, 4000), -50), 0.001, 0.03), -16)
+
+
+def slow_mod(dur, rate, depth, phase=0.0):
+    """천천히 출렁이는 0..1 근처 계수 (rate Hz, 루프 길이에 맞춰 정수 주기면 이음새가 자연스러움)."""
+    t = t_axis(dur)
+    return 1.0 - depth + depth * (0.5 + 0.5 * np.sin(2 * np.pi * rate * t + phase))
+
+
+def hum(dur, f0, harmonics, jitter=0.0):
+    t = t_axis(dur)
+    out = np.zeros_like(t)
+    for i, a in enumerate(harmonics):
+        f = f0 * (i + 1)
+        out += a * np.sin(2 * np.pi * f * t + rng.uniform(0, 6.28) + jitter * np.sin(2 * np.pi * 0.17 * t))
+    return out
+
+
+AMB = 14.0   # 생성 길이 (루프 = 14 − 크로스페이드 2 = 12초)
+air = lambda lo, hi: bandnoise(AMB, lo, hi)
+
+# 생활(거주·의료·휴게): 조용한 환기 바람 + 아주 옅은 전원 험
+x = 0.8 * air(120, 1100) * slow_mod(AMB, 1 / 6, 0.25) + 0.05 * hum(AMB, 60, [1, 0.4, 0.15])
+save("Interior/amb_room_life_loop.wav", loop_xfade(onepole_lp(x, 2500), 2.0), -26)
+
+# 물·식물(농장·물 재활용·산소): 환기 + 흐르는 물 + 가끔 올라오는 기포 "뽁"
+x = 0.5 * air(150, 900) + 0.35 * air(500, 3200) * slow_mod(AMB, 1 / 3.5, 0.5)
+for i in range(46):
+    at = rng.uniform(0.0, AMB - 0.2)
+    dd = rng.uniform(0.04, 0.09)
+    b = sweep_sine(dd, rng.uniform(280, 420), rng.uniform(700, 1100), dd * 0.6) * env_exp(dd, dd * 0.35, attack=0.004)
+    place(x, rng.uniform(0.08, 0.2) * b, at)
+save("Interior/amb_room_water_loop.wav", loop_xfade(onepole_lp(x, 4500), 2.0), -24)
+
+# 기계(창고·정비·화물·채굴·연구): 모터 험 + 장비 팬 + 일정한 간격의 서보 "칙·틱"
+x = 0.18 * hum(AMB, 92, [1, 0.6, 0.35, 0.2, 0.1], jitter=0.3) + 0.5 * air(200, 2400) * slow_mod(AMB, 1 / 7, 0.2)
+for i in range(int(AMB / 1.75)):
+    at = 0.3 + i * 1.75 + rng.uniform(-0.05, 0.05)
+    c = modal(0.12, [1800, 2900, 4100], [0.02, 0.012, 0.008], [0.4, 0.25, 0.12]) + 0.3 * bandnoise(0.12, 1500, 6000) * env_exp(0.12, 0.01)
+    place(x, 0.22 * c, at)
+save("Interior/amb_room_machine_loop.wav", loop_xfade(onepole_lp(x, 6000), 2.0), -24)
+
+# 고열·고출력(제련·핵융합·연료전지): 깊은 우웅 + 부풀었다 가라앉는 화염 굉음 + 드문 탁탁 튀는 소리
+x = 1.0 * air(28, 90) * slow_mod(AMB, 1 / 7, 0.35) + 0.45 * air(70, 380) * slow_mod(AMB, 1 / 3.5, 0.55, 1.3) + 0.08 * hum(AMB, 48, [1, 0.5])
+for i in range(30):
+    at = rng.uniform(0.0, AMB - 0.05)
+    place(x, rng.uniform(0.05, 0.14) * bandnoise(0.02, 1500, 6000) * env_exp(0.02, 0.004), at)
+save("Interior/amb_room_heat_loop.wav", loop_xfade(onepole_lp(x, 3500), 2.0), -22)
+
+# 전기·방어(배터리·태양광·실드·포탑·장갑 격벽·손상 통제): 변압기 120Hz 웅 + 살짝 맥놀이 + 옅은 고음 + 드문 지직
+x = 0.3 * hum(AMB, 120, [1, 0.55, 0.3, 0.18, 0.1, 0.06]) + 0.12 * hum(AMB, 120.6, [1, 0.4]) + 0.3 * air(150, 1200)
+x += 0.02 * np.sin(2 * np.pi * 3150 * t_axis(AMB)) * slow_mod(AMB, 1 / 4.7, 0.6)
+for i in range(9):
+    at = rng.uniform(0.0, AMB - 0.2)
+    zap = bandnoise(0.09, 2000, 8000) * (rng.random(int(0.09 * SR)) > 0.7) * env_exp(0.09, 0.03)
+    place(x, 0.1 * zap, at)
+save("Interior/amb_room_electric_loop.wav", loop_xfade(onepole_lp(x, 7000), 2.0), -24)
+
+# 넓은 공간(코어·회전 링·연결 튜브): 낮게 흐르는 공기 + 멀리서 울리는 금속 삐걱 (울림 길게)
+x = 0.9 * air(50, 420) * slow_mod(AMB, 1 / 7, 0.4)
+for i in range(4):
+    at = 1.0 + i * 3.3 + rng.uniform(-0.4, 0.4)
+    cr = modal(1.6, [rng.uniform(140, 210), rng.uniform(330, 470), rng.uniform(700, 900)], [0.6, 0.4, 0.25], [0.5, 0.3, 0.15], attack=0.05)
+    place(x, 0.06 * cr, at)
+x = reverb(x, 0.25, 0.9, 1.6, 2500)[: int(AMB * SR)]
+save("Interior/amb_room_hall_loop.wav", loop_xfade(onepole_lp(x, 3000), 2.0), -26)
+
 print("\n".join(report))
 open(os.path.join(HERE, "build_report.txt"), "w", encoding="utf-8").write("\n".join(report))

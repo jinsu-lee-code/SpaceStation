@@ -103,6 +103,12 @@ namespace SpaceStation.Interior
             return new Vector3Int(Mathf.RoundToInt(local.x), Mathf.RoundToInt(local.y), Mathf.RoundToInt(local.z));
         }
 
+        /// <summary>11-9 방 환경음 묶음 (템플릿 없는 대체 방은 넓은 공간).</summary>
+        public InteriorAmbience AmbienceFor(ModuleInstance module)
+        {
+            return module != null && module.Data != null && _templates.TryGetValue(module.Data, out var t) ? t.Ambience : InteriorAmbience.Hall;
+        }
+
         /// <summary>그 방 + 열린 통로(문·해치, 6방향)로 바로 이어진 방들의 모듈.</summary>
         public void CollectLinkedRooms(ModuleInstance module, HashSet<ModuleInstance> into)
         {

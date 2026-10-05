@@ -31,6 +31,17 @@ namespace SpaceStation.Data
         }
     }
 
+    /// <summary>11-9 방 환경음 묶음 (성격별 6). SoundLibrary의 Room* 루프와 짝.</summary>
+    public enum InteriorAmbience
+    {
+        Life,       // 거주·의료·휴게
+        Water,      // 농장·물 재활용·산소
+        Machine,    // 창고·정비·화물·채굴·연구
+        Heat,       // 제련·핵융합·연료전지
+        Electric,   // 배터리·태양광·실드·포탑·장갑 격벽·손상 통제
+        Hall,       // 코어·회전 링 (+ 템플릿 없는 방)
+    }
+
     /// <summary>
     /// Phase 11-3 모듈별 내부 템플릿. 프리팹은 모듈 로컬 공간(원점 = 원점 칸 중심, 회전 전, 1칸 = 8m)에 바닥·벽·천장·소품·충돌을 가진다.
     /// 수평 문 자리는 폭 3.2 × 높이 4(바닥 −0.2부터)의 구멍으로 비워 두고, 빌더가 통로가 있으면 문 벽(키트)·없으면 막힌 벽을 채운다.
@@ -45,8 +56,11 @@ namespace SpaceStation.Data
         [Tooltip("들어갔을 때 서는 곳 (모듈 로컬, 발 위치)")]
         [SerializeField] private Vector3 _spawn;
         [SerializeField] private float _spawnYaw;
+        [Tooltip("11-9 방 환경음 묶음")]
+        [SerializeField] private InteriorAmbience _ambience = InteriorAmbience.Hall;
 
         public ModuleData Module => _module;
+        public InteriorAmbience Ambience => _ambience;
         public GameObject Prefab => _prefab;
         public IReadOnlyList<InteriorSocket> Sockets => _sockets;
         public Vector3 Spawn => _spawn;
@@ -78,6 +92,8 @@ namespace SpaceStation.Data
             _spawn = spawn;
             _spawnYaw = spawnYaw;
         }
+
+        public void EditorSetAmbience(InteriorAmbience ambience) => _ambience = ambience;
 #endif
     }
 }

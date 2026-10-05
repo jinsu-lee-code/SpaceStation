@@ -47,6 +47,7 @@ namespace SpaceStation.Settings
         private static WornDisplay _wornDisplay = WornDisplay.Rim;
         private static bool _tutorialPending = true;
         private static bool _interiorPause = true;
+        private static bool _headBob = true;
 
         public static event Action Changed;
 
@@ -74,6 +75,9 @@ namespace SpaceStation.Settings
 
         /// <summary>Phase 11: 내부 방문 중 시뮬레이션 일시정지 (끄면 시간이 계속 흐름).</summary>
         public static bool InteriorPause { get { Load(); return _interiorPause; } set => Set(ref _interiorPause, value, "interiorPause"); }
+
+        /// <summary>11-9: 내부에서 걸을 때 시점 흔들림 (멀미가 나면 끔, 발소리는 그대로).</summary>
+        public static bool HeadBob { get { Load(); return _headBob; } set => Set(ref _headBob, value, "headBob"); }
 
         public static int FrameLimit => FrameLimits[FrameLimitIndex];
         public static int AutosaveMinutes => AutosaveChoices[AutosaveIndex];
@@ -122,6 +126,7 @@ namespace SpaceStation.Settings
             _autosaveIndex = DefaultAutosaveIndex;
             _wornDisplay = WornDisplay.Rim;
             _interiorPause = true;
+            _headBob = true;
             SaveAll();
             Changed?.Invoke();
         }
@@ -151,6 +156,7 @@ namespace SpaceStation.Settings
             _wornDisplay = (WornDisplay)Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "wornDisplay", (int)_wornDisplay), 0, 1);
             _tutorialPending = PlayerPrefs.GetInt(Prefix + "tutorial", _tutorialPending ? 1 : 0) == 1;
             _interiorPause = PlayerPrefs.GetInt(Prefix + "interiorPause", _interiorPause ? 1 : 0) == 1;
+            _headBob = PlayerPrefs.GetInt(Prefix + "headBob", _headBob ? 1 : 0) == 1;
         }
 
         private static void SaveAll()
@@ -173,6 +179,7 @@ namespace SpaceStation.Settings
             PlayerPrefs.SetInt(Prefix + "wornDisplay", (int)_wornDisplay);
             PlayerPrefs.SetInt(Prefix + "tutorial", _tutorialPending ? 1 : 0);
             PlayerPrefs.SetInt(Prefix + "interiorPause", _interiorPause ? 1 : 0);
+            PlayerPrefs.SetInt(Prefix + "headBob", _headBob ? 1 : 0);
             PlayerPrefs.Save();
         }
 

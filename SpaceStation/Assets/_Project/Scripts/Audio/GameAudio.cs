@@ -44,6 +44,9 @@ namespace SpaceStation.Audio
         private float _wantedFor;
         private bool _gameOver;
         private float _restoreMusicAt;
+        private Interior.InteriorMode _interior;
+        private bool _inside;
+        private const float InsideHum = 0.25f;
 
         // 같은 프레임에 몰리는 알림을 하나로 (일시정지+배속, 등급 상승+완성)
         private int _pendingClock; // 0 없음, 1 일시정지, 2 재개, 3 배속
@@ -72,13 +75,22 @@ namespace SpaceStation.Audio
             _alarm.FadeSpeed = 2f;
             _lastSpeed = _clock != null ? _clock.Clock.Speed : 1f;
 
+            // 11-9: 내부 방문 중에는 바깥 정거장 험을 낮춤 (방 환경음이 들리게)
+            _interior = FindFirstObjectByType<Interior.InteriorMode>();
+            if (_interior != null)
+                _interior.InsideChanged += HandleInsideChanged;
+
             Subscribe(true);
         }
+
+        private void HandleInsideChanged(bool inside) => _inside = inside;
 
         private void OnDestroy()
         {
             if (_lib != null)
                 Subscribe(false);
+            if (_interior != null)
+                _interior.InsideChanged -= HandleInsideChanged;
         }
 
         private void Subscribe(bool on)
@@ -214,7 +226,7 @@ namespace SpaceStation.Audio
             // 남은 시간 30초 이하부터 경보가 조금씩 높고 빨라짐
             _alarm.Pitch = crisis ? 1f + 0.12f * Mathf.Clamp01(1f - remaining / 30f) : 1f;
             _stormLoop.Target = !_gameOver && StormActive() ? 1f : 0f;
-            _hum.Target = _gameOver ? 0.35f : 1f;
+            _hum.Target = (_gameOver ? 0.35f : 1f) * (_inside ? InsideHum : 1f);
 
             if (_restoreMusicAt > 0f && Time.unscaledTime >= _restoreMusicAt)
             {

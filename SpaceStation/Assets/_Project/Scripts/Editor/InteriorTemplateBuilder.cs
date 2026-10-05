@@ -871,6 +871,19 @@ namespace SpaceStation.Editor
             }
         }
 
+        /// <summary>11-9 방 환경음 묶음 (템플릿 이름 → 성격). 없으면 넓은 공간.</summary>
+        private static readonly Dictionary<string, InteriorAmbience> Ambiences = new Dictionary<string, InteriorAmbience>
+        {
+            { "Habitat", InteriorAmbience.Life }, { "Medical", InteriorAmbience.Life }, { "Recreation", InteriorAmbience.Life },
+            { "Farm", InteriorAmbience.Water }, { "WaterRecycler", InteriorAmbience.Water }, { "Oxygen", InteriorAmbience.Water },
+            { "Storage", InteriorAmbience.Machine }, { "MaintenanceBay", InteriorAmbience.Machine }, { "CargoTerminal", InteriorAmbience.Machine },
+            { "MiningDock", InteriorAmbience.Machine }, { "ResearchLab", InteriorAmbience.Machine },
+            { "Refinery", InteriorAmbience.Heat }, { "FusionReactor", InteriorAmbience.Heat }, { "FuelCell", InteriorAmbience.Heat },
+            { "Battery", InteriorAmbience.Electric }, { "Solar", InteriorAmbience.Electric }, { "Shield", InteriorAmbience.Electric },
+            { "Turret", InteriorAmbience.Electric }, { "ArmorBulkhead", InteriorAmbience.Electric }, { "DamageControl", InteriorAmbience.Electric },
+            { "Core", InteriorAmbience.Hall }, { "RotatingRing", InteriorAmbience.Hall },
+        };
+
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
             List<LightSpec> lights, List<OrbitSpec> orbits = null, Dictionary<string, Vector3> sunTilts = null)
         {
@@ -1007,6 +1020,7 @@ namespace SpaceStation.Editor
                 AssetDatabase.CreateAsset(template, templatePath);
             }
             template.EditorSet(module, prefab, sockets, spawn, spawnYaw);
+            template.EditorSetAmbience(Ambiences.TryGetValue(name, out var ambience) ? ambience : InteriorAmbience.Hall);
             EditorUtility.SetDirty(template);
             Debug.Log($"[InteriorTemplateBuilder] {name}: 문 자리 {sockets.Count}곳, 조명 {lights.Count}개");
         }

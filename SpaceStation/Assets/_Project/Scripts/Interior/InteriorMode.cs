@@ -72,6 +72,7 @@ namespace SpaceStation.Interior
         private bool _sunEnabled;
         private OrbitCameraController _orbit;
         private InteriorExteriorView _exteriorView;
+        private readonly InteriorAudio _audio = new InteriorAudio(); // 11-9 방 환경음·발소리
         private readonly List<GameObject> _hiddenNow = new List<GameObject>();
 
         // 오버레이
@@ -170,6 +171,7 @@ namespace SpaceStation.Interior
             playerGo.transform.SetParent(transform, true); // 내부 루트 밖 (다시 만들 때 지워지지 않게)
             playerGo.layer = 2; // Ignore Raycast: 내려다볼 때 시선 광선이 자기 몸에 맞지 않게
             _player = playerGo.AddComponent<FirstPersonController>();
+            _audio.Attach(_player);
 
             _layout = InteriorLayout.Build(_station.Grid, _station.Connectivity.IsActive, module);
             _builder.Build(_layout, _player.transform);
@@ -240,6 +242,7 @@ namespace SpaceStation.Interior
             if (_sun != null)
                 _sun.enabled = _sunEnabled;
 
+            _audio.Stop();
             if (_player != null)
                 Destroy(_player.gameObject);
             _player = null;
@@ -306,7 +309,8 @@ namespace SpaceStation.Interior
             if (!_layout.TryGetRoom(cell, out var room) || room.Module == _currentModule)
                 return;
             _currentModule = room.Module;
-            string name = room.Module.Data != null ? room.Module.Data.DisplayName : room.Module.ToString();
+            _audio.SetRoom(_builder.AmbienceFor(room.Module));
+            string name =room.Module.Data != null ? room.Module.Data.DisplayName : room.Module.ToString();
             string state = !_station.Connectivity.IsActive(room.Module) ? $"  <color={HudText.Orange}>비활성</color>"
                 : _station.Simulation.Damage.TryGetInfo(room.Module, out _) ? $"  <color={HudText.Red}>파손</color>" : "";
             _title.SetText($"<b>{name}</b>{state}\n<size=75%><color={HudText.Muted}>방 {_layout.Rooms.Count}개 연결</color></size>");
