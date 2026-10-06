@@ -113,6 +113,8 @@ namespace SpaceStation.Audio
         public SoundCue RoomHeat = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.5f, Pitch = Vector2.one };
         public SoundCue RoomElectric = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.45f, Pitch = Vector2.one };
         public SoundCue RoomHall = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.45f, Pitch = Vector2.one };
+        [Tooltip("11-10 파손된 방 안에 있을 때 울리는 경보 (루프)")]
+        public SoundCue InteriorAlarm = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.3f, Pitch = Vector2.one };
 
         [Header("음악 (상태별, 여러 곡이면 차례로)")]
         public SoundCue MusicDay = new SoundCue { Bus = AudioBus.Music, Volume = 0.5f, Pitch = Vector2.one };

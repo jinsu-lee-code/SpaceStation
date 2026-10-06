@@ -12,7 +12,7 @@ namespace SpaceStation.Editor
 {
     /// <summary>
     /// Phase 11 내부 방문 설정 (메뉴 SpaceStation/Interior/Setup):
-    /// 재질(URP Lit: 그레이박스 대체용 / 천장 조명 발광 / 문 상태등) → 벽 키트 에셋(11-2a, FBX에서) → 게임 씬에 InteriorMode 배치·연결 → 선택 패널에 [들어가기] 줄 추가.
+    /// 재질(URP Lit: 그레이박스 대체용 / 천장 조명 발광 / 문 상태등, 11-10 연기 파티클) → 벽 키트 에셋(11-2a, FBX에서) → 게임 씬에 InteriorMode 배치·연결 → 선택 패널에 [들어가기] 줄 추가.
     /// 다시 실행하면 같은 구성으로 덮어쓴다.
     /// </summary>
     public static class InteriorSetup
@@ -50,6 +50,9 @@ namespace SpaceStation.Editor
         public const string SofaPath = MaterialFolder + "/M_InteriorSofa.mat";
         public const string RugPath = MaterialFolder + "/M_InteriorRug.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
+        private const string SmokePath = MaterialFolder + "/M_InteriorSmoke.mat";
+        private const string DustPath = "Assets/_Project/Art/Materials/FX/M_Dust.mat";
+        private const string SparkPath = "Assets/_Project/Art/Materials/FX/M_Spark.mat";
         private const string RpAssetPath = "Assets/Settings/PC_RPAsset.asset";
         private const string RendererPath = "Assets/Settings/PC_Renderer.asset";
         private const string InteriorRendererPath = "Assets/Settings/PC_InteriorRenderer.asset";
@@ -218,6 +221,10 @@ namespace SpaceStation.Editor
             so.FindProperty("_hud").objectReferenceValue = hud != null ? hud.transform : null;
             so.FindProperty("_font").objectReferenceValue = hud != null ? hud.GetComponentInChildren<TMP_Text>(true).font : null;
             so.FindProperty("_fillSprite").objectReferenceValue = HudArtBuilder.Fill;
+            // 11-10 상태 연출: 파손 방 연기·스파크·경광등
+            so.FindProperty("_smokeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(SmokePath);
+            so.FindProperty("_sparkMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(SparkPath);
+            so.FindProperty("_beaconMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(StatusPath);
             so.ApplyModifiedPropertiesWithoutUndo();
 
             BuildEnterRow(mode);
@@ -416,6 +423,27 @@ namespace SpaceStation.Editor
             status.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive; // None이면 URP 재질 검사가 _EMISSION을 꺼 버림 (ModuleFxMaterials 2026-10-03)
             status.enableInstancing = true;
             EditorUtility.SetDirty(status);
+
+            // 11-10 파손 방 연기: 우주 먼지(M_Dust)와 같은 부드러운 입자 텍스처, 가산 대신 알파 블렌드 (가산이면 연기가 빛나 보임).
+            // 조명을 받는 Particles/Lit — Unlit은 어두운 비상 조명 방에서 회색으로 떠 보였음 (경광등 붉은빛을 받아야 함)
+            var dust = AssetDatabase.LoadAssetAtPath<Material>(DustPath);
+            var particlesLit = Shader.Find("Universal Render Pipeline/Particles/Lit");
+            var smoke = LoadOrCreate(SmokePath, particlesLit);
+            smoke.shader = particlesLit;
+            if (dust != null)
+                smoke.SetTexture("_BaseMap", dust.GetTexture("_BaseMap"));
+            smoke.SetFloat("_Surface", 1f); // Transparent
+            smoke.SetFloat("_Blend", 0f);   // Alpha
+            smoke.SetFloat("_ZWrite", 0f);
+            smoke.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            smoke.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            smoke.SetOverrideTag("RenderType", "Transparent");
+            smoke.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            smoke.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            smoke.SetColor("_BaseColor", new Color(0.6f, 0.6f, 0.62f));
+            smoke.SetFloat("_Smoothness", 0f);
+            smoke.SetFloat("_Metallic", 0f);
+            EditorUtility.SetDirty(smoke);
             AssetDatabase.SaveAssets();
         }
 

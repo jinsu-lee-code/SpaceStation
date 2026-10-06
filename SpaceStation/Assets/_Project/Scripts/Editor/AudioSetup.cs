@@ -75,6 +75,7 @@ namespace SpaceStation.Editor
             { "RoomHeat", new[] { "amb_room_heat_loop" } },
             { "RoomElectric", new[] { "amb_room_electric_loop" } },
             { "RoomHall", new[] { "amb_room_hall_loop" } },
+            { "InteriorAlarm", new[] { "interior_alarm_loop" } },
             { "MusicDay", new[] { "amb_in_game_loop", "amb_space_loop" } },
             { "MusicNight", new[] { "amb_night_loop" } },
             { "MusicCrisis", new[] { "amb_crisis_loop" } },

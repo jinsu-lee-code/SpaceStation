@@ -50,7 +50,20 @@ namespace SpaceStation.Interior
             public Color[] BaseColors;
             public int StatusSlot = -1;
             public bool Tinted;
+            /// <summary>11-10 천장 조명 판 재질 칸 (InteriorAtmosphere가 발광을 직접 조절 — 어둡게 하기에서 건너뜀).</summary>
+            public List<int> LightSlots;
         }
+
+        /// <summary>11-10 조명 판 재질 칸 하나 (발광 세기를 조명과 함께 조절).</summary>
+        public struct LightSlot
+        {
+            public Renderer Renderer;
+            public int Slot;
+            public Color BaseColor;
+            public Color Emission;
+        }
+
+        private const string LightMaterialName = "M_InteriorLight";
 
         private readonly Transform _root;
         private readonly InteriorKit _kit;
@@ -62,6 +75,7 @@ namespace SpaceStation.Interior
         private readonly Dictionary<ModuleInstance, List<Light>> _roomLights = new Dictionary<ModuleInstance, List<Light>>();
         private readonly Dictionary<Light, float> _lightBase = new Dictionary<Light, float>();
         private readonly Dictionary<ModuleInstance, Color> _roomColors = new Dictionary<ModuleInstance, Color>();
+        private readonly Dictionary<ModuleInstance, Transform> _roomParents = new Dictionary<ModuleInstance, Transform>();
         /// <summary>문 상태등: (렌더러 조각, 너머 방).</summary>
         private readonly List<(Piece Piece, ModuleInstance Other)> _statusLights = new List<(Piece, ModuleInstance)>();
         private readonly HashSet<ModuleInstance> _dimmed = new HashSet<ModuleInstance>();
@@ -144,6 +158,7 @@ namespace SpaceStation.Interior
             _roomLights.Clear();
             _lightBase.Clear();
             _roomColors.Clear();
+            _roomParents.Clear();
             _statusLights.Clear();
             _dimmed.Clear();
             _doors.Clear();
@@ -176,6 +191,7 @@ namespace SpaceStation.Interior
                 var go = new GameObject(room.Module.ToString());
                 go.transform.SetParent(_root, false);
                 parents.Add(room.Module, go.transform);
+                _roomParents.Add(room.Module, go.transform);
                 _roomPieces.Add(room.Module, new List<Piece>());
                 _roomColors.Add(room.Module, RoomColor(room.Module.Data));
             }
@@ -244,7 +260,10 @@ namespace SpaceStation.Interior
             return _layout.TryGetRoom(cell + dir, out var r) ? r.Module : null;
         }
 
-        /// <summary>비활성·파손 방은 어둡게 (색·발광 낮춤 + 조명 약하게). 그 방으로 가는 문 상태등은 빨강.</summary>
+        /// <summary>
+        /// 비활성·파손 방은 어둡게 (색·발광 낮춤). 그 방으로 가는 문 상태등은 빨강.
+        /// 방 조명·천장 조명 판의 세기는 11-10부터 <see cref="InteriorAtmosphere"/>가 상태별로 조절한다.
+        /// </summary>
         public void SetRoomDim(ModuleInstance module, bool dim)
         {
             if (!_roomPieces.TryGetValue(module, out var pieces))
@@ -255,19 +274,74 @@ namespace SpaceStation.Interior
                 _dimmed.Remove(module);
             foreach (var piece in pieces)
                 ApplyColors(piece, dim);
-            if (_roomLights.TryGetValue(module, out var lights))
-            {
-                foreach (var light in lights)
-                {
-                    float full = _lightBase.TryGetValue(light, out float b) ? b : LightIntensity;
-                    light.intensity = dim ? full * 0.25f : full;
-                }
-            }
             foreach (var (piece, other) in _statusLights)
             {
                 if (other == module)
                     ApplyStatus(piece);
             }
+        }
+
+        // ---------------- 11-10 상태 연출용 조회 ----------------
+
+        /// <summary>방 오브젝트 (연출 오브젝트를 여기 붙이면 내부를 다시 만들 때 함께 지워진다).</summary>
+        public Transform RoomParent(ModuleInstance module) => _roomParents.TryGetValue(module, out var t) ? t : null;
+
+        /// <summary>방의 점광원(원래 세기)과 천장 조명 판 재질 칸.</summary>
+        public void CollectRoomLights(ModuleInstance module, List<Light> lights, List<float> baseIntensity, List<LightSlot> slots)
+        {
+            lights.Clear();
+            baseIntensity.Clear();
+            slots.Clear();
+            if (_roomLights.TryGetValue(module, out var roomLights))
+            {
+                foreach (var light in roomLights)
+                {
+                    if (light == null)
+                        continue;
+                    lights.Add(light);
+                    baseIntensity.Add(_lightBase.TryGetValue(light, out float b) ? b : LightIntensity);
+                }
+            }
+            if (!_roomPieces.TryGetValue(module, out var pieces))
+                return;
+            foreach (var piece in pieces)
+            {
+                if (piece.LightSlots == null || piece.Renderer == null)
+                    continue;
+                var mats = piece.Renderer.sharedMaterials;
+                foreach (int slot in piece.LightSlots)
+                {
+                    var m = mats[slot];
+                    slots.Add(new LightSlot
+                    {
+                        Renderer = piece.Renderer,
+                        Slot = slot,
+                        BaseColor = piece.BaseColors[slot],
+                        Emission = m.IsKeywordEnabled("_EMISSION") ? m.GetColor(EmissionColorId) : Color.black,
+                    });
+                }
+            }
+        }
+
+        /// <summary>방 칸들을 감싸는 상자 (월드, 바닥 윗면 ~ 맨 위층 천장 높이).</summary>
+        public Bounds RoomBounds(ModuleInstance module)
+        {
+            var cells = module.Cells;
+            var min = cells[0];
+            var max = cells[0];
+            foreach (var c in cells)
+            {
+                min = Vector3Int.Min(min, c);
+                max = Vector3Int.Max(max, c);
+            }
+            float half = InteriorGeometry.CellSize * 0.5f;
+            var lo = CellCenter(min) - new Vector3(half, 0f, half);
+            var hi = CellCenter(max) + new Vector3(half, 0f, half);
+            lo.y = _root.position.y + InteriorGeometry.FloorY(min);
+            hi.y = _root.position.y + InteriorGeometry.FloorY(max) + InteriorGeometry.RoomHeight;
+            var b = new Bounds();
+            b.SetMinMax(lo, hi);
+            return b;
         }
 
         private void ApplyColors(Piece piece, bool dim)
@@ -276,7 +350,7 @@ namespace SpaceStation.Interior
             var mats = r.sharedMaterials;
             for (int i = 0; i < piece.BaseColors.Length; i++)
             {
-                if (i == piece.StatusSlot)
+                if (i == piece.StatusSlot || (piece.LightSlots != null && piece.LightSlots.Contains(i)))
                     continue;
                 // 11-8 바깥 창 칸은 InteriorExteriorView가 블록(바깥 화면 텍스처)을 씀
                 if (i < mats.Length && mats[i] != null && mats[i].shader.name == InteriorExteriorView.WindowShaderName)
@@ -319,7 +393,7 @@ namespace SpaceStation.Interior
             var instance = Object.Instantiate(template.Prefab, CellCenter(module.Origin), rotation, parent);
             instance.name = template.Prefab.name;
             foreach (var r in instance.GetComponentsInChildren<Renderer>())
-                _roomPieces[module].Add(new Piece { Renderer = r, BaseColors = BaseColors(r.sharedMaterials) });
+                _roomPieces[module].Add(MakePiece(r, -1));
             // 템플릿 조명도 어둡게 할 수 있게 (세기 비율 유지)
             var lights = new List<Light>(instance.GetComponentsInChildren<Light>());
             _roomLights[module] = lights;
@@ -656,7 +730,7 @@ namespace SpaceStation.Interior
             var r = go.AddComponent<MeshRenderer>();
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             r.sharedMaterials = MaterialsFor(kitPiece, module);
-            var piece = new Piece { Renderer = r, StatusSlot = kitPiece.StatusSlot, BaseColors = BaseColors(r.sharedMaterials) };
+            var piece = MakePiece(r, kitPiece.StatusSlot);
             _roomPieces[module].Add(piece);
             return piece;
         }
@@ -674,6 +748,20 @@ namespace SpaceStation.Interior
                     result[kitPiece.AccentSlot] = accent;
             }
             return result;
+        }
+
+        private static Piece MakePiece(Renderer r, int statusSlot)
+        {
+            var mats = r.sharedMaterials;
+            var piece = new Piece { Renderer = r, StatusSlot = statusSlot, BaseColors = BaseColors(mats) };
+            for (int i = 0; i < mats.Length; i++)
+            {
+                if (i == statusSlot || mats[i] == null || !mats[i].name.StartsWith(LightMaterialName))
+                    continue;
+                piece.LightSlots ??= new List<int>();
+                piece.LightSlots.Add(i);
+            }
+            return piece;
         }
 
         private static Color[] BaseColors(Material[] materials)
@@ -729,6 +817,7 @@ namespace SpaceStation.Interior
                 light.range = extent.magnitude * 0.75f + 2f;
                 light.intensity = LightIntensity;
                 lights.Add(light);
+                _lightBase[light] = LightIntensity;
             }
         }
 

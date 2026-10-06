@@ -764,4 +764,16 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
       3. 전체 `build_audio.py`가 끝까지 도는지 확인 (`blender -b --factory-startup --python AudioOriginals/build_audio.py`) — 같은 시드라 기존 결과물과 같아야 함
       4. 커밋·push (메시지 예: `MM.DD/11-9/RestoreBuildAudio`)
   - [ ] 11-10 상태가 공간에 드러남: 전력 부족 = 조명 깜빡임, 파손 = 연기·스파크·경보등, 노후 = 칙칙한 조명
+    - 결정 (2026-10-06): 전력 부족 = **효율 비례 깜빡임 + 디밍**(모든 방 공통) / 파손 = **연기 + 스파크 + 천장 경광등 + 경보음**(어둡게 하던 것을 붉은 비상 조명으로) / 노후 = **내구도 비례 칙칙한 조명**(아주 낮으면 형광등 떨림) / 추가 = 배터리 게이지 실제 연동, 비활성 방 비상등, 태양 폭풍 중 지직거림
+    - [x] ① 조명 상태 · 파손 · 비상등 · 폭풍 · 경보음 (2026-10-06) — 플레이 확인 대기
+      - `Interior/InteriorMood`(순수): `RoomCondition`(활성 · 파손 · 전력 효율 · 노후 효율 · 폭풍) → `InteriorMoodRules.Evaluate` → `RoomMood`(모드 Normal/Alarm/Emergency, 밝기, 색, 깜빡임 · 떨림 횟수, 지직거림). 수치 `InteriorMoodTuning`(InteriorMode 인스펙터 `_mood`): 전력 바닥 0.25에서 밝기 0.45 · 깜빡임 2.4회/초, 노후 색 (1, 0.78, 0.52) · 디밍 0.35 · 효율 0.35 미만 떨림 0.3회/초, 경보 밝기 0.3 · 붉은색, 비상등 호박색 4 / 7m(첫 값 1.8 / 6m는 8m 방에서 거의 안 보였음), 폭풍 ±12% + 0.5회/초 푸른 번쩍임
+      - `Interior/InteriorAtmosphere`: 0.25초마다 방 상태를 읽고(전역 전력 효율, `Damage.TryGetInfo`, `Durability.EfficiencyFor`, 진행 중 `SolarStormEventData`) 매 프레임 방 점광원 세기 · 색과 천장 조명 판(`M_InteriorLight` 칸) 발광을 MaterialPropertyBlock으로 조절. 실제 시간(unscaled) — 방문 중 일시정지여도 그 순간 상태가 보임. 파손 방 = 천장 경광등(눈높이에서 위로 광선 → 천장 0.9~3.2m 위 첫 자리, 회전 스포트 2 + 붉은 점광원) + 연기(URP Particles/Lit `M_InteriorSmoke`, 알파 — Unlit은 어두운 방에서 회색으로 떠 보였음) + 0.6~2.2초마다 벽 · 장비 면 스파크(`M_Spark`) + 순간 주황빛, 지금 방이면 스파크 소리(`StormSpark`). 비활성 방 = 조명 꺼짐 + 칸마다 바닥 호박색 비상등. 연출 오브젝트는 방 오브젝트 아래(내부를 다시 만들면 함께 지워짐)
+      - `InteriorBuilder`: 조명 판 재질 칸(`Piece.LightSlots`)은 어둡게 하기에서 제외, `RoomParent` · `CollectRoomLights` · `RoomBounds` 조회. `SetRoomDim`은 재질만(조명 세기는 Atmosphere)
+      - 경보음: `build_audio.py` "11-10" 섹션(섹션 시작에서 `rng = default_rng(11)`) → `Audio/Interior/interior_alarm_loop.wav`(640/480Hz 두 음 클랙슨, 2.4초 루프). `SoundLibrary.InteriorAlarm` + `AudioSetup` 연결, `InteriorAudio.SetAlarm`(지금 방이 파손이면 올림). 전체 스크립트 재실행 시 기존 60개 결과물 변화 없음 확인
+      - `InteriorSetup`: `M_InteriorSmoke` 생성, InteriorMode에 연기 · 스파크 · 경광등 재질 연결 (메뉴 다시 실행함)
+      - 테스트 `InteriorMoodTests` 6개 → 282개 통과
+      - 확인(확인용 정거장 slot1): 파손 거주 = 붉은 천장 조명 · 연기 · 경광등, 노후 90 + 전력 25% 농장 = 어둡고 누런 조명, 연결 끊긴 정비 베이 = 조명 꺼짐 + 바닥 비상등
+      - 참고: 모듈 강조색 발광 띠 · 생장등 같은 장비 발광은 그대로 둠 (모듈 정체성). 연결 튜브 조명은 방 소속이 아니라 전력 부족에도 그대로
+      - 참고 (작업 중 사고): 플레이 모드 중에 스크립트를 고치면 Unity가 플레이 중 다시 컴파일해 무관한 컴포넌트(PauseMenu · AudioService · SimulationClock)까지 NullReference — 코드 문제 아님. 스크립트 수정은 플레이 모드를 끈 뒤에
+    - [ ] ② 배터리 저장량 게이지 실제 연동
   - [ ] 11-11 주민 배치 (정지 인물, 걸어 다니는 AI 없음 — GDD 10번 유지): 명단 주민이 집·일하는 방에 서 있거나 앉아 있음, 바라보면 이름·특성

@@ -531,5 +531,23 @@ for i in range(4):
 x = reverb(x, 0.25, 0.9, 1.6, 2500)[: int(AMB * SR)]
 save("Interior/amb_room_hall_loop.wav", loop_xfade(onepole_lp(x, 3000), 2.0), -26)
 
+# ================= 11-10 내부 상태 연출 (합성) =================
+
+rng = np.random.default_rng(11)  # 섹션별 난수 (11-9와 같은 이유)
+
+# 파손 방 경보음: 두 음 번갈아 울리는 클랙슨 "뿌-빠-" (640 / 480 Hz, 0.6초씩). 주기 1.2초 × 2 + 크로스페이드 0.3초 → 2.4초 루프
+PERIOD, TONE, XF = 1.2, 0.6, 0.3
+n = int((PERIOD * 2 + XF) * SR)
+t = np.arange(n) / SR
+phase_in = np.mod(t, PERIOD)
+f = np.where(phase_in < TONE, 640.0, 480.0)
+ph = 2 * np.pi * np.cumsum(f) / SR
+tone = np.sin(ph) + 0.35 * np.sin(3 * ph) + 0.15 * np.sin(5 * ph)
+local = np.mod(t, TONE)
+env = np.minimum(1.0, local / 0.02) * np.minimum(1.0, (TONE - local) / 0.03)  # 음마다 짧은 상승·하강 (딸깍 방지)
+x = onepole_lp(tone * env, 3500)
+x = reverb(x, 0.18, 0.25, 0.6, 3000)[:n]
+save("Interior/interior_alarm_loop.wav", loop_xfade(x, XF), -20)
+
 print("\n".join(report))
 open(os.path.join(HERE, "build_report.txt"), "w", encoding="utf-8").write("\n".join(report))

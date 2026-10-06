@@ -43,6 +43,15 @@ namespace SpaceStation.Interior
         [SerializeField] private List<Data.InteriorTemplate> _templates = new List<Data.InteriorTemplate>();
         [SerializeField] private float _interactDistance = 2.6f;
 
+        [Header("11-10 상태 연출")]
+        [SerializeField] private InteriorMoodTuning _mood = new InteriorMoodTuning();
+        [Tooltip("파손 방 연기 (URP 파티클, 알파 블렌드)")]
+        [SerializeField] private Material _smokeMaterial;
+        [Tooltip("파손 방 스파크 (URP 파티클, 가산)")]
+        [SerializeField] private Material _sparkMaterial;
+        [Tooltip("경광등 몸체 (발광 Lit, 색은 MaterialPropertyBlock)")]
+        [SerializeField] private Material _beaconMaterial;
+
         [Header("HUD")]
         [SerializeField] private RectTransform _hud;
         [SerializeField] private TMP_FontAsset _font;
@@ -72,6 +81,7 @@ namespace SpaceStation.Interior
         private bool _sunEnabled;
         private OrbitCameraController _orbit;
         private InteriorExteriorView _exteriorView;
+        private InteriorAtmosphere _atmosphere;
         private readonly InteriorAudio _audio = new InteriorAudio(); // 11-9 방 환경음·발소리
         private readonly List<GameObject> _hiddenNow = new List<GameObject>();
 
@@ -176,6 +186,8 @@ namespace SpaceStation.Interior
             _layout = InteriorLayout.Build(_station.Grid, _station.Connectivity.IsActive, module);
             _builder.Build(_layout, _player.transform);
             RefreshAllDim();
+            _atmosphere = InteriorAtmosphere.Create(transform, _station, _builder, _mood, _smokeMaterial, _sparkMaterial, _beaconMaterial);
+            _atmosphere.Rebuild(_layout);
             var spawn = _builder.SpawnPoint(module, out float spawnYaw);
             _player.Teleport(spawn + Vector3.up * 0.05f, spawnYaw);
 
@@ -243,6 +255,9 @@ namespace SpaceStation.Interior
                 _sun.enabled = _sunEnabled;
 
             _audio.Stop();
+            if (_atmosphere != null)
+                Destroy(_atmosphere.gameObject);
+            _atmosphere = null;
             if (_player != null)
                 Destroy(_player.gameObject);
             _player = null;
@@ -299,6 +314,11 @@ namespace SpaceStation.Interior
             }
             UpdateRoomTitle();
             UpdateHatchPrompt();
+            if (_atmosphere != null)
+            {
+                _atmosphere.CurrentRoom = _currentModule;
+                _audio.SetAlarm(_atmosphere.IsAlarm(_currentModule));
+            }
         }
 
         // ---------------- 방·해치 ----------------
@@ -360,6 +380,8 @@ namespace SpaceStation.Interior
             _layout = InteriorLayout.Build(_station.Grid, _station.Connectivity.IsActive, module);
             _builder.Build(_layout, _player.transform);
             RefreshAllDim();
+            if (_atmosphere != null)
+                _atmosphere.Rebuild(_layout);
             if (_exteriorView != null)
                 _exteriorView.CollectWindows();
             _currentModule = null; // 제목 다시
