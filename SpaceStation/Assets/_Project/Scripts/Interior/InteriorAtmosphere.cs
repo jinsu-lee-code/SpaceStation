@@ -16,6 +16,7 @@ namespace SpaceStation.Interior
     /// - 태양 폭풍: 지직거림 + 가끔 푸르게 번쩍임
     /// - 파손: 붉은 비상 조명 + 천장 경광등(회전 스포트) + 연기 + 간헐 스파크 (+ 지금 방이면 경보음, <see cref="InteriorAudio"/>)
     /// - 비활성: 방 조명 꺼짐 + 칸마다 바닥 호박색 비상등
+    /// - 방 안 칸 게이지(<see cref="InteriorGauge"/>, 배터리 정비 통로): 정거장 배터리 저장량만큼 점등
     /// 시간은 실제 시간(unscaled) — 내부 방문 중 게임 시간이 멈춰 있어도 그 순간의 상태가 계속 보인다.
     /// 연출 오브젝트는 방 오브젝트(<see cref="InteriorBuilder.RoomParent"/>) 아래에 붙여 내부를 다시 만들 때 함께 지워진다.
     /// </summary>
@@ -34,6 +35,7 @@ namespace SpaceStation.Interior
             public readonly List<float> LightBase = new List<float>();
             public readonly List<Color> LightColor = new List<Color>();
             public readonly List<InteriorBuilder.LightSlot> Slots = new List<InteriorBuilder.LightSlot>();
+            public InteriorGauge[] Gauges;
             public RoomMood Mood;
             public bool HasMood;
             public float Seed;
@@ -103,6 +105,7 @@ namespace SpaceStation.Interior
                 _builder.CollectRoomLights(r.Module, room.Lights, room.LightBase, room.Slots);
                 foreach (var l in room.Lights)
                     room.LightColor.Add(l.color);
+                room.Gauges = room.Parent != null ? room.Parent.GetComponentsInChildren<InteriorGauge>() : new InteriorGauge[0];
                 _rooms.Add(room);
                 _byModule[r.Module] = room;
             }
@@ -149,6 +152,7 @@ namespace SpaceStation.Interior
                     storm = true;
             }
             float power = sim.Resources.PowerEfficiency;
+            float charge = sim.Resources.BatteryCapacity > 0f ? sim.Resources.BatteryCharge / sim.Resources.BatteryCapacity : 0f;
             foreach (var room in _rooms)
             {
                 var m = room.Module;
@@ -168,6 +172,9 @@ namespace SpaceStation.Interior
                 }
                 room.Mood = mood;
                 room.HasMood = true;
+                // 배터리 저장량 게이지 (정거장 전체 저장량, 비활성 방은 꺼짐)
+                foreach (var g in room.Gauges)
+                    g.SetFill(charge, mood.Mode != RoomLightMode.Emergency);
             }
         }
 

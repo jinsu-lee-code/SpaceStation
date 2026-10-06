@@ -708,7 +708,7 @@ namespace SpaceStation.Editor
 
         /// <summary>
         /// 11-7 배터리 정비 통로 (1칸): x 방향 일자 통로(폭 3.7) 양옆 네 사분면에 배터리 랙 뱅크(셀 모듈 5단 × 2열, 구리 버스바, 케이블 다발),
-        /// 가운데는 ±z 문으로 가는 교차 통로. 랙의 가운데 쪽 끝면마다 큰 저장량 게이지(세로 10칸 — 실제 저장량 연동은 11-10).
+        /// 가운데는 ±z 문으로 가는 교차 통로. 랙의 가운데 쪽 끝면마다 큰 저장량 게이지(세로 12칸, 조각 INT_Battery_Gauge_00~11 → <see cref="InteriorGauge"/>가 실제 저장량만큼 점등, 11-10).
         /// 문 자리 = 네 옆면, 위·아래 해치 = 칸 중심.
         /// </summary>
         private static void BuildBattery()
@@ -984,6 +984,18 @@ namespace SpaceStation.Editor
                     go.transform.SetParent(pivot.transform, true);
                     pivot.AddComponent<InteriorSunTilt>();
                 }
+            }
+            // 11-10 칸 게이지: 조각 INT_<이름>_Gauge_NN (NN = 아래부터) → InteriorGauge가 실제 값만큼 점등
+            var gaugeParts = new List<Renderer>();
+            foreach (Transform t in root.transform)
+            {
+                if (t.name.StartsWith("INT_" + name + "_Gauge_"))
+                    gaugeParts.Add(t.GetComponent<Renderer>());
+            }
+            if (gaugeParts.Count > 0)
+            {
+                gaugeParts.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+                root.AddComponent<InteriorGauge>().Configure(gaugeParts.ToArray());
             }
             var lightRoot = new GameObject("Lights");
             lightRoot.transform.SetParent(root.transform, false);

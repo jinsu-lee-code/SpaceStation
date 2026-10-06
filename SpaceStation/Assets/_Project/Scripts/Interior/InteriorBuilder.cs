@@ -392,8 +392,12 @@ namespace SpaceStation.Interior
             var rotation = GridDirections.ToQuaternion(module.Rotation);
             var instance = Object.Instantiate(template.Prefab, CellCenter(module.Origin), rotation, parent);
             instance.name = template.Prefab.name;
+            var gauge = instance.GetComponent<InteriorGauge>(); // 11-10 게이지 칸은 InteriorAtmosphere가 칠함
             foreach (var r in instance.GetComponentsInChildren<Renderer>())
-                _roomPieces[module].Add(MakePiece(r, -1));
+            {
+                if (gauge == null || !gauge.Owns(r))
+                    _roomPieces[module].Add(MakePiece(r, -1));
+            }
             // 템플릿 조명도 어둡게 할 수 있게 (세기 비율 유지)
             var lights = new List<Light>(instance.GetComponentsInChildren<Light>());
             _roomLights[module] = lights;

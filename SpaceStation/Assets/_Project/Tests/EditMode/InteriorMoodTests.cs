@@ -10,6 +10,20 @@ namespace SpaceStation.Tests
         private readonly InteriorMoodTuning _t = new InteriorMoodTuning();
 
         [Test]
+        public void Gauge_LitCount_SegmentLitWhenAnyChargeInIt()
+        {
+            Assert.AreEqual(0, InteriorGauge.LitCount(0f, 12));
+            Assert.AreEqual(1, InteriorGauge.LitCount(0.01f, 12));
+            Assert.AreEqual(6, InteriorGauge.LitCount(0.5f, 12));
+            Assert.AreEqual(11, InteriorGauge.LitCount(0.9f, 12));
+            Assert.AreEqual(11, InteriorGauge.LitCount(11f / 12f, 12));
+            Assert.AreEqual(12, InteriorGauge.LitCount(0.95f, 12));
+            Assert.AreEqual(12, InteriorGauge.LitCount(1f, 12));
+            Assert.AreEqual(12, InteriorGauge.LitCount(1.5f, 12));
+            Assert.AreEqual(0, InteriorGauge.LitCount(0.5f, 0));
+        }
+
+        [Test]
         public void Normal_FullBrightness_NoEffects()
         {
             var m = InteriorMoodRules.Evaluate(RoomCondition.Normal, _t);
