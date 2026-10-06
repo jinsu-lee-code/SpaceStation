@@ -527,13 +527,16 @@ namespace SpaceStation.Interior
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             ps.Play();
 
-            var flash = go.AddComponent<Light>();
+            // 순간 빛은 따로 자식 오브젝트로: URP가 Light에 UniversalAdditionalLightData를 붙여 Light 컴포넌트만은 지울 수 없음
+            var flashGo = new GameObject("Flash");
+            flashGo.transform.SetParent(go.transform, false);
+            var flash = flashGo.AddComponent<Light>();
             flash.type = LightType.Point;
             flash.shadows = LightShadows.None;
             flash.color = new Color(1f, 0.65f, 0.3f);
             flash.intensity = 5f;
             flash.range = 3f;
-            Destroy(flash, 0.08f);
+            Destroy(flashGo, 0.08f);
 
             if (room.Module == CurrentRoom)
                 AudioService.TryPlay(l => l.StormSpark, 0.4f);
