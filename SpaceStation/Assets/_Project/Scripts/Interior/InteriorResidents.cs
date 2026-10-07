@@ -23,21 +23,40 @@ namespace SpaceStation.Interior
         public float SitDrop = 0.41f;
         public float TagFontSize = 1.6f;
 
-        [Header("작업복 색 (일터 특성)")]
-        public Color SuitDefault = new Color(0.25f, 0.42f, 0.68f);
-        public Color SuitTechnical = new Color(0.86f, 0.46f, 0.16f);   // 기술자 · 정비공
-        public Color SuitScience = new Color(0.86f, 0.89f, 0.92f);     // 과학자
-        public Color SuitGarden = new Color(0.33f, 0.58f, 0.3f);       // 원예가
-        public Color Accent = new Color(0.95f, 0.76f, 0.22f);
-        public Color[] SkinTones =
+        [Header("인물 (LuceedStudio Little Guys)")]
+        [Tooltip("모델 크기 배율 (원본 키 약 1.3m → 1.2배 ≈ 1.56 · 큰 체형 1.63m)")]
+        public float ModelScale = 1.2f;
+        [Tooltip("큰 체형을 쓰는 비율")]
+        [Range(0f, 1f)] public float TallShare = 0.5f;
+        [Tooltip("여자 모델을 쓰는 이름 (명단 이름의 앞부분)")]
+        public string[] WomanNames =
         {
-            new Color(0.96f, 0.8f, 0.68f), new Color(0.87f, 0.68f, 0.52f), new Color(0.72f, 0.52f, 0.38f),
-            new Color(0.55f, 0.37f, 0.25f), new Color(0.38f, 0.25f, 0.17f),
+            "엘레나", "민서", "아마라", "소피아", "하나", "레일라", "클라라", "아이샤", "미라", "사라",
+            "나디아", "프리야", "자라", "에스더", "말리아", "세린", "이네스", "유키",
         };
+        [Tooltip("성별이 애매한 이름: 주민 번호로 고름")]
+        public string[] NeutralNames = { "카이", "타오", "케이", "노아", "지우", "린" };
+
+        [Header("셔츠 색 (일터 특성)")]
+        public Color ShirtTechnical = new Color(0.9f, 0.5f, 0.18f);    // 기술자 · 정비공
+        public Color ShirtScience = new Color(0.92f, 0.94f, 0.96f);    // 과학자
+        public Color ShirtGarden = new Color(0.4f, 0.66f, 0.36f);      // 원예가
+        [Tooltip("일터 특성이 없는 주민 (주민 번호로)")]
+        public Color[] ShirtCasual =
+        {
+            new Color(0.3f, 0.5f, 0.8f), new Color(0.85f, 0.85f, 0.88f), new Color(0.75f, 0.35f, 0.4f),
+            new Color(0.95f, 0.8f, 0.35f), new Color(0.45f, 0.4f, 0.65f), new Color(0.35f, 0.7f, 0.72f),
+        };
+        public Color[] PantsColors =
+        {
+            new Color(0.16f, 0.22f, 0.38f), new Color(0.22f, 0.23f, 0.26f), new Color(0.55f, 0.48f, 0.36f),
+            new Color(0.3f, 0.36f, 0.3f), new Color(0.12f, 0.12f, 0.14f),
+        };
+        public Color[] ShoeColors = { new Color(0.92f, 0.92f, 0.94f), new Color(0.18f, 0.18f, 0.2f), new Color(0.45f, 0.3f, 0.2f) };
         public Color[] HairColors =
         {
-            new Color(0.08f, 0.06f, 0.05f), new Color(0.25f, 0.15f, 0.08f), new Color(0.55f, 0.38f, 0.2f),
-            new Color(0.8f, 0.65f, 0.4f), new Color(0.6f, 0.6f, 0.62f), new Color(0.45f, 0.12f, 0.08f),
+            new Color(0.1f, 0.08f, 0.07f), new Color(0.3f, 0.19f, 0.11f), new Color(0.48f, 0.32f, 0.18f),
+            new Color(0.85f, 0.7f, 0.42f), new Color(0.62f, 0.62f, 0.64f), new Color(0.55f, 0.2f, 0.12f),
         };
     }
 
@@ -52,7 +71,8 @@ namespace SpaceStation.Interior
         private StationController _station;
         private InteriorBuilder _builder;
         private InteriorResidentTuning _tuning;
-        private ResidentFigure[] _prefabs; // 자세 순서 (Stand, Sit, Work)
+        private GameObject[] _models; // Man, Man Tall, Woman, Woman Tall
+        private Material _material;
         private TMP_FontAsset _font;
         private Transform _eye;
 
@@ -67,7 +87,7 @@ namespace SpaceStation.Interior
         public int Count => _figures.Count;
 
         public static InteriorResidents Create(Transform parent, StationController station, InteriorBuilder builder, InteriorResidentTuning tuning,
-            ResidentFigure[] prefabs, TMP_FontAsset font, Transform eye)
+            GameObject[] models, Material material, TMP_FontAsset font, Transform eye)
         {
             var go = new GameObject("InteriorResidents");
             go.transform.SetParent(parent, false);
@@ -75,7 +95,8 @@ namespace SpaceStation.Interior
             r._station = station;
             r._builder = builder;
             r._tuning = tuning ?? new InteriorResidentTuning();
-            r._prefabs = prefabs;
+            r._models = models;
+            r._material = material;
             r._font = font;
             r._eye = eye;
             return r;
@@ -90,7 +111,7 @@ namespace SpaceStation.Interior
             }
             _figures.Clear();
             HideTag();
-            if (layout == null || _station == null || _station.Simulation == null || _prefabs == null || _prefabs.Length < 3)
+            if (layout == null || _station == null || _station.Simulation == null || _models == null || _models.Length < 4)
                 return;
             var sim = _station.Simulation;
             var roster = sim.Residents;
@@ -163,20 +184,31 @@ namespace SpaceStation.Interior
 
         private void Spawn(Resident resident, ResidentSpot spot, Transform instance, Transform parent, string status, ResidentConfig config)
         {
-            var prefab = _prefabs[(int)spot.Pose];
-            if (prefab == null)
+            int id = resident.Id;
+            var model = Model(resident);
+            if (model == null)
                 return;
             var position = instance.TransformPoint(spot.Position);
             if (spot.Pose == ResidentPose.Sit)
                 position.y -= _tuning.SitDrop;
             var rotation = instance.rotation * Quaternion.Euler(0f, spot.Yaw, 0f);
-            var figure = Instantiate(prefab, position, rotation, parent != null ? parent : transform);
-            figure.name = "Resident_" + resident.Id;
-            int id = resident.Id;
-            var skin = Pick(_tuning.SkinTones, id * 7 + 3);
-            var hair = Pick(_tuning.HairColors, id * 13 + 5);
-            figure.Configure(Label(resident, status, config), SuitColor(resident), _tuning.Accent, skin, hair, id * 1.37f, _eye, _tuning.WatchRange);
+            var figure = ResidentFigure.Create(model, parent != null ? parent : transform, position, rotation, spot.Pose, _tuning.ModelScale, _tuning.SitDrop, _material);
+            figure.name = "Resident_" + id;
+            var source = model.GetComponentInChildren<SkinnedMeshRenderer>()?.sharedMaterial?.mainTexture;
+            var outfit = ResidentOutfits.Get(source, ShirtColor(resident), Pick(_tuning.PantsColors, id * 7 + 3),
+                Pick(_tuning.ShoeColors, id * 5 + 1), Pick(_tuning.HairColors, id * 13 + 5));
+            figure.Configure(Label(resident, status, config), outfit, id * 1.37f, _eye, _tuning.WatchRange);
             _figures.Add(figure);
+        }
+
+        /// <summary>모델: 이름으로 남 · 여 (애매한 이름은 주민 번호), 체형(보통 · 큰)은 주민 번호.</summary>
+        private GameObject Model(Resident r)
+        {
+            string given = r.Name != null && r.Name.Contains(" ") ? r.Name.Substring(0, r.Name.IndexOf(' ')) : r.Name;
+            bool woman = Array.IndexOf(_tuning.WomanNames, given) >= 0
+                         || (Array.IndexOf(_tuning.NeutralNames, given) >= 0 && ResidentPlacementRules.Share(r.Id * 3 + 1) < 0.5f);
+            bool tall = ResidentPlacementRules.Share(r.Id * 7 + 2) < _tuning.TallShare;
+            return _models[(woman ? 2 : 0) + (tall ? 1 : 0)];
         }
 
         private static Color Pick(Color[] colors, int seed)
@@ -186,19 +218,20 @@ namespace SpaceStation.Interior
             return colors[(int)((uint)seed % (uint)colors.Length)];
         }
 
-        private Color SuitColor(Resident r)
+        /// <summary>셔츠: 일터 특성 색 (기술 주황 · 과학 흰색 · 원예 초록), 없으면 평상복 중 하나.</summary>
+        private Color ShirtColor(Resident r)
         {
             foreach (var t in r.Traits)
             {
                 switch (t)
                 {
                     case ResidentTrait.Technician:
-                    case ResidentTrait.Mechanic: return _tuning.SuitTechnical;
-                    case ResidentTrait.Scientist: return _tuning.SuitScience;
-                    case ResidentTrait.Gardener: return _tuning.SuitGarden;
+                    case ResidentTrait.Mechanic: return _tuning.ShirtTechnical;
+                    case ResidentTrait.Scientist: return _tuning.ShirtScience;
+                    case ResidentTrait.Gardener: return _tuning.ShirtGarden;
                 }
             }
-            return _tuning.SuitDefault;
+            return Pick(_tuning.ShirtCasual, r.Id * 11 + 4);
         }
 
         private static string Status(Resident r, ModuleInstance room, Placement p, bool day)

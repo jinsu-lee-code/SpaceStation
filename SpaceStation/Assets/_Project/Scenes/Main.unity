@@ -1859,17 +1859,54 @@ MonoBehaviour:
     WatchRange: 3
     SitDrop: 0.41
     TagFontSize: 1.6
-    SuitDefault: {r: 0.25, g: 0.42, b: 0.68, a: 1}
-    SuitTechnical: {r: 0.86, g: 0.46, b: 0.16, a: 1}
-    SuitScience: {r: 0.86, g: 0.89, b: 0.92, a: 1}
-    SuitGarden: {r: 0.33, g: 0.58, b: 0.3, a: 1}
-    Accent: {r: 0.95, g: 0.76, b: 0.22, a: 1}
-    SkinTones:
-    - {r: 0.96, g: 0.8, b: 0.68, a: 1}
-    - {r: 0.87, g: 0.68, b: 0.52, a: 1}
-    - {r: 0.72, g: 0.52, b: 0.38, a: 1}
-    - {r: 0.55, g: 0.37, b: 0.25, a: 1}
-    - {r: 0.38, g: 0.25, b: 0.17, a: 1}
+    ModelScale: 1.2
+    TallShare: 0.5
+    WomanNames:
+    - "\uC5D8\uB808\uB098"
+    - "\uBBFC\uC11C"
+    - "\uC544\uB9C8\uB77C"
+    - "\uC18C\uD53C\uC544"
+    - "\uD558\uB098"
+    - "\uB808\uC77C\uB77C"
+    - "\uD074\uB77C\uB77C"
+    - "\uC544\uC774\uC0E4"
+    - "\uBBF8\uB77C"
+    - "\uC0AC\uB77C"
+    - "\uB098\uB514\uC544"
+    - "\uD504\uB9AC\uC57C"
+    - "\uC790\uB77C"
+    - "\uC5D0\uC2A4\uB354"
+    - "\uB9D0\uB9AC\uC544"
+    - "\uC138\uB9B0"
+    - "\uC774\uB124\uC2A4"
+    - "\uC720\uD0A4"
+    NeutralNames:
+    - "\uCE74\uC774"
+    - "\uD0C0\uC624"
+    - "\uCF00\uC774"
+    - "\uB178\uC544"
+    - "\uC9C0\uC6B0"
+    - "\uB9B0"
+    ShirtTechnical: {r: 0.9, g: 0.5, b: 0.18, a: 1}
+    ShirtScience: {r: 0.92, g: 0.94, b: 0.96, a: 1}
+    ShirtGarden: {r: 0.4, g: 0.66, b: 0.36, a: 1}
+    ShirtCasual:
+    - {r: 0.3, g: 0.5, b: 0.8, a: 1}
+    - {r: 0.85, g: 0.85, b: 0.88, a: 1}
+    - {r: 0.75, g: 0.35, b: 0.4, a: 1}
+    - {r: 0.95, g: 0.8, b: 0.35, a: 1}
+    - {r: 0.45, g: 0.4, b: 0.65, a: 1}
+    - {r: 0.35, g: 0.7, b: 0.72, a: 1}
+    PantsColors:
+    - {r: 0.16, g: 0.22, b: 0.38, a: 1}
+    - {r: 0.22, g: 0.23, b: 0.26, a: 1}
+    - {r: 0.55, g: 0.48, b: 0.36, a: 1}
+    - {r: 0.3, g: 0.36, b: 0.3, a: 1}
+    - {r: 0.12, g: 0.12, b: 0.14, a: 1}
+    ShoeColors:
+    - {r: 0.92, g: 0.92, b: 0.94, a: 1}
+    - {r: 0.18, g: 0.18, b: 0.2, a: 1}
+    - {r: 0.45, g: 0.3, b: 0.2, a: 1}
     HairColors:
     - {r: 0.08, g: 0.06, b: 0.05, a: 1}
     - {r: 0.25, g: 0.15, b: 0.08, a: 1}
@@ -1877,10 +1914,12 @@ MonoBehaviour:
     - {r: 0.8, g: 0.65, b: 0.4, a: 1}
     - {r: 0.6, g: 0.6, b: 0.62, a: 1}
     - {r: 0.45, g: 0.12, b: 0.08, a: 1}
-  _residentFigures:
-  - {fileID: 1491769746994326315, guid: 77ff58a4a9269784a8463ed669fc27be, type: 3}
-  - {fileID: 6772708345918950062, guid: 2dc312f3c18a3804e81128c9eba1de01, type: 3}
-  - {fileID: 5001221345800610312, guid: 85c0f07d735aa804f9b9247f5e75b026, type: 3}
+  _residentModels:
+  - {fileID: 8268076127410229458, guid: 6b9363d8004c8cd40b461b73cfdb4fc2, type: 3}
+  - {fileID: 8268076127410229458, guid: 04950240920afe44cafc20cb99564add, type: 3}
+  - {fileID: 309950370457568352, guid: d98656ff262b5ef45a245563b1437264, type: 3}
+  - {fileID: 309950370457568352, guid: 9045df3d0c6a6244f8c36914c229cfd6, type: 3}
+  _residentMaterial: {fileID: 2100000, guid: 6145f42da7c72be4581fdc5b95008b9d, type: 2}
   _hud: {fileID: 577544477}
   _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
   _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
