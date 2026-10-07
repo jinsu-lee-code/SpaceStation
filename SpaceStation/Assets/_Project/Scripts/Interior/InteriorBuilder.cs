@@ -76,6 +76,8 @@ namespace SpaceStation.Interior
         private readonly Dictionary<Light, float> _lightBase = new Dictionary<Light, float>();
         private readonly Dictionary<ModuleInstance, Color> _roomColors = new Dictionary<ModuleInstance, Color>();
         private readonly Dictionary<ModuleInstance, Transform> _roomParents = new Dictionary<ModuleInstance, Transform>();
+        /// <summary>11-11 템플릿 방: (템플릿, 놓인 프리팹) — 주민 자리를 월드로 옮길 때.</summary>
+        private readonly Dictionary<ModuleInstance, (InteriorTemplate Template, Transform Instance)> _templateRooms = new Dictionary<ModuleInstance, (InteriorTemplate, Transform)>();
         /// <summary>문 상태등: (렌더러 조각, 너머 방).</summary>
         private readonly List<(Piece Piece, ModuleInstance Other)> _statusLights = new List<(Piece, ModuleInstance)>();
         private readonly HashSet<ModuleInstance> _dimmed = new HashSet<ModuleInstance>();
@@ -159,6 +161,7 @@ namespace SpaceStation.Interior
             _lightBase.Clear();
             _roomColors.Clear();
             _roomParents.Clear();
+            _templateRooms.Clear();
             _statusLights.Clear();
             _dimmed.Clear();
             _doors.Clear();
@@ -286,6 +289,15 @@ namespace SpaceStation.Interior
         /// <summary>방 오브젝트 (연출 오브젝트를 여기 붙이면 내부를 다시 만들 때 함께 지워진다).</summary>
         public Transform RoomParent(ModuleInstance module) => _roomParents.TryGetValue(module, out var t) ? t : null;
 
+        /// <summary>11-11 템플릿으로 만든 방이면 템플릿과 놓인 프리팹 (모듈 로컬 → 월드 변환).</summary>
+        public bool TryGetTemplateRoom(ModuleInstance module, out InteriorTemplate template, out Transform instance)
+        {
+            var found = _templateRooms.TryGetValue(module, out var room);
+            template = room.Template;
+            instance = room.Instance;
+            return found && instance != null;
+        }
+
         /// <summary>방의 점광원(원래 세기)과 천장 조명 판 재질 칸.</summary>
         public void CollectRoomLights(ModuleInstance module, List<Light> lights, List<float> baseIntensity, List<LightSlot> slots)
         {
@@ -392,6 +404,7 @@ namespace SpaceStation.Interior
             var rotation = GridDirections.ToQuaternion(module.Rotation);
             var instance = Object.Instantiate(template.Prefab, CellCenter(module.Origin), rotation, parent);
             instance.name = template.Prefab.name;
+            _templateRooms[module] = (template, instance.transform);
             var gauge = instance.GetComponent<InteriorGauge>(); // 11-10 게이지 칸은 InteriorAtmosphere가 칠함
             foreach (var r in instance.GetComponentsInChildren<Renderer>())
             {

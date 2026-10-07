@@ -31,6 +31,39 @@ namespace SpaceStation.Data
         }
     }
 
+    /// <summary>11-11 주민 자세.</summary>
+    public enum ResidentPose
+    {
+        Stand,  // 서서 쉬기
+        Sit,    // 의자 · 침대 · 벤치
+        Work,   // 작업대 · 화면 앞에서 손을 뻗음
+    }
+
+    /// <summary>11-11 템플릿의 주민 자리 하나 (모듈 로컬, 발 위치 · 바라보는 방향).</summary>
+    [Serializable]
+    public sealed class ResidentSpot
+    {
+        [SerializeField] private Vector3 _position;
+        [Tooltip("바라보는 방향 (도, 모듈 로컬 +z 기준 시계 방향)")]
+        [SerializeField] private float _yaw;
+        [SerializeField] private ResidentPose _pose;
+        [Tooltip("일하는 사람 자리 (아니면 사는 사람 · 쉬러 온 사람 자리)")]
+        [SerializeField] private bool _work;
+
+        public Vector3 Position => _position;
+        public float Yaw => _yaw;
+        public ResidentPose Pose => _pose;
+        public bool Work => _work;
+
+        public ResidentSpot(Vector3 position, float yaw, ResidentPose pose, bool work = false)
+        {
+            _position = position;
+            _yaw = yaw;
+            _pose = pose;
+            _work = work;
+        }
+    }
+
     /// <summary>11-9 방 환경음 묶음 (성격별 6). SoundLibrary의 Room* 루프와 짝.</summary>
     public enum InteriorAmbience
     {
@@ -59,7 +92,18 @@ namespace SpaceStation.Data
         [Tooltip("11-9 방 환경음 묶음")]
         [SerializeField] private InteriorAmbience _ambience = InteriorAmbience.Hall;
 
+        [Header("11-11 주민")]
+        [Tooltip("주민이 서거나 앉는 자리 (모듈 로컬)")]
+        [SerializeField] private List<ResidentSpot> _residentSpots = new List<ResidentSpot>();
+        [Tooltip("낮에 이 방에서 일하는 특성 (비어 있으면 일터 아님)")]
+        [SerializeField] private List<ResidentTrait> _workTraits = new List<ResidentTrait>();
+        [Tooltip("낮에 일터가 없는 주민이 쉬러 오는 방")]
+        [SerializeField] private bool _leisure;
+
         public ModuleData Module => _module;
+        public IReadOnlyList<ResidentSpot> ResidentSpots => _residentSpots;
+        public IReadOnlyList<ResidentTrait> WorkTraits => _workTraits;
+        public bool Leisure => _leisure;
         public InteriorAmbience Ambience => _ambience;
         public GameObject Prefab => _prefab;
         public IReadOnlyList<InteriorSocket> Sockets => _sockets;
@@ -94,6 +138,13 @@ namespace SpaceStation.Data
         }
 
         public void EditorSetAmbience(InteriorAmbience ambience) => _ambience = ambience;
+
+        public void EditorSetResidents(List<ResidentSpot> spots, List<ResidentTrait> workTraits, bool leisure)
+        {
+            _residentSpots = spots ?? new List<ResidentSpot>();
+            _workTraits = workTraits ?? new List<ResidentTrait>();
+            _leisure = leisure;
+        }
 #endif
     }
 }

@@ -52,6 +52,11 @@ namespace SpaceStation.Interior
         [Tooltip("경광등 몸체 (발광 Lit, 색은 MaterialPropertyBlock)")]
         [SerializeField] private Material _beaconMaterial;
 
+        [Header("11-11 주민")]
+        [SerializeField] private InteriorResidentTuning _residentTuning = new InteriorResidentTuning();
+        [Tooltip("자세별 인물 프리팹 (Stand, Sit, Work 순서 — 메뉴 SpaceStation/Interior/Build Resident Figures)")]
+        [SerializeField] private ResidentFigure[] _residentFigures = new ResidentFigure[3];
+
         [Header("HUD")]
         [SerializeField] private RectTransform _hud;
         [SerializeField] private TMP_FontAsset _font;
@@ -82,6 +87,7 @@ namespace SpaceStation.Interior
         private OrbitCameraController _orbit;
         private InteriorExteriorView _exteriorView;
         private InteriorAtmosphere _atmosphere;
+        private InteriorResidents _residents;
         private readonly InteriorAudio _audio = new InteriorAudio(); // 11-9 방 환경음·발소리
         private readonly List<GameObject> _hiddenNow = new List<GameObject>();
 
@@ -188,6 +194,8 @@ namespace SpaceStation.Interior
             RefreshAllDim();
             _atmosphere = InteriorAtmosphere.Create(transform, _station, _builder, _mood, _smokeMaterial, _sparkMaterial, _beaconMaterial);
             _atmosphere.Rebuild(_layout);
+            _residents = InteriorResidents.Create(transform, _station, _builder, _residentTuning, _residentFigures, _font, _player.Eye);
+            _residents.Rebuild(_layout);
             var spawn = _builder.SpawnPoint(module, out float spawnYaw);
             _player.Teleport(spawn + Vector3.up * 0.05f, spawnYaw);
 
@@ -258,6 +266,9 @@ namespace SpaceStation.Interior
             if (_atmosphere != null)
                 Destroy(_atmosphere.gameObject);
             _atmosphere = null;
+            if (_residents != null)
+                Destroy(_residents.gameObject);
+            _residents = null;
             if (_player != null)
                 Destroy(_player.gameObject);
             _player = null;
@@ -382,6 +393,8 @@ namespace SpaceStation.Interior
             RefreshAllDim();
             if (_atmosphere != null)
                 _atmosphere.Rebuild(_layout);
+            if (_residents != null)
+                _residents.Rebuild(_layout);
             if (_exteriorView != null)
                 _exteriorView.CollectWindows();
             _currentModule = null; // 제목 다시
