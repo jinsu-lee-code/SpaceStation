@@ -882,7 +882,16 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
           - 겪은 문제: 목둘레 정리가 소매 끝 점까지 타원 위로 끌어와 가시 → 목둘레 근처 경계만 / 끝단 점을 법선 그대로 띄우면 톱니 → 자른 평면 안에서만 띄우고 끝단 고리를 평면 안에서 다듬음 / 가랑이에서 법선이 꼬여 긴 가시 → 이웃보다 크게 튀어나온 점은 이웃 평균, Solidify even offset 끔 / 후드 · 깃 높이를 위에서 쏜 광선으로 재서 머리에 닿음 → 턱 아래(0.86)에서 쏨 / 치마를 몸 겉면 광선으로 만들면 다리 사이로 꺾여 앞에 턱 → 볼록 껍질 / 몸에 그대로 붙어 쫄쫄이처럼 보임 → 가랑이 · 가슴 아래 오목한 곳을 더 다듬어 천이 건너가게
           - 몸 구역(`region`, 옷 끝단 1.5cm 안쪽에서 나눔): head · chest · arm · hand · hips · thigh · shin · ankle · foot. 옷마다 끄는 구역 `HIDES` — 티셔츠 chest / 셔츠 · 후드 chest · arm / 긴바지 hips · thigh · shin / 반바지 hips / 치마 없음 / 작업복 chest · arm · hips · thigh · shin / 운동화 foot / 작업화 foot · ankle · shin. 옷 오브젝트 속성 `hides`에 기록, `body_preview(prefix, 옷들)`로 확인
           - 확인: 서기 + 앉기(허벅지 85° · 정강이 −85°) + 팔 굽힘 자세에서 옷 조합 5가지 — 몸이 옷을 뚫고 나오는 곳 없음
-        - [ ] ② 주름 · 바느질 음영 텍스처
+        - [ ] ② 주름 · 바느질 음영 텍스처 ← **다음 작업**
+      - **이어 하기 안내 (2026-10-08 작업 중단 시점, 다른 PC용)**
+        - 현재 위치: 4단계 ① 형태 끝(사용자 형태 피드백 받기 전). 다음 = ② 옷 텍스처, 그다음 5단계 Unity 연동. 사용자가 피드백을 주면 그것부터
+        - 모든 작업물은 저장소에 있음: `BlenderWork/Interior_Kit.blend`(몸 `R2M_/R2W_Body` · `Rig`, 머리 `R2H_*` 40조합(컬렉션 `INT_Resident2Hair`), 옷 `R2M_C_*` · `R2W_C_*`(`INT_Resident2Cloth`), 미리보기 재질), 얼굴 조각 `Art/Textures/Resident/Face/*.png`, 머리결 `Art/Textures/Resident/Hair/hair_strands.png`
+        - Blender 텍스트 블록 (다시 만들기 · 수정은 여기서): `resident2_builder`(몸, `run_v3('R2M_')` · `run_v3('R2W_')` — **원본 레퍼런스 필요**), `resident2_face`(얼굴 조각, `build_parts(폴더)` · `compose` · `preview_atlas`), `resident2_hair`(머리, `build_combo(앞, 옆, 뒤)` · `build_all()` · `all_combos()` · `strand_texture()`), `resident2_cloth`(옷, `build(prefix, 이름)` · `build_all(prefix)` · `body_preview(prefix, 옷들)` · `region` · `HIDES` · `POOLS`), `resident2_ref`(레퍼런스 `load_refs()` · `remove_refs()`)
+          - 실행 예: `ns = {'bpy': bpy}; exec(bpy.data.texts['resident2_cloth'].as_string(), ns); ns['build']('R2W_', 'skirt')` — 머리 · 옷 · 얼굴은 레퍼런스 없이 다시 만들 수 있음 (머리 · 옷은 몸 메시를 기준으로 잼)
+          - 머리 40조합을 한 번에 만들면 MCP 시간 초과(약 45초+) → 10 ~ 14개씩 나눠 실행
+          - 미리보기 캡처 도구(`shots` · `combine` · `outfit` 등)는 파일에 저장되지 않는 임시 함수였음 → 필요하면 Workbench 정사영 카메라로 새로 만들기 (보여 줄 오브젝트만 hide_render 해제)
+        - **몸을 다시 만들어야 할 때만** 원본 레퍼런스 필요: 에셋 스토어 "Little Guys - Free Sample"을 `Assets/LuceedStudio`에 넣음 → Unity 메뉴 `SpaceStation/Interior/Export Resident Reference` → Blender `load_refs()` → 작업 → **저장 전 `remove_refs()`** (공개 저장소). 몸을 다시 만들면 머리(`R2M_Body` 기준) · 옷도 다시 만들어야 함
+        - 결정 · 방침 요약: 눈은 텍스처, 얼굴 조각 합성 순서(피부 → 홍조 → 점 → 홍채×눈동자색 → 눈 → 눈썹×머리색 → 입), 얼굴 `FACE_DZ` 9.4mm 위, 머리 = 앞 4 · 옆 2 · 뒤 5 파츠 조합(귀 덮는 머리 없음, 옆머리 한 줄기 · 가르마 · 긴 · 묶음 · 올림은 여자만), 눈썹은 머리카락 너머로 비침(5단계 구현), 옷 = 몸 구역 가리기(`HIDES`) · 치마 여자만 · 점프슈트는 상의 · 하의 자리 함께
         - 방침 (2026-10-07 결정) — **옷에 가려지는 몸은 감춰 뚫림을 미리 막는다**: 옷 목록과 끝단 선을 먼저 정하고, 몸을 그 경계 기준 구역(몸통 · 위팔 · 아래팔 · 허벅지 · 무릎 아래 · 발 등)으로 나눈다. 몸에서 영구히 지우지 않는다 (반바지 · 반팔이면 보여야 함). 옷 파츠마다 "가리는 구역" 목록 → Unity에서 그 구역만 끔
         - 자르는 선은 옷 끝단보다 1~2cm 안쪽 (옷이 몸 끝을 살짝 덮어 틈이 안 보이게)
         - 옷끼리 뚫림 대비: 옷은 몸에서 일정 간격 띄워 만들고, 가중치는 몸에서 그대로 옮김(같은 자세에서 같이 움직임). 겹치는 옷끼리도 "가리는 구역" 규칙 (예: 상의가 하의 허리 부분을 끔)
