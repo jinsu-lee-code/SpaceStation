@@ -1,5 +1,59 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &855301000608878688
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6591222703785796172}
+  - component: {fileID: 7501238109377600034}
+  m_Layer: 8
+  m_Name: Pick
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6591222703785796172
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 855301000608878688}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2046145078089294109}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!64 &7501238109377600034
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 855301000608878688}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -5425631196705076560, guid: c8ef49354a6dc13489067dd1fdb91698, type: 3}
 --- !u!1 &1536195265730828895
 GameObject:
   m_ObjectHideFlags: 0
@@ -47,7 +101,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.ModuleView
   _inactiveBrightness: 0.25
-  _highlightColor: {r: 1, g: 0.9, b: 0.3, a: 1}
   _highlightTintAmount: 0.18
   _damagedTint: {r: 1, g: 0.3, b: 0.15, a: 1}
   _damagedTintAmount: 0.65
@@ -56,6 +109,60 @@ MonoBehaviour:
   _wornTint: {r: 0.45, g: 0.35, b: 0.25, a: 1}
   _wornTintAmount: 0.6
   _wornEmission: 0.35
+--- !u!1 &3892071264039966653
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6131015948579055231}
+  - component: {fileID: 2463617730675722945}
+  m_Layer: 8
+  m_Name: Pick
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6131015948579055231
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3892071264039966653}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4224661211002016570}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!64 &2463617730675722945
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3892071264039966653}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 6464809856111060268, guid: c8ef49354a6dc13489067dd1fdb91698, type: 3}
 --- !u!1 &7079355899348288916
 GameObject:
   m_ObjectHideFlags: 0
@@ -163,7 +270,13 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: c8ef49354a6dc13489067dd1fdb91698, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6591222703785796172}
+    - targetCorrespondingSourceObject: {fileID: 2400108101273769420, guid: c8ef49354a6dc13489067dd1fdb91698, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6131015948579055231}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 336271658553974036, guid: c8ef49354a6dc13489067dd1fdb91698, type: 3}
       insertIndex: -1
@@ -193,3 +306,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.SunFacingPanel
   _maxTilt: 38
   _epsilonDegrees: 0.2
+--- !u!4 &4224661211002016570 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2400108101273769420, guid: c8ef49354a6dc13489067dd1fdb91698, type: 3}
+  m_PrefabInstance: {fileID: 2013081987837871862}
+  m_PrefabAsset: {fileID: 0}

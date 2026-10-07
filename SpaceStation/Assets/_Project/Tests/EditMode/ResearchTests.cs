@@ -365,7 +365,7 @@ namespace SpaceStation.Tests
                 sim.Durability.ApplyImpact(block, 50f);
                 sim.Durability.Maintain(block); // 최대 100 → 85 → 70 → 55
             }
-            sim.Durability.ApplyImpact(block, 10f); // 45, 정비해도 최대 40 < 55 → 재건축
+            sim.Durability.ApplyImpact(block, 26f); // 29 < 55 × 55% = 30.25, 정비해도 최대 40 < 100 × 55% → 재건축
             sim.Automation.AutoMaintain = true;
             ModuleInstance rebuilt = null;
             sim.Automation.ModuleRebuilt += (old, now) => rebuilt = now;
@@ -375,6 +375,33 @@ namespace SpaceStation.Tests
             Assert.AreNotSame(block, rebuilt);
             Assert.IsTrue(sim.Durability.TryGetInfo(rebuilt, out var d));
             Assert.AreEqual(100f, d.Max, Eps);
+            Assert.AreEqual(1, sim.Automation.AutoRebuildCount);
+        }
+
+        [Test]
+        public void Automation_PercentThreshold_NoRepeatAfterMaintenance()
+        {
+            // 12-0 (U-4): 절대값 기준이면 최대 내구도가 기준 근처로 내려온 모듈이 조금만 닳아도 곧바로 다시 대상이 되어
+            // 정비 · 재건축이 끝없이 반복됐음. % 기준은 그 모듈의 최대 내구도에 비례한다.
+            var (sim, category) = AutomationSim();
+            sim.Research.SetLevel(category, 1);
+            sim.Automation.Threshold = 80f;
+            sim.Grid.TryPlace(_block, Vector3Int.left, 0, out var block);
+            sim.Durability.ApplyImpact(block, 25f); // 75 < 100 × 80%, 정비 후 최대 85 ≥ 80 → 정비
+            Ticks(sim, 2);
+            Assert.IsTrue(sim.Durability.TryGetInfo(block, out var d));
+            Assert.AreEqual(85f, d.Current, Eps, "정비됨 (최대 85)");
+            Ticks(sim, 10);
+            Assert.AreEqual(1, sim.Automation.AutoMaintainCount, "정비 직후는 100%라 다시 대상이 아님");
+
+            sim.Durability.ApplyImpact(block, 10f); // 75: 절대값 기준(80)이면 대상, % 기준은 85 × 80% = 68 이상이라 아님
+            Ticks(sim, 2);
+            Assert.AreEqual(0, sim.Automation.Plan().Count);
+            Assert.AreEqual(1, sim.Automation.AutoMaintainCount);
+            Assert.AreEqual(0, sim.Automation.AutoRebuildCount);
+
+            sim.Durability.ApplyImpact(block, 10f); // 65 < 68, 정비 후 최대 70 < 100 × 80% → 재건축
+            Ticks(sim, 2);
             Assert.AreEqual(1, sim.Automation.AutoRebuildCount);
         }
 

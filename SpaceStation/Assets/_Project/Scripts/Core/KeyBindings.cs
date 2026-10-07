@@ -25,6 +25,7 @@ namespace SpaceStation.Core
         Demolish,
         DemolishAlt,
         Pause,
+        SpeedCycle, // 12-0 배속 순환 (ONI식 Tab)
         Speed1,
         Speed2,
         Speed3,
@@ -72,26 +73,28 @@ namespace SpaceStation.Core
             new Info { Action = GameAction.CameraBack, Group = "카메라", Label = "뒤로 이동", Default = Key.S, Context = ActionContext.Always },
             new Info { Action = GameAction.CameraLeft, Group = "카메라", Label = "왼쪽 이동", Default = Key.A, Context = ActionContext.Always },
             new Info { Action = GameAction.CameraRight, Group = "카메라", Label = "오른쪽 이동", Default = Key.D, Context = ActionContext.Always },
-            new Info { Action = GameAction.CameraUp, Group = "카메라", Label = "위로 이동", Default = Key.Space, Context = ActionContext.Always },
+            // 12-0 (U-6) 기본 키 재배치: Oxygen Not Included를 참고해 자주 쓰는 키를 왼손 쪽으로
+            new Info { Action = GameAction.CameraUp, Group = "카메라", Label = "위로 이동", Default = Key.LeftAlt, Context = ActionContext.Always },
             new Info { Action = GameAction.CameraDown, Group = "카메라", Label = "아래로 이동", Default = Key.LeftCtrl, Context = ActionContext.Always },
             new Info { Action = GameAction.CameraYawLeft, Group = "카메라", Label = "왼쪽으로 회전", Default = Key.Q, Context = ActionContext.Always },
             new Info { Action = GameAction.CameraYawRight, Group = "카메라", Label = "오른쪽으로 회전", Default = Key.E, Context = ActionContext.Always },
             new Info { Action = GameAction.Rotate, Group = "건설", Label = "모듈 회전", Default = Key.R, Context = ActionContext.Build },
-            new Info { Action = GameAction.NextCategory, Group = "건설", Label = "건설 탭 전환 (Shift: 반대로)", Default = Key.Tab, Context = ActionContext.Always },
+            new Info { Action = GameAction.NextCategory, Group = "건설", Label = "건설 탭 전환 (Shift: 반대로)", Default = Key.Backquote, Context = ActionContext.Always },
             new Info { Action = GameAction.Repair, Group = "선택한 모듈", Label = "수리 / 우선 수리", Default = Key.R, Context = ActionContext.Selection },
-            new Info { Action = GameAction.Maintain, Group = "선택한 모듈", Label = "정비", Default = Key.M, Context = ActionContext.Selection },
+            new Info { Action = GameAction.Maintain, Group = "선택한 모듈", Label = "정비", Default = Key.F, Context = ActionContext.Selection },
             new Info { Action = GameAction.Rebuild, Group = "선택한 모듈", Label = "재건축", Default = Key.B, Context = ActionContext.Selection },
             new Info { Action = GameAction.CancelRepair, Group = "선택한 모듈", Label = "수리 대기 취소", Default = Key.C, Context = ActionContext.Selection },
-            new Info { Action = GameAction.Demolish, Group = "선택한 모듈", Label = "철거", Default = Key.Delete, Context = ActionContext.Selection },
-            new Info { Action = GameAction.DemolishAlt, Group = "선택한 모듈", Label = "철거 (보조 키)", Default = Key.X, Context = ActionContext.Selection },
-            new Info { Action = GameAction.EnterInterior, Group = "선택한 모듈", Label = "내부 들어가기", Default = Key.I, Context = ActionContext.Selection },
+            new Info { Action = GameAction.Demolish, Group = "선택한 모듈", Label = "철거", Default = Key.X, Context = ActionContext.Selection },
+            new Info { Action = GameAction.DemolishAlt, Group = "선택한 모듈", Label = "철거 (보조 키)", Default = Key.Delete, Context = ActionContext.Selection },
+            new Info { Action = GameAction.EnterInterior, Group = "선택한 모듈", Label = "내부 들어가기", Default = Key.V, Context = ActionContext.Selection },
             new Info { Action = GameAction.Interact, Group = "내부 방문", Label = "해치 이용", Default = Key.F, Context = ActionContext.Interior },
-            new Info { Action = GameAction.Pause, Group = "시간", Label = "일시정지 / 재개", Default = Key.P, Context = ActionContext.Always },
+            new Info { Action = GameAction.Pause, Group = "시간", Label = "일시정지 / 재개", Default = Key.Space, Context = ActionContext.Always },
+            new Info { Action = GameAction.SpeedCycle, Group = "시간", Label = "배속 순환 (1x → 2x → 4x)", Default = Key.Tab, Context = ActionContext.Always },
             new Info { Action = GameAction.Speed1, Group = "시간", Label = "배속 1x", Default = Key.F1, Context = ActionContext.Always },
             new Info { Action = GameAction.Speed2, Group = "시간", Label = "배속 2x", Default = Key.F2, Context = ActionContext.Always },
             new Info { Action = GameAction.Speed3, Group = "시간", Label = "배속 4x", Default = Key.F3, Context = ActionContext.Always },
             new Info { Action = GameAction.Research, Group = "창", Label = "연구 창", Default = Key.T, Context = ActionContext.Always },
-            new Info { Action = GameAction.Roster, Group = "창", Label = "주민 명단", Default = Key.U, Context = ActionContext.Always },
+            new Info { Action = GameAction.Roster, Group = "창", Label = "주민 명단", Default = Key.Y, Context = ActionContext.Always },
             new Info { Action = GameAction.ToggleHelp, Group = "창", Label = "조작 안내 고정 / 숨기기", Default = Key.H, Context = ActionContext.Always },
         };
 
@@ -319,18 +322,69 @@ namespace SpaceStation.Core
             if (_keys != null)
                 return;
             _keys = new Key[Enum.GetValues(typeof(GameAction)).Length];
+            bool migrate = PlayerPrefs.GetInt(VersionKey, 1) < LayoutVersion;
             foreach (var info in All)
             {
                 int stored = PlayerPrefs.GetInt(Prefix + info.Action, (int)info.Default);
                 var key = Enum.IsDefined(typeof(Key), stored) ? (Key)stored : info.Default;
+                if (migrate)
+                    key = Migrate(info, key);
                 _keys[(int)info.Action] = IsReserved(key) ? info.Default : key;
             }
+            if (migrate)
+            {
+                if (HasConflict(_keys))
+                    _keys = DefaultKeys(); // 바꾼 키가 새 기본 키와 겹치면 새 기본 배치로
+                Save();
+            }
+        }
+
+        // ---------------- 12-0 (U-6) 기본 키 재배치 이전 저장값 옮기기 ----------------
+
+        private const string VersionKey = Prefix + "version";
+        /// <summary>기본 배치 버전. 1 = 7-5, 2 = 12-0 왼손 재배치.</summary>
+        private const int LayoutVersion = 2;
+
+        /// <summary>버전 1의 기본 키 (바뀐 동작만). 저장값이 이 키 그대로면 새 기본 키로 옮긴다.</summary>
+        private static readonly (GameAction Action, Key Key)[] V1Defaults =
+        {
+            (GameAction.CameraUp, Key.Space), (GameAction.NextCategory, Key.Tab), (GameAction.Maintain, Key.M),
+            (GameAction.Demolish, Key.Delete), (GameAction.DemolishAlt, Key.X), (GameAction.EnterInterior, Key.I),
+            (GameAction.Pause, Key.P), (GameAction.Roster, Key.U),
+        };
+
+        /// <summary>버전 1 저장값 → 새 배치. 옛 기본 키 그대로였던 동작만 새 기본 키로 (사용자가 바꾼 키는 유지).</summary>
+        public static Key Migrate(Info info, Key stored)
+        {
+            foreach (var (action, key) in V1Defaults)
+            {
+                if (action == info.Action)
+                    return stored == key ? info.Default : stored;
+            }
+            return stored;
+        }
+
+        /// <summary>같은 상황(또는 '항상')에서 두 동작이 같은 키를 쓰는지.</summary>
+        public static bool HasConflict(Key[] keys)
+        {
+            for (int i = 0; i < All.Length; i++)
+            {
+                for (int j = i + 1; j < All.Length; j++)
+                {
+                    var a = All[i];
+                    var b = All[j];
+                    if (keys[(int)a.Action] != Key.None && keys[(int)a.Action] == keys[(int)b.Action] && ContextsOverlap(a.Context, b.Context))
+                        return true;
+                }
+            }
+            return false;
         }
 
         private static void Save()
         {
             foreach (var info in All)
                 PlayerPrefs.SetInt(Prefix + info.Action, (int)_keys[(int)info.Action]);
+            PlayerPrefs.SetInt(VersionKey, LayoutVersion);
             PlayerPrefs.Save();
         }
     }

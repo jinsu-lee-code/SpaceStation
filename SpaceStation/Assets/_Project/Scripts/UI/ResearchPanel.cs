@@ -447,7 +447,7 @@ namespace SpaceStation.UI
             var auto = _sim.Automation;
             SetButtonText(_auto.Maintain, $"자동 정비  {OnOff(auto.AutoMaintain)}");
             SetButtonText(_auto.Rebuild, $"자동 재건축  {OnOff(auto.AutoRebuild)}");
-            _auto.ThresholdLabel.SetText($"정비 기준 내구도 <b>{auto.Threshold:0}</b>");
+            _auto.ThresholdLabel.SetText($"정비 기준 최대치 <b>{auto.Threshold:0}%</b>"); // 12-0: 최대 내구도 대비 %
             _auto.ReserveLabel.SetText($"자원 보호선 <b>{auto.ReserveRatio * 100f:0}%</b>");
 
             var jobs = auto.Plan();

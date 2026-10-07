@@ -7,15 +7,18 @@ namespace SpaceStation.Simulation
 {
     /// <summary>
     /// Phase 6 자동화 연구 (GDD 10번 정비 자동화). 연구를 끝내야 동작한다 (<see cref="Unlocked"/>).
-    /// - 대상: 내구도가 기준값 미만이고 운석 파손(수리 대기·수리 중)이 아닌 모듈. 내구도가 낮은 순서.
-    /// - 정비해도 최대 내구도가 기준값 미만이면 정비 대신 재건축 (밸런스 봇과 같은 규칙).
+    /// - 기준은 % (12-0, U-4): 내구도가 **그 모듈 최대 내구도 × 기준%** 미만이고 운석 파손(수리 대기·수리 중)이 아닌 모듈. 내구도 비율이 낮은 순서.
+    ///   절대값이던 때는 정비 직후 최대 내구도가 기준 이하가 되면 곧바로 다시 대상이 되어 정비·재건축이 끝없이 반복됐다.
+    ///   정비 직후는 항상 100%라 다시 대상이 되지 않는다.
+    /// - 정비해도 최대 내구도가 **새 모듈(100) × 기준%** 미만이면 정비 대신 재건축.
     /// - 자동 실행은 자원 보호선을 지킨다: 낸 뒤에도 각 자원이 저장 한도 × 보호 비율 이상 남아야 한다.
     ///   못 내면 그 자리에서 멈추고 다음 검사 때 다시 시도 (가장 급한 모듈부터 자원을 모음).
     /// - 일괄 정비(<see cref="RunBatch"/>)는 보호선을 무시하고 지금 낼 수 있는 만큼 처리한다.
     /// </summary>
     public sealed class MaintenanceAutomation
     {
-        public const float DefaultThreshold = 55f;   // 효율 저하 기준(50) 직전
+        // 기준 % (최대 내구도 대비). 세이브의 옛 절대값(30~90)도 같은 숫자로 읽어 그대로 쓴다.
+        public const float DefaultThreshold = 55f;   // 새 모듈에서 효율 저하 기준(50) 직전
         public const float MinThreshold = 30f;
         public const float MaxThreshold = 90f;
         public const float DefaultReserveRatio = 0.4f;
@@ -57,7 +60,7 @@ namespace SpaceStation.Simulation
         public bool AutoMaintain { get; set; } = true;
         public bool AutoRebuild { get; set; } = true;
 
-        /// <summary>이 내구도 미만이면 정비/재건축 대상.</summary>
+        /// <summary>기준 % (30~90). 내구도가 최대 내구도의 이 % 미만이면 정비/재건축 대상.</summary>
         public float Threshold
         {
             get => _threshold;
@@ -83,13 +86,13 @@ namespace SpaceStation.Simulation
             _candidates.Clear();
             foreach (var info in _sim.Durability.Modules)
             {
-                if (info.Current < _threshold && !_sim.Damage.IsDamaged(info.Module) && _sim.IsRemovableKind(info.Module))
+                if (NeedsWork(info, _threshold) && !_sim.Damage.IsDamaged(info.Module) && _sim.IsRemovableKind(info.Module))
                     _candidates.Add(info);
             }
-            _candidates.Sort((a, b) => a.Current.CompareTo(b.Current));
+            _candidates.Sort((a, b) => Ratio(a).CompareTo(Ratio(b)));
             foreach (var info in _candidates)
             {
-                bool rebuild = _sim.Durability.MaxAfterMaintenance(info) < _threshold;
+                bool rebuild = ShouldRebuild(_sim.Durability.MaxAfterMaintenance(info), _threshold);
                 if (rebuild && _sim.CanRebuildKind(info.Module))
                     _jobs.Add(new Job(info.Module, true));
                 else if (info.Current < info.Max - 1e-4f)
@@ -97,6 +100,16 @@ namespace SpaceStation.Simulation
             }
             return _jobs;
         }
+
+        /// <summary>내구도가 최대 내구도의 기준% 미만인지.</summary>
+        public static bool NeedsWork(DurabilityInfo info, float thresholdPercent)
+            => info.Max > 0f && info.Current < info.Max * thresholdPercent / 100f;
+
+        /// <summary>정비 후 최대 내구도가 새 모듈의 기준% 미만이면 재건축.</summary>
+        public static bool ShouldRebuild(float maxAfterMaintenance, float thresholdPercent)
+            => maxAfterMaintenance < DurabilityInfo.FullDurability * thresholdPercent / 100f;
+
+        private static float Ratio(DurabilityInfo info) => info.Max > 0f ? info.Current / info.Max : 0f;
 
         public List<ResourceAmount> CostOf(Job job)
             => job.Rebuild ? _sim.GetRebuildCost(job.Module) : _sim.Durability.GetMaintenanceCost(job.Module);

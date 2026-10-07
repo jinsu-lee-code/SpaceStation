@@ -214,7 +214,8 @@ namespace SpaceStation.Building
         {
             _hasTarget = false;
             var ray = _camera.ScreenPointToRay(screenPosition);
-            if (!Physics.Raycast(ray, out var hit, _maxRayDistance, _moduleMask, QueryTriggerInteraction.Ignore))
+            // 배치는 칸 상자(Visual)로 면을 판정한다 — 모델 모양 Pick 콜라이더(12-0)는 제외
+            if (!Physics.Raycast(ray, out var hit, _maxRayDistance, ModulePick.PlacementMask(_moduleMask), QueryTriggerInteraction.Ignore))
                 return;
 
             var hitCell = GridConfig.GetHitCell(hit.point, hit.normal);

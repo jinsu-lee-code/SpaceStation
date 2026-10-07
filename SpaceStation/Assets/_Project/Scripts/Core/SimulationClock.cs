@@ -6,7 +6,7 @@ namespace SpaceStation.Core
     /// <summary>
     /// <see cref="TickClock"/>을 소유하고 매 프레임 실제 경과 시간을 넘긴다.
     /// Time.timeScale은 건드리지 않는다 (일시정지 중에도 카메라·건설은 동작).
-    /// 임시 키 (2-6 HUD 전까지): P 일시정지 / F1·F2·F3 배속 프리셋
+    /// 키(<see cref="KeyBindings"/>, 기본값 12-0): Space 일시정지 / Tab 배속 순환 / F1·F2·F3 배속 프리셋
     /// </summary>
     [DefaultExecutionOrder(-50)]
     public sealed class SimulationClock : MonoBehaviour
@@ -54,6 +54,17 @@ namespace SpaceStation.Core
             _clock.SetPaused(false);
         }
 
+        /// <summary>지금 배속에 해당하는 프리셋 번호 (없으면 0).</summary>
+        private int CurrentPresetIndex()
+        {
+            for (int i = 0; i < _speedPresets.Length; i++)
+            {
+                if (Mathf.Approximately(_speedPresets[i], _clock.Speed))
+                    return i;
+            }
+            return 0;
+        }
+
         private void HandleDebugKeys()
         {
             var keyboard = Keyboard.current;
@@ -62,6 +73,8 @@ namespace SpaceStation.Core
 
             if (KeyBindings.WasPressed(GameAction.Pause))
                 _clock.TogglePause();
+            if (KeyBindings.WasPressed(GameAction.SpeedCycle))
+                SetSpeedPreset((CurrentPresetIndex() + 1) % _speedPresets.Length); // 12-0: 1x → 2x → 4x → 1x
             if (KeyBindings.WasPressed(GameAction.Speed1))
                 SetSpeedPreset(0);
             if (KeyBindings.WasPressed(GameAction.Speed2))

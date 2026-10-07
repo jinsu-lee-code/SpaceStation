@@ -56,6 +56,7 @@ namespace SpaceStation.Editor
                 log.Add(model != null ? key + "(모델)" : key);
             }
             AssetDatabase.SaveAssets();
+            ModulePickSetup.ApplyAll(); // 12-0: 다시 조립한 프리팹에 선택용 콜라이더
             Debug.Log("[StationArtBuilder] 조립: " + string.Join(", ", log));
         }
 

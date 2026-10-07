@@ -129,9 +129,13 @@ namespace SpaceStation.Building
 
         private ModuleInstance PickModule(Vector2 screenPosition)
         {
+            // 12-0 (U-5): 모델 모양(Pick 콜라이더)으로 판정, 맞은 콜라이더의 모듈 뷰에서 모듈을 찾는다
             var ray = _camera.ScreenPointToRay(screenPosition);
-            if (!Physics.Raycast(ray, out var hit, _maxRayDistance, _moduleMask, QueryTriggerInteraction.Ignore))
+            if (!Physics.Raycast(ray, out var hit, _maxRayDistance, ModulePick.SelectionMask(_moduleMask), QueryTriggerInteraction.Ignore))
                 return null;
+            var view = hit.collider.GetComponentInParent<ModuleView>();
+            if (view != null && view.Module != null)
+                return view.Module;
             _station.Grid.TryGetModule(GridConfig.GetHitCell(hit.point, hit.normal), out var module);
             return module;
         }
