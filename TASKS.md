@@ -803,7 +803,8 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
       - 레퍼런스 치수 (원본 측정): 키 약 1.3m, 골반 높이 0.49(보통) / 0.58(큰 체형), 머리 본 0.83 / 0.88. 게임에서는 1.2배
       - 레퍼런스 = **큰 체형 2종만** (`Free Man Tall` · `Free Woman Tall`, 2026-10-07). 보통 체형은 쓰지 않음
       - [x] 1단계 기본 몸 (2026-10-07): 원본 Tall 2종을 Blender에 레퍼런스로만 불러와 실루엣 · 비율을 본떠 새로 모델링(정점 · 토폴로지는 복사하지 않음), 남 · 여 2종
-        - 레퍼런스: Unity에서 Tall 프리팹을 BakeMesh해 scratchpad 텍스트로 내보내고, Blender 텍스트 `resident2_ref`의 `load_refs()`로 불러옴. **저장 전 `remove_refs()`로 반드시 지움** (Interior_Kit.blend도 공개 저장소에 올라감)
+        - 레퍼런스: Unity 메뉴 `SpaceStation/Interior/Export Resident Reference`가 Tall 프리팹을 BakeMesh해 `BlenderWork/_ref/`(.gitignore)에 텍스트로 쓰고, Blender 텍스트 `resident2_ref`의 `load_refs()`가 .blend 옆 `_ref`에서 불러옴. **저장 전 `remove_refs()`로 반드시 지움** (Interior_Kit.blend도 공개 저장소에 올라감)
+        - 다른 PC에서 이어 하기: 에셋 스토어에서 "Little Guys - Free Sample"을 받아 기본 위치(`Assets/LuceedStudio`)에 넣음 → Unity에서 위 메뉴 실행 → Blender에서 `load_refs()`. 에셋 스토어 패키지는 GUID가 같아서 씬의 `_residentModels` 연결도 그대로 살아남 (5단계 전까지 게임 속 주민은 원본 모델)
         - 만드는 법 (`resident2_common` · `resident2_builder`): 부위마다 본 선을 따라 고리(16칸)를 놓고 바깥에서 안쪽으로 광선을 쏴 원본 겉면까지 거리 = 반지름(안에서 밖으로 쏘면 옷 안쪽 면에 닿아 가늘어졌음), 이웃 칸으로 매끈하게. 몸통 · 팔 · 손(장갑 모양) · 다리 · 발을 합쳐 복셀 리메시(0.007) → 다듬기 → 약 3000정점으로 줄임 = 이음매 없는 한 덩어리 몸
         - 머리: 머리 가운데서 광선으로 본뜬 구 격자(28×20), 머리카락 자리는 1.5cm 안쪽(두피 — 머리 파츠가 덮음), 옆머리 자리는 볼 쪽으로 줄임, 귀 따로. 여성도 같은 머리 (원본도 머리 본 위치가 같음)
         - 리그 `R2M_Rig` · `R2W_Rig`: 원본 본 위치에 Unity 사람형 자동 매핑 이름(Hips · Spine · Chest · UpperChest · Neck · Head · Left/Right Shoulder · UpperArm · LowerArm · Hand · UpperLeg · LowerLeg · Foot · Toes, 22개) → 기존 `ResidentPoser`(HumanBodyBones)를 그대로 쓸 수 있게. 몸 가중치는 자동(열 확산), 머리는 Head 본 하나. 몸 + 머리 한 메시(`R2M_Body` · `R2W_Body`, 약 6200면)
