@@ -1,9 +1,10 @@
 import bpy, os, math, sys
 from mathutils import Vector
 
-SRC = r"C:\Users\mbc\Desktop\Unity\SpaceStation\BlenderWork\AI\glb"
-OUT = r"C:\Users\mbc\AppData\Local\Temp\claude\C--Users-mbc-Desktop-Unity\a19b4944-6261-47b9-adf4-560cc99c115f\scratchpad"
+SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "glb")
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "preview")   # git 제외 (glb/ 옆)
 
+os.makedirs(OUT, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 sc = bpy.context.scene
 sc.render.engine = 'BLENDER_WORKBENCH'
