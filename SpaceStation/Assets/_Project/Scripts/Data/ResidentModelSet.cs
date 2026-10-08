@@ -38,6 +38,8 @@ namespace SpaceStation.Data
         [SerializeField] private Texture2D[] _faceParts = Array.Empty<Texture2D>();
         [SerializeField] private Texture2D[] _clothTextures = Array.Empty<Texture2D>();
         [SerializeField] private GarmentDef[] _garments = Array.Empty<GarmentDef>();
+        [Tooltip("모델 원래 크기에서 눈 높이 (m, Blender `resident2_face` EYE_Z) — 인물 크기 = 목표 눈 높이 ÷ 이 값")]
+        [SerializeField] private float _eyeHeight = 0.975f;
 
         [Header("머리 조합 (앞 · 옆 · 뒤)")]
         [SerializeField] private string[] _manFront = { "blunt", "swept", "up" };
@@ -58,6 +60,7 @@ namespace SpaceStation.Data
         public GameObject Woman => _woman;
         public GameObject Hair => _hair;
         public Texture2D HairTexture => _hairTexture;
+        public float EyeHeight => _eyeHeight;
         public IReadOnlyList<GarmentDef> Garments => _garments;
         public bool IsValid => _man != null && _woman != null && _hair != null && _garments.Length > 0;
 

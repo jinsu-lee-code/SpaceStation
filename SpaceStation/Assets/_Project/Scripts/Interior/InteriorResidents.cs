@@ -24,8 +24,8 @@ namespace SpaceStation.Interior
         public float TagFontSize = 1.6f;
 
         [Header("인물 (11-11b 자체 제작 모델)")]
-        [Tooltip("모델 크기 배율 (모델 키 약 1.2m → 1.2배 ≈ 1.45m)")]
-        public float ModelScale = 1.2f;
+        [Tooltip("선 자세 눈 높이 (m) — 모델 크기를 이 높이에 맞춤. 플레이어 시선(FirstPersonController.EyeHeight 1.6)과 같게 (예전 1.2배 ≈ 1.17m는 건물에 비해 작았음)")]
+        public float EyeHeight = 1.6f;
         [Tooltip("작업복(상하 일체)을 입는 비율")]
         [Range(0f, 1f)] public float SuitShare = 0.2f;
         [Tooltip("여자 모델을 쓰는 이름 (명단 이름의 앞부분)")]
@@ -215,7 +215,7 @@ namespace SpaceStation.Interior
                 position.y -= _tuning.SitDrop;
             var rotation = instance.rotation * Quaternion.Euler(0f, spot.Yaw, 0f);
             var figure = ResidentFigure.Create(_set, look, colors, parent != null ? parent : transform, position, rotation, spot.Pose,
-                _tuning.ModelScale, _tuning.SitDrop, _material);
+                _tuning.EyeHeight / Mathf.Max(0.1f, _set.EyeHeight), _tuning.SitDrop, _material);
             figure.name = "Resident_" + id;
             figure.Configure(Label(resident, status, config), id * 1.37f, _eye, _tuning.WatchRange);
             _figures.Add(figure);

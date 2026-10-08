@@ -71,6 +71,7 @@ namespace SpaceStation.Interior
                 if (pose == ResidentPose.Sit)
                     ResidentPoser.SeatOn(animator, root.transform, instance.transform, sitDrop, scale);
             }
+            FitBounds(root.transform, instance, scale);
             if (figure._head != null)
                 figure._headBase = Quaternion.Inverse(root.transform.rotation) * figure._head.rotation;
             if (figure._chest != null)
@@ -180,6 +181,27 @@ namespace SpaceStation.Interior
             if (head != null)
                 go.transform.SetParent(head, true);
             return mr;
+        }
+
+        /// <summary>
+        /// 그리기 범위를 인물 전체 상자로 (자세를 잡으면 메시가 쉬는 자세 범위를 벗어남 — 앉은 다리의 신발이 화면 가장자리에서 사라졌음).
+        /// 원점(발 사이 바닥)부터 높이 1.5 · 폭 1.2 · 깊이 1.2 (모델 원래 크기 기준, 키 약 1.2).
+        /// </summary>
+        private static void FitBounds(Transform root, GameObject instance, float scale)
+        {
+            var center = root.position + root.up * (0.75f * scale);
+            var half = new Vector3(0.6f, 0.75f, 0.6f) * scale;
+            foreach (var smr in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                var space = smr.rootBone != null ? smr.rootBone : smr.transform;
+                var b = new Bounds(space.InverseTransformPoint(center), Vector3.zero);
+                for (int i = 0; i < 8; i++)
+                {
+                    var corner = new Vector3((i & 1) == 0 ? -half.x : half.x, (i & 2) == 0 ? -half.y : half.y, (i & 4) == 0 ? -half.z : half.z);
+                    b.Encapsulate(space.InverseTransformPoint(center + root.rotation * corner));
+                }
+                smr.localBounds = b;
+            }
         }
 
         private static void Apply(Renderer r, Texture tex, Color color)
