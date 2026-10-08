@@ -907,6 +907,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
             - 미니스커트 셰이프키 `Sit` 값이 1로 남아 선 자세에서 다리 사이가 패임 → 만든 뒤 0
           - 형태 수정: 작업복 · 긴바지 다리가 작업화 윗단을 뚫음 → 작업화 윗단 아래는 띄움을 줄임(작업복 0.008 → 0.0035, 바지 −1.2mm, 밑단 띠 없음)
           - 확인: 남녀 옷 조합 8가지 앞 · 뒤 + 부위 확대 (회색 미리보기 `PREVIEW_GREY`로 어두운 옷 무늬 확인)
+          - 운동화 낮춤 (피드백 "장화처럼 다리를 많이 덮음"): 윗단 = 복사뼈 위 3.5cm 평면 → 복사뼈 아래 둘레선(`shoe_collar`: `shoe_top` = 발목 본 − 1.2cm, 뒤꿈치 쪽 +0.8cm · 발등 쪽 −0.8cm, 곡선 자르기). 몸 구역에 `heel`(운동화 윗단 아래 1.5cm ~ 바지 밑단) 추가 — 운동화는 `foot`만, 작업화는 `heel`까지 가림. 끈 높이 제한 · 텍스처 윗단 패딩도 같은 둘레선
       - **이어 하기 안내 (2026-10-08 작업 중단 시점, 다른 PC용)**
         - 현재 위치 (2026-10-08 갱신): 4단계 ① 형태 · ② 텍스처 끝(텍스처 사용자 피드백 받기 전). 다음 = 5단계 Unity 연동. 사용자가 피드백을 주면 그것부터. 옷 텍스처 = Blender 텍스트 `resident2_clothtex` (`bake(prefix, 이름)` — 옷 형태를 다시 만들면 UV가 바뀌므로 텍스처도 다시 굽기)
         - 모든 작업물은 저장소에 있음: `BlenderWork/Interior_Kit.blend`(몸 `R2M_/R2W_Body` · `Rig`, 머리 `R2H_*` 40조합(컬렉션 `INT_Resident2Hair`), 옷 `R2M_C_*` · `R2W_C_*`(`INT_Resident2Cloth`), 미리보기 재질), 얼굴 조각 `Art/Textures/Resident/Face/*.png`, 머리결 `Art/Textures/Resident/Hair/hair_strands.png`
