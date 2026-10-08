@@ -23,11 +23,11 @@ namespace SpaceStation.Interior
         public float SitDrop = 0.41f;
         public float TagFontSize = 1.6f;
 
-        [Header("인물 (LuceedStudio Little Guys)")]
-        [Tooltip("모델 크기 배율 (원본 키 약 1.3m → 1.2배 ≈ 1.56 · 큰 체형 1.63m)")]
+        [Header("인물 (11-11b 자체 제작 모델)")]
+        [Tooltip("모델 크기 배율 (모델 키 약 1.2m → 1.2배 ≈ 1.45m)")]
         public float ModelScale = 1.2f;
-        [Tooltip("큰 체형을 쓰는 비율")]
-        [Range(0f, 1f)] public float TallShare = 0.5f;
+        [Tooltip("작업복(상하 일체)을 입는 비율")]
+        [Range(0f, 1f)] public float SuitShare = 0.2f;
         [Tooltip("여자 모델을 쓰는 이름 (명단 이름의 앞부분)")]
         public string[] WomanNames =
         {
@@ -53,6 +53,18 @@ namespace SpaceStation.Interior
             new Color(0.3f, 0.36f, 0.3f), new Color(0.12f, 0.12f, 0.14f),
         };
         public Color[] ShoeColors = { new Color(0.92f, 0.92f, 0.94f), new Color(0.18f, 0.18f, 0.2f), new Color(0.45f, 0.3f, 0.2f) };
+        [Tooltip("속옷 (치마와 함께)")]
+        public Color[] UnderColors = { new Color(0.96f, 0.96f, 0.97f), new Color(0.98f, 0.85f, 0.88f), new Color(0.82f, 0.88f, 0.98f) };
+        public Color[] SkinColors =
+        {
+            new Color(0.98f, 0.84f, 0.72f), new Color(0.95f, 0.78f, 0.64f), new Color(0.86f, 0.66f, 0.5f),
+            new Color(0.7f, 0.5f, 0.36f), new Color(0.52f, 0.36f, 0.26f),
+        };
+        public Color[] EyeColors =
+        {
+            new Color(0.42f, 0.26f, 0.15f), new Color(0.2f, 0.14f, 0.1f), new Color(0.25f, 0.45f, 0.65f),
+            new Color(0.3f, 0.5f, 0.3f), new Color(0.5f, 0.42f, 0.3f),
+        };
         public Color[] HairColors =
         {
             new Color(0.1f, 0.08f, 0.07f), new Color(0.3f, 0.19f, 0.11f), new Color(0.48f, 0.32f, 0.18f),
@@ -71,7 +83,8 @@ namespace SpaceStation.Interior
         private StationController _station;
         private InteriorBuilder _builder;
         private InteriorResidentTuning _tuning;
-        private GameObject[] _models; // Man, Man Tall, Woman, Woman Tall
+        private ResidentModelSet _set;
+        private ResidentLookTables _tables;
         private Material _material;
         private TMP_FontAsset _font;
         private Transform _eye;
@@ -87,7 +100,7 @@ namespace SpaceStation.Interior
         public int Count => _figures.Count;
 
         public static InteriorResidents Create(Transform parent, StationController station, InteriorBuilder builder, InteriorResidentTuning tuning,
-            GameObject[] models, Material material, TMP_FontAsset font, Transform eye)
+            ResidentModelSet set, Material material, TMP_FontAsset font, Transform eye)
         {
             var go = new GameObject("InteriorResidents");
             go.transform.SetParent(parent, false);
@@ -95,7 +108,8 @@ namespace SpaceStation.Interior
             r._station = station;
             r._builder = builder;
             r._tuning = tuning ?? new InteriorResidentTuning();
-            r._models = models;
+            r._set = set;
+            r._tables = set != null ? set.Tables() : null;
             r._material = material;
             r._font = font;
             r._eye = eye;
@@ -111,7 +125,7 @@ namespace SpaceStation.Interior
             }
             _figures.Clear();
             HideTag();
-            if (layout == null || _station == null || _station.Simulation == null || _models == null || _models.Length < 4)
+            if (layout == null || _station == null || _station.Simulation == null || _set == null || !_set.IsValid)
                 return;
             var sim = _station.Simulation;
             var roster = sim.Residents;
@@ -185,30 +199,34 @@ namespace SpaceStation.Interior
         private void Spawn(Resident resident, ResidentSpot spot, Transform instance, Transform parent, string status, ResidentConfig config)
         {
             int id = resident.Id;
-            var model = Model(resident);
-            if (model == null)
-                return;
+            var look = ResidentLooks.Choose(id, IsWoman(resident), _tables, _tuning.SuitShare);
+            var colors = new ResidentColors
+            {
+                Skin = Pick(_tuning.SkinColors, look.Skin),
+                Eye = Pick(_tuning.EyeColors, look.EyeColor),
+                Hair = Pick(_tuning.HairColors, look.HairColor),
+                Top = ShirtColor(resident, look.TopColor),
+                Bottom = Pick(_tuning.PantsColors, look.BottomColor),
+                Shoes = Pick(_tuning.ShoeColors, look.ShoeColor),
+                Under = Pick(_tuning.UnderColors, look.TopColor + look.BottomColor),
+            };
             var position = instance.TransformPoint(spot.Position);
             if (spot.Pose == ResidentPose.Sit)
                 position.y -= _tuning.SitDrop;
             var rotation = instance.rotation * Quaternion.Euler(0f, spot.Yaw, 0f);
-            var figure = ResidentFigure.Create(model, parent != null ? parent : transform, position, rotation, spot.Pose, _tuning.ModelScale, _tuning.SitDrop, _material);
+            var figure = ResidentFigure.Create(_set, look, colors, parent != null ? parent : transform, position, rotation, spot.Pose,
+                _tuning.ModelScale, _tuning.SitDrop, _material);
             figure.name = "Resident_" + id;
-            var source = model.GetComponentInChildren<SkinnedMeshRenderer>()?.sharedMaterial?.mainTexture;
-            var outfit = ResidentOutfits.Get(source, ShirtColor(resident), Pick(_tuning.PantsColors, id * 7 + 3),
-                Pick(_tuning.ShoeColors, id * 5 + 1), Pick(_tuning.HairColors, id * 13 + 5));
-            figure.Configure(Label(resident, status, config), outfit, id * 1.37f, _eye, _tuning.WatchRange);
+            figure.Configure(Label(resident, status, config), id * 1.37f, _eye, _tuning.WatchRange);
             _figures.Add(figure);
         }
 
-        /// <summary>모델: 이름으로 남 · 여 (애매한 이름은 주민 번호), 체형(보통 · 큰)은 주민 번호.</summary>
-        private GameObject Model(Resident r)
+        /// <summary>성별: 이름으로 (주민 데이터에 성별이 없음), 애매한 이름은 주민 번호.</summary>
+        private bool IsWoman(Resident r)
         {
             string given = r.Name != null && r.Name.Contains(" ") ? r.Name.Substring(0, r.Name.IndexOf(' ')) : r.Name;
-            bool woman = Array.IndexOf(_tuning.WomanNames, given) >= 0
-                         || (Array.IndexOf(_tuning.NeutralNames, given) >= 0 && ResidentPlacementRules.Share(r.Id * 3 + 1) < 0.5f);
-            bool tall = ResidentPlacementRules.Share(r.Id * 7 + 2) < _tuning.TallShare;
-            return _models[(woman ? 2 : 0) + (tall ? 1 : 0)];
+            return Array.IndexOf(_tuning.WomanNames, given) >= 0
+                   || (Array.IndexOf(_tuning.NeutralNames, given) >= 0 && ResidentPlacementRules.Share(r.Id * 3 + 1) < 0.5f);
         }
 
         private static Color Pick(Color[] colors, int seed)
@@ -219,7 +237,7 @@ namespace SpaceStation.Interior
         }
 
         /// <summary>셔츠: 일터 특성 색 (기술 주황 · 과학 흰색 · 원예 초록), 없으면 평상복 중 하나.</summary>
-        private Color ShirtColor(Resident r)
+        private Color ShirtColor(Resident r, int seed)
         {
             foreach (var t in r.Traits)
             {
@@ -231,7 +249,7 @@ namespace SpaceStation.Interior
                     case ResidentTrait.Gardener: return _tuning.ShirtGarden;
                 }
             }
-            return Pick(_tuning.ShirtCasual, r.Id * 11 + 4);
+            return Pick(_tuning.ShirtCasual, seed);
         }
 
         private static string Status(Resident r, ModuleInstance room, Placement p, bool day)

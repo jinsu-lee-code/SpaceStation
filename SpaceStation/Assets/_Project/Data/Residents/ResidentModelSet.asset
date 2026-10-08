@@ -1,0 +1,194 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57407dd63da579443b7e068eea821e06, type: 3}
+  m_Name: ResidentModelSet
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ResidentModelSet
+  _man: {fileID: 919132149155446097, guid: 0f052a0605677cb498b3201dd91b3f84, type: 3}
+  _woman: {fileID: 919132149155446097, guid: 546e75b7cdf675242a329d52d78efa08, type: 3}
+  _hair: {fileID: 919132149155446097, guid: 9dd770fb9c3dfa143a51b1a36fc1e7b7, type: 3}
+  _hairTexture: {fileID: 2800000, guid: 1e3579cca02a0eb47adc2f2bd8d768da, type: 3}
+  _faceParts:
+  - {fileID: 2800000, guid: a628a4fe43aa8b54b9fa3ab90c6e5ed7, type: 3}
+  - {fileID: 2800000, guid: f3da2bac06647774883f79e19b4086af, type: 3}
+  - {fileID: 2800000, guid: 00dd64c7f15474d45a805434404832ff, type: 3}
+  - {fileID: 2800000, guid: 366d1551f2cc0ca42af052201743c1d7, type: 3}
+  - {fileID: 2800000, guid: b66bb6334f008244c971b695d503516a, type: 3}
+  - {fileID: 2800000, guid: 5ce963f2349e43f4c99962550f0dc2f1, type: 3}
+  - {fileID: 2800000, guid: 8729aed4a895ece47980c1d52a706f44, type: 3}
+  - {fileID: 2800000, guid: 1cfb914dea9c9c540af7493c840b522d, type: 3}
+  - {fileID: 2800000, guid: 5be69f933f797c34aa55d9abb3a0a981, type: 3}
+  - {fileID: 2800000, guid: 23175a6a631ab0346803a08a1bafff0e, type: 3}
+  - {fileID: 2800000, guid: 55b1f0885993c9f4596081317df5dd28, type: 3}
+  - {fileID: 2800000, guid: 1ee60a5f7c724114e9c23e678b3a0bef, type: 3}
+  - {fileID: 2800000, guid: 95afdd4f42a77a34990b26a880aba8d8, type: 3}
+  - {fileID: 2800000, guid: c2f5bed99081c0a40a772fe6926aa58f, type: 3}
+  - {fileID: 2800000, guid: dcbc3222d1cfb5f4faee506b38fc2e7e, type: 3}
+  - {fileID: 2800000, guid: 59678436465c2cc40ad6b6fe2867f3a7, type: 3}
+  - {fileID: 2800000, guid: 33fa9cf742a635149873cbe12e4b05a3, type: 3}
+  _clothTextures:
+  - {fileID: 2800000, guid: 46b4e65eeb2b66240885c1fb258018a0, type: 3}
+  - {fileID: 2800000, guid: 1d2be648f0755534884897ecae7f4a5f, type: 3}
+  - {fileID: 2800000, guid: 7638d97c41f47554196bf7796bfb9d32, type: 3}
+  - {fileID: 2800000, guid: a28e689920cd5bd4cb97a9ae1a9cf4e7, type: 3}
+  - {fileID: 2800000, guid: 9cdff5ed1b63c084ca84d6a69d131d6a, type: 3}
+  - {fileID: 2800000, guid: b287ad8d25be69049abb9eeb35b37e37, type: 3}
+  - {fileID: 2800000, guid: 50efcaa789ad9df47b5c55df7bcd696c, type: 3}
+  - {fileID: 2800000, guid: 37c3e45b1debb384d958b8f8f1095811, type: 3}
+  - {fileID: 2800000, guid: 37fb02ae925c454439b098fafb139692, type: 3}
+  - {fileID: 2800000, guid: 4b80661f1548b5a4d81739d073438ff0, type: 3}
+  - {fileID: 2800000, guid: 8f5dad659fc440643ae268bdf5906a72, type: 3}
+  - {fileID: 2800000, guid: d7c56aed9b0e3e049b5fd7f4fa8591f8, type: 3}
+  - {fileID: 2800000, guid: 1e1f5ac525f00a6499d4460544f7cd81, type: 3}
+  - {fileID: 2800000, guid: ce179014fc8cee040a12ceaae4f5019c, type: 3}
+  - {fileID: 2800000, guid: b5c98173082332041bdb6f694d375c8d, type: 3}
+  - {fileID: 2800000, guid: 7eae6e464b8868745baae5b9366736ad, type: 3}
+  - {fileID: 2800000, guid: de745af0b22e7844cb6faff78487a709, type: 3}
+  - {fileID: 2800000, guid: 003b83dc50c66d5438da803989a8dcb5, type: 3}
+  - {fileID: 2800000, guid: 425ef005dc981a148b68cd40e230fccd, type: 3}
+  _garments:
+  - Name: tshirt
+    Slot: 0
+    Hides:
+    - chest
+    Man: 1
+    Woman: 1
+    With: 
+    SitShape: 
+  - Name: shirt
+    Slot: 0
+    Hides:
+    - chest
+    - arm
+    Man: 1
+    Woman: 1
+    With: 
+    SitShape: 
+  - Name: hoodie
+    Slot: 0
+    Hides:
+    - chest
+    - arm
+    Man: 1
+    Woman: 1
+    With: 
+    SitShape: 
+  - Name: pants
+    Slot: 1
+    Hides:
+    - hips
+    - thigh
+    - shin
+    Man: 1
+    Woman: 1
+    With: 
+    SitShape: 
+  - Name: shorts
+    Slot: 1
+    Hides:
+    - hips
+    Man: 1
+    Woman: 1
+    With: 
+    SitShape: 
+  - Name: skirt
+    Slot: 1
+    Hides: []
+    Man: 0
+    Woman: 1
+    With: panties
+    SitShape: Sit
+  - Name: skirt_h
+    Slot: 1
+    Hides:
+    - hips
+    Man: 0
+    Woman: 1
+    With: panties
+    SitShape: 
+  - Name: panties
+    Slot: 4
+    Hides: []
+    Man: 0
+    Woman: 1
+    With: 
+    SitShape: 
+  - Name: jumpsuit
+    Slot: 2
+    Hides:
+    - chest
+    - arm
+    - hips
+    - thigh
+    - shin
+    Man: 1
+    Woman: 1
+    With: 
+    SitShape: 
+  - Name: sneakers
+    Slot: 3
+    Hides:
+    - foot
+    Man: 1
+    Woman: 1
+    With: 
+    SitShape: 
+  - Name: boots
+    Slot: 3
+    Hides:
+    - foot
+    - heel
+    - ankle
+    - shin
+    Man: 1
+    Woman: 1
+    With: 
+    SitShape: 
+  _manFront:
+  - blunt
+  - swept
+  - up
+  _manSide:
+  - short
+  _manBack:
+  - short
+  - bob
+  _womanFront:
+  - blunt
+  - swept
+  - part
+  - up
+  _womanSide:
+  - short
+  - lock
+  _womanBack:
+  - short
+  - bob
+  - long
+  - ponytail
+  - updo
+  _eyes:
+  - round
+  - sleepy
+  - smile
+  - sharp
+  _brows:
+  - straight
+  - arched
+  - thick
+  _mouths:
+  - smile
+  - flat
+  - open
+  _marks:
+  - none
+  - freckles
+  - blush

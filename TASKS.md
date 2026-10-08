@@ -926,7 +926,16 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
         - 방침 (2026-10-07 결정) — **옷에 가려지는 몸은 감춰 뚫림을 미리 막는다**: 옷 목록과 끝단 선을 먼저 정하고, 몸을 그 경계 기준 구역(몸통 · 위팔 · 아래팔 · 허벅지 · 무릎 아래 · 발 등)으로 나눈다. 몸에서 영구히 지우지 않는다 (반바지 · 반팔이면 보여야 함). 옷 파츠마다 "가리는 구역" 목록 → Unity에서 그 구역만 끔
         - 자르는 선은 옷 끝단보다 1~2cm 안쪽 (옷이 몸 끝을 살짝 덮어 틈이 안 보이게)
         - 옷끼리 뚫림 대비: 옷은 몸에서 일정 간격 띄워 만들고, 가중치는 몸에서 그대로 옮김(같은 자세에서 같이 움직임). 겹치는 옷끼리도 "가리는 구역" 규칙 (예: 상의가 하의 허리 부분을 끔)
-      - [ ] 5단계 Unity 연동: FBX 내보내기, `ResidentFigure` 자세를 이름 기반 본으로(HumanBodyBones 의존 제거), `ResidentOutfits`를 새 아틀라스 칸으로, 파츠 조합(주민 번호), 옷 파츠의 "가리는 구역"대로 몸 구역 끄기, `ResidentFigureSetup`가 LuceedStudio 대신 새 모델 연결, 테스트 · 플레이 확인 · 커밋
+      - [x] 5단계 Unity 연동 (2026-10-08) — 플레이 확인 대기
+        - 내보내기 (Blender 텍스트 `resident2_export`, `export_all()` → `Art/Models/Resident/`): `SM_ResidentMan` · `SM_ResidentWoman` = 리그 + 몸을 구역별로 나눈 메시 `R2?_B_구역`(10개, 같은 몸의 면을 나눈 것) + 옷 `R2?_C_이름`, `SM_ResidentHair` = 머리 40조합 `R2H_앞_옆_뒤_x`(리그 없음). 축 = 내부 키트와 같음(−Z 앞 · Y 위), 리그라 bake_space_transform 끔, 셰이프키 유지
+        - 데이터 `ResidentModelSet` (`Data/Residents/ResidentModelSet.asset`): 모델 3 · 얼굴 조각 17 · 옷 텍스처 19 · 머리결 + 옷 표(`GarmentDef` — 자리 · 가리는 몸 구역 · 성별 · 함께 입는 옷 · 앉기 셰이프키, Blender HIDES · POOLS · WITH와 같음) + 머리 · 얼굴 조각 목록. 메뉴 `SpaceStation/Interior/Wire Resident Models`가 FBX 가져오기 설정(남 · 여 Humanoid — 본 이름이 Unity 자동 매핑 이름, 재질 안 가져옴)까지 하고 InteriorMode에 연결
+        - 외형 `ResidentLooks`(순수, 테스트 6개): 주민 번호로 머리(성별 목록의 앞 · 옆 · 뒤) · 옷(작업복 `SuitShare` 20% 또는 상의 + 하의, 신발, 치마 → 팬티) · 얼굴 조각 · 색 번호. 번호 섞기는 비트를 고루 섞는 해시(곱하기만 하면 번호 간격이 일정할 때 같은 머리가 반복됐음)
+        - `ResidentFigure`: 성별 모델을 놓고 입은 옷이 가리는 몸 구역 메시 · 안 입은 옷 메시를 지움, 머리 메시를 쉬는 자세 그대로 놓고 Head 본에 붙임 → 자세(`ResidentPoser`, 그대로) · 고개 돌림을 따라감. 미니스커트는 앉기에서 블렌드셰이프 `Sit` 100. 이름표 높이 = 머리 메시 위
+        - 텍스처 `ResidentTextures`(CPU 합성 · 캐시): 얼굴 = 1024 아틀라스를 피부색으로 칠하고 왼쪽 위 사분면에 홍조 → 점 → 홍채 × 눈동자색 × 1.6 → 눈 → 눈썹 × 머리색 × 2.2 → 입 (Blender `compose`와 같음), 옷 = `lerp(무늬, 무늬 × 옷색, A)`, 머리 = 결 텍스처 + `_BaseColor` 머리색. 모두 공유 재질 `M_ResidentLit`(URP Lit) + MaterialPropertyBlock
+        - 색표 (`InteriorResidentTuning`): 피부 5 · 눈동자 5 · 속옷 3 추가, 상의 = 일터 특성 색(기술 주황 · 과학 흰색 · 원예 초록) 또는 평상복. `TallShare` · Luceed 모델 연결 · `ResidentOutfits`(Luceed 아틀라스 칠하기) 삭제 → **LuceedStudio 없이 동작** (레퍼런스 내보내기 메뉴만 원본을 씀)
+        - 확인: 에디터에서 남녀 8명 · 얼굴 4종 렌더(방향 · 자세 · 머리 붙임 · 얼굴 합성 · 옷 색 · 몸 가리기 정상), 테스트 298개 통과
+        - 남은 것: 눈썹이 앞머리 너머로 비치는 덧씌움(ZTest Always 셰이더 — Shader Graph 수동 작업 필요), 치마 일부 점(미니 14 · H라인 4) 가중치 0 → Unity가 첫 본(Hips)에 붙임(문제 없음, 다음에 Blender에서 Hips 1로)
+      - [ ] (이전 계획) 5단계 Unity 연동: FBX 내보내기, `ResidentFigure` 자세를 이름 기반 본으로(HumanBodyBones 의존 제거), `ResidentOutfits`를 새 아틀라스 칸으로, 파츠 조합(주민 번호), 옷 파츠의 "가리는 구역"대로 몸 구역 끄기, `ResidentFigureSetup`가 LuceedStudio 대신 새 모델 연결, 테스트 · 플레이 확인 · 커밋
   - [ ] 11-12 휴대 패드 (U-7): 내부 이동 중 패드를 꺼내 미니맵(현재 위치)을 보고, 밖에서 하던 모듈 조작(선택 · 수리 · 정비 등)도 할 수 있는 인터페이스
 
 ## Phase 12. 지구급 확장 — 버전 1.0.0 (2026-10-07 결정)

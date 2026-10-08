@@ -1,18 +1,26 @@
+using System.Collections.Generic;
 using SpaceStation.Data;
 using UnityEngine;
 
 namespace SpaceStation.Interior
 {
+    /// <summary>주민 한 명의 색 (InteriorResidents가 튜닝 색표에서 고름).</summary>
+    public struct ResidentColors
+    {
+        public Color Skin, Eye, Hair, Top, Bottom, Shoes, Under;
+    }
+
     /// <summary>
-    /// 11-11 주민 인물 하나. LuceedStudio "Little Guys" 모델(사람형 본)을 놓고 본을 돌려 자세(서기 · 앉기 · 작업)를 만든다.
+    /// 11-11 주민 인물 하나. 자체 제작 모델(11-11b, <see cref="ResidentModelSet"/> — 사람형 본)을 놓고 외형(<see cref="ResidentLook"/>)대로
+    /// 몸 구역 · 옷 · 머리를 고르고, 본을 돌려 자세(서기 · 앉기 · 작업)를 만든다.
     /// 걷지 않는다: 숨쉬기(가슴이 살짝 부풂) + 머리를 천천히 두리번 + 가까이 온 플레이어를 바라봄.
-    /// 옷 · 머리 색은 <see cref="ResidentOutfits"/>가 만든 텍스처를 MaterialPropertyBlock(_MainTex)으로 입힌다.
-    /// 처음 만든 Blender 로우폴리 인물은 "살벌해 보인다"는 피드백으로 교체 (2026-10-07).
+    /// 텍스처(얼굴 합성 · 옷색 · 머리색)는 공유 재질 하나에 MaterialPropertyBlock으로.
     /// </summary>
     public sealed class ResidentFigure : MonoBehaviour
     {
         private static readonly int MainTexId = Shader.PropertyToID("_MainTex");
         private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         private Transform _model;
         private Renderer _renderer;
@@ -36,29 +44,28 @@ namespace SpaceStation.Interior
         /// <summary>
         /// 인물을 만든다. 원점 = 발 사이 바닥(앉기는 앉는 면 − <paramref name="sitDrop"/>), 앞 = +z.
         /// </summary>
-        public static ResidentFigure Create(GameObject model, Transform parent, Vector3 position, Quaternion rotation, ResidentPose pose, float scale, float sitDrop, Material material = null)
+        public static ResidentFigure Create(ResidentModelSet set, ResidentLook look, ResidentColors colors, Transform parent,
+            Vector3 position, Quaternion rotation, ResidentPose pose, float scale, float sitDrop, Material material)
         {
             var root = new GameObject("Resident");
             root.transform.SetParent(parent, false);
             root.transform.SetPositionAndRotation(position, rotation);
             var figure = root.AddComponent<ResidentFigure>();
-            var instance = Instantiate(model, root.transform, false);
+            var instance = Instantiate(look.Woman ? set.Woman : set.Man, root.transform, false);
             instance.transform.localPosition = Vector3.zero;
             instance.transform.localRotation = Quaternion.identity;
             instance.transform.localScale = Vector3.one * scale;
             figure._model = instance.transform;
-            figure._renderer = instance.GetComponentInChildren<SkinnedMeshRenderer>();
-            if (figure._renderer is SkinnedMeshRenderer smr)
-                smr.updateWhenOffscreen = false;
-            // 원본 툰 셰이더는 주광(태양)만 받아 내부(태양 꺼짐 · 점광원만)에서 새까맸음 → URP Lit 재질로 바꿔 끼움
-            if (figure._renderer != null && material != null)
-                figure._renderer.sharedMaterial = material;
 
+            Dress(set, look, colors, instance, pose, material);
             var animator = instance.GetComponentInChildren<Animator>();
+            var head = animator != null ? animator.GetBoneTransform(HumanBodyBones.Head) : null;
+            figure._renderer = AttachHair(set, look, colors, instance.transform, head, material);
+
             if (animator != null)
             {
                 ResidentPoser.Apply(animator, root.transform, pose);
-                figure._head = animator.GetBoneTransform(HumanBodyBones.Head);
+                figure._head = head;
                 figure._chest = animator.GetBoneTransform(HumanBodyBones.Chest);
                 animator.enabled = false; // 컨트롤러 없음 — 잡은 자세 그대로
                 if (pose == ResidentPose.Sit)
@@ -78,20 +85,120 @@ namespace SpaceStation.Interior
             return figure;
         }
 
-        public void Configure(string label, Texture outfit, float seed, Transform watcher, float lookRange)
+        public void Configure(string label, float seed, Transform watcher, float lookRange)
         {
             Label = label;
             _seed = seed;
             _watcher = watcher;
             _lookRange = lookRange;
-            if (_renderer != null && outfit != null)
+        }
+
+        /// <summary>
+        /// 모델 속 메시 고르기: 몸 구역 `R2?_B_구역`은 입은 옷이 가리는 구역만 지우고, 옷 `R2?_C_이름`은 입은 것만 남김.
+        /// 얼굴(합성) · 옷(색) 텍스처를 입힘. 미니스커트는 앉기 자세에서 블렌드셰이프로 허벅지 위에 내려앉음.
+        /// </summary>
+        private static void Dress(ResidentModelSet set, ResidentLook look, ResidentColors colors, GameObject instance, ResidentPose pose, Material material)
+        {
+            var hidden = new HashSet<string>();
+            foreach (var name in look.Garments)
             {
-                var block = new MaterialPropertyBlock();
-                _renderer.GetPropertyBlock(block);
-                block.SetTexture(MainTexId, outfit);
-                block.SetTexture(BaseMapId, outfit);
-                _renderer.SetPropertyBlock(block);
+                var g = set.Garment(name);
+                if (g != null)
+                    foreach (var r in g.Hides) hidden.Add(r);
             }
+            var face = ResidentTextures.Face(set.FacePart, look.Eye, look.Brow, look.Mouth, look.Mark, colors.Skin, colors.Eye, colors.Hair);
+            foreach (var smr in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                string n = smr.gameObject.name;
+                int b = n.IndexOf("_B_", System.StringComparison.Ordinal);
+                int c = n.IndexOf("_C_", System.StringComparison.Ordinal);
+                Texture tex = null;
+                if (b >= 0)
+                {
+                    if (hidden.Contains(n.Substring(b + 3)))
+                    {
+                        DestroyNow(smr.gameObject);
+                        continue;
+                    }
+                    tex = face;
+                }
+                else if (c >= 0)
+                {
+                    string garment = n.Substring(c + 3);
+                    if (!look.Garments.Contains(garment))
+                    {
+                        DestroyNow(smr.gameObject);
+                        continue;
+                    }
+                    var def = set.Garment(garment);
+                    tex = ResidentTextures.Cloth(set.ClothTexture(garment, look.Woman), GarmentColor(def, colors));
+                    if (def != null && pose == ResidentPose.Sit && !string.IsNullOrEmpty(def.SitShape) && smr.sharedMesh != null)
+                    {
+                        int k = smr.sharedMesh.GetBlendShapeIndex(def.SitShape);
+                        if (k >= 0)
+                            smr.SetBlendShapeWeight(k, 100f);
+                    }
+                }
+                smr.updateWhenOffscreen = false;
+                if (material != null)
+                    smr.sharedMaterial = material;
+                Apply(smr, tex, Color.white);
+            }
+        }
+
+        private static Color GarmentColor(GarmentDef def, ResidentColors c)
+        {
+            if (def == null)
+                return Color.white;
+            switch (def.Slot)
+            {
+                case GarmentSlot.Top:
+                case GarmentSlot.Suit: return c.Top;
+                case GarmentSlot.Bottom: return c.Bottom;
+                case GarmentSlot.Shoes: return c.Shoes;
+                default: return c.Under;
+            }
+        }
+
+        /// <summary>머리 조합 메시를 머리 모델(`R2H_앞_옆_뒤_x`)에서 찾아 쉬는 자세 그대로 놓고 Head 본에 붙임 (자세 · 고개 돌림을 따라감).</summary>
+        private static Renderer AttachHair(ResidentModelSet set, ResidentLook look, ResidentColors colors, Transform model, Transform head, Material material)
+        {
+            var source = set.Hair != null ? set.Hair.transform.Find("R2H_" + look.Hair + "_x") : null;
+            var mf = source != null ? source.GetComponent<MeshFilter>() : null;
+            if (mf == null)
+                return model.GetComponentInChildren<SkinnedMeshRenderer>();
+            var go = new GameObject("Hair");
+            go.transform.SetParent(model, false);
+            go.transform.localPosition = source.localPosition;
+            go.transform.localRotation = source.localRotation;
+            go.transform.localScale = source.localScale;
+            go.AddComponent<MeshFilter>().sharedMesh = mf.sharedMesh;
+            var mr = go.AddComponent<MeshRenderer>();
+            if (material != null)
+                mr.sharedMaterial = material;
+            Apply(mr, set.HairTexture, colors.Hair);
+            if (head != null)
+                go.transform.SetParent(head, true);
+            return mr;
+        }
+
+        private static void Apply(Renderer r, Texture tex, Color color)
+        {
+            var block = new MaterialPropertyBlock();
+            if (tex != null)
+            {
+                block.SetTexture(MainTexId, tex);
+                block.SetTexture(BaseMapId, tex);
+            }
+            block.SetColor(BaseColorId, color);
+            r.SetPropertyBlock(block);
+        }
+
+        private static void DestroyNow(GameObject go)
+        {
+            go.SetActive(false);
+            if (Application.isPlaying) Destroy(go);
+            else DestroyImmediate(go); // 에디터 미리보기
         }
 
         private void Update()
