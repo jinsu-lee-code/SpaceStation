@@ -217,6 +217,32 @@ namespace SpaceStation.Tests
             Assert.AreEqual(7, fromOld.Residents.Residents.Count);
         }
 
+        [Test]
+        public void Names_WithoutSurnames_AreShortAndUnique_TitleFromWorkTrait()
+        {
+            // 11-11d: 성 목록이 비면 이름만, 직함은 특성(직함 있는 특성 순서대로), 없으면 기본 직함
+            var traits = new[]
+            {
+                Def(ResidentTrait.Technician, 0.04f, 0.2f).WithTitle("기관사"), Def(ResidentTrait.Scientist, 0.04f, 0.2f).WithTitle("박사"),
+                Def(ResidentTrait.Optimist, 2f, 10f),
+            };
+            _residents.EditorSet(traits, 0.5f, new[] { _reactor }, new ModuleData[0], new ModuleData[0],
+                new[] { "보리", "두부", "모카" }, new string[0], "대원");
+            var sim = Sim();
+            Assert.IsTrue(sim.Grid.TryPlace(_habitat, Vector3Int.right, 0, out _));
+            sim.Resources.SetPopulation(8);
+            sim.Tick(0f);
+            var list = sim.Residents.Residents;
+            Assert.AreEqual(8, list.Count);
+            Assert.AreEqual(8, list.Select(r => r.Name).Distinct().Count(), "이름 중복 없음 (모자라면 번호)");
+            Assert.IsTrue(list.All(r => !r.Name.Contains(' ') || char.IsDigit(r.Name[r.Name.Length - 1])), "성 없음");
+
+            Assert.AreEqual("기관사", _residents.TitleOf(new[] { ResidentTrait.Optimist, ResidentTrait.Technician }));
+            Assert.AreEqual("박사", _residents.TitleOf(new[] { ResidentTrait.Scientist, ResidentTrait.Technician }), "처음 나오는 직함");
+            Assert.AreEqual("대원", _residents.TitleOf(new[] { ResidentTrait.Optimist }));
+            Assert.AreEqual("대원", _residents.TitleOf(new ResidentTrait[0]));
+        }
+
         // ---------------- 도우미 ----------------
 
         private TraitDefinition Def(ResidentTrait t, float per, float max) => new TraitDefinition(t, t.ToString(), "", per >= 0f, per, max);

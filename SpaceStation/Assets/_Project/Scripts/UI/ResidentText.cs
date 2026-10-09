@@ -11,6 +11,13 @@ namespace SpaceStation.UI
         public const string Good = "#7CFF9A";
         public const string Bad = "#FF8A7A";
 
+        /// <summary>"두부 기관사": 이름 + 직함 (11-11d, 직함은 특성에서 — <see cref="ResidentConfig.TitleOf"/>).</summary>
+        public static string FullName(ResidentConfig config, Resident r)
+        {
+            string title = config != null ? config.TitleOf(r.Traits) : null;
+            return string.IsNullOrEmpty(title) ? r.Name : $"{r.Name} {title}";
+        }
+
         public static string TraitName(ResidentConfig config, ResidentTrait trait)
         {
             var def = config != null ? config.Get(trait) : null;

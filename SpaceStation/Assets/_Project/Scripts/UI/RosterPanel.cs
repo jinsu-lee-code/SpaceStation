@@ -385,7 +385,8 @@ namespace SpaceStation.UI
                 var r = _sorted[index];
                 row.Resident = r;
                 row.Root.gameObject.SetActive(true);
-                row.Name.SetText(r.Pinned ? $"{r.Name} <size=75%><color={HudText.Muted}>고정</color></size>" : r.Name);
+                string full = ResidentText.FullName(_roster.Config, r);
+                row.Name.SetText(r.Pinned ? $"{full} <size=75%><color={HudText.Muted}>고정</color></size>" : full);
                 row.Traits.SetText(ResidentText.Traits(_roster.Config, r));
                 string env = ResidentText.Environment(_roster.GetEnvironment(r.Home), r);
                 row.Home.SetText(ResidentText.HomeName(_roster, r.Home) + (env.Length > 0 ? "  " + env : ""));
@@ -411,7 +412,7 @@ namespace SpaceStation.UI
             _page = Mathf.Clamp(_page, 0, pages - 1);
             _pageLabel.SetText($"{_page + 1} / {pages}");
             _columns.gameObject.SetActive(false);
-            _listHeader.SetText($"<color={HudTheme.AccentHex}><b>{r.Name}</b></color> ({ResidentText.Traits(_roster.Config, r)}) 이사할 집 고르기 · 지금: {ResidentText.HomeName(_roster, r.Home)} {MoodText(_roster.PersonalMood(r))}" +
+            _listHeader.SetText($"<color={HudTheme.AccentHex}><b>{ResidentText.FullName(_roster.Config, r)}</b></color> ({ResidentText.Traits(_roster.Config, r)}) 이사할 집 고르기 · 지금: {ResidentText.HomeName(_roster, r.Home)} {MoodText(_roster.PersonalMood(r))}" +
                                 $"  <color={HudText.Muted}>ESC 취소 · 옮긴 주민은 자동 배정에서 고정</color>");
             for (int i = 0; i < _rows.Count; i++)
             {

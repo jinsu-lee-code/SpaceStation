@@ -43,6 +43,8 @@ namespace SpaceStation.Data
         [SerializeField] private float _perResidentOtherwise;
         [Tooltip("정거장 전체 합계의 절댓값 상한 (0 = 상한 없음)")]
         [SerializeField, Min(0f)] private float _maxTotal;
+        [Tooltip("이 특성을 가진 주민의 직함 (이름 뒤에 붙음, 예: 두부 기관사). 비우면 직함을 주지 않는 특성")]
+        [SerializeField] private string _title = "";
 
         public ResidentTrait Trait => _trait;
         public string DisplayName => _displayName;
@@ -54,6 +56,7 @@ namespace SpaceStation.Data
         public float PerResident => _perResident;
         public float PerResidentOtherwise => _perResidentOtherwise;
         public float MaxTotal => _maxTotal;
+        public string Title => _title;
 
         public TraitDefinition() { }
 
@@ -74,6 +77,12 @@ namespace SpaceStation.Data
         {
             _hasConflict = true;
             _conflictsWith = other;
+            return this;
+        }
+
+        public TraitDefinition WithTitle(string title)
+        {
+            _title = title;
             return this;
         }
 
@@ -102,9 +111,12 @@ namespace SpaceStation.Data
         [Tooltip("불평꾼·방사선 민감 등 '이탈 우선' 특성")]
         [SerializeField] private float _leaveFirstDiscontent = 3f;
 
-        [Header("이름 (국제 승무원)")]
+        [Header("이름 (11-11d 동물 주민: 귀여운 짧은 이름 + 직함, 2026-10-10)")]
         [SerializeField] private List<string> _givenNames = new List<string>();
+        [Tooltip("비우면 이름만 (예전 국제 승무원 이름은 '이름 성')")]
         [SerializeField] private List<string> _surnames = new List<string>();
+        [Tooltip("직함을 주는 특성(TraitDefinition.Title)이 없는 주민의 직함")]
+        [SerializeField] private string _defaultTitle = "대원";
 
         public IReadOnlyList<TraitDefinition> Traits => _traits;
         public float SecondTraitChance => _secondTraitChance;
@@ -116,6 +128,8 @@ namespace SpaceStation.Data
         public IReadOnlyList<string> GivenNames => _givenNames;
         public IReadOnlyList<string> Surnames => _surnames;
 
+        public string DefaultTitle => _defaultTitle;
+
         public TraitDefinition Get(ResidentTrait trait)
         {
             foreach (var t in _traits)
@@ -124,10 +138,26 @@ namespace SpaceStation.Data
             return null;
         }
 
+        /// <summary>직함: 주민 특성 순서대로 처음 나오는 직함 있는 특성 (기술자 → 기관사 등), 없으면 기본 직함 (대원).</summary>
+        public string TitleOf(IEnumerable<ResidentTrait> traits)
+        {
+            if (traits != null)
+            {
+                foreach (var t in traits)
+                {
+                    var def = Get(t);
+                    if (def != null && !string.IsNullOrEmpty(def.Title))
+                        return def.Title;
+                }
+            }
+            return _defaultTitle;
+        }
+
         /// <summary>에디터 설정·테스트용.</summary>
         public void EditorSet(IEnumerable<TraitDefinition> traits, float secondTraitChance, IEnumerable<ModuleData> radiation, IEnumerable<ModuleData> noise,
-            IEnumerable<ModuleData> nature, IEnumerable<string> givenNames, IEnumerable<string> surnames)
+            IEnumerable<ModuleData> nature, IEnumerable<string> givenNames, IEnumerable<string> surnames, string defaultTitle = "대원")
         {
+            _defaultTitle = defaultTitle;
             _traits = new List<TraitDefinition>(traits);
             _secondTraitChance = secondTraitChance;
             _radiationSources = new List<ModuleData>(radiation);

@@ -522,12 +522,13 @@ namespace SpaceStation.Simulation
         {
             var given = _config.GivenNames;
             var sur = _config.Surnames;
-            if (given.Count == 0 || sur.Count == 0)
+            if (given.Count == 0)
                 return $"주민 {_nextId}";
             string name = null;
             for (int attempt = 0; attempt < 8; attempt++)
             {
-                name = $"{given[Index(given.Count)]} {sur[Index(sur.Count)]}";
+                // 성 목록이 비면 이름만 (11-11d 동물 주민: "두부" + 직함은 표시할 때)
+                name = sur.Count == 0 ? given[Index(given.Count)] : $"{given[Index(given.Count)]} {sur[Index(sur.Count)]}";
                 if (!_usedNames.Contains(name))
                     break;
             }

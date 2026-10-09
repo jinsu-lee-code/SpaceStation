@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using SpaceStation.Audio;
 using SpaceStation.Building;
 using SpaceStation.Core;
+using SpaceStation.Data;
 using SpaceStation.Settings;
 using SpaceStation.UI;
 using TMPro;
@@ -54,10 +55,8 @@ namespace SpaceStation.Interior
 
         [Header("11-11 주민")]
         [SerializeField] private InteriorResidentTuning _residentTuning = new InteriorResidentTuning();
-        [Tooltip("인물 모델 (Man, Man Tall, Woman, Woman Tall 순서 — LuceedStudio Little Guys, 메뉴 SpaceStation/Interior/Wire Resident Models)")]
-        [SerializeField] private GameObject[] _residentModels = new GameObject[4];
-        [Tooltip("인물 재질 (URP Lit — 모델 원본 툰 셰이더는 내부 점광원을 못 받음)")]
-        [SerializeField] private Material _residentMaterial;
+        [Tooltip("동물 주민 모델 묶음 (11-11d — 메뉴 SpaceStation/Interior/Wire Animal Residents)")]
+        [SerializeField] private AnimalModelSet _animalSet;
 
         [Header("HUD")]
         [SerializeField] private RectTransform _hud;
@@ -196,7 +195,7 @@ namespace SpaceStation.Interior
             RefreshAllDim();
             _atmosphere = InteriorAtmosphere.Create(transform, _station, _builder, _mood, _smokeMaterial, _sparkMaterial, _beaconMaterial);
             _atmosphere.Rebuild(_layout);
-            _residents = InteriorResidents.Create(transform, _station, _builder, _residentTuning, _residentModels, _residentMaterial, _font, _player.Eye);
+            _residents = InteriorResidents.Create(transform, _station, _builder, _residentTuning, _animalSet, _font, _player.Eye);
             _residents.Rebuild(_layout);
             var spawn = _builder.SpawnPoint(module, out float spawnYaw);
             _player.Teleport(spawn + Vector3.up * 0.05f, spawnYaw);

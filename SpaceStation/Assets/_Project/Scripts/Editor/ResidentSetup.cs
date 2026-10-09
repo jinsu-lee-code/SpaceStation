@@ -79,10 +79,11 @@ namespace SpaceStation.Editor
             var traits = new[]
             {
                 // 능력 (정거장 전체, 1명당 비율·합계 상한)
-                new TraitDefinition(ResidentTrait.Technician, "기술자", "수리 시간 -4%/명 (최대 -20%)", true, 0.04f, 0.20f),
-                new TraitDefinition(ResidentTrait.Scientist, "과학자", "연구 속도 +4%/명 (최대 +20%)", true, 0.04f, 0.20f),
-                new TraitDefinition(ResidentTrait.Gardener, "원예가", "식량 생산 +3%/명 (최대 +15%)", true, 0.03f, 0.15f),
-                new TraitDefinition(ResidentTrait.Mechanic, "정비공", "노후 속도 -3%/명 (최대 -15%)", true, 0.03f, 0.15f),
+                // 일터 특성은 직함도 줌 (11-11d: "두부 기관사", 직함 없는 주민은 "대원")
+                new TraitDefinition(ResidentTrait.Technician, "기술자", "수리 시간 -4%/명 (최대 -20%)", true, 0.04f, 0.20f).WithTitle("기관사"),
+                new TraitDefinition(ResidentTrait.Scientist, "과학자", "연구 속도 +4%/명 (최대 +20%)", true, 0.04f, 0.20f).WithTitle("박사"),
+                new TraitDefinition(ResidentTrait.Gardener, "원예가", "식량 생산 +3%/명 (최대 +15%)", true, 0.03f, 0.15f).WithTitle("원예사"),
+                new TraitDefinition(ResidentTrait.Mechanic, "정비공", "노후 속도 -3%/명 (최대 -15%)", true, 0.03f, 0.15f).WithTitle("정비사"),
                 // 성격 (만족도 상한 보정, 합계 상한)
                 new TraitDefinition(ResidentTrait.Optimist, "낙천가", "만족도 상한 +2/명 (최대 +10)", true, 2f, 10f)
                     .WithConflict(ResidentTrait.Complainer),
@@ -101,21 +102,19 @@ namespace SpaceStation.Editor
                 new TraitDefinition(ResidentTrait.NoiseSensitive, "소음 민감", "제련소 옆 집이면 상한 -3 (최대 -15)", false, -3f, 15f, 0.8f),
                 new TraitDefinition(ResidentTrait.NatureLover, "자연 애호가", "수경 농장 옆 집이면 상한 +2 (최대 +10)", true, 2f, 10f, 0.8f),
             };
+            // 11-11d 동물 주민 (2026-10-10 사용자 결정): 귀여운 짧은 이름 + 직함 ("두부 기관사"), 성 없음.
+            //   예전 국제 승무원 이름(엘레나 박 등)은 사람 모델용 — 세이브에 남은 주민은 그 이름 그대로
             string[] given =
             {
-                "엘레나", "라지브", "민서", "아마라", "카이", "소피아", "다니엘", "유키", "마테오", "하나", "이반", "레일라", "오마르", "지우", "클라라",
-                "타오", "니콜라", "아이샤", "루카스", "미라", "케이", "사라", "알렉세이", "나디아", "준호", "프리야", "토마스", "린", "에밀", "자라",
-                "하빕", "도윤", "에스더", "파블로", "아키라", "말리아", "빅토르", "세린", "노아", "이네스",
-            };
-            string[] surnames =
-            {
-                "박", "오카모토", "카르도소", "응우옌", "코왈스키", "멘사", "이바노바", "가르시아", "첸", "샤르마", "뮐러", "오코너", "김", "다실바",
-                "하산", "로시", "탄", "노박", "아데예미", "모로", "피셔", "야마다", "로페스", "베르그", "칸", "레예스", "소렌센", "이", "에르난데스",
-                "볼코프", "사토", "마르티네즈", "오웬스", "카푸르", "린드", "아콰", "페트로프", "최", "브라운", "하야시",
+                "보리", "두부", "모카", "호두", "콩이", "마루", "라떼", "쿠키", "솜이", "치즈", "모찌", "감자", "밤이", "율무", "자두",
+                "망고", "우유", "버터", "꿀이", "단추", "구름", "별이", "달이", "토리", "몽이", "뭉치", "초코", "레몬", "사과", "땅콩",
+                "찹쌀", "호빵", "만두", "떡이", "설기", "팥이", "녹두", "나리", "하루", "봄이", "보송", "말랑", "방울", "꼬마", "루루",
+                "코코", "미미", "나나", "두리", "또리", "아리", "다롱", "꼬미", "퐁이", "치치", "모모", "파이", "젤리", "푸딩", "와플",
+                "크림", "솔이", "들깨", "참깨", "수수", "귤이", "유자", "매실", "오디", "앵두", "키위", "도토리", "바닐라", "인절미", "누룽지",
             };
             data.EditorSet(traits, 0.35f,
                 new[] { Module("MD_FusionReactor") }, new[] { Module("MD_Refinery") }, new[] { Module("MD_Farm") },
-                given, surnames);
+                given, new string[0], "대원");
             EditorUtility.SetDirty(data);
             AssetDatabase.SaveAssets();
             return data;

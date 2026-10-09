@@ -1,20 +1,19 @@
+using System;
+using System.Collections.Generic;
 using SpaceStation.Data;
 using UnityEngine;
 
 namespace SpaceStation.Interior
 {
     /// <summary>
-    /// 11-11 주민 인물 하나. LuceedStudio "Little Guys" 모델(사람형 본)을 놓고 본을 돌려 자세(서기 · 앉기 · 작업)를 만든다.
-    /// 걷지 않는다: 숨쉬기(가슴이 살짝 부풂) + 머리를 천천히 두리번 + 가까이 온 플레이어를 바라봄.
-    /// 옷 · 머리 색은 <see cref="ResidentOutfits"/>가 만든 텍스처를 MaterialPropertyBlock(_MainTex)으로 입힌다.
-    /// 처음 만든 Blender 로우폴리 인물은 "살벌해 보인다"는 피드백으로 교체 (2026-10-07).
+    /// 11-11 주민 인물 하나 — 11-11d 동물 주민(<see cref="AnimalModelSet"/>, 모든 종류가 같은 몸 · 리그).
+    /// 본을 돌려 자세(서기 · 앉기 · 작업)를 만든다. 걷지 않는다: 숨쉬기(가슴이 살짝 부풂) + 머리를 천천히 두리번 + 가까이 온 플레이어를 바라봄.
+    /// 재질은 슬롯마다 공유 재질, 색은 재질 번호별 MaterialPropertyBlock.
     /// </summary>
     public sealed class ResidentFigure : MonoBehaviour
     {
-        private static readonly int MainTexId = Shader.PropertyToID("_MainTex");
-        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
-        private Transform _model;
         private Renderer _renderer;
         private Transform _head;
         private Transform _chest;
@@ -25,45 +24,72 @@ namespace SpaceStation.Interior
         private float _lookRange;
         private float _yaw;
         private float _pitch;
+        private float _tagTop;          // 자세를 잡은 뒤 실제 키 (그리기 범위는 넉넉한 상자라 그 위면 이름표가 너무 높이 뜸)
 
-        /// <summary>이름표에 쓰는 글 (이름 · 특성 · 지금 하는 일).</summary>
+        /// <summary>이름표에 쓰는 글 (이름 · 직함 · 종류 · 특성 · 지금 하는 일).</summary>
         public string Label { get; private set; }
         /// <summary>이름표를 띄울 곳 (머리 위).</summary>
-        public Vector3 TagPoint => _renderer != null
-            ? new Vector3(_head != null ? _head.position.x : transform.position.x, _renderer.bounds.max.y + 0.12f, _head != null ? _head.position.z : transform.position.z)
-            : transform.position + Vector3.up * 1.8f;
+        public Vector3 TagPoint => new Vector3(_head != null ? _head.position.x : transform.position.x,
+            transform.position.y + (_tagTop > 0f ? _tagTop : 1f) + 0.1f, _head != null ? _head.position.z : transform.position.z);
 
         /// <summary>
-        /// 인물을 만든다. 원점 = 발 사이 바닥(앉기는 앉는 면 − <paramref name="sitDrop"/>), 앞 = +z.
+        /// 동물 주민을 만든다. 원점 = 발 사이 바닥(앉기는 앉는 면 − <paramref name="sitDrop"/>), 앞 = +z.
+        /// 본은 이름으로 찾음(Humanoid 아바타 없음 — 본 이름 = HumanBodyBones 이름).
+        /// 재질은 슬롯 이름(`M_Animal_<슬롯>`)으로 공유 재질로 바꿈 — Unity가 안 쓰는 슬롯을 빼서 순서가 종류마다 다름.
+        /// 색: 털 = <paramref name="fur"/>, 나머지 = 종류 표, 눈 = 재질 색 그대로.
         /// </summary>
-        public static ResidentFigure Create(GameObject model, Transform parent, Vector3 position, Quaternion rotation, ResidentPose pose, float scale, float sitDrop, Material material = null)
+        public static ResidentFigure Create(AnimalModelSet set, AnimalSpecies species, Color fur, Transform parent,
+            Vector3 position, Quaternion rotation, ResidentPose pose, float scale, float sitDrop)
         {
             var root = new GameObject("Resident");
             root.transform.SetParent(parent, false);
             root.transform.SetPositionAndRotation(position, rotation);
             var figure = root.AddComponent<ResidentFigure>();
-            var instance = Instantiate(model, root.transform, false);
+            var instance = Instantiate(species.Model, root.transform, false);
             instance.transform.localPosition = Vector3.zero;
             instance.transform.localRotation = Quaternion.identity;
             instance.transform.localScale = Vector3.one * scale;
-            figure._model = instance.transform;
-            figure._renderer = instance.GetComponentInChildren<SkinnedMeshRenderer>();
-            if (figure._renderer is SkinnedMeshRenderer smr)
-                smr.updateWhenOffscreen = false;
-            // 원본 툰 셰이더는 주광(태양)만 받아 내부(태양 꺼짐 · 점광원만)에서 새까맸음 → URP Lit 재질로 바꿔 끼움
-            if (figure._renderer != null && material != null)
-                figure._renderer.sharedMaterial = material;
+            foreach (var a in instance.GetComponentsInChildren<Animator>(true))
+                a.enabled = false; // 컨트롤러 없음 — 잡은 자세 그대로
 
-            var animator = instance.GetComponentInChildren<Animator>();
-            if (animator != null)
+            foreach (var smr in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
-                ResidentPoser.Apply(animator, root.transform, pose);
-                figure._head = animator.GetBoneTransform(HumanBodyBones.Head);
-                figure._chest = animator.GetBoneTransform(HumanBodyBones.Chest);
-                animator.enabled = false; // 컨트롤러 없음 — 잡은 자세 그대로
-                if (pose == ResidentPose.Sit)
-                    ResidentPoser.SeatOn(animator, root.transform, instance.transform, sitDrop, scale);
+                smr.updateWhenOffscreen = false;
+                var mats = smr.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    string slot = AnimalModelSet.SlotOf(mats[i] != null ? mats[i].name : null);
+                    var shared = slot != null ? set.Material(slot) : null;
+                    if (shared != null)
+                        mats[i] = shared;
+                }
+                smr.sharedMaterials = mats;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    string slot = AnimalModelSet.SlotOf(mats[i] != null ? mats[i].name : null);
+                    Color? c = slot == AnimalModelSet.Fur ? fur : slot == AnimalModelSet.FurLight ? species.Light
+                        : slot == AnimalModelSet.Pink ? species.Accent : slot == AnimalModelSet.Dark ? species.Dark
+                        : slot == AnimalModelSet.Beak ? species.Beak : (Color?)null;
+                    if (c == null)
+                        continue;
+                    var block = new MaterialPropertyBlock();
+                    block.SetColor(BaseColorId, c.Value);
+                    smr.SetPropertyBlock(block, i);
+                }
+                figure._renderer = smr;
             }
+
+            var bones = ResidentPoser.ByName(instance.transform);
+            var restHead = bones(HumanBodyBones.Head);
+            float restAboveHead = figure._renderer != null && restHead != null ? figure._renderer.bounds.max.y - restHead.position.y : 0.4f * scale;
+            ResidentPoser.Apply(bones, root.transform, pose);
+            if (pose == ResidentPose.Sit)
+                ResidentPoser.SeatOn(bones, root.transform, instance.transform, sitDrop, scale);
+            figure._head = bones(HumanBodyBones.Head);
+            figure._chest = bones(HumanBodyBones.Chest);
+            if (figure._head != null)   // 이름표 높이 = 자세 잡은 머리 본 + (쉬는 자세의 머리 본 → 메시 꼭대기, 귀 포함)
+                figure._tagTop = root.transform.InverseTransformPoint(figure._head.position).y + restAboveHead;
+            FitBounds(root.transform, instance, scale);
             if (figure._head != null)
                 figure._headBase = Quaternion.Inverse(root.transform.rotation) * figure._head.rotation;
             if (figure._chest != null)
@@ -71,26 +97,39 @@ namespace SpaceStation.Interior
 
             // 지나갈 수 없게 + 바라보기 판정
             var capsule = root.AddComponent<CapsuleCollider>();
-            float height = pose == ResidentPose.Sit ? 1.1f * scale : 1.32f * scale;
-            capsule.radius = 0.22f * scale;
-            capsule.height = height;
-            capsule.center = new Vector3(0f, pose == ResidentPose.Sit ? sitDrop + height * 0.4f : height * 0.5f, pose == ResidentPose.Sit ? 0.1f : 0f);
+            float height = (pose == ResidentPose.Sit ? 0.75f : 0.95f) * scale;
+            capsule.radius = 0.24f * scale;
+            capsule.height = Mathf.Max(height, capsule.radius * 2f);
+            capsule.center = new Vector3(0f, pose == ResidentPose.Sit ? sitDrop + height * 0.4f : height * 0.5f, pose == ResidentPose.Sit ? 0.05f : 0f);
             return figure;
         }
 
-        public void Configure(string label, Texture outfit, float seed, Transform watcher, float lookRange)
+        public void Configure(string label, float seed, Transform watcher, float lookRange)
         {
             Label = label;
             _seed = seed;
             _watcher = watcher;
             _lookRange = lookRange;
-            if (_renderer != null && outfit != null)
+        }
+
+        /// <summary>
+        /// 그리기 범위를 인물 전체 상자로 (자세를 잡으면 메시가 쉬는 자세 범위를 벗어남 — 앉은 다리가 화면 가장자리에서 사라질 수 있음).
+        /// 원점(발 사이 바닥)부터 높이 1.5 · 폭 1.2 · 깊이 1.2 (모델 원래 크기 기준, 동물 키 약 0.9 · 귀 포함 1.15).
+        /// </summary>
+        private static void FitBounds(Transform root, GameObject instance, float scale)
+        {
+            var center = root.position + root.up * (0.75f * scale);
+            var half = new Vector3(0.6f, 0.75f, 0.6f) * scale;
+            foreach (var smr in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
-                var block = new MaterialPropertyBlock();
-                _renderer.GetPropertyBlock(block);
-                block.SetTexture(MainTexId, outfit);
-                block.SetTexture(BaseMapId, outfit);
-                _renderer.SetPropertyBlock(block);
+                var space = smr.rootBone != null ? smr.rootBone : smr.transform;
+                var b = new Bounds(space.InverseTransformPoint(center), Vector3.zero);
+                for (int i = 0; i < 8; i++)
+                {
+                    var corner = new Vector3((i & 1) == 0 ? -half.x : half.x, (i & 2) == 0 ? -half.y : half.y, (i & 4) == 0 ? -half.z : half.z);
+                    b.Encapsulate(space.InverseTransformPoint(center + root.rotation * corner));
+                }
+                smr.localBounds = b;
             }
         }
 
@@ -127,6 +166,7 @@ namespace SpaceStation.Interior
 
     /// <summary>
     /// 11-11 정지 자세 (사람형 본 방향으로 지정 — 모델 본 축과 무관). 방향은 인물 기준(+x 오른쪽, +y 위, +z 앞), 왼쪽 값을 오른쪽에 좌우 대칭.
+    /// 본 찾기는 함수로 받음 (동물 리그 = <see cref="ByName"/>).
     /// </summary>
     public static class ResidentPoser
     {
@@ -158,20 +198,32 @@ namespace SpaceStation.Interior
             new Aim(HumanBodyBones.LeftLowerArm, HumanBodyBones.LeftHand, new Vector3(0.1f, -0.35f, 1f)),
         };
 
-        public static void Apply(Animator animator, Transform root, ResidentPose pose)
+        public static void Apply(Func<HumanBodyBones, Transform> bones, Transform root, ResidentPose pose)
         {
             var aims = pose == ResidentPose.Sit ? Sit : pose == ResidentPose.Work ? Work : Stand;
             foreach (var a in aims)
             {
-                AimBone(animator, root, a.Bone, a.Child, a.LeftDir);
-                AimBone(animator, root, Mirror(a.Bone), Mirror(a.Child), new Vector3(-a.LeftDir.x, a.LeftDir.y, a.LeftDir.z));
+                AimBone(bones, root, a.Bone, a.Child, a.LeftDir);
+                AimBone(bones, root, Mirror(a.Bone), Mirror(a.Child), new Vector3(-a.LeftDir.x, a.LeftDir.y, a.LeftDir.z));
             }
         }
 
-        /// <summary>앉기: 허벅지 아래가 앉는 면(원점 위 sitDrop)에 닿도록 모델을 올리고 내린다.</summary>
-        public static void SeatOn(Animator animator, Transform root, Transform model, float sitDrop, float scale)
+        /// <summary>본 이름이 HumanBodyBones 이름과 같은 모델(11-11d 동물 리그)에서 이름으로 본을 찾음.</summary>
+        public static Func<HumanBodyBones, Transform> ByName(Transform model)
         {
-            var hip = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
+            var map = new Dictionary<string, Transform>();
+            foreach (var t in model.GetComponentsInChildren<Transform>(true))
+            {
+                if (!map.ContainsKey(t.name))
+                    map[t.name] = t;
+            }
+            return b => map.TryGetValue(b.ToString(), out var t) ? t : null;
+        }
+
+        /// <summary>앉기: 허벅지 아래가 앉는 면(원점 위 sitDrop)에 닿도록 모델을 올리고 내린다.</summary>
+        public static void SeatOn(Func<HumanBodyBones, Transform> bones, Transform root, Transform model, float sitDrop, float scale)
+        {
+            var hip = bones(HumanBodyBones.LeftUpperLeg);
             if (hip == null)
                 return;
             float hipY = root.InverseTransformPoint(hip.position).y;
@@ -179,10 +231,10 @@ namespace SpaceStation.Interior
             model.localPosition += Vector3.up * (target - hipY);
         }
 
-        private static void AimBone(Animator animator, Transform root, HumanBodyBones bone, HumanBodyBones child, Vector3 dir)
+        private static void AimBone(Func<HumanBodyBones, Transform> bones, Transform root, HumanBodyBones bone, HumanBodyBones child, Vector3 dir)
         {
-            var b = animator.GetBoneTransform(bone);
-            var c = animator.GetBoneTransform(child);
+            var b = bones(bone);
+            var c = bones(child);
             if (b == null || c == null)
                 return;
             var now = c.position - b.position;

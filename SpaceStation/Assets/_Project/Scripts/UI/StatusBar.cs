@@ -429,13 +429,13 @@ namespace SpaceStation.UI
             if (reason == null)
                 return; // 불러오기·명단 보정
             var roster = _station.Simulation.Residents;
-            ShowMessage($"<color={HudTheme.AccentHex}>새 주민 {r.Name}</color> · {ResidentText.Traits(roster.Config, r)} · {ResidentText.HomeName(roster, r.Home)}");
+            ShowMessage($"<color={HudTheme.AccentHex}>새 주민 {ResidentText.FullName(roster.Config, r)}</color> · {ResidentText.Traits(roster.Config, r)} · {ResidentText.HomeName(roster, r.Home)}");
         }
 
         private void HandleResidentLeft(Resident r, PopulationChangeReason? reason)
         {
             string cause = ResidentText.Reason(reason);
-            ShowMessage($"<color={HudText.Red}>{r.Name} 떠남{(cause != null ? $" ({cause})" : "")}</color>");
+            ShowMessage($"<color={HudText.Red}>{ResidentText.FullName(_station.Simulation.Residents?.Config, r)} 떠남{(cause != null ? $" ({cause})" : "")}</color>");
         }
 
         private void HandlePopulationChanged(int delta, PopulationChangeReason reason)

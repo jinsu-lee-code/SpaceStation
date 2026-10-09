@@ -277,7 +277,7 @@ namespace SpaceStation.UI
                 sb.Append('\n');
                 // 패널 폭에 맞게 이름만 (특성은 명단 창)
                 for (int i = 0; i < _occupants.Count && i < 3; i++)
-                    sb.Append(i > 0 ? ", " : "").Append(_occupants[i].Name);
+                    sb.Append(i > 0 ? ", " : "").Append(ResidentText.FullName(roster.Config, _occupants[i]));
                 sb.Append($" <color={HudText.Muted}>{(_occupants.Count > 3 ? $"외 {_occupants.Count - 3}명 · " : "")}{KeyBindings.Label(GameAction.Roster)} 명단</color>");
             }
             return sb.Append("</size>").ToString();
