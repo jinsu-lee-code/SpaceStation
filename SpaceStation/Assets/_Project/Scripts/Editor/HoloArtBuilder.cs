@@ -47,6 +47,39 @@ namespace SpaceStation.Editor
                 return new Color(1f, 1f, 1f, dot ? 1f : line ? 0.45f : 0f);
             });
 
+            // 테크 테두리 (사용자 레퍼런스 2026-10-10): 왼쪽 위 · 오른쪽 아래 크게, 나머지 작게 깎은 모서리
+            const int t = 96, tb = 30;
+            float[] cut = { 6f, 18f, 6f, 18f }; // BL, BR, TR, TL
+            WriteSprite("UI_TechFill.png", t, t, (x, y) =>
+            {
+                float sd = Cut(x, y, t, t, cut);
+                if (sd > 0f) return Color.clear;
+                return new Color(1f, 1f, 1f, Mathf.Lerp(0.82f, 1f, y / t) * Mathf.Clamp01(-sd));
+            }, tb);
+            WriteSprite("UI_TechFrame.png", t, t, (x, y) =>
+            {
+                float sd = Cut(x, y, t, t, cut);
+                float a = 0f;
+                if (sd <= 0f && sd > -1.6f) a = 1f;                       // 바깥 선
+                else if (sd <= -5f && sd > -6f) a = 0.22f;                // 안쪽 가는 선
+                // 큰 모서리(왼쪽 위 · 오른쪽 아래) 대각선 굵은 강조
+                bool tl = x + (t - y) < cut[3] + 3.5f && x + (t - y) > cut[3] - 1f;
+                bool br = (t - x) + y < cut[1] + 3.5f && (t - x) + y > cut[1] - 1f;
+                if ((tl || br) && sd <= 0f && sd > -3.2f) a = 1f;
+                // 이음점: 큰 모서리 대각선 양 끝
+                if (Near(x, y, 2.2f, t - cut[3] - 5f, 2.4f) || Near(x, y, cut[3] + 5f, t - 2.2f, 2.4f)
+                    || Near(x, y, t - 2.2f, cut[1] + 5f, 2.4f) || Near(x, y, t - cut[1] - 5f, 2.2f, 2.4f))
+                    a = 1f;
+                return new Color(1f, 1f, 1f, a);
+            }, tb);
+            // 사선 줄무늬: 12px 칸에 5px 굵기 "/" 반복
+            WriteTexture("UI_TechHatch.png", 12, 12, (x, y) => new Color(1f, 1f, 1f, Mathf.Repeat(x - y, 12f) < 5f ? 1f : 0f));
+            WriteSprite("UI_TechDot.png", 16, 16, (x, y) =>
+            {
+                float d = Vector2.Distance(new Vector2(x, y), new Vector2(8f, 8f));
+                return new Color(1f, 1f, 1f, Mathf.Clamp01(6f - d));
+            }, 0);
+
             var art = AssetDatabase.LoadAssetAtPath<HoloArt>(AssetPath);
             if (art == null)
             {
@@ -60,6 +93,10 @@ namespace SpaceStation.Editor
             art.Sweep = AssetDatabase.LoadAssetAtPath<Sprite>(Root + "/UI_HoloSweep.png");
             art.Scan = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/UI_HoloScan.png");
             art.Grid = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/UI_HoloGrid.png");
+            art.TechFill = AssetDatabase.LoadAssetAtPath<Sprite>(Root + "/UI_TechFill.png");
+            art.TechFrame = AssetDatabase.LoadAssetAtPath<Sprite>(Root + "/UI_TechFrame.png");
+            art.Hatch = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/UI_TechHatch.png");
+            art.Dot = AssetDatabase.LoadAssetAtPath<Sprite>(Root + "/UI_TechDot.png");
             if (art.Font == null)
                 art.Font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
             EditorUtility.SetDirty(art);
@@ -67,6 +104,20 @@ namespace SpaceStation.Editor
             Debug.Log("[HoloArtBuilder] 홀로그램 테마 아트 생성 → " + AssetPath);
             return art;
         }
+
+        /// <summary>모서리마다 다르게 깎은 사각형의 부호 거리 (안쪽 음수). cuts = BL, BR, TR, TL.</summary>
+        private static float Cut(float x, float y, float w, float h, float[] cuts)
+        {
+            float sd = Mathf.Max(Mathf.Max(-x, x - w), Mathf.Max(-y, y - h));
+            const float k = 0.70710678f;
+            sd = Mathf.Max(sd, (cuts[0] - x - y) * k);
+            sd = Mathf.Max(sd, (cuts[1] - (w - x) - y) * k);
+            sd = Mathf.Max(sd, (cuts[2] - (w - x) - (h - y)) * k);
+            sd = Mathf.Max(sd, (cuts[3] - x - (h - y)) * k);
+            return sd;
+        }
+
+        private static bool Near(float x, float y, float cx, float cy, float r) => (x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r;
 
         private static string Draw(string file, int w, int h, Func<float, float, Color> shade)
         {

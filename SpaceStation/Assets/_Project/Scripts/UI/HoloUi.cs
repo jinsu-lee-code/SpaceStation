@@ -114,6 +114,88 @@ namespace SpaceStation.UI
             gi.raycastTarget = false;
         }
 
+        /// <summary>
+        /// 테크 패널 (사용자 레퍼런스 2026-10-10): 깎인 모서리 바탕 + 테두리(안쪽 가는 선 · 큰 모서리 굵은 강조 · 이음점)
+        /// + 오른쪽 위 사선 줄무늬 + 왼쪽 위 제목 + (선택) 아래에서 바깥으로 뻗는 회로 선과 끝 점 + 바깥 빛 번짐.
+        /// 테크 그림이 없으면 기본 <see cref="GlowPanel"/>.
+        /// </summary>
+        /// <param name="connector">회로 선 길이 (px, 0이면 없음) — 왼쪽 아래에서 아래로 뻗음.</param>
+        public TMP_Text TechPanel(GameObject go, Color fill, Color line, string title = null, float glow = 0.3f, float connector = 0f)
+        {
+            if (_art == null || _art.TechFill == null || _art.TechFrame == null)
+            {
+                GlowPanel(go, fill, line, glow);
+                return null;
+            }
+            var img = go.GetComponent<Image>();
+            if (img == null)
+                img = go.AddComponent<Image>();
+            img.sprite = _art.TechFill;
+            img.type = Image.Type.Sliced;
+            img.color = fill;
+            if (_art.Glow != null && glow > 0f)
+            {
+                var g = Rect("Glow", go.transform);
+                Stretch(g, new Vector2(-14f, -14f), new Vector2(14f, 14f));
+                g.SetAsFirstSibling();
+                var gi = g.gameObject.AddComponent<Image>();
+                gi.sprite = _art.Glow;
+                gi.type = Image.Type.Sliced;
+                gi.color = new Color(line.r, line.g, line.b, glow);
+                gi.raycastTarget = false;
+            }
+            var f = Rect("Frame", go.transform);
+            Stretch(f);
+            var fi = f.gameObject.AddComponent<Image>();
+            fi.sprite = _art.TechFrame;
+            fi.type = Image.Type.Sliced;
+            fi.color = line;
+            fi.raycastTarget = false;
+            if (_art.Hatch != null)
+            {
+                var h = Rect("Hatch", go.transform);
+                h.anchorMin = h.anchorMax = h.pivot = new Vector2(1f, 1f);
+                h.anchoredPosition = new Vector2(-26f, -5f);
+                h.sizeDelta = new Vector2(48f, 7f);
+                var hi = h.gameObject.AddComponent<RawImage>();
+                hi.texture = _art.Hatch;
+                hi.uvRect = new Rect(0f, 0f, 48f / _art.Hatch.width, 7f / _art.Hatch.height);
+                hi.color = new Color(line.r, line.g, line.b, line.a * 0.7f);
+                hi.raycastTarget = false;
+            }
+            if (connector > 0f)
+            {
+                var c = Rect("Connector", go.transform);
+                c.anchorMin = c.anchorMax = c.pivot = new Vector2(0f, 0f);
+                c.anchoredPosition = new Vector2(10f, -connector);
+                c.sizeDelta = new Vector2(1.5f, connector);
+                var ci = c.gameObject.AddComponent<Image>();
+                ci.color = new Color(line.r, line.g, line.b, line.a * 0.8f);
+                ci.raycastTarget = false;
+                if (_art.Dot != null)
+                {
+                    var d = Rect("Dot", c);
+                    d.anchorMin = d.anchorMax = new Vector2(0.5f, 0f);
+                    d.pivot = new Vector2(0.5f, 0.5f);
+                    d.anchoredPosition = Vector2.zero;
+                    d.sizeDelta = new Vector2(8f, 8f);
+                    var di = d.gameObject.AddComponent<Image>();
+                    di.sprite = _art.Dot;
+                    di.color = line;
+                    di.raycastTarget = false;
+                }
+            }
+            if (string.IsNullOrEmpty(title))
+                return null;
+            var t = Label(go.transform, title, 12f, TextAlignmentOptions.MidlineLeft);
+            t.rectTransform.anchorMin = t.rectTransform.anchorMax = t.rectTransform.pivot = new Vector2(0f, 1f);
+            t.rectTransform.anchoredPosition = new Vector2(22f, -3f);
+            t.rectTransform.sizeDelta = new Vector2(220f, 18f);
+            t.color = Color.Lerp(line, Color.white, 0.25f);
+            t.characterSpacing = 6f;
+            return t;
+        }
+
         /// <summary>작은 꼬리표 (분류 · 상태): 색 바탕 + 같은 색 밝은 글자.</summary>
         public TMP_Text Chip(Transform parent, string text, Color color, float size)
         {

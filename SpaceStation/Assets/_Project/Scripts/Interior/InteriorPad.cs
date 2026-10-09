@@ -433,9 +433,9 @@ namespace SpaceStation.Interior
             const float cx = 16f, cw = 280f;
             var thumbBox = HoloUi.Rect("ThumbBox", rt);
             HoloUi.Place(thumbBox, new Vector2(cx, -76f), new Vector2(cw, 168f));
-            ui.GlowPanel(thumbBox.gameObject, new Color(0.03f, 0.12f, 0.17f, 0.95f), new Color(accent.r, accent.g, accent.b, 0.9f), 0.45f);
+            ui.TechPanel(thumbBox.gameObject, new Color(0.03f, 0.12f, 0.17f, 0.95f), new Color(accent.r, accent.g, accent.b, 0.9f), "MODULE", 0.45f);
             var thumbRt = HoloUi.Rect("Thumb", thumbBox);
-            HoloUi.Stretch(thumbRt, new Vector2(12f, 10f), new Vector2(-12f, -10f));
+            HoloUi.Stretch(thumbRt, new Vector2(14f, 10f), new Vector2(-14f, -24f));
             _thumb = thumbRt.gameObject.AddComponent<Image>();
             _thumb.preserveAspect = true;
             _thumb.raycastTarget = false;
@@ -455,9 +455,9 @@ namespace SpaceStation.Interior
             float x = cx + cw + 18f, w = CanvasWidth - x - 16f;
             var infoBg = HoloUi.Rect("InfoBack", rt);
             HoloUi.Place(infoBg, new Vector2(x, -76f), new Vector2(w, 168f));
-            ui.GlowPanel(infoBg.gameObject, new Color(0.03f, 0.1f, 0.15f, 0.85f), new Color(accent.r, accent.g, accent.b, 0.55f), 0.2f);
+            ui.TechPanel(infoBg.gameObject, new Color(0.03f, 0.1f, 0.15f, 0.85f), new Color(accent.r, accent.g, accent.b, 0.7f), "STATUS", 0.2f);
             _info = ui.Label(infoBg, "", 16f, TextAlignmentOptions.TopLeft, wrap: true);
-            HoloUi.Stretch(_info.rectTransform, new Vector2(14f, 10f), new Vector2(-14f, -10f));
+            HoloUi.Stretch(_info.rectTransform, new Vector2(16f, 8f), new Vector2(-16f, -26f));
             _info.overflowMode = TextOverflowModes.Ellipsis;
 
             float bw = (w - 12f) / 3f, by = -256f;

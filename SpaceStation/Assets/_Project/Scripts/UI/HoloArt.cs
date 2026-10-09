@@ -24,5 +24,15 @@ namespace SpaceStation.UI
         public Texture2D Grid;
         [Tooltip("스캔 띠 (세로 그러데이션, 위아래로 지나감)")]
         public Sprite Sweep;
+
+        [Header("테크 테두리 (레퍼런스: 깎인 모서리 · 이음점 · 사선 줄무늬 · 회로 선)")]
+        [Tooltip("깎인 모서리 바탕 (왼쪽 위 · 오른쪽 아래 크게, 색은 Image.color)")]
+        public Sprite TechFill;
+        [Tooltip("깎인 모서리 테두리 + 안쪽 가는 선 + 큰 모서리 굵은 강조 + 이음점")]
+        public Sprite TechFrame;
+        [Tooltip("사선 줄무늬 (반복, RawImage uvRect)")]
+        public Texture2D Hatch;
+        [Tooltip("회로 선 끝 점")]
+        public Sprite Dot;
     }
 }
