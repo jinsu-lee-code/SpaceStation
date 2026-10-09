@@ -73,7 +73,7 @@ namespace SpaceStation.Core
 
             if (KeyBindings.WasPressed(GameAction.Pause))
                 _clock.TogglePause();
-            if (KeyBindings.WasPressed(GameAction.SpeedCycle))
+            if (KeyBindings.WasPressed(GameAction.SpeedCycle) && !InputGate.SpeedCycleTaken)
                 SetSpeedPreset((CurrentPresetIndex() + 1) % _speedPresets.Length); // 12-0: 1x → 2x → 4x → 1x
             if (KeyBindings.WasPressed(GameAction.Speed1))
                 SetSpeedPreset(0);

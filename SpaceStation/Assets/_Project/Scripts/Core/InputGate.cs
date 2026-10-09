@@ -7,6 +7,9 @@ namespace SpaceStation.Core
     {
         public static bool Blocked;
 
+        /// <summary>11-12 내부 방문 중: 배속 순환 키(기본 Tab)를 휴대 패드 확대가 씀 — 배속 순환은 건너뜀.</summary>
+        public static bool SpeedCycleTaken;
+
         private static int _escapeConsumedFrame = -1;
 
         /// <summary>창(연구 등)이 이번 프레임 ESC를 써서 닫혔음을 알린다 — 다른 ESC 처리(배치 취소·일시정지 메뉴)는 건너뛴다.</summary>

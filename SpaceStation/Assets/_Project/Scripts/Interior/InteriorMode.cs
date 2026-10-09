@@ -58,6 +58,9 @@ namespace SpaceStation.Interior
         [Tooltip("동물 주민 모델 묶음 (11-11d — 메뉴 SpaceStation/Interior/Wire Animal Residents)")]
         [SerializeField] private AnimalModelSet _animalSet;
 
+        [Header("11-12 휴대 패드")]
+        [SerializeField] private InteriorPadTuning _padTuning = new InteriorPadTuning();
+
         [Header("HUD")]
         [SerializeField] private RectTransform _hud;
         [SerializeField] private TMP_FontAsset _font;
@@ -89,6 +92,7 @@ namespace SpaceStation.Interior
         private InteriorExteriorView _exteriorView;
         private InteriorAtmosphere _atmosphere;
         private InteriorResidents _residents;
+        private InteriorPad _pad;
         private readonly InteriorAudio _audio = new InteriorAudio(); // 11-9 방 환경음·발소리
         private readonly List<GameObject> _hiddenNow = new List<GameObject>();
 
@@ -131,6 +135,7 @@ namespace SpaceStation.Interior
             if (_inside)
             {
                 InputGate.Blocked = false;
+                InputGate.SpeedCycleTaken = false;
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
@@ -229,6 +234,24 @@ namespace SpaceStation.Interior
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
             _currentModule = null;
+            InputGate.SpeedCycleTaken = true; // 배속 순환 키 = 패드 화면 확대
+            _pad = InteriorPad.Create(transform, new InteriorPad.Context
+            {
+                Station = _station,
+                Selection = _selection,
+                Actions = _hud != null ? _hud.GetComponentInChildren<SelectionActionsPanel>(true) : null,
+                Main = _camera,
+                Player = _player,
+                Builder = _builder,
+                Origin = _root.position,
+                Layout = () => _layout,
+                CurrentRoom = RoomAtPlayer,
+                Travel = TravelTo,
+                Window = Window,
+                Font = _font,
+                Fill = _fillSprite,
+                Tuning = _padTuning,
+            });
             InsideChanged?.Invoke(true);
 
             yield return Fade(1f, 0f, 0.3f);
@@ -249,6 +272,10 @@ namespace SpaceStation.Interior
             yield return Fade(0f, 1f, 0.15f);
 
             var lastModule = _currentModule;
+            if (_pad != null)
+                Destroy(_pad.gameObject); // 카메라 쌓기 · 컬링 마스크 · 열어 둔 창을 되돌림
+            _pad = null;
+            InputGate.SpeedCycleTaken = false;
             var cam = _camera.transform;
             cam.SetParent(_cameraParent, false);
             cam.SetPositionAndRotation(_cameraPosition, _cameraRotation);
@@ -305,7 +332,7 @@ namespace SpaceStation.Interior
             if (!_inside || _busy)
                 return;
             var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame && !InputGate.EscapeConsumedThisFrame) // 패드 확대 중 ESC = 축소 (패드가 먼저)
             {
                 InputGate.ConsumeEscape();
                 Exit();
@@ -350,6 +377,11 @@ namespace SpaceStation.Interior
 
         private void UpdateHatchPrompt()
         {
+            if (_pad != null && _pad.IsZoomed)
+            {
+                _prompt.SetText(string.Empty);
+                return;
+            }
             var eye = _player.Eye;
             InteriorHatch hatch = null;
             if (Physics.Raycast(eye.position, eye.forward, out var hit, _interactDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
@@ -378,6 +410,64 @@ namespace SpaceStation.Interior
             _player.Teleport(arrival + offset + Vector3.up * 0.05f, _player.transform.eulerAngles.y);
             yield return Fade(1f, 0f, 0.2f);
             _busy = false;
+        }
+
+        // ---------------- 11-12 휴대 패드 ----------------
+
+        /// <summary>지금 서 있는 방 (눈 높이 칸).</summary>
+        private ModuleInstance RoomAtPlayer()
+        {
+            if (_player == null || _layout == null)
+                return null;
+            var cell = _builder.WorldToCell(_player.transform.position + Vector3.up * FirstPersonController.EyeHeight);
+            return _layout.TryGetRoom(cell, out var room) ? room.Module : null;
+        }
+
+        /// <summary>빠른 이동: 연결된 방의 들어오는 자리로 (페이드).</summary>
+        private void TravelTo(ModuleInstance module)
+        {
+            if (!_inside || _busy || module == null || _layout == null || !_layout.Contains(module))
+                return;
+            StartCoroutine(TravelRoutine(module));
+        }
+
+        private IEnumerator TravelRoutine(ModuleInstance module)
+        {
+            _busy = true;
+            _prompt.SetText(string.Empty);
+            AudioService.TryPlay(l => l.UiOpen, 0.5f);
+            yield return Fade(0f, 1f, 0.2f);
+            var spawn = _builder.SpawnPoint(module, out float yaw);
+            _player.Teleport(spawn + Vector3.up * 0.05f, yaw);
+            _currentModule = null; // 제목 · 환경음 다시
+            yield return Fade(1f, 0f, 0.25f);
+            _busy = false;
+        }
+
+        /// <summary>패드에서 연구 · 명단 창 열고 닫기 (들어가 있는 동안 숨긴 HUD 창을 잠시 켬). 열려 있는지 반환.</summary>
+        private bool Window(string name, bool? open)
+        {
+            var t = _hud != null ? _hud.Find(name) : null;
+            if (t == null)
+                return false;
+            var research = t.GetComponent<ResearchPanel>();
+            var roster = t.GetComponent<RosterPanel>();
+            bool isOpen = research != null ? research.IsOpen : roster != null && roster.IsOpen;
+            if (open == true && !isOpen)
+            {
+                t.gameObject.SetActive(true);
+                if (research != null) research.Open();
+                else if (roster != null) roster.Open();
+                return true;
+            }
+            if (open == false)
+            {
+                if (research != null) research.Close();
+                else if (roster != null) roster.Close();
+                t.gameObject.SetActive(false); // 숨긴 목록(_hiddenNow)에 남아 있어 나갈 때 다시 켜짐
+                return false;
+            }
+            return isOpen;
         }
 
         private void Rebuild()
@@ -533,7 +623,7 @@ namespace SpaceStation.Interior
             if (hint == null)
                 return;
             string move = $"{KeyBindings.Label(GameAction.CameraForward)}{KeyBindings.Label(GameAction.CameraLeft)}{KeyBindings.Label(GameAction.CameraBack)}{KeyBindings.Label(GameAction.CameraRight)}";
-            hint.SetText($"{move} 이동 · 마우스 둘러보기 · Shift 달리기 · {KeyBindings.Label(GameAction.Interact)} 해치 · ESC 나가기");
+            hint.SetText($"{move} 이동 · 마우스 둘러보기 · Shift 달리기 · {KeyBindings.Label(GameAction.Interact)} 해치 · {KeyBindings.Label(GameAction.Pad)} 패드 · ESC 나가기");
         }
 
         private IEnumerator Fade(float from, float to, float seconds)

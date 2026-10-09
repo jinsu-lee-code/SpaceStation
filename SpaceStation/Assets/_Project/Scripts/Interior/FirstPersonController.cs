@@ -39,6 +39,9 @@ namespace SpaceStation.Interior
 
         public Transform Eye => _eye;
 
+        /// <summary>11-12 휴대 패드 화면 확대 중: 시점 · 이동 멈춤 (중력만).</summary>
+        public bool Frozen { get; set; }
+
         /// <summary>발이 바닥에 닿을 때 (달리는 중이면 true).</summary>
         public event System.Action<bool> Footstep;
 
@@ -73,14 +76,17 @@ namespace SpaceStation.Interior
             float dt = Time.unscaledDeltaTime;
 
             // 시점
-            Vector2 look = mouse.delta.ReadValue() * (_lookDegreesPerPixel * Settings.GameSettings.OrbitSensitivity);
-            transform.Rotate(0f, look.x, 0f, Space.Self);
-            _pitch = Mathf.Clamp(_pitch - look.y, -85f, 85f);
-            _eye.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
+            if (!Frozen)
+            {
+                Vector2 look = mouse.delta.ReadValue() * (_lookDegreesPerPixel * Settings.GameSettings.OrbitSensitivity);
+                transform.Rotate(0f, look.x, 0f, Space.Self);
+                _pitch = Mathf.Clamp(_pitch - look.y, -85f, 85f);
+                _eye.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
+            }
 
             // 이동
-            float right = Axis(GameAction.CameraRight, GameAction.CameraLeft);
-            float forward = Axis(GameAction.CameraForward, GameAction.CameraBack);
+            float right = Frozen ? 0f : Axis(GameAction.CameraRight, GameAction.CameraLeft);
+            float forward = Frozen ? 0f : Axis(GameAction.CameraForward, GameAction.CameraBack);
             var keyboard = Keyboard.current;
             bool run = keyboard != null && (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed);
             var move = transform.right * right + transform.forward * forward;

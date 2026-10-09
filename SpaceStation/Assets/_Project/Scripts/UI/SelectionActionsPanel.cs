@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using SpaceStation.Building;
 using SpaceStation.Core;
@@ -297,23 +297,23 @@ namespace SpaceStation.UI
 
         private static string Name(ModuleInstance module) => module.Data != null ? module.Data.DisplayName : module.ToString();
 
-        private void Refresh()
+        /// <summary>모듈 정보 글과 수리 · 정비 · 재건축 버튼 상태 (선택 패널 · 11-12 휴대 패드 공용).</summary>
+        public struct ModuleView
         {
-            _dirty = false;
-            var module = _build.Selected == null ? _selection.Selected : null;
-            bool visible = module != null;
-            _group.alpha = visible ? 1f : 0f;
-            _group.blocksRaycasts = visible;
-            _group.interactable = visible;
-            _blinking = false;
-            if (!visible)
-                return;
+            public string Info;
+            public bool Critical;   // 효율 25% 미만 (글자 깜빡임)
+            public bool CanRepair, CanMaintain, CanRebuild;
+            public string RepairLabel, MaintainLabel, RebuildLabel;
+            public bool RepairQueued;
+        }
 
+        public ModuleView Describe(ModuleInstance module)
+        {
+            var view = new ModuleView();
             // 7-1: 모듈 자체 효율 (선택 테두리와 같은 구간 색)
             float efficiency = _station.Simulation.GetModuleEfficiency(module);
             var band = EfficiencyBands.Classify(efficiency);
-            _blinkOn = EfficiencyBands.BlinkOn(Time.time);
-            _blinking = band == EfficiencyBand.Critical;
+            view.Critical = band == EfficiencyBand.Critical;
             string efficiencyText = $"<color={EfficiencyBands.Hex(band, Time.time)}>효율 {efficiency * 100f:0}%</color>";
 
             string state;
@@ -375,7 +375,7 @@ namespace SpaceStation.UI
             var applied = _resources.Adjacency.GetApplied(module);
             if (applied.Count > 0)
                 adjacencyLine = $"\n<size=85%><color={HudText.Muted}>인접</color> {AdjacencySystem.DescribeAll(applied)}</size>";
-            _title.SetText($"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{DefenseLine(module)}{NeedsLine(module)}{ResidentsLine(module)}");
+            view.Info = $"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{DefenseLine(module)}{NeedsLine(module)}{ResidentsLine(module)}";
 
             var sim = _resources.Simulation;
 
@@ -383,27 +383,21 @@ namespace SpaceStation.UI
             bool damaged = dmg != null;
             bool repairing = damaged && dmg.IsRepairing;
             bool queued = damaged && dmg.IsQueued;
+            view.RepairQueued = queued;
             var repairCost = damaged ? damage.GetRepairCost(module) : null;
             if (queued)
             {
                 int position = damage.GetQueuePosition(module);
-                _repairButton.interactable = position > 1;
-                _repairLabel.SetText(position > 1 ? $"우선 수리 ({K(GameAction.Repair)})\n<size=80%>대기 {position}번째 → 1번째</size>" : "대기 1번째\n<size=80%>다음 차례</size>");
+                view.CanRepair = position > 1;
+                view.RepairLabel = position > 1 ? $"우선 수리 ({K(GameAction.Repair)})\n<size=80%>대기 {position}번째 → 1번째</size>" : "대기 1번째\n<size=80%>다음 차례</size>";
             }
             else
             {
-                _repairButton.interactable = damaged && !repairing && sim.CanAfford(repairCost);
+                view.CanRepair = damaged && !repairing && sim.CanAfford(repairCost);
                 string slotNote = damage.HasFreeRepairSlot ? "" : $" · <color={HudText.Yellow}>대기</color>";
-                _repairLabel.SetText(!damaged ? $"수리 ({K(GameAction.Repair)})\n<size=80%>파손 아님</size>"
+                view.RepairLabel = !damaged ? $"수리 ({K(GameAction.Repair)})\n<size=80%>파손 아님</size>"
                     : repairing ? "수리 중\n<size=80%>진행 중</size>"
-                    : $"수리 ({K(GameAction.Repair)})\n<size=80%>{HudText.Cost(repairCost)}{slotNote}</size>");
-            }
-            if (_cancelRepairButton != null)
-            {
-                if (_cancelRepairButton.gameObject.activeSelf != queued)
-                    _cancelRepairButton.gameObject.SetActive(queued);
-                if (queued)
-                    _cancelRepairLabel.SetText($"대기 취소 ({K(GameAction.CancelRepair)})\n<size=80%>환불 {HudText.Cost(_resources.GetCancelRefund(module))}</size>");
+                    : $"수리 ({K(GameAction.Repair)})\n<size=80%>{HudText.Cost(repairCost)}{slotNote}</size>";
             }
 
             // 정비
@@ -411,32 +405,64 @@ namespace SpaceStation.UI
             {
                 bool atMax = dur.Current >= dur.Max - 0.5f;
                 var cost = durability.GetMaintenanceCost(module);
-                _maintainButton.interactable = !atMax && sim.CanAfford(cost);
-                _maintainLabel.SetText(atMax ? $"정비 ({K(GameAction.Maintain)})\n<size=80%>최대 내구도</size>"
-                    : $"정비 ({K(GameAction.Maintain)}) →{durability.MaxAfterMaintenance(dur):0}\n<size=80%>{HudText.Cost(cost)}</size>");
+                view.CanMaintain = !atMax && sim.CanAfford(cost);
+                view.MaintainLabel = atMax ? $"정비 ({K(GameAction.Maintain)})\n<size=80%>최대 내구도</size>"
+                    : $"정비 ({K(GameAction.Maintain)}) →{durability.MaxAfterMaintenance(dur):0}\n<size=80%>{HudText.Cost(cost)}</size>";
             }
             else
             {
-                _maintainButton.interactable = false;
-                _maintainLabel.SetText($"정비 ({K(GameAction.Maintain)})\n<size=80%>노후화 없음</size>");
+                view.CanMaintain = false;
+                view.MaintainLabel = $"정비 ({K(GameAction.Maintain)})\n<size=80%>노후화 없음</size>";
             }
 
             // 재건축
-            bool removable = _station.CanRemove(module);
-            bool supporting = _station.IsSupportingOthers(module);
             if (tracked && _station.Simulation.IsRemovableKind(module)) // 받침 모듈도 재건축은 가능 (같은 자리에 다시 지음)
             {
                 var net = _resources.GetRebuildCost(module);
-                _rebuildButton.interactable = sim.CanAfford(net);
-                _rebuildLabel.SetText($"재건축 ({K(GameAction.Rebuild)}) → 100\n<size=80%>{HudText.Cost(net)}</size>");
+                view.CanRebuild = sim.CanAfford(net);
+                view.RebuildLabel = $"재건축 ({K(GameAction.Rebuild)}) → 100\n<size=80%>{HudText.Cost(net)}</size>";
             }
             else
             {
-                _rebuildButton.interactable = false;
-                _rebuildLabel.SetText($"재건축 ({K(GameAction.Rebuild)})\n<size=80%>불가</size>");
+                view.CanRebuild = false;
+                view.RebuildLabel = $"재건축 ({K(GameAction.Rebuild)})\n<size=80%>불가</size>";
             }
+            return view;
+        }
+
+        private void Refresh()
+        {
+            _dirty = false;
+            var module = _build.Selected == null ? _selection.Selected : null;
+            bool visible = module != null;
+            _group.alpha = visible ? 1f : 0f;
+            _group.blocksRaycasts = visible;
+            _group.interactable = visible;
+            _blinking = false;
+            if (!visible)
+                return;
+
+            var view = Describe(module);
+            _blinkOn = EfficiencyBands.BlinkOn(Time.time);
+            _blinking = view.Critical;
+            _title.SetText(view.Info);
+            _repairButton.interactable = view.CanRepair;
+            _repairLabel.SetText(view.RepairLabel);
+            if (_cancelRepairButton != null)
+            {
+                if (_cancelRepairButton.gameObject.activeSelf != view.RepairQueued)
+                    _cancelRepairButton.gameObject.SetActive(view.RepairQueued);
+                if (view.RepairQueued)
+                    _cancelRepairLabel.SetText($"대기 취소 ({K(GameAction.CancelRepair)})\n<size=80%>환불 {HudText.Cost(_resources.GetCancelRefund(module))}</size>");
+            }
+            _maintainButton.interactable = view.CanMaintain;
+            _maintainLabel.SetText(view.MaintainLabel);
+            _rebuildButton.interactable = view.CanRebuild;
+            _rebuildLabel.SetText(view.RebuildLabel);
 
             // 철거
+            bool removable = _station.CanRemove(module);
+            bool supporting = _station.IsSupportingOthers(module);
             _demolishButton.interactable = removable;
             _demolishLabel.SetText(removable
                 ? $"철거 ({K(GameAction.Demolish)})\n<size=80%>환급 {HudText.Cost(_resources.GetRefund(module))}</size>"

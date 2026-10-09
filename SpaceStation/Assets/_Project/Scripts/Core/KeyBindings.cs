@@ -34,6 +34,7 @@ namespace SpaceStation.Core
         Roster, // Phase 10 주민 명단
         EnterInterior, // Phase 11 내부 방문
         Interact,
+        Pad, // 11-12 휴대 패드 들기 / 내리기 (확대는 배속 순환 키)
     }
 
     /// <summary>키가 쓰이는 상황. 건설 중과 선택 중은 동시에 일어나지 않으므로 같은 키를 써도 된다.</summary>
@@ -88,6 +89,7 @@ namespace SpaceStation.Core
             new Info { Action = GameAction.DemolishAlt, Group = "선택한 모듈", Label = "철거 (보조 키)", Default = Key.Delete, Context = ActionContext.Selection },
             new Info { Action = GameAction.EnterInterior, Group = "선택한 모듈", Label = "내부 들어가기", Default = Key.V, Context = ActionContext.Selection },
             new Info { Action = GameAction.Interact, Group = "내부 방문", Label = "해치 이용", Default = Key.F, Context = ActionContext.Interior },
+            new Info { Action = GameAction.Pad, Group = "내부 방문", Label = "휴대 패드 들기 / 내리기 (든 채 배속 순환 키 = 화면 확대)", Default = Key.M, Context = ActionContext.Interior },
             new Info { Action = GameAction.Pause, Group = "시간", Label = "일시정지 / 재개", Default = Key.Space, Context = ActionContext.Always },
             new Info { Action = GameAction.SpeedCycle, Group = "시간", Label = "배속 순환 (1x → 2x → 4x)", Default = Key.Tab, Context = ActionContext.Always },
             new Info { Action = GameAction.Speed1, Group = "시간", Label = "배속 1x", Default = Key.F1, Context = ActionContext.Always },
