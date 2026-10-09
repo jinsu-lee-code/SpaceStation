@@ -6,8 +6,8 @@ using SpaceStation.Data;
 using SpaceStation.UI;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-
 using UnityEngine.UI;
 
 namespace SpaceStation.Interior
@@ -27,16 +27,33 @@ namespace SpaceStation.Interior
         [Tooltip("내린 자세 (화면 밖 아래)")]
         public Vector3 LoweredPosition = new Vector3(0.1f, -0.45f, 0.22f);
         public Vector3 LoweredEuler = new Vector3(60f, -10f, 5f);
-        [Tooltip("확대 자세 (화면 가운데, 패드 세로가 시야의 약 80%)")]
-        public Vector3 ZoomPosition = new Vector3(0f, 0f, 0.19f);
-        public Vector3 ZoomEuler = Vector3.zero;
+        [Tooltip("확대 자세 (화면 아래쪽에 눕혀 들고, 위 빈 곳에 홀로그램 모형)")]
+        public Vector3 ZoomPosition = new Vector3(0f, -0.075f, 0.2f);
+        public Vector3 ZoomEuler = new Vector3(34f, 0f, 0f);
         [Tooltip("들기 · 확대 걸리는 시간 (초)")]
         public float RaiseSeconds = 0.28f;
         public float ZoomSeconds = 0.22f;
-        [Tooltip("미니맵 칸 크기 (패드 화면 픽셀)")]
-        public float CellPixels = 30f;
 
-        [Header("미니맵 색")]
+        [Header("11-13 홀로그램 모형")]
+        [Tooltip("모듈 모형 메시 묶음 (메뉴 SpaceStation/Interior/Wire Pad가 구움)")]
+        public PadHoloSet Holo;
+        [Tooltip("홀로그램 면 · 선 재질 (URP Particles/Unlit 가산)")]
+        public Material HoloFill;
+        public Material HoloLine;
+        [Tooltip("투사기 위치 (패드 기준 — 위 가장자리 센서 바)")]
+        public Vector3 HoloAnchor = new Vector3(0f, 0.094f, -0.002f);
+        [Tooltip("모형 가로 · 세로 최대 크기 (m, 확대 상태)")]
+        public float HoloFootprint = 0.12f;
+        [Tooltip("투사기에서 모형 바닥까지 높이 (m, 확대 상태) — 패드 화면을 가리지 않게")]
+        public float HoloLift = 0.06f;
+        [Tooltip("든 자세(걷는 중)의 모형 크기 배율")]
+        [Range(0.2f, 1f)] public float HoloHeldScale = 0.45f;
+        [Tooltip("모형을 보는 사람 쪽으로 기울이는 각 (도)")]
+        public float HoloTilt = 55f;
+        [Tooltip("발광 세기 (Bloom과 함께)")]
+        public float HoloGlow = 1.4f;
+
+        [Header("모듈 색")]
         public Color Core = new Color(0.31f, 0.85f, 1f);
         public Color Power = new Color(0.95f, 0.8f, 0.32f);
         public Color Life = new Color(0.42f, 0.86f, 0.52f);
@@ -50,8 +67,10 @@ namespace SpaceStation.Interior
 
     /// <summary>
     /// 11-12 휴대 패드: M으로 손에 든 패드를 올리고 내림 (든 채 걷기 · 둘러보기 자유), 든 상태에서 배속 순환 키(기본 Tab)로 화면을 확대해 조작
-    /// (커서 풀림 · 걷기 멈춤), 다시 Tab · ESC로 축소. 화면 = 층별 위에서 본 칸 지도(<see cref="PadMap"/>) + 고른 모듈 정보 · 수리 · 정비 · 재건축
-    /// (<see cref="SelectionActionsPanel.Describe"/> 공용) + 빠른 이동 + 연구 · 명단 창.
+    /// (커서 풀림 · 걷기 멈춤), 다시 Tab · ESC로 축소. 고른 모듈 정보 · 수리 · 정비 · 재건축(<see cref="SelectionActionsPanel.Describe"/> 공용)
+    /// + 빠른 이동 + 연구 · 명단 창.
+    /// 11-13: 패드 위 3D 홀로그램 모형(<see cref="PadHologram"/>)이 지도 — 지금 층 모듈을 실제 모양으로, 확대 중 모형을 클릭해 고름.
+    /// 화면은 홀로그램 테마(<see cref="HoloUi"/> · <see cref="HoloFx"/> 진하게): 고른 모듈 썸네일 카드 · 분류 · 상태 꼬리표.
     /// 패드는 본 카메라로 그림 — URP 겹침 카메라는 월드 캔버스 UI를 그리지 않았음. 든 자세는 눈에서 0.3m 안(몸 충돌 반지름)이라 벽에 묻히지 않음. ESC는 내부 나가기(<see cref="InteriorMode"/>)보다 먼저.
     /// </summary>
     [DefaultExecutionOrder(-310)]
@@ -75,6 +94,8 @@ namespace SpaceStation.Interior
             public Func<string, bool?, bool> Window;
             public TMP_FontAsset Font;
             public Sprite Fill;
+            /// <summary>11-13 홀로그램 테마 아트 (없으면 Font · Fill만으로 단순하게).</summary>
+            public HoloArt Art;
             public InteriorPadTuning Tuning;
         }
 
@@ -87,25 +108,35 @@ namespace SpaceStation.Interior
         private bool _wantZoom;
         private string _window;  // 열어 둔 창 이름
 
+        // 홀로그램 모형
+        private PadHologram _holo;
+        private Transform _holoAnchor;
+        private readonly List<PadMapCell> _cells = new List<PadMapCell>();
+        private readonly HashSet<ModuleInstance> _floorModules = new HashSet<ModuleInstance>();
+        private List<int> _floors = new List<int>();
+        private int _floor = int.MinValue;
+        private bool _followFloor = true;
+
         // UI
+        private HoloFx _fx;
         private CanvasGroup _group;
         private TMP_Text _header;
         private TMP_Text _floorLabel;
-        private RectTransform _mapContent;
-        private RectTransform _marker;
+        private Image _thumb;
+        private TMP_Text _thumbEmpty;
+        private TMP_Text _name;
+        private TMP_Text _category;
+        private TMP_Text _status;
+        private Image _categoryBack, _statusBack;
         private TMP_Text _info;
         private TMP_Text _message;
         private TMP_Text _hint;
         private Button _repair, _maintain, _rebuild, _travel, _floorUp, _floorDown;
         private TMP_Text _repairLabel, _maintainLabel, _rebuildLabel, _travelLabel;
-        private readonly List<PadMapCell> _cells = new List<PadMapCell>();
-        private readonly List<GameObject> _cellObjects = new List<GameObject>();
-        private List<int> _floors = new List<int>();
-        private int _floor;
-        private bool _followFloor = true;
         private float _nextRefresh;
-        private bool _mapDirty = true;
+        private bool _dirty = true;
         private float _messageUntil;
+        private ModuleInstance _shown;
 
         public bool IsRaised => _wantRaise;
         public bool IsZoomed => _wantZoom;
@@ -123,7 +154,6 @@ namespace SpaceStation.Interior
 
         private void Build()
         {
-
             _pad = new GameObject("Pad").transform;
             _pad.SetParent(_c.Player.Eye, false);
             if (_t.Model != null)
@@ -132,6 +162,26 @@ namespace SpaceStation.Interior
                 model.name = "PadModel";
             }
             BuildCanvas();
+            _holoAnchor = new GameObject("HoloAnchor").transform;
+            _holoAnchor.SetParent(_pad, false);
+            _holoAnchor.localPosition = _t.HoloAnchor;
+            if (_t.Holo != null && _t.HoloFill != null && _t.HoloLine != null)
+            {
+                _holo = PadHologram.Create(_holoAnchor, new PadHologram.Settings
+                {
+                    Set = _t.Holo,
+                    Fill = _t.HoloFill,
+                    Line = _t.HoloLine,
+                    Font = _c.Art != null && _c.Art.Font != null ? _c.Art.Font : _c.Font,
+                    Footprint = _t.HoloFootprint,
+                    Glow = _t.HoloGlow,
+                    Tilt = _t.HoloTilt,
+                    Lift = _t.HoloLift,
+                });
+                _holo.transform.SetParent(transform, true);
+                _holo.ColorOf = ModuleColor;
+                _holo.gameObject.SetActive(false);
+            }
             ApplyPose();
             _pad.gameObject.SetActive(false);
             if (_c.Actions != null)
@@ -194,18 +244,23 @@ namespace SpaceStation.Interior
             _raise = Mathf.MoveTowards(_raise, _wantRaise ? 1f : 0f, dt / Mathf.Max(0.01f, _t.RaiseSeconds));
             _zoom = Mathf.MoveTowards(_zoom, _wantZoom ? 1f : 0f, dt / Mathf.Max(0.01f, _t.ZoomSeconds));
             if (!_wantRaise && _raise <= 0f && _pad.gameObject.activeSelf)
+            {
                 _pad.gameObject.SetActive(false);
+                if (_holo != null)
+                    _holo.gameObject.SetActive(false);
+            }
             if (!_pad.gameObject.activeSelf)
                 return;
             ApplyPose();
 
-            if (_mapDirty || Time.unscaledTime >= _nextRefresh)
+            if (_dirty || Time.unscaledTime >= _nextRefresh)
             {
                 _nextRefresh = Time.unscaledTime + 0.4f;
-                RefreshMap();
+                _dirty = false;
+                RefreshFloor();
                 RefreshInfo();
             }
-            UpdateMarker();
+            UpdateHologram();
             if (_message != null && _messageUntil > 0f && Time.unscaledTime > _messageUntil)
             {
                 _messageUntil = 0f;
@@ -219,10 +274,12 @@ namespace SpaceStation.Interior
                 return;
             _wantRaise = true;
             _pad.gameObject.SetActive(true);
+            if (_holo != null)
+                _holo.gameObject.SetActive(true);
             _followFloor = true;
             var current = _c.CurrentRoom();
             _c.Selection.Select(current); // 처음엔 지금 있는 방
-            _mapDirty = true;
+            _dirty = true;
             SpaceStation.Audio.AudioService.TryPlay(l => l.UiOpen, 0.6f);
         }
 
@@ -251,7 +308,9 @@ namespace SpaceStation.Interior
             Cursor.visible = on;
             _group.interactable = on;
             _group.blocksRaycasts = on;
-            _mapDirty = true;
+            if (_holo != null)
+                _holo.Hover = null;
+            _dirty = true;
             RefreshHint();
         }
 
@@ -312,7 +371,7 @@ namespace SpaceStation.Interior
             _message.SetText(text);
             _message.color = HoloUi.TextColor;
             _messageUntil = Time.unscaledTime + 4f;
-            _mapDirty = true;
+            _dirty = true;
         }
 
         private void ShowFailure(string text)
@@ -343,73 +402,79 @@ namespace SpaceStation.Interior
             _group.interactable = false;
             _group.blocksRaycasts = false;
 
-            var ui = new HoloUi(_c.Font, _c.Fill, _c.Fill, _c.Fill);
-            var bg = HoloUi.Rect("Background", rt);
-            HoloUi.Stretch(bg);
-            var bgImg = bg.gameObject.AddComponent<Image>();
-            bgImg.color = new Color(0.02f, 0.05f, 0.08f, 1f);
-            bgImg.raycastTarget = false;
+            var ui = _c.Art != null ? new HoloUi(_c.Art) : new HoloUi(_c.Font, _c.Fill, _c.Fill, _c.Fill);
+            _fx = ui.Screen(rt, 1f, HudTheme.HoloDeep); // 패드 = 진하게
+            var accent = HudTheme.Accent;
+            var low = new Color(accent.r, accent.g, accent.b, 0.35f);
 
-            _header = ui.Label(rt, "", 24f, TextAlignmentOptions.MidlineLeft);
-            HoloUi.Place(_header.rectTransform, new Vector2(16f, -6f), new Vector2(600f, 40f));
-            var title = ui.Label(rt, "<color=#4FD8FF>STATION PAD</color>", 18f, TextAlignmentOptions.MidlineRight);
-            HoloUi.Place(title.rectTransform, new Vector2(CanvasWidth - 236f, -6f), new Vector2(220f, 40f));
+            // 위: 위치 · 층
+            var tag = ui.Label(rt, $"<color={HudTheme.AccentHex}><b>//</b> STATION PAD</color>  <color={HudTheme.MutedHex}>현재 위치</color>", 13f, TextAlignmentOptions.MidlineLeft);
+            HoloUi.Place(tag.rectTransform, new Vector2(18f, -8f), new Vector2(420f, 20f));
+            _header = ui.Label(rt, "", 26f, TextAlignmentOptions.MidlineLeft);
+            HoloUi.Place(_header.rectTransform, new Vector2(18f, -26f), new Vector2(480f, 34f));
+            _floorDown = ui.Button(rt, "▼", 16f, () => ChangeFloor(-1));
+            HoloUi.Place((RectTransform)_floorDown.transform, new Vector2(CanvasWidth - 236f, -14f), new Vector2(40f, 38f));
+            _floorLabel = ui.Label(rt, "", 19f, TextAlignmentOptions.Center);
+            HoloUi.Place(_floorLabel.rectTransform, new Vector2(CanvasWidth - 192f, -10f), new Vector2(128f, 46f));
+            _floorUp = ui.Button(rt, "▲", 16f, () => ChangeFloor(1));
+            HoloUi.Place((RectTransform)_floorUp.transform, new Vector2(CanvasWidth - 60f, -14f), new Vector2(40f, 38f));
+            HoloUi.Divider(rt, new Vector2(16f, -64f), CanvasWidth - 32f, low);
 
-            // 지도
-            float mapW = 500f, mapH = height - 64f;
-            var map = HoloUi.Rect("Map", rt);
-            HoloUi.Place(map, new Vector2(12f, -50f), new Vector2(mapW, mapH));
-            var mapImg = map.gameObject.AddComponent<Image>();
-            mapImg.color = new Color(0.04f, 0.09f, 0.13f, 1f);
-            mapImg.raycastTarget = false;
-            map.gameObject.AddComponent<RectMask2D>();
-            _mapContent = HoloUi.Rect("Cells", map);
-            _mapContent.anchorMin = _mapContent.anchorMax = new Vector2(0.5f, 0.5f);
-            _mapContent.sizeDelta = Vector2.zero;
-            _marker = (RectTransform)ui.Label(map, "▲", 30f, TextAlignmentOptions.Center).transform;
-            _marker.anchorMin = _marker.anchorMax = new Vector2(0.5f, 0.5f);
-            _marker.sizeDelta = new Vector2(40f, 40f);
-            ((TMP_Text)_marker.GetComponent<TMP_Text>()).color = Color.white;
-            _floorLabel = ui.Label(map, "", 20f, TextAlignmentOptions.TopLeft);
-            HoloUi.Place(_floorLabel.rectTransform, new Vector2(10f, -6f), new Vector2(200f, 30f));
-            _floorUp = ui.Button(map, "▲", 20f, () => ChangeFloor(1));
-            HoloUi.Place((RectTransform)_floorUp.transform, new Vector2(mapW - 52f, -8f), new Vector2(44f, 40f));
-            _floorDown = ui.Button(map, "▼", 20f, () => ChangeFloor(-1));
-            HoloUi.Place((RectTransform)_floorDown.transform, new Vector2(mapW - 52f, -52f), new Vector2(44f, 40f));
+            // 왼쪽: 고른 모듈 카드 (썸네일 · 이름 · 분류 · 상태)
+            const float cx = 16f, cw = 280f;
+            var thumbBox = HoloUi.Rect("ThumbBox", rt);
+            HoloUi.Place(thumbBox, new Vector2(cx, -76f), new Vector2(cw, 168f));
+            ui.GlowPanel(thumbBox.gameObject, new Color(0.03f, 0.12f, 0.17f, 0.95f), new Color(accent.r, accent.g, accent.b, 0.9f), 0.45f);
+            var thumbRt = HoloUi.Rect("Thumb", thumbBox);
+            HoloUi.Stretch(thumbRt, new Vector2(12f, 10f), new Vector2(-12f, -10f));
+            _thumb = thumbRt.gameObject.AddComponent<Image>();
+            _thumb.preserveAspect = true;
+            _thumb.raycastTarget = false;
+            _thumbEmpty = ui.Label(thumbBox, "", 15f, TextAlignmentOptions.Center, wrap: true);
+            HoloUi.Stretch(_thumbEmpty.rectTransform, new Vector2(16f, 10f), new Vector2(-16f, -10f));
+            _thumbEmpty.color = HoloUi.MutedColor;
+            _name = ui.Label(rt, "", 23f, TextAlignmentOptions.MidlineLeft);
+            HoloUi.Place(_name.rectTransform, new Vector2(cx, -252f), new Vector2(cw, 34f));
+            _category = ui.Chip(rt, "", accent, 14f);
+            HoloUi.Place((RectTransform)_category.transform.parent, new Vector2(cx, -292f), new Vector2(84f, 28f));
+            _categoryBack = _category.transform.parent.GetComponent<Image>();
+            _status = ui.Chip(rt, "", HudTheme.Positive, 14f);
+            HoloUi.Place((RectTransform)_status.transform.parent, new Vector2(cx + 92f, -292f), new Vector2(cw - 92f, 28f));
+            _statusBack = _status.transform.parent.GetComponent<Image>();
 
             // 오른쪽: 정보 · 조작
-            float x = 524f, w = CanvasWidth - x - 12f;
+            float x = cx + cw + 18f, w = CanvasWidth - x - 16f;
             var infoBg = HoloUi.Rect("InfoBack", rt);
-            HoloUi.Place(infoBg, new Vector2(x, -50f), new Vector2(w, 222f));
-            var infoImg = infoBg.gameObject.AddComponent<Image>();
-            infoImg.color = new Color(0.04f, 0.09f, 0.13f, 1f);
-            infoImg.raycastTarget = false;
-            _info = ui.Label(infoBg, "", 17f, TextAlignmentOptions.TopLeft, wrap: true);
-            HoloUi.Stretch(_info.rectTransform, new Vector2(10f, 8f), new Vector2(-10f, -8f));
+            HoloUi.Place(infoBg, new Vector2(x, -76f), new Vector2(w, 168f));
+            ui.GlowPanel(infoBg.gameObject, new Color(0.03f, 0.1f, 0.15f, 0.85f), new Color(accent.r, accent.g, accent.b, 0.55f), 0.2f);
+            _info = ui.Label(infoBg, "", 16f, TextAlignmentOptions.TopLeft, wrap: true);
+            HoloUi.Stretch(_info.rectTransform, new Vector2(14f, 10f), new Vector2(-14f, -10f));
             _info.overflowMode = TextOverflowModes.Ellipsis;
 
-            float bw = (w - 12f) / 3f, by = -280f;
+            float bw = (w - 12f) / 3f, by = -256f;
             _repair = ui.Button(rt, "수리", 15f, () => Act(a => a.RepairSelected()));
-            HoloUi.Place((RectTransform)_repair.transform, new Vector2(x, by), new Vector2(bw, 58f));
+            HoloUi.Place((RectTransform)_repair.transform, new Vector2(x, by), new Vector2(bw, 54f));
             _maintain = ui.Button(rt, "정비", 15f, () => Act(a => a.MaintainSelected()));
-            HoloUi.Place((RectTransform)_maintain.transform, new Vector2(x + bw + 6f, by), new Vector2(bw, 58f));
+            HoloUi.Place((RectTransform)_maintain.transform, new Vector2(x + bw + 6f, by), new Vector2(bw, 54f));
             _rebuild = ui.Button(rt, "재건축", 15f, () => Act(a => a.RebuildSelected()));
-            HoloUi.Place((RectTransform)_rebuild.transform, new Vector2(x + (bw + 6f) * 2f, by), new Vector2(bw, 58f));
+            HoloUi.Place((RectTransform)_rebuild.transform, new Vector2(x + (bw + 6f) * 2f, by), new Vector2(bw, 54f));
             _repairLabel = _repair.GetComponentInChildren<TMP_Text>();
             _maintainLabel = _maintain.GetComponentInChildren<TMP_Text>();
             _rebuildLabel = _rebuild.GetComponentInChildren<TMP_Text>();
             _travel = ui.Button(rt, "이 방으로 이동", 17f, TravelSelected);
-            HoloUi.Place((RectTransform)_travel.transform, new Vector2(x, by - 64f), new Vector2(w, 44f));
+            HoloUi.Place((RectTransform)_travel.transform, new Vector2(x, by - 62f), new Vector2(w, 44f));
             _travelLabel = _travel.GetComponentInChildren<TMP_Text>();
-            var research = ui.Button(rt, "연구 창", 17f, () => OpenWindow("ResearchPanel"));
-            HoloUi.Place((RectTransform)research.transform, new Vector2(x, by - 114f), new Vector2((w - 6f) / 2f, 40f));
-            var roster = ui.Button(rt, "주민 명단", 17f, () => OpenWindow("RosterPanel"));
-            HoloUi.Place((RectTransform)roster.transform, new Vector2(x + (w - 6f) / 2f + 6f, by - 114f), new Vector2((w - 6f) / 2f, 40f));
+            var research = ui.Button(rt, "연구 창", 16f, () => OpenWindow("ResearchPanel"));
+            HoloUi.Place((RectTransform)research.transform, new Vector2(x, by - 112f), new Vector2((w - 6f) / 2f, 40f));
+            var roster = ui.Button(rt, "주민 명단", 16f, () => OpenWindow("RosterPanel"));
+            HoloUi.Place((RectTransform)roster.transform, new Vector2(x + (w - 6f) / 2f + 6f, by - 112f), new Vector2((w - 6f) / 2f, 40f));
 
-            _message = ui.Label(rt, "", 15f, TextAlignmentOptions.BottomLeft, wrap: true);
-            HoloUi.Place(_message.rectTransform, new Vector2(x, -height + 66f), new Vector2(w, 40f));
-            _hint = ui.Label(rt, "", 14f, TextAlignmentOptions.BottomRight);
-            HoloUi.Place(_hint.rectTransform, new Vector2(x - 40f, -height + 30f), new Vector2(w + 28f, 22f)); // 오른쪽 끝 둥근 모서리에 잘리지 않게
+            // 아래: 알림 · 키 안내
+            HoloUi.Divider(rt, new Vector2(16f, -height + 58f), CanvasWidth - 32f, low);
+            _message = ui.Label(rt, "", 15f, TextAlignmentOptions.MidlineLeft, wrap: true);
+            HoloUi.Place(_message.rectTransform, new Vector2(18f, -height + 52f), new Vector2(CanvasWidth * 0.55f, 40f));
+            _hint = ui.Label(rt, "", 14f, TextAlignmentOptions.MidlineRight);
+            HoloUi.Place(_hint.rectTransform, new Vector2(CanvasWidth * 0.5f, -height + 46f), new Vector2(CanvasWidth * 0.5f - 34f, 26f)); // 오른쪽 끝 둥근 모서리에 잘리지 않게
             _hint.color = HoloUi.MutedColor;
             KeyBindings.Changed += RefreshHint;
             RefreshHint();
@@ -422,7 +487,9 @@ namespace SpaceStation.Interior
             if (_hint == null)
                 return;
             string zoomKey = KeyBindings.Label(GameAction.SpeedCycle);
-            _hint.SetText(_wantZoom ? $"{zoomKey} · ESC 축소   {KeyBindings.Label(GameAction.Pad)} 내리기" : $"{zoomKey} 화면 확대   {KeyBindings.Label(GameAction.Pad)} 내리기");
+            _hint.SetText(_wantZoom
+                ? $"모형 클릭 = 고르기   {zoomKey} · ESC 축소   {KeyBindings.Label(GameAction.Pad)} 내리기"
+                : $"{zoomKey} 화면 확대   {KeyBindings.Label(GameAction.Pad)} 내리기");
         }
 
         private void Act(Action<SelectionActionsPanel> action)
@@ -430,131 +497,146 @@ namespace SpaceStation.Interior
             if (_c.Actions == null || _c.Selection.Selected == null)
                 return;
             action(_c.Actions);
-            _mapDirty = true;
+            _dirty = true;
             RefreshInfo();
         }
 
         private void ChangeFloor(int direction)
         {
+            int next = PadMap.Step(_floors, _floor, direction);
+            if (next == _floor)
+                return;
             _followFloor = false;
-            _floor = PadMap.Step(_floors, _floor, direction);
-            _mapDirty = true;
+            ShowFloor(next, Math.Sign(next - _floor));
+            RefreshFloorLabel();
         }
 
-        // ---------------- 지도 · 정보 ----------------
+        // ---------------- 홀로그램 모형 ----------------
 
         private int PlayerFloor() => _c.Builder.WorldToCell(_c.Player.Eye.position).y;
 
-        private void RefreshMap()
+        private void RefreshFloor()
         {
-            _mapDirty = false;
-            var grid = _c.Station.Grid;
-            _floors = PadMap.Floors(grid);
-            if (_followFloor)
-                _floor = PlayerFloor();
-            if (_floor == PlayerFloor())
+            _floors = PadMap.Floors(_c.Station.Grid);
+            int player = PlayerFloor();
+            if (_floor == player)
                 _followFloor = true;
-            var layout = _c.Layout();
-            PadMap.Build(grid, _floor, m => layout != null && layout.Contains(m), (cell, dir) => HasHatch(layout, cell, dir), _cells);
+            int floor = _followFloor ? player : _floor;
+            if (floor != _floor)
+                ShowFloor(floor, _floor == int.MinValue ? 0 : Math.Sign(floor - _floor));
+            else if (FloorChanged())
+                ShowFloor(floor, 0); // 지금 층에 모듈이 생기거나 없어짐
+            RefreshFloorLabel();
+        }
 
-            foreach (var go in _cellObjects)
-                Destroy(go);
-            _cellObjects.Clear();
-            var selected = _c.Selection.Selected;
-            var current = _c.CurrentRoom();
-            float px = _t.CellPixels, gap = 3f;
+        private void ShowFloor(int floor, int direction)
+        {
+            _floor = floor;
+            var layout = _c.Layout();
+            PadMap.Build(_c.Station.Grid, floor, m => layout != null && layout.Contains(m), null, _cells);
+            _floorModules.Clear();
             foreach (var c in _cells)
+                _floorModules.Add(c.Module);
+            if (_holo != null)
+                _holo.ShowFloor(floor, _cells, direction);
+            if (direction != 0 && _fx != null)
+                _fx.Replay();
+        }
+
+        /// <summary>지금 층의 모듈 구성이 바뀌었는지 (건설 · 파괴).</summary>
+        private bool FloorChanged()
+        {
+            int count = 0;
+            foreach (var module in _c.Station.Grid.Modules)
             {
-                var rt = HoloUi.Rect("Cell", _mapContent);
-                rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
-                rt.pivot = new Vector2(0f, 0f);
-                // 같은 모듈 이웃 쪽으로는 틈 없이 이어 그림
-                float x0 = c.Cell.x * px - px * 0.5f + gap * 0.5f, y0 = c.Cell.y * px - px * 0.5f + gap * 0.5f;
-                rt.anchoredPosition = new Vector2(x0, y0);
-                rt.sizeDelta = new Vector2(px - gap + (c.JoinX ? gap : 0f), px - gap + (c.JoinZ ? gap : 0f));
-                var img = rt.gameObject.AddComponent<Image>();
-                img.sprite = _c.Fill;
-                img.color = CellColor(c, c.Module == selected, c.Module == current);
-                var module = c.Module;
-                var button = rt.gameObject.AddComponent<Button>();
-                button.transition = Selectable.Transition.None;
-                button.onClick.AddListener(() => SelectModule(module));
-                if (c.HatchUp || c.HatchDown)
+                bool on = false;
+                foreach (var cell in module.Cells)
                 {
-                    var arrow = new HoloUi(_c.Font, _c.Fill, null, null).Label(rt, c.HatchUp && c.HatchDown ? "↕" : c.HatchUp ? "↑" : "↓", 14f, TextAlignmentOptions.Center);
-                    HoloUi.Stretch(arrow.rectTransform);
-                    arrow.color = new Color(0f, 0f, 0f, 0.65f);
+                    if (cell.y == _floor)
+                    {
+                        on = true;
+                        break;
+                    }
                 }
-                _cellObjects.Add(rt.gameObject);
+                if (!on)
+                    continue;
+                if (!_floorModules.Contains(module))
+                    return true;
+                count++;
             }
-            _floorLabel.SetText($"{FloorName(_floor)}{(_floor == PlayerFloor() ? " <color=#4FD8FF>· 지금 층</color>" : "")}");
+            return count != _floorModules.Count;
+        }
+
+        private void RefreshFloorLabel()
+        {
+            bool here = _floor == PlayerFloor();
+            _floorLabel.SetText($"<b>{FloorName(_floor)}</b>\n<size=62%>{(here ? $"<color={HudTheme.AccentHex}>지금 층</color>" : $"<color={HudTheme.MutedHex}>다른 층 보는 중</color>")}</size>");
             _floorUp.interactable = PadMap.Step(_floors, _floor, 1) != _floor;
             _floorDown.interactable = PadMap.Step(_floors, _floor, -1) != _floor;
         }
 
         private static string FloorName(int y) => y >= 0 ? $"{y + 1}층" : $"지하 {-y}층";
 
-        private static bool HasHatch(InteriorLayout layout, Vector3Int cell, Vector3Int dir)
+        private void UpdateHologram()
         {
-            if (layout == null)
-                return false;
-            foreach (var f in layout.Faces)
-            {
-                if (f.Kind == InteriorFaceKind.Hatch && f.Cell == cell && f.Direction == dir)
-                    return true;
-            }
-            return false;
+            if (_holo == null)
+                return;
+            _holo.SetPresentation(Smooth(_zoom), _t.HoloHeldScale);
+            var p = PadMap.ToMap(_c.Player.transform.position, _c.Origin, InteriorGeometry.CellSize);
+            _holo.SetPlayer(p, _floor == PlayerFloor());
+            _holo.Selected = _c.Selection.Selected;
+            if (!_wantZoom || _zoom < 0.95f)
+                return;
+            var mouse = Mouse.current;
+            if (mouse == null)
+                return;
+            bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            var hit = overUi ? null : _holo.Pick(_c.Main.ScreenPointToRay(mouse.position.ReadValue()));
+            if (hit != null && hit != _holo.Hover)
+                SpaceStation.Audio.AudioService.TryPlay(l => l.UiHover, 1f);
+            _holo.Hover = hit;
+            if (hit != null && mouse.leftButton.wasPressedThisFrame)
+                SelectModule(hit); // 고르는 소리는 GameAudio(선택 바뀜)가 냄
         }
 
-        private Color CellColor(PadMapCell c, bool selected, bool current)
+        private Color ModuleColor(ModuleInstance m)
         {
-            var m = c.Module;
-            Color color;
-            if (_c.Station.Simulation.Damage.TryGetInfo(m, out _))
-                color = _t.Damaged;
-            else if (!_c.Station.Connectivity.IsActive(m))
-                color = _t.Inactive;
-            else if (m == _c.Station.Simulation.Core)
-                color = _t.Core;
-            else
-            {
-                switch (m.Data != null ? m.Data.Category : ModuleCategory.Life)
-                {
-                    case ModuleCategory.Power: color = _t.Power; break;
-                    case ModuleCategory.Industry: color = _t.Industry; break;
-                    case ModuleCategory.Defense: color = _t.Defense; break;
-                    default: color = _t.Life; break;
-                }
-            }
-            if (!c.Reachable)
-                color = Color.Lerp(new Color(0.04f, 0.09f, 0.13f), color, _t.Unreachable);
-            if (selected)
-                color = Color.Lerp(color, Color.white, 0.45f);
-            else if (current)
-                color = Color.Lerp(color, Color.white, 0.18f);
-            color.a = 1f;
+            var color = BaseColor(m);
+            bool reachable = _c.Layout() is InteriorLayout layout && layout.Contains(m);
+            if (!reachable)
+                color = Color.Lerp(new Color(0.1f, 0.2f, 0.26f), color, _t.Unreachable);
             return color;
+        }
+
+        private Color BaseColor(ModuleInstance m)
+        {
+            if (_c.Station.Simulation.Damage.TryGetInfo(m, out _))
+                return _t.Damaged;
+            if (!_c.Station.Connectivity.IsActive(m))
+                return _t.Inactive;
+            if (m == _c.Station.Simulation.Core)
+                return _t.Core;
+            return CategoryColor(m.Data != null ? m.Data.Category : ModuleCategory.Life);
+        }
+
+        private Color CategoryColor(ModuleCategory category)
+        {
+            switch (category)
+            {
+                case ModuleCategory.Power: return _t.Power;
+                case ModuleCategory.Industry: return _t.Industry;
+                case ModuleCategory.Defense: return _t.Defense;
+                default: return _t.Life;
+            }
         }
 
         private void SelectModule(ModuleInstance module)
         {
             _c.Selection.Select(module);
-            _mapDirty = true;
             RefreshInfo();
         }
 
-        private void UpdateMarker()
-        {
-            var p = PadMap.ToMap(_c.Player.transform.position, _c.Origin, InteriorGeometry.CellSize);
-            float px = _t.CellPixels;
-            // 지도는 내 위치를 가운데로 (다른 층을 볼 때도 같은 x · z)
-            _mapContent.anchoredPosition = -p * px;
-            bool here = _floor == PlayerFloor();
-            if (_marker.gameObject.activeSelf != here)
-                _marker.gameObject.SetActive(here);
-            _marker.anchoredPosition = Vector2.zero;
-            _marker.localRotation = Quaternion.Euler(0f, 0f, -_c.Player.transform.eulerAngles.y);
-        }
+        // ---------------- 정보 ----------------
 
         private void RefreshInfo()
         {
@@ -567,13 +649,32 @@ namespace SpaceStation.Interior
             _maintain.gameObject.SetActive(has);
             _rebuild.gameObject.SetActive(has);
             _travel.gameObject.SetActive(has);
+            _category.transform.parent.gameObject.SetActive(has);
+            _status.transform.parent.gameObject.SetActive(has);
+            if (module != _shown && _fx != null && has)
+                _fx.Replay(); // 다른 모듈을 고르면 화면이 다시 그려지는 효과
+            _shown = module;
             if (!has)
             {
-                _info.SetText($"<color={HudText.Muted}>지도에서 모듈을 고르세요</color>");
+                _thumb.enabled = false;
+                _name.SetText("");
+                _thumbEmpty.SetText(_wantZoom ? "위 홀로그램 모형에서\n모듈을 고르세요" : $"{KeyBindings.Label(GameAction.SpeedCycle)}로 화면을 확대해\n모듈을 고르세요");
+                _info.SetText($"<color={HudText.Muted}>고른 모듈의 정보가 여기에 나와요</color>");
                 return;
             }
+            var data = module.Data;
+            _thumb.sprite = data != null ? data.Icon : null;
+            _thumb.enabled = _thumb.sprite != null;
+            _thumbEmpty.SetText(_thumb.enabled ? "" : data != null ? data.DisplayName : "");
+            _name.SetText($"<b>{(data != null ? data.DisplayName : module.ToString())}</b>");
+
+            var categoryColor = module == _c.Station.Simulation.Core ? _t.Core : CategoryColor(data != null ? data.Category : ModuleCategory.Life);
+            SetChip(_category, _categoryBack, module == _c.Station.Simulation.Core ? "코어" : (data != null ? data.Category.DisplayName() : ""), categoryColor);
+            var (statusText, statusColor) = Status(module);
+            SetChip(_status, _statusBack, statusText, statusColor);
+
             var view = _c.Actions.Describe(module);
-            _info.SetText(view.Info);
+            _info.SetText(WithoutName(view.Info));
             _repair.interactable = view.CanRepair;
             _repairLabel.SetText(StripKey(view.RepairLabel));
             _maintain.interactable = view.CanMaintain;
@@ -583,6 +684,35 @@ namespace SpaceStation.Interior
             bool canTravel = CanTravel(module);
             _travel.interactable = canTravel;
             _travelLabel.SetText(module == current ? "지금 있는 방" : canTravel ? "이 방으로 이동" : "갈 수 없음 (연결되지 않은 방)");
+        }
+
+        private (string, Color) Status(ModuleInstance module)
+        {
+            var sim = _c.Station.Simulation;
+            if (sim.Damage.TryGetInfo(module, out var dmg))
+                return dmg.IsRepairing ? ("수리 중", HudTheme.Accent) : ("파손", HudTheme.Negative);
+            if (!_c.Station.Connectivity.IsActive(module))
+                return ("비활성", _t.Inactive);
+            if (sim.Durability.TryGetInfo(module, out var dur) && sim.Durability.EfficiencyFor(dur.Current) < 1f)
+                return ("노후", HudTheme.Warning);
+            return ("정상 가동", HudTheme.Positive);
+        }
+
+        private static void SetChip(TMP_Text text, Image back, string label, Color color)
+        {
+            text.SetText(label);
+            text.color = Color.Lerp(color, Color.white, 0.35f);
+            if (back != null)
+                back.color = new Color(color.r, color.g, color.b, 0.28f);
+        }
+
+        /// <summary>정보 글 맨 앞의 "&lt;b&gt;이름&lt;/b&gt;"은 카드에 이미 있으므로 뺌 (효율 표시는 남김).</summary>
+        private static string WithoutName(string info)
+        {
+            if (!info.StartsWith("<b>", StringComparison.Ordinal))
+                return info;
+            int close = info.IndexOf("</b>", StringComparison.Ordinal);
+            return close > 0 ? info.Substring(close + 4).TrimStart() : info;
         }
 
         /// <summary>바깥 패널 단추 글의 키 표시 "(R)"는 패드에서 쓰지 않으므로 뺌.</summary>

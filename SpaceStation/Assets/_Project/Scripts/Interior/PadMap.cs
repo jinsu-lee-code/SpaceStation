@@ -76,6 +76,24 @@ namespace SpaceStation.Interior
             return best;
         }
 
+        /// <summary>
+        /// 11-13 홀로그램 모형 고르기: 칸 단위 공간의 광선이 높이 planeY 수평면과 만나는 칸 (x · z, 칸 가운데 = 정수).
+        /// 크고 높은 모듈(코어 · 링)의 상자가 뒤 작은 모듈을 가리지 않도록 상자 대신 바닥 칸으로 고른다. 수평이거나 뒤쪽이면 false.
+        /// </summary>
+        public static bool RayToCell(Ray localRay, float planeY, out Vector2Int cell)
+        {
+            cell = default;
+            float dy = localRay.direction.y;
+            if (Mathf.Abs(dy) < 1e-5f)
+                return false;
+            float t = (planeY - localRay.origin.y) / dy;
+            if (t < 0f)
+                return false;
+            var p = localRay.GetPoint(t);
+            cell = new Vector2Int(Mathf.RoundToInt(p.x), Mathf.RoundToInt(p.z));
+            return true;
+        }
+
         /// <summary>내부 월드 위치 → 칸 단위 실수 좌표 (x · z, 미니맵 위 내 위치). 칸 가운데 = 정수.</summary>
         public static Vector2 ToMap(Vector3 world, Vector3 interiorOrigin, float cellSize)
         {

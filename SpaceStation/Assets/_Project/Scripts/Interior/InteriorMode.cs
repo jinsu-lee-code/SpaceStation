@@ -65,6 +65,8 @@ namespace SpaceStation.Interior
         [SerializeField] private RectTransform _hud;
         [SerializeField] private TMP_FontAsset _font;
         [SerializeField] private Sprite _fillSprite;
+        [Tooltip("11-13 홀로그램 테마 아트 (메뉴 SpaceStation/Interior/Wire Pad가 연결)")]
+        [SerializeField] private HoloArt _holoArt;
         [Tooltip("들어가 있는 동안 항상 숨김 (조작·세계 좌표 표시)")]
         [SerializeField] private string[] _hiddenPanels =
             { "BuildMenu", "BuildTabs", "SelectionActions", "Tooltip", "Tutorial", "ResearchPanel", "RosterPanel", "DamageMarkers", "AdjacencyMarkers", "EarlyWarning" };
@@ -250,6 +252,7 @@ namespace SpaceStation.Interior
                 Window = Window,
                 Font = _font,
                 Fill = _fillSprite,
+                Art = _holoArt,
                 Tuning = _padTuning,
             });
             InsideChanged?.Invoke(true);

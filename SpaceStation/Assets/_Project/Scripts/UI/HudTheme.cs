@@ -20,6 +20,16 @@ namespace SpaceStation.UI
         public static readonly Color Positive = new Color(0.45f, 1f, 0.6f, 1f);
         public static readonly Color Neutral = new Color(0.55f, 0.65f, 0.75f, 1f);
 
+        // 11-13 홀로그램 명도 단계 (청록 한 가지 색의 밝기 위계 — 가장 밝음 → 가장 깊음)
+        public static readonly Color HoloBright = new Color(0.72f, 0.97f, 1f, 1f);   // 강조 글 · 선택 테두리
+        public static readonly Color HoloMid = new Color(0.16f, 0.58f, 0.78f, 1f);   // 버튼 · 칩 바탕
+        public static readonly Color HoloLow = new Color(0.07f, 0.26f, 0.36f, 1f);   // 구분선 · 비활성 테두리
+        public static readonly Color HoloDeep = new Color(0.012f, 0.045f, 0.075f, 1f); // 투사 화면 바탕
+        public static readonly Color Warning = new Color(1f, 0.66f, 0.25f, 1f);      // 경고 주황 (= 노후 · 주의)
+        public const string WarningHex = "#FFA840";
+        public const string NegativeHex = "#FF544D";
+        public const string MutedHex = "#8FA9BF";
+
         // 색 (리치 텍스트)
         public const string AccentHex = "#4FD8FF";
         public const string GreenHex = "#7CFF9A";

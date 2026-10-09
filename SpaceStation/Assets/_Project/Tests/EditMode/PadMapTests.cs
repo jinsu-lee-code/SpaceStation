@@ -61,5 +61,54 @@ namespace SpaceStation.Tests
             Assert.AreEqual(2.5f, p.x, 1e-4f);
             Assert.AreEqual(-1f, p.y, 1e-4f);
         }
+
+        /// <summary>11-13 모형 고르기: 비스듬한 광선 → 바닥 높이 수평면과 만나는 칸. 수평 · 뒤쪽 광선은 실패.</summary>
+        [Test]
+        public void RayToCell_SlantedRay_HitsFloorCell()
+        {
+            // (2, 0.5, -1) 칸 가운데를 위 뒤쪽에서 비스듬히 내려다봄
+            var target = new Vector3(2f, 0.5f, -1f);
+            var origin = target + new Vector3(0.3f, 3f, -2f);
+            Assert.IsTrue(PadMap.RayToCell(new Ray(origin, target - origin), 0.5f, out var cell));
+            Assert.AreEqual(new Vector2Int(2, -1), cell);
+            Assert.IsTrue(PadMap.RayToCell(new Ray(origin, target + new Vector3(0.45f, 0f, 0.3f) - origin), 0.5f, out cell));
+            Assert.AreEqual(new Vector2Int(2, -1), cell, "칸 안쪽 반 칸 이내");
+            Assert.IsFalse(PadMap.RayToCell(new Ray(origin, Vector3.forward), 0.5f, out _), "수평");
+            Assert.IsFalse(PadMap.RayToCell(new Ray(origin, Vector3.up), 0.5f, out _), "뒤쪽(위로)");
+        }
+
+        /// <summary>11-13 홀로그램 외곽선: 정육면체(면마다 정점 따로 = UV 갈라짐) → 각진 모서리 12개만, 면 대각선은 없음. 짧은 선분 버림.</summary>
+        [Test]
+        public void HoloEdges_Cube_TwelveSharpEdges_NoDiagonals_DropsShort()
+        {
+            var verts = new List<Vector3>();
+            var tris = new List<int>();
+            void Face(Vector3 n, Vector3 u, Vector3 v)
+            {
+                int b = verts.Count;
+                var c = n * 0.5f;
+                verts.Add(c - u * 0.5f - v * 0.5f);
+                verts.Add(c + u * 0.5f - v * 0.5f);
+                verts.Add(c + u * 0.5f + v * 0.5f);
+                verts.Add(c - u * 0.5f + v * 0.5f);
+                tris.AddRange(new[] { b, b + 2, b + 1, b, b + 3, b + 2 });
+            }
+            Face(Vector3.up, Vector3.right, Vector3.forward);
+            Face(Vector3.down, Vector3.right, Vector3.back);
+            Face(Vector3.right, Vector3.forward, Vector3.up);
+            Face(Vector3.left, Vector3.back, Vector3.up);
+            Face(Vector3.forward, Vector3.left, Vector3.up);
+            Face(Vector3.back, Vector3.right, Vector3.up);
+
+            var lines = new List<Vector3>();
+            HoloEdges.Extract(verts, tris, 38f, 0.01f, lines);
+            Assert.AreEqual(24, lines.Count, "모서리 12개 = 끝점 24개 (면 대각선은 평평해서 빠짐)");
+            for (int i = 0; i < lines.Count; i += 2)
+                Assert.AreEqual(1f, (lines[i] - lines[i + 1]).magnitude, 1e-4f, "모서리 길이 1");
+
+            lines.Clear();
+            HoloEdges.Extract(verts, tris, 38f, 1.5f, lines);
+            Assert.AreEqual(0, lines.Count, "최소 길이보다 짧으면 버림");
+        }
     }
 }
