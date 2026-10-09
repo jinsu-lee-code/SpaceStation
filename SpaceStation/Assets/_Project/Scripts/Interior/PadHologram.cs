@@ -30,7 +30,7 @@ namespace SpaceStation.Interior
             public float LineAlpha = 0.85f;
             public float Glow = 1.4f;
             /// <summary>투사기에서 모형 바닥까지 높이 (m, 확대 상태) — 모형이 패드 화면을 가리지 않게.</summary>
-            public float Lift = 0.06f;
+            public float Lift = 0.085f;
             /// <summary>보는 사람 쪽으로 기울이는 각 (도) — 위에서 내려다보는 지도처럼.</summary>
             public float Tilt = 55f;
         }
@@ -71,12 +71,16 @@ namespace SpaceStation.Interior
         private Transform _sweep;
         private MeshRenderer _sweepRenderer;
         private TextMeshPro _label;
+        private MeshRenderer _plate, _stripe;
+        private Material _labelMaterial;
+        private Mesh _quad;
+        private const int LabelQueue = 3100; // 홀로그램 재질(3050) 뒤
         private MaterialPropertyBlock _mpb;
         private float _scale = 1f;    // 지금 층의 칸 → m
-        private float _present = 1f;  // 크기 배율 (든 자세 작게 · 확대 크게)
+        private float _present = 1f;  // 나타남 정도 (확대할 때 0 → 1로 펼쳐짐)
         private float _seed;
-        private Mesh _octa, _cone, _disc, _plane, _soft;
-        private MeshRenderer _backdrop;
+        private Mesh _octa, _cone, _disc, _plane, _bowlMesh;
+        private MeshRenderer _bowl;
 
         public ModuleInstance Hover { get; set; }
         public ModuleInstance Selected { get; set; }
@@ -107,8 +111,9 @@ namespace SpaceStation.Interior
             _plane = SweepPlane();
 
             // 뒤 배경판: 밝은 방 벽 앞에서도 모형이 보이게 은은하게 어둡게 (선 재질 = 반투명 섞기, 모형보다 먼저 그림)
-            _backdrop = Primitive("Backdrop", _root, _soft = SoftDisc(32), _s.Line);
-            _backdrop.sortingOrder = -1;
+            // 받침 반구: 모형 아래 검은 그릇 — 밝은 방 벽 앞에서도 모형이 보이게 (선 재질 = 반투명 섞기, 모형보다 먼저 그림)
+            _bowl = Primitive("Bowl", _model, _bowlMesh = Bowl(40, 10), _s.Line);
+            _bowl.sortingOrder = -1;
             _beam = Primitive("Beam", _root, _cone, _s.Fill);
             _ring = Primitive("Ring", _root, _disc, _s.Line);
             _sweepRenderer = Primitive("Sweep", _model, _plane, _s.Fill);
@@ -121,16 +126,24 @@ namespace SpaceStation.Interior
             _label = labelGo.AddComponent<TextMeshPro>();
             if (_s.Font != null)
                 _label.font = _s.Font;
-            _label.fontSize = 1.2f; // TextMeshPro 3D: 글자 크기 1 ≈ 0.1 단위 높이 → 크기 0.1로 줄여 약 1.2cm
+            _label.fontSize = 0.8f; // TextMeshPro 3D: 글자 크기 1 ≈ 0.1 단위 높이 → 크기 0.1로 줄여 약 0.8cm
             _label.alignment = TextAlignmentOptions.Bottom;
             _label.textWrappingMode = TextWrappingModes.NoWrap;
             _label.rectTransform.sizeDelta = new Vector2(4f, 0.4f);
             _label.rectTransform.pivot = new Vector2(0.5f, 0f);
             labelGo.transform.localScale = Vector3.one * 0.1f;
-            _label.color = new Color(0.8f, 0.97f, 1f, 1f);
-            _label.outlineWidth = 0.25f; // 밝은 모형 위에서도 읽히게
-            _label.outlineColor = new Color32(0, 12, 24, 230);
+            // 이름표 = 어두운 바탕판 + 흰 굵은 글자 + 왼쪽 모듈 색 띠. 모형(가산, 큐 3050)보다 나중에 그려야 발광에 묻히지 않음
+            _label.color = new Color(0.97f, 0.97f, 0.97f, 1f); // 1 미만 — Bloom으로 번지지 않게
+            _label.fontStyle = FontStyles.Bold;
+            _label.outlineWidth = 0.2f;
+            _label.outlineColor = new Color32(0, 8, 16, 255);
+            _label.fontMaterial.renderQueue = LabelQueue + 2;
             _label.text = "";
+            _labelMaterial = new Material(_s.Line) { renderQueue = LabelQueue };
+            _quad = Quad();
+            _plate = Primitive("Plate", labelGo.transform, _quad, _labelMaterial);
+            _stripe = Primitive("Stripe", labelGo.transform, _quad, _labelMaterial);
+            _stripe.sortingOrder = 1;
         }
 
         private MeshRenderer Primitive(string name, Transform parent, Mesh mesh, Material material)
@@ -151,7 +164,9 @@ namespace SpaceStation.Interior
             Destroy(_cone);
             Destroy(_disc);
             Destroy(_plane);
-            Destroy(_soft);
+            Destroy(_bowlMesh);
+            Destroy(_quad);
+            Destroy(_labelMaterial);
         }
 
         // ---------------- 층 만들기 ----------------
@@ -235,10 +250,10 @@ namespace SpaceStation.Interior
 
         // ---------------- 매 프레임 ----------------
 
-        /// <summary>패드 상태에 따른 크기 (0 = 든 자세 · 1 = 확대).</summary>
-        public void SetPresentation(float zoom01, float heldScale)
+        /// <summary>나타남 정도 (0 = 숨김 · 1 = 다 펼침) — 확대(패드 조작)할 때만 펼쳐지고, 들고 걸을 때는 숨김.</summary>
+        public void SetPresentation(float appear01)
         {
-            _present = Mathf.Lerp(heldScale, 1f, zoom01);
+            _present = appear01;
         }
 
         /// <summary>내 위치 표시 (칸 단위 x · z, 지금 층일 때만).</summary>
@@ -311,13 +326,11 @@ namespace SpaceStation.Interior
                 Tint(_markerRenderer, new Color(1.5f, 1.5f, 1.5f, 0.95f));
             }
 
-            // 배경판: 모형 가운데 뒤, 카메라를 바라봄
-            var center = _model.TransformPoint(new Vector3(0f, 0.4f * _scale, 0f));
-            _backdrop.transform.position = cam != null ? center + (center - cam.transform.position).normalized * (0.6f * half) : center;
-            if (cam != null)
-                _backdrop.transform.rotation = Quaternion.LookRotation(_backdrop.transform.position - cam.transform.position, cam.transform.up);
-            _backdrop.transform.localScale = Vector3.one * half * 1.5f;
-            Tint(_backdrop, new Color(0f, 0.015f, 0.03f, 0.55f * Mathf.Max(_layer != null ? _layer.Alpha : 0f, 0.4f)));
+            // 받침 반구: 모형 바닥 아래 납작한 검은 그릇 (모형과 함께 커짐 — _model 자식)
+            float bowlRadius = _s.Footprint * 0.62f;
+            _bowl.transform.localPosition = new Vector3(0f, -0.002f, 0f);
+            _bowl.transform.localScale = new Vector3(bowlRadius, bowlRadius * 0.45f, bowlRadius);
+            Tint(_bowl, new Color(0.004f, 0.012f, 0.022f, 0.92f));
             UpdateLabel();
         }
 
@@ -366,7 +379,21 @@ namespace SpaceStation.Interior
                 _label.gameObject.SetActive(true);
             string name = target.Data != null ? target.Data.DisplayName : "";
             if (_label.text != name)
+            {
                 _label.text = name;
+                // 바탕판 = 실제 글자 범위 + 여백 (이름표 로컬 단위)
+                _label.ForceMeshUpdate();
+                var tb = _label.textBounds;
+                const float padX = 0.12f, padY = 0.06f, stripe = 0.05f;
+                float w = tb.size.x + padX * 2f, h = tb.size.y + padY * 2f;
+                _plate.transform.localPosition = new Vector3(tb.center.x, tb.min.y - padY, 0.02f);
+                _plate.transform.localScale = new Vector3(w, h, 1f);
+                _stripe.transform.localPosition = new Vector3(tb.center.x - w * 0.5f + stripe * 0.5f, tb.min.y - padY, 0.01f);
+                _stripe.transform.localScale = new Vector3(stripe, h, 1f);
+            }
+            Tint(_plate, new Color(0.005f, 0.02f, 0.035f, 0.9f));
+            var accent = ColorOf != null ? ColorOf(target) : new Color(0.31f, 0.85f, 1f);
+            Tint(_stripe, new Color(accent.r, accent.g, accent.b, 1f));
             // 모듈 위쪽 가운데 위에 띄우고 카메라를 바라봄
             var b = piece.LocalBounds;
             var top = piece.Transform.TransformPoint(new Vector3(b.center.x, b.max.y, b.center.z));
@@ -502,29 +529,46 @@ namespace SpaceStation.Interior
             return m;
         }
 
-        /// <summary>배경판: xy 평면 원 (반지름 1), 가운데 알파 1 → 가장자리 0.</summary>
-        private static Mesh SoftDisc(int segments)
+        /// <summary>이름표 판: xy 평면 사각형 (x −0.5~0.5 · y 0~1, 아래 가운데 기준).</summary>
+        private static Mesh Quad()
         {
-            var m = new Mesh { name = "HoloBackdrop" };
-            var v = new List<Vector3> { Vector3.zero };
-            var c = new List<Color> { Color.white };
+            var m = new Mesh { name = "HoloLabelQuad" };
+            m.vertices = new[] { new Vector3(-0.5f, 0f, 0f), new Vector3(0.5f, 0f, 0f), new Vector3(0.5f, 1f, 0f), new Vector3(-0.5f, 1f, 0f) };
+            m.colors = new[] { Color.white, Color.white, Color.white, Color.white };
+            m.triangles = new[] { 0, 2, 1, 0, 3, 2 };
+            m.RecalculateBounds();
+            return m;
+        }
+
+        /// <summary>
+        /// 받침 반구: 위가 열린 아래쪽 반구 (반지름 1, 테두리 y=0 · 바닥 y=−1). 알파 = 바닥 1 → 테두리 0.8.
+        /// 모형을 위에서 비스듬히 보므로 그릇 안쪽이 모형 뒤 바탕이 됨 (밝은 방 벽 앞에서도 보이게).
+        /// </summary>
+        private static Mesh Bowl(int segments, int rings)
+        {
+            var m = new Mesh { name = "HoloBowl" };
+            var v = new List<Vector3>();
+            var c = new List<Color>();
             var tri = new List<int>();
-            for (int ring = 1; ring <= 2; ring++)
+            for (int r = 0; r <= rings; r++)
             {
-                float r = ring == 1 ? 0.6f : 1f;
-                for (int i = 0; i < segments; i++)
+                float lat = r / (float)rings * Mathf.PI * 0.5f; // 0 = 테두리 · π/2 = 바닥
+                float y = -Mathf.Sin(lat), rad = Mathf.Cos(lat);
+                for (int i = 0; i <= segments; i++)
                 {
                     float a = i * Mathf.PI * 2f / segments;
-                    v.Add(new Vector3(Mathf.Cos(a) * r, Mathf.Sin(a) * r, 0f));
-                    c.Add(new Color(1f, 1f, 1f, ring == 1 ? 0.75f : 0f));
+                    v.Add(new Vector3(Mathf.Cos(a) * rad, y, Mathf.Sin(a) * rad));
+                    c.Add(new Color(1f, 1f, 1f, Mathf.Lerp(0.8f, 1f, r / (float)rings)));
                 }
             }
-            for (int i = 0; i < segments; i++)
+            int row = segments + 1;
+            for (int r = 0; r < rings; r++)
             {
-                int a = 1 + i, b = 1 + (i + 1) % segments;
-                tri.AddRange(new[] { 0, b, a });
-                int oa = a + segments, ob = b + segments;
-                tri.AddRange(new[] { a, b, ob, a, ob, oa });
+                for (int i = 0; i < segments; i++)
+                {
+                    int a = r * row + i, b = a + 1, d = a + row, e = d + 1;
+                    tri.AddRange(new[] { a, b, e, a, e, d });
+                }
             }
             m.SetVertices(v);
             m.SetColors(c);

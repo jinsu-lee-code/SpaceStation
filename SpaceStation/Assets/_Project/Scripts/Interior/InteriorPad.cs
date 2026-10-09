@@ -45,9 +45,7 @@ namespace SpaceStation.Interior
         [Tooltip("모형 가로 · 세로 최대 크기 (m, 확대 상태)")]
         public float HoloFootprint = 0.12f;
         [Tooltip("투사기에서 모형 바닥까지 높이 (m, 확대 상태) — 패드 화면을 가리지 않게")]
-        public float HoloLift = 0.06f;
-        [Tooltip("든 자세(걷는 중)의 모형 크기 배율")]
-        [Range(0.2f, 1f)] public float HoloHeldScale = 0.45f;
+        public float HoloLift = 0.085f;
         [Tooltip("모형을 보는 사람 쪽으로 기울이는 각 (도)")]
         public float HoloTilt = 55f;
         [Tooltip("발광 세기 (Bloom과 함께)")]
@@ -136,6 +134,7 @@ namespace SpaceStation.Interior
         private float _nextRefresh;
         private bool _dirty = true;
         private float _messageUntil;
+        private float _nextWheel;
         private ModuleInstance _shown;
 
         public bool IsRaised => _wantRaise;
@@ -240,8 +239,20 @@ namespace SpaceStation.Interior
                 }
             }
 
+            // 마우스 휠 = 층 바꾸기 (확대 중 — 모형은 그때만 보임. 연구 · 명단 창이 열려 있으면 창 스크롤에 양보)
+            var wheel = Mouse.current;
+            if (_wantZoom && _window == null && wheel != null && Time.unscaledTime >= _nextWheel)
+            {
+                float scroll = wheel.scroll.ReadValue().y;
+                if (Mathf.Abs(scroll) > 0.01f)
+                {
+                    _nextWheel = Time.unscaledTime + 0.18f; // 부드러운 스크롤(여러 프레임 값)로 여러 층을 한꺼번에 넘지 않게
+                    ChangeFloor(scroll > 0f ? 1 : -1);
+                }
+            }
+
             float dt = Time.unscaledDeltaTime;
-            _raise = Mathf.MoveTowards(_raise, _wantRaise ? 1f : 0f, dt / Mathf.Max(0.01f, _t.RaiseSeconds));
+            _raise =Mathf.MoveTowards(_raise, _wantRaise ? 1f : 0f, dt / Mathf.Max(0.01f, _t.RaiseSeconds));
             _zoom = Mathf.MoveTowards(_zoom, _wantZoom ? 1f : 0f, dt / Mathf.Max(0.01f, _t.ZoomSeconds));
             if (!_wantRaise && _raise <= 0f && _pad.gameObject.activeSelf)
             {
@@ -274,8 +285,6 @@ namespace SpaceStation.Interior
                 return;
             _wantRaise = true;
             _pad.gameObject.SetActive(true);
-            if (_holo != null)
-                _holo.gameObject.SetActive(true);
             _followFloor = true;
             var current = _c.CurrentRoom();
             _c.Selection.Select(current); // 처음엔 지금 있는 방
@@ -488,8 +497,8 @@ namespace SpaceStation.Interior
                 return;
             string zoomKey = KeyBindings.Label(GameAction.SpeedCycle);
             _hint.SetText(_wantZoom
-                ? $"모형 클릭 = 고르기   {zoomKey} · ESC 축소   {KeyBindings.Label(GameAction.Pad)} 내리기"
-                : $"{zoomKey} 화면 확대   {KeyBindings.Label(GameAction.Pad)} 내리기");
+                ? $"클릭 고르기   휠 층 이동   {zoomKey} · ESC 축소   {KeyBindings.Label(GameAction.Pad)} 내리기"
+                : $"{zoomKey} 확대 (홀로그램 지도)   {KeyBindings.Label(GameAction.Pad)} 내리기");
         }
 
         private void Act(Action<SelectionActionsPanel> action)
@@ -581,7 +590,13 @@ namespace SpaceStation.Interior
         {
             if (_holo == null)
                 return;
-            _holo.SetPresentation(Smooth(_zoom), _t.HoloHeldScale);
+            // 들고 걸을 때는 숨기고, 확대(패드 조작)할 때만 빛기둥이 올라오며 펼쳐짐
+            bool show = _zoom > 0.001f;
+            if (_holo.gameObject.activeSelf != show)
+                _holo.gameObject.SetActive(show);
+            if (!show)
+                return;
+            _holo.SetPresentation(Smooth(_zoom));
             var p = PadMap.ToMap(_c.Player.transform.position, _c.Origin, InteriorGeometry.CellSize);
             _holo.SetPlayer(p, _floor == PlayerFloor());
             _holo.Selected = _c.Selection.Selected;
