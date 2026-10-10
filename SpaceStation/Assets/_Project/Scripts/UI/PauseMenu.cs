@@ -35,6 +35,9 @@ namespace SpaceStation.UI
         [SerializeField] private SaveLoadPanel _saveLoadPanel;
 
         private UiTween _tween;
+        private UiTween _panelTween;
+        private CanvasGroup _panelGroup;
+        private bool _subOpen;
         private bool _open;
         private bool _wasPaused;
 
@@ -43,6 +46,13 @@ namespace SpaceStation.UI
         private void Start()
         {
             _tween = new UiTween(_panel, _group, new Vector2(0f, -24f), 0.2f, 0.15f, glitch: true);
+            // 11-15 설정 · 저장 창이 위에 열리면 메뉴 패널만 바로 숨김 (어두운 바탕은 그대로) — 새 창이 페이드 · 지지직으로 나타나는 동안
+            // 뒤의 메뉴가 앞에 있는 것처럼 비쳐 보였음. 창이 닫히면 지지직하며 다시 나타남.
+            _panelGroup = _panel.GetComponent<CanvasGroup>();
+            if (_panelGroup == null)
+                _panelGroup = _panel.gameObject.AddComponent<CanvasGroup>();
+            _panelTween = new UiTween(_panel, _panelGroup, Vector2.zero, 0.2f, 0.12f, glitch: true);
+            _panelTween.ShowNow();
             _resumeButton.onClick.AddListener(Close);
             _restartButton.onClick.AddListener(() => Leave(true));
             _mainMenuButton.onClick.AddListener(() => Leave(false));
@@ -72,6 +82,16 @@ namespace SpaceStation.UI
         private void Update()
         {
             _tween.Update();
+            _panelTween.Update();
+            bool sub = (_settingsPanel != null && _settingsPanel.IsOpen) || (_saveLoadPanel != null && _saveLoadPanel.IsOpen);
+            if (_open && sub != _subOpen)
+            {
+                _subOpen = sub;
+                if (sub)
+                    _panelTween.HideNow();
+                else
+                    _panelTween.Play();
+            }
             var keyboard = Keyboard.current;
             if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame || SceneFader.Busy)
                 return;
@@ -99,6 +119,8 @@ namespace SpaceStation.UI
             if (_saveButton != null)
                 _saveButton.interactable = _saveLoadPanel != null && Save.SaveManager.Instance != null && Save.SaveManager.Instance.CanSave;
             SetVisible(true);
+            _subOpen = false;
+            _panelTween.ShowNow();
             _tween.Play();
             AudioService.TryPlay(l => l.UiOpen);
         }

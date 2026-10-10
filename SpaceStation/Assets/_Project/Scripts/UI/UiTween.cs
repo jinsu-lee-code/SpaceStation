@@ -60,6 +60,26 @@ namespace SpaceStation.UI
             _dir = -1;
         }
 
+        /// <summary>애니메이션 없이 바로 보이게.</summary>
+        public void ShowNow()
+        {
+            _t = 1f;
+            _dir = 0;
+            _glitchStart = -100f;
+            UpdateGlitch(false);
+            Apply();
+        }
+
+        /// <summary>애니메이션 없이 바로 숨김.</summary>
+        public void HideNow()
+        {
+            _t = 0f;
+            _dir = 0;
+            _glitchStart = -100f;
+            UpdateGlitch(false);
+            Apply();
+        }
+
         private void StartGlitch()
         {
             if (!Glitch)
