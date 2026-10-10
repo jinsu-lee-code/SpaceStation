@@ -16,6 +16,8 @@ namespace SpaceStation.UI
         public float SweepPeriod = 3.4f;
         [Tooltip("바탕 장식 깜박임 세기 배율 (0 = 깜박임 없음). 작은 글자가 많은 화면은 낮게 — 뒤 밝기가 출렁이면 Bloom 번짐이 흔들려 글자가 일렁여 보임")]
         [Range(0f, 1f)] public float Flicker = 1f;
+        [Tooltip("스캔 띠가 평소에도 주기적으로 지나감. 끄면 내용이 바뀔 때(Replay)만 한 번 — 작은 글자가 많은 화면(패드)은 끔: 띠가 글자 뒤를 지날 때마다 글자 테두리 밝기가 바뀌어 물결처럼 일렁였음")]
+        public bool IdleSweep = true;
 
         public RawImage Scan;
         public RectTransform Sweep;
@@ -85,13 +87,14 @@ namespace SpaceStation.UI
                 float h = parent != null ? parent.rect.height : 0f;
                 float since = Time.unscaledTime - _sweepStart;
                 float phase = since < 0.45f ? since / 0.45f // 다시 그리기: 빠르게 한 번
-                    : Mathf.Repeat(t / Mathf.Max(0.5f, SweepPeriod), 1f);
+                    : IdleSweep ? Mathf.Repeat(t / Mathf.Max(0.5f, SweepPeriod), 1f)
+                    : 1f; // 평소엔 화면 아래 밖에 둠
                 float travel = h + Sweep.rect.height;
                 Sweep.anchoredPosition = new Vector2(Sweep.anchoredPosition.x, -phase * travel + Sweep.rect.height * 0.5f);
                 if (_sweepImage != null)
                 {
                     var c = _sweepImage.color;
-                    c.a = _sweepAlpha * s;
+                    c.a = !IdleSweep && since >= 0.45f ? 0f : _sweepAlpha * s;
                     _sweepImage.color = c;
                 }
             }

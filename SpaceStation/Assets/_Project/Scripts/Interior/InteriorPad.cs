@@ -444,7 +444,10 @@ namespace SpaceStation.Interior
             // 11-16 피드백: 작은 글자 뒤로 주사선이 흐르면 가로줄이 글자를 지나가며 일렁여 보였음 → 주사선은 멈추고 깜박임은 약하게
             // (스캔 띠는 부드러운 그러데이션이라 그대로)
             _fx.ScanSpeed = 0f;
-            _fx.Flicker = 0.25f;
+            // 11-16 피드백 2: 그래도 일렁임 재발 — 프레임 비교로 확인한 원인은 3.4초마다 글자 뒤를 지나는 스캔 띠(띠만 옮겨도 글자 테두리가 바뀜)와
+            // 촘촘한 주사선 바탕의 깜박임 → 패드는 띠를 내용이 바뀔 때만 한 번, 깜박임 없음 (HoloFx를 끄면 두 프레임 차이 0)
+            _fx.Flicker = 0f;
+            _fx.IdleSweep = false;
             var accent = HudTheme.Accent;
             var low = new Color(accent.r, accent.g, accent.b, 0.35f);
 
