@@ -96,6 +96,8 @@ namespace SpaceStation.Interior
             /// <summary>11-13 홀로그램 테마 아트 (없으면 Font · Fill만으로 단순하게).</summary>
             public HoloArt Art;
             public InteriorPadTuning Tuning;
+            /// <summary>11-14 건설 탭 모듈 목록 (바깥 건설 메뉴와 같은 목록 — BuildController.BuildableModules).</summary>
+            public IReadOnlyList<ModuleData> Buildable;
         }
 
         private Context _c;
@@ -132,6 +134,13 @@ namespace SpaceStation.Interior
         private TMP_Text _hint;
         private Button _repair, _maintain, _rebuild, _travel, _floorUp, _floorDown;
         private TMP_Text _repairLabel, _maintainLabel, _rebuildLabel, _travelLabel, _researchLabel, _rosterLabel;
+        // 11-14 건설 탭
+        private HoloUi _ui;
+        private RectTransform _manageRoot, _buildRoot;
+        private Button _tabManage, _tabBuild, _demolish;
+        private TMP_Text _demolishLabel;
+        private PadBuild _build;
+        private bool BuildMode => _build != null && _build.Active;
         private float _nextRefresh;
         private bool _dirty = true;
         private float _messageUntil;
@@ -181,7 +190,12 @@ namespace SpaceStation.Interior
                 _holo.transform.SetParent(transform, true);
                 _holo.ColorOf = ModuleColor;
                 _holo.gameObject.SetActive(false);
+                _build = new PadBuild(_ui, _buildRoot, CanvasWidth, _c.Station, _c.Buildable, _holo, _c.Main,
+                    (text, failed) => { if (failed) ShowFailure(text); else ShowMessage(text); });
             }
+            else
+                _tabBuild.gameObject.SetActive(false); // 모형이 없으면 지을 자리를 고를 수 없음
+            SetBuildMode(false);
             ApplyPose();
             _pad.gameObject.SetActive(false);
             if (_c.Actions != null)
@@ -222,6 +236,10 @@ namespace SpaceStation.Interior
                     InputGate.ConsumeEscape(); // 내부 나가기보다 먼저
                     if (_window != null)
                         CloseWindow();
+                    else if (_build != null && _build.Cancel())
+                    {
+                        // 건설 탭에서 고른 모듈 먼저 취소
+                    }
                     else if (GameSettings.PadDirectZoom)
                         Lower(); // 바로 확대 설정: 축소 단계 없이 내림
                     else
@@ -247,8 +265,8 @@ namespace SpaceStation.Interior
                     else
                         SetZoom(!_wantZoom);
                 }
-                else if (_wantZoom && !InputGate.Blocked)
-                    HandleShortcuts(); // 바깥과 같은 키 (확대 중만 — 들고 걸을 때 F는 해치)
+                else if (_wantZoom)
+                    HandleShortcuts(); // 바깥과 같은 키 (확대 중만 — 들고 걸을 때 F는 해치). 내부에선 InputGate.Blocked가 늘 켜져 있어 그 조건은 보지 않음
             }
 
             // 마우스 휠 = 층 바꾸기 (확대 중 — 모형은 그때만 보임. 연구 · 명단 창이 열려 있으면 창 스크롤에 양보)
@@ -276,7 +294,8 @@ namespace SpaceStation.Interior
                 return;
             ApplyPose();
 
-            if (_dirty || Time.unscaledTime >= _nextRefresh)
+            bool refresh = _dirty || Time.unscaledTime >= _nextRefresh;
+            if (refresh)
             {
                 _nextRefresh = Time.unscaledTime + 0.4f;
                 _dirty = false;
@@ -284,6 +303,8 @@ namespace SpaceStation.Interior
                 RefreshInfo();
             }
             UpdateHologram();
+            if (BuildMode && _wantZoom && _zoom > 0.95f && _window == null)
+                _build.Tick(EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(), refresh);
             if (_message != null && _messageUntil > 0f && Time.unscaledTime > _messageUntil)
             {
                 _messageUntil = 0f;
@@ -432,7 +453,13 @@ namespace SpaceStation.Interior
             var tag = ui.Label(rt, $"<color={HudTheme.AccentHex}><b>//</b> STATION PAD</color>  <color={HudTheme.MutedHex}>현재 위치</color>", 13f, TextAlignmentOptions.MidlineLeft);
             HoloUi.Place(tag.rectTransform, new Vector2(18f, -8f), new Vector2(420f, 20f));
             _header = ui.Label(rt, "", 26f, TextAlignmentOptions.MidlineLeft);
-            HoloUi.Place(_header.rectTransform, new Vector2(18f, -26f), new Vector2(480f, 34f));
+            HoloUi.Place(_header.rectTransform, new Vector2(18f, -26f), new Vector2(300f, 34f));
+            _header.overflowMode = TextOverflowModes.Ellipsis;
+            // 11-14 탭: 관리 · 건설
+            _tabManage = ui.TechButton(rt, "관리", 16f, () => SetBuildMode(false));
+            HoloUi.Place((RectTransform)_tabManage.transform, new Vector2(330f, -14f), new Vector2(110f, 38f));
+            _tabBuild = ui.TechButton(rt, "건설", 16f, () => SetBuildMode(true));
+            HoloUi.Place((RectTransform)_tabBuild.transform, new Vector2(446f, -14f), new Vector2(110f, 38f));
             _floorDown = ui.TechButton(rt, "▼", 16f, () => ChangeFloor(-1));
             HoloUi.Place((RectTransform)_floorDown.transform, new Vector2(CanvasWidth - 236f, -14f), new Vector2(40f, 38f));
             _floorLabel = ui.Label(rt, "", 19f, TextAlignmentOptions.Center);
@@ -441,9 +468,17 @@ namespace SpaceStation.Interior
             HoloUi.Place((RectTransform)_floorUp.transform, new Vector2(CanvasWidth - 60f, -14f), new Vector2(40f, 38f));
             HoloUi.Divider(rt, new Vector2(16f, -64f), CanvasWidth - 32f, low);
 
+            // 탭 내용: 관리(아래 요소들) · 건설(PadBuild가 채움)
+            _ui = ui;
+            var m = HoloUi.Rect("Manage", rt);
+            HoloUi.Stretch(m);
+            _manageRoot = m;
+            _buildRoot = HoloUi.Rect("Build", rt);
+            HoloUi.Stretch(_buildRoot);
+
             // 왼쪽: 고른 모듈 카드 (썸네일 · 이름 · 분류 · 상태)
             const float cx = 16f, cw = 280f;
-            var thumbBox = HoloUi.Rect("ThumbBox", rt);
+            var thumbBox = HoloUi.Rect("ThumbBox", m);
             HoloUi.Place(thumbBox, new Vector2(cx, -76f), new Vector2(cw, 168f));
             ui.TechPanel(thumbBox.gameObject, new Color(0.03f, 0.12f, 0.17f, 0.95f), new Color(accent.r, accent.g, accent.b, 0.9f), "MODULE", 0.45f);
             var thumbRt = HoloUi.Rect("Thumb", thumbBox);
@@ -454,40 +489,43 @@ namespace SpaceStation.Interior
             _thumbEmpty = ui.Label(thumbBox, "", 15f, TextAlignmentOptions.Center, wrap: true);
             HoloUi.Stretch(_thumbEmpty.rectTransform, new Vector2(16f, 10f), new Vector2(-16f, -10f));
             _thumbEmpty.color = HoloUi.MutedColor;
-            _name = ui.Label(rt, "", 23f, TextAlignmentOptions.MidlineLeft);
+            _name = ui.Label(m, "", 23f, TextAlignmentOptions.MidlineLeft);
             HoloUi.Place(_name.rectTransform, new Vector2(cx, -252f), new Vector2(cw, 34f));
-            _category = ui.Chip(rt, "", accent, 14f);
+            _category = ui.Chip(m, "", accent, 14f);
             HoloUi.Place((RectTransform)_category.transform.parent, new Vector2(cx, -292f), new Vector2(84f, 28f));
             _categoryBack = _category.transform.parent.GetComponent<Image>();
-            _status = ui.Chip(rt, "", HudTheme.Positive, 14f);
+            _status = ui.Chip(m, "", HudTheme.Positive, 14f);
             HoloUi.Place((RectTransform)_status.transform.parent, new Vector2(cx + 92f, -292f), new Vector2(cw - 92f, 28f));
             _statusBack = _status.transform.parent.GetComponent<Image>();
 
             // 오른쪽: 정보 · 조작
             float x = cx + cw + 18f, w = CanvasWidth - x - 16f;
-            var infoBg = HoloUi.Rect("InfoBack", rt);
+            var infoBg = HoloUi.Rect("InfoBack", m);
             HoloUi.Place(infoBg, new Vector2(x, -76f), new Vector2(w, 168f));
             ui.TechPanel(infoBg.gameObject, new Color(0.03f, 0.1f, 0.15f, 0.85f), new Color(accent.r, accent.g, accent.b, 0.7f), "STATUS", 0.2f);
             _info = ui.Label(infoBg, "", 16f, TextAlignmentOptions.TopLeft, wrap: true);
             HoloUi.Stretch(_info.rectTransform, new Vector2(16f, 8f), new Vector2(-16f, -26f));
             _info.overflowMode = TextOverflowModes.Ellipsis;
 
-            float bw = (w - 12f) / 3f, by = -256f;
-            _repair = ui.TechButton(rt, "수리", 15f, () => Act(a => a.RepairSelected()));
+            float bw = (w - 18f) / 4f, by = -256f;
+            _repair = ui.TechButton(m, "수리", 14f, () => Act(a => a.RepairSelected()));
             HoloUi.Place((RectTransform)_repair.transform, new Vector2(x, by), new Vector2(bw, 54f));
-            _maintain = ui.TechButton(rt, "정비", 15f, () => Act(a => a.MaintainSelected()));
+            _maintain = ui.TechButton(m, "정비", 14f, () => Act(a => a.MaintainSelected()));
             HoloUi.Place((RectTransform)_maintain.transform, new Vector2(x + bw + 6f, by), new Vector2(bw, 54f));
-            _rebuild = ui.TechButton(rt, "재건축", 15f, () => Act(a => a.RebuildSelected()));
+            _rebuild = ui.TechButton(m, "재건축", 14f, () => Act(a => a.RebuildSelected()));
             HoloUi.Place((RectTransform)_rebuild.transform, new Vector2(x + (bw + 6f) * 2f, by), new Vector2(bw, 54f));
+            _demolish = ui.TechButton(m, "철거", 14f, DemolishSelected); // 11-14
+            HoloUi.Place((RectTransform)_demolish.transform, new Vector2(x + (bw + 6f) * 3f, by), new Vector2(bw, 54f));
             _repairLabel = _repair.GetComponentInChildren<TMP_Text>();
             _maintainLabel = _maintain.GetComponentInChildren<TMP_Text>();
             _rebuildLabel = _rebuild.GetComponentInChildren<TMP_Text>();
-            _travel = ui.TechButton(rt, "이 방으로 이동", 17f, TravelSelected);
+            _demolishLabel = _demolish.GetComponentInChildren<TMP_Text>();
+            _travel = ui.TechButton(m, "이 방으로 이동", 17f, TravelSelected);
             HoloUi.Place((RectTransform)_travel.transform, new Vector2(x, by - 62f), new Vector2(w, 44f));
             _travelLabel = _travel.GetComponentInChildren<TMP_Text>();
-            var research = ui.TechButton(rt, "연구 창", 16f, () => OpenWindow("ResearchPanel"));
+            var research = ui.TechButton(m, "연구 창", 16f, () => OpenWindow("ResearchPanel"));
             HoloUi.Place((RectTransform)research.transform, new Vector2(x, by - 112f), new Vector2((w - 6f) / 2f, 40f));
-            var roster = ui.TechButton(rt, "주민 명단", 16f, () => OpenWindow("RosterPanel"));
+            var roster = ui.TechButton(m, "주민 명단", 16f, () => OpenWindow("RosterPanel"));
             HoloUi.Place((RectTransform)roster.transform, new Vector2(x + (w - 6f) / 2f + 6f, by - 112f), new Vector2((w - 6f) / 2f, 40f));
             _researchLabel = research.GetComponentInChildren<TMP_Text>();
             _rosterLabel = roster.GetComponentInChildren<TMP_Text>();
@@ -516,9 +554,10 @@ namespace SpaceStation.Interior
             }
             string zoomKey = KeyBindings.Label(GameAction.SpeedCycle);
             _hint.SetText(_wantZoom
-                ? GameSettings.PadDirectZoom
-                    ? $"클릭 고르기   휠 층 이동   {zoomKey} · ESC · {KeyBindings.Label(GameAction.Pad)} 닫기"
-                    : $"클릭 고르기   휠 층 이동   {zoomKey} · ESC 축소   {KeyBindings.Label(GameAction.Pad)} 내리기"
+                ? (BuildMode ? $"클릭 건설   {KeyBindings.Label(GameAction.Rotate)} 회전   휠 층   " : "클릭 고르기   휠 층 이동   ") +
+                  (GameSettings.PadDirectZoom
+                    ? $"{zoomKey} · ESC · {KeyBindings.Label(GameAction.Pad)} 닫기"
+                    : $"{zoomKey} · ESC 축소   {KeyBindings.Label(GameAction.Pad)} 내리기")
                 : $"{zoomKey} 확대 (홀로그램 지도)   {KeyBindings.Label(GameAction.Pad)} 내리기");
         }
 
@@ -529,8 +568,10 @@ namespace SpaceStation.Interior
                 OpenWindow("ResearchPanel");
             else if (KeyBindings.WasPressed(GameAction.Roster))
                 OpenWindow("RosterPanel");
-            else if (_window != null)
-                return; // 창이 열려 있으면 창 조작 우선
+            else if (_window != null || BuildMode)
+                return; // 창이 열려 있으면 창 조작 우선. 건설 탭에선 R = 회전 (PadBuild)
+            else if (KeyBindings.WasPressed(GameAction.Demolish) || KeyBindings.WasPressed(GameAction.DemolishAlt))
+                DemolishSelected();
             else if (KeyBindings.WasPressed(GameAction.Repair))
                 Act(a => a.RepairSelected());
             else if (KeyBindings.WasPressed(GameAction.Maintain))
@@ -539,6 +580,53 @@ namespace SpaceStation.Interior
                 Act(a => a.RebuildSelected());
             else if (KeyBindings.WasPressed(GameAction.CancelRepair))
                 Act(a => a.CancelRepairSelected());
+        }
+
+        /// <summary>11-14 관리 · 건설 탭 전환.</summary>
+        private void SetBuildMode(bool on)
+        {
+            if (on && _build == null)
+                return;
+            _build?.SetActive(on);
+            _manageRoot.gameObject.SetActive(!on);
+            ((Image)_tabManage.targetGraphic).color = on ? HudTheme.ButtonNormal : HudTheme.ButtonSelected;
+            ((Image)_tabBuild.targetGraphic).color = on ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
+            if (_holo != null)
+                _holo.Hover = null;
+            if (!on && !PadMap.Floors(_c.Station.Grid).Contains(_floor))
+                _followFloor = true; // 빈 층(건설용)에서 관리로 돌아오면 지금 층으로
+            _dirty = true;
+            RefreshHint();
+            if (_fx != null)
+                _fx.Replay();
+        }
+
+        /// <summary>11-14 고른 모듈 철거 (바깥 선택과 같은 <see cref="ModuleSelectionController.RemoveSelected"/> — 환급 · 소리 · 알림 공용). 지금 서 있는 방은 불가.</summary>
+        private void DemolishSelected()
+        {
+            var module = _c.Selection.Selected;
+            if (module == null)
+                return;
+            if (module == _c.CurrentRoom())
+            {
+                ShowFailure("지금 있는 방은 철거할 수 없습니다");
+                return;
+            }
+            if (!_c.Station.CanRemove(module))
+            {
+                ShowFailure(_c.Station.IsSupportingOthers(module) ? "다른 모듈을 받치고 있어 철거할 수 없습니다" : "철거할 수 없는 모듈입니다");
+                return;
+            }
+            string name = module.Data != null ? module.Data.DisplayName : "";
+            var refund = _c.Station.GetRefund(module);
+            _c.Selection.RemoveSelected();
+            if (!(_c.Station.Grid.TryGetModule(module.Origin, out var still) && still == module))
+            {
+                ShowMessage($"{name} 철거 · 환급 {HudText.Cost(refund)}");
+                _c.Selection.Select(null);
+            }
+            _dirty = true;
+            RefreshInfo();
         }
 
         private void Act(Action<SelectionActionsPanel> action)
@@ -566,7 +654,7 @@ namespace SpaceStation.Interior
 
         private void RefreshFloor()
         {
-            _floors = PadMap.Floors(_c.Station.Grid);
+            _floors = BuildMode ? PadMap.BuildFloors(_c.Station.Grid) : PadMap.Floors(_c.Station.Grid); // 건설 중엔 위아래 빈 층도
             int player = PlayerFloor();
             if (_floor == player)
                 _followFloor = true;
@@ -639,9 +727,12 @@ namespace SpaceStation.Interior
             _holo.SetPresentation(Smooth(_zoom));
             var p = PadMap.ToMap(_c.Player.transform.position, _c.Origin, InteriorGeometry.CellSize);
             _holo.SetPlayer(p, _floor == PlayerFloor());
-            _holo.Selected = _c.Selection.Selected;
-            if (!_wantZoom || _zoom < 0.95f)
+            _holo.Selected = BuildMode ? null : _c.Selection.Selected;
+            if (!_wantZoom || _zoom < 0.95f || BuildMode) // 건설 탭: 모형 클릭 = 지을 자리 (PadBuild)
+            {
+                _holo.Hover = null;
                 return;
+            }
             var mouse = Mouse.current;
             if (mouse == null)
                 return;
@@ -704,6 +795,7 @@ namespace SpaceStation.Interior
             _maintain.gameObject.SetActive(has);
             _rebuild.gameObject.SetActive(has);
             _travel.gameObject.SetActive(has);
+            _demolish.gameObject.SetActive(has);
             _category.transform.parent.gameObject.SetActive(has);
             _status.transform.parent.gameObject.SetActive(has);
             if (module != _shown && _fx != null && has)
@@ -739,6 +831,13 @@ namespace SpaceStation.Interior
             bool canTravel = CanTravel(module);
             _travel.interactable = canTravel;
             _travelLabel.SetText(module == current ? "지금 있는 방" : canTravel ? "이 방으로 이동" : "갈 수 없음 (연결되지 않은 방)");
+            // 11-14 철거 (지금 서 있는 방은 불가)
+            bool removable = module != current && _c.Station.CanRemove(module);
+            _demolish.interactable = removable;
+            string demolishKey = KeyBindings.Label(GameAction.Demolish);
+            _demolishLabel.SetText(removable ? $"철거 ({demolishKey})\n<size=80%>환급 {HudText.Cost(_c.Station.GetRefund(module))}</size>"
+                : module == current ? $"철거 ({demolishKey})\n<size=80%>지금 있는 방</size>"
+                : _c.Station.IsSupportingOthers(module) ? "철거 불가\n<size=80%>다른 모듈의 받침</size>" : "철거 불가");
         }
 
         private (string, Color) Status(ModuleInstance module)

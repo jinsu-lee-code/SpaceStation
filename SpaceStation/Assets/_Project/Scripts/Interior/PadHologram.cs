@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SpaceStation.Core;
+using SpaceStation.Data;
 using TMPro;
 using UnityEngine;
 
@@ -82,8 +83,22 @@ namespace SpaceStation.Interior
         private Mesh _octa, _cone, _disc, _plane, _bowlMesh;
         private MeshRenderer _bowl;
 
+        // 11-14 건설 표시 (지금 층 칸 좌표 — 층 Root와 같은 위치 · 크기를 매 프레임 따라감)
+        private Transform _buildRoot;
+        private readonly List<MeshRenderer> _tiles = new List<MeshRenderer>();
+        private int _tileCount;
+        private readonly List<bool> _tileValid = new List<bool>();
+        private Transform _ghost;
+        private MeshRenderer _ghostFill, _ghostLines;
+        private ModuleData _ghostData;
+        private bool _ghostValid;
+        private Mesh _tileMesh;
+        private const float TileY = 0.02f; // 후보 칸 판 높이 (층 바닥 바로 위, 칸 단위)
+
         public ModuleInstance Hover { get; set; }
         public ModuleInstance Selected { get; set; }
+        /// <summary>11-14 인접 효과 미리보기: 새 모듈 때문에 효과가 생기는 이웃 → 표시 색 (좋음 초록 · 나쁨 주황).</summary>
+        public readonly Dictionary<ModuleInstance, Color> Highlight = new Dictionary<ModuleInstance, Color>();
         public int Floor { get; private set; } = int.MinValue;
         /// <summary>모듈 색 (패드가 정함). 없으면 청록.</summary>
         public Func<ModuleInstance, Color> ColorOf;
@@ -165,6 +180,8 @@ namespace SpaceStation.Interior
             Destroy(_disc);
             Destroy(_plane);
             Destroy(_bowlMesh);
+            if (_tileMesh != null)
+                Destroy(_tileMesh);
             Destroy(_quad);
             Destroy(_labelMaterial);
         }
@@ -174,6 +191,7 @@ namespace SpaceStation.Interior
         /// <summary>층 모형을 (다시) 만듦. direction = 층 바꿈 방향(+1 위층으로 · −1 아래층으로 · 0 미끄러짐 없음).</summary>
         public void ShowFloor(int floor, IReadOnlyList<PadMapCell> cells, int direction)
         {
+            var prev = _layer;
             if (_layer != null)
             {
                 if (direction == 0)
@@ -207,14 +225,18 @@ namespace SpaceStation.Interior
                 if (seen.Add(c.Module))
                     AddPiece(c.Module, floor);
             }
+            // 층마다 자기 크기 (빠져나가는 층이 새 층 크기로 커지지 않게). 빈 층(11-14 건설: 맨 위 위 · 맨 아래 아래)은 앞 층 크기 그대로
             if (cells.Count == 0)
             {
-                min = max = Vector2.zero;
+                _layer.Center = prev != null ? prev.Center : Vector2.zero;
+                _layer.Scale = prev != null ? prev.Scale : _s.MaxCell;
             }
-            // 층마다 자기 크기 (빠져나가는 층이 새 층 크기로 커지지 않게)
-            float span = Mathf.Max(max.x - min.x, max.y - min.y) + 1f;
-            _layer.Center = (min + max) * 0.5f;
-            _layer.Scale = Mathf.Min(_s.Footprint / span, _s.MaxCell);
+            else
+            {
+                float span = Mathf.Max(max.x - min.x, max.y - min.y) + 1f;
+                _layer.Center = (min + max) * 0.5f;
+                _layer.Scale = Mathf.Min(_s.Footprint / span, _s.MaxCell);
+            }
             _scale = _layer.Scale;
             _layer.Root.localScale = Vector3.one * _layer.Scale;
             Place(_layer);
@@ -292,6 +314,7 @@ namespace SpaceStation.Interior
                 _model.localPosition += new Vector3(0.0015f * _present, 0f, 0f);
 
             Animate(_layer, dt, flicker);
+            UpdateBuild(t, flicker);
             for (int i = _leaving.Count - 1; i >= 0; i--)
             {
                 var l = _leaving[i];
@@ -348,6 +371,11 @@ namespace SpaceStation.Interior
                 bool sel = piece.Module == Selected, hov = piece.Module == Hover;
                 float boost = sel ? 1.9f : hov ? 1.5f : 1f;
                 var lineColor = sel ? Color.Lerp(c, Color.white, 0.55f) : c;
+                if (Highlight.TryGetValue(piece.Module, out var effect)) // 11-14 인접 효과 미리보기
+                {
+                    lineColor = effect;
+                    boost = 1.8f;
+                }
                 Tint(piece.Fill, Hdr(c, _s.Glow * 0.6f * boost, _s.FillAlpha * a * (sel ? 1.8f : hov ? 1.5f : 1f)));
                 if (piece.Lines != null)
                     Tint(piece.Lines, Hdr(lineColor, _s.Glow * boost, _s.LineAlpha * a));
@@ -401,6 +429,138 @@ namespace SpaceStation.Interior
             var cam = Camera.main;
             if (cam != null)
                 _label.transform.rotation = Quaternion.LookRotation(_label.transform.position - cam.transform.position, cam.transform.up);
+        }
+
+        // ---------------- 11-14 건설 ----------------
+
+        /// <summary>지을 자리 후보 칸 표시 (지금 층). valid = 고른 모듈 · 회전으로 지을 수 있음(초록), 아니면 흐린 칸.</summary>
+        public void SetBuildTiles(IReadOnlyList<Vector3Int> cells, IReadOnlyList<bool> valid)
+        {
+            EnsureBuildRoot();
+            _tileCount = cells != null ? cells.Count : 0;
+            _tileValid.Clear();
+            for (int i = 0; i < _tileCount; i++)
+            {
+                if (i >= _tiles.Count)
+                {
+                    var r = Primitive("Tile", _buildRoot, _tileMesh, _s.Line);
+                    r.sortingOrder = 1;
+                    _tiles.Add(r);
+                }
+                var t = _tiles[i];
+                t.gameObject.SetActive(true);
+                t.transform.localPosition = new Vector3(cells[i].x, TileY, cells[i].z);
+                _tileValid.Add(valid != null && i < valid.Count && valid[i]);
+            }
+            for (int i = _tileCount; i < _tiles.Count; i++)
+                _tiles[i].gameObject.SetActive(false);
+        }
+
+        /// <summary>건설 미리보기 모형 (null이면 숨김). origin = 모듈 원점 칸 (월드 격자, 층 = 지금 보는 층 기준).</summary>
+        public void SetGhost(ModuleData data, Vector3Int origin, int rotation, bool valid)
+        {
+            EnsureBuildRoot();
+            if (data != _ghostData)
+            {
+                _ghostData = data;
+                if (_ghost != null)
+                    Destroy(_ghost.gameObject);
+                _ghost = null;
+                var entry = data != null && _s.Set != null ? _s.Set.Find(data) : null;
+                if (entry != null && entry.Fill != null)
+                {
+                    _ghost = new GameObject("Ghost").transform;
+                    _ghost.SetParent(_buildRoot, false);
+                    _ghostFill = Primitive("Fill", _ghost, entry.Fill, _s.Fill);
+                    _ghostLines = entry.Lines != null ? Primitive("Lines", _ghost, entry.Lines, _s.Line) : null;
+                    if (_ghostLines != null)
+                        _ghostLines.sortingOrder = 2;
+                }
+            }
+            if (_ghost == null)
+                return;
+            _ghostValid = valid;
+            _ghost.localPosition = new Vector3(origin.x, origin.y - Floor + 0.5f, origin.z);
+            _ghost.localRotation = GridDirections.ToQuaternion(rotation);
+        }
+
+        public void HideGhost()
+        {
+            if (_ghost != null)
+                _ghost.gameObject.SetActive(false);
+        }
+
+        public void ShowGhost()
+        {
+            if (_ghost != null)
+                _ghost.gameObject.SetActive(true);
+        }
+
+        /// <summary>건설 표시 모두 지움 (건설 탭을 떠날 때).</summary>
+        public void ClearBuild()
+        {
+            SetBuildTiles(null, null);
+            SetGhost(null, default, 0, false);
+            Highlight.Clear();
+        }
+
+        /// <summary>광선이 가리키는 지금 층의 칸 (월드 격자, y = 지금 층). 모형이 펼쳐지지 않았으면 false.</summary>
+        public bool PickCell(Ray ray, out Vector3Int cell)
+        {
+            cell = default;
+            if (_layer == null || _present < 0.75f)
+                return false;
+            var root = _layer.Root;
+            var local = new Ray(root.InverseTransformPoint(ray.origin), root.InverseTransformDirection(ray.direction));
+            // 후보 칸 판이 그려진 바닥 높이(0.02)로 — 칸 가운데 높이(0.5)로 하면 비스듬히 내려다볼 때 한 칸 앞이 골라졌음
+            if (!PadMap.RayToCell(local, TileY, out var c))
+                return false;
+            cell = new Vector3Int(c.x, Floor, c.y);
+            return true;
+        }
+
+        private void EnsureBuildRoot()
+        {
+            if (_buildRoot != null)
+                return;
+            _buildRoot = new GameObject("Build").transform;
+            _buildRoot.SetParent(_model, false);
+            _tileMesh = TileMesh();
+        }
+
+        /// <summary>건설 표시는 지금 층 Root와 같은 자리 · 크기 (층이 미끄러지는 중에도 따라감).</summary>
+        private void UpdateBuild(float t, float flicker)
+        {
+            if (_buildRoot == null || _layer == null)
+                return;
+            _buildRoot.localPosition = _layer.Root.localPosition;
+            _buildRoot.localScale = _layer.Root.localScale;
+            float a = _layer.Alpha * flicker;
+            for (int i = 0; i < _tileCount; i++)
+            {
+                bool ok = _tileValid[i];
+                Tint(_tiles[i], ok ? new Color(0.35f, 1f, 0.55f, 0.28f * a) : new Color(0.5f, 0.62f, 0.72f, 0.1f * a));
+            }
+            if (_ghost != null && _ghost.gameObject.activeSelf)
+            {
+                float pulse = 0.75f + 0.25f * Mathf.Sin(t * 6f);
+                var c = _ghostValid ? new Color(0.4f, 1f, 0.6f) : new Color(1f, 0.35f, 0.3f);
+                Tint(_ghostFill, Hdr(c, _s.Glow * 0.8f, 0.22f * pulse * a));
+                if (_ghostLines != null)
+                    Tint(_ghostLines, Hdr(c, _s.Glow * 1.3f, 0.95f * a));
+            }
+        }
+
+        /// <summary>건설 후보 칸 판: xz 평면 정사각형 (칸 0.86, 가운데 기준).</summary>
+        private static Mesh TileMesh()
+        {
+            var m = new Mesh { name = "HoloTile" };
+            const float h = 0.43f;
+            m.vertices = new[] { new Vector3(-h, 0f, -h), new Vector3(h, 0f, -h), new Vector3(h, 0f, h), new Vector3(-h, 0f, h) };
+            m.colors = new[] { Color.white, Color.white, Color.white, Color.white };
+            m.triangles = new[] { 0, 2, 1, 0, 3, 2 };
+            m.RecalculateBounds();
+            return m;
         }
 
         // ---------------- 고르기 ----------------

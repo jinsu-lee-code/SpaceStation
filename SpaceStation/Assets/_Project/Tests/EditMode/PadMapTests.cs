@@ -62,6 +62,32 @@ namespace SpaceStation.Tests
             Assert.AreEqual(-1f, p.y, 1e-4f);
         }
 
+        /// <summary>11-14 내부 건설: 후보 칸(빈 · 닿은 칸, 위아래 층 포함) · 건설용 층 목록(위아래 한 층 더) · 붙는 면 방향.</summary>
+        [Test]
+        public void BuildCandidates_Floors_Outward()
+        {
+            var grid = new StationGrid();
+            Assert.IsTrue(grid.TryPlace(new[] { Vector3Int.zero }, Vector3Int.zero, 0, out _));
+            Assert.IsTrue(grid.TryPlace(new[] { Vector3Int.zero }, Vector3Int.right, 0, out _));
+
+            var list = new List<Vector3Int>();
+            PadMap.BuildCandidates(grid, 0, list);
+            // (0,0,0) · (1,0,0) 둘레: x −1 · 2, z ±1 칸 두 개씩 = 6칸
+            Assert.AreEqual(6, list.Count);
+            Assert.IsTrue(list.Contains(new Vector3Int(-1, 0, 0)) && list.Contains(new Vector3Int(2, 0, 0)));
+            Assert.IsFalse(list.Contains(Vector3Int.zero), "점유 칸은 아님");
+            PadMap.BuildCandidates(grid, 1, list);
+            Assert.AreEqual(2, list.Count, "위층 = 두 모듈 바로 위");
+            PadMap.BuildCandidates(grid, 3, list);
+            Assert.AreEqual(0, list.Count, "닿지 않는 층");
+
+            CollectionAssert.AreEqual(new[] { -1, 0, 1 }, PadMap.BuildFloors(grid));
+
+            Assert.AreEqual(Vector3Int.right, PadMap.Outward(grid, new Vector3Int(2, 0, 0)), "왼쪽 이웃에서 바깥(+x)");
+            Assert.AreEqual(Vector3Int.up, PadMap.Outward(grid, new Vector3Int(0, 1, 0)), "아래 모듈 위");
+            Assert.AreEqual(Vector3Int.zero, PadMap.Outward(grid, new Vector3Int(5, 0, 5)));
+        }
+
         /// <summary>11-13 모형 고르기: 비스듬한 광선 → 바닥 높이 수평면과 만나는 칸. 수평 · 뒤쪽 광선은 실패.</summary>
         [Test]
         public void RayToCell_SlantedRay_HitsFloorCell()

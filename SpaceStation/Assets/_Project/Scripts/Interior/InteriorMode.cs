@@ -254,6 +254,7 @@ namespace SpaceStation.Interior
                 Fill = _fillSprite,
                 Art = _holoArt,
                 Tuning = _padTuning,
+                Buildable = _build != null ? _build.BuildableModules : null,
             });
             InsideChanged?.Invoke(true);
 

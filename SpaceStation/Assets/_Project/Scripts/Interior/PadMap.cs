@@ -76,6 +76,67 @@ namespace SpaceStation.Interior
             return best;
         }
 
+        private static readonly Vector3Int[] Six =
+        {
+            Vector3Int.right, Vector3Int.left, Vector3Int.up, Vector3Int.down, new Vector3Int(0, 0, 1), new Vector3Int(0, 0, -1),
+        };
+
+        /// <summary>
+        /// 11-14 내부 건설: 층(y)에서 지을 자리 후보 = 비어 있고 6방향 중 하나에 모듈이 닿은 칸 (모듈이 없는 위아래 층도 가능).
+        /// 실제 가능 여부(모양 · 받침 · 비용)는 모듈 · 회전마다 <c>EvaluatePlacement</c>로 따로 본다.
+        /// </summary>
+        public static void BuildCandidates(StationGrid grid, int floor, List<Vector3Int> result)
+        {
+            result.Clear();
+            var seen = new HashSet<Vector3Int>();
+            foreach (var module in grid.Modules)
+            {
+                foreach (var cell in module.Cells)
+                {
+                    if (Mathf.Abs(cell.y - floor) > 1)
+                        continue;
+                    foreach (var d in Six)
+                    {
+                        var c = cell + d;
+                        if (c.y == floor && !grid.IsOccupied(c) && seen.Add(c))
+                            result.Add(c);
+                    }
+                }
+            }
+        }
+
+        /// <summary>11-14: 건설 중 볼 수 있는 층 = 모듈이 있는 층 + 맨 아래 아래 · 맨 위 위 한 층씩 (빈 층에도 지을 수 있게).</summary>
+        public static List<int> BuildFloors(StationGrid grid)
+        {
+            var floors = Floors(grid);
+            if (floors.Count == 0)
+                return floors;
+            int min = floors[0], max = floors[floors.Count - 1];
+            floors.Insert(0, min - 1);
+            floors.Add(max + 1);
+            return floors;
+        }
+
+        /// <summary>
+        /// 11-14: 빈 칸에 지을 때 "붙는 면" 방향(바깥쪽) — 닿은 모듈에서 이 칸 쪽. 옆(가로) 이웃을 먼저, 없으면 아래 · 위.
+        /// 바깥 건설이 클릭한 면의 바깥쪽으로 회전 링 원점을 밀고(AnchorOnFace) 도킹 방향을 맞추는 것과 같게 쓰려고.
+        /// </summary>
+        public static Vector3Int Outward(StationGrid grid, Vector3Int cell)
+        {
+            foreach (var d in Six)
+            {
+                if (d.y != 0)
+                    continue;
+                if (grid.IsOccupied(cell - d))
+                    return d;
+            }
+            if (grid.IsOccupied(cell + Vector3Int.down))
+                return Vector3Int.up;
+            if (grid.IsOccupied(cell + Vector3Int.up))
+                return Vector3Int.down;
+            return Vector3Int.zero;
+        }
+
         /// <summary>
         /// 11-13 홀로그램 모형 고르기: 칸 단위 공간의 광선이 높이 planeY 수평면과 만나는 칸 (x · z, 칸 가운데 = 정수).
         /// 크고 높은 모듈(코어 · 링)의 상자가 뒤 작은 모듈을 가리지 않도록 상자 대신 바닥 칸으로 고른다. 수평이거나 뒤쪽이면 false.
