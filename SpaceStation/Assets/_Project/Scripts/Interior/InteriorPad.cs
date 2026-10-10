@@ -194,8 +194,11 @@ namespace SpaceStation.Interior
                 {
                     var (status, color) = Status(m);
                     string category = m == _c.Station.Simulation.Core ? "코어" : m.Data != null ? m.Data.Category.DisplayName() : "";
-                    return $"{category}  ·  <color=#{ColorUtility.ToHtmlStringRGB(color)}>{status}</color>";
+                    int crates = InteriorSupply.CountIn(_c.Station.Simulation, m);
+                    string crateText = crates > 0 ? $"  ·  <color=#FFC752>보급 상자 {crates}</color>" : "";
+                    return $"{category}  ·  <color=#{ColorUtility.ToHtmlStringRGB(color)}>{status}</color>{crateText}";
                 };
+                _holo.CrateCount = m => InteriorSupply.CountIn(_c.Station.Simulation, m); // 11-17 ②
                 _holo.gameObject.SetActive(false);
                 _build = new PadBuild(_ui, _buildRoot, CanvasWidth, _c.Station, _c.Buildable, _holo, _c.Main,
                     (text, failed) => { if (failed) ShowFailure(text); else ShowMessage(text); });

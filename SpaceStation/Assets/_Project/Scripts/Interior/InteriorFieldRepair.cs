@@ -340,7 +340,8 @@ namespace SpaceStation.Interior
             if (Remaining(site) > 1)
                 return $"현장 수리  <color={HudText.Muted}>손상 {done + 1}/{total}</color>";
             var cost = Sim.GetFieldRepairCost(site.Module);
-            string price = cost.Count > 0 ? HudText.Cost(cost) : $"<color={HudText.Muted}>수리비 이미 냄</color>";
+            string price = Sim.FieldRepairUsesFreeRepair(site.Module) ? $"<color={HudText.Yellow}>무료 수리권 사용</color>"
+                : cost.Count > 0 ? HudText.Cost(cost) : $"<color={HudText.Muted}>수리비 이미 냄</color>";
             return $"현장 수리 마무리  {price}";
         }
 

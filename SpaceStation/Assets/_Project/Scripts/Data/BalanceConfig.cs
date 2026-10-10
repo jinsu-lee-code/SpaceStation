@@ -88,6 +88,20 @@ namespace SpaceStation.Data
         [Tooltip("큰 모듈로 보는 칸 수")]
         [SerializeField, Min(1)] private int _fieldRepairLargeCells = 3;
 
+        [Header("Supply Crates (BALANCE 29번, 11-17 ② 보급품 줍기)")]
+        [Tooltip("보급선 한 번에 내부 화물 터미널 · 창고(없으면 코어)에 놓이는 자원 상자 수 (+ 특별 상자 1개 확정)")]
+        [SerializeField, Min(0)] private int _supplyResourceCrates = 2;
+        [Tooltip("정거장에 쌓여 있을 수 있는 상자 최대 수 (넘치면 새 상자는 안 생김)")]
+        [SerializeField, Min(1)] private int _supplyCrateMax = 6;
+        [Tooltip("자원 상자 하나의 양 (× 등급 이벤트 강도)")]
+        [SerializeField, Min(0f)] private float _crateResourceAmount = 15f;
+        [Tooltip("특별 상자: 연구 포인트 수")]
+        [SerializeField, Min(1)] private int _crateResearchPoints = 1;
+        [Tooltip("특별 상자: 만족도 즉시 증가량")]
+        [SerializeField, Min(0f)] private float _crateSatisfaction = 5f;
+        [Tooltip("연구 포인트 1개로 깎는 연구 시작 비용 비율 (한 연구에 1개)")]
+        [SerializeField, Range(0f, 1f)] private float _researchPointDiscount = 0.2f;
+
         [Header("Defense (BALANCE 19번)")]
         [Tooltip("한 모듈에 대한 포탑 격추 확률 합산 상한")]
         [SerializeField, Range(0f, 1f)] private float _turretMaxIntercept = 0.6f;
@@ -168,6 +182,12 @@ namespace SpaceStation.Data
         public float SpreadDurabilityDamage => _spreadDurabilityDamage;
         public bool QueuePausesSpread => _queuePausesSpread;
         public float RepairCancelRefundRate => _repairCancelRefundRate;
+        public int SupplyResourceCrates => _supplyResourceCrates;
+        public int SupplyCrateMax => _supplyCrateMax;
+        public float CrateResourceAmount => _crateResourceAmount;
+        public int CrateResearchPoints => _crateResearchPoints;
+        public float CrateSatisfaction => _crateSatisfaction;
+        public float ResearchPointDiscount => _researchPointDiscount;
         public float FieldRepairCostRate => _fieldRepairCostRate;
         public float FieldRepairHoldSeconds => _fieldRepairHoldSeconds;
         /// <summary>모듈 칸 수에 따른 손상 지점 수 (11-17).</summary>

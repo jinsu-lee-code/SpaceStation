@@ -50,6 +50,21 @@ namespace SpaceStation.Simulation
         public TutorialState Tutorial = new TutorialState();
         /// <summary>Phase 10 주민 명단 (이전 세이브는 비어 있음 → 인원수만큼 새로 생성).</summary>
         public List<ResidentState> Residents = new List<ResidentState>();
+        /// <summary>11-17 ② 내부 보급 상자 · 연구 포인트 · 무료 수리권 (이전 세이브는 비어 있음 = 0).</summary>
+        public List<CrateState> Crates = new List<CrateState>();
+        public int ResearchPoints;
+        public int FreeRepairs;
+    }
+
+    [Serializable]
+    public sealed class CrateState
+    {
+        /// <summary>StationState.Modules 안의 순번, 코어 -2.</summary>
+        public int Module;
+        public string Resource;
+        public float Amount;
+        public string Bonus;
+        public int Slot;
     }
 
     [Serializable]

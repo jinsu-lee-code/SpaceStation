@@ -64,6 +64,10 @@ namespace SpaceStation.Simulation
         public DefenseSystem Defense { get; }
         /// <summary>8-5 화물 터미널 화물선.</summary>
         public CargoSystem Cargo { get; } = new CargoSystem();
+        /// <summary>11-17 ② 내부 보급 상자 · 연구 포인트 · 무료 수리권.</summary>
+        public SupplyCrateSystem Supply { get; } = new SupplyCrateSystem();
+        // 상자 내용 난수는 이벤트 난수와 따로 (밸런스 봇의 시드 결과가 바뀌지 않게). 고정 시드면 매 판 처음 상자들이 늘 같았음(물 4개)
+        private readonly Random _crateRandom = new Random();
         public NeedsSystem Needs { get; }
         public FailureMonitor Failure { get; }
         /// <summary>Phase 6 연구 (진행·레벨). 효과는 <see cref="Effects"/>.</summary>
@@ -418,7 +422,7 @@ namespace SpaceStation.Simulation
                 return RepairResult.AlreadyRepairing;
             if (info.IsQueued)
                 return RepairResult.AlreadyQueued;
-            if (!Resources.TrySpend(Damage.GetRepairCost(module)))
+            if (!UseFreeRepair() && !Resources.TrySpend(Damage.GetRepairCost(module))) // 11-17 ② 무료 수리권 먼저
                 return RepairResult.InsufficientResources;
             RefreshRepairCapacity();
             Damage.StartRepair(module);
@@ -430,7 +434,7 @@ namespace SpaceStation.Simulation
         /// </summary>
         public List<ResourceAmount> GetFieldRepairCost(ModuleInstance module)
         {
-            if (!Damage.TryGetInfo(module, out var info) || info.IsQueued || info.IsRepairing)
+            if (!Damage.TryGetInfo(module, out var info) || info.IsQueued || info.IsRepairing || Supply.FreeRepairs > 0)
                 return new List<ResourceAmount>();
             var cost = Damage.GetRepairCost(module);
             for (int i = 0; i < cost.Count; i++)
@@ -438,12 +442,19 @@ namespace SpaceStation.Simulation
             return cost;
         }
 
+        /// <summary>11-17 ② 현장 수리 마무리에 무료 수리권을 쓰는지 (아직 수리 비용을 내지 않았고 수리권이 있을 때).</summary>
+        public bool FieldRepairUsesFreeRepair(ModuleInstance module)
+            => Supply.FreeRepairs > 0 && Damage.TryGetInfo(module, out var info) && !info.IsQueued && !info.IsRepairing;
+
         /// <summary>11-17 내부 현장 수리 완료: 비용을 내고 수리 슬롯 · 시간 없이 바로 복구 (손상 지점을 다 고친 뒤 부름).</summary>
         public RepairResult TryFieldRepair(ModuleInstance module)
         {
-            if (!Damage.IsDamaged(module))
+            if (!Damage.TryGetInfo(module, out var info))
                 return RepairResult.NotDamaged;
-            if (!Resources.TrySpend(GetFieldRepairCost(module)))
+            bool paid = info.IsQueued || info.IsRepairing;
+            if (FieldRepairUsesFreeRepair(module))
+                UseFreeRepair();
+            else if (!paid && !Resources.TrySpend(GetFieldRepairCost(module)))
                 return RepairResult.InsufficientResources;
             Damage.CompleteNow(module);
             RefreshRepairCapacity();
@@ -509,6 +520,7 @@ namespace SpaceStation.Simulation
             Damage.Forget(module); // 파손 중 철거된 경우
             Durability.Forget(module);
             Cargo.Forget(module);
+            Supply.Relocate(module, Core); // 그 방에 있던 보급 상자는 코어로
             Adjacency.Recalculate(Grid);
             Connectivity.Recalculate();
             RefreshCapacities();
@@ -723,19 +735,39 @@ namespace SpaceStation.Simulation
         // ---------------- 연구 (Phase 6) ----------------
 
         /// <summary>다음 레벨 연구를 시작할 수 있는지 (등급·인구·연구소·자원).</summary>
-        public ResearchStartResult CanStartResearch(ResearchCategoryData category)
-            => Research.CanStart(category, Progression.GradeIndex, Resources.Population, Resources.CanAfford);
+        /// <param name="usePoint">11-17 ②: 연구 포인트 1개로 시작 비용 할인 (포인트가 없으면 무시).</param>
+        public ResearchStartResult CanStartResearch(ResearchCategoryData category, bool usePoint = false)
+            => Research.CanStart(category, Progression.GradeIndex, Resources.Population,
+                cost => Resources.CanAfford(DiscountResearchCost(cost, usePoint)));
 
-        /// <summary>시작 비용을 내고 다음 레벨 연구 시작 (환급 없음).</summary>
-        public ResearchStartResult TryStartResearch(ResearchCategoryData category)
+        /// <summary>11-17 ②: 다음 레벨 연구 시작 비용 (연구 포인트를 쓰면 할인된 값). 최고 레벨이면 빈 목록.</summary>
+        public List<ResourceAmount> GetResearchStartCost(ResearchCategoryData category, bool usePoint)
+        {
+            var level = category != null ? category.GetLevel(Research.GetLevel(category) + 1) : null;
+            return level != null ? DiscountResearchCost(level.StartCost, usePoint) : new List<ResourceAmount>();
+        }
+
+        private List<ResourceAmount> DiscountResearchCost(IReadOnlyList<ResourceAmount> cost, bool usePoint)
+        {
+            float k = usePoint && Supply.ResearchPoints > 0 ? 1f - Balance.ResearchPointDiscount : 1f;
+            var result = new List<ResourceAmount>(cost.Count);
+            foreach (var a in cost)
+                result.Add(new ResourceAmount(a.Type, a.Amount * k));
+            return result;
+        }
+
+        /// <summary>시작 비용을 내고 다음 레벨 연구 시작 (환급 없음). usePoint = 연구 포인트 1개로 할인 (11-17 ②).</summary>
+        public ResearchStartResult TryStartResearch(ResearchCategoryData category, bool usePoint = false)
         {
             CollectActiveModules(); // 방금 지은 연구소도 슬롯으로 인정
-            var result = CanStartResearch(category);
+            usePoint &= Supply.ResearchPoints > 0;
+            var result = CanStartResearch(category, usePoint);
             if (result != ResearchStartResult.Ok)
                 return result;
-            var level = category.GetLevel(Research.GetLevel(category) + 1);
-            if (!Resources.TrySpend(level.StartCost))
+            if (!Resources.TrySpend(GetResearchStartCost(category, usePoint)))
                 return ResearchStartResult.InsufficientResources;
+            if (usePoint)
+                Supply.SetCounts(Supply.ResearchPoints - 1, Supply.FreeRepairs);
             Research.Begin(category);
             EvaluateProgression(); // UI 갱신 트리거
             return ResearchStartResult.Ok;
@@ -981,7 +1013,52 @@ namespace SpaceStation.Simulation
             }
             if (clamped)
                 sb.Append(" (저장 한도 초과분 제외)");
+            // 11-17 ②: 내부 화물 터미널 · 창고에 보급 상자 (특별 상자 1개 확정)
+            int crates = Supply.Spawn(Grid, Connectivity.IsActive, Core, Balance, intensity, () => (float)_crateRandom.NextDouble());
+            if (crates > 0)
+                sb.Append($" · 내부에 보급 상자 {crates}개");
             Report(sb.ToString(), true);
+        }
+
+        /// <summary>11-17 ② 보급 상자 줍기: 보상 적용 후 상자 제거. text = 받은 것 (알림용).</summary>
+        public bool TryPickupCrate(int id, out string text)
+        {
+            text = null;
+            var crate = Supply.Find(id);
+            if (crate == null)
+                return false;
+            switch (crate.Bonus)
+            {
+                case CrateBonus.ResearchPoints:
+                    Supply.SetCounts(Supply.ResearchPoints + Balance.CrateResearchPoints, Supply.FreeRepairs);
+                    text = $"연구 포인트 +{Balance.CrateResearchPoints}  (보유 {Supply.ResearchPoints} · 연구 시작 비용 할인)";
+                    break;
+                case CrateBonus.FreeRepair:
+                    Supply.SetCounts(Supply.ResearchPoints, Supply.FreeRepairs + 1);
+                    text = $"무료 수리권 +1  (보유 {Supply.FreeRepairs} · 다음 수리에 자동 사용)";
+                    break;
+                case CrateBonus.Satisfaction:
+                    float before = Population.Satisfaction;
+                    Population.SetSatisfaction(Math.Min(PopulationSimulation.MaxSatisfaction, before + Balance.CrateSatisfaction));
+                    text = $"만족도 +{Population.Satisfaction - before:0.#}  (보급품 속 간식과 생필품)";
+                    break;
+                default:
+                    float added = Resources.AddStock(crate.Resource, crate.Amount);
+                    text = $"{crate.Resource.DisplayName()} +{added:0.#}" + (added < crate.Amount - 1e-3f ? "  (저장 한도 초과분 제외)" : "");
+                    break;
+            }
+            Supply.Remove(crate);
+            return true;
+        }
+
+        /// <summary>11-17 ② 무료 수리권 1장을 씀 (있으면 true).</summary>
+        private bool UseFreeRepair()
+        {
+            if (Supply.FreeRepairs <= 0)
+                return false;
+            Supply.SetCounts(Supply.ResearchPoints, Supply.FreeRepairs - 1);
+            Report($"무료 수리권 사용 · 남은 {Supply.FreeRepairs}", true);
+            return true;
         }
 
         private void Report(string message, bool positive)

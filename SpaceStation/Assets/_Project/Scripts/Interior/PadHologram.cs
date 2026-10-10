@@ -183,6 +183,10 @@ namespace SpaceStation.Interior
         public Func<ModuleInstance, Color> ColorOf;
         /// <summary>이름표 둘째 줄 (분류 · 상태, 패드가 정함).</summary>
         public Func<ModuleInstance, string> Describe;
+        /// <summary>11-17 ②: 이 방에 놓인 보급 상자 수 (0이면 표시 없음) — 모형 위에 작은 금빛 상자 표시가 떠서 돎.</summary>
+        public Func<ModuleInstance, int> CrateCount;
+        private readonly List<MeshRenderer> _crateBadges = new List<MeshRenderer>();
+        private Mesh _badgeMesh;
 
         public static PadHologram Create(Transform anchor, Settings settings)
         {
@@ -314,6 +318,8 @@ namespace SpaceStation.Interior
             Destroy(_bowlMesh);
             if (_tileMesh != null)
                 Destroy(_tileMesh);
+            if (_badgeMesh != null)
+                Destroy(_badgeMesh);
             Destroy(_labelMaterial);
         }
 
@@ -462,6 +468,7 @@ namespace SpaceStation.Interior
 
             Animate(_layer, dt, flicker);
             UpdateBuild(t, flicker);
+            UpdateCrateBadges(t);
             for (int i = _leaving.Count - 1; i >= 0; i--)
             {
                 var l = _leaving[i];
@@ -553,6 +560,64 @@ namespace SpaceStation.Interior
                 if (piece.Lines != null)
                     Tint(piece.Lines, Hdr(lineColor, _s.Glow * boost, _s.LineAlpha * pa));
             }
+        }
+
+        /// <summary>11-17 ② 보급 상자가 있는 방: 모형 위쪽에 작은 금빛 상자가 위아래로 떠서 돎 (판 밖으로 나간 방은 숨김).</summary>
+        private void UpdateCrateBadges(float t)
+        {
+            _crateBadges.RemoveAll(b => b == null); // 층을 바꾸면 옛 층 Root와 함께 지워짐
+            int used = 0;
+            if (_layer != null && CrateCount != null && _present > 0.5f)
+            {
+                foreach (var p in _layer.Pieces)
+                {
+                    if (!p.Fill.enabled || CrateCount(p.Module) <= 0)
+                        continue;
+                    if (used >= _crateBadges.Count)
+                    {
+                        if (_badgeMesh == null)
+                            _badgeMesh = BadgeMesh();
+                        var r = Primitive("CrateBadge", _layer.Root, _badgeMesh, _s.Fill);
+                        r.sortingOrder = 2;
+                        _crateBadges.Add(r);
+                    }
+                    var badge = _crateBadges[used++];
+                    if (badge.transform.parent != _layer.Root)
+                        badge.transform.SetParent(_layer.Root, false);
+                    badge.gameObject.SetActive(true);
+                    var b = p.LocalBounds;
+                    var top = p.Transform.localPosition + p.Transform.localRotation * new Vector3(b.center.x, b.max.y, b.center.z);
+                    badge.transform.localPosition = top + Vector3.up * (0.45f + 0.08f * Mathf.Sin(t * 3f + used));
+                    badge.transform.localRotation = Quaternion.Euler(0f, t * 60f, 0f);
+                    badge.transform.localScale = Vector3.one * 0.32f;
+                    Tint(badge, Hdr(new Color(1f, 0.78f, 0.32f), _s.Glow * 1.3f, 0.95f));
+                }
+            }
+            for (int i = used; i < _crateBadges.Count; i++)
+            {
+                if (_crateBadges[i] != null && _crateBadges[i].gameObject.activeSelf)
+                    _crateBadges[i].gameObject.SetActive(false);
+            }
+        }
+
+        /// <summary>표시용 작은 상자 (가로 1 · 높이 0.7, 가운데 기준).</summary>
+        private static Mesh BadgeMesh()
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var src = go.GetComponent<MeshFilter>().sharedMesh;
+            var m = new Mesh { name = "HoloCrateBadge" };
+            var v = src.vertices;
+            for (int i = 0; i < v.Length; i++)
+                v[i] = Vector3.Scale(v[i], new Vector3(1f, 0.7f, 0.75f));
+            m.vertices = v;
+            m.triangles = src.triangles;
+            var colors = new Color[v.Length];
+            for (int i = 0; i < colors.Length; i++)
+                colors[i] = Color.white;
+            m.colors = colors;
+            m.RecalculateBounds();
+            Destroy(go);
+            return m;
         }
 
         private void UpdateLabel()

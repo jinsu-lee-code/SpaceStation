@@ -320,6 +320,85 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void SupplyShip_PlacesCrates_SpecialFirst_CappedAndPickedUp()
+        {
+            // 11-17 ②: 보급선 = 바깥 보상 + 내부 상자 (자원 2 + 특별 1, 화물 터미널 · 창고가 없으면 코어), 최대 6개
+            var sim = Sim();
+            sim.Events.Trigger(_supply);
+            Assert.AreEqual(3, sim.Supply.Crates.Count);
+            Assert.IsTrue(sim.Supply.Crates[0].IsSpecial, "특별 상자 1개 확정");
+            Assert.AreEqual(sim.Core, sim.Supply.Crates[1].Module);
+            var crate = sim.Supply.Crates[1];
+            float before = sim.Resources.GetStock(crate.Resource);
+            Assert.IsTrue(sim.TryPickupCrate(crate.Id, out var text));
+            StringAssert.Contains(crate.Resource.DisplayName(), text);
+            Assert.AreEqual(15f, crate.Amount, Eps, "15 × 등급 강도 1");
+            Assert.AreEqual(Mathf.Min(before + 15f, sim.Resources.GetCapacity(crate.Resource)), sim.Resources.GetStock(crate.Resource), Eps);
+            Assert.AreEqual(2, sim.Supply.Crates.Count);
+            Assert.IsFalse(sim.TryPickupCrate(crate.Id, out _), "이미 주움");
+
+            sim.Events.Trigger(_supply);
+            sim.Events.Trigger(_supply);
+            Assert.AreEqual(6, sim.Supply.Crates.Count, "최대 6개");
+        }
+
+        /// <summary>원하는 특별 보상이 나올 때까지 보급선을 부르고 상자를 줍는다.</summary>
+        private void Collect(StationSimulation sim, CrateBonus bonus)
+        {
+            for (int i = 0; i < 40; i++)
+            {
+                foreach (var c in new List<SupplyCrate>(sim.Supply.Crates))
+                {
+                    sim.TryPickupCrate(c.Id, out _);
+                    if (c.Bonus == bonus)
+                        return;
+                }
+                sim.Events.Trigger(_supply);
+            }
+            Assert.Fail("보상이 나오지 않음: " + bonus);
+        }
+
+        [Test]
+        public void FreeRepair_UsedByNextRepair_AndFieldRepair()
+        {
+            var sim = Sim();
+            sim.TryPlace(_solar, Vector3Int.right, 0, out var a);
+            Collect(sim, CrateBonus.FreeRepair);
+            Assert.AreEqual(1, sim.Supply.FreeRepairs);
+            sim.Damage.Damage(a);
+            float metal = sim.Resources.GetStock(ResourceType.Metal);
+            Assert.AreEqual(0, sim.GetFieldRepairCost(a).Count, "수리권이 있으면 현장 수리도 0");
+            Assert.AreEqual(RepairResult.Started, sim.TryRepair(a));
+            Assert.AreEqual(metal, sim.Resources.GetStock(ResourceType.Metal), Eps, "무료");
+            Assert.AreEqual(0, sim.Supply.FreeRepairs);
+
+            Collect(sim, CrateBonus.FreeRepair);
+            sim.TryPlace(_solar, Vector3Int.left, 0, out var b);
+            sim.Damage.Damage(b);
+            metal = sim.Resources.GetStock(ResourceType.Metal);
+            Assert.IsTrue(sim.FieldRepairUsesFreeRepair(b));
+            Assert.AreEqual(RepairResult.Completed, sim.TryFieldRepair(b));
+            Assert.AreEqual(metal, sim.Resources.GetStock(ResourceType.Metal), Eps);
+            Assert.AreEqual(0, sim.Supply.FreeRepairs);
+        }
+
+        [Test]
+        public void Crates_Points_SurviveSaveRoundTrip()
+        {
+            var sim = Sim();
+            sim.TryPlace(_solar, Vector3Int.right, 0, out _);
+            Collect(sim, CrateBonus.ResearchPoints);
+            sim.Events.Trigger(_supply);
+            int crates = sim.Supply.Crates.Count;
+            var state = StationStateSerializer.Capture(sim);
+            var loaded = Sim();
+            StationStateSerializer.Restore(loaded, state);
+            Assert.AreEqual(crates, loaded.Supply.Crates.Count);
+            Assert.AreEqual(sim.Supply.ResearchPoints, loaded.Supply.ResearchPoints);
+            Assert.AreEqual(sim.Supply.Crates[0].Bonus, loaded.Supply.Crates[0].Bonus);
+        }
+
+        [Test]
         public void FieldRepairPoints_BySize()
         {
             Assert.AreEqual(2, _balance.FieldRepairPoints(1));

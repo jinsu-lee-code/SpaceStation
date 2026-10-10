@@ -111,6 +111,15 @@ namespace SpaceStation.Simulation
             if (sim.Tutorial != null && sim.Tutorial.Active)
                 s.Tutorial = sim.Tutorial.Capture();
             sim.Residents?.Capture(s.Residents, m => m == sim.Core ? -2 : index.TryGetValue(m, out int i) ? i : -1);
+
+            // 11-17 ② 보급 상자 (놓인 방 = 모듈 순번, 코어 -2)
+            foreach (var c in sim.Supply.Crates)
+            {
+                int at = c.Module == sim.Core ? -2 : index.TryGetValue(c.Module, out int i) ? i : -2;
+                s.Crates.Add(new CrateState { Module = at, Resource = c.Resource.ToString(), Amount = c.Amount, Bonus = c.Bonus.ToString(), Slot = c.Slot });
+            }
+            s.ResearchPoints = sim.Supply.ResearchPoints;
+            s.FreeRepairs = sim.Supply.FreeRepairs;
             return s;
         }
 
@@ -237,6 +246,16 @@ namespace SpaceStation.Simulation
                 if (category == null || !sim.Research.RestoreProject(category, p.TargetLevel, p.Progress))
                     missing++;
             }
+
+            // 7-0. 11-17 ② 보급 상자 · 연구 포인트 · 무료 수리권 (방을 찾지 못하면 코어로)
+            foreach (var c in s.Crates ?? new List<CrateState>())
+            {
+                var module = c.Module >= 0 && c.Module < placed.Length && placed[c.Module] != null ? placed[c.Module] : sim.Core;
+                Enum.TryParse(c.Resource, out ResourceType type);
+                Enum.TryParse(c.Bonus, out CrateBonus bonus);
+                sim.Supply.Restore(new SupplyCrate { Module = module, Resource = type, Amount = c.Amount, Bonus = bonus, Slot = c.Slot });
+            }
+            sim.Supply.SetCounts(s.ResearchPoints, s.FreeRepairs);
 
             // 7-1. 튜토리얼 (호스트가 저장에 진행 중 튜토리얼이 있으면 미리 StartTutorial)
             sim.Tutorial?.Restore(s.Tutorial);

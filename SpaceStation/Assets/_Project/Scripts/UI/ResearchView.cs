@@ -23,7 +23,8 @@ namespace SpaceStation.UI
             new List<(ResearchCategoryData, Button, TMP_Text, TMP_Text)>();
         private readonly TMP_Text _title, _body, _status;
         private readonly RectTransform _bar, _barFill;
-        private readonly Button _start, _cancel;
+        private readonly Button _start, _cancel, _point;
+        private bool _usePoint; // 11-17 ② 연구 포인트로 시작 비용 할인
         private readonly RectTransform _auto;
         private readonly Button _autoMaintain, _autoRebuild, _batch;
         private readonly TMP_Text _threshold, _reserve, _autoStatus;
@@ -80,6 +81,8 @@ namespace SpaceStation.UI
             HoloUi.Place(_bar, new Vector2(16f, -258f), new Vector2(pw - 32f, 6f));
             _start = ui.TechButton(panel, "연구 시작", 16f, StartSelected);
             HoloUi.Place((RectTransform)_start.transform, new Vector2(pw - 176f, -276f), new Vector2(160f, 46f));
+            _point = ui.TechButton(panel, "", 14f, () => { _usePoint = !_usePoint; Refresh(); });
+            HoloUi.Place((RectTransform)_point.transform, new Vector2(pw - 352f, -276f), new Vector2(168f, 46f));
             _cancel = ui.TechButton(panel, "취소", 16f, CancelSelected);
             HoloUi.Place((RectTransform)_cancel.transform, new Vector2(pw - 176f, -276f), new Vector2(160f, 46f));
 
@@ -135,10 +138,12 @@ namespace SpaceStation.UI
         {
             if (_selected == null)
                 return;
-            var result = _sim.TryStartResearch(_selected);
+            var result = _sim.TryStartResearch(_selected, UsePoint);
             AudioService.TryPlay(l => result == ResearchStartResult.Ok ? l.BuildSelect : l.UiError);
             Refresh();
         }
+
+        private bool UsePoint => _usePoint && _sim.Supply.ResearchPoints > 0;
 
         private void CancelSelected()
         {
@@ -162,9 +167,11 @@ namespace SpaceStation.UI
                 return;
             var research = _sim.Research;
             int running = Mathf.Min(research.Projects.Count, research.LabSlots);
+            int points = _sim.Supply.ResearchPoints;
+            string pointText = points > 0 ? $"  <color={HudText.Yellow}>연구 포인트 {points}</color>" : "";
             _labs.SetText(research.LabSlots == 0
-                ? $"<color={HudText.Orange}>연구소가 없습니다 · 건설 탭의 산업에서 연구소를 지으세요</color>"
-                : $"연구소 {running} / {research.LabSlots} 사용 중  <color={HudText.Muted}>(연구소마다 동시에 하나씩)</color>");
+                ? $"<color={HudText.Orange}>연구소가 없습니다 · 건설 탭의 산업에서 연구소를 지으세요</color>{pointText}"
+                : $"연구소 {running} / {research.LabSlots} 사용 중  <color={HudText.Muted}>(연구소마다 동시에 하나씩)</color>{pointText}");
 
             foreach (var (category, button, title, sub) in _rows)
             {
@@ -179,7 +186,7 @@ namespace SpaceStation.UI
                     state = $"<color={HudTheme.GreenHex}>최고 레벨</color>";
                 else
                 {
-                    var check = _sim.CanStartResearch(category);
+                    var check = _sim.CanStartResearch(category, UsePoint);
                     string reason = Reason(_sim, check, category, level + 1);
                     state = reason != null ? $"<color={HudText.Muted}>{reason}</color>" : $"<color={HudTheme.GreenHex}>시작 가능</color>";
                 }
@@ -209,6 +216,7 @@ namespace SpaceStation.UI
             {
                 _bar.gameObject.SetActive(false);
                 _start.gameObject.SetActive(false);
+                _point.gameObject.SetActive(false);
                 _cancel.gameObject.SetActive(false);
                 RefreshAutomation();
                 return;
@@ -224,7 +232,8 @@ namespace SpaceStation.UI
             else
             {
                 sb.Append(max == 1 ? next.Description : $"<color={HudTheme.AccentHex}>다음 Lv.{level + 1}</color> {next.Description}");
-                sb.Append($"\n\n비용 {HudText.Cost(next.StartCost)}  <color={HudText.Muted}>· 전력 +{next.PowerDemand:0} · {next.Duration:0}초</color>");
+                string discount = UsePoint ? $"  <color={HudText.Yellow}>(연구 포인트 −{_sim.Balance.ResearchPointDiscount * 100f:0}%)</color>" : "";
+                sb.Append($"\n\n비용 {HudText.Cost(_sim.GetResearchStartCost(category, UsePoint))}{discount}  <color={HudText.Muted}>· 전력 +{next.PowerDemand:0} · {next.Duration:0}초</color>");
             }
             _body.SetText(sb.ToString());
 
@@ -232,6 +241,11 @@ namespace SpaceStation.UI
             _bar.gameObject.SetActive(researching);
             _cancel.gameObject.SetActive(researching);
             _start.gameObject.SetActive(!researching && next != null);
+            // 11-17 ②: 연구 포인트가 있을 때만 (보급 특별 상자에서 얻음)
+            int points = _sim.Supply.ResearchPoints;
+            _point.gameObject.SetActive(!researching && next != null && points > 0);
+            if (_point.gameObject.activeSelf)
+                _point.GetComponentInChildren<TMP_Text>().SetText($"연구 포인트 {OnOff(UsePoint)}\n<size=80%><color={HudText.Muted}>보유 {points} · −{_sim.Balance.ResearchPointDiscount * 100f:0}%</color></size>");
             if (researching)
             {
                 HoloUi.SetBar(_barFill, project.Progress);
@@ -245,7 +259,7 @@ namespace SpaceStation.UI
                 _status.SetText("");
                 return;
             }
-            var check = _sim.CanStartResearch(category);
+            var check = _sim.CanStartResearch(category, UsePoint);
             _start.interactable = check == ResearchStartResult.Ok;
             string reason = Reason(_sim, check, category, level + 1);
             _status.SetText(reason != null ? $"<color={HudText.Orange}>{reason}</color>" : $"<color={HudText.Muted}>시작 비용은 취소해도 돌려받지 않습니다</color>");

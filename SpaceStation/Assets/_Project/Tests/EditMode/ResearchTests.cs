@@ -107,6 +107,31 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void ResearchPoint_DiscountsStartCost_OncePerResearch()
+        {
+            // 11-17 ②: 보급 특별 상자의 연구 포인트 1개 = 연구 시작 비용 20% 할인
+            var category = Category(ResearchStat.RepairCostRate, 0.25f);
+            var sim = Sim(category);
+            Assert.IsTrue(sim.Grid.TryPlace(_lab, Vector3Int.left, 0, out _));
+            var supply = ScriptableObject.CreateInstance<SupplyShipEventData>();
+            for (int i = 0; i < 30 && sim.Supply.ResearchPoints == 0; i++)
+            {
+                foreach (var c in new System.Collections.Generic.List<SupplyCrate>(sim.Supply.Crates))
+                    sim.TryPickupCrate(c.Id, out _);
+                sim.Events.Trigger(supply);
+            }
+            Object.DestroyImmediate(supply);
+            Assert.AreEqual(1, sim.Supply.ResearchPoints);
+            Assert.AreEqual(24f, sim.GetResearchStartCost(category, true)[0].Amount, Eps, "금속 30 × 0.8");
+            Assert.AreEqual(30f, sim.GetResearchStartCost(category, false)[0].Amount, Eps);
+            float metal = sim.Resources.GetStock(ResourceType.Metal);
+            Assert.AreEqual(ResearchStartResult.Ok, sim.TryStartResearch(category, usePoint: true));
+            Assert.AreEqual(metal - 24f, sim.Resources.GetStock(ResourceType.Metal), Eps);
+            Assert.AreEqual(0, sim.Supply.ResearchPoints, "포인트 1개 사용");
+            Assert.AreEqual(30f, sim.GetResearchStartCost(category, true)[0].Amount, Eps, "포인트가 없으면 할인 없음");
+        }
+
+        [Test]
         public void Progress_CompletesAndAppliesEffect()
         {
             var category = Category(ResearchStat.RepairCostRate, 0.25f);

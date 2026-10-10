@@ -68,6 +68,8 @@ namespace SpaceStation.Interior
 
         [Header("11-17 현장 긴급 수리")]
         [SerializeField] private InteriorFieldRepair.Settings _fieldRepairSettings = new InteriorFieldRepair.Settings();
+        [Header("11-17 보급품 줍기")]
+        [SerializeField] private InteriorSupply.Settings _supplySettings = new InteriorSupply.Settings();
 
         [Header("HUD")]
         [SerializeField] private RectTransform _hud;
@@ -106,6 +108,7 @@ namespace SpaceStation.Interior
         private InteriorResidents _residents;
         private InteriorPad _pad;
         private InteriorFieldRepair _fieldRepair;
+        private InteriorSupply _supply;
         // 11-17 길게 누르는 상호작용
         private InteriorInteractable _holdTarget;
         private float _holdTime;
@@ -227,6 +230,9 @@ namespace SpaceStation.Interior
             _fieldRepair.Message += ShowNotice;
             _fieldRepair.Rebuild(_layout);
             _atmosphere.HasDamagePoints = _fieldRepair.HasPoints;
+            _supply = InteriorSupply.Create(transform, _station, _builder, _supplySettings);
+            _supply.Message += ShowNotice;
+            _supply.Rebuild(_layout);
             var spawn = _builder.SpawnPoint(module, out float spawnYaw);
             _player.Teleport(spawn + Vector3.up * 0.05f, spawnYaw);
 
@@ -329,6 +335,9 @@ namespace SpaceStation.Interior
             if (_fieldRepair != null)
                 Destroy(_fieldRepair.gameObject);
             _fieldRepair = null;
+            if (_supply != null)
+                Destroy(_supply.gameObject);
+            _supply = null;
             ResetHold();
             if (_player != null)
                 Destroy(_player.gameObject);
@@ -590,6 +599,8 @@ namespace SpaceStation.Interior
                 _residents.Rebuild(_layout);
             if (_fieldRepair != null)
                 _fieldRepair.Rebuild(_layout);
+            if (_supply != null)
+                _supply.Rebuild(_layout);
             ResetHold();
             if (_exteriorView != null)
                 _exteriorView.CollectWindows();
