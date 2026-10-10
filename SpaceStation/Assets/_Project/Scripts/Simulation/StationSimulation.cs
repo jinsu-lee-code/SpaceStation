@@ -425,6 +425,31 @@ namespace SpaceStation.Simulation
             return info.IsRepairing ? RepairResult.Started : RepairResult.Queued;
         }
 
+        /// <summary>
+        /// 11-17 내부 현장 수리 비용 = 보통 수리 비용 × 현장 비율 (BALANCE 28번). 이미 수리 비용을 낸 모듈(대기 · 수리 중)은 0.
+        /// </summary>
+        public List<ResourceAmount> GetFieldRepairCost(ModuleInstance module)
+        {
+            if (!Damage.TryGetInfo(module, out var info) || info.IsQueued || info.IsRepairing)
+                return new List<ResourceAmount>();
+            var cost = Damage.GetRepairCost(module);
+            for (int i = 0; i < cost.Count; i++)
+                cost[i] = new ResourceAmount(cost[i].Type, cost[i].Amount * Balance.FieldRepairCostRate);
+            return cost;
+        }
+
+        /// <summary>11-17 내부 현장 수리 완료: 비용을 내고 수리 슬롯 · 시간 없이 바로 복구 (손상 지점을 다 고친 뒤 부름).</summary>
+        public RepairResult TryFieldRepair(ModuleInstance module)
+        {
+            if (!Damage.IsDamaged(module))
+                return RepairResult.NotDamaged;
+            if (!Resources.TrySpend(GetFieldRepairCost(module)))
+                return RepairResult.InsufficientResources;
+            Damage.CompleteNow(module);
+            RefreshRepairCapacity();
+            return RepairResult.Completed;
+        }
+
         /// <summary>대기 중인 수리를 맨 앞으로 (4-6).</summary>
         public bool TryPrioritizeRepair(ModuleInstance module) => Damage.Prioritize(module);
 

@@ -23,6 +23,11 @@ namespace SpaceStation.Simulation
         public bool HasSpread { get; internal set; }
         /// <summary>아직 번지지 않았고 확산 타이머가 흐르는 중.</summary>
         public bool SpreadPending => !HasSpread && !IsRepairing && !(IsQueued && _queuePausesSpread) && !float.IsPositiveInfinity(TimeUntilSpread);
+        /// <summary>
+        /// 11-17 내부 현장 수리: 고친 손상 지점 (비트 i = i번 지점). 파손이 끝나면(수리 · 파괴) 함께 사라진다.
+        /// 저장하지 않음 — 불러오면 처음부터 (지점 수가 2~3개라 부담 적음).
+        /// </summary>
+        public int FieldFixedMask { get; set; }
         /// <summary>8-3 지금 적용 중인 손상 통제 배율 (1 = 없음). 남은 시간은 이 배율이 반영된 실제 초.</summary>
         public DamageControlEffect Control { get; internal set; } = DamageControlEffect.None;
         /// <summary>방치해도 파괴되지 않음 (8-5 장갑 격벽).</summary>
@@ -264,6 +269,23 @@ namespace SpaceStation.Simulation
                 return false;
             _queue[position - 1].IsQueued = false;
             _queue.RemoveAt(position - 1);
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>
+        /// 11-17 현장 수리 완료: 수리 슬롯 · 대기열 · 수리 시간 없이 바로 복구 (<see cref="Repaired"/> 발생, 비용은 호출자).
+        /// 대기 중이었으면 대기열에서 빠지고, 수리 중이었으면 남은 시간 없이 끝난다. 파손이 아니면 false.
+        /// </summary>
+        public bool CompleteNow(ModuleInstance module)
+        {
+            if (!TryGetInfo(module, out var info))
+                return false;
+            _damaged.Remove(module);
+            _queue.Remove(info);
+            info.IsQueued = false;
+            Repaired?.Invoke(module);
+            StartQueued(); // 수리 중이던 슬롯이 비었으면 대기열에 넘김
             Changed?.Invoke();
             return true;
         }

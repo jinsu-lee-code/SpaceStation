@@ -76,6 +76,18 @@ namespace SpaceStation.Data
         [Tooltip("수리 대기 취소 시 돌려받는 비율 (4-7: 대기로 확산을 막고 취소하는 허점 방지)")]
         [SerializeField, Range(0f, 1f)] private float _repairCancelRefundRate = 1f;
 
+        [Header("Field Repair (BALANCE 28번, 11-17 내부 현장 수리)")]
+        [Tooltip("현장 수리 비용 = 보통 수리 비용 × 이 비율 (이미 수리 비용을 낸 대기 · 수리 중 모듈은 0)")]
+        [SerializeField, Range(0f, 1f)] private float _fieldRepairCostRate = 0.5f;
+        [Tooltip("손상 지점 하나를 고치는 데 F를 누르고 있는 시간(초)")]
+        [SerializeField, Min(0.1f)] private float _fieldRepairHoldSeconds = 1.5f;
+        [Tooltip("손상 지점 수 (작은 모듈)")]
+        [SerializeField, Min(1)] private int _fieldRepairPointsSmall = 2;
+        [Tooltip("손상 지점 수 (큰 모듈 — 칸 수가 아래 값 이상)")]
+        [SerializeField, Min(1)] private int _fieldRepairPointsLarge = 3;
+        [Tooltip("큰 모듈로 보는 칸 수")]
+        [SerializeField, Min(1)] private int _fieldRepairLargeCells = 3;
+
         [Header("Defense (BALANCE 19번)")]
         [Tooltip("한 모듈에 대한 포탑 격추 확률 합산 상한")]
         [SerializeField, Range(0f, 1f)] private float _turretMaxIntercept = 0.6f;
@@ -156,6 +168,10 @@ namespace SpaceStation.Data
         public float SpreadDurabilityDamage => _spreadDurabilityDamage;
         public bool QueuePausesSpread => _queuePausesSpread;
         public float RepairCancelRefundRate => _repairCancelRefundRate;
+        public float FieldRepairCostRate => _fieldRepairCostRate;
+        public float FieldRepairHoldSeconds => _fieldRepairHoldSeconds;
+        /// <summary>모듈 칸 수에 따른 손상 지점 수 (11-17).</summary>
+        public int FieldRepairPoints(int cells) => Mathf.Max(1, cells >= _fieldRepairLargeCells ? _fieldRepairPointsLarge : _fieldRepairPointsSmall);
         public float TurretMaxIntercept => _turretMaxIntercept;
         public float ShieldRicochetChance => _shieldRicochetChance;
         public float NeedSatisfactionCapPenalty => _needSatisfactionCapPenalty;

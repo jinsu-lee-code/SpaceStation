@@ -66,6 +66,9 @@ namespace SpaceStation.Interior
         [Header("11-12 휴대 패드")]
         [SerializeField] private InteriorPadTuning _padTuning = new InteriorPadTuning();
 
+        [Header("11-17 현장 긴급 수리")]
+        [SerializeField] private InteriorFieldRepair.Settings _fieldRepairSettings = new InteriorFieldRepair.Settings();
+
         [Header("HUD")]
         [SerializeField] private RectTransform _hud;
         [SerializeField] private TMP_FontAsset _font;
@@ -102,6 +105,15 @@ namespace SpaceStation.Interior
         private InteriorAtmosphere _atmosphere;
         private InteriorResidents _residents;
         private InteriorPad _pad;
+        private InteriorFieldRepair _fieldRepair;
+        // 11-17 길게 누르는 상호작용
+        private InteriorInteractable _holdTarget;
+        private float _holdTime;
+        private bool _holdNeedsRelease;
+        private RectTransform _holdBar;
+        private Image _holdFill;
+        private TMP_Text _notice;
+        private float _noticeUntil;
         private readonly InteriorAudio _audio = new InteriorAudio(); // 11-9 방 환경음·발소리
         private readonly List<GameObject> _hiddenNow = new List<GameObject>();
 
@@ -211,6 +223,10 @@ namespace SpaceStation.Interior
             _atmosphere.Rebuild(_layout);
             _residents = InteriorResidents.Create(transform, _station, _builder, _residentTuning, _animalSet, _font, _player.Eye);
             _residents.Rebuild(_layout);
+            _fieldRepair = InteriorFieldRepair.Create(transform, _station, _builder, _fieldRepairSettings, _smokeMaterial, _sparkMaterial);
+            _fieldRepair.Message += ShowNotice;
+            _fieldRepair.Rebuild(_layout);
+            _atmosphere.HasDamagePoints = _fieldRepair.HasPoints;
             var spawn = _builder.SpawnPoint(module, out float spawnYaw);
             _player.Teleport(spawn + Vector3.up * 0.05f, spawnYaw);
 
@@ -310,6 +326,10 @@ namespace SpaceStation.Interior
             if (_residents != null)
                 Destroy(_residents.gameObject);
             _residents = null;
+            if (_fieldRepair != null)
+                Destroy(_fieldRepair.gameObject);
+            _fieldRepair = null;
+            ResetHold();
             if (_player != null)
                 Destroy(_player.gameObject);
             _player = null;
@@ -369,11 +389,18 @@ namespace SpaceStation.Interior
                     return;
             }
             UpdateRoomTitle();
-            UpdateHatchPrompt();
+            UpdateInteraction();
             if (_atmosphere != null)
             {
                 _atmosphere.CurrentRoom = _currentModule;
                 _audio.SetAlarm(_atmosphere.IsAlarm(_currentModule));
+            }
+            if (_fieldRepair != null)
+                _fieldRepair.CurrentRoom = _currentModule;
+            if (_notice != null && _noticeUntil > 0f && Time.unscaledTime > _noticeUntil)
+            {
+                _noticeUntil = 0f;
+                _notice.SetText(string.Empty);
             }
         }
 
@@ -392,17 +419,32 @@ namespace SpaceStation.Interior
             _title.SetText($"<b>{name}</b>{state}\n<size=75%><color={HudText.Muted}>방 {_layout.Rooms.Count}개 연결</color></size>");
         }
 
-        private void UpdateHatchPrompt()
+        /// <summary>
+        /// 시선이 닿은 물건: 해치(F 한 번) · 11-17 <see cref="InteriorInteractable"/>(F 길게 — 진행 막대, 다 차면 실행, 손을 뗐다 다시 눌러야 다음).
+        /// </summary>
+        private void UpdateInteraction()
         {
             if (_pad != null && _pad.IsZoomed)
             {
                 _prompt.SetText(string.Empty);
+                ResetHold();
                 return;
             }
             var eye = _player.Eye;
             InteriorHatch hatch = null;
+            InteriorInteractable item = null;
             if (Physics.Raycast(eye.position, eye.forward, out var hit, _interactDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            {
                 hatch = hit.collider.GetComponent<InteriorHatch>();
+                if (hatch == null)
+                    item = hit.collider.GetComponentInParent<InteriorInteractable>();
+            }
+            if (item != null)
+            {
+                UpdateHold(item);
+                return;
+            }
+            ResetHold();
             if (hatch == null)
             {
                 _prompt.SetText(string.Empty);
@@ -412,6 +454,75 @@ namespace SpaceStation.Interior
             _prompt.SetText($"<b>{KeyBindings.Label(GameAction.Interact)}</b>  {(hatch.Up ? "위층으로" : "아래층으로")} <color={HudText.Muted}>{target}</color>");
             if (KeyBindings.WasPressed(GameAction.Interact))
                 StartCoroutine(UseHatch(hatch.Arrival ?? _builder.FloorPoint(hatch.ToCell)));
+        }
+
+        private void UpdateHold(InteriorInteractable item)
+        {
+            if (item != _holdTarget)
+            {
+                _holdTarget = item;
+                _holdTime = 0f;
+            }
+            string key = KeyBindings.Label(GameAction.Interact);
+            string blocked = item.Blocked != null ? item.Blocked() : null;
+            string text = item.Prompt != null ? item.Prompt() : "";
+            bool pressed = KeyBindings.IsPressed(GameAction.Interact);
+            if (!pressed)
+                _holdNeedsRelease = false;
+            if (blocked != null)
+            {
+                _prompt.SetText($"<b>{key}</b>  {text}\n<size=80%><color={HudText.Red}>{blocked}</color></size>");
+                if (KeyBindings.WasPressed(GameAction.Interact))
+                    AudioService.TryPlay(l => l.UiError);
+                _holdTime = 0f;
+            }
+            else
+            {
+                _prompt.SetText($"<b>{key}</b> <size=80%><color={HudText.Muted}>길게</color></size>  {text}");
+                if (pressed && !_holdNeedsRelease)
+                {
+                    _holdTime += Time.unscaledDeltaTime;
+                    float progress = Mathf.Clamp01(_holdTime / Mathf.Max(0.05f, item.HoldSeconds));
+                    item.Holding?.Invoke(progress);
+                    if (progress >= 1f)
+                    {
+                        _holdTime = 0f;
+                        _holdNeedsRelease = true;
+                        item.Completed?.Invoke();
+                    }
+                }
+                else
+                    _holdTime = 0f;
+            }
+            SetHoldBar(_holdTime > 0f ? Mathf.Clamp01(_holdTime / Mathf.Max(0.05f, item.HoldSeconds)) : -1f);
+        }
+
+        private void ResetHold()
+        {
+            _holdTarget = null;
+            _holdTime = 0f;
+            SetHoldBar(-1f);
+        }
+
+        /// <summary>진행 막대 (음수 = 숨김).</summary>
+        private void SetHoldBar(float progress)
+        {
+            if (_holdBar == null)
+                return;
+            bool on = progress >= 0f;
+            if (_holdBar.gameObject.activeSelf != on)
+                _holdBar.gameObject.SetActive(on);
+            if (on)
+                _holdFill.fillAmount = progress;
+        }
+
+        private void ShowNotice(string text, bool failed)
+        {
+            if (_notice == null)
+                return;
+            _notice.SetText(text);
+            _notice.color = failed ? HudTheme.Negative : HoloUi.TextColor;
+            _noticeUntil = Time.unscaledTime + 3.5f;
         }
 
         /// <param name="arrival">맞은편 해치 아래 바닥점 (월드).</param>
@@ -477,6 +588,9 @@ namespace SpaceStation.Interior
                 _atmosphere.Rebuild(_layout);
             if (_residents != null)
                 _residents.Rebuild(_layout);
+            if (_fieldRepair != null)
+                _fieldRepair.Rebuild(_layout);
+            ResetHold();
             if (_exteriorView != null)
                 _exteriorView.CollectWindows();
             _currentModule = null; // 제목 다시
@@ -570,8 +684,34 @@ namespace SpaceStation.Interior
             _prompt = ui.Label(_overlay, "", 22f, TextAlignmentOptions.Center);
             var prt = _prompt.rectTransform;
             prt.anchorMin = prt.anchorMax = new Vector2(0.5f, 0.5f);
-            prt.anchoredPosition = new Vector2(0f, -60f);
-            prt.sizeDelta = new Vector2(600f, 40f);
+            prt.anchoredPosition = new Vector2(0f, -66f);
+            prt.sizeDelta = new Vector2(700f, 56f);
+
+            // 11-17 길게 누르기 진행 막대 (조준점 바로 아래)
+            _holdBar = HoloUi.Rect("HoldBar", _overlay);
+            _holdBar.anchorMin = _holdBar.anchorMax = new Vector2(0.5f, 0.5f);
+            _holdBar.anchoredPosition = new Vector2(0f, -26f);
+            _holdBar.sizeDelta = new Vector2(120f, 6f);
+            var barBack = _holdBar.gameObject.AddComponent<Image>();
+            barBack.sprite = _fillSprite;
+            barBack.color = new Color(0f, 0f, 0f, 0.55f);
+            barBack.raycastTarget = false;
+            var fillRt = HoloUi.Rect("Fill", _holdBar);
+            HoloUi.Stretch(fillRt, new Vector2(1f, 1f), new Vector2(-1f, -1f));
+            _holdFill = fillRt.gameObject.AddComponent<Image>();
+            _holdFill.sprite = _fillSprite;
+            _holdFill.type = Image.Type.Filled;
+            _holdFill.fillMethod = Image.FillMethod.Horizontal;
+            _holdFill.color = HudTheme.Accent;
+            _holdFill.raycastTarget = false;
+            _holdBar.gameObject.SetActive(false);
+
+            // 11-17 알림 (현장 수리 완료 · 자원 부족 등)
+            _notice = ui.Label(_overlay, "", 20f, TextAlignmentOptions.Center);
+            var nrt = _notice.rectTransform;
+            nrt.anchorMin = nrt.anchorMax = new Vector2(0.5f, 0.5f);
+            nrt.anchoredPosition = new Vector2(0f, 120f);
+            nrt.sizeDelta = new Vector2(700f, 34f);
 
             var hint = ui.Label(_overlay, "", 18f, TextAlignmentOptions.Bottom);
             var hrt = hint.rectTransform;
@@ -614,7 +754,7 @@ namespace SpaceStation.Interior
             if (hint == null)
                 return;
             string move = $"{KeyBindings.Label(GameAction.CameraForward)}{KeyBindings.Label(GameAction.CameraLeft)}{KeyBindings.Label(GameAction.CameraBack)}{KeyBindings.Label(GameAction.CameraRight)}";
-            hint.SetText($"{move} 이동 · 마우스 둘러보기 · Shift 달리기 · {KeyBindings.Label(GameAction.Interact)} 해치 · {KeyBindings.Label(GameAction.Pad)} 패드 · ESC 나가기");
+            hint.SetText($"{move} 이동 · 마우스 둘러보기 · Shift 달리기 · {KeyBindings.Label(GameAction.Interact)} 해치 · 작업 ·{KeyBindings.Label(GameAction.Pad)} 패드 · ESC 나가기");
         }
 
         private IEnumerator Fade(float from, float to, float seconds)

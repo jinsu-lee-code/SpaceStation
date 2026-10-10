@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using SpaceStation.Audio;
 using SpaceStation.Building;
 using SpaceStation.Core;
@@ -47,6 +47,7 @@ namespace SpaceStation.Interior
             public float NextSpike, SpikeUntil;
             // 연출 오브젝트
             public GameObject Alarm;
+            public GameObject Smoke;
             public Transform BeaconHead;
             public float NextSpark;
             public GameObject Emergency;
@@ -68,6 +69,12 @@ namespace SpaceStation.Interior
 
         /// <summary>플레이어가 있는 방 (스파크 소리는 이 방에서만).</summary>
         public ModuleInstance CurrentRoom { get; set; }
+
+        /// <summary>
+        /// 11-17: 이 방에 현장 수리 손상 지점이 있는지 — 있으면 방 가운데 연기 · 아무 벽 스파크 대신 지점에서만 나옴
+        /// (<see cref="InteriorFieldRepair"/>). 경광등 · 붉은 조명은 그대로.
+        /// </summary>
+        public System.Func<ModuleInstance, bool> HasDamagePoints;
 
         public static InteriorAtmosphere Create(Transform parent, StationController station, InteriorBuilder builder,
             InteriorMoodTuning tuning, Material smoke, Material spark, Material beacon)
@@ -338,6 +345,11 @@ namespace SpaceStation.Interior
         {
             if (room.BeaconHead != null)
                 room.BeaconHead.Rotate(0f, _tuning.BeaconSpeed * dt, 0f, Space.Self);
+            bool points = HasDamagePoints != null && HasDamagePoints(room.Module);
+            if (room.Smoke != null && room.Smoke.activeSelf == points)
+                room.Smoke.SetActive(!points);
+            if (points)
+                return;
             if (now >= room.NextSpark)
             {
                 Spark(room);
@@ -435,6 +447,7 @@ namespace SpaceStation.Interior
             var b = room.Bounds;
             var go = new GameObject("Smoke");
             go.transform.SetParent(room.Alarm.transform, false);
+            room.Smoke = go;
             go.transform.position = new Vector3(b.center.x, b.min.y + 0.2f, b.center.z);
             var ps = go.AddComponent<ParticleSystem>();
             ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
@@ -496,47 +509,7 @@ namespace SpaceStation.Interior
             if (!Physics.Raycast(origin, dir, out var hit, InteriorGeometry.CellSize, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
                 return;
 
-            var go = new GameObject("Spark");
-            go.transform.SetParent(room.Alarm.transform, false);
-            go.transform.SetPositionAndRotation(hit.point + hit.normal * 0.04f, Quaternion.LookRotation(hit.normal));
-            var ps = go.AddComponent<ParticleSystem>();
-            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            var main = ps.main;
-            main.duration = 0.2f;
-            main.loop = false;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.75f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(1.5f, 4f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.02f, 0.05f);
-            main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.8f, 0.4f), new Color(1f, 0.55f, 0.2f));
-            main.gravityModifier = 1.2f;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.useUnscaledTime = true;
-            main.stopAction = ParticleSystemStopAction.Destroy;
-            var emission = ps.emission;
-            emission.rateOverTime = 0f;
-            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 14, 26) });
-            var shape = ps.shape;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 35f;
-            shape.radius = 0.02f;
-            var size = ps.sizeOverLifetime;
-            size.enabled = true;
-            size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0f));
-            var renderer = go.GetComponent<ParticleSystemRenderer>();
-            renderer.sharedMaterial = _sparkMaterial;
-            renderer.shadowCastingMode = ShadowCastingMode.Off;
-            ps.Play();
-
-            // 순간 빛은 따로 자식 오브젝트로: URP가 Light에 UniversalAdditionalLightData를 붙여 Light 컴포넌트만은 지울 수 없음
-            var flashGo = new GameObject("Flash");
-            flashGo.transform.SetParent(go.transform, false);
-            var flash = flashGo.AddComponent<Light>();
-            flash.type = LightType.Point;
-            flash.shadows = LightShadows.None;
-            flash.color = new Color(1f, 0.65f, 0.3f);
-            flash.intensity = 5f;
-            flash.range = 3f;
-            Destroy(flashGo, 0.08f);
+            InteriorFx.Spark(room.Alarm.transform, hit.point + hit.normal * 0.04f, hit.normal, _sparkMaterial);
 
             if (room.Module == CurrentRoom)
                 AudioService.TryPlay(l => l.StormSpark, 0.4f);

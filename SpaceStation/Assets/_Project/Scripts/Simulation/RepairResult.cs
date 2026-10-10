@@ -9,6 +9,8 @@ namespace SpaceStation.Simulation
         AlreadyRepairing,
         AlreadyQueued,
         InsufficientResources,
+        /// <summary>11-17 내부 현장 수리로 바로 복구됨.</summary>
+        Completed,
     }
 
     public enum RebuildResult

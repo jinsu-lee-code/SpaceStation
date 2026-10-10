@@ -284,6 +284,51 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void FieldRepair_HalfCost_NoSlot_FreeWhenAlreadyPaid()
+        {
+            // 11-17: 현장 수리 = 보통 수리 비용(6) × 0.5, 수리 슬롯 · 시간 없이 바로 복구. 대기 중(이미 냄)이면 0, 대기열에서 빠짐
+            var sim = Sim();
+            sim.TryPlace(_solar, Vector3Int.right, 0, out var a);
+            sim.TryPlace(_solar, Vector3Int.up, 0, out var c);
+            sim.TryPlace(_solar, Vector3Int.left, 0, out var d);
+            sim.Damage.Damage(a);
+            sim.Damage.Damage(c);
+            sim.Damage.Damage(d);
+            Assert.AreEqual(RepairResult.Started, sim.TryRepair(a));  // 코어 슬롯 1개 사용
+            Assert.AreEqual(RepairResult.Queued, sim.TryRepair(c));
+            Assert.AreEqual(3f, sim.GetFieldRepairCost(d)[0].Amount, Eps);
+            Assert.AreEqual(0, sim.GetFieldRepairCost(c).Count, "이미 수리 비용을 냄");
+
+            bool repaired = false;
+            sim.Damage.Repaired += m => { if (m == d) repaired = true; };
+            float before = sim.Resources.GetStock(ResourceType.Metal);
+            Assert.AreEqual(RepairResult.Completed, sim.TryFieldRepair(d), "슬롯이 꽉 차도 바로");
+            Assert.IsTrue(repaired);
+            Assert.AreEqual(before - 3f, sim.Resources.GetStock(ResourceType.Metal), Eps);
+
+            Assert.AreEqual(RepairResult.Completed, sim.TryFieldRepair(c));
+            Assert.AreEqual(before - 3f, sim.Resources.GetStock(ResourceType.Metal), Eps, "대기 중이던 모듈은 추가 비용 없음");
+            Assert.AreEqual(0, sim.Damage.Queue.Count);
+            Assert.AreEqual(RepairResult.Completed, sim.TryFieldRepair(a), "수리 중이던 것도 바로 끝");
+            Assert.AreEqual(0, sim.Damage.RepairingCount);
+            Assert.AreEqual(RepairResult.NotDamaged, sim.TryFieldRepair(a));
+
+            sim.Damage.Damage(a);
+            sim.Resources.SetStock(ResourceType.Metal, 1f);
+            Assert.AreEqual(RepairResult.InsufficientResources, sim.TryFieldRepair(a));
+            Assert.IsTrue(sim.Damage.IsDamaged(a));
+        }
+
+        [Test]
+        public void FieldRepairPoints_BySize()
+        {
+            Assert.AreEqual(2, _balance.FieldRepairPoints(1));
+            Assert.AreEqual(2, _balance.FieldRepairPoints(2));
+            Assert.AreEqual(3, _balance.FieldRepairPoints(3));
+            Assert.AreEqual(3, _balance.FieldRepairPoints(12));
+        }
+
+        [Test]
         public void Spread_DamagesHealthyNeighbor_NotCore_AndChains()
         {
             var b = new SerializedObject(_balance);

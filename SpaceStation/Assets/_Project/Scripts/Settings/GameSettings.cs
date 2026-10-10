@@ -46,9 +46,12 @@ namespace SpaceStation.Settings
         private static int _autosaveIndex = DefaultAutosaveIndex;
         private static WornDisplay _wornDisplay = WornDisplay.Rim;
         private static bool _tutorialPending = true;
-        private static bool _interiorPause = true;
+        private static bool _interiorPause; // 11-17: 기본 = 시간 흐름 (내부 현장 수리 · 사고가 긴장감을 가지게)
         private static bool _headBob = true;
         private static bool _padDirectZoom;
+
+        /// <summary>11-17에서 기본값을 '끔'으로 바꾸며 키 이름을 바꿈 — 옛 저장값(켜짐)은 한 번 버리고 새 기본값을 쓴다.</summary>
+        private const string InteriorPauseKey = "interiorPause2";
 
         public static event Action Changed;
 
@@ -75,7 +78,7 @@ namespace SpaceStation.Settings
         public static bool TutorialPending { get { Load(); return _tutorialPending; } set => Set(ref _tutorialPending, value, "tutorial"); }
 
         /// <summary>Phase 11: 내부 방문 중 시뮬레이션 일시정지 (끄면 시간이 계속 흐름).</summary>
-        public static bool InteriorPause { get { Load(); return _interiorPause; } set => Set(ref _interiorPause, value, "interiorPause"); }
+        public static bool InteriorPause { get { Load(); return _interiorPause; } set => Set(ref _interiorPause, value, InteriorPauseKey); }
 
         /// <summary>11-9: 내부에서 걸을 때 시점 흔들림 (멀미가 나면 끔, 발소리는 그대로).</summary>
         public static bool HeadBob { get { Load(); return _headBob; } set => Set(ref _headBob, value, "headBob"); }
@@ -129,7 +132,7 @@ namespace SpaceStation.Settings
             _pauseWhenUnfocused = false;
             _autosaveIndex = DefaultAutosaveIndex;
             _wornDisplay = WornDisplay.Rim;
-            _interiorPause = true;
+            _interiorPause = false;
             _headBob = true;
             _padDirectZoom = false;
             SaveAll();
@@ -160,7 +163,7 @@ namespace SpaceStation.Settings
             _autosaveIndex = Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "autosave", _autosaveIndex), 0, AutosaveChoices.Length - 1);
             _wornDisplay = (WornDisplay)Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "wornDisplay", (int)_wornDisplay), 0, 1);
             _tutorialPending = PlayerPrefs.GetInt(Prefix + "tutorial", _tutorialPending ? 1 : 0) == 1;
-            _interiorPause = PlayerPrefs.GetInt(Prefix + "interiorPause", _interiorPause ? 1 : 0) == 1;
+            _interiorPause = PlayerPrefs.GetInt(Prefix + InteriorPauseKey, _interiorPause ? 1 : 0) == 1;
             _headBob = PlayerPrefs.GetInt(Prefix + "headBob", _headBob ? 1 : 0) == 1;
             _padDirectZoom = PlayerPrefs.GetInt(Prefix + "padDirectZoom", _padDirectZoom ? 1 : 0) == 1;
         }
@@ -184,7 +187,7 @@ namespace SpaceStation.Settings
             PlayerPrefs.SetInt(Prefix + "autosave", _autosaveIndex);
             PlayerPrefs.SetInt(Prefix + "wornDisplay", (int)_wornDisplay);
             PlayerPrefs.SetInt(Prefix + "tutorial", _tutorialPending ? 1 : 0);
-            PlayerPrefs.SetInt(Prefix + "interiorPause", _interiorPause ? 1 : 0);
+            PlayerPrefs.SetInt(Prefix + InteriorPauseKey, _interiorPause ? 1 : 0);
             PlayerPrefs.SetInt(Prefix + "headBob", _headBob ? 1 : 0);
             PlayerPrefs.SetInt(Prefix + "padDirectZoom", _padDirectZoom ? 1 : 0);
             PlayerPrefs.Save();
