@@ -291,8 +291,9 @@ namespace SpaceStation.Interior
             p.Glow = glowGo.AddComponent<Light>();
             p.Glow.type = LightType.Point;
             p.Glow.shadows = LightShadows.None;
-            p.Glow.color = p.Kind == Kind.Pipe ? new Color(0.75f, 0.85f, 1f) : new Color(1f, 0.55f, 0.22f);
-            p.Glow.range = 3f;
+            // 11-17 피드백: 세기 0.9는 눈이 아플 만큼 셌음 → 은은하게 (벽 한 뼘이 물드는 정도), 색도 덜 쨍하게
+            p.Glow.color = p.Kind == Kind.Pipe ? new Color(0.7f, 0.78f, 0.88f) : new Color(1f, 0.62f, 0.36f);
+            p.Glow.range = 2.4f;
             p.Seed = UnityEngine.Random.value * 10f;
 
             // 연기 · 김 (계속)
@@ -358,7 +359,7 @@ namespace SpaceStation.Interior
                 return;
             p.NextWeld = Time.unscaledTime + 0.12f;
             var at = p.Prop.transform.TransformPoint(FxPoint(p.Kind)) + UnityEngine.Random.insideUnitSphere * 0.04f;
-            InteriorFx.Spark(p.Prop.transform, at, p.Normal + Vector3.up * 0.3f, _spark, 4, 8, 2.5f);
+            InteriorFx.Spark(p.Prop.transform, at, p.Normal + Vector3.up * 0.3f, _spark, 4, 8, 0.8f);
             AudioService.TryPlay(l => l.StormSpark, 0.35f);
         }
 
@@ -395,7 +396,7 @@ namespace SpaceStation.Interior
             if (p.Prop != null)
             {
                 if (!quiet)
-                    InteriorFx.Spark(site.Parent, p.Prop.transform.TransformPoint(FxPoint(p.Kind)), p.Normal, _spark, 10, 16, 3f);
+                    InteriorFx.Spark(site.Parent, p.Prop.transform.TransformPoint(FxPoint(p.Kind)), p.Normal, _spark, 10, 16, 1.2f);
                 Destroy(p.Prop);
             }
             p.Plume = null;
@@ -425,15 +426,15 @@ namespace SpaceStation.Interior
                         continue;
                     if (p.Glow != null)
                     {
-                        // 불안정하게 지지직: 느린 출렁임 + 가끔 꺼짐
-                        float n = Mathf.PerlinNoise(p.Seed, now * 7f);
-                        float level = Mathf.PerlinNoise(p.Seed + 3f, now * 2.3f) > 0.78f ? 0.15f : 0.55f + 0.6f * n;
-                        p.Glow.intensity = (p.Kind == Kind.Pipe ? 0.6f : 0.9f) * level;
+                        // 잔잔한 출렁임 + 가끔 살짝 어두워짐 (꺼졌다 켜지는 큰 깜박임은 눈이 피로했음)
+                        float n = Mathf.PerlinNoise(p.Seed, now * 3f);
+                        float level = Mathf.PerlinNoise(p.Seed + 3f, now * 1.7f) > 0.8f ? 0.6f : 0.8f + 0.25f * n;
+                        p.Glow.intensity = (p.Kind == Kind.Pipe ? 0.2f : 0.3f) * level;
                     }
                     if (p.Kind == Kind.Pipe || now < p.NextSpark)
                         continue;
-                    p.NextSpark = now + UnityEngine.Random.Range(0.9f, 2.6f);
-                    InteriorFx.Spark(p.Prop.transform, p.Prop.transform.TransformPoint(FxPoint(p.Kind)), p.Normal + Vector3.down * 0.2f, _spark);
+                    p.NextSpark = now + UnityEngine.Random.Range(1.6f, 4f);
+                    InteriorFx.Spark(p.Prop.transform, p.Prop.transform.TransformPoint(FxPoint(p.Kind)), p.Normal + Vector3.down * 0.2f, _spark, 10, 18, 1.2f);
                     if (site.Module == CurrentRoom)
                         AudioService.TryPlay(l => l.StormSpark, 0.4f);
                 }
