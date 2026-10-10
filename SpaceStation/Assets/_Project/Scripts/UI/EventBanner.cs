@@ -49,7 +49,7 @@ namespace SpaceStation.UI
             }
             _group.blocksRaycasts = false;
             _group.interactable = false;
-            _tween = new UiTween((RectTransform)transform, _group, new Vector2(0f, 36f));
+            _tween = new UiTween((RectTransform)transform, _group, new Vector2(0f, 36f), glitch: true);
         }
 
         private void OnDestroy()

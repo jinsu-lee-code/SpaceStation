@@ -56,6 +56,7 @@ namespace SpaceStation.UI
             _ui = HoloUi.For(_holoArt, _font, _fillSprite, _frameSprite, _buttonSprite);
             BuildLauncher();
             BuildWindow();
+            HudWindows.Opened += HandleWindowOpened;
             _roster.Changed += MarkDirty;
             KeyBindings.Changed += RefreshLauncher;
         }
@@ -63,6 +64,7 @@ namespace SpaceStation.UI
         private void OnDestroy()
         {
             KeyBindings.Changed -= RefreshLauncher;
+            HudWindows.Opened -= HandleWindowOpened;
             if (_roster != null)
                 _roster.Changed -= MarkDirty;
         }
@@ -104,6 +106,7 @@ namespace SpaceStation.UI
 
         public void Open()
         {
+            HudWindows.NotifyOpened(this); // 다른 창(연구 ↔ 주민)은 닫힘
             _open = true;
             _group.blocksRaycasts = true;
             _group.interactable = true;
@@ -114,7 +117,16 @@ namespace SpaceStation.UI
             AudioService.TryPlay(l => l.UiOpen);
         }
 
-        public void Close()
+        /// <summary>다른 창이 열리면 소리 없이 닫힘 (여는 소리만 나게).</summary>
+        private void HandleWindowOpened(object window)
+        {
+            if (!ReferenceEquals(window, this))
+                Close(sound: false);
+        }
+
+        public void Close() => Close(sound: true);
+
+        private void Close(bool sound)
         {
             if (!_open)
                 return;
@@ -123,7 +135,8 @@ namespace SpaceStation.UI
             _group.blocksRaycasts = false;
             _group.interactable = false;
             _tween.Hide();
-            AudioService.TryPlay(l => l.UiClose);
+            if (sound)
+                AudioService.TryPlay(l => l.UiClose);
         }
 
         // ---------------- 구성 ----------------
@@ -176,7 +189,7 @@ namespace SpaceStation.UI
             crt.anchoredPosition = new Vector2(-40f, 26f);
             crt.sizeDelta = new Vector2(190f, 48f);
 
-            _tween = new UiTween(_window, _group, new Vector2(0f, -24f), 0.2f, 0.15f);
+            _tween = new UiTween(_window, _group, new Vector2(0f, -24f), 0.2f, 0.15f, glitch: true);
         }
     }
 }

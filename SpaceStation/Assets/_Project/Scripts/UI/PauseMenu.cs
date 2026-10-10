@@ -42,7 +42,7 @@ namespace SpaceStation.UI
 
         private void Start()
         {
-            _tween = new UiTween(_panel, _group, new Vector2(0f, -24f), 0.2f, 0.15f);
+            _tween = new UiTween(_panel, _group, new Vector2(0f, -24f), 0.2f, 0.15f, glitch: true);
             _resumeButton.onClick.AddListener(Close);
             _restartButton.onClick.AddListener(() => Leave(true));
             _mainMenuButton.onClick.AddListener(() => Leave(false));

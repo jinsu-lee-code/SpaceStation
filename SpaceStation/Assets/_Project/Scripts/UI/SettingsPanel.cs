@@ -228,7 +228,7 @@ namespace SpaceStation.UI
 
             BuildConfirm(root);
             BuildPopup();
-            _tween = new UiTween(_window, _group, new Vector2(0f, -24f), 0.2f, 0.15f);
+            _tween = new UiTween(_window, _group, new Vector2(0f, -24f), 0.2f, 0.15f, glitch: true);
         }
 
         private void BuildSoundPage(RectTransform page)

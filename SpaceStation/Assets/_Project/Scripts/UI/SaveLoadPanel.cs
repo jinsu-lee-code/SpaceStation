@@ -159,7 +159,7 @@ namespace SpaceStation.UI
             crt.sizeDelta = new Vector2(200f, 48f);
 
             BuildConfirm();
-            _tween = new UiTween(_window, _group, new Vector2(0f, -24f), 0.2f, 0.15f);
+            _tween = new UiTween(_window, _group, new Vector2(0f, -24f), 0.2f, 0.15f, glitch: true);
         }
 
         private Row BuildRow(Vector2 topLeft)

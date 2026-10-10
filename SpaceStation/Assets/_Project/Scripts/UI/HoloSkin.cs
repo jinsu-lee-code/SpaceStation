@@ -78,7 +78,7 @@ namespace SpaceStation.UI
 
         private void BuildPanel()
         {
-            var ui = new HoloUi(Art);
+            var ui = new HoloUi(Art) { PanelLine = false }; // 바깥 HUD는 지나가는 빛줄기 없음 (눈이 끌림)
             var img = GetComponent<Image>();
             Color fill = img != null ? img.color : HudTheme.PanelFill;
             Color line = Line.a > 0f ? Line : HudTheme.AccentDim;

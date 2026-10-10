@@ -37,7 +37,11 @@ namespace SpaceStation.UI
         {
             _art = art;
             _tech = tech && art != null;
+            PanelLine = !tech;
         }
+
+        /// <summary>테크 패널 안을 가끔 지나가는 가는 빛줄기 (패드만 켬 — 바깥 UI(창 · HUD)는 끔).</summary>
+        public bool PanelLine { get; set; } = true;
 
         private readonly bool _tech;
 
@@ -256,17 +260,21 @@ namespace SpaceStation.UI
                 hi.raycastTarget = false;
                 hatchImage = hi;
             }
-            // 패널 안을 가끔 지나가는 가는 빛줄기 + 사선 줄무늬 맥박 (글자보다 먼저 만들어 뒤에 그려짐)
-            var scan = Decorative(Rect("PanelScan", go.transform));
-            scan.anchorMin = new Vector2(0f, 1f);
-            scan.anchorMax = new Vector2(1f, 1f);
-            scan.pivot = new Vector2(0.5f, 0.5f);
-            scan.offsetMin = new Vector2(6f, 0f);
-            scan.offsetMax = new Vector2(-6f, 0f);
-            scan.sizeDelta = new Vector2(-12f, 2f);
-            var si = scan.gameObject.AddComponent<Image>();
-            si.color = new Color(line.r, line.g, line.b, 0.55f);
-            si.raycastTarget = false;
+            // 패널 안을 가끔 지나가는 가는 빛줄기 (패드만 — 바깥 UI는 눈이 끌려 집중이 깨져서 뺌, 11-15) + 사선 줄무늬 맥박
+            Image si = null;
+            if (PanelLine)
+            {
+                var scan = Decorative(Rect("PanelScan", go.transform));
+                scan.anchorMin = new Vector2(0f, 1f);
+                scan.anchorMax = new Vector2(1f, 1f);
+                scan.pivot = new Vector2(0.5f, 0.5f);
+                scan.offsetMin = new Vector2(6f, 0f);
+                scan.offsetMax = new Vector2(-6f, 0f);
+                scan.sizeDelta = new Vector2(-12f, 2f);
+                si = scan.gameObject.AddComponent<Image>();
+                si.color = new Color(line.r, line.g, line.b, 0.55f);
+                si.raycastTarget = false;
+            }
             var pfx = go.AddComponent<HoloPanelFx>();
             pfx.Line = si;
             pfx.Hatch = hatchImage;
