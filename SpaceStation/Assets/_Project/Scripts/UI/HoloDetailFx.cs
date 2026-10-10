@@ -14,12 +14,13 @@ namespace SpaceStation.UI
         private TMP_Text _red, _blue;
         private string _shown;
 
-        public static HoloChroma Add(TMP_Text text, float offset = 1.6f)
+        /// <param name="strength">잔상 진하기 배율 (1 = 기본)</param>
+        public static HoloChroma Add(TMP_Text text, float offset = 1.6f, float strength = 1f)
         {
             var c = text.gameObject.AddComponent<HoloChroma>();
             c._main = text;
-            c._red = c.Ghost(new Color(1f, 0.25f, 0.6f, 0.38f), new Vector2(-offset, 0.4f));
-            c._blue = c.Ghost(new Color(0.2f, 0.75f, 1f, 0.32f), new Vector2(offset, -0.4f));
+            c._red = c.Ghost(new Color(1f, 0.25f, 0.6f, 0.38f * strength), new Vector2(-offset, 0.4f));
+            c._blue = c.Ghost(new Color(0.2f, 0.75f, 1f, 0.32f * strength), new Vector2(offset, -0.4f));
             return c;
         }
 
@@ -38,6 +39,14 @@ namespace SpaceStation.UI
             var t = go.AddComponent<TextMeshProUGUI>();
             t.font = _main.font;
             t.fontSize = _main.fontSize;
+            t.enableAutoSizing = _main.enableAutoSizing;
+            t.fontSizeMin = _main.fontSizeMin;
+            t.fontSizeMax = _main.fontSizeMax;
+            // 글자 간격 등도 같게 — 메인 메뉴 제목(간격 10)에서 잔상이 기본 간격으로 그려져 뒤로 갈수록 어긋나 뭉개져 보였음 (11-15)
+            t.characterSpacing = _main.characterSpacing;
+            t.wordSpacing = _main.wordSpacing;
+            t.lineSpacing = _main.lineSpacing;
+            t.margin = _main.margin;
             t.fontStyle = _main.fontStyle;
             t.alignment = _main.alignment;
             t.textWrappingMode = _main.textWrappingMode;

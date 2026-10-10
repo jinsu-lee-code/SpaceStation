@@ -47,8 +47,9 @@ namespace SpaceStation.UI
             var title = transform.Find("Title");
             if (title != null && title.TryGetComponent<TMP_Text>(out var titleText))
             {
-                HoloUi.Glow(titleText, 0.6f);
-                HoloChroma.Add(titleText, 2.4f); // 큰 제목만 자홍 · 청록 색 번짐
+                // 큰 제목: 은은한 발광 + 살짝 색 번짐 (진하면 글자가 뭉개져 네모난 덩어리처럼 보였음)
+                HoloUi.Glow(titleText, 0.3f);
+                HoloChroma.Add(titleText, 1.2f, 0.55f);
             }
             _newGameButton.onClick.AddListener(ShowDifficulty);
             _quitButton.onClick.AddListener(Quit);
