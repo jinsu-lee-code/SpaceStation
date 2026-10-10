@@ -52,7 +52,8 @@ namespace SpaceStation.UI
         private Mode _mode;
         private CanvasGroup _group;
         private RectTransform _window;
-        private UiTween _tween;
+        private UiTween _tween;         // 어두운 바탕 (부드러운 페이드만)
+        private UiTween _windowTween;   // 창 (페이드 + 지지직, 11-15)
         private HoloFx _fx;
         private TMP_Text _title;
         private readonly List<Row> _rows = new List<Row>();
@@ -88,6 +89,7 @@ namespace SpaceStation.UI
             HideConfirm();
             Refresh();
             _tween.Play();
+            _windowTween.Play();
             _fx?.Replay();
             AudioService.TryPlay(l => l.UiOpen);
         }
@@ -100,6 +102,7 @@ namespace SpaceStation.UI
             SetVisible(false);
             HideConfirm();
             _tween.Hide();
+            _windowTween.Hide();
             AudioService.TryPlay(l => l.UiClose);
         }
 
@@ -108,6 +111,7 @@ namespace SpaceStation.UI
             if (!_built)
                 return;
             _tween.Update();
+            _windowTween.Update();
             var keyboard = Keyboard.current;
             if (!_open || keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
                 return;
@@ -159,7 +163,9 @@ namespace SpaceStation.UI
             crt.sizeDelta = new Vector2(200f, 48f);
 
             BuildConfirm();
-            _tween = new UiTween(_window, _group, new Vector2(0f, -24f), 0.2f, 0.15f, glitch: true);
+            // 11-15 어두운 바탕은 지지직 없이 부드럽게, 창만 지지직 (바탕까지 깜박이면 신경 쓰였음)
+            _tween = new UiTween(null, _group, Vector2.zero, 0.2f, 0.25f);
+            _windowTween = new UiTween(_window, _window.gameObject.AddComponent<CanvasGroup>(), Vector2.zero, 0.2f, 0.15f, glitch: true);
         }
 
         private Row BuildRow(Vector2 topLeft)

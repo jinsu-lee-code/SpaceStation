@@ -45,7 +45,8 @@ namespace SpaceStation.UI
 
         private void Start()
         {
-            _tween = new UiTween(_panel, _group, new Vector2(0f, -24f), 0.2f, 0.15f, glitch: true);
+            // 11-15 어두운 바탕(_group)은 지지직 없이 부드럽게 페이드, 메뉴 패널만 따로 페이드 + 지지직 (바탕까지 깜박이면 신경 쓰였음)
+            _tween = new UiTween(null, _group, Vector2.zero, 0.2f, 0.25f);
             // 11-15 설정 · 저장 창이 위에 열리면 메뉴 패널만 바로 숨김 (어두운 바탕은 그대로) — 새 창이 페이드 · 지지직으로 나타나는 동안
             // 뒤의 메뉴가 앞에 있는 것처럼 비쳐 보였음. 창이 닫히면 지지직하며 다시 나타남.
             _panelGroup = _panel.GetComponent<CanvasGroup>();
@@ -120,7 +121,8 @@ namespace SpaceStation.UI
                 _saveButton.interactable = _saveLoadPanel != null && Save.SaveManager.Instance != null && Save.SaveManager.Instance.CanSave;
             SetVisible(true);
             _subOpen = false;
-            _panelTween.ShowNow();
+            _panelTween.HideNow();
+            _panelTween.Play();
             _tween.Play();
             AudioService.TryPlay(l => l.UiOpen);
         }
@@ -135,6 +137,7 @@ namespace SpaceStation.UI
             InputGate.Blocked = false;
             SetVisible(false);
             _tween.Hide();
+            _panelTween.Hide();
             AudioService.TryPlay(l => l.UiClose);
         }
 

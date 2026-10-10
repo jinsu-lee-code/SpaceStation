@@ -42,7 +42,8 @@ namespace SpaceStation.UI
         private bool _open;
         private CanvasGroup _group;
         private RectTransform _window;
-        private UiTween _tween;
+        private UiTween _tween;         // 어두운 바탕 (부드러운 페이드만)
+        private UiTween _windowTween;   // 창 (페이드 + 지지직, 11-15)
         private HoloUi _holo;   // 11-15 ② 테크 테마 (아트가 있을 때만)
         private HoloFx _fx;
         private int _tab;
@@ -94,6 +95,7 @@ namespace SpaceStation.UI
             transform.SetAsLastSibling();
             SetVisible(true);
             _tween.Play();
+            _windowTween.Play();
             _fx?.Replay();
             SelectTab(_tab);
             RefreshAll();
@@ -113,6 +115,7 @@ namespace SpaceStation.UI
             _open = false;
             SetVisible(false);
             _tween.Hide();
+            _windowTween.Hide();
             AudioService.TryPlay(l => l.UiClose);
             Closed?.Invoke();
         }
@@ -122,6 +125,7 @@ namespace SpaceStation.UI
             if (!_built)
                 return;
             _tween.Update();
+            _windowTween.Update();
             UpdatePopup();
             if (_confirmUntil > 0f)
             {
@@ -228,7 +232,9 @@ namespace SpaceStation.UI
 
             BuildConfirm(root);
             BuildPopup();
-            _tween = new UiTween(_window, _group, new Vector2(0f, -24f), 0.2f, 0.15f, glitch: true);
+            // 11-15 어두운 바탕은 지지직 없이 부드럽게, 창만 지지직 (바탕까지 깜박이면 신경 쓰였음)
+            _tween = new UiTween(null, _group, Vector2.zero, 0.2f, 0.25f);
+            _windowTween = new UiTween(_window, _window.gameObject.AddComponent<CanvasGroup>(), Vector2.zero, 0.2f, 0.15f, glitch: true);
         }
 
         private void BuildSoundPage(RectTransform page)
