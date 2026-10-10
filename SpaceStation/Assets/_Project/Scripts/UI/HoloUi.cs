@@ -374,6 +374,7 @@ namespace SpaceStation.UI
             if (_art != null && _art.TechButton != null)
                 ((Image)button.targetGraphic).sprite = _art.TechButton;
             Glow(button.GetComponentInChildren<TMP_Text>(), 0.3f);
+            HoloButtonFx.Add(button, _art); // 호버 · 누름 · 비활성 · 브래킷 · 키 배지 · 상태 막대
             return button;
         }
 

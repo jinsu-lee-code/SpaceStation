@@ -188,6 +188,9 @@ namespace SpaceStation.Interior
                     : affordable ? HudText.Cost(sim.GetBuildCost(tile.Data))
                     : $"<color={HudText.Red}>{HudText.Cost(sim.GetBuildCost(tile.Data))}</color>");
                 ((Image)tile.Button.targetGraphic).color = tile.Data == _selected ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
+                var fx = tile.Button.GetComponent<HoloButtonFx>();
+                if (fx != null)
+                    fx.Status = buildable == PlacementResult.Valid && !affordable ? EfficiencyBands.WarningTint : (Color?)null; // 자원 부족 = 노랑 막대
             }
         }
 

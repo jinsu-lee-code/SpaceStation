@@ -87,6 +87,13 @@ namespace SpaceStation.Editor
                 if (hatch) return new Color(1f, 1f, 1f, 0.95f);
                 return new Color(1f, 1f, 1f, Mathf.Lerp(0.34f, 0.52f, y / bt));     // 바탕 (위가 조금 밝게)
             }, bb);
+            // 모서리 브래킷: 왼쪽 위 ㄱ자 (돌려서 네 모서리에 씀) — 굵기 3px, 길이 14px
+            WriteSprite("UI_TechBracket.png", 24, 24, (x, y) =>
+            {
+                bool top = y > 21f && x < 14f;
+                bool left = x < 3f && y > 10f;
+                return new Color(1f, 1f, 1f, top || left ? 1f : 0f);
+            }, 0);
             // 사선 줄무늬: 12px 칸에 5px 굵기 "/" 반복
             WriteTexture("UI_TechHatch.png", 12, 12, (x, y) => new Color(1f, 1f, 1f, Mathf.Repeat(x - y, 12f) < 5f ? 1f : 0f));
             WriteSprite("UI_TechDot.png", 16, 16, (x, y) =>
@@ -113,6 +120,7 @@ namespace SpaceStation.Editor
             art.Hatch = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/UI_TechHatch.png");
             art.Dot = AssetDatabase.LoadAssetAtPath<Sprite>(Root + "/UI_TechDot.png");
             art.TechButton = AssetDatabase.LoadAssetAtPath<Sprite>(Root + "/UI_TechButton.png");
+            art.Bracket = AssetDatabase.LoadAssetAtPath<Sprite>(Root + "/UI_TechBracket.png");
             if (art.Font == null)
                 art.Font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
             EditorUtility.SetDirty(art);
