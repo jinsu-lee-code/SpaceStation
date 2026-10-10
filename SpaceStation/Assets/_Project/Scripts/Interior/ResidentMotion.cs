@@ -28,8 +28,13 @@ namespace SpaceStation.Interior
         private readonly int[] _eyeAxis = new int[2];
         private readonly Vector3[] _eyeScale = new Vector3[2];
         private float _lEarSide, _rEarSide;
-        private readonly List<(Transform Bone, Quaternion Local)> _rest = new List<(Transform, Quaternion)>();
+        // 자세별 본 회전: Local = 처음 잡은 자세, Stand = 앉은 주민이 일어섰을 때 (없으면 Local과 같음)
+        private readonly List<(Transform Bone, Quaternion Local, Quaternion Stand)> _rest = new List<(Transform, Quaternion, Quaternion)>();
         private Vector3 _modelRest;
+        private Vector3 _modelStand;
+        private bool _canStand;
+        private float _standBlend;      // 0 = 처음 자세(앉음) ~ 1 = 일어섬
+        private float _standTarget;
         private Vector3 _chestScale;
         private ResidentPose _pose;
         private float _scale = 1f;
@@ -126,12 +131,14 @@ namespace SpaceStation.Interior
             extra.TryGetValue("RightEye", out _eyes[1]);
 
             foreach (var b in new[] { _hips, _chest, _head, _lUpper, _lLower, _rUpper, _rLower, _lEar, _rEar, _tail, _lThigh, _rThigh, _lShin, _rShin,
-                         bones(HumanBodyBones.Spine), bones(HumanBodyBones.Neck), bones(HumanBodyBones.LeftHand), bones(HumanBodyBones.RightHand) })
+                         bones(HumanBodyBones.Spine), bones(HumanBodyBones.Neck), bones(HumanBodyBones.LeftHand), bones(HumanBodyBones.RightHand),
+                         bones(HumanBodyBones.LeftFoot), bones(HumanBodyBones.RightFoot), bones(HumanBodyBones.LeftToes), bones(HumanBodyBones.RightToes) })
             {
                 if (b != null)
-                    _rest.Add((b, b.localRotation));
+                    _rest.Add((b, b.localRotation, b.localRotation));
             }
             _modelRest = model.localPosition;
+            _modelStand = _modelRest;
             if (_chest != null)
                 _chestScale = _chest.localScale;
             // 귀가 인물의 어느 쪽에 있는지 (처짐 방향)
@@ -163,6 +170,28 @@ namespace SpaceStation.Interior
             _idleAt = now + 3f + (float)_rng.NextDouble() * 6f;
         }
 
+        /// <summary>
+        /// 11-16 ④ 앉은 주민이 일어설 수 있게: 선 자세의 본 회전(본 → 회전)과 모델 위치. <see cref="ResidentFigure.Create"/>가 앉은 주민에게 줌.
+        /// </summary>
+        public void SetStandPose(Dictionary<Transform, Quaternion> stand, Vector3 modelPosition)
+        {
+            for (int i = 0; i < _rest.Count; i++)
+            {
+                var (bone, local, _) = _rest[i];
+                _rest[i] = (bone, local, stand.TryGetValue(bone, out var q) ? q : local);
+            }
+            _modelStand = modelPosition;
+            _canStand = true;
+        }
+
+        /// <summary>일어설 수 있는 앉은 주민.</summary>
+        public bool CanStand => _canStand;
+        /// <summary>일어서기 진행 0(앉음) ~ 1(섬).</summary>
+        public float StandBlend => _standBlend;
+
+        /// <summary>일어서기(true) · 앉기(false) 시작 — 약 0.5초에 걸쳐 자세가 바뀜.</summary>
+        public void StandUp(bool up) => _standTarget = up && _canStand ? 1f : 0f;
+
         public void Configure(float mood, Transform watcher, float lookRange)
         {
             _mood = Mathf.Clamp(mood, -1f, 1f);
@@ -180,10 +209,12 @@ namespace SpaceStation.Interior
             _phase += dt * _style.Speed;
             _wag += dt * _style.TailHz * Mathf.PI * 2f;
 
-            foreach (var (bone, local) in _rest)
-                bone.localRotation = local;
+            _standBlend = Mathf.MoveTowards(_standBlend, _standTarget, dt / 0.5f);
+            float sb = Mathf.SmoothStep(0f, 1f, _standBlend);
+            foreach (var (bone, local, stand) in _rest)
+                bone.localRotation = sb <= 0f ? local : Quaternion.Slerp(local, stand, sb);
             var root = transform;
-            bool standing = _pose == ResidentPose.Stand;
+            bool standing = _pose == ResidentPose.Stand || _standBlend > 0.5f;
 
             if (_hold < 0f)
             {
@@ -217,7 +248,7 @@ namespace SpaceStation.Interior
                 }
             }
             if (_model != null)
-                _model.localPosition = _modelRest + Vector3.up * (lift * _scale);
+                _model.localPosition = Vector3.Lerp(_modelRest, _modelStand, sb) + Vector3.up * (lift * _scale);
             if (_act == Act.Stretch)
                 Rotate(_chest, root.right, -8f * env);   // 가슴을 뒤로 젖힘
 
@@ -245,7 +276,7 @@ namespace SpaceStation.Interior
                     _reactReady = now + ReactCooldown;
                     var r = ResidentMood.Reaction(_mood, _id, _meet++);
                     if (r == ResidentReaction.HopWave)
-                        Start(_pose == ResidentPose.Stand ? Act.HopWave : Act.Wave, now, 1.8f);
+                        Start(_pose == ResidentPose.Stand || _standBlend >= 1f ? Act.HopWave : Act.Wave, now, 1.8f);
                     else if (r == ResidentReaction.Wave)
                         Start(Act.Wave, now, 1.6f);
                     else if (r == ResidentReaction.TurnAway)

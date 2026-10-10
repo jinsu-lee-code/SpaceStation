@@ -27,10 +27,15 @@ namespace SpaceStation.Interior
     /// 걸어갈 곳 = 같은 방의 비어 있는 서기 자리, 없으면 원래 자리 주변 0.8~1.4m의 바닥(아래로 쏴서 같은 높이 바닥 + 그 자리에 다른 물체 없음).
     /// 가는 길이 막혔으면(캡슐로 쓸어 봄) 가지 않는다. 플레이어가 앞을 막거나 반응(손 흔들기 등) 중이면 멈춰 기다림.
     /// 다리 · 팔 흔들기는 <see cref="ResidentMotion.Walk"/>.
+    /// 11-16 ④ 앉은 주민(<see cref="InitSeated"/>)은 의자 앞 바닥이 비어 있으면 일어나(약 0.5초, 앞으로 밀려나오며) 같은 방을 걷다가,
+    /// 나들이를 마치면 의자 앞으로 돌아와 의자 방향으로 돌아서 뒤로 물러나 앉는다.
     /// </summary>
     public sealed class ResidentWander : MonoBehaviour
     {
-        private enum State { Idle, Turn, Walk }
+        private enum State { Idle, Turn, Walk, StandUp, SeatTurn, SitDown }
+
+        /// <summary>11-16 ④ 앉는 자리(의자 · 소파 · 벤치)를 가리키는 번호 — 방 자리 목록 밖.</summary>
+        private const int Seat = -2;
 
         private const float TurnSpeed = 260f;     // 도/초
         private const float Radius = 0.24f;       // 몸 반지름 (모델 원래 크기 기준, ResidentFigure 캡슐과 같음)
@@ -55,16 +60,48 @@ namespace SpaceStation.Interior
 
         public bool Walking => _state != State.Idle;
 
+        // 11-16 ④ 앉는 자리에서 시작한 주민 (휴게실 · 회전 링 등): 일어나 → 걷고 → 돌아와 앉음
+        private ResidentFigure _figure;
+        private Vector3 _seatPos;
+        private float _seatYaw;
+        private Vector3 _seatFront;     // 일어서서 서는 곳 (의자 앞 바닥)
+
         public void Init(WanderRoom room, int home, float mood, Transform watcher, float scale, int id)
         {
             _room = room;
             _home = home;
             _at = home;
             room.Owner[home] = this;
+            Setup(mood, watcher, scale, id);
+        }
+
+        private bool _justStood;
+
+        private float FlatDistance(Vector3 p)
+        {
+            var d = p - transform.position;
+            d.y = 0f;
+            return d.magnitude;
+        }
+
+        /// <summary>앉은 주민: 의자 앞 바닥이 비어 있으면 가끔 일어나 같은 방 안을 걷다가 돌아와 다시 앉음.</summary>
+        public void InitSeated(WanderRoom room, float mood, Transform watcher, float scale, int id)
+        {
+            _room = room;
+            _home = Seat;
+            _at = Seat;
+            _seatPos = transform.position;
+            _seatYaw = transform.eulerAngles.y;
+            Setup(mood, watcher, scale, id);
+        }
+
+        private void Setup(float mood, Transform watcher, float scale, int id)
+        {
             _mood = mood;
             _watcher = watcher;
             _scale = scale;
             _motion = GetComponent<ResidentMotion>();
+            _figure = GetComponent<ResidentFigure>();
             _self = GetComponent<Collider>();
             _rng = new System.Random(id * 104729 + 3);
             _next = Time.unscaledTime + WanderRules.IdleSeconds(mood, _rng.NextDouble()) * 0.5f; // 처음엔 조금 일찍
@@ -107,7 +144,80 @@ namespace SpaceStation.Interior
                 case State.Walk:
                     UpdateWalk(now, dt);
                     break;
+                case State.StandUp:
+                {
+                    // 의자에서 앞 바닥으로 밀려나오며 일어섬
+                    float b = _motion.StandBlend;
+                    transform.position = Vector3.Lerp(_seatPos, _seatFront, Mathf.SmoothStep(0f, 1f, b));
+                    if (b >= 1f)
+                    {
+                        _figure?.SetColliderStanding(true);
+                        _at = -1;
+                        _state = State.Idle;
+                        _next = now + 0.4f; // 일어나면 곧 걸음
+                        _justStood = true;
+                    }
+                    break;
+                }
+                case State.SeatTurn:
+                    _motion?.Walk(0f, dt);
+                    if (TurnToward(Quaternion.Euler(0f, _seatYaw, 0f) * Vector3.forward, dt) < 2f)
+                    {
+                        _motion.StandUp(false);
+                        _figure?.SetColliderStanding(false);
+                        _state = State.SitDown;
+                    }
+                    break;
+                case State.SitDown:
+                {
+                    // 뒤로 물러나 앉음
+                    float b = _motion.StandBlend;
+                    transform.position = Vector3.Lerp(_seatPos, _seatFront, Mathf.SmoothStep(0f, 1f, b));
+                    if (b <= 0f)
+                    {
+                        transform.position = _seatPos;
+                        _at = Seat;
+                        _excursions = 0;
+                        _state = State.Idle;
+                        _next = now + WanderRules.IdleSeconds(_mood, _rng.NextDouble());
+                    }
+                    break;
+                }
             }
+        }
+
+        // 일어설 곳을 찾는 방향 (의자 기준 도 — 앞 먼저, 다음 옆 · 비스듬히 뒤 · 뒤) · 거리
+        private static readonly float[] StandAngles = { 0f, 35f, -35f, 70f, -70f, 110f, -110f, 150f, -150f, 180f };
+        private static readonly float[] StandDistances = { 0.5f, 0.7f, 0.9f };
+
+        /// <summary>
+        /// 앉아 있다가 일어설 수 있으면 일어서기 시작. 의자 주변(앞 먼저, 옆 · 뒤)에서 몸이 들어갈 빈 바닥을 찾는다
+        /// — 회전 링 벤치는 창을 보고 있어 앞 0.6m 안이 유리라 앞으로는 일어설 수 없었음 (뒤 통로로 일어섬).
+        /// </summary>
+        private bool TryStandUp()
+        {
+            if (_motion == null || !_motion.CanStand)
+                return false;
+            foreach (float d in StandDistances)
+            {
+                foreach (float angle in StandAngles)
+                {
+                    var dir = Quaternion.Euler(0f, _seatYaw + angle, 0f) * Vector3.forward;
+                    var p = _seatPos + dir * (d * _scale);
+                    if (!Physics.Raycast(p + Vector3.up * 0.8f, Vector3.down, out var hit, 1.6f, ~0, QueryTriggerInteraction.Ignore))
+                        continue;
+                    p.y = hit.point.y;
+                    if (Mathf.Abs(p.y - _seatPos.y) > 0.25f || !FloorFree(p, p.y))
+                        continue;
+                    _seatFront = p;
+                    _motion.StandUp(true);
+                    _state = State.StandUp;
+                    LastDecision = $"일어남 ({angle:0}° · {d:0.0}m)";
+                    return true;
+                }
+            }
+            LastDecision = "의자 주변이 막혀 못 일어남";
+            return false;
         }
 
         /// <summary>반응(손 흔들기 등) 중이거나 플레이어가 앞을 막음.</summary>
@@ -129,10 +239,22 @@ namespace SpaceStation.Interior
         private void Decide(float now)
         {
             _next = now + WanderRules.IdleSeconds(_mood, _rng.NextDouble());
+            if (_at == Seat)
+            {
+                // 앉아 있음: 나들이 갈 기분이면 일어남 (걷기는 일어선 뒤 다음 결정에서)
+                if (WanderRules.ShouldWander(_mood, _excursions, _rng.NextDouble()))
+                    TryStandUp();
+                else
+                    LastDecision = "앉아 쉼";
+                return;
+            }
             bool away = _at != _home;
             int target;
             Vector3 point;
-            if (WanderRules.ShouldWander(_mood, _excursions, _rng.NextDouble()))
+            bool justStood = _justStood;
+            _justStood = false;
+            // 일어나자마자 다시 앉으면 어색하므로 일어선 직후엔 꼭 한 번 걸음
+            if (justStood || WanderRules.ShouldWander(_mood, _excursions, _rng.NextDouble()))
             {
                 if (!PickTarget(out target, out point))
                 {
@@ -140,6 +262,23 @@ namespace SpaceStation.Interior
                     return;
                 }
                 _excursions++;
+            }
+            else if (away && _home == Seat)
+            {
+                // 의자 앞으로 돌아가 앉음 (이미 의자 앞이면 바로 돌아서 앉음)
+                if (FlatDistance(_seatFront) < 0.1f)
+                {
+                    LastDecision = "앉음";
+                    _state = State.SeatTurn;
+                    return;
+                }
+                if (!PathClear(_seatFront))
+                {
+                    LastDecision = "의자로 가는 길이 막힘";
+                    return;
+                }
+                target = Seat;
+                point = _seatFront;
             }
             else if (away)
             {
@@ -158,14 +297,14 @@ namespace SpaceStation.Interior
                 LastDecision = "머묾";
                 return;
             }
-            LastDecision = target >= 0 ? $"자리 {target}로" : "바닥으로";
+            LastDecision = target == Seat ? "의자로 돌아감" : target >= 0 ? $"자리 {target}로" : "바닥으로";
             Release(_at);
             _at = -1;
             _target = target;
             if (target >= 0)
                 _room.Owner[target] = this;
             _goal = point;
-            _goalYaw = target >= 0 ? _room.Yaws[target] : transform.eulerAngles.y + (float)(_rng.NextDouble() * 120.0 - 60.0);
+            _goalYaw = target == Seat ? _seatYaw : target >= 0 ? _room.Yaws[target] : transform.eulerAngles.y + (float)(_rng.NextDouble() * 120.0 - 60.0);
             _state = State.Turn;
         }
 
@@ -264,6 +403,13 @@ namespace SpaceStation.Interior
             if (dist <= speed * dt + 0.01f)
             {
                 transform.position = new Vector3(_goal.x, transform.position.y, _goal.z);
+                if (_target == Seat)
+                {
+                    // 의자 앞: 의자 방향으로 돌아선 뒤 앉음
+                    _target = -1;
+                    _state = State.SeatTurn;
+                    return;
+                }
                 _at = _target;
                 _target = -1;
                 _state = State.Idle;

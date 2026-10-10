@@ -22,7 +22,8 @@ namespace SpaceStation.Interior
         public string Label { get; private set; }
         /// <summary>이름표를 띄울 곳 (머리 위).</summary>
         public Vector3 TagPoint => new Vector3(_head != null ? _head.position.x : transform.position.x,
-            transform.position.y + (_tagTop > 0f ? _tagTop : 1f) + 0.1f, _head != null ? _head.position.z : transform.position.z);
+            transform.position.y + (_tagTop > 0f ? Mathf.Lerp(_tagTop, _tagTopStand, Motion != null ? Motion.StandBlend : 0f) : 1f) + 0.1f,
+            _head != null ? _head.position.z : transform.position.z);
 
         /// <summary>
         /// 동물 주민을 만든다. 원점 = 발 사이 바닥(앉기는 앉는 면 − <paramref name="sitDrop"/>), 앞 = +z.
@@ -74,24 +75,62 @@ namespace SpaceStation.Interior
             var bones = ResidentPoser.ByName(instance.transform);
             var restHead = bones(HumanBodyBones.Head);
             float restAboveHead = figure._renderer != null && restHead != null ? figure._renderer.bounds.max.y - restHead.position.y : 0.4f * scale;
+            figure._head = bones(HumanBodyBones.Head);
+            // 11-16 ④ 앉는 주민은 선 자세도 미리 계산 (쉬는 자세에서 서기 → 저장 → 쉬는 자세로 되돌려 앉기)
+            Dictionary<Transform, Quaternion> stand = null;
+            Vector3 standModel = instance.transform.localPosition;
+            var all = instance.GetComponentsInChildren<Transform>(true);
+            if (pose == ResidentPose.Sit)
+            {
+                var bind = new Quaternion[all.Length];
+                for (int i = 0; i < all.Length; i++)
+                    bind[i] = all[i].localRotation;
+                ResidentPoser.Apply(bones, root.transform, ResidentPose.Stand);
+                stand = new Dictionary<Transform, Quaternion>();
+                foreach (var t in all)
+                    stand[t] = t.localRotation;
+                if (figure._head != null)
+                    figure._tagTopStand = root.transform.InverseTransformPoint(figure._head.position).y + restAboveHead;
+                for (int i = 0; i < all.Length; i++)
+                    all[i].localRotation = bind[i];
+            }
             ResidentPoser.Apply(bones, root.transform, pose);
             if (pose == ResidentPose.Sit)
                 ResidentPoser.SeatOn(bones, root.transform, instance.transform, sitDrop, scale);
-            figure._head = bones(HumanBodyBones.Head);
             if (figure._head != null)   // 이름표 높이 = 자세 잡은 머리 본 + (쉬는 자세의 머리 본 → 메시 꼭대기, 귀 포함)
                 figure._tagTop = root.transform.InverseTransformPoint(figure._head.position).y + restAboveHead;
+            if (stand == null)
+                figure._tagTopStand = figure._tagTop;
             FitBounds(root.transform, instance, scale);
             // 11-16 생명감: 자세 잡은 본 회전을 기준으로 매 프레임 덧붙임
             figure.Motion = root.AddComponent<ResidentMotion>();
             figure.Motion.Init(bones, instance.transform, pose, scale, id);
+            if (stand != null)
+                figure.Motion.SetStandPose(stand, standModel);
+            figure._scale = scale;
+            figure._sitDrop = sitDrop;
 
             // 지나갈 수 없게 + 바라보기 판정
-            var capsule = root.AddComponent<CapsuleCollider>();
-            float height = (pose == ResidentPose.Sit ? 0.75f : 0.95f) * scale;
-            capsule.radius = 0.24f * scale;
-            capsule.height = Mathf.Max(height, capsule.radius * 2f);
-            capsule.center = new Vector3(0f, pose == ResidentPose.Sit ? sitDrop + height * 0.4f : height * 0.5f, pose == ResidentPose.Sit ? 0.05f : 0f);
+            figure._capsule = root.AddComponent<CapsuleCollider>();
+            figure.SetColliderStanding(pose != ResidentPose.Sit);
             return figure;
+        }
+
+        private float _scale = 1f;
+        private float _sitDrop;
+        private float _tagTopStand;
+        private CapsuleCollider _capsule;
+
+        /// <summary>11-16 ④ 앉은 주민이 일어서거나 다시 앉을 때 몸 충돌 모양을 바꿈.</summary>
+        public void SetColliderStanding(bool standing)
+        {
+            if (_capsule == null)
+                return;
+            bool sit = !standing;
+            float height = (sit ? 0.75f : 0.95f) * _scale;
+            _capsule.radius = 0.24f * _scale;
+            _capsule.height = Mathf.Max(height, _capsule.radius * 2f);
+            _capsule.center = new Vector3(0f, sit ? _sitDrop + height * 0.4f : height * 0.5f, sit ? 0.05f : 0f);
         }
 
         /// <param name="mood">11-16 기분 −1(나쁨) ~ +1(좋음) — 평소 동작 · 반응 (<see cref="ResidentMotion"/>)</param>

@@ -137,8 +137,8 @@ namespace SpaceStation.Interior
                 if (spot == null)
                     continue;
                 var figure = Spawn(resident, spot, instance, _builder.RoomParent(module), Status(resident, module, p, day), roster.Config, out float mood);
-                // 11-16 ③ 서 있는 쉬는 주민은 같은 방의 서기 자리 사이를 가끔 걸어 다님
-                if (_tuning.Wander && !spot.Work && spot.Pose == ResidentPose.Stand)
+                // 11-16 ③ 서 있는 쉬는 주민은 같은 방의 서기 자리 사이를 가끔 걸어 다님, ④ 앉은 주민은 일어나 걷다가 돌아와 앉음
+                if (_tuning.Wander && !spot.Work)
                 {
                     if (!wanderRooms.TryGetValue(p.Room, out var wr))
                     {
@@ -152,9 +152,14 @@ namespace SpaceStation.Interior
                         }
                         wanderRooms[p.Room] = wr;
                     }
-                    int home = wr.Spots.IndexOf(spot);
-                    if (home >= 0)
-                        figure.gameObject.AddComponent<ResidentWander>().Init(wr.Room, home, mood, _eye, _tuning.AnimalScale, resident.Id);
+                    if (spot.Pose == ResidentPose.Sit)
+                        figure.gameObject.AddComponent<ResidentWander>().InitSeated(wr.Room, mood, _eye, _tuning.AnimalScale, resident.Id);
+                    else
+                    {
+                        int home = wr.Spots.IndexOf(spot);
+                        if (home >= 0)
+                            figure.gameObject.AddComponent<ResidentWander>().Init(wr.Room, home, mood, _eye, _tuning.AnimalScale, resident.Id);
+                    }
                 }
             }
         }
