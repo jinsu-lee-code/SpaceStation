@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using SpaceStation.Audio;
 using SpaceStation.Data;
@@ -232,7 +232,7 @@ namespace SpaceStation.UI
             else
             {
                 sb.Append(max == 1 ? next.Description : $"<color={HudTheme.AccentHex}>다음 Lv.{level + 1}</color> {next.Description}");
-                string discount = UsePoint ? $"  <color={HudText.Yellow}>(연구 포인트 −{_sim.Balance.ResearchPointDiscount * 100f:0}%)</color>" : "";
+                string discount = UsePoint ? $"  <color={HudText.Yellow}>(연구 포인트 -{_sim.Balance.ResearchPointDiscount * 100f:0}%)</color>" : "";
                 sb.Append($"\n\n비용 {HudText.Cost(_sim.GetResearchStartCost(category, UsePoint))}{discount}  <color={HudText.Muted}>· 전력 +{next.PowerDemand:0} · {next.Duration:0}초</color>");
             }
             _body.SetText(sb.ToString());
@@ -245,7 +245,7 @@ namespace SpaceStation.UI
             int points = _sim.Supply.ResearchPoints;
             _point.gameObject.SetActive(!researching && next != null && points > 0);
             if (_point.gameObject.activeSelf)
-                _point.GetComponentInChildren<TMP_Text>().SetText($"연구 포인트 {OnOff(UsePoint)}\n<size=80%><color={HudText.Muted}>보유 {points} · −{_sim.Balance.ResearchPointDiscount * 100f:0}%</color></size>");
+                _point.GetComponentInChildren<TMP_Text>().SetText($"연구 포인트 {OnOff(UsePoint)}\n<size=80%><color={HudText.Muted}>보유 {points} · -{_sim.Balance.ResearchPointDiscount * 100f:0}%</color></size>");
             if (researching)
             {
                 HoloUi.SetBar(_barFill, project.Progress);
