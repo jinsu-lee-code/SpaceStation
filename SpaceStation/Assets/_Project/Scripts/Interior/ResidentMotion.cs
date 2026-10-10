@@ -19,6 +19,9 @@ namespace SpaceStation.Interior
         private enum Act { None, Stretch, LookAround, Hop, Wave, HopWave, TurnAway }
 
         private const float ReactCooldown = 20f;
+        private const float StretchGapMin = 45f;
+        private const float StretchGapMax = 80f;
+        private float _stretchReady;
 
         private Transform _model;
         private Transform _hips, _chest, _head;
@@ -168,6 +171,7 @@ namespace SpaceStation.Interior
             _blinkAt = now + 0.5f + (float)_rng.NextDouble() * 3f;
             _twitchAt = now + 2f + (float)_rng.NextDouble() * 4f;
             _idleAt = now + 3f + (float)_rng.NextDouble() * 6f;
+            _stretchReady = now + 10f + (float)_rng.NextDouble() * 35f; // 들어오자마자 여럿이 같이 기지개 켜지 않게
         }
 
         /// <summary>
@@ -300,10 +304,14 @@ namespace SpaceStation.Interior
             if (_near)
                 return; // 플레이어를 보는 중에는 딴짓 안 함
             double r = _rng.NextDouble();
-            if (standing && _mood > 0.2f && r < 0.3)
+            if (standing && _mood > 0.2f && r < 0.25)
                 Start(Act.Hop, now, 0.9f);
-            else if (r < 0.6 && _pose != ResidentPose.Work)
+            else if (r < 0.5 && _pose != ResidentPose.Work && now >= _stretchReady)
+            {
+                // 기지개는 드물게 (주민마다 45~80초에 한 번 — 자주 하면 어색하다는 피드백, 11-16)
                 Start(Act.Stretch, now, 1.5f);
+                _stretchReady = now + StretchGapMin + (float)_rng.NextDouble() * (StretchGapMax - StretchGapMin);
+            }
             else
                 Start(Act.LookAround, now, 2.6f);
         }

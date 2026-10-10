@@ -435,7 +435,12 @@ namespace SpaceStation.Interior
             _group.blocksRaycasts = false;
 
             var ui = _c.Art != null ? new HoloUi(_c.Art) : new HoloUi(_c.Font, _c.Fill, _c.Fill, _c.Fill);
+            ui.PanelLine = false; // 패널 안을 지나가는 빛줄기도 글자 뒤를 지나며 일렁여 보여서 뺌 (11-16 피드백)
             _fx = ui.Screen(rt, 1f, HudTheme.HoloDeep); // 패드 = 진하게
+            // 11-16 피드백: 작은 글자 뒤로 주사선이 흐르면 가로줄이 글자를 지나가며 일렁여 보였음 → 주사선은 멈추고 깜박임은 약하게
+            // (스캔 띠는 부드러운 그러데이션이라 그대로)
+            _fx.ScanSpeed = 0f;
+            _fx.Flicker = 0.25f;
             var accent = HudTheme.Accent;
             var low = new Color(accent.r, accent.g, accent.b, 0.35f);
 

@@ -14,6 +14,8 @@ namespace SpaceStation.UI
         public float ScanSpeed = 0.06f;
         [Tooltip("스캔 띠가 한 번 지나가는 주기 (초)")]
         public float SweepPeriod = 3.4f;
+        [Tooltip("바탕 장식 깜박임 세기 배율 (0 = 깜박임 없음). 작은 글자가 많은 화면은 낮게 — 뒤 밝기가 출렁이면 Bloom 번짐이 흔들려 글자가 일렁여 보임")]
+        [Range(0f, 1f)] public float Flicker = 1f;
 
         public RawImage Scan;
         public RectTransform Sweep;
@@ -101,7 +103,7 @@ namespace SpaceStation.UI
             if (Decor != null)
             {
                 // 깜박임: 느린 흔들림 + 가끔 짧게 떨어짐 (강도에 비례, 바탕 장식만)
-                float flicker = 1f - s * (0.12f * (0.5f + 0.5f * Mathf.Sin(t * 13.7f)) + (Mathf.PerlinNoise(t * 3.1f, 0.37f) > 0.8f ? 0.35f : 0f));
+                float flicker = 1f - s * Flicker * (0.12f * (0.5f + 0.5f * Mathf.Sin(t * 13.7f)) + (Mathf.PerlinNoise(t * 3.1f, 0.37f) > 0.8f ? 0.35f : 0f));
                 Decor.alpha = flicker;
             }
         }
