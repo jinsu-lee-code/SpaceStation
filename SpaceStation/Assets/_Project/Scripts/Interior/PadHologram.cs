@@ -35,7 +35,7 @@ namespace SpaceStation.Interior
             public float LineAlpha = 0.85f;
             public float Glow = 1.4f;
             /// <summary>투사기에서 모형 바닥까지 높이 (m, 확대 상태) — 모형이 패드 화면을 가리지 않게.</summary>
-            public float Lift = 0.085f;
+            public float Lift = 0.07f;
             /// <summary>보는 사람 쪽으로 기울이는 각 (도) — 위에서 내려다보는 지도처럼.</summary>
             public float Tilt = 55f;
         }

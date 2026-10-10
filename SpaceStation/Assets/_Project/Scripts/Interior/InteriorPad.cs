@@ -29,8 +29,8 @@ namespace SpaceStation.Interior
         public Vector3 LoweredPosition = new Vector3(0.1f, -0.45f, 0.22f);
         public Vector3 LoweredEuler = new Vector3(60f, -10f, 5f);
         [Tooltip("확대 자세 (화면 아래쪽에 눕혀 들고, 위 빈 곳에 홀로그램 모형)")]
-        public Vector3 ZoomPosition = new Vector3(0f, -0.075f, 0.2f);
-        public Vector3 ZoomEuler = new Vector3(34f, 0f, 0f);
+        public Vector3 ZoomPosition = new Vector3(0f, -0.052f, 0.27f); // 패드 화면 전체가 시야(세로 60°) 안 — 0.2m 앞이면 아래쪽(쪽 넘김 · 알림)이 잘렸음
+        public Vector3 ZoomEuler = new Vector3(28f, 0f, 0f);
         [Tooltip("들기 · 확대 걸리는 시간 (초)")]
         public float RaiseSeconds = 0.28f;
         public float ZoomSeconds = 0.22f;
@@ -46,7 +46,7 @@ namespace SpaceStation.Interior
         [Tooltip("모형 가로 · 세로 최대 크기 (m, 확대 상태)")]
         public float HoloFootprint = 0.12f;
         [Tooltip("투사기에서 모형 바닥까지 높이 (m, 확대 상태) — 패드 화면을 가리지 않게")]
-        public float HoloLift = 0.085f;
+        public float HoloLift = 0.07f;
         [Tooltip("모형을 보는 사람 쪽으로 기울이는 각 (도)")]
         public float HoloTilt = 55f;
         [Tooltip("발광 세기 (Bloom과 함께)")]
@@ -89,8 +89,6 @@ namespace SpaceStation.Interior
             public Func<InteriorLayout> Layout;
             public Func<ModuleInstance> CurrentRoom;
             public Action<ModuleInstance> Travel;
-            /// <summary>"ResearchPanel" · "RosterPanel" 창을 열고 닫음 (true = 열기). 지금 열려 있는지 반환.</summary>
-            public Func<string, bool?, bool> Window;
             public TMP_FontAsset Font;
             public Sprite Fill;
             /// <summary>11-13 홀로그램 테마 아트 (없으면 Font · Fill만으로 단순하게).</summary>
@@ -107,7 +105,6 @@ namespace SpaceStation.Interior
         private float _zoom;     // 0 든 자세 · 1 확대
         private bool _wantRaise;
         private bool _wantZoom;
-        private string _window;  // 열어 둔 창 이름
 
         // 홀로그램 모형
         private PadHologram _holo;
@@ -133,14 +130,18 @@ namespace SpaceStation.Interior
         private TMP_Text _message;
         private TMP_Text _hint;
         private Button _repair, _maintain, _rebuild, _travel, _floorUp, _floorDown;
-        private TMP_Text _repairLabel, _maintainLabel, _rebuildLabel, _travelLabel, _researchLabel, _rosterLabel;
-        // 11-14 건설 탭
+        private TMP_Text _repairLabel, _maintainLabel, _rebuildLabel, _travelLabel;
+        // 탭: 관리 · 건설(11-14) · 연구 · 주민 (연구 · 주민은 바깥 창 대신 패드 안 화면)
+        private enum PadTab { Manage, Build, Research, Roster }
+        private PadTab _tab = PadTab.Manage;
         private HoloUi _ui;
-        private RectTransform _manageRoot, _buildRoot;
-        private Button _tabManage, _tabBuild, _demolish;
+        private RectTransform _manageRoot, _buildRoot, _researchRoot, _rosterRoot;
+        private Button _tabManage, _tabBuild, _tabResearch, _tabRoster, _demolish;
         private TMP_Text _demolishLabel;
         private PadBuild _build;
-        private bool BuildMode => _build != null && _build.Active;
+        private PadResearch _research;
+        private PadRoster _roster;
+        private bool BuildMode => _tab == PadTab.Build;
         private float _nextRefresh;
         private bool _dirty = true;
         private float _messageUntil;
@@ -202,7 +203,16 @@ namespace SpaceStation.Interior
             }
             else
                 _tabBuild.gameObject.SetActive(false); // 모형이 없으면 지을 자리를 고를 수 없음
-            SetBuildMode(false);
+            var sim = _c.Station.Simulation;
+            if (sim.Research.Categories.Count > 0)
+                _research = new PadResearch(_ui, _researchRoot, CanvasWidth, sim);
+            else
+                _tabResearch.gameObject.SetActive(false);
+            if (sim.Residents != null)
+                _roster = new PadRoster(_ui, _rosterRoot, CanvasWidth, sim.Residents);
+            else
+                _tabRoster.gameObject.SetActive(false);
+            SetTab(PadTab.Manage);
             ApplyPose();
             _pad.gameObject.SetActive(false);
             if (_c.Actions != null)
@@ -222,8 +232,6 @@ namespace SpaceStation.Interior
                 _c.Actions.ActionFailed -= ShowFailure;
             }
 
-            if (_window != null)
-                _c.Window(_window, false);
             if (_c.Player != null)
                 _c.Player.Frozen = false;
             if (_pad != null)
@@ -241,11 +249,9 @@ namespace SpaceStation.Interior
                 if (_wantZoom && keyboard.escapeKey.wasPressedThisFrame)
                 {
                     InputGate.ConsumeEscape(); // 내부 나가기보다 먼저
-                    if (_window != null)
-                        CloseWindow();
-                    else if (_build != null && _build.Cancel())
+                    if ((_build != null && _build.Cancel()) || (_roster != null && _roster.Cancel()))
                     {
-                        // 건설 탭에서 고른 모듈 먼저 취소
+                        // 건설 탭의 고른 모듈 · 주민 탭의 이사 고르기 먼저 취소
                     }
                     else if (GameSettings.PadDirectZoom)
                         Lower(); // 바로 확대 설정: 축소 단계 없이 내림
@@ -265,8 +271,6 @@ namespace SpaceStation.Interior
                 }
                 else if (_wantRaise && KeyBindings.WasPressed(GameAction.SpeedCycle))
                 {
-                    if (_wantZoom && _window != null)
-                        CloseWindow();
                     if (_wantZoom && GameSettings.PadDirectZoom)
                         Lower();
                     else
@@ -276,9 +280,9 @@ namespace SpaceStation.Interior
                     HandleShortcuts(); // 바깥과 같은 키 (확대 중만 — 들고 걸을 때 F는 해치). 내부에선 InputGate.Blocked가 늘 켜져 있어 그 조건은 보지 않음
             }
 
-            // 마우스 휠 = 층 바꾸기 (확대 중 — 모형은 그때만 보임. 연구 · 명단 창이 열려 있으면 창 스크롤에 양보)
+            // 마우스 휠 = 층 바꾸기 (확대 중 — 모형은 그때만 보임)
             var wheel = Mouse.current;
-            if (_wantZoom && _window == null && wheel != null && Time.unscaledTime >= _nextWheel)
+            if (_wantZoom && wheel != null && Time.unscaledTime >= _nextWheel)
             {
                 float scroll = wheel.scroll.ReadValue().y;
                 if (Mathf.Abs(scroll) > 0.01f)
@@ -308,9 +312,11 @@ namespace SpaceStation.Interior
                 _dirty = false;
                 RefreshFloor();
                 RefreshInfo();
+                _research?.Refresh(); // 열린 탭만 다시 그림
+                _roster?.Refresh();
             }
             UpdateHologram();
-            if (BuildMode && _wantZoom && _zoom > 0.95f && _window == null)
+            if (BuildMode && _wantZoom && _zoom > 0.95f)
                 _build.Tick(EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(), refresh);
             if (_message != null && _messageUntil > 0f && Time.unscaledTime > _messageUntil)
             {
@@ -350,8 +356,6 @@ namespace SpaceStation.Interior
             if (_wantZoom == on)
                 return;
             _wantZoom = on;
-            if (!on && _window != null)
-                CloseWindow();
             _c.Player.Frozen = on;
             Cursor.lockState = on ? CursorLockMode.None : CursorLockMode.Locked;
             Cursor.visible = on;
@@ -374,28 +378,7 @@ namespace SpaceStation.Interior
 
         private static float Smooth(float t) => t * t * (3f - 2f * t);
 
-        // ---------------- 창 · 이동 ----------------
-
-        private void OpenWindow(string name)
-        {
-            if (_window == name)
-            {
-                CloseWindow();
-                return;
-            }
-            if (_window != null)
-                CloseWindow();
-            if (_c.Window(name, true))
-                _window = name;
-        }
-
-        private void CloseWindow()
-        {
-            if (_window == null)
-                return;
-            _c.Window(_window, false);
-            _window = null;
-        }
+        // ---------------- 이동 ----------------
 
         private void TravelSelected()
         {
@@ -460,23 +443,23 @@ namespace SpaceStation.Interior
             var tag = ui.Label(rt, $"<color={HudTheme.AccentHex}><b>//</b> STATION PAD</color>  <color={HudTheme.MutedHex}>현재 위치</color>", 13f, TextAlignmentOptions.MidlineLeft);
             HoloUi.Place(tag.rectTransform, new Vector2(18f, -8f), new Vector2(420f, 20f));
             _header = ui.Label(rt, "", 26f, TextAlignmentOptions.MidlineLeft);
-            HoloUi.Place(_header.rectTransform, new Vector2(18f, -26f), new Vector2(300f, 34f));
+            HoloUi.Place(_header.rectTransform, new Vector2(18f, -26f), new Vector2(270f, 34f));
             _header.overflowMode = TextOverflowModes.Ellipsis;
             HoloUi.Glow(tag, 0.4f);
             HoloUi.Glow(_header, 0.6f);
             HoloChroma.Add(_header);
-            // 11-14 탭: 관리 · 건설
-            _tabManage = ui.TechButton(rt, "관리", 16f, () => SetBuildMode(false));
-            HoloUi.Place((RectTransform)_tabManage.transform, new Vector2(330f, -14f), new Vector2(110f, 38f));
-            _tabBuild = ui.TechButton(rt, "건설", 16f, () => SetBuildMode(true));
-            HoloUi.Place((RectTransform)_tabBuild.transform, new Vector2(446f, -14f), new Vector2(110f, 38f));
+            // 탭: 관리 · 건설(11-14) · 연구 · 주민
+            _tabManage = Tab(ui, rt, "관리", 0, PadTab.Manage);
+            _tabBuild = Tab(ui, rt, "건설", 1, PadTab.Build);
+            _tabResearch = Tab(ui, rt, "연구", 2, PadTab.Research);
+            _tabRoster = Tab(ui, rt, "주민", 3, PadTab.Roster);
             _floorDown = ui.TechButton(rt, "▼", 16f, () => ChangeFloor(-1));
-            HoloUi.Place((RectTransform)_floorDown.transform, new Vector2(CanvasWidth - 236f, -14f), new Vector2(40f, 38f));
+            HoloUi.Place((RectTransform)_floorDown.transform, new Vector2(CanvasWidth - 222f, -14f), new Vector2(36f, 38f));
             _floorLabel = ui.Label(rt, "", 19f, TextAlignmentOptions.Center);
-            HoloUi.Place(_floorLabel.rectTransform, new Vector2(CanvasWidth - 192f, -10f), new Vector2(128f, 46f));
+            HoloUi.Place(_floorLabel.rectTransform, new Vector2(CanvasWidth - 182f, -10f), new Vector2(116f, 46f));
             HoloUi.Glow(_floorLabel, 0.5f);
             _floorUp = ui.TechButton(rt, "▲", 16f, () => ChangeFloor(1));
-            HoloUi.Place((RectTransform)_floorUp.transform, new Vector2(CanvasWidth - 60f, -14f), new Vector2(40f, 38f));
+            HoloUi.Place((RectTransform)_floorUp.transform, new Vector2(CanvasWidth - 62f, -14f), new Vector2(36f, 38f));
             HoloUi.Divider(rt, new Vector2(16f, -64f), CanvasWidth - 32f, low);
 
             // 탭 내용: 관리(아래 요소들) · 건설(PadBuild가 채움)
@@ -486,6 +469,10 @@ namespace SpaceStation.Interior
             _manageRoot = m;
             _buildRoot = HoloUi.Rect("Build", rt);
             HoloUi.Stretch(_buildRoot);
+            _researchRoot = HoloUi.Rect("Research", rt);
+            HoloUi.Stretch(_researchRoot);
+            _rosterRoot = HoloUi.Rect("Roster", rt);
+            HoloUi.Stretch(_rosterRoot);
 
             // 왼쪽: 고른 모듈 카드 (썸네일 · 이름 · 분류 · 상태)
             const float cx = 16f, cw = 280f;
@@ -536,12 +523,6 @@ namespace SpaceStation.Interior
             _travel = ui.TechButton(m, "이 방으로 이동", 17f, TravelSelected);
             HoloUi.Place((RectTransform)_travel.transform, new Vector2(x, by - 62f), new Vector2(w, 44f));
             _travelLabel = _travel.GetComponentInChildren<TMP_Text>();
-            var research = ui.TechButton(m, "연구 창", 16f, () => OpenWindow("ResearchPanel"));
-            HoloUi.Place((RectTransform)research.transform, new Vector2(x, by - 112f), new Vector2((w - 6f) / 2f, 40f));
-            var roster = ui.TechButton(m, "주민 명단", 16f, () => OpenWindow("RosterPanel"));
-            HoloUi.Place((RectTransform)roster.transform, new Vector2(x + (w - 6f) / 2f + 6f, by - 112f), new Vector2((w - 6f) / 2f, 40f));
-            _researchLabel = research.GetComponentInChildren<TMP_Text>();
-            _rosterLabel = roster.GetComponentInChildren<TMP_Text>();
 
             // 아래: 알림 · 키 안내
             HoloUi.Divider(rt, new Vector2(16f, -height + 58f), CanvasWidth - 32f, low);
@@ -560,29 +541,35 @@ namespace SpaceStation.Interior
         {
             if (_hint == null)
                 return;
-            if (_researchLabel != null)
+            if (_tabResearch != null)
             {
-                _researchLabel.SetText($"연구 창 ({KeyBindings.Label(GameAction.Research)})");
-                _rosterLabel.SetText($"주민 명단 ({KeyBindings.Label(GameAction.Roster)})");
+                // 탭 키 배지 (HoloButtonFx가 " (T)"를 배지로 옮김)
+                _tabResearch.GetComponentInChildren<TMP_Text>().SetText($"연구 ({KeyBindings.Label(GameAction.Research)})");
+                _tabRoster.GetComponentInChildren<TMP_Text>().SetText($"주민 ({KeyBindings.Label(GameAction.Roster)})");
             }
             string zoomKey = KeyBindings.Label(GameAction.SpeedCycle);
+            string lead = _tab == PadTab.Build ? $"클릭 건설   {KeyBindings.Label(GameAction.Rotate)} 회전   휠 층   "
+                : _tab == PadTab.Manage ? "클릭 고르기   휠 층 이동   " : "";
             _hint.SetText(_wantZoom
-                ? (BuildMode ? $"클릭 건설   {KeyBindings.Label(GameAction.Rotate)} 회전   휠 층   " : "클릭 고르기   휠 층 이동   ") +
+                ? lead +
                   (GameSettings.PadDirectZoom
                     ? $"{zoomKey} · ESC · {KeyBindings.Label(GameAction.Pad)} 닫기"
                     : $"{zoomKey} · ESC 축소   {KeyBindings.Label(GameAction.Pad)} 내리기")
                 : $"{zoomKey} 확대 (홀로그램 지도)   {KeyBindings.Label(GameAction.Pad)} 내리기");
         }
 
-        /// <summary>확대 중 단축키: 수리 · 정비 · 재건축 · 수리 대기 취소(고른 모듈) + 연구 · 명단 창. 바깥 선택 패널 · 창과 같은 키.</summary>
+        /// <summary>
+        /// 확대 중 단축키: 연구(T) · 주민(Y) 탭 전환(다시 누르면 관리), 관리 탭에서 수리 · 정비 · 재건축 · 수리 대기 취소 · 철거(고른 모듈).
+        /// 바깥 선택 패널 · 창과 같은 키.
+        /// </summary>
         private void HandleShortcuts()
         {
-            if (KeyBindings.WasPressed(GameAction.Research))
-                OpenWindow("ResearchPanel");
-            else if (KeyBindings.WasPressed(GameAction.Roster))
-                OpenWindow("RosterPanel");
-            else if (_window != null || BuildMode)
-                return; // 창이 열려 있으면 창 조작 우선. 건설 탭에선 R = 회전 (PadBuild)
+            if (KeyBindings.WasPressed(GameAction.Research) && _research != null)
+                SetTab(_tab == PadTab.Research ? PadTab.Manage : PadTab.Research);
+            else if (KeyBindings.WasPressed(GameAction.Roster) && _roster != null)
+                SetTab(_tab == PadTab.Roster ? PadTab.Manage : PadTab.Roster);
+            else if (_tab != PadTab.Manage)
+                return; // 건설 탭에선 R = 회전 (PadBuild)
             else if (KeyBindings.WasPressed(GameAction.Demolish) || KeyBindings.WasPressed(GameAction.DemolishAlt))
                 DemolishSelected();
             else if (KeyBindings.WasPressed(GameAction.Repair))
@@ -595,19 +582,34 @@ namespace SpaceStation.Interior
                 Act(a => a.CancelRepairSelected());
         }
 
-        /// <summary>11-14 관리 · 건설 탭 전환.</summary>
-        private void SetBuildMode(bool on)
+        private Button Tab(HoloUi ui, RectTransform parent, string label, int index, PadTab tab)
         {
-            if (on && _build == null)
+            var b = ui.TechButton(parent, label, 15f, () => SetTab(tab));
+            HoloUi.Place((RectTransform)b.transform, new Vector2(296f + index * 82f, -14f), new Vector2(78f, 38f));
+            return b;
+        }
+
+        /// <summary>탭 전환: 관리 · 건설(11-14) · 연구 · 주민.</summary>
+        private void SetTab(PadTab tab)
+        {
+            if ((tab == PadTab.Build && _build == null) || (tab == PadTab.Research && _research == null) || (tab == PadTab.Roster && _roster == null))
                 return;
-            _build?.SetActive(on);
-            _manageRoot.gameObject.SetActive(!on);
-            ((Image)_tabManage.targetGraphic).color = on ? HudTheme.ButtonNormal : HudTheme.ButtonSelected;
-            ((Image)_tabBuild.targetGraphic).color = on ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
+            bool changed = tab != _tab;
+            _tab = tab;
+            _manageRoot.gameObject.SetActive(tab == PadTab.Manage);
+            _build?.SetActive(tab == PadTab.Build);
+            _research?.SetActive(tab == PadTab.Research);
+            _roster?.SetActive(tab == PadTab.Roster);
+            ((Image)_tabManage.targetGraphic).color = tab == PadTab.Manage ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
+            ((Image)_tabBuild.targetGraphic).color = tab == PadTab.Build ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
+            ((Image)_tabResearch.targetGraphic).color = tab == PadTab.Research ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
+            ((Image)_tabRoster.targetGraphic).color = tab == PadTab.Roster ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
             if (_holo != null)
                 _holo.Hover = null;
-            if (!on && !PadMap.Floors(_c.Station.Grid).Contains(_floor))
-                _followFloor = true; // 빈 층(건설용)에서 관리로 돌아오면 지금 층으로
+            if (tab != PadTab.Build && !PadMap.Floors(_c.Station.Grid).Contains(_floor))
+                _followFloor = true; // 빈 층(건설용)에서 다른 탭으로 오면 지금 층으로
+            if (changed)
+                SpaceStation.Audio.AudioService.TryPlay(l => l.UiTab);
             _dirty = true;
             RefreshHint();
             if (_fx != null)
@@ -741,7 +743,7 @@ namespace SpaceStation.Interior
             var p = PadMap.ToMap(_c.Player.transform.position, _c.Origin, InteriorGeometry.CellSize);
             _holo.SetPlayer(p, _floor == PlayerFloor());
             _holo.Selected = BuildMode ? null : _c.Selection.Selected;
-            if (!_wantZoom || _zoom < 0.95f || BuildMode) // 건설 탭: 모형 클릭 = 지을 자리 (PadBuild)
+            if (!_wantZoom || _zoom < 0.95f || _tab != PadTab.Manage) // 모형 클릭으로 고르기는 관리 탭만 (건설 탭 = 지을 자리)
             {
                 _holo.Hover = null;
                 return;
@@ -844,9 +846,9 @@ namespace SpaceStation.Interior
             _repair.interactable = view.CanRepair;
             _repairLabel.SetText(view.RepairLabel); // 키 표시 "(R)" 그대로 — 확대 중 단축키가 같음
             _maintain.interactable = view.CanMaintain;
-            _maintainLabel.SetText(view.MaintainLabel);
+            _maintainLabel.SetText(NoTarget(view.MaintainLabel));
             _rebuild.interactable = view.CanRebuild;
-            _rebuildLabel.SetText(view.RebuildLabel);
+            _rebuildLabel.SetText(NoTarget(view.RebuildLabel));
             bool canTravel = CanTravel(module);
             _travel.interactable = canTravel;
             _travelLabel.SetText(module == current ? "지금 있는 방" : canTravel ? "이 방으로 이동" : "갈 수 없음 (연결되지 않은 방)");
@@ -875,6 +877,11 @@ namespace SpaceStation.Interior
                 return ("노후", EfficiencyBands.WarningTint);
             return ("정상 가동", HudTheme.Accent);
         }
+
+        private static readonly System.Text.RegularExpressions.Regex TargetValue = new System.Text.RegularExpressions.Regex(@"\s*→\s*[\d.]+");
+
+        /// <summary>패드 버튼은 좁아서 정비 · 재건축 뒤 내구도 목표 "→85" · "→ 100"은 뺌 (키 배지와 겹침, 사용자 요청). 비용 줄은 둠.</summary>
+        private static string NoTarget(string label) => TargetValue.Replace(label, "");
 
         private static void SetChip(TMP_Text text, Image back, string label, Color color)
         {

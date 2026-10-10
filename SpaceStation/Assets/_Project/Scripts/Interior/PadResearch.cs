@@ -1,0 +1,272 @@
+using System.Collections.Generic;
+using System.Text;
+using SpaceStation.Audio;
+using SpaceStation.Data;
+using SpaceStation.Simulation;
+using SpaceStation.UI;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace SpaceStation.Interior
+{
+    /// <summary>
+    /// 11-13 휴대 패드 연구 탭 (바깥 연구 창 대신 패드 화면 안에): 왼쪽 = 분야 목록(레벨 · 진행 · 잠김), 오른쪽 = 고른 분야 상세
+    /// (현재 · 다음 효과, 시작 비용 · 전력 · 시간, 진행 막대, 시작 · 취소). 정비 자동화는 완료 후 설정(자동 정비 · 재건축, 기준 · 보호선, 일괄 정비).
+    /// 명령 · 사유 문구는 바깥 <see cref="ResearchPanel"/>과 같은 시뮬레이션 호출 · 공용 함수.
+    /// </summary>
+    public sealed class PadResearch
+    {
+        private readonly StationSimulation _sim;
+        private readonly RectTransform _root;
+        private readonly TMP_Text _labs;
+        private readonly List<(ResearchCategoryData Category, Button Button, TMP_Text Title, TMP_Text Sub)> _rows =
+            new List<(ResearchCategoryData, Button, TMP_Text, TMP_Text)>();
+        private readonly TMP_Text _title, _body, _status;
+        private readonly RectTransform _bar, _barFill;
+        private readonly Button _start, _cancel;
+        private readonly RectTransform _auto;
+        private readonly Button _autoMaintain, _autoRebuild, _batch;
+        private readonly TMP_Text _threshold, _reserve, _autoStatus;
+        private ResearchCategoryData _selected;
+
+        public PadResearch(HoloUi ui, RectTransform root, float width, StationSimulation sim)
+        {
+            _root = root;
+            _sim = sim;
+            var accent = HudTheme.Accent;
+
+            _labs = ui.Label(root, "", 14f, TextAlignmentOptions.MidlineLeft);
+            HoloUi.Place(_labs.rectTransform, new Vector2(18f, -72f), new Vector2(width - 36f, 24f));
+
+            // 왼쪽: 분야 목록
+            const float x0 = 16f, listW = 290f, rowH = 46f; // 분야 7개가 아래 알림줄 위에 들어가게
+            float y = -100f;
+            foreach (var category in sim.Research.Categories)
+            {
+                var c = category;
+                var b = ui.TechButton(root, "", 14f, () => Select(c));
+                HoloUi.Place((RectTransform)b.transform, new Vector2(x0, y), new Vector2(listW, rowH));
+                b.GetComponentInChildren<TMP_Text>().gameObject.SetActive(false); // 두 줄 글은 따로
+                var title = ui.Label(b.transform, "", 16f, TextAlignmentOptions.MidlineLeft);
+                HoloUi.Place(title.rectTransform, new Vector2(14f, -3f), new Vector2(listW - 28f, 22f));
+                HoloUi.Glow(title, 0.35f);
+                var sub = ui.Label(b.transform, "", 12f, TextAlignmentOptions.MidlineLeft);
+                HoloUi.Place(sub.rectTransform, new Vector2(14f, -23f), new Vector2(listW - 28f, 18f));
+                sub.overflowMode = TextOverflowModes.Ellipsis;
+                _rows.Add((c, b, title, sub));
+                y -= rowH + 5f;
+            }
+
+            // 오른쪽: 상세
+            float px = x0 + listW + 14f, pw = width - px - 16f;
+            var panel = HoloUi.Rect("ResearchPanel", root);
+            HoloUi.Place(panel, new Vector2(px, -100f), new Vector2(pw, 336f));
+            ui.TechPanel(panel.gameObject, new Color(0.03f, 0.1f, 0.15f, 0.88f), new Color(accent.r, accent.g, accent.b, 0.7f), "RESEARCH", 0.2f);
+            _title = ui.Label(panel, "", 21f, TextAlignmentOptions.MidlineLeft);
+            HoloUi.Place(_title.rectTransform, new Vector2(16f, -24f), new Vector2(pw - 32f, 30f));
+            HoloUi.Glow(_title, 0.55f);
+            HoloChroma.Add(_title);
+            _body = ui.Label(panel, "", 14f, TextAlignmentOptions.TopLeft, wrap: true);
+            HoloUi.Place(_body.rectTransform, new Vector2(16f, -60f), new Vector2(pw - 32f, 150f));
+            _status = ui.Label(panel, "", 14f, TextAlignmentOptions.MidlineLeft, wrap: true);
+            HoloUi.Place(_status.rectTransform, new Vector2(16f, -214f), new Vector2(pw - 32f, 40f));
+            _bar = ui.Bar(panel, new Color(0.1f, 0.2f, 0.28f, 1f), accent, out _barFill);
+            HoloUi.Place(_bar, new Vector2(16f, -258f), new Vector2(pw - 32f, 6f));
+            _start = ui.TechButton(panel, "연구 시작", 16f, StartSelected);
+            HoloUi.Place((RectTransform)_start.transform, new Vector2(pw - 176f, -276f), new Vector2(160f, 46f));
+            _cancel = ui.TechButton(panel, "취소", 16f, CancelSelected);
+            HoloUi.Place((RectTransform)_cancel.transform, new Vector2(pw - 176f, -276f), new Vector2(160f, 46f));
+
+            // 정비 자동화 설정 (연구 완료 후)
+            _auto = HoloUi.Rect("Automation", panel);
+            HoloUi.Stretch(_auto);
+            var auto = sim.Automation;
+            _autoMaintain = ui.TechButton(_auto, "", 14f, () => { auto.AutoMaintain = !auto.AutoMaintain; Refresh(); });
+            HoloUi.Place((RectTransform)_autoMaintain.transform, new Vector2(16f, -62f), new Vector2((pw - 40f) / 2f, 40f));
+            _autoRebuild = ui.TechButton(_auto, "", 14f, () => { auto.AutoRebuild = !auto.AutoRebuild; Refresh(); });
+            HoloUi.Place((RectTransform)_autoRebuild.transform, new Vector2(24f + (pw - 40f) / 2f, -62f), new Vector2((pw - 40f) / 2f, 40f));
+            _threshold = ui.Label(_auto, "", 14f, TextAlignmentOptions.MidlineLeft);
+            HoloUi.Place(_threshold.rectTransform, new Vector2(16f, -112f), new Vector2(pw - 140f, 34f));
+            Stepper(ui, _auto, new Vector2(pw - 108f, -112f), () => auto.Threshold -= 5f, () => auto.Threshold += 5f);
+            _reserve = ui.Label(_auto, "", 14f, TextAlignmentOptions.MidlineLeft);
+            HoloUi.Place(_reserve.rectTransform, new Vector2(16f, -154f), new Vector2(pw - 140f, 34f));
+            Stepper(ui, _auto, new Vector2(pw - 108f, -154f), () => auto.ReserveRatio -= 0.1f, () => auto.ReserveRatio += 0.1f);
+            _autoStatus = ui.Label(_auto, "", 13f, TextAlignmentOptions.TopLeft, wrap: true);
+            HoloUi.Place(_autoStatus.rectTransform, new Vector2(16f, -196f), new Vector2(pw - 32f, 70f));
+            _batch = ui.TechButton(_auto, "지금 일괄 정비", 15f, RunBatch, clickSound: false);
+            HoloUi.Place((RectTransform)_batch.transform, new Vector2(pw - 196f, -276f), new Vector2(180f, 46f));
+
+            if (sim.Research.Categories.Count > 0)
+                _selected = sim.Research.Categories[0];
+            root.gameObject.SetActive(false);
+        }
+
+        public bool Active => _root.gameObject.activeSelf;
+
+        public void SetActive(bool on)
+        {
+            _root.gameObject.SetActive(on);
+            if (on)
+                Refresh();
+        }
+
+        private void Stepper(HoloUi ui, RectTransform parent, Vector2 topLeft, System.Action down, System.Action up)
+        {
+            var minus = ui.TechButton(parent, "-", 18f, () => { down(); Refresh(); });
+            HoloUi.Place((RectTransform)minus.transform, topLeft, new Vector2(42f, 34f));
+            var plus = ui.TechButton(parent, "+", 18f, () => { up(); Refresh(); });
+            HoloUi.Place((RectTransform)plus.transform, topLeft + new Vector2(48f, 0f), new Vector2(42f, 34f));
+        }
+
+        private void Select(ResearchCategoryData category)
+        {
+            _selected = category;
+            Refresh();
+        }
+
+        private void StartSelected()
+        {
+            if (_selected == null)
+                return;
+            var result = _sim.TryStartResearch(_selected);
+            AudioService.TryPlay(l => result == ResearchStartResult.Ok ? l.BuildSelect : l.UiError);
+            Refresh();
+        }
+
+        private void CancelSelected()
+        {
+            if (_selected != null && _sim.CancelResearch(_selected))
+                AudioService.TryPlay(l => l.UiClose);
+            Refresh();
+        }
+
+        private void RunBatch()
+        {
+            var (maintained, rebuilt) = _sim.Automation.RunBatch();
+            AudioService.TryPlay(l => maintained + rebuilt > 0 ? l.BuildSelect : l.UiError);
+            Refresh();
+        }
+
+        // ---------------- 표시 ----------------
+
+        public void Refresh()
+        {
+            if (!Active)
+                return;
+            var research = _sim.Research;
+            int running = Mathf.Min(research.Projects.Count, research.LabSlots);
+            _labs.SetText(research.LabSlots == 0
+                ? $"<color={HudText.Orange}>연구소가 없습니다 · 건설 탭 › 산업에서 연구소를 지으세요</color>"
+                : $"연구소 {running} / {research.LabSlots} 사용 중  <color={HudText.Muted}>(연구소마다 동시에 하나씩)</color>");
+
+            foreach (var (category, button, title, sub) in _rows)
+            {
+                int level = research.GetLevel(category);
+                var project = research.GetProject(category);
+                string lv = category.MaxLevel == 1 ? (level >= 1 ? "완료" : "단일") : $"Lv.{level}/{category.MaxLevel}";
+                title.SetText($"<b>{category.DisplayName}</b>  <size=80%><color={HudText.Muted}>{lv}</color></size>");
+                string state;
+                if (project != null)
+                    state = project.Paused ? $"<color={HudText.Orange}>멈춤 {project.Progress * 100f:0}%</color>" : $"<color={HudTheme.AccentHex}>연구 중 {project.Progress * 100f:0}% · {ResearchPanel.FormatTime(project.RemainingSeconds)}</color>";
+                else if (level >= category.MaxLevel)
+                    state = $"<color={HudTheme.GreenHex}>최고 레벨</color>";
+                else
+                {
+                    var check = _sim.CanStartResearch(category);
+                    string reason = ResearchPanel.Reason(_sim, check, category, level + 1);
+                    state = reason != null ? $"<color={HudText.Muted}>{reason}</color>" : $"<color={HudTheme.GreenHex}>시작 가능</color>";
+                }
+                sub.SetText(state);
+                ((Image)button.targetGraphic).color = category == _selected ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
+            }
+            RefreshDetail();
+        }
+
+        private void RefreshDetail()
+        {
+            var category = _selected;
+            if (category == null)
+                return;
+            var research = _sim.Research;
+            int level = research.GetLevel(category);
+            int max = category.MaxLevel;
+            var project = research.GetProject(category);
+            string progress = max == 1 ? (level >= 1 ? "완료" : "단일 연구") : $"Lv.{level} / {max}";
+            _title.SetText($"<b>{category.DisplayName}</b>  <size=72%><color={HudText.Muted}>{progress}</color></size>");
+
+            bool automationReady = category.Category == ResearchCategory.Automation && level >= max;
+            _auto.gameObject.SetActive(automationReady);
+            _body.gameObject.SetActive(!automationReady);
+            _status.gameObject.SetActive(!automationReady);
+            if (automationReady)
+            {
+                _bar.gameObject.SetActive(false);
+                _start.gameObject.SetActive(false);
+                _cancel.gameObject.SetActive(false);
+                RefreshAutomation();
+                return;
+            }
+
+            var sb = new StringBuilder();
+            var current = category.GetLevel(level);
+            if (max > 1)
+                sb.Append(current != null ? $"<color={HudText.Muted}>현재</color> {current.Description}\n" : $"<color={HudText.Muted}>현재 효과 없음</color>\n");
+            var next = category.GetLevel(level + 1);
+            if (next == null)
+                sb.Append($"<color={HudTheme.GreenHex}>최고 레벨 달성</color>");
+            else
+            {
+                sb.Append(max == 1 ? next.Description : $"<color={HudTheme.AccentHex}>다음 Lv.{level + 1}</color> {next.Description}");
+                sb.Append($"\n\n비용 {HudText.Cost(next.StartCost)}  <color={HudText.Muted}>· 전력 +{next.PowerDemand:0} · {next.Duration:0}초</color>");
+            }
+            _body.SetText(sb.ToString());
+
+            bool researching = project != null;
+            _bar.gameObject.SetActive(researching);
+            _cancel.gameObject.SetActive(researching);
+            _start.gameObject.SetActive(!researching && next != null);
+            if (researching)
+            {
+                HoloUi.SetBar(_barFill, project.Progress);
+                _status.SetText(project.Paused
+                    ? $"<color={HudText.Orange}>연구 중 {project.Progress * 100f:0}% · 멈춤 (연구소 부족)</color>"
+                    : $"연구 중 {project.Progress * 100f:0}% · 남은 {ResearchPanel.FormatTime(project.RemainingSeconds)}{(project.Rate < 0.999f ? $" <color={HudText.Yellow}>(전력 {project.Rate * 100f:0}%)</color>" : "")}");
+                return;
+            }
+            if (next == null)
+            {
+                _status.SetText("");
+                return;
+            }
+            var check = _sim.CanStartResearch(category);
+            _start.interactable = check == ResearchStartResult.Ok;
+            string reason = ResearchPanel.Reason(_sim, check, category, level + 1);
+            _status.SetText(reason != null ? $"<color={HudText.Orange}>{reason}</color>" : $"<color={HudText.Muted}>시작 비용은 취소해도 돌려받지 않습니다</color>");
+        }
+
+        private void RefreshAutomation()
+        {
+            var auto = _sim.Automation;
+            _autoMaintain.GetComponentInChildren<TMP_Text>().SetText($"자동 정비  {OnOff(auto.AutoMaintain)}");
+            _autoRebuild.GetComponentInChildren<TMP_Text>().SetText($"자동 재건축  {OnOff(auto.AutoRebuild)}");
+            _threshold.SetText($"정비 기준 최대치 <b>{auto.Threshold:0}%</b>");
+            _reserve.SetText($"자원 보호선 <b>{auto.ReserveRatio * 100f:0}%</b>");
+            var jobs = auto.Plan();
+            int rebuilds = 0;
+            foreach (var job in jobs)
+                if (job.Rebuild)
+                    rebuilds++;
+            var sb = new StringBuilder();
+            sb.Append(jobs.Count == 0 ? $"<color={HudText.Muted}>기준 미만 모듈 없음</color>"
+                : $"대상 {jobs.Count}개{(rebuilds > 0 ? $" (재건축 {rebuilds})" : "")}  {HudText.Cost(auto.TotalCost(jobs))}");
+            if (auto.WaitingForReserve)
+                sb.Append($"  <color={HudText.Orange}>· 보호선 아래라 대기 중</color>");
+            sb.Append($"\n<color={HudText.Muted}>자동 처리: 정비 {auto.AutoMaintainCount}회 · 재건축 {auto.AutoRebuildCount}회</color>");
+            _autoStatus.SetText(sb.ToString());
+            _batch.interactable = jobs.Count > 0;
+        }
+
+        private static string OnOff(bool on) => on ? $"<color={HudTheme.GreenHex}>켜짐</color>" : $"<color={HudText.Muted}>꺼짐</color>";
+    }
+}

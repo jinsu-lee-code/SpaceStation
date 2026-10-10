@@ -249,7 +249,6 @@ namespace SpaceStation.Interior
                 Layout = () => _layout,
                 CurrentRoom = RoomAtPlayer,
                 Travel = TravelTo,
-                Window = Window,
                 Font = _font,
                 Fill = _fillSprite,
                 Art = _holoArt,
@@ -446,32 +445,6 @@ namespace SpaceStation.Interior
             _currentModule = null; // 제목 · 환경음 다시
             yield return Fade(1f, 0f, 0.25f);
             _busy = false;
-        }
-
-        /// <summary>패드에서 연구 · 명단 창 열고 닫기 (들어가 있는 동안 숨긴 HUD 창을 잠시 켬). 열려 있는지 반환.</summary>
-        private bool Window(string name, bool? open)
-        {
-            var t = _hud != null ? _hud.Find(name) : null;
-            if (t == null)
-                return false;
-            var research = t.GetComponent<ResearchPanel>();
-            var roster = t.GetComponent<RosterPanel>();
-            bool isOpen = research != null ? research.IsOpen : roster != null && roster.IsOpen;
-            if (open == true && !isOpen)
-            {
-                t.gameObject.SetActive(true);
-                if (research != null) research.Open();
-                else if (roster != null) roster.Open();
-                return true;
-            }
-            if (open == false)
-            {
-                if (research != null) research.Close();
-                else if (roster != null) roster.Close();
-                t.gameObject.SetActive(false); // 숨긴 목록(_hiddenNow)에 남아 있어 나갈 때 다시 켜짐
-                return false;
-            }
-            return isOpen;
         }
 
         private void Rebuild()

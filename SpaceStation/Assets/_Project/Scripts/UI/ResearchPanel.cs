@@ -419,22 +419,23 @@ namespace SpaceStation.UI
             }
             var check = _sim.CanStartResearch(category);
             card.Start.interactable = check == ResearchStartResult.Ok;
-            string reason = Reason(check, category, level + 1);
+            string reason = Reason(_sim, check, category, level + 1);
             card.Status.SetText(reason != null ? $"<color={HudText.Orange}>{reason}</color>" : "");
         }
 
-        private string Reason(ResearchStartResult result, ResearchCategoryData category, int nextLevel)
+        /// <summary>연구를 시작할 수 없는 사유 (없으면 null). 11-13 패드 연구 탭과 공용.</summary>
+        public static string Reason(StationSimulation sim, ResearchStartResult result, ResearchCategoryData category, int nextLevel)
         {
-            var research = _sim.Research;
+            var research = sim.Research;
             switch (result)
             {
                 case ResearchStartResult.GradeTooLow:
-                    int grade = Mathf.Min(research.RequiredGrade(category, nextLevel), _sim.Progression.GradeCount - 1);
-                    return $"{_sim.Progression.GetGrade(grade).DisplayName} 등급 필요";
+                    int grade = Mathf.Min(research.RequiredGrade(category, nextLevel), sim.Progression.GradeCount - 1);
+                    return $"{sim.Progression.GetGrade(grade).DisplayName} 등급 필요";
                 case ResearchStartResult.PopulationTooLow:
-                    return $"인구 {research.RequiredPopulation(nextLevel)}명 필요 (현재 {_sim.Resources.Population})";
+                    return $"인구 {research.RequiredPopulation(nextLevel)}명 필요 (현재 {sim.Resources.Population})";
                 case ResearchStartResult.NoFreeLab:
-                    return _sim.Research.LabSlots == 0 ? "연구소 필요" : "빈 연구소 없음";
+                    return sim.Research.LabSlots == 0 ? "연구소 필요" : "빈 연구소 없음";
                 case ResearchStartResult.InsufficientResources:
                     return "자원 부족";
                 default:
@@ -506,7 +507,7 @@ namespace SpaceStation.UI
             _tracker.SetText(sb.ToString());
         }
 
-        private static string FormatTime(float seconds)
+        public static string FormatTime(float seconds)
         {
             if (float.IsInfinity(seconds) || seconds > 99 * 60)
                 return "-";

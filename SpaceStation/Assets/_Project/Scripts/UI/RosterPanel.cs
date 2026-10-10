@@ -333,27 +333,27 @@ namespace SpaceStation.UI
                 int count = _roster.CountWith(def.Trait);
                 if (count == 0)
                     continue;
-                string effect = EffectText(def);
+                string effect = EffectText(_roster, def);
                 sb.Append($"{ResidentText.TraitName(config, def.Trait)} {count}명 <color={HudText.Muted}>{effect}</color>");
                 sb.Append(++column % 3 == 0 ? "\n" : "    ");
             }
             _summary.SetText(sb.Length > 0 ? sb.ToString() : $"<color={HudText.Muted}>주민 없음</color>");
         }
 
-        /// <summary>특성 합계 효과 문구 (능력: 비율, 만족도: 상한 보정, 소비·내성: 설명).</summary>
-        private string EffectText(TraitDefinition def)
+        /// <summary>특성 합계 효과 문구 (능력: 비율, 만족도: 상한 보정, 소비·내성: 설명). 11-13 패드 주민 탭과 공용.</summary>
+        public static string EffectText(ResidentRoster roster, TraitDefinition def)
         {
             switch (def.Trait)
             {
-                case ResidentTrait.Technician: return $"수리 시간 -{_roster.Ability(def.Trait) * 100f:0}%";
-                case ResidentTrait.Scientist: return $"연구 속도 +{_roster.Ability(def.Trait) * 100f:0}%";
-                case ResidentTrait.Gardener: return $"식량 생산 +{_roster.Ability(def.Trait) * 100f:0}%";
-                case ResidentTrait.Mechanic: return $"노후 속도 -{_roster.Ability(def.Trait) * 100f:0}%";
+                case ResidentTrait.Technician: return $"수리 시간 -{roster.Ability(def.Trait) * 100f:0}%";
+                case ResidentTrait.Scientist: return $"연구 속도 +{roster.Ability(def.Trait) * 100f:0}%";
+                case ResidentTrait.Gardener: return $"식량 생산 +{roster.Ability(def.Trait) * 100f:0}%";
+                case ResidentTrait.Mechanic: return $"노후 속도 -{roster.Ability(def.Trait) * 100f:0}%";
                 case ResidentTrait.BigEater:
                 case ResidentTrait.LightEater:
-                    return $"식량 소비 ×{_roster.ConsumptionMultiplier(ResourceType.Food):0.00}";
+                    return $"식량 소비 ×{roster.ConsumptionMultiplier(ResourceType.Food):0.00}";
                 case ResidentTrait.RadiationTolerant: return "방사선 집 우선";
-                default: return $"상한 {ResidentText.Signed(_roster.MoodOf(def.Trait))}";
+                default: return $"상한 {ResidentText.Signed(roster.MoodOf(def.Trait))}";
             }
         }
 
@@ -447,7 +447,7 @@ namespace SpaceStation.UI
             }
         }
 
-        private static string MoodText(float mood)
+        public static string MoodText(float mood)
         {
             string color = mood > 0.01f ? ResidentText.Good : mood < -0.01f ? ResidentText.Bad : HudText.Muted;
             return $"<color={color}>{ResidentText.Signed(mood)}</color>";
