@@ -52,12 +52,12 @@ namespace SpaceStation.Interior
         [Tooltip("발광 세기 (Bloom과 함께)")]
         public float HoloGlow = 1.4f;
 
-        [Header("모듈 색")]
-        public Color Core = new Color(0.31f, 0.85f, 1f);
-        public Color Power = new Color(0.95f, 0.8f, 0.32f);
-        public Color Life = new Color(0.42f, 0.86f, 0.52f);
-        public Color Industry = new Color(0.95f, 0.6f, 0.3f);
-        public Color Defense = new Color(0.92f, 0.42f, 0.48f);
+        [Header("모듈 색 (분류 = 차가운 색만 — 노랑 · 주황 · 빨강 · 초록은 바깥처럼 효율 · 파손 · 인접 효과 뜻으로만)")]
+        public Color Core = new Color(0.86f, 0.97f, 1f);
+        public Color Power = new Color(0.36f, 0.62f, 1f);
+        public Color Life = new Color(0.3f, 0.95f, 0.88f);
+        public Color Industry = new Color(0.74f, 0.6f, 1f);
+        public Color Defense = new Color(0.64f, 0.74f, 0.88f);
         public Color Inactive = new Color(0.38f, 0.4f, 0.44f);
         public Color Damaged = new Color(1f, 0.28f, 0.24f);
         [Tooltip("지금 내부에 없는 방 (갈 수 없음)의 밝기")]
@@ -182,6 +182,7 @@ namespace SpaceStation.Interior
                     Fill = _t.HoloFill,
                     Line = _t.HoloLine,
                     Font = _c.Art != null && _c.Art.Font != null ? _c.Art.Font : _c.Font,
+                    Art = _c.Art,
                     Footprint = _t.HoloFootprint,
                     Glow = _t.HoloGlow,
                     Tilt = _t.HoloTilt,
@@ -189,6 +190,12 @@ namespace SpaceStation.Interior
                 });
                 _holo.transform.SetParent(transform, true);
                 _holo.ColorOf = ModuleColor;
+                _holo.Describe = m =>
+                {
+                    var (status, color) = Status(m);
+                    string category = m == _c.Station.Simulation.Core ? "코어" : m.Data != null ? m.Data.Category.DisplayName() : "";
+                    return $"{category}  ·  <color=#{ColorUtility.ToHtmlStringRGB(color)}>{status}</color>";
+                };
                 _holo.gameObject.SetActive(false);
                 _build = new PadBuild(_ui, _buildRoot, CanvasWidth, _c.Station, _c.Buildable, _holo, _c.Main,
                     (text, failed) => { if (failed) ShowFailure(text); else ShowMessage(text); });
@@ -455,6 +462,9 @@ namespace SpaceStation.Interior
             _header = ui.Label(rt, "", 26f, TextAlignmentOptions.MidlineLeft);
             HoloUi.Place(_header.rectTransform, new Vector2(18f, -26f), new Vector2(300f, 34f));
             _header.overflowMode = TextOverflowModes.Ellipsis;
+            HoloUi.Glow(tag, 0.4f);
+            HoloUi.Glow(_header, 0.6f);
+            HoloChroma.Add(_header);
             // 11-14 탭: 관리 · 건설
             _tabManage = ui.TechButton(rt, "관리", 16f, () => SetBuildMode(false));
             HoloUi.Place((RectTransform)_tabManage.transform, new Vector2(330f, -14f), new Vector2(110f, 38f));
@@ -464,6 +474,7 @@ namespace SpaceStation.Interior
             HoloUi.Place((RectTransform)_floorDown.transform, new Vector2(CanvasWidth - 236f, -14f), new Vector2(40f, 38f));
             _floorLabel = ui.Label(rt, "", 19f, TextAlignmentOptions.Center);
             HoloUi.Place(_floorLabel.rectTransform, new Vector2(CanvasWidth - 192f, -10f), new Vector2(128f, 46f));
+            HoloUi.Glow(_floorLabel, 0.5f);
             _floorUp = ui.TechButton(rt, "▲", 16f, () => ChangeFloor(1));
             HoloUi.Place((RectTransform)_floorUp.transform, new Vector2(CanvasWidth - 60f, -14f), new Vector2(40f, 38f));
             HoloUi.Divider(rt, new Vector2(16f, -64f), CanvasWidth - 32f, low);
@@ -491,6 +502,8 @@ namespace SpaceStation.Interior
             _thumbEmpty.color = HoloUi.MutedColor;
             _name = ui.Label(m, "", 23f, TextAlignmentOptions.MidlineLeft);
             HoloUi.Place(_name.rectTransform, new Vector2(cx, -252f), new Vector2(cw, 34f));
+            HoloUi.Glow(_name, 0.6f);
+            HoloChroma.Add(_name);
             _category = ui.Chip(m, "", accent, 14f);
             HoloUi.Place((RectTransform)_category.transform.parent, new Vector2(cx, -292f), new Vector2(84f, 28f));
             _categoryBack = _category.transform.parent.GetComponent<Image>();
@@ -760,6 +773,12 @@ namespace SpaceStation.Interior
                 return _t.Damaged;
             if (!_c.Station.Connectivity.IsActive(m))
                 return _t.Inactive;
+            // 효율이 떨어지면 바깥 선택 테두리와 같은 색 (노랑 50~90% · 빨강 50% 미만, 25% 미만 깜빡임)
+            var band = EfficiencyBands.Classify(_c.Station.Simulation.GetModuleEfficiency(m));
+            if (band == EfficiencyBand.Critical && !EfficiencyBands.BlinkOn(Time.unscaledTime))
+                return EfficiencyBands.Tint(band) * 0.35f;
+            if (band != EfficiencyBand.Normal)
+                return EfficiencyBands.Tint(band);
             if (m == _c.Station.Simulation.Core)
                 return _t.Core;
             return CategoryColor(m.Data != null ? m.Data.Category : ModuleCategory.Life);
@@ -847,9 +866,14 @@ namespace SpaceStation.Interior
                 return dmg.IsRepairing ? ("수리 중", HudTheme.Accent) : ("파손", HudTheme.Negative);
             if (!_c.Station.Connectivity.IsActive(module))
                 return ("비활성", _t.Inactive);
+            // 바깥과 같은 효율 색 (모형 색과 같은 규칙)
+            float efficiency = _c.Station.Simulation.GetModuleEfficiency(module);
+            var band = EfficiencyBands.Classify(efficiency);
+            if (band != EfficiencyBand.Normal)
+                return ($"효율 {efficiency * 100f:0}%", EfficiencyBands.Tint(band));
             if (sim.Durability.TryGetInfo(module, out var dur) && sim.Durability.EfficiencyFor(dur.Current) < 1f)
-                return ("노후", HudTheme.Warning);
-            return ("정상 가동", HudTheme.Positive);
+                return ("노후", EfficiencyBands.WarningTint);
+            return ("정상 가동", HudTheme.Accent);
         }
 
         private static void SetChip(TMP_Text text, Image back, string label, Color color)

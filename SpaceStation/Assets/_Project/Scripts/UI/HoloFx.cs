@@ -4,7 +4,7 @@ using UnityEngine.UI;
 namespace SpaceStation.UI
 {
     /// <summary>
-    /// 11-13 홀로그램 화면 움직임: 주사선이 천천히 흐르고, 스캔 띠가 위에서 아래로 지나가고, 전체가 아주 약하게 깜박인다.
+    /// 11-13 홀로그램 화면 움직임: 주사선이 천천히 흐르고, 스캔 띠가 위에서 아래로 지나가고, 바탕 장식이 깜박인다 (글자 · 버튼은 그대로).
     /// <see cref="Strength"/> = 0(효과 없음) ~ 1(패드처럼 진하게). 바깥 HUD는 약하게(0.3 안팎). 시간은 일시정지와 무관(unscaled).
     /// </summary>
     public sealed class HoloFx : MonoBehaviour
@@ -17,7 +17,10 @@ namespace SpaceStation.UI
 
         public RawImage Scan;
         public RectTransform Sweep;
+        [Tooltip("켜짐 효과만 (화면 전체) — 글자는 깜박이지 않게 (깜박임을 전체에 걸었더니 Bloom과 함께 글자가 일렁였음)")]
         public CanvasGroup Group;
+        [Tooltip("깜박임 · 지지직은 바탕 장식(격자 · 주사선 · 스캔 띠)에만")]
+        public CanvasGroup Decor;
         [Tooltip("켜질 때 위에서 아래로 그려지는 효과 (초)")]
         public float RevealSeconds = 0.35f;
 
@@ -75,10 +78,13 @@ namespace SpaceStation.UI
             if (Group != null)
             {
                 _reveal = Mathf.MoveTowards(_reveal, 1f, Time.unscaledDeltaTime / Mathf.Max(0.01f, RevealSeconds));
-                // 깜박임: 느린 흔들림 + 가끔 짧게 떨어짐 (강도에 비례)
-                float flicker = 1f - s * (0.035f * (0.5f + 0.5f * Mathf.Sin(t * 13.7f)) + (Mathf.PerlinNoise(t * 3.1f, 0.37f) > 0.82f ? 0.12f : 0f));
-                float reveal = RevealCurve(_reveal);
-                Group.alpha = flicker * reveal;
+                Group.alpha = RevealCurve(_reveal);
+            }
+            if (Decor != null)
+            {
+                // 깜박임: 느린 흔들림 + 가끔 짧게 떨어짐 (강도에 비례, 바탕 장식만)
+                float flicker = 1f - s * (0.12f * (0.5f + 0.5f * Mathf.Sin(t * 13.7f)) + (Mathf.PerlinNoise(t * 3.1f, 0.37f) > 0.8f ? 0.35f : 0f));
+                Decor.alpha = flicker;
             }
         }
 

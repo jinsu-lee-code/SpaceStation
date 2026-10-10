@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using SpaceStation.Core;
 using SpaceStation.Data;
+using SpaceStation.UI;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace SpaceStation.Interior
 {
@@ -23,6 +25,8 @@ namespace SpaceStation.Interior
             public Material Fill;
             public Material Line;
             public TMP_FontAsset Font;
+            /// <summary>이름표 테크 패널 그림 (11-13 테마).</summary>
+            public SpaceStation.UI.HoloArt Art;
             /// <summary>모형 가로 · 세로 중 긴 쪽 최대 크기 (m, 확대 상태).</summary>
             public float Footprint = 0.15f;
             /// <summary>칸 하나의 최대 크기 (m) — 방이 몇 개 없을 때 너무 커지지 않게.</summary>
@@ -71,11 +75,13 @@ namespace SpaceStation.Interior
         private MeshRenderer _ring;
         private Transform _sweep;
         private MeshRenderer _sweepRenderer;
-        private TextMeshPro _label;
-        private MeshRenderer _plate, _stripe;
+        private RectTransform _label;
+        private Image _labelFrame, _labelGlow;
+        private TMP_Text _labelName, _labelSub;
+        private ModuleInstance _labelShown;
         private Material _labelMaterial;
-        private Mesh _quad;
         private const int LabelQueue = 3100; // 홀로그램 재질(3050) 뒤
+        private const float LabelWidth = 300f;
         private MaterialPropertyBlock _mpb;
         private float _scale = 1f;    // 지금 층의 칸 → m
         private float _present = 1f;  // 나타남 정도 (확대할 때 0 → 1로 펼쳐짐)
@@ -102,6 +108,8 @@ namespace SpaceStation.Interior
         public int Floor { get; private set; } = int.MinValue;
         /// <summary>모듈 색 (패드가 정함). 없으면 청록.</summary>
         public Func<ModuleInstance, Color> ColorOf;
+        /// <summary>이름표 둘째 줄 (분류 · 상태, 패드가 정함).</summary>
+        public Func<ModuleInstance, string> Describe;
 
         public static PadHologram Create(Transform anchor, Settings settings)
         {
@@ -136,29 +144,50 @@ namespace SpaceStation.Interior
             _markerRenderer = Primitive("Marker", _model, _octa, _s.Fill);
             _marker = _markerRenderer.transform;
 
-            var labelGo = new GameObject("Label");
-            labelGo.transform.SetParent(_root, false);
-            _label = labelGo.AddComponent<TextMeshPro>();
-            if (_s.Font != null)
-                _label.font = _s.Font;
-            _label.fontSize = 0.8f; // TextMeshPro 3D: 글자 크기 1 ≈ 0.1 단위 높이 → 크기 0.1로 줄여 약 0.8cm
-            _label.alignment = TextAlignmentOptions.Bottom;
-            _label.textWrappingMode = TextWrappingModes.NoWrap;
-            _label.rectTransform.sizeDelta = new Vector2(4f, 0.4f);
-            _label.rectTransform.pivot = new Vector2(0.5f, 0f);
-            labelGo.transform.localScale = Vector3.one * 0.1f;
-            // 이름표 = 어두운 바탕판 + 흰 굵은 글자 + 왼쪽 모듈 색 띠. 모형(가산, 큐 3050)보다 나중에 그려야 발광에 묻히지 않음
-            _label.color = new Color(0.97f, 0.97f, 0.97f, 1f); // 1 미만 — Bloom으로 번지지 않게
-            _label.fontStyle = FontStyles.Bold;
-            _label.outlineWidth = 0.2f;
-            _label.outlineColor = new Color32(0, 8, 16, 255);
-            _label.fontMaterial.renderQueue = LabelQueue + 2;
-            _label.text = "";
-            _labelMaterial = new Material(_s.Line) { renderQueue = LabelQueue };
-            _quad = Quad();
-            _plate = Primitive("Plate", labelGo.transform, _quad, _labelMaterial);
-            _stripe = Primitive("Stripe", labelGo.transform, _quad, _labelMaterial);
-            _stripe.sortingOrder = 1;
+            BuildLabel();
+        }
+
+        /// <summary>
+        /// 이름표 = 작은 월드 캔버스의 테크 패널(깎인 모서리 · 제목 탭 · 사선 줄무늬 · 지나가는 빛줄기, <see cref="HoloUi.TechPanel"/>)
+        /// + 굵은 이름(발광 · 색 번짐) + 분류 · 상태 한 줄. 테두리 색 = 모듈 색.
+        /// 모형 재질(큐 3050)보다 나중(3100)에 그려야 가산 모형에 덮여 묻히지 않음 (같은 큐였을 때 글자가 모형 색에 묻혔음).
+        /// </summary>
+        private void BuildLabel()
+        {
+            var go = new GameObject("Label", typeof(RectTransform));
+            go.transform.SetParent(_root, false);
+            var canvas = go.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            _label = (RectTransform)go.transform;
+            _label.sizeDelta = new Vector2(LabelWidth, 76f);
+            _label.pivot = new Vector2(0.5f, 0f);
+            _label.localScale = Vector3.one * 0.0002f; // 300 → 약 6cm
+            var ui = _s.Art != null ? new HoloUi(_s.Art) : new HoloUi(_s.Font, null, null, null);
+            var panel = HoloUi.Rect("Panel", _label);
+            HoloUi.Stretch(panel);
+            ui.TechPanel(panel.gameObject, new Color(0.008f, 0.035f, 0.06f, 0.94f), Color.white, "MODULE", 0.4f);
+            _labelFrame = panel.Find("Frame")?.GetComponent<Image>();
+            _labelGlow = panel.Find("Glow")?.GetComponent<Image>();
+            _labelName = ui.Label(panel, "", 27f, TextAlignmentOptions.MidlineLeft);
+            HoloUi.Place(_labelName.rectTransform, new Vector2(18f, -20f), new Vector2(LabelWidth - 30f, 32f));
+            _labelName.fontStyle = FontStyles.Bold;
+            _labelName.overflowMode = TextOverflowModes.Ellipsis;
+            HoloUi.Glow(_labelName, 0.65f);
+            HoloChroma.Add(_labelName, 1.4f);
+            _labelSub = ui.Label(panel, "", 15f, TextAlignmentOptions.MidlineLeft);
+            HoloUi.Place(_labelSub.rectTransform, new Vector2(18f, -50f), new Vector2(LabelWidth - 30f, 20f));
+            _labelSub.color = HoloUi.MutedColor;
+
+            // 렌더 순서: 모형보다 뒤
+            _labelMaterial = new Material(Canvas.GetDefaultCanvasMaterial()) { renderQueue = LabelQueue };
+            foreach (var g in go.GetComponentsInChildren<Graphic>(true))
+            {
+                if (g is TMP_Text t)
+                    t.fontMaterial.renderQueue = LabelQueue + 2; // 발광 재질을 복사한 개별 재질
+                else
+                    g.material = _labelMaterial;
+            }
+            go.SetActive(false);
         }
 
         private MeshRenderer Primitive(string name, Transform parent, Mesh mesh, Material material)
@@ -182,7 +211,6 @@ namespace SpaceStation.Interior
             Destroy(_bowlMesh);
             if (_tileMesh != null)
                 Destroy(_tileMesh);
-            Destroy(_quad);
             Destroy(_labelMaterial);
         }
 
@@ -405,27 +433,21 @@ namespace SpaceStation.Interior
             }
             if (!_label.gameObject.activeSelf)
                 _label.gameObject.SetActive(true);
-            string name = target.Data != null ? target.Data.DisplayName : "";
-            if (_label.text != name)
+            if (target != _labelShown)
             {
-                _label.text = name;
-                // 바탕판 = 실제 글자 범위 + 여백 (이름표 로컬 단위)
-                _label.ForceMeshUpdate();
-                var tb = _label.textBounds;
-                const float padX = 0.12f, padY = 0.06f, stripe = 0.05f;
-                float w = tb.size.x + padX * 2f, h = tb.size.y + padY * 2f;
-                _plate.transform.localPosition = new Vector3(tb.center.x, tb.min.y - padY, 0.02f);
-                _plate.transform.localScale = new Vector3(w, h, 1f);
-                _stripe.transform.localPosition = new Vector3(tb.center.x - w * 0.5f + stripe * 0.5f, tb.min.y - padY, 0.01f);
-                _stripe.transform.localScale = new Vector3(stripe, h, 1f);
+                _labelShown = target;
+                _labelName.SetText(target.Data != null ? target.Data.DisplayName : "");
             }
-            Tint(_plate, new Color(0.005f, 0.02f, 0.035f, 0.9f));
+            _labelSub.SetText(Describe != null ? Describe(target) : string.Empty);
             var accent = ColorOf != null ? ColorOf(target) : new Color(0.31f, 0.85f, 1f);
-            Tint(_stripe, new Color(accent.r, accent.g, accent.b, 1f));
+            if (_labelFrame != null)
+                _labelFrame.color = new Color(accent.r, accent.g, accent.b, 0.95f);
+            if (_labelGlow != null)
+                _labelGlow.color = new Color(accent.r, accent.g, accent.b, 0.4f);
             // 모듈 위쪽 가운데 위에 띄우고 카메라를 바라봄
             var b = piece.LocalBounds;
             var top = piece.Transform.TransformPoint(new Vector3(b.center.x, b.max.y, b.center.z));
-            _label.transform.position = top + _root.up * 0.012f;
+            _label.position = top + _root.up * 0.01f;
             var cam = Camera.main;
             if (cam != null)
                 _label.transform.rotation = Quaternion.LookRotation(_label.transform.position - cam.transform.position, cam.transform.up);
@@ -685,17 +707,6 @@ namespace SpaceStation.Interior
                 colors[i] = Color.white;
             m.colors = colors;
             m.SetIndices(idx, MeshTopology.Lines, 0);
-            m.RecalculateBounds();
-            return m;
-        }
-
-        /// <summary>이름표 판: xy 평면 사각형 (x −0.5~0.5 · y 0~1, 아래 가운데 기준).</summary>
-        private static Mesh Quad()
-        {
-            var m = new Mesh { name = "HoloLabelQuad" };
-            m.vertices = new[] { new Vector3(-0.5f, 0f, 0f), new Vector3(0.5f, 0f, 0f), new Vector3(0.5f, 1f, 0f), new Vector3(-0.5f, 1f, 0f) };
-            m.colors = new[] { Color.white, Color.white, Color.white, Color.white };
-            m.triangles = new[] { 0, 2, 1, 0, 3, 2 };
             m.RecalculateBounds();
             return m;
         }

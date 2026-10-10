@@ -54,9 +54,15 @@ namespace SpaceStation.UI
             bgImg.color = back;
             bgImg.raycastTarget = false;
             var size = rt.rect.size;
+            // 깜박이는 장식은 한 묶음 (글자 · 버튼은 깜박이지 않게)
+            var decor = Rect("HoloDecor", rt);
+            Stretch(decor);
+            var decorGroup = decor.gameObject.AddComponent<CanvasGroup>();
+            decorGroup.interactable = false;
+            decorGroup.blocksRaycasts = false;
             if (_art != null && _art.Grid != null)
             {
-                var grid = Rect("HoloGrid", rt);
+                var grid = Rect("HoloGrid", decor);
                 Stretch(grid);
                 var g = grid.gameObject.AddComponent<RawImage>();
                 g.texture = _art.Grid;
@@ -67,7 +73,7 @@ namespace SpaceStation.UI
             RawImage scan = null;
             if (_art != null && _art.Scan != null)
             {
-                var s = Rect("HoloScan", rt);
+                var s = Rect("HoloScan", decor);
                 Stretch(s);
                 scan = s.gameObject.AddComponent<RawImage>();
                 scan.texture = _art.Scan;
@@ -78,7 +84,7 @@ namespace SpaceStation.UI
             RectTransform sweep = null;
             if (_art != null && _art.Sweep != null)
             {
-                sweep = Rect("HoloSweep", rt);
+                sweep = Rect("HoloSweep", decor);
                 sweep.anchorMin = new Vector2(0f, 1f);
                 sweep.anchorMax = new Vector2(1f, 1f);
                 sweep.pivot = new Vector2(0.5f, 0.5f);
@@ -92,6 +98,7 @@ namespace SpaceStation.UI
             fx.Strength = strength;
             fx.Scan = scan;
             fx.Sweep = sweep;
+            fx.Decor = decorGroup;
             fx.Group = rt.GetComponent<CanvasGroup>();
             if (fx.Group == null)
                 fx.Group = rt.gameObject.AddComponent<CanvasGroup>();
@@ -151,6 +158,7 @@ namespace SpaceStation.UI
             fi.type = Image.Type.Sliced;
             fi.color = line;
             fi.raycastTarget = false;
+            RawImage hatchImage = null;
             if (_art.Hatch != null)
             {
                 var h = Rect("Hatch", go.transform);
@@ -162,7 +170,23 @@ namespace SpaceStation.UI
                 hi.uvRect = new Rect(0f, 0f, 48f / _art.Hatch.width, 7f / _art.Hatch.height);
                 hi.color = new Color(line.r, line.g, line.b, line.a * 0.7f);
                 hi.raycastTarget = false;
+                hatchImage = hi;
             }
+            // 패널 안을 가끔 지나가는 가는 빛줄기 + 사선 줄무늬 맥박 (글자보다 먼저 만들어 뒤에 그려짐)
+            var scan = Rect("PanelScan", go.transform);
+            scan.anchorMin = new Vector2(0f, 1f);
+            scan.anchorMax = new Vector2(1f, 1f);
+            scan.pivot = new Vector2(0.5f, 0.5f);
+            scan.offsetMin = new Vector2(6f, 0f);
+            scan.offsetMax = new Vector2(-6f, 0f);
+            scan.sizeDelta = new Vector2(-12f, 2f);
+            var si = scan.gameObject.AddComponent<Image>();
+            si.color = new Color(line.r, line.g, line.b, 0.55f);
+            si.raycastTarget = false;
+            var pfx = go.AddComponent<HoloPanelFx>();
+            pfx.Line = si;
+            pfx.Hatch = hatchImage;
+            pfx.Period = 4f + UnityEngine.Random.value * 3f;
             if (connector > 0f)
             {
                 var c = Rect("Connector", go.transform);
@@ -193,6 +217,7 @@ namespace SpaceStation.UI
             t.rectTransform.sizeDelta = new Vector2(220f, 18f);
             t.color = Color.Lerp(line, Color.white, 0.25f);
             t.characterSpacing = 6f;
+            Glow(t, 0.5f);
             return t;
         }
 
@@ -267,6 +292,32 @@ namespace SpaceStation.UI
             return t;
         }
 
+        private static readonly System.Collections.Generic.Dictionary<(TMP_FontAsset, int), Material> GlowMaterials =
+            new System.Collections.Generic.Dictionary<(TMP_FontAsset, int), Material>();
+
+        /// <summary>
+        /// 11-13 글자 발광: 글자 뒤에 부드러운 청록 그림자(TMP Underlay)를 깔아 빛나 보이게 (정지 — 깜박이지 않음).
+        /// 글꼴 · 세기마다 재질 하나를 나눠 씀. 제목 · 이름 · 버튼에 (작은 본문은 번져 보여서 빼는 편).
+        /// </summary>
+        public static void Glow(TMP_Text text, float strength = 0.5f)
+        {
+            if (text == null || text.font == null)
+                return;
+            var key = (text.font, Mathf.RoundToInt(strength * 100f));
+            if (!GlowMaterials.TryGetValue(key, out var m) || m == null)
+            {
+                m = new Material(text.font.material) { name = text.font.name + " Glow" };
+                m.EnableKeyword("UNDERLAY_ON");
+                m.SetColor("_UnderlayColor", new Color(HudTheme.Accent.r, HudTheme.Accent.g, HudTheme.Accent.b, strength));
+                m.SetFloat("_UnderlaySoftness", 0.65f);
+                m.SetFloat("_UnderlayDilate", 0.35f);
+                m.SetFloat("_UnderlayOffsetX", 0f);
+                m.SetFloat("_UnderlayOffsetY", 0f);
+                GlowMaterials[key] = m;
+            }
+            text.fontSharedMaterial = m;
+        }
+
         public void Panel(GameObject go, Color fill, Color frame)
         {
             var img = go.GetComponent<Image>();
@@ -322,6 +373,7 @@ namespace SpaceStation.UI
             var button = Button(parent, label, size, onClick, clickSound);
             if (_art != null && _art.TechButton != null)
                 ((Image)button.targetGraphic).sprite = _art.TechButton;
+            Glow(button.GetComponentInChildren<TMP_Text>(), 0.3f);
             return button;
         }
 
