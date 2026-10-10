@@ -17,7 +17,7 @@ namespace SpaceStation.Interior
     /// <summary>
     /// 11-14 내부 건설 (휴대 패드 건설 탭): 바깥 건설 메뉴와 같은 모듈 목록 · 분류 · 비용 · 해금을 패드 화면에 두고,
     /// 지을 자리는 홀로그램 모형 위에서 고른다 — 지금 층의 후보 칸(빈 · 닿은 칸, 고른 모듈 · 회전으로 지을 수 있으면 초록),
-    /// 마우스가 가리킨 칸에 반투명 미리보기, R 회전, 클릭 건설, 우클릭 · ESC 고르기 취소, 휠 층(맨 위 위 · 맨 아래 아래 빈 층 포함).
+    /// 마우스가 가리킨 칸에 반투명 미리보기, R 회전, 클릭 건설, 우클릭 · ESC 고르기 취소, Q/E 층(맨 위 위 · 맨 아래 아래 빈 층 포함).
     /// 판정 · 건설은 바깥과 같은 <see cref="StationController.EvaluatePlacement"/> · <see cref="StationController.TryPlace"/>,
     /// 원점은 바깥처럼 붙는 면 바깥쪽으로 민다(<see cref="PlacementRules.AnchorOnFace"/>), 도킹은 입구 방향을 자동으로 맞춘다.
     /// 인접 효과 미리보기 = 패드 글 + 효과가 생기는 이웃을 모형에서 초록(좋음) · 주황(나쁨)으로.
@@ -400,7 +400,7 @@ namespace SpaceStation.Interior
         {
             if (_selected == null)
             {
-                _detail.SetText($"<color={HudText.Muted}>왼쪽에서 지을 모듈을 고르세요.\n\n홀로그램 모형에 지을 수 있는 칸이 표시돼요.\n휠로 층을 바꾸면 위 · 아래 빈 층에도 지을 수 있어요.</color>");
+                _detail.SetText($"<color={HudText.Muted}>왼쪽에서 지을 모듈을 고르세요.\n\n홀로그램 모형에 지을 수 있는 칸이 표시돼요.\nQ · E로 층을 바꾸면 위 · 아래 빈 층에도 지을 수 있어요. 휠로 확대 · 축소.</color>");
                 return;
             }
             var sim = _station.Simulation;

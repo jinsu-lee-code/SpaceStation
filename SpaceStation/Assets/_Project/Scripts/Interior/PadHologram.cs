@@ -60,7 +60,63 @@ namespace SpaceStation.Interior
             public float Target;   // 목표 Offset
             public float TargetAlpha = 1f;
             public Vector2 Center;   // 칸 범위 가운데 (x · z)
-            public float Scale = 1f; // 칸 → m
+            public float Scale = 1f; // 칸 → m (층 전체가 판에 들어가는 크기 = 확대 1배)
+        }
+
+        // 11-16 피드백: 한 층에 모듈이 많으면 모형이 작아져 구분이 어려움 → 휠로 확대 · 축소 (사용자 결정: 휠 = 확대/축소, 층 = Q/E)
+        private float _zoomTarget = 1f;
+        private float _zoomNow = 1f;
+        /// <summary>확대할 때 가운데로 올 칸 (x · z, 고른 모듈 또는 내 위치). null = 층 가운데.</summary>
+        public Vector2? Focus { get; set; }
+        private Vector2 _focusNow;
+        private bool _focusInit;
+        /// <summary>최대 확대 = 칸 하나가 MaxCell의 이 배수가 될 때까지.</summary>
+        private const float ZoomCellLimit = 1.5f; // 2.2배는 가운데 큰 모듈(코어 등)이 받침 밖으로 크게 넘쳤음
+        /// <summary>둥근 판 안에서 보이는 반지름 (m, 이 밖의 모듈은 흐려지며 사라지고 고를 수 없음).</summary>
+        private float ViewRadius => _s.Footprint * 0.6f;
+
+        /// <summary>확대 배율을 곱함 (휠 위 = 확대 · 아래 = 축소). 1배 = 층 전체가 판에 들어감.</summary>
+        public void ZoomBy(float factor)
+        {
+            _zoomTarget = Mathf.Clamp(_zoomTarget * factor, 1f, MaxZoom());
+        }
+
+        public float ZoomLevel => _zoomNow;
+
+        /// <summary>지금 층 모형에 이 모듈이 있는지 (확대 가운데로 쓸 수 있는지).</summary>
+        public bool Shows(ModuleInstance module)
+        {
+            if (_layer == null || module == null)
+                return false;
+            foreach (var p in _layer.Pieces)
+            {
+                if (p.Module == module)
+                    return true;
+            }
+            return false;
+        }
+
+        private float MaxZoom()
+        {
+            float baseScale = _layer != null ? _layer.Scale : _s.MaxCell;
+            return Mathf.Max(1f, _s.MaxCell * ZoomCellLimit / Mathf.Max(1e-5f, baseScale));
+        }
+
+        private float EffScale(Layer layer) => layer.Scale * _zoomNow;
+
+        /// <summary>확대할수록 Focus 쪽으로 (1배 = 층 가운데, 2배 이상 = Focus가 가운데).</summary>
+        private Vector2 EffCenter(Layer layer)
+        {
+            float k = Mathf.Clamp01(_zoomNow - 1f);
+            return Vector2.Lerp(layer.Center, _focusNow, k);
+        }
+
+        /// <summary>칸이 둥근 판 안에 보이는 정도 (1 = 안, 0 = 밖).</summary>
+        private float InView(Layer layer, Vector2 cell)
+        {
+            float d = ((cell - EffCenter(layer)) * EffScale(layer)).magnitude;
+            float r = ViewRadius;
+            return 1f - Mathf.SmoothStep(0f, 1f, (d - r * 0.8f) / (r * 0.2f));
         }
 
         private Settings _s;
@@ -265,15 +321,17 @@ namespace SpaceStation.Interior
                 _layer.Center = (min + max) * 0.5f;
                 _layer.Scale = Mathf.Min(_s.Footprint / span, _s.MaxCell);
             }
-            _scale = _layer.Scale;
-            _layer.Root.localScale = Vector3.one * _layer.Scale;
+            _zoomTarget = Mathf.Min(_zoomTarget, MaxZoom()); // 층마다 최대 배율이 다름
             Place(_layer);
         }
 
-        private static void Place(Layer layer)
+        /// <summary>층 Root 위치 · 크기 = 확대 배율 · 가운데(Focus 쪽) 반영.</summary>
+        private void Place(Layer layer)
         {
-            float s = layer.Scale;
-            layer.Root.localPosition = new Vector3(-layer.Center.x * s, layer.Offset * s, -layer.Center.y * s);
+            float s = EffScale(layer);
+            var c = EffCenter(layer);
+            layer.Root.localScale = Vector3.one * s;
+            layer.Root.localPosition = new Vector3(-c.x * s, layer.Offset * s, -c.y * s);
         }
 
         private void AddPiece(ModuleInstance module, int floor)
@@ -328,10 +386,19 @@ namespace SpaceStation.Interior
             if (flat.sqrMagnitude < 1e-4f)
                 flat = Vector3.forward;
             var right = Vector3.Cross(Vector3.up, flat.normalized);
-            _root.rotation = Quaternion.AngleAxis(-_s.Tilt, right);
+            // 시선의 위아래 각도도 따라감 — 패드는 시선을 따라오는데 모형 기울기가 세상 기준이면, 아래를 보며 패드를 들 때
+            // 모형 바닥 고리 · 받침이 패드 화면 위로 내려와 탭을 가렸음 (11-16 피드백, 30° 아래를 보면 고리가 화면 위끝보다 13% 아래)
+            float pitch = cam != null ? -Mathf.Asin(Mathf.Clamp(cam.transform.forward.y, -1f, 1f)) * Mathf.Rad2Deg : 0f;
+            _root.rotation = Quaternion.AngleAxis(pitch, right) * Quaternion.AngleAxis(-_s.Tilt, right);
             float lift = _s.Lift * _present;
             _model.localPosition = new Vector3(0f, lift, 0f);
             _model.localScale = Vector3.one * _present; // m 단위 (층마다 칸 크기는 층 Root에)
+            // 확대 · 가운데 이동은 부드럽게
+            _zoomNow = Mathf.Lerp(_zoomNow, _zoomTarget, 1f - Mathf.Exp(-dt * 10f));
+            var focus = Focus ?? (_layer != null ? _layer.Center : Vector2.zero);
+            _focusNow = _focusInit ? Vector2.Lerp(_focusNow, focus, 1f - Mathf.Exp(-dt * 8f)) : focus;
+            _focusInit = true;
+            _scale = _layer != null ? EffScale(_layer) : _s.MaxCell;
 
             // 깜박임 · 지지직
             float flicker = 0.93f + 0.07f * Mathf.Sin(t * 11.3f) * Mathf.Sin(t * 3.7f);
@@ -374,6 +441,8 @@ namespace SpaceStation.Interior
             {
                 _marker.localRotation = Quaternion.Euler(0f, t * 90f, 0f);
                 _marker.localScale = Vector3.one * 0.32f;
+                var mp = _marker.localPosition;
+                _markerRenderer.enabled = _layer == null || InView(_layer, new Vector2(mp.x, mp.z)) > 0.5f; // 확대해서 판 밖이면 숨김
                 Tint(_markerRenderer, new Color(1.5f, 1.5f, 1.5f, 0.95f));
             }
 
@@ -381,7 +450,8 @@ namespace SpaceStation.Interior
             float bowlRadius = _s.Footprint * 0.62f;
             _bowl.transform.localPosition = new Vector3(0f, -0.002f, 0f);
             _bowl.transform.localScale = new Vector3(bowlRadius, bowlRadius * 0.45f, bowlRadius);
-            Tint(_bowl, new Color(0.004f, 0.012f, 0.022f, 0.92f));
+            // 11-16 피드백: 모형 구분이 잘 되게 더 진하게 (밝은 방 벽이 비치지 않게)
+            Tint(_bowl, new Color(0.002f, 0.006f, 0.012f, 0.985f));
             UpdateLabel();
         }
 
@@ -395,6 +465,19 @@ namespace SpaceStation.Interior
             float a = layer.Alpha * flicker;
             foreach (var piece in layer.Pieces)
             {
+                // 확대해서 둥근 판 밖으로 나간 모듈은 흐려지며 사라짐 (패드 화면 · 방 벽 위로 삐져나오지 않게)
+                var lp = piece.Transform.localPosition;
+                float view = InView(layer, new Vector2(lp.x, lp.z));
+                bool visible = view > 0.01f;
+                if (piece.Fill.enabled != visible)
+                {
+                    piece.Fill.enabled = visible;
+                    if (piece.Lines != null)
+                        piece.Lines.enabled = visible;
+                }
+                if (!visible)
+                    continue;
+                float pa = a * view;
                 var c = ColorOf != null ? ColorOf(piece.Module) : new Color(0.31f, 0.85f, 1f);
                 bool sel = piece.Module == Selected, hov = piece.Module == Hover;
                 float boost = sel ? 1.9f : hov ? 1.5f : 1f;
@@ -404,9 +487,9 @@ namespace SpaceStation.Interior
                     lineColor = effect;
                     boost = 1.8f;
                 }
-                Tint(piece.Fill, Hdr(c, _s.Glow * 0.6f * boost, _s.FillAlpha * a * (sel ? 1.8f : hov ? 1.5f : 1f)));
+                Tint(piece.Fill, Hdr(c, _s.Glow * 0.6f * boost, _s.FillAlpha * pa * (sel ? 1.8f : hov ? 1.5f : 1f)));
                 if (piece.Lines != null)
-                    Tint(piece.Lines, Hdr(lineColor, _s.Glow * boost, _s.LineAlpha * a));
+                    Tint(piece.Lines, Hdr(lineColor, _s.Glow * boost, _s.LineAlpha * pa));
             }
         }
 
@@ -535,7 +618,7 @@ namespace SpaceStation.Interior
             var root = _layer.Root;
             var local = new Ray(root.InverseTransformPoint(ray.origin), root.InverseTransformDirection(ray.direction));
             // 후보 칸 판이 그려진 바닥 높이(0.02)로 — 칸 가운데 높이(0.5)로 하면 비스듬히 내려다볼 때 한 칸 앞이 골라졌음
-            if (!PadMap.RayToCell(local, TileY, out var c))
+            if (!PadMap.RayToCell(local, TileY, out var c) || InView(_layer, c) < 0.5f)
                 return false;
             cell = new Vector3Int(c.x, Floor, c.y);
             return true;
@@ -561,7 +644,9 @@ namespace SpaceStation.Interior
             for (int i = 0; i < _tileCount; i++)
             {
                 bool ok = _tileValid[i];
-                Tint(_tiles[i], ok ? new Color(0.35f, 1f, 0.55f, 0.28f * a) : new Color(0.5f, 0.62f, 0.72f, 0.1f * a));
+                var tp = _tiles[i].transform.localPosition;
+                float ta = a * InView(_layer, new Vector2(tp.x, tp.z)); // 확대해서 판 밖으로 나간 칸은 흐리게
+                Tint(_tiles[i], ok ? new Color(0.35f, 1f, 0.55f, 0.28f * ta) : new Color(0.5f, 0.62f, 0.72f, 0.1f * ta));
             }
             if (_ghost != null && _ghost.gameObject.activeSelf)
             {
@@ -597,11 +682,13 @@ namespace SpaceStation.Interior
             var root = _layer.Root;
             var local = new Ray(root.InverseTransformPoint(ray.origin), root.InverseTransformDirection(ray.direction));
             if (PadMap.RayToCell(local, 0.5f, out var cell) && _layer.Cells.TryGetValue(cell, out var onFloor))
-                return onFloor;
+                return InView(_layer, cell) > 0.5f ? onFloor : null; // 둥근 판 밖(확대해서 사라진 곳)은 고르지 않음
             ModuleInstance best = null;
             float bestDist = float.MaxValue;
             foreach (var p in _layer.Pieces)
             {
+                if (!p.Fill.enabled)
+                    continue;
                 var t = p.Fill.transform;
                 var localRay = new Ray(t.InverseTransformPoint(ray.origin), t.InverseTransformDirection(ray.direction));
                 var b = p.LocalBounds;

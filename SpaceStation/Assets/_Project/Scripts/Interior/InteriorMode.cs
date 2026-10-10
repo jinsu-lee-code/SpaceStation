@@ -69,7 +69,8 @@ namespace SpaceStation.Interior
         [SerializeField] private HoloArt _holoArt;
         [Tooltip("들어가 있는 동안 항상 숨김 (조작·세계 좌표 표시)")]
         [SerializeField] private string[] _hiddenPanels =
-            { "BuildMenu", "BuildTabs", "SelectionActions", "Tooltip", "Tutorial", "ResearchPanel", "RosterPanel", "DamageMarkers", "AdjacencyMarkers", "EarlyWarning" };
+            { "BuildMenu", "BuildTabs", "SelectionActions", "Tooltip", "Tutorial", "ResearchPanel", "RosterPanel", "DamageMarkers", "AdjacencyMarkers", "EarlyWarning",
+              "StatusBar" }; // 11-16 피드백: 바깥 건설 · 선택 안내(상태 표시줄)는 내부에서 숨김 (패드를 들면 패드 안 안내만)
         [Tooltip("일시정지로 들어갔을 때만 숨김 (시간이 흐르면 보임)")]
         [SerializeField] private string[] _pausedHiddenPanels = { "TimeControls", "ResourcePanel" };
 
@@ -334,6 +335,10 @@ namespace SpaceStation.Interior
         {
             if (!_inside || _busy)
                 return;
+            // 11-16 피드백: 가이드는 필요한 곳에만 — 패드를 들면 화면 아래 내부 이동 안내 대신 패드 안 안내만
+            bool showWalkHint = _pad == null || !_pad.IsRaised;
+            if (_hint != null && _hint.gameObject.activeSelf != showWalkHint)
+                _hint.gameObject.SetActive(showWalkHint);
             var keyboard = Keyboard.current;
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame && !InputGate.EscapeConsumedThisFrame) // 패드 확대 중 ESC = 축소 (패드가 먼저)
             {

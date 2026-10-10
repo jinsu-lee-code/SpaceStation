@@ -46,7 +46,7 @@ namespace SpaceStation.Interior
         [Tooltip("모형 가로 · 세로 최대 크기 (m, 확대 상태)")]
         public float HoloFootprint = 0.12f;
         [Tooltip("투사기에서 모형 바닥까지 높이 (m, 확대 상태) — 패드 화면을 가리지 않게")]
-        public float HoloLift = 0.07f;
+        public float HoloLift = 0.08f;
         [Tooltip("모형을 보는 사람 쪽으로 기울이는 각 (도)")]
         public float HoloTilt = 55f;
         [Tooltip("발광 세기 (Bloom과 함께)")]
@@ -145,7 +145,6 @@ namespace SpaceStation.Interior
         private float _nextRefresh;
         private bool _dirty = true;
         private float _messageUntil;
-        private float _nextWheel;
         private ModuleInstance _shown;
 
         public bool IsRaised => _wantRaise;
@@ -280,16 +279,20 @@ namespace SpaceStation.Interior
                     HandleShortcuts(); // 바깥과 같은 키 (확대 중만 — 들고 걸을 때 F는 해치). 내부에선 InputGate.Blocked가 늘 켜져 있어 그 조건은 보지 않음
             }
 
-            // 마우스 휠 = 층 바꾸기 (확대 중 — 모형은 그때만 보임)
+            // 11-16 피드백 (사용자 결정): 마우스 휠 = 홀로그램 확대(위) · 축소(아래), 층 바꾸기 = E(위층) · Q(아래층). 확대 중에만 (모형은 그때만 보임)
             var wheel = Mouse.current;
-            if (_wantZoom && wheel != null && Time.unscaledTime >= _nextWheel)
+            if (_wantZoom && wheel != null && _holo != null)
             {
                 float scroll = wheel.scroll.ReadValue().y;
                 if (Mathf.Abs(scroll) > 0.01f)
-                {
-                    _nextWheel = Time.unscaledTime + 0.18f; // 부드러운 스크롤(여러 프레임 값)로 여러 층을 한꺼번에 넘지 않게
-                    ChangeFloor(scroll > 0f ? 1 : -1);
-                }
+                    _holo.ZoomBy(scroll > 0f ? 1.15f : 1f / 1.15f);
+            }
+            if (_wantZoom && keyboard != null)
+            {
+                if (keyboard.eKey.wasPressedThisFrame)
+                    ChangeFloor(1);
+                else if (keyboard.qKey.wasPressedThisFrame)
+                    ChangeFloor(-1);
             }
 
             float dt = Time.unscaledDeltaTime;
@@ -458,12 +461,12 @@ namespace SpaceStation.Interior
             _tabBuild = Tab(ui, rt, "건설", 1, PadTab.Build);
             _tabResearch = Tab(ui, rt, "연구", 2, PadTab.Research);
             _tabRoster = Tab(ui, rt, "주민", 3, PadTab.Roster);
-            _floorDown = ui.TechButton(rt, "▼", 16f, () => ChangeFloor(-1));
+            _floorDown = ui.TechButton(rt, "▼ (Q)", 16f, () => ChangeFloor(-1)); // 키는 배지로
             HoloUi.Place((RectTransform)_floorDown.transform, new Vector2(CanvasWidth - 222f, -14f), new Vector2(36f, 38f));
             _floorLabel = ui.Label(rt, "", 19f, TextAlignmentOptions.Center);
             HoloUi.Place(_floorLabel.rectTransform, new Vector2(CanvasWidth - 182f, -10f), new Vector2(116f, 46f));
             HoloUi.Glow(_floorLabel, 0.5f);
-            _floorUp = ui.TechButton(rt, "▲", 16f, () => ChangeFloor(1));
+            _floorUp = ui.TechButton(rt, "▲ (E)", 16f, () => ChangeFloor(1));
             HoloUi.Place((RectTransform)_floorUp.transform, new Vector2(CanvasWidth - 62f, -14f), new Vector2(36f, 38f));
             HoloUi.Divider(rt, new Vector2(16f, -64f), CanvasWidth - 32f, low);
 
@@ -553,8 +556,8 @@ namespace SpaceStation.Interior
                 _tabRoster.GetComponentInChildren<TMP_Text>().SetText($"주민 ({KeyBindings.Label(GameAction.Roster)})");
             }
             string zoomKey = KeyBindings.Label(GameAction.SpeedCycle);
-            string lead = _tab == PadTab.Build ? $"클릭 건설   {KeyBindings.Label(GameAction.Rotate)} 회전   휠 층   "
-                : _tab == PadTab.Manage ? "클릭 고르기   휠 층 이동   " : "";
+            string lead = _tab == PadTab.Build ? $"클릭 건설   {KeyBindings.Label(GameAction.Rotate)} 회전   Q/E 층   휠 확대   "
+                : _tab == PadTab.Manage ? "클릭 고르기   Q/E 층   휠 확대   " : "";
             _hint.SetText(_wantZoom
                 ? lead +
                   (GameSettings.PadDirectZoom
@@ -748,6 +751,14 @@ namespace SpaceStation.Interior
             var p = PadMap.ToMap(_c.Player.transform.position, _c.Origin, InteriorGeometry.CellSize);
             _holo.SetPlayer(p, _floor == PlayerFloor());
             _holo.Selected = BuildMode ? null : _c.Selection.Selected;
+            // 확대할 때 가운데: 이 층의 고른 모듈 → 이 층에 내가 있으면 내 위치 → 층 가운데
+            var focusModule = _holo.Selected;
+            if (focusModule != null && _holo.Shows(focusModule))
+                _holo.Focus = new Vector2(focusModule.Origin.x, focusModule.Origin.z);
+            else if (_floor == PlayerFloor())
+                _holo.Focus = p;
+            else
+                _holo.Focus = null;
             if (!_wantZoom || _zoom < 0.95f || _tab != PadTab.Manage) // 모형 클릭으로 고르기는 관리 탭만 (건설 탭 = 지을 자리)
             {
                 _holo.Hover = null;
