@@ -89,7 +89,7 @@ namespace SpaceStation.Core
             new Info { Action = GameAction.DemolishAlt, Group = "선택한 모듈", Label = "철거 (보조 키)", Default = Key.Delete, Context = ActionContext.Selection },
             new Info { Action = GameAction.EnterInterior, Group = "선택한 모듈", Label = "내부 들어가기", Default = Key.V, Context = ActionContext.Selection },
             new Info { Action = GameAction.Interact, Group = "내부 방문", Label = "해치 이용", Default = Key.F, Context = ActionContext.Interior },
-            new Info { Action = GameAction.Pad, Group = "내부 방문", Label = "휴대 패드 들기 / 내리기 (든 채 배속 순환 키 = 화면 확대)", Default = Key.M, Context = ActionContext.Interior },
+            new Info { Action = GameAction.Pad, Group = "내부 방문", Label = "휴대 패드 들기 / 내리기 (든 채 배속 순환 키 = 화면 확대)", Default = Key.G, Context = ActionContext.Interior },
             new Info { Action = GameAction.Pause, Group = "시간", Label = "일시정지 / 재개", Default = Key.Space, Context = ActionContext.Always },
             new Info { Action = GameAction.SpeedCycle, Group = "시간", Label = "배속 순환 (1x → 2x → 4x)", Default = Key.Tab, Context = ActionContext.Always },
             new Info { Action = GameAction.Speed1, Group = "시간", Label = "배속 1x", Default = Key.F1, Context = ActionContext.Always },
@@ -324,13 +324,14 @@ namespace SpaceStation.Core
             if (_keys != null)
                 return;
             _keys = new Key[Enum.GetValues(typeof(GameAction)).Length];
-            bool migrate = PlayerPrefs.GetInt(VersionKey, 1) < LayoutVersion;
+            int version = PlayerPrefs.GetInt(VersionKey, 1);
+            bool migrate = version < LayoutVersion;
             foreach (var info in All)
             {
                 int stored = PlayerPrefs.GetInt(Prefix + info.Action, (int)info.Default);
                 var key = Enum.IsDefined(typeof(Key), stored) ? (Key)stored : info.Default;
                 if (migrate)
-                    key = Migrate(info, key);
+                    key = Migrate(info, key, version);
                 _keys[(int)info.Action] = IsReserved(key) ? info.Default : key;
             }
             if (migrate)
@@ -344,24 +345,25 @@ namespace SpaceStation.Core
         // ---------------- 12-0 (U-6) 기본 키 재배치 이전 저장값 옮기기 ----------------
 
         private const string VersionKey = Prefix + "version";
-        /// <summary>기본 배치 버전. 1 = 7-5, 2 = 12-0 왼손 재배치.</summary>
-        private const int LayoutVersion = 2;
+        /// <summary>기본 배치 버전. 1 = 7-5, 2 = 12-0 왼손 재배치, 3 = 11-16 패드 M → G (WASD에서 가깝게).</summary>
+        private const int LayoutVersion = 3;
 
-        /// <summary>버전 1의 기본 키 (바뀐 동작만). 저장값이 이 키 그대로면 새 기본 키로 옮긴다.</summary>
-        private static readonly (GameAction Action, Key Key)[] V1Defaults =
+        /// <summary>기본 키가 바뀐 동작의 옛 기본 키 (Version = 바뀐 배치 버전). 저장값이 옛 키 그대로면 새 기본 키로 옮긴다.</summary>
+        private static readonly (int Version, GameAction Action, Key Key)[] OldDefaults =
         {
-            (GameAction.CameraUp, Key.Space), (GameAction.NextCategory, Key.Tab), (GameAction.Maintain, Key.M),
-            (GameAction.Demolish, Key.Delete), (GameAction.DemolishAlt, Key.X), (GameAction.EnterInterior, Key.I),
-            (GameAction.Pause, Key.P), (GameAction.Roster, Key.U),
+            (2, GameAction.CameraUp, Key.Space), (2, GameAction.NextCategory, Key.Tab), (2, GameAction.Maintain, Key.M),
+            (2, GameAction.Demolish, Key.Delete), (2, GameAction.DemolishAlt, Key.X), (2, GameAction.EnterInterior, Key.I),
+            (2, GameAction.Pause, Key.P), (2, GameAction.Roster, Key.U),
+            (3, GameAction.Pad, Key.M),
         };
 
-        /// <summary>버전 1 저장값 → 새 배치. 옛 기본 키 그대로였던 동작만 새 기본 키로 (사용자가 바꾼 키는 유지).</summary>
-        public static Key Migrate(Info info, Key stored)
+        /// <summary>저장된 배치 버전(fromVersion) 이후에 기본 키가 바뀐 동작만, 옛 기본 키 그대로였으면 새 기본 키로 (사용자가 바꾼 키는 유지).</summary>
+        public static Key Migrate(Info info, Key stored, int fromVersion = 1)
         {
-            foreach (var (action, key) in V1Defaults)
+            foreach (var (version, action, key) in OldDefaults)
             {
-                if (action == info.Action)
-                    return stored == key ? info.Default : stored;
+                if (version > fromVersion && action == info.Action && stored == key)
+                    return info.Default;
             }
             return stored;
         }

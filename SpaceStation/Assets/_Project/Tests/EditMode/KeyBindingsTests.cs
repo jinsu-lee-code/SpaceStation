@@ -42,6 +42,16 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Migrate_FromVersion2_OnlyLaterChanges()
+        {
+            var pad = KeyBindings.InfoOf(GameAction.Pad);
+            Assert.AreEqual(Key.G, KeyBindings.Migrate(pad, Key.M, 2), "버전 2의 패드 기본 M → G");
+            Assert.AreEqual(Key.J, KeyBindings.Migrate(pad, Key.J, 2), "사용자가 바꾼 패드 키는 유지");
+            var pause = KeyBindings.InfoOf(GameAction.Pause);
+            Assert.AreEqual(Key.P, KeyBindings.Migrate(pause, Key.P, 2), "버전 2에서 이미 옮긴 동작은 다시 옮기지 않음 (사용자가 P로 바꾼 것)");
+        }
+
+        [Test]
         public void HasConflict_DetectsSameContextOnly()
         {
             var keys = KeyBindings.DefaultKeys();
