@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text;
 using SpaceStation.Audio;
 using SpaceStation.Data;
