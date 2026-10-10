@@ -80,6 +80,17 @@ namespace SpaceStation.UI
             Stretch(decor, new Vector2(inset, inset), new Vector2(-inset, -inset));
             var glow = rt.Find("Glow");
             decor.SetSiblingIndex(glow != null ? glow.GetSiblingIndex() + 1 : 0);
+            // 패널 모양(깎인 모서리) 안에서만 보이게 잘라 그림 — 스캔 띠가 창 위 · 아래 밖에서 시작하고 끝나 보였음 (11-15)
+            if (_art.TechFill != null)
+            {
+                var shape = decor.gameObject.AddComponent<Image>();
+                shape.sprite = _art.TechFill;
+                shape.type = Image.Type.Sliced;
+                shape.raycastTarget = false;
+                decor.gameObject.AddComponent<Mask>().showMaskGraphic = false;
+            }
+            else
+                decor.gameObject.AddComponent<RectMask2D>();
             var group = decor.gameObject.AddComponent<CanvasGroup>();
             group.interactable = false;
             group.blocksRaycasts = false;

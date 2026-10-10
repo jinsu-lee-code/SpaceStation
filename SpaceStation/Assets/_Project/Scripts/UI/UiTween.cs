@@ -5,7 +5,7 @@ namespace SpaceStation.UI
     /// <summary>
     /// 5-8 HUD 등장·퇴장 애니메이션 (게임 시간과 무관하게 unscaled). 알파 + 짧게 미끄러짐.
     /// Play()로 나타나고 Hide()로 사라진다. 대상 RectTransform의 원래 위치를 기억한다.
-    /// 11-15 <see cref="Glitch"/>: 나타날 때 · 사라질 때 잠깐 홀로그램 지지직 (깜박임 + 옆으로 튐 + 가로 늘어남).
+    /// 11-15 <see cref="Glitch"/>: 미끄러짐 없이 페이드 인 · 아웃 + 나타날 때 · 사라질 때 잠깐 홀로그램 지지직 (깜박임 + 옆으로 튐 + 가로 늘어남).
     /// </summary>
     public sealed class UiTween
     {
@@ -115,7 +115,9 @@ namespace SpaceStation.UI
                 _group.alpha = e * _glitchAlpha;
             if (_rect != null)
             {
-                _rect.anchoredPosition = _home + _offset * (1f - e) + new Vector2(_glitchX, 0f);
+                // 지지직 창은 미끄러지지 않고 제자리에서 페이드 (11-15 사용자 피드백)
+                var slide = Glitch ? Vector2.zero : _offset * (1f - e);
+                _rect.anchoredPosition = _home + slide + new Vector2(_glitchX, 0f);
                 if (Glitch)
                     _rect.localScale = new Vector3(1f + _glitchStretch, 1f - _glitchStretch * 0.5f, 1f);
             }
