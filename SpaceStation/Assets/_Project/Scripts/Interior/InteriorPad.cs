@@ -439,6 +439,7 @@ namespace SpaceStation.Interior
 
             var ui = _c.Art != null ? new HoloUi(_c.Art) : new HoloUi(_c.Font, _c.Fill, _c.Fill, _c.Fill);
             ui.PanelLine = false; // 패널 안을 지나가는 빛줄기도 글자 뒤를 지나며 일렁여 보여서 뺌 (11-16 피드백)
+            ui.InlineKeys = true; // 키 표시 = 글 끝 작은 글자 (오른쪽 위 배지 상자는 작은 버튼에서 지저분했음, 11-16 피드백)
             _fx = ui.Screen(rt, 1f, HudTheme.HoloDeep); // 패드 = 진하게
             // 11-16 피드백: 작은 글자 뒤로 주사선이 흐르면 가로줄이 글자를 지나가며 일렁여 보였음 → 주사선은 멈추고 깜박임은 약하게
             // (스캔 띠는 부드러운 그러데이션이라 그대로)
@@ -461,13 +462,13 @@ namespace SpaceStation.Interior
             _tabBuild = Tab(ui, rt, "건설", 1, PadTab.Build);
             _tabResearch = Tab(ui, rt, "연구", 2, PadTab.Research);
             _tabRoster = Tab(ui, rt, "주민", 3, PadTab.Roster);
-            _floorDown = ui.TechButton(rt, "▼ (Q)", 16f, () => ChangeFloor(-1)); // 키는 배지로
-            HoloUi.Place((RectTransform)_floorDown.transform, new Vector2(CanvasWidth - 222f, -14f), new Vector2(36f, 38f));
+            _floorDown = ui.TechButton(rt, "▼ (Q)", 16f, () => ChangeFloor(-1)); // 키는 화살표 옆 작은 글자로
+            HoloUi.Place((RectTransform)_floorDown.transform, new Vector2(CanvasWidth - 228f, -14f), new Vector2(42f, 38f));
             _floorLabel = ui.Label(rt, "", 19f, TextAlignmentOptions.Center);
             HoloUi.Place(_floorLabel.rectTransform, new Vector2(CanvasWidth - 182f, -10f), new Vector2(116f, 46f));
             HoloUi.Glow(_floorLabel, 0.5f);
             _floorUp = ui.TechButton(rt, "▲ (E)", 16f, () => ChangeFloor(1));
-            HoloUi.Place((RectTransform)_floorUp.transform, new Vector2(CanvasWidth - 62f, -14f), new Vector2(36f, 38f));
+            HoloUi.Place((RectTransform)_floorUp.transform, new Vector2(CanvasWidth - 62f, -14f), new Vector2(42f, 38f));
             HoloUi.Divider(rt, new Vector2(16f, -64f), CanvasWidth - 32f, low);
 
             // 탭 내용: 관리(아래 요소들) · 건설(PadBuild가 채움)
@@ -556,8 +557,8 @@ namespace SpaceStation.Interior
                 _tabRoster.GetComponentInChildren<TMP_Text>().SetText($"주민 ({KeyBindings.Label(GameAction.Roster)})");
             }
             string zoomKey = KeyBindings.Label(GameAction.SpeedCycle);
-            string lead = _tab == PadTab.Build ? $"클릭 건설   {KeyBindings.Label(GameAction.Rotate)} 회전   Q/E 층   휠 확대   "
-                : _tab == PadTab.Manage ? "클릭 고르기   Q/E 층   휠 확대   " : "";
+            string lead = _tab == PadTab.Build ? $"클릭 건설   {KeyBindings.Label(GameAction.Rotate)} 회전   Q/E 층   휠 확대·축소   "
+                : _tab == PadTab.Manage ? "클릭 고르기   Q/E 층   휠 확대·축소   " : "";
             _hint.SetText(_wantZoom
                 ? lead +
                   (GameSettings.PadDirectZoom

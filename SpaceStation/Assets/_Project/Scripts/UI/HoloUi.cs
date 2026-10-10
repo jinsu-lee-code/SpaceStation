@@ -43,6 +43,9 @@ namespace SpaceStation.UI
         /// <summary>테크 패널 안을 가끔 지나가는 가는 빛줄기 (패드만 켬 — 바깥 UI(창 · HUD)는 끔).</summary>
         public bool PanelLine { get; set; } = true;
 
+        /// <summary>테크 버튼 키 표시를 배지 상자 대신 글 끝 작은 글자로 (<see cref="HoloButtonFx.InlineKey"/>, 패드).</summary>
+        public bool InlineKeys { get; set; }
+
         private readonly bool _tech;
 
         /// <summary>11-15 ② 창 아트가 있으면 테크 테마, 없으면 5-8 기본 스프라이트로.</summary>
@@ -501,7 +504,7 @@ namespace SpaceStation.UI
             if (_art != null && _art.TechButton != null)
                 ((Image)button.targetGraphic).sprite = _art.TechButton;
             Glow(button.GetComponentInChildren<TMP_Text>(), 0.3f);
-            HoloButtonFx.Add(button, _art); // 호버 · 누름 · 비활성 · 브래킷 · 키 배지 · 상태 막대
+            HoloButtonFx.Add(button, _art).InlineKey = InlineKeys; // 호버 · 누름 · 비활성 · 브래킷 · 키 배지 · 상태 막대
             return button;
         }
 

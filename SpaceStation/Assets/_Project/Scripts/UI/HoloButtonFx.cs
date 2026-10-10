@@ -24,6 +24,12 @@ namespace SpaceStation.UI
         /// <summary>상태 막대 색 덮어쓰기 (null = 가능 청록 · 비활성 회색).</summary>
         public Color? Status;
 
+        /// <summary>
+        /// 키 표시를 배지 상자 대신 첫 줄 끝에 작고 흐린 글자로 (11-16 피드백: 작은 패드 버튼은 오른쪽 위 배지가 깎인 모서리 · 하이라이트 선과 겹쳐 지저분했음).
+        /// </summary>
+        public bool InlineKey;
+        private static readonly string InlineKeyColor = "#" + ColorUtility.ToHtmlStringRGB(new Color(0.5f, 0.76f, 0.86f));
+
         private Button _button;
         private TMP_Text _label;
         private RectTransform _rt;
@@ -233,7 +239,17 @@ namespace SpaceStation.UI
             string text = _label.text;
             var m = KeyPattern.Match(text);
             bool has = m.Success;
-            if (has)
+            if (has && InlineKey)
+            {
+                text = text.Remove(m.Index, m.Length);
+                int line = text.IndexOf('\n');
+                if (line < 0)
+                    line = text.Length;
+                text = text.Insert(line, $"<space=0.35em><size=84%><color={InlineKeyColor}>{m.Groups[1].Value}</color></size>");
+                _label.SetText(text);
+                has = false; // 배지는 숨김
+            }
+            else if (has)
             {
                 text = text.Remove(m.Index, m.Length);
                 _label.SetText(text);

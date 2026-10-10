@@ -61,6 +61,7 @@ namespace SpaceStation.Interior
             public float TargetAlpha = 1f;
             public Vector2 Center;   // 칸 범위 가운데 (x · z)
             public float Scale = 1f; // 칸 → m (층 전체가 판에 들어가는 크기 = 확대 1배)
+            public float Radius = 1f; // 가운데에서 가장 먼 칸 모서리 + 둘레 건설 칸 한 줄까지 (칸 단위)
         }
 
         // 11-16 피드백: 한 층에 모듈이 많으면 모형이 작아져 구분이 어려움 → 휠로 확대 · 축소 (사용자 결정: 휠 = 확대/축소, 층 = Q/E)
@@ -75,10 +76,10 @@ namespace SpaceStation.Interior
         /// <summary>둥근 판 안에서 보이는 반지름 (m, 이 밖의 모듈은 흐려지며 사라지고 고를 수 없음).</summary>
         private float ViewRadius => _s.Footprint * 0.6f;
 
-        /// <summary>확대 배율을 곱함 (휠 위 = 확대 · 아래 = 축소). 1배 = 층 전체가 판에 들어감.</summary>
+        /// <summary>확대 배율을 곱함 (휠 위 = 확대 · 아래 = 축소). 1배 = 처음 크기, 1배 밑 = 둘레 건설 칸까지 둥근 판 안에 들어오게 축소.</summary>
         public void ZoomBy(float factor)
         {
-            _zoomTarget = Mathf.Clamp(_zoomTarget * factor, 1f, MaxZoom());
+            _zoomTarget = Mathf.Clamp(_zoomTarget * factor, MinZoom(), MaxZoom());
         }
 
         public float ZoomLevel => _zoomNow;
@@ -100,6 +101,18 @@ namespace SpaceStation.Interior
         {
             float baseScale = _layer != null ? _layer.Scale : _s.MaxCell;
             return Mathf.Max(1f, _s.MaxCell * ZoomCellLimit / Mathf.Max(1e-5f, baseScale));
+        }
+
+        /// <summary>
+        /// 최소 축소 = 층 모듈 + 둘레 건설 칸 한 줄이 모두 둥근 판(흐려지기 전) 안에 들어오는 배율, 최소한 0.85배.
+        /// 11-16 피드백: 1배(층 칸 범위가 정사각형으로 판을 채움)는 판이 둥글어 모서리 · 바깥 건설 칸이 흐려져 고를 수 없었음.
+        /// </summary>
+        private float MinZoom()
+        {
+            if (_layer == null)
+                return 1f;
+            float fit = ViewRadius * 0.8f / Mathf.Max(0.5f, _layer.Radius);
+            return Mathf.Clamp(fit / Mathf.Max(1e-5f, _layer.Scale), 0.3f, 0.85f);
         }
 
         private float EffScale(Layer layer) => layer.Scale * _zoomNow;
@@ -128,7 +141,11 @@ namespace SpaceStation.Interior
         private Transform _marker;
         private MeshRenderer _markerRenderer;
         private MeshRenderer _beam;
-        private MeshRenderer _ring;
+        // 받침 무대 (11-16 피드백: 1px 선 고리 + 검은 그릇만이라 허술해 보였음 → 부드러운 띠 · 눈금 · 도는 호 · 투사기 렌즈)
+        private Transform _stage;
+        private MeshRenderer _rim, _ticks, _arcs, _dashes, _lens;
+        private Transform _arcsT, _dashesT, _lensT;
+        private readonly List<Mesh> _stageMeshes = new List<Mesh>();
         private Transform _sweep;
         private MeshRenderer _sweepRenderer;
         private RectTransform _label;
@@ -142,7 +159,7 @@ namespace SpaceStation.Interior
         private float _scale = 1f;    // 지금 층의 칸 → m
         private float _present = 1f;  // 나타남 정도 (확대할 때 0 → 1로 펼쳐짐)
         private float _seed;
-        private Mesh _octa, _cone, _disc, _plane, _bowlMesh;
+        private Mesh _octa, _cone, _plane, _bowlMesh;
         private MeshRenderer _bowl;
 
         // 11-14 건설 표시 (지금 층 칸 좌표 — 층 Root와 같은 위치 · 크기를 매 프레임 따라감)
@@ -185,22 +202,51 @@ namespace SpaceStation.Interior
             _model = new GameObject("Model").transform;
             _model.SetParent(_root, false);
             _octa = Octahedron();
-            _cone = Cone(24);
-            _disc = Ring(48);
+            _cone = Cone(48);
             _plane = SweepPlane();
 
             // 뒤 배경판: 밝은 방 벽 앞에서도 모형이 보이게 은은하게 어둡게 (선 재질 = 반투명 섞기, 모형보다 먼저 그림)
             // 받침 반구: 모형 아래 검은 그릇 — 밝은 방 벽 앞에서도 모형이 보이게 (선 재질 = 반투명 섞기, 모형보다 먼저 그림)
-            _bowl = Primitive("Bowl", _model, _bowlMesh = Bowl(40, 10), _s.Line);
+            _bowl = Primitive("Bowl", _model, _bowlMesh = Bowl(48, 10), _s.Line);
             _bowl.sortingOrder = -1;
             _beam = Primitive("Beam", _root, _cone, _s.Fill);
-            _ring = Primitive("Ring", _root, _disc, _s.Line);
+            BuildStage();
             _sweepRenderer = Primitive("Sweep", _model, _plane, _s.Fill);
             _sweep = _sweepRenderer.transform;
             _markerRenderer = Primitive("Marker", _model, _octa, _s.Fill);
             _marker = _markerRenderer.transform;
 
             BuildLabel();
+        }
+
+        /// <summary>
+        /// 받침 무대 (반지름 = 모형 크기 Footprint 단위, 그릇 테두리 0.62):
+        /// 테두리 빛 띠 · 정거장 방향에 고정된 눈금(큰 눈금 30°마다 + 네 방향 삼각 표시) · 천천히 도는 호 3개 · 반대로 도는 점선 · 투사기 렌즈.
+        /// 선(1px) 대신 가장자리가 부드럽게 흐려지는 얇은 띠라 Bloom에서도 계단 없이 보임.
+        /// </summary>
+        private void BuildStage()
+        {
+            _stage = new GameObject("Stage").transform;
+            _stage.SetParent(_model, false);
+            _rim = StagePart("Rim", _stage, Band("HoloRim", 0.6f, 0.64f, 1, 360f, 96, 1f, soft: true));
+            _ticks = StagePart("Ticks", _stage, Ticks(72, 6, 0.56f, 0.585f, 0.54f));
+            _arcs = StagePart("Arcs", _stage, Band("HoloArcs", 0.512f, 0.53f, 3, 74f, 24, 1f, soft: true));
+            _arcsT = _arcs.transform;
+            _dashes = StagePart("Dashes", _stage, Band("HoloDashes", 0.488f, 0.496f, 40, 3.2f, 2, 1f, soft: false));
+            _dashesT = _dashes.transform;
+            // 띠끼리 같은 높이에서 겹치지 않게 조금씩 띄움 (그릇 테두리 y −0.002 m 위)
+            _rim.transform.localPosition = new Vector3(0f, 0.004f, 0f);
+            _ticks.transform.localPosition = new Vector3(0f, 0.008f, 0f);
+            _arcsT.localPosition = new Vector3(0f, 0.016f, 0f);
+            _dashesT.localPosition = new Vector3(0f, 0.012f, 0f);
+            _lens = StagePart("Lens", _root, Lens());
+            _lensT = _lens.transform;
+        }
+
+        private MeshRenderer StagePart(string name, Transform parent, Mesh mesh)
+        {
+            _stageMeshes.Add(mesh);
+            return Primitive(name, parent, mesh, _s.Fill);
         }
 
         /// <summary>
@@ -262,8 +308,9 @@ namespace SpaceStation.Interior
         {
             Destroy(_octa);
             Destroy(_cone);
-            Destroy(_disc);
             Destroy(_plane);
+            foreach (var m in _stageMeshes)
+                Destroy(m);
             Destroy(_bowlMesh);
             if (_tileMesh != null)
                 Destroy(_tileMesh);
@@ -314,14 +361,19 @@ namespace SpaceStation.Interior
             {
                 _layer.Center = prev != null ? prev.Center : Vector2.zero;
                 _layer.Scale = prev != null ? prev.Scale : _s.MaxCell;
+                _layer.Radius = prev != null ? prev.Radius : 2f;
             }
             else
             {
                 float span = Mathf.Max(max.x - min.x, max.y - min.y) + 1f;
                 _layer.Center = (min + max) * 0.5f;
                 _layer.Scale = Mathf.Min(_s.Footprint / span, _s.MaxCell);
+                float far = 0f;
+                foreach (var c in cells)
+                    far = Mathf.Max(far, (c.Cell - _layer.Center).magnitude);
+                _layer.Radius = far + 1.75f; // 둘레 건설 칸 한 줄 + 칸 모서리 (반 칸 대각선)
             }
-            _zoomTarget = Mathf.Min(_zoomTarget, MaxZoom()); // 층마다 최대 배율이 다름
+            _zoomTarget = Mathf.Clamp(_zoomTarget, MinZoom(), MaxZoom()); // 층마다 배율 범위가 다름
             Place(_layer);
         }
 
@@ -425,11 +477,21 @@ namespace SpaceStation.Interior
             float half = 0.5f * _s.Footprint * _present;
             _beam.transform.localPosition = Vector3.zero;
             _beam.transform.localScale = new Vector3(half, lift, half);
-            Tint(_beam, HoloColor(0.12f * flicker));
-            _ring.transform.localPosition = new Vector3(0f, lift, 0f);
-            _ring.transform.localScale = new Vector3(half * 1.05f, 1f, half * 1.05f);
-            _ring.transform.localRotation = Quaternion.Euler(0f, t * 12f, 0f);
-            Tint(_ring, HoloColor(0.9f * flicker, 1.6f));
+            Tint(_beam, HoloColor(0.1f * flicker));
+
+            // 받침 무대: 눈금은 정거장 방향에 고정, 호 · 점선만 서로 반대로 천천히 돎
+            _stage.localScale = Vector3.one * _s.Footprint;
+            _arcsT.localRotation = Quaternion.Euler(0f, t * 14f, 0f);
+            _dashesT.localRotation = Quaternion.Euler(0f, -t * 5f, 0f);
+            Tint(_rim, HoloColor(0.6f * flicker, 1.1f));
+            Tint(_ticks, HoloColor(0.55f * flicker, 1.2f));
+            Tint(_arcs, Hdr(new Color(0.62f, 0.93f, 1f), _s.Glow * 1.5f, 0.9f * flicker));
+            Tint(_dashes, HoloColor(0.4f * flicker));
+            // 투사기 렌즈: 빛기둥이 시작하는 점 (은은하게 숨쉼)
+            float pulse = 0.85f + 0.15f * Mathf.Sin(t * 2.6f);
+            _lensT.localPosition = new Vector3(0f, 0.0015f, 0f);
+            _lensT.localScale = Vector3.one * (0.011f * _present * pulse);
+            Tint(_lens, HoloColor(0.85f * flicker, 1.8f));
 
             // 스캔 면: 바닥 → 위로 천천히 지나감 (칸 높이 1.2 범위)
             float phase = Mathf.Repeat(t / 2.6f, 1f);
@@ -618,7 +680,7 @@ namespace SpaceStation.Interior
             var root = _layer.Root;
             var local = new Ray(root.InverseTransformPoint(ray.origin), root.InverseTransformDirection(ray.direction));
             // 후보 칸 판이 그려진 바닥 높이(0.02)로 — 칸 가운데 높이(0.5)로 하면 비스듬히 내려다볼 때 한 칸 앞이 골라졌음
-            if (!PadMap.RayToCell(local, TileY, out var c) || InView(_layer, c) < 0.5f)
+            if (!PadMap.RayToCell(local, TileY, out var c) || InView(_layer, c) < 0.25f) // 흐려지기 시작한 칸도 보이는 동안은 고를 수 있게
                 return false;
             cell = new Vector3Int(c.x, Floor, c.y);
             return true;
@@ -765,37 +827,114 @@ namespace SpaceStation.Interior
             return m;
         }
 
-        /// <summary>바닥 고리: 원 + 눈금 12개 (선).</summary>
-        private static Mesh Ring(int segments)
+        private static Vector3 Polar(float r, float deg) => new Vector3(r * Mathf.Cos(deg * Mathf.Deg2Rad), 0f, r * Mathf.Sin(deg * Mathf.Deg2Rad));
+
+        private static Mesh Finish(Mesh m, List<Vector3> v, List<Color> c, List<int> tri)
         {
-            var m = new Mesh { name = "HoloRing" };
-            var v = new List<Vector3>();
-            var idx = new List<int>();
-            for (int i = 0; i < segments; i++)
-            {
-                float a0 = i * Mathf.PI * 2f / segments, a1 = (i + 1) * Mathf.PI * 2f / segments;
-                idx.Add(v.Count);
-                v.Add(new Vector3(Mathf.Cos(a0), 0f, Mathf.Sin(a0)));
-                idx.Add(v.Count);
-                v.Add(new Vector3(Mathf.Cos(a1), 0f, Mathf.Sin(a1)));
-            }
-            for (int i = 0; i < 12; i++)
-            {
-                float a = i * Mathf.PI * 2f / 12f;
-                var d = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
-                idx.Add(v.Count);
-                v.Add(d * 0.9f);
-                idx.Add(v.Count);
-                v.Add(d * (i % 3 == 0 ? 1.12f : 1f));
-            }
             m.SetVertices(v);
-            var colors = new Color[v.Count];
-            for (int i = 0; i < colors.Length; i++)
-                colors[i] = Color.white;
-            m.colors = colors;
-            m.SetIndices(idx, MeshTopology.Lines, 0);
+            m.SetColors(c);
+            m.SetTriangles(tri, 0);
             m.RecalculateBounds();
             return m;
+        }
+
+        /// <summary>
+        /// 고리 띠 (xz 평면): 반지름 r0 ~ r1, 같은 간격 호 count개 (각 arcDeg도). soft = 가운데만 밝고 안 · 바깥 가장자리 알파 0 (계단 없는 얇은 빛 줄).
+        /// 끊긴 호는 양 끝도 두 칸에 걸쳐 흐려짐.
+        /// </summary>
+        private static Mesh Band(string name, float r0, float r1, int count, float arcDeg, int segments, float alpha, bool soft)
+        {
+            var v = new List<Vector3>();
+            var c = new List<Color>();
+            var tri = new List<int>();
+            float[] radii = soft ? new[] { r0, (r0 + r1) * 0.5f, r1 } : new[] { r0, r1 };
+            float[] rowAlpha = soft ? new[] { 0f, 1f, 0f } : new[] { 1f, 1f };
+            int rows = radii.Length;
+            bool full = arcDeg >= 359.9f;
+            for (int k = 0; k < count; k++)
+            {
+                float start = k * 360f / count;
+                int base0 = v.Count;
+                for (int s = 0; s <= segments; s++)
+                {
+                    float a = start + arcDeg * s / segments;
+                    float cap = full || segments < 4 ? 1f : Mathf.Clamp01(Mathf.Min(s, segments - s) / 2f);
+                    for (int r = 0; r < rows; r++)
+                    {
+                        v.Add(Polar(radii[r], a));
+                        c.Add(new Color(1f, 1f, 1f, alpha * rowAlpha[r] * cap));
+                    }
+                }
+                for (int s = 0; s < segments; s++)
+                {
+                    for (int r = 0; r < rows - 1; r++)
+                    {
+                        int a = base0 + s * rows + r, b = a + rows;
+                        tri.AddRange(new[] { a, b, b + 1, a, b + 1, a + 1 });
+                    }
+                }
+            }
+            return Finish(new Mesh { name = name }, v, c, tri);
+        }
+
+        /// <summary>
+        /// 눈금 고리: count개 (r0 ~ r1), majorEvery마다 큰 눈금(rMajor ~ r1, 밝게) + 네 방향(정거장 +x · +z …)에 안쪽을 가리키는 삼각 표시.
+        /// </summary>
+        private static Mesh Ticks(int count, int majorEvery, float r0, float r1, float rMajor)
+        {
+            var v = new List<Vector3>();
+            var c = new List<Color>();
+            var tri = new List<int>();
+            for (int i = 0; i < count; i++)
+            {
+                float a = i * 360f / count;
+                bool major = i % majorEvery == 0;
+                float w = major ? 0.42f : 0.26f, rin = major ? rMajor : r0, alpha = major ? 1f : 0.5f;
+                int b = v.Count;
+                v.Add(Polar(rin, a - w));
+                v.Add(Polar(rin, a + w));
+                v.Add(Polar(r1, a + w));
+                v.Add(Polar(r1, a - w));
+                for (int k = 0; k < 4; k++)
+                    c.Add(new Color(1f, 1f, 1f, alpha));
+                tri.AddRange(new[] { b, b + 1, b + 2, b, b + 2, b + 3 });
+            }
+            for (int i = 0; i < 4; i++)
+            {
+                float a = i * 90f;
+                int b = v.Count;
+                v.Add(Polar(0.592f, a));
+                v.Add(Polar(0.618f, a - 2.4f));
+                v.Add(Polar(0.618f, a + 2.4f));
+                for (int k = 0; k < 3; k++)
+                    c.Add(Color.white);
+                tri.AddRange(new[] { b, b + 1, b + 2 });
+            }
+            return Finish(new Mesh { name = "HoloTicks" }, v, c, tri);
+        }
+
+        /// <summary>투사기 렌즈 (반지름 1): 가운데가 밝고 흐려지는 빛점 + 얇은 고리.</summary>
+        private Mesh Lens()
+        {
+            const int n = 32;
+            var v = new List<Vector3> { Vector3.zero };
+            var c = new List<Color> { Color.white };
+            var tri = new List<int>();
+            for (int i = 0; i <= n; i++)
+            {
+                v.Add(Polar(0.5f, i * 360f / n));
+                c.Add(new Color(1f, 1f, 1f, 0f));
+            }
+            for (int i = 0; i < n; i++)
+                tri.AddRange(new[] { 0, i + 1, i + 2 });
+            var ring = Band("ring", 0.62f, 0.9f, 1, 360f, n, 0.8f, soft: true);
+            int off = v.Count;
+            v.AddRange(ring.vertices);
+            c.AddRange(ring.colors);
+            foreach (int i in ring.triangles)
+                tri.Add(off + i);
+            Destroy(ring);
+            return Finish(new Mesh { name = "HoloLens" }, v, c, tri);
         }
 
         /// <summary>
