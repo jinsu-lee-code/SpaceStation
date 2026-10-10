@@ -7,7 +7,7 @@ namespace SpaceStation.Interior
 {
     /// <summary>
     /// 11-11 주민 인물 하나 — 11-11d 동물 주민(<see cref="AnimalModelSet"/>, 모든 종류가 같은 몸 · 리그).
-    /// 본을 돌려 자세(서기 · 앉기 · 작업)를 만든다. 걷지 않는다: 숨쉬기(가슴이 살짝 부풂) + 머리를 천천히 두리번 + 가까이 온 플레이어를 바라봄.
+    /// 본을 돌려 자세(서기 · 앉기 · 작업)를 만든다. 움직임은 11-16 <see cref="ResidentMotion"/> (숨 · 귀 · 꼬리 · 깜빡임 · 기분 · 플레이어 반응).
     /// 재질은 슬롯마다 공유 재질, 색은 재질 번호별 MaterialPropertyBlock.
     /// </summary>
     public sealed class ResidentFigure : MonoBehaviour
@@ -16,14 +16,6 @@ namespace SpaceStation.Interior
 
         private Renderer _renderer;
         private Transform _head;
-        private Transform _chest;
-        private Quaternion _headBase;   // 자세를 잡은 뒤 머리 회전 (인물 기준)
-        private Vector3 _chestScale;
-        private Transform _watcher;
-        private float _seed;
-        private float _lookRange;
-        private float _yaw;
-        private float _pitch;
         private float _tagTop;          // 자세를 잡은 뒤 실제 키 (그리기 범위는 넉넉한 상자라 그 위면 이름표가 너무 높이 뜸)
 
         /// <summary>이름표에 쓰는 글 (이름 · 직함 · 종류 · 특성 · 지금 하는 일).</summary>
@@ -39,7 +31,7 @@ namespace SpaceStation.Interior
         /// 색: 털 = <paramref name="fur"/>, 나머지 = 종류 표, 눈 = 재질 색 그대로.
         /// </summary>
         public static ResidentFigure Create(AnimalModelSet set, AnimalSpecies species, Color fur, Transform parent,
-            Vector3 position, Quaternion rotation, ResidentPose pose, float scale, float sitDrop)
+            Vector3 position, Quaternion rotation, ResidentPose pose, float scale, float sitDrop, int id = 0)
         {
             var root = new GameObject("Resident");
             root.transform.SetParent(parent, false);
@@ -86,14 +78,12 @@ namespace SpaceStation.Interior
             if (pose == ResidentPose.Sit)
                 ResidentPoser.SeatOn(bones, root.transform, instance.transform, sitDrop, scale);
             figure._head = bones(HumanBodyBones.Head);
-            figure._chest = bones(HumanBodyBones.Chest);
             if (figure._head != null)   // 이름표 높이 = 자세 잡은 머리 본 + (쉬는 자세의 머리 본 → 메시 꼭대기, 귀 포함)
                 figure._tagTop = root.transform.InverseTransformPoint(figure._head.position).y + restAboveHead;
             FitBounds(root.transform, instance, scale);
-            if (figure._head != null)
-                figure._headBase = Quaternion.Inverse(root.transform.rotation) * figure._head.rotation;
-            if (figure._chest != null)
-                figure._chestScale = figure._chest.localScale;
+            // 11-16 생명감: 자세 잡은 본 회전을 기준으로 매 프레임 덧붙임
+            figure.Motion = root.AddComponent<ResidentMotion>();
+            figure.Motion.Init(bones, instance.transform, pose, scale, id);
 
             // 지나갈 수 없게 + 바라보기 판정
             var capsule = root.AddComponent<CapsuleCollider>();
@@ -104,13 +94,16 @@ namespace SpaceStation.Interior
             return figure;
         }
 
-        public void Configure(string label, float seed, Transform watcher, float lookRange)
+        /// <param name="mood">11-16 기분 −1(나쁨) ~ +1(좋음) — 평소 동작 · 반응 (<see cref="ResidentMotion"/>)</param>
+        public void Configure(string label, float mood, Transform watcher, float lookRange)
         {
             Label = label;
-            _seed = seed;
-            _watcher = watcher;
-            _lookRange = lookRange;
+            if (Motion != null)
+                Motion.Configure(mood, watcher, lookRange);
         }
+
+        /// <summary>11-16 절차적 동작 (숨 · 귀 · 꼬리 · 깜빡임 · 반응).</summary>
+        public ResidentMotion Motion { get; private set; }
 
         /// <summary>
         /// 그리기 범위를 인물 전체 상자로 (자세를 잡으면 메시가 쉬는 자세 범위를 벗어남 — 앉은 다리가 화면 가장자리에서 사라질 수 있음).
@@ -133,35 +126,6 @@ namespace SpaceStation.Interior
             }
         }
 
-        private void Update()
-        {
-            float t = Time.unscaledTime + _seed;
-            // 숨쉬기: 약 4초 주기로 가슴이 0.6% 부풂
-            if (_chest != null)
-                _chest.localScale = _chestScale * (1f + Mathf.Sin(t * 1.6f) * 0.006f);
-            if (_head == null)
-                return;
-            // 머리: 평소엔 천천히 두리번, 플레이어가 가까우면 그쪽을 봄 (좌우 60° 안)
-            float target = Mathf.Sin(t * 0.23f) * 16f + Mathf.Sin(t * 0.61f) * 5f;
-            float pitch = Mathf.Sin(t * 0.17f) * 3f;
-            if (_watcher != null)
-            {
-                var to = _watcher.position - _head.position;
-                if (to.sqrMagnitude < _lookRange * _lookRange)
-                {
-                    var local = transform.InverseTransformDirection(to);
-                    float yaw = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
-                    if (Mathf.Abs(yaw) < 100f)
-                    {
-                        target = Mathf.Clamp(yaw, -60f, 60f);
-                        pitch = Mathf.Clamp(-Mathf.Atan2(local.y, new Vector2(local.x, local.z).magnitude) * Mathf.Rad2Deg, -20f, 20f);
-                    }
-                }
-            }
-            _yaw = Mathf.MoveTowardsAngle(_yaw, target, 90f * Time.unscaledDeltaTime);
-            _pitch = Mathf.MoveTowards(_pitch, pitch, 40f * Time.unscaledDeltaTime);
-            _head.rotation = transform.rotation * Quaternion.Euler(_pitch, _yaw, 0f) * _headBase;
-        }
     }
 
     /// <summary>

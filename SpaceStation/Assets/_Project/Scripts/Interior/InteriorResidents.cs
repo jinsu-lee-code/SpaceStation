@@ -159,9 +159,12 @@ namespace SpaceStation.Interior
                 position.y -= _tuning.SitDrop;
             var rotation = instance.rotation * Quaternion.Euler(0f, spot.Yaw, 0f);
             var figure = ResidentFigure.Create(_animals, species, fur, parent != null ? parent : transform, position, rotation, spot.Pose,
-                _tuning.AnimalScale, _tuning.SitDrop);
+                _tuning.AnimalScale, _tuning.SitDrop, id);
             figure.name = "Resident_" + id;
-            figure.Configure(Label(resident, species.DisplayName, status, config), id * 1.37f, _eye, _tuning.WatchRange);
+            // 11-16 기분 = 본인 보정(특성) + 정거장 만족도 + 집 없음 → 평소 동작 · 반응
+            var sim = _station.Simulation;
+            float mood = ResidentMood.Of(sim.Residents.PersonalMood(resident), sim.Population.Satisfaction, resident.Home == null);
+            figure.Configure(Label(resident, species.DisplayName, status, config), mood, _eye, _tuning.WatchRange);
             _figures.Add(figure);
         }
 
