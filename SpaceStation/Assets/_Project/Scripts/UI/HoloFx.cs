@@ -43,10 +43,25 @@ namespace SpaceStation.UI
             }
         }
 
-        private void OnEnable() => _reveal = 0f;
+        private float _revealMin;   // 켜짐 효과의 가장 어두운 정도 (처음 켜질 때 0, 다시 그리기는 0.85)
+        private float _sweepStart = -100f;
 
-        /// <summary>위에서 아래로 다시 그려지는 효과 (창 열기 · 층 바꾸기).</summary>
-        public void Replay() => _reveal = 0f;
+        private void OnEnable()
+        {
+            _reveal = 0f;
+            _revealMin = 0f;
+        }
+
+        /// <summary>
+        /// 내용이 바뀔 때(탭 · 모듈 · 층) 다시 그려지는 느낌: 스캔 띠가 위에서부터 한 번 지나가고 화면이 아주 살짝만 깜박임.
+        /// 화면 전체를 투명하게 만들면 뒤의 패드 유리가 드러나 조명이 번쩍였음 (11-13) → 최소 0.85.
+        /// </summary>
+        public void Replay()
+        {
+            _reveal = 0f;
+            _revealMin = 0.85f;
+            _sweepStart = Time.unscaledTime;
+        }
 
         private void Update()
         {
@@ -65,7 +80,9 @@ namespace SpaceStation.UI
             {
                 var parent = Sweep.parent as RectTransform;
                 float h = parent != null ? parent.rect.height : 0f;
-                float phase = Mathf.Repeat(t / Mathf.Max(0.5f, SweepPeriod), 1f);
+                float since = Time.unscaledTime - _sweepStart;
+                float phase = since < 0.45f ? since / 0.45f // 다시 그리기: 빠르게 한 번
+                    : Mathf.Repeat(t / Mathf.Max(0.5f, SweepPeriod), 1f);
                 float travel = h + Sweep.rect.height;
                 Sweep.anchoredPosition = new Vector2(Sweep.anchoredPosition.x, -phase * travel + Sweep.rect.height * 0.5f);
                 if (_sweepImage != null)
@@ -78,7 +95,7 @@ namespace SpaceStation.UI
             if (Group != null)
             {
                 _reveal = Mathf.MoveTowards(_reveal, 1f, Time.unscaledDeltaTime / Mathf.Max(0.01f, RevealSeconds));
-                Group.alpha = RevealCurve(_reveal);
+                Group.alpha = Mathf.Lerp(_revealMin, 1f, RevealCurve(_reveal));
             }
             if (Decor != null)
             {
