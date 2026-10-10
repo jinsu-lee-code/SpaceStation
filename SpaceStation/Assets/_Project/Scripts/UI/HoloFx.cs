@@ -30,7 +30,8 @@ namespace SpaceStation.UI
         private float _reveal;
         private float _seed;
 
-        private void Awake()
+        // Start: AddComponent 직후 Awake가 먼저 돌아 Scan · Sweep이 아직 비어 있는 경우가 있음 (11-15 HoloSkin)
+        private void Start()
         {
             _seed = Random.value * 10f;
             if (Scan != null)

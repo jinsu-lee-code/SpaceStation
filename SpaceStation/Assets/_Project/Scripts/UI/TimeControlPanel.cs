@@ -51,9 +51,10 @@ namespace SpaceStation.UI
         {
             bool paused = _tickClock.IsPaused;
             string pauseKey = KeyBindings.Label(GameAction.Pause);
+            // 11-15 " (키)"는 테크 버튼(HoloSkin)이 오른쪽 위 배지로 옮김
             _pauseLabel.SetText(paused
-                ? $"{HudTheme.Icon("play")} 재개 <size=75%><color={HudText.Muted}>{pauseKey}</color></size>"
-                : $"{HudTheme.Icon("pause")} 일시정지 <size=75%><color={HudText.Muted}>{pauseKey}</color></size>");
+                ? $"{HudTheme.Icon("play")} 재개 ({pauseKey})"
+                : $"{HudTheme.Icon("pause")} 일시정지 ({pauseKey})");
             SetColor(_pauseButton, paused ? HudTheme.ButtonWarning : HudTheme.ButtonNormal);
 
             var presets = _clock.SpeedPresets;
@@ -63,7 +64,7 @@ namespace SpaceStation.UI
                 SetColor(_speedButtons[i], active ? HudTheme.ButtonSelected : HudTheme.ButtonNormal);
                 var label = _speedButtons[i].GetComponentInChildren<TMP_Text>();
                 if (label != null && i < presets.Length)
-                    label.SetText($"{presets[i]:0}x <size=70%><color={HudText.Muted}>{KeyBindings.Label(SpeedAction(i))}</color></size>");
+                    label.SetText($"{presets[i]:0}x ({KeyBindings.Label(SpeedAction(i))})");
             }
         }
 

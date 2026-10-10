@@ -27,6 +27,8 @@ namespace SpaceStation.UI
         [SerializeField] private Sprite _fillSprite;
         [SerializeField] private Sprite _frameSprite;
         [SerializeField] private Sprite _buttonSprite;
+        [Tooltip("11-15 테크 홀로그램 (여는 버튼)")]
+        [SerializeField] private HoloArt _holoArt;
         [SerializeField] private float _refreshSeconds = 0.5f;
         [SerializeField] private int _rowsPerPage = 13;
 
@@ -151,7 +153,7 @@ namespace SpaceStation.UI
         // ---------------- 구성 ----------------
 
         private static string LauncherText()
-            => $"주민  <size=70%><color=#AFC4D8>{KeyBindings.Label(GameAction.Roster)}</color></size>";
+            => $"주민 ({KeyBindings.Label(GameAction.Roster)})"; // " (키)"는 테크 버튼 배지로
 
         private void RefreshLauncher()
         {
@@ -161,7 +163,7 @@ namespace SpaceStation.UI
 
         private void BuildLauncher()
         {
-            var button = _ui.Button((RectTransform)transform, LauncherText(), 19f, Toggle);
+            var button = (_holoArt != null ? new HoloUi(_holoArt) : _ui).TechButton((RectTransform)transform, LauncherText(), 19f, Toggle);
             HoloUi.Place((RectTransform)button.transform, new Vector2(202f, -24f), new Vector2(140f, 44f)); // 연구 버튼 오른쪽
             _launcherLabel = button.GetComponentInChildren<TMP_Text>();
         }

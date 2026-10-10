@@ -85,7 +85,8 @@ namespace SpaceStation.UI
         private float _lineAlpha;
         private float _hatchAlpha;
 
-        private void Awake()
+        // Start: AddComponent 직후 Awake 때는 Line · Hatch가 아직 비어 있음
+        private void Start()
         {
             _phase = Random.value * Period;
             if (Line != null)

@@ -307,6 +307,7 @@ MonoBehaviour:
   _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
   _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
   _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
+  _holoArt: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
   _refreshSeconds: 0.5
   _rowsPerPage: 13
 --- !u!1 &62815075
@@ -1167,6 +1168,7 @@ GameObject:
   - component: {fileID: 158518376}
   - component: {fileID: 158518375}
   - component: {fileID: 158518374}
+  - component: {fileID: 158518379}
   m_Layer: 0
   m_Name: BuildMenu
   m_TagString: Untagged
@@ -1294,6 +1296,25 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 158518372}
   m_CullTransparentMesh: 1
+--- !u!114 &158518379
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 158518372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e98ebf6eadd3684ead7486dc08d933d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.HoloSkin
+  Art: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
+  Kind: 0
+  Title: 
+  Glow: 0.18
+  Line: {r: 0, g: 0, b: 0, a: 0}
+  Scan: 0.3
+  Connector: 0
 --- !u!1 &169970805
 GameObject:
   m_ObjectHideFlags: 0
@@ -1999,6 +2020,7 @@ GameObject:
   - component: {fileID: 308681614}
   - component: {fileID: 308681613}
   - component: {fileID: 308681617}
+  - component: {fileID: 308681618}
   m_Layer: 0
   m_Name: Speed2
   m_TagString: Untagged
@@ -2141,6 +2163,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Audio.UiSound
   _click: 1
+--- !u!114 &308681618
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 308681611}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e98ebf6eadd3684ead7486dc08d933d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.HoloSkin
+  Art: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
+  Kind: 1
+  Title: 
+  Glow: 0.22
+  Line: {r: 0, g: 0, b: 0, a: 0}
+  Scan: 0
+  Connector: 0
 --- !u!1 &328197651
 GameObject:
   m_ObjectHideFlags: 0
@@ -3423,6 +3464,7 @@ GameObject:
   - component: {fileID: 662465018}
   - component: {fileID: 662465017}
   - component: {fileID: 662465021}
+  - component: {fileID: 662465022}
   m_Layer: 0
   m_Name: Speed1
   m_TagString: Untagged
@@ -3565,6 +3607,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Audio.UiSound
   _click: 1
+--- !u!114 &662465022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 662465015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e98ebf6eadd3684ead7486dc08d933d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.HoloSkin
+  Art: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
+  Kind: 1
+  Title: 
+  Glow: 0.22
+  Line: {r: 0, g: 0, b: 0, a: 0}
+  Scan: 0
+  Connector: 0
 --- !u!1 &713404357
 GameObject:
   m_ObjectHideFlags: 0
@@ -6210,6 +6271,7 @@ GameObject:
   - component: {fileID: 1120282271}
   - component: {fileID: 1120282270}
   - component: {fileID: 1120282274}
+  - component: {fileID: 1120282275}
   m_Layer: 0
   m_Name: Speed4
   m_TagString: Untagged
@@ -6352,6 +6414,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Audio.UiSound
   _click: 1
+--- !u!114 &1120282275
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1120282268}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e98ebf6eadd3684ead7486dc08d933d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.HoloSkin
+  Art: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
+  Kind: 1
+  Title: 
+  Glow: 0.22
+  Line: {r: 0, g: 0, b: 0, a: 0}
+  Scan: 0
+  Connector: 0
 --- !u!1 &1132423535
 GameObject:
   m_ObjectHideFlags: 0
@@ -6903,6 +6984,7 @@ MonoBehaviour:
   _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
   _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
   _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
+  _holoArt: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
   _refreshSeconds: 0.25
 --- !u!1 &1215379949
 GameObject:
@@ -7227,6 +7309,7 @@ GameObject:
   - component: {fileID: 1280824461}
   - component: {fileID: 1280824460}
   - component: {fileID: 1280824464}
+  - component: {fileID: 1280824465}
   m_Layer: 0
   m_Name: Pause
   m_TagString: Untagged
@@ -7369,6 +7452,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Audio.UiSound
   _click: 1
+--- !u!114 &1280824465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1280824458}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e98ebf6eadd3684ead7486dc08d933d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.HoloSkin
+  Art: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
+  Kind: 1
+  Title: 
+  Glow: 0.22
+  Line: {r: 0, g: 0, b: 0, a: 0}
+  Scan: 0
+  Connector: 0
 --- !u!1 &1286598472
 GameObject:
   m_ObjectHideFlags: 0
@@ -7521,6 +7623,7 @@ GameObject:
   - component: {fileID: 1328477485}
   - component: {fileID: 1328477484}
   - component: {fileID: 1328477483}
+  - component: {fileID: 1328477489}
   m_Layer: 0
   m_Name: EventBanner
   m_TagString: Untagged
@@ -7661,6 +7764,25 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1328477481}
   m_CullTransparentMesh: 1
+--- !u!114 &1328477489
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1328477481}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e98ebf6eadd3684ead7486dc08d933d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.HoloSkin
+  Art: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
+  Kind: 0
+  Title: ALERT
+  Glow: 0.3
+  Line: {r: 0, g: 0, b: 0, a: 0}
+  Scan: 0.3
+  Connector: 0
 --- !u!1 &1351641403
 GameObject:
   m_ObjectHideFlags: 0
@@ -10701,6 +10823,7 @@ GameObject:
   - component: {fileID: 1831196778}
   - component: {fileID: 1831196777}
   - component: {fileID: 1831196782}
+  - component: {fileID: 1831196783}
   m_Layer: 0
   m_Name: ResourcePanel
   m_TagString: Untagged
@@ -10843,6 +10966,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.ActiveEventList
   _events: {fileID: 1600923280}
   _text: {fileID: 1706129560}
+--- !u!114 &1831196783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1831196775}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e98ebf6eadd3684ead7486dc08d933d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.HoloSkin
+  Art: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
+  Kind: 0
+  Title: STATION
+  Glow: 0.22
+  Line: {r: 0, g: 0, b: 0, a: 0}
+  Scan: 0.3
+  Connector: 18
 --- !u!1 &1850679435
 GameObject:
   m_ObjectHideFlags: 0
@@ -12189,6 +12331,7 @@ GameObject:
   - component: {fileID: 2039522124}
   - component: {fileID: 2039522123}
   - component: {fileID: 2039522122}
+  - component: {fileID: 2039522128}
   m_Layer: 0
   m_Name: Tooltip
   m_TagString: Untagged
@@ -12322,6 +12465,25 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2039522120}
   m_CullTransparentMesh: 1
+--- !u!114 &2039522128
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2039522120}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e98ebf6eadd3684ead7486dc08d933d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.HoloSkin
+  Art: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
+  Kind: 0
+  Title: 
+  Glow: 0.25
+  Line: {r: 0.31, g: 0.85, b: 1, a: 1}
+  Scan: 0
+  Connector: 0
 --- !u!1 &2048543269
 GameObject:
   m_ObjectHideFlags: 0

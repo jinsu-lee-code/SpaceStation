@@ -26,6 +26,8 @@ namespace SpaceStation.UI
         [SerializeField] private Sprite _fillSprite;
         [SerializeField] private Sprite _frameSprite;
         [SerializeField] private Sprite _buttonSprite;
+        [Tooltip("11-15 테크 홀로그램 (여는 버튼)")]
+        [SerializeField] private HoloArt _holoArt;
         [SerializeField] private float _refreshSeconds = 0.25f;
 
         private sealed class Card
@@ -158,7 +160,7 @@ namespace SpaceStation.UI
         private TMP_Text _launcherLabel;
 
         private static string LauncherText()
-            => $"{HudTheme.Icon("research")} 연구  <size=70%><color=#AFC4D8>{KeyBindings.Label(GameAction.Research)}</color></size>";
+            => $"{HudTheme.Icon("research")} 연구 ({KeyBindings.Label(GameAction.Research)})"; // " (키)"는 테크 버튼 배지로
 
         private void RefreshLauncher()
         {
@@ -169,7 +171,7 @@ namespace SpaceStation.UI
         private void BuildLauncher()
         {
             var root = (RectTransform)transform;
-            var button = _ui.Button(root, LauncherText(), 19f, Toggle);
+            var button = (_holoArt != null ? new HoloUi(_holoArt) : _ui).TechButton(root, LauncherText(), 19f, Toggle);
             HoloUi.Place((RectTransform)button.transform, new Vector2(24f, -24f), new Vector2(170f, 44f));
             _launcherLabel = button.GetComponentInChildren<TMP_Text>();
             KeyBindings.Changed += RefreshLauncher; // 7-5: 버튼의 키 표시

@@ -20,6 +20,7 @@ namespace SpaceStation.UI
 
         private int _hotkey;
         private string _shownStatus;
+        private HoloButtonFx _fx;
 
         public void Initialize(BuildMenu menu, ModuleData data, int hotkey)
         {
@@ -46,11 +47,20 @@ namespace SpaceStation.UI
             _button.interactable = interactable;
             if (_thumb != null)
                 _thumb.color = interactable ? Color.white : new Color(1f, 1f, 1f, 0.35f);
+            // 11-15 테크 카드 아래 상태 막대: 지을 수 있음 청록(기본) · 비용 부족 노랑 · 잠김/최대 회색(기본 비활성)
+            if (_fx == null)
+            {
+                var skin = GetComponent<HoloSkin>();
+                _fx = skin != null ? skin.ButtonFx : null;
+            }
+            if (_fx != null)
+                _fx.Status = !interactable && blockedStatus == null ? HudTheme.Warning : (Color?)null;
             if (_shownStatus == blockedStatus && _shownStatus != null)
                 return;
             _shownStatus = blockedStatus;
             string second = blockedStatus != null ? $"<color={HudText.Orange}>{blockedStatus}</color>" : HudText.Cost(cost ?? Data.BuildCost);
-            _label.SetText($"<size=72%><color={HudTheme.AccentHex}>{_hotkey}</color></size> {Data.DisplayName}\n<size=78%>{second}</size>");
+            // " (번호)"는 테크 버튼이 오른쪽 위 배지로 옮김
+            _label.SetText($"{Data.DisplayName} ({_hotkey})\n<size=78%>{second}</size>");
         }
 
         public void SetSelected(bool selected)

@@ -119,8 +119,52 @@ namespace SpaceStation.Editor
 
             StyleBuildButtonPrefab();
             StyleTabPrefab();
+            ApplyTechSkin();
             EditorSceneManager.MarkSceneDirty(hud.scene);
             Debug.Log("[HudStyler] 홀로그램 스타일 적용 완료");
+        }
+
+        /// <summary>
+        /// 11-15 ① 바깥 HUD에 패드와 같은 테크 홀로그램 설정(HoloSkin)만 붙인다 — 크기 · 색 등 다른 값은 건드리지 않음.
+        /// 장식(테크 테두리 · 버튼 디테일 · 은은한 주사선)은 실행할 때 HoloSkin이 만든다.
+        /// </summary>
+        [MenuItem("SpaceStation/UI/Apply Tech Skin (HUD)")]
+        public static void ApplyTechSkin()
+        {
+            var hud = GameObject.Find("HUD");
+            if (hud == null)
+            {
+                Debug.LogError("[HudStyler] 씬에 HUD 없음");
+                return;
+            }
+            var root = hud.transform;
+            foreach (var b in root.Find("TimeControls").GetComponentsInChildren<Button>(true))
+                Skin(b.gameObject, HoloSkin.SkinKind.Button);
+            Skin(root.Find("ResourcePanel").gameObject, HoloSkin.SkinKind.Panel, "STATION", connector: 18f);
+            Skin(root.Find("BuildMenu").gameObject, HoloSkin.SkinKind.Panel, null, glow: 0.18f);
+            Skin(root.Find("EventBanner").gameObject, HoloSkin.SkinKind.Panel, "ALERT", glow: 0.3f);
+            Skin(root.Find("Tooltip").gameObject, HoloSkin.SkinKind.Panel, null, glow: 0.25f, scan: 0f, line: HudTheme.Accent);
+            var art = AssetDatabase.LoadAssetAtPath<HoloArt>(HoloArtBuilder.AssetPath);
+            Set(root.GetComponentInChildren<ResearchPanel>(true), "_holoArt", art); // 연구 · 주민 여는 버튼
+            Set(root.GetComponentInChildren<RosterPanel>(true), "_holoArt", art);
+            SkinPrefab(ButtonPrefab);
+            SkinPrefab(TabPrefab);
+            EditorSceneManager.MarkSceneDirty(hud.scene);
+            Debug.Log("[HudStyler] 테크 홀로그램(HoloSkin) 적용 완료");
+        }
+
+        private static void SkinPrefab(string path)
+        {
+            var root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                Skin(root, HoloSkin.SkinKind.Button);
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         // ---------------- 도우미 ----------------
@@ -183,6 +227,26 @@ namespace SpaceStation.Editor
             t.color = muted ? new Color(0.68f, 0.76f, 0.85f, 1f) : TextColor;
             t.richText = true;
             EditorUtility.SetDirty(t);
+        }
+
+        /// <summary>11-15 테크 홀로그램 설정을 붙임 (여러 번 실행해도 하나만).</summary>
+        internal static HoloSkin Skin(GameObject go, HoloSkin.SkinKind kind, string title = null,
+            float glow = 0.22f, float scan = 0.3f, float connector = 0f, Color? line = null)
+        {
+            var skin = go.GetComponent<HoloSkin>();
+            if (skin == null)
+                skin = go.AddComponent<HoloSkin>();
+            skin.Art = AssetDatabase.LoadAssetAtPath<HoloArt>(HoloArtBuilder.AssetPath);
+            if (skin.Art == null)
+                skin.Art = HoloArtBuilder.Build();
+            skin.Kind = kind;
+            skin.Title = title;
+            skin.Glow = glow;
+            skin.Scan = kind == HoloSkin.SkinKind.Panel ? scan : 0f;
+            skin.Connector = connector;
+            skin.Line = line ?? new Color(0f, 0f, 0f, 0f);
+            EditorUtility.SetDirty(skin);
+            return skin;
         }
 
         private static void Set(Object target, string field, Object value)

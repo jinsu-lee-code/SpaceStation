@@ -238,6 +238,10 @@ namespace SpaceStation.UI
                 text = text.Remove(m.Index, m.Length);
                 _label.SetText(text);
                 _badgeText.SetText(m.Groups[1].Value);
+                // 긴 키 이름(Space · Shift 등)은 배지를 옆으로 늘림 (11-15: 'Space'가 두 줄로 깨졌음)
+                _badgeText.textWrappingMode = TextWrappingModes.NoWrap;
+                float w = Mathf.Max(19f, _badgeText.GetPreferredValues(m.Groups[1].Value).x + 8f);
+                _badge.rectTransform.sizeDelta = new Vector2(w, 15f);
             }
             _seenText = text;
             if (_badge.gameObject.activeSelf != has)

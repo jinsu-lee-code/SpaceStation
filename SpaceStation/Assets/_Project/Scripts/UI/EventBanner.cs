@@ -29,6 +29,7 @@ namespace SpaceStation.UI
         private float _hideAt;
         private UiTween _tween;
         private CargoSystem _cargo;
+        private HoloSkin _skin;
 
         private void Start()
         {
@@ -39,7 +40,8 @@ namespace SpaceStation.UI
             _cargo = station != null && station.Simulation != null ? station.Simulation.Cargo : null;
             if (_cargo != null)
                 _cargo.Delivered += HandleCargo;
-            if (_frame == null)
+            _skin = GetComponent<HoloSkin>(); // 11-15 테크 테두리 (있으면 테두리 · 빛 번짐 · 줄무늬를 함께 물들임)
+            if (_frame == null && _skin == null)
             {
                 var f = transform.Find("Frame");
                 if (f != null)
@@ -118,7 +120,9 @@ namespace SpaceStation.UI
             var fill = Color.Lerp(HudTheme.PanelFill, tone * 0.5f, tint);
             fill.a = 0.9f;
             _background.color = fill;
-            if (_frame != null)
+            if (_skin != null)
+                _skin.SetLine(new Color(tone.r, tone.g, tone.b, 0.95f));
+            else if (_frame != null)
                 _frame.color = new Color(tone.r, tone.g, tone.b, 0.95f);
         }
 
