@@ -32,8 +32,13 @@ namespace SpaceStation.Interior
         [SerializeField] private Camera _camera;
         [Tooltip("들어가 있는 동안 끄는 태양 조명")]
         [SerializeField] private Light _sun;
-        [Tooltip("내부를 만드는 위치 (외부 정거장이 카메라 시야 거리 밖에 있도록 멀리)")]
-        [SerializeField] private Vector3 _origin = new Vector3(0f, -5000f, 0f);
+        [Tooltip("내부를 만드는 위치 (외부 정거장이 내부 카메라 시야 거리 InteriorFarClip 밖에 있도록). 너무 멀면 float 정밀도가 떨어짐 — " +
+                 "y −5000에서는 정점 위치가 0.5mm 단위로 끊겨 패드 글자(높이 4mm) 크기 · 기준선이 들쭉날쭉했음 (11-16 피드백) → −400 (0.03mm)")]
+        [SerializeField] private Vector3 _origin = new Vector3(0f, -400f, 0f);
+        /// <summary>내부에 있는 동안 카메라 시야 거리 — 내부(원점 근처 ±수십 m)는 다 보이고, 바깥 정거장(y 0 근처, 원점에서 350m 이상)은 안 보이게.</summary>
+        private const float InteriorFarClip = 250f;
+        /// <summary>바깥 창 카메라 시야 거리 — 정거장 · 소행성(±100m)은 보이고 아래 내부 공간은 안 보이게.</summary>
+        private const float ExteriorViewFarClip = 300f;
         [Tooltip("11-2a 벽 키트. 비어 있거나 불완전하면 그레이박스 큐브")]
         [SerializeField] private Data.InteriorKit _kit;
         [Tooltip("키트가 없을 때 쓰는 그레이박스 재질")]
@@ -90,6 +95,7 @@ namespace SpaceStation.Interior
         private Vector3 _cameraPosition;
         private Quaternion _cameraRotation;
         private float _cameraNear;
+        private float _cameraFar;
         private bool _sunEnabled;
         private OrbitCameraController _orbit;
         private InteriorExteriorView _exteriorView;
@@ -216,10 +222,12 @@ namespace SpaceStation.Interior
             _cameraPosition = cam.position;
             _cameraRotation = cam.rotation;
             _cameraNear = _camera.nearClipPlane;
+            _cameraFar = _camera.farClipPlane;
             cam.SetParent(_player.Eye, false);
             cam.localPosition = Vector3.zero;
             cam.localRotation = Quaternion.identity;
             _camera.nearClipPlane = 0.05f;
+            _camera.farClipPlane = InteriorFarClip;
             if (_interiorRenderer >= 0)
                 _camera.GetUniversalAdditionalCameraData().SetRenderer(_interiorRenderer);
 
@@ -228,7 +236,7 @@ namespace SpaceStation.Interior
                 _sunEnabled = _sun.enabled;
                 _sun.enabled = false;
             }
-            _exteriorView = InteriorExteriorView.Create(_camera, _root, _station, _sun, _camera.farClipPlane,
+            _exteriorView = InteriorExteriorView.Create(_camera, _root, _station, _sun, ExteriorViewFarClip,
                 p => _layout != null && _layout.TryGetRoom(_builder.WorldToCell(p), out var r) ? r.Module : null,
                 _builder.CollectLinkedRooms);
             _exteriorView.transform.SetParent(transform, false);
@@ -284,6 +292,7 @@ namespace SpaceStation.Interior
             cam.SetParent(_cameraParent, false);
             cam.SetPositionAndRotation(_cameraPosition, _cameraRotation);
             _camera.nearClipPlane = _cameraNear;
+            _camera.farClipPlane = _cameraFar;
             if (_interiorRenderer >= 0)
                 _camera.GetUniversalAdditionalCameraData().SetRenderer(-1); // 기본 렌더러로
             if (_orbit != null)

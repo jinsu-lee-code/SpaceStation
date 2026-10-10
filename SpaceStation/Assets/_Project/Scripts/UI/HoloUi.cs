@@ -162,6 +162,7 @@ namespace SpaceStation.UI
             var decorGroup = decor.gameObject.AddComponent<CanvasGroup>();
             decorGroup.interactable = false;
             decorGroup.blocksRaycasts = false;
+            decor.gameObject.AddComponent<RectMask2D>(); // 스캔 띠가 화면 위 · 아래 밖(패드 몸체 위)으로 나가지 않게 (11-16 피드백)
             if (_art != null && _art.Grid != null)
             {
                 var grid = Rect("HoloGrid", decor);

@@ -97,10 +97,36 @@ def slab(cx, cz, w, h, r, y0, y1, mat, seg=6, bevel=0.0):
     prism(rrect(cx, cz, w, h, r, seg), y0, y1, mat, 'y', bevel)
 
 
+def frame(outer, inner_back, inner_front, y0, y1, mat):
+    """가운데가 뚫린 틀 (y0 ~ y1). 안쪽 벽은 뒤(inner_back) → 앞(inner_front)으로 벌어지는 비스듬한 턱. 세 고리의 점 수가 같아야 함."""
+    bm = bmesh.new()
+    ob = [bm.verts.new((u, y0, v)) for u, v in outer]
+    of = [bm.verts.new((u, y1, v)) for u, v in outer]
+    fi = [bm.verts.new((u, y1, v)) for u, v in inner_front]
+    bi = [bm.verts.new((u, y0, v)) for u, v in inner_back]
+    n = len(outer)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new((ob[i], ob[j], of[j], of[i]))   # 바깥 벽
+        bm.faces.new((of[i], of[j], fi[j], fi[i]))   # 앞 고리
+        bm.faces.new((fi[i], fi[j], bi[j], bi[i]))   # 안쪽 턱
+        bm.faces.new((bi[i], bi[j], ob[j], ob[i]))   # 뒤 고리
+    orient_outward(bm)
+    PARTS.append((bm, mat))
+
+
 # ---------------- 몸체 ----------------
 # 뒤판(밝은 회청) + 앞 베젤(어두운 건메탈)을 겹쳐 두 톤 — 베젤이 몸체보다 4mm 작아 둘레에 밝은 테두리가 보임
 slab(0, 0, W, H, R, -D / 2, D / 2, 'PadBody', seg=8, bevel=0.0025)
 slab(0, 0, W - 0.008, H - 0.008, R - 0.004, D / 2 - 0.0018, D / 2 + 0.0008, 'PadBezel', seg=8, bevel=0.0008)
+# 11-16 피드백 2: 화면(유리 · UI)이 베젤보다 앞에 붙어 "패드 위에 얹힌 판"처럼 보였음 → 베젤을 화면 둘레를 감싸는 두꺼운 틀로,
+# 화면은 그 안으로 LIP만큼 들어간 자리 (틀 앞면 > UI 캔버스 > 유리). 안쪽 턱은 비스듬해 화면 테두리가 또렷이 보임
+LIP = 0.0034                                     # 틀 앞면이 예전 베젤 앞면(D/2 + 0.0008)보다 앞으로 나온 정도
+BZ = D / 2 + 0.0008 + LIP                        # 틀 앞면 (y 0.0122) — 베젤 띠 위 부품은 이 위에 앉음
+frame(rrect(0, 0, W - 0.008, H - 0.008, R - 0.004, 8),
+      rrect(0, 0, SCREEN_W + 0.005, SCREEN_H + 0.005, SCREEN_R + 0.0025, 8),
+      rrect(0, 0, SCREEN_W + 0.010, SCREEN_H + 0.010, SCREEN_R + 0.005, 8),
+      D / 2 + 0.0004, BZ, 'PadBezel')
 # 화면 둘레 홈 (화면보다 2mm 큰 고무 테 — 화면이 베젤에 박힌 것처럼)
 slab(0, 0, SCREEN_W + 0.004, SCREEN_H + 0.004, SCREEN_R + 0.002, D / 2 - 0.0006, D / 2 + 0.0011, 'PadGrip', seg=4, bevel=0.0004)
 # 화면 (앞면 = SCREEN_Y)
@@ -123,16 +149,16 @@ for sx in (1, -1):
             a = math.radians(90 * i / 14)
             pts.append((cx0 + Ri * math.cos(a), cz0 + Ri * math.sin(a)))
         pts.append((W / 2 - GUARD_L, cz0 + Ri))
-        prism([(sx * u, sz * v) for u, v in pts], -D / 2 - 0.0016, D / 2 + 0.0021, 'PadAccent', 'y', bevel=0.0012)
+        prism([(sx * u, sz * v) for u, v in pts], -D / 2 - 0.0016, BZ + 0.0016, 'PadAccent', 'y', bevel=0.0012)
         # 나사: 가드 띠 가운데 45° (머리 + 십자 홈 대신 가운데 어두운 점)
         mr = (Ro + Ri) / 2
         sxp, szp = sx * (cx0 + mr * math.cos(math.radians(45))), sz * (cz0 + mr * math.sin(math.radians(45)))
-        prism(circle(sxp, szp, 0.0021, 16), D / 2 + 0.0016, D / 2 + 0.0029, 'PadMetal', 'y', bevel=0.0004)
-        prism(circle(sxp, szp, 0.0008, 10), D / 2 + 0.0024, D / 2 + 0.0033, 'PadGrip', 'y')
+        prism(circle(sxp, szp, 0.0021, 16), BZ + 0.0011, BZ + 0.0024, 'PadMetal', 'y', bevel=0.0004)
+        prism(circle(sxp, szp, 0.0008, 10), BZ + 0.0019, BZ + 0.0028, 'PadGrip', 'y')
 
 # ---------------- 옆 손잡이 (고무) + 마디 ----------------
 for sx in (1, -1):
-    slab(sx * (W / 2 + 0.0015), 0, 0.012, 0.085, 0.0055, -D / 2 - 0.002, D / 2 + 0.0019, 'PadGrip', seg=4, bevel=0.0015)
+    slab(sx * (W / 2 + 0.0015), 0, 0.012, 0.085, 0.0055, -D / 2 - 0.002, BZ + 0.0008, 'PadGrip', seg=4, bevel=0.0015)
     for i in range(7):
         z = -0.03 + i * 0.01
         slab(sx * (W / 2 + 0.0072), z, 0.004, 0.0036, 0.0017, -D / 2 - 0.0003, D / 2 + 0.0003, 'PadGrip', seg=3, bevel=0.0006)
@@ -141,7 +167,7 @@ for sx in (1, -1):
 # 몸통: 위 가장자리에 솟은 사다리꼴 (어두운 건메탈), 렌즈 = 금속 테 → 청록 고리 → 어두운 유리 (계단식, 윗면 높이 모두 다름)
 top = H / 2 + 0.0055
 hous = [(-0.033, H / 2 - 0.009), (0.033, H / 2 - 0.009), (0.033, H / 2 - 0.0005), (0.024, top), (-0.024, top), (-0.033, H / 2 - 0.0005)]
-prism(hous, -D / 2 - 0.0006, D / 2 + 0.0013, 'PadBezel', 'y', bevel=0.0011)
+prism(hous, -D / 2 - 0.0006, BZ + 0.0007, 'PadBezel', 'y', bevel=0.0011)
 lx, ly = LENS
 prism(circle(lx, ly, 0.0068, 24), top - 0.001, top + 0.0012, 'PadMetal', 'z', bevel=0.0004)
 prism(circle(lx, ly, 0.0058, 24), top - 0.0005, top + 0.0016, 'PadLight', 'z', bevel=0.0003)
@@ -149,21 +175,21 @@ prism(circle(lx, ly, 0.0047, 24), top, top + 0.0021, 'PadScreen', 'z', bevel=0.0
 # 투사기 앞면 통풍 홈 (양옆 3줄씩)
 for sx in (1, -1):
     for i in range(3):
-        slab(sx * (0.015 + i * 0.0045), H / 2 + 0.0005, 0.0016, 0.0062, 0.0007, D / 2 + 0.0009, D / 2 + 0.0019, 'PadGrip', seg=2)
+        slab(sx * (0.015 + i * 0.0045), H / 2 + 0.0005, 0.0016, 0.0062, 0.0007, BZ + 0.0003, BZ + 0.0013, 'PadGrip', seg=2)
 
 # ---------------- 위 · 아래 베젤 띠 ----------------
 # 위 센서 바 + 카메라 점
-slab(0, SCREEN_H / 2 + 0.0095, 0.034, 0.0045, 0.002, D / 2 + 0.0002, D / 2 + 0.0014, 'PadScreen', seg=3, bevel=0.0003)
-prism(circle(0.0105, SCREEN_H / 2 + 0.0095, 0.0011, 12), D / 2 + 0.0007, D / 2 + 0.0017, 'PadMetal', 'y')
+slab(0, SCREEN_H / 2 + 0.0095, 0.034, 0.0045, 0.002, D / 2 + 0.0002 + LIP, D / 2 + 0.0014 + LIP, 'PadScreen', seg=3, bevel=0.0003)
+prism(circle(0.0105, SCREEN_H / 2 + 0.0095, 0.0011, 12), D / 2 + 0.0007 + LIP, D / 2 + 0.0017 + LIP, 'PadMetal', 'y')
 # 아래 왼쪽: 상태 LED 3개 (청록 · 청록 · 주황)
 for i, mat in enumerate(('PadLight', 'PadLight', 'PadAccent')):
-    slab(-0.08 + i * 0.0065, -(SCREEN_H / 2 + 0.0098), 0.004, 0.0017, 0.0008, D / 2 + 0.0004, D / 2 + 0.0015, mat, seg=2)
+    slab(-0.08 + i * 0.0065, -(SCREEN_H / 2 + 0.0098), 0.004, 0.0017, 0.0008, D / 2 + 0.0004 + LIP, D / 2 + 0.0015 + LIP, mat, seg=2)
 # 아래 오른쪽: 스피커 구멍 (세로 홈 8줄)
 for i in range(8):
-    slab(0.057 + i * 0.0036, -(SCREEN_H / 2 + 0.0098), 0.0013, 0.0065, 0.00055, D / 2 + 0.0003, D / 2 + 0.0012, 'PadGrip', seg=2)
+    slab(0.057 + i * 0.0036, -(SCREEN_H / 2 + 0.0098), 0.0013, 0.0065, 0.00055, D / 2 + 0.0003 + LIP, D / 2 + 0.0012 + LIP, 'PadGrip', seg=2)
 # 아래 가운데: 홈 버튼 자리 (얇은 금속 테 + 고무)
-slab(0, -(SCREEN_H / 2 + 0.0098), 0.022, 0.0052, 0.0026, D / 2 + 0.0001, D / 2 + 0.0010, 'PadMetal', seg=3, bevel=0.0003)
-slab(0, -(SCREEN_H / 2 + 0.0098), 0.0185, 0.0034, 0.0017, D / 2 + 0.0005, D / 2 + 0.0013, 'PadGrip', seg=3)
+slab(0, -(SCREEN_H / 2 + 0.0098), 0.022, 0.0052, 0.0026, D / 2 + 0.0001 + LIP, D / 2 + 0.0010 + LIP, 'PadMetal', seg=3, bevel=0.0003)
+slab(0, -(SCREEN_H / 2 + 0.0098), 0.0185, 0.0034, 0.0017, D / 2 + 0.0005 + LIP, D / 2 + 0.0013 + LIP, 'PadGrip', seg=3)
 
 # ---------------- 위 가장자리 버튼 · 뒤 배터리 판 ----------------
 for x, w in ((-0.062, 0.012), (-0.08, 0.008)):
