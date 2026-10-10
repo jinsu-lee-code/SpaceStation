@@ -41,8 +41,15 @@ namespace SpaceStation.UI
         private void Start()
         {
             InputGate.Blocked = false;
-            _mainTween = new UiTween((RectTransform)_mainPanel.transform, _mainPanel, new Vector2(-40f, 0f), 0.35f, 0.2f);
-            _difficultyTween = new UiTween((RectTransform)_difficultyPanel.transform, _difficultyPanel, new Vector2(40f, 0f), 0.3f, 0.2f);
+            // 11-15 ③ 패널 전환: 미끄러짐 대신 제자리 페이드 + 홀로그램 켜짐 · 꺼짐 (패널에 HoloSkin이 있으면 흩어진 빛줄기가 모임)
+            _mainTween = PanelTween(_mainPanel, 0.35f);
+            _difficultyTween = PanelTween(_difficultyPanel, 0.3f);
+            var title = transform.Find("Title");
+            if (title != null && title.TryGetComponent<TMP_Text>(out var titleText))
+            {
+                HoloUi.Glow(titleText, 0.6f);
+                HoloChroma.Add(titleText, 2.4f); // 큰 제목만 자홍 · 청록 색 번짐
+            }
             _newGameButton.onClick.AddListener(ShowDifficulty);
             _quitButton.onClick.AddListener(Quit);
             _backButton.onClick.AddListener(ShowMain);
@@ -138,6 +145,15 @@ namespace SpaceStation.UI
             GameStartOptions.Difficulty = _difficulties[index];
             SetInteractable(_difficultyPanel, false);
             SceneFader.Load(SceneNames.Game);
+        }
+
+        private static UiTween PanelTween(CanvasGroup panel, float inSeconds)
+        {
+            var rt = (RectTransform)panel.transform;
+            var skin = panel.GetComponent<HoloSkin>();
+            if (skin != null)
+                HoloGlitch.Add(rt, skin.Art);
+            return new UiTween(rt, panel, Vector2.zero, inSeconds, 0.2f, glitch: true);
         }
 
         private static void SetInteractable(CanvasGroup group, bool on)

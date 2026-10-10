@@ -28,6 +28,8 @@ namespace SpaceStation.UI
         [SerializeField] private TMP_Text _secondaryLabel;
 
         private Mode _mode = Mode.Hidden;
+        private UiTween _dimTween;     // 어두운 바탕 (부드러운 페이드)
+        private UiTween _panelTween;   // 결과 패널 (페이드 + 홀로그램 지지직, 11-15)
 
         private void Start()
         {
@@ -35,7 +37,27 @@ namespace SpaceStation.UI
             _progression.Session.GameOver += HandleGameOver;
             _primaryButton.onClick.AddListener(HandlePrimary);
             _secondaryButton.onClick.AddListener(HandleSecondary);
+            _dimTween = new UiTween(null, _group, Vector2.zero, 0.3f, 0.25f);
+            var panel = transform.Find("Panel") as RectTransform;
+            if (panel != null)
+            {
+                var skin = panel.GetComponent<HoloSkin>();
+                if (skin != null)
+                    HoloGlitch.Add(panel, skin.Art);
+                var panelGroup = panel.GetComponent<CanvasGroup>();
+                if (panelGroup == null)
+                    panelGroup = panel.gameObject.AddComponent<CanvasGroup>();
+                _panelTween = new UiTween(panel, panelGroup, Vector2.zero, 0.3f, 0.2f, glitch: true);
+            }
+            if (_title != null)
+                HoloUi.Glow(_title, 0.5f);
             SetVisible(false);
+        }
+
+        private void Update()
+        {
+            _dimTween?.Update();
+            _panelTween?.Update();
         }
 
         private void OnDestroy()
@@ -112,7 +134,23 @@ namespace SpaceStation.UI
 
         private void SetVisible(bool visible)
         {
-            _group.alpha = visible ? 1f : 0f;
+            if (_dimTween == null)
+                _group.alpha = visible ? 1f : 0f;
+            else if (visible)
+            {
+                _dimTween.Play();
+                _panelTween?.Play();
+            }
+            else if (_mode == Mode.Hidden && _group.alpha > 0f)
+            {
+                _dimTween.Hide();
+                _panelTween?.Hide();
+            }
+            else
+            {
+                _dimTween.HideNow();
+                _panelTween?.HideNow();
+            }
             _group.blocksRaycasts = visible; // 표시 중에는 뒤쪽 HUD·월드 클릭 차단
             _group.interactable = visible;
         }

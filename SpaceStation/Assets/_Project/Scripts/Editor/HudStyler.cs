@@ -156,6 +156,14 @@ namespace SpaceStation.Editor
             Skin(selection.gameObject, HoloSkin.SkinKind.Panel, "MODULE", connector: 14f);
             foreach (var b in selection.GetComponentsInChildren<Button>(true))
                 Skin(b.gameObject, HoloSkin.SkinKind.Button);
+            // ③ 결과 화면
+            var result = root.Find("ResultScreen/Panel");
+            if (result != null)
+            {
+                Skin(result.gameObject, HoloSkin.SkinKind.Panel, "RESULT", glow: 0.35f, scan: 0.45f, line: new Color(HudTheme.Accent.r, HudTheme.Accent.g, HudTheme.Accent.b, 0.9f));
+                foreach (var b in result.GetComponentsInChildren<Button>(true))
+                    Skin(b.gameObject, HoloSkin.SkinKind.Button);
+            }
             var pause = root.Find("PauseMenu/Panel");
             if (pause != null)
             {
@@ -175,6 +183,67 @@ namespace SpaceStation.Editor
             SkinPrefab(TabPrefab);
             EditorSceneManager.MarkSceneDirty(hud.scene);
             Debug.Log("[HudStyler] 테크 홀로그램(HoloSkin) 적용 완료");
+        }
+
+        private const string MainMenuScene = "Assets/_Project/Scenes/MainMenu.unity";
+
+        /// <summary>
+        /// 11-15 ③ 메인 메뉴 씬: 메인 · 난이도 패널을 테크 패널로, 버튼을 테크 버튼으로, 설정 · 저장 창에 테마 아트 연결.
+        /// 메인 메뉴 씬이 열려 있지 않으면 잠깐 함께 열어 적용 · 저장하고 닫는다.
+        /// </summary>
+        [MenuItem("SpaceStation/UI/Apply Tech Skin (Main Menu)")]
+        public static void ApplyTechSkinMainMenu()
+        {
+            var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByPath(MainMenuScene);
+            bool opened = !scene.isLoaded;
+            if (opened)
+                scene = EditorSceneManager.OpenScene(MainMenuScene, OpenSceneMode.Additive);
+            GameObject menu = null;
+            foreach (var go in scene.GetRootGameObjects())
+                if (go.GetComponentInChildren<MainMenuController>(true) != null)
+                    menu = go.GetComponentInChildren<MainMenuController>(true).gameObject;
+            if (menu == null)
+            {
+                Debug.LogError("[HudStyler] 메인 메뉴 씬에 MainMenuController 없음");
+                return;
+            }
+            var root = menu.transform;
+            var art = AssetDatabase.LoadAssetAtPath<HoloArt>(HoloArtBuilder.AssetPath);
+            var line = new Color(HudTheme.Accent.r, HudTheme.Accent.g, HudTheme.Accent.b, 0.85f);
+            var main = root.Find("MainPanel");
+            Skin(main.gameObject, HoloSkin.SkinKind.Panel, "MAIN MENU", glow: 0.3f, scan: 0.4f, line: line);
+            var difficulty = root.Find("DifficultyPanel");
+            Skin(difficulty.gameObject, HoloSkin.SkinKind.Panel, "DIFFICULTY", glow: 0.3f, scan: 0.4f, line: line);
+            foreach (var b in root.GetComponentsInChildren<Button>(true))
+            {
+                if (b.GetComponentInParent<SettingsPanel>(true) != null || b.GetComponentInParent<SaveLoadPanel>(true) != null)
+                    continue;
+                Skin(b.gameObject, HoloSkin.SkinKind.Button);
+            }
+            // 패널 바탕이 생기므로 안쪽 여백 (버튼이 테두리에 붙지 않게)
+            foreach (var panel in new[] { main, difficulty })
+            {
+                var layout = panel.GetComponent<VerticalLayoutGroup>();
+                if (layout != null && layout.padding.left < 24)
+                {
+                    layout.padding = new RectOffset(28, 28, 30, 26);
+                    EditorUtility.SetDirty(layout);
+                }
+            }
+            // 키 표시는 테크 버튼 배지로 (" (ESC)")
+            var backLabel = difficulty.Find("Back")?.GetComponentInChildren<TMP_Text>(true);
+            if (backLabel != null)
+            {
+                backLabel.text = "뒤로 (ESC)";
+                EditorUtility.SetDirty(backLabel);
+            }
+            Set(root.GetComponentInChildren<SettingsPanel>(true), "_holoArt", art);
+            Set(root.GetComponentInChildren<SaveLoadPanel>(true), "_holoArt", art);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            if (opened)
+                EditorSceneManager.CloseScene(scene, true);
+            Debug.Log("[HudStyler] 메인 메뉴 테크 홀로그램 적용 완료");
         }
 
         private static void SkinPrefab(string path)
