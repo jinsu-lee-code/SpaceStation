@@ -64,6 +64,38 @@ namespace SpaceStation.Data
         }
     }
 
+    /// <summary>11-17 따로 놓는 식물 소품 종류.</summary>
+    public enum PlantKind
+    {
+        Pot,    // 화분 식물 (회전 링 · 휴게실)
+        Tree,   // 화단 나무 (수경 농장 돔 아래)
+    }
+
+    /// <summary>11-17 템플릿의 식물 자리 (모듈 로컬, 흙 윗면 가운데). 템플릿 빌더(Blender)는 화분 · 화단만 만들고 식물은 실행 중에 놓는다 — 시들고 물을 줄 수 있게.</summary>
+    [Serializable]
+    public sealed class PlantSpot
+    {
+        [SerializeField] private Vector3 _position;
+        [SerializeField] private PlantKind _kind;
+        [Tooltip("크기 배율 (벽 가까운 화분은 작게 — 잎이 벽을 뚫지 않게)")]
+        [SerializeField] private float _scale = 1f;
+        [Tooltip("돌리는 각 (도)")]
+        [SerializeField] private float _yaw;
+
+        public Vector3 Position => _position;
+        public PlantKind Kind => _kind;
+        public float Scale => _scale > 0f ? _scale : 1f;
+        public float Yaw => _yaw;
+
+        public PlantSpot(Vector3 position, PlantKind kind, float scale = 1f, float yaw = 0f)
+        {
+            _position = position;
+            _kind = kind;
+            _scale = scale;
+            _yaw = yaw;
+        }
+    }
+
     /// <summary>11-9 방 환경음 묶음 (성격별 6). SoundLibrary의 Room* 루프와 짝.</summary>
     public enum InteriorAmbience
     {
@@ -99,6 +131,12 @@ namespace SpaceStation.Data
         [SerializeField] private List<ResidentTrait> _workTraits = new List<ResidentTrait>();
         [Tooltip("낮에 일터가 없는 주민이 쉬러 오는 방")]
         [SerializeField] private bool _leisure;
+
+        [Header("11-17 식물")]
+        [Tooltip("따로 놓는 식물 자리 (메뉴 SpaceStation/Interior/Set Plant Spots)")]
+        [SerializeField] private List<PlantSpot> _plantSpots = new List<PlantSpot>();
+
+        public IReadOnlyList<PlantSpot> PlantSpots => _plantSpots;
 
         public ModuleData Module => _module;
         public IReadOnlyList<ResidentSpot> ResidentSpots => _residentSpots;
@@ -138,6 +176,8 @@ namespace SpaceStation.Data
         }
 
         public void EditorSetAmbience(InteriorAmbience ambience) => _ambience = ambience;
+
+        public void EditorSetPlants(List<PlantSpot> spots) => _plantSpots = spots ?? new List<PlantSpot>();
 
         public void EditorSetResidents(List<ResidentSpot> spots, List<ResidentTrait> workTraits, bool leisure)
         {

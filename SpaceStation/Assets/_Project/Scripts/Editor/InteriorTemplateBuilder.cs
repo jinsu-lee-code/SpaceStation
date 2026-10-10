@@ -58,6 +58,7 @@ namespace SpaceStation.Editor
             BuildShield();
             BuildBattery();
             BuildArmorBulkhead();
+            InteriorPlantSpots.SetAll(); // 11-17 식물 자리
             BuildDamageControl();
             BuildFuelCell();
             AssetDatabase.SaveAssets();
