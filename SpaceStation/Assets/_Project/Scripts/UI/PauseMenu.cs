@@ -52,6 +52,9 @@ namespace SpaceStation.UI
             _panelGroup = _panel.GetComponent<CanvasGroup>();
             if (_panelGroup == null)
                 _panelGroup = _panel.gameObject.AddComponent<CanvasGroup>();
+            var skin = _panel.GetComponent<HoloSkin>();
+            if (skin != null)
+                HoloGlitch.Add(_panel, skin.Art);
             _panelTween = new UiTween(_panel, _panelGroup, Vector2.zero, 0.2f, 0.12f, glitch: true);
             _panelTween.ShowNow();
             _resumeButton.onClick.AddListener(Close);

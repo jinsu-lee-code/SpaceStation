@@ -148,6 +148,7 @@ namespace SpaceStation.UI
             crt.sizeDelta = new Vector2(120f, 32f);
             _closeButton.gameObject.SetActive(false);
 
+            HoloGlitch.Add(_card, _holoArt);
             _tween = new UiTween(_card, _group, new Vector2(-30f, 0f), 0.25f, 0.2f, glitch: true);
         }
 

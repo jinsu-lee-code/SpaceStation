@@ -49,6 +49,8 @@ namespace SpaceStation.UI
             }
             _group.blocksRaycasts = false;
             _group.interactable = false;
+            if (_skin != null)
+                HoloGlitch.Add((RectTransform)transform, _skin.Art);
             _tween = new UiTween((RectTransform)transform, _group, new Vector2(0f, 36f), glitch: true);
         }
 

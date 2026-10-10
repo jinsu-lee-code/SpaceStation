@@ -165,6 +165,7 @@ namespace SpaceStation.UI
             BuildConfirm();
             // 11-15 어두운 바탕은 지지직 없이 부드럽게, 창만 지지직 (바탕까지 깜박이면 신경 쓰였음)
             _tween = new UiTween(null, _group, Vector2.zero, 0.2f, 0.25f);
+            HoloGlitch.Add(_window, _holoArt);
             _windowTween = new UiTween(_window, _window.gameObject.AddComponent<CanvasGroup>(), Vector2.zero, 0.2f, 0.15f, glitch: true);
         }
 

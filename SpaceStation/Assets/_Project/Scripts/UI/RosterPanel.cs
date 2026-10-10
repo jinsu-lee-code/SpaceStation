@@ -189,6 +189,7 @@ namespace SpaceStation.UI
             crt.anchoredPosition = new Vector2(-40f, 26f);
             crt.sizeDelta = new Vector2(190f, 48f);
 
+            HoloGlitch.Add(_window, _holoArt); // 켜질 때 흩어진 빛줄기가 모임
             _tween = new UiTween(_window, _group, new Vector2(0f, -24f), 0.2f, 0.15f, glitch: true);
         }
     }

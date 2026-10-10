@@ -9,7 +9,7 @@ namespace SpaceStation.UI
     /// </summary>
     public sealed class UiTween
     {
-        private const float GlitchSeconds = 0.26f;
+        private const float GlitchSeconds = 0.32f;
         private const float GlitchStep = 0.035f;   // 상태가 바뀌는 간격 (프레임과 무관하게 끊겨 보이게)
 
         private readonly RectTransform _rect;
@@ -49,14 +49,14 @@ namespace SpaceStation.UI
             if (restart)
                 _t = 0f;
             if (_dir <= 0 && (restart || _t < 1f))
-                StartGlitch();
+                StartGlitch(true);
             _dir = 1;
         }
 
         public void Hide()
         {
             if (_dir >= 0 && _t > 0f)
-                StartGlitch();
+                StartGlitch(false);
             _dir = -1;
         }
 
@@ -80,12 +80,15 @@ namespace SpaceStation.UI
             Apply();
         }
 
-        private void StartGlitch()
+        private void StartGlitch(bool appearing)
         {
             if (!Glitch)
                 return;
             _glitchStart = Time.unscaledTime;
             _glitchNext = 0f;
+            // 흩어진 빛줄기 · 색 번짐 잔상이 모이며 켜짐 / 흩어지며 꺼짐 (창에 HoloGlitch가 붙어 있을 때)
+            if (_rect != null && _rect.TryGetComponent<HoloGlitch>(out var fx))
+                fx.Play(appearing, appearing ? GlitchSeconds + 0.06f : GlitchSeconds);
         }
 
         private bool Glitching => Glitch && Time.unscaledTime - _glitchStart < GlitchSeconds;
@@ -124,7 +127,7 @@ namespace SpaceStation.UI
             float k = 1f - since / GlitchSeconds; // 끝으로 갈수록 약하게
             float r = Random.value;
             _glitchAlpha = r < 0.22f ? 0.15f : r < 0.45f ? 0.55f : 1f;   // 가끔 꺼질 듯 깜박
-            _glitchX = Random.value < 0.6f ? Random.Range(-12f, 12f) * k : 0f;
+            _glitchX = Random.value < 0.6f ? Random.Range(-7f, 7f) * k : 0f;
             _glitchStretch = Random.value < 0.35f ? Random.Range(0.015f, 0.05f) * k : 0f;
         }
 
