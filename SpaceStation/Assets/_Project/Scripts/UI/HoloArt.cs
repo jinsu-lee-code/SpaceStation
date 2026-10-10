@@ -34,5 +34,7 @@ namespace SpaceStation.UI
         public Texture2D Hatch;
         [Tooltip("회로 선 끝 점")]
         public Sprite Dot;
+        [Tooltip("테크 버튼 (깎인 모서리 · 왼쪽 위 굵은 강조 · 오른쪽 아래 사선 줄무늬, 색은 Image.color)")]
+        public Sprite TechButton;
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using SpaceStation.Building;
 using SpaceStation.Core;
 using SpaceStation.Data;
+using SpaceStation.Settings;
 using SpaceStation.UI;
 using TMPro;
 using UnityEngine;
@@ -130,7 +131,7 @@ namespace SpaceStation.Interior
         private TMP_Text _message;
         private TMP_Text _hint;
         private Button _repair, _maintain, _rebuild, _travel, _floorUp, _floorDown;
-        private TMP_Text _repairLabel, _maintainLabel, _rebuildLabel, _travelLabel;
+        private TMP_Text _repairLabel, _maintainLabel, _rebuildLabel, _travelLabel, _researchLabel, _rosterLabel;
         private float _nextRefresh;
         private bool _dirty = true;
         private float _messageUntil;
@@ -221,6 +222,8 @@ namespace SpaceStation.Interior
                     InputGate.ConsumeEscape(); // 내부 나가기보다 먼저
                     if (_window != null)
                         CloseWindow();
+                    else if (GameSettings.PadDirectZoom)
+                        Lower(); // 바로 확대 설정: 축소 단계 없이 내림
                     else
                         SetZoom(false);
                 }
@@ -229,14 +232,23 @@ namespace SpaceStation.Interior
                     if (_wantRaise)
                         Lower();
                     else
+                    {
                         Raise();
+                        if (GameSettings.PadDirectZoom)
+                            SetZoom(true);
+                    }
                 }
                 else if (_wantRaise && KeyBindings.WasPressed(GameAction.SpeedCycle))
                 {
                     if (_wantZoom && _window != null)
                         CloseWindow();
-                    SetZoom(!_wantZoom);
+                    if (_wantZoom && GameSettings.PadDirectZoom)
+                        Lower();
+                    else
+                        SetZoom(!_wantZoom);
                 }
+                else if (_wantZoom && !InputGate.Blocked)
+                    HandleShortcuts(); // 바깥과 같은 키 (확대 중만 — 들고 걸을 때 F는 해치)
             }
 
             // 마우스 휠 = 층 바꾸기 (확대 중 — 모형은 그때만 보임. 연구 · 명단 창이 열려 있으면 창 스크롤에 양보)
@@ -421,11 +433,11 @@ namespace SpaceStation.Interior
             HoloUi.Place(tag.rectTransform, new Vector2(18f, -8f), new Vector2(420f, 20f));
             _header = ui.Label(rt, "", 26f, TextAlignmentOptions.MidlineLeft);
             HoloUi.Place(_header.rectTransform, new Vector2(18f, -26f), new Vector2(480f, 34f));
-            _floorDown = ui.Button(rt, "▼", 16f, () => ChangeFloor(-1));
+            _floorDown = ui.TechButton(rt, "▼", 16f, () => ChangeFloor(-1));
             HoloUi.Place((RectTransform)_floorDown.transform, new Vector2(CanvasWidth - 236f, -14f), new Vector2(40f, 38f));
             _floorLabel = ui.Label(rt, "", 19f, TextAlignmentOptions.Center);
             HoloUi.Place(_floorLabel.rectTransform, new Vector2(CanvasWidth - 192f, -10f), new Vector2(128f, 46f));
-            _floorUp = ui.Button(rt, "▲", 16f, () => ChangeFloor(1));
+            _floorUp = ui.TechButton(rt, "▲", 16f, () => ChangeFloor(1));
             HoloUi.Place((RectTransform)_floorUp.transform, new Vector2(CanvasWidth - 60f, -14f), new Vector2(40f, 38f));
             HoloUi.Divider(rt, new Vector2(16f, -64f), CanvasWidth - 32f, low);
 
@@ -461,22 +473,24 @@ namespace SpaceStation.Interior
             _info.overflowMode = TextOverflowModes.Ellipsis;
 
             float bw = (w - 12f) / 3f, by = -256f;
-            _repair = ui.Button(rt, "수리", 15f, () => Act(a => a.RepairSelected()));
+            _repair = ui.TechButton(rt, "수리", 15f, () => Act(a => a.RepairSelected()));
             HoloUi.Place((RectTransform)_repair.transform, new Vector2(x, by), new Vector2(bw, 54f));
-            _maintain = ui.Button(rt, "정비", 15f, () => Act(a => a.MaintainSelected()));
+            _maintain = ui.TechButton(rt, "정비", 15f, () => Act(a => a.MaintainSelected()));
             HoloUi.Place((RectTransform)_maintain.transform, new Vector2(x + bw + 6f, by), new Vector2(bw, 54f));
-            _rebuild = ui.Button(rt, "재건축", 15f, () => Act(a => a.RebuildSelected()));
+            _rebuild = ui.TechButton(rt, "재건축", 15f, () => Act(a => a.RebuildSelected()));
             HoloUi.Place((RectTransform)_rebuild.transform, new Vector2(x + (bw + 6f) * 2f, by), new Vector2(bw, 54f));
             _repairLabel = _repair.GetComponentInChildren<TMP_Text>();
             _maintainLabel = _maintain.GetComponentInChildren<TMP_Text>();
             _rebuildLabel = _rebuild.GetComponentInChildren<TMP_Text>();
-            _travel = ui.Button(rt, "이 방으로 이동", 17f, TravelSelected);
+            _travel = ui.TechButton(rt, "이 방으로 이동", 17f, TravelSelected);
             HoloUi.Place((RectTransform)_travel.transform, new Vector2(x, by - 62f), new Vector2(w, 44f));
             _travelLabel = _travel.GetComponentInChildren<TMP_Text>();
-            var research = ui.Button(rt, "연구 창", 16f, () => OpenWindow("ResearchPanel"));
+            var research = ui.TechButton(rt, "연구 창", 16f, () => OpenWindow("ResearchPanel"));
             HoloUi.Place((RectTransform)research.transform, new Vector2(x, by - 112f), new Vector2((w - 6f) / 2f, 40f));
-            var roster = ui.Button(rt, "주민 명단", 16f, () => OpenWindow("RosterPanel"));
+            var roster = ui.TechButton(rt, "주민 명단", 16f, () => OpenWindow("RosterPanel"));
             HoloUi.Place((RectTransform)roster.transform, new Vector2(x + (w - 6f) / 2f + 6f, by - 112f), new Vector2((w - 6f) / 2f, 40f));
+            _researchLabel = research.GetComponentInChildren<TMP_Text>();
+            _rosterLabel = roster.GetComponentInChildren<TMP_Text>();
 
             // 아래: 알림 · 키 안내
             HoloUi.Divider(rt, new Vector2(16f, -height + 58f), CanvasWidth - 32f, low);
@@ -495,10 +509,36 @@ namespace SpaceStation.Interior
         {
             if (_hint == null)
                 return;
+            if (_researchLabel != null)
+            {
+                _researchLabel.SetText($"연구 창 ({KeyBindings.Label(GameAction.Research)})");
+                _rosterLabel.SetText($"주민 명단 ({KeyBindings.Label(GameAction.Roster)})");
+            }
             string zoomKey = KeyBindings.Label(GameAction.SpeedCycle);
             _hint.SetText(_wantZoom
-                ? $"클릭 고르기   휠 층 이동   {zoomKey} · ESC 축소   {KeyBindings.Label(GameAction.Pad)} 내리기"
+                ? GameSettings.PadDirectZoom
+                    ? $"클릭 고르기   휠 층 이동   {zoomKey} · ESC · {KeyBindings.Label(GameAction.Pad)} 닫기"
+                    : $"클릭 고르기   휠 층 이동   {zoomKey} · ESC 축소   {KeyBindings.Label(GameAction.Pad)} 내리기"
                 : $"{zoomKey} 확대 (홀로그램 지도)   {KeyBindings.Label(GameAction.Pad)} 내리기");
+        }
+
+        /// <summary>확대 중 단축키: 수리 · 정비 · 재건축 · 수리 대기 취소(고른 모듈) + 연구 · 명단 창. 바깥 선택 패널 · 창과 같은 키.</summary>
+        private void HandleShortcuts()
+        {
+            if (KeyBindings.WasPressed(GameAction.Research))
+                OpenWindow("ResearchPanel");
+            else if (KeyBindings.WasPressed(GameAction.Roster))
+                OpenWindow("RosterPanel");
+            else if (_window != null)
+                return; // 창이 열려 있으면 창 조작 우선
+            else if (KeyBindings.WasPressed(GameAction.Repair))
+                Act(a => a.RepairSelected());
+            else if (KeyBindings.WasPressed(GameAction.Maintain))
+                Act(a => a.MaintainSelected());
+            else if (KeyBindings.WasPressed(GameAction.Rebuild))
+                Act(a => a.RebuildSelected());
+            else if (KeyBindings.WasPressed(GameAction.CancelRepair))
+                Act(a => a.CancelRepairSelected());
         }
 
         private void Act(Action<SelectionActionsPanel> action)
@@ -691,11 +731,11 @@ namespace SpaceStation.Interior
             var view = _c.Actions.Describe(module);
             _info.SetText(WithoutName(view.Info));
             _repair.interactable = view.CanRepair;
-            _repairLabel.SetText(StripKey(view.RepairLabel));
+            _repairLabel.SetText(view.RepairLabel); // 키 표시 "(R)" 그대로 — 확대 중 단축키가 같음
             _maintain.interactable = view.CanMaintain;
-            _maintainLabel.SetText(StripKey(view.MaintainLabel));
+            _maintainLabel.SetText(view.MaintainLabel);
             _rebuild.interactable = view.CanRebuild;
-            _rebuildLabel.SetText(StripKey(view.RebuildLabel));
+            _rebuildLabel.SetText(view.RebuildLabel);
             bool canTravel = CanTravel(module);
             _travel.interactable = canTravel;
             _travelLabel.SetText(module == current ? "지금 있는 방" : canTravel ? "이 방으로 이동" : "갈 수 없음 (연결되지 않은 방)");
@@ -728,14 +768,6 @@ namespace SpaceStation.Interior
                 return info;
             int close = info.IndexOf("</b>", StringComparison.Ordinal);
             return close > 0 ? info.Substring(close + 4).TrimStart() : info;
-        }
-
-        /// <summary>바깥 패널 단추 글의 키 표시 "(R)"는 패드에서 쓰지 않으므로 뺌.</summary>
-        private static string StripKey(string label)
-        {
-            int open = label.IndexOf(" (", StringComparison.Ordinal);
-            int close = open >= 0 ? label.IndexOf(')', open) : -1;
-            return open >= 0 && close > open && close - open <= 12 ? label.Remove(open, close - open + 1) : label;
         }
     }
 }

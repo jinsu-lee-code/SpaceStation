@@ -48,6 +48,7 @@ namespace SpaceStation.Settings
         private static bool _tutorialPending = true;
         private static bool _interiorPause = true;
         private static bool _headBob = true;
+        private static bool _padDirectZoom;
 
         public static event Action Changed;
 
@@ -78,6 +79,9 @@ namespace SpaceStation.Settings
 
         /// <summary>11-9: 내부에서 걸을 때 시점 흔들림 (멀미가 나면 끔, 발소리는 그대로).</summary>
         public static bool HeadBob { get { Load(); return _headBob; } set => Set(ref _headBob, value, "headBob"); }
+
+        /// <summary>11-13: 휴대 패드를 들면 바로 확대(조작 화면) — 끄면 들기 → 배속 순환 키로 확대 (단계별, 기본).</summary>
+        public static bool PadDirectZoom { get { Load(); return _padDirectZoom; } set => Set(ref _padDirectZoom, value, "padDirectZoom"); }
 
         public static int FrameLimit => FrameLimits[FrameLimitIndex];
         public static int AutosaveMinutes => AutosaveChoices[AutosaveIndex];
@@ -127,6 +131,7 @@ namespace SpaceStation.Settings
             _wornDisplay = WornDisplay.Rim;
             _interiorPause = true;
             _headBob = true;
+            _padDirectZoom = false;
             SaveAll();
             Changed?.Invoke();
         }
@@ -157,6 +162,7 @@ namespace SpaceStation.Settings
             _tutorialPending = PlayerPrefs.GetInt(Prefix + "tutorial", _tutorialPending ? 1 : 0) == 1;
             _interiorPause = PlayerPrefs.GetInt(Prefix + "interiorPause", _interiorPause ? 1 : 0) == 1;
             _headBob = PlayerPrefs.GetInt(Prefix + "headBob", _headBob ? 1 : 0) == 1;
+            _padDirectZoom = PlayerPrefs.GetInt(Prefix + "padDirectZoom", _padDirectZoom ? 1 : 0) == 1;
         }
 
         private static void SaveAll()
@@ -180,6 +186,7 @@ namespace SpaceStation.Settings
             PlayerPrefs.SetInt(Prefix + "tutorial", _tutorialPending ? 1 : 0);
             PlayerPrefs.SetInt(Prefix + "interiorPause", _interiorPause ? 1 : 0);
             PlayerPrefs.SetInt(Prefix + "headBob", _headBob ? 1 : 0);
+            PlayerPrefs.SetInt(Prefix + "padDirectZoom", _padDirectZoom ? 1 : 0);
             PlayerPrefs.Save();
         }
 

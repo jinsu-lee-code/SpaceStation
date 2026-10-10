@@ -277,6 +277,8 @@ namespace SpaceStation.UI
                 () => (int)GameSettings.WornDisplay, i => GameSettings.WornDisplay = (WornDisplay)i);
             ToggleRow(page, "내부 방문 중 일시정지", () => GameSettings.InteriorPause, v => GameSettings.InteriorPause = v);
             ToggleRow(page, "내부 걸음 시점 흔들림", () => GameSettings.HeadBob, v => GameSettings.HeadBob = v);
+            ChoiceRow(page, "휴대 패드 열기", () => 2, i => new[] { "단계별 (들기 → 확대)", "바로 확대" }[i],
+                () => GameSettings.PadDirectZoom ? 1 : 0, i => GameSettings.PadDirectZoom = i == 1);
             ToggleRow(page, "다음 새 게임에서 튜토리얼", () => GameSettings.TutorialPending, v => GameSettings.TutorialPending = v);
         }
 

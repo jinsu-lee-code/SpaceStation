@@ -313,6 +313,18 @@ namespace SpaceStation.UI
             return button;
         }
 
+        /// <summary>
+        /// 11-13 테크 버튼 (사용자 레퍼런스): <see cref="Button"/>과 같고 그림만 테크 버튼(깎인 모서리 · 강조 · 사선 줄무늬).
+        /// 테크 그림이 없으면 기본 버튼. 바깥 HUD 창은 2단계에서 함께 바꿈.
+        /// </summary>
+        public Button TechButton(Transform parent, string label, float size, Action onClick, bool clickSound = true)
+        {
+            var button = Button(parent, label, size, onClick, clickSound);
+            if (_art != null && _art.TechButton != null)
+                ((Image)button.targetGraphic).sprite = _art.TechButton;
+            return button;
+        }
+
         /// <summary>진행률 막대 (바탕 + 채움). 채움 비율은 반환된 Image.fillAmount 대신 앵커로 조절.</summary>
         public RectTransform Bar(Transform parent, Color back, Color fill, out RectTransform fillRect)
         {
