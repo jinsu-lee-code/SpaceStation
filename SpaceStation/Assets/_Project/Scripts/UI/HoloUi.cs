@@ -31,10 +31,94 @@ namespace SpaceStation.UI
         private readonly HoloArt _art;
 
         /// <summary>11-13 테마 아트 묶음으로 만들기 (빛 번짐 · 주사선 · 격자까지 사용).</summary>
-        public HoloUi(HoloArt art)
+        /// <param name="tech">11-15 ② 바깥 창: <see cref="Panel"/> · <see cref="Button"/>도 테크 패널 · 테크 버튼으로</param>
+        public HoloUi(HoloArt art, bool tech = false)
             : this(art != null ? art.Font : null, art != null ? art.Fill : null, art != null ? art.Frame : null, art != null ? art.Button : null)
         {
             _art = art;
+            _tech = tech && art != null;
+        }
+
+        private readonly bool _tech;
+
+        /// <summary>11-15 ② 창 아트가 있으면 테크 테마, 없으면 5-8 기본 스프라이트로.</summary>
+        public static HoloUi For(HoloArt art, TMP_FontAsset font, Sprite fill, Sprite frame, Sprite button)
+            => art != null ? new HoloUi(art, tech: true) : new HoloUi(font, fill, frame, button);
+
+        // ---------------- 11-15 ② 바깥 창 ----------------
+
+        /// <summary>
+        /// 창 바탕: 테크 패널(왼쪽 위 작은 영문 꼬리표) + 안쪽 장식(격자 · 주사선 · 스캔 띠 · 장식만 깜박임).
+        /// 창을 열 때 반환된 HoloFx의 Replay()로 스캔 띠가 한 번 빠르게 지나감. 켜짐 효과(투명도)는 창의 UiTween이 맡으므로 쓰지 않음.
+        /// 테크 그림이 없으면 기본 패널.
+        /// </summary>
+        public HoloFx Window(GameObject go, Color fill, string tag, float strength = 0.45f)
+        {
+            if (!_tech)
+            {
+                PlainPanel(go, fill, HudTheme.Accent);
+                return null;
+            }
+            var accent = HudTheme.Accent;
+            TechPanel(go, fill, new Color(accent.r, accent.g, accent.b, 0.85f), tag, 0.3f, 0f);
+            return Decor((RectTransform)go.transform, strength, grid: true, inset: 8f);
+        }
+
+        /// <summary>
+        /// 패널 안쪽 장식: (격자) + 흐르는 주사선 + 지나가는 스캔 띠, 장식만 깜박임 (글자 · 버튼은 그대로). 켜짐 효과 없음.
+        /// 바탕 · 빛 번짐 바로 위, 내용 뒤에 깔린다. 11-15 ① HoloSkin(바깥 HUD)과 ② 창이 같이 씀.
+        /// </summary>
+        public HoloFx Decor(RectTransform rt, float strength, bool grid, float inset)
+        {
+            if (_art == null || _art.Scan == null || strength <= 0f)
+                return null;
+            var decor = Decorative(Rect("HoloDecor", rt));
+            Stretch(decor, new Vector2(inset, inset), new Vector2(-inset, -inset));
+            var glow = rt.Find("Glow");
+            decor.SetSiblingIndex(glow != null ? glow.GetSiblingIndex() + 1 : 0);
+            var group = decor.gameObject.AddComponent<CanvasGroup>();
+            group.interactable = false;
+            group.blocksRaycasts = false;
+            var accent = HudTheme.Accent;
+            var size = rt.rect.size;
+            if (grid && _art.Grid != null)
+            {
+                var gr = Rect("HoloGrid", decor);
+                Stretch(gr);
+                var g = gr.gameObject.AddComponent<RawImage>();
+                g.texture = _art.Grid;
+                g.color = new Color(accent.r, accent.g, accent.b, 0.05f);
+                g.uvRect = new Rect(0f, 0f, Mathf.Max(1f, size.x) / _art.Grid.width, Mathf.Max(1f, size.y) / _art.Grid.height);
+                g.raycastTarget = false;
+            }
+            var s = Rect("HoloScan", decor);
+            Stretch(s);
+            var scan = s.gameObject.AddComponent<RawImage>();
+            scan.texture = _art.Scan;
+            scan.color = new Color(accent.r, accent.g, accent.b, 0.09f);
+            // 높이가 레이아웃으로 정해지는 패널은 0 → 대략값 (가는 줄 반복)
+            scan.uvRect = new Rect(0f, 0f, 1f, size.y > 1f ? size.y / _art.Scan.height / 1.5f : 6f);
+            scan.raycastTarget = false;
+            RectTransform sweep = null;
+            if (_art.Sweep != null)
+            {
+                sweep = Rect("HoloSweep", decor);
+                sweep.anchorMin = new Vector2(0f, 1f);
+                sweep.anchorMax = new Vector2(1f, 1f);
+                sweep.pivot = new Vector2(0.5f, 0.5f);
+                sweep.sizeDelta = new Vector2(0f, Mathf.Max(40f, size.y * 0.18f));
+                var si = sweep.gameObject.AddComponent<Image>();
+                si.sprite = _art.Sweep;
+                si.color = new Color(accent.r, accent.g, accent.b, 0.08f);
+                si.raycastTarget = false;
+            }
+            var fx = rt.gameObject.AddComponent<HoloFx>();
+            fx.Strength = strength;
+            fx.Scan = scan;
+            fx.Sweep = sweep;
+            fx.Decor = group;
+            fx.SweepPeriod = 5f + UnityEngine.Random.value * 3f;
+            return fx;
         }
 
         public Sprite ButtonSprite => _button;
@@ -55,7 +139,7 @@ namespace SpaceStation.UI
             bgImg.raycastTarget = false;
             var size = rt.rect.size;
             // 깜박이는 장식은 한 묶음 (글자 · 버튼은 깜박이지 않게)
-            var decor = Rect("HoloDecor", rt);
+            var decor = Decorative(Rect("HoloDecor", rt));
             Stretch(decor);
             var decorGroup = decor.gameObject.AddComponent<CanvasGroup>();
             decorGroup.interactable = false;
@@ -108,10 +192,10 @@ namespace SpaceStation.UI
         /// <summary>빛 번지는 패널: 바탕 + 바깥 빛 번짐 + 테두리 · 모서리 브래킷.</summary>
         public void GlowPanel(GameObject go, Color fill, Color frame, float glow = 0.35f)
         {
-            Panel(go, fill, frame);
+            PlainPanel(go, fill, frame);
             if (_art == null || _art.Glow == null || glow <= 0f)
                 return;
-            var g = Rect("Glow", go.transform);
+            var g = Decorative(Rect("Glow", go.transform));
             Stretch(g, new Vector2(-14f, -14f), new Vector2(14f, 14f));
             g.SetAsFirstSibling();
             var gi = g.gameObject.AddComponent<Image>();
@@ -142,7 +226,7 @@ namespace SpaceStation.UI
             img.color = fill;
             if (_art.Glow != null && glow > 0f)
             {
-                var g = Rect("Glow", go.transform);
+                var g = Decorative(Rect("Glow", go.transform));
                 Stretch(g, new Vector2(-14f, -14f), new Vector2(14f, 14f));
                 g.SetAsFirstSibling();
                 var gi = g.gameObject.AddComponent<Image>();
@@ -151,7 +235,7 @@ namespace SpaceStation.UI
                 gi.color = new Color(line.r, line.g, line.b, glow);
                 gi.raycastTarget = false;
             }
-            var f = Rect("Frame", go.transform);
+            var f = Decorative(Rect("Frame", go.transform));
             Stretch(f);
             var fi = f.gameObject.AddComponent<Image>();
             fi.sprite = _art.TechFrame;
@@ -161,7 +245,7 @@ namespace SpaceStation.UI
             RawImage hatchImage = null;
             if (_art.Hatch != null)
             {
-                var h = Rect("Hatch", go.transform);
+                var h = Decorative(Rect("Hatch", go.transform));
                 h.anchorMin = h.anchorMax = h.pivot = new Vector2(1f, 1f);
                 h.anchoredPosition = new Vector2(-26f, -5f);
                 h.sizeDelta = new Vector2(48f, 7f);
@@ -173,7 +257,7 @@ namespace SpaceStation.UI
                 hatchImage = hi;
             }
             // 패널 안을 가끔 지나가는 가는 빛줄기 + 사선 줄무늬 맥박 (글자보다 먼저 만들어 뒤에 그려짐)
-            var scan = Rect("PanelScan", go.transform);
+            var scan = Decorative(Rect("PanelScan", go.transform));
             scan.anchorMin = new Vector2(0f, 1f);
             scan.anchorMax = new Vector2(1f, 1f);
             scan.pivot = new Vector2(0.5f, 0.5f);
@@ -189,7 +273,7 @@ namespace SpaceStation.UI
             pfx.Period = 4f + UnityEngine.Random.value * 3f;
             if (connector > 0f)
             {
-                var c = Rect("Connector", go.transform);
+                var c = Decorative(Rect("Connector", go.transform));
                 c.anchorMin = c.anchorMax = c.pivot = new Vector2(0f, 0f);
                 c.anchoredPosition = new Vector2(10f, -connector);
                 c.sizeDelta = new Vector2(1.5f, connector);
@@ -212,6 +296,7 @@ namespace SpaceStation.UI
             if (string.IsNullOrEmpty(title))
                 return null;
             var t = Label(go.transform, title, 12f, TextAlignmentOptions.MidlineLeft);
+            Decorative(t.rectTransform);
             t.rectTransform.anchorMin = t.rectTransform.anchorMax = t.rectTransform.pivot = new Vector2(0f, 1f);
             t.rectTransform.anchoredPosition = new Vector2(22f, -3f);
             t.rectTransform.sizeDelta = new Vector2(220f, 18f);
@@ -249,6 +334,16 @@ namespace SpaceStation.UI
             var ti = tick.gameObject.AddComponent<Image>();
             ti.color = new Color(color.r, color.g, color.b, Mathf.Min(1f, color.a * 2.2f));
             ti.raycastTarget = false;
+            return rt;
+        }
+
+        /// <summary>장식은 레이아웃 그룹이 줄 세우지 않게 (그룹이 나중에 붙어도 되도록 미리, 11-15 ②).</summary>
+        public static RectTransform Decorative(RectTransform rt)
+        {
+            var le = rt.GetComponent<LayoutElement>();
+            if (le == null)
+                le = rt.gameObject.AddComponent<LayoutElement>();
+            le.ignoreLayout = true;
             return rt;
         }
 
@@ -318,7 +413,16 @@ namespace SpaceStation.UI
             text.fontSharedMaterial = m;
         }
 
+        /// <summary>바탕 + 테두리 (창 안 카드 · 확인 상자 등). 테크 테마(11-15 ②)면 테크 패널.</summary>
         public void Panel(GameObject go, Color fill, Color frame)
+        {
+            if (_tech)
+                TechPanel(go, fill, frame, null, 0.15f);
+            else
+                PlainPanel(go, fill, frame);
+        }
+
+        private void PlainPanel(GameObject go, Color fill, Color frame)
         {
             var img = go.GetComponent<Image>();
             if (img == null)
@@ -326,7 +430,7 @@ namespace SpaceStation.UI
             img.sprite = _fill;
             img.type = Image.Type.Sliced;
             img.color = fill;
-            var f = Rect("Frame", go.transform);
+            var f = Decorative(Rect("Frame", go.transform));
             Stretch(f);
             var fi = f.gameObject.AddComponent<Image>();
             fi.sprite = _frame;
@@ -335,7 +439,11 @@ namespace SpaceStation.UI
             fi.raycastTarget = false;
         }
 
+        /// <summary>버튼. 테크 테마(11-15 ②)면 <see cref="TechButton"/>.</summary>
         public Button Button(Transform parent, string label, float size, Action onClick, bool clickSound = true)
+            => _tech ? TechButton(parent, label, size, onClick, clickSound) : PlainButton(parent, label, size, onClick, clickSound);
+
+        private Button PlainButton(Transform parent, string label, float size, Action onClick, bool clickSound)
         {
             var rt = Rect(label, parent);
             var img = rt.gameObject.AddComponent<Image>();
@@ -370,7 +478,7 @@ namespace SpaceStation.UI
         /// </summary>
         public Button TechButton(Transform parent, string label, float size, Action onClick, bool clickSound = true)
         {
-            var button = Button(parent, label, size, onClick, clickSound);
+            var button = PlainButton(parent, label, size, onClick, clickSound);
             if (_art != null && _art.TechButton != null)
                 ((Image)button.targetGraphic).sprite = _art.TechButton;
             Glow(button.GetComponentInChildren<TMP_Text>(), 0.3f);

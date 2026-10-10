@@ -145,8 +145,32 @@ namespace SpaceStation.Editor
             Skin(root.Find("EventBanner").gameObject, HoloSkin.SkinKind.Panel, "ALERT", glow: 0.3f);
             Skin(root.Find("Tooltip").gameObject, HoloSkin.SkinKind.Panel, null, glow: 0.25f, scan: 0f, line: HudTheme.Accent);
             var art = AssetDatabase.LoadAssetAtPath<HoloArt>(HoloArtBuilder.AssetPath);
-            Set(root.GetComponentInChildren<ResearchPanel>(true), "_holoArt", art); // 연구 · 주민 여는 버튼
+            Set(root.GetComponentInChildren<ResearchPanel>(true), "_holoArt", art); // 연구 · 주민 여는 버튼 + ② 창
             Set(root.GetComponentInChildren<RosterPanel>(true), "_holoArt", art);
+            // ② 코드로 만드는 창 (테마 아트만 연결)
+            Set(root.GetComponentInChildren<SettingsPanel>(true), "_holoArt", art);
+            Set(root.GetComponentInChildren<SaveLoadPanel>(true), "_holoArt", art);
+            Set(root.GetComponentInChildren<TutorialView>(true), "_holoArt", art);
+            // ② 씬에 놓인 창: 선택 모듈 · 일시정지
+            var selection = root.Find("SelectionActions");
+            Skin(selection.gameObject, HoloSkin.SkinKind.Panel, "MODULE", connector: 14f);
+            foreach (var b in selection.GetComponentsInChildren<Button>(true))
+                Skin(b.gameObject, HoloSkin.SkinKind.Button);
+            var pause = root.Find("PauseMenu/Panel");
+            if (pause != null)
+            {
+                Skin(pause.gameObject, HoloSkin.SkinKind.Panel, "SYSTEM", glow: 0.3f, scan: 0.45f, line: new Color(HudTheme.Accent.r, HudTheme.Accent.g, HudTheme.Accent.b, 0.85f));
+                foreach (var b in pause.GetComponentsInChildren<Button>(true))
+                    Skin(b.gameObject, HoloSkin.SkinKind.Button);
+                // 키 표시는 테크 버튼 배지로 (" (ESC)")
+                var resume = pause.Find("Resume");
+                var resumeLabel = resume != null ? resume.GetComponentInChildren<TMP_Text>(true) : null;
+                if (resumeLabel != null)
+                {
+                    resumeLabel.text = "재개 (ESC)";
+                    EditorUtility.SetDirty(resumeLabel);
+                }
+            }
             SkinPrefab(ButtonPrefab);
             SkinPrefab(TabPrefab);
             EditorSceneManager.MarkSceneDirty(hud.scene);

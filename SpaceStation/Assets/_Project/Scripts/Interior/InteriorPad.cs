@@ -139,8 +139,8 @@ namespace SpaceStation.Interior
         private Button _tabManage, _tabBuild, _tabResearch, _tabRoster, _demolish;
         private TMP_Text _demolishLabel;
         private PadBuild _build;
-        private PadResearch _research;
-        private PadRoster _roster;
+        private ResearchView _research;
+        private RosterView _roster;
         private bool BuildMode => _tab == PadTab.Build;
         private float _nextRefresh;
         private bool _dirty = true;
@@ -205,11 +205,11 @@ namespace SpaceStation.Interior
                 _tabBuild.gameObject.SetActive(false); // 모형이 없으면 지을 자리를 고를 수 없음
             var sim = _c.Station.Simulation;
             if (sim.Research.Categories.Count > 0)
-                _research = new PadResearch(_ui, _researchRoot, CanvasWidth, sim);
+                _research = new ResearchView(_ui, _researchRoot, CanvasWidth, sim);
             else
                 _tabResearch.gameObject.SetActive(false);
             if (sim.Residents != null)
-                _roster = new PadRoster(_ui, _rosterRoot, CanvasWidth, sim.Residents);
+                _roster = new RosterView(_ui, _rosterRoot, CanvasWidth, sim.Residents);
             else
                 _tabRoster.gameObject.SetActive(false);
             SetTab(PadTab.Manage);

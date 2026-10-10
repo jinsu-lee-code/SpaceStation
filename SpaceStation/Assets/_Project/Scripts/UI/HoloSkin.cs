@@ -1,4 +1,4 @@
-﻿using TMPro;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -89,7 +89,7 @@ namespace SpaceStation.UI
                 old.gameObject.SetActive(false);
                 old.name = "Frame_Old";
             }
-                        _title = ui.TechPanel(gameObject, fill, line, string.IsNullOrEmpty(Title) ? null : Title, Glow, Connector);
+            _title = ui.TechPanel(gameObject, fill, line, string.IsNullOrEmpty(Title) ? null : Title, Glow, Connector);
             if (_title != null)
                 _title.name = "PanelTitle"; // 내용 글자("Text")와 구분
             var f = transform.Find("Frame");
@@ -99,52 +99,12 @@ namespace SpaceStation.UI
             var h = transform.Find("Hatch");
             _hatch = h != null ? h.GetComponent<RawImage>() : null;
             if (Scan > 0f)
-                BuildScan();
+                ui.Decor((RectTransform)transform, Scan, grid: false, inset: 4f); // 은은한 주사선 · 스캔 띠 (격자 없음)
             IgnoreLayout();
             // 제목이 있으면 첫 줄이 제목에 가리지 않게 위 여백 확보
             var layout = GetComponent<LayoutGroup>();
             if (_title != null && layout != null && layout.padding.top < 24)
                 layout.padding.top = 24;
-        }
-
-        /// <summary>패널 안쪽에만 주사선 + 스캔 띠 (깜박임 포함, 글자는 그대로). 켜짐 효과는 없음.</summary>
-        private void BuildScan()
-        {
-            if (Art == null || Art.Scan == null)
-                return;
-            var decor = HoloUi.Rect("HoloDecor", transform);
-            HoloUi.Stretch(decor, new Vector2(4f, 4f), new Vector2(-4f, -4f));
-            decor.SetSiblingIndex(_glow != null ? _glow.transform.GetSiblingIndex() + 1 : 0); // 바탕 바로 위, 내용 뒤
-            var group = decor.gameObject.AddComponent<CanvasGroup>();
-            group.interactable = false;
-            group.blocksRaycasts = false;
-            var accent = HudTheme.Accent;
-            var s = HoloUi.Rect("HoloScan", decor);
-            HoloUi.Stretch(s);
-            var scan = s.gameObject.AddComponent<RawImage>();
-            scan.texture = Art.Scan;
-            scan.color = new Color(accent.r, accent.g, accent.b, 0.09f);
-            scan.uvRect = new Rect(0f, 0f, 1f, 6f); // 높이가 레이아웃으로 바뀌므로 대략값 (가는 줄 반복)
-            scan.raycastTarget = false;
-            RectTransform sweep = null;
-            if (Art.Sweep != null)
-            {
-                sweep = HoloUi.Rect("HoloSweep", decor);
-                sweep.anchorMin = new Vector2(0f, 1f);
-                sweep.anchorMax = new Vector2(1f, 1f);
-                sweep.pivot = new Vector2(0.5f, 0.5f);
-                sweep.sizeDelta = new Vector2(0f, 40f);
-                var si = sweep.gameObject.AddComponent<Image>();
-                si.sprite = Art.Sweep;
-                si.color = new Color(accent.r, accent.g, accent.b, 0.08f);
-                si.raycastTarget = false;
-            }
-            var fx = gameObject.AddComponent<HoloFx>();
-            fx.Strength = Scan;
-            fx.Scan = scan;
-            fx.Sweep = sweep;
-            fx.Decor = group;
-            fx.SweepPeriod = 5f + Random.value * 3f;
         }
 
         /// <summary>새로 만든 장식 자식은 레이아웃 그룹이 줄 세우지 않게.</summary>

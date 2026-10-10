@@ -32,6 +32,8 @@ namespace SpaceStation.UI
         [SerializeField] private Sprite _fillSprite;
         [SerializeField] private Sprite _frameSprite;
         [SerializeField] private Sprite _buttonSprite;
+        [Tooltip("11-15 테크 홀로그램 (없으면 5-8 기본 모양)")]
+        [SerializeField] private HoloArt _holoArt;
         [SerializeField] private float _cardWidth = 380f;
         [SerializeField] private float _cardTop = -72f;
         [SerializeField] private float _completedFlashSeconds = 1.6f;
@@ -82,7 +84,7 @@ namespace SpaceStation.UI
                 gameObject.SetActive(false);
                 return;
             }
-            _ui = new HoloUi(_font, _fillSprite, _frameSprite, _buttonSprite);
+            _ui = HoloUi.For(_holoArt, _font, _fillSprite, _frameSprite, _buttonSprite);
             BuildCard();
             _frameA = CreateHighlight("HighlightA");
             _frameB = CreateHighlight("HighlightB");
@@ -111,7 +113,7 @@ namespace SpaceStation.UI
             _card.anchoredPosition = new Vector2(16f, _cardTop);
             _ui.Panel(_card.gameObject, HudTheme.PanelFill, HudTheme.Accent);
             _cardFrame = _card.Find("Frame").GetComponent<Image>();
-            _cardFrame.gameObject.AddComponent<LayoutElement>().ignoreLayout = true; // 테두리는 세로 배치에서 빼고 카드 전체를 덮음
+            HoloUi.Decorative((RectTransform)_cardFrame.transform); // 테두리는 세로 배치에서 빼고 카드 전체를 덮음
             _group = _card.gameObject.AddComponent<CanvasGroup>();
             var layout = _card.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.padding = new RectOffset(18, 18, 14, 14);

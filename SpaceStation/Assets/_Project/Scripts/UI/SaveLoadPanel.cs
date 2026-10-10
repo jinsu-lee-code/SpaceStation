@@ -26,6 +26,8 @@ namespace SpaceStation.UI
         [SerializeField] private Sprite _fillSprite;
         [SerializeField] private Sprite _frameSprite;
         [SerializeField] private Sprite _buttonSprite;
+        [Tooltip("11-15 테크 홀로그램 창")]
+        [SerializeField] private HoloArt _holoArt;
         [Tooltip("게임 씬: 불러오기 전에 지금 판이 사라진다고 확인")]
         [SerializeField] private bool _inGame;
 
@@ -51,6 +53,7 @@ namespace SpaceStation.UI
         private CanvasGroup _group;
         private RectTransform _window;
         private UiTween _tween;
+        private HoloFx _fx;
         private TMP_Text _title;
         private readonly List<Row> _rows = new List<Row>();
         private readonly List<Texture2D> _thumbs = new List<Texture2D>();
@@ -85,6 +88,7 @@ namespace SpaceStation.UI
             HideConfirm();
             Refresh();
             _tween.Play();
+            _fx?.Replay();
             AudioService.TryPlay(l => l.UiOpen);
         }
 
@@ -125,7 +129,7 @@ namespace SpaceStation.UI
         private void Build()
         {
             _built = true;
-            _ui = new HoloUi(_font, _fillSprite, _frameSprite, _buttonSprite);
+            _ui = HoloUi.For(_holoArt, _font, _fillSprite, _frameSprite, _buttonSprite);
             var root = (RectTransform)transform;
             var dim = GetComponent<Image>();
             if (dim == null)
@@ -136,7 +140,7 @@ namespace SpaceStation.UI
             _window = HoloUi.Rect("Window", root);
             _window.anchorMin = _window.anchorMax = _window.pivot = new Vector2(0.5f, 0.5f);
             _window.sizeDelta = new Vector2(WindowWidth, height);
-            _ui.Panel(_window.gameObject, new Color(0.03f, 0.07f, 0.11f, 0.97f), HudTheme.Accent);
+            _fx = _ui.Window(_window.gameObject, new Color(0.03f, 0.07f, 0.11f, 0.97f), "ARCHIVE");
 
             _title = _ui.Label(_window, "", 34f, TextAlignmentOptions.TopLeft);
             _title.fontStyle = FontStyles.Bold;
@@ -148,7 +152,7 @@ namespace SpaceStation.UI
             for (int i = 0; i < 4; i++)
                 _rows.Add(BuildRow(new Vector2(44f, -122f - i * (RowHeight + 12f))));
 
-            var close = _ui.Button(_window, "닫기  <size=70%><color=#AFC4D8>ESC</color></size>", 19f, Close, clickSound: false);
+            var close = _ui.Button(_window, "닫기 (ESC)", 19f, Close, clickSound: false);
             var crt = (RectTransform)close.transform;
             crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(1f, 0f);
             crt.anchoredPosition = new Vector2(-44f, 26f);
@@ -202,7 +206,7 @@ namespace SpaceStation.UI
                 action?.Invoke();
             }, clickSound: false);
             HoloUi.Place((RectTransform)yes.transform, new Vector2(110f, -150f), new Vector2(180f, 50f));
-            var no = _ui.Button(box, "취소  <size=70%><color=#AFC4D8>ESC</color></size>", 19f, HideConfirm);
+            var no = _ui.Button(box, "취소 (ESC)", 19f, HideConfirm);
             HoloUi.Place((RectTransform)no.transform, new Vector2(330f, -150f), new Vector2(180f, 50f));
             _confirm = overlay.gameObject;
             _confirm.SetActive(false);

@@ -25,6 +25,8 @@ namespace SpaceStation.UI
         [SerializeField] private Sprite _fillSprite;
         [SerializeField] private Sprite _frameSprite;
         [SerializeField] private Sprite _buttonSprite;
+        [Tooltip("11-15 테크 홀로그램 창 (없으면 5-8 기본 모양)")]
+        [SerializeField] private HoloArt _holoArt;
         [SerializeField] private float _confirmSeconds = 10f;
 
         private static readonly Color TextColor = new Color(0.91f, 0.96f, 1f, 1f);
@@ -41,6 +43,8 @@ namespace SpaceStation.UI
         private CanvasGroup _group;
         private RectTransform _window;
         private UiTween _tween;
+        private HoloUi _holo;   // 11-15 ② 테크 테마 (아트가 있을 때만)
+        private HoloFx _fx;
         private int _tab;
         private readonly RectTransform[] _pages = new RectTransform[TabNames.Length];
         private readonly Button[] _tabButtons = new Button[TabNames.Length];
@@ -90,6 +94,7 @@ namespace SpaceStation.UI
             transform.SetAsLastSibling();
             SetVisible(true);
             _tween.Play();
+            _fx?.Replay();
             SelectTab(_tab);
             RefreshAll();
             SettingsApplier.Refresh();
@@ -152,6 +157,7 @@ namespace SpaceStation.UI
         private void Build()
         {
             _built = true;
+            _holo = _holoArt != null ? new HoloUi(_holoArt, tech: true) : null;
             var root = (RectTransform)transform;
             var dim = gameObject.GetComponent<Image>();
             if (dim == null)
@@ -161,7 +167,10 @@ namespace SpaceStation.UI
             _window = Rect("Window", root);
             _window.anchorMin = _window.anchorMax = _window.pivot = new Vector2(0.5f, 0.5f);
             _window.sizeDelta = new Vector2(920f, WindowHeight);
-            Panel(_window.gameObject, new Color(0.03f, 0.07f, 0.11f, 0.97f), HudTheme.Accent);
+            if (_holo != null)
+                _fx = _holo.Window(_window.gameObject, new Color(0.03f, 0.07f, 0.11f, 0.97f), "SETTINGS");
+            else
+                Panel(_window.gameObject, new Color(0.03f, 0.07f, 0.11f, 0.97f), HudTheme.Accent);
 
             var title = Label(_window, "설정", 34f, TextAlignmentOptions.TopLeft);
             title.fontStyle = FontStyles.Bold;
@@ -211,7 +220,7 @@ namespace SpaceStation.UI
 
             var reset = MakeButton(_window, "기본값 복원", 19f, ResetCurrentTab);
             Place((RectTransform)reset.transform, new Vector2(44f, -(WindowHeight - 30f - 50f)), new Vector2(220f, 50f));
-            var close = MakeButton(_window, "닫기  <size=70%><color=#AFC4D8>ESC</color></size>", 19f, Close);
+            var close = MakeButton(_window, "닫기 (ESC)", 19f, Close);
             var crt = (RectTransform)close.transform;
             crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(1f, 0f);
             crt.anchoredPosition = new Vector2(-44f, 30f);
@@ -752,6 +761,11 @@ namespace SpaceStation.UI
 
         private void Panel(GameObject go, Color fill, Color frame)
         {
+            if (_holo != null)
+            {
+                _holo.Panel(go, fill, frame); // 11-15 ② 테크 패널
+                return;
+            }
             var img = go.GetComponent<Image>();
             if (img == null)
                 img = go.AddComponent<Image>();
@@ -799,6 +813,13 @@ namespace SpaceStation.UI
             text.rectTransform.anchorMax = Vector2.one;
             text.rectTransform.offsetMin = Vector2.zero;
             text.rectTransform.offsetMax = Vector2.zero;
+            if (_holo != null && _holoArt.TechButton != null)
+            {
+                // 11-15 ② 테크 버튼 (HoloUi.TechButton과 같은 모양 · 디테일)
+                img.sprite = _holoArt.TechButton;
+                HoloUi.Glow(text, 0.3f);
+                HoloButtonFx.Add(button, _holoArt);
+            }
             return button;
         }
 
