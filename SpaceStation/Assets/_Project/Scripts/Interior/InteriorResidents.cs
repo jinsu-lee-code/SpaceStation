@@ -26,6 +26,10 @@ namespace SpaceStation.Interior
         [Header("동물 주민 (11-11d)")]
         [Tooltip("동물 모델 배율 (모델 키 약 0.9m, 귀 포함 최대 1.15m — 사용자 결정 '1m 안팎')")]
         public float AnimalScale = 1f;
+
+        [Header("생명감 (11-16)")]
+        [Tooltip("서 있는 쉬는 주민이 같은 방 안의 서기 자리 사이를 가끔 걸어 다님 (방 밖으로는 안 나감)")]
+        public bool Wander = true;
     }
 
     /// <summary>
@@ -118,38 +122,84 @@ namespace SpaceStation.Interior
 
             // 방마다 자리를 차례로 (일하는 사람 → 일하는 자리, 나머지 → 앉기 먼저)
             var nextWork = new int[_rooms.Count];
-            var nextRest = new int[_rooms.Count];
+            var takenRest = new Dictionary<int, HashSet<ResidentSpot>>();
+            var wanderRooms = new Dictionary<int, (WanderRoom Room, List<ResidentSpot> Spots)>();
             foreach (var p in _placements)
             {
                 var module = _roomModules[p.Room];
                 _builder.TryGetTemplateRoom(module, out var template, out var instance);
-                var spot = NextSpot(template, p.Work, ref nextWork[p.Room], ref nextRest[p.Room]);
+                var resident = roster.Residents[p.Person];
+                // 11-16 ③ 쉬는 주민 절반(주민 번호)은 서는 자리를 먼저 — 앉기 먼저만 채우면 모두 앉아 걸어 다니는 주민이 없었음
+                bool preferStand = _tuning.Wander && (resident.Id & 1) == 1;
+                if (!takenRest.TryGetValue(p.Room, out var taken))
+                    takenRest[p.Room] = taken = new HashSet<ResidentSpot>();
+                var spot = NextSpot(template, p.Work, preferStand, taken, ref nextWork[p.Room]);
                 if (spot == null)
                     continue;
-                var resident = roster.Residents[p.Person];
-                Spawn(resident, spot, instance, _builder.RoomParent(module), Status(resident, module, p, day), roster.Config);
+                var figure = Spawn(resident, spot, instance, _builder.RoomParent(module), Status(resident, module, p, day), roster.Config, out float mood);
+                // 11-16 ③ 서 있는 쉬는 주민은 같은 방의 서기 자리 사이를 가끔 걸어 다님
+                if (_tuning.Wander && !spot.Work && spot.Pose == ResidentPose.Stand)
+                {
+                    if (!wanderRooms.TryGetValue(p.Room, out var wr))
+                    {
+                        wr = (new WanderRoom(), new List<ResidentSpot>());
+                        foreach (var s in template.ResidentSpots)
+                        {
+                            if (s.Work || s.Pose != ResidentPose.Stand)
+                                continue;
+                            wr.Room.Add(instance.TransformPoint(s.Position), (instance.rotation * Quaternion.Euler(0f, s.Yaw, 0f)).eulerAngles.y);
+                            wr.Spots.Add(s);
+                        }
+                        wanderRooms[p.Room] = wr;
+                    }
+                    int home = wr.Spots.IndexOf(spot);
+                    if (home >= 0)
+                        figure.gameObject.AddComponent<ResidentWander>().Init(wr.Room, home, mood, _eye, _tuning.AnimalScale, resident.Id);
+                }
             }
         }
 
-        private static ResidentSpot NextSpot(InteriorTemplate template, bool work, ref int nextWork, ref int nextRest)
+        /// <summary>
+        /// 일하는 자리는 차례로. 쉬는 자리는 템플릿 순서(앉기 먼저)대로 빈 곳 — <paramref name="preferStand"/>면 빈 서기 자리를 먼저.
+        /// </summary>
+        private static ResidentSpot NextSpot(InteriorTemplate template, bool work, bool preferStand, HashSet<ResidentSpot> takenRest, ref int nextWork)
         {
-            int seen = 0;
+            if (work)
+            {
+                int seen = 0;
+                foreach (var s in template.ResidentSpots)
+                {
+                    if (!s.Work)
+                        continue;
+                    if (seen++ == nextWork)
+                    {
+                        nextWork++;
+                        return s;
+                    }
+                }
+                return null;
+            }
+            ResidentSpot first = null;
             foreach (var s in template.ResidentSpots)
             {
-                if (s.Work != work)
+                if (s.Work || takenRest.Contains(s))
                     continue;
-                if (seen++ == (work ? nextWork : nextRest))
+                if (!preferStand || s.Pose == ResidentPose.Stand)
                 {
-                    if (work) nextWork++;
-                    else nextRest++;
+                    takenRest.Add(s);
                     return s;
                 }
+                if (first == null)
+                    first = s;
             }
-            return null;
+            if (first != null)
+                takenRest.Add(first);
+            return first;
         }
 
         /// <summary>11-11d 동물 주민: 종류 · 털색 = 주민 번호 (<see cref="AnimalLooks"/>).</summary>
-        private void Spawn(Resident resident, ResidentSpot spot, Transform instance, Transform parent, string status, ResidentConfig config)
+        private ResidentFigure Spawn(Resident resident, ResidentSpot spot, Transform instance, Transform parent, string status, ResidentConfig config,
+            out float mood)
         {
             int id = resident.Id;
             var species = _animals.Species[AnimalLooks.Species(id, _animals.Species.Count)];
@@ -163,9 +213,10 @@ namespace SpaceStation.Interior
             figure.name = "Resident_" + id;
             // 11-16 기분 = 본인 보정(특성) + 정거장 만족도 + 집 없음 → 평소 동작 · 반응
             var sim = _station.Simulation;
-            float mood = ResidentMood.Of(sim.Residents.PersonalMood(resident), sim.Population.Satisfaction, resident.Home == null);
+            mood = ResidentMood.Of(sim.Residents.PersonalMood(resident), sim.Population.Satisfaction, resident.Home == null);
             figure.Configure(Label(resident, species.DisplayName, status, config), mood, _eye, _tuning.WatchRange);
             _figures.Add(figure);
+            return figure;
         }
 
         private static string Status(Resident r, ModuleInstance room, Placement p, bool day)

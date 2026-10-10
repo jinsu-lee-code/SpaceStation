@@ -58,6 +58,24 @@ namespace SpaceStation.Interior
         /// <summary>지금 하는 동작 (확인용).</summary>
         public string Current => _act.ToString();
 
+        /// <summary>플레이어에게 반응하는 중 (걷기를 잠깐 멈춤).</summary>
+        public bool Reacting => _act == Act.Wave || _act == Act.HopWave || _act == Act.TurnAway;
+
+        private Transform _lThigh, _rThigh, _lShin, _rShin;
+        private float _walk;        // 걷기 섞는 정도 0~1
+        private float _walkPhase;
+
+        /// <summary>
+        /// 11-16 ③ 걷기 (<see cref="ResidentWander"/>가 매 프레임 부름): speed = 초당 m(모델 원래 크기 기준, 0이면 멈춤).
+        /// 다리를 앞뒤로 · 무릎 굽힘 · 팔은 반대로 · 몸이 통통 튐. 보폭 약 0.16m.
+        /// </summary>
+        public void Walk(float speed, float dt)
+        {
+            _walk = Mathf.MoveTowards(_walk, speed > 0.01f ? 1f : 0f, dt * 5f);
+            if (speed > 0.01f)
+                _walkPhase += dt * speed / 0.16f * Mathf.PI;
+        }
+
         private float _hold = -1f;
 
         /// <summary>
@@ -94,6 +112,10 @@ namespace SpaceStation.Interior
             _lLower = bones(HumanBodyBones.LeftLowerArm);
             _rUpper = bones(HumanBodyBones.RightUpperArm);
             _rLower = bones(HumanBodyBones.RightLowerArm);
+            _lThigh = bones(HumanBodyBones.LeftUpperLeg);
+            _rThigh = bones(HumanBodyBones.RightUpperLeg);
+            _lShin = bones(HumanBodyBones.LeftLowerLeg);
+            _rShin = bones(HumanBodyBones.RightLowerLeg);
             var extra = new Dictionary<string, Transform>();
             foreach (var t in model.GetComponentsInChildren<Transform>(true))
                 extra[t.name] = t;
@@ -103,7 +125,7 @@ namespace SpaceStation.Interior
             extra.TryGetValue("LeftEye", out _eyes[0]);
             extra.TryGetValue("RightEye", out _eyes[1]);
 
-            foreach (var b in new[] { _hips, _chest, _head, _lUpper, _lLower, _rUpper, _rLower, _lEar, _rEar, _tail,
+            foreach (var b in new[] { _hips, _chest, _head, _lUpper, _lLower, _rUpper, _rLower, _lEar, _rEar, _tail, _lThigh, _rThigh, _lShin, _rShin,
                          bones(HumanBodyBones.Spine), bones(HumanBodyBones.Neck), bones(HumanBodyBones.LeftHand), bones(HumanBodyBones.RightHand) })
             {
                 if (b != null)
@@ -166,7 +188,8 @@ namespace SpaceStation.Interior
             if (_hold < 0f)
             {
                 UpdateReaction(now);
-                UpdateIdle(now, standing);
+                if (_walk < 0.05f)
+                    UpdateIdle(now, standing);   // 걷는 중에는 기지개 · 폴짝 안 함
             }
             float k = _hold >= 0f ? _hold : _act != Act.None ? Mathf.Clamp01((now - _actStart) / _actLength) : 0f;
             float env = Envelope(k);
@@ -185,6 +208,13 @@ namespace SpaceStation.Interior
                     lift += hk < 2f ? 0.07f * Mathf.Sin(Mathf.Repeat(hk, 1f) * Mathf.PI) : 0f;
                 }
                 Rotate(_hips, root.forward, Mathf.Sin(_phase * 0.7f) * 1.6f);
+                if (_walk > 0f)
+                {
+                    // 걷기: 걸음마다 몸이 통통 + 좌우로 살짝 기우뚱
+                    float s = Mathf.Sin(_walkPhase);
+                    lift += _walk * 0.022f * Mathf.Abs(Mathf.Cos(_walkPhase));
+                    Rotate(_hips, root.forward, _walk * s * 4f);
+                }
             }
             if (_model != null)
                 _model.localPosition = _modelRest + Vector3.up * (lift * _scale);
@@ -193,6 +223,7 @@ namespace SpaceStation.Interior
 
             UpdateHead(root, now, k, env);
             UpdateArms(root, k, env);
+            UpdateLegs(root);
             UpdateEars(root, now);
             UpdateTail(root);
             UpdateEyes(now);
@@ -345,6 +376,24 @@ namespace SpaceStation.Interior
                         Rotate(_rUpper, root.forward, -Mathf.Sin(_phase * 1.6f) * 1.5f);
                     }
                     break;
+            }
+        }
+
+        /// <summary>걷기: 허벅지 앞뒤(왼 · 오른 반대), 뒤로 간 다리는 무릎을 굽혀 발을 듦, 팔은 다리와 반대로.</summary>
+        private void UpdateLegs(Transform root)
+        {
+            if (_walk <= 0f)
+                return;
+            float s = Mathf.Sin(_walkPhase);
+            // 인물 오른쪽 축으로 −면 다리가 앞으로
+            Rotate(_lThigh, root.right, -26f * s * _walk);
+            Rotate(_rThigh, root.right, 26f * s * _walk);
+            Rotate(_lShin, root.right, 30f * Mathf.Max(0f, -s) * _walk);
+            Rotate(_rShin, root.right, 30f * Mathf.Max(0f, s) * _walk);
+            if (!Reacting && _act != Act.Stretch)
+            {
+                Rotate(_lUpper, root.right, 18f * s * _walk);
+                Rotate(_rUpper, root.right, -18f * s * _walk);
             }
         }
 
