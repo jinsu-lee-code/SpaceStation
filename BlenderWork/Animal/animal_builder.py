@@ -233,6 +233,18 @@ LIMB_MAT = 'Dark' if KIND == 'panda' else 'Fur'     # 판다 = 팔다리 검정
 def W_part(b): return lambda p: {b: 1.0}
 
 
+# 11-16 생명감용 덧붙인 본 (사람형 22본 밖, Unity에서 코드로 돌림): 귀(처짐 · 쫑긋) · 꼬리(흔들기) · 눈(깜빡임 = 세로로 납작하게)
+EXTRA = {}   # 본 이름 → (머리 끝, 꼬리 끝, 부모)
+
+
+def W_soft(b, parent, base, axis, start=-0.01, width=0.05):
+    """뿌리(base)에서 axis 방향으로 갈수록 parent → b. 뿌리는 부모에 붙어 있어 돌려도 머리 · 엉덩이와 틈이 생기지 않음."""
+    def f(p):
+        t = ss(((p - base).dot(axis) - start) / width)
+        return {parent: 1 - t, b: t}
+    return f
+
+
 def rz(deg): return Matrix.Rotation(math.radians(deg), 3, 'Z')
 
 
@@ -264,27 +276,35 @@ for sx, side in ((1, 'Left'), (-1, 'Right')):
 ellipsoid(HEAD_C, HEAD_R, seg=16, rings=11, w=W_head)
 
 
-def head_disc(yaw, pitch, r, mat, out=-0.01, lift=0.0, turn=0.0, inner=None):
-    """머리 위 · 옆에 세운 둥근 귀 (앞을 보는 납작한 원반) + 안쪽 밝은 원반."""
+def head_disc(yaw, pitch, r, mat, out=-0.01, lift=0.0, turn=0.0, inner=None, ear=None):
+    """머리 위 · 옆에 세운 둥근 귀 (앞을 보는 납작한 원반) + 안쪽 밝은 원반. ear = 'Left' / 'Right'면 귀 본(아래쪽 뿌리 기준)."""
     p, n = on_head(yaw, pitch, out)
     p = p + Vector((0, 0, lift))
     rot = rz(turn)
-    ellipsoid(p, r, seg=14, rings=8, rot=rot, mat=mat, w=W_head)
+    w = W_head
+    if ear:
+        base = p - Vector((0, 0, r[2] * 0.6)); up = Vector((0, 0, 1))
+        w = W_soft(ear + 'Ear', 'Head', base, up, start=0.0, width=r[2] * 0.8)
+        EXTRA[ear + 'Ear'] = (base, base + up * r[2] * 1.6, 'Head')
+    ellipsoid(p, r, seg=14, rings=8, rot=rot, mat=mat, w=w)
     if inner:
         fw = rot @ Vector((0, -1, 0))
-        ellipsoid(p + fw * (r[1] * 0.55), (r[0] * 0.62, r[1] * 0.5, r[2] * 0.62), seg=12, rings=7, rot=rot, mat=inner, w=W_head)
+        ellipsoid(p + fw * (r[1] * 0.55), (r[0] * 0.62, r[1] * 0.5, r[2] * 0.62), seg=12, rings=7, rot=rot, mat=inner, w=w)
 
 
 def pointy_ear(sx, yaw, pitch, length, width, out_deg, back_deg, inner='FurLight', tip=None):
-    """세모 귀: 머리에서 끝이 뾰족한 납작한 관 + 앞쪽 안쪽."""
+    """세모 귀: 머리에서 끝이 뾰족한 납작한 관 + 앞쪽 안쪽. 귀 본 = 뿌리 → 끝."""
     base, n = on_head(yaw * sx, pitch, -0.03)
     tilt = Matrix.Rotation(math.radians(out_deg * sx), 3, 'Y') @ Matrix.Rotation(math.radians(-back_deg), 3, 'X')
     up = tilt @ Vector((0, 0, 1)); fw = (tilt @ Vector((0, -1, 0))).normalized()
     tipp = base + up * length
-    limb([base, tipp], [width, 0.004], cap=4, flat=0.45, w=W_head)
-    limb([base + up * 0.025 + fw * 0.012, tipp - up * 0.03 + fw * 0.012], [width * 0.6, 0.003], cap=3, flat=0.3, mat=inner, w=W_head)
+    side = 'Left' if sx > 0 else 'Right'
+    w = W_soft(side + 'Ear', 'Head', base, up, start=0.02, width=0.04)   # 머리 속에 묻힌 뿌리는 머리에
+    EXTRA[side + 'Ear'] = (base, tipp, 'Head')
+    limb([base, tipp], [width, 0.004], cap=4, flat=0.45, w=w)
+    limb([base + up * 0.025 + fw * 0.012, tipp - up * 0.03 + fw * 0.012], [width * 0.6, 0.003], cap=3, flat=0.3, mat=inner, w=w)
     if tip:
-        limb([base + up * (length * 0.72), tipp + up * 0.002], [width * 0.33, 0.005], cap=3, flat=0.5, mat=tip, w=W_head)
+        limb([base + up * (length * 0.72), tipp + up * 0.002], [width * 0.33, 0.005], cap=3, flat=0.5, mat=tip, w=w)
 
 
 def nose(p, r, mat='Dark'):
@@ -294,9 +314,11 @@ def nose(p, r, mat='Dark'):
 for sx, side in ((1, 'Left'), (-1, 'Right')):
     # 눈: 검은 반짝이는 타원 + 흰 반사점 (모든 종류)
     ep, en = on_head(0.36 * sx, 0.02, -0.006)
-    ellipsoid(ep, (0.028, 0.012, 0.036), seg=12, rings=7, rot=en.to_track_quat('-Y', 'Z').to_matrix(), mat='Eye', w=W_head)
+    W_eye = W_part(side + 'Eye')                        # 11-16 눈 본: 세로로 납작하게 해서 깜빡임 (반사점도 함께)
+    EXTRA[side + 'Eye'] = (ep, ep + en * 0.04, 'Head')
+    ellipsoid(ep, (0.028, 0.012, 0.036), seg=12, rings=7, rot=en.to_track_quat('-Y', 'Z').to_matrix(), mat='Eye', w=W_eye)
     hp_, hn = on_head(0.36 * sx - 0.03 * sx, 0.10, 0.005)
-    ellipsoid(hp_, (0.009, 0.004, 0.009), seg=8, rings=5, rot=hn.to_track_quat('-Y', 'Z').to_matrix(), mat='EyeHi', w=W_head)
+    ellipsoid(hp_, (0.009, 0.004, 0.009), seg=8, rings=5, rot=hn.to_track_quat('-Y', 'Z').to_matrix(), mat='EyeHi', w=W_eye)
     # 볼터치
     cp, cn = on_head(0.62 * sx, -0.22, -0.004)
     ellipsoid(cp, (0.03, 0.006, 0.02), seg=10, rings=5, rot=cn.to_track_quat('-Y', 'Z').to_matrix(), mat='Pink', w=W_head)
@@ -305,23 +327,28 @@ for sx, side in ((1, 'Left'), (-1, 'Right')):
         base, n = on_head(0.50 * sx, 1.10, -0.02)
         tilt = Matrix.Rotation(math.radians(15 * sx), 3, 'Y') @ Matrix.Rotation(math.radians(-10), 3, 'X')
         up = tilt @ Vector((0, 0, 1)); tip = base + up * 0.27
-        capsule(base, tip, 0.048, 0.034, seg=10, rings=5, flat=0.42, w=W_head)
+        W_ear = W_soft(side + 'Ear', 'Head', base, up, start=0.02, width=0.05)
+        EXTRA[side + 'Ear'] = (base, tip, 'Head')
+        capsule(base, tip, 0.048, 0.034, seg=10, rings=5, flat=0.42, w=W_ear)
         fw = (tilt @ Vector((0, -1, 0))).normalized()
-        capsule(base + up * 0.05 + fw * 0.013, tip - up * 0.02 + fw * 0.013, 0.03, 0.02, seg=10, rings=4, flat=0.3, mat='Pink', w=W_head)
+        capsule(base + up * 0.05 + fw * 0.013, tip - up * 0.02 + fw * 0.013, 0.03, 0.02, seg=10, rings=4, flat=0.3, mat='Pink', w=W_ear)
     elif KIND == 'cat':
         pointy_ear(sx, 0.55, 0.92, 0.13, 0.066, 18, 5, inner='Pink')     # 0.11 · 0.055는 작아 보였음
     elif KIND == 'fox':
         pointy_ear(sx, 0.52, 0.95, 0.15, 0.062, 14, 5, inner='FurLight', tip='Dark')
     elif KIND == 'dog':                                 # 늘어진 귀 (머리 옆에서 아래로)
         p, n = on_head(0.80 * sx, 0.40, 0.004)
+        rot = Matrix.Rotation(math.radians(-18 * sx), 3, 'Y')
+        base = p + Vector((0, 0, 0.012)); down = rot @ Vector((0, 0, -1))   # 귀 본 = 위 뿌리에서 아래로 (늘어진 귀가 흔들림)
+        EXTRA[side + 'Ear'] = (base, base + down * 0.15, 'Head')
         ellipsoid(p + Vector((0.012 * sx, 0, -0.06)), (0.022, 0.05, 0.085), seg=12, rings=8,
-                  rot=Matrix.Rotation(math.radians(-18 * sx), 3, 'Y'), mat='Dark', w=W_head)
+                  rot=rot, mat='Dark', w=W_soft(side + 'Ear', 'Head', base, down, start=0.0, width=0.05))
     elif KIND in ('bear', 'panda'):                     # 둥근 귀
         head_disc(0.62 * sx, 0.78, (0.055, 0.025, 0.052), 'Dark' if KIND == 'panda' else 'Fur', lift=0.015, turn=20 * sx,
-                  inner=None if KIND == 'panda' else 'FurLight')
+                  inner=None if KIND == 'panda' else 'FurLight', ear=side)
     elif KIND == 'koala':                               # 크고 복슬한 귀 (옆으로)
         # 55°로 옆을 보게 두면 옆에서 납작한 원판처럼 보였음 → 머리 위 옆에서 앞을 보게
-        head_disc(0.82 * sx, 0.62, (0.085, 0.035, 0.08), 'Fur', out=-0.02, lift=0.01, turn=28 * sx, inner='FurLight')
+        head_disc(0.82 * sx, 0.62, (0.085, 0.035, 0.08), 'Fur', out=-0.02, lift=0.01, turn=28 * sx, inner='FurLight', ear=side)
     if KIND == 'panda':                                 # 눈 무늬 (바깥 아래로 기운 타원)
         surface_patch(HEAD_C, HEAD_R, 0.072 * sx, HEAD_C.z - 0.01, 0.042, 0.058, ang=math.radians(-35 * sx), mat='Dark', w=W_head)
 
@@ -355,7 +382,13 @@ elif KIND == 'penguin':                                 # 흰 얼굴 + 주황 �
     limb([bp, bp + Vector((0, -0.055, -0.012))], [0.03, 0.006], cap=4, flat=0.55, mat='Beak', w=W_head)
 
 # 꼬리
-W_tail = W_part('Hips')
+# 11-16 꼬리 본: 뿌리 → 꼬리 방향 (긴 꼬리는 뿌리에서 갈수록 Hips → Tail, 둥근 꼬리는 통째로)
+TAIL = {'rabbit': ((0, 0.10, 0.27), (0, 0.18, 0.27), False), 'cat': ((0, 0.07, 0.25), (0, 0.17, 0.2), True),
+        'dog': ((0, 0.08, 0.27), (0, 0.16, 0.3), True), 'fox': ((0, 0.07, 0.25), (0, 0.17, 0.18), True),
+        'penguin': ((0, 0.09, 0.22), (0, 0.16, 0.19), False)}.get(KIND, ((0, 0.10, 0.27), (0, 0.17, 0.27), False))
+T0, T1 = Vector(TAIL[0]), Vector(TAIL[1])
+EXTRA['Tail'] = (T0, T1, 'Hips')
+W_tail = W_soft('Tail', 'Hips', T0, (T1 - T0).normalized(), start=0.0, width=0.05) if TAIL[2] else W_part('Tail')
 if KIND == 'rabbit':
     ellipsoid(Vector((0, 0.13, 0.27)), (0.05, 0.045, 0.05), seg=10, rings=7, mat='FurLight', w=W_tail)
 elif KIND == 'cat':
@@ -400,6 +433,8 @@ for sx, side in ((1, 'Left'), (-1, 'Right')):
     bone(side + 'LowerLeg', kn, an, side + 'UpperLeg')
     bone(side + 'Foot', an, Vector((0.085 * sx, -0.09, 0.025)), side + 'LowerLeg')
     bone(side + 'Toes', Vector((0.085 * sx, -0.09, 0.025)), Vector((0.085 * sx, -0.14, 0.02)), side + 'Foot')
+for n, (h, t, par) in EXTRA.items():                     # 11-16 귀 · 꼬리 · 눈
+    bone(n, h, t, par)
 bpy.ops.object.mode_set(mode='OBJECT')
 
 # ---- 한 메시로 합치고 가중치 ----
