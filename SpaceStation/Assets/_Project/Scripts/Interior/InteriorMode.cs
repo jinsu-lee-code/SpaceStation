@@ -817,7 +817,7 @@ namespace SpaceStation.Interior
             if (hint == null)
                 return;
             string move = $"{KeyBindings.Label(GameAction.CameraForward)}{KeyBindings.Label(GameAction.CameraLeft)}{KeyBindings.Label(GameAction.CameraBack)}{KeyBindings.Label(GameAction.CameraRight)}";
-            hint.SetText($"{move} 이동 · 마우스 둘러보기 · Shift 달리기 · {KeyBindings.Label(GameAction.Interact)} 해치 · 작업 ·{KeyBindings.Label(GameAction.Pad)} 패드 · ESC 나가기");
+            hint.SetText($"{move} 이동 · 마우스 둘러보기 · Shift 달리기 · {KeyBindings.Label(GameAction.Interact)} 해치 · 작업 · {KeyBindings.Label(GameAction.Pad)} 패드 · ESC 나가기");
         }
 
         private IEnumerator Fade(float from, float to, float seconds)

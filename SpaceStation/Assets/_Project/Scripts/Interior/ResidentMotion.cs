@@ -203,7 +203,7 @@ namespace SpaceStation.Interior
                 return;
             float now = Time.unscaledTime;
             _reactReady = now + ReactCooldown;
-            Start(_pose == ResidentPose.Stand || _standBlend >= 1f ? Act.HopWave : Act.Wave, now, 1.8f);
+            BeginAct(_pose == ResidentPose.Stand || _standBlend >= 1f ? Act.HopWave : Act.Wave, now, 1.8f);
         }
 
         public void Configure(float mood, Transform watcher, float lookRange)
@@ -290,13 +290,13 @@ namespace SpaceStation.Interior
                     _reactReady = now + ReactCooldown;
                     var r = ResidentMood.Reaction(_mood, _id, _meet++);
                     if (r == ResidentReaction.HopWave)
-                        Start(_pose == ResidentPose.Stand || _standBlend >= 1f ? Act.HopWave : Act.Wave, now, 1.8f);
+                        BeginAct(_pose == ResidentPose.Stand || _standBlend >= 1f ? Act.HopWave : Act.Wave, now, 1.8f);
                     else if (r == ResidentReaction.Wave)
-                        Start(Act.Wave, now, 1.6f);
+                        BeginAct(Act.Wave, now, 1.6f);
                     else if (r == ResidentReaction.TurnAway)
                     {
                         _turnSide = YawTo(to) >= 0f ? -1f : 1f; // 플레이어 반대쪽으로
-                        Start(Act.TurnAway, now, 2.6f);
+                        BeginAct(Act.TurnAway, now, 2.6f);
                     }
                 }
             }
@@ -315,18 +315,18 @@ namespace SpaceStation.Interior
                 return; // 플레이어를 보는 중에는 딴짓 안 함
             double r = _rng.NextDouble();
             if (standing && _mood > 0.2f && r < 0.25)
-                Start(Act.Hop, now, 0.9f);
+                BeginAct(Act.Hop, now, 0.9f);
             else if (r < 0.5 && _pose != ResidentPose.Work && now >= _stretchReady)
             {
                 // 기지개는 드물게 (주민마다 45~80초에 한 번 — 자주 하면 어색하다는 피드백, 11-16)
-                Start(Act.Stretch, now, 1.5f);
+                BeginAct(Act.Stretch, now, 1.5f);
                 _stretchReady = now + StretchGapMin + (float)_rng.NextDouble() * (StretchGapMax - StretchGapMin);
             }
             else
-                Start(Act.LookAround, now, 2.6f);
+                BeginAct(Act.LookAround, now, 2.6f);
         }
 
-        private void Start(Act act, float now, float length)
+        private void BeginAct(Act act, float now, float length)
         {
             _act = act;
             _actStart = now;
