@@ -16,7 +16,9 @@ namespace SpaceStation.Editor
     {
         public const string CompanyName = "BinaryCompany";
         public const string ProductName = "Another Earth";
-        public const string Version = "0.10.0"; // Phase 10 (2026-10-04)
+        public const string Version = "0.11.0"; // Phase 11 (2026-10-11, 11-19 포트폴리오 빌드)
+        /// <summary>메인 메뉴 오른쪽 아래 버전 표시 (11-19: Phase 11 이후에도 "v0.10 · Phase 10"으로 남아 있었음 → 여기 한 곳에서).</summary>
+        public const string VersionLabel = "v0.11 · Phase 11";
         private const string OutputFolder = "Builds/Windows";
         private const string ExeName = "AnotherEarth.exe";
 
@@ -37,6 +39,37 @@ namespace SpaceStation.Editor
             Debug.Log($"[BuildSetup] 플레이어 설정: {CompanyName} / {ProductName} {Version}, 테두리 없는 전체 화면");
         }
 
+        /// <summary>
+        /// 11-19: 메인 메뉴 씬의 버전 글자만 <see cref="VersionLabel"/>로 (씬을 다시 만들면 나중에 입힌 테크 스킨이 풀리므로 글자만 고침).
+        /// 열려 있던 씬은 그대로 두고 메뉴 씬을 따로 열어 저장한 뒤 닫는다.
+        /// </summary>
+        public static void ApplyMenuVersionLabel()
+        {
+            const string menuScene = "Assets/_Project/Scenes/MainMenu.unity";
+            var scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(menuScene, UnityEditor.SceneManagement.OpenSceneMode.Additive);
+            try
+            {
+                foreach (var root in scene.GetRootGameObjects())
+                {
+                    foreach (var text in root.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                    {
+                        if (text.name != "Version" || text.text == VersionLabel)
+                            continue;
+                        text.text = VersionLabel;
+                        EditorUtility.SetDirty(text);
+                        UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
+                    }
+                }
+                if (scene.isDirty)
+                    UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
+            }
+            finally
+            {
+                if (UnityEngine.SceneManagement.SceneManager.sceneCount > 1)
+                    UnityEditor.SceneManagement.EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
         [MenuItem("SpaceStation/Build/Build Windows")]
         public static void BuildWindowsMenu() => BuildWindows(false);
 
@@ -44,6 +77,7 @@ namespace SpaceStation.Editor
         public static string BuildWindows(bool development)
         {
             ApplyPlayerSettings();
+            ApplyMenuVersionLabel();
             string root = Directory.GetParent(Application.dataPath).FullName;
             string folder = Path.Combine(root, OutputFolder);
             Directory.CreateDirectory(folder);
