@@ -54,6 +54,45 @@ namespace SpaceStation.Editor.Teaser
             return record ? "녹화 시작" : "연출 시작 (녹화 없음)";
         }
 
+        [MenuItem("SpaceStation/Teaser/Record Play Tour")]
+        public static void RecordTourMenu() => BeginTour(true, 0);
+
+        [MenuItem("SpaceStation/Teaser/Record Play Tour", true)]
+        private static bool RecordTourMenuValidate() => Application.isPlaying && _controller == null;
+
+        /// <summary>
+        /// 11-19 플레이 영상 (기능 투어, 약 4분). 플레이 모드의 게임 씬에서 시작 — 메인 메뉴를 스스로 불러옴.
+        /// 결과: Presentation/AnotherEarth_PlayTour.mp4 + 장면 캡처 Presentation/tour_stills/.
+        /// </summary>
+        /// <param name="startChapter">확인용: 이 장부터 (3 이상이면 slot1을 불러와 시작).</param>
+        public static string BeginTour(bool record, int startChapter)
+        {
+            if (!Application.isPlaying)
+                return "플레이 모드에서 실행하세요";
+            if (Object.FindFirstObjectByType<PlayTourDirector>() != null)
+                return "이미 진행 중";
+            string folder = Path.Combine(RepoRoot, "Presentation");
+            string stills = Path.Combine(folder, "tour_stills");
+            Directory.CreateDirectory(stills);
+            var go = new GameObject("PlayTourDirector");
+            var director = go.AddComponent<PlayTourDirector>();
+            if (director == null)
+            {
+                Object.Destroy(go);
+                return "연출 스크립트를 붙이지 못함";
+            }
+            director.StillFolder = stills;
+            director.StartChapter = startChapter;
+            if (record)
+                StartRecording(Path.Combine(folder, "AnotherEarth_PlayTour"));
+            director.Finished = () =>
+            {
+                Stop();
+                Debug.Log("[PlayTour] 끝 → " + folder);
+            };
+            return record ? "녹화 시작" : "연출 시작 (녹화 없음)";
+        }
+
         private static void StartRecording(string outputWithoutExtension)
         {
             var settings = ScriptableObject.CreateInstance<RecorderControllerSettings>();
