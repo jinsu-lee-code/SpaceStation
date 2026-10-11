@@ -33,7 +33,7 @@ namespace SpaceStation.Interior
         [Tooltip("들어가 있는 동안 끄는 태양 조명")]
         [SerializeField] private Light _sun;
         [Tooltip("내부를 만드는 위치 (외부 정거장이 내부 카메라 시야 거리 InteriorFarClip 밖에 있도록). 너무 멀면 float 정밀도가 떨어짐 — " +
-                 "y −5000에서는 정점 위치가 0.5mm 단위로 끊겨 패드 글자(높이 4mm) 크기 · 기준선이 들쭉날쭉했음 (11-16 피드백) → −400 (0.03mm)")]
+                 "y -5000에서는 정점 위치가 0.5mm 단위로 끊겨 패드 글자(높이 4mm) 크기 · 기준선이 들쭉날쭉했음 (11-16 피드백) → -400 (0.03mm)")]
         [SerializeField] private Vector3 _origin = new Vector3(0f, -400f, 0f);
         /// <summary>내부에 있는 동안 카메라 시야 거리 — 내부(원점 근처 ±수십 m)는 다 보이고, 바깥 정거장(y 0 근처, 원점에서 350m 이상)은 안 보이게.</summary>
         private const float InteriorFarClip = 250f;
