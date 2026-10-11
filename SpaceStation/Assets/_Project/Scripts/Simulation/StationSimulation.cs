@@ -215,8 +215,12 @@ namespace SpaceStation.Simulation
                 EvaluateProgression();
                 return;
             }
+            // 11-18: 튜토리얼 중에는 파손 확산 · 파괴 타이머와 노후화가 멈춤 (안내대로 따라가다 무너지지 않게, 정비는 정비 단계에서)
+            bool tutorial = Tutorial != null && Tutorial.Active;
+            Damage.TimersHeld = tutorial;
             Damage.Tick(dt);
-            Durability.Tick(dt); // 내구도 0 → 파괴
+            if (!tutorial)
+                Durability.Tick(dt); // 내구도 0 → 파괴
             CollectActiveModules();
             Resources.SetExternalDrain(ResourceType.Oxygen, Damage.OxygenLeakPerSecond);
             Resources.SolarMultiplier = DayNight.SolarMultiplier(ElapsedSeconds); // 이번 틱 시작 시점의 낮/밤
@@ -293,7 +297,19 @@ namespace SpaceStation.Simulation
         }
 
         /// <summary>위치와 무관한 건설 가능 여부 (해금·최대 설치 수).</summary>
-        public PlacementResult CheckBuildable(ModuleData data) => Progression.CheckBuildable(data, Grid);
+        public PlacementResult CheckBuildable(ModuleData data)
+        {
+            var result = Progression.CheckBuildable(data, Grid);
+            // 11-18: 튜토리얼 중에는 지금 단계의 모듈만 (등급 잠김이 먼저)
+            if (result == PlacementResult.Valid && Tutorial != null && !Tutorial.Allows(TutorialAction.Build, data))
+                return PlacementResult.TutorialLocked;
+            return result;
+        }
+
+        private int _forcedMeteorHits;
+
+        /// <summary>11-18 튜토리얼: 다음 운석 한 번의 피해 개수를 정함 (0 = 등급대로).</summary>
+        internal void ForceNextMeteorHits(int hits) => _forcedMeteorHits = Math.Max(0, hits);
 
         public bool CanAfford(ModuleData data) => data != null && Resources.CanAfford(GetBuildCost(data));
 
@@ -922,7 +938,9 @@ namespace SpaceStation.Simulation
             }
             else
             {
-                Damage.PickMeteorTargets(Grid, Core, RollMeteorHits(), _random01, _meteorCandidates);
+                int hits = _forcedMeteorHits > 0 ? _forcedMeteorHits : RollMeteorHits(); // 11-18 튜토리얼 운석은 1개
+                _forcedMeteorHits = 0;
+                Damage.PickMeteorTargets(Grid, Core, hits, _random01, _meteorCandidates);
                 Defense.RedirectToDecoys(Grid, _meteorCandidates, _random01); // 8-5 장갑 격벽 끌어오기
             }
             if (_meteorCandidates.Count == 0)

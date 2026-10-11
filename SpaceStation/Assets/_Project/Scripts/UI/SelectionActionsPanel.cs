@@ -55,6 +55,11 @@ namespace SpaceStation.UI
             _group != null && _group.alpha > 0.5f && _repairButton.gameObject.activeInHierarchy && _repairButton.interactable
                 ? (RectTransform)_repairButton.transform : null;
 
+        /// <summary>11-18 튜토리얼 정비 단계 강조: 패널이 보이고 정비 버튼이 켜져 있을 때만.</summary>
+        public RectTransform MaintainButtonIfShown =>
+            _group != null && _group.alpha > 0.5f && _maintainButton.gameObject.activeInHierarchy && _maintainButton.interactable
+                ? (RectTransform)_maintainButton.transform : null;
+
         private void Start()
         {
             _repairButton.onClick.AddListener(RepairSelected);
@@ -62,7 +67,7 @@ namespace SpaceStation.UI
                 _cancelRepairButton.onClick.AddListener(CancelRepairSelected);
             _maintainButton.onClick.AddListener(MaintainSelected);
             _rebuildButton.onClick.AddListener(RebuildSelected);
-            _demolishButton.onClick.AddListener(_selection.RemoveSelected);
+            _demolishButton.onClick.AddListener(DemolishSelected);
             if (_enterButton != null)
                 _enterButton.onClick.AddListener(EnterSelected);
             if (_interior != null)
@@ -95,7 +100,7 @@ namespace SpaceStation.UI
 
         public void EnterSelected()
         {
-            if (_interior != null && _selection.Selected != null)
+            if (_interior != null && _selection.Selected != null && TutorialGate.Check(TutorialAction.EnterInterior))
                 _interior.Enter(_selection.Selected);
         }
 
@@ -130,7 +135,7 @@ namespace SpaceStation.UI
         public void RepairSelected()
         {
             var module = _selection.Selected;
-            if (module == null)
+            if (module == null || !TutorialGate.Check(TutorialAction.Repair))
                 return;
             var damage = _resources.Damage;
             if (damage.TryGetInfo(module, out var info) && info.IsQueued)
@@ -153,6 +158,13 @@ namespace SpaceStation.UI
                 ActionFailed?.Invoke("파손된 모듈이 아닙니다");
         }
 
+        /// <summary>철거 (11-18 튜토리얼 중엔 막음).</summary>
+        public void DemolishSelected()
+        {
+            if (TutorialGate.Check(TutorialAction.Demolish))
+                _selection.RemoveSelected();
+        }
+
         public void CancelRepairSelected()
         {
             var module = _selection.Selected;
@@ -166,7 +178,7 @@ namespace SpaceStation.UI
         public void MaintainSelected()
         {
             var module = _selection.Selected;
-            if (module == null)
+            if (module == null || !TutorialGate.Check(TutorialAction.Maintain))
                 return;
             switch (_resources.TryMaintain(module))
             {
@@ -184,7 +196,7 @@ namespace SpaceStation.UI
         public void RebuildSelected()
         {
             var module = _selection.Selected;
-            if (module == null)
+            if (module == null || !TutorialGate.Check(TutorialAction.Rebuild))
                 return;
             string name = Name(module);
             switch (_resources.TryRebuild(module, out var rebuilt))
@@ -446,7 +458,7 @@ namespace SpaceStation.UI
             _blinkOn = EfficiencyBands.BlinkOn(Time.time);
             _blinking = view.Critical;
             _title.SetText(view.Info);
-            _repairButton.interactable = view.CanRepair;
+            _repairButton.interactable = view.CanRepair && TutorialGate.IsAllowed(TutorialAction.Repair); // 11-18 튜토리얼 중엔 그 단계 조작만
             _repairLabel.SetText(view.RepairLabel);
             if (_cancelRepairButton != null)
             {
@@ -455,15 +467,15 @@ namespace SpaceStation.UI
                 if (view.RepairQueued)
                     _cancelRepairLabel.SetText($"대기 취소 ({K(GameAction.CancelRepair)})\n<size=80%>환불 {HudText.Cost(_resources.GetCancelRefund(module))}</size>");
             }
-            _maintainButton.interactable = view.CanMaintain;
+            _maintainButton.interactable = view.CanMaintain && TutorialGate.IsAllowed(TutorialAction.Maintain);
             _maintainLabel.SetText(view.MaintainLabel);
-            _rebuildButton.interactable = view.CanRebuild;
+            _rebuildButton.interactable = view.CanRebuild && TutorialGate.IsAllowed(TutorialAction.Rebuild);
             _rebuildLabel.SetText(view.RebuildLabel);
 
             // 철거
             bool removable = _station.CanRemove(module);
             bool supporting = _station.IsSupportingOthers(module);
-            _demolishButton.interactable = removable;
+            _demolishButton.interactable = removable && TutorialGate.IsAllowed(TutorialAction.Demolish);
             _demolishLabel.SetText(removable
                 ? $"철거 ({K(GameAction.Demolish)})\n<size=80%>환급 {HudText.Cost(_resources.GetRefund(module))}</size>"
                 : supporting ? "철거 불가\n<size=80%>다른 모듈의 받침</size>" : "철거 불가");
@@ -471,7 +483,7 @@ namespace SpaceStation.UI
             // 내부 방문
             if (_enterButton != null)
             {
-                _enterButton.interactable = _interior != null && _interior.CheckEnter(module) == null;
+                _enterButton.interactable = _interior != null && _interior.CheckEnter(module) == null && TutorialGate.IsAllowed(TutorialAction.EnterInterior);
                 _enterLabel.SetText($"들어가기 ({K(GameAction.EnterInterior)})\n<size=80%>1인칭 내부 둘러보기</size>");
             }
         }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using SpaceStation.Core;
 using SpaceStation.Data;
 using SpaceStation.Simulation;
 using UnityEditor;
@@ -188,6 +189,92 @@ namespace SpaceStation.Tests
             float before = sim.Events.TimeUntilNext;
             sim.Tick(1f);
             Assert.AreEqual(before - 1f, sim.Events.TimeUntilNext, Eps);
+        }
+
+        [Test]
+        public void BuildStep_CountsDuplicates_AndOnlyStepActionsAllowed()
+        {
+            // 11-18: 같은 모듈 두 번 = 2개 (태양광), 단계에 해당하는 조작만 · 배속은 밤 넘기기 단계부터 · 건너뛰면 자유
+            var g = new SerializedObject(_grades);
+            var unlocks = g.FindProperty("_grades").GetArrayElementAtIndex(0).FindPropertyRelative("_unlocks");
+            unlocks.arraySize = 2;
+            unlocks.GetArrayElementAtIndex(0).objectReferenceValue = _block;
+            unlocks.GetArrayElementAtIndex(1).objectReferenceValue = _battery;
+            g.ApplyModifiedPropertiesWithoutUndo();
+            var sim = Sim();
+            var t = sim.StartTutorial(Data(Step(TutorialGoal.Build, false, _block, _block), Step(TutorialGoal.SurviveNight, false)));
+            Assert.AreEqual(PlacementResult.Valid, sim.CheckBuildable(_block));
+            Assert.AreEqual(PlacementResult.TutorialLocked, sim.CheckBuildable(_battery), "다른 단계 모듈은 잠김");
+            Assert.IsFalse(t.Allows(Core.TutorialAction.Speed));
+            Assert.IsFalse(t.Allows(Core.TutorialAction.Demolish));
+            Assert.IsFalse(t.Allows(Core.TutorialAction.Research));
+
+            Assert.IsTrue(sim.TryPlace(_block, Vector3Int.right, 0, out _));
+            sim.Tick(1f);
+            Assert.AreEqual(0, t.StepIndex, "1개로는 안 끝남");
+            Assert.AreEqual(_block, t.NextModule(t.Current));
+            Assert.IsTrue(sim.TryPlace(_block, Vector3Int.left, 0, out _));
+            sim.Tick(1f);
+            Assert.AreEqual(1, t.StepIndex);
+            Assert.AreEqual(PlacementResult.TutorialLocked, sim.CheckBuildable(_block), "다 지었으면 더 못 지음");
+            Assert.IsTrue(t.Allows(Core.TutorialAction.Speed), "밤 넘기기 단계부터 배속");
+
+            t.Skip();
+            Assert.AreEqual(PlacementResult.Valid, sim.CheckBuildable(_battery));
+            Assert.IsTrue(t.Allows(Core.TutorialAction.Demolish));
+        }
+
+        [Test]
+        public void Tutorial_FreezesWearAndDamageTimers_MaintainStepTeaches()
+        {
+            var b = new SerializedObject(_config);
+            b.FindProperty("_durabilityDecayPerSecond").floatValue = 0.5f;
+            b.FindProperty("_durabilityEfficiencyThreshold").floatValue = 50f;
+            b.FindProperty("_spreadAfterSeconds").floatValue = 10f;
+            b.ApplyModifiedPropertiesWithoutUndo();
+            var sim = Sim();
+            Assert.IsTrue(sim.Grid.TryPlace(_block, Vector3Int.right, 0, out var block));
+            var t = sim.StartTutorial(Data(Step(TutorialGoal.Camera, false), Step(TutorialGoal.Maintain, false)));
+            Assert.IsTrue(sim.Durability.TryGetInfo(block, out var info));
+            Assert.IsTrue(sim.Damage.Damage(block));
+            for (int i = 0; i < 30; i++)
+                sim.Tick(1f);
+            Assert.AreEqual(100f, info.Current, Eps, "튜토리얼 중 노후화 멈춤");
+            Assert.IsTrue(sim.Damage.TryGetInfo(block, out var dmg) && !dmg.HasSpread, "확산 타이머 멈춤");
+            Assert.AreEqual(RepairResult.Started, sim.TryRepair(block));
+            for (int i = 0; i < 6; i++)
+                sim.Tick(1f);
+
+            t.ReportCamera(TutorialRunner.CameraUse.All);
+            sim.Tick(1f);
+            sim.Tick(1f);
+            Assert.AreEqual(1, t.StepIndex);
+            Assert.AreEqual(block, t.MaintainTarget);
+            Assert.AreEqual(40f, info.Current, Eps, "정비 단계: 일부러 낡게");
+            Assert.IsTrue(t.Allows(Core.TutorialAction.Maintain));
+            Assert.AreEqual(MaintainResult.Done, sim.TryMaintain(block));
+            sim.Tick(1f);
+            Assert.IsFalse(t.Active, "정비하면 완료");
+            sim.Tick(1f);
+            Assert.Less(info.Current, info.Max, "끝나면 노후화 다시 흐름");
+        }
+
+        [Test]
+        public void ScriptedMeteor_HitsOnlyOneModule()
+        {
+            var g = new SerializedObject(_grades);
+            var grade = g.FindProperty("_grades").GetArrayElementAtIndex(0);
+            grade.FindPropertyRelative("_meteorHitsMin").intValue = 3;
+            grade.FindPropertyRelative("_meteorHitsMax").intValue = 3;
+            g.ApplyModifiedPropertiesWithoutUndo();
+            var sim = Sim();
+            Assert.IsTrue(sim.Grid.TryPlace(_block, Vector3Int.right, 0, out _));
+            Assert.IsTrue(sim.Grid.TryPlace(_block, Vector3Int.left, 0, out _));
+            Assert.IsTrue(sim.Grid.TryPlace(_block, Vector3Int.forward, 0, out _));
+            sim.StartTutorial(Data(Step(TutorialGoal.Repair, false)));
+            for (int i = 0; i < 3; i++)
+                sim.Tick(1f);
+            Assert.AreEqual(1, sim.Damage.DamagedModules.Count, "튜토리얼 운석은 1개 (등급은 3발)");
         }
 
         // ---------------- 도우미 ----------------

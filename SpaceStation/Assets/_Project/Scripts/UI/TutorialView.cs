@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text;
 using SpaceStation.Audio;
 using SpaceStation.Building;
@@ -74,6 +74,7 @@ namespace SpaceStation.UI
 
         private readonly StringBuilder _sb = new StringBuilder();
         private readonly List<string> _lines = new List<string>();
+        private readonly HashSet<ModuleData> _seen = new HashSet<ModuleData>();
 
         private void Start()
         {
@@ -89,6 +90,7 @@ namespace SpaceStation.UI
             _frameA = CreateHighlight("HighlightA");
             _frameB = CreateHighlight("HighlightB");
             _runner.StepCompleted += HandleStepCompleted;
+            _runner.StepChanged += HandleStepChanged;
             _runner.Supplied += HandleSupplied;
             _runner.Finished += HandleFinished;
             _tween.Play(restart: true);
@@ -100,6 +102,7 @@ namespace SpaceStation.UI
             if (_runner == null)
                 return;
             _runner.StepCompleted -= HandleStepCompleted;
+            _runner.StepChanged -= HandleStepChanged;
             _runner.Supplied -= HandleSupplied;
             _runner.Finished -= HandleFinished;
         }
@@ -210,6 +213,7 @@ namespace SpaceStation.UI
                     case TutorialHighlight.Resources: b = _resourcePanel; break;
                     case TutorialHighlight.TimeControl: b = _timePanel; break;
                     case TutorialHighlight.Repair: b = _selectionPanel != null ? _selectionPanel.RepairButtonIfShown : null; break;
+                    case TutorialHighlight.Maintain: b = _selectionPanel != null ? _selectionPanel.MaintainButtonIfShown : null; break;
                 }
             }
             float pulse = 0.45f + 0.55f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 3.5f));
@@ -321,13 +325,22 @@ namespace SpaceStation.UI
                                                                                      $"{KeyBindings.Label(GameAction.CameraBack)} {KeyBindings.Label(GameAction.CameraRight)} 또는 Shift+가운데 드래그"));
                     break;
                 case TutorialGoal.Build:
+                    _seen.Clear();
                     foreach (var m in step.Modules)
                     {
-                        if (m == null)
+                        if (m == null || _seen.Contains(m))
                             continue;
+                        _seen.Add(m);
+                        int need = TutorialRunner.Required(step, m); // 11-18: 같은 모듈 여러 개 (태양광 2)
                         int n = _runner.CountActive(m);
-                        _lines.Add(Check(n > 0, $"{m.DisplayName} 건설 ({Mathf.Min(n, 1)}/1)"));
+                        _lines.Add(Check(n >= need, $"{m.DisplayName} 건설 ({Mathf.Min(n, need)}/{need})"));
                     }
+                    break;
+                case TutorialGoal.Maintain:
+                    var target = _runner.MaintainTarget;
+                    string name = target != null && target.Data != null ? target.Data.DisplayName : "낡은 모듈";
+                    bool maintained = _runner.IsComplete(step);
+                    _lines.Add(Check(maintained, $"{name} 정비: 클릭 후 [정비] 또는 {KeyBindings.Label(GameAction.Maintain)}"));
                     break;
                 case TutorialGoal.SurviveNight:
                     _lines.Add(Check(_runner.SpeedUsed, $"배속 {_runner.Data.RequiredSpeed:0}x 이상: " +
@@ -401,6 +414,14 @@ namespace SpaceStation.UI
             _tween.Play(restart: true);
         }
 
+        /// <summary>11-18: 운석 단계가 시작되면 1배속으로 (바로 앞 단계에서 4배속을 배워 실제 15초 만에 번지기 시작했었음).</summary>
+        private void HandleStepChanged(int index)
+        {
+            var step = _runner.Current;
+            if (step != null && step.Goal == TutorialGoal.Repair && _clock != null)
+                _clock.SetSpeedPreset(0);
+        }
+
         private void HandleSupplied(IReadOnlyList<ResourceAmount> amounts)
         {
             _sb.Clear();
@@ -435,7 +456,7 @@ namespace SpaceStation.UI
             AudioService.TryPlay(l => l.EventPositive);
             _header.SetText($"<color={HudTheme.AccentHex}>튜토리얼 완료</color>");
             _title.SetText("이제 정거장은 당신의 것입니다");
-            _body.SetText("지금부터 운석·태양 폭풍 같은 무작위 이벤트가 찾아옵니다.\n" +
+            _body.SetText("지금부터 운석·태양 폭풍 같은 무작위 이벤트가 찾아오고, 모듈도 시간이 지나며 낡습니다 (노란 표시가 뜨면 정비).\n" +
                           "거주자를 늘려 정거장 등급을 올리고, 연구(" + KeyBindings.Label(GameAction.Research) + ")로 새 기술을 여세요.\n" +
                           $"<color={HudText.Muted}>목표: 대형 정거장 (오른쪽 위 등급 표시)</color>");
             _checklist.gameObject.SetActive(false);

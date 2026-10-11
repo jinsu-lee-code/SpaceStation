@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace SpaceStation.Core
@@ -49,6 +49,8 @@ namespace SpaceStation.Core
         public void SetSpeedPreset(int index)
         {
             if (InputLocked || index < 0 || index >= _speedPresets.Length)
+                return;
+            if (_speedPresets[index] > 1f + 1e-3f && !TutorialGate.Check(TutorialAction.Speed)) // 11-18 배속은 밤 넘기기 단계부터
                 return;
             _clock.SetSpeed(_speedPresets[index]);
             _clock.SetPaused(false);

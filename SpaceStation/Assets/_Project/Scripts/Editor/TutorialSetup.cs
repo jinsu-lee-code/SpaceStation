@@ -11,7 +11,7 @@ namespace SpaceStation.Editor
 {
     /// <summary>
     /// Phase 9 튜토리얼 설정 (메뉴 SpaceStation/Tutorial/Setup):
-    /// TutorialData 에셋(8단계) 생성·갱신 → SimulationHost 연결 → HUD에 TutorialView 자리 (내용은 런타임 생성).
+    /// TutorialData 에셋(9단계) 생성·갱신 → SimulationHost 연결 → HUD에 TutorialView 자리 (내용은 런타임 생성).
     /// 단계 문구는 에셋에서 고칠 수 있다 (다시 실행하면 이 기본값으로 덮어씀).
     /// </summary>
     public static class TutorialSetup
@@ -19,6 +19,14 @@ namespace SpaceStation.Editor
         private const string GameScene = "Assets/_Project/Scenes/Main.unity";
         private const string DataPath = "Assets/_Project/Data/Tutorial/TutorialData.asset";
         private const string ModuleFolder = "Assets/_Project/Data/Modules/";
+
+        /// <summary>11-18: 단계 내용만 다시 씀 (HUD 카드는 그대로 — Setup은 카드를 다시 만들어 나중에 입힌 테마가 풀림).</summary>
+        [MenuItem("SpaceStation/Tutorial/Update Steps")]
+        public static void UpdateSteps()
+        {
+            var data = CreateData();
+            Debug.Log($"[TutorialSetup] 단계 {data.Steps.Count}개 갱신");
+        }
 
         [MenuItem("SpaceStation/Tutorial/Setup")]
         public static void Setup()
@@ -69,13 +77,15 @@ namespace SpaceStation.Editor
                     "산소 생성기·물 재활용기·농장을 하나씩 지어 소비를 메우세요. <b>산소가 바닥나면 게임 오버</b>입니다.",
                     TutorialGoal.Build, TutorialHighlight.Resources, false,
                     Module("MD_Oxygen"), Module("MD_WaterRecycler"), Module("MD_Farm")),
+                // 11-18: 하나면 낮에도 남는 전력이 없어 배터리가 0에서 안 찼음 → 2개 (같은 모듈을 두 번 = 2개)
                 new TutorialStep("전력: 태양광 패널",
                     "채굴 도킹과 생명 유지 모듈은 전력을 씁니다. 전력이 모자라면 모든 모듈의 효율이 함께 떨어집니다.\n" +
-                    "<b>전력</b> 탭에서 태양광 패널을 지으세요. 태양광은 낮에만 발전합니다.",
-                    TutorialGoal.Build, TutorialHighlight.Resources, false, Module("MD_Solar")),
+                    "<b>전력</b> 탭에서 태양광 패널을 <b>2개</b> 지으세요. 태양광은 낮에만 발전하고, 쓰고 <b>남는 전력</b>이 있어야 배터리를 채울 수 있습니다.",
+                    TutorialGoal.Build, TutorialHighlight.Resources, false, Module("MD_Solar"), Module("MD_Solar")),
                 new TutorialStep("첫 밤 대비: 배터리",
                     "곧 정거장이 지구 그림자에 들어가 <b>밤</b>이 됩니다. 밤에는 태양광이 멈춥니다.\n" +
-                    "배터리는 낮에 남는 전력을 모아 두었다가 밤에 내보냅니다. 밤이 오기 전에 배터리를 지으세요.",
+                    "배터리는 낮에 남는 전력을 모아 두었다가 밤에 내보냅니다. 밤이 오기 전에 배터리를 지으세요.\n" +
+                    "<color=#9AA4B2>배터리 하나로는 밤 내내 버티기 어려워, 밤이 깊어지면 효율이 조금 떨어질 수 있습니다.</color>",
                     TutorialGoal.Build, TutorialHighlight.None, true, Module("MD_Battery")),
                 new TutorialStep("인구 늘리기: 거주 모듈",
                     "정거장 등급은 <b>거주자 수와 모듈 수</b>로 오릅니다.\n" +
@@ -83,8 +93,13 @@ namespace SpaceStation.Editor
                     TutorialGoal.Build, TutorialHighlight.Resources, false, Module("MD_Habitat")),
                 new TutorialStep("시간 빨리 감기",
                     "깜빡이는 시간 조절 버튼으로 배속을 올리거나 일시정지할 수 있습니다.\n" +
-                    "배속을 올려 밤을 한 번 넘겨 보세요. 밤 동안 배터리가 전력을 대신 공급합니다.",
+                    "배속을 올려 밤을 한 번 넘겨 보세요. 밤에는 배터리가 모아 둔 전력을 내보내고, 다 쓰면 효율이 떨어집니다 (자원 표시의 배터리 줄).",
                     TutorialGoal.SurviveNight, TutorialHighlight.TimeControl),
+                // 11-18: 튜토리얼 동안은 노후화가 멈춰 있고, 이 단계에서 모듈 하나를 일부러 낡게 해 정비를 가르침
+                new TutorialStep("노후화: 정비",
+                    "모듈은 시간이 지나며 낡습니다 (<b>내구도</b>). 내구도가 절반 아래로 내려가면 효율이 떨어집니다.\n" +
+                    "낡은 모듈을 클릭하고 <b>정비</b>를 누르세요. 정비할 때마다 최대 내구도가 조금 줄어, 많이 낡으면 <b>재건축</b>합니다.",
+                    TutorialGoal.Maintain, TutorialHighlight.Maintain),
                 new TutorialStep("운석 대응: 수리",
                     "운석이 다가옵니다! 맞은 모듈은 <b>파손</b>되어 멈추고, 오래 두면 옆으로 번지거나 파괴됩니다.\n" +
                     "파손된 모듈(빨간 표시)을 클릭하고 <b>수리</b>를 누르세요. 수리에는 금속이 듭니다.",

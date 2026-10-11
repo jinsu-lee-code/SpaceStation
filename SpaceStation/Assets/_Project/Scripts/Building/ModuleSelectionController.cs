@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using SpaceStation.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -88,7 +88,7 @@ namespace SpaceStation.Building
                 return;
             }
 
-            if (KeyBindings.WasPressed(GameAction.Demolish) || KeyBindings.WasPressed(GameAction.DemolishAlt))
+            if ((KeyBindings.WasPressed(GameAction.Demolish) || KeyBindings.WasPressed(GameAction.DemolishAlt)) && TutorialGate.Check(TutorialAction.Demolish))
                 RemoveSelected();
         }
 

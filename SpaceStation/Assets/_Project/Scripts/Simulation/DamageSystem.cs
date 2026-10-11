@@ -325,6 +325,9 @@ namespace SpaceStation.Simulation
             return started;
         }
 
+        /// <summary>11-18 튜토리얼 중: 확산 · 파괴 타이머 멈춤 (수리 진행 · 산소 누출은 그대로).</summary>
+        public bool TimersHeld { get; set; }
+
         public void Tick(float deltaSeconds)
         {
             if (_damaged.Count == 0)
@@ -340,7 +343,7 @@ namespace SpaceStation.Simulation
                     if (info.RepairRemaining <= 1e-4f)
                         _finished.Add(info);
                 }
-                else
+                else if (!TimersHeld)
                 {
                     if (info.SpreadPending) // 대기 중이면 확산만 멈춤 (설정, 누출·파괴는 계속)
                     {

@@ -80,6 +80,10 @@ namespace SpaceStation.Simulation
                 if (start)
                     Simulation.StartTutorial(_tutorial);
             }
+            // 11-18 튜토리얼 중에는 그 단계의 조작만 (화면 쪽이 묻는 공용 관문)
+            var sim = Simulation;
+            _gate = (action, data) => sim.Tutorial == null || sim.Tutorial.Allows(action, data);
+            Core.TutorialGate.Allows = _gate;
             if (pending != null)
             {
                 LoadedSave = pending;
@@ -101,10 +105,14 @@ namespace SpaceStation.Simulation
             _clock.Clock.Ticked += HandleTicked;
         }
 
+        private System.Func<Core.TutorialAction, ModuleData, bool> _gate;
+
         private void OnDestroy()
         {
             if (_clock != null && _clock.Clock != null)
                 _clock.Clock.Ticked -= HandleTicked;
+            if (Core.TutorialGate.Allows == _gate) // 다음 씬 호스트가 이미 바꿔 끼웠으면 그대로
+                Core.TutorialGate.Allows = null;
         }
 
         private void Update()

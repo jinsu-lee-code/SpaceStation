@@ -106,6 +106,8 @@ namespace SpaceStation.UI
 
         public void Open()
         {
+            if (!TutorialGate.Check(TutorialAction.Roster)) // 11-18 튜토리얼 중엔 막음
+                return;
             HudWindows.NotifyOpened(this); // 다른 창(연구 ↔ 주민)은 닫힘
             _open = true;
             _group.blocksRaycasts = true;

@@ -173,6 +173,8 @@ namespace SpaceStation.UI
                     return grade >= 0 ? $"<color={HudText.Muted}>잠김 · {p.GetGrade(grade).DisplayName}</color>" : $"<color={HudText.Muted}>잠김</color>";
                 case PlacementResult.LimitReached:
                     return $"<color={HudText.Yellow}>최대 {p.CurrentLimit(_station.Grid)}개</color>";
+                case PlacementResult.TutorialLocked:
+                    return $"<color={HudText.Muted}>튜토리얼 후</color>";
                 default:
                     return null;
             }

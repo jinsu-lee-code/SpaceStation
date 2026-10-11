@@ -1,4 +1,4 @@
-﻿using SpaceStation.Building;
+using SpaceStation.Building;
 using SpaceStation.Core;
 using SpaceStation.Data;
 using SpaceStation.Simulation;
@@ -74,6 +74,7 @@ namespace SpaceStation.UI
             _station.Simulation.Research.Completed += HandleResearchCompleted;
             _station.Simulation.Automation.Performed += HandleAutomationPerformed;
             Save.SaveManager.Notice += HandleSaveNotice;
+            TutorialGate.Blocked += HandleActionFailed; // 11-18 튜토리얼 중 막힌 조작
             KeyBindings.Changed += HandleKeysChanged;
             _station.Grid.ModulePlaced += HandleModulePlaced;
             _station.Grid.ModuleRemoved += HandleModuleRemovedForLimit;
@@ -127,6 +128,7 @@ namespace SpaceStation.UI
                 _station.Simulation.Automation.Performed -= HandleAutomationPerformed;
             }
             Save.SaveManager.Notice -= HandleSaveNotice;
+            TutorialGate.Blocked -= HandleActionFailed;
             KeyBindings.Changed -= HandleKeysChanged;
             if (_station != null && _station.Grid != null)
             {

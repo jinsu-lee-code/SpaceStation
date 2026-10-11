@@ -15,10 +15,12 @@ namespace SpaceStation.Data
         SurviveNight,
         /// <summary>대본 운석에 맞은 모듈을 모두 수리.</summary>
         Repair,
+        /// <summary>11-18: 일부러 낡게 만든 모듈 하나를 정비 (튜토리얼 동안은 노후화가 멈춰 있음).</summary>
+        Maintain,
     }
 
     /// <summary>안내 카드 외에 깜빡일 HUD 영역 (건설 단계는 모듈 버튼·탭을 자동으로 강조).</summary>
-    public enum TutorialHighlight { None, Resources, TimeControl, Repair }
+    public enum TutorialHighlight { None, Resources, TimeControl, Repair, Maintain }
 
     [Serializable]
     public sealed class TutorialStep
@@ -27,7 +29,7 @@ namespace SpaceStation.Data
         [Tooltip("본문 (리치 텍스트, 줄바꿈 가능)")]
         [SerializeField, TextArea(3, 8)] private string _body;
         [SerializeField] private TutorialGoal _goal;
-        [Tooltip("Build 목표: 지어야 할 모듈 (종류마다 1개)")]
+        [Tooltip("Build 목표: 지어야 할 모듈 (같은 모듈을 여러 번 넣으면 그 수만큼 — 11-18 태양광 2개)")]
         [SerializeField] private List<ModuleData> _modules = new List<ModuleData>();
         [SerializeField] private TutorialHighlight _highlight;
         [Tooltip("이 단계가 끝나기 전에는 첫 밤 직전에 시간을 멈춘다 (배터리)")]
@@ -89,6 +91,10 @@ namespace SpaceStation.Data
         [Tooltip("튜토리얼이 끝난 뒤 첫 무작위 이벤트까지 최소 시간 (초)")]
         [SerializeField] private float _postTutorialGrace = 180f;
 
+        [Header("정비 단계 (11-18)")]
+        [Tooltip("정비 단계가 시작되면 모듈 하나의 내구도를 이 값으로 낮춤 (효율 저하 기준 50 아래)")]
+        [SerializeField, Range(1f, 100f)] private float _maintainWornDurability = 40f;
+
         public IReadOnlyList<TutorialStep> Steps => _steps;
         public float CameraRotateDegrees => _cameraRotateDegrees;
         public float CameraZoomDistance => _cameraZoomDistance;
@@ -99,6 +105,7 @@ namespace SpaceStation.Data
         public float SupplyMargin => _supplyMargin;
         public float MeteorDelay => _meteorDelay;
         public float PostTutorialGrace => _postTutorialGrace;
+        public float MaintainWornDurability => _maintainWornDurability;
 
         /// <summary>에디터 설정·테스트용.</summary>
         public void SetSteps(IEnumerable<TutorialStep> steps)

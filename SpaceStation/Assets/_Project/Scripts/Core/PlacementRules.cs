@@ -25,6 +25,8 @@ namespace SpaceStation.Core
         NeedsSupport,
         /// <summary>코어 윗면 위인데 코어가 아닌 모듈과 옆면이 닿지 않음 (7-7, 연결 통로가 하나도 안 생김).</summary>
         CoreTopNeedsSideContact,
+        /// <summary>11-18 튜토리얼 중: 지금 단계의 모듈이 아님 (StationSimulation이 판정).</summary>
+        TutorialLocked,
     }
 
     /// <summary>
