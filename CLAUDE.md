@@ -13,6 +13,19 @@ v1.0.0 지구급 확장(Phase 12)의 설계 결정과 이유는 `PHASESET.md`에
 - 에디터 작업이 필요한 부분(프리팹 생성, 씬 배치, 인스펙터 연결)은 코드로 우회하지 말고 **수동 작업 목록으로 안내**한다.
 - 불확실한 설계 결정은 임의로 정하지 말고 질문한다.
 
+## 작업 방식 (모든 PC 공통 — 다른 PC에서 이어갈 때 기준, `HANDOFF.md` 참고)
+- 사용자에게 보이는 글은 **모두 한국어**로 쓴다 (최종 보고, 진행 중간 안내, 파일 캡션까지). 대화 요약 뒤 첫 응답부터 특히 주의.
+- **작업 단위마다 Claude가 커밋 + push**한다 (`main`, 원격 `origin` = github.com/jinsu-lee-code/SpaceStation).
+  - 메시지 형식: `MM.DD/작업번호/요약` — 예 `10.12/12-1/등급 틀 · 누적 결과 화면 · ★ 배너`, 기타 작업은 `MM.DD/etc/요약`
+  - git이 PATH에 없으면 GitHub Desktop 내장 git을 쓴다: `%LOCALAPPDATA%\GitHubDesktop\app-*\resources\app\git\cmd\git.exe`
+  - force push와 히스토리 수정은 하지 않는다 (사용자가 요청할 때만).
+  - Unity가 자동으로 다시 저장해 생기는 변경(폰트 SDF, URP · Graphics 설정, 씬 등)은 묻지 말고 해당 작업 커밋에 같이 넣는다.
+- **동적 글꼴**: `Art/Fonts/Maplestory SDF.asset` · `Maplestory Bold SDF.asset`은 플레이할 때마다 바뀐다. **git으로 되돌리지 말고** 커밋에 넣는다. 되돌리면 글자가 빈칸이 되는데, 그때는 두 글꼴에 `ClearFontAssetData(true)`를 한 뒤 저장한다.
+- **영상(mp4)은 GitHub에 올리지 않는다** (.gitignore에 있음).
+- **사람 주민 모델은 쓰지 않는다** (동물 주민으로 전환). 옛 작업물은 원래 PC의 저장소 밖 `_archive`에만 있다.
+- 나중에 제안할 아이디어: 정거장 등급이 오르면 동물 주민 직함이 승진한다 ("기관사 → 수석 기관사", TASKS.md 11-11d).
+- 시뮬레이션 동작 확인에는 밸런스 봇을 쓴다 (`BalanceSimulatorWindow.RunWithDefaults(30, 20, 1)`). 같은 시드면 결과가 같으므로, 리팩터링 전후 `timeseries.csv`가 같은지 비교한다.
+
 ## 기술 스택
 - 타겟 플랫폼: PC (Windows), 마우스 + 키보드
 - Unity 6000.3.25f1 (URP 17.3.0, Input System 1.20.0)
