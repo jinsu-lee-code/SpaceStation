@@ -6,6 +6,7 @@ using SpaceStation.Building;
 using SpaceStation.Core;
 using SpaceStation.Data;
 using SpaceStation.Settings;
+using SpaceStation.Simulation;
 using SpaceStation.UI;
 using TMPro;
 using UnityEngine;
@@ -132,6 +133,9 @@ namespace SpaceStation.Interior
         // 오버레이
         private RectTransform _overlay;
         private TMP_Text _title;
+        private TMP_Text _tracker;
+        private float _trackerNext;
+        private float _tutorialRetry;
         private TMP_Text _prompt;
         private TMP_Text _hint;
         private CanvasGroup _fade;
@@ -141,6 +145,8 @@ namespace SpaceStation.Interior
         /// <summary>들어가기 실패 사유·강제로 나온 이유 (상태 표시줄 알림용).</summary>
         public event Action<string> Notice;
         public event Action<bool> InsideChanged;
+        /// <summary>11-18: 들어가기 · 나오기 페이드가 끝나 다시 조작할 수 있음 (선택 패널의 [들어가기] 갱신용).</summary>
+        public event Action Settled;
 
         private void Awake()
         {
@@ -246,10 +252,13 @@ namespace SpaceStation.Interior
             _plants.Rebuild(_layout);
             _requests = InteriorRequests.Create(transform, _station, _builder, _residents, _plants, _requestSettings, _font, _player.Eye);
             _requests.Message += ShowNotice;
+            _requests.Completed += HandleRequestCompleted;
             _requests.Rebuild(_layout);
             _incidents = InteriorIncidents.Create(transform, _station, _builder, _incidentSettings, _font, _player.Eye, _smokeMaterial, _sparkMaterial);
             _incidents.Message += ShowNotice;
+            _incidents.Resolved += HandleIncidentResolved;
             _incidents.Rebuild(_layout);
+            _requests.TutorialHold = _incidents.TutorialHold = Tutorial != null;
             var spawn = _builder.SpawnPoint(module, out float spawnYaw);
             _player.Teleport(spawn + Vector3.up * 0.05f, spawnYaw);
 
@@ -306,9 +315,57 @@ namespace SpaceStation.Interior
                 IncidentCount = m => _incidents != null ? _incidents.CountIn(m) : 0,
             });
             InsideChanged?.Invoke(true);
+            _tutorialRetry = 0f;
+            _station.Simulation.Tutorial?.ReportInside(true); // 11-18 들어가기 단계 완료 (끝난 튜토리얼도 위치는 알림 — 완료 카드 표시용)
 
             yield return Fade(1f, 0f, 0.3f);
             _busy = false;
+        }
+
+        /// <summary>11-18 진행 중인 튜토리얼 (없거나 끝났으면 null).</summary>
+        private TutorialRunner Tutorial
+        {
+            get
+            {
+                var t = _station != null && _station.Simulation != null ? _station.Simulation.Tutorial : null;
+                return t != null && t.Active ? t : null;
+            }
+        }
+
+        private void HandleRequestCompleted() => Tutorial?.ReportInterior(TutorialGoal.InteriorRequest);
+
+        private void HandleIncidentResolved() => Tutorial?.ReportInterior(TutorialGoal.InteriorIncident);
+
+        /// <summary>
+        /// 11-18 내부 튜토리얼: 저절로 생기는 부탁 · 사고는 쉬고, 단계에 맞춰 하나씩 만든다 (못 만들면 잠시 뒤 다시).
+        /// 패드 단계는 패드를 들면 완료.
+        /// </summary>
+        private void DriveTutorial()
+        {
+            var tutorial = Tutorial;
+            bool hold = tutorial != null;
+            if (_requests != null)
+                _requests.TutorialHold = hold;
+            if (_incidents != null)
+                _incidents.TutorialHold = hold;
+            var step = tutorial?.Current;
+            if (step == null)
+                return;
+            switch (step.Goal)
+            {
+                case TutorialGoal.InteriorPad:
+                    if (_pad != null && _pad.IsRaised)
+                        tutorial.ReportInterior(TutorialGoal.InteriorPad);
+                    break;
+                case TutorialGoal.InteriorRequest:
+                    if (_requests != null && _requests.ActiveCount == 0 && Time.unscaledTime >= _tutorialRetry)
+                        _tutorialRetry = Time.unscaledTime + (_requests.ForceTutorialRequest() ? 0f : 2f);
+                    break;
+                case TutorialGoal.InteriorIncident:
+                    if (_incidents != null && !_incidents.Active && Time.unscaledTime >= _tutorialRetry)
+                        _tutorialRetry = Time.unscaledTime + (_incidents.ForceTutorialIncident() ? 0f : 2f);
+                    break;
+            }
         }
 
         public void Exit(string notice = null)
@@ -393,6 +450,7 @@ namespace SpaceStation.Interior
             }
             _inside = false;
             InsideChanged?.Invoke(false);
+            _station.Simulation.Tutorial?.ReportInside(false);
             // 마지막에 있던 방을 선택해 둔다 (밖에서 위치 확인)
             if (lastModule != null && _station.Grid.TryGetModule(lastModule.Origin, out var still) && still == lastModule)
                 _selection.Select(lastModule);
@@ -401,6 +459,7 @@ namespace SpaceStation.Interior
 
             yield return Fade(1f, 0f, 0.25f);
             _busy = false;
+            Settled?.Invoke();
         }
 
         private void Update()
@@ -447,6 +506,8 @@ namespace SpaceStation.Interior
             }
             if (_incidents != null)
                 _incidents.CurrentRoom = _currentModule;
+            DriveTutorial();
+            UpdateTracker();
             if (_notice != null && _noticeUntil > 0f && Time.unscaledTime > _noticeUntil)
             {
                 _noticeUntil = 0f;
@@ -467,6 +528,39 @@ namespace SpaceStation.Interior
             string state = !_station.Connectivity.IsActive(room.Module) ? $"  <color={HudText.Orange}>비활성</color>"
                 : _station.Simulation.Damage.TryGetInfo(room.Module, out _) ? $"  <color={HudText.Red}>파손</color>" : "";
             _title.SetText($"<b>{name}</b>{state}\n<size=75%><color={HudText.Muted}>방 {_layout.Rooms.Count}개 연결</color></size>");
+        }
+
+        /// <summary>
+        /// 11-18: 진행 중인 사고 · 부탁을 방 이름 아래에 계속 표시 (알림은 3.5초만 떠서, 그 방에 가거나 패드를 열기 전엔 화면에 안 남았음).
+        /// 사고가 있으면 사고(남은 시간)만, 없으면 첫 부탁 + 나머지 수. 0.25초마다.
+        /// </summary>
+        private void UpdateTracker()
+        {
+            if (_tracker == null || Time.unscaledTime < _trackerNext)
+                return;
+            _trackerNext = Time.unscaledTime + 0.25f;
+            string text = string.Empty;
+            if (_incidents != null && _incidents.TryGetActive(out var incident, out var incidentRoom, out int left))
+            {
+                string time = left >= 0 ? $" · <color={(left <= 20 ? HudText.Red : HudText.Orange)}>{left}초</color>" : "";
+                text = $"{HudTheme.Icon("warning")} <color={HudText.Orange}><b>{incident}</b></color> · {Where(incidentRoom)}{time}";
+            }
+            else if (_requests != null && _requests.TryGetPending(out var request, out var requestRoom))
+            {
+                int more = _requests.ActiveCount - 1;
+                text = $"<color={HudTheme.AccentHex}><b>부탁</b></color> {request} · {Where(requestRoom)}" +
+                       (more > 0 ? $" <color={HudText.Muted}>외 {more}건</color>" : "");
+            }
+            _tracker.SetText(text);
+        }
+
+        /// <summary>지금 방이면 "이 방", 아니면 방 이름 + 패드 안내.</summary>
+        private string Where(ModuleInstance room)
+        {
+            if (room == _currentModule)
+                return "이 방";
+            string name = room != null && room.Data != null ? room.Data.DisplayName : "다른 방";
+            return $"{name} <color={HudText.Muted}>({KeyBindings.Label(GameAction.Pad)} 패드 지도)</color>";
         }
 
         /// <summary>
@@ -715,6 +809,8 @@ namespace SpaceStation.Interior
         {
             foreach (var n in names)
             {
+                if (n == "Tutorial" && Tutorial != null)
+                    continue; // 11-18 내부 튜토리얼 단계 안내는 안에서도 보임
                 var t = _hud.Find(n);
                 if (t == null || !t.gameObject.activeSelf)
                     continue;
@@ -743,6 +839,10 @@ namespace SpaceStation.Interior
 
             _title = ui.Label(_overlay, "", 26f, TextAlignmentOptions.TopLeft);
             HoloUi.Place(_title.rectTransform, new Vector2(24f, -20f), new Vector2(700f, 80f));
+
+            // 11-18 진행 중인 사고 · 부탁 (방 이름 아래)
+            _tracker = ui.Label(_overlay, "", 20f, TextAlignmentOptions.TopLeft);
+            HoloUi.Place(_tracker.rectTransform, new Vector2(24f, -88f), new Vector2(700f, 30f));
 
             _prompt = ui.Label(_overlay, "", 22f, TextAlignmentOptions.Center);
             var prt = _prompt.rectTransform;

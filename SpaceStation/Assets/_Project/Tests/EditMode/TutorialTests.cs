@@ -277,6 +277,42 @@ namespace SpaceStation.Tests
             Assert.AreEqual(1, sim.Damage.DamagedModules.Count, "튜토리얼 운석은 1개 (등급은 3발)");
         }
 
+        [Test]
+        public void InteriorSteps_AdvanceOnReports_WithoutTicks()
+        {
+            var sim = Sim();
+            var t = sim.StartTutorial(Data(Step(TutorialGoal.Camera, false), Step(TutorialGoal.EnterInterior, false), Step(TutorialGoal.InteriorPad, false),
+                Step(TutorialGoal.InteriorRequest, false), Step(TutorialGoal.InteriorIncident, false)));
+            Assert.IsFalse(t.Allows(Core.TutorialAction.EnterInterior), "내부 단계 전엔 들어가기 막힘");
+            t.ReportInside(true);
+            t.ReportInterior(TutorialGoal.InteriorPad);
+            Assert.AreEqual(0, t.StepIndex, "다른 단계의 보고는 무시");
+            t.ReportInside(false);
+
+            t.ReportCamera(TutorialRunner.CameraUse.All);
+            sim.Tick(1f);
+            Assert.AreEqual(1, t.StepIndex);
+            Assert.IsTrue(t.Allows(Core.TutorialAction.EnterInterior));
+            Assert.IsFalse(t.Allows(Core.TutorialAction.Repair));
+
+            // 내부에서는 시간이 멈춰 틱이 없어도 바로 진행
+            t.ReportInside(true);
+            Assert.AreEqual(2, t.StepIndex, "들어가면 완료");
+            t.ReportInterior(TutorialGoal.InteriorRequest);
+            Assert.AreEqual(2, t.StepIndex, "패드 단계에서 부탁 보고는 무시");
+            t.ReportInterior(TutorialGoal.InteriorPad);
+            Assert.AreEqual(3, t.StepIndex);
+            t.ReportInside(false);
+            Assert.IsTrue(t.Allows(Core.TutorialAction.EnterInterior), "내부 단계 중 나왔으면 다시 들어가기 허용");
+            Assert.IsTrue(TutorialRunner.NeedsInside(t.Current.Goal));
+            t.ReportInside(true);
+            Assert.AreEqual(3, t.StepIndex, "다시 들어가도 부탁 단계 그대로");
+            t.ReportInterior(TutorialGoal.InteriorRequest);
+            t.ReportInterior(TutorialGoal.InteriorIncident);
+            Assert.IsFalse(t.Active, "사고까지 처리하면 끝");
+            Assert.IsTrue(t.Allows(Core.TutorialAction.Demolish));
+        }
+
         // ---------------- 도우미 ----------------
 
         private static TutorialStep Step(TutorialGoal goal, bool holdBeforeNight, params ModuleData[] modules) =>

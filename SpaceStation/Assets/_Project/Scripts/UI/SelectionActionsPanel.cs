@@ -55,6 +55,11 @@ namespace SpaceStation.UI
             _group != null && _group.alpha > 0.5f && _repairButton.gameObject.activeInHierarchy && _repairButton.interactable
                 ? (RectTransform)_repairButton.transform : null;
 
+        /// <summary>11-18 튜토리얼 내부 단계 강조: 패널이 보이고 [들어가기] 버튼이 켜져 있을 때만.</summary>
+        public RectTransform EnterButtonIfShown =>
+            _group != null && _group.alpha > 0.5f && _enterButton != null && _enterButton.gameObject.activeInHierarchy && _enterButton.interactable
+                ? (RectTransform)_enterButton.transform : null;
+
         /// <summary>11-18 튜토리얼 정비 단계 강조: 패널이 보이고 정비 버튼이 켜져 있을 때만.</summary>
         public RectTransform MaintainButtonIfShown =>
             _group != null && _group.alpha > 0.5f && _maintainButton.gameObject.activeInHierarchy && _maintainButton.interactable
@@ -71,7 +76,10 @@ namespace SpaceStation.UI
             if (_enterButton != null)
                 _enterButton.onClick.AddListener(EnterSelected);
             if (_interior != null)
+            {
                 _interior.Notice += HandleInteriorNotice;
+                _interior.Settled += MarkDirty; // 11-18: 나오는 페이드 중에 그린 [들어가기]가 꺼진 채 남았음
+            }
             _selection.SelectionChanged += HandleSelectionChanged;
             _resources.Simulation.Changed += MarkDirty;
             _resources.Damage.Changed += MarkDirty;
@@ -93,7 +101,10 @@ namespace SpaceStation.UI
                 _station.Connectivity.ActiveStateChanged -= HandleActiveStateChanged;
             KeyBindings.Changed -= MarkDirty;
             if (_interior != null)
+            {
                 _interior.Notice -= HandleInteriorNotice;
+                _interior.Settled -= MarkDirty;
+            }
         }
 
         private void HandleInteriorNotice(string message) => ActionFailed?.Invoke(message);
@@ -214,7 +225,8 @@ namespace SpaceStation.UI
 
         private void HandleSelectionChanged(ModuleInstance _) => _dirty = true;
         private void HandleActiveStateChanged(ModuleInstance _, bool __) => _dirty = true;
-        private void MarkDirty() => _dirty = true;
+        /// <summary>다음 프레임에 다시 그림 (11-18: 튜토리얼 단계가 바뀌면 버튼 허용 상태가 바뀜).</summary>
+        public void MarkDirty() => _dirty = true;
 
         /// <summary>4-8: 방어 모듈이면 가동률·보호 수, 보호받는 모듈이면 받는 효과.</summary>
         private string DefenseLine(ModuleInstance module)

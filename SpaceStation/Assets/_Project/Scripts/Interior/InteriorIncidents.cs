@@ -64,6 +64,8 @@ namespace SpaceStation.Interior
             public GameObject Prop;
             public SpeechBubble Bubble;
             public int ShownSeconds = -1;
+            /// <summary>11-18 튜토리얼 사고: 제한 시간 없음 · 나가도 손해 없음.</summary>
+            public bool Tutorial;
             public readonly List<GameObject> Extra = new List<GameObject>();
             // 누출
             public Transform Wheel;
@@ -122,6 +124,10 @@ namespace SpaceStation.Interior
         public event Action<string, bool> Message;
         /// <summary>처리 중인 사고가 있음 (새 주민 요청을 쉼).</summary>
         public bool Active => _active != null && !_active.Done;
+        /// <summary>11-18 튜토리얼 중: 저절로 생기는 사고를 쉼 (타이머도 멈춤 — 끝나면 처음 간격부터).</summary>
+        public bool TutorialHold { get; set; }
+        /// <summary>11-18: 사고 하나를 해결함 (튜토리얼 진행용).</summary>
+        public event Action Resolved;
 
         private StationSimulation Sim => _station.Simulation;
 
@@ -161,7 +167,8 @@ namespace SpaceStation.Interior
             string text = null;
             if (_active != null && !_active.Done)
             {
-                text = Miss(_active, left: true);
+                if (!_active.Tutorial) // 튜토리얼 사고는 손해 없이 정리 (다시 들어가면 새로 생김)
+                    text = Miss(_active, left: true);
                 End(_active, rebuilt: false);
             }
             _active = null;
@@ -187,6 +194,30 @@ namespace SpaceStation.Interior
             return TrySpawn(kind);
         }
 
+        /// <summary>11-18 튜토리얼 사고: 지금 방에 화재(안 되면 아무 종류), 제한 시간 · 손해 없음. 성공하면 true.</summary>
+        public bool ForceTutorialIncident()
+        {
+            if (_active != null)
+                return false;
+            return TrySpawn(IncidentKind.Fire, tutorial: true) || TrySpawn(null, tutorial: true);
+        }
+
+        /// <summary>11-18 화면 표시용: 처리 중인 사고 (남은 초 — 튜토리얼 사고는 -1). 없으면 false.</summary>
+        public bool TryGetActive(out string title, out ModuleInstance room, out int secondsLeft)
+        {
+            if (_active == null || _active.Done)
+            {
+                title = null;
+                room = null;
+                secondsLeft = 0;
+                return false;
+            }
+            title = InteriorIncidentRules.Title(_active.Kind);
+            room = _active.Room;
+            secondsLeft = _active.Tutorial ? -1 : Mathf.Max(0, Mathf.CeilToInt(Sim.Balance.IncidentWindow - _active.Age));
+            return true;
+        }
+
         private void Update()
         {
             if (_layout == null || _eye == null)
@@ -195,6 +226,8 @@ namespace SpaceStation.Interior
             var b = Sim.Balance;
             if (_active == null)
             {
+                if (TutorialHold)
+                    return;
                 _timer -= dt;
                 if (_timer <= 0f)
                     _timer = TrySpawn(null) ? 0f : 20f; // 못 만들었으면 잠시 뒤 다시 (간격은 사고가 끝난 뒤 정함)
@@ -217,6 +250,12 @@ namespace SpaceStation.Interior
                 }
                 return;
             }
+            if (a.Tutorial)
+            {
+                PlaceBubble(a);
+                Animate(a, dt);
+                return;
+            }
             if (a.Age > b.IncidentWindow)
             {
                 Miss(a, left: false);
@@ -237,7 +276,7 @@ namespace SpaceStation.Interior
 
         // ---------------- 만들기 ----------------
 
-        private bool TrySpawn(IncidentKind? forced)
+        private bool TrySpawn(IncidentKind? forced, bool tutorial = false)
         {
             if (_layout == null || CurrentRoom == null || !_layout.Contains(CurrentRoom))
                 return false;
@@ -263,7 +302,7 @@ namespace SpaceStation.Interior
                 var kind = forced ?? InteriorIncidentRules.Pick(InteriorIncidentRules.CanTrip(room.Data), _last, _rng.NextDouble());
                 if (forced == IncidentKind.Breaker && !InteriorIncidentRules.CanTrip(room.Data))
                     continue;
-                var a = new Incident { Kind = kind, Room = room, Resource = InteriorIncidentRules.LeakResource(room.Data) };
+                var a = new Incident { Kind = kind, Room = room, Resource = InteriorIncidentRules.LeakResource(room.Data), Tutorial = tutorial };
                 if (!Place(a))
                 {
                     End(a, rebuilt: false);
@@ -639,6 +678,7 @@ namespace SpaceStation.Interior
                 a.Bubble.Set($"<b>해결!</b>\n<size=80%>{InteriorIncidentRules.Title(a.Kind)}</size>", new Color(0.35f, 0.8f, 0.45f));
             Message?.Invoke($"{InteriorIncidentRules.Title(a.Kind)} 해결 · {reward}", false);
             AudioService.TryPlay(l => l.RepairDone);
+            Resolved?.Invoke();
         }
 
         private string Miss(Incident a, bool left)
@@ -703,7 +743,8 @@ namespace SpaceStation.Interior
         }
 
         private static string BubbleText(Incident a, int secondsLeft) =>
-            $"<color=#C8401A><b>{InteriorIncidentRules.Title(a.Kind)}!</b></color>\n{InteriorIncidentRules.Hint(a.Kind)}\n<size=75%><color=#7A6A60>남은 시간 {secondsLeft}초</color></size>";
+            $"<color=#C8401A><b>{InteriorIncidentRules.Title(a.Kind)}!</b></color>\n{InteriorIncidentRules.Hint(a.Kind)}" +
+            (a.Tutorial ? "" : $"\n<size=75%><color=#7A6A60>남은 시간 {secondsLeft}초</color></size>");
 
         // ---------------- 도우미 ----------------
 

@@ -17,10 +17,18 @@ namespace SpaceStation.Data
         Repair,
         /// <summary>11-18: 일부러 낡게 만든 모듈 하나를 정비 (튜토리얼 동안은 노후화가 멈춰 있음).</summary>
         Maintain,
+        /// <summary>11-18: 모듈을 골라 1인칭 내부로 들어가기.</summary>
+        EnterInterior,
+        /// <summary>11-18: 내부에서 패드 들기.</summary>
+        InteriorPad,
+        /// <summary>11-18: 내부에서 주민 부탁 하나 들어주기 (단계가 시작되면 바로 생김).</summary>
+        InteriorRequest,
+        /// <summary>11-18: 내부에서 튜토리얼용 사고 하나 처리 (제한 시간 · 손해 없음).</summary>
+        InteriorIncident,
     }
 
     /// <summary>안내 카드 외에 깜빡일 HUD 영역 (건설 단계는 모듈 버튼·탭을 자동으로 강조).</summary>
-    public enum TutorialHighlight { None, Resources, TimeControl, Repair, Maintain }
+    public enum TutorialHighlight { None, Resources, TimeControl, Repair, Maintain, Enter }
 
     [Serializable]
     public sealed class TutorialStep

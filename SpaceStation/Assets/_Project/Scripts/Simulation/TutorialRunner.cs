@@ -14,6 +14,7 @@ namespace SpaceStation.Simulation
     /// - 11-18: 진행 중에는 노후화 · 파손 확산 · 파괴 타이머가 멈춘다 (<see cref="StationSimulation"/>가 <see cref="Active"/>를 봄).
     ///   정비 단계는 모듈 하나를 일부러 낡게 해 두고 정비하면 완료. 단계에 해당하는 조작만 허용 (<see cref="Allows"/>).
     /// 카메라 조작·배속은 화면 쪽(TutorialView)이 <see cref="ReportCamera"/>, <see cref="ReportSpeed"/>로 알린다.
+    /// - 11-18 내부 단계(들어가기 · 패드 · 부탁 · 사고)는 내부 쪽(InteriorMode)이 <see cref="ReportInside"/>, <see cref="ReportInterior"/>로 알리고 바로 판정.
     /// </summary>
     public sealed class TutorialRunner
     {
@@ -51,8 +52,12 @@ namespace SpaceStation.Simulation
         public float ShortageElapsed { get; private set; }
         public bool HoldsTime { get; private set; }
 
+        /// <summary>11-18: 플레이어가 1인칭 내부에 있음 (내부 쪽이 <see cref="ReportInside"/>로 알림).</summary>
+        public bool InsideInterior { get; private set; }
+
         private bool _wasNight;
         private ModuleInstance _maintainTarget;
+        private bool _interiorDone;
 
         /// <summary>11-18 정비 단계에서 정비할 모듈 (없으면 null).</summary>
         public ModuleInstance MaintainTarget => _maintainTarget;
@@ -81,6 +86,31 @@ namespace SpaceStation.Simulation
             if (Active && speed >= _data.RequiredSpeed - 1e-3f)
                 SpeedUsed = true;
         }
+
+        /// <summary>
+        /// 11-18 내부 단계: 내부에서는 기본 설정상 시간이 멈춰 틱이 돌지 않으므로, 보고를 받으면 바로 판정한다.
+        /// 들어가기 단계는 들어간 순간 완료.
+        /// </summary>
+        public void ReportInside(bool inside)
+        {
+            InsideInterior = inside;
+            if (inside)
+                ReportInterior(TutorialGoal.EnterInterior);
+        }
+
+        /// <summary>11-18: 지금 단계가 이 내부 목표면 완료 (패드 들기 · 부탁 · 사고 처리).</summary>
+        public void ReportInterior(TutorialGoal goal)
+        {
+            var step = Current;
+            if (step == null || step.Goal != goal)
+                return;
+            _interiorDone = true;
+            Advance();
+        }
+
+        /// <summary>11-18: 내부에 있어야 진행되는 단계 (패드 · 부탁 · 사고).</summary>
+        public static bool NeedsInside(TutorialGoal goal) =>
+            goal == TutorialGoal.InteriorPad || goal == TutorialGoal.InteriorRequest || goal == TutorialGoal.InteriorIncident;
 
         public void Skip()
         {
@@ -204,6 +234,8 @@ namespace SpaceStation.Simulation
                     return step.Goal == TutorialGoal.Repair;
                 case TutorialAction.Maintain:
                     return step.Goal == TutorialGoal.Maintain;
+                case TutorialAction.EnterInterior:
+                    return step.Goal == TutorialGoal.EnterInterior || NeedsInside(step.Goal); // 나왔으면 다시 들어가기
                 case TutorialAction.Speed:
                     for (int i = 0; i <= StepIndex && i < _data.Steps.Count; i++)
                     {
@@ -245,6 +277,11 @@ namespace SpaceStation.Simulation
                     return MeteorFired && _sim.Damage.DamagedModules.Count == 0;
                 case TutorialGoal.Maintain:
                     return IsMaintained();
+                case TutorialGoal.EnterInterior:
+                case TutorialGoal.InteriorPad:
+                case TutorialGoal.InteriorRequest:
+                case TutorialGoal.InteriorIncident:
+                    return _interiorDone;
                 default:
                     return true;
             }
@@ -277,6 +314,7 @@ namespace SpaceStation.Simulation
             StepIndex++;
             StepElapsed = 0f;
             ShortageElapsed = 0f;
+            _interiorDone = false;
             StepCompleted?.Invoke(done);
             if (StepIndex >= _data.Steps.Count)
             {

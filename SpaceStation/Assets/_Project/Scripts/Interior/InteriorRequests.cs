@@ -55,6 +55,8 @@ namespace SpaceStation.Interior
             public float Age;
             public bool Done;
             public float DoneAge;
+            /// <summary>11-18 튜토리얼 부탁: 만료되지 않음.</summary>
+            public bool Tutorial;
             public string Reply;
             public SpeechBubble Bubble;
             public InteriorInteractable ResidentUse;
@@ -103,8 +105,12 @@ namespace SpaceStation.Interior
         public ModuleInstance CurrentRoom { get; set; }
         /// <summary>11-17 ④ 내부 사고 처리 중에는 새 요청을 쉼 (사용자 결정: 요청과 사고는 따로 셈).</summary>
         public bool Suspended { get; set; }
+        /// <summary>11-18 튜토리얼 중: 저절로 생기는 요청을 쉼 (타이머도 멈춤 — 끝나면 처음 간격부터).</summary>
+        public bool TutorialHold { get; set; }
         /// <summary>알림 (글, 실패 여부).</summary>
         public event Action<string, bool> Message;
+        /// <summary>11-18: 요청 하나를 들어줌 (튜토리얼 진행용).</summary>
+        public event Action Completed;
 
         private StationSimulation Sim => _station.Simulation;
 
@@ -161,6 +167,39 @@ namespace SpaceStation.Interior
         /// <summary>확인용: 지금 바로 요청 하나 (종류 지정 가능). 성공하면 true.</summary>
         public bool ForceRequest(RequestKind? kind = null) => TrySpawn(kind);
 
+        /// <summary>
+        /// 11-18 튜토리얼 부탁: 내부 어느 방의 주민이든 (지금 방 · 옆방에 주민이 없을 수 있음), 화분 → 환풍구 → 말동무 순으로 되는 것.
+        /// 만료되지 않는다. 성공하면 true.
+        /// </summary>
+        public bool ForceTutorialRequest()
+        {
+            foreach (var kind in new[] { RequestKind.Water, RequestKind.Fix, RequestKind.Talk })
+            {
+                if (TrySpawn(kind, anywhere: true))
+                {
+                    _requests[_requests.Count - 1].Tutorial = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>11-18 화면 표시용: 아직 안 들어준 첫 요청 (없으면 false).</summary>
+        public bool TryGetPending(out string title, out ModuleInstance room)
+        {
+            foreach (var r in _requests)
+            {
+                if (r.Done)
+                    continue;
+                title = ResidentRequestRules.Title(r.Kind);
+                room = r.Room;
+                return true;
+            }
+            title = null;
+            room = null;
+            return false;
+        }
+
         public int ActiveCount
         {
             get
@@ -181,7 +220,8 @@ namespace SpaceStation.Interior
                 return;
             float dt = Mathf.Min(Time.unscaledDeltaTime, 0.25f);
             var b = Sim.Balance;
-            _timer -= dt;
+            if (!TutorialHold)
+                _timer -= dt;
             if (_timer <= 0f)
             {
                 bool ok = !Suspended && ResidentRequestRules.CanAdd(ActiveCount, b.RequestMaxActive) && TrySpawn(null);
@@ -211,7 +251,7 @@ namespace SpaceStation.Interior
                 if (r.Age - r.DoneAge > _s.ReplySeconds)
                     return false;
             }
-            else if (r.Age > expire)
+            else if (r.Age > expire && !r.Tutorial)
                 return false;
             UpdateVent(r, dt);
             if (r.Bubble != null)
@@ -229,12 +269,21 @@ namespace SpaceStation.Interior
 
         // ---------------- 요청 만들기 ----------------
 
-        private bool TrySpawn(RequestKind? forced)
+        /// <param name="anywhere">11-18 튜토리얼: 지금 방 · 옆방이 아닌 내부 모든 방의 주민 중에서.</param>
+        private bool TrySpawn(RequestKind? forced, bool anywhere = false)
         {
             if (_layout == null || CurrentRoom == null || _residents == null || !_layout.Contains(CurrentRoom))
                 return false;
             _near.Clear();
             _near.Add(CurrentRoom);
+            if (anywhere)
+            {
+                foreach (var other in _layout.Rooms)
+                {
+                    if (!_near.Contains(other.Module))
+                        _near.Add(other.Module);
+                }
+            }
             _station.Grid.GetNeighborModules(CurrentRoom, _neighbors);
             foreach (var n in _neighbors)
             {
@@ -594,6 +643,7 @@ namespace SpaceStation.Interior
             string head = r.Kind == RequestKind.Talk ? $"{r.Name}{ResidentRequestRules.Particle(r.Name, "과", "와")} 이야기했어요" : $"{r.Name}의 부탁을 들어줬어요";
             Message?.Invoke(reward != null ? $"{head} · {reward}" : head, false);
             AudioService.TryPlay(l => l.EventPositive, 0.7f);
+            Completed?.Invoke();
         }
 
         /// <summary>요청 정리 (만료 · 주민이 사라짐 · 다시 만들기). 손해 없이 조용히 — 시든 화분은 되살리고 환풍구는 조여 둠.</summary>

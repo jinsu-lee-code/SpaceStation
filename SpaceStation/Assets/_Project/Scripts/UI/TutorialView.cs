@@ -39,6 +39,10 @@ namespace SpaceStation.UI
         [SerializeField] private float _completedFlashSeconds = 1.6f;
         [SerializeField] private float _supplyMessageSeconds = 5f;
         [SerializeField] private float _skipConfirmSeconds = 3f;
+        [Tooltip("11-18 내부에 있을 때 카드를 이만큼 내림 (왼쪽 위 방 이름 · 사고/부탁 표시 줄 아래로)")]
+        [SerializeField] private float _insideDrop = 60f;
+        [Tooltip("11-18 내부에서 튜토리얼을 끝내면 완료 카드를 이 시간 뒤 닫음 (마우스가 잠겨 [닫기]를 못 누름)")]
+        [SerializeField] private float _insideFinishedSeconds = 12f;
 
         private HoloUi _ui;
         private StationSimulation _sim;
@@ -60,6 +64,7 @@ namespace SpaceStation.UI
         private RectTransform _frameB;
 
         private bool _finished;
+        private float _finishedAt;
         private float _flashUntil = -1f;
         private string _flashText;
         private float _supplyUntil = -1f;
@@ -183,8 +188,16 @@ namespace SpaceStation.UI
                     _tween.Hide();
                 return;
             }
+            var self = (RectTransform)transform;
+            var drop = new Vector2(0f, _runner.InsideInterior ? -_insideDrop : 0f);
+            if (self.anchoredPosition != drop)
+                self.anchoredPosition = drop;
             if (_finished)
+            {
+                if (_runner.InsideInterior && _tween.Visible && Time.unscaledTime > _finishedAt + _insideFinishedSeconds)
+                    _tween.Hide();
                 return;
+            }
             TrackCamera();
             if (_clock != null && !_clock.Clock.IsPaused)
                 _runner.ReportSpeed(_clock.Clock.Speed);
@@ -214,7 +227,10 @@ namespace SpaceStation.UI
                     case TutorialHighlight.TimeControl: b = _timePanel; break;
                     case TutorialHighlight.Repair: b = _selectionPanel != null ? _selectionPanel.RepairButtonIfShown : null; break;
                     case TutorialHighlight.Maintain: b = _selectionPanel != null ? _selectionPanel.MaintainButtonIfShown : null; break;
+                    case TutorialHighlight.Enter: b = _selectionPanel != null ? _selectionPanel.EnterButtonIfShown : null; break;
                 }
+                if (TutorialRunner.NeedsInside(step.Goal) && !_runner.InsideInterior && _selectionPanel != null)
+                    b = _selectionPanel.EnterButtonIfShown; // 내부 단계 중 밖으로 나왔으면 다시 들어가기
             }
             float pulse = 0.45f + 0.55f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 3.5f));
             Follow(_frameA, a, pulse);
@@ -370,6 +386,19 @@ namespace SpaceStation.UI
                         _lines.Add(Check(damaged == 0, "수리 완료까지 기다리기"));
                     }
                     break;
+                case TutorialGoal.EnterInterior:
+                    _lines.Add(Check(_runner.InsideInterior, $"모듈 클릭 후 [들어가기] 또는 {KeyBindings.Label(GameAction.EnterInterior)}"));
+                    break;
+                case TutorialGoal.InteriorPad:
+                    _lines.Add(Check(false, $"{KeyBindings.Label(GameAction.Pad)}: 패드 들기"));
+                    break;
+                case TutorialGoal.InteriorRequest:
+                    _lines.Add(Check(false, "부탁한 주민 찾아가기 (방 이름 아래 표시 · 패드 지도)"));
+                    _lines.Add(Check(false, $"말풍선의 부탁 들어주기 ({KeyBindings.Label(GameAction.Interact)})"));
+                    break;
+                case TutorialGoal.InteriorIncident:
+                    _lines.Add(Check(false, $"말풍선 안내대로 사고 처리하기 ({KeyBindings.Label(GameAction.Interact)} 길게)"));
+                    break;
             }
             return string.Join("\n", _lines);
         }
@@ -381,6 +410,8 @@ namespace SpaceStation.UI
                 _sb.Append($"<color={HudTheme.GreenHex}><b>{_flashText}</b></color>\n");
             if (_runner.HoldsTime)
                 _sb.Append($"<color={HudText.Orange}><b>밤이 오기 전에 배터리까지 지어야 합니다 · 그때까지 시간이 멈춰 있습니다</b></color>\n");
+            if (TutorialRunner.NeedsInside(step.Goal) && !_runner.InsideInterior)
+                _sb.Append($"<color={HudText.Orange}><b>밖으로 나왔습니다 · 모듈을 클릭하고 {KeyBindings.Label(GameAction.EnterInterior)}로 다시 들어가세요</b></color>\n");
             if (_supplyUntil > Time.unscaledTime)
                 _sb.Append($"<color={HudTheme.GreenHex}>{_supplyText}</color>\n");
             else
@@ -417,6 +448,8 @@ namespace SpaceStation.UI
         /// <summary>11-18: 운석 단계가 시작되면 1배속으로 (바로 앞 단계에서 4배속을 배워 실제 15초 만에 번지기 시작했었음).</summary>
         private void HandleStepChanged(int index)
         {
+            if (_selectionPanel != null)
+                _selectionPanel.MarkDirty(); // 11-18 단계마다 허용 조작이 바뀜 (이미 고른 모듈의 [들어가기] 등)
             var step = _runner.Current;
             if (step != null && step.Goal == TutorialGoal.Repair && _clock != null)
                 _clock.SetSpeedPreset(0);
@@ -447,7 +480,10 @@ namespace SpaceStation.UI
         {
             GameSettings.TutorialPending = false;
             _finished = true;
+            _finishedAt = Time.unscaledTime;
             HideHighlights();
+            if (_selectionPanel != null)
+                _selectionPanel.MarkDirty();
             if (skipped)
             {
                 _tween.Hide();
@@ -458,6 +494,7 @@ namespace SpaceStation.UI
             _title.SetText("이제 정거장은 당신의 것입니다");
             _body.SetText("지금부터 운석·태양 폭풍 같은 무작위 이벤트가 찾아오고, 모듈도 시간이 지나며 낡습니다 (노란 표시가 뜨면 정비).\n" +
                           "자원 표시가 빨갛게 줄면 생명 유지 모듈을 더 지으세요. 거주자를 늘려 정거장 등급을 올리고, 연구(" + KeyBindings.Label(GameAction.Research) + ")로 새 기술을 여세요.\n" +
+                          $"내부에서는 주민 부탁을 들어주면 만족도가 오르고, 사고를 제때 막지 못하면 손실이 생깁니다 ({KeyBindings.Label(GameAction.EnterInterior)} 들어가기).\n" +
                           $"<color={HudText.Muted}>목표: 대형 정거장 (오른쪽 위 등급 표시)</color>");
             _checklist.gameObject.SetActive(false);
             _status.gameObject.SetActive(false);

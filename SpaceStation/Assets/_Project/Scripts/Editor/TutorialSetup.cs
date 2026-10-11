@@ -11,7 +11,7 @@ namespace SpaceStation.Editor
 {
     /// <summary>
     /// Phase 9 튜토리얼 설정 (메뉴 SpaceStation/Tutorial/Setup):
-    /// TutorialData 에셋(9단계) 생성·갱신 → SimulationHost 연결 → HUD에 TutorialView 자리 (내용은 런타임 생성).
+    /// TutorialData 에셋(13단계 — 11-18 내부 4단계 추가) 생성·갱신 → SimulationHost 연결 → HUD에 TutorialView 자리 (내용은 런타임 생성).
     /// 단계 문구는 에셋에서 고칠 수 있다 (다시 실행하면 이 기본값으로 덮어씀).
     /// </summary>
     public static class TutorialSetup
@@ -105,6 +105,23 @@ namespace SpaceStation.Editor
                     "운석이 다가옵니다! 맞은 모듈은 <b>파손</b>되어 멈추고, 오래 두면 옆으로 번지거나 파괴됩니다.\n" +
                     "파손된 모듈(빨간 표시)을 클릭하고 <b>수리</b>를 누르세요. 수리에는 금속이 듭니다.",
                     TutorialGoal.Repair, TutorialHighlight.Repair),
+                // 11-18: 튜토리얼 · 완료 문구에 1인칭 내부 안내가 없어 처음 플레이어가 모르고 지나칠 수 있었음 → 내부 4단계
+                new TutorialStep("내부 둘러보기",
+                    "정거장 안에는 주민들이 살고 있습니다. 모듈을 클릭하고 <b>[들어가기]</b>를 누르면 1인칭으로 내부를 걸어 다닐 수 있습니다.\n" +
+                    "안에서는 이동 키와 마우스로 움직이고, <b>ESC</b>로 밖에 나옵니다.",
+                    TutorialGoal.EnterInterior, TutorialHighlight.Enter),
+                new TutorialStep("휴대 패드",
+                    "패드에는 정거장 지도가 있습니다. 주민 부탁이나 사고가 생긴 방이 지도에 표시되고, 다른 방으로 바로 이동하거나 모듈을 관리할 수 있습니다.\n" +
+                    "패드를 들어 보세요.",
+                    TutorialGoal.InteriorPad),
+                new TutorialStep("주민 부탁",
+                    "주민이 부탁을 했습니다. 누가 어느 방에서 부탁했는지 왼쪽 위 방 이름 아래에 표시됩니다.\n" +
+                    "찾아가서 말풍선의 부탁을 들어주면 <b>만족도</b>가 오릅니다.",
+                    TutorialGoal.InteriorRequest),
+                new TutorialStep("사고 대응",
+                    "방에 사고가 났습니다! 평소에는 <b>제한 시간</b> 안에 처리하지 못하거나 밖으로 나가면 자원 손실이 생깁니다.\n" +
+                    "<color=#9AA4B2>이번은 연습이라 시간 제한이 없습니다.</color> 말풍선 안내대로 처리하세요.",
+                    TutorialGoal.InteriorIncident),
             });
             EditorUtility.SetDirty(data);
             AssetDatabase.SaveAssets();
