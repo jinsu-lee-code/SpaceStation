@@ -87,10 +87,11 @@ namespace SpaceStation.Editor
                     "배터리는 낮에 남는 전력을 모아 두었다가 밤에 내보냅니다. 밤이 오기 전에 배터리를 지으세요.\n" +
                     "<color=#9AA4B2>배터리 하나로는 밤 내내 버티기 어려워, 밤이 깊어지면 효율이 조금 떨어질 수 있습니다.</color>",
                     TutorialGoal.Build, TutorialHighlight.None, true, Module("MD_Battery")),
+                // 11-18: 인구 10명이면 물 재활용기 하나로 모자라 완료 직후 물 고갈 → 산소 생성기 · 농장 정지 (생명 유지도 함께 늘리기)
                 new TutorialStep("인구 늘리기: 거주 모듈",
-                    "정거장 등급은 <b>거주자 수와 모듈 수</b>로 오릅니다.\n" +
-                    "거주 모듈을 지어 수용 인원을 늘리면, 만족도가 충분할 때 거주자가 천천히 늘어납니다.",
-                    TutorialGoal.Build, TutorialHighlight.Resources, false, Module("MD_Habitat")),
+                    "정거장 등급은 <b>거주자 수와 모듈 수</b>로 오릅니다. 거주 모듈을 지어 수용 인원을 늘리면, 만족도가 충분할 때 거주자가 천천히 늘어납니다.\n" +
+                    "사람이 늘면 소비도 늘어납니다. <b>물 재활용기</b>도 하나 더 지으세요 (물이 모자라면 산소 생성기 · 농장도 멈춥니다).",
+                    TutorialGoal.Build, TutorialHighlight.Resources, false, Module("MD_Habitat"), Module("MD_WaterRecycler"), Module("MD_WaterRecycler")), // 총 2개 (생명 유지 단계의 1개 + 1)
                 new TutorialStep("시간 빨리 감기",
                     "깜빡이는 시간 조절 버튼으로 배속을 올리거나 일시정지할 수 있습니다.\n" +
                     "배속을 올려 밤을 한 번 넘겨 보세요. 밤에는 배터리가 모아 둔 전력을 내보내고, 다 쓰면 효율이 떨어집니다 (자원 표시의 배터리 줄).",

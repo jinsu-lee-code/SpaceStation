@@ -28,6 +28,8 @@ namespace SpaceStation.UI
         [SerializeField] private TMP_Text[] _difficultyLabels = new TMP_Text[0];
         [Tooltip("처음 강조할 난이도 (노멀)")]
         [SerializeField] private int _recommendedIndex = 1;
+        [Tooltip("11-18 처음 하는 사람에게 권할 난이도 (이지) — 노멀 초반이 빡빡해 첫 판은 이지 권장 (사용자 결정 2026-10-11)")]
+        [SerializeField] private int _firstTimeIndex = 0;
         [Header("Save (Phase 6)")]
         [SerializeField] private Button _continueButton;
         [SerializeField] private TMP_Text _continueLabel;
@@ -68,7 +70,8 @@ namespace SpaceStation.UI
                 _difficultyButtons[i].onClick.AddListener(() => StartGame(index));
                 if (i < _difficultyLabels.Length && _difficultyLabels[i] != null)
                 {
-                    string tag = i == _recommendedIndex ? $"  <size=70%><color={HudTheme.AccentHex}>기본</color></size>" : "";
+                    string tag = i == _recommendedIndex ? $"  <size=70%><color={HudTheme.AccentHex}>기본</color></size>"
+                        : i == _firstTimeIndex ? $"  <size=70%><color={HudTheme.GreenHex}>처음이면 추천</color></size>" : "";
                     _difficultyLabels[i].SetText($"<b>{d.DisplayName}</b>{tag}\n<size=68%><color=#AFC4D8>{d.Description}</color></size>");
                 }
             }

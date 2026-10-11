@@ -457,7 +457,7 @@ namespace SpaceStation.UI
             _header.SetText($"<color={HudTheme.AccentHex}>튜토리얼 완료</color>");
             _title.SetText("이제 정거장은 당신의 것입니다");
             _body.SetText("지금부터 운석·태양 폭풍 같은 무작위 이벤트가 찾아오고, 모듈도 시간이 지나며 낡습니다 (노란 표시가 뜨면 정비).\n" +
-                          "거주자를 늘려 정거장 등급을 올리고, 연구(" + KeyBindings.Label(GameAction.Research) + ")로 새 기술을 여세요.\n" +
+                          "자원 표시가 빨갛게 줄면 생명 유지 모듈을 더 지으세요. 거주자를 늘려 정거장 등급을 올리고, 연구(" + KeyBindings.Label(GameAction.Research) + ")로 새 기술을 여세요.\n" +
                           $"<color={HudText.Muted}>목표: 대형 정거장 (오른쪽 위 등급 표시)</color>");
             _checklist.gameObject.SetActive(false);
             _status.gameObject.SetActive(false);
