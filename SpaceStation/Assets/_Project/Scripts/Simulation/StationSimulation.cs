@@ -66,6 +66,8 @@ namespace SpaceStation.Simulation
         public CargoSystem Cargo { get; } = new CargoSystem();
         /// <summary>11-17 ② 내부 보급 상자 · 연구 포인트 · 무료 수리권.</summary>
         public SupplyCrateSystem Supply { get; } = new SupplyCrateSystem();
+        /// <summary>11-17 ④ 놓친 내부 사고의 짧은 손실 (누출 · 차단기).</summary>
+        public IncidentEffects Incidents { get; } = new IncidentEffects();
         // 상자 내용 난수는 이벤트 난수와 따로 (밸런스 봇의 시드 결과가 바뀌지 않게). 고정 시드면 매 판 처음 상자들이 늘 같았음(물 4개)
         private readonly Random _crateRandom = new Random();
         public NeedsSystem Needs { get; }
@@ -220,6 +222,7 @@ namespace SpaceStation.Simulation
             Resources.SolarMultiplier = DayNight.SolarMultiplier(ElapsedSeconds); // 이번 틱 시작 시점의 낮/밤
             Resources.ExtraPowerDemand = Research.RunningPowerDemand; // 진행 중인 연구 (Phase 6)
             Resources.Tick(_activeModules, _productionMultipliers, _consumptionMultipliers, dt);
+            Incidents.Tick(dt, Resources); // 11-17 ④ 놓친 사고의 누출
             Research.Tick(dt, Resources.PowerEfficiency * Effects.TraitResearchSpeedMultiplier); // 이번 틱 전력 효율만큼 진행 (Phase 10 과학자 배율 포함)
             Cargo.Tick(Grid, Resources, ModuleStrength, dt); // 8-5 화물선 (가동률만큼)
             Automation.Tick(dt); // 자동화 연구: 기준값 미만 모듈 정비·재건축
@@ -690,7 +693,7 @@ namespace SpaceStation.Simulation
                 if (c.Type == ResourceType.Power && c.Amount > 0f)
                     power = Resources.PowerEfficiency;
             }
-            return power * Damage.GetProductionMultiplier(module) * Durability.GetEfficiency(module)
+            return power * Damage.GetProductionMultiplier(module) * Durability.GetEfficiency(module) * Incidents.ProductionMultiplier(module)
                    * Adjacency.GetProductionMultiplier(module) * Effects.ProductionMultiplier(module.Data);
         }
 
@@ -719,7 +722,7 @@ namespace SpaceStation.Simulation
                     continue;
                 _activeModules.Add(module.Data);
                 // 파손 배율 × 내구도 효율 × 인접 효과 × 생산 연구 (BALANCE 1번: 곱셈)
-                _productionMultipliers.Add(Damage.GetProductionMultiplier(module) * Durability.GetEfficiency(module)
+                _productionMultipliers.Add(Damage.GetProductionMultiplier(module) * Durability.GetEfficiency(module) * Incidents.ProductionMultiplier(module)
                                            * Adjacency.GetProductionMultiplier(module) * Effects.ProductionMultiplier(module.Data));
                 if (module.Data.ResearchSlots > 0 && !Damage.IsDamaged(module))
                     labSlots += module.Data.ResearchSlots; // 연결되고 파손되지 않은 연구소만
@@ -1080,6 +1083,44 @@ namespace SpaceStation.Simulation
             }
             return true;
         }
+
+        /// <summary>11-17 ④ 내부 사고를 처리함 (BALANCE 31번): 주민들이 안심 → 만족도 조금. text = 알림용.</summary>
+        public string ResolveIncident()
+        {
+            float before = Population.Satisfaction;
+            Population.SetSatisfaction(Math.Min(PopulationSimulation.MaxSatisfaction, before + Balance.IncidentResolveSatisfaction));
+            return $"만족도 +{Population.Satisfaction - before:0.#}";
+        }
+
+        /// <summary>
+        /// 11-17 ④ 내부 사고를 놓침 (처리 시간이 지났거나 밖으로 나감, BALANCE 31번): 상한 있는 짧은 손실 후 정비 인력이 처리한 것으로 끝.
+        /// 누출 = 물/산소가 나눠서 샘, 차단기 = 그 방 생산 배율, 화재 = 그 방 내구도(5 아래로는 안 내려감) + 만족도, 환기 = 산소 + 만족도. text = 알림용.
+        /// </summary>
+        public string MissIncident(IncidentKind kind, ModuleInstance module, ResourceType leakResource = ResourceType.Oxygen)
+        {
+            var b = Balance;
+            float seconds = b.IncidentPenaltySeconds;
+            switch (kind)
+            {
+                case IncidentKind.Leak:
+                    Incidents.AddDrain(leakResource, b.IncidentLeakLoss, seconds);
+                    return $"{leakResource.DisplayName()} -{b.IncidentLeakLoss:0} (2분 동안)";
+                case IncidentKind.Breaker:
+                    Incidents.Trip(module, b.IncidentBreakerMultiplier, seconds);
+                    return $"생산 {Math.Round(b.IncidentBreakerMultiplier * 100f)}% (2분 동안)";
+                case IncidentKind.Fire:
+                    if (module != null && Durability.TryGetInfo(module, out var info))
+                        Durability.ApplyImpact(module, Math.Min(b.IncidentFireDurability, Math.Max(0f, info.Current - 5f)));
+                    LoseSatisfaction(b.IncidentMissSatisfaction);
+                    return $"내구도 -{b.IncidentFireDurability:0} · 만족도 -{b.IncidentMissSatisfaction:0.#}";
+                default:
+                    Incidents.AddDrain(ResourceType.Oxygen, b.IncidentFilterOxygenLoss, seconds);
+                    LoseSatisfaction(b.IncidentMissSatisfaction);
+                    return $"산소 -{b.IncidentFilterOxygenLoss:0} (2분 동안) · 만족도 -{b.IncidentMissSatisfaction:0.#}";
+            }
+        }
+
+        private void LoseSatisfaction(float amount) => Population.SetSatisfaction(Math.Max(0f, Population.Satisfaction - amount));
 
         /// <summary>11-17 ③ 요청을 들어준 주민의 기분 보너스 (끝났으면 0).</summary>
         public float CheerOf(Resident resident) =>

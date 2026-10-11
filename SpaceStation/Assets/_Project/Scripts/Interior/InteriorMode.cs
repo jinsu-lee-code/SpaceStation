@@ -74,6 +74,8 @@ namespace SpaceStation.Interior
         [SerializeField] private InteriorPlants.Settings _plantSettings = new InteriorPlants.Settings();
         [Header("11-17 주민 요청")]
         [SerializeField] private InteriorRequests.Settings _requestSettings = new InteriorRequests.Settings();
+        [Header("11-17 내부 사고")]
+        [SerializeField] private InteriorIncidents.Settings _incidentSettings = new InteriorIncidents.Settings();
 
         [Header("HUD")]
         [SerializeField] private RectTransform _hud;
@@ -115,6 +117,7 @@ namespace SpaceStation.Interior
         private InteriorSupply _supply;
         private InteriorPlants _plants;
         private InteriorRequests _requests;
+        private InteriorIncidents _incidents;
         // 11-17 길게 누르는 상호작용
         private InteriorInteractable _holdTarget;
         private float _holdTime;
@@ -244,6 +247,9 @@ namespace SpaceStation.Interior
             _requests = InteriorRequests.Create(transform, _station, _builder, _residents, _plants, _requestSettings, _font, _player.Eye);
             _requests.Message += ShowNotice;
             _requests.Rebuild(_layout);
+            _incidents = InteriorIncidents.Create(transform, _station, _builder, _incidentSettings, _font, _player.Eye, _smokeMaterial, _sparkMaterial);
+            _incidents.Message += ShowNotice;
+            _incidents.Rebuild(_layout);
             var spawn = _builder.SpawnPoint(module, out float spawnYaw);
             _player.Teleport(spawn + Vector3.up * 0.05f, spawnYaw);
 
@@ -297,6 +303,7 @@ namespace SpaceStation.Interior
                 Tuning = _padTuning,
                 Buildable = _build != null ? _build.BuildableModules : null,
                 RequestCount = m => _requests != null ? _requests.CountIn(m) : 0,
+                IncidentCount = m => _incidents != null ? _incidents.CountIn(m) : 0,
             });
             InsideChanged?.Invoke(true);
 
@@ -318,6 +325,12 @@ namespace SpaceStation.Interior
             yield return Fade(0f, 1f, 0.15f);
 
             var lastModule = _currentModule;
+            if (_incidents != null)
+            {
+                string missed = _incidents.LeaveInterior(); // 처리하지 않은 사고는 놓친 것으로 (손실 알림은 밖 상태 표시줄로)
+                if (notice == null)
+                    notice = missed;
+            }
             if (_pad != null)
                 Destroy(_pad.gameObject); // 카메라 쌓기 · 컬링 마스크 · 열어 둔 창을 되돌림
             _pad = null;
@@ -356,6 +369,9 @@ namespace SpaceStation.Interior
             if (_requests != null)
                 Destroy(_requests.gameObject);
             _requests = null;
+            if (_incidents != null)
+                Destroy(_incidents.gameObject);
+            _incidents = null;
             ResetHold();
             if (_player != null)
                 Destroy(_player.gameObject);
@@ -425,7 +441,12 @@ namespace SpaceStation.Interior
             if (_fieldRepair != null)
                 _fieldRepair.CurrentRoom = _currentModule;
             if (_requests != null)
+            {
                 _requests.CurrentRoom = _currentModule;
+                _requests.Suspended = _incidents != null && _incidents.Active;
+            }
+            if (_incidents != null)
+                _incidents.CurrentRoom = _currentModule;
             if (_notice != null && _noticeUntil > 0f && Time.unscaledTime > _noticeUntil)
             {
                 _noticeUntil = 0f;
@@ -630,6 +651,8 @@ namespace SpaceStation.Interior
                 _plants.Rebuild(_layout);
             if (_requests != null)
                 _requests.Rebuild(_layout);
+            if (_incidents != null)
+                _incidents.Rebuild(_layout);
             ResetHold();
             if (_exteriorView != null)
                 _exteriorView.CollectWindows();

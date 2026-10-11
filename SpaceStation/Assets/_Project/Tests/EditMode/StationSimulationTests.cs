@@ -399,6 +399,56 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Incident_Resolve_AddsSatisfaction_MissLeak_DrainsCappedThenEnds()
+        {
+            // 11-17 ④ (BALANCE 31번): 처리 = 만족도 +3 / 놓친 누출 = 20을 120초 동안 나눠서, 그 뒤 끝
+            var sim = Sim();
+            var other = Sim();
+            sim.Population.SetSatisfaction(50f);
+            StringAssert.Contains("+3", sim.ResolveIncident());
+            Assert.AreEqual(53f, sim.Population.Satisfaction, Eps);
+            other.Population.SetSatisfaction(53f); // 비교용 정거장도 같은 상태 (성장 시점이 같게)
+
+            sim.MissIncident(IncidentKind.Leak, sim.Core, ResourceType.Water);
+            Assert.AreEqual(1, sim.Incidents.ActiveCount);
+            for (int i = 0; i < 60; i++)
+            {
+                sim.Tick(1f);
+                other.Tick(1f);
+            }
+            Assert.AreEqual(10f, other.Resources.GetStock(ResourceType.Water) - sim.Resources.GetStock(ResourceType.Water), 0.05f, "60초 = 절반");
+            for (int i = 0; i < 70; i++)
+            {
+                sim.Tick(1f);
+                other.Tick(1f);
+            }
+            Assert.AreEqual(0, sim.Incidents.ActiveCount, "120초 뒤 끝");
+            Assert.AreEqual(20f, other.Resources.GetStock(ResourceType.Water) - sim.Resources.GetStock(ResourceType.Water), 0.05f, "총량 상한");
+        }
+
+        [Test]
+        public void Incident_MissBreaker_LowersProductionForAWhile_FireNeverDestroys()
+        {
+            var sim = Sim();
+            Assert.IsTrue(sim.TryPlace(_solar, Vector3Int.right, 0, out var solar));
+            sim.Tick(1f);
+            float before = sim.GetModuleEfficiency(solar);
+            sim.MissIncident(IncidentKind.Breaker, solar);
+            Assert.AreEqual(before * 0.7f, sim.GetModuleEfficiency(solar), Eps);
+            for (int i = 0; i < 121; i++)
+                sim.Tick(1f);
+            Assert.AreEqual(before, sim.GetModuleEfficiency(solar), Eps, "2분 뒤 원래대로");
+
+            Assert.IsTrue(sim.Durability.TryGetInfo(solar, out var info));
+            float d0 = info.Current;
+            sim.MissIncident(IncidentKind.Fire, solar);
+            Assert.AreEqual(d0 - 8f, info.Current, Eps);
+            for (int i = 0; i < 20; i++)
+                sim.MissIncident(IncidentKind.Fire, solar);
+            Assert.AreEqual(5f, info.Current, Eps, "화재로는 내구도 5 아래로 안 내려감 (파괴로 번지지 않음)");
+        }
+
+        [Test]
         public void FieldRepairPoints_BySize()
         {
             Assert.AreEqual(2, _balance.FieldRepairPoints(1));

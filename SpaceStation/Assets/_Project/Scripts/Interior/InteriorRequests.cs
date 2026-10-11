@@ -101,6 +101,8 @@ namespace SpaceStation.Interior
 
         /// <summary>플레이어가 있는 방 (요청은 이 방 · 옆방에서만 생김).</summary>
         public ModuleInstance CurrentRoom { get; set; }
+        /// <summary>11-17 ④ 내부 사고 처리 중에는 새 요청을 쉼 (사용자 결정: 요청과 사고는 따로 셈).</summary>
+        public bool Suspended { get; set; }
         /// <summary>알림 (글, 실패 여부).</summary>
         public event Action<string, bool> Message;
 
@@ -182,7 +184,7 @@ namespace SpaceStation.Interior
             _timer -= dt;
             if (_timer <= 0f)
             {
-                bool ok = ResidentRequestRules.CanAdd(ActiveCount, b.RequestMaxActive) && TrySpawn(null);
+                bool ok = !Suspended && ResidentRequestRules.CanAdd(ActiveCount, b.RequestMaxActive) && TrySpawn(null);
                 // 못 걸었으면(주변에 주민이 없음 등) 잠시 뒤 다시
                 _timer = ok ? ResidentRequestRules.NextDelay(b.RequestIntervalMin, b.RequestIntervalMax, _rng.NextDouble()) : 15f;
             }

@@ -190,6 +190,9 @@ namespace SpaceStation.Interior
         /// <summary>11-17 ③: 이 방에 걸린 주민 요청 수 (0이면 표시 없음) — 분홍 마름모가 떠서 돎 (보급 상자 표시가 있으면 그 위).</summary>
         public Func<ModuleInstance, int> RequestCount;
         private readonly List<MeshRenderer> _requestBadges = new List<MeshRenderer>();
+        /// <summary>11-17 ④: 이 방의 진행 중 내부 사고 수 — 빨간 마름모가 깜박이며 돎.</summary>
+        public Func<ModuleInstance, int> IncidentCount;
+        private readonly List<MeshRenderer> _incidentBadges = new List<MeshRenderer>();
         private Mesh _requestMesh;
 
         public static PadHologram Create(Transform anchor, Settings settings)
@@ -605,42 +608,50 @@ namespace SpaceStation.Interior
             }
         }
 
-        /// <summary>11-17 ③ 주민 요청이 걸린 방: 분홍 마름모가 위아래로 떠서 돎 (보급 상자 표시 위).</summary>
+        /// <summary>11-17 ③ 주민 요청이 걸린 방: 분홍 마름모 / ④ 사고가 난 방: 빨간 마름모(깜박) — 위아래로 떠서 돎 (보급 상자 표시 위로 쌓음).</summary>
         private void UpdateRequestBadges(float t)
         {
-            _requestBadges.RemoveAll(b => b == null);
+            UpdateMarks(t, _requestBadges, RequestCount, m => CrateCount != null && CrateCount(m) > 0 ? 1 : 0, new Color(1f, 0.45f, 0.72f), 1.3f);
+            UpdateMarks(t, _incidentBadges, IncidentCount,
+                m => (CrateCount != null && CrateCount(m) > 0 ? 1 : 0) + (RequestCount != null && RequestCount(m) > 0 ? 1 : 0),
+                new Color(1f, 0.32f, 0.14f), 1.1f + 0.6f * (Mathf.Sin(t * 8f) > 0f ? 1f : 0.3f));
+        }
+
+        private void UpdateMarks(float t, List<MeshRenderer> list, Func<ModuleInstance, int> count, Func<ModuleInstance, int> below, Color color, float glow)
+        {
+            list.RemoveAll(b => b == null);
             int used = 0;
-            if (_layer != null && RequestCount != null && _present > 0.5f)
+            if (_layer != null && count != null && _present > 0.5f)
             {
                 foreach (var p in _layer.Pieces)
                 {
-                    if (!p.Fill.enabled || RequestCount(p.Module) <= 0)
+                    if (!p.Fill.enabled || count(p.Module) <= 0)
                         continue;
-                    if (used >= _requestBadges.Count)
+                    if (used >= list.Count)
                     {
                         if (_requestMesh == null)
                             _requestMesh = DiamondMesh();
-                        var r = Primitive("RequestBadge", _layer.Root, _requestMesh, _s.Fill);
+                        var r = Primitive("MarkBadge", _layer.Root, _requestMesh, _s.Fill);
                         r.sortingOrder = 2;
-                        _requestBadges.Add(r);
+                        list.Add(r);
                     }
-                    var badge = _requestBadges[used++];
+                    var badge = list[used++];
                     if (badge.transform.parent != _layer.Root)
                         badge.transform.SetParent(_layer.Root, false);
                     badge.gameObject.SetActive(true);
                     var b = p.LocalBounds;
                     var top = p.Transform.localPosition + p.Transform.localRotation * new Vector3(b.center.x, b.max.y, b.center.z);
-                    float lift = CrateCount != null && CrateCount(p.Module) > 0 ? 0.88f : 0.48f;
+                    float lift = 0.48f + 0.4f * below(p.Module);
                     badge.transform.localPosition = top + Vector3.up * (lift + 0.08f * Mathf.Sin(t * 3f + used + 1.5f));
                     badge.transform.localRotation = Quaternion.Euler(0f, -t * 90f, 0f);
                     badge.transform.localScale = Vector3.one * 0.3f;
-                    Tint(badge, Hdr(new Color(1f, 0.45f, 0.72f), _s.Glow * 1.3f, 0.95f));
+                    Tint(badge, Hdr(color, _s.Glow * glow, 0.95f));
                 }
             }
-            for (int i = used; i < _requestBadges.Count; i++)
+            for (int i = used; i < list.Count; i++)
             {
-                if (_requestBadges[i] != null && _requestBadges[i].gameObject.activeSelf)
-                    _requestBadges[i].gameObject.SetActive(false);
+                if (list[i] != null && list[i].gameObject.activeSelf)
+                    list[i].gameObject.SetActive(false);
             }
         }
 

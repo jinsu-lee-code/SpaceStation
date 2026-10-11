@@ -98,6 +98,8 @@ namespace SpaceStation.Interior
             public IReadOnlyList<ModuleData> Buildable;
             /// <summary>11-17 ③ 이 방에 걸린 주민 요청 수 (홀로그램 표시).</summary>
             public Func<ModuleInstance, int> RequestCount;
+            /// <summary>11-17 ④ 이 방의 진행 중 내부 사고 수 (홀로그램 표시).</summary>
+            public Func<ModuleInstance, int> IncidentCount;
         }
 
         private Context _c;
@@ -200,10 +202,13 @@ namespace SpaceStation.Interior
                     string crateText = crates > 0 ? $"  ·  <color=#FFC752>보급 상자 {crates}</color>" : "";
                     int requests = _c.RequestCount != null ? _c.RequestCount(m) : 0;
                     string requestText = requests > 0 ? $"  ·  <color=#FF9CC8>주민 요청 {requests}</color>" : "";
-                    return $"{category}  ·  <color=#{ColorUtility.ToHtmlStringRGB(color)}>{status}</color>{crateText}{requestText}";
+                    bool incident = _c.IncidentCount != null && _c.IncidentCount(m) > 0;
+                    string incidentText = incident ? "  ·  <color=#FF6A3D>사고 발생</color>" : "";
+                    return $"{category}  ·  <color=#{ColorUtility.ToHtmlStringRGB(color)}>{status}</color>{incidentText}{crateText}{requestText}";
                 };
                 _holo.CrateCount = m => InteriorSupply.CountIn(_c.Station.Simulation, m); // 11-17 ②
                 _holo.RequestCount = _c.RequestCount; // 11-17 ③
+                _holo.IncidentCount = _c.IncidentCount; // 11-17 ④
                 _holo.gameObject.SetActive(false);
                 _build = new PadBuild(_ui, _buildRoot, CanvasWidth, _c.Station, _c.Buildable, _holo, _c.Main,
                     (text, failed) => { if (failed) ShowFailure(text); else ShowMessage(text); });

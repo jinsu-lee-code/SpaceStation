@@ -113,5 +113,98 @@ namespace SpaceStation.Interior
             ps.Play();
             return ps;
         }
+
+        /// <summary>11-17 ④ 작은 불꽃 (계속): 짧게 위로 날름거리는 주황 · 노랑 조각. width = 불이 붙은 폭(m).</summary>
+        public static ParticleSystem Flames(Transform parent, Vector3 position, Material material, float width)
+        {
+            if (material == null)
+                return null;
+            var go = new GameObject("Flames");
+            go.transform.SetParent(parent, false);
+            go.transform.SetPositionAndRotation(position, Quaternion.LookRotation(Vector3.up));
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.loop = true;
+            main.duration = 2f;
+            main.prewarm = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.35f, 0.7f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.3f, 0.7f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.1f, 0.2f);
+            main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.75f, 0.25f), new Color(1f, 0.4f, 0.1f));
+            main.maxParticles = 120;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.useUnscaledTime = true;
+            var emission = ps.emission;
+            emission.rateOverTime = 60f;
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(width, 0.06f, 0.02f);
+            var col = ps.colorOverLifetime;
+            col.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[] { new GradientColorKey(new Color(1f, 0.85f, 0.4f), 0f), new GradientColorKey(new Color(1f, 0.35f, 0.08f), 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.9f, 0.15f), new GradientAlphaKey(0f, 1f) });
+            col.color = gradient;
+            var size = ps.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0.2f));
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            ps.Play();
+            return ps;
+        }
+
+        /// <summary>11-17 ④ 소화기 분사 한 번(짧게): from에서 to 쪽으로 흰 거품 안개.</summary>
+        public static void Spray(Transform parent, Vector3 from, Vector3 to, Material material)
+        {
+            if (material == null)
+                return;
+            var go = new GameObject("Spray");
+            go.transform.SetParent(parent, false);
+            var dir = to - from;
+            go.transform.SetPositionAndRotation(from, Quaternion.LookRotation(dir.sqrMagnitude > 1e-4f ? dir : Vector3.forward));
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.duration = 0.15f;
+            main.loop = false;
+            float dist = Mathf.Max(0.5f, dir.magnitude);
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.5f, 0.8f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(dist * 1.6f, dist * 2.2f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.18f);
+            main.startColor = new Color(0.92f, 0.94f, 0.96f, 0.8f);
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.useUnscaledTime = true;
+            main.stopAction = ParticleSystemStopAction.Destroy;
+            var emission = ps.emission;
+            emission.rateOverTime = 0f;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 6, 10) });
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 8f;
+            shape.radius = 0.02f;
+            var limit = ps.limitVelocityOverLifetime;
+            limit.enabled = true;
+            limit.dampen = 0.25f;
+            limit.limit = 0.6f;
+            var col = ps.colorOverLifetime;
+            col.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(0.7f, 0f), new GradientAlphaKey(0.4f, 0.5f), new GradientAlphaKey(0f, 1f) });
+            col.color = gradient;
+            var size = ps.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0.6f, 1f, 2.5f));
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.sortMode = ParticleSystemSortMode.Distance;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            ps.Play();
+        }
     }
 }

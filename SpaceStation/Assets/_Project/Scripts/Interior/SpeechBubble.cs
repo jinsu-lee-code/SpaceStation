@@ -88,13 +88,13 @@ namespace SpaceStation.Interior
             _edge.sharedMesh = Build(_edge.sharedMesh, w, h, Border);
         }
 
-        /// <summary>꼬리 끝을 <paramref name="tip"/>에, 눈을 보게. 멀수록 커짐(5m까지 1배, 최대 1.8배).</summary>
-        public void Place(Vector3 tip, Transform eye)
+        /// <summary>꼬리 끝을 <paramref name="tip"/>에, 눈을 보게. 멀수록 커짐(5m까지 1배, 최대 1.8배), 가까우면 <paramref name="minScale"/>까지 작아짐.</summary>
+        public void Place(Vector3 tip, Transform eye, float minScale = 0.75f)
         {
             float d = Vector3.Distance(tip, eye.position);
             transform.position = tip;
             transform.rotation = Quaternion.LookRotation(tip - eye.position, Vector3.up);
-            transform.localScale = Vector3.one * Mathf.Clamp(d / 5f, 0.75f, 1.8f);
+            transform.localScale = Vector3.one * Mathf.Clamp(d / 5f, minScale, 1.8f);
         }
 
         /// <summary>둥근 판(가로 w · 세로 h, 아래 끝 = 꼬리 높이) + 꼬리. grow = 테두리용으로 키우는 폭.</summary>

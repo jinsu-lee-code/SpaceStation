@@ -122,6 +122,30 @@ namespace SpaceStation.Data
         [Tooltip("기분 보너스 유지 시간 (게임 초)")]
         [SerializeField, Min(0f)] private float _requestCheerSeconds = 600f;
 
+        [Header("Interior Incidents (BALANCE 31번, 11-17 ④ 내부 사고 — 내부에 있을 때만, 실시간 초)")]
+        [Tooltip("들어간 뒤 첫 사고까지 (초)")]
+        [SerializeField, Min(0f)] private float _incidentFirstDelay = 90f;
+        [Tooltip("사고 사이 간격 최소 (초, 사고가 끝난 뒤부터)")]
+        [SerializeField, Min(1f)] private float _incidentIntervalMin = 180f;
+        [Tooltip("사고 사이 간격 최대 (초)")]
+        [SerializeField, Min(1f)] private float _incidentIntervalMax = 300f;
+        [Tooltip("처리할 수 있는 시간 (초) — 지나거나 밖으로 나가면 놓침")]
+        [SerializeField, Min(5f)] private float _incidentWindow = 90f;
+        [Tooltip("처리하면 만족도 증가량")]
+        [SerializeField, Min(0f)] private float _incidentResolveSatisfaction = 3f;
+        [Tooltip("놓친 사고의 손실이 이어지는 시간 (게임 초) — 그 뒤 정비 인력이 처리한 것으로 끝남")]
+        [SerializeField, Min(1f)] private float _incidentPenaltySeconds = 120f;
+        [Tooltip("배관 누출을 놓치면 새는 물 · 산소 총량")]
+        [SerializeField, Min(0f)] private float _incidentLeakLoss = 20f;
+        [Tooltip("차단기를 놓치면 그 방 생산 배율")]
+        [SerializeField, Range(0f, 1f)] private float _incidentBreakerMultiplier = 0.7f;
+        [Tooltip("화재를 놓치면 그 방 내구도 감소 (내구도 5 아래로는 안 내려감 — 파괴로 번지지 않게)")]
+        [SerializeField, Min(0f)] private float _incidentFireDurability = 8f;
+        [Tooltip("환기 경보를 놓치면 새는 산소 총량")]
+        [SerializeField, Min(0f)] private float _incidentFilterOxygenLoss = 12f;
+        [Tooltip("화재 · 환기 경보를 놓치면 만족도 감소")]
+        [SerializeField, Min(0f)] private float _incidentMissSatisfaction = 3f;
+
         [Header("Defense (BALANCE 19번)")]
         [Tooltip("한 모듈에 대한 포탑 격추 확률 합산 상한")]
         [SerializeField, Range(0f, 1f)] private float _turretMaxIntercept = 0.6f;
@@ -217,6 +241,17 @@ namespace SpaceStation.Data
         public float RequestResearchPointChance => _requestResearchPointChance;
         public float RequestCheer => _requestCheer;
         public float RequestCheerSeconds => _requestCheerSeconds;
+        public float IncidentFirstDelay => _incidentFirstDelay;
+        public float IncidentIntervalMin => _incidentIntervalMin;
+        public float IncidentIntervalMax => Mathf.Max(_incidentIntervalMin, _incidentIntervalMax);
+        public float IncidentWindow => _incidentWindow;
+        public float IncidentResolveSatisfaction => _incidentResolveSatisfaction;
+        public float IncidentPenaltySeconds => _incidentPenaltySeconds;
+        public float IncidentLeakLoss => _incidentLeakLoss;
+        public float IncidentBreakerMultiplier => _incidentBreakerMultiplier;
+        public float IncidentFireDurability => _incidentFireDurability;
+        public float IncidentFilterOxygenLoss => _incidentFilterOxygenLoss;
+        public float IncidentMissSatisfaction => _incidentMissSatisfaction;
         public float FieldRepairCostRate => _fieldRepairCostRate;
         public float FieldRepairHoldSeconds => _fieldRepairHoldSeconds;
         /// <summary>모듈 칸 수에 따른 손상 지점 수 (11-17).</summary>
