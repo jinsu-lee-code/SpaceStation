@@ -41,10 +41,13 @@ namespace SpaceStation.UI
         [SerializeField] private float _skipConfirmSeconds = 3f;
         [Tooltip("11-18 내부에 있을 때 카드를 이만큼 내림 (왼쪽 위 방 이름 · 사고/부탁 표시 줄 아래로)")]
         [SerializeField] private float _insideDrop = 60f;
+        [Tooltip("11-18 연구 진행 표시(왼쪽 위, 카드와 같은 자리) 아래로 비켜 설 때 띄울 간격")]
+        [SerializeField] private float _researchGap = 12f;
         [Tooltip("11-18 내부에서 튜토리얼을 끝내면 완료 카드를 이 시간 뒤 닫음 (마우스가 잠겨 [닫기]를 못 누름)")]
         [SerializeField] private float _insideFinishedSeconds = 12f;
 
         private HoloUi _ui;
+        private ResearchPanel _research;
         private StationSimulation _sim;
         private TutorialRunner _runner;
 
@@ -91,6 +94,7 @@ namespace SpaceStation.UI
                 return;
             }
             _ui = HoloUi.For(_holoArt, _font, _fillSprite, _frameSprite, _buttonSprite);
+            _research = FindFirstObjectByType<ResearchPanel>(); // 11-18 연구 진행 표시와 겹치지 않게 (한 번만 찾음)
             BuildCard();
             _frameA = CreateHighlight("HighlightA");
             _frameB = CreateHighlight("HighlightB");
@@ -189,7 +193,10 @@ namespace SpaceStation.UI
                 return;
             }
             var self = (RectTransform)transform;
-            var drop = new Vector2(0f, _runner.InsideInterior ? -_insideDrop : 0f);
+            // 내부: 방 이름 · 사고/부탁 표시 줄 아래로 / 바깥: 연구 진행 표시(카드와 같은 왼쪽 위, 줄 수만큼 늘어남) 아래로
+            float researchHeight = _research != null ? _research.TrackerHeight : 0f;
+            float down = _runner.InsideInterior ? _insideDrop : researchHeight > 0f ? researchHeight + _researchGap : 0f;
+            var drop = new Vector2(0f, -Mathf.Round(down));
             if (self.anchoredPosition != drop)
                 self.anchoredPosition = drop;
             if (_finished)

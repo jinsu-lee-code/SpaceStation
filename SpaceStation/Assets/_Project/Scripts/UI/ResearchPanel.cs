@@ -214,6 +214,10 @@ namespace SpaceStation.UI
             RefreshTracker();
         }
 
+        /// <summary>11-18: 왼쪽 위 진행 표시가 차지하는 높이 (안 보이면 0) — 튜토리얼 카드가 이만큼 비켜 섬.</summary>
+        public float TrackerHeight =>
+            _tracker != null && _tracker.isActiveAndEnabled && !string.IsNullOrEmpty(_tracker.text) ? _tracker.preferredHeight : 0f;
+
         private void RefreshTracker()
         {
             var research = _sim.Research;
