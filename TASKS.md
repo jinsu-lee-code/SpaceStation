@@ -1021,7 +1021,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
     - PDF: **스터디 · 모임 발표용** 제작 과정 정리 (단계별 변화 · 시행착오 중심, 10~15장)
     - 티저: **30~45초 시네마틱**(우주 → 정거장 성장 → 내부 주민 · 사고 → 패드 홀로그램 → 제목 카드, 짧은 자막 · UI 최소화), **Unity Recorder로 Unity 안에서 자동 촬영 → MP4**
   - [x] ① Windows 빌드 0.11.0 (2026-10-11): `BuildSetup.Version` 0.11.0 + 버전 표시 문구 `BuildSetup.VersionLabel` "v0.11 · Phase 11" 한 곳에서 관리(`MenuSceneBuilder`도 사용). 빌드 때 `ApplyMenuVersionLabel`이 메인 메뉴 씬의 버전 글자만 고쳐 저장(씬을 다시 만들면 테크 스킨이 풀리므로). 결과 Succeeded · 231.7 MB · 118초 · 오류 0 → `Builds/Windows/AnotherEarth.exe`(Git 제외), 1280×720 창으로 30초 실행 · Player.log 오류 없음
-  - [ ] ② 발표용 PDF (2026-10-11 초안, 사용자 검토 대기): `Presentation/slides.html`(16:9 1280×720, 메이플스토리체) → Edge 헤드리스로 `Presentation/AnotherEarth_제작기.pdf` 15장. 구성: 표지 · 게임 소개 · 숫자 · 커밋 타임라인 · 작업 방식 · 재미 검증(밸런스 봇) · 포트 방식 폐기 · 모델링(453px→0) · 1인칭 내부 · 패드 버그 2건 · 튜토리얼 7분 6초 · 테스트/체크리스트 · 배운 것 · Phase 12 · 마무리. 장면은 Unity에서 1920×1080 렌더(`img/`), 동물 · 소품 · 패드는 BlenderWork 미리보기. 다시 만들기: slides.html 고친 뒤 msedge --headless --print-to-pdf (주소에 #번호를 붙이면 그 장만 보임)
+  - [ ] ② 발표용 PDF (2026-10-11 초안, 사용자 검토 대기): `Presentation/slides.html`(16:9 1280×720, 메이플스토리체) → Edge 헤드리스로 `Presentation/AnotherEarth_제작기.pdf`. 1차 15장 → 사용자 요청으로 **21장**(더 세세하게): 표지 · 게임 소개 · 숫자 · 커밋 타임라인 · Phase 0~5 / 6~11 상세 · 기술 구조 · 작업 방식 + 문서 체계 · 재미 검증 + 봇 측정 기록 · 포트 방식 폐기 · 모델링(453px→0) · 측정 vs 체감(벽 키트 뒤집힘 · 장갑 격벽 31→64%) · 1인칭 내부 · 패드 버그 2건 · 튜토리얼 7분 6초 · 내부 튜토리얼 · 테스트/체크리스트 · AI와 일해 보니 · 배운 것 · Phase 12 · 마무리. 화재 장면은 코어 방 정면에서 다시 촬영(불꽃 · 말풍선 · 표시 줄이 한 화면에). 장면은 Unity에서 1920×1080 렌더(`img/`), 동물 · 소품 · 패드는 BlenderWork 미리보기. 다시 만들기: slides.html 고친 뒤 msedge --headless --print-to-pdf (주소에 #번호를 붙이면 그 장만 보임)
   - [ ] ③ 티저 영상
 
 ## Phase 12. 지구급 확장 — 버전 1.0.0 (2026-10-07 결정)

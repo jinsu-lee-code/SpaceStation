@@ -15,28 +15,31 @@
 html, body { background: var(--bg); }
 body { font-family: "Maple", "Malgun Gothic", sans-serif; color: var(--text); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .slide { width: 1280px; height: 720px; position: relative; overflow: hidden; page-break-after: always; break-after: page;
-  background: radial-gradient(ellipse at 85% 0%, #10233a 0%, var(--bg) 60%); padding: 56px 72px; }
+  background: radial-gradient(ellipse at 85% 0%, #10233a 0%, var(--bg) 60%); padding: 52px 72px; }
 .slide:last-child { page-break-after: auto; break-after: auto; }
 .kicker { color: var(--accent); font-size: 16px; letter-spacing: 2px; font-weight: 700; margin-bottom: 10px; }
-h1 { font-size: 40px; font-weight: 700; line-height: 1.25; margin-bottom: 26px; }
-h2 { font-size: 22px; font-weight: 700; margin-bottom: 10px; color: var(--accent); }
-p, li { font-size: 20px; line-height: 1.6; color: var(--text); }
+h1 { font-size: 38px; font-weight: 700; line-height: 1.25; margin-bottom: 24px; }
+h2 { font-size: 21px; font-weight: 700; margin-bottom: 10px; color: var(--accent); }
+p, li { font-size: 19px; line-height: 1.6; color: var(--text); }
 .muted { color: var(--muted); }
+code { color: var(--accent); font-family: Consolas, monospace; font-size: .9em; }
 ul { list-style: none; }
-ul li { padding-left: 22px; position: relative; margin-bottom: 8px; }
-ul li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 8px; height: 8px; background: var(--accent); transform: rotate(45deg); }
-.num { position: absolute; right: 40px; bottom: 26px; font-size: 13px; color: var(--muted); }
-.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: start; }
+ul li { padding-left: 22px; position: relative; margin-bottom: 7px; }
+ul li::before { content: ""; position: absolute; left: 2px; top: 12px; width: 8px; height: 8px; background: var(--accent); transform: rotate(45deg); }
+ul.sm li { font-size: 17px; margin-bottom: 4px; }
+ul.sm li::before { top: 11px; width: 7px; height: 7px; }
+.num { position: absolute; right: 40px; bottom: 24px; font-size: 13px; color: var(--muted); }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; align-items: start; }
 .cols.w { grid-template-columns: 1.15fr 1fr; }
+.cols3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .shot { width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; object-fit: cover; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px; }
-.case { display: grid; grid-template-columns: 92px 1fr; gap: 6px 14px; font-size: 18px; line-height: 1.5; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; }
+.case { display: grid; grid-template-columns: 84px 1fr; gap: 5px 14px; font-size: 17px; line-height: 1.5; }
 .case b { color: var(--muted); font-weight: 700; }
 .case .r { color: var(--green); font-weight: 700; }
-.tag { display: inline-block; font-size: 14px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--accent); color: var(--accent); margin-right: 6px; }
-.big { font-size: 46px; font-weight: 700; color: var(--accent); line-height: 1.1; }
-.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
-.stat .l { font-size: 17px; color: var(--muted); margin-top: 6px; }
+.big { font-size: 44px; font-weight: 700; color: var(--accent); line-height: 1.1; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.stat .l { font-size: 16px; color: var(--muted); margin-top: 6px; }
 /* title */
 .title { padding: 0; }
 .title img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .75; }
@@ -56,13 +59,32 @@ ul li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 8p
 .phase { display: flex; gap: 10px; margin-top: 20px; }
 .phase div { flex: 1; font-size: 14px; line-height: 1.45; color: var(--muted); border-top: 2px solid var(--accent); padding-top: 8px; }
 .phase div b { color: var(--text); display: block; font-size: 15px; }
+/* phase detail table */
+.pt { display: grid; grid-template-columns: 150px 1fr; border-top: 1px solid var(--line); }
+.pt > div { padding: 10px 8px; border-bottom: 1px solid var(--line); font-size: 16px; line-height: 1.5; }
+.pt .h { color: var(--accent); font-weight: 700; }
+.pt .h small { display: block; color: var(--muted); font-weight: 400; font-size: 13px; }
 /* flow */
-.flow { display: flex; align-items: center; gap: 12px; margin: 8px 0 28px; }
-.flow .s { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; text-align: center; font-size: 18px; line-height: 1.45; }
+.flow { display: flex; align-items: center; gap: 12px; margin: 6px 0 22px; }
+.flow .s { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; text-align: center; font-size: 17px; line-height: 1.45; }
 .flow .s b { display: block; color: var(--accent); font-size: 15px; margin-bottom: 4px; }
 .flow .a { color: var(--accent); font-size: 26px; }
 .who { font-size: 13px; color: var(--accent2); }
-.quote { font-size: 30px; font-weight: 700; line-height: 1.45; }
+/* architecture */
+.arch { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 16px; align-items: stretch; }
+.layer { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.layer h3 { font-size: 16px; color: var(--accent2); margin-bottom: 8px; }
+.layer .chip { display: inline-block; font-family: Consolas, monospace; font-size: 13px; padding: 3px 8px; margin: 3px 2px; border-radius: 6px; background: #12253a; border: 1px solid #234766; color: var(--text); }
+.layer.core { border-color: var(--accent); box-shadow: 0 0 18px rgba(79,216,255,.15) inset; }
+.arrow { text-align: center; color: var(--muted); font-size: 14px; margin: 8px 0; }
+/* line chart-ish table */
+.mt { width: 100%; border-collapse: collapse; font-size: 16px; }
+.mt th, .mt td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+.mt th { color: var(--muted); font-weight: 700; font-size: 14px; }
+.mt td.v { color: var(--accent); font-weight: 700; }
+.pill { display: inline-block; font-size: 13px; padding: 2px 9px; border-radius: 99px; background: #12253a; border: 1px solid var(--line); color: var(--muted); margin-left: 6px; }
+.good h2 { color: var(--green); }
+.hard h2 { color: var(--accent2); }
 </style>
 </head>
 <body>
@@ -83,15 +105,16 @@ ul li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 8p
   <div class="kicker">01 · 어떤 게임인가</div>
   <h1>코어 모듈 하나에서 시작해<br>정거장을 3차원으로 키운다</h1>
   <div class="cols w">
-    <img class="shot" src="img/ext_hud.png" style="height:430px" alt="">
+    <img class="shot" src="img/ext_hud.png" style="height:440px" alt="">
     <div>
       <h2>핵심 루프</h2>
-      <p class="muted" style="margin-bottom:18px">자원 확인 → 모듈 배치 → 생산·소비 균형 → 인구 증가 → 더 큰 수요 → 이벤트 → 대응</p>
+      <p class="muted" style="margin-bottom:16px">자원 확인 → 모듈 배치 → 생산·소비 균형 → 인구 증가 → 더 큰 수요 → 이벤트 → 대응</p>
       <ul>
         <li>큐브 칸 단위, 6방향으로 확장</li>
         <li>면이 맞닿으면 자동 연결, 코어와 이어진 모듈만 작동</li>
         <li>전력 · 산소 · 물 · 식량 · 금속 5가지 자원</li>
         <li>운석 · 태양 폭풍 같은 위기, 노후화와 수리</li>
+        <li>연구 · 거주자 특성 · 등급(초소형 → 초대형)</li>
         <li>1인칭으로 정거장 안을 걸어 다니기</li>
       </ul>
     </div>
@@ -103,7 +126,7 @@ ul li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 8p
 <section class="slide">
   <div class="kicker">02 · 숫자로 보는 14일</div>
   <h1>작은 프로토타입이 아니라<br>끝까지 굴러가는 게임을 목표로</h1>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+  <div class="cols3">
     <div class="stat"><div class="big">212</div><div class="l">커밋 (작업 단위마다 하나)</div></div>
     <div class="stat"><div class="big">약 4만 줄</div><div class="l">C# 스크립트 207개</div></div>
     <div class="stat"><div class="big">329</div><div class="l">자동 테스트 (처음 13개)</div></div>
@@ -146,8 +169,68 @@ ul li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 8p
 
 <!-- 5 -->
 <section class="slide">
-  <div class="kicker">04 · 작업 방식</div>
-  <h1>사람은 결정하고 플레이하고,<br>AI는 구현하고 측정한다</h1>
+  <div class="kicker">04 · 단계별 상세 ①</div>
+  <h1>Phase 0 ~ 5: 뼈대를 세우고, 재미를 확인하고, 옷을 입히다</h1>
+  <div class="pt">
+    <div class="h">Phase 0<small>세팅</small></div><div>URP 3D 템플릿 + Input System, Git, Unity MCP 연동 (AI가 에디터를 직접 조작)</div>
+    <div class="h">Phase 1<small>그리드와 배치</small></div><div>순수 C# <code>StationGrid</code> + 첫 테스트 13개 · 모듈 데이터를 ScriptableObject로 · 궤도 카메라 · 초록/빨강 고스트 배치 · 철거</div>
+    <div class="h">Phase 2<small>연결과 시뮬레이션</small></div><div>코어 기준 연결 판정(BFS)으로 활성/비활성 · 1초 틱(1x/2x/4x) · 자원 5종 · 건설 비용 · 모듈 8종 · 기본 HUD</div>
+    <div class="h">Phase 3<small>거주자와 위기</small></div><div>인구 · 만족도 · 이벤트 4종(운석 · 산소 누출 · 태양 폭풍 · 보급선) · 파손 → 수리 / 방치하면 파괴 · 등급 · 게임 오버</div>
+    <div class="h">Phase 4<small>재미 검증</small></div><div>30분 플레이 → "난이도 체감 없음" → 밸런스 봇 제작, 난이도 확장 10개(낮/밤 · 배터리 · 노후화 · 인접 효과 · 방어 …)</div>
+    <div class="h">Phase 5<small>비주얼 교체</small></div><div>조명 · 스카이박스 · 포스트 프로세싱 · 상태 셰이더 · AI 생성 모델 2~5차 재작업 · 연결 통로 자동 생성 · 사운드 · 메인 메뉴</div>
+  </div>
+  <div class="num">5</div>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <div class="kicker">04 · 단계별 상세 ②</div>
+  <h1>Phase 6 ~ 11: 게임을 넓히고, 안으로 들어가다</h1>
+  <div class="pt">
+    <div class="h">Phase 6<small>10/2 ~ 3 · 확장</small></div><div>연구 · 정비 자동화 · 세이브/로드 · 조기 경보 · 글꼴 교체 · 첫 Windows 빌드(215 MB) · 포트 연결 방식 폐기</div>
+    <div class="h">Phase 7<small>10/3 · 가시성</small></div><div>효율 색 구간 · 노후 표시 · 배치 중 인접 효과 미리보기 · 키 변경(동작 22개) · 인접 규칙 12개</div>
+    <div class="h">Phase 8<small>10/3 · 모듈 확장</small></div><div>핵융합로 · 제련소 · 손상 통제실 · 회전 링 · 연료전지 · 화물 터미널 · 장갑 격벽 · 초대형 등급 · 전체 재조정</div>
+    <div class="h">Phase 9 ~ 10<small>10/4</small></div><div>튜토리얼(대본 운석 · 첫 밤 직전 시간 정지) · 림월드식 거주자 명단과 특성 14종</div>
+    <div class="h">Phase 11<small>10/4 ~ 10</small></div><div>배치대로 내부 생성 · 방 템플릿 22종 · 창문 · 발소리 · 동물 주민 8종 · 휴대 패드(홀로그램 지도) · 내부 건설</div>
+    <div class="h">11 후속<small>10/10 ~ 11</small></div><div>UI 테마 통일 · 주민 생명감 · 현장 수리 · 보급 · 주민 부탁 · 사고 · 버티컬 슬라이스 점검 · 빌드 v0.11</div>
+  </div>
+  <div class="num">6</div>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="kicker">05 · 기술 구조</div>
+  <h1>게임 규칙은 Unity 밖에, Unity는 보여 주기만</h1>
+  <div class="arch">
+    <div class="layer">
+      <h3>데이터 (ScriptableObject)</h3>
+      <span class="chip">ModuleData</span><span class="chip">BalanceConfig</span><span class="chip">DifficultyPreset</span><span class="chip">TutorialData</span><span class="chip">ResearchCategory</span>
+      <p class="muted" style="font-size:15px;margin-top:10px">수치는 전부 여기 + BALANCE.md. 코드에 숫자를 쓰지 않는다</p>
+    </div>
+    <div class="layer core">
+      <h3>순수 C# 시뮬레이션 (테스트 대상)</h3>
+      <span class="chip">StationSimulation</span><span class="chip">StationGrid</span><span class="chip">Connectivity</span><span class="chip">ResourceSimulation</span><span class="chip">EventScheduler</span><span class="chip">DamageSystem</span><span class="chip">DurabilitySystem</span><span class="chip">ResearchSystem</span><span class="chip">PopulationSimulation</span><span class="chip">TutorialRunner</span>
+      <p class="muted" style="font-size:15px;margin-top:10px">1초 고정 틱으로만 계산 · 시스템끼리는 C# event로 느슨하게</p>
+    </div>
+    <div class="layer">
+      <h3>Unity (보여 주기 · 입력)</h3>
+      <span class="chip">SimulationHost</span><span class="chip">StationController</span><span class="chip">BuildController</span><span class="chip">HUD 패널</span><span class="chip">InteriorMode</span>
+      <p class="muted" style="font-size:15px;margin-top:10px">상태 표현은 머티리얼 교체 대신 셰이더 값 조절</p>
+    </div>
+  </div>
+  <div class="cols" style="margin-top:22px">
+    <div class="card"><h2>바꾸지 않는 규칙</h2>
+      <ul class="sm"><li>공간 = <code>Vector3Int</code> 격자, 점유 정보는 한 곳에서만</li><li>회전은 90도 단위, 멀티 셀 모듈은 오프셋 목록</li><li>코어에 연결된 모듈만 활성</li></ul></div>
+    <div class="card"><h2>덕분에 생긴 것</h2>
+      <ul class="sm"><li>Unity 없이 테스트 329개 · 봇이 같은 코드로 20판</li><li>세이브는 상태를 그대로 직렬화</li><li>튜토리얼 · 내부 모드도 같은 시뮬레이션을 봄</li></ul></div>
+  </div>
+  <div class="num">7</div>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="kicker">06 · 작업 방식</div>
+  <h1>사람은 결정하고 플레이하고, AI는 구현하고 측정한다</h1>
   <div class="flow">
     <div class="s"><b>① 항목 하나</b>TASKS.md의<br>지금 항목만</div><div class="a">›</div>
     <div class="s"><b>② 설계 질문</b>선택지 + 추천안<br><span class="who">사람이 고름</span></div><div class="a">›</div>
@@ -155,50 +238,54 @@ ul li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 8p
     <div class="s"><b>④ 플레이 확인</b>체감 피드백<br><span class="who">사람</span></div><div class="a">›</div>
     <div class="s"><b>⑤ 기록 · 커밋</b>결정 · 결과를<br>문서와 커밋으로</div>
   </div>
-  <div class="cols">
-    <ul>
-      <li>요청하지 않은 시스템은 미리 만들지 않는다</li>
-      <li>수치는 코드 밖(ScriptableObject + BALANCE.md)으로</li>
-      <li>게임 로직은 순수 C# → Unity 없이 테스트</li>
-    </ul>
-    <ul>
-      <li>결정은 "결정 (날짜)"로 문서에 남긴다</li>
-      <li>프리팹 · 씬 · 에셋은 에디터 메뉴로 다시 만들 수 있게</li>
-      <li>겪은 문제는 체크리스트(MODELING.md)로 쌓는다</li>
-    </ul>
-  </div>
-  <div class="num">5</div>
+  <table class="mt">
+    <tr><th style="width:170px">문서</th><th>역할</th></tr>
+    <tr><td class="v">CLAUDE.md</td><td>작업 원칙 · 코딩 규칙 · 바꾸지 않는 설계 규칙 (AI가 매번 먼저 읽음)</td></tr>
+    <tr><td class="v">GDD.md</td><td>게임 기획 (핵심 루프 · 시스템 · 모듈)</td></tr>
+    <tr><td class="v">TASKS.md</td><td>작업 순서 + 항목마다 "결정 (날짜)" · 구현 · 확인 결과 (약 1,100줄)</td></tr>
+    <tr><td class="v">BALANCE.md</td><td>모든 수치와 봇 측정 기록</td></tr>
+    <tr><td class="v">MODELING.md</td><td>Blender 모델링 체크리스트 (겪은 문제를 규칙으로)</td></tr>
+  </table>
+  <div class="num">8</div>
 </section>
 
-<!-- 6 -->
+<!-- 9 -->
 <section class="slide">
-  <div class="kicker">05 · 첫 번째 고비</div>
-  <h1>"다 만들었는데 재미가 없다"</h1>
+  <div class="kicker">07 · 첫 번째 고비</div>
+  <h1>"다 만들었는데 재미가 없다" → 감 대신 봇</h1>
   <div class="cols">
-    <div class="card">
-      <div class="case">
-        <b>상황</b><span>Phase 4, 그레이박스로 30분 플레이 → <span style="color:var(--red)">난이도 체감 없음</span></span>
-        <b>문제</b><span>"어려운지"를 감으로만 판단하고 있었음</span>
-        <b>해결</b><span>밸런스 봇: 자동으로 20판씩 플레이하고 등급 도달 시간 · 게임 오버율을 기록</span>
-        <b>결과</b><span class="r">목표 곡선을 정해 놓고 수치를 맞춤 (대형 도달 45.2분 · 게임 오버 15%)</span>
-      </div>
-    </div>
     <div>
-      <h2>봇 덕분에 생긴 습관</h2>
-      <ul>
-        <li>낮/밤 · 배터리, 노후화, 인접 효과, 방어 모듈 등 10개 확장을 하나씩 넣고 매번 측정</li>
-        <li>바꾸기 전후를 같은 시드로 비교</li>
-        <li>봇의 이상 행동도 버그 신호: 90분에 창고 167개 → 규칙 수정</li>
-        <li>최근: 이지 30분 × 20판 게임 오버 0/20, 노멀 1/20</li>
+      <div class="card" style="margin-bottom:16px">
+        <div class="case">
+          <b>상황</b><span>Phase 4, 30분 플레이 → <span style="color:var(--red)">난이도 체감 없음</span></span>
+          <b>문제</b><span>"어려운지"를 감으로만 판단</span>
+          <b>해결</b><span>밸런스 봇: 같은 시뮬레이션 코드로 20판씩 자동 플레이, 등급 도달 시간 · 게임 오버율 · 파괴 수 기록</span>
+          <b>원칙</b><span>목표 곡선을 먼저 정함 (게임 오버 10~25% 등)</span>
+        </div>
+      </div>
+      <ul class="sm">
+        <li>바꾸기 전후를 같은 시드로 비교, 실험안을 10여 종씩 돌려 고름</li>
+        <li>봇의 이상 행동도 버그 신호: 90분에 창고 167개 → 봇 규칙 수정 (60분 10.2 → 1.4개)</li>
       </ul>
     </div>
+    <div>
+      <h2>측정 기록 (20판 기준)</h2>
+      <table class="mt">
+        <tr><th>시점</th><th>결과</th></tr>
+        <tr><td>기준선 (Phase 4 전)</td><td>대형 평균 13.3분 · 위기 · 파괴 0회</td></tr>
+        <tr><td>4-10 노멀 적용</td><td class="v">대형 10/20 (45.2분) · 게임 오버 15%</td></tr>
+        <tr><td>8-6 재조정 (G1안)</td><td class="v">초대형 14/20 (72.6분) · 게임 오버 15%</td></tr>
+        <tr><td>10 거주자 특성</td><td class="v">대형 11 → 18/20 · 인구 56 → 103</td></tr>
+        <tr><td>11-18 첫 30분</td><td class="v">이지 게임 오버 0/20 · 노멀 1/20</td></tr>
+      </table>
+    </div>
   </div>
-  <div class="num">6</div>
+  <div class="num">9</div>
 </section>
 
-<!-- 7 -->
+<!-- 10 -->
 <section class="slide">
-  <div class="kicker">06 · 되돌릴 수 있는 설계</div>
+  <div class="kicker">08 · 되돌릴 수 있는 설계</div>
   <h1>포트 연결 방식을 버린 날</h1>
   <div class="cols">
     <div>
@@ -206,7 +293,7 @@ ul li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 8p
       <div class="card">
         <div class="case">
           <b>결정</b><span>2026-10-03 B안 폐기, "면이 맞닿으면 연결"(A안) 유지</span>
-          <b>비결</b><span>처음부터 연결 판정을 <code style="color:var(--accent)">IConnectionRule</code> 인터페이스 뒤에 둠</span>
+          <b>비결</b><span>처음부터 연결 판정을 <code>IConnectionRule</code> 인터페이스 뒤에 둠</span>
           <b>결과</b><span class="r">검토 · 폐기를 해도 다른 시스템은 흔들리지 않음</span>
         </div>
       </div>
@@ -220,12 +307,12 @@ ul li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 8p
       </ul>
     </div>
   </div>
-  <div class="num">7</div>
+  <div class="num">10</div>
 </section>
 
-<!-- 8 -->
+<!-- 11 -->
 <section class="slide">
-  <div class="kicker">07 · 비주얼과 모델링</div>
+  <div class="kicker">09 · 비주얼과 모델링</div>
   <h1>AI가 만든 모델을 게임용으로 다시 깎기</h1>
   <div class="cols w">
     <div>
@@ -233,12 +320,12 @@ ul li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 8p
       <img class="shot" src="img/blender_incident.png" style="height:150px;object-fit:contain;background:#c9ccd2" alt="">
     </div>
     <div>
-      <ul>
-        <li>AI 생성 모델을 2~5차에 걸쳐 다시 작업, 삼각형 예산 지정 (1칸 8천 · 2칸 1만)</li>
-        <li>Blender도 스크립트로 조작 → 매번 같은 결과</li>
-        <li>스카이박스 482MB → 24MB 정리</li>
+      <ul class="sm">
+        <li>AI 생성 모델을 2~5차에 걸쳐 다시 작업, 삼각형 예산 (1칸 8천 · 2칸 1만)</li>
+        <li>Blender도 AI가 스크립트로 조작 → 매번 같은 결과</li>
+        <li>스카이박스 482 MB → 24 MB 정리</li>
       </ul>
-      <div class="card" style="margin-top:14px">
+      <div class="card" style="margin-top:12px">
         <div class="case">
           <b>사례</b><span>벽 틈으로 바깥 우주가 비쳐 보임</span>
           <b>원인</b><span>문 구멍(폭 3.2)과 벽 패널(폭 3.2)의 가장자리가 같은 선</span>
@@ -248,35 +335,66 @@ ul li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 8p
       </div>
     </div>
   </div>
-  <div class="num">8</div>
+  <div class="num">11</div>
 </section>
 
-<!-- 9 -->
+<!-- 12 -->
 <section class="slide">
-  <div class="kicker">08 · Phase 11</div>
+  <div class="kicker">10 · 측정과 체감 사이</div>
+  <h1>검사는 통과했는데 이상하다면?</h1>
+  <div class="cols">
+    <div class="card">
+      <h2>벽 키트가 안팎이 뒤집혀 있었다</h2>
+      <div class="case">
+        <b>증상</b><span>문틀이 깜빡이고 속이 비어 보임</span>
+        <b>원인</b><span>모델 생성 스크립트가 "좌표 변환이 반사"라고 잘못 판단해 면을 전부 뒤집음</span>
+        <b>함정</b><span>템플릿끼리 비교하는 검사는 모두 같이 뒤집혀서 통과</span>
+        <b>해결</b><span>면 방향을 부호 있는 부피로 판정 + 문 자리 예약 구역 검사</span>
+        <b>결과</b><span class="r">뒤집힌 덩어리 0 · 뚫림 검사 3,168장 0px</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>장갑 격벽 "5발 중 1발만 유도"</h2>
+      <div class="case">
+        <b>체감</b><span>운석을 끌어오는 미끼 효과가 약하다 (플레이 피드백)</span>
+        <b>측정</b><span>가중치 ×3은 정상 작동 · 명중률 31%</span>
+        <b>판단</b><span>숫자는 맞지만 체감이 약하면 설계를 바꾼다</span>
+        <b>해결</b><span>반경 2칸 · 확률 50%로 운석을 끌어오기 추가</span>
+        <b>결과</b><span class="r">명중률 31% → 64%</span>
+      </div>
+    </div>
+  </div>
+  <p class="muted" style="margin-top:18px">→ 검사 도구도 틀릴 수 있고, 맞는 숫자도 재미없을 수 있다. 측정과 플레이 둘 다 필요</p>
+  <div class="num">12</div>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <div class="kicker">11 · Phase 11</div>
   <h1>위에서 보던 정거장 안으로 들어가기</h1>
   <div class="cols w">
     <img class="shot" src="img/int_residents.png" style="height:430px" alt="">
     <div>
-      <ul>
-        <li>정거장 배치 그대로 내부를 생성: 모듈 = 방, 맞닿은 면 = 문</li>
+      <ul class="sm">
+        <li>정거장 배치 그대로 내부를 생성: 모듈 = 방, 맞닿은 면 = 문, 위아래 층은 해치</li>
         <li>모듈 22종마다 방 템플릿, 창문으로 바깥 정거장이 보임</li>
         <li>동물 주민 8종: 기분에 따라 손 흔들기 · 고개 돌리기 · 방 안 걷기</li>
         <li>내부 전용 할 일: 현장 수리 · 보급 · 주민 부탁 · 사고 대응</li>
+        <li>정거장이 바뀌면 지금 방 기준으로 내부를 다시 생성</li>
       </ul>
       <img class="shot" src="img/blender_animals.png" style="height:84px;object-fit:contain;background:#aab1bb;margin-top:12px" alt="">
     </div>
   </div>
-  <div class="num">9</div>
+  <div class="num">13</div>
 </section>
 
-<!-- 10 -->
+<!-- 14 -->
 <section class="slide">
-  <div class="kicker">09 · 휴대 패드</div>
+  <div class="kicker">12 · 휴대 패드</div>
   <h1>버그는 "느낌"이 아니라 픽셀로 잡는다</h1>
   <div class="cols w">
-    <img class="shot" src="img/int_pad.png" style="height:430px;object-position:center 30%" alt="">
-    <div style="display:flex;flex-direction:column;gap:14px">
+    <img class="shot" src="img/int_pad.png" style="height:440px;object-position:center 30%" alt="">
+    <div style="display:flex;flex-direction:column;gap:12px">
       <div class="card">
         <div class="case">
           <b>증상</b><span>버튼을 누를 때마다 패드 위쪽이 번쩍임</span>
@@ -294,49 +412,81 @@ ul li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 8p
       </div>
     </div>
   </div>
-  <div class="num">10</div>
+  <div class="num">14</div>
 </section>
 
-<!-- 11 -->
+<!-- 15 -->
 <section class="slide">
-  <div class="kicker">10 · 버티컬 슬라이스 점검</div>
+  <div class="kicker">13 · 버티컬 슬라이스 점검</div>
   <h1>튜토리얼대로 했더니 7분 6초에 게임 오버</h1>
   <div class="cols">
     <div class="card">
       <div class="case">
         <b>원인 1</b><span>태양광 1개 → 낮에도 남는 전력 0, 배터리가 0/600 그대로</span>
         <b>원인 2</b><span>노후화를 가르치지 않음 → 5분 만에 내구도 41~44</span>
-        <b>원인 3</b><span>대본 운석 한 번에 5개 파손 + 직전에 4배속을 배움</span>
-        <b>해결</b><span>태양광 2개 · 정비 단계 추가 · 운석 1발 + 1배속 · 단계 조작만 허용</span>
-        <b>결과</b><span class="r">같은 경로로 끝까지 완료</span>
+        <b>원인 3</b><span>대본 운석이 한 번에 5개 파손 + 직전에 4배속을 배워 15초 만에 번짐</span>
+        <b>해결</b><span>태양광 2개 · 정비 단계 추가 · 운석 1발 + 1배속 · 튜토리얼 중엔 그 단계 조작만</span>
+        <b>추가</b><span>완료 직후 물 부족 발견 → 거주 단계에 물 재활용기 1개 더</span>
+        <b>결과</b><span class="r">같은 경로로 끝까지 완료 · 첫 판은 이지 추천</span>
       </div>
     </div>
     <div>
-      <img class="shot" src="img/int_fire.png" style="height:250px;object-position:left top;margin-bottom:12px" alt="">
-      <ul>
-        <li>내부를 아무도 안내하지 않던 문제 → 튜토리얼 4단계 추가</li>
-        <li>3.5초 만에 사라지던 사고 알림 → 화면에 계속 표시</li>
+      <h2>"막힘없이 20~30분"을 확인하는 법</h2>
+      <ul class="sm">
+        <li>AI가 새 게임을 튜토리얼 안내대로 그대로 진행 (MCP로 조작)</li>
+        <li>자원 · 전력 · 내구도를 시간별로 기록해 무너지는 지점을 찾음</li>
+        <li>고칠 방향은 사람이 결정 → 같은 경로로 다시 진행</li>
+        <li>봇으로 이지 · 노멀 30분 × 20판 비교</li>
+      </ul>
+      <img class="shot" src="img/tut_enter.png" style="height:250px;object-position:left top;margin-top:14px" alt="">
+      <p class="muted" style="font-size:14px;margin-top:6px">개편된 튜토리얼 카드 (13단계 중 10단계 "내부 둘러보기")</p>
+    </div>
+  </div>
+  <div class="num">15</div>
+</section>
+
+<!-- 16 -->
+<section class="slide">
+  <div class="kicker">14 · 처음 들어가는 사람을 위해</div>
+  <h1>아무도 안내하지 않던 1인칭 모드</h1>
+  <div class="cols w">
+    <div>
+      <img class="shot" src="img/int_fire.png" style="height:440px;object-position:left 30%;margin-bottom:10px" alt="">
+      <p class="muted" style="font-size:16px">왼쪽 위: 방 이름 아래 "▲ 작은 화재 · 이 방 · 76초"가 사고가 끝날 때까지 남는다</p>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="case">
+          <b>문제 1</b><span>튜토리얼 · 완료 문구 어디에도 "들어가기(V)" 안내가 없음</span>
+          <b>문제 2</b><span>부탁 · 사고 알림이 3.5초 뒤 사라짐 (사고는 90초 제한)</span>
+          <b>해결</b><span>튜토리얼 4단계 추가 + 진행 중인 사고 · 부탁을 화면에 계속 표시</span>
+        </div>
+      </div>
+      <ul class="sm">
+        <li>들어가기 → 패드 들기 → 주민 부탁 → 연습용 사고 (시간 제한 · 손해 없음)</li>
+        <li>내부는 시간이 멈춰 있어 "틱마다 판정"이 안 됨 → 보고 즉시 판정으로</li>
+        <li>점검 중 원래 있던 버그도 발견: 나온 뒤 [들어가기]가 꺼진 채 남음</li>
       </ul>
     </div>
   </div>
-  <div class="num">11</div>
+  <div class="num">16</div>
 </section>
 
-<!-- 12 -->
+<!-- 17 -->
 <section class="slide">
-  <div class="kicker">11 · 같은 실수를 두 번 하지 않기</div>
+  <div class="kicker">15 · 같은 실수를 두 번 하지 않기</div>
   <h1>반복된 문제는 테스트와 체크리스트로</h1>
   <div class="cols">
     <div>
-      <div class="card" style="margin-bottom:18px">
+      <div class="card" style="margin-bottom:16px">
         <div class="case">
           <b>증상</b><span>알림의 "—"가 네모(□)로 표시</span>
-          <b>이력</b><span>"−", "◢"에서도 같은 일이 있었음 (메이플스토리체에 없는 글자)</span>
-          <b>해결</b><span>글자를 바꾸고 <code style="color:var(--accent)">FontCoverageTests</code> 추가</span>
+          <b>이력</b><span>"−", "◢"에서도 같은 일 (메이플스토리체에 없는 글자)</span>
+          <b>해결</b><span>글자를 바꾸고 <code>FontCoverageTests</code> 추가</span>
           <b>결과</b><span class="r">이제 없는 글자를 쓰면 테스트가 실패</span>
         </div>
       </div>
-      <p class="muted">Blender 모델링도 겪은 문제를 MODELING.md 체크리스트로 쌓고, 내보내기 전후 겹침 · 뚫림 검사를 매번 돌림</p>
+      <p class="muted" style="font-size:17px">Blender 모델링도 겪은 문제를 MODELING.md 체크리스트로 쌓고, 내보내기 전후 겹침 · 뚫림 검사를 매번 돌림 (템플릿마다 2,000~7,600장 렌더)</p>
     </div>
     <div>
       <h2>자동 테스트 수</h2>
@@ -351,51 +501,82 @@ ul li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 8p
       <div class="blabels"><div>그리드</div><div>연구</div><div>튜토리얼</div><div>11-10</div><div>11-17</div><div>11-18</div></div>
     </div>
   </div>
-  <div class="num">12</div>
+  <div class="num">17</div>
 </section>
 
-<!-- 13 -->
+<!-- 18 -->
 <section class="slide">
-  <div class="kicker">12 · 배운 것</div>
-  <h1>AI와 함께 1인 개발을 하며 남은 것</h1>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+  <div class="kicker">16 · AI와 일해 보니</div>
+  <h1>잘 맡길 수 있는 것, 사람이 해야 하는 것</h1>
+  <div class="cols">
+    <div class="card good">
+      <h2>잘 된 것</h2>
+      <ul class="sm">
+        <li>반복 측정: 봇 20판, 프레임 밝기, 새는 픽셀 수</li>
+        <li>에디터 · Blender 작업을 스크립트로 → 언제든 다시 생성</li>
+        <li>테스트 작성과 유지 (13 → 329개)</li>
+        <li>결정 · 결과를 문서에 꼼꼼히 기록</li>
+        <li>원인 추적: "한 프레임씩 넘기며 측정" 같은 끈기 있는 조사</li>
+      </ul>
+    </div>
+    <div class="card hard">
+      <h2>어려웠던 것</h2>
+      <ul class="sm">
+        <li>마우스로 걷고 누르는 실제 플레이는 못 함 → 플레이 확인은 사람</li>
+        <li>"재미있다 · 어색하다"는 판단은 사람의 몫</li>
+        <li>에디터가 백그라운드면 컴파일이 안 돌거나, 콘솔에 안 보이는 오류 → 로그 파일로 확인</li>
+        <li>대화가 끊기면 맥락도 끊김 → 문서를 먼저 읽게 하는 규칙</li>
+      </ul>
+    </div>
+  </div>
+  <p class="muted" style="margin-top:18px">→ "무엇을 만들지 · 좋은지"는 사람이, "어떻게 만들고 · 맞는지"는 AI가</p>
+  <div class="num">18</div>
+</section>
+
+<!-- 19 -->
+<section class="slide">
+  <div class="kicker">17 · 배운 것</div>
+  <h1>14일 동안 남은 것</h1>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div class="card"><h2>재미 검증이 먼저</h2><p>그레이박스로 플레이해 보고, 재미가 없으면 측정 도구부터</p></div>
     <div class="card"><h2>결정과 구현을 나눈다</h2><p>방향은 사람이 고르고, 반복 작업 · 측정은 AI에게</p></div>
-    <div class="card"><h2>감 대신 숫자</h2><p>봇 20판 · 프레임 밝기 · 새는 픽셀 수로 판단</p></div>
+    <div class="card"><h2>감 대신 숫자, 숫자 다음엔 플레이</h2><p>봇 · 프레임 · 픽셀로 판단하되, 체감이 다르면 설계를 바꾼다</p></div>
     <div class="card"><h2>되돌릴 수 있게</h2><p>인터페이스 · 에디터 메뉴로 재생성 · 작업 단위 커밋</p></div>
   </div>
-  <p class="muted" style="margin-top:22px">그리고: 문서(TASKS · BALANCE · MODELING)가 대화를 넘어 맥락을 이어 준다</p>
-  <div class="num">13</div>
+  <p class="muted" style="margin-top:20px">그리고: 문서(CLAUDE · TASKS · BALANCE · MODELING)가 대화를 넘어 맥락을 이어 준다</p>
+  <div class="num">19</div>
 </section>
 
-<!-- 14 -->
+<!-- 20 -->
 <section class="slide">
-  <div class="kicker">13 · 다음 단계</div>
+  <div class="kicker">18 · 다음 단계</div>
   <h1>v1.0 "지구급"까지</h1>
   <div class="cols">
     <div>
       <h2>Phase 12 계획</h2>
-      <ul>
-        <li>등급 9단계: 도시급 → 국가급 → 대륙급 → 지구급</li>
-        <li>모듈 약 100종: 기본 36 + 맞닿게 배치해 만드는 합성 모듈</li>
-        <li>등급마다 새 위기 (역병 · 파업 · 방사선 폭풍 …)</li>
-        <li>처음부터 끝까지 4시간 이상</li>
+      <ul class="sm">
+        <li>등급 9단계: 도시급 → 국가급 → 대륙급 → 지구급 (조건 ×1.5씩)</li>
+        <li>모듈 약 100종: 기본 36 + 맞닿게 배치해 만드는 합성 모듈 64~70</li>
+        <li>등급마다 새 위기: 역병 · 비리 · 파업 · 쿠데타 / 유성우 · 방사선 폭풍 · 열 과부하</li>
+        <li>연구 Lv.5~8, 처음부터 끝까지 4시간 이상</li>
+        <li>순서: 틀 → 등급별 콘텐츠 → 전체 재조정</li>
       </ul>
     </div>
     <div>
       <h2>스스로 내린 냉정한 평가</h2>
-      <ul>
-        <li>시스템 · 구조 · 문서는 강하다</li>
-        <li>장기 목표가 얕다 → 등급마다 달라지는 재미</li>
-        <li>합성 모듈의 수 vs 품질</li>
+      <ul class="sm">
+        <li>강점: 시스템 · 구조 · 문서</li>
+        <li>약점: 얕은 장기 목표 → 등급마다 달라지는 재미가 필요</li>
+        <li>합성 모듈의 수 vs 품질 (1인 작업량)</li>
+        <li>합성 퍼즐을 프로토타입으로 먼저 검증할지</li>
         <li>범위 관리 · 중간 출시 기준</li>
       </ul>
     </div>
   </div>
-  <div class="num">14</div>
+  <div class="num">20</div>
 </section>
 
-<!-- 15 -->
+<!-- 21 -->
 <section class="slide title">
   <img src="img/menu.png" alt="" style="object-position:center 40%">
   <div class="veil"></div>
