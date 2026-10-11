@@ -4,11 +4,23 @@ using UnityEngine;
 
 namespace SpaceStation.Data
 {
+    /// <summary>12-1: 등급에 처음 도달했을 때의 표시 (PHASESET B2-1). 이후 등급이 내려갔다 다시 올라도 한 번만.</summary>
+    public enum GradeMilestone
+    {
+        None,
+        /// <summary>★ 알림 배너 (게임은 멈추지 않음).</summary>
+        Star,
+        /// <summary>누적 결과 화면 (구간 기록 + 누적 기록). 마지막 결과 등급이 최종 결과 화면.</summary>
+        Result,
+    }
+
     /// <summary>정거장 등급 하나 (GDD 12-3).</summary>
     [Serializable]
     public sealed class StationGrade
     {
         [SerializeField] private string _displayName = "Grade";
+        [Tooltip("12-1: 처음 도달했을 때 ★ 알림 / 누적 결과 화면")]
+        [SerializeField] private GradeMilestone _milestone;
         [SerializeField, Min(0)] private int _minPopulation;
         [Tooltip("코어 포함 전체 모듈 수")]
         [SerializeField, Min(0)] private int _minModules;
@@ -29,6 +41,7 @@ namespace SpaceStation.Data
         [SerializeField, Min(0.05f)] private float _eventIntensityMultiplier = 1f;
 
         public string DisplayName => _displayName;
+        public GradeMilestone Milestone => _milestone;
         public int MinPopulation => _minPopulation;
         public int MinModules => _minModules;
         public int MaxLimitedModules => _maxLimitedModules;
@@ -55,7 +68,7 @@ namespace SpaceStation.Data
         [SerializeField] private ModuleData _limitedModule;
         [Tooltip("8-0: 승리 등급 이상에서 현재 등급 최소 모듈 수를 넘는 모듈 N개마다 제한 모듈 최대 수 +1 (0 = 확장 없음)")]
         [SerializeField, Min(0)] private int _extraLimitEveryModules;
-        [Tooltip("8-6: 처음 도달하면 결과 화면이 뜨는 등급 인덱스 (대형 = 3). 음수면 마지막 등급. 그 위 등급(초대형)은 추가 목표")]
+        [Tooltip("8-6: 승리 등급 인덱스 (대형 = 3) — 이 등급부터 도킹 추가 한도. 음수면 마지막 등급. 결과 화면 · ★ 알림은 등급별 Milestone (12-1)")]
         [SerializeField] private int _victoryGradeIndex = -1;
 
         public IReadOnlyList<StationGrade> Grades => _grades;

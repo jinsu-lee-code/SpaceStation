@@ -46,6 +46,8 @@ namespace SpaceStation.Simulation
         {
             if (population > MaxPopulation)
                 MaxPopulation = population;
+            if (population > _segmentMaxPopulation)
+                _segmentMaxPopulation = population;
             if (population >= 1)
                 HasEverHadPopulation = true;
 
@@ -79,5 +81,78 @@ namespace SpaceStation.Simulation
         /// <summary>실드가 빗겨낸 운석이 다른 모듈에 맞은 수 (4-8).</summary>
         public int Ricochets { get; private set; }
         public void RecordRicochet(int count) => Ricochets += count;
+
+        // ---------------- 12-1 구간 기록 (직전 결과 화면 이후) ----------------
+
+        private float _segmentStartSeconds;
+        private int _segmentStartModules;
+        private int _segmentStartEvents;
+        private int _segmentStartDestroyed;
+        private int _segmentMaxPopulation;
+
+        /// <summary>마지막으로 끝난 구간 (결과 화면이 읽음). 아직 없으면 null.</summary>
+        public SegmentRecord LastSegment { get; private set; }
+
+        /// <summary>결과 화면 등급 도달: 지금까지의 구간을 마감하고 새 구간을 시작한다.</summary>
+        public SegmentRecord CloseSegment(float elapsed, int modules, int population)
+        {
+            ObservePopulation(population);
+            LastSegment = new SegmentRecord
+            {
+                Seconds = Math.Max(0f, elapsed - _segmentStartSeconds),
+                MaxPopulation = _segmentMaxPopulation,
+                ModulesAdded = modules - _segmentStartModules,
+                Events = EventsExperienced - _segmentStartEvents,
+                Destroyed = ModulesDestroyed - _segmentStartDestroyed,
+            };
+            _segmentStartSeconds = elapsed;
+            _segmentStartModules = modules;
+            _segmentStartEvents = EventsExperienced;
+            _segmentStartDestroyed = ModulesDestroyed;
+            _segmentMaxPopulation = population;
+            return LastSegment;
+        }
+
+        /// <summary>세이브용 구간 시작 값.</summary>
+        public SegmentStart CaptureSegment() => new SegmentStart
+        {
+            Seconds = _segmentStartSeconds,
+            Modules = _segmentStartModules,
+            Events = _segmentStartEvents,
+            Destroyed = _segmentStartDestroyed,
+            MaxPopulation = _segmentMaxPopulation,
+        };
+
+        /// <summary>세이브 복원: 구간 시작 값 (이전 세이브는 0 = 처음부터 한 구간).</summary>
+        internal void RestoreSegment(SegmentStart s)
+        {
+            _segmentStartSeconds = s.Seconds;
+            _segmentStartModules = s.Modules;
+            _segmentStartEvents = s.Events;
+            _segmentStartDestroyed = s.Destroyed;
+            _segmentMaxPopulation = Math.Max(s.MaxPopulation, 0);
+        }
+    }
+
+    /// <summary>12-1: 한 구간 기록 (직전 결과 화면 ~ 이번 결과 화면).</summary>
+    public sealed class SegmentRecord
+    {
+        public float Seconds;
+        public int MaxPopulation;
+        /// <summary>구간 동안 늘어난 모듈 수 (줄었으면 음수).</summary>
+        public int ModulesAdded;
+        public int Events;
+        public int Destroyed;
+    }
+
+    /// <summary>12-1: 진행 중인 구간의 시작 값 (세이브).</summary>
+    [Serializable]
+    public sealed class SegmentStart
+    {
+        public float Seconds;
+        public int Modules;
+        public int Events;
+        public int Destroyed;
+        public int MaxPopulation;
     }
 }

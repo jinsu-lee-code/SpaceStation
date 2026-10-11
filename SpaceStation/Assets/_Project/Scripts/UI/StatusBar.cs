@@ -341,8 +341,8 @@ namespace SpaceStation.UI
             {
                 var sb = new System.Text.StringBuilder();
                 sb.Append($"<color=#7CFF9A><b>등급 상승: {grade.DisplayName}!</b>");
-                if (p.IsFinalGrade && current > p.VictoryGradeIndex && !p.HasReachedTopGrade)
-                    sb.Append("  <color=#FFD36A>★ 최고 등급 달성 (추가 목표)</color>"); // 8-6 초대형
+                if (current > p.HighestGradeIndex && grade.Milestone == GradeMilestone.Star)
+                    sb.Append("  <color=#FFD36A>★</color>"); // 12-1: 첫 도달 (가운데 배너는 ResultScreen)
                 // 이전 등급 초과 ~ 현재 등급까지의 해금 목록
                 for (int i = previous + 1; i <= current; i++)
                 {

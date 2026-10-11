@@ -36,8 +36,12 @@ namespace SpaceStation.Simulation
         public List<int> PlannedMeteorTargets = new List<int>();
 
         public bool ReachedFinalGrade; // 승리 등급(대형) 도달 — 이름은 이전 세이브 호환용
-        public bool ReachedTopGrade;   // 8-6 최고 등급(초대형) 도달
+        public bool ReachedTopGrade;   // 마지막 등급 도달 (12-1 전 세이브는 초대형)
+        /// <summary>12-1: 도달한 가장 높은 등급 인덱스. -1 = 12-1 전 세이브 (위 두 값으로 추정).</summary>
+        public int HighestGrade = -1;
         public SessionState Session = new SessionState();
+        /// <summary>12-1: 진행 중인 구간의 시작 값 (이전 세이브는 0 = 처음부터).</summary>
+        public SegmentStart Segment = new SegmentStart();
         public float OxygenFailTimer;
         public float SatisfactionFailTimer;
         public float CoreFailTimer;

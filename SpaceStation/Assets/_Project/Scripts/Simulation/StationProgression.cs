@@ -15,10 +15,12 @@ namespace SpaceStation.Simulation
 
         /// <summary>(이전 등급 인덱스, 새 등급 인덱스).</summary>
         public event Action<int, int> GradeChanged;
-        /// <summary>승리 등급(대형)에 처음 도달했을 때 한 번 → 결과 화면.</summary>
+        /// <summary>승리 등급(대형)에 처음 도달했을 때 한 번 (완성 소리). 결과 화면은 <see cref="MilestoneReached"/>.</summary>
         public event Action VictoryReached;
-        /// <summary>8-6: 최고 등급(초대형, 승리 등급 위의 추가 목표)에 처음 도달했을 때 한 번.</summary>
+        /// <summary>마지막(최고) 등급에 처음 도달했을 때 한 번 (12-1부터 지구급).</summary>
         public event Action TopGradeReached;
+        /// <summary>12-1: ★ · 결과 화면 등급에 처음 도달 (등급 인덱스, 종류). 한 번에 여러 등급을 넘으면 낮은 등급부터 차례로.</summary>
+        public event Action<int, GradeMilestone> MilestoneReached;
 
         public int GradeIndex { get; private set; }
         public StationGrade Current => _config.Grades[GradeIndex];
@@ -29,8 +31,10 @@ namespace SpaceStation.Simulation
         /// <summary>승리 등급 이상인지 (도킹 추가 한도 적용).</summary>
         public bool IsAtOrAboveVictory => GradeIndex >= VictoryGradeIndex;
         public bool HasReachedVictory { get; private set; }
-        /// <summary>최고 등급에 한 번이라도 도달 (세이브 목록 '초대형 달성' 표시).</summary>
+        /// <summary>마지막 등급에 한 번이라도 도달.</summary>
         public bool HasReachedTopGrade { get; private set; }
+        /// <summary>12-1: 지금까지 도달한 가장 높은 등급 (등급이 내려가도 유지, ★ · 결과 화면은 이 값을 넘을 때만).</summary>
+        public int HighestGradeIndex { get; private set; }
         public int GradeCount => _config.Grades.Count;
         public ModuleData LimitedModule => _config.LimitedModule;
 
@@ -44,10 +48,34 @@ namespace SpaceStation.Simulation
         public StationGrade GetGrade(int index) => _config.Grades[index];
 
         /// <summary>세이브 복원: 승리·최고 등급 도달 기록 (결과 화면이 다시 뜨지 않게, 이벤트 없음).</summary>
-        internal void RestoreReached(bool victory, bool topGrade)
+        internal void RestoreReached(bool victory, bool topGrade, int highest)
         {
             HasReachedVictory = victory;
             HasReachedTopGrade = topGrade;
+            HighestGradeIndex = Math.Max(GradeIndex, Math.Min(highest, _config.Grades.Count - 1));
+        }
+
+        /// <summary>12-1: 이 결과 화면 등급이 몇 번째 구간인지 (1부터). 결과 등급이 아니면 0.</summary>
+        public int ResultNumber(int gradeIndex)
+        {
+            if (gradeIndex < 0 || gradeIndex >= _config.Grades.Count || _config.Grades[gradeIndex].Milestone != GradeMilestone.Result)
+                return 0;
+            int n = 0;
+            for (int i = 0; i <= gradeIndex; i++)
+                if (_config.Grades[i].Milestone == GradeMilestone.Result)
+                    n++;
+            return n;
+        }
+
+        /// <summary>12-1: 마지막 결과 화면 등급(최종 결과)인지.</summary>
+        public bool IsFinalResult(int gradeIndex)
+        {
+            if (ResultNumber(gradeIndex) == 0)
+                return false;
+            for (int i = gradeIndex + 1; i < _config.Grades.Count; i++)
+                if (_config.Grades[i].Milestone == GradeMilestone.Result)
+                    return false;
+            return true;
         }
 
         /// <summary>세이브·전시용: 이 모듈 정의를 이름으로 찾는다 (등급 해금 목록 기준). 없으면 null.</summary>
@@ -93,6 +121,17 @@ namespace SpaceStation.Simulation
             {
                 HasReachedTopGrade = true;
                 TopGradeReached?.Invoke();
+            }
+            if (next > HighestGradeIndex)
+            {
+                int from = HighestGradeIndex + 1;
+                HighestGradeIndex = next; // 알림 처리 중 다시 판정돼도 같은 등급을 두 번 알리지 않게 먼저 기록
+                for (int i = from; i <= next; i++)
+                {
+                    var milestone = _config.Grades[i].Milestone;
+                    if (milestone != GradeMilestone.None)
+                        MilestoneReached?.Invoke(i, milestone);
+                }
             }
         }
 

@@ -77,6 +77,8 @@ namespace SpaceStation.Simulation
 
             s.ReachedFinalGrade = sim.Progression.HasReachedVictory;
             s.ReachedTopGrade = sim.Progression.HasReachedTopGrade;
+            s.HighestGrade = sim.Progression.HighestGradeIndex;
+            s.Segment = sim.Session.CaptureSegment();
             var session = sim.Session;
             s.Session = new SessionState
             {
@@ -283,11 +285,17 @@ namespace SpaceStation.Simulation
                 }
             }
 
-            // 8. 파생값 다시 계산 (시간은 흐르지 않음), 최고 등급 기록은 그 뒤에 덮어씀
+            // 8. 파생값 다시 계산 (시간은 흐르지 않음), 최고 등급 기록 · 구간 시작 값은 그 뒤에 덮어씀
+            //    (복원 중 등급이 오르며 생긴 ★ · 결과 화면 구간 마감을 지움 — UI는 아직 구독 전)
             sim.Tick(0f);
             var prog = sim.Progression;
+            int highest = s.HighestGrade;
+            if (highest < 0) // 12-1 전 세이브: 대형 도달 = 승리 등급, 초대형(당시 최고 등급) 도달 = 그 다음 등급
+                highest = s.ReachedTopGrade ? prog.VictoryGradeIndex + 1 : s.ReachedFinalGrade ? prog.VictoryGradeIndex : 0;
             prog.RestoreReached(s.ReachedFinalGrade || prog.IsAtOrAboveVictory,
-                s.ReachedTopGrade || (prog.IsFinalGrade && prog.GradeIndex > prog.VictoryGradeIndex));
+                (s.HighestGrade >= 0 && s.ReachedTopGrade) || (prog.IsFinalGrade && prog.GradeIndex > prog.VictoryGradeIndex),
+                highest);
+            sim.Session.RestoreSegment(s.Segment ?? new SegmentStart());
             return missing;
         }
 

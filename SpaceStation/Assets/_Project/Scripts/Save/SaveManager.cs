@@ -117,8 +117,9 @@ namespace SpaceStation.Save
                 Population = _sim.Resources.Population,
                 Modules = _sim.Grid.ModuleCount,
                 PlaySeconds = _sim.ElapsedSeconds,
-                ReachedTopGrade = _sim.Progression.HasReachedTopGrade,
-                TopGradeName = _sim.Progression.GetGrade(_sim.Progression.GradeCount - 1).DisplayName,
+                // 12-1: 승리 등급(대형) 위로 도달한 가장 높은 등급 ('★ 국가급 달성' 식)
+                ReachedTopGrade = _sim.Progression.HighestGradeIndex > _sim.Progression.VictoryGradeIndex,
+                TopGradeName = _sim.Progression.GetGrade(_sim.Progression.HighestGradeIndex).DisplayName,
             };
             if (_cameraController != null && _cameraController.Rig != null)
             {

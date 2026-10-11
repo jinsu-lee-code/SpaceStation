@@ -188,6 +188,8 @@ namespace SpaceStation.Simulation
             Events.EventStarted += _eventEffects.HandleEventStarted;
             Events.EventEnded += _eventEffects.HandleEventEnded;
             Resources.Changed += EvaluateProgression;
+            // 12-1: 결과 화면 등급 도달 → 구간 마감 (뷰보다 먼저 등록 — 결과 화면이 마감된 구간을 읽음)
+            Progression.MilestoneReached += HandleMilestone;
 
             if (settings.CoreModule == null)
                 throw new ArgumentException("CoreModule 필요", nameof(settings));
@@ -542,6 +544,12 @@ namespace SpaceStation.Simulation
             Progression.Evaluate(population, StationProgression.CountGradeModules(Grid)); // 8-6: 장갑 격벽 제외
             Session.ObservePopulation(population);
             ProgressionEvaluated?.Invoke();
+        }
+
+        private void HandleMilestone(int grade, GradeMilestone milestone)
+        {
+            if (milestone == GradeMilestone.Result)
+                Session.CloseSegment(ElapsedSeconds, Grid.ModuleCount, Resources.Population);
         }
 
         // ---------------- 조기 경보 · 운석 (StationMeteors) ----------------

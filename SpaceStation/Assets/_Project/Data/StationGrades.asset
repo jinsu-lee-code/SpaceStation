@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.StationGradeConfig
   _grades:
   - _displayName: "\uCD08\uC18C\uD615"
+    _milestone: 0
     _minPopulation: 0
     _minModules: 0
     _maxLimitedModules: 1
@@ -32,6 +33,7 @@ MonoBehaviour:
     _eventIntervalMultiplier: 1
     _eventIntensityMultiplier: 1
   - _displayName: "\uC18C\uD615"
+    _milestone: 0
     _minPopulation: 10
     _minModules: 8
     _maxLimitedModules: 2
@@ -49,6 +51,7 @@ MonoBehaviour:
     _eventIntervalMultiplier: 0.65
     _eventIntensityMultiplier: 1.3
   - _displayName: "\uC911\uD615"
+    _milestone: 0
     _minPopulation: 30
     _minModules: 20
     _maxLimitedModules: 4
@@ -64,6 +67,7 @@ MonoBehaviour:
     _eventIntervalMultiplier: 0.38
     _eventIntensityMultiplier: 1.6
   - _displayName: "\uB300\uD615"
+    _milestone: 2
     _minPopulation: 60
     _minModules: 40
     _maxLimitedModules: 6
@@ -75,9 +79,54 @@ MonoBehaviour:
     _eventIntervalMultiplier: 0.25
     _eventIntensityMultiplier: 2
   - _displayName: "\uCD08\uB300\uD615"
+    _milestone: 1
     _minPopulation: 120
     _minModules: 80
     _maxLimitedModules: 8
+    _unlocks: []
+    _newNeeds: 
+    _meteorHitsMin: 8
+    _meteorHitsMax: 11
+    _eventIntervalMultiplier: 0.21
+    _eventIntensityMultiplier: 2.4
+  - _displayName: "\uB3C4\uC2DC\uAE09"
+    _milestone: 1
+    _minPopulation: 180
+    _minModules: 120
+    _maxLimitedModules: 10
+    _unlocks: []
+    _newNeeds: 
+    _meteorHitsMin: 8
+    _meteorHitsMax: 11
+    _eventIntervalMultiplier: 0.21
+    _eventIntensityMultiplier: 2.4
+  - _displayName: "\uAD6D\uAC00\uAE09"
+    _milestone: 2
+    _minPopulation: 270
+    _minModules: 180
+    _maxLimitedModules: 12
+    _unlocks: []
+    _newNeeds: 
+    _meteorHitsMin: 8
+    _meteorHitsMax: 11
+    _eventIntervalMultiplier: 0.21
+    _eventIntensityMultiplier: 2.4
+  - _displayName: "\uB300\uB959\uAE09"
+    _milestone: 1
+    _minPopulation: 400
+    _minModules: 270
+    _maxLimitedModules: 14
+    _unlocks: []
+    _newNeeds: 
+    _meteorHitsMin: 8
+    _meteorHitsMax: 11
+    _eventIntervalMultiplier: 0.21
+    _eventIntensityMultiplier: 2.4
+  - _displayName: "\uC9C0\uAD6C\uAE09"
+    _milestone: 2
+    _minPopulation: 600
+    _minModules: 400
+    _maxLimitedModules: 16
     _unlocks: []
     _newNeeds: 
     _meteorHitsMin: 8
