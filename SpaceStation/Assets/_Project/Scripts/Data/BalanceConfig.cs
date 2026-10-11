@@ -102,6 +102,26 @@ namespace SpaceStation.Data
         [Tooltip("연구 포인트 1개로 깎는 연구 시작 비용 비율 (한 연구에 1개)")]
         [SerializeField, Range(0f, 1f)] private float _researchPointDiscount = 0.2f;
 
+        [Header("Resident Requests (BALANCE 30번, 11-17 ③ 주민 요청 — 내부에 있을 때만, 실시간 초)")]
+        [Tooltip("들어간 뒤 첫 요청까지 (초)")]
+        [SerializeField, Min(0f)] private float _requestFirstDelay = 60f;
+        [Tooltip("요청 사이 간격 최소 (초)")]
+        [SerializeField, Min(1f)] private float _requestIntervalMin = 120f;
+        [Tooltip("요청 사이 간격 최대 (초)")]
+        [SerializeField, Min(1f)] private float _requestIntervalMax = 180f;
+        [Tooltip("동시에 걸려 있는 요청 최대 수")]
+        [SerializeField, Min(1)] private int _requestMaxActive = 2;
+        [Tooltip("이 시간(초)이 지나면 요청이 조용히 사라짐 (손해 없음)")]
+        [SerializeField, Min(1f)] private float _requestExpireSeconds = 300f;
+        [Tooltip("요청을 들어주면 정거장 만족도 증가량")]
+        [SerializeField, Min(0f)] private float _requestSatisfaction = 2.5f;
+        [Tooltip("요청을 들어주면 연구 포인트 1개를 받을 확률")]
+        [SerializeField, Range(0f, 1f)] private float _requestResearchPointChance = 0.15f;
+        [Tooltip("요청을 들어준 주민의 기분 보너스 (−1 ~ +1 기분 단위, 겉모습 · 반응)")]
+        [SerializeField, Range(0f, 1f)] private float _requestCheer = 0.4f;
+        [Tooltip("기분 보너스 유지 시간 (게임 초)")]
+        [SerializeField, Min(0f)] private float _requestCheerSeconds = 600f;
+
         [Header("Defense (BALANCE 19번)")]
         [Tooltip("한 모듈에 대한 포탑 격추 확률 합산 상한")]
         [SerializeField, Range(0f, 1f)] private float _turretMaxIntercept = 0.6f;
@@ -188,6 +208,15 @@ namespace SpaceStation.Data
         public int CrateResearchPoints => _crateResearchPoints;
         public float CrateSatisfaction => _crateSatisfaction;
         public float ResearchPointDiscount => _researchPointDiscount;
+        public float RequestFirstDelay => _requestFirstDelay;
+        public float RequestIntervalMin => _requestIntervalMin;
+        public float RequestIntervalMax => Mathf.Max(_requestIntervalMin, _requestIntervalMax);
+        public int RequestMaxActive => _requestMaxActive;
+        public float RequestExpireSeconds => _requestExpireSeconds;
+        public float RequestSatisfaction => _requestSatisfaction;
+        public float RequestResearchPointChance => _requestResearchPointChance;
+        public float RequestCheer => _requestCheer;
+        public float RequestCheerSeconds => _requestCheerSeconds;
         public float FieldRepairCostRate => _fieldRepairCostRate;
         public float FieldRepairHoldSeconds => _fieldRepairHoldSeconds;
         /// <summary>모듈 칸 수에 따른 손상 지점 수 (11-17).</summary>

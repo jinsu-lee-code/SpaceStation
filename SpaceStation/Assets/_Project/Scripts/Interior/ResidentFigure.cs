@@ -20,6 +20,9 @@ namespace SpaceStation.Interior
 
         /// <summary>이름표에 쓰는 글 (이름 · 직함 · 종류 · 특성 · 지금 하는 일).</summary>
         public string Label { get; private set; }
+        /// <summary>11-17 ③ 이 인물의 주민 번호 · 있는 방 (주민 요청).</summary>
+        public int ResidentId { get; set; }
+        public Core.ModuleInstance Room { get; set; }
         /// <summary>이름표를 띄울 곳 (머리 위).</summary>
         public Vector3 TagPoint => new Vector3(_head != null ? _head.position.x : transform.position.x,
             transform.position.y + (_tagTop > 0f ? Mathf.Lerp(_tagTop, _tagTopStand, Motion != null ? Motion.StandBlend : 0f) : 1f) + 0.1f,

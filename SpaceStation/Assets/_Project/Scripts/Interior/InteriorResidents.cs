@@ -56,6 +56,42 @@ namespace SpaceStation.Interior
         private ResidentFigure _looked;
 
         public int Count => _figures.Count;
+        /// <summary>11-17 ③ 지금 세워 둔 인물들 (주민 요청이 고름).</summary>
+        public IReadOnlyList<ResidentFigure> Figures => _figures;
+        /// <summary>지금 바라봐서 이름표가 뜬 인물 (없으면 null) — 말풍선을 이름표 위로 올림.</summary>
+        public ResidentFigure Looked => _tag != null && _tag.gameObject.activeSelf ? _looked : null;
+
+        public ResidentFigure Find(int residentId)
+        {
+            foreach (var f in _figures)
+            {
+                if (f != null && f.ResidentId == residentId)
+                    return f;
+            }
+            return null;
+        }
+
+        /// <summary>11-17 ③ 요청을 들어준 뒤: 기분(보너스 포함)을 다시 계산해 평소 동작에 반영.</summary>
+        public void RefreshMood(int residentId)
+        {
+            var figure = Find(residentId);
+            var sim = _station != null ? _station.Simulation : null;
+            if (figure == null || sim == null || sim.Residents == null)
+                return;
+            foreach (var r in sim.Residents.Residents)
+            {
+                if (r.Id != residentId)
+                    continue;
+                figure.Configure(figure.Label, MoodOf(r), _eye, _tuning.WatchRange);
+                return;
+            }
+        }
+
+        private float MoodOf(Resident resident)
+        {
+            var sim = _station.Simulation;
+            return ResidentMood.Of(sim.Residents.PersonalMood(resident), sim.Population.Satisfaction, resident.Home == null) + sim.CheerOf(resident);
+        }
 
         public static InteriorResidents Create(Transform parent, StationController station, InteriorBuilder builder, InteriorResidentTuning tuning,
             AnimalModelSet animals, TMP_FontAsset font, Transform eye)
@@ -137,6 +173,7 @@ namespace SpaceStation.Interior
                 if (spot == null)
                     continue;
                 var figure = Spawn(resident, spot, instance, _builder.RoomParent(module), Status(resident, module, p, day), roster.Config, out float mood);
+                figure.Room = module;
                 // 11-16 ③ 서 있는 쉬는 주민은 같은 방의 서기 자리 사이를 가끔 걸어 다님, ④ 앉은 주민은 일어나 걷다가 돌아와 앉음
                 if (_tuning.Wander && !spot.Work)
                 {
@@ -216,9 +253,9 @@ namespace SpaceStation.Interior
             var figure = ResidentFigure.Create(_animals, species, fur, parent != null ? parent : transform, position, rotation, spot.Pose,
                 _tuning.AnimalScale, _tuning.SitDrop, id);
             figure.name = "Resident_" + id;
-            // 11-16 기분 = 본인 보정(특성) + 정거장 만족도 + 집 없음 → 평소 동작 · 반응
-            var sim = _station.Simulation;
-            mood = ResidentMood.Of(sim.Residents.PersonalMood(resident), sim.Population.Satisfaction, resident.Home == null);
+            figure.ResidentId = id;
+            // 11-16 기분 = 본인 보정(특성) + 정거장 만족도 + 집 없음 → 평소 동작 · 반응 (+ 11-17 ③ 요청을 들어준 보너스)
+            mood = MoodOf(resident);
             figure.Configure(Label(resident, species.DisplayName, status, config), mood, _eye, _tuning.WatchRange);
             _figures.Add(figure);
             return figure;

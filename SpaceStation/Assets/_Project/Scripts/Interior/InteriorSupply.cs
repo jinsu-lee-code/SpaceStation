@@ -113,7 +113,8 @@ namespace SpaceStation.Interior
                 return;
             int seed = crate.Module.Origin.x * 73856093 ^ crate.Module.Origin.z * 83492791 ^ (crate.Slot + 1) * 19349663;
             var rng = new System.Random(seed);
-            if (!FindSpot(crate.Module, rng, out var spot))
+            // 방 칸 가운데에서 1~2.6m 떨어진 평평한 빈 바닥, 다른 상자와 0.9m 이상
+            if (!InteriorSpots.Floor(_builder, crate.Module, rng, new Vector3(0.4f, 0.26f, 0.4f), _used, 0.9f, out var spot))
                 return;
             _used.Add(spot);
             var go = Instantiate(prefab, parent);
@@ -134,42 +135,6 @@ namespace SpaceStation.Interior
             it.Prompt = () => PromptFor(id);
             it.Completed = () => Pickup(id);
             _spawned[id] = go;
-        }
-
-        /// <summary>방 칸 가운데에서 1~2.6m 떨어진 바닥 — 평평하고(아래 광선이 같은 높이 바닥) 상자 크기만큼 비었고, 다른 상자와 0.9m 이상.</summary>
-        private bool FindSpot(ModuleInstance module, System.Random rng, out Vector3 spot)
-        {
-            spot = default;
-            var cells = module.Cells;
-            for (int attempt = 0; attempt < 60; attempt++)
-            {
-                var cell = cells[rng.Next(cells.Count)];
-                var floor = _builder.FloorPoint(cell);
-                float a = (float)rng.NextDouble() * Mathf.PI * 2f;
-                float r = 1f + (float)rng.NextDouble() * 1.6f;
-                var p = floor + new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
-                if (!Physics.Raycast(p + Vector3.up * 1.2f, Vector3.down, out var hit, 1.6f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-                    continue;
-                if (Mathf.Abs(hit.point.y - floor.y) > 0.06f || hit.normal.y < 0.95f)
-                    continue;
-                p = hit.point;
-                if (Physics.CheckBox(p + Vector3.up * 0.3f, new Vector3(0.4f, 0.26f, 0.4f), Quaternion.identity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-                    continue;
-                bool far = true;
-                foreach (var u in _used)
-                {
-                    if ((u - p).sqrMagnitude < 0.9f * 0.9f)
-                    {
-                        far = false;
-                        break;
-                    }
-                }
-                if (!far)
-                    continue;
-                spot = p + Vector3.up * 0.002f;
-                return true;
-            }
-            return false;
         }
 
         /// <summary>자원 상자 = 띠 · 라벨(M_CrateBand)을 자원 색, 특별 상자 = 봉인(M_CaseSeal)을 보상 색 + 같은 색 은은한 불빛.</summary>

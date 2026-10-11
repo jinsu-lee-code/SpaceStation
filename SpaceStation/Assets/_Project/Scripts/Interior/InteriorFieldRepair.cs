@@ -148,7 +148,7 @@ namespace SpaceStation.Interior
             var site = new Site { Module = module, Parent = parent };
             int seed = module.Origin.x * 73856093 ^ module.Origin.y * 19349663 ^ module.Origin.z * 83492791;
             var rng = new System.Random(seed);
-            FindSpots(module, rng);
+            InteriorSpots.Walls(_builder, module, rng, _s.Height, _candidates);
             int want = Sim.Balance.FieldRepairPoints(module.Cells.Count);
             var chosen = new List<(Vector3 Position, Vector3 Normal)>();
             foreach (var c in _candidates)
@@ -188,69 +188,6 @@ namespace SpaceStation.Interior
                     PlaceDamage(site, p);
             }
             _sites[module] = site;
-        }
-
-        /// <summary>
-        /// 후보 = 방 칸마다 가운데 눈높이(설정 높이)에서 12방향 수평 광선이 맞은 벽 — 수직이고 평평하며(가로 ±0.32 · 세로 ±0.28 네 점이 같은 면),
-        /// 앞 0.4m가 비어 있고, 문 · 해치 · 유리 · 주민이 아닌 곳. 씨앗 순서로 섞음.
-        /// </summary>
-        private void FindSpots(ModuleInstance module, System.Random rng)
-        {
-            _candidates.Clear();
-            float reach = InteriorGeometry.CellSize * 0.6f;
-            foreach (var cell in module.Cells)
-            {
-                var origin = _builder.FloorPoint(cell) + Vector3.up * _s.Height;
-                if (Physics.CheckSphere(origin, 0.25f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-                    continue;
-                float start = (float)rng.NextDouble() * 30f;
-                for (int k = 0; k < 12; k++)
-                {
-                    float a = (start + k * 30f) * Mathf.Deg2Rad;
-                    var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
-                    if (!Physics.Raycast(origin, dir, out var hit, reach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-                        continue;
-                    if (hit.distance < 0.6f || Mathf.Abs(hit.normal.y) > 0.2f || Excluded(hit.collider))
-                        continue;
-                    var n = new Vector3(hit.normal.x, 0f, hit.normal.z).normalized;
-                    if (!Flat(hit.point, n) || !Clear(hit.point, n))
-                        continue;
-                    _candidates.Add((hit.point, n));
-                }
-            }
-            for (int i = _candidates.Count - 1; i > 0; i--)
-            {
-                int j = rng.Next(i + 1);
-                (_candidates[i], _candidates[j]) = (_candidates[j], _candidates[i]);
-            }
-        }
-
-        private static bool Excluded(Collider c)
-        {
-            if (c.GetComponentInParent<InteriorHatch>() != null || c.GetComponentInParent<ResidentFigure>() != null || c.GetComponentInParent<InteriorInteractable>() != null)
-                return true;
-            string n = c.name;
-            return n.IndexOf("Door", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("Glass", StringComparison.OrdinalIgnoreCase) >= 0
-                || n.IndexOf("Window", StringComparison.OrdinalIgnoreCase) >= 0;
-        }
-
-        private static bool Flat(Vector3 point, Vector3 n)
-        {
-            var t = Vector3.Cross(Vector3.up, n).normalized;
-            foreach (var o in new[] { t * 0.32f, -t * 0.32f, Vector3.up * 0.28f, Vector3.down * 0.28f })
-            {
-                var from = point + o + n * 0.25f;
-                if (!Physics.Raycast(from, -n, out var h, 0.4f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-                    return false; // 뚫린 곳 (문 자리 · 창)
-                if (Mathf.Abs(h.distance - 0.25f) > 0.03f || Vector3.Dot(h.normal, n) < 0.95f)
-                    return false;
-            }
-            return true;
-        }
-
-        private static bool Clear(Vector3 point, Vector3 n)
-        {
-            return !Physics.CheckBox(point + n * 0.24f, new Vector3(0.36f, 0.34f, 0.2f), Quaternion.LookRotation(n), Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
         }
 
         private GameObject Prefab(Kind kind) => kind == Kind.Panel ? _s.Panel : kind == Kind.Pipe ? _s.Pipe : _s.Box;

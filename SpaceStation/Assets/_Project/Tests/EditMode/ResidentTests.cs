@@ -90,6 +90,28 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void RequestComplete_RaisesSatisfaction_Cheer_AndSometimesPoint()
+        {
+            // 11-17 ③ (BALANCE 30번): 만족도 +2.5 · 그 주민 기분 보너스(게임 시간 동안) · 확률로 연구 포인트
+            UseTraits(Def(ResidentTrait.Optimist, 2f, 10f));
+            var sim = Sim();
+            var r = sim.Residents.Residents[0];
+            sim.Population.SetSatisfaction(50f);
+            Assert.AreEqual(0f, sim.CheerOf(r));
+            Assert.IsTrue(sim.CompleteResidentRequest(r, out var text, roll01: 0.99f));
+            Assert.AreEqual(52.5f, sim.Population.Satisfaction, Eps);
+            Assert.AreEqual(_config.RequestCheer, sim.CheerOf(r), Eps);
+            Assert.AreEqual(0f, sim.CheerOf(sim.Residents.Residents[1]), "다른 주민은 그대로");
+            Assert.AreEqual(0, sim.Supply.ResearchPoints, "확률 밖");
+            Assert.IsTrue(sim.CompleteResidentRequest(r, out text, roll01: 0f));
+            Assert.AreEqual(1, sim.Supply.ResearchPoints);
+            StringAssert.Contains("연구 포인트", text);
+            for (int i = 0; i < 601; i++)
+                sim.Tick(1f);
+            Assert.AreEqual(0f, sim.CheerOf(r), "기분 보너스는 600초 뒤 끝남");
+        }
+
+        [Test]
         public void Leaving_PicksMostDiscontent_NotNewest()
         {
             _config = WithStartingPopulation(1);

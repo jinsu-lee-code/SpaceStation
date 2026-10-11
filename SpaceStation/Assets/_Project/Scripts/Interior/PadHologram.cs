@@ -187,6 +187,10 @@ namespace SpaceStation.Interior
         public Func<ModuleInstance, int> CrateCount;
         private readonly List<MeshRenderer> _crateBadges = new List<MeshRenderer>();
         private Mesh _badgeMesh;
+        /// <summary>11-17 ③: 이 방에 걸린 주민 요청 수 (0이면 표시 없음) — 분홍 마름모가 떠서 돎 (보급 상자 표시가 있으면 그 위).</summary>
+        public Func<ModuleInstance, int> RequestCount;
+        private readonly List<MeshRenderer> _requestBadges = new List<MeshRenderer>();
+        private Mesh _requestMesh;
 
         public static PadHologram Create(Transform anchor, Settings settings)
         {
@@ -469,6 +473,7 @@ namespace SpaceStation.Interior
             Animate(_layer, dt, flicker);
             UpdateBuild(t, flicker);
             UpdateCrateBadges(t);
+            UpdateRequestBadges(t);
             for (int i = _leaving.Count - 1; i >= 0; i--)
             {
                 var l = _leaving[i];
@@ -598,6 +603,75 @@ namespace SpaceStation.Interior
                 if (_crateBadges[i] != null && _crateBadges[i].gameObject.activeSelf)
                     _crateBadges[i].gameObject.SetActive(false);
             }
+        }
+
+        /// <summary>11-17 ③ 주민 요청이 걸린 방: 분홍 마름모가 위아래로 떠서 돎 (보급 상자 표시 위).</summary>
+        private void UpdateRequestBadges(float t)
+        {
+            _requestBadges.RemoveAll(b => b == null);
+            int used = 0;
+            if (_layer != null && RequestCount != null && _present > 0.5f)
+            {
+                foreach (var p in _layer.Pieces)
+                {
+                    if (!p.Fill.enabled || RequestCount(p.Module) <= 0)
+                        continue;
+                    if (used >= _requestBadges.Count)
+                    {
+                        if (_requestMesh == null)
+                            _requestMesh = DiamondMesh();
+                        var r = Primitive("RequestBadge", _layer.Root, _requestMesh, _s.Fill);
+                        r.sortingOrder = 2;
+                        _requestBadges.Add(r);
+                    }
+                    var badge = _requestBadges[used++];
+                    if (badge.transform.parent != _layer.Root)
+                        badge.transform.SetParent(_layer.Root, false);
+                    badge.gameObject.SetActive(true);
+                    var b = p.LocalBounds;
+                    var top = p.Transform.localPosition + p.Transform.localRotation * new Vector3(b.center.x, b.max.y, b.center.z);
+                    float lift = CrateCount != null && CrateCount(p.Module) > 0 ? 0.88f : 0.48f;
+                    badge.transform.localPosition = top + Vector3.up * (lift + 0.08f * Mathf.Sin(t * 3f + used + 1.5f));
+                    badge.transform.localRotation = Quaternion.Euler(0f, -t * 90f, 0f);
+                    badge.transform.localScale = Vector3.one * 0.3f;
+                    Tint(badge, Hdr(new Color(1f, 0.45f, 0.72f), _s.Glow * 1.3f, 0.95f));
+                }
+            }
+            for (int i = used; i < _requestBadges.Count; i++)
+            {
+                if (_requestBadges[i] != null && _requestBadges[i].gameObject.activeSelf)
+                    _requestBadges[i].gameObject.SetActive(false);
+            }
+        }
+
+        /// <summary>표시용 마름모 (팔면체, 가로 0.8 · 높이 1.2, 가운데 기준).</summary>
+        private static Mesh DiamondMesh()
+        {
+            var tip = new[] { new Vector3(0f, 0.6f, 0f), new Vector3(0f, -0.6f, 0f) };
+            var ring = new[] { new Vector3(0.4f, 0f, 0f), new Vector3(0f, 0f, 0.4f), new Vector3(-0.4f, 0f, 0f), new Vector3(0f, 0f, -0.4f) };
+            var verts = new List<Vector3>();
+            var tris = new List<int>();
+            for (int i = 0; i < 4; i++)
+            {
+                var a = ring[i];
+                var c = ring[(i + 1) % 4];
+                int k = verts.Count; // 위 (면마다 따로 — 평면 음영)
+                verts.Add(tip[0]); verts.Add(c); verts.Add(a);
+                tris.Add(k); tris.Add(k + 1); tris.Add(k + 2);
+                k = verts.Count; // 아래
+                verts.Add(tip[1]); verts.Add(a); verts.Add(c);
+                tris.Add(k); tris.Add(k + 1); tris.Add(k + 2);
+            }
+            var m = new Mesh { name = "HoloRequestBadge" };
+            m.SetVertices(verts);
+            m.SetTriangles(tris, 0);
+            var colors = new Color[verts.Count];
+            for (int i = 0; i < colors.Length; i++)
+                colors[i] = Color.white;
+            m.colors = colors;
+            m.RecalculateNormals();
+            m.RecalculateBounds();
+            return m;
         }
 
         /// <summary>표시용 작은 상자 (가로 1 · 높이 0.7, 가운데 기준).</summary>

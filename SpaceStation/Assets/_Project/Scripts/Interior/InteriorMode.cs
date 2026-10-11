@@ -72,6 +72,8 @@ namespace SpaceStation.Interior
         [SerializeField] private InteriorSupply.Settings _supplySettings = new InteriorSupply.Settings();
         [Header("11-17 식물 (주민 요청)")]
         [SerializeField] private InteriorPlants.Settings _plantSettings = new InteriorPlants.Settings();
+        [Header("11-17 주민 요청")]
+        [SerializeField] private InteriorRequests.Settings _requestSettings = new InteriorRequests.Settings();
 
         [Header("HUD")]
         [SerializeField] private RectTransform _hud;
@@ -112,6 +114,7 @@ namespace SpaceStation.Interior
         private InteriorFieldRepair _fieldRepair;
         private InteriorSupply _supply;
         private InteriorPlants _plants;
+        private InteriorRequests _requests;
         // 11-17 길게 누르는 상호작용
         private InteriorInteractable _holdTarget;
         private float _holdTime;
@@ -238,6 +241,9 @@ namespace SpaceStation.Interior
             _supply.Rebuild(_layout);
             _plants = InteriorPlants.Create(transform, _builder, _plantSettings);
             _plants.Rebuild(_layout);
+            _requests = InteriorRequests.Create(transform, _station, _builder, _residents, _plants, _requestSettings, _font, _player.Eye);
+            _requests.Message += ShowNotice;
+            _requests.Rebuild(_layout);
             var spawn = _builder.SpawnPoint(module, out float spawnYaw);
             _player.Teleport(spawn + Vector3.up * 0.05f, spawnYaw);
 
@@ -290,6 +296,7 @@ namespace SpaceStation.Interior
                 Art = _holoArt,
                 Tuning = _padTuning,
                 Buildable = _build != null ? _build.BuildableModules : null,
+                RequestCount = m => _requests != null ? _requests.CountIn(m) : 0,
             });
             InsideChanged?.Invoke(true);
 
@@ -346,6 +353,9 @@ namespace SpaceStation.Interior
             if (_plants != null)
                 Destroy(_plants.gameObject);
             _plants = null;
+            if (_requests != null)
+                Destroy(_requests.gameObject);
+            _requests = null;
             ResetHold();
             if (_player != null)
                 Destroy(_player.gameObject);
@@ -414,6 +424,8 @@ namespace SpaceStation.Interior
             }
             if (_fieldRepair != null)
                 _fieldRepair.CurrentRoom = _currentModule;
+            if (_requests != null)
+                _requests.CurrentRoom = _currentModule;
             if (_notice != null && _noticeUntil > 0f && Time.unscaledTime > _noticeUntil)
             {
                 _noticeUntil = 0f;
@@ -486,7 +498,12 @@ namespace SpaceStation.Interior
             bool pressed = KeyBindings.IsPressed(GameAction.Interact);
             if (!pressed)
                 _holdNeedsRelease = false;
-            if (blocked != null)
+            if (item.Completed == null)
+            {
+                _prompt.SetText(text); // 안내만 (11-17 ③)
+                _holdTime = 0f;
+            }
+            else if (blocked != null)
             {
                 _prompt.SetText($"<b>{key}</b>  {text}\n<size=80%><color={HudText.Red}>{blocked}</color></size>");
                 if (KeyBindings.WasPressed(GameAction.Interact))
@@ -611,6 +628,8 @@ namespace SpaceStation.Interior
                 _supply.Rebuild(_layout);
             if (_plants != null)
                 _plants.Rebuild(_layout);
+            if (_requests != null)
+                _requests.Rebuild(_layout);
             ResetHold();
             if (_exteriorView != null)
                 _exteriorView.CollectWindows();

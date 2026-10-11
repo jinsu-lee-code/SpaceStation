@@ -196,6 +196,16 @@ namespace SpaceStation.Interior
         /// <summary>일어서기(true) · 앉기(false) 시작 — 약 0.5초에 걸쳐 자세가 바뀜.</summary>
         public void StandUp(bool up) => _standTarget = up && _canStand ? 1f : 0f;
 
+        /// <summary>11-17 ③ 요청을 들어줬을 때: 바로 기뻐함 (서 있으면 폴짝 + 손 흔들기, 앉아 있으면 손 흔들기). 다가올 때 반응은 잠시 쉼.</summary>
+        public void Celebrate()
+        {
+            if (_hold >= 0f)
+                return;
+            float now = Time.unscaledTime;
+            _reactReady = now + ReactCooldown;
+            Start(_pose == ResidentPose.Stand || _standBlend >= 1f ? Act.HopWave : Act.Wave, now, 1.8f);
+        }
+
         public void Configure(float mood, Transform watcher, float lookRange)
         {
             _mood = Mathf.Clamp(mood, -1f, 1f);

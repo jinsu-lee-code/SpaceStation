@@ -96,6 +96,8 @@ namespace SpaceStation.Interior
             public InteriorPadTuning Tuning;
             /// <summary>11-14 건설 탭 모듈 목록 (바깥 건설 메뉴와 같은 목록 — BuildController.BuildableModules).</summary>
             public IReadOnlyList<ModuleData> Buildable;
+            /// <summary>11-17 ③ 이 방에 걸린 주민 요청 수 (홀로그램 표시).</summary>
+            public Func<ModuleInstance, int> RequestCount;
         }
 
         private Context _c;
@@ -196,9 +198,12 @@ namespace SpaceStation.Interior
                     string category = m == _c.Station.Simulation.Core ? "코어" : m.Data != null ? m.Data.Category.DisplayName() : "";
                     int crates = InteriorSupply.CountIn(_c.Station.Simulation, m);
                     string crateText = crates > 0 ? $"  ·  <color=#FFC752>보급 상자 {crates}</color>" : "";
-                    return $"{category}  ·  <color=#{ColorUtility.ToHtmlStringRGB(color)}>{status}</color>{crateText}";
+                    int requests = _c.RequestCount != null ? _c.RequestCount(m) : 0;
+                    string requestText = requests > 0 ? $"  ·  <color=#FF9CC8>주민 요청 {requests}</color>" : "";
+                    return $"{category}  ·  <color=#{ColorUtility.ToHtmlStringRGB(color)}>{status}</color>{crateText}{requestText}";
                 };
                 _holo.CrateCount = m => InteriorSupply.CountIn(_c.Station.Simulation, m); // 11-17 ②
+                _holo.RequestCount = _c.RequestCount; // 11-17 ③
                 _holo.gameObject.SetActive(false);
                 _build = new PadBuild(_ui, _buildRoot, CanvasWidth, _c.Station, _c.Buildable, _holo, _c.Main,
                     (text, failed) => { if (failed) ShowFailure(text); else ShowMessage(text); });

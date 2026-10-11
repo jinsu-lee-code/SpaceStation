@@ -1051,6 +1051,40 @@ namespace SpaceStation.Simulation
             return true;
         }
 
+        // 11-17 ③ 주민 요청을 들어준 주민 → 기분 보너스가 끝나는 게임 시각 (저장하지 않음 — 겉모습 · 반응만)
+        private readonly Dictionary<int, float> _cheerUntil = new Dictionary<int, float>();
+
+        /// <summary>
+        /// 11-17 ③ 주민 요청을 들어줌 (BALANCE 30번): 정거장 만족도 + 그 주민 기분 보너스, 가끔 연구 포인트.
+        /// roll01 = 연구 포인트 판정 난수 (없으면 상자 난수). text = 받은 것 (알림용).
+        /// </summary>
+        public bool CompleteResidentRequest(Resident resident, out string text, float? roll01 = null)
+        {
+            text = null;
+            if (resident == null || Residents == null)
+                return false;
+            bool listed = false;
+            foreach (var r in Residents.Residents)
+                listed |= r == resident;
+            if (!listed)
+                return false;
+            float before = Population.Satisfaction;
+            Population.SetSatisfaction(Math.Min(PopulationSimulation.MaxSatisfaction, before + Balance.RequestSatisfaction));
+            _cheerUntil[resident.Id] = ElapsedSeconds + Balance.RequestCheerSeconds;
+            text = $"만족도 +{Population.Satisfaction - before:0.#}";
+            float roll = roll01 ?? (float)_crateRandom.NextDouble();
+            if (roll < Balance.RequestResearchPointChance)
+            {
+                Supply.SetCounts(Supply.ResearchPoints + 1, Supply.FreeRepairs);
+                text += $"  ·  연구 포인트 +1 (보유 {Supply.ResearchPoints})";
+            }
+            return true;
+        }
+
+        /// <summary>11-17 ③ 요청을 들어준 주민의 기분 보너스 (끝났으면 0).</summary>
+        public float CheerOf(Resident resident) =>
+            resident != null && _cheerUntil.TryGetValue(resident.Id, out var until) && ElapsedSeconds < until ? Balance.RequestCheer : 0f;
+
         /// <summary>11-17 ② 무료 수리권 1장을 씀 (있으면 true).</summary>
         private bool UseFreeRepair()
         {

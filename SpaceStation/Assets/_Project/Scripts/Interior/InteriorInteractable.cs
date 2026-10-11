@@ -17,7 +17,7 @@ namespace SpaceStation.Interior
         public float HoldSeconds = 1.5f;
         /// <summary>누르는 동안 매 프레임 (진행 0~1) — 용접 불꽃 등.</summary>
         public Action<float> Holding;
-        /// <summary>다 눌렀을 때.</summary>
+        /// <summary>다 눌렀을 때. null이면 안내 글만 보여 주는 물건 (누를 수 없음 — 예: 물 주기를 부탁한 주민).</summary>
         public Action Completed;
     }
 }
