@@ -1,0 +1,148 @@
+using System;
+using System.Collections.Generic;
+using SpaceStation.Core;
+using SpaceStation.Data;
+
+namespace SpaceStation.Simulation
+{
+    /// <summary>
+    /// 12-0b (StationSimulation에서 분리): 건설 명령 — 배치 판정(공간 규칙 → 등급 해금/설치 제한 → 비용) · 배치 · 철거 · 환급 ·
+    /// 정비 · 재건축 · 파괴. 바깥에서는 StationSimulation의 같은 이름 함수로 부른다.
+    /// </summary>
+    internal sealed class StationConstruction
+    {
+        private readonly StationSimulation _sim;
+
+        public StationConstruction(StationSimulation sim) => _sim = sim;
+
+        public PlacementResult EvaluatePlacement(ModuleData data, UnityEngine.Vector3Int origin, int rotation)
+        {
+            var result = PlacementRules.Evaluate(_sim.Grid, data, origin, rotation);
+            if (result == PlacementResult.Valid)
+                result = CheckBuildable(data);
+            if (result == PlacementResult.Valid && !_sim.Resources.CanAfford(GetBuildCost(data)))
+                return PlacementResult.InsufficientResources;
+            return result;
+        }
+
+        public List<ResourceAmount> GetBuildCost(ModuleData data) => _sim.Effects.BuildCost(data);
+
+        public PlacementResult CheckBuildable(ModuleData data)
+        {
+            var result = _sim.Progression.CheckBuildable(data, _sim.Grid);
+            // 11-18: 튜토리얼 중에는 지금 단계의 모듈만 (등급 잠김이 먼저)
+            var tutorial = _sim.Tutorial;
+            if (result == PlacementResult.Valid && tutorial != null && !tutorial.Allows(TutorialAction.Build, data))
+                return PlacementResult.TutorialLocked;
+            return result;
+        }
+
+        public bool CanAfford(ModuleData data) => data != null && _sim.Resources.CanAfford(GetBuildCost(data));
+
+        public bool TryPlace(ModuleData data, UnityEngine.Vector3Int origin, int rotation, out ModuleInstance module)
+        {
+            module = null;
+            if (EvaluatePlacement(data, origin, rotation) != PlacementResult.Valid)
+                return false;
+            if (!_sim.Resources.TrySpend(GetBuildCost(data)))
+                return false;
+            return _sim.Grid.TryPlace(data, origin, rotation, out module);
+        }
+
+        public bool CanRemove(ModuleInstance module) => IsRemovableKind(module) && !PlacementRules.SupportsOthers(_sim.Grid, module);
+
+        public bool IsRemovableKind(ModuleInstance module) => module != null && module != _sim.Core && (module.Data == null || module.Data.Removable);
+
+        public bool IsSupportingOthers(ModuleInstance module) => PlacementRules.SupportsOthers(_sim.Grid, module);
+
+        public bool TryRemove(ModuleInstance module)
+        {
+            if (!CanRemove(module))
+                return false;
+            float refundMultiplier = _sim.Durability.GetRefundMultiplier(module); // 제거 전에 읽음
+            if (!_sim.Grid.Remove(module))
+                return false;
+            if (module.Data != null)
+                _sim.Resources.RefundBuildCost(module.Data.BuildCost, refundMultiplier);
+            return true;
+        }
+
+        public List<ResourceAmount> GetRefund(ModuleInstance module)
+        {
+            var refund = new List<ResourceAmount>();
+            if (module?.Data == null)
+                return refund;
+            float rate = _sim.Effects.DemolishRefundRate * _sim.Durability.GetRefundMultiplier(module);
+            foreach (var a in module.Data.BuildCost)
+                refund.Add(new ResourceAmount(a.Type, a.Amount * rate));
+            return refund;
+        }
+
+        // ---------------- 정비 / 재건축 (4-3) ----------------
+
+        public MaintainResult TryMaintain(ModuleInstance module)
+        {
+            if (!_sim.Durability.TryGetInfo(module, out var info))
+                return MaintainResult.NotApplicable;
+            if (info.Current >= info.Max - 1e-4f)
+                return MaintainResult.AlreadyAtMax;
+            if (!_sim.Resources.TrySpend(_sim.Durability.GetMaintenanceCost(module)))
+                return MaintainResult.InsufficientResources;
+            _sim.Durability.Maintain(module);
+            _sim.EvaluateProgression(); // UI 갱신 트리거
+            return MaintainResult.Done;
+        }
+
+        public List<ResourceAmount> GetRebuildCost(ModuleInstance module)
+        {
+            var net = new List<ResourceAmount>();
+            if (module?.Data == null)
+                return net;
+            float rate = _sim.Effects.DemolishRefundRate * _sim.Durability.GetRefundMultiplier(module);
+            float discount = _sim.Effects.RebuildCostMultiplier;
+            foreach (var a in module.Data.BuildCost)
+                net.Add(new ResourceAmount(a.Type, Math.Max(0f, a.Amount * (1f - rate)) * discount));
+            return net;
+        }
+
+        /// <summary>비용을 빼고 재건축할 수 있는지 (가능하면 Done).</summary>
+        private RebuildResult CheckRebuild(ModuleInstance module)
+        {
+            if (!IsRemovableKind(module) || module.Data == null || !_sim.Durability.TryGetInfo(module, out _))
+                return RebuildResult.NotAllowed;
+            var data = module.Data;
+            var progression = _sim.Progression;
+            if (!progression.IsUnlocked(data))
+                return RebuildResult.Locked;
+            if (data == progression.LimitedModule && progression.CountLimited(_sim.Grid) - 1 >= progression.CurrentLimit(_sim.Grid))
+                return RebuildResult.Locked;
+            return RebuildResult.Done;
+        }
+
+        public bool CanRebuildKind(ModuleInstance module) => CheckRebuild(module) == RebuildResult.Done;
+
+        public RebuildResult TryRebuild(ModuleInstance module, out ModuleInstance rebuilt)
+        {
+            rebuilt = null;
+            var check = CheckRebuild(module);
+            if (check != RebuildResult.Done)
+                return check;
+            var data = module.Data;
+            if (!_sim.Resources.TrySpend(GetRebuildCost(module)))
+                return RebuildResult.InsufficientResources;
+
+            var origin = module.Origin;
+            int rotation = module.Rotation;
+            _sim.Grid.Remove(module);
+            _sim.Grid.TryPlace(data, origin, rotation, out rebuilt); // 같은 셀이므로 항상 성공
+            return RebuildResult.Done;
+        }
+
+        public bool DestroyModule(ModuleInstance module)
+        {
+            if (module == null || module == _sim.Core)
+                return false;
+            return _sim.Grid.Remove(module);
+        }
+    }
+}

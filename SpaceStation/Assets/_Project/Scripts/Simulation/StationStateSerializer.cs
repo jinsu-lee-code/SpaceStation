@@ -120,6 +120,14 @@ namespace SpaceStation.Simulation
             }
             s.ResearchPoints = sim.Supply.ResearchPoints;
             s.FreeRepairs = sim.Supply.FreeRepairs;
+
+            // 12-0b 공통 틀 시스템 (Phase 12 새 시스템은 각자 상태를 문자열로)
+            foreach (var system in sim.Systems)
+            {
+                string state = system.Capture(m => m == sim.Core ? -2 : m != null && index.TryGetValue(m, out int i) ? i : -1);
+                if (state != null)
+                    s.Systems.Add(new SystemState { Key = system.Key, State = state });
+            }
             return s;
         }
 
@@ -259,6 +267,21 @@ namespace SpaceStation.Simulation
 
             // 7-1. 튜토리얼 (호스트가 저장에 진행 중 튜토리얼이 있으면 미리 StartTutorial)
             sim.Tutorial?.Restore(s.Tutorial);
+
+            // 7-2. 12-0b 공통 틀 시스템 (키가 없는 시스템은 새 판처럼, 모르는 키는 건너뜀)
+            if (s.Systems != null)
+            {
+                foreach (var entry in s.Systems)
+                {
+                    var system = entry != null ? sim.GetSystem(entry.Key) : null;
+                    if (system == null)
+                    {
+                        missing++;
+                        continue;
+                    }
+                    system.Restore(entry.State, i => i == -2 ? sim.Core : i >= 0 && i < placed.Length ? placed[i] : null);
+                }
+            }
 
             // 8. 파생값 다시 계산 (시간은 흐르지 않음), 최고 등급 기록은 그 뒤에 덮어씀
             sim.Tick(0f);

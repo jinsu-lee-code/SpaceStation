@@ -54,6 +54,8 @@ namespace SpaceStation.Simulation
         public List<CrateState> Crates = new List<CrateState>();
         public int ResearchPoints;
         public int FreeRepairs;
+        /// <summary>12-0b 공통 틀 시스템 상태 (Phase 12 새 시스템, 이전 세이브는 비어 있음).</summary>
+        public List<SystemState> Systems = new List<SystemState>();
     }
 
     [Serializable]
