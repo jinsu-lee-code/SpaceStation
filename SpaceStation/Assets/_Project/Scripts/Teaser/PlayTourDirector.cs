@@ -54,8 +54,14 @@ namespace SpaceStation.Teaser
         private TMP_Text _captionTitle;
         private TMP_Text _captionBody;
         private Image _fade;
-        private Image _flash;
+        private RectTransform _scan;
+        private HoloFx _captionFx;
+        private HoloGlitch _captionGlitch;
+        private TMP_Text _captionNumber;
         private RectTransform _cursor;
+
+        /// <summary>게임 UI의 홀로그램 테마 아트 (녹화기가 에셋에서 넣어 줌 — 없으면 기본 패널).</summary>
+        public HoloArt Art { get; set; }
         private bool _showCursor;
         private CanvasGroup _titleGroup;
         private TMP_Text _titleSub;
@@ -444,8 +450,12 @@ namespace SpaceStation.Teaser
             float r0 = _t;
             while (_t < r0 + 2.5f && Sim.Damage.TryGetInfo(hit, out _))
                 yield return Step();
-            if (Sim.Damage.TryGetInfo(hit, out _))
-                Sim.Damage.CompleteNow(hit); // 수리 진행을 잠깐 보여 준 뒤 마무리 (전개 속도)
+            // 수리 진행을 잠깐 보여 준 뒤 마무리 (전개 속도) — 다른 파손도 정리 (12장 현장 수리가 멀리 남은 파손 지점으로 가려 했음)
+            var left = new List<ModuleInstance>();
+            foreach (var info in Sim.Damage.DamagedModules)
+                left.Add(info.Module);
+            foreach (var m in left)
+                Sim.Damage.CompleteNow(m);
             _clock.SetSpeedPreset(0);
             yield return Wait(1.0f);
             _selection.Select(null);
@@ -490,21 +500,24 @@ namespace SpaceStation.Teaser
             var turret = FindModule("MD_Turret");
             var shield = FindModule("MD_Shield");
             Caption("06  방어", "포탑이 운석을 격추하고, 실드가 튕겨 냅니다");
+            // 11-19 피드백: 잘 안 보임 → 정거장 바깥쪽에서 포탑 · 실드를 가까이 (멀리 두면 레이저가 작고, 가까이 붙으면 정거장 안으로 들어갔음)
             if (turret != null && fx != null)
             {
                 var near = Neighbor(turret) ?? turret;
-                yield return OrbitTo(Center(Sim.Core), 300f, 30f, 11f, 1.2f); // 가까이 붙으면 정거장 안으로 들어가 포탑이 안 보였음
+                yield return CloseUp(turret, 4.6f, 1.2f);
                 fx.Preview(new MeteorFlight { Target = near, InterceptedAt = near });
-                yield return Wait(1.6f);
+                yield return SlowOrbit(turret, 4.6f, 1.4f);
                 Still("06_turret");
-                yield return Wait(1.6f);
+                yield return SlowOrbit(turret, 4.6f, 1.6f);
             }
             if (shield != null && fx != null)
             {
                 var near = Neighbor(shield) ?? shield;
-                yield return OrbitTo(Center(Sim.Core), 30f, 30f, 11f, 1.2f);
+                yield return CloseUp(shield, 5.2f, 1.2f);
                 fx.Preview(new MeteorFlight { Target = near, DeflectedBy = shield });
-                yield return Wait(3.2f);
+                yield return SlowOrbit(shield, 5.2f, 1.4f);
+                Still("06_shield");
+                yield return SlowOrbit(shield, 5.2f, 1.6f);
             }
         }
 
@@ -581,7 +594,7 @@ namespace SpaceStation.Teaser
             var figure = NearestResident(player.transform.position);
             if (figure != null)
             {
-                yield return WalkTo(player, figure.transform.position, 1.9f, 6f);
+                yield return GoTo(player, figure.TagPoint, 1.9f);
                 yield return LookAt(player, figure.TagPoint, 0.8f);
                 yield return Wait(2.0f);
                 Still("09_interior");
@@ -639,11 +652,19 @@ namespace SpaceStation.Teaser
             if (room == null)
                 yield break;
             Caption("12  현장 수리", "파손된 방은 안에서 직접 고칠 수 있습니다 (금속 사용)");
-            Sim.Damage.Damage(room);
-            yield return Wait(1.2f);
+            bool damaged = Sim.Damage.Damage(room);
+            var here = player.transform.position;
+            System.Func<InteriorInteractable, bool> repairable = x => x.name.StartsWith("Damage") && x.Completed != null && (x.Blocked == null || x.Blocked() == null)
+                                                                     && (x.transform.position - here).sqrMagnitude < 8f * 8f; // 지금 방 근처만
+            // 수리 지점이 생길 때까지 (전개 속도를 줄인 뒤 1.2초 대기가 0.66초가 되어 지점이 생기기 전에 넘어갔었음)
+            float w0 = _t;
+            while (_t < w0 + 2.5f && NearestInteractable(player.transform.position, repairable) == null)
+                yield return Step();
+            if (NearestInteractable(player.transform.position, repairable) == null)
+                Debug.LogWarning($"[PlayTour] 현장 수리 지점 없음 (방 {room.Data?.name}, 파손 {damaged})");
             for (int i = 0; i < 4; i++)
             {
-                var point = NearestInteractable(player.transform.position, x => x.name.StartsWith("Damage") && x.Completed != null && (x.Blocked == null || x.Blocked() == null));
+                var point = NearestInteractable(player.transform.position, repairable);
                 if (point == null)
                     break;
                 yield return InteractWith(player, point, 1.3f);
@@ -792,25 +813,8 @@ namespace SpaceStation.Teaser
             if (item == null)
                 yield break;
             var center = Bounds(item).center;
-            yield return WalkTo(player, center, stop, 4f);
-            var flat = player.transform.position - center;
-            flat.y = 0f;
-            if (flat.magnitude > stop + 0.6f)
-            {
-                // 막힘: 물건 정면(벽 소품은 앞쪽, 그 밖엔 지금 방향)에 서기
-                var normal = item.transform.forward;
-                normal.y = 0f;
-                if (normal.sqrMagnitude < 0.01f || Vector3.Dot(normal, flat) < 0f)
-                    normal = flat.sqrMagnitude > 0.01f ? flat : -player.transform.forward;
-                normal.Normalize();
-                yield return FadeTo(1f, 0.15f);
-                var feet = center + normal * stop;
-                feet.y = player.transform.position.y;
-                var d = center - feet;
-                player.Teleport(feet, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg, 10f);
-                yield return Step();
-                yield return FadeTo(0f, 0.15f);
-            }
+            // 11-19 피드백: 가구에 걸리면 끊겼다가 순간 이동 → 가구를 피해 도는 경로를 찾아 그대로 걸어감
+            yield return GoTo(player, center, stop);
             var aims = new[] { center, center + Vector3.up * 0.15f, center - Vector3.up * 0.15f, item.transform.position };
             var aim = center;
             foreach (var a in aims)
@@ -835,6 +839,226 @@ namespace SpaceStation.Teaser
             }
             _input.Release(Key.F);
             yield return Wait(0.3f);
+        }
+
+        // ---------------- 길 찾기 (내부) ----------------
+
+        private const float NavStep = 0.3f;     // 바닥 격자 간격 (m)
+        private const float NavRadius = 0.32f;  // 몸 반지름 (CharacterController 0.3 + 여유)
+
+        /// <summary>목표 앞(stop 거리)까지 가구를 피해 걸어감. 경로가 없으면 곧장 걸어감.</summary>
+        private IEnumerator GoTo(FirstPersonController player, Vector3 target, float stop)
+        {
+            var path = FindPath(player, target, stop);
+            if (path == null)
+            {
+                Debug.LogWarning($"[PlayTour] 경로 없음 → 곧장: {target}");
+                yield return WalkTo(player, target, stop, 4f);
+                yield break;
+            }
+            yield return FollowPath(player, path, target, stop);
+        }
+
+        /// <summary>
+        /// 발 높이의 바닥 격자에서 A* (8방향). 칸이 비었는지는 몸 크기 캡슐로 검사 (문 막이 · 트리거 · 내 몸은 무시 — 문은 다가가면 열림).
+        /// 도착 = 목표까지 평면 거리 stop 이하이면서 목표가 눈높이에서 보이는 칸. 찾은 경로는 직선으로 이어지는 점을 건너뛰어 다듬음.
+        /// </summary>
+        private List<Vector3> FindPath(FirstPersonController player, Vector3 target, float stop)
+        {
+            var start = player.transform.position;
+            float y = start.y;
+            var min = new Vector2(Mathf.Min(start.x, target.x) - 8f, Mathf.Min(start.z, target.z) - 8f);
+            var max = new Vector2(Mathf.Max(start.x, target.x) + 8f, Mathf.Max(start.z, target.z) + 8f);
+            int w = Mathf.CeilToInt((max.x - min.x) / NavStep) + 1;
+            int h = Mathf.CeilToInt((max.y - min.y) / NavStep) + 1;
+            if (w * h > 160000)
+                return null;
+            var walk = new sbyte[w * h]; // 0 = 모름, 1 = 걸을 수 있음, -1 = 막힘
+            System.Func<int, int, Vector3> world = (x, z) => new Vector3(min.x + x * NavStep, y, min.y + z * NavStep);
+            System.Func<int, int, bool> ok = (x, z) =>
+            {
+                if (x < 0 || z < 0 || x >= w || z >= h)
+                    return false;
+                int i = z * w + x;
+                if (walk[i] == 0)
+                    walk[i] = (sbyte)(Clear(world(x, z), player) ? 1 : -1);
+                return walk[i] > 0;
+            };
+            int sx = Mathf.RoundToInt((start.x - min.x) / NavStep), sz = Mathf.RoundToInt((start.z - min.y) / NavStep);
+            var flatTarget = new Vector2(target.x, target.z);
+            System.Func<int, int, bool> goal = (x, z) =>
+            {
+                var p = world(x, z);
+                if ((new Vector2(p.x, p.z) - flatTarget).magnitude > stop)
+                    return false;
+                var eye = p + Vector3.up * 1.6f;
+                var dir = target - eye;
+                return !Physics.Raycast(eye, dir.normalized, out var hit, dir.magnitude, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)
+                       || hit.collider.GetComponentInParent<InteriorDoor>() != null
+                       || (hit.point - target).magnitude < 0.6f; // 물건 자체에 맞음
+            };
+
+            var open = new List<int>();
+            var g = new Dictionary<int, float>();
+            var came = new Dictionary<int, int>();
+            var closed = new HashSet<int>();
+            int startId = sz * w + sx;
+            g[startId] = 0f;
+            open.Add(startId);
+            int found = -1;
+            int guard = 0;
+            while (open.Count > 0 && guard++ < 60000)
+            {
+                int best = 0;
+                float bestF = float.MaxValue;
+                for (int i = 0; i < open.Count; i++)
+                {
+                    int id = open[i];
+                    var p = world(id % w, id / w);
+                    float f = g[id] + (new Vector2(p.x, p.z) - flatTarget).magnitude;
+                    if (f < bestF)
+                    {
+                        bestF = f;
+                        best = i;
+                    }
+                }
+                int cur = open[best];
+                open.RemoveAt(best);
+                if (!closed.Add(cur))
+                    continue;
+                int cx = cur % w, cz = cur / w;
+                if (goal(cx, cz))
+                {
+                    found = cur;
+                    break;
+                }
+                for (int dz = -1; dz <= 1; dz++)
+                {
+                    for (int dx = -1; dx <= 1; dx++)
+                    {
+                        if (dx == 0 && dz == 0)
+                            continue;
+                        int nx = cx + dx, nz = cz + dz;
+                        if (!ok(nx, nz) || (dx != 0 && dz != 0 && (!ok(cx + dx, cz) || !ok(cx, cz + dz))))
+                            continue;
+                        int nid = nz * w + nx;
+                        if (closed.Contains(nid))
+                            continue;
+                        float ng = g[cur] + (dx != 0 && dz != 0 ? 1.414f : 1f) * NavStep;
+                        if (g.TryGetValue(nid, out var old) && old <= ng)
+                            continue;
+                        g[nid] = ng;
+                        came[nid] = cur;
+                        open.Add(nid);
+                    }
+                }
+            }
+            if (found < 0)
+                return null;
+            var cells = new List<Vector3>();
+            for (int id = found; ; id = came[id])
+            {
+                cells.Add(world(id % w, id / w));
+                if (!came.ContainsKey(id))
+                    break;
+            }
+            cells.Reverse();
+            // 다듬기: 몸 크기로 곧장 지나갈 수 있으면 사이 점을 건너뜀
+            var smooth = new List<Vector3>();
+            var from = start;
+            int k = 0;
+            while (k < cells.Count)
+            {
+                int far = k;
+                for (int j = cells.Count - 1; j > k; j--)
+                {
+                    if (Passable(from, cells[j], player))
+                    {
+                        far = j;
+                        break;
+                    }
+                }
+                smooth.Add(cells[far]);
+                from = cells[far];
+                k = far + 1;
+            }
+            return smooth;
+        }
+
+        private static readonly Collider[] _overlap = new Collider[16];
+
+        private static bool Clear(Vector3 feet, FirstPersonController player)
+        {
+            int n = Physics.OverlapCapsuleNonAlloc(feet + Vector3.up * (NavRadius + 0.25f), feet + Vector3.up * 1.5f, NavRadius, _overlap,
+                Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < n; i++)
+            {
+                var c = _overlap[i];
+                if (c == null || c.transform.IsChildOf(player.transform) || c.GetComponentInParent<InteriorDoor>() != null)
+                    continue;
+                return false;
+            }
+            return true;
+        }
+
+        private static bool Passable(Vector3 a, Vector3 b, FirstPersonController player)
+        {
+            float d = Vector3.Distance(a, b);
+            int steps = Mathf.Max(1, Mathf.CeilToInt(d / (NavStep * 0.5f)));
+            for (int i = 1; i <= steps; i++)
+            {
+                if (!Clear(Vector3.Lerp(a, b, i / (float)steps), player))
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>경로 점을 차례로 W + 시선 돌리기로 걸어감 (점 사이 모서리는 미리 꺾어 부드럽게). 마지막에 목표를 봄.</summary>
+        private IEnumerator FollowPath(FirstPersonController player, List<Vector3> path, Vector3 target, float stop)
+        {
+            float factor = LookFactor(player);
+            int index = 0;
+            float s = _t, stuck = 0f;
+            var last = player.transform.position;
+            while (index < path.Count && _t < s + 12f)
+            {
+                var pos = player.transform.position;
+                var to = path[index] - pos;
+                to.y = 0f;
+                bool final = index == path.Count - 1;
+                if (to.magnitude < (final ? 0.18f : 0.45f))
+                {
+                    index++;
+                    continue;
+                }
+                // 다음 점 쪽으로 미리 살짝 꺾음
+                var aim = path[index];
+                if (!final && to.magnitude < 1.0f)
+                    aim = Vector3.Lerp(path[index], path[index + 1], 1f - to.magnitude);
+                var dir = aim - pos;
+                dir.y = 0f;
+                float wantYaw = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
+                float yawErr = Mathf.DeltaAngle(player.transform.eulerAngles.y, wantYaw);
+                float dt = Mathf.Max(1f / 60f, Time.unscaledDeltaTime);
+                float yawStep = Mathf.Clamp(yawErr * 0.18f, -150f * dt, 150f * dt);
+                float pitchErr = 4f - Pitch(player);
+                _input.AddDelta(new Vector2(yawStep / factor, -(pitchErr * 0.1f) / factor));
+                if (Mathf.Abs(yawErr) < 55f)
+                    _input.Press(Key.W);
+                else
+                    _input.Release(Key.W);
+                // 그래도 걸리면 (문이 덜 열림 등) 다음 점으로
+                stuck = (player.transform.position - last).sqrMagnitude < 0.0004f && _input.IsDown(Key.W) ? stuck + dt : 0f;
+                last = player.transform.position;
+                if (stuck > 0.6f)
+                {
+                    stuck = 0f;
+                    index++;
+                }
+                yield return Step();
+            }
+            _input.Release(Key.W);
+            yield return LookAt(player, target, 0.8f);
         }
 
         /// <summary>InteriorMode와 같은 시선 광선이 이 물건에 닿는지.</summary>
@@ -973,6 +1197,34 @@ namespace SpaceStation.Teaser
             return n;
         }
 
+        /// <summary>정거장 가운데에서 이 모듈로 향하는 바깥 방향 쪽에 카메라를 두고 모듈을 크게 비춤 (안쪽을 바라봄).</summary>
+        private float OutwardYaw(ModuleInstance module)
+        {
+            var outward = Center(module) - Center(Sim.Core);
+            outward.y = 0f;
+            if (outward.sqrMagnitude < 0.01f)
+                outward = Vector3.forward;
+            return Mathf.Atan2(-outward.x, -outward.z) * Mathf.Rad2Deg;
+        }
+
+        private IEnumerator CloseUp(ModuleInstance module, float distance, float seconds)
+        {
+            yield return OrbitTo(Center(module) + Vector3.up * 0.4f, OutwardYaw(module) - 12f, 24f, distance, seconds);
+        }
+
+        /// <summary>가까이 비춘 채 천천히 옆으로 돎 (멈춘 화면이 되지 않게).</summary>
+        private IEnumerator SlowOrbit(ModuleInstance module, float distance, float seconds)
+        {
+            var rig = _orbit.Rig;
+            float s = _t, yaw0 = rig.Yaw;
+            var focus = rig.Focus;
+            while (_t < s + seconds)
+            {
+                _orbit.Restore(focus, yaw0 + (_t - s) * 9f, rig.Pitch, distance);
+                yield return Step();
+            }
+        }
+
         private IEnumerator OrbitTo(Vector3 focus, float yaw, float pitch, float distance, float seconds)
         {
             seconds = Mathf.Max(0.3f, seconds * Pace);
@@ -1102,30 +1354,38 @@ namespace SpaceStation.Teaser
             var root = (RectTransform)go.transform;
 
             // 장 제목 (왼쪽 가운데 — 위 가운데는 경보 배너 · 주민 말풍선, 아래는 건설 메뉴 · 안내 줄)
+            // 11-19 피드백: 밋밋함 → 게임 창과 같은 테크 홀로그램 패널(깎인 모서리 · 빛 번짐 · 주사선 · 스캔 띠) + 큰 번호 · 빛나는 제목
             var cap = NewRect("Caption", root);
             cap.anchorMin = cap.anchorMax = cap.pivot = new Vector2(0f, 0.5f);
-            cap.anchoredPosition = new Vector2(24f, 150f);
-            cap.sizeDelta = new Vector2(620f, 112f);
-            var bg = cap.gameObject.AddComponent<Image>();
-            bg.color = new Color(0.02f, 0.06f, 0.1f, 0.86f);
-            bg.raycastTarget = false;
-            var line = NewRect("Line", cap);
-            line.anchorMin = new Vector2(0f, 0f);
-            line.anchorMax = new Vector2(1f, 0f);
-            line.pivot = new Vector2(0.5f, 0f);
-            line.sizeDelta = new Vector2(0f, 3f);
-            var li = line.gameObject.AddComponent<Image>();
-            li.color = new Color(0.31f, 0.85f, 1f);
-            li.raycastTarget = false;
+            cap.anchoredPosition = new Vector2(28f, 140f);
+            cap.sizeDelta = new Vector2(820f, 168f);
+            var ui = HoloUi.For(Art, _font, null, null, null);
+            _captionFx = ui.Window(cap.gameObject, new Color(0.02f, 0.07f, 0.12f, 0.9f), "FEATURE", 0.6f);
+            if (cap.GetComponent<Image>() == null)
+            {
+                var bg = cap.gameObject.AddComponent<Image>();
+                bg.color = new Color(0.02f, 0.06f, 0.1f, 0.88f);
+            }
+            _captionGlitch = HoloGlitch.Add(cap, Art);
             _captionGroup = cap.gameObject.AddComponent<CanvasGroup>();
             _captionGroup.alpha = 0f;
-            _captionTitle = Label(cap, 32f, new Vector2(0f, 26f), new Vector2(580f, 44f));
+            _captionNumber = Label(cap, 78f, Vector2.zero, new Vector2(130f, 100f));
+            Place(_captionNumber.rectTransform, new Vector2(26f, -36f), new Vector2(130f, 100f));
+            _captionNumber.fontStyle = FontStyles.Bold;
+            _captionNumber.alignment = TextAlignmentOptions.Left;
+            _captionNumber.color = new Color(0.31f, 0.85f, 1f, 0.95f);
+            HoloUi.Glow(_captionNumber, 0.8f);
+            _captionTitle = Label(cap, 44f, Vector2.zero, new Vector2(540f, 58f));
+            Place(_captionTitle.rectTransform, new Vector2(160f, -34f), new Vector2(540f, 58f));
             _captionTitle.fontStyle = FontStyles.Bold;
-            _captionTitle.color = new Color(0.31f, 0.85f, 1f);
+            _captionTitle.color = new Color(0.9f, 0.98f, 1f);
             _captionTitle.alignment = TextAlignmentOptions.Left;
-            _captionBody = Label(cap, 20f, new Vector2(0f, -20f), new Vector2(580f, 56f));
+            HoloUi.Glow(_captionTitle, 0.6f);
+            _captionBody = Label(cap, 23f, Vector2.zero, new Vector2(630f, 66f));
+            Place(_captionBody.rectTransform, new Vector2(162f, -94f), new Vector2(630f, 66f));
             _captionBody.alignment = TextAlignmentOptions.TopLeft;
             _captionBody.textWrappingMode = TextWrappingModes.Normal;
+            _captionBody.color = new Color(0.78f, 0.88f, 0.95f);
 
             var fadeRt = NewRect("Fade", root);
             fadeRt.anchorMin = Vector2.zero;
@@ -1135,13 +1395,17 @@ namespace SpaceStation.Teaser
             _fade.color = Color.black;
             _fade.raycastTarget = false;
 
-            var flashRt = NewRect("Flash", root);
-            flashRt.anchorMin = Vector2.zero;
-            flashRt.anchorMax = Vector2.one;
-            flashRt.offsetMin = flashRt.offsetMax = Vector2.zero;
-            _flash = flashRt.gameObject.AddComponent<Image>();
-            _flash.color = new Color(1f, 1f, 1f, 0f);
-            _flash.raycastTarget = false;
+            // 장 전환: 흰 번쩍임(눈부심 피드백) 대신 화면 위를 위에서 아래로 지나가는 청록 스캔 띠 + 옅은 주사선
+            _scan = NewRect("Scan", root);
+            _scan.anchorMin = new Vector2(0f, 1f);
+            _scan.anchorMax = new Vector2(1f, 1f);
+            _scan.pivot = new Vector2(0.5f, 0.5f);
+            _scan.sizeDelta = new Vector2(0f, 90f);
+            var scanImg = _scan.gameObject.AddComponent<RawImage>();
+            scanImg.texture = ScanTexture();
+            scanImg.color = new Color(0.31f, 0.85f, 1f, 0.32f);
+            scanImg.raycastTarget = false;
+            _scan.gameObject.SetActive(false);
 
             // 제목 카드 (페이드 위)
             var title = NewRect("Title", root);
@@ -1248,59 +1512,108 @@ namespace SpaceStation.Teaser
 
         private Coroutine _captionFade;
 
-        /// <summary>장 제목: 번호가 붙은 장이면 트레일러식 전환 (흰 플래시 + 효과음 + 왼쪽에서 미끄러져 들어옴).</summary>
+        /// <summary>
+        /// 장 제목 "01  건설" → 큰 번호 + 제목. 바뀔 때 게임 UI와 같은 홀로그램 전환
+        /// (이전 패널이 흩어지며 꺼짐 → 새 내용이 빛줄기로 모이며 켜짐 · 스캔 띠) + 화면 위를 지나가는 청록 스캔 띠. 번쩍임 없음.
+        /// </summary>
         private void Caption(string title, string body)
         {
-            _captionTitle.text = title;
-            _captionBody.text = body;
             if (_captionFade != null)
                 StopCoroutine(_captionFade);
-            bool chapter = title.Length > 0 && char.IsDigit(title[0]);
-            _captionFade = StartCoroutine(CaptionIn(chapter));
-            if (chapter)
-            {
-                StartCoroutine(Flash());
-                AudioService.TryPlay(l => l.UiOpen, 0.7f);
-            }
+            _captionFade = StartCoroutine(CaptionSwap(title, body));
         }
 
-        private IEnumerator CaptionIn(bool slide)
+        private IEnumerator CaptionSwap(string title, string body)
         {
-            var rt = (RectTransform)_captionGroup.transform;
+            bool chapter = title.Length > 0 && char.IsDigit(title[0]);
+            if (_captionGroup.alpha > 0.05f)
+            {
+                // 이전 장 꺼짐
+                _captionGlitch?.Play(false, 0.22f);
+                yield return FadeGroup(_captionGroup, 0f, 0.18f);
+            }
+            if (chapter)
+            {
+                int split = title.IndexOf(' ');
+                _captionNumber.text = split > 0 ? title.Substring(0, split) : title;
+                _captionTitle.text = split > 0 ? title.Substring(split).Trim() : "";
+                StartCoroutine(ScanSweep());
+                AudioService.TryPlay(l => l.UiOpen, 0.55f);
+            }
+            else
+            {
+                _captionNumber.text = "";
+                _captionTitle.text = title;
+            }
+            var titleRt = _captionTitle.rectTransform;
+            var bodyRt = _captionBody.rectTransform;
+            float left = chapter ? 160f : 30f;
+            titleRt.anchoredPosition = new Vector2(left, titleRt.anchoredPosition.y);
+            bodyRt.anchoredPosition = new Vector2(left + 2f, bodyRt.anchoredPosition.y);
+            _captionBody.text = body;
+            // 새 장 켜짐: 빛줄기가 모이며 · 패널 안 스캔 띠 · 글자는 아주 짧게 깜박이며 안정
+            _captionGlitch?.Play(true, 0.42f);
+            _captionFx?.Replay();
             float s = 0f;
-            const float seconds = 0.28f;
+            const float seconds = 0.42f;
+            while (s < seconds)
+            {
+                s += Time.unscaledDeltaTime;
+                float k = s / seconds;
+                float flicker = k < 0.6f ? (Mathf.PerlinNoise(s * 40f, 0.3f) > 0.35f ? 1f : 0.35f) : 1f;
+                _captionGroup.alpha = Smooth(k) * flicker;
+                yield return null;
+            }
+            _captionGroup.alpha = 1f;
+        }
+
+        /// <summary>화면 위에서 아래로 지나가는 청록 스캔 띠 (0.55초).</summary>
+        private IEnumerator ScanSweep()
+        {
+            _scan.gameObject.SetActive(true);
+            var parent = (RectTransform)_scan.parent;
+            float h = parent.rect.height;
+            float s = 0f;
+            const float seconds = 0.55f;
             while (s < seconds)
             {
                 s += Time.unscaledDeltaTime;
                 float k = Smooth(s / seconds);
-                _captionGroup.alpha = k;
-                rt.anchoredPosition = new Vector2(slide ? Mathf.Lerp(-90f, 24f, k) : 24f, rt.anchoredPosition.y);
+                _scan.anchoredPosition = new Vector2(0f, Mathf.Lerp(40f, -h - 40f, k));
                 yield return null;
             }
-            _captionGroup.alpha = 1f;
-            rt.anchoredPosition = new Vector2(24f, rt.anchoredPosition.y);
+            _scan.gameObject.SetActive(false);
         }
 
-        private IEnumerator Flash()
+        /// <summary>가운데가 밝고 위아래로 사라지는 띠 + 가는 주사선.</summary>
+        private static Texture2D ScanTexture()
         {
-            float s = 0f;
-            const float seconds = 0.28f;
-            while (s < seconds)
+            const int h = 64;
+            var tex = new Texture2D(4, h, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            for (int y = 0; y < h; y++)
             {
-                s += Time.unscaledDeltaTime;
-                var c = _flash.color;
-                c.a = 0.55f * (1f - s / seconds);
-                _flash.color = c;
-                yield return null;
+                float d = Mathf.Abs(y - h * 0.5f) / (h * 0.5f);
+                float a = Mathf.Pow(1f - d, 2.2f) * ((y % 4) < 2 ? 1f : 0.55f);
+                for (int x = 0; x < 4; x++)
+                    tex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
             }
-            _flash.color = new Color(1f, 1f, 1f, 0f);
+            tex.Apply();
+            return tex;
         }
 
         private void HideCaption()
         {
             if (_captionFade != null)
                 StopCoroutine(_captionFade);
-            _captionFade = StartCoroutine(FadeGroup(_captionGroup, 0f, 0.3f));
+            _captionGlitch?.Play(false, 0.25f);
+            _captionFade = StartCoroutine(FadeGroup(_captionGroup, 0f, 0.22f));
+        }
+
+        private static void Place(RectTransform rt, Vector2 topLeft, Vector2 size)
+        {
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = topLeft;
+            rt.sizeDelta = size;
         }
 
         private static IEnumerator FadeGroup(CanvasGroup g, float to, float seconds)

@@ -83,6 +83,9 @@ namespace SpaceStation.Editor.Teaser
             }
             director.StillFolder = stills;
             director.StartChapter = startChapter;
+            var artGuids = AssetDatabase.FindAssets("t:HoloArt");
+            if (artGuids.Length > 0)
+                director.Art = AssetDatabase.LoadAssetAtPath<SpaceStation.UI.HoloArt>(AssetDatabase.GUIDToAssetPath(artGuids[0]));
             if (record)
                 StartRecording(Path.Combine(folder, "AnotherEarth_PlayTour"));
             director.Finished = () =>
