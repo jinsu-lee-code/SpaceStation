@@ -74,8 +74,17 @@ namespace SpaceStation.Editor.Balance
             EditorGUILayout.PropertyField(_so.FindProperty("_baseSeed"), new GUIContent("시작 시드"));
             _so.ApplyModifiedProperties();
 
-            if (GUILayout.Button("실행", GUILayout.Height(32)))
-                RunFromWindow();
+            using (new EditorGUI.DisabledScope(JobRunning))
+            {
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("실행", GUILayout.Height(32)))
+                    RunFromWindow();
+                if (GUILayout.Button("백그라운드로 실행", GUILayout.Height(32)))
+                    StartJob(() => BalanceJob.Start(BuildSettings(), $"일반 측정 ({_durationMinutes:0}분 × {_runs}판)"));
+                EditorGUILayout.EndHorizontal();
+            }
+
+            DrawSegmentTools();
 
             if (!string.IsNullOrEmpty(_lastSummary))
             {
@@ -86,6 +95,103 @@ namespace SpaceStation.Editor.Balance
                     EditorUtility.RevealInFinder(Path.Combine(_lastFolder, "summary.csv"));
             }
             EditorGUILayout.EndScrollView();
+        }
+
+        // 12-2 창 설정
+        [SerializeField] private float _startsMinutes = 240f;
+        [SerializeField] private int _startsRuns = 10;
+        [SerializeField] private int _segmentGrade = -1;
+        [SerializeField] private float _segmentCapMinutes = 120f;
+        [SerializeField] private float _longMinutes = 300f;
+        [SerializeField] private int _longRuns = 3;
+
+        private static bool JobRunning => BalanceJob.Current != null && BalanceJob.Current.Running;
+
+        private void OnInspectorUpdate()
+        {
+            if (JobRunning)
+                Repaint();
+        }
+
+        /// <summary>12-2: 구간 시작 만들기 · 구간 측정 · 긴 세션 (모두 백그라운드 — Unity가 멈추지 않고, 한 판마다 리포트 저장).</summary>
+        private void DrawSegmentTools()
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("상위 등급 측정 (12-2, 백그라운드)", EditorStyles.boldLabel);
+
+            var job = BalanceJob.Current;
+            if (job != null && job.Running)
+            {
+                var rect = EditorGUILayout.GetControlRect(false, 20f);
+                var elapsed = DateTime.Now - job.StartedAt;
+                EditorGUI.ProgressBar(rect, job.Progress, $"{job.Label} — {job.Completed}/{job.Count}판 · {elapsed:hh\\:mm\\:ss}");
+                if (GUILayout.Button("취소 (끝난 판 결과는 남음)"))
+                    job.Cancel();
+                return;
+            }
+
+            if (_grades == null)
+                return;
+            int[] segmentGrades = BalanceStartLibrary.SegmentGrades(_grades);
+            if (segmentGrades.Length == 0)
+                return;
+
+            // 구간 시작 상태 현황
+            var status = new StringBuilder("구간 시작 상태:");
+            foreach (int g in segmentGrades)
+                status.Append($" {_grades.Grades[g].DisplayName} {BalanceStartLibrary.Count(g)}개");
+            EditorGUILayout.HelpBox(status + "\n(" + BalanceStartLibrary.Folder + ", 저장소에 커밋. 규칙 · 모듈이 바뀌면 다시 만들기)", MessageType.None);
+
+            _so.Update();
+            EditorGUILayout.PropertyField(_so.FindProperty("_startsMinutes"), new GUIContent("만들기: 최대 시간(분)"));
+            EditorGUILayout.PropertyField(_so.FindProperty("_startsRuns"), new GUIContent("만들기: 시드 수"));
+            _so.ApplyModifiedProperties();
+            if (GUILayout.Button("구간 시작 만들기 (처음부터 → 각 등급 도달 순간 저장)"))
+                StartJob(() => StartBuildSegmentStarts(_startsMinutes, _startsRuns, _baseSeed));
+
+            EditorGUILayout.Space();
+            var names = new string[segmentGrades.Length];
+            int selected = 0;
+            for (int i = 0; i < segmentGrades.Length; i++)
+            {
+                names[i] = $"{_grades.Grades[segmentGrades[i]].DisplayName} → {_grades.Grades[segmentGrades[i] + 1].DisplayName}";
+                if (segmentGrades[i] == _segmentGrade)
+                    selected = i;
+            }
+            selected = EditorGUILayout.Popup("구간", selected, names);
+            _segmentGrade = segmentGrades[selected];
+            _segmentCapMinutes = EditorGUILayout.FloatField("구간: 상한(분)", _segmentCapMinutes);
+            using (new EditorGUI.DisabledScope(BalanceStartLibrary.Count(_segmentGrade) == 0))
+            {
+                if (GUILayout.Button("구간 측정 (시작 상태 → 다음 등급 또는 상한)"))
+                    StartJob(() => StartSegment(_segmentGrade, _segmentCapMinutes));
+            }
+
+            EditorGUILayout.Space();
+            _longMinutes = EditorGUILayout.FloatField("긴 세션: 최대 시간(분)", _longMinutes);
+            _longRuns = EditorGUILayout.IntField("긴 세션: 시드 수", _longRuns);
+            if (GUILayout.Button("긴 세션 (처음 → 마지막 등급 또는 최대 시간)"))
+                StartJob(() => StartLongSession(_longMinutes, Mathf.Max(1, _longRuns), _baseSeed));
+        }
+
+        private void StartJob(Func<BalanceJob> start)
+        {
+            try
+            {
+                var job = start();
+                _lastFolder = job.Folder;
+                _lastSummary = "진행 중: " + job.Label;
+                job.Finished += j =>
+                {
+                    _lastFolder = j.Folder;
+                    _lastSummary = j.Summary;
+                    Repaint();
+                };
+            }
+            catch (Exception e)
+            {
+                EditorUtility.DisplayDialog("Balance Simulator", e.Message, "확인");
+            }
         }
 
         private void RunFromWindow()
@@ -126,38 +232,41 @@ namespace SpaceStation.Editor.Balance
         /// <summary>기본 에셋으로 실행 (MCP/스크립트용). 반환: (리포트 폴더, 요약 텍스트).</summary>
         public static (string folder, string summary) RunWithDefaults(float durationMinutes = 30f, int runs = 20, int baseSeed = 1)
         {
-            var window = CreateInstance<BalanceSimulatorWindow>();
-            try
-            {
-                window.LoadDefaults(true);
-                window._durationMinutes = durationMinutes;
-                window._runs = runs;
-                window._baseSeed = baseSeed;
-                return RunAndSave(window.BuildSettings(), null);
-            }
-            finally
-            {
-                DestroyImmediate(window);
-            }
+            return RunAndSave(DefaultSettings(durationMinutes, runs, baseSeed), null);
         }
 
         /// <summary>난이도 프리셋을 적용한 복사본으로 실행 (5-9 측정용, 에셋은 바뀌지 않음).</summary>
         public static (string folder, string summary) RunWithDifficulty(DifficultyPreset preset, float durationMinutes = 60f, int runs = 20, int baseSeed = 1)
         {
+            var settings = DefaultSettings(durationMinutes, runs, baseSeed);
+            if (preset != null)
+            {
+                settings.Balance = preset.ApplyTo(settings.Balance);
+                settings.Grades = preset.ApplyTo(settings.Grades);
+            }
+            return RunAndSave(settings, null);
+        }
+
+        private static (string folder, string summary) RunAndSave(BalanceRunSettings settings, Action<int, float> progress)
+        {
+            var report = BalanceRunner.Run(settings, progress);
+            string folder = BalanceReportWriter.NewFolder();
+            return (folder, BalanceReportWriter.Write(folder, settings, report));
+        }
+
+        // ---- 12-2 측정 도구 확장 (구간 시작 상태 · 구간 측정 · 긴 세션) ----
+
+        /// <summary>기본 에셋 설정 (MCP/스크립트용 진입점이 공유).</summary>
+        public static BalanceRunSettings DefaultSettings(float minutes, int runs, int baseSeed)
+        {
             var window = CreateInstance<BalanceSimulatorWindow>();
             try
             {
                 window.LoadDefaults(true);
-                window._durationMinutes = durationMinutes;
+                window._durationMinutes = minutes;
                 window._runs = runs;
                 window._baseSeed = baseSeed;
-                var settings = window.BuildSettings();
-                if (preset != null)
-                {
-                    settings.Balance = preset.ApplyTo(settings.Balance);
-                    settings.Grades = preset.ApplyTo(settings.Grades);
-                }
-                return RunAndSave(settings, null);
+                return window.BuildSettings();
             }
             finally
             {
@@ -165,21 +274,44 @@ namespace SpaceStation.Editor.Balance
             }
         }
 
-        private static (string folder, string summary) RunAndSave(BalanceRunSettings settings, Action<int, float> progress)
+        /// <summary>
+        /// 구간 시작 만들기 (백그라운드): 시드마다 처음부터 최대 <paramref name="maxMinutes"/>분 플레이하며 초대형 · 도시급 · 국가급 · 대륙급에
+        /// 처음 도달한 순간을 캡처 → 끝나면 <see cref="BalanceStartLibrary"/>에 등급별로 교체 저장. 마지막 구간 등급에 도달하면 그 판은 끝.
+        /// </summary>
+        public static BalanceJob StartBuildSegmentStarts(float maxMinutes = 240f, int runs = 10, int baseSeed = 1)
         {
-            var report = BalanceRunner.Run(settings, progress);
-            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
-            string folder = Path.Combine(projectRoot, "BalanceReports", DateTime.Now.ToString("yyyyMMdd_HHmmss"));
-            Directory.CreateDirectory(folder);
+            var s = DefaultSettings(maxMinutes, runs, baseSeed);
+            var grades = BalanceStartLibrary.SegmentGrades(s.Grades);
+            s.CaptureGrades = grades;
+            s.StopAtGrade = grades[grades.Length - 1];
+            s.SampleInterval = 60f;
+            return BalanceJob.Start(s, $"구간 시작 만들기 (최대 {maxMinutes:0}분 × {runs}판)", grades);
+        }
 
-            var utf8Bom = new UTF8Encoding(true); // 엑셀에서 한글 깨짐 방지
-            File.WriteAllText(Path.Combine(folder, "summary.csv"), BalanceRunner.BuildSummaryCsv(report), utf8Bom);
-            File.WriteAllText(Path.Combine(folder, "timeseries.csv"), report.TimeSeriesCsv.ToString(), utf8Bom);
+        /// <summary>구간 측정 (백그라운드): 그 등급의 시작 상태들에서 다음 등급까지, 시작부터 최대 <paramref name="capMinutes"/>분.</summary>
+        public static BalanceJob StartSegment(int startGrade, float capMinutes = 120f)
+        {
+            var starts = BalanceStartLibrary.Load(startGrade);
+            if (starts.Count == 0)
+                throw new InvalidOperationException($"등급 {startGrade}의 구간 시작 상태가 없습니다. 먼저 '구간 시작 만들기'를 실행하세요.");
+            var s = DefaultSettings(capMinutes, starts.Count, 1);
+            s.Starts = starts;
+            return BalanceJob.Start(s, $"구간 측정: {s.Grades.Grades[startGrade].DisplayName} → 다음 등급 (상한 {capMinutes:0}분, {starts.Count}개)");
+        }
 
-            string header = $"duration={settings.DurationSeconds / 60f:0.#}min runs={settings.Runs} seeds={settings.BaseSeed}..{settings.BaseSeed + settings.Runs - 1}";
-            string summary = header + "\n" + BalanceRunner.BuildSummaryText(report);
-            File.WriteAllText(Path.Combine(folder, "summary.txt"), summary, utf8Bom);
-            return (folder, summary);
+        /// <summary>긴 세션 (백그라운드): 처음부터 마지막 등급(지구급)까지, 최대 <paramref name="maxMinutes"/>분. 시드 수는 줄여서 (D1).</summary>
+        public static BalanceJob StartLongSession(float maxMinutes = 300f, int runs = 3, int baseSeed = 1)
+        {
+            var s = DefaultSettings(maxMinutes, runs, baseSeed);
+            s.StopAtGrade = s.Grades.Grades.Count - 1;
+            s.SampleInterval = 60f;
+            return BalanceJob.Start(s, $"긴 세션 (최대 {maxMinutes:0}분 × {runs}판)");
+        }
+
+        /// <summary>일반 측정을 백그라운드로 (창의 "백그라운드로 실행").</summary>
+        public static BalanceJob StartDefault(float minutes = 30f, int runs = 20, int baseSeed = 1)
+        {
+            return BalanceJob.Start(DefaultSettings(minutes, runs, baseSeed), $"일반 측정 ({minutes:0}분 × {runs}판)");
         }
 
         private void LoadDefaults(bool overwrite)

@@ -265,7 +265,7 @@ namespace SpaceStation.Editor.Balance
             if (version != _ringCheckedVersion)
             {
                 _ringCheckedVersion = version;
-                _ringFits = TryFindPlacement(_ring, out _, out _);
+                _ringFits = HasAnyPlacement(_ring);
             }
             return _ringFits;
         }
@@ -376,15 +376,68 @@ namespace SpaceStation.Editor.Balance
             if (!data.IsService)
                 return 0f;
             var cells = StationGrid.ResolveCells(data.CellOffsets, origin, rotation);
+            Bounds(cells, out var min, out var max);
             float unmet = 0f;
-            foreach (var m in _sim.Grid.Modules)
+            foreach (var h in _serviceHabitats)
             {
-                if (m.Data == null || m.Data.HousingCapacity <= 0 || !DefenseSystem.InRange(cells, m.Cells, _sim.Effects.ServiceRadius(data)))
+                // 12-2: 상자끼리 범위 밖이면 칸별 비교 생략 (결과 동일, 큰 정거장에서 배치 탐색이 매우 느렸음)
+                if (BoxDistance(min, max, h.Min, h.Max) > _serviceRadius || !DefenseSystem.InRange(cells, h.Cells, _serviceRadius))
                     continue;
-                float coverage = _sim.Needs.GetHabitatCoverage(m, data.ServiceNeed);
-                unmet += m.Data.HousingCapacity * (1f - Mathf.Max(0f, coverage));
+                unmet += h.Unmet;
             }
             return unmet * 5f;
+        }
+
+        /// <summary>배치 탐색 한 번 동안 바뀌지 않는 거주 모듈별 미충족 수용 인원 (탐색 시작 때 한 번 계산).</summary>
+        private void PrepareServiceScore(ModuleData data)
+        {
+            _serviceHabitats.Clear();
+            if (!data.IsService)
+                return;
+            _serviceRadius = _sim.Effects.ServiceRadius(data);
+            foreach (var m in _sim.Grid.Modules)
+            {
+                if (m.Data == null || m.Data.HousingCapacity <= 0)
+                    continue;
+                float coverage = _sim.Needs.GetHabitatCoverage(m, data.ServiceNeed);
+                Bounds(m.Cells, out var min, out var max);
+                _serviceHabitats.Add(new HabitatScore
+                {
+                    Cells = m.Cells,
+                    Min = min,
+                    Max = max,
+                    Unmet = m.Data.HousingCapacity * (1f - Mathf.Max(0f, coverage)),
+                });
+            }
+        }
+
+        private struct HabitatScore
+        {
+            public IReadOnlyList<Vector3Int> Cells;
+            public Vector3Int Min, Max;
+            public float Unmet;
+        }
+
+        private readonly List<HabitatScore> _serviceHabitats = new List<HabitatScore>();
+        private int _serviceRadius;
+
+        private static void Bounds(IReadOnlyList<Vector3Int> cells, out Vector3Int min, out Vector3Int max)
+        {
+            min = max = cells[0];
+            for (int i = 1; i < cells.Count; i++)
+            {
+                min = Vector3Int.Min(min, cells[i]);
+                max = Vector3Int.Max(max, cells[i]);
+            }
+        }
+
+        /// <summary>두 상자 사이 칸 거리(체비쇼프)의 하한 — 이보다 가까운 칸 쌍은 없다.</summary>
+        private static int BoxDistance(Vector3Int aMin, Vector3Int aMax, Vector3Int bMin, Vector3Int bMax)
+        {
+            int dx = Mathf.Max(0, Mathf.Max(aMin.x - bMax.x, bMin.x - aMax.x));
+            int dy = Mathf.Max(0, Mathf.Max(aMin.y - bMax.y, bMin.y - aMax.y));
+            int dz = Mathf.Max(0, Mathf.Max(aMin.z - bMax.z, bMin.z - aMax.z));
+            return Mathf.Max(dx, Mathf.Max(dy, dz));
         }
 
         private static float Cost(ModuleData data)
@@ -588,26 +641,9 @@ namespace SpaceStation.Editor.Balance
         {
             bestOrigin = default;
             bestRotation = 0;
-            _candidates.Clear();
-            foreach (var module in _sim.Grid.Modules)
-            {
-                foreach (var cell in module.Cells)
-                {
-                    foreach (var dir in GridDirections.Faces)
-                    {
-                        var c = cell + dir;
-                        if (_sim.Grid.IsOccupied(c))
-                            continue;
-                        _candidates.Add(c);
-                        // 8-4: 3칸 이상 모듈(회전 링, 원점 = 가운데)은 다른 칸이 정거장에 닿는 원점도 후보
-                        if (data.CellOffsets.Count > 2)
-                            foreach (var o in data.CellOffsets)
-                                if (o.y == 0)
-                                    _candidates.Add(c - o);
-                    }
-                }
-            }
+            CollectCandidates(data);
 
+            PrepareServiceScore(data);
             int rotations = data.CellOffsets.Count > 1 ? 4 : 1;
             float bestScore = float.MinValue;
             bool found = false;
@@ -635,6 +671,42 @@ namespace SpaceStation.Editor.Balance
                 }
             }
             return found;
+        }
+
+        /// <summary>유효한 자리가 하나라도 있는지만 (점수 계산 없이 첫 자리에서 멈춤 — <see cref="TryFindPlacement"/>의 성공 여부와 같다).</summary>
+        private bool HasAnyPlacement(ModuleData data)
+        {
+            CollectCandidates(data);
+            int rotations = data.CellOffsets.Count > 1 ? 4 : 1;
+            foreach (var origin in _candidates)
+                for (int rot = 0; rot < rotations; rot++)
+                    if (PlacementRules.Evaluate(_sim.Grid, data, origin, rot) == PlacementResult.Valid)
+                        return true;
+            return false;
+        }
+
+        /// <summary>기존 모듈에 맞닿는 빈 칸 (여러 칸 모듈은 다른 칸이 닿는 원점까지) → <see cref="_candidates"/>.</summary>
+        private void CollectCandidates(ModuleData data)
+        {
+            _candidates.Clear();
+            foreach (var module in _sim.Grid.Modules)
+            {
+                foreach (var cell in module.Cells)
+                {
+                    foreach (var dir in GridDirections.Faces)
+                    {
+                        var c = cell + dir;
+                        if (_sim.Grid.IsOccupied(c))
+                            continue;
+                        _candidates.Add(c);
+                        // 8-4: 3칸 이상 모듈(회전 링, 원점 = 가운데)은 다른 칸이 정거장에 닿는 원점도 후보
+                        if (data.CellOffsets.Count > 2)
+                            foreach (var o in data.CellOffsets)
+                                if (o.y == 0)
+                                    _candidates.Add(c - o);
+                    }
+                }
+            }
         }
 
         /// <summary>

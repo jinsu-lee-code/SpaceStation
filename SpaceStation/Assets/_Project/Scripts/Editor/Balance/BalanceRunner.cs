@@ -25,6 +25,13 @@ namespace SpaceStation.Editor.Balance
         public int BaseSeed = 1;
         public float TickInterval = 1f;
         public float SampleInterval = 10f;
+        /// <summary>12-2 긴 세션: 이 등급에 도달하면 그 판을 끝냄 (-1 = 시간 끝까지).</summary>
+        public int StopAtGrade = -1;
+        /// <summary>12-2 구간 시작 만들기: 이 등급들에 처음 도달하는 순간의 상태를 캡처 (null = 안 함).</summary>
+        public int[] CaptureGrades;
+        /// <summary>12-2 구간 측정: 시드마다 이 상태에서 시작해 다음 등급까지 (null = 새 판, BaseSeed부터 Runs개).
+        /// DurationSeconds는 시작 시점부터의 상한.</summary>
+        public IReadOnlyList<BalanceStartState> Starts;
     }
 
     /// <summary>한 판(시드 1개)의 결과 지표.</summary>
@@ -80,6 +87,44 @@ namespace SpaceStation.Editor.Balance
         public readonly List<BalanceRunResult> Results = new List<BalanceRunResult>();
         public readonly StringBuilder TimeSeriesCsv = new StringBuilder();
         public string[] GradeNames;
+        /// <summary>12-2 구간 측정이면 시작 등급, 아니면 -1.</summary>
+        public int StartGrade = -1;
+        /// <summary>12-2 구간 시작 만들기에서 캡처한 상태.</summary>
+        public readonly List<BalanceStartState> Captured = new List<BalanceStartState>();
+        /// <summary>시작 상태 복원 때 찾지 못한 항목 수 합 (0이 아니면 시작 상태를 다시 만들 때).</summary>
+        public int RestoreMissing;
+
+        public const string TimeSeriesHeader = "seed,time,population,housing,satisfaction,grade,modules,oxygen,water,food,metal,power_supply,power_demand,efficiency,damaged,active_events";
+
+        public static BalanceReport Create(BalanceRunSettings s)
+        {
+            var report = new BalanceReport();
+            report.GradeNames = new string[s.Grades.Grades.Count];
+            for (int i = 0; i < report.GradeNames.Length; i++)
+                report.GradeNames[i] = s.Grades.Grades[i].DisplayName;
+            if (s.Starts != null && s.Starts.Count > 0)
+                report.StartGrade = s.Starts[0].Grade;
+            report.TimeSeriesCsv.AppendLine(TimeSeriesHeader);
+            return report;
+        }
+
+        /// <summary>이 설정으로 돌릴 판 수.</summary>
+        public static int RunCount(BalanceRunSettings s) => s.Starts != null ? s.Starts.Count : s.Runs;
+
+        /// <summary>i번째 판 만들기 (구간 측정이면 i번째 시작 상태에서).</summary>
+        public static BalanceRun CreateRun(BalanceRunSettings s, int i, StringBuilder series)
+        {
+            if (s.Starts != null)
+                return new BalanceRun(s, s.Starts[i].Seed, series, s.Starts[i]);
+            return new BalanceRun(s, s.BaseSeed + i, series);
+        }
+
+        public void Add(BalanceRun run)
+        {
+            Results.Add(run.Result);
+            Captured.AddRange(run.Captured);
+            RestoreMissing += run.RestoreMissing;
+        }
     }
 
     /// <summary>
@@ -87,178 +132,23 @@ namespace SpaceStation.Editor.Balance
     /// </summary>
     public static class BalanceRunner
     {
-        private static readonly ResourceType[] Stocks = { ResourceType.Oxygen, ResourceType.Water, ResourceType.Food, ResourceType.Metal };
         private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
+        /// <summary>한 번에 끝까지 실행 (에디터가 멈춤). 백그라운드 실행은 <see cref="BalanceJob"/>.</summary>
         public static BalanceReport Run(BalanceRunSettings s, Action<int, float> progress = null)
         {
-            var report = new BalanceReport();
-            report.GradeNames = new string[s.Grades.Grades.Count];
-            for (int i = 0; i < report.GradeNames.Length; i++)
-                report.GradeNames[i] = s.Grades.Grades[i].DisplayName;
-
-            report.TimeSeriesCsv.AppendLine("seed,time,population,housing,satisfaction,grade,modules,oxygen,water,food,metal,power_supply,power_demand,efficiency,damaged,active_events");
-            for (int run = 0; run < s.Runs; run++)
+            var report = BalanceReport.Create(s);
+            int count = BalanceReport.RunCount(s);
+            for (int i = 0; i < count; i++)
             {
-                progress?.Invoke(run, (float)run / s.Runs);
-                report.Results.Add(RunOne(s, s.BaseSeed + run, report.TimeSeriesCsv));
+                progress?.Invoke(i, (float)i / count);
+                var run = BalanceReport.CreateRun(s, i, report.TimeSeriesCsv);
+                while (!run.Done)
+                    run.Step(int.MaxValue);
+                report.Add(run);
             }
-            progress?.Invoke(s.Runs, 1f);
+            progress?.Invoke(count, 1f);
             return report;
-        }
-
-        private static BalanceRunResult RunOne(BalanceRunSettings s, int seed, StringBuilder series)
-        {
-            var rng = new Random(seed);
-            var residentRng = new Random(seed * 7919 + 13); // 이름·특성 난수 분리 (시드별 고정)
-            var sim = new StationSimulation(new StationSimulationSettings
-            {
-                Residents = s.Residents,
-                ResidentRandom01 = () => (float)residentRng.NextDouble(),
-                Balance = s.Balance,
-                Grades = s.Grades,
-                CoreModule = s.CoreModule,
-                Events = s.Events,
-                AdjacencyRules = s.AdjacencyRules,
-                Random01 = () => (float)rng.NextDouble(),
-                ResearchCategories = s.ResearchCategories,
-                ResearchCaps = s.ResearchCaps,
-            });
-            var bot = new BalanceBot(sim, s.Buildable);
-
-            var result = new BalanceRunResult
-            {
-                Seed = seed,
-                GradeReachSeconds = new float[sim.Progression.GradeCount],
-            };
-            for (int i = 1; i < result.GradeReachSeconds.Length; i++)
-                result.GradeReachSeconds[i] = float.NaN;
-            for (int i = 0; i < 4; i++)
-                result.MinStock[i] = float.MaxValue;
-            result.MinSatisfaction = float.MaxValue;
-
-            int damaged = 0;
-            sim.Damage.Damaged += _ => damaged++;
-            sim.Progression.GradeChanged += (prev, next) =>
-            {
-                if (float.IsNaN(result.GradeReachSeconds[next]))
-                    result.GradeReachSeconds[next] = sim.ElapsedSeconds;
-            };
-
-            float effSum = 0f;
-            int ticks = 0;
-            float moodSum = 0f;
-            int moodTicks = 0;
-            var wasDepleted = new bool[3];
-            float nextSample = 0f;
-            while (sim.ElapsedSeconds < s.DurationSeconds - 1e-4f)
-            {
-                bot.Decide();
-                sim.Tick(s.TickInterval);
-                ticks++;
-
-                var r = sim.Resources;
-                effSum += r.PowerEfficiency;
-                if (r.PowerEfficiency < 1f - 1e-4f)
-                    result.LowPowerSeconds += s.TickInterval;
-                for (int i = 0; i < 4; i++)
-                    result.MinStock[i] = Math.Min(result.MinStock[i], r.GetStock(Stocks[i]));
-                for (int i = 0; i < 3; i++)
-                {
-                    bool depleted = r.IsDepleted(Stocks[i]);
-                    if (depleted)
-                        result.DepletedSeconds[i] += s.TickInterval;
-                    // 4-10: 고갈 "횟수" (산소·물·식량 합). 0 근처에서 깜빡이는 것을 한 번으로 세도록
-                    // 재고가 다시 RearmStock 이상으로 회복되어야 다음 고갈을 새로 센다.
-                    if (depleted && !wasDepleted[i])
-                    {
-                        result.DepletionEvents++;
-                        wasDepleted[i] = true;
-                    }
-                    else if (wasDepleted[i] && r.GetStock(Stocks[i]) >= BalanceRunResult.RearmStock)
-                    {
-                        wasDepleted[i] = false;
-                    }
-                }
-                result.MaxGrade = Math.Max(result.MaxGrade, sim.Progression.GradeIndex);
-                result.MinSatisfaction = Math.Min(result.MinSatisfaction, sim.Population.Satisfaction);
-                if (sim.Residents != null)
-                {
-                    moodSum += sim.Residents.MoodTotal;
-                    moodTicks++;
-                    result.MinResidentMood = Math.Min(result.MinResidentMood, sim.Residents.MoodTotal);
-                }
-
-                if (sim.ElapsedSeconds >= nextSample - 1e-4f)
-                {
-                    AppendSample(series, seed, sim);
-                    nextSample += s.SampleInterval;
-                }
-                if (sim.Session.IsGameOver)
-                {
-                    result.GameOver = true;
-                    result.Reason = sim.Session.Reason;
-                    AppendSample(series, seed, sim);
-                    break;
-                }
-            }
-
-            result.EndSeconds = sim.ElapsedSeconds;
-            result.FinalGrade = sim.Progression.GradeIndex;
-            result.FinalPopulation = sim.Resources.Population;
-            result.MaxPopulation = sim.Session.MaxPopulation;
-            result.FinalModules = sim.Grid.ModuleCount;
-            result.ModulesBuilt = bot.ModulesBuilt;
-            result.Events = sim.Session.EventsExperienced;
-            result.ModulesDamaged = damaged;
-            result.ModulesDestroyed = sim.Session.ModulesDestroyed;
-            result.DamageSpreads = sim.Session.DamageSpreads;
-            result.MeteorsIntercepted = sim.Session.MeteorsIntercepted;
-            result.MeteorsBlocked = sim.Session.MeteorsBlocked;
-            result.Ricochets = sim.Session.Ricochets;
-            result.RepairsStarted = bot.RepairsStarted;
-            result.MetalSpentOnRepairs = bot.MetalSpentOnRepairs;
-            result.Maintenances = bot.Maintenances;
-            result.Rebuilds = bot.Rebuilds;
-            result.ResearchStarted = bot.ResearchStarted;
-            foreach (var c in sim.Research.Categories)
-                result.ResearchLevels[(int)c.Category] = sim.Research.GetLevel(c);
-            result.MetalSpentOnUpkeep = bot.MetalSpentOnUpkeep;
-            result.AverageEfficiency = ticks > 0 ? effSum / ticks : 1f;
-            result.FinalSatisfaction = sim.Population.Satisfaction;
-            result.AverageResidentMood = moodTicks > 0 ? moodSum / moodTicks : 0f;
-            result.FinalResidentMood = sim.Residents != null ? sim.Residents.MoodTotal : 0f;
-            if (result.MinResidentMood == float.MaxValue)
-                result.MinResidentMood = 0f;
-            foreach (var m in sim.Grid.Modules)
-            {
-                if (m.Data == null || m == sim.Core)
-                    continue;
-                result.FinalModuleCounts.TryGetValue(m.Data.DisplayName, out int c);
-                result.FinalModuleCounts[m.Data.DisplayName] = c + 1;
-            }
-            return result;
-        }
-
-        private static void AppendSample(StringBuilder sb, int seed, StationSimulation sim)
-        {
-            var r = sim.Resources;
-            sb.Append(seed).Append(',')
-              .Append(F(sim.ElapsedSeconds)).Append(',')
-              .Append(r.Population).Append(',')
-              .Append(r.HousingCapacity).Append(',')
-              .Append(F(sim.Population.Satisfaction)).Append(',')
-              .Append(sim.Progression.GradeIndex).Append(',')
-              .Append(sim.Grid.ModuleCount).Append(',')
-              .Append(F(r.GetStock(ResourceType.Oxygen))).Append(',')
-              .Append(F(r.GetStock(ResourceType.Water))).Append(',')
-              .Append(F(r.GetStock(ResourceType.Food))).Append(',')
-              .Append(F(r.GetStock(ResourceType.Metal))).Append(',')
-              .Append(F(r.PowerSupply)).Append(',')
-              .Append(F(r.PowerDemand)).Append(',')
-              .Append(F(r.PowerEfficiency)).Append(',')
-              .Append(sim.Damage.DamagedCount).Append(',')
-              .Append(sim.Events.ActiveEvents.Count).AppendLine();
         }
 
         /// <summary>시드별 요약 + 평균 행.</summary>
@@ -313,8 +203,11 @@ namespace SpaceStation.Editor.Balance
             }
             string why = "";
             foreach (var kv in reasons) why += $" {kv.Key}:{kv.Value}";
+            if (report.StartGrade >= 0) // 12-2 구간 측정: 시간은 모두 시작 상태부터
+                sb.AppendLine($"구간 측정: {report.GradeNames[report.StartGrade]} 시작 상태 {n}개 → 다음 등급까지 (시간은 시작부터)"
+                              + (report.RestoreMissing > 0 ? $"  ※ 복원 때 못 찾은 항목 {report.RestoreMissing}개 — 시작 상태를 다시 만들 것" : ""));
             sb.AppendLine($"runs={n}  game_over={overs}/{n}" + (overs > 0 ? $" (평균 {overAt / overs / 60f:0.0}분,{why})" : ""));
-            for (int g = 1; g < report.GradeNames.Length; g++)
+            for (int g = Math.Max(1, report.StartGrade + 1); g < report.GradeNames.Length; g++)
             {
                 int reached = 0; float sum = 0f;
                 foreach (var r in results)
