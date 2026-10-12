@@ -4,10 +4,13 @@
 
 ## 1. 현재 상태
 - 완료: Phase 11 전체, Phase 12 착수 전 결정(C-1 ~ C-7), **12-0b**(시뮬레이션 구조 정리), **12-1**(등급 틀 · 누적 결과 화면 · ★ 배너), **12-2**(측정 도구 확장 — 구간 시작 상태 36개 저장소에 포함), **12-2b**(큰 정거장 틱 성능)
-- 진행: **12-3 합성 시스템** — 시뮬레이션 · 레시피 창 · 합성 고스트 · 시험 레시피 5종 완료, **관문(C-4) 플레이 확인 대기**. 시험: 메뉴 SpaceStation/Recipes/Test Save: City Start → Slot 3 으로 도시급 정거장을 수동 저장 3에 넣고 게임에서 불러오기 → K (레시피 창)
+- 진행: **12-3 합성 시스템** — 시뮬레이션 · 레시피 창 · 합성 고스트 · 시험 레시피 5종 완료 (커밋 `ed396ba` · `27cd762`), **관문(C-4) 플레이 확인 대기** — 합성 퍼즐이 재미있는지 보고 규칙(PHASESET A1 ~ A10) 유지 / 수정을 정한 뒤 12-3b(계통표) · 12-4로
+  - 시험 방법: 시험 저장은 저장소 밖(세이브 폴더)이라 **새 PC에서 다시 만들어야 함** → Unity 메뉴 `SpaceStation/Recipes/Test Save: City Start → Slot 3` (12-2 도시급 시작 상태를 수동 저장 3에 넣음, 이미 저장이 있으면 덮어쓸지 물음) → 게임에서 불러오기 → 수동 저장 3 → K (레시피 창) → 레시피 고르고 [위치 지정] → 재료 위에서 초록이면 클릭
+  - 레시피 · 진화 모듈 에셋을 고치면 메뉴 `SpaceStation/Recipes/Setup`을 다시 실행 (에셋 갱신 + 게임 씬 연결). 수치는 BALANCE.md 32번
+  - 주의: Claude가 MCP로 플레이 모드를 시험하면 종료 때 자동 저장이 사용자 자동 저장 슬롯을 덮어씀 → 시험 전 세이브 폴더 백업 · 시험 후 복원
 - 긴 측정은 Balance Simulator 창의 백그라운드 버튼(또는 `BalanceSimulatorWindow.StartSegment` 등)으로 — MCP로 동기 실행하면 요청이 시간 초과되고 Unity가 멈춘다
 - 버전 계획: 12-7 도시급 = v0.12, 12-8 = v0.13, 12-9 = v0.14, 지구급 + 샌드박스 · 도전 과제 = v1.0.0
-- 테스트: EditMode 343개 통과 (slot3 세이브 읽기 경고 2개는 원래 PC의 시험용 손상 세이브 때문이며, 다른 PC에서는 나오지 않을 수 있음)
+- 테스트: EditMode 343개 통과. 봇 기준선 = `BalanceSimulatorWindow.RunWithDefaults(30, 20, 1)` (12-0b ~ 12-3 동안 결과 그대로 유지됨)
 
 ## 2. 새 PC 준비
 1. **Unity Hub → Unity 6000.3.25f1** 설치 (Windows Build Support (Mono) 포함)
@@ -39,7 +42,7 @@
 
 | 항목 | 원래 PC 위치 | 비고 |
 |---|---|---|
-| 세이브 슬롯 | `%USERPROFILE%\AppData\LocalLow\BinaryCompany\Another Earth\` | 플레이 확인용 진행 상태. 새 PC에서는 새 게임으로 시작 |
+| 세이브 슬롯 | `%USERPROFILE%\AppData\LocalLow\BinaryCompany\Another Earth\` | 플레이 확인용 진행 상태. 새 PC에서는 새 게임으로 시작. 12-3 시험용 도시급 저장(수동 저장 3)은 위 메뉴로 다시 만듦 |
 | 영상 | `Presentation/AnotherEarth_Teaser.mp4`, `AnotherEarth_PlayTour.mp4`, `tour_stills/` | GitHub에 올리지 않기로 함. 다시 만들려면 메뉴 SpaceStation/Teaser/Record · Record Play Tour |
 | 에셋 스토어 참고 패키지 | `SpaceStation/Assets/Holograms/`, `Assets/Shield Shader FREE/` | 게임에서 쓰지 않음 (참고용). 필요하면 에셋 스토어에서 다시 받기 |
 | 밸런스 봇 리포트 | `SpaceStation/BalanceReports/` | 다시 돌리면 같은 시드 = 같은 결과 |
