@@ -249,6 +249,35 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void RecipeAssets_AreConsistent()
+        {
+            var grades = AssetDatabase.LoadAssetAtPath<StationGradeConfig>("Assets/_Project/Data/StationGrades.asset");
+            var guids = AssetDatabase.FindAssets("t:RecipeData", new[] { "Assets/_Project/Data" });
+            Assert.GreaterOrEqual(guids.Length, 5, "12-3 시험 레시피 5종");
+            foreach (var guid in guids)
+            {
+                var r = AssetDatabase.LoadAssetAtPath<RecipeData>(AssetDatabase.GUIDToAssetPath(guid));
+                Assert.IsNotNull(r.Result, r.name);
+                Assert.IsNotNull(r.Result.Prefab, r.name + " 결과 프리팹");
+                Assert.AreEqual(r.Result.CellOffsets.Count, r.IngredientCells, r.name + ": 재료 칸 수 = 규격 칸 수");
+                Assert.AreEqual(r.IngredientGradeModules, r.Result.GradeModuleCount, r.name + ": A4 모듈 수 = 재료 수");
+                float materials = 0f, synth = 0f, build = 0f;
+                foreach (var i in r.Ingredients)
+                    foreach (var a in i.Module.BuildCost)
+                        materials += a.Type == ResourceType.Metal ? a.Amount * i.Count : 0f;
+                foreach (var a in r.Cost)
+                    synth += a.Type == ResourceType.Metal ? a.Amount : 0f;
+                foreach (var a in r.Result.BuildCost)
+                    build += a.Type == ResourceType.Metal ? a.Amount : 0f;
+                Assert.AreEqual(materials + synth, build, 1e-3f, r.name + ": 건설비 = 재료 건설비 합 + 합성 비용");
+                Assert.GreaterOrEqual(synth, materials * 0.5f, r.name + ": 합성 비용이 재건축 순비용 수준 이상 (A8)");
+                foreach (var g in grades.Grades)
+                    CollectionAssert.DoesNotContain(g.Unlocks, r.Result, r.name + ": 진화 모듈은 건설 메뉴에 없음");
+                Assert.IsFalse(string.IsNullOrEmpty(r.Rationale), r.name + ": 당위성 한 줄 (A2)");
+            }
+        }
+
+        [Test]
         public void NoRecipes_NoSynthesisSystem()
         {
             var sim = new StationSimulation(new StationSimulationSettings

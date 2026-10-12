@@ -116,8 +116,32 @@ namespace SpaceStation.Data
         [SerializeField, Min(0)] private int _serviceRadius;
         [Tooltip("담당 주민 수 (가동률만큼 감소)")]
         [SerializeField, Min(0)] private int _serviceCapacity;
+        [Tooltip("12-3 종합 복지: 같은 반경 · 담당 인원으로 함께 맡는 요구 (요구마다 담당 인원을 따로 씀)")]
+        [SerializeField] private List<ResidentNeed> _extraServiceNeeds = new List<ResidentNeed>();
 
         public ResidentNeed ServiceNeed => _serviceCapacity > 0 ? _serviceNeed : ResidentNeed.None;
+
+        /// <summary>이 요구를 맡는 서비스 모듈인지 (주 요구 + 12-3 추가 요구).</summary>
+        public bool Serves(ResidentNeed need)
+        {
+            if (need == ResidentNeed.None || !IsService)
+                return false;
+            return need == _serviceNeed || _extraServiceNeeds.Contains(need);
+        }
+
+        /// <summary>맡는 요구 전부 (주 요구 먼저, 서비스 모듈이 아니면 비어 있음).</summary>
+        public IEnumerable<ResidentNeed> ServiceNeeds
+        {
+            get
+            {
+                if (!IsService)
+                    yield break;
+                yield return _serviceNeed;
+                foreach (var n in _extraServiceNeeds)
+                    if (n != ResidentNeed.None && n != _serviceNeed)
+                        yield return n;
+            }
+        }
         public int ServiceRadius => _serviceRadius;
         public int ServiceCapacity => _serviceCapacity;
         public bool IsService => ServiceNeed != ResidentNeed.None;

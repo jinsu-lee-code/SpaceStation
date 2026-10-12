@@ -35,6 +35,9 @@ namespace SpaceStation.Simulation
         [SerializeField] private TutorialData _tutorial;
         [Header("Residents (Phase 10)")]
         [SerializeField] private ResidentConfig _residents;
+        [Header("Synthesis (12-3)")]
+        [Tooltip("합성 레시피 (메뉴 SpaceStation/Recipes/Setup이 채움). 비면 합성 없음")]
+        [SerializeField] private List<RecipeData> _recipes = new List<RecipeData>();
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -70,6 +73,7 @@ namespace SpaceStation.Simulation
                 ResearchCategories = _researchCategories,
                 ResearchCaps = _researchCaps,
                 Residents = _residents,
+                Recipes = _recipes.Count > 0 ? _recipes : null,
             });
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)

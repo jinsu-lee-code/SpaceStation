@@ -266,7 +266,10 @@ namespace SpaceStation.UI
             {
                 float strength = needs.GetStrength(module);
                 string color = EfficiencyBands.Hex(EfficiencyBands.Classify(strength), Time.time);
-                return $"\n<size=85%><color={HudText.Muted}>{data.ServiceNeed.DisplayName()}</color> 담당 주민 {needs.GetServed(module):0}/{data.ServiceCapacity * strength:0}"
+                int needCount = 0; // 12-3 복지 센터: 요구마다 담당 인원을 따로 씀
+                foreach (var _ in data.ServiceNeeds)
+                    needCount++;
+                return $"\n<size=85%><color={HudText.Muted}>{data.ServiceNeedsText()}</color> 담당 주민 {needs.GetServed(module):0}/{data.ServiceCapacity * needCount * strength:0}"
                        + $" · <color={color}>가동률 {strength * 100f:0}%</color></size>";
             }
             if (data.HousingCapacity <= 0 || needs.Statuses.Count == 0)

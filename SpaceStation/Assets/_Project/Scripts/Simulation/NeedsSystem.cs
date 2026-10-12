@@ -93,7 +93,7 @@ namespace SpaceStation.Simulation
                 foreach (var s in grid.Modules)
                 {
                     var data = s.Data;
-                    if (data == null || data.ServiceNeed != need)
+                    if (data == null || !data.Serves(need)) // 12-3: 여러 요구를 맡는 모듈(복지 센터)은 요구마다 담당 인원을 따로
                         continue;
                     float capacity = data.ServiceCapacity * GetStrength(s);
                     float used = 0f;

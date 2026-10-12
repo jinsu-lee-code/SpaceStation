@@ -21,6 +21,8 @@ namespace SpaceStation.UI
         [SerializeField] private EventEffectController _eventEffects;
         [SerializeField] private SelectionActionsPanel _selectionActions;
         [SerializeField] private ProgressionController _progression;
+        [Tooltip("12-3 합성 위치 지정 (없으면 합성 안내 없음)")]
+        [SerializeField] private SynthesisController _synthesis;
         [SerializeField] private TMP_Text _hintText;
         [SerializeField] private TMP_Text _messageText;
         [SerializeField] private float _messageSeconds = 3f;
@@ -222,8 +224,23 @@ namespace SpaceStation.UI
             _disconnectedThisFrame = 0;
         }
 
+        private string _shownSynthesisHint;
+
         private void UpdateHint()
         {
+            // 12-3: 합성 위치 지정 중이면 그 안내 (판정 사유 포함)
+            if (_synthesis != null && _synthesis.Active)
+            {
+                if (_synthesis.Hint != _shownSynthesisHint)
+                {
+                    _shownSynthesisHint = _synthesis.Hint;
+                    _hintText.SetText(_shownSynthesisHint);
+                }
+                _hintInitialized = false; // 끝나면 원래 안내를 다시 그림
+                return;
+            }
+            _shownSynthesisHint = null;
+
             var build = _build.Selected;
             var selected = build == null ? _selection.Selected : null;
             bool selectedActive = selected != null && _station.Connectivity.IsActive(selected);
@@ -271,7 +288,7 @@ namespace SpaceStation.UI
                         var cells = StationGrid.ResolveCells(build.CellOffsets, targetCell, rotation);
                         int habitats = _resources.Needs.CountHabitatsInRange(_station.Grid, build, cells, _resources.Simulation.Population, out float residents);
                         string color = habitats > 0 ? "#7CFF9A" : HudText.Orange;
-                        text += $"\n<size=90%><color={color}>{build.ServiceNeed.DisplayName()} 범위 (반경 {_station.Simulation.Effects.ServiceRadius(build)}칸): 거주 모듈 {habitats}개 · 주민 약 {residents:0}명 (담당 최대 {build.ServiceCapacity}명)</color></size>";
+                        text += $"\n<size=90%><color={color}>{build.ServiceNeedsText()} 범위 (반경 {_station.Simulation.Effects.ServiceRadius(build)}칸): 거주 모듈 {habitats}개 · 주민 약 {residents:0}명 (담당 최대 {build.ServiceCapacity}명)</color></size>";
                     }
                 }
                 _hintText.SetText(text);
@@ -280,6 +297,8 @@ namespace SpaceStation.UI
             {
                 string name = selected.Data != null ? selected.Data.DisplayName : selected.ToString();
                 string state = selectedActive ? string.Empty : $"  <color={HudText.Orange}>(비활성: 코어와 분리됨)</color>";
+                if (_station.Simulation.IsHalted(selected))
+                    state += "  <color=#B79CFF>(합성 중: 가동 정지 · 철거 불가)</color>"; // 12-3
                 string action = _station.CanRemove(selected) ? $"{K(GameAction.Maintain)}: 정비  ·  {K(GameAction.Rebuild)}: 재건축  ·  {K(GameAction.Demolish)}/{K(GameAction.DemolishAlt)}: 철거" : "철거 불가";
                 string repair = damageState == 1 ? $"  ·  <color={HudText.Red}>{K(GameAction.Repair)}: 수리</color>"
                     : damageState == 3 ? $"  ·  <color={HudText.Yellow}>{K(GameAction.Repair)}: 우선 수리  ·  {K(GameAction.CancelRepair)}: 대기 취소</color>" : string.Empty;

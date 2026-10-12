@@ -346,7 +346,10 @@ namespace SpaceStation.Editor.Balance
                 _buildable.Clear();
                 foreach (var guid in AssetDatabase.FindAssets("t:ModuleData", new[] { $"{DataRoot}/Modules" }))
                 {
-                    var m = AssetDatabase.LoadAssetAtPath<ModuleData>(AssetDatabase.GUIDToAssetPath(guid));
+                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    if (path.Contains("/Evolved/"))
+                        continue; // 12-3 진화 모듈은 합성으로만 (건설 목록 아님 — 봇 합성은 12-4)
+                    var m = AssetDatabase.LoadAssetAtPath<ModuleData>(path);
                     if (m != null && m != _core)
                         _buildable.Add(m);
                 }

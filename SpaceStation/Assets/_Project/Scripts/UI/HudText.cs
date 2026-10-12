@@ -56,6 +56,24 @@ namespace SpaceStation.UI
             sb.Append("<b>").Append(data.DisplayName).Append("</b>");
             sb.Append($"  <color={Muted}>{data.CellOffsets.Count}칸</color>\n");
             sb.Append("비용: ").Append(Cost(fx != null ? fx.BuildCost(data) : (IReadOnlyList<ResourceAmount>)data.BuildCost)).Append('\n');
+            AppendEffects(sb, data, fx);
+            if (sb.Length > 0 && sb[sb.Length - 1] == '\n')
+                sb.Length--;
+            return sb.ToString();
+        }
+
+        /// <summary>12-3: 모듈 효과 줄만 (이름 · 비용 없이 — 레시피 창의 결과 모듈 설명).</summary>
+        public static string ModuleEffects(ModuleData data, SpaceStation.Simulation.ResearchEffects fx = null)
+        {
+            var sb = new StringBuilder(256);
+            AppendEffects(sb, data, fx);
+            if (sb.Length > 0 && sb[sb.Length - 1] == '\n')
+                sb.Length--;
+            return sb.ToString();
+        }
+
+        private static void AppendEffects(StringBuilder sb, ModuleData data, SpaceStation.Simulation.ResearchEffects fx)
+        {
             int shieldRadius = fx != null ? fx.ShieldRadius(data) : data.ShieldRadius;
             int turretRadius = fx != null ? fx.TurretRadius(data) : data.TurretRadius;
             int serviceRadius = fx != null ? fx.ServiceRadius(data) : data.ServiceRadius;
@@ -118,8 +136,13 @@ namespace SpaceStation.UI
                   .Append($" <color={Muted}>(중첩 없음)</color>\n");
             }
             if (data.IsService)
-                sb.Append(data.ServiceNeed.DisplayName()).Append(": 반경 ").Append(serviceRadius)
-                  .Append("칸 안 거주 모듈 주민 ").Append(data.ServiceCapacity).Append($"명 담당 <color={Muted}>(파손·비활성·전력 부족·노후 시 감소)</color>\n");
+            {
+                string needs = data.ServiceNeedsText();
+                sb.Append(needs).Append(": 반경 ").Append(serviceRadius)
+                  .Append("칸 안 거주 모듈 주민 ").Append(data.ServiceCapacity).Append("명 담당")
+                  .Append(needs.Contains("·") ? " (요구마다)" : "") // 12-3 복지 센터
+                  .Append($" <color={Muted}>(파손·비활성·전력 부족·노후 시 감소)</color>\n");
+            }
             if (data.GrowthIntervalMultiplier < 0.999f)
                 sb.Append("정거장 인구 증가 간격 -").Append(((1f - data.GrowthIntervalMultiplier) * 100f).ToString("0"))
                   .Append($"% <color={Muted}>(중첩 없음, 파손·비활성·전력 부족·노후 시 감소)</color>\n");
@@ -141,11 +164,6 @@ namespace SpaceStation.UI
                 sb.Append($"<color={Orange}>파손되면 이웃으로 {1f / data.SpreadTimeMultiplier:0.#}배 빨리 번짐</color>\n");
             if (data.RepairSlots > 0)
                 sb.Append("동시 수리 슬롯 +").Append(data.RepairSlots).Append($" <color={Muted}>(파손·비활성 시 슬롯 없음)</color>\n");
-
-            // 마지막 줄바꿈 제거
-            if (sb.Length > 0 && sb[sb.Length - 1] == '\n')
-                sb.Length--;
-            return sb.ToString();
         }
     }
 }

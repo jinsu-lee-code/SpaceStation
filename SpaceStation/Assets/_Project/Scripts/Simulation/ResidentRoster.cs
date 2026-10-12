@@ -287,7 +287,7 @@ namespace SpaceStation.Simulation
                 if (data == null || !IsActive(s))
                     continue;
                 bool gravity = data.GrowthIntervalMultiplier < 1f;
-                bool social = data.ServiceNeed == ResidentNeed.Recreation;
+                bool social = data.Serves(ResidentNeed.Recreation);
                 if (!gravity && !social)
                     continue;
                 _sources.Add(new EnvironmentSource

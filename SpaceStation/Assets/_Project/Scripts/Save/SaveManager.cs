@@ -115,7 +115,7 @@ namespace SpaceStation.Save
                 DifficultyName = d != null ? d.DisplayName : "",
                 GradeName = _sim.Progression.Current.DisplayName,
                 Population = _sim.Resources.Population,
-                Modules = _sim.Grid.ModuleCount,
+                Modules = StationProgression.CountModules(_sim.Grid), // 12-3: 진화 모듈은 재료 수만큼
                 PlaySeconds = _sim.ElapsedSeconds,
                 // 12-1: 승리 등급(대형) 위로 도달한 가장 높은 등급 ('★ 국가급 달성' 식)
                 ReachedTopGrade = _sim.Progression.HighestGradeIndex > _sim.Progression.VictoryGradeIndex,

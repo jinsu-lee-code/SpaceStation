@@ -116,6 +116,32 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void MultiNeedService_ServesEachNeedWithFullCapacity()
+        {
+            // 12-3 복지 센터: 의료 + 여가를 같은 반경 · 담당 인원으로 (요구마다 따로)
+            var welfare = Create<ModuleData>();
+            var w = new SerializedObject(welfare);
+            w.FindProperty("_serviceNeed").enumValueIndex = (int)ResidentNeed.Medical;
+            w.FindProperty("_serviceRadius").intValue = 3;
+            w.FindProperty("_serviceCapacity").intValue = 12;
+            var extra = w.FindProperty("_extraServiceNeeds");
+            extra.arraySize = 1;
+            extra.GetArrayElementAtIndex(0).enumValueIndex = (int)ResidentNeed.Recreation;
+            w.ApplyModifiedPropertiesWithoutUndo();
+            Assert.IsTrue(welfare.Serves(ResidentNeed.Medical) && welfare.Serves(ResidentNeed.Recreation));
+            Assert.IsFalse(_medical.Serves(ResidentNeed.Recreation));
+
+            var needs = System();
+            Place(_habitat, 0);
+            var center = Place(welfare, 1);
+            needs.Evaluate(_grid, 10, new[] { ResidentNeed.Medical, ResidentNeed.Recreation });
+            Assert.AreEqual(1f, needs.Statuses[0].Ratio, Eps);
+            Assert.AreEqual(1f, needs.Statuses[1].Ratio, Eps);
+            Assert.AreEqual(100f, needs.SatisfactionCap, Eps);
+            Assert.AreEqual(20f, needs.GetServed(center), Eps, "요구 둘 × 10명");
+        }
+
+        [Test]
         public void Population_DecaysToCap_AndRecoversOnlyUpToCap()
         {
             var resources = new ResourceSimulation(_config);

@@ -19,5 +19,18 @@ namespace SpaceStation.Data
                 default: return "-";
             }
         }
+
+        /// <summary>12-3: 모듈이 맡는 요구 이름들 ("의료 · 여가").</summary>
+        public static string ServiceNeedsText(this ModuleData data)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var n in data.ServiceNeeds)
+            {
+                if (sb.Length > 0)
+                    sb.Append(" · ");
+                sb.Append(n.DisplayName());
+            }
+            return sb.ToString();
+        }
     }
 }

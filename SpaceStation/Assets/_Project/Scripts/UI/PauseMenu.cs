@@ -21,6 +21,8 @@ namespace SpaceStation.UI
         [SerializeField] private SimulationHost _host;
         [SerializeField] private BuildController _build;
         [SerializeField] private ModuleSelectionController _selection;
+        [Tooltip("12-3: 합성 위치 지정 중 ESC는 그것만 취소")]
+        [SerializeField] private SynthesisController _synthesis;
         [SerializeField] private CanvasGroup _group;
         [SerializeField] private RectTransform _panel;
         [SerializeField] private TMP_Text _info;
@@ -104,7 +106,8 @@ namespace SpaceStation.UI
                 return; // 설정창·저장 창이 먼저 닫힌다
             if (_open)
                 Close();
-            else if (!_clock.InputLocked && (_build == null || _build.Selected == null) && (_selection == null || _selection.Selected == null))
+            else if (!_clock.InputLocked && (_build == null || _build.Selected == null) && (_selection == null || _selection.Selected == null)
+                     && (_synthesis == null || !_synthesis.Active))
                 Open();
         }
 

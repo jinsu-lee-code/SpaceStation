@@ -38,6 +38,9 @@ namespace SpaceStation.Building
         [SerializeField] private Color _wornTint = new Color(0.45f, 0.35f, 0.25f, 1f);
         [SerializeField, Range(0f, 1f)] private float _wornTintAmount = 0.5f;
         [SerializeField, Range(0f, 1f)] private float _wornEmission = 0.35f;
+        [Tooltip("12-3 합성 중인 재료: 보라 틴트가 천천히 맥동")]
+        [SerializeField] private Color _synthesisTint = new Color(0.72f, 0.45f, 1f, 1f);
+        [SerializeField, Range(0f, 1f)] private float _synthesisTintAmount = 0.5f;
 
         private Renderer[] _renderers;
         private Renderer[] _slotRenderers; // 재질 슬롯마다 한 칸 (렌더러, 재질 인덱스)
@@ -49,6 +52,7 @@ namespace SpaceStation.Building
         private bool _highlighted;
         private ModuleDamageVisual _damage;
         private bool _worn;
+        private bool _synthesizing;
         private Material _rimMaterial;
         private Material _wornRimMaterial;
         private bool _wornRimStyle;
@@ -67,7 +71,16 @@ namespace SpaceStation.Building
 
         public void PlayImpulse() => Impulse?.Invoke();
 
-        private bool Animating => _damage != ModuleDamageVisual.None || (_highlighted && _band == EfficiencyBand.Critical);
+        private bool Animating => _damage != ModuleDamageVisual.None || _synthesizing || (_highlighted && _band == EfficiencyBand.Critical);
+
+        /// <summary>12-3: 합성에 쓰이는 중 (가동 정지 — 보라 맥동, 발광 약하게).</summary>
+        public void SetSynthesizing(bool synthesizing)
+        {
+            if (_synthesizing == synthesizing)
+                return;
+            _synthesizing = synthesizing;
+            Apply(Time.time);
+        }
 
         /// <param name="wornRimMaterial">7-2 노후 테두리 재질 (모든 모듈 공용, null이면 테두리 방식 없음)</param>
         public void Initialize(ModuleInstance module, Material rimMaterial = null, Material wornRimMaterial = null, bool wornRimStyle = false)
@@ -171,7 +184,7 @@ namespace SpaceStation.Building
                 return;
 
             ApplyRimColor(time);
-            bool normal = _operational && !_highlighted && _damage == ModuleDamageVisual.None && !_worn;
+            bool normal = _operational && !_highlighted && _damage == ModuleDamageVisual.None && !_worn && !_synthesizing;
             float emissionScale = EmissionScale(time);
             for (int i = 0; i < _slotRenderers.Length; i++)
             {
@@ -186,6 +199,8 @@ namespace SpaceStation.Building
                     color = Color.Lerp(color, _damagedTint, _damagedTintAmount);
                 else if (_damage == ModuleDamageVisual.Repairing)
                     color = Color.Lerp(color, _repairingTint, _repairingTintAmount * (0.6f + 0.4f * Mathf.Sin(time * 3f)));
+                else if (_synthesizing)
+                    color = Color.Lerp(color, _synthesisTint, _synthesisTintAmount * (0.55f + 0.45f * Mathf.Sin(time * 2f)));
                 else if (_worn && !_wornRimStyle) // 테두리 방식이면 원래 색 유지 (발광만 약하게)
                     color = Color.Lerp(color, _wornTint, _wornTintAmount);
                 if (_highlighted)
@@ -213,7 +228,7 @@ namespace SpaceStation.Building
                 float n = Mathf.PerlinNoise(time * 7f, _seed);
                 return n > 0.55f ? 0.08f : 0.6f + 0.4f * n;
             }
-            if (_damage == ModuleDamageVisual.Repairing)
+            if (_damage == ModuleDamageVisual.Repairing || _synthesizing)
                 return 0.5f;
             return _worn ? _wornEmission : 1f;
         }

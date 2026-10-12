@@ -13,6 +13,8 @@ namespace SpaceStation.Building
     {
         [SerializeField] private StationController _station;
         [SerializeField] private BuildController _build;
+        [Tooltip("12-3 합성 위치 지정 중에는 선택하지 않음")]
+        [SerializeField] private SynthesisController _synthesis;
         [SerializeField] private Camera _camera;
 
         [Header("Raycast")]
@@ -70,9 +72,9 @@ namespace SpaceStation.Building
             if (keyboard == null || mouse == null || InputGate.Blocked)
                 return;
 
-            if (_build != null && _build.Selected != null)
+            if ((_build != null && _build.Selected != null) || (_synthesis != null && _synthesis.Active))
             {
-                Select(null); // 배치 모드 진입 시 선택 해제
+                Select(null); // 배치 · 합성 위치 지정 중에는 선택 해제
                 return;
             }
 
