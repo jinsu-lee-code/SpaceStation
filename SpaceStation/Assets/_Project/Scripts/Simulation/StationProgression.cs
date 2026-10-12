@@ -182,15 +182,29 @@ namespace SpaceStation.Simulation
 
         public int CurrentLimit(StationGrid grid) => LimitFor(CountGradeModules(grid));
 
-        /// <summary>8-6: 등급 조건·도킹 추가 한도에 쓰는 모듈 수 (<see cref="ModuleData.CountsTowardGrade"/>가 false인 장갑 격벽 등 제외).</summary>
+        /// <summary>
+        /// 8-6: 등급 조건·도킹 추가 한도에 쓰는 모듈 수 (<see cref="ModuleData.CountsTowardGrade"/>가 false인 장갑 격벽 등 제외).
+        /// 12-3: 진화 모듈은 재료 개수만큼 (<see cref="ModuleData.GradeModuleCount"/>, A4) — 합성해도 등급이 떨어지지 않음.
+        /// </summary>
         public static int CountGradeModules(StationGrid grid)
         {
             int count = 0;
             foreach (var m in grid.Modules)
             {
-                if (m.Data == null || m.Data.CountsTowardGrade)
+                if (m.Data == null)
                     count++;
+                else if (m.Data.CountsTowardGrade)
+                    count += m.Data.GradeModuleCount;
             }
+            return count;
+        }
+
+        /// <summary>12-3: 모듈 수를 진화 모듈은 재료 개수만큼 센 값 (장갑 격벽 포함 — 결과 화면 · 기록용, 합성 전후가 같음).</summary>
+        public static int CountModules(StationGrid grid)
+        {
+            int count = 0;
+            foreach (var m in grid.Modules)
+                count += m.Data != null ? m.Data.GradeModuleCount : 1;
             return count;
         }
 

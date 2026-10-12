@@ -79,8 +79,8 @@ namespace SpaceStation.Simulation
         /// </summary>
         public float Strength(ModuleInstance defender)
         {
-            if (defender.Data == null || !_sim.Connectivity.IsActive(defender) || _sim.Damage.IsDamaged(defender))
-                return 0f;
+            if (defender.Data == null || !_sim.Connectivity.IsActive(defender) || _sim.Damage.IsDamaged(defender) || _sim.IsHalted(defender))
+                return 0f; // 12-3: 합성 중 재료도 가동 정지
             float power = 1f;
             foreach (var c in defender.Data.Consumption)
             {
@@ -102,6 +102,8 @@ namespace SpaceStation.Simulation
                 return 0f;
             if (module.Data.IsDefense || module.Data.IsService)
                 return Strength(module);
+            if (_sim.IsHalted(module))
+                return 0f;
             float power = 1f;
             foreach (var c in module.Data.Consumption)
             {
@@ -130,10 +132,11 @@ namespace SpaceStation.Simulation
                 if (module.Data == null || !_sim.Connectivity.IsActive(module))
                     continue;
                 _activeModules.Add(module.Data);
+                bool halted = _sim.IsHalted(module); // 12-3 합성 중: 수리 중처럼 생산 0 (소비 · 수용 · 저장은 유지)
                 // 파손 배율 × 내구도 효율 × 인접 효과 × 생산 연구 (BALANCE 1번: 곱셈)
-                _productionMultipliers.Add(_sim.Damage.GetProductionMultiplier(module) * _sim.Durability.GetEfficiency(module) * _sim.Incidents.ProductionMultiplier(module)
+                _productionMultipliers.Add(halted ? 0f : _sim.Damage.GetProductionMultiplier(module) * _sim.Durability.GetEfficiency(module) * _sim.Incidents.ProductionMultiplier(module)
                                            * _sim.Adjacency.GetProductionMultiplier(module) * _sim.Effects.ProductionMultiplier(module.Data));
-                if (module.Data.ResearchSlots > 0 && !_sim.Damage.IsDamaged(module))
+                if (module.Data.ResearchSlots > 0 && !_sim.Damage.IsDamaged(module) && !halted)
                     labSlots += module.Data.ResearchSlots; // 연결되고 파손되지 않은 연구소만
                 _consumptionMultipliers.Add(_sim.Adjacency.GetConsumptionMultiplier(module));
                 // 인접 수용 인구 가감 (모듈 자체 수용 인구 아래로는 내려가지 않음)
@@ -152,7 +155,7 @@ namespace SpaceStation.Simulation
             {
                 if (module.Data == null || module.Data.RepairSlots <= 0)
                     continue;
-                if (_sim.Connectivity.IsActive(module) && !_sim.Damage.IsDamaged(module))
+                if (_sim.Connectivity.IsActive(module) && !_sim.Damage.IsDamaged(module) && !_sim.IsHalted(module))
                     slots += module.Data.RepairSlots;
             }
             return slots;

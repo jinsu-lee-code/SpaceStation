@@ -79,6 +79,8 @@ namespace SpaceStation.Data
         [SerializeField] private bool _armored;
         [Tooltip("8-6: 등급 조건·채굴 도킹 추가 한도의 '모듈 수'에 들어가는지 (장갑 격벽처럼 싼 구조물은 false)")]
         [SerializeField] private bool _countsTowardGrade = true;
+        [Tooltip("12-3 진화 모듈: 등급 조건 '모듈 수'에서 몇 개로 세는지 (A4 = 재료 개수, 다단계는 기본 재료 누적). 기본 모듈은 1")]
+        [SerializeField, Min(1)] private int _gradeModuleCount = 1;
         [Tooltip("수리 시간 배율 (0.5 = 절반)")]
         [SerializeField, Min(0.05f)] private float _repairTimeMultiplier = 1f;
 
@@ -187,6 +189,7 @@ namespace SpaceStation.Data
         public float MeteorWeightMultiplier => Mathf.Max(0f, _meteorWeightMultiplier);
         public bool Armored => _armored;
         public bool CountsTowardGrade => _countsTowardGrade;
+        public int GradeModuleCount => Mathf.Max(1, _gradeModuleCount);
         public int DecoyRadius => _decoyChance > 0f ? _decoyRadius : 0;
         public float DecoyChance => _decoyChance;
         public bool IsDecoy => DecoyRadius > 0;

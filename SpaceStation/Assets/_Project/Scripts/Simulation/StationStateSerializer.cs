@@ -90,6 +90,7 @@ namespace SpaceStation.Simulation
                 MeteorsIntercepted = session.MeteorsIntercepted,
                 MeteorsBlocked = session.MeteorsBlocked,
                 Ricochets = session.Ricochets,
+                Syntheses = session.Syntheses,
             };
             s.OxygenFailTimer = sim.Failure.OxygenTimer;
             s.SatisfactionFailTimer = sim.Failure.SatisfactionTimer;
@@ -178,7 +179,7 @@ namespace SpaceStation.Simulation
             for (int i = 0; i < s.Modules.Count; i++)
             {
                 var m = s.Modules[i];
-                var data = sim.Progression.FindModule(m.Data);
+                var data = sim.FindModuleData(m.Data); // 등급 해금 목록 + 12-3 레시피 결과(진화 모듈)
                 if (data == null || !sim.Grid.TryPlace(data, m.Origin, m.Rotation, out var module))
                 {
                     missing++;
@@ -245,6 +246,7 @@ namespace SpaceStation.Simulation
             var ss = s.Session ?? new SessionState();
             sim.Session.Restore(ss.HasEverHadPopulation, ss.MaxPopulation, ss.EventsExperienced, ss.ModulesDestroyed, ss.DamageSpreads,
                 ss.MeteorsIntercepted, ss.MeteorsBlocked, ss.Ricochets);
+            sim.Session.RestoreSyntheses(ss.Syntheses);
             sim.Failure.Restore(s.OxygenFailTimer, s.SatisfactionFailTimer, s.CoreFailTimer);
             sim.Population.Restore(s.Satisfaction, s.GrowthProgress, s.OxygenLossTimer, s.LowSatisfactionLossTimer, s.OvercrowdedLossTimer);
             sim.RestoreElapsed(s.Elapsed);

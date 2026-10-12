@@ -81,6 +81,12 @@ namespace SpaceStation.Simulation
         /// <summary>실드가 빗겨낸 운석이 다른 모듈에 맞은 수 (4-8).</summary>
         public int Ricochets { get; private set; }
         public void RecordRicochet(int count) => Ricochets += count;
+        /// <summary>12-3: 끝난 합성 수.</summary>
+        public int Syntheses { get; private set; }
+        public void RecordSynthesis() => Syntheses++;
+
+        /// <summary>세이브 복원: 합성 수 (12-3 전 세이브는 0).</summary>
+        internal void RestoreSyntheses(int count) => Syntheses = Math.Max(0, count);
 
         // ---------------- 12-1 구간 기록 (직전 결과 화면 이후) ----------------
 
@@ -88,6 +94,7 @@ namespace SpaceStation.Simulation
         private int _segmentStartModules;
         private int _segmentStartEvents;
         private int _segmentStartDestroyed;
+        private int _segmentStartSyntheses;
         private int _segmentMaxPopulation;
 
         /// <summary>마지막으로 끝난 구간 (결과 화면이 읽음). 아직 없으면 null.</summary>
@@ -104,11 +111,13 @@ namespace SpaceStation.Simulation
                 ModulesAdded = modules - _segmentStartModules,
                 Events = EventsExperienced - _segmentStartEvents,
                 Destroyed = ModulesDestroyed - _segmentStartDestroyed,
+                Syntheses = Syntheses - _segmentStartSyntheses,
             };
             _segmentStartSeconds = elapsed;
             _segmentStartModules = modules;
             _segmentStartEvents = EventsExperienced;
             _segmentStartDestroyed = ModulesDestroyed;
+            _segmentStartSyntheses = Syntheses;
             _segmentMaxPopulation = population;
             return LastSegment;
         }
@@ -120,6 +129,7 @@ namespace SpaceStation.Simulation
             Modules = _segmentStartModules,
             Events = _segmentStartEvents,
             Destroyed = _segmentStartDestroyed,
+            Syntheses = _segmentStartSyntheses,
             MaxPopulation = _segmentMaxPopulation,
         };
 
@@ -130,6 +140,7 @@ namespace SpaceStation.Simulation
             _segmentStartModules = s.Modules;
             _segmentStartEvents = s.Events;
             _segmentStartDestroyed = s.Destroyed;
+            _segmentStartSyntheses = Math.Max(0, s.Syntheses);
             _segmentMaxPopulation = Math.Max(s.MaxPopulation, 0);
         }
     }
@@ -143,6 +154,8 @@ namespace SpaceStation.Simulation
         public int ModulesAdded;
         public int Events;
         public int Destroyed;
+        /// <summary>12-3: 구간 동안 끝난 합성 수.</summary>
+        public int Syntheses;
     }
 
     /// <summary>12-1: 진행 중인 구간의 시작 값 (세이브).</summary>
@@ -154,5 +167,7 @@ namespace SpaceStation.Simulation
         public int Events;
         public int Destroyed;
         public int MaxPopulation;
+        /// <summary>12-3 (이전 세이브는 0).</summary>
+        public int Syntheses;
     }
 }

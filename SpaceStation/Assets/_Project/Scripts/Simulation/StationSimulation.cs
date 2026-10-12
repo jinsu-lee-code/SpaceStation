@@ -24,6 +24,8 @@ namespace SpaceStation.Simulation
         public ResidentConfig Residents;
         /// <summary>주민 이름·특성 난수 [0, 1). null이면 시스템 난수 (이벤트 난수 순서와 분리).</summary>
         public Func<float> ResidentRandom01;
+        /// <summary>12-3 합성 레시피 (null이면 합성 시스템 없음 = 이전과 같은 결과).</summary>
+        public IReadOnlyList<RecipeData> Recipes;
     }
 
     /// <summary>
@@ -125,6 +127,8 @@ namespace SpaceStation.Simulation
         public IReadOnlyList<TickStep> TickSteps => _tickSteps;
         /// <summary>12-0b 공통 틀로 붙은 시스템.</summary>
         public IReadOnlyList<StationSystem> Systems => _systems;
+        /// <summary>12-3 합성 (설정에 레시피가 없으면 null).</summary>
+        public SynthesisSystem Synthesis { get; }
 
         public StationSimulation(StationSimulationSettings settings)
         {
@@ -220,7 +224,29 @@ namespace SpaceStation.Simulation
                 ApplyResidentEffects();
             }
             BuildTickSteps();
+            if (settings.Recipes != null)
+                Synthesis = AddSystem(new SynthesisSystem(settings.Recipes), TickStepNames.Automation); // 요구 · 인구 계산 전에 교체가 끝나게
             EvaluateProgression();
+        }
+
+        /// <summary>12-3: 합성 중이라 가동이 멈춘 재료인지 (수리 중과 같은 처리).</summary>
+        public bool IsHalted(ModuleInstance module) => Synthesis != null && Synthesis.IsHalted(module);
+
+        /// <summary>세이브 · 전시용 모듈 정의 찾기: 등급 해금 목록 → 12-3 레시피 결과(진화 모듈). 없으면 null.</summary>
+        public ModuleData FindModuleData(string assetName)
+            => Progression.FindModule(assetName) ?? Synthesis?.FindResult(assetName);
+
+        /// <summary>12-3: 활성 모듈 · 슬롯 · 저장 한도를 지금 다시 계산 (합성 시작으로 가동이 멈췄을 때).</summary>
+        internal void RefreshModuleStats() => _stats.RefreshCapacities();
+
+        private int _progressionHold;
+
+        /// <summary>12-3: 모듈을 여러 개 바꾸는 동안 등급 재판정을 미룸 (풀면 한 번 판정).</summary>
+        internal void HoldProgression(bool hold)
+        {
+            _progressionHold = Math.Max(0, _progressionHold + (hold ? 1 : -1));
+            if (!hold && _progressionHold == 0)
+                EvaluateProgression();
         }
 
         /// <summary>Phase 10: 명단의 특성 효과를 각 시스템에 반영 (다음 계산부터).</summary>
@@ -538,8 +564,8 @@ namespace SpaceStation.Simulation
 
         internal void EvaluateProgression()
         {
-            if (Progression == null || Session == null)
-                return; // 생성자 도중
+            if (Progression == null || Session == null || _progressionHold > 0)
+                return; // 생성자 도중 · 합성 교체 중
             int population = Resources.Population;
             Progression.Evaluate(population, StationProgression.CountGradeModules(Grid)); // 8-6: 장갑 격벽 제외
             Session.ObservePopulation(population);
@@ -549,7 +575,7 @@ namespace SpaceStation.Simulation
         private void HandleMilestone(int grade, GradeMilestone milestone)
         {
             if (milestone == GradeMilestone.Result)
-                Session.CloseSegment(ElapsedSeconds, Grid.ModuleCount, Resources.Population);
+                Session.CloseSegment(ElapsedSeconds, StationProgression.CountModules(Grid), Resources.Population); // 12-3: 진화 모듈은 재료 수만큼
         }
 
         // ---------------- 조기 경보 · 운석 (StationMeteors) ----------------

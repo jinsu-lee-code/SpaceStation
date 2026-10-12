@@ -49,7 +49,8 @@ namespace SpaceStation.Simulation
             return _sim.Grid.TryPlace(data, origin, rotation, out module);
         }
 
-        public bool CanRemove(ModuleInstance module) => IsRemovableKind(module) && !PlacementRules.SupportsOthers(_sim.Grid, module);
+        /// <summary>12-3: 합성 중 재료는 철거 불가 (분해 불가 원칙은 진화 모듈 자체 — 진화 모듈은 철거만 가능).</summary>
+        public bool CanRemove(ModuleInstance module) => IsRemovableKind(module) && !_sim.IsHalted(module) && !PlacementRules.SupportsOthers(_sim.Grid, module);
 
         public bool IsRemovableKind(ModuleInstance module) => module != null && module != _sim.Core && (module.Data == null || module.Data.Removable);
 
@@ -108,11 +109,15 @@ namespace SpaceStation.Simulation
         /// <summary>비용을 빼고 재건축할 수 있는지 (가능하면 Done).</summary>
         private RebuildResult CheckRebuild(ModuleInstance module)
         {
-            if (!IsRemovableKind(module) || module.Data == null || !_sim.Durability.TryGetInfo(module, out _))
-                return RebuildResult.NotAllowed;
+            if (!IsRemovableKind(module) || module.Data == null || !_sim.Durability.TryGetInfo(module, out _) || _sim.IsHalted(module))
+                return RebuildResult.NotAllowed; // 12-3: 합성 중 재료는 재건축 불가
             var data = module.Data;
             var progression = _sim.Progression;
-            if (!progression.IsUnlocked(data))
+            // 12-3: 진화 모듈은 건설 메뉴(등급 해금 목록)에 없음 → 그 레시피가 열려 있으면 재건축 가능
+            bool unlocked = _sim.Synthesis != null && _sim.Synthesis.IsRecipeResult(data)
+                ? _sim.Synthesis.IsUnlocked(_sim.Synthesis.RecipeFor(data))
+                : progression.IsUnlocked(data);
+            if (!unlocked)
                 return RebuildResult.Locked;
             if (data == progression.LimitedModule && progression.CountLimited(_sim.Grid) - 1 >= progression.CurrentLimit(_sim.Grid))
                 return RebuildResult.Locked;

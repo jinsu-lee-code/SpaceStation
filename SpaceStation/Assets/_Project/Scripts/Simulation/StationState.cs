@@ -132,6 +132,8 @@ namespace SpaceStation.Simulation
         public int MeteorsIntercepted;
         public int MeteorsBlocked;
         public int Ricochets;
+        /// <summary>12-3 끝난 합성 수 (이전 세이브는 0).</summary>
+        public int Syntheses;
     }
 
     [Serializable]
