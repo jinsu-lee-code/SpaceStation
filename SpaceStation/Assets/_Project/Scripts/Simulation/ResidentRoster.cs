@@ -265,6 +265,7 @@ namespace SpaceStation.Simulation
             _environment.Clear();
             if (Grid == null)
                 return;
+            CollectEnvironmentSources();
             foreach (var m in Grid.Modules)
             {
                 int cap = Housing != null ? (int)Math.Floor(Housing(m) + 1e-4f) : 0;
@@ -275,6 +276,41 @@ namespace SpaceStation.Simulation
                 _environment[m] = ComputeEnvironment(m);
             }
         }
+
+        /// <summary>범위로 영향을 주는 활성 모듈(회전 링 중력 · 여가) — 틱마다 한 번 모아 집마다 정거장 전체를 돌지 않게 (12-2b).</summary>
+        private void CollectEnvironmentSources()
+        {
+            _sources.Clear();
+            foreach (var s in Grid.Modules)
+            {
+                var data = s.Data;
+                if (data == null || !IsActive(s))
+                    continue;
+                bool gravity = data.GrowthIntervalMultiplier < 1f;
+                bool social = data.ServiceNeed == ResidentNeed.Recreation;
+                if (!gravity && !social)
+                    continue;
+                _sources.Add(new EnvironmentSource
+                {
+                    Module = s,
+                    Box = new CellBox(s.Cells),
+                    Radius = Effects != null ? Effects.ServiceRadius(data) : data.ServiceRadius,
+                    Gravity = gravity,
+                    Social = social,
+                });
+            }
+        }
+
+        private struct EnvironmentSource
+        {
+            public ModuleInstance Module;
+            public CellBox Box;
+            public int Radius;
+            public bool Gravity;
+            public bool Social;
+        }
+
+        private readonly List<EnvironmentSource> _sources = new List<EnvironmentSource>();
 
         private HomeEnvironment ComputeEnvironment(ModuleInstance home)
         {
@@ -288,20 +324,15 @@ namespace SpaceStation.Simulation
                 if (Contains(_config.NoiseSources, n.Data)) env |= HomeEnvironment.Noise;
                 if (Contains(_config.NatureSources, n.Data)) env |= HomeEnvironment.Nature;
             }
-            foreach (var s in Grid.Modules)
+            var homeBox = new CellBox(home.Cells);
+            foreach (var src in _sources)
             {
-                var data = s.Data;
-                if (data == null || !IsActive(s))
-                    continue;
-                bool gravity = data.GrowthIntervalMultiplier < 1f;
-                bool social = data.ServiceNeed == ResidentNeed.Recreation;
-                if (!gravity && !social)
-                    continue;
-                bool inRange = s == home || DefenseSystem.InRange(s.Cells, home.Cells, Effects != null ? Effects.ServiceRadius(data) : data.ServiceRadius);
+                var s = src.Module;
+                bool inRange = s == home || CellBox.InRange(s.Cells, src.Box, home.Cells, homeBox, src.Radius);
                 if (!inRange)
                     continue;
-                if (gravity) env |= HomeEnvironment.Gravity;
-                if (social && (Strength == null || Strength(s) > 0f)) env |= HomeEnvironment.Social; // 여가는 가동 중일 때만
+                if (src.Gravity) env |= HomeEnvironment.Gravity;
+                if (src.Social && (Strength == null || Strength(s) > 0f)) env |= HomeEnvironment.Social; // 여가는 가동 중일 때만
             }
             return env;
         }

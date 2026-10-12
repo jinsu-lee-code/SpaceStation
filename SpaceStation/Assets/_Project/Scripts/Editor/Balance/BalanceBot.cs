@@ -376,14 +376,13 @@ namespace SpaceStation.Editor.Balance
             if (!data.IsService)
                 return 0f;
             var cells = StationGrid.ResolveCells(data.CellOffsets, origin, rotation);
-            Bounds(cells, out var min, out var max);
+            var box = new CellBox(cells);
             float unmet = 0f;
             foreach (var h in _serviceHabitats)
             {
                 // 12-2: 상자끼리 범위 밖이면 칸별 비교 생략 (결과 동일, 큰 정거장에서 배치 탐색이 매우 느렸음)
-                if (BoxDistance(min, max, h.Min, h.Max) > _serviceRadius || !DefenseSystem.InRange(cells, h.Cells, _serviceRadius))
-                    continue;
-                unmet += h.Unmet;
+                if (CellBox.InRange(cells, box, h.Cells, h.Box, _serviceRadius))
+                    unmet += h.Unmet;
             }
             return unmet * 5f;
         }
@@ -400,12 +399,10 @@ namespace SpaceStation.Editor.Balance
                 if (m.Data == null || m.Data.HousingCapacity <= 0)
                     continue;
                 float coverage = _sim.Needs.GetHabitatCoverage(m, data.ServiceNeed);
-                Bounds(m.Cells, out var min, out var max);
                 _serviceHabitats.Add(new HabitatScore
                 {
                     Cells = m.Cells,
-                    Min = min,
-                    Max = max,
+                    Box = new CellBox(m.Cells),
                     Unmet = m.Data.HousingCapacity * (1f - Mathf.Max(0f, coverage)),
                 });
             }
@@ -414,31 +411,12 @@ namespace SpaceStation.Editor.Balance
         private struct HabitatScore
         {
             public IReadOnlyList<Vector3Int> Cells;
-            public Vector3Int Min, Max;
+            public CellBox Box;
             public float Unmet;
         }
 
         private readonly List<HabitatScore> _serviceHabitats = new List<HabitatScore>();
         private int _serviceRadius;
-
-        private static void Bounds(IReadOnlyList<Vector3Int> cells, out Vector3Int min, out Vector3Int max)
-        {
-            min = max = cells[0];
-            for (int i = 1; i < cells.Count; i++)
-            {
-                min = Vector3Int.Min(min, cells[i]);
-                max = Vector3Int.Max(max, cells[i]);
-            }
-        }
-
-        /// <summary>두 상자 사이 칸 거리(체비쇼프)의 하한 — 이보다 가까운 칸 쌍은 없다.</summary>
-        private static int BoxDistance(Vector3Int aMin, Vector3Int aMax, Vector3Int bMin, Vector3Int bMax)
-        {
-            int dx = Mathf.Max(0, Mathf.Max(aMin.x - bMax.x, bMin.x - aMax.x));
-            int dy = Mathf.Max(0, Mathf.Max(aMin.y - bMax.y, bMin.y - aMax.y));
-            int dz = Mathf.Max(0, Mathf.Max(aMin.z - bMax.z, bMin.z - aMax.z));
-            return Mathf.Max(dx, Mathf.Max(dy, dz));
-        }
 
         private static float Cost(ModuleData data)
         {
@@ -644,14 +622,15 @@ namespace SpaceStation.Editor.Balance
             CollectCandidates(data);
 
             PrepareServiceScore(data);
-            int rotations = data.CellOffsets.Count > 1 ? 4 : 1;
+            var rotations = Rotations(data);
             float bestScore = float.MinValue;
             bool found = false;
             foreach (var origin in _candidates)
             {
-                for (int rot = 0; rot < rotations; rot++)
+                foreach (var rotation in rotations)
                 {
-                    if (PlacementRules.Evaluate(_sim.Grid, data, origin, rot) != PlacementResult.Valid)
+                    int rot = rotation.Rotation;
+                    if (AnyOccupied(origin, rotation.Offsets) || PlacementRules.Evaluate(_sim.Grid, data, origin, rot) != PlacementResult.Valid)
                         continue;
                     // 조밀 배치(운석 노출 감소) 선호. 태양광은 그늘 때문에 접촉 가산을 줄임.
                     float contactWeight = data.SolarPowered ? 1f : 10f;
@@ -677,11 +656,56 @@ namespace SpaceStation.Editor.Balance
         private bool HasAnyPlacement(ModuleData data)
         {
             CollectCandidates(data);
-            int rotations = data.CellOffsets.Count > 1 ? 4 : 1;
+            var rotations = Rotations(data);
             foreach (var origin in _candidates)
-                for (int rot = 0; rot < rotations; rot++)
-                    if (PlacementRules.Evaluate(_sim.Grid, data, origin, rot) == PlacementResult.Valid)
+                foreach (var rotation in rotations)
+                    if (!AnyOccupied(origin, rotation.Offsets)
+                        && PlacementRules.Evaluate(_sim.Grid, data, origin, rotation.Rotation) == PlacementResult.Valid)
                         return true;
+            return false;
+        }
+
+        /// <summary>
+        /// 탐색할 회전과 회전한 칸 오프셋. 앞 회전과 차지하는 칸이 같은 회전은 뺀다 (3×3 회전 링은 1개만 — 판정 · 점수가 칸으로만 정해지므로,
+        /// 점수가 같으면 먼저 본 회전이 이기던 예전 결과와 같다). 도킹은 회전이 입구 방향을 바꾸므로 그대로 4개.
+        /// </summary>
+        private List<RotationOffsets> Rotations(ModuleData data)
+        {
+            if (_rotations.TryGetValue(data, out var list))
+                return list;
+            list = new List<RotationOffsets>();
+            int count = data.CellOffsets.Count > 1 ? 4 : 1;
+            for (int rot = 0; rot < count; rot++)
+            {
+                var offsets = StationGrid.ResolveCells(data.CellOffsets, Vector3Int.zero, rot);
+                bool duplicate = false;
+                if (!data.TerminalOnly)
+                {
+                    var set = new HashSet<Vector3Int>(offsets);
+                    foreach (var earlier in list)
+                        duplicate |= set.SetEquals(earlier.Offsets);
+                }
+                if (!duplicate)
+                    list.Add(new RotationOffsets { Rotation = rot, Offsets = offsets });
+            }
+            _rotations[data] = list;
+            return list;
+        }
+
+        private struct RotationOffsets
+        {
+            public int Rotation;
+            public Vector3Int[] Offsets;
+        }
+
+        private readonly Dictionary<ModuleData, List<RotationOffsets>> _rotations = new Dictionary<ModuleData, List<RotationOffsets>>();
+
+        /// <summary>빈 칸이 아닌 곳이 있는지 (배치 판정보다 먼저 — 판정이 거절할 자리를 배열 할당 없이 거름).</summary>
+        private bool AnyOccupied(Vector3Int origin, Vector3Int[] offsets)
+        {
+            foreach (var o in offsets)
+                if (_sim.Grid.IsOccupied(origin + o))
+                    return true;
             return false;
         }
 

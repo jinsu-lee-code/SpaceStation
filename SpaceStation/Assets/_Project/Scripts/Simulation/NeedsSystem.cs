@@ -29,6 +29,7 @@ namespace SpaceStation.Simulation
         private readonly Func<ModuleInstance, float> _housing;
         private readonly List<NeedStatus> _statuses = new List<NeedStatus>();
         private readonly List<ModuleInstance> _habitats = new List<ModuleInstance>();
+        private readonly List<CellBox> _habitatBoxes = new List<CellBox>(); // 12-2b: 먼 거주 모듈은 칸 비교 생략
         private readonly List<float> _remaining = new List<float>();
         private readonly Dictionary<ModuleInstance, float> _serviceUsed = new Dictionary<ModuleInstance, float>();
         // (거주 모듈, 요구) → 충족 비율
@@ -67,6 +68,7 @@ namespace SpaceStation.Simulation
             _habitatCoverage.Clear();
             _habitats.Clear();
 
+            _habitatBoxes.Clear();
             float totalHousing = 0f;
             foreach (var m in grid.Modules)
             {
@@ -74,6 +76,7 @@ namespace SpaceStation.Simulation
                 if (h <= 0f)
                     continue;
                 _habitats.Add(m);
+                _habitatBoxes.Add(new CellBox(m.Cells));
                 totalHousing += h;
             }
 
@@ -94,9 +97,11 @@ namespace SpaceStation.Simulation
                         continue;
                     float capacity = data.ServiceCapacity * GetStrength(s);
                     float used = 0f;
+                    var serviceBox = new CellBox(s.Cells);
+                    int radius = Effects.ServiceRadius(data);
                     for (int i = 0; i < _habitats.Count && capacity - used > 1e-4f; i++)
                     {
-                        if (_remaining[i] <= 0f || !DefenseSystem.InRange(s.Cells, _habitats[i].Cells, Effects.ServiceRadius(data)))
+                        if (_remaining[i] <= 0f || !CellBox.InRange(s.Cells, serviceBox, _habitats[i].Cells, _habitatBoxes[i], radius))
                             continue;
                         float take = Mathf.Min(_remaining[i], capacity - used);
                         _remaining[i] -= take;
