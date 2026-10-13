@@ -108,7 +108,9 @@ namespace SpaceStation.Building
                 yield break;
 
             Vector3 target = ModuleCenter(flight.Target);
-            Vector3 dir = RandomIncoming(flight.Target.GetHashCode());
+            Vector3 dir = flight.Incoming != Vector3Int.zero
+                ? ((Vector3)flight.Incoming + Random.insideUnitSphere * 0.25f).normalized // 12-3c 유성우: 예보한 방향에서
+                : RandomIncoming(flight.Target.GetHashCode());
             Vector3 start = target + dir * _startDistance;
             var meteor = SpawnMeteor(start);
 

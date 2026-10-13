@@ -4580,6 +4580,56 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 759927544}
   m_CullTransparentMesh: 1
+--- !u!1 &793670215
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 793670217}
+  - component: {fileID: 793670216}
+  m_Layer: 0
+  m_Name: MeteorShowerZone
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &793670216
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 793670215}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 114a0cb33b6386b4dbb7ffcc5dde8387, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.MeteorShowerZoneView
+  _station: {fileID: 968511355}
+  _material: {fileID: 2100000, guid: fc8ab5cfc83d5b34581eb2274a4f6582, type: 2}
+  _faceColor: {r: 1, g: 0.18, b: 0.08, a: 0.32}
+  _streakColor: {r: 1, g: 0.4, b: 0.15, a: 0.22}
+  _streaks: 14
+  _streakLength: 2.4
+--- !u!4 &793670217
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 793670215}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &825231005
 GameObject:
   m_ObjectHideFlags: 0
@@ -13472,3 +13522,4 @@ SceneRoots:
   - {fileID: 1776576942}
   - {fileID: 302008420}
   - {fileID: 148834059}
+  - {fileID: 793670217}

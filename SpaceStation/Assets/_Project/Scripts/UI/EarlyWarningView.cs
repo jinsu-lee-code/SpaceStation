@@ -41,6 +41,13 @@ namespace SpaceStation.UI
         private TMP_Text _detail;
         private UiTween _tween;
         private int _shownSeconds = -1;
+        // 12-3c 유성우 방향 예보 배너 (일반 경보 배너 아래)
+        private MeteorShowerSystem _shower;
+        private Image _showerFrame;
+        private TMP_Text _showerTitle;
+        private TMP_Text _showerDetail;
+        private UiTween _showerTween;
+        private string _showerText;
         private readonly List<Marker> _markers = new List<Marker>();
         private readonly Stack<RectTransform> _pool = new Stack<RectTransform>();
 
@@ -56,6 +63,8 @@ namespace SpaceStation.UI
                 _camera = Camera.main;
             _ui = new HoloUi(_font, _fillSprite, _frameSprite, null);
             BuildBanner();
+            _shower = _sim.MeteorShower;
+            BuildShowerBanner();
             _sim.Events.UpcomingChanged += HandleUpcomingChanged;
             _sim.MeteorPlanChanged += RebuildMarkers;
             if (_sim.Events.Upcoming != null)
@@ -91,6 +100,60 @@ namespace SpaceStation.UI
             _tween = new UiTween(_banner, _group, new Vector2(0f, 24f), 0.2f, 0.25f);
         }
 
+        private void BuildShowerBanner()
+        {
+            var banner = HoloUi.Rect("ShowerBanner", transform);
+            banner.anchorMin = banner.anchorMax = banner.pivot = new Vector2(0.5f, 1f);
+            banner.anchoredPosition = new Vector2(0f, -232f);
+            banner.sizeDelta = new Vector2(620f, 74f);
+            _ui.Panel(banner.gameObject, new Color(0.18f, 0.04f, 0.02f, 0.9f), HudTheme.Negative);
+            banner.GetComponent<Image>().raycastTarget = false;
+            _showerFrame = banner.Find("Frame").GetComponent<Image>();
+            var group = banner.gameObject.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            group.interactable = false;
+            group.alpha = 0f;
+            _showerTitle = _ui.Label(banner, "", 26f, TextAlignmentOptions.Center);
+            HoloUi.Place(_showerTitle.rectTransform, new Vector2(0f, -6f), new Vector2(620f, 36f));
+            _showerDetail = _ui.Label(banner, "", 15f, TextAlignmentOptions.Center);
+            HoloUi.Place(_showerDetail.rectTransform, new Vector2(0f, -42f), new Vector2(620f, 24f));
+            _showerTween = new UiTween(banner, group, new Vector2(0f, 24f), 0.2f, 0.25f);
+        }
+
+        private void UpdateShower()
+        {
+            if (_shower == null)
+                return;
+            _showerTween.Update();
+            bool on = _shower.Active && !_sim.Session.IsGameOver;
+            if (!on)
+            {
+                if (_showerTween.Visible)
+                    _showerTween.Hide();
+                _showerText = null;
+                return;
+            }
+            if (!_showerTween.Visible)
+            {
+                _showerTween.Play(restart: true);
+                AudioService.TryPlay(l => l.EarlyWarning);
+            }
+            int seconds = Mathf.Max(0, Mathf.CeilToInt(_shower.TimeLeft));
+            string dir = MeteorShowerSystem.DirectionName(_shower.Direction);
+            string title = _shower.Phase == MeteorShowerSystem.ShowerPhase.Warning
+                ? $"{HudTheme.Icon("warning")} <b>유성우 예보 · {dir}</b>  <color={HudText.Orange}>{seconds / 60}:{seconds % 60:00}</color>"
+                : $"{HudTheme.Icon("warning")} <b>유성우 · {dir}</b>  <color={HudText.Orange}>{_shower.WavesDone}/{_shower.Waves}파</color>";
+            if (title != _showerText)
+            {
+                _showerText = title;
+                _showerTitle.SetText(title);
+                _showerDetail.SetText($"<color=#E8C8C0>붉은 면 모듈 {_shower.FacingModules.Count}개가 맞을 수 있음 · 파마다 약 {_shower.HitsPerWave}개 · 앞을 가리거나 실드 · 포탑으로 보강</color>");
+            }
+            float pulse = 0.55f + 0.45f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 3.2f));
+            var c = HudTheme.Negative;
+            _showerFrame.color = new Color(c.r, c.g, c.b, pulse);
+        }
+
         private void HandleUpcomingChanged(GameEventData upcoming)
         {
             _shownSeconds = -1;
@@ -109,6 +172,7 @@ namespace SpaceStation.UI
             if (_tween == null)
                 return;
             _tween.Update();
+            UpdateShower();
             if (_sim.Session.IsGameOver)
             {
                 if (_tween.Visible)

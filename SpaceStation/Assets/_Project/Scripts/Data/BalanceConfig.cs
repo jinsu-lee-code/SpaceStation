@@ -200,6 +200,21 @@ namespace SpaceStation.Data
         [Tooltip("12-3b 모듈 이동 비용 비율 (건설 비용 대비, 건설 연구 할인 반영). 즉시 이동")]
         [SerializeField, Range(0f, 1f)] private float _moveCostRate = 0.2f;
 
+        [Header("Meteor Shower (BALANCE 34번, 12-3c 도시급 핵심 규칙)")]
+        [Tooltip("유성우가 시작되는 등급 번호 (0 = 초소형, 5 = 도시급)")]
+        [SerializeField, Min(0)] private int _showerMinGrade = 5;
+        [Tooltip("유성우 사이 간격 최소 · 최대 (게임 초). 첫 유성우도 등급 도달 뒤 이 간격")]
+        [SerializeField, Min(1f)] private float _showerIntervalMin = 420f;
+        [SerializeField, Min(1f)] private float _showerIntervalMax = 600f;
+        [Tooltip("방향 예보 시간 (초)")]
+        [SerializeField, Min(0f)] private float _showerWarningSeconds = 60f;
+        [Tooltip("파 수")]
+        [SerializeField, Min(1)] private int _showerWaves = 3;
+        [Tooltip("파 사이 간격 (초)")]
+        [SerializeField, Min(0f)] private float _showerWaveInterval = 4f;
+        [Tooltip("한 파의 운석 수 = 등급 운석 수(최소~최대 무작위) × 이 배율 ÷ 파 수 (올림)")]
+        [SerializeField, Min(0f)] private float _showerHitsMultiplier = 3f;
+
         public int StartingPopulation => _startingPopulation;
         public IReadOnlyList<ResourceAmount> ConsumptionPerResident => _consumptionPerResident;
         public IReadOnlyList<ResourceAmount> StartingResources => _startingResources;
@@ -279,6 +294,13 @@ namespace SpaceStation.Data
         public float DemolishRefundRate => _demolishRefundRate;
         public float RepairCostRate => _repairCostRate;
         public float MoveCostRate => _moveCostRate;
+        public int ShowerMinGrade => _showerMinGrade;
+        public float ShowerIntervalMin => _showerIntervalMin;
+        public float ShowerIntervalMax => Mathf.Max(_showerIntervalMin, _showerIntervalMax);
+        public float ShowerWarningSeconds => _showerWarningSeconds;
+        public int ShowerWaves => Mathf.Max(1, _showerWaves);
+        public float ShowerWaveInterval => _showerWaveInterval;
+        public float ShowerHitsMultiplier => _showerHitsMultiplier;
 
         /// <summary>난이도 덮어쓰기 — <see cref="DifficultyPreset.ApplyTo(BalanceConfig)"/>가 만든 복사본에만 호출.</summary>
         internal void ApplyDifficulty(DifficultyPreset preset)

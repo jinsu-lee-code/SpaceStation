@@ -20,6 +20,8 @@ namespace SpaceStation.Simulation
         public ModuleInstance Hit;
         /// <summary>명중했지만 방어 연구로 파손을 면함 (내구도만 깎임, Phase 6).</summary>
         public bool Immune;
+        /// <summary>12-3c 유성우: 날아오는 방향 (정거장 → 운석이 오는 쪽 단위 칸 방향). 0이면 일반 운석(연출이 방향을 고름).</summary>
+        public UnityEngine.Vector3Int Incoming;
 
         public bool Intercepted => InterceptedAt != null;
         public bool Deflected => DeflectedBy != null;

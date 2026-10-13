@@ -99,6 +99,7 @@ namespace SpaceStation.Tests
             {
                 TickStepNames.Damage, TickStepNames.Durability, TickStepNames.Resources, TickStepNames.Incidents, TickStepNames.Research,
                 TickStepNames.Cargo, TickStepNames.Automation, TickStepNames.Needs, TickStepNames.Population, TickStepNames.Events,
+                MeteorShowerSystem.SystemKey, // 12-3c 기본으로 붙는 시스템
                 TickStepNames.Clock, TickStepNames.Tutorial, TickStepNames.Progression, TickStepNames.Failure,
             }, names);
 
@@ -110,7 +111,7 @@ namespace SpaceStation.Tests
                 if (sim.TickSteps[i].Name == "probe")
                     at = i;
             Assert.AreEqual(TickStepNames.Events, sim.TickSteps[at - 1].Name, "이벤트 단계 바로 뒤");
-            Assert.AreEqual(TickStepNames.Clock, sim.TickSteps[at + 1].Name);
+            Assert.AreEqual(MeteorShowerSystem.SystemKey, sim.TickSteps[at + 1].Name, "같은 단계 뒤에 먼저 붙은 시스템보다 앞");
 
             sim.Tick(1f);
             sim.Tick(1f);

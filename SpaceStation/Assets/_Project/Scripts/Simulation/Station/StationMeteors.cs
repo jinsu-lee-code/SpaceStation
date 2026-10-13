@@ -118,8 +118,6 @@ namespace SpaceStation.Simulation
         {
             var grid = _sim.Grid;
             var damage = _sim.Damage;
-            var session = _sim.Session;
-            var balance = _sim.Balance;
             if (_plannedHits > 0)
             {
                 RefillPlannedTargets();
@@ -141,17 +139,43 @@ namespace SpaceStation.Simulation
                 _sim.Report("운석이 정거장을 빗나갔습니다", true);
                 return;
             }
+            Strike(_random01, UnityEngine.Vector3Int.zero, "");
+        }
+
+        /// <summary>
+        /// 12-3c 유성우 한 파: 정해진 대상(오는 방향에서 보이는 앞면 모듈)에 일반 운석과 같은 판정(격추 · 빗겨냄 · 튕김 · 피해).
+        /// 난수는 유성우 전용 (일반 이벤트 난수 순서를 바꾸지 않게).
+        /// </summary>
+        public void Shower(IReadOnlyList<ModuleInstance> targets, Func<float> random01, UnityEngine.Vector3Int incoming, string label)
+        {
+            _candidates.Clear();
+            foreach (var t in targets)
+                _candidates.Add(t);
+            if (_candidates.Count == 0)
+            {
+                _sim.Report($"{label}: 맞을 모듈 없음", true);
+                return;
+            }
+            Strike(random01, incoming, label + ": ");
+        }
+
+        /// <summary>_candidates에 운석을 날림 (4-8 판정 → 피해 → 알림). prefix = 알림 앞머리 (일반 운석은 빈 문자열).</summary>
+        private void Strike(Func<float> random01, UnityEngine.Vector3Int incoming, string prefix)
+        {
+            var damage = _sim.Damage;
+            var session = _sim.Session;
+            var balance = _sim.Balance;
 
             // 4-8: 포탑 격추(완전 제거) → 실드 빗겨냄(일부는 범위 밖 모듈로 튕김). 피해 적용 전에 모두 판정
             _targetsCopy.Clear();
             int intercepted = 0, deflected = 0, ricochets = 0;
             foreach (var target in _candidates)
             {
-                var flight = new MeteorFlight { Target = target };
-                var hit = Resolve(target, true, ref intercepted, ref deflected, ref ricochets, flight);
+                var flight = new MeteorFlight { Target = target, Incoming = incoming };
+                var hit = Resolve(target, true, ref intercepted, ref deflected, ref ricochets, flight, random01);
                 flight.Hit = hit;
                 // Phase 6 방어 연구: 명중해도 일정 확률로 파손 면역 (확률이 0이면 난수를 쓰지 않아 기존 결과 유지)
-                if (hit != null && _sim.Effects.HitImmunityChance > 0f && _random01() < _sim.Effects.HitImmunityChance)
+                if (hit != null && _sim.Effects.HitImmunityChance > 0f && random01() < _sim.Effects.HitImmunityChance)
                 {
                     flight.Immune = true;
                     _immuneHits.Add(hit);
@@ -167,7 +191,7 @@ namespace SpaceStation.Simulation
                                    + (deflected > 0 ? $"실드 빗겨냄 {deflected}" + (ricochets > 0 ? $"(튕겨서 {ricochets}개 명중)" : "") + " · " : "");
             if (_targetsCopy.Count == 0)
             {
-                _sim.Report($"운석 {_candidates.Count}개 접근 · {interceptText}피해 없음", true);
+                _sim.Report($"{prefix}운석 {_candidates.Count}개 접근 · {interceptText}피해 없음", true);
                 return;
             }
 
@@ -192,10 +216,10 @@ namespace SpaceStation.Simulation
                 interceptText += $"방어 연구로 파손 면함 {immune} · ";
             if (sb.Length == 0)
             {
-                _sim.Report($"운석 {_candidates.Count}개 충돌 · {interceptText}파손 없음", true);
+                _sim.Report($"{prefix}운석 {_candidates.Count}개 충돌 · {interceptText}파손 없음", true);
                 return;
             }
-            string head = (_candidates.Count > 1 ? $"운석 {_candidates.Count}개 충돌! " : "") + interceptText + "파손: ";
+            string head = prefix + (_candidates.Count > 1 ? $"운석 {_candidates.Count}개 충돌! " : "") + interceptText + "파손: ";
             string spread = balance.SpreadAfterSeconds > 0f ? $", {balance.SpreadAfterSeconds:0}초 방치 시 이웃으로 확산" : "";
             _sim.Report($"{head}{sb}  ·  {balance.DestroyAfterSeconds:0}초 안에 수리 (선택 후 R){spread}", false);
         }
@@ -206,26 +230,26 @@ namespace SpaceStation.Simulation
         /// 튕긴 운석도 포탑 격추는 받지만, 다른 실드에 또 막히면 우주로 (튕김 1회).
         /// </summary>
         private ModuleInstance Resolve(ModuleInstance target, bool canRicochet, ref int intercepted, ref int deflected, ref int ricochets,
-            MeteorFlight flight)
+            MeteorFlight flight, Func<float> random01)
         {
             var grid = _sim.Grid;
             var defense = _sim.Defense;
             float turret = defense.GetInterceptChance(grid, target);
-            if (turret > 0f && _random01() < turret)
+            if (turret > 0f && random01() < turret)
             {
                 intercepted++;
                 flight.InterceptedAt = target;
                 return null;
             }
             float shield = defense.GetShieldBlockChance(grid, target, out var shieldModule);
-            if (shield <= 0f || _random01() >= shield)
+            if (shield <= 0f || random01() >= shield)
                 return target;
 
             deflected++;
             ShieldDeflected?.Invoke(shieldModule);
             if (flight.DeflectedBy == null)
                 flight.DeflectedBy = shieldModule;
-            if (!canRicochet || _random01() >= _sim.Effects.RicochetChance)
+            if (!canRicochet || random01() >= _sim.Effects.RicochetChance)
                 return null; // 우주로
 
             _sim.Damage.FindMeteorCandidates(grid, _sim.Core, _ricochetCandidates);
@@ -235,11 +259,11 @@ namespace SpaceStation.Simulation
                 if (defense.IsInShieldRange(shieldModule, c) || _targetsCopy.Contains(c) || _candidates.Contains(c))
                     _ricochetCandidates.RemoveAt(i);
             }
-            var next = _sim.Damage.PickWeighted(grid, _ricochetCandidates, _random01);
+            var next = _sim.Damage.PickWeighted(grid, _ricochetCandidates, random01);
             if (next == null)
                 return null; // 튕길 곳 없음 → 우주로
             flight.RicochetTarget = next;
-            var hit = Resolve(next, false, ref intercepted, ref deflected, ref ricochets, flight);
+            var hit = Resolve(next, false, ref intercepted, ref deflected, ref ricochets, flight, random01);
             if (hit != null)
                 ricochets++;
             return hit;

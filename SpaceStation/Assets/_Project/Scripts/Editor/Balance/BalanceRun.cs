@@ -47,10 +47,12 @@ namespace SpaceStation.Editor.Balance
             _series = series;
             var rng = new Random(seed);
             var residentRng = new Random(seed * 7919 + 13); // 이름·특성 난수 분리 (시드별 고정)
+            var hazardRng = new Random(seed * 104729 + 7); // 12-3c 등급 위기 난수 분리 (시드별 고정)
             _sim = new StationSimulation(new StationSimulationSettings
             {
                 Residents = s.Residents,
                 ResidentRandom01 = () => (float)residentRng.NextDouble(),
+                HazardRandom01 = () => (float)hazardRng.NextDouble(),
                 Balance = s.Balance,
                 Grades = s.Grades,
                 CoreModule = s.CoreModule,

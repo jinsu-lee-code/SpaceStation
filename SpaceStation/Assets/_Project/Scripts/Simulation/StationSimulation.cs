@@ -26,6 +26,8 @@ namespace SpaceStation.Simulation
         public Func<float> ResidentRandom01;
         /// <summary>12-3 합성 레시피 (null이면 합성 시스템 없음 = 이전과 같은 결과).</summary>
         public IReadOnlyList<RecipeData> Recipes;
+        /// <summary>12-3c 등급 위기(유성우 등) 전용 난수 [0, 1). null이면 시스템 난수 (이벤트 난수 순서와 분리, 봇은 시드 고정).</summary>
+        public Func<float> HazardRandom01;
     }
 
     /// <summary>
@@ -129,6 +131,8 @@ namespace SpaceStation.Simulation
         public IReadOnlyList<StationSystem> Systems => _systems;
         /// <summary>12-3 합성 (설정에 레시피가 없으면 null).</summary>
         public SynthesisSystem Synthesis { get; }
+        /// <summary>12-3c 도시급 유성우 방향 예보.</summary>
+        public MeteorShowerSystem MeteorShower { get; }
 
         public StationSimulation(StationSimulationSettings settings)
         {
@@ -227,6 +231,7 @@ namespace SpaceStation.Simulation
             BuildTickSteps();
             if (settings.Recipes != null)
                 Synthesis = AddSystem(new SynthesisSystem(settings.Recipes), TickStepNames.Automation); // 요구 · 인구 계산 전에 교체가 끝나게
+            MeteorShower = AddSystem(new MeteorShowerSystem(settings.HazardRandom01), TickStepNames.Events); // 도시급 전에는 아무것도 안 함 (기존 결과 그대로)
             EvaluateProgression();
         }
 
@@ -611,6 +616,10 @@ namespace SpaceStation.Simulation
         internal void RestoreMeteorPlan(int hits, IEnumerable<ModuleInstance> targets) => _meteors.RestorePlan(hits, targets);
 
         public int PlannedMeteorHits => _meteors.PlannedHits;
+
+        /// <summary>12-3c 유성우 한 파 (정해진 대상, 전용 난수).</summary>
+        internal void ShowerMeteors(IReadOnlyList<ModuleInstance> targets, Func<float> random01, UnityEngine.Vector3Int incoming, string label)
+            => _meteors.Shower(targets, random01, incoming, label);
 
         // ---------------- 내부 결과 (StationInteriorOutcomes) ----------------
 
