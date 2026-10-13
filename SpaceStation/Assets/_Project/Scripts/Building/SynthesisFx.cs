@@ -772,7 +772,7 @@ namespace SpaceStation.Building
         }
 
         // 팔 이동 · 용접 (12-3b 피드백: 고리를 따라 움직이며 작업, 동작 · 방향에 약간의 무작위)
-        private const float ArmMinGap = 0.5f;          // 가는 방향 앞 팔과 이만큼 가까우면 기다림
+        private const float ArmMinGap = 0.9f;          // 팔끼리 최소 간격 (칸, 고리가 작으면 MinGap이 줄임) — 앞 팔과 이보다 가까워지면 기다림
         private const float ArmBlockedTurn = 1.2f;     // 이만큼 막혀 있으면 반대 방향으로
         // 위 모듈 피하기: 고리 윗면 ~ 위 모듈 밑면 여유가 이보다 작으면 팔을 고리 바깥으로 제쳐 매닮 (팔꿈치 위 자세는 고리 위 약 0.4 필요).
         // 매달린 팔은 고리 아래로 돌아 들어가 고리 바로 아래 상위 모듈 면을 마무리 용접하며 계속 고리를 따라 이동 (사용자 피드백 2026-10-13).
@@ -827,9 +827,10 @@ namespace SpaceStation.Building
                 if (arm.Moving)
                 {
                     float left = arm.Dir > 0 ? Wrap(fx, arm.Stop - arm.S) : Wrap(fx, arm.S - arm.Stop);
-                    if (GapInDirection(fx, arm, arm.Dir) > ArmMinGap)
+                    float next = Wrap(fx, arm.S + arm.Dir * Mathf.Min(left, arm.Speed * gameDt));
+                    if (Spacing(fx, arm, next, arm.Dir) >= MinGap(fx))
                     {
-                        arm.S = Wrap(fx, arm.S + arm.Dir * Mathf.Min(left, arm.Speed * gameDt));
+                        arm.S = next;
                         arm.Blocked = 0f;
                     }
                     else
@@ -901,13 +902,43 @@ namespace SpaceStation.Building
             arm.Flash.intensity = arm.Weld * (0.6f + 0.6f * Mathf.PerlinNoise(Time.time * 18f, arm.Seed));
         }
 
-        /// <summary>다음 멈출 자리: 가는 방향으로 0.25~0.7칸 (모서리 회전 구간에 멈추지 않게).</summary>
+        /// <summary>
+        /// 다음 멈출 자리: 가는 방향으로 0.25~0.7칸, 단 앞 팔과 MinGap 이상 떨어진 곳까지만 (모서리 회전 구간에 멈추지 않게).
+        /// 그쪽에 여유가 없으면 반대 방향, 양쪽 다 없으면 제자리.
+        /// </summary>
         private static void PickStop(Fx fx, Arm arm)
         {
-            arm.Stop = Wrap(fx, arm.S + arm.Dir * Random.Range(0.25f, 0.7f));
+            float gap = MinGap(fx);
+            float room = Spacing(fx, arm, arm.S, arm.Dir) - gap;
+            if (room < 0.2f)
+            {
+                float back = Spacing(fx, arm, arm.S, -arm.Dir) - gap;
+                if (back > room)
+                {
+                    arm.Dir = -arm.Dir;
+                    room = back;
+                }
+            }
+            if (room < 0.2f)
+            {
+                arm.Stop = arm.S;
+                return;
+            }
+            float move = Mathf.Min(Random.Range(0.25f, 0.7f), room);
+            arm.Stop = Wrap(fx, arm.S + arm.Dir * move);
             if (InCorner(fx, arm.Stop))
-                arm.Stop = Wrap(fx, arm.Stop + arm.Dir * (CornerTurn + 0.12f));
+            {
+                float past = move + CornerTurn + 0.12f;
+                float before = move - CornerTurn - 0.12f;
+                if (past <= room)
+                    arm.Stop = Wrap(fx, arm.S + arm.Dir * past);
+                else
+                    arm.Stop = Wrap(fx, arm.S + arm.Dir * Mathf.Max(0f, before));
+            }
         }
+
+        /// <summary>팔끼리 최소 간격 (사용자 피드백 2026-10-13): 0.9칸, 고리가 작으면 3등분 간격의 60%.</summary>
+        private static float MinGap(Fx fx) => Mathf.Min(ArmMinGap, fx.Perimeter / 3f * 0.6f);
 
         /// <summary>
         /// 지금 자리 근처 용접점. 고리 위: 경계 바로 위 재료 면 (아래팔이 고리 안쪽 모서리를 스치지 않게 WeldAboveMin 이상).
@@ -924,17 +955,23 @@ namespace SpaceStation.Building
                 arm.Goal += arm.Mount.forward * -0.06f; // 살펴보기: 면에서 조금 떨어져 들여다봄
         }
 
-        /// <summary>가는 방향(dir)으로 바로 앞 팔까지 둘레 거리.</summary>
-        private static float GapInDirection(Fx fx, Arm arm, int dir)
+        /// <summary>
+        /// s 자리에서 가는 방향(dir) 앞쪽(둘레 절반 안) 팔까지의 간격: 둘레 거리와 실제 거리 중 작은 쪽
+        /// (모서리를 사이에 두면 둘레 거리보다 실제로 더 가까움).
+        /// </summary>
+        private static float Spacing(Fx fx, Arm arm, float s, int dir)
         {
+            PathPoint(fx, s, out var here, out _, out _, out _);
             float best = float.PositiveInfinity;
             foreach (var other in fx.Arms)
             {
                 if (other == arm)
                     continue;
-                float d = dir > 0 ? Wrap(fx, other.S - arm.S) : Wrap(fx, arm.S - other.S);
-                if (d > 1e-4f && d < best)
-                    best = d;
+                float d = dir > 0 ? Wrap(fx, other.S - s) : Wrap(fx, s - other.S);
+                if (d > fx.Perimeter * 0.5f)
+                    continue;
+                PathPoint(fx, other.S, out var there, out _, out _, out _);
+                best = Mathf.Min(best, Mathf.Min(d, Vector3.Distance(here, there)));
             }
             return best;
         }
