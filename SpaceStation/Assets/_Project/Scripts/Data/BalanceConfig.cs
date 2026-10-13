@@ -197,6 +197,8 @@ namespace SpaceStation.Data
         [SerializeField, Range(0f, 1f)] private float _demolishRefundRate;
         [Tooltip("수리 비용 비율 (건설 비용 대비, 3-3)")]
         [SerializeField, Range(0f, 1f)] private float _repairCostRate;
+        [Tooltip("12-3b 모듈 이동 비용 비율 (건설 비용 대비, 건설 연구 할인 반영). 즉시 이동")]
+        [SerializeField, Range(0f, 1f)] private float _moveCostRate = 0.2f;
 
         public int StartingPopulation => _startingPopulation;
         public IReadOnlyList<ResourceAmount> ConsumptionPerResident => _consumptionPerResident;
@@ -276,6 +278,7 @@ namespace SpaceStation.Data
         public float MeteorDurabilityDamage => _meteorDurabilityDamage;
         public float DemolishRefundRate => _demolishRefundRate;
         public float RepairCostRate => _repairCostRate;
+        public float MoveCostRate => _moveCostRate;
 
         /// <summary>난이도 덮어쓰기 — <see cref="DifficultyPreset.ApplyTo(BalanceConfig)"/>가 만든 복사본에만 호출.</summary>
         internal void ApplyDifficulty(DifficultyPreset preset)

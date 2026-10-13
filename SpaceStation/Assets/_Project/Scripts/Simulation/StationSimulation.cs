@@ -183,6 +183,7 @@ namespace SpaceStation.Simulation
             // 이 구독들이 뷰(StationController)보다 먼저 등록되어, 뷰가 생성될 때 연결 상태가 이미 최신이다.
             Grid.ModulePlaced += HandleModulePlaced;
             Grid.ModuleRemoved += HandleModuleRemoved;
+            Grid.ModuleMoved += HandleModuleMoved;
             Damage.Destroyed += HandleDestroyed;
             // 4-6: 정비 베이가 파손·복구되면 즉시 슬롯 수 갱신
             Damage.Damaged += _ => _stats.RefreshRepairCapacity();
@@ -455,6 +456,18 @@ namespace SpaceStation.Simulation
         /// <summary>같은 자리에 철거 후 새로 건설 (내구도·최대 내구도 100, 파손 해제). 순비용만 지불.</summary>
         public RebuildResult TryRebuild(ModuleInstance module, out ModuleInstance rebuilt) => _construction.TryRebuild(module, out rebuilt);
 
+        /// <summary>12-3b: 자리와 무관하게 옮길 수 있는지 (코어 · 합성 중 · 파손 · 받침이면 불가).</summary>
+        public MoveBlock CheckMovable(ModuleInstance module) => _construction.CheckMovable(module);
+
+        /// <summary>12-3b 이동 비용 = 건설비 × 이동 비율 (기본 20%).</summary>
+        public List<ResourceAmount> GetMoveCost(ModuleInstance module) => _construction.GetMoveCost(module);
+
+        /// <summary>12-3b 옮길 자리 판정 (공간 규칙 → 다른 모듈과 면 접촉 → 비용).</summary>
+        public PlacementResult EvaluateMove(ModuleInstance module, UnityEngine.Vector3Int origin, int rotation) => _construction.EvaluateMove(module, origin, rotation);
+
+        /// <summary>12-3b 비용을 내고 즉시 옮김 (같은 모듈 — 내구도 · 주민 · 상자 그대로).</summary>
+        public bool TryMove(ModuleInstance module, UnityEngine.Vector3Int origin, int rotation) => _construction.TryMove(module, origin, rotation);
+
         /// <summary>파괴 (방치 등): 환급 없음. 코어는 파괴되지 않는다.</summary>
         public bool DestroyModule(ModuleInstance module) => _construction.DestroyModule(module);
 
@@ -531,6 +544,17 @@ namespace SpaceStation.Simulation
             _meteors.OnModuleRemoved(module);
             foreach (var s in _systems)
                 s.OnModuleRemoved(module);
+        }
+
+        /// <summary>12-3b: 같은 모듈이 자리만 바뀜 → 위치에 따라 달라지는 값만 다시 계산 (모듈별 상태는 그대로).</summary>
+        private void HandleModuleMoved(ModuleInstance module, IReadOnlyList<UnityEngine.Vector3Int> oldCells)
+        {
+            Adjacency.Recalculate(Grid);
+            Connectivity.Recalculate();
+            _stats.RefreshCapacities();
+            EvaluateProgression();
+            foreach (var s in _systems)
+                s.OnModuleMoved(module);
         }
 
         private void HandleDestroyed(ModuleInstance module)

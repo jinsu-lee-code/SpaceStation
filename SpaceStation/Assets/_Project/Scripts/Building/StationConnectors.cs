@@ -80,6 +80,7 @@ namespace SpaceStation.Building
                 AddFor(module);
             grid.ModulePlaced += AddFor;
             grid.ModuleRemoved += RemoveFor;
+            grid.ModuleMoved += MoveFor;
             _station.Connectivity.ActiveStateChanged += HandleActiveChanged;
             _stateDirty = true;
         }
@@ -90,6 +91,7 @@ namespace SpaceStation.Building
                 return;
             _station.Grid.ModulePlaced -= AddFor;
             _station.Grid.ModuleRemoved -= RemoveFor;
+            _station.Grid.ModuleMoved -= MoveFor;
             _station.Connectivity.ActiveStateChanged -= HandleActiveChanged;
         }
 
@@ -178,10 +180,19 @@ namespace SpaceStation.Building
             _stateDirty = true;
         }
 
-        private void RemoveFor(ModuleInstance module)
+        private void RemoveFor(ModuleInstance module) => RemoveTouching(module.Cells);
+
+        /// <summary>12-3b: 옛 칸에 닿던 통로를 걷고 새 자리에서 다시 잇는다.</summary>
+        private void MoveFor(ModuleInstance module, IReadOnlyList<Vector3Int> oldCells)
+        {
+            RemoveTouching(oldCells);
+            AddFor(module);
+        }
+
+        private void RemoveTouching(IReadOnlyList<Vector3Int> touched)
         {
             _removeKeys.Clear();
-            var cells = new HashSet<Vector3Int>(module.Cells);
+            var cells = new HashSet<Vector3Int>(touched);
             foreach (var pair in _connectors)
             {
                 if (cells.Contains(pair.Key.Item1) || cells.Contains(pair.Key.Item2))
@@ -339,11 +350,11 @@ namespace SpaceStation.Building
         // ---------------- 배치 미리보기 ----------------
 
         /// <summary>배치할 모듈이 이웃과 만들 통로를 홀로그램으로 표시 (색은 고스트와 같게).</summary>
-        public void ShowPreview(ModuleData data, Vector3Int origin, int rotation, Color color)
+        public void ShowPreview(ModuleData data, Vector3Int origin, int rotation, Color color, ModuleInstance ignore = null)
         {
             if (_station == null || _ghostRoot == null)
                 return;
-            ConnectorLayout.ForPlacement(_station.Grid, data, origin, rotation, _specs);
+            ConnectorLayout.ForPlacement(_station.Grid, data, origin, rotation, _specs, ignore);
             // 개수가 바뀌면 다시 만들고, 같으면 위치만 갱신
             if (_ghosts.Count != _specs.Count || NeedsRebuild())
             {

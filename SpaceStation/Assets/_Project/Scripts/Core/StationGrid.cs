@@ -17,6 +17,8 @@ namespace SpaceStation.Core
 
         public event Action<ModuleInstance> ModulePlaced;
         public event Action<ModuleInstance> ModuleRemoved;
+        /// <summary>12-3b: 같은 모듈이 자리를 옮김 (모듈, 옮기기 전 칸).</summary>
+        public event Action<ModuleInstance, IReadOnlyList<Vector3Int>> ModuleMoved;
 
         public IReadOnlyList<ModuleInstance> Modules => _modules;
         public int ModuleCount => _modules.Count;
@@ -98,6 +100,37 @@ namespace SpaceStation.Core
             return true;
         }
 
+        /// <summary>12-3b: ignore 모듈이 차지한 칸은 비어 있다고 보고 배치할 수 있는지 (옮길 자리 판정).</summary>
+        public bool CanPlace(IReadOnlyList<Vector3Int> localOffsets, Vector3Int origin, int rotation, ModuleInstance ignore)
+        {
+            if (localOffsets == null || localOffsets.Count == 0)
+                return false;
+            return AreCellsFree(ResolveCells(localOffsets, origin, rotation), ignore);
+        }
+
+        /// <summary>
+        /// 12-3b: 모듈을 다른 자리 · 회전으로 옮긴다 (같은 인스턴스, 철거 · 배치 알림 없이 <see cref="ModuleMoved"/> 하나).
+        /// 점유 충돌만 검사한다 (자기 칸과 겹치는 자리는 허용). 규칙 판정은 바깥에서.
+        /// </summary>
+        public bool TryMove(ModuleInstance module, Vector3Int origin, int rotation)
+        {
+            if (module == null || module.Data == null || !_modules.Contains(module))
+                return false;
+            var cells = ResolveCells(module.Data.CellOffsets, origin, rotation);
+            if (!AreCellsFree(cells, module))
+                return false;
+
+            var oldCells = module.Cells;
+            foreach (var cell in oldCells)
+                _occupancy.Remove(cell);
+            module.Relocate(origin, GridDirections.NormalizeRotation(rotation), cells);
+            foreach (var cell in cells)
+                _occupancy.Add(cell, module);
+
+            ModuleMoved?.Invoke(module, oldCells);
+            return true;
+        }
+
         /// <summary>모듈의 어느 셀과든 면이 맞닿은 다른 모듈들 (중복 없음).</summary>
         public List<ModuleInstance> GetNeighborModules(ModuleInstance module)
         {
@@ -135,11 +168,11 @@ namespace SpaceStation.Core
             return count;
         }
 
-        private bool AreCellsFree(Vector3Int[] cells)
+        private bool AreCellsFree(Vector3Int[] cells, ModuleInstance ignore = null)
         {
             for (int i = 0; i < cells.Length; i++)
             {
-                if (_occupancy.ContainsKey(cells[i]))
+                if (_occupancy.TryGetValue(cells[i], out var occupant) && occupant != ignore)
                     return false;
                 // 오프셋 목록 자체에 중복 셀이 있으면 잘못된 정의로 본다.
                 for (int j = 0; j < i; j++)

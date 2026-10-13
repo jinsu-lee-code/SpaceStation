@@ -12,6 +12,8 @@ namespace SpaceStation.Building
     /// 면 클릭 고스트 배치.
     /// Tab / Shift+Tab: 건설 탭 전환 (4-5) / 숫자키 1~9: 현재 탭 안의 모듈 선택 / 좌클릭: 배치 확정 (선택 유지)
     /// 회전(기본 R) / 우클릭·ESC: 선택 취소. 키는 KeyBindings(7-5)에서 바꿀 수 있다
+    /// 12-3b 이동 모드(<see cref="BeginMove"/>): 같은 고스트로 옮길 자리를 고르고 좌클릭 = 이동 확정(모드 끝, 옮긴 모듈 다시 선택).
+    /// 옮기는 모듈의 콜라이더는 모드 동안 꺼서 그 모듈 면이 아니라 주변 모듈 면을 가리키게 한다.
     /// </summary>
     public sealed class BuildController : MonoBehaviour
     {
@@ -45,6 +47,8 @@ namespace SpaceStation.Building
         [SerializeField] private float _maxRayDistance = 500f;
 
         private ModuleData _selected;
+        private ModuleInstance _moving; // 12-3b 이동 모드 (null = 건설)
+        private readonly List<Collider> _movingColliders = new List<Collider>();
         private int _rotation;
         private GameObject _ghost;
         private Renderer[] _ghostRenderers;
@@ -76,8 +80,14 @@ namespace SpaceStation.Building
         public event Action<ModuleInstance> Placed;
         /// <summary>배치할 수 없는 자리에 클릭함.</summary>
         public event Action<PlacementResult> PlaceRejected;
+        /// <summary>12-3b 이동 확정 (옮긴 모듈).</summary>
+        public event Action<ModuleInstance> Moved;
+        /// <summary>12-3b 이동 모드 취소 (옮기려던 모듈).</summary>
+        public event Action<ModuleInstance> MoveCancelled;
 
         public ModuleData Selected => _selected;
+        /// <summary>12-3b 옮기는 중인 모듈 (건설 중이면 null).</summary>
+        public ModuleInstance Moving => _moving;
         public StationController Station => _station;
         public IReadOnlyList<ModuleData> BuildableModules => _buildableModules;
         /// <summary>모듈이 있는 탭만 (방어 탭은 모듈이 생기면 나타남).</summary>
@@ -111,7 +121,10 @@ namespace SpaceStation.Building
                 return;
             _station.Grid.ModulePlaced += MarkLanesDirty;
             _station.Grid.ModuleRemoved += MarkLanesDirty;
+            _station.Grid.ModuleMoved += MarkLanesDirtyMoved;
         }
+
+        private void MarkLanesDirtyMoved(ModuleInstance _, IReadOnlyList<Vector3Int> __) => _existingLanesDirty = true;
 
         private void OnDestroy()
         {
@@ -119,6 +132,7 @@ namespace SpaceStation.Building
             {
                 _station.Grid.ModulePlaced -= MarkLanesDirty;
                 _station.Grid.ModuleRemoved -= MarkLanesDirty;
+                _station.Grid.ModuleMoved -= MarkLanesDirtyMoved;
             }
         }
 
@@ -146,7 +160,13 @@ namespace SpaceStation.Building
 
             if ((keyboard.escapeKey.wasPressedThisFrame && !InputGate.EscapeConsumedThisFrame) || mouse.rightButton.wasPressedThisFrame)
             {
+                var cancelled = _moving;
                 Select(null);
+                if (cancelled != null)
+                {
+                    InputGate.ConsumeEscape(); // 다시 선택한 모듈을 같은 ESC로 풀지 않게 (일시정지 메뉴도 안 열림)
+                    MoveCancelled?.Invoke(cancelled);
+                }
                 return;
             }
 
@@ -167,17 +187,71 @@ namespace SpaceStation.Building
             {
                 if (!_targetValid)
                     PlaceRejected?.Invoke(_targetResult);
+                else if (_moving != null)
+                {
+                    var module = _moving;
+                    if (_station.Simulation.TryMove(module, _targetCell, _rotation))
+                    {
+                        InputGate.ConsumeClick(); // 같은 클릭으로 다른 모듈이 선택되지 않게
+                        Select(null);
+                        Moved?.Invoke(module);
+                    }
+                }
                 else if (_station.TryPlace(_selected, _targetCell, _rotation, out var placed))
                     Placed?.Invoke(placed);
                 // 배치 직후 같은 셀은 점유되므로 다음 프레임에 다시 판정된다.
             }
         }
 
+        /// <summary>
+        /// 12-3b: 이미 지은 모듈을 옮기는 모드 시작 (지금 회전에서 시작). 옮길 수 없는 모듈이면 false
+        /// (사유는 <see cref="StationSimulation.CheckMovable"/>).
+        /// </summary>
+        public bool BeginMove(ModuleInstance module)
+        {
+            if (module == null || _station.Simulation.CheckMovable(module) != SpaceStation.Simulation.MoveBlock.None)
+                return false;
+            Select(null);
+            _moving = module;
+            if (_station.TryGetView(module, out var view))
+            {
+                foreach (var c in view.GetComponentsInChildren<Collider>())
+                {
+                    if (!c.enabled)
+                        continue;
+                    c.enabled = false;
+                    _movingColliders.Add(c);
+                }
+            }
+            _selected = module.Data;
+            _rotation = module.Rotation;
+            _hasTarget = false;
+            _existingLanesDirty = true; // 옮기는 도킹의 접근로는 빼고 다시
+            RebuildGhost();
+            UpdateLanes();
+            SelectionChanged?.Invoke(_selected);
+            return true;
+        }
+
+        private void EndMove()
+        {
+            foreach (var c in _movingColliders)
+            {
+                if (c != null)
+                    c.enabled = true;
+            }
+            _movingColliders.Clear();
+            _moving = null;
+            _existingLanesDirty = true;
+        }
+
         public void Select(ModuleData data)
         {
-            if (data == _selected)
+            if (data == _selected && _moving == null)
                 return;
 
+            if (_moving != null)
+                EndMove();
             _selected = data;
             _rotation = 0;
             _hasTarget = false;
@@ -228,7 +302,9 @@ namespace SpaceStation.Building
                 AutoOrientDock(outward);
             // 8-4: 면 안쪽으로 뻗는 셀이 있는 모듈(가운데 원점인 회전 링 등)은 그만큼 바깥으로 띄워 면에 붙인다
             _targetCell = PlacementRules.AnchorOnFace(_selected, _targetCell, outward, _rotation);
-            _targetResult = _station.EvaluatePlacement(_selected, _targetCell, _rotation);
+            _targetResult = _moving != null
+                ? _station.Simulation.EvaluateMove(_moving, _targetCell, _rotation)
+                : _station.EvaluatePlacement(_selected, _targetCell, _rotation);
             _targetValid = _targetResult == PlacementResult.Valid;
             _hasTarget = true;
         }
@@ -283,7 +359,7 @@ namespace SpaceStation.Building
             _existingLanes.Clear();
             foreach (var m in _station.Grid.Modules)
             {
-                if (m.Data == null || !m.Data.TerminalOnly)
+                if (m.Data == null || !m.Data.TerminalOnly || m == _moving)
                     continue;
                 PlacementRules.GetDockLane(m.Data, m.Origin, m.Rotation, _laneScratch);
                 foreach (var cell in _laneScratch)
@@ -352,7 +428,7 @@ namespace SpaceStation.Building
                     r.SetPropertyBlock(_propertyBlock);
             }
             if (_connectors != null)
-                _connectors.ShowPreview(_selected, _targetCell, _rotation, _ghostColor);
+                _connectors.ShowPreview(_selected, _targetCell, _rotation, _ghostColor, _moving);
         }
 
         private void RebuildGhost()

@@ -270,9 +270,12 @@ namespace SpaceStation.UI
 
             if (build != null)
             {
-                string text = $"<b>{build.DisplayName}</b> 배치  ·  좌클릭: 배치  ·  {K(GameAction.Rotate)}: 회전  ·  우클릭/ESC: 취소";
+                var moving = _build.Moving; // 12-3b 이동 모드
+                string text = moving != null
+                    ? $"<b>{build.DisplayName}</b> 옮기기 ({HudText.Cost(_station.Simulation.GetMoveCost(moving))})  ·  좌클릭: 새 자리 확정  ·  {K(GameAction.Rotate)}: 회전  ·  우클릭/ESC: 취소"
+                    : $"<b>{build.DisplayName}</b> 배치  ·  좌클릭: 배치  ·  {K(GameAction.Rotate)}: 회전  ·  우클릭/ESC: 취소";
                 if (hasTarget && result != PlacementResult.Valid)
-                    text += $"\n<color={HudText.Red}>배치 불가: {HudText.PlacementReason(result)}</color>";
+                    text += $"\n<color={HudText.Red}>{(moving != null ? "옮기기" : "배치")} 불가: {HudText.PlacementReason(result)}</color>";
                 else if (hasTarget)
                 {
                     text += AdjacencyPreviewLine(build, targetCell, rotation);

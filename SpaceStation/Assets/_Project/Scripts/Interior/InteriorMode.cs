@@ -163,6 +163,7 @@ namespace SpaceStation.Interior
             BuildOverlay();
             _station.Grid.ModulePlaced += HandleGridChanged;
             _station.Grid.ModuleRemoved += HandleGridChanged;
+            _station.Grid.ModuleMoved += HandleModuleMoved;
             _station.Connectivity.ActiveStateChanged += HandleActiveChanged;
             _station.Simulation.Damage.Damaged += HandleDamage;
             _station.Simulation.Damage.Repaired += HandleRepaired;
@@ -182,6 +183,7 @@ namespace SpaceStation.Interior
             {
                 _station.Grid.ModulePlaced -= HandleGridChanged;
                 _station.Grid.ModuleRemoved -= HandleGridChanged;
+                _station.Grid.ModuleMoved -= HandleModuleMoved;
                 _station.Connectivity.ActiveStateChanged -= HandleActiveChanged;
                 _station.Simulation.Damage.Damaged -= HandleDamage;
                 _station.Simulation.Damage.Repaired -= HandleRepaired;
@@ -758,6 +760,8 @@ namespace SpaceStation.Interior
             if (_inside)
                 _rebuildPending = true;
         }
+
+        private void HandleModuleMoved(ModuleInstance module, IReadOnlyList<Vector3Int> _) => HandleGridChanged(module); // 12-3b
 
         private void HandleActiveChanged(ModuleInstance _, bool __)
         {

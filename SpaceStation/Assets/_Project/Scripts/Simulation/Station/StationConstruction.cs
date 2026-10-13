@@ -5,6 +5,20 @@ using SpaceStation.Data;
 
 namespace SpaceStation.Simulation
 {
+    /// <summary>12-3b: 모듈을 옮길 수 있는지 (자리와 무관한 조건).</summary>
+    public enum MoveBlock
+    {
+        None,
+        /// <summary>코어 · 철거 불가 모듈</summary>
+        NotMovable,
+        /// <summary>합성 중인 재료</summary>
+        Synthesizing,
+        /// <summary>파손 · 수리 대기 · 수리 중</summary>
+        Damaged,
+        /// <summary>다른 모듈의 받침 (철거와 같은 규칙)</summary>
+        Supporting,
+    }
+
     /// <summary>
     /// 12-0b (StationSimulation에서 분리): 건설 명령 — 배치 판정(공간 규칙 → 등급 해금/설치 제한 → 비용) · 배치 · 철거 · 환급 ·
     /// 정비 · 재건축 · 파괴. 바깥에서는 StationSimulation의 같은 이름 함수로 부른다.
@@ -77,6 +91,65 @@ namespace SpaceStation.Simulation
             foreach (var a in module.Data.BuildCost)
                 refund.Add(new ResourceAmount(a.Type, a.Amount * rate));
             return refund;
+        }
+
+        // ---------------- 이동 (12-3b) ----------------
+
+        /// <summary>자리와 무관하게 옮길 수 있는지 (사용자 결정 2026-10-13: 진화 모듈 · 도킹 포함, 파손 · 합성 중 · 받침은 불가).</summary>
+        public MoveBlock CheckMovable(ModuleInstance module)
+        {
+            if (!IsRemovableKind(module) || module.Data == null)
+                return MoveBlock.NotMovable;
+            if (_sim.IsHalted(module))
+                return MoveBlock.Synthesizing;
+            if (_sim.Damage.TryGetInfo(module, out _))
+                return MoveBlock.Damaged;
+            if (PlacementRules.SupportsOthers(_sim.Grid, module))
+                return MoveBlock.Supporting;
+            return MoveBlock.None;
+        }
+
+        /// <summary>이동 비용 = 건설비(건설 연구 할인 반영) × 이동 비율 (BALANCE 33번, 기본 20%).</summary>
+        public List<ResourceAmount> GetMoveCost(ModuleInstance module)
+        {
+            var cost = new List<ResourceAmount>();
+            if (module?.Data == null)
+                return cost;
+            foreach (var a in GetBuildCost(module.Data))
+                cost.Add(new ResourceAmount(a.Type, a.Amount * _sim.Balance.MoveCostRate));
+            return cost;
+        }
+
+        /// <summary>
+        /// 옮길 자리 판정: 공간 규칙(자기 칸 · 접근로 · 받침은 없다고 봄) → 다른 모듈과 면 접촉 → 비용.
+        /// 옮길 수 없는 모듈이면 InvalidDefinition (먼저 <see cref="CheckMovable"/>로 사유를 본다).
+        /// </summary>
+        public PlacementResult EvaluateMove(ModuleInstance module, UnityEngine.Vector3Int origin, int rotation)
+        {
+            if (CheckMovable(module) != MoveBlock.None)
+                return PlacementResult.InvalidDefinition;
+            rotation = GridDirections.NormalizeRotation(rotation);
+            if (origin == module.Origin && rotation == module.Rotation)
+                return PlacementResult.NoChange;
+            var data = module.Data;
+            var result = PlacementRules.Evaluate(_sim.Grid, data, origin, rotation, module);
+            if (result != PlacementResult.Valid)
+                return result;
+            if (!PlacementRules.TouchesOther(_sim.Grid, StationGrid.ResolveCells(data.CellOffsets, origin, rotation), module))
+                return PlacementResult.NeedsContact;
+            if (!_sim.Resources.CanAfford(GetMoveCost(module)))
+                return PlacementResult.InsufficientResources;
+            return PlacementResult.Valid;
+        }
+
+        /// <summary>비용을 내고 즉시 옮김 (같은 모듈 — 내구도 · 노후 · 주민 · 상자 그대로).</summary>
+        public bool TryMove(ModuleInstance module, UnityEngine.Vector3Int origin, int rotation)
+        {
+            if (EvaluateMove(module, origin, rotation) != PlacementResult.Valid)
+                return false;
+            if (!_sim.Resources.TrySpend(GetMoveCost(module)))
+                return false;
+            return _sim.Grid.TryMove(module, origin, rotation);
         }
 
         // ---------------- 정비 / 재건축 (4-3) ----------------

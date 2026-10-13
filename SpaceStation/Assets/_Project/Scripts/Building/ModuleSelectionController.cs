@@ -47,7 +47,15 @@ namespace SpaceStation.Building
             // StationController.Awake에서 그리드가 만들어진 뒤 구독
             _station.Grid.ModuleRemoved += HandleModuleRemoved;
             _station.Simulation.Automation.ModuleRebuilt += HandleAutoRebuilt;
+            if (_build != null)
+            {
+                _build.Moved += HandleMoved;
+                _build.MoveCancelled += HandleMoved;
+            }
         }
+
+        /// <summary>12-3b: 옮긴(또는 이동을 취소한) 모듈을 계속 선택 (이동 모드에 들어가며 선택이 풀렸음).</summary>
+        private void HandleMoved(ModuleInstance module) => Select(module);
 
         private void OnDestroy()
         {
@@ -55,6 +63,11 @@ namespace SpaceStation.Building
                 _station.Grid.ModuleRemoved -= HandleModuleRemoved;
             if (_station != null && _station.Simulation != null)
                 _station.Simulation.Automation.ModuleRebuilt -= HandleAutoRebuilt;
+            if (_build != null)
+            {
+                _build.Moved -= HandleMoved;
+                _build.MoveCancelled -= HandleMoved;
+            }
         }
 
         /// <summary>선택한 모듈이 자동 재건축되면 새 모듈을 계속 선택한다.</summary>
@@ -78,7 +91,7 @@ namespace SpaceStation.Building
                 return;
             }
 
-            if (mouse.leftButton.wasPressedThisFrame && !UiPointer.IsOverUi())
+            if (mouse.leftButton.wasPressedThisFrame && !UiPointer.IsOverUi() && !InputGate.ClickConsumedThisFrame)
                 Select(PickModule(mouse.position.ReadValue()));
 
             if (_selected == null)

@@ -16,6 +16,8 @@ namespace SpaceStation.Core
         EnterInterior,
         /// <summary>배속 올리기 (일시정지는 늘 가능).</summary>
         Speed,
+        /// <summary>12-3b 모듈 옮기기 (튜토리얼 중에는 막음).</summary>
+        Move,
     }
 
     /// <summary>

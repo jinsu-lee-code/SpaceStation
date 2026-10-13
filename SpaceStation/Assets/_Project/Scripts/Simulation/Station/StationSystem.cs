@@ -37,6 +37,9 @@ namespace SpaceStation.Simulation
         /// <summary>모듈이 철거 · 파괴됨 (연결 · 수용량 재계산 뒤).</summary>
         public virtual void OnModuleRemoved(ModuleInstance module) { }
 
+        /// <summary>12-3b: 같은 모듈이 자리를 옮김 (연결 · 수용량 재계산 뒤). 모듈별 상태는 그대로 두면 된다.</summary>
+        public virtual void OnModuleMoved(ModuleInstance module) { }
+
         /// <summary>세이브: 상태를 JSON 등 문자열로 (없으면 null). 모듈은 indexOf로 순번을 받아 저장한다 (코어 -2, 없음 -1).</summary>
         public virtual string Capture(Func<ModuleInstance, int> indexOf) => null;
 

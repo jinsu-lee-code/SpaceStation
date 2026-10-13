@@ -69,6 +69,10 @@ namespace SpaceStation.Core
 
         /// <summary>배치 미리보기: 아직 놓이지 않은 모듈이 이웃과 만들 통로.</summary>
         public static void ForPlacement(StationGrid grid, ModuleData data, Vector3Int origin, int rotation, List<ConnectorSpec> results)
+            => ForPlacement(grid, data, origin, rotation, results, null);
+
+        /// <summary>12-3b: ignore = 옮기는 모듈 (옛 자리와는 통로를 잇지 않음).</summary>
+        public static void ForPlacement(StationGrid grid, ModuleData data, Vector3Int origin, int rotation, List<ConnectorSpec> results, ModuleInstance ignore)
         {
             results.Clear();
             if (data == null)
@@ -79,7 +83,7 @@ namespace SpaceStation.Core
                 foreach (var dir in GridDirections.Faces)
                 {
                     var neighborCell = cell + dir;
-                    if (System.Array.IndexOf(cells, neighborCell) >= 0 || !grid.TryGetModule(neighborCell, out var other))
+                    if (System.Array.IndexOf(cells, neighborCell) >= 0 || !grid.TryGetModule(neighborCell, out var other) || other == ignore)
                         continue;
                     if (TryMake(data, origin, rotation, cell, other.Data, other.Origin, other.Rotation, neighborCell, dir, out var spec))
                         results.Add(spec);

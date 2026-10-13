@@ -36,6 +36,7 @@ namespace SpaceStation.Core
         Interact,
         Pad, // 11-12 휴대 패드 들기 / 내리기 (확대는 배속 순환 키)
         Recipes, // 12-3 합성 레시피 창
+        Move, // 12-3b 선택한 모듈 옮기기
     }
 
     /// <summary>키가 쓰이는 상황. 건설 중과 선택 중은 동시에 일어나지 않으므로 같은 키를 써도 된다.</summary>
@@ -89,6 +90,7 @@ namespace SpaceStation.Core
             new Info { Action = GameAction.Demolish, Group = "선택한 모듈", Label = "철거", Default = Key.X, Context = ActionContext.Selection },
             new Info { Action = GameAction.DemolishAlt, Group = "선택한 모듈", Label = "철거 (보조 키)", Default = Key.Delete, Context = ActionContext.Selection },
             new Info { Action = GameAction.EnterInterior, Group = "선택한 모듈", Label = "내부 들어가기", Default = Key.V, Context = ActionContext.Selection },
+            new Info { Action = GameAction.Move, Group = "선택한 모듈", Label = "옮기기", Default = Key.M, Context = ActionContext.Selection },
             new Info { Action = GameAction.Interact, Group = "내부 방문", Label = "해치 이용", Default = Key.F, Context = ActionContext.Interior },
             new Info { Action = GameAction.Pad, Group = "내부 방문", Label = "휴대 패드 들기 / 내리기 (든 채 배속 순환 키 = 화면 확대)", Default = Key.G, Context = ActionContext.Interior },
             new Info { Action = GameAction.Pause, Group = "시간", Label = "일시정지 / 재개", Default = Key.Space, Context = ActionContext.Always },

@@ -34,6 +34,9 @@ namespace SpaceStation.UI
         [SerializeField] private TMP_Text _rebuildLabel;
         [SerializeField] private Button _demolishButton;
         [SerializeField] private TMP_Text _demolishLabel;
+        [Header("12-3b 이동")]
+        [SerializeField] private Button _moveButton;
+        [SerializeField] private TMP_Text _moveLabel;
         [Header("Phase 11 내부 방문")]
         [SerializeField] private SpaceStation.Interior.InteriorMode _interior;
         [SerializeField] private Button _enterButton;
@@ -75,6 +78,8 @@ namespace SpaceStation.UI
             _demolishButton.onClick.AddListener(DemolishSelected);
             if (_enterButton != null)
                 _enterButton.onClick.AddListener(EnterSelected);
+            if (_moveButton != null)
+                _moveButton.onClick.AddListener(MoveSelected);
             if (_interior != null)
             {
                 _interior.Notice += HandleInteriorNotice;
@@ -132,6 +137,35 @@ namespace SpaceStation.UI
                 CancelRepairSelected();
             else if (KeyBindings.WasPressed(GameAction.EnterInterior))
                 EnterSelected();
+            else if (KeyBindings.WasPressed(GameAction.Move))
+                MoveSelected();
+        }
+
+        /// <summary>12-3b: 선택한 모듈을 옮기는 고스트 모드 (확정하면 다시 선택됨).</summary>
+        public void MoveSelected()
+        {
+            var module = _selection.Selected;
+            if (module == null || !TutorialGate.Check(TutorialAction.Move))
+                return;
+            var block = _station.Simulation.CheckMovable(module);
+            if (block != MoveBlock.None)
+            {
+                ActionFailed?.Invoke($"옮길 수 없습니다: {MoveBlockText(block)}");
+                return;
+            }
+            if (_build.BeginMove(module))
+                ActionDone?.Invoke($"{Name(module)} 옮기기 · 새 자리를 클릭 (비용 {HudText.Cost(_station.Simulation.GetMoveCost(module))}, {K(GameAction.Rotate)} 회전, 오른쪽 클릭 · ESC 취소)");
+        }
+
+        public static string MoveBlockText(MoveBlock block)
+        {
+            switch (block)
+            {
+                case MoveBlock.Synthesizing: return "합성 중인 재료";
+                case MoveBlock.Damaged: return "파손 · 수리 중인 모듈";
+                case MoveBlock.Supporting: return "다른 모듈의 받침";
+                default: return "옮길 수 없는 모듈";
+            }
         }
 
         private void LateUpdate()
@@ -494,6 +528,18 @@ namespace SpaceStation.UI
             _demolishLabel.SetText(removable
                 ? $"철거 ({K(GameAction.Demolish)})\n<size=80%>환급 {HudText.Cost(_resources.GetRefund(module))}</size>"
                 : supporting ? "철거 불가\n<size=80%>다른 모듈의 받침</size>" : "철거 불가");
+
+            // 12-3b 이동
+            if (_moveButton != null)
+            {
+                var block = _station.Simulation.CheckMovable(module);
+                var moveCost = _station.Simulation.GetMoveCost(module);
+                bool movable = block == MoveBlock.None;
+                _moveButton.interactable = movable && _resources.Simulation.CanAfford(moveCost) && TutorialGate.IsAllowed(TutorialAction.Move);
+                _moveLabel.SetText(movable
+                    ? $"옮기기 ({K(GameAction.Move)})\n<size=80%>{HudText.Cost(moveCost)}</size>"
+                    : block == MoveBlock.NotMovable ? "옮기기 불가" : $"옮기기 불가\n<size=80%>{MoveBlockText(block)}</size>");
+            }
 
             // 내부 방문
             if (_enterButton != null)

@@ -49,6 +49,7 @@ namespace SpaceStation.Building
 
             _sim.Grid.ModulePlaced += CreateView;
             _sim.Grid.ModuleRemoved += HandleModuleRemoved;
+            _sim.Grid.ModuleMoved += HandleModuleMoved;
             _sim.Connectivity.ActiveStateChanged += HandleActiveStateChanged;
             _sim.Damage.Damaged += HandleDamaged;
             _sim.Damage.RepairStarted += HandleRepairStarted;
@@ -83,6 +84,7 @@ namespace SpaceStation.Building
                 return;
             _sim.Grid.ModulePlaced -= CreateView;
             _sim.Grid.ModuleRemoved -= HandleModuleRemoved;
+            _sim.Grid.ModuleMoved -= HandleModuleMoved;
             _sim.Connectivity.ActiveStateChanged -= HandleActiveStateChanged;
             _sim.Damage.Damaged -= HandleDamaged;
             _sim.Damage.RepairStarted -= HandleRepairStarted;
@@ -247,6 +249,16 @@ namespace SpaceStation.Building
             {
                 _views.Remove(module);
                 Destroy(view.gameObject);
+            }
+        }
+
+        /// <summary>12-3b: 같은 오브젝트를 새 자리 · 회전으로 (상태 표시 · 자식 연출은 그대로 따라감).</summary>
+        private void HandleModuleMoved(ModuleInstance module, IReadOnlyList<Vector3Int> oldCells)
+        {
+            if (_views.TryGetValue(module, out var view))
+            {
+                view.transform.SetPositionAndRotation(GridConfig.CellToWorld(module.Origin), GridDirections.ToQuaternion(module.Rotation));
+                view.gameObject.name = module.ToString();
             }
         }
 

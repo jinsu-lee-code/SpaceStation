@@ -16,6 +16,13 @@ namespace SpaceStation.Core
         public static void ConsumeEscape() => _escapeConsumedFrame = UnityEngine.Time.frameCount;
 
         public static bool EscapeConsumedThisFrame => _escapeConsumedFrame == UnityEngine.Time.frameCount;
+
+        private static int _clickConsumedFrame = -1;
+
+        /// <summary>12-3b: 이번 프레임 좌클릭을 써서 모드가 끝났음 (이동 확정) — 선택 클릭으로 다시 쓰지 않게.</summary>
+        public static void ConsumeClick() => _clickConsumedFrame = UnityEngine.Time.frameCount;
+
+        public static bool ClickConsumedThisFrame => _clickConsumedFrame == UnityEngine.Time.frameCount;
     }
 
     /// <summary>빌드 설정의 씬 이름.</summary>

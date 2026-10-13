@@ -30,6 +30,8 @@ namespace SpaceStation.UI
                 case PlacementResult.ModuleLocked: return "아직 해금되지 않은 모듈 (등급 필요)";
                 case PlacementResult.LimitReached: return "현재 등급의 최대 설치 수에 도달";
                 case PlacementResult.InvalidDefinition: return "잘못된 모듈 정의";
+                case PlacementResult.NoChange: return "지금 자리 그대로";
+                case PlacementResult.NeedsContact: return "다른 모듈과 면이 닿는 자리로 옮겨야 함";
                 default: return string.Empty;
             }
         }

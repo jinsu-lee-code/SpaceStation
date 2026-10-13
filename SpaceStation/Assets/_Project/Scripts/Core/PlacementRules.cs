@@ -27,6 +27,10 @@ namespace SpaceStation.Core
         CoreTopNeedsSideContact,
         /// <summary>11-18 튜토리얼 중: 지금 단계의 모듈이 아님 (StationSimulation이 판정).</summary>
         TutorialLocked,
+        /// <summary>12-3b 이동: 지금 자리 · 회전 그대로.</summary>
+        NoChange,
+        /// <summary>12-3b 이동: 옮길 자리에서 다른 모듈과 면이 하나도 닿지 않음 (자기 옛 자리만 닿음).</summary>
+        NeedsContact,
     }
 
     /// <summary>
@@ -48,17 +52,21 @@ namespace SpaceStation.Core
         }
 
         public static PlacementResult Evaluate(StationGrid grid, ModuleData data, Vector3Int origin, int rotation)
+            => Evaluate(grid, data, origin, rotation, null);
+
+        /// <summary>12-3b: ignore = 옮기는 모듈 (그 칸 · 접근로 · 받침은 없다고 보고 판정).</summary>
+        public static PlacementResult Evaluate(StationGrid grid, ModuleData data, Vector3Int origin, int rotation, ModuleInstance ignore)
         {
             if (data == null || data.CellOffsets.Count == 0)
                 return PlacementResult.InvalidDefinition;
-            if (!grid.CanPlace(data, origin, rotation))
+            if (!grid.CanPlace(data.CellOffsets, origin, rotation, ignore))
                 return PlacementResult.Occupied;
 
             var cells = StationGrid.ResolveCells(data.CellOffsets, origin, rotation);
             // 8-0: 기존 도킹의 앞쪽 접근로에는 아무것도 못 지음
             foreach (var cell in cells)
             {
-                if (IsInDockLane(grid, cell))
+                if (IsInDockLane(grid, cell, ignore))
                     return PlacementResult.BlockedByDockLane;
             }
             if (data.TerminalOnly)
@@ -69,7 +77,7 @@ namespace SpaceStation.Core
                 bool backContact = false;
                 foreach (var cell in cells)
                 {
-                    if (!Contains(cells, cell - front) && grid.IsOccupied(cell - front))
+                    if (!Contains(cells, cell - front) && IsOccupied(grid, cell - front, ignore))
                         backContact = true;
                 }
                 if (!backContact)
@@ -80,12 +88,30 @@ namespace SpaceStation.Core
                         continue;
                     for (int k = 1; k <= data.ApproachLaneLength; k++)
                     {
-                        if (grid.IsOccupied(cell + front * k))
+                        if (IsOccupied(grid, cell + front * k, ignore))
                             return PlacementResult.DockLaneBlocked;
                     }
                 }
             }
-            return CheckSupport(grid, cells, null);
+            return CheckSupport(grid, cells, ignore);
+        }
+
+        private static bool IsOccupied(StationGrid grid, Vector3Int cell, ModuleInstance ignore)
+            => grid.TryGetModule(cell, out var other) && other != ignore;
+
+        /// <summary>12-3b 이동: 칸 중 하나라도 (ignore가 아닌) 다른 모듈과 면이 닿는지.</summary>
+        public static bool TouchesOther(StationGrid grid, IReadOnlyList<Vector3Int> cells, ModuleInstance ignore)
+        {
+            for (int i = 0; i < cells.Count; i++)
+            {
+                foreach (var dir in GridDirections.Faces)
+                {
+                    var n = cells[i] + dir;
+                    if (!Contains(cells, n) && IsOccupied(grid, n, ignore))
+                        return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -131,13 +157,16 @@ namespace SpaceStation.Core
         private const int MaxLaneScan = 8;
 
         /// <summary>이 칸이 이미 지어진 도킹의 접근로인지.</summary>
-        public static bool IsInDockLane(StationGrid grid, Vector3Int cell)
+        public static bool IsInDockLane(StationGrid grid, Vector3Int cell) => IsInDockLane(grid, cell, null);
+
+        /// <summary>12-3b: ignore 모듈은 없다고 봄 (옮기는 도킹 자기 접근로 · 옮기는 모듈이 가리던 접근로).</summary>
+        public static bool IsInDockLane(StationGrid grid, Vector3Int cell, ModuleInstance ignore)
         {
             foreach (var dir in GridDirections.Faces)
             {
                 for (int k = 1; k <= MaxLaneScan; k++)
                 {
-                    if (!grid.TryGetModule(cell - dir * k, out var other))
+                    if (!grid.TryGetModule(cell - dir * k, out var other) || other == ignore)
                         continue;
                     // 사이 칸이 비어 있으므로 찾은 칸은 그 도킹의 앞면 칸 (여러 칸 도킹도 앞면 칸마다 접근로)
                     if (other.Data != null && other.Data.TerminalOnly
