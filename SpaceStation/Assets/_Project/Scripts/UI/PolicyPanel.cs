@@ -20,8 +20,10 @@ namespace SpaceStation.UI
     [DefaultExecutionOrder(-250)]
     public sealed class PolicyPanel : MonoBehaviour
     {
-        private const float WindowWidth = 940f;
-        private const float WindowHeight = 700f;
+        // 사용자 피드백 2026-10-13: 글자가 잘 안 보임 → 창 · 글자 키우고 뒤 배경을 진하게 (붉은 태양 폭풍 배경에서도 읽히게)
+        private const float WindowWidth = 1200f;
+        private const float WindowHeight = 770f;
+        private const float CrisisWidth = 940f;
 
         [SerializeField] private StationController _station;
         [SerializeField] private TMP_FontAsset _font;
@@ -114,6 +116,7 @@ namespace SpaceStation.UI
         public void Open()
         {
             HudWindows.NotifyOpened(this);
+            transform.SetAsLastSibling(); // 건설 안내 등 다른 HUD 글자가 창 위로 비치지 않게
             _open = true;
             _group.blocksRaycasts = true;
             _group.interactable = true;
@@ -161,9 +164,9 @@ namespace SpaceStation.UI
                     _notice = policy != null ? $"'{policy.DisplayName}' 예약 · {_policies.Config.ApplyDelay:0}초 뒤 시행" : "슬롯 비우기 예약";
                     AudioService.TryPlay(l => l.UiClick);
                     break;
-                case PolicySystem.AssignResult.NoSlot: _notice = $"<color={HudText.Red}>열리지 않은 슬롯</color>"; break;
-                case PolicySystem.AssignResult.Cooldown: _notice = $"<color={HudText.Red}>이 슬롯은 아직 교체 대기 중</color>"; break;
-                case PolicySystem.AssignResult.Duplicate: _notice = $"<color={HudText.Red}>이미 다른 슬롯에 있는 정책</color>"; break;
+                case PolicySystem.AssignResult.NoSlot: _notice = $"<color={Bad}>열리지 않은 슬롯</color>"; break;
+                case PolicySystem.AssignResult.Cooldown: _notice = $"<color={Bad}>이 슬롯은 아직 교체 대기 중</color>"; break;
+                case PolicySystem.AssignResult.Duplicate: _notice = $"<color={Bad}>이미 다른 슬롯에 있는 정책</color>"; break;
                 case PolicySystem.AssignResult.Same: _notice = $"<color={HudText.Muted}>이미 이 슬롯의 정책</color>"; break;
             }
             Refresh();
@@ -193,26 +196,33 @@ namespace SpaceStation.UI
             var root = (RectTransform)transform;
             _window = HoloUi.Rect("PolicyWindow", root);
             _window.anchorMin = _window.anchorMax = _window.pivot = new Vector2(0.5f, 0.5f);
-            _window.anchoredPosition = new Vector2(-150f, 30f);
+            _window.anchoredPosition = new Vector2(-120f, 40f);
             _window.sizeDelta = new Vector2(WindowWidth, WindowHeight);
             _group = _window.gameObject.AddComponent<CanvasGroup>();
             _group.blocksRaycasts = false;
             _group.interactable = false;
-            _fx = _ui.Window(_window.gameObject, new Color(0.03f, 0.07f, 0.11f, 0.96f), "POLICY");
+            _fx = _ui.Window(_window.gameObject, new Color(0.02f, 0.045f, 0.07f, 0.99f), "POLICY");
+            // 반투명 버튼 뒤로 배경이 비치지 않게 진한 바탕
+            var back = HoloUi.Rect("Backing", _window);
+            HoloUi.Stretch(back, new Vector2(6f, 6f), new Vector2(-6f, -6f)); // 창 전체 (홀로그램 창 바탕이 반투명이라 HUD 글자가 비쳤음)
+            back.SetAsFirstSibling();
+            var backImage = back.gameObject.AddComponent<Image>();
+            backImage.color = new Color(0.015f, 0.03f, 0.05f, 0.97f);
+            backImage.raycastTarget = false;
 
-            var title = _ui.Label(_window, "정책", 32f, TextAlignmentOptions.TopLeft);
+            var title = _ui.Label(_window, "정책", 36f, TextAlignmentOptions.TopLeft);
             title.fontStyle = FontStyles.Bold;
-            HoloUi.Place(title.rectTransform, new Vector2(40f, -30f), new Vector2(300f, 46f));
+            HoloUi.Place(title.rectTransform, new Vector2(40f, -28f), new Vector2(200f, 50f));
             HoloUi.Glow(title, 0.5f);
-            _summary = _ui.Label(_window, "", 15f, TextAlignmentOptions.TopLeft, wrap: true);
-            HoloUi.Place(_summary.rectTransform, new Vector2(200f, -36f), new Vector2(WindowWidth - 240f, 50f));
+            _summary = _ui.Label(_window, "", 18f, TextAlignmentOptions.TopLeft, wrap: true);
+            HoloUi.Place(_summary.rectTransform, new Vector2(180f, -30f), new Vector2(WindowWidth - 220f, 56f));
 
             // 슬롯 카드 (최대 4)
-            const float cardW = 205f, cardH = 104f, gap = 12f;
+            const float cardW = 272f, cardH = 116f, gap = 14f;
             for (int i = 0; i < 4; i++)
             {
                 int slot = i;
-                var b = _ui.TechButton(_window, "", 15f, () => SelectSlot(slot));
+                var b = _ui.TechButton(_window, "", 19f, () => SelectSlot(slot));
                 HoloUi.Place((RectTransform)b.transform, new Vector2(40f + i * (cardW + gap), -96f), new Vector2(cardW, cardH));
                 var label = b.GetComponentInChildren<TMP_Text>();
                 label.alignment = TextAlignmentOptions.TopLeft;
@@ -222,14 +232,14 @@ namespace SpaceStation.UI
             }
 
             // 정책 목록 (2열)
-            const float rowW = 420f, rowH = 86f;
-            float top = -96f - cardH - 24f;
+            const float rowW = 550f, rowH = 104f;
+            float top = -96f - cardH - 20f;
             for (int i = 0; i < _policies.Policies.Count; i++)
             {
                 var p = _policies.Policies[i];
                 if (p == null)
                     continue;
-                var b = _ui.TechButton(_window, "", 15f, () => AssignToSelected(p));
+                var b = _ui.TechButton(_window, "", 19f, () => AssignToSelected(p));
                 HoloUi.Place((RectTransform)b.transform, new Vector2(40f + (i % 2) * (rowW + 20f), top - (i / 2) * (rowH + 8f)), new Vector2(rowW, rowH));
                 var label = b.GetComponentInChildren<TMP_Text>();
                 label.alignment = TextAlignmentOptions.TopLeft;
@@ -238,18 +248,18 @@ namespace SpaceStation.UI
                 _rows.Add((p, b, label));
             }
 
-            _clear = _ui.Button(_window, "고른 슬롯 비우기", 17f, () => AssignToSelected(null));
+            _clear = _ui.Button(_window, "고른 슬롯 비우기", 20f, () => AssignToSelected(null));
             var clr = (RectTransform)_clear.transform;
             clr.anchorMin = clr.anchorMax = clr.pivot = new Vector2(0f, 0f);
             clr.anchoredPosition = new Vector2(40f, 26f);
-            clr.sizeDelta = new Vector2(220f, 48f);
+            clr.sizeDelta = new Vector2(250f, 52f);
 
-            _footer = _ui.Label(_window, "", 15f, TextAlignmentOptions.MidlineLeft, wrap: true);
+            _footer = _ui.Label(_window, "", 19f, TextAlignmentOptions.MidlineLeft, wrap: true);
             _footer.rectTransform.anchorMin = _footer.rectTransform.anchorMax = _footer.rectTransform.pivot = new Vector2(0f, 0f);
-            _footer.rectTransform.anchoredPosition = new Vector2(280f, 26f);
-            _footer.rectTransform.sizeDelta = new Vector2(420f, 48f);
+            _footer.rectTransform.anchoredPosition = new Vector2(310f, 26f);
+            _footer.rectTransform.sizeDelta = new Vector2(600f, 52f);
 
-            var close = _ui.Button(_window, "닫기 (ESC)", 19f, Close);
+            var close = _ui.Button(_window, "닫기 (ESC)", 20f, Close);
             var crt = (RectTransform)close.transform;
             crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(1f, 0f);
             crt.anchoredPosition = new Vector2(-40f, 26f);
@@ -265,19 +275,26 @@ namespace SpaceStation.UI
             _crisisBox = HoloUi.Rect("CrisisChoices", root);
             _crisisBox.anchorMin = _crisisBox.anchorMax = _crisisBox.pivot = new Vector2(0.5f, 1f);
             _crisisBox.anchoredPosition = new Vector2(0f, -314f);
-            _crisisBox.sizeDelta = new Vector2(760f, 150f);
-            _ui.Panel(_crisisBox.gameObject, new Color(0.16f, 0.07f, 0.02f, 0.92f), HudTheme.Negative);
+            _crisisBox.sizeDelta = new Vector2(CrisisWidth, 186f);
+            _ui.Panel(_crisisBox.gameObject, new Color(0.07f, 0.03f, 0.015f, 0.98f), HudTheme.Negative);
+            _crisisBox.SetAsFirstSibling(); // 정책 창이 열려 있으면 그 뒤로
+            var crisisBack = HoloUi.Rect("Backing", _crisisBox);
+            HoloUi.Stretch(crisisBack, new Vector2(4f, 4f), new Vector2(-4f, -4f)); // 붉은 배경(태양 폭풍 등)이 비치지 않게
+            crisisBack.SetAsFirstSibling();
+            var crisisBackImage = crisisBack.gameObject.AddComponent<Image>();
+            crisisBackImage.color = new Color(0.05f, 0.025f, 0.02f, 0.97f);
+            crisisBackImage.raycastTarget = false;
             _crisisGroup = _crisisBox.gameObject.AddComponent<CanvasGroup>();
-            _crisisTitle = _ui.Label(_crisisBox, "", 24f, TextAlignmentOptions.Center);
-            HoloUi.Place(_crisisTitle.rectTransform, new Vector2(0f, -8f), new Vector2(760f, 32f));
-            _crisisDetail = _ui.Label(_crisisBox, "", 14f, TextAlignmentOptions.Center, wrap: true);
-            HoloUi.Place(_crisisDetail.rectTransform, new Vector2(20f, -40f), new Vector2(720f, 40f));
+            _crisisTitle = _ui.Label(_crisisBox, "", 28f, TextAlignmentOptions.Center);
+            HoloUi.Place(_crisisTitle.rectTransform, new Vector2(0f, -8f), new Vector2(CrisisWidth, 38f));
+            _crisisDetail = _ui.Label(_crisisBox, "", 18f, TextAlignmentOptions.Center, wrap: true);
+            HoloUi.Place(_crisisDetail.rectTransform, new Vector2(20f, -48f), new Vector2(CrisisWidth - 40f, 48f));
             var choices = new[] { SocialCrisisSystem.Choice.Bribe, SocialCrisisSystem.Choice.Crackdown, SocialCrisisSystem.Choice.Wage, SocialCrisisSystem.Choice.Ignore };
             for (int i = 0; i < choices.Length; i++)
             {
                 var c = choices[i];
-                var b = _ui.TechButton(_crisisBox, "", 14f, () => Choose(c));
-                HoloUi.Place((RectTransform)b.transform, new Vector2(16f + i * 184f, -88f), new Vector2(176f, 52f));
+                var b = _ui.TechButton(_crisisBox, "", 20f, () => Choose(c));
+                HoloUi.Place((RectTransform)b.transform, new Vector2(18f + i * 226f, -102f), new Vector2(214f, 72f));
                 var label = b.GetComponentInChildren<TMP_Text>();
                 label.enableWordWrapping = true;
                 _choices.Add((c, b, label));
@@ -300,10 +317,15 @@ namespace SpaceStation.UI
             foreach (var (_, button, _) in _choices)
                 if (button.gameObject.activeSelf != buttons)
                     button.gameObject.SetActive(buttons);
-            _crisisBox.sizeDelta = new Vector2(760f, buttons ? 150f : 84f);
+            _crisisBox.sizeDelta = new Vector2(CrisisWidth, buttons ? 186f : 100f);
         }
 
         // ---------------- 표시 ----------------
+
+        /// <summary>보조 글자색 (Muted보다 밝게 — 어두운 바탕 · 붉은 배경에서도 읽히게).</summary>
+        private const string Soft = "#C8D2DE";
+        /// <summary>나쁜 효과 글자색 (HudText.Red보다 밝게 — 붉은 경고 창 바탕에서도 읽히게, 사용자 피드백 2026-10-13).</summary>
+        private const string Bad = "#FFB0A0";
 
         private static string Clock(float seconds)
         {
@@ -319,7 +341,7 @@ namespace SpaceStation.UI
                 string line = PolicyStats.Describe(m.Stat, m.Value, out bool good);
                 if (sb.Length > 0)
                     sb.Append("  ");
-                sb.Append($"<color={(good ? HudTheme.GreenHex : HudText.Red)}>{line}</color>");
+                sb.Append($"<color={(good ? HudTheme.GreenHex : Bad)}>{line}</color>");
             }
             return sb.ToString();
         }
@@ -341,7 +363,7 @@ namespace SpaceStation.UI
             foreach (var t in _policies.Temporaries)
                 temps.Append(temps.Length > 0 ? " · " : "").Append($"{t.Name} {Clock(t.Remaining)}");
             _summary.SetText(slots > 0
-                ? $"<color={HudText.Muted}>슬롯 {slots}개 (국가급 2 · 대륙급 3 · 지구급 4) · 바꾸면 {_policies.Config.ApplyDelay:0}초 뒤 시행 · 그 슬롯은 {_policies.Config.SwapCooldown / 60f:0}분 교체 대기</color>"
+                ? $"<color={Soft}>슬롯 {slots}개 (국가급 2 · 대륙급 3 · 지구급 4) · 바꾸면 {_policies.Config.ApplyDelay:0}초 뒤 시행 · 그 슬롯은 {_policies.Config.SwapCooldown / 60f:0}분 교체 대기</color>"
                   + (temps.Length > 0 ? $"\n<color={HudText.Orange}>일시 효과: {temps}</color>" : "")
                 : $"<color={HudText.Orange}>국가급부터 정책 슬롯이 열립니다</color>");
 
@@ -353,17 +375,17 @@ namespace SpaceStation.UI
                 if (!open)
                 {
                     string grade = i < 2 ? "국가급" : i == 2 ? "대륙급" : "지구급";
-                    label.SetText($"<color={HudText.Muted}>슬롯 {i + 1}\n{grade}부터</color>");
+                    label.SetText($"<color={Soft}>슬롯 {i + 1}\n{grade}부터</color>");
                     continue;
                 }
                 var s = list[i];
                 var sb = new StringBuilder();
-                sb.Append(i == _selectedSlot ? $"<color=#7FD8FF><b>[선택] 슬롯 {i + 1}</b></color>\n" : $"<color={HudText.Muted}>슬롯 {i + 1}</color>\n");
-                sb.Append(s.Active != null ? $"<b>{s.Active.DisplayName}</b>\n" : $"<color={HudText.Muted}>(비어 있음)</color>\n");
+                sb.Append(i == _selectedSlot ? $"<color=#7FD8FF><b>[선택] 슬롯 {i + 1}</b></color>\n" : $"<color={Soft}>슬롯 {i + 1}</color>\n");
+                sb.Append(s.Active != null ? $"<b>{s.Active.DisplayName}</b>\n" : $"<color={Soft}>(비어 있음)</color>\n");
                 if (s.HasPending)
                     sb.Append($"<color={HudText.Orange}>다음: {(s.Pending != null ? s.Pending.DisplayName : "비우기")} {Clock(s.PendingLeft)}</color>\n");
                 if (s.Cooldown > 0f)
-                    sb.Append($"<size=85%><color={HudText.Muted}>교체 대기 {Clock(s.Cooldown)}</color></size>");
+                    sb.Append($"<size=90%><color={Soft}>교체 대기 {Clock(s.Cooldown)}</color></size>");
                 label.SetText(sb.ToString());
             }
 
@@ -372,11 +394,13 @@ namespace SpaceStation.UI
                 bool active = _policies.IsActive(policy);
                 button.interactable = slots > 0;
                 string name = active ? $"<color=#7FD8FF><b>{policy.DisplayName}</b> (시행 중)</color>" : $"<b>{policy.DisplayName}</b>";
-                label.SetText($"{name}\n<size=90%>{Effects(policy.Modifiers)}</size>"
-                              + (string.IsNullOrEmpty(policy.Description) ? "" : $"\n<size=80%><color={HudText.Muted}>{policy.Description}</color></size>"));
+                label.SetText($"{name}\n{Effects(policy.Modifiers)}"
+                              + (string.IsNullOrEmpty(policy.Description) ? "" : $"\n<size=88%><color={Soft}>{policy.Description}</color></size>"));
             }
             _clear.interactable = slots > 0;
-            _footer.SetText(_notice);
+            // 파업 경고 선택지 창은 정책 창 뒤에 있음 → 열려 있는 동안은 아래에 알림
+            bool warning = _crisis != null && _crisis.Phase == SocialCrisisSystem.CrisisPhase.Warning;
+            _footer.SetText(warning ? $"<color={Bad}><b>파업 조짐 {Clock(_crisis.TimeLeft)}</b> · 창을 닫고 선택지로 대응</color>" : _notice);
         }
 
         private void RefreshCrisis()
@@ -392,23 +416,23 @@ namespace SpaceStation.UI
                 case SocialCrisisSystem.CrisisPhase.Warning:
                     SetCrisisVisible(true, true);
                     _crisisTitle.SetText($"{HudTheme.Icon("warning")} <b>파업 조짐</b>  <color={HudText.Orange}>{Clock(_crisis.TimeLeft)}</color>");
-                    _crisisDetail.SetText($"<color=#E8C8C0>만족도 {_sim.Population.Satisfaction:0} (기준 {_crisis.Threshold:0}) · {_crisis.Threshold + cfg.StrikeRecoverMargin:0} 이상으로 오르면 저절로 풀림 · 시간이 다 되면 파업(생산 -{(1f - cfg.StrikeProduction) * 100f:0}%, {cfg.StrikeDuration:0}초)</color>");
+                    _crisisDetail.SetText($"<color=#F4ECE8>만족도 {_sim.Population.Satisfaction:0} (기준 {_crisis.Threshold:0}) · {_crisis.Threshold + cfg.StrikeRecoverMargin:0} 이상으로 오르면 저절로 풀림 · 시간이 다 되면 파업(생산 -{(1f - cfg.StrikeProduction) * 100f:0}%, {cfg.StrikeDuration:0}초)</color>");
                     foreach (var (choice, button, label) in _choices)
                     {
                         button.interactable = _crisis.CanChoose(choice);
                         label.SetText(choice switch
                         {
-                            SocialCrisisSystem.Choice.Bribe => $"<b>무마</b>\n<size=85%>{HudText.Cost(cfg.BribeCost)}</size>",
-                            SocialCrisisSystem.Choice.Crackdown => $"<b>강경 대응</b>\n<size=85%><color={HudText.Red}>만족도 {cfg.CrackdownSatisfaction:0} · 주민 -{cfg.CrackdownLeave}</color></size>",
-                            SocialCrisisSystem.Choice.Wage => $"<b>임금 인상</b>\n<size=85%>{cfg.WageSeconds / 60f:0}분 상한 +{cfg.WageSatisfactionCap:0} · 생산 -{(1f - cfg.WageProduction) * 100f:0}%</size>",
-                            _ => $"<b>방치</b>\n<size=85%><color={HudText.Red}>바로 파업</color></size>",
+                            SocialCrisisSystem.Choice.Bribe => $"<b>무마</b>\n<size=88%>{HudText.Cost(cfg.BribeCost)}</size>",
+                            SocialCrisisSystem.Choice.Crackdown => $"<b>강경 대응</b>\n<size=88%><color={Bad}>만족도 {cfg.CrackdownSatisfaction:0} · 주민 -{cfg.CrackdownLeave}</color></size>",
+                            SocialCrisisSystem.Choice.Wage => $"<b>임금 인상</b>\n<size=88%>{cfg.WageSeconds / 60f:0}분 상한 +{cfg.WageSatisfactionCap:0} · 생산 -{(1f - cfg.WageProduction) * 100f:0}%</size>",
+                            _ => $"<b>방치</b>\n<size=88%><color={Bad}>바로 파업</color></size>",
                         });
                     }
                     break;
                 case SocialCrisisSystem.CrisisPhase.Striking:
                     SetCrisisVisible(true, false);
                     _crisisTitle.SetText($"{HudTheme.Icon("warning")} <b>파업 중</b>  <color={HudText.Orange}>{Clock(_crisis.TimeLeft)}</color>");
-                    _crisisDetail.SetText($"<color=#E8C8C0>생산 -{(1f - cfg.StrikeProduction) * 100f:0}%</color>");
+                    _crisisDetail.SetText($"<color=#F4ECE8>생산 -{(1f - cfg.StrikeProduction) * 100f:0}%</color>");
                     break;
                 default:
                     SetCrisisVisible(false, false);
