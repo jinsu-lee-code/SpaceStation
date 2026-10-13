@@ -857,6 +857,54 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 79824726}
   m_CullTransparentMesh: 1
+--- !u!1 &93540758
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 93540760}
+  - component: {fileID: 93540759}
+  m_Layer: 0
+  m_Name: HeatMap
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &93540759
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 93540758}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: baf42b4c0c3aa3c42b054ef7064fd113, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.HeatMapView
+  _station: {fileID: 968511355}
+  _material: {fileID: 2100000, guid: fc8ab5cfc83d5b34581eb2274a4f6582, type: 2}
+  _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
+  _camera: {fileID: 1132423537}
+--- !u!4 &93540760
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 93540758}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &95685067
 GameObject:
   m_ObjectHideFlags: 0
@@ -5715,6 +5763,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: e535e9aa2bfade046a856410ed9f1f42, type: 2}
   - {fileID: 11400000, guid: 585783da322cda94eb46e8b23b149a25, type: 2}
   - {fileID: 11400000, guid: baf82f88d7dd8af4485e679bf6e430d9, type: 2}
+  - {fileID: 11400000, guid: 193ceb353af58f74bb102086c4c06f6c, type: 2}
   _ghostMaterial: {fileID: 2100000, guid: c967a8ec04b83f643ba2e8df6df29642, type: 2}
   _validColor: {r: 0.2, g: 1, b: 0.3, a: 0.45}
   _invalidColor: {r: 1, g: 0.2, b: 0.2, a: 0.45}
@@ -13580,3 +13629,4 @@ SceneRoots:
   - {fileID: 302008420}
   - {fileID: 148834059}
   - {fileID: 793670217}
+  - {fileID: 93540760}

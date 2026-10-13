@@ -68,6 +68,12 @@ namespace SpaceStation.Data
         [Tooltip("8-1: 파손 확산 시간 배율 (1 = 기본 60초, 0.5 = 2배 빨리 번짐 — 핵융합로)")]
         [SerializeField, Min(0.05f)] private float _spreadTimeMultiplier = 1f;
 
+        [Header("Heat (12-3c 대륙급 열 관리, BALANCE 36번)")]
+        [Tooltip("발열량 — 자기 칸 100%, 반경 안 다른 모듈에 거리마다 줄어 더해짐. 0이면 열 없음")]
+        [SerializeField, Min(0f)] private float _heatOutput;
+        [Tooltip("방열량 — 면이 맞닿은 모듈마다 이만큼 열을 뺌 (우주로 노출된 면이 있을 때만). 0이면 방열판 아님")]
+        [SerializeField, Min(0f)] private float _heatRemoval;
+
         [Header("Armor (8-5 장갑 격벽)")]
         [Tooltip("운석 피격 가중치 배율 (노출 면 가중치에 곱함, 3 = 같은 노출의 모듈보다 3배 잘 맞음 → 미끼)")]
         [SerializeField, Min(0f)] private float _meteorWeightMultiplier = 1f;
@@ -211,6 +217,8 @@ namespace SpaceStation.Data
         public float BatteryRate => _batteryRate;
         public bool OnDemandPower => _onDemandPower;
         public float MeteorWeightMultiplier => Mathf.Max(0f, _meteorWeightMultiplier);
+        public float HeatOutput => _heatOutput;
+        public float HeatRemoval => _heatRemoval;
         public bool Armored => _armored;
         public bool CountsTowardGrade => _countsTowardGrade;
         public int GradeModuleCount => Mathf.Max(1, _gradeModuleCount);

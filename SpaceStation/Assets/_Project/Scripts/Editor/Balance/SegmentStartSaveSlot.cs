@@ -23,6 +23,10 @@ namespace SpaceStation.Editor.Balance
         [MenuItem("SpaceStation/Grade Rules/Test Save: National Start → Slot 3")]
         public static void NationalToSlot3() => Write(CityGrade + 1, 1, Slot, confirm: true);
 
+        /// <summary>12-3c 대륙급 열 관리 시험용.</summary>
+        [MenuItem("SpaceStation/Grade Rules/Test Save: Continental Start → Slot 3")]
+        public static void ContinentalToSlot3() => Write(CityGrade + 2, 1, Slot, confirm: true);
+
         /// <summary>그 등급 · 시드의 시작 상태를 슬롯에 씀. 성공하면 true.</summary>
         public static bool Write(int grade, int seed, string slot, bool confirm)
         {

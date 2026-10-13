@@ -215,6 +215,21 @@ namespace SpaceStation.Data
         [Tooltip("한 파의 운석 수 = 등급 운석 수(최소~최대 무작위) × 이 배율 ÷ 파 수 (올림)")]
         [SerializeField, Min(0f)] private float _showerHitsMultiplier = 3f;
 
+        [Header("Heat (BALANCE 36번, 12-3c 대륙급 핵심 규칙)")]
+        [Tooltip("열 관리가 시작되는 등급 번호 (7 = 대륙급)")]
+        [SerializeField, Min(0)] private int _heatMinGrade = 7;
+        [Tooltip("모듈 열 한도 — 넘으면 과열")]
+        [SerializeField, Min(0.1f)] private float _heatLimit = 8f;
+        [Tooltip("거리 1칸 · 2칸에서 받는 열 비율 (자기 칸 = 1, 그 너머 = 0)")]
+        [SerializeField, Range(0f, 1f)] private float _heatFalloff1 = 0.5f;
+        [SerializeField, Range(0f, 1f)] private float _heatFalloff2 = 0.25f;
+        [Tooltip("과열 효율 감소 최대 (한도 × 위험 배율에서 이 값)")]
+        [SerializeField, Range(0f, 1f)] private float _heatMaxPenalty = 0.5f;
+        [Tooltip("한도의 이 배율 이상 = 위험 (효율 감소 최대 + 파손 시계)")]
+        [SerializeField, Min(1.01f)] private float _heatDangerRatio = 1.5f;
+        [Tooltip("위험 상태가 이 시간(초) 이어지면 파손")]
+        [SerializeField, Min(1f)] private float _heatDamageSeconds = 60f;
+
         public int StartingPopulation => _startingPopulation;
         public IReadOnlyList<ResourceAmount> ConsumptionPerResident => _consumptionPerResident;
         public IReadOnlyList<ResourceAmount> StartingResources => _startingResources;
@@ -301,6 +316,13 @@ namespace SpaceStation.Data
         public int ShowerWaves => Mathf.Max(1, _showerWaves);
         public float ShowerWaveInterval => _showerWaveInterval;
         public float ShowerHitsMultiplier => _showerHitsMultiplier;
+        public int HeatMinGrade => _heatMinGrade;
+        public float HeatLimit => _heatLimit;
+        public float HeatFalloff1 => _heatFalloff1;
+        public float HeatFalloff2 => _heatFalloff2;
+        public float HeatMaxPenalty => _heatMaxPenalty;
+        public float HeatDangerRatio => _heatDangerRatio;
+        public float HeatDamageSeconds => _heatDamageSeconds;
 
         /// <summary>난이도 덮어쓰기 — <see cref="DifficultyPreset.ApplyTo(BalanceConfig)"/>가 만든 복사본에만 호출.</summary>
         internal void ApplyDifficulty(DifficultyPreset preset)

@@ -112,7 +112,7 @@ namespace SpaceStation.Simulation
                     power = _sim.Resources.PowerEfficiency;
             }
             return power * _sim.Damage.GetProductionMultiplier(module) * _sim.Durability.GetEfficiency(module) * _sim.Incidents.ProductionMultiplier(module)
-                   * _sim.Adjacency.GetProductionMultiplier(module) * _sim.Effects.ProductionMultiplier(module.Data);
+                   * _sim.Adjacency.GetProductionMultiplier(module) * _sim.Effects.ProductionMultiplier(module.Data) * _sim.HeatMultiplier(module);
         }
 
         public void RefreshCapacities()
@@ -136,7 +136,8 @@ namespace SpaceStation.Simulation
                 bool halted = _sim.IsHalted(module); // 12-3 합성 중: 수리 중처럼 생산 0 (소비 · 수용 · 저장은 유지)
                 // 파손 배율 × 내구도 효율 × 인접 효과 × 생산 연구 (BALANCE 1번: 곱셈)
                 _productionMultipliers.Add(halted ? 0f : _sim.Damage.GetProductionMultiplier(module) * _sim.Durability.GetEfficiency(module) * _sim.Incidents.ProductionMultiplier(module)
-                                           * _sim.Adjacency.GetProductionMultiplier(module) * _sim.Effects.ProductionMultiplier(module.Data));
+                                           * _sim.Adjacency.GetProductionMultiplier(module) * _sim.Effects.ProductionMultiplier(module.Data)
+                                           * _sim.HeatMultiplier(module)); // 12-3c 과열
                 if (module.Data.ResearchSlots > 0 && !_sim.Damage.IsDamaged(module) && !halted)
                     labSlots += module.Data.ResearchSlots; // 연결되고 파손되지 않은 연구소만
                 _consumptionMultipliers.Add(_sim.Adjacency.GetConsumptionMultiplier(module));

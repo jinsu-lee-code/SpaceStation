@@ -99,7 +99,7 @@ namespace SpaceStation.Tests
             {
                 TickStepNames.Damage, TickStepNames.Durability, TickStepNames.Resources, TickStepNames.Incidents, TickStepNames.Research,
                 TickStepNames.Cargo, TickStepNames.Automation, TickStepNames.Needs, TickStepNames.Population, TickStepNames.Events,
-                MeteorShowerSystem.SystemKey, // 12-3c 기본으로 붙는 시스템
+                MeteorShowerSystem.SystemKey, HeatSystem.SystemKey, // 12-3c 기본으로 붙는 시스템
                 TickStepNames.Clock, TickStepNames.Tutorial, TickStepNames.Progression, TickStepNames.Failure,
             }, names);
 

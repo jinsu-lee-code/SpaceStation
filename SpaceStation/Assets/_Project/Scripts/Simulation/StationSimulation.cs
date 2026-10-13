@@ -135,6 +135,12 @@ namespace SpaceStation.Simulation
         public SynthesisSystem Synthesis { get; }
         /// <summary>12-3c 도시급 유성우 방향 예보.</summary>
         public MeteorShowerSystem MeteorShower { get; }
+        /// <summary>12-3c 대륙급 열 관리.</summary>
+        public HeatSystem Heat { get; }
+
+        /// <summary>12-3c 과열 생산 배율 (열 관리 전 · 한도 이하면 1).</summary>
+        public float HeatMultiplier(ModuleInstance module) => Heat != null ? Heat.ProductionMultiplier(module) : 1f;
+
         /// <summary>12-3c 국가급 상시 정책 (설정에 없으면 null).</summary>
         public PolicySystem Policies { get; }
         /// <summary>12-3c 사회 위기 선택지 (설정에 없으면 null).</summary>
@@ -238,6 +244,7 @@ namespace SpaceStation.Simulation
             if (settings.Recipes != null)
                 Synthesis = AddSystem(new SynthesisSystem(settings.Recipes), TickStepNames.Automation); // 요구 · 인구 계산 전에 교체가 끝나게
             MeteorShower = AddSystem(new MeteorShowerSystem(settings.HazardRandom01), TickStepNames.Events); // 도시급 전에는 아무것도 안 함 (기존 결과 그대로)
+            Heat = AddSystem(new HeatSystem(), MeteorShowerSystem.SystemKey); // 대륙급 전에는 열 0 (기존 결과 그대로)
             if (settings.Policies != null)
             {
                 Policies = AddSystem(new PolicySystem(settings.Policies), MeteorShowerSystem.SystemKey);
