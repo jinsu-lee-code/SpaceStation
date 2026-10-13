@@ -64,6 +64,7 @@ namespace SpaceStation.Building
         private sealed class Arm
         {
             public Transform Mount, Model, Turret, Upper, Fore, Head, Tip;
+            public Quaternion ModelRotation;   // 모델 루트 원래 회전 (축 변환) — 매달 때 이 위에 돌림
             public float L1, L2;
             // 12-3b 피드백: 고리 둘레를 따라 이동 (S = 둘레 위치, Stop = 다음에 멈출 위치) → 멈춰서 용접 → 다음 자리
             public float S, Stop;
@@ -103,6 +104,8 @@ namespace SpaceStation.Building
             public float Perimeter;            // 둘레 길이 (모서리 회전 구간 포함)
             public Vector3Int Min, Max;        // 규격 칸 범위
             public float CeilingCheck;         // 다음 천장 확인까지 (실제 초)
+            public readonly List<Renderer> HiddenConnectors = new List<Renderer>();   // 숨긴 재료 통로 (취소 때 되돌림)
+            public float ConnectorCheck;       // 다음 통로 숨기기까지 (실제 초)
         }
 
         private readonly Dictionary<SynthesisJob, Fx> _fx = new Dictionary<SynthesisJob, Fx>();
@@ -110,6 +113,9 @@ namespace SpaceStation.Building
         private MaterialPropertyBlock _block;
         private SynthesisSystem _synthesis;
         private Transform _stash;              // 미리보기 프리팹을 깨우지 않고 정리하는 비활성 부모
+        private StationConnectors _connectors;
+        private readonly List<Vector3Int> _cells = new List<Vector3Int>();
+        private readonly List<Renderer> _renderers = new List<Renderer>();
 
         private void Start()
         {
@@ -120,6 +126,7 @@ namespace SpaceStation.Building
                 enabled = false;
                 return;
             }
+            _connectors = _station.GetComponent<StationConnectors>();
             var stash = new GameObject("SynthesisFxStash");
             stash.SetActive(false);
             stash.transform.SetParent(transform, false);
@@ -412,6 +419,7 @@ namespace SpaceStation.Building
             };
             arm.L1 = arm.Fore.localPosition.magnitude;
             arm.L2 = arm.Head.localPosition.magnitude + arm.Tip.localPosition.magnitude;
+            arm.ModelRotation = arm.Model.localRotation;
             arm.Sparks = WeldSparks(arm.Tip);
             var flash = new GameObject("WeldLight").AddComponent<Light>();
             flash.transform.SetParent(arm.Tip, false);
@@ -626,7 +634,36 @@ namespace SpaceStation.Building
                 if (r != null)
                     r.enabled = true;
             }
+            foreach (var r in fx.HiddenConnectors)
+            {
+                if (r != null)
+                    r.enabled = true;
+            }
             fx.Swapped.Clear();
+            fx.HiddenConnectors.Clear();
+        }
+
+        /// <summary>
+        /// 12-3b 피드백: 합성 중에는 재료 칸에 닿은 통로를 숨김 (상위 모듈 미리보기를 관통해 보였음). 완료되면 재료 철거로 통로가 지워지고
+        /// 결과 모듈 통로가 새로 생김. 합성 중 이웃에 새로 지어 생긴 통로도 숨기도록 주기적으로 다시 모음.
+        /// </summary>
+        private void HideConnectors(Fx fx)
+        {
+            if (_connectors == null)
+                return;
+            _cells.Clear();
+            foreach (var m in fx.Job.Materials)
+                if (m != null)
+                    _cells.AddRange(m.Cells);
+            _renderers.Clear();
+            _connectors.CollectRenderersTouching(_cells, _renderers);
+            foreach (var r in _renderers)
+            {
+                if (r == null || !r.enabled)
+                    continue;
+                r.enabled = false;
+                fx.HiddenConnectors.Add(r);
+            }
         }
 
         private static void DestroyMaterials(Fx fx)
@@ -658,6 +695,12 @@ namespace SpaceStation.Building
             var job = fx.Job;
             bool paused = job.Paused;
             fx.Clock += gameDt;
+            fx.ConnectorCheck -= Time.deltaTime;
+            if (fx.ConnectorCheck <= 0f)
+            {
+                fx.ConnectorCheck = 0.5f;
+                HideConnectors(fx);
+            }
             // 천장은 생길 수 있는 높이가 정해져 있음 (맨 위 경계 + 0.04) → 경계가 그 아래 여유(팔꿈치 자세 전환 + 0.08)에 들어온 뒤부터만
             // 0.5초마다 확인 (사용자 결정 2026-10-13: 그 전에는 확인할 필요 없음). 합성 중 위에 새로 지은 모듈도 이때 잡힘
             float seamNow = Mathf.Lerp(fx.Bottom, fx.Top, fx.Visual);
@@ -728,8 +771,11 @@ namespace SpaceStation.Building
         // 위 모듈 피하기 (12-3b 피드백 2): 고리 윗면 ~ 위 모듈 밑면 여유가 이보다 작으면
         private const float ElbowDownClearance = 0.5f;  // 팔꿈치 위 자세(고리 위 약 0.4) → 팔꿈치 아래 자세(약 0.16). 측정: 0.42면 전환 직전 천장과 2cm
 
-        private const float StowClearance = 0.2f;      // → 팔을 접어 고리 속으로 (고리 위 약 0.06), 고리 안쪽 가장자리 불꽃이 마무리
-        private const float StowSink = 0.11f;          // 접을 때 받침째 고리 속으로 내려가는 깊이
+        // → 팔을 바깥으로 납작하게 접은 뒤(고리 위 약 0.2) 받침째 고리 바깥 윗모서리를 축으로 90° 넘어가 고리 바깥에 매달림
+        //   (사용자 결정 2026-10-13: 고리 속으로 가라앉히면 팔이 고리 · 받침을 뚫었음). 고리 안쪽 가장자리 불꽃이 마무리
+        private const float StowClearance = 0.28f;
+        private static readonly Vector3 StowHinge = new Vector3(0f, 0.045f, -0.118f);   // 받침 루트 기준: 고리 윗면 바깥 모서리 (바깥 = −z)
+        private const float StowDrop = 0.12f;
 
         private void UpdateArm(Fx fx, Arm arm, float seam, float gameDt, bool paused)
         {
@@ -830,6 +876,7 @@ namespace SpaceStation.Building
             arm.Fore.localRotation = Quaternion.identity;
             arm.Head.localRotation = Quaternion.identity;
             arm.Model.localPosition = Vector3.zero;
+            arm.Model.localRotation = arm.ModelRotation;
             var axis = Vector3.Cross(ArmUp, ArmForward);
             Quaternion turret = Quaternion.identity, upper = Quaternion.identity, fore = Quaternion.identity;
             if (weight > 0.001f && arm.Stow < 0.999f)
@@ -857,12 +904,18 @@ namespace SpaceStation.Building
             }
             if (arm.Stow > 0.001f)
             {
-                // 접은 자세: 고리를 따라 눕고(회전대 90°) 아래팔을 윗팔 위로 접음, 받침째 고리 속으로
-                float s = Mathf.SmoothStep(0f, 1f, arm.Stow);
-                turret = Quaternion.Slerp(turret, Quaternion.AngleAxis(90f, ArmUp), s);
-                upper = Quaternion.Slerp(upper, Quaternion.AngleAxis(86f, axis), s);
-                fore = Quaternion.Slerp(fore, Quaternion.AngleAxis(172f, axis), s);
-                arm.Model.localPosition = Vector3.down * (StowSink * s);
+                // 1) 앞 절반: 윗팔을 바깥(−앞)으로 눕히고 아래팔을 그 위로 되접음 → 고리 위 약 0.2 높이의 납작한 자세
+                float fold = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(arm.Stow / 0.5f));
+                turret = Quaternion.Slerp(turret, Quaternion.identity, fold);
+                upper = Quaternion.Slerp(upper, Quaternion.AngleAxis(-90f, axis), fold);
+                fore = Quaternion.Slerp(fore, Quaternion.AngleAxis(-186f, axis), fold);
+                // 2) 뒤 절반: 받침째 고리 윗면 바깥 모서리를 축으로 바깥쪽으로 90° 넘어감 → 바깥으로 눕혀 둔 팔이 고리 바깥에서 아래로 늘어지고
+                //    받침은 고리 바깥면 위에 세로로 섬 (가장 높은 곳 = 고리 윗면 위 약 0.12). 180°면 팔이 다시 고리 아래 안쪽으로 들어왔음 (측정)
+                float flip = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((arm.Stow - 0.5f) / 0.5f));
+                var q = Quaternion.AngleAxis(-90f * flip, Vector3.right);
+                arm.Model.localRotation = q * arm.ModelRotation;
+                // 넘기면 받침(안쪽 폭 약 0.12)이 세로로 서서 고리 위로 솟음 → 고리 바깥면을 따라 그만큼 내려 줌 (측정: 안 내리면 고리 위 0.15)
+                arm.Model.localPosition = StowHinge + q * -StowHinge + Vector3.down * (StowDrop * flip);
             }
             arm.Turret.localRotation = turret;
             arm.Upper.localRotation = upper;
@@ -901,11 +954,16 @@ namespace SpaceStation.Building
             }
             if (completed)
                 Burst(fx.Center, fx.Half, fx.Top, _plumeColor, Mathf.Clamp(Mathf.RoundToInt((fx.Half.x + fx.Half.y) * 60f), 40, 160));
+            // 위가 비어 있는 완료만 위로 날아오름. 위에 모듈이 있거나 취소면 토막마다 제자리에서 흩어짐
+            // (사용자 결정 2026-10-13: 고리째 가운데로 줄어들면 완성된 모듈 · 남은 재료를 통과했음)
+            if (!(completed && float.IsPositiveInfinity(fx.Ceiling)))
+            {
+                yield return Dissolve(fx, completed);
+                yield break;
+            }
             float start = fx.Ring.position.y;
             float t = 0f;
             var scale0 = fx.Ring.localScale;
-            // 위에 모듈이 있으면 위로 날아오르지 않음 (뚫고 지나가지 않게) — 제자리에서 퍼지며 사라짐
-            bool fly = completed && float.IsPositiveInfinity(fx.Ceiling);
             while (t < _outroSeconds)
             {
                 t += Time.deltaTime;
@@ -915,11 +973,11 @@ namespace SpaceStation.Building
                     arm.Stow = Mathf.MoveTowards(arm.Stow, 1f, Time.deltaTime * 4f); // 팔을 접어 넣음
                     Solve(arm, arm.Current == Vector3.zero ? arm.Tip.position : arm.Current, fx.Weight);
                 }
-                // 완료: 위로 날아오르며 섬광 → 작아짐 (위가 막혔으면 제자리), 취소: 내려앉으며 작아짐
-                float y = fly ? start + 0.9f * k * k + 0.15f * k : completed ? start : start - 0.35f * k;
+                // 위로 날아오르며 섬광 → 작아짐
+                float y = start + 0.9f * k * k + 0.15f * k;
                 fx.Ring.position = new Vector3(fx.Ring.position.x, y, fx.Ring.position.z);
-                fx.Ring.localScale = scale0 * Mathf.Lerp(1f, completed ? (fly ? 1.12f : 1.2f) : 0.9f, k) * (k > 0.7f ? Mathf.Lerp(1f, 0f, (k - 0.7f) / 0.3f) : 1f);
-                float flash = completed ? Mathf.Lerp(3.5f, 0f, k) : Mathf.Lerp(1f, 0f, k);
+                fx.Ring.localScale = scale0 * Mathf.Lerp(1f, 1.12f, k) * (k > 0.7f ? Mathf.Lerp(1f, 0f, (k - 0.7f) / 0.3f) : 1f);
+                float flash = Mathf.Lerp(3.5f, 0f, k);
                 foreach (var (r, slot) in fx.GlowSlots)
                 {
                     if (r == null)
@@ -928,11 +986,72 @@ namespace SpaceStation.Building
                     _block.SetColor(EmissionColorId, _glowColor * flash);
                     r.SetPropertyBlock(_block, slot);
                 }
-                fx.Under.intensity = completed ? Mathf.Lerp(4f, 0f, k) : Mathf.Lerp(0.8f, 0f, k);
+                fx.Under.intensity = Mathf.Lerp(4f, 0f, k);
                 foreach (var p in fx.Plumes)
                 {
                     var e = p.emission;
-                    e.rateOverTime = completed ? 70f * (1f - k) : 10f * (1f - k);
+                    e.rateOverTime = 70f * (1f - k);
+                }
+                yield return null;
+            }
+            Destroy(fx.Root.gameObject);
+        }
+
+        /// <summary>
+        /// 토막마다 제자리에서 흩어짐: 둘레를 따라 차례로(파도처럼) 보라 빛이 번쩍이며 각 토막 · 팔이 자기 원점(고리 경계선 위)으로 작아져 사라짐 + 작은 입자.
+        /// 원점이 규격 경계라 작아지는 동안 모듈 안으로 들어가지 않음.
+        /// </summary>
+        private IEnumerator Dissolve(Fx fx, bool completed)
+        {
+            const float wave = 0.7f, life = 0.38f;
+            var pieces = new List<(Transform T, float Order, Vector3 Scale)>();
+            foreach (Transform c in fx.Ring)
+            {
+                if (c.GetComponentInChildren<Renderer>() == null)
+                    continue; // 아래 빛
+                float order = Mathf.Repeat(Mathf.Atan2(c.localPosition.z, c.localPosition.x) / (2f * Mathf.PI), 1f);
+                pieces.Add((c, order, c.localScale));
+            }
+            var burst = new bool[pieces.Count];
+            float t = 0f;
+            while (t < wave + life)
+            {
+                t += Time.deltaTime;
+                for (int i = 0; i < pieces.Count; i++)
+                {
+                    var (piece, order, scale0) = pieces[i];
+                    if (piece == null)
+                        continue;
+                    float k = (t - order * wave) / life;
+                    if (k <= 0f)
+                        continue;
+                    if (!burst[i])
+                    {
+                        burst[i] = true;
+                        var p = piece.position;
+                        Burst(new Vector3(p.x, 0f, p.z), new Vector2(0.08f, 0.08f), p.y + 0.04f, _plumeColor, completed ? 14 : 6);
+                    }
+                    k = Mathf.Clamp01(k);
+                    float s = k < 0.3f ? Mathf.Lerp(1f, 1.15f, k / 0.3f) : Mathf.Lerp(1.15f, 0f, (k - 0.3f) / 0.7f);
+                    piece.localScale = scale0 * s;
+                }
+                float f = Mathf.Clamp01(t / (wave + life));
+                float flash = completed ? Mathf.Lerp(3f, 0.5f, f) : Mathf.Lerp(1f, 0.2f, f);
+                foreach (var (r, slot) in fx.GlowSlots)
+                {
+                    if (r == null)
+                        continue;
+                    r.GetPropertyBlock(_block, slot);
+                    _block.SetColor(EmissionColorId, _glowColor * flash);
+                    r.SetPropertyBlock(_block, slot);
+                }
+                fx.Under.intensity = completed ? Mathf.Lerp(3f, 0f, f) : Mathf.Lerp(0.8f, 0f, f);
+                foreach (var p in fx.Plumes)
+                {
+                    if (p == null)
+                        continue;
+                    var e = p.emission;
+                    e.rateOverTime = 20f * (1f - f);
                 }
                 yield return null;
             }
