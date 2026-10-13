@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using SpaceStation.Core;
 using SpaceStation.Simulation;
@@ -11,12 +11,13 @@ namespace SpaceStation.Building
     /// 12-3b 합성 연출 (사용자 결정 2026-10-13, 스타크래프트 2 테란 건설 참고 → 비행 고리 방식):
     /// - 규격 둘레를 감싸는 기계 고리(직선 1칸 토막 + 모서리 토막, 보라 형광)가 아래 추진 불꽃과 함께 규격 바닥에서 솟아올라
     ///   진행률만큼 위로 올라간다. 고리 윗면 = 경계: 아래는 상위 모듈, 위는 재료 (높이 잘라내기 셰이더 SpaceStation/SynthesisClip).
-    /// - 고리 위 받침의 기계팔(규격 크기에 따라 2~4개)이 고리를 따라 둘레를 돌며(모서리에서 90° 회전) 멈춰 서서
-    ///   경계 바로 위 재료 면을 용접(불꽃). 2관절 IK. 앞 팔과 가까우면 기다림.
-    /// - 바로 위층에 모듈이 있으면 팔이 뚫지 않게: 여유가 줄면 팔꿈치 아래 자세 → 더 줄면 팔을 접어 고리 속으로, 고리 안쪽 가장자리 불꽃이 마무리.
-    ///   완료 때도 위로 날아오르지 않고 제자리에서 퍼지며 사라짐.
+    /// - 고리 위 받침의 기계팔 3개가 고리를 따라 둘레를 돌며(모서리에서 90° 회전, 가끔 반대 방향 · 속도 제각각) 멈춰 서서
+    ///   경계 바로 위 재료 면을 용접(불꽃, 가끔은 살펴보기만). 2관절 IK(팔꿈치 위). 가는 방향 앞 팔과 가까우면 기다리다 돌아감.
+    /// - 바로 위층에 모듈이 있으면 팔이 뚫지 않게: 여유가 줄면 팔을 접어 받침째 고리 바깥으로 제쳐 매달고, 매달린 채 고리 아래로 돌아 들어가
+    ///   고리 바로 아래 상위 모듈 면을 마무리 용접하며 계속 이동. 고리 안쪽 가장자리 불꽃도 함께.
     /// - 고리는 살짝 출렁 · 기울었다 바로잡힘(비행 느낌), 일시 정지(파손 재료)면 추진 약해지고 살짝 처지며 팔 · 불꽃 멈춤.
-    /// - 완료: 섬광 · 불꽃 폭발, 고리가 위로 날아올라 사라짐. 취소(재료 파괴): 고리가 내려앉으며 사라짐.
+    /// - 완료: 섬광 · 불꽃 폭발, 위가 비었으면 고리가 위로 날아올라 사라짐. 위가 막혔거나 취소: 토막마다 제자리에서 흩어짐.
+    /// - 합성 중에는 재료 칸에 닿은 통로를 숨김.
     /// 재료 모듈 자체 표시(보라 틴트)는 없음 — 연출은 고리 · 팔이 맡음 (사용자 결정).
     /// 움직임은 게임 시간(일시정지 · 배속 반영), 시작 · 끝 연출은 실제 시간.
     /// </summary>
@@ -66,14 +67,16 @@ namespace SpaceStation.Building
             public Transform Mount, Model, Turret, Upper, Fore, Head, Tip;
             public Quaternion ModelRotation;   // 모델 루트 원래 회전 (축 변환) — 매달 때 이 위에 돌림
             public float L1, L2;
-            // 12-3b 피드백: 고리 둘레를 따라 이동 (S = 둘레 위치, Stop = 다음에 멈출 위치) → 멈춰서 용접 → 다음 자리
+            // 12-3b 피드백: 고리 둘레를 따라 이동 (S = 둘레 위치, Stop = 다음에 멈출 위치, Dir = 가는 방향 ±1) → 멈춰서 용접 → 다음 자리
             public float S, Stop;
-            public bool Moving;
+            public int Dir = 1;
+            public float Speed = 0.45f, Smooth = 0.16f, Seed, Blocked;
+            public bool Moving, Inspect, HasGoal, GoalHanging;
             public float Timer;
             public Vector3 Goal, Current, Velocity;
             public float Weld;
-            // 위 모듈 피하기: ElbowDown 0 = 팔꿈치 위(기본), 1 = 아래(낮은 자세) / Stow 0 = 작업, 1 = 접어서 고리 속으로
-            public float ElbowDown, Stow;
+            // 위 모듈 피하기: Hang 0 = 고리 위, 1 = 고리 바깥으로 제쳐 매달림 / HangIK = 매달린 채 다시 작업하는 정도
+            public float Hang, HangIK;
             public ParticleSystem Sparks;
             public Light Flash;
         }
@@ -290,19 +293,22 @@ namespace SpaceStation.Building
                 fx.Plumes.Add(Plume(piece.transform, CornerDisc, 0.034f));
             }
 
-            // 팔: 두 변 모두 2칸 이상이면 4개, 아니면 2개 — 둘레를 같은 간격으로 나눠 출발, 모두 같은 방향으로 고리를 따라 돎 (12-3b 피드백)
+            // 팔 3개 (사용자 결정 2026-10-13) — 둘레를 대략 같은 간격으로 나눠 출발, 방향 · 속도 · 반응은 팔마다 조금씩 다르게
             fx.Perimeter = 4f * (hx + hz) + 4f * CornerTurn;
-            int count = nx >= 2 && nz >= 2 ? 4 : 2;
+            const int count = 3;
             for (int k = 0; k < count; k++)
             {
                 var go = Instantiate(_arm, fx.Ring);
                 Collect(fx, go);
                 var arm = MakeArm(go.transform);
-                // 첫 팔은 첫 변 가운데쯤에서 출발 (모서리 회전 구간은 피함)
-                arm.S = arm.Stop = Wrap(fx, hx + fx.Perimeter * k / count);
+                arm.S = arm.Stop = Wrap(fx, hx + fx.Perimeter * (k + Random.Range(-0.12f, 0.12f)) / count);
                 if (InCorner(fx, arm.S))
                     arm.S = arm.Stop = Wrap(fx, arm.S + CornerTurn + 0.1f);
-                arm.Timer = Random.Range(0.2f, 0.8f);
+                arm.Timer = Random.Range(0.2f, 0.9f);
+                arm.Dir = Random.value < 0.5f ? 1 : -1;
+                arm.Speed = Random.Range(0.32f, 0.58f);
+                arm.Smooth = Random.Range(0.12f, 0.24f);
+                arm.Seed = Random.Range(0f, 100f);
                 fx.Arms.Add(arm);
                 PlaceMount(fx, arm);
             }
@@ -704,7 +710,7 @@ namespace SpaceStation.Building
             // 천장은 생길 수 있는 높이가 정해져 있음 (맨 위 경계 + 0.04) → 경계가 그 아래 여유(팔꿈치 자세 전환 + 0.08)에 들어온 뒤부터만
             // 0.5초마다 확인 (사용자 결정 2026-10-13: 그 전에는 확인할 필요 없음). 합성 중 위에 새로 지은 모듈도 이때 잡힘
             float seamNow = Mathf.Lerp(fx.Bottom, fx.Top, fx.Visual);
-            if (CeilingHeight(fx) - seamNow < ElbowDownClearance + 0.08f)
+            if (CeilingHeight(fx) - seamNow < HangClearance + 0.08f)
             {
                 fx.CeilingCheck -= Time.deltaTime;
                 if (fx.CeilingCheck <= 0f)
@@ -765,39 +771,84 @@ namespace SpaceStation.Building
             RingWeld(fx, seam, gameDt, paused);
         }
 
-        // 팔 이동 · 용접 (12-3b 피드백 1: 고리를 따라 움직이며 작업)
-        private const float ArmSpeed = 0.45f;          // 둘레를 따라 칸/게임 초
-        private const float ArmMinGap = 0.55f;         // 앞 팔과 이만큼 가까우면 기다림
-        // 위 모듈 피하기 (12-3b 피드백 2): 고리 윗면 ~ 위 모듈 밑면 여유가 이보다 작으면
-        private const float ElbowDownClearance = 0.5f;  // 팔꿈치 위 자세(고리 위 약 0.4) → 팔꿈치 아래 자세(약 0.16). 측정: 0.42면 전환 직전 천장과 2cm
-
-        // → 팔을 바깥으로 납작하게 접은 뒤(고리 위 약 0.2) 받침째 고리 바깥 윗모서리를 축으로 90° 넘어가 고리 바깥에 매달림
-        //   (사용자 결정 2026-10-13: 고리 속으로 가라앉히면 팔이 고리 · 받침을 뚫었음). 고리 안쪽 가장자리 불꽃이 마무리
-        private const float StowClearance = 0.28f;
-        private static readonly Vector3 StowHinge = new Vector3(0f, 0.045f, -0.118f);   // 받침 루트 기준: 고리 윗면 바깥 모서리 (바깥 = −z)
-        private const float StowDrop = 0.12f;
+        // 팔 이동 · 용접 (12-3b 피드백: 고리를 따라 움직이며 작업, 동작 · 방향에 약간의 무작위)
+        private const float ArmMinGap = 0.5f;          // 가는 방향 앞 팔과 이만큼 가까우면 기다림
+        private const float ArmBlockedTurn = 1.2f;     // 이만큼 막혀 있으면 반대 방향으로
+        // 위 모듈 피하기: 고리 윗면 ~ 위 모듈 밑면 여유가 이보다 작으면 팔을 고리 바깥으로 제쳐 매닮 (팔꿈치 위 자세는 고리 위 약 0.4 필요).
+        // 매달린 팔은 고리 아래로 돌아 들어가 고리 바로 아래 상위 모듈 면을 마무리 용접하며 계속 고리를 따라 이동 (사용자 피드백 2026-10-13).
+        // "팔꿈치 아래 자세"는 아래팔이 고리를 가로질러 뚫어서 없앰.
+        private const float HangClearance = 0.48f;
+        private static readonly Vector3 StowHinge = new Vector3(0f, 0.045f, -0.122f);   // 받침 루트 기준: 고리 윗면 바깥 모서리 조금 밖 (바깥 = −z)
+        private const float StowDrop = 0.12f;          // 다 넘긴 뒤 고리 바깥면을 따라 내려가는 깊이 (안 내리면 받침이 고리 위 0.15로 솟음 — 측정)
+        private const float HangFlipPart = 0.75f;      // Hang 0~0.75 = 접으며 넘기기, 0.75~1 = 내려가기 (동시에 하면 아직 안쪽에 있던 부분이 고리로 내려가 4cm 박혔음 — 감시 측정)
+        private const float WeldGap = 0.012f;          // 용접점 = 모듈 면 1.2cm 앞 (4mm면 비스듬한 토치 머리가 1.7cm 박혔음 — 감시 측정, 불꽃은 끝에서 나감)
+        private const float WeldAboveMin = 0.05f;      // 고리 위 용접점 최소 높이 (낮으면 아래팔이 고리 안쪽 모서리를 스침)
 
         private void UpdateArm(Fx fx, Arm arm, float seam, float gameDt, bool paused)
         {
             float clearance = fx.Ceiling - seam;
             if (gameDt > 0f)
             {
-                arm.ElbowDown = Mathf.MoveTowards(arm.ElbowDown, clearance < ElbowDownClearance ? 1f : 0f, gameDt * 2f);
-                arm.Stow = Mathf.MoveTowards(arm.Stow, clearance < StowClearance ? 1f : 0f, gameDt * 2.5f);
+                // 매달기: 접어서 넘기기(Hang 0→1) → 매달린 채 IK 다시 켜기(HangIK 0→1). 풀 때는 반대 순서
+                bool wantHang = clearance < HangClearance;
+                if (wantHang)
+                {
+                    arm.Hang = Mathf.MoveTowards(arm.Hang, 1f, gameDt * 1.6f);
+                    if (arm.Hang >= 1f)
+                        arm.HangIK = Mathf.MoveTowards(arm.HangIK, 1f, gameDt * 2f);
+                }
+                else
+                {
+                    arm.HangIK = Mathf.MoveTowards(arm.HangIK, 0f, gameDt * 2f);
+                    if (arm.HangIK <= 0f)
+                        arm.Hang = Mathf.MoveTowards(arm.Hang, 0f, gameDt * 1.6f);
+                }
             }
-            bool working = gameDt > 0f && !paused && fx.Weight > 0.99f && arm.Stow < 0.01f;
+            bool settled = arm.Hang <= 0f || arm.HangIK >= 1f; // 넘어가는 중이 아님
+            bool hanging = arm.Hang >= 1f;
+            // 목표가 아직 없거나, 넘어가기가 끝나 매달림 상태가 바뀌었으면 지금 상태에 맞는 용접점부터 — IK 무게가 다시 번지기 전에
+            // (감시 측정: 첫 목표가 (0,0,0)이라 처음 몇 초 팔이 모듈을 15cm 뚫었고, 매달린 직후 고리 위 목표가 남아 고리 아래에서 위로 뻗으며 고리를 4cm 뚫었음)
+            bool atEnd = arm.Hang >= 1f || arm.Hang <= 0f;
+            if (!arm.HasGoal || (atEnd && arm.GoalHanging != hanging))
+            {
+                bool switched = arm.HasGoal;
+                arm.Moving = false;
+                arm.Timer = Random.Range(0.5f, 1.2f);
+                PickWeld(fx, arm, seam, hanging);
+                if (switched)
+                {
+                    arm.Current = arm.Goal; // 접힌 자세에서 새 자세로 IK 무게가 번지므로 끝점은 바로 새 목표에
+                    arm.Velocity = Vector3.zero;
+                }
+            }
+            bool working = gameDt > 0f && !paused && fx.Weight > 0.99f && settled;
             if (working)
             {
                 if (arm.Moving)
                 {
-                    float left = Wrap(fx, arm.Stop - arm.S);
-                    if (GapAhead(fx, arm) > ArmMinGap)
-                        arm.S = Wrap(fx, arm.S + Mathf.Min(left, ArmSpeed * gameDt));
-                    if (Wrap(fx, arm.Stop - arm.S) < 1e-3f || left > fx.Perimeter - 1e-3f)
+                    float left = arm.Dir > 0 ? Wrap(fx, arm.Stop - arm.S) : Wrap(fx, arm.S - arm.Stop);
+                    if (GapInDirection(fx, arm, arm.Dir) > ArmMinGap)
+                    {
+                        arm.S = Wrap(fx, arm.S + arm.Dir * Mathf.Min(left, arm.Speed * gameDt));
+                        arm.Blocked = 0f;
+                    }
+                    else
+                    {
+                        arm.Blocked += gameDt;
+                        if (arm.Blocked > ArmBlockedTurn)
+                        {
+                            arm.Dir = -arm.Dir; // 막혔으면 돌아감
+                            arm.Blocked = 0f;
+                            PickStop(fx, arm);
+                        }
+                    }
+                    float remain = arm.Dir > 0 ? Wrap(fx, arm.Stop - arm.S) : Wrap(fx, arm.S - arm.Stop);
+                    if (remain < 1e-3f || remain > fx.Perimeter - 1e-3f)
                     {
                         arm.Moving = false;
-                        arm.Timer = Random.Range(0.8f, 1.5f);
-                        PickWeld(fx, arm, seam);
+                        arm.Timer = Random.Range(0.6f, 1.6f);
+                        arm.Inspect = Random.value < 0.25f; // 가끔은 용접 없이 살펴보기만
+                        PickWeld(fx, arm, seam, hanging);
                     }
                 }
                 else
@@ -805,28 +856,30 @@ namespace SpaceStation.Building
                     arm.Timer -= gameDt;
                     if (arm.Timer <= 0f)
                     {
-                        // 다음 자리: 0.3~0.65칸 앞 (모서리 회전 구간에 멈추지 않게)
-                        arm.Stop = Wrap(fx, arm.S + Random.Range(0.3f, 0.65f));
-                        if (InCorner(fx, arm.Stop))
-                            arm.Stop = Wrap(fx, arm.Stop + CornerTurn + 0.12f);
+                        if (Random.value < 0.3f)
+                            arm.Dir = -arm.Dir; // 가끔 반대 방향
+                        arm.Speed = Random.Range(0.32f, 0.58f);
+                        PickStop(fx, arm);
                         arm.Moving = true;
                     }
-                    else if (Random.value < gameDt * 1.6f)
-                        PickWeld(fx, arm, seam); // 용접 중에도 조금씩 옮겨 가며
+                    else if (Random.value < gameDt * 1.4f)
+                        PickWeld(fx, arm, seam, hanging); // 용접 중에도 조금씩 옮겨 가며
                 }
                 PlaceMount(fx, arm);
                 if (arm.Moving)
                 {
-                    // 이동 중: 토치를 면 앞으로 들고 따라감
-                    arm.Goal = arm.Mount.position + arm.Mount.forward * (FaceInset + 0.07f);
-                    arm.Goal.y = seam + Mathf.Lerp(0.18f, 0.08f, arm.ElbowDown);
+                    // 이동 중: 고리 위면 토치를 면 앞으로 들고, 매달렸으면 고리 아래 경계선 근처로
+                    // (면 앞 = 경계 안쪽 FaceInset보다 바깥. 예전엔 면 안쪽 7cm로 잡아 토치가 모듈을 뚫었음 — 감시 측정)
+                    arm.Goal = arm.Mount.position + arm.Mount.forward * (hanging ? -0.02f : FaceInset - 0.06f);
+                    arm.Goal.y = hanging ? arm.Mount.position.y - 0.24f : seam + 0.18f;
                 }
-                arm.Goal.y = Mathf.Max(arm.Goal.y, seam + 0.02f);
+                if (!hanging)
+                    arm.Goal.y = Mathf.Max(arm.Goal.y, seam + WeldAboveMin - 0.005f);
                 if (arm.Current == Vector3.zero)
-                    arm.Current = arm.Goal;
-                arm.Current = Vector3.SmoothDamp(arm.Current, arm.Goal, ref arm.Velocity, 0.16f, 3f, gameDt);
-                bool welding = !arm.Moving && (arm.Current - arm.Goal).sqrMagnitude < 0.0004f;
-                arm.Weld = Mathf.MoveTowards(arm.Weld, welding ? 1f : 0f, gameDt * 8f);
+                    arm.Current = arm.Tip.position; // 쉬는 자세 끝에서 부드럽게 출발
+                arm.Current = Vector3.SmoothDamp(arm.Current, arm.Goal, ref arm.Velocity, arm.Smooth, 3f, gameDt);
+                bool atGoal = (arm.Current - arm.Goal).sqrMagnitude < 0.0004f;
+                arm.Weld = Mathf.MoveTowards(arm.Weld, !arm.Moving && !arm.Inspect && atGoal ? 1f : 0f, gameDt * 8f);
             }
             else
             {
@@ -834,30 +887,52 @@ namespace SpaceStation.Building
                 arm.Weld = Mathf.MoveTowards(arm.Weld, 0f, Time.deltaTime * 6f);
             }
 
-            Solve(arm, arm.Current == Vector3.zero ? arm.Tip.position : arm.Current, fx.Weight);
+            // 용접 중 토치 끝의 미세한 떨림 (팔마다 다른 씨앗)
+            var target = arm.Current == Vector3.zero ? arm.Tip.position : arm.Current;
+            if (arm.Weld > 0.01f)
+            {
+                float t = fx.Clock * 9f;
+                target += new Vector3(Mathf.PerlinNoise(t, arm.Seed) - 0.5f, Mathf.PerlinNoise(arm.Seed, t) - 0.5f, Mathf.PerlinNoise(t + 3f, arm.Seed + 7f) - 0.5f) * (0.014f * arm.Weld);
+            }
+            Solve(arm, target, fx.Weight);
 
             var em = arm.Sparks.emission;
-            em.rateOverTime = arm.Weld * 70f;
-            arm.Flash.intensity = arm.Weld * (0.6f + 0.6f * Mathf.PerlinNoise(Time.time * 18f, arm.L1 * 10f));
+            em.rateOverTime = arm.Weld * Random.Range(50f, 90f);
+            arm.Flash.intensity = arm.Weld * (0.6f + 0.6f * Mathf.PerlinNoise(Time.time * 18f, arm.Seed));
         }
 
-        /// <summary>지금 자리 근처 재료 면의 용접점 (경계 바로 위). 낮은 자세면 더 낮게.</summary>
-        private static void PickWeld(Fx fx, Arm arm, float seam)
+        /// <summary>다음 멈출 자리: 가는 방향으로 0.25~0.7칸 (모서리 회전 구간에 멈추지 않게).</summary>
+        private static void PickStop(Fx fx, Arm arm)
+        {
+            arm.Stop = Wrap(fx, arm.S + arm.Dir * Random.Range(0.25f, 0.7f));
+            if (InCorner(fx, arm.Stop))
+                arm.Stop = Wrap(fx, arm.Stop + arm.Dir * (CornerTurn + 0.12f));
+        }
+
+        /// <summary>
+        /// 지금 자리 근처 용접점. 고리 위: 경계 바로 위 재료 면 (아래팔이 고리 안쪽 모서리를 스치지 않게 WeldAboveMin 이상).
+        /// 매달림: 고리 바로 아래 상위 모듈 면 (고리 몸통 · 노즐 아래로만 지나감).
+        /// </summary>
+        private static void PickWeld(Fx fx, Arm arm, float seam, bool hanging)
         {
             PlaceMount(fx, arm);
-            arm.Goal = arm.Mount.position + arm.Mount.right * Random.Range(-0.12f, 0.12f) + arm.Mount.forward * (FaceInset + 0.012f);
-            arm.Goal.y = seam + (arm.ElbowDown > 0.5f ? Random.Range(0.02f, 0.05f) : Random.Range(0.025f, 0.11f));
+            arm.HasGoal = true;
+            arm.GoalHanging = hanging;
+            arm.Goal = arm.Mount.position + arm.Mount.right * Random.Range(-0.14f, 0.14f) + arm.Mount.forward * (FaceInset - WeldGap);
+            arm.Goal.y = hanging ? arm.Mount.position.y - Random.Range(0.15f, 0.27f) : seam + Random.Range(WeldAboveMin, 0.13f);
+            if (arm.Inspect)
+                arm.Goal += arm.Mount.forward * -0.06f; // 살펴보기: 면에서 조금 떨어져 들여다봄
         }
 
-        /// <summary>같은 방향으로 도는 팔 중 바로 앞 팔까지 둘레 거리.</summary>
-        private static float GapAhead(Fx fx, Arm arm)
+        /// <summary>가는 방향(dir)으로 바로 앞 팔까지 둘레 거리.</summary>
+        private static float GapInDirection(Fx fx, Arm arm, int dir)
         {
             float best = float.PositiveInfinity;
             foreach (var other in fx.Arms)
             {
                 if (other == arm)
                     continue;
-                float d = Wrap(fx, other.S - arm.S);
+                float d = dir > 0 ? Wrap(fx, other.S - arm.S) : Wrap(fx, arm.S - other.S);
                 if (d > 1e-4f && d < best)
                     best = d;
             }
@@ -865,9 +940,9 @@ namespace SpaceStation.Building
         }
 
         /// <summary>
-        /// 2관절 IK (BlenderWork/SynthArm/arm_builder.py solve와 같은 계산): 회전대가 목표를 보고 어깨 · 팔꿈치로 토치 끝을 댐.
-        /// weight 0 = 곧게 선 쉬는 자세. arm.ElbowDown 1 = 팔꿈치 아래 자세(바깥 아래로 돌아 올라옴 — 위 모듈 아래 좁은 틈),
-        /// arm.Stow 1 = 접어서 받침째 고리 속으로.
+        /// 2관절 IK (BlenderWork/SynthArm/arm_builder.py solve와 같은 계산, 팔꿈치 위): 회전대가 목표를 보고 어깨 · 팔꿈치로 토치 끝을 댐.
+        /// weight 0 = 곧게 선 쉬는 자세. arm.Hang: 받침째 고리 바깥 윗모서리를 축으로 90° 넘어가 매달림 (넘어가는 동안은 바깥으로 납작하게 접은 자세),
+        /// 다 넘어가면 arm.HangIK만큼 다시 IK (매달린 모델 축 그대로 계산 — 팔꿈치가 바깥쪽, 고리 아래로 돌아 들어감).
         /// </summary>
         private static void Solve(Arm arm, Vector3 target, float weight)
         {
@@ -875,62 +950,113 @@ namespace SpaceStation.Building
             arm.Upper.localRotation = Quaternion.identity;
             arm.Fore.localRotation = Quaternion.identity;
             arm.Head.localRotation = Quaternion.identity;
-            arm.Model.localPosition = Vector3.zero;
-            arm.Model.localRotation = arm.ModelRotation;
+            // 매달림 (모델 루트를 먼저 놓고 그 축에서 IK)
+            float flip = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(arm.Hang / HangFlipPart));
+            float drop = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((arm.Hang - HangFlipPart) / (1f - HangFlipPart)));
+            var hinge = Quaternion.AngleAxis(-90f * flip, Vector3.right);
+            arm.Model.localRotation = hinge * arm.ModelRotation;
+            arm.Model.localPosition = StowHinge + hinge * -StowHinge + Vector3.down * (StowDrop * drop);
+            float fold = Mathf.Clamp01(arm.Hang * 4f) * (1f - arm.HangIK);
+
             var axis = Vector3.Cross(ArmUp, ArmForward);
             Quaternion turret = Quaternion.identity, upper = Quaternion.identity, fore = Quaternion.identity;
-            if (weight > 0.001f && arm.Stow < 0.999f)
+            if (weight > 0.001f && fold < 0.999f)
             {
-                // 회전대: 모델 루트 로컬에서 목표 쪽으로 (위 축 기준)
-                var p = arm.Model.InverseTransformPoint(target) - arm.Turret.localPosition;
-                var flat = p - ArmUp * Vector3.Dot(p, ArmUp);
-                float yaw = flat.sqrMagnitude > 1e-8f ? Vector3.SignedAngle(ArmForward, flat, ArmUp) : 0f;
-                turret = Quaternion.AngleAxis(yaw, ArmUp);
-                arm.Turret.localRotation = turret;
-                // 어깨 · 팔꿈치: 회전대 로컬 (앞 = ArmForward, 위 = ArmUp)
-                var q = arm.Turret.InverseTransformPoint(target) - arm.Upper.localPosition;
-                float f = Vector3.Dot(q, ArmForward), u = Vector3.Dot(q, ArmUp);
-                float l1 = arm.L1, l2 = arm.L2;
-                float d = Mathf.Clamp(Mathf.Sqrt(f * f + u * u), Mathf.Abs(l1 - l2) + 1e-3f, l1 + l2 - 1e-3f);
-                float a = Mathf.Atan2(f, u);
-                float b = Mathf.Acos(Mathf.Clamp((l1 * l1 + d * d - l2 * l2) / (2f * l1 * d), -1f, 1f));
-                float g = Mathf.Acos(Mathf.Clamp((l1 * l1 + l2 * l2 - d * d) / (2f * l1 * l2), -1f, 1f));
-                float side = 1f - 2f * arm.ElbowDown; // +1 팔꿈치 위, −1 아래
-                upper = Quaternion.AngleAxis((a - b * side) * Mathf.Rad2Deg, axis);
-                fore = Quaternion.AngleAxis((Mathf.PI - g) * side * Mathf.Rad2Deg, axis);
+                // 충돌 피하기 (사용자 피드백 2026-10-13 — 팔이 고리 · 재료 모듈을 뚫음): 팔꿈치 위 · 아래 두 해를 모두 보고, 윗팔 · 아래팔이
+                // 고리 몸통이나 모듈 면 안쪽에 들어가지 않는 해를 고름. 둘 다 들어가면 목표를 조금씩 옮겨(고리 위 = 위로, 매달림 = 아래로) 다시.
+                float shiftDir = arm.Hang >= 0.5f ? -1f : 1f;
+                float best = float.PositiveInfinity;
+                for (int attempt = 0; attempt < 5 && best > 1e-5f; attempt++)
+                {
+                    var t = target + Vector3.up * (shiftDir * 0.035f * attempt);
+                    // 회전대: 모델 루트 로컬에서 목표 쪽으로 (위 축 기준)
+                    var p = arm.Model.InverseTransformPoint(t) - arm.Turret.localPosition;
+                    var flat = p - ArmUp * Vector3.Dot(p, ArmUp);
+                    float yaw = flat.sqrMagnitude > 1e-8f ? Vector3.SignedAngle(ArmForward, flat, ArmUp) : 0f;
+                    var turretTry = Quaternion.AngleAxis(yaw, ArmUp);
+                    arm.Turret.localRotation = turretTry;
+                    // 어깨 · 팔꿈치: 회전대 로컬 (앞 = ArmForward, 위 = ArmUp)
+                    var q = arm.Turret.InverseTransformPoint(t) - arm.Upper.localPosition;
+                    float f = Vector3.Dot(q, ArmForward), u = Vector3.Dot(q, ArmUp);
+                    float l1 = arm.L1, l2 = arm.L2;
+                    float d = Mathf.Clamp(Mathf.Sqrt(f * f + u * u), Mathf.Abs(l1 - l2) + 1e-3f, l1 + l2 - 1e-3f);
+                    float a = Mathf.Atan2(f, u);
+                    float b = Mathf.Acos(Mathf.Clamp((l1 * l1 + d * d - l2 * l2) / (2f * l1 * d), -1f, 1f));
+                    float g = Mathf.Acos(Mathf.Clamp((l1 * l1 + l2 * l2 - d * d) / (2f * l1 * l2), -1f, 1f));
+                    var shoulder = arm.Upper.position;
+                    var up = arm.Turret.TransformDirection(ArmUp);
+                    var fwd = arm.Turret.TransformDirection(ArmForward);
+                    for (int side = 0; side < 2; side++)
+                    {
+                        float lean = side == 0 ? a - b : a + b; // 0 = 팔꿈치 위, 1 = 반대쪽
+                        var elbow = shoulder + (up * Mathf.Cos(lean) + fwd * Mathf.Sin(lean)) * l1;
+                        float score = Collision(arm, shoulder, elbow, t);
+                        if (score < best - 1e-6f) // 같으면 먼저 본 팔꿈치 위
+                        {
+                            best = score;
+                            turret = turretTry;
+                            upper = Quaternion.AngleAxis(lean * Mathf.Rad2Deg, axis);
+                            fore = Quaternion.AngleAxis((Mathf.PI - g) * (side == 0 ? 1f : -1f) * Mathf.Rad2Deg, axis);
+                        }
+                    }
+                }
                 turret = Quaternion.Slerp(Quaternion.identity, turret, weight);
                 upper = Quaternion.Slerp(Quaternion.identity, upper, weight);
                 fore = Quaternion.Slerp(Quaternion.identity, fore, weight);
             }
-            if (arm.Stow > 0.001f)
+            if (fold > 0.001f)
             {
-                // 1) 앞 절반: 윗팔을 바깥(−앞)으로 눕히고 아래팔을 그 위로 되접음 → 고리 위 약 0.2 높이의 납작한 자세
-                float fold = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(arm.Stow / 0.5f));
-                turret = Quaternion.Slerp(turret, Quaternion.identity, fold);
-                upper = Quaternion.Slerp(upper, Quaternion.AngleAxis(-90f, axis), fold);
-                fore = Quaternion.Slerp(fore, Quaternion.AngleAxis(-186f, axis), fold);
-                // 2) 뒤 절반: 받침째 고리 윗면 바깥 모서리를 축으로 바깥쪽으로 90° 넘어감 → 바깥으로 눕혀 둔 팔이 고리 바깥에서 아래로 늘어지고
-                //    받침은 고리 바깥면 위에 세로로 섬 (가장 높은 곳 = 고리 윗면 위 약 0.12). 180°면 팔이 다시 고리 아래 안쪽으로 들어왔음 (측정)
-                float flip = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((arm.Stow - 0.5f) / 0.5f));
-                var q = Quaternion.AngleAxis(-90f * flip, Vector3.right);
-                arm.Model.localRotation = q * arm.ModelRotation;
-                // 넘기면 받침(안쪽 폭 약 0.12)이 세로로 서서 고리 위로 솟음 → 고리 바깥면을 따라 그만큼 내려 줌 (측정: 안 내리면 고리 위 0.15)
-                arm.Model.localPosition = StowHinge + q * -StowHinge + Vector3.down * (StowDrop * flip);
+                // 넘어가는 동안: 윗팔을 바깥(−앞)으로 눕히고 아래팔을 그 위로 되접음 (고리 위 약 0.2 높이의 납작한 자세)
+                float s = Mathf.SmoothStep(0f, 1f, fold);
+                turret = Quaternion.Slerp(turret, Quaternion.identity, s);
+                upper = Quaternion.Slerp(upper, Quaternion.AngleAxis(-90f, axis), s);
+                fore = Quaternion.Slerp(fore, Quaternion.AngleAxis(-186f, axis), s);
             }
             arm.Turret.localRotation = turret;
             arm.Upper.localRotation = upper;
             arm.Fore.localRotation = fore;
         }
 
-        /// <summary>팔을 다 접은 마지막 구간: 고리 안쪽 가장자리(경계)를 따라 용접 불꽃이 튐.</summary>
+        private const float ArmRadius = 0.024f;        // 팔 마디 반 두께 (충돌 여유 — 어깨 관절 원판 반지름 0.022. 0.014면 1.3cm 박혔음, 감시 측정)
+
+        /// <summary>
+        /// 팔 자세 하나의 충돌 깊이 합 (받침 로컬: 위 +y, 안쪽 +z, 고리 몸통 = y ±0.042 · z −0.115 ~ 0, 모듈 면 = z FaceInset).
+        /// 윗팔(어깨→팔꿈치) · 아래팔(팔꿈치→토치 끝)을 따라 점을 찍어 봄. 토치 끝 주변 5cm는 면에 닿아야 하므로 모듈 검사에서 뺌.
+        /// </summary>
+        private static float Collision(Arm arm, Vector3 shoulder, Vector3 elbow, Vector3 tip)
+        {
+            float sum = 0f;
+            for (int seg = 0; seg < 2; seg++)
+            {
+                var a = seg == 0 ? shoulder : elbow;
+                var b = seg == 0 ? elbow : tip;
+                for (int i = 0; i <= 6; i++)
+                {
+                    var w = Vector3.Lerp(a, b, i / 6f);
+                    var l = arm.Mount.InverseTransformPoint(w);
+                    // 고리 몸통
+                    float ry = (RingHalfHeight + ArmRadius) - Mathf.Abs(l.y);
+                    float rz = Mathf.Min(l.z - (-0.115f - ArmRadius), ArmRadius - l.z);
+                    if (ry > 0f && rz > 0f)
+                        sum += Mathf.Min(ry, rz);
+                    // 모듈 면 안쪽 (토치 끝 근처 제외)
+                    float mz = l.z - (FaceInset - ArmRadius);
+                    if (mz > 0f && (w - tip).sqrMagnitude > 0.0025f)
+                        sum += mz;
+                }
+            }
+            return sum;
+        }
+
+        /// <summary>팔이 매달린 마지막 구간: 고리 안쪽 가장자리(경계)를 따라서도 용접 불꽃이 튐.</summary>
         private void RingWeld(Fx fx, float seam, float gameDt, bool paused)
         {
-            float stow = 0f;
+            float hang = 0f;
             foreach (var arm in fx.Arms)
-                stow = Mathf.Max(stow, arm.Stow);
-            if (fx.RingWeld == null || paused || gameDt <= 0f || stow < 0.5f)
+                hang = Mathf.Max(hang, arm.Hang);
+            if (fx.RingWeld == null || paused || gameDt <= 0f || hang < 0.5f)
                 return;
-            int n = Mathf.Min(6, Mathf.FloorToInt(gameDt * 90f * stow + Random.value));
+            int n = Mathf.Min(6, Mathf.FloorToInt(gameDt * 60f * hang + Random.value));
             var ep = new ParticleSystem.EmitParams { applyShapeToPosition = false };
             for (int i = 0; i < n; i++)
             {
@@ -970,7 +1096,8 @@ namespace SpaceStation.Building
                 float k = Mathf.Clamp01(t / _outroSeconds);
                 foreach (var arm in fx.Arms)
                 {
-                    arm.Stow = Mathf.MoveTowards(arm.Stow, 1f, Time.deltaTime * 4f); // 팔을 접어 넣음
+                    arm.HangIK = 0f;
+                    arm.Hang = Mathf.MoveTowards(arm.Hang, 1f, Time.deltaTime * 4f); // 팔을 접어 고리 바깥으로 제침
                     Solve(arm, arm.Current == Vector3.zero ? arm.Tip.position : arm.Current, fx.Weight);
                 }
                 // 위로 날아오르며 섬광 → 작아짐
