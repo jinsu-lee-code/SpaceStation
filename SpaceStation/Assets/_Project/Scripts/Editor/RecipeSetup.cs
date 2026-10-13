@@ -173,7 +173,8 @@ namespace SpaceStation.Editor
             mat.SetColor("_BaseColor", Color.Lerp(new Color(0.78f, 0.8f, 0.84f), color, 0.55f));
             mat.SetFloat("_Metallic", 0.35f);
             mat.SetFloat("_Smoothness", 0.55f);
-            mat.EnableKeyword("_EMISSION");
+            // Unity 6: 문자열 EnableKeyword는 저장되지 않는 경우가 있어 LocalKeyword로 켠다 (StationArtBuilder와 같음)
+            mat.SetKeyword(new UnityEngine.Rendering.LocalKeyword(mat.shader, "_EMISSION"), true);
             mat.SetColor("_EmissionColor", color * 0.35f);
             mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             mat.enableInstancing = true;
