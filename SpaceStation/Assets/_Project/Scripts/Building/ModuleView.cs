@@ -16,6 +16,7 @@ namespace SpaceStation.Building
     /// - 파손: 붉은 틴트 + 발광이 불규칙하게 깜빡임
     /// - 수리 중: 하늘색 틴트가 천천히 맥동
     /// - 노후: 발광 약하게 + 설정(7-2)에 따라 갈색 틴트 또는 밝은 호박색 테두리
+    /// - 합성 재료(12-3): 보라 틴트 + 발광 슬롯 보라 맥동 + 보라 가장자리 빛 맥동 (몸체가 어두운 모듈도 보이게)
     /// - 선택: 효율 구간 색(7-1: 청록/노랑/빨강/빨강 깜빡임) 약한 틴트 + 가장자리 빛(SelectionRim 복제 렌더러)
     /// 기본 상태(활성 + 정상 + 비선택)에서는 블록을 비워 SRP Batcher 호환을 유지한다.
     /// 깜빡임·맥동이 필요한 상태에서만 매 프레임 갱신한다.
@@ -39,8 +40,12 @@ namespace SpaceStation.Building
         [SerializeField, Range(0f, 1f)] private float _wornTintAmount = 0.5f;
         [SerializeField, Range(0f, 1f)] private float _wornEmission = 0.35f;
         [Tooltip("12-3 합성 중인 재료: 보라 틴트가 천천히 맥동")]
-        [SerializeField] private Color _synthesisTint = new Color(0.72f, 0.45f, 1f, 1f);
-        [SerializeField, Range(0f, 1f)] private float _synthesisTintAmount = 0.5f;
+        [SerializeField] private Color _synthesisTint = new Color(0.6f, 0.28f, 1f, 1f);
+        [SerializeField, Range(0f, 1f)] private float _synthesisTintAmount = 0.75f;
+        [Tooltip("합성 중 보라 발광 세기 (발광 슬롯에만, 맥동과 함께)")]
+        [SerializeField, Range(0f, 2f)] private float _synthesisGlow = 0.8f;
+        [Tooltip("합성 중 가장자리 빛 색 (HDR, 맥동). 몸체가 어두운 모듈도 보이게")]
+        [SerializeField, ColorUsage(false, true)] private Color _synthesisRim = new Color(1.7f, 0.6f, 2.6f, 1f);
 
         private Renderer[] _renderers;
         private Renderer[] _slotRenderers; // 재질 슬롯마다 한 칸 (렌더러, 재질 인덱스)
@@ -79,6 +84,7 @@ namespace SpaceStation.Building
             if (_synthesizing == synthesizing)
                 return;
             _synthesizing = synthesizing;
+            RefreshRim();
             Apply(Time.time);
         }
 
@@ -186,6 +192,7 @@ namespace SpaceStation.Building
             ApplyRimColor(time);
             bool normal = _operational && !_highlighted && _damage == ModuleDamageVisual.None && !_worn && !_synthesizing;
             float emissionScale = EmissionScale(time);
+            float synthesisPulse = 0.5f + 0.5f * Mathf.Sin(time * 2.5f);
             for (int i = 0; i < _slotRenderers.Length; i++)
             {
                 if (normal)
@@ -200,7 +207,7 @@ namespace SpaceStation.Building
                 else if (_damage == ModuleDamageVisual.Repairing)
                     color = Color.Lerp(color, _repairingTint, _repairingTintAmount * (0.6f + 0.4f * Mathf.Sin(time * 3f)));
                 else if (_synthesizing)
-                    color = Color.Lerp(color, _synthesisTint, _synthesisTintAmount * (0.55f + 0.45f * Mathf.Sin(time * 2f)));
+                    color = Color.Lerp(color, _synthesisTint, _synthesisTintAmount * (0.6f + 0.4f * synthesisPulse));
                 else if (_worn && !_wornRimStyle) // 테두리 방식이면 원래 색 유지 (발광만 약하게)
                     color = Color.Lerp(color, _wornTint, _wornTintAmount);
                 if (_highlighted)
@@ -212,7 +219,12 @@ namespace SpaceStation.Building
                 _propertyBlock.Clear();
                 _propertyBlock.SetColor(BaseColorId, color);
                 if (_baseEmission[i].maxColorComponent > 0f)
-                    _propertyBlock.SetColor(EmissionColorId, _baseEmission[i] * emissionScale);
+                {
+                    Color emission = _baseEmission[i] * emissionScale;
+                    if (_synthesizing && _operational && _damage == ModuleDamageVisual.None)
+                        emission += _synthesisTint * (_synthesisGlow * synthesisPulse); // 창문 · 띠가 보라로 맥동
+                    _propertyBlock.SetColor(EmissionColorId, emission);
+                }
                 _slotRenderers[i].SetPropertyBlock(_propertyBlock, _slotIndices[i]);
             }
         }
@@ -240,7 +252,7 @@ namespace SpaceStation.Building
         /// </summary>
         private void RefreshRim()
         {
-            var material = _highlighted ? _rimMaterial
+            var material = _highlighted || _synthesizing ? _rimMaterial
                 : _worn && _wornRimStyle ? _wornRimMaterial
                 : null;
             if (material != null)
@@ -263,7 +275,7 @@ namespace SpaceStation.Building
                             mats[m] = material;
                         rr.sharedMaterials = mats;
                     }
-                    if (!_highlighted)
+                    if (!_highlighted && !_synthesizing)
                         rr.SetPropertyBlock(null); // 노후 테두리: 재질 색 그대로
                 }
                 copy.SetActive(visible);
@@ -298,14 +310,19 @@ namespace SpaceStation.Building
             }
         }
 
-        /// <summary>가장자리 빛 색 = 효율 구간 색 (Critical은 깜빡임). 선택된 모듈 하나만 블록을 쓰므로 배처 영향 없음.</summary>
+        /// <summary>
+        /// 가장자리 빛 색 = 효율 구간 색 (Critical은 깜빡임), 선택이 아니고 합성 중이면 보라 맥동.
+        /// 선택된 모듈 · 합성 재료만 블록을 쓰므로 배처 영향 없음.
+        /// </summary>
         private void ApplyRimColor(float time)
         {
-            if (!_highlighted || _rimRenderers == null)
+            if ((!_highlighted && !_synthesizing) || _rimRenderers == null)
                 return;
             _rimBlock ??= new MaterialPropertyBlock();
             _rimBlock.Clear();
-            _rimBlock.SetColor(RimColorId, EfficiencyBands.Rim(_band, time));
+            _rimBlock.SetColor(RimColorId, _highlighted
+                ? EfficiencyBands.Rim(_band, time)
+                : _synthesisRim * (0.55f + 0.45f * (0.5f + 0.5f * Mathf.Sin(time * 2.5f))));
             foreach (var r in _rimRenderers)
             {
                 if (r != null)
