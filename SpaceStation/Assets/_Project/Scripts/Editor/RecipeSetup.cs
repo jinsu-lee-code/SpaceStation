@@ -176,7 +176,8 @@ namespace SpaceStation.Editor
             // Unity 6: 문자열 EnableKeyword는 저장되지 않는 경우가 있어 LocalKeyword로 켠다 (StationArtBuilder와 같음)
             mat.SetKeyword(new UnityEngine.Rendering.LocalKeyword(mat.shader, "_EMISSION"), true);
             mat.SetColor("_EmissionColor", color * 0.35f);
-            mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            // None이면 URP 재질 검사가 _EMISSION을 꺼 버림 (MODELING.md 6-1 — 거주 타워 발광이 저장 때마다 꺼지던 원인)
+            mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             mat.enableInstancing = true;
             EditorUtility.SetDirty(mat);
             return mat;

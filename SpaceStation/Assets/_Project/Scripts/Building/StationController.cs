@@ -57,22 +57,7 @@ namespace SpaceStation.Building
             _sim.Resources.Ticked += RefreshWornVisuals;
             _sim.Durability.Maintained += HandleMaintained;
             _sim.ShieldDeflected += HandleShieldDeflected;
-            if (_sim.Synthesis != null)
-            {
-                _sim.Synthesis.Started += HandleSynthesisStarted;
-                _sim.Synthesis.Cancelled += HandleSynthesisEnded;
-            }
-        }
-
-        // 12-3: 합성 중인 재료 표시 (끝나면 재료 뷰는 철거로 사라지고, 취소되면 원래대로)
-        private void HandleSynthesisStarted(SynthesisJob job) => SetSynthesizing(job, true);
-        private void HandleSynthesisEnded(SynthesisJob job) => SetSynthesizing(job, false);
-
-        private void SetSynthesizing(SynthesisJob job, bool on)
-        {
-            foreach (var m in job.Materials)
-                if (m != null && _views.TryGetValue(m, out var view))
-                    view.SetSynthesizing(on);
+            // 12-3b: 합성 중인 재료의 모습은 SynthesisFx(비행 고리 · 기계팔 · 잘라내기)가 맡음 — 모듈 뷰 자체 표시는 없음 (사용자 결정)
         }
 
         private void OnDestroy()
@@ -92,11 +77,6 @@ namespace SpaceStation.Building
             _sim.Resources.Ticked -= RefreshWornVisuals;
             _sim.Durability.Maintained -= HandleMaintained;
             _sim.ShieldDeflected -= HandleShieldDeflected;
-            if (_sim.Synthesis != null)
-            {
-                _sim.Synthesis.Started -= HandleSynthesisStarted;
-                _sim.Synthesis.Cancelled -= HandleSynthesisEnded;
-            }
         }
 
         /// <summary>
@@ -239,7 +219,6 @@ namespace SpaceStation.Building
                 view.SetDamageVisual(damage.IsRepairing ? ModuleDamageVisual.Repairing : ModuleDamageVisual.Damaged);
             if (_sim.Durability.TryGetInfo(module, out var durability))
                 view.SetWorn(_sim.Durability.EfficiencyFor(durability.Current) < 1f);
-            view.SetSynthesizing(_sim.IsHalted(module)); // 불러온 판: 합성 중이던 재료
             _views.Add(module, view);
         }
 
