@@ -189,7 +189,7 @@ namespace SpaceStation.Simulation
                 return false;
             // 8-1: 모듈별 확산 시간 배율 (핵융합로 0.5 = 2배 빠름)
             float spreadAfter = _config.SpreadAfterSeconds * (module.Data != null ? module.Data.SpreadTimeMultiplier : 1f);
-            float destroyAfter = _config.DestroyAfterSeconds;
+            float destroyAfter = _config.DestroyAfterSeconds * (Effects != null ? Effects.Policy(PolicyStat.DestroyTimer) : 1f); // 12-3c 정책 (비상 대비)
             if (module.Data != null && module.Data.Armored) // 8-5 장갑 격벽: 확산·파괴 없음 (누출은 OxygenLeakPerSecond에서 제외)
             {
                 spreadAfter = 0f;

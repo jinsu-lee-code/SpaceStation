@@ -38,6 +38,9 @@ namespace SpaceStation.Simulation
         [Header("Synthesis (12-3)")]
         [Tooltip("합성 레시피 (메뉴 SpaceStation/Recipes/Setup이 채움). 비면 합성 없음")]
         [SerializeField] private List<RecipeData> _recipes = new List<RecipeData>();
+        [Header("Grade Rules (12-3c)")]
+        [Tooltip("국가급 상시 정책 · 사회 위기 (메뉴 SpaceStation/Grade Rules/Setup Policies가 채움). 비면 없음")]
+        [SerializeField] private PolicyConfig _policies;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -74,6 +77,7 @@ namespace SpaceStation.Simulation
                 ResearchCaps = _researchCaps,
                 Residents = _residents,
                 Recipes = _recipes.Count > 0 ? _recipes : null,
+                Policies = _policies,
             });
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)

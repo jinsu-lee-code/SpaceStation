@@ -28,6 +28,8 @@ namespace SpaceStation.Simulation
         public IReadOnlyList<RecipeData> Recipes;
         /// <summary>12-3c 등급 위기(유성우 등) 전용 난수 [0, 1). null이면 시스템 난수 (이벤트 난수 순서와 분리, 봇은 시드 고정).</summary>
         public Func<float> HazardRandom01;
+        /// <summary>12-3c 국가급 상시 정책 · 사회 위기 (null이면 시스템 없음 = 이전과 같은 결과).</summary>
+        public PolicyConfig Policies;
     }
 
     /// <summary>
@@ -133,6 +135,10 @@ namespace SpaceStation.Simulation
         public SynthesisSystem Synthesis { get; }
         /// <summary>12-3c 도시급 유성우 방향 예보.</summary>
         public MeteorShowerSystem MeteorShower { get; }
+        /// <summary>12-3c 국가급 상시 정책 (설정에 없으면 null).</summary>
+        public PolicySystem Policies { get; }
+        /// <summary>12-3c 사회 위기 선택지 (설정에 없으면 null).</summary>
+        public SocialCrisisSystem Crisis { get; }
 
         public StationSimulation(StationSimulationSettings settings)
         {
@@ -232,6 +238,11 @@ namespace SpaceStation.Simulation
             if (settings.Recipes != null)
                 Synthesis = AddSystem(new SynthesisSystem(settings.Recipes), TickStepNames.Automation); // 요구 · 인구 계산 전에 교체가 끝나게
             MeteorShower = AddSystem(new MeteorShowerSystem(settings.HazardRandom01), TickStepNames.Events); // 도시급 전에는 아무것도 안 함 (기존 결과 그대로)
+            if (settings.Policies != null)
+            {
+                Policies = AddSystem(new PolicySystem(settings.Policies), MeteorShowerSystem.SystemKey);
+                Crisis = AddSystem(new SocialCrisisSystem(settings.Policies), PolicySystem.SystemKey);
+            }
             EvaluateProgression();
         }
 
@@ -264,8 +275,17 @@ namespace SpaceStation.Simulation
             Effects.TraitDecayMultiplier = 1f - Residents.Ability(ResidentTrait.Mechanic);
             Effects.TraitFoodProductionMultiplier = 1f + Residents.Ability(ResidentTrait.Gardener);
             Effects.TraitResearchSpeedMultiplier = 1f + Residents.Ability(ResidentTrait.Scientist);
-            Resources.SetResidentConsumptionMultiplier(ResourceType.Food, Residents.ConsumptionMultiplier(ResourceType.Food));
-            Resources.SetResidentConsumptionMultiplier(ResourceType.Water, Residents.ConsumptionMultiplier(ResourceType.Water));
+            ApplyConsumptionMultipliers();
+        }
+
+        /// <summary>주민 소비 배율 = 주민 특성(대식가 · 소식가, 명단이 없으면 1) × 12-3c 정책. 다음 틱부터.</summary>
+        internal void ApplyConsumptionMultipliers()
+        {
+            float all = Effects.Policy(PolicyStat.ResidentConsumption);
+            float foodWater = all * Effects.Policy(PolicyStat.FoodWaterConsumption);
+            Resources.SetResidentConsumptionMultiplier(ResourceType.Food, (Residents != null ? Residents.ConsumptionMultiplier(ResourceType.Food) : 1f) * foodWater);
+            Resources.SetResidentConsumptionMultiplier(ResourceType.Water, (Residents != null ? Residents.ConsumptionMultiplier(ResourceType.Water) : 1f) * foodWater);
+            Resources.SetResidentConsumptionMultiplier(ResourceType.Oxygen, all);
         }
 
         // ---------------- 공통 틀 (12-0b) ----------------
@@ -330,7 +350,7 @@ namespace SpaceStation.Simulation
                 Resources.Tick(_stats.ActiveModules, _stats.ProductionMultipliers, _stats.ConsumptionMultipliers, dt);
             });
             Add(TickStepNames.Incidents, dt => Incidents.Tick(dt, Resources)); // 11-17 ④ 놓친 사고의 누출
-            Add(TickStepNames.Research, dt => Research.Tick(dt, Resources.PowerEfficiency * Effects.TraitResearchSpeedMultiplier)); // 전력 효율 × 과학자
+            Add(TickStepNames.Research, dt => Research.Tick(dt, Resources.PowerEfficiency * Effects.ResearchSpeedMultiplier)); // 전력 효율 × 과학자 × 정책
             Add(TickStepNames.Cargo, dt => Cargo.Tick(Grid, Resources, _stats.Strength, dt)); // 8-5 화물선 (가동률만큼)
             Add(TickStepNames.Automation, dt => Automation.Tick(dt)); // 자동화 연구: 기준값 미만 모듈 정비·재건축
             Add(TickStepNames.Needs, dt => _stats.RefreshNeeds()); // 4-9: 이번 틱 전력 효율·인구 기준 요구 충족 → 만족도 상한

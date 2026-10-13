@@ -45,6 +45,7 @@ namespace SpaceStation.UI
                 case PopulationChangeReason.OxygenDepleted: return "산소 고갈";
                 case PopulationChangeReason.LowSatisfaction: return "만족도 낮음";
                 case PopulationChangeReason.Overcrowded: return "수용 인구 초과";
+                case PopulationChangeReason.Crisis: return "사회 위기";
                 case PopulationChangeReason.Growth: return "새로 도착";
                 default: return null;
             }

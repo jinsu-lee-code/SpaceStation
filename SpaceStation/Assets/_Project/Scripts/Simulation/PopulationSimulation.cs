@@ -10,6 +10,8 @@ namespace SpaceStation.Simulation
         OxygenDepleted,
         LowSatisfaction,
         Overcrowded,
+        /// <summary>12-3c 사회 위기 (강경 대응 등).</summary>
+        Crisis,
     }
 
     /// <summary>
@@ -76,6 +78,20 @@ namespace SpaceStation.Simulation
         {
             Satisfaction = Mathf.Clamp(value, 0f, MaxSatisfaction);
             Changed?.Invoke();
+        }
+
+        /// <summary>12-3c 사회 위기 결과: 만족도를 바로 더하거나 뺌 (0~100).</summary>
+        internal void AdjustSatisfaction(float delta)
+        {
+            Satisfaction = Mathf.Clamp(Satisfaction + delta, 0f, MaxSatisfaction);
+            Changed?.Invoke();
+        }
+
+        /// <summary>12-3c 사회 위기 결과: 주민이 떠남.</summary>
+        internal void Remove(int count, PopulationChangeReason reason)
+        {
+            if (count > 0)
+                Change(-count, reason);
         }
 
         /// <summary>만족도에 따른 +1 간격(초). 최소 만족도 미만이면 무한대.</summary>

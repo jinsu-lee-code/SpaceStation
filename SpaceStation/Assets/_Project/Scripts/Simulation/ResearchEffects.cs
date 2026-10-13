@@ -28,9 +28,29 @@ namespace SpaceStation.Simulation
         public float TraitFoodProductionMultiplier { get; set; } = 1f; // 원예가
         public float TraitResearchSpeedMultiplier { get; set; } = 1f;  // 과학자
 
+        // 12-3c 국가급 정책 · 사회 위기 일시 효과 (PolicySystem이 바꿀 때 갱신, 없으면 모두 중립 = 기존 결과 그대로)
+        private readonly float[] _policy = NeutralPolicy();
+
+        private static float[] NeutralPolicy()
+        {
+            var a = new float[PolicyStats.Count];
+            for (int i = 0; i < a.Length; i++)
+                a[i] = PolicyStats.Neutral((PolicyStat)i);
+            return a;
+        }
+
+        public float Policy(PolicyStat stat) => _policy[(int)stat];
+
+        internal void SetPolicy(float[] values)
+        {
+            Array.Copy(values, _policy, _policy.Length);
+        }
+
         public float RepairCostRate => Get(ResearchStat.RepairCostRate, _config.RepairCostRate);
-        public float RepairDuration => Math.Max(0.1f, Get(ResearchStat.RepairDuration, _config.RepairDuration) * TraitRepairMultiplier);
-        public float DecayMultiplier => Get(ResearchStat.DecayMultiplier, 1f) * TraitDecayMultiplier;
+        public float RepairDuration => Math.Max(0.1f, Get(ResearchStat.RepairDuration, _config.RepairDuration) * TraitRepairMultiplier / Math.Max(0.01f, Policy(PolicyStat.RepairSpeed)));
+        public float DecayMultiplier => Get(ResearchStat.DecayMultiplier, 1f) * TraitDecayMultiplier * Policy(PolicyStat.Decay);
+        /// <summary>연구 진행 배율 (과학자 × 정책).</summary>
+        public float ResearchSpeedMultiplier => TraitResearchSpeedMultiplier * Policy(PolicyStat.ResearchSpeed);
         public float DurabilityEfficiencyFloor => Get(ResearchStat.DurabilityEfficiencyFloor, 0f);
         public float RebuildCostMultiplier => Get(ResearchStat.RebuildCostMultiplier, 1f);
         public int DefenseRadiusBonus => (int)Math.Round(Get(ResearchStat.DefenseRadiusBonus, 0f));
@@ -103,6 +123,9 @@ namespace SpaceStation.Simulation
                 m *= TraitFoodProductionMultiplier; // Phase 10 원예가
             if (metal > 0f && MiningBonus > 0f)
                 m *= (metal + MiningBonus) / metal;
+            m *= Policy(PolicyStat.Production); // 12-3c 정책 · 파업
+            if (metal > 0f)
+                m *= Policy(PolicyStat.MetalProduction);
             return m;
         }
 

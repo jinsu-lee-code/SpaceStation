@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2f4f25da0274944e801d80941465883, type: 3}
+  m_Name: PolicyConfig
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.PolicyConfig
+  _policies:
+  - {fileID: 11400000, guid: 024d4f04494ce0942b6a954d33f6b4df, type: 2}
+  - {fileID: 11400000, guid: dc2dc3d4a7001344d8a0cdb95e139be9, type: 2}
+  - {fileID: 11400000, guid: 18029626802c2364a939541c1da9caf0, type: 2}
+  - {fileID: 11400000, guid: 54d7a3ec0dd9bab4f870f5397e27adc9, type: 2}
+  - {fileID: 11400000, guid: f3bb4f77e71fddd4a90d3aaa01d1c914, type: 2}
+  - {fileID: 11400000, guid: a4241dc2e7299c141a0ce99b12c215f9, type: 2}
+  - {fileID: 11400000, guid: cc1e27e87fb15b04ebdd93f49106ee5f, type: 2}
+  - {fileID: 11400000, guid: 20d1ab56fcb8af74ebab12bbe717a51a, type: 2}
+  _slotsByGrade: 000000000000000000000000000000000000000000000000020000000300000004000000
+  _applyDelay: 30
+  _swapCooldown: 300
+  _crisisMinGrade: 6
+  _strikeThreshold: 50
+  _strikeBrewSeconds: 30
+  _strikeWarningSeconds: 90
+  _strikeRecoverMargin: 10
+  _strikeDuration: 60
+  _strikeProduction: 0.6
+  _crisisCooldown: 300
+  _bribeCost:
+  - Type: 4
+    Amount: 150
+  - Type: 3
+    Amount: 60
+  _bribeSatisfaction: 5
+  _crackdownSatisfaction: -10
+  _crackdownLeave: 3
+  _wageSeconds: 180
+  _wageSatisfactionCap: 15
+  _wageProduction: 0.85

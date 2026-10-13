@@ -307,6 +307,7 @@ namespace SpaceStation.Simulation
                 float solar = m.SolarPowered ? SolarMultiplier * Effects.SolarMultiplier : 1f; // 낮/밤 (4-2) × 연구
                 supply += Sum(m.Production, ResourceType.Power) * Multiplier(productionMultipliers, k) * solar;
             }
+            demand *= Effects.Policy(PolicyStat.PowerDemand); // 12-3c 정책 (연구 우선)
             demand += Mathf.Max(0f, ExtraPowerDemand); // 진행 중인 연구 (Phase 6)
             supply *= PowerSupplyMultiplier; // 태양 폭풍 등 전역 배율
             onDemandMax *= PowerSupplyMultiplier;

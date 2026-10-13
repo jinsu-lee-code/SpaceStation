@@ -37,6 +37,7 @@ namespace SpaceStation.Core
         Pad, // 11-12 휴대 패드 들기 / 내리기 (확대는 배속 순환 키)
         Recipes, // 12-3 합성 레시피 창
         Move, // 12-3b 선택한 모듈 옮기기
+        Policies, // 12-3c 국가급 정책 창
     }
 
     /// <summary>키가 쓰이는 상황. 건설 중과 선택 중은 동시에 일어나지 않으므로 같은 키를 써도 된다.</summary>
@@ -101,6 +102,7 @@ namespace SpaceStation.Core
             new Info { Action = GameAction.Research, Group = "창", Label = "연구 창", Default = Key.T, Context = ActionContext.Always },
             new Info { Action = GameAction.Roster, Group = "창", Label = "주민 명단", Default = Key.Y, Context = ActionContext.Always },
             new Info { Action = GameAction.Recipes, Group = "창", Label = "합성 레시피 창", Default = Key.K, Context = ActionContext.Always },
+            new Info { Action = GameAction.Policies, Group = "창", Label = "정책 창", Default = Key.O, Context = ActionContext.Always },
             new Info { Action = GameAction.ToggleHelp, Group = "창", Label = "조작 안내 고정 / 숨기기", Default = Key.H, Context = ActionContext.Always },
         };
 
