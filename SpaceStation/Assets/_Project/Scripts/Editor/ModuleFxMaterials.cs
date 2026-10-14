@@ -58,6 +58,7 @@ namespace SpaceStation.Editor
                 case "FluorRed": return Fluorescent("M_FluorRed", new Color(1f, 0.25f, 0.22f));
                 case "IceChunk": return Glass("M_IceChunk", new Color(0.78f, 0.93f, 1f, 0.55f), new Color(0.08f, 0.16f, 0.24f)); // 12-5 물 추출기 투입 얼음 (반투명)
                 case "WaterColumn": return Emissive("M_WaterColumn", new Color(0.3f, 0.65f, 1f, 1f), new Color(0.35f, 1.1f, 2.6f, 1f)); // 12-5 물 추출기 응축탑 물기둥
+                case "ServerLights": return Emissive("M_ServerLights", new Color(0.55f, 0.85f, 1f, 1f), new Color(0.5f, 1.4f, 2.4f, 1f)); // 12-5 데이터 센터 서버 랙 표시등
                 case "ProteinCulture": return Emissive("M_ProteinCulture", new Color(1f, 0.78f, 0.42f, 1f), new Color(1.6f, 0.95f, 0.35f, 1f)); // 12-5 단백질 배양실 배양액 (크림빛 호박색)
                 case "Rock": return Rock();
                 default: return null;
