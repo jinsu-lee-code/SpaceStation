@@ -438,10 +438,18 @@ namespace SpaceStation.Tests
             sim.Grid.TryPlace(_block, Vector3Int.left, 0, out var block);
             sim.Durability.ApplyImpact(block, 60f);
             sim.Resources.SetStock(ResourceType.Metal, 100f); // 정비 24 → 76 남음 < 보호선 200 × 40% = 80
+            int started = 0;
+            sim.Automation.ReserveWaitStarted += (type, shortfall) => started++;
             Ticks(sim, 2);
             sim.Durability.TryGetInfo(block, out var d);
             Assert.AreEqual(40f, d.Current, Eps, "보호선 아래라 미룸");
             Assert.IsTrue(sim.Automation.WaitingForReserve);
+            // 보호선을 개수로 (사용자 피드백 2026-10-15): 막은 자원 · 남겨 둘 양 · 더 필요한 양
+            Assert.AreEqual(ResourceType.Metal, sim.Automation.WaitingResource);
+            Assert.AreEqual(80f, sim.Automation.ReserveLine(ResourceType.Metal), Eps);
+            Assert.AreEqual(4f, sim.Automation.WaitingShortfall, Eps, "80 + 24 − 100");
+            Ticks(sim, 3);
+            Assert.AreEqual(1, started, "대기 시작 알림은 한 번만");
 
             sim.Automation.ReserveRatio = 0.3f; // 76 ≥ 60
             Ticks(sim, 2);
