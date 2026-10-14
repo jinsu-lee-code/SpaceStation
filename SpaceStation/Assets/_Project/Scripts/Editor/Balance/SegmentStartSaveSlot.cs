@@ -14,7 +14,7 @@ namespace SpaceStation.Editor.Balance
     public static class SegmentStartSaveSlot
     {
         public const string Slot = "slot3";
-        private const int CityGrade = 5;
+        private const int CityGrade = 4; // 도시급 (13-0 7단계)
 
         [MenuItem("SpaceStation/Recipes/Test Save: City Start → Slot 3")]
         public static void CityToSlot3() => Write(CityGrade, 1, Slot, confirm: true);

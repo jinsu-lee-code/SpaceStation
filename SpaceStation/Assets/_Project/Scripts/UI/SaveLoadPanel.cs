@@ -282,7 +282,7 @@ namespace SpaceStation.UI
                 case SaveSlotStatus.Incompatible:
                     return $"<color={HudText.Orange}>호환되지 않는 저장입니다 (더 새로운 버전이거나 파일이 손상됨)</color>";
                 case SaveSlotStatus.Outdated:
-                    return $"<color={HudText.Orange}>이전 버전 저장입니다 (장 구조로 바뀌기 전 · 불러올 수 없음)</color>";
+                    return $"<color={HudText.Orange}>이전 버전 저장입니다 (등급 구성이 바뀌기 전 · 불러올 수 없음)</color>";
             }
             var m = info.Meta;
             int t = Mathf.FloorToInt(m.PlaySeconds);

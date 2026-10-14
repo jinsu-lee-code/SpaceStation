@@ -12,15 +12,15 @@ namespace SpaceStation.Data
         [Header("정책")]
         [SerializeField] private List<PolicyData> _policies = new List<PolicyData>();
         [Tooltip("등급 번호별 정책 슬롯 수 (목록보다 높은 등급은 마지막 값). 0이면 정책 없음")]
-        [SerializeField] private List<int> _slotsByGrade = new List<int> { 0, 0, 0, 0, 0, 0, 2, 3, 4 };
+        [SerializeField] private List<int> _slotsByGrade = new List<int> { 0, 0, 0, 0, 0, 2, 3, 4 };
         [Tooltip("새 정책이 효과를 내기까지 (초)")]
         [SerializeField, Min(0f)] private float _applyDelay = 30f;
         [Tooltip("한 슬롯을 바꾼 뒤 다시 바꿀 수 있기까지 (초)")]
         [SerializeField, Min(0f)] private float _swapCooldown = 300f;
 
         [Header("사회 위기 시험 사건: 파업")]
-        [Tooltip("이 등급부터")]
-        [SerializeField, Min(0)] private int _crisisMinGrade = 6;
+        [Tooltip("이 등급부터 (5 = 국가급)")]
+        [SerializeField, Min(0)] private int _crisisMinGrade = 5;
         [Tooltip("만족도가 이 값 아래로")]
         [SerializeField] private float _strikeThreshold = 50f;
         [Tooltip("이 시간(초) 이어지면 경고")]

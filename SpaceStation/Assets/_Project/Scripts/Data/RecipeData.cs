@@ -41,8 +41,8 @@ namespace SpaceStation.Data
         [Tooltip("진화 단계 (1 = 도시급, 2 = 국가급, 3 = 대륙급)")]
         [SerializeField, Min(1)] private int _stage = 1;
 
-        [Tooltip("이 등급(인덱스) 이상일 때만 합성 가능 (5 = 도시급)")]
-        [SerializeField, Min(0)] private int _unlockGrade = 5;
+        [Tooltip("이 등급(인덱스) 이상일 때만 합성 가능 (4 = 도시급)")]
+        [SerializeField, Min(0)] private int _unlockGrade = 4;
 
         [Tooltip("연구 없이 해금 (연구소 계통 1단계 = 도시급 자동 해금, E2-3-2). 나머지는 12-4 레시피 해금 연구로")]
         [SerializeField] private bool _unlockedByDefault = true;

@@ -11,7 +11,7 @@ namespace SpaceStation.Save
         Ok,
         /// <summary>더 새로운 버전에서 저장했거나 파일이 깨짐.</summary>
         Incompatible,
-        /// <summary>13-1: 재설계(장 구조) 이전 저장 — 읽지 않음 (사용자 결정 2026-10-15, D-12).</summary>
+        /// <summary>13-0: 7단계 등급 · 두 판 분할 이전 저장 — 읽지 않음 (사용자 결정 2026-10-15, SPLIT 5번).</summary>
         Outdated,
     }
 
@@ -30,11 +30,11 @@ namespace SpaceStation.Save
     /// 세이브 파일 입출력 (Phase 6). 슬롯 = 자동 1 + 수동 3. 위치 = {persistentDataPath}/Saves/{슬롯}.json (+ 같은 이름 .png 썸네일).
     /// 쓰기는 임시 파일에 쓴 뒤 바꿔치기해서 저장 도중 꺼져도 이전 저장이 깨지지 않는다.
     /// 버전: 같은 버전은 읽는다(없어진 항목은 건너뜀), 더 높은 버전·깨진 파일은 "호환되지 않음",
-    /// <see cref="MinReadableVersion"/>보다 낮으면 "이전 버전"(13-1 재설계 이전 — 읽지 않음).
+    /// <see cref="MinReadableVersion"/>보다 낮으면 "이전 버전"(읽지 않음).
     /// </summary>
     public static class SaveService
     {
-        /// <summary>2 = 13-1 장 구조 (재설계 · REDESIGN.md).</summary>
+        /// <summary>2 = 13-0 7단계 등급 (초대형 삭제로 등급 인덱스가 바뀜, 2026-10-15).</summary>
         public const int CurrentVersion = 2;
         /// <summary>이보다 낮은 버전은 "이전 버전"으로 표시만 하고 불러오지 않음.</summary>
         public const int MinReadableVersion = 2;

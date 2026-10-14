@@ -236,7 +236,7 @@ namespace SpaceStation.UI
             var p = _progression.Progression;
             _popSb.Clear();
             _popSb.Append("<size=118%>").Append(HudTheme.Icon("grade")).Append(" <b><color=").Append(HudTheme.AccentHex).Append('>')
-                  .Append(p.Current.DisplayName).Append(" 정거장</color></b></size>");
+                  .Append(p.Current.StationTitle).Append("</color></b></size>"); // 13-0: 시작 상태는 "등급 없음"
             if (p.LimitedModule != null)
             {
                 _popSb.Append("<pos=66%><size=80%><color=").Append(HudText.Muted).Append('>').Append(p.LimitedModule.DisplayName).Append(' ')

@@ -195,7 +195,7 @@ namespace SpaceStation.Tests
             File.WriteAllText(SaveService.JsonPath("slot3"), "{ broken");
             Assert.AreEqual(SaveSlotStatus.Incompatible, SaveService.Describe("slot3").Status, "깨진 파일");
             File.WriteAllText(SaveService.JsonPath("slot3"), JsonUtility.ToJson(new SaveFile { Version = SaveService.MinReadableVersion - 1 }));
-            Assert.AreEqual(SaveSlotStatus.Outdated, SaveService.Describe("slot3").Status, "13-1 재설계 이전 저장은 읽지 않음");
+            Assert.AreEqual(SaveSlotStatus.Outdated, SaveService.Describe("slot3").Status, "13-0 7단계 등급 이전 저장은 읽지 않음");
 
             SaveService.Delete(SaveService.AutoSlot);
             Assert.AreEqual(SaveSlotStatus.Empty, SaveService.Describe(SaveService.AutoSlot).Status);

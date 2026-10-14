@@ -13,7 +13,7 @@ namespace SpaceStation.Data
         [Serializable]
         public struct Requirement
         {
-            [Tooltip("필요 등급 (0 = 초소형)")]
+            [Tooltip("필요 등급 (0 = 등급 없음(시작), 1 = 소형 … 7 = 지구급)")]
             [Min(0)] public int Grade;
             [Min(0)] public int MinPopulation;
         }
