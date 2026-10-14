@@ -40,9 +40,10 @@
     > 공통 바닥(SPLIT.md 3번)을 바꾸는 수정은 이 브랜치가 아니라 main에서 한다.
     ```
 - [x] **S-6. HANDOFF.md 갱신** — 지금 내용은 2026-10-12 기준(12-3 관문 대기, 테스트 343개)이라 실제와 다르다. 현재 상태(12-5 진행, 테스트 382개)로 고치고, "PC별 담당 판 · 브랜치"와 "다른 PC에서 `tycoon` 브랜치를 받는 방법"을 적는다.
-- [ ] **S-7. 타이쿤판 세이브 분리** — 두 판이 같은 세이브 경로(`%USERPROFILE%\AppData\LocalLow\BinaryCompany\Another Earth\`)와 PlayerPrefs(키 설정 등)를 쓴다. `tycoon` 브랜치에서 **Product Name**을 개발용으로 바꿔(예: `Another Earth Tycoon`) 세이브 · PlayerPrefs를 분리한다. 합칠 때 모드별 세이브 구분으로 정리.
+- [x] **S-7. 타이쿤판 세이브 분리** — 두 판이 같은 세이브 경로(`%USERPROFILE%\AppData\LocalLow\BinaryCompany\Another Earth\`)와 PlayerPrefs(키 설정 등)를 쓴다. `tycoon` 브랜치에서 **Product Name**을 개발용으로 바꿔(예: `Another Earth Tycoon`) 세이브 · PlayerPrefs를 분리한다. 합칠 때 모드별 세이브 구분으로 정리.
   - 세이브 경로가 Product Name이 아닌 다른 값에서 만들어지면 그 지점을 찾아 같은 원리로 분리. 바꾸기 전에 사용자에게 이름 확인.
-- [ ] **S-8. 이전 계획 문서 표시**
+  - 완료 (2026-10-15, 사용자 결정 "Another Earth Tycoon"): 세이브(`Application.persistentDataPath`) · PlayerPrefs 모두 Product Name을 따르므로 `tycoon`의 ProjectSettings productName + `BuildSetup.ProductName`(메뉴 Apply Player Settings가 되돌리지 않게) + 빌드 파일 `AnotherEarthTycoon.exe`. 로딩 화면 글자도 이 이름
+- [x] **S-8. 이전 계획 문서 표시**
   - `narrative`: PHASESET.md 맨 위에 "대체됨 — REDESIGN.md 기준", TASKS.md Phase 12의 남은 항목(12-5 ② 이후)에 "대체됨 (REDESIGN.md)".
   - `tycoon`: PHASESET.md 맨 위에 "일부 대체됨 — TYCOON.md와 다른 부분은 TYCOON.md가 우선(합성 해금 = 중형부터, 위기 규모 = 성장 비례, 등급 7단계 등)". TASKS.md Phase 12의 남은 항목은 TYCOON.md 기준으로 다시 정리.
 
