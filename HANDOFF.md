@@ -1,16 +1,36 @@
 # 다른 PC에서 이어가기
 
-마지막 정리: 2026-10-12 (12-3 구현 완료, 관문 플레이 확인 전). 작업 규칙은 `CLAUDE.md` → "작업 방식" 참고.
+마지막 정리: 2026-10-15 (두 판 분할 셋업, [SPLIT.md](SPLIT.md)). 작업 규칙은 `CLAUDE.md` → "작업 방식" 참고.
 
-## 1. 현재 상태
-- 완료: Phase 11 전체, Phase 12 착수 전 결정(C-1 ~ C-7), **12-0b**(시뮬레이션 구조 정리), **12-1**(등급 틀 · 누적 결과 화면 · ★ 배너), **12-2**(측정 도구 확장 — 구간 시작 상태 36개 저장소에 포함), **12-2b**(큰 정거장 틱 성능)
-- 진행: **12-3 합성 시스템** — 시뮬레이션 · 레시피 창 · 합성 고스트 · 시험 레시피 5종 완료 (커밋 `ed396ba` · `27cd762`), **관문(C-4) 플레이 확인 대기** — 합성 퍼즐이 재미있는지 보고 규칙(PHASESET A1 ~ A10) 유지 / 수정을 정한 뒤 12-3b(합성 보조: 모듈 이동 · 기계팔 합성 연출) · 12-3c(등급별 핵심 규칙 · 계통표) · 12-4로
-  - 시험 방법: 시험 저장은 저장소 밖(세이브 폴더)이라 **새 PC에서 다시 만들어야 함** → Unity 메뉴 `SpaceStation/Recipes/Test Save: City Start → Slot 3` (12-2 도시급 시작 상태를 수동 저장 3에 넣음, 이미 저장이 있으면 덮어쓸지 물음) → 게임에서 불러오기 → 수동 저장 3 → K (레시피 창) → 레시피 고르고 [위치 지정] → 재료 위에서 초록이면 클릭
-  - 레시피 · 진화 모듈 에셋을 고치면 메뉴 `SpaceStation/Recipes/Setup`을 다시 실행 (에셋 갱신 + 게임 씬 연결). 수치는 BALANCE.md 32번
-  - 주의: Claude가 MCP로 플레이 모드를 시험하면 종료 때 자동 저장이 사용자 자동 저장 슬롯을 덮어씀 → 시험 전 세이브 폴더 백업 · 시험 후 복원
+## 0. 두 판 분할 — PC별 담당 브랜치 (2026-10-15)
+Another Earth를 **서사판**(스토리 캠페인)과 **타이쿤판**(경영 시뮬레이션) 두 갈래로 나눠 만들고, 나중에 한 게임 두 모드로 합친다. 자세한 규칙은 [SPLIT.md](SPLIT.md).
+
+| 브랜치 | 내용 | 담당 PC | 설계 기준 |
+|---|---|---|---|
+| `main` | 공통 바닥 (SPLIT.md 3번) — 바닥 수정은 여기서 하고 두 브랜치로 합침 | 둘 다 | — |
+| `narrative` | 서사판 — 방주 · 코어 AI · 7장 | **원래 PC** (`C:\Users\wlstn\desktop\unity\SpaceStation`) | [REDESIGN.md](REDESIGN.md) |
+| `tycoon` | 타이쿤판 — 해금 선택 · 성장 비례 위협 | **다른 PC** | [TYCOON.md](TYCOON.md) |
+
+- 기준점: 태그 `baseline-before-rework` (7b47144, 12-5 ② 진행 중 빌드). 두 판 모두 여기서 출발
+- 각 브랜치의 `CLAUDE.md` 맨 위에 어느 판인지 적혀 있다. 세션 시작 때 지금 브랜치를 먼저 확인한다
+- 커밋 메시지 형식은 그대로 (`MM.DD/작업번호/요약`). 브랜치마다 Phase 13부터 시작 — 같은 번호라도 브랜치가 다르면 다른 작업
+
+### 다른 PC에서 `tycoon` 브랜치 받기
+1. 아래 2번(새 PC 준비)대로 저장소를 클론했거나 이미 있으면 **GitHub Desktop → Fetch origin**
+2. GitHub Desktop 위쪽 **Current branch → `tycoon`** 선택 (원격 브랜치를 처음 고르면 로컬 브랜치가 만들어짐)
+   - 명령으로는: `git fetch origin` → `git switch tycoon`
+   - 예전에 받은 `main`이 있으면: 2026-10-15에 원격 `main` 기록을 다시 썼다(서사판 13-1 커밋 3개를 `narrative`로 옮김). 로컬 `main`에 따로 만든 커밋이 없다면 `git switch main` → `git reset --hard origin/main`으로 맞춘다
+3. Unity를 열면 브랜치 내용으로 다시 가져오기(import)가 돈다. Unity를 연 채로 브랜치를 바꾸지 말고 닫고 바꾸는 것이 안전
+4. Claude에게 첫 요청: "SpaceStation 다른 PC에서 tycoon 브랜치 작업 시작할게. SPLIT.md · TYCOON.md 읽고 진행하자"
+
+## 1. 현재 상태 (기준점 = `main`)
+- 완료: Phase 11 전체, Phase 12의 12-0 ~ 12-4 (등급 틀 · 측정 도구 · 합성 시스템 + 보조 · 등급별 핵심 규칙(유성우 · 정책 · 사회 위기 · 열 · 방문 세력) · 연구 확장)
+- 멈춤: **12-5 새 기본 모듈 14종** — 데이터 · 그레이박스 · 외형 모델 8종(학교 · 구조 프레임 · 연결 허브 · 센서 어레이 · 검역소 · 단백질 배양실 · 물 추출기 · 데이터 센터) + 기존 모듈 상징 마크까지. 이후는 판마다 다시 정한다 (서사판 V3 = 장 · 종족에 연결되는 것만 / 타이쿤판 TYCOON.md)
+- 판별 진행: `narrative` = Phase 13 (1~3장 수직 단면, 13-1 장 틀 완료 · 플레이 확인 대기) / `tycoon` = Phase 13 착수 전
+- 주의: Claude가 MCP로 플레이 모드를 시험하면 종료 때 자동 저장이 사용자 자동 저장 슬롯을 덮어씀 → 시험 전 세이브 폴더 백업 · 시험 후 복원
 - 긴 측정은 Balance Simulator 창의 백그라운드 버튼(또는 `BalanceSimulatorWindow.StartSegment` 등)으로 — MCP로 동기 실행하면 요청이 시간 초과되고 Unity가 멈춘다
-- 버전 계획: 12-7 도시급 = v0.12, 12-8 = v0.13, 12-9 = v0.14, 지구급 + 샌드박스 · 도전 과제 = v1.0.0
-- 테스트: EditMode 343개 통과. 봇 기준선 = `BalanceSimulatorWindow.RunWithDefaults(30, 20, 1)` (12-0b ~ 12-3 동안 결과 그대로 유지됨)
+- 테스트: `main` EditMode 382개 통과. 봇 기준선 = `BalanceSimulatorWindow.RunWithDefaults(30, 20, 1)`
+  - ⚠ 2026-10-15 확인: 기준점에서 봇 노멀 30분이 5판 모두 약 5분에 게임 오버(물 고갈). 10-12 리포트(20판 중 1판)와 다름 → 12-5 이후 봇이 물 재활용기를 못 짓게 된 것으로 보임. 바닥(측정 도구) 문제라 `main`에서 고칠 것
 
 ## 2. 새 PC 준비
 1. **Unity Hub → Unity 6000.3.25f1** 설치 (Windows Build Support (Mono) 포함)
@@ -42,7 +62,7 @@
 
 | 항목 | 원래 PC 위치 | 비고 |
 |---|---|---|
-| 세이브 슬롯 | `%USERPROFILE%\AppData\LocalLow\BinaryCompany\Another Earth\` | 플레이 확인용 진행 상태. 새 PC에서는 새 게임으로 시작. 12-3 시험용 도시급 저장(수동 저장 3)은 위 메뉴로 다시 만듦 |
+| 세이브 슬롯 | `%USERPROFILE%\AppData\LocalLow\BinaryCompany\Another Earth\` | 플레이 확인용 진행 상태. 새 PC에서는 새 게임으로 시작. 시험용 도시급 저장(수동 저장 3)은 메뉴 `SpaceStation/Recipes/Test Save: City Start → Slot 3`로 다시 만듦. 타이쿤판은 세이브 경로를 분리할 예정(SPLIT.md S-7) |
 | 영상 | `Presentation/AnotherEarth_Teaser.mp4`, `AnotherEarth_PlayTour.mp4`, `tour_stills/` | GitHub에 올리지 않기로 함. 다시 만들려면 메뉴 SpaceStation/Teaser/Record · Record Play Tour |
 | 에셋 스토어 참고 패키지 | `SpaceStation/Assets/Holograms/`, `Assets/Shield Shader FREE/` | 게임에서 쓰지 않음 (참고용). 필요하면 에셋 스토어에서 다시 받기 |
 | 밸런스 봇 리포트 | `SpaceStation/BalanceReports/` | 다시 돌리면 같은 시드 = 같은 결과 |
@@ -52,4 +72,4 @@
 | Claude 메모리 | `%USERPROFILE%\.claude\projects\...\memory\` | 내용은 `CLAUDE.md` "작업 방식"에 옮겨 둠 |
 
 ## 4. 새 PC에서 첫 요청 예시
-> SpaceStation 다른 PC에서 이어서 작업할게. HANDOFF.md 확인하고 12-3 관문 플레이 확인 이어서 하자
+> SpaceStation 다른 PC에서 tycoon 브랜치 작업 시작할게. HANDOFF.md · SPLIT.md · TYCOON.md 읽고 Phase 13 착수하자
