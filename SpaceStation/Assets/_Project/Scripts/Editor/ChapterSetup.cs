@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using SpaceStation.Building;
 using SpaceStation.Core;
@@ -60,16 +61,21 @@ namespace SpaceStation.Editor
             cso.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(config);
 
-            // 난이도: 장 N = 등급 N-1의 간격 배율
+            // 난이도: 장 N 시작 = 등급 N-1의 간격 배율, 등급 목표를 채운 뒤 = 등급 N의 간격 배율
             foreach (var guid in AssetDatabase.FindAssets("t:DifficultyPreset"))
             {
                 var preset = AssetDatabase.LoadAssetAtPath<DifficultyPreset>(AssetDatabase.GUIDToAssetPath(guid));
                 var pso = new SerializedObject(preset);
                 var from = pso.FindProperty("_eventIntervalMultipliers");
                 var to = pso.FindProperty("_chapterEventIntervalMultipliers");
+                var up = pso.FindProperty("_chapterGradeUpEventIntervalMultipliers");
                 to.arraySize = 3;
+                up.arraySize = 3;
                 for (int i = 0; i < 3; i++)
+                {
                     to.GetArrayElementAtIndex(i).floatValue = i < from.arraySize ? from.GetArrayElementAtIndex(i).floatValue : -1f;
+                    up.GetArrayElementAtIndex(i).floatValue = i + 1 < from.arraySize ? from.GetArrayElementAtIndex(i + 1).floatValue : -1f;
+                }
                 pso.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(preset);
             }
@@ -137,15 +143,21 @@ namespace SpaceStation.Editor
             unlocks.arraySize = grade.Unlocks.Count;
             for (int i = 0; i < grade.Unlocks.Count; i++)
                 unlocks.GetArrayElementAtIndex(i).objectReferenceValue = grade.Unlocks[i];
-            var needs = so.FindProperty("_newNeeds");
-            needs.arraySize = grade.NewNeeds.Count;
-            for (int i = 0; i < grade.NewNeeds.Count; i++)
-                needs.GetArrayElementAtIndex(i).enumValueIndex = (int)grade.NewNeeds[i];
-            so.FindProperty("_rules").intValue = (int)StationRule.None; // 유성우 = 13-6 (2장), 정책 = 13-8 (3장)
+            // 요구: 등급이 오르는 순간(이 장의 등급 목표)에 그 등급의 요구 — 장 시작 요구는 1장(시작 상태)만, 2장부터는 지난 장 등급 목표에서 이미 생김
+            var target = grades.Grades[number]; // 이 장의 등급 목표 (1장 소형 · 2장 중형 · 3장 대형)
+            SetNeeds(so.FindProperty("_newNeeds"), number == 1 ? grade.NewNeeds : new List<ResidentNeed>());
+            SetNeeds(so.FindProperty("_gradeUpNeeds"), target.NewNeeds);
+            so.FindProperty("_rules").intValue = (int)StationRule.None; // 유성우 = 13-5 (2장), 정책 = 13-6 (3장)
             so.FindProperty("_meteorHitsMin").intValue = grade.MeteorHitsMin;
             so.FindProperty("_meteorHitsMax").intValue = grade.MeteorHitsMax;
             so.FindProperty("_eventIntervalMultiplier").floatValue = grade.EventIntervalMultiplier;
             so.FindProperty("_eventIntensityMultiplier").floatValue = grade.EventIntensityMultiplier;
+            // 이벤트 규모도 등급이 오르는 순간 그 등급 값으로 (사용자 결정 2026-10-15)
+            so.FindProperty("_gradeUpScale").boolValue = true;
+            so.FindProperty("_gradeUpMeteorHitsMin").intValue = target.MeteorHitsMin;
+            so.FindProperty("_gradeUpMeteorHitsMax").intValue = target.MeteorHitsMax;
+            so.FindProperty("_gradeUpEventIntervalMultiplier").floatValue = target.EventIntervalMultiplier;
+            so.FindProperty("_gradeUpEventIntensityMultiplier").floatValue = target.EventIntensityMultiplier;
 
             var goals = so.FindProperty("_goals");
             goals.arraySize = 2;
@@ -194,6 +206,13 @@ namespace SpaceStation.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(data);
             return data;
+        }
+
+        private static void SetNeeds(SerializedProperty list, IReadOnlyList<ResidentNeed> needs)
+        {
+            list.arraySize = needs.Count;
+            for (int i = 0; i < needs.Count; i++)
+                list.GetArrayElementAtIndex(i).enumValueIndex = (int)needs[i];
         }
 
         private static void Clear(SerializedProperty goal)

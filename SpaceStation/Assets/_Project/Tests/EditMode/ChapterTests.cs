@@ -215,6 +215,60 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void GradeGoal_AppliesGradeUpNeedsAndScale_AtTheMomentGradeRises_KeptAfterSaveAndNextChapter()
+        {
+            // 1장: 등급 G1(모듈 4) 도달이 필수 → 그 순간 의료 요구 + 운석 5개 / 2장: 장 시작 요구 없음
+            var ch1 = Chapter("1장", new[] { _block }, StationRule.None, 1, choices: new[] { "a" });
+            var so1 = new SerializedObject(ch1);
+            so1.FindProperty("_goals").arraySize = 1;
+            Goal(so1.FindProperty("_goals").GetArrayElementAtIndex(0), ChapterGoalKind.ReachGrade, grade: 1);
+            so1.FindProperty("_gradeUpNeeds").arraySize = 1;
+            so1.FindProperty("_gradeUpNeeds").GetArrayElementAtIndex(0).enumValueIndex = (int)ResidentNeed.Medical;
+            so1.FindProperty("_gradeUpScale").boolValue = true;
+            so1.FindProperty("_gradeUpMeteorHitsMin").intValue = 5;
+            so1.FindProperty("_gradeUpMeteorHitsMax").intValue = 5;
+            Climax(so1.FindProperty("_climax"), ChapterClimaxKind.None, warning: 100f);
+            so1.ApplyModifiedPropertiesWithoutUndo();
+            var ch2 = Chapter("2장", new ModuleData[0], StationRule.None, 2);
+            var config = Create<ChapterConfig>();
+            var c = new SerializedObject(config);
+            c.FindProperty("_chapters").arraySize = 2;
+            c.FindProperty("_chapters").GetArrayElementAtIndex(0).objectReferenceValue = ch1;
+            c.FindProperty("_chapters").GetArrayElementAtIndex(1).objectReferenceValue = ch2;
+            c.ApplyModifiedPropertiesWithoutUndo();
+            _chapters = config;
+
+            var sim = Sim();
+            Place(sim, 2); // 코어 + 2 = 3 (G1 전)
+            sim.Tick(1f);
+            Assert.IsFalse(sim.Chapters.GradeUpApplied);
+            CollectionAssert.DoesNotContain(sim.ActiveNeeds, ResidentNeed.Medical, "등급이 오르기 전엔 요구 없음");
+            Assert.AreEqual(1, sim.EventScale.MeteorHitsMin);
+
+            Place(sim, 1); // 4 → G1
+            sim.Tick(1f);
+            Assert.IsTrue(sim.Chapters.GradeUpApplied);
+            Assert.AreEqual(5, sim.EventScale.MeteorHitsMin, "이벤트 규모는 등급이 오르는 순간");
+            sim.Tick(1f); // 요구 충족 단계는 틱 순서상 장 단계보다 앞 → 요구는 다음 틱(1초 뒤)부터 (공통 바닥 틱 순서는 그대로)
+            CollectionAssert.Contains(sim.ActiveNeeds, ResidentNeed.Medical, "등급이 오른 다음 틱에 요구");
+            Assert.AreEqual(ChapterPhase.Warning, sim.Chapters.Phase, "같은 순간 절정 예고");
+
+            var copy = Sim();
+            StationStateSerializer.Restore(copy, JsonUtility.FromJson<StationState>(JsonUtility.ToJson(StationStateSerializer.Capture(sim))));
+            Assert.IsTrue(copy.Chapters.GradeUpApplied, "저장 · 복원 유지");
+            CollectionAssert.Contains(copy.ActiveNeeds, ResidentNeed.Medical);
+            Assert.AreEqual(5, copy.EventScale.MeteorHitsMin);
+
+            sim.Chapters.StartClimaxNow();
+            Assert.IsTrue(sim.Chapters.Choose(0));
+            sim.Tick(1f);
+            Assert.AreEqual(1, sim.Chapters.Index);
+            Assert.IsFalse(sim.Chapters.GradeUpApplied, "새 장은 등급 목표 전부터");
+            CollectionAssert.Contains(sim.ActiveNeeds, ResidentNeed.Medical, "지난 장 등급 목표의 요구는 다음 장에도 유지");
+            Assert.AreEqual(2, sim.EventScale.MeteorHitsMin, "새 장 시작 규모");
+        }
+
+        [Test]
         public void WithoutChapters_GradeRulesUnchanged()
         {
             var sim = new StationSimulation(new StationSimulationSettings

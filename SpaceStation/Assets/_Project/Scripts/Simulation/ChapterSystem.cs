@@ -142,7 +142,10 @@ namespace SpaceStation.Simulation
             return false;
         }
 
-        /// <summary>지금 장까지 생긴 거주자 요구 (누적, 중복 없이).</summary>
+        /// <summary>
+        /// 지금 장까지 생긴 거주자 요구 (누적, 중복 없이): 장 시작 요구 + 등급 목표를 채운 순간의 요구
+        /// (지난 장은 등급 목표를 지나왔으므로 포함, 지금 장은 <see cref="GradeUpApplied"/>일 때만).
+        /// </summary>
         internal void CollectNeeds(List<ResidentNeed> into)
         {
             for (int i = 0; i <= Index && i < _config.Count; i++)
@@ -150,16 +153,30 @@ namespace SpaceStation.Simulation
                 var c = _config.Chapters[i];
                 if (c == null)
                     continue;
-                foreach (var need in c.NewNeeds)
-                    if (need != ResidentNeed.None && !into.Contains(need))
-                        into.Add(need);
+                Add(into, c.NewNeeds);
+                if (i < Index || GradeUpApplied)
+                    Add(into, c.GradeUpNeeds);
             }
         }
 
-        public int MeteorHitsMin => Current.MeteorHitsMin;
-        public int MeteorHitsMax => Current.MeteorHitsMax;
-        public float EventIntervalMultiplier => _config.EventIntervalMultiplier(Index);
-        public float EventIntensityMultiplier => Current.EventIntensityMultiplier;
+        private static void Add(List<ResidentNeed> into, IReadOnlyList<ResidentNeed> needs)
+        {
+            foreach (var need in needs)
+                if (need != ResidentNeed.None && !into.Contains(need))
+                    into.Add(need);
+        }
+
+        /// <summary>
+        /// 이 장의 등급 목표를 채웠는지 (사용자 결정 2026-10-15: 새 요구 · 이벤트 규모는 등급이 오르는 순간에 맞춤).
+        /// 한 번 채우면 이 장 동안 유지 (등급이 다시 내려가도).
+        /// </summary>
+        public bool GradeUpApplied { get; private set; }
+
+        private bool UseGradeUpScale => GradeUpApplied && Current.HasGradeUpScale;
+        public int MeteorHitsMin => UseGradeUpScale ? Current.GradeUpMeteorHitsMin : Current.MeteorHitsMin;
+        public int MeteorHitsMax => UseGradeUpScale ? Current.GradeUpMeteorHitsMax : Current.MeteorHitsMax;
+        public float EventIntervalMultiplier => _config.EventIntervalMultiplier(Index, GradeUpApplied);
+        public float EventIntensityMultiplier => UseGradeUpScale ? Current.GradeUpEventIntensityMultiplier : Current.EventIntensityMultiplier;
 
         // ---------------- 목표 ----------------
 
@@ -281,6 +298,8 @@ namespace SpaceStation.Simulation
                     GiveReward(goals[i]);
                 string reward = goals[i].Optional && goals[i].HasReward ? $" · 보상 {RewardText(goals[i])}" : "";
                 Sim.Report($"장 목표 완료: {GoalText(i)}{reward}", true);
+                if (goals[i].Kind == ChapterGoalKind.ReachGrade)
+                    ApplyGradeUp();
                 GoalCompleted?.Invoke(i);
             }
         }
@@ -296,6 +315,27 @@ namespace SpaceStation.Simulation
             if (g.RewardFreeRepairs > 0)
                 parts.Add($"무료 수리권 +{g.RewardFreeRepairs}");
             return string.Join(" · ", parts);
+        }
+
+        /// <summary>
+        /// 등급 목표를 채운 순간: 새 요구 · 이벤트 규모를 올림 (한 번만). 이벤트 규모는 바로, 요구는 다음 틱부터
+        /// (요구 충족 단계가 장 단계보다 앞 — 공통 바닥 틱 순서는 바꾸지 않음, 1초 차이).
+        /// </summary>
+        private void ApplyGradeUp()
+        {
+            if (GradeUpApplied)
+                return;
+            GradeUpApplied = true;
+            var data = Current;
+            var parts = new List<string>();
+            foreach (var need in data.GradeUpNeeds)
+                if (need != ResidentNeed.None)
+                    parts.Add($"새 요구 '{need.DisplayName()}'");
+            if (data.HasGradeUpScale)
+                parts.Add("위협이 커집니다");
+            if (parts.Count > 0)
+                Sim.Report(string.Join(" · ", parts), false);
+            Sim.RefreshModuleStats();
         }
 
         private void GiveReward(ChapterGoal g)
@@ -379,6 +419,7 @@ namespace SpaceStation.Simulation
             Phase = ChapterPhase.Preparation;
             ChapterSeconds = 0f;
             WarningLeft = 0f;
+            GradeUpApplied = false;
             _done = new bool[Current.Goals.Count];
             ReleaseEvents();
             if (raise)
@@ -448,6 +489,7 @@ namespace SpaceStation.Simulation
             public int Phase;
             public float ChapterSeconds;
             public float WarningLeft;
+            public bool GradeUp;
             public List<bool> Done = new List<bool>();
             public List<string> Flags = new List<string>();
             public List<ChapterRecord> Records = new List<ChapterRecord>();
@@ -463,6 +505,7 @@ namespace SpaceStation.Simulation
                 Phase = (int)Phase,
                 ChapterSeconds = ChapterSeconds,
                 WarningLeft = WarningLeft,
+                GradeUp = GradeUpApplied,
                 Done = new List<bool>(_done),
                 Flags = new List<string>(_flags),
                 Records = new List<ChapterRecord>(_records),
@@ -484,6 +527,7 @@ namespace SpaceStation.Simulation
             Phase = (ChapterPhase)Mathf.Clamp(s.Phase, 0, (int)ChapterPhase.Finished);
             ChapterSeconds = s.ChapterSeconds;
             WarningLeft = s.WarningLeft;
+            GradeUpApplied = s.GradeUp;
             for (int i = 0; i < _done.Length && i < s.Done.Count; i++)
                 _done[i] = s.Done[i];
             _flags.Clear();

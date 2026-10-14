@@ -14,22 +14,33 @@ namespace SpaceStation.Data
 
         // 난이도 덮어쓰기 (복사본에만, 장 에셋은 공유라 건드리지 않음). 음수 = 장 값 유지
         private List<float> _intervalOverrides;
+        private List<float> _gradeUpIntervalOverrides;
 
         public IReadOnlyList<ChapterData> Chapters => _chapters;
         public int Count => _chapters.Count;
 
-        /// <summary>장의 이벤트 간격 배율 (난이도 덮어쓰기가 있으면 그것).</summary>
-        public float EventIntervalMultiplier(int chapter)
+        /// <summary>
+        /// 장의 이벤트 간격 배율 (난이도 덮어쓰기가 있으면 그것). gradeUp = 그 장의 등급 목표를 채운 뒤 값
+        /// (장에 등급 목표 규모가 없으면 장 시작 값).
+        /// </summary>
+        public float EventIntervalMultiplier(int chapter, bool gradeUp = false)
         {
-            if (_intervalOverrides != null && chapter >= 0 && chapter < _intervalOverrides.Count && _intervalOverrides[chapter] >= 0f)
-                return Mathf.Max(0.05f, _intervalOverrides[chapter]);
-            return chapter >= 0 && chapter < _chapters.Count && _chapters[chapter] != null ? _chapters[chapter].EventIntervalMultiplier : 1f;
+            if (chapter < 0 || chapter >= _chapters.Count || _chapters[chapter] == null)
+                return 1f;
+            var data = _chapters[chapter];
+            if (gradeUp && data.HasGradeUpScale)
+                return Override(_gradeUpIntervalOverrides, chapter) ?? data.GradeUpEventIntervalMultiplier;
+            return Override(_intervalOverrides, chapter) ?? data.EventIntervalMultiplier;
         }
 
-        /// <summary>난이도 덮어쓰기 — 복사본에만 호출.</summary>
-        internal void ApplyEventIntervals(IReadOnlyList<float> multipliers)
+        private static float? Override(List<float> list, int chapter)
+            => list != null && chapter < list.Count && list[chapter] >= 0f ? Mathf.Max(0.05f, list[chapter]) : (float?)null;
+
+        /// <summary>난이도 덮어쓰기 — 복사본에만 호출. gradeUp = 등급 목표를 채운 뒤 값의 목록.</summary>
+        internal void ApplyEventIntervals(IReadOnlyList<float> multipliers, IReadOnlyList<float> gradeUp = null)
         {
             _intervalOverrides = multipliers != null ? new List<float>(multipliers) : null;
+            _gradeUpIntervalOverrides = gradeUp != null ? new List<float>(gradeUp) : null;
         }
     }
 }

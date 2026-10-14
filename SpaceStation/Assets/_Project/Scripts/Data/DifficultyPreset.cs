@@ -27,6 +27,8 @@ namespace SpaceStation.Data
         [SerializeField] private List<float> _eventIntervalMultipliers = new List<float>();
         [Tooltip("13-1 장별 이벤트 간격 배율 (장 순서, 음수 = 장 값 유지, 비우면 모두 유지) — 장 틀이 있으면 등급별 값 대신 이것")]
         [SerializeField] private List<float> _chapterEventIntervalMultipliers = new List<float>();
+        [Tooltip("13-1 장별 등급 목표를 채운 뒤의 이벤트 간격 배율 (장 순서, 음수 = 장 값 유지)")]
+        [SerializeField] private List<float> _chapterGradeUpEventIntervalMultipliers = new List<float>();
 
         public string DisplayName => _displayName;
         public string Description => _description;
@@ -65,7 +67,7 @@ namespace SpaceStation.Data
                 return null;
             var copy = Instantiate(source);
             copy.name = $"{source.name} ({name})";
-            copy.ApplyEventIntervals(_chapterEventIntervalMultipliers);
+            copy.ApplyEventIntervals(_chapterEventIntervalMultipliers, _chapterGradeUpEventIntervalMultipliers);
             return copy;
         }
     }

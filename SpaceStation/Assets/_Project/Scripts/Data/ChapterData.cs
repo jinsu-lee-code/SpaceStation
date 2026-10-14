@@ -162,6 +162,16 @@ namespace SpaceStation.Data
         [SerializeField, Min(0.05f)] private float _eventIntervalMultiplier = 1f;
         [SerializeField, Min(0.05f)] private float _eventIntensityMultiplier = 1f;
 
+        [Header("등급 목표를 채우는 순간 (사용자 결정 2026-10-15)")]
+        [Tooltip("이 장의 등급 도달 목표를 채우는 순간 생기는 요구 (등급이 오르는 때와 같은 시점, 한 번 생기면 유지)")]
+        [SerializeField] private List<ResidentNeed> _gradeUpNeeds = new List<ResidentNeed>();
+        [Tooltip("등급 목표를 채우는 순간 이벤트 규모를 아래 값으로 올림 (끄면 장 시작 값 그대로)")]
+        [SerializeField] private bool _gradeUpScale;
+        [SerializeField, Min(1)] private int _gradeUpMeteorHitsMin = 1;
+        [SerializeField, Min(1)] private int _gradeUpMeteorHitsMax = 1;
+        [SerializeField, Min(0.05f)] private float _gradeUpEventIntervalMultiplier = 1f;
+        [SerializeField, Min(0.05f)] private float _gradeUpEventIntensityMultiplier = 1f;
+
         [Header("준비 목표 · 절정 · 전환")]
         [SerializeField] private List<ChapterGoal> _goals = new List<ChapterGoal>();
         [SerializeField] private ChapterClimaxSettings _climax = new ChapterClimaxSettings();
@@ -177,6 +187,12 @@ namespace SpaceStation.Data
         public int MeteorHitsMax => Mathf.Max(MeteorHitsMin, _meteorHitsMax);
         public float EventIntervalMultiplier => _eventIntervalMultiplier > 0f ? _eventIntervalMultiplier : 1f;
         public float EventIntensityMultiplier => _eventIntensityMultiplier > 0f ? _eventIntensityMultiplier : 1f;
+        public IReadOnlyList<ResidentNeed> GradeUpNeeds => _gradeUpNeeds;
+        public bool HasGradeUpScale => _gradeUpScale;
+        public int GradeUpMeteorHitsMin => Mathf.Max(1, _gradeUpMeteorHitsMin);
+        public int GradeUpMeteorHitsMax => Mathf.Max(GradeUpMeteorHitsMin, _gradeUpMeteorHitsMax);
+        public float GradeUpEventIntervalMultiplier => _gradeUpEventIntervalMultiplier > 0f ? _gradeUpEventIntervalMultiplier : 1f;
+        public float GradeUpEventIntensityMultiplier => _gradeUpEventIntensityMultiplier > 0f ? _gradeUpEventIntensityMultiplier : 1f;
         public IReadOnlyList<ChapterGoal> Goals => _goals;
         public ChapterClimaxSettings Climax => _climax;
         public IReadOnlyList<ChapterChoice> Choices => _choices;
