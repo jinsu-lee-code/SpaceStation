@@ -306,6 +306,15 @@ namespace SpaceStation.Editor
                     var spin = FindChild(instance.transform, "Spin");
                     if (spin != null)
                         spin.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
+                    // 12-5 센서 어레이: "SpinRadar" 배열 판이 레이더처럼 빠르게 회전 (피벗 = 기둥 꼭대기)
+                    var radar = FindChild(instance.transform, "SpinRadar");
+                    if (radar != null)
+                    {
+                        var spinner = radar.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
+                        var sso = new SerializedObject(spinner);
+                        sso.FindProperty("_speed").floatValue = 40f;
+                        sso.ApplyModifiedPropertiesWithoutUndo();
+                    }
                     // 8-5 연료전지: 보조 발전 중에만 "Lamp" 켜짐
                     var lamp = FindChild(instance.transform, "Lamp");
                     if (lamp != null && data.OnDemandPower)
