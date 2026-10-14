@@ -172,6 +172,8 @@ namespace SpaceStation.UI
                     if (data.ComingSoon)
                         return $"<color={HudText.Muted}>준비 중</color>"; // 12-5
                     int grade = p.GetUnlockGrade(data);
+                    if (grade >= 0 && grade <= p.GradeIndex && p.IsRuleLocked(data))
+                        return $"<color={HudText.Muted}>잠김 · {StationRules.DisplayName(data.RequiredRule)}</color>"; // 13-1
                     return grade >= 0 ? $"<color={HudText.Muted}>잠김 · {p.GetGrade(grade).DisplayName}</color>" : $"<color={HudText.Muted}>잠김</color>";
                 case PlacementResult.LimitReached:
                     return $"<color={HudText.Yellow}>최대 {p.CurrentLimit(_station.Grid)}개</color>";
@@ -190,6 +192,8 @@ namespace SpaceStation.UI
                 if (data.ComingSoon)
                     return string.IsNullOrEmpty(data.ComingSoonNote) ? "준비 중 (기능을 만드는 중)" : $"준비 중 · {data.ComingSoonNote}";
                 int grade = p.GetUnlockGrade(data);
+                if (grade >= 0 && grade <= p.GradeIndex && p.IsRuleLocked(data))
+                    return $"'{StationRules.DisplayName(data.RequiredRule)}' 시스템이 열리면 건설 가능"; // 13-1
                 return grade >= 0 ? $"{p.GetGrade(grade).DisplayName} 등급에서 해금" : "해금 조건 없음";
             }
             if (buildable == PlacementResult.LimitReached)

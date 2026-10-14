@@ -149,10 +149,19 @@ namespace SpaceStation.Simulation
             return -1;
         }
 
+        /// <summary>13-1: 규칙을 정하는 쪽이 붙으면 모듈의 <see cref="ModuleData.RequiredRule"/>도 본다 (null = 등급 해금만).</summary>
+        public Func<StationRule, bool> RuleCheck { get; internal set; }
+
+        /// <summary>13-1: 등급은 됐지만 필요한 규칙이 아직 안 열려 잠긴 상태인지 (건설 메뉴 안내용).</summary>
+        public bool IsRuleLocked(ModuleData data) =>
+            data != null && data.RequiredRule != StationRule.None && RuleCheck != null && !RuleCheck(data.RequiredRule);
+
         public bool IsUnlocked(ModuleData data)
         {
             if (data != null && data.ComingSoon)
                 return false; // 12-5 준비 중 (기능이 연결되는 작업 전)
+            if (IsRuleLocked(data))
+                return false; // 13-1 규칙이 아직 안 열림
             int grade = GetUnlockGrade(data);
             return grade >= 0 && grade <= GradeIndex;
         }

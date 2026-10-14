@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SpaceStation.Core;
+using SpaceStation.Data;
 using UnityEngine;
 
 namespace SpaceStation.Simulation
@@ -108,8 +109,8 @@ namespace SpaceStation.Simulation
             switch (Phase)
             {
                 case ShowerPhase.Idle:
-                    if (Sim.Events.Held || Sim.Progression.GradeIndex < Sim.Balance.ShowerMinGrade)
-                        return; // 튜토리얼 · 도시급 전에는 시계가 멈춤
+                    if (Sim.Events.Held || !Sim.RuleOpen(StationRule.MeteorShower, Sim.Progression.GradeIndex >= Sim.Balance.ShowerMinGrade))
+                        return; // 튜토리얼 · 도시급(13-1 규칙을 정하는 쪽이 있으면 그 규칙) 전에는 시계가 멈춤
                     if (!_armed)
                     {
                         _armed = true;
