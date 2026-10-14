@@ -15,7 +15,7 @@ namespace SpaceStation.UI
     /// 12-3c 지구급 핵심 규칙 그레이박스 화면 (방문 세력 + 평판):
     /// - 외부 접촉 창 (U · 왼쪽 위 [외부 접촉]): 통신 세기 · 해독 가능 계급, 세력 3개의 평판 카드(막대 + 단계 글자 · 직전 선택 · 교역 내용).
     /// - 방문 대응 창 (함선이 오면 화면 위쪽 가운데): 정체(해독 전 '정체 불명') · 남은 시간 · 해독 진행 + 교역 · 협상 · 경계 버튼.
-    /// - 침입 드론 알림 (침입 중): 모듈 · 남은 드론 · 남은 시간 + [그 모듈 보기].
+    /// - 침입 드론 알림 (침입 중): 모듈 · 남은 드론 · 남은 시간 + [해당 모듈 보기].
     /// 상태는 색만이 아니라 글자로 (사용자 색약). 게임 시간은 멈추지 않는다.
     /// </summary>
     [DefaultExecutionOrder(-250)]
@@ -287,7 +287,7 @@ namespace SpaceStation.UI
             _boardBox.sizeDelta = new Vector2(BoxWidth, 92f);
             _boardText = _ui.Label(_boardBox, "", 21f, TextAlignmentOptions.MidlineLeft, wrap: true);
             HoloUi.Stretch(_boardText.rectTransform, new Vector2(22f, 8f), new Vector2(-250f, -8f));
-            var focus = _ui.TechButton(_boardBox, "그 모듈 보기", 20f, FocusBoarding);
+            var focus = _ui.TechButton(_boardBox, "해당 모듈 보기", 20f, FocusBoarding);
             var frt = (RectTransform)focus.transform;
             frt.anchorMin = frt.anchorMax = frt.pivot = new Vector2(1f, 0.5f);
             frt.anchoredPosition = new Vector2(-18f, 0f);
@@ -470,7 +470,7 @@ namespace SpaceStation.UI
             float y = _contact.Visiting ? VisitBoxY() - 206f : VisitBoxY();
             _boardBox.anchoredPosition = new Vector2(0f, y);
             _boardText.SetText($"{HudTheme.Icon("warning")} <b>침입 드론</b> · {ModuleName(_contact.BoardingTarget)} · 남은 드론 <b>{_contact.DronesLeft}/{_contact.DronesTotal}</b> · <color={HudText.Orange}>{Clock(_contact.BoardingTimeLeft)}</color>\n"
-                               + $"<size=86%><color=#F4ECE8>그 모듈을 선택하고 {KeyBindings.Label(GameAction.EnterInterior)}로 들어가 드론을 끄세요 · 못 막으면 그 모듈 파손 + 금속 손실</color></size>");
+                               + $"<size=86%><color=#F4ECE8>해당 모듈을 선택하고 {KeyBindings.Label(GameAction.EnterInterior)}로 들어가 드론을 끄세요 · 못 막으면 해당 모듈 파손 + 금속 손실</color></size>");
         }
 
         private static string ModuleName(ModuleInstance m) => m != null && m.Data != null ? m.Data.DisplayName : "모듈";
