@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &3541795978836530304
+--- !u!1 &4578992504142107998
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,8 +8,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 4212928251650254454}
-  - component: {fileID: 8725582121627677763}
+  - component: {fileID: 1920925655169677724}
+  - component: {fileID: 6157360512603951830}
   m_Layer: 8
   m_Name: Pick
   m_TagString: Untagged
@@ -17,28 +17,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &4212928251650254454
+--- !u!4 &1920925655169677724
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3541795978836530304}
+  m_GameObject: {fileID: 4578992504142107998}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 6792670337506469709}
+  m_Father: {fileID: 2906690690032803398}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!64 &8725582121627677763
+--- !u!64 &6157360512603951830
 MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3541795978836530304}
+  m_GameObject: {fileID: 4578992504142107998}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -85,7 +85,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2588452599993305546}
-  - {fileID: 6792670337506469709}
+  - {fileID: 2906690690032803398}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6032828707954878699
@@ -162,7 +162,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!1 &6516002175601684581
+--- !u!1 &8021352190205404332
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -170,8 +170,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 3150639044669349300}
-  - component: {fileID: 128722037382488646}
+  - component: {fileID: 1639029558934155307}
+  - component: {fileID: 5700000184652521852}
   m_Layer: 8
   m_Name: Pick
   m_TagString: Untagged
@@ -179,28 +179,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &3150639044669349300
+--- !u!4 &1639029558934155307
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6516002175601684581}
+  m_GameObject: {fileID: 8021352190205404332}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 137172798966313343}
+  m_Father: {fileID: 8643990473235187828}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!64 &128722037382488646
+--- !u!64 &5700000184652521852
 MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6516002175601684581}
+  m_GameObject: {fileID: 8021352190205404332}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -216,7 +216,7 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -1235889600946028800, guid: 2d6f5d958637e524f9405b4e69e581a8, type: 3}
---- !u!1001 &6471339322218545318
+--- !u!1001 &3448660780389136813
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -273,32 +273,32 @@ PrefabInstance:
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 2d6f5d958637e524f9405b4e69e581a8, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4212928251650254454}
+      addedObject: {fileID: 1920925655169677724}
     - targetCorrespondingSourceObject: {fileID: 6352755244859994585, guid: 2d6f5d958637e524f9405b4e69e581a8, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3150639044669349300}
+      addedObject: {fileID: 1639029558934155307}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 2258942615980310421, guid: 2d6f5d958637e524f9405b4e69e581a8, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7045860725723548375}
+      addedObject: {fileID: 2198687972079010495}
   m_SourcePrefab: {fileID: 100100000, guid: 2d6f5d958637e524f9405b4e69e581a8, type: 3}
---- !u!4 &137172798966313343 stripped
+--- !u!4 &2906690690032803398 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: 6352755244859994585, guid: 2d6f5d958637e524f9405b4e69e581a8, type: 3}
-  m_PrefabInstance: {fileID: 6471339322218545318}
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 2d6f5d958637e524f9405b4e69e581a8, type: 3}
+  m_PrefabInstance: {fileID: 3448660780389136813}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &5086728389157846835 stripped
+--- !u!1 &3496335798894396984 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2258942615980310421, guid: 2d6f5d958637e524f9405b4e69e581a8, type: 3}
-  m_PrefabInstance: {fileID: 6471339322218545318}
+  m_PrefabInstance: {fileID: 3448660780389136813}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7045860725723548375
+--- !u!114 &2198687972079010495
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5086728389157846835}
+  m_GameObject: {fileID: 3496335798894396984}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7ac438563565caa4e9808e4c3eb47481, type: 3}
@@ -306,8 +306,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.ModuleSpinner
   _speed: 40
   _acceleration: 0.25
---- !u!4 &6792670337506469709 stripped
+--- !u!4 &8643990473235187828 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 2d6f5d958637e524f9405b4e69e581a8, type: 3}
-  m_PrefabInstance: {fileID: 6471339322218545318}
+  m_CorrespondingSourceObject: {fileID: 6352755244859994585, guid: 2d6f5d958637e524f9405b4e69e581a8, type: 3}
+  m_PrefabInstance: {fileID: 3448660780389136813}
   m_PrefabAsset: {fileID: 0}
