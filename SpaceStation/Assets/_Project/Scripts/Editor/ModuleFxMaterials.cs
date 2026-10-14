@@ -48,6 +48,14 @@ namespace SpaceStation.Editor
                 // 12-5 모듈 상징 마크 = 형광 (사용자 제안 2026-10-14: 강한 발광은 번짐 · 하얗게 날아감 → 채도 높은 색이 조명과 무관하게 자기 밝기, 색 하나로 조절)
                 case "FluorCyan": return Fluorescent("M_FluorCyan", new Color(0.25f, 1f, 1f));    // 물 추출기 물방울
                 case "FluorWhite": return Fluorescent("M_FluorWhite", new Color(1f, 1f, 0.94f));  // 단백질 배양실 PROTEIN 글자
+                // 기존 모듈 상징 마크 (emblem_builder): 산소 O₂ = Cyan, 물 재활용 · 연료전지 H₂ = Teal, 배터리 번개 · 정비 렌치 · 장갑 방패 = Yellow,
+                // 거주 집 · 창고 상자 = Orange, 채굴 곡괭이 · 연구 원자 = Purple, 화물 착륙 H = Green, 포탑 조준선 = Red
+                case "FluorTeal": return Fluorescent("M_FluorTeal", new Color(0.15f, 1f, 0.75f));
+                case "FluorYellow": return Fluorescent("M_FluorYellow", new Color(1f, 0.92f, 0.15f));
+                case "FluorOrange": return Fluorescent("M_FluorOrange", new Color(1f, 0.55f, 0.12f));
+                case "FluorPurple": return Fluorescent("M_FluorPurple", new Color(0.78f, 0.45f, 1f));
+                case "FluorGreen": return Fluorescent("M_FluorGreen", new Color(0.4f, 1f, 0.35f));
+                case "FluorRed": return Fluorescent("M_FluorRed", new Color(1f, 0.25f, 0.22f));
                 case "IceChunk": return Glass("M_IceChunk", new Color(0.78f, 0.93f, 1f, 0.55f), new Color(0.08f, 0.16f, 0.24f)); // 12-5 물 추출기 투입 얼음 (반투명)
                 case "WaterColumn": return Emissive("M_WaterColumn", new Color(0.3f, 0.65f, 1f, 1f), new Color(0.35f, 1.1f, 2.6f, 1f)); // 12-5 물 추출기 응축탑 물기둥
                 case "ProteinCulture": return Emissive("M_ProteinCulture", new Color(1f, 0.78f, 0.42f, 1f), new Color(1.6f, 0.95f, 0.35f, 1f)); // 12-5 단백질 배양실 배양액 (크림빛 호박색)
@@ -165,12 +173,13 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>
-        /// 12-5 형광 마크: 발광 = 바탕색 × 1.05 (블룸 문턱 아래 → 번짐 없이 색 그대로 또렷, 그늘 · 밤에도 같은 밝기).
+        /// 12-5 형광 마크: 발광 = 색 × 0.85 (블룸 문턱 아래 → 번짐 없이 색 그대로 또렷, 그늘 · 밤에도 같은 밝기).
         /// Lit + 발광이라 ModuleView가 비활성 · 파손 상태에서 어둡게 / 깜빡이게 조절한다.
         /// </summary>
         private static Material Fluorescent(string name, Color color)
         {
-            var m = Emissive(name, color, color * 1.05f);
+            // 바탕(조명 반응)은 어둡게, 색은 발광으로 → 조명 + 발광이 더해져 하얗게 바래지 않음 (처음 바탕 1 + 발광 1.05는 노랑이 크림색으로 보였음)
+            var m = Emissive(name, color * 0.3f, color * 0.85f);
             m.SetFloat("_Smoothness", 0.35f);
             EditorUtility.SetDirty(m);
             return m;

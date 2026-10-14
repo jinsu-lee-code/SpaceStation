@@ -45,6 +45,9 @@ namespace SpaceStation.Editor
                 {
                     if (filter.sharedMesh == null || filter.GetComponent<Renderer>() == null)
                         continue;
+                    if (filter.name.StartsWith("Emblem"))
+                        continue; // 12-5 형광 마크(벽에 붙은 얇은 판)는 표면이 아님 — 재면 통로가 벽에서 9mm 떠 보임
+
                     var mc = filter.gameObject.AddComponent<MeshCollider>();
                     mc.sharedMesh = filter.sharedMesh;
                     colliders.Add(mc);
