@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2a2c8bb7a8fb91449af61ba073ae5c9, type: 3}
+  m_Name: ResearchExpansionConfig
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ResearchExpansionConfig
+  _stageCosts:
+  - StartCost:
+    - Type: 1
+      Amount: 60
+    - Type: 2
+      Amount: 60
+    - Type: 4
+      Amount: 150
+    ResearchPoints: 1
+    PowerDemand: 10
+    Duration: 120
+  - StartCost:
+    - Type: 1
+      Amount: 100
+    - Type: 2
+      Amount: 100
+    - Type: 4
+      Amount: 250
+    ResearchPoints: 2
+    PowerDemand: 14
+    Duration: 180
+  - StartCost:
+    - Type: 1
+      Amount: 150
+    - Type: 2
+      Amount: 150
+    - Type: 4
+      Amount: 380
+    ResearchPoints: 3
+    PowerDemand: 18
+    Duration: 240
+  - StartCost:
+    - Type: 1
+      Amount: 200
+    - Type: 2
+      Amount: 200
+    - Type: 4
+      Amount: 520
+    ResearchPoints: 4
+    PowerDemand: 22
+    Duration: 300
+  _linked:
+  - {fileID: 11400000, guid: 7855b13f9abdf4e4a8e4564cc9e41fee, type: 2}
+  - {fileID: 11400000, guid: 5402d32c490c73146b91a7478785f64a, type: 2}
+  - {fileID: 11400000, guid: 61cacbd92367c984db1a719d54739cde, type: 2}
+  _shadowLevelOffset: 4

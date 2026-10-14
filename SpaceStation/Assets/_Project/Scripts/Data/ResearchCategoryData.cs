@@ -55,6 +55,10 @@ namespace SpaceStation.Data
         // 방어 (조기 경보) — 에셋에 정수로 저장되므로 새 값은 항상 끝에 추가
         EarlyWarningSeconds,     // 운석·태양 폭풍 조기 경보 (초 전), 기본 0 = 없음
         MeteorTargetPreview,     // 1이면 경보 중 운석 대상 모듈 미리 표시, 기본 0
+        // 12-4 연계 연구 (상위 모듈이 가동 중일 때만)
+        ResidentLifeConsumption, // 주민 산소 · 물 소비 배율, 기본 1
+        RelayPowerBonus,         // 통신 세기 +N, 기본 0
+        ServiceRadiusExtra,      // 의료 · 여가 반경 +칸 (레벨 효과에 더함), 기본 0
     }
 
     [Serializable]

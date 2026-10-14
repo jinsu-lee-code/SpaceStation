@@ -76,6 +76,13 @@ namespace SpaceStation.Simulation
         public float StorageBonusAdd => Get(ResearchStat.StorageBonusAdd, 0f);
         /// <summary>자동 정비·재건축·일괄 정비 개방 (자동화 연구).</summary>
         public bool MaintenanceAutomation => Get(ResearchStat.MaintenanceAutomation, 0f) > 0.5f;
+        // 12-4 연계 연구 (필요한 상위 모듈이 가동 중일 때만, ResearchExpansionSystem이 넣음)
+        /// <summary>주민 산소 · 물 소비 배율 (폐쇄 순환).</summary>
+        public float ResidentLifeConsumption => Get(ResearchStat.ResidentLifeConsumption, 1f);
+        /// <summary>통신 세기 +N (심우주 청취).</summary>
+        public int RelayPowerBonus => (int)Math.Round(Get(ResearchStat.RelayPowerBonus, 0f));
+        /// <summary>의료 · 여가 반경 +칸 (공공 복지, 레벨 효과에 더함).</summary>
+        public int ServiceRadiusExtra => (int)Math.Round(Get(ResearchStat.ServiceRadiusExtra, 0f));
 
         // ---------------- 모듈별 값 (UI·연출도 이걸 쓴다) ----------------
 
@@ -83,7 +90,7 @@ namespace SpaceStation.Simulation
         public int TurretRadius(ModuleData data) => data != null && data.TurretRadius > 0 ? data.TurretRadius + DefenseRadiusBonus : 0;
         public int DecoyRadius(ModuleData data) => data != null && data.DecoyRadius > 0 ? data.DecoyRadius + DefenseRadiusBonus : 0;
         public int ControlRadius(ModuleData data) => data != null && data.ControlRadius > 0 ? data.ControlRadius + DefenseRadiusBonus : 0;
-        public int ServiceRadius(ModuleData data) => data != null && data.IsService ? data.ServiceRadius + ServiceRadiusBonus : 0;
+        public int ServiceRadius(ModuleData data) => data != null && data.IsService ? data.ServiceRadius + ServiceRadiusBonus + ServiceRadiusExtra : 0;
         public int Housing(ModuleData data) => data != null && data.HousingCapacity > 0 ? data.HousingCapacity + HousingBonus : 0;
         public float BatteryCapacity(ModuleData data) => data != null ? data.BatteryCapacity * BatteryMultiplier : 0f;
         public float StorageBonus(ModuleData data) => data != null && data.StorageBonus > 0f ? data.StorageBonus + StorageBonusAdd : 0f;
@@ -131,7 +138,20 @@ namespace SpaceStation.Simulation
 
         // ---------------- 계산 ----------------
 
-        public float Get(ResearchStat stat, float fallback) => _values.TryGetValue(stat, out var v) ? v : fallback;
+        public float Get(ResearchStat stat, float fallback)
+            => _values.TryGetValue(stat, out var v) ? v : _linked.TryGetValue(stat, out var l) ? l : fallback;
+
+        private readonly Dictionary<ResearchStat, float> _linked = new Dictionary<ResearchStat, float>();
+
+        /// <summary>12-4 지금 켜진 연계 연구 효과로 바꿈 (레벨 표와 다른 값 — 같은 값이 겹치면 레벨 쪽).</summary>
+        public void SetLinked(IEnumerable<ResearchModifier> modifiers)
+        {
+            _linked.Clear();
+            if (modifiers != null)
+                foreach (var m in modifiers)
+                    _linked[m.Stat] = m.Value;
+            Changed?.Invoke();
+        }
 
         /// <summary>카테고리별 완료 레벨로 다시 계산. 같은 값은 각 카테고리에서 완료한 가장 높은 레벨의 값.</summary>
         public void Recalculate(IReadOnlyList<ResearchCategoryData> categories, Func<ResearchCategoryData, int> levelOf)

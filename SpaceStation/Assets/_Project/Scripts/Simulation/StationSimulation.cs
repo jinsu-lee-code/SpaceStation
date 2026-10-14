@@ -32,6 +32,8 @@ namespace SpaceStation.Simulation
         public PolicyConfig Policies;
         /// <summary>12-3c 지구급 방문 세력 + 평판 (null이면 시스템 없음 = 이전과 같은 결과).</summary>
         public ContactConfig Contact;
+        /// <summary>12-4 연구 확장 (레시피 그림자 · 해금 연구 · 연계 연구). null이면 없음 = 레시피는 자동 해금만 (12-3과 같음).</summary>
+        public ResearchExpansionConfig ResearchExpansion;
     }
 
     /// <summary>
@@ -149,6 +151,8 @@ namespace SpaceStation.Simulation
         public SocialCrisisSystem Crisis { get; }
         /// <summary>12-3c 지구급 방문 세력 + 평판 (설정에 없으면 null).</summary>
         public ContactSystem Contact { get; }
+        /// <summary>12-4 연구 확장 (설정에 없으면 null).</summary>
+        public ResearchExpansionSystem ResearchExpansion { get; }
 
         public StationSimulation(StationSimulationSettings settings)
         {
@@ -254,6 +258,8 @@ namespace SpaceStation.Simulation
                 Policies = AddSystem(new PolicySystem(settings.Policies), MeteorShowerSystem.SystemKey);
                 Crisis = AddSystem(new SocialCrisisSystem(settings.Policies), PolicySystem.SystemKey);
             }
+            if (settings.ResearchExpansion != null)
+                ResearchExpansion = AddSystem(new ResearchExpansionSystem(settings.ResearchExpansion), TickStepNames.Research); // 레벨 연구 바로 뒤
             if (settings.Contact != null)
                 Contact = AddSystem(new ContactSystem(settings.Contact, settings.HazardRandom01), HeatSystem.SystemKey); // 지구급 전에는 아무것도 안 함
             EvaluateProgression();
@@ -296,9 +302,10 @@ namespace SpaceStation.Simulation
         {
             float all = Effects.Policy(PolicyStat.ResidentConsumption);
             float foodWater = all * Effects.Policy(PolicyStat.FoodWaterConsumption);
+            float life = Effects.ResidentLifeConsumption; // 12-4 연계 연구 '폐쇄 순환' (산소 · 물)
             Resources.SetResidentConsumptionMultiplier(ResourceType.Food, (Residents != null ? Residents.ConsumptionMultiplier(ResourceType.Food) : 1f) * foodWater);
-            Resources.SetResidentConsumptionMultiplier(ResourceType.Water, (Residents != null ? Residents.ConsumptionMultiplier(ResourceType.Water) : 1f) * foodWater);
-            Resources.SetResidentConsumptionMultiplier(ResourceType.Oxygen, all);
+            Resources.SetResidentConsumptionMultiplier(ResourceType.Water, (Residents != null ? Residents.ConsumptionMultiplier(ResourceType.Water) : 1f) * foodWater * life);
+            Resources.SetResidentConsumptionMultiplier(ResourceType.Oxygen, all * life);
         }
 
         // ---------------- 공통 틀 (12-0b) ----------------
@@ -359,7 +366,8 @@ namespace SpaceStation.Simulation
                 _stats.CollectActiveModules();
                 Resources.SetExternalDrain(ResourceType.Oxygen, Damage.OxygenLeakPerSecond);
                 Resources.SolarMultiplier = DayNight.SolarMultiplier(ElapsedSeconds); // 이번 틱 시작 시점의 낮/밤
-                Resources.ExtraPowerDemand = Research.RunningPowerDemand; // 진행 중인 연구 (Phase 6)
+                Resources.ExtraPowerDemand = Research.RunningPowerDemand // 진행 중인 연구 (Phase 6)
+                    + (ResearchExpansion != null ? ResearchExpansion.RunningPowerDemand : 0f); // 12-4 레시피 · 연계 연구
                 Resources.Tick(_stats.ActiveModules, _stats.ProductionMultipliers, _stats.ConsumptionMultipliers, dt);
             });
             Add(TickStepNames.Incidents, dt => Incidents.Tick(dt, Resources)); // 11-17 ④ 놓친 사고의 누출

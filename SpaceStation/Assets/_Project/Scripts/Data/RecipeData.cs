@@ -44,8 +44,11 @@ namespace SpaceStation.Data
         [Tooltip("이 등급(인덱스) 이상일 때만 합성 가능 (5 = 도시급)")]
         [SerializeField, Min(0)] private int _unlockGrade = 5;
 
-        [Tooltip("연구 없이 해금 (연구소 계통 1단계 = 도시급 자동 해금, E2-3-2). 12-4 전까지는 시험 레시피도 켬")]
+        [Tooltip("연구 없이 해금 (연구소 계통 1단계 = 도시급 자동 해금, E2-3-2). 나머지는 12-4 레시피 해금 연구로")]
         [SerializeField] private bool _unlockedByDefault = true;
+
+        [Tooltip("12-4 담당 연구 카테고리: 이 카테고리 Lv.(4 + 단계)를 연구하면 그림자로 공개 (자동 해금 레시피는 상관없음)")]
+        [SerializeField] private ResearchCategory _researchCategory = ResearchCategory.Construction;
 
         [Tooltip("왜 이 재료들이 합쳐지는가 (당위성 한 줄, A2)")]
         [SerializeField, TextArea] private string _rationale;
@@ -58,6 +61,7 @@ namespace SpaceStation.Data
         public int Stage => _stage;
         public int UnlockGrade => _unlockGrade;
         public bool UnlockedByDefault => _unlockedByDefault;
+        public ResearchCategory ResearchCategory => _researchCategory;
         public string Rationale => _rationale;
 
         /// <summary>재료 모듈 칸 수 합 (= 규격 칸 수여야 빈틈없이 채울 수 있음).</summary>

@@ -102,7 +102,10 @@ namespace SpaceStation.Simulation
             return null;
         }
 
-        public bool HasFreeSlot => _projects.Count < LabSlots;
+        public bool HasFreeSlot => _projects.Count + ReservedSlots < LabSlots;
+
+        /// <summary>12-4 연계 연구가 쓰는 일반 슬롯 (새 레벨 연구를 시작할 때만 셈 — 레벨 연구가 먼저 돌고 연계 연구가 멈춤).</summary>
+        public int ReservedSlots { get; internal set; }
 
         /// <summary>다음 레벨 연구를 시작할 수 있는지 (자원 제외 조건은 앞에서부터).</summary>
         public ResearchStartResult CanStart(ResearchCategoryData category, int grade, int population, Func<IReadOnlyList<ResourceAmount>, bool> canAfford)

@@ -165,8 +165,8 @@ namespace SpaceStation.Simulation
                 Changed?.Invoke();
         }
 
-        /// <summary>연구 포인트 · 수리권을 쓰거나 얻음.</summary>
-        internal void SetCounts(int researchPoints, int freeRepairs)
+        /// <summary>연구 포인트 · 수리권을 쓰거나 얻음 (12-4: 시험 · 봇도 씀).</summary>
+        public void SetCounts(int researchPoints, int freeRepairs)
         {
             ResearchPoints = Math.Max(0, researchPoints);
             FreeRepairs = Math.Max(0, freeRepairs);

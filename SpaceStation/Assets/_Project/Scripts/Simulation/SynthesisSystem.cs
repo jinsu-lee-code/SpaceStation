@@ -95,9 +95,17 @@ namespace SpaceStation.Simulation
 
         // ---------------- 조회 ----------------
 
-        /// <summary>등급(단계)이 열렸고 해금된 레시피인지 (12-3: 연구 해금 전이라 <see cref="RecipeData.UnlockedByDefault"/>만).</summary>
+        /// <summary>
+        /// 등급이 열렸고 해금된 레시피인지. 12-4: 연구 확장이 있으면 그 상태(자동 해금 또는 해금 연구 완료),
+        /// 없으면 <see cref="RecipeData.UnlockedByDefault"/>만 (12-3과 같음).
+        /// </summary>
         public bool IsUnlocked(RecipeData recipe)
-            => recipe != null && recipe.UnlockedByDefault && Sim.Progression.GradeIndex >= recipe.UnlockGrade;
+        {
+            if (recipe == null || Sim.Progression.GradeIndex < recipe.UnlockGrade)
+                return false;
+            var expansion = Sim.ResearchExpansion;
+            return expansion != null ? expansion.StateOf(recipe) == RecipeState.Unlocked : recipe.UnlockedByDefault;
+        }
 
         /// <summary>합성으로만 만드는 진화 모듈인지.</summary>
         public bool IsRecipeResult(ModuleData data)

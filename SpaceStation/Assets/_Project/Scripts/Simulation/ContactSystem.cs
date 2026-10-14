@@ -110,7 +110,7 @@ namespace SpaceStation.Simulation
                         continue;
                     sum += m.Data.RelayPower;
                 }
-                return sum;
+                return sum + Sim.Effects.RelayPowerBonus; // 12-4 연계 연구 '심우주 청취'
             }
         }
 

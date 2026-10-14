@@ -27,6 +27,8 @@ namespace SpaceStation.Simulation
         [Header("Research (Phase 6)")]
         [SerializeField] private List<ResearchCategoryData> _researchCategories = new List<ResearchCategoryData>();
         [SerializeField] private ResearchLevelCapConfig _researchCaps;
+        [Tooltip("12-4 연구 확장 — 레시피 그림자 · 해금 연구 · 연계 연구 (메뉴 SpaceStation/Research/Setup Expansion이 채움). 비면 레시피는 자동 해금만")]
+        [SerializeField] private ResearchExpansionConfig _researchExpansion;
         [Header("Save (Phase 6)")]
         [Tooltip("저장의 난이도 이름을 찾을 목록 (이지/노멀/하드)")]
         [SerializeField] private List<DifficultyPreset> _difficulties = new List<DifficultyPreset>();
@@ -81,6 +83,7 @@ namespace SpaceStation.Simulation
                 Recipes = _recipes.Count > 0 ? _recipes : null,
                 Policies = _policies,
                 Contact = _contact,
+                ResearchExpansion = _researchExpansion,
             });
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)

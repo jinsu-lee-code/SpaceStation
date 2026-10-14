@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb62ba3c3de152d4ea51cf1d8227dae1, type: 3}
+  m_Name: LR_ClosedLoop
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.LinkedResearchData
+  _displayName: "\uD3D0\uC1C4 \uC21C\uD658"
+  _category: 2
+  _requiredModule: {fileID: 11400000, guid: 7fca6bc6cc195504984bd26306075e61, type: 2}
+  _level:
+    StartCost:
+    - Type: 1
+      Amount: 80
+    - Type: 2
+      Amount: 80
+    - Type: 4
+      Amount: 200
+    PowerDemand: 14
+    Duration: 180
+    Description: "\uC0DD\uD0DC \uBAA8\uB4C8\uC758 \uC21C\uD658\uC744 \uC815\uAC70\uC7A5
+      \uC804\uCCB4\uB85C \uB113\uD600 \uC8FC\uBBFC\uC758 \uC0B0\uC18C \xB7 \uBB3C
+      \uC18C\uBE44 -10%"
+    Modifiers:
+    - Stat: 25
+      Value: 0.9

@@ -40,6 +40,12 @@ namespace SpaceStation.Editor
             public System.Action<SerializedObject> Stats;
             /// <summary>해금 등급 (0이면 도시급).</summary>
             public int UnlockGrade;
+            /// <summary>12-4 담당 연구 카테고리 (이 카테고리 Lv.(4 + 단계)에서 그림자 공개).</summary>
+            public ResearchCategory Research = ResearchCategory.Construction;
+            /// <summary>연구 없이 해금 (연구소 계통 1단계만, E2-3-2).</summary>
+            public bool AutoUnlock;
+            /// <summary>진화 단계 (1 = 도시급 … 4 = 지구급).</summary>
+            public int Stage = 1;
         }
 
         private static Vector3Int V(int x, int y, int z) => new Vector3Int(x, y, z);
@@ -50,11 +56,13 @@ namespace SpaceStation.Editor
             {
                 Id = "ResearchComplex", Name = "연구 단지", RecipeName = "연구 단지", Category = ModuleCategory.Industry, Color = "#9E80FF",
                 Cells = new[] { V(0, 0, 0), V(1, 0, 0) },
-                Ingredients = new[] { ("MD_ResearchLab", 2) }, SynthesisMetal = 60f, Duration = 45f,
+                Ingredients = new[] { ("MD_ResearchLab", 2) }, SynthesisMetal = 60f, Duration = 45f, AutoUnlock = true,
                 Rationale = "관측 장비와 계산 설비를 한 건물에 모아 연구를 더 많이 동시에 돌린다 (연구소 계통 1단계, 도시급에서 자동 해금)",
                 Stats = so =>
                 {
-                    so.FindProperty("_researchSlots").intValue = 3;
+                    // 12-4 (사용자 결정 2026-10-14): 연구소 계통 = 단계마다 레시피 연구 슬롯 1 → 연구 단지 = 레시피 1 + 일반 2
+                    so.FindProperty("_researchSlots").intValue = 2;
+                    so.FindProperty("_recipeSlots").intValue = 1;
                     Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 3f));
                 },
             },
@@ -62,7 +70,7 @@ namespace SpaceStation.Editor
             {
                 Id = "HabitatTower", Name = "거주 타워", RecipeName = "거주 타워", Category = ModuleCategory.Life, Color = "#7FD8FF",
                 Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(0, 0, 1), V(1, 0, 1), V(0, 1, 0), V(1, 1, 0), V(0, 1, 1), V(1, 1, 1) },
-                Ingredients = new[] { ("MD_Habitat", 4) }, SynthesisMetal = 120f, Duration = 60f,
+                Ingredients = new[] { ("MD_Habitat", 4) }, SynthesisMetal = 120f, Duration = 60f, Research = ResearchCategory.Habitation,
                 Rationale = "같은 기능을 쌓아 올려 수용 인원을 늘리고, 공용 설비를 나눠 써서 전력은 덜 든다",
                 Stats = so =>
                 {
@@ -74,7 +82,7 @@ namespace SpaceStation.Editor
             {
                 Id = "EcoModule", Name = "생태 모듈", RecipeName = "생태 모듈", Category = ModuleCategory.Life, Color = "#7CFF9A",
                 Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(2, 0, 0), V(0, 0, 1) },
-                Ingredients = new[] { ("MD_Farm", 1), ("MD_Oxygen", 1), ("MD_WaterRecycler", 1) }, SynthesisMetal = 90f, Duration = 60f,
+                Ingredients = new[] { ("MD_Farm", 1), ("MD_Oxygen", 1), ("MD_WaterRecycler", 1) }, SynthesisMetal = 90f, Duration = 60f, Research = ResearchCategory.Production,
                 Rationale = "식물 · 산소 · 물 순환이 한 곳에서 닫혀, 따로 둘 때보다 덜 쓰고 더 만든다",
                 Stats = so =>
                 {
@@ -86,7 +94,7 @@ namespace SpaceStation.Editor
             {
                 Id = "PowerBank", Name = "축전 뱅크", RecipeName = "축전 뱅크", Category = ModuleCategory.Power, Color = "#FFD24A",
                 Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(2, 0, 0) },
-                Ingredients = new[] { ("MD_Battery", 3) }, SynthesisMetal = 55f, Duration = 40f,
+                Ingredients = new[] { ("MD_Battery", 3) }, SynthesisMetal = 55f, Duration = 40f, Research = ResearchCategory.Energy,
                 Rationale = "셀을 한 묶음으로 관리해 저장량과 충 · 방전 속도가 함께 오른다",
                 Stats = so =>
                 {
@@ -98,7 +106,7 @@ namespace SpaceStation.Editor
             {
                 Id = "WelfareCenter", Name = "복지 센터", RecipeName = "복지 센터", Category = ModuleCategory.Life, Color = "#FF9ED8",
                 Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(0, 0, 1) },
-                Ingredients = new[] { ("MD_Medical", 1), ("MD_Recreation", 1) }, SynthesisMetal = 110f, Duration = 50f,
+                Ingredients = new[] { ("MD_Medical", 1), ("MD_Recreation", 1) }, SynthesisMetal = 110f, Duration = 50f, Research = ResearchCategory.Habitation,
                 Rationale = "의료와 여가를 한 곳에서 넓은 반경으로, 주민이 몸과 마음을 함께 돌본다",
                 Stats = so =>
                 {
@@ -116,7 +124,7 @@ namespace SpaceStation.Editor
             {
                 Id = "DeepSpaceComm", Name = "심우주 통신기지", RecipeName = "심우주 통신기지", Category = ModuleCategory.Defense, Color = "#8FE3FF",
                 Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(2, 0, 0) },
-                Ingredients = new[] { ("MD_CommRelay", 3) }, SynthesisMetal = 150f, Duration = 60f, UnlockGrade = 8,
+                Ingredients = new[] { ("MD_CommRelay", 3) }, SynthesisMetal = 150f, Duration = 60f, UnlockGrade = 8, Research = ResearchCategory.Defense, Stage = 4,
                 Rationale = "안테나를 한 배열로 묶어 깊은 우주의 약한 신호까지 잡는다 · 중계소 셋보다 높은 계급까지 해독",
                 Stats = so =>
                 {
@@ -265,6 +273,7 @@ namespace SpaceStation.Editor
             so.FindProperty("_consumption").arraySize = 0;
             so.FindProperty("_housingCapacity").intValue = 0;
             so.FindProperty("_researchSlots").intValue = 0;
+            so.FindProperty("_recipeSlots").intValue = 0;
             so.FindProperty("_batteryCapacity").floatValue = 0f;
             so.FindProperty("_batteryRate").floatValue = 0f;
             so.FindProperty("_serviceCapacity").intValue = 0;
@@ -308,9 +317,10 @@ namespace SpaceStation.Editor
             }
             Amounts(so.FindProperty("_cost"), (ResourceType.Metal, def.SynthesisMetal));
             so.FindProperty("_duration").floatValue = def.Duration;
-            so.FindProperty("_stage").intValue = 1;
+            so.FindProperty("_stage").intValue = def.Stage;
             so.FindProperty("_unlockGrade").intValue = def.UnlockGrade > 0 ? def.UnlockGrade : CityGrade;
-            so.FindProperty("_unlockedByDefault").boolValue = true; // 12-4 전까지 시험 레시피도 자동 해금
+            so.FindProperty("_unlockedByDefault").boolValue = def.AutoUnlock; // 12-4: 연구소 계통 1단계만 자동, 나머지는 해금 연구
+            SetEnum(so.FindProperty("_researchCategory"), def.Research.ToString());
             so.FindProperty("_rationale").stringValue = def.Rationale;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(recipe);

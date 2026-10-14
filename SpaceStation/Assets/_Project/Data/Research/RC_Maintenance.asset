@@ -82,4 +82,66 @@ MonoBehaviour:
       Value: 0.6
     - Stat: 3
       Value: 0.3
+  - StartCost:
+    - Type: 1
+      Amount: 160
+    - Type: 2
+      Amount: 160
+    - Type: 4
+      Amount: 220
+    PowerDemand: 24
+    Duration: 300
+    Description: "\uC218\uB9AC \uBE44\uC6A9 12%, \uC218\uB9AC \uC2DC\uAC04 12\uCD08"
+    Modifiers:
+    - Stat: 0
+      Value: 0.12
+    - Stat: 1
+      Value: 12
+  - StartCost:
+    - Type: 1
+      Amount: 220
+    - Type: 2
+      Amount: 220
+    - Type: 4
+      Amount: 300
+    PowerDemand: 30
+    Duration: 360
+    Description: "\uB178\uD6C4\uD654 \uC18D\uB3C4 -50%"
+    Modifiers:
+    - Stat: 2
+      Value: 0.5
+  - StartCost:
+    - Type: 1
+      Amount: 300
+    - Type: 2
+      Amount: 300
+    - Type: 4
+      Amount: 400
+    PowerDemand: 38
+    Duration: 420
+    Description: "\uC7AC\uAC74\uCD95 \uBE44\uC6A9 -60%, \uB178\uD6C4 \uD6A8\uC728
+      \uCD5C\uC800 40%"
+    Modifiers:
+    - Stat: 4
+      Value: 0.4
+    - Stat: 3
+      Value: 0.4
+  - StartCost:
+    - Type: 1
+      Amount: 400
+    - Type: 2
+      Amount: 400
+    - Type: 4
+      Amount: 520
+    PowerDemand: 46
+    Duration: 480
+    Description: "\uC218\uB9AC \uBE44\uC6A9 10%, \uC218\uB9AC \uC2DC\uAC04 10\uCD08,
+      \uB178\uD6C4\uD654 \uC18D\uB3C4 -60%"
+    Modifiers:
+    - Stat: 0
+      Value: 0.1
+    - Stat: 1
+      Value: 10
+    - Stat: 2
+      Value: 0.4
   _minGrade: 0
