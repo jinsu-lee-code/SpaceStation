@@ -75,6 +75,7 @@ namespace SpaceStation.UI
                 _progression.Progression.GradeChanged += HandleGradeChanged;
             _station.Simulation.Research.Completed += HandleResearchCompleted;
             _station.Simulation.Automation.Performed += HandleAutomationPerformed;
+            _station.Simulation.Automation.ReserveWaitStarted += HandleReserveWaitStarted;
             Save.SaveManager.Notice += HandleSaveNotice;
             TutorialGate.Blocked += HandleActionFailed; // 11-18 튜토리얼 중 막힌 조작
             KeyBindings.Changed += HandleKeysChanged;
@@ -128,6 +129,7 @@ namespace SpaceStation.UI
             {
                 _station.Simulation.Research.Completed -= HandleResearchCompleted;
                 _station.Simulation.Automation.Performed -= HandleAutomationPerformed;
+                _station.Simulation.Automation.ReserveWaitStarted -= HandleReserveWaitStarted;
             }
             Save.SaveManager.Notice -= HandleSaveNotice;
             TutorialGate.Blocked -= HandleActionFailed;
@@ -190,6 +192,13 @@ namespace SpaceStation.UI
             if (rebuilt > 0)
                 sb.Append(maintained > 0 ? " · " : "").Append("재건축 ").Append(rebuilt).Append("개");
             ShowMessage($"<color=#7FD8FF>{sb}</color>");
+        }
+
+        /// <summary>자원 보호선 때문에 자동 정비가 멈추기 시작함 — 한 번만 (사용자 피드백 2026-10-15).</summary>
+        private void HandleReserveWaitStarted(ResourceType type, float shortfall)
+        {
+            var auto = _station.Simulation.Automation;
+            ShowMessage($"<color={HudText.Orange}>자동 정비 대기: {ResearchView.WaitText(auto)} · 연구 창({KeyBindings.Label(GameAction.Research)})</color>");
         }
 
         private void Update()

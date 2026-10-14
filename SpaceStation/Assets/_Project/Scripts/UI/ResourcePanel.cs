@@ -122,6 +122,7 @@ namespace SpaceStation.UI
                 return $"<b>{HudTheme.Icon(type)} {HudText.ResourceName(type)}</b>\n" +
                        $"재고 {_sim.GetStock(type):0.0} / 한도 {_sim.GetCapacity(type):0}\n" +
                        $"<color={HudTheme.GreenHex}>생산 +{_sim.GetProduction(type):0.0#}/s</color>   <color={HudText.Red}>소비 -{_sim.GetConsumption(type):0.0#}/s</color>\n" +
+                       ReserveHint(type) +
                        $"<color={HudText.Muted}>창고 모듈로 한도를 늘릴 수 있습니다</color>";
             }
             return string.Empty;
@@ -187,6 +188,7 @@ namespace SpaceStation.UI
 
             foreach (var type in StockOrder)
                 AppendStockRow(type);
+            AppendReserveWait();
             _sb.Append("<size=40%>\n</size>");
 
             int inactive = _station.Grid.ModuleCount - _station.Connectivity.ActiveCount;
@@ -359,12 +361,62 @@ namespace SpaceStation.UI
             _sb.Append("<link=").Append(HudTheme.IconName(type)).Append('>').Append(HudTheme.Icon(type)).Append(" <b>")
                .Append(HudText.ResourceName(type)).Append("</b><pos=36%><color=").Append(stockColor).Append('>')
                .Append(stock.ToString("0")).Append("</color><size=78%><color=").Append(HudText.Muted).Append("> / ")
-               .Append(capacity.ToString("0")).Append("</color></size><pos=80%>");
+               .Append(capacity.ToString("0")).Append("</color></size>");
+            AppendReserveMark(type, stock);
+            _sb.Append("<pos=80%>");
             string netColor = net < -0.001f ? HudText.Red : net > 0.001f ? HudTheme.GreenHex : HudText.Muted;
             _sb.Append("<color=").Append(netColor).Append('>').Append(net.ToString("+0.0;-0.0;0")).Append("/s</color>");
             if (depleted && type != ResourceType.Metal)
                 _sb.Append(" <color=").Append(HudText.Red).Append("><b>고갈</b></color>");
             _sb.Append("</link>\n");
+        }
+
+        private MaintenanceAutomation Automation => _station != null && _station.Simulation != null ? _station.Simulation.Automation : null;
+
+        /// <summary>
+        /// 자원 보호선 눈금 (사용자 피드백 2026-10-15): 자동 정비 · 재건축이 남겨 두는 양을 줄 안에 "남김 80"으로.
+        /// 재고가 그 아래면 주황, 지금 정비를 막고 있는 자원이면 렌치 아이콘. 금속과 지금 막고 있는 자원만 (줄이 붐비지 않게).
+        /// </summary>
+        private void AppendReserveMark(ResourceType type, float stock)
+        {
+            var auto = Automation;
+            if (auto == null || !auto.ReserveActive)
+                return;
+            bool blocking = auto.WaitingForReserve && auto.WaitingResource == type;
+            if (type != ResourceType.Metal && !blocking)
+                return;
+            float line = auto.ReserveLine(type);
+            string color = blocking || stock < line ? HudText.Orange : HudText.Muted;
+            _sb.Append("<pos=58%><size=70%><color=").Append(color).Append('>');
+            if (blocking)
+                _sb.Append(HudTheme.Icon("repair")).Append(' ');
+            _sb.Append("남김 ").Append(line.ToString("0")).Append("</color></size>");
+        }
+
+        /// <summary>툴팁: 자동 정비 · 재건축이 이 자원을 몇 개 남겨 두는지.</summary>
+        private string ReserveHint(ResourceType type)
+        {
+            var auto = Automation;
+            if (auto == null || !auto.ReserveActive)
+                return "";
+            return $"<color={HudText.Orange}>자동 정비 · 재건축은 이 자원을 {auto.ReserveLine(type):0}개 이상 남겨 둡니다 (자원 보호선 {auto.ReserveRatio * 100f:0}%, 연구 창에서 조절)</color>\n";
+        }
+
+        /// <summary>자동 정비가 보호선 때문에 멈춰 있을 때 한 줄 설명.</summary>
+        private void AppendReserveWait()
+        {
+            var auto = Automation;
+            if (auto == null || !auto.WaitingForReserve)
+                return;
+            // 패널 폭에 맞게 짧게 (긴 설명은 상태 줄 · 연구 창 · 자원 툴팁)
+            var t = auto.WaitingResource;
+            _sb.Append("<size=80%><color=").Append(HudText.Orange).Append('>').Append(HudTheme.Icon("repair")).Append(" 자동 정비 대기: ");
+            if (ResourceSimulation.IsStock(t))
+                _sb.Append(HudText.ResourceName(t)).Append(' ').Append(auto.ReserveLine(t).ToString("0")).Append("개는 남겨 둠 · ")
+                   .Append(Mathf.Ceil(auto.WaitingShortfall).ToString("0")).Append(" 더 모이면 정비");
+            else
+                _sb.Append(HudText.ResourceName(t)).Append(" 부족");
+            _sb.Append("</color></size>\n");
         }
     }
 }
