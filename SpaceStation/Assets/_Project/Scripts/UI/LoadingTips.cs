@@ -28,9 +28,11 @@ namespace SpaceStation.UI
 
         public static int Count => Lines.Length;
 
-        public static string Get(int index)
+        public static string Get(int index) => Format(Lines[((index % Lines.Length) + Lines.Length) % Lines.Length]);
+
+        /// <summary>{GameAction 이름}을 지금 설정된 키(강조색 굵게)로 바꿈.</summary>
+        public static string Format(string line)
         {
-            string line = Lines[((index % Lines.Length) + Lines.Length) % Lines.Length];
             int start = line.IndexOf('{');
             while (start >= 0)
             {

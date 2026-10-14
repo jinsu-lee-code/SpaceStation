@@ -143,7 +143,7 @@ namespace SpaceStation.Interior
         private TMP_Text _prompt;
         private TMP_Text _hint;
         private CanvasGroup _fade;
-        private TMP_Text _enterLabel;
+        private InteriorEnterScreen _enterScreen;
 
         public bool IsInside => _inside;
 
@@ -228,10 +228,14 @@ namespace SpaceStation.Interior
             _busy = true;
             InputGate.Blocked = true; // 페이드 중에도 조작 막음
             AudioService.TryPlay(l => l.UiOpen);
-            if (_enterLabel != null)
-                _enterLabel.gameObject.SetActive(true);
-            yield return Fade(0f, 1f, 0.2f);
-            yield return null; // 안내 글자가 그려진 뒤 내부 짓기
+            // 들어가기 화면: 바깥 → 검정(0.25초) → 화면 내용이 서서히(0.25초) → 짓기 → 최소 0.8초 보인 뒤 "해치 여는 중" → 내용 사라짐 → 내부가 밝아짐
+            if (_enterScreen != null)
+                _enterScreen.Show(module.Data != null ? module.Data.DisplayName : module.ToString(), EnterState(module));
+            yield return Fade(0f, 1f, 0.25f);
+            float shownAt = Time.unscaledTime;
+            if (_enterScreen != null)
+                yield return FadeEnterScreen(0f, 1f, 0.25f);
+            yield return null; // 화면이 그려진 뒤 내부 짓기
 
             _inside = true;
             _selection.Select(null);
@@ -334,9 +338,16 @@ namespace SpaceStation.Interior
             _tutorialRetry = 0f;
             _station.Simulation.Tutorial?.ReportInside(true); // 11-18 들어가기 단계 완료 (끝난 튜토리얼도 위치는 알림 — 완료 카드 표시용)
 
-            if (_enterLabel != null)
-                _enterLabel.gameObject.SetActive(false);
-            yield return Fade(1f, 0f, 0.3f);
+            if (_enterScreen != null)
+            {
+                while (Time.unscaledTime - shownAt < EnterScreenMinSeconds)
+                    yield return null;
+                _enterScreen.Complete();
+                yield return new WaitForSecondsRealtime(0.3f);
+                yield return FadeEnterScreen(1f, 0f, 0.25f);
+                _enterScreen.Hide();
+            }
+            yield return Fade(1f, 0f, 0.4f);
             _busy = false;
         }
 
@@ -999,11 +1010,8 @@ namespace SpaceStation.Interior
             _fade = fade.gameObject.AddComponent<CanvasGroup>();
             _fade.alpha = 0f;
             _fade.blocksRaycasts = false;
-            // 12-3c-opt: 큰 정거장은 내부를 짓는 동안 화면이 검게 1~3초 멈춤 → 안내 글자 (사용자 피드백 2026-10-14)
-            _enterLabel = ui.Label(fade, "내부로 들어가는 중...", 26f, TextAlignmentOptions.Center);
-            HoloUi.Stretch(_enterLabel.rectTransform);
-            _enterLabel.color = new Color(0.75f, 0.88f, 1f);
-            _enterLabel.gameObject.SetActive(false); // 들어갈 때만 (나갈 때 · 빠른 이동 페이드에는 없음)
+            // 12-3c-opt: 들어가기 화면 (방 이름 · 상태 · 에어록 단계 · 팁) — 들어갈 때만 (나갈 때 · 빠른 이동 페이드에는 없음)
+            _enterScreen = InteriorEnterScreen.Create(fade, _holoArt, _font, _fillSprite);
             // 들어갈 때 페이드가 보이도록 오버레이 자체는 켜 두고 내용만 숨김
             _overlay.gameObject.SetActive(true);
             SetContentVisible(false);
@@ -1034,9 +1042,33 @@ namespace SpaceStation.Interior
             while (t < 1f)
             {
                 t = Mathf.Min(1f, t + Time.unscaledDeltaTime / seconds);
-                _fade.alpha = Mathf.Lerp(from, to, t);
+                _fade.alpha = Mathf.Lerp(from, to, t * t * (3f - 2f * t)); // 부드럽게 시작 · 끝 (눈이 적응하게)
                 yield return null;
             }
+        }
+
+        /// <summary>들어가기 화면이 보이는 최소 시간 (방 이름 · 팁을 읽을 수 있게 — 대륙급도 짓기는 약 0.1초).</summary>
+        private const float EnterScreenMinSeconds = 0.8f;
+
+        private IEnumerator FadeEnterScreen(float from, float to, float seconds)
+        {
+            float t = 0f;
+            while (t < 1f)
+            {
+                t = Mathf.Min(1f, t + Time.unscaledDeltaTime / seconds);
+                _enterScreen.Alpha = Mathf.Lerp(from, to, t * t * (3f - 2f * t));
+                yield return null;
+            }
+        }
+
+        /// <summary>들어갈 방 상태 글 (색만이 아니라 글자로 — 사용자 색약).</summary>
+        private string EnterState(ModuleInstance module)
+        {
+            if (!_station.Connectivity.IsActive(module))
+                return "비활성 · 비상 조명만 켜져 있어요";
+            if (_station.Simulation.Damage.TryGetInfo(module, out _))
+                return "파손 · 안에서 직접 고칠 수 있어요";
+            return "정상 가동 중";
         }
     }
 }
