@@ -470,7 +470,7 @@ namespace SpaceStation.UI
             float y = _contact.Visiting ? VisitBoxY() - 206f : VisitBoxY();
             _boardBox.anchoredPosition = new Vector2(0f, y);
             _boardText.SetText($"{HudTheme.Icon("warning")} <b>침입 드론</b> · {ModuleName(_contact.BoardingTarget)} · 남은 드론 <b>{_contact.DronesLeft}/{_contact.DronesTotal}</b> · <color={HudText.Orange}>{Clock(_contact.BoardingTimeLeft)}</color>\n"
-                               + $"<size=86%><color=#F4ECE8>해당 모듈을 선택하고 {KeyBindings.Label(GameAction.EnterInterior)}로 들어가 드론을 끄세요 · 못 막으면 해당 모듈 파손 + 금속 손실</color></size>");
+                               + $"<size=86%><color=#F4ECE8>해당 모듈을 선택하고 {KeyBindings.Label(GameAction.EnterInterior)}로 들어가 드론을 끄세요 · 방어 실패 시 해당 모듈 파손 + 금속 손실</color></size>");
         }
 
         private static string ModuleName(ModuleInstance m) => m != null && m.Data != null ? m.Data.DisplayName : "모듈";
