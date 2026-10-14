@@ -306,6 +306,17 @@ namespace SpaceStation.Editor
                     var spin = FindChild(instance.transform, "Spin");
                     if (spin != null)
                         spin.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
+                    // 12-5 데이터 센터: "SpinFan_*" 냉각팬 날개가 빠르게 회전 (피벗 = 팬 중심, 여러 개)
+                    foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+                    {
+                        if (!t.name.StartsWith("SpinFan"))
+                            continue;
+                        var fan = t.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
+                        var fso2 = new SerializedObject(fan);
+                        fso2.FindProperty("_speed").floatValue = 300f;
+                        fso2.FindProperty("_acceleration").floatValue = 0.5f;
+                        fso2.ApplyModifiedPropertiesWithoutUndo();
+                    }
                     // 12-5 센서 어레이: "SpinRadar" 배열 판이 레이더처럼 빠르게 회전 (피벗 = 기둥 꼭대기)
                     var radar = FindChild(instance.transform, "SpinRadar");
                     if (radar != null)
