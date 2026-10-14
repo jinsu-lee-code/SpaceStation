@@ -58,8 +58,22 @@ namespace SpaceStation.Simulation
         public override string Key => SystemKey;
         public PolicyConfig Config => _config;
         public IReadOnlyList<PolicyData> Policies => _config.Policies;
-        /// <summary>지금 쓸 수 있는 슬롯 수 (도달한 가장 높은 등급 기준 — 등급이 내려가도 줄지 않음).</summary>
-        public int SlotCount => _config.SlotsAt(Math.Max(Sim.Progression.GradeIndex, Sim.Progression.HighestGradeIndex));
+        /// <summary>
+        /// 지금 쓸 수 있는 슬롯 수 (도달한 가장 높은 등급 기준 — 등급이 내려가도 줄지 않음).
+        /// 13-1 규칙을 정하는 쪽이 있으면 정책 규칙이 열려야 쓸 수 있고, 슬롯 확장 규칙이 열리면 확장 수만큼 더.
+        /// </summary>
+        public int SlotCount
+        {
+            get
+            {
+                int byGrade = _config.SlotsAt(Math.Max(Sim.Progression.GradeIndex, Sim.Progression.HighestGradeIndex));
+                if (Sim.Rules == null)
+                    return byGrade;
+                if (!Sim.Rules.Allows(StationRule.Policies))
+                    return 0;
+                return byGrade + (Sim.Rules.Allows(StationRule.PolicyExpansion) ? _config.ExpansionSlots : 0);
+            }
+        }
         public IReadOnlyList<Slot> Slots
         {
             get

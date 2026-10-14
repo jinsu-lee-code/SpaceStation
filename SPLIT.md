@@ -64,6 +64,7 @@
 | 1인칭 내부 · 분위기 · 주민 명단 | `InteriorBuilder`, `InteriorAtmosphere`, `ResidentRoster` |
 | 측정 도구 | `BalanceBot`, `BalanceRunner`, `BalanceSimulatorWindow` |
 
+- **바닥 수정 때마다 [MERGE_NOTES.md](MERGE_NOTES.md)에 각 판으로 합칠 때 예상 충돌 · 해결 방법을 체크리스트로 적는다** (사용자 결정 2026-10-15).
 - **바닥 수정은 `main`에서** 하고 두 브랜치로 합친다(merge). 급하게 한쪽에서 고쳤다면 `main`으로 옮긴(cherry-pick) 뒤 다른 쪽에도 합친다.
 - **모드 고유 기능은 바닥을 바꾸지 말고 위에 얹는다** — 새 시스템은 `StationSystem` 상속으로 붙이고, 차이는 설정(SO) · 플래그로 둔다. 예: 타이쿤판의 1인칭 의무 콘텐츠 줄이기 = 코드를 지우지 않고 빈도 · 켜기 설정으로.
 - 공개 API(호출 방식)를 한쪽 판만 바꾸지 않는다. 바꿔야 하면 `main`에서 바꾸고 두 판을 함께 맞춘다.

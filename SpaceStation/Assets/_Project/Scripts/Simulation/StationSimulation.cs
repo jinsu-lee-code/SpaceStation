@@ -131,6 +131,19 @@ namespace SpaceStation.Simulation
         /// <summary>현재 등급의 이벤트 강도 배율.</summary>
         public float EventIntensity => Progression.Current.EventIntensityMultiplier;
 
+        /// <summary>13-1 공통 판정 고리: 규칙을 정하는 쪽 (서사판 장 틀 · 타이쿤판 해금 선택). null이면 등급 조건 그대로.</summary>
+        public IStationRules Rules { get; private set; }
+
+        /// <summary>13-1: 규칙이 열렸는지 — 규칙을 정하는 쪽이 있으면 그쪽, 없으면 기존 등급 조건(byGrade).</summary>
+        public bool RuleOpen(StationRule rule, bool byGrade) => Rules != null ? Rules.Allows(rule) : byGrade;
+
+        /// <summary>13-1: 규칙을 정하는 쪽을 붙인다 (모듈 해금의 규칙 조건도 함께).</summary>
+        public void SetRules(IStationRules rules)
+        {
+            Rules = rules;
+            Progression.RuleCheck = rules != null ? rules.Allows : (Func<StationRule, bool>)null;
+        }
+
         /// <summary>12-0b 틱 단계 (순서대로). 새 시스템은 <see cref="AddSystem"/>의 tickAfter로 이 이름들 사이에 끼운다.</summary>
         public IReadOnlyList<TickStep> TickSteps => _tickSteps;
         /// <summary>12-0b 공통 틀로 붙은 시스템.</summary>

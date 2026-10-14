@@ -87,6 +87,8 @@ namespace SpaceStation.Data
         [SerializeField] private bool _comingSoon;
         [Tooltip("준비 중 안내 (예: '새 요구 교육 · 12-6')")]
         [SerializeField] private string _comingSoonNote;
+        [Tooltip("13-1: 이 규칙이 열려야 건설 가능 (예: 방열판 = 칸 단위 열). 규칙을 정하는 쪽이 없으면 등급 해금만 봄")]
+        [SerializeField] private StationRule _requiredRule;
         [Tooltip("연결 허브: 이 모듈에 맞닿은 모듈끼리 서로 맞닿은 것처럼 인접 효과를 받음 (한 단계)")]
         [SerializeField] private bool _adjacencyRelay;
         [Tooltip("센서 어레이: 가동 중이면 유성우 · 포격 예보 시간 +초 (합, 상한 BalanceConfig)")]
@@ -245,6 +247,7 @@ namespace SpaceStation.Data
         public int RecipeSlots => _recipeSlots;
         public bool ComingSoon => _comingSoon;
         public string ComingSoonNote => _comingSoonNote;
+        public StationRule RequiredRule => _requiredRule;
         public bool AdjacencyRelay => _adjacencyRelay;
         public float WarningBonus => _warningBonus;
         public float ResearchSpeedBonus => _researchSpeedBonus;

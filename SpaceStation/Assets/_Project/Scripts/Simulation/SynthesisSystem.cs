@@ -101,8 +101,8 @@ namespace SpaceStation.Simulation
         /// </summary>
         public bool IsUnlocked(RecipeData recipe)
         {
-            if (recipe == null || Sim.Progression.GradeIndex < recipe.UnlockGrade)
-                return false;
+            if (recipe == null || !Sim.RuleOpen(StationRules.ForSynthesisStage(recipe.Stage), Sim.Progression.GradeIndex >= recipe.UnlockGrade))
+                return false; // 13-1 규칙을 정하는 쪽이 있으면 레시피 단계별 규칙 (레시피별 등급은 보지 않음)
             var expansion = Sim.ResearchExpansion;
             return expansion != null ? expansion.StateOf(recipe) == RecipeState.Unlocked : recipe.UnlockedByDefault;
         }

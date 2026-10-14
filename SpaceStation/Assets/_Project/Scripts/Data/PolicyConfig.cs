@@ -13,6 +13,8 @@ namespace SpaceStation.Data
         [SerializeField] private List<PolicyData> _policies = new List<PolicyData>();
         [Tooltip("등급 번호별 정책 슬롯 수 (목록보다 높은 등급은 마지막 값). 0이면 정책 없음")]
         [SerializeField] private List<int> _slotsByGrade = new List<int> { 0, 0, 0, 0, 0, 2, 3, 4 };
+        [Tooltip("13-1: 규칙을 정하는 쪽(타이쿤판 해금 선택 등)이 '정책 슬롯 확장'을 열면 더하는 슬롯 수")]
+        [SerializeField, Min(0)] private int _expansionSlots = 1;
         [Tooltip("새 정책이 효과를 내기까지 (초)")]
         [SerializeField, Min(0f)] private float _applyDelay = 30f;
         [Tooltip("한 슬롯을 바꾼 뒤 다시 바꿀 수 있기까지 (초)")]
@@ -51,6 +53,7 @@ namespace SpaceStation.Data
         public float ApplyDelay => _applyDelay;
         public float SwapCooldown => _swapCooldown;
         public int CrisisMinGrade => _crisisMinGrade;
+        public int ExpansionSlots => _expansionSlots;
         public float StrikeThreshold => _strikeThreshold;
         public float StrikeBrewSeconds => _strikeBrewSeconds;
         public float StrikeWarningSeconds => _strikeWarningSeconds;
