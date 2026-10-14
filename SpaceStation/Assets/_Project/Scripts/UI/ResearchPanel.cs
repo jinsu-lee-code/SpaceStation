@@ -177,7 +177,7 @@ namespace SpaceStation.UI
             // 내용 (패드 연구 탭과 같은 구성, 배율만 크게) — 높이를 알아야 창 크기가 정해지므로 먼저 만든다
             var content = HoloUi.Rect("Content", _window);
             content.localScale = new Vector3(ContentScale, ContentScale, 1f);
-            _view = new ResearchView(_ui, content, ContentWidth, _sim, top: 0f);
+            _view = new ResearchView(_ui, content, ContentWidth, _sim, top: 0f, linked: true);
             const float head = 96f, foot = 92f, side = 33f;
             var size = new Vector2(ContentWidth * ContentScale + side * 2f, head + _view.Height * ContentScale + foot);
             _window.sizeDelta = size;
@@ -221,7 +221,9 @@ namespace SpaceStation.UI
         private void RefreshTracker()
         {
             var research = _sim.Research;
-            if (research.Projects.Count == 0)
+            var ex = _sim.ResearchExpansion;
+            int linked = ex != null ? ex.LinkedProjects.Count : 0;
+            if (research.Projects.Count == 0 && linked == 0)
             {
                 _tracker.SetText(research.LabSlots > 0 ? $"<color={HudText.Muted}>진행 중인 연구 없음</color>" : "");
                 return;
@@ -234,6 +236,16 @@ namespace SpaceStation.UI
                 sb.Append(HudTheme.Icon(p.Category.Icon)).Append(' ').Append(p.Category.DisplayName).Append(" Lv.").Append(p.TargetLevel)
                   .Append("  ").Append((p.Progress * 100f).ToString("0")).Append('%');
                 sb.Append(p.Paused ? $" <color={HudText.Orange}>멈춤</color>" : $" <color={HudText.Muted}>{ResearchView.FormatTime(p.RemainingSeconds)}</color>");
+            }
+            if (ex != null)
+            {
+                foreach (var p in ex.LinkedProjects) // 12-4 연계 연구
+                {
+                    if (sb.Length > 0)
+                        sb.Append('\n');
+                    sb.Append($"<color={HudTheme.AccentHex}>연계</color> ").Append(p.DisplayName).Append("  ").Append((p.Progress * 100f).ToString("0")).Append('%');
+                    sb.Append(p.Paused ? $" <color={HudText.Orange}>멈춤</color>" : $" <color={HudText.Muted}>{ResearchView.FormatTime(p.RemainingSeconds)}</color>");
+                }
             }
             _tracker.SetText(sb.ToString());
         }

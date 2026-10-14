@@ -33,8 +33,13 @@ namespace SpaceStation.UI
         /// <summary>맨 위(연구소 사용 줄)부터 목록 · 상세 아래 끝까지의 높이.</summary>
         public float Height { get; }
 
+        private TMP_Text _linkedHeader;
+        private readonly List<(Button Button, TMP_Text Label)> _linkedRows = new List<(Button, TMP_Text)>();
+        private readonly List<LinkedResearchData> _linkedShown = new List<LinkedResearchData>();
+
         /// <param name="top">맨 위 줄의 y (패드는 탭 줄 아래 72)</param>
-        public ResearchView(HoloUi ui, RectTransform root, float width, StationSimulation sim, float top = 72f)
+        /// <param name="linked">12-4 연계 연구 칸 (바깥 연구 창)</param>
+        public ResearchView(HoloUi ui, RectTransform root, float width, StationSimulation sim, float top = 72f, bool linked = false)
         {
             _root = root;
             _sim = sim;
@@ -105,7 +110,29 @@ namespace SpaceStation.UI
             _batch = ui.TechButton(_auto, "지금 일괄 정비", 15f, RunBatch, clickSound: false);
             HoloUi.Place((RectTransform)_batch.transform, new Vector2(pw - 196f, -276f), new Vector2(180f, 46f));
 
-            Height = Mathf.Max(-listTop + panelH, -y) - top;
+            // 12-4 연계 연구 (상위 모듈이 가동 중일 때만 연구 · 효과) — 바깥 연구 창만 (패드 탭은 높이가 모자람)
+            float right = -listTop + panelH;
+            if (linked && sim.ResearchExpansion != null)
+            {
+                float ly = listTop - panelH - 10f;
+                _linkedHeader = ui.Label(root, "", 15f, TextAlignmentOptions.MidlineLeft);
+                HoloUi.Place(_linkedHeader.rectTransform, new Vector2(px, ly), new Vector2(pw, 24f));
+                ly -= 28f;
+                for (int i = 0; i < 2; i++)
+                {
+                    int index = i;
+                    var b = ui.TechButton(root, "", 14f, () => StartLinked(index));
+                    HoloUi.Place((RectTransform)b.transform, new Vector2(px, ly), new Vector2(pw, 58f));
+                    var label = b.GetComponentInChildren<TMP_Text>();
+                    label.alignment = TextAlignmentOptions.MidlineLeft;
+                    label.margin = new Vector4(14f, 2f, 10f, 2f);
+                    label.textWrappingMode = TextWrappingModes.Normal;
+                    _linkedRows.Add((b, label));
+                    ly -= 62f;
+                }
+                right = -ly;
+            }
+            Height = Mathf.Max(right, -y) - top;
             if (sim.Research.Categories.Count > 0)
                 _selected = sim.Research.Categories[0];
             root.gameObject.SetActive(false);
@@ -152,6 +179,71 @@ namespace SpaceStation.UI
             Refresh();
         }
 
+        private void StartLinked(int index)
+        {
+            var ex = _sim.ResearchExpansion;
+            if (ex == null || index >= _linkedShown.Count)
+                return;
+            var l = _linkedShown[index];
+            if (ex.ProjectOf(l) != null)
+            {
+                ex.Cancel(l);
+                AudioService.TryPlay(a => a.UiClose);
+            }
+            else
+            {
+                var result = ex.TryStart(l);
+                AudioService.TryPlay(a => result == ExpansionStartResult.Ok ? a.BuildSelect : a.UiError);
+            }
+            Refresh();
+        }
+
+        /// <summary>12-4 고른 분야의 연계 연구 (필요 모듈 · 비용 · 상태, 누르면 시작 / 진행 중이면 취소).</summary>
+        private void RefreshLinked()
+        {
+            var ex = _sim.ResearchExpansion;
+            if (_linkedHeader == null || ex == null || _selected == null)
+                return;
+            _linkedShown.Clear();
+            foreach (var l in ex.Linked)
+                if (l != null && l.Category == _selected.Category)
+                    _linkedShown.Add(l);
+            _linkedHeader.SetText(_linkedShown.Count > 0
+                ? $"<b>연계 연구</b>  <color={HudText.Muted}>필요한 상위 모듈이 가동 중일 때만 연구 · 효과 (연구소 슬롯을 씀)</color>"
+                : $"<b>연계 연구</b>  <color={HudText.Muted}>이 분야는 아직 없음 · 상위 모듈을 지으면 열리는 특화 연구</color>");
+            for (int i = 0; i < _linkedRows.Count; i++)
+            {
+                var (button, label) = _linkedRows[i];
+                bool on = i < _linkedShown.Count;
+                button.gameObject.SetActive(on);
+                if (!on)
+                    continue;
+                var l = _linkedShown[i];
+                string module = l.RequiredModule != null ? l.RequiredModule.DisplayName : "?";
+                bool has = ex.HasModule(l);
+                string state;
+                var project = ex.ProjectOf(l);
+                if (ex.IsDone(l))
+                    state = has ? $"<color={HudTheme.GreenHex}>완료 · 효과 켜짐</color>" : $"<color={HudText.Orange}>완료 · {module}이 없어 효과 꺼짐</color>";
+                else if (project != null)
+                    state = project.Paused ? $"<color={HudText.Orange}>연구 {project.Progress * 100f:0}% · 멈춤</color> (누르면 취소)" : $"<color={HudTheme.AccentHex}>연구 {project.Progress * 100f:0}% · {FormatTime(project.RemainingSeconds)}</color> (누르면 취소)";
+                else
+                {
+                    var check = ex.CanStart(l);
+                    state = check switch
+                    {
+                        ExpansionStartResult.Ok => $"<color={HudTheme.GreenHex}>누르면 시작</color> · {HudText.Cost(l.Level.StartCost)} · 전력 +{l.Level.PowerDemand:0} · {l.Level.Duration:0}초",
+                        ExpansionStartResult.ModuleMissing => $"<color={HudText.Muted}>{module} 가동 중일 때 연구 가능</color>",
+                        ExpansionStartResult.NoFreeSlot => $"<color={HudText.Orange}>빈 연구소 없음</color> · {HudText.Cost(l.Level.StartCost)}",
+                        ExpansionStartResult.InsufficientResources => $"<color={HudText.Orange}>자원 부족</color> · {HudText.Cost(l.Level.StartCost)}",
+                        _ => "",
+                    };
+                }
+                button.interactable = ex.IsDone(l) ? false : project != null || ex.CanStart(l) == ExpansionStartResult.Ok;
+                label.SetText($"<b>{l.DisplayName}</b> <size=85%><color={HudText.Muted}>필요: {module}</color></size>  {state}\n<size=85%>{l.Level.Description}</size>");
+            }
+        }
+
         private void RunBatch()
         {
             var (maintained, rebuilt) = _sim.Automation.RunBatch();
@@ -194,6 +286,7 @@ namespace SpaceStation.UI
                 ((Image)button.targetGraphic).color = category == _selected ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
             }
             RefreshDetail();
+            RefreshLinked();
         }
 
         private void RefreshDetail()

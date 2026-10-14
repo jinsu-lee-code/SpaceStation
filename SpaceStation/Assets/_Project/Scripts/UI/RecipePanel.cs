@@ -51,6 +51,10 @@ namespace SpaceStation.UI
         private TMP_Text _title, _body, _effects, _tracker, _launcherLabel;
         private RectTransform _shape;
         private Button _place;
+        // 12-4 그림자 · 해금 연구
+        private Button _researchButton;
+        private TMP_Text _researchStatus, _slots;
+        private float _listTop, _listX;
 
         public bool IsOpen => _open;
 
@@ -165,6 +169,39 @@ namespace SpaceStation.UI
             _synthesis.Begin(_selected);
         }
 
+        /// <summary>12-4 그림자 레시피 해금 연구 시작 / 진행 중이면 취소.</summary>
+        private void ResearchSelected()
+        {
+            var ex = _sim.ResearchExpansion;
+            if (_selected == null || ex == null)
+                return;
+            if (ex.ProjectOf(_selected) != null)
+            {
+                ex.Cancel(_selected);
+                AudioService.TryPlay(l => l.UiClose);
+            }
+            else
+            {
+                var result = ex.TryStart(_selected);
+                AudioService.TryPlay(l => result == ExpansionStartResult.Ok ? l.BuildSelect : l.UiError);
+            }
+            Refresh();
+        }
+
+        private RecipeState StateOf(RecipeData r)
+        {
+            var ex = _sim.ResearchExpansion;
+            return ex != null ? ex.StateOf(r) : r.UnlockedByDefault ? RecipeState.Unlocked : RecipeState.Hidden;
+        }
+
+        private static string Reason(ExpansionStartResult result, RecipeResearchCost cost, int points) => result switch
+        {
+            ExpansionStartResult.NoFreeSlot => "레시피 연구 슬롯 없음 (연구 단지 등 연구소 계통 진화 모듈이 슬롯을 줌)",
+            ExpansionStartResult.NoResearchPoints => $"연구 포인트 {cost.ResearchPoints} 필요 (보유 {points} · 내부 보급 특별 상자에서 얻음)",
+            ExpansionStartResult.InsufficientResources => "자원 부족",
+            _ => null,
+        };
+
         // ---------------- 구성 ----------------
 
         private static string LauncherText() => $"합성 ({KeyBindings.Label(GameAction.Recipes)})";
@@ -204,7 +241,9 @@ namespace SpaceStation.UI
             HoloUi.Place(title.rectTransform, new Vector2(40f, -30f), new Vector2(500f, 46f));
             HoloUi.Glow(title, 0.5f);
 
-            // 왼쪽 목록
+            // 왼쪽 목록 (12-4: 미공개 레시피는 빼고 위로 채움 — RefreshList)
+            _listTop = -head;
+            _listX = side;
             float y = -head;
             foreach (var recipe in _syn.Recipes)
             {
@@ -236,6 +275,12 @@ namespace SpaceStation.UI
 
             _place = _ui.TechButton(panel, "위치 지정", 18f, PlaceSelected);
             HoloUi.Place((RectTransform)_place.transform, new Vector2(DetailWidth - 200f, -bodyH + 66f), new Vector2(180f, 48f));
+            _researchButton = _ui.TechButton(panel, "해금 연구 시작", 18f, ResearchSelected);
+            HoloUi.Place((RectTransform)_researchButton.transform, new Vector2(DetailWidth - 220f, -bodyH + 66f), new Vector2(200f, 48f));
+            _researchStatus = _ui.Label(panel, "", 15f, TextAlignmentOptions.MidlineLeft, wrap: true);
+            HoloUi.Place(_researchStatus.rectTransform, new Vector2(20f, -bodyH + 70f), new Vector2(DetailWidth - 260f, 56f));
+            _slots = _ui.Label(_window, "", 16f, TextAlignmentOptions.MidlineRight);
+            HoloUi.Place(_slots.rectTransform, new Vector2(side + ListWidth + 24f, -40f), new Vector2(DetailWidth, 30f));
 
             var warn = _ui.Label(_window, $"<color={HudText.Muted}>재료를 규격 모양 안에 맞닿게 지어 두고 [위치 지정] · 합성 중에는 재료 가동이 멈추고 철거할 수 없습니다 · 분해할 수 없습니다</color>", 15f, TextAlignmentOptions.MidlineLeft);
             warn.rectTransform.anchorMin = warn.rectTransform.anchorMax = warn.rectTransform.pivot = new Vector2(0f, 0f);
@@ -265,12 +310,39 @@ namespace SpaceStation.UI
 
         private void RefreshList()
         {
-            foreach (var (recipe, _, label) in _rows)
+            var ex = _sim.ResearchExpansion;
+            float y = _listTop;
+            RecipeData firstVisible = null;
+            bool selectedVisible = false;
+            foreach (var (recipe, button, label) in _rows)
             {
-                bool unlocked = _syn.IsUnlocked(recipe);
-                string color = recipe == _selected ? "#7FD8FF" : unlocked ? "#FFFFFF" : HudText.Muted;
+                var state = StateOf(recipe);
+                bool visible = state != RecipeState.Hidden;
+                if (button.gameObject.activeSelf != visible)
+                    button.gameObject.SetActive(visible);
+                if (!visible)
+                    continue;
+                firstVisible ??= recipe;
+                selectedVisible |= recipe == _selected;
+                ((RectTransform)button.transform).anchoredPosition = new Vector2(_listX, y);
+                y -= RowHeight;
+                bool usable = _syn.IsUnlocked(recipe);
+                string color = recipe == _selected ? "#7FD8FF" : usable ? "#FFFFFF" : HudText.Muted;
                 string name = recipe == _selected ? $"<b>{recipe.DisplayName}</b>" : recipe.DisplayName;
-                label.SetText($"<color={color}>{name}</color>{(unlocked ? "" : $" <size=80%><color={HudText.Muted}>잠김</color></size>")}");
+                string tag;
+                var project = ex != null ? ex.ProjectOf(recipe) : null;
+                if (project != null)
+                    tag = $" <size=80%><color={HudTheme.AccentHex}>연구 {project.Progress * 100f:0}%</color></size>";
+                else if (state == RecipeState.Shadow)
+                    tag = $" <size=80%><color={HudText.Yellow}>그림자</color></size>";
+                else
+                    tag = usable ? "" : $" <size=80%><color={HudText.Muted}>등급 잠김</color></size>";
+                label.SetText($"<color={color}>{name}</color>{tag}");
+            }
+            if (!selectedVisible && firstVisible != null && firstVisible != _selected)
+            {
+                _selected = firstVisible;
+                RefreshDetail();
             }
         }
 
@@ -279,6 +351,21 @@ namespace SpaceStation.UI
             if (_selected == null || _title == null)
                 return;
             var r = _selected;
+            var ex = _sim.ResearchExpansion;
+            var state = StateOf(r);
+            if (_slots != null)
+                _slots.SetText(ex != null
+                    ? $"<color={HudText.Muted}>레시피 연구 슬롯</color> {ex.RecipeProjects.Count} / {ex.RecipeSlots}   <color={HudText.Muted}>연구 포인트</color> {_sim.Supply.ResearchPoints}"
+                    : "");
+            if (state == RecipeState.Shadow)
+            {
+                RefreshShadow(r, ex);
+                return;
+            }
+            _researchButton.gameObject.SetActive(false);
+            _researchStatus.gameObject.SetActive(false);
+            _place.gameObject.SetActive(true);
+            _effects.gameObject.SetActive(true);
             bool unlocked = _syn.IsUnlocked(r);
             _title.SetText($"{r.DisplayName}  <size=70%><color={HudText.Muted}>{r.Stage}단계 진화 · {r.Result.CellOffsets.Count}칸</color></size>");
 
@@ -310,12 +397,51 @@ namespace SpaceStation.UI
 
             _effects.SetText($"<color=#7FD8FF><b>결과: {r.Result.DisplayName}</b></color>  <size=85%><color={HudText.Muted}>내구도 100%로 새로 시작</color></size>\n"
                              + HudText.ModuleEffects(r.Result, _sim.Effects));
-            DrawShape(r.Result);
+            DrawShape(r.Result, silhouette: false);
             _place.interactable = unlocked;
         }
 
-        /// <summary>규격 모양: 층마다 위에서 본 칸 그림 (아래층부터 왼쪽→오른쪽).</summary>
-        private void DrawShape(ModuleData result)
+        /// <summary>
+        /// 12-4 그림자 레시피: 이름 + 검은 실루엣(규격 모양)만 보이고, 재료 · 효과는 해금 연구 뒤 공개.
+        /// 해금 연구 비용(자원 + 연구 포인트 + 전력 · 시간) · 슬롯 · 진행 · 시작/취소.
+        /// </summary>
+        private void RefreshShadow(RecipeData r, ResearchExpansionSystem ex)
+        {
+            _place.gameObject.SetActive(false);
+            _effects.gameObject.SetActive(false);
+            _researchButton.gameObject.SetActive(true);
+            _researchStatus.gameObject.SetActive(true);
+            _title.SetText($"{r.DisplayName}  <size=70%><color={HudText.Yellow}>그림자 · {r.Stage}단계 진화</color></size>");
+            var cost = ex.CostOf(r);
+            var sb = new StringBuilder();
+            sb.Append($"<color={HudText.Muted}>재료 · 결과 효과 · 합성 비용은 해금 연구를 마치면 공개됩니다</color>\n\n");
+            sb.Append($"<b>해금 연구</b>  {HudText.Cost(cost.StartCost)}  <color={HudText.Yellow}>연구 포인트 {cost.ResearchPoints}</color>\n");
+            sb.Append($"<color={HudText.Muted}>전력 +{cost.PowerDemand:0} · {cost.Duration:0}초 · 레시피 연구 슬롯 1개 (일반 연구와 따로) · 시작 비용은 돌려받지 않음</color>");
+            if (r.UnlockGrade > _sim.Progression.GradeIndex && r.UnlockGrade < _sim.Progression.GradeCount)
+                sb.Append($"\n<color={HudText.Orange}>합성은 {_sim.Progression.GetGrade(r.UnlockGrade).DisplayName} 등급부터</color>");
+            _body.SetText(sb.ToString());
+            DrawShape(r.Result, silhouette: true);
+
+            var project = ex.ProjectOf(r);
+            var label = _researchButton.GetComponentInChildren<TMP_Text>();
+            if (project != null)
+            {
+                label.SetText("연구 취소");
+                _researchButton.interactable = true;
+                _researchStatus.SetText(project.Paused
+                    ? $"<color={HudText.Orange}>해금 연구 {project.Progress * 100f:0}% · 멈춤 (레시피 연구 슬롯 부족)</color>"
+                    : $"해금 연구 {project.Progress * 100f:0}% · 남은 {ResearchView.FormatTime(project.RemainingSeconds)}{(project.Rate < 0.999f ? $" <color={HudText.Yellow}>(전력 {project.Rate * 100f:0}%)</color>" : "")}");
+                return;
+            }
+            label.SetText("해금 연구 시작");
+            var check = ex.CanStart(r);
+            _researchButton.interactable = check == ExpansionStartResult.Ok;
+            string reason = Reason(check, cost, _sim.Supply.ResearchPoints);
+            _researchStatus.SetText(reason != null ? $"<color={HudText.Orange}>{reason}</color>" : $"<color={HudTheme.GreenHex}>해금 연구를 시작할 수 있습니다</color>");
+        }
+
+        /// <summary>규격 모양: 층마다 위에서 본 칸 그림 (아래층부터 왼쪽→오른쪽). 그림자 레시피는 검은 실루엣.</summary>
+        private void DrawShape(ModuleData result, bool silhouette)
         {
             for (int i = _shape.childCount - 1; i >= 0; i--)
                 Destroy(_shape.GetChild(i).gameObject);
@@ -344,7 +470,11 @@ namespace SpaceStation.UI
                         var img = rt.gameObject.AddComponent<Image>();
                         img.sprite = _fillSprite;
                         img.raycastTarget = false;
-                        img.color = filled ? new Color(0.45f, 0.85f, 1f, 0.9f) : new Color(1f, 1f, 1f, 0.06f);
+                        img.color = filled
+                            ? silhouette ? new Color(0.02f, 0.02f, 0.03f, 1f) : new Color(0.45f, 0.85f, 1f, 0.9f)
+                            : new Color(1f, 1f, 1f, 0.06f);
+                        if (filled && silhouette)
+                            rt.gameObject.AddComponent<Outline>().effectColor = new Color(0.6f, 0.65f, 0.75f, 0.6f); // 검은 칸 가장자리만 보이게
                     }
                 if (layers > 1)
                 {
@@ -358,12 +488,23 @@ namespace SpaceStation.UI
         {
             float top = -76f - (_research != null ? _research.TrackerHeight + (_research.TrackerHeight > 0f ? 6f : 0f) : 0f);
             _tracker.rectTransform.anchoredPosition = new Vector2(28f, top);
-            if (_syn.Jobs.Count == 0)
+            var ex = _sim.ResearchExpansion;
+            if (_syn.Jobs.Count == 0 && (ex == null || ex.RecipeProjects.Count == 0))
             {
                 _tracker.SetText("");
                 return;
             }
             var sb = new StringBuilder();
+            if (ex != null)
+            {
+                foreach (var p in ex.RecipeProjects)
+                {
+                    if (sb.Length > 0)
+                        sb.Append('\n');
+                    sb.Append($"<color={HudText.Yellow}>레시피 연구</color> ").Append(p.DisplayName).Append("  ").Append((p.Progress * 100f).ToString("0")).Append('%');
+                    sb.Append(p.Paused ? $" <color={HudText.Orange}>멈춤</color>" : $" <color={HudText.Muted}>{ResearchView.FormatTime(p.RemainingSeconds)}</color>");
+                }
+            }
             foreach (var job in _syn.Jobs)
             {
                 if (sb.Length > 0)
