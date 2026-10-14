@@ -54,7 +54,7 @@ namespace SpaceStation.Editor
                 Stats = so => so.FindProperty("_warningBonus").floatValue = 20f },
             new Def { Id = "Quarantine", Name = "검역소", Color = "#8FE39A", Category = ModuleCategory.Life, Grade = 5,
                 Metal = 100, Consumption = new[] { (ResourceType.Power, 3f) }, ComingSoon = "역병 대응 · 12-7", Marker = PrimitiveType.Cube },
-            new Def { Id = "ProteinVat", Name = "단백질 배양실", Color = "#E8D9B5", Category = ModuleCategory.Power, // 생산 탭 Grade = 5,
+            new Def { Id = "ProteinVat", Name = "단백질 배양실", Color = "#F26B52", // 산호빛 (보충제 통 라벨 · 사용자 피드백 2026-10-14) Category = ModuleCategory.Power, // 생산 탭 Grade = 5,
                 Metal = 80, Production = new[] { (ResourceType.Food, 2.5f) }, Consumption = new[] { (ResourceType.Power, 3f), (ResourceType.Water, 1f) } },
             new Def { Id = "WaterExtractor", Name = "물 추출기", Color = "#6BB8FF", Category = ModuleCategory.Power, // 생산 탭 Grade = 5,
                 Metal = 110, Production = new[] { (ResourceType.Water, 3f) }, Consumption = new[] { (ResourceType.Power, 4f) } },
