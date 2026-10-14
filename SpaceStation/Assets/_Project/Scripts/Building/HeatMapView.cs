@@ -13,7 +13,8 @@ namespace SpaceStation.Building
     /// 12-3c 대륙급 열 관리 표시 (그레이박스). 사용자 피드백 2026-10-14 (색약 · 붉은 태양 폭풍 화면 · 앞뒤 구분):
     /// - 색은 보조로만: 상태는 라벨 글자("과열 중" · "과열 위험") + 밝기 + 깜빡임. 상자 색은 노랑(과열) · 흰 깜빡임(위험) · 하늘색(방열판 · 추천 자리)
     /// - 라벨은 파손 표기와 같은 <see cref="WorldMarkerLayer"/> (창과 같은 테두리, 라벨 끝에서 모듈까지 연결선, 겹치면 비켜 쌓기)
-    /// - 카메라에서 보이는 모듈만 진한 라벨 + 상자, 정거장 안쪽에 가려진 과열 모듈은 흐린 작은 라벨 "안쪽 과열"(상자 없음) — 앞뒤 구분 + 숨은 과열도 놓치지 않음
+    /// - 보임 = 바깥 면 단위(노출 · 카메라 쪽 · 면 5점이 안 가려짐) → 진한 라벨 + 상자, 아니면 흐린 작은 라벨 "안쪽 과열"(상자 없음) — 앞뒤 구분 + 숨은 과열도 놓치지 않음
+    /// - 라벨을 누르면 그 모듈로 카메라 이동 + 선택
     /// - 늘: 과열 상자, 위험 라벨. 열 지도(J, 또는 건설 메뉴에서 방열판을 고르면 저절로): 과열 라벨, 방열판 추천 자리(깜빡이는 하늘색 칸), 막히거나 멈춘 방열판
     /// - 화면 왼쪽 아래 상태 줄: 과열 · 위험 수와 안내 (대륙급부터)
     /// </summary>
@@ -114,7 +115,7 @@ namespace SpaceStation.Building
 
         private void BuildHud()
         {
-            var canvasGo = new GameObject("HeatHud", typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler));
+            var canvasGo = new GameObject("HeatHud", typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler), typeof(UnityEngine.UI.GraphicRaycaster)); // 라벨 누르기
             canvasGo.transform.SetParent(transform, false);
             var canvas = canvasGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -127,7 +128,7 @@ namespace SpaceStation.Building
             labels.SetParent(canvasGo.transform, false);
             HoloUi.Stretch(labels);
             var ui = _holoArt != null || _frameSprite != null ? HoloUi.For(_holoArt, _font, _fillSprite, _frameSprite, null) : null;
-            _layer = new WorldMarkerLayer(labels, _camera, ui, _font) { FontSize = 20f, LiftPixels = 40f };
+            _layer = new WorldMarkerLayer(labels, _camera, ui, _font) { FontSize = 20f, LiftPixels = 40f, Clicked = FocusLabel };
 
             var go = new GameObject("HeatLine", typeof(RectTransform));
             go.transform.SetParent(canvasGo.transform, false);
@@ -223,6 +224,18 @@ namespace SpaceStation.Building
             _layer.End();
         }
 
+        /// <summary>
+        /// 라벨을 누르면 그 모듈로 카메라를 옮기고 선택 (사용자 결정 2026-10-14: 안쪽에 묻힌 과열 모듈을 찾는 직접적인 방법).
+        /// 보는 각도는 그대로, 너무 멀면 가까이.
+        /// </summary>
+        private void FocusLabel(object key)
+        {
+            if (!(key is Box b) || b.Module == null)
+                return;
+            ModuleFocus.Focus(b.Module);
+            _nextVisibility = 0f;
+        }
+
         // ---------------- 보임 판정 ----------------
 
         /// <summary>
@@ -241,17 +254,8 @@ namespace SpaceStation.Building
                 bool visible = false;
                 if (b.Module != null)
                 {
-                    foreach (var c in b.Module.Cells)
-                    {
-                        if (SeesCell(eye, c, mask, b.Module))
-                        {
-                            visible = true;
-                            b.Anchor = GridConfig.CellToWorld(c) + Vector3.up * (GridConfig.CellSize * 0.5f);
-                            break;
-                        }
-                    }
-                    if (!visible)
-                        b.Anchor = TopCenter(b.Module);
+                    visible = FindVisibleFace(eye, b.Module, mask, out var face);
+                    b.Anchor = visible ? face : TopCenter(b.Module);
                 }
                 else
                 {
@@ -262,6 +266,59 @@ namespace SpaceStation.Building
                 if (b.Renderer.gameObject.activeSelf != visible)
                     b.Renderer.gameObject.SetActive(visible);
             }
+        }
+
+        /// <summary>
+        /// 사용자 피드백 2026-10-14: 모서리 조금만 보여도 "보임"이 되었음 → 바깥 면 단위.
+        /// 보이는 면 = ① 우주로 노출(옆 칸이 빔) ② 카메라 쪽을 향함 ③ 면 가운데 + 네 귀퉁이 5점이 모두 다른 모듈에 가려지지 않음.
+        /// 그런 면이 하나라도 있으면 보임, 라벨 연결선은 그 면 가운데로. 바깥 면이 없는 모듈은 늘 "안쪽".
+        /// </summary>
+        private bool FindVisibleFace(Vector3 eye, ModuleInstance module, int mask, out Vector3 faceCenter)
+        {
+            var grid = _station.Grid;
+            float half = GridConfig.CellSize * 0.5f;
+            float inset = GridConfig.CellSize * 0.38f;
+            foreach (var c in module.Cells)
+            {
+                Vector3 cellCenter = GridConfig.CellToWorld(c);
+                foreach (var d in GridDirections.Faces)
+                {
+                    if (grid.IsOccupied(c + d))
+                        continue;
+                    Vector3 n = d;
+                    Vector3 center = cellCenter + n * half;
+                    if (Vector3.Dot(n, eye - center) <= 0f)
+                        continue;
+                    Vector3 t1 = Vector3.Cross(n, Mathf.Abs(n.y) > 0.5f ? Vector3.right : Vector3.up).normalized * inset;
+                    Vector3 t2 = Vector3.Cross(n, t1).normalized * inset;
+                    if (SeesPoint(eye, center, mask, module) && SeesPoint(eye, center + t1 + t2, mask, module)
+                        && SeesPoint(eye, center + t1 - t2, mask, module) && SeesPoint(eye, center - t1 + t2, mask, module)
+                        && SeesPoint(eye, center - t1 - t2, mask, module))
+                    {
+                        faceCenter = center;
+                        return true;
+                    }
+                }
+            }
+            faceCenter = default;
+            return false;
+        }
+
+        /// <summary>카메라 → 점 사이에 (target이 아닌) 다른 모듈의 Pick 콜라이더가 없는지.</summary>
+        private bool SeesPoint(Vector3 eye, Vector3 point, int mask, ModuleInstance target)
+        {
+            Vector3 dir = point - eye;
+            float dist = dir.magnitude;
+            if (dist < 1e-3f)
+                return true;
+            int n = Physics.RaycastNonAlloc(eye, dir / dist, _hits, dist - 0.02f, mask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < n; i++)
+            {
+                var view = _hits[i].collider.GetComponentInParent<ModuleView>();
+                if (view != null && view.Module != target)
+                    return false;
+            }
+            return true;
         }
 
         private bool SeesCell(Vector3 eye, Vector3Int cell, int mask, ModuleInstance target)
@@ -343,7 +400,7 @@ namespace SpaceStation.Building
             HideFrom(_used);
             string key = KeyBindings.Label(GameAction.HeatMap);
             string tail = MapOn
-                ? (spots > 0 ? "\n<color=#7FE0FF>깜빡이는 하늘색 칸 = 방열판 추천 자리</color>  <color=#C8D2DE>보이는 면만 표시 · 흐린 라벨 = 안쪽에 가려진 과열</color>" : "")
+                ? (spots > 0 ? "\n<color=#7FE0FF>깜빡이는 하늘색 칸 = 방열판 추천 자리</color>  <color=#C8D2DE>흐린 라벨 = 안쪽에 가려진 과열 · 라벨을 누르면 그 모듈로</color>" : "")
                 : $"  <color=#C8D2DE>{key}: 열 지도 · 방열판 추천 자리 보기</color>";
             _hud.SetText($"<b>열 관리</b>  과열 {over} · 위험 {danger}  <color=#C8D2DE>(한도 {limit:0} · 위험 {_heat.DangerLevel:0.#})</color>{tail}");
         }

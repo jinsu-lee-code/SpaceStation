@@ -24,6 +24,7 @@ namespace SpaceStation.UI
             public RectTransform Line;
             public Image LineImage;
             public Vector3 World;
+            public object Key;
             public bool Seen;
             public bool Faint;
             public bool EdgeArrow = true;
@@ -56,6 +57,12 @@ namespace SpaceStation.UI
         public float EdgeMargin = 24f;
         public Color Background = new Color(0.04f, 0.06f, 0.09f, 0.94f);
 
+        /// <summary>
+        /// 라벨을 누름 (키 = <see cref="Show"/>에 준 것). null이면 누를 수 없는 라벨(클릭이 모듈 선택으로 그대로 감).
+        /// 누를 수 있으려면 라벨 캔버스에 GraphicRaycaster가 있어야 한다.
+        /// </summary>
+        public System.Action<object> Clicked;
+
         /// <param name="ui">창 테두리 (없으면 바탕 + 강조 띠만)</param>
         /// <param name="font">null이면 TMP 기본</param>
         public WorldMarkerLayer(RectTransform container, Camera camera, HoloUi ui, TMP_FontAsset font)
@@ -85,6 +92,7 @@ namespace SpaceStation.UI
                 _markers.Add(key, m);
             }
             m.Seen = true;
+            m.Key = key;
             m.World = world;
             m.EdgeArrow = edgeArrow;
             if (m.Faint != faint)
@@ -320,7 +328,19 @@ namespace SpaceStation.UI
             text.enableWordWrapping = false;
 
             go.SetActive(false);
-            return new Marker { Rect = rect, Text = text, Edge = edgeImage, Skin = skin, Line = line, LineImage = lineImage };
+            var marker = new Marker { Rect = rect, Text = text, Edge = edgeImage, Skin = skin, Line = line, LineImage = lineImage };
+            if (Clicked != null)
+            {
+                back.raycastTarget = true;
+                var button = go.AddComponent<Button>();
+                button.transition = Selectable.Transition.None;
+                button.onClick.AddListener(() =>
+                {
+                    if (marker.Key != null)
+                        Clicked?.Invoke(marker.Key);
+                });
+            }
+            return marker;
         }
     }
 }

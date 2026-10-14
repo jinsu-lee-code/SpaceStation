@@ -58,6 +58,8 @@ namespace SpaceStation.UI
             _layer = new WorldMarkerLayer(_container, _camera, ui, _font)
             {
                 FontSize = _fontSize, LiftPixels = _liftPixels, LineWidth = _lineWidth, Gap = _gap, EdgeMargin = _edgeMargin,
+                // 12-3c (사용자 요청 2026-10-14): 누르면 그 모듈로 카메라 이동 + 선택 (열 표기와 같음)
+                Clicked = key => SpaceStation.Building.ModuleFocus.Focus(key as ModuleInstance),
             };
         }
 
