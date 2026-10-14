@@ -11,7 +11,7 @@ namespace SpaceStation.Editor.Balance
     /// 모듈 역할은 데이터(생산/소비/수용/저장/말단 여부)로 판단하므로 모듈이 추가돼도 코드 수정이 필요 없다.
     /// 매 결정: 수리(파괴 임박 순) → 가장 급한 필요 1개 건설. 급한 것을 살 돈이 없으면 저축(다른 것 안 지음).
     /// </summary>
-    public sealed class BalanceBot
+    public sealed partial class BalanceBot
     {
         private const float NetMargin = 0.2f;      // 순수지가 이보다 낮으면 생산 모듈 추가
         private const float PowerHeadroom = 2f;    // 전력 여유가 이보다 낮으면 발전 추가
@@ -140,6 +140,7 @@ namespace SpaceStation.Editor.Balance
                 return; // 정비비를 못 냈으면 새 건설 대신 저축
             }
             TryResearch();
+            DecideExpansion(); // 12-4 도시급부터: 보급 상자 · 레시피 해금 연구 · 연계 연구 · 합성
 
             var need = PickNeed();
             if (need == null)

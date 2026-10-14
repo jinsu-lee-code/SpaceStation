@@ -61,6 +61,8 @@ namespace SpaceStation.Editor.Balance
                 Random01 = () => (float)rng.NextDouble(),
                 ResearchCategories = s.ResearchCategories,
                 ResearchCaps = s.ResearchCaps,
+                Recipes = s.Recipes != null && s.Recipes.Count > 0 ? s.Recipes : null,
+                ResearchExpansion = s.ResearchExpansion,
             });
             StartGrade = -1;
             if (start != null)

@@ -24,6 +24,8 @@ namespace SpaceStation.Editor.Balance
         [SerializeField] private List<ModuleData> _buildable = new List<ModuleData>();
         [SerializeField] private List<ResearchCategoryData> _research = new List<ResearchCategoryData>();
         [SerializeField] private ResearchLevelCapConfig _researchCaps;
+        [SerializeField] private List<RecipeData> _recipes = new List<RecipeData>();
+        [SerializeField] private ResearchExpansionConfig _expansion;
         [Tooltip("Phase 10 주민 특성 (비우면 명단 없이 측정)")]
         [SerializeField] private ResidentConfig _residents;
         [SerializeField] private float _durationMinutes = 30f;
@@ -222,6 +224,8 @@ namespace SpaceStation.Editor.Balance
                 AdjacencyRules = _adjacency,
                 ResearchCategories = _research,
                 ResearchCaps = _researchCaps,
+                Recipes = _recipes,
+                ResearchExpansion = _expansion,
                 Residents = DisableResidents ? null : _residents,
                 DurationSeconds = _durationMinutes * 60f,
                 Runs = Mathf.Max(1, _runs),
@@ -339,6 +343,15 @@ namespace SpaceStation.Editor.Balance
             }
             if (overwrite || _researchCaps == null)
                 _researchCaps = AssetDatabase.LoadAssetAtPath<ResearchLevelCapConfig>($"{DataRoot}/Research/ResearchLevelCaps.asset");
+            // 12-4 합성 레시피 · 연구 확장 (봇이 도시급부터 해금 연구 · 합성)
+            if (overwrite || _recipes.Count == 0)
+            {
+                _recipes.Clear();
+                foreach (var guid in AssetDatabase.FindAssets("t:RecipeData", new[] { $"{DataRoot}/Recipes" }))
+                    _recipes.Add(AssetDatabase.LoadAssetAtPath<RecipeData>(AssetDatabase.GUIDToAssetPath(guid)));
+            }
+            if (overwrite || _expansion == null)
+                _expansion = AssetDatabase.LoadAssetAtPath<ResearchExpansionConfig>($"{DataRoot}/Research/ResearchExpansionConfig.asset");
             if (overwrite || _residents == null)
                 _residents = AssetDatabase.LoadAssetAtPath<ResidentConfig>($"{DataRoot}/Residents/ResidentConfig.asset");
             if (overwrite || _buildable.Count == 0)

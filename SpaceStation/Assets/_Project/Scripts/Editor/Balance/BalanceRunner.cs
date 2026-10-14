@@ -18,6 +18,9 @@ namespace SpaceStation.Editor.Balance
         /// <summary>Phase 6 연구 (null이면 연구 없음).</summary>
         public IReadOnlyList<ResearchCategoryData> ResearchCategories;
         public ResearchLevelCapConfig ResearchCaps;
+        /// <summary>12-4 합성 레시피 · 연구 확장 (null이면 없음 — 봇은 도시급부터 레시피 해금 연구 · 합성).</summary>
+        public IReadOnlyList<RecipeData> Recipes;
+        public ResearchExpansionConfig ResearchExpansion;
         /// <summary>Phase 10 주민 특성 (null이면 명단 없음).</summary>
         public ResidentConfig Residents;
         public float DurationSeconds = 1800f;
