@@ -53,6 +53,7 @@ namespace SpaceStation.Interior
             s._s = settings ?? new Settings();
             s._block = new MaterialPropertyBlock();
             station.Simulation.Supply.Changed += s.MarkDirty;
+            builder.RoomBuilt += s.HandleRoomBuilt;
             return s;
         }
 
@@ -60,9 +61,14 @@ namespace SpaceStation.Interior
         {
             if (_station != null && _station.Simulation != null)
                 Sim.Supply.Changed -= MarkDirty;
+            if (_builder != null)
+                _builder.RoomBuilt -= HandleRoomBuilt;
         }
 
         private void MarkDirty() => _dirty = true;
+
+        /// <summary>12-3c-opt: 상자는 지은 방에만 놓는다 → 방을 지으면 다시 맞춤.</summary>
+        private void HandleRoomBuilt(ModuleInstance _) => _dirty = true;
 
         /// <summary>내부를 (다시) 만든 직후 — 상자는 방 오브젝트 아래라 이미 지워졌음.</summary>
         public void Rebuild(InteriorLayout layout)
@@ -100,7 +106,7 @@ namespace SpaceStation.Interior
             }
             foreach (var crate in Sim.Supply.Crates)
             {
-                if (!_spawned.ContainsKey(crate.Id) && _layout.Contains(crate.Module))
+                if (!_spawned.ContainsKey(crate.Id) && _layout.Contains(crate.Module) && _builder.IsBuilt(crate.Module))
                     Spawn(crate);
             }
         }

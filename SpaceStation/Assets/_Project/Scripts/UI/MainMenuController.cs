@@ -148,7 +148,8 @@ namespace SpaceStation.UI
                 return;
             GameStartOptions.Difficulty = _difficulties[index];
             SetInteractable(_difficultyPanel, false);
-            SceneFader.Load(SceneNames.Game);
+            var d = _difficulties[index];
+            SceneFader.Load(SceneNames.Game, new LoadingCard { Title = "새 정거장", Detail = d != null ? $"난이도 {d.DisplayName}" : null });
         }
 
         private static UiTween PanelTween(CanvasGroup panel, float inSeconds)

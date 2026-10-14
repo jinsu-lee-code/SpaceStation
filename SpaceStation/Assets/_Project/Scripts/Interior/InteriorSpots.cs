@@ -18,6 +18,7 @@ namespace SpaceStation.Interior
         public static void Walls(InteriorBuilder builder, ModuleInstance module, System.Random rng, float height, List<(Vector3 Position, Vector3 Normal)> result)
         {
             result.Clear();
+            builder.EnsureActive(module); // 12-3c-opt: 아직 안 지었거나 꺼 둔 방은 광선에 안 맞음
             // 문 자리 키트 패널(막힌 벽 KIT_Wall · 문 KIT_WallDoor)은 충돌체 없이 벽면(Solid)보다 방 안쪽으로 튀어나와 있어
             // 그 자리에 붙이면 패널 뒤에 가려짐 (11-17 ③ 환풍구) → 패널 범위 안은 뺌
             _kitBounds.Clear();
@@ -70,6 +71,7 @@ namespace SpaceStation.Interior
             out Vector3 spot, float minRadius = 1f, float maxRadius = 2.6f)
         {
             spot = default;
+            builder.EnsureActive(module);
             var cells = module.Cells;
             for (int attempt = 0; attempt < 60; attempt++)
             {

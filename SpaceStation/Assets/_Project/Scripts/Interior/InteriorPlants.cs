@@ -54,41 +54,56 @@ namespace SpaceStation.Interior
             var p = go.AddComponent<InteriorPlants>();
             p._builder = builder;
             p._s = settings ?? new Settings();
+            builder.RoomBuilt += p.AddRoom;
             return p;
         }
 
-        /// <summary>내부를 (다시) 만든 직후 — 식물은 템플릿 방 아래라 이미 지워졌음.</summary>
+        private void OnDestroy()
+        {
+            if (_builder != null)
+                _builder.RoomBuilt -= AddRoom;
+        }
+
+        private readonly HashSet<ModuleInstance> _rooms = new HashSet<ModuleInstance>();
+
+        /// <summary>내부를 (다시) 만든 직후 — 식물은 템플릿 방 아래라 이미 지워졌음. 12-3c-opt: 방을 지을 때 그 방 식물을 놓음.</summary>
         public void Rebuild(InteriorLayout layout)
         {
             _plants.Clear();
+            _rooms.Clear();
             if (layout == null)
                 return;
-            foreach (var room in layout.Rooms)
+            foreach (var module in _builder.BuiltRooms)
+                AddRoom(module);
+        }
+
+        private void AddRoom(ModuleInstance module)
+        {
+            if (!_rooms.Add(module))
+                return;
+            if (!_builder.TryGetTemplateRoom(module, out var template, out var instance) || template.PlantSpots.Count == 0)
+                return;
+            foreach (var spot in template.PlantSpots)
             {
-                if (!_builder.TryGetTemplateRoom(room.Module, out var template, out var instance) || template.PlantSpots.Count == 0)
+                var healthy = spot.Kind == PlantKind.Tree ? _s.Tree : _s.Pot;
+                var wilted = spot.Kind == PlantKind.Tree ? _s.TreeWilted : _s.PotWilted;
+                if (healthy == null)
                     continue;
-                foreach (var spot in template.PlantSpots)
+                var root = new GameObject("Plant").transform;
+                root.SetParent(instance, false);
+                root.localPosition = spot.Position;
+                root.localRotation = Quaternion.Euler(0f, spot.Yaw, 0f);
+                root.localScale = Vector3.one * spot.Scale;
+                var plant = new Plant
                 {
-                    var healthy = spot.Kind == PlantKind.Tree ? _s.Tree : _s.Pot;
-                    var wilted = spot.Kind == PlantKind.Tree ? _s.TreeWilted : _s.PotWilted;
-                    if (healthy == null)
-                        continue;
-                    var root = new GameObject("Plant").transform;
-                    root.SetParent(instance, false);
-                    root.localPosition = spot.Position;
-                    root.localRotation = Quaternion.Euler(0f, spot.Yaw, 0f);
-                    root.localScale = Vector3.one * spot.Scale;
-                    var plant = new Plant
-                    {
-                        Module = room.Module,
-                        Kind = spot.Kind,
-                        Root = root,
-                        Healthy = Spawn(healthy, root),
-                        Wilted = wilted != null ? Spawn(wilted, root) : null,
-                    };
-                    plant.SetWilted(false);
-                    _plants.Add(plant);
-                }
+                    Module = module,
+                    Kind = spot.Kind,
+                    Root = root,
+                    Healthy = Spawn(healthy, root),
+                    Wilted = wilted != null ? Spawn(wilted, root) : null,
+                };
+                plant.SetWilted(false);
+                _plants.Add(plant);
             }
         }
 

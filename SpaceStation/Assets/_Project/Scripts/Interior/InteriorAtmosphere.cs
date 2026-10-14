@@ -90,34 +90,50 @@ namespace SpaceStation.Interior
             a._beaconMaterial = beacon;
             a._block = new MaterialPropertyBlock();
             a._empty = new MaterialPropertyBlock();
+            builder.RoomBuilt += a.AddRoom;
             return a;
         }
 
-        /// <summary>내부를 (다시) 만든 직후. 방 목록과 조명을 새로 모은다.</summary>
+        private void OnDestroy()
+        {
+            if (_builder != null)
+                _builder.RoomBuilt -= AddRoom;
+        }
+
+        /// <summary>내부를 (다시) 만든 직후. 방 목록과 조명을 새로 모은다 (12-3c-opt: 지은 방만 — 나머지는 지을 때 <see cref="AddRoom"/>).</summary>
         public void Rebuild(InteriorLayout layout)
         {
             _rooms.Clear();
             _byModule.Clear();
             if (layout == null)
                 return;
-            foreach (var r in layout.Rooms)
-            {
-                var room = new Room
-                {
-                    Module = r.Module,
-                    Parent = _builder.RoomParent(r.Module),
-                    Bounds = _builder.RoomBounds(r.Module),
-                    Seed = Random.value * 100f,
-                };
-                _builder.CollectRoomLights(r.Module, room.Lights, room.LightBase, room.Slots);
-                foreach (var l in room.Lights)
-                    room.LightColor.Add(l.color);
-                room.Gauges = room.Parent != null ? room.Parent.GetComponentsInChildren<InteriorGauge>() : new InteriorGauge[0];
-                _rooms.Add(room);
-                _byModule[r.Module] = room;
-            }
-            Poll();
+            foreach (var module in _builder.BuiltRooms)
+                AddRoom(module);
             _nextPoll = Time.unscaledTime + PollInterval;
+        }
+
+        private void AddRoom(ModuleInstance module)
+        {
+            if (_byModule.ContainsKey(module))
+                return;
+            var room = new Room
+            {
+                Module = module,
+                Parent = _builder.RoomParent(module),
+                Bounds = _builder.RoomBounds(module),
+                Seed = Random.value * 100f,
+            };
+            _builder.CollectRoomLights(module, room.Lights, room.LightBase, room.Slots);
+            foreach (var l in room.Lights)
+                room.LightColor.Add(l.color);
+            room.Gauges = room.Parent != null ? room.Parent.GetComponentsInChildren<InteriorGauge>() : new InteriorGauge[0];
+            _rooms.Add(room);
+            _byModule[module] = room;
+            if (_station != null && _station.Simulation != null)
+            {
+                ReadGlobals(out bool storm, out float power, out float charge);
+                PollRoom(room, storm, power, charge);
+            }
         }
 
         public bool IsAlarm(ModuleInstance module)
@@ -153,38 +169,47 @@ namespace SpaceStation.Interior
         {
             if (_station == null || _station.Simulation == null)
                 return;
+            ReadGlobals(out bool storm, out float power, out float charge);
+            foreach (var room in _rooms)
+                PollRoom(room, storm, power, charge);
+        }
+
+        private void ReadGlobals(out bool storm, out float power, out float charge)
+        {
             var sim = _station.Simulation;
-            bool storm = false;
+            storm = false;
             foreach (var e in sim.Events.ActiveEvents)
             {
                 if (e.Data is SolarStormEventData)
                     storm = true;
             }
-            float power = sim.Resources.PowerEfficiency;
-            float charge = sim.Resources.BatteryCapacity > 0f ? sim.Resources.BatteryCharge / sim.Resources.BatteryCapacity : 0f;
-            foreach (var room in _rooms)
+            power = sim.Resources.PowerEfficiency;
+            charge = sim.Resources.BatteryCapacity > 0f ? sim.Resources.BatteryCharge / sim.Resources.BatteryCapacity : 0f;
+        }
+
+        private void PollRoom(Room room, bool storm, float power, float charge)
+        {
+            var sim = _station.Simulation;
+            var m = room.Module;
+            var c = new RoomCondition
             {
-                var m = room.Module;
-                var c = new RoomCondition
-                {
-                    Active = _station.Connectivity.IsActive(m),
-                    Damaged = sim.Damage.TryGetInfo(m, out _),
-                    Power = power,
-                    Wear = sim.Durability.TryGetInfo(m, out var d) ? sim.Durability.EfficiencyFor(d.Current) : 1f,
-                    Storm = storm,
-                };
-                var mood = InteriorMoodRules.Evaluate(c, _tuning);
-                if (!room.HasMood || mood.Mode != room.Mood.Mode)
-                {
-                    SetAlarm(room, mood.Mode == RoomLightMode.Alarm);
-                    SetEmergency(room, mood.Mode == RoomLightMode.Emergency);
-                }
-                room.Mood = mood;
-                room.HasMood = true;
-                // 배터리 저장량 게이지 (정거장 전체 저장량, 비활성 방은 꺼짐)
-                foreach (var g in room.Gauges)
-                    g.SetFill(charge, mood.Mode != RoomLightMode.Emergency);
+                Active = _station.Connectivity.IsActive(m),
+                Damaged = sim.Damage.TryGetInfo(m, out _),
+                Power = power,
+                Wear = sim.Durability.TryGetInfo(m, out var d) ? sim.Durability.EfficiencyFor(d.Current) : 1f,
+                Storm = storm,
+            };
+            var mood = InteriorMoodRules.Evaluate(c, _tuning);
+            if (!room.HasMood || mood.Mode != room.Mood.Mode)
+            {
+                SetAlarm(room, mood.Mode == RoomLightMode.Alarm);
+                SetEmergency(room, mood.Mode == RoomLightMode.Emergency);
             }
+            room.Mood = mood;
+            room.HasMood = true;
+            // 배터리 저장량 게이지 (정거장 전체 저장량, 비활성 방은 꺼짐)
+            foreach (var g in room.Gauges)
+                g.SetFill(charge, mood.Mode != RoomLightMode.Emergency);
         }
 
         // ---------------- 조명 ----------------

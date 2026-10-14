@@ -93,7 +93,15 @@ namespace SpaceStation.Interior
             _moduleRenderers.Clear();
             _linked.Clear();
             _linkedFrom = null; // 통로가 바뀌었을 수 있음 → 다음 프레임에 다시 계산
-            foreach (var r in _interiorRoot.GetComponentsInChildren<Renderer>(true))
+            AddWindows(_interiorRoot);
+        }
+
+        /// <summary>12-3c-opt: 방을 나중에 지으면 그 방의 바깥 창만 더함.</summary>
+        public void AddWindows(Transform root)
+        {
+            if (root == null)
+                return;
+            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
             {
                 if (!IsWindow(r))
                     continue;

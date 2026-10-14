@@ -105,8 +105,20 @@ namespace SpaceStation.Interior
             r._animals = animals != null && animals.IsValid ? animals : null;
             r._font = font;
             r._eye = eye;
+            builder.RoomBuilt += r.SpawnRoom;
             return r;
         }
+
+        private void OnDestroy()
+        {
+            if (_builder != null)
+                _builder.RoomBuilt -= SpawnRoom;
+        }
+
+        /// <summary>방마다 세울 주민 (계획 순서대로) — 12-3c-opt: 배치는 들어갈 때 한 번에 정하고, 인물은 방을 지을 때 세운다.</summary>
+        private readonly Dictionary<ModuleInstance, List<(Resident Resident, Placement Placement)>> _planned = new Dictionary<ModuleInstance, List<(Resident, Placement)>>();
+        private readonly HashSet<ModuleInstance> _spawnedRooms = new HashSet<ModuleInstance>();
+        private bool _day;
 
         public void Rebuild(InteriorLayout layout)
         {
@@ -116,6 +128,8 @@ namespace SpaceStation.Interior
                     Destroy(f.gameObject);
             }
             _figures.Clear();
+            _planned.Clear();
+            _spawnedRooms.Clear();
             HideTag();
             if (layout == null || _station == null || _station.Simulation == null || _animals == null)
                 return;
@@ -129,7 +143,8 @@ namespace SpaceStation.Interior
             _roomModules.Clear();
             foreach (var room in layout.Rooms)
             {
-                if (!_builder.TryGetTemplateRoom(room.Module, out var template, out _) || template.ResidentSpots.Count == 0)
+                var template = _builder.TemplateFor(room.Module);
+                if (template == null || template.ResidentSpots.Count == 0)
                     continue;
                 int work = 0, rest = 0;
                 foreach (var s in template.ResidentSpots)
@@ -153,31 +168,43 @@ namespace SpaceStation.Interior
             foreach (var r in roster.Residents)
                 _people.Add(new PlacementPerson { Id = r.Id, HomeRoom = r.Home != null ? _roomModules.IndexOf(r.Home) : -1, Traits = r.Traits });
 
-            bool day = sim.DayNight.IsDay(sim.ElapsedSeconds);
-            ResidentPlacementRules.Plan(_people, _rooms, day, _tuning.LeisureShare, _placements);
-
-            // 방마다 자리를 차례로 (일하는 사람 → 일하는 자리, 나머지 → 앉기 먼저)
-            var nextWork = new int[_rooms.Count];
-            var takenRest = new Dictionary<int, HashSet<ResidentSpot>>();
-            var wanderRooms = new Dictionary<int, (WanderRoom Room, List<ResidentSpot> Spots)>();
+            _day = sim.DayNight.IsDay(sim.ElapsedSeconds);
+            ResidentPlacementRules.Plan(_people, _rooms, _day, _tuning.LeisureShare, _placements);
             foreach (var p in _placements)
             {
                 var module = _roomModules[p.Room];
-                _builder.TryGetTemplateRoom(module, out var template, out var instance);
-                var resident = roster.Residents[p.Person];
+                if (!_planned.TryGetValue(module, out var list))
+                    _planned[module] = list = new List<(Resident, Placement)>();
+                list.Add((roster.Residents[p.Person], p));
+            }
+            foreach (var module in _builder.BuiltRooms)
+                SpawnRoom(module);
+        }
+
+        /// <summary>방 하나의 계획된 주민을 세운다 (일하는 사람 → 일하는 자리, 나머지 → 앉기 먼저).</summary>
+        private void SpawnRoom(ModuleInstance module)
+        {
+            if (!_planned.TryGetValue(module, out var list) || !_spawnedRooms.Add(module))
+                return;
+            if (!_builder.TryGetTemplateRoom(module, out var template, out var instance))
+                return;
+            var roster = _station.Simulation.Residents;
+            int nextWork = 0;
+            var taken = new HashSet<ResidentSpot>();
+            (WanderRoom Room, List<ResidentSpot> Spots) wr = default;
+            foreach (var (resident, p) in list)
+            {
                 // 11-16 ③ 쉬는 주민 절반(주민 번호)은 서는 자리를 먼저 — 앉기 먼저만 채우면 모두 앉아 걸어 다니는 주민이 없었음
                 bool preferStand = _tuning.Wander && (resident.Id & 1) == 1;
-                if (!takenRest.TryGetValue(p.Room, out var taken))
-                    takenRest[p.Room] = taken = new HashSet<ResidentSpot>();
-                var spot = NextSpot(template, p.Work, preferStand, taken, ref nextWork[p.Room]);
+                var spot = NextSpot(template, p.Work, preferStand, taken, ref nextWork);
                 if (spot == null)
                     continue;
-                var figure = Spawn(resident, spot, instance, _builder.RoomParent(module), Status(resident, module, p, day), roster.Config, out float mood);
+                var figure = Spawn(resident, spot, instance, _builder.RoomParent(module), Status(resident, module, p, _day), roster.Config, out float mood);
                 figure.Room = module;
                 // 11-16 ③ 서 있는 쉬는 주민은 같은 방의 서기 자리 사이를 가끔 걸어 다님, ④ 앉은 주민은 일어나 걷다가 돌아와 앉음
                 if (_tuning.Wander && !spot.Work)
                 {
-                    if (!wanderRooms.TryGetValue(p.Room, out var wr))
+                    if (wr.Room == null)
                     {
                         wr = (new WanderRoom(), new List<ResidentSpot>());
                         foreach (var s in template.ResidentSpots)
@@ -187,7 +214,6 @@ namespace SpaceStation.Interior
                             wr.Room.Add(instance.TransformPoint(s.Position), (instance.rotation * Quaternion.Euler(0f, s.Yaw, 0f)).eulerAngles.y);
                             wr.Spots.Add(s);
                         }
-                        wanderRooms[p.Room] = wr;
                     }
                     if (spot.Pose == ResidentPose.Sit)
                         figure.gameObject.AddComponent<ResidentWander>().InitSeated(wr.Room, mood, _eye, _tuning.AnimalScale, resident.Id);

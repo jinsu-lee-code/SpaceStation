@@ -89,6 +89,7 @@ namespace SpaceStation.Interior
             r._spark = spark;
             station.Simulation.Damage.Damaged += r.HandleDamaged;
             station.Simulation.Damage.Repaired += r.HandleRepaired;
+            builder.RoomBuilt += r.HandleRoomBuilt;
             return r;
         }
 
@@ -99,6 +100,15 @@ namespace SpaceStation.Interior
                 Sim.Damage.Damaged -= HandleDamaged;
                 Sim.Damage.Repaired -= HandleRepaired;
             }
+            if (_builder != null)
+                _builder.RoomBuilt -= HandleRoomBuilt;
+        }
+
+        /// <summary>12-3c-opt: 손상 지점은 방을 지을 때 놓는다 (안 지은 먼 방은 다가갈 때).</summary>
+        private void HandleRoomBuilt(ModuleInstance module)
+        {
+            if (_layout != null && !_sites.ContainsKey(module) && Sim.Damage.TryGetInfo(module, out var info))
+                Spawn(module, info);
         }
 
         /// <summary>남은(고치지 않은) 손상 지점이 있는 방인지 — 있으면 방 연출(<see cref="InteriorAtmosphere"/>)은 지점에서만 연기 · 스파크.</summary>
@@ -111,16 +121,16 @@ namespace SpaceStation.Interior
             _sites.Clear();
             if (layout == null)
                 return;
-            foreach (var room in layout.Rooms)
+            foreach (var module in _builder.BuiltRooms)
             {
-                if (Sim.Damage.TryGetInfo(room.Module, out var info))
-                    Spawn(room.Module, info);
+                if (Sim.Damage.TryGetInfo(module, out var info))
+                    Spawn(module, info);
             }
         }
 
         private void HandleDamaged(DamageInfo info)
         {
-            if (_layout != null && _layout.Contains(info.Module) && !_sites.ContainsKey(info.Module))
+            if (_layout != null && _layout.Contains(info.Module) && !_sites.ContainsKey(info.Module) && _builder.IsBuilt(info.Module))
                 Spawn(info.Module, info);
         }
 

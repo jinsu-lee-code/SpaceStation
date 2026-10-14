@@ -49,6 +49,8 @@ namespace SpaceStation.Interior
         [Tooltip("11-3 모듈별 내부 템플릿 (없는 모듈은 벽 키트 대체 방)")]
         [SerializeField] private List<Data.InteriorTemplate> _templates = new List<Data.InteriorTemplate>();
         [SerializeField] private float _interactDistance = 2.6f;
+        [Tooltip("해치에 닿는 거리 (m) — 천장 높은 방(창고 · 융합로 · 정비소 · 회전 링 가운데)의 천장 해치는 눈에서 3.2~3.4m")]
+        [SerializeField] private float _hatchReach = 4f;
 
         [Header("11-10 상태 연출")]
         [SerializeField] private InteriorMoodTuning _mood = new InteriorMoodTuning();
@@ -159,6 +161,11 @@ namespace SpaceStation.Interior
             _root = rootGo.transform;
             _root.position = _origin;
             _builder = new InteriorBuilder(_root, _kit, _material, _templates);
+            _builder.RoomBuilt += m =>
+            {
+                if (_exteriorView != null)
+                    _exteriorView.AddWindows(_builder.RoomParent(m)); // 나중에 지은 방의 바깥 창
+            };
         }
 
         private void Start()
@@ -224,7 +231,7 @@ namespace SpaceStation.Interior
             if (_enterLabel != null)
                 _enterLabel.gameObject.SetActive(true);
             yield return Fade(0f, 1f, 0.2f);
-            yield return null; // 안내 글자가 그려진 뒤 내부 짓기 (큰 정거장은 여기서 몇 초)
+            yield return null; // 안내 글자가 그려진 뒤 내부 짓기
 
             _inside = true;
             _selection.Select(null);
@@ -243,7 +250,7 @@ namespace SpaceStation.Interior
             _audio.Attach(_player);
 
             _layout = InteriorLayout.Build(_station.Grid, _station.Connectivity.IsActive, module);
-            _builder.Build(_layout, _player.transform);
+            _builder.Build(_layout, _player.transform); // 틀만 (방 안은 UpdateNearbyRooms · 다가갈 때)
             RefreshAllDim();
             _atmosphere = InteriorAtmosphere.Create(transform, _station, _builder, _mood, _smokeMaterial, _sparkMaterial, _beaconMaterial);
             _atmosphere.Rebuild(_layout);
@@ -267,9 +274,9 @@ namespace SpaceStation.Interior
             _incidents.Resolved += HandleIncidentResolved;
             _incidents.Rebuild(_layout);
             _requests.TutorialHold = _incidents.TutorialHold = Tutorial != null;
+            UpdateNearbyRooms(module, force: true); // 가까운 방만 여기서 지음 → 연출이 RoomBuilt로 채움
             var spawn = _builder.SpawnPoint(module, out float spawnYaw);
             _player.Teleport(spawn + Vector3.up * 0.05f, spawnYaw);
-            UpdateNearbyRooms(module, force: true);
 
             _orbit = _camera.GetComponent<OrbitCameraController>();
             if (_orbit != null)
@@ -502,7 +509,8 @@ namespace SpaceStation.Interior
                     return;
             }
             UpdateRoomTitle();
-            UpdateNearbyRooms(RoomAtPlayer(), force: false);
+            UpdateNearbyRooms(RoomAtPlayer(), force: _builder.NeedsReshow);
+            PrefetchRoom();
             UpdateInteraction();
             if (_atmosphere != null)
             {
@@ -589,10 +597,12 @@ namespace SpaceStation.Interior
             var eye = _player.Eye;
             InteriorHatch hatch = null;
             InteriorInteractable item = null;
-            if (Physics.Raycast(eye.position, eye.forward, out var hit, _interactDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            // 해치는 더 멀리서도 (사용자 피드백 2026-10-14: 창고 · 융합로처럼 천장이 높은 방은 천장 해치가 눈에서 약 3.2m라 2.6m 광선이 닿지 않았음)
+            float reach = Mathf.Max(_interactDistance, _hatchReach);
+            if (Physics.Raycast(eye.position, eye.forward, out var hit, reach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             {
                 hatch = hit.collider.GetComponent<InteriorHatch>();
-                if (hatch == null)
+                if (hatch == null && hit.distance <= _interactDistance)
                     item = hit.collider.GetComponentInParent<InteriorInteractable>();
             }
             if (item != null)
@@ -606,10 +616,15 @@ namespace SpaceStation.Interior
                 _prompt.SetText(string.Empty);
                 return;
             }
-            string target = _layout.TryGetRoom(hatch.ToCell, out var room) && room.Module.Data != null ? room.Module.Data.DisplayName : "";
+            bool hasRoom = _layout.TryGetRoom(hatch.ToCell, out var room);
+            string target = hasRoom && room.Module.Data != null ? room.Module.Data.DisplayName : "";
             _prompt.SetText($"<b>{KeyBindings.Label(GameAction.Interact)}</b>  {(hatch.Up ? "위층으로" : "아래층으로")} <color={HudText.Muted}>{target}</color>");
             if (KeyBindings.WasPressed(GameAction.Interact))
+            {
+                if (hasRoom)
+                    _builder.EnsureBuilt(room.Module); // 맞은편 해치(도착점)가 생기게
                 StartCoroutine(UseHatch(hatch.Arrival ?? _builder.FloorPoint(hatch.ToCell)));
+            }
         }
 
         private void UpdateHold(InteriorInteractable item)
@@ -697,6 +712,7 @@ namespace SpaceStation.Interior
             forward.y = 0f;
             var offset = forward.sqrMagnitude > 0.01f ? forward.normalized * 1.1f : Vector3.forward * 1.1f;
             _player.Teleport(arrival + offset + Vector3.up * 0.05f, _player.transform.eulerAngles.y);
+            UpdateNearbyRooms(RoomAtPlayer(), force: false);
             yield return Fade(1f, 0f, 0.2f);
             _busy = false;
         }
@@ -726,6 +742,7 @@ namespace SpaceStation.Interior
             _prompt.SetText(string.Empty);
             AudioService.TryPlay(l => l.UiOpen, 0.5f);
             yield return Fade(0f, 1f, 0.2f);
+            UpdateNearbyRooms(module, force: true); // 먼 방은 아직 안 지었을 수 있음 → 도착 전에 지음
             var spawn = _builder.SpawnPoint(module, out float yaw);
             _player.Teleport(spawn + Vector3.up * 0.05f, yaw);
             _currentModule = null; // 제목 · 환경음 다시
@@ -771,6 +788,8 @@ namespace SpaceStation.Interior
         // 조명 약 5,900 · 문 약 2,200 · 주민 400(스키닝) · 메시 약 38,700이 한꺼번에 돌아 프레임당 약 52ms (사용자 피드백 2026-10-14: 내부에서 렉).
         // → 플레이어가 있는 방에서 열린 통로로 NearbyDepth단계까지 이어진 방만 켜고 나머지 방(그 방의 조명 · 문 · 주민 · 연출)은 꺼 둔다.
         // 벽 너머는 보이지 않고 통로로 이어진 방만 문 · 튜브 너머로 보이므로 화면은 같다.
+        // 2차 (같은 날 피드백: 들어가기 약 3초): 방 안도 처음 근처가 될 때 짓는다 (InteriorBuilder.EnsureBuilt) + 한 단계 더 먼 방은 프레임마다 하나씩 미리.
+        // 대륙급 들어가기 3.0초 → 0.6초 (페이드 0.5초 포함).
         private const int NearbyDepth = 2;
         private ModuleInstance _nearbyCenter;
         private readonly HashSet<ModuleInstance> _nearby = new HashSet<ModuleInstance>();
@@ -803,9 +822,35 @@ namespace SpaceStation.Interior
                 _frontier.Clear();
                 _frontier.AddRange(_frontierNext);
             }
-            _builder.ShowOnly(_nearbyNext); // 방 + 닿은 통로 튜브(튜브 조명 약 1,300개)
+            _builder.ShowOnly(_nearbyNext); // 방 + 닿은 통로 튜브(튜브 조명 약 1,300개). 처음 다가간 방은 여기서 지음
             _nearby.Clear();
             _nearby.UnionWith(_nearbyNext);
+            // 한 단계 더 먼 방은 미리 지어 둠 (프레임마다 하나, 꺼 둔 채) — 걸어가면 방을 지을 일이 거의 없게
+            _prefetch.Clear();
+            foreach (var room in _frontier)
+            {
+                _builder.CollectLinkedRooms(room, _linked);
+                foreach (var n in _linked)
+                {
+                    if (!_nearby.Contains(n) && !_builder.IsBuilt(n) && !_prefetch.Contains(n))
+                        _prefetch.Add(n);
+                }
+            }
+        }
+
+        private readonly List<ModuleInstance> _prefetch = new List<ModuleInstance>();
+
+        private void PrefetchRoom()
+        {
+            while (_prefetch.Count > 0)
+            {
+                var room = _prefetch[_prefetch.Count - 1];
+                _prefetch.RemoveAt(_prefetch.Count - 1);
+                if (_builder.IsBuilt(room))
+                    continue;
+                _builder.EnsureBuilt(room);
+                return;
+            }
         }
 
         private void HandleGridChanged(ModuleInstance _)

@@ -203,8 +203,28 @@ namespace SpaceStation.Save
             GameStartOptions.PendingLoad = file; // 난이도는 게임 씬 호스트가 이름으로 찾는다
             if (Instance != null)
                 Instance._leaving = true; // 지금 판을 자동 저장으로 덮지 않음 (불러오기 확인에서 경고함)
-            SceneFader.Load(SceneNames.Game);
+            SceneFader.Load(SceneNames.Game, CardOf(slot, file.Meta));
             return true;
+        }
+
+        /// <summary>12-3c-opt 로딩 화면 카드: 저장 썸네일 + 등급 · 인구 · 모듈 · 플레이 시간 · 난이도.</summary>
+        private static LoadingCard CardOf(string slot, SaveMeta meta)
+        {
+            if (meta == null)
+                return null;
+            var parts = new System.Collections.Generic.List<string>();
+            parts.Add($"인구 {meta.Population}");
+            parts.Add($"모듈 {meta.Modules}");
+            int minutes = Mathf.FloorToInt(meta.PlaySeconds / 60f);
+            parts.Add(minutes >= 60 ? $"플레이 {minutes / 60}시간 {minutes % 60}분" : $"플레이 {minutes}분");
+            if (!string.IsNullOrEmpty(meta.DifficultyName))
+                parts.Add(meta.DifficultyName);
+            return new LoadingCard
+            {
+                Title = string.IsNullOrEmpty(meta.GradeName) ? SaveService.TitleOf(slot) : $"{meta.GradeName} 정거장",
+                Detail = string.Join("  ·  ", parts),
+                ThumbnailPath = SaveService.ThumbnailPath(slot),
+            };
         }
     }
 }

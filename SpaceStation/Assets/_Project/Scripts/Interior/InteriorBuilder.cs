@@ -78,8 +78,8 @@ namespace SpaceStation.Interior
         private readonly Dictionary<ModuleInstance, Transform> _roomParents = new Dictionary<ModuleInstance, Transform>();
         /// <summary>11-11 템플릿 방: (템플릿, 놓인 프리팹) — 주민 자리를 월드로 옮길 때.</summary>
         private readonly Dictionary<ModuleInstance, (InteriorTemplate Template, Transform Instance)> _templateRooms = new Dictionary<ModuleInstance, (InteriorTemplate, Transform)>();
-        /// <summary>문 상태등: (렌더러 조각, 너머 방).</summary>
-        private readonly List<(Piece Piece, ModuleInstance Other)> _statusLights = new List<(Piece, ModuleInstance)>();
+        /// <summary>문 상태등: 너머 방 → 그 방 상태를 보여 주는 렌더러 조각들.</summary>
+        private readonly Dictionary<ModuleInstance, List<Piece>> _statusByOther = new Dictionary<ModuleInstance, List<Piece>>();
         private readonly HashSet<ModuleInstance> _dimmed = new HashSet<ModuleInstance>();
         private readonly List<InteriorDoor> _doors = new List<InteriorDoor>();
         private readonly List<InteriorHatch> _hatches = new List<InteriorHatch>();
@@ -88,7 +88,21 @@ namespace SpaceStation.Interior
         private readonly List<WallPanel> _wallBuffer = new List<WallPanel>();
         private readonly List<FloorRect> _floorBuffer = new List<FloorRect>();
         private Transform _colliders;
+        private Transform _tubeRoot;
+        private Transform _player;
         private InteriorLayout _layout;
+        // 12-3c-opt 2차: 방은 처음 필요할 때 짓는다
+        private readonly Dictionary<ModuleInstance, InteriorRoom> _rooms = new Dictionary<ModuleInstance, InteriorRoom>();
+        private readonly HashSet<ModuleInstance> _built = new HashSet<ModuleInstance>();
+        /// <summary>방마다 열린 통로 면 (칸, 방향) · 통로로 바로 이어진 방.</summary>
+        private readonly Dictionary<ModuleInstance, List<(Vector3Int, Vector3Int)>> _openOf = new Dictionary<ModuleInstance, List<(Vector3Int, Vector3Int)>>();
+        private readonly Dictionary<ModuleInstance, List<ModuleInstance>> _linksOf = new Dictionary<ModuleInstance, List<ModuleInstance>>();
+        private readonly HashSet<(Vector3Int, Vector3Int)> _tubeKeys = new HashSet<(Vector3Int, Vector3Int)>();
+        /// <summary>지은 해치: (있는 칸, 방향) → 해치.</summary>
+        private readonly Dictionary<(Vector3Int, Vector3Int), InteriorHatch> _hatchAt = new Dictionary<(Vector3Int, Vector3Int), InteriorHatch>();
+        /// <summary>근처라 켜 둔 방 (마지막 ShowOnly) · 소품 자리 찾기로 잠시 켠 방.</summary>
+        private readonly HashSet<ModuleInstance> _shown = new HashSet<ModuleInstance>();
+        private readonly HashSet<ModuleInstance> _extraActive = new HashSet<ModuleInstance>();
 
         public InteriorBuilder(Transform root, InteriorKit kit, Material fallbackMaterial, IEnumerable<InteriorTemplate> templates)
         {
@@ -132,10 +146,10 @@ namespace SpaceStation.Interior
             if (module == null || _layout == null)
                 return;
             into.Add(module);
-            foreach (var (cell, dir) in _open)
+            if (_linksOf.TryGetValue(module, out var links))
             {
-                if (_layout.TryGetRoom(cell, out var room) && room.Module == module && _layout.TryGetRoom(cell + dir, out var other))
-                    into.Add(other.Module);
+                foreach (var other in links)
+                    into.Add(other);
             }
         }
 
@@ -162,86 +176,174 @@ namespace SpaceStation.Interior
             _roomColors.Clear();
             _roomParents.Clear();
             _templateRooms.Clear();
-            _statusLights.Clear();
             _dimmed.Clear();
             _doors.Clear();
             _hatches.Clear();
             _open.Clear();
             _tubes.Clear();
+            _rooms.Clear();
+            _built.Clear();
+            _openOf.Clear();
+            _linksOf.Clear();
+            _tubeKeys.Clear();
+            _hatchAt.Clear();
+            _shown.Clear();
+            _extraActive.Clear();
+            _statusByOther.Clear();
             _layout = null;
         }
 
+        /// <summary>
+        /// 내부 틀만 만든다: 열린 통로 · 방 오브젝트(빈 것). 방 안(벽 · 템플릿 · 문 · 조명 · 통로 튜브)은 <see cref="EnsureBuilt"/>가 처음 필요할 때 짓는다.
+        /// 12-3c-opt 2차 (사용자 피드백 2026-10-14): 대륙급(모듈 579)은 들어갈 때 모든 방을 지어 약 3초 걸렸음 → 가까운 방만 짓고 나머지는 다가갈 때.
+        /// </summary>
         public void Build(InteriorLayout layout, Transform player)
         {
             Clear();
             _layout = layout;
+            _player = player;
             _colliders = new GameObject("Colliders").transform;
             _colliders.SetParent(_root, false);
+            _tubeRoot = new GameObject("Tubes").transform;
+            _tubeRoot.SetParent(_root, false);
 
-            // 1) 열린 통로: 양쪽 방이 모두 그 면에 문을 낼 수 있어야
+            foreach (var room in layout.Rooms)
+            {
+                var go = new GameObject(room.Module.ToString());
+                go.transform.SetParent(_root, false);
+                go.SetActive(false); // 근처 방만 켬 (InteriorMode → ShowOnly)
+                _roomParents.Add(room.Module, go.transform);
+                _roomPieces.Add(room.Module, new List<Piece>());
+                _roomColors.Add(room.Module, RoomColor(room.Module.Data));
+                _rooms.Add(room.Module, room);
+                _openOf.Add(room.Module, new List<(Vector3Int, Vector3Int)>());
+                _linksOf.Add(room.Module, new List<ModuleInstance>());
+            }
+
+            // 열린 통로: 양쪽 방이 모두 그 면에 문을 낼 수 있어야 (양쪽 방향 모두 기록)
             foreach (var face in layout.Faces)
             {
                 if (face.Kind != InteriorFaceKind.Door && face.Kind != InteriorFaceKind.Hatch)
                     continue;
                 layout.TryGetRoom(face.Cell, out var a);
                 layout.TryGetRoom(face.OtherCell, out var b);
-                if (Accepts(a.Module, face.Cell, face.Direction) && Accepts(b.Module, face.OtherCell, -face.Direction))
-                    _open.Add((face.Cell, face.Direction));
-            }
-
-            var parents = new Dictionary<ModuleInstance, Transform>();
-            foreach (var room in layout.Rooms)
-            {
-                var go = new GameObject(room.Module.ToString());
-                go.transform.SetParent(_root, false);
-                parents.Add(room.Module, go.transform);
-                _roomParents.Add(room.Module, go.transform);
-                _roomPieces.Add(room.Module, new List<Piece>());
-                _roomColors.Add(room.Module, RoomColor(room.Module.Data));
-            }
-            foreach (var room in layout.Rooms)
-            {
-                var parent = parents[room.Module];
-                if (room.Module.Data != null && _templates.TryGetValue(room.Module.Data, out var template))
-                {
-                    BuildTemplateRoom(room, template, parent); // 조명은 템플릿 프리팹 것
-                }
-                else
-                {
-                    BuildFallbackRoom(room, parent);
-                    BuildRoomLights(room, parent);
-                }
-            }
-
-            // 2) 수평 통로마다 튜브 하나 (키상 작은 칸 쪽에서)
-            var tubes = new GameObject("Tubes").transform;
-            tubes.SetParent(_root, false);
-            foreach (var (cell, dir) in _open)
-            {
-                if (dir.y != 0 || ConnectorLayout.MakeKey(cell, cell + dir).Item1 != cell)
+                if (!Accepts(a.Module, face.Cell, face.Direction) || !Accepts(b.Module, face.OtherCell, -face.Direction))
                     continue;
-                layout.TryGetRoom(cell, out var a);
-                layout.TryGetRoom(cell + dir, out var b);
-                var span = InteriorGeometry.Tube(cell, dir, DoorDepth(a.Module, cell, dir), DoorDepth(b.Module, cell + dir, -dir));
-                _tubes.Add((BuildTube(span, tubes), a.Module, b.Module));
+                if (_open.Add((face.Cell, face.Direction)))
+                    AddOpen(a.Module, b.Module, face.Cell, face.Direction);
+                if (_open.Add((face.OtherCell, -face.Direction)))
+                    AddOpen(b.Module, a.Module, face.OtherCell, -face.Direction);
             }
+        }
 
-            // 해치 도착점 = 맞은편 해치 자리 (템플릿은 칸 중심에서 옮겨 둘 수 있음)
-            foreach (var hatch in _hatches)
+        private void AddOpen(ModuleInstance module, ModuleInstance other, Vector3Int cell, Vector3Int dir)
+        {
+            _openOf[module].Add((cell, dir));
+            var links = _linksOf[module];
+            if (other != module && !links.Contains(other))
+                links.Add(other);
+        }
+
+        /// <summary>방 안을 다 지은 직후 (연출이 그 방을 채움). 방 오브젝트는 켜진 상태로 알린다.</summary>
+        public event System.Action<ModuleInstance> RoomBuilt;
+
+        public bool IsBuilt(ModuleInstance module) => module != null && _built.Contains(module);
+
+        /// <summary>지금까지 지은 방 (연출을 다시 만들 때, 복사본).</summary>
+        public List<ModuleInstance> BuiltRooms => new List<ModuleInstance>(_built);
+
+        /// <summary>모듈의 내부 템플릿 (없으면 null — 벽 키트 대체 방). 방을 짓기 전에도 쓸 수 있다.</summary>
+        public InteriorTemplate TemplateFor(ModuleInstance module)
+        {
+            return module != null && module.Data != null && _templates.TryGetValue(module.Data, out var t) ? t : null;
+        }
+
+        /// <summary>
+        /// 방 안을 아직 안 지었으면 지금 짓는다 (+ 이 방에 닿은 통로 튜브, 맞은편이 지어져 있으면 해치 도착점).
+        /// 지은 뒤 <see cref="RoomBuilt"/>로 알려 연출(주민 · 조명 · 식물 · 창 등)이 그 방을 채우게 한다. 방 오브젝트의 켜짐 상태는 그대로.
+        /// </summary>
+        public bool EnsureBuilt(ModuleInstance module)
+        {
+            if (module == null || !_rooms.TryGetValue(module, out var room))
+                return false;
+            if (!_built.Add(module))
+                return true;
+            var parent = _roomParents[module];
+            bool wasActive = parent.gameObject.activeSelf;
+            if (!wasActive)
+                parent.gameObject.SetActive(true); // 켜진 채로 지음 (자식 찾기 · 주민 생성이 꺼진 오브젝트를 건너뛰지 않게)
+            int doorStart = _doors.Count;
+            int hatchStart = _hatches.Count;
+            if (module.Data != null && _templates.TryGetValue(module.Data, out var template))
             {
-                var key = (hatch.ToCell, hatch.FromCell - hatch.ToCell);
-                foreach (var other in _hatches)
-                {
-                    if ((other.FromCell, other.ToCell - other.FromCell) != key)
-                        continue;
-                    var p = other.transform.position;
-                    p.y = _root.position.y + InteriorGeometry.FloorY(hatch.ToCell);
-                    hatch.Arrival = p;
-                }
+                BuildTemplateRoom(room, template, parent); // 조명은 템플릿 프리팹 것
+            }
+            else
+            {
+                BuildFallbackRoom(room, parent);
+                BuildRoomLights(room, parent);
             }
 
-            foreach (var door in _doors)
-                door.SetPlayer(player);
+            // 수평 통로마다 튜브 하나 (양쪽 방 중 먼저 지어지는 쪽에서)
+            foreach (var (cell, dir) in _openOf[module])
+            {
+                if (dir.y != 0 || !_tubeKeys.Add(ConnectorLayout.MakeKey(cell, cell + dir)))
+                    continue;
+                var other = OtherRoom(cell, dir);
+                var span = InteriorGeometry.Tube(cell, dir, DoorDepth(module, cell, dir), DoorDepth(other, cell + dir, -dir));
+                var tube = BuildTube(span, _tubeRoot);
+                tube.SetActive(_shown.Contains(module) || _shown.Contains(other));
+                _tubes.Add((tube, module, other));
+            }
+
+            // 해치 도착점 = 맞은편 해치 자리 (템플릿은 칸 중심에서 옮겨 둘 수 있음) — 맞은편 방이 먼저 지어졌으면 서로 잇는다
+            for (int i = hatchStart; i < _hatches.Count; i++)
+            {
+                var hatch = _hatches[i];
+                _hatchAt[(hatch.FromCell, hatch.ToCell - hatch.FromCell)] = hatch;
+                if (!_hatchAt.TryGetValue((hatch.ToCell, hatch.FromCell - hatch.ToCell), out var other))
+                    continue;
+                hatch.Arrival = ArrivalAt(other, hatch.ToCell);
+                other.Arrival = ArrivalAt(hatch, other.ToCell);
+            }
+
+            for (int i = doorStart; i < _doors.Count; i++)
+                _doors[i].SetPlayer(_player);
+            if (_dimmed.Contains(module))
+            {
+                foreach (var piece in _roomPieces[module])
+                    ApplyColors(piece, true);
+            }
+            RoomBuilt?.Invoke(module);
+            if (!wasActive && !_shown.Contains(module) && !_extraActive.Contains(module))
+                parent.gameObject.SetActive(false);
+            return true;
+        }
+
+        /// <summary>
+        /// 방을 짓고 켠다 — 광선으로 소품 자리를 고를 때 (꺼진 방의 가구 충돌체는 광선에 안 맞음, <see cref="InteriorSpots"/>).
+        /// 근처가 아닌 방이면 InteriorMode가 다음 프레임에 근처 방만 다시 켠다 (<see cref="NeedsReshow"/>).
+        /// </summary>
+        public void EnsureActive(ModuleInstance module)
+        {
+            if (!EnsureBuilt(module))
+                return;
+            var parent = _roomParents[module];
+            if (parent.gameObject.activeSelf)
+                return;
+            parent.gameObject.SetActive(true);
+            _extraActive.Add(module);
+            Physics.SyncTransforms();
+        }
+
+        /// <summary>근처가 아닌 방을 소품 자리 찾기로 켜 둠 → 근처 방만 다시 켜야 함.</summary>
+        public bool NeedsReshow => _extraActive.Count > 0;
+
+        private Vector3 ArrivalAt(InteriorHatch other, Vector3Int toCell)
+        {
+            var p = other.transform.position;
+            p.y = _root.position.y + InteriorGeometry.FloorY(toCell);
+            return p;
         }
 
         private bool Accepts(ModuleInstance module, Vector3Int cell, Vector3Int dir)
@@ -272,16 +374,15 @@ namespace SpaceStation.Interior
         {
             if (!_roomPieces.TryGetValue(module, out var pieces))
                 return;
-            if (dim)
-                _dimmed.Add(module);
-            else
-                _dimmed.Remove(module);
+            // 바뀔 때만 (지을 때 조각은 그때의 상태로 칠해짐 — 들어갈 때 모든 방을 훑던 약 0.4초)
+            if (dim ? !_dimmed.Add(module) : !_dimmed.Remove(module))
+                return;
             foreach (var piece in pieces)
                 ApplyColors(piece, dim);
-            foreach (var (piece, other) in _statusLights)
+            if (_statusByOther.TryGetValue(module, out var lights))
             {
-                if (other == module)
-                    ApplyStatus(piece);
+                foreach (var piece in lights)
+                    ApplyStatus(piece, module);
             }
         }
 
@@ -382,14 +483,10 @@ namespace SpaceStation.Interior
             }
         }
 
-        private void ApplyStatus(Piece piece)
+        private void ApplyStatus(Piece piece, ModuleInstance other)
         {
-            ModuleInstance other = null;
-            foreach (var (p, o) in _statusLights)
-            {
-                if (p == piece)
-                    other = o;
-            }
+            if (piece.Renderer == null)
+                return;
             var color = other != null && _dimmed.Contains(other) ? StatusWarn : StatusOk;
             _block.Clear();
             _block.SetColor(BaseColorId, color / Mathf.Max(1f, color.maxColorComponent));
@@ -440,12 +537,7 @@ namespace SpaceStation.Interior
         private void BuildFallbackRoom(InteriorRoom room, Transform parent)
         {
             var module = room.Module;
-            var doors = new HashSet<(Vector3Int, Vector3Int)>();
-            foreach (var (cell, dir) in _open)
-            {
-                if (_layout.TryGetRoom(cell, out var r) && r.Module == module)
-                    doors.Add((cell, dir));
-            }
+            var doors = new HashSet<(Vector3Int, Vector3Int)>(_openOf[module]);
             InteriorGeometry.FallbackWalls(room.Cells, doors, _wallBuffer);
             foreach (var panel in _wallBuffer)
             {
@@ -503,8 +595,10 @@ namespace SpaceStation.Interior
             var wall = KitPiece(_kit.WallDoor, module, parent, center, rotation);
             if (wall.StatusSlot >= 0 && other != null)
             {
-                _statusLights.Add((wall, other));
-                ApplyStatus(wall);
+                if (!_statusByOther.TryGetValue(other, out var lights))
+                    _statusByOther[other] = lights = new List<Piece>();
+                lights.Add(wall);
+                ApplyStatus(wall, other);
             }
             // 방마다 문 한 쌍 (튜브 양 끝 = 에어록). 벽 두께 안에서 미끄러져 숨는다
             BuildDoor(module, parent, center + up * (doorBottom + InteriorGeometry.DoorHeight * 0.5f) - panel.Normal * (t * 0.5f), rotation);
@@ -638,6 +732,11 @@ namespace SpaceStation.Interior
         /// </summary>
         public void ShowOnly(HashSet<ModuleInstance> rooms)
         {
+            _shown.Clear();
+            _shown.UnionWith(rooms);
+            foreach (var room in rooms)
+                EnsureBuilt(room); // 처음 다가간 방은 여기서 지음 (방 하나 약 1~3ms)
+            _extraActive.Clear();
             foreach (var pair in _roomParents)
             {
                 if (pair.Value == null)
