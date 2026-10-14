@@ -44,6 +44,7 @@ namespace SpaceStation.Editor
                 case "ControlLamp": return Emissive("M_ControlLamp", new Color(1f, 0.55f, 0.08f, 1f), new Color(2.0f, 0.6f, 0.04f, 1f)); // 8-3 경광등·상황창
                 case "FuelCellGlow": return Emissive("M_FuelCellGlow", new Color(0.2f, 0.9f, 0.8f, 1f), new Color(0.15f, 1.5f, 1.35f, 1f)); // 8-5 연료전지 (보조 발전 중에만 켜짐)
                 case "CargoLights": return Emissive("M_CargoLights", new Color(0.5f, 1f, 0.4f, 1f), new Color(0.6f, 2.2f, 0.4f, 1f)); // 8-5 화물 터미널 유도등
+                case "TelescopeLens": return Lens(); // 12-5 학교 천문대 망원경 렌즈
                 case "Rock": return Rock();
                 default: return null;
             }
@@ -101,6 +102,24 @@ namespace SpaceStation.Editor
             m.renderQueue = (int)RenderQueue.Transparent;
             m.SetOverrideTag("RenderType", "Transparent");
             m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>
+        /// 12-5 망원경 렌즈 (사용자 요청 2026-10-14): 반투명한 어두운 유리 + 아주 매끈하게(태양 반짝임 · 환경 반사).
+        /// 환경 반사(128)만으로는 별이 뭉개져 파란 원판처럼 보였음 → 스카이박스 정면(은하) 그림을 렌즈 UV에 은은한 발광으로 비춤.
+        /// </summary>
+        private const string LensSkyTexture = "Assets/SpaceSkies Free/Skybox_3/Textures/2K_Resolution/Front_2K_TEX.png";
+
+        private static Material Lens()
+        {
+            var m = Glass("M_TelescopeLens", new Color(0.05f, 0.07f, 0.14f, 0.72f), new Color(0.75f, 0.72f, 0.9f));
+            m.SetTexture("_EmissionMap", AssetDatabase.LoadAssetAtPath<Texture2D>(LensSkyTexture));
+            m.SetFloat("_Metallic", 0.3f);
+            m.SetFloat("_Smoothness", 0.97f);
+            m.SetFloat("_EnvironmentReflections", 1f);
+            m.SetFloat("_SpecularHighlights", 1f);
             EditorUtility.SetDirty(m);
             return m;
         }

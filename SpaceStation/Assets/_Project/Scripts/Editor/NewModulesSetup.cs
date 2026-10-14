@@ -89,8 +89,9 @@ namespace SpaceStation.Editor
             var paths = new List<string>();
             foreach (var def in Defs)
             {
-                var mat = Material(def);
-                var prefab = Prefab(def, mat);
+                // 12-5 ②: 제작 모델(SM_{Id}.fbx)이 붙은 프리팹은 그레이박스로 덮어쓰지 않음
+                var existing = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/PF_{def.Id}.prefab");
+                var prefab = existing != null && HasModel(def) ? existing : Prefab(def, Material(def));
                 paths.Add(AssetDatabase.GetAssetPath(Module(def, prefab)));
             }
             AssetDatabase.SaveAssets();
@@ -136,6 +137,60 @@ namespace SpaceStation.Editor
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log($"[NewModulesSetup] 새 기본 모듈 {Defs.Length}종 · 해금 · 건설 목록 연결 완료");
+        }
+
+        private const string ModelRoot = "Assets/_Project/Art/Models/Modules/";
+        private static bool HasModel(Def def) => AssetImporter.GetAtPath($"{ModelRoot}SM_{def.Id}.fbx") != null;
+
+        /// <summary>
+        /// 12-5 ② 외형 모델 반영: SM_{Id}.fbx가 있는 모듈마다 강조 재질(M_Accent_{Id}, 그레이박스 색) → 그레이박스 상자 걷기 → StationArtBuilder 조립.
+        /// </summary>
+        [MenuItem("SpaceStation/Modules/Apply New Basic Models")]
+        public static void ApplyModels()
+        {
+            var done = new List<string>();
+            foreach (var def in Defs)
+            {
+                if (!HasModel(def))
+                    continue;
+                string accentPath = $"Assets/_Project/Art/Materials/M_Accent_{def.Id}.mat";
+                var accent = AssetDatabase.LoadAssetAtPath<Material>(accentPath);
+                if (accent == null)
+                {
+                    accent = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                    ColorUtility.TryParseHtmlString(def.Color, out var c);
+                    accent.SetColor("_BaseColor", c);
+                    AssetDatabase.CreateAsset(accent, accentPath);
+                }
+                StripGreybox($"{PrefabDir}/PF_{def.Id}.prefab");
+                StationArtBuilder.RebuildModule(def.Id);
+                done.Add(def.Name);
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[NewModulesSetup] 모델 반영 {done.Count}종: {string.Join(", ", done)}");
+        }
+
+        /// <summary>그레이박스 상자(Visual/Model)와 칸별 여분 콜라이더를 지움 — 조립기가 Visual 콜라이더 하나를 모듈 전체 크기로 맞춘다.</summary>
+        private static void StripGreybox(string path)
+        {
+            var root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                var visual = root.transform.Find("Visual");
+                if (visual == null)
+                    return;
+                var model = visual.Find("Model");
+                if (model != null)
+                    Object.DestroyImmediate(model.gameObject);
+                var boxes = visual.GetComponents<BoxCollider>();
+                for (int i = 1; i < boxes.Length; i++)
+                    Object.DestroyImmediate(boxes[i]);
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         private static Material Material(Def def)
