@@ -78,6 +78,18 @@ namespace SpaceStation.Simulation
         public int AutoRebuildCount { get; internal set; }
         /// <summary>마지막 자동 검사에서 보호선 때문에 미룬 모듈이 있었는지.</summary>
         public bool WaitingForReserve { get; private set; }
+        /// <summary>보호선 때문에 미뤘을 때 막은 자원 (대기 중이 아니면 의미 없음).</summary>
+        public ResourceType WaitingResource { get; private set; }
+        /// <summary>그 자원이 이만큼 더 모이면 가장 급한 모듈을 처리할 수 있음 (남겨 둘 양 + 비용 − 지금 재고).</summary>
+        public float WaitingShortfall { get; private set; }
+        /// <summary>보호선 때문에 기다리기 시작함 (자원, 더 필요한 양). 대기가 풀렸다가 다시 시작될 때만 — 상태 줄 알림 1회용.</summary>
+        public event Action<ResourceType, float> ReserveWaitStarted;
+
+        /// <summary>자동 정비 · 재건축이 남겨 두는 양 (저장 한도 × 보호 비율, 개수).</summary>
+        public float ReserveLine(ResourceType type) => _sim.Resources.GetCapacity(type) * _reserveRatio;
+
+        /// <summary>자동 정비 · 재건축이 켜져 있어 보호선이 의미 있는지 (연구 완료 + 하나라도 켜짐 + 보호선 &gt; 0).</summary>
+        public bool ReserveActive => Unlocked && (AutoMaintain || AutoRebuild) && _reserveRatio > 0f;
 
         /// <summary>지금 기준값 미만인 모듈과 처리 방법 (UI 미리보기·일괄 정비).</summary>
         public IReadOnlyList<Job> Plan()
@@ -141,6 +153,7 @@ namespace SpaceStation.Simulation
             _timer = 0f;
 
             int maintained = 0, rebuilt = 0;
+            bool wasWaiting = WaitingForReserve;
             WaitingForReserve = false;
             foreach (var job in new List<Job>(Plan()))
             {
@@ -149,6 +162,8 @@ namespace SpaceStation.Simulation
                 if (!KeepsReserve(CostOf(job)))
                 {
                     WaitingForReserve = true;
+                    if (!wasWaiting)
+                        ReserveWaitStarted?.Invoke(WaitingResource, WaitingShortfall);
                     break; // 가장 급한 모듈부터 자원을 모은다
                 }
                 if (Execute(job))
@@ -192,7 +207,7 @@ namespace SpaceStation.Simulation
             return true;
         }
 
-        /// <summary>비용을 낸 뒤에도 각 자원이 저장 한도 × 보호 비율 이상 남는지.</summary>
+        /// <summary>비용을 낸 뒤에도 각 자원이 저장 한도 × 보호 비율 이상 남는지. 아니면 막은 자원 · 모자란 양을 기록.</summary>
         private bool KeepsReserve(IReadOnlyList<ResourceAmount> cost)
         {
             Array.Clear(_required, 0, _required.Length);
@@ -205,9 +220,18 @@ namespace SpaceStation.Simulation
                     continue;
                 var type = (ResourceType)i;
                 if (!ResourceSimulation.IsStock(type))
+                {
+                    WaitingResource = type;
+                    WaitingShortfall = 0f;
                     return false;
-                if (res.GetStock(type) - _required[i] < res.GetCapacity(type) * _reserveRatio)
+                }
+                float line = res.GetCapacity(type) * _reserveRatio;
+                if (res.GetStock(type) - _required[i] < line)
+                {
+                    WaitingResource = type;
+                    WaitingShortfall = Math.Max(0f, line + _required[i] - res.GetStock(type));
                     return false;
+                }
             }
             return true;
         }

@@ -104,6 +104,9 @@ namespace SpaceStation.UI
             Stepper(ui, _auto, new Vector2(pw - 108f, -112f), () => auto.Threshold -= 5f, () => auto.Threshold += 5f);
             _reserve = ui.Label(_auto, "", 14f, TextAlignmentOptions.MidlineLeft);
             HoloUi.Place(_reserve.rectTransform, new Vector2(16f, -154f), new Vector2(pw - 140f, 34f));
+            _reserve.enableAutoSizing = true; // 자원별 개수가 붙어 길어질 수 있음
+            _reserve.fontSizeMin = 10f;
+            _reserve.fontSizeMax = 14f;
             Stepper(ui, _auto, new Vector2(pw - 108f, -154f), () => auto.ReserveRatio -= 0.1f, () => auto.ReserveRatio += 0.1f);
             _autoStatus = ui.Label(_auto, "", 13f, TextAlignmentOptions.TopLeft, wrap: true);
             HoloUi.Place(_autoStatus.rectTransform, new Vector2(16f, -196f), new Vector2(pw - 32f, 70f));
@@ -364,8 +367,8 @@ namespace SpaceStation.UI
             _autoMaintain.GetComponentInChildren<TMP_Text>().SetText($"자동 정비  {OnOff(auto.AutoMaintain)}");
             _autoRebuild.GetComponentInChildren<TMP_Text>().SetText($"자동 재건축  {OnOff(auto.AutoRebuild)}");
             _threshold.SetText($"정비 기준 최대치 <b>{auto.Threshold:0}%</b>"); // 12-0: 최대 내구도 대비 %
-            _reserve.SetText($"자원 보호선 <b>{auto.ReserveRatio * 100f:0}%</b>");
             var jobs = auto.Plan();
+            _reserve.SetText(ReserveText(auto, jobs));
             int rebuilds = 0;
             foreach (var job in jobs)
                 if (job.Rebuild)
@@ -374,10 +377,44 @@ namespace SpaceStation.UI
             sb.Append(jobs.Count == 0 ? $"<color={HudText.Muted}>기준 미만 모듈 없음</color>"
                 : $"대상 {jobs.Count}개{(rebuilds > 0 ? $" (재건축 {rebuilds})" : "")}  {HudText.Cost(auto.TotalCost(jobs))}");
             if (auto.WaitingForReserve)
-                sb.Append($"  <color={HudText.Orange}>· 보호선 아래라 대기 중</color>");
-            sb.Append($"\n<color={HudText.Muted}>자동 처리: 정비 {auto.AutoMaintainCount}회 · 재건축 {auto.AutoRebuildCount}회 · 파손 모듈은 수리가 우선 · 일괄 정비는 보호선을 무시</color>");
+                sb.Append($"\n<color={HudText.Orange}>대기 중: {WaitText(auto)}</color>");
+            sb.Append($"\n<color={HudText.Muted}>자동 처리: 정비 {auto.AutoMaintainCount}회 · 재건축 {auto.AutoRebuildCount}회 · 파손 모듈은 수리가 우선 · 일괄 정비는 남겨 둘 양을 무시</color>");
             _autoStatus.SetText(sb.ToString());
             _batch.interactable = jobs.Count > 0;
+        }
+
+        /// <summary>
+        /// 자원 보호선을 개수로 (사용자 피드백 2026-10-15: "%"만으로는 정비가 왜 안 되는지 알기 어려움).
+        /// 예: "자원 보호선 40% · 금속 80개 이상은 남김 (지금 45)" — 금속과 지금 정비 비용에 드는 자원.
+        /// </summary>
+        private string ReserveText(MaintenanceAutomation auto, IReadOnlyList<MaintenanceAutomation.Job> jobs)
+        {
+            var sb = new StringBuilder($"자원 보호선 <b>{auto.ReserveRatio * 100f:0}%</b>");
+            if (auto.ReserveRatio <= 0f)
+                return sb.Append($"  <color={HudText.Muted}>· 남기지 않고 바로 정비</color>").ToString();
+            var types = new List<ResourceType> { ResourceType.Metal };
+            foreach (var a in auto.TotalCost(jobs))
+                if (ResourceSimulation.IsStock(a.Type) && !types.Contains(a.Type))
+                    types.Add(a.Type);
+            var res = _sim.Resources;
+            for (int i = 0; i < types.Count; i++)
+            {
+                var t = types[i];
+                float line = auto.ReserveLine(t), stock = res.GetStock(t);
+                string color = stock < line ? HudText.Orange : HudText.Muted;
+                sb.Append(i == 0 ? "  · " : " · ").Append($"<color={color}>{HudText.ResourceName(t)} {line:0}개 이상 남김 (지금 {stock:0})</color>");
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>대기 사유: "금속을 80개 남겨 두느라 멈춤 · 35 더 모이면 정비 (보호선을 낮추면 바로)".</summary>
+        public static string WaitText(MaintenanceAutomation auto)
+        {
+            var t = auto.WaitingResource;
+            string name = HudText.ResourceName(t);
+            if (!ResourceSimulation.IsStock(t))
+                return $"{name}{SpaceStation.Interior.ResidentRequestRules.Particle(name, "이", "가")} 모자라 멈춤";
+            return $"{name}{SpaceStation.Interior.ResidentRequestRules.Particle(name, "을", "를")} {auto.ReserveLine(t):0}개 남겨 두느라 멈춤 · {Mathf.Ceil(auto.WaitingShortfall):0} 더 모이면 정비 (보호선을 낮추면 바로)";
         }
 
         private static string OnOff(bool on) => on ? $"<color={HudTheme.GreenHex}>켜짐</color>" : $"<color={HudText.Muted}>꺼짐</color>";
