@@ -220,10 +220,22 @@ namespace SpaceStation.Editor
             var vso = new SerializedObject(view);
             vso.FindProperty("_station").objectReferenceValue = Object.FindFirstObjectByType<StationController>();
             vso.FindProperty("_material").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/M_DefenseRange.mat");
-            vso.FindProperty("_font").objectReferenceValue = new SerializedObject(research).FindProperty("_font").objectReferenceValue;
+            var rso = new SerializedObject(research);
             vso.FindProperty("_camera").objectReferenceValue = Camera.main;
+            // 라벨 = 창과 같은 스타일 (사용자 피드백 2026-10-14) — 열 표기 · 파손 표기 둘 다
+            foreach (var f in new[] { "_font", "_fillSprite", "_frameSprite", "_holoArt" })
+                vso.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
             vso.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(view);
+            var markers = Object.FindFirstObjectByType<SpaceStation.UI.DamageMarkers>(FindObjectsInactive.Include);
+            if (markers != null)
+            {
+                var mso = new SerializedObject(markers);
+                foreach (var f in new[] { "_font", "_fillSprite", "_frameSprite", "_holoArt" })
+                    mso.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
+                mso.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(markers);
+            }
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("[GradeRulesSetup] 열 관리: 발열 3종 · 방열판 · 대륙급 해금 · 열 지도 연결 완료");
