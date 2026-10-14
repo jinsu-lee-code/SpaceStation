@@ -107,21 +107,55 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>
-        /// 12-5 망원경 렌즈 (사용자 요청 2026-10-14): 반투명한 어두운 유리 + 아주 매끈하게(태양 반짝임 · 환경 반사).
-        /// 환경 반사(128)만으로는 별이 뭉개져 파란 원판처럼 보였음 → 스카이박스 정면(은하) 그림을 렌즈 UV에 은은한 발광으로 비춤.
+        /// 12-5 망원경 렌즈 (사용자 요청 2026-10-14): 반투명한 어두운 유리에 우주 배경이 비침 (SpaceStation/SkyLens).
+        /// 환경 반사(128)는 별이 뭉개졌고, 은하 그림 고정은 각도와 무관했음 → 우주 배경을 512 큐브맵으로 구워 반사 방향으로 읽음.
         /// </summary>
-        private const string LensSkyTexture = "Assets/SpaceSkies Free/Skybox_3/Textures/2K_Resolution/Front_2K_TEX.png";
+        private const string SkyCubePath = "Assets/_Project/Art/Textures/T_SkyReflection.cubemap";
 
         private static Material Lens()
         {
-            var m = Glass("M_TelescopeLens", new Color(0.05f, 0.07f, 0.14f, 0.72f), new Color(0.75f, 0.72f, 0.9f));
-            m.SetTexture("_EmissionMap", AssetDatabase.LoadAssetAtPath<Texture2D>(LensSkyTexture));
-            m.SetFloat("_Metallic", 0.3f);
-            m.SetFloat("_Smoothness", 0.97f);
-            m.SetFloat("_EnvironmentReflections", 1f);
-            m.SetFloat("_SpecularHighlights", 1f);
+            var m = Load("M_TelescopeLens", Shader.Find("SpaceStation/SkyLens"));
+            m.SetColor("_BaseColor", Color.white);
+            m.SetColor("_GlassColor", new Color(0.04f, 0.06f, 0.13f, 0.72f));
+            m.SetTexture("_SkyCube", SkyCube());
+            m.SetFloat("_SkyStrength", 1.6f);
+            m.SetFloat("_FresnelPower", 3f);
+            m.SetFloat("_SpecPower", 160f);
+            m.SetFloat("_SpecStrength", 1.5f);
+            m.renderQueue = (int)RenderQueue.Transparent;
+            m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             return m;
+        }
+
+        /// <summary>현재 씬 스카이박스를 512 큐브맵 에셋으로 굽는다 (없을 때만 · 스카이박스를 바꾸면 에셋을 지우고 다시).</summary>
+        public static Cubemap SkyCube()
+        {
+            var cube = AssetDatabase.LoadAssetAtPath<Cubemap>(SkyCubePath);
+            if (cube != null)
+                return cube;
+            if (RenderSettings.skybox == null)
+            {
+                Debug.LogWarning("[ModuleFxMaterials] 스카이박스가 없어 렌즈 큐브맵을 굽지 못함 (게임 씬을 열고 다시)");
+                return null;
+            }
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(SkyCubePath));
+            var go = new GameObject("_SkyCubeCam") { hideFlags = HideFlags.HideAndDontSave };
+            try
+            {
+                var cam = go.AddComponent<Camera>();
+                cam.cullingMask = 0; // 하늘만
+                cam.clearFlags = CameraClearFlags.Skybox;
+                cube = new Cubemap(512, TextureFormat.RGBA32, true);
+                cam.RenderToCubemap(cube);
+                cube.Apply(true);
+                AssetDatabase.CreateAsset(cube, SkyCubePath);
+                return cube;
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
         }
 
         /// <summary>
