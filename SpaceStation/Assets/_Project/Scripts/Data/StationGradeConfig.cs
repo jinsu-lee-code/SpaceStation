@@ -16,7 +16,7 @@ namespace SpaceStation.Data
 
     /// <summary>정거장 등급 하나 (GDD 12-3).</summary>
     [Serializable]
-    public sealed class StationGrade
+    public sealed class StationGrade : IEventScale
     {
         [SerializeField] private string _displayName = "Grade";
         [Tooltip("12-1: 처음 도달했을 때 ★ 알림 / 누적 결과 화면")]

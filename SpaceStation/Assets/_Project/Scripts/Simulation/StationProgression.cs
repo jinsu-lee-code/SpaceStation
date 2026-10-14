@@ -9,9 +9,22 @@ namespace SpaceStation.Simulation
     /// 해금: 현재 등급 이하 등급들의 해금 목록에 있는 모듈만 건설 가능.
     /// 개수 제한: 제한 모듈(채굴 도킹)은 현재 등급의 최대 수까지만 추가 건설 가능 (초과분은 유지).
     /// </summary>
+    /// <summary>13-1: 등급 대신 모듈 해금을 정하는 쪽 (장 틀).</summary>
+    public interface IModuleUnlocks
+    {
+        bool IsUnlocked(ModuleData data);
+        /// <summary>처음 열리는 단계 (장 인덱스, 없으면 -1).</summary>
+        int UnlockStage(ModuleData data);
+        /// <summary>세이브 · 전시용: 이름으로 모듈 정의 찾기 (없으면 null).</summary>
+        ModuleData Find(string assetName);
+    }
+
     public sealed class StationProgression
     {
         private readonly StationGradeConfig _config;
+
+        /// <summary>13-1: 장 틀이 있으면 해금은 이것이 정함 (null = 등급 해금 목록).</summary>
+        public IModuleUnlocks UnlockSource { get; internal set; }
 
         /// <summary>(이전 등급 인덱스, 새 등급 인덱스).</summary>
         public event Action<int, int> GradeChanged;
@@ -87,7 +100,7 @@ namespace SpaceStation.Simulation
                 foreach (var m in g.Unlocks)
                     if (m != null && m.name == assetName)
                         return m;
-            return null;
+            return UnlockSource?.Find(assetName);
         }
 
         /// <summary>조건을 만족하는 가장 높은 등급 (첫 등급은 조건과 무관하게 항상 만족).</summary>
@@ -153,6 +166,8 @@ namespace SpaceStation.Simulation
         {
             if (data != null && data.ComingSoon)
                 return false; // 12-5 준비 중 (기능이 연결되는 작업 전)
+            if (UnlockSource != null)
+                return UnlockSource.IsUnlocked(data); // 13-1 장 틀
             int grade = GetUnlockGrade(data);
             return grade >= 0 && grade <= GradeIndex;
         }

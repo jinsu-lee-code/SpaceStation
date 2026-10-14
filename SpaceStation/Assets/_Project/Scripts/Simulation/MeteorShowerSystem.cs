@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SpaceStation.Core;
+using SpaceStation.Data;
 using UnityEngine;
 
 namespace SpaceStation.Simulation
@@ -108,8 +109,8 @@ namespace SpaceStation.Simulation
             switch (Phase)
             {
                 case ShowerPhase.Idle:
-                    if (Sim.Events.Held || Sim.Progression.GradeIndex < Sim.Balance.ShowerMinGrade)
-                        return; // 튜토리얼 · 도시급 전에는 시계가 멈춤
+                    if (Sim.Events.Held || !Sim.RuleOpen(StationRule.MeteorShower, Sim.Progression.GradeIndex >= Sim.Balance.ShowerMinGrade))
+                        return; // 튜토리얼 · 도시급(13-1 장 틀이면 그 규칙을 연 장) 전에는 시계가 멈춤
                     if (!_armed)
                     {
                         _armed = true;
@@ -147,7 +148,7 @@ namespace SpaceStation.Simulation
         public void BeginWarning(float warningSeconds)
         {
             Direction = Directions[Math.Min(Directions.Length - 1, (int)(_random01() * Directions.Length))];
-            var grade = Sim.Progression.Current;
+            var grade = Sim.EventScale; // 13-1 장 틀이 있으면 장
             int span = grade.MeteorHitsMax - grade.MeteorHitsMin + 1;
             int hits = grade.MeteorHitsMin + Math.Min(span - 1, (int)(_random01() * span));
             HitsPerWave = Math.Max(1, (int)Math.Ceiling(hits * Sim.Balance.ShowerHitsMultiplier / Sim.Balance.ShowerWaves));

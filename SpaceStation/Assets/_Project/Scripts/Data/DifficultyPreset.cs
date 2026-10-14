@@ -25,6 +25,8 @@ namespace SpaceStation.Data
         [SerializeField] private float _coreCollapseSeconds = -1f;
         [Tooltip("등급별 이벤트 간격 배율 (등급 순서, 음수 = 기본값 유지, 비우면 모두 유지)")]
         [SerializeField] private List<float> _eventIntervalMultipliers = new List<float>();
+        [Tooltip("13-1 장별 이벤트 간격 배율 (장 순서, 음수 = 장 값 유지, 비우면 모두 유지) — 장 틀이 있으면 등급별 값 대신 이것")]
+        [SerializeField] private List<float> _chapterEventIntervalMultipliers = new List<float>();
 
         public string DisplayName => _displayName;
         public string Description => _description;
@@ -53,6 +55,17 @@ namespace SpaceStation.Data
             var copy = Instantiate(source);
             copy.name = $"{source.name} ({name})";
             copy.ApplyEventIntervals(_eventIntervalMultipliers);
+            return copy;
+        }
+
+        /// <summary>13-1: 이 프리셋을 적용한 장 목록 복사본 (장 에셋은 공유).</summary>
+        public ChapterConfig ApplyTo(ChapterConfig source)
+        {
+            if (source == null)
+                return null;
+            var copy = Instantiate(source);
+            copy.name = $"{source.name} ({name})";
+            copy.ApplyEventIntervals(_chapterEventIntervalMultipliers);
             return copy;
         }
     }

@@ -489,7 +489,7 @@ namespace SpaceStation.Editor.Balance
         private int DesiredRepairSlots()
         {
             var b = _sim.Balance;
-            float hits = _sim.Progression.Current.MeteorHitsMax;
+            float hits = _sim.EventScale.MeteorHitsMax;
             int desired = Mathf.CeilToInt(hits * _sim.Effects.RepairDuration / (b.DestroyAfterSeconds * 0.75f));
             if (_sim.Damage.Queue.Count > 0)
                 desired = Mathf.Max(desired, _sim.CountRepairSlots() + 1); // 지금 대기가 생겼으면 하나 더

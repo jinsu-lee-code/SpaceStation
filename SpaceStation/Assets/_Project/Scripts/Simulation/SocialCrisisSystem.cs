@@ -67,7 +67,7 @@ namespace SpaceStation.Simulation
                 case CrisisPhase.Calm:
                     if (_cooldown > 0f)
                         _cooldown = Math.Max(0f, _cooldown - dt);
-                    if (_cooldown > 0f || Sim.Events.Held || Sim.Progression.GradeIndex < _config.CrisisMinGrade || satisfaction >= Threshold)
+                    if (_cooldown > 0f || Sim.Events.Held || !Sim.RuleOpen(StationRule.SocialCrisis, Sim.Progression.GradeIndex >= _config.CrisisMinGrade) || satisfaction >= Threshold)
                     {
                         _brew = 0f;
                         return;

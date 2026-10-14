@@ -67,7 +67,7 @@ namespace SpaceStation.Simulation
 
         private int RollHits()
         {
-            var grade = _sim.Progression.Current;
+            var grade = _sim.EventScale; // 13-1 장 틀이 있으면 장
             int span = grade.MeteorHitsMax - grade.MeteorHitsMin + 1;
             return grade.MeteorHitsMin + Math.Min(span - 1, (int)(_random01() * span));
         }

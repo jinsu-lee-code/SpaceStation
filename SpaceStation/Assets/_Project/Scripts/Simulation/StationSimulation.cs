@@ -34,6 +34,8 @@ namespace SpaceStation.Simulation
         public ContactConfig Contact;
         /// <summary>12-4 연구 확장 (레시피 그림자 · 해금 연구 · 연계 연구). null이면 없음 = 레시피는 자동 해금만 (12-3과 같음).</summary>
         public ResearchExpansionConfig ResearchExpansion;
+        /// <summary>13-1 장 틀 (null · 비면 없음 = 등급이 해금 · 요구 · 이벤트 규모 · 규칙을 정하는 이전 방식).</summary>
+        public ChapterConfig Chapters;
     }
 
     /// <summary>
@@ -128,8 +130,17 @@ namespace SpaceStation.Simulation
         public IReadOnlyList<GameEventData> EventPool => _eventPool;
         /// <summary>시뮬레이션 경과 시간(초).</summary>
         public float ElapsedSeconds { get; private set; }
-        /// <summary>현재 등급의 이벤트 강도 배율.</summary>
-        public float EventIntensity => Progression.Current.EventIntensityMultiplier;
+        /// <summary>현재 이벤트 강도 배율 (장 틀이 있으면 장, 없으면 등급).</summary>
+        public float EventIntensity => EventScale.EventIntensityMultiplier;
+
+        /// <summary>13-1 이벤트 규모: 장 틀이 있으면 지금 장, 없으면 현재 등급.</summary>
+        public IEventScale EventScale => Chapters != null ? (IEventScale)Chapters : Progression.Current;
+
+        /// <summary>13-1 장 틀 (설정에 없으면 null).</summary>
+        public ChapterSystem Chapters { get; }
+
+        /// <summary>13-1: 규칙이 열렸는지 — 장 틀이 있으면 장 규칙, 없으면 기존 등급 조건(byGrade).</summary>
+        public bool RuleOpen(StationRule rule, bool byGrade) => Chapters != null ? Chapters.Allows(rule) : byGrade;
 
         /// <summary>12-0b 틱 단계 (순서대로). 새 시스템은 <see cref="AddSystem"/>의 tickAfter로 이 이름들 사이에 끼운다.</summary>
         public IReadOnlyList<TickStep> TickSteps => _tickSteps;
@@ -200,7 +211,7 @@ namespace SpaceStation.Simulation
             Automation = new MaintenanceAutomation(this);
 
             // 4-1: 등급별 이벤트 빈도·강도 (새 간격을 정할 때 / 지속형 이벤트가 시작될 때의 등급 기준)
-            Events.IntervalMultiplier = () => Progression.Current.EventIntervalMultiplier;
+            Events.IntervalMultiplier = () => EventScale.EventIntervalMultiplier;
             Events.DurationProvider = data => data.Duration * EventIntensity;
             // Phase 6 방어 연구: 바깥에서 오는 위협(운석·태양 폭풍)만 조기 경보
             Events.WarningFilter = data => data is MeteorEventData || data is SolarStormEventData;
@@ -251,6 +262,11 @@ namespace SpaceStation.Simulation
                 ApplyResidentEffects();
             }
             BuildTickSteps();
+            if (settings.Chapters != null && settings.Chapters.Count > 0)
+            {
+                Chapters = AddSystem(new ChapterSystem(settings.Chapters), TickStepNames.Progression); // 등급 판정 바로 뒤
+                Progression.UnlockSource = Chapters;
+            }
             if (settings.Recipes != null)
                 Synthesis = AddSystem(new SynthesisSystem(settings.Recipes), TickStepNames.Automation); // 요구 · 인구 계산 전에 교체가 끝나게
             MeteorShower = AddSystem(new MeteorShowerSystem(settings.HazardRandom01), TickStepNames.Events); // 도시급 전에는 아무것도 안 함 (기존 결과 그대로)

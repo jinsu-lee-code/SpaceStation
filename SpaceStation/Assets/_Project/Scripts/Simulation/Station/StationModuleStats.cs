@@ -37,7 +37,9 @@ namespace SpaceStation.Simulation
         {
             var progression = _sim.Progression;
             _activeNeeds.Clear();
-            for (int i = 0; i <= progression.GradeIndex; i++)
+            if (_sim.Chapters != null)
+                _sim.Chapters.CollectNeeds(_activeNeeds); // 13-1 장 틀: 지금 장까지 누적
+            for (int i = 0; _sim.Chapters == null && i <= progression.GradeIndex; i++)
             {
                 foreach (var need in progression.GetGrade(i).NewNeeds)
                 {
