@@ -64,10 +64,10 @@ namespace SpaceStation.Editor
             var reqs = new List<ResearchLevelCapConfig.Requirement>();
             for (int l = 1; l <= 4; l++)
                 reqs.Add(caps.Get(l));
-            reqs.Add(new ResearchLevelCapConfig.Requirement { Grade = 5, MinPopulation = 180 });
-            reqs.Add(new ResearchLevelCapConfig.Requirement { Grade = 6, MinPopulation = 270 });
-            reqs.Add(new ResearchLevelCapConfig.Requirement { Grade = 7, MinPopulation = 400 });
-            reqs.Add(new ResearchLevelCapConfig.Requirement { Grade = 8, MinPopulation = 600 });
+            reqs.Add(new ResearchLevelCapConfig.Requirement { Grade = 4, MinPopulation = 180 });
+            reqs.Add(new ResearchLevelCapConfig.Requirement { Grade = 5, MinPopulation = 270 });
+            reqs.Add(new ResearchLevelCapConfig.Requirement { Grade = 6, MinPopulation = 400 });
+            reqs.Add(new ResearchLevelCapConfig.Requirement { Grade = 7, MinPopulation = 600 });
             caps.EditorSet(reqs);
             EditorUtility.SetDirty(caps);
 

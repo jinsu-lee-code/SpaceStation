@@ -23,7 +23,7 @@ namespace SpaceStation.Editor
         private const string PrefabDir = "Assets/_Project/Prefabs/Modules/Evolved";
         private const string MaterialDir = "Assets/_Project/Art/Materials/Evolved";
         private const string GameScene = "Assets/_Project/Scenes/Main.unity";
-        private const int CityGrade = 5; // 도시급 = 1단계 진화
+        private const int CityGrade = 4; // 도시급 (13-0 7단계) = 1단계 진화
 
         private sealed class Def
         {
@@ -124,7 +124,7 @@ namespace SpaceStation.Editor
             {
                 Id = "DeepSpaceComm", Name = "심우주 통신기지", RecipeName = "심우주 통신기지", Category = ModuleCategory.Defense, Color = "#8FE3FF",
                 Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(2, 0, 0) },
-                Ingredients = new[] { ("MD_CommRelay", 3) }, SynthesisMetal = 150f, Duration = 60f, UnlockGrade = 8, Research = ResearchCategory.Defense, Stage = 4,
+                Ingredients = new[] { ("MD_CommRelay", 3) }, SynthesisMetal = 150f, Duration = 60f, UnlockGrade = 7, Research = ResearchCategory.Defense, Stage = 4,
                 Rationale = "안테나를 한 배열로 묶어 깊은 우주의 약한 신호까지 잡는다 · 중계소 셋보다 높은 계급까지 해독",
                 Stats = so =>
                 {

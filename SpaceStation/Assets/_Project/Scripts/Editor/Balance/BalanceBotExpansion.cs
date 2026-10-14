@@ -19,7 +19,7 @@ namespace SpaceStation.Editor.Balance
     {
         /// <summary>12-4: 연구 확장 · 합성을 하는지 (비교 측정용, 기본 true).</summary>
         public static bool UseExpansion = true;
-        private const int ExpansionMinGrade = 5;
+        private const int ExpansionMinGrade = 4; // 도시급 (13-0 7단계)
         private const float SynthesisMetalRatio = 0.6f;
         private const float PieceMetalRatio = 0.3f;
 

@@ -41,8 +41,8 @@ namespace SpaceStation.Data
     public sealed class ContactConfig : ScriptableObject
     {
         [Header("방문")]
-        [Tooltip("이 등급부터 (8 = 지구급)")]
-        [SerializeField, Min(0)] private int _minGrade = 8;
+        [Tooltip("이 등급부터 (7 = 지구급)")]
+        [SerializeField, Min(0)] private int _minGrade = 7;
         [Tooltip("방문 사이 간격 최소 · 최대 (게임 초). 첫 방문도 등급 도달 뒤 이 간격")]
         [SerializeField] private Vector2 _interval = new Vector2(240f, 360f);
         [Tooltip("접근 예보 → 도착까지 (초). 이 동안 신호 해독")]

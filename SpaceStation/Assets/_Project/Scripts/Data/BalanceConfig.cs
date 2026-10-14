@@ -201,8 +201,8 @@ namespace SpaceStation.Data
         [SerializeField, Range(0f, 1f)] private float _moveCostRate = 0.2f;
 
         [Header("Meteor Shower (BALANCE 34번, 12-3c 도시급 핵심 규칙)")]
-        [Tooltip("유성우가 시작되는 등급 번호 (0 = 초소형, 5 = 도시급)")]
-        [SerializeField, Min(0)] private int _showerMinGrade = 5;
+        [Tooltip("유성우가 시작되는 등급 번호 (0 = 등급 없음(시작), 4 = 도시급 — 13-0 7단계)")]
+        [SerializeField, Min(0)] private int _showerMinGrade = 4;
         [Tooltip("유성우 사이 간격 최소 · 최대 (게임 초). 첫 유성우도 등급 도달 뒤 이 간격")]
         [SerializeField, Min(1f)] private float _showerIntervalMin = 420f;
         [SerializeField, Min(1f)] private float _showerIntervalMax = 600f;
@@ -216,8 +216,8 @@ namespace SpaceStation.Data
         [SerializeField, Min(0f)] private float _showerHitsMultiplier = 3f;
 
         [Header("Heat (BALANCE 36번, 12-3c 대륙급 핵심 규칙)")]
-        [Tooltip("열 관리가 시작되는 등급 번호 (7 = 대륙급)")]
-        [SerializeField, Min(0)] private int _heatMinGrade = 7;
+        [Tooltip("열 관리가 시작되는 등급 번호 (6 = 대륙급)")]
+        [SerializeField, Min(0)] private int _heatMinGrade = 6;
         [Tooltip("모듈 열 한도 — 넘으면 과열")]
         [SerializeField, Min(0.1f)] private float _heatLimit = 8f;
         [Tooltip("거리 1칸 · 2칸에서 받는 열 비율 (자기 칸 = 1, 그 너머 = 0)")]
