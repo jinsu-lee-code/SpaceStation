@@ -133,10 +133,13 @@ namespace SpaceStation.Data
         [SerializeField] private string _title;
         [TextArea(2, 4)]
         [SerializeField] private string _description;
+        [Tooltip("13-2: 이 방향을 고르면 코어 성격 축이 움직이는 양 (축 · 쪽 · 3단계 크기, 여러 개 가능)")]
+        [SerializeField] private List<AxisShift> _shifts = new List<AxisShift>();
 
         public string Id => _id;
         public string Title => _title;
         public string Description => _description;
+        public IReadOnlyList<AxisShift> Shifts => _shifts;
     }
 
     /// <summary>

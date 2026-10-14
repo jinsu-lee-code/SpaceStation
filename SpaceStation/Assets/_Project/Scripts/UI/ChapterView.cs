@@ -25,6 +25,8 @@ namespace SpaceStation.UI
         private const float ModalWidth = 900f;
         private const string Soft = "#C8D2DE";
         private const string Gold = "#FFD36A";
+        /// <summary>13-2 코어의 말 색 (로그 창과 같게).</summary>
+        public const string CoreTint = "#9FE8FF";
 
         [SerializeField] private StationController _station;
         [SerializeField] private SimulationClock _clock;
@@ -327,6 +329,8 @@ namespace SpaceStation.UI
             if (record != null && !string.IsNullOrEmpty(record.Summary))
                 _sb.Append($"  ·  {record.Summary}");
             _sb.Append($"\n<color={Soft}>이 장에 걸린 시간</color> {seconds / 60}분 {seconds % 60:00}초");
+            if (record != null && !string.IsNullOrEmpty(record.Monologue)) // 13-2 코어 독백 (지금 성향으로 고른 문장)
+                _sb.Append($"\n\n<color={CoreTint}><i>코어 · {record.Monologue}</i></color>");
             var choices = data.Choices;
             _sb.Append(choices.Count > 0
                 ? $"\n\n<color={Gold}>방주의 방향을 하나 고르세요</color>"
@@ -341,12 +345,30 @@ namespace SpaceStation.UI
                     int index = i;
                     var c = choices[i];
                     string label = string.IsNullOrEmpty(c.Description) ? $"<b>{c.Title}</b>" : $"<b>{c.Title}</b>\n<size=78%><color={Soft}>{c.Description}</color></size>";
+                    string lean = LeanText(c);
+                    if (lean.Length > 0) // 13-2: 코어가 어느 쪽으로 기우는지 말로 (숫자는 숨김)
+                        label += $"\n<size=70%><color={CoreTint}>코어: {lean}</color></size>";
                     AddButton(label, () => Choose(index), tall: true);
                 }
             }
             else
                 AddButton(_chapters.IsLast ? "이야기 마무리" : "다음 장으로", () => Choose(-1), tall: false);
             OpenModal();
+        }
+
+        /// <summary>선택지가 코어를 기울이는 쪽 ("보존 쪽 · 연민 쪽"). 크기 · 숫자는 보이지 않음.</summary>
+        private static string LeanText(ChapterChoice choice)
+        {
+            var parts = new System.Collections.Generic.List<string>();
+            foreach (var s in choice.Shifts)
+            {
+                if (s.Toward == CorePole.Neutral)
+                    continue;
+                string word = CoreConfig.PoleName(s.Axis, s.Toward) + " 쪽";
+                if (!parts.Contains(word))
+                    parts.Add(word);
+            }
+            return string.Join(" · ", parts);
         }
 
         private void Choose(int index)

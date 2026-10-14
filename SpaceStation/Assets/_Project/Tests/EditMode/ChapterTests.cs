@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using SpaceStation.Core;
 using SpaceStation.Data;
@@ -266,6 +267,101 @@ namespace SpaceStation.Tests
             Assert.IsFalse(sim.Chapters.GradeUpApplied, "새 장은 등급 목표 전부터");
             CollectionAssert.Contains(sim.ActiveNeeds, ResidentNeed.Medical, "지난 장 등급 목표의 요구는 다음 장에도 유지");
             Assert.AreEqual(2, sim.EventScale.MeteorHitsMin, "새 장 시작 규모");
+        }
+
+        // ---------------- 13-2 코어 성격 ----------------
+
+        private CoreConfig CoreCfg(params (string key, CorePole pole, CoreAxis axis, string text)[] lines)
+        {
+            var c = Create<CoreConfig>();
+            var so = new SerializedObject(c);
+            var list = so.FindProperty("_lines");
+            list.arraySize = lines.Length;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var e = list.GetArrayElementAtIndex(i);
+                e.FindPropertyRelative("Key").stringValue = lines[i].key;
+                e.FindPropertyRelative("Pole").enumValueIndex = (int)lines[i].pole;
+                e.FindPropertyRelative("Axis").enumValueIndex = (int)lines[i].axis;
+                e.FindPropertyRelative("Text").stringValue = lines[i].text;
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return c;
+        }
+
+        private CorePersonalitySystem AddCore(StationSimulation sim, CoreConfig config)
+            => sim.AddSystem(new CorePersonalitySystem(config), TickStepNames.Progression);
+
+        [Test]
+        public void Core_ShiftsBySize_Clamps_DescribesInWords_PicksLineByStrongestLean()
+        {
+            var cfg = CoreCfg(
+                ("hello", CorePole.Neutral, CoreAxis.Care, "기본 {0}"),
+                ("hello", CorePole.Second, CoreAxis.Care, "연민 {0}"),
+                ("hello", CorePole.First, CoreAxis.Control, "통제 {0}"));
+            var sim = Sim();
+            var core = AddCore(sim, cfg);
+            Assert.AreEqual("기본 1", core.Say("hello", "x", 1), "기울지 않으면 기본 문장");
+            Assert.AreEqual("없음", core.Say("missing", "없음"), "표에 없으면 기본값");
+            Assert.AreEqual("균형", core.Describe(CoreAxis.Care));
+
+            core.Apply(new[] { new AxisShift(CoreAxis.Care, CorePole.Second, ShiftSize.Medium) }, "시험"); // +10
+            Assert.AreEqual(10f, core.Value(CoreAxis.Care));
+            Assert.AreEqual(CorePole.Neutral, core.Lean(CoreAxis.Care), "문턱(15) 아래");
+            core.Apply(new[] { new AxisShift(CoreAxis.Care, CorePole.Second, ShiftSize.Large) }, "시험"); // +20 → 30
+            Assert.AreEqual("연민 쪽으로 조금", core.Describe(CoreAxis.Care));
+            Assert.AreEqual("연민 2", core.Say("hello", "x", 2));
+
+            core.Apply(new[] { new AxisShift(CoreAxis.Control, CorePole.First, ShiftSize.Large), new AxisShift(CoreAxis.Control, CorePole.First, ShiftSize.Large) }, "규칙");
+            Assert.AreEqual(-40f, core.Value(CoreAxis.Control));
+            Assert.AreEqual("통제 쪽으로 기울어짐", core.Describe(CoreAxis.Control));
+            Assert.AreEqual("통제 3", core.Say("hello", "x", 3), "더 강하게 기운 축의 문장이 우선");
+
+            for (int i = 0; i < 10; i++)
+                core.Apply(new[] { new AxisShift(CoreAxis.Scope, CorePole.Second, ShiftSize.Large) }, "확장");
+            Assert.AreEqual(100f, core.Value(CoreAxis.Scope), "최대 100");
+            Assert.AreEqual("확장에 깊이 기울어짐", core.Describe(CoreAxis.Scope));
+            Assert.AreEqual(14, core.Shifts.Count, "원인 기록");
+            Assert.AreEqual("규칙", core.Shifts[2].Cause);
+        }
+
+        [Test]
+        public void Core_ChapterChoiceShiftsAxes_LogsAndMonologue_SurvivesSave()
+        {
+            var ch1 = new SerializedObject(_chapters.Chapters[0]);
+            var shifts = ch1.FindProperty("_choices").GetArrayElementAtIndex(1).FindPropertyRelative("_shifts"); // 선택지 "b"
+            shifts.arraySize = 1;
+            shifts.GetArrayElementAtIndex(0).FindPropertyRelative("Axis").enumValueIndex = (int)CoreAxis.Scope;
+            shifts.GetArrayElementAtIndex(0).FindPropertyRelative("Toward").enumValueIndex = (int)CorePole.First;
+            shifts.GetArrayElementAtIndex(0).FindPropertyRelative("Size").enumValueIndex = (int)ShiftSize.Large;
+            ch1.ApplyModifiedPropertiesWithoutUndo();
+            var cfg = CoreCfg(
+                ("outcome.Hurt", CorePole.Neutral, CoreAxis.Care, "버텼다 · {0}"),
+                ("choice.b", CorePole.Neutral, CoreAxis.Care, "b를 골랐다"),
+                ("goal.done", CorePole.Neutral, CoreAxis.Care, "완료 {0}"));
+
+            var sim = Sim();
+            var core = AddCore(sim, cfg);
+            Place(sim, 2);
+            sim.Tick(1f);
+            Assert.IsTrue(core.Entries.Any(e => e.Text.StartsWith("완료 ")), "상태 줄 알림도 코어 문장 표로 (로그에 남음)");
+            Assert.IsTrue(core.Entries.Any(e => e.Text.StartsWith("절정 예고")), "표에 없는 계기는 기본 문장으로 로그");
+            sim.Chapters.StartClimaxNow();
+            RunUntil(sim, () => sim.Chapters.Phase != ChapterPhase.Climax);
+            Assert.AreEqual("버텼다 · 1장", sim.Chapters.LastRecord.Monologue, "절정 결과 독백");
+
+            Assert.IsTrue(sim.Chapters.Choose(1));
+            Assert.AreEqual(-20f, core.Value(CoreAxis.Scope), "방향 선택 → 보존 쪽 크게");
+            Assert.AreEqual("1장 방향: b", core.Shifts[0].Cause);
+            Assert.IsTrue(core.Entries.Any(e => e.Text == "b를 골랐다"));
+
+            var copy = Sim();
+            var copyCore = AddCore(copy, cfg);
+            StationStateSerializer.Restore(copy, JsonUtility.FromJson<StationState>(JsonUtility.ToJson(StationStateSerializer.Capture(sim))));
+            Assert.AreEqual(-20f, copyCore.Value(CoreAxis.Scope), "저장 · 복원");
+            Assert.AreEqual(core.Entries.Count, copyCore.Entries.Count);
+            Assert.AreEqual(core.Shifts.Count, copyCore.Shifts.Count);
+            Assert.AreEqual("버텼다 · 1장", copy.Chapters.Records[0].Monologue);
         }
 
         [Test]

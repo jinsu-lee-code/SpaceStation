@@ -48,6 +48,8 @@ namespace SpaceStation.Simulation
         [Header("Chapters (13-1)")]
         [Tooltip("장 틀 (메뉴 SpaceStation/Chapters/Setup Greybox가 채움). 비면 등급 방식 (해금 · 이벤트 규모를 등급이 정함)")]
         [SerializeField] private ChapterConfig _chapters;
+        [Tooltip("13-2 코어 성격 4축 · 문장 표 (메뉴 SpaceStation/Chapters/Setup Greybox가 채움). 비면 코어 성격 없음")]
+        [SerializeField] private CoreConfig _core;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -90,6 +92,9 @@ namespace SpaceStation.Simulation
                 ResearchExpansion = _researchExpansion,
                 Chapters = chapters,
             });
+            // 13-2 서사판 코어 성격 (공통 틀 시스템으로 위에 얹음 — 세이브 복원 전에 붙여야 상태가 돌아옴)
+            if (_core != null && gameObject.scene.name == SceneNames.Game)
+                Simulation.AddSystem(new CorePersonalitySystem(_core), TickStepNames.Progression);
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
             {

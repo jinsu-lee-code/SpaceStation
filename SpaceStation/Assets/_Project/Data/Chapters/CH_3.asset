@@ -73,9 +73,21 @@ MonoBehaviour:
   _choices:
   - _id: open
     _title: "\uBB38\uC744 \uC5F0\uB2E4"
-    _description: "\uC624\uB294 \uBB34\uB9AC\uB97C \uB418\uB3C4\uB85D \uBC1B\uC74C
-      (\uD6A8\uACFC\uB294 13-2 \uCF54\uC5B4 \uC131\uACA9)"
+    _description: "\uC624\uB294 \uBB34\uB9AC\uB97C \uB418\uB3C4\uB85D \uBC1B\uC74C"
+    _shifts:
+    - Axis: 0
+      Toward: 2
+      Size: 2
+    - Axis: 1
+      Toward: 2
+      Size: 0
   - _id: order
     _title: "\uC9C8\uC11C\uB97C \uC138\uC6B4\uB2E4"
-    _description: "\uBC1B\uAE30 \uC804\uC5D0 \uADDC\uCE59\uBD80\uD130 (\uD6A8\uACFC\uB294
-      13-2 \uCF54\uC5B4 \uC131\uACA9)"
+    _description: "\uBC1B\uAE30 \uC804\uC5D0 \uADDC\uCE59\uBD80\uD130"
+    _shifts:
+    - Axis: 1
+      Toward: 1
+      Size: 2
+    - Axis: 0
+      Toward: 1
+      Size: 0

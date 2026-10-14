@@ -32,6 +32,8 @@ namespace SpaceStation.Simulation
         public string Choice;
         /// <summary>이 장에 걸린 시간 (게임 초).</summary>
         public float Seconds;
+        /// <summary>13-2: 절정이 끝났을 때 코어의 독백 (그때 성향으로 고른 문장, 없으면 빈 값).</summary>
+        public string Monologue;
     }
 
     /// <summary>
@@ -297,10 +299,32 @@ namespace SpaceStation.Simulation
                 if (goals[i].Optional)
                     GiveReward(goals[i]);
                 string reward = goals[i].Optional && goals[i].HasReward ? $" · 보상 {RewardText(goals[i])}" : "";
-                Sim.Report($"장 목표 완료: {GoalText(i)}{reward}", true);
+                Sim.Report(CoreSay("goal.done", "장 목표 완료: {0}{1}", GoalText(i), reward), true);
                 if (goals[i].Kind == ChapterGoalKind.ReachGrade)
                     ApplyGradeUp();
                 GoalCompleted?.Invoke(i);
+            }
+        }
+
+        /// <summary>13-2 코어 성격 (붙어 있지 않으면 null — 시험 · 봇).</summary>
+        public CorePersonalitySystem Core => Sim.GetSystem<CorePersonalitySystem>();
+
+        /// <summary>
+        /// 13-2 상태 줄 말투: 코어 문장 표에서 지금 성향에 맞는 문장을 골라 로그에 남기고 돌려줌.
+        /// 코어가 없거나 표에 없으면 template(기본 문장)에 args를 넣은 것.
+        /// </summary>
+        private string CoreSay(string key, string template, params object[] args)
+        {
+            var core = Core;
+            if (core != null)
+                return core.SayAndLog(key, template, args);
+            try
+            {
+                return string.Format(template, args);
+            }
+            catch (FormatException)
+            {
+                return template;
             }
         }
 
@@ -334,7 +358,7 @@ namespace SpaceStation.Simulation
             if (data.HasGradeUpScale)
                 parts.Add("위협이 커집니다");
             if (parts.Count > 0)
-                Sim.Report(string.Join(" · ", parts), false);
+                Sim.Report(CoreSay("gradeup", "{0}", string.Join(" · ", parts)), false);
             Sim.RefreshModuleStats();
         }
 
@@ -399,6 +423,17 @@ namespace SpaceStation.Simulation
             var record = LastRecord;
             if (record != null && record.Chapter == Index)
                 record.Choice = choice >= 0 ? choices[choice].Id : "";
+            if (choice >= 0)
+            {
+                // 13-2: 방향 선택 → 코어 성격 축 이동 (원인 기록) + 로그
+                var picked = choices[choice];
+                var core = Core;
+                if (core != null)
+                {
+                    core.Apply(picked.Shifts, $"{Current.DisplayName} 방향: {picked.Title}");
+                    core.SayAndLog("choice." + picked.Id, "{0} · 방주의 방향을 정했다: {1}", Current.DisplayName, picked.Title);
+                }
+            }
             if (IsLast)
             {
                 Phase = ChapterPhase.Finished;
@@ -425,11 +460,11 @@ namespace SpaceStation.Simulation
             if (raise)
             {
                 Sim.RefreshModuleStats(); // 새 요구 · 규칙이 바로 반영되게
-                var sb = new System.Text.StringBuilder($"{Current.DisplayName} 시작");
+                var sb = new System.Text.StringBuilder();
                 foreach (var m in Current.Unlocks)
                     if (m != null)
                         sb.Append($"  ·  {m.DisplayName} 해금");
-                Sim.Report(sb.ToString(), true);
+                Sim.Report(CoreSay("chapter.start", "{0} 시작{1}", Current.DisplayName, sb.ToString()), true);
                 ChapterStarted?.Invoke(Index);
             }
         }
@@ -439,7 +474,7 @@ namespace SpaceStation.Simulation
             Phase = ChapterPhase.Warning;
             WarningLeft = Current.Climax.WarningSeconds;
             if (WarningLeft > 0f)
-                Sim.Report($"절정 예고: {Current.Climax.Title} · {WarningLeft / 60f:0.#}분 뒤 (대비하세요)", false);
+                Sim.Report(CoreSay("climax.warning", "절정 예고: {0} · {1}분 뒤 (대비하세요)", Current.Climax.Title, (WarningLeft / 60f).ToString("0.#")), false);
             WarningStarted?.Invoke();
             if (WarningLeft <= 0f)
                 BeginClimax();
@@ -470,6 +505,10 @@ namespace SpaceStation.Simulation
                 Choice = "",
                 Seconds = ChapterSeconds,
             };
+            // 13-2: 절정 결과에 대한 코어의 독백 (지금 성향으로, 장 결과 창에 한 줄)
+            var core = Core;
+            if (core != null)
+                record.Monologue = core.SayAndLog("outcome." + record.Outcome, "", Current.DisplayName, record.Summary) ?? "";
             _records.Add(record);
             ClimaxEnded?.Invoke(record);
         }

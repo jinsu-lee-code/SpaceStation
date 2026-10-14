@@ -45,6 +45,15 @@ namespace SpaceStation.Editor
                 waves: 4, hits: 3, warning: 180f,
                 ("open", "문을 연다", "오는 무리를 되도록 받음"), ("order", "질서를 세운다", "받기 전에 규칙부터"));
 
+            // 13-2 방향 선택 → 코어 성격 축 (장 전환 방향 = 크게, 곁가지 축 = 작게 · 보통 — 임시 값)
+            Shifts(ch1, 0, (CoreAxis.Scope, CorePole.Second, ShiftSize.Large));
+            Shifts(ch1, 1, (CoreAxis.Scope, CorePole.First, ShiftSize.Large), (CoreAxis.Care, CorePole.Second, ShiftSize.Small));
+            Shifts(ch2, 0, (CoreAxis.Scope, CorePole.Second, ShiftSize.Large), (CoreAxis.Memory, CorePole.Second, ShiftSize.Small));
+            Shifts(ch2, 1, (CoreAxis.Control, CorePole.First, ShiftSize.Medium), (CoreAxis.Scope, CorePole.First, ShiftSize.Medium));
+            Shifts(ch3, 0, (CoreAxis.Care, CorePole.Second, ShiftSize.Large), (CoreAxis.Control, CorePole.Second, ShiftSize.Small));
+            Shifts(ch3, 1, (CoreAxis.Control, CorePole.First, ShiftSize.Large), (CoreAxis.Care, CorePole.First, ShiftSize.Small));
+            CoreLines();
+
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
             if (config == null)
@@ -86,6 +95,7 @@ namespace SpaceStation.Editor
             var host = Object.FindFirstObjectByType<SpaceStation.Simulation.SimulationHost>();
             var hso = new SerializedObject(host);
             hso.FindProperty("_chapters").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
+            hso.FindProperty("_core").objectReferenceValue = AssetDatabase.LoadAssetAtPath<CoreConfig>(CorePath);
             hso.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(host);
 
@@ -119,9 +129,97 @@ namespace SpaceStation.Editor
             if (tutorial != null)
                 vso.FindProperty("_stationPanel").objectReferenceValue = new SerializedObject(tutorial).FindProperty("_resourcePanel").objectReferenceValue;
             vso.ApplyModifiedPropertiesWithoutUndo();
+
+            // 13-2 코어 로그 창 (장 화면 바로 앞 — 장 결과 창이 그 위를 덮음)
+            var oldLog = parent.Find("CoreLogPanel");
+            if (oldLog != null)
+                Object.DestroyImmediate(oldLog.gameObject);
+            var logGo = new GameObject("CoreLogPanel", typeof(RectTransform));
+            logGo.transform.SetParent(parent, false);
+            logGo.transform.SetSiblingIndex(go.transform.GetSiblingIndex());
+            var lrt = (RectTransform)logGo.transform;
+            lrt.anchorMin = Vector2.zero;
+            lrt.anchorMax = Vector2.one;
+            lrt.offsetMin = Vector2.zero;
+            lrt.offsetMax = Vector2.zero;
+            var logPanel = logGo.AddComponent<SpaceStation.UI.CoreLogPanel>();
+            var lso = new SerializedObject(logPanel);
+            lso.FindProperty("_station").objectReferenceValue = station;
+            foreach (var f in new[] { "_font", "_fillSprite", "_frameSprite", "_buttonSprite", "_holoArt" })
+                lso.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
+            lso.ApplyModifiedPropertiesWithoutUndo();
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
-            Debug.Log("[ChapterSetup] 장 3개 · 난이도 장별 간격 · 게임 씬 연결 · 장 화면 완료");
+            Debug.Log("[ChapterSetup] 장 3개 · 코어 성격 · 난이도 장별 간격 · 게임 씬 연결 · 장 화면 · 코어 로그 창 완료");
+        }
+
+        private const string CorePath = "Assets/_Project/Data/Chapters/CoreConfig.asset";
+
+        /// <summary>13-2: 장 전환 선택지 하나의 축 이동.</summary>
+        private static void Shifts(ChapterData chapter, int choice, params (CoreAxis axis, CorePole toward, ShiftSize size)[] shifts)
+        {
+            var so = new SerializedObject(chapter);
+            var list = so.FindProperty("_choices").GetArrayElementAtIndex(choice).FindPropertyRelative("_shifts");
+            list.arraySize = shifts.Length;
+            for (int i = 0; i < shifts.Length; i++)
+            {
+                var e = list.GetArrayElementAtIndex(i);
+                e.FindPropertyRelative("Axis").enumValueIndex = (int)shifts[i].axis;
+                e.FindPropertyRelative("Toward").enumValueIndex = (int)shifts[i].toward;
+                e.FindPropertyRelative("Size").enumValueIndex = (int)shifts[i].size;
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(chapter);
+        }
+
+        /// <summary>
+        /// 13-2 코어 문장 표 — 틀 확인용 임시 문장 (사용자 결정 2026-10-15: 실제 문장은 13-4 ~ 13-7에서 톤에 맞춰).
+        /// 계기마다 기본(Neutral) + 성향 문장 몇 개. {0} · {1}은 부르는 쪽 값.
+        /// </summary>
+        private static CoreConfig CoreLines()
+        {
+            var config = AssetDatabase.LoadAssetAtPath<CoreConfig>(CorePath);
+            if (config == null)
+            {
+                config = ScriptableObject.CreateInstance<CoreConfig>();
+                AssetDatabase.CreateAsset(config, CorePath);
+            }
+            var lines = new List<(string key, CorePole pole, CoreAxis axis, string text)>
+            {
+                ("goal.done", CorePole.Neutral, CoreAxis.Care, "장 목표 완료: {0}{1}"),
+                ("goal.done", CorePole.First, CoreAxis.Care, "목표 처리 완료: {0}{1} · 다음 작업으로"),
+                ("goal.done", CorePole.Second, CoreAxis.Care, "장 목표 완료: {0}{1} · 모두 조금 더 편해질 거예요"),
+                ("climax.warning", CorePole.Neutral, CoreAxis.Care, "절정 예고: {0} · {1}분 뒤 (대비하세요)"),
+                ("climax.warning", CorePole.First, CoreAxis.Control, "절정 예고: {0} · {1}분 뒤 · 배치를 점검합니다"),
+                ("climax.warning", CorePole.Second, CoreAxis.Care, "절정 예고: {0} · {1}분 뒤 · 다들 안쪽으로 모여 주세요"),
+                ("chapter.start", CorePole.Neutral, CoreAxis.Care, "{0} 시작{1}"),
+                ("chapter.start", CorePole.Second, CoreAxis.Scope, "{0} 시작 · 더 멀리 갈 수 있다{1}"),
+                ("chapter.start", CorePole.First, CoreAxis.Scope, "{0} 시작 · 지킬 것부터 지킨다{1}"),
+                ("gradeup", CorePole.Neutral, CoreAxis.Care, "{0}"),
+                ("outcome.Clean", CorePole.Neutral, CoreAxis.Care, "모두 무사합니다. 기록해 둡니다."),
+                ("outcome.Clean", CorePole.First, CoreAxis.Care, "손실 없음. 예상대로입니다."),
+                ("outcome.Hurt", CorePole.Neutral, CoreAxis.Care, "상처는 났지만 버텼습니다."),
+                ("outcome.Hurt", CorePole.Second, CoreAxis.Care, "다친 곳부터 살피겠습니다. 미안합니다."),
+                ("outcome.Lost", CorePole.Neutral, CoreAxis.Care, "잃은 것이 있습니다. 잊지 않겠습니다."),
+                ("outcome.Lost", CorePole.Second, CoreAxis.Memory, "잃은 것은 지우고 앞으로 갑니다."),
+                ("choice.expand", CorePole.Neutral, CoreAxis.Care, "더 많은 무리를 받을 수 있게, 넓히기로 했다."),
+                ("choice.guard", CorePole.Neutral, CoreAxis.Care, "지금 곁에 있는 이들을 먼저 지키기로 했다."),
+            };
+            var so = new SerializedObject(config);
+            var list = so.FindProperty("_lines");
+            list.arraySize = lines.Count;
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var e = list.GetArrayElementAtIndex(i);
+                e.FindPropertyRelative("Key").stringValue = lines[i].key;
+                e.FindPropertyRelative("Pole").enumValueIndex = (int)lines[i].pole;
+                e.FindPropertyRelative("Axis").enumValueIndex = (int)lines[i].axis;
+                e.FindPropertyRelative("Text").stringValue = lines[i].text;
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(config);
+            return config;
         }
 
         private static ChapterData Chapter(int number, StationGradeConfig grades, string subtitle, string climaxText,
@@ -201,7 +299,7 @@ namespace SpaceStation.Editor
                 var c = list.GetArrayElementAtIndex(i);
                 c.FindPropertyRelative("_id").stringValue = choices[i].id;
                 c.FindPropertyRelative("_title").stringValue = choices[i].title;
-                c.FindPropertyRelative("_description").stringValue = choices[i].description + " (효과는 13-2 코어 성격)";
+                c.FindPropertyRelative("_description").stringValue = choices[i].description;
             }
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(data);

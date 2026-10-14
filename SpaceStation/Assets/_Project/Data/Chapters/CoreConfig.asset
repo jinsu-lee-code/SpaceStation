@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5dca64084a95c784fa7be27a45251470, type: 3}
+  m_Name: CoreConfig
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.CoreConfig
+  _small: 5
+  _medium: 10
+  _large: 20
+  _slight: 15
+  _leaning: 40
+  _deep: 70
+  _lines:
+  - Key: goal.done
+    Pole: 0
+    Axis: 0
+    Text: "\uC7A5 \uBAA9\uD45C \uC644\uB8CC: {0}{1}"
+  - Key: goal.done
+    Pole: 1
+    Axis: 0
+    Text: "\uBAA9\uD45C \uCC98\uB9AC \uC644\uB8CC: {0}{1} \xB7 \uB2E4\uC74C \uC791\uC5C5\uC73C\uB85C"
+  - Key: goal.done
+    Pole: 2
+    Axis: 0
+    Text: "\uC7A5 \uBAA9\uD45C \uC644\uB8CC: {0}{1} \xB7 \uBAA8\uB450 \uC870\uAE08
+      \uB354 \uD3B8\uD574\uC9C8 \uAC70\uC608\uC694"
+  - Key: climax.warning
+    Pole: 0
+    Axis: 0
+    Text: "\uC808\uC815 \uC608\uACE0: {0} \xB7 {1}\uBD84 \uB4A4 (\uB300\uBE44\uD558\uC138\uC694)"
+  - Key: climax.warning
+    Pole: 1
+    Axis: 1
+    Text: "\uC808\uC815 \uC608\uACE0: {0} \xB7 {1}\uBD84 \uB4A4 \xB7 \uBC30\uCE58\uB97C
+      \uC810\uAC80\uD569\uB2C8\uB2E4"
+  - Key: climax.warning
+    Pole: 2
+    Axis: 0
+    Text: "\uC808\uC815 \uC608\uACE0: {0} \xB7 {1}\uBD84 \uB4A4 \xB7 \uB2E4\uB4E4
+      \uC548\uCABD\uC73C\uB85C \uBAA8\uC5EC \uC8FC\uC138\uC694"
+  - Key: chapter.start
+    Pole: 0
+    Axis: 0
+    Text: "{0} \uC2DC\uC791{1}"
+  - Key: chapter.start
+    Pole: 2
+    Axis: 2
+    Text: "{0} \uC2DC\uC791 \xB7 \uB354 \uBA40\uB9AC \uAC08 \uC218 \uC788\uB2E4{1}"
+  - Key: chapter.start
+    Pole: 1
+    Axis: 2
+    Text: "{0} \uC2DC\uC791 \xB7 \uC9C0\uD0AC \uAC83\uBD80\uD130 \uC9C0\uD0A8\uB2E4{1}"
+  - Key: gradeup
+    Pole: 0
+    Axis: 0
+    Text: '{0}'
+  - Key: outcome.Clean
+    Pole: 0
+    Axis: 0
+    Text: "\uBAA8\uB450 \uBB34\uC0AC\uD569\uB2C8\uB2E4. \uAE30\uB85D\uD574 \uB461\uB2C8\uB2E4."
+  - Key: outcome.Clean
+    Pole: 1
+    Axis: 0
+    Text: "\uC190\uC2E4 \uC5C6\uC74C. \uC608\uC0C1\uB300\uB85C\uC785\uB2C8\uB2E4."
+  - Key: outcome.Hurt
+    Pole: 0
+    Axis: 0
+    Text: "\uC0C1\uCC98\uB294 \uB0AC\uC9C0\uB9CC \uBC84\uD17C\uC2B5\uB2C8\uB2E4."
+  - Key: outcome.Hurt
+    Pole: 2
+    Axis: 0
+    Text: "\uB2E4\uCE5C \uACF3\uBD80\uD130 \uC0B4\uD53C\uACA0\uC2B5\uB2C8\uB2E4.
+      \uBBF8\uC548\uD569\uB2C8\uB2E4."
+  - Key: outcome.Lost
+    Pole: 0
+    Axis: 0
+    Text: "\uC783\uC740 \uAC83\uC774 \uC788\uC2B5\uB2C8\uB2E4. \uC78A\uC9C0 \uC54A\uACA0\uC2B5\uB2C8\uB2E4."
+  - Key: outcome.Lost
+    Pole: 2
+    Axis: 3
+    Text: "\uC783\uC740 \uAC83\uC740 \uC9C0\uC6B0\uACE0 \uC55E\uC73C\uB85C \uAC11\uB2C8\uB2E4."
+  - Key: choice.expand
+    Pole: 0
+    Axis: 0
+    Text: "\uB354 \uB9CE\uC740 \uBB34\uB9AC\uB97C \uBC1B\uC744 \uC218 \uC788\uAC8C,
+      \uB113\uD788\uAE30\uB85C \uD588\uB2E4."
+  - Key: choice.guard
+    Pole: 0
+    Axis: 0
+    Text: "\uC9C0\uAE08 \uACC1\uC5D0 \uC788\uB294 \uC774\uB4E4\uC744 \uBA3C\uC800
+      \uC9C0\uD0A4\uAE30\uB85C \uD588\uB2E4."
