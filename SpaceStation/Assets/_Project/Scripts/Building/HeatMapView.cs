@@ -14,6 +14,7 @@ namespace SpaceStation.Building
     /// - 늘: 과열 모듈 노란 상자, 위험 모듈 흰 깜빡임 상자 + "과열 위험"
     /// - 열 지도(J): 과열 모듈에 "과열 중", 방열판 추천 자리(과열 모듈 옆 · 지을 수 있고 바깥이 열린 빈 칸, 상위 8곳)를 깜빡이는 하늘색 칸으로, 막히거나 멈춘 방열판 표시
     /// - 화면 왼쪽 아래 한 줄: 과열 · 위험 수와 안내 (대륙급부터)
+    /// - 카메라에서 실제로 보이는 모듈 · 빈 칸에만 상자 · 라벨 (가려진 뒤쪽은 숨김 — 앞뒤 구분), 건설 메뉴에서 방열판을 고르면 열 지도가 저절로 켜짐
     /// </summary>
     public sealed class HeatMapView : MonoBehaviour
     {
@@ -34,7 +35,21 @@ namespace SpaceStation.Building
             public TextMeshProUGUI LabelText;
             public Vector3 Anchor;
             public bool HasLabel;
+            /// <summary>상자가 가리키는 모듈 (추천 빈 칸이면 null → <see cref="Cell"/>).</summary>
+            public ModuleInstance Module;
+            public Vector3Int Cell;
+            /// <summary>카메라에서 실제로 보이는지 (앞의 모듈에 가려지면 라벨 · 상자를 숨김).</summary>
+            public bool Visible = true;
         }
+
+        // 사용자 피드백 2026-10-14: 라벨이 정거장을 뚫고 늘 보여 앞쪽 · 뒤쪽 융합로를 구분할 수 없었음 → 카메라에서 보이는 것만 표시
+        private const float VisibilityInterval = 0.2f;
+        private float _nextVisibility;
+        private readonly RaycastHit[] _hits = new RaycastHit[16];
+        private BuildController _build;
+        private bool _forced;
+        /// <summary>열 지도 켜짐 = J로 켰거나 건설 메뉴에서 방열판을 고름.</summary>
+        private bool MapOn => _mapOn || _forced;
 
         private RectTransform _labelRoot;
 
@@ -60,6 +75,7 @@ namespace SpaceStation.Building
             _block = new MaterialPropertyBlock();
             _cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
             _heat.Changed += MarkDirty;
+            _build = FindFirstObjectByType<BuildController>();
             BuildHud();
         }
 
@@ -96,7 +112,7 @@ namespace SpaceStation.Building
             var rt = (RectTransform)go.transform;
             rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 0f);
             rt.anchoredPosition = new Vector2(24f, 300f); // 아래 조작 안내 줄과 겹치지 않게
-            rt.sizeDelta = new Vector2(1100f, 60f);
+            rt.sizeDelta = new Vector2(1100f, 70f);
         }
 
         private void Update()
@@ -104,6 +120,13 @@ namespace SpaceStation.Building
             if (!InputGate.Blocked && KeyBindings.WasPressed(GameAction.HeatMap) && _heat.Active)
             {
                 _mapOn = !_mapOn;
+                _dirty = true;
+            }
+            // 방열판을 고르면 열 지도가 저절로 켜져 추천 칸이 바로 보임 (배치를 끝내거나 다른 모듈을 고르면 원래대로)
+            bool forced = _heat.Active && _build != null && _build.Selected != null && _build.Selected.HeatRemoval > 0f;
+            if (forced != _forced)
+            {
+                _forced = forced;
                 _dirty = true;
             }
         }
@@ -125,6 +148,12 @@ namespace SpaceStation.Building
             {
                 _dirty = false;
                 Rebuild();
+                _nextVisibility = 0f;
+            }
+            if (Time.unscaledTime >= _nextVisibility)
+            {
+                _nextVisibility = Time.unscaledTime + VisibilityInterval;
+                UpdateVisibility();
             }
             _pulse = 0.55f + 0.45f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4f));
             for (int i = 0; i < _used; i++)
@@ -133,13 +162,72 @@ namespace SpaceStation.Building
                 if (!b.HasLabel || _camera == null)
                     continue;
                 Vector3 screen = _camera.WorldToScreenPoint(b.Anchor);
-                bool on = screen.z > 0f;
+                bool on = screen.z > 0f && b.Visible;
                 if (b.Label.gameObject.activeSelf != on)
                     b.Label.gameObject.SetActive(on);
                 if (on)
                     b.Label.position = new Vector3(screen.x, screen.y, 0f);
             }
             ApplyPulse();
+        }
+
+        /// <summary>
+        /// 카메라 → 모듈 각 칸(추천 자리는 그 빈 칸) 중심으로 Pick 콜라이더 레이: 처음 맞는 것이 그 모듈이거나(빈 칸이면) 아무것도 없으면 보임.
+        /// 가려진 것은 상자 · 라벨 모두 숨김 → 지금 보이는 면에 있는 것만 표시.
+        /// </summary>
+        private void UpdateVisibility()
+        {
+            if (_camera == null)
+                return;
+            int mask = ModulePick.SelectionMask(~0);
+            Vector3 eye = _camera.transform.position;
+            for (int i = 0; i < _used; i++)
+            {
+                var b = _boxes[i];
+                bool visible = false;
+                if (b.Module != null)
+                {
+                    foreach (var c in b.Module.Cells)
+                    {
+                        if (SeesCell(eye, c, mask, b.Module))
+                        {
+                            visible = true;
+                            b.Anchor = GridConfig.CellToWorld(c) + Vector3.up * (GridConfig.CellSize * 0.5f);
+                            break;
+                        }
+                    }
+                }
+                else
+                    visible = SeesCell(eye, b.Cell, mask, null);
+                b.Visible = visible;
+                if (b.Renderer.gameObject.activeSelf != visible)
+                    b.Renderer.gameObject.SetActive(visible);
+            }
+        }
+
+        private bool SeesCell(Vector3 eye, Vector3Int cell, int mask, ModuleInstance target)
+        {
+            Vector3 to = GridConfig.CellToWorld(cell);
+            Vector3 dir = to - eye;
+            float dist = dir.magnitude;
+            int n = Physics.RaycastNonAlloc(eye, dir / dist, _hits, dist, mask, QueryTriggerInteraction.Ignore);
+            float nearest = float.PositiveInfinity;
+            ModuleView first = null;
+            for (int i = 0; i < n; i++)
+            {
+                if (_hits[i].distance >= nearest)
+                    continue;
+                var view = _hits[i].collider.GetComponentInParent<ModuleView>();
+                if (view == null)
+                    continue;
+                nearest = _hits[i].distance;
+                first = view;
+            }
+            if (first == null)
+                return true;
+            if (target != null)
+                return first.Module == target;
+            return nearest >= dist - GridConfig.CellSize * 0.55f; // 빈 칸: 그 칸 바로 앞까지 막힌 게 없음
         }
 
         private float _pulse;
@@ -166,7 +254,7 @@ namespace SpaceStation.Building
         private static readonly Color SpotColor = new Color(0.2f, 0.8f, 1f, 0.45f);
         private static readonly Color RadiatorColor = new Color(0.2f, 0.8f, 1f, 0.22f);
         private static readonly Color DeadRadiatorColor = new Color(0.55f, 0.55f, 0.6f, 0.3f);
-        private const int MaxSpots = 8;
+        private const int MaxSpots = 16; // 가려진 칸은 숨기므로 넉넉히
 
         private readonly List<(Vector3Int cell, int helps, float relief)> _spots = new List<(Vector3Int, int, float)>();
         private readonly Dictionary<Vector3Int, (int helps, float relief)> _spotScore = new Dictionary<Vector3Int, (int, float)>();
@@ -190,11 +278,11 @@ namespace SpaceStation.Building
                     continue; // 한도 이하는 칠하지 않음 (정거장 전체가 물들어 어디가 문제인지 안 보였음)
                 // 라벨: 지도를 끄면 위험만 (과열 상자는 늘 보임), 지도를 켜면 과열도
                 // 문구는 상태로 (사용자 피드백 2026-10-14: "방열판 여기" 같은 지시문보다 "과열 중"이 보기 좋음)
-                string label = isDanger ? "<b>과열 위험</b>" : _mapOn ? "<color=#FFE14A>과열 중</color>" : null;
+                string label = isDanger ? "<b>과열 위험</b>" : MapOn ? "<color=#FFE14A>과열 중</color>" : null;
                 Place(m, isDanger ? DangerColor : OverColor, isDanger, label);
             }
             int spots = 0;
-            if (_mapOn)
+            if (MapOn)
             {
                 foreach (var m in _station.Grid.Modules)
                 {
@@ -208,8 +296,8 @@ namespace SpaceStation.Building
             }
             HideFrom(_used);
             string key = KeyBindings.Label(GameAction.HeatMap);
-            string tail = _mapOn
-                ? (spots > 0 ? $"  <color=#7FE0FF>깜빡이는 하늘색 칸 = 방열판 추천 자리 {spots}곳</color>" : "")
+            string tail = MapOn
+                ? (spots > 0 ? $"\n<color=#7FE0FF>깜빡이는 하늘색 칸 = 방열판 추천 자리</color>  <color=#C8D2DE>보이는 면만 표시 · 카메라를 돌려 다른 면 확인</color>" : "")
                 : $"  <color=#C8D2DE>{key}: 열 지도 · 방열판 추천 자리 보기</color>";
             _hud.SetText($"<b>열 관리</b>  과열 {over} · 위험 {danger}  <color=#C8D2DE>(한도 {limit:0} · 위험 {_heat.DangerLevel:0.#})</color>{tail}");
         }
@@ -279,6 +367,8 @@ namespace SpaceStation.Building
         private void PlaceCell(Vector3Int cell, Color color, bool blink, string label)
         {
             var b = NextBox();
+            b.Module = null;
+            b.Cell = cell;
             var t = b.Renderer.transform;
             t.position = GridConfig.CellToWorld(cell);
             t.localScale = Vector3.one * (GridConfig.CellSize * 0.7f);
@@ -315,6 +405,7 @@ namespace SpaceStation.Building
         private void Place(ModuleInstance m, Color color, bool blink, string label)
         {
             var b = NextBox();
+            b.Module = m;
             var min = m.Cells[0];
             var max = m.Cells[0];
             foreach (var c in m.Cells)
