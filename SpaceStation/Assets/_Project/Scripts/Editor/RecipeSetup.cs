@@ -38,6 +38,8 @@ namespace SpaceStation.Editor
             public float Duration;
             public string Rationale;
             public System.Action<SerializedObject> Stats;
+            /// <summary>해금 등급 (0이면 도시급).</summary>
+            public int UnlockGrade;
         }
 
         private static Vector3Int V(int x, int y, int z) => new Vector3Int(x, y, z);
@@ -107,6 +109,19 @@ namespace SpaceStation.Editor
                     so.FindProperty("_serviceRadius").intValue = 4;
                     so.FindProperty("_serviceCapacity").intValue = 16;
                     Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 6f), (ResourceType.Water, 0.2f));
+                },
+            },
+            // 12-3c 지구급 (사용자 결정 2026-10-14: 통신 중계소 상위 모듈 추가, 계통표 47 → 48). 재료 MD_CommRelay는 Grade Rules/Setup Contact가 만듦
+            new Def
+            {
+                Id = "DeepSpaceComm", Name = "심우주 통신기지", RecipeName = "심우주 통신기지", Category = ModuleCategory.Defense, Color = "#8FE3FF",
+                Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(2, 0, 0) },
+                Ingredients = new[] { ("MD_CommRelay", 3) }, SynthesisMetal = 150f, Duration = 60f, UnlockGrade = 8,
+                Rationale = "안테나를 한 배열로 묶어 깊은 우주의 약한 신호까지 잡는다 · 중계소 셋보다 높은 계급까지 해독",
+                Stats = so =>
+                {
+                    so.FindProperty("_relayPower").intValue = 4;
+                    Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 5f));
                 },
             },
         };
@@ -294,7 +309,7 @@ namespace SpaceStation.Editor
             Amounts(so.FindProperty("_cost"), (ResourceType.Metal, def.SynthesisMetal));
             so.FindProperty("_duration").floatValue = def.Duration;
             so.FindProperty("_stage").intValue = 1;
-            so.FindProperty("_unlockGrade").intValue = CityGrade;
+            so.FindProperty("_unlockGrade").intValue = def.UnlockGrade > 0 ? def.UnlockGrade : CityGrade;
             so.FindProperty("_unlockedByDefault").boolValue = true; // 12-4 전까지 시험 레시피도 자동 해금
             so.FindProperty("_rationale").stringValue = def.Rationale;
             so.ApplyModifiedPropertiesWithoutUndo();

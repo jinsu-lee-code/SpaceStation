@@ -141,8 +141,8 @@ namespace SpaceStation.UI
             int seconds = Mathf.Max(0, Mathf.CeilToInt(_shower.TimeLeft));
             string dir = MeteorShowerSystem.DirectionName(_shower.Direction);
             string title = _shower.Phase == MeteorShowerSystem.ShowerPhase.Warning
-                ? $"{HudTheme.Icon("warning")} <b>유성우 예보 · {dir}</b>  <color={HudText.Orange}>{seconds / 60}:{seconds % 60:00}</color>"
-                : $"{HudTheme.Icon("warning")} <b>유성우 · {dir}</b>  <color={HudText.Orange}>{_shower.WavesDone}/{_shower.Waves}파</color>";
+                ? $"{HudTheme.Icon("warning")} <b>{_shower.Label} 예보 · {dir}</b>  <color={HudText.Orange}>{seconds / 60}:{seconds % 60:00}</color>"
+                : $"{HudTheme.Icon("warning")} <b>{_shower.Label} · {dir}</b>  <color={HudText.Orange}>{_shower.WavesDone}/{_shower.Waves}파</color>";
             if (title != _showerText)
             {
                 _showerText = title;

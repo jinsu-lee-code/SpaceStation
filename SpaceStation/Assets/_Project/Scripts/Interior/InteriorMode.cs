@@ -91,7 +91,7 @@ namespace SpaceStation.Interior
             { "BuildMenu", "BuildTabs", "SelectionActions", "Tooltip", "Tutorial", "ResearchPanel", "RosterPanel", "DamageMarkers", "AdjacencyMarkers", "EarlyWarning",
               "StatusBar" }; // 11-16 피드백: 바깥 건설 · 선택 안내(상태 표시줄)는 내부에서 숨김 (패드를 들면 패드 안 안내만)
         /// <summary>12-3 합성 · 12-3c 정책 창 (나중에 생긴 HUD — 씬에 저장된 _hiddenPanels에 없어 내부에서도 보였음).</summary>
-        private static readonly string[] AlwaysHidden = { "RecipePanel", "PolicyPanel" };
+        private static readonly string[] AlwaysHidden = { "RecipePanel", "PolicyPanel", "ContactPanel" }; // 침입 드론은 내부 추적 줄에 표시
         [Tooltip("일시정지로 들어갔을 때만 숨김 (시간이 흐르면 보임)")]
         [SerializeField] private string[] _pausedHiddenPanels = { "TimeControls", "ResourcePanel" };
 
@@ -123,6 +123,14 @@ namespace SpaceStation.Interior
         private InteriorPlants _plants;
         private InteriorRequests _requests;
         private InteriorIncidents _incidents;
+        private InteriorBoarding _boarding;
+
+        /// <summary>패드 지도 표시용: 이 방에 남은 침입 드론 수.</summary>
+        private int BoardingCountIn(ModuleInstance m)
+        {
+            var c = _station != null && _station.Simulation != null ? _station.Simulation.Contact : null;
+            return c != null && c.Boarding && c.BoardingTarget == m ? c.DronesLeft : 0;
+        }
         // 11-17 길게 누르는 상호작용
         private InteriorInteractable _holdTarget;
         private float _holdTime;
@@ -277,6 +285,8 @@ namespace SpaceStation.Interior
             _incidents.Message += ShowNotice;
             _incidents.Resolved += HandleIncidentResolved;
             _incidents.Rebuild(_layout);
+            _boarding = InteriorBoarding.Create(transform, _station, _builder, _beaconMaterial); // 12-3c 지구급 침입 드론
+            _boarding.Rebuild();
             _requests.TutorialHold = _incidents.TutorialHold = Tutorial != null;
             UpdateNearbyRooms(module, force: true); // 가까운 방만 여기서 지음 → 연출이 RoomBuilt로 채움
             var spawn = _builder.SpawnPoint(module, out float spawnYaw);
@@ -332,7 +342,7 @@ namespace SpaceStation.Interior
                 Tuning = _padTuning,
                 Buildable = _build != null ? _build.BuildableModules : null,
                 RequestCount = m => _requests != null ? _requests.CountIn(m) : 0,
-                IncidentCount = m => _incidents != null ? _incidents.CountIn(m) : 0,
+                IncidentCount = m => (_incidents != null ? _incidents.CountIn(m) : 0) + BoardingCountIn(m),
             });
             InsideChanged?.Invoke(true);
             _tutorialRetry = 0f;
@@ -458,6 +468,9 @@ namespace SpaceStation.Interior
             if (_incidents != null)
                 Destroy(_incidents.gameObject);
             _incidents = null;
+            if (_boarding != null)
+                Destroy(_boarding.gameObject);
+            _boarding = null;
             ResetHold();
             if (_player != null)
                 Destroy(_player.gameObject);
@@ -571,7 +584,13 @@ namespace SpaceStation.Interior
                 return;
             _trackerNext = Time.unscaledTime + 0.25f;
             string text = string.Empty;
-            if (_incidents != null && _incidents.TryGetActive(out var incident, out var incidentRoom, out int left))
+            var contact = _station.Simulation.Contact;
+            if (contact != null && contact.Boarding)
+            {
+                int boardLeft = Mathf.CeilToInt(contact.BoardingTimeLeft);
+                text = $"{HudTheme.Icon("warning")} <color={HudText.Orange}><b>침입 드론 {contact.DronesLeft}/{contact.DronesTotal}</b></color> · {Where(contact.BoardingTarget)} · <color={(boardLeft <= 30 ? HudText.Red : HudText.Orange)}>{boardLeft}초</color>";
+            }
+            else if (_incidents != null && _incidents.TryGetActive(out var incident, out var incidentRoom, out int left))
             {
                 string time = left >= 0 ? $" · <color={(left <= 20 ? HudText.Red : HudText.Orange)}>{left}초</color>" : "";
                 text = $"{HudTheme.Icon("warning")} <color={HudText.Orange}><b>{incident}</b></color> · {Where(incidentRoom)}{time}";
@@ -787,6 +806,8 @@ namespace SpaceStation.Interior
                 _requests.Rebuild(_layout);
             if (_incidents != null)
                 _incidents.Rebuild(_layout);
+            if (_boarding != null)
+                _boarding.Rebuild();
             ResetHold();
             if (_exteriorView != null)
                 _exteriorView.CollectWindows();

@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34befb0a86a02304faf24c6f89413112, type: 3}
+  m_Name: ContactConfig
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ContactConfig
+  _minGrade: 8
+  _interval: {x: 240, y: 360}
+  _approachSeconds: 60
+  _waitSeconds: 45
+  _rankPower: 01000000020000000400000008000000
+  _decodeSeconds: 30
+  _decodeSpeedPerExtra: 0.5
+  _visitsPerRank: 3
+  _rankScale: 0.6
+  _growthPerVisit: 0.05
+  _costCapRatio: 0.85
+  _hostileBelow: -60
+  _waryBelow: -20
+  _friendlyFrom: 20
+  _alliedFrom: 60
+  _tradeRep: 5
+  _negotiateRep: 15
+  _guardRep: -5
+  _outlawTollRep: 3
+  _outlawNegotiateRep: 12
+  _outlawGuardRep: -8
+  _rivalRatio: 0.4
+  _tierReward:
+  - 0.5
+  - 0.75
+  - 1
+  - 1.25
+  - 1.5
+  _afterGuardRep: 0.5
+  _afterGuardOffer: 0.8
+  _afterGuardRaid: 0.25
+  _afterNegotiateRep: 1.25
+  _afterNegotiateOffer: 1.2
+  _merchantGive: 120
+  _merchantGet: 90
+  _scholarGive: 150
+  _scholarProgress: 0.15
+  _outlawToll: 100
+  _negotiateCost: 250
+  _giftMetal: 60
+  _giftProgress: 0.05
+  _outlawGuardRaidChance: 0.5
+  _guardDefense: 0.6
+  _bombardWarning: 30
+  _bombardWaves: 2
+  _bombardHits: 3
+  _boardingDrones: 2
+  _boardingSeconds: 150
+  _droneHoldSeconds: 1.5
+  _boardingMetalLoss: 120

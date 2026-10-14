@@ -74,6 +74,10 @@ namespace SpaceStation.Data
         [Tooltip("방열량 — 면이 맞닿은 모듈마다 이만큼 열을 뺌 (우주로 노출된 면이 있을 때만). 0이면 방열판 아님")]
         [SerializeField, Min(0f)] private float _heatRemoval;
 
+        [Header("External contact (12-3c 지구급)")]
+        [Tooltip("통신 세기 — 가동 중인 모듈의 합이 방문 세력 계급 해독 기준(1 · 2 · 4 · 8)을 넘으면 그 계급까지 해독. 0이면 중계소 아님")]
+        [SerializeField, Min(0)] private int _relayPower;
+
         [Header("Armor (8-5 장갑 격벽)")]
         [Tooltip("운석 피격 가중치 배율 (노출 면 가중치에 곱함, 3 = 같은 노출의 모듈보다 3배 잘 맞음 → 미끼)")]
         [SerializeField, Min(0f)] private float _meteorWeightMultiplier = 1f;
@@ -219,6 +223,7 @@ namespace SpaceStation.Data
         public float MeteorWeightMultiplier => Mathf.Max(0f, _meteorWeightMultiplier);
         public float HeatOutput => _heatOutput;
         public float HeatRemoval => _heatRemoval;
+        public int RelayPower => _relayPower;
         public bool Armored => _armored;
         public bool CountsTowardGrade => _countsTowardGrade;
         public int GradeModuleCount => Mathf.Max(1, _gradeModuleCount);

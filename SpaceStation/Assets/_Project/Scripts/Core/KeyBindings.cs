@@ -39,6 +39,7 @@ namespace SpaceStation.Core
         Move, // 12-3b 선택한 모듈 옮기기
         Policies, // 12-3c 국가급 정책 창
         HeatMap, // 12-3c 대륙급 열 지도
+        Contacts, // 12-3c 지구급 외부 접촉 창
     }
 
     /// <summary>키가 쓰이는 상황. 건설 중과 선택 중은 동시에 일어나지 않으므로 같은 키를 써도 된다.</summary>
@@ -105,6 +106,7 @@ namespace SpaceStation.Core
             new Info { Action = GameAction.Recipes, Group = "창", Label = "합성 레시피 창", Default = Key.K, Context = ActionContext.Always },
             new Info { Action = GameAction.Policies, Group = "창", Label = "정책 창", Default = Key.O, Context = ActionContext.Always },
             new Info { Action = GameAction.HeatMap, Group = "창", Label = "열 지도 보기", Default = Key.J, Context = ActionContext.Always },
+            new Info { Action = GameAction.Contacts, Group = "창", Label = "외부 접촉 창", Default = Key.U, Context = ActionContext.Always },
             new Info { Action = GameAction.ToggleHelp, Group = "창", Label = "조작 안내 고정 / 숨기기", Default = Key.H, Context = ActionContext.Always },
         };
 

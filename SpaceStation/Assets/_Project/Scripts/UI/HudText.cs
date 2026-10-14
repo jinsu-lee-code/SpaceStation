@@ -166,6 +166,12 @@ namespace SpaceStation.UI
                 sb.Append($"<color={Orange}>파손되면 이웃으로 {1f / data.SpreadTimeMultiplier:0.#}배 빨리 번짐</color>\n");
             if (data.RepairSlots > 0)
                 sb.Append("동시 수리 슬롯 +").Append(data.RepairSlots).Append($" <color={Muted}>(파손·비활성 시 슬롯 없음)</color>\n");
+            if (data.HeatOutput > 0f)
+                sb.Append($"<color={Orange}>발열 {data.HeatOutput:0.#}</color> <color={Muted}>(반경 2칸에 거리마다 줄어 퍼짐)</color>\n");
+            if (data.HeatRemoval > 0f)
+                sb.Append("방열 -").Append(data.HeatRemoval.ToString("0.#")).Append($" <color={Muted}>(맞닿은 모듈마다, 우주로 노출된 면이 있을 때)</color>\n");
+            if (data.RelayPower > 0)
+                sb.Append("통신 세기 +").Append(data.RelayPower).Append($" <color={Muted}>(합이 1 · 2 · 4 · 8 이상이면 그 계급 함선까지 신호 해독)</color>\n");
         }
     }
 }

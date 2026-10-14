@@ -48,7 +48,13 @@ namespace SpaceStation.Simulation
         public float TimeLeft => _timer;
         /// <summary>지금까지 떨어진 파 수.</summary>
         public int WavesDone { get; private set; }
-        public int Waves => Sim.Balance.ShowerWaves;
+        public int Waves => IsRaid ? _raidWaves : Sim.Balance.ShowerWaves;
+        /// <summary>12-3c 지구급 습격 포격 (방문 세력, <see cref="ContactSystem"/>) — 판정 · 표시는 유성우와 같고 이름만 다름.</summary>
+        public bool IsRaid { get; private set; }
+        /// <summary>화면에 쓰는 이름 ("유성우" / "포격").</summary>
+        public string Label => IsRaid ? "포격" : "유성우";
+        private int _raidWaves;
+        private float _resumeTimer;
         /// <summary>이번 유성우 한 파의 운석 수.</summary>
         public int HitsPerWave { get; private set; }
         public bool Active => Phase != ShowerPhase.Idle;
@@ -112,7 +118,10 @@ namespace SpaceStation.Simulation
                     }
                     _timer -= dt;
                     if (_timer <= 0f)
+                    {
+                        IsRaid = false;
                         BeginWarning(Sim.Balance.ShowerWarningSeconds);
+                    }
                     break;
                 case ShowerPhase.Warning:
                     _timer -= dt;
@@ -150,18 +159,50 @@ namespace SpaceStation.Simulation
             Changed?.Invoke();
         }
 
+        /// <summary>
+        /// 12-3c 지구급 습격 포격: 유성우와 같은 예보 · 앞면 판정으로 <paramref name="waves"/>파 × <paramref name="hitsPerWave"/>발.
+        /// 유성우가 진행 중이면 시작하지 않음 (false — 동시에 일어나지 않게 부르는 쪽이 다시 시도).
+        /// </summary>
+        public bool BeginRaid(float warningSeconds, int waves, int hitsPerWave, string source)
+        {
+            if (Active)
+                return false;
+            _resumeTimer = _armed ? _timer : NextInterval();
+            _armed = true;
+            IsRaid = true;
+            _raidWaves = Math.Max(1, waves);
+            Direction = Directions[Math.Min(Directions.Length - 1, (int)(_random01() * Directions.Length))];
+            HitsPerWave = Math.Max(1, hitsPerWave);
+            WavesDone = 0;
+            Phase = ShowerPhase.Warning;
+            _timer = Math.Max(0.01f, warningSeconds);
+            _facingDirty = true;
+            Sim.Report($"{source} 포격 예보: {DirectionName(Direction)}에서 {_timer:0}초 뒤 {_raidWaves}파 · 붉은 면이 맞습니다 (가리거나 실드 · 포탑으로 보강)", false);
+            Changed?.Invoke();
+            return true;
+        }
+
         private void FireDueWaves()
         {
             while (Phase == ShowerPhase.Falling && _timer <= 0f)
             {
                 FireWave();
                 WavesDone++;
-                if (WavesDone >= Sim.Balance.ShowerWaves)
+                if (WavesDone >= Waves)
                 {
                     Phase = ShowerPhase.Idle;
-                    _timer = NextInterval();
                     _facingDirty = true;
-                    Sim.Report("유성우가 지나갔습니다", true);
+                    if (IsRaid)
+                    {
+                        IsRaid = false;
+                        _timer = _resumeTimer; // 포격은 유성우 시계를 건드리지 않음
+                        Sim.Report("포격이 끝났습니다", true);
+                    }
+                    else
+                    {
+                        _timer = NextInterval();
+                        Sim.Report("유성우가 지나갔습니다", true);
+                    }
                     break;
                 }
                 _timer += Math.Max(0.01f, Sim.Balance.ShowerWaveInterval);
@@ -200,7 +241,7 @@ namespace SpaceStation.Simulation
                 _targets.Add(_pool[pick]);
                 _pool.RemoveAt(pick);
             }
-            Sim.ShowerMeteors(_targets, _random01, Direction, $"유성우 {WavesDone + 1}/{Sim.Balance.ShowerWaves}파");
+            Sim.ShowerMeteors(_targets, _random01, Direction, $"{Label} {WavesDone + 1}/{Waves}파");
             _facingDirty = true; // 파괴로 모양이 바뀌었을 수 있음
         }
 
@@ -299,6 +340,9 @@ namespace SpaceStation.Simulation
             public float Timer;
             public int WavesDone;
             public int HitsPerWave;
+            public bool Raid;
+            public int RaidWaves;
+            public float ResumeTimer;
         }
 
         public override string Capture(Func<ModuleInstance, int> indexOf)
@@ -308,6 +352,7 @@ namespace SpaceStation.Simulation
             return JsonUtility.ToJson(new State
             {
                 Armed = _armed, Phase = (int)Phase, Direction = Direction, Timer = _timer, WavesDone = WavesDone, HitsPerWave = HitsPerWave,
+                Raid = IsRaid, RaidWaves = _raidWaves, ResumeTimer = _resumeTimer,
             });
         }
 
@@ -324,6 +369,9 @@ namespace SpaceStation.Simulation
             _timer = s.Timer;
             WavesDone = s.WavesDone;
             HitsPerWave = s.HitsPerWave;
+            IsRaid = s.Raid && Phase != ShowerPhase.Idle;
+            _raidWaves = s.RaidWaves;
+            _resumeTimer = s.ResumeTimer;
             _facingDirty = true;
         }
     }

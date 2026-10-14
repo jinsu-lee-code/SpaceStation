@@ -30,6 +30,8 @@ namespace SpaceStation.Simulation
         public Func<float> HazardRandom01;
         /// <summary>12-3c 국가급 상시 정책 · 사회 위기 (null이면 시스템 없음 = 이전과 같은 결과).</summary>
         public PolicyConfig Policies;
+        /// <summary>12-3c 지구급 방문 세력 + 평판 (null이면 시스템 없음 = 이전과 같은 결과).</summary>
+        public ContactConfig Contact;
     }
 
     /// <summary>
@@ -145,6 +147,8 @@ namespace SpaceStation.Simulation
         public PolicySystem Policies { get; }
         /// <summary>12-3c 사회 위기 선택지 (설정에 없으면 null).</summary>
         public SocialCrisisSystem Crisis { get; }
+        /// <summary>12-3c 지구급 방문 세력 + 평판 (설정에 없으면 null).</summary>
+        public ContactSystem Contact { get; }
 
         public StationSimulation(StationSimulationSettings settings)
         {
@@ -250,6 +254,8 @@ namespace SpaceStation.Simulation
                 Policies = AddSystem(new PolicySystem(settings.Policies), MeteorShowerSystem.SystemKey);
                 Crisis = AddSystem(new SocialCrisisSystem(settings.Policies), PolicySystem.SystemKey);
             }
+            if (settings.Contact != null)
+                Contact = AddSystem(new ContactSystem(settings.Contact, settings.HazardRandom01), HeatSystem.SystemKey); // 지구급 전에는 아무것도 안 함
             EvaluateProgression();
         }
 
