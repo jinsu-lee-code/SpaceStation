@@ -19,6 +19,8 @@ namespace SpaceStation.Data
     public sealed class StationGrade
     {
         [SerializeField] private string _displayName = "Grade";
+        [Tooltip("13-0: 등급으로 세지 않는 시작 상태 (첫 등급만, 화면에는 '등급 없음' — 7단계 = 그다음 소형 ~ 지구)")]
+        [SerializeField] private bool _ungraded;
         [Tooltip("12-1: 처음 도달했을 때 ★ 알림 / 누적 결과 화면")]
         [SerializeField] private GradeMilestone _milestone;
         [SerializeField, Min(0)] private int _minPopulation;
@@ -41,6 +43,10 @@ namespace SpaceStation.Data
         [SerializeField, Min(0.05f)] private float _eventIntensityMultiplier = 1f;
 
         public string DisplayName => _displayName;
+        /// <summary>13-0: 등급 전 시작 상태 (등급 수에 들지 않음).</summary>
+        public bool Ungraded => _ungraded;
+        /// <summary>화면 제목: "소형 정거장", 시작 상태는 이름 그대로 ("등급 없음").</summary>
+        public string StationTitle => _ungraded ? _displayName : _displayName + " 정거장";
         public GradeMilestone Milestone => _milestone;
         public int MinPopulation => _minPopulation;
         public int MinModules => _minModules;
