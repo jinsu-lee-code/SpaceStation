@@ -14,7 +14,10 @@ namespace SpaceStation.UI
     /// - 위 얇은 하이라이트 선 + 아래 상태 막대 (가능 청록 · 비활성 회색 · <see cref="Status"/>로 바꿈, 예: 자원 부족 노랑)
     /// - 단축키 배지: 버튼 글의 " (F)" 같은 키 표시를 오른쪽 위 작은 상자로 옮김 (글이 바뀔 때마다 자동)
     /// 글자 자체는 누를 때 말고는 움직이지 않는다 (일렁임 방지).
+    /// 실행 순서를 맨 뒤로: 창들이 LateUpdate에서 버튼 글을 다시 쓴 뒤 같은 프레임에 키 표시를 배지로 옮김
+    /// (사용자 피드백 2026-10-14: 먼저 돌던 재건축 · 옮기기 버튼은 틱마다 한 프레임 " (B)"가 보여 아이콘이 지직거렸음).
     /// </summary>
+    [DefaultExecutionOrder(2000)]
     public sealed class HoloButtonFx : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler
     {
         private static readonly Regex KeyPattern = new Regex(@"\s\(([^)\s]{1,6})\)");
