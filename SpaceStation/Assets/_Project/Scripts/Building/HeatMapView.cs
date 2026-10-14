@@ -80,6 +80,7 @@ namespace SpaceStation.Building
         private WorldMarkerLayer _layer;
         private Mesh _cube;
         private BuildController _build;
+        private SpaceStation.Interior.InteriorMode _interior;
         private ModuleData _radiator;
         private readonly RaycastHit[] _hits = new RaycastHit[16];
         private readonly List<(Vector3Int cell, int helps, float relief)> _spots = new List<(Vector3Int, int, float)>();
@@ -102,6 +103,7 @@ namespace SpaceStation.Building
             _cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
             _heat.Changed += MarkDirty;
             _build = FindFirstObjectByType<BuildController>();
+            _interior = FindFirstObjectByType<SpaceStation.Interior.InteriorMode>();
             BuildHud();
         }
 
@@ -163,7 +165,7 @@ namespace SpaceStation.Building
 
         private void LateUpdate()
         {
-            bool active = _heat.Active && !_station.Simulation.Session.IsGameOver;
+            bool active = _heat.Active && !_station.Simulation.Session.IsGameOver && (_interior == null || !_interior.IsInside); // 내부 방문 중에는 숨김
             if (!active)
             {
                 if (_used > 0 || !string.IsNullOrEmpty(_hud.text))

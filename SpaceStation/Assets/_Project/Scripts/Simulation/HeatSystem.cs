@@ -22,6 +22,7 @@ namespace SpaceStation.Simulation
         private readonly List<ModuleInstance> _neighbors = new List<ModuleInstance>();
         private readonly List<ModuleInstance> _damageNow = new List<ModuleInstance>();
         private readonly List<ModuleInstance> _keys = new List<ModuleInstance>();
+        private readonly Dictionary<ModuleInstance, int> _near = new Dictionary<ModuleInstance, int>();
 
         /// <summary>열 지도가 다시 계산됨 (UI).</summary>
         public event Action Changed;
@@ -111,18 +112,32 @@ namespace SpaceStation.Simulation
                 }
                 if (_sources.Count > 0)
                 {
+                    // 12-3c-opt: 발열원마다 주변 반경 2칸(5×5×5)만 격자에서 찾아 모듈별 최소 칸 거리로 더함
+                    // (예전: 모든 모듈 × 모든 발열원 칸 거리 비교 — 대륙급 모듈 579 · 발열원 83에서 틱당 29ms). 결과는 같음
                     float f1 = Sim.Balance.HeatFalloff1, f2 = Sim.Balance.HeatFalloff2;
-                    foreach (var m in grid.Modules)
+                    foreach (var s in _sources)
                     {
-                        float sum = 0f;
-                        foreach (var s in _sources)
+                        _near.Clear();
+                        foreach (var c in s.Cells)
                         {
-                            int d = s == m ? 0 : DefenseSystem.Distance(s.Cells, m.Cells);
-                            float k = d == 0 ? 1f : d == 1 ? f1 : d == 2 ? f2 : 0f;
-                            sum += s.Data.HeatOutput * k;
+                            for (int dx = -2; dx <= 2; dx++)
+                            for (int dy = -2; dy <= 2; dy++)
+                            for (int dz = -2; dz <= 2; dz++)
+                            {
+                                if (!grid.TryGetModule(new Vector3Int(c.x + dx, c.y + dy, c.z + dz), out var m))
+                                    continue;
+                                int d = m == s ? 0 : Math.Max(Math.Abs(dx), Math.Max(Math.Abs(dy), Math.Abs(dz)));
+                                if (!_near.TryGetValue(m, out int old) || d < old)
+                                    _near[m] = d;
+                            }
                         }
-                        if (sum > 0f)
-                            _heat[m] = sum;
+                        float output = s.Data.HeatOutput;
+                        foreach (var kv in _near)
+                        {
+                            float k = kv.Value == 0 ? 1f : kv.Value == 1 ? f1 : f2;
+                            _heat.TryGetValue(kv.Key, out float h);
+                            _heat[kv.Key] = h + output * k;
+                        }
                     }
                     // 방열판: 가동 중 + 바깥으로 노출된 면 → 맞닿은 모듈마다 뺌
                     foreach (var r in grid.Modules)

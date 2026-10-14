@@ -88,6 +88,8 @@ namespace SpaceStation.Interior
         [SerializeField] private string[] _hiddenPanels =
             { "BuildMenu", "BuildTabs", "SelectionActions", "Tooltip", "Tutorial", "ResearchPanel", "RosterPanel", "DamageMarkers", "AdjacencyMarkers", "EarlyWarning",
               "StatusBar" }; // 11-16 피드백: 바깥 건설 · 선택 안내(상태 표시줄)는 내부에서 숨김 (패드를 들면 패드 안 안내만)
+        /// <summary>12-3 합성 · 12-3c 정책 창 (나중에 생긴 HUD — 씬에 저장된 _hiddenPanels에 없어 내부에서도 보였음).</summary>
+        private static readonly string[] AlwaysHidden = { "RecipePanel", "PolicyPanel" };
         [Tooltip("일시정지로 들어갔을 때만 숨김 (시간이 흐르면 보임)")]
         [SerializeField] private string[] _pausedHiddenPanels = { "TimeControls", "ResourcePanel" };
 
@@ -139,6 +141,7 @@ namespace SpaceStation.Interior
         private TMP_Text _prompt;
         private TMP_Text _hint;
         private CanvasGroup _fade;
+        private TMP_Text _enterLabel;
 
         public bool IsInside => _inside;
 
@@ -218,7 +221,10 @@ namespace SpaceStation.Interior
             _busy = true;
             InputGate.Blocked = true; // 페이드 중에도 조작 막음
             AudioService.TryPlay(l => l.UiOpen);
+            if (_enterLabel != null)
+                _enterLabel.gameObject.SetActive(true);
             yield return Fade(0f, 1f, 0.2f);
+            yield return null; // 안내 글자가 그려진 뒤 내부 짓기 (큰 정거장은 여기서 몇 초)
 
             _inside = true;
             _selection.Select(null);
@@ -263,6 +269,7 @@ namespace SpaceStation.Interior
             _requests.TutorialHold = _incidents.TutorialHold = Tutorial != null;
             var spawn = _builder.SpawnPoint(module, out float spawnYaw);
             _player.Teleport(spawn + Vector3.up * 0.05f, spawnYaw);
+            UpdateNearbyRooms(module, force: true);
 
             _orbit = _camera.GetComponent<OrbitCameraController>();
             if (_orbit != null)
@@ -320,6 +327,8 @@ namespace SpaceStation.Interior
             _tutorialRetry = 0f;
             _station.Simulation.Tutorial?.ReportInside(true); // 11-18 들어가기 단계 완료 (끝난 튜토리얼도 위치는 알림 — 완료 카드 표시용)
 
+            if (_enterLabel != null)
+                _enterLabel.gameObject.SetActive(false);
             yield return Fade(1f, 0f, 0.3f);
             _busy = false;
         }
@@ -493,6 +502,7 @@ namespace SpaceStation.Interior
                     return;
             }
             UpdateRoomTitle();
+            UpdateNearbyRooms(RoomAtPlayer(), force: false);
             UpdateInteraction();
             if (_atmosphere != null)
             {
@@ -753,6 +763,49 @@ namespace SpaceStation.Interior
             if (_exteriorView != null)
                 _exteriorView.CollectWindows();
             _currentModule = null; // 제목 다시
+            UpdateNearbyRooms(module, force: true);
+        }
+
+        // ---------------- 12-3c-opt 근접 활성화 ----------------
+        // 내부는 정거장 전체 방을 짓는다 (패드 지도 · 빠른 이동 · 사고/부탁이 모든 방을 씀). 대륙급(모듈 579)에서는 방을 모두 켜 두면
+        // 조명 약 5,900 · 문 약 2,200 · 주민 400(스키닝) · 메시 약 38,700이 한꺼번에 돌아 프레임당 약 52ms (사용자 피드백 2026-10-14: 내부에서 렉).
+        // → 플레이어가 있는 방에서 열린 통로로 NearbyDepth단계까지 이어진 방만 켜고 나머지 방(그 방의 조명 · 문 · 주민 · 연출)은 꺼 둔다.
+        // 벽 너머는 보이지 않고 통로로 이어진 방만 문 · 튜브 너머로 보이므로 화면은 같다.
+        private const int NearbyDepth = 2;
+        private ModuleInstance _nearbyCenter;
+        private readonly HashSet<ModuleInstance> _nearby = new HashSet<ModuleInstance>();
+        private readonly HashSet<ModuleInstance> _nearbyNext = new HashSet<ModuleInstance>();
+        private readonly List<ModuleInstance> _frontier = new List<ModuleInstance>();
+        private readonly List<ModuleInstance> _frontierNext = new List<ModuleInstance>();
+        private readonly HashSet<ModuleInstance> _linked = new HashSet<ModuleInstance>();
+
+        private void UpdateNearbyRooms(ModuleInstance center, bool force)
+        {
+            if (_layout == null || center == null || (!force && center == _nearbyCenter))
+                return;
+            _nearbyCenter = center;
+            _nearbyNext.Clear();
+            _nearbyNext.Add(center);
+            _frontier.Clear();
+            _frontier.Add(center);
+            for (int depth = 0; depth < NearbyDepth; depth++)
+            {
+                _frontierNext.Clear();
+                foreach (var room in _frontier)
+                {
+                    _builder.CollectLinkedRooms(room, _linked);
+                    foreach (var n in _linked)
+                    {
+                        if (_nearbyNext.Add(n))
+                            _frontierNext.Add(n);
+                    }
+                }
+                _frontier.Clear();
+                _frontier.AddRange(_frontierNext);
+            }
+            _builder.ShowOnly(_nearbyNext); // 방 + 닿은 통로 튜브(튜브 조명 약 1,300개)
+            _nearby.Clear();
+            _nearby.UnionWith(_nearbyNext);
         }
 
         private void HandleGridChanged(ModuleInstance _)
@@ -805,6 +858,7 @@ namespace SpaceStation.Interior
                 return;
             }
             HideList(_hiddenPanels);
+            HideList(AlwaysHidden); // 12-3 · 12-3c 창 (씬에 저장된 목록에 없어도)
             if (_pausedByUs)
                 HideList(_pausedHiddenPanels);
         }
@@ -900,6 +954,11 @@ namespace SpaceStation.Interior
             _fade = fade.gameObject.AddComponent<CanvasGroup>();
             _fade.alpha = 0f;
             _fade.blocksRaycasts = false;
+            // 12-3c-opt: 큰 정거장은 내부를 짓는 동안 화면이 검게 1~3초 멈춤 → 안내 글자 (사용자 피드백 2026-10-14)
+            _enterLabel = ui.Label(fade, "내부로 들어가는 중...", 26f, TextAlignmentOptions.Center);
+            HoloUi.Stretch(_enterLabel.rectTransform);
+            _enterLabel.color = new Color(0.75f, 0.88f, 1f);
+            _enterLabel.gameObject.SetActive(false); // 들어갈 때만 (나갈 때 · 빠른 이동 페이드에는 없음)
             // 들어갈 때 페이드가 보이도록 오버레이 자체는 켜 두고 내용만 숨김
             _overlay.gameObject.SetActive(true);
             SetContentVisible(false);

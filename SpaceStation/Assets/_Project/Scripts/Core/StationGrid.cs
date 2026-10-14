@@ -21,6 +21,8 @@ namespace SpaceStation.Core
         public event Action<ModuleInstance, IReadOnlyList<Vector3Int>> ModuleMoved;
 
         public IReadOnlyList<ModuleInstance> Modules => _modules;
+        /// <summary>12-3c-opt: 배치 · 철거 · 이동마다 1씩 오름 (모양이 바뀌었는지 캐시가 확인).</summary>
+        public int Version { get; private set; }
         public int ModuleCount => _modules.Count;
 
         public bool IsOccupied(Vector3Int cell)
@@ -83,6 +85,7 @@ namespace SpaceStation.Core
             foreach (var cell in cells)
                 _occupancy.Add(cell, module);
             _modules.Add(module);
+            Version++;
 
             ModulePlaced?.Invoke(module);
             return true;
@@ -95,6 +98,7 @@ namespace SpaceStation.Core
 
             foreach (var cell in module.Cells)
                 _occupancy.Remove(cell);
+            Version++;
 
             ModuleRemoved?.Invoke(module);
             return true;
@@ -126,6 +130,7 @@ namespace SpaceStation.Core
             module.Relocate(origin, GridDirections.NormalizeRotation(rotation), cells);
             foreach (var cell in cells)
                 _occupancy.Add(cell, module);
+            Version++;
 
             ModuleMoved?.Invoke(module, oldCells);
             return true;

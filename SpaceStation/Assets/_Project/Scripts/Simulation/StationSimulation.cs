@@ -550,10 +550,36 @@ namespace SpaceStation.Simulation
 
         // ---------------- 모듈 배치 · 철거 · 파괴 ----------------
 
+        private bool _bulkPlacing;
+
+        /// <summary>
+        /// 12-3c-opt 세이브 복원: 모듈을 한꺼번에 놓는 동안 인접 효과 · 연결 · 용량 · 등급의 전체 재계산을 미루고 <see cref="EndBulkPlace"/>에서 한 번만
+        /// (예전: 모듈마다 정거장 전체 재계산 — 대륙급 579개 복원 1.8초). 끝난 상태는 같다.
+        /// </summary>
+        internal void BeginBulkPlace() => _bulkPlacing = true;
+
+        internal void EndBulkPlace()
+        {
+            if (!_bulkPlacing)
+                return;
+            _bulkPlacing = false;
+            Adjacency.Recalculate(Grid);
+            if (Connectivity.Root != null)
+                Connectivity.Recalculate();
+            _stats.RefreshCapacities();
+            EvaluateProgression();
+        }
+
         private void HandleModulePlaced(ModuleInstance module)
         {
             if (module.Data != null && module.Data.Removable)
                 Durability.Track(module); // 코어(철거 불가)는 노후화 없음
+            if (_bulkPlacing)
+            {
+                foreach (var s in _systems)
+                    s.OnModulePlaced(module);
+                return;
+            }
             Adjacency.Recalculate(Grid);
             if (Connectivity.Root != null)
                 Connectivity.Recalculate();

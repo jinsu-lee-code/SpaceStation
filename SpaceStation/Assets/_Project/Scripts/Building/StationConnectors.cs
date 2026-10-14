@@ -100,28 +100,43 @@ namespace SpaceStation.Building
         /// <summary>11-8 바깥 창 카메라: 모듈(칸 목록)에 닿은 통로 렌더러를 모음 (창 바로 앞을 통로 끝이 가리지 않게).</summary>
         public void CollectRenderersTouching(IEnumerable<Vector3Int> cells, List<Renderer> into)
         {
-            foreach (var pair in _connectors)
+            // 12-3c-opt: 통로는 면이 맞닿은 두 칸 사이에만 있으므로 칸마다 6면만 찾아봄
+            // (예전: 모든 통로를 훑음 — 대륙급 내부 바깥 창이 그릴 때마다 반복돼 프레임당 약 13ms)
+            _found.Clear();
+            foreach (var cell in cells)
             {
-                bool touches = false;
-                foreach (var cell in cells)
+                foreach (var dir in GridDirections.Faces)
                 {
-                    if (pair.Key.Item1 == cell || pair.Key.Item2 == cell)
+                    if (_connectors.TryGetValue(ConnectorLayout.MakeKey(cell, cell + dir), out var c) && c.Root != null && _found.Add(c))
                     {
-                        touches = true;
-                        break;
+                        into.AddRange(c.Hull);
+                        into.AddRange(c.Strips);
                     }
                 }
-                if (!touches || pair.Value.Root == null)
-                    continue;
-                into.AddRange(pair.Value.Hull);
-                into.AddRange(pair.Value.Strips);
             }
         }
+
+        private readonly HashSet<Connector> _found = new HashSet<Connector>();
+        private readonly HashSet<Connector> _near = new HashSet<Connector>();
 
         /// <summary>11-8 바깥 창 카메라: 경계 상자(여유 margin)가 점을 품은 통로 렌더러를 모음 (통로 속에서 자기 껍데기를 숨기려고).</summary>
         public void CollectRenderersContaining(Vector3 point, float margin, List<Renderer> into)
         {
-            foreach (var c in _connectors.Values)
+            // 12-3c-opt: 점이 든 칸 둘레(3×3×3)의 통로만 확인 (예전: 모든 통로)
+            _near.Clear();
+            var center = GridConfig.WorldToCell(point);
+            for (int x = -1; x <= 1; x++)
+            for (int y = -1; y <= 1; y++)
+            for (int z = -1; z <= 1; z++)
+            {
+                var cell = center + new Vector3Int(x, y, z);
+                foreach (var dir in GridDirections.Faces)
+                {
+                    if (_connectors.TryGetValue(ConnectorLayout.MakeKey(cell, cell + dir), out var near))
+                        _near.Add(near);
+                }
+            }
+            foreach (var c in _near)
             {
                 if (c.Root == null)
                     continue;

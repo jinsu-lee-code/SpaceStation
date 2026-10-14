@@ -297,6 +297,8 @@ namespace SpaceStation.Simulation
                     Radius = Effects != null ? Effects.ServiceRadius(data) : data.ServiceRadius,
                     Gravity = gravity,
                     Social = social,
+                    // 여가는 가동 중일 때만 — 틱마다 모듈당 한 번 (예전: 집마다 다시 계산)
+                    SocialOn = social && (Strength == null || Strength(s) > 0f),
                 });
             }
         }
@@ -308,6 +310,7 @@ namespace SpaceStation.Simulation
             public int Radius;
             public bool Gravity;
             public bool Social;
+            public bool SocialOn;
         }
 
         private readonly List<EnvironmentSource> _sources = new List<EnvironmentSource>();
@@ -324,17 +327,55 @@ namespace SpaceStation.Simulation
                 if (Contains(_config.NoiseSources, n.Data)) env |= HomeEnvironment.Noise;
                 if (Contains(_config.NatureSources, n.Data)) env |= HomeEnvironment.Nature;
             }
-            var homeBox = new CellBox(home.Cells);
-            foreach (var src in _sources)
+            foreach (int i in SourcesInRange(home))
             {
-                var s = src.Module;
-                bool inRange = s == home || CellBox.InRange(s.Cells, src.Box, home.Cells, homeBox, src.Radius);
-                if (!inRange)
-                    continue;
+                var src = _sources[i];
                 if (src.Gravity) env |= HomeEnvironment.Gravity;
-                if (src.Social && (Strength == null || Strength(s) > 0f)) env |= HomeEnvironment.Social; // 여가는 가동 중일 때만
+                if (src.SocialOn) env |= HomeEnvironment.Social; // 여가는 가동 중일 때만
             }
             return env;
+        }
+
+        // 12-3c-opt: 집마다 범위 안 환경 모듈 목록을 정거장 모양(Grid.Version) · 환경 모듈 목록 · 반경이 바뀔 때만 다시 계산
+        // (예전: 매 틱 집 × 환경 모듈 범위 비교 — 대륙급 집 182 × 179 = 틱당 10ms). 가동 여부(여가)는 매 틱 확인
+        private readonly Dictionary<ModuleInstance, List<int>> _inRange = new Dictionary<ModuleInstance, List<int>>();
+        private readonly List<(ModuleInstance module, int radius)> _rangeKey = new List<(ModuleInstance, int)>();
+        private int _rangeVersion = -1;
+
+        private List<int> SourcesInRange(ModuleInstance home)
+        {
+            if (!RangeCacheValid())
+            {
+                _inRange.Clear();
+                _rangeKey.Clear();
+                foreach (var s in _sources)
+                    _rangeKey.Add((s.Module, s.Radius));
+                _rangeVersion = Grid.Version;
+            }
+            if (_inRange.TryGetValue(home, out var list))
+                return list;
+            list = new List<int>();
+            var homeBox = new CellBox(home.Cells);
+            for (int i = 0; i < _sources.Count; i++)
+            {
+                var src = _sources[i];
+                if (src.Module == home || CellBox.InRange(src.Module.Cells, src.Box, home.Cells, homeBox, src.Radius))
+                    list.Add(i);
+            }
+            _inRange[home] = list;
+            return list;
+        }
+
+        private bool RangeCacheValid()
+        {
+            if (_rangeVersion != Grid.Version || _rangeKey.Count != _sources.Count)
+                return false;
+            for (int i = 0; i < _sources.Count; i++)
+            {
+                if (_rangeKey[i].module != _sources[i].Module || _rangeKey[i].radius != _sources[i].Radius)
+                    return false;
+            }
+            return true;
         }
 
         private bool IsActive(ModuleInstance m) => Connectivity == null || Connectivity.IsActive(m);

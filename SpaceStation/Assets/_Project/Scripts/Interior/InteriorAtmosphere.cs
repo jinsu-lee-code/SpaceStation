@@ -138,6 +138,8 @@ namespace SpaceStation.Interior
             {
                 if (!room.HasMood)
                     continue;
+                if (room.Parent != null && !room.Parent.gameObject.activeInHierarchy)
+                    continue; // 12-3c-opt: 근처가 아니라 꺼 둔 방 (InteriorMode 근접 활성화) — 켜질 때 다시 맞춤
                 float factor = Factor(room, now, out var tint);
                 Apply(room, factor, tint);
                 if (room.Mood.Mode == RoomLightMode.Alarm)

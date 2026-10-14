@@ -176,6 +176,7 @@ namespace SpaceStation.Simulation
 
             // 2. 모듈 (규칙·비용 없이 그대로 배치) + 내구도
             var placed = new ModuleInstance[s.Modules.Count];
+            sim.BeginBulkPlace(); // 12-3c-opt: 전체 재계산은 다 놓은 뒤 한 번
             for (int i = 0; i < s.Modules.Count; i++)
             {
                 var m = s.Modules[i];
@@ -189,6 +190,7 @@ namespace SpaceStation.Simulation
                 if (m.HasDurability)
                     sim.Durability.Restore(module, m.Durability, m.MaxDurability, m.Maintenances);
             }
+            sim.EndBulkPlace();
 
             // 3. 재고·인구·배터리 (한도는 배치 때 다시 계산됨)
             foreach (var v in s.Stock)

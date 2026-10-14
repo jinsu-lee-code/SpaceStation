@@ -167,6 +167,7 @@ namespace SpaceStation.Interior
             _doors.Clear();
             _hatches.Clear();
             _open.Clear();
+            _tubes.Clear();
             _layout = null;
         }
 
@@ -222,7 +223,7 @@ namespace SpaceStation.Interior
                 layout.TryGetRoom(cell, out var a);
                 layout.TryGetRoom(cell + dir, out var b);
                 var span = InteriorGeometry.Tube(cell, dir, DoorDepth(a.Module, cell, dir), DoorDepth(b.Module, cell + dir, -dir));
-                BuildTube(span, tubes);
+                _tubes.Add((BuildTube(span, tubes), a.Module, b.Module));
             }
 
             // 해치 도착점 = 맞은편 해치 자리 (템플릿은 칸 중심에서 옮겨 둘 수 있음)
@@ -574,7 +575,7 @@ namespace SpaceStation.Interior
 
         // ---------------- 연결 튜브 ----------------
 
-        private void BuildTube(TubeSpan span, Transform parent)
+        private GameObject BuildTube(TubeSpan span, Transform parent)
         {
             var start = _root.position + span.Start;
             var end = _root.position + span.End;
@@ -628,7 +629,34 @@ namespace SpaceStation.Interior
             light.color = new Color(0.85f, 0.95f, 1f);
             light.range = Mathf.Max(3f, len + 2f);
             light.intensity = 2f;
+            return go;
         }
+
+        /// <summary>
+        /// 12-3c-opt 근접 활성화: rooms에 든 방(과 그 방에 닿은 통로 튜브)만 켜고 나머지는 끔.
+        /// 방 오브젝트 아래의 조명 · 문 · 주민 · 연출도 같이 꺼진다.
+        /// </summary>
+        public void ShowOnly(HashSet<ModuleInstance> rooms)
+        {
+            foreach (var pair in _roomParents)
+            {
+                if (pair.Value == null)
+                    continue;
+                bool on = rooms.Contains(pair.Key);
+                if (pair.Value.gameObject.activeSelf != on)
+                    pair.Value.gameObject.SetActive(on);
+            }
+            foreach (var (go, a, b) in _tubes)
+            {
+                if (go == null)
+                    continue;
+                bool on = rooms.Contains(a) || rooms.Contains(b);
+                if (go.activeSelf != on)
+                    go.SetActive(on);
+            }
+        }
+
+        private readonly List<(GameObject Go, ModuleInstance A, ModuleInstance B)> _tubes = new List<(GameObject, ModuleInstance, ModuleInstance)>();
 
         /// <summary>튜브 조각 (방 소속 아님: 어둡게 하지 않음, 강조색은 기본색).</summary>
         private void Tube(InteriorKitPiece kitPiece, Transform parent, Vector3 position, Quaternion rotation, Vector3 scale)
