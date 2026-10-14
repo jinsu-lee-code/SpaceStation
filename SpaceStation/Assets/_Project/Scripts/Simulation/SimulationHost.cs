@@ -45,6 +45,9 @@ namespace SpaceStation.Simulation
         [SerializeField] private PolicyConfig _policies;
         [Tooltip("지구급 방문 세력 + 평판 (메뉴 SpaceStation/Grade Rules/Setup Contact가 채움). 비면 없음")]
         [SerializeField] private ContactConfig _contact;
+        [Header("Chapters (13-1)")]
+        [Tooltip("장 틀 (메뉴 SpaceStation/Chapters/Setup Greybox가 채움). 비면 등급 방식 (해금 · 이벤트 규모를 등급이 정함)")]
+        [SerializeField] private ChapterConfig _chapters;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -69,6 +72,7 @@ namespace SpaceStation.Simulation
             Difficulty = GameStartOptions.Difficulty != null ? GameStartOptions.Difficulty : _defaultDifficulty;
             var balance = Difficulty != null ? Difficulty.ApplyTo(_balance) : _balance;
             var grades = Difficulty != null ? Difficulty.ApplyTo(_grades) : _grades;
+            var chapters = _chapters != null && Difficulty != null ? Difficulty.ApplyTo(_chapters) : _chapters;
             Simulation = new StationSimulation(new StationSimulationSettings
             {
                 Balance = balance,
@@ -84,6 +88,7 @@ namespace SpaceStation.Simulation
                 Policies = _policies,
                 Contact = _contact,
                 ResearchExpansion = _researchExpansion,
+                Chapters = chapters,
             });
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)

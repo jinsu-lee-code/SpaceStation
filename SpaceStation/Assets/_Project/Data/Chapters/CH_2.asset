@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5779d0e21f0e9647a0c673d17ae6ed5, type: 3}
+  m_Name: CH_2
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ChapterData
+  _displayName: "2\uC7A5"
+  _subtitle: "\uBC30\uCE58"
+  _unlocks:
+  - {fileID: 11400000, guid: 373f8d20bbedd74469e7875858728843, type: 2}
+  - {fileID: 11400000, guid: baf883a30124ece408a78a2d102218bf, type: 2}
+  - {fileID: 11400000, guid: 84154bcd603872b4484fcdf49e3cf090, type: 2}
+  - {fileID: 11400000, guid: 121f148dbad6ad14ba4fbda33183095a, type: 2}
+  - {fileID: 11400000, guid: 6988f613cd34c27478b81fd8985a6995, type: 2}
+  - {fileID: 11400000, guid: 1b33e37775068cf4fa46c16ee0e45c2b, type: 2}
+  - {fileID: 11400000, guid: 4ab255fdd7b523f4c83419b6c491f16e, type: 2}
+  _newNeeds: 01000000
+  _rules: 0
+  _meteorHitsMin: 2
+  _meteorHitsMax: 3
+  _eventIntervalMultiplier: 0.65
+  _eventIntensityMultiplier: 1.3
+  _goals:
+  - _kind: 0
+    _text: 
+    _optional: 0
+    _grade: 2
+    _module: {fileID: 0}
+    _count: 0
+    _resource: 0
+    _amount: 0
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 3
+    _text: 
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 1
+    _resource: 4
+    _amount: 150
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 1
+    _rewardFreeRepairs: 0
+  _climax:
+    _kind: 1
+    _title: "\uC6B4\uC11D \uC5F0\uD0C0 (\uC784\uC2DC \uC808\uC815)"
+    _description: "\uC911\uD615 \uC815\uAC70\uC7A5\uC73C\uB85C \uCEE4\uC9C0\uBA70,
+      \uC5B4\uB514\uC5D0 \uBB34\uC5C7\uC744 \uB458\uC9C0\uAC00 \uC0DD\uC874\uC744
+      \uAC00\uB978\uB2E4. \xB7 \uC6B4\uC11D 3\uD30C \xD7 2\uAC1C"
+    _warningSeconds: 180
+    _waves: 3
+    _waveInterval: 20
+    _hitsPerWave: 2
+    _settleSeconds: 30
+    _cleanMaxDamaged: 2
+    _hurtMaxDestroyed: 0
+  _choices:
+  - _id: reach
+    _title: "\uBA40\uB9AC \uBED7\uAE30"
+    _description: "\uC0C8 \uC2E0\uD638 \uCABD\uC73C\uB85C \uC815\uAC70\uC7A5\uC744
+      \uB113\uD798 (\uD6A8\uACFC\uB294 13-2 \uCF54\uC5B4 \uC131\uACA9)"
+  - _id: shield
+    _title: "\uC548\uCABD \uB2E4\uC9C0\uAE30"
+    _description: "\uC911\uC2EC\uBD80\uB97C \uACB9\uACB9\uC774 \uAC10\uC308 (\uD6A8\uACFC\uB294
+      13-2 \uCF54\uC5B4 \uC131\uACA9)"

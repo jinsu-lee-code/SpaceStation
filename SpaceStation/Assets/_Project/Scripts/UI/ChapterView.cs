@@ -1,0 +1,441 @@
+using System.Text;
+using SpaceStation.Audio;
+using SpaceStation.Building;
+using SpaceStation.Core;
+using SpaceStation.Data;
+using SpaceStation.Simulation;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace SpaceStation.UI
+{
+    /// <summary>
+    /// 13-1 장 틀 화면 (그레이박스, 사용자 결정 2026-10-15):
+    /// - 오른쪽 장 카드 (정거장 패널 아래): 장 이름 · 준비 목표(필수 · 선택 + 보상, 진행 수치) · 단계 줄
+    ///   (준비 = 안내 / 예고 = 절정까지 남은 시간 + [바로 맞이하기] / 절정 = 진행 막대 + 상황).
+    /// - 장 결과 · 방향 선택 (가운데, 시간 멈춤): 절정 결과 3등급 + 사유 + 걸린 시간, 방향 선택지 버튼 (없으면 [다음 장으로]).
+    /// - 캠페인 끝 "이어질 이야기" (마지막 장 전환 뒤): [계속 플레이] [메인 메뉴].
+    /// 등급 ★ 배너 · 결과 화면은 이것으로 대체된다 (ResultScreen이 장 틀이면 건너뜀). 내용은 코드로 만든다.
+    /// </summary>
+    [DefaultExecutionOrder(-240)]
+    public sealed class ChapterView : MonoBehaviour
+    {
+        private const float CardWidth = 430f;
+        private const float ModalWidth = 900f;
+        private const string Soft = "#C8D2DE";
+        private const string Gold = "#FFD36A";
+
+        [SerializeField] private StationController _station;
+        [SerializeField] private SimulationClock _clock;
+        [SerializeField] private TMP_FontAsset _font;
+        [SerializeField] private Sprite _fillSprite;
+        [SerializeField] private Sprite _frameSprite;
+        [SerializeField] private Sprite _buttonSprite;
+        [SerializeField] private HoloArt _holoArt;
+        [Tooltip("정거장 패널 (카드를 그 아래 끝에 붙임 — 경고 줄이 생기면 패널이 길어짐). 없으면 카드 위치 고정")]
+        [SerializeField] private RectTransform _stationPanel;
+        [Tooltip("카드 위치 (오른쪽 위 기준: 오른쪽 끝에서, 위 끝에서) — 정거장 패널이 없을 때")]
+        [SerializeField] private Vector2 _cardOffset = new Vector2(-24f, -408f);
+        [SerializeField] private float _panelGap = 14f;
+        [SerializeField] private float _refreshSeconds = 0.2f;
+
+        private HoloUi _ui;
+        private StationSimulation _sim;
+        private ChapterSystem _chapters;
+        private float _nextRefresh;
+
+        // 카드
+        private RectTransform _cardHolder;
+        private RectTransform _card;
+        private UiTween _cardTween;
+        private TMP_Text _cardHeader, _cardTitle, _goals, _phase;
+        private RectTransform _barRoot, _barFill;
+        private Button _climaxNow;
+
+        // 결과 · 선택 / 캠페인 끝
+        private RectTransform _modalRoot;
+        private CanvasGroup _modalGroup;
+        private RectTransform _modal;
+        private UiTween _modalTween;
+        private HoloFx _modalFx;
+        private TMP_Text _modalTitle, _modalBody;
+        private RectTransform _buttonRow;
+        private bool _modalOpen;
+
+        private readonly StringBuilder _sb = new StringBuilder();
+
+        private void Start()
+        {
+            _sim = _station != null ? _station.Simulation : null;
+            _chapters = _sim?.Chapters;
+            if (_chapters == null)
+            {
+                gameObject.SetActive(false);
+                return;
+            }
+            _ui = HoloUi.For(_holoArt, _font, _fillSprite, _frameSprite, _buttonSprite);
+            BuildCard();
+            BuildModal();
+            _chapters.ClimaxEnded += HandleClimaxEnded;
+            _chapters.ChapterStarted += HandleChapterStarted;
+            _chapters.CampaignFinished += HandleCampaignFinished;
+            _cardTween.Play(restart: true);
+            // 불러온 판이 전환 · 끝 상태면 그 화면부터
+            if (_chapters.Phase == ChapterPhase.Transition)
+                ShowResult(_chapters.LastRecord);
+            else if (_chapters.Phase == ChapterPhase.Finished)
+                ShowEnding();
+            Refresh();
+        }
+
+        private void OnDestroy()
+        {
+            if (_chapters == null)
+                return;
+            _chapters.ClimaxEnded -= HandleClimaxEnded;
+            _chapters.ChapterStarted -= HandleChapterStarted;
+            _chapters.CampaignFinished -= HandleCampaignFinished;
+        }
+
+        private void Update()
+        {
+            if (_ui == null)
+                return;
+            _cardTween.Update();
+            _modalTween.Update();
+            if (_sim.Session.IsGameOver)
+            {
+                if (_cardTween.Visible)
+                    _cardTween.Hide();
+                if (_modalOpen)
+                    CloseModal(resume: false);
+                return;
+            }
+            FollowStationPanel();
+            if (Time.unscaledTime >= _nextRefresh)
+            {
+                _nextRefresh = Time.unscaledTime + _refreshSeconds;
+                Refresh();
+            }
+        }
+
+        private readonly Vector3[] _corners = new Vector3[4];
+
+        /// <summary>정거장 패널 아래 끝에 카드를 붙임 (자원 경고 줄로 패널 높이가 바뀜).</summary>
+        private void FollowStationPanel()
+        {
+            if (_stationPanel == null || !_stationPanel.gameObject.activeInHierarchy)
+                return;
+            var self = (RectTransform)transform;
+            _stationPanel.GetWorldCorners(_corners);
+            float bottom = self.InverseTransformPoint(_corners[0]).y;
+            float y = Mathf.Round(bottom - self.rect.yMax - _panelGap - _cardOffset.y); // 카드 자리는 트윈이 정하므로 담는 칸을 옮김
+            if (Mathf.Abs(_cardHolder.anchoredPosition.y - y) > 0.5f)
+                _cardHolder.anchoredPosition = new Vector2(0f, y);
+        }
+
+        // ---------------- 만들기 ----------------
+
+        private void BuildCard()
+        {
+            _cardHolder = HoloUi.Rect("CardHolder", transform);
+            HoloUi.Stretch(_cardHolder);
+            _card = HoloUi.Rect("ChapterCard", _cardHolder);
+            _card.anchorMin = _card.anchorMax = _card.pivot = new Vector2(1f, 1f);
+            _card.anchoredPosition = _cardOffset;
+            _ui.Panel(_card.gameObject, HudTheme.PanelFill, HudTheme.Accent);
+            HoloUi.Decorative((RectTransform)_card.Find("Frame"));
+            var group = _card.gameObject.AddComponent<CanvasGroup>();
+            var layout = _card.gameObject.AddComponent<VerticalLayoutGroup>();
+            layout.padding = new RectOffset(18, 18, 14, 14);
+            layout.spacing = 6f;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+            var fitter = _card.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            _card.sizeDelta = new Vector2(CardWidth, 0f);
+
+            _cardHeader = _ui.Label(_card, "", HudTheme.SmallSize, TextAlignmentOptions.Left);
+            _cardTitle = _ui.Label(_card, "", HudTheme.TitleSize, TextAlignmentOptions.Left, wrap: true);
+            _cardTitle.fontStyle = FontStyles.Bold;
+            HoloUi.Glow(_cardTitle, 0.4f);
+            _goals = _ui.Label(_card, "", 17f, TextAlignmentOptions.TopLeft, wrap: true);
+            _phase = _ui.Label(_card, "", 17f, TextAlignmentOptions.TopLeft, wrap: true);
+
+            _barRoot = _ui.Bar(_card, new Color(1f, 1f, 1f, 0.12f), HudTheme.Negative, out _barFill);
+            _barRoot.gameObject.AddComponent<LayoutElement>().preferredHeight = 8f;
+
+            var row = HoloUi.Rect("Buttons", _card);
+            row.gameObject.AddComponent<LayoutElement>().preferredHeight = 38f;
+            _climaxNow = _ui.TechButton(row, "바로 맞이하기", HudTheme.SmallSize, HandleClimaxNow);
+            var crt = (RectTransform)_climaxNow.transform;
+            crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(1f, 0.5f);
+            crt.anchoredPosition = Vector2.zero;
+            crt.sizeDelta = new Vector2(190f, 36f);
+
+            HoloGlitch.Add(_card, _holoArt);
+            _cardTween = new UiTween(_card, group, new Vector2(30f, 0f), 0.25f, 0.2f, glitch: true);
+        }
+
+        private void BuildModal()
+        {
+            _modalRoot = HoloUi.Rect("ChapterModal", transform);
+            HoloUi.Stretch(_modalRoot);
+            var dim = _modalRoot.gameObject.AddComponent<Image>();
+            dim.color = new Color(0f, 0.01f, 0.02f, 0.62f);
+            _modalGroup = _modalRoot.gameObject.AddComponent<CanvasGroup>();
+
+            _modal = HoloUi.Rect("Window", _modalRoot);
+            _modal.anchorMin = _modal.anchorMax = _modal.pivot = new Vector2(0.5f, 0.5f);
+            _modal.sizeDelta = new Vector2(ModalWidth, 560f);
+            _modalFx = _ui.Window(_modal.gameObject, new Color(0.02f, 0.045f, 0.07f, 0.99f), "CHAPTER");
+            var back = HoloUi.Rect("Backing", _modal);
+            HoloUi.Stretch(back, new Vector2(6f, 6f), new Vector2(-6f, -6f));
+            back.SetAsFirstSibling();
+            var bi = back.gameObject.AddComponent<Image>();
+            bi.color = new Color(0.015f, 0.03f, 0.05f, 0.97f);
+            bi.raycastTarget = false;
+
+            _modalTitle = _ui.Label(_modal, "", 40f, TextAlignmentOptions.Top, wrap: true);
+            _modalTitle.fontStyle = FontStyles.Bold;
+            HoloUi.Place(_modalTitle.rectTransform, new Vector2(40f, -34f), new Vector2(ModalWidth - 80f, 110f));
+            HoloUi.Glow(_modalTitle, 0.5f);
+            _modalBody = _ui.Label(_modal, "", 20f, TextAlignmentOptions.Top, wrap: true);
+            HoloUi.Place(_modalBody.rectTransform, new Vector2(60f, -150f), new Vector2(ModalWidth - 120f, 170f));
+
+            _buttonRow = HoloUi.Rect("Choices", _modal);
+            _buttonRow.anchorMin = new Vector2(0f, 0f);
+            _buttonRow.anchorMax = new Vector2(1f, 0f);
+            _buttonRow.pivot = new Vector2(0.5f, 0f);
+            _buttonRow.anchoredPosition = new Vector2(0f, 36f);
+            _buttonRow.sizeDelta = new Vector2(-80f, 200f);
+            var h = _buttonRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            h.spacing = 16f;
+            h.childControlWidth = true;
+            h.childControlHeight = true;
+            h.childForceExpandWidth = true;
+            h.childForceExpandHeight = true;
+            h.childAlignment = TextAnchor.LowerCenter;
+
+            HoloGlitch.Add(_modal, _holoArt);
+            _modalTween = new UiTween(_modal, _modalGroup, new Vector2(0f, -24f), 0.25f, 0.2f, glitch: true);
+            _modalTween.HideNow();
+            _modalGroup.blocksRaycasts = false;
+            _modalGroup.interactable = false;
+        }
+
+        // ---------------- 카드 ----------------
+
+        private static string Clock(float seconds)
+        {
+            int s = Mathf.Max(0, Mathf.CeilToInt(seconds));
+            return $"{s / 60}:{s % 60:00}";
+        }
+
+        private static string Number(float v) => Mathf.Abs(v - Mathf.Round(v)) < 0.05f ? $"{Mathf.Round(v):0}" : $"{v:0.#}";
+
+        private void Refresh()
+        {
+            var ch = _chapters;
+            var data = ch.Current;
+            _cardHeader.SetText($"<color={Soft}>CHAPTER {ch.Index + 1} / {ch.Count}</color>");
+            _cardTitle.SetText(string.IsNullOrEmpty(data.Subtitle) ? data.DisplayName : $"{data.DisplayName}  <size=70%><color={Soft}>{data.Subtitle}</color></size>");
+
+            _sb.Clear();
+            var goals = data.Goals;
+            for (int i = 0; i < goals.Count; i++)
+            {
+                var g = goals[i];
+                bool done = ch.IsGoalDone(i);
+                ch.GoalProgress(i, out float cur, out float req);
+                string box = done ? $"<color={HudTheme.GreenHex}>■</color>" : "□";
+                string tag = g.Optional ? $"<color={Soft}>(선택)</color> " : "";
+                string count = req > 1f && !done ? $"  <color={Soft}>{Number(cur)}/{Number(req)}</color>" : "";
+                string text = done ? $"<color={Soft}>{ch.GoalText(i)}</color>" : ch.GoalText(i);
+                _sb.Append($"{box} {tag}{text}{count}");
+                if (g.Optional && g.HasReward && !done)
+                    _sb.Append($"\n    <size=86%><color={Gold}>보상 {ChapterSystem.RewardText(g)}</color></size>");
+                if (i < goals.Count - 1)
+                    _sb.Append('\n');
+            }
+            if (goals.Count == 0)
+                _sb.Append($"<color={Soft}>목표 없음</color>");
+            _goals.SetText(_sb.ToString());
+
+            var climax = data.Climax;
+            bool showBar = false, showNow = false;
+            switch (ch.Phase)
+            {
+                case ChapterPhase.Preparation:
+                    _phase.SetText($"<color={Soft}>필수 목표를 모두 채우면 절정 예고: <b>{climax.Title}</b></color>");
+                    break;
+                case ChapterPhase.Warning:
+                    _phase.SetText($"{HudTheme.Icon("warning")} <color={HudText.Orange}><b>{climax.Title}</b>까지 {Clock(ch.WarningLeft)}</color>"
+                                   + (string.IsNullOrEmpty(climax.Description) ? "" : $"\n<size=86%><color={Soft}>{climax.Description}</color></size>"));
+                    showNow = true;
+                    break;
+                case ChapterPhase.Climax:
+                    _phase.SetText($"{HudTheme.Icon("warning")} <color={HudText.Red}><b>{climax.Title}</b></color>  <size=86%>{ch.Climax?.Status}</size>");
+                    showBar = true;
+                    if (ch.Climax != null)
+                        HoloUi.SetBar(_barFill, ch.Climax.Progress);
+                    break;
+                case ChapterPhase.Transition:
+                    _phase.SetText($"<color={Soft}>방주의 방향을 고르세요</color>");
+                    break;
+                default:
+                    _phase.SetText($"<color={Gold}>이야기는 여기까지 · 계속 플레이 중</color>");
+                    break;
+            }
+            if (_barRoot.gameObject.activeSelf != showBar)
+                _barRoot.gameObject.SetActive(showBar);
+            if (_climaxNow.transform.parent.gameObject.activeSelf != showNow)
+                _climaxNow.transform.parent.gameObject.SetActive(showNow);
+        }
+
+        private void HandleClimaxNow()
+        {
+            if (_chapters.StartClimaxNow())
+                AudioService.TryPlay(l => l.UiClick);
+            Refresh();
+        }
+
+        // ---------------- 결과 · 선택 ----------------
+
+        private void HandleClimaxEnded(ChapterRecord record) => ShowResult(record);
+
+        private static string OutcomeText(ChapterOutcome o)
+        {
+            switch (o)
+            {
+                case ChapterOutcome.Clean: return $"<color={HudTheme.GreenHex}>깔끔히 버팀</color>";
+                case ChapterOutcome.Hurt: return $"<color={HudText.Orange}>피해를 입고 버팀</color>";
+                default: return $"<color={HudText.Red}>일부를 잃음</color>";
+            }
+        }
+
+        private void ShowResult(ChapterRecord record)
+        {
+            var data = _chapters.Current;
+            int seconds = Mathf.FloorToInt(record != null ? record.Seconds : _chapters.ChapterSeconds);
+            _modalTitle.SetText($"{data.DisplayName} 결과\n<size=70%>{(record != null ? OutcomeText(record.Outcome) : "")}</size>");
+            _sb.Clear();
+            _sb.Append($"<color={Soft}>{data.Climax.Title}</color>");
+            if (record != null && !string.IsNullOrEmpty(record.Summary))
+                _sb.Append($"  ·  {record.Summary}");
+            _sb.Append($"\n<color={Soft}>이 장에 걸린 시간</color> {seconds / 60}분 {seconds % 60:00}초");
+            var choices = data.Choices;
+            _sb.Append(choices.Count > 0
+                ? $"\n\n<color={Gold}>방주의 방향을 하나 고르세요</color>"
+                : _chapters.IsLast ? "" : $"\n\n<color={Soft}>다음 장으로 넘어갑니다</color>");
+            _modalBody.SetText(_sb.ToString());
+
+            ClearButtons();
+            if (choices.Count > 0)
+            {
+                for (int i = 0; i < choices.Count; i++)
+                {
+                    int index = i;
+                    var c = choices[i];
+                    string label = string.IsNullOrEmpty(c.Description) ? $"<b>{c.Title}</b>" : $"<b>{c.Title}</b>\n<size=78%><color={Soft}>{c.Description}</color></size>";
+                    AddButton(label, () => Choose(index), tall: true);
+                }
+            }
+            else
+                AddButton(_chapters.IsLast ? "이야기 마무리" : "다음 장으로", () => Choose(-1), tall: false);
+            OpenModal();
+        }
+
+        private void Choose(int index)
+        {
+            if (!_chapters.Choose(index))
+            {
+                AudioService.TryPlay(l => l.UiError);
+                return;
+            }
+            if (_chapters.Phase != ChapterPhase.Finished)
+                CloseModal(resume: true);
+            Refresh();
+        }
+
+        private void HandleChapterStarted(int index) => Refresh();
+
+        // ---------------- 캠페인 끝 ----------------
+
+        private void HandleCampaignFinished() => ShowEnding();
+
+        private void ShowEnding()
+        {
+            _modalTitle.SetText($"<color={Gold}>이어질 이야기</color>\n<size=60%>수직 단면 · {_chapters.Count}장까지</size>");
+            _sb.Clear();
+            foreach (var r in _chapters.Records)
+            {
+                var c = _chapters.GetChapter(r.Chapter);
+                string choice = "";
+                foreach (var option in c.Choices)
+                    if (option.Id == r.Choice)
+                        choice = $"  ·  방향 <b>{option.Title}</b>";
+                _sb.Append($"{c.DisplayName}  ·  {OutcomeText(r.Outcome)}{choice}\n");
+            }
+            _sb.Append($"\n<color={Soft}>다음 장은 아직 준비 중입니다. 지금 정거장으로 계속 플레이할 수 있습니다.</color>");
+            _modalBody.SetText(_sb.ToString());
+            ClearButtons();
+            AddButton("계속 플레이", () => CloseModal(resume: true), tall: false);
+            AddButton("메인 메뉴", () => SceneFader.Load(SceneNames.MainMenu), tall: false);
+            OpenModal();
+        }
+
+        // ---------------- 창 ----------------
+
+        private void ClearButtons()
+        {
+            for (int i = _buttonRow.childCount - 1; i >= 0; i--)
+            {
+                var old = _buttonRow.GetChild(i);
+                old.gameObject.SetActive(false); // 같은 프레임에 새 버튼과 함께 배치되지 않게 (Destroy는 프레임 끝)
+                old.SetParent(null, false);
+                Destroy(old.gameObject);
+            }
+        }
+
+        private void AddButton(string label, System.Action onClick, bool tall)
+        {
+            var b = _ui.TechButton(_buttonRow, label, 22f, onClick);
+            var text = b.GetComponentInChildren<TMP_Text>();
+            text.enableWordWrapping = true;
+            text.margin = new Vector4(14f, 6f, 14f, 6f);
+            var le = b.gameObject.AddComponent<LayoutElement>();
+            le.preferredHeight = tall ? 190f : 64f;
+            le.flexibleHeight = 0f;
+            _buttonRow.GetComponent<HorizontalLayoutGroup>().childForceExpandHeight = false;
+        }
+
+        private void OpenModal()
+        {
+            _modalRoot.SetAsLastSibling();
+            _modalOpen = true;
+            _modalGroup.blocksRaycasts = true;
+            _modalGroup.interactable = true;
+            _modalTween.Play(restart: true);
+            _modalFx?.Replay();
+            _clock.Clock.SetPaused(true); // 전환 동안 시간 멈춤 (사용자 결정)
+            _clock.InputLocked = true;
+            AudioService.TryPlay(l => l.UiOpen);
+        }
+
+        private void CloseModal(bool resume)
+        {
+            _modalOpen = false;
+            _modalGroup.blocksRaycasts = false;
+            _modalGroup.interactable = false;
+            _modalTween.Hide();
+            if (!resume)
+                return;
+            _clock.InputLocked = false;
+            _clock.Clock.SetPaused(false);
+        }
+    }
+}

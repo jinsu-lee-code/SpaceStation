@@ -92,8 +92,8 @@ namespace SpaceStation.UI
 
         private void HandleMilestone(int grade, GradeMilestone milestone)
         {
-            if (_mode == Mode.GameOver)
-                return;
+            if (_mode == Mode.GameOver || _progression.Chapters != null)
+                return; // 13-1 장 틀: 등급 ★ · 결과 화면은 장 결과(ChapterView)로 대체
             var p = _progression.Progression;
             string name = p.GetGrade(grade).DisplayName;
             if (milestone == GradeMilestone.Star)

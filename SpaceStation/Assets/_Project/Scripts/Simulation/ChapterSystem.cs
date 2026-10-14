@@ -279,8 +279,23 @@ namespace SpaceStation.Simulation
                 _done[i] = true;
                 if (goals[i].Optional)
                     GiveReward(goals[i]);
+                string reward = goals[i].Optional && goals[i].HasReward ? $" · 보상 {RewardText(goals[i])}" : "";
+                Sim.Report($"장 목표 완료: {GoalText(i)}{reward}", true);
                 GoalCompleted?.Invoke(i);
             }
+        }
+
+        /// <summary>선택 목표 보상 한 줄 ("금속 +50 · 연구 포인트 +1").</summary>
+        public static string RewardText(ChapterGoal g)
+        {
+            var parts = new List<string>();
+            foreach (var r in g.RewardResources)
+                parts.Add($"{r.Type.DisplayName()} +{r.Amount:0}");
+            if (g.RewardResearchPoints > 0)
+                parts.Add($"연구 포인트 +{g.RewardResearchPoints}");
+            if (g.RewardFreeRepairs > 0)
+                parts.Add($"무료 수리권 +{g.RewardFreeRepairs}");
+            return string.Join(" · ", parts);
         }
 
         private void GiveReward(ChapterGoal g)
@@ -369,6 +384,11 @@ namespace SpaceStation.Simulation
             if (raise)
             {
                 Sim.RefreshModuleStats(); // 새 요구 · 규칙이 바로 반영되게
+                var sb = new System.Text.StringBuilder($"{Current.DisplayName} 시작");
+                foreach (var m in Current.Unlocks)
+                    if (m != null)
+                        sb.Append($"  ·  {m.DisplayName} 해금");
+                Sim.Report(sb.ToString(), true);
                 ChapterStarted?.Invoke(Index);
             }
         }
@@ -377,6 +397,8 @@ namespace SpaceStation.Simulation
         {
             Phase = ChapterPhase.Warning;
             WarningLeft = Current.Climax.WarningSeconds;
+            if (WarningLeft > 0f)
+                Sim.Report($"절정 예고: {Current.Climax.Title} · {WarningLeft / 60f:0.#}분 뒤 (대비하세요)", false);
             WarningStarted?.Invoke();
             if (WarningLeft <= 0f)
                 BeginClimax();

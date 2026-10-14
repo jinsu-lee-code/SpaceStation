@@ -363,10 +363,11 @@ namespace SpaceStation.UI
             {
                 var sb = new System.Text.StringBuilder();
                 sb.Append($"<color=#7CFF9A><b>등급 상승: {grade.DisplayName}!</b>");
-                if (current > p.HighestGradeIndex && grade.Milestone == GradeMilestone.Star)
+                bool chapters = _progression.Chapters != null; // 13-1: 장 틀이면 ★ · 해금은 장 쪽 (등급은 규모 표시)
+                if (!chapters && current > p.HighestGradeIndex && grade.Milestone == GradeMilestone.Star)
                     sb.Append("  <color=#FFD36A>★</color>"); // 12-1: 첫 도달 (가운데 배너는 ResultScreen)
                 // 이전 등급 초과 ~ 현재 등급까지의 해금 목록
-                for (int i = previous + 1; i <= current; i++)
+                for (int i = previous + 1; i <= current && !chapters; i++)
                 {
                     foreach (var m in p.GetGrade(i).Unlocks)
                         sb.Append($"  ·  {m.DisplayName} 해금");

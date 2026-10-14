@@ -20,6 +20,8 @@ namespace SpaceStation.Simulation
         }
 
         public StationProgression Progression => _host.Simulation.Progression;
+        /// <summary>13-1 장 틀 (없으면 null = 등급 방식).</summary>
+        public ChapterSystem Chapters => _host.Simulation.Chapters;
         public GameSession Session => _host.Simulation.Session;
         public float PlaySeconds => _host.Simulation.ElapsedSeconds;
         public int ModuleCount => _host.Simulation.Grid.ModuleCount;

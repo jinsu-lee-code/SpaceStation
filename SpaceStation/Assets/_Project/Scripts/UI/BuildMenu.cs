@@ -171,6 +171,12 @@ namespace SpaceStation.UI
                 case PlacementResult.ModuleLocked:
                     if (data.ComingSoon)
                         return $"<color={HudText.Muted}>준비 중</color>"; // 12-5
+                    var chapters = _progression.Chapters;
+                    if (chapters != null) // 13-1 장 틀: 해금은 장
+                    {
+                        int stage = chapters.UnlockStage(data);
+                        return stage >= 0 ? $"<color={HudText.Muted}>잠김 · {chapters.GetChapter(stage).DisplayName}</color>" : $"<color={HudText.Muted}>잠김</color>";
+                    }
                     int grade = p.GetUnlockGrade(data);
                     return grade >= 0 ? $"<color={HudText.Muted}>잠김 · {p.GetGrade(grade).DisplayName}</color>" : $"<color={HudText.Muted}>잠김</color>";
                 case PlacementResult.LimitReached:
@@ -189,6 +195,12 @@ namespace SpaceStation.UI
             {
                 if (data.ComingSoon)
                     return string.IsNullOrEmpty(data.ComingSoonNote) ? "준비 중 (기능을 만드는 중)" : $"준비 중 · {data.ComingSoonNote}";
+                var chapters = _progression.Chapters;
+                if (chapters != null) // 13-1
+                {
+                    int stage = chapters.UnlockStage(data);
+                    return stage >= 0 ? $"{chapters.GetChapter(stage).DisplayName}에서 해금" : "이번 이야기에서는 열리지 않음";
+                }
                 int grade = p.GetUnlockGrade(data);
                 return grade >= 0 ? $"{p.GetGrade(grade).DisplayName} 등급에서 해금" : "해금 조건 없음";
             }

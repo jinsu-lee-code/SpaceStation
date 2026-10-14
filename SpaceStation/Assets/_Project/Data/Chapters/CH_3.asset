@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5779d0e21f0e9647a0c673d17ae6ed5, type: 3}
+  m_Name: CH_3
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ChapterData
+  _displayName: "3\uC7A5"
+  _subtitle: "\uBB34\uB9AC \uD569\uB958"
+  _unlocks:
+  - {fileID: 11400000, guid: 10878b207703a5f4ba93a15b9ce5120f, type: 2}
+  - {fileID: 11400000, guid: 0af3291fd0d56e040b442377ae1bc48c, type: 2}
+  - {fileID: 11400000, guid: 585783da322cda94eb46e8b23b149a25, type: 2}
+  - {fileID: 11400000, guid: 57be1da226ec1fe43987b71b6a5118a5, type: 2}
+  - {fileID: 11400000, guid: baf82f88d7dd8af4485e679bf6e430d9, type: 2}
+  _newNeeds: 02000000
+  _rules: 0
+  _meteorHitsMin: 3
+  _meteorHitsMax: 6
+  _eventIntervalMultiplier: 0.38
+  _eventIntensityMultiplier: 1.6
+  _goals:
+  - _kind: 0
+    _text: 
+    _optional: 0
+    _grade: 3
+    _module: {fileID: 0}
+    _count: 0
+    _resource: 0
+    _amount: 0
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 2
+    _text: 
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 50
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 1
+  _climax:
+    _kind: 1
+    _title: "\uC6B4\uC11D \uC5F0\uD0C0 (\uC784\uC2DC \uC808\uC815)"
+    _description: "\uB300\uD615 \uC815\uAC70\uC7A5\uC5D0 \uB2FF\uC73C\uBA70, \uC5EC\uB7EC
+      \uBB34\uB9AC\uAC00 \uD55C \uC9C0\uBD95 \uC544\uB798 \uBAA8\uC778\uB2E4. \xB7
+      \uC6B4\uC11D 4\uD30C \xD7 3\uAC1C"
+    _warningSeconds: 180
+    _waves: 4
+    _waveInterval: 20
+    _hitsPerWave: 3
+    _settleSeconds: 30
+    _cleanMaxDamaged: 4
+    _hurtMaxDestroyed: 0
+  _choices:
+  - _id: open
+    _title: "\uBB38\uC744 \uC5F0\uB2E4"
+    _description: "\uC624\uB294 \uBB34\uB9AC\uB97C \uB418\uB3C4\uB85D \uBC1B\uC74C
+      (\uD6A8\uACFC\uB294 13-2 \uCF54\uC5B4 \uC131\uACA9)"
+  - _id: order
+    _title: "\uC9C8\uC11C\uB97C \uC138\uC6B4\uB2E4"
+    _description: "\uBC1B\uAE30 \uC804\uC5D0 \uADDC\uCE59\uBD80\uD130 (\uD6A8\uACFC\uB294
+      13-2 \uCF54\uC5B4 \uC131\uACA9)"

@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5779d0e21f0e9647a0c673d17ae6ed5, type: 3}
+  m_Name: CH_1
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ChapterData
+  _displayName: "1\uC7A5"
+  _subtitle: "\uC0DD\uC874\uC758 \uAE30\uBCF8"
+  _unlocks:
+  - {fileID: 11400000, guid: 0cfe3d85b68f446419d9c2c70715d7d2, type: 2}
+  - {fileID: 11400000, guid: 71046e0678fea324aac0dc3c263a698c, type: 2}
+  - {fileID: 11400000, guid: c7e25e386c31fb54c84913570c72a259, type: 2}
+  - {fileID: 11400000, guid: c63f0c523b6d5fd47881a68cd635fbf2, type: 2}
+  - {fileID: 11400000, guid: 650c0912820571249b07312aa1677c0d, type: 2}
+  - {fileID: 11400000, guid: fb65ff1f6a335b84cb001bc80e2bb704, type: 2}
+  - {fileID: 11400000, guid: 9964b2780a8d7b7469845963a26e9f6c, type: 2}
+  - {fileID: 11400000, guid: e535e9aa2bfade046a856410ed9f1f42, type: 2}
+  _newNeeds: 
+  _rules: 0
+  _meteorHitsMin: 1
+  _meteorHitsMax: 1
+  _eventIntervalMultiplier: 1
+  _eventIntensityMultiplier: 1
+  _goals:
+  - _kind: 0
+    _text: 
+    _optional: 0
+    _grade: 1
+    _module: {fileID: 0}
+    _count: 0
+    _resource: 0
+    _amount: 0
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 2
+    _text: 
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 8
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources:
+    - Type: 4
+      Amount: 40
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  _climax:
+    _kind: 1
+    _title: "\uC6B4\uC11D \uC5F0\uD0C0 (\uC784\uC2DC \uC808\uC815)"
+    _description: "\uC18C\uD615 \uC815\uAC70\uC7A5\uC5D0 \uB2FF\uC744 \uB54C\uAE4C\uC9C0
+      \uBC84\uD2F0\uBA70, \uCCAB \uBB34\uB9AC\uAC00 \uBA38\uBB3C \uC790\uB9AC\uB97C
+      \uB9CC\uB4E0\uB2E4. \xB7 \uC6B4\uC11D 2\uD30C \xD7 1\uAC1C"
+    _warningSeconds: 120
+    _waves: 2
+    _waveInterval: 20
+    _hitsPerWave: 1
+    _settleSeconds: 30
+    _cleanMaxDamaged: 0
+    _hurtMaxDestroyed: 0
+  _choices:
+  - _id: expand
+    _title: "\uB113\uD788\uAE30"
+    _description: "\uB354 \uB9CE\uC740 \uBB34\uB9AC\uB97C \uBC1B\uC744 \uC900\uBE44
+      (\uD6A8\uACFC\uB294 13-2 \uCF54\uC5B4 \uC131\uACA9)"
+  - _id: guard
+    _title: "\uB2E4\uC9C0\uAE30"
+    _description: "\uC9C0\uAE08 \uC788\uB294 \uC774\uB4E4\uC744 \uBA3C\uC800 \uC9C0\uD0B4
+      (\uD6A8\uACFC\uB294 13-2 \uCF54\uC5B4 \uC131\uACA9)"
