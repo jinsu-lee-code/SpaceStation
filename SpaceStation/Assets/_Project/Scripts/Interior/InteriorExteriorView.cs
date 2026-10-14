@@ -35,6 +35,7 @@ namespace SpaceStation.Interior
 
         private Camera _source;
         private Camera _camera;
+        private UniversalAdditionalCameraData _cameraData;
         private Transform _interiorRoot;
         private StationController _station;
         private StationConnectors _connectors;
@@ -81,6 +82,7 @@ namespace SpaceStation.Interior
             data.renderShadows = true;
             cam.enabled = false; // 방마다 직접 Render()
             view._camera = cam;
+            view._cameraData = data;
             Shader.SetGlobalFloat(OnId, 1f);
             return view;
         }
@@ -157,17 +159,34 @@ namespace SpaceStation.Interior
                 _linkedRooms?.Invoke(here, _linked);
             }
             GeometryUtility.CalculateFrustumPlanes(_source, _planes);
+            // 12-3c-opt 3차 (사용자 피드백 2026-10-14: 내부를 걸을 때 프레임이 살짝씩 떨어짐 — 창 묶음마다 정거장 전체를 매 프레임 다시 그려 약 7ms):
+            // 지금 방의 창 = 매 프레임 · 원래 해상도 · 그림자, 이웃 방의 창(문 너머로 작게 보임) = 프레임마다 한 묶음씩 번갈아 · 절반 해상도 · 그림자 없음
+            _others.Clear();
             foreach (var group in _groups)
             {
                 if (!_linked.Contains(group.Module) || !InView(group))
                     continue;
-                EnsureTexture(group);
-                _hideModule = group.Module;
-                _camera.targetTexture = group.Texture;
-                _camera.Render();
+                if (group.Module == here)
+                    RenderGroup(group, main: true);
+                else
+                    _others.Add(group);
             }
+            if (_others.Count > 0)
+                RenderGroup(_others[(_turn++ & int.MaxValue) % _others.Count], main: false);
             _camera.targetTexture = null;
             _hideModule = null;
+        }
+
+        private readonly List<Group> _others = new List<Group>();
+        private int _turn;
+
+        private void RenderGroup(Group group, bool main)
+        {
+            EnsureTexture(group, main ? 1 : 2);
+            _hideModule = group.Module;
+            _camera.targetTexture = group.Texture;
+            _cameraData.renderShadows = main;
+            _camera.Render();
         }
 
         private bool InView(Group group)
@@ -190,10 +209,11 @@ namespace SpaceStation.Interior
             _camera.aspect = _source.aspect;
         }
 
-        private void EnsureTexture(Group group)
+        /// <param name="divisor">해상도 나눔 (창 재질은 화면 좌표로 읽으므로 절반 해상도도 같은 자리 — 조금 흐릴 뿐)</param>
+        private void EnsureTexture(Group group, int divisor)
         {
-            int w = Mathf.Max(16, _source.pixelWidth);
-            int h = Mathf.Max(16, _source.pixelHeight);
+            int w = Mathf.Max(16, _source.pixelWidth / divisor);
+            int h = Mathf.Max(16, _source.pixelHeight / divisor);
             if (group.Texture != null && group.Texture.width == w && group.Texture.height == h)
                 return;
             if (group.Texture != null)
