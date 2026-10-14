@@ -22,6 +22,20 @@ namespace SpaceStation.Editor
         private const float EmissionMinValue = 0.35f;
 
         /// <summary>
+        /// 모듈 상징 마크가 텍스처 발광에 들어 있는 모듈은 발광을 세게 (사용자 요청 2026-10-14: 상징 부분 강조).
+        /// 의료실 = 분홍 십자 (발광 맵에는 분홍 십자 · 띠만 있음).
+        /// </summary>
+        private static readonly Dictionary<string, float> EmblemIntensity = new Dictionary<string, float>
+        {
+            { "Medical", 1.6f },   // 3.0은 십자 안쪽이 하얗게 날아감 → 분홍이 유지되는 형광 수준
+        };
+        /// <summary>상징 마크 색이 연해 기본 채도 기준(0.4)에 걸리지 않는 모듈 (의료실 십자 안쪽 연분홍).</summary>
+        private static readonly Dictionary<string, float> EmblemMinSaturation = new Dictionary<string, float>
+        {
+            { "Medical", 0.18f },
+        };
+
+        /// <summary>
         /// 모듈 텍스처 폴더의 세트(T_{이름}_BaseColor.png)마다 재질을 만들거나 갱신한다.
         /// 반환: FBX 슬롯 이름 "Tex_{이름}" → 재질. 부품별 텍스처(예: TurretHead, ShieldEmitter)도 같은 폴더에 둔다.
         /// </summary>
@@ -51,7 +65,7 @@ namespace SpaceStation.Editor
             var baseTex = LoadPixels(basePath);
             if (File.Exists(ormPath))
                 WriteMaskMap(LoadPixels(ormPath), maskPath);
-            WriteEmission(baseTex, emissionPath);
+            WriteEmission(baseTex, emissionPath, EmblemMinSaturation.TryGetValue(key, out float minSat) ? minSat : EmissionMinSaturation);
             Object.DestroyImmediate(baseTex);
 
             Configure(basePath, TextureImporterType.Default, true);
@@ -87,7 +101,7 @@ namespace SpaceStation.Editor
 
             m.SetTexture("_EmissionMap", AssetDatabase.LoadAssetAtPath<Texture2D>(emissionPath));
             m.SetKeyword(new LocalKeyword(m.shader, "_EMISSION"), true);
-            m.SetColor("_EmissionColor", Color.white * EmissionIntensity);
+            m.SetColor("_EmissionColor", Color.white * (EmblemIntensity.TryGetValue(key, out float boost) ? boost : EmissionIntensity));
             m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);
@@ -111,7 +125,7 @@ namespace SpaceStation.Editor
             Object.DestroyImmediate(orm);
         }
 
-        private static void WriteEmission(Texture2D baseTex, string path)
+        private static void WriteEmission(Texture2D baseTex, string path, float minSaturation)
         {
             // 원본 텍스처 전체를 절반 크기로 (발광 맵은 해상도가 낮아도 충분)
             int w = Mathf.Max(1, baseTex.width / 2), h = Mathf.Max(1, baseTex.height / 2);
@@ -122,7 +136,7 @@ namespace SpaceStation.Editor
                 {
                     Color c = baseTex.GetPixel(x * 2, y * 2); // 선형으로 읽혀도 sRGB 값 그대로 (색 판정만 함)
                     Color.RGBToHSV(c, out _, out float s, out float v);
-                    float k = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(EmissionMinSaturation, EmissionMinSaturation + 0.15f, s))
+                    float k = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(minSaturation, minSaturation + 0.15f, s))
                               * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(EmissionMinValue, EmissionMinValue + 0.15f, v));
                     dst[y * w + x] = new Color(c.r * k, c.g * k, c.b * k, 1f);
                 }

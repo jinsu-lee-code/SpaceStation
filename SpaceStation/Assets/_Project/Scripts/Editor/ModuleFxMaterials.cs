@@ -45,6 +45,11 @@ namespace SpaceStation.Editor
                 case "FuelCellGlow": return Emissive("M_FuelCellGlow", new Color(0.2f, 0.9f, 0.8f, 1f), new Color(0.15f, 1.5f, 1.35f, 1f)); // 8-5 연료전지 (보조 발전 중에만 켜짐)
                 case "CargoLights": return Emissive("M_CargoLights", new Color(0.5f, 1f, 0.4f, 1f), new Color(0.6f, 2.2f, 0.4f, 1f)); // 8-5 화물 터미널 유도등
                 case "TelescopeLens": return Lens(); // 12-5 학교 천문대 망원경 렌즈
+                // 12-5 모듈 상징 마크 = 형광 (사용자 제안 2026-10-14: 강한 발광은 번짐 · 하얗게 날아감 → 채도 높은 색이 조명과 무관하게 자기 밝기, 색 하나로 조절)
+                case "FluorCyan": return Fluorescent("M_FluorCyan", new Color(0.25f, 1f, 1f));    // 물 추출기 물방울
+                case "FluorWhite": return Fluorescent("M_FluorWhite", new Color(1f, 1f, 0.94f));  // 단백질 배양실 PROTEIN 글자
+                case "IceChunk": return Glass("M_IceChunk", new Color(0.78f, 0.93f, 1f, 0.55f), new Color(0.08f, 0.16f, 0.24f)); // 12-5 물 추출기 투입 얼음 (반투명)
+                case "WaterColumn": return Emissive("M_WaterColumn", new Color(0.3f, 0.65f, 1f, 1f), new Color(0.35f, 1.1f, 2.6f, 1f)); // 12-5 물 추출기 응축탑 물기둥
                 case "ProteinCulture": return Emissive("M_ProteinCulture", new Color(1f, 0.78f, 0.42f, 1f), new Color(1.6f, 0.95f, 0.35f, 1f)); // 12-5 단백질 배양실 배양액 (크림빛 호박색)
                 case "Rock": return Rock();
                 default: return null;
@@ -157,6 +162,18 @@ namespace SpaceStation.Editor
             {
                 Object.DestroyImmediate(go);
             }
+        }
+
+        /// <summary>
+        /// 12-5 형광 마크: 발광 = 바탕색 × 1.05 (블룸 문턱 아래 → 번짐 없이 색 그대로 또렷, 그늘 · 밤에도 같은 밝기).
+        /// Lit + 발광이라 ModuleView가 비활성 · 파손 상태에서 어둡게 / 깜빡이게 조절한다.
+        /// </summary>
+        private static Material Fluorescent(string name, Color color)
+        {
+            var m = Emissive(name, color, color * 1.05f);
+            m.SetFloat("_Smoothness", 0.35f);
+            EditorUtility.SetDirty(m);
+            return m;
         }
 
         /// <summary>
