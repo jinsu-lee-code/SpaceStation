@@ -50,7 +50,10 @@ namespace SpaceStation.Simulation
         public float RepairDuration => Math.Max(0.1f, Get(ResearchStat.RepairDuration, _config.RepairDuration) * TraitRepairMultiplier / Math.Max(0.01f, Policy(PolicyStat.RepairSpeed)));
         public float DecayMultiplier => Get(ResearchStat.DecayMultiplier, 1f) * TraitDecayMultiplier * Policy(PolicyStat.Decay);
         /// <summary>연구 진행 배율 (과학자 × 정책).</summary>
-        public float ResearchSpeedMultiplier => TraitResearchSpeedMultiplier * Policy(PolicyStat.ResearchSpeed);
+        public float ResearchSpeedMultiplier => TraitResearchSpeedMultiplier * Policy(PolicyStat.ResearchSpeed) * (1f + DataCenterResearchBonus);
+
+        /// <summary>12-5 가동 중인 데이터 센터의 연구 속도 증가 합 (0.1 = +10%). StationModuleStats가 매 틱 갱신.</summary>
+        public float DataCenterResearchBonus { get; set; }
         public float DurabilityEfficiencyFloor => Get(ResearchStat.DurabilityEfficiencyFloor, 0f);
         public float RebuildCostMultiplier => Get(ResearchStat.RebuildCostMultiplier, 1f);
         public int DefenseRadiusBonus => (int)Math.Round(Get(ResearchStat.DefenseRadiusBonus, 0f));

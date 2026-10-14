@@ -120,7 +120,7 @@ namespace SpaceStation.Simulation
                     if (_timer <= 0f)
                     {
                         IsRaid = false;
-                        BeginWarning(Sim.Balance.ShowerWarningSeconds);
+                        BeginWarning(Sim.Balance.ShowerWarningSeconds + Sim.SensorWarningBonus); // 12-5 센서 어레이
                     }
                     break;
                 case ShowerPhase.Warning:
@@ -175,7 +175,7 @@ namespace SpaceStation.Simulation
             HitsPerWave = Math.Max(1, hitsPerWave);
             WavesDone = 0;
             Phase = ShowerPhase.Warning;
-            _timer = Math.Max(0.01f, warningSeconds);
+            _timer = Math.Max(0.01f, warningSeconds + Sim.SensorWarningBonus); // 12-5 센서 어레이
             _facingDirty = true;
             Sim.Report($"{source} 포격 예보: {DirectionName(Direction)}에서 {_timer:0}초 뒤 {_raidWaves}파 · 붉은 면이 맞습니다 (가리거나 실드 · 포탑으로 보강)", false);
             Changed?.Invoke();

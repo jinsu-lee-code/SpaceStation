@@ -82,6 +82,20 @@ namespace SpaceStation.Data
         [Tooltip("레시피 해금 연구 슬롯 (연구소 계통 진화 모듈: 단계마다 1). 일반 연구 슬롯과 따로")]
         [SerializeField, Min(0)] private int _recipeSlots;
 
+        [Header("New basic modules (12-5)")]
+        [Tooltip("준비 중: 기능이 연결되는 작업 전까지 건설 메뉴에 '준비 중'으로 보이고 지을 수 없음")]
+        [SerializeField] private bool _comingSoon;
+        [Tooltip("준비 중 안내 (예: '새 요구 교육 · 12-6')")]
+        [SerializeField] private string _comingSoonNote;
+        [Tooltip("연결 허브: 이 모듈에 맞닿은 모듈끼리 서로 맞닿은 것처럼 인접 효과를 받음 (한 단계)")]
+        [SerializeField] private bool _adjacencyRelay;
+        [Tooltip("센서 어레이: 가동 중이면 유성우 · 포격 예보 시간 +초 (합, 상한 BalanceConfig)")]
+        [SerializeField, Min(0f)] private float _warningBonus;
+        [Tooltip("데이터 센터: 가동 중이면 연구 속도 + (0.1 = +10%, 합)")]
+        [SerializeField, Min(0f)] private float _researchSpeedBonus;
+        [Tooltip("여객 도킹 포트: 가동 중이면 이민선이 옴 (간격 · 인원은 BalanceConfig)")]
+        [SerializeField] private bool _immigrationPort;
+
         [Header("Armor (8-5 장갑 격벽)")]
         [Tooltip("운석 피격 가중치 배율 (노출 면 가중치에 곱함, 3 = 같은 노출의 모듈보다 3배 잘 맞음 → 미끼)")]
         [SerializeField, Min(0f)] private float _meteorWeightMultiplier = 1f;
@@ -229,6 +243,12 @@ namespace SpaceStation.Data
         public float HeatRemoval => _heatRemoval;
         public int RelayPower => _relayPower;
         public int RecipeSlots => _recipeSlots;
+        public bool ComingSoon => _comingSoon;
+        public string ComingSoonNote => _comingSoonNote;
+        public bool AdjacencyRelay => _adjacencyRelay;
+        public float WarningBonus => _warningBonus;
+        public float ResearchSpeedBonus => _researchSpeedBonus;
+        public bool ImmigrationPort => _immigrationPort;
         public bool Armored => _armored;
         public bool CountsTowardGrade => _countsTowardGrade;
         public int GradeModuleCount => Mathf.Max(1, _gradeModuleCount);

@@ -99,6 +99,7 @@ namespace SpaceStation.Simulation
                 if (module.Data == null)
                     continue;
                 grid.GetNeighborModules(module, _neighbors);
+                AddRelayed(grid, module, _neighbors);
                 _neighborData.Clear();
                 foreach (var n in _neighbors)
                     _neighborData.Add(n.Data);
@@ -109,6 +110,29 @@ namespace SpaceStation.Simulation
                     Accumulate(cached, a);
                 if (cached.Applied.Count > 0)
                     _cache.Add(module, cached);
+            }
+        }
+
+        private readonly List<ModuleInstance> _relayScratch = new List<ModuleInstance>();
+        private readonly List<ModuleInstance> _relays = new List<ModuleInstance>();
+
+        /// <summary>
+        /// 12-5 연결 허브: 이웃 중 허브가 있으면 그 허브에 맞닿은 다른 모듈도 이웃으로 (한 단계 — 허브끼리 이어도 더 퍼지지 않음, 허브 자신은 남김).
+        /// </summary>
+        private void AddRelayed(StationGrid grid, ModuleInstance self, List<ModuleInstance> neighbors)
+        {
+            _relays.Clear();
+            foreach (var n in neighbors)
+                if (n.Data != null && n.Data.AdjacencyRelay)
+                    _relays.Add(n);
+            foreach (var hub in _relays)
+            {
+                grid.GetNeighborModules(hub, _relayScratch);
+                foreach (var m in _relayScratch)
+                {
+                    if (m != self && m.Data != null && !m.Data.AdjacencyRelay && !neighbors.Contains(m))
+                        neighbors.Add(m);
+                }
             }
         }
 
@@ -183,6 +207,7 @@ namespace SpaceStation.Simulation
                         _neighbors.Add(other);
                 }
             }
+            AddRelayed(grid, null, _neighbors); // 12-5 허브 옆에 놓으면 허브 건너편 모듈도 이웃
             _neighborData.Clear();
             foreach (var n in _neighbors)
                 _neighborData.Add(n.Data);

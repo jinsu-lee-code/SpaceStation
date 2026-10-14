@@ -169,6 +169,8 @@ namespace SpaceStation.UI
             switch (buildable)
             {
                 case PlacementResult.ModuleLocked:
+                    if (data.ComingSoon)
+                        return $"<color={HudText.Muted}>준비 중</color>"; // 12-5
                     int grade = p.GetUnlockGrade(data);
                     return grade >= 0 ? $"<color={HudText.Muted}>잠김 · {p.GetGrade(grade).DisplayName}</color>" : $"<color={HudText.Muted}>잠김</color>";
                 case PlacementResult.LimitReached:
@@ -185,6 +187,8 @@ namespace SpaceStation.UI
             var p = _progression.Progression;
             if (buildable == PlacementResult.ModuleLocked)
             {
+                if (data.ComingSoon)
+                    return string.IsNullOrEmpty(data.ComingSoonNote) ? "준비 중 (기능을 만드는 중)" : $"준비 중 · {data.ComingSoonNote}";
                 int grade = p.GetUnlockGrade(data);
                 return grade >= 0 ? $"{p.GetGrade(grade).DisplayName} 등급에서 해금" : "해금 조건 없음";
             }

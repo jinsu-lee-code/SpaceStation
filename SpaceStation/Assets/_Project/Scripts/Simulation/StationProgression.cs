@@ -151,6 +151,8 @@ namespace SpaceStation.Simulation
 
         public bool IsUnlocked(ModuleData data)
         {
+            if (data != null && data.ComingSoon)
+                return false; // 12-5 준비 중 (기능이 연결되는 작업 전)
             int grade = GetUnlockGrade(data);
             return grade >= 0 && grade <= GradeIndex;
         }

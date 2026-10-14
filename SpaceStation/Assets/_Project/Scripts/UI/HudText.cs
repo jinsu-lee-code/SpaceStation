@@ -170,6 +170,16 @@ namespace SpaceStation.UI
                 sb.Append($"<color={Orange}>발열 {data.HeatOutput:0.#}</color> <color={Muted}>(반경 2칸에 거리마다 줄어 퍼짐)</color>\n");
             if (data.HeatRemoval > 0f)
                 sb.Append("방열 -").Append(data.HeatRemoval.ToString("0.#")).Append($" <color={Muted}>(맞닿은 모듈마다, 우주로 노출된 면이 있을 때)</color>\n");
+            if (data.AdjacencyRelay)
+                sb.Append($"인접 효과 중계 <color={Muted}>(이 모듈에 맞닿은 모듈끼리 서로 맞닿은 것처럼)</color>\n");
+            if (data.WarningBonus > 0f)
+                sb.Append("유성우 · 포격 예보 +").Append(data.WarningBonus.ToString("0")).Append($"초 <color={Muted}>(여러 개 합, 상한 있음)</color>\n");
+            if (data.ResearchSpeedBonus > 0f)
+                sb.Append("연구 속도 +").Append((data.ResearchSpeedBonus * 100f).ToString("0")).Append($"% <color={Muted}>(여러 개 합)</color>\n");
+            if (data.ImmigrationPort)
+                sb.Append($"이민선 도착 <color={Muted}>(빈 수용 인원 · 만족도 기준을 넘으면 주민이 한꺼번에 들어옴, 포트가 많을수록 자주)</color>\n");
+            if (data.ComingSoon)
+                sb.Append($"<color={Orange}>준비 중</color> <color={Muted}>{data.ComingSoonNote}</color>\n");
             if (data.RelayPower > 0)
                 sb.Append("통신 세기 +").Append(data.RelayPower).Append($" <color={Muted}>(합이 1 · 2 · 4 · 8 이상이면 그 계급 함선까지 신호 해독)</color>\n");
         }

@@ -98,7 +98,7 @@ namespace SpaceStation.Tests
             CollectionAssert.AreEqual(new[]
             {
                 TickStepNames.Damage, TickStepNames.Durability, TickStepNames.Resources, TickStepNames.Incidents, TickStepNames.Research,
-                TickStepNames.Cargo, TickStepNames.Automation, TickStepNames.Needs, TickStepNames.Population, TickStepNames.Events,
+                TickStepNames.Cargo, TickStepNames.Automation, TickStepNames.Needs, TickStepNames.Population, ImmigrationSystem.SystemKey, TickStepNames.Events, // 12-5 이민선 = 인구 단계 뒤
                 MeteorShowerSystem.SystemKey, HeatSystem.SystemKey, // 12-3c 기본으로 붙는 시스템
                 TickStepNames.Clock, TickStepNames.Tutorial, TickStepNames.Progression, TickStepNames.Failure,
             }, names);

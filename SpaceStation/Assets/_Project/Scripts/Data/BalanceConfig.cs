@@ -230,6 +230,21 @@ namespace SpaceStation.Data
         [Tooltip("위험 상태가 이 시간(초) 이어지면 파손")]
         [SerializeField, Min(1f)] private float _heatDamageSeconds = 60f;
 
+        [Header("New basic modules (BALANCE 39번, 12-5)")]
+        [Tooltip("센서 어레이 예보 시간 증가 상한 (초, 여러 개의 합)")]
+        [SerializeField, Min(0f)] private float _sensorWarningCap = 60f;
+        [Tooltip("이민선 간격 (초) — 가동 중인 여객 도킹 포트 수로 나눔")]
+        [SerializeField, Min(10f)] private float _immigrationInterval = 180f;
+        [Tooltip("이민선 한 번에 오는 최대 주민 수 (빈 수용 인원까지)")]
+        [SerializeField, Min(1)] private int _immigrationSize = 4;
+        [Tooltip("만족도가 이 값 이상일 때만 이민선이 주민을 내려 줌")]
+        [SerializeField, Range(0f, 100f)] private float _immigrationMinSatisfaction = 60f;
+
+        public float SensorWarningCap => _sensorWarningCap;
+        public float ImmigrationInterval => _immigrationInterval;
+        public int ImmigrationSize => _immigrationSize;
+        public float ImmigrationMinSatisfaction => _immigrationMinSatisfaction;
+
         public int StartingPopulation => _startingPopulation;
         public IReadOnlyList<ResourceAmount> ConsumptionPerResident => _consumptionPerResident;
         public IReadOnlyList<ResourceAmount> StartingResources => _startingResources;

@@ -121,6 +121,11 @@ namespace SpaceStation.Simulation
             _sim.Resources.RefreshCapacities(_activeModules);
         }
 
+        /// <summary>12-5 가동 중인 센서 어레이의 예보 시간 증가 합 (상한 적용).</summary>
+        public float SensorWarningBonus { get; private set; }
+        /// <summary>12-5 가동 중인 여객 도킹 포트 수.</summary>
+        public int ImmigrationPorts { get; private set; }
+
         public void CollectActiveModules()
         {
             _activeModules.Clear();
@@ -128,6 +133,8 @@ namespace SpaceStation.Simulation
             _consumptionMultipliers.Clear();
             int extraHousing = 0;
             int labSlots = 0;
+            float sensor = 0f, dataCenter = 0f;
+            int ports = 0;
             foreach (var module in _sim.Grid.Modules)
             {
                 if (module.Data == null || !_sim.Connectivity.IsActive(module))
@@ -140,12 +147,22 @@ namespace SpaceStation.Simulation
                                            * _sim.HeatMultiplier(module)); // 12-3c 과열
                 if (module.Data.ResearchSlots > 0 && !_sim.Damage.IsDamaged(module) && !halted)
                     labSlots += module.Data.ResearchSlots; // 연결되고 파손되지 않은 연구소만
+                if (!_sim.Damage.IsDamaged(module) && !halted)
+                {
+                    sensor += module.Data.WarningBonus;            // 12-5 센서 어레이
+                    dataCenter += module.Data.ResearchSpeedBonus;  // 12-5 데이터 센터
+                    if (module.Data.ImmigrationPort)
+                        ports++;                                    // 12-5 여객 도킹 포트
+                }
                 _consumptionMultipliers.Add(_sim.Adjacency.GetConsumptionMultiplier(module));
                 // 인접 수용 인구 가감 (모듈 자체 수용 인구 아래로는 내려가지 않음)
                 extraHousing += Math.Max(-module.Data.HousingCapacity, _sim.Adjacency.GetHousingBonus(module));
             }
             _sim.Resources.ExtraHousing = extraHousing;
             _sim.Research.LabSlots = labSlots;
+            SensorWarningBonus = Math.Min(sensor, _sim.Balance.SensorWarningCap);
+            _sim.Effects.DataCenterResearchBonus = dataCenter;
+            ImmigrationPorts = ports;
             RefreshRepairCapacity(); // 연결·파손 상태 반영 (4-6)
         }
 

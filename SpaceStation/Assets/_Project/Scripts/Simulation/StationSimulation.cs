@@ -151,6 +151,8 @@ namespace SpaceStation.Simulation
         public SocialCrisisSystem Crisis { get; }
         /// <summary>12-3c 지구급 방문 세력 + 평판 (설정에 없으면 null).</summary>
         public ContactSystem Contact { get; }
+        /// <summary>12-5 여객 도킹 포트 이민선.</summary>
+        public ImmigrationSystem Immigration { get; }
         /// <summary>12-4 연구 확장 (설정에 없으면 null).</summary>
         public ResearchExpansionSystem ResearchExpansion { get; }
 
@@ -258,6 +260,7 @@ namespace SpaceStation.Simulation
                 Policies = AddSystem(new PolicySystem(settings.Policies), MeteorShowerSystem.SystemKey);
                 Crisis = AddSystem(new SocialCrisisSystem(settings.Policies), PolicySystem.SystemKey);
             }
+            Immigration = AddSystem(new ImmigrationSystem(), TickStepNames.Population); // 12-5 여객 도킹 포트 (포트가 없으면 아무것도 안 함)
             if (settings.ResearchExpansion != null)
                 ResearchExpansion = AddSystem(new ResearchExpansionSystem(settings.ResearchExpansion), TickStepNames.Research); // 레벨 연구 바로 뒤
             if (settings.Contact != null)
@@ -543,6 +546,11 @@ namespace SpaceStation.Simulation
 
         /// <summary>동시 수리 슬롯 = 기본(코어) + 활성이고 파손되지 않은 정비 베이의 슬롯 합 (BALANCE 17번).</summary>
         public int CountRepairSlots() => _stats.CountRepairSlots();
+
+        /// <summary>12-5 센서 어레이: 유성우 · 포격 예보 시간 + (가동 중인 것의 합, 상한).</summary>
+        public float SensorWarningBonus => _stats.SensorWarningBonus;
+        /// <summary>12-5 가동 중인 여객 도킹 포트 수 (이민선).</summary>
+        public int ImmigrationPorts => _stats.ImmigrationPorts;
 
         /// <summary>가중치 랜덤 이벤트 즉시 발생 (디버그 F5).</summary>
         public GameEventData TriggerRandomEvent() => Events.TriggerRandom(_eventPool);

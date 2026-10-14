@@ -12,6 +12,8 @@ namespace SpaceStation.Simulation
         Overcrowded,
         /// <summary>12-3c 사회 위기 (강경 대응 등).</summary>
         Crisis,
+        /// <summary>12-5 여객 도킹 포트 이민선.</summary>
+        Immigration,
     }
 
     /// <summary>
@@ -92,6 +94,13 @@ namespace SpaceStation.Simulation
         {
             if (count > 0)
                 Change(-count, reason);
+        }
+
+        /// <summary>12-5 이민선: 주민이 들어옴.</summary>
+        internal void Add(int count, PopulationChangeReason reason)
+        {
+            if (count > 0)
+                Change(count, reason);
         }
 
         /// <summary>만족도에 따른 +1 간격(초). 최소 만족도 미만이면 무한대.</summary>

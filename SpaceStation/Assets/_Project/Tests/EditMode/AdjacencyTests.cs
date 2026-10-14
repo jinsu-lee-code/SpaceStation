@@ -13,7 +13,7 @@ namespace SpaceStation.Tests
     {
         private const float Eps = 1e-3f;
         private readonly List<Object> _created = new List<Object>();
-        private ModuleData _core, _farm, _water, _oxygen, _solar, _habitat, _dock, _block;
+        private ModuleData _core, _farm, _water, _oxygen, _solar, _habitat, _dock, _block, _hub;
         private AdjacencyRuleSet _rules;
         private BalanceConfig _balance;
         private StationGradeConfig _grades;
@@ -29,6 +29,10 @@ namespace SpaceStation.Tests
             _habitat = Module("Habitat", housing: 6);
             _dock = Module("Dock", prod: R(ResourceType.Metal, 1));
             _block = Module("Block");
+            _hub = Module("Hub");
+            var hso = new SerializedObject(_hub);
+            hso.FindProperty("_adjacencyRelay").boolValue = true;
+            hso.ApplyModifiedPropertiesWithoutUndo();
 
             _rules = Create<AdjacencyRuleSet>();
             var so = new SerializedObject(_rules);
@@ -57,7 +61,7 @@ namespace SpaceStation.Tests
             var grades = g.FindProperty("_grades");
             grades.arraySize = 1;
             var unlocks = grades.GetArrayElementAtIndex(0).FindPropertyRelative("_unlocks");
-            var all = new[] { _farm, _water, _oxygen, _solar, _habitat, _dock, _block };
+            var all = new[] { _farm, _water, _oxygen, _solar, _habitat, _dock, _block, _hub };
             unlocks.arraySize = all.Length;
             for (int i = 0; i < all.Length; i++)
                 unlocks.GetArrayElementAtIndex(i).objectReferenceValue = all[i];
@@ -206,6 +210,27 @@ namespace SpaceStation.Tests
             Assert.AreEqual(1, self.Count);
             Assert.IsTrue(AdjacencySystem.IsBeneficial(self[0].Rule, self[0].Total), "생산 +15%");
             Assert.AreEqual(ResourceType.Oxygen, AdjacencySystem.EffectResource(self[0].Rule));
+        }
+
+        [Test]
+        public void ConnectorHub_RelaysAdjacency_OneStepOnly()
+        {
+            var sim = Sim();
+            sim.TryPlace(_farm, Vector3Int.right, 0, out var farm);
+            sim.TryPlace(_hub, new Vector3Int(2, 0, 0), 0, out _);
+            sim.TryPlace(_water, new Vector3Int(3, 0, 0), 0, out var water);
+            Assert.AreEqual(0.75f, sim.Adjacency.GetConsumptionMultiplier(farm), Eps, "허브 건너편 물 재활용기도 이웃");
+
+            // 미리보기도 허브 건너편을 봄
+            var self = new List<AppliedAdjacency>();
+            var neighbors = new List<string>();
+            sim.PreviewAdjacency(_oxygen, new Vector3Int(2, 1, 0), 0, self, neighbors);
+            Assert.AreEqual(1, self.Count, "허브 위 칸 = 허브에만 맞닿음 → 허브의 이웃(농장)이 이웃");
+            Assert.AreEqual(0.15f, self[0].Total, Eps);
+            sim.TryRemove(water);
+            sim.TryPlace(_hub, new Vector3Int(3, 0, 0), 0, out _);
+            sim.TryPlace(_water, new Vector3Int(4, 0, 0), 0, out _);
+            Assert.AreEqual(1f, sim.Adjacency.GetConsumptionMultiplier(farm), Eps, "허브끼리 이어도 한 단계만");
         }
 
         // ---- helpers ----
