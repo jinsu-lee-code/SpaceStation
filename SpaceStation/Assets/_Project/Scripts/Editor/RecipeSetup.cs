@@ -80,7 +80,7 @@ namespace SpaceStation.Editor
             },
             new Def
             {
-                Id = "EcoModule", Name = "생태 모듈", RecipeName = "생태 모듈", Category = ModuleCategory.Life, Color = "#7CFF9A",
+                Id = "EcoModule", Name = "생태 모듈", RecipeName = "생태 모듈", Category = ModuleCategory.Power, // 생산 탭 (재료 = 농장 · 산소 · 물) Color = "#7CFF9A",
                 Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(2, 0, 0), V(0, 0, 1) },
                 Ingredients = new[] { ("MD_Farm", 1), ("MD_Oxygen", 1), ("MD_WaterRecycler", 1) }, SynthesisMetal = 90f, Duration = 60f, Research = ResearchCategory.Production,
                 Rationale = "식물 · 산소 · 물 순환이 한 곳에서 닫혀, 따로 둘 때보다 덜 쓰고 더 만든다",

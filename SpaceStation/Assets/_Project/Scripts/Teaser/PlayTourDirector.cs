@@ -227,7 +227,7 @@ namespace SpaceStation.Teaser
             yield return FadeTo(0f, 0.6f);
             Caption("01  건설", "모듈을 골라 정거장 면에 붙입니다 · 초록 = 가능 · 빨강 = 불가 · R 회전");
             yield return Wait(1.0f);
-            yield return BuildOne(ModuleCategory.Life, "MD_Oxygen", true);
+            yield return BuildOne(ModuleCategory.Power, "MD_Oxygen", true); // 생산 탭
             yield return BuildOne(ModuleCategory.Power, "MD_Solar", false);
             yield return BuildOne(ModuleCategory.Power, "MD_Battery", false); // 새 게임엔 채굴 도킹이 이미 최대(1개)
             _build.Select(null);
