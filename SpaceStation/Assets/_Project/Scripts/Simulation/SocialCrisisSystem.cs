@@ -53,7 +53,10 @@ namespace SpaceStation.Simulation
         /// <summary>이번 경고의 전체 길이 (막대 표시용).</summary>
         public float WarningLength { get; private set; }
         /// <summary>지금 파업이 시작되는 만족도 기준 (정책 반영).</summary>
-        public float Threshold => _config.StrikeThreshold + Sim.Effects.Policy(PolicyStat.CrisisThreshold);
+        public float Threshold => _config.StrikeThreshold + Sim.Effects.Policy(PolicyStat.CrisisThreshold) + (ThresholdModifier != null ? ThresholdModifier() : 0f);
+
+        /// <summary>13-2 공통 고리: 파업 기준 만족도에 더하는 값 (예: 타이쿤판 밀집도). null이면 0.</summary>
+        public Func<float> ThresholdModifier { get; set; }
 
         private PolicySystem Policies => Sim.GetSystem<PolicySystem>();
 

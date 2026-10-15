@@ -148,7 +148,7 @@ namespace SpaceStation.Simulation
         public void BeginWarning(float warningSeconds)
         {
             Direction = Directions[Math.Min(Directions.Length - 1, (int)(_random01() * Directions.Length))];
-            var grade = Sim.Progression.Current;
+            var grade = Sim.EventScale; // 13-2 규모를 정하는 쪽이 있으면 그쪽
             int span = grade.MeteorHitsMax - grade.MeteorHitsMin + 1;
             int hits = grade.MeteorHitsMin + Math.Min(span - 1, (int)(_random01() * span));
             HitsPerWave = Math.Max(1, (int)Math.Ceiling(hits * Sim.Balance.ShowerHitsMultiplier / Sim.Balance.ShowerWaves));
