@@ -66,22 +66,25 @@ namespace SpaceStation.Editor.Balance
         {
             _sim = sim;
             _buildable = buildable;
+            // 역할마다 가장 이른 등급에 해금되는 모듈 (같으면 목록 앞쪽). 12-5에서 물 추출기(도시급)가 이름순으로 물 재활용기보다 앞에 와
+            // 봇이 처음부터 못 짓는 모듈을 물 담당으로 잡아 5분 만에 물 고갈로 끝났음 (2026-10-15 수정)
+            bool Pick(ModuleData current, ModuleData candidate) => current == null || UnlockOrder(candidate) < UnlockOrder(current);
             foreach (var m in buildable)
             {
                 if (m == null) continue;
                 if (_power == null && Produces(m, ResourceType.Power) && m.SolarPowered && !m.OnDemandPower) _power = m; // 기본 발전 = 태양광 (목록 순서와 무관)
-                if (_oxygen == null && Produces(m, ResourceType.Oxygen)) _oxygen = m;
-                if (_water == null && Produces(m, ResourceType.Water)) _water = m;
-                if (_food == null && Produces(m, ResourceType.Food)) _food = m;
-                if (_metal == null && Produces(m, ResourceType.Metal)) _metal = m;
-                if (_housing == null && m.HousingCapacity > 0 && m.GrowthIntervalMultiplier >= 1f) _housing = m;
-                if (_storage == null && m.StorageBonus > 0f) _storage = m;
-                if (_battery == null && m.BatteryCapacity > 0f) _battery = m;
-                if (_bay == null && m.RepairSlots > 0) _bay = m;
-                if (_shield == null && m.IsShield) _shield = m;
-                if (_turret == null && m.IsTurret) _turret = m;
-                if (_control == null && m.IsDamageControl) _control = m;
-                if (_lab == null && m.ResearchSlots > 0) _lab = m;
+                if (Produces(m, ResourceType.Oxygen) && Pick(_oxygen, m)) _oxygen = m;
+                if (Produces(m, ResourceType.Water) && Pick(_water, m)) _water = m;
+                if (Produces(m, ResourceType.Food) && Pick(_food, m)) _food = m;
+                if (Produces(m, ResourceType.Metal) && Pick(_metal, m)) _metal = m;
+                if (m.HousingCapacity > 0 && m.GrowthIntervalMultiplier >= 1f && Pick(_housing, m)) _housing = m;
+                if (m.StorageBonus > 0f && Pick(_storage, m)) _storage = m;
+                if (m.BatteryCapacity > 0f && Pick(_battery, m)) _battery = m;
+                if (m.RepairSlots > 0 && Pick(_bay, m)) _bay = m;
+                if (m.IsShield && Pick(_shield, m)) _shield = m;
+                if (m.IsTurret && Pick(_turret, m)) _turret = m;
+                if (m.IsDamageControl && Pick(_control, m)) _control = m;
+                if (m.ResearchSlots > 0 && Pick(_lab, m)) _lab = m;
                 if (m.IsService && m.HousingCapacity <= 0) _services.Add(m);
                 if (_ring == null && m.HousingCapacity > 0 && m.GrowthIntervalMultiplier < 1f) _ring = m; // 8-4 (거주 겸 서비스)
                 if (_fuelCell == null && m.OnDemandPower && Produces(m, ResourceType.Power)) _fuelCell = m; // 8-5
@@ -104,6 +107,15 @@ namespace SpaceStation.Editor.Balance
 
         /// <summary>8-2: 새 제련소가 증폭할 수 있는(아직 제련소가 없는) 채굴 도킹이 이만큼 이상 맞닿는 자리가 있을 때 짓는다 (비교 측정용으로 바꿀 수 있음).</summary>
         public static int RefineryMinDocks = 1;
+
+        /// <summary>역할 고르기 순서: 해금 등급 (준비 중 · 해금 목록에 없음 = 맨 뒤).</summary>
+        private int UnlockOrder(ModuleData m)
+        {
+            if (m.ComingSoon)
+                return int.MaxValue;
+            int grade = _sim.Progression.GetUnlockGrade(m);
+            return grade < 0 ? int.MaxValue - 1 : grade;
+        }
 
         private static float PowerOutput(ModuleData m)
         {
