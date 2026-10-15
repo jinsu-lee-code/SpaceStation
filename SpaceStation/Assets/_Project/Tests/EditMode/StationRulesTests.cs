@@ -109,6 +109,35 @@ namespace SpaceStation.Tests
             Assert.AreEqual(3, sim.Policies.SlotCount, "확장 +2");
         }
 
+        private sealed class FakeScale : IEventScale
+        {
+            public int MeteorHitsMin => 7;
+            public int MeteorHitsMax => 9;
+            public float EventIntervalMultiplier => 0.5f;
+            public float EventIntensityMultiplier => 3f;
+        }
+
+        [Test]
+        public void EventScale_DefaultsToGrade_ThenSource()
+        {
+            var sim = Sim();
+            Assert.AreSame(sim.Progression.Current, sim.EventScale, "규모를 정하는 쪽이 없으면 현재 등급");
+            sim.SetEventScale(new FakeScale());
+            Assert.AreEqual(3f, sim.EventIntensity, 1e-4f);
+            Assert.AreEqual(7, sim.EventScale.MeteorHitsMin);
+            sim.SetEventScale(null);
+            Assert.AreSame(sim.Progression.Current, sim.EventScale);
+        }
+
+        [Test]
+        public void CrisisThreshold_AddsModifier()
+        {
+            var sim = Sim(Create<PolicyConfig>());
+            float baseline = sim.Crisis.Threshold;
+            sim.Crisis.ThresholdModifier = () => 12f;
+            Assert.AreEqual(baseline + 12f, sim.Crisis.Threshold, 1e-4f);
+        }
+
         [Test]
         public void SynthesisStage_MapsToRule()
         {

@@ -128,8 +128,16 @@ namespace SpaceStation.Simulation
         public IReadOnlyList<GameEventData> EventPool => _eventPool;
         /// <summary>시뮬레이션 경과 시간(초).</summary>
         public float ElapsedSeconds { get; private set; }
-        /// <summary>현재 등급의 이벤트 강도 배율.</summary>
-        public float EventIntensity => Progression.Current.EventIntensityMultiplier;
+        /// <summary>현재 이벤트 강도 배율 (규모를 정하는 쪽이 있으면 그쪽, 없으면 등급).</summary>
+        public float EventIntensity => EventScale.EventIntensityMultiplier;
+
+        private IEventScale _eventScale;
+
+        /// <summary>13-2 공통 고리: 이벤트 규모 (운석 개수 · 간격 · 강도). 규모를 정하는 쪽(서사판 장 · 타이쿤판 성장 비례)이 있으면 그쪽, 없으면 현재 등급.</summary>
+        public IEventScale EventScale => _eventScale ?? Progression.Current;
+
+        /// <summary>13-2: 이벤트 규모를 정하는 쪽을 붙인다 (null = 등급).</summary>
+        public void SetEventScale(IEventScale scale) => _eventScale = scale;
 
         /// <summary>13-1 공통 판정 고리: 규칙을 정하는 쪽 (서사판 장 틀 · 타이쿤판 해금 선택). null이면 등급 조건 그대로.</summary>
         public IStationRules Rules { get; private set; }
@@ -213,7 +221,7 @@ namespace SpaceStation.Simulation
             Automation = new MaintenanceAutomation(this);
 
             // 4-1: 등급별 이벤트 빈도·강도 (새 간격을 정할 때 / 지속형 이벤트가 시작될 때의 등급 기준)
-            Events.IntervalMultiplier = () => Progression.Current.EventIntervalMultiplier;
+            Events.IntervalMultiplier = () => EventScale.EventIntervalMultiplier;
             Events.DurationProvider = data => data.Duration * EventIntensity;
             // Phase 6 방어 연구: 바깥에서 오는 위협(운석·태양 폭풍)만 조기 경보
             Events.WarningFilter = data => data is MeteorEventData || data is SolarStormEventData;
