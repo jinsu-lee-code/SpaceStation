@@ -29,7 +29,7 @@ namespace SpaceStation.Simulation
         public event Action Changed;
 
         public override string Key => SystemKey;
-        public bool Active => Sim.RuleOpen(StationRule.Heat, Sim.Progression.GradeIndex >= Sim.Balance.HeatMinGrade); // 13-1 장 틀이면 장 규칙
+        public bool Active => Sim.RuleOpen(StationRule.Heat, Sim.Progression.GradeIndex >= Sim.Balance.HeatMinGrade); // 13-1 규칙을 정하는 쪽이 있으면 그쪽
         public float Limit => Sim.Balance.HeatLimit;
         public float DangerLevel => Sim.Balance.HeatLimit * Sim.Balance.HeatDangerRatio;
         /// <summary>열이 있는 모듈 (0 초과).</summary>

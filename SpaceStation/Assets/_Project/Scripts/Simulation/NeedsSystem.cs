@@ -120,7 +120,7 @@ namespace SpaceStation.Simulation
                 }
 
                 _statuses.Add(status);
-                cap -= (1f - status.Ratio) * _config.NeedSatisfactionCapPenalty;
+                cap -= (1f - status.Ratio) * _config.NeedPenaltyFor(need); // 13-3 요구별 감소량
             }
             cap += Effects.SatisfactionCapBonus; // 연구: 감점을 받아도 상한이 그만큼 높음 (100은 넘지 않음)
             SatisfactionCap = Mathf.Clamp(cap, 0f, PopulationSimulation.MaxSatisfaction);

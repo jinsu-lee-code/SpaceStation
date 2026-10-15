@@ -130,17 +130,32 @@ namespace SpaceStation.Simulation
         public IReadOnlyList<GameEventData> EventPool => _eventPool;
         /// <summary>시뮬레이션 경과 시간(초).</summary>
         public float ElapsedSeconds { get; private set; }
-        /// <summary>현재 이벤트 강도 배율 (장 틀이 있으면 장, 없으면 등급).</summary>
-        public float EventIntensity => EventScale.EventIntensityMultiplier;
-
-        /// <summary>13-1 이벤트 규모: 장 틀이 있으면 지금 장, 없으면 현재 등급.</summary>
-        public IEventScale EventScale => Chapters != null ? (IEventScale)Chapters : Progression.Current;
-
-        /// <summary>13-1 장 틀 (설정에 없으면 null).</summary>
+        /// <summary>13-1 장 틀 (설정에 없으면 null). 있으면 규칙(<see cref="SetRules"/>)과 이벤트 규모(<see cref="SetEventScale"/>)를 정하는 쪽으로 붙는다 (main 공통 고리, MERGE_NOTES M-1 · M-2).</summary>
         public ChapterSystem Chapters { get; }
 
-        /// <summary>13-1: 규칙이 열렸는지 — 장 틀이 있으면 장 규칙, 없으면 기존 등급 조건(byGrade).</summary>
-        public bool RuleOpen(StationRule rule, bool byGrade) => Chapters != null ? Chapters.Allows(rule) : byGrade;
+        /// <summary>현재 이벤트 강도 배율 (규모를 정하는 쪽이 있으면 그쪽, 없으면 등급).</summary>
+        public float EventIntensity => EventScale.EventIntensityMultiplier;
+
+        private IEventScale _eventScale;
+
+        /// <summary>13-2 공통 고리: 이벤트 규모 (운석 개수 · 간격 · 강도). 규모를 정하는 쪽(서사판 장 · 타이쿤판 성장 비례)이 있으면 그쪽, 없으면 현재 등급.</summary>
+        public IEventScale EventScale => _eventScale ?? Progression.Current;
+
+        /// <summary>13-2: 이벤트 규모를 정하는 쪽을 붙인다 (null = 등급).</summary>
+        public void SetEventScale(IEventScale scale) => _eventScale = scale;
+
+        /// <summary>13-1 공통 판정 고리: 규칙을 정하는 쪽 (서사판 장 틀 · 타이쿤판 해금 선택). null이면 등급 조건 그대로.</summary>
+        public IStationRules Rules { get; private set; }
+
+        /// <summary>13-1: 규칙이 열렸는지 — 규칙을 정하는 쪽이 있으면 그쪽, 없으면 기존 등급 조건(byGrade).</summary>
+        public bool RuleOpen(StationRule rule, bool byGrade) => Rules != null ? Rules.Allows(rule) : byGrade;
+
+        /// <summary>13-1: 규칙을 정하는 쪽을 붙인다 (모듈 해금의 규칙 조건도 함께).</summary>
+        public void SetRules(IStationRules rules)
+        {
+            Rules = rules;
+            Progression.RuleCheck = rules != null ? rules.Allows : (Func<StationRule, bool>)null;
+        }
 
         /// <summary>12-0b 틱 단계 (순서대로). 새 시스템은 <see cref="AddSystem"/>의 tickAfter로 이 이름들 사이에 끼운다.</summary>
         public IReadOnlyList<TickStep> TickSteps => _tickSteps;
@@ -266,6 +281,8 @@ namespace SpaceStation.Simulation
             {
                 Chapters = AddSystem(new ChapterSystem(settings.Chapters), TickStepNames.Progression); // 등급 판정 바로 뒤
                 Progression.UnlockSource = Chapters;
+                SetRules(Chapters);      // main 공통 판정 고리 (MERGE_NOTES M-1)
+                SetEventScale(Chapters); // main 공통 이벤트 규모 고리 (M-2)
             }
             if (settings.Recipes != null)
                 Synthesis = AddSystem(new SynthesisSystem(settings.Recipes), TickStepNames.Automation); // 요구 · 인구 계산 전에 교체가 끝나게

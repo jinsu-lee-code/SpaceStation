@@ -178,6 +178,8 @@ namespace SpaceStation.UI
                         return stage >= 0 ? $"<color={HudText.Muted}>잠김 · {chapters.GetChapter(stage).DisplayName}</color>" : $"<color={HudText.Muted}>잠김</color>";
                     }
                     int grade = p.GetUnlockGrade(data);
+                    if (grade >= 0 && grade <= p.GradeIndex && p.IsRuleLocked(data))
+                        return $"<color={HudText.Muted}>잠김 · {StationRules.DisplayName(data.RequiredRule)}</color>"; // 13-1
                     return grade >= 0 ? $"<color={HudText.Muted}>잠김 · {p.GetGrade(grade).DisplayName}</color>" : $"<color={HudText.Muted}>잠김</color>";
                 case PlacementResult.LimitReached:
                     return $"<color={HudText.Yellow}>최대 {p.CurrentLimit(_station.Grid)}개</color>";
@@ -202,6 +204,8 @@ namespace SpaceStation.UI
                     return stage >= 0 ? $"{chapters.GetChapter(stage).DisplayName}에서 해금" : "이번 이야기에서는 열리지 않음";
                 }
                 int grade = p.GetUnlockGrade(data);
+                if (grade >= 0 && grade <= p.GradeIndex && p.IsRuleLocked(data))
+                    return $"'{StationRules.DisplayName(data.RequiredRule)}' 시스템이 열리면 건설 가능"; // 13-1
                 return grade >= 0 ? $"{p.GetGrade(grade).DisplayName} 등급에서 해금" : "해금 조건 없음";
             }
             if (buildable == PlacementResult.LimitReached)

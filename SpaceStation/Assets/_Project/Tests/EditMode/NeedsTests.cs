@@ -81,6 +81,24 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void PerNeedPenalty_OverridesCommonValue()
+        {
+            var so = new SerializedObject(_config);
+            var list = so.FindProperty("_needPenalties");
+            list.arraySize = 1;
+            list.GetArrayElementAtIndex(0).FindPropertyRelative("Need").enumValueIndex = (int)ResidentNeed.Education;
+            list.GetArrayElementAtIndex(0).FindPropertyRelative("Penalty").floatValue = 15f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var needs = System();
+            Place(_habitat, 0);
+            needs.Evaluate(_grid, 10, new[] { ResidentNeed.Medical, ResidentNeed.Education });
+            Assert.AreEqual(100f - 30f - 15f, needs.SatisfactionCap, Eps, "의료 30(공통) + 교육 15(요구별)");
+            Assert.AreEqual("교육", ResidentNeed.Education.DisplayName());
+            Assert.AreEqual("검역", ResidentNeed.Quarantine.DisplayName());
+        }
+
+        [Test]
         public void Service_CoversHabitatsInRange_Only()
         {
             var needs = System();

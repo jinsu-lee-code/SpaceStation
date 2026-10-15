@@ -42,7 +42,7 @@ namespace SpaceStation.Simulation
     /// 장 틀이 있으면 모듈 해금 · 새 요구 · 이벤트 규모 · 규칙(유성우 · 정책 · 합성 · 열 · 사회 위기 · 방문 세력)을 등급 대신 장이 정한다
     /// (해금 · 요구 · 규칙은 지금 장까지 누적). 등급은 실시간 규모 표시로 남고, 장 목표에 등급 도달이 들어간다.
     /// </summary>
-    public sealed class ChapterSystem : StationSystem, IModuleUnlocks, IEventScale
+    public sealed class ChapterSystem : StationSystem, IModuleUnlocks, IEventScale, IStationRules
     {
         public const string SystemKey = "chapters";
 

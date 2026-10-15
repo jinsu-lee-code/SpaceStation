@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using SpaceStation.Building;
 using SpaceStation.Data;
@@ -117,6 +117,97 @@ namespace SpaceStation.Editor
                     so.FindProperty("_serviceRadius").intValue = 4;
                     so.FindProperty("_serviceCapacity").intValue = 16;
                     Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 6f), (ResourceType.Water, 0.2f));
+                },
+            },
+            // 13-4 (사용자 결정 2026-10-15, BALANCE 44번): 계통표에서 지금 있는 1단계로 이어지는 것만 — 1단계 문화 센터 + 2단계 5종 (그레이박스)
+            new Def
+            {
+                Id = "CultureCenter", Name = "문화 센터", RecipeName = "문화 센터", Category = ModuleCategory.Life, Color = "#FFC86B",
+                Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(0, 0, 1), V(1, 0, 1) }, // 학교 2칸 + 휴게실 2칸
+                Ingredients = new[] { ("MD_School", 1), ("MD_Recreation", 1) }, SynthesisMetal = 120f, Duration = 50f, Research = ResearchCategory.Habitation,
+                Rationale = "배우는 곳과 쉬는 곳을 붙여, 수업 뒤 바로 여가로 이어지는 하루를 만든다 (교육 · 여가를 넓게)",
+                Stats = so =>
+                {
+                    SetEnum(so.FindProperty("_serviceNeed"), nameof(ResidentNeed.Education));
+                    var extra = so.FindProperty("_extraServiceNeeds");
+                    extra.arraySize = 1;
+                    SetEnum(extra.GetArrayElementAtIndex(0), nameof(ResidentNeed.Recreation));
+                    so.FindProperty("_serviceRadius").intValue = 5;
+                    so.FindProperty("_serviceCapacity").intValue = 36;
+                    Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 5f));
+                },
+            },
+            new Def
+            {
+                Id = "GridHub", Name = "그리드 허브", RecipeName = "그리드 허브", Category = ModuleCategory.Power, Color = "#FFE07A", Stage = 2, UnlockGrade = 5,
+                Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(2, 0, 0), V(0, 0, 1), V(1, 0, 1), V(2, 0, 1) },
+                Ingredients = new[] { ("Evolved/MD_Evo_PowerBank", 2) }, SynthesisMetal = 160f, Duration = 70f, Research = ResearchCategory.Energy,
+                Rationale = "저장 묶음 둘을 한 배전망으로 이어 정거장 전체에 전력을 나눠 준다 · 저장량과 충 · 방전 속도가 크게",
+                Stats = so =>
+                {
+                    so.FindProperty("_batteryCapacity").floatValue = 6000f;
+                    so.FindProperty("_batteryRate").floatValue = 110f;
+                },
+            },
+            new Def
+            {
+                Id = "Arcology", Name = "아콜로지", RecipeName = "아콜로지", Category = ModuleCategory.Life, Color = "#8FD0FF", Stage = 2, UnlockGrade = 5,
+                Cells = new[]
+                {
+                    V(0, 0, 0), V(1, 0, 0), V(0, 0, 1), V(1, 0, 1), V(0, 1, 0), V(1, 1, 0), V(0, 1, 1), V(1, 1, 1),
+                    V(0, 2, 0), V(1, 2, 0), V(0, 2, 1), V(1, 2, 1), V(0, 3, 0), V(1, 3, 0), V(0, 3, 1), V(1, 3, 1),
+                },
+                Ingredients = new[] { ("Evolved/MD_Evo_HabitatTower", 2) }, SynthesisMetal = 330f, Duration = 80f, Research = ResearchCategory.Habitation,
+                Rationale = "타워 둘을 하나로 올려 사는 곳 안에 생활 기반까지 넣는다 · 수용이 크게, 공용 설비로 전력은 덜",
+                Stats = so =>
+                {
+                    so.FindProperty("_housingCapacity").intValue = 80;
+                    Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 10f));
+                },
+            },
+            new Def
+            {
+                Id = "Biodome", Name = "바이오돔", RecipeName = "바이오돔", Category = ModuleCategory.Power, Color = "#5FE08A", Stage = 2, UnlockGrade = 5, // 생산 탭
+                Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(2, 0, 0), V(3, 0, 0), V(0, 0, 1), V(1, 0, 1), V(2, 0, 1), V(3, 0, 1) },
+                Ingredients = new[] { ("Evolved/MD_Evo_EcoModule", 2) }, SynthesisMetal = 240f, Duration = 80f, Research = ResearchCategory.Production,
+                Rationale = "작은 순환 둘을 큰 생태계 하나로 · 순환이 커질수록 덜 쓰고 더 만든다",
+                Stats = so =>
+                {
+                    Amounts(so.FindProperty("_production"), (ResourceType.Food, 6f), (ResourceType.Oxygen, 8f), (ResourceType.Water, 6f));
+                    Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 18f), (ResourceType.Water, 2.5f));
+                },
+            },
+            new Def
+            {
+                Id = "CivicHall", Name = "시민 회관", RecipeName = "시민 회관", Category = ModuleCategory.Life, Color = "#FFB4E0", Stage = 2, UnlockGrade = 5,
+                Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(2, 0, 0), V(3, 0, 0), V(0, 0, 1), V(1, 0, 1), V(2, 0, 1) }, // 문화 센터 2×2 + 복지 센터 L 3칸
+                Ingredients = new[] { ("Evolved/MD_Evo_WelfareCenter", 1), ("Evolved/MD_Evo_CultureCenter", 1) }, SynthesisMetal = 320f, Duration = 70f, Research = ResearchCategory.Habitation,
+                Rationale = "복지와 문화를 한 회관으로 합쳐 의료 · 여가 · 교육을 한곳에서 넓게 맡는다 (합류)",
+                Stats = so =>
+                {
+                    SetEnum(so.FindProperty("_serviceNeed"), nameof(ResidentNeed.Medical));
+                    var extra = so.FindProperty("_extraServiceNeeds");
+                    extra.arraySize = 2;
+                    SetEnum(extra.GetArrayElementAtIndex(0), nameof(ResidentNeed.Recreation));
+                    SetEnum(extra.GetArrayElementAtIndex(1), nameof(ResidentNeed.Education));
+                    so.FindProperty("_serviceRadius").intValue = 5;
+                    so.FindProperty("_serviceCapacity").intValue = 30;
+                    Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 9f), (ResourceType.Water, 0.3f));
+                },
+            },
+            new Def
+            {
+                Id = "ResearchInstitute", Name = "연구원", RecipeName = "연구원", Category = ModuleCategory.Industry, Color = "#B79CFF", Stage = 2, UnlockGrade = 5,
+                Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(0, 0, 1), V(1, 0, 1) },
+                Ingredients = new[] { ("Evolved/MD_Evo_ResearchComplex", 1), ("MD_DataCenter", 1) }, SynthesisMetal = 180f, Duration = 70f,
+                Rationale = "연구 단지에 계산 설비를 붙여 데이터와 연구를 한 흐름으로 · 슬롯이 늘고 연구가 빨라진다",
+                Stats = so =>
+                {
+                    // 연구소 계통 2단계 = 레시피 연구 슬롯 2 (단계마다 1, 12-4)
+                    so.FindProperty("_researchSlots").intValue = 3;
+                    so.FindProperty("_recipeSlots").intValue = 2;
+                    so.FindProperty("_researchSpeedBonus").floatValue = 0.15f;
+                    Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 10f));
                 },
             },
             // 12-3c 지구급 (사용자 결정 2026-10-14: 통신 중계소 상위 모듈 추가, 계통표 47 → 48). 재료 MD_CommRelay는 Grade Rules/Setup Contact가 만듦
@@ -278,6 +369,7 @@ namespace SpaceStation.Editor
             so.FindProperty("_batteryRate").floatValue = 0f;
             so.FindProperty("_serviceCapacity").intValue = 0;
             so.FindProperty("_extraServiceNeeds").arraySize = 0;
+            so.FindProperty("_researchSpeedBonus").floatValue = 0f;
 
             so.FindProperty("_displayName").stringValue = def.Name;
             SetEnum(so.FindProperty("_category"), def.Category.ToString());

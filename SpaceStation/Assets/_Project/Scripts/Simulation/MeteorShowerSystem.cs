@@ -29,6 +29,9 @@ namespace SpaceStation.Simulation
         };
 
         private readonly Func<float> _random01;
+
+        /// <summary>13-2 공통 고리: 유성우 운석 수 배율 (운석 1회 개수에 곱함). null이면 BalanceConfig 값 (타이쿤판은 노출 면에 따라).</summary>
+        public Func<float> HitsMultiplier { get; set; }
         private readonly List<ModuleInstance> _facing = new List<ModuleInstance>();
         private readonly Dictionary<ModuleInstance, int> _facingCells = new Dictionary<ModuleInstance, int>();
         private readonly List<Vector3Int> _faceCells = new List<Vector3Int>();
@@ -110,7 +113,7 @@ namespace SpaceStation.Simulation
             {
                 case ShowerPhase.Idle:
                     if (Sim.Events.Held || !Sim.RuleOpen(StationRule.MeteorShower, Sim.Progression.GradeIndex >= Sim.Balance.ShowerMinGrade))
-                        return; // 튜토리얼 · 도시급(13-1 장 틀이면 그 규칙을 연 장) 전에는 시계가 멈춤
+                        return; // 튜토리얼 · 도시급(13-1 규칙을 정하는 쪽이 있으면 그 규칙) 전에는 시계가 멈춤
                     if (!_armed)
                     {
                         _armed = true;
@@ -148,10 +151,11 @@ namespace SpaceStation.Simulation
         public void BeginWarning(float warningSeconds)
         {
             Direction = Directions[Math.Min(Directions.Length - 1, (int)(_random01() * Directions.Length))];
-            var grade = Sim.EventScale; // 13-1 장 틀이 있으면 장
+            var grade = Sim.EventScale; // 13-2 규모를 정하는 쪽이 있으면 그쪽
             int span = grade.MeteorHitsMax - grade.MeteorHitsMin + 1;
             int hits = grade.MeteorHitsMin + Math.Min(span - 1, (int)(_random01() * span));
-            HitsPerWave = Math.Max(1, (int)Math.Ceiling(hits * Sim.Balance.ShowerHitsMultiplier / Sim.Balance.ShowerWaves));
+            float multiplier = HitsMultiplier != null ? HitsMultiplier() : Sim.Balance.ShowerHitsMultiplier; // 13-2 규모를 정하는 쪽이 있으면 그쪽
+            HitsPerWave = Math.Max(1, (int)Math.Ceiling(hits * multiplier / Sim.Balance.ShowerWaves));
             WavesDone = 0;
             Phase = ShowerPhase.Warning;
             _timer = Math.Max(0.01f, warningSeconds);

@@ -63,24 +63,8 @@ namespace SpaceStation.Data
         public bool HasReward => _rewardResources.Count > 0 || _rewardResearchPoints > 0 || _rewardFreeRepairs > 0;
     }
 
-    /// <summary>13-1: 장마다 켜는 규칙 (장 틀이 있으면 등급 대신 이것으로 시스템을 연다).</summary>
-    [Flags]
-    public enum StationRule
-    {
-        None = 0,
-        /// <summary>유성우 방향 예보 (기존 도시급 규칙, 2장 예정).</summary>
-        MeteorShower = 1,
-        /// <summary>상시 정책 (기존 국가급 규칙, 3장 예정).</summary>
-        Policies = 2,
-        /// <summary>합성 (4장 예정).</summary>
-        Synthesis = 4,
-        /// <summary>열 관리 (5장 예정).</summary>
-        Heat = 8,
-        /// <summary>사회 위기 선택지 (6장 예정).</summary>
-        SocialCrisis = 16,
-        /// <summary>방문 세력 (7장 예정).</summary>
-        Contact = 32,
-    }
+    // 13-1 장마다 켜는 규칙 = main 공통 `StationRule` (Data/StationRule.cs, 같은 이름 · 같은 값 — MERGE_NOTES M-1).
+    // 2026-10-15 main 합침 때 서사판 정의를 지움. 2 · 3단계 합성은 SynthesisStage2 · SynthesisStage3을 따로 켜야 함.
 
     /// <summary>13-1: 절정 사건의 종류. 결과 판정은 절정마다 전용 기준 (사용자 결정 2026-10-15).</summary>
     public enum ChapterClimaxKind

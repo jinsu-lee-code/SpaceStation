@@ -3585,7 +3585,7 @@ RectTransform:
   - {fileID: 2039522121}
   - {fileID: 1429128518}
   - {fileID: 1211633784}
-  - {fileID: 1473164127}
+  - {fileID: 1634540210}
   - {fileID: 1708113628}
   - {fileID: 2067204172}
   - {fileID: 17064193}
@@ -10514,63 +10514,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1470943587}
   m_CullTransparentMesh: 1
---- !u!1 &1473164126
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1473164127}
-  - component: {fileID: 1473164128}
-  m_Layer: 0
-  m_Name: RecipePanel
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &1473164127
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1473164126}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 577544477}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1473164128
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1473164126}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 912684b5dfa0ccb4b83e62d3b50ed67e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.RecipePanel
-  _station: {fileID: 968511355}
-  _synthesis: {fileID: 968511362}
-  _research: {fileID: 1211633785}
-  _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
-  _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
-  _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
-  _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
-  _holoArt: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
-  _refreshSeconds: 0.25
 --- !u!1 &1510164364
 GameObject:
   m_ObjectHideFlags: 0
@@ -10784,6 +10727,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 70b6794e9e217ea43a4cd2d47de1746b, type: 2}
   - {fileID: 11400000, guid: 8ade514bcdf46d44b9aae76528c0256a, type: 2}
   - {fileID: 11400000, guid: 836ae8535ade3614f85726599ffa1074, type: 2}
+  - {fileID: 11400000, guid: ed030270950f379458cc166f12d79945, type: 2}
+  - {fileID: 11400000, guid: 3c64bdc3e55068a418a9e21bacb8a496, type: 2}
+  - {fileID: 11400000, guid: 8aedf23b8cf7a4b438eb4af4715d5bef, type: 2}
+  - {fileID: 11400000, guid: 7613a6062ee974745921a4eb84681eb9, type: 2}
+  - {fileID: 11400000, guid: e1b6f3c567829d8499064afbb04cb194, type: 2}
+  - {fileID: 11400000, guid: 9b1c11d7085f503439223eaf9cc23380, type: 2}
   - {fileID: 11400000, guid: 999cc53607a50074a8a489a81913ad75, type: 2}
   _policies: {fileID: 11400000, guid: f5dda4d08c03d1d48af907a50f0dad4a, type: 2}
   _contact: {fileID: 11400000, guid: 317bb0f6363042640867d6eb32707673, type: 2}
@@ -10965,6 +10914,63 @@ MonoBehaviour:
   Line: {r: 0, g: 0, b: 0, a: 0}
   Scan: 0
   Connector: 0
+--- !u!1 &1634540209
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1634540210}
+  - component: {fileID: 1634540211}
+  m_Layer: 0
+  m_Name: RecipePanel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1634540210
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1634540209}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 577544477}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1634540211
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1634540209}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 912684b5dfa0ccb4b83e62d3b50ed67e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.RecipePanel
+  _station: {fileID: 968511355}
+  _synthesis: {fileID: 968511362}
+  _research: {fileID: 1211633785}
+  _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
+  _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
+  _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
+  _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
+  _holoArt: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
+  _refreshSeconds: 0.25
 --- !u!1 &1647844433
 GameObject:
   m_ObjectHideFlags: 0

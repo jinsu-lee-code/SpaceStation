@@ -67,7 +67,7 @@ namespace SpaceStation.Simulation
 
         public override string Key => SystemKey;
         public ContactConfig Config => _config;
-        public bool Unlocked => Sim.RuleOpen(StationRule.Contact, Sim.Progression.GradeIndex >= _config.MinGrade); // 13-1 장 틀이면 장 규칙
+        public bool Unlocked => Sim.RuleOpen(StationRule.Contact, Sim.Progression.GradeIndex >= _config.MinGrade); // 13-1 규칙을 정하는 쪽이 있으면 그쪽
         public ContactPhase Phase { get; private set; }
         /// <summary>Approaching: 도착까지 / Waiting: 대응 마감까지 / Idle: 다음 방문까지.</summary>
         public float TimeLeft => _timer;

@@ -3,6 +3,20 @@ using UnityEngine;
 
 namespace SpaceStation.Data
 {
+    /// <summary>13-3: 요구별 만족도 상한 감소량.</summary>
+    [System.Serializable]
+    public struct NeedPenalty
+    {
+        public ResidentNeed Need;
+        [Min(0f)] public float Penalty;
+
+        public NeedPenalty(ResidentNeed need, float penalty)
+        {
+            Need = need;
+            Penalty = penalty;
+        }
+    }
+
     /// <summary>게임 전역 밸런스 수치 (BALANCE.md 6번). 모듈별 수치는 <see cref="ModuleData"/>에 둔다.</summary>
     [CreateAssetMenu(menuName = "SpaceStation/Balance Config", fileName = "BalanceConfig")]
     public sealed class BalanceConfig : ScriptableObject
@@ -155,6 +169,8 @@ namespace SpaceStation.Data
         [Header("Resident Needs (BALANCE 20번)")]
         [Tooltip("요구 하나가 전부 미충족일 때 만족도 상한 감소량 (미충족 비율에 비례)")]
         [SerializeField, Min(0f)] private float _needSatisfactionCapPenalty;
+        [Tooltip("13-3: 요구별 감소량 (목록에 없는 요구는 위 값)")]
+        [SerializeField] private List<NeedPenalty> _needPenalties = new List<NeedPenalty>();
         [Tooltip("만족도가 상한보다 높을 때 초당 감소량")]
         [SerializeField, Min(0f)] private float _satisfactionAboveCapDecayPerSecond = 1f;
 
@@ -306,6 +322,15 @@ namespace SpaceStation.Data
         public float TurretMaxIntercept => _turretMaxIntercept;
         public float ShieldRicochetChance => _shieldRicochetChance;
         public float NeedSatisfactionCapPenalty => _needSatisfactionCapPenalty;
+
+        /// <summary>13-3: 이 요구가 전부 미충족일 때 만족도 상한 감소량 (요구별 값이 없으면 공통 값).</summary>
+        public float NeedPenaltyFor(ResidentNeed need)
+        {
+            foreach (var p in _needPenalties)
+                if (p.Need == need)
+                    return Mathf.Max(0f, p.Penalty);
+            return _needSatisfactionCapPenalty;
+        }
         public float SatisfactionAboveCapDecayPerSecond => _satisfactionAboveCapDecayPerSecond;
         public float OxygenFailSeconds => _oxygenFailSeconds;
         public float SatisfactionFailSeconds => _satisfactionFailSeconds;

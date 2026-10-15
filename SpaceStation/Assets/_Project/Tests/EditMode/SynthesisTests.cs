@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using SpaceStation.Core;
@@ -182,6 +182,53 @@ namespace SpaceStation.Tests
 
             // 진화 모듈 재건축 = 레시피가 열려 있으면 가능 (건설 메뉴 해금 목록에 없어도)
             Assert.IsTrue(sim.CanRebuildKind(evolved));
+        }
+
+        [Test]
+        public void Stage2_UsesEvolvedModulesAsIngredients()
+        {
+            // 13-4: 2단계 = 1단계 진화 모듈 둘 → 3×2
+            var big = Module("MD_TestEvolved2", 150f, new[]
+            {
+                Vector3Int.zero, Vector3Int.right, new Vector3Int(2, 0, 0),
+                new Vector3Int(0, 0, 1), new Vector3Int(1, 0, 1), new Vector3Int(2, 0, 1),
+            }, gradeCount: 4);
+            var stage2 = Create<RecipeData>();
+            stage2.name = "RC_TestStage2";
+            var so = new SerializedObject(stage2);
+            so.FindProperty("_result").objectReferenceValue = big;
+            var ing = so.FindProperty("_ingredients");
+            ing.arraySize = 1;
+            ing.GetArrayElementAtIndex(0).FindPropertyRelative("Module").objectReferenceValue = _result;
+            ing.GetArrayElementAtIndex(0).FindPropertyRelative("Count").intValue = 2;
+            Fill(so.FindProperty("_cost"), R(ResourceType.Metal, 30f));
+            so.FindProperty("_duration").floatValue = 10f;
+            so.FindProperty("_stage").intValue = 2;
+            so.FindProperty("_unlockGrade").intValue = 0;
+            so.FindProperty("_unlockedByDefault").boolValue = true;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var sim = new StationSimulation(new StationSimulationSettings
+            {
+                Balance = _config, Grades = _grades, CoreModule = _core, Events = new List<GameEventData>(), Random01 = () => 0.5f,
+                Recipes = new[] { _recipe, stage2 },
+            });
+            foreach (var z in new[] { 0, 1 })
+            {
+                var origin = new Vector3Int(1, 0, z);
+                Place(sim, _a, origin);
+                Place(sim, _b, new Vector3Int(2, 0, z));
+                Assert.AreEqual(SynthesisResult.Valid, sim.Synthesis.TryStart(_recipe, origin, 0, out _));
+                for (int i = 0; i < 20 && sim.Synthesis.Jobs.Count > 0; i++)
+                    sim.Tick(1f);
+            }
+            int gradeModules = StationProgression.CountGradeModules(sim.Grid);
+            Assert.AreEqual(SynthesisResult.Valid, sim.Synthesis.TryStart(stage2, new Vector3Int(1, 0, 0), 0, out _), "진화 모듈 둘이 2단계 재료");
+            for (int i = 0; i < 20 && sim.Synthesis.Jobs.Count > 0; i++)
+                sim.Tick(1f);
+            Assert.IsTrue(sim.Grid.TryGetModule(new Vector3Int(3, 0, 1), out var result));
+            Assert.AreSame(big, result.Data);
+            Assert.AreEqual(gradeModules, StationProgression.CountGradeModules(sim.Grid), "모듈 수 유지 (재료 4개)");
         }
 
         [Test]
