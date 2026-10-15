@@ -98,6 +98,7 @@ namespace SpaceStation.Editor
         private const string GrowthPath = "Assets/_Project/Data/Tycoon/GrowthThreatConfig.asset";
         private const string PlaguePath = "Assets/_Project/Data/Tycoon/PlagueConfig.asset";
         private const int CityGrade = 4;
+        private const int NationGrade = 5;
 
         /// <summary>
         /// 13-3 등급별 요구 재배치 (BALANCE 43번): 도시급 새 요구 교육 · 검역 (요구 종류 · 학교 · 검역소 서비스 설정은 main) +
@@ -110,22 +111,31 @@ namespace SpaceStation.Editor
             EnsureFolder();
             var grades = AssetDatabase.LoadAssetAtPath<StationGradeConfig>("Assets/_Project/Data/StationGrades.asset");
             var gso = new SerializedObject(grades);
-            var needs = gso.FindProperty("_grades").GetArrayElementAtIndex(CityGrade).FindPropertyRelative("_newNeeds");
-            foreach (var need in new[] { ResidentNeed.Education, ResidentNeed.Quarantine })
+            // 13-3 도시급 교육 · 검역, 13-5 국가급 소비 · 행정 (요구 종류 · 서비스 설정은 main)
+            var gradeNeeds = new (int Grade, ResidentNeed[] Needs)[]
             {
-                bool has = false;
-                for (int i = 0; i < needs.arraySize; i++)
-                    has |= needs.GetArrayElementAtIndex(i).enumValueIndex == System.Array.IndexOf(needs.GetArrayElementAtIndex(i).enumNames, need.ToString());
-                if (has)
-                    continue;
-                needs.arraySize++;
-                var e = needs.GetArrayElementAtIndex(needs.arraySize - 1);
-                e.enumValueIndex = System.Array.IndexOf(e.enumNames, need.ToString());
+                (CityGrade, new[] { ResidentNeed.Education, ResidentNeed.Quarantine }),
+                (NationGrade, new[] { ResidentNeed.Commerce, ResidentNeed.Administration }),
+            };
+            foreach (var (grade, list) in gradeNeeds)
+            {
+                var needs = gso.FindProperty("_grades").GetArrayElementAtIndex(grade).FindPropertyRelative("_newNeeds");
+                foreach (var need in list)
+                {
+                    bool has = false;
+                    for (int i = 0; i < needs.arraySize; i++)
+                        has |= needs.GetArrayElementAtIndex(i).enumValueIndex == System.Array.IndexOf(needs.GetArrayElementAtIndex(i).enumNames, need.ToString());
+                    if (has)
+                        continue;
+                    needs.arraySize++;
+                    var e = needs.GetArrayElementAtIndex(needs.arraySize - 1);
+                    e.enumValueIndex = System.Array.IndexOf(e.enumNames, need.ToString());
+                }
             }
             gso.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(grades);
 
-            foreach (var name in new[] { "MD_School", "MD_Quarantine" })
+            foreach (var name in new[] { "MD_School", "MD_Quarantine", "MD_Commerce", "MD_Administration" })
             {
                 var data = Module(name);
                 if (data == null)
@@ -150,7 +160,7 @@ namespace SpaceStation.Editor
             AddPanel<SpaceStation.UI.PlaguePanel>("PlaguePanel");
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
-            Debug.Log("[TycoonSetup] 요구: 도시급 교육 · 검역 · 학교/검역소 준비 중 해제 · 역병 설정 · 씬 연결 완료");
+            Debug.Log("[TycoonSetup] 요구: 도시급 교육 · 검역 · 국가급 소비 · 행정 · 네 모듈 준비 중 해제 · 역병 설정 · 씬 연결 완료");
         }
 
         /// <summary>HUD 창 하나를 외부 접촉 창 옆에 새로 만들고 공용 글꼴 · 스프라이트를 연결 (같은 이름이 있으면 바꿈).</summary>
@@ -267,21 +277,56 @@ namespace SpaceStation.Editor
                 so.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(data);
 
-                // 해금 목록에서 빼고 중형에 넣음 (규칙이 열리는 순간 지을 수 있게)
-                for (int g = 0; g < list.arraySize; g++)
-                {
-                    var unlocks = list.GetArrayElementAtIndex(g).FindPropertyRelative("_unlocks");
-                    for (int i = unlocks.arraySize - 1; i >= 0; i--)
-                        if (unlocks.GetArrayElementAtIndex(i).objectReferenceValue == data)
-                            unlocks.DeleteArrayElementAtIndex(i);
-                }
-                var target = list.GetArrayElementAtIndex(ToolGrade).FindPropertyRelative("_unlocks");
-                target.arraySize++;
-                target.GetArrayElementAtIndex(target.arraySize - 1).objectReferenceValue = data;
+                MoveUnlock(list, data, ToolGrade); // 규칙이 열리는 순간 지을 수 있게
             }
             gso.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(grades);
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>모듈을 모든 등급 해금 목록에서 빼고 grade 등급에 넣는다 (다시 돌려도 같은 결과).</summary>
+        private static void MoveUnlock(SerializedProperty grades, ModuleData data, int grade)
+        {
+            for (int g = 0; g < grades.arraySize; g++)
+            {
+                var unlocks = grades.GetArrayElementAtIndex(g).FindPropertyRelative("_unlocks");
+                for (int i = unlocks.arraySize - 1; i >= 0; i--)
+                    if (unlocks.GetArrayElementAtIndex(i).objectReferenceValue == data)
+                        unlocks.DeleteArrayElementAtIndex(i);
+            }
+            var target = grades.GetArrayElementAtIndex(grade).FindPropertyRelative("_unlocks");
+            target.arraySize++;
+            target.GetArrayElementAtIndex(target.arraySize - 1).objectReferenceValue = data;
+        }
+
+        /// <summary>
+        /// 13-5 기본 모듈 배치 (사용자 결정 2026-10-15, BALANCE 45번) — 대형이 비어 있고 중형에 몰리던 것을 고르게:
+        /// 중형 = 연결 허브 · 구조 프레임(배치 도구) / 대형 = 물 추출기 · 단백질 배양실 + 손상 통제실 · 화물 터미널(중형에서) /
+        /// 도시 = 데이터 센터 · 여객 도킹 포트(국가에서) / 국가 = 상업 구역 · 행정 관제소 · 방사선 차폐실(준비 중) 그대로.
+        /// 센서 어레이 · 방열판 · 통신 중계소(중형, 규칙)는 Setup Unlock Choices가 맡는다.
+        /// </summary>
+        [MenuItem("SpaceStation/Tycoon/Setup Modules")]
+        public static void SetupModules()
+        {
+            var placement = new (string Name, int Grade)[]
+            {
+                ("MD_ConnectorHub", 2), ("MD_StructureFrame", 2),
+                ("MD_WaterExtractor", 3), ("MD_ProteinVat", 3), ("MD_DamageControl", 3), ("MD_CargoTerminal", 3),
+                ("MD_DataCenter", CityGrade), ("MD_PassengerPort", CityGrade),
+            };
+            var grades = AssetDatabase.LoadAssetAtPath<StationGradeConfig>("Assets/_Project/Data/StationGrades.asset");
+            var gso = new SerializedObject(grades);
+            var list = gso.FindProperty("_grades");
+            foreach (var (name, grade) in placement)
+            {
+                var data = Module(name);
+                if (data != null)
+                    MoveUnlock(list, data, grade);
+            }
+            gso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(grades);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[TycoonSetup] 기본 모듈 배치: 중형 허브 · 프레임 / 대형 물 추출기 · 단백질 · 손상 통제 · 화물 / 도시 데이터 센터 · 여객 포트");
         }
 
         private static void SetPolicySlots()

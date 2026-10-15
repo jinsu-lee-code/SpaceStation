@@ -28,3 +28,6 @@
   - 측정 도구: `BalanceBotExpansion.DecideExpansion` — 규칙을 정하는 쪽이 있으면 '합성 1단계' 규칙으로 시작 (없으면 도시급, 동작 같음)
   - 데이터(에셋): `ResearchExpansionConfig._shadowLevelOffset` 4 → 1 (모드별 설정으로 나눠야 함)
   - main을 합칠 때 `Main.unity`가 자동 병합되더라도 SpaceStation/Recipes/Setup → Tycoon 메뉴 4개(Unlock Choices · Growth Threat · Needs · Synthesis)를 다시 돌려 씬 연결을 맞춤
+
+- **13-5 (2026-10-15)**
+  - 데이터(에셋): `StationGrades` 해금 등급 — 연결 허브 · 구조 프레임 → 중형, 물 추출기 · 단백질 배양실 · 손상 통제실 · 화물 터미널 → 대형, 데이터 센터 · 여객 도킹 포트 → 도시, 국가급 새 요구 소비 · 행정 + 상업 구역 · 행정 관제소 준비 중 해제 (모드별 설정으로 나눠야 함)
