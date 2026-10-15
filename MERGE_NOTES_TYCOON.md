@@ -18,3 +18,8 @@
   - `SimulationHost`: `_growthThreat` 필드 + 있으면 `GrowthThreatSystem.AttachTo` (이벤트 규모 · 파업 기준 보정 고리에 연결)
   - 측정 도구: `BalanceRunSettings.GrowthThreat` · `BalanceRun`(붙이기) · `BalanceSimulatorWindow`(기본 에셋 `Data/Tycoon/GrowthThreatConfig`)
   - UI: `UnlockChoicePanel` 위협 규모 줄(타이쿤 전용 파일) · `PolicyPanel` 파업 경고에 밀집도 (성장 비례 시스템이 있을 때만)
+
+- **13-3 (2026-10-15)**
+  - `SimulationHost`: `_plague` 필드 + 있으면 `PlagueSystem.AttachTo`
+  - 데이터(에셋): `StationGrades` 도시급 새 요구 교육 · 검역, `MD_School` · `MD_Quarantine` 준비 중 해제 (main `NewModulesSetup`을 다시 돌리면 되돌아감 → `Setup Needs` 다시)
+  - 역병 = 타이쿤판 시스템(`PlagueSystem`, 사회 위기 틀과 따로). 서사판도 역병이 필요하면 main으로 옮김

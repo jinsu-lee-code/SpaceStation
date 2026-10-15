@@ -69,8 +69,9 @@ namespace SpaceStation.Editor.Balance
             if (s.UnlockChoices != null)
             {
                 _choices = UnlockChoiceSystem.AttachTo(_sim, s.UnlockChoices); // 13-1 (복원 전에)
-                var choiceRng = new Random(seed * 6271 + 3); // 해금 선택 난수 분리 (시드별 고정)
-                _pickChoice = n => choiceRng.Next(n);
+                // 해금 선택 난수 (시드별 고정). 가까운 시드의 System.Random은 처음 값들이 서로 닮아 모든 판이 같은 쪽을 골랐음 → 시드 · 순번을 섞는 해시
+                int picks = 0;
+                _pickChoice = n => (int)(Mix((ulong)(uint)seed * 0x9E3779B97F4A7C15UL + (ulong)(++picks)) % (ulong)n);
             }
             if (s.GrowthThreat != null)
                 GrowthThreatSystem.AttachTo(_sim, s.GrowthThreat); // 13-2
@@ -108,6 +109,14 @@ namespace SpaceStation.Editor.Balance
                 if (float.IsNaN(Result.GradeReachSeconds[next]))
                     Result.GradeReachSeconds[next] = Elapsed;
             };
+        }
+
+        /// <summary>SplitMix64 섞기 (13-1 해금 선택 난수).</summary>
+        private static ulong Mix(ulong z)
+        {
+            z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
+            z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
+            return z ^ (z >> 31);
         }
 
         /// <summary>최대 <paramref name="maxTicks"/>틱 진행. 끝나면 <see cref="Done"/>.</summary>

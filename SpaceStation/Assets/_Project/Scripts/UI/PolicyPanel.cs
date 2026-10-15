@@ -423,7 +423,7 @@ namespace SpaceStation.UI
                     _crisisTitle.SetText($"{HudTheme.Icon("warning")} <b>파업 조짐</b>  <color={HudText.Orange}>{Clock(_crisis.TimeLeft)}</color>");
                     var growth = _sim.GetSystem<GrowthThreatSystem>(); // 13-2 타이쿤판: 밀집도가 기준을 올림
                     string crowd = growth != null && growth.CrowdingThreshold >= 0.5f ? $" · 밀집도 {growth.Crowding * 100f:0}% +{growth.CrowdingThreshold:0}" : "";
-                    _crisisDetail.SetText($"<color=#F4ECE8>만족도 {_sim.Population.Satisfaction:0} (기준 {_crisis.Threshold:0}{crowd}) ·{_crisis.Threshold + cfg.StrikeRecoverMargin:0} 이상으로 오르면 저절로 풀림 · 시간이 다 되면 파업(생산 -{(1f - cfg.StrikeProduction) * 100f:0}%, {cfg.StrikeDuration:0}초)</color>");
+                    _crisisDetail.SetText($"<color=#F4ECE8>만족도 {_sim.Population.Satisfaction:0} (기준 {_crisis.Threshold:0}{crowd}) · {_crisis.Threshold + cfg.StrikeRecoverMargin:0} 이상으로 오르면 저절로 풀림 · 시간이 다 되면 파업(생산 -{(1f - cfg.StrikeProduction) * 100f:0}%, {cfg.StrikeDuration:0}초)</color>");
                     foreach (var (choice, button, label) in _choices)
                     {
                         button.interactable = _crisis.CanChoose(choice);

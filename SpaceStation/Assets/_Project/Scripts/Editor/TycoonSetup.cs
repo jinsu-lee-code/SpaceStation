@@ -79,6 +79,90 @@ namespace SpaceStation.Editor
         }
 
         private const string GrowthPath = "Assets/_Project/Data/Tycoon/GrowthThreatConfig.asset";
+        private const string PlaguePath = "Assets/_Project/Data/Tycoon/PlagueConfig.asset";
+        private const int CityGrade = 4;
+
+        /// <summary>
+        /// 13-3 등급별 요구 재배치 (BALANCE 43번): 도시급 새 요구 교육 · 검역 (요구 종류 · 학교 · 검역소 서비스 설정은 main) +
+        /// 학교 · 검역소 '준비 중' 해제 + 사회 사건 '역병' 설정 + 씬 연결(호스트 · 역병 경고 창).
+        /// main의 메뉴 SpaceStation/Modules/Setup New Basic을 다시 돌리면 두 모듈이 다시 '준비 중'이 되므로 이 메뉴를 뒤에 다시 돌린다.
+        /// </summary>
+        [MenuItem("SpaceStation/Tycoon/Setup Needs")]
+        public static void SetupNeeds()
+        {
+            EnsureFolder();
+            var grades = AssetDatabase.LoadAssetAtPath<StationGradeConfig>("Assets/_Project/Data/StationGrades.asset");
+            var gso = new SerializedObject(grades);
+            var needs = gso.FindProperty("_grades").GetArrayElementAtIndex(CityGrade).FindPropertyRelative("_newNeeds");
+            foreach (var need in new[] { ResidentNeed.Education, ResidentNeed.Quarantine })
+            {
+                bool has = false;
+                for (int i = 0; i < needs.arraySize; i++)
+                    has |= needs.GetArrayElementAtIndex(i).enumValueIndex == System.Array.IndexOf(needs.GetArrayElementAtIndex(i).enumNames, need.ToString());
+                if (has)
+                    continue;
+                needs.arraySize++;
+                var e = needs.GetArrayElementAtIndex(needs.arraySize - 1);
+                e.enumValueIndex = System.Array.IndexOf(e.enumNames, need.ToString());
+            }
+            gso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(grades);
+
+            foreach (var name in new[] { "MD_School", "MD_Quarantine" })
+            {
+                var data = Module(name);
+                if (data == null)
+                    continue;
+                var so = new SerializedObject(data);
+                so.FindProperty("_comingSoon").boolValue = false;
+                so.FindProperty("_comingSoonNote").stringValue = "";
+                so.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(data);
+            }
+
+            if (AssetDatabase.LoadAssetAtPath<PlagueConfig>(PlaguePath) == null)
+                AssetDatabase.CreateAsset(ScriptableObject.CreateInstance<PlagueConfig>(), PlaguePath); // 값은 PlagueConfig 기본값 (BALANCE 43번)
+            AssetDatabase.SaveAssets();
+
+            var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
+            var host = Object.FindFirstObjectByType<SpaceStation.Simulation.SimulationHost>();
+            var hso = new SerializedObject(host);
+            hso.FindProperty("_plague").objectReferenceValue = AssetDatabase.LoadAssetAtPath<PlagueConfig>(PlaguePath);
+            hso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(host);
+            AddPanel<SpaceStation.UI.PlaguePanel>("PlaguePanel");
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log("[TycoonSetup] 요구: 도시급 교육 · 검역 · 학교/검역소 준비 중 해제 · 역병 설정 · 씬 연결 완료");
+        }
+
+        /// <summary>HUD 창 하나를 외부 접촉 창 옆에 새로 만들고 공용 글꼴 · 스프라이트를 연결 (같은 이름이 있으면 바꿈).</summary>
+        private static T AddPanel<T>(string objectName) where T : MonoBehaviour
+        {
+            var station = Object.FindFirstObjectByType<StationController>();
+            var research = Object.FindFirstObjectByType<SpaceStation.UI.ResearchPanel>(FindObjectsInactive.Include);
+            var contact = Object.FindFirstObjectByType<SpaceStation.UI.ContactPanel>(FindObjectsInactive.Include);
+            var anchor = contact != null ? contact.transform : research.transform;
+            var old = anchor.parent.Find(objectName);
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+            var go = new GameObject(objectName, typeof(RectTransform));
+            go.transform.SetParent(anchor.parent, false);
+            go.transform.SetSiblingIndex(anchor.GetSiblingIndex() + 1);
+            var rt = (RectTransform)go.transform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            var panel = go.AddComponent<T>();
+            var rso = new SerializedObject(research);
+            var pso = new SerializedObject(panel);
+            pso.FindProperty("_station").objectReferenceValue = station;
+            foreach (var f in new[] { "_font", "_fillSprite", "_frameSprite", "_buttonSprite", "_holoArt" })
+                pso.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
+            pso.ApplyModifiedPropertiesWithoutUndo();
+            return panel;
+        }
 
         private static void EnsureFolder()
         {

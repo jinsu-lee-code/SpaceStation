@@ -50,6 +50,8 @@ namespace SpaceStation.Simulation
         [SerializeField] private UnlockChoiceConfig _unlockChoices;
         [Tooltip("타이쿤판 성장 비례 위협 (메뉴 SpaceStation/Tycoon/Setup Growth Threat가 채움). 비면 등급 표가 위기 크기를 정함")]
         [SerializeField] private GrowthThreatConfig _growthThreat;
+        [Tooltip("타이쿤판 사회 사건 '역병' (메뉴 SpaceStation/Tycoon/Setup Needs가 채움). 비면 없음")]
+        [SerializeField] private PlagueConfig _plague;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -94,6 +96,8 @@ namespace SpaceStation.Simulation
                 UnlockChoiceSystem.AttachTo(Simulation, _unlockChoices); // 13-1 타이쿤판 (세이브 복원 전에)
             if (_growthThreat != null)
                 GrowthThreatSystem.AttachTo(Simulation, _growthThreat); // 13-2 타이쿤판
+            if (_plague != null)
+                PlagueSystem.AttachTo(Simulation, _plague, () => Random.value * 0.99999f); // 13-3 타이쿤판
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
             {

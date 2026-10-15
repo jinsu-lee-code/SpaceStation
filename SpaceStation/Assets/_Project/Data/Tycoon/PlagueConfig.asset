@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c9d932044a0d324c92f45d58d241fe4, type: 3}
+  m_Name: PlagueConfig
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.PlagueConfig
+  _minGrade: 4
+  _rollInterval: 60
+  _baseChance: 0.02
+  _shortageChance: 0.25
+  _immigrationChance: 0.05
+  _cooldown: 300
+  _warningSeconds: 90
+  _outbreakSeconds: 90
+  _lossInterval: 15
+  _lossRatio: 0.02
+  _quarantineProtection: 0.5
+  _outbreakProduction: 0.8
+  _suppliesCost:
+  - Type: 3
+    Amount: 60
+  - Type: 2
+    Amount: 60
+  _lockdownSatisfaction: -10
+  _lockdownLeave: 2
+  _campaignSeconds: 180
+  _campaignProduction: 0.85
