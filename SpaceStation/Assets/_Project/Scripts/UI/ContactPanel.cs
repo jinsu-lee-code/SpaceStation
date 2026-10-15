@@ -347,7 +347,7 @@ namespace SpaceStation.UI
         {
             var cfg = _contact.Config;
             int power = _contact.RelayPower;
-            string next = !_contact.Unlocked ? $"<color={HudText.Orange}>지구급부터 함선이 찾아옵니다</color>"
+            string next = !_contact.Unlocked ? $"<color={HudText.Orange}>{(_sim.Rules != null ? "'방문 세력' 시스템이 열리면" : "지구급부터")} 함선이 찾아옵니다</color>"
                 : _contact.Visiting ? $"<color={HudText.Orange}>지금 방문 중: {_contact.VisitorName}</color>"
                 : $"다음 방문까지 약 {Clock(_contact.TimeLeft)}";
             _summary.SetText($"<color={Soft}>통신 세기 <b>{power}</b> → 해독 {DecodeRange(power)} (계급 기준 말단 1 · 중간 간부 2 · 간부 4 · 수뇌 8 · 통신 중계소 1, 심우주 통신기지 4)</color>\n"

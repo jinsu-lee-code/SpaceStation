@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3fc188c8486535449b8321339a3bfd37, type: 3}
+  m_Name: UnlockChoiceConfig
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.UnlockChoiceConfig
+  _grades:
+  - _grade: 1
+    _autoRules: 2
+    _options: []
+  - _grade: 2
+    _autoRules: 0
+    _options:
+    - _key: synthesis1
+      _displayName: "\uD569\uC131 1\uB2E8\uACC4"
+      _description: "\uBAA8\uB4C8\uC744 \uADDC\uACA9 \uBAA8\uC591\uC73C\uB85C \uBE48\uD2C8\uC5C6\uC774
+        \uCC44\uC6CC \uB354 \uAC15\uD55C \uC9C4\uD654 \uBAA8\uB4C8\uB85C \uD569\uCE69\uB2C8\uB2E4.\n\uC5F4\uB9BC:
+        1\uB2E8\uACC4 \uB808\uC2DC\uD53C \xB7 \uD569\uC131 \uCC3D"
+      _rules: 4
+    - _key: meteor-shower
+      _displayName: "\uC720\uC131\uC6B0 \uBC29\uD5A5 \uC608\uBCF4"
+      _description: "\uC704\uAE30: \uC720\uC131\uC6B0 (\uD55C \uBC29\uD5A5\uC5D0\uC11C
+        \uC5EC\uB7EC \uD30C\uB85C \uC3DF\uC544\uC9C0\uB294 \uC6B4\uC11D)\n\uB300\uC751:
+        \uC624\uB294 \uBC29\uD5A5 \uC608\uBCF4 \xB7 \uC13C\uC11C \uC5B4\uB808\uC774
+        \uAC74\uC124 (\uC608\uBCF4 \uC2DC\uAC04 +)\n\uC608\uBCF4\uB41C \uBA74\uC744
+        \uC7A5\uAC11 \uACA9\uBCBD\uC73C\uB85C \uBBF8\uB9AC \uB36E\uC744 \uC218 \uC788\uC5B4\uC694."
+      _rules: 1
+  - _grade: 3
+    _autoRules: 0
+    _options:
+    - _key: heat
+      _displayName: "\uCE78 \uB2E8\uC704 \uC5F4"
+      _description: "\uC704\uAE30: \uBC1C\uC5F4 \uBAA8\uB4C8(\uD575\uC735\uD569\uB85C
+        \xB7 \uC81C\uB828\uC18C \xB7 \uC5F0\uB8CC\uC804\uC9C0) \uC8FC\uBCC0 \uACFC\uC5F4
+        \u2192 \uD6A8\uC728 \uC800\uD558 \xB7 \uD30C\uC190\n\uB300\uC751: \uBC29\uC5F4\uD310
+        \uAC74\uC124 \xB7 \uC5F4 \uC9C0\uB3C4\n\uC5F4\uC744 \uB2E4\uC2A4\uB9AC\uBA74
+        \uBC1C\uC5F4 \uBAA8\uB4C8\uC744 \uCD18\uCD18\uD788 \uC9C0\uC744 \uC218 \uC788\uC5B4\uC694."
+      _rules: 8
+  - _grade: 4
+    _autoRules: 0
+    _options:
+    - _key: synthesis2
+      _displayName: "\uD569\uC131 2\uB2E8\uACC4"
+      _description: "\uB354 \uD070 \uC9C4\uD654 \uBAA8\uB4C8\uC744 \uB9CC\uB4DC\uB294
+        2\uB2E8\uACC4 \uB808\uC2DC\uD53C\uAC00 \uC5F4\uB9BD\uB2C8\uB2E4.\n\uC5F4\uB9BC:
+        2\uB2E8\uACC4 \uB808\uC2DC\uD53C"
+      _rules: 64
+    - _key: social-crisis
+      _displayName: "\uC0AC\uD68C \uC0AC\uAC74"
+      _description: "\uC704\uAE30: \uB9CC\uC871\uB3C4\uAC00 \uB0AE\uAC8C \uC774\uC5B4\uC9C0\uBA74
+        \uD30C\uC5C5 \uACBD\uACE0 \u2192 \uD30C\uC5C5 \uC911 \uC0DD\uC0B0 \uAC10\uC18C\n\uB300\uC751:
+        \uBB34\uB9C8 \xB7 \uAC15\uACBD \uB300\uC751 \xB7 \uC784\uAE08 \uC778\uC0C1
+        \uC120\uD0DD\uC9C0\n\uB9CC\uC871\uB3C4\uB97C \uC798 \uC9C0\uD0A4\uBA74 \uC704\uAE30
+        \uC5C6\uC774 \uC9C0\uB098\uAC00\uC694."
+      _rules: 16
+  - _grade: 5
+    _autoRules: 0
+    _options:
+    - _key: policy-expansion
+      _displayName: "\uC815\uCC45 \uC2AC\uB86F \uD655\uC7A5"
+      _description: "\uC815\uCC45 \uC2AC\uB86F\uC774 \uB298\uC5B4\uB0A9\uB2C8\uB2E4.\n\uC0C1\uC2DC
+        \uC815\uCC45\uC744 \uB354 \uB9CE\uC774 \uB3D9\uC2DC\uC5D0 \uAC78 \uC218 \uC788\uC5B4\uC694."
+      _rules: 256
+  - _grade: 6
+    _autoRules: 0
+    _options:
+    - _key: synthesis3
+      _displayName: "\uD569\uC131 3\uB2E8\uACC4"
+      _description: "\uAC00\uC7A5 \uD070 \uC9C4\uD654 \uBAA8\uB4C8\uC744 \uB9CC\uB4DC\uB294
+        3\uB2E8\uACC4 \uC774\uC0C1 \uB808\uC2DC\uD53C\uAC00 \uC5F4\uB9BD\uB2C8\uB2E4.\n\uC5F4\uB9BC:
+        3\uB2E8\uACC4 \uC774\uC0C1 \uB808\uC2DC\uD53C (\uC2EC\uC6B0\uC8FC \uD1B5\uC2E0\uAE30\uC9C0
+        \uB4F1)"
+      _rules: 128
+    - _key: contact
+      _displayName: "\uBC29\uBB38 \uC138\uB825"
+      _description: "\uC704\uAE30: \uBB34\uBC95 \uC120\uB2E8 \uC2B5\uACA9 (\uD3EC\uACA9
+        \xB7 \uCE68\uC785 \uB4DC\uB860)\n\uB300\uC751: \uD1B5\uC2E0 \uC911\uACC4\uC18C
+        \uAC74\uC124 \xB7 \uAD50\uC5ED \xB7 \uD611\uC0C1 \xB7 \uD3C9\uD310\n\uC0C1\uC778
+        \uC5F0\uD569 \xB7 \uD559\uC220 \uD568\uB300\uC640 \uAD50\uC5ED\uD560 \uC218
+        \uC788\uC5B4\uC694."
+      _rules: 32

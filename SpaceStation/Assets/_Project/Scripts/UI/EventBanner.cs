@@ -29,6 +29,7 @@ namespace SpaceStation.UI
         private float _hideAt;
         private UiTween _tween;
         private CargoSystem _cargo;
+        private UnlockChoiceSystem _unlocks;
         private HoloSkin _skin;
 
         private void Start()
@@ -40,6 +41,10 @@ namespace SpaceStation.UI
             _cargo = station != null && station.Simulation != null ? station.Simulation.Cargo : null;
             if (_cargo != null)
                 _cargo.Delivered += HandleCargo;
+            // 13-1 타이쿤판 해금 선택: 시스템이 열리면 알림
+            _unlocks = station != null && station.Simulation != null ? station.Simulation.GetSystem<UnlockChoiceSystem>() : null;
+            if (_unlocks != null)
+                _unlocks.OptionOpened += HandleUnlockOpened;
             _skin = GetComponent<HoloSkin>(); // 11-15 테크 테두리 (있으면 테두리 · 빛 번짐 · 줄무늬를 함께 물들임)
             if (_frame == null && _skin == null)
             {
@@ -58,6 +63,8 @@ namespace SpaceStation.UI
         {
             if (_cargo != null)
                 _cargo.Delivered -= HandleCargo;
+            if (_unlocks != null)
+                _unlocks.OptionOpened -= HandleUnlockOpened;
             if (_events == null || _events.Scheduler == null)
                 return;
             _events.Scheduler.EventStarted -= HandleStarted;
@@ -114,6 +121,25 @@ namespace SpaceStation.UI
             _title.SetText($"<size=80%>{HudTheme.Icon("event")} 화물선 도착 · {extra}</size>");
             _description.gameObject.SetActive(false);
             Show(_cargoSeconds);
+        }
+
+        /// <summary>13-1: 새 시스템이 열림 (고른 것 · 자동으로 열린 것).</summary>
+        private void HandleUnlockOpened(UnlockOption option, bool chosen)
+        {
+            SetTone(HudTheme.Accent, 0.2f);
+            _title.SetText($"{HudTheme.Icon("info")} 새 시스템: {option.DisplayName}  <size=70%><color={HudText.Muted}>{(chosen ? "선택" : "자동으로 열림")}</color></size>");
+            string description = FirstLine(option.Description);
+            _description.SetText(description);
+            _description.gameObject.SetActive(!string.IsNullOrEmpty(description));
+            Show(_showSeconds);
+        }
+
+        private static string FirstLine(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+            int end = text.IndexOf('\n');
+            return end > 0 ? text.Substring(0, end) : text;
         }
 
         /// <summary>바탕은 어두운 패널에 위험도 색을 살짝 섞고, 테두리는 위험도 색.</summary>

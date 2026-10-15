@@ -28,6 +28,8 @@ namespace SpaceStation.Editor.Balance
         [SerializeField] private ResearchExpansionConfig _expansion;
         [Tooltip("Phase 10 주민 특성 (비우면 명단 없이 측정)")]
         [SerializeField] private ResidentConfig _residents;
+        [Tooltip("13-1 타이쿤판 해금 선택 (비우면 등급 숫자로 시스템이 열림)")]
+        [SerializeField] private UnlockChoiceConfig _unlockChoices;
         [SerializeField] private float _durationMinutes = 30f;
 
         /// <summary>Phase 10 비교 측정용: true면 기본 에셋 실행에서도 주민 특성을 끈다.</summary>
@@ -226,6 +228,7 @@ namespace SpaceStation.Editor.Balance
                 ResearchCaps = _researchCaps,
                 Recipes = _recipes,
                 ResearchExpansion = _expansion,
+                UnlockChoices = _unlockChoices,
                 Residents = DisableResidents ? null : _residents,
                 DurationSeconds = _durationMinutes * 60f,
                 Runs = Mathf.Max(1, _runs),
@@ -354,6 +357,8 @@ namespace SpaceStation.Editor.Balance
                 _expansion = AssetDatabase.LoadAssetAtPath<ResearchExpansionConfig>($"{DataRoot}/Research/ResearchExpansionConfig.asset");
             if (overwrite || _residents == null)
                 _residents = AssetDatabase.LoadAssetAtPath<ResidentConfig>($"{DataRoot}/Residents/ResidentConfig.asset");
+            if (overwrite || _unlockChoices == null)
+                _unlockChoices = AssetDatabase.LoadAssetAtPath<UnlockChoiceConfig>($"{DataRoot}/Tycoon/UnlockChoiceConfig.asset"); // 13-1 (없으면 null)
             if (overwrite || _buildable.Count == 0)
             {
                 _buildable.Clear();

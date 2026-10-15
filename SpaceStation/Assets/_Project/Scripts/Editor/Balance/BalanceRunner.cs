@@ -21,6 +21,8 @@ namespace SpaceStation.Editor.Balance
         /// <summary>12-4 합성 레시피 · 연구 확장 (null이면 없음 — 봇은 도시급부터 레시피 해금 연구 · 합성).</summary>
         public IReadOnlyList<RecipeData> Recipes;
         public ResearchExpansionConfig ResearchExpansion;
+        /// <summary>13-1 타이쿤판 해금 선택 (null이면 등급 숫자). 봇은 시드로 무작위로 고른다 (사용자 결정 2026-10-15).</summary>
+        public UnlockChoiceConfig UnlockChoices;
         /// <summary>Phase 10 주민 특성 (null이면 명단 없음).</summary>
         public ResidentConfig Residents;
         public float DurationSeconds = 1800f;
@@ -83,6 +85,8 @@ namespace SpaceStation.Editor.Balance
         public float FinalResidentMood;
         /// <summary>8-x: 마지막 시점 모듈 종류별 개수 (표시 이름 → 개수). 신규 모듈을 봇이 실제로 짓는지 확인용.</summary>
         public Dictionary<string, int> FinalModuleCounts = new Dictionary<string, int>();
+        /// <summary>13-1 타이쿤판: 고른 해금 순서 ("등급:키").</summary>
+        public List<string> Choices = new List<string>();
     }
 
     public sealed class BalanceReport
@@ -245,6 +249,9 @@ namespace SpaceStation.Editor.Balance
             sb.Append("모듈 구성 평균 ");
             foreach (var name in names)
                 sb.Append($" {name} {totals[name] / n:0.0}");
+            foreach (var r in results) // 13-1 타이쿤판 해금 선택 경로
+                if (r.Choices.Count > 0)
+                    sb.Append($"\n해금 선택 시드 {r.Seed}: {string.Join(" → ", r.Choices)}");
             return sb.ToString();
         }
 

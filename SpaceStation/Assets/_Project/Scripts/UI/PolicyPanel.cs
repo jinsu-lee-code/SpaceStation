@@ -362,9 +362,14 @@ namespace SpaceStation.UI
             var temps = new StringBuilder();
             foreach (var t in _policies.Temporaries)
                 temps.Append(temps.Length > 0 ? " · " : "").Append($"{t.Name} {Clock(t.Remaining)}");
+            var rules = _policies.Sim.Rules; // 13-1 타이쿤판 해금 선택이면 등급 대신 시스템 개방
+            string slotRule = rules == null ? "국가급 2 · 대륙급 3 · 지구급 4"
+                : rules.Allows(StationRule.PolicyExpansion) ? $"정책 슬롯 확장 +{_policies.Config.ExpansionSlots} 포함"
+                : $"'정책 슬롯 확장'을 열면 +{_policies.Config.ExpansionSlots}";
             _summary.SetText(slots > 0
-                ? $"<color={Soft}>슬롯 {slots}개 (국가급 2 · 대륙급 3 · 지구급 4) · 바꾸면 {_policies.Config.ApplyDelay:0}초 뒤 시행 · 그 슬롯은 {_policies.Config.SwapCooldown / 60f:0}분 교체 대기</color>"
+                ? $"<color={Soft}>슬롯 {slots}개 ({slotRule}) · 바꾸면 {_policies.Config.ApplyDelay:0}초 뒤 시행 · 그 슬롯은 {_policies.Config.SwapCooldown / 60f:0}분 교체 대기</color>"
                   + (temps.Length > 0 ? $"\n<color={HudText.Orange}>일시 효과: {temps}</color>" : "")
+                : rules != null ? $"<color={HudText.Orange}>'정책' 시스템이 열리면 정책 슬롯이 생깁니다</color>"
                 : $"<color={HudText.Orange}>국가급부터 정책 슬롯이 열립니다</color>");
 
             for (int i = 0; i < _slotCards.Count; i++)
@@ -374,7 +379,7 @@ namespace SpaceStation.UI
                 button.interactable = open;
                 if (!open)
                 {
-                    string grade = i < 2 ? "국가급" : i == 2 ? "대륙급" : "지구급";
+                    string grade = rules != null ? (slots > 0 ? "정책 슬롯 확장" : "'정책' 시스템") : i < 2 ? "국가급" : i == 2 ? "대륙급" : "지구급";
                     label.SetText($"<color={Soft}>슬롯 {i + 1}\n{grade}부터</color>");
                     continue;
                 }

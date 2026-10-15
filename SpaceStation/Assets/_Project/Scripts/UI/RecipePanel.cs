@@ -372,8 +372,7 @@ namespace SpaceStation.UI
             var sb = new StringBuilder();
             if (!unlocked)
             {
-                string grade = r.UnlockGrade < _sim.Progression.GradeCount ? _sim.Progression.GetGrade(r.UnlockGrade).DisplayName : "?";
-                sb.Append($"<color={HudText.Orange}>잠김: {grade} 등급부터</color>\n");
+                sb.Append($"<color={HudText.Orange}>잠김: {LockText(r)}</color>\n");
             }
             sb.Append($"<color={HudText.Muted}>재료</color>  ");
             bool first = true;
@@ -401,6 +400,15 @@ namespace SpaceStation.UI
             _place.interactable = unlocked;
         }
 
+        /// <summary>잠긴 레시피 안내: "도시급 등급부터" 또는 13-1 해금 선택이면 "'합성 2단계' 시스템이 열리면".</summary>
+        private string LockText(RecipeData r)
+        {
+            if (_sim.Rules != null)
+                return $"'{StationRules.DisplayName(StationRules.ForSynthesisStage(r.Stage))}' 시스템이 열리면";
+            string grade = r.UnlockGrade < _sim.Progression.GradeCount ? _sim.Progression.GetGrade(r.UnlockGrade).DisplayName : "?";
+            return $"{grade} 등급부터";
+        }
+
         /// <summary>
         /// 12-4 그림자 레시피: 이름 + 검은 실루엣(규격 모양)만 보이고, 재료 · 효과는 해금 연구 뒤 공개.
         /// 해금 연구 비용(자원 + 연구 포인트 + 전력 · 시간) · 슬롯 · 진행 · 시작/취소.
@@ -417,8 +425,9 @@ namespace SpaceStation.UI
             sb.Append($"<color={HudText.Muted}>재료 · 결과 효과 · 합성 비용은 해금 연구를 마치면 공개됩니다</color>\n\n");
             sb.Append($"<b>해금 연구</b>  {HudText.Cost(cost.StartCost)}  <color={HudText.Yellow}>연구 포인트 {cost.ResearchPoints}</color>\n");
             sb.Append($"<color={HudText.Muted}>전력 +{cost.PowerDemand:0} · {cost.Duration:0}초 · 레시피 연구 슬롯 1개 (일반 연구와 따로) · 시작 비용은 돌려받지 않음</color>");
-            if (r.UnlockGrade > _sim.Progression.GradeIndex && r.UnlockGrade < _sim.Progression.GradeCount)
-                sb.Append($"\n<color={HudText.Orange}>합성은 {_sim.Progression.GetGrade(r.UnlockGrade).DisplayName} 등급부터</color>");
+            var rule = StationRules.ForSynthesisStage(r.Stage);
+            if (_sim.Rules != null ? !_sim.Rules.Allows(rule) : r.UnlockGrade > _sim.Progression.GradeIndex && r.UnlockGrade < _sim.Progression.GradeCount)
+                sb.Append($"\n<color={HudText.Orange}>합성은 {LockText(r)}</color>");
             _body.SetText(sb.ToString());
             DrawShape(r.Result, silhouette: true);
 

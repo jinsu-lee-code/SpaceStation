@@ -30,6 +30,8 @@ namespace SpaceStation.Editor.Balance
         private int _moodTicks;
         private float _nextSample;
         private int _damaged;
+        private readonly UnlockChoiceSystem _choices;
+        private readonly Func<int, int> _pickChoice;
 
         public BalanceRunResult Result { get; }
         public bool Done { get; private set; }
@@ -64,6 +66,12 @@ namespace SpaceStation.Editor.Balance
                 Recipes = s.Recipes != null && s.Recipes.Count > 0 ? s.Recipes : null,
                 ResearchExpansion = s.ResearchExpansion,
             });
+            if (s.UnlockChoices != null)
+            {
+                _choices = UnlockChoiceSystem.AttachTo(_sim, s.UnlockChoices); // 13-1 (복원 전에)
+                var choiceRng = new Random(seed * 6271 + 3); // 해금 선택 난수 분리 (시드별 고정)
+                _pickChoice = n => choiceRng.Next(n);
+            }
             StartGrade = -1;
             if (start != null)
             {
@@ -119,6 +127,13 @@ namespace SpaceStation.Editor.Balance
             var s = _s;
             var sim = _sim;
             var result = Result;
+            while (_choices != null && _choices.Pending)
+            {
+                int grade = _choices.OfferGrade;
+                int pick = _pickChoice(_choices.Offer.Count);
+                result.Choices.Add($"{grade}:{_choices.Offer[pick].Option.Key}");
+                _choices.Choose(pick);
+            }
             _bot.Decide();
             sim.Tick(s.TickInterval);
             _ticks++;
