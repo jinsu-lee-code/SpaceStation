@@ -43,7 +43,9 @@ namespace SpaceStation.Editor.Balance
 
         private void DecideExpansion()
         {
-            if (!UseExpansion || _sim.Progression.GradeIndex < ExpansionMinGrade)
+            // 13-4 타이쿤판: 규칙을 정하는 쪽(해금 선택)이 있으면 '합성 1단계'가 열린 때부터 (중형에도 가능)
+            bool open = _sim.Rules != null ? _sim.Rules.Allows(StationRule.Synthesis) : _sim.Progression.GradeIndex >= ExpansionMinGrade;
+            if (!UseExpansion || !open)
                 return;
             PickUpCrates();
             var ex = _sim.ResearchExpansion;

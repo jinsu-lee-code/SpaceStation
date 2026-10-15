@@ -78,6 +78,22 @@ namespace SpaceStation.Editor
             Debug.Log("[TycoonSetup] 성장 비례 위협: 설정 · 씬 연결 완료");
         }
 
+        /// <summary>
+        /// 13-4 합성 단계 앞당기기 (BALANCE 44번): 레시피 그림자 공개 = 담당 연구 Lv.(1 + 단계) — 1단계 Lv.2(소형~) · 2단계 Lv.3(중형~) · 3단계 Lv.4(대형~).
+        /// 실제 합성은 해금 선택의 '합성 N단계' 규칙이 열려야 함 (13-1). 레시피 자체는 main의 SpaceStation/Recipes/Setup.
+        /// </summary>
+        [MenuItem("SpaceStation/Tycoon/Setup Synthesis")]
+        public static void SetupSynthesis()
+        {
+            var ex = AssetDatabase.LoadAssetAtPath<ResearchExpansionConfig>("Assets/_Project/Data/Research/ResearchExpansionConfig.asset");
+            var so = new SerializedObject(ex);
+            so.FindProperty("_shadowLevelOffset").intValue = 1;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(ex);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[TycoonSetup] 합성: 그림자 공개 = 연구 Lv.(1 + 단계)");
+        }
+
         private const string GrowthPath = "Assets/_Project/Data/Tycoon/GrowthThreatConfig.asset";
         private const string PlaguePath = "Assets/_Project/Data/Tycoon/PlagueConfig.asset";
         private const int CityGrade = 4;

@@ -23,3 +23,8 @@
   - `SimulationHost`: `_plague` 필드 + 있으면 `PlagueSystem.AttachTo`
   - 데이터(에셋): `StationGrades` 도시급 새 요구 교육 · 검역, `MD_School` · `MD_Quarantine` 준비 중 해제 (main `NewModulesSetup`을 다시 돌리면 되돌아감 → `Setup Needs` 다시)
   - 역병 = 타이쿤판 시스템(`PlagueSystem`, 사회 위기 틀과 따로). 서사판도 역병이 필요하면 main으로 옮김
+
+- **13-4 (2026-10-15)**
+  - 측정 도구: `BalanceBotExpansion.DecideExpansion` — 규칙을 정하는 쪽이 있으면 '합성 1단계' 규칙으로 시작 (없으면 도시급, 동작 같음)
+  - 데이터(에셋): `ResearchExpansionConfig._shadowLevelOffset` 4 → 1 (모드별 설정으로 나눠야 함)
+  - main을 합칠 때 `Main.unity`가 자동 병합되더라도 SpaceStation/Recipes/Setup → Tycoon 메뉴 4개(Unlock Choices · Growth Threat · Needs · Synthesis)를 다시 돌려 씬 연결을 맞춤
