@@ -23,6 +23,8 @@ namespace SpaceStation.Editor.Balance
         public ResearchExpansionConfig ResearchExpansion;
         /// <summary>13-1 타이쿤판 해금 선택 (null이면 등급 숫자). 봇은 시드로 무작위로 고른다 (사용자 결정 2026-10-15).</summary>
         public UnlockChoiceConfig UnlockChoices;
+        /// <summary>13-2 타이쿤판 성장 비례 위협 (null이면 등급 표).</summary>
+        public GrowthThreatConfig GrowthThreat;
         /// <summary>Phase 10 주민 특성 (null이면 명단 없음).</summary>
         public ResidentConfig Residents;
         public float DurationSeconds = 1800f;

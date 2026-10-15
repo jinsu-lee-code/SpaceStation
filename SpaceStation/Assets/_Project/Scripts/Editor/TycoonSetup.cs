@@ -31,10 +31,64 @@ namespace SpaceStation.Editor
             Debug.Log("[TycoonSetup] 해금 선택: 설정 · 대응 도구 모듈 규칙 · 정책 슬롯 · 씬 연결 완료");
         }
 
-        private static UnlockChoiceConfig BuildConfig()
+        /// <summary>
+        /// 13-2 성장 비례 위협 (BALANCE 42번): 기준점은 지금 등급 표(13 · 24 · 27번)가 그 등급 크기의 정거장에서 내던 값에 맞춤
+        /// (노출 면 ≈ 모듈 × 3, 구간 시작 상태 실측 도시급 약 580 · 국가급 약 1,100 · 대륙급 약 1,800). 도시급 뒤로도 넓히면 계속 커짐.
+        /// </summary>
+        [MenuItem("SpaceStation/Tycoon/Setup Growth Threat")]
+        public static void SetupGrowthThreat()
+        {
+            EnsureFolder();
+            var config = AssetDatabase.LoadAssetAtPath<GrowthThreatConfig>(GrowthPath);
+            if (config == null)
+            {
+                config = ScriptableObject.CreateInstance<GrowthThreatConfig>();
+                AssetDatabase.CreateAsset(config, GrowthPath);
+            }
+            config.Set(new List<ExposurePoint>
+                {
+                    new ExposurePoint(24f, 1f, 1f, 1f),       // 등급 없음 (코어 하나 = 노출 24)
+                    new ExposurePoint(50f, 2f, 3f, 0.65f),    // 소형 (코어 + 모듈 7 × 약 3.5)
+                    new ExposurePoint(85f, 3f, 6f, 0.38f),    // 중형 (모듈 20)
+                    new ExposurePoint(150f, 6f, 9f, 0.25f),   // 대형 (모듈 40)
+                    new ExposurePoint(500f, 8f, 11f, 0.21f),  // 도시급 (지금 등급 표의 마지막 값)
+                    new ExposurePoint(1200f, 10f, 13f, 0.19f),
+                    new ExposurePoint(2400f, 12f, 16f, 0.17f),
+                },
+                new List<ModulePoint>
+                {
+                    new ModulePoint(0f, 1f),
+                    new ModulePoint(8f, 1.3f),
+                    new ModulePoint(20f, 1.6f),
+                    new ModulePoint(40f, 2f),
+                    new ModulePoint(120f, 2.4f),
+                },
+                0.8f, 10f);
+            EditorUtility.SetDirty(config);
+            AssetDatabase.SaveAssets();
+
+            var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
+            var host = Object.FindFirstObjectByType<SpaceStation.Simulation.SimulationHost>();
+            var hso = new SerializedObject(host);
+            hso.FindProperty("_growthThreat").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GrowthThreatConfig>(GrowthPath);
+            hso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(host);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log("[TycoonSetup] 성장 비례 위협: 설정 · 씬 연결 완료");
+        }
+
+        private const string GrowthPath = "Assets/_Project/Data/Tycoon/GrowthThreatConfig.asset";
+
+        private static void EnsureFolder()
         {
             if (!AssetDatabase.IsValidFolder("Assets/_Project/Data/Tycoon"))
                 AssetDatabase.CreateFolder("Assets/_Project/Data", "Tycoon");
+        }
+
+        private static UnlockChoiceConfig BuildConfig()
+        {
+            EnsureFolder();
             var config = AssetDatabase.LoadAssetAtPath<UnlockChoiceConfig>(ConfigPath);
             if (config == null)
             {

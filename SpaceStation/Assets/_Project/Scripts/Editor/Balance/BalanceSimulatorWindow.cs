@@ -30,6 +30,8 @@ namespace SpaceStation.Editor.Balance
         [SerializeField] private ResidentConfig _residents;
         [Tooltip("13-1 타이쿤판 해금 선택 (비우면 등급 숫자로 시스템이 열림)")]
         [SerializeField] private UnlockChoiceConfig _unlockChoices;
+        [Tooltip("13-2 타이쿤판 성장 비례 위협 (비우면 등급 표)")]
+        [SerializeField] private GrowthThreatConfig _growthThreat;
         [SerializeField] private float _durationMinutes = 30f;
 
         /// <summary>Phase 10 비교 측정용: true면 기본 에셋 실행에서도 주민 특성을 끈다.</summary>
@@ -229,6 +231,7 @@ namespace SpaceStation.Editor.Balance
                 Recipes = _recipes,
                 ResearchExpansion = _expansion,
                 UnlockChoices = _unlockChoices,
+                GrowthThreat = _growthThreat,
                 Residents = DisableResidents ? null : _residents,
                 DurationSeconds = _durationMinutes * 60f,
                 Runs = Mathf.Max(1, _runs),
@@ -359,6 +362,8 @@ namespace SpaceStation.Editor.Balance
                 _residents = AssetDatabase.LoadAssetAtPath<ResidentConfig>($"{DataRoot}/Residents/ResidentConfig.asset");
             if (overwrite || _unlockChoices == null)
                 _unlockChoices = AssetDatabase.LoadAssetAtPath<UnlockChoiceConfig>($"{DataRoot}/Tycoon/UnlockChoiceConfig.asset"); // 13-1 (없으면 null)
+            if (overwrite || _growthThreat == null)
+                _growthThreat = AssetDatabase.LoadAssetAtPath<GrowthThreatConfig>($"{DataRoot}/Tycoon/GrowthThreatConfig.asset"); // 13-2 (없으면 null)
             if (overwrite || _buildable.Count == 0)
             {
                 _buildable.Clear();

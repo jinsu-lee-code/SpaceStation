@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c28ef13df8081c943bf2689d66e8dbe9, type: 3}
+  m_Name: GrowthThreatConfig
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.GrowthThreatConfig
+  _exposure:
+  - Exposure: 24
+    HitsMin: 1
+    HitsMax: 1
+    IntervalMultiplier: 1
+  - Exposure: 50
+    HitsMin: 2
+    HitsMax: 3
+    IntervalMultiplier: 0.65
+  - Exposure: 85
+    HitsMin: 3
+    HitsMax: 6
+    IntervalMultiplier: 0.38
+  - Exposure: 150
+    HitsMin: 6
+    HitsMax: 9
+    IntervalMultiplier: 0.25
+  - Exposure: 500
+    HitsMin: 8
+    HitsMax: 11
+    IntervalMultiplier: 0.21
+  - Exposure: 1200
+    HitsMin: 10
+    HitsMax: 13
+    IntervalMultiplier: 0.19
+  - Exposure: 2400
+    HitsMin: 12
+    HitsMax: 16
+    IntervalMultiplier: 0.17
+  _modules:
+  - Modules: 0
+    Intensity: 1
+  - Modules: 8
+    Intensity: 1.3
+  - Modules: 20
+    Intensity: 1.6
+  - Modules: 40
+    Intensity: 2
+  - Modules: 120
+    Intensity: 2.4
+  _crowdingStart: 0.8
+  _crowdingMaxThreshold: 10

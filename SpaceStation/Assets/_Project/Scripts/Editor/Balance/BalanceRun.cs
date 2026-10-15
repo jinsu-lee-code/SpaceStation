@@ -72,6 +72,8 @@ namespace SpaceStation.Editor.Balance
                 var choiceRng = new Random(seed * 6271 + 3); // 해금 선택 난수 분리 (시드별 고정)
                 _pickChoice = n => choiceRng.Next(n);
             }
+            if (s.GrowthThreat != null)
+                GrowthThreatSystem.AttachTo(_sim, s.GrowthThreat); // 13-2
             StartGrade = -1;
             if (start != null)
             {

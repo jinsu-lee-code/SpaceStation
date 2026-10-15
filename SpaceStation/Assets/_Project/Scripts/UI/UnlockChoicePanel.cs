@@ -100,6 +100,16 @@ namespace SpaceStation.UI
                 Open();
         }
 
+        private float _nextRefresh;
+
+        private void LateUpdate()
+        {
+            if (_ui == null || !_open || Time.unscaledTime < _nextRefresh)
+                return;
+            _nextRefresh = Time.unscaledTime + 0.5f; // 위협 규모 줄 갱신
+            Refresh();
+        }
+
         public void Open()
         {
             HudWindows.NotifyOpened(this);
@@ -305,6 +315,12 @@ namespace SpaceStation.UI
             st.Append($"<b>열린 시스템</b>  {(opened.Count > 0 ? string.Join(" · ", opened) : "없음")}\n");
             st.Append($"<color={Soft}><b>다음 등급에 자동</b>  {Names(_choices.AutoNext)}</color>\n");
             st.Append($"<color={Soft}><b>다음 등급 후보로 넘어감</b>  {Names(_choices.Carry)}</color>");
+            var threat = _sim.GetSystem<GrowthThreatSystem>(); // 13-2 위기 크기 = 내 정거장 상태
+            if (threat != null)
+                st.Append($"\n<b>위협 규모</b>  노출 면 {threat.Exposure} → 운석 {threat.MeteorHitsMin}~{threat.MeteorHitsMax}개 · 간격 ×{threat.EventIntervalMultiplier:0.00}"
+                          + $"  ·  모듈 {threat.ModuleCount} → 강도 ×{threat.EventIntensityMultiplier:0.0}"
+                          + $"  ·  밀집도 {threat.Crowding * 100f:0}% → 파업 기준 +{threat.CrowdingThreshold:0}"
+                          + (_sim.RuleOpen(StationRule.SocialCrisis, false) ? "" : $" <color={Soft}>(사회 사건이 열리면)</color>"));
             _status.SetText(st.ToString());
         }
     }
