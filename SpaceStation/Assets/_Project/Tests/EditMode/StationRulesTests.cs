@@ -130,6 +130,21 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void ShowerHitsMultiplier_Override()
+        {
+            var sim = Sim();
+            sim.SetEventScale(new FakeScale()); // 운석 7~9개
+            sim.MeteorShower.BeginWarning(10f);
+            int byConfig = sim.MeteorShower.HitsPerWave;
+            sim.MeteorShower.HitsMultiplier = () => 0f; // 최소 1
+            sim.MeteorShower.BeginWarning(10f);
+            Assert.AreEqual(1, sim.MeteorShower.HitsPerWave, "배율을 정하는 쪽이 있으면 그 값");
+            sim.MeteorShower.HitsMultiplier = null;
+            sim.MeteorShower.BeginWarning(10f);
+            Assert.AreEqual(byConfig, sim.MeteorShower.HitsPerWave, "없으면 BalanceConfig 값");
+        }
+
+        [Test]
         public void CrisisThreshold_AddsModifier()
         {
             var sim = Sim(Create<PolicyConfig>());
