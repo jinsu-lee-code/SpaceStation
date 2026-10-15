@@ -15,13 +15,16 @@ namespace SpaceStation.Data
         public float HitsMax;
         [Tooltip("이벤트 간격 배율 (작을수록 자주)")]
         public float IntervalMultiplier;
+        [Tooltip("유성우 배율 (운석 1회 개수에 곱해 여러 파로 나눔, BalanceConfig 기본 3) — 작은 정거장은 낮게")]
+        public float ShowerMultiplier;
 
-        public ExposurePoint(float exposure, float hitsMin, float hitsMax, float interval)
+        public ExposurePoint(float exposure, float hitsMin, float hitsMax, float interval, float shower)
         {
             Exposure = exposure;
             HitsMin = hitsMin;
             HitsMax = hitsMax;
             IntervalMultiplier = interval;
+            ShowerMultiplier = shower;
         }
     }
 
@@ -53,6 +56,8 @@ namespace SpaceStation.Data
     {
         [SerializeField] private List<ExposurePoint> _exposure = new List<ExposurePoint>();
         [SerializeField] private List<ModulePoint> _modules = new List<ModulePoint>();
+        [Tooltip("13-2 보강: 위협을 지금 등급 값 ~ 다음 등급 값 사이로 제한 (다음 등급 값이 더 크지 않으면 하한만 — 도시급부터는 계속 커짐)")]
+        [SerializeField] private bool _clampToGradeBand = true;
         [Header("밀집도 → 파업 기준")]
         [Tooltip("밀집도(인구 ÷ 거주 수용)가 이 값을 넘으면 파업 기준이 오르기 시작")]
         [SerializeField, Range(0f, 1f)] private float _crowdingStart = 0.8f;
@@ -62,6 +67,7 @@ namespace SpaceStation.Data
         public IReadOnlyList<ExposurePoint> Exposure => _exposure;
         public IReadOnlyList<ModulePoint> Modules => _modules;
         public float CrowdingStart => _crowdingStart;
+        public bool ClampToGradeBand { get => _clampToGradeBand; set => _clampToGradeBand = value; }
         public float CrowdingMaxThreshold => _crowdingMaxThreshold;
 
         /// <summary>노출 면 총합에서 (최소 개수, 최대 개수, 간격 배율). 기준점이 없으면 (1, 1, 1).</summary>
@@ -82,6 +88,25 @@ namespace SpaceStation.Data
             }
             var last = _exposure[_exposure.Count - 1];
             return (last.HitsMin, last.HitsMax, last.IntervalMultiplier);
+        }
+
+        /// <summary>노출 면 총합에서 유성우 배율. 기준점이 없으면 -1 (= BalanceConfig 값 그대로).</summary>
+        public float ShowerAt(float exposure)
+        {
+            if (_exposure.Count == 0)
+                return -1f;
+            if (exposure <= _exposure[0].Exposure)
+                return _exposure[0].ShowerMultiplier;
+            for (int i = 1; i < _exposure.Count; i++)
+            {
+                var b = _exposure[i];
+                if (exposure > b.Exposure)
+                    continue;
+                var a = _exposure[i - 1];
+                float t = b.Exposure > a.Exposure ? (exposure - a.Exposure) / (b.Exposure - a.Exposure) : 1f;
+                return Mathf.Lerp(a.ShowerMultiplier, b.ShowerMultiplier, t);
+            }
+            return _exposure[_exposure.Count - 1].ShowerMultiplier;
         }
 
         /// <summary>모듈 수에서 이벤트 강도. 기준점이 없으면 1.</summary>

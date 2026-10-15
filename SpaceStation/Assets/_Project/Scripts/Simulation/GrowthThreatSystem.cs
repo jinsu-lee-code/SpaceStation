@@ -20,7 +20,7 @@ namespace SpaceStation.Simulation
         private readonly GrowthThreatConfig _config;
         private bool _dirty = true;
         private int _lastCount = -1;
-        private float _hitsMin = 1f, _hitsMax = 1f, _interval = 1f, _intensity = 1f;
+        private float _hitsMin = 1f, _hitsMax = 1f, _interval = 1f, _intensity = 1f, _shower = -1f;
 
         public GrowthThreatSystem(GrowthThreatConfig config)
         {
@@ -34,6 +34,8 @@ namespace SpaceStation.Simulation
             sim.SetEventScale(system);
             if (sim.Crisis != null)
                 sim.Crisis.ThresholdModifier = () => system.CrowdingThreshold;
+            if (sim.MeteorShower != null)
+                sim.MeteorShower.HitsMultiplier = () => system.ShowerMultiplier >= 0f ? system.ShowerMultiplier : sim.Balance.ShowerHitsMultiplier; // 작은 정거장 유성우 완화
             return system;
         }
 
@@ -53,7 +55,8 @@ namespace SpaceStation.Simulation
             get
             {
                 Refresh();
-                return Math.Max(1, Mathf.RoundToInt(_hitsMin));
+                var (now, next) = Band();
+                return Math.Max(1, Mathf.RoundToInt(Clamp(_hitsMin, now?.MeteorHitsMin, next?.MeteorHitsMin)));
             }
         }
 
@@ -62,7 +65,8 @@ namespace SpaceStation.Simulation
             get
             {
                 Refresh();
-                return Math.Max(MeteorHitsMin, Mathf.RoundToInt(_hitsMax));
+                var (now, next) = Band();
+                return Math.Max(MeteorHitsMin, Mathf.RoundToInt(Clamp(_hitsMax, now?.MeteorHitsMax, next?.MeteorHitsMax)));
             }
         }
 
@@ -71,7 +75,46 @@ namespace SpaceStation.Simulation
             get
             {
                 Refresh();
-                return Mathf.Max(0.05f, _interval);
+                var (now, next) = Band();
+                // 간격은 작을수록 위험 → 지금 등급 값이 상한, 다음 등급 값이 하한
+                if (now == null)
+                    return Mathf.Max(0.05f, _interval);
+                float v = Mathf.Min(_interval, now.EventIntervalMultiplier);
+                if (next != null && next.EventIntervalMultiplier < now.EventIntervalMultiplier)
+                    v = Mathf.Max(v, next.EventIntervalMultiplier);
+                return Mathf.Max(0.05f, v);
+            }
+        }
+
+        /// <summary>
+        /// 13-2 보강 (사용자 결정 2026-10-15: 등급 띠 안에서만 비례): 위협은 지금 등급 값 ~ 다음 등급 값 사이.
+        /// 다음 등급 값이 지금보다 크지 않으면(도시급부터 등급 표가 같음) 상한 없이 계속 커짐. 등급 띠를 끄면 (null, null).
+        /// </summary>
+        private (StationGrade Now, StationGrade Next) Band()
+        {
+            if (!_config.ClampToGradeBand)
+                return (null, null);
+            return (Sim.Progression.Current, Sim.Progression.Next);
+        }
+
+        /// <summary>value를 [now, next] 사이로 (next가 now보다 크지 않으면 하한만). now가 null이면 그대로.</summary>
+        private static float Clamp(float value, float? now, float? next)
+        {
+            if (now == null)
+                return value;
+            float v = Mathf.Max(value, now.Value);
+            if (next != null && next.Value > now.Value)
+                v = Mathf.Min(v, next.Value);
+            return v;
+        }
+
+        /// <summary>유성우 배율 (노출 면 기준, 기준점이 없으면 -1).</summary>
+        public float ShowerMultiplier
+        {
+            get
+            {
+                Refresh();
+                return _shower;
             }
         }
 
@@ -80,7 +123,8 @@ namespace SpaceStation.Simulation
             get
             {
                 Refresh();
-                return Mathf.Max(0.05f, _intensity);
+                var (now, next) = Band();
+                return Mathf.Max(0.05f, Clamp(_intensity, now?.EventIntensityMultiplier, next?.EventIntensityMultiplier));
             }
         }
 
@@ -104,6 +148,7 @@ namespace SpaceStation.Simulation
             Exposure = exposure;
             ModuleCount = StationProgression.CountGradeModules(Sim.Grid);
             (_hitsMin, _hitsMax, _interval) = _config.AtExposure(exposure);
+            _shower = _config.ShowerAt(exposure);
             _intensity = _config.IntensityAt(ModuleCount);
         }
     }

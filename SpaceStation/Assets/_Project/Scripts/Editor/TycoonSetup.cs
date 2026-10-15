@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using SpaceStation.Building;
 using SpaceStation.Data;
 using UnityEditor;
@@ -34,6 +34,7 @@ namespace SpaceStation.Editor
         /// <summary>
         /// 13-2 성장 비례 위협 (BALANCE 42번): 기준점은 지금 등급 표(13 · 24 · 27번)가 그 등급 크기의 정거장에서 내던 값에 맞춤
         /// (노출 면 ≈ 모듈 × 3, 구간 시작 상태 실측 도시급 약 580 · 국가급 약 1,100 · 대륙급 약 1,800). 도시급 뒤로도 넓히면 계속 커짐.
+        /// 마지막 열 = 유성우 배율 (사용자 결정 2026-10-15: 중형에 유성우를 고르면 대형 전에 막힘 → 중형 ×1 · 대형 ×2 · 도시급부터 ×3)
         /// </summary>
         [MenuItem("SpaceStation/Tycoon/Setup Growth Threat")]
         public static void SetupGrowthThreat()
@@ -47,13 +48,13 @@ namespace SpaceStation.Editor
             }
             config.Set(new List<ExposurePoint>
                 {
-                    new ExposurePoint(24f, 1f, 1f, 1f),       // 등급 없음 (코어 하나 = 노출 24)
-                    new ExposurePoint(50f, 2f, 3f, 0.65f),    // 소형 (코어 + 모듈 7 × 약 3.5)
-                    new ExposurePoint(85f, 3f, 6f, 0.38f),    // 중형 (모듈 20)
-                    new ExposurePoint(150f, 6f, 9f, 0.25f),   // 대형 (모듈 40)
-                    new ExposurePoint(500f, 8f, 11f, 0.21f),  // 도시급 (지금 등급 표의 마지막 값)
-                    new ExposurePoint(1200f, 10f, 13f, 0.19f),
-                    new ExposurePoint(2400f, 12f, 16f, 0.17f),
+                    new ExposurePoint(24f, 1f, 1f, 1f, 1f),       // 등급 없음 (코어 하나 = 노출 24)
+                    new ExposurePoint(50f, 2f, 3f, 0.65f, 1f),    // 소형 (코어 + 모듈 7 × 약 3.5)
+                    new ExposurePoint(85f, 3f, 6f, 0.38f, 1f),       // 중형 (모듈 20)
+                    new ExposurePoint(150f, 6f, 9f, 0.25f, 2f),   // 대형 (모듈 40)
+                    new ExposurePoint(500f, 8f, 11f, 0.21f, 3f),  // 도시급 (지금 등급 표의 마지막 값)
+                    new ExposurePoint(1200f, 10f, 13f, 0.19f, 3f),
+                    new ExposurePoint(2400f, 12f, 16f, 0.17f, 3f),
                 },
                 new List<ModulePoint>
                 {

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using NUnit.Framework;
 using SpaceStation.Data;
 using SpaceStation.Simulation;
@@ -51,8 +51,8 @@ namespace SpaceStation.Tests
             _threat = Create<GrowthThreatConfig>();
             _threat.Set(new List<ExposurePoint>
                 {
-                    new ExposurePoint(0f, 1f, 1f, 1f),
-                    new ExposurePoint(20f, 5f, 7f, 0.5f),
+                    new ExposurePoint(0f, 1f, 1f, 1f, 1f),
+                    new ExposurePoint(20f, 5f, 7f, 0.5f, 3f),
                 },
                 new List<ModulePoint> { new ModulePoint(0f, 1f), new ModulePoint(10f, 2f) },
                 0.8f, 10f);
@@ -75,6 +75,7 @@ namespace SpaceStation.Tests
             Assert.AreEqual(0.75f, mid.Interval, Eps);
             Assert.AreEqual(5f, _threat.AtExposure(500f).HitsMin, Eps, "마지막 기준점 뒤는 그대로");
             Assert.AreEqual(1.5f, _threat.IntensityAt(5f), Eps);
+            Assert.AreEqual(2f, _threat.ShowerAt(10f), Eps, "유성우 배율도 노출 면으로");
             Assert.AreEqual(0f, _threat.CrowdingThreshold(0.8f), Eps);
             Assert.AreEqual(5f, _threat.CrowdingThreshold(0.9f), Eps);
             Assert.AreEqual(10f, _threat.CrowdingThreshold(1f), Eps);
@@ -101,6 +102,40 @@ namespace SpaceStation.Tests
             Assert.Less(lineThreat.EventIntervalMultiplier, squareThreat.EventIntervalMultiplier, "넓게 퍼지면 더 자주");
             Assert.AreEqual(Mathf.RoundToInt(_threat.AtExposure(18f).HitsMin), line.EventScale.MeteorHitsMin);
             Assert.AreEqual(_threat.IntensityAt(4f), line.EventIntensity, Eps, "모듈 수 → 강도");
+            Assert.AreEqual(_threat.ShowerAt(18f), line.MeteorShower.HitsMultiplier(), Eps, "노출 면 → 유성우 배율");
+        }
+
+        [Test]
+        public void GradeBand_LimitsThreatToNextGrade()
+        {
+            // 등급 0 (운석 1 · 간격 ×1) → 다음 등급 1 (운석 2~3 · 간격 ×0.8): 넓게 퍼져도 다음 등급 값까지만
+            var g = new SerializedObject(_grades);
+            var list = g.FindProperty("_grades");
+            list.arraySize = 2;
+            var next = list.GetArrayElementAtIndex(1);
+            next.FindPropertyRelative("_minPopulation").intValue = 9999;
+            next.FindPropertyRelative("_unlocks").arraySize = 0;
+            next.FindPropertyRelative("_meteorHitsMin").intValue = 2;
+            next.FindPropertyRelative("_meteorHitsMax").intValue = 3;
+            next.FindPropertyRelative("_eventIntervalMultiplier").floatValue = 0.8f;
+            var now = list.GetArrayElementAtIndex(0);
+            now.FindPropertyRelative("_meteorHitsMin").intValue = 1;
+            now.FindPropertyRelative("_meteorHitsMax").intValue = 1;
+            now.FindPropertyRelative("_eventIntervalMultiplier").floatValue = 1f;
+            g.ApplyModifiedPropertiesWithoutUndo();
+
+            var sim = Sim(out var threat);
+            for (int x = 1; x <= 3; x++)
+                Assert.IsTrue(sim.TryPlace(_box, new Vector3Int(x, 0, 0), 0, out _));
+            sim.Tick(0.1f);
+            Assert.AreEqual(0, sim.Progression.GradeIndex);
+            // 곡선 값(노출 18 → 운석 4.6~6.4 · 간격 ×0.55)이 다음 등급 값으로 묶임
+            Assert.AreEqual(2, threat.MeteorHitsMin);
+            Assert.AreEqual(3, threat.MeteorHitsMax);
+            Assert.AreEqual(0.8f, threat.EventIntervalMultiplier, Eps);
+
+            _threat.ClampToGradeBand = false;
+            Assert.AreEqual(Mathf.RoundToInt(_threat.AtExposure(18f).HitsMin), threat.MeteorHitsMin, "띠를 끄면 곡선 그대로");
         }
 
         [Test]
