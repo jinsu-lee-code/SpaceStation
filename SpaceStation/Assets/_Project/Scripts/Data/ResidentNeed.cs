@@ -10,6 +10,10 @@ namespace SpaceStation.Data
         Education,
         /// <summary>13-3 검역 (검역소).</summary>
         Quarantine,
+        /// <summary>13-5 소비 (상업 구역).</summary>
+        Commerce,
+        /// <summary>13-5 행정 (행정 관제소).</summary>
+        Administration,
     }
 
     public static class ResidentNeedExtensions
@@ -22,6 +26,8 @@ namespace SpaceStation.Data
                 case ResidentNeed.Recreation: return "여가";
                 case ResidentNeed.Education: return "교육";
                 case ResidentNeed.Quarantine: return "검역";
+                case ResidentNeed.Commerce: return "소비";
+                case ResidentNeed.Administration: return "행정";
                 default: return "-";
             }
         }
