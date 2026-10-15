@@ -43,7 +43,8 @@ namespace SpaceStation.Editor
         {
             // ---- 도시급 ----
             new Def { Id = "School", Name = "학교", Color = "#FFC86B", Category = ModuleCategory.Life, Grade = 4, Cells = new[] { V(0, 0, 0), V(1, 0, 0) },
-                Metal = 120, Consumption = new[] { (ResourceType.Power, 3f) }, ComingSoon = "새 요구 '교육' · 12-6", Marker = PrimitiveType.Cube },
+                Metal = 120, Consumption = new[] { (ResourceType.Power, 3f) }, ComingSoon = "새 요구 '교육' · 12-6", Marker = PrimitiveType.Cube,
+                Stats = so => Service(so, ResidentNeed.Education, 4, 30) }, // 13-3: 서비스 설정 (요구를 등급에 넣는 쪽이 준비 중을 품)
             new Def { Id = "StructureFrame", Name = "구조 프레임", Color = "#9AA4B2", Category = ModuleCategory.Industry, Grade = 4,
                 Metal = 10, CountsTowardGrade = false, Marker = PrimitiveType.Cube },
             new Def { Id = "ConnectorHub", Name = "연결 허브", Color = "#7FD8FF", Category = ModuleCategory.Industry, Grade = 4,
@@ -53,7 +54,8 @@ namespace SpaceStation.Editor
                 Metal = 90, Consumption = new[] { (ResourceType.Power, 3f) },
                 Stats = so => so.FindProperty("_warningBonus").floatValue = 20f },
             new Def { Id = "Quarantine", Name = "검역소", Color = "#8FE39A", Category = ModuleCategory.Life, Grade = 4,
-                Metal = 100, Consumption = new[] { (ResourceType.Power, 3f) }, ComingSoon = "역병 대응 · 12-7", Marker = PrimitiveType.Cube },
+                Metal = 100, Consumption = new[] { (ResourceType.Power, 3f) }, ComingSoon = "역병 대응 · 12-7", Marker = PrimitiveType.Cube,
+                Stats = so => Service(so, ResidentNeed.Quarantine, 3, 20) }, // 13-3
             new Def { Id = "ProteinVat", Name = "단백질 배양실", Color = "#F26B52", // 산호빛 (보충제 통 라벨 · 사용자 피드백 2026-10-14) Category = ModuleCategory.Power, // 생산 탭 Grade = 4,
                 Metal = 80, Production = new[] { (ResourceType.Food, 2.5f) }, Consumption = new[] { (ResourceType.Power, 3f), (ResourceType.Water, 1f) } },
             new Def { Id = "WaterExtractor", Name = "물 추출기", Color = "#6BB8FF", Category = ModuleCategory.Power, // 생산 탭 Grade = 4,
@@ -313,6 +315,15 @@ namespace SpaceStation.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(data);
             return data;
+        }
+
+        /// <summary>13-3 서비스 모듈: 요구 · 반경 · 담당 인원 (BALANCE 43번).</summary>
+        private static void Service(SerializedObject so, ResidentNeed need, int radius, int capacity)
+        {
+            var p = so.FindProperty("_serviceNeed");
+            p.enumValueIndex = System.Array.IndexOf(p.enumNames, need.ToString());
+            so.FindProperty("_serviceRadius").intValue = radius;
+            so.FindProperty("_serviceCapacity").intValue = capacity;
         }
 
         private static void Amounts(SerializedProperty list, params (ResourceType type, float amount)[] values)

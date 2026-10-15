@@ -6,6 +6,10 @@ namespace SpaceStation.Data
         None,
         Medical,
         Recreation,
+        /// <summary>13-3 교육 (학교).</summary>
+        Education,
+        /// <summary>13-3 검역 (검역소).</summary>
+        Quarantine,
     }
 
     public static class ResidentNeedExtensions
@@ -16,6 +20,8 @@ namespace SpaceStation.Data
             {
                 case ResidentNeed.Medical: return "의료";
                 case ResidentNeed.Recreation: return "여가";
+                case ResidentNeed.Education: return "교육";
+                case ResidentNeed.Quarantine: return "검역";
                 default: return "-";
             }
         }
