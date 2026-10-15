@@ -35,6 +35,10 @@ namespace SpaceStation.Editor.Balance
             public int Rotation;
             public HashSet<Vector3Int> Cells = new HashSet<Vector3Int>();
             public readonly List<(ModuleData Data, Vector3Int Origin, int Rotation)> Pieces = new List<(ModuleData, Vector3Int, int)>();
+            /// <summary>조각마다: 먼저 할 하위 합성 번호 (-1 = 바로 쓰는 재료).</summary>
+            public readonly List<int> PieceSub = new List<int>();
+            /// <summary>13-4 2단계: 규격 안의 진화 모듈 자리마다 그 자리에서 먼저 할 1단계 합성.</summary>
+            public readonly List<(RecipeData Recipe, Vector3Int Origin, int Rotation)> Subs = new List<(RecipeData, Vector3Int, int)>();
         }
 
         private SynthesisPlan _plan;
@@ -140,7 +144,7 @@ namespace SpaceStation.Editor.Balance
                     continue;
                 bool buildable = true;
                 foreach (var ing in recipe.Ingredients)
-                    buildable &= ing.Module != null && _sim.CheckBuildable(ing.Module) == PlacementResult.Valid;
+                    buildable &= ing.Module != null && (_sim.CheckBuildable(ing.Module) == PlacementResult.Valid || SubRecipe(ing.Module) != null);
                 if (!buildable)
                     continue;
                 var plan = MakePlan(recipe);
@@ -154,6 +158,22 @@ namespace SpaceStation.Editor.Balance
                     _plan = null;
                 return;
             }
+        }
+
+        /// <summary>13-4: 이 진화 모듈을 만드는 열린 레시피 (재료가 모두 건설 가능할 때만 — 한 단계 아래까지). 없으면 null.</summary>
+        private RecipeData SubRecipe(ModuleData result)
+        {
+            foreach (var r in _sim.Synthesis.Recipes)
+            {
+                if (r.Result != result || !_sim.Synthesis.IsUnlocked(r))
+                    continue;
+                bool ok = true;
+                foreach (var ing in r.Ingredients)
+                    ok &= ing.Module != null && _sim.CheckBuildable(ing.Module) == PlacementResult.Valid;
+                if (ok)
+                    return r;
+            }
+            return null;
         }
 
         private int RunningJobs(RecipeData recipe)
@@ -170,7 +190,7 @@ namespace SpaceStation.Editor.Balance
         {
             var p = _plan;
             var grid = _sim.Grid;
-            // 다른 건설이 규격 칸을 차지했는지
+            // 다른 건설이 규격 칸을 차지했는지 (재료 조각 또는 하위 합성 결과만 허용)
             foreach (var c in p.Cells)
             {
                 if (!grid.TryGetModule(c, out var m))
@@ -178,13 +198,18 @@ namespace SpaceStation.Editor.Balance
                 bool ours = false;
                 foreach (var piece in p.Pieces)
                     ours |= m.Data == piece.Data && m.Origin == piece.Origin;
+                foreach (var sub in p.Subs)
+                    ours |= m.Data == sub.Recipe.Result && m.Origin == sub.Origin;
                 if (!ours)
                     return false;
             }
-            // 아직 안 지은 재료: 정거장에 맞닿은 것부터 (연결 · 받침)
+            // 아직 안 지은 재료: 정거장에 맞닿은 것부터 (연결 · 받침). 하위 합성이 끝난 자리의 조각은 이미 쓰였으므로 건너뜀
             bool remaining = false;
-            foreach (var piece in p.Pieces)
+            for (int pi = 0; pi < p.Pieces.Count; pi++)
             {
+                var piece = p.Pieces[pi];
+                if (p.PieceSub[pi] >= 0 && SubDone(p.Subs[p.PieceSub[pi]]))
+                    continue;
                 if (grid.TryGetModule(piece.Origin, out var existing) && existing.Data == piece.Data && existing.Origin == piece.Origin)
                     continue;
                 remaining = true;
@@ -198,6 +223,23 @@ namespace SpaceStation.Editor.Balance
             }
             if (remaining)
                 return true; // 아직 놓을 수 없는 조각 (받침 · 연결 대기) — 다음 결정에
+            // 13-4 2단계: 진화 모듈 자리마다 1단계 합성을 먼저
+            foreach (var sub in p.Subs)
+            {
+                if (SubDone(sub))
+                    continue;
+                foreach (var job in _sim.Synthesis.Jobs)
+                    if (job.Recipe == sub.Recipe && job.Origin == sub.Origin)
+                        return true; // 진행 중
+                var subResult = _sim.Synthesis.Evaluate(sub.Recipe, sub.Origin, sub.Rotation);
+                if (subResult != SynthesisResult.Valid)
+                    return subResult == SynthesisResult.Damaged;
+                if (!_sim.Resources.CanAfford(_sim.Synthesis.GetCost(sub.Recipe)))
+                    return true;
+                if (_sim.Synthesis.TryStart(sub.Recipe, sub.Origin, sub.Rotation, out _) == SynthesisResult.Valid)
+                    SynthesesStarted++;
+                return true;
+            }
             var result = _sim.Synthesis.Evaluate(p.Recipe, p.Origin, p.Rotation);
             if (result != SynthesisResult.Valid)
                 return result == SynthesisResult.Damaged; // 파손 재료는 수리를 기다림
@@ -216,20 +258,59 @@ namespace SpaceStation.Editor.Balance
             var plan = new SynthesisPlan { Recipe = recipe, Origin = origin, Rotation = rotation };
             foreach (var c in StationGrid.ResolveCells(recipe.Result.CellOffsets, origin, rotation))
                 plan.Cells.Add(c);
+            var top = new List<(ModuleData Data, Vector3Int Origin, int Rotation)>();
+            if (!TileShape(plan.Cells, Pieces(recipe), top))
+                return null;
+            // 13-4 2단계: 진화 모듈 조각은 그 자리를 1단계 재료로 다시 채우고, 그 자리에서 1단계 합성
+            foreach (var piece in top)
+            {
+                if (_sim.CheckBuildable(piece.Data) == PlacementResult.Valid)
+                {
+                    plan.Pieces.Add(piece);
+                    plan.PieceSub.Add(-1);
+                    continue;
+                }
+                var sub = SubRecipe(piece.Data);
+                if (sub == null)
+                    return null;
+                var subCells = new HashSet<Vector3Int>(StationGrid.ResolveCells(piece.Data.CellOffsets, piece.Origin, piece.Rotation));
+                var subPieces = new List<(ModuleData Data, Vector3Int Origin, int Rotation)>();
+                if (!TileShape(subCells, Pieces(sub), subPieces))
+                    return null;
+                plan.Subs.Add((sub, piece.Origin, piece.Rotation));
+                foreach (var sp in subPieces)
+                {
+                    plan.Pieces.Add(sp);
+                    plan.PieceSub.Add(plan.Subs.Count - 1);
+                }
+            }
+            return plan;
+        }
+
+        private static List<ModuleData> Pieces(RecipeData recipe)
+        {
             var pieces = new List<ModuleData>();
             foreach (var ing in recipe.Ingredients)
                 for (int i = 0; i < ing.Count; i++)
                     pieces.Add(ing.Module);
             pieces.Sort((a, b) => b.CellOffsets.Count.CompareTo(a.CellOffsets.Count)); // 큰 조각부터
-            var covered = new HashSet<Vector3Int>();
-            return Tile(plan, pieces, new bool[pieces.Count], covered) ? plan : null;
+            return pieces;
         }
 
-        /// <summary>남은 첫 빈 칸을 덮을 재료 · 회전 · 위치를 하나씩 시도 (규격 칸 ≤ 9개라 금방 끝남).</summary>
-        private bool Tile(SynthesisPlan plan, List<ModuleData> pieces, bool[] used, HashSet<Vector3Int> covered)
+        /// <summary>규격 칸을 조각들로 빈틈없이 채우는 배치 (output에 채움, 실패면 false).</summary>
+        private static bool TileShape(HashSet<Vector3Int> cells, List<ModuleData> pieces, List<(ModuleData Data, Vector3Int Origin, int Rotation)> output)
+            => Tile(cells, pieces, new bool[pieces.Count], new HashSet<Vector3Int>(), output);
+
+        /// <summary>13-4 하위 합성이 끝났는지 (그 자리에 결과 진화 모듈이 있음).</summary>
+        private bool SubDone((RecipeData Recipe, Vector3Int Origin, int Rotation) sub)
+            => _sim.Grid.TryGetModule(sub.Origin, out var m) && m.Data == sub.Recipe.Result && m.Origin == sub.Origin;
+
+        /// <summary>남은 첫 빈 칸을 덮을 재료 · 회전 · 위치를 하나씩 시도 (규격 칸이 작아 금방 끝남).</summary>
+        private static bool Tile(HashSet<Vector3Int> cells, List<ModuleData> pieces, bool[] used, HashSet<Vector3Int> covered,
+            List<(ModuleData Data, Vector3Int Origin, int Rotation)> output)
         {
             Vector3Int? target = null;
-            foreach (var c in plan.Cells)
+            foreach (var c in cells)
             {
                 if (!covered.Contains(c) && (target == null || Less(c, target.Value)))
                     target = c;
@@ -252,7 +333,7 @@ namespace SpaceStation.Editor.Balance
                         foreach (var c in rel)
                         {
                             var w = c + origin;
-                            if (!plan.Cells.Contains(w) || covered.Contains(w))
+                            if (!cells.Contains(w) || covered.Contains(w))
                             {
                                 fits = false;
                                 break;
@@ -263,10 +344,10 @@ namespace SpaceStation.Editor.Balance
                         foreach (var c in rel)
                             covered.Add(c + origin);
                         used[i] = true;
-                        plan.Pieces.Add((data, origin, rot));
-                        if (Tile(plan, pieces, used, covered))
+                        output.Add((data, origin, rot));
+                        if (Tile(cells, pieces, used, covered, output))
                             return true;
-                        plan.Pieces.RemoveAt(plan.Pieces.Count - 1);
+                        output.RemoveAt(output.Count - 1);
                         used[i] = false;
                         foreach (var c in rel)
                             covered.Remove(c + origin);
