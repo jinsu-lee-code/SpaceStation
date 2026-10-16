@@ -16,12 +16,13 @@ namespace SpaceStation.Building
         public const string Prefix = "Flutter";
         private static readonly Regex FollowerSuffix = new Regex(@"_\d+$");
 
+        // 값 = 행정 관제소 깃발(3조각) 렌더 비교로 고름: 16도는 위에서 내려다볼 때 꺾임이 거의 안 보였음
         [Tooltip("이음선마다 최대 꺾임 (도). 깃대 쪽 이음선은 절반")]
-        [SerializeField] private float _amplitude = 16f;
+        [SerializeField] private float _amplitude = 26f;
         [Tooltip("흔들림 빠르기 (라디안/초)")]
-        [SerializeField] private float _speed = 5f;
+        [SerializeField] private float _speed = 4.5f;
         [Tooltip("조각 하나 건널 때마다 늦어지는 위상 (라디안)")]
-        [SerializeField] private float _lag = 1.1f;
+        [SerializeField] private float _lag = 1.3f;
         [Tooltip("멈추거나 다시 펄럭일 때 변화 (초당 비율)")]
         [SerializeField] private float _acceleration = 0.5f;
 
