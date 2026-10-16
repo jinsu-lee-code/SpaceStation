@@ -9,7 +9,7 @@ namespace SpaceStation.Editor
 {
     /// <summary>
     /// 13-1 타이쿤판 해금 선택 설정 (메뉴 SpaceStation/Tycoon/Setup Unlock Choices, TYCOON.md K2-2 · BALANCE 41번):
-    /// - UnlockChoiceConfig: 소형 = 정책(자동) / 중형 = 합성 1단계 · 유성우 방향 예보 / 대형 = 칸 단위 열 / 도시 = 합성 2단계 · 사회 사건 /
+    /// - UnlockChoiceConfig: 소형 = 정책(자동) / 중형 = 합성 1단계 · 칸 단위 열 / 대형 = 유성우 방향 예보 (13-7 교환) / 도시 = 합성 2단계 · 사회 사건 /
     ///   국가 = 정책 슬롯 확장 / 대륙 = 합성 3단계 · 방문 세력 (방사선 차폐는 시스템이 생기면 국가에 추가)
     /// - 대응 도구 모듈에 규칙 조건 (센서 어레이 = 유성우 · 방열판 = 열 · 통신 중계소 = 방문 세력) + 중형 해금 목록으로 (규칙이 열리면 바로 건설)
     /// - 정책 슬롯: 정책이 열리면 1 + 확장 2
@@ -261,13 +261,15 @@ namespace SpaceStation.Editor
                     new UnlockOption("synthesis1", "합성 1단계",
                         "모듈을 규격 모양으로 빈틈없이 채워 더 강한 진화 모듈로 합칩니다.\n열림: 1단계 레시피 · 합성 창",
                         StationRule.Synthesis),
-                    new UnlockOption("meteor-shower", "유성우 방향 예보",
-                        "위기: 유성우 (한 방향에서 여러 파로 쏟아지는 운석)\n대응: 오는 방향 예보 · 센서 어레이 건설 (예보 시간 +)\n예보된 면을 장갑 격벽으로 미리 덮을 수 있어요.",
-                        StationRule.MeteorShower)),
-                new UnlockGradeEntry(3, StationRule.None,
+                    // 13-7 (사용자 결정 2026-10-16): 열 ↔ 유성우 교환 — 핵융합로 · 제련소 · 방열판이 중형에 열리므로 열이 중형과 짝,
+                    // 중형 유성우는 봇 7판 중 3판이 쓰러지는 불리한 선택이었음
                     new UnlockOption("heat", "칸 단위 열",
                         "위기: 발열 모듈(핵융합로 · 제련소 · 연료전지) 주변 과열 → 효율 저하 · 파손\n대응: 방열판 건설 · 열 지도\n열을 다스리면 발열 모듈을 촘촘히 지을 수 있어요.",
                         StationRule.Heat)),
+                new UnlockGradeEntry(3, StationRule.None,
+                    new UnlockOption("meteor-shower", "유성우 방향 예보",
+                        "위기: 유성우 (한 방향에서 여러 파로 쏟아지는 운석)\n대응: 오는 방향 예보 · 센서 어레이 건설 (예보 시간 +)\n예보된 면을 장갑 격벽으로 미리 덮을 수 있어요.",
+                        StationRule.MeteorShower)),
                 new UnlockGradeEntry(4, StationRule.None,
                     new UnlockOption("synthesis2", "합성 2단계",
                         "더 큰 진화 모듈을 만드는 2단계 레시피가 열립니다.\n열림: 2단계 레시피",
