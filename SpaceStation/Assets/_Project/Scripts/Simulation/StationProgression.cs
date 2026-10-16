@@ -165,8 +165,16 @@ namespace SpaceStation.Simulation
             if (data == null || data.ComingSoon || IsRuleLocked(data))
                 return false;
             int grade = GetUnlockGrade(data);
-            return grade >= 0 && grade <= Math.Max(GradeIndex, HighestGradeIndex);
+            return (grade >= 0 && grade <= Math.Max(GradeIndex, HighestGradeIndex)) || IsExtraUnlocked(data);
         }
+
+        /// <summary>
+        /// 13-7 고리: 등급 해금 목록과 별개로 먼저 열린 모듈 (타이쿤판 등급 중간 단계가 정함, null = 없음).
+        /// 준비 중 · 규칙 조건은 그대로 본다. 한 번 열리면 등급이 내려가도 열린 채로 (정하는 쪽이 유지).
+        /// </summary>
+        public Func<ModuleData, bool> ExtraUnlock { get; set; }
+
+        private bool IsExtraUnlocked(ModuleData data) => data != null && ExtraUnlock != null && ExtraUnlock(data);
 
         public bool IsUnlocked(ModuleData data)
         {
@@ -175,7 +183,7 @@ namespace SpaceStation.Simulation
             if (IsRuleLocked(data))
                 return false; // 13-1 규칙이 아직 안 열림
             int grade = GetUnlockGrade(data);
-            return grade >= 0 && grade <= GradeIndex;
+            return (grade >= 0 && grade <= GradeIndex) || IsExtraUnlocked(data);
         }
 
         public int CountLimited(StationGrid grid)

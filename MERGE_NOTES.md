@@ -192,3 +192,17 @@
 
 ### `tycoon` 합칠 때
 - [x] 같은 변경이 tycoon에 먼저 들어가 있음.
+
+---
+
+## M-12. 13-7 먼저 연 모듈 고리 (2026-10-16, `main`)
+
+**main에 넣은 것** — 기본 null이라 동작 변화 없음
+- `StationProgression.ExtraUnlock` (Func<ModuleData, bool>): 등급 해금 목록과 별개로 먼저 열린 모듈 → `IsUnlocked` · `IsRevealed`가 참 (준비 중 · 규칙 조건은 그대로). 타이쿤판 '중형 중간 단계'가 씀
+- 시험 1개 (`ProgressionTests.ExtraUnlock_OpensBeforeGrade`)
+
+### `narrative` 합칠 때
+- [ ] 서사판 `IsUnlocked`는 장(UnlockSource)을 먼저 보므로, 합칠 때 `IsUnlocked` · `IsRevealed` 끝의 `|| IsExtraUnlocked(data)`를 서사판 판정 뒤에도 붙임 (서사판이 쓰지 않으면 null이라 영향 없음).
+
+### `tycoon` 합칠 때
+- [x] 충돌 없음 예상 (타이쿤판 `MidGradeSystem`이 값을 정함).
