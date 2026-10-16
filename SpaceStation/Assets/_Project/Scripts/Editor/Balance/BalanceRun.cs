@@ -19,6 +19,7 @@ namespace SpaceStation.Editor.Balance
         private readonly BalanceRunSettings _s;
         private readonly StationSimulation _sim;
         private readonly BalanceBot _bot;
+        private readonly BalanceMilestones _milestones;
         private readonly StringBuilder _series;
         private readonly float _t0;
         private readonly int _stopAtGrade;

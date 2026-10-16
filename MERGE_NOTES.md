@@ -163,3 +163,18 @@
 
 ### `tycoon` 합칠 때
 - [x] 씬의 TutorialView에서 켬 (메뉴 SpaceStation/Tycoon/Setup Hud Layout).
+
+---
+
+## M-10. 13-7 측정 도구: 새 일 간격 · 위기 빈도 · 여유 자원 (2026-10-16, `main`)
+
+**main에 넣은 것** — 게임 동작 변화 없음 (측정 도구만)
+- `BalanceMilestones` (새 파일): 한 판에서 처음 생긴 일(등급 · 지을 수 있게 된 모듈 · 새 요구 · 열 · 정책 · 외부 접촉 · 합성 시스템 · 처음 겪은 위기 · 첫 합성)의 시각 → 시작 ~ 도시급까지 '새 일 간격'(평균 · 가장 긴 공백과 그 등급), 위기 10분당 횟수, 여유 자원 시간(네 자원 모두 한도 70% 이상). `milestones.csv` · `milestones.txt`
+- 봇 루프 연결: `BalanceRun` 두 줄(만들기 · Tick) · `BalanceJob.Start` / `BalanceRunner.Run`에서 Clear · `BalanceReportWriter.Write`에서 파일 쓰기
+- 기준점 빌드에도 같은 파일을 넣어 돌릴 수 있게 그때 있던 API만 씀
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상 (봇 루프 두 줄 · 새 파일). 서사판 장 진행도 새 일로 세고 싶으면 `CheckSystems`에 장을 더함.
+
+### `tycoon` 합칠 때
+- [x] 같은 변경이 tycoon에 먼저 들어가 있음 (같은 내용이라 그대로 합쳐짐).
