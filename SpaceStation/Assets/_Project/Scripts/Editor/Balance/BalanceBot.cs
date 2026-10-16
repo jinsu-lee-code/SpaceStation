@@ -141,8 +141,28 @@ namespace SpaceStation.Editor.Balance
         public int Rebuilds { get; private set; }
         public float MetalSpentOnUpkeep { get; private set; }
 
+        /// <summary>
+        /// 13-7 플레이어처럼 (사용자 결정 2026-10-16, 기본 켬 · 끄면 이전 봇): 유성우 예보 방향 앞면을 장갑 격벽으로 막기 ·
+        /// 보급 상자를 처음부터 줍기 · 파손은 현장 수리 먼저(걸어가는 시간을 흉내 내 <see cref="FieldRepairInterval"/>초에 1번).
+        /// </summary>
+        public static bool PlayerHabits = true;
+        private const int ShowerBlocksPerWarning = 6;
+        private const float BlockMetalReserve = 40f; // 막고도 수리할 금속은 남김
+        private const float FieldRepairInterval = 30f;
+        private bool _warned;
+        private int _blocksThisWarning;
+        private float _nextFieldRepair;
+        private readonly List<ModuleInstance> _facing = new List<ModuleInstance>();
+        public int ShowerBlocks { get; private set; }
+        public int FieldRepairs { get; private set; }
+
         public void Decide()
         {
+            if (PlayerHabits)
+            {
+                BlockShower();
+                PickUpCrates();
+            }
             RepairDamaged();
             bool upkeepPending = MaintainWorn();
             UpdatePowerModel();
@@ -508,6 +528,62 @@ namespace SpaceStation.Editor.Balance
             return desired;
         }
 
+        /// <summary>13-7 예보 중: 오는 방향에서 보이는 앞면 모듈(비싼 것부터) 바로 앞 칸에 장갑 격벽 — 결정마다 1개, 예보 한 번에 최대 6개.</summary>
+        private void BlockShower()
+        {
+            var shower = _sim.MeteorShower;
+            if (_armor == null || shower == null || shower.Phase != MeteorShowerSystem.ShowerPhase.Warning)
+            {
+                _warned = false;
+                return;
+            }
+            if (!_warned)
+            {
+                _warned = true;
+                _blocksThisWarning = 0;
+            }
+            if (_blocksThisWarning >= ShowerBlocksPerWarning || _sim.CheckBuildable(_armor) != PlacementResult.Valid
+                || _sim.Resources.GetStock(ResourceType.Metal) < Cost(_armor) + BlockMetalReserve)
+                return;
+            var dir = shower.Direction;
+            _facing.Clear();
+            foreach (var m in shower.FacingModules)
+                if (m.Data != _armor)
+                    _facing.Add(m);
+            _facing.Sort((a, b) => Cost(b.Data).CompareTo(Cost(a.Data)));
+            foreach (var module in _facing)
+            {
+                foreach (var cell in shower.FacingCells)
+                {
+                    if (!_sim.Grid.TryGetModule(cell, out var at) || at != module)
+                        continue;
+                    if (_sim.TryPlace(_armor, cell + dir, 0, out _))
+                    {
+                        ModulesBuilt++;
+                        ShowerBlocks++;
+                        _blocksThisWarning++;
+                        return;
+                    }
+                }
+            }
+        }
+
+        /// <summary>13-7 현장 수리 (비용 50% · 즉시) — 걸어가는 시간을 흉내 내 간격을 둠. 반환: 고쳤는지.</summary>
+        private bool TryFieldRepair(ModuleInstance module)
+        {
+            if (!PlayerHabits || _sim.ElapsedSeconds < _nextFieldRepair)
+                return false;
+            var cost = _sim.GetFieldRepairCost(module);
+            if (_sim.TryFieldRepair(module) != RepairResult.Completed)
+                return false;
+            _nextFieldRepair = _sim.ElapsedSeconds + FieldRepairInterval;
+            FieldRepairs++;
+            RepairsStarted++;
+            foreach (var c in cost)
+                MetalSpentOnRepairs += c.Type == ResourceType.Metal ? c.Amount : 0f;
+            return true;
+        }
+
         private void RepairDamaged()
         {
             _repairQueue.Clear();
@@ -532,6 +608,8 @@ namespace SpaceStation.Editor.Balance
                 float expectedStart = damage.HasFreeRepairSlot ? 0f
                     : Mathf.Ceil((damage.Queue.Count + 1f) / capacity) * _sim.Effects.RepairDuration;
                 // 단, 대기열 등록만으로 확산이 멈추는 설정이면 확산 전 모듈은 등록한다 (4-7)
+                if (TryFieldRepair(module)) // 13-7 가장 급한 것부터 현장 수리 (간격 안에서 1개)
+                    continue;
                 if (expectedStart >= info.TimeUntilDestroyed && !(info.SpreadPending && _sim.Balance.QueuePausesSpread))
                     continue;
                 var cost = damage.GetRepairCost(module);
