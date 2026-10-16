@@ -207,3 +207,17 @@
 
 ### `tycoon` 합칠 때
 - [x] 충돌 없음 예상 (타이쿤판 `MidGradeSystem`이 값을 정함).
+
+---
+
+## M-13. 12-5 모델 연출: 레이더 이름 규칙 · 깃발 펄럭임 (2026-10-16, `main`)
+
+**main에 넣은 것** — 공통 아트 (행정 관제소 외형 모델이 씀)
+- `StationArtBuilder`: 레이더 회전 부품을 이름이 정확히 "SpinRadar"인 것 하나 → "SpinRadar"로 시작하는 모든 부품 (Blender 이름은 겹칠 수 없어 `SpinRadar_Administration`처럼 뒤를 붙임). 센서 어레이는 그대로
+- `ModuleFlutter` (새 런타임 컴포넌트, `.meta` GUID 고정 160aec14…): "Flutter*" 사슬 맨 앞 조각에 붙어 조각마다 위쪽 축 사인 흔들림 (비활성 = 서서히 멈춤)
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상. 행정 관제소 모델(`SM_Administration.fbx` · `PF_Administration`)을 합친 뒤 Unity에서 프리팹의 `ModuleFlutter` · 레이더 `ModuleSpinner`가 붙어 있는지만 확인.
+
+### `tycoon` 합칠 때
+- [ ] 충돌 없음 예상.
