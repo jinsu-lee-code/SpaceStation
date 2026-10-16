@@ -150,3 +150,16 @@
 
 ### `tycoon` 합칠 때
 - [x] `UnlockChoicePanel`의 [시스템] 버튼을 `HudLauncher`에 등록 (Order.Systems, 아이콘 키 "systems", 고를 것이 있으면 Attention).
+
+---
+
+## M-9. 13-6a 튜토리얼 카드 자리 설정 (2026-10-16, `main`)
+
+**main에 넣은 것** — 기본값은 지금 그대로(왼쪽 위)라 동작 변화 없음
+- `TutorialView._dockUnderResources` (기본 false) · `_dockGap`: 켜면 카드가 오른쪽 자원 패널 바로 아래에 붙음 (패널 높이를 따라감, 내부에서는 오른쪽 위). 왼쪽 위 [관리] 메뉴(M-8)와 겹치지 않게. 타이쿤판 씬이 켬
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상. 서사판은 장 표시가 자원 패널 아래에 있으므로 이 설정은 꺼 둔 채로 (카드는 왼쪽 위 · [관리] 메뉴와 겹치는지는 서사판에서 따로 봄).
+
+### `tycoon` 합칠 때
+- [x] 씬의 TutorialView에서 켬 (메뉴 SpaceStation/Tycoon/Setup Hud Layout).
