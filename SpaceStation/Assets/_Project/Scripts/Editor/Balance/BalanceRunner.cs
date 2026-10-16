@@ -25,6 +25,8 @@ namespace SpaceStation.Editor.Balance
         public UnlockChoiceConfig UnlockChoices;
         /// <summary>13-2 타이쿤판 성장 비례 위협 (null이면 등급 표).</summary>
         public GrowthThreatConfig GrowthThreat;
+        /// <summary>13-7 난이도를 적용하기 전 등급표 (난이도 측정에서 성장 곡선에 간격 배율을 곱할 때, null이면 곱하지 않음).</summary>
+        public StationGradeConfig BaseGrades;
         /// <summary>13-6 타이쿤판 1인칭 가볍게 (null이면 없음) — 봇은 상자를 직접 줍지만 등급 보상 포인트 · 자동 회수가 붙음.</summary>
         public InteriorBonusConfig InteriorBonus;
         /// <summary>Phase 10 주민 특성 (null이면 명단 없음).</summary>
@@ -148,6 +150,7 @@ namespace SpaceStation.Editor.Balance
         /// <summary>한 번에 끝까지 실행 (에디터가 멈춤). 백그라운드 실행은 <see cref="BalanceJob"/>.</summary>
         public static BalanceReport Run(BalanceRunSettings s, Action<int, float> progress = null)
         {
+            BalanceMilestones.Clear(); // 13-7
             var report = BalanceReport.Create(s);
             int count = BalanceReport.RunCount(s);
             for (int i = 0; i < count; i++)

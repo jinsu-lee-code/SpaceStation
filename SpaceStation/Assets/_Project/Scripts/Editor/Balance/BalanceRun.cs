@@ -32,6 +32,7 @@ namespace SpaceStation.Editor.Balance
         private int _damaged;
         private readonly UnlockChoiceSystem _choices;
         private readonly Func<int, int> _pickChoice;
+        private readonly BalanceMilestones _milestones;
 
         public BalanceRunResult Result { get; }
         public bool Done { get; private set; }
@@ -74,7 +75,7 @@ namespace SpaceStation.Editor.Balance
                 _pickChoice = n => (int)(Mix((ulong)(uint)seed * 0x9E3779B97F4A7C15UL + (ulong)(++picks)) % (ulong)n);
             }
             if (s.GrowthThreat != null)
-                GrowthThreatSystem.AttachTo(_sim, s.GrowthThreat); // 13-2
+                GrowthThreatSystem.AttachTo(_sim, s.GrowthThreat, s.BaseGrades); // 13-2 (13-7 난이도 간격 배율)
             if (s.InteriorBonus != null)
                 InteriorBonusSystem.AttachTo(_sim, s.InteriorBonus); // 13-6
             StartGrade = -1;
@@ -84,6 +85,7 @@ namespace SpaceStation.Editor.Balance
                 StartGrade = start.Grade;
             }
             _bot = new BalanceBot(_sim, s.Buildable);
+            _milestones = new BalanceMilestones(_sim, s.Buildable, seed); // 13-7 새 일 간격 · 위기 빈도 · 여유 자원
             _t0 = _sim.ElapsedSeconds;
             _nextSample = _t0;
             // 구간 측정: 다음 등급에서 멈춤. 그 밖에는 설정값 (-1 = 시간 끝까지)
@@ -149,6 +151,7 @@ namespace SpaceStation.Editor.Balance
             }
             _bot.Decide();
             sim.Tick(s.TickInterval);
+            _milestones.Tick(Elapsed, s.TickInterval);
             _ticks++;
 
             var r = sim.Resources;

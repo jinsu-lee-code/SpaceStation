@@ -97,7 +97,7 @@ namespace SpaceStation.Simulation
             if (_unlockChoices != null)
                 UnlockChoiceSystem.AttachTo(Simulation, _unlockChoices); // 13-1 타이쿤판 (세이브 복원 전에)
             if (_growthThreat != null)
-                GrowthThreatSystem.AttachTo(Simulation, _growthThreat); // 13-2 타이쿤판
+                GrowthThreatSystem.AttachTo(Simulation, _growthThreat, Difficulty != null ? _grades : null); // 13-2 타이쿤판 (13-7 난이도 간격 배율도 곡선에)
             if (_plague != null)
                 PlagueSystem.AttachTo(Simulation, _plague, () => Random.value * 0.99999f); // 13-3 타이쿤판
             if (_interiorBonus != null)

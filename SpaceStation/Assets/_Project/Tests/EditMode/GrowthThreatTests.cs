@@ -139,6 +139,41 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Difficulty_IntervalScale_MultipliesCurve()
+        {
+            // 13-7: 난이도가 등급표 간격을 ×1.5로 바꾸면 성장 곡선 간격도 ×1.5 (등급 띠 끔 — 곡선만 비교)
+            _threat.ClampToGradeBand = false;
+            var g = new SerializedObject(_grades);
+            g.FindProperty("_grades").GetArrayElementAtIndex(0).FindPropertyRelative("_eventIntervalMultiplier").floatValue = 1f;
+            g.ApplyModifiedPropertiesWithoutUndo();
+            var easy = Create<DifficultyPreset>();
+            var e = new SerializedObject(easy);
+            var list = e.FindProperty("_eventIntervalMultipliers");
+            list.arraySize = 1;
+            list.GetArrayElementAtIndex(0).floatValue = 1.5f;
+            e.ApplyModifiedPropertiesWithoutUndo();
+            var easyGrades = easy.ApplyTo(_grades);
+            _created.Add(easyGrades);
+
+            var normal = Sim(out var normalThreat);
+            var sim = new StationSimulation(new StationSimulationSettings
+            {
+                Balance = _config, Grades = easyGrades, CoreModule = _core, Events = new List<GameEventData>(),
+                Random01 = () => 0.5f, HazardRandom01 = () => 0.99f,
+            });
+            var easyThreat = GrowthThreatSystem.AttachTo(sim, _threat, _grades);
+            foreach (var s in new[] { normal, sim })
+            {
+                for (int x = 1; x <= 3; x++)
+                    Assert.IsTrue(s.TryPlace(_box, new Vector3Int(x, 0, 0), 0, out _));
+                s.Tick(0.1f);
+            }
+            Assert.AreEqual(1.5f, easyThreat.DifficultyIntervalScale, Eps);
+            Assert.AreEqual(normalThreat.EventIntervalMultiplier * 1.5f, easyThreat.EventIntervalMultiplier, Eps);
+            Assert.AreEqual(1f, normalThreat.DifficultyIntervalScale, Eps, "원래 등급표를 안 주면 1");
+        }
+
+        [Test]
         public void Crowding_RaisesCrisisThreshold()
         {
             var policies = Create<PolicyConfig>();

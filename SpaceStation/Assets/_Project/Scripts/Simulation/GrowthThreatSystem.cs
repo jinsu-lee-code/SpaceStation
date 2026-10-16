@@ -27,10 +27,30 @@ namespace SpaceStation.Simulation
             _config = config ? config : throw new ArgumentNullException(nameof(config));
         }
 
+        /// <summary>
+        /// 13-7 (사용자 결정 2026-10-16): 난이도의 등급별 이벤트 간격 배율도 성장 곡선에 곱함.
+        /// 등급 i의 배율 = 난이도를 적용한 등급표 값 ÷ 원래 등급표 값 (원래 등급표가 없으면 1).
+        /// </summary>
+        private Func<int, float> _intervalScale = _ => 1f;
+
+        /// <summary>지금 등급의 난이도 간격 배율 (쉬움 &gt; 1 = 덜 자주).</summary>
+        public float DifficultyIntervalScale => _intervalScale(Sim.Progression.GradeIndex);
+
         /// <summary>시뮬레이션에 붙이고 이벤트 규모 · 파업 기준을 정하는 쪽으로 연결. 세이브 복원 전에 부른다.</summary>
-        public static GrowthThreatSystem AttachTo(StationSimulation sim, GrowthThreatConfig config)
+        /// <param name="baseGrades">난이도를 적용하기 전 등급표 (난이도 간격 배율을 곡선에 곱할 때, null이면 곱하지 않음)</param>
+        public static GrowthThreatSystem AttachTo(StationSimulation sim, GrowthThreatConfig config, StationGradeConfig baseGrades = null)
         {
             var system = sim.AddSystem(new GrowthThreatSystem(config), TickStepNames.Progression);
+            if (baseGrades != null)
+            {
+                system._intervalScale = grade =>
+                {
+                    if (grade < 0 || grade >= baseGrades.Grades.Count || grade >= sim.Progression.GradeCount)
+                        return 1f;
+                    float b = baseGrades.Grades[grade].EventIntervalMultiplier;
+                    return b > 0f ? sim.Progression.GetGrade(grade).EventIntervalMultiplier / b : 1f;
+                };
+            }
             sim.SetEventScale(system);
             if (sim.Crisis != null)
                 sim.Crisis.ThresholdModifier = () => system.CrowdingThreshold;
@@ -76,10 +96,11 @@ namespace SpaceStation.Simulation
             {
                 Refresh();
                 var (now, next) = Band();
-                // 간격은 작을수록 위험 → 지금 등급 값이 상한, 다음 등급 값이 하한
+                float curve = _interval * DifficultyIntervalScale; // 13-7 난이도 배율
+                // 간격은 작을수록 위험 → 지금 등급 값이 상한, 다음 등급 값이 하한 (등급표는 이미 난이도가 적용된 값)
                 if (now == null)
-                    return Mathf.Max(0.05f, _interval);
-                float v = Mathf.Min(_interval, now.EventIntervalMultiplier);
+                    return Mathf.Max(0.05f, curve);
+                float v = Mathf.Min(curve, now.EventIntervalMultiplier);
                 if (next != null && next.EventIntervalMultiplier < now.EventIntervalMultiplier)
                     v = Mathf.Max(v, next.EventIntervalMultiplier);
                 return Mathf.Max(0.05f, v);

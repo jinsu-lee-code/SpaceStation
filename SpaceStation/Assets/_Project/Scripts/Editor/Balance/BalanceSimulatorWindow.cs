@@ -255,6 +255,7 @@ namespace SpaceStation.Editor.Balance
             if (preset != null)
             {
                 settings.Balance = preset.ApplyTo(settings.Balance);
+                settings.BaseGrades = settings.Grades; // 13-7 성장 곡선에도 난이도 간격 배율
                 settings.Grades = preset.ApplyTo(settings.Grades);
             }
             return RunAndSave(settings, null);
