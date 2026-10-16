@@ -91,24 +91,78 @@ namespace SpaceStation.Simulation
         {
             var b = Balance;
             float seconds = b.IncidentPenaltySeconds;
+            float k = Math.Max(0f, _sim.Incidents.MissScale); // 13-6 고리
+            if (k <= 0f)
+                return "손실 없음";
+            float satisfaction = b.IncidentMissSatisfaction * k;
             switch (kind)
             {
                 case IncidentKind.Leak:
-                    _sim.Incidents.AddDrain(leakResource, b.IncidentLeakLoss, seconds);
-                    return $"{leakResource.DisplayName()} -{b.IncidentLeakLoss:0} (2분 동안)";
+                    _sim.Incidents.AddDrain(leakResource, b.IncidentLeakLoss * k, seconds);
+                    return $"{leakResource.DisplayName()} -{b.IncidentLeakLoss * k:0} (2분 동안)";
                 case IncidentKind.Breaker:
-                    _sim.Incidents.Trip(module, b.IncidentBreakerMultiplier, seconds);
-                    return $"생산 {Math.Round(b.IncidentBreakerMultiplier * 100f)}% (2분 동안)";
+                    float multiplier = Math.Max(0f, 1f - (1f - b.IncidentBreakerMultiplier) * k);
+                    _sim.Incidents.Trip(module, multiplier, seconds);
+                    return $"생산 {Math.Round(multiplier * 100f)}% (2분 동안)";
                 case IncidentKind.Fire:
+                    float durability = b.IncidentFireDurability * k;
                     if (module != null && _sim.Durability.TryGetInfo(module, out var info))
-                        _sim.Durability.ApplyImpact(module, Math.Min(b.IncidentFireDurability, Math.Max(0f, info.Current - 5f)));
-                    LoseSatisfaction(b.IncidentMissSatisfaction);
-                    return $"내구도 -{b.IncidentFireDurability:0} · 만족도 -{b.IncidentMissSatisfaction:0.#}";
+                        _sim.Durability.ApplyImpact(module, Math.Min(durability, Math.Max(0f, info.Current - 5f)));
+                    LoseSatisfaction(satisfaction);
+                    return $"내구도 -{durability:0} · 만족도 -{satisfaction:0.#}";
                 default:
-                    _sim.Incidents.AddDrain(ResourceType.Oxygen, b.IncidentFilterOxygenLoss, seconds);
-                    LoseSatisfaction(b.IncidentMissSatisfaction);
-                    return $"산소 -{b.IncidentFilterOxygenLoss:0} (2분 동안) · 만족도 -{b.IncidentMissSatisfaction:0.#}";
+                    _sim.Incidents.AddDrain(ResourceType.Oxygen, b.IncidentFilterOxygenLoss * k, seconds);
+                    LoseSatisfaction(satisfaction);
+                    return $"산소 -{b.IncidentFilterOxygenLoss * k:0} (2분 동안) · 만족도 -{satisfaction:0.#}";
             }
+        }
+
+        /// <summary>
+        /// 13-6 고리: 줍지 않은 보급 상자를 바깥에서 모두 회수 (<see cref="SupplyCrateSystem.AutoCollectRate"/>) — 자원 상자 양 × rate, 특별 상자는 그대로.
+        /// 반환 = 받은 것 요약 (알림용), 상자가 없으면 null.
+        /// </summary>
+        public string AutoCollectCrates(float rate)
+        {
+            var supply = _sim.Supply;
+            if (supply.Crates.Count == 0)
+                return null;
+            var crates = new List<SupplyCrate>(supply.Crates);
+            var added = new Dictionary<ResourceType, float>();
+            int points = 0, repairs = 0;
+            float satisfaction = 0f;
+            foreach (var c in crates)
+            {
+                switch (c.Bonus)
+                {
+                    case CrateBonus.ResearchPoints: points += Balance.CrateResearchPoints; break;
+                    case CrateBonus.FreeRepair: repairs++; break;
+                    case CrateBonus.Satisfaction: satisfaction += Balance.CrateSatisfaction; break;
+                    default:
+                        float got = _sim.Resources.AddStock(c.Resource, c.Amount * Math.Max(0f, rate));
+                        added[c.Resource] = (added.TryGetValue(c.Resource, out var v) ? v : 0f) + got;
+                        break;
+                }
+                supply.Remove(c);
+            }
+            if (points > 0 || repairs > 0)
+                supply.SetCounts(supply.ResearchPoints + points, supply.FreeRepairs + repairs);
+            var parts = new List<string>();
+            if (points > 0)
+                parts.Add($"연구 포인트 +{points}");
+            if (repairs > 0)
+                parts.Add($"무료 수리권 +{repairs}");
+            if (satisfaction > 0f)
+            {
+                float before = Population.Satisfaction;
+                Population.SetSatisfaction(Math.Min(PopulationSimulation.MaxSatisfaction, before + satisfaction));
+                parts.Add($"만족도 +{Population.Satisfaction - before:0.#}");
+            }
+            foreach (var kv in added)
+            {
+                if (kv.Value > 1e-3f)
+                    parts.Add($"{kv.Key.DisplayName()} +{kv.Value:0.#}");
+            }
+            return parts.Count > 0 ? string.Join(", ", parts) : "받은 것 없음";
         }
 
         private void LoseSatisfaction(float amount) => Population.SetSatisfaction(Math.Max(0f, Population.Satisfaction - amount));

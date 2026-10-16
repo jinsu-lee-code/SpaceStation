@@ -51,6 +51,11 @@ namespace SpaceStation.Simulation
         public int ResearchPoints { get; internal set; }
         /// <summary>남은 무료 수리 횟수.</summary>
         public int FreeRepairs { get; internal set; }
+        /// <summary>
+        /// 13-6 고리: 다음 보급선이 오면 줍지 않은 상자를 바깥에서 자동 회수 — 자원 상자 양 × 이 값, 특별 상자는 그대로.
+        /// 음수 = 끔 (기본, 직접 주워야만 받음). 타이쿤판이 정한다.
+        /// </summary>
+        public float AutoCollectRate { get; set; } = -1f;
         /// <summary>상자가 생기거나 줍거나 옮겨짐 · 포인트 · 수리권 변화.</summary>
         public event Action Changed;
 

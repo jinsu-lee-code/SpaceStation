@@ -722,6 +722,9 @@ namespace SpaceStation.Simulation
         /// <summary>11-17 ② 보급 상자 줍기: 보상 적용 후 상자 제거. text = 받은 것 (알림용).</summary>
         public bool TryPickupCrate(int id, out string text) => _interior.TryPickupCrate(id, out text);
 
+        /// <summary>13-6 고리: 남은 보급 상자를 바깥에서 회수 (<see cref="SupplyCrateSystem.AutoCollectRate"/>). 반환 = 받은 것 요약, 상자가 없으면 null.</summary>
+        public string AutoCollectCrates() => _interior.AutoCollectCrates(Supply.AutoCollectRate);
+
         /// <summary>
         /// 11-17 ③ 주민 요청을 들어줌 (BALANCE 30번): 정거장 만족도 + 그 주민 기분 보너스, 가끔 연구 포인트.
         /// roll01 = 연구 포인트 판정 난수 (없으면 상자 난수). text = 받은 것 (알림용).

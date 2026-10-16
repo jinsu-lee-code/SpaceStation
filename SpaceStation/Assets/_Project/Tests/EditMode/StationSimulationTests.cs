@@ -449,6 +449,64 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Incident_MissScale_ZeroMeansNoLoss_HalfScalesLoss()
+        {
+            // 13-6 고리: 타이쿤판은 놓쳐도 손실 없음 (0), 배율은 손실 크기에 곱함
+            var sim = Sim();
+            Assert.IsTrue(sim.TryPlace(_solar, Vector3Int.right, 0, out var solar));
+            sim.Tick(1f);
+            float before = sim.GetModuleEfficiency(solar);
+            Assert.IsTrue(sim.Durability.TryGetInfo(solar, out var info));
+            float d0 = info.Current;
+            sim.Population.SetSatisfaction(60f);
+
+            sim.Incidents.MissScale = 0f;
+            Assert.AreEqual("손실 없음", sim.MissIncident(IncidentKind.Breaker, solar));
+            sim.MissIncident(IncidentKind.Fire, solar);
+            sim.MissIncident(IncidentKind.Leak, sim.Core, ResourceType.Water);
+            Assert.AreEqual(0, sim.Incidents.ActiveCount);
+            Assert.AreEqual(before, sim.GetModuleEfficiency(solar), Eps);
+            Assert.AreEqual(d0, info.Current, Eps);
+            Assert.AreEqual(60f, sim.Population.Satisfaction, Eps);
+
+            sim.Incidents.MissScale = 0.5f;
+            sim.MissIncident(IncidentKind.Breaker, solar);
+            Assert.AreEqual(before * 0.85f, sim.GetModuleEfficiency(solar), Eps, "70% 손실의 절반 → 85%");
+            sim.MissIncident(IncidentKind.Fire, solar);
+            Assert.AreEqual(d0 - 4f, info.Current, Eps);
+            Assert.AreEqual(58.5f, sim.Population.Satisfaction, Eps);
+        }
+
+        [Test]
+        public void SupplyShip_AutoCollect_LeftoverCratesOnNextShip()
+        {
+            // 13-6 고리: 끔(기본)이면 상자가 쌓이고, 켜면 다음 보급선이 올 때 남은 상자를 바깥에서 회수 (자원 × 비율, 특별 그대로)
+            Assert.IsNull(Sim().AutoCollectCrates(), "상자가 없으면 null");
+            var sim = Sim();
+            sim.Events.Trigger(_supply);
+            sim.Events.Trigger(_supply);
+            Assert.AreEqual(6, sim.Supply.Crates.Count, "끔: 쌓임");
+            foreach (var c in new List<SupplyCrate>(sim.Supply.Crates))
+                sim.TryPickupCrate(c.Id, out _);
+            sim.Events.Trigger(_supply);
+
+            sim.Supply.AutoCollectRate = 0.5f;
+            var special = sim.Supply.Crates[0];
+            var res = sim.Supply.Crates[1];
+            sim.Resources.RemoveStock(res.Resource, sim.Resources.GetStock(res.Resource));
+            int points = sim.Supply.ResearchPoints, repairs = sim.Supply.FreeRepairs;
+            sim.Events.Trigger(_supply);
+            Assert.AreEqual(3, sim.Supply.Crates.Count, "지난 3개 회수 + 새로 3개");
+            Assert.IsNull(sim.Supply.Find(special.Id));
+            Assert.IsNull(sim.Supply.Find(res.Id));
+            Assert.GreaterOrEqual(sim.Resources.GetStock(res.Resource), 7.5f - Eps, "15 × 0.5");
+            if (special.Bonus == CrateBonus.ResearchPoints)
+                Assert.AreEqual(points + 1, sim.Supply.ResearchPoints);
+            if (special.Bonus == CrateBonus.FreeRepair)
+                Assert.AreEqual(repairs + 1, sim.Supply.FreeRepairs);
+        }
+
+        [Test]
         public void FieldRepairPoints_BySize()
         {
             Assert.AreEqual(2, _balance.FieldRepairPoints(1));
