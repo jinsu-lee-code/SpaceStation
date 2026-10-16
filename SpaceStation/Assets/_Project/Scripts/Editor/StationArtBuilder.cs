@@ -319,7 +319,7 @@ namespace SpaceStation.Editor
                     }
                     // 12-5 센서 어레이 · 행정 관제소: "SpinRadar*" 레이더 판이 빠르게 회전 (피벗 = 받침 꼭대기 회전축)
                     //   Blender 오브젝트 이름은 겹칠 수 없으므로 모듈마다 "SpinRadar_{모듈}"처럼 뒤를 붙여도 된다
-                    // 12-5 행정 관제소: "Flutter*" 깃발 사슬 맨 앞 조각에 펄럭임 (자식 조각은 컴포넌트가 따라 찾음)
+                    // 12-5 행정 관제소: "Flutter_{이름}" 깃발 사슬 맨 앞 조각에 펄럭임 (같은 부모 아래 "_1", "_2" 조각은 컴포넌트가 따라 찾음)
                     foreach (var t in instance.GetComponentsInChildren<Transform>(true))
                     {
                         if (t.name.StartsWith("SpinRadar"))
@@ -329,8 +329,7 @@ namespace SpaceStation.Editor
                             sso.FindProperty("_speed").floatValue = 40f;
                             sso.ApplyModifiedPropertiesWithoutUndo();
                         }
-                        else if (t.name.StartsWith(SpaceStation.Building.ModuleFlutter.Prefix)
-                                 && (t.parent == null || !t.parent.name.StartsWith(SpaceStation.Building.ModuleFlutter.Prefix)))
+                        else if (SpaceStation.Building.ModuleFlutter.IsChainRoot(t.name))
                             t.gameObject.AddComponent<SpaceStation.Building.ModuleFlutter>();
                     }
                     // 8-5 연료전지: 보조 발전 중에만 "Lamp" 켜짐

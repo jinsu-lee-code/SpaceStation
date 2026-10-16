@@ -214,7 +214,7 @@
 
 **main에 넣은 것** — 공통 아트 (행정 관제소 외형 모델이 씀)
 - `StationArtBuilder`: 레이더 회전 부품을 이름이 정확히 "SpinRadar"인 것 하나 → "SpinRadar"로 시작하는 모든 부품 (Blender 이름은 겹칠 수 없어 `SpinRadar_Administration`처럼 뒤를 붙임). 센서 어레이는 그대로
-- `ModuleFlutter` (새 런타임 컴포넌트, `.meta` GUID 고정 160aec14…): "Flutter*" 사슬 맨 앞 조각에 붙어 조각마다 위쪽 축 사인 흔들림 (비활성 = 서서히 멈춤)
+- `ModuleFlutter` (새 런타임 컴포넌트, `.meta` GUID 고정 160aec14…): 사슬 맨 앞 조각 "Flutter_{이름}"에 붙어, 같은 부모 아래 "_1", "_2" 조각까지 부모 공간에서 사슬을 계산해 위쪽 축 사인 흔들림 (비활성 = 서서히 멈춤). 조각을 계층으로 겹치지 않는 까닭 = Blender FBX 내보내기가 자식의 자식 축을 한 번 더 돌림
 
 ### `narrative` 합칠 때
 - [ ] 충돌 없음 예상. 행정 관제소 모델(`SM_Administration.fbx` · `PF_Administration`)을 합친 뒤 Unity에서 프리팹의 `ModuleFlutter` · 레이더 `ModuleSpinner`가 붙어 있는지만 확인.
