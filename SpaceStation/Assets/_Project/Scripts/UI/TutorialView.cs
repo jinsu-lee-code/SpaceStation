@@ -243,6 +243,9 @@ namespace SpaceStation.UI
                 var p = (Vector2)self.InverseTransformPoint(_corners[3]) + self.anchoredPosition; // 자원 패널 오른쪽 아래 (이 뷰를 옮기기 전 좌표)
                 var r = self.rect;
                 target = new Vector2(p.x - r.xMax, p.y - r.yMax - _dockGap);
+                float width = Mathf.Round(Mathf.Max(_cardWidth, self.InverseTransformPoint(_corners[3]).x - self.InverseTransformPoint(_corners[0]).x));
+                if (!Mathf.Approximately(_card.sizeDelta.x, width))
+                    _card.sizeDelta = new Vector2(width, _card.sizeDelta.y); // 폭도 자원 패널에 맞춤 (높이는 내용대로)
             }
             else
                 target = new Vector2(home.x, home.y - (_runner.InsideInterior ? _insideDrop : 0f));
