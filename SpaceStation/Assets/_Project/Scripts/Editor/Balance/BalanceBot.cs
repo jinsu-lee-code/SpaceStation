@@ -223,6 +223,10 @@ namespace SpaceStation.Editor.Balance
                 return _water;
             if (_food != null && r.GetNetRate(ResourceType.Food) < NetMargin)
                 return _food;
+            // 13-7 플레이어처럼: 다음 등급 조건 중 인구만 모자라고 수용이 꽉 찼으면 거주가 먼저 (방어 · 창고 · 채굴보다 앞)
+            // 측정: 중형에서 모듈은 대형 조건을 넘었는데 수리 · 정비에 금속을 쓰느라 거주를 미뤄 인구가 30분 넘게 멈췄음
+            if (PlayerHabits && _housing != null && r.Population >= r.HousingCapacity - 1 && OnlyPopulationShort(r))
+                return PickHousing(r);
             // 4-9: 충족률이 낮은 요구의 서비스 모듈 (만족도 상한 → 성장 속도)
             var service = PickService();
             if (service != null)
@@ -276,6 +280,13 @@ namespace SpaceStation.Editor.Balance
             if (next != null && StationProgression.CountGradeModules(_sim.Grid) < next.MinModules)
                 return _housing;
             return null;
+        }
+
+        /// <summary>13-7 다음 등급 조건 중 모듈 수는 채웠고 인구만 모자람.</summary>
+        private bool OnlyPopulationShort(ResourceSimulation r)
+        {
+            var next = _sim.Progression.Next;
+            return next != null && StationProgression.CountGradeModules(_sim.Grid) >= next.MinModules && r.Population < next.MinPopulation;
         }
 
         /// <summary>8-4: 수용이 필요할 때 첫 회전 링은 저축해서라도(인구 증가 속도는 1개면 충분), 그다음 링은 금속 여유가 있을 때만. 아니면 거주 모듈.</summary>
