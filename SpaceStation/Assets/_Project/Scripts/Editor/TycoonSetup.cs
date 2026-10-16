@@ -124,7 +124,25 @@ namespace SpaceStation.Editor
             Debug.Log("[TycoonSetup] 1인칭 가볍게: 사고 손실 없음 · 상자 자동 회수 · 등급 보상 연구 포인트 · 씬 연결 완료");
         }
 
-        private const string InteriorBonusPath = "Assets/_Project/Data/Tycoon/InteriorBonusConfig.asset";
+        /// <summary>
+        /// 13-6a 화면 배치 (사용자 결정 2026-10-16): 튜토리얼 카드를 오른쪽 자원 패널 아래로 — 왼쪽 위 [관리] 메뉴와 겹치지 않게.
+        /// (서사판은 그 자리에 장 표시가 있어 main 기본값 = 왼쪽 위)
+        /// </summary>
+        [MenuItem("SpaceStation/Tycoon/Setup Hud Layout")]
+        public static void SetupHudLayout()
+        {
+            var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
+            var view = Object.FindFirstObjectByType<SpaceStation.UI.TutorialView>(FindObjectsInactive.Include);
+            var so = new SerializedObject(view);
+            so.FindProperty("_dockUnderResources").boolValue = true;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(view);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log("[TycoonSetup] 화면 배치: 튜토리얼 카드 = 자원 패널 아래");
+        }
+
+        private const string InteriorBonusPath ="Assets/_Project/Data/Tycoon/InteriorBonusConfig.asset";
         private const string GrowthPath = "Assets/_Project/Data/Tycoon/GrowthThreatConfig.asset";
         private const string PlaguePath = "Assets/_Project/Data/Tycoon/PlagueConfig.asset";
         private const int CityGrade = 4;
