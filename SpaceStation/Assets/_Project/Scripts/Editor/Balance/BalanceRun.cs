@@ -33,7 +33,6 @@ namespace SpaceStation.Editor.Balance
         private int _damaged;
         private readonly UnlockChoiceSystem _choices;
         private readonly Func<int, int> _pickChoice;
-        private readonly BalanceMilestones _milestones;
 
         public BalanceRunResult Result { get; }
         public bool Done { get; private set; }
