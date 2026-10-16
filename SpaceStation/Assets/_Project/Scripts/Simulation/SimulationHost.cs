@@ -52,6 +52,8 @@ namespace SpaceStation.Simulation
         [SerializeField] private GrowthThreatConfig _growthThreat;
         [Tooltip("타이쿤판 사회 사건 '역병' (메뉴 SpaceStation/Tycoon/Setup Needs가 채움). 비면 없음")]
         [SerializeField] private PlagueConfig _plague;
+        [Tooltip("타이쿤판 1인칭 가볍게 — 사고 손실 없음 · 보급 상자 자동 회수 · 등급 보상 연구 포인트 (메뉴 SpaceStation/Tycoon/Setup Interior Bonus가 채움). 비면 지금 동작 그대로")]
+        [SerializeField] private InteriorBonusConfig _interiorBonus;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -98,6 +100,8 @@ namespace SpaceStation.Simulation
                 GrowthThreatSystem.AttachTo(Simulation, _growthThreat); // 13-2 타이쿤판
             if (_plague != null)
                 PlagueSystem.AttachTo(Simulation, _plague, () => Random.value * 0.99999f); // 13-3 타이쿤판
+            if (_interiorBonus != null)
+                InteriorBonusSystem.AttachTo(Simulation, _interiorBonus); // 13-6 타이쿤판
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
             {

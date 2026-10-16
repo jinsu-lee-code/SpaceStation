@@ -95,6 +95,36 @@ namespace SpaceStation.Editor
             Debug.Log("[TycoonSetup] 합성: 그림자 공개 = 연구 Lv.(1 + 단계)");
         }
 
+        /// <summary>
+        /// 13-6 1인칭 가볍게 (TYCOON.md Q3 '선택형 보너스', BALANCE 46번): 놓친 사고 손실 없음 · 줍지 않은 보급 상자는 다음 보급선 때
+        /// 자원 50%로 자동 회수 (특별 상자 그대로) · 등급 첫 도달 연구 포인트 소형 1 · 중형 2 · 대형 2 · 도시 3 · 국가 3 · 대륙 4 · 지구 4 + 씬 연결.
+        /// </summary>
+        [MenuItem("SpaceStation/Tycoon/Setup Interior Bonus")]
+        public static void SetupInteriorBonus()
+        {
+            EnsureFolder();
+            var config = AssetDatabase.LoadAssetAtPath<InteriorBonusConfig>(InteriorBonusPath);
+            if (config == null)
+            {
+                config = ScriptableObject.CreateInstance<InteriorBonusConfig>();
+                AssetDatabase.CreateAsset(config, InteriorBonusPath);
+            }
+            config.Set(0f, 0.5f, new List<int> { 0, 1, 2, 2, 3, 3, 4, 4 });
+            EditorUtility.SetDirty(config);
+            AssetDatabase.SaveAssets();
+
+            var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
+            var host = Object.FindFirstObjectByType<SpaceStation.Simulation.SimulationHost>();
+            var hso = new SerializedObject(host);
+            hso.FindProperty("_interiorBonus").objectReferenceValue = config;
+            hso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(host);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log("[TycoonSetup] 1인칭 가볍게: 사고 손실 없음 · 상자 자동 회수 · 등급 보상 연구 포인트 · 씬 연결 완료");
+        }
+
+        private const string InteriorBonusPath = "Assets/_Project/Data/Tycoon/InteriorBonusConfig.asset";
         private const string GrowthPath = "Assets/_Project/Data/Tycoon/GrowthThreatConfig.asset";
         private const string PlaguePath = "Assets/_Project/Data/Tycoon/PlagueConfig.asset";
         private const int CityGrade = 4;

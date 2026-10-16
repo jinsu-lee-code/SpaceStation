@@ -25,6 +25,8 @@ namespace SpaceStation.Editor.Balance
         public UnlockChoiceConfig UnlockChoices;
         /// <summary>13-2 타이쿤판 성장 비례 위협 (null이면 등급 표).</summary>
         public GrowthThreatConfig GrowthThreat;
+        /// <summary>13-6 타이쿤판 1인칭 가볍게 (null이면 없음) — 봇은 상자를 직접 줍지만 등급 보상 포인트 · 자동 회수가 붙음.</summary>
+        public InteriorBonusConfig InteriorBonus;
         /// <summary>Phase 10 주민 특성 (null이면 명단 없음).</summary>
         public ResidentConfig Residents;
         public float DurationSeconds = 1800f;

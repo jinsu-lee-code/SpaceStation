@@ -75,6 +75,8 @@ namespace SpaceStation.Editor.Balance
             }
             if (s.GrowthThreat != null)
                 GrowthThreatSystem.AttachTo(_sim, s.GrowthThreat); // 13-2
+            if (s.InteriorBonus != null)
+                InteriorBonusSystem.AttachTo(_sim, s.InteriorBonus); // 13-6
             StartGrade = -1;
             if (start != null)
             {

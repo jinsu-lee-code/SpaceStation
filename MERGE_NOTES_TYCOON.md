@@ -31,3 +31,8 @@
 
 - **13-5 (2026-10-15)**
   - 데이터(에셋): `StationGrades` 해금 등급 — 연결 허브 · 구조 프레임 → 중형, 물 추출기 · 단백질 배양실 · 손상 통제실 · 화물 터미널 → 대형, 데이터 센터 · 여객 도킹 포트 → 도시, 국가급 새 요구 소비 · 행정 + 상업 구역 · 행정 관제소 준비 중 해제 (모드별 설정으로 나눠야 함)
+
+- **13-6 (2026-10-16)**
+  - `SimulationHost`: `_interiorBonus` 필드 + 있으면 `InteriorBonusSystem.AttachTo` (main 고리 M-7 `IncidentEffects.MissScale` · `SupplyCrateSystem.AutoCollectRate`에 값을 정함)
+  - 측정 도구: `BalanceRunSettings.InteriorBonus` · 창 `_interiorBonus` (Tycoon 폴더 에셋이 있으면 자동)
+  - 1인칭 가볍게 = 타이쿤판 시스템. 서사판이 같은 처리가 필요하면 고리 값만 정하면 됨
