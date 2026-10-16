@@ -197,7 +197,7 @@ namespace SpaceStation.UI
         private static string Reason(ExpansionStartResult result, RecipeResearchCost cost, int points) => result switch
         {
             ExpansionStartResult.NoFreeSlot => "레시피 연구 슬롯 없음 (연구 단지 등 연구소 계통 진화 모듈이 슬롯을 줌)",
-            ExpansionStartResult.NoResearchPoints => $"연구 포인트 {cost.ResearchPoints} 필요 (보유 {points} · 내부 보급 특별 상자에서 얻음)",
+            ExpansionStartResult.NoResearchPoints => $"연구 포인트 {cost.ResearchPoints} 필요 (보유 {points} · 보급 특별 상자에서 얻음)",
             ExpansionStartResult.InsufficientResources => "자원 부족",
             _ => null,
         };

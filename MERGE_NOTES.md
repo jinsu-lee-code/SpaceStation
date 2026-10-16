@@ -116,3 +116,19 @@
 
 ### `tycoon` 합칠 때
 - [x] 충돌 없음 예상 (국가급 배치 · 준비 중 해제는 타이쿤판에서).
+
+---
+
+## M-7. 13-6 1인칭 가볍게 고리 (2026-10-16, `main`)
+
+**main에 넣은 것** — 기본값이 지금 동작 그대로라 변화 없음
+- `IncidentEffects.MissScale` (기본 1): 놓친 내부 사고 손실 배율. 0이면 "손실 없음"으로 끝 (`StationInteriorOutcomes.MissIncident`)
+- `SupplyCrateSystem.AutoCollectRate` (기본 -1 = 끔): 켜면 다음 보급선이 올 때 줍지 않은 상자를 바깥에서 회수 (자원 × 비율, 특별 상자 그대로) — `StationSimulation.AutoCollectCrates` · `StationEventEffects.ApplySupply`
+- 레시피 창 연구 포인트 안내 "내부 보급 특별 상자" → "보급 특별 상자"
+- 시험 2개 (`StationSimulationTests.Incident_MissScale_*` · `SupplyShip_AutoCollect_*`)
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상 (새 속성 · 메서드 추가, `MissIncident` 본문과 `ApplySupply` 두 줄만 바뀜 — 서사판이 그 자리를 고쳤으면 main 줄 채택 후 서사판 변경을 다시 얹음).
+
+### `tycoon` 합칠 때
+- [x] 충돌 없음 예상 (타이쿤판 `InteriorBonusSystem`이 두 값을 정함).

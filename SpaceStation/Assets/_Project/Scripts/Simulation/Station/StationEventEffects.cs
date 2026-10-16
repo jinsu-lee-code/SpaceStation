@@ -74,6 +74,8 @@ namespace SpaceStation.Simulation
             var sb = new StringBuilder();
             bool clamped = false;
             float intensity = _sim.EventIntensity;
+            // 13-6 고리: 지난 보급의 남은 상자는 새 상자를 놓기 전에 바깥에서 회수 (켠 판만)
+            string collected = _sim.Supply.AutoCollectRate >= 0f ? _sim.AutoCollectCrates() : null;
             foreach (var reward in supply.Rewards)
             {
                 float amount = reward.Amount * intensity;
@@ -86,6 +88,8 @@ namespace SpaceStation.Simulation
             }
             if (clamped)
                 sb.Append(" (저장 한도 초과분 제외)");
+            if (collected != null)
+                sb.Append(" · 지난 보급 상자 회수: ").Append(collected);
             // 11-17 ②: 내부 화물 터미널 · 창고에 보급 상자 (특별 상자 1개 확정)
             int crates = _sim.Supply.Spawn(_sim.Grid, _sim.Connectivity.IsActive, _sim.Core, _sim.Balance, intensity, () => (float)_crateRandom.NextDouble());
             if (crates > 0)
