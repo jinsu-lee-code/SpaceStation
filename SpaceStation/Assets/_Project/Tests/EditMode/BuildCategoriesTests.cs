@@ -51,6 +51,37 @@ namespace SpaceStation.Tests
             CollectionAssert.AreEqual(new[] { solar, battery }, result, "숫자키 1=태양광, 2=배터리");
         }
 
+        private void Cost(ModuleData m, float metal)
+        {
+            var so = new SerializedObject(m);
+            var list = so.FindProperty("_buildCost");
+            list.arraySize = 1;
+            list.GetArrayElementAtIndex(0).FindPropertyRelative("Type").enumValueIndex = (int)ResourceType.Metal;
+            list.GetArrayElementAtIndex(0).FindPropertyRelative("Amount").floatValue = metal;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        [Test]
+        public void Filter_VisibleOnly_SortedByGradeThenMetal()
+        {
+            // 13-6a: 열린 것만 · 열리는 등급 → 금속 비용 → 목록 순서, 해금 조건 없음(-1)은 맨 뒤
+            var a = Module("A", ModuleCategory.Power);
+            var b = Module("B", ModuleCategory.Power);
+            var c = Module("C", ModuleCategory.Power);
+            var d = Module("D", ModuleCategory.Power);
+            var e = Module("E", ModuleCategory.Power);
+            var hidden = Module("Hidden", ModuleCategory.Power);
+            Cost(a, 80f); Cost(b, 40f); Cost(c, 10f); Cost(d, 40f); Cost(e, 1f);
+            var grade = new Dictionary<ModuleData, int> { { a, 1 }, { b, 1 }, { c, 2 }, { d, 1 }, { e, -1 }, { hidden, 0 } };
+            var result = new List<ModuleData>();
+            BuildCategories.Filter(new[] { a, b, c, d, e, hidden }, ModuleCategory.Power, result, m => m != hidden, m => grade[m]);
+            CollectionAssert.AreEqual(new[] { b, d, a, c, e }, result, "등급 1(40 · 40 · 80) → 등급 2 → 조건 없음, 숨김 제외");
+
+            var tabs = new List<ModuleCategory>();
+            BuildCategories.GetAvailable(new[] { hidden, Module("H", ModuleCategory.Life) }, tabs, m => m != hidden);
+            CollectionAssert.AreEqual(new[] { ModuleCategory.Life }, tabs, "열린 모듈이 없는 탭은 숨김");
+        }
+
         [Test]
         public void Cycle_WrapsBothDirections()
         {

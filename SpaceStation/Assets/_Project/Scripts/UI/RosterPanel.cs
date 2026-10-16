@@ -37,7 +37,6 @@ namespace SpaceStation.UI
         private UiTween _tween;
         private HoloFx _fx;
         private RosterView _view;
-        private TMP_Text _launcherLabel;
         private bool _open;
         private bool _dirty = true;
         private float _nextRefresh;
@@ -58,12 +57,10 @@ namespace SpaceStation.UI
             BuildWindow();
             HudWindows.Opened += HandleWindowOpened;
             _roster.Changed += MarkDirty;
-            KeyBindings.Changed += RefreshLauncher;
         }
 
         private void OnDestroy()
         {
-            KeyBindings.Changed -= RefreshLauncher;
             HudWindows.Opened -= HandleWindowOpened;
             if (_roster != null)
                 _roster.Changed -= MarkDirty;
@@ -143,20 +140,14 @@ namespace SpaceStation.UI
 
         // ---------------- 구성 ----------------
 
-        private static string LauncherText()
-            => $"주민 ({KeyBindings.Label(GameAction.Roster)})"; // " (키)"는 테크 버튼 배지로
-
-        private void RefreshLauncher()
-        {
-            if (_launcherLabel != null)
-                _launcherLabel.SetText(LauncherText());
-        }
-
+        /// <summary>13-6a: 왼쪽 위 [관리] 메뉴에 등록 (늘 열림).</summary>
         private void BuildLauncher()
         {
-            var button = _ui.TechButton((RectTransform)transform, LauncherText(), 19f, Toggle);
-            HoloUi.Place((RectTransform)button.transform, new Vector2(202f, -24f), new Vector2(140f, 44f)); // 연구 버튼 오른쪽
-            _launcherLabel = button.GetComponentInChildren<TMP_Text>();
+            HudLauncher.For(_ui, transform).Add(new HudLauncher.Entry
+            {
+                Key = "roster", Order = HudLauncher.Order.Roster, Name = "주민",
+                KeyLabel = () => KeyBindings.Label(GameAction.Roster), IsOpen = () => _open, Click = Toggle,
+            });
         }
 
         private void BuildWindow()

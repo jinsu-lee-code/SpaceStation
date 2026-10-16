@@ -61,7 +61,6 @@ namespace SpaceStation.UI
 
         private void OnDestroy()
         {
-            KeyBindings.Changed -= RefreshLauncher;
             HudWindows.Opened -= HandleWindowOpened;
             if (_sim != null)
                 _sim.Research.Completed -= HandleCompleted;
@@ -142,24 +141,15 @@ namespace SpaceStation.UI
 
         // ---------------- 구성 ----------------
 
-        private TMP_Text _launcherLabel;
-
-        private static string LauncherText()
-            => $"{HudTheme.Icon("research")} 연구 ({KeyBindings.Label(GameAction.Research)})"; // " (키)"는 테크 버튼 배지로
-
-        private void RefreshLauncher()
-        {
-            if (_launcherLabel != null)
-                _launcherLabel.SetText(LauncherText());
-        }
-
+        /// <summary>13-6a: 왼쪽 위 [관리] 메뉴에 등록 (늘 열림) + 진행 추적기.</summary>
         private void BuildLauncher()
         {
             var root = (RectTransform)transform;
-            var button = _ui.TechButton(root, LauncherText(), 19f, Toggle);
-            HoloUi.Place((RectTransform)button.transform, new Vector2(24f, -24f), new Vector2(170f, 44f));
-            _launcherLabel = button.GetComponentInChildren<TMP_Text>();
-            KeyBindings.Changed += RefreshLauncher; // 7-5: 버튼의 키 표시
+            HudLauncher.For(_ui, root).Add(new HudLauncher.Entry
+            {
+                Key = "research", Order = HudLauncher.Order.Research, Name = "연구",
+                KeyLabel = () => KeyBindings.Label(GameAction.Research), IsOpen = () => _open, Click = Toggle,
+            });
             _tracker = _ui.Label(root, "", 15f, TextAlignmentOptions.TopLeft);
             HoloUi.Place(_tracker.rectTransform, new Vector2(28f, -76f), new Vector2(420f, 120f));
         }

@@ -117,6 +117,20 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Revealed_FollowsHighestGrade_StaysAfterDrop()
+        {
+            // 13-6a 건설 메뉴: 열리면 보이고, 등급이 내려가도 사라지지 않음 (잠김으로 남음). 해금 조건 없음은 안 보임
+            Assert.IsTrue(_progression.IsRevealed(_basic));
+            Assert.IsFalse(_progression.IsRevealed(_storage));
+            Assert.IsFalse(_progression.IsRevealed(_orphan));
+            _progression.Evaluate(10, 8);
+            Assert.IsTrue(_progression.IsRevealed(_storage));
+            _progression.Evaluate(0, 0);
+            Assert.IsTrue(_progression.IsRevealed(_storage), "등급 하락 뒤에도 보임");
+            Assert.IsFalse(_progression.IsUnlocked(_storage), "지을 수는 없음");
+        }
+
+        [Test]
         public void Unlocks_FollowCurrentGrade()
         {
             Assert.IsTrue(_progression.IsUnlocked(_basic));

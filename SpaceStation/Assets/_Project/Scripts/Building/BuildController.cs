@@ -119,6 +119,7 @@ namespace SpaceStation.Building
             // StationController.Awake에서 그리드가 만들어진 뒤 구독
             if (_station == null || _station.Grid == null)
                 return;
+            RefreshModules(); // 13-6a 시뮬레이션이 생긴 뒤 열린 것만
             _station.Grid.ModulePlaced += MarkLanesDirty;
             _station.Grid.ModuleRemoved += MarkLanesDirty;
             _station.Grid.ModuleMoved += MarkLanesDirtyMoved;
@@ -143,8 +144,45 @@ namespace SpaceStation.Building
             if (category == _category || !_categories.Contains(category))
                 return;
             _category = category;
-            BuildCategories.Filter(_buildableModules, _category, _categoryModules);
+            FilterCategory();
             CategoryChanged?.Invoke(_category); // 배치 중인 모듈은 유지
+        }
+
+        /// <summary>13-6a: 보이는 모듈 · 탭이 바뀜 (해금 · 규칙이 열림).</summary>
+        public event Action ModulesChanged;
+
+        /// <summary>
+        /// 13-6a (사용자 결정 2026-10-16): 열린 모듈만 · 열리는 등급 → 가격 순으로 탭 · 숫자키 목록을 다시 계산.
+        /// 건설 메뉴가 해금이 바뀔 때 부른다. 지금 탭이 비면 첫 탭으로.
+        /// </summary>
+        public void RefreshModules()
+        {
+            BuildCategories.GetAvailable(_buildableModules, _categories, Revealed);
+            bool moved = !_categories.Contains(_category) && _categories.Count > 0;
+            if (moved)
+                _category = _categories[0];
+            FilterCategory();
+            ModulesChanged?.Invoke();
+            if (moved)
+                CategoryChanged?.Invoke(_category);
+        }
+
+        private void FilterCategory() => BuildCategories.Filter(_buildableModules, _category, _categoryModules, Revealed, UnlockGrade);
+
+        private SpaceStation.Simulation.StationProgression Progression =>
+            _station != null && _station.Simulation != null ? _station.Simulation.Progression : null;
+
+        /// <summary>건설 메뉴에 보이는지 (시뮬레이션이 없으면 모두).</summary>
+        public bool Revealed(ModuleData data)
+        {
+            var p = Progression;
+            return p == null || p.IsRevealed(data);
+        }
+
+        private int UnlockGrade(ModuleData data)
+        {
+            var p = Progression;
+            return p != null ? p.GetUnlockGrade(data) : 0;
         }
 
         private void Update()
