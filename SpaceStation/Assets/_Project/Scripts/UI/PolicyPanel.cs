@@ -45,7 +45,7 @@ namespace SpaceStation.UI
         private float _nextRefresh;
         private int _selectedSlot;
         private string _notice = "";
-        private TMP_Text _launcherLabel, _summary, _footer;
+        private TMP_Text _summary, _footer;
         private readonly List<(Button button, TMP_Text label)> _slotCards = new List<(Button, TMP_Text)>();
         private readonly List<(PolicyData policy, Button button, TMP_Text label)> _rows = new List<(PolicyData, Button, TMP_Text)>();
         private Button _clear;
@@ -78,7 +78,6 @@ namespace SpaceStation.UI
 
         private void OnDestroy()
         {
-            KeyBindings.Changed -= RefreshLauncher;
             HudWindows.Opened -= HandleWindowOpened;
         }
 
@@ -174,21 +173,15 @@ namespace SpaceStation.UI
 
         // ---------------- 구성 ----------------
 
-        private static string LauncherText() => $"정책 ({KeyBindings.Label(GameAction.Policies)})";
-
-        private void RefreshLauncher()
-        {
-            if (_launcherLabel != null)
-                _launcherLabel.SetText(LauncherText());
-        }
-
+        /// <summary>13-6a: 왼쪽 위 [관리] 메뉴에 등록 — 정책 슬롯이 열리면.</summary>
         private void BuildLauncher()
         {
-            var root = (RectTransform)transform;
-            var button = _ui.TechButton(root, LauncherText(), 19f, Toggle);
-            HoloUi.Place((RectTransform)button.transform, new Vector2(500f, -24f), new Vector2(140f, 44f)); // 합성 버튼 오른쪽
-            _launcherLabel = button.GetComponentInChildren<TMP_Text>();
-            KeyBindings.Changed += RefreshLauncher;
+            HudLauncher.For(_ui, transform).Add(new HudLauncher.Entry
+            {
+                Key = "policies", Order = HudLauncher.Order.Policies, Name = "정책",
+                KeyLabel = () => KeyBindings.Label(GameAction.Policies), IsOpen = () => _open, Click = Toggle,
+                Visible = () => _policies.SlotCount > 0,
+            });
         }
 
         private void BuildWindow()

@@ -44,7 +44,7 @@ namespace SpaceStation.UI
         private HoloFx _fx;
         private bool _open;
         private float _nextRefresh;
-        private TMP_Text _launcherLabel, _summary, _status;
+        private TMP_Text _summary, _status;
         private readonly TMP_Text[] _factionText = new TMP_Text[ContactSystem.FactionCount];
         private readonly RectTransform[] _repMarker = new RectTransform[ContactSystem.FactionCount];
 
@@ -80,7 +80,6 @@ namespace SpaceStation.UI
 
         private void OnDestroy()
         {
-            KeyBindings.Changed -= RefreshLauncher;
             HudWindows.Opened -= HandleWindowOpened;
         }
 
@@ -150,20 +149,15 @@ namespace SpaceStation.UI
 
         // ---------------- 구성 ----------------
 
-        private static string LauncherText() => $"외부 접촉 ({KeyBindings.Label(GameAction.Contacts)})";
-
-        private void RefreshLauncher()
-        {
-            if (_launcherLabel != null)
-                _launcherLabel.SetText(LauncherText());
-        }
-
+        /// <summary>13-6a: 왼쪽 위 [관리] 메뉴에 등록 — 외부 접촉이 열리면, 함선이 대응을 기다리면 '!'.</summary>
         private void BuildLauncher()
         {
-            var button = _ui.TechButton((RectTransform)transform, LauncherText(), 19f, Toggle);
-            HoloUi.Place((RectTransform)button.transform, new Vector2(650f, -24f), new Vector2(180f, 44f)); // 정책 버튼 오른쪽
-            _launcherLabel = button.GetComponentInChildren<TMP_Text>();
-            KeyBindings.Changed += RefreshLauncher;
+            HudLauncher.For(_ui, transform).Add(new HudLauncher.Entry
+            {
+                Key = "contact", Order = HudLauncher.Order.Contact, Name = "외부 접촉",
+                KeyLabel = () => KeyBindings.Label(GameAction.Contacts), IsOpen = () => _open, Click = Toggle,
+                Visible = () => _contact.Unlocked, Attention = () => _contact.Unlocked && _contact.Phase == ContactSystem.ContactPhase.Waiting,
+            });
         }
 
         private void BuildWindow()

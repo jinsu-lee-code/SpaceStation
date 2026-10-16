@@ -156,6 +156,18 @@ namespace SpaceStation.Simulation
         public bool IsRuleLocked(ModuleData data) =>
             data != null && data.RequiredRule != StationRule.None && RuleCheck != null && !RuleCheck(data.RequiredRule);
 
+        /// <summary>
+        /// 13-6a 건설 메뉴에 보이는지: 준비 중이 아니고, 규칙이 열렸고, 지금까지 도달한 가장 높은 등급에서 해금됨
+        /// (등급이 내려가도 사라지지 않고 '잠김'으로 남음 — <see cref="IsUnlocked"/>는 지금 등급 기준).
+        /// </summary>
+        public bool IsRevealed(ModuleData data)
+        {
+            if (data == null || data.ComingSoon || IsRuleLocked(data))
+                return false;
+            int grade = GetUnlockGrade(data);
+            return grade >= 0 && grade <= Math.Max(GradeIndex, HighestGradeIndex);
+        }
+
         public bool IsUnlocked(ModuleData data)
         {
             if (data != null && data.ComingSoon)

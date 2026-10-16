@@ -38,5 +38,20 @@ namespace SpaceStation.UI
         public Sprite TechButton;
         [Tooltip("모서리 브래킷 (왼쪽 위 ㄱ자, 돌려서 네 모서리)")]
         public Sprite Bracket;
+
+        [Header("13-6a 관리 메뉴 아이콘 (메뉴 SpaceStation/UI/Build Launcher Icons, 이름 LI_키)")]
+        public Sprite[] LauncherIcons;
+
+        /// <summary>관리 메뉴 아이콘 (이름 "LI_" + key, 없으면 null).</summary>
+        public Sprite LauncherIcon(string key)
+        {
+            if (LauncherIcons == null)
+                return null;
+            string name = "LI_" + key;
+            foreach (var s in LauncherIcons)
+                if (s != null && s.name == name)
+                    return s;
+            return null;
+        }
     }
 }

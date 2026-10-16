@@ -30,11 +30,15 @@ namespace SpaceStation.UI
         private readonly List<ModuleData> _scratch = new List<ModuleData>();
         private readonly List<string> _ruleLines = new List<string>();
         private bool _stateDirty = true;
+        private int _revealed = -1;
+        private float _nextRevealCheck;
 
         private void Start()
         {
-            // 탭 순서대로 버튼 생성, 번호는 탭 안의 순서
-            foreach (var category in _build.Categories)
+            // 모든 모듈 · 분류의 버튼 · 탭을 한 번 만들고, 보이는 것 · 순서 · 번호는 Relayout이 정함 (13-6a)
+            var all = new List<ModuleCategory>();
+            BuildCategories.GetAvailable(_build.BuildableModules, all);
+            foreach (var category in all)
             {
                 BuildCategories.Filter(_build.BuildableModules, category, _scratch);
                 for (int i = 0; i < _scratch.Count; i++)
@@ -50,6 +54,9 @@ namespace SpaceStation.UI
                     _tabs.Add(tab);
                 }
             }
+            _build.ModulesChanged += Relayout;
+            _build.RefreshModules();
+            _revealed = CountRevealed();
             if (_tabHint != null)
             {
                 _tabHint.SetAsLastSibling(); // "Tab 전환" 안내를 탭 오른쪽 끝으로
@@ -81,6 +88,7 @@ namespace SpaceStation.UI
             KeyBindings.Changed -= RefreshTabHint;
             if (_build != null)
             {
+                _build.ModulesChanged -= Relayout;
                 _build.SelectionChanged -= HandleSelectionChanged;
                 _build.CategoryChanged -= HandleCategoryChanged;
             }
@@ -92,12 +100,25 @@ namespace SpaceStation.UI
 
         private void LateUpdate()
         {
+            if (Time.unscaledTime >= _nextRevealCheck)
+            {
+                _nextRevealCheck = Time.unscaledTime + 0.5f;
+                _stateDirty = true; // 일시정지 중에 규칙이 열려도(해금 선택 등) 새 모듈이 보이게
+            }
             if (!_stateDirty)
                 return;
             _stateDirty = false;
+            int revealed = CountRevealed();
+            if (revealed != _revealed)
+            {
+                _revealed = revealed;
+                _build.RefreshModules(); // 13-6a 새로 열린 모듈 → 탭 · 순서 · 번호 다시
+            }
             var station = _station.Simulation;
             foreach (var button in _buttons)
             {
+                if (!button.gameObject.activeSelf)
+                    continue;
                 var buildable = _station.CheckBuildable(button.Data);
                 bool affordable = station.CanAfford(button.Data); // 건설·경제 연구 할인 반영
                 button.SetState(buildable == PlacementResult.Valid && affordable, BlockedStatus(button.Data, buildable), station.GetBuildCost(button.Data));
@@ -132,13 +153,49 @@ namespace SpaceStation.UI
             _build.SetCategory(category);
         }
 
-        private void HandleCategoryChanged(ModuleCategory category)
+        private void HandleCategoryChanged(ModuleCategory category) => Relayout();
+
+        /// <summary>
+        /// 13-6a: 탭 = 열린 모듈이 있는 분류만 (수 = 열린 모듈 수), 버튼 = 지금 탭의 열린 모듈만 · 등급 → 가격 순 · 숫자키도 그 순서.
+        /// </summary>
+        private void Relayout()
         {
+            var category = _build.Category;
             foreach (var tab in _tabs)
+            {
+                BuildCategories.Filter(_build.BuildableModules, tab.Category, _scratch, _build.Revealed);
+                tab.gameObject.SetActive(_scratch.Count > 0);
+                tab.SetCount(_scratch.Count);
                 tab.SetSelected(tab.Category == category);
+            }
+            if (_tabHint != null)
+                _tabHint.SetAsLastSibling();
+            var list = _build.CategoryModules;
             foreach (var button in _buttons)
-                button.gameObject.SetActive(button.Data.Category == category);
+                button.gameObject.SetActive(false);
+            for (int i = 0; i < list.Count; i++) // 목록 순서대로 앞에서부터 놓아야 서로 밀리지 않음
+            {
+                foreach (var button in _buttons)
+                {
+                    if (button.Data != list[i])
+                        continue;
+                    button.gameObject.SetActive(true);
+                    button.transform.SetSiblingIndex(i);
+                    button.SetHotkey(i + 1);
+                    break;
+                }
+            }
+            _stateDirty = true;
             HideTooltip(); // 숨겨진 버튼의 툴팁이 남지 않도록
+        }
+
+        private int CountRevealed()
+        {
+            int n = 0;
+            foreach (var m in _build.BuildableModules)
+                if (m != null && _build.Revealed(m))
+                    n++;
+            return n;
         }
 
         public void ShowTooltip(ModuleData data, RectTransform anchor)

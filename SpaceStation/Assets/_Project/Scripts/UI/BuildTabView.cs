@@ -17,10 +17,14 @@ namespace SpaceStation.UI
         {
             Category = category;
             name = "Tab_" + category;
-            _label.SetText($"{category.DisplayName()} <size=75%><color={HudText.Muted}>{moduleCount}</color></size>");
+            SetCount(moduleCount);
             _button.onClick.AddListener(() => menu.HandleTabClicked(Category));
             SetSelected(false);
         }
+
+        /// <summary>13-6a: 열린 모듈 수.</summary>
+        public void SetCount(int moduleCount) =>
+            _label.SetText($"{Category.DisplayName()} <size=75%><color={HudText.Muted}>{moduleCount}</color></size>");
 
         public void SetSelected(bool selected)
         {
