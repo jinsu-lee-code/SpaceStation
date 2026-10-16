@@ -16,7 +16,7 @@ namespace SpaceStation.UI
     /// 13-1 타이쿤판 해금 선택 화면 (사용자 결정 2026-10-15: 알림 + 나중에 고름, 게임은 멈추지 않음).
     /// - 선택 대기 알림 (화면 위쪽 가운데): "새 시스템 선택 · 중형" + [고르기]. 고를 때까지 계속 보임.
     /// - 선택 창: 후보 카드 2~3장(이름 · 위기 + 대응 도구 설명 · 안 고르면 어떻게 되는지) + 열린 시스템 · 다음 등급 예정.
-    /// - 왼쪽 위 [시스템] 버튼으로 언제든 열린 시스템 목록 확인.
+    /// - 왼쪽 위 [관리] 메뉴의 '시스템' 칸(13-6a)으로 언제든 열린 시스템 목록 확인.
     /// 상태는 색만이 아니라 글자로 (사용자 색약).
     /// </summary>
     [DefaultExecutionOrder(-250)]
@@ -45,7 +45,7 @@ namespace SpaceStation.UI
         private UiTween _tween;
         private HoloFx _fx;
         private bool _open;
-        private TMP_Text _launcherLabel, _title, _summary, _status;
+        private TMP_Text _title, _summary, _status;
         private readonly List<(RectTransform Card, TMP_Text Text, Button Pick)> _cards = new List<(RectTransform, TMP_Text, Button)>();
 
         private RectTransform _notice;
@@ -145,11 +145,14 @@ namespace SpaceStation.UI
 
         // ---------------- 구성 ----------------
 
+        /// <summary>13-6a: 왼쪽 위 [관리] 메뉴에 등록 (늘 열림, 고를 후보가 있으면 '! 확인').</summary>
         private void BuildLauncher()
         {
-            var button = _ui.TechButton((RectTransform)transform, "시스템", 19f, Toggle);
-            HoloUi.Place((RectTransform)button.transform, new Vector2(840f, -24f), new Vector2(170f, 44f)); // 외부 접촉 버튼 오른쪽
-            _launcherLabel = button.GetComponentInChildren<TMP_Text>();
+            HudLauncher.For(_ui, transform).Add(new HudLauncher.Entry
+            {
+                Key = "systems", Order = HudLauncher.Order.Systems, Name = "시스템",
+                IsOpen = () => _open, Click = Toggle, Attention = () => _choices.Pending,
+            });
         }
 
         private void BuildWindow()
@@ -260,7 +263,6 @@ namespace SpaceStation.UI
             if (_choices == null || _ui == null)
                 return;
             bool pending = _choices.Pending;
-            _launcherLabel.SetText(pending ? "시스템 <b>(선택!)</b>" : "시스템");
 
             bool showNotice = pending && !_sim.Session.IsGameOver;
             _noticeGroup.alpha = showNotice ? 1f : 0f;

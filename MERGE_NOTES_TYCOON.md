@@ -36,3 +36,6 @@
   - `SimulationHost`: `_interiorBonus` 필드 + 있으면 `InteriorBonusSystem.AttachTo` (main 고리 M-7 `IncidentEffects.MissScale` · `SupplyCrateSystem.AutoCollectRate`에 값을 정함)
   - 측정 도구: `BalanceRunSettings.InteriorBonus` · 창 `_interiorBonus` (Tycoon 폴더 에셋이 있으면 자동)
   - 1인칭 가볍게 = 타이쿤판 시스템. 서사판이 같은 처리가 필요하면 고리 값만 정하면 됨
+
+- **13-6a (2026-10-16)**
+  - `UnlockChoicePanel`: 왼쪽 위 [시스템] 버튼 대신 main의 `HudLauncher`에 등록 (Order.Systems · 아이콘 "systems" · 고를 후보 = Attention)
