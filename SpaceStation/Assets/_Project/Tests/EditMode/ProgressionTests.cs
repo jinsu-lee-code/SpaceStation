@@ -131,6 +131,20 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void ExtraUnlock_OpensBeforeGrade()
+        {
+            // 13-7 고리: 등급 전에 먼저 연 모듈은 지을 수 있고 건설 메뉴에도 보임, 고리가 없으면 등급만
+            Assert.IsFalse(_progression.IsUnlocked(_storage));
+            _progression.ExtraUnlock = m => m == _storage;
+            Assert.IsTrue(_progression.IsUnlocked(_storage));
+            Assert.IsTrue(_progression.IsRevealed(_storage));
+            Assert.AreEqual(PlacementResult.Valid, _progression.CheckBuildable(_storage, _grid));
+            Assert.IsFalse(_progression.IsUnlocked(_orphan));
+            _progression.ExtraUnlock = null;
+            Assert.IsFalse(_progression.IsUnlocked(_storage));
+        }
+
+        [Test]
         public void Unlocks_FollowCurrentGrade()
         {
             Assert.IsTrue(_progression.IsUnlocked(_basic));
