@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using SpaceStation.Building;
 using SpaceStation.Data;
 using UnityEditor;
@@ -116,7 +116,7 @@ namespace SpaceStation.Editor
             var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
             var host = Object.FindFirstObjectByType<SpaceStation.Simulation.SimulationHost>();
             var hso = new SerializedObject(host);
-            hso.FindProperty("_interiorBonus").objectReferenceValue = config;
+            hso.FindProperty("_interiorBonus").objectReferenceValue = AssetDatabase.LoadAssetAtPath<InteriorBonusConfig>(InteriorBonusPath); // 경로로 다시 불러와야 씬에 저장됨
             hso.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(host);
             EditorSceneManager.MarkSceneDirty(scene);
@@ -142,7 +142,47 @@ namespace SpaceStation.Editor
             Debug.Log("[TycoonSetup] 화면 배치: 튜토리얼 카드 = 자원 패널 아래");
         }
 
-        private const string InteriorBonusPath ="Assets/_Project/Data/Tycoon/InteriorBonusConfig.asset";
+        /// <summary>
+        /// 13-7 등급 중간 단계 (사용자 결정 2026-10-16, BALANCE 47번): 중형에서 인구 45 · 모듈 30 → '중형 확장'
+        /// = 물 추출기 · 단백질 배양실 · 손상 통제실 · 화물 터미널 먼저 열림 + 연구 포인트 1. 대형에 새로 열리는 것은 회전 링만 남음. + 씬 연결.
+        /// </summary>
+        [MenuItem("SpaceStation/Tycoon/Setup Mid Grade")]
+        public static void SetupMidGrade()
+        {
+            EnsureFolder();
+            var config = AssetDatabase.LoadAssetAtPath<MidGradeConfig>(MidGradePath);
+            if (config == null)
+            {
+                config = ScriptableObject.CreateInstance<MidGradeConfig>();
+                AssetDatabase.CreateAsset(config, MidGradePath);
+            }
+            var modules = new List<ModuleData>();
+            foreach (var name in new[] { "MD_WaterExtractor", "MD_ProteinVat", "MD_DamageControl", "MD_CargoTerminal" })
+            {
+                var m = Module(name);
+                if (m != null)
+                    modules.Add(m);
+            }
+            config.Set(new List<MidGradeStep>
+            {
+                new MidGradeStep { DisplayName = "중형 확장", Grade = 2, MinPopulation = 45, MinModules = 30, Modules = modules, ResearchPoints = 1 },
+            });
+            EditorUtility.SetDirty(config);
+            AssetDatabase.SaveAssets();
+
+            var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
+            var host = Object.FindFirstObjectByType<SpaceStation.Simulation.SimulationHost>();
+            var hso = new SerializedObject(host);
+            hso.FindProperty("_midGrade").objectReferenceValue = AssetDatabase.LoadAssetAtPath<MidGradeConfig>(MidGradePath); // 경로로 다시 불러와야 씬에 저장됨
+            hso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(host);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log($"[TycoonSetup] 등급 중간 단계: 중형 확장 (모듈 {modules.Count}개) · 씬 연결 완료");
+        }
+
+        private const string MidGradePath = "Assets/_Project/Data/Tycoon/MidGradeConfig.asset";
+        private const string InteriorBonusPath = "Assets/_Project/Data/Tycoon/InteriorBonusConfig.asset";
         private const string GrowthPath = "Assets/_Project/Data/Tycoon/GrowthThreatConfig.asset";
         private const string PlaguePath = "Assets/_Project/Data/Tycoon/PlagueConfig.asset";
         private const int CityGrade = 4;

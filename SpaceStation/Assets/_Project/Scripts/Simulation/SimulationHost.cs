@@ -54,6 +54,8 @@ namespace SpaceStation.Simulation
         [SerializeField] private PlagueConfig _plague;
         [Tooltip("타이쿤판 1인칭 가볍게 — 사고 손실 없음 · 보급 상자 자동 회수 · 등급 보상 연구 포인트 (메뉴 SpaceStation/Tycoon/Setup Interior Bonus가 채움). 비면 지금 동작 그대로")]
         [SerializeField] private InteriorBonusConfig _interiorBonus;
+        [Tooltip("타이쿤판 등급 중간 단계 — 중형 안에서 대형 모듈 일부를 먼저 엶 (메뉴 SpaceStation/Tycoon/Setup Mid Grade가 채움). 비면 없음")]
+        [SerializeField] private MidGradeConfig _midGrade;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -102,6 +104,8 @@ namespace SpaceStation.Simulation
                 PlagueSystem.AttachTo(Simulation, _plague, () => Random.value * 0.99999f); // 13-3 타이쿤판
             if (_interiorBonus != null)
                 InteriorBonusSystem.AttachTo(Simulation, _interiorBonus); // 13-6 타이쿤판
+            if (_midGrade != null)
+                MidGradeSystem.AttachTo(Simulation, _midGrade); // 13-7 타이쿤판
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
             {

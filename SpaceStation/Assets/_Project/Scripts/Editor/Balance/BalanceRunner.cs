@@ -29,6 +29,8 @@ namespace SpaceStation.Editor.Balance
         public StationGradeConfig BaseGrades;
         /// <summary>13-6 타이쿤판 1인칭 가볍게 (null이면 없음) — 봇은 상자를 직접 줍지만 등급 보상 포인트 · 자동 회수가 붙음.</summary>
         public InteriorBonusConfig InteriorBonus;
+        /// <summary>13-7 타이쿤판 등급 중간 단계 (null이면 없음).</summary>
+        public MidGradeConfig MidGrade;
         /// <summary>Phase 10 주민 특성 (null이면 명단 없음).</summary>
         public ResidentConfig Residents;
         public float DurationSeconds = 1800f;

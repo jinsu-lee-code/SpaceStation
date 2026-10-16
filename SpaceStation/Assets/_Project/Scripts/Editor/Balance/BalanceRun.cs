@@ -78,6 +78,8 @@ namespace SpaceStation.Editor.Balance
                 GrowthThreatSystem.AttachTo(_sim, s.GrowthThreat, s.BaseGrades); // 13-2 (13-7 난이도 간격 배율)
             if (s.InteriorBonus != null)
                 InteriorBonusSystem.AttachTo(_sim, s.InteriorBonus); // 13-6
+            if (s.MidGrade != null)
+                MidGradeSystem.AttachTo(_sim, s.MidGrade); // 13-7
             StartGrade = -1;
             if (start != null)
             {

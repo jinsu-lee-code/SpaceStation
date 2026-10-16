@@ -39,3 +39,9 @@
 
 - **13-6a (2026-10-16)**
   - `UnlockChoicePanel`: 왼쪽 위 [시스템] 버튼 대신 main의 `HudLauncher`에 등록 (Order.Systems · 아이콘 "systems" · 고를 후보 = Attention)
+
+- **13-7 (2026-10-16)**
+  - `GrowthThreatSystem.AttachTo(sim, config, baseGrades)` — 난이도 등급표 ÷ 원래 등급표 = 간격 배율을 성장 곡선에 곱함. `SimulationHost`는 난이도가 있을 때 `_grades`(원래)를 넘김
+  - 측정 도구: `BalanceRunSettings.BaseGrades`(난이도 측정 때 `RunWithDifficulty`가 채움) · `MidGrade`, 창 `_midGrade`
+  - `SimulationHost`: `_midGrade` 필드 + 있으면 `MidGradeSystem.AttachTo` (main 고리 M-12 `StationProgression.ExtraUnlock`에 값을 정함)
+  - 데이터(에셋): 해금 선택 열 ↔ 유성우 교환 (중형 = 합성 1단계 · 열, 대형 = 유성우) · `MidGradeConfig` 중형 확장
