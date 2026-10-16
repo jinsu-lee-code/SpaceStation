@@ -45,6 +45,10 @@ namespace SpaceStation.UI
         [SerializeField] private float _researchGap = 12f;
         [Tooltip("11-18 내부에서 튜토리얼을 끝내면 완료 카드를 이 시간 뒤 닫음 (마우스가 잠겨 [닫기]를 못 누름)")]
         [SerializeField] private float _insideFinishedSeconds = 12f;
+        [Tooltip("13-6a 카드를 오른쪽 자원 패널 바로 아래에 붙임 (왼쪽 위 [관리] 메뉴와 겹치지 않게, 타이쿤판 씬이 켬). 끄면 왼쪽 위")]
+        [SerializeField] private bool _dockUnderResources;
+        [Tooltip("자원 패널 아래 간격")]
+        [SerializeField] private float _dockGap = 10f;
 
         private HoloUi _ui;
         private ResearchPanel _research;
@@ -121,8 +125,9 @@ namespace SpaceStation.UI
         private void BuildCard()
         {
             _card = HoloUi.Rect("TutorialCard", transform);
-            _card.anchorMin = _card.anchorMax = _card.pivot = new Vector2(0f, 1f); // 왼쪽 (오른쪽은 자원 패널)
-            _card.anchoredPosition = new Vector2(16f, _cardTop);
+            var corner = _dockUnderResources ? new Vector2(1f, 1f) : new Vector2(0f, 1f); // 기본 왼쪽 (오른쪽은 자원 패널) · 13-6a 자원 패널 아래
+            _card.anchorMin = _card.anchorMax = _card.pivot = corner;
+            _card.anchoredPosition = _dockUnderResources ? new Vector2(-16f, _cardTop) : new Vector2(16f, _cardTop);
             _ui.Panel(_card.gameObject, HudTheme.PanelFill, HudTheme.Accent);
             _cardFrame = _card.Find("Frame").GetComponent<Image>();
             HoloUi.Decorative((RectTransform)_cardFrame.transform); // 테두리는 세로 배치에서 빼고 카드 전체를 덮음
@@ -161,7 +166,7 @@ namespace SpaceStation.UI
             _closeButton.gameObject.SetActive(false);
 
             HoloGlitch.Add(_card, _holoArt);
-            _tween = new UiTween(_card, _group, new Vector2(-30f, 0f), 0.25f, 0.2f, glitch: true);
+            _tween = new UiTween(_card, _group, new Vector2(_dockUnderResources ? 30f : -30f, 0f), 0.25f, 0.2f, glitch: true);
         }
 
         private RectTransform CreateHighlight(string name)
@@ -193,12 +198,17 @@ namespace SpaceStation.UI
                 return;
             }
             var self = (RectTransform)transform;
-            // 내부: 방 이름 · 사고/부탁 표시 줄 아래로 / 바깥: 연구 진행 표시(카드와 같은 왼쪽 위, 줄 수만큼 늘어남) 아래로
-            float researchHeight = _research != null ? _research.TrackerHeight : 0f;
-            float down = _runner.InsideInterior ? _insideDrop : researchHeight > 0f ? researchHeight + _researchGap : 0f;
-            var drop = new Vector2(0f, -Mathf.Round(down));
-            if (self.anchoredPosition != drop)
-                self.anchoredPosition = drop;
+            if (_dockUnderResources)
+                DockUnderResources(self);
+            else
+            {
+                // 내부: 방 이름 · 사고/부탁 표시 줄 아래로 / 바깥: 연구 진행 표시(카드와 같은 왼쪽 위, 줄 수만큼 늘어남) 아래로
+                float researchHeight = _research != null ? _research.TrackerHeight : 0f;
+                float down = _runner.InsideInterior ? _insideDrop : researchHeight > 0f ? researchHeight + _researchGap : 0f;
+                var drop = new Vector2(0f, -Mathf.Round(down));
+                if (self.anchoredPosition != drop)
+                    self.anchoredPosition = drop;
+            }
             if (_finished)
             {
                 if (_runner.InsideInterior && _tween.Visible && Time.unscaledTime > _finishedAt + _insideFinishedSeconds)
@@ -214,6 +224,31 @@ namespace SpaceStation.UI
                 _skipLabel.SetText("건너뛰기");
             }
             Refresh();
+        }
+
+        private readonly Vector3[] _corners = new Vector3[4];
+
+        /// <summary>
+        /// 13-6a: 카드 오른쪽 위를 자원 패널 오른쪽 아래 모서리 바로 아래에 (패널 높이가 바뀌면 따라감).
+        /// 자원 패널이 안 보이면(내부 등) 오른쪽 위에서 내부 표시 줄만큼 내림.
+        /// 카드 자리는 등장 효과(UiTween)가 쓰므로 왼쪽 위 방식처럼 이 뷰 전체를 옮긴다.
+        /// </summary>
+        private void DockUnderResources(RectTransform self)
+        {
+            var home = new Vector2(-16f, _cardTop); // BuildCard의 카드 자리 (오른쪽 위 기준)
+            Vector2 target;
+            if (_resourcePanel != null && _resourcePanel.gameObject.activeInHierarchy && !_runner.InsideInterior)
+            {
+                _resourcePanel.GetWorldCorners(_corners);
+                var p = (Vector2)self.InverseTransformPoint(_corners[3]) + self.anchoredPosition; // 자원 패널 오른쪽 아래 (이 뷰를 옮기기 전 좌표)
+                var r = self.rect;
+                target = new Vector2(p.x - r.xMax, p.y - r.yMax - _dockGap);
+            }
+            else
+                target = new Vector2(home.x, home.y - (_runner.InsideInterior ? _insideDrop : 0f));
+            var offset = new Vector2(Mathf.Round(target.x - home.x), Mathf.Round(target.y - home.y));
+            if (self.anchoredPosition != offset)
+                self.anchoredPosition = offset;
         }
 
         private void LateUpdate()
