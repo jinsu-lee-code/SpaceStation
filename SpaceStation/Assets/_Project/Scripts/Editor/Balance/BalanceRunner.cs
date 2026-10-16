@@ -140,6 +140,7 @@ namespace SpaceStation.Editor.Balance
         /// <summary>한 번에 끝까지 실행 (에디터가 멈춤). 백그라운드 실행은 <see cref="BalanceJob"/>.</summary>
         public static BalanceReport Run(BalanceRunSettings s, Action<int, float> progress = null)
         {
+            BalanceMilestones.Clear(); // 13-7
             var report = BalanceReport.Create(s);
             int count = BalanceReport.RunCount(s);
             for (int i = 0; i < count; i++)
