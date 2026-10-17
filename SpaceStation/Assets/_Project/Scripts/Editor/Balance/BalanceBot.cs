@@ -143,7 +143,8 @@ namespace SpaceStation.Editor.Balance
 
         /// <summary>
         /// 13-7 플레이어처럼 (사용자 결정 2026-10-16, 기본 켬 · 끄면 이전 봇): 유성우 예보 방향 앞면을 장갑 격벽으로 막기 ·
-        /// 보급 상자를 처음부터 줍기 · 파손은 현장 수리 먼저(걸어가는 시간을 흉내 내 <see cref="FieldRepairInterval"/>초에 1번).
+        /// 보급 상자를 처음부터 줍기 · 파손은 현장 수리 먼저(걸어가는 시간을 흉내 내 <see cref="FieldRepairInterval"/>초에 1번) ·
+        /// 파손을 겪었는데 방어가 0개면 첫 방어를 금속 여유 없이 먼저 (2026-10-17).
         /// </summary>
         public static bool PlayerHabits = true;
         private const int ShowerBlocksPerWarning = 6;
@@ -155,6 +156,8 @@ namespace SpaceStation.Editor.Balance
         private readonly List<ModuleInstance> _facing = new List<ModuleInstance>();
         public int ShowerBlocks { get; private set; }
         public int FieldRepairs { get; private set; }
+        /// <summary>13-7 한 번이라도 파손을 겪었는지 (방어가 0개면 첫 방어를 금속 여유 없이 먼저).</summary>
+        private bool _wasHit;
 
         public void Decide()
         {
@@ -227,6 +230,14 @@ namespace SpaceStation.Editor.Balance
             // 측정: 중형에서 모듈은 대형 조건을 넘었는데 수리 · 정비에 금속을 쓰느라 거주를 미뤄 인구가 30분 넘게 멈췄음
             if (PlayerHabits && _housing != null && r.Population >= r.HousingCapacity - 1 && OnlyPopulationShort(r))
                 return PickHousing(r);
+            // 13-7 플레이어처럼: 파손을 겪었는데 방어 모듈이 하나도 없으면 첫 방어를 금속 여유와 무관하게 먼저 (저축해서 산다)
+            // 측정: 시드 1 · 7 · 10이 초반 수리비로 금속 여유를 끝내 못 채워 방어 0개(격추 0) → 파손 누적 · 정체 · 게임 오버
+            if (PlayerHabits && _wasHit && CountDefense() == 0)
+            {
+                var first = PickDefense();
+                if (first != null)
+                    return first;
+            }
             // 4-9: 충족률이 낮은 요구의 서비스 모듈 (만족도 상한 → 성장 속도)
             var service = PickService();
             if (service != null)
@@ -470,6 +481,17 @@ namespace SpaceStation.Editor.Balance
             return metal;
         }
 
+        private int CountDefense()
+        {
+            int count = 0;
+            foreach (var m in _sim.Grid.Modules)
+            {
+                if (m.Data != null && (m.Data.IsShield || m.Data.IsTurret || m.Data.IsDamageControl))
+                    count++;
+            }
+            return count;
+        }
+
         private ModuleData PickDefense()
         {
             int shields = 0, turrets = 0, controls = 0;
@@ -600,6 +622,7 @@ namespace SpaceStation.Editor.Balance
             _repairQueue.Clear();
             foreach (var info in _sim.Damage.DamagedModules)
             {
+                _wasHit = true;
                 if (!info.IsRepairing && !info.IsQueued)
                     _repairQueue.Add(info.Module);
             }
