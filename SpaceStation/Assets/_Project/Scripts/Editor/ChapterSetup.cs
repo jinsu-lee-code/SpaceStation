@@ -196,6 +196,14 @@ namespace SpaceStation.Editor
             xso.FindProperty("_material").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/M_DefenseRange.mat");
             xso.FindProperty("_font").objectReferenceValue = rso.FindProperty("_font").objectReferenceValue;
             xso.FindProperty("_labelRoot").objectReferenceValue = parent as RectTransform;
+            // 지점 모습 (바위는 배경 소행성 재질 + 새 재질 3개, 난파선은 Blender 모델 — 사용자 결정 2026-10-18)
+            var ambient = Object.FindFirstObjectByType<SpaceStation.Building.AmbientSpace>(FindObjectsInactive.Include);
+            var aso = ambient != null ? new SerializedObject(ambient) : null;
+            xso.FindProperty("_rockMaterial").objectReferenceValue = aso?.FindProperty("_rockMaterial").objectReferenceValue;
+            xso.FindProperty("_wreckModel").objectReferenceValue = WreckModel();
+            xso.FindProperty("_iceMaterial").objectReferenceValue = ExploreMaterial("M_ExploreIce", new Color(0.62f, 0.84f, 0.98f), 0.85f, 0.05f, new Color(0.04f, 0.12f, 0.2f));
+            xso.FindProperty("_hullMaterial").objectReferenceValue = ExploreMaterial("M_ExploreHull", new Color(0.42f, 0.43f, 0.46f), 0.45f, 0.65f, Color.black);
+            xso.FindProperty("_glowMaterial").objectReferenceValue = ExploreMaterial("M_ExploreGlow", Color.white, 0.5f, 0f, Color.white);
             xso.ApplyModifiedPropertiesWithoutUndo();
 
             // 13-4 장 직전 컷신 (다른 HUD 위 — 재생할 때 맨 앞으로 옮김)
@@ -436,6 +444,79 @@ namespace SpaceStation.Editor
             });
             EditorUtility.SetDirty(cfg);
             return cfg;
+        }
+
+        private const string WreckPath = "Assets/_Project/Art/Models/Explore/SM_Wreck.fbx";
+
+        /// <summary>
+        /// 13-5a 난파선 모델 (BlenderWork/Explore/wreck_builder.py → SM_Wreck.fbx): 재질 칸을 이름(M_Wreck*)으로 URP Lit 재질에 연결.
+        /// 게임 조명이 따뜻해 중립 회색은 갈색으로 보이므로 선체 색은 푸른 쪽으로 (MODELING.md 7-7). 신호등 칸은 ExplorationView가 깜박임.
+        /// </summary>
+        private static GameObject WreckModel()
+        {
+            var importer = AssetImporter.GetAtPath(WreckPath) as ModelImporter;
+            if (importer == null)
+            {
+                Debug.LogWarning("[ChapterSetup] 난파선 모델 없음: " + WreckPath);
+                return null;
+            }
+            var slots = new (string slot, Color color, float smooth, float metal, Color emission)[]
+            {
+                ("Hull", new Color(0.6f, 0.66f, 0.76f), 0.35f, 0.2f, Color.black),
+                ("Hull2", new Color(0.5f, 0.56f, 0.66f), 0.35f, 0.2f, Color.black),
+                ("Stripe", new Color(0.85f, 0.42f, 0.14f), 0.3f, 0.1f, Color.black),
+                ("Frame", new Color(0.3f, 0.33f, 0.4f), 0.45f, 0.3f, Color.black),
+                ("Torn", new Color(0.72f, 0.74f, 0.78f), 0.6f, 0.6f, Color.black),
+                ("Dark", new Color(0.06f, 0.065f, 0.08f), 0.2f, 0f, Color.black),
+                ("Burn", new Color(0.07f, 0.065f, 0.065f), 0.05f, 0f, Color.black),
+                ("BurnM", new Color(0.2f, 0.2f, 0.22f), 0.08f, 0f, Color.black),
+                ("BurnL", new Color(0.38f, 0.41f, 0.48f), 0.12f, 0.1f, Color.black),
+                ("Glass", new Color(0.08f, 0.14f, 0.2f), 0.92f, 0f, Color.black),
+                ("GlassDark", new Color(0.04f, 0.05f, 0.065f), 0.85f, 0f, Color.black),
+                ("Lit", new Color(1f, 0.8f, 0.55f), 0.4f, 0f, new Color(1.4f, 1f, 0.55f)),
+                ("Vent", new Color(0.08f, 0.085f, 0.1f), 0.3f, 0.2f, Color.black),
+                ("CableR", new Color(0.7f, 0.12f, 0.08f), 0.3f, 0f, Color.black),
+                ("CableY", new Color(0.9f, 0.72f, 0.15f), 0.3f, 0f, Color.black),
+                ("Beacon", new Color(1f, 0.2f, 0.15f), 0.4f, 0f, new Color(0.3f, 0.04f, 0.03f)),
+            };
+            foreach (var s in slots)
+            {
+                var mat = ExploreMaterial("M_Wreck" + s.slot, s.color, s.smooth, s.metal, s.emission);
+                importer.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "M_Wreck" + s.slot), mat);
+            }
+            importer.importAnimation = false;
+            importer.importCameras = false;
+            importer.importLights = false;
+            importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<GameObject>(WreckPath);
+        }
+
+        /// <summary>탐사 지점 모습 재질 (URP Lit, 발광은 _EMISSION을 켜 두고 색은 지점마다 MaterialPropertyBlock).</summary>
+        private static Material ExploreMaterial(string name, Color baseColor, float smoothness, float metallic, Color emission)
+        {
+            const string dir = "Assets/_Project/Art/Materials/Explore";
+            Directory.CreateDirectory(dir);
+            string path = $"{dir}/{name}.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            mat.SetColor("_BaseColor", baseColor);
+            mat.SetFloat("_Smoothness", smoothness);
+            mat.SetFloat("_Metallic", metallic);
+            if (emission.maxColorComponent > 0f)
+            {
+                mat.EnableKeyword("_EMISSION");
+                mat.SetColor("_EmissionColor", emission);
+                mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            }
+            else
+                mat.DisableKeyword("_EMISSION");
+            EditorUtility.SetDirty(mat);
+            AssetDatabase.SaveAssets();
+            return AssetDatabase.LoadAssetAtPath<Material>(path);
         }
 
         private static void Signals(ChapterData chapter, params SiteKind[] kinds)
