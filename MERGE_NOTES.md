@@ -357,7 +357,7 @@
 - 시험: `ResearchTests.Gate_BlocksStart_ConsumesOnStart_Closes`에 `ShowLinked` 확인 추가
 
 ### `narrative` 합칠 때
-- [ ] 서사판 `RecordArchiveSystem`이 `ShowLinked`를 구현해야 컴파일됨 (합성 규칙이 열리는 4장부터 보임).
+- [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 `RecordArchiveSystem.ShowLinked` = 합성 규칙(4장)부터 보임 · EditMode 431개 통과 · 플레이 모드 2장 연구 창에서 칸 숨김 · 창 줄어듦 확인.
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. 타이쿤판이 `IResearchGate`를 구현했으면 `ShowLinked => true` 추가.
