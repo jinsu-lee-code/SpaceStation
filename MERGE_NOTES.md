@@ -263,3 +263,20 @@
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상 (고리를 쓰지 않으면 그대로).
+
+---
+
+## M-16. 13-4 긴 밤 · 튜토리얼 판별 문구 고리 (2026-10-18, `main`)
+
+**main에 넣은 것** — 고리를 쓰지 않으면 동작 그대로
+- `DayNightCycle.OverrideNight(from, seconds)` · `ClearOverride` · `HasOverride`: 정해진 구간을 밤으로 덮음 (해질녘 · 새벽 전환 포함). 덮은 밤이 끝날 때 원래 주기가 아직 밤이면 원래 새벽까지 낮으로 덮음. `IsDay` · `SolarMultiplier` · `TimeUntilPhaseChange`가 모두 따름 (조명 · 소리 · 자원 패널도 같이). 저장하지 않음 (덮는 쪽이 복원 때 다시 덮음)
+- `TutorialData`: `_headerLabel`(카드 머리말, 비면 "튜토리얼") · `_finishTitle` · `_finishBody`(비면 기본 완료 문구) · `_transient`(진행 중이어도 저장하지 않음) + `SetTexts(...)`
+- `StationStateSerializer.Capture`: 저장하지 않는 튜토리얼은 빼고
+- `TutorialView`: 처음에 튜토리얼이 없어도 꺼지지 않고, `sim.Tutorial`이 새로 시작되면 카드가 다시 붙음 (`Bind` · `Unbind` · `_watched`). 머리말 · 완료 문구는 데이터에서
+- 시험 2개 (`PowerStorageTests.Cycle_OverrideNight_LongNightThenDawn` · `TutorialTests.Transient_NotSaved_HeaderLabelDefaults`)
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상. 서사판 13-4 '첫 긴 밤' 절정 · 코어 기동 안내 · 내부 안내가 씀.
+
+### `tycoon` 합칠 때
+- [ ] 충돌 없음 예상. `TutorialView`를 고쳤으면 `Start`의 끄기 → `Bind` 부분만 맞춤.

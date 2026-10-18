@@ -103,6 +103,15 @@ namespace SpaceStation.Data
         [Tooltip("정비 단계가 시작되면 모듈 하나의 내구도를 이 값으로 낮춤 (효율 저하 기준 50 아래)")]
         [SerializeField, Range(1f, 100f)] private float _maintainWornDurability = 40f;
 
+        [Header("13-4 판별 문구 (비면 기본)")]
+        [Tooltip("카드 머리말 (예: \"코어 기동\" → \"코어 기동 3/9\"). 비면 \"튜토리얼\"")]
+        [SerializeField] private string _headerLabel;
+        [Tooltip("끝났을 때 카드 제목 · 본문 (리치 텍스트). 비면 기본 완료 문구")]
+        [SerializeField] private string _finishTitle;
+        [SerializeField, TextArea(3, 8)] private string _finishBody;
+        [Tooltip("저장하지 않는 짧은 안내 (서사판 내부 안내 — 진행 중에 저장해도 다음에 처음부터)")]
+        [SerializeField] private bool _transient;
+
         public IReadOnlyList<TutorialStep> Steps => _steps;
         public float CameraRotateDegrees => _cameraRotateDegrees;
         public float CameraZoomDistance => _cameraZoomDistance;
@@ -114,11 +123,25 @@ namespace SpaceStation.Data
         public float MeteorDelay => _meteorDelay;
         public float PostTutorialGrace => _postTutorialGrace;
         public float MaintainWornDurability => _maintainWornDurability;
+        public string HeaderLabel => string.IsNullOrEmpty(_headerLabel) ? "튜토리얼" : _headerLabel;
+        public string FinishTitle => _finishTitle;
+        public string FinishBody => _finishBody;
+        public bool Transient => _transient;
 
         /// <summary>에디터 설정·테스트용.</summary>
         public void SetSteps(IEnumerable<TutorialStep> steps)
         {
             _steps = new List<TutorialStep>(steps);
+        }
+
+        /// <summary>13-4 에디터 설정·테스트용: 판별 문구 · 저장 여부 · 끝난 뒤 유예.</summary>
+        public void SetTexts(string headerLabel, string finishTitle, string finishBody, bool transient, float postTutorialGrace)
+        {
+            _headerLabel = headerLabel;
+            _finishTitle = finishTitle;
+            _finishBody = finishBody;
+            _transient = transient;
+            _postTutorialGrace = Mathf.Max(0f, postTutorialGrace);
         }
     }
 }
