@@ -322,7 +322,7 @@
 - 시험 2개 (`ResearchTests.Gate_BlocksStart_ConsumesOnStart_Closes` · `Gate_Modifiers_PendingThenBoosted`)
 
 ### `narrative` 합칠 때
-- [ ] 충돌 없음 예상. 서사판 13-5b 기록 복원(`RecordArchiveSystem`)이 고리를 꽂음.
+- [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 13-5b 기록 복원(`RecordArchiveSystem`)이 고리를 꽂음 · EditMode 424개 통과.
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. 타이쿤판이 연구 창 · `ResearchSystem`을 고쳤으면 `Recalculate` 부르는 곳을 `RefreshEffects()`로 맞춤.
