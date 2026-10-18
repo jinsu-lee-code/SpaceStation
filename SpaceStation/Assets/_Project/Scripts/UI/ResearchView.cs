@@ -30,8 +30,11 @@ namespace SpaceStation.UI
         private readonly TMP_Text _threshold, _reserve, _autoStatus;
         private ResearchCategoryData _selected;
 
-        /// <summary>맨 위(연구소 사용 줄)부터 목록 · 상세 아래 끝까지의 높이.</summary>
-        public float Height { get; }
+        /// <summary>맨 위(연구소 사용 줄)부터 목록 · 상세 아래 끝까지의 높이 (연계 연구 칸을 숨기면 그만큼 줄어듦, M-21).</summary>
+        public float Height => LinkedShown ? _heightLinked : _heightBase;
+
+        private readonly float _heightBase, _heightLinked;
+        private bool LinkedShown => _linkedHeader != null && _sim.Research.ShowLinked;
 
         private TMP_Text _linkedHeader;
         private readonly List<(Button Button, TMP_Text Label)> _linkedRows = new List<(Button, TMP_Text)>();
@@ -135,7 +138,8 @@ namespace SpaceStation.UI
                 }
                 right = -ly;
             }
-            Height = Mathf.Max(right, -y) - top;
+            _heightBase = Mathf.Max(-listTop + panelH, -y) - top;
+            _heightLinked = Mathf.Max(right, -y) - top;
             if (sim.Research.Categories.Count > 0)
                 _selected = sim.Research.Categories[0];
             root.gameObject.SetActive(false);
@@ -208,6 +212,14 @@ namespace SpaceStation.UI
             if (_linkedHeader == null || ex == null || _selected == null)
                 return;
             _linkedShown.Clear();
+            bool show = LinkedShown; // M-21 판 고리가 숨김 (서사판: 합성이 열리는 장 전)
+            _linkedHeader.gameObject.SetActive(show);
+            if (!show)
+            {
+                foreach (var (button, _) in _linkedRows)
+                    button.gameObject.SetActive(false);
+                return;
+            }
             foreach (var l in ex.Linked)
                 if (l != null && l.Category == _selected.Category)
                     _linkedShown.Add(l);

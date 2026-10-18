@@ -9,7 +9,7 @@ using Object = UnityEngine.Object;
 
 namespace SpaceStation.Tests
 {
-    /// <summary>13-5b 기록 복원: 2장부터 열림 · 봉인 단계 = 기록 조각 · 마치면 효과 대기 → 보존 / 덮어쓰기(× 1.5) · 성격 축 · 세이브.</summary>
+    /// <summary>13-5b 기록 복원: 2장부터 열림 · 봉인 단계 = 기록 조각 · 마치면 효과 대기 → 보존 / 덮어쓰기(× 1.5) · 성격 축 · 세이브 · 연계 연구 칸은 합성 규칙부터 (13-5c).</summary>
     public class RecordTests
     {
         private const float Eps = 1e-3f;
@@ -152,6 +152,17 @@ namespace SpaceStation.Tests
             Assert.AreEqual(0, records.Fragments, "피해를 입으면 없음");
             records.RewardClimax(new ChapterRecord { Chapter = 0, Outcome = ChapterOutcome.Clean });
             Assert.AreEqual(1, records.Fragments, "깔끔히 버티면 장 데이터만큼");
+        }
+
+        [Test]
+        public void LinkedResearch_HiddenUntilSynthesisRule()
+        {
+            var sim = Sim(out _, out _);
+            Assert.IsFalse(sim.Research.ShowLinked, "합성 규칙 전(1~3장) = 연계 연구 칸 숨김");
+            var so = new SerializedObject(sim.Chapters.Current);
+            so.FindProperty("_rules").intValue = (int)StationRule.Synthesis;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Assert.IsTrue(sim.Research.ShowLinked, "합성이 열리는 장(4장)부터 보임");
         }
 
         // ---------------- 도우미 ----------------

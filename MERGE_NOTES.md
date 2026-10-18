@@ -344,3 +344,20 @@
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. 타이쿤판이 `BeginRaid`를 불렀으면 새 매개변수는 기본값이라 그대로.
+
+---
+
+## M-21. 13-5c 연구 판 고리: 연계 연구 칸 숨기기 (2026-10-18, `main`)
+
+**main에 넣은 것** — 고리를 꽂지 않으면 동작 그대로 (타이쿤판 · 봇)
+- `IResearchGate.ShowLinked` (M-19 고리에 한 항목 추가): 연구 창에 연계 연구(12-4) 칸을 보일지. `ResearchSystem.ShowLinked` = 고리가 없으면 늘 true
+- `ResearchView`: 숨기면 연계 연구 머리줄 · 줄을 끄고 `Height`가 그만큼 줄어듦 (연계 칸이 없는 패드 탭은 그대로)
+- `ResearchPanel`: 창이 열려 있을 때 높이가 바뀌면 창 크기를 다시 맞춤(`FitHeight`)
+- `HoloUi.RefitDecor(rt)`: 창 크기를 바꾼 뒤 장식 무늬(격자 · 주사선 · 스캔 띠) 간격을 새 크기에 맞춤
+- 시험: `ResearchTests.Gate_BlocksStart_ConsumesOnStart_Closes`에 `ShowLinked` 확인 추가
+
+### `narrative` 합칠 때
+- [ ] 서사판 `RecordArchiveSystem`이 `ShowLinked`를 구현해야 컴파일됨 (합성 규칙이 열리는 4장부터 보임).
+
+### `tycoon` 합칠 때
+- [ ] 충돌 없음 예상. 타이쿤판이 `IResearchGate`를 구현했으면 `ShowLinked => true` 추가.

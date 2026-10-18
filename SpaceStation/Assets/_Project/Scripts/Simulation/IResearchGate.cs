@@ -33,5 +33,8 @@ namespace SpaceStation.Simulation
 
         /// <summary>상세 화면에 덧붙일 한 줄 (완료한 단계 · 다음 단계 모두 물음, 없으면 null).</summary>
         string Note(ResearchCategoryData category, int level);
+
+        /// <summary>연구 창에 연계 연구(12-4) 칸을 보일지 (M-21, false면 숨기고 창을 줄임 — 서사판: 합성이 열리는 장부터).</summary>
+        bool ShowLinked { get; }
     }
 }

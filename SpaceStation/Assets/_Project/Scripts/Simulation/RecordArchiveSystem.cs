@@ -164,6 +164,12 @@ namespace SpaceStation.Simulation
             }
         }
 
+        /// <summary>
+        /// 13-5c 연계 연구(12-4, 상위 모듈 필요) 칸은 합성이 열리는 장(4장)부터 보임 (사용자 결정 2026-10-18, M-21).
+        /// 장 규칙이 없으면(시험 등) 그대로 보임.
+        /// </summary>
+        public bool ShowLinked => Sim.RuleOpen(StationRule.Synthesis, true);
+
         // ---------------- 완료 · 선택 ----------------
 
         public RecordChoice ChoiceOf(RecordTrack track) => track != null && _choices.TryGetValue(track, out var c) ? c : RecordChoice.None;
