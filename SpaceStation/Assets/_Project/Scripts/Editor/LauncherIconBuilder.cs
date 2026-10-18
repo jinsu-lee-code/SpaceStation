@@ -28,6 +28,7 @@ namespace SpaceStation.Editor
             ("policies", Policies),
             ("contact", Contact),
             ("systems", Systems),
+            ("core", Core),
         };
 
         [MenuItem("SpaceStation/UI/Build Launcher Icons")]
@@ -224,6 +225,25 @@ namespace SpaceStation.Editor
             if (Capsule(p, mid, wait, 0.045f))
                 return 0.45f;
             return 0f;
+        }
+
+        /// <summary>코어 기록(서사판): 코어 구슬(테두리 · 옅은 면 · 밝은 눈동자 · 궤도 호) + 오른쪽 아래 기록 줄 셋.</summary>
+        private static float Core(Vector2 p)
+        {
+            if (Capsule(p, new Vector2(0.05f, -0.4f), new Vector2(0.82f, -0.4f), 0.055f)
+                || Capsule(p, new Vector2(0.25f, -0.6f), new Vector2(0.82f, -0.6f), 0.055f)
+                || Capsule(p, new Vector2(0.45f, -0.8f), new Vector2(0.82f, -0.8f), 0.055f))
+                return 0.9f;
+            var orb = new Vector2(-0.25f, 0.25f);
+            if (Arc(p, orb, 0.72f, 0.06f, 20f, 160f) || Arc(p, orb, 0.72f, 0.06f, 200f - 360f, -110f))
+                return 0.55f; // 궤도 호 (위 · 왼쪽 아래)
+            if (!Disc(p, orb, 0.52f))
+                return 0f;
+            if (!Disc(p, orb, 0.52f - Line))
+                return 1f;
+            if (Disc(p, orb, 0.17f))
+                return 1f;
+            return Ring(p, orb, 0.3f, 0.04f) ? 0.7f : 0.3f;
         }
 
         // ---------------- 도형 도우미 ----------------
