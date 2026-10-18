@@ -294,3 +294,17 @@
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. 타이쿤판 내부 표시를 고쳤으면 `BuildOverlay`의 두 줄 자리만 맞춤.
+
+---
+
+## M-18. 13-5a 탐사 아이콘 · 판 전용 칸 하나 더 (2026-10-18, `main`)
+
+**main에 넣은 것** — 동작 변화 없음
+- `LauncherIconBuilder`: 아이콘 "probe" (레이더 원 + 신호 점 셋) → `LI_probe.png`
+- `HudLauncher.Order.EditionExtra` (= Contact + 5): 판마다 더 붙는 창 칸 (서사판 탐사)
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상. 서사판 탐사 창이 씀.
+
+### `tycoon` 합칠 때
+- [ ] 충돌 없음 예상.

@@ -29,6 +29,7 @@ namespace SpaceStation.Editor
             ("contact", Contact),
             ("systems", Systems),
             ("core", Core),
+            ("probe", Probe),
         };
 
         [MenuItem("SpaceStation/UI/Build Launcher Icons")]
@@ -244,6 +245,25 @@ namespace SpaceStation.Editor
             if (Disc(p, orb, 0.17f))
                 return 1f;
             return Ring(p, orb, 0.3f, 0.04f) ? 0.7f : 0.3f;
+        }
+
+        /// <summary>탐사(서사판 13-5): 레이더 원(바깥 테두리 · 안쪽 고리) + 훑는 부채꼴(옅은 면) + 신호 점 셋(하나는 꽉 찬 = 밝힌 곳).</summary>
+        private static float Probe(Vector2 p)
+        {
+            var c = new Vector2(-0.08f, -0.08f);
+            if (Disc(p, new Vector2(0.42f, 0.42f), 0.11f))
+                return 1f; // 밝힌 신호
+            if (Ring(p, new Vector2(-0.45f, 0.38f), 0.09f, 0.04f) || Ring(p, new Vector2(0.38f, -0.5f), 0.09f, 0.04f))
+                return 0.8f; // 남은 신호
+            if (Ring(p, c, 0.8f, Line))
+                return 1f;
+            if (Ring(p, c, 0.45f, 0.05f))
+                return 0.55f;
+            if (Disc(p, c, 0.08f))
+                return 1f;
+            if (Disc(p, c, 0.8f - Line) && Arc(p, c, 0.8f - Line, 0.8f - Line, 20f, 70f))
+                return 0.35f; // 훑는 부채꼴
+            return 0f;
         }
 
         // ---------------- 도형 도우미 ----------------
