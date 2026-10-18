@@ -286,7 +286,7 @@
 ## M-17. 13-4 내부 화면: 방 이름 상단 중앙 · 안에서 시작한 튜토리얼 카드 (2026-10-18, `main`)
 
 **main에 넣은 것** — 화면 동작이 바뀜 (사용자 피드백)
-- `InteriorMode.BuildOverlay`: 방 이름(`_title`) · 사고/부탁 줄(`_tracker`)을 왼쪽 위 → **상단 중앙** (왼쪽 위 [관리] 메뉴와 겹쳤음). 사건 배너(`EventBanner`, 같은 상단 중앙)가 보이는 동안은 그 아래로 비켜 섬 (`PlaceTop`, 매 프레임)
+- `InteriorMode.BuildOverlay`: 방 이름(`_title`) · 사고/부탁 줄(`_tracker`)을 왼쪽 위 → **상단 중앙** (왼쪽 위 [관리] 메뉴와 겹쳤음). 사건 배너(`EventBanner`, 같은 상단 중앙)가 보이는 동안은 그 아래로 비켜 섬 (`PlaceTop`, 매 프레임). 밝은 벽 위에서도 읽히게 글자 크기에 맞춘 반투명 바탕(`TitleBack`)
 - `InteriorMode.DriveTutorial`: 들어갈 때는 튜토리얼이 없어 숨긴 "Tutorial" 카드를, 안에서 튜토리얼이 새로 시작되면 다시 켬 (서사판 내부 안내가 안 보였음)
 
 ### `narrative` 합칠 때

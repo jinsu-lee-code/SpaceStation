@@ -980,7 +980,13 @@ namespace SpaceStation.Interior
             dotImg.raycastTarget = false;
 
             // 13-4 (사용자 피드백 2026-10-18): 방 이름 · 사고/부탁 줄을 상단 중앙으로 (왼쪽 위는 [관리] 메뉴와 겹쳤음).
-            // 사건 배너(같은 상단 중앙)가 떠 있는 동안은 그 아래로 비켜 섬 (PlaceTop)
+            // 사건 배너(같은 상단 중앙)가 떠 있는 동안은 그 아래로 비켜 섬 (PlaceTop). 밝은 벽 · 조명 위에서도 읽히게 글자 뒤 반투명 바탕
+            _titleBack = HoloUi.Rect("TitleBack", _overlay);
+            _titleBack.anchorMin = _titleBack.anchorMax = _titleBack.pivot = new Vector2(0.5f, 1f);
+            var back = _titleBack.gameObject.AddComponent<Image>();
+            back.sprite = _fillSprite;
+            back.color = new Color(0.01f, 0.03f, 0.05f, 0.62f);
+            back.raycastTarget = false;
             _title = ui.Label(_overlay, "", 26f, TextAlignmentOptions.Top);
             TopCenter(_title.rectTransform, TitleTop, new Vector2(900f, 80f));
 
@@ -1052,8 +1058,9 @@ namespace SpaceStation.Interior
             InsideChanged += SetContentVisible;
         }
 
-        private const float TitleTop = 20f, TrackerTop = 88f, BannerGap = 10f;
+        private const float TitleTop = 20f, TrackerTop = 88f, BannerGap = 10f, BackPadX = 28f, BackPadY = 8f;
         private CanvasGroup _banner;
+        private RectTransform _titleBack;
         private GameObject _tutorialPanel;
         private float _topShift = -1f;
         private readonly Vector3[] _bannerCorners = new Vector3[4];
@@ -1065,7 +1072,7 @@ namespace SpaceStation.Interior
             rt.sizeDelta = size;
         }
 
-        /// <summary>13-4: 사건 배너가 보이는 동안 방 이름 · 사고/부탁 줄을 배너 아래로.</summary>
+        /// <summary>13-4: 사건 배너가 보이는 동안 방 이름 · 사고/부탁 줄을 배너 아래로 + 글자 크기에 맞춘 바탕.</summary>
         private void PlaceTop()
         {
             float shift = 0f;
@@ -1075,11 +1082,21 @@ namespace SpaceStation.Interior
                 float bottom = _overlay.InverseTransformPoint(_bannerCorners[0]).y; // 배너 아래 끝 (오버레이 좌표)
                 shift = Mathf.Max(0f, Mathf.Round(_overlay.rect.yMax - bottom + BannerGap - TitleTop));
             }
-            if (Mathf.Approximately(shift, _topShift))
-                return;
-            _topShift = shift;
-            _title.rectTransform.anchoredPosition = new Vector2(0f, -(TitleTop + shift));
-            _tracker.rectTransform.anchoredPosition = new Vector2(0f, -(TrackerTop + shift));
+            if (!Mathf.Approximately(shift, _topShift))
+            {
+                _topShift = shift;
+                _title.rectTransform.anchoredPosition = new Vector2(0f, -(TitleTop + shift));
+                _tracker.rectTransform.anchoredPosition = new Vector2(0f, -(TrackerTop + shift));
+            }
+            // 바탕: 방 이름 (+ 사고/부탁 줄이 있으면 그 줄까지) 크기 (TMP가 글자가 바뀔 때만 다시 잼)
+            bool tracked = !string.IsNullOrEmpty(_tracker.text);
+            float width = Mathf.Min(_title.rectTransform.sizeDelta.x, Mathf.Max(_title.preferredWidth, tracked ? _tracker.preferredWidth : 0f));
+            float height = tracked ? TrackerTop - TitleTop + _tracker.preferredHeight : _title.preferredHeight;
+            bool show = !string.IsNullOrEmpty(_title.text);
+            if (_titleBack.gameObject.activeSelf != show)
+                _titleBack.gameObject.SetActive(show);
+            _titleBack.anchoredPosition = new Vector2(0f, -(TitleTop + shift) + BackPadY);
+            _titleBack.sizeDelta = new Vector2(Mathf.Round(width + BackPadX * 2f), Mathf.Round(height + BackPadY * 2f));
         }
 
         private void SetContentVisible(bool on)
