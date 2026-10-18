@@ -276,7 +276,7 @@
 - 시험 2개 (`PowerStorageTests.Cycle_OverrideNight_LongNightThenDawn` · `TutorialTests.Transient_NotSaved_HeaderLabelDefaults`)
 
 ### `narrative` 합칠 때
-- [ ] 충돌 없음 예상. 서사판 13-4 '첫 긴 밤' 절정 · 코어 기동 안내 · 내부 안내가 씀.
+- [x] (2026-10-18) 충돌 없음 (자동 합침). 서사판 13-4 '첫 긴 밤' 절정 · 코어 기동 안내 · 내부 안내가 씀 · EditMode 413개 통과.
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. `TutorialView`를 고쳤으면 `Start`의 끄기 → `Bind` 부분만 맞춤.
