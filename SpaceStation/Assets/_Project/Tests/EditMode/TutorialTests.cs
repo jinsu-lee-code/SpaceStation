@@ -176,6 +176,21 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Transient_NotSaved_HeaderLabelDefaults()
+        {
+            // 13-4 공통 고리: 저장하지 않는 짧은 안내 · 카드 머리말 (비면 "튜토리얼")
+            var data = Data(Step(TutorialGoal.Camera, false));
+            Assert.AreEqual("튜토리얼", data.HeaderLabel);
+            data.SetTexts("내부 안내", "다 둘러봄", "본문", true, 0f);
+            Assert.AreEqual("내부 안내", data.HeaderLabel);
+            Assert.AreEqual("다 둘러봄", data.FinishTitle);
+            var sim = Sim();
+            sim.StartTutorial(data);
+            var state = JsonUtility.FromJson<StationState>(JsonUtility.ToJson(StationStateSerializer.Capture(sim)));
+            Assert.IsFalse(state.Tutorial.Active, "진행 중이어도 저장하지 않음");
+        }
+
+        [Test]
         public void Skip_EndsAndResumesEvents()
         {
             var sim = Sim();
