@@ -243,3 +243,23 @@
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. `UnlockChoicePanel`의 `Order.Systems`는 그대로 둬도 같은 값.
 - [ ] `BalanceMilestones.cs.meta`가 main에 빠져 있다가 91c02a0에 들어감 — 타이쿤판 PC에서 Unity가 따로 만든 .meta가 있으면 main 것으로 맞춤 (GUID가 다르면 충돌).
+
+---
+
+## M-15. 13-3 주민 종류 · 인구 고리 (2026-10-18, `main`)
+
+**main에 넣은 것** — 기본값이 지금 동작 그대로라 변화 없음 (서사판 이민선 시계 · 종족이 씀)
+- `Resident.Kind` (빈 문자열 기본) + `ResidentState.Kind` 세이브. `ResidentRoster.KindPicker`(새 주민 종류) · `QueueKinds(kind, n)`(이민선: 다음 도착 n명, 다 안 쓰이면 버림) · `CountKind`
+- `ResidentRoster.KindAbility`(종류가 주는 능력, 특성 통로로 더함) · `AbilityCap`(종류 + 개인 합산 상한, KindAbility가 있을 때만) · `TraitAbility`(개인만, 표시용)
+- `NeedsSystem.PenaltyScale` (요구별 감점 배율, null = 1)
+- `StationSimulation.GrowthIntervalScale` (자연 증가 간격 배율, 기본 1) — `StationModuleStats.RefreshNeeds`의 증가 간격 줄에 곱함
+- `ImmigrationSystem.Suppressed` (포트 이민선 시계 끄기)
+- 내부: `InteriorResidents.Spawn`이 `Kind`와 같은 동물 모델 Id가 있으면 그 동물 (없으면 번호로, 지금 그대로)
+- UI: `ResidentText.KindTag` (null = 표시 없음) — 있으면 특성 앞에 "토끼 | 기술자·낙천가"
+- 시험 2개 (`ResidentTests.Kinds_QueueFirst_ThenPicker_AddAbility_WithCap_AndSurviveSave` · `GrowthIntervalScale_Hook`)
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상. 서사판 `RefreshNeeds`가 장 요구로 고쳐져 있으면 증가 간격 줄(맨 끝)만 main 줄로.
+
+### `tycoon` 합칠 때
+- [ ] 충돌 없음 예상 (고리를 쓰지 않으면 그대로).

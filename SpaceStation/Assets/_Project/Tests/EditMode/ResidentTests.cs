@@ -195,6 +195,55 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Kinds_QueueFirst_ThenPicker_AddAbility_WithCap_AndSurviveSave()
+        {
+            // 13-3 공통 고리: 종류 대기열(이민선) → 고르는 쪽(자연 증가), 종류 능력 + 개인 특성 합산 상한, 세이브
+            UseTraits(Def(ResidentTrait.Technician, 0.04f, 0.2f));
+            var sim = Sim();
+            Assert.IsTrue(sim.Residents.Residents.All(r => r.Kind == ""), "고리가 없으면 종류 없음");
+            Assert.IsTrue(sim.Grid.TryPlace(_habitat, Vector3Int.right, 0, out _));
+            sim.Residents.KindPicker = () => "rabbit";
+            sim.Residents.QueueKinds("bear", 2);
+            sim.Population.Add(3, PopulationChangeReason.Immigration);
+            var list = sim.Residents.Residents;
+            Assert.AreEqual(7, list.Count);
+            Assert.AreEqual("bear", list[4].Kind);
+            Assert.AreEqual("bear", list[5].Kind);
+            Assert.AreEqual("rabbit", list[6].Kind, "대기열을 다 쓰면 고르는 쪽");
+            Assert.AreEqual(2, sim.Residents.CountKind("bear"));
+
+            sim.Residents.QueueKinds("bear", 5); // 쓰이지 않은 대기열은 다음 맞추기에서 버림
+            sim.Tick(0f);
+            sim.Population.Add(1, PopulationChangeReason.Growth);
+            Assert.AreEqual("rabbit", sim.Residents.Residents.Last().Kind);
+
+            Assert.AreEqual(0.2f, sim.Residents.Ability(ResidentTrait.Technician), Eps, "개인 특성 상한");
+            sim.Residents.KindAbility = t => t == ResidentTrait.Technician ? 0.1f : 0f;
+            sim.Residents.AbilityCap = 0.25f;
+            Assert.AreEqual(0.25f, sim.Residents.Ability(ResidentTrait.Technician), Eps, "종류 + 개인 합산 상한");
+            Assert.AreEqual(0.2f, sim.Residents.TraitAbility(ResidentTrait.Technician), Eps);
+            sim.Tick(0f);
+            Assert.AreEqual(75f, sim.Effects.RepairDuration, Eps, "100 × (1 − 0.25)");
+
+            var json = JsonUtility.ToJson(StationStateSerializer.Capture(sim));
+            var loaded = Sim();
+            StationStateSerializer.Restore(loaded, JsonUtility.FromJson<StationState>(json));
+            CollectionAssert.AreEqual(sim.Residents.Residents.Select(r => r.Kind).ToList(), loaded.Residents.Residents.Select(r => r.Kind).ToList());
+        }
+
+        [Test]
+        public void GrowthIntervalScale_Hook()
+        {
+            // 13-3 공통 고리: 자연 증가 간격 배율 (기본 1이면 그대로)
+            var sim = Sim();
+            sim.Tick(0f);
+            float interval = sim.Population.GetGrowthInterval(100f);
+            sim.GrowthIntervalScale = 3f;
+            sim.Tick(0f);
+            Assert.AreEqual(interval * 3f, sim.Population.GetGrowthInterval(100f), Eps);
+        }
+
+        [Test]
         public void BigEaters_RaiseFoodConsumption()
         {
             UseTraits(Def(ResidentTrait.BigEater, 0.5f, 0f));

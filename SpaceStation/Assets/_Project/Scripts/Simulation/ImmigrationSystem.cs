@@ -19,13 +19,15 @@ namespace SpaceStation.Simulation
         /// <summary>다음 이민선까지 (포트가 없으면 -1).</summary>
         public float TimeLeft => _timer;
         public int Arrived { get; private set; }
+        /// <summary>13-3 공통 고리: 이민선을 따로 정하는 쪽(서사판 이민선 시계)이 있으면 이 포트 시계를 끔.</summary>
+        public bool Suppressed { get; set; }
 
         public override void Tick(float dt)
         {
             if (dt <= 0f || Sim.Session.IsGameOver)
                 return;
             int ports = Sim.ImmigrationPorts;
-            if (ports <= 0)
+            if (ports <= 0 || Suppressed)
             {
                 _timer = -1f;
                 return;

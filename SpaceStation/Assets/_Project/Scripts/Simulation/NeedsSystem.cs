@@ -52,6 +52,9 @@ namespace SpaceStation.Simulation
         public IReadOnlyList<NeedStatus> Statuses => _statuses;
         public float SatisfactionCap { get; private set; } = PopulationSimulation.MaxSatisfaction;
 
+        /// <summary>13-3 공통 고리: 요구별 감점 배율 (null = 1). 서사판 = 그 요구를 중시하는 종족 비율만큼 크게.</summary>
+        public Func<ResidentNeed, float> PenaltyScale { get; set; }
+
         /// <summary>서비스 모듈이 지금 맡은 주민 수 (UI).</summary>
         public float GetServed(ModuleInstance service) => _serviceUsed.TryGetValue(service, out var v) ? v : 0f;
 
@@ -120,7 +123,7 @@ namespace SpaceStation.Simulation
                 }
 
                 _statuses.Add(status);
-                cap -= (1f - status.Ratio) * _config.NeedPenaltyFor(need); // 13-3 요구별 감소량
+                cap -= (1f - status.Ratio) * _config.NeedPenaltyFor(need) * (PenaltyScale != null ? PenaltyScale(need) : 1f); // 13-3 요구별 감소량 · 종류별 배율
             }
             cap += Effects.SatisfactionCapBonus; // 연구: 감점을 받아도 상한이 그만큼 높음 (100은 넘지 않음)
             SatisfactionCap = Mathf.Clamp(cap, 0f, PopulationSimulation.MaxSatisfaction);

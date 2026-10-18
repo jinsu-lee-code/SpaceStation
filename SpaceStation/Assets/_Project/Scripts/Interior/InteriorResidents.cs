@@ -265,12 +265,12 @@ namespace SpaceStation.Interior
             return first;
         }
 
-        /// <summary>11-11d 동물 주민: 종류 · 털색 = 주민 번호 (<see cref="AnimalLooks"/>).</summary>
+        /// <summary>11-11d 동물 주민: 종류 · 털색 = 주민 번호 (<see cref="AnimalLooks"/>). 13-3: 주민 종류(<see cref="Resident.Kind"/>)가 모델 Id면 그 동물.</summary>
         private ResidentFigure Spawn(Resident resident, ResidentSpot spot, Transform instance, Transform parent, string status, ResidentConfig config,
             out float mood)
         {
             int id = resident.Id;
-            var species = _animals.Species[AnimalLooks.Species(id, _animals.Species.Count)];
+            var species = FindSpecies(resident.Kind) ?? _animals.Species[AnimalLooks.Species(id, _animals.Species.Count)];
             var fur = species.FurColors.Length > 0 ? species.FurColors[AnimalLooks.Fur(id, species.FurColors.Length)] : Color.white;
             var position = instance.TransformPoint(spot.Position);
             if (spot.Pose == ResidentPose.Sit)
@@ -295,6 +295,16 @@ namespace SpaceStation.Interior
             if (room == r.Home)
                 return day ? "집에서 쉬는 중" : "집 · 쉬는 시간";
             return $"쉬는 중 · {place}";
+        }
+
+        private AnimalSpecies FindSpecies(string kind)
+        {
+            if (string.IsNullOrEmpty(kind))
+                return null;
+            foreach (var s in _animals.Species)
+                if (s != null && s.Id == kind)
+                    return s;
+            return null;
         }
 
         /// <summary>"<b>두부 기관사</b>" / 종류 · 특성 / 지금 하는 일 (11-11d 이름 + 직함).</summary>
