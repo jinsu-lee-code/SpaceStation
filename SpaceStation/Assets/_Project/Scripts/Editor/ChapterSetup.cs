@@ -54,6 +54,12 @@ namespace SpaceStation.Editor
             Shifts(ch3, 1, (CoreAxis.Control, CorePole.First, ShiftSize.Large), (CoreAxis.Care, CorePole.First, ShiftSize.Small));
             CoreLines();
 
+            // 13-3 이민선 시계 + 종족 (사용자 결정 2026-10-18: 시작 토끼 → 3장 곰, 2장부터 약 4분 · 4~6명 · 1분 전 예보, 2장부터 자연 증가 느리게)
+            var ark = ArkShips(out var rabbit, out var bear);
+            Ships(ch1, false, null, 1f);
+            Ships(ch2, true, null, 3f);
+            Ships(ch3, true, bear, 3f);
+
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
             if (config == null)
@@ -96,6 +102,7 @@ namespace SpaceStation.Editor
             var hso = new SerializedObject(host);
             hso.FindProperty("_chapters").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
             hso.FindProperty("_core").objectReferenceValue = AssetDatabase.LoadAssetAtPath<CoreConfig>(CorePath);
+            hso.FindProperty("_arkShips").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ArkShipConfig>(ArkPath);
             hso.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(host);
 
@@ -151,10 +158,61 @@ namespace SpaceStation.Editor
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
-            Debug.Log("[ChapterSetup] 장 3개 · 코어 성격 · 난이도 장별 간격 · 게임 씬 연결 · 장 화면 · 코어 로그 창 완료");
+            Debug.Log("[ChapterSetup] 장 3개 · 코어 성격 · 이민선 · 종족 · 난이도 장별 간격 · 게임 씬 연결 · 장 화면 · 코어 로그 창 완료");
         }
 
         private const string CorePath = "Assets/_Project/Data/Chapters/CoreConfig.asset";
+        private const string ArkPath = "Assets/_Project/Data/Chapters/ArkShipConfig.asset";
+
+        private static T LoadOrCreate<T>(string path) where T : ScriptableObject
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset == null)
+            {
+                asset = ScriptableObject.CreateInstance<T>();
+                AssetDatabase.CreateAsset(asset, path);
+            }
+            return asset;
+        }
+
+        /// <summary>
+        /// 13-3 종족 2종 + 이민선 설정 (사용자 결정 2026-10-18 D-8: 기본값 = 사회 1 + 기술 1 + 견딤 1, 값은 그레이박스 초안).
+        /// 토끼: 의료 중시 · 통제에 순응 · 식량 생산 + / 곰: 여가 중시 · 통제에 반발 · 수리 속도 + · 열에 강함.
+        /// </summary>
+        private static ArkShipConfig ArkShips(out SpeciesData rabbit, out SpeciesData bear)
+        {
+            rabbit = LoadOrCreate<SpeciesData>(Folder + "/SP_Rabbit.asset");
+            rabbit.EditorSet("rabbit", "토끼", "겁이 많지만 부지런한 무리. 아플 때 돌봐 줄 곳을 먼저 찾고, 텃밭을 잘 가꾼다.",
+                ResidentNeed.Medical, 0.5f, 0.5f, ResidentTrait.Gardener, 0.02f, 0.1f, 0f, 0f);
+            EditorUtility.SetDirty(rabbit);
+            bear = LoadOrCreate<SpeciesData>(Folder + "/SP_Bear.asset");
+            bear.EditorSet("bear", "곰", "힘이 세고 얽매이기 싫어하는 무리. 쉬고 노는 자리를 중시하고, 고치는 손이 빠르다.",
+                ResidentNeed.Recreation, 0.5f, -0.5f, ResidentTrait.Technician, 0.02f, 0.1f, 0.5f, 0f);
+            EditorUtility.SetDirty(bear);
+
+            var ark = LoadOrCreate<ArkShipConfig>(ArkPath);
+            ark.EditorSet(rabbit, new List<SpeciesData> { rabbit, bear },
+                new List<AxisShift> { new AxisShift(CoreAxis.Care, CorePole.Second, ShiftSize.Medium), new AxisShift(CoreAxis.Scope, CorePole.Second, ShiftSize.Small) },
+                new List<AxisShift> { new AxisShift(CoreAxis.Care, CorePole.First, ShiftSize.Small) },
+                new List<AxisShift> { new AxisShift(CoreAxis.Care, CorePole.First, ShiftSize.Medium), new AxisShift(CoreAxis.Scope, CorePole.First, ShiftSize.Small) });
+            EditorUtility.SetDirty(ark);
+            return ark;
+        }
+
+        /// <summary>13-3: 장의 이민선 칸 (간격 240초 · 4~6명 · 60초 전 예보는 데이터 기본값).</summary>
+        private static void Ships(ChapterData chapter, bool on, SpeciesData newSpecies, float growthScale)
+        {
+            var so = new SerializedObject(chapter);
+            so.FindProperty("_ships").boolValue = on;
+            so.FindProperty("_shipInterval").floatValue = 240f;
+            so.FindProperty("_shipSizeMin").intValue = 4;
+            so.FindProperty("_shipSizeMax").intValue = 6;
+            so.FindProperty("_shipForecast").floatValue = 60f;
+            so.FindProperty("_newSpecies").objectReferenceValue = newSpecies;
+            so.FindProperty("_growthIntervalScale").floatValue = growthScale;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(chapter);
+        }
 
         /// <summary>13-2: 장 전환 선택지 하나의 축 이동.</summary>
         private static void Shifts(ChapterData chapter, int choice, params (CoreAxis axis, CorePole toward, ShiftSize size)[] shifts)
@@ -205,6 +263,14 @@ namespace SpaceStation.Editor
                 ("outcome.Lost", CorePole.Second, CoreAxis.Memory, "잃은 것은 지우고 앞으로 갑니다."),
                 ("choice.expand", CorePole.Neutral, CoreAxis.Care, "더 많은 무리를 받을 수 있게, 넓히기로 했다."),
                 ("choice.guard", CorePole.Neutral, CoreAxis.Care, "지금 곁에 있는 이들을 먼저 지키기로 했다."),
+                // 13-3 이민선 ({0} 종족 · {1} 받은 수 · {2} 돌려보낸 수)
+                ("ship.accept", CorePole.Neutral, CoreAxis.Care, "{0} {1}명을 모두 받았습니다. 자리는 함께 만들어 갑니다."),
+                ("ship.accept", CorePole.Second, CoreAxis.Care, "{0} {1}명, 모두 어서 오세요."),
+                ("ship.partial", CorePole.Neutral, CoreAxis.Care, "{0} {1}명을 받고 {2}명은 돌려보냈습니다."),
+                ("ship.partial", CorePole.First, CoreAxis.Care, "수용 기준대로 {1}명만 받았습니다. {2}명은 다음 정거장을 찾아야 합니다."),
+                ("ship.refuse", CorePole.Neutral, CoreAxis.Care, "{0} {2}명을 태운 배를 돌려보냈습니다. 기록해 둡니다."),
+                ("ship.refuse", CorePole.First, CoreAxis.Care, "지금 있는 이들이 먼저입니다. {0} {2}명은 받지 않았습니다."),
+                ("ship.refuse", CorePole.Second, CoreAxis.Care, "{0} {2}명을 돌려보냈습니다. 이 결정이 무겁습니다."),
             };
             var so = new SerializedObject(config);
             var list = so.FindProperty("_lines");

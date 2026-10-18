@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8fe1cb0fea40c841864c45667e23121, type: 3}
+  m_Name: ArkShipConfig
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ArkShipConfig
+  _startSpecies: {fileID: 11400000, guid: 2dec74f3a86a32c4d9002731a8f67c8d, type: 2}
+  _species:
+  - {fileID: 11400000, guid: 2dec74f3a86a32c4d9002731a8f67c8d, type: 2}
+  - {fileID: 11400000, guid: a3f89682510ee10498e67262309628f0, type: 2}
+  _abilityCap: 0.2
+  _crisisSatisfaction: 50
+  _crisisClockScale: 0.5
+  _portSizeBonus: 2
+  _portForecastBonus: 15
+  _maxPortsCounted: 2
+  _acceptShifts:
+  - Axis: 0
+    Toward: 2
+    Size: 1
+  - Axis: 2
+    Toward: 2
+    Size: 0
+  _partialShifts:
+  - Axis: 0
+    Toward: 1
+    Size: 0
+  _refuseShifts:
+  - Axis: 0
+    Toward: 1
+    Size: 1
+  - Axis: 2
+    Toward: 1
+    Size: 0
+  _autoResolveSeconds: 30

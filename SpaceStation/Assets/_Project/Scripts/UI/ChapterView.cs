@@ -54,6 +54,9 @@ namespace SpaceStation.UI
         private TMP_Text _cardHeader, _cardTitle, _goals, _phase;
         private RectTransform _barRoot, _barFill;
         private Button _climaxNow;
+        // 13-3 이민선 (카드 아래 줄 + 도착 창)
+        private ArkShipSystem _ships;
+        private TMP_Text _shipLine;
 
         // 결과 · 선택 / 캠페인 끝
         private RectTransform _modalRoot;
@@ -82,12 +85,21 @@ namespace SpaceStation.UI
             _chapters.ClimaxEnded += HandleClimaxEnded;
             _chapters.ChapterStarted += HandleChapterStarted;
             _chapters.CampaignFinished += HandleCampaignFinished;
+            _ships = _sim.GetSystem<ArkShipSystem>();
+            if (_ships != null)
+            {
+                _ships.Arrived += HandleShipArrived;
+                var ships = _ships;
+                ResidentText.KindTag = r => ships.Find(r.Kind)?.DisplayName; // 주민 명단: "토끼 | 기술자·낙천가" (종족 기본 | 개인)
+            }
             _cardTween.Play(restart: true);
             // 불러온 판이 전환 · 끝 상태면 그 화면부터
             if (_chapters.Phase == ChapterPhase.Transition)
                 ShowResult(_chapters.LastRecord);
             else if (_chapters.Phase == ChapterPhase.Finished)
                 ShowEnding();
+            else if (_ships?.Pending != null)
+                ShowShip(_ships.Pending);
             Refresh();
         }
 
@@ -98,6 +110,11 @@ namespace SpaceStation.UI
             _chapters.ClimaxEnded -= HandleClimaxEnded;
             _chapters.ChapterStarted -= HandleChapterStarted;
             _chapters.CampaignFinished -= HandleCampaignFinished;
+            if (_ships != null)
+            {
+                _ships.Arrived -= HandleShipArrived;
+                ResidentText.KindTag = null;
+            }
         }
 
         private void Update()
@@ -166,6 +183,8 @@ namespace SpaceStation.UI
             HoloUi.Glow(_cardTitle, 0.4f);
             _goals = _ui.Label(_card, "", 17f, TextAlignmentOptions.TopLeft, wrap: true);
             _phase = _ui.Label(_card, "", 17f, TextAlignmentOptions.TopLeft, wrap: true);
+            _shipLine = _ui.Label(_card, "", 17f, TextAlignmentOptions.TopLeft, wrap: true);
+            _shipLine.gameObject.SetActive(false);
 
             _barRoot = _ui.Bar(_card, new Color(1f, 1f, 1f, 0.12f), HudTheme.Negative, out _barFill);
             _barRoot.gameObject.AddComponent<LayoutElement>().preferredHeight = 8f;
@@ -296,6 +315,80 @@ namespace SpaceStation.UI
                 _barRoot.gameObject.SetActive(showBar);
             if (_climaxNow.transform.parent.gameObject.activeSelf != showNow)
                 _climaxNow.transform.parent.gameObject.SetActive(showNow);
+            RefreshShipLine();
+        }
+
+        // ---------------- 13-3 이민선 ----------------
+
+        /// <summary>카드 아래 줄: 다음 배 시각 (예보 뒤엔 종족 · 규모), 위기면 늦어짐, 절정 중이면 멈춤.</summary>
+        private void RefreshShipLine()
+        {
+            string text = "";
+            if (_ships != null && _ships.ClockOn)
+            {
+                var next = _ships.NextShip;
+                string slow = _ships.Slowed ? $"\n<size=86%><color={HudText.Orange}>정거장이 흔들려 배가 사정을 보며 늦게 옵니다</color></size>" : "";
+                bool held = _chapters.Phase == ChapterPhase.Climax || _chapters.Phase == ChapterPhase.Transition;
+                string clock = held ? "대기 중" : $"{ArkShipSystem.Clock(_ships.TimeLeft)} 뒤";
+                text = next != null
+                    ? $"{HudTheme.Icon("warning")} <color={Gold}>이민선 예보</color>  <b>{_ships.SpeciesName(next.Species)} {next.Size}명</b> · {clock}"
+                      + (next.NewSpecies ? $"\n<size=86%><color={Gold}>처음 만나는 종족</color></size>" : "")
+                    : $"<color={Soft}>다음 이민선 · {clock}</color>";
+                text += $"\n<size=86%><color={Soft}>빈 집 {_ships.FreeHousing} · 무리 {_ships.Composition()}</color></size>" + slow;
+            }
+            bool show = text.Length > 0;
+            if (_shipLine.gameObject.activeSelf != show)
+                _shipLine.gameObject.SetActive(show);
+            if (show)
+                _shipLine.SetText(text);
+        }
+
+        private void HandleShipArrived(ArkShip ship) => ShowShip(ship);
+
+        /// <summary>도착 창 (시간 멈춤): 종족 · 규모 · 종족 기본값 · 빈 집 → 모두 받기 / 빈 집만큼 / 거부.</summary>
+        private void ShowShip(ArkShip ship)
+        {
+            var species = _ships.Find(ship.Species);
+            string name = _ships.SpeciesName(ship.Species);
+            _modalTitle.SetText($"이민선 도착\n<size=70%><color={Gold}>{name} {ship.Size}명</color>{(ship.NewSpecies ? $"  <color={Soft}>· 처음 만나는 종족</color>" : "")}</size>");
+            _sb.Clear();
+            if (species != null)
+            {
+                if (!string.IsNullOrEmpty(species.Description))
+                    _sb.Append($"<color={Soft}>{species.Description}</color>\n");
+                _sb.Append($"<size=90%>종족 기본: {species.Summary()}</size>\n");
+            }
+            int free = _ships.FreeHousing;
+            _sb.Append($"\n빈 집 <b>{free}</b>  ·  지금 무리 {_ships.Composition()}");
+            if (ship.Size > free)
+                _sb.Append($"\n<size=90%><color={HudText.Orange}>모두 받으면 집이 {ship.Size - free}개 모자라 과밀 · 주민이 하나둘 떠날 수 있습니다</color></size>");
+            _modalBody.SetText(_sb.ToString());
+
+            ClearButtons();
+            AddShipButton(ShipAnswer.Accept, $"<b>모두 받기</b>\n<size=78%><color={Soft}>{ship.Size}명</color></size>", _ships.Config.AcceptShifts);
+            AddShipButton(ShipAnswer.Partial, $"<b>빈 집만큼</b>\n<size=78%><color={Soft}>{Mathf.Min(ship.Size, free)}명 받고 {Mathf.Max(0, ship.Size - free)}명 돌려보냄</color></size>", _ships.Config.PartialShifts);
+            AddShipButton(ShipAnswer.Refuse, $"<b>거부</b>\n<size=78%><color={Soft}>{ship.Size}명 모두 돌려보냄</color></size>", _ships.Config.RefuseShifts);
+            OpenModal();
+        }
+
+        private void AddShipButton(ShipAnswer answer, string label, System.Collections.Generic.IReadOnlyList<AxisShift> shifts)
+        {
+            string lean = LeanText(shifts);
+            if (lean.Length > 0)
+                label += $"\n<size=70%><color={CoreTint}>코어: {lean}</color></size>";
+            AddButton(label, () => AnswerShip(answer), tall: true);
+        }
+
+        private void AnswerShip(ShipAnswer answer)
+        {
+            if (!_ships.Answer(answer))
+            {
+                AudioService.TryPlay(l => l.UiError);
+                return;
+            }
+            AudioService.TryPlay(l => l.UiClick);
+            CloseModal(resume: true);
+            Refresh();
         }
 
         private void HandleClimaxNow()
@@ -357,10 +450,12 @@ namespace SpaceStation.UI
         }
 
         /// <summary>선택지가 코어를 기울이는 쪽 ("보존 쪽 · 연민 쪽"). 크기 · 숫자는 보이지 않음.</summary>
-        private static string LeanText(ChapterChoice choice)
+        private static string LeanText(ChapterChoice choice) => LeanText(choice.Shifts);
+
+        private static string LeanText(System.Collections.Generic.IReadOnlyList<AxisShift> shifts)
         {
             var parts = new System.Collections.Generic.List<string>();
-            foreach (var s in choice.Shifts)
+            foreach (var s in shifts)
             {
                 if (s.Toward == CorePole.Neutral)
                     continue;

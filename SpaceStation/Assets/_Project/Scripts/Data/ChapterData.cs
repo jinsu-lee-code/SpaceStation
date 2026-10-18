@@ -159,6 +159,19 @@ namespace SpaceStation.Data
         [SerializeField, Min(0.05f)] private float _gradeUpEventIntervalMultiplier = 1f;
         [SerializeField, Min(0.05f)] private float _gradeUpEventIntensityMultiplier = 1f;
 
+        [Header("이민선 (13-3, 사용자 결정 2026-10-18 D-9)")]
+        [Tooltip("이 장에서 이민선 시계가 도는지 (1장 꺼짐 · 2장부터)")]
+        [SerializeField] private bool _ships;
+        [SerializeField, Min(10f)] private float _shipInterval = 240f;
+        [SerializeField, Min(1)] private int _shipSizeMin = 4;
+        [SerializeField, Min(1)] private int _shipSizeMax = 6;
+        [Tooltip("도착 몇 초 전에 종족 · 규모를 알리는지")]
+        [SerializeField, Min(0f)] private float _shipForecast = 60f;
+        [Tooltip("이 장에서 처음 오는 종족 (이 장의 첫 배가 이 종족만 태움, 그 뒤 배는 만난 종족이 섞임)")]
+        [SerializeField] private SpeciesData _newSpecies;
+        [Tooltip("자연 인구 증가 간격 배율 (이민선이 주된 공급원인 장은 크게)")]
+        [SerializeField, Min(0.1f)] private float _growthIntervalScale = 1f;
+
         [Header("준비 목표 · 절정 · 전환")]
         [SerializeField] private List<ChapterGoal> _goals = new List<ChapterGoal>();
         [SerializeField] private ChapterClimaxSettings _climax = new ChapterClimaxSettings();
@@ -180,6 +193,13 @@ namespace SpaceStation.Data
         public int GradeUpMeteorHitsMax => Mathf.Max(GradeUpMeteorHitsMin, _gradeUpMeteorHitsMax);
         public float GradeUpEventIntervalMultiplier => _gradeUpEventIntervalMultiplier > 0f ? _gradeUpEventIntervalMultiplier : 1f;
         public float GradeUpEventIntensityMultiplier => _gradeUpEventIntensityMultiplier > 0f ? _gradeUpEventIntensityMultiplier : 1f;
+        public bool Ships => _ships;
+        public float ShipInterval => Mathf.Max(10f, _shipInterval);
+        public int ShipSizeMin => Mathf.Max(1, _shipSizeMin);
+        public int ShipSizeMax => Mathf.Max(ShipSizeMin, _shipSizeMax);
+        public float ShipForecast => Mathf.Max(0f, _shipForecast);
+        public SpeciesData NewSpecies => _newSpecies;
+        public float GrowthIntervalScale => _growthIntervalScale > 0f ? _growthIntervalScale : 1f;
         public IReadOnlyList<ChapterGoal> Goals => _goals;
         public ChapterClimaxSettings Climax => _climax;
         public IReadOnlyList<ChapterChoice> Choices => _choices;
