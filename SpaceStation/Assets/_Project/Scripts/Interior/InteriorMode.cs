@@ -985,7 +985,7 @@ namespace SpaceStation.Interior
             _titleBack.anchorMin = _titleBack.anchorMax = _titleBack.pivot = new Vector2(0.5f, 1f);
             var back = _titleBack.gameObject.AddComponent<Image>();
             back.sprite = _fillSprite;
-            back.color = new Color(0.01f, 0.03f, 0.05f, 0.62f);
+            back.color = new Color(0.01f, 0.03f, 0.05f, 0.8f);
             back.raycastTarget = false;
             _title = ui.Label(_overlay, "", 26f, TextAlignmentOptions.Top);
             TopCenter(_title.rectTransform, TitleTop, new Vector2(900f, 80f));
