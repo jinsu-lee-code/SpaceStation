@@ -291,41 +291,20 @@ tube([Vector((-0.38, 1.9 + 0.25 * i, 0.47)) for i in range(9)] + [Vector((-0.36,
 tube([Vector((0.32, 2.5, 0.6)), Vector((0.32, 2.5, 0.98)), Vector((0.42, 2.4, 1.18))], 0.028, 'Frame', FRONT, seg=8)
 lathe(Vector((0.42, 2.4, 1.18)), Vector((0.35, -0.35, 0.87)), [(0.018, -0.01), (0.3, 0.09), (0.3, 0.115), (0.018, 0.02)], ['Hull', 'Frame', 'Hull2', 'Frame'], seg=14, closed=True, group=FRONT)
 
-# 앞 동체 휨 (사용자 피드백 2026-10-18 "부서진 것 치고 너무 일자 → 구부정하게"): 조종석 뒤(BEND_Y0)부터 찢긴 쪽으로 갈수록 위로 활처럼 휨.
-# 위쪽(z = +BEND_R)을 중심으로 한 원호에 길이를 그대로 감음 → 단면은 모양을 지킨 채 기울어짐
-# 옆으로도 조금 휨(+x 쪽) → 위에서 봐도 곧지 않게. 옆 휨 먼저, 그다음 위 휨
-BEND_Y0, BEND_DEG_AT = 1.4, (4.7, 30.0)          # 위 휨: (이 y에서, 이만큼 기욺)
-SIDE_DEG_AT = 14.0                               # 옆 휨: 같은 y에서 이만큼
-BEND_R = (BEND_DEG_AT[0] - BEND_Y0) / math.radians(BEND_DEG_AT[1])
-SIDE_R = (BEND_DEG_AT[0] - BEND_Y0) / math.radians(SIDE_DEG_AT)
-
-
-def arc(u, y, R):
-    """y를 길이로 삼아 (u = 휘는 쪽 좌표)를 반지름 R 원호에 감음. 돌려줌: (새 u, 새 y)."""
-    if y <= BEND_Y0:
-        return u, y
-    phi = (y - BEND_Y0) / R
-    r = R - u
-    return R - r * math.cos(phi), BEND_Y0 + r * math.sin(phi)
+# ㅅ자 꺾임 (사용자 피드백 2026-10-18: "몸체가 휜 것보다 부러진 지점 기준으로 앞 · 뒤가 ㅅ자"):
+# 두 동체는 각자 곧은 채, 부러진 지점의 아래 용골(PIVOT)을 경첩 삼아 앞은 코가, 뒤는 꼬리가 아래로 → 위쪽 틈만 벌어짐
+PIVOT = Vector((0, 4.7, -0.6))
+FRONT_DEG = 20.0
+FRONT_M = Matrix.Translation(PIVOT) @ Matrix.Rotation(math.radians(FRONT_DEG), 4, 'X') @ Matrix.Translation(-PIVOT)
 
 
 def bend(p):
-    x, y = arc(p.x, p.y, SIDE_R)
-    z, y = arc(p.z, y, BEND_R)
-    return Vector((x, y, z))
-
-
-def bend_frame(p):
-    """점 p 자리에서 휜 선체의 방향 (옆 휨 → 위 휨)."""
-    side = max(0.0, (p.y - BEND_Y0) / SIDE_R)
-    _, y1 = arc(p.x, p.y, SIDE_R)
-    up = max(0.0, (y1 - BEND_Y0) / BEND_R)
-    return Matrix.Rotation(up, 4, 'X') @ Matrix.Rotation(-side, 4, 'Z')
+    """앞 동체 좌표 → ㅅ자로 꺾은 뒤 위치."""
+    return FRONT_M @ p
 
 
 for bm in FRONT:
-    for v in bm.verts:
-        v.co = bend(v.co)
+    bmesh.ops.transform(bm, matrix=FRONT_M, verts=bm.verts)
     orient_outward(bm)
 
 # ================= 뒤 동체 =================
@@ -365,11 +344,9 @@ bmesh.ops.rotate(broken, verts=broken.verts, cent=Vector((0.8, 6.8, 0.0)), matri
 lathe(Vector((0, 6.9, 0.64)), Vector((0, 0, 1)), [(0.075, 0.0), (0.075, 0.1)], ['Frame'], seg=12, cap_start='Frame', cap_end='Frame', group=REAR)
 lathe(Vector((0, 6.9, 0.64)), Vector((0, 0, 1)), [(0.055, 0.095), (0.055, 0.14), (0.032, 0.175)], ['Beacon'], seg=12, cap_start='Beacon', cap_end='Beacon', group=REAR)
 
-# 뒤 동체: 앞 동체가 휜 끝 방향을 따라간 뒤 아래 용골(PIVOT)을 경첩 삼아 꺾여 내려감 + 옆으로 틀어지고 비틀림
-# (위쪽 틈이 크게 벌어지고 아래는 거의 붙은 V자 — 등이 부러져 굽은 모습). 전선은 꺾은 뒤 위치로 이음
-PIVOT = Vector((0, 4.7, -0.6))
-BREAK_DEG, YAW_DEG, ROLL_DEG, PULL = 42.0, 10.0, 12.0, 0.3   # PULL = 아래 이음매 쪽으로 당김 (아래는 거의 붙고 위만 벌어지게)
-REAR_M = Matrix.Translation(bend(PIVOT)) @ bend_frame(PIVOT) @ Matrix.Rotation(math.radians(-BREAK_DEG), 4, 'X') \
+# 뒤 동체: 같은 용골 경첩에서 꼬리가 아래로 꺾임 (ㅅ자의 오른쪽 획) + 조금 옆으로 틀어지고 비틀림. 전선은 꺾은 뒤 위치로 이음
+REAR_DEG, YAW_DEG, ROLL_DEG, PULL = 22.0, 5.0, 12.0, 0.3   # PULL = 경첩 쪽으로 당김 (아래는 거의 붙고 위만 벌어지게)
+REAR_M = Matrix.Translation(PIVOT) @ Matrix.Rotation(math.radians(-REAR_DEG), 4, 'X') \
     @ Matrix.Rotation(math.radians(YAW_DEG), 4, 'Z') @ Matrix.Rotation(math.radians(ROLL_DEG), 4, 'Y') @ Matrix.Translation(-PIVOT - Vector((0, PULL, 0)))
 for bm in REAR:
     bmesh.ops.transform(bm, matrix=REAR_M, verts=bm.verts)
