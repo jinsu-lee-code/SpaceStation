@@ -43,6 +43,9 @@ namespace SpaceStation.UI
 
         public bool IsOpen => _open;
 
+        /// <summary>메뉴 · 창 이름 (M-19 판 고리가 정함, 없으면 "연구").</summary>
+        private string Title => _sim?.Research.Gate?.Title ?? "연구";
+
         private void Start()
         {
             _sim = _station != null ? _station.Simulation : null;
@@ -147,10 +150,9 @@ namespace SpaceStation.UI
         private void BuildLauncher()
         {
             var root = (RectTransform)transform;
-            var gate = _sim.Research.Gate; // M-19 판 고리: 이름 · 열림 (없으면 늘 열림)
             HudLauncher.For(_ui, root).Add(new HudLauncher.Entry
             {
-                Key = "research", Order = HudLauncher.Order.Research, Name = gate?.Title ?? "연구",
+                Key = "research", Order = HudLauncher.Order.Research, Name = Title, // M-19 판 고리: 이름 · 열림 (없으면 "연구" · 늘 열림)
                 KeyLabel = () => KeyBindings.Label(GameAction.Research), IsOpen = () => _open, Click = Toggle,
                 Visible = () => _sim.Research.IsOpen,
             });
@@ -180,7 +182,7 @@ namespace SpaceStation.UI
             _fx = _ui.Window(_window.gameObject, new Color(0.03f, 0.07f, 0.11f, 0.96f), "RESEARCH");
             content.SetAsLastSibling(); // 창 테두리 · 장식보다 위
 
-            var title = _ui.Label(_window, $"{HudTheme.Icon("research")} 연구", 32f, TextAlignmentOptions.TopLeft);
+            var title = _ui.Label(_window, $"{HudTheme.Icon("research")} {Title}", 32f, TextAlignmentOptions.TopLeft);
             title.fontStyle = FontStyles.Bold;
             HoloUi.Place(title.rectTransform, new Vector2(40f, -30f), new Vector2(500f, 46f));
             HoloUi.Glow(title, 0.5f);
@@ -219,7 +221,7 @@ namespace SpaceStation.UI
             int linked = ex != null ? ex.LinkedProjects.Count : 0;
             if (research.Projects.Count == 0 && linked == 0)
             {
-                _tracker.SetText(research.LabSlots > 0 ? $"<color={HudText.Muted}>진행 중인 연구 없음</color>" : "");
+                _tracker.SetText(research.LabSlots > 0 && research.IsOpen ? $"<color={HudText.Muted}>진행 중인 {Title} 없음</color>" : "");
                 return;
             }
             var sb = new System.Text.StringBuilder();
