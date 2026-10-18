@@ -12,7 +12,7 @@ using UnityEngine.UI;
 namespace SpaceStation.UI
 {
     /// <summary>
-    /// 13-2 코어 로그 창 (사용자 결정 2026-10-15, D-4): 왼쪽 위 [코어 기록] → 코어의 4축 성향을 말로("연민 쪽으로 기울어짐", 숫자는 숨김) +
+    /// 13-2 코어 로그 창 (사용자 결정 2026-10-15, D-4): [관리] 메뉴의 [코어 기록] → 코어의 4축 성향을 말로("연민 쪽으로 기울어짐", 숫자는 숨김) +
     /// 코어가 남긴 로그(장 · 시각, 최근 것이 아래) + 무엇 때문에 기울었는지(최근 축 이동 원인).
     /// 키는 따로 두지 않음 (키 설정은 공통 바닥 — 필요하면 main에서). 내용은 코드로 만든다.
     /// </summary>
@@ -31,8 +31,6 @@ namespace SpaceStation.UI
         [SerializeField] private Sprite _frameSprite;
         [SerializeField] private Sprite _buttonSprite;
         [SerializeField] private HoloArt _holoArt;
-        [Tooltip("왼쪽 위 버튼 자리 (외부 접촉 버튼 오른쪽)")]
-        [SerializeField] private Vector2 _launcherPos = new Vector2(840f, -24f);
 
         private HoloUi _ui;
         private StationSimulation _sim;
@@ -141,10 +139,14 @@ namespace SpaceStation.UI
 
         // ---------------- 구성 ----------------
 
+        /// <summary>[관리] 메뉴 맨 끝 판 전용 칸 (타이쿤판 [시스템]과 같은 자리, 사용자 결정 2026-10-18).</summary>
         private void BuildLauncher()
         {
-            var button = _ui.TechButton((RectTransform)transform, "코어 기록", 19f, Toggle);
-            HoloUi.Place((RectTransform)button.transform, _launcherPos, new Vector2(170f, 44f));
+            HudLauncher.For(_ui, transform).Add(new HudLauncher.Entry
+            {
+                Key = "core", Order = HudLauncher.Order.Edition, Name = "코어 기록",
+                IsOpen = () => _open, Click = Toggle,
+            });
         }
 
         private void BuildWindow()

@@ -105,6 +105,10 @@ namespace SpaceStation.Tests
             Assert.AreEqual(PlacementResult.ModuleLocked, sim.CheckBuildable(_battery), "2장 모듈은 아직 잠김");
             Assert.AreEqual(PlacementResult.Valid, sim.CheckBuildable(_block));
             Assert.IsFalse(sim.RuleOpen(StationRule.MeteorShower, true), "장 틀이 있으면 등급 조건 대신 장 규칙");
+            Assert.IsTrue(sim.Progression.IsRevealed(_block), "건설 메뉴도 장 해금을 따름 (등급 해금 목록에 없어도)");
+            Assert.IsFalse(sim.Progression.IsRevealed(_battery));
+            Assert.AreEqual(0, sim.Progression.UnlockOrder(_block), "건설 메뉴 정렬 = 열리는 장");
+            Assert.AreEqual(1, sim.Progression.UnlockOrder(_battery));
 
             Place(sim, 1);
             sim.Tick(1f);
