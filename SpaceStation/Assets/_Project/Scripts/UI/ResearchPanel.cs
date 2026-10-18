@@ -101,6 +101,8 @@ namespace SpaceStation.UI
         {
             if (!TutorialGate.Check(TutorialAction.Research)) // 11-18 튜토리얼 중엔 막음
                 return;
+            if (!_sim.Research.IsOpen) // M-19 판 고리가 닫음 (서사판: 2장부터) — 단축키로도 열지 않음
+                return;
             HudWindows.NotifyOpened(this); // 다른 창(연구 ↔ 주민)은 닫힘
             _open = true;
             _group.blocksRaycasts = true;
@@ -145,10 +147,12 @@ namespace SpaceStation.UI
         private void BuildLauncher()
         {
             var root = (RectTransform)transform;
+            var gate = _sim.Research.Gate; // M-19 판 고리: 이름 · 열림 (없으면 늘 열림)
             HudLauncher.For(_ui, root).Add(new HudLauncher.Entry
             {
-                Key = "research", Order = HudLauncher.Order.Research, Name = "연구",
+                Key = "research", Order = HudLauncher.Order.Research, Name = gate?.Title ?? "연구",
                 KeyLabel = () => KeyBindings.Label(GameAction.Research), IsOpen = () => _open, Click = Toggle,
+                Visible = () => _sim.Research.IsOpen,
             });
             _tracker = _ui.Label(root, "", 15f, TextAlignmentOptions.TopLeft);
             HoloUi.Place(_tracker.rectTransform, new Vector2(28f, -76f), new Vector2(420f, 120f));

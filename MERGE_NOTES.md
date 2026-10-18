@@ -308,3 +308,21 @@
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상.
+
+---
+
+## M-19. 13-5b 연구 판 고리 `IResearchGate` (2026-10-18, `main`)
+
+**main에 넣은 것** — 고리를 꽂지 않으면 동작 그대로 (타이쿤판 · 봇)
+- `IResearchGate` (새 파일): 연구를 열지(`IsOpen` · `ClosedReason`) · 메뉴 이름(`Title`) · 창 위 상태(`Status`) · 단계 시작 조건(`BlockReason`) · 시작할 때 쓰는 것(`OnStarted`) · 완료한 단계의 실제 효과(`Modifiers` — 빈 목록 = 효과 대기, 다른 값 = 강화) · 상세 한 줄(`Note`)
+- `ResearchSystem.Gate`(바꾸면 효과 다시 계산) · `IsOpen` · `RefreshEffects()`. `CanStart`: 인구 조건 다음에 고리가 막으면 `ResearchStartResult.Gated`(끝에 추가). `Begin`이 `OnStarted`를 부름. 효과 계산은 모두 `RefreshEffects`로
+- `ResearchEffects.Recalculate(..., modifiersOf = null)`: 완료 단계마다 고리가 준 효과를 씀
+- `ResearchView`: `Gated` 사유 = 고리 문구, 창 위 줄에 `Status` · 닫혔으면 `ClosedReason`, 상세에 현재 · 다음 단계 `Note`
+- `ResearchPanel`: [관리] 이름 = `Title`(없으면 "연구"), 닫혔으면 메뉴에서 숨기고 단축키로도 열지 않음
+- 시험 2개 (`ResearchTests.Gate_BlocksStart_ConsumesOnStart_Closes` · `Gate_Modifiers_PendingThenBoosted`)
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상. 서사판 13-5b 기록 복원(`RecordArchiveSystem`)이 고리를 꽂음.
+
+### `tycoon` 합칠 때
+- [ ] 충돌 없음 예상. 타이쿤판이 연구 창 · `ResearchSystem`을 고쳤으면 `Recalculate` 부르는 곳을 `RefreshEffects()`로 맞춤.

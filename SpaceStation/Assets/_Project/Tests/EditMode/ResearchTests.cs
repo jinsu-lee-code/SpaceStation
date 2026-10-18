@@ -152,6 +152,63 @@ namespace SpaceStation.Tests
             Assert.AreEqual(0.25f, sim.Effects.RepairCostRate, Eps, "효과 적용");
         }
 
+        // ---------------- M-19 판 고리 ----------------
+
+        private sealed class FakeGate : IResearchGate
+        {
+            public bool Open = true;
+            public string Block;
+            public int Started;
+            /// <summary>null = 레벨 표 그대로, 빈 목록 = 효과 대기, 값 = 대신 쓸 효과.</summary>
+            public List<ResearchModifier> Override;
+
+            public bool IsOpen => Open;
+            public string ClosedReason => "닫힘";
+            public string Title => "기록";
+            public string Status => null;
+            public string BlockReason(ResearchCategoryData category, int level) => Block;
+            public void OnStarted(ResearchCategoryData category, int level) => Started++;
+            public IReadOnlyList<ResearchModifier> Modifiers(ResearchCategoryData category, int level, IReadOnlyList<ResearchModifier> defaults) => Override ?? defaults;
+            public string Note(ResearchCategoryData category, int level) => null;
+        }
+
+        [Test]
+        public void Gate_BlocksStart_ConsumesOnStart_Closes()
+        {
+            var category = Category(ResearchStat.RepairCostRate, 0.25f);
+            var sim = Sim(category);
+            sim.Grid.TryPlace(_lab, Vector3Int.left, 0, out _);
+            var gate = new FakeGate { Block = "조각 필요" };
+            sim.Research.Gate = gate;
+            Assert.AreEqual(ResearchStartResult.Gated, sim.TryStartResearch(category));
+            Assert.AreEqual(0, gate.Started);
+            gate.Block = null;
+            Assert.AreEqual(ResearchStartResult.Ok, sim.TryStartResearch(category));
+            Assert.AreEqual(1, gate.Started, "시작할 때 판이 쓰는 것");
+            Assert.IsTrue(sim.Research.IsOpen);
+            gate.Open = false;
+            Assert.IsFalse(sim.Research.IsOpen);
+            sim.Research.Gate = null;
+            Assert.IsTrue(sim.Research.IsOpen, "고리가 없으면 늘 열림");
+        }
+
+        [Test]
+        public void Gate_Modifiers_PendingThenBoosted()
+        {
+            var category = Category(ResearchStat.RepairCostRate, 0.25f);
+            var sim = Sim(category);
+            var gate = new FakeGate { Override = new List<ResearchModifier>() };
+            sim.Research.Gate = gate;
+            sim.Research.SetLevel(category, 1);
+            Assert.AreEqual(0.3f, sim.Effects.RepairCostRate, Eps, "효과 대기 = 기본값");
+            gate.Override = new List<ResearchModifier> { new ResearchModifier { Stat = ResearchStat.RepairCostRate, Value = 0.175f } };
+            sim.Research.RefreshEffects();
+            Assert.AreEqual(0.175f, sim.Effects.RepairCostRate, Eps, "판이 바꾼 값");
+            gate.Override = null;
+            sim.Research.RefreshEffects();
+            Assert.AreEqual(0.25f, sim.Effects.RepairCostRate, Eps, "레벨 표 그대로");
+        }
+
         [Test]
         public void PowerDemand_SlowsResearch()
         {

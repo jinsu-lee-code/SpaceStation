@@ -14,6 +14,8 @@ namespace SpaceStation.Simulation
         PopulationTooLow,
         InsufficientResources,
         Unknown,
+        /// <summary>판 고리가 막음 (<see cref="IResearchGate.BlockReason"/>, M-19).</summary>
+        Gated,
     }
 
     /// <summary>진행 중인 연구 하나.</summary>
@@ -62,6 +64,31 @@ namespace SpaceStation.Simulation
         public IReadOnlyList<ResearchProject> Projects => _projects;
         /// <summary>가동 중인 연구소 슬롯 합 (StationSimulation이 매 틱 갱신).</summary>
         public int LabSlots { get; internal set; }
+
+        private IResearchGate _gate;
+
+        /// <summary>판별 연구 고리 (M-19, 없으면 지금과 같음). 바꾸면 효과를 다시 계산.</summary>
+        public IResearchGate Gate
+        {
+            get => _gate;
+            set
+            {
+                _gate = value;
+                RefreshEffects();
+            }
+        }
+
+        /// <summary>연구를 쓸 수 있는지 (고리가 닫으면 false).</summary>
+        public bool IsOpen => _gate == null || _gate.IsOpen;
+
+        /// <summary>완료 레벨 · 고리 효과로 연구 효과를 다시 계산 (고리의 선택이 바뀌었을 때 판이 부름).</summary>
+        public void RefreshEffects()
+        {
+            if (_gate != null)
+                Effects.Recalculate(_categories, GetLevel, _gate.Modifiers);
+            else
+                Effects.Recalculate(_categories, GetLevel);
+        }
 
         public event Action<ResearchProject> Started;
         public event Action<ResearchCategoryData, int> Completed;
@@ -121,6 +148,8 @@ namespace SpaceStation.Simulation
                 return ResearchStartResult.GradeTooLow;
             if (population < RequiredPopulation(next))
                 return ResearchStartResult.PopulationTooLow;
+            if (_gate != null && _gate.BlockReason(category, next) != null)
+                return ResearchStartResult.Gated;
             if (!HasFreeSlot)
                 return ResearchStartResult.NoFreeLab;
             if (canAfford != null && !canAfford(category.GetLevel(next).StartCost))
@@ -142,6 +171,7 @@ namespace SpaceStation.Simulation
         {
             var project = new ResearchProject(category, GetLevel(category) + 1);
             _projects.Add(project);
+            _gate?.OnStarted(category, project.TargetLevel);
             Started?.Invoke(project);
             return project;
         }
@@ -187,7 +217,7 @@ namespace SpaceStation.Simulation
             {
                 _projects.Remove(p);
                 _levels[p.Category] = p.TargetLevel;
-                Effects.Recalculate(_categories, GetLevel);
+                RefreshEffects();
                 Completed?.Invoke(p.Category, p.TargetLevel);
             }
         }
@@ -210,7 +240,7 @@ namespace SpaceStation.Simulation
             if (category == null || !_levels.ContainsKey(category))
                 return;
             _levels[category] = Math.Max(0, Math.Min(level, category.MaxLevel));
-            Effects.Recalculate(_categories, GetLevel);
+            RefreshEffects();
         }
     }
 }

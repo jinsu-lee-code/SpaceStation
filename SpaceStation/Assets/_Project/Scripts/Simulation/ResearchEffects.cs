@@ -156,8 +156,12 @@ namespace SpaceStation.Simulation
             Changed?.Invoke();
         }
 
-        /// <summary>카테고리별 완료 레벨로 다시 계산. 같은 값은 각 카테고리에서 완료한 가장 높은 레벨의 값.</summary>
-        public void Recalculate(IReadOnlyList<ResearchCategoryData> categories, Func<ResearchCategoryData, int> levelOf)
+        /// <summary>
+        /// 카테고리별 완료 레벨로 다시 계산. 같은 값은 각 카테고리에서 완료한 가장 높은 레벨의 값.
+        /// modifiersOf (M-19 판 고리): 완료한 단계의 실제 효과 — (카테고리, 레벨, 레벨 표 값) → 쓸 값. null이면 레벨 표 그대로.
+        /// </summary>
+        public void Recalculate(IReadOnlyList<ResearchCategoryData> categories, Func<ResearchCategoryData, int> levelOf,
+            Func<ResearchCategoryData, int, IReadOnlyList<ResearchModifier>, IReadOnlyList<ResearchModifier>> modifiersOf = null)
         {
             _values.Clear();
             if (categories != null)
@@ -172,7 +176,10 @@ namespace SpaceStation.Simulation
                         var def = category.GetLevel(l);
                         if (def == null)
                             continue;
-                        foreach (var m in def.Modifiers)
+                        var modifiers = modifiersOf != null ? modifiersOf(category, l, def.Modifiers) : def.Modifiers;
+                        if (modifiers == null)
+                            continue;
+                        foreach (var m in modifiers)
                             _values[m.Stat] = m.Value; // 높은 레벨이 덮어씀
                     }
                 }
