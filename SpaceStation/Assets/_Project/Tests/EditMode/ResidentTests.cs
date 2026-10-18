@@ -204,7 +204,8 @@ namespace SpaceStation.Tests
             Assert.IsTrue(sim.Grid.TryPlace(_habitat, Vector3Int.right, 0, out _));
             sim.Residents.KindPicker = () => "rabbit";
             sim.Residents.QueueKinds("bear", 2);
-            sim.Population.Add(3, PopulationChangeReason.Immigration);
+            sim.Resources.SetPopulation(7);
+            sim.Tick(0f);
             var list = sim.Residents.Residents;
             Assert.AreEqual(7, list.Count);
             Assert.AreEqual("bear", list[4].Kind);
@@ -214,7 +215,8 @@ namespace SpaceStation.Tests
 
             sim.Residents.QueueKinds("bear", 5); // 쓰이지 않은 대기열은 다음 맞추기에서 버림
             sim.Tick(0f);
-            sim.Population.Add(1, PopulationChangeReason.Growth);
+            sim.Resources.SetPopulation(8);
+            sim.Tick(0f);
             Assert.AreEqual("rabbit", sim.Residents.Residents.Last().Kind);
 
             Assert.AreEqual(0.2f, sim.Residents.Ability(ResidentTrait.Technician), Eps, "개인 특성 상한");

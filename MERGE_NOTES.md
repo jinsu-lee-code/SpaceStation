@@ -259,7 +259,7 @@
 - 시험 2개 (`ResidentTests.Kinds_QueueFirst_ThenPicker_AddAbility_WithCap_AndSurviveSave` · `GrowthIntervalScale_Hook`)
 
 ### `narrative` 합칠 때
-- [ ] 충돌 없음 예상. 서사판 `RefreshNeeds`가 장 요구로 고쳐져 있으면 증가 간격 줄(맨 끝)만 main 줄로.
+- [x] (2026-10-18) 충돌 없음 (자동 합침). 서사판 13-3 `ArkShipSystem`이 고리를 모두 씀 · EditMode 408개 통과.
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상 (고리를 쓰지 않으면 그대로).
