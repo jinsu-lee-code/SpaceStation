@@ -57,6 +57,10 @@ namespace SpaceStation.UI
         // 13-3 이민선 (카드 아래 줄 + 도착 창)
         private ArkShipSystem _ships;
         private TMP_Text _shipLine;
+        // 13-5a 탐사 (카드 줄)
+        private ExplorationSystem _explore;
+        private TMP_Text _exploreLine;
+        private readonly System.Collections.Generic.List<ExploreSite> _sites = new System.Collections.Generic.List<ExploreSite>();
         // 13-4 내부 안내 (방주 안 둘러보기)
         private Interior.InteriorMode _interior;
         private TutorialRunner _guide;
@@ -95,6 +99,7 @@ namespace SpaceStation.UI
                 var ships = _ships;
                 ResidentText.KindTag = r => ships.Find(r.Kind)?.DisplayName; // 주민 명단: "토끼 | 기술자·낙천가" (종족 기본 | 개인)
             }
+            _explore = _sim.GetSystem<ExplorationSystem>();
             _interior = FindFirstObjectByType<Interior.InteriorMode>(FindObjectsInactive.Include);
             if (_interior != null)
                 _interior.InsideChanged += HandleInsideChanged;
@@ -230,6 +235,8 @@ namespace SpaceStation.UI
             _phase = _ui.Label(_card, "", 17f, TextAlignmentOptions.TopLeft, wrap: true);
             _shipLine = _ui.Label(_card, "", 17f, TextAlignmentOptions.TopLeft, wrap: true);
             _shipLine.gameObject.SetActive(false);
+            _exploreLine = _ui.Label(_card, "", 17f, TextAlignmentOptions.TopLeft, wrap: true);
+            _exploreLine.gameObject.SetActive(false);
 
             _barRoot = _ui.Bar(_card, new Color(1f, 1f, 1f, 0.12f), HudTheme.Negative, out _barFill);
             _barRoot.gameObject.AddComponent<LayoutElement>().preferredHeight = 8f;
@@ -361,6 +368,36 @@ namespace SpaceStation.UI
             if (_climaxNow.transform.parent.gameObject.activeSelf != showNow)
                 _climaxNow.transform.parent.gameObject.SetActive(showNow);
             RefreshShipLine();
+            RefreshExploreLine();
+        }
+
+        /// <summary>13-5a 카드 아래 탐사 줄: 센서 · 고를 신호 · 탐사선 비행 · 밝힌 지점까지 거리 · 닿음.</summary>
+        private void RefreshExploreLine()
+        {
+            string text = "";
+            if (_explore != null && _explore.ChapterHasSignals)
+            {
+                _explore.CurrentSites(_sites);
+                ExploreSite revealed = null;
+                foreach (var s in _sites)
+                    if (s.Revealed)
+                        revealed = s;
+                if (_sites.Count == 0)
+                    text = _explore.SensorActive ? "" : $"<color={Soft}>탐사 · 센서 어레이를 지으면 신호가 잡힙니다</color>";
+                else if (_explore.ProbeInFlight)
+                    text = $"탐사 · 탐사선 도착까지 {Clock(_explore.ProbeTimeLeft)}";
+                else if (revealed == null)
+                    text = _explore.ProbeUsedThisChapter ? "" : $"{HudTheme.Icon("warning")} <color={Gold}>탐사 · 신호 {_sites.Count}개</color> <size=86%><color={Soft}>[관리] → 탐사에서 하나를 고르세요</color></size>";
+                else if (!revealed.Reached)
+                    text = $"탐사 · <b>{ExplorationConfig.Name(revealed.Kind)}</b> {MeteorShowerSystem.DirectionName(revealed.Direction)} · 지금 {_explore.Distance(revealed)}칸 <size=86%><color={Soft}>({_explore.Config.ReachRadius}칸 이내 도달 시 탐사 시작)</color></size>";
+                else
+                    text = $"<color={HudTheme.GreenHex}>탐사 · {ExplorationConfig.Name(revealed.Kind)} 탐사 중</color>";
+            }
+            bool show = text.Length > 0;
+            if (_exploreLine.gameObject.activeSelf != show)
+                _exploreLine.gameObject.SetActive(show);
+            if (show)
+                _exploreLine.SetText(text);
         }
 
         // ---------------- 13-3 이민선 ----------------

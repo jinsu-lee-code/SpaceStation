@@ -65,6 +65,11 @@ namespace SpaceStation.Editor
             var interior = InteriorGuide();
             ChapterOne(ch1, interior);
 
+            // 13-5a 탐사 (사용자 결정 2026-10-18 D-6): 2장 신호 = 소행성 · 난파선 · 파편 지대, 센서 어레이 · 구조 프레임을 2장에서 엶
+            Exploration();
+            Signals(ch2, SiteKind.Asteroid, SiteKind.Wreck, SiteKind.DebrisField);
+            AddUnlocks(ch2, M("MD_SensorArray"), M("MD_StructureFrame"));
+
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
             if (config == null)
@@ -108,7 +113,8 @@ namespace SpaceStation.Editor
             hso.FindProperty("_chapters").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
             hso.FindProperty("_core").objectReferenceValue = AssetDatabase.LoadAssetAtPath<CoreConfig>(CorePath);
             hso.FindProperty("_arkShips").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ArkShipConfig>(ArkPath);
-            hso.FindProperty("_tutorial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<TutorialData>(BootPath); // 서사판 = 코어 기동 (메뉴 Tutorial/Setup을 다시 돌리면 공통 튜토리얼로 바뀜 → 이 메뉴를 뒤에 다시)
+            hso.FindProperty("_tutorial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<TutorialData>(BootPath);
+            hso.FindProperty("_exploration").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ExplorationConfig>(ExplorePath); // 서사판 = 코어 기동 (메뉴 Tutorial/Setup을 다시 돌리면 공통 튜토리얼로 바뀜 → 이 메뉴를 뒤에 다시)
             hso.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(host);
 
@@ -161,6 +167,36 @@ namespace SpaceStation.Editor
             foreach (var f in new[] { "_font", "_fillSprite", "_frameSprite", "_buttonSprite", "_holoArt" })
                 lso.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
             lso.ApplyModifiedPropertiesWithoutUndo();
+
+            // 13-5a 탐사 창 ([관리] 메뉴 '탐사') + 정거장 바깥 지점 표시
+            var oldExplore = parent.Find("ExplorationPanel");
+            if (oldExplore != null)
+                Object.DestroyImmediate(oldExplore.gameObject);
+            var exploreGo = new GameObject("ExplorationPanel", typeof(RectTransform));
+            exploreGo.transform.SetParent(parent, false);
+            exploreGo.transform.SetSiblingIndex(logGo.transform.GetSiblingIndex());
+            var ert = (RectTransform)exploreGo.transform;
+            ert.anchorMin = Vector2.zero;
+            ert.anchorMax = Vector2.one;
+            ert.offsetMin = Vector2.zero;
+            ert.offsetMax = Vector2.zero;
+            var explorePanel = exploreGo.AddComponent<SpaceStation.UI.ExplorationPanel>();
+            var eso = new SerializedObject(explorePanel);
+            eso.FindProperty("_station").objectReferenceValue = station;
+            foreach (var f in new[] { "_font", "_fillSprite", "_frameSprite", "_buttonSprite", "_holoArt" })
+                eso.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
+            eso.ApplyModifiedPropertiesWithoutUndo();
+            var oldView = GameObject.Find("ExplorationView");
+            if (oldView != null)
+                Object.DestroyImmediate(oldView);
+            var viewGo = new GameObject("ExplorationView");
+            var exploreView = viewGo.AddComponent<SpaceStation.UI.ExplorationView>();
+            var xso = new SerializedObject(exploreView);
+            xso.FindProperty("_station").objectReferenceValue = station;
+            xso.FindProperty("_material").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/M_DefenseRange.mat");
+            xso.FindProperty("_font").objectReferenceValue = rso.FindProperty("_font").objectReferenceValue;
+            xso.FindProperty("_labelRoot").objectReferenceValue = parent as RectTransform;
+            xso.ApplyModifiedPropertiesWithoutUndo();
 
             // 13-4 장 직전 컷신 (다른 HUD 위 — 재생할 때 맨 앞으로 옮김)
             var oldIntro = parent.Find("ChapterIntroView");
@@ -380,6 +416,58 @@ namespace SpaceStation.Editor
             climax.FindPropertyRelative("_cleanMaxShortageSeconds").floatValue = 0f;
             climax.FindPropertyRelative("_hurtMaxShortageSeconds").floatValue = 60f;
             climax.FindPropertyRelative("_hurtMaxDestroyed").intValue = 0;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(chapter);
+        }
+
+        // ---------------- 13-5a 탐사 ----------------
+
+        private const string ExplorePath = "Assets/_Project/Data/Chapters/ExplorationConfig.asset";
+
+        /// <summary>13-5a 탐사 설정: 센서 = 센서 어레이, 난파선 기록 조각(인간 미스터리 T8, 확인용 초안). 수치는 데이터 기본값.</summary>
+        private static ExplorationConfig Exploration()
+        {
+            var cfg = LoadOrCreate<ExplorationConfig>(ExplorePath);
+            cfg.EditorSet(M("MD_SensorArray"), new List<string>
+            {
+                "화물선 '노아 7호' 항해 일지. 3호 방주 출항 확인. 승선 명단에 우리 이름은 없다.",
+                "남은 연료로는 한 척만 띄울 수 있다. 회의는 길지 않았다.",
+                "우리가 망친 것을 그들에게 넘기는 게 아니기를. 그들이 우리보다 낫기를.",
+            });
+            EditorUtility.SetDirty(cfg);
+            return cfg;
+        }
+
+        private static void Signals(ChapterData chapter, params SiteKind[] kinds)
+        {
+            var so = new SerializedObject(chapter);
+            var list = so.FindProperty("_signals");
+            list.arraySize = kinds.Length;
+            for (int i = 0; i < kinds.Length; i++)
+                list.GetArrayElementAtIndex(i).enumValueIndex = (int)kinds[i];
+            so.FindProperty("_signalDistanceMin").intValue = 6;
+            so.FindProperty("_signalDistanceMax").intValue = 10;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(chapter);
+        }
+
+        /// <summary>장 해금 목록 뒤에 더함 (이미 있으면 건너뜀).</summary>
+        private static void AddUnlocks(ChapterData chapter, params ModuleData[] modules)
+        {
+            var so = new SerializedObject(chapter);
+            var list = so.FindProperty("_unlocks");
+            foreach (var m in modules)
+            {
+                if (m == null)
+                    continue;
+                bool has = false;
+                for (int i = 0; i < list.arraySize; i++)
+                    has |= list.GetArrayElementAtIndex(i).objectReferenceValue == m;
+                if (has)
+                    continue;
+                list.arraySize++;
+                list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = m;
+            }
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(chapter);
         }

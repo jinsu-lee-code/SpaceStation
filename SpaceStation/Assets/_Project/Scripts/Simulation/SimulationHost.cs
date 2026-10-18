@@ -52,6 +52,8 @@ namespace SpaceStation.Simulation
         [SerializeField] private CoreConfig _core;
         [Tooltip("13-3 이민선 시계 + 종족 (메뉴 SpaceStation/Chapters/Setup Greybox가 채움). 비면 이민선 · 종족 없음 (장 틀이 있을 때만)")]
         [SerializeField] private ArkShipConfig _arkShips;
+        [Tooltip("13-5a 탐사 (메뉴 SpaceStation/Chapters/Setup Greybox가 채움). 비면 탐사 없음 (장 틀이 있을 때만)")]
+        [SerializeField] private ExplorationConfig _exploration;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -100,6 +102,9 @@ namespace SpaceStation.Simulation
             // 13-3 서사판 이민선 시계 + 종족 (장 틀 위에서만)
             if (_arkShips != null && Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
                 Simulation.AddSystem(new ArkShipSystem(_arkShips), TickStepNames.Population);
+            // 13-5a 서사판 탐사 (장 틀 위에서만)
+            if (_exploration != null && Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
+                Simulation.AddSystem(new ExplorationSystem(_exploration), TickStepNames.Population);
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
             {

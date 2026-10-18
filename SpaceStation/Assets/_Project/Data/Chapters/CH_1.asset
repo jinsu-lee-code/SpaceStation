@@ -57,6 +57,9 @@ MonoBehaviour:
   _shipForecast: 60
   _newSpecies: {fileID: 0}
   _growthIntervalScale: 1
+  _signals: 
+  _signalDistanceMin: 6
+  _signalDistanceMax: 10
   _goals:
   - _kind: 4
     _text: "\uCF54\uC5B4 \uAE30\uB3D9 (\uBAA8\uB4E0 \uACC4\uD1B5 \uAE68\uC6B0\uAE30)"
@@ -85,7 +88,7 @@ MonoBehaviour:
   - _kind: 4
     _text: "\uBC29\uC8FC \uC548 \uB458\uB7EC\uBCF4\uAE30 (\uB4DC\uB860)"
     _optional: 1
-    _grade: 0
+    _grade: 1
     _module: {fileID: 0}
     _count: 8
     _resource: 4
@@ -97,7 +100,7 @@ MonoBehaviour:
   - _kind: 2
     _text: 
     _optional: 1
-    _grade: 0
+    _grade: 1
     _module: {fileID: 0}
     _count: 8
     _resource: 4

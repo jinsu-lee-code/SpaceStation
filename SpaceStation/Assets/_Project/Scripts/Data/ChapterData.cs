@@ -193,6 +193,13 @@ namespace SpaceStation.Data
         [Tooltip("자연 인구 증가 간격 배율 (이민선이 주된 공급원인 장은 크게)")]
         [SerializeField, Min(0.1f)] private float _growthIntervalScale = 1f;
 
+        [Header("탐사 (13-5a, 사용자 결정 2026-10-18 D-6)")]
+        [Tooltip("이 장에서 잡히는 신호의 종류 (비면 신호 없음 · 순서는 섞임). 센서 어레이가 가동 중일 때 생김")]
+        [SerializeField] private List<SiteKind> _signals = new List<SiteKind>();
+        [Tooltip("정거장 끝에서 지점까지 거리 (칸)")]
+        [SerializeField, Min(3)] private int _signalDistanceMin = 6;
+        [SerializeField, Min(3)] private int _signalDistanceMax = 10;
+
         [Header("준비 목표 · 절정 · 전환")]
         [SerializeField] private List<ChapterGoal> _goals = new List<ChapterGoal>();
         [SerializeField] private ChapterClimaxSettings _climax = new ChapterClimaxSettings();
@@ -224,6 +231,9 @@ namespace SpaceStation.Data
         public float ShipForecast => Mathf.Max(0f, _shipForecast);
         public SpeciesData NewSpecies => _newSpecies;
         public float GrowthIntervalScale => _growthIntervalScale > 0f ? _growthIntervalScale : 1f;
+        public IReadOnlyList<SiteKind> Signals => _signals;
+        public int SignalDistanceMin => Mathf.Max(3, _signalDistanceMin);
+        public int SignalDistanceMax => Mathf.Max(SignalDistanceMin, _signalDistanceMax);
         public IReadOnlyList<ChapterGoal> Goals => _goals;
         public ChapterClimaxSettings Climax => _climax;
         public IReadOnlyList<ChapterChoice> Choices => _choices;
