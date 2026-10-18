@@ -142,6 +142,49 @@ namespace SpaceStation.Tests
             Assert.AreEqual(sim.MeteorShower.HitsPerWave, loaded.MeteorShower.HitsPerWave);
         }
 
+        // ---------------- M-20 판 규칙 고리 ----------------
+
+        [Test]
+        public void ScheduleNext_FiresEarly_OnceWithCustomWaves()
+        {
+            var sim = Sim(() => 0f);
+            Place(sim, new Vector3Int(1, 0, 0));
+            var shower = sim.MeteorShower;
+            sim.Tick(1f);
+            Assert.IsTrue(shower.ScheduleNext(3f, waves: 1));
+            sim.Tick(3f);
+            Assert.AreEqual(MeteorShowerSystem.ShowerPhase.Warning, shower.Phase, "앞당긴 시간에 예보");
+            Assert.AreEqual(1, shower.Waves, "그 한 번만 1파");
+            Assert.AreEqual(1, shower.HitsPerWave, "파당 크기는 보통 기준 (1 × 3배 ÷ 3파)");
+            sim.Tick(5f);
+            Assert.AreEqual(MeteorShowerSystem.ShowerPhase.Idle, shower.Phase, "1파 뒤 끝");
+            sim.Tick(10f);
+            Assert.AreEqual(MeteorShowerSystem.ShowerPhase.Warning, shower.Phase, "다음은 보통 간격");
+            Assert.AreEqual(3, shower.Waves, "보통 파 수로 돌아옴");
+        }
+
+        [Test]
+        public void Raid_Label_AvoidsDirection_CancelWarning()
+        {
+            var sim = Sim(() => 0f); // 고르는 난수 0 = 첫 방향 (+X)
+            Place(sim, new Vector3Int(1, 0, 0));
+            var shower = sim.MeteorShower;
+            Assert.IsTrue(shower.BeginRaid(5f, 2, 1, null, "큰 유성우", avoid: Vector3Int.right));
+            Assert.AreEqual(Vector3Int.left, shower.Direction, "+X는 빼고 고름");
+            Assert.AreEqual("큰 유성우", shower.Label);
+            Assert.AreEqual(2, shower.Waves);
+            Assert.IsFalse(shower.CancelWarning(), "특별 유성우는 거두지 않음");
+            sim.Tick(5f);
+            sim.Tick(2f);
+            Assert.AreEqual(MeteorShowerSystem.ShowerPhase.Idle, shower.Phase);
+            Assert.AreEqual("유성우", shower.Label);
+
+            shower.BeginWarning(30f);
+            Assert.IsTrue(shower.CancelWarning(), "예보 중인 평소 유성우는 거둠");
+            Assert.AreEqual(MeteorShowerSystem.ShowerPhase.Idle, shower.Phase);
+            Assert.AreEqual(10f, shower.TimeLeft, 1e-3f, "다음은 보통 간격 뒤");
+        }
+
         // ---------------- 도우미 ----------------
 
         private StationSimulation Sim(System.Func<float> hazard) => new StationSimulation(new StationSimulationSettings

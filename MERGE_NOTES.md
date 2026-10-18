@@ -326,3 +326,21 @@
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. 타이쿤판이 연구 창 · `ResearchSystem`을 고쳤으면 `Recalculate` 부르는 곳을 `RefreshEffects()`로 맞춤.
+
+---
+
+## M-20. 13-5c 유성우 판 규칙 고리 (2026-10-18, `main`)
+
+**main에 넣은 것** — 부르지 않으면 동작 그대로 (방향 고르기 난수 순서도 같음)
+- `MeteorShowerSystem.ScheduleNext(seconds, waves)`: 다음 평소 유성우를 그 시간 뒤로 맞추고 그 한 번만 파 수를 바꿈 (파당 운석 수는 보통 파 수 기준 그대로). 서사판 2장 첫 유성우 = 3분 뒤 1파
+- `CancelWarning()`: 예보 중인 평소 유성우를 거둠 (서사판 장 절정이 대신 옴), 다음은 보통 간격 뒤
+- `BeginRaid(..., label = "포격", avoid = 0)`: 포격 틀로 판이 부르는 특별 유성우 — 화면 이름(`Label`) · 고르지 않을 방향. 끝 알림 = "{이름}이/가 끝났습니다" (포격은 그대로 "포격이 끝났습니다")
+- `Waves`: 앞당긴 한 번의 파 수를 따름. 예보 알림의 파 수도 `Waves`
+- 세이브에 이름 · 이번 / 다음 파 수 추가 (예전 세이브는 빈 값 = 포격 · 보통)
+- 시험 2개 (`MeteorShowerTests.ScheduleNext_FiresEarly_OnceWithCustomWaves` · `Raid_Label_AvoidsDirection_CancelWarning`)
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상. 서사판 13-5c 2장 유성우 · 절정 '큰 유성우'가 씀.
+
+### `tycoon` 합칠 때
+- [ ] 충돌 없음 예상. 타이쿤판이 `BeginRaid`를 불렀으면 새 매개변수는 기본값이라 그대로.
