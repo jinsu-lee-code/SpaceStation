@@ -340,7 +340,7 @@
 - 시험 2개 (`MeteorShowerTests.ScheduleNext_FiresEarly_OnceWithCustomWaves` · `Raid_Label_AvoidsDirection_CancelWarning`)
 
 ### `narrative` 합칠 때
-- [ ] 충돌 없음 예상. 서사판 13-5c 2장 유성우 · 절정 '큰 유성우'가 씀.
+- [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 13-5c 2장 유성우 · 절정 '큰 유성우'가 씀 · EditMode 430개 통과.
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. 타이쿤판이 `BeginRaid`를 불렀으면 새 매개변수는 기본값이라 그대로.
