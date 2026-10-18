@@ -63,6 +63,8 @@ namespace SpaceStation.UI
         private readonly System.Collections.Generic.List<ExploreSite> _sites = new System.Collections.Generic.List<ExploreSite>();
         // 13-5b 기록 복원 (조각 줄 + 봉인 기록 선택 창)
         private RecordArchiveSystem _records;
+        // 13-6a 긴장도 (이민선 줄 아래 · 장 결과 창)
+        private TensionSystem _tension;
         // 13-4 내부 안내 (방주 안 둘러보기)
         private Interior.InteriorMode _interior;
         private TutorialRunner _guide;
@@ -103,7 +105,8 @@ namespace SpaceStation.UI
             }
             _explore = _sim.GetSystem<ExplorationSystem>();
             _records = _sim.GetSystem<RecordArchiveSystem>();
-            _interior = FindFirstObjectByType<Interior.InteriorMode>(FindObjectsInactive.Include);
+            _tension = _sim.GetSystem<TensionSystem>();
+            _interior =FindFirstObjectByType<Interior.InteriorMode>(FindObjectsInactive.Include);
             if (_interior != null)
                 _interior.InsideChanged += HandleInsideChanged;
             _cardTween.Play(restart: true);
@@ -432,11 +435,27 @@ namespace SpaceStation.UI
                     : $"<color={Soft}>다음 이민선 · {clock}</color>";
                 text += $"\n<size=86%><color={Soft}>빈 집 {_ships.FreeHousing} · 무리 {_ships.Composition()}</color></size>" + slow;
             }
+            string tension = TensionText(); // 13-6a 긴장도 (값 + 표시만)
+            if (tension.Length > 0)
+                text += (text.Length > 0 ? "\n" : "") + tension;
             bool show = text.Length > 0;
             if (_shipLine.gameObject.activeSelf != show)
                 _shipLine.gameObject.SetActive(show);
             if (show)
                 _shipLine.SetText(text);
+        }
+
+        /// <summary>13-6a 긴장도 줄: "긴장도 32 · 술렁임 (오름: 과밀 · 정책 반발)". 0이고 오르지 않으면 숨김.</summary>
+        private string TensionText()
+        {
+            if (_tension == null)
+                return "";
+            string rising = _tension.RisingCauses();
+            if (_tension.Value < 0.5f && rising.Length == 0)
+                return "";
+            string color = _tension.Level switch { 0 => Soft, 1 => Gold, 2 => HudText.Orange, _ => HudText.Red };
+            return $"<color={color}>긴장도 {_tension.Value:0} · {_tension.LevelName}</color>"
+                   + (rising.Length > 0 ? $" <size=86%><color={Soft}>(오름: {rising})</color></size>" : "");
         }
 
         private void HandleShipArrived(ArkShip ship) => ShowShip(ship);
@@ -560,6 +579,12 @@ namespace SpaceStation.UI
             if (record != null && !string.IsNullOrEmpty(record.Summary))
                 _sb.Append($"  ·  {record.Summary}");
             _sb.Append($"\n<color={Soft}>이 장에 걸린 시간</color> {seconds / 60}분 {seconds % 60:00}초");
+            if (_tension != null && (_tension.Value >= 0.5f || _tension.TopChapterCause(out _))) // 13-6a 긴장도 (결과는 6장부터, 지금은 보이기만)
+            {
+                _sb.Append($"\n<color={Soft}>긴장도</color> {_tension.Value:0} · {_tension.LevelName}");
+                if (_tension.TopChapterCause(out var cause))
+                    _sb.Append($"  <size=90%><color={Soft}>이 장에서 가장 큰 원인: {TensionSystem.SourceName(cause)}</color></size>");
+            }
             if (record != null && !string.IsNullOrEmpty(record.Monologue)) // 13-2 코어 독백 (지금 성향으로 고른 문장)
                 _sb.Append($"\n\n<color={CoreTint}><i>코어 · {record.Monologue}</i></color>");
             var choices = data.Choices;

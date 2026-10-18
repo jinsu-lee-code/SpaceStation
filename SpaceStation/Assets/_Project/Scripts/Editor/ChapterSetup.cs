@@ -81,6 +81,10 @@ namespace SpaceStation.Editor
             ChapterTwo(ch2);
             AddUnlocks(ch2, M("MD_ConnectorHub"));
 
+            // 13-6a 3장 정책 · 종족 반응 · 긴장도 (사용자 결정 2026-10-18): 정책 규칙 3장부터 · 1칸 → 대형 도달 때 2칸 · 4종 · 적용 30초 · 교체 3분
+            ChapterThreePolicies(ch3);
+            Society();
+
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
             if (config == null)
@@ -127,6 +131,7 @@ namespace SpaceStation.Editor
             hso.FindProperty("_tutorial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<TutorialData>(BootPath);
             hso.FindProperty("_exploration").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ExplorationConfig>(ExplorePath); // 서사판 = 코어 기동 (메뉴 Tutorial/Setup을 다시 돌리면 공통 튜토리얼로 바뀜 → 이 메뉴를 뒤에 다시)
             hso.FindProperty("_records").objectReferenceValue = AssetDatabase.LoadAssetAtPath<RecordConfig>(RecordPath);
+            hso.FindProperty("_society").objectReferenceValue = AssetDatabase.LoadAssetAtPath<SocietyConfig>(SocietyPath);
             // 13-5b 연구 목록 = 기록 4갈래 + 정비 자동화 (메뉴 Research/Setup을 다시 돌리면 공통 6분야로 바뀜 → 이 메뉴를 뒤에 다시)
             var researchList = hso.FindProperty("_researchCategories");
             researchList.arraySize = recordResearch.Count;
@@ -379,6 +384,41 @@ namespace SpaceStation.Editor
         /// 13-4 1장 '깨어남' (사용자 결정 2026-10-18): 직전 컷신(인간이 남긴 방주 시스템 음성 → 코어의 첫 말) · 목표(필수 코어 기동 + 소형,
         /// 선택 방주 안 둘러보기 + 인구 8) · 절정 '첫 긴 밤'(밤 180초 + 운석 2개, 판정 = 생명 유지 바닥 시간 · 파괴). 컷신 · 문장은 확인용 초안.
         /// </summary>
+        // ---------------- 13-6a 3장 정책 · 사회 ----------------
+
+        private const string SocietyPath = "Assets/_Project/Data/Chapters/SocietyConfig.asset";
+        private const string PolicyFolder = "Assets/_Project/Data/Policies/";
+
+        /// <summary>13-6a 3장 정책 (사용자 결정 2026-10-18): 규칙 Policies(누적) · 1칸 + 대형 도달 때 1칸 · 배급제 · 야간 근무(통제형) · 이민 개방 · 축제 문화(자율형) · 30초 · 3분.</summary>
+        private static void ChapterThreePolicies(ChapterData chapter)
+        {
+            var so = new SerializedObject(chapter);
+            so.FindProperty("_rules").intValue = (int)StationRule.Policies;
+            so.FindProperty("_policySlots").intValue = 1;
+            so.FindProperty("_gradeUpPolicySlots").intValue = 1;
+            so.FindProperty("_policyApplyDelay").floatValue = 30f;
+            so.FindProperty("_policySwapCooldown").floatValue = 180f;
+            var names = new[] { "PO_Rationing", "PO_NightShift", "PO_OpenImmigration", "PO_FestivalCulture" };
+            var list = so.FindProperty("_policies");
+            list.arraySize = names.Length;
+            for (int i = 0; i < names.Length; i++)
+            {
+                var p = AssetDatabase.LoadAssetAtPath<PolicyData>(PolicyFolder + names[i] + ".asset");
+                if (p == null)
+                    Debug.LogError("[ChapterSetup] 정책 없음: " + names[i]);
+                list.GetArrayElementAtIndex(i).objectReferenceValue = p;
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(chapter);
+        }
+
+        /// <summary>13-6a 종족 정책 반응 배율 · 긴장도 (값은 SocietyConfig 기본값 = 그레이박스 초안).</summary>
+        private static void Society()
+        {
+            var society = LoadOrCreate<SocietyConfig>(SocietyPath);
+            EditorUtility.SetDirty(society);
+        }
+
         /// <summary>13-5c 2장 '배치': 유성우 규칙 · 첫 유성우 · 목표 5개 · 절정 '큰 유성우' (값은 그레이박스 초안 — BALANCE · 측정 때 조정).</summary>
         private static void ChapterTwo(ChapterData chapter)
         {

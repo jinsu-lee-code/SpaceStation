@@ -226,6 +226,18 @@ namespace SpaceStation.Data
         [Tooltip("첫 유성우의 파 수 (연습 삼아 작게, 0이면 보통)")]
         [SerializeField, Min(0)] private int _firstShowerWaves = 1;
 
+        [Header("13-6a 정책 (규칙 Policies가 열린 장, 사용자 결정 2026-10-18)")]
+        [Tooltip("이 장의 정책 슬롯 수 (0이면 지난 장 설정 그대로)")]
+        [SerializeField, Min(0)] private int _policySlots;
+        [Tooltip("이 장의 등급 목표를 채우는 순간 더하는 슬롯 (다음 장에도 유지)")]
+        [SerializeField, Min(0)] private int _gradeUpPolicySlots;
+        [Tooltip("이 장에서 새로 고를 수 있는 정책 (지난 장 것도 누적)")]
+        [SerializeField] private List<PolicyData> _policies = new List<PolicyData>();
+        [Tooltip("새 정책이 효과를 내기까지 (초)")]
+        [SerializeField, Min(0f)] private float _policyApplyDelay = 30f;
+        [Tooltip("한 슬롯을 바꾼 뒤 다시 바꿀 수 있기까지 (초)")]
+        [SerializeField, Min(0f)] private float _policySwapCooldown = 180f;
+
         [Header("준비 목표 · 절정 · 전환")]
         [SerializeField] private List<ChapterGoal> _goals = new List<ChapterGoal>();
         [SerializeField] private ChapterClimaxSettings _climax = new ChapterClimaxSettings();
@@ -263,6 +275,11 @@ namespace SpaceStation.Data
         public int CleanFragments => _cleanFragments;
         public float FirstShowerDelay => _firstShowerDelay;
         public int FirstShowerWaves => _firstShowerWaves;
+        public int PolicySlots => _policySlots;
+        public int GradeUpPolicySlots => _gradeUpPolicySlots;
+        public IReadOnlyList<PolicyData> Policies => _policies;
+        public float PolicyApplyDelay => _policyApplyDelay;
+        public float PolicySwapCooldown => _policySwapCooldown;
         public IReadOnlyList<ChapterGoal> Goals => _goals;
         public ChapterClimaxSettings Climax => _climax;
         public IReadOnlyList<ChapterChoice> Choices => _choices;

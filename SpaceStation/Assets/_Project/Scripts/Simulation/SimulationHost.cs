@@ -56,6 +56,8 @@ namespace SpaceStation.Simulation
         [SerializeField] private ExplorationConfig _exploration;
         [Tooltip("13-5b 기록 복원 (메뉴 SpaceStation/Chapters/Setup Greybox가 채움). 비면 연구가 공통 틀 그대로 (장 틀이 있을 때만)")]
         [SerializeField] private RecordConfig _records;
+        [Tooltip("13-6a 종족 정책 반응 · 긴장도 (메뉴 SpaceStation/Chapters/Setup Greybox가 채움). 비면 반응 · 긴장도 없음 (장 정책은 그대로)")]
+        [SerializeField] private SocietyConfig _society;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -113,6 +115,11 @@ namespace SpaceStation.Simulation
             // 13-5b 서사판 기록 복원 (장 틀 위에서만 — 연구 판 고리 M-19를 꽂음)
             if (_records != null && Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
                 Simulation.AddSystem(new RecordArchiveSystem(_records), TickStepNames.Research);
+            // 13-6a 서사판 장 정책 (정책 판 고리 M-22를 꽂음) · 긴장도 (장 틀 위에서만)
+            if (Simulation.Policies != null && Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
+                Simulation.AddSystem(new ChapterPolicySystem(_society), TickStepNames.Population);
+            if (_society != null && Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
+                Simulation.AddSystem(new TensionSystem(_society), TickStepNames.Population);
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
             {

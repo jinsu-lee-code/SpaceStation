@@ -1939,7 +1939,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 188311092}
   m_CullTransparentMesh: 1
---- !u!1 &189576605
+--- !u!1 &195849241
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1947,8 +1947,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 189576607}
-  - component: {fileID: 189576606}
+  - component: {fileID: 195849243}
+  - component: {fileID: 195849242}
   m_Layer: 0
   m_Name: ExplorationView
   m_TagString: Untagged
@@ -1956,13 +1956,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &189576606
+--- !u!114 &195849242
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 189576605}
+  m_GameObject: {fileID: 195849241}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f6d443007d5e5a84dbccb6dd84588918, type: 3}
@@ -1978,13 +1978,13 @@ MonoBehaviour:
   _hullMaterial: {fileID: 2100000, guid: 4ccc109889df983499122c9e6efc85e5, type: 2}
   _glowMaterial: {fileID: 2100000, guid: fb7c39585c27b7a45b9bcfcc3c4cd54b, type: 2}
   _wreckModel: {fileID: 919132149155446097, guid: c82653d04c6b7044e95e5ab5bfae9fdb, type: 3}
---- !u!4 &189576607
+--- !u!4 &195849243
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 189576605}
+  m_GameObject: {fileID: 195849241}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -2356,6 +2356,63 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &302216507
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 302216508}
+  - component: {fileID: 302216509}
+  m_Layer: 0
+  m_Name: ChapterIntroView
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &302216508
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 302216507}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 577544477}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &302216509
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 302216507}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1c2dbafae1aa32439afdc39015f6cae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.ChapterIntroView
+  _station: {fileID: 968511355}
+  _clock: {fileID: 1600923276}
+  _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
+  _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
+  _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
+  _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
+  _holoArt: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
+  _charsPerSecond: 28
+  _fadeSeconds: 1.2
 --- !u!1 &308574888
 GameObject:
   m_ObjectHideFlags: 0
@@ -2681,60 +2738,6 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
---- !u!1 &344011327
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 344011328}
-  - component: {fileID: 344011329}
-  m_Layer: 0
-  m_Name: CoreLogPanel
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &344011328
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 344011327}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 577544477}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &344011329
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 344011327}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 86dd6b5ee5f5e0546bdd81118f926f30, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.CoreLogPanel
-  _station: {fileID: 968511355}
-  _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
-  _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
-  _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
-  _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
-  _holoArt: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
 --- !u!1 &344270788
 GameObject:
   m_ObjectHideFlags: 0
@@ -3453,63 +3456,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 490004725}
   m_CullTransparentMesh: 1
---- !u!1 &539571710
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 539571711}
-  - component: {fileID: 539571712}
-  m_Layer: 0
-  m_Name: ChapterIntroView
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &539571711
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 539571710}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 577544477}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &539571712
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 539571710}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e1c2dbafae1aa32439afdc39015f6cae, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.ChapterIntroView
-  _station: {fileID: 968511355}
-  _clock: {fileID: 1600923276}
-  _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
-  _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
-  _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
-  _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
-  _holoArt: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
-  _charsPerSecond: 28
-  _fadeSeconds: 1.2
 --- !u!1 &557213802
 GameObject:
   m_ObjectHideFlags: 0
@@ -3699,14 +3645,14 @@ RectTransform:
   - {fileID: 1708113628}
   - {fileID: 2067204172}
   - {fileID: 17064193}
-  - {fileID: 2047843696}
-  - {fileID: 344011328}
-  - {fileID: 1885480781}
+  - {fileID: 727384280}
+  - {fileID: 1140809750}
+  - {fileID: 1143707733}
   - {fileID: 1647844434}
   - {fileID: 1449107004}
   - {fileID: 1942415852}
   - {fileID: 2103398986}
-  - {fileID: 539571711}
+  - {fileID: 302216508}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -4529,6 +4475,60 @@ MonoBehaviour:
   Line: {r: 0, g: 0, b: 0, a: 0}
   Scan: 0
   Connector: 0
+--- !u!1 &727384279
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 727384280}
+  - component: {fileID: 727384281}
+  m_Layer: 0
+  m_Name: ExplorationPanel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &727384280
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 727384279}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 577544477}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &727384281
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 727384279}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569b1846b64d0d54bacd780b8dca7f64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.ExplorationPanel
+  _station: {fileID: 968511355}
+  _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
+  _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
+  _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
+  _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
+  _holoArt: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
 --- !u!1 &751426325
 GameObject:
   m_ObjectHideFlags: 0
@@ -7984,6 +7984,119 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1139954532}
   m_CullTransparentMesh: 1
+--- !u!1 &1140809749
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1140809750}
+  - component: {fileID: 1140809751}
+  m_Layer: 0
+  m_Name: CoreLogPanel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1140809750
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1140809749}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 577544477}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1140809751
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1140809749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86dd6b5ee5f5e0546bdd81118f926f30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.CoreLogPanel
+  _station: {fileID: 968511355}
+  _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
+  _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
+  _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
+  _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
+  _holoArt: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
+--- !u!1 &1143707732
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1143707733}
+  - component: {fileID: 1143707734}
+  m_Layer: 0
+  m_Name: ChapterView
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1143707733
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1143707732}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 577544477}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1143707734
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1143707732}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1e28864650f8a9408a1c38a3de086fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.ChapterView
+  _station: {fileID: 968511355}
+  _clock: {fileID: 1600923276}
+  _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
+  _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
+  _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
+  _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
+  _holoArt: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
+  _stationPanel: {fileID: 1831196776}
+  _cardOffset: {x: -24, y: -408}
+  _panelGap: 14
+  _refreshSeconds: 0.2
 --- !u!1 &1193840078
 GameObject:
   m_ObjectHideFlags: 0
@@ -10794,6 +10907,7 @@ MonoBehaviour:
   _arkShips: {fileID: 11400000, guid: 0b60a617b4472554f93d504d86b8f53a, type: 2}
   _exploration: {fileID: 11400000, guid: 3e9de043735f4db44b974ae890c449fb, type: 2}
   _records: {fileID: 11400000, guid: 6f61673e366f4444bba381bb3ab254ea, type: 2}
+  _society: {fileID: 11400000, guid: 6a35bd9543c016a4e952918fbb3b07a8, type: 2}
 --- !u!1 &1601193810
 GameObject:
   m_ObjectHideFlags: 0
@@ -12577,65 +12691,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1877433801}
   m_CullTransparentMesh: 1
---- !u!1 &1885480780
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1885480781}
-  - component: {fileID: 1885480782}
-  m_Layer: 0
-  m_Name: ChapterView
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &1885480781
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1885480780}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 577544477}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1885480782
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1885480780}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e1e28864650f8a9408a1c38a3de086fa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.ChapterView
-  _station: {fileID: 968511355}
-  _clock: {fileID: 1600923276}
-  _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
-  _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
-  _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
-  _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
-  _holoArt: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
-  _stationPanel: {fileID: 1831196776}
-  _cardOffset: {x: -24, y: -408}
-  _panelGap: 14
-  _refreshSeconds: 0.2
 --- !u!1 &1906794670
 GameObject:
   m_ObjectHideFlags: 0
@@ -13768,60 +13823,6 @@ MonoBehaviour:
   Line: {r: 0.31, g: 0.85, b: 1, a: 1}
   Scan: 0
   Connector: 0
---- !u!1 &2047843695
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2047843696}
-  - component: {fileID: 2047843697}
-  m_Layer: 0
-  m_Name: ExplorationPanel
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &2047843696
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2047843695}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 577544477}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &2047843697
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2047843695}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 569b1846b64d0d54bacd780b8dca7f64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.ExplorationPanel
-  _station: {fileID: 968511355}
-  _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
-  _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
-  _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
-  _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
-  _holoArt: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
 --- !u!1 &2067204171
 GameObject:
   m_ObjectHideFlags: 0
@@ -14002,4 +14003,4 @@ SceneRoots:
   - {fileID: 148834059}
   - {fileID: 793670217}
   - {fileID: 93540760}
-  - {fileID: 189576607}
+  - {fileID: 195849243}

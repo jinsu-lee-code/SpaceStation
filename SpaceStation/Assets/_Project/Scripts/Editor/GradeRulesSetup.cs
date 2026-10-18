@@ -55,21 +55,21 @@ namespace SpaceStation.Editor
             PolicyModifier M(PolicyStat s, float v) => new PolicyModifier { Stat = s, Value = v };
             var policies = new System.Collections.Generic.List<PolicyData>
             {
-                Policy("PO_Rationing", "배급제", "식량 · 물을 정량으로 나눠 줍니다",
+                Policy("PO_Rationing", "배급제", "식량 · 물을 정량으로 나눠 줍니다", PolicyStance.Control,
                     M(PolicyStat.FoodWaterConsumption, 0.8f), M(PolicyStat.SatisfactionCap, -10f)),
-                Policy("PO_NightShift", "야간 근무", "설비를 쉬지 않고 돌립니다",
+                Policy("PO_NightShift", "야간 근무", "설비를 쉬지 않고 돌립니다", PolicyStance.Control,
                     M(PolicyStat.Production, 1.15f), M(PolicyStat.Decay, 1.3f), M(PolicyStat.SatisfactionCap, -5f)),
-                Policy("PO_ResearchFirst", "연구 우선", "전력을 연구소에 먼저 돌립니다",
+                Policy("PO_ResearchFirst", "연구 우선", "전력을 연구소에 먼저 돌립니다", PolicyStance.Neutral,
                     M(PolicyStat.ResearchSpeed, 1.25f), M(PolicyStat.PowerDemand, 1.1f)),
-                Policy("PO_MandatoryUpkeep", "정비 의무", "채굴 인력 일부를 정비에 돌립니다",
+                Policy("PO_MandatoryUpkeep", "정비 의무", "채굴 인력 일부를 정비에 돌립니다", PolicyStance.Control,
                     M(PolicyStat.Decay, 0.7f), M(PolicyStat.MetalProduction, 0.85f)),
-                Policy("PO_OpenImmigration", "이민 개방", "이주 심사를 줄입니다",
+                Policy("PO_OpenImmigration", "이민 개방", "이주 심사를 줄입니다", PolicyStance.Autonomy,
                     M(PolicyStat.GrowthInterval, 0.7f), M(PolicyStat.ResidentConsumption, 1.1f)),
-                Policy("PO_FestivalCulture", "축제 문화", "정기 축제로 여가 시간을 늘립니다",
+                Policy("PO_FestivalCulture", "축제 문화", "정기 축제로 여가 시간을 늘립니다", PolicyStance.Autonomy,
                     M(PolicyStat.SatisfactionCap, 10f), M(PolicyStat.Production, 0.9f)),
-                Policy("PO_Surveillance", "감시 강화", "불만을 일찍 알아채지만 주민은 답답해합니다",
+                Policy("PO_Surveillance", "감시 강화", "불만을 일찍 알아채지만 주민은 답답해합니다", PolicyStance.Control,
                     M(PolicyStat.CrisisWarning, 1.5f), M(PolicyStat.CrisisThreshold, -10f), M(PolicyStat.SatisfactionCap, -8f)),
-                Policy("PO_EmergencyDrill", "비상 대비", "상시 비상 훈련을 합니다",
+                Policy("PO_EmergencyDrill", "비상 대비", "상시 비상 훈련을 합니다", PolicyStance.Control,
                     M(PolicyStat.RepairSpeed, 1.25f), M(PolicyStat.DestroyTimer, 1.3f), M(PolicyStat.Production, 0.9f)),
             };
             string configPath = $"{PolicyDir}/PolicyConfig.asset";
@@ -118,7 +118,7 @@ namespace SpaceStation.Editor
             Debug.Log("[GradeRulesSetup] 정책 8개 · 설정 · 정책 창 연결 완료");
         }
 
-        private static PolicyData Policy(string file, string name, string description, params PolicyModifier[] modifiers)
+        private static PolicyData Policy(string file, string name, string description, PolicyStance stance, params PolicyModifier[] modifiers)
         {
             string path = $"{PolicyDir}/{file}.asset";
             var p = AssetDatabase.LoadAssetAtPath<PolicyData>(path);
@@ -128,6 +128,7 @@ namespace SpaceStation.Editor
                 AssetDatabase.CreateAsset(p, path);
             }
             p.Set(name, description, modifiers);
+            p.SetStance(stance); // M-22 정책 성격 (판이 주민 반응에 씀)
             EditorUtility.SetDirty(p);
             return p;
         }
