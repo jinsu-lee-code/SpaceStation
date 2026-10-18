@@ -204,7 +204,7 @@ namespace SpaceStation.Simulation
             if (IsRuleLocked(data))
                 return false; // 13-1 규칙이 아직 안 열림
             if (UnlockSource != null)
-                return UnlockSource.IsUnlocked(data); // 13-1 장 틀
+                return UnlockSource.IsUnlocked(data) || IsExtraUnlocked(data); // 13-1 장 틀
             int grade = GetUnlockGrade(data);
             return (grade >= 0 && grade <= GradeIndex) || IsExtraUnlocked(data);
         }
