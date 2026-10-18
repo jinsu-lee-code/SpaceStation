@@ -27,6 +27,8 @@ namespace SpaceStation.Simulation
     public sealed class RecordArchiveSystem : StationSystem, IResearchGate
     {
         public const string SystemKey = "records";
+        /// <summary>13-5c: 기록 하나를 되살림 (장 목표 표시, 단계 상관없이).</summary>
+        public const string RecordFlag = "record";
 
         private readonly RecordConfig _config;
         private readonly Dictionary<RecordTrack, RecordChoice> _choices = new Dictionary<RecordTrack, RecordChoice>();
@@ -183,6 +185,7 @@ namespace SpaceStation.Simulation
             var track = _config.Find(category);
             if (track == null)
                 return;
+            Chapters?.SetFlag(RecordFlag);
             var core = Sim.GetSystem<CorePersonalitySystem>();
             if (IsSealed(track, level))
             {

@@ -75,6 +75,8 @@ namespace SpaceStation.Data
         MeteorBarrage,
         /// <summary>13-4 1장 '첫 긴 밤': 평소보다 긴 밤 + 운석 몇 개. 판정 = 생명 유지 자원 바닥 시간 · 파괴 개수.</summary>
         LongNight,
+        /// <summary>13-5c 2장 '큰 유성우': 방향을 바꿔 가며 특별 유성우 (방향마다 위 파 수 × 파당 개수). 판정 = 막아 낸 비율 · 파괴 개수.</summary>
+        DirectionalShower,
     }
 
     /// <summary>13-1: 절정 설정 (종류마다 쓰는 값이 다름).</summary>
@@ -107,6 +109,16 @@ namespace SpaceStation.Data
         [Tooltip("피해를 입고 버팀: 바닥 시간 이하 (초) + 파괴 개수 이하 (넘으면 일부를 잃음)")]
         [SerializeField, Min(0f)] private float _hurtMaxShortageSeconds = 60f;
 
+        [Header("큰 유성우 (DirectionalShower, 13-5c) — 방향마다 위 '파 수 × 파당 개수', 정리 시간 = 남은 파손을 기다리는 최대 시간")]
+        [Tooltip("몇 방향에서 차례로 (같은 방향 연속 없음)")]
+        [SerializeField, Min(1)] private int _showerDirections = 2;
+        [Tooltip("첫 방향 예보 (초)")]
+        [SerializeField, Min(1f)] private float _showerFirstWarning = 120f;
+        [Tooltip("다음 방향 예보 (초, 앞 방향이 끝나자마자)")]
+        [SerializeField, Min(1f)] private float _showerNextWarning = 40f;
+        [Tooltip("깔끔히 버팀: 파괴 0 + 막아 낸 비율 이상 (포탑 격추 · 실드가 빗겨내 빗나감 · 파손 면역)")]
+        [SerializeField, Range(0f, 1f)] private float _cleanMinBlocked = 0.5f;
+
         public ChapterClimaxKind Kind => _kind;
         public string Title => _title;
         public string Description => _description;
@@ -120,6 +132,10 @@ namespace SpaceStation.Data
         public float NightSeconds => _nightSeconds;
         public float CleanMaxShortageSeconds => _cleanMaxShortageSeconds;
         public float HurtMaxShortageSeconds => _hurtMaxShortageSeconds;
+        public int ShowerDirections => _showerDirections;
+        public float ShowerFirstWarning => _showerFirstWarning;
+        public float ShowerNextWarning => _showerNextWarning;
+        public float CleanMinBlocked => _cleanMinBlocked;
     }
 
     /// <summary>13-1: 장 전환에서 고르는 방주의 방향 하나 (효과 · 코어 성격 축은 13-2).</summary>
@@ -204,6 +220,12 @@ namespace SpaceStation.Data
         [Tooltip("이 장 절정을 깔끔히 버티면 받는 기록 조각")]
         [SerializeField, Min(0)] private int _cleanFragments;
 
+        [Header("13-5c 유성우 (규칙 MeteorShower가 열린 장)")]
+        [Tooltip("장이 시작되고 첫 유성우까지 (초, 0이면 공통 간격대로)")]
+        [SerializeField, Min(0f)] private float _firstShowerDelay;
+        [Tooltip("첫 유성우의 파 수 (연습 삼아 작게, 0이면 보통)")]
+        [SerializeField, Min(0)] private int _firstShowerWaves = 1;
+
         [Header("준비 목표 · 절정 · 전환")]
         [SerializeField] private List<ChapterGoal> _goals = new List<ChapterGoal>();
         [SerializeField] private ChapterClimaxSettings _climax = new ChapterClimaxSettings();
@@ -239,6 +261,8 @@ namespace SpaceStation.Data
         public int SignalDistanceMin => Mathf.Max(3, _signalDistanceMin);
         public int SignalDistanceMax => Mathf.Max(SignalDistanceMin, _signalDistanceMax);
         public int CleanFragments => _cleanFragments;
+        public float FirstShowerDelay => _firstShowerDelay;
+        public int FirstShowerWaves => _firstShowerWaves;
         public IReadOnlyList<ChapterGoal> Goals => _goals;
         public ChapterClimaxSettings Climax => _climax;
         public IReadOnlyList<ChapterChoice> Choices => _choices;

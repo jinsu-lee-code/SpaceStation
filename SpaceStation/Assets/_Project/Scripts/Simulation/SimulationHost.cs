@@ -107,6 +107,9 @@ namespace SpaceStation.Simulation
             // 13-5a 서사판 탐사 (장 틀 위에서만)
             if (_exploration != null && Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
                 Simulation.AddSystem(new ExplorationSystem(_exploration), TickStepNames.Population);
+            // 13-5c 서사판 장 유성우 규칙 (첫 유성우 앞당김 · '유성우 버티기' 표시, 장 틀 위에서만)
+            if (Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
+                Simulation.AddSystem(new ChapterShowerSystem(), TickStepNames.Events);
             // 13-5b 서사판 기록 복원 (장 틀 위에서만 — 연구 판 고리 M-19를 꽂음)
             if (_records != null && Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
                 Simulation.AddSystem(new RecordArchiveSystem(_records), TickStepNames.Research);

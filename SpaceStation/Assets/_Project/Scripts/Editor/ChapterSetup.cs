@@ -76,6 +76,11 @@ namespace SpaceStation.Editor
             CleanFragments(ch1, 1); // 절정을 깔끔히 버티면 조각 (1장 몫은 2장에서 씀)
             CleanFragments(ch2, 1);
 
+            // 13-5c 2장 구성 (사용자 결정 2026-10-18): 평소 유성우 = 시작 3분 뒤 1파 · 이후 7~10분마다 3파, 절정 = 큰 유성우(두 방향 연속 · 파당 2개 · 막은 비율 + 파괴),
+            // 목표 = 필수 3(중형 · 유성우 버티기 · 신호 밝히기) + 선택 2(지점 닿기 · 기록 하나 되살리기), 연결 허브도 2장에서
+            ChapterTwo(ch2);
+            AddUnlocks(ch2, M("MD_ConnectorHub"));
+
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
             if (config == null)
@@ -374,6 +379,58 @@ namespace SpaceStation.Editor
         /// 13-4 1장 '깨어남' (사용자 결정 2026-10-18): 직전 컷신(인간이 남긴 방주 시스템 음성 → 코어의 첫 말) · 목표(필수 코어 기동 + 소형,
         /// 선택 방주 안 둘러보기 + 인구 8) · 절정 '첫 긴 밤'(밤 180초 + 운석 2개, 판정 = 생명 유지 바닥 시간 · 파괴). 컷신 · 문장은 확인용 초안.
         /// </summary>
+        /// <summary>13-5c 2장 '배치': 유성우 규칙 · 첫 유성우 · 목표 5개 · 절정 '큰 유성우' (값은 그레이박스 초안 — BALANCE · 측정 때 조정).</summary>
+        private static void ChapterTwo(ChapterData chapter)
+        {
+            var so = new SerializedObject(chapter);
+            so.FindProperty("_rules").intValue = (int)StationRule.MeteorShower; // 장 규칙은 지금 장까지 누적 → 3장도 유성우
+            so.FindProperty("_firstShowerDelay").floatValue = 180f;
+            so.FindProperty("_firstShowerWaves").intValue = 1;
+
+            var goals = so.FindProperty("_goals");
+            goals.arraySize = 5;
+            var grade = goals.GetArrayElementAtIndex(0);
+            Clear(grade);
+            grade.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.ReachGrade;
+            grade.FindPropertyRelative("_grade").intValue = 2;
+            FlagGoal(goals.GetArrayElementAtIndex(1), SpaceStation.Simulation.ChapterShowerSystem.ShowerFlag, "유성우 한 번 버티기 (파괴 없이)", false);
+            FlagGoal(goals.GetArrayElementAtIndex(2), SpaceStation.Simulation.ExplorationSystem.ProbeFlag, "탐사선으로 신호 하나 밝히기", false);
+            var reach = goals.GetArrayElementAtIndex(3);
+            FlagGoal(reach, SpaceStation.Simulation.ExplorationSystem.ReachFlag, "탐사 지점에 닿기", true);
+            var reward = reach.FindPropertyRelative("_rewardResources");
+            reward.arraySize = 1;
+            reward.GetArrayElementAtIndex(0).FindPropertyRelative("Type").enumValueIndex = (int)ResourceType.Metal;
+            reward.GetArrayElementAtIndex(0).FindPropertyRelative("Amount").floatValue = 100f;
+            var record = goals.GetArrayElementAtIndex(4);
+            FlagGoal(record, SpaceStation.Simulation.RecordArchiveSystem.RecordFlag, "기록 하나 되살리기", true);
+            record.FindPropertyRelative("_rewardResearchPoints").intValue = 1;
+
+            var climax = so.FindProperty("_climax");
+            climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.DirectionalShower;
+            climax.FindPropertyRelative("_title").stringValue = "큰 유성우";
+            climax.FindPropertyRelative("_description").stringValue = "두 방향에서 차례로 쏟아집니다 · 방향마다 3파 × 2개 · 예보를 보고 앞면을 가리세요";
+            climax.FindPropertyRelative("_warningSeconds").floatValue = 180f;
+            climax.FindPropertyRelative("_waves").intValue = 3;
+            climax.FindPropertyRelative("_hitsPerWave").intValue = 2;
+            climax.FindPropertyRelative("_settleSeconds").floatValue = 120f; // 남은 파손을 기다리는 최대 시간 (파괴 유예와 같게)
+            climax.FindPropertyRelative("_hurtMaxDestroyed").intValue = 1;
+            climax.FindPropertyRelative("_showerDirections").intValue = 2;
+            climax.FindPropertyRelative("_showerFirstWarning").floatValue = 120f;
+            climax.FindPropertyRelative("_showerNextWarning").floatValue = 40f;
+            climax.FindPropertyRelative("_cleanMinBlocked").floatValue = 0.5f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(chapter);
+        }
+
+        private static void FlagGoal(SerializedProperty goal, string flag, string text, bool optional)
+        {
+            Clear(goal);
+            goal.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.Flag;
+            goal.FindPropertyRelative("_flag").stringValue = flag;
+            goal.FindPropertyRelative("_text").stringValue = text;
+            goal.FindPropertyRelative("_optional").boolValue = optional;
+        }
+
         private static void ChapterOne(ChapterData chapter, TutorialData interior)
         {
             var so = new SerializedObject(chapter);

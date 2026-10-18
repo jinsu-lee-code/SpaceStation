@@ -41,6 +41,8 @@ namespace SpaceStation.Simulation
                     return new MeteorBarrageClimax();
                 case ChapterClimaxKind.LongNight:
                     return new LongNightClimax();
+                case ChapterClimaxKind.DirectionalShower:
+                    return new DirectionalShowerClimax();
                 default:
                     return new NoClimax();
             }
@@ -364,6 +366,209 @@ namespace SpaceStation.Simulation
                 _destroyedAtStart = s.DestroyedAtStart;
             }
             Subscribe();
+        }
+    }
+
+    /// <summary>
+    /// 13-5c 2장 절정 '큰 유성우' (사용자 결정 2026-10-18): 예보(길게) → 한 방향 N파 → 곧바로 다른 방향 예보(짧게) → N파 (방향 수만큼, 같은 방향 연속 없음).
+    /// 공통 유성우 틀의 특별 유성우(<see cref="MeteorShowerSystem.BeginRaid"/>, 이름 = 절정 제목, M-20)를 써서 예보 · 붉은 면 · 명중 판정이 평소 유성우와 같다.
+    /// 예보 중인 평소 유성우는 거두고, 떨어지는 중이면 끝나길 기다림. 마지막 방향 뒤 남은 파손이 모두 고쳐지거나 파괴될 때까지(최대 정리 시간) 기다려 판정:
+    /// 깔끔 = 파괴 0 + 막아 낸 비율(포탑 격추 · 실드가 빗겨내 빗나감 · 파손 면역) 기준 이상 / 피해 = 파괴 기준 이하 / 그 밖 = 일부를 잃음. 파손 수는 결과에 정보로만.
+    /// </summary>
+    internal sealed class DirectionalShowerClimax : ChapterClimax
+    {
+        private int _directionsDone;
+        private bool _started;
+        private Vector3Int _last;
+        private int _meteors, _blocked, _damaged, _destroyedAtStart;
+        private float _settle = -1f; // 정리 중 남은 시간 (음수 = 아직 떨어지는 중)
+        private bool _subscribed;
+
+        private MeteorShowerSystem Shower => Sim.MeteorShower;
+        private string Label => string.IsNullOrEmpty(Settings.Title) ? "큰 유성우" : Settings.Title;
+        private int Destroyed => Math.Max(0, Sim.Session.ModulesDestroyed - _destroyedAtStart);
+        private bool Ours => _started && Shower.IsRaid && Shower.Label == Label;
+
+        public override float Progress
+        {
+            get
+            {
+                if (Finished)
+                    return 1f;
+                float steps = Settings.ShowerDirections + 1f; // 방향마다 + 정리
+                float done = _directionsDone;
+                if (Ours && Shower.Phase == MeteorShowerSystem.ShowerPhase.Falling)
+                    done += (float)Shower.WavesDone / Math.Max(1, Shower.Waves);
+                if (_settle >= 0f)
+                    done = Settings.ShowerDirections + 1f - _settle / Math.Max(1f, Settings.SettleSeconds);
+                return Mathf.Clamp01(done / steps);
+            }
+        }
+
+        public override string Status
+        {
+            get
+            {
+                string blocked = $"막음 {_blocked}/{_meteors}";
+                if (_settle >= 0f)
+                    return $"피해 정리 {Clock(_settle)} · 남은 파손 {Sim.Damage.DamagedCount} · 파괴 {Destroyed} · {blocked}";
+                if (!Ours)
+                    return "지나가는 유성우가 끝나길 기다리는 중";
+                string step = $"방향 {_directionsDone + 1}/{Settings.ShowerDirections} · {MeteorShowerSystem.DirectionName(Shower.Direction)}"; // 카드에 절정 이름이 이미 있음
+                return Shower.Phase == MeteorShowerSystem.ShowerPhase.Warning
+                    ? $"{step} 예보 {Clock(Shower.TimeLeft)} · {blocked}"
+                    : $"{step} {Shower.WavesDone}/{Shower.Waves}파 · {blocked}";
+            }
+        }
+
+        private static string Clock(float seconds)
+        {
+            int s = Mathf.Max(0, Mathf.CeilToInt(seconds));
+            return $"{s / 60}:{s % 60:00}";
+        }
+
+        internal override void Begin()
+        {
+            _directionsDone = 0;
+            _started = false;
+            _last = Vector3Int.zero;
+            _meteors = _blocked = _damaged = 0;
+            _settle = -1f;
+            _destroyedAtStart = Sim.Session.ModulesDestroyed;
+            Subscribe();
+            StartNext();
+        }
+
+        internal override void Tick(float dt)
+        {
+            if (Finished)
+                return;
+            if (_settle >= 0f)
+            {
+                _settle -= dt;
+                if (_settle <= 0f || Sim.Damage.DamagedCount == 0)
+                    Judge();
+                return;
+            }
+            if (!_started)
+            {
+                StartNext();
+                return;
+            }
+            if (Shower.Phase != MeteorShowerSystem.ShowerPhase.Idle)
+                return;
+            _started = false; // 이 방향이 다 떨어짐
+            _directionsDone++;
+            if (_directionsDone < Settings.ShowerDirections)
+            {
+                StartNext();
+                return;
+            }
+            _settle = Math.Max(0.01f, Settings.SettleSeconds);
+            if (Sim.Damage.DamagedCount == 0)
+                Judge();
+        }
+
+        private void StartNext()
+        {
+            if (Shower.Active && !Shower.IsRaid)
+                Shower.CancelWarning(); // 예보 중인 평소 유성우는 거둠 (떨어지는 중이면 끝나길 기다림)
+            if (Shower.Active)
+                return;
+            float warning = _directionsDone == 0 ? Settings.ShowerFirstWarning : Settings.ShowerNextWarning;
+            _started = Shower.BeginRaid(warning, Settings.Waves, Settings.HitsPerWave, null, Label, _directionsDone == 0 ? Vector3Int.zero : _last);
+            if (_started)
+                _last = Shower.Direction;
+        }
+
+        private void Judge()
+        {
+            int destroyed = Destroyed;
+            float ratio = _meteors > 0 ? (float)_blocked / _meteors : 1f;
+            if (destroyed == 0 && ratio >= Settings.CleanMinBlocked - 1e-4f)
+                Outcome = ChapterOutcome.Clean;
+            else if (destroyed <= Settings.HurtMaxDestroyed)
+                Outcome = ChapterOutcome.Hurt;
+            else
+                Outcome = ChapterOutcome.Lost;
+            Summary = $"운석 {_meteors}개 중 {_blocked}개 막음 ({ratio * 100f:0}%) · 파손 {_damaged} · 파괴 {destroyed}";
+            Finished = true;
+            Detach();
+        }
+
+        private void HandleResolved(MeteorFlight flight)
+        {
+            if (Finished || !Ours || flight == null)
+                return;
+            _meteors++;
+            if (flight.Hit == null || flight.Immune)
+                _blocked++;
+        }
+
+        private void HandleDamaged(DamageInfo info)
+        {
+            if (!Finished)
+                _damaged++;
+        }
+
+        private void Subscribe()
+        {
+            if (_subscribed)
+                return;
+            Sim.MeteorResolved += HandleResolved;
+            Sim.Damage.Damaged += HandleDamaged;
+            _subscribed = true;
+        }
+
+        internal override void Detach()
+        {
+            if (!_subscribed)
+                return;
+            Sim.MeteorResolved -= HandleResolved;
+            Sim.Damage.Damaged -= HandleDamaged;
+            _subscribed = false;
+        }
+
+        [Serializable]
+        private sealed class State
+        {
+            public int DirectionsDone;
+            public bool Started;
+            public Vector3Int Last;
+            public int Meteors;
+            public int Blocked;
+            public int Damaged;
+            public int DestroyedAtStart;
+            public float Settle;
+        }
+
+        internal override string Capture() => JsonUtility.ToJson(new State
+        {
+            DirectionsDone = _directionsDone,
+            Started = _started,
+            Last = _last,
+            Meteors = _meteors,
+            Blocked = _blocked,
+            Damaged = _damaged,
+            DestroyedAtStart = _destroyedAtStart,
+            Settle = _settle,
+        });
+
+        internal override void Restore(string state)
+        {
+            var s = string.IsNullOrEmpty(state) ? null : JsonUtility.FromJson<State>(state);
+            if (s != null)
+            {
+                _directionsDone = s.DirectionsDone;
+                _started = s.Started;
+                _last = s.Last;
+                _meteors = s.Meteors;
+                _blocked = s.Blocked;
+                _damaged = s.Damaged;
+                _destroyedAtStart = s.DestroyedAtStart;
+                _settle = s.Settle;
+            }
+            Subscribe(); // 유성우 자체(방향 · 남은 시간 · 파)는 공통 틀이 저장
         }
     }
 }

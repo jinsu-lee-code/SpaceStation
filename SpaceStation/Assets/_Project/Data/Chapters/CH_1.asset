@@ -60,6 +60,8 @@ MonoBehaviour:
   _signalDistanceMin: 6
   _signalDistanceMax: 10
   _cleanFragments: 1
+  _firstShowerDelay: 0
+  _firstShowerWaves: 1
   _goals:
   - _kind: 4
     _text: "\uCF54\uC5B4 \uAE30\uB3D9 (\uBAA8\uB4E0 \uACC4\uD1B5 \uAE68\uC6B0\uAE30)"
@@ -127,6 +129,10 @@ MonoBehaviour:
     _nightSeconds: 180
     _cleanMaxShortageSeconds: 0
     _hurtMaxShortageSeconds: 60
+    _showerDirections: 2
+    _showerFirstWarning: 120
+    _showerNextWarning: 40
+    _cleanMinBlocked: 0.5
   _choices:
   - _id: remember
     _title: "\uC9C0\uAD6C \uCABD \uCC3D\uC744 \uC5F4\uC5B4 \uB454\uB2E4"

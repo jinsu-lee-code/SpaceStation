@@ -28,8 +28,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 2eb02915ea9baed49b0ef95e5c247fba, type: 2}
   - {fileID: 11400000, guid: b7b4f6178f0f04042b3cff17e0bb328a, type: 2}
   - {fileID: 11400000, guid: e535e9aa2bfade046a856410ed9f1f42, type: 2}
+  - {fileID: 11400000, guid: e575e5740652173449cd238ae605dd24, type: 2}
   _newNeeds: 
-  _rules: 0
+  _rules: 1
   _meteorHitsMin: 2
   _meteorHitsMax: 3
   _eventIntervalMultiplier: 0.65
@@ -51,6 +52,8 @@ MonoBehaviour:
   _signalDistanceMin: 6
   _signalDistanceMax: 10
   _cleanFragments: 1
+  _firstShowerDelay: 180
+  _firstShowerWaves: 1
   _goals:
   - _kind: 0
     _text: 
@@ -64,34 +67,76 @@ MonoBehaviour:
     _rewardResources: []
     _rewardResearchPoints: 0
     _rewardFreeRepairs: 0
-  - _kind: 3
-    _text: 
+  - _kind: 4
+    _text: "\uC720\uC131\uC6B0 \uD55C \uBC88 \uBC84\uD2F0\uAE30 (\uD30C\uAD34 \uC5C6\uC774)"
+    _optional: 0
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 1
+    _resource: 4
+    _amount: 150
+    _flag: shower
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 4
+    _text: "\uD0D0\uC0AC\uC120\uC73C\uB85C \uC2E0\uD638 \uD558\uB098 \uBC1D\uD788\uAE30"
+    _optional: 0
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 1
+    _resource: 4
+    _amount: 150
+    _flag: probe
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 4
+    _text: "\uD0D0\uC0AC \uC9C0\uC810\uC5D0 \uB2FF\uAE30"
     _optional: 1
     _grade: 0
     _module: {fileID: 0}
     _count: 1
     _resource: 4
     _amount: 150
-    _flag: 
+    _flag: reach
+    _rewardResources:
+    - Type: 4
+      Amount: 100
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 4
+    _text: "\uAE30\uB85D \uD558\uB098 \uB418\uC0B4\uB9AC\uAE30"
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 1
+    _resource: 4
+    _amount: 150
+    _flag: record
     _rewardResources: []
     _rewardResearchPoints: 1
     _rewardFreeRepairs: 0
   _climax:
-    _kind: 1
-    _title: "\uC6B4\uC11D \uC5F0\uD0C0 (\uC784\uC2DC \uC808\uC815)"
-    _description: "\uC911\uD615 \uC815\uAC70\uC7A5\uC73C\uB85C \uCEE4\uC9C0\uBA70,
-      \uC5B4\uB514\uC5D0 \uBB34\uC5C7\uC744 \uB458\uC9C0\uAC00 \uC0DD\uC874\uC744
-      \uAC00\uB978\uB2E4. \xB7 \uC6B4\uC11D 3\uD30C \xD7 2\uAC1C"
+    _kind: 3
+    _title: "\uD070 \uC720\uC131\uC6B0"
+    _description: "\uB450 \uBC29\uD5A5\uC5D0\uC11C \uCC28\uB840\uB85C \uC3DF\uC544\uC9D1\uB2C8\uB2E4
+      \xB7 \uBC29\uD5A5\uB9C8\uB2E4 3\uD30C \xD7 2\uAC1C \xB7 \uC608\uBCF4\uB97C
+      \uBCF4\uACE0 \uC55E\uBA74\uC744 \uAC00\uB9AC\uC138\uC694"
     _warningSeconds: 180
     _waves: 3
     _waveInterval: 20
     _hitsPerWave: 2
-    _settleSeconds: 30
+    _settleSeconds: 120
     _cleanMaxDamaged: 2
-    _hurtMaxDestroyed: 0
+    _hurtMaxDestroyed: 1
     _nightSeconds: 180
     _cleanMaxShortageSeconds: 0
     _hurtMaxShortageSeconds: 60
+    _showerDirections: 2
+    _showerFirstWarning: 120
+    _showerNextWarning: 40
+    _cleanMinBlocked: 0.5
   _choices:
   - _id: reach
     _title: "\uBA40\uB9AC \uBED7\uAE30"
