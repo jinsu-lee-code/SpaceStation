@@ -374,7 +374,7 @@
 - 시험 1개 (`PolicyTests.Gate_SlotsOffersTimingAndValues`)
 
 ### `narrative` 합칠 때
-- [ ] 서사판 3장 정책(`ChapterPolicySystem`)이 고리를 꽂음 — 슬롯 1 → 대형 때 2 · 4종 · 30초 · 3분 · 종족 반응.
+- [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 3장 정책(`ChapterPolicySystem`)이 고리를 꽂음 — 슬롯 1 → 대형 때 2 · 4종 · 30초 · 3분 · 종족 반응 · EditMode 435개 통과 · 플레이 모드 정책 창 4종 · 두 줄 높이 확인.
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. 타이쿤판이 정책 에셋을 고쳤으면 `_stance` 줄이 겹칠 수 있음 (메뉴 Setup Policies를 다시 돌리면 채워짐). `PolicyPanel` 목록 배치를 고쳤으면 `PlaceRow` · `FitRows`로 맞춤.
