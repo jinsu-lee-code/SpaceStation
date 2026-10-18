@@ -200,6 +200,10 @@ namespace SpaceStation.Data
         [SerializeField, Min(3)] private int _signalDistanceMin = 6;
         [SerializeField, Min(3)] private int _signalDistanceMax = 10;
 
+        [Header("13-5b 기록 복원")]
+        [Tooltip("이 장 절정을 깔끔히 버티면 받는 기록 조각")]
+        [SerializeField, Min(0)] private int _cleanFragments;
+
         [Header("준비 목표 · 절정 · 전환")]
         [SerializeField] private List<ChapterGoal> _goals = new List<ChapterGoal>();
         [SerializeField] private ChapterClimaxSettings _climax = new ChapterClimaxSettings();
@@ -234,6 +238,7 @@ namespace SpaceStation.Data
         public IReadOnlyList<SiteKind> Signals => _signals;
         public int SignalDistanceMin => Mathf.Max(3, _signalDistanceMin);
         public int SignalDistanceMax => Mathf.Max(SignalDistanceMin, _signalDistanceMax);
+        public int CleanFragments => _cleanFragments;
         public IReadOnlyList<ChapterGoal> Goals => _goals;
         public ChapterClimaxSettings Climax => _climax;
         public IReadOnlyList<ChapterChoice> Choices => _choices;

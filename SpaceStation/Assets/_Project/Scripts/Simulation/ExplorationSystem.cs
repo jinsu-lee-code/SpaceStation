@@ -76,7 +76,7 @@ namespace SpaceStation.Simulation
         public override string Key => SystemKey;
         public ExplorationConfig Config => _config;
         public IReadOnlyList<ExploreSite> Sites => _sites;
-        /// <summary>모은 기록 조각 (13-5b 기록 복원 연구).</summary>
+        /// <summary>난파선에서 찾은 기록 조각 수 (쓰는 쪽은 13-5b <see cref="RecordArchiveSystem"/>).</summary>
         public int Fragments { get; private set; }
         public bool ProbeInFlight => _probeSite >= 0;
         public float ProbeTimeLeft => _probeTimer;
@@ -286,6 +286,7 @@ namespace SpaceStation.Simulation
             {
                 case SiteKind.Wreck:
                     Fragments += _config.WreckFragments;
+                    Sim.GetSystem<RecordArchiveSystem>()?.AddFragments(_config.WreckFragments); // 13-5b 봉인된 기록을 푸는 데 씀 (알림은 아래 한 줄)
                     Sim.Supply.SetCounts(Sim.Supply.ResearchPoints + _config.WreckResearchPoints, Sim.Supply.FreeRepairs);
                     Sim.Report($"{name} 탐사 시작 · 기록 조각 +{_config.WreckFragments} · 연구 포인트 +{_config.WreckResearchPoints}", true);
                     var logs = _config.WreckLogs;

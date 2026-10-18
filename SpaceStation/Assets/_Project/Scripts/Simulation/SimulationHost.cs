@@ -54,6 +54,8 @@ namespace SpaceStation.Simulation
         [SerializeField] private ArkShipConfig _arkShips;
         [Tooltip("13-5a 탐사 (메뉴 SpaceStation/Chapters/Setup Greybox가 채움). 비면 탐사 없음 (장 틀이 있을 때만)")]
         [SerializeField] private ExplorationConfig _exploration;
+        [Tooltip("13-5b 기록 복원 (메뉴 SpaceStation/Chapters/Setup Greybox가 채움). 비면 연구가 공통 틀 그대로 (장 틀이 있을 때만)")]
+        [SerializeField] private RecordConfig _records;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -105,6 +107,9 @@ namespace SpaceStation.Simulation
             // 13-5a 서사판 탐사 (장 틀 위에서만)
             if (_exploration != null && Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
                 Simulation.AddSystem(new ExplorationSystem(_exploration), TickStepNames.Population);
+            // 13-5b 서사판 기록 복원 (장 틀 위에서만 — 연구 판 고리 M-19를 꽂음)
+            if (_records != null && Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
+                Simulation.AddSystem(new RecordArchiveSystem(_records), TickStepNames.Research);
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
             {

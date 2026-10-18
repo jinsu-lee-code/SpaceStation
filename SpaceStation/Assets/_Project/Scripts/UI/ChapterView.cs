@@ -61,6 +61,8 @@ namespace SpaceStation.UI
         private ExplorationSystem _explore;
         private TMP_Text _exploreLine;
         private readonly System.Collections.Generic.List<ExploreSite> _sites = new System.Collections.Generic.List<ExploreSite>();
+        // 13-5b 기록 복원 (조각 줄 + 봉인 기록 선택 창)
+        private RecordArchiveSystem _records;
         // 13-4 내부 안내 (방주 안 둘러보기)
         private Interior.InteriorMode _interior;
         private TutorialRunner _guide;
@@ -100,6 +102,7 @@ namespace SpaceStation.UI
                 ResidentText.KindTag = r => ships.Find(r.Kind)?.DisplayName; // 주민 명단: "토끼 | 기술자·낙천가" (종족 기본 | 개인)
             }
             _explore = _sim.GetSystem<ExplorationSystem>();
+            _records = _sim.GetSystem<RecordArchiveSystem>();
             _interior = FindFirstObjectByType<Interior.InteriorMode>(FindObjectsInactive.Include);
             if (_interior != null)
                 _interior.InsideChanged += HandleInsideChanged;
@@ -369,6 +372,10 @@ namespace SpaceStation.UI
                 _climaxNow.transform.parent.gameObject.SetActive(showNow);
             RefreshShipLine();
             RefreshExploreLine();
+            // 13-5b 봉인 단계를 마친 기록 → 선택 창 (다른 창이 열려 있으면 닫힌 뒤, 불러온 판도 여기서)
+            var pending = _records?.Pending;
+            if (pending != null && !_modalOpen && _chapters.Phase != ChapterPhase.Transition && _chapters.Phase != ChapterPhase.Finished)
+                ShowRecord(pending);
         }
 
         /// <summary>13-5a 카드 아래 탐사 줄: 센서 · 고를 신호 · 탐사선 비행 · 밝힌 지점까지 거리 · 닿음.</summary>
@@ -392,6 +399,13 @@ namespace SpaceStation.UI
                     text = $"탐사 · <b>{ExplorationConfig.Name(revealed.Kind)}</b> {MeteorShowerSystem.DirectionName(revealed.Direction)} · 지금 {_explore.Distance(revealed)}칸 <size=86%><color={Soft}>({_explore.Config.ReachRadius}칸 이내 도달 시 탐사 시작)</color></size>";
                 else
                     text = $"<color={HudTheme.GreenHex}>탐사 · {ExplorationConfig.Name(revealed.Kind)} 탐사 중</color>";
+            }
+            // 13-5b 가진 기록 조각 (봉인된 기록을 푸는 데 씀)
+            if (_records != null && _records.IsOpen && _records.Fragments > 0)
+            {
+                if (text.Length > 0)
+                    text += "\n";
+                text += $"<color={Gold}>기록 조각 {_records.Fragments}</color> <size=86%><color={Soft}>[관리] → {_records.Title}에서 봉인된 기록을 풂</color></size>";
             }
             bool show = text.Length > 0;
             if (_exploreLine.gameObject.activeSelf != show)
@@ -464,6 +478,48 @@ namespace SpaceStation.UI
         private void AnswerShip(ShipAnswer answer)
         {
             if (!_ships.Answer(answer))
+            {
+                AudioService.TryPlay(l => l.UiError);
+                return;
+            }
+            AudioService.TryPlay(l => l.UiClick);
+            CloseModal(resume: true);
+            Refresh();
+        }
+
+        // ---------------- 13-5b 봉인 기록 ----------------
+
+        /// <summary>봉인 단계를 마친 기록 (시간 멈춤): 되살린 기억 · 인간 미스터리 한 줄 → 보존 / 덮어쓰기.</summary>
+        private void ShowRecord(RecordTrack track)
+        {
+            var config = _records.Config;
+            int sealedLevel = config.SealedLevel;
+            _modalTitle.SetText($"봉인된 기록 복원\n<size=70%><color={Gold}>{track.Category.DisplayName}</color></size>");
+            _sb.Clear();
+            _sb.Append($"<color={Soft}>{track.Memory(sealedLevel)}</color>\n");
+            if (!string.IsNullOrEmpty(track.SealedHuman))
+                _sb.Append($"\n<color={CoreTint}>{track.SealedHuman}</color>\n");
+            _sb.Append("\n<size=90%>원본을 남기면 기본 효과, 지우고 그 저장 공간을 쓰면 효과가 1.5배가 됩니다. 한 번 고르면 바꿀 수 없습니다.</size>");
+            _modalBody.SetText(_sb.ToString());
+
+            ClearButtons();
+            var level = track.Category.GetLevel(sealedLevel);
+            AddRecordButton(track, true, $"<b>보존</b>\n<size=78%><color={Soft}>{level?.Description} · 기록을 남김</color></size>", config.PreserveShifts);
+            AddRecordButton(track, false, $"<b>덮어쓰기</b>\n<size=78%><color={Soft}>{track.OverwriteDescription} · 원본은 지워짐</color></size>", config.OverwriteShifts);
+            OpenModal();
+        }
+
+        private void AddRecordButton(RecordTrack track, bool preserve, string label, System.Collections.Generic.IReadOnlyList<AxisShift> shifts)
+        {
+            string lean = LeanText(shifts);
+            if (lean.Length > 0)
+                label += $"\n<size=70%><color={CoreTint}>코어: {lean}</color></size>";
+            AddButton(label, () => AnswerRecord(track, preserve), tall: true);
+        }
+
+        private void AnswerRecord(RecordTrack track, bool preserve)
+        {
+            if (!_records.Choose(track, preserve))
             {
                 AudioService.TryPlay(l => l.UiError);
                 return;

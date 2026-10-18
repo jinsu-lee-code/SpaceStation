@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa4f2b2b21ab57a4c921e7a31aae9a15, type: 3}
+  m_Name: RC_RecordStructure
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ResearchCategoryData
+  _category: 0
+  _displayName: "\uAD6C\uC870 \uAE30\uB85D"
+  _icon: repair
+  _levels:
+  - StartCost:
+    - Type: 1
+      Amount: 20
+    - Type: 2
+      Amount: 20
+    - Type: 4
+      Amount: 30
+    PowerDemand: 5
+    Duration: 60
+    Description: "\uC218\uB9AC \uBE44\uC6A9 25% \xB7 \uC218\uB9AC \uC2DC\uAC04 25\uCD08"
+    Modifiers:
+    - Stat: 0
+      Value: 0.25
+    - Stat: 1
+      Value: 25
+  - StartCost:
+    - Type: 1
+      Amount: 40
+    - Type: 2
+      Amount: 40
+    - Type: 4
+      Amount: 60
+    PowerDemand: 8
+    Duration: 120
+    Description: "\uAC74\uC124 \uBE44\uC6A9 -5% \xB7 \uCCA0\uAC70 \uD658\uAE09 60%"
+    Modifiers:
+    - Stat: 19
+      Value: 0.95
+    - Stat: 20
+      Value: 0.6
+  - StartCost:
+    - Type: 1
+      Amount: 70
+    - Type: 2
+      Amount: 70
+    - Type: 4
+      Amount: 100
+    PowerDemand: 12
+    Duration: 180
+    Description: "\uB178\uD6C4 \uC18D\uB3C4 20% \uC644\uD654 \xB7 \uC218\uB9AC \uBE44\uC6A9
+      20% \xB7 \uC218\uB9AC \uC2DC\uAC04 20\uCD08"
+    Modifiers:
+    - Stat: 2
+      Value: 0.8
+    - Stat: 0
+      Value: 0.2
+    - Stat: 1
+      Value: 20
+  _minGrade: 0

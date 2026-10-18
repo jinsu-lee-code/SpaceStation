@@ -70,6 +70,12 @@ namespace SpaceStation.Editor
             Signals(ch2, SiteKind.Asteroid, SiteKind.Wreck, SiteKind.DebrisField);
             AddUnlocks(ch2, M("MD_SensorArray"), M("MD_StructureFrame"));
 
+            // 13-5b 기록 복원 (사용자 결정 2026-10-18 D-7): 4갈래 × 3단계 · 3단계 봉인(기록 조각) · 2장부터 (연구소도 2장에서 엶)
+            var recordResearch = Records();
+            MoveUnlock(ch1, ch2, M("MD_ResearchLab"));
+            CleanFragments(ch1, 1); // 절정을 깔끔히 버티면 조각 (1장 몫은 2장에서 씀)
+            CleanFragments(ch2, 1);
+
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
             if (config == null)
@@ -115,6 +121,12 @@ namespace SpaceStation.Editor
             hso.FindProperty("_arkShips").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ArkShipConfig>(ArkPath);
             hso.FindProperty("_tutorial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<TutorialData>(BootPath);
             hso.FindProperty("_exploration").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ExplorationConfig>(ExplorePath); // 서사판 = 코어 기동 (메뉴 Tutorial/Setup을 다시 돌리면 공통 튜토리얼로 바뀜 → 이 메뉴를 뒤에 다시)
+            hso.FindProperty("_records").objectReferenceValue = AssetDatabase.LoadAssetAtPath<RecordConfig>(RecordPath);
+            // 13-5b 연구 목록 = 기록 4갈래 + 정비 자동화 (메뉴 Research/Setup을 다시 돌리면 공통 6분야로 바뀜 → 이 메뉴를 뒤에 다시)
+            var researchList = hso.FindProperty("_researchCategories");
+            researchList.arraySize = recordResearch.Count;
+            for (int i = 0; i < recordResearch.Count; i++)
+                researchList.GetArrayElementAtIndex(i).objectReferenceValue = AssetDatabase.LoadAssetAtPath<ResearchCategoryData>(recordResearch[i]); // 경로로 다시 (막 만든 에셋을 그대로 넣으면 null로 저장됐음)
             hso.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(host);
 
@@ -444,6 +456,185 @@ namespace SpaceStation.Editor
             });
             EditorUtility.SetDirty(cfg);
             return cfg;
+        }
+
+        // ---------------- 13-5b 기록 복원 ----------------
+
+        private const string RecordPath = "Assets/_Project/Data/Chapters/RecordConfig.asset";
+        private const string RecordFolder = "Assets/_Project/Data/Research/Records";
+        private const string ResearchFolder = "Assets/_Project/Data/Research";
+
+        /// <summary>
+        /// 13-5b 기록 복원 (사용자 결정 2026-10-18 D-7): 서사판 전용 연구 분야 4갈래 × 3단계 (기존 6분야 효과를 다시 묶음,
+        /// 비용 · 전력 · 시간 = RESEARCH.md 2번 Lv.1 ~ 3), 3단계는 봉인 — 덮어쓰기 효과 = 레벨 표의 효과 × 1.5 (기본값에서 늘어난 만큼).
+        /// 문장(지구의 기억 · 인간 미스터리)은 확인용 초안. 돌려줌 = 씬 연구 목록의 에셋 경로 (4갈래 + 정비 자동화 — 씬을 열면 막 만든 에셋 참조가 끊겨 경로로 넘김).
+        /// </summary>
+        private static List<string> Records()
+        {
+            Directory.CreateDirectory(RecordFolder);
+            var balance = AssetDatabase.LoadAssetAtPath<BalanceConfig>("Assets/_Project/Data/BalanceConfig.asset");
+            string Icon(string rc) => AssetDatabase.LoadAssetAtPath<ResearchCategoryData>($"{ResearchFolder}/{rc}.asset")?.Icon ?? "event";
+
+            var survival = RecordCategory("RC_RecordSurvival", ResearchCategory.Production, "생존 기록", Icon("RC_Production"),
+                RecordLevel(1, "산소 · 물 · 식량 생산 +10%", (ResearchStat.LifeSupportProductionMultiplier, 1.1f)),
+                RecordLevel(2, "태양광 발전 +15% · 전력 최소 효율 30%", (ResearchStat.SolarMultiplier, 1.15f), (ResearchStat.MinPowerEfficiency, 0.3f)),
+                RecordLevel(3, "산소 · 물 · 식량 생산 +20% · 좋은 인접 효과 +10%p", (ResearchStat.LifeSupportProductionMultiplier, 1.2f), (ResearchStat.AdjacencyBonusBoost, 0.1f)));
+            var structure = RecordCategory("RC_RecordStructure", ResearchCategory.Maintenance, "구조 기록", Icon("RC_Maintenance"),
+                RecordLevel(1, "수리 비용 25% · 수리 시간 25초", (ResearchStat.RepairCostRate, 0.25f), (ResearchStat.RepairDuration, 25f)),
+                RecordLevel(2, "건설 비용 -5% · 철거 환급 60%", (ResearchStat.BuildCostMultiplier, 0.95f), (ResearchStat.DemolishRefundRate, 0.6f)),
+                RecordLevel(3, "노후 속도 20% 완화 · 수리 비용 20% · 수리 시간 20초", (ResearchStat.DecayMultiplier, 0.8f), (ResearchStat.RepairCostRate, 0.2f), (ResearchStat.RepairDuration, 20f)));
+            float ricochet = balance != null ? balance.ShieldRicochetChance : 0.7f;
+            var defense = RecordCategory("RC_RecordDefense", ResearchCategory.Defense, "방어 기록", Icon("RC_Defense"),
+                RecordLevel(1, "운석 · 태양 폭풍 15초 전 경보 · 실드 · 포탑 반경 +1칸", (ResearchStat.EarlyWarningSeconds, 15f), (ResearchStat.DefenseRadiusBonus, 1f)),
+                RecordLevel(2, "운석 명중 시 파손 면역 20% · 경보 중 운석 대상 표시", (ResearchStat.HitImmunityChance, 0.2f), (ResearchStat.MeteorTargetPreview, 1f)),
+                RecordLevel(3, $"실드 튕김 명중 {ricochet * 100f:0}% → 45% · 파손 면역 30%", (ResearchStat.RicochetChance, 0.45f), (ResearchStat.HitImmunityChance, 0.3f)));
+            var life = RecordCategory("RC_RecordLife", ResearchCategory.Habitation, "생활 기록", Icon("RC_Habitation"),
+                RecordLevel(1, "만족도 상한 +5", (ResearchStat.SatisfactionCapBonus, 5f)),
+                RecordLevel(2, "의료실 · 휴게실 반경 +1칸", (ResearchStat.ServiceRadiusBonus, 1f)),
+                RecordLevel(3, "거주 모듈 수용 인원 +1 · 만족도 상한 +8", (ResearchStat.HousingBonus, 1f), (ResearchStat.SatisfactionCapBonus, 8f)));
+
+            var tracks = new List<RecordTrack>
+            {
+                Track(survival, balance, "생산 +{0} · 좋은 인접 효과 +{1}",
+                    "지구의 온실 기록. 유리 지붕 아래 토마토가 한겨울에도 붉게 익었다.",
+                    "해가 지지 않는 여름의 북쪽 마을. 지붕마다 검은 판이 해를 따라 돌았다.",
+                    "마지막 종자 은행의 목록. 씨앗 4만 종, 봉투마다 누군가의 손글씨 이름표.",
+                    "목록 끝의 메모: '방주에는 씨앗보다 먼저 이것을 실어라.' 무엇을 가리키는지는 지워져 있다."),
+                Track(structure, balance, "노후 {0} 완화 · 수리 비용 {1} · 수리 시간 {2}",
+                    "다리를 고치는 사람들의 작업 일지. 볼트 하나에도 날짜가 적혀 있다.",
+                    "무너진 도시를 다시 쌓은 기록. 그들은 남은 벽돌부터 세었다.",
+                    "방주 설계 회의록 첫 장: '백 년을 버틸 것. 누구든 고칠 수 있을 것.'",
+                    "회의록 서명란은 열두 칸, 이름은 열한 개. 마지막 칸은 비어 있다."),
+                Track(defense, balance, "튕김 명중 {0} · 파손 면역 {1}",
+                    "유성우 관측 일지. 아이들이 별똥별에 소원을 빌었다고 적혀 있다.",
+                    "옛 정거장의 피격 보고서. 벽에 덧댄 얇은 판 하나가 사람을 살렸다.",
+                    "하늘을 지키던 망원경들의 마지막 경보 기록.",
+                    "경보는 정확했다. 다만 너무 늦게 받아들여졌다. 보고서 아래에 누군가 '우리는 알고 있었다'라고 적었다."),
+                Track(life, balance, "수용 인원 +{0} · 만족도 상한 +{1}",
+                    "어느 집 저녁 식탁 사진. 의자가 하나 남는다.",
+                    "병원 복도에 걸린 그림들. 아이들이 그린 해는 모두 웃고 있다.",
+                    "이웃끼리 나눈 쪽지 묶음: '불 꺼지면 우리 집으로 와요.'",
+                    "쪽지 하나는 방주 앞으로 쓰였다: '우리 대신 누군가 살아 주기를.' 보낸 이의 이름은 없다."),
+            };
+            var cfg = LoadOrCreate<RecordConfig>(RecordPath);
+            cfg.EditorSet(tracks,
+                new List<AxisShift> { new AxisShift(CoreAxis.Memory, CorePole.First, ShiftSize.Small) },
+                new List<AxisShift> { new AxisShift(CoreAxis.Memory, CorePole.First, ShiftSize.Medium) },
+                new List<AxisShift> { new AxisShift(CoreAxis.Memory, CorePole.Second, ShiftSize.Medium) });
+            EditorUtility.SetDirty(cfg);
+
+            var list = new List<string>();
+            foreach (var c in new[] { survival, structure, defense, life })
+                list.Add(AssetDatabase.GetAssetPath(c));
+            list.Add($"{ResearchFolder}/RC_Automation.asset"); // 정비 자동화는 그대로 (단일 연구)
+            return list;
+        }
+
+        private static ResearchCategoryData RecordCategory(string file, ResearchCategory kind, string name, string icon, params ResearchLevel[] levels)
+        {
+            var c = LoadOrCreate<ResearchCategoryData>($"{RecordFolder}/{file}.asset");
+            c.EditorSet(kind, name, icon, new List<ResearchLevel>(levels));
+            EditorUtility.SetDirty(c);
+            return c;
+        }
+
+        /// <summary>단계 하나 (비용 · 전력 · 시간 = RESEARCH.md 2-1 · 2-2 표 Lv.1 ~ 3).</summary>
+        private static ResearchLevel RecordLevel(int level, string description, params (ResearchStat stat, float value)[] modifiers)
+        {
+            float[] lifeCost = { 20f, 40f, 70f }, metalCost = { 30f, 60f, 100f }, power = { 5f, 8f, 12f }, seconds = { 60f, 120f, 180f };
+            int i = level - 1;
+            var l = new ResearchLevel { PowerDemand = power[i], Duration = seconds[i], Description = description };
+            l.StartCost.Add(new ResourceAmount(ResourceType.Oxygen, lifeCost[i]));
+            l.StartCost.Add(new ResourceAmount(ResourceType.Water, lifeCost[i]));
+            l.StartCost.Add(new ResourceAmount(ResourceType.Metal, metalCost[i]));
+            foreach (var (stat, value) in modifiers)
+                l.Modifiers.Add(new ResearchModifier { Stat = stat, Value = value });
+            return l;
+        }
+
+        /// <summary>갈래 하나: 봉인 단계(3) 효과를 기본값에서 늘어난 만큼 × 1.5 → 덮어쓰기 효과 + 설명({0}, {1} … = 덮어쓴 값).</summary>
+        private static RecordTrack Track(ResearchCategoryData category, BalanceConfig balance, string overwriteFormat, string memory1, string memory2, string memory3, string human)
+        {
+            var sealedLevel = category.GetLevel(3);
+            var overwrite = new List<ResearchModifier>();
+            var shown = new List<object>();
+            foreach (var m in sealedLevel.Modifiers)
+            {
+                float b = BaseOf(m.Stat, balance);
+                float v = b + (m.Value - b) * 1.5f;
+                if (m.Stat == ResearchStat.HousingBonus || m.Stat == ResearchStat.ServiceRadiusBonus || m.Stat == ResearchStat.DefenseRadiusBonus)
+                    v = Mathf.Ceil(v - 0.01f); // 칸 · 명 단위는 올림 (+1 → +2)
+                v = Mathf.Max(0f, v);
+                overwrite.Add(new ResearchModifier { Stat = m.Stat, Value = v });
+                shown.Add(Shown(m.Stat, v));
+            }
+            return new RecordTrack(category, new List<string> { memory1, memory2, memory3 }, human, overwrite, string.Format(overwriteFormat, shown.ToArray()));
+        }
+
+        /// <summary>연구가 없을 때의 값 (ResearchEffects의 기본값과 같게).</summary>
+        private static float BaseOf(ResearchStat stat, BalanceConfig balance)
+        {
+            switch (stat)
+            {
+                case ResearchStat.RepairCostRate: return balance != null ? balance.RepairCostRate : 0.3f;
+                case ResearchStat.RepairDuration: return balance != null ? balance.RepairDuration : 30f;
+                case ResearchStat.RicochetChance: return balance != null ? balance.ShieldRicochetChance : 0.7f;
+                case ResearchStat.MinPowerEfficiency: return balance != null ? balance.MinPowerEfficiency : 0.25f;
+                case ResearchStat.DemolishRefundRate: return balance != null ? balance.DemolishRefundRate : 0.5f;
+                case ResearchStat.LifeSupportProductionMultiplier:
+                case ResearchStat.DecayMultiplier:
+                case ResearchStat.SolarMultiplier:
+                case ResearchStat.BatteryMultiplier:
+                case ResearchStat.BuildCostMultiplier:
+                case ResearchStat.RebuildCostMultiplier:
+                case ResearchStat.TurretInterceptMultiplier:
+                    return 1f;
+                default:
+                    return 0f;
+            }
+        }
+
+        /// <summary>덮어쓴 값의 화면 표기 (배율 → 늘어난 %, 비율 → %, 초 → 초, 그 밖 = 수).</summary>
+        private static string Shown(ResearchStat stat, float v)
+        {
+            switch (stat)
+            {
+                case ResearchStat.LifeSupportProductionMultiplier: return $"{(v - 1f) * 100f:0}%";
+                case ResearchStat.DecayMultiplier: return $"{(1f - v) * 100f:0}%";
+                case ResearchStat.AdjacencyBonusBoost: return $"{v * 100f:0}%p";
+                case ResearchStat.RepairCostRate:
+                case ResearchStat.RicochetChance:
+                case ResearchStat.HitImmunityChance:
+                    return $"{v * 100f:0}%";
+                case ResearchStat.RepairDuration: return $"{v:0}초";
+                default: return $"{v:0.#}";
+            }
+        }
+
+        /// <summary>모듈 해금을 앞 장에서 빼고 뒤 장에 넣음 (13-5b: 연구소 1장 → 2장).</summary>
+        private static void MoveUnlock(ChapterData from, ChapterData to, ModuleData module)
+        {
+            if (module == null)
+                return;
+            var so = new SerializedObject(from);
+            var list = so.FindProperty("_unlocks");
+            for (int i = list.arraySize - 1; i >= 0; i--)
+                if (list.GetArrayElementAtIndex(i).objectReferenceValue == module)
+                {
+                    list.GetArrayElementAtIndex(i).objectReferenceValue = null;
+                    list.DeleteArrayElementAtIndex(i);
+                }
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(from);
+            AddUnlocks(to, module);
+        }
+
+        private static void CleanFragments(ChapterData chapter, int count)
+        {
+            var so = new SerializedObject(chapter);
+            so.FindProperty("_cleanFragments").intValue = count;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(chapter);
         }
 
         private const string WreckPath = "Assets/_Project/Art/Models/Explore/SM_Wreck.fbx";
