@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ChapterData
   _displayName: "2\uC7A5"
   _subtitle: "\uBC30\uCE58"
+  _introSpeaker: 
+  _introLines: []
+  _interiorGuide: {fileID: 0}
   _unlocks:
   - {fileID: 11400000, guid: 373f8d20bbedd74469e7875858728843, type: 2}
   - {fileID: 11400000, guid: baf883a30124ece408a78a2d102218bf, type: 2}
@@ -79,6 +82,9 @@ MonoBehaviour:
     _settleSeconds: 30
     _cleanMaxDamaged: 2
     _hurtMaxDestroyed: 0
+    _nightSeconds: 180
+    _cleanMaxShortageSeconds: 0
+    _hurtMaxShortageSeconds: 60
   _choices:
   - _id: reach
     _title: "\uBA40\uB9AC \uBED7\uAE30"

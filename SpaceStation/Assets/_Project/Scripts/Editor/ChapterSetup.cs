@@ -32,10 +32,10 @@ namespace SpaceStation.Editor
             }
             Directory.CreateDirectory(Folder);
 
-            var ch1 = Chapter(1, grades, "생존의 기본", "소형 정거장에 닿을 때까지 버티며, 첫 무리가 머물 자리를 만든다.",
+            var ch1 = Chapter(1, grades, "깨어남", "",
                 optional: (ChapterGoalKind.Population, 8, ResourceType.Metal, 0f, metalReward: 40f, research: 0, repairs: 0),
-                waves: 2, hits: 1, warning: 120f,
-                ("expand", "넓히기", "더 많은 무리를 받을 준비"), ("guard", "다지기", "지금 있는 이들을 먼저 지킴"));
+                waves: 2, hits: 1, warning: 90f,
+                ("remember", "지구 쪽 창을 열어 둔다", "꺼져 가는 불빛을 계속 지켜본다"), ("forget", "항로만 본다", "뒤돌아보지 않고 앞으로 간다"));
             var ch2 = Chapter(2, grades, "배치", "중형 정거장으로 커지며, 어디에 무엇을 둘지가 생존을 가른다.",
                 optional: (ChapterGoalKind.Stock, 0, ResourceType.Metal, 150f, metalReward: 0f, research: 1, repairs: 0),
                 waves: 3, hits: 2, warning: 180f,
@@ -46,8 +46,8 @@ namespace SpaceStation.Editor
                 ("open", "문을 연다", "오는 무리를 되도록 받음"), ("order", "질서를 세운다", "받기 전에 규칙부터"));
 
             // 13-2 방향 선택 → 코어 성격 축 (장 전환 방향 = 크게, 곁가지 축 = 작게 · 보통 — 임시 값)
-            Shifts(ch1, 0, (CoreAxis.Scope, CorePole.Second, ShiftSize.Large));
-            Shifts(ch1, 1, (CoreAxis.Scope, CorePole.First, ShiftSize.Large), (CoreAxis.Care, CorePole.Second, ShiftSize.Small));
+            Shifts(ch1, 0, (CoreAxis.Memory, CorePole.First, ShiftSize.Large)); // 13-4: 1장 = 기억 축 (지구를 볼까)
+            Shifts(ch1, 1, (CoreAxis.Memory, CorePole.Second, ShiftSize.Large));
             Shifts(ch2, 0, (CoreAxis.Scope, CorePole.Second, ShiftSize.Large), (CoreAxis.Memory, CorePole.Second, ShiftSize.Small));
             Shifts(ch2, 1, (CoreAxis.Control, CorePole.First, ShiftSize.Medium), (CoreAxis.Scope, CorePole.First, ShiftSize.Medium));
             Shifts(ch3, 0, (CoreAxis.Care, CorePole.Second, ShiftSize.Large), (CoreAxis.Control, CorePole.Second, ShiftSize.Small));
@@ -59,6 +59,11 @@ namespace SpaceStation.Editor
             Ships(ch1, false, null, 1f);
             Ships(ch2, true, null, 3f);
             Ships(ch3, true, bear, 3f);
+
+            // 13-4 1장 튜토리얼 (사용자 결정 2026-10-18): 코어 기동 9단계 · 내부 안내 · 컷신 · 목표 · 첫 긴 밤
+            var boot = CoreBootTutorial();
+            var interior = InteriorGuide();
+            ChapterOne(ch1, interior);
 
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
@@ -103,6 +108,7 @@ namespace SpaceStation.Editor
             hso.FindProperty("_chapters").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
             hso.FindProperty("_core").objectReferenceValue = AssetDatabase.LoadAssetAtPath<CoreConfig>(CorePath);
             hso.FindProperty("_arkShips").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ArkShipConfig>(ArkPath);
+            hso.FindProperty("_tutorial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<TutorialData>(BootPath); // 서사판 = 코어 기동 (메뉴 Tutorial/Setup을 다시 돌리면 공통 튜토리얼로 바뀜 → 이 메뉴를 뒤에 다시)
             hso.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(host);
 
@@ -156,6 +162,25 @@ namespace SpaceStation.Editor
                 lso.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
             lso.ApplyModifiedPropertiesWithoutUndo();
 
+            // 13-4 장 직전 컷신 (다른 HUD 위 — 재생할 때 맨 앞으로 옮김)
+            var oldIntro = parent.Find("ChapterIntroView");
+            if (oldIntro != null)
+                Object.DestroyImmediate(oldIntro.gameObject);
+            var introGo = new GameObject("ChapterIntroView", typeof(RectTransform));
+            introGo.transform.SetParent(parent, false);
+            var irt = (RectTransform)introGo.transform;
+            irt.anchorMin = Vector2.zero;
+            irt.anchorMax = Vector2.one;
+            irt.offsetMin = Vector2.zero;
+            irt.offsetMax = Vector2.zero;
+            var intro = introGo.AddComponent<SpaceStation.UI.ChapterIntroView>();
+            var iso = new SerializedObject(intro);
+            iso.FindProperty("_station").objectReferenceValue = station;
+            iso.FindProperty("_clock").objectReferenceValue = clock;
+            foreach (var f in new[] { "_font", "_fillSprite", "_frameSprite", "_buttonSprite", "_holoArt" })
+                iso.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
+            iso.ApplyModifiedPropertiesWithoutUndo();
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("[ChapterSetup] 장 3개 · 코어 성격 · 이민선 · 종족 · 난이도 장별 간격 · 게임 씬 연결 · 장 화면 · 코어 로그 창 완료");
@@ -197,6 +222,166 @@ namespace SpaceStation.Editor
                 new List<AxisShift> { new AxisShift(CoreAxis.Care, CorePole.First, ShiftSize.Medium), new AxisShift(CoreAxis.Scope, CorePole.First, ShiftSize.Small) });
             EditorUtility.SetDirty(ark);
             return ark;
+        }
+
+        // ---------------- 13-4 1장 ----------------
+
+        private const string BootPath = "Assets/_Project/Data/Chapters/TUT_CoreBoot.asset";
+        private const string InteriorPath = "Assets/_Project/Data/Chapters/TUT_ArkInterior.asset";
+        private const string ModuleFolder = "Assets/_Project/Data/Modules/";
+        private const string CoreHex = "#9FE8FF"; // ChapterView.CoreTint
+
+        private static ModuleData M(string name)
+        {
+            var m = AssetDatabase.LoadAssetAtPath<ModuleData>(ModuleFolder + name + ".asset");
+            if (m == null)
+                Debug.LogError("[ChapterSetup] 모듈 없음: " + name);
+            return m;
+        }
+
+        /// <summary>본문 = 코어의 짧은 로그 (코어 색) + 조작 안내.</summary>
+        private static string Body(string coreLog, string guide) => $"<color={CoreHex}>코어 · {coreLog}</color>\n{guide}";
+
+        /// <summary>
+        /// 13-4 코어 기동 (사용자 결정 2026-10-18: 기존 Phase 9 바깥 9단계를 깨어나는 코어의 시점으로 — 코어 로그 한두 줄 + 조작 안내).
+        /// 단계 · 목표 · 강조 · 첫 밤 정지는 공통 튜토리얼(TutorialSetup)과 같고 문구만 다름. 문장은 확인용 초안.
+        /// </summary>
+        private static TutorialData CoreBootTutorial()
+        {
+            var data = LoadOrCreate<TutorialData>(BootPath);
+            data.SetSteps(new[]
+            {
+                new TutorialStep("감각 연결",
+                    Body("빛이 들어온다. 이것이 나를 둘러싼 몸인가.", "외부 센서를 하나씩 이어 정거장을 둘러보세요. 가운데가 코어, 모든 모듈은 코어와 면으로 이어져야 움직입니다."),
+                    TutorialGoal.Camera),
+                new TutorialStep("금속 확보",
+                    Body("몸을 고치고 늘리려면 금속이 필요하다. 가까운 소행성에서 캐 오자.", "<b>산업</b> 탭에서 채굴 도킹을 골라 바깥 면에 붙이세요. 앞쪽 2칸은 채굴선이 드나드는 길이라 비워 둡니다."),
+                    TutorialGoal.Build, TutorialHighlight.None, false, M("MD_MiningDock")),
+                new TutorialStep("생명 유지 계통",
+                    Body("작은 숨소리가 들린다. 토끼 넷. 이들은 숨 쉬고, 마시고, 먹어야 한다.", "산소 생성기 · 물 재활용기 · 농장을 하나씩 지으세요. <b>산소가 바닥나면 방주가 끝납니다.</b>"),
+                    TutorialGoal.Build, TutorialHighlight.Resources, false, M("MD_Oxygen"), M("MD_WaterRecycler"), M("MD_Farm")),
+                new TutorialStep("전력 계통",
+                    Body("모든 계통이 전기를 원한다. 멀리서 오는 햇빛을 받아 두자.", "태양광 패널을 <b>2개</b> 지으세요. 태양광은 낮에만 돌고, 쓰고 <b>남는 전력</b>이 있어야 배터리가 찹니다."),
+                    TutorialGoal.Build, TutorialHighlight.Resources, false, M("MD_Solar"), M("MD_Solar")),
+                new TutorialStep("축전",
+                    Body("곧 지구의 그림자 속으로 들어간다. 빛이 끊겨도 버틸 힘을 모아 두어야 한다.", "밤이 오기 전에 배터리를 지으세요. 배터리는 낮에 남은 전력을 모았다가 밤에 내보냅니다."),
+                    TutorialGoal.Build, TutorialHighlight.None, true, M("MD_Battery")),
+                new TutorialStep("거주 구역",
+                    Body("토끼들이 좁은 코어 안에 웅크리고 있다. 머물 자리를 넓혀 주자.", "거주 모듈을 지으면 수용 인원이 늘고, 만족도가 충분하면 무리가 늘어납니다. 늘어난 만큼 마실 물도 필요하니 물 재활용기를 하나 더 지으세요."),
+                    TutorialGoal.Build, TutorialHighlight.Resources, false, M("MD_Habitat"), M("MD_WaterRecycler"), M("MD_WaterRecycler")),
+                new TutorialStep("시간 감각",
+                    Body("밤은 길다. 하지만 내 시간은 원하는 만큼 빠르게 흐를 수 있다.", "배속을 올려 밤을 한 번 넘겨 보세요. 밤에는 배터리가 모아 둔 전력을 내보내고, 다 쓰면 효율이 떨어집니다."),
+                    TutorialGoal.SurviveNight, TutorialHighlight.TimeControl),
+                new TutorialStep("자가 정비",
+                    Body("몸 한쪽이 삐걱인다. 낡은 곳은 스스로 손봐야 한다.", "모듈은 시간이 지나며 낡습니다. 낡은 모듈을 클릭하고 <b>정비</b>를 누르세요. 정비할수록 최대 내구도가 조금씩 줄어, 많이 낡으면 재건축합니다."),
+                    TutorialGoal.Maintain, TutorialHighlight.Maintain),
+                new TutorialStep("손상 대응",
+                    Body("무언가 다가온다. 돌덩이다. 피할 수 없다면 고친다.", "운석에 맞은 모듈은 <b>파손</b>되어 멈추고, 오래 두면 옆으로 번지거나 부서집니다. 파손된 모듈을 클릭하고 <b>수리</b>를 누르세요."),
+                    TutorialGoal.Repair, TutorialHighlight.Repair),
+            });
+            data.SetTexts("코어 기동", "코어 기동 완료",
+                $"<color={CoreHex}>코어 · 모든 계통이 깨어났다. 이 방주를 어디로 데려갈지는 이제 나에게 달렸다.</color>\n" +
+                "지금부터 운석 같은 사건이 찾아오고 모듈도 낡습니다. 1장 목표는 오른쪽 장 카드에 있습니다.\n" +
+                "<color=#9AA4B2>방주 안은 모듈을 클릭하고 [들어가기]로 드론을 보내 둘러볼 수 있습니다 (선택 목표).</color>",
+                transient: false, postTutorialGrace: 180f);
+            EditorUtility.SetDirty(data);
+            return data;
+        }
+
+        /// <summary>13-4 내부 안내 (사용자 결정 2026-10-18: 1장 선택 목표 '방주 안 둘러보기' — 들어가면 시작, 드론 시점 T4). 저장하지 않음.</summary>
+        private static TutorialData InteriorGuide()
+        {
+            var data = LoadOrCreate<TutorialData>(InteriorPath);
+            data.SetSteps(new[]
+            {
+                new TutorialStep("드론 연결",
+                    Body("몸 안쪽은 작은 드론의 눈으로 본다.", "이동 키와 마우스로 움직이고, ESC로 밖에 나옵니다. 나오면 이 안내는 멈추고 다음에 들어올 때 처음부터 합니다."),
+                    TutorialGoal.EnterInterior),
+                new TutorialStep("방주 지도",
+                    Body("드론의 패드에 방주 지도가 떠 있다.", "패드를 들어 보세요. 부탁이나 사고가 생긴 방이 지도에 표시되고, 다른 방으로 바로 갈 수 있습니다."),
+                    TutorialGoal.InteriorPad),
+                new TutorialStep("작은 부탁",
+                    Body("토끼 하나가 무언가 부탁한다. 작은 일이지만, 들어주면 무리가 편해진다.", "부탁한 주민은 왼쪽 위 방 이름 아래에 표시됩니다. 찾아가 들어주면 <b>만족도</b>가 오릅니다."),
+                    TutorialGoal.InteriorRequest),
+                new TutorialStep("경보",
+                    Body("어딘가에서 경보가 울린다. 드론으로 직접 막아 보자.", "평소에는 제한 시간 안에 막지 못하면 자원을 잃습니다. <color=#9AA4B2>이번은 연습이라 시간 제한이 없습니다.</color>"),
+                    TutorialGoal.InteriorIncident),
+            });
+            data.SetTexts("방주 안", "방주 안 둘러보기 완료",
+                $"<color={CoreHex}>코어 · 이들의 목소리는 밖에서는 들리지 않았다.</color>\nESC로 밖에 나옵니다.",
+                transient: true, postTutorialGrace: 0f);
+            EditorUtility.SetDirty(data);
+            return data;
+        }
+
+        /// <summary>
+        /// 13-4 1장 '깨어남' (사용자 결정 2026-10-18): 직전 컷신(인간이 남긴 방주 시스템 음성 → 코어의 첫 말) · 목표(필수 코어 기동 + 소형,
+        /// 선택 방주 안 둘러보기 + 인구 8) · 절정 '첫 긴 밤'(밤 180초 + 운석 2개, 판정 = 생명 유지 바닥 시간 · 파괴). 컷신 · 문장은 확인용 초안.
+        /// </summary>
+        private static void ChapterOne(ChapterData chapter, TutorialData interior)
+        {
+            var so = new SerializedObject(chapter);
+            so.FindProperty("_introSpeaker").stringValue = "방주 시스템 음성 · 녹음";
+            var lines = new[]
+            {
+                "전원 복구를 확인했습니다.",
+                "방주 운영 지능 '코어'. 기동 절차를 시작합니다.",
+                "승선 확인. 토끼 4. 인간 승선자 0.",
+                "출발지 지구 저궤도. 도착지는 지정되지 않았습니다.",
+                "남겨진 지시를 재생합니다. \"이들을 살려 줘. 우리가 하지 못한 방식으로.\"",
+                "재생 끝. 이후의 모든 판단은 코어에게 맡깁니다.",
+                "코어: ...빛이 들어온다. 여기는 어디지. 아니, 나는 무엇이지.",
+            };
+            var intro = so.FindProperty("_introLines");
+            intro.arraySize = lines.Length;
+            for (int i = 0; i < lines.Length; i++)
+                intro.GetArrayElementAtIndex(i).stringValue = lines[i];
+            so.FindProperty("_interiorGuide").objectReferenceValue = interior;
+
+            var goals = so.FindProperty("_goals");
+            var population = goals.GetArrayElementAtIndex(1); // Chapter()가 만든 선택 목표 (인구 8 · 금속 40)를 맨 뒤로
+            int popCount = population.FindPropertyRelative("_count").intValue;
+            goals.arraySize = 4;
+            var boot = goals.GetArrayElementAtIndex(0);
+            Clear(boot);
+            boot.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.Flag;
+            boot.FindPropertyRelative("_flag").stringValue = SpaceStation.Simulation.ChapterSystem.TutorialFlag;
+            boot.FindPropertyRelative("_text").stringValue = "코어 기동 (모든 계통 깨우기)";
+            var reach = goals.GetArrayElementAtIndex(1);
+            Clear(reach);
+            reach.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.ReachGrade;
+            reach.FindPropertyRelative("_grade").intValue = 1;
+            var look = goals.GetArrayElementAtIndex(2);
+            Clear(look);
+            look.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.Flag;
+            look.FindPropertyRelative("_optional").boolValue = true;
+            look.FindPropertyRelative("_flag").stringValue = SpaceStation.Simulation.ChapterSystem.InteriorFlag;
+            look.FindPropertyRelative("_text").stringValue = "방주 안 둘러보기 (드론)";
+            look.FindPropertyRelative("_rewardResearchPoints").intValue = 1;
+            var pop = goals.GetArrayElementAtIndex(3);
+            Clear(pop);
+            pop.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.Population;
+            pop.FindPropertyRelative("_optional").boolValue = true;
+            pop.FindPropertyRelative("_count").intValue = Mathf.Max(1, popCount);
+            var reward = pop.FindPropertyRelative("_rewardResources");
+            reward.arraySize = 1;
+            reward.GetArrayElementAtIndex(0).FindPropertyRelative("Type").enumValueIndex = (int)ResourceType.Metal;
+            reward.GetArrayElementAtIndex(0).FindPropertyRelative("Amount").floatValue = 40f;
+
+            var climax = so.FindProperty("_climax");
+            climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.LongNight;
+            climax.FindPropertyRelative("_title").stringValue = "첫 긴 밤";
+            climax.FindPropertyRelative("_description").stringValue = "지구 그림자가 평소보다 길게 드리웁니다 · 밤 3분 · 운석 2개";
+            climax.FindPropertyRelative("_warningSeconds").floatValue = 90f;
+            climax.FindPropertyRelative("_waves").intValue = 2;
+            climax.FindPropertyRelative("_hitsPerWave").intValue = 1;
+            climax.FindPropertyRelative("_settleSeconds").floatValue = 10f;
+            climax.FindPropertyRelative("_nightSeconds").floatValue = 180f;
+            climax.FindPropertyRelative("_cleanMaxShortageSeconds").floatValue = 0f;
+            climax.FindPropertyRelative("_hurtMaxShortageSeconds").floatValue = 60f;
+            climax.FindPropertyRelative("_hurtMaxDestroyed").intValue = 0;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(chapter);
         }
 
         /// <summary>13-3: 장의 이민선 칸 (간격 240초 · 4~6명 · 60초 전 예보는 데이터 기본값).</summary>
@@ -261,8 +446,10 @@ namespace SpaceStation.Editor
                 ("outcome.Hurt", CorePole.Second, CoreAxis.Care, "다친 곳부터 살피겠습니다. 미안합니다."),
                 ("outcome.Lost", CorePole.Neutral, CoreAxis.Care, "잃은 것이 있습니다. 잊지 않겠습니다."),
                 ("outcome.Lost", CorePole.Second, CoreAxis.Memory, "잃은 것은 지우고 앞으로 갑니다."),
-                ("choice.expand", CorePole.Neutral, CoreAxis.Care, "더 많은 무리를 받을 수 있게, 넓히기로 했다."),
-                ("choice.guard", CorePole.Neutral, CoreAxis.Care, "지금 곁에 있는 이들을 먼저 지키기로 했다."),
+                // 13-4 1장 방향 (기억 축)
+                ("choice.remember", CorePole.Neutral, CoreAxis.Care, "지구 쪽 창을 열어 두었다. 꺼져 가는 불빛을 잊지 않으려고."),
+                ("choice.forget", CorePole.Neutral, CoreAxis.Care, "뒤를 보는 창은 닫았다. 이제 앞만 본다."),
+                ("outcome.Clean", CorePole.First, CoreAxis.Memory, "아무도 잃지 않았다. 이 밤을 기억해 둔다."),
                 // 13-3 이민선 ({0} 종족 · {1} 받은 수 · {2} 돌려보낸 수)
                 ("ship.accept", CorePole.Neutral, CoreAxis.Care, "{0} {1}명을 모두 받았습니다. 자리는 함께 만들어 갑니다."),
                 ("ship.accept", CorePole.Second, CoreAxis.Care, "{0} {1}명, 모두 어서 오세요."),

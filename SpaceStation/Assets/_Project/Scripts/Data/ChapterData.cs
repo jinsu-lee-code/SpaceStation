@@ -73,6 +73,8 @@ namespace SpaceStation.Data
         None,
         /// <summary>그레이박스: 운석 연타 — 파 수 × 파당 피해 개수. 판정 = 파손 · 파괴 개수.</summary>
         MeteorBarrage,
+        /// <summary>13-4 1장 '첫 긴 밤': 평소보다 긴 밤 + 운석 몇 개. 판정 = 생명 유지 자원 바닥 시간 · 파괴 개수.</summary>
+        LongNight,
     }
 
     /// <summary>13-1: 절정 설정 (종류마다 쓰는 값이 다름).</summary>
@@ -97,6 +99,14 @@ namespace SpaceStation.Data
         [Tooltip("피해를 입고 버팀: 파괴 개수 이하 (넘으면 일부를 잃음)")]
         [SerializeField, Min(0)] private int _hurtMaxDestroyed = 0;
 
+        [Header("긴 밤 (LongNight, 13-4) — 운석은 위 '파 수 × 파당 개수'를 밤 동안 고르게")]
+        [Tooltip("덮는 밤 길이 (초, 평소 밤보다 길게)")]
+        [SerializeField, Min(10f)] private float _nightSeconds = 180f;
+        [Tooltip("깔끔히 버팀: 산소 · 물 · 식량 중 하나라도 바닥이었던 시간 이하 (초) + 파괴 0")]
+        [SerializeField, Min(0f)] private float _cleanMaxShortageSeconds = 0f;
+        [Tooltip("피해를 입고 버팀: 바닥 시간 이하 (초) + 파괴 개수 이하 (넘으면 일부를 잃음)")]
+        [SerializeField, Min(0f)] private float _hurtMaxShortageSeconds = 60f;
+
         public ChapterClimaxKind Kind => _kind;
         public string Title => _title;
         public string Description => _description;
@@ -107,6 +117,9 @@ namespace SpaceStation.Data
         public float SettleSeconds => _settleSeconds;
         public int CleanMaxDamaged => _cleanMaxDamaged;
         public int HurtMaxDestroyed => _hurtMaxDestroyed;
+        public float NightSeconds => _nightSeconds;
+        public float CleanMaxShortageSeconds => _cleanMaxShortageSeconds;
+        public float HurtMaxShortageSeconds => _hurtMaxShortageSeconds;
     }
 
     /// <summary>13-1: 장 전환에서 고르는 방주의 방향 하나 (효과 · 코어 성격 축은 13-2).</summary>
@@ -136,6 +149,14 @@ namespace SpaceStation.Data
         [SerializeField] private string _displayName = "1장";
         [Tooltip("장 부제 (이야기 이름, 이야기 설계 때)")]
         [SerializeField] private string _subtitle;
+
+        [Header("장 직전 컷신 (13-4, 검은 화면 + 자막)")]
+        [Tooltip("말하는 쪽 (자막 위 작은 글씨, 예: 방주 시스템 음성)")]
+        [SerializeField] private string _introSpeaker;
+        [Tooltip("한 줄씩 나오는 자막. \"코어:\"로 시작하는 줄은 코어의 말 (코어 색 · 코어 기록에 남음)")]
+        [SerializeField, TextArea(1, 3)] private List<string> _introLines = new List<string>();
+        [Tooltip("이 장의 내부 안내 (들어가면 시작 · 끝까지 하면 표시 'interior', 비면 없음)")]
+        [SerializeField] private TutorialData _interiorGuide;
 
         [Header("해금 · 요구 (이 장에서 새로)")]
         [SerializeField] private List<ModuleData> _unlocks = new List<ModuleData>();
@@ -180,6 +201,9 @@ namespace SpaceStation.Data
 
         public string DisplayName => _displayName;
         public string Subtitle => _subtitle;
+        public string IntroSpeaker => _introSpeaker;
+        public IReadOnlyList<string> IntroLines => _introLines;
+        public TutorialData InteriorGuide => _interiorGuide;
         public IReadOnlyList<ModuleData> Unlocks => _unlocks;
         public IReadOnlyList<ResidentNeed> NewNeeds => _newNeeds;
         public StationRule Rules => _rules;

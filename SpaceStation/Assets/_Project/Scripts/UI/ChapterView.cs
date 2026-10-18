@@ -57,6 +57,9 @@ namespace SpaceStation.UI
         // 13-3 이민선 (카드 아래 줄 + 도착 창)
         private ArkShipSystem _ships;
         private TMP_Text _shipLine;
+        // 13-4 내부 안내 (방주 안 둘러보기)
+        private Interior.InteriorMode _interior;
+        private TutorialRunner _guide;
 
         // 결과 · 선택 / 캠페인 끝
         private RectTransform _modalRoot;
@@ -92,6 +95,9 @@ namespace SpaceStation.UI
                 var ships = _ships;
                 ResidentText.KindTag = r => ships.Find(r.Kind)?.DisplayName; // 주민 명단: "토끼 | 기술자·낙천가" (종족 기본 | 개인)
             }
+            _interior = FindFirstObjectByType<Interior.InteriorMode>(FindObjectsInactive.Include);
+            if (_interior != null)
+                _interior.InsideChanged += HandleInsideChanged;
             _cardTween.Play(restart: true);
             // 불러온 판이 전환 · 끝 상태면 그 화면부터
             if (_chapters.Phase == ChapterPhase.Transition)
@@ -115,6 +121,45 @@ namespace SpaceStation.UI
                 _ships.Arrived -= HandleShipArrived;
                 ResidentText.KindTag = null;
             }
+            if (_interior != null)
+                _interior.InsideChanged -= HandleInsideChanged;
+            if (_guide != null)
+                _guide.Finished -= HandleGuideFinished;
+        }
+
+        // ---------------- 13-4 내부 안내 ----------------
+
+        /// <summary>
+        /// 들어가면 그 장의 내부 안내를 시작 (코어 기동이 끝났고 · 아직 다 안 했고 · 준비 · 예고 중일 때). 나오면 중간이어도 멈추고,
+        /// 다음에 들어가면 처음부터. 끝까지 하면 표시 'interior' (1장 선택 목표). 안내는 저장하지 않음 (데이터 _transient).
+        /// 들어간 순간 알림(InsideChanged)이 튜토리얼 '들어가기' 보고보다 먼저라, 새 안내의 첫 단계(들어가기)가 바로 채워진다.
+        /// </summary>
+        private void HandleInsideChanged(bool inside)
+        {
+            if (!inside)
+            {
+                if (_guide != null && _guide.Active)
+                    _guide.Skip();
+                return;
+            }
+            var data = _chapters.Current.InteriorGuide;
+            if (data == null || _chapters.HasFlag(ChapterSystem.InteriorFlag))
+                return;
+            if (_chapters.Phase != ChapterPhase.Preparation && _chapters.Phase != ChapterPhase.Warning)
+                return;
+            var running = _sim.Tutorial;
+            if (running != null && running.Active)
+                return;
+            if (_guide != null)
+                _guide.Finished -= HandleGuideFinished;
+            _guide = _sim.StartTutorial(data);
+            _guide.Finished += HandleGuideFinished;
+        }
+
+        private void HandleGuideFinished(bool skipped)
+        {
+            if (!skipped)
+                _chapters.SetFlag(ChapterSystem.InteriorFlag);
         }
 
         private void Update()

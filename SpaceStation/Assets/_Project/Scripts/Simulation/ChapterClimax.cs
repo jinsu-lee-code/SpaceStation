@@ -39,6 +39,8 @@ namespace SpaceStation.Simulation
             {
                 case ChapterClimaxKind.MeteorBarrage:
                     return new MeteorBarrageClimax();
+                case ChapterClimaxKind.LongNight:
+                    return new LongNightClimax();
                 default:
                     return new NoClimax();
             }
@@ -73,6 +75,159 @@ namespace SpaceStation.Simulation
         }
 
         internal override void Tick(float dt) { }
+    }
+
+    /// <summary>
+    /// 13-4 1장 절정 '첫 긴 밤' (사용자 결정 2026-10-18): 시작하면 바로 해가 지고 정해진 길이(180초)의 밤이 이어짐
+    /// (<see cref="DayNightCycle.OverrideNight"/> — 끝나면 새벽). 밤 동안 운석(파 수 × 파당 개수)을 고르게 나눠 보냄.
+    /// 새벽 뒤 정리 시간이 지나면 판정 = 밤 동안 산소 · 물 · 식량 중 하나라도 바닥이었던 시간 + 파괴 개수.
+    /// </summary>
+    internal sealed class LongNightClimax : ChapterClimax
+    {
+        private float _start;
+        private float _elapsed;
+        private int _meteors;
+        private float _shortage;
+        private int _damaged;
+        private int _destroyedAtStart;
+        private bool _subscribed;
+
+        private float Night => Settings.NightSeconds;
+        private float Total => Night + Settings.SettleSeconds;
+        private int Meteors => Settings.Waves;
+        private int Destroyed => Math.Max(0, Sim.Session.ModulesDestroyed - _destroyedAtStart);
+
+        public override float Progress => Finished ? 1f : Total > 0f ? Mathf.Clamp01(_elapsed / Total) : 1f;
+
+        public override string Status
+        {
+            get
+            {
+                string loss = $"바닥 {Mathf.FloorToInt(_shortage)}초 · 파괴 {Destroyed}"; // 카드 한 줄 (파손 수는 결과 요약에)
+                if (_elapsed < Night)
+                {
+                    int left = Mathf.CeilToInt(Night - _elapsed);
+                    return $"새벽까지 {left / 60}:{left % 60:00} · 운석 {_meteors}/{Meteors} · {loss}";
+                }
+                return $"새벽 · 피해 정리 중 · {loss}";
+            }
+        }
+
+        internal override void Begin()
+        {
+            _start = Sim.ElapsedSeconds;
+            _elapsed = 0f;
+            _meteors = 0;
+            _shortage = 0f;
+            _damaged = 0;
+            _destroyedAtStart = Sim.Session.ModulesDestroyed;
+            Sim.DayNight.OverrideNight(_start, Night);
+            Subscribe();
+        }
+
+        internal override void Tick(float dt)
+        {
+            if (Finished)
+                return;
+            _elapsed += dt;
+            if (_elapsed <= Night && IsShort())
+                _shortage += dt;
+            while (_meteors < Meteors && _elapsed >= Night * (_meteors + 1) / (Meteors + 1))
+            {
+                FireMeteor();
+                _meteors++;
+            }
+            if (_elapsed >= Total)
+                Judge();
+        }
+
+        private bool IsShort()
+        {
+            var r = Sim.Resources;
+            return r.Population > 0 && (r.IsDepleted(ResourceType.Oxygen) || r.IsDepleted(ResourceType.Water) || r.IsDepleted(ResourceType.Food));
+        }
+
+        private void FireMeteor()
+        {
+            foreach (var e in Sim.EventPool)
+            {
+                if (!(e is MeteorEventData))
+                    continue;
+                Sim.ForceNextMeteorHits(Settings.HitsPerWave);
+                if (Sim.Events.Trigger(e))
+                    return;
+                Sim.ForceNextMeteorHits(0);
+            }
+        }
+
+        private void Judge()
+        {
+            int destroyed = Destroyed;
+            if (destroyed > Settings.HurtMaxDestroyed || _shortage > Settings.HurtMaxShortageSeconds + 1e-3f)
+                Outcome = ChapterOutcome.Lost;
+            else if (destroyed == 0 && _shortage <= Settings.CleanMaxShortageSeconds + 1e-3f)
+                Outcome = ChapterOutcome.Clean;
+            else
+                Outcome = ChapterOutcome.Hurt;
+            Summary = $"생명 유지 바닥 {Mathf.FloorToInt(_shortage)}초 · 파손 {_damaged}개 · 파괴 {destroyed}개";
+            Finished = true;
+            Detach(); // 덮은 밤 · 새벽은 지우지 않음 (끝난 뒤 원래 새벽까지 낮으로 덮은 구간이 남아 있을 수 있음)
+        }
+
+        private void HandleDamaged(DamageInfo info) => _damaged++;
+
+        private void Subscribe()
+        {
+            if (_subscribed)
+                return;
+            Sim.Damage.Damaged += HandleDamaged;
+            _subscribed = true;
+        }
+
+        internal override void Detach()
+        {
+            if (!_subscribed)
+                return;
+            Sim.Damage.Damaged -= HandleDamaged;
+            _subscribed = false;
+        }
+
+        [Serializable]
+        private sealed class State
+        {
+            public float Start;
+            public float Elapsed;
+            public int Meteors;
+            public float Shortage;
+            public int Damaged;
+            public int DestroyedAtStart;
+        }
+
+        internal override string Capture() => JsonUtility.ToJson(new State
+        {
+            Start = _start,
+            Elapsed = _elapsed,
+            Meteors = _meteors,
+            Shortage = _shortage,
+            Damaged = _damaged,
+            DestroyedAtStart = _destroyedAtStart,
+        });
+
+        internal override void Restore(string state)
+        {
+            var s = string.IsNullOrEmpty(state) ? null : JsonUtility.FromJson<State>(state);
+            if (s != null)
+            {
+                _start = s.Start;
+                _elapsed = s.Elapsed;
+                _meteors = s.Meteors;
+                _shortage = s.Shortage;
+                _damaged = s.Damaged;
+                _destroyedAtStart = s.DestroyedAtStart;
+            }
+            Sim.DayNight.OverrideNight(_start, Night); // 덮은 밤은 저장하지 않으므로 다시 덮음
+            Subscribe();
+        }
     }
 
     /// <summary>

@@ -45,6 +45,10 @@ namespace SpaceStation.Simulation
     public sealed class ChapterSystem : StationSystem, IModuleUnlocks, IEventScale, IStationRules
     {
         public const string SystemKey = "chapters";
+        /// <summary>13-4: 튜토리얼(코어 기동)이 끝났거나 없으면 저절로 올라가는 표시 (1장 필수 목표 — 건너뛰거나 끈 판도 채워짐).</summary>
+        public const string TutorialFlag = "tutorial";
+        /// <summary>13-4: 내부 안내(방주 안 둘러보기)를 끝까지 하면 화면이 올리는 표시 (1장 선택 목표).</summary>
+        public const string InteriorFlag = "interior";
 
         private readonly ChapterConfig _config;
         private readonly HashSet<string> _flags = new HashSet<string>();
@@ -380,6 +384,8 @@ namespace SpaceStation.Simulation
             {
                 case ChapterPhase.Preparation:
                     ChapterSeconds += dt;
+                    if (!HasFlag(TutorialFlag) && (Sim.Tutorial == null || !Sim.Tutorial.Active))
+                        _flags.Add(TutorialFlag); // 13-4 코어 기동 끝 (바로 아래에서 목표 판정)
                     EvaluateGoals();
                     if (RequiredDone)
                         BeginWarning();
