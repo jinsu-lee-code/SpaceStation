@@ -387,6 +387,12 @@ namespace SpaceStation.Interior
                 _requests.TutorialHold = hold;
             if (_incidents != null)
                 _incidents.TutorialHold = hold;
+            // 13-4: 들어간 뒤 새로 시작된 튜토리얼(서사판 내부 안내)은 들어갈 때 숨긴 카드를 다시 켬 (나올 때 숨김 목록에서 되살리지 않게 뺌)
+            if (hold && _tutorialPanel != null && !_tutorialPanel.activeSelf)
+            {
+                _tutorialPanel.SetActive(true);
+                _hiddenNow.Remove(_tutorialPanel);
+            }
             var step = tutorial?.Current;
             if (step == null)
                 return;
@@ -552,6 +558,7 @@ namespace SpaceStation.Interior
                 _incidents.CurrentRoom = _currentModule;
             DriveTutorial();
             UpdateTracker();
+            PlaceTop();
             if (_notice != null && _noticeUntil > 0f && Time.unscaledTime > _noticeUntil)
             {
                 _noticeUntil = 0f;
@@ -972,12 +979,18 @@ namespace SpaceStation.Interior
             dotImg.color = new Color(1f, 1f, 1f, 0.8f);
             dotImg.raycastTarget = false;
 
-            _title = ui.Label(_overlay, "", 26f, TextAlignmentOptions.TopLeft);
-            HoloUi.Place(_title.rectTransform, new Vector2(24f, -20f), new Vector2(700f, 80f));
+            // 13-4 (사용자 피드백 2026-10-18): 방 이름 · 사고/부탁 줄을 상단 중앙으로 (왼쪽 위는 [관리] 메뉴와 겹쳤음).
+            // 사건 배너(같은 상단 중앙)가 떠 있는 동안은 그 아래로 비켜 섬 (PlaceTop)
+            _title = ui.Label(_overlay, "", 26f, TextAlignmentOptions.Top);
+            TopCenter(_title.rectTransform, TitleTop, new Vector2(900f, 80f));
 
             // 11-18 진행 중인 사고 · 부탁 (방 이름 아래)
-            _tracker = ui.Label(_overlay, "", 20f, TextAlignmentOptions.TopLeft);
-            HoloUi.Place(_tracker.rectTransform, new Vector2(24f, -88f), new Vector2(700f, 30f));
+            _tracker = ui.Label(_overlay, "", 20f, TextAlignmentOptions.Top);
+            TopCenter(_tracker.rectTransform, TrackerTop, new Vector2(900f, 30f));
+            var banner = _hud != null ? _hud.Find("EventBanner") : null;
+            _banner = banner != null ? banner.GetComponent<CanvasGroup>() : null;
+            var tutorialPanel = _hud != null ? _hud.Find("Tutorial") : null;
+            _tutorialPanel = tutorialPanel != null ? tutorialPanel.gameObject : null;
 
             _prompt = ui.Label(_overlay, "", 22f, TextAlignmentOptions.Center);
             var prt = _prompt.rectTransform;
@@ -1037,6 +1050,36 @@ namespace SpaceStation.Interior
             _overlay.gameObject.SetActive(true);
             SetContentVisible(false);
             InsideChanged += SetContentVisible;
+        }
+
+        private const float TitleTop = 20f, TrackerTop = 88f, BannerGap = 10f;
+        private CanvasGroup _banner;
+        private GameObject _tutorialPanel;
+        private float _topShift = -1f;
+        private readonly Vector3[] _bannerCorners = new Vector3[4];
+
+        private static void TopCenter(RectTransform rt, float top, Vector2 size)
+        {
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 1f);
+            rt.anchoredPosition = new Vector2(0f, -top);
+            rt.sizeDelta = size;
+        }
+
+        /// <summary>13-4: 사건 배너가 보이는 동안 방 이름 · 사고/부탁 줄을 배너 아래로.</summary>
+        private void PlaceTop()
+        {
+            float shift = 0f;
+            if (_banner != null && _banner.alpha > 0.05f)
+            {
+                ((RectTransform)_banner.transform).GetWorldCorners(_bannerCorners);
+                float bottom = _overlay.InverseTransformPoint(_bannerCorners[0]).y; // 배너 아래 끝 (오버레이 좌표)
+                shift = Mathf.Max(0f, Mathf.Round(_overlay.rect.yMax - bottom + BannerGap - TitleTop));
+            }
+            if (Mathf.Approximately(shift, _topShift))
+                return;
+            _topShift = shift;
+            _title.rectTransform.anchoredPosition = new Vector2(0f, -(TitleTop + shift));
+            _tracker.rectTransform.anchoredPosition = new Vector2(0f, -(TrackerTop + shift));
         }
 
         private void SetContentVisible(bool on)
