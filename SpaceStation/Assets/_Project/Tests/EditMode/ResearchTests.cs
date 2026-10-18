@@ -170,6 +170,8 @@ namespace SpaceStation.Tests
             public void OnStarted(ResearchCategoryData category, int level) => Started++;
             public IReadOnlyList<ResearchModifier> Modifiers(ResearchCategoryData category, int level, IReadOnlyList<ResearchModifier> defaults) => Override ?? defaults;
             public string Note(ResearchCategoryData category, int level) => null;
+            public bool Linked = true;
+            public bool ShowLinked => Linked;
         }
 
         [Test]
@@ -188,8 +190,12 @@ namespace SpaceStation.Tests
             Assert.IsTrue(sim.Research.IsOpen);
             gate.Open = false;
             Assert.IsFalse(sim.Research.IsOpen);
+            Assert.IsTrue(sim.Research.ShowLinked);
+            gate.Linked = false;
+            Assert.IsFalse(sim.Research.ShowLinked, "M-21 판이 연계 연구 칸을 숨김");
             sim.Research.Gate = null;
             Assert.IsTrue(sim.Research.IsOpen, "고리가 없으면 늘 열림");
+            Assert.IsTrue(sim.Research.ShowLinked, "고리가 없으면 연계 연구 칸도 늘 보임");
         }
 
         [Test]

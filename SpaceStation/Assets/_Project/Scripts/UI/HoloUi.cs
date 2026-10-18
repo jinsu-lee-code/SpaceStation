@@ -139,6 +139,26 @@ namespace SpaceStation.UI
             return fx;
         }
 
+        /// <summary>M-21: 창 크기를 바꾼 뒤 <see cref="Decor"/> 무늬(격자 · 주사선 · 스캔 띠) 간격을 새 크기에 맞춤 (안 맞추면 늘어나 보임).</summary>
+        public static void RefitDecor(RectTransform rt)
+        {
+            var decor = rt.Find("HoloDecor");
+            if (decor == null)
+                return;
+            var size = rt.rect.size;
+            var gr = decor.Find("HoloGrid");
+            var g = gr != null ? gr.GetComponent<RawImage>() : null;
+            if (g != null && g.texture != null)
+                g.uvRect = new Rect(0f, 0f, Mathf.Max(1f, size.x) / g.texture.width, Mathf.Max(1f, size.y) / g.texture.height);
+            var s = decor.Find("HoloScan");
+            var scan = s != null ? s.GetComponent<RawImage>() : null;
+            if (scan != null && scan.texture != null)
+                scan.uvRect = new Rect(0f, 0f, 1f, size.y > 1f ? size.y / scan.texture.height / 1.5f : 6f);
+            var sweep = decor.Find("HoloSweep") as RectTransform;
+            if (sweep != null)
+                sweep.sizeDelta = new Vector2(0f, Mathf.Max(40f, size.y * 0.18f));
+        }
+
         public Sprite ButtonSprite => _button;
         public HoloArt Art => _art;
 

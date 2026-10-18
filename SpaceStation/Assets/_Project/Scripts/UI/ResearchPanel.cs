@@ -37,6 +37,8 @@ namespace SpaceStation.UI
         private UiTween _tween;
         private HoloFx _fx;
         private ResearchView _view;
+        private RectTransform _content;
+        private float _fitHeight;
         private TMP_Text _tracker;
         private bool _open;
         private float _nextRefresh;
@@ -171,16 +173,13 @@ namespace SpaceStation.UI
             _group.interactable = false;
 
             // 내용 (패드 연구 탭과 같은 구성, 배율만 크게) — 높이를 알아야 창 크기가 정해지므로 먼저 만든다
-            var content = HoloUi.Rect("Content", _window);
-            content.localScale = new Vector3(ContentScale, ContentScale, 1f);
-            _view = new ResearchView(_ui, content, ContentWidth, _sim, top: 0f, linked: true);
-            const float head = 96f, foot = 92f, side = 33f;
-            var size = new Vector2(ContentWidth * ContentScale + side * 2f, head + _view.Height * ContentScale + foot);
-            _window.sizeDelta = size;
-            HoloUi.Place(content, new Vector2(side, -head), new Vector2(ContentWidth, _view.Height));
-            content.SetAsLastSibling();
+            _content = HoloUi.Rect("Content", _window);
+            _content.localScale = new Vector3(ContentScale, ContentScale, 1f);
+            _view = new ResearchView(_ui, _content, ContentWidth, _sim, top: 0f, linked: true);
+            FitHeight();
+            _content.SetAsLastSibling();
             _fx = _ui.Window(_window.gameObject, new Color(0.03f, 0.07f, 0.11f, 0.96f), "RESEARCH");
-            content.SetAsLastSibling(); // 창 테두리 · 장식보다 위
+            _content.SetAsLastSibling(); // 창 테두리 · 장식보다 위
 
             var title = _ui.Label(_window, $"{HudTheme.Icon("research")} {Title}", 32f, TextAlignmentOptions.TopLeft);
             title.fontStyle = FontStyles.Bold;
@@ -201,12 +200,26 @@ namespace SpaceStation.UI
             _tween = new UiTween(_window, _group, new Vector2(0f, -24f), 0.2f, 0.15f, glitch: true);
         }
 
+        /// <summary>창 높이를 내용에 맞춤 (M-21: 연계 연구 칸이 숨거나 나타나면 다시 맞춤).</summary>
+        private void FitHeight()
+        {
+            const float head = 96f, foot = 92f, side = 33f;
+            _fitHeight = _view.Height;
+            _window.sizeDelta = new Vector2(ContentWidth * ContentScale + side * 2f, head + _fitHeight * ContentScale + foot);
+            HoloUi.Place(_content, new Vector2(side, -head), new Vector2(ContentWidth, _fitHeight));
+            HoloUi.RefitDecor(_window);
+        }
+
         // ---------------- 표시 ----------------
 
         private void Refresh()
         {
             if (_open)
+            {
+                if (!Mathf.Approximately(_view.Height, _fitHeight))
+                    FitHeight();
                 _view.Refresh();
+            }
             RefreshTracker();
         }
 

@@ -81,6 +81,9 @@ namespace SpaceStation.Simulation
         /// <summary>연구를 쓸 수 있는지 (고리가 닫으면 false).</summary>
         public bool IsOpen => _gate == null || _gate.IsOpen;
 
+        /// <summary>연구 창에 연계 연구 칸을 보일지 (M-21, 고리가 없으면 늘 보임).</summary>
+        public bool ShowLinked => _gate == null || _gate.ShowLinked;
+
         /// <summary>완료 레벨 · 고리 효과로 연구 효과를 다시 계산 (고리의 선택이 바뀌었을 때 판이 부름).</summary>
         public void RefreshEffects()
         {
