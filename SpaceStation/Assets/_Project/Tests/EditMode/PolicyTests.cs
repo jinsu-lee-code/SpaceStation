@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 namespace SpaceStation.Tests
 {
     /// <summary>
-    /// 12-3c 국가급 상시 정책 (슬롯 · 적용 대기 · 교체 대기 · 중복 · 효과 합산) + 사회 위기 시험 사건 '파업' (경고 → 선택지 4개 · 저절로 풀림 · 세이브).
+    /// 12-3c 국가급 상시 정책 (슬롯 · 적용 대기 · 교체 대기 · 중복 · 효과 합산) + 사회 위기 시험 사건 '파업' (경고 → 선택지 4개 · 저절로 풀림 · 세이브) + M-22 판 고리.
     /// </summary>
     public class PolicyTests
     {
@@ -191,6 +191,48 @@ namespace SpaceStation.Tests
             Assert.Greater(loaded.Policies.Slots[0].Cooldown, 0f);
             Assert.AreEqual(SocialCrisisSystem.CrisisPhase.Warning, loaded.Crisis.Phase);
             Assert.AreEqual(sim.Crisis.TimeLeft, loaded.Crisis.TimeLeft, 1e-3f);
+        }
+
+        private sealed class FakeGate : IPolicyGate
+        {
+            public int Slots = 1;
+            public PolicyData Hidden;
+            public float CapScale = 1f;
+
+            public int SlotCount(int byDefault) => Slots;
+            public bool Offers(PolicyData policy) => policy != Hidden;
+            public float ApplyDelay(float byDefault) => 10f;
+            public float SwapCooldown(float byDefault) => 60f;
+            public float Value(PolicyData policy, PolicyModifier modifier) =>
+                modifier.Stat == PolicyStat.SatisfactionCap ? modifier.Value * CapScale : modifier.Value;
+            public string Note(PolicyData policy) => null;
+            public string Summary => null;
+            public string LockedSlot(int index) => null;
+        }
+
+        [Test]
+        public void Gate_SlotsOffersTimingAndValues()
+        {
+            var sim = Sim(_policyConfig);
+            var pol = sim.Policies;
+            var gate = new FakeGate { Hidden = _festival };
+            pol.Gate = gate;
+            Assert.AreEqual(1, pol.SlotCount, "판이 슬롯 수를 정함");
+            Assert.AreEqual(PolicySystem.AssignResult.NotOffered, pol.Assign(0, _festival), "고를 수 없는 정책");
+            Assert.AreEqual(PolicySystem.AssignResult.Ok, pol.Assign(0, _rationing));
+            sim.Tick(11f);
+            Assert.IsTrue(pol.IsActive(_rationing), "적용 대기 = 판 값 10초");
+            Assert.AreEqual(-10f, sim.Effects.Policy(PolicyStat.SatisfactionCap), 1e-4f);
+            gate.CapScale = 1.5f;
+            pol.Refresh();
+            Assert.AreEqual(-15f, sim.Effects.Policy(PolicyStat.SatisfactionCap), 1e-4f, "판이 실제 값을 바꿈 (예: 주민 반응)");
+            Assert.AreEqual(0.8f, sim.Effects.Policy(PolicyStat.FoodWaterConsumption), 1e-4f, "다른 효과는 그대로");
+            Assert.AreEqual(49f, pol.Slots[0].Cooldown, 1e-3f, "교체 대기 = 판 값 60초 (11초 지남)");
+
+            pol.Gate = null;
+            Assert.AreEqual(2, pol.SlotCount, "고리가 없으면 등급 값");
+            Assert.AreEqual(-10f, sim.Effects.Policy(PolicyStat.SatisfactionCap), 1e-4f, "고리를 떼면 다시 계산");
+            Assert.IsTrue(pol.Offers(_festival));
         }
 
         // ---------------- 도우미 ----------------

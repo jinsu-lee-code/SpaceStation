@@ -75,6 +75,17 @@ namespace SpaceStation.Data
         public float Value;
     }
 
+    /// <summary>M-22 정책 성격 (판이 주민 반응 등에 씀, 공통 틀은 쓰지 않음).</summary>
+    public enum PolicyStance
+    {
+        /// <summary>어느 쪽도 아님.</summary>
+        Neutral,
+        /// <summary>통제형 (배급 · 근무 강제 · 감시 등).</summary>
+        Control,
+        /// <summary>자율형 (개방 · 여가 등).</summary>
+        Autonomy,
+    }
+
     /// <summary>12-3c 국가급 상시 정책 하나 (효과 + 부작용). BALANCE 35번.</summary>
     [CreateAssetMenu(menuName = "SpaceStation/Policy", fileName = "PO_NewPolicy")]
     public sealed class PolicyData : ScriptableObject
@@ -83,10 +94,13 @@ namespace SpaceStation.Data
         [TextArea(2, 4)]
         [SerializeField] private string _description;
         [SerializeField] private List<PolicyModifier> _modifiers = new List<PolicyModifier>();
+        [Tooltip("M-22 정책 성격 (판이 주민 반응 등에 씀)")]
+        [SerializeField] private PolicyStance _stance;
 
         public string DisplayName => _displayName;
         public string Description => _description;
         public IReadOnlyList<PolicyModifier> Modifiers => _modifiers;
+        public PolicyStance Stance => _stance;
 
         /// <summary>에디터 설정 메뉴용.</summary>
         public void Set(string displayName, string description, params PolicyModifier[] modifiers)
@@ -95,5 +109,8 @@ namespace SpaceStation.Data
             _description = description;
             _modifiers = new List<PolicyModifier>(modifiers);
         }
+
+        /// <summary>에디터 설정 메뉴 · 시험용.</summary>
+        public void SetStance(PolicyStance stance) => _stance = stance;
     }
 }

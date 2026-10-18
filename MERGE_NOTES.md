@@ -361,3 +361,20 @@
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. 타이쿤판이 `IResearchGate`를 구현했으면 `ShowLinked => true` 추가.
+
+---
+
+## M-22. 13-6a 정책 판 고리 `IPolicyGate` · 정책 성격 (2026-10-18, `main`)
+
+**main에 넣은 것** — 고리를 꽂지 않으면 동작 그대로 (타이쿤판 · 봇)
+- `IPolicyGate` (새 파일): 슬롯 수(`SlotCount(byDefault)`) · 고를 수 있는 정책(`Offers`) · 적용 대기 · 교체 대기(`ApplyDelay` · `SwapCooldown`, 설정 값을 받아 판이 바꿈) · 시행 중 효과의 실제 값(`Value` — 예: 주민 반응) · 정책 줄 덧붙임(`Note`) · 창 위 슬롯 안내(`Summary`) · 잠긴 슬롯 문구(`LockedSlot`)
+- `PolicySystem.Gate`(바꾸면 효과 다시 계산) · `Offers` · `ApplyDelay` · `SwapCooldown` · `ValueOf` · `Refresh()`(판이 효과 조건이 바뀌었을 때 부름). `AssignResult.NotOffered`(끝에 추가). 효과 합산은 정책마다 `ValueOf`로
+- `PolicyData.Stance`(`PolicyStance` Neutral · Control · Autonomy, 기본 Neutral) + `SetStance`. 메뉴 Grade Rules/Setup Policies가 8종에 넣음(통제형 = 배급제 · 야간 근무 · 정비 의무 · 감시 강화 · 비상 대비 / 자율형 = 이민 개방 · 축제 문화 / 연구 우선 = 중립). 정책 에셋 8개에 `_stance` 추가. 공통 틀은 성격을 쓰지 않음
+- `PolicyPanel`: 고를 수 있는 정책만 차례로 놓고 줄 수만큼 창 높이를 맞춤(8종이면 지금과 같음) · 효과 = 실제 값 · 이름 옆에 `Note` · 위 안내와 잠긴 슬롯 문구는 고리 값(없으면 지금 문구) · 시간은 `PolicySystem` 값
+- 시험 1개 (`PolicyTests.Gate_SlotsOffersTimingAndValues`)
+
+### `narrative` 합칠 때
+- [ ] 서사판 3장 정책(`ChapterPolicySystem`)이 고리를 꽂음 — 슬롯 1 → 대형 때 2 · 4종 · 30초 · 3분 · 종족 반응.
+
+### `tycoon` 합칠 때
+- [ ] 충돌 없음 예상. 타이쿤판이 정책 에셋을 고쳤으면 `_stance` 줄이 겹칠 수 있음 (메뉴 Setup Policies를 다시 돌리면 채워짐). `PolicyPanel` 목록 배치를 고쳤으면 `PlaceRow` · `FitRows`로 맞춤.
