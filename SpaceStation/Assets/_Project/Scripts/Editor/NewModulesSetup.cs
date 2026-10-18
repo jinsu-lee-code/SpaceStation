@@ -65,9 +65,11 @@ namespace SpaceStation.Editor
                 Stats = so => so.FindProperty("_researchSpeedBonus").floatValue = 0.1f },
             // ---- 국가급 ----
             new Def { Id = "Commerce", Name = "상업 구역", Color = "#FFA040", Category = ModuleCategory.Life, Grade = 5, Cells = new[] { V(0, 0, 0), V(1, 0, 0) },
-                Metal = 180, Consumption = new[] { (ResourceType.Power, 5f) }, ComingSoon = "새 요구 '소비' · 12-6", Marker = PrimitiveType.Cube },
+                Metal = 180, Consumption = new[] { (ResourceType.Power, 5f) }, ComingSoon = "새 요구 '소비' · 12-6", Marker = PrimitiveType.Cube,
+                Stats = so => Service(so, ResidentNeed.Commerce, 4, 30) }, // 13-5
             new Def { Id = "Administration", Name = "행정 관제소", Color = "#C8D2DE", Category = ModuleCategory.Industry, Grade = 5, Cells = new[] { V(0, 0, 0), V(1, 0, 0) },
-                Metal = 200, Consumption = new[] { (ResourceType.Power, 5f) }, ComingSoon = "새 요구 '행정' · 12-6", Marker = PrimitiveType.Cube },
+                Metal = 200, Consumption = new[] { (ResourceType.Power, 5f) }, ComingSoon = "새 요구 '행정' · 12-6", Marker = PrimitiveType.Cube,
+                Stats = so => Service(so, ResidentNeed.Administration, 5, 40) }, // 13-5 (관제 반경이 넓고 담당이 많음)
             new Def { Id = "RadiationShelter", Name = "방사선 차폐실", Color = "#FFE14A", Category = ModuleCategory.Defense, Grade = 5, Cells = new[] { V(0, 0, 0), V(1, 0, 0) },
                 Metal = 220, Consumption = new[] { (ResourceType.Power, 3f) }, ComingSoon = "방사선 폭풍 대피 · 12-8", Marker = PrimitiveType.Cube },
             new Def { Id = "PassengerPort", Name = "여객 도킹 포트", Color = "#7CFF9A", Category = ModuleCategory.Life, Grade = 5, Cells = new[] { V(0, 0, 0), V(1, 0, 0) },

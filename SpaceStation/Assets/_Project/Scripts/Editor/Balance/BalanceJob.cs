@@ -57,6 +57,7 @@ namespace SpaceStation.Editor.Balance
         {
             if (Current != null && Current.Running)
                 throw new InvalidOperationException("측정이 이미 진행 중입니다: " + Current.Label);
+            BalanceMilestones.Clear(); // 13-7
             var job = new BalanceJob(settings, label, saveStartGrades) { Running = true };
             Current = job;
             EditorApplication.update += job.Update;
@@ -159,6 +160,8 @@ namespace SpaceStation.Editor.Balance
             string summary = (string.IsNullOrEmpty(title) ? "" : title + "\n") + header
                              + (report.Results.Count > 0 ? "\n" + BalanceRunner.BuildSummaryText(report) : "");
             File.WriteAllText(Path.Combine(folder, "summary.txt"), summary, utf8Bom);
+            if (BalanceMilestones.Runs.Count > 0)
+                BalanceMilestones.WriteReport(folder); // 13-7 milestones.csv · milestones.txt
             return summary;
         }
     }

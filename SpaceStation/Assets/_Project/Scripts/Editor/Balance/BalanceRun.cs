@@ -19,6 +19,7 @@ namespace SpaceStation.Editor.Balance
         private readonly BalanceRunSettings _s;
         private readonly StationSimulation _sim;
         private readonly BalanceBot _bot;
+        private readonly BalanceMilestones _milestones;
         private readonly StringBuilder _series;
         private readonly float _t0;
         private readonly int _stopAtGrade;
@@ -71,6 +72,7 @@ namespace SpaceStation.Editor.Balance
                 StartGrade = start.Grade;
             }
             _bot = new BalanceBot(_sim, s.Buildable);
+            _milestones = new BalanceMilestones(_sim, s.Buildable, seed); // 13-7 새 일 간격 · 위기 빈도 · 여유 자원
             _t0 = _sim.ElapsedSeconds;
             _nextSample = _t0;
             // 구간 측정: 다음 등급에서 멈춤. 그 밖에는 설정값 (-1 = 시간 끝까지)
@@ -121,6 +123,7 @@ namespace SpaceStation.Editor.Balance
             var result = Result;
             _bot.Decide();
             sim.Tick(s.TickInterval);
+            _milestones.Tick(Elapsed, s.TickInterval);
             _ticks++;
 
             var r = sim.Resources;

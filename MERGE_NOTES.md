@@ -101,3 +101,142 @@
 
 ### `tycoon` 합칠 때
 - [x] 충돌 없음 예상 (타이쿤판 `GrowthThreatSystem`이 노출 면으로 이 배율을 정함).
+
+---
+
+## M-6. 13-5 요구 종류 소비 · 행정 (2026-10-15, `main`)
+
+**main에 넣은 것** — 어느 등급에도 넣지 않았으므로 동작 변화 없음 (M-3과 같은 방식)
+- `ResidentNeed`: `Commerce`(소비) · `Administration`(행정) 추가 (enum 뒤에 붙임)
+- 감점: 소비 15 · 행정 15 (`BalanceConfig._needPenalties`)
+- 상업 구역 = 소비 반경 4 · 30명, 행정 관제소 = 행정 반경 5 · 40명 (`NewModulesSetup` 정의 + 에셋). main에서는 여전히 '준비 중'
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상 (enum 뒤에 붙임 · 에셋 값만). 서사판 장에서 쓰려면 장의 새 요구에 넣고 '준비 중'을 풂.
+
+### `tycoon` 합칠 때
+- [x] 충돌 없음 예상 (국가급 배치 · 준비 중 해제는 타이쿤판에서).
+
+---
+
+## M-7. 13-6 1인칭 가볍게 고리 (2026-10-16, `main`)
+
+**main에 넣은 것** — 기본값이 지금 동작 그대로라 변화 없음
+- `IncidentEffects.MissScale` (기본 1): 놓친 내부 사고 손실 배율. 0이면 "손실 없음"으로 끝 (`StationInteriorOutcomes.MissIncident`)
+- `SupplyCrateSystem.AutoCollectRate` (기본 -1 = 끔): 켜면 다음 보급선이 올 때 줍지 않은 상자를 바깥에서 회수 (자원 × 비율, 특별 상자 그대로) — `StationSimulation.AutoCollectCrates` · `StationEventEffects.ApplySupply`
+- 레시피 창 연구 포인트 안내 "내부 보급 특별 상자" → "보급 특별 상자"
+- 시험 2개 (`StationSimulationTests.Incident_MissScale_*` · `SupplyShip_AutoCollect_*`)
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상 (새 속성 · 메서드 추가, `MissIncident` 본문과 `ApplySupply` 두 줄만 바뀜 — 서사판이 그 자리를 고쳤으면 main 줄 채택 후 서사판 변경을 다시 얹음).
+
+### `tycoon` 합칠 때
+- [x] 충돌 없음 예상 (타이쿤판 `InteriorBonusSystem`이 두 값을 정함).
+
+---
+
+## M-8. 13-6a 좌상단 [관리] 메뉴 · 건설 패널 정리 (2026-10-16, `main`)
+
+**main에 넣은 것** — 화면 동작이 바뀜 (사용자 결정)
+- `HudLauncher` (새 파일): 왼쪽 위 [관리] 버튼 하나 → 펼치면 아이콘 + 이름 + 키캡 칸, 열린 시스템만 순서대로, 새로 열리면 '새로' · 고를 것이 있으면 '! 확인' (깜박임)
+- 연구 · 주민 · 합성 · 정책 · 외부 접촉 창: 각자 만들던 왼쪽 위 버튼(`BuildLauncher` · `RefreshLauncher` · `_launcherLabel`)을 지우고 `HudLauncher.For(...).Add(...)`로 등록. 단축키는 그대로
+- 아이콘: `LauncherIconBuilder` (메뉴 SpaceStation/UI/Build Launcher Icons) → `Art/UI/Launcher/LI_*.png` · `HoloArt.LauncherIcons`
+- 건설 패널: `StationProgression.IsRevealed`(지금까지 도달한 최고 등급 기준 · 규칙 · 준비 중) · `BuildCategories.Filter/GetAvailable`에 보이는 것 · 정렬(열리는 등급 → 금속 비용) · `BuildController.RefreshModules/ModulesChanged/Revealed` · `BuildMenu.Relayout`(열린 것만 · 순서 · 숫자키 · 탭 수) · 패드 건설 탭도 같은 순서
+- 시험 2개 (`BuildCategoriesTests.Filter_VisibleOnly_SortedByGradeThenMetal` · `ProgressionTests.Revealed_FollowsHighestGrade_StaysAfterDrop`)
+
+### `narrative` 합칠 때
+- [ ] 서사판이 위 다섯 창의 `BuildLauncher` 근처를 고쳤으면 main 쪽(등록)으로 맞추고, 서사판 전용 창 버튼이 있으면 같은 방식으로 `HudLauncher`에 등록 (Order 값 사이에 넣음).
+- [ ] `StationProgression.IsRevealed`: 서사판은 해금을 장(UnlockSource)이 정하므로, 합칠 때 `IsRevealed`도 같은 해금 출처를 보게 고침 (안 고치면 장에서 연 모듈이 건설 메뉴에 안 보일 수 있음).
+
+### `tycoon` 합칠 때
+- [x] `UnlockChoicePanel`의 [시스템] 버튼을 `HudLauncher`에 등록 (Order.Systems, 아이콘 키 "systems", 고를 것이 있으면 Attention).
+
+---
+
+## M-9. 13-6a 튜토리얼 카드 자리 설정 (2026-10-16, `main`)
+
+**main에 넣은 것** — 기본값은 지금 그대로(왼쪽 위)라 동작 변화 없음
+- `TutorialView._dockUnderResources` (기본 false) · `_dockGap`: 켜면 카드가 오른쪽 자원 패널 바로 아래에 붙음 (패널 높이를 따라감, 내부에서는 오른쪽 위). 왼쪽 위 [관리] 메뉴(M-8)와 겹치지 않게. 타이쿤판 씬이 켬
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상. 서사판은 장 표시가 자원 패널 아래에 있으므로 이 설정은 꺼 둔 채로 (카드는 왼쪽 위 · [관리] 메뉴와 겹치는지는 서사판에서 따로 봄).
+
+### `tycoon` 합칠 때
+- [x] 씬의 TutorialView에서 켬 (메뉴 SpaceStation/Tycoon/Setup Hud Layout).
+
+---
+
+## M-10. 13-7 측정 도구: 새 일 간격 · 위기 빈도 · 여유 자원 (2026-10-16, `main`)
+
+**main에 넣은 것** — 게임 동작 변화 없음 (측정 도구만)
+- `BalanceMilestones` (새 파일): 한 판에서 처음 생긴 일(등급 · 지을 수 있게 된 모듈 · 새 요구 · 열 · 정책 · 외부 접촉 · 합성 시스템 · 처음 겪은 위기 · 첫 합성)의 시각 → 시작 ~ 도시급까지 '새 일 간격'(평균 · 가장 긴 공백과 그 등급), 위기 10분당 횟수, 여유 자원 시간(네 자원 모두 한도 70% 이상). `milestones.csv` · `milestones.txt`
+- 봇 루프 연결: `BalanceRun` 두 줄(만들기 · Tick) · `BalanceJob.Start` / `BalanceRunner.Run`에서 Clear · `BalanceReportWriter.Write`에서 파일 쓰기
+- 기준점 빌드에도 같은 파일을 넣어 돌릴 수 있게 그때 있던 API만 씀
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상 (봇 루프 두 줄 · 새 파일). 서사판 장 진행도 새 일로 세고 싶으면 `CheckSystems`에 장을 더함.
+
+### `tycoon` 합칠 때
+- [x] 같은 변경이 tycoon에 먼저 들어가 있음 (같은 내용이라 그대로 합쳐짐).
+
+---
+
+## M-11. 13-7 봇 플레이어 행동 (2026-10-16, `main`)
+
+**main에 넣은 것** — 측정 도구만 (게임 동작 변화 없음). 봇 측정 결과는 이전과 달라짐
+- `BalanceBot.PlayerHabits` (기본 켬, 끄면 이전 봇): 유성우 예보 중 오는 방향 앞면 모듈(비싼 것부터) 앞에 장갑 격벽 (결정마다 1개 · 예보 한 번에 최대 6개 · 금속 40 남김) / 보급 상자를 처음부터 줍기 / 파손은 현장 수리 먼저 (걸어가는 시간을 흉내 내 30초에 1번)
+- `ShowerBlocks` · `FieldRepairs` 횟수
+- (2026-10-16 추가) 다음 등급 조건 중 인구만 모자라고 수용이 꽉 찼으면 생존 자원 다음으로 거주를 먼저 (`OnlyPopulationShort`)
+- (2026-10-17 추가) 한 번이라도 파손을 겪었는데 방어 모듈(실드 · 포탑 · 손상 통제실)이 0개면, 거주 습관 다음으로 첫 방어를 금속 여유(건설비 + 거주 1개분)와 무관하게 먼저 (`_wasHit` · `CountDefense`). 모듈 15개당 1개 한도는 그대로
+
+### `narrative` 합칠 때
+- [ ] 서사판 봇에 장 진행 판단이 있으면 `Decide` 맨 앞(막기 · 상자)과 `RepairDamaged`의 현장 수리 한 줄 위치만 맞춤. `PickNeed`의 거주 습관 · 첫 방어 두 덩이는 생존 자원(음식) 바로 다음에 그대로 둠.
+
+### `tycoon` 합칠 때
+- [x] 같은 변경이 tycoon에 먼저 들어가 있음.
+
+---
+
+## M-12. 13-7 먼저 연 모듈 고리 (2026-10-16, `main`)
+
+**main에 넣은 것** — 기본 null이라 동작 변화 없음
+- `StationProgression.ExtraUnlock` (Func<ModuleData, bool>): 등급 해금 목록과 별개로 먼저 열린 모듈 → `IsUnlocked` · `IsRevealed`가 참 (준비 중 · 규칙 조건은 그대로). 타이쿤판 '중형 중간 단계'가 씀
+- 시험 1개 (`ProgressionTests.ExtraUnlock_OpensBeforeGrade`)
+
+### `narrative` 합칠 때
+- [ ] 서사판 `IsUnlocked`는 장(UnlockSource)을 먼저 보므로, 합칠 때 `IsUnlocked` · `IsRevealed` 끝의 `|| IsExtraUnlocked(data)`를 서사판 판정 뒤에도 붙임 (서사판이 쓰지 않으면 null이라 영향 없음).
+
+### `tycoon` 합칠 때
+- [x] 충돌 없음 예상 (타이쿤판 `MidGradeSystem`이 값을 정함).
+
+---
+
+## M-13. 12-5 모델 연출: 레이더 이름 규칙 · 깃발 펄럭임 (2026-10-16, `main`)
+
+**main에 넣은 것** — 공통 아트 (행정 관제소 외형 모델이 씀)
+- `StationArtBuilder`: 레이더 회전 부품을 이름이 정확히 "SpinRadar"인 것 하나 → "SpinRadar"로 시작하는 모든 부품 (Blender 이름은 겹칠 수 없어 `SpinRadar_Administration`처럼 뒤를 붙임). 센서 어레이는 그대로
+- `ModuleFlutter` (새 런타임 컴포넌트, `.meta` GUID 고정 160aec14…): 사슬 맨 앞 조각 "Flutter_{이름}"에 붙어, 같은 부모 아래 "_1", "_2" 조각까지 부모 공간에서 사슬을 계산해 위쪽 축 사인 흔들림 (비활성 = 서서히 멈춤). 조각을 계층으로 겹치지 않는 까닭 = Blender FBX 내보내기가 자식의 자식 축을 한 번 더 돌림
+- (2026-10-17 추가) `StationArtBuilder`: "SpinDish"로 시작하는 부품 = 천천히 도는 접시 안테나 (`ModuleSpinner` 초당 8°, 레이더는 40° 그대로). 통신 중계소 `SpinDish_CommRelay`가 씀
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상. 행정 관제소 모델(`SM_Administration.fbx` · `PF_Administration`)을 합친 뒤 Unity에서 프리팹의 `ModuleFlutter` · 레이더 `ModuleSpinner`가 붙어 있는지만 확인. 통신 중계소(`PF_CommRelay`)도 접시 `ModuleSpinner`(속도 8) 확인.
+
+### `tycoon` 합칠 때
+- [ ] 충돌 없음 예상.
+
+---
+
+## M-14. 판 전용 칸 · 건설 메뉴 정렬 고리 (2026-10-18, `main`)
+
+**main에 넣은 것** — 동작 변화 없음
+- `StationProgression.UnlockOrder(data)`: 건설 메뉴 정렬 기준 (지금은 `GetUnlockGrade`와 같음). `BuildController` · `PadBuild`가 이것으로 정렬
+- `HudLauncher.Order.Edition` (= Systems 60): 판 전용 창 칸은 [관리] 메뉴 맨 끝 같은 자리 (타이쿤판 시스템 · 서사판 코어 기록, 사용자 결정 2026-10-18)
+- `LauncherIconBuilder`: 아이콘 "core" (코어 구슬 + 기록 줄) → `LI_core.png`
+- 시험: `ProgressionTests.Unlocks_FollowCurrentGrade`에 `UnlockOrder` 한 줄
+
+### `narrative` 합칠 때
+- [ ] 서사판 `StationProgression`에서 `UnlockOrder` · `IsRevealed`가 장(`UnlockSource`)을 보게 고침 (M-8 두 번째 항목과 같이).
+- [ ] `CoreLogPanel`의 따로 뜬 버튼을 지우고 `HudLauncher`에 Key "core" · `Order.Edition`으로 등록.
+
+### `tycoon` 합칠 때
+- [ ] 충돌 없음 예상. `UnlockChoicePanel`의 `Order.Systems`는 그대로 둬도 같은 값.

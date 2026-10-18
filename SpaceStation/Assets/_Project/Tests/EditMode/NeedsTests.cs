@@ -96,6 +96,8 @@ namespace SpaceStation.Tests
             Assert.AreEqual(100f - 30f - 15f, needs.SatisfactionCap, Eps, "의료 30(공통) + 교육 15(요구별)");
             Assert.AreEqual("교육", ResidentNeed.Education.DisplayName());
             Assert.AreEqual("검역", ResidentNeed.Quarantine.DisplayName());
+            Assert.AreEqual("소비", ResidentNeed.Commerce.DisplayName());
+            Assert.AreEqual("행정", ResidentNeed.Administration.DisplayName());
         }
 
         [Test]

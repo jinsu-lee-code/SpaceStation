@@ -24,7 +24,37 @@ MonoBehaviour:
   _dockFront: {x: 0, y: 0, z: 1}
   _approachLaneLength: 2
   _upperSidesNeedSupport: 0
-  _faceDepths: []
+  _faceDepths:
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: 0.42019534
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.18019533
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.43019533
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: 0.34619534
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: 0.34619528
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: 0.4476953
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.40723884
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.43019533
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: 0.30769533
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: 0.30769533
   _buildCost:
   - Type: 4
     Amount: 200
@@ -48,6 +78,7 @@ MonoBehaviour:
   _recipeSlots: 0
   _comingSoon: 1
   _comingSoonNote: "\uC0C8 \uC694\uAD6C '\uD589\uC815' \xB7 12-6"
+  _requiredRule: 0
   _adjacencyRelay: 0
   _warningBonus: 0
   _researchSpeedBonus: 0
@@ -69,7 +100,7 @@ MonoBehaviour:
   _controlSpreadMultiplier: 1
   _controlDestroyMultiplier: 1
   _growthIntervalMultiplier: 1
-  _serviceNeed: 0
-  _serviceRadius: 0
-  _serviceCapacity: 0
+  _serviceNeed: 6
+  _serviceRadius: 5
+  _serviceCapacity: 40
   _extraServiceNeeds: 

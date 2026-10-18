@@ -35,6 +35,11 @@ namespace SpaceStation.Simulation
         private readonly Dictionary<ModuleInstance, (float Multiplier, float Left)> _trips = new Dictionary<ModuleInstance, (float, float)>();
         private readonly List<ModuleInstance> _ended = new List<ModuleInstance>();
 
+        /// <summary>
+        /// 13-6 고리: 놓친 사고의 손실 배율 (1 = BALANCE 31번 그대로, 0 = 손실 없이 정비 인력이 처리). 타이쿤판이 정한다.
+        /// </summary>
+        public float MissScale { get; set; } = 1f;
+
         /// <summary>차단기가 내려간 방의 생산 배율 (없으면 1).</summary>
         public float ProductionMultiplier(ModuleInstance module) =>
             module != null && _trips.TryGetValue(module, out var t) ? t.Multiplier : 1f;

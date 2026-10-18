@@ -39,6 +39,15 @@ namespace SpaceStation.UI
             SetSelected(false);
         }
 
+        /// <summary>13-6a: 탭 안 순서가 바뀌면 숫자키 다시 (글은 다음 SetState에서).</summary>
+        public void SetHotkey(int hotkey)
+        {
+            if (_hotkey == hotkey)
+                return;
+            _hotkey = hotkey;
+            _shownStatus = "\u0001"; // 같은 사유라도 글을 다시 씀
+        }
+
         /// <param name="interactable">해금 + 설치 가능 + 비용 충분</param>
         /// <param name="blockedStatus">둘째 줄에 비용 대신 표시할 사유 (잠김/최대). null이면 비용 표시</param>
         /// <param name="cost">표시할 실제 비용 (연구 할인 반영). null이면 기본 비용</param>

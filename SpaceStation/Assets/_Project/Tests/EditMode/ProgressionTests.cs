@@ -117,12 +117,41 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Revealed_FollowsHighestGrade_StaysAfterDrop()
+        {
+            // 13-6a 건설 메뉴: 열리면 보이고, 등급이 내려가도 사라지지 않음 (잠김으로 남음). 해금 조건 없음은 안 보임
+            Assert.IsTrue(_progression.IsRevealed(_basic));
+            Assert.IsFalse(_progression.IsRevealed(_storage));
+            Assert.IsFalse(_progression.IsRevealed(_orphan));
+            _progression.Evaluate(10, 8);
+            Assert.IsTrue(_progression.IsRevealed(_storage));
+            _progression.Evaluate(0, 0);
+            Assert.IsTrue(_progression.IsRevealed(_storage), "등급 하락 뒤에도 보임");
+            Assert.IsFalse(_progression.IsUnlocked(_storage), "지을 수는 없음");
+        }
+
+        [Test]
+        public void ExtraUnlock_OpensBeforeGrade()
+        {
+            // 13-7 고리: 등급 전에 먼저 연 모듈은 지을 수 있고 건설 메뉴에도 보임, 고리가 없으면 등급만
+            Assert.IsFalse(_progression.IsUnlocked(_storage));
+            _progression.ExtraUnlock = m => m == _storage;
+            Assert.IsTrue(_progression.IsUnlocked(_storage));
+            Assert.IsTrue(_progression.IsRevealed(_storage));
+            Assert.AreEqual(PlacementResult.Valid, _progression.CheckBuildable(_storage, _grid));
+            Assert.IsFalse(_progression.IsUnlocked(_orphan));
+            _progression.ExtraUnlock = null;
+            Assert.IsFalse(_progression.IsUnlocked(_storage));
+        }
+
+        [Test]
         public void Unlocks_FollowCurrentGrade()
         {
             Assert.IsTrue(_progression.IsUnlocked(_basic));
             Assert.IsFalse(_progression.IsUnlocked(_storage));
             Assert.AreEqual(1, _progression.GetUnlockGrade(_storage));
             Assert.AreEqual(-1, _progression.GetUnlockGrade(_orphan));
+            Assert.AreEqual(1, _progression.UnlockOrder(_storage), "건설 메뉴 정렬 = 해금 등급");
             Assert.AreEqual(PlacementResult.ModuleLocked, _progression.CheckBuildable(_storage, _grid));
 
             _progression.Evaluate(10, 8);

@@ -48,7 +48,7 @@ namespace SpaceStation.UI
         private float _nextRefresh;
         private RecipeData _selected;
         private readonly List<(RecipeData recipe, Button button, TMP_Text label)> _rows = new List<(RecipeData, Button, TMP_Text)>();
-        private TMP_Text _title, _body, _effects, _tracker, _launcherLabel;
+        private TMP_Text _title, _body, _effects, _tracker;
         private RectTransform _shape;
         private Button _place;
         // 12-4 그림자 · 해금 연구
@@ -78,7 +78,6 @@ namespace SpaceStation.UI
 
         private void OnDestroy()
         {
-            KeyBindings.Changed -= RefreshLauncher;
             HudWindows.Opened -= HandleWindowOpened;
             if (_syn != null)
                 _syn.Completed -= HandleCompleted;
@@ -188,6 +187,14 @@ namespace SpaceStation.UI
             Refresh();
         }
 
+        private bool AnyRecipeShown()
+        {
+            foreach (var r in _syn.Recipes)
+                if (_syn.IsUnlocked(r) || (_sim.ResearchExpansion != null && StateOf(r) == RecipeState.Shadow)) // 자동 해금 레시피도 등급 · 규칙 전에는 안 보임
+                    return true;
+            return false;
+        }
+
         private RecipeState StateOf(RecipeData r)
         {
             var ex = _sim.ResearchExpansion;
@@ -197,28 +204,22 @@ namespace SpaceStation.UI
         private static string Reason(ExpansionStartResult result, RecipeResearchCost cost, int points) => result switch
         {
             ExpansionStartResult.NoFreeSlot => "레시피 연구 슬롯 없음 (연구 단지 등 연구소 계통 진화 모듈이 슬롯을 줌)",
-            ExpansionStartResult.NoResearchPoints => $"연구 포인트 {cost.ResearchPoints} 필요 (보유 {points} · 내부 보급 특별 상자에서 얻음)",
+            ExpansionStartResult.NoResearchPoints => $"연구 포인트 {cost.ResearchPoints} 필요 (보유 {points} · 보급 특별 상자에서 얻음)",
             ExpansionStartResult.InsufficientResources => "자원 부족",
             _ => null,
         };
 
         // ---------------- 구성 ----------------
 
-        private static string LauncherText() => $"합성 ({KeyBindings.Label(GameAction.Recipes)})";
-
-        private void RefreshLauncher()
-        {
-            if (_launcherLabel != null)
-                _launcherLabel.SetText(LauncherText());
-        }
-
+        /// <summary>13-6a: 왼쪽 위 [관리] 메뉴에 등록 — 레시피가 하나라도 보이거나(그림자 포함) 합성이 열리면.</summary>
         private void BuildLauncher()
         {
             var root = (RectTransform)transform;
-            var button = _ui.TechButton(root, LauncherText(), 19f, Toggle);
-            HoloUi.Place((RectTransform)button.transform, new Vector2(350f, -24f), new Vector2(140f, 44f)); // 주민 버튼 오른쪽
-            _launcherLabel = button.GetComponentInChildren<TMP_Text>();
-            KeyBindings.Changed += RefreshLauncher;
+            HudLauncher.For(_ui, root).Add(new HudLauncher.Entry
+            {
+                Key = "recipes", Order = HudLauncher.Order.Recipes, Name = "합성",
+                KeyLabel = () => KeyBindings.Label(GameAction.Recipes), IsOpen = () => _open, Click = Toggle, Visible = AnyRecipeShown,
+            });
             _tracker = _ui.Label(root, "", 15f, TextAlignmentOptions.TopLeft);
             HoloUi.Place(_tracker.rectTransform, new Vector2(28f, -76f), new Vector2(420f, 120f));
         }

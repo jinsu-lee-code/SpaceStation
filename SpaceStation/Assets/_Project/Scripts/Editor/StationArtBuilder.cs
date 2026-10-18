@@ -317,14 +317,22 @@ namespace SpaceStation.Editor
                         fso2.FindProperty("_acceleration").floatValue = 0.5f;
                         fso2.ApplyModifiedPropertiesWithoutUndo();
                     }
-                    // 12-5 센서 어레이: "SpinRadar" 배열 판이 레이더처럼 빠르게 회전 (피벗 = 기둥 꼭대기)
-                    var radar = FindChild(instance.transform, "SpinRadar");
-                    if (radar != null)
+                    // 12-5 센서 어레이 · 행정 관제소: "SpinRadar*" 레이더 판이 빠르게 회전 (피벗 = 받침 꼭대기 회전축)
+                    //   Blender 오브젝트 이름은 겹칠 수 없으므로 모듈마다 "SpinRadar_{모듈}"처럼 뒤를 붙여도 된다
+                    // 12-5 통신 중계소: "SpinDish*" 접시 안테나가 천천히 회전 (피벗 = 기둥 위 회전대 중심)
+                    // 12-5 행정 관제소: "Flutter_{이름}" 깃발 사슬 맨 앞 조각에 펄럭임 (같은 부모 아래 "_1", "_2" 조각은 컴포넌트가 따라 찾음)
+                    foreach (var t in instance.GetComponentsInChildren<Transform>(true))
                     {
-                        var spinner = radar.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
-                        var sso = new SerializedObject(spinner);
-                        sso.FindProperty("_speed").floatValue = 40f;
-                        sso.ApplyModifiedPropertiesWithoutUndo();
+                        bool radar = t.name.StartsWith("SpinRadar");
+                        if (radar || t.name.StartsWith("SpinDish"))
+                        {
+                            var spinner = t.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
+                            var sso = new SerializedObject(spinner);
+                            sso.FindProperty("_speed").floatValue = radar ? 40f : 8f;
+                            sso.ApplyModifiedPropertiesWithoutUndo();
+                        }
+                        else if (SpaceStation.Building.ModuleFlutter.IsChainRoot(t.name))
+                            t.gameObject.AddComponent<SpaceStation.Building.ModuleFlutter>();
                     }
                     // 8-5 연료전지: 보조 발전 중에만 "Lamp" 켜짐
                     var lamp = FindChild(instance.transform, "Lamp");

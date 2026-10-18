@@ -136,6 +136,8 @@ namespace SpaceStation.Interior
                 return;
             Active = on;
             _root.gameObject.SetActive(on);
+            if (on)
+                RefreshCategory(); // 13-6a 그사이 열린 모듈 반영
             if (!on)
             {
                 Select(null);
@@ -155,7 +157,11 @@ namespace SpaceStation.Interior
 
         private void RefreshCategory()
         {
-            BuildCategories.Filter(_modules, _category, _categoryModules);
+            var progression = _station.Simulation != null ? _station.Simulation.Progression : null;
+            if (progression != null) // 13-6a 바깥 건설 메뉴와 같게: 열린 것만 · 등급 → 가격 순
+                BuildCategories.Filter(_modules, _category, _categoryModules, progression.IsRevealed, progression.UnlockOrder);
+            else
+                BuildCategories.Filter(_modules, _category, _categoryModules);
             foreach (var (category, button) in _tabs)
                 ((Image)button.targetGraphic).color = category == _category ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
             for (int i = 0; i < _tiles.Count; i++)

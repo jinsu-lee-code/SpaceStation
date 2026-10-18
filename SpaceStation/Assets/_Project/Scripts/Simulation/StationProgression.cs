@@ -162,12 +162,38 @@ namespace SpaceStation.Simulation
             return -1;
         }
 
+        /// <summary>
+        /// 건설 메뉴 정렬 기준: 이 모듈이 열리는 순서 (작을수록 먼저). 지금은 <see cref="GetUnlockGrade"/>와 같음 —
+        /// 해금을 따로 정하는 판(서사판 장 틀)은 이 한 곳에서 그 순서를 돌려준다.
+        /// </summary>
+        public int UnlockOrder(ModuleData data) => GetUnlockGrade(data);
+
         /// <summary>13-1: 규칙을 정하는 쪽이 붙으면 모듈의 <see cref="ModuleData.RequiredRule"/>도 본다 (null = 등급 해금만).</summary>
         public Func<StationRule, bool> RuleCheck { get; internal set; }
 
         /// <summary>13-1: 등급은 됐지만 필요한 규칙이 아직 안 열려 잠긴 상태인지 (건설 메뉴 안내용).</summary>
         public bool IsRuleLocked(ModuleData data) =>
             data != null && data.RequiredRule != StationRule.None && RuleCheck != null && !RuleCheck(data.RequiredRule);
+
+        /// <summary>
+        /// 13-6a 건설 메뉴에 보이는지: 준비 중이 아니고, 규칙이 열렸고, 지금까지 도달한 가장 높은 등급에서 해금됨
+        /// (등급이 내려가도 사라지지 않고 '잠김'으로 남음 — <see cref="IsUnlocked"/>는 지금 등급 기준).
+        /// </summary>
+        public bool IsRevealed(ModuleData data)
+        {
+            if (data == null || data.ComingSoon || IsRuleLocked(data))
+                return false;
+            int grade = GetUnlockGrade(data);
+            return (grade >= 0 && grade <= Math.Max(GradeIndex, HighestGradeIndex)) || IsExtraUnlocked(data);
+        }
+
+        /// <summary>
+        /// 13-7 고리: 등급 해금 목록과 별개로 먼저 열린 모듈 (타이쿤판 등급 중간 단계가 정함, null = 없음).
+        /// 준비 중 · 규칙 조건은 그대로 본다. 한 번 열리면 등급이 내려가도 열린 채로 (정하는 쪽이 유지).
+        /// </summary>
+        public Func<ModuleData, bool> ExtraUnlock { get; set; }
+
+        private bool IsExtraUnlocked(ModuleData data) => data != null && ExtraUnlock != null && ExtraUnlock(data);
 
         public bool IsUnlocked(ModuleData data)
         {
@@ -178,7 +204,7 @@ namespace SpaceStation.Simulation
             if (UnlockSource != null)
                 return UnlockSource.IsUnlocked(data); // 13-1 장 틀
             int grade = GetUnlockGrade(data);
-            return grade >= 0 && grade <= GradeIndex;
+            return (grade >= 0 && grade <= GradeIndex) || IsExtraUnlocked(data);
         }
 
         public int CountLimited(StationGrid grid)
