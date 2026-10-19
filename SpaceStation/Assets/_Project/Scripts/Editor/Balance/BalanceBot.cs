@@ -204,6 +204,12 @@ namespace SpaceStation.Editor.Balance
             var r = _sim.Resources;
             if (_power != null && PowerSurplus() < PowerHeadroom)
                 return _power;
+            // 13-7 플레이어처럼 (2026-10-17): 다음 등급 조건 중 인구만 모자라고 수용이 꽉 찼으면, 생존 자원이 안정적이고 금속 수입이 있을 때는
+            // 큰 저축(핵융합로)보다 거주가 먼저 — 저축 중에도 싼 거주는 짓는다. 생존 자원이 줄 때는 아래 순서 그대로 (생존 먼저)
+            // 측정: 시드 8 · 9가 밤 전력 부족으로 핵융합로를 모으는 15 ~ 20분 동안 거주를 못 지어 중형에서 인구가 멈췄음 (BALANCE 47번)
+            if (PlayerHabits && _housing != null && r.Population >= r.HousingCapacity - 1 && OnlyPopulationShort(r) && LifeSupportStable(r)
+                && (!CanBuildMetal() || r.GetProduction(ResourceType.Metal) > 0f))
+                return PickHousing(r);
             // 8-1: 밤 부족이 크면 핵융합로 (금속을 모아서 산다 — 저장 한도가 모자라면 창고부터)
             if (_fusion != null && _nightDeficit >= FusionNightDeficit && _sim.CheckBuildable(_fusion) == PlacementResult.Valid
                 && LifeSupportStable(r)) // 생존 자원이 줄고 있으면 큰 구매(저축)보다 그쪽이 먼저
