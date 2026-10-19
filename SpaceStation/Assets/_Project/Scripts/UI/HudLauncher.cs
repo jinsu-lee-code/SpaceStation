@@ -23,6 +23,10 @@ namespace SpaceStation.UI
         public static class Order
         {
             public const int Research = 10, Roster = 20, Recipes = 30, Policies = 40, Contact = 50, Systems = 60;
+            /// <summary>판 전용 창 칸 = 맨 끝 같은 자리 (타이쿤판 시스템 · 서사판 코어 기록).</summary>
+            public const int Edition = Systems;
+            /// <summary>판 전용 칸 앞 (서사판 탐사 등 판마다 더 붙는 창).</summary>
+            public const int EditionExtra = Contact + 5;
         }
 
         public sealed class Entry

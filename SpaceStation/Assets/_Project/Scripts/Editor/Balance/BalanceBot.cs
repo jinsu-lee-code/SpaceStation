@@ -35,17 +35,18 @@ namespace SpaceStation.Editor.Balance
         private const int CargoMax = 2;
         private readonly ModuleData _armor;    // 8-5 장갑 격벽 (운석 미끼)
         private const int ModulesPerArmor = 20;
-        private const float RingMetalSpare = 100f; // 두 번째 링부터: 건설비 + 이만큼 금속이 있을 때만
+        // 두 번째 링부터: 건설비 + 이만큼 금속이 있을 때만 = _persona.RingMetalSpare (기준 100)
         /// <summary>Phase 6: 연구를 하는지 (비교 측정용, 기본 true).</summary>
         public static bool UseResearch = true;
-        /// <summary>연구 우선순위: 유지보수 → 생산 → 에너지 → 건설·경제 → 거주 → 방어.</summary>
-        private static readonly ResearchCategory[] ResearchOrder =
-        {
-            ResearchCategory.Maintenance, ResearchCategory.Production, ResearchCategory.Energy,
-            ResearchCategory.Construction, ResearchCategory.Habitation, ResearchCategory.Defense,
-        };
+        // 연구 우선순위 = _persona.ResearchOrder (기준: 유지보수 → 생산 → 에너지 → 건설·경제 → 거주 → 방어)
         public int ResearchStarted { get; private set; }
-        private const int ModulesPerDefense = 15; // 방어 모듈 1개당 모듈 수 (4-8)
+        // 방어 모듈 1개당 모듈 수 (4-8) = _persona.ModulesPerDefense (기준 15)
+
+        /// <summary>13-7 봇 성향 (사용자 결정 2026-10-19, 기본 켬 · 끄면 중립 = 이전 봇): 시드마다 성장 ↔ 안전 · 저축 · 연구 순서가 다름 (<see cref="BalanceBotPersona"/>).</summary>
+        public static bool Persona = true;
+        private readonly BalanceBotPersona _persona;
+        /// <summary>이 봇이 쓰는 성향 (요약 기록용).</summary>
+        public BalanceBotPersona PersonaInUse => _persona;
         /// <summary>비교 측정용: 방어 모듈을 금속 여유와 무관하게 우선 건설 (기본 false).</summary>
         public static bool DefenseFirst;
         private readonly List<ModuleInstance> _covered = new List<ModuleInstance>();
@@ -62,10 +63,11 @@ namespace SpaceStation.Editor.Balance
         /// <summary>마지막 결정에서 원했던 모듈 (디버그용).</summary>
         public string LastNeed { get; private set; } = "-";
 
-        public BalanceBot(StationSimulation sim, IReadOnlyList<ModuleData> buildable)
+        public BalanceBot(StationSimulation sim, IReadOnlyList<ModuleData> buildable, BalanceBotPersona persona = null)
         {
             _sim = sim;
             _buildable = buildable;
+            _persona = persona ?? BalanceBotPersona.Neutral;
             // 역할마다 가장 이른 등급에 해금되는 모듈 (같으면 목록 앞쪽). 12-5에서 물 추출기(도시급)가 이름순으로 물 재활용기보다 앞에 와
             // 봇이 처음부터 못 짓는 모듈을 물 담당으로 잡아 5분 만에 물 고갈로 끝났음 (2026-10-15 수정)
             bool Pick(ModuleData current, ModuleData candidate) => current == null || UnlockOrder(candidate) < UnlockOrder(current);
@@ -133,9 +135,15 @@ namespace SpaceStation.Editor.Balance
                 && (_food == null || r.GetNetRate(ResourceType.Food) >= NetMargin);
         }
 
-        /// <summary>8-1: 밤 부족량이 크고 금속 여유가 있으면 배터리·태양광 대신 핵융합로 (상시 발전).</summary>
-        private const float FusionNightDeficit = 15f;
-        private const float FusionMetalReserve = 60f;
+        /// <summary>밤을 버틸 배터리가 모자람: 용량(밤 길이 × 부족량 × 1.1)이나 방전 속도(부족량) 중 하나라도.</summary>
+        private bool NightUncovered(ResourceSimulation r)
+        {
+            return _battery != null && _nightDeficit > 0f
+                && (r.BatteryCapacity < _nightDeficit * _sim.DayNight.NightLength * 1.1f || r.BatteryRate < _nightDeficit);
+        }
+
+        // 8-1: 밤 부족량이 크고 금속 여유가 있으면 배터리·태양광 대신 핵융합로 (상시 발전)
+        //   = _persona.FusionNightDeficit (기준 15) · _persona.FusionMetalReserve (기준 60)
 
         public int Maintenances { get; private set; }
         public int Rebuilds { get; private set; }
@@ -207,21 +215,21 @@ namespace SpaceStation.Editor.Balance
             // 13-7 플레이어처럼 (2026-10-17): 다음 등급 조건 중 인구만 모자라고 수용이 꽉 찼으면, 생존 자원이 안정적이고 금속 수입이 있을 때는
             // 큰 저축(핵융합로)보다 거주가 먼저 — 저축 중에도 싼 거주는 짓는다. 생존 자원이 줄 때는 아래 순서 그대로 (생존 먼저)
             // 측정: 시드 8 · 9가 밤 전력 부족으로 핵융합로를 모으는 15 ~ 20분 동안 거주를 못 지어 중형에서 인구가 멈췄음 (BALANCE 47번)
-            if (PlayerHabits && _housing != null && r.Population >= r.HousingCapacity - 1 && OnlyPopulationShort(r) && LifeSupportStable(r)
-                && (!CanBuildMetal() || r.GetProduction(ResourceType.Metal) > 0f))
+            // 밤을 배터리로 못 버티면 거주보다 아래 발전 · 배터리가 먼저 (측정: 배터리까지 건너뛰어 12판 중 3판이 밤 정전 → 산소 고갈로 게임 오버)
+            if (PlayerHabits && _housing != null && r.Population >= r.HousingCapacity - _persona.HousingAhead && OnlyPopulationShort(r) && LifeSupportStable(r)
+                && !NightUncovered(r) && (!CanBuildMetal() || r.GetProduction(ResourceType.Metal) > 0f))
                 return PickHousing(r);
             // 8-1: 밤 부족이 크면 핵융합로 (금속을 모아서 산다 — 저장 한도가 모자라면 창고부터)
-            if (_fusion != null && _nightDeficit >= FusionNightDeficit && _sim.CheckBuildable(_fusion) == PlacementResult.Valid
+            if (_fusion != null && _nightDeficit >= _persona.FusionNightDeficit && _sim.CheckBuildable(_fusion) == PlacementResult.Valid
                 && LifeSupportStable(r)) // 생존 자원이 줄고 있으면 큰 구매(저축)보다 그쪽이 먼저
             {
-                if (r.GetCapacity(ResourceType.Metal) >= Cost(_fusion) + FusionMetalReserve)
+                if (r.GetCapacity(ResourceType.Metal) >= Cost(_fusion) + _persona.FusionMetalReserve)
                     return _fusion;
                 if (_storage != null && _sim.CheckBuildable(_storage) == PlacementResult.Valid)
                     return _storage;
             }
             // 밤을 버틸 배터리: 용량(밤 길이 × 부족량 × 1.1)과 방전 속도(부족량) 둘 다
-            if (_battery != null && _nightDeficit > 0f && _sim.CheckBuildable(_battery) == PlacementResult.Valid
-                && (r.BatteryCapacity < _nightDeficit * _sim.DayNight.NightLength * 1.1f || r.BatteryRate < _nightDeficit))
+            if (NightUncovered(r) && _sim.CheckBuildable(_battery) == PlacementResult.Valid)
                 return _battery;
             // 금속 수입이 없으면 다른 건설이 모두 막히므로 최우선
             if (CanBuildMetal() && r.GetProduction(ResourceType.Metal) <= 0f)
@@ -234,7 +242,7 @@ namespace SpaceStation.Editor.Balance
                 return _food;
             // 13-7 플레이어처럼: 다음 등급 조건 중 인구만 모자라고 수용이 꽉 찼으면 거주가 먼저 (방어 · 창고 · 채굴보다 앞)
             // 측정: 중형에서 모듈은 대형 조건을 넘었는데 수리 · 정비에 금속을 쓰느라 거주를 미뤄 인구가 30분 넘게 멈췄음
-            if (PlayerHabits && _housing != null && r.Population >= r.HousingCapacity - 1 && OnlyPopulationShort(r))
+            if (PlayerHabits && _housing != null && r.Population >= r.HousingCapacity - _persona.HousingAhead && OnlyPopulationShort(r))
                 return PickHousing(r);
             // 13-7 플레이어처럼: 파손을 겪었는데 방어 모듈이 하나도 없으면 첫 방어를 금속 여유와 무관하게 먼저 (저축해서 산다)
             // 측정: 시드 1 · 7 · 10이 초반 수리비로 금속 여유를 끝내 못 채워 방어 0개(격추 0) → 파손 누적 · 정체 · 게임 오버
@@ -257,12 +265,12 @@ namespace SpaceStation.Editor.Balance
             // (측정: 배터리 대신·초반 우선으로 지으면 물 고갈 또는 확장 지연)
             if (_fuelCell != null && CountOf(_fuelCell) < FuelCellMax && _sim.CheckBuildable(_fuelCell) == PlacementResult.Valid
                 && r.GetNetRate(ResourceType.Water) >= FuelCellWaterMargin
-                && r.GetStock(ResourceType.Metal) >= Cost(_fuelCell) + (_housing != null ? Cost(_housing) : 0f))
+                && r.GetStock(ResourceType.Metal) >= Cost(_fuelCell) + (_housing != null ? Cost(_housing) * _persona.SafetySpareScale : 0f))
                 return _fuelCell;
             // 8-5: 장갑 격벽 — 모듈 20개당 1개, 금속 여유가 있을 때 (외곽 미끼)
             if (_armor != null && (CountOf(_armor) + 1) * ModulesPerArmor <= _sim.Grid.ModuleCount
                 && _sim.CheckBuildable(_armor) == PlacementResult.Valid
-                && r.GetStock(ResourceType.Metal) >= Cost(_armor) + (_housing != null ? Cost(_housing) : 0f))
+                && r.GetStock(ResourceType.Metal) >= Cost(_armor) + (_housing != null ? Cost(_housing) * _persona.SafetySpareScale : 0f))
                 return _armor;
             // 8-5: 화물 터미널 2개까지 — 금속 여유가 있고 도킹 규칙을 만족하는 자리가 있을 때만
             if (_cargo != null && CountOf(_cargo) < CargoMax && _sim.CheckBuildable(_cargo) == PlacementResult.Valid
@@ -280,14 +288,14 @@ namespace SpaceStation.Editor.Balance
             // 4-8: 모듈 15개당 방어 모듈 1개 (실드·포탑 번갈아). 금속이 건설비 + 거주 모듈 1개분 이상 남을 때만 → 성장을 막지 않음
             // DefenseFirst(비교 측정용)이면 금속 여유와 무관하게 먼저 짓는다
             var defense = PickDefense();
-            if (defense != null && (DefenseFirst || r.GetStock(ResourceType.Metal) >= Cost(defense) + (_housing != null ? Cost(_housing) : 0f)))
+            if (defense != null && (DefenseFirst || r.GetStock(ResourceType.Metal) >= Cost(defense) + (_housing != null ? Cost(_housing) * _persona.SafetySpareScale : 0f)))
                 return defense;
-            if (_housing != null && r.Population >= r.HousingCapacity - 1)
+            if (_housing != null && r.Population >= r.HousingCapacity - _persona.HousingAhead)
                 return PickHousing(r);
             // 금속이 차 있어도, 저장 한도가 해금된 가장 비싼 모듈을 살 만큼 되면 창고는 그만 (8-6: 90분에 창고 167개 → 한도만큼만)
             if (_storage != null && _sim.CheckBuildable(_storage) == PlacementResult.Valid
                 && r.GetStock(ResourceType.Metal) >= r.GetCapacity(ResourceType.Metal) * 0.95f
-                && r.GetCapacity(ResourceType.Metal) < MaxUnlockedCost() + FusionMetalReserve)
+                && r.GetCapacity(ResourceType.Metal) < MaxUnlockedCost() + _persona.FusionMetalReserve)
                 return _storage;
             // 금속이 넘치는데 할 일이 없으면 수용을 늘려 인구 성장 (넘치는 금속을 버리지 않게)
             if (_housing != null && r.GetStock(ResourceType.Metal) >= r.GetCapacity(ResourceType.Metal) * 0.95f)
@@ -310,7 +318,7 @@ namespace SpaceStation.Editor.Balance
         private ModuleData PickHousing(ResourceSimulation r)
         {
             if (_ring != null && _sim.CheckBuildable(_ring) == PlacementResult.Valid
-                && (CountOf(_ring) == 0 || r.GetStock(ResourceType.Metal) >= Cost(_ring) + RingMetalSpare)
+                && (CountOf(_ring) == 0 || r.GetStock(ResourceType.Metal) >= Cost(_ring) + _persona.RingMetalSpare)
                 && RingFits()) // 3×3 자리가 없으면 거주 모듈로 (저축하다 멈추지 않게)
                 return _ring;
             return _housing;
@@ -391,7 +399,7 @@ namespace SpaceStation.Editor.Balance
             if (!UseResearch || research.Categories.Count == 0 || !research.HasFreeSlot)
                 return;
             var r = _sim.Resources;
-            foreach (var kind in ResearchOrder)
+            foreach (var kind in _persona.ResearchOrder)
             {
                 var category = research.Find(kind);
                 if (category == null || _sim.CanStartResearch(category) != ResearchStartResult.Ok)
@@ -508,7 +516,7 @@ namespace SpaceStation.Editor.Balance
                 if (m.Data.IsTurret) turrets++;
                 if (m.Data.IsDamageControl) controls++;
             }
-            if ((shields + turrets + controls + 1) * ModulesPerDefense > _sim.Grid.ModuleCount)
+            if ((shields + turrets + controls + 1) * _persona.ModulesPerDefense > _sim.Grid.ModuleCount)
                 return null;
             // 실드 → 포탑 → 손상 통제실(8-3) 순으로 가장 적은 종류
             ModuleData best = null;
@@ -996,6 +1004,94 @@ namespace SpaceStation.Editor.Balance
                     return true;
             }
             return false;
+        }
+    }
+
+    /// <summary>
+    /// 13-7 봇 성향 (사용자 결정 2026-10-19): 시드에 묶인 플레이 성향 — 같은 시드는 늘 같은 성향(재현 가능), 판마다 플레이 방식이 다름.
+    /// 세 축, 세기 = 기준값 ±40% (<see cref="Strength"/>):
+    /// - 성장 ↔ 안전 (<see cref="Growth"/> -1 안전 ~ +1 성장): 방어 모듈 빈도(모듈 9 ~ 21개마다 1개) · 대비용 건설(방어 · 장갑 격벽 · 연료전지) 전에
+    ///   남겨 둘 금속(거주 1개분 × 0.6 ~ 1.4, 안전형이 적게 요구) · 거주를 꽉 차기 전에 미리 짓기(성장형만, 1 ~ 4명 전부터)
+    /// - 저축 (<see cref="Saving"/> -1 바로 쓰기 ~ +1 모으기): 핵융합로를 모으기 시작하는 밤 부족량(9 ~ 21) · 큰 구매 뒤 남길 금속(핵융합로 36 ~ 84 · 회전 링 60 ~ 140)
+    /// - 연구 순서: 기본 순서(유지보수 → 생산 → 에너지 → 건설 · 경제 → 거주 → 방어)에서 이웃끼리 2번 자리 바꿈
+    /// <see cref="Neutral"/> = 이전 봇과 같은 값 (<see cref="BalanceBot.Persona"/>를 끄면 이것).
+    /// </summary>
+    public sealed class BalanceBotPersona
+    {
+        public const float Strength = 0.4f;
+        private const int ResearchSwaps = 2;
+        private static readonly ResearchCategory[] BaseResearchOrder =
+        {
+            ResearchCategory.Maintenance, ResearchCategory.Production, ResearchCategory.Energy,
+            ResearchCategory.Construction, ResearchCategory.Habitation, ResearchCategory.Defense,
+        };
+
+        public static readonly BalanceBotPersona Neutral = new BalanceBotPersona(0f, 0f, BaseResearchOrder);
+
+        public float Growth { get; }
+        public float Saving { get; }
+        public IReadOnlyList<ResearchCategory> ResearchOrder { get; }
+
+        public int ModulesPerDefense { get; }
+        public float SafetySpareScale { get; }
+        public int HousingAhead { get; }
+        public float FusionNightDeficit { get; }
+        public float FusionMetalReserve { get; }
+        public float RingMetalSpare { get; }
+
+        private BalanceBotPersona(float growth, float saving, ResearchCategory[] order)
+        {
+            Growth = growth;
+            Saving = saving;
+            ResearchOrder = order;
+            ModulesPerDefense = Mathf.RoundToInt(15f * (1f + Strength * growth));
+            SafetySpareScale = 1f + Strength * growth;
+            HousingAhead = 1 + Mathf.RoundToInt(Mathf.Max(0f, growth) * Strength * 7.5f);
+            FusionNightDeficit = 15f * (1f - Strength * saving);
+            FusionMetalReserve = 60f * (1f + Strength * saving);
+            RingMetalSpare = 100f * (1f + Strength * saving);
+        }
+
+        /// <summary>시드에서 성향 (SplitMix64 — 다른 난수 흐름을 쓰지 않으므로 이벤트 · 상자 결과와 독립).</summary>
+        public static BalanceBotPersona FromSeed(int seed)
+        {
+            ulong n = 0;
+            float Next() => (float)(Mix((ulong)(uint)seed * 0x9E3779B97F4A7C15UL + 0xB07B07UL + (++n)) >> 11) * (1f / 9007199254740992f);
+            float growth = Next() * 2f - 1f;
+            float saving = Next() * 2f - 1f;
+            var order = (ResearchCategory[])BaseResearchOrder.Clone();
+            for (int i = 0; i < ResearchSwaps; i++)
+            {
+                int a = Mathf.Min((int)(Next() * (order.Length - 1)), order.Length - 2);
+                (order[a], order[a + 1]) = (order[a + 1], order[a]);
+            }
+            return new BalanceBotPersona(growth, saving, order);
+        }
+
+        /// <summary>보급 상자 · 내부 결과 난수 시드 (<see cref="StationSimulationSettings.CrateSeed"/>).</summary>
+        public static int CrateSeedFor(int seed) => (int)(Mix((ulong)(uint)seed * 0x9E3779B97F4A7C15UL + 0xC4A7EUL) & 0x7FFFFFFF);
+
+        private static ulong Mix(ulong z)
+        {
+            z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
+            z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
+            return z ^ (z >> 31);
+        }
+
+        private static readonly Dictionary<ResearchCategory, string> ResearchNames = new Dictionary<ResearchCategory, string>
+        {
+            { ResearchCategory.Maintenance, "유지보수" }, { ResearchCategory.Production, "생산" }, { ResearchCategory.Energy, "에너지" },
+            { ResearchCategory.Construction, "건설" }, { ResearchCategory.Habitation, "거주" }, { ResearchCategory.Defense, "방어" },
+        };
+
+        /// <summary>요약 한 줄: "성장 +0.62 · 저축 -0.31 (방어 19개마다 · 미리 거주 3 · 핵융합로 부족 17 여유 52) · 연구 유지보수 > 에너지 > …".</summary>
+        public string Describe()
+        {
+            var names = new List<string>();
+            foreach (var c in ResearchOrder)
+                names.Add(ResearchNames.TryGetValue(c, out var s) ? s : c.ToString());
+            return $"성장 {Growth:+0.00;-0.00;0.00} · 저축 {Saving:+0.00;-0.00;0.00} (방어 {ModulesPerDefense}개마다 · 미리 거주 {HousingAhead} · " +
+                   $"핵융합로 부족 {FusionNightDeficit:0} 여유 {FusionMetalReserve:0}) · 연구 {string.Join(" > ", names)}";
         }
     }
 }

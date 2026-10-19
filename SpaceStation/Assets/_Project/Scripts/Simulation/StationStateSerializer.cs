@@ -111,7 +111,7 @@ namespace SpaceStation.Simulation
                 AutoMaintainCount = auto.AutoMaintainCount,
                 AutoRebuildCount = auto.AutoRebuildCount,
             };
-            if (sim.Tutorial != null && sim.Tutorial.Active)
+            if (sim.Tutorial != null && sim.Tutorial.Active && !sim.Tutorial.Data.Transient) // 13-4 저장하지 않는 짧은 안내는 빼고
                 s.Tutorial = sim.Tutorial.Capture();
             sim.Residents?.Capture(s.Residents, m => m == sim.Core ? -2 : index.TryGetValue(m, out int i) ? i : -1);
 

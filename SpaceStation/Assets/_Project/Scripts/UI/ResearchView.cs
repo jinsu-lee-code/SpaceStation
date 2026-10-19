@@ -30,8 +30,11 @@ namespace SpaceStation.UI
         private readonly TMP_Text _threshold, _reserve, _autoStatus;
         private ResearchCategoryData _selected;
 
-        /// <summary>맨 위(연구소 사용 줄)부터 목록 · 상세 아래 끝까지의 높이.</summary>
-        public float Height { get; }
+        /// <summary>맨 위(연구소 사용 줄)부터 목록 · 상세 아래 끝까지의 높이 (연계 연구 칸을 숨기면 그만큼 줄어듦, M-21).</summary>
+        public float Height => LinkedShown ? _heightLinked : _heightBase;
+
+        private readonly float _heightBase, _heightLinked;
+        private bool LinkedShown => _linkedHeader != null && _sim.Research.ShowLinked;
 
         private TMP_Text _linkedHeader;
         private readonly List<(Button Button, TMP_Text Label)> _linkedRows = new List<(Button, TMP_Text)>();
@@ -135,7 +138,8 @@ namespace SpaceStation.UI
                 }
                 right = -ly;
             }
-            Height = Mathf.Max(right, -y) - top;
+            _heightBase = Mathf.Max(-listTop + panelH, -y) - top;
+            _heightLinked = Mathf.Max(right, -y) - top;
             if (sim.Research.Categories.Count > 0)
                 _selected = sim.Research.Categories[0];
             root.gameObject.SetActive(false);
@@ -208,6 +212,14 @@ namespace SpaceStation.UI
             if (_linkedHeader == null || ex == null || _selected == null)
                 return;
             _linkedShown.Clear();
+            bool show = LinkedShown; // M-21 판 고리가 숨김 (서사판: 합성이 열리는 장 전)
+            _linkedHeader.gameObject.SetActive(show);
+            if (!show)
+            {
+                foreach (var (button, _) in _linkedRows)
+                    button.gameObject.SetActive(false);
+                return;
+            }
             foreach (var l in ex.Linked)
                 if (l != null && l.Category == _selected.Category)
                     _linkedShown.Add(l);
@@ -264,7 +276,12 @@ namespace SpaceStation.UI
             int running = Mathf.Min(research.Projects.Count, research.LabSlots);
             int points = _sim.Supply.ResearchPoints;
             string pointText = points > 0 ? $"  <color={HudText.Yellow}>연구 포인트 {points}</color>" : "";
-            _labs.SetText(research.LabSlots == 0
+            var gate = research.Gate; // M-19 판 고리
+            if (gate != null && !string.IsNullOrEmpty(gate.Status))
+                pointText += $"  <color={HudText.Yellow}>{gate.Status}</color>";
+            _labs.SetText(!research.IsOpen
+                ? $"<color={HudText.Orange}>{gate.ClosedReason}</color>"
+                : research.LabSlots == 0
                 ? $"<color={HudText.Orange}>연구소가 없습니다 · 건설 탭의 산업에서 연구소를 지으세요</color>{pointText}"
                 : $"연구소 {running} / {research.LabSlots} 사용 중  <color={HudText.Muted}>(연구소마다 동시에 하나씩)</color>{pointText}");
 
@@ -319,15 +336,22 @@ namespace SpaceStation.UI
             }
 
             var sb = new StringBuilder();
+            var gate = research.Gate; // M-19 판 고리: 단계마다 덧붙일 한 줄
             var current = category.GetLevel(level);
             if (max > 1)
                 sb.Append(current != null ? $"<color={HudText.Muted}>현재</color> {current.Description}\n" : $"<color={HudText.Muted}>현재 효과 없음</color>\n");
+            string currentNote = gate != null && level > 0 ? gate.Note(category, level) : null;
+            if (!string.IsNullOrEmpty(currentNote))
+                sb.Append($"<size=90%>{currentNote}</size>\n");
             var next = category.GetLevel(level + 1);
             if (next == null)
                 sb.Append($"<color={HudTheme.GreenHex}>최고 레벨 달성</color>");
             else
             {
                 sb.Append(max == 1 ? next.Description : $"<color={HudTheme.AccentHex}>다음 Lv.{level + 1}</color> {next.Description}");
+                string nextNote = gate?.Note(category, level + 1);
+                if (!string.IsNullOrEmpty(nextNote))
+                    sb.Append($"\n<size=90%>{nextNote}</size>");
                 string discount = UsePoint ? $"  <color={HudText.Yellow}>(연구 포인트 -{_sim.Balance.ResearchPointDiscount * 100f:0}%)</color>" : "";
                 sb.Append($"\n\n비용 {HudText.Cost(_sim.GetResearchStartCost(category, UsePoint))}{discount}  <color={HudText.Muted}>· 전력 +{next.PowerDemand:0} · {next.Duration:0}초</color>");
             }
@@ -434,6 +458,8 @@ namespace SpaceStation.UI
                     return sim.Research.LabSlots == 0 ? "연구소 필요" : "빈 연구소 없음";
                 case ResearchStartResult.InsufficientResources:
                     return "자원 부족";
+                case ResearchStartResult.Gated: // M-19 판 고리 (서사판: 기록 조각 등)
+                    return research.Gate?.BlockReason(category, nextLevel);
                 default:
                     return null;
             }

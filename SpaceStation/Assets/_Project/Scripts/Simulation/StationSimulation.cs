@@ -34,6 +34,11 @@ namespace SpaceStation.Simulation
         public ContactConfig Contact;
         /// <summary>12-4 연구 확장 (레시피 그림자 · 해금 연구 · 연계 연구). null이면 없음 = 레시피는 자동 해금만 (12-3과 같음).</summary>
         public ResearchExpansionConfig ResearchExpansion;
+        /// <summary>
+        /// 보급 상자 내용 · 내부 결과 난수의 시드. null이면 매 판 다른 시스템 난수 (게임). 밸런스 봇은 시드에서 섞어 넣는다 —
+        /// 2026-10-17: 봇이 상자를 처음부터 줍게 된 뒤(13-7) 같은 시드도 약 10분부터 결과가 갈라졌음.
+        /// </summary>
+        public int? CrateSeed;
     }
 
     /// <summary>
@@ -50,7 +55,8 @@ namespace SpaceStation.Simulation
         private readonly List<GameEventData> _eventPool;
         private readonly Func<float> _random01;
         // 상자 내용 난수는 이벤트 난수와 따로 (밸런스 봇의 시드 결과가 바뀌지 않게). 고정 시드면 매 판 처음 상자들이 늘 같았음(물 4개)
-        private readonly Random _crateRandom = new Random();
+        // → 게임은 시스템 난수, 봇은 시드를 섞은 값(CrateSeed)
+        private readonly Random _crateRandom;
         private readonly List<ModuleInstance> _coreNeighbors = new List<ModuleInstance>();
         private readonly List<TickStep> _tickSteps = new List<TickStep>();
         private readonly List<StationSystem> _systems = new List<StationSystem>();
@@ -139,6 +145,9 @@ namespace SpaceStation.Simulation
         /// <summary>13-2: 이벤트 규모를 정하는 쪽을 붙인다 (null = 등급).</summary>
         public void SetEventScale(IEventScale scale) => _eventScale = scale;
 
+        /// <summary>13-3 공통 고리: 자연 인구 증가 간격에 곱하는 배율 (기본 1, 서사판 = 이민선이 주된 공급원인 장에서 크게). 다음 틱부터.</summary>
+        public float GrowthIntervalScale { get; set; } = 1f;
+
         /// <summary>13-1 공통 판정 고리: 규칙을 정하는 쪽 (서사판 장 틀 · 타이쿤판 해금 선택). null이면 등급 조건 그대로.</summary>
         public IStationRules Rules { get; private set; }
 
@@ -182,6 +191,7 @@ namespace SpaceStation.Simulation
             if (settings == null) throw new ArgumentNullException(nameof(settings));
             Balance = settings.Balance ?? throw new ArgumentException("Balance 필요", nameof(settings));
             _random01 = settings.Random01 ?? throw new ArgumentException("Random01 필요", nameof(settings));
+            _crateRandom = settings.CrateSeed.HasValue ? new Random(settings.CrateSeed.Value) : new Random();
             _eventPool = settings.Events != null ? new List<GameEventData>(settings.Events) : new List<GameEventData>();
 
             _stats = new StationModuleStats(this);

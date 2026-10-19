@@ -24,6 +24,9 @@ namespace SpaceStation.UI
         private const float WindowWidth = 1200f;
         private const float WindowHeight = 770f;
         private const float CrisisWidth = 940f;
+        private const float CardH = 116f, RowW = 550f, RowH = 104f, RowGap = 8f;
+        private const float ListTop = -96f - CardH - 20f;
+        private const int FullRows = 4; // 정책 8개 = 2열 × 4줄 기준 창 높이
 
         [SerializeField] private StationController _station;
         [SerializeField] private TMP_FontAsset _font;
@@ -49,6 +52,7 @@ namespace SpaceStation.UI
         private readonly List<(Button button, TMP_Text label)> _slotCards = new List<(Button, TMP_Text)>();
         private readonly List<(PolicyData policy, Button button, TMP_Text label)> _rows = new List<(PolicyData, Button, TMP_Text)>();
         private Button _clear;
+        private int _shownRows = -1;
 
         // 사회 위기 선택지
         private RectTransform _crisisBox;
@@ -160,9 +164,10 @@ namespace SpaceStation.UI
             switch (result)
             {
                 case PolicySystem.AssignResult.Ok:
-                    _notice = policy != null ? $"'{policy.DisplayName}' 예약 · {_policies.Config.ApplyDelay:0}초 뒤 시행" : "슬롯 비우기 예약";
+                    _notice = policy != null ? $"'{policy.DisplayName}' 예약 · {_policies.ApplyDelay:0}초 뒤 시행" : "슬롯 비우기 예약";
                     AudioService.TryPlay(l => l.UiClick);
                     break;
+                case PolicySystem.AssignResult.NotOffered: _notice = $"<color={Bad}>지금은 고를 수 없는 정책</color>"; break;
                 case PolicySystem.AssignResult.NoSlot: _notice = $"<color={Bad}>열리지 않은 슬롯</color>"; break;
                 case PolicySystem.AssignResult.Cooldown: _notice = $"<color={Bad}>이 슬롯은 아직 교체 대기 중</color>"; break;
                 case PolicySystem.AssignResult.Duplicate: _notice = $"<color={Bad}>이미 다른 슬롯에 있는 정책</color>"; break;
@@ -211,12 +216,12 @@ namespace SpaceStation.UI
             HoloUi.Place(_summary.rectTransform, new Vector2(180f, -30f), new Vector2(WindowWidth - 220f, 56f));
 
             // 슬롯 카드 (최대 4)
-            const float cardW = 272f, cardH = 116f, gap = 14f;
+            const float cardW = 272f, gap = 14f;
             for (int i = 0; i < 4; i++)
             {
                 int slot = i;
                 var b = _ui.TechButton(_window, "", 19f, () => SelectSlot(slot));
-                HoloUi.Place((RectTransform)b.transform, new Vector2(40f + i * (cardW + gap), -96f), new Vector2(cardW, cardH));
+                HoloUi.Place((RectTransform)b.transform, new Vector2(40f + i * (cardW + gap), -96f), new Vector2(cardW, CardH));
                 var label = b.GetComponentInChildren<TMP_Text>();
                 label.alignment = TextAlignmentOptions.TopLeft;
                 label.margin = new Vector4(12f, 10f, 8f, 6f);
@@ -224,16 +229,14 @@ namespace SpaceStation.UI
                 _slotCards.Add((b, label));
             }
 
-            // 정책 목록 (2열)
-            const float rowW = 550f, rowH = 104f;
-            float top = -96f - cardH - 20f;
+            // 정책 목록 (2열) — 자리는 고를 수 있는 것만 차례로 (M-22, RefreshWindow)
             for (int i = 0; i < _policies.Policies.Count; i++)
             {
                 var p = _policies.Policies[i];
                 if (p == null)
                     continue;
                 var b = _ui.TechButton(_window, "", 19f, () => AssignToSelected(p));
-                HoloUi.Place((RectTransform)b.transform, new Vector2(40f + (i % 2) * (rowW + 20f), top - (i / 2) * (rowH + 8f)), new Vector2(rowW, rowH));
+                PlaceRow(b, i);
                 var label = b.GetComponentInChildren<TMP_Text>();
                 label.alignment = TextAlignmentOptions.TopLeft;
                 label.margin = new Vector4(14f, 8f, 10f, 6f);
@@ -260,6 +263,20 @@ namespace SpaceStation.UI
 
             HoloGlitch.Add(_window, _holoArt);
             _tween = new UiTween(_window, _group, new Vector2(0f, -24f), 0.2f, 0.15f, glitch: true);
+        }
+
+        private static void PlaceRow(Button button, int index) =>
+            HoloUi.Place((RectTransform)button.transform, new Vector2(40f + (index % 2) * (RowW + 20f), ListTop - (index / 2) * (RowH + RowGap)), new Vector2(RowW, RowH));
+
+        /// <summary>M-22: 고를 수 있는 정책 줄 수만큼 창 높이를 맞춤 (판이 정책을 줄이면 빈 자리가 남지 않게).</summary>
+        private void FitRows(int rows)
+        {
+            if (rows == _shownRows)
+                return;
+            _shownRows = rows;
+            float height = WindowHeight - Mathf.Max(0, FullRows - Mathf.Max(1, rows)) * (RowH + RowGap);
+            _window.sizeDelta = new Vector2(WindowWidth, height);
+            HoloUi.RefitDecor(_window);
         }
 
         private void BuildCrisis()
@@ -326,12 +343,13 @@ namespace SpaceStation.UI
             return $"{s / 60}:{s % 60:00}";
         }
 
-        private static string Effects(IReadOnlyList<PolicyModifier> modifiers)
+        /// <summary>효과 한 줄 (M-22 판 고리가 바꾼 실제 값으로).</summary>
+        private string Effects(PolicyData policy)
         {
             var sb = new StringBuilder();
-            foreach (var m in modifiers)
+            foreach (var m in policy.Modifiers)
             {
-                string line = PolicyStats.Describe(m.Stat, m.Value, out bool good);
+                string line = PolicyStats.Describe(m.Stat, _policies.ValueOf(policy, m), out bool good);
                 if (sb.Length > 0)
                     sb.Append("  ");
                 sb.Append($"<color={(good ? HudTheme.GreenHex : Bad)}>{line}</color>");
@@ -355,13 +373,15 @@ namespace SpaceStation.UI
             var temps = new StringBuilder();
             foreach (var t in _policies.Temporaries)
                 temps.Append(temps.Length > 0 ? " · " : "").Append($"{t.Name} {Clock(t.Remaining)}");
+            var gate = _policies.Gate; // M-22 판 고리: 슬롯 안내 · 잠긴 슬롯 문구 · 고를 수 있는 정책 · 실제 효과 값
             var rules = _policies.Sim.Rules; // 13-1 타이쿤판 해금 선택이면 등급 대신 시스템 개방
-            string slotRule = rules == null ? "국가급 2 · 대륙급 3 · 지구급 4"
+            string slotRule = gate?.Summary ?? (rules == null ? "국가급 2 · 대륙급 3 · 지구급 4"
                 : rules.Allows(StationRule.PolicyExpansion) ? $"정책 슬롯 확장 +{_policies.Config.ExpansionSlots} 포함"
-                : $"'정책 슬롯 확장'을 열면 +{_policies.Config.ExpansionSlots}";
+                : $"'정책 슬롯 확장'을 열면 +{_policies.Config.ExpansionSlots}");
             _summary.SetText(slots > 0
-                ? $"<color={Soft}>슬롯 {slots}개 ({slotRule}) · 바꾸면 {_policies.Config.ApplyDelay:0}초 뒤 시행 · 그 슬롯은 {_policies.Config.SwapCooldown / 60f:0}분 교체 대기</color>"
+                ? $"<color={Soft}>슬롯 {slots}개 ({slotRule}) · 바꾸면 {_policies.ApplyDelay:0}초 뒤 시행 · 그 슬롯은 {_policies.SwapCooldown / 60f:0.#}분 교체 대기</color>"
                   + (temps.Length > 0 ? $"\n<color={HudText.Orange}>일시 효과: {temps}</color>" : "")
+                : gate?.Summary != null ? $"<color={HudText.Orange}>{gate.Summary}</color>"
                 : rules != null ? $"<color={HudText.Orange}>'정책' 시스템이 열리면 정책 슬롯이 생깁니다</color>"
                 : $"<color={HudText.Orange}>국가급부터 정책 슬롯이 열립니다</color>");
 
@@ -373,7 +393,7 @@ namespace SpaceStation.UI
                 if (!open)
                 {
                     string grade = rules != null ? (slots > 0 ? "정책 슬롯 확장" : "'정책' 시스템") : i < 2 ? "국가급" : i == 2 ? "대륙급" : "지구급";
-                    label.SetText($"<color={Soft}>슬롯 {i + 1}\n{grade}부터</color>");
+                    label.SetText($"<color={Soft}>슬롯 {i + 1}\n{gate?.LockedSlot(i) ?? $"{grade}부터"}</color>");
                     continue;
                 }
                 var s = list[i];
@@ -387,14 +407,25 @@ namespace SpaceStation.UI
                 label.SetText(sb.ToString());
             }
 
+            int shown = 0;
             foreach (var (policy, button, label) in _rows)
             {
+                bool offered = _policies.Offers(policy);
+                if (button.gameObject.activeSelf != offered)
+                    button.gameObject.SetActive(offered);
+                if (!offered)
+                    continue;
+                PlaceRow(button, shown++);
                 bool active = _policies.IsActive(policy);
                 button.interactable = slots > 0;
                 string name = active ? $"<color=#7FD8FF><b>{policy.DisplayName}</b> (시행 중)</color>" : $"<b>{policy.DisplayName}</b>";
-                label.SetText($"{name}\n{Effects(policy.Modifiers)}"
+                string note = gate?.Note(policy);
+                if (!string.IsNullOrEmpty(note))
+                    name += $"  <size=82%><color={Soft}>{note}</color></size>";
+                label.SetText($"{name}\n{Effects(policy)}"
                               + (string.IsNullOrEmpty(policy.Description) ? "" : $"\n<size=88%><color={Soft}>{policy.Description}</color></size>"));
             }
+            FitRows((shown + 1) / 2);
             _clear.interactable = slots > 0;
             // 파업 경고 선택지 창은 정책 창 뒤에 있음 → 열려 있는 동안은 아래에 알림
             bool warning = _crisis != null && _crisis.Phase == SocialCrisisSystem.CrisisPhase.Warning;

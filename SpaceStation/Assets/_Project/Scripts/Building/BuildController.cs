@@ -182,7 +182,7 @@ namespace SpaceStation.Building
         private int UnlockGrade(ModuleData data)
         {
             var p = Progression;
-            return p != null ? p.GetUnlockGrade(data) : 0;
+            return p != null ? p.UnlockOrder(data) : 0;
         }
 
         private void Update()

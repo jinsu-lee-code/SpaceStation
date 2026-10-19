@@ -12,6 +12,7 @@ namespace SpaceStation.Simulation
     /// 바꾸면 새 정책은 적용 대기(30초) 뒤 발효(그동안 옛 정책 유지), 그 슬롯은 재사용 대기(5분) 동안 다시 못 바꿈. 같은 정책을 두 슬롯에 못 검.
     /// 사회 위기 선택지의 일시 효과(임금 인상 · 파업)도 같은 효과 묶음으로 더함 (<see cref="AddTemporary"/>).
     /// 효과는 <see cref="ResearchEffects.Policy"/>로 각 시스템이 읽는다 (정책이 없으면 중립 = 기존 결과 그대로).
+    /// M-22 판 고리(<see cref="IPolicyGate"/>)를 꽂으면 슬롯 수 · 고를 수 있는 정책 · 시간 · 실제 효과 값을 판이 정함.
     /// </summary>
     public sealed class PolicySystem : StationSystem
     {
@@ -24,6 +25,8 @@ namespace SpaceStation.Simulation
             Cooldown,
             Duplicate,
             Same,
+            /// <summary>판 고리가 고를 수 없게 한 정책 (M-22).</summary>
+            NotOffered,
         }
 
         public sealed class Slot
@@ -58,11 +61,35 @@ namespace SpaceStation.Simulation
         public override string Key => SystemKey;
         public PolicyConfig Config => _config;
         public IReadOnlyList<PolicyData> Policies => _config.Policies;
+
+        private IPolicyGate _gate;
+
+        /// <summary>판별 정책 고리 (M-22, 없으면 지금과 같음). 바꾸면 효과를 다시 계산.</summary>
+        public IPolicyGate Gate
+        {
+            get => _gate;
+            set
+            {
+                _gate = value;
+                Recompute();
+            }
+        }
+
         /// <summary>
         /// 지금 쓸 수 있는 슬롯 수 (도달한 가장 높은 등급 기준 — 등급이 내려가도 줄지 않음).
         /// 13-1 규칙을 정하는 쪽이 있으면 정책 규칙이 열려야 쓸 수 있고, 슬롯 확장 규칙이 열리면 확장 수만큼 더.
+        /// M-22 판 고리가 있으면 그 값.
         /// </summary>
         public int SlotCount
+        {
+            get
+            {
+                int count = DefaultSlotCount;
+                return _gate != null ? Math.Max(0, _gate.SlotCount(count)) : count;
+            }
+        }
+
+        private int DefaultSlotCount
         {
             get
             {
@@ -74,6 +101,21 @@ namespace SpaceStation.Simulation
                 return byGrade + (Sim.Rules.Allows(StationRule.PolicyExpansion) ? _config.ExpansionSlots : 0);
             }
         }
+
+        /// <summary>고를 수 있는 정책인지 (M-22 판 고리, 없으면 모두).</summary>
+        public bool Offers(PolicyData policy) => policy != null && (_gate == null || _gate.Offers(policy));
+
+        /// <summary>새 정책이 효과를 내기까지 (초, M-22 판 고리가 바꿀 수 있음).</summary>
+        public float ApplyDelay => _gate != null ? Math.Max(0f, _gate.ApplyDelay(_config.ApplyDelay)) : _config.ApplyDelay;
+
+        /// <summary>한 슬롯을 바꾼 뒤 다시 바꿀 수 있기까지 (초, M-22 판 고리가 바꿀 수 있음).</summary>
+        public float SwapCooldown => _gate != null ? Math.Max(0f, _gate.SwapCooldown(_config.SwapCooldown)) : _config.SwapCooldown;
+
+        /// <summary>시행 중 효과 하나의 실제 값 (M-22 판 고리가 바꿀 수 있음).</summary>
+        public float ValueOf(PolicyData policy, PolicyModifier modifier) => _gate != null ? _gate.Value(policy, modifier) : modifier.Value;
+
+        /// <summary>판 고리가 효과 값을 바꿀 조건이 달라졌을 때 (예: 주민 구성) 다시 계산.</summary>
+        public void Refresh() => Recompute();
         public IReadOnlyList<Slot> Slots
         {
             get
@@ -109,6 +151,8 @@ namespace SpaceStation.Simulation
             var target = s.HasPending ? s.Pending : s.Active;
             if (target == policy)
                 return AssignResult.Same;
+            if (policy != null && !Offers(policy))
+                return AssignResult.NotOffered;
             if (policy != null)
             {
                 for (int i = 0; i < _slots.Count; i++)
@@ -132,13 +176,13 @@ namespace SpaceStation.Simulation
             var s = _slots[slot];
             s.Pending = policy;
             s.HasPending = true;
-            s.PendingLeft = _config.ApplyDelay;
-            s.Cooldown = _config.SwapCooldown;
+            s.PendingLeft = ApplyDelay;
+            s.Cooldown = SwapCooldown;
             if (s.PendingLeft <= 0f)
                 Commit(s);
             Sim.Report(policy != null
-                ? $"정책 '{policy.DisplayName}' 예약 · {_config.ApplyDelay:0}초 뒤 시행"
-                : $"정책 해제 예약 · {_config.ApplyDelay:0}초 뒤", true);
+                ? $"정책 '{policy.DisplayName}' 예약 · {ApplyDelay:0}초 뒤 시행"
+                : $"정책 해제 예약 · {ApplyDelay:0}초 뒤", true);
             Recompute();
             return AssignResult.Ok;
         }
@@ -210,24 +254,23 @@ namespace SpaceStation.Simulation
                 _values[i] = PolicyStats.Neutral((PolicyStat)i);
             foreach (var s in _slots)
                 if (s.Active != null)
-                    Apply(s.Active.Modifiers);
+                    foreach (var m in s.Active.Modifiers)
+                        Apply(m.Stat, ValueOf(s.Active, m)); // M-22 판 고리가 실제 값을 정함
             foreach (var t in _temps)
-                Apply(t.Modifiers);
+                foreach (var m in t.Modifiers)
+                    Apply(m.Stat, m.Value);
             Sim.Effects.SetPolicy(_values);
             Sim.ApplyConsumptionMultipliers();
             Changed?.Invoke();
         }
 
-        private void Apply(IReadOnlyList<PolicyModifier> modifiers)
+        private void Apply(PolicyStat stat, float value)
         {
-            foreach (var m in modifiers)
-            {
-                int i = (int)m.Stat;
-                if (PolicyStats.IsAdditive(m.Stat))
-                    _values[i] += m.Value;
-                else
-                    _values[i] *= m.Value;
-            }
+            int i = (int)stat;
+            if (PolicyStats.IsAdditive(stat))
+                _values[i] += value;
+            else
+                _values[i] *= value;
         }
 
         private PolicyData Find(string name)

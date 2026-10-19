@@ -151,6 +151,7 @@ namespace SpaceStation.Tests
             Assert.IsFalse(_progression.IsUnlocked(_storage));
             Assert.AreEqual(1, _progression.GetUnlockGrade(_storage));
             Assert.AreEqual(-1, _progression.GetUnlockGrade(_orphan));
+            Assert.AreEqual(1, _progression.UnlockOrder(_storage), "건설 메뉴 정렬 = 해금 등급");
             Assert.AreEqual(PlacementResult.ModuleLocked, _progression.CheckBuildable(_storage, _grid));
 
             _progression.Evaluate(10, 8);
