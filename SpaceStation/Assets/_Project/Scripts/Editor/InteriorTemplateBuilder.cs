@@ -192,6 +192,27 @@ namespace SpaceStation.Editor
 
         private static Transform Child(GameObject root, string name) => root.transform.Find(name);
 
+        /// <summary>12-5 모듈 강조색 도장 (발광 없음) `M_Paint_{모듈}.mat` — 강조 재질 바탕색을 따름. 강조 재질(발광)을 큰 소품에 쓰면 평평하게 빛났음.</summary>
+        private static Material PaintFor(Material accent, string moduleName)
+        {
+            if (accent == null)
+                return null;
+            string path = AccentFolder + "M_Paint_" + moduleName.Replace("MD_", "") + ".mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (m == null)
+            {
+                m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                AssetDatabase.CreateAsset(m, path);
+            }
+            m.SetColor("_BaseColor", accent.GetColor("_BaseColor"));
+            m.SetFloat("_Metallic", 0.25f);
+            m.SetFloat("_Smoothness", 0.5f);
+            m.DisableKeyword("_EMISSION");
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
         /// <summary>12-5 센서 어레이: 관측 관제실 (가운데 레이더 표시대 · 도는 빛줄, 구석 콘솔 3, 둥근 천창 너머 자기 접시). 해치 = (−2.25, −2.25).</summary>
         private static void BuildSensorArray()
         {
@@ -219,7 +240,10 @@ namespace SpaceStation.Editor
             var lights = new List<LightSpec> { LightSpec.Point(new Vector3(0f, F + 2.5f, 0f), 3f, 1.2f, new Color(0.88f, 1f, 0.92f)) }; // 격리실 안
             foreach (var (x, z) in new[] { (2.2f, 2.2f), (-2.2f, 2.2f), (2.2f, -2.2f), (-2.2f, -2.2f) })
                 lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, z), 4.5f, 1.6f, white));
-            Build("Quarantine", "MD_Quarantine", OneCellSockets(Socket, new Vector3(-2.25f, 0f, -2.25f)), new Vector3(-2.0f, F, 0f), 90f, lights);
+            // 격리실 출입문 = 따로 움직이는 조각 INT_Quarantine_Door (바깥 레일, quarantine_builder ANCHORS): 다가가면 +x로 0.95 열림
+            Build("Quarantine", "MD_Quarantine", OneCellSockets(Socket, new Vector3(-2.25f, 0f, -2.25f)), new Vector3(-2.0f, F, 0f), 90f, lights,
+                configure: root => root.AddComponent<InteriorSlidingDoor>().Configure(Child(root, "INT_Quarantine_Door"), new Vector3(0.95f, 0f, 0f),
+                    new Vector3(0f, F, -1.5f), 1.7f));
         }
 
         /// <summary>12-5 단백질 배양실: 배양 탱크 2 → 압출기 → 컨베이어 → 포장 상자. 뒤(+z) = 생산 라인 벽(문 자리 없음, 모듈 닫힌 면). 해치 = (−2.25, −2.25).</summary>
@@ -229,8 +253,7 @@ namespace SpaceStation.Editor
             var lights = new List<LightSpec>();
             foreach (var (x, z) in new[] { (1.6f, 1.6f), (-1.6f, 1.6f), (1.6f, -1.6f), (-1.6f, -1.6f) })
                 lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, z), 5f, 1.8f, warm));
-            foreach (float x in new[] { -2.3f, 2.3f })   // 배양액 빛
-                lights.Add(LightSpec.Point(new Vector3(x, F + 1.2f, 1.6f), 2.5f, 0.7f, new Color(1f, 0.72f, 0.38f)));
+            // 배양액 빛(주황 점광원 2)은 뺌 — 탱크 유리에 강한 주황 반사점 · 붉은 반사광 (2026-10-19 피드백). 배양액은 발광 재질 + 블룸으로 충분
             Build("Protein", "MD_ProteinVat", OneCellSockets(Socket, new Vector3(-2.25f, 0f, -2.25f), pz: false), new Vector3(0f, F, -2.0f), 0f, lights,
                 configure: root => root.AddComponent<InteriorConveyor>().Configure(   // protein_builder ANCHORS
                     Child(root, "INT_Protein_Bar"), Child(root, "INT_Protein_Press"), Child(root, "INT_Protein_CrateLid"),
@@ -251,8 +274,19 @@ namespace SpaceStation.Editor
             var lights = new List<LightSpec>();
             foreach (var (x, z) in new[] { (1.6f, 1.6f), (-1.6f, 1.6f), (1.6f, -1.6f), (-1.6f, -1.6f) })
                 lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, z), 5f, 1.8f, cool));
-            lights.Add(LightSpec.Point(new Vector3(-1.8f, F + 0.7f, 1.8f), 2f, 0.6f, new Color(1f, 0.45f, 0.15f))); // 드럼 가열 띠 빛
-            Build("WaterEx", "MD_WaterExtractor", OneCellSockets(Socket, Vector3.zero), new Vector3(0f, F, -1.8f), 0f, lights);
+            // 드럼 가열 띠 빛(주황 점광원)은 뺌 — 바닥 · 벽에 붉은 반사광이 생겼음 (2026-10-19 피드백). 띠는 발광 재질 + 블룸으로 충분
+            Build("WaterEx", "MD_WaterExtractor", OneCellSockets(Socket, Vector3.zero), new Vector3(0f, F, -1.8f), 0f, lights,
+                configure: root =>
+                {
+                    // 낙하관 속 얼음 조각 INT_WaterEx_Ice0.. (waterex_builder ANCHORS: 깔때기 속 F + 2.95 → 드럼 속 F + 1.3)
+                    var ice = new List<Transform>();
+                    foreach (Transform t in root.transform)
+                    {
+                        if (t.name.StartsWith("INT_WaterEx_Ice"))
+                            ice.Add(t);
+                    }
+                    root.AddComponent<InteriorFalling>().Configure(ice.ToArray(), F + 2.95f, F + 1.3f, 0.35f, 40f);
+                });
         }
 
         /// <summary>12-5 데이터 센터 (2칸): 서버 홀 (랙 두 줄 · 차가운 통로 · 케이블 트레이), 천장 배기 팬 2 = 외형 지붕 팬 자리(칸 중심, z +0.96) 회전.
@@ -1182,6 +1216,17 @@ namespace SpaceStation.Editor
                 { "Red", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.RedPath) },
                 { "Culture", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.CulturePath) }, // 12-5 단백질 배양액
                 { "Window", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.WindowPath) }, // 11-8 바깥 창
+                // 12-5 소품 색 (발광 없음) + Paint = 이 모듈 강조색 도장 (발광 없음: 큰 소품 · 배관 · 의자 — Accent는 띠 · 표시등만)
+                { "Paint", PaintFor(accent, moduleName) },
+                { "Paper", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PaperPath) },
+                { "PropBlue", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropBluePath) },
+                { "PropGreen", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropGreenPath) },
+                { "PropOrange", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropOrangePath) },
+                { "PropPurple", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropPurplePath) },
+                { "PropYellow", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropYellowPath) },
+                { "Fish", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FishPath) },
+                { "Ice", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.IcePath) },
+                { "Aqua", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.AquaPath) },
             };
 
             var root = new GameObject("PF_Interior_" + name);
@@ -1218,7 +1263,7 @@ namespace SpaceStation.Editor
                     }
                 }
                 r.sharedMaterials = mats;
-                if (partName.EndsWith("_Shell") || partName.EndsWith("_Glass"))
+                if (partName.EndsWith("_Shell") || partName.EndsWith("_Glass") || partName.EndsWith("_Door"))   // _Door = 움직이는 문 (InteriorSlidingDoor)
                     go.AddComponent<MeshCollider>().sharedMesh = filter.sharedMesh;
                 if (orbits != null)
                 {
