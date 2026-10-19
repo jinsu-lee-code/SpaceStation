@@ -168,6 +168,7 @@ namespace SpaceStation.Interior
             var rootGo = new GameObject("InteriorRoot");
             _root = rootGo.transform;
             _root.position = _origin;
+            InteriorRoomDisplay.Font = _font; // 12-5 방 안 표지판 · 화면 글자
             _builder = new InteriorBuilder(_root, _kit, _material, _templates);
             _builder.RoomBuilt += m =>
             {
