@@ -41,6 +41,10 @@ namespace SpaceStation.Editor.Balance
     public sealed class BalanceRunResult
     {
         public int Seed;
+        /// <summary>13-7 봇 성향 요약 (성향을 껐으면 빈 문자열) · 성장 ↔ 안전 · 저축 (-1 ~ 1).</summary>
+        public string Persona = "";
+        public float PersonaGrowth;
+        public float PersonaSaving;
         public bool GameOver;
         public GameOverReason Reason; // 4-10
         public float EndSeconds;
@@ -165,7 +169,7 @@ namespace SpaceStation.Editor.Balance
             sb.AppendLine(",final_grade,max_grade,final_pop,max_pop,final_modules,modules_built,events,damaged,destroyed,spreads,intercepted,shield_deflected,ricochets,repairs,repair_metal," +
                           "maintenances,rebuilds,upkeep_metal," +
                           "min_oxygen,min_water,min_food,min_metal,oxygen_depleted_s,water_depleted_s,food_depleted_s,depletion_events," +
-                          "low_power_s,avg_efficiency,final_satisfaction,min_satisfaction");
+                          "low_power_s,avg_efficiency,final_satisfaction,min_satisfaction,persona_growth,persona_saving");
 
             foreach (var r in report.Results)
             {
@@ -182,7 +186,8 @@ namespace SpaceStation.Editor.Balance
                 foreach (var v in r.DepletedSeconds) sb.Append(',').Append(F(v));
                 sb.Append(',').Append(r.DepletionEvents);
                 sb.Append(',').Append(F(r.LowPowerSeconds)).Append(',').Append(F(r.AverageEfficiency))
-                  .Append(',').Append(F(r.FinalSatisfaction)).Append(',').Append(F(r.MinSatisfaction)).AppendLine();
+                  .Append(',').Append(F(r.FinalSatisfaction)).Append(',').Append(F(r.MinSatisfaction))
+                  .Append(',').Append(F(r.PersonaGrowth)).Append(',').Append(F(r.PersonaSaving)).AppendLine();
             }
             return sb.ToString();
         }
@@ -230,6 +235,9 @@ namespace SpaceStation.Editor.Balance
             sb.AppendLine($"전력 효율<100% 시간 평균 {Avg(results, r => r.LowPowerSeconds):0}초, 평균 효율 {Avg(results, r => r.AverageEfficiency) * 100f:0.0}%");
             sb.AppendLine($"만족도  최종 평균 {Avg(results, r => r.FinalSatisfaction):0}, 최저 평균 {Avg(results, r => r.MinSatisfaction):0}");
             sb.AppendLine($"주민 특성 보정  평균 {Avg(results, r => r.AverageResidentMood):+0.0;-0.0;0}, 최저 평균 {Avg(results, r => r.MinResidentMood):+0.0;-0.0;0}, 최종 평균 {Avg(results, r => r.FinalResidentMood):+0.0;-0.0;0}");
+            foreach (var r in results) // 13-7 시드에 묶인 봇 성향
+                if (!string.IsNullOrEmpty(r.Persona))
+                    sb.AppendLine($"봇 성향 시드 {r.Seed}: {r.Persona}");
             sb.Append($"연구  시작 {Avg(results, r => r.ResearchStarted):0.0}회, 최종 레벨 평균  유지보수 {Avg(results, r => r.ResearchLevels[0]):0.0}  방어 {Avg(results, r => r.ResearchLevels[1]):0.0}"
                       + $"  생산 {Avg(results, r => r.ResearchLevels[2]):0.0}  에너지 {Avg(results, r => r.ResearchLevels[3]):0.0}  거주 {Avg(results, r => r.ResearchLevels[4]):0.0}  건설 {Avg(results, r => r.ResearchLevels[5]):0.0}");
             // 모듈 구성 평균 (많은 순)
