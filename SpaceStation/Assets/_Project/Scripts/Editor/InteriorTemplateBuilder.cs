@@ -172,15 +172,15 @@ namespace SpaceStation.Editor
                     var s = new Vector3Int(0, 0, -1);
                     InteriorWayfinding.Sign SignAt(string key, Vector3Int dir, Vector3 c, Vector3 normal) => new InteriorWayfinding.Sign
                     {
-                        Direction = dir, Center = c, Normal = normal, Width = 1.06f, Height = 0.2f,
+                        Direction = dir, Center = c, Normal = normal, Width = 1.0f, Height = 0.2f,
                         Arrow = new[] { Child(root, "INT_Hub_Arrow" + key)?.GetComponent<Renderer>() },
                     };
                     var signs = new[]
                     {
-                        SignAt("N", n, new Vector3(0.33f, 1.675f, 2.449f), new Vector3(0f, 0f, -1f)),
-                        SignAt("E", Vector3Int.right, new Vector3(2.449f, 1.675f, -0.33f), new Vector3(-1f, 0f, 0f)),
-                        SignAt("S", s, new Vector3(-0.33f, 1.675f, -2.449f), new Vector3(0f, 0f, 1f)),
-                        SignAt("W", Vector3Int.left, new Vector3(-2.449f, 1.675f, 0.33f), new Vector3(1f, 0f, 0f)),
+                        SignAt("N", n, new Vector3(0.36f, 1.675f, 2.449f), new Vector3(0f, 0f, -1f)),
+                        SignAt("E", Vector3Int.right, new Vector3(2.449f, 1.675f, -0.36f), new Vector3(-1f, 0f, 0f)),
+                        SignAt("S", s, new Vector3(-0.36f, 1.675f, -2.449f), new Vector3(0f, 0f, 1f)),
+                        SignAt("W", Vector3Int.left, new Vector3(-2.449f, 1.675f, 0.36f), new Vector3(1f, 0f, 0f)),
                     };
                     root.AddComponent<InteriorWayfinding>().Configure(signs,
                         new Vector3(-2.0765f, -0.0618f, 2.0765f), new Vector3(0.6409f, 0.4226f, -0.6409f),
