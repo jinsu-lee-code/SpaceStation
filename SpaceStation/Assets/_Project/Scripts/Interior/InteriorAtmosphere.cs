@@ -213,10 +213,10 @@ namespace SpaceStation.Interior
             foreach (var g in room.Gauges)
                 g.SetFill(charge, mood.Mode != RoomLightMode.Emergency);
             // 12-5 방 안 실행 중 표시 (허브 안내 · 레이더 · 서버 표시등 · 컨베이어)
-            foreach (var d in room.Displays)
+            foreach (var display in room.Displays)
             {
-                if (d != null)
-                    d.Poll(_station, m, c.Active);
+                if (display != null)
+                    display.Poll(_station, m, c.Active);
             }
         }
 
