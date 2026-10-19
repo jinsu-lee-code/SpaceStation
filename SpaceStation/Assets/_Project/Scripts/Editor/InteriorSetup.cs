@@ -46,6 +46,7 @@ namespace SpaceStation.Editor
         public const string SolarCellPath = MaterialFolder + "/M_InteriorSolarCell.mat";
         public const string ShieldPath = MaterialFolder + "/M_InteriorShield.mat";
         public const string RedPath = MaterialFolder + "/M_InteriorRed.mat";
+        public const string CulturePath = MaterialFolder + "/M_InteriorCulture.mat";
         public const string WindowPath = MaterialFolder + "/M_InteriorWindow.mat";
         public const string SofaPath = MaterialFolder + "/M_InteriorSofa.mat";
         public const string RugPath = MaterialFolder + "/M_InteriorRug.mat";
@@ -379,6 +380,8 @@ namespace SpaceStation.Editor
             Emissive(PlasmaPath, new Color(0.75f, 0.35f, 0.95f), new Color(0.8f, 0.3f, 1f) * 1.5f, 0.3f);
             // 11-7 실드 방출기 코어·에너지 빔 (밝은 하늘색)
             Emissive(ShieldPath, new Color(0.45f, 0.8f, 1f), new Color(0.3f, 0.7f, 1f) * 2.0f, 0.4f);
+            // 12-5 단백질 배양실 배양액 (크림빛 호박색, 은은한 발광 — 탱크 유리 속 · 콘솔 수위 막대)
+            Emissive(CulturePath, new Color(1f, 0.78f, 0.42f), new Color(1f, 0.6f, 0.25f) * 1.1f, 0.5f);
 
             // 장비 재질 (벽 패널 무늬 없는 단색): 배관 금속 · 장비(이음·책상·화면 테두리) · 도장 사물함
             Plain(MetalPath, new Color(0.62f, 0.64f, 0.67f), 0.75f, 0.55f);

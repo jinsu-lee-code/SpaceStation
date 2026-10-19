@@ -65,7 +65,8 @@ namespace SpaceStation.Editor
                     {
                         if (offsets.Contains(cell + dir))
                             continue;
-                        float depth = rotatingTop && dir == Vector3Int.up ? -1f : Probe(colliders, TempOrigin + (Vector3)cell, dir);
+                        float depth = (rotatingTop && dir == Vector3Int.up) || data.IsClosedFace(cell, dir)
+                            ? -1f : Probe(colliders, TempOrigin + (Vector3)cell, dir);   // 12-5 닫힌 면 (단백질 배양실 뒤)
                         depths.Add(new FaceDepth(cell, dir, depth));
                         summary.Add($"{cell}{Short(dir)}={(depth < 0 ? "없음" : depth.ToString("0.00"))}");
                     }

@@ -36,6 +36,8 @@ namespace SpaceStation.Data
 
         [Tooltip("5-6 연결 통로: 칸·면 방향별 모델 표면 깊이 (칸 중심에서). 메뉴 SpaceStation/Art/Measure Connector Depths가 채움. 음수 = 연결점 없음")]
         [SerializeField] private List<FaceDepth> _faceDepths = new List<FaceDepth>();
+        [Tooltip("12-5 닫힌 면 (회전 0 기준 칸 · 면 방향, 깊이는 무시): 측정 도구가 연결점 없음(−1)으로 적음 → 바깥 연결 통로 · 내부 문 없음 (단백질 배양실 뒤 = 생산 라인 벽)")]
+        [SerializeField] private List<FaceDepth> _closedFaces = new List<FaceDepth>();
 
         [SerializeField] private List<ResourceAmount> _buildCost = new List<ResourceAmount>();
         [SerializeField] private List<ResourceAmount> _production = new List<ResourceAmount>();
@@ -222,6 +224,17 @@ namespace SpaceStation.Data
             }
             depth = DefaultFaceDepth;
             return true;
+        }
+
+        /// <summary>12-5 연결점을 두지 않는 면인지 (회전 0 기준).</summary>
+        public bool IsClosedFace(Vector3Int localCell, Vector3Int localDir)
+        {
+            foreach (var f in _closedFaces)
+            {
+                if (f.Cell == localCell && f.Direction == localDir)
+                    return true;
+            }
+            return false;
         }
 
 #if UNITY_EDITOR
