@@ -1,0 +1,107 @@
+using SpaceStation.Building;
+using SpaceStation.Core;
+using SpaceStation.Simulation;
+using UnityEngine;
+using UnityEngine.Rendering;
+
+namespace SpaceStation.UI
+{
+    /// <summary>
+    /// 13-7a 꺼져 가는 지구 (REDESIGN T8 · M1, 사용자 결정 2026-10-19): 정거장 바깥 멀리 떠 있는 둥근 지구 (BlenderWork/Earth → SM_Earth · 셰이더 SpaceStation/Earth).
+    /// - 기본 시점 너머 아래, 해 반대쪽에 두어 밤쪽 도시 불빛이 보임 · 23.4° 기울어 자전(게임 시간, 멈추면 같이 멈춤) · 구름은 조금 더 빨리 흐름
+    /// - 불빛 = 시각적 시계: <see cref="EarthLights.Value"/>(장 안에서 서서히 + 다음 장 시작 때 크게)를 화면에서는 천천히 따라가 꺼짐
+    /// 화면 연출만 — 시뮬레이션은 바꾸지 않는다. 씬에는 모델 · 재질만 연결된 빈 오브젝트 (메뉴 SpaceStation/Chapters/Setup Greybox).
+    /// </summary>
+    public sealed class EarthView : MonoBehaviour
+    {
+        private static readonly int LightsId = Shader.PropertyToID("_Lights");
+        private static readonly int CloudShiftId = Shader.PropertyToID("_CloudShift");
+
+        [SerializeField] private StationController _station;
+        [SerializeField] private SimulationClock _clock;
+        [Tooltip("지구 모델 (반지름 1 구, UV = 경위도)")]
+        [SerializeField] private GameObject _model;
+        [SerializeField] private Material _material;
+        [Tooltip("정거장에서 지구 쪽 방향 — 해(앞 위) 반대쪽 아래라 밤쪽이 더 많이 보임")]
+        [SerializeField] private Vector3 _direction = new Vector3(0.5f, -0.45f, 0.75f);
+        [SerializeField, Min(10f)] private float _distance = 700f;
+        [SerializeField, Min(1f)] private float _radius = 140f;
+        [Tooltip("자전축 기울기 (도)")]
+        [SerializeField] private float _tilt = 23.4f;
+        [Tooltip("자전 한 바퀴 (게임 초)")]
+        [SerializeField, Min(10f)] private float _dayLength = 600f;
+        [Tooltip("시작 때 정면(정거장 쪽)에 오는 경도 — 불빛이 많은 곳부터 보이게")]
+        [SerializeField] private float _startLongitude = 100f;
+        [Tooltip("구름 흐름: 땅보다 이만큼 더 빨리 (한 바퀴 게임 초)")]
+        [SerializeField, Min(10f)] private float _cloudLap = 3000f;
+        [Tooltip("화면 불빛이 목표를 따라가는 빠르기 (초당 비율 — 장이 바뀌어 0.12 떨어지면 약 3초에 걸쳐 꺼짐)")]
+        [SerializeField, Min(0.001f)] private float _fadeRate = 0.04f;
+
+        private StationSimulation _sim;
+        private Transform _earth;
+        private Renderer _renderer;
+        private MaterialPropertyBlock _block;
+        private float _spin, _cloud;
+        private float _shown = -1f;
+
+        /// <summary>지금 화면에 켜진 불빛 비율 (13-7b 장 전환 연출이 읽음).</summary>
+        public float ShownLights => _shown;
+        public Vector3 Center => _earth != null ? _earth.position : _direction.normalized * _distance;
+        public float Radius => _radius;
+
+        private void Start()
+        {
+            _sim = _station != null ? _station.Simulation : null;
+            if (_model == null || _material == null)
+            {
+                enabled = false;
+                return;
+            }
+            _block = new MaterialPropertyBlock();
+            var go = Instantiate(_model, transform);
+            go.name = "Earth";
+            _earth = go.transform;
+            _earth.position = _direction.normalized * _distance;
+            _earth.localScale = Vector3.one * _radius;
+            foreach (var c in go.GetComponentsInChildren<Collider>())
+                Destroy(c); // 배경 — 클릭 · 배치 광선에 걸리지 않게
+            _renderer = go.GetComponentInChildren<Renderer>();
+            if (_renderer != null)
+            {
+                _renderer.sharedMaterial = _material;
+                _renderer.shadowCastingMode = ShadowCastingMode.Off;
+                _renderer.receiveShadows = false;
+            }
+            Apply(0f);
+        }
+
+        private float SimDelta => _clock == null || _clock.Clock.IsPaused ? 0f : Time.deltaTime * _clock.Clock.Speed;
+
+        private void LateUpdate() => Apply(SimDelta);
+
+        private void Apply(float dt)
+        {
+            if (_earth == null)
+                return;
+            _spin += dt * 360f / _dayLength;
+            _cloud += dt / _cloudLap;
+            if (_cloud > 1f)
+                _cloud -= 1f;
+            // 모델: 북극 = +Y, 경도 0 = −X, 동경 90 = −Z (거울상 아님, SM_Earth 가져온 뒤 확인) → Y축 a도 돌리면 경도 a − 90이 +Z(정거장 쪽)에 옴.
+            // 땅은 동쪽으로 돌아 정면 경도가 줄어듦 = 음의 회전 (+Y 회전은 서쪽으로 감)
+            var toStation = -_direction.normalized;
+            var flat = new Vector3(toStation.x, 0f, toStation.z);
+            var face = Quaternion.LookRotation(flat.sqrMagnitude > 1e-6f ? flat : Vector3.forward, Vector3.up);
+            _earth.rotation = face * Quaternion.AngleAxis(_tilt, Vector3.right) * Quaternion.AngleAxis(_startLongitude + 90f - _spin, Vector3.up);
+
+            float target = EarthLights.Value(_sim?.Chapters);
+            _shown = _shown < 0f ? target : Mathf.MoveTowards(_shown, target, Time.unscaledDeltaTime * _fadeRate);
+            if (_renderer == null)
+                return;
+            _renderer.GetPropertyBlock(_block);
+            _block.SetFloat(LightsId, _shown);
+            _block.SetFloat(CloudShiftId, -_cloud); // 구름이 동쪽으로 흐름 (u = 경도)
+            _renderer.SetPropertyBlock(_block);
+        }
+    }
+}

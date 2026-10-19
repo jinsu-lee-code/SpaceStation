@@ -90,6 +90,11 @@ namespace SpaceStation.Editor
             ChapterThree(ch3);
             AddUnlocks(ch3, M("MD_PassengerPort"));
 
+            // 13-7a 꺼져 가는 지구의 불빛 (사용자 결정 2026-10-19: 장 안에서 서서히 + 장 전환 때 크게, 1장 100% → 3장 끝 약 48%)
+            SetEarthLights(ch1, 1f, 0.92f, 900f);
+            SetEarthLights(ch2, 0.8f, 0.7f, 1800f);
+            SetEarthLights(ch3, 0.6f, 0.48f, 1800f);
+
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
             if (config == null)
@@ -272,6 +277,18 @@ namespace SpaceStation.Editor
             avo.FindProperty("_shipModel").objectReferenceValue = ArkShipModel();
             avo.FindProperty("_flameMaterial").objectReferenceValue = ArkFlameMaterial();
             avo.ApplyModifiedPropertiesWithoutUndo();
+
+            // 13-7a 꺼져 가는 지구 (정거장 바깥 배경 — HUD가 아니라 씬 맨 위)
+            foreach (var oldEarth in Object.FindObjectsByType<SpaceStation.UI.EarthView>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                Object.DestroyImmediate(oldEarth.gameObject);
+            var earthGo = new GameObject("EarthView");
+            var earthView = earthGo.AddComponent<SpaceStation.UI.EarthView>();
+            var earthSo = new SerializedObject(earthView);
+            earthSo.FindProperty("_station").objectReferenceValue = station;
+            earthSo.FindProperty("_clock").objectReferenceValue = clock;
+            earthSo.FindProperty("_model").objectReferenceValue = EarthModel(out var earthMaterial);
+            earthSo.FindProperty("_material").objectReferenceValue = earthMaterial;
+            earthSo.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -916,6 +933,66 @@ namespace SpaceStation.Editor
             importer.SaveAndReimport();
             AssetDatabase.SaveAssets();
             return AssetDatabase.LoadAssetAtPath<GameObject>(ArkModelPath);
+        }
+
+        private static void SetEarthLights(ChapterData chapter, float start, float end, float seconds)
+        {
+            var so = new SerializedObject(chapter);
+            so.FindProperty("_earthLightsStart").floatValue = start;
+            so.FindProperty("_earthLightsEnd").floatValue = end;
+            so.FindProperty("_earthDimSeconds").floatValue = seconds;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(chapter);
+        }
+
+        private const string EarthFolder = "Assets/_Project/Art/Models/Earth";
+
+        /// <summary>
+        /// 13-7a 지구 (BlenderWork/Earth/earth_builder.py → SM_Earth.fbx + T_EarthColor · T_EarthLights · T_EarthClouds): 그림 가져오기 설정
+        /// (색 = sRGB, 불빛 · 구름 = 데이터(선형) · 가로 반복 · 세로 고정) + 재질 M_Earth (셰이더 SpaceStation/Earth).
+        /// </summary>
+        private static GameObject EarthModel(out Material material)
+        {
+            material = null;
+            var importer = AssetImporter.GetAtPath(EarthFolder + "/SM_Earth.fbx") as ModelImporter;
+            if (importer == null)
+            {
+                Debug.LogWarning("[ChapterSetup] 지구 모델 없음: " + EarthFolder);
+                return null;
+            }
+            importer.materialImportMode = ModelImporterMaterialImportMode.None;
+            importer.importNormals = ModelImporterNormals.Import;
+            importer.importAnimation = false;
+            importer.importCameras = false;
+            importer.importLights = false;
+            importer.SaveAndReimport();
+            foreach (var (file, srgb) in new[] { ("T_EarthColor", true), ("T_EarthLights", false), ("T_EarthClouds", false) })
+            {
+                var ti = AssetImporter.GetAtPath($"{EarthFolder}/{file}.png") as TextureImporter;
+                if (ti == null)
+                    continue;
+                ti.sRGBTexture = srgb;
+                ti.wrapModeU = TextureWrapMode.Repeat; // 경도는 이어짐 (구름이 흐름)
+                ti.wrapModeV = TextureWrapMode.Clamp;
+                ti.maxTextureSize = 2048;
+                ti.mipmapEnabled = true;
+                ti.anisoLevel = 4;
+                ti.SaveAndReimport();
+            }
+            string path = EarthFolder + "/M_Earth.mat";
+            material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(Shader.Find("SpaceStation/Earth"));
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.shader = Shader.Find("SpaceStation/Earth");
+            material.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(EarthFolder + "/T_EarthColor.png"));
+            material.SetTexture("_LightsMap", AssetDatabase.LoadAssetAtPath<Texture2D>(EarthFolder + "/T_EarthLights.png"));
+            material.SetTexture("_CloudMap", AssetDatabase.LoadAssetAtPath<Texture2D>(EarthFolder + "/T_EarthClouds.png"));
+            EditorUtility.SetDirty(material);
+            AssetDatabase.SaveAssets();
+            return AssetDatabase.LoadAssetAtPath<GameObject>(EarthFolder + "/SM_Earth.fbx");
         }
 
         private const string ShipEngineMaterial = "Assets/_Project/Art/Materials/FX/M_ShipEngine.mat";

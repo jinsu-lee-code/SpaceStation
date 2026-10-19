@@ -272,6 +272,14 @@ namespace SpaceStation.Data
         [Tooltip("한 슬롯을 바꾼 뒤 다시 바꿀 수 있기까지 (초)")]
         [SerializeField, Min(0f)] private float _policySwapCooldown = 180f;
 
+        [Header("13-7a 꺼져 가는 지구 (사용자 결정 2026-10-19: 장 안에서 서서히 + 장 전환 때 크게)")]
+        [Tooltip("이 장이 시작될 때 켜져 있는 지구 불빛 비율 (앞 장 끝 값에서 여기로 크게 꺼짐)")]
+        [SerializeField, Range(0f, 1f)] private float _earthLightsStart = 1f;
+        [Tooltip("이 장 안에서 서서히 내려가 닿는 값")]
+        [SerializeField, Range(0f, 1f)] private float _earthLightsEnd = 1f;
+        [Tooltip("시작 값 → 끝 값까지 걸리는 장 시간 (초)")]
+        [SerializeField, Min(1f)] private float _earthDimSeconds = 1800f;
+
         [Header("준비 목표 · 절정 · 전환")]
         [SerializeField] private List<ChapterGoal> _goals = new List<ChapterGoal>();
         [SerializeField] private ChapterClimaxSettings _climax = new ChapterClimaxSettings();
@@ -314,6 +322,9 @@ namespace SpaceStation.Data
         public IReadOnlyList<PolicyData> Policies => _policies;
         public float PolicyApplyDelay => _policyApplyDelay;
         public float PolicySwapCooldown => _policySwapCooldown;
+        public float EarthLightsStart => _earthLightsStart;
+        public float EarthLightsEnd => _earthLightsEnd;
+        public float EarthDimSeconds => Mathf.Max(1f, _earthDimSeconds);
         public IReadOnlyList<ChapterGoal> Goals => _goals;
         public ChapterClimaxSettings Climax => _climax;
         public IReadOnlyList<ChapterChoice> Choices => _choices;

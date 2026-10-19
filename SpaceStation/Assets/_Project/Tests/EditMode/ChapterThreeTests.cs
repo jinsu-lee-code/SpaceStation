@@ -290,6 +290,32 @@ namespace SpaceStation.Tests
             StringAssert.Contains("15명 중 15명 받음 (100%)", crowd.Chapters.LastRecord.Summary);
         }
 
+        [Test]
+        public void EarthLights_DimWithinChapter_DropAtNextChapter()
+        {
+            var ch1 = Chapter("1장", StationRule.None, slots: 0, hold: false);
+            var ch2 = Chapter("2장", StationRule.None, slots: 0, hold: true);
+            foreach (var (c, start, end) in new[] { (ch1, 1f, 0.9f), (ch2, 0.7f, 0.5f) })
+            {
+                var so = new SerializedObject(c);
+                so.FindProperty("_earthLightsStart").floatValue = start;
+                so.FindProperty("_earthLightsEnd").floatValue = end;
+                so.FindProperty("_earthDimSeconds").floatValue = 100f;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+            Assert.AreEqual(1f, EarthLights.Value(null), "장 틀이 없으면 모두 켜짐");
+            var sim = Sim(Chapters(ch1, ch2));
+            Assert.AreEqual(1f, EarthLights.Value(sim.Chapters), Eps, "1장 시작");
+            RunUntil(sim, () => sim.Chapters.Phase == ChapterPhase.Transition); // 1장은 바로 끝남
+            Assert.AreEqual(0.9f, EarthLights.Value(sim.Chapters), Eps, "전환 = 이 장 끝 값");
+            Assert.IsTrue(sim.Chapters.Choose(-1));
+            Assert.AreEqual(0.7f, EarthLights.Value(sim.Chapters), Eps, "다음 장 시작 = 크게 꺼짐");
+            Tick(sim, 50);
+            Assert.AreEqual(0.6f, EarthLights.Value(sim.Chapters), 0.011f, "장 안에서 서서히");
+            Tick(sim, 100);
+            Assert.AreEqual(0.5f, EarthLights.Value(sim.Chapters), Eps, "끝 값에서 멈춤");
+        }
+
         // ---------------- 도우미 ----------------
 
         /// <summary>13-6c 3장: 필수 = '첫 이민선 맞이하기'만 · 예고 0초 → 대이주 (배 3척 · 첫 배 5초 · 간격 10초 · 5명 · 정리 20초, 문턱은 사용자 결정 1안).</summary>
