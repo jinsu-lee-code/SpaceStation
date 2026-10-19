@@ -39,7 +39,11 @@ namespace SpaceStation.Data
         [Tooltip("이 종족 배를 처음 맞을 때 코어 독백 (도킹 연출 뒤, 2~3줄)")]
         [SerializeField, TextArea(1, 3)] private List<string> _arrivalLines = new List<string>();
 
+        [Header("13-7c 주민 한마디 (종족 말투, 사건 키별 — 같은 키가 여럿이면 그중 하나)")]
+        [SerializeField] private List<SpeciesRemark> _remarks = new List<SpeciesRemark>();
+
         public string Id => _id;
+        public IReadOnlyList<SpeciesRemark> Remarks => _remarks;
         public Color ShipColor => _shipColor;
         public IReadOnlyList<string> ArrivalLines => _arrivalLines;
         public string DisplayName => _displayName;
@@ -104,6 +108,21 @@ namespace SpaceStation.Data
             _shipColor = color;
             _arrivalLines = new List<string>(arrivalLines);
         }
+
+        public void EditorSetRemarks(params (string key, string text)[] remarks)
+        {
+            _remarks = new List<SpeciesRemark>();
+            foreach (var (key, text) in remarks)
+                _remarks.Add(new SpeciesRemark { Key = key, Text = text });
+        }
 #endif
+    }
+
+    /// <summary>13-7c 주민 한마디 하나: 사건 키(<c>chapter.start.2</c> · <c>climax.warning.3</c> · <c>climax.Clean</c> · <c>ship.accept</c> …) → 그 종족 말투의 한 줄.</summary>
+    [System.Serializable]
+    public sealed class SpeciesRemark
+    {
+        public string Key;
+        [TextArea(1, 2)] public string Text;
     }
 }

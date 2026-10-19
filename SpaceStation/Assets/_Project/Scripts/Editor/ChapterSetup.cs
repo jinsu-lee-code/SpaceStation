@@ -302,6 +302,25 @@ namespace SpaceStation.Editor
                 tso.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
             tso.ApplyModifiedPropertiesWithoutUndo();
 
+            // 13-7c 주민 한마디 (왼쪽 아래 한 줄 — 연출이 HUD를 감추는 동안엔 시간이 멈춰 기다림)
+            var oldRemarks = parent.Find("ResidentRemarksView");
+            if (oldRemarks != null)
+                Object.DestroyImmediate(oldRemarks.gameObject);
+            var remarksGo = new GameObject("ResidentRemarksView", typeof(RectTransform));
+            remarksGo.transform.SetParent(parent, false);
+            var rrt = (RectTransform)remarksGo.transform;
+            rrt.anchorMin = Vector2.zero;
+            rrt.anchorMax = Vector2.one;
+            rrt.offsetMin = Vector2.zero;
+            rrt.offsetMax = Vector2.zero;
+            var remarksView = remarksGo.AddComponent<SpaceStation.UI.ResidentRemarksView>();
+            var mso = new SerializedObject(remarksView);
+            mso.FindProperty("_station").objectReferenceValue = station;
+            mso.FindProperty("_clock").objectReferenceValue = clock;
+            foreach (var f in new[] { "_font", "_fillSprite", "_frameSprite", "_buttonSprite", "_holoArt" })
+                mso.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
+            mso.ApplyModifiedPropertiesWithoutUndo();
+
             // 13-7a 꺼져 가는 지구 (정거장 바깥 배경 — HUD가 아니라 씬 맨 위)
             foreach (var oldEarth in Object.FindObjectsByType<SpaceStation.UI.EarthView>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 Object.DestroyImmediate(oldEarth.gameObject);
@@ -352,6 +371,30 @@ namespace SpaceStation.Editor
                 "배 한 척이 포트에 닿았다. 선체가 온통 그을렸다.", // 독백은 도킹을 마친 뒤에 나옴
                 "곰들이 타고 있다. 지구에서 여기까지, 쉽지 않은 길이었을 거다.",
                 "들일지 돌려보낼지, 이번엔 내가 정해야 한다.");
+            // 13-7c 주민 한마디 (사용자 결정 2026-10-19: 종족마다 말투 — 토끼 = 조심스럽고 다정한 존댓말, 곰 = 짧고 투박한 말, 확인용 초안)
+            // 장 시작 = 지난 절정 결과(Clean · Hurt · Lost)가 붙은 키 먼저 → 결과 반응을 겸함. 곰은 3장 첫 배로 오므로 그 뒤 사건만
+            rabbit.EditorSetRemarks(
+                ("chapter.start.1", "불이 들어왔어요! 이제 여기서 살 수 있는 거죠?"),
+                ("chapter.start.2.Clean", "긴 밤을 아무도 안 다치고 넘겼어요. 코어 덕분이에요."),
+                ("chapter.start.2.Hurt", "밤새 무서웠어요. 그래도 다들 살아 있어요."),
+                ("chapter.start.2.Lost", "어젯밤 일은 아직 생각하기 싫어요."),
+                ("chapter.start.2", "정거장이 조금씩 커지고 있어요."),
+                ("chapter.start.3.Clean", "별똥비가 다 비켜 갔어요! 정말 다행이에요."),
+                ("chapter.start.3.Hurt", "여기저기 긁혔지만, 그래도 버텼어요."),
+                ("chapter.start.3.Lost", "부서진 방을 볼 때마다 마음이 아파요."),
+                ("chapter.start.3", "다른 무리도 온다는 소문이 있어요. 조금 떨려요."),
+                ("climax.warning.1", "밤이 길어진대요. 불이 꺼지면 어떡하죠?"),
+                ("climax.warning.2", "큰 별똥비가 온대요. 방 안쪽에 있을게요."),
+                ("climax.warning.3", "배가 여러 척 온대요. 다들 들어올 자리가 있을까요?"),
+                ("ship.new", "곰이라니, 덩치가 커서 조금 무서워요. 그래도 잘 지내 볼게요."),
+                ("ship.accept", "새 이웃이 왔어요! 방을 같이 꾸며야겠어요."),
+                ("ship.partial", "다 같이 오지는 못했네요. 남은 분들도 무사하면 좋겠어요."),
+                ("ship.refuse", "배가 돌아가요. 저 안에도 누군가 있었을 텐데."));
+            bear.EditorSetRemarks(
+                ("climax.warning.3", "배가 더 온다고. 자리는 만들면 된다."),
+                ("ship.accept", "또 왔군. 좁으면 붙어 자면 된다."),
+                ("ship.partial", "다 못 태웠다고. 그래, 할 수 있는 만큼 한 거다."),
+                ("ship.refuse", "돌려보냈군. 우리도 저럴 뻔했다."));
             EditorUtility.SetDirty(rabbit);
             EditorUtility.SetDirty(bear);
 

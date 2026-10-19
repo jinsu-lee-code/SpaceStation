@@ -329,6 +329,29 @@ namespace SpaceStation.Tests
             Assert.AreEqual(0.4f, EarthLights.Value(campaign.Chapters), Eps, "캠페인 끝 = 마지막 값");
         }
 
+        [Test]
+        public void ResidentRemarks_KeyOrderSpeciesAndExclude()
+        {
+            _rabbit.EditorSetRemarks(("chapter.start.2.Hurt", "밤새 무서웠어요."), ("chapter.start.2", "정거장이 커져요."), ("ship.new", "곰이라니요."));
+            _bear.EditorSetRemarks(("ship.accept", "또 왔군."));
+            var sim = Sim(Chapters(Chapter("3장", StationRule.None, slots: 0, hold: true)));
+            var ark = sim.GetSystem<ArkShipSystem>();
+            var residents = sim.Residents.Residents;
+            Assert.AreEqual(4, residents.Count);
+
+            Assert.IsTrue(ResidentRemarks.Pick(residents, ark.Find, ResidentRemarks.ChapterStartKeys(2, ChapterOutcome.Hurt), () => 0f, out var who, out var text));
+            Assert.AreEqual("밤새 무서웠어요.", text, "지난 절정 결과가 붙은 키 먼저");
+            Assert.AreEqual("rabbit", who.Kind);
+            ResidentRemarks.Pick(residents, ark.Find, ResidentRemarks.ChapterStartKeys(2, ChapterOutcome.Clean), () => 0f, out _, out text);
+            Assert.AreEqual("정거장이 커져요.", text, "결과 문장이 없으면 장 문장");
+            Assert.IsFalse(ResidentRemarks.Pick(residents, ark.Find, ResidentRemarks.ShipKeys(ShipAnswer.Accept, false, 5), () => 0f, out _, out _),
+                "그 키 문장을 가진 종족(곰)의 주민이 없으면 아무도 말하지 않음");
+            Assert.IsFalse(ResidentRemarks.Pick(residents, ark.Find, ResidentRemarks.ShipKeys(ShipAnswer.Accept, true, 5), () => 0f, out _, out _, exclude: "rabbit"),
+                "처음 온 종족을 맞는 말은 그 종족이 아닌 주민이");
+            Assert.IsTrue(ResidentRemarks.Pick(residents, ark.Find, ResidentRemarks.ShipKeys(ShipAnswer.Accept, true, 5), () => 0.99f, out _, out text, exclude: "bear"));
+            Assert.AreEqual("곰이라니요.", text);
+        }
+
         // ---------------- 도우미 ----------------
 
         /// <summary>13-6c 3장: 필수 = '첫 이민선 맞이하기'만 · 예고 0초 → 대이주 (배 3척 · 첫 배 5초 · 간격 10초 · 5명 · 정리 20초, 문턱은 사용자 결정 1안).</summary>
