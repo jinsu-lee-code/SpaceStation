@@ -260,14 +260,15 @@ namespace SpaceStation.UI
 
         /// <summary>
         /// 13-6a: 카드 오른쪽 위를 자원 패널 오른쪽 아래 모서리 바로 아래에 (패널 높이가 바뀌면 따라감).
-        /// 자원 패널이 안 보이면(내부 등) 오른쪽 위에서 내부 표시 줄만큼 내림.
+        /// 자원 패널이 안 보이면(내부 일시정지로 숨김 등) 오른쪽 위에서 내부 표시 줄만큼 내림.
+        /// 내부에서도 패널이 보이면(시간이 흐르는 기본 설정) 패널 아래에 붙인다 — 2026-10-19 내부에서 카드가 패널을 덮던 문제.
         /// 카드 자리는 등장 효과(UiTween)가 쓰므로 왼쪽 위 방식처럼 이 뷰 전체를 옮긴다.
         /// </summary>
         private void DockUnderResources(RectTransform self)
         {
             var home = new Vector2(-16f, _cardTop); // BuildCard의 카드 자리 (오른쪽 위 기준)
             Vector2 target;
-            if (_resourcePanel != null && _resourcePanel.gameObject.activeInHierarchy && !_runner.InsideInterior)
+            if (_resourcePanel != null && _resourcePanel.gameObject.activeInHierarchy)
             {
                 _resourcePanel.GetWorldCorners(_corners);
                 var p = (Vector2)self.InverseTransformPoint(_corners[3]) + self.anchoredPosition; // 자원 패널 오른쪽 아래 (이 뷰를 옮기기 전 좌표)
