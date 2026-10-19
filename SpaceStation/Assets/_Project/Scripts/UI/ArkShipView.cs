@@ -39,6 +39,10 @@ namespace SpaceStation.UI
         [SerializeField] private GameObject _shipModel;
         [Tooltip("배 길이 (칸)")]
         [SerializeField] private float _shipLength = 2.2f;
+        [Tooltip("추진 불꽃 (가산 파티클 재질, 원뿔 정점 색이 안쪽 흰빛 → 바깥 푸른빛 · 끝으로 흐려짐)")]
+        [SerializeField] private Material _flameMaterial;
+        [Tooltip("불꽃 최대 길이 (모델 단위 — 배 길이 약 4.9)")]
+        [SerializeField] private float _flameLength = 1.9f;
         [Header("평소 배 (게임 초)")]
         [SerializeField] private float _approachSeconds = 12f;
         [SerializeField] private float _stayAfterAccept = 4f;
@@ -63,6 +67,13 @@ namespace SpaceStation.UI
         private Vector3 _nose, _out;
         private float _scale = 1f;
         private MaterialPropertyBlock _block; // MonoBehaviour 필드 초기화에서 만들면 Unity가 막음 → Start에서
+
+        // 추진 불꽃 (노즐마다 원뿔 두 겹 + 선체를 비추는 푸른 불빛), 추력 0 ~ 1
+        private const float NozzleX = 0.24f; // BlenderWork/ArkShip/arkship_builder.py 노즐 위치
+        private readonly List<(Transform flame, float seed)> _flames = new List<(Transform, float)>();
+        private Light _engineLight;
+        private float _thrust, _thrustTarget;
+        private static Mesh _coneInner, _coneOuter;
 
         // 연출
         private bool _scene;
@@ -160,6 +171,7 @@ namespace SpaceStation.UI
             if (ship == _sceneShip)
             {
                 _sceneShip = null;
+                _stayLeft = float.PositiveInfinity; // 마무리 장면이 시작될 때까지(0.4초) 붙어 있게 — 먼저 떠나기 시작해 받은 배에도 불꽃이 켜졌음
                 StartCoroutine(Aftermath(ship, boarded));
                 return;
             }
@@ -189,6 +201,7 @@ namespace SpaceStation.UI
             _mode = Mode.Docked;
             _ship.transform.SetPositionAndRotation(_nose, DockRotation);
             _stayLeft = _stayAfterAccept;
+            _thrustTarget = IdleThrust;
         }
 
         private void Spawn(ArkShip ship)
@@ -220,6 +233,8 @@ namespace SpaceStation.UI
                     r.SetPropertyBlock(_block, i);
                 }
             }
+            _thrustTarget = 1f; // 날아오는 배는 엔진을 켠 채로 (붙은 채 불러온 배는 DockNow가 바로 줄임)
+            AddFlames(renderers);
         }
 
         private void Clear()
@@ -229,6 +244,114 @@ namespace SpaceStation.UI
             _ship = null;
             _shipData = null;
             _mode = Mode.None;
+            _flames.Clear();
+            _engineLight = null;
+        }
+
+        // ---------------- 추진 불꽃 ----------------
+
+        private const float IdleThrust = 0f; // 붙어 있는 동안은 엔진을 끔 (작게 남긴 불꽃이 납작한 조각처럼 보였음 — 노즐 안 발광만 남음)
+        private static Mesh _coneHalo;
+
+        /// <summary>노즐 끝마다 불꽃(안쪽 흰빛 · 가운데 푸른빛 · 바깥 옅은 빛 원뿔 세 겹, 뒤 = -Z) + 그 사이 푸른 불빛. 모델 단위로 붙여 배 크기를 따라감.</summary>
+        private void AddFlames(Renderer[] renderers)
+        {
+            if (_flameMaterial == null)
+                return;
+            float back = 0f;
+            foreach (var r in renderers)
+            {
+                var mf = r.GetComponent<MeshFilter>();
+                if (mf != null && mf.sharedMesh != null)
+                    back = Mathf.Min(back, mf.sharedMesh.bounds.min.z); // 노즐 끝 (모델 맨 뒤)
+            }
+            // 가산 재질은 옆에서 보면 원뿔 테두리가 딱딱해 보임 → 바깥으로 갈수록 옅은 겹을 둘러 가장자리를 흐림
+            _coneInner = _coneInner != null ? _coneInner : Cone(0.15f, 0.6f, new Color(1f, 1f, 1f, 1f), new Color(0.75f, 0.9f, 1f, 0f));
+            _coneOuter = _coneOuter != null ? _coneOuter : Cone(0.21f, 1f, new Color(0.45f, 0.7f, 1f, 0.5f), new Color(0.2f, 0.4f, 1f, 0f));
+            _coneHalo = _coneHalo != null ? _coneHalo : Cone(0.29f, 0.8f, new Color(0.3f, 0.5f, 1f, 0.22f), new Color(0.15f, 0.3f, 1f, 0f));
+            int seed = 0;
+            foreach (var x in new[] { -NozzleX, NozzleX })
+            {
+                var flame = new GameObject("Flame").transform;
+                flame.SetParent(_ship.transform, false);
+                flame.localPosition = new Vector3(x, 0f, back + 0.04f); // 노즐 입구 안쪽에서 시작
+                foreach (var mesh in new[] { _coneHalo, _coneOuter, _coneInner })
+                {
+                    var go = new GameObject("Cone");
+                    go.transform.SetParent(flame, false);
+                    go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                    var mr = go.AddComponent<MeshRenderer>();
+                    mr.sharedMaterial = _flameMaterial;
+                    mr.shadowCastingMode = ShadowCastingMode.Off;
+                    mr.receiveShadows = false;
+                }
+                _flames.Add((flame, 17.3f * ++seed));
+            }
+            var lightGo = new GameObject("EngineLight");
+            lightGo.transform.SetParent(_ship.transform, false);
+            lightGo.transform.localPosition = new Vector3(0f, 0f, back - 0.5f);
+            _engineLight = lightGo.AddComponent<Light>();
+            _engineLight.type = LightType.Point;
+            _engineLight.color = new Color(0.45f, 0.72f, 1f);
+            _engineLight.range = 2.2f;
+            _engineLight.shadows = LightShadows.None;
+            _thrust = _thrustTarget;
+            UpdateFlames(0f);
+        }
+
+        /// <summary>추력을 목표로 부드럽게 옮기고 불꽃 길이 · 굵기를 일렁이게 (실제 시간 — 멈춘 연출 중에도).</summary>
+        private void UpdateFlames(float dt)
+        {
+            if (_ship == null || _flames.Count == 0)
+                return;
+            _thrust = Mathf.MoveTowards(_thrust, _thrustTarget, dt * 1.6f);
+            float time = Time.unscaledTime;
+            bool on = _thrust > 0.03f;
+            foreach (var (flame, seed) in _flames)
+            {
+                if (flame.gameObject.activeSelf != on)
+                    flame.gameObject.SetActive(on);
+                float n = Mathf.PerlinNoise(time * 9f, seed);
+                float len = _flameLength * _thrust * (0.82f + 0.36f * n);
+                float wide = 0.5f + 0.6f * _thrust + 0.08f * Mathf.PerlinNoise(seed, time * 13f); // 약할 때는 가늘게 (짧고 넓으면 납작한 조각처럼 보임)
+                flame.localScale = new Vector3(wide, wide, len);
+            }
+            if (_engineLight != null)
+                _engineLight.intensity = 3.4f * _thrust * (0.9f + 0.2f * Mathf.PerlinNoise(time * 7f, 3.1f));
+        }
+
+        /// <summary>뒤(-Z)로 뻗는 원뿔 (길이 1 기준, 정점 색 = 밑동 → 끝으로 흐려짐, 가산 재질이 곱함).</summary>
+        private static Mesh Cone(float radius, float length, Color baseColor, Color tipColor)
+        {
+            const int seg = 18, rings = 8;
+            var verts = new List<Vector3>();
+            var colors = new List<Color>();
+            var tris = new List<int>();
+            for (int r = 0; r <= rings; r++)
+            {
+                float f = (float)r / rings;
+                float rad = radius * (1f - f) * (1f + 0.35f * Mathf.Sin(f * Mathf.PI)); // 밑동 뒤에서 살짝 부풀었다 끝으로 좁아짐
+                var c = Color.Lerp(baseColor, tipColor, Mathf.Pow(f, 0.8f));
+                for (int s = 0; s < seg; s++)
+                {
+                    float a = 2f * Mathf.PI * s / seg;
+                    verts.Add(new Vector3(Mathf.Cos(a) * rad, Mathf.Sin(a) * rad, -length * f));
+                    colors.Add(c);
+                }
+            }
+            for (int r = 0; r < rings; r++)
+                for (int s = 0; s < seg; s++)
+                {
+                    int a = r * seg + s, b = r * seg + (s + 1) % seg, c = a + seg, d = b + seg;
+                    tris.AddRange(new[] { a, c, b, b, c, d });
+                }
+            var mesh = new Mesh { name = "ArkFlameCone" };
+            mesh.SetVertices(verts);
+            mesh.SetColors(colors);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         private void BeginLeave()
@@ -266,6 +389,8 @@ namespace SpaceStation.UI
             var ahead = ApproachPoint(Mathf.Min(1f, t + 0.01f)) - p;
             var rot = t >= 0.999f || ahead.sqrMagnitude < 1e-6f ? DockRotation : Quaternion.Slerp(Quaternion.LookRotation(ahead.normalized, Vector3.up), DockRotation, Smooth(Mathf.InverseLerp(0.8f, 1f, t)));
             _ship.transform.SetPositionAndRotation(p, rot);
+            // 날아올 때 최대 추력 → 마지막 20%에서 줄이며 붙음 → 붙으면 약하게
+            _thrustTarget = t >= 0.999f ? IdleThrust : t < 0.8f ? 1f : Mathf.Lerp(1f, 0.2f, (t - 0.8f) / 0.2f);
         }
 
         /// <summary>떠나는 길: 뒤로 물러남(25%) → 돌아서 옆 위로 멀어짐.</summary>
@@ -275,6 +400,7 @@ namespace SpaceStation.UI
                 return;
             var up = Vector3.up;
             var back = _nose + _out * 2.5f;
+            _thrustTarget = t < 0.25f ? 0.35f : 1f; // 물러날 때 약하게 → 돌아서 최대 추력
             if (t < 0.25f)
             {
                 _ship.transform.SetPositionAndRotation(Vector3.Lerp(_nose, back, Smooth(t / 0.25f)), DockRotation);
@@ -314,27 +440,23 @@ namespace SpaceStation.UI
             // 1) 배를 따라가는 카메라 (뒤 · 왼쪽 위에서 정거장 쪽을 봄)
             for (float k = 0f; k < 1f && !_skip; k += Dt / _followSeconds)
             {
-                shipT = 0.72f * Smooth(Mathf.Clamp01(k));
+                shipT = CutT * Smooth(Mathf.Clamp01(k));
                 PlaceApproach(shipT);
                 cam.SetPositionAndRotation(FollowPosition(), Quaternion.LookRotation(Vector3.Lerp(_ship.transform.position, _nose, 0.35f) - FollowPosition(), Vector3.up));
                 yield return null;
             }
-            // 2) 포트 근처 고정 시점으로 넘어가며 천천히 도킹
+            // 2) 포트 쪽 고정 시점으로 순간 전환(컷) → 천천히 도킹 (사용자 피드백: 미끄러지듯 옮겨 가는 전환이 어색함)
             var fixedPos = FixedCameraPosition();
-            Vector3 fromPos = cam.position;
-            Quaternion fromRot = cam.rotation;
             for (float k = 0f; k < 1f && !_skip; k += Dt / _dockSeconds)
             {
-                PlaceApproach(Mathf.Lerp(0.72f, 1f, Ease(Mathf.Clamp01(k))));
-                var look = Quaternion.LookRotation(Vector3.Lerp(_nose, ShipCenter, 0.6f) - fixedPos, Vector3.up);
-                float b = Smooth(Mathf.Clamp01(k / 0.2f)); // 앞 0.8초 남짓 동안 고정 시점으로 옮겨 감
-                cam.SetPositionAndRotation(Vector3.Lerp(fromPos, fixedPos, b), Quaternion.Slerp(fromRot, look, b));
+                PlaceApproach(Mathf.Lerp(CutT, 1f, Ease(Mathf.Clamp01(k))));
+                cam.SetPositionAndRotation(fixedPos, Quaternion.LookRotation(Vector3.Lerp(_nose, ShipCenter, DockLook) - fixedPos, Vector3.up));
                 yield return null;
             }
             PlaceApproach(1f);
             if (!_skip)
                 AudioService.TryPlay(l => l.BuildSelect);
-            var hold = Quaternion.LookRotation(Vector3.Lerp(_nose, ShipCenter, 0.6f) - fixedPos, Vector3.up);
+            var hold = Quaternion.LookRotation(Vector3.Lerp(_nose, ShipCenter, DockLook) - fixedPos, Vector3.up);
             cam.SetPositionAndRotation(fixedPos, hold);
             // 3) 코어 독백
             if (!_skip)
@@ -351,7 +473,10 @@ namespace SpaceStation.UI
         {
             yield return new WaitForSecondsRealtime(0.4f); // 도착 창이 다 닫히고(글리치 효과 포함) 시간이 다시 흐른 뒤
             if (!FindDock() || _ship == null)
+            {
+                _stayLeft = boarded > 0 ? _stayAfterAccept : 0f; // 장면 없이 평소 흐름대로 (머물다 떠남)
                 yield break;
+            }
             BeginScene();
             var cam = _orbit.transform;
             var fixedPos = FixedCameraPosition();
@@ -370,7 +495,11 @@ namespace SpaceStation.UI
                 light.color = new Color(1f, 0.78f, 0.5f);
                 light.range = 2.6f;
                 light.intensity = 0f;
-                _line.SetText(boarded < ship.Size ? $"{name} {boarded}명이 방주에 오르고, 나머지는 돌아갑니다." : $"{name} {boarded}명이 방주에 올랐습니다.");
+                // 코어 혼잣말 (사용자 피드백: 안내문 말투가 어색함 → 독백과 같은 목소리)
+                _speaker.SetText($"<color={CoreTint}>코어</color>");
+                _line.SetText($"<color={CoreTint}>" + (boarded < ship.Size
+                    ? $"{boarded}명만 들어왔다. 나머지는 저 배에 남아 다시 떠난다."
+                    : $"{name} {boarded}명이 들어왔다. 이제 같은 지붕 아래다.") + "</color>");
                 for (float k = 0f; k < 1f && !_skip; k += Dt / 3.2f)
                 {
                     float b = Smooth(Mathf.Clamp01(k / 0.25f));
@@ -384,7 +513,8 @@ namespace SpaceStation.UI
             else
             {
                 // 거부: 배가 뒤로 물러나 돌아 떠남
-                _line.SetText($"{name}의 배가 돌아갑니다.");
+                _speaker.SetText($"<color={CoreTint}>코어</color>");
+                _line.SetText($"<color={CoreTint}>배가 멀어진다. 저 배는 이제 어디로 가게 될까.</color>");
                 for (float k = 0f; k < 1f && !_skip; k += Dt / 5f)
                 {
                     float b = Smooth(Mathf.Clamp01(k / 0.15f));
@@ -397,6 +527,7 @@ namespace SpaceStation.UI
                 _leaveT = 0.7f;
             }
             _line.SetText("");
+            _speaker.SetText("");
             yield return Return();
             EndScene();
             if (glow != null)
@@ -412,19 +543,31 @@ namespace SpaceStation.UI
             return t.position - t.forward * (s * 1.9f) + t.right * (-s * 0.9f) + Vector3.up * (s * 0.55f);
         }
 
-        /// <summary>포트 옆 고정 시점: 접근로 쪽 후보 자리 중 모듈이 없는 곳 (모듈 속에 카메라가 들어가지 않게).</summary>
+        private const float CutT = 0.72f;     // 따라가기 → 고정 시점으로 컷하는 접근 진행도
+        private const float DockLook = 0.45f; // 고정 시점이 보는 곳 = 포트 ~ 배 가운데 사이
+
+        /// <summary>
+        /// 포트 옆 고정 시점: 포트와 컷 순간의 배가 한 화면에 들어오도록 접근로 옆으로 물러난 자리 중 모듈이 없는 곳 (모듈 속에 카메라가 들어가지 않게).
+        /// 따라가던 카메라와 같은 쪽(배의 왼쪽 위)에 둬 컷 전후 방향이 뒤집히지 않게 한다 (사용자 피드백: 컷 직후 빈 우주만 보임).
+        /// </summary>
         private Vector3 FixedCameraPosition()
         {
-            var side = Side;
-            foreach (var a in new[] { 2.5f, 4f, 6f, 8f })
-                foreach (var b in new[] { 3f, -3f, 4.5f, -4.5f })
-                    foreach (var c in new[] { 1.3f, 2.6f })
-                    {
-                        var p = _nose + _out * a + side * b + Vector3.up * c;
-                        if (Free(p))
-                            return p;
-                    }
-            return _nose + _out * 9f + side * 3f + Vector3.up * 3f;
+            var from = ApproachPoint(CutT) + _out * (_shipLength * GridConfig.CellSize * 0.5f); // 컷 순간 배 가운데쯤
+            var span = from - _nose;
+            var mid = Vector3.Lerp(_nose, from, 0.4f);
+            var across = Vector3.Cross(Vector3.up, span.normalized);
+            if (across.sqrMagnitude < 1e-4f)
+                across = Side;
+            across.Normalize();
+            float d = span.magnitude * 0.85f;
+            foreach (var k in new[] { 1f, 1.25f, 1.5f })
+                foreach (var s in new[] { 1f, -1f })
+                {
+                    var p = mid + across * (s * d * k) + Vector3.up * (d * k * 0.35f);
+                    if (Free(p))
+                        return p;
+                }
+            return mid + across * (d * 1.8f) + Vector3.up * (d * 0.7f);
         }
 
         private bool Free(Vector3 p)
@@ -447,8 +590,8 @@ namespace SpaceStation.UI
             if (lines.Count == 0)
             {
                 string name = _ark.SpeciesName(ship.Species);
-                lines.Add($"{name}의 배다. 처음 보는 무리다.");
-                lines.Add("받아들일지, 돌려보낼지. 내가 문을 고른다.");
+                lines.Add($"배 한 척이 포트에 닿았다. 처음 보는 {name}들이다.");
+                lines.Add("들일지 돌려보낼지, 이번엔 내가 정해야 한다.");
             }
             return lines;
         }
@@ -555,6 +698,7 @@ namespace SpaceStation.UI
 
         private void LateUpdate()
         {
+            UpdateFlames(Dt);
             if (!_scene)
                 return;
             var k = Keyboard.current;

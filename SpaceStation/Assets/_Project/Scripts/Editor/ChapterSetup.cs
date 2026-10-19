@@ -265,6 +265,7 @@ namespace SpaceStation.Editor
             foreach (var f in new[] { "_font", "_fillSprite", "_frameSprite", "_buttonSprite", "_holoArt" })
                 avo.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
             avo.FindProperty("_shipModel").objectReferenceValue = ArkShipModel();
+            avo.FindProperty("_flameMaterial").objectReferenceValue = ArkFlameMaterial();
             avo.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -299,12 +300,12 @@ namespace SpaceStation.Editor
             bear = LoadOrCreate<SpeciesData>(Folder + "/SP_Bear.asset");
             bear.EditorSet("bear", "곰", "힘이 세고 얽매이기 싫어하는 무리. 쉬고 노는 자리를 중시하고, 고치는 손이 빠르다.",
                 ResidentNeed.Recreation, 0.5f, -0.5f, ResidentTrait.Technician, 0.02f, 0.1f, 0.5f, 0f);
-            // 13-6b 이민선 띠 색 · 처음 맞을 때 코어 독백 (문장은 확인용 초안)
-            rabbit.EditorSetShip(new Color(0.95f, 0.62f, 0.72f), "토끼들의 배다. 처음 깨어났을 때 곁에 있던 무리와 같은 얼굴들.");
+            // 13-6b 이민선 띠 색 · 처음 맞을 때 코어 독백 (사용자 피드백 2026-10-19: 말투가 어색함 → 1장 코어 기동처럼 짧은 관찰 · 혼잣말로, 확인용 초안)
+            rabbit.EditorSetShip(new Color(0.95f, 0.62f, 0.72f), "토끼들이 탄 배다. 낯익은 얼굴들이다.");
             bear.EditorSetShip(new Color(0.62f, 0.4f, 0.22f),
-                "그을린 배 한 척. 꺼져 가는 지구에서 마지막까지 버틴 곰들이다.",
-                "좁은 배에 몸을 맞대고 여기까지 왔다.",
-                "받아들일지, 돌려보낼지. 처음으로 내가 문을 고른다.");
+                "배 한 척이 포트에 닿았다. 선체가 온통 그을렸다.", // 독백은 도킹을 마친 뒤에 나옴
+                "곰들이 타고 있다. 지구에서 여기까지, 쉽지 않은 길이었을 거다.",
+                "들일지 돌려보낼지, 이번엔 내가 정해야 한다.");
             EditorUtility.SetDirty(rabbit);
             EditorUtility.SetDirty(bear);
 
@@ -833,7 +834,7 @@ namespace SpaceStation.Editor
                 ("Burn", new Color(0.07f, 0.065f, 0.065f), 0.05f, 0f, Color.black),
                 ("BurnM", new Color(0.2f, 0.2f, 0.22f), 0.08f, 0f, Color.black),
                 ("Vent", new Color(0.08f, 0.085f, 0.1f), 0.3f, 0.2f, Color.black),
-                ("Glow", new Color(0.4f, 0.8f, 1f), 0.5f, 0f, new Color(0.6f, 1.4f, 2.2f)),
+                ("Glow", new Color(0.4f, 0.8f, 1f), 0.5f, 0f, new Color(1.5f, 3.2f, 5f)), // 노즐 안쪽 (불꽃이 약해 보인다는 피드백으로 더 밝게)
                 ("NavR", new Color(1f, 0.2f, 0.15f), 0.4f, 0f, new Color(1.6f, 0.2f, 0.12f)),
                 ("NavG", new Color(0.2f, 1f, 0.35f), 0.4f, 0f, new Color(0.2f, 1.6f, 0.4f)),
             };
@@ -853,6 +854,33 @@ namespace SpaceStation.Editor
             importer.SaveAndReimport();
             AssetDatabase.SaveAssets();
             return AssetDatabase.LoadAssetAtPath<GameObject>(ArkModelPath);
+        }
+
+        private const string ShipEngineMaterial = "Assets/_Project/Art/Materials/FX/M_ShipEngine.mat";
+        private const string ArkFlamePath = "Assets/_Project/Art/Materials/Ships/M_ArkFlame.mat";
+
+        /// <summary>
+        /// 13-6b 이민선 추진 불꽃 재질: 운송선 엔진 꼬리(M_ShipEngine, URP Particles/Unlit 가산)를 복사해 무늬를 빼고 HDR 색만 둔다.
+        /// 불꽃 원뿔 메시의 꼭짓점 색(뿌리 흰색 → 끝 투명)이 모양을 만들고, 앞뒤 면을 모두 그린다.
+        /// </summary>
+        private static Material ArkFlameMaterial()
+        {
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(ArkFlamePath);
+            if (mat == null)
+            {
+                if (!AssetDatabase.CopyAsset(ShipEngineMaterial, ArkFlamePath))
+                {
+                    Debug.LogWarning("[ChapterSetup] 불꽃 재질 원본 없음: " + ShipEngineMaterial);
+                    return null;
+                }
+                mat = AssetDatabase.LoadAssetAtPath<Material>(ArkFlamePath);
+            }
+            mat.SetTexture("_BaseMap", null);
+            mat.SetColor("_BaseColor", new Color(1.4f, 2.4f, 4f, 1f));
+            mat.SetFloat("_Cull", 0f);
+            EditorUtility.SetDirty(mat);
+            AssetDatabase.SaveAssets();
+            return mat;
         }
 
         /// <summary>탐사 지점 모습 재질 (URP Lit, 발광은 _EMISSION을 켜 두고 색은 지점마다 MaterialPropertyBlock).</summary>
