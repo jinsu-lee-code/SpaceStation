@@ -67,6 +67,9 @@ namespace SpaceStation.UI
         private Mode _mode;
         private float _stayLeft, _leaveT;
         private Vector3 _nose, _out;
+        // 길 · 카메라 자리 (모듈에 막히지 않는 쪽, ArkShot): 접근 · 떠나는 길이 휘는 쪽(Side 배수), 따라가는 카메라 후보 번호
+        private float _approachSide = 1f, _leaveSide = -1f;
+        private int _follow;
         private float _scale = 1f;
         private MaterialPropertyBlock _block; // MonoBehaviour 필드 초기화에서 만들면 Unity가 막음 → Start에서
 
@@ -210,6 +213,7 @@ namespace SpaceStation.UI
         {
             Clear();
             _shipData = ship;
+            PlanPaths();
             _ship = Instantiate(_shipModel, _root);
             _ship.name = "ArkShip";
             float length = 0f;
@@ -370,18 +374,21 @@ namespace SpaceStation.UI
         private static float Ease(float t) => 1f - (1f - t) * (1f - t);
         private static float Smooth(float t) => t * t * (3f - 2f * t);
 
-        private static Vector3 Bezier(Vector3 a, Vector3 b, Vector3 c, Vector3 d, float t)
+        private bool Occupied(Vector3Int cell) => _sim.Grid.IsOccupied(cell);
+
+        /// <summary>배가 나타날 때: 접근 · 떠나는 길이 모듈을 덜 지나는 쪽으로 (기본 = 접근은 Side 쪽, 떠날 때는 반대쪽).</summary>
+        private void PlanPaths()
         {
-            float u = 1f - t;
-            return u * u * u * a + 3f * u * u * t * b + 3f * u * t * t * c + t * t * t * d;
+            _approachSide = 1f;
+            _leaveSide = -1f;
+            if (!FindDock())
+                return;
+            _approachSide = ArkShot.PickSide(Occupied, side => t => ArkShot.Approach(_nose, _out, side, t), Side);
+            _leaveSide = -_approachSide * ArkShot.PickSide(Occupied, side => e => ArkShot.Leave(_nose, _out, side, e), -Side * _approachSide);
         }
 
         /// <summary>접근 경로 (멀리 옆 위 → 접근로 → 코 = 도킹 점), t = 0 ~ 1.</summary>
-        private Vector3 ApproachPoint(float t)
-        {
-            var up = Vector3.up;
-            return Bezier(_nose + _out * 42f + up * 9f + Side * 12f, _nose + _out * 20f + up * 4f + Side * 6f, _nose + _out * 6f + up * 0.3f, _nose, t);
-        }
+        private Vector3 ApproachPoint(float t) => ArkShot.Approach(_nose, _out, Side * _approachSide, t);
 
         private void PlaceApproach(float t)
         {
@@ -410,9 +417,9 @@ namespace SpaceStation.UI
             }
             float u = (t - 0.25f) / 0.75f;
             float e = Mathf.Pow(u, 1.6f);
-            Vector3 b1 = _nose + _out * 6f - Side * 2f, b2 = _nose + _out * 14f + up * 4f - Side * 8f, end = _nose + _out * 40f + up * 10f - Side * 16f;
-            var p = Bezier(back, b1, b2, end, e);
-            var ahead = Bezier(back, b1, b2, end, Mathf.Min(1f, e + 0.01f)) - p;
+            var side = Side * _leaveSide;
+            var p = ArkShot.Leave(_nose, _out, side, e);
+            var ahead = ArkShot.Leave(_nose, _out, side, Mathf.Min(1f, e + 0.01f)) - p;
             var travel = ahead.sqrMagnitude > 1e-6f ? Quaternion.LookRotation(ahead.normalized, up) : DockRotation;
             _ship.transform.SetPositionAndRotation(p, Quaternion.Slerp(DockRotation, travel, Smooth(Mathf.Clamp01(u / 0.35f))));
         }
@@ -439,7 +446,8 @@ namespace SpaceStation.UI
             _mode = Mode.Docked;
             var cam = _orbit.transform;
             float shipT = 0f;
-            // 1) 배를 따라가는 카메라 (뒤 · 왼쪽 위에서 정거장 쪽을 봄)
+            // 1) 배를 따라가는 카메라 (뒤 · 왼쪽 위에서 정거장 쪽을 봄 — 그 자리가 모듈에 막히거나 배가 가려지면 오른쪽 · 더 높이)
+            _follow = ArkShot.PickFollow(Occupied, ApproachPoint, CutT, ShipLength);
             for (float k = 0f; k < 1f && !_skip; k += Dt / _followSeconds)
             {
                 shipT = CutT * Smooth(Mathf.Clamp01(k));
@@ -465,7 +473,7 @@ namespace SpaceStation.UI
             if (!_skip)
             {
                 var lines = ArrivalLines(ship);
-                var pushTo = PushInPosition(fixedPos, lookAt);
+                var pushTo = ArkShot.PushIn(Occupied, fixedPos, lookAt, _monologuePush);
                 float total = MonologueSeconds(lines), t = 0f;
                 var talk = Monologue(lines);
                 while (talk.MoveNext())
@@ -550,49 +558,41 @@ namespace SpaceStation.UI
 
         private Vector3 ShipCenter => _ship != null ? _ship.transform.position - _ship.transform.forward * (_shipLength * GridConfig.CellSize * 0.5f) : _nose;
 
+        private float ShipLength => _shipLength * GridConfig.CellSize;
+
         private Vector3 FollowPosition()
         {
             var t = _ship.transform;
-            float s = _shipLength * GridConfig.CellSize;
-            return t.position - t.forward * (s * 1.9f) + t.right * (-s * 0.9f) + Vector3.up * (s * 0.55f);
+            var (side, lift) = ArkShot.FollowOptions[_follow];
+            return ArkShot.FollowCamera(t.position, t.forward, ShipLength, side, lift);
         }
 
         private const float CutT = 0.72f;     // 따라가기 → 고정 시점으로 컷하는 접근 진행도
         private const float DockLook = 0.45f; // 고정 시점이 보는 곳 = 포트 ~ 배 가운데 사이
 
         /// <summary>
-        /// 포트 옆 고정 시점: 포트와 컷 순간의 배가 한 화면에 들어오도록 접근로 옆으로 물러난 자리 중 모듈이 없는 곳 (모듈 속에 카메라가 들어가지 않게).
-        /// 따라가던 카메라와 같은 쪽(배의 왼쪽 위)에 둬 컷 전후 방향이 뒤집히지 않게 한다 (사용자 피드백: 컷 직후 빈 우주만 보임).
+        /// 포트 옆 고정 시점: 포트와 컷 순간의 배가 한 화면에 들어오도록 접근로 옆으로 물러난 자리 (사용자 피드백: 컷 직후 빈 우주만 보임).
+        /// 따라가던 카메라와 같은 쪽을 먼저 봐 컷 전후 방향이 뒤집히지 않게 하고, 카메라 자리에 모듈이 있거나 포트 · 배가 모듈에 가려지면
+        /// 반대쪽 · 더 높이 · 더 멀리 → 모두 막히면 정거장 위에서 내려다봄 (<see cref="ArkShot.PickFixed"/>).
         /// </summary>
         private Vector3 FixedCameraPosition()
         {
-            var from = ApproachPoint(CutT) + _out * (_shipLength * GridConfig.CellSize * 0.5f); // 컷 순간 배 가운데쯤
-            var span = from - _nose;
-            var mid = Vector3.Lerp(_nose, from, 0.4f);
-            var across = Vector3.Cross(Vector3.up, span.normalized);
-            if (across.sqrMagnitude < 1e-4f)
-                across = Side;
-            across.Normalize();
-            float d = span.magnitude * 0.85f;
-            foreach (var k in new[] { 1f, 1.25f, 1.5f })
-                foreach (var s in new[] { 1f, -1f })
-                {
-                    var p = mid + across * (s * d * k) + Vector3.up * (d * k * 0.35f);
-                    if (Free(p))
-                        return p;
-                }
-            return mid + across * (d * 1.8f) + Vector3.up * (d * 0.7f);
+            var p = ApproachPoint(CutT);
+            var ahead = ApproachPoint(CutT + 0.01f) - p;
+            var cutShip = p - (ahead.sqrMagnitude > 1e-8f ? ahead.normalized : -_out) * (ShipLength * 0.5f); // 컷 순간 배 가운데
+            var dockedShip = _nose + _out * (ShipLength * 0.5f);
+            float followSide = ArkShot.FollowOptions[_follow].side;
+            return ArkShot.PickFixed(Occupied, _nose, cutShip, dockedShip, DockLook, followSide > 0f ? -1f : 1f, StationTop(), out _);
         }
 
-        private bool Free(Vector3 p)
+        /// <summary>가장 높은 모듈 칸의 높이 (내려다보는 시점을 그보다 위에 둠).</summary>
+        private float StationTop()
         {
-            var c = GridConfig.WorldToCell(p);
-            for (int x = -1; x <= 1; x++)
-                for (int y = -1; y <= 1; y++)
-                    for (int z = -1; z <= 1; z++)
-                        if (_sim.Grid.IsOccupied(c + new Vector3Int(x, y, z)))
-                            return false;
-            return true;
+            float top = _nose.y;
+            foreach (var m in _sim.Grid.Modules)
+                foreach (var c in m.Cells)
+                    top = Mathf.Max(top, GridConfig.CellToWorld(c).y);
+            return top;
         }
 
         private List<string> ArrivalLines(ArkShip ship)
@@ -619,18 +619,6 @@ namespace SpaceStation.UI
             foreach (var text in lines)
                 s += text.Length / Mathf.Max(1f, _charsPerSecond) + LineHold;
             return Mathf.Max(0.5f, s);
-        }
-
-        /// <summary>독백 동안 다가갈 자리: 고정 시점 → 보는 곳 사이 _monologuePush 비율, 그 자리에 모듈이 있으면 덜 다가감.</summary>
-        private Vector3 PushInPosition(Vector3 from, Vector3 lookAt)
-        {
-            for (float f = _monologuePush; f > 0.05f; f -= 0.1f)
-            {
-                var p = Vector3.Lerp(from, lookAt, f);
-                if (Free(p))
-                    return p;
-            }
-            return from;
         }
 
         /// <summary>코어 독백: 줄마다 타자 → 다 나오면 2.4초 또는 클릭 · Space · Enter로 다음. 코어 기록에도 남김.</summary>
