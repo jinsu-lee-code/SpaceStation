@@ -10,6 +10,8 @@ namespace SpaceStation.UI
     /// 13-7a 꺼져 가는 지구 (REDESIGN T8 · M1, 사용자 결정 2026-10-19): 정거장 바깥 멀리 떠 있는 둥근 지구 (BlenderWork/Earth → SM_Earth · 셰이더 SpaceStation/Earth).
     /// - 기본 시점 너머 아래, 해 반대쪽에 두어 밤쪽 도시 불빛이 보임 · 23.4° 기울어 자전(게임 시간, 멈추면 같이 멈춤) · 구름은 조금 더 빨리 흐름
     /// - 불빛 = 시각적 시계: <see cref="EarthLights.Value"/>(장 안에서 서서히 + 다음 장 시작 때 크게)를 화면에서는 천천히 따라가 꺼짐
+    /// - 닿을 수 없는 하늘의 천체 (사용자 질문 2026-10-19: 정거장이 커져 지구까지 이어지면?): 카메라마다 그리기 직전 카메라에서 같은 방향 · 거리에 옮김 →
+    ///   카메라가 어디로 가도 크기 · 방향이 그대로(먼 행성처럼)라 다가갈 수 없고, 셰이더가 깊이를 먼 평면에 붙여 정거장 모듈은 언제나 지구 앞에 그려짐
     /// 화면 연출만 — 시뮬레이션은 바꾸지 않는다. 씬에는 모델 · 재질만 연결된 빈 오브젝트 (메뉴 SpaceStation/Chapters/Setup Greybox).
     /// </summary>
     public sealed class EarthView : MonoBehaviour
@@ -46,8 +48,10 @@ namespace SpaceStation.UI
 
         /// <summary>지금 화면에 켜진 불빛 비율 (13-7b 장 전환 연출이 읽음).</summary>
         public float ShownLights => _shown;
-        public Vector3 Center => _earth != null ? _earth.position : _direction.normalized * _distance;
-        public float Radius => _radius;
+        /// <summary>어느 카메라에서든 지구가 보이는 방향 (13-7b 장 전환 연출이 이쪽으로 카메라를 돌림).</summary>
+        public Vector3 Direction => _direction.normalized;
+        /// <summary>지구가 화면에서 차지하는 반각 (도).</summary>
+        public float AngularRadius => Mathf.Asin(Mathf.Clamp01(_radius / _distance)) * Mathf.Rad2Deg;
 
         private void Start()
         {
@@ -63,6 +67,7 @@ namespace SpaceStation.UI
             _earth = go.transform;
             _earth.position = _direction.normalized * _distance;
             _earth.localScale = Vector3.one * _radius;
+            RenderPipelineManager.beginCameraRendering += FollowCamera;
             foreach (var c in go.GetComponentsInChildren<Collider>())
                 Destroy(c); // 배경 — 클릭 · 배치 광선에 걸리지 않게
             _renderer = go.GetComponentInChildren<Renderer>();
@@ -73,6 +78,15 @@ namespace SpaceStation.UI
                 _renderer.receiveShadows = false;
             }
             Apply(0f);
+        }
+
+        private void OnDestroy() => RenderPipelineManager.beginCameraRendering -= FollowCamera;
+
+        /// <summary>그리기 직전 그 카메라에서 같은 방향 · 거리로 (정거장이 아무리 커져도 다가갈 수 없음).</summary>
+        private void FollowCamera(ScriptableRenderContext context, Camera cam)
+        {
+            if (_earth != null && cam != null)
+                _earth.position = cam.transform.position + _direction.normalized * _distance;
         }
 
         private float SimDelta => _clock == null || _clock.Clock.IsPaused ? 0f : Time.deltaTime * _clock.Clock.Speed;

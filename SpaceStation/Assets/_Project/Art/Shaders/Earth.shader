@@ -2,6 +2,8 @@
 // 해(주 광원) 쪽은 낮 — 대륙 · 바다 색, 반대쪽은 밤 — 도시 불빛. 불빛 그림 R = 세기, G = 꺼지는 차례 → G < _Lights 인 불빛만 켬
 // (EarthView가 장 진행에 맞춰 _Lights를 1 → 0.48로 내림, 도시마다 같은 차례라 도시 단위로 하나씩 꺼짐).
 // 구름은 경도 방향으로 흐르고(_CloudShift) 아래 불빛을 조금 가림, 가장자리는 대기 빛(프레넬). 모델 · 그림 하나로 그리는 배경이라 Shader Graph 대신 코드 (SkyLens와 같은 틀).
+// 닿을 수 없는 하늘의 천체 (사용자 질문 2026-10-19: 정거장이 커져 지구까지 이어지면?): 깊이를 먼 평면에 붙여 스카이박스 뒤 · 다른 투명 효과 앞에 그림 →
+// 아무것도 없는 하늘에만 보이고, 정거장 모듈은 거리와 상관없이 언제나 지구 앞에 그려진다 (EarthView가 카메라를 따라 같은 방향 · 거리에 둠).
 Shader "SpaceStation/Earth"
 {
     Properties
@@ -20,13 +22,15 @@ Shader "SpaceStation/Earth"
     }
     SubShader
     {
-        Tags { "RenderPipeline" = "UniversalPipeline" "Queue" = "Geometry" "RenderType" = "Opaque" "IgnoreProjector" = "True" }
+        // 불투명 · 스카이박스를 다 그린 뒤 (투명 효과보다는 먼저) — 스카이박스는 깊이를 쓰지 않아 먼저 그리면 지구를 덮음
+        Tags { "RenderPipeline" = "UniversalPipeline" "Queue" = "Transparent-1" "RenderType" = "Opaque" "IgnoreProjector" = "True" }
         Pass
         {
             Name "Earth"
             Tags { "LightMode" = "UniversalForward" }
             Cull Back
-            ZWrite On
+            ZWrite Off
+            ZTest LEqual
 
             HLSLPROGRAM
             #pragma vertex Vert
@@ -73,6 +77,12 @@ Shader "SpaceStation/Earth"
                 UNITY_TRANSFER_INSTANCE_ID(input, o);
                 VertexPositionInputs pos = GetVertexPositionInputs(input.positionOS.xyz);
                 o.positionCS = pos.positionCS;
+                // 깊이 = 먼 평면 바로 앞 → 무엇이든 그려진 곳에서는 깊이 검사에 져서 하늘에만 보임 (볼록한 구 + 뒷면 버림이라 자기 겹침 없음)
+            #if UNITY_REVERSED_Z
+                o.positionCS.z = o.positionCS.w * 1e-6;
+            #else
+                o.positionCS.z = o.positionCS.w * (1.0 - 1e-6);
+            #endif
                 o.positionWS = pos.positionWS;
                 o.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 o.uv = input.uv;
