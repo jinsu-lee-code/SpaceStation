@@ -291,8 +291,11 @@ namespace SpaceStation.UI
 
         // ---------------- 처음 만나는 종족 연출 ----------------
 
-        /// <summary>연출 한 프레임 (실제 초, 최대 0.05) — 끊김(로딩 · 에디터 멈춤)이 있어도 장면이 건너뛰지 않게.</summary>
-        private static float Dt => Mathf.Min(Time.unscaledDeltaTime, 0.05f);
+        /// <summary>
+        /// 연출 한 프레임 (실제 초, 최대 0.05) — 끊김(로딩 · 에디터 멈춤)이 있어도 장면이 건너뛰지 않게.
+        /// 녹화로 프레임 시간을 고정했으면(<see cref="Time.captureDeltaTime"/>) 그 값 — 영상 속도가 실제와 같게.
+        /// </summary>
+        private static float Dt => Time.captureDeltaTime > 0f ? Time.captureDeltaTime : Mathf.Min(Time.unscaledDeltaTime, 0.05f);
 
         /// <summary>이 배의 도착을 연출로 보일지 (처음 만나는 종족 · 붙을 자리가 있을 때).</summary>
         public bool WantsArrival(ArkShip ship) => isActiveAndEnabled && _ark != null && ship != null && ship.NewSpecies && !_scene && FindDock();
