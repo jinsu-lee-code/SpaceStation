@@ -162,7 +162,7 @@ namespace SpaceStation.Editor
             var lights = new List<LightSpec>
             {
                 LightSpec.Point(new Vector3(0f, F + 3.1f, 0f), 6.5f, 2.6f, new Color(0.95f, 0.96f, 1f)),
-                LightSpec.Point(new Vector3(-1.9f, F + 1.5f, 1.9f), 3f, 0.8f, new Color(0.6f, 0.85f, 1f)), // 키오스크 화면 빛
+                LightSpec.Point(new Vector3(-1.5f, F + 0.5f, 1.5f), 3f, 0.8f, new Color(0.6f, 0.85f, 1f)), // 키오스크 화면 빛 (화면 앞 낮게 — 화면 위 반사점 방지)
             };
             Build("Hub", "MD_ConnectorHub", OneCellSockets(Socket, Vector3.zero), new Vector3(0f, F, -1.6f), 0f, lights,
                 configure: root =>
@@ -198,7 +198,7 @@ namespace SpaceStation.Editor
             var lights = new List<LightSpec>
             {
                 LightSpec.Point(new Vector3(0f, F + 3.0f, 0f), 6f, 1.8f, new Color(0.72f, 0.82f, 1f)),
-                LightSpec.Point(new Vector3(0f, F + 1.4f, 0f), 3f, 0.9f, new Color(0.4f, 0.9f, 1f)),   // 레이더 화면 빛
+                LightSpec.Point(new Vector3(0f, F + 0.75f, 0f), 3f, 0.9f, new Color(0.4f, 0.9f, 1f)),  // 레이더 화면 빛 (표시대 윗면 아래 — 화면 위 반사점 방지)
                 LightSpec.Point(new Vector3(-2.25f, F + 2.8f, -2.25f), 3f, 0.8f, new Color(0.9f, 0.92f, 1f)), // 해치 구석
             };
             var orbits = new List<OrbitSpec> { new OrbitSpec("INT_Sensor_Sweep", Vector3.zero, Vector3.up, 60f) };
