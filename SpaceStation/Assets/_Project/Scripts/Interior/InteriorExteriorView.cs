@@ -42,6 +42,7 @@ namespace SpaceStation.Interior
         private Light _sun;
         private Func<Vector3, ModuleInstance> _roomAt;
         private Action<ModuleInstance, HashSet<ModuleInstance>> _linkedRooms;
+        private Func<ModuleInstance, bool> _showOwnExterior;
         private readonly HashSet<ModuleInstance> _linked = new HashSet<ModuleInstance>();
         private ModuleInstance _linkedFrom;
         private readonly List<Group> _groups = new List<Group>();
@@ -55,8 +56,10 @@ namespace SpaceStation.Interior
 
         /// <param name="roomAt">내부 월드 위치 → 그 칸의 방 모듈 (없으면 null)</param>
         /// <param name="linkedRooms">방 → 그 방 + 열린 통로로 바로 이어진 방들 (창을 그릴 방 범위)</param>
+        /// <param name="showOwnExterior">12-5 방 → 그 방 창에 자기 바깥 모델도 비출지 (템플릿 설정, 없으면 숨김)</param>
         public static InteriorExteriorView Create(Camera source, Transform interiorRoot, StationController station, Light sun, float farClip,
-            Func<Vector3, ModuleInstance> roomAt, Action<ModuleInstance, HashSet<ModuleInstance>> linkedRooms)
+            Func<Vector3, ModuleInstance> roomAt, Action<ModuleInstance, HashSet<ModuleInstance>> linkedRooms,
+            Func<ModuleInstance, bool> showOwnExterior = null)
         {
             var go = new GameObject("InteriorExteriorCamera");
             var view = go.AddComponent<InteriorExteriorView>();
@@ -65,6 +68,7 @@ namespace SpaceStation.Interior
             view._station = station;
             view._roomAt = roomAt;
             view._linkedRooms = linkedRooms;
+            view._showOwnExterior = showOwnExterior;
             view._connectors = station != null ? station.GetComponent<StationConnectors>() : null;
             if (view._connectors == null)
                 view._connectors = FindFirstObjectByType<StationConnectors>();
@@ -272,11 +276,12 @@ namespace SpaceStation.Interior
             RestoreHidden();
         }
 
-        /// <summary>창이 속한 방 모듈 + 그 모듈에 닿은 연결 통로 + 카메라를 품은 모듈·연결 통로를 숨김.</summary>
+        /// <summary>창이 속한 방 모듈 + 그 모듈에 닿은 연결 통로 + 카메라를 품은 모듈·연결 통로를 숨김.
+        /// 12-5: 템플릿이 자기 외형 보이기면(구조 프레임 · 센서 어레이) 방 모듈은 숨기지 않음 — 창 너머로 자기 트러스 · 접시가 보이게.</summary>
         private void Hide(ModuleInstance module, Vector3 point)
         {
             _hidden.Clear();
-            if (module != null)
+            if (module != null && (_showOwnExterior == null || !_showOwnExterior(module)))
                 HideModule(module);
             // 카메라를 품은 이웃 모듈: 바깥 모델(칸의 약 92%)이 내부 방(80%)보다 커서, 튜브 끝·문가에서는 바깥 카메라가
             // 옆 모듈 바깥 모델 속에 들어가 안쪽 면이 창을 덮음 (장갑 격벽 → 채굴 도킹 튜브에서 검은 창)
