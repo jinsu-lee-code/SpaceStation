@@ -162,7 +162,9 @@ namespace SpaceStation.Editor
             var lights = new List<LightSpec>
             {
                 LightSpec.Point(new Vector3(0f, F + 3.1f, 0f), 6.5f, 2.6f, new Color(0.95f, 0.96f, 1f)),
-                LightSpec.Point(new Vector3(-1.5f, F + 0.5f, 1.5f), 3f, 0.8f, new Color(0.6f, 0.85f, 1f)), // 키오스크 화면 빛 (화면 앞 낮게 — 화면 위 반사점 방지)
+                // 키오스크 화면 빛: 화면 면 뒤(키오스크 머리 뒤 · 아래)에 둠 → 화면 앞면에는 빛이 닿지 않아 반사점이 생길 수 없음.
+                // 화면 앞 낮게 둔 자리도 위에서 내려다보면 화면 아래쪽에 반사점이 보였음 (2026-10-19 플레이 검수)
+                LightSpec.Point(new Vector3(-2.25f, F + 1.0f, 2.25f), 3f, 0.8f, new Color(0.6f, 0.85f, 1f)),
             };
             Build("Hub", "MD_ConnectorHub", OneCellSockets(Socket, Vector3.zero), new Vector3(0f, F, -1.6f), 0f, lights,
                 configure: root =>
