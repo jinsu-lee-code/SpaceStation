@@ -164,8 +164,33 @@ namespace SpaceStation.Editor
                 LightSpec.Point(new Vector3(0f, F + 3.1f, 0f), 6.5f, 2.6f, new Color(0.95f, 0.96f, 1f)),
                 LightSpec.Point(new Vector3(-1.9f, F + 1.5f, 1.9f), 3f, 0.8f, new Color(0.6f, 0.85f, 1f)), // 키오스크 화면 빛
             };
-            Build("Hub", "MD_ConnectorHub", OneCellSockets(Socket, Vector3.zero), new Vector3(0f, F, -1.6f), 0f, lights);
+            Build("Hub", "MD_ConnectorHub", OneCellSockets(Socket, Vector3.zero), new Vector3(0f, F, -1.6f), 0f, lights,
+                configure: root =>
+                {
+                    // hub_builder ANCHORS (문 위 표지판 글자 칸 · 키오스크 화면 좌표)
+                    var n = new Vector3Int(0, 0, 1);
+                    var s = new Vector3Int(0, 0, -1);
+                    InteriorWayfinding.Sign SignAt(string key, Vector3Int dir, Vector3 c, Vector3 normal) => new InteriorWayfinding.Sign
+                    {
+                        Direction = dir, Center = c, Normal = normal, Width = 1.06f, Height = 0.2f,
+                        Arrow = new[] { Child(root, "INT_Hub_Arrow" + key)?.GetComponent<Renderer>() },
+                    };
+                    var signs = new[]
+                    {
+                        SignAt("N", n, new Vector3(0.33f, 1.675f, 2.449f), new Vector3(0f, 0f, -1f)),
+                        SignAt("E", Vector3Int.right, new Vector3(2.449f, 1.675f, -0.33f), new Vector3(-1f, 0f, 0f)),
+                        SignAt("S", s, new Vector3(-0.33f, 1.675f, -2.449f), new Vector3(0f, 0f, 1f)),
+                        SignAt("W", Vector3Int.left, new Vector3(-2.449f, 1.675f, 0.33f), new Vector3(1f, 0f, 0f)),
+                    };
+                    root.AddComponent<InteriorWayfinding>().Configure(signs,
+                        new Vector3(-2.0765f, -0.0618f, 2.0765f), new Vector3(0.6409f, 0.4226f, -0.6409f),
+                        new Vector3(-0.2988f, 0.9063f, 0.2988f), new Vector3(0.7071f, 0f, 0.7071f),
+                        new[] { n, Vector3Int.right, s, Vector3Int.left, Vector3Int.up, Vector3Int.down },
+                        new[] { 0.11f, 0.04f, -0.03f, -0.10f, -0.17f, -0.225f });
+                });
         }
+
+        private static Transform Child(GameObject root, string name) => root.transform.Find(name);
 
         /// <summary>12-5 센서 어레이: 관측 관제실 (가운데 레이더 표시대 · 도는 빛줄, 구석 콘솔 3, 둥근 천창 너머 자기 접시). 해치 = (−2.25, −2.25).</summary>
         private static void BuildSensorArray()
@@ -178,7 +203,13 @@ namespace SpaceStation.Editor
             };
             var orbits = new List<OrbitSpec> { new OrbitSpec("INT_Sensor_Sweep", Vector3.zero, Vector3.up, 60f) };
             Build("Sensor", "MD_SensorArray", OneCellSockets(Socket, new Vector3(-2.25f, 0f, -2.25f)), new Vector3(0f, F, -1.9f), 0f, lights, orbits,
-                showOwnExterior: true);
+                showOwnExterior: true,
+                configure: root => root.AddComponent<InteriorRadar>().Configure(
+                    new Vector3(0f, -0.3685f, 0f), 0.8f,                         // sensor_builder ANCHORS 레이더 표시대 윗면
+                    Child(root, "INT_Sensor_Sweep")?.GetComponent<InteriorOrbit>(),
+                    Child(root, "INT_Sensor_Beacon")?.GetComponent<Renderer>(),
+                    new Vector3(-2.4228f, -0.0425f, 2.7905f), new Vector3(0.6917f, 0.2079f, -0.6917f), new Vector3(-0.147f, 0.9781f, 0.147f),
+                    new Vector2(0.48f, 0.3f)));
         }
 
         /// <summary>12-5 검역소: 격리 병동 (가운데 팔각 유리 격리실 + 소독 에어록, 구석 방호복 사물함 · 검체 분석대 · 폐기물). 해치 = (−2.25, −2.25).</summary>
@@ -200,7 +231,17 @@ namespace SpaceStation.Editor
                 lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, z), 5f, 1.8f, warm));
             foreach (float x in new[] { -2.3f, 2.3f })   // 배양액 빛
                 lights.Add(LightSpec.Point(new Vector3(x, F + 1.2f, 1.6f), 2.5f, 0.7f, new Color(1f, 0.72f, 0.38f)));
-            Build("Protein", "MD_ProteinVat", OneCellSockets(Socket, new Vector3(-2.25f, 0f, -2.25f), pz: false), new Vector3(0f, F, -2.0f), 0f, lights);
+            Build("Protein", "MD_ProteinVat", OneCellSockets(Socket, new Vector3(-2.25f, 0f, -2.25f), pz: false), new Vector3(0f, F, -2.0f), 0f, lights,
+                configure: root => root.AddComponent<InteriorConveyor>().Configure(   // protein_builder ANCHORS
+                    Child(root, "INT_Protein_Bar"), Child(root, "INT_Protein_Press"), Child(root, "INT_Protein_CrateLid"),
+                    new Vector3(0f, -0.45f, 2.35f), new Vector3(0f, -0.45f, 1.0f), new Vector3(0f, -1.24f, 0.67f), 2.18f, 0.03f,
+                    new[]
+                    {
+                        new Vector4(-0.211f, -1.235f, 0.536f, 10.6f), new Vector4(-0.026f, -1.235f, 0.551f, -9.4f), new Vector4(0.173f, -1.235f, 0.55f, -32.4f),
+                        new Vector4(-0.204f, -1.235f, 0.733f, -28.7f), new Vector4(-0.005f, -1.235f, 0.763f, -26.3f), new Vector4(-0.117f, -1.195f, 0.605f, 31.3f),
+                        new Vector4(0.105f, -1.195f, 0.596f, 33.3f), new Vector4(-0.127f, -1.195f, 0.784f, -14.7f), new Vector4(0.079f, -1.195f, 0.755f, -13.4f),
+                    },
+                    new Vector3(-0.345f, -0.98f, 0.675f), new Vector3(0f, 0f, 1f), -100f));
         }
 
         /// <summary>12-5 물 추출기: 얼음 → 물 공정 (깔때기 · 녹이는 드럼 → 응축탑 → 정수 필터 → 물탱크, 천장 둘레 배관) + 동물 주민용 정수기.</summary>
@@ -235,7 +276,19 @@ namespace SpaceStation.Editor
                 new OrbitSpec("INT_DataCenter_FanA", new Vector3(0f, fanY, 0.96f), Vector3.up, 300f),
                 new OrbitSpec("INT_DataCenter_FanB", new Vector3(8f, fanY, 0.96f), Vector3.up, 300f),
             };
-            Build("DataCenter", "MD_DataCenter", TwoCellSockets(new Vector3(0f, 0f, -0.8f)), new Vector3(-2.2f, F, 0f), 90f, lights, orbits);
+            Build("DataCenter", "MD_DataCenter", TwoCellSockets(new Vector3(0f, 0f, -0.8f)), new Vector3(-2.2f, F, 0f), 90f, lights, orbits,
+                configure: root => root.AddComponent<InteriorServerLights>().Configure(   // dc_builder ANCHORS (벽 상황판 · 오른쪽 모니터)
+                    new[]
+                    {
+                        Child(root, "INT_DataCenter_LedA")?.GetComponent<Renderer>(),
+                        Child(root, "INT_DataCenter_LedB")?.GetComponent<Renderer>(),
+                        Child(root, "INT_DataCenter_LedC")?.GetComponent<Renderer>(),
+                    },
+                    new InteriorServerLights.Panel { Center = new Vector3(-2.5f, 0.445f, -3.142f), Normal = Vector3.forward, Up = Vector3.up, Width = 0.9f, Height = 0.46f },
+                    new InteriorServerLights.Panel
+                    {
+                        Center = new Vector3(-2.2839f, -0.31f, -2.9445f), Normal = new Vector3(-0.2419f, 0f, 0.9703f), Up = Vector3.up, Width = 0.38f, Height = 0.21f,
+                    }));
         }
 
         /// <summary>12-5 상업 구역 (2칸): 실내 상점가 (양쪽 가게 4칸씩 · 줄무늬 차양), 가운데 유리 피라미드 아트리움 아래 화단(나무 = 따로 놓는 소품) · 둥근 벤치.</summary>
@@ -1083,7 +1136,8 @@ namespace SpaceStation.Editor
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
-            List<LightSpec> lights, List<OrbitSpec> orbits = null, Dictionary<string, Vector3> sunTilts = null, bool showOwnExterior = false)
+            List<LightSpec> lights, List<OrbitSpec> orbits = null, Dictionary<string, Vector3> sunTilts = null, bool showOwnExterior = false,
+            System.Action<GameObject> configure = null)
         {
             string modelPath = ModelFolder + "SM_Interior_" + name + ".fbx";
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
@@ -1217,6 +1271,8 @@ namespace SpaceStation.Editor
                     light.innerSpotAngle = spec.SpotAngle * 0.6f;
                 }
             }
+
+            configure?.Invoke(root); // 12-5 실행 중 표시 컴포넌트 (허브 안내 · 레이더 · 컨베이어 · 서버 표시등)
 
             System.IO.Directory.CreateDirectory(PrefabFolder);
             string prefabPath = PrefabFolder + "PF_Interior_" + name + ".prefab";
