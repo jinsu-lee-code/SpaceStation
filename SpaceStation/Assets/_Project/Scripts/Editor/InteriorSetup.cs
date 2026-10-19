@@ -1,4 +1,4 @@
-﻿using SpaceStation.Building;
+using SpaceStation.Building;
 using SpaceStation.Core;
 using SpaceStation.Interior;
 using SpaceStation.UI;
@@ -276,6 +276,9 @@ namespace SpaceStation.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// <summary>화면 재질 광택. 0.85는 방 천장 조명이 화면 위에 작고 강한 하얀 반사점(블룸)으로 비쳤음 (2026-10-19, 허브 키오스크 · 센서 레이더) → 0.55</summary>
+        private const float ScreenSmoothness = 0.55f;
+
         internal static void CreateMaterials()
         {
             System.IO.Directory.CreateDirectory(MaterialFolder);
@@ -384,8 +387,8 @@ namespace SpaceStation.Editor
             // 11-6 제련소 쇳물·갓 부은 주괴. 첫 값(발광 ×2.6, 녹색 0.38)은 블룸에 노랗게 날아가 버터처럼 보였음 → 붉은 주황으로 낮춤
             Emissive(MoltenPath, new Color(0.9f, 0.25f, 0.04f), new Color(1f, 0.19f, 0.015f) * 1.6f, 0.3f);
             // 11-6 화면 바탕(어두운 남색, 약한 발광) + 격자 줄(흐린 청록) — 그 위에 밝은 Screen 요소로 화면 구성
-            Emissive(ScreenDarkPath, new Color(0.02f, 0.05f, 0.08f), new Color(0.015f, 0.07f, 0.11f), 0.85f);
-            Emissive(ScreenGridPath, new Color(0.04f, 0.15f, 0.2f), new Color(0.04f, 0.2f, 0.26f) * 1.2f, 0.85f);
+            Emissive(ScreenDarkPath, new Color(0.02f, 0.05f, 0.08f), new Color(0.015f, 0.07f, 0.11f), ScreenSmoothness);
+            Emissive(ScreenGridPath, new Color(0.04f, 0.15f, 0.2f), new Color(0.04f, 0.2f, 0.26f) * 1.2f, ScreenSmoothness);
             // 11-6 핵융합로 플라스마 관찰창 (분홍 보랏빛 — 외부 M_FusionPlasma와 같은 계열)
             Emissive(PlasmaPath, new Color(0.75f, 0.35f, 0.95f), new Color(0.8f, 0.3f, 1f) * 1.5f, 0.3f);
             // 11-7 실드 방출기 코어·에너지 빔 (밝은 하늘색)
@@ -413,7 +416,7 @@ namespace SpaceStation.Editor
             Plain(FishPath, new Color(0.52f, 0.6f, 0.68f), 0.55f, 0.7f);
             Plain(IcePath, new Color(0.82f, 0.9f, 0.96f), 0f, 0.85f);
             Plain(AquaPath, new Color(0.4f, 0.7f, 0.92f), 0f, 0.9f);
-            Emissive(ScreenPath, new Color(0.05f, 0.18f, 0.22f), new Color(0.1f, 0.55f, 0.7f) * 1.8f, 0.85f);
+            Emissive(ScreenPath, new Color(0.05f, 0.18f, 0.22f), new Color(0.1f, 0.55f, 0.7f) * 1.8f, ScreenSmoothness);
 
             // 11-4 템플릿 창 유리: 반투명, 살짝 푸른 반사
             var glass = LoadOrCreate(MaterialFolder + "/M_InteriorGlass.mat", lit);
