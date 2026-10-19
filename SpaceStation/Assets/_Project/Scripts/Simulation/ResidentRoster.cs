@@ -17,6 +17,8 @@ namespace SpaceStation.Simulation
         public ModuleInstance Home { get; internal set; }
         /// <summary>플레이어가 직접 옮긴 주민: 집이 없어지기 전까지 자동 재배치하지 않음.</summary>
         public bool Pinned { get; internal set; }
+        /// <summary>13-3 공통 고리: 주민 종류 (서사판 종족 Id = 동물 모델 Id, 빈 문자열 = 정하지 않음 → 외형은 번호로).</summary>
+        public string Kind { get; internal set; } = "";
 
         internal Resident(int id, string name, IEnumerable<ResidentTrait> traits)
         {
@@ -97,11 +99,53 @@ namespace SpaceStation.Simulation
             return n;
         }
 
-        /// <summary>능력 특성의 정거장 전체 효과 (비율, 상한 적용). 예: 기술자 3명 → 0.12.</summary>
+        /// <summary>
+        /// 능력 특성의 정거장 전체 효과 (비율, 상한 적용). 예: 기술자 3명 → 0.12.
+        /// 13-3: 종류 효과(<see cref="KindAbility"/>)가 있으면 더한 뒤 합산 상한(<see cref="AbilityCap"/>).
+        /// </summary>
         public float Ability(ResidentTrait trait)
         {
             var def = _config.Get(trait);
+            float own = def != null ? def.ClampTotal(CountWith(trait) * def.PerResident) : 0f;
+            if (KindAbility == null)
+                return own;
+            return Math.Min(own + KindAbility(trait), AbilityCap);
+        }
+
+        /// <summary>개인 특성만의 효과 (주민 정보에 "종류 + 개인" 나눠 보이기).</summary>
+        public float TraitAbility(ResidentTrait trait)
+        {
+            var def = _config.Get(trait);
             return def != null ? def.ClampTotal(CountWith(trait) * def.PerResident) : 0f;
+        }
+
+        // ---------------- 13-3 공통 고리: 주민 종류 ----------------
+
+        /// <summary>새 주민의 종류 (자연 증가 등, null = 빈 문자열). 대기열(<see cref="QueueKinds"/>)이 먼저.</summary>
+        public Func<string> KindPicker { get; set; }
+
+        /// <summary>종류가 주는 능력 효과 (특성 통로로 더함, null = 없음). 서사판 종족 기술값.</summary>
+        public Func<ResidentTrait, float> KindAbility { get; set; }
+
+        /// <summary>종류 + 개인 특성 합산 상한 (<see cref="KindAbility"/>가 있을 때만).</summary>
+        public float AbilityCap { get; set; } = float.MaxValue;
+
+        private readonly Queue<string> _pendingKinds = new Queue<string>();
+
+        /// <summary>다음에 도착하는 주민 n명의 종류 (이민선). 이번 인원 맞추기에서 다 쓰이지 않으면 버림.</summary>
+        public void QueueKinds(string kind, int count)
+        {
+            for (int i = 0; i < count; i++)
+                _pendingKinds.Enqueue(kind ?? "");
+        }
+
+        public int CountKind(string kind)
+        {
+            int n = 0;
+            foreach (var r in _residents)
+                if (r.Kind == kind)
+                    n++;
+            return n;
         }
 
         /// <summary>만족도 상한 보정 합계 (특성별 상한을 적용한 뒤 더함).</summary>
@@ -234,11 +278,13 @@ namespace SpaceStation.Simulation
             while (_residents.Count < population)
             {
                 var r = CreateResident();
+                r.Kind = _pendingKinds.Count > 0 ? _pendingKinds.Dequeue() : KindPicker?.Invoke() ?? "";
                 _residents.Add(r);
                 AssignHome(r);
                 Arrived?.Invoke(r, reason);
                 changed = true;
             }
+            _pendingKinds.Clear();
             RecountOccupants();
             RecalculateMood();
             if (changed)
@@ -619,7 +665,7 @@ namespace SpaceStation.Simulation
             result.Clear();
             foreach (var r in _residents)
             {
-                var s = new ResidentState { Id = r.Id, Name = r.Name, Home = r.Home != null ? moduleIndex(r.Home) : -1, Pinned = r.Pinned };
+                var s = new ResidentState { Id = r.Id, Name = r.Name, Home = r.Home != null ? moduleIndex(r.Home) : -1, Pinned = r.Pinned, Kind = r.Kind };
                 foreach (var t in r.Traits)
                     s.Traits.Add(t.ToString());
                 result.Add(s);
@@ -639,7 +685,7 @@ namespace SpaceStation.Simulation
                 foreach (var name in s.Traits)
                     if (Enum.TryParse(name, out ResidentTrait t))
                         traits.Add(t);
-                var r = new Resident(s.Id, s.Name, traits) { Home = s.Home != -1 ? moduleAt(s.Home) : null, Pinned = s.Pinned };
+                var r = new Resident(s.Id, s.Name, traits) { Home = s.Home != -1 ? moduleAt(s.Home) : null, Pinned = s.Pinned, Kind = s.Kind ?? "" };
                 _residents.Add(r);
                 _usedNames.Add(r.Name);
                 _nextId = Math.Max(_nextId, s.Id + 1);
@@ -656,5 +702,7 @@ namespace SpaceStation.Simulation
         /// <summary>StationState.Modules 순번, 코어 = -2, 집 없음 = -1.</summary>
         public int Home = -1;
         public bool Pinned;
+        /// <summary>13-3 주민 종류 (없으면 빈 문자열).</summary>
+        public string Kind = "";
     }
 }

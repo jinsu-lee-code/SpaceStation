@@ -50,7 +50,7 @@ namespace SpaceStation.Simulation
             float mood = _sim.Residents != null ? _sim.Residents.MoodTotal : 0f;
             float policy = _sim.Effects.Policy(PolicyStat.SatisfactionCap); // 12-3c 정책 · 사회 위기
             _sim.Population.SatisfactionCap = Math.Max(0f, Math.Min(PopulationSimulation.MaxSatisfaction, _sim.Needs.SatisfactionCap + mood + policy));
-            _sim.Population.GrowthIntervalMultiplier = GrowthIntervalMultiplier() * _sim.Effects.Policy(PolicyStat.GrowthInterval);
+            _sim.Population.GrowthIntervalMultiplier = GrowthIntervalMultiplier() * _sim.Effects.Policy(PolicyStat.GrowthInterval) * _sim.GrowthIntervalScale;
         }
 
         /// <summary>

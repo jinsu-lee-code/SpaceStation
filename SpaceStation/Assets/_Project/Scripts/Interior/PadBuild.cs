@@ -159,7 +159,7 @@ namespace SpaceStation.Interior
         {
             var progression = _station.Simulation != null ? _station.Simulation.Progression : null;
             if (progression != null) // 13-6a 바깥 건설 메뉴와 같게: 열린 것만 · 등급 → 가격 순
-                BuildCategories.Filter(_modules, _category, _categoryModules, progression.IsRevealed, progression.GetUnlockGrade);
+                BuildCategories.Filter(_modules, _category, _categoryModules, progression.IsRevealed, progression.UnlockOrder);
             else
                 BuildCategories.Filter(_modules, _category, _categoryModules);
             foreach (var (category, button) in _tabs)

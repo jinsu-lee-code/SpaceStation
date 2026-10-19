@@ -64,6 +64,27 @@ namespace SpaceStation.Tests
             Assert.IsTrue(c.IsDay(5f));
         }
 
+        [Test]
+        public void Cycle_OverrideNight_LongNightThenDawn()
+        {
+            // 13-4 공통 고리: 덮은 밤(100 ~ 280) → 끝났을 때 원래 주기가 아직 밤이면 원래 새벽(300)까지 낮으로 덮음
+            var c = new DayNightCycle(300f, 180f, 10f, 0f);
+            c.OverrideNight(100f, 180f);
+            Assert.IsTrue(c.IsDay(99f));
+            Assert.AreEqual(0.5f, c.SolarMultiplier(105f), Eps, "덮은 해질녘 중간");
+            Assert.IsFalse(c.IsDay(150f));
+            Assert.AreEqual(0f, c.SolarMultiplier(150f), Eps);
+            Assert.AreEqual(130f, c.TimeUntilPhaseChange(150f), Eps);
+            Assert.AreEqual(0.5f, c.SolarMultiplier(275f), Eps, "덮은 새벽 중간");
+            Assert.IsTrue(c.IsDay(285f), "원래 밤이 남아도 낮");
+            Assert.AreEqual(1f, c.SolarMultiplier(285f), Eps);
+            Assert.AreEqual(15f + 180f, c.TimeUntilPhaseChange(285f), Eps, "원래 새벽 뒤 낮 180초");
+            Assert.IsTrue(c.IsDay(310f));
+            Assert.IsFalse(c.IsDay(500f), "그 뒤는 원래 주기");
+            c.ClearOverride();
+            Assert.IsTrue(c.IsDay(150f));
+        }
+
         // ---- 태양광 배율 ----
 
         [Test]

@@ -37,11 +37,16 @@ namespace SpaceStation.UI
         private UiTween _tween;
         private HoloFx _fx;
         private ResearchView _view;
+        private RectTransform _content;
+        private float _fitHeight;
         private TMP_Text _tracker;
         private bool _open;
         private float _nextRefresh;
 
         public bool IsOpen => _open;
+
+        /// <summary>메뉴 · 창 이름 (M-19 판 고리가 정함, 없으면 "연구").</summary>
+        private string Title => _sim?.Research.Gate?.Title ?? "연구";
 
         private void Start()
         {
@@ -101,6 +106,8 @@ namespace SpaceStation.UI
         {
             if (!TutorialGate.Check(TutorialAction.Research)) // 11-18 튜토리얼 중엔 막음
                 return;
+            if (!_sim.Research.IsOpen) // M-19 판 고리가 닫음 (서사판: 2장부터) — 단축키로도 열지 않음
+                return;
             HudWindows.NotifyOpened(this); // 다른 창(연구 ↔ 주민)은 닫힘
             _open = true;
             _group.blocksRaycasts = true;
@@ -147,8 +154,9 @@ namespace SpaceStation.UI
             var root = (RectTransform)transform;
             HudLauncher.For(_ui, root).Add(new HudLauncher.Entry
             {
-                Key = "research", Order = HudLauncher.Order.Research, Name = "연구",
+                Key = "research", Order = HudLauncher.Order.Research, Name = Title, // M-19 판 고리: 이름 · 열림 (없으면 "연구" · 늘 열림)
                 KeyLabel = () => KeyBindings.Label(GameAction.Research), IsOpen = () => _open, Click = Toggle,
+                Visible = () => _sim.Research.IsOpen,
             });
             _tracker = _ui.Label(root, "", 15f, TextAlignmentOptions.TopLeft);
             HoloUi.Place(_tracker.rectTransform, new Vector2(28f, -76f), new Vector2(420f, 120f));
@@ -165,18 +173,15 @@ namespace SpaceStation.UI
             _group.interactable = false;
 
             // 내용 (패드 연구 탭과 같은 구성, 배율만 크게) — 높이를 알아야 창 크기가 정해지므로 먼저 만든다
-            var content = HoloUi.Rect("Content", _window);
-            content.localScale = new Vector3(ContentScale, ContentScale, 1f);
-            _view = new ResearchView(_ui, content, ContentWidth, _sim, top: 0f, linked: true);
-            const float head = 96f, foot = 92f, side = 33f;
-            var size = new Vector2(ContentWidth * ContentScale + side * 2f, head + _view.Height * ContentScale + foot);
-            _window.sizeDelta = size;
-            HoloUi.Place(content, new Vector2(side, -head), new Vector2(ContentWidth, _view.Height));
-            content.SetAsLastSibling();
+            _content = HoloUi.Rect("Content", _window);
+            _content.localScale = new Vector3(ContentScale, ContentScale, 1f);
+            _view = new ResearchView(_ui, _content, ContentWidth, _sim, top: 0f, linked: true);
+            FitHeight();
+            _content.SetAsLastSibling();
             _fx = _ui.Window(_window.gameObject, new Color(0.03f, 0.07f, 0.11f, 0.96f), "RESEARCH");
-            content.SetAsLastSibling(); // 창 테두리 · 장식보다 위
+            _content.SetAsLastSibling(); // 창 테두리 · 장식보다 위
 
-            var title = _ui.Label(_window, $"{HudTheme.Icon("research")} 연구", 32f, TextAlignmentOptions.TopLeft);
+            var title = _ui.Label(_window, $"{HudTheme.Icon("research")} {Title}", 32f, TextAlignmentOptions.TopLeft);
             title.fontStyle = FontStyles.Bold;
             HoloUi.Place(title.rectTransform, new Vector2(40f, -30f), new Vector2(500f, 46f));
             HoloUi.Glow(title, 0.5f);
@@ -195,12 +200,26 @@ namespace SpaceStation.UI
             _tween = new UiTween(_window, _group, new Vector2(0f, -24f), 0.2f, 0.15f, glitch: true);
         }
 
+        /// <summary>창 높이를 내용에 맞춤 (M-21: 연계 연구 칸이 숨거나 나타나면 다시 맞춤).</summary>
+        private void FitHeight()
+        {
+            const float head = 96f, foot = 92f, side = 33f;
+            _fitHeight = _view.Height;
+            _window.sizeDelta = new Vector2(ContentWidth * ContentScale + side * 2f, head + _fitHeight * ContentScale + foot);
+            HoloUi.Place(_content, new Vector2(side, -head), new Vector2(ContentWidth, _fitHeight));
+            HoloUi.RefitDecor(_window);
+        }
+
         // ---------------- 표시 ----------------
 
         private void Refresh()
         {
             if (_open)
+            {
+                if (!Mathf.Approximately(_view.Height, _fitHeight))
+                    FitHeight();
                 _view.Refresh();
+            }
             RefreshTracker();
         }
 
@@ -215,7 +234,7 @@ namespace SpaceStation.UI
             int linked = ex != null ? ex.LinkedProjects.Count : 0;
             if (research.Projects.Count == 0 && linked == 0)
             {
-                _tracker.SetText(research.LabSlots > 0 ? $"<color={HudText.Muted}>진행 중인 연구 없음</color>" : "");
+                _tracker.SetText(research.LabSlots > 0 && research.IsOpen ? $"<color={HudText.Muted}>진행 중인 {Title} 없음</color>" : "");
                 return;
             }
             var sb = new System.Text.StringBuilder();

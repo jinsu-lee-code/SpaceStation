@@ -52,12 +52,18 @@ namespace SpaceStation.Simulation
         public float TimeLeft => _timer;
         /// <summary>지금까지 떨어진 파 수.</summary>
         public int WavesDone { get; private set; }
-        public int Waves => IsRaid ? _raidWaves : Sim.Balance.ShowerWaves;
-        /// <summary>12-3c 지구급 습격 포격 (방문 세력, <see cref="ContactSystem"/>) — 판정 · 표시는 유성우와 같고 이름만 다름.</summary>
+        public int Waves => IsRaid ? _raidWaves : _currentWaves > 0 ? _currentWaves : Sim.Balance.ShowerWaves;
+        /// <summary>
+        /// 12-3c 지구급 습격 포격 (방문 세력, <see cref="ContactSystem"/>) — 판정 · 표시는 유성우와 같고 이름만 다름.
+        /// M-20: 판이 부르는 특별 유성우(서사판 장 절정)도 같은 틀 (<see cref="BeginRaid"/>의 label) — 평소 유성우 시계를 건드리지 않음.
+        /// </summary>
         public bool IsRaid { get; private set; }
-        /// <summary>화면에 쓰는 이름 ("유성우" / "포격").</summary>
-        public string Label => IsRaid ? "포격" : "유성우";
+        /// <summary>화면에 쓰는 이름 ("유성우" / "포격" / 특별 유성우 이름).</summary>
+        public string Label => IsRaid ? _raidLabel : "유성우";
         private int _raidWaves;
+        private string _raidLabel = "포격";
+        /// <summary>M-20: 이번 평소 유성우의 파 수 (0 = 밸런스 값), 다음 한 번만 쓸 파 수 (<see cref="ScheduleNext"/>).</summary>
+        private int _currentWaves, _nextWaves;
         private float _resumeTimer;
         /// <summary>이번 유성우 한 파의 운석 수.</summary>
         public int HitsPerWave { get; private set; }
@@ -150,41 +156,89 @@ namespace SpaceStation.Simulation
         /// </summary>
         public void BeginWarning(float warningSeconds)
         {
-            Direction = Directions[Math.Min(Directions.Length - 1, (int)(_random01() * Directions.Length))];
+            Direction = PickDirection(Vector3Int.zero);
             var grade = Sim.EventScale; // 13-2 규모를 정하는 쪽이 있으면 그쪽
             int span = grade.MeteorHitsMax - grade.MeteorHitsMin + 1;
             int hits = grade.MeteorHitsMin + Math.Min(span - 1, (int)(_random01() * span));
             float multiplier = HitsMultiplier != null ? HitsMultiplier() : Sim.Balance.ShowerHitsMultiplier; // 13-2 규모를 정하는 쪽이 있으면 그쪽
-            HitsPerWave = Math.Max(1, (int)Math.Ceiling(hits * multiplier / Sim.Balance.ShowerWaves));
+            HitsPerWave = Math.Max(1, (int)Math.Ceiling(hits * multiplier / Sim.Balance.ShowerWaves)); // 파당 크기는 늘 보통 파 수 기준
+            _currentWaves = _nextWaves; // M-20: 앞당긴 한 번만 다른 파 수
+            _nextWaves = 0;
             WavesDone = 0;
             Phase = ShowerPhase.Warning;
             _timer = Math.Max(0.01f, warningSeconds);
             _facingDirty = true;
-            Sim.Report($"유성우 예보: {DirectionName(Direction)}에서 {_timer:0}초 뒤 {Sim.Balance.ShowerWaves}파 · 붉은 면이 맞습니다 (가리거나 실드 · 포탑으로 보강)", false);
+            Sim.Report($"유성우 예보: {DirectionName(Direction)}에서 {_timer:0}초 뒤 {Waves}파 · 붉은 면이 맞습니다 (가리거나 실드 · 포탑으로 보강)", false);
             Changed?.Invoke();
         }
 
         /// <summary>
         /// 12-3c 지구급 습격 포격: 유성우와 같은 예보 · 앞면 판정으로 <paramref name="waves"/>파 × <paramref name="hitsPerWave"/>발.
         /// 유성우가 진행 중이면 시작하지 않음 (false — 동시에 일어나지 않게 부르는 쪽이 다시 시도).
+        /// M-20: <paramref name="label"/> = 화면 이름(서사판 절정 "큰 유성우" 등), <paramref name="avoid"/> = 이 방향은 고르지 않음 (0이면 아무 방향).
         /// </summary>
-        public bool BeginRaid(float warningSeconds, int waves, int hitsPerWave, string source)
+        public bool BeginRaid(float warningSeconds, int waves, int hitsPerWave, string source, string label = "포격", Vector3Int avoid = default)
         {
             if (Active)
                 return false;
             _resumeTimer = _armed ? _timer : NextInterval();
             _armed = true;
             IsRaid = true;
+            _raidLabel = string.IsNullOrEmpty(label) ? "포격" : label;
             _raidWaves = Math.Max(1, waves);
-            Direction = Directions[Math.Min(Directions.Length - 1, (int)(_random01() * Directions.Length))];
+            Direction = PickDirection(avoid);
             HitsPerWave = Math.Max(1, hitsPerWave);
             WavesDone = 0;
             Phase = ShowerPhase.Warning;
             _timer = Math.Max(0.01f, warningSeconds + Sim.SensorWarningBonus); // 12-5 센서 어레이
             _facingDirty = true;
-            Sim.Report($"{source} 포격 예보: {DirectionName(Direction)}에서 {_timer:0}초 뒤 {_raidWaves}파 · 붉은 면이 맞습니다 (가리거나 실드 · 포탑으로 보강)", false);
+            string from = string.IsNullOrEmpty(source) ? "" : source + " ";
+            Sim.Report($"{from}{_raidLabel} 예보: {DirectionName(Direction)}에서 {_timer:0}초 뒤 {_raidWaves}파 · 붉은 면이 맞습니다 (가리거나 실드 · 포탑으로 보강)", false);
             Changed?.Invoke();
             return true;
+        }
+
+        /// <summary>
+        /// M-20 판 규칙 (서사판 2장 첫 유성우): 다음 평소 유성우를 <paramref name="seconds"/> 뒤로 맞추고, <paramref name="waves"/> &gt; 0이면 그 한 번만 파 수를 바꿈.
+        /// 유성우 · 포격이 진행 중이면 false. 규칙이 아직 닫혀 있으면 시계가 멈춰 있다가 열린 뒤 남은 시간부터.
+        /// </summary>
+        public bool ScheduleNext(float seconds, int waves = 0)
+        {
+            if (Active)
+                return false;
+            _armed = true;
+            _timer = Math.Max(0.01f, seconds);
+            _nextWaves = Math.Max(0, waves);
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>M-20 판 규칙: 예보 중인 평소 유성우를 거둠 (서사판 장 절정이 대신 옴). 다음 평소 유성우는 보통 간격 뒤. 포격 · 낙하 중이면 false.</summary>
+        public bool CancelWarning()
+        {
+            if (Phase != ShowerPhase.Warning || IsRaid)
+                return false;
+            Phase = ShowerPhase.Idle;
+            _currentWaves = 0;
+            _timer = NextInterval();
+            _facingDirty = true;
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>6방향 중 하나 (avoid는 빼고). avoid가 0이면 예전과 같은 난수 사용 (결과가 바뀌지 않음).</summary>
+        private Vector3Int PickDirection(Vector3Int avoid)
+        {
+            int n = Array.IndexOf(Directions, avoid) >= 0 ? Directions.Length - 1 : Directions.Length;
+            int pick = Math.Min(n - 1, (int)(_random01() * n));
+            foreach (var d in Directions)
+            {
+                if (d == avoid)
+                    continue;
+                if (pick-- == 0)
+                    return d;
+            }
+            return Directions[0];
         }
 
         private void FireDueWaves()
@@ -199,12 +253,14 @@ namespace SpaceStation.Simulation
                     _facingDirty = true;
                     if (IsRaid)
                     {
+                        string label = Label;
                         IsRaid = false;
                         _timer = _resumeTimer; // 포격은 유성우 시계를 건드리지 않음
-                        Sim.Report("포격이 끝났습니다", true);
+                        Sim.Report($"{label}{(HasFinalConsonant(label) ? "이" : "가")} 끝났습니다", true);
                     }
                     else
                     {
+                        _currentWaves = 0;
                         _timer = NextInterval();
                         Sim.Report("유성우가 지나갔습니다", true);
                     }
@@ -255,6 +311,15 @@ namespace SpaceStation.Simulation
 
         private float NextInterval()
             => Sim.Balance.ShowerIntervalMin + _random01() * (Sim.Balance.ShowerIntervalMax - Sim.Balance.ShowerIntervalMin);
+
+        /// <summary>한글 마지막 글자에 받침이 있는지 (조사 이/가).</summary>
+        private static bool HasFinalConsonant(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return false;
+            char c = text[text.Length - 1];
+            return c >= '가' && c <= '힣' && (c - '가') % 28 != 0;
+        }
 
         // ---------------- 앞면 판정 ----------------
 
@@ -348,6 +413,9 @@ namespace SpaceStation.Simulation
             public bool Raid;
             public int RaidWaves;
             public float ResumeTimer;
+            public string RaidLabel;
+            public int CurrentWaves;
+            public int NextWaves;
         }
 
         public override string Capture(Func<ModuleInstance, int> indexOf)
@@ -358,6 +426,7 @@ namespace SpaceStation.Simulation
             {
                 Armed = _armed, Phase = (int)Phase, Direction = Direction, Timer = _timer, WavesDone = WavesDone, HitsPerWave = HitsPerWave,
                 Raid = IsRaid, RaidWaves = _raidWaves, ResumeTimer = _resumeTimer,
+                RaidLabel = _raidLabel, CurrentWaves = _currentWaves, NextWaves = _nextWaves,
             });
         }
 
@@ -377,6 +446,9 @@ namespace SpaceStation.Simulation
             IsRaid = s.Raid && Phase != ShowerPhase.Idle;
             _raidWaves = s.RaidWaves;
             _resumeTimer = s.ResumeTimer;
+            _raidLabel = string.IsNullOrEmpty(s.RaidLabel) ? "포격" : s.RaidLabel;
+            _currentWaves = Math.Max(0, s.CurrentWaves);
+            _nextWaves = Math.Max(0, s.NextWaves);
             _facingDirty = true;
         }
     }

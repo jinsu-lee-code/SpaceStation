@@ -25,17 +25,26 @@ namespace SpaceStation.UI
             return $"<color={(def == null || def.Positive ? Good : Bad)}>{name}</color>";
         }
 
-        /// <summary>"기술자·낙천가" (색 포함).</summary>
+        /// <summary>13-3 공통 고리: 주민 종류 표시 (예: "토끼", null = 표시 없음). 서사판 종족이 정함 — 특성 앞에 "종류 | 개인"으로.</summary>
+        public static System.Func<Resident, string> KindTag;
+
+        /// <summary>"기술자·낙천가" (색 포함). 종류 표시가 있으면 "토끼 | 기술자·낙천가".</summary>
         public static string Traits(ResidentConfig config, Resident r)
         {
             var sb = new StringBuilder();
+            string kind = KindTag?.Invoke(r);
+            if (!string.IsNullOrEmpty(kind))
+                sb.Append("<color=#E8D9B5>").Append(kind).Append("</color><color=#9AA4B2> | </color>");
+            int head = sb.Length;
             foreach (var t in r.Traits)
             {
-                if (sb.Length > 0)
+                if (sb.Length > head)
                     sb.Append("<color=#9AA4B2>·</color>");
                 sb.Append(TraitName(config, t));
             }
-            return sb.Length > 0 ? sb.ToString() : $"<color={HudText.Muted}>특성 없음</color>";
+            if (sb.Length == head)
+                sb.Append($"<color={HudText.Muted}>특성 없음</color>");
+            return sb.ToString();
         }
 
         public static string Reason(PopulationChangeReason? reason)

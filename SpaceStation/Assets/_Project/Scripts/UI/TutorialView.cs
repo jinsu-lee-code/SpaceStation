@@ -54,6 +54,7 @@ namespace SpaceStation.UI
         private ResearchPanel _research;
         private StationSimulation _sim;
         private TutorialRunner _runner;
+        private TutorialRunner _watched;
 
         private RectTransform _card;
         private CanvasGroup _group;
@@ -91,8 +92,7 @@ namespace SpaceStation.UI
         private void Start()
         {
             _sim = _station != null ? _station.Simulation : null;
-            _runner = _sim?.Tutorial;
-            if (_runner == null || !_runner.Active)
+            if (_sim == null)
             {
                 gameObject.SetActive(false);
                 return;
@@ -102,15 +102,38 @@ namespace SpaceStation.UI
             BuildCard();
             _frameA = CreateHighlight("HighlightA");
             _frameB = CreateHighlight("HighlightB");
+            _tween.HideNow();
+            Bind(_sim.Tutorial);
+        }
+
+        /// <summary>
+        /// 진행 중인 튜토리얼에 카드를 붙임. 13-4: 처음에 없었거나 끝난 뒤 새 튜토리얼(서사판 내부 안내 등)이 시작되면 그것에 다시 붙는다
+        /// (<see cref="_watched"/>로 매 프레임 확인). 진행 중이 아니면 이전 카드(완료 카드)를 그대로 둔다.
+        /// </summary>
+        private void Bind(TutorialRunner runner)
+        {
+            _watched = runner;
+            if (runner == null || !runner.Active)
+                return;
+            Unbind();
+            _runner = runner;
             _runner.StepCompleted += HandleStepCompleted;
             _runner.StepChanged += HandleStepChanged;
             _runner.Supplied += HandleSupplied;
             _runner.Finished += HandleFinished;
+            _finished = false;
+            _flashUntil = _supplyUntil = _skipConfirmUntil = -1f;
+            _skipLabel.SetText("건너뛰기");
+            _cameraSampled = false;
+            _rotated = _zoomed = _moved = 0f;
+            _checklist.gameObject.SetActive(true);
+            _skipButton.gameObject.SetActive(true);
+            _closeButton.gameObject.SetActive(false);
             _tween.Play(restart: true);
             Refresh();
         }
 
-        private void OnDestroy()
+        private void Unbind()
         {
             if (_runner == null)
                 return;
@@ -118,7 +141,10 @@ namespace SpaceStation.UI
             _runner.StepChanged -= HandleStepChanged;
             _runner.Supplied -= HandleSupplied;
             _runner.Finished -= HandleFinished;
+            _runner = null;
         }
+
+        private void OnDestroy() => Unbind();
 
         // ---------------- 만들기 ----------------
 
@@ -189,7 +215,11 @@ namespace SpaceStation.UI
         {
             if (_tween == null)
                 return;
+            if (_sim.Tutorial != _watched)
+                Bind(_sim.Tutorial);
             _tween.Update();
+            if (_runner == null)
+                return;
             if (_sim.Session.IsGameOver)
             {
                 HideHighlights();
@@ -363,7 +393,7 @@ namespace SpaceStation.UI
             var step = _runner.Current;
             if (step == null)
                 return;
-            _header.SetText($"<color={HudTheme.AccentHex}>튜토리얼 {_runner.StepIndex + 1}/{_runner.StepCount}</color>");
+            _header.SetText($"<color={HudTheme.AccentHex}>{_runner.Data.HeaderLabel} {_runner.StepIndex + 1}/{_runner.StepCount}</color>");
             _title.SetText(step.Title);
             _body.SetText(step.Body);
             _checklist.SetText(Checklist(step));
@@ -535,12 +565,21 @@ namespace SpaceStation.UI
                 return;
             }
             AudioService.TryPlay(l => l.EventPositive);
-            _header.SetText($"<color={HudTheme.AccentHex}>튜토리얼 완료</color>");
-            _title.SetText("이제 정거장은 당신의 것입니다");
-            _body.SetText("지금부터 운석·태양 폭풍 같은 무작위 이벤트가 찾아오고, 모듈도 시간이 지나며 낡습니다 (노란 표시가 뜨면 정비).\n" +
-                          "자원 표시가 빨갛게 줄면 생명 유지 모듈을 더 지으세요. 거주자를 늘려 정거장 등급을 올리고, 연구(" + KeyBindings.Label(GameAction.Research) + ")로 새 기술을 여세요.\n" +
-                          $"내부에서는 주민 부탁을 들어주면 만족도가 오르고, 사고를 제때 막지 못하면 손실이 생깁니다 ({KeyBindings.Label(GameAction.EnterInterior)} 들어가기).\n" +
-                          $"<color={HudText.Muted}>목표: 대형 정거장 (오른쪽 위 등급 표시)</color>");
+            var data = _runner.Data;
+            _header.SetText($"<color={HudTheme.AccentHex}>{data.HeaderLabel} 완료</color>");
+            if (!string.IsNullOrEmpty(data.FinishTitle)) // 13-4 판별 완료 문구
+            {
+                _title.SetText(data.FinishTitle);
+                _body.SetText(data.FinishBody ?? "");
+            }
+            else
+            {
+                _title.SetText("이제 정거장은 당신의 것입니다");
+                _body.SetText("지금부터 운석·태양 폭풍 같은 무작위 이벤트가 찾아오고, 모듈도 시간이 지나며 낡습니다 (노란 표시가 뜨면 정비).\n" +
+                              "자원 표시가 빨갛게 줄면 생명 유지 모듈을 더 지으세요. 거주자를 늘려 정거장 등급을 올리고, 연구(" + KeyBindings.Label(GameAction.Research) + ")로 새 기술을 여세요.\n" +
+                              $"내부에서는 주민 부탁을 들어주면 만족도가 오르고, 사고를 제때 막지 못하면 손실이 생깁니다 ({KeyBindings.Label(GameAction.EnterInterior)} 들어가기).\n" +
+                              $"<color={HudText.Muted}>목표: 대형 정거장 (오른쪽 위 등급 표시)</color>");
+            }
             _checklist.gameObject.SetActive(false);
             _status.gameObject.SetActive(false);
             _skipButton.gameObject.SetActive(false);

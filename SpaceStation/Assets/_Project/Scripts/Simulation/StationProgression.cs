@@ -149,6 +149,12 @@ namespace SpaceStation.Simulation
             return -1;
         }
 
+        /// <summary>
+        /// 건설 메뉴 정렬 기준: 이 모듈이 열리는 순서 (작을수록 먼저). 지금은 <see cref="GetUnlockGrade"/>와 같음 —
+        /// 해금을 따로 정하는 판(서사판 장 틀)은 이 한 곳에서 그 순서를 돌려준다.
+        /// </summary>
+        public int UnlockOrder(ModuleData data) => GetUnlockGrade(data);
+
         /// <summary>13-1: 규칙을 정하는 쪽이 붙으면 모듈의 <see cref="ModuleData.RequiredRule"/>도 본다 (null = 등급 해금만).</summary>
         public Func<StationRule, bool> RuleCheck { get; internal set; }
 
