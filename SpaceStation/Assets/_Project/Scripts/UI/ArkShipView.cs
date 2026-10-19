@@ -52,6 +52,8 @@ namespace SpaceStation.UI
         [SerializeField] private float _dockSeconds = 4f;
         [SerializeField] private float _returnSeconds = 1.2f;
         [SerializeField] private float _charsPerSecond = 26f;
+        [Tooltip("독백 동안 고정 시점에서 보는 곳 쪽으로 다가가는 비율 (0 = 그대로, 방향은 바뀌지 않음)")]
+        [Range(0f, 0.7f)] [SerializeField] private float _monologuePush = 0.4f;
 
         private enum Mode { None, Approach, Docked, Leaving }
 
@@ -456,11 +458,23 @@ namespace SpaceStation.UI
             PlaceApproach(1f);
             if (!_skip)
                 AudioService.TryPlay(l => l.BuildSelect);
-            var hold = Quaternion.LookRotation(Vector3.Lerp(_nose, ShipCenter, DockLook) - fixedPos, Vector3.up);
+            var lookAt = Vector3.Lerp(_nose, ShipCenter, DockLook);
+            var hold = Quaternion.LookRotation(lookAt - fixedPos, Vector3.up);
             cam.SetPositionAndRotation(fixedPos, hold);
-            // 3) 코어 독백
+            // 3) 코어 독백 — 그동안 방향은 그대로 둔 채 보는 곳 쪽으로 천천히 다가감 (사용자 요청: 고정 시점이 멀어 배가 작게 보임)
             if (!_skip)
-                yield return Monologue(ArrivalLines(ship));
+            {
+                var lines = ArrivalLines(ship);
+                var pushTo = PushInPosition(fixedPos, lookAt);
+                float total = MonologueSeconds(lines), t = 0f;
+                var talk = Monologue(lines);
+                while (talk.MoveNext())
+                {
+                    t += Dt;
+                    cam.position = Vector3.Lerp(fixedPos, pushTo, Smooth(Mathf.Clamp01(t / total)));
+                    yield return talk.Current;
+                }
+            }
             _line.SetText("");
             _speaker.SetText("");
             // 4) 원래 시점으로 돌아오며 도착 창
@@ -596,6 +610,29 @@ namespace SpaceStation.UI
             return lines;
         }
 
+        private const float LineHold = 2.4f; // 독백 한 줄이 다 나온 뒤 기다리는 시간
+
+        /// <summary>독백을 넘기지 않고 다 볼 때 걸리는 시간 (다가가는 카메라가 이 시간에 맞춰 멈춤).</summary>
+        private float MonologueSeconds(List<string> lines)
+        {
+            float s = 0f;
+            foreach (var text in lines)
+                s += text.Length / Mathf.Max(1f, _charsPerSecond) + LineHold;
+            return Mathf.Max(0.5f, s);
+        }
+
+        /// <summary>독백 동안 다가갈 자리: 고정 시점 → 보는 곳 사이 _monologuePush 비율, 그 자리에 모듈이 있으면 덜 다가감.</summary>
+        private Vector3 PushInPosition(Vector3 from, Vector3 lookAt)
+        {
+            for (float f = _monologuePush; f > 0.05f; f -= 0.1f)
+            {
+                var p = Vector3.Lerp(from, lookAt, f);
+                if (Free(p))
+                    return p;
+            }
+            return from;
+        }
+
         /// <summary>코어 독백: 줄마다 타자 → 다 나오면 2.4초 또는 클릭 · Space · Enter로 다음. 코어 기록에도 남김.</summary>
         private IEnumerator Monologue(List<string> lines)
         {
@@ -615,7 +652,7 @@ namespace SpaceStation.UI
                 }
                 _line.SetText($"<color={CoreTint}>{text}</color>");
                 yield return null;
-                for (float w = 0f; w < 2.4f && !_skip && !NextPressed(); w += Dt)
+                for (float w = 0f; w < LineHold && !_skip && !NextPressed(); w += Dt)
                     yield return null;
                 if (_skip)
                     yield break;
