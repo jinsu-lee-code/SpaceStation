@@ -33,7 +33,15 @@ namespace SpaceStation.Data
         [SerializeField, Range(-1f, 1f)] private float _heatTolerance;
         [SerializeField, Range(-1f, 1f)] private float _radiationTolerance;
 
+        [Header("이민선 (13-6b)")]
+        [Tooltip("이민선 몸통 띠 색 (흰 띠 재질을 물들임)")]
+        [SerializeField] private Color _shipColor = Color.white;
+        [Tooltip("이 종족 배를 처음 맞을 때 코어 독백 (도킹 연출 뒤, 2~3줄)")]
+        [SerializeField, TextArea(1, 3)] private List<string> _arrivalLines = new List<string>();
+
         public string Id => _id;
+        public Color ShipColor => _shipColor;
+        public IReadOnlyList<string> ArrivalLines => _arrivalLines;
         public string DisplayName => _displayName;
         public string Description => _description;
         public ResidentNeed FavoredNeed => _favoredNeed;
@@ -89,6 +97,12 @@ namespace SpaceStation.Data
             _techMax = techMax;
             _heatTolerance = heat;
             _radiationTolerance = radiation;
+        }
+
+        public void EditorSetShip(Color color, params string[] arrivalLines)
+        {
+            _shipColor = color;
+            _arrivalLines = new List<string>(arrivalLines);
         }
 #endif
     }

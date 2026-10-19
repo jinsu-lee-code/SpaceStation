@@ -247,6 +247,26 @@ namespace SpaceStation.Editor
                 iso.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
             iso.ApplyModifiedPropertiesWithoutUndo();
 
+            // 13-6b 이민선 모습 + 처음 만나는 종족 도킹 연출 (재생할 때 HUD 맨 앞으로 옮기고 다른 HUD는 감춤)
+            var oldArk = parent.Find("ArkShipView");
+            if (oldArk != null)
+                Object.DestroyImmediate(oldArk.gameObject);
+            var arkGo = new GameObject("ArkShipView", typeof(RectTransform));
+            arkGo.transform.SetParent(parent, false);
+            var art = (RectTransform)arkGo.transform;
+            art.anchorMin = Vector2.zero;
+            art.anchorMax = Vector2.one;
+            art.offsetMin = Vector2.zero;
+            art.offsetMax = Vector2.zero;
+            var arkView = arkGo.AddComponent<SpaceStation.UI.ArkShipView>();
+            var avo = new SerializedObject(arkView);
+            avo.FindProperty("_station").objectReferenceValue = station;
+            avo.FindProperty("_clock").objectReferenceValue = clock;
+            foreach (var f in new[] { "_font", "_fillSprite", "_frameSprite", "_buttonSprite", "_holoArt" })
+                avo.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
+            avo.FindProperty("_shipModel").objectReferenceValue = ArkShipModel();
+            avo.ApplyModifiedPropertiesWithoutUndo();
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("[ChapterSetup] 장 3개 · 코어 성격 · 이민선 · 종족 · 난이도 장별 간격 · 게임 씬 연결 · 장 화면 · 코어 로그 창 완료");
@@ -279,6 +299,13 @@ namespace SpaceStation.Editor
             bear = LoadOrCreate<SpeciesData>(Folder + "/SP_Bear.asset");
             bear.EditorSet("bear", "곰", "힘이 세고 얽매이기 싫어하는 무리. 쉬고 노는 자리를 중시하고, 고치는 손이 빠르다.",
                 ResidentNeed.Recreation, 0.5f, -0.5f, ResidentTrait.Technician, 0.02f, 0.1f, 0.5f, 0f);
+            // 13-6b 이민선 띠 색 · 처음 맞을 때 코어 독백 (문장은 확인용 초안)
+            rabbit.EditorSetShip(new Color(0.95f, 0.62f, 0.72f), "토끼들의 배다. 처음 깨어났을 때 곁에 있던 무리와 같은 얼굴들.");
+            bear.EditorSetShip(new Color(0.62f, 0.4f, 0.22f),
+                "그을린 배 한 척. 꺼져 가는 지구에서 마지막까지 버틴 곰들이다.",
+                "좁은 배에 몸을 맞대고 여기까지 왔다.",
+                "받아들일지, 돌려보낼지. 처음으로 내가 문을 고른다.");
+            EditorUtility.SetDirty(rabbit);
             EditorUtility.SetDirty(bear);
 
             var ark = LoadOrCreate<ArkShipConfig>(ArkPath);
@@ -779,10 +806,58 @@ namespace SpaceStation.Editor
             return AssetDatabase.LoadAssetAtPath<GameObject>(WreckPath);
         }
 
-        /// <summary>탐사 지점 모습 재질 (URP Lit, 발광은 _EMISSION을 켜 두고 색은 지점마다 MaterialPropertyBlock).</summary>
-        private static Material ExploreMaterial(string name, Color baseColor, float smoothness, float metallic, Color emission)
+        private const string ArkModelPath = "Assets/_Project/Art/Models/Ships/SM_ArkShip.fbx";
+        private const string ArkHullTexture = "Assets/_Project/Art/Models/Ships/T_ArkHull.png";
+
+        /// <summary>
+        /// 13-6b 이민선 모델 (BlenderWork/ArkShip/arkship_builder.py → SM_ArkShip.fbx + T_ArkHull.png): 재질 칸을 이름(M_Ark*)으로 URP Lit 재질에 연결.
+        /// 선체 = 흰 바탕에 구운 그을음 얼룩 텍스처, 띠(Band) = 흰색 → ArkShipView가 종족 색으로 물들임, 창 · 노즐 · 항법등 = 발광.
+        /// </summary>
+        private static GameObject ArkShipModel()
         {
-            const string dir = "Assets/_Project/Art/Materials/Explore";
+            var importer = AssetImporter.GetAtPath(ArkModelPath) as ModelImporter;
+            if (importer == null)
+            {
+                Debug.LogWarning("[ChapterSetup] 이민선 모델 없음: " + ArkModelPath);
+                return null;
+            }
+            var hullTex = AssetDatabase.LoadAssetAtPath<Texture2D>(ArkHullTexture);
+            var slots = new (string slot, Color color, float smooth, float metal, Color emission)[]
+            {
+                ("Hull", new Color(0.78f, 0.86f, 1f), 0.5f, 0.1f, Color.black), // 게임 조명이 따뜻해 흰색이 크림색으로 보임 → 푸른 쪽으로 (MODELING 7-7)
+                ("Frame", new Color(0.3f, 0.33f, 0.4f), 0.45f, 0.3f, Color.black),
+                ("Dark", new Color(0.06f, 0.065f, 0.08f), 0.2f, 0f, Color.black),
+                ("Band", Color.white, 0.35f, 0.05f, Color.black),
+                ("Glass", new Color(0.08f, 0.14f, 0.2f), 0.92f, 0f, Color.black),
+                ("Lit", new Color(1f, 0.8f, 0.55f), 0.4f, 0f, new Color(1.4f, 1f, 0.55f)),
+                ("Burn", new Color(0.07f, 0.065f, 0.065f), 0.05f, 0f, Color.black),
+                ("BurnM", new Color(0.2f, 0.2f, 0.22f), 0.08f, 0f, Color.black),
+                ("Vent", new Color(0.08f, 0.085f, 0.1f), 0.3f, 0.2f, Color.black),
+                ("Glow", new Color(0.4f, 0.8f, 1f), 0.5f, 0f, new Color(0.6f, 1.4f, 2.2f)),
+                ("NavR", new Color(1f, 0.2f, 0.15f), 0.4f, 0f, new Color(1.6f, 0.2f, 0.12f)),
+                ("NavG", new Color(0.2f, 1f, 0.35f), 0.4f, 0f, new Color(0.2f, 1.6f, 0.4f)),
+            };
+            foreach (var s in slots)
+            {
+                var mat = ExploreMaterial("M_Ark" + s.slot, s.color, s.smooth, s.metal, s.emission, "Assets/_Project/Art/Materials/Ships");
+                if (s.slot == "Hull")
+                {
+                    mat.SetTexture("_BaseMap", hullTex);
+                    EditorUtility.SetDirty(mat);
+                }
+                importer.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "M_Ark" + s.slot), mat);
+            }
+            importer.importAnimation = false;
+            importer.importCameras = false;
+            importer.importLights = false;
+            importer.SaveAndReimport();
+            AssetDatabase.SaveAssets();
+            return AssetDatabase.LoadAssetAtPath<GameObject>(ArkModelPath);
+        }
+
+        /// <summary>탐사 지점 모습 재질 (URP Lit, 발광은 _EMISSION을 켜 두고 색은 지점마다 MaterialPropertyBlock).</summary>
+        private static Material ExploreMaterial(string name, Color baseColor, float smoothness, float metallic, Color emission, string dir = "Assets/_Project/Art/Materials/Explore")
+        {
             Directory.CreateDirectory(dir);
             string path = $"{dir}/{name}.mat";
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);

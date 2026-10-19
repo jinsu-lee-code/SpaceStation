@@ -185,6 +185,35 @@ namespace SpaceStation.Tests
             Assert.AreEqual("", t2.RisingCauses());
         }
 
+        [Test]
+        public void ArkDocking_PortEntranceFirst_ElseNearestOuterEndFromCore()
+        {
+            var sim = Sim(Chapters(Chapter("3장", StationRule.None, slots: 0, hold: true)));
+            // 코어에서 +X 3칸 · -X 1칸 · +Z 2칸 · -Z 0칸 → 바깥 끝이 가장 가까운 쪽 = -Z (코어 면)
+            foreach (var c in new[] { new Vector3Int(1, 0, 0), new Vector3Int(2, 0, 0), new Vector3Int(3, 0, 0), new Vector3Int(-1, 0, 0), new Vector3Int(0, 0, 1), new Vector3Int(0, 0, 2) })
+                Assert.IsTrue(sim.Grid.TryPlace(_block, c, 0, out _));
+            Assert.IsTrue(ArkDocking.Find(sim.Grid, sim.Core, null, out var nose, out var outward));
+            Assert.AreEqual(new Vector3(0f, 0f, -1f), outward);
+            Assert.AreEqual(new Vector3(0f, 0f, -(0.5f + ArkDocking.Gap)), nose, "코어 -Z 면 바로 앞");
+
+            var port = Create<ModuleData>();
+            port.name = "MD_TestPort";
+            var so = new SerializedObject(port);
+            so.FindProperty("_immigrationPort").boolValue = true;
+            so.FindProperty("_terminalOnly").boolValue = true;
+            so.FindProperty("_dockFront").vector3IntValue = new Vector3Int(0, 0, 1);
+            var offsets = so.FindProperty("_cellOffsets");
+            offsets.arraySize = 2;
+            offsets.GetArrayElementAtIndex(0).vector3IntValue = Vector3Int.zero;
+            offsets.GetArrayElementAtIndex(1).vector3IntValue = new Vector3Int(1, 0, 0);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Assert.IsTrue(sim.Grid.TryPlace(port, new Vector3Int(4, 0, 0), 0, out _)); // +X 줄 끝에 붙임, 입구 = +Z
+            Assert.IsTrue(ArkDocking.Find(sim.Grid, sim.Core, null, out nose, out outward));
+            Assert.AreEqual(new Vector3(0f, 0f, 1f), outward, "포트 입구 방향");
+            Assert.AreEqual(4.5f, nose.x, Eps, "두 칸 포트 입구 가운데");
+            Assert.AreEqual(0.5f + ArkDocking.Gap, nose.z, Eps);
+        }
+
         // ---------------- 도우미 ----------------
 
         private static void Tick(StationSimulation sim, int seconds)

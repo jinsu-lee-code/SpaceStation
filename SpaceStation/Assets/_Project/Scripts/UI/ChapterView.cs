@@ -54,8 +54,9 @@ namespace SpaceStation.UI
         private TMP_Text _cardHeader, _cardTitle, _goals, _phase;
         private RectTransform _barRoot, _barFill;
         private Button _climaxNow;
-        // 13-3 이민선 (카드 아래 줄 + 도착 창)
+        // 13-3 이민선 (카드 아래 줄 + 도착 창), 13-6b 처음 만나는 종족은 도킹 연출 뒤 도착 창
         private ArkShipSystem _ships;
+        private ArkShipView _arkView;
         private TMP_Text _shipLine;
         // 13-5a 탐사 (카드 줄)
         private ExplorationSystem _explore;
@@ -106,6 +107,7 @@ namespace SpaceStation.UI
             _explore = _sim.GetSystem<ExplorationSystem>();
             _records = _sim.GetSystem<RecordArchiveSystem>();
             _tension = _sim.GetSystem<TensionSystem>();
+            _arkView = FindFirstObjectByType<ArkShipView>(FindObjectsInactive.Include);
             _interior =FindFirstObjectByType<Interior.InteriorMode>(FindObjectsInactive.Include);
             if (_interior != null)
                 _interior.InsideChanged += HandleInsideChanged;
@@ -458,7 +460,17 @@ namespace SpaceStation.UI
                    + (rising.Length > 0 ? $" <size=86%><color={Soft}>(오름: {rising})</color></size>" : "");
         }
 
-        private void HandleShipArrived(ArkShip ship) => ShowShip(ship);
+        private void HandleShipArrived(ArkShip ship)
+        {
+            if (_arkView != null && _arkView.WantsArrival(ship)) // 13-6b 처음 만나는 종족: 도킹 연출 → 코어 독백 → 도착 창
+                _arkView.PlayArrival(ship, () =>
+                {
+                    if (_ships.Pending == ship)
+                        ShowShip(ship);
+                });
+            else
+                ShowShip(ship);
+        }
 
         /// <summary>도착 창 (시간 멈춤): 종족 · 규모 · 종족 기본값 · 빈 집 → 모두 받기 / 빈 집만큼 / 거부.</summary>
         private void ShowShip(ArkShip ship)
