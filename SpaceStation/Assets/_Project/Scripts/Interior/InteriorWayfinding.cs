@@ -81,7 +81,7 @@ namespace SpaceStation.Interior
             _relayHead = CreateText("KioskRelayHead", Kiosk((_relayU.x + _relayU.y) / 2f, _relayHeadV), _kioskNormal, _kioskUp, relayW, 0.045f, 1.0f,
                 TextAlignmentOptions.Left);
             _relayLines = CreateText("KioskRelay", Kiosk((_relayU.x + _relayU.y) / 2f, (_relayLinesV.x + _relayLinesV.y) / 2f), _kioskNormal, _kioskUp,
-                relayW, _relayLinesV.x - _relayLinesV.y, 0.9f, TextAlignmentOptions.TopLeft);
+                relayW, _relayLinesV.x - _relayLinesV.y, 0.35f, TextAlignmentOptions.TopLeft);   // 목록 줄과 같은 크기 (한 줄이어도 커지지 않게)
             _title = CreateText("KioskTitle", Kiosk(0f, _titleV), _kioskNormal, _kioskUp, 0.6f, 0.06f, 1.4f, TextAlignmentOptions.Center);
             SetText(_title, "환승 안내", ScreenText);
             SetText(_relayHead, "허브가 이어 주는 인접 효과", ScreenText);
