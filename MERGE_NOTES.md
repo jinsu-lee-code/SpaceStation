@@ -441,6 +441,7 @@
   - 화면 재질(Screen · ScreenDark · ScreenGrid) 광택 0.85 → 0.55 (`InteriorSetup.ScreenSmoothness`): 천장 조명이 화면에 작고 강한 흰 반사점으로 비침
   - 물 추출기 드럼 · 단백질 배양 점광원 제거 (붉은 반사광), 허브 키오스크 빛은 화면 면 뒤
   - `InteriorSlidingDoor` (검역소 격리실 미닫이 문, `_Door` 조각에 MeshCollider) · `InteriorFalling` (물 추출기 낙하관 속 얼음 조각)
+  - 상업 구역 생선 · 포도 디테일 (같은 날, 사용자 요청): 에셋만 바뀜 (SM_Interior_Commerce · PF_Interior_* 재빌드). 생선 · 포도는 INT_Commerce_Soft(충돌체 없음)로 옮김. 상업 구역 9.3만 → 12만 삼각형 — 상업 구역 13개 최악 배치 측정(RTX 3060 Ti, 1080p)에서 폴리곤 2배까지도 렌더 시간 차이가 오차 범위
 - `TutorialView.DockUnderResources`: 내부에서도 자원 패널이 보이면(내부 일시정지 꺼짐 = 기본) 패널 아래에 붙음 — 내부에서 카드가 패널을 덮던 문제. (타이쿤판 Product Name 분리로 설정값이 기본값으로 돌아간 뒤 드러남)
 - `SpaceStation/Module Check (전체 모듈 1개씩 → 수동 저장 3)` (`ModuleCheckSave`): 모든 모듈(진화 포함)을 한 개씩 코어에 이어 붙인 정거장 + 모자란 전력 · 산소 · 물 · 식량을 내는 보조 생산 모듈 → 수동 저장 3. 새 모듈 에셋은 자동 포함
 - 모델 · 프리팹 · 템플릿 에셋(SM_Interior_* · PF_Interior_* · IT_* · Interior_NewBasic.blend)은 tycoon에서 만들어 binary patch로 옮김 (아래 체크)
