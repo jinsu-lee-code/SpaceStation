@@ -13,7 +13,8 @@ namespace SpaceStation.Interior
     /// <summary>
     /// 11-17 ② 보급품 줍기: 시뮬레이션의 보급 상자(<see cref="SupplyCrateSystem"/>)를 내부 방 바닥에 놓고, F 길게(짧게)로 줍는다.
     /// 자원 상자 = 띠 · 라벨이 자원 색, 특별 상자 = 주황 하드 케이스 + 보상 색 봉인과 은은한 불빛.
-    /// 자리는 상자 번호 · 모듈 원점 씨앗으로 고른 빈 바닥(방 칸 가운데에서 1~2.6m, 바닥이 평평하고 위가 빈 곳)이라 다시 만들어도 같은 자리.
+    /// 자리는 상자 번호 · 모듈 원점 씨앗으로 고른 빈 바닥(방 칸 가운데에서 1~2.6m, 바닥이 평평하고 위가 빈 곳, 주민 자리에서 0.9m 이상)이라
+    /// 다시 만들어도 같은 자리 (주민이 지금 어디 서 있는지와 상관없이).
     /// </summary>
     public sealed class InteriorSupply : MonoBehaviour
     {
@@ -35,6 +36,7 @@ namespace SpaceStation.Interior
         private bool _dirty;
         private readonly Dictionary<int, GameObject> _spawned = new Dictionary<int, GameObject>();
         private readonly List<Vector3> _used = new List<Vector3>();
+        private readonly List<Vector3> _avoid = new List<Vector3>();
         private readonly List<int> _gone = new List<int>();
         private MaterialPropertyBlock _block;
 
@@ -119,8 +121,17 @@ namespace SpaceStation.Interior
                 return;
             int seed = crate.Module.Origin.x * 73856093 ^ crate.Module.Origin.z * 83492791 ^ (crate.Slot + 1) * 19349663;
             var rng = new System.Random(seed);
-            // 방 칸 가운데에서 1~2.6m 떨어진 평평한 빈 바닥, 다른 상자와 0.9m 이상
-            if (!InteriorSpots.Floor(_builder, crate.Module, rng, new Vector3(0.4f, 0.26f, 0.4f), _used, 0.9f, out var spot))
+            // 방 칸 가운데에서 1~2.6m 떨어진 평평한 빈 바닥, 다른 상자 · 주민 자리(서기 · 앉기 · 일터)와 0.9m 이상.
+            // 지금 걷고 있는 주민 몸은 보지 않음 — 보면 내부를 다시 만들 때마다(들어갈 때 · 패드로 지을 때) 주민이 선 곳에 따라 상자가
+            // 다른 자리로 튀어 "사라졌다 나타나는" 것처럼 보였음 (사용자 피드백 2026-10-19). 주민은 자리 사이만 걸으므로 자리만 피하면 겹치지 않음
+            _avoid.Clear();
+            _avoid.AddRange(_used);
+            if (_builder.TryGetTemplateRoom(crate.Module, out var template, out var instance))
+            {
+                foreach (var s in template.ResidentSpots)
+                    _avoid.Add(instance.TransformPoint(s.Position));
+            }
+            if (!InteriorSpots.Floor(_builder, crate.Module, rng, new Vector3(0.4f, 0.26f, 0.4f), _avoid, 0.9f, out var spot, ignoreResidents: true))
                 return;
             _used.Add(spot);
             var go = Instantiate(prefab, parent);

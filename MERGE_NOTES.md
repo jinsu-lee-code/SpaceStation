@@ -224,7 +224,7 @@
 - [x] (2026-10-18) 충돌 없음, 두 프리팹의 `ModuleFlutter` · `ModuleSpinner` 확인. 행정 관제소 모델(`SM_Administration.fbx` · `PF_Administration`)을 합친 뒤 Unity에서 프리팹의 `ModuleFlutter` · 레이더 `ModuleSpinner`가 붙어 있는지만 확인. 통신 중계소(`PF_CommRelay`)도 접시 `ModuleSpinner`(속도 8) 확인.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상.
+- [x] (2026-10-17 ~ 19) 충돌 없음 (자동 합침, 타이쿤판 PC에서 만든 변경).
 
 ---
 
@@ -241,8 +241,8 @@
 - [x] (2026-10-18, 442610c) `CoreLogPanel`의 따로 뜬 버튼을 지우고 `HudLauncher`에 Key "core" · `Order.Edition`으로 등록.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. `UnlockChoicePanel`의 `Order.Systems`는 그대로 둬도 같은 값.
-- [ ] `BalanceMilestones.cs.meta`가 main에 빠져 있다가 91c02a0에 들어감 — 타이쿤판 PC에서 Unity가 따로 만든 .meta가 있으면 main 것으로 맞춤 (GUID가 다르면 충돌).
+- [x] (2026-10-19, e74ab11) 충돌 없음. `UnlockChoicePanel`의 `Order.Systems`는 그대로.
+- [x] (2026-10-19, e74ab11) `BalanceMilestones.cs.meta` GUID 충돌(add/add) → main 것으로 맞춤.
 
 ---
 
@@ -262,7 +262,7 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침). 서사판 13-3 `ArkShipSystem`이 고리를 모두 씀 · EditMode 408개 통과.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상 (고리를 쓰지 않으면 그대로).
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침).
 
 ---
 
@@ -279,7 +279,7 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침). 서사판 13-4 '첫 긴 밤' 절정 · 코어 기동 안내 · 내부 안내가 씀 · EditMode 413개 통과.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. `TutorialView`를 고쳤으면 `Start`의 끄기 → `Bind` 부분만 맞춤.
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침).
 
 ---
 
@@ -293,7 +293,7 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 내부 안내 카드 · 상단 중앙 방 이름 플레이 확인 · 413개 통과.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. 타이쿤판 내부 표시를 고쳤으면 `BuildOverlay`의 두 줄 자리만 맞춤.
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침).
 
 ---
 
@@ -307,7 +307,7 @@
 - [x] (2026-10-18) 충돌 없음 · 서사판 탐사 창이 씀 · 417개 통과.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상.
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침).
 
 ---
 
@@ -325,7 +325,7 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 13-5b 기록 복원(`RecordArchiveSystem`)이 고리를 꽂음 · EditMode 424개 통과.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. 타이쿤판이 연구 창 · `ResearchSystem`을 고쳤으면 `Recalculate` 부르는 곳을 `RefreshEffects()`로 맞춤.
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침).
 
 ---
 
@@ -343,7 +343,7 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 13-5c 2장 유성우 · 절정 '큰 유성우'가 씀 · EditMode 430개 통과.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. 타이쿤판이 `BeginRaid`를 불렀으면 새 매개변수는 기본값이라 그대로.
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침).
 
 ---
 
@@ -360,7 +360,7 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 `RecordArchiveSystem.ShowLinked` = 합성 규칙(4장)부터 보임 · EditMode 431개 통과 · 플레이 모드 2장 연구 창에서 칸 숨김 · 창 줄어듦 확인.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. 타이쿤판이 `IResearchGate`를 구현했으면 `ShowLinked => true` 추가.
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침, 타이쿤판은 `IResearchGate`를 구현하지 않음).
 
 ---
 
@@ -377,4 +377,49 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 3장 정책(`ChapterPolicySystem`)이 고리를 꽂음 — 슬롯 1 → 대형 때 2 · 4종 · 30초 · 3분 · 종족 반응 · EditMode 435개 통과 · 플레이 모드 정책 창 4종 · 두 줄 높이 확인.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. 타이쿤판이 정책 에셋을 고쳤으면 `_stance` 줄이 겹칠 수 있음 (메뉴 Setup Policies를 다시 돌리면 채워짐). `PolicyPanel` 목록 배치를 고쳤으면 `PlaceRow` · `FitRows`로 맞춤.
+- [x] (2026-10-19, e74ab11) 정책 에셋 `_stance`는 자동 합침. `PolicyPanel` 위 안내 · 잠긴 슬롯 문구가 타이쿤판 해금 선택 문구(13-1)와 충돌 → 고리 문구(`Summary` · `LockedSlot`)가 있으면 그것, 없으면 타이쿤판 문구 · 시간은 `PolicySystem.ApplyDelay` · `SwapCooldown`.
+
+---
+
+## M-23. 13-7 봇: 핵융합로 저축 중에도 거주 (2026-10-17, `main`)
+
+**main에 넣은 것** — 측정 도구만 (게임 동작 변화 없음). 봇 측정 결과는 이전과 달라짐
+- `BalanceBot.PickNeed` 맨 앞(낮 전력 여유 다음)에 거주 습관 한 덩이 더: 다음 등급 조건 중 인구만 모자라고 수용이 꽉 찼을 때 생존 자원이 안정적(`LifeSupportStable`)이고 금속 수입이 있으면 거주. 생존 자원이 줄 때는 원래 자리(생존 자원 다음, M-11)에서 판단
+- 까닭: 타이쿤판 측정에서 밤 전력 부족 → 핵융합로 저축 규칙이 거주 습관보다 앞이라, 저축하는 15 ~ 20분 동안 거주가 꽉 찬 채 인구가 멈췄음 (tycoon BALANCE 47번 시드 8 · 9)
+- 2026-10-19 보완: 밤을 배터리로 못 버티면(`NightUncovered` — 배터리 규칙과 같은 조건을 함수로 뺌) 이 덩이를 건너뜀. 처음 넣은 대로는 배터리 규칙까지 건너뛰어 측정 12판 중 3판이 밤 정전 → 산소 고갈로 게임 오버
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상 (M-11 자리와 겹치지 않는 새 덩이). 서사판 봇 측정 결과가 달라질 수 있음.
+
+### `tycoon` 합칠 때
+- [x] 같은 변경이 tycoon에 먼저 들어가 있음.
+
+---
+
+## M-24. 13-7 봇 측정 결정성 · 시드에 묶인 봇 성향 (2026-10-19, `main`)
+
+**main에 넣은 것** — 게임 동작 변화 없음 (봇 측정만). 봇 측정 결과는 이전과 달라짐
+- 결정성: `StationSimulationSettings.CrateSeed` (int?, null = 매 판 다른 시스템 난수 = 게임 그대로). 보급 상자 내용 · 내부 결과 난수(`_crateRandom`)가 시드를 받지 않아, 봇이 상자를 처음부터 줍게 된 뒤(M-11) 같은 시드도 약 10분부터 결과가 갈라졌음. `BalanceRun`이 `BalanceBotPersona.CrateSeedFor(seed)`를 넣음
+- 봇 성향 (사용자 결정 2026-10-19): `BalanceBotPersona` (BalanceBot.cs 안) — 시드에서 성장 ↔ 안전 · 저축 · 연구 순서를 정함 (세기 ±40%). `BalanceBot.Persona` (기본 켬, 끄면 `Neutral` = 이전 봇 값 그대로). 바뀌는 값: 방어 빈도(모듈 15개마다 → 9 ~ 21) · 방어 · 장갑 · 연료전지 전 금속 여유(거주 1개분 × 0.6 ~ 1.4) · 거주 미리 짓기(1 → 성장형 최대 4) · 핵융합로 시작 밤 부족량(15 → 9 ~ 21) · 핵융합로 여유(60 → 36 ~ 84) · 회전 링 여유(100 → 60 ~ 140) · 연구 순서(이웃끼리 2번 자리 바꿈)
+- `BalanceBot` 생성자에 `persona` (생략 = 중립), `BalanceRunResult.Persona` · `PersonaGrowth` · `PersonaSaving`, summary.txt "봇 성향 시드 n: …" 줄 · summary.csv `persona_growth` · `persona_saving` 열
+
+### `narrative` 합칠 때
+- [ ] 서사판 `BalanceRun` · `BalanceRunner`에 판 전용 줄이 있으면 생성자 · 결과 초기화 · 요약 줄 위치만 맞춤. 서사판 봇 측정 결과가 달라짐 (이전 결과와 비교하려면 `BalanceBot.Persona = false`).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-19, e74ab11) `BalanceRun` · `BalanceRunner` 자동 합침 (`CrateSeed` · 해금 선택 블록 둘 다 살아 있음) · M-14 ~ M-24 합친 뒤 EditMode 424개 통과.
+
+---
+
+## M-25. 내부 보급 상자 자리 · 걷는 주민이 상자를 뚫지 않게 (2026-10-19, `main`)
+
+**main에 넣은 것** — 화면 동작이 바뀜 (사용자 피드백 "주민이 돌아다니다 코어 보급품과 겹치면 보급품이 사라졌다 나타남")
+- `InteriorSpots.Floor(..., ignoreResidents = false)`: true면 빈 자리 판단에서 주민 몸(`ResidentFigure`)을 뺌 (기본값이면 그대로 — 부탁 물건 등)
+- `InteriorSupply.Spawn`: 보급 상자 자리 = 다른 상자 · **그 방 주민 자리(템플릿 서기 · 앉기 · 일터)에서 0.9m 이상** + 주민 몸은 보지 않음 → 내부를 다시 만들 때(들어갈 때 · 패드로 지을 때) 주민이 선 곳에 따라 상자가 다른 자리로 튀던 것이 없어짐 (같은 상자 = 늘 같은 자리). 상자 자리가 바뀌므로 예전과 놓이는 곳이 다를 수 있음 (저장 안 함)
+- `ResidentWander`: 걷는 중 0.25초마다 앞 0.8m에 새 상호작용 물건(보급 상자 · 부탁 물건 — `InteriorInteractable`, 주민 제외)이 있으면 그 자리에 섬 (`PropAhead`, `LastDecision` "가는 길에 물건이 놓여 멈춤"). 길은 출발 때 한 번만 봐서 걷는 사이 놓인 상자를 뚫고 지나갈 수 있었음
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상 (서사판에서 같은 내용으로 먼저 확인함).
+
+### `tycoon` 합칠 때
+- [ ] 충돌 없음 예상. 타이쿤판이 `InteriorSupply` 자리 고르기나 `ResidentWander.UpdateWalk`를 고쳤으면 그 부분만 맞춤.
