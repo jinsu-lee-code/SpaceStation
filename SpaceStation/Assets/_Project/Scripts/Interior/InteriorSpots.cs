@@ -66,9 +66,10 @@ namespace SpaceStation.Interior
         /// <summary>
         /// 바닥 자리: 방 칸 가운데에서 <paramref name="minRadius"/>~<paramref name="maxRadius"/>m 떨어진 곳 — 평평하고(아래 광선이 같은 높이 바닥),
         /// <paramref name="halfExtents"/>(바닥 위 상자 반 크기)만큼 비었고, <paramref name="used"/>와 <paramref name="spacing"/>m 이상.
+        /// <paramref name="ignoreResidents"/>: 지금 서 있거나 걷는 주민 몸은 빈 자리 판단에서 뺌 — 주민 위치에 따라 자리가 바뀌지 않게 (대신 부르는 쪽이 주민 자리를 <paramref name="used"/>로 넘김).
         /// </summary>
         public static bool Floor(InteriorBuilder builder, ModuleInstance module, System.Random rng, Vector3 halfExtents, IReadOnlyList<Vector3> used, float spacing,
-            out Vector3 spot, float minRadius = 1f, float maxRadius = 2.6f)
+            out Vector3 spot, float minRadius = 1f, float maxRadius = 2.6f, bool ignoreResidents = false)
         {
             spot = default;
             builder.EnsureActive(module);
@@ -85,7 +86,7 @@ namespace SpaceStation.Interior
                 if (Mathf.Abs(hit.point.y - floor.y) > 0.06f || hit.normal.y < 0.95f)
                     continue;
                 p = hit.point;
-                if (Physics.CheckBox(p + Vector3.up * (halfExtents.y + 0.04f), halfExtents, Quaternion.identity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                if (Blocked(p + Vector3.up * (halfExtents.y + 0.04f), halfExtents, ignoreResidents))
                     continue;
                 bool far = true;
                 if (used != null)
@@ -103,6 +104,21 @@ namespace SpaceStation.Interior
                     continue;
                 spot = p + Vector3.up * 0.002f;
                 return true;
+            }
+            return false;
+        }
+
+        private static readonly Collider[] _overlaps = new Collider[16];
+
+        private static bool Blocked(Vector3 center, Vector3 halfExtents, bool ignoreResidents)
+        {
+            if (!ignoreResidents)
+                return Physics.CheckBox(center, halfExtents, Quaternion.identity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            int n = Physics.OverlapBoxNonAlloc(center, halfExtents, _overlaps, Quaternion.identity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < n; i++)
+            {
+                if (_overlaps[i].GetComponentInParent<ResidentFigure>() == null)
+                    return true;
             }
             return false;
         }

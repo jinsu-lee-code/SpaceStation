@@ -26,6 +26,7 @@ namespace SpaceStation.Interior
     /// 11-16 ③ 서 있는 쉬는 동물 주민이 같은 방 안에서 가끔 걸어서 자리를 옮김 (<see cref="WanderRules"/>).
     /// 걸어갈 곳 = 같은 방의 비어 있는 서기 자리, 없으면 원래 자리 주변 0.8~1.4m의 바닥(아래로 쏴서 같은 높이 바닥 + 그 자리에 다른 물체 없음).
     /// 가는 길이 막혔으면(캡슐로 쓸어 봄) 가지 않는다. 플레이어가 앞을 막거나 반응(손 흔들기 등) 중이면 멈춰 기다림.
+    /// 걷는 사이 앞에 새 물건(보급 상자 등)이 놓이면 그 자리에 선다.
     /// 다리 · 팔 흔들기는 <see cref="ResidentMotion.Walk"/>.
     /// 11-16 ④ 앉은 주민(<see cref="InitSeated"/>)은 의자 앞 바닥이 비어 있으면 일어나(약 0.5초, 앞으로 밀려나오며) 같은 방을 걷다가,
     /// 나들이를 마치면 의자 앞으로 돌아와 의자 방향으로 돌아서 뒤로 물러나 앉는다.
@@ -417,10 +418,48 @@ namespace SpaceStation.Interior
                 _arriveYaw = true;
                 return;
             }
+            if (now >= _propCheck)
+            {
+                _propCheck = now + 0.25f;
+                if (PropAhead(to / dist, dist))
+                {
+                    // 출발한 뒤 가는 길에 놓인 물건(보급 상자 등) — 뚫고 지나가지 않고 그 자리에 섰다가 다음에 다시 정함
+                    Release(_target);
+                    _target = -1;
+                    _at = -1;
+                    _state = State.Idle;
+                    _next = now + WanderRules.IdleSeconds(_mood, _rng.NextDouble()) * 0.5f;
+                    LastDecision = "가는 길에 물건이 놓여 멈춤";
+                    if (_motion != null)
+                        _motion.Walk(0f, dt);
+                    return;
+                }
+            }
             TurnToward(to, dt);
             transform.position += to / dist * (speed * dt);
             if (_motion != null)
                 _motion.Walk(speed / _scale, dt);
+        }
+
+        private float _propCheck;
+
+        /// <summary>
+        /// 걷는 중 앞(최대 0.8m)에 상호작용 물건(보급 상자 · 부탁 물건 등)이 새로 생겼는지 — 길은 출발할 때 한 번만 보므로
+        /// 걷는 사이 내부에 놓인 상자를 뚫고 지나갔음. 주민끼리 · 처음부터 닿아 있던 것(거리 0)은 보지 않음.
+        /// </summary>
+        private bool PropAhead(Vector3 dir, float dist)
+        {
+            float r = Radius * _scale;
+            var from = transform.position;
+            var a = from + Vector3.up * (r + 0.08f);
+            var b = from + Vector3.up * (Height * _scale - r);
+            foreach (var hit in Physics.CapsuleCastAll(a, b, r * 0.9f, dir, Mathf.Min(dist, 0.8f), ~0, QueryTriggerInteraction.Ignore))
+            {
+                if (hit.collider != _self && hit.distance > 0f && hit.collider.GetComponentInParent<InteriorInteractable>() != null
+                    && hit.collider.GetComponentInParent<ResidentFigure>() == null)
+                    return true;
+            }
+            return false;
         }
 
         private bool _arriveYaw;
