@@ -224,7 +224,7 @@
 - [x] (2026-10-18) 충돌 없음, 두 프리팹의 `ModuleFlutter` · `ModuleSpinner` 확인. 행정 관제소 모델(`SM_Administration.fbx` · `PF_Administration`)을 합친 뒤 Unity에서 프리팹의 `ModuleFlutter` · 레이더 `ModuleSpinner`가 붙어 있는지만 확인. 통신 중계소(`PF_CommRelay`)도 접시 `ModuleSpinner`(속도 8) 확인.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상.
+- [x] (2026-10-17 ~ 19) 충돌 없음 (자동 합침, 타이쿤판 PC에서 만든 변경).
 
 ---
 
@@ -241,8 +241,8 @@
 - [x] (2026-10-18, 442610c) `CoreLogPanel`의 따로 뜬 버튼을 지우고 `HudLauncher`에 Key "core" · `Order.Edition`으로 등록.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. `UnlockChoicePanel`의 `Order.Systems`는 그대로 둬도 같은 값.
-- [ ] `BalanceMilestones.cs.meta`가 main에 빠져 있다가 91c02a0에 들어감 — 타이쿤판 PC에서 Unity가 따로 만든 .meta가 있으면 main 것으로 맞춤 (GUID가 다르면 충돌).
+- [x] (2026-10-19, e74ab11) 충돌 없음. `UnlockChoicePanel`의 `Order.Systems`는 그대로.
+- [x] (2026-10-19, e74ab11) `BalanceMilestones.cs.meta` GUID 충돌(add/add) → main 것으로 맞춤.
 
 ---
 
@@ -262,7 +262,7 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침). 서사판 13-3 `ArkShipSystem`이 고리를 모두 씀 · EditMode 408개 통과.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상 (고리를 쓰지 않으면 그대로).
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침).
 
 ---
 
@@ -279,7 +279,7 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침). 서사판 13-4 '첫 긴 밤' 절정 · 코어 기동 안내 · 내부 안내가 씀 · EditMode 413개 통과.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. `TutorialView`를 고쳤으면 `Start`의 끄기 → `Bind` 부분만 맞춤.
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침).
 
 ---
 
@@ -293,7 +293,7 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 내부 안내 카드 · 상단 중앙 방 이름 플레이 확인 · 413개 통과.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. 타이쿤판 내부 표시를 고쳤으면 `BuildOverlay`의 두 줄 자리만 맞춤.
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침).
 
 ---
 
@@ -307,7 +307,7 @@
 - [x] (2026-10-18) 충돌 없음 · 서사판 탐사 창이 씀 · 417개 통과.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상.
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침).
 
 ---
 
@@ -325,7 +325,7 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 13-5b 기록 복원(`RecordArchiveSystem`)이 고리를 꽂음 · EditMode 424개 통과.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. 타이쿤판이 연구 창 · `ResearchSystem`을 고쳤으면 `Recalculate` 부르는 곳을 `RefreshEffects()`로 맞춤.
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침).
 
 ---
 
@@ -343,7 +343,7 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 13-5c 2장 유성우 · 절정 '큰 유성우'가 씀 · EditMode 430개 통과.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. 타이쿤판이 `BeginRaid`를 불렀으면 새 매개변수는 기본값이라 그대로.
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침).
 
 ---
 
@@ -360,7 +360,7 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 `RecordArchiveSystem.ShowLinked` = 합성 규칙(4장)부터 보임 · EditMode 431개 통과 · 플레이 모드 2장 연구 창에서 칸 숨김 · 창 줄어듦 확인.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. 타이쿤판이 `IResearchGate`를 구현했으면 `ShowLinked => true` 추가.
+- [x] (2026-10-19, e74ab11) 충돌 없음 (자동 합침, 타이쿤판은 `IResearchGate`를 구현하지 않음).
 
 ---
 
@@ -377,7 +377,7 @@
 - [x] (2026-10-18) 충돌 없음 (자동 합침) · 서사판 3장 정책(`ChapterPolicySystem`)이 고리를 꽂음 — 슬롯 1 → 대형 때 2 · 4종 · 30초 · 3분 · 종족 반응 · EditMode 435개 통과 · 플레이 모드 정책 창 4종 · 두 줄 높이 확인.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. 타이쿤판이 정책 에셋을 고쳤으면 `_stance` 줄이 겹칠 수 있음 (메뉴 Setup Policies를 다시 돌리면 채워짐). `PolicyPanel` 목록 배치를 고쳤으면 `PlaceRow` · `FitRows`로 맞춤.
+- [x] (2026-10-19, e74ab11) 정책 에셋 `_stance`는 자동 합침. `PolicyPanel` 위 안내 · 잠긴 슬롯 문구가 타이쿤판 해금 선택 문구(13-1)와 충돌 → 고리 문구(`Summary` · `LockedSlot`)가 있으면 그것, 없으면 타이쿤판 문구 · 시간은 `PolicySystem.ApplyDelay` · `SwapCooldown`.
 
 ---
 
@@ -407,4 +407,4 @@
 - [ ] 서사판 `BalanceRun` · `BalanceRunner`에 판 전용 줄이 있으면 생성자 · 결과 초기화 · 요약 줄 위치만 맞춤. 서사판 봇 측정 결과가 달라짐 (이전 결과와 비교하려면 `BalanceBot.Persona = false`).
 
 ### `tycoon` 합칠 때
-- [ ] `BalanceRun` 설정 초기화 끝(`CrateSeed`)과 바로 아래 타이쿤판 해금 선택 블록이 붙어 있어 겹칠 수 있음 — 둘 다 살림. 요약 텍스트의 봇 성향 줄은 해금 선택 줄과 다른 자리(주민 특성 보정 다음).
+- [x] (2026-10-19, e74ab11) `BalanceRun` · `BalanceRunner` 자동 합침 (`CrateSeed` · 해금 선택 블록 둘 다 살아 있음) · M-14 ~ M-24 합친 뒤 EditMode 424개 통과.
