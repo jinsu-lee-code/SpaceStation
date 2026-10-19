@@ -386,9 +386,25 @@
 **main에 넣은 것** — 측정 도구만 (게임 동작 변화 없음). 봇 측정 결과는 이전과 달라짐
 - `BalanceBot.PickNeed` 맨 앞(낮 전력 여유 다음)에 거주 습관 한 덩이 더: 다음 등급 조건 중 인구만 모자라고 수용이 꽉 찼을 때 생존 자원이 안정적(`LifeSupportStable`)이고 금속 수입이 있으면 거주. 생존 자원이 줄 때는 원래 자리(생존 자원 다음, M-11)에서 판단
 - 까닭: 타이쿤판 측정에서 밤 전력 부족 → 핵융합로 저축 규칙이 거주 습관보다 앞이라, 저축하는 15 ~ 20분 동안 거주가 꽉 찬 채 인구가 멈췄음 (tycoon BALANCE 47번 시드 8 · 9)
+- 2026-10-19 보완: 밤을 배터리로 못 버티면(`NightUncovered` — 배터리 규칙과 같은 조건을 함수로 뺌) 이 덩이를 건너뜀. 처음 넣은 대로는 배터리 규칙까지 건너뛰어 측정 12판 중 3판이 밤 정전 → 산소 고갈로 게임 오버
 
 ### `narrative` 합칠 때
 - [ ] 충돌 없음 예상 (M-11 자리와 겹치지 않는 새 덩이). 서사판 봇 측정 결과가 달라질 수 있음.
 
 ### `tycoon` 합칠 때
 - [x] 같은 변경이 tycoon에 먼저 들어가 있음.
+
+---
+
+## M-24. 13-7 봇 측정 결정성 · 시드에 묶인 봇 성향 (2026-10-19, `main`)
+
+**main에 넣은 것** — 게임 동작 변화 없음 (봇 측정만). 봇 측정 결과는 이전과 달라짐
+- 결정성: `StationSimulationSettings.CrateSeed` (int?, null = 매 판 다른 시스템 난수 = 게임 그대로). 보급 상자 내용 · 내부 결과 난수(`_crateRandom`)가 시드를 받지 않아, 봇이 상자를 처음부터 줍게 된 뒤(M-11) 같은 시드도 약 10분부터 결과가 갈라졌음. `BalanceRun`이 `BalanceBotPersona.CrateSeedFor(seed)`를 넣음
+- 봇 성향 (사용자 결정 2026-10-19): `BalanceBotPersona` (BalanceBot.cs 안) — 시드에서 성장 ↔ 안전 · 저축 · 연구 순서를 정함 (세기 ±40%). `BalanceBot.Persona` (기본 켬, 끄면 `Neutral` = 이전 봇 값 그대로). 바뀌는 값: 방어 빈도(모듈 15개마다 → 9 ~ 21) · 방어 · 장갑 · 연료전지 전 금속 여유(거주 1개분 × 0.6 ~ 1.4) · 거주 미리 짓기(1 → 성장형 최대 4) · 핵융합로 시작 밤 부족량(15 → 9 ~ 21) · 핵융합로 여유(60 → 36 ~ 84) · 회전 링 여유(100 → 60 ~ 140) · 연구 순서(이웃끼리 2번 자리 바꿈)
+- `BalanceBot` 생성자에 `persona` (생략 = 중립), `BalanceRunResult.Persona` · `PersonaGrowth` · `PersonaSaving`, summary.txt "봇 성향 시드 n: …" 줄 · summary.csv `persona_growth` · `persona_saving` 열
+
+### `narrative` 합칠 때
+- [ ] 서사판 `BalanceRun` · `BalanceRunner`에 판 전용 줄이 있으면 생성자 · 결과 초기화 · 요약 줄 위치만 맞춤. 서사판 봇 측정 결과가 달라짐 (이전 결과와 비교하려면 `BalanceBot.Persona = false`).
+
+### `tycoon` 합칠 때
+- [ ] `BalanceRun` 설정 초기화 끝(`CrateSeed`)과 바로 아래 타이쿤판 해금 선택 블록이 붙어 있어 겹칠 수 있음 — 둘 다 살림. 요약 텍스트의 봇 성향 줄은 해금 선택 줄과 다른 자리(주민 특성 보정 다음).

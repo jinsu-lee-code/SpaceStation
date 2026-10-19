@@ -64,6 +64,7 @@ namespace SpaceStation.Editor.Balance
                 ResearchCaps = s.ResearchCaps,
                 Recipes = s.Recipes != null && s.Recipes.Count > 0 ? s.Recipes : null,
                 ResearchExpansion = s.ResearchExpansion,
+                CrateSeed = BalanceBotPersona.CrateSeedFor(seed), // 13-7 보급 상자 · 내부 결과도 시드 고정 (같은 시드 = 같은 결과)
             });
             StartGrade = -1;
             if (start != null)
@@ -71,7 +72,8 @@ namespace SpaceStation.Editor.Balance
                 RestoreMissing = StationStateSerializer.Restore(_sim, start.Station);
                 StartGrade = start.Grade;
             }
-            _bot = new BalanceBot(_sim, s.Buildable);
+            var persona = BalanceBot.Persona ? BalanceBotPersona.FromSeed(seed) : BalanceBotPersona.Neutral; // 13-7 시드에 묶인 봇 성향
+            _bot = new BalanceBot(_sim, s.Buildable, persona);
             _milestones = new BalanceMilestones(_sim, s.Buildable, seed); // 13-7 새 일 간격 · 위기 빈도 · 여유 자원
             _t0 = _sim.ElapsedSeconds;
             _nextSample = _t0;
@@ -82,6 +84,9 @@ namespace SpaceStation.Editor.Balance
             {
                 Seed = seed,
                 GradeReachSeconds = new float[_sim.Progression.GradeCount],
+                Persona = BalanceBot.Persona ? persona.Describe() : "",
+                PersonaGrowth = persona.Growth,
+                PersonaSaving = persona.Saving,
             };
             int reached = _sim.Progression.GradeIndex;
             for (int i = 1; i < Result.GradeReachSeconds.Length; i++)
