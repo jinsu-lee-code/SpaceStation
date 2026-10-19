@@ -389,7 +389,7 @@
 - 2026-10-19 보완: 밤을 배터리로 못 버티면(`NightUncovered` — 배터리 규칙과 같은 조건을 함수로 뺌) 이 덩이를 건너뜀. 처음 넣은 대로는 배터리 규칙까지 건너뛰어 측정 12판 중 3판이 밤 정전 → 산소 고갈로 게임 오버
 
 ### `narrative` 합칠 때
-- [ ] 충돌 없음 예상 (M-11 자리와 겹치지 않는 새 덩이). 서사판 봇 측정 결과가 달라질 수 있음.
+- [x] (2026-10-19, c9d37b1) `BalanceBot` 자동 합침 · EditMode 444개 통과. 서사판 봇 측정은 아직 다시 돌리지 않음 (13-8 준비 ①에서).
 
 ### `tycoon` 합칠 때
 - [x] 같은 변경이 tycoon에 먼저 들어가 있음.
@@ -404,7 +404,7 @@
 - `BalanceBot` 생성자에 `persona` (생략 = 중립), `BalanceRunResult.Persona` · `PersonaGrowth` · `PersonaSaving`, summary.txt "봇 성향 시드 n: …" 줄 · summary.csv `persona_growth` · `persona_saving` 열
 
 ### `narrative` 합칠 때
-- [ ] 서사판 `BalanceRun` · `BalanceRunner`에 판 전용 줄이 있으면 생성자 · 결과 초기화 · 요약 줄 위치만 맞춤. 서사판 봇 측정 결과가 달라짐 (이전 결과와 비교하려면 `BalanceBot.Persona = false`).
+- [x] (2026-10-19, c9d37b1) `BalanceRun` · `BalanceRunner` 자동 합침. `StationSimulationSettings`만 충돌 — 서사판 `Chapters` 다음에 `CrateSeed`를 둘 다 둠 · EditMode 444개 통과. 서사판 봇 측정은 아직 다시 돌리지 않음 (13-8 준비 ①에서).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-19, e74ab11) `BalanceRun` · `BalanceRunner` 자동 합침 (`CrateSeed` · 해금 선택 블록 둘 다 살아 있음) · M-14 ~ M-24 합친 뒤 EditMode 424개 통과.
@@ -419,7 +419,7 @@
 - `ResidentWander`: 걷는 중 0.25초마다 앞 0.8m에 새 상호작용 물건(보급 상자 · 부탁 물건 — `InteriorInteractable`, 주민 제외)이 있으면 그 자리에 섬 (`PropAhead`, `LastDecision` "가는 길에 물건이 놓여 멈춤"). 길은 출발 때 한 번만 봐서 걷는 사이 놓인 상자를 뚫고 지나갈 수 있었음
 
 ### `narrative` 합칠 때
-- [ ] 충돌 없음 예상 (서사판에서 같은 내용으로 먼저 확인함).
+- [x] (2026-10-19, c9d37b1) 충돌 없음 (같은 내용) · EditMode 444개 통과 · 플레이 모드: 코어 상자 6개가 나갔다 다시 들어가도 같은 자리 · 주민 자리에서 1.75m 이상, 걷는 토끼 0.75m 앞에 물건을 놓으면 바로 멈춤(겹침 0).
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. 타이쿤판이 `InteriorSupply` 자리 고르기나 `ResidentWander.UpdateWalk`를 고쳤으면 그 부분만 맞춤.
