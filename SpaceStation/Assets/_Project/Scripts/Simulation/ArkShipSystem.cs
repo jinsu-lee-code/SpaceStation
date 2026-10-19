@@ -22,6 +22,9 @@ namespace SpaceStation.Simulation
         public int Size;
         /// <summary>이 장에서 처음 오는 종족을 태운 배.</summary>
         public bool NewSpecies;
+        /// <summary>13-6c 대이주: 절정이 보낸 배 (평소 시계와 따로) · 몇 번째 배인지 (1부터).</summary>
+        public bool Convoy;
+        public int ConvoyOrder;
     }
 
     /// <summary>
@@ -38,6 +41,8 @@ namespace SpaceStation.Simulation
     public sealed class ArkShipSystem : StationSystem
     {
         public const string SystemKey = "arkships";
+        /// <summary>처음 만나는 종족의 배에 답함 (받기 · 일부 · 거부 무엇이든).</summary>
+        public const string NewSpeciesFlag = "ship.new";
 
         private readonly ArkShipConfig _config;
         private readonly Func<float> _random01;
@@ -82,6 +87,8 @@ namespace SpaceStation.Simulation
         public int TurnedAway { get; private set; }
         /// <summary>위기 완충으로 시계가 느린 중.</summary>
         public bool Slowed { get; private set; }
+        /// <summary>13-6c 대이주: 절정이 보낸 배가 오는 중 (절정 중에도 시계가 돎).</summary>
+        public bool ConvoyComing => _forecast != null && _forecast.Convoy;
 
         private ChapterSystem Chapters => Sim.Chapters;
         private ChapterData Chapter => Chapters != null ? Chapters.Current : null;
@@ -130,11 +137,12 @@ namespace SpaceStation.Simulation
                 return;
             }
             var phase = Chapters.Phase;
-            if (phase != ChapterPhase.Preparation && phase != ChapterPhase.Warning)
-                return; // 절정 · 전환 중에는 시계가 멈춤
+            bool convoy = ConvoyComing;
+            if (phase != ChapterPhase.Preparation && phase != ChapterPhase.Warning && !convoy)
+                return; // 절정 · 전환 중에는 시계가 멈춤 (대이주 배만 옴)
             if (_timer < 0f)
                 _timer = chapter.ShipInterval;
-            Slowed = IsCrisis();
+            Slowed = !convoy && IsCrisis(); // 대이주 배는 위기여도 늦추지 않음 (절정이 정한 간격)
             _timer -= dt * (Slowed ? _config.CrisisClockScale : 1f);
             if (_forecast == null && _timer <= ForecastSeconds(chapter))
             {
@@ -151,6 +159,29 @@ namespace SpaceStation.Simulation
             Ships++;
             Meet(Find(_pending.Species));
             Arrived?.Invoke(_pending);
+        }
+
+        /// <summary>
+        /// 13-6c 대이주 (사용자 결정 2026-10-19): 절정이 배 한 척을 바로 예보하고 seconds 뒤 도착시킴 (평소 시계 · 예보를 덮음).
+        /// 종족 = 만난 종족을 돌아가며 (order 0 = 가장 최근에 만난 종족 → 섞이게), 규모 = sizeMin ~ sizeMax + 포트 보너스.
+        /// </summary>
+        public ArkShip SendConvoy(int order, int sizeMin, int sizeMax, float seconds)
+        {
+            string species = _met.Count > 0 ? _met[((_met.Count - 1 - order) % _met.Count + _met.Count) % _met.Count] : _config.StartSpecies?.Id ?? "";
+            int min = Math.Max(1, sizeMin), span = Math.Max(min, sizeMax) - min + 1;
+            var ship = new ArkShip
+            {
+                Species = species,
+                Size = min + Math.Min(span - 1, (int)(_random01() * span)) + Ports * _config.PortSizeBonus,
+                NewSpecies = !_met.Contains(species),
+                Convoy = true,
+                ConvoyOrder = order + 1,
+            };
+            _forecast = ship;
+            _timer = Math.Max(0.01f, seconds);
+            Sim.Report($"대이주: {SpeciesName(species)} {ship.Size}명 · {Clock(_timer)} 뒤 도착", true);
+            Forecast?.Invoke(ship);
+            return ship;
         }
 
         /// <summary>예보 시간 = 장 값 + 포트 보너스.</summary>
@@ -244,6 +275,8 @@ namespace SpaceStation.Simulation
             Chapters?.SetFlag("ship");
             if (n > 0)
                 Chapters?.SetFlag("ship.accepted");
+            if (ship.NewSpecies)
+                Chapters?.SetFlag(NewSpeciesFlag); // 13-6c 3장 '첫 이민선 맞이하기' (장 표시는 장을 넘어도 남아 2장 'ship'과 따로)
             Resolved?.Invoke(ship, answer, n);
             return true;
         }

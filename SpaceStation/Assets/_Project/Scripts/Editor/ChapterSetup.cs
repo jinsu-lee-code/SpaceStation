@@ -85,6 +85,11 @@ namespace SpaceStation.Editor
             ChapterThreePolicies(ch3);
             Society();
 
+            // 13-6c 3장 구성 (사용자 결정 2026-10-18 · 19): 목표 = 필수 3(대형 · 첫 이민선 맞이하기 · 정책 하나 시행) + 선택 2(휴게실 가동 · 여객 도킹 포트 짓기),
+            // 절정 = 대이주(예고 3분 · 배 3척 · 45초 간격 · 척당 5~7명 · 정리 90초), 여객 도킹 포트를 3장에서 엶 (D-11)
+            ChapterThree(ch3);
+            AddUnlocks(ch3, M("MD_PassengerPort"));
+
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
             if (config == null)
@@ -488,6 +493,63 @@ namespace SpaceStation.Editor
             climax.FindPropertyRelative("_cleanMinBlocked").floatValue = 0.5f;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(chapter);
+        }
+
+        /// <summary>13-6c 3장 '무리 합류': 목표 5개 · 절정 '대이주' (값은 그레이박스 초안 — 측정 · 플레이 확인 때 조정).</summary>
+        private static void ChapterThree(ChapterData chapter)
+        {
+            var so = new SerializedObject(chapter);
+            var goals = so.FindProperty("_goals");
+            goals.arraySize = 5;
+            var grade = goals.GetArrayElementAtIndex(0);
+            Clear(grade);
+            grade.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.ReachGrade;
+            grade.FindPropertyRelative("_grade").intValue = 3;
+            FlagGoal(goals.GetArrayElementAtIndex(1), SpaceStation.Simulation.ArkShipSystem.NewSpeciesFlag, "첫 이민선 맞이하기 (받기 · 일부 · 거부 무엇이든)", false);
+            FlagGoal(goals.GetArrayElementAtIndex(2), SpaceStation.Simulation.ChapterPolicySystem.PolicyFlag, "정책 하나 시행", false);
+            var lounge = goals.GetArrayElementAtIndex(3);
+            ModuleGoal(lounge, M("MD_Recreation"), "휴게실 가동 (곰의 여가)");
+            var reward = lounge.FindPropertyRelative("_rewardResources");
+            reward.arraySize = 1;
+            reward.GetArrayElementAtIndex(0).FindPropertyRelative("Type").enumValueIndex = (int)ResourceType.Metal;
+            reward.GetArrayElementAtIndex(0).FindPropertyRelative("Amount").floatValue = 100f;
+            var port = goals.GetArrayElementAtIndex(4);
+            ModuleGoal(port, M("MD_PassengerPort"), "여객 도킹 포트 짓기");
+            port.FindPropertyRelative("_rewardResearchPoints").intValue = 1;
+
+            var climax = so.FindProperty("_climax");
+            climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.GreatMigration;
+            climax.FindPropertyRelative("_title").stringValue = "대이주";
+            climax.FindPropertyRelative("_description").stringValue = "섞인 무리를 태운 이민선 3척이 잇달아 옵니다 · 척당 5~7명 · 빈 집과 생명 유지를 미리 넉넉히";
+            climax.FindPropertyRelative("_warningSeconds").floatValue = 180f;
+            climax.FindPropertyRelative("_migrationShips").intValue = 3;
+            climax.FindPropertyRelative("_migrationFirstLead").floatValue = 20f;
+            climax.FindPropertyRelative("_migrationInterval").floatValue = 45f;
+            climax.FindPropertyRelative("_migrationSizeMin").intValue = 5;
+            climax.FindPropertyRelative("_migrationSizeMax").intValue = 7;
+            climax.FindPropertyRelative("_settleSeconds").floatValue = 90f; // 마지막 배에 답한 뒤 지켜보는 시간
+            climax.FindPropertyRelative("_cleanMinAccepted").floatValue = 0.6f;
+            climax.FindPropertyRelative("_cleanMaxDeparted").intValue = 0;
+            climax.FindPropertyRelative("_cleanMaxShortageSeconds").floatValue = 0f;
+            climax.FindPropertyRelative("_hurtMinAccepted").floatValue = 0.3f;
+            climax.FindPropertyRelative("_hurtMaxDeparted").intValue = 3;
+            climax.FindPropertyRelative("_hurtMaxShortageSeconds").floatValue = 60f;
+            // 결과 이름: 피해를 입는 사건이 아니라 이주민을 맞이하는 사건 (사용자 요청 2026-10-19)
+            climax.FindPropertyRelative("_cleanLabel").stringValue = "넉넉히 맞이함";
+            climax.FindPropertyRelative("_hurtLabel").stringValue = "빠듯하게 맞이함";
+            climax.FindPropertyRelative("_lostLabel").stringValue = "많은 이를 놓침";
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(chapter);
+        }
+
+        private static void ModuleGoal(SerializedProperty goal, ModuleData module, string text)
+        {
+            Clear(goal);
+            goal.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.BuildModule;
+            goal.FindPropertyRelative("_module").objectReferenceValue = module;
+            goal.FindPropertyRelative("_count").intValue = 1;
+            goal.FindPropertyRelative("_text").stringValue = text;
+            goal.FindPropertyRelative("_optional").boolValue = true;
         }
 
         private static void FlagGoal(SerializedProperty goal, string flag, string text, bool optional)
@@ -1018,6 +1080,14 @@ namespace SpaceStation.Editor
                 ("ship.refuse", CorePole.Neutral, CoreAxis.Care, "{0} {2}명을 태운 배를 돌려보냈습니다. 기록해 둡니다."),
                 ("ship.refuse", CorePole.First, CoreAxis.Care, "지금 있는 이들이 먼저입니다. {0} {2}명은 받지 않았습니다."),
                 ("ship.refuse", CorePole.Second, CoreAxis.Care, "{0} {2}명을 돌려보냈습니다. 이 결정이 무겁습니다."),
+                // 13-6c 3장 절정 '대이주' 결과 (버팀이 아니라 맞이함 — 사용자 요청 2026-10-19, 13-6b 독백처럼 짧은 혼잣말, 확인용 초안)
+                ("outcome.GreatMigration.Clean", CorePole.Neutral, CoreAxis.Care, "새 얼굴이 많이 늘었다. 집은 좁아졌지만, 그래도 따뜻하다."), // 깔끔 = 60% 이상이라 '모두'는 아님
+                ("outcome.GreatMigration.Clean", CorePole.Second, CoreAxis.Care, "다 같이 살 자리를 만들었다. 오늘은 그걸로 됐다."),
+                ("outcome.GreatMigration.Clean", CorePole.First, CoreAxis.Care, "받은 만큼 셈이 맞았다. 다음 배도 이렇게."),
+                ("outcome.GreatMigration.Hurt", CorePole.Neutral, CoreAxis.Care, "빠듯했다. 그래도 문은 닫지 않았다."),
+                ("outcome.GreatMigration.Hurt", CorePole.First, CoreAxis.Control, "받을 만큼만 받았다. 질서는 지켰다."),
+                ("outcome.GreatMigration.Lost", CorePole.Neutral, CoreAxis.Care, "다 지키지 못했다. 놓친 이들을 잊지 않겠다."), // 돌려보낸 경우 · 받았지만 떠난 경우 모두에 맞게
+                ("outcome.GreatMigration.Lost", CorePole.Second, CoreAxis.Care, "놓친 얼굴들이 자꾸 떠오른다."),
             };
             var so = new SerializedObject(config);
             var list = so.FindProperty("_lines");

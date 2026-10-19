@@ -16,7 +16,7 @@ namespace SpaceStation.UI
 {
     /// <summary>
     /// 13-6b 이민선 모습 + 처음 만나는 종족의 도킹 연출 (사용자 결정 2026-10-19). 화면 연출만 — 시뮬레이션은 바꾸지 않는다.
-    /// - 모든 배: 도착 전 접근(남은 게임 시간으로 위치, 절정 · 전환 중엔 안 보임) → 도착 = 도킹(<see cref="ArkDocking"/>: 여객 도킹 포트 입구, 없으면 코어 쪽 바깥 끝)
+    /// - 모든 배: 도착 전 접근(남은 게임 시간으로 위치, 절정 · 전환 중엔 안 보임 — 13-6c 대이주 배는 절정 중에도) → 도착 = 도킹(<see cref="ArkDocking"/>: 여객 도킹 포트 입구, 없으면 코어 쪽 바깥 끝)
     ///   → 받으면 잠시 머물다 떠남, 거부하면 뒤로 물러나 돌아 떠남. 몸통 띠 = 종족 색
     /// - 처음 만나는 종족의 배: 도착 순간 게임을 멈추고 레터박스 → 배를 따라가는 카메라 → 포트 근처에서 포트 쪽 고정 시점 → 도킹 → 코어 독백 2~3줄
     ///   → 원래 시점으로 돌아오며 도착 창. 답한 뒤에도 짧은 장면(받으면 입구에 불이 켜짐 · 거부하면 배가 돌아 떠남). ESC = 건너뛰기
@@ -155,7 +155,7 @@ namespace SpaceStation.UI
             var next = _ark.NextShip;
             var phase = _sim.Chapters != null ? _sim.Chapters.Phase : ChapterPhase.Preparation;
             bool showing = next != null && !next.NewSpecies && _ark.ClockOn && _ark.TimeLeft <= _approachSeconds
-                           && (phase == ChapterPhase.Preparation || phase == ChapterPhase.Warning) && FindDock();
+                           && (phase == ChapterPhase.Preparation || phase == ChapterPhase.Warning || next.Convoy) && FindDock(); // 13-6c 대이주 배는 절정 중에도
             if (showing)
             {
                 if (_mode != Mode.Approach || _shipData != next)

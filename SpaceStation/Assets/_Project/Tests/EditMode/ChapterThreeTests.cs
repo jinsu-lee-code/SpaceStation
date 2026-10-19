@@ -214,7 +214,112 @@ namespace SpaceStation.Tests
             Assert.AreEqual(0.5f + ArkDocking.Gap, nose.z, Eps);
         }
 
+        [Test]
+        public void GreatMigration_FirstShipFlag_ThenThreeMixedShips_AcceptedRatioDecides_SurvivesSave()
+        {
+            var ch = MigrationChapter();
+            var sim = Sim(Chapters(ch));
+            var ark = sim.GetSystem<ArkShipSystem>();
+            RunUntil(sim, () => ark.Pending != null);
+            Assert.IsTrue(ark.Pending.NewSpecies, "3장 첫 배 = 처음 만나는 곰");
+            Assert.IsTrue(ark.Answer(ShipAnswer.Refuse));
+            Assert.IsTrue(sim.Chapters.HasFlag(ArkShipSystem.NewSpeciesFlag), "거부도 '첫 이민선 맞이하기'");
+            Tick(sim, 1);
+            Assert.AreEqual(ChapterPhase.Climax, sim.Chapters.Phase, "필수 완료 · 예고 0초 → 대이주");
+            Assert.IsTrue(ark.ConvoyComing);
+            Assert.AreEqual("bear", ark.NextShip.Species, "가장 최근에 만난 종족부터");
+
+            RunUntil(sim, () => ark.Pending != null);
+            Assert.IsTrue(ark.Pending.Convoy);
+            Assert.AreEqual(5, ark.Pending.Size);
+            Assert.IsTrue(ark.Answer(ShipAnswer.Accept)); // 5/5
+            Tick(sim, 1);
+            Assert.AreEqual("rabbit", ark.NextShip.Species, "섞여서 옴");
+            StringAssert.Contains("배 2/3", sim.Chapters.Climax.Status);
+
+            // 배가 오는 중에 저장 → 불러온 판에서 이어감
+            var json = JsonUtility.ToJson(StationStateSerializer.Capture(sim));
+            var loaded = Sim(Chapters(ch));
+            StationStateSerializer.Restore(loaded, JsonUtility.FromJson<StationState>(json));
+            var ark2 = loaded.GetSystem<ArkShipSystem>();
+            Assert.IsTrue(ark2.ConvoyComing, "오는 배 저장");
+            RunUntil(loaded, () => ark2.Pending != null);
+            Assert.IsTrue(ark2.Answer(ShipAnswer.Refuse)); // 5/10
+            RunUntil(loaded, () => ark2.Pending != null);
+            Assert.AreEqual("bear", ark2.Pending.Species);
+            Assert.IsTrue(ark2.Answer(ShipAnswer.Accept)); // 10/15 = 67%
+            Tick(loaded, 5);
+            StringAssert.StartsWith("정리", loaded.Chapters.Climax.Status, "마지막 배 뒤 정리 시간");
+            RunUntil(loaded, () => loaded.Chapters.Phase == ChapterPhase.Transition);
+            var record = loaded.Chapters.LastRecord;
+            Assert.AreEqual(ChapterOutcome.Clean, record.Outcome, "60% 이상 · 떠남 0 · 바닥 0초");
+            StringAssert.Contains("이주민 15명 중 10명 받음 (67%)", record.Summary);
+        }
+
+        [Test]
+        public void GreatMigration_LowAcceptanceIsTight_CrowdDeparturesMeanMissed()
+        {
+            // 한 척만 받음 = 5/15 (33%) → 빠듯하게
+            var sim = Sim(Chapters(MigrationChapter()));
+            var ark = sim.GetSystem<ArkShipSystem>();
+            RunUntil(sim, () => ark.Pending != null);
+            ark.Answer(ShipAnswer.Refuse);
+            foreach (var answer in new[] { ShipAnswer.Accept, ShipAnswer.Refuse, ShipAnswer.Refuse })
+            {
+                RunUntil(sim, () => ark.Pending != null && ark.Pending.Convoy);
+                ark.Answer(answer);
+            }
+            RunUntil(sim, () => sim.Chapters.Phase == ChapterPhase.Transition);
+            Assert.AreEqual(ChapterOutcome.Hurt, sim.Chapters.LastRecord.Outcome);
+
+            // 다 받았지만 집이 모자라 하나둘 떠남 (3명 넘게) → 많은 이를 놓침
+            var b = new SerializedObject(_config);
+            b.FindProperty("_overcrowdedLossInterval").floatValue = 2f;
+            b.ApplyModifiedPropertiesWithoutUndo();
+            var crowd = Sim(Chapters(MigrationChapter()), housing: 10);
+            var ark2 = crowd.GetSystem<ArkShipSystem>();
+            RunUntil(crowd, () => ark2.Pending != null);
+            ark2.Answer(ShipAnswer.Refuse);
+            for (int i = 0; i < 3; i++)
+            {
+                RunUntil(crowd, () => ark2.Pending != null && ark2.Pending.Convoy);
+                ark2.Answer(ShipAnswer.Accept);
+            }
+            RunUntil(crowd, () => crowd.Chapters.Phase == ChapterPhase.Transition);
+            Assert.AreEqual(ChapterOutcome.Lost, crowd.Chapters.LastRecord.Outcome, crowd.Chapters.LastRecord.Summary);
+            StringAssert.Contains("15명 중 15명 받음 (100%)", crowd.Chapters.LastRecord.Summary);
+        }
+
         // ---------------- 도우미 ----------------
+
+        /// <summary>13-6c 3장: 필수 = '첫 이민선 맞이하기'만 · 예고 0초 → 대이주 (배 3척 · 첫 배 5초 · 간격 10초 · 5명 · 정리 20초, 문턱은 사용자 결정 1안).</summary>
+        private ChapterData MigrationChapter()
+        {
+            var ch = Chapter("3장", StationRule.None, slots: 0, hold: false, bears: true);
+            var so = new SerializedObject(ch);
+            var goal = so.FindProperty("_goals").GetArrayElementAtIndex(0);
+            goal.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.Flag;
+            goal.FindPropertyRelative("_flag").stringValue = ArkShipSystem.NewSpeciesFlag;
+            so.FindProperty("_shipSizeMin").intValue = 6;
+            so.FindProperty("_shipSizeMax").intValue = 6;
+            var climax = so.FindProperty("_climax");
+            climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.GreatMigration;
+            climax.FindPropertyRelative("_warningSeconds").floatValue = 0f;
+            climax.FindPropertyRelative("_migrationShips").intValue = 3;
+            climax.FindPropertyRelative("_migrationFirstLead").floatValue = 5f;
+            climax.FindPropertyRelative("_migrationInterval").floatValue = 10f;
+            climax.FindPropertyRelative("_migrationSizeMin").intValue = 5;
+            climax.FindPropertyRelative("_migrationSizeMax").intValue = 5;
+            climax.FindPropertyRelative("_settleSeconds").floatValue = 20f;
+            climax.FindPropertyRelative("_cleanMinAccepted").floatValue = 0.6f;
+            climax.FindPropertyRelative("_cleanMaxDeparted").intValue = 0;
+            climax.FindPropertyRelative("_cleanMaxShortageSeconds").floatValue = 0f;
+            climax.FindPropertyRelative("_hurtMinAccepted").floatValue = 0.3f;
+            climax.FindPropertyRelative("_hurtMaxDeparted").intValue = 3;
+            climax.FindPropertyRelative("_hurtMaxShortageSeconds").floatValue = 60f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return ch;
+        }
 
         private static void Tick(StationSimulation sim, int seconds)
         {

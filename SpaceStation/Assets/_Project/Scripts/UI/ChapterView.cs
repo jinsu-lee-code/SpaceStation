@@ -431,11 +431,12 @@ namespace SpaceStation.UI
                 string slow = _ships.Slowed ? $"\n<size=86%><color={HudText.Orange}>정거장이 흔들려 배가 사정을 보며 늦게 옵니다</color></size>" : "";
                 bool held = _chapters.Phase == ChapterPhase.Climax || _chapters.Phase == ChapterPhase.Transition;
                 string clock = held ? "대기 중" : $"{ArkShipSystem.Clock(_ships.TimeLeft)} 뒤";
-                text = next != null
-                    ? $"{HudTheme.Icon("warning")} <color={Gold}>이민선 예보</color>  <b>{_ships.SpeciesName(next.Species)} {next.Size}명</b> · {clock}"
-                      + (next.NewSpecies ? $"\n<size=86%><color={Gold}>처음 만나는 종족</color></size>" : "")
-                    : $"<color={Soft}>다음 이민선 · {clock}</color>";
-                text += $"\n<size=86%><color={Soft}>빈 집 {_ships.FreeHousing} · 무리 {_ships.Composition()}</color></size>" + slow;
+                if (_chapters.Phase != ChapterPhase.Climax || _chapters.Current.Climax.Kind != ChapterClimaxKind.GreatMigration) // 13-6c 대이주 중엔 절정 줄이 배를 보여 줌
+                    text = (next != null
+                        ? $"{HudTheme.Icon("warning")} <color={Gold}>이민선 예보</color>  <b>{_ships.SpeciesName(next.Species)} {next.Size}명</b> · {clock}"
+                          + (next.NewSpecies ? $"\n<size=86%><color={Gold}>처음 만나는 종족</color></size>" : "")
+                        : $"<color={Soft}>다음 이민선 · {clock}</color>") + "\n";
+                text += $"<size=86%><color={Soft}>빈 집 {_ships.FreeHousing} · 무리 {_ships.Composition()}</color></size>" + slow;
             }
             string tension = TensionText(); // 13-6a 긴장도 (값 + 표시만)
             if (tension.Length > 0)
@@ -477,7 +478,8 @@ namespace SpaceStation.UI
         {
             var species = _ships.Find(ship.Species);
             string name = _ships.SpeciesName(ship.Species);
-            _modalTitle.SetText($"이민선 도착\n<size=70%><color={Gold}>{name} {ship.Size}명</color>{(ship.NewSpecies ? $"  <color={Soft}>· 처음 만나는 종족</color>" : "")}</size>");
+            string convoy = ship.Convoy ? $"  <color={HudText.Red}>· {_chapters.Current.Climax.Title} {ship.ConvoyOrder}/{_chapters.Current.Climax.MigrationShips}</color>" : ""; // 13-6c
+            _modalTitle.SetText($"이민선 도착\n<size=70%><color={Gold}>{name} {ship.Size}명</color>{(ship.NewSpecies ? $"  <color={Soft}>· 처음 만나는 종족</color>" : "")}{convoy}</size>");
             _sb.Clear();
             if (species != null)
             {
@@ -571,13 +573,15 @@ namespace SpaceStation.UI
 
         private void HandleClimaxEnded(ChapterRecord record) => ShowResult(record);
 
-        private static string OutcomeText(ChapterOutcome o)
+        /// <summary>결과 이름 (절정 설정에 이름이 있으면 그것 — 13-6c 대이주 = 맞이함, 사용자 요청 2026-10-19).</summary>
+        private static string OutcomeText(ChapterOutcome o, ChapterClimaxSettings climax)
         {
+            string Name(string custom, string fallback) => string.IsNullOrEmpty(custom) ? fallback : custom;
             switch (o)
             {
-                case ChapterOutcome.Clean: return $"<color={HudTheme.GreenHex}>깔끔히 버팀</color>";
-                case ChapterOutcome.Hurt: return $"<color={HudText.Orange}>피해를 입고 버팀</color>";
-                default: return $"<color={HudText.Red}>일부를 잃음</color>";
+                case ChapterOutcome.Clean: return $"<color={HudTheme.GreenHex}>{Name(climax?.CleanLabel, "깔끔히 버팀")}</color>";
+                case ChapterOutcome.Hurt: return $"<color={HudText.Orange}>{Name(climax?.HurtLabel, "피해를 입고 버팀")}</color>";
+                default: return $"<color={HudText.Red}>{Name(climax?.LostLabel, "일부를 잃음")}</color>";
             }
         }
 
@@ -585,7 +589,7 @@ namespace SpaceStation.UI
         {
             var data = _chapters.Current;
             int seconds = Mathf.FloorToInt(record != null ? record.Seconds : _chapters.ChapterSeconds);
-            _modalTitle.SetText($"{data.DisplayName} 결과\n<size=70%>{(record != null ? OutcomeText(record.Outcome) : "")}</size>");
+            _modalTitle.SetText($"{data.DisplayName} 결과\n<size=70%>{(record != null ? OutcomeText(record.Outcome, data.Climax) : "")}</size>");
             _sb.Clear();
             _sb.Append($"<color={Soft}>{data.Climax.Title}</color>");
             if (record != null && !string.IsNullOrEmpty(record.Summary))
@@ -670,7 +674,7 @@ namespace SpaceStation.UI
                 foreach (var option in c.Choices)
                     if (option.Id == r.Choice)
                         choice = $"  ·  방향 <b>{option.Title}</b>";
-                _sb.Append($"{c.DisplayName}  ·  {OutcomeText(r.Outcome)}{choice}\n");
+                _sb.Append($"{c.DisplayName}  ·  {OutcomeText(r.Outcome, c.Climax)}{choice}\n");
             }
             _sb.Append($"\n<color={Soft}>다음 장은 아직 준비 중입니다. 지금 정거장으로 계속 플레이할 수 있습니다.</color>");
             _modalBody.SetText(_sb.ToString());

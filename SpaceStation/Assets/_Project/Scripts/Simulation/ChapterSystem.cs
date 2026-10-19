@@ -514,7 +514,12 @@ namespace SpaceStation.Simulation
             // 13-2: 절정 결과에 대한 코어의 독백 (지금 성향으로, 장 결과 창에 한 줄)
             var core = Core;
             if (core != null)
-                record.Monologue = core.SayAndLog("outcome." + record.Outcome, "", Current.DisplayName, record.Summary) ?? "";
+            {
+                // 13-6c: 절정 종류 전용 문장(outcome.GreatMigration.Clean 등)이 있으면 그것 — 대이주는 '버팀'이 아니라 '맞이함'
+                string specific = $"outcome.{Current.Climax.Kind}.{record.Outcome}";
+                string key = string.IsNullOrEmpty(core.Say(specific, null)) ? "outcome." + record.Outcome : specific;
+                record.Monologue = core.SayAndLog(key, "", Current.DisplayName, record.Summary) ?? "";
+            }
             _records.Add(record);
             ClimaxEnded?.Invoke(record);
         }

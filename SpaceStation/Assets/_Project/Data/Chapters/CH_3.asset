@@ -23,6 +23,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 585783da322cda94eb46e8b23b149a25, type: 2}
   - {fileID: 11400000, guid: 57be1da226ec1fe43987b71b6a5118a5, type: 2}
   - {fileID: 11400000, guid: baf82f88d7dd8af4485e679bf6e430d9, type: 2}
+  - {fileID: 11400000, guid: d0262f6ccfbe2fa489c03788c788b3a4, type: 2}
   _newNeeds: 
   _rules: 2
   _meteorHitsMin: 3
@@ -70,29 +71,68 @@ MonoBehaviour:
     _rewardResources: []
     _rewardResearchPoints: 0
     _rewardFreeRepairs: 0
-  - _kind: 2
-    _text: 
-    _optional: 1
+  - _kind: 4
+    _text: "\uCCAB \uC774\uBBFC\uC120 \uB9DE\uC774\uD558\uAE30 (\uBC1B\uAE30 \xB7
+      \uC77C\uBD80 \xB7 \uAC70\uBD80 \uBB34\uC5C7\uC774\uB4E0)"
+    _optional: 0
     _grade: 0
     _module: {fileID: 0}
     _count: 50
     _resource: 4
     _amount: 0
-    _flag: 
+    _flag: ship.new
     _rewardResources: []
     _rewardResearchPoints: 0
-    _rewardFreeRepairs: 1
+    _rewardFreeRepairs: 0
+  - _kind: 4
+    _text: "\uC815\uCC45 \uD558\uB098 \uC2DC\uD589"
+    _optional: 0
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 50
+    _resource: 4
+    _amount: 0
+    _flag: policy
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 1
+    _text: "\uD734\uAC8C\uC2E4 \uAC00\uB3D9 (\uACF0\uC758 \uC5EC\uAC00)"
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 11400000, guid: 10878b207703a5f4ba93a15b9ce5120f, type: 2}
+    _count: 1
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources:
+    - Type: 4
+      Amount: 100
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 1
+    _text: "\uC5EC\uAC1D \uB3C4\uD0B9 \uD3EC\uD2B8 \uC9D3\uAE30"
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 11400000, guid: d0262f6ccfbe2fa489c03788c788b3a4, type: 2}
+    _count: 1
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 1
+    _rewardFreeRepairs: 0
   _climax:
-    _kind: 1
-    _title: "\uC6B4\uC11D \uC5F0\uD0C0 (\uC784\uC2DC \uC808\uC815)"
-    _description: "\uB300\uD615 \uC815\uAC70\uC7A5\uC5D0 \uB2FF\uC73C\uBA70, \uC5EC\uB7EC
-      \uBB34\uB9AC\uAC00 \uD55C \uC9C0\uBD95 \uC544\uB798 \uBAA8\uC778\uB2E4. \xB7
-      \uC6B4\uC11D 4\uD30C \xD7 3\uAC1C"
+    _kind: 4
+    _title: "\uB300\uC774\uC8FC"
+    _description: "\uC11E\uC778 \uBB34\uB9AC\uB97C \uD0DC\uC6B4 \uC774\uBBFC\uC120
+      3\uCC99\uC774 \uC787\uB2EC\uC544 \uC635\uB2C8\uB2E4 \xB7 \uCC99\uB2F9 5~7\uBA85
+      \xB7 \uBE48 \uC9D1\uACFC \uC0DD\uBA85 \uC720\uC9C0\uB97C \uBBF8\uB9AC \uB109\uB109\uD788"
     _warningSeconds: 180
     _waves: 4
     _waveInterval: 20
     _hitsPerWave: 3
-    _settleSeconds: 30
+    _settleSeconds: 90
     _cleanMaxDamaged: 4
     _hurtMaxDestroyed: 0
     _nightSeconds: 180
@@ -102,6 +142,18 @@ MonoBehaviour:
     _showerFirstWarning: 120
     _showerNextWarning: 40
     _cleanMinBlocked: 0.5
+    _migrationShips: 3
+    _migrationFirstLead: 20
+    _migrationInterval: 45
+    _migrationSizeMin: 5
+    _migrationSizeMax: 7
+    _cleanMinAccepted: 0.6
+    _cleanMaxDeparted: 0
+    _hurtMinAccepted: 0.3
+    _hurtMaxDeparted: 3
+    _cleanLabel: "\uB109\uB109\uD788 \uB9DE\uC774\uD568"
+    _hurtLabel: "\uBE60\uB4EF\uD558\uAC8C \uB9DE\uC774\uD568"
+    _lostLabel: "\uB9CE\uC740 \uC774\uB97C \uB193\uCE68"
   _choices:
   - _id: open
     _title: "\uBB38\uC744 \uC5F0\uB2E4"

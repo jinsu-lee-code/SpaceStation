@@ -77,6 +77,8 @@ namespace SpaceStation.Data
         LongNight,
         /// <summary>13-5c 2장 '큰 유성우': 방향을 바꿔 가며 특별 유성우 (방향마다 위 파 수 × 파당 개수). 판정 = 막아 낸 비율 · 파괴 개수.</summary>
         DirectionalShower,
+        /// <summary>13-6c 3장 '대이주': 섞인 종족 이민선 여러 척이 짧은 간격으로 연달아. 판정 = 받은 인원 비율 · 떠난 주민 · 생명 유지 바닥 시간.</summary>
+        GreatMigration,
     }
 
     /// <summary>13-1: 절정 설정 (종류마다 쓰는 값이 다름).</summary>
@@ -119,6 +121,26 @@ namespace SpaceStation.Data
         [Tooltip("깔끔히 버팀: 파괴 0 + 막아 낸 비율 이상 (포탑 격추 · 실드가 빗겨내 빗나감 · 파손 면역)")]
         [SerializeField, Range(0f, 1f)] private float _cleanMinBlocked = 0.5f;
 
+        [Header("대이주 (GreatMigration, 13-6c) — 바닥 시간 문턱은 위 '긴 밤' 값, 정리 시간 = 마지막 배에 답한 뒤 지켜보는 시간")]
+        [SerializeField, Min(1)] private int _migrationShips = 3;
+        [Tooltip("절정이 시작되고 첫 배가 닿기까지 (초)")]
+        [SerializeField, Min(1f)] private float _migrationFirstLead = 20f;
+        [Tooltip("앞 배에 답한 뒤 다음 배가 닿기까지 (초)")]
+        [SerializeField, Min(1f)] private float _migrationInterval = 45f;
+        [SerializeField, Min(1)] private int _migrationSizeMin = 5;
+        [SerializeField, Min(1)] private int _migrationSizeMax = 7;
+        [Tooltip("넉넉히 맞이함: 받은 인원 비율 이상 + 떠난 주민 이하 + 바닥 시간 이하")]
+        [SerializeField, Range(0f, 1f)] private float _cleanMinAccepted = 0.6f;
+        [SerializeField, Min(0)] private int _cleanMaxDeparted;
+        [Tooltip("빠듯하게 맞이함: 받은 인원 비율 이상 + 떠난 주민 이하 + 바닥 시간 이하 (못 미치면 마지막 등급)")]
+        [SerializeField, Range(0f, 1f)] private float _hurtMinAccepted = 0.3f;
+        [SerializeField, Min(0)] private int _hurtMaxDeparted = 3;
+
+        [Header("결과 이름 (비면 깔끔히 버팀 · 피해를 입고 버팀 · 일부를 잃음)")]
+        [SerializeField] private string _cleanLabel;
+        [SerializeField] private string _hurtLabel;
+        [SerializeField] private string _lostLabel;
+
         public ChapterClimaxKind Kind => _kind;
         public string Title => _title;
         public string Description => _description;
@@ -136,6 +158,18 @@ namespace SpaceStation.Data
         public float ShowerFirstWarning => _showerFirstWarning;
         public float ShowerNextWarning => _showerNextWarning;
         public float CleanMinBlocked => _cleanMinBlocked;
+        public int MigrationShips => Mathf.Max(1, _migrationShips);
+        public float MigrationFirstLead => Mathf.Max(1f, _migrationFirstLead);
+        public float MigrationInterval => Mathf.Max(1f, _migrationInterval);
+        public int MigrationSizeMin => Mathf.Max(1, _migrationSizeMin);
+        public int MigrationSizeMax => Mathf.Max(MigrationSizeMin, _migrationSizeMax);
+        public float CleanMinAccepted => _cleanMinAccepted;
+        public int CleanMaxDeparted => _cleanMaxDeparted;
+        public float HurtMinAccepted => _hurtMinAccepted;
+        public int HurtMaxDeparted => _hurtMaxDeparted;
+        public string CleanLabel => _cleanLabel;
+        public string HurtLabel => _hurtLabel;
+        public string LostLabel => _lostLabel;
     }
 
     /// <summary>13-1: 장 전환에서 고르는 방주의 방향 하나 (효과 · 코어 성격 축은 13-2).</summary>
