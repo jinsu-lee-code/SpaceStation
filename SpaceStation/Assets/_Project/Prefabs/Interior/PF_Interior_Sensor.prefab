@@ -351,7 +351,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1 &4319040436338439845
+--- !u!1 &3575496297515036209
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -359,8 +359,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 3566117625240662832}
-  - component: {fileID: 4535319249291746486}
+  - component: {fileID: 4224194435159874015}
+  - component: {fileID: 400765552541139587}
   m_Layer: 0
   m_Name: Light
   m_TagString: Untagged
@@ -368,33 +368,33 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &3566117625240662832
+--- !u!4 &4224194435159874015
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4319040436338439845}
+  m_GameObject: {fileID: 3575496297515036209}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.25, y: 1.5, z: -2.25}
+  m_LocalPosition: {x: 0, y: -0.54999995, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8358326321071187111}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!108 &4535319249291746486
+--- !u!108 &400765552541139587
 Light:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4319040436338439845}
+  m_GameObject: {fileID: 3575496297515036209}
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 2
-  m_Color: {r: 0.9, g: 0.92, b: 1, a: 1}
-  m_Intensity: 0.8
+  m_Color: {r: 0.4, g: 0.9, b: 1, a: 1}
+  m_Intensity: 0.9
   m_Range: 3
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -538,7 +538,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1 &5500270027845724117
+--- !u!1 &5611816814999382507
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -546,8 +546,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1984602656937558215}
-  - component: {fileID: 7539999561100058920}
+  - component: {fileID: 6998367851975793985}
+  - component: {fileID: 4922193174724712590}
   m_Layer: 0
   m_Name: Light
   m_TagString: Untagged
@@ -555,33 +555,33 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1984602656937558215
+--- !u!4 &6998367851975793985
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5500270027845724117}
+  m_GameObject: {fileID: 5611816814999382507}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.100000024, z: 0}
+  m_LocalPosition: {x: -2.25, y: 1.5, z: -2.25}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8358326321071187111}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!108 &7539999561100058920
+--- !u!108 &4922193174724712590
 Light:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5500270027845724117}
+  m_GameObject: {fileID: 5611816814999382507}
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 2
-  m_Color: {r: 0.4, g: 0.9, b: 1, a: 1}
-  m_Intensity: 0.9
+  m_Color: {r: 0.9, g: 0.92, b: 1, a: 1}
+  m_Intensity: 0.8
   m_Range: 3
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -665,8 +665,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4446569456007492497}
-  - {fileID: 1984602656937558215}
-  - {fileID: 3566117625240662832}
+  - {fileID: 4224194435159874015}
+  - {fileID: 6998367851975793985}
   m_Father: {fileID: 4181746731150794942}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6301037476752193569
