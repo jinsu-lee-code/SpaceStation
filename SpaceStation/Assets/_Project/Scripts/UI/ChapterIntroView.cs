@@ -15,7 +15,7 @@ namespace SpaceStation.UI
     /// 13-4 장 직전 컷신 (사용자 결정 2026-10-18): 검은 화면에 대사가 한 줄씩 타자로 나오고, 끝나면 화면이 켜지며 게임이 시작된다.
     /// 1장 = 인간이 남긴 방주 시스템 음성 → 마지막에 깨어나는 코어의 첫 말("코어:"로 시작하는 줄 = 코어 색 · 코어 기록에 남음).
     /// 새 캠페인마다(불러오기는 아님) · 클릭 · Space · Enter = 다음 줄(타자 중이면 줄 끝까지), ESC = 건너뛰기. 보는 동안 시간 · 조작 멈춤.
-    /// 13-7 장 전환 연출이 같은 틀을 쓴다. 내용은 코드로 만든다.
+    /// 13-7b: 마지막 줄 뒤 검은 화면 위 장 제목 카드("1장" · "깨어남", 장 전환 연출과 같은 모양) → 화면이 켜짐. 내용은 코드로 만든다.
     /// </summary>
     [DefaultExecutionOrder(-250)]
     public sealed class ChapterIntroView : MonoBehaviour
@@ -34,16 +34,18 @@ namespace SpaceStation.UI
         [SerializeField] private float _charsPerSecond = 28f;
         [Tooltip("다 보고 화면이 켜지는 시간 (초)")]
         [SerializeField] private float _fadeSeconds = 1.2f;
+        [Tooltip("13-7b 마지막 줄 뒤 장 제목 카드('1장' · '깨어남')가 떠 있는 시간 (초, 클릭 · Space · ESC로 넘김)")]
+        [SerializeField] private float _titleSeconds = 2.4f;
 
         private HoloUi _ui;
         private StationSimulation _sim;
         private ChapterData _chapter;
         private CanvasGroup _group;
-        private TMP_Text _speaker, _history, _line, _hint;
+        private TMP_Text _speaker, _history, _line, _hint, _title, _subtitle;
         private int _index = -1;
         private float _typed;
-        private bool _fading, _wasPaused, _wasLocked, _wasBlocked;
-        private float _fadeStart;
+        private bool _fading, _titling, _wasPaused, _wasLocked, _wasBlocked;
+        private float _fadeStart, _titleStart;
         private readonly StringBuilder _sb = new StringBuilder();
 
         public bool Playing { get; private set; }
@@ -82,6 +84,10 @@ namespace SpaceStation.UI
             _line = _ui.Label(column, "", 32f, TextAlignmentOptions.TopLeft, wrap: true);
             HoloUi.Place(_line.rectTransform, new Vector2(0f, -350f), new Vector2(1180f, 200f));
             HoloUi.Glow(_line, 0.35f);
+
+            // 13-7b 장 제목 카드 (장 전환 연출과 같은 모양)
+            CinematicStage.TitleLabels(_ui, root, out _title, out _subtitle);
+            _title.alpha = _subtitle.alpha = 0f;
 
             _hint = _ui.Label(root, $"<color={Soft}>클릭 · Space  다음      ESC  건너뛰기</color>", 17f, TextAlignmentOptions.Bottom);
             var hrt = _hint.rectTransform;
@@ -150,6 +156,26 @@ namespace SpaceStation.UI
                     End();
                 return;
             }
+            if (_titling)
+            {
+                // 장 제목 카드: 0.5초에 걸쳐 나타남 → 정해진 시간 또는 클릭 · Space · ESC → 화면이 켜짐
+                float e = Time.unscaledTime - _titleStart;
+                _title.alpha = _subtitle.alpha = Mathf.Clamp01(e / 0.5f);
+                var kb = Keyboard.current;
+                var ms = Mouse.current;
+                bool pass = e > 0.6f && ((ms != null && ms.leftButton.wasPressedThisFrame)
+                    || (kb != null && (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.escapeKey.wasPressedThisFrame)));
+                if (kb != null && kb.escapeKey.wasPressedThisFrame)
+                    InputGate.ConsumeEscape();
+                if (e >= _titleSeconds || pass)
+                {
+                    _titling = false;
+                    _fading = true;
+                    _fadeStart = Time.unscaledTime;
+                    _group.blocksRaycasts = false;
+                }
+                return;
+            }
             _typed += Time.unscaledDeltaTime * _charsPerSecond;
             _line.ForceMeshUpdate();
             int length = LineLength;
@@ -176,17 +202,22 @@ namespace SpaceStation.UI
 
         private void Finish()
         {
-            if (_fading)
+            if (_fading || _titling)
                 return;
             var lines = _chapter.IntroLines;
             for (int i = Mathf.Max(0, _index); i < lines.Count; i++) // 건너뛴 코어의 말도 기록에는 남김
                 if (IsCore(lines[i]))
                     _sim.GetSystem<CorePersonalitySystem>()?.Log(Body(lines[i]));
             _index = lines.Count;
-            _fading = true;
-            _fadeStart = Time.unscaledTime;
             _hint.gameObject.SetActive(false);
-            _group.blocksRaycasts = false;
+            _history.SetText("");
+            _speaker.SetText("");
+            _line.SetText("");
+            // 13-7b 검은 화면 위 장 제목 카드 → 화면이 켜짐 (장 전환 연출과 같은 모양)
+            _title.SetText(_chapter.DisplayName);
+            _subtitle.SetText(string.IsNullOrEmpty(_chapter.Subtitle) ? "" : $"<color={CinematicStage.Soft}>{_chapter.Subtitle}</color>");
+            _titling = true;
+            _titleStart = Time.unscaledTime;
         }
 
         private void End()

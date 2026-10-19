@@ -45,6 +45,7 @@ namespace SpaceStation.UI
         private MaterialPropertyBlock _block;
         private float _spin, _cloud;
         private float _shown = -1f;
+        private float _held = -1f; // 13-7b 장 전환 연출이 불빛을 직접 움직이는 동안 (음수 = 시계를 따라감)
 
         /// <summary>지금 화면에 켜진 불빛 비율 (13-7b 장 전환 연출이 읽음).</summary>
         public float ShownLights => _shown;
@@ -52,6 +53,14 @@ namespace SpaceStation.UI
         public Vector3 Direction => _direction.normalized;
         /// <summary>지구가 화면에서 차지하는 반각 (도).</summary>
         public float AngularRadius => Mathf.Asin(Mathf.Clamp01(_radius / _distance)) * Mathf.Rad2Deg;
+        /// <summary>시계가 가리키는 불빛 비율 (화면은 이 값을 천천히 따라감).</summary>
+        public float TargetLights => EarthLights.Value(_sim?.Chapters);
+
+        /// <summary>13-7b 장 전환 연출: 화면 불빛을 이 값으로 붙잡음 (꺼지는 순간을 연출이 고름).</summary>
+        public void HoldLights(float value) => _held = Mathf.Clamp01(value);
+
+        /// <summary>붙잡기를 풀고 다시 시계를 따라감.</summary>
+        public void ReleaseLights() => _held = -1f;
 
         private void Start()
         {
@@ -108,8 +117,11 @@ namespace SpaceStation.UI
             var face = Quaternion.LookRotation(flat.sqrMagnitude > 1e-6f ? flat : Vector3.forward, Vector3.up);
             _earth.rotation = face * Quaternion.AngleAxis(_tilt, Vector3.right) * Quaternion.AngleAxis(_startLongitude + 90f - _spin, Vector3.up);
 
-            float target = EarthLights.Value(_sim?.Chapters);
-            _shown = _shown < 0f ? target : Mathf.MoveTowards(_shown, target, Time.unscaledDeltaTime * _fadeRate);
+            float target = TargetLights;
+            if (_held >= 0f)
+                _shown = _held;
+            else
+                _shown = _shown < 0f ? target : Mathf.MoveTowards(_shown, target, Time.unscaledDeltaTime * _fadeRate);
             if (_renderer == null)
                 return;
             _renderer.GetPropertyBlock(_block);

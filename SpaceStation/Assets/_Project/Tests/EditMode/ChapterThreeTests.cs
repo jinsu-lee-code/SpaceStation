@@ -314,6 +314,19 @@ namespace SpaceStation.Tests
             Assert.AreEqual(0.6f, EarthLights.Value(sim.Chapters), 0.011f, "장 안에서 서서히");
             Tick(sim, 100);
             Assert.AreEqual(0.5f, EarthLights.Value(sim.Chapters), Eps, "끝 값에서 멈춤");
+
+            // 13-7b 마지막 장: 방향을 고르면(캠페인 끝) 전환 연출에서 한 번 더 꺼진 값
+            var last = Chapter("3장", StationRule.None, slots: 0, hold: false);
+            var lso = new SerializedObject(last);
+            lso.FindProperty("_earthLightsEnd").floatValue = 0.5f;
+            lso.FindProperty("_earthLightsFinal").floatValue = 0.4f;
+            lso.ApplyModifiedPropertiesWithoutUndo();
+            var campaign = Sim(Chapters(last));
+            RunUntil(campaign, () => campaign.Chapters.Phase == ChapterPhase.Transition);
+            Assert.AreEqual(0.5f, EarthLights.Value(campaign.Chapters), Eps);
+            Assert.IsTrue(campaign.Chapters.Choose(-1));
+            Assert.AreEqual(ChapterPhase.Finished, campaign.Chapters.Phase);
+            Assert.AreEqual(0.4f, EarthLights.Value(campaign.Chapters), Eps, "캠페인 끝 = 마지막 값");
         }
 
         // ---------------- 도우미 ----------------

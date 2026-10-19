@@ -14,7 +14,9 @@ namespace SpaceStation.Simulation
             if (chapters == null || chapters.Count == 0)
                 return 1f;
             var chapter = chapters.Current;
-            if (chapters.Phase == ChapterPhase.Transition || chapters.Phase == ChapterPhase.Finished)
+            if (chapters.Phase == ChapterPhase.Finished)
+                return chapter.EarthLightsFinal; // 마지막 장 전환 연출에서 한 번 더 꺼짐
+            if (chapters.Phase == ChapterPhase.Transition)
                 return chapter.EarthLightsEnd;
             return Mathf.Lerp(chapter.EarthLightsStart, chapter.EarthLightsEnd, Mathf.Clamp01(chapters.ChapterSeconds / chapter.EarthDimSeconds));
         }

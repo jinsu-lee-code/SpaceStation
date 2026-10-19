@@ -93,7 +93,12 @@ namespace SpaceStation.Editor
             // 13-7a 꺼져 가는 지구의 불빛 (사용자 결정 2026-10-19: 장 안에서 서서히 + 장 전환 때 크게, 1장 100% → 3장 끝 약 48%)
             SetEarthLights(ch1, 1f, 0.92f, 900f);
             SetEarthLights(ch2, 0.8f, 0.7f, 1800f);
-            SetEarthLights(ch3, 0.6f, 0.48f, 1800f);
+            SetEarthLights(ch3, 0.6f, 0.48f, 1800f, final: 0.4f); // 마지막 장 전환 연출에서 한 번 더 (3장 끝 약 40%)
+
+            // 13-7b 장 전환 연출의 옛 녹음 조각 (사용자 결정 2026-10-19: 방주에 남은 인간의 기록, T8 — 확인용 초안)
+            Transmission(ch1, "기록 07. 시험 운항은 성공이다. 생명 유지 장치는 우리가 아니라 저 아이들에게 맞췄다.");
+            Transmission(ch2, "기록 12. 마지막 회의가 끝났다. 남는 쪽이 우리라는 데, 아무도 반대하지 않았다.");
+            Transmission(ch3, "기록 19. 판단은 코어에게 맡긴다. 우리보다 나은 선택을 하기를.");
 
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
@@ -277,6 +282,25 @@ namespace SpaceStation.Editor
             avo.FindProperty("_shipModel").objectReferenceValue = ArkShipModel();
             avo.FindProperty("_flameMaterial").objectReferenceValue = ArkFlameMaterial();
             avo.ApplyModifiedPropertiesWithoutUndo();
+
+            // 13-7b 장 전환 연출 (재생할 때 HUD 맨 앞으로 옮기고 다른 HUD는 감춤 — 이민선 연출과 같은 무대)
+            var oldTransition = parent.Find("ChapterTransitionView");
+            if (oldTransition != null)
+                Object.DestroyImmediate(oldTransition.gameObject);
+            var transitionGo = new GameObject("ChapterTransitionView", typeof(RectTransform));
+            transitionGo.transform.SetParent(parent, false);
+            var trt = (RectTransform)transitionGo.transform;
+            trt.anchorMin = Vector2.zero;
+            trt.anchorMax = Vector2.one;
+            trt.offsetMin = Vector2.zero;
+            trt.offsetMax = Vector2.zero;
+            var transitionView = transitionGo.AddComponent<SpaceStation.UI.ChapterTransitionView>();
+            var tso = new SerializedObject(transitionView);
+            tso.FindProperty("_station").objectReferenceValue = station;
+            tso.FindProperty("_clock").objectReferenceValue = clock;
+            foreach (var f in new[] { "_font", "_fillSprite", "_frameSprite", "_buttonSprite", "_holoArt" })
+                tso.FindProperty(f).objectReferenceValue = rso.FindProperty(f).objectReferenceValue;
+            tso.ApplyModifiedPropertiesWithoutUndo();
 
             // 13-7a 꺼져 가는 지구 (정거장 바깥 배경 — HUD가 아니라 씬 맨 위)
             foreach (var oldEarth in Object.FindObjectsByType<SpaceStation.UI.EarthView>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -935,12 +959,21 @@ namespace SpaceStation.Editor
             return AssetDatabase.LoadAssetAtPath<GameObject>(ArkModelPath);
         }
 
-        private static void SetEarthLights(ChapterData chapter, float start, float end, float seconds)
+        private static void SetEarthLights(ChapterData chapter, float start, float end, float seconds, float final = -1f)
         {
             var so = new SerializedObject(chapter);
             so.FindProperty("_earthLightsStart").floatValue = start;
             so.FindProperty("_earthLightsEnd").floatValue = end;
             so.FindProperty("_earthDimSeconds").floatValue = seconds;
+            so.FindProperty("_earthLightsFinal").floatValue = final;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(chapter);
+        }
+
+        private static void Transmission(ChapterData chapter, string text)
+        {
+            var so = new SerializedObject(chapter);
+            so.FindProperty("_transmission").stringValue = text;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(chapter);
         }
@@ -1165,6 +1198,16 @@ namespace SpaceStation.Editor
                 ("outcome.GreatMigration.Hurt", CorePole.First, CoreAxis.Control, "받을 만큼만 받았다. 질서는 지켰다."),
                 ("outcome.GreatMigration.Lost", CorePole.Neutral, CoreAxis.Care, "다 지키지 못했다. 놓친 이들을 잊지 않겠다."), // 돌려보낸 경우 · 받았지만 떠난 경우 모두에 맞게
                 ("outcome.GreatMigration.Lost", CorePole.Second, CoreAxis.Care, "놓친 얼굴들이 자꾸 떠오른다."),
+                // 13-7b 장 전환 연출 독백 2줄 ("\n"으로 나눔, 방금 고른 방향의 축 성향이 가장 강하면 그 문장 — 확인용 초안)
+                ("transition.1", CorePole.Neutral, CoreAxis.Care, "첫 긴 밤을 넘겼다.\n그사이 저 아래 불빛이 또 몇 개 꺼졌다."),
+                ("transition.1", CorePole.First, CoreAxis.Memory, "꺼진 불빛을 하나씩 세어 둔다.\n누군가는 기억해야 하니까."),
+                ("transition.1", CorePole.Second, CoreAxis.Memory, "뒤를 돌아보는 건 여기까지.\n불빛이 꺼져도, 우리는 앞으로 간다."),
+                ("transition.2", CorePole.Neutral, CoreAxis.Care, "유성우를 지나왔다.\n정거장은 단단해졌고, 지구는 더 어두워졌다."),
+                ("transition.2", CorePole.Second, CoreAxis.Scope, "더 멀리 뻗었다.\n멀어지는 만큼 저 불빛도 작아진다."),
+                ("transition.2", CorePole.First, CoreAxis.Scope, "안쪽부터 다졌다.\n지킬 수 있는 것부터 지킨다."),
+                ("transition.3", CorePole.Neutral, CoreAxis.Care, "여러 무리가 한 지붕 아래 모였다.\n지구의 밤은 이제 거의 꺼졌다."),
+                ("transition.3", CorePole.Second, CoreAxis.Care, "문을 열어 두기로 했다.\n저기서 꺼진 만큼, 여기서 불을 켜 두고 싶다."),
+                ("transition.3", CorePole.First, CoreAxis.Control, "규칙부터 세웠다.\n불빛이 줄수록 지켜야 할 것은 분명해진다."),
             };
             var so = new SerializedObject(config);
             var list = so.FindProperty("_lines");

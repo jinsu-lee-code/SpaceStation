@@ -57,6 +57,8 @@ namespace SpaceStation.UI
         // 13-3 이민선 (카드 아래 줄 + 도착 창), 13-6b 처음 만나는 종족은 도킹 연출 뒤 도착 창
         private ArkShipSystem _ships;
         private ArkShipView _arkView;
+        private ChapterTransitionView _transition; // 13-7b 장 전환 연출
+        private bool _choosing; // 방향을 고르는 중 (캠페인 끝 알림을 연출 뒤로 미룸)
         private TMP_Text _shipLine;
         // 13-5a 탐사 (카드 줄)
         private ExplorationSystem _explore;
@@ -108,6 +110,7 @@ namespace SpaceStation.UI
             _records = _sim.GetSystem<RecordArchiveSystem>();
             _tension = _sim.GetSystem<TensionSystem>();
             _arkView = FindFirstObjectByType<ArkShipView>(FindObjectsInactive.Include);
+            _transition = FindFirstObjectByType<ChapterTransitionView>(FindObjectsInactive.Include);
             _interior =FindFirstObjectByType<Interior.InteriorMode>(FindObjectsInactive.Include);
             if (_interior != null)
                 _interior.InsideChanged += HandleInsideChanged;
@@ -647,12 +650,36 @@ namespace SpaceStation.UI
 
         private void Choose(int index)
         {
-            if (!_chapters.Choose(index))
+            var finished = _chapters.Current;
+            int finishedNumber = _chapters.Index + 1;
+            bool cinematic = _transition != null && _transition.isActiveAndEnabled;
+            _choosing = cinematic;
+            bool ok = _chapters.Choose(index);
+            _choosing = false;
+            if (!ok)
             {
                 AudioService.TryPlay(l => l.UiError);
                 return;
             }
-            if (_chapters.Phase != ChapterPhase.Finished)
+            bool ended = _chapters.Phase == ChapterPhase.Finished;
+            if (cinematic)
+            {
+                // 13-7b 장 전환 연출 → 다음 장(시간이 다시 흐름) 또는 '이어질 이야기'
+                CloseModal(resume: false);
+                _transition.Play(finished, finishedNumber, ended ? null : _chapters.Current, () =>
+                {
+                    if (ended)
+                        ShowEnding();
+                    else
+                    {
+                        _clock.InputLocked = false;
+                        _clock.Clock.SetPaused(false);
+                    }
+                    Refresh();
+                });
+                return;
+            }
+            if (!ended)
                 CloseModal(resume: true);
             Refresh();
         }
@@ -661,7 +688,11 @@ namespace SpaceStation.UI
 
         // ---------------- 캠페인 끝 ----------------
 
-        private void HandleCampaignFinished() => ShowEnding();
+        private void HandleCampaignFinished()
+        {
+            if (!_choosing) // 방향을 골라 끝났으면 장 전환 연출 뒤에
+                ShowEnding();
+        }
 
         private void ShowEnding()
         {

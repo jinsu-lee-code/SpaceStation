@@ -279,6 +279,12 @@ namespace SpaceStation.Data
         [SerializeField, Range(0f, 1f)] private float _earthLightsEnd = 1f;
         [Tooltip("시작 값 → 끝 값까지 걸리는 장 시간 (초)")]
         [SerializeField, Min(1f)] private float _earthDimSeconds = 1800f;
+        [Tooltip("마지막 장일 때: 장 전환 연출에서 한 번 더 꺼져 닿는 값 (음수 = 끝 값 그대로)")]
+        [SerializeField] private float _earthLightsFinal = -1f;
+
+        [Header("13-7b 장 전환 연출 (사용자 결정 2026-10-19: 방주에 남은 옛 녹음의 조각)")]
+        [Tooltip("이 장을 마치고 전환 연출에서 재생되는 인간의 옛 녹음 한 줄 (비면 없음)")]
+        [SerializeField, TextArea(1, 3)] private string _transmission;
 
         [Header("준비 목표 · 절정 · 전환")]
         [SerializeField] private List<ChapterGoal> _goals = new List<ChapterGoal>();
@@ -325,6 +331,8 @@ namespace SpaceStation.Data
         public float EarthLightsStart => _earthLightsStart;
         public float EarthLightsEnd => _earthLightsEnd;
         public float EarthDimSeconds => Mathf.Max(1f, _earthDimSeconds);
+        public float EarthLightsFinal => _earthLightsFinal >= 0f ? Mathf.Clamp01(_earthLightsFinal) : _earthLightsEnd;
+        public string Transmission => _transmission;
         public IReadOnlyList<ChapterGoal> Goals => _goals;
         public ChapterClimaxSettings Climax => _climax;
         public IReadOnlyList<ChapterChoice> Choices => _choices;

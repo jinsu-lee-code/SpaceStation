@@ -81,19 +81,11 @@ namespace SpaceStation.UI
         private static Mesh _coneInner, _coneOuter;
 
         // 연출
-        private bool _scene;
+        private CinematicStage _stage; // 레터박스 · 자막 · HUD 감추기 · 시간 멈춤 · 카메라 복귀 (13-7b 장 전환 연출과 같은 무대)
         private ArkShip _sceneShip;
-        private bool _skip;
-        private bool _wasPaused, _wasLocked, _wasBlocked;
-        private Vector3 _savedFocus;
-        private float _savedYaw, _savedPitch, _savedDistance;
-        private RectTransform _barTop, _barBottom;
-        private CanvasGroup _group;
-        private TMP_Text _speaker, _line, _hint;
-        private readonly List<(CanvasGroup group, float alpha, bool blocks)> _hidden = new List<(CanvasGroup, float, bool)>();
 
         /// <summary>연출 중 (도착 창은 끝난 뒤에).</summary>
-        public bool Playing => _scene;
+        public bool Playing => _stage != null && _stage.Active;
 
         private void Start()
         {
@@ -109,7 +101,7 @@ namespace SpaceStation.UI
             _ui = HoloUi.For(_holoArt, _font, _fillSprite, _frameSprite, _buttonSprite);
             _root = new GameObject("ArkShips").transform;
             _ark.Resolved += HandleResolved;
-            BuildOverlay();
+            _stage = new CinematicStage((RectTransform)transform, _ui, _clock, _orbit);
         }
 
         private void OnDestroy()
@@ -126,7 +118,7 @@ namespace SpaceStation.UI
 
         private void Update()
         {
-            if (_ark == null || _scene)
+            if (_ark == null || Playing)
                 return;
             float dt = SimDelta;
             var pending = _ark.Pending;
@@ -426,21 +418,17 @@ namespace SpaceStation.UI
 
         // ---------------- 처음 만나는 종족 연출 ----------------
 
-        /// <summary>
-        /// 연출 한 프레임 (실제 초, 최대 0.05) — 끊김(로딩 · 에디터 멈춤)이 있어도 장면이 건너뛰지 않게.
-        /// 녹화로 프레임 시간을 고정했으면(<see cref="Time.captureDeltaTime"/>) 그 값 — 영상 속도가 실제와 같게.
-        /// </summary>
-        private static float Dt => Time.captureDeltaTime > 0f ? Time.captureDeltaTime : Mathf.Min(Time.unscaledDeltaTime, 0.05f);
+        private static float Dt => CinematicStage.Dt;
 
         /// <summary>이 배의 도착을 연출로 보일지 (처음 만나는 종족 · 붙을 자리가 있을 때).</summary>
-        public bool WantsArrival(ArkShip ship) => isActiveAndEnabled && _ark != null && ship != null && ship.NewSpecies && !_scene && FindDock();
+        public bool WantsArrival(ArkShip ship) => isActiveAndEnabled && _ark != null && ship != null && ship.NewSpecies && !Playing && FindDock();
 
         /// <summary>도착 연출 (게임 멈춤) → 끝나면 done (도착 창).</summary>
         public void PlayArrival(ArkShip ship, Action done) => StartCoroutine(Arrival(ship, done));
 
         private IEnumerator Arrival(ArkShip ship, Action done)
         {
-            BeginScene();
+            _stage.Begin(this);
             _sceneShip = ship;
             Spawn(ship);
             _mode = Mode.Docked;
@@ -448,7 +436,7 @@ namespace SpaceStation.UI
             float shipT = 0f;
             // 1) 배를 따라가는 카메라 (뒤 · 왼쪽 위에서 정거장 쪽을 봄 — 그 자리가 모듈에 막히거나 배가 가려지면 오른쪽 · 더 높이)
             _follow = ArkShot.PickFollow(Occupied, ApproachPoint, CutT, ShipLength);
-            for (float k = 0f; k < 1f && !_skip; k += Dt / _followSeconds)
+            for (float k = 0f; k < 1f && !_stage.Skip; k += Dt / _followSeconds)
             {
                 shipT = CutT * Smooth(Mathf.Clamp01(k));
                 PlaceApproach(shipT);
@@ -457,25 +445,26 @@ namespace SpaceStation.UI
             }
             // 2) 포트 쪽 고정 시점으로 순간 전환(컷) → 천천히 도킹 (사용자 피드백: 미끄러지듯 옮겨 가는 전환이 어색함)
             var fixedPos = FixedCameraPosition();
-            for (float k = 0f; k < 1f && !_skip; k += Dt / _dockSeconds)
+            for (float k = 0f; k < 1f && !_stage.Skip; k += Dt / _dockSeconds)
             {
                 PlaceApproach(Mathf.Lerp(CutT, 1f, Ease(Mathf.Clamp01(k))));
                 cam.SetPositionAndRotation(fixedPos, Quaternion.LookRotation(Vector3.Lerp(_nose, ShipCenter, DockLook) - fixedPos, Vector3.up));
                 yield return null;
             }
             PlaceApproach(1f);
-            if (!_skip)
+            if (!_stage.Skip)
                 AudioService.TryPlay(l => l.BuildSelect);
             var lookAt = Vector3.Lerp(_nose, ShipCenter, DockLook);
             var hold = Quaternion.LookRotation(lookAt - fixedPos, Vector3.up);
             cam.SetPositionAndRotation(fixedPos, hold);
-            // 3) 코어 독백 — 그동안 방향은 그대로 둔 채 보는 곳 쪽으로 천천히 다가감 (사용자 요청: 고정 시점이 멀어 배가 작게 보임)
-            if (!_skip)
+            // 3) 코어 독백 (코어 기록에도) — 그동안 방향은 그대로 둔 채 보는 곳 쪽으로 천천히 다가감 (사용자 요청: 고정 시점이 멀어 배가 작게 보임)
+            if (!_stage.Skip)
             {
                 var lines = ArrivalLines(ship);
                 var pushTo = ArkShot.PushIn(Occupied, fixedPos, lookAt, _monologuePush);
-                float total = MonologueSeconds(lines), t = 0f;
-                var talk = Monologue(lines);
+                float total = CinematicStage.SaySeconds(lines, _charsPerSecond), t = 0f;
+                var core = _sim.GetSystem<CorePersonalitySystem>();
+                var talk = _stage.Say("코어", CoreTint, lines, _charsPerSecond, line => core?.Log(line));
                 while (talk.MoveNext())
                 {
                     t += Dt;
@@ -483,11 +472,10 @@ namespace SpaceStation.UI
                     yield return talk.Current;
                 }
             }
-            _line.SetText("");
-            _speaker.SetText("");
+            _stage.ClearText();
             // 4) 원래 시점으로 돌아오며 도착 창
-            yield return Return();
-            EndScene();
+            yield return _stage.ReturnCamera(_returnSeconds);
+            _stage.End();
             done?.Invoke();
         }
 
@@ -499,7 +487,7 @@ namespace SpaceStation.UI
                 _stayLeft = boarded > 0 ? _stayAfterAccept : 0f; // 장면 없이 평소 흐름대로 (머물다 떠남)
                 yield break;
             }
-            BeginScene();
+            _stage.Begin(this);
             var cam = _orbit.transform;
             var fixedPos = FixedCameraPosition();
             Vector3 fromPos = cam.position;
@@ -518,11 +506,11 @@ namespace SpaceStation.UI
                 light.range = 2.6f;
                 light.intensity = 0f;
                 // 코어 혼잣말 (사용자 피드백: 안내문 말투가 어색함 → 독백과 같은 목소리)
-                _speaker.SetText($"<color={CoreTint}>코어</color>");
-                _line.SetText($"<color={CoreTint}>" + (boarded < ship.Size
+                _stage.SetSpeaker($"<color={CoreTint}>코어</color>");
+                _stage.SetLine($"<color={CoreTint}>" + (boarded < ship.Size
                     ? $"{boarded}명만 들어왔다. 나머지는 저 배에 남아 다시 떠난다."
                     : $"{name} {boarded}명이 들어왔다. 이제 같은 지붕 아래다.") + "</color>");
-                for (float k = 0f; k < 1f && !_skip; k += Dt / 3.2f)
+                for (float k = 0f; k < 1f && !_stage.Skip; k += Dt / 3.2f)
                 {
                     float b = Smooth(Mathf.Clamp01(k / 0.25f));
                     cam.SetPositionAndRotation(Vector3.Lerp(fromPos, fixedPos, b), Quaternion.Slerp(fromRot, Quaternion.LookRotation(Vector3.Lerp(_nose, ShipCenter, 0.4f) - fixedPos, Vector3.up), b));
@@ -535,9 +523,9 @@ namespace SpaceStation.UI
             else
             {
                 // 거부: 배가 뒤로 물러나 돌아 떠남
-                _speaker.SetText($"<color={CoreTint}>코어</color>");
-                _line.SetText($"<color={CoreTint}>배가 멀어진다. 저 배는 이제 어디로 가게 될까.</color>");
-                for (float k = 0f; k < 1f && !_skip; k += Dt / 5f)
+                _stage.SetSpeaker($"<color={CoreTint}>코어</color>");
+                _stage.SetLine($"<color={CoreTint}>배가 멀어진다. 저 배는 이제 어디로 가게 될까.</color>");
+                for (float k = 0f; k < 1f && !_stage.Skip; k += Dt / 5f)
                 {
                     float b = Smooth(Mathf.Clamp01(k / 0.15f));
                     PlaceLeaving(Mathf.Lerp(0f, 0.7f, Mathf.Clamp01(k)));
@@ -548,10 +536,9 @@ namespace SpaceStation.UI
                 _mode = Mode.Leaving;
                 _leaveT = 0.7f;
             }
-            _line.SetText("");
-            _speaker.SetText("");
-            yield return Return();
-            EndScene();
+            _stage.ClearText();
+            yield return _stage.ReturnCamera(_returnSeconds);
+            _stage.End();
             if (glow != null)
                 Destroy(glow, 0.1f);
         }
@@ -610,213 +597,10 @@ namespace SpaceStation.UI
             return lines;
         }
 
-        private const float LineHold = 2.4f; // 독백 한 줄이 다 나온 뒤 기다리는 시간
-
-        /// <summary>독백을 넘기지 않고 다 볼 때 걸리는 시간 (다가가는 카메라가 이 시간에 맞춰 멈춤).</summary>
-        private float MonologueSeconds(List<string> lines)
-        {
-            float s = 0f;
-            foreach (var text in lines)
-                s += text.Length / Mathf.Max(1f, _charsPerSecond) + LineHold;
-            return Mathf.Max(0.5f, s);
-        }
-
-        /// <summary>코어 독백: 줄마다 타자 → 다 나오면 2.4초 또는 클릭 · Space · Enter로 다음. 코어 기록에도 남김.</summary>
-        private IEnumerator Monologue(List<string> lines)
-        {
-            var core = _sim.GetSystem<CorePersonalitySystem>();
-            _speaker.SetText($"<color={CoreTint}>코어</color>");
-            foreach (var text in lines)
-            {
-                core?.Log(text);
-                float typed = 0f;
-                while (!_skip && typed < text.Length)
-                {
-                    typed += Dt * _charsPerSecond;
-                    if (NextPressed())
-                        typed = text.Length;
-                    _line.SetText($"<color={CoreTint}>{text.Substring(0, Mathf.Min(text.Length, Mathf.FloorToInt(typed)))}</color>");
-                    yield return null;
-                }
-                _line.SetText($"<color={CoreTint}>{text}</color>");
-                yield return null;
-                for (float w = 0f; w < LineHold && !_skip && !NextPressed(); w += Dt)
-                    yield return null;
-                if (_skip)
-                    yield break;
-            }
-        }
-
-        private static bool NextPressed()
-        {
-            var k = Keyboard.current;
-            var m = Mouse.current;
-            return (k != null && (k.spaceKey.wasPressedThisFrame || k.enterKey.wasPressedThisFrame)) || (m != null && m.leftButton.wasPressedThisFrame);
-        }
-
-        private IEnumerator Return()
-        {
-            var cam = _orbit.transform;
-            var rig = _orbit.Rig;
-            rig.Set(_savedFocus, _savedYaw, _savedPitch, _savedDistance);
-            Vector3 fromPos = cam.position;
-            Quaternion fromRot = cam.rotation;
-            float seconds = _skip ? 0.25f : _returnSeconds;
-            for (float k = 0f; k < 1f; k += Dt / seconds)
-            {
-                float b = Smooth(Mathf.Clamp01(k));
-                cam.SetPositionAndRotation(Vector3.Lerp(fromPos, rig.Position, b), Quaternion.Slerp(fromRot, rig.Rotation, b));
-                SetBars(1f - b);
-                yield return null;
-            }
-            SetBars(0f);
-        }
-
-        // ---------------- 장면 시작 · 끝 ----------------
-
-        private void BeginScene()
-        {
-            _scene = true;
-            _skip = false;
-            _wasPaused = _clock.Clock.IsPaused;
-            _wasLocked = _clock.InputLocked;
-            _wasBlocked = InputGate.Blocked;
-            _clock.Clock.SetPaused(true);
-            _clock.InputLocked = true;
-            InputGate.Blocked = true;
-            var rig = _orbit.Rig;
-            _savedFocus = rig.Focus;
-            _savedYaw = rig.Yaw;
-            _savedPitch = rig.Pitch;
-            _savedDistance = rig.Distance;
-            _orbit.enabled = false;
-            HideHud(true);
-            transform.SetAsLastSibling();
-            _group.alpha = 1f;
-            _line.SetText("");
-            _speaker.SetText("");
-            StartCoroutine(BarsIn());
-        }
-
-        private void EndScene()
-        {
-            _orbit.Restore(_savedFocus, _savedYaw, _savedPitch, _savedDistance);
-            _orbit.enabled = true;
-            HideHud(false);
-            _group.alpha = 0f;
-            _clock.InputLocked = _wasLocked;
-            _clock.Clock.SetPaused(_wasPaused);
-            InputGate.Blocked = _wasBlocked;
-            _scene = false;
-        }
-
-        private IEnumerator BarsIn()
-        {
-            for (float k = 0f; k < 1f && _scene; k += Dt / 0.4f)
-            {
-                SetBars(Smooth(Mathf.Clamp01(k)));
-                yield return null;
-            }
-            if (_scene)
-                SetBars(1f);
-        }
-
         private void LateUpdate()
         {
             UpdateFlames(Dt);
-            if (!_scene)
-                return;
-            var k = Keyboard.current;
-            if (k != null && k.escapeKey.wasPressedThisFrame)
-            {
-                InputGate.ConsumeEscape();
-                _skip = true;
-            }
-        }
-
-        /// <summary>장면 동안 다른 HUD를 감춤 (CanvasGroup 투명도, 끝나면 되돌림).</summary>
-        private void HideHud(bool hide)
-        {
-            if (!hide)
-            {
-                foreach (var (group, alpha, blocks) in _hidden)
-                {
-                    if (group == null)
-                        continue;
-                    group.alpha = alpha;
-                    group.blocksRaycasts = blocks;
-                }
-                _hidden.Clear();
-                return;
-            }
-            var parent = transform.parent;
-            if (parent == null)
-                return;
-            for (int i = 0; i < parent.childCount; i++)
-            {
-                var child = parent.GetChild(i);
-                if (child == transform || !child.gameObject.activeSelf)
-                    continue;
-                var group = child.GetComponent<CanvasGroup>();
-                if (group == null)
-                    group = child.gameObject.AddComponent<CanvasGroup>();
-                _hidden.Add((group, group.alpha, group.blocksRaycasts));
-                group.alpha = 0f;
-                group.blocksRaycasts = false;
-            }
-        }
-
-        // ---------------- 화면 (레터박스 · 자막) ----------------
-
-        private void BuildOverlay()
-        {
-            var root = (RectTransform)transform;
-            _group = root.gameObject.AddComponent<CanvasGroup>();
-            _group.alpha = 0f;
-            _group.blocksRaycasts = false;
-            _group.interactable = false;
-            _barTop = Bar(root, "BarTop", top: true);
-            _barBottom = Bar(root, "BarBottom", top: false);
-            _speaker = _ui.Label(_barBottom, "", 18f, TextAlignmentOptions.Center);
-            _speaker.rectTransform.anchorMin = new Vector2(0f, 1f);
-            _speaker.rectTransform.anchorMax = new Vector2(1f, 1f);
-            _speaker.rectTransform.pivot = new Vector2(0.5f, 1f);
-            _speaker.rectTransform.anchoredPosition = new Vector2(0f, -10f);
-            _speaker.rectTransform.sizeDelta = new Vector2(0f, 24f);
-            _line = _ui.Label(_barBottom, "", 26f, TextAlignmentOptions.Center, wrap: true);
-            _line.rectTransform.anchorMin = new Vector2(0.15f, 0f);
-            _line.rectTransform.anchorMax = new Vector2(0.85f, 1f);
-            _line.rectTransform.offsetMin = new Vector2(0f, 30f);
-            _line.rectTransform.offsetMax = new Vector2(0f, -34f);
-            _hint = _ui.Label(_barBottom, $"<color={Soft}>ESC 건너뛰기</color>", 14f, TextAlignmentOptions.BottomRight);
-            _hint.rectTransform.anchorMin = new Vector2(1f, 0f);
-            _hint.rectTransform.anchorMax = new Vector2(1f, 0f);
-            _hint.rectTransform.pivot = new Vector2(1f, 0f);
-            _hint.rectTransform.anchoredPosition = new Vector2(-28f, 12f);
-            _hint.rectTransform.sizeDelta = new Vector2(260f, 24f);
-            SetBars(0f);
-        }
-
-        private static RectTransform Bar(RectTransform parent, string name, bool top)
-        {
-            var rt = HoloUi.Rect(name, parent);
-            rt.anchorMin = new Vector2(0f, top ? 1f : 0f);
-            rt.anchorMax = new Vector2(1f, top ? 1f : 0f);
-            rt.pivot = new Vector2(0.5f, top ? 1f : 0f);
-            rt.sizeDelta = new Vector2(0f, 150f);
-            var image = rt.gameObject.AddComponent<Image>();
-            image.color = Color.black;
-            image.raycastTarget = false;
-            return rt;
-        }
-
-        /// <summary>레터박스 0 ~ 1 (화면 위아래 검은 띠가 들어오고 나감).</summary>
-        private void SetBars(float k)
-        {
-            if (_barTop == null)
-                return;
-            _barTop.anchoredPosition = new Vector2(0f, (1f - k) * 150f);
-            _barBottom.anchoredPosition = new Vector2(0f, -(1f - k) * 150f);
+            _stage?.PollSkip();
         }
     }
 }
