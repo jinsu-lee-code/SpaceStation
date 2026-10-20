@@ -79,6 +79,19 @@ namespace SpaceStation.Interior
 
         public bool OnErrand => _route != null;
 
+        /// <summary>12-5 심부름 중 목적지에 머무는 중 (통로 밖).</summary>
+        public bool ErrandStaying => _route != null && _routePhase == 1;
+
+        /// <summary>12-5 심부름 중 일어서기 · 걷기 · 앉기 (통로를 쓰는 중).</summary>
+        public bool ErrandMoving => _route != null && _routePhase != 1;
+
+        /// <summary>12-5 머묾을 끝내고 돌아가기 시작 (머무는 시간을 무한으로 준 심부름 — 통로가 빌 때 방 표시가 부름).</summary>
+        public void EndStay()
+        {
+            if (ErrandStaying)
+                _next = Time.unscaledTime;
+        }
+
         /// <summary>
         /// 12-5 심부름 시작: 앉아 있으면 일어나서 <paramref name="route"/>(월드 점, 마지막 = 목적지)를 차례로 걸어가 <paramref name="yaw"/>를 보고
         /// <paramref name="stay"/>초 머문 뒤 같은 길로 돌아와 원래 자리로. 도착 · 떠남 · 자리로 돌아옴 때 알림. 쉬는 중이 아니면 false.
