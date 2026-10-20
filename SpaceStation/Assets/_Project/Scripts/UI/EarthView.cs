@@ -91,11 +91,17 @@ namespace SpaceStation.UI
 
         private void OnDestroy() => RenderPipelineManager.beginCameraRendering -= FollowCamera;
 
-        /// <summary>그리기 직전 그 카메라에서 같은 방향 · 거리로 (정거장이 아무리 커져도 다가갈 수 없음).</summary>
+        /// <summary>
+        /// 그리기 직전 그 카메라에서 같은 방향 · 거리로 (정거장이 아무리 커져도 다가갈 수 없음).
+        /// 보는 거리가 짧은 카메라(내부 바깥 창 = 300)는 그 안으로 당기고 같은 비율로 줄여 겉보기 크기 그대로 — 깊이는 셰이더가 먼 평면에 붙임 (13-7a 남은 것, 2026-10-20).
+        /// </summary>
         private void FollowCamera(ScriptableRenderContext context, Camera cam)
         {
-            if (_earth != null && cam != null)
-                _earth.position = cam.transform.position + _direction.normalized * _distance;
+            if (_earth == null || cam == null)
+                return;
+            float d = Mathf.Min(_distance, cam.farClipPlane * 0.8f);
+            _earth.position = cam.transform.position + _direction.normalized * d;
+            _earth.localScale = Vector3.one * (_radius * d / _distance);
         }
 
         private float SimDelta => _clock == null || _clock.Clock.IsPaused ? 0f : Time.deltaTime * _clock.Clock.Speed;
