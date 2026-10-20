@@ -249,7 +249,12 @@ namespace SpaceStation.Interior
                     break;
                 case State.Turn:
                     if (Busy())
+                    {
+                        // 기다리는 동안 걷기 동작을 멈춤 — 안 멈추면 ResidentMotion이 반응(손 흔들기)을 끝내지 못해 Busy가 계속돼 영영 서 있었음
+                        // (2026-10-20 행정 관제소: 일어나 돌던 민원인이 플레이어를 보고 손을 흔들다 멈춤)
+                        _motion?.Walk(0f, dt);
                         break;
+                    }
                     if (TurnToward(_goal - transform.position, dt) < 25f)
                         _state = State.Walk;
                     if (_motion != null)
