@@ -15,6 +15,7 @@ namespace SpaceStation.Interior
     public sealed class InteriorStationMap : InteriorRoomDisplay
     {
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private const float Gap = 0.09f;        // 모듈 사이 틈 (칸 크기 비율)
         private const float MaxCell = 0.28f;    // 칸 하나 최대 크기 (m) — 모듈이 몇 개 없을 때
         private const float Lift = 0.006f;      // 화면 면에서 (바탕 격자 윗면 +0.0025보다 3.5mm 위 — 가까우면 겹친 자리가 깜빡임)
@@ -45,11 +46,12 @@ namespace SpaceStation.Interior
         private TextMeshPro _title, _summary;
         private readonly TextMeshPro[] _legend = new TextMeshPro[StateCount];
         private MaterialPropertyBlock _block;
-        private Color _hereEmission;
+        private Color _hereEmission, _onEmission, _offEmission, _offBase;
         private Vector3 _right;
         private int _version = -1;
         private bool _shown;
         private bool _built;
+        private bool _brokenLit;
 
         public void Configure(Vector3 center, Vector3 normal, Vector3 up, Vector2 size, Material on, Material off, Material here)
         {
@@ -70,7 +72,10 @@ namespace SpaceStation.Interior
             _normal = _normal.normalized;
             _up = _up.normalized;
             _right = Vector3.Cross(_normal, _up);   // 보는 사람 오른쪽 (CreateText 글자 방향과 같음)
-            _hereEmission = _here != null && _here.HasProperty(EmissionColorId) ? _here.GetColor(EmissionColorId) : Color.white;
+            _hereEmission = EmissionOf(_here, Color.white);
+            _onEmission = EmissionOf(_on, Color.white);
+            _offEmission = EmissionOf(_off, Color.black);
+            _offBase = _off != null && _off.HasProperty(BaseColorId) ? _off.GetColor(BaseColorId) : Color.black;
             string[] names = { "MapHere", "MapOn", "MapOff", "MapBroken" };
             Material[] mats = { _here, _on, _off, _on };
             for (int i = 0; i < StateCount; i++)
@@ -97,6 +102,8 @@ namespace SpaceStation.Interior
                 _legend[i].SetText(labels[i]);
             }
         }
+
+        private static Color EmissionOf(Material m, Color fallback) => m != null && m.HasProperty(EmissionColorId) ? m.GetColor(EmissionColorId) : fallback;
 
         private Vector3 At(float u, float v) => _center + _right * u + _up * v;
         private float LegendU(int i) => -_size.x / 2f + Margin + 0.06f + i * 0.85f;
@@ -266,11 +273,21 @@ namespace SpaceStation.Interior
             _block.Clear();
             _block.SetColor(EmissionColorId, _hereEmission * (1.05f + 0.5f * Mathf.Sin(t * Mathf.PI * 2f / 2.4f)));
             here.SetPropertyBlock(_block);
-            // 고장 = 밝음 0.35초 ↔ 어두움 0.25초
-            var broken = _renderers[(int)State.Broken];
-            var mat = Mathf.Repeat(t, 0.6f) < 0.35f ? _on : _off;
-            if (broken.sharedMaterial != mat)
-                broken.sharedMaterial = mat;
+            // 고장 = 밝음 0.35초 ↔ 꺼짐과 같은 어두움 0.25초 (재질은 그대로, 속성 블록만)
+            bool lit = Mathf.Repeat(t, 0.6f) < 0.35f;
+            if (lit != _brokenLit)
+            {
+                _brokenLit = lit;
+                _block.Clear();
+                if (!lit)
+                {
+                    _block.SetColor(EmissionColorId, _offEmission);
+                    _block.SetColor(BaseColorId, _offBase);
+                }
+                else
+                    _block.SetColor(EmissionColorId, _onEmission);
+                _renderers[(int)State.Broken].SetPropertyBlock(_block);
+            }
         }
 
         private void OnDestroy()
