@@ -11,7 +11,9 @@ namespace SpaceStation.Interior
     /// - 민원인 = 대기 의자의 쉬는 주민 (<see cref="ResidentWander"/>, 스스로 돌아다니지 않게 <see cref="ResidentWander.Hold"/>).
     ///   번호표가 없으면 가끔 발권기로 걸어가 번호표를 뽑고(발권기 번호가 그때만 올라감) 의자로 돌아옴
     /// - 직원이 있고 비어 있는 창구는 기다리는 번호 중 가장 작은 번호를 부르고, 그 민원인이 창구 앞으로 걸어가 몇 초 머문 뒤 돌아옴
-    /// - 길 = 의자 앞 → 가운데 통로 → (창구: 줄 기둥 앞 통로 → 창구 앞 / 발권기: 통로 끝 → 발권기 앞). 방을 만들 때 비워 둔 통로
+    /// - 길 = 의자 앞 → (창구: 가운데 통로 → 줄 기둥 앞 통로 → 창구 앞 / 발권기: 의자 줄 뒤 앞벽 쪽 통로 → 발권기 앞). 방을 만들 때 비워 둔 통로.
+    ///   발권기 길은 들어오는 곳(서쪽 문 앞 통로)을 피함 — 플레이어가 서 있으면 민원인이 계속 기다려 발권기가 묶였음 (2026-10-20 플레이 검수).
+    ///   그래도 한 사람이 오래 막히면 발권기 · 창구를 놓아줌 (<see cref="StuckSeconds"/>)
     /// 바뀐 번호는 1.5초 밝기 깜빡임 (색약), 실제 시간(unscaled). 모듈이 꺼지면 "---".
     /// </summary>
     public sealed class InteriorQueueBoard : InteriorRoomDisplay
@@ -19,6 +21,7 @@ namespace SpaceStation.Interior
         private const float FlashSeconds = 1.5f;
         private const float ScanSeconds = 1f;
         private const float StaffReach = 0.45f;   // 직원 의자에서 이만큼 안에 앉은 주민 = 직원
+        private const float StuckSeconds = 40f;   // 심부름이 이보다 길면 발권기 · 창구를 다음 사람에게
 
         [Serializable]
         public struct Panel
@@ -49,7 +52,9 @@ namespace SpaceStation.Interior
         [SerializeField] private float _aisleZ;
         [Tooltip("창구 줄 기둥 앞 통로 (이 x를 따라 창구 앞으로)")]
         [SerializeField] private float _laneX = 1.55f;
-        [Tooltip("통로 끝 → 발권기로 꺾는 곳")]
+        [Tooltip("발권기로 가는 통로 (의자 줄 뒤 앞벽 쪽, 이 z를 따라 걸음)")]
+        [SerializeField] private float _ticketLaneZ = 2.2f;
+        [Tooltip("발권기 통로에서 발권기 앞으로 꺾는 곳")]
         [SerializeField] private Vector3 _ticketVia;
         [Tooltip("의자에서 일어서는 곳까지 (의자가 보는 쪽으로)")]
         [SerializeField] private float _seatFront = 0.5f;
@@ -71,6 +76,8 @@ namespace SpaceStation.Interior
         private bool[] _open;
         private Visitor[] _atWindow;
         private float[] _windowFree;   // 창구가 다시 부를 수 있는 때
+        private float[] _windowSince;  // 지금 손님을 부른 때
+        private float _machineSince;
         private readonly List<Visitor> _visitors = new List<Visitor>();
         private readonly List<ResidentFigure> _figures = new List<ResidentFigure>();
         private readonly List<Vector3> _route = new List<Vector3>();
@@ -81,13 +88,14 @@ namespace SpaceStation.Interior
         private bool _seeded;
         private System.Random _rng;
 
-        public void Configure(Window[] windows, Panel ticket, Vector4 ticketStand, float aisleZ, float laneX, Vector3 ticketVia)
+        public void Configure(Window[] windows, Panel ticket, Vector4 ticketStand, float aisleZ, float laneX, float ticketLaneZ, Vector3 ticketVia)
         {
             _windows = windows;
             _ticket = ticket;
             _ticketStand = ticketStand;
             _aisleZ = aisleZ;
             _laneX = laneX;
+            _ticketLaneZ = ticketLaneZ;
             _ticketVia = ticketVia;
         }
 
@@ -102,6 +110,7 @@ namespace SpaceStation.Interior
             _open = new bool[n];
             _atWindow = new Visitor[n];
             _windowFree = new float[n];
+            _windowSince = new float[n];
             for (int i = 0; i < n; i++)
             {
                 var p = _windows[i].Board;
@@ -180,6 +189,14 @@ namespace SpaceStation.Interior
             float now = Time.unscaledTime;
             if (Active)
             {
+                // 오래 막힌 심부름 (플레이어가 길을 막고 서 있는 등): 발권기 · 창구를 다음 사람에게
+                if (_atMachine != null && now - _machineSince > StuckSeconds)
+                    _atMachine = null;
+                for (int i = 0; i < _windows.Length; i++)
+                {
+                    if (_atWindow[i] != null && now - _windowSince[i] > StuckSeconds)
+                        _atWindow[i] = null;
+                }
                 bool anyOpen = false;
                 foreach (bool o in _open)
                     anyOpen |= o;
@@ -203,7 +220,7 @@ namespace SpaceStation.Interior
             {
                 if (v.Ticket != 0 || v.Busy || now < v.NextTicket || !v.Wander.Seated)
                     continue;
-                BuildRoute(v.Wander, _ticketVia, _ticketStand, toCounter: false);
+                BuildRoute(v.Wander, _ticketLaneZ, _ticketVia, _ticketStand, toCounter: false);
                 var visitor = v;
                 bool started = v.Wander.StartErrand(_route, _ticketStand.w + transform.eulerAngles.y, 1.4f,
                     onArrive: null,
@@ -212,13 +229,15 @@ namespace SpaceStation.Interior
                         // 번호표 나옴 → 발권기 번호가 그때 올라감
                         visitor.Ticket = ++_issued;
                         _ticketFlash = Time.unscaledTime + FlashSeconds;
-                        _atMachine = null;
+                        if (_atMachine == visitor)
+                            _atMachine = null;
                     },
                     onDone: () => visitor.Busy = false);
                 if (started)
                 {
                     v.Busy = true;
                     _atMachine = v;
+                    _machineSince = now;
                 }
                 else
                     v.NextTicket = now + 2f;   // 일어설 수 없었음 — 조금 뒤 다시
@@ -240,14 +259,17 @@ namespace SpaceStation.Interior
             if (next == null)
                 return;
             var c = _windows[window].Counter;
-            BuildRoute(next.Wander, new Vector3(_laneX, c.y, c.z), c, toCounter: true);
+            BuildRoute(next.Wander, _aisleZ, new Vector3(_laneX, c.y, c.z), c, toCounter: true);
             var visitor = next;
             bool started = next.Wander.StartErrand(_route, c.w + transform.eulerAngles.y, Range(_serveSeconds.x, _serveSeconds.y),
                 onArrive: null,
                 onLeave: () =>
                 {
-                    _atWindow[window] = null;
-                    _windowFree[window] = Time.unscaledTime + 1.5f;   // 다음 사람은 조금 뒤에
+                    if (_atWindow[window] == visitor)
+                    {
+                        _atWindow[window] = null;
+                        _windowFree[window] = Time.unscaledTime + 1.5f;   // 다음 사람은 조금 뒤에
+                    }
                 },
                 onDone: () =>
                 {
@@ -264,18 +286,19 @@ namespace SpaceStation.Interior
             next.Ticket = 0;
             next.Busy = true;
             _atWindow[window] = next;
+            _windowSince[window] = now;
         }
 
-        /// <summary>의자 앞 → 가운데 통로 → 꺾는 곳 → 목적지 (월드 점, <see cref="_route"/>).</summary>
-        private void BuildRoute(ResidentWander w, Vector3 via, Vector4 goal, bool toCounter)
+        /// <summary>의자 앞 → 통로(z = <paramref name="laneZ"/>) → (창구: 줄 기둥 앞 통로) → 꺾는 곳 → 목적지 (월드 점, <see cref="_route"/>).</summary>
+        private void BuildRoute(ResidentWander w, float laneZ, Vector3 via, Vector4 goal, bool toCounter)
         {
             _route.Clear();
             var seat = transform.InverseTransformPoint(w.transform.position);
             var forward = transform.InverseTransformDirection(w.transform.forward);
             var front = seat + forward * _seatFront;
-            Add(new Vector3(front.x, goal.y, _aisleZ));
+            Add(new Vector3(front.x, goal.y, laneZ));
             if (toCounter)
-                Add(new Vector3(_laneX, goal.y, _aisleZ));
+                Add(new Vector3(_laneX, goal.y, laneZ));
             Add(via);
             Add(new Vector3(goal.x, goal.y, goal.z));
         }
