@@ -9,7 +9,8 @@ namespace SpaceStation.Interior
     /// 12-5 행정 관제소 관제실 모듈 상태 지도 벽 — 사용자 결정 2026-10-20: 실제 정거장.
     /// 이 모듈과 같은 층의 모듈 칸을 위에서 내려다본 모양으로 그린다 (지도 위 = 화면을 보는 쪽 앞, 지도 오른쪽 = 보는 사람 오른쪽 → 모듈과 같이 돎).
     /// 한 모듈의 칸끼리는 붙이고 모듈 사이만 틈. 상태는 색이 아니라 밝기 · 움직임으로도 구분 (색약):
-    ///   여기 = 강조색 · 천천히 숨 쉬듯 / 정상 = 밝음 / 꺼짐 = 어두움 / 고장 = 밝음 ↔ 어두움 깜빡임.
+    ///   여기 = 가장 밝음 · 천천히 숨 쉬듯 / 정상 = 밝음 / 꺼짐 = 어두움 / 고장 = 밝음 ↔ 어두움 깜빡임.
+    ///   (여기를 모듈 강조색으로 했을 때 어두운 파랑이라 꺼짐처럼 보였음 — 2026-10-20 플레이 검수)
     /// 범례 견본도 같은 메시에 넣어 똑같이 움직임. 모듈 · 상태가 바뀔 때만 메시를 다시 만든다. 이 모듈이 꺼지면 "전원 꺼짐".
     /// </summary>
     public sealed class InteriorStationMap : InteriorRoomDisplay
@@ -32,7 +33,6 @@ namespace SpaceStation.Interior
         [SerializeField] private Vector2 _size = new Vector2(4.8f, 1.8f);
         [SerializeField] private Material _on;
         [SerializeField] private Material _off;
-        [SerializeField] private Material _here;
 
         private readonly Mesh[] _meshes = new Mesh[StateCount];
         private readonly MeshRenderer[] _renderers = new MeshRenderer[StateCount];
@@ -46,14 +46,14 @@ namespace SpaceStation.Interior
         private TextMeshPro _title, _summary;
         private readonly TextMeshPro[] _legend = new TextMeshPro[StateCount];
         private MaterialPropertyBlock _block;
-        private Color _hereEmission, _onEmission, _offEmission, _offBase;
+        private Color _onEmission, _offEmission, _offBase;
         private Vector3 _right;
         private int _version = -1;
         private bool _shown;
         private bool _built;
         private bool _brokenLit;
 
-        public void Configure(Vector3 center, Vector3 normal, Vector3 up, Vector2 size, Material on, Material off, Material here)
+        public void Configure(Vector3 center, Vector3 normal, Vector3 up, Vector2 size, Material on, Material off)
         {
             _center = center;
             _normal = normal;
@@ -61,7 +61,6 @@ namespace SpaceStation.Interior
             _size = size;
             _on = on;
             _off = off;
-            _here = here;
         }
 
         private void Setup()
@@ -72,12 +71,11 @@ namespace SpaceStation.Interior
             _normal = _normal.normalized;
             _up = _up.normalized;
             _right = Vector3.Cross(_normal, _up);   // 보는 사람 오른쪽 (CreateText 글자 방향과 같음)
-            _hereEmission = EmissionOf(_here, Color.white);
             _onEmission = EmissionOf(_on, Color.white);
             _offEmission = EmissionOf(_off, Color.black);
             _offBase = _off != null && _off.HasProperty(BaseColorId) ? _off.GetColor(BaseColorId) : Color.black;
             string[] names = { "MapHere", "MapOn", "MapOff", "MapBroken" };
-            Material[] mats = { _here, _on, _off, _on };
+            Material[] mats = { _on, _on, _off, _on };
             for (int i = 0; i < StateCount; i++)
             {
                 var go = new GameObject(names[i]);
@@ -268,10 +266,11 @@ namespace SpaceStation.Interior
             if (!_built || !_shown)
                 return;
             float t = Time.unscaledTime;
-            // 여기 = 천천히 숨 쉬듯 (2.4초)
+            // 여기 = 정상(×1)보다 늘 밝게 ×1.3~2.7, 천천히 숨 쉬듯 (2.4초)
             var here = _renderers[(int)State.Here];
             _block.Clear();
-            _block.SetColor(EmissionColorId, _hereEmission * (1.05f + 0.5f * Mathf.Sin(t * Mathf.PI * 2f / 2.4f)));
+            _block.SetColor(BaseColorId, Color.white);
+            _block.SetColor(EmissionColorId, _onEmission * (2.0f + 0.7f * Mathf.Sin(t * Mathf.PI * 2f / 2.4f)));
             here.SetPropertyBlock(_block);
             // 고장 = 밝음 0.35초 ↔ 꺼짐과 같은 어두움 0.25초 (재질은 그대로, 속성 블록만)
             bool lit = Mathf.Repeat(t, 0.6f) < 0.35f;
