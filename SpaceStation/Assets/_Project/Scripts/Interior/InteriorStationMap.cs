@@ -291,13 +291,13 @@ namespace SpaceStation.Interior
             _block.SetColor(BaseColorId, Color.white);
             _block.SetColor(EmissionColorId, Color.white * (1.4f + 0.6f * Mathf.Sin(t * Mathf.PI * 2f / 2.4f)));
             here.SetPropertyBlock(_block);
-            // 고장 = 밝음 0.35초 ↔ 흐림(×0.3) 0.25초 — 흐릴 때도 모듈 모양은 보이게 (재질은 그대로, 속성 블록만)
+            // 고장 = 밝음 0.35초 ↔ 흐림(×0.55) 0.25초 — 흐릴 때도 모듈 모양은 보이게 (×0.3은 바탕과 거의 같았음). 재질은 그대로, 속성 블록만
             bool lit = Mathf.Repeat(t, 0.6f) < 0.35f;
             if (lit != _brokenLit)
             {
                 _brokenLit = lit;
                 _block.Clear();
-                _block.SetColor(EmissionColorId, _onEmission * (lit ? 1f : 0.3f));
+                _block.SetColor(EmissionColorId, _onEmission * (lit ? 1f : 0.55f));
                 _renderers[(int)State.Broken].SetPropertyBlock(_block);
             }
         }
