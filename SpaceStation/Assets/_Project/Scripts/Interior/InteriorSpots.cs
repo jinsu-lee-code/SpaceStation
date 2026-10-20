@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SpaceStation.Core;
+using Unity.Collections;
 using UnityEngine;
 
 namespace SpaceStation.Interior
@@ -442,21 +443,39 @@ namespace SpaceStation.Interior
         // 12-5 막힌 벽 패널은 평평한 판이라 그 앞면으로 옮겨 붙임 (일반 방 벽 대부분이 이 패널이라 자리가 0이었음),
         // 문 패널은 문틀 · 테가 더 튀어나와 소품 폭(0.64)만큼 평평한 곳이 없어 계속 뺌.
 
+        private const float ShapeRow = 0.05f;          // 패널 모양 행 높이
+        private const float PropHalfHeight = 0.34f;    // 벽 소품 반 높이 (Clear 상자와 같음)
+
+        /// <summary>
+        /// 막힌 벽 패널 모델의 앞면 모양 (메시마다 한 번, 모델 기준) — +z · -z 양쪽 다, 어느 쪽이 방 안인지는 쓸 때 맞은 면 방향으로 고름.
+        /// 면 방향은 삼각형 감김으로 봄 (꼭짓점 노멀은 모서리에서 섞여 있어 정면 삼각형이 하나도 안 잡혔음).
+        /// </summary>
+        private sealed class PanelShape
+        {
+            public float MinY;
+            public float FacePlus, FaceMinus;         // 가장 넓은 평면의 z (가장자리 테 · 띠 말고 판 자체, 없으면 NaN)
+            public float[] ProudPlus, ProudMinus;     // 행마다 그쪽으로 가장 튀어나온 z (NaN = 면 없음) — 걸레받이 · 위 테
+        }
+
         private struct Panel
         {
             public Bounds Box;
             public bool Door;
+            public Vector3 Origin;
             public Vector3 Forward;   // 모델 +z (키트는 방 바깥 = 벽 쪽, 보이는 면은 -z)
-            public float FrontPlus;   // +z를 보는 가장 넓은 면 — Forward 방향 거리
-            public float FrontMinus;  // -z를 보는 가장 넓은 면 — -Forward 방향 거리
+            public float Depth;       // 모델 z 배율
+            public float Height;      // 모델 y 배율
+            public PanelShape Shape;
         }
 
         private static readonly List<Panel> _panels = new List<Panel>();
-        private static readonly Dictionary<Mesh, Vector2> _panelFace = new Dictionary<Mesh, Vector2>();
+        private static readonly List<Bounds> _doorPanels = new List<Bounds>();   // 바닥 격자가 점마다 보므로 따로
+        private static readonly Dictionary<Mesh, PanelShape> _shapes = new Dictionary<Mesh, PanelShape>();
 
         private static void CollectPanels(Transform roomParent)
         {
             _panels.Clear();
+            _doorPanels.Clear();
             if (roomParent == null)
                 return;
             foreach (var r in roomParent.GetComponentsInChildren<Renderer>())
@@ -464,64 +483,86 @@ namespace SpaceStation.Interior
                 if (!r.name.StartsWith("KIT_Wall", StringComparison.Ordinal))
                     continue;
                 var t = r.transform;
-                var panel = new Panel { Box = r.bounds, Door = r.name.StartsWith("KIT_WallDoor", StringComparison.Ordinal), Forward = t.forward };
-                var mesh = r.TryGetComponent<MeshFilter>(out var mf) ? mf.sharedMesh : null;
-                if (!panel.Door && mesh != null)
+                var panel = new Panel
                 {
-                    var face = FaceDepths(mesh);
-                    float at = Vector3.Dot(t.position, t.forward);
-                    panel.FrontPlus = at + face.x * t.lossyScale.z;
-                    panel.FrontMinus = -(at + face.y * t.lossyScale.z);
+                    Box = r.bounds,
+                    Door = r.name.StartsWith("KIT_WallDoor", StringComparison.Ordinal),
+                    Origin = t.position,
+                    Forward = t.forward,
+                    Depth = t.lossyScale.z,
+                    Height = t.lossyScale.y,
+                };
+                if (!panel.Door)
+                {
+                    var mesh = r.TryGetComponent<MeshFilter>(out var mf) ? mf.sharedMesh : null;
+                    panel.Shape = mesh != null ? ShapeOf(mesh) : null;
+                    if (panel.Shape == null)
+                        panel.Door = true;   // 모양을 모르면 문 패널처럼 뺌
                 }
+                if (panel.Door)
+                    _doorPanels.Add(panel.Box);
                 else
-                {
-                    panel.Door = true;   // 앞면을 모르면 문 패널처럼 뺌
-                }
-                _panels.Add(panel);
+                    _panels.Add(panel);
             }
         }
 
-        /// <summary>
-        /// 막힌 벽 패널 모델의 앞면 깊이 (모델 z) — x = +z를 보는 면, y = -z를 보는 면 중 가장 넓은 평면 (가장자리 테 · 위아래 띠 말고 판 자체).
-        /// 어느 쪽이 방 안인지는 쓸 때 맞은 면 방향으로 고름.
-        /// </summary>
-        private static Vector2 FaceDepths(Mesh mesh)
+        private static PanelShape ShapeOf(Mesh mesh)
         {
-            if (_panelFace.TryGetValue(mesh, out var face))
-                return face;
+            if (_shapes.TryGetValue(mesh, out var shape))
+                return shape;
+            var bounds = mesh.bounds;
+            int rows = Mathf.CeilToInt(bounds.size.y / ShapeRow) + 1;
+            shape = new PanelShape { MinY = bounds.min.y, ProudPlus = new float[rows], ProudMinus = new float[rows] };
+            for (int i = 0; i < rows; i++)
+            {
+                shape.ProudPlus[i] = float.NaN;
+                shape.ProudMinus[i] = float.NaN;
+            }
             var plus = new Dictionary<int, float>();
             var minus = new Dictionary<int, float>();
             using (var all = Mesh.AcquireReadOnlyMeshData(mesh))
             {
                 var data = all[0];
-                using (var verts = new Unity.Collections.NativeArray<Vector3>(data.vertexCount, Unity.Collections.Allocator.Temp))
-                using (var normals = new Unity.Collections.NativeArray<Vector3>(data.vertexCount, Unity.Collections.Allocator.Temp))
+                using (var verts = new NativeArray<Vector3>(data.vertexCount, Allocator.Temp))
                 {
                     data.GetVertices(verts);
-                    data.GetNormals(normals);
                     for (int s = 0; s < data.subMeshCount; s++)
                     {
-                        using (var idx = new Unity.Collections.NativeArray<int>(data.GetSubMesh(s).indexCount, Unity.Collections.Allocator.Temp))
+                        using (var idx = new NativeArray<int>(data.GetSubMesh(s).indexCount, Allocator.Temp))
                         {
                             data.GetIndices(idx, s);
                             for (int i = 0; i + 2 < idx.Length; i += 3)
                             {
-                                float z0 = normals[idx[i]].z, z1 = normals[idx[i + 1]].z, z2 = normals[idx[i + 2]].z;
-                                var side = z0 > 0.99f && z1 > 0.99f && z2 > 0.99f ? plus : z0 < -0.99f && z1 < -0.99f && z2 < -0.99f ? minus : null;
-                                if (side == null)
+                                Vector3 a = verts[idx[i]], b = verts[idx[i + 1]], c = verts[idx[i + 2]];
+                                var g = Vector3.Cross(b - a, c - a);   // Unity 감김(시계 방향) → 바깥을 보는 면 방향
+                                float len = g.magnitude;
+                                if (len < 1e-8f || Mathf.Abs(g.z) < 0.5f * len)
                                     continue;
-                                var a = verts[idx[i]];
-                                float tri = Vector3.Cross(verts[idx[i + 1]] - a, verts[idx[i + 2]] - a).magnitude * 0.5f;
-                                int key = Mathf.RoundToInt(a.z * 1000f);
-                                side[key] = side.TryGetValue(key, out float sum) ? sum + tri : tri;
+                                bool toPlus = g.z > 0f;
+                                if (Mathf.Abs(g.z) > 0.99f * len)
+                                {
+                                    var area = toPlus ? plus : minus;
+                                    int key = Mathf.RoundToInt((a.z + b.z + c.z) / 3f * 1000f);
+                                    area[key] = area.TryGetValue(key, out float sum) ? sum + len * 0.5f : len * 0.5f;
+                                }
+                                var proud = toPlus ? shape.ProudPlus : shape.ProudMinus;
+                                float z = toPlus ? Mathf.Max(a.z, Mathf.Max(b.z, c.z)) : Mathf.Min(a.z, Mathf.Min(b.z, c.z));
+                                int r0 = Mathf.Clamp(Mathf.FloorToInt((Mathf.Min(a.y, Mathf.Min(b.y, c.y)) - shape.MinY) / ShapeRow), 0, rows - 1);
+                                int r1 = Mathf.Clamp(Mathf.FloorToInt((Mathf.Max(a.y, Mathf.Max(b.y, c.y)) - shape.MinY) / ShapeRow), 0, rows - 1);
+                                for (int row = r0; row <= r1; row++)
+                                {
+                                    if (float.IsNaN(proud[row]) || (toPlus ? z > proud[row] : z < proud[row]))
+                                        proud[row] = z;
+                                }
                             }
                         }
                     }
                 }
             }
-            face = new Vector2(Widest(plus), Widest(minus));
-            _panelFace[mesh] = face;
-            return face;
+            shape.FacePlus = Widest(plus);
+            shape.FaceMinus = Widest(minus);
+            _shapes[mesh] = shape;
+            return shape;
         }
 
         private static float Widest(Dictionary<int, float> area)
@@ -536,7 +577,7 @@ namespace SpaceStation.Interior
                     bestArea = kv.Value;
                 }
             }
-            return best / 1000f;
+            return bestArea < 0f ? float.NaN : best / 1000f;
         }
 
         /// <summary>
@@ -545,20 +586,18 @@ namespace SpaceStation.Interior
         /// </summary>
         private static bool OnPanel(ref Vector3 point, Vector3 n)
         {
-            if (_panels.Count == 0)
-                return true;
             if (InDoorPanel(point + n * 0.05f, 0.2f))
                 return false;
-            float lift = PanelLift(point, n);
+            float lift = PanelLift(point, n, PropHalfHeight);
             if (lift < 0f)
                 return false;
             var t = Vector3.Cross(Vector3.up, n).normalized;
-            foreach (var o in new[] { t * 0.36f, -t * 0.36f, Vector3.up * 0.34f, Vector3.down * 0.34f })
+            foreach (var o in new[] { t * 0.36f, -t * 0.36f, Vector3.up * PropHalfHeight, Vector3.down * PropHalfHeight })
             {
                 var p = point + o;
                 if (InDoorPanel(p + n * 0.05f, 0.04f))
                     return false;
-                float l = PanelLift(p, n);
+                float l = PanelLift(p, n, 0f);
                 if (l < 0f || Mathf.Abs(l - lift) > 0.01f)
                     return false;
             }
@@ -568,11 +607,9 @@ namespace SpaceStation.Interior
 
         private static bool InDoorPanel(Vector3 p, float margin)
         {
-            foreach (var panel in _panels)
+            foreach (var box in _doorPanels)
             {
-                if (!panel.Door)
-                    continue;
-                var b = panel.Box;
+                var b = box;
                 b.Expand(margin);
                 if (b.Contains(p))
                     return true;
@@ -580,24 +617,44 @@ namespace SpaceStation.Interior
             return false;
         }
 
-        /// <summary>벽면 점 <paramref name="p"/> 앞에 막힌 벽 패널 앞면이 얼마나 나와 있는지 (패널 없음 = 0, 평행하지 않은 패널 = -1).</summary>
-        private static float PanelLift(Vector3 p, Vector3 n)
+        /// <summary>
+        /// 벽면 점 <paramref name="p"/> 앞에 막힌 벽 패널 앞면이 얼마나 나와 있는지 (패널 없음 = 0).
+        /// 못 붙임 = -1: 구석 옆벽 패널 · 앞면을 모름 · 위아래 <paramref name="span"/> 안에 앞면보다 1.5cm 넘게 튀어나온 턱(걸레받이 · 위 테).
+        /// </summary>
+        private static float PanelLift(Vector3 p, Vector3 n, float span)
         {
             float lift = 0f;
             foreach (var panel in _panels)
             {
-                if (panel.Door)
-                    continue;
-                var b = panel.Box;
-                b.Expand(0.02f);
-                if (!b.Contains(p))
+                var box = panel.Box;
+                box.Expand(0.02f);
+                if (!box.Contains(p))
                     continue;
                 float facing = Vector3.Dot(panel.Forward, n);
                 if (Mathf.Abs(facing) < 0.98f)
                     return -1f;   // 구석 옆벽 패널
-                float d = (facing > 0f ? panel.FrontPlus : panel.FrontMinus) - Vector3.Dot(p, n);
+                bool plus = facing > 0f;
+                var shape = panel.Shape;
+                float face = plus ? shape.FacePlus : shape.FaceMinus;
+                if (float.IsNaN(face))
+                    return -1f;
+                float sign = plus ? 1f : -1f;
+                float d = sign * (Vector3.Dot(panel.Origin, panel.Forward) + face * panel.Depth) - Vector3.Dot(p, n);
                 if (d > 0.15f)
                     return -1f;
+                if (span > 0f)
+                {
+                    var proud = plus ? shape.ProudPlus : shape.ProudMinus;
+                    float y = (p.y - panel.Origin.y) / panel.Height;   // 키트는 위가 위 (LookRotation(벽 방향, 위))
+                    float half = span / panel.Height;
+                    int r0 = Mathf.Max(0, Mathf.FloorToInt((y - half - shape.MinY) / ShapeRow));
+                    int r1 = Mathf.Min(proud.Length - 1, Mathf.FloorToInt((y + half - shape.MinY) / ShapeRow));
+                    for (int row = r0; row <= r1; row++)
+                    {
+                        if (!float.IsNaN(proud[row]) && sign * (proud[row] - face) * panel.Depth > 0.015f)
+                            return -1f;
+                    }
+                }
                 lift = Mathf.Max(lift, d);   // 앞면이 맞은 면보다 안쪽이면(템플릿 벽이 패널을 덮음) 그대로
             }
             return lift;
