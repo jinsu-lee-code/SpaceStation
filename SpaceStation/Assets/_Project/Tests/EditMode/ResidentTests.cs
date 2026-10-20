@@ -316,6 +316,66 @@ namespace SpaceStation.Tests
             Assert.AreEqual("대원", _residents.TitleOf(new ResidentTrait[0]));
         }
 
+        [Test]
+        public void TitleRanks_GradeOpens_LongestLivedFirst_AnnouncedAndSaved()
+        {
+            // 직함 승진 (사용자 결정 2026-10-20): 정거장이 닿은 가장 높은 등급이 단계를 열고, 그 안에서 오래 산 주민부터
+            UseTraits(Def(ResidentTrait.Technician, 0.04f, 0.2f).WithTitle("기관사"));
+            _residents.EditorSetRanks(new TitleRank("선임", 1, 600f), new TitleRank("수석", 3, 1800f));
+            Assert.AreEqual(-1, _residents.RankOf(5000f, 0), "등급 없음이면 오래 살아도 평직함");
+            Assert.AreEqual(-1, _residents.RankOf(599f, 1), "근속이 모자람");
+            Assert.AreEqual(0, _residents.RankOf(600f, 1));
+            Assert.AreEqual(0, _residents.RankOf(5000f, 2), "수석은 대형부터");
+            Assert.AreEqual(1, _residents.RankOf(1800f, 3));
+            Assert.AreEqual(0, _residents.RankOf(1000f, 3), "대형이어도 30분 전이면 선임");
+            Assert.AreEqual("기관사", _residents.TitleOf(new[] { ResidentTrait.Technician }, -1));
+            Assert.AreEqual("선임 기관사", _residents.TitleOf(new[] { ResidentTrait.Technician }, 0));
+            Assert.AreEqual("수석 대원", _residents.TitleOf(new ResidentTrait[0], 1));
+
+            // 명단: 처음 4명(0초)이 5초를 채우면 선임, 3초에 온 다섯째는 아직 평직함 · 오른 주민만 알림
+            _residents.EditorSetRanks(new TitleRank("선임", 0, 5f));
+            var b = new SerializedObject(_config); // 이 시험만 자연 증가를 멈춤 (기본 1초마다 → 언제 온 주민인지 정해 두려고)
+            b.FindProperty("_growthIntervalAtMinSatisfaction").floatValue = 10000f;
+            b.FindProperty("_growthIntervalAtMaxSatisfaction").floatValue = 10000f;
+            b.ApplyModifiedPropertiesWithoutUndo();
+            var sim = Sim();
+            Assert.IsTrue(sim.Grid.TryPlace(_habitat, Vector3Int.right, 0, out _)); // 다섯째가 살 자리
+            var promoted = new List<string>();
+            sim.Residents.Promoted += list => promoted.AddRange(list.Select(r => r.Name));
+            sim.Tick(0f);
+            for (int i = 0; i < 3; i++)
+                sim.Tick(1f);
+            sim.Resources.SetPopulation(5);
+            sim.Tick(0f);
+            for (int i = 0; i < 3; i++)
+                sim.Tick(1f);
+            var list = sim.Residents.Residents;
+            Assert.AreEqual(5, list.Count);
+            foreach (var r in list)
+                Assert.AreEqual(sim.ElapsedSeconds - r.JoinedAt >= 5f ? 0 : -1, r.Rank, $"{r.Name} 근속 {sim.ElapsedSeconds - r.JoinedAt:0}초");
+            Assert.AreEqual(4, list.Count(r => r.Rank == 0), "처음부터 산 4명만");
+            Assert.IsTrue(list.Skip(4).All(r => r.Rank == -1), "뒤에 온 주민은 아직 평직함");
+            CollectionAssert.AreEquivalent(list.Where(r => r.Rank == 0).Select(r => r.Name), promoted);
+
+            // 저장 → 복원: 온 때 그대로 · 불러온 직후 첫 셈은 알리지 않음 · 뒤에 온 주민도 5초를 채우면 그때 알림
+            var json = JsonUtility.ToJson(StationStateSerializer.Capture(sim));
+            var loaded = Sim();
+            StationStateSerializer.Restore(loaded, JsonUtility.FromJson<StationState>(json));
+            var loud = new List<string>();
+            loaded.Residents.Promoted += l => loud.AddRange(l.Select(r => r.Name));
+            loaded.Tick(0f);
+            CollectionAssert.AreEqual(list.Select(r => r.JoinedAt), loaded.Residents.Residents.Select(r => r.JoinedAt));
+            Assert.AreEqual(4, loaded.Residents.Residents.Count(r => r.Rank == 0));
+            Assert.IsEmpty(loud);
+            for (int i = 0; i < 3; i++)
+                loaded.Tick(1f);
+            var after = loaded.Residents.Residents;
+            foreach (var r in after)
+                Assert.AreEqual(loaded.ElapsedSeconds - r.JoinedAt >= 5f ? 0 : -1, r.Rank);
+            Assert.AreEqual(5, after.Count(r => r.Rank == 0), "3초에 온 다섯째도 9초에 선임");
+            CollectionAssert.AreEqual(new[] { after[4].Name }, loud, "복원 뒤 새로 오른 주민만 알림");
+        }
+
         // ---------------- 도우미 ----------------
 
         private TraitDefinition Def(ResidentTrait t, float per, float max) => new TraitDefinition(t, t.ToString(), "", per >= 0f, per, max);

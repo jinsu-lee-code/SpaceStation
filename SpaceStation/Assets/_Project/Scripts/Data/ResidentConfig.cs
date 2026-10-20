@@ -118,6 +118,10 @@ namespace SpaceStation.Data
         [Tooltip("직함을 주는 특성(TraitDefinition.Title)이 없는 주민의 직함")]
         [SerializeField] private string _defaultTitle = "대원";
 
+        [Header("직함 승진 (사용자 결정 2026-10-20: 정거장 등급이 단계를 열고, 그 안에서 오래 산 주민부터 — 갓 온 주민은 평직함)")]
+        [Tooltip("낮은 단계부터. 조건을 모두 채운 가장 높은 단계의 말이 직함 앞에 붙음 (선임 기관사 · 수석 기관사)")]
+        [SerializeField] private List<TitleRank> _ranks = new List<TitleRank>();
+
         public IReadOnlyList<TraitDefinition> Traits => _traits;
         public float SecondTraitChance => _secondTraitChance;
         public IReadOnlyList<ModuleData> RadiationSources => _radiationSources;
@@ -129,6 +133,29 @@ namespace SpaceStation.Data
         public IReadOnlyList<string> Surnames => _surnames;
 
         public string DefaultTitle => _defaultTitle;
+        public IReadOnlyList<TitleRank> Ranks => _ranks;
+
+        /// <summary>직함 단계: 정거장에서 tenure초 살았고 정거장이 highestGrade 등급까지 닿았을 때 조건을 채운 가장 높은 단계 (없으면 −1).</summary>
+        public int RankOf(float tenure, int highestGrade)
+        {
+            int rank = -1;
+            for (int i = 0; i < _ranks.Count; i++)
+            {
+                var r = _ranks[i];
+                if (r != null && highestGrade >= r.MinGrade && tenure >= r.MinTenure)
+                    rank = i;
+            }
+            return rank;
+        }
+
+        /// <summary>단계가 붙은 직함 ("선임 기관사"), rank &lt; 0이면 <see cref="TitleOf(IEnumerable{ResidentTrait})"/>와 같음.</summary>
+        public string TitleOf(IEnumerable<ResidentTrait> traits, int rank)
+        {
+            string title = TitleOf(traits);
+            if (rank < 0 || rank >= _ranks.Count || _ranks[rank] == null || string.IsNullOrEmpty(_ranks[rank].Prefix) || string.IsNullOrEmpty(title))
+                return title;
+            return $"{_ranks[rank].Prefix} {title}";
+        }
 
         public TraitDefinition Get(ResidentTrait trait)
         {
@@ -165,6 +192,30 @@ namespace SpaceStation.Data
             _natureSources = new List<ModuleData>(nature);
             _givenNames = new List<string>(givenNames);
             _surnames = new List<string>(surnames);
+        }
+
+        /// <summary>에디터 설정·테스트용: 직함 승진 단계 (낮은 것부터).</summary>
+        public void EditorSetRanks(params TitleRank[] ranks) => _ranks = new List<TitleRank>(ranks);
+    }
+
+    /// <summary>직함 승진 단계 하나: 앞에 붙는 말 · 열리는 등급 · 필요한 근속.</summary>
+    [Serializable]
+    public sealed class TitleRank
+    {
+        [Tooltip("직함 앞에 붙는 말 (선임 · 수석)")]
+        public string Prefix;
+        [Tooltip("정거장이 이 등급(인덱스, 1 = 소형)까지 닿아야 열림 — 등급이 내려가도 한 번 닿은 등급 기준")]
+        [Min(0)] public int MinGrade;
+        [Tooltip("정거장에서 이만큼(게임 초) 산 주민부터")]
+        [Min(0f)] public float MinTenure;
+
+        public TitleRank() { }
+
+        public TitleRank(string prefix, int minGrade, float minTenure)
+        {
+            Prefix = prefix;
+            MinGrade = minGrade;
+            MinTenure = minTenure;
         }
     }
 }

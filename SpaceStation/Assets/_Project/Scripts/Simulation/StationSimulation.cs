@@ -276,6 +276,8 @@ namespace SpaceStation.Simulation
                     Housing = _stats.EffectiveHousing,
                     Strength = _stats.Strength,
                     Effects = Effects,
+                    Now = () => ElapsedSeconds, // 직함 승진: 근속
+                    HighestGrade = () => Progression != null ? Progression.HighestGradeIndex : 0, // 직함 승진: 단계를 여는 등급
                 };
                 Population.PopulationChanged += (delta, reason) => Residents.Update(Resources.Population, reason);
                 Residents.Update(Resources.Population);

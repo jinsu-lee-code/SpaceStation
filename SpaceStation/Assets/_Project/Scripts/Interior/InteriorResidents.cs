@@ -48,6 +48,7 @@ namespace SpaceStation.Interior
         private Transform _eye;
 
         private readonly List<ResidentFigure> _figures = new List<ResidentFigure>();
+        private readonly List<GameObject> _stools = new List<GameObject>();
         private readonly List<PlacementRoom> _rooms = new List<PlacementRoom>();
         private readonly List<ModuleInstance> _roomModules = new List<ModuleInstance>();
         private readonly List<PlacementPerson> _people = new List<PlacementPerson>();
@@ -128,6 +129,12 @@ namespace SpaceStation.Interior
                     Destroy(f.gameObject);
             }
             _figures.Clear();
+            foreach (var s in _stools)
+            {
+                if (s != null)
+                    Destroy(s);
+            }
+            _stools.Clear();
             _planned.Clear();
             _spawnedRooms.Clear();
             HideTag();
@@ -276,6 +283,8 @@ namespace SpaceStation.Interior
             if (spot.Pose == ResidentPose.Sit)
                 position.y -= _tuning.SitDrop;
             var rotation = instance.rotation * Quaternion.Euler(0f, spot.Yaw, 0f);
+            if (spot.Pose == ResidentPose.Work)
+                position.y += PlaceStool(position, rotation, parent != null ? parent : transform);
             var figure = ResidentFigure.Create(_animals, species, fur, parent != null ? parent : transform, position, rotation, spot.Pose,
                 _tuning.AnimalScale, _tuning.SitDrop, id);
             figure.name = "Resident_" + id;
@@ -286,6 +295,59 @@ namespace SpaceStation.Interior
             _figures.Add(figure);
             return figure;
         }
+
+        /// <summary>
+        /// 동물용 발판 (사용자 결정 2026-10-20): 작업 자리 앞 작업대 높이를 재서 손이 닿게 맞는 발판을 발밑에 두고, 올라선 높이를 돌려줌 (없으면 0).
+        /// 작업대 = 앞 0.2 ~ 0.8m를 위에서 아래로 쏴 처음 맞은, 발보다 0.3m 이상 높은 면 (주민 · 다른 발판 제외).
+        /// </summary>
+        private float PlaceStool(Vector3 feet, Quaternion rotation, Transform parent)
+        {
+            if (_animals == null || _animals.Stools.Count == 0)
+                return 0f;
+            if (_syncedFrame != Time.frameCount) // 방을 막 지었으면 충돌체 위치를 광선에 반영 (자동 동기화 꺼짐)
+            {
+                Physics.SyncTransforms();
+                _syncedFrame = Time.frameCount;
+            }
+            var forward = rotation * Vector3.forward;
+            float surface = -1f;
+            for (float d = 0.2f; d <= 0.8f && surface < 0f; d += 0.05f)
+            {
+                var from = feet + forward * d + Vector3.up * 1.6f;
+                int n = Physics.RaycastNonAlloc(from, Vector3.down, _stoolHits, 1.6f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+                float best = float.MinValue;
+                for (int i = 0; i < n; i++)
+                {
+                    var c = _stoolHits[i].collider;
+                    if (c.GetComponentInParent<ResidentFigure>() != null || c.name == StoolName)
+                        continue;
+                    best = Mathf.Max(best, _stoolHits[i].point.y - feet.y); // 가장 위 = 처음 맞은 면
+                }
+                if (best > 0.3f)
+                    surface = best;
+            }
+            if (surface < 0f)
+                return 0f;
+            var stool = _animals.StoolFor(surface, _tuning.AnimalScale);
+            if (stool == null)
+                return 0f;
+            var go = Instantiate(stool.Model, parent, false);
+            go.name = StoolName;
+            go.transform.SetPositionAndRotation(feet, rotation);
+            var mf = go.GetComponentInChildren<MeshFilter>();
+            if (mf != null && mf.sharedMesh != null)
+            {
+                var box = go.AddComponent<BoxCollider>(); // 플레이어가 지나가지 못하게
+                box.center = mf.sharedMesh.bounds.center;
+                box.size = mf.sharedMesh.bounds.size;
+            }
+            _stools.Add(go);
+            return stool.Height;
+        }
+
+        private const string StoolName = "AnimalStool";
+        private readonly RaycastHit[] _stoolHits = new RaycastHit[8];
+        private int _syncedFrame = -1;
 
         private static string Status(Resident r, ModuleInstance room, Placement p, bool day)
         {
@@ -307,11 +369,11 @@ namespace SpaceStation.Interior
             return null;
         }
 
-        /// <summary>"<b>두부 기관사</b>" / 종류 · 특성 / 지금 하는 일 (11-11d 이름 + 직함).</summary>
+        /// <summary>"<b>두부 기관사</b>" / 종류 · 특성 / 지금 하는 일 (11-11d 이름 + 직함, 승진 단계 포함 — 들어갈 때 정해짐).</summary>
         private static string Label(Resident r, string species, string status, ResidentConfig config)
         {
             var sb = new System.Text.StringBuilder();
-            string title = config != null ? config.TitleOf(r.Traits) : null;
+            string title = config != null ? config.TitleOf(r.Traits, r.Rank) : null;
             sb.Append("<b>").Append(r.Name);
             if (!string.IsNullOrEmpty(title))
                 sb.Append(' ').Append(title);

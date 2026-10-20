@@ -466,3 +466,20 @@
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. 합친 뒤 위 M-26 주의대로 [옮기기] 버튼을 되살림 (`Move/Setup Selection Button` 또는 `Interior/Setup`).
+
+---
+
+## M-28. 직함 승진 · 동물용 발판 · 패드 비용 아이콘 (2026-10-20, `main`)
+
+**main에 넣은 것** — 화면 · 주민 표시가 바뀜 (사용자 결정 2026-10-20, 오래 미뤄 둔 것 정리)
+- **직함 승진** (등급 상한 + 오래 산 주민부터, 표시만 · 효과 없음, BALANCE 26번): `ResidentConfig._ranks`(`TitleRank` 앞말 · 열리는 등급 · 근속) — 선임 = 소형 · 10분, 수석 = 대형 · 30분. `RankOf(근속, 가장 높은 등급)` · `TitleOf(특성, 단계)`. `Resident.JoinedAt`(저장, 이전 세이브 = 0) · `Rank`, `ResidentRoster.Now` · `HighestGrade`(시뮬레이션이 연결) · 매 틱 단계 셈 · `Promoted` 이벤트(불러온 직후 첫 셈은 조용히). `ResidentText.FullName` · 내부 이름표가 단계 붙은 직함, `StatusBar` 승진 알림 "승진 · 두부 → 선임 기관사" / "주민 n명 승진 · …". `ResidentSetup.CreateData`가 단계를 넣음 (에셋에도 들어감)
+- **동물용 발판** (작업대에 손이 안 닿던 동물이 올라서서 일함): Blender `BlenderWork/InteriorProps/stool_builder.py` → `Art/Models/Interior/Stool/SM_AnimalStool{15,30,45}.fbx`(노란 상판 · 검은 고무 홈 · 금속관 다리 · 고무 발, 0.45는 뒤 디딤판, 검사 열린 · 비다양체 · 뒤집힘 0). `AnimalModelSet._stools`(모델 · 발 높이 = 상판 + 0.008) · `_workHandHeight` 0.37 · `StoolFor(작업대 높이, 크기)`, `AnimalResidentSetup.WireStools`(Wire Animal Residents도 부름, 씬 안 건드림). `InteriorResidents`: 작업 자세 주민 앞 0.2~0.8m의 작업대 높이를 광선으로 재서 발판을 발밑에 두고 그만큼 올려 세움 (상자 충돌체, 내부를 다시 만들면 지움)
+- **패드 비용 아이콘**: `HudText.BigIcons(글, %)` = 글 속 `<sprite>`만 키움. 휴대 패드의 건설 칸 비용 · 건설 상세 · 알림 · 모듈 정보 · 수리 · 정비 · 재건축 · 철거 환급에 150% (작은 글자에서 점처럼 보였음 — 11-12 남은 것)
+- (확인만) 파손 · 비활성 모듈 창문 · 띠 불빛: 5-4 `ModuleView`가 이미 비활성 = 끔 · 파손 = 불규칙 깜빡임, 모듈 48종 모두 발광 재질 슬롯이 있어 그대로 먹힘 — 코드 변경 없음
+- 시험 2개 (`ResidentTests.TitleRanks_GradeOpens_LongestLivedFirst_AnnouncedAndSaved` · `HudTextTests.BigIcons_WrapsEverySpriteOnly`)
+
+### `narrative` 합칠 때
+- [ ] `StatusBar` · `StationSimulation`은 서사판에도 같은 줄을 넣었음 (같은 내용 → 충돌 없음 예상).
+
+### `tycoon` 합칠 때
+- [ ] 충돌 없음 예상. 타이쿤판이 `StatusBar` 주민 알림 · `ResidentText.FullName` · `InteriorResidents.Spawn`을 고쳤으면 그 부분만 맞춤. 발판은 `AnimalModelSet` 에셋에 들어 있어 씬 작업 없음.
