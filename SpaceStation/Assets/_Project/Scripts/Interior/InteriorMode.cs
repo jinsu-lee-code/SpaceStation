@@ -155,6 +155,9 @@ namespace SpaceStation.Interior
 
         public bool IsInside => _inside;
 
+        /// <summary>내부 방 빌더 (확인용 — 소품 자리 검사 등. 들어가기 전엔 null일 수 있음).</summary>
+        public InteriorBuilder Builder => _builder;
+
         /// <summary>들어가기 실패 사유·강제로 나온 이유 (상태 표시줄 알림용).</summary>
         public event Action<string> Notice;
         public event Action<bool> InsideChanged;
