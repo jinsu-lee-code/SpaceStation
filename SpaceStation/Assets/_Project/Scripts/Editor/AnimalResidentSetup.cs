@@ -86,6 +86,7 @@ namespace SpaceStation.Editor
             set.EditorSet(species, Materials());
             EditorUtility.SetDirty(set);
             AssetDatabase.SaveAssets();
+            WireStools();
 
             var scene = EditorSceneManager.GetActiveScene();
             if (scene.path != GameScene)
@@ -103,6 +104,34 @@ namespace SpaceStation.Editor
             EditorSceneManager.SaveScene(scene);
             Debug.Log($"[AnimalResidentSetup] 동물 {species.Length}종 연결");
         }
+
+        /// <summary>
+        /// 동물 발판 3종 (사용자 결정 2026-10-20, `BlenderWork/InteriorProps/stool_builder.py` → `Art/Models/Interior/Stool/SM_AnimalStool{15,30,45}.fbx`)을
+        /// 모델 묶음에 넣음 (씬은 안 건드림). 높이 = 상판 + 고무 홈 0.008 (빌더의 GRIP).
+        /// </summary>
+        public static void WireStools()
+        {
+            var set = AssetDatabase.LoadAssetAtPath<AnimalModelSet>(SetPath);
+            if (set == null)
+                return;
+            var stools = new System.Collections.Generic.List<AnimalStool>();
+            foreach (int cm in new[] { 15, 30, 45 })
+            {
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{StoolDir}SM_AnimalStool{cm}.fbx");
+                if (model == null)
+                {
+                    Debug.LogError($"[AnimalResidentSetup] 발판 모델 없음: SM_AnimalStool{cm}");
+                    continue;
+                }
+                stools.Add(new AnimalStool { Model = model, Height = cm / 100f + 0.008f });
+            }
+            set.EditorSetStools(stools.ToArray(), 0.37f);
+            EditorUtility.SetDirty(set);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[AnimalResidentSetup] 발판 {stools.Count}종 연결");
+        }
+
+        private const string StoolDir = "Assets/_Project/Art/Models/Interior/Stool/";
 
         /// <summary>슬롯마다 공유 재질 (색은 주민마다 MaterialPropertyBlock — 눈만 재질 색).</summary>
         private static Material[] Materials()

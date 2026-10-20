@@ -19,6 +19,10 @@ namespace SpaceStation.Simulation
         public bool Pinned { get; internal set; }
         /// <summary>13-3 공통 고리: 주민 종류 (서사판 종족 Id = 동물 모델 Id, 빈 문자열 = 정하지 않음 → 외형은 번호로).</summary>
         public string Kind { get; internal set; } = "";
+        /// <summary>정거장에 온 때 (게임 초) — 직함 승진은 오래 산 주민부터.</summary>
+        public float JoinedAt { get; internal set; }
+        /// <summary>직함 단계 (−1 = 평직함, 0부터 <see cref="ResidentConfig.Ranks"/> 순서). 명단이 매 틱 다시 셈.</summary>
+        public int Rank { get; internal set; } = -1;
 
         internal Resident(int id, string name, IEnumerable<ResidentTrait> traits)
         {
@@ -81,6 +85,15 @@ namespace SpaceStation.Simulation
         internal Func<ModuleInstance, float> Housing;
         internal Func<ModuleInstance, float> Strength;
         internal ResearchEffects Effects;
+        /// <summary>지금 게임 시간 (초, 승진 근속). null이면 0.</summary>
+        internal Func<float> Now;
+        /// <summary>도달한 가장 높은 등급 (승진 단계를 엶). null이면 0.</summary>
+        internal Func<int> HighestGrade;
+
+        /// <summary>이번 틱에 직함이 오른 주민들 (불러온 직후 첫 셈은 알리지 않음).</summary>
+        public event Action<IReadOnlyList<Resident>> Promoted;
+        private readonly List<Resident> _promoted = new List<Resident>();
+        private bool _ranksReady;
 
         public ResidentRoster(ResidentConfig config, Func<float> random01)
         {
@@ -279,6 +292,7 @@ namespace SpaceStation.Simulation
             {
                 var r = CreateResident();
                 r.Kind = _pendingKinds.Count > 0 ? _pendingKinds.Dequeue() : KindPicker?.Invoke() ?? "";
+                r.JoinedAt = Now?.Invoke() ?? 0f;
                 _residents.Add(r);
                 AssignHome(r);
                 Arrived?.Invoke(r, reason);
@@ -287,8 +301,37 @@ namespace SpaceStation.Simulation
             _pendingKinds.Clear();
             RecountOccupants();
             RecalculateMood();
+            changed |= UpdateRanks();
             if (changed)
                 Changed?.Invoke();
+        }
+
+        /// <summary>
+        /// 직함 승진 (사용자 결정 2026-10-20): 정거장이 도달한 가장 높은 등급이 단계를 열고, 그 안에서 오래 산 주민부터
+        /// (<see cref="ResidentConfig.RankOf"/>). 오른 주민은 <see cref="Promoted"/>로 알림.
+        /// </summary>
+        private bool UpdateRanks()
+        {
+            if (_config.Ranks.Count == 0)
+                return false;
+            float now = Now?.Invoke() ?? 0f;
+            int grade = HighestGrade?.Invoke() ?? 0;
+            _promoted.Clear();
+            bool changed = false;
+            foreach (var r in _residents)
+            {
+                int rank = _config.RankOf(now - r.JoinedAt, grade);
+                if (rank == r.Rank)
+                    continue;
+                if (rank > r.Rank && _ranksReady)
+                    _promoted.Add(r);
+                r.Rank = rank;
+                changed = true;
+            }
+            _ranksReady = true;
+            if (_promoted.Count > 0)
+                Promoted?.Invoke(_promoted);
+            return changed;
         }
 
         /// <summary>플레이어 이사: 빈자리가 있는 다른 집으로 옮기고 고정.</summary>
@@ -665,7 +708,7 @@ namespace SpaceStation.Simulation
             result.Clear();
             foreach (var r in _residents)
             {
-                var s = new ResidentState { Id = r.Id, Name = r.Name, Home = r.Home != null ? moduleIndex(r.Home) : -1, Pinned = r.Pinned, Kind = r.Kind };
+                var s = new ResidentState { Id = r.Id, Name = r.Name, Home = r.Home != null ? moduleIndex(r.Home) : -1, Pinned = r.Pinned, Kind = r.Kind, JoinedAt = r.JoinedAt };
                 foreach (var t in r.Traits)
                     s.Traits.Add(t.ToString());
                 result.Add(s);
@@ -677,6 +720,7 @@ namespace SpaceStation.Simulation
             _residents.Clear();
             _usedNames.Clear();
             _nextId = 1;
+            _ranksReady = false; // 불러온 직후 첫 셈은 승진 알림 없이
             if (states == null)
                 return;
             foreach (var s in states)
@@ -685,7 +729,10 @@ namespace SpaceStation.Simulation
                 foreach (var name in s.Traits)
                     if (Enum.TryParse(name, out ResidentTrait t))
                         traits.Add(t);
-                var r = new Resident(s.Id, s.Name, traits) { Home = s.Home != -1 ? moduleAt(s.Home) : null, Pinned = s.Pinned, Kind = s.Kind ?? "" };
+                var r = new Resident(s.Id, s.Name, traits)
+                {
+                    Home = s.Home != -1 ? moduleAt(s.Home) : null, Pinned = s.Pinned, Kind = s.Kind ?? "", JoinedAt = s.JoinedAt,
+                };
                 _residents.Add(r);
                 _usedNames.Add(r.Name);
                 _nextId = Math.Max(_nextId, s.Id + 1);
@@ -704,5 +751,7 @@ namespace SpaceStation.Simulation
         public bool Pinned;
         /// <summary>13-3 주민 종류 (없으면 빈 문자열).</summary>
         public string Kind = "";
+        /// <summary>정거장에 온 때 (게임 초, 이전 세이브는 0 = 처음부터 산 것으로).</summary>
+        public float JoinedAt;
     }
 }

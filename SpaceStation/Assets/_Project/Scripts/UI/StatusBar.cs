@@ -60,6 +60,7 @@ namespace SpaceStation.UI
             {
                 _station.Simulation.Residents.Arrived += HandleResidentArrived;
                 _station.Simulation.Residents.Left += HandleResidentLeft;
+                _station.Simulation.Residents.Promoted += HandleResidentsPromoted;
             }
             _resources.Damage.Destroyed += HandleDestroyed;
             _resources.Damage.Repaired += HandleRepaired;
@@ -109,6 +110,7 @@ namespace SpaceStation.UI
             {
                 _station.Simulation.Residents.Arrived -= HandleResidentArrived;
                 _station.Simulation.Residents.Left -= HandleResidentLeft;
+                _station.Simulation.Residents.Promoted -= HandleResidentsPromoted;
             }
             if (_resources != null && _resources.Damage != null)
             {
@@ -464,6 +466,19 @@ namespace SpaceStation.UI
                 return; // 불러오기·명단 보정
             var roster = _station.Simulation.Residents;
             ShowMessage($"<color={HudTheme.AccentHex}>새 주민 {ResidentText.FullName(roster.Config, r)}</color> · {ResidentText.Traits(roster.Config, r)} · {ResidentText.HomeName(roster, r.Home)}");
+        }
+
+        /// <summary>직함 승진 (2026-10-20): 한 명이면 "두부 → 선임 기관사", 여럿이면 "주민 n명 승진 · 선임 기관사 두부 외".</summary>
+        private void HandleResidentsPromoted(System.Collections.Generic.IReadOnlyList<Resident> promoted)
+        {
+            if (promoted == null || promoted.Count == 0)
+                return;
+            var config = _station.Simulation.Residents.Config;
+            var first = promoted[0];
+            string title = config != null ? config.TitleOf(first.Traits, first.Rank) : "";
+            ShowMessage(promoted.Count == 1
+                ? $"<color={HudTheme.AccentHex}>승진 · {first.Name} → {title}</color>"
+                : $"<color={HudTheme.AccentHex}>주민 {promoted.Count}명 승진 · {title} {first.Name} 외</color>");
         }
 
         private void HandleResidentLeft(Resident r, PopulationChangeReason? reason)

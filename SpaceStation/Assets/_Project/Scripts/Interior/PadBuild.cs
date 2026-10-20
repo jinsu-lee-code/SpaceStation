@@ -191,8 +191,8 @@ namespace SpaceStation.Interior
                 tile.Button.interactable = buildable == PlacementResult.Valid;
                 tile.Cost.SetText(buildable == PlacementResult.ModuleLocked ? $"<color={HudText.Muted}>잠김</color>"
                     : buildable == PlacementResult.LimitReached ? $"<color={HudText.Yellow}>최대 수</color>"
-                    : affordable ? HudText.Cost(sim.GetBuildCost(tile.Data))
-                    : $"<color={HudText.Red}>{HudText.Cost(sim.GetBuildCost(tile.Data))}</color>");
+                    : affordable ? HudText.BigIcons(HudText.Cost(sim.GetBuildCost(tile.Data)))
+                    : $"<color={HudText.Red}>{HudText.BigIcons(HudText.Cost(sim.GetBuildCost(tile.Data)))}</color>");
                 ((Image)tile.Button.targetGraphic).color = tile.Data == _selected ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
                 var fx = tile.Button.GetComponent<HoloButtonFx>();
                 if (fx != null)
@@ -415,7 +415,7 @@ namespace SpaceStation.Interior
                 : $"<color={HudText.Red}>{HudText.PlacementReason(_targetResult)}</color>";
             string adjacency = _adjacencyText.Length > 0 ? "\n" + _adjacencyText : string.Empty;
             _detail.SetText($"<b><size=118%>{_selected.DisplayName}</size></b>  <color={HudText.Muted}>{_selected.CellOffsets.Count}칸</color>\n" +
-                            $"비용 {HudText.Cost(sim.GetBuildCost(_selected))}\n{state}{adjacency}\n" +
+                            $"비용 {HudText.BigIcons(HudText.Cost(sim.GetBuildCost(_selected)))}\n{state}{adjacency}\n" +
                             $"<color={HudText.Muted}>클릭 건설 · {KeyBindings.Label(GameAction.Rotate)} 회전 · 우클릭/ESC 취소</color>");
         }
     }

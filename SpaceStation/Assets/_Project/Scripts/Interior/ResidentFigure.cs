@@ -14,6 +14,13 @@ namespace SpaceStation.Interior
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
+        /// <summary>
+        /// 주민 Mesh LOD 선택 편향 (모델 가져오기 설정 Generate Mesh LODs, LOD0~4 = 약 1.2만 → 0.8천 삼각형).
+        /// 1 = 한 단계 덜 자세한 쪽: 가장 가까운 주민도 LOD1(절반, 1.3m에서 LOD0과 구별 안 됨), 그 밖은 화면 크기에 따라 더 낮게.
+        /// 0이면 그려지는 주민 삼각형이 거의 줄지 않음 (그리기 범위를 넉넉한 상자로 키워 화면에서 크게 계산됨), 2는 1~2m 앞에서 LOD2(눈 반짝임 · 볼터치가 줄고 펭귄 눈이 깨짐).
+        /// </summary>
+        private const float MeshLodBias = 1f;
+
         private Renderer _renderer;
         private Transform _head;
         private float _tagTop;          // 자세를 잡은 뒤 실제 키 (그리기 범위는 넉넉한 상자라 그 위면 이름표가 너무 높이 뜸)
@@ -51,6 +58,7 @@ namespace SpaceStation.Interior
             foreach (var smr in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
                 smr.updateWhenOffscreen = false;
+                smr.meshLodSelectionBias = MeshLodBias;
                 var mats = smr.sharedMaterials;
                 for (int i = 0; i < mats.Length; i++)
                 {

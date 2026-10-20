@@ -40,7 +40,35 @@ namespace SpaceStation.Data
         [Tooltip("슬롯 공유 재질 (이름 M_Animal_<슬롯>)")]
         [SerializeField] private Material[] _materials = Array.Empty<Material>();
 
+        [Header("발판 (사용자 결정 2026-10-20: 작업대에 손이 안 닿던 동물이 올라서서 일함 — BlenderWork/InteriorProps/stool_builder.py)")]
+        [Tooltip("낮은 것부터. 높이 = 발이 닿는 윗면 (상판 + 고무 홈)")]
+        [SerializeField] private AnimalStool[] _stools = Array.Empty<AnimalStool>();
+        [Tooltip("작업 자세에서 발 → 손 높이 (동물 크기 1 기준, 토끼로 잼)")]
+        [SerializeField, Min(0f)] private float _workHandHeight = 0.37f;
+
         public IReadOnlyList<AnimalSpecies> Species => _species;
+        public IReadOnlyList<AnimalStool> Stools => _stools;
+        public float WorkHandHeight => _workHandHeight;
+
+        /// <summary>
+        /// 발 기준 작업대 높이 <paramref name="surface"/>에 손이 닿게 고른 발판 — 필요한 높이에 가장 가까운 것 (아주 높은 기계 앞은 가장 높은 것에서 올려다봄).
+        /// 필요한 높이가 가장 낮은 발판의 절반도 안 되거나 발판이 없으면 null.
+        /// </summary>
+        public AnimalStool StoolFor(float surface, float scale)
+        {
+            float need = surface - _workHandHeight * scale;
+            AnimalStool best = null;
+            float lowest = float.MaxValue;
+            foreach (var s in _stools)
+            {
+                if (s == null || s.Model == null)
+                    continue;
+                lowest = Mathf.Min(lowest, s.Height);
+                if (best == null || Mathf.Abs(s.Height - need) < Mathf.Abs(best.Height - need))
+                    best = s;
+            }
+            return best != null && need >= lowest * 0.5f ? best : null;
+        }
         public bool IsValid => _species.Length > 0 && Array.TrueForAll(_species, s => s != null && s.Model != null);
 
         /// <summary>FBX 재질 이름(`M_Animal_Fur` 등, 뒤에 붙는 번호 무시)에서 슬롯 이름.</summary>
@@ -73,6 +101,21 @@ namespace SpaceStation.Data
             _species = species;
             _materials = materials;
         }
+
+        public void EditorSetStools(AnimalStool[] stools, float workHandHeight)
+        {
+            _stools = stools;
+            _workHandHeight = workHandHeight;
+        }
 #endif
+    }
+
+    /// <summary>동물 주민 발판 하나 (원점 = 바닥 가운데, 앞 = +z = 작업대 쪽).</summary>
+    [Serializable]
+    public sealed class AnimalStool
+    {
+        public GameObject Model;
+        [Tooltip("발이 닿는 윗면 높이 (m)")]
+        public float Height;
     }
 }
