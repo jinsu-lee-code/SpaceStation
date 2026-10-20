@@ -836,6 +836,34 @@ namespace SpaceStation.Interior
             RefreshInfo();
         }
 
+        /// <summary>
+        /// 12-5 상단 사고 · 부탁 줄을 눌렀을 때 (사용자 요청 2026-10-20 — 바깥에서 파손 창을 누르면 그 모듈로 가는 것처럼):
+        /// 관리 탭으로 바꾸고 그 모듈이 있는 층을 보여 주며 고름 → [이 방으로 이동]만 누르면 감. 패드를 확대한 상태(마우스가 풀린 때)에서만.
+        /// </summary>
+        public void FocusModule(ModuleInstance module)
+        {
+            if (module == null || !_wantZoom)
+                return;
+            if (_tab != PadTab.Manage)
+                SetTab(PadTab.Manage);
+            bool onFloor = false;
+            int first = int.MinValue;
+            foreach (var cell in module.Cells)
+            {
+                if (cell.y == _floor)
+                    onFloor = true;
+                if (first == int.MinValue)
+                    first = cell.y;
+            }
+            if (!onFloor && first != int.MinValue)
+            {
+                _followFloor = false;
+                ShowFloor(first, _floor == int.MinValue ? 0 : Math.Sign(first - _floor));
+                RefreshFloorLabel();
+            }
+            SelectModule(module);
+        }
+
         // ---------------- 정보 ----------------
 
         private void RefreshInfo()
