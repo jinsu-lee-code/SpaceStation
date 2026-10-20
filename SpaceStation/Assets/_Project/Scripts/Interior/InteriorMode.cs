@@ -563,6 +563,7 @@ namespace SpaceStation.Interior
                 _incidents.CurrentRoom = _currentModule;
             DriveTutorial();
             UpdateTracker();
+            UpdateTrackerClick();
             PlaceTop();
             if (_notice != null && _noticeUntil > 0f && Time.unscaledTime > _noticeUntil)
             {
@@ -596,33 +597,76 @@ namespace SpaceStation.Interior
                 return;
             _trackerNext = Time.unscaledTime + 0.25f;
             string text = string.Empty;
+            _trackerTarget = null;
             var contact = _station.Simulation.Contact;
             if (contact != null && contact.Boarding)
             {
                 int boardLeft = Mathf.CeilToInt(contact.BoardingTimeLeft);
                 text = $"{HudTheme.Icon("warning")} <color={HudText.Orange}><b>침입 드론 {contact.DronesLeft}/{contact.DronesTotal}</b></color> · {Where(contact.BoardingTarget)} · <color={(boardLeft <= 30 ? HudText.Red : HudText.Orange)}>{boardLeft}초</color>";
+                _trackerTarget = contact.BoardingTarget;
             }
             else if (_incidents != null && _incidents.TryGetActive(out var incident, out var incidentRoom, out int left))
             {
                 string time = left >= 0 ? $" · <color={(left <= 20 ? HudText.Red : HudText.Orange)}>{left}초</color>" : "";
                 text = $"{HudTheme.Icon("warning")} <color={HudText.Orange}><b>{incident}</b></color> · {Where(incidentRoom)}{time}";
+                _trackerTarget = incidentRoom;
             }
             else if (_requests != null && _requests.TryGetPending(out var request, out var requestRoom))
             {
                 int more = _requests.ActiveCount - 1;
                 text = $"<color={HudTheme.AccentHex}><b>부탁</b></color> {request} · {Where(requestRoom)}" +
                        (more > 0 ? $" <color={HudText.Muted}>외 {more}건</color>" : "");
+                _trackerTarget = requestRoom;
             }
             _tracker.SetText(text);
         }
 
-        /// <summary>지금 방이면 "이 방", 아니면 방 이름 + 패드 안내.</summary>
+        /// <summary>지금 방이면 "이 방", 아니면 방 이름 + 패드 안내 (패드를 확대했으면 "눌러서 고르기").</summary>
         private string Where(ModuleInstance room)
         {
             if (room == _currentModule)
                 return "이 방";
             string name = room != null && room.Data != null ? room.Data.DisplayName : "다른 방";
-            return $"{name} <color={HudText.Muted}>({KeyBindings.Label(GameAction.Pad)} 패드 지도)</color>";
+            string how = _pad != null && _pad.IsZoomed ? "클릭하면 패드에서 고름" : $"{KeyBindings.Label(GameAction.Pad)} 패드 지도";
+            return $"{name} <color={HudText.Muted}>({how})</color>";
+        }
+
+        private ModuleInstance _trackerTarget;
+        private bool _trackerHover;
+
+        /// <summary>
+        /// 12-5 패드를 확대해 마우스가 풀린 동안 상단 사고 · 부탁 줄(다른 방)을 누르면 패드가 그 모듈을 고름 → [이 방으로 이동]만 누르면 감
+        /// (사용자 요청 2026-10-20 — 바깥에서 파손 창을 누르면 그 모듈로 가는 것처럼). 글자 위에 올리면 밑줄.
+        /// </summary>
+        private void UpdateTrackerClick()
+        {
+            if (_tracker == null)
+                return;
+            bool clickable = _pad != null && _pad.IsZoomed && _trackerTarget != null && _trackerTarget != _currentModule && !string.IsNullOrEmpty(_tracker.text);
+            bool over = false;
+            var mouse = Mouse.current;
+            if (clickable && mouse != null)
+            {
+                var canvas = _tracker.canvas;
+                var cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(_tracker.rectTransform, mouse.position.ReadValue(), cam, out var local))
+                {
+                    var b = _tracker.textBounds;
+                    over = local.x >= b.min.x - 6f && local.x <= b.max.x + 6f && local.y >= b.min.y - 4f && local.y <= b.max.y + 4f;
+                }
+            }
+            // 글자 위 = UI 위 (패드 홀로그램 모형이 같은 클릭으로 골리지 않게)
+            if (_tracker.raycastTarget != over)
+                _tracker.raycastTarget = over;
+            if (over != _trackerHover)
+            {
+                _trackerHover = over;
+                _tracker.fontStyle = over ? _tracker.fontStyle | FontStyles.Underline : _tracker.fontStyle & ~FontStyles.Underline;
+                if (over)
+                    AudioService.TryPlay(l => l.UiHover);
+            }
+            if (over && mouse.leftButton.wasPressedThisFrame)
+                _pad.FocusModule(_trackerTarget);
         }
 
         /// <summary>

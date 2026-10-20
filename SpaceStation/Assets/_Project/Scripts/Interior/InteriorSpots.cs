@@ -35,6 +35,26 @@ namespace SpaceStation.Interior
 
         /// <summary>확인용: 마지막 <see cref="Walls"/>에서 플레이어가 닿을 수 없어 뺀 벽 자리 수.</summary>
         public static int LastUnreachable { get; private set; }
+
+        /// <summary>12-5 바닥 소품을 두지 않을 곳 (주민이 정해진 길로 오가는 통로 — 행정 관제소 민원인). 방 부모마다 하나.</summary>
+        public interface IFloorKeepClear
+        {
+            /// <summary><paramref name="world"/>에 반지름 <paramref name="radius"/>인 물건을 두면 통로를 막는지.</summary>
+            bool Blocks(Vector3 world, float radius);
+        }
+
+        private static readonly Dictionary<Transform, IFloorKeepClear> _keepClear = new Dictionary<Transform, IFloorKeepClear>();
+
+        /// <summary>방 부모 아래 통로를 알림 (켜질 때) · 지움 (꺼질 때 zone = null).</summary>
+        public static void KeepClear(Transform roomParent, IFloorKeepClear zone)
+        {
+            if (roomParent == null)
+                return;
+            if (zone != null)
+                _keepClear[roomParent] = zone;
+            else
+                _keepClear.Remove(roomParent);
+        }
         private static readonly Collider[] _bodyHits = new Collider[16];
         private static readonly RaycastHit[] _sightHits = new RaycastHit[16];
 
@@ -109,6 +129,10 @@ namespace SpaceStation.Interior
             spot = default;
             builder.EnsureActive(module);
             var walk = ReachOf(builder, module);
+            var roomParent = builder.RoomParent(module);
+            IFloorKeepClear lanes = null;
+            if (roomParent != null)
+                _keepClear.TryGetValue(roomParent, out lanes);
             var cells = module.Cells;
             for (int attempt = 0; attempt < 60; attempt++)
             {
@@ -140,6 +164,8 @@ namespace SpaceStation.Interior
                     continue;
                 if (walk != null && !CanReachFloor(walk, p, halfExtents))
                     continue;   // 둘레에 플레이어가 설 바닥이 없음 (가구 사이 · 창구 뒤 등)
+                if (lanes != null && lanes.Blocks(p, Mathf.Max(halfExtents.x, halfExtents.z)))
+                    continue;   // 주민이 오가는 통로 (민원인이 상자를 뚫고 지나가지 않게)
                 spot = p + Vector3.up * 0.002f;
                 return true;
             }
