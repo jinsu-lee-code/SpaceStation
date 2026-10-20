@@ -23,7 +23,7 @@ v1.0.0 지구급 확장(Phase 12)의 설계 결정과 이유는 `PHASESET.md`에
 - **동적 글꼴**: `Art/Fonts/Maplestory SDF.asset` · `Maplestory Bold SDF.asset`은 플레이할 때마다 바뀐다. **git으로 되돌리지 말고** 커밋에 넣는다. 되돌리면 글자가 빈칸이 되는데, 그때는 두 글꼴에 `ClearFontAssetData(true)`를 한 뒤 저장한다.
 - **영상(mp4)은 GitHub에 올리지 않는다** (.gitignore에 있음).
 - **사람 주민 모델은 쓰지 않는다** (동물 주민으로 전환). 옛 작업물은 원래 PC의 저장소 밖 `_archive`에만 있다.
-- 나중에 제안할 아이디어: 정거장 등급이 오르면 동물 주민 직함이 승진한다 ("기관사 → 수석 기관사", TASKS.md 11-11d).
+- 동물 주민 직함 승진은 2026-10-20에 구현됨 (등급이 단계를 열고 오래 산 주민부터 — 선임 · 수석, BALANCE 26번 · MERGE_NOTES M-29).
 - 시뮬레이션 동작 확인에는 밸런스 봇을 쓴다 (`BalanceSimulatorWindow.RunWithDefaults(30, 20, 1)`). 같은 시드면 결과가 같으므로, 리팩터링 전후 `timeseries.csv`가 같은지 비교한다.
 
 ## 기술 스택
