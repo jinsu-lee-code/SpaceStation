@@ -83,7 +83,8 @@ namespace SpaceStation.Interior
             CollectPanels(builder.RoomParent(module));
             var walk = ReachOf(builder, module);
             LastUnreachable = 0;
-            _buckets.Clear();
+            _taken.Clear();
+            _tried.Clear();
             float reach = InteriorGeometry.CellSize * 0.6f;
             foreach (var cell in module.Cells)
             {
@@ -118,9 +119,10 @@ namespace SpaceStation.Interior
             }
         }
 
-        private static readonly Dictionary<Vector3Int, int> _buckets = new Dictionary<Vector3Int, int>();   // 같은 자리 → 받음(-1) · 떨어진 횟수
+        private static readonly HashSet<Vector3Int> _taken = new HashSet<Vector3Int>();   // 받은 자리 (SpotBucket 칸)
+        private static readonly HashSet<Vector3Int> _tried = new HashSet<Vector3Int>();   // 이미 잰 점 (0.1m 칸 — 떨어진 점 옆의 붙일 수 있는 점은 다시 봄)
 
-        /// <summary>광선 하나가 맞은 곳을 벽 자리로 쓸 수 있으면 넣음 (같은 자리는 한 번, 두 번 떨어진 자리는 더 안 봄).</summary>
+        /// <summary>광선 하나가 맞은 곳을 벽 자리로 쓸 수 있으면 넣음 (같은 자리는 한 번).</summary>
         private static void TryWall(Reach walk, int level, Vector3 origin, Vector3 dir, float reach, float minDistance, List<(Vector3 Position, Vector3 Normal)> result)
         {
             if (!Physics.Raycast(origin, dir, out var hit, reach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
@@ -128,16 +130,13 @@ namespace SpaceStation.Interior
             if (hit.distance < minDistance || Mathf.Abs(hit.normal.y) > 0.2f || Excluded(hit.collider))
                 return;
             var n = new Vector3(hit.normal.x, 0f, hit.normal.z).normalized;
-            int sector = Mathf.RoundToInt(Mathf.Atan2(n.z, n.x) / (Mathf.PI * 0.25f)) & 7;
-            var bucket = new Vector3Int(Mathf.RoundToInt(hit.point.x / SpotBucket), level * 8 + sector, Mathf.RoundToInt(hit.point.z / SpotBucket));
-            if (_buckets.TryGetValue(bucket, out int tried) && (tried < 0 || tried >= 2))
+            int sector = (Mathf.RoundToInt(Mathf.Atan2(n.z, n.x) / (Mathf.PI * 0.25f)) & 7) + level * 8;
+            var taken = new Vector3Int(Mathf.RoundToInt(hit.point.x / SpotBucket), sector, Mathf.RoundToInt(hit.point.z / SpotBucket));
+            if (_taken.Contains(taken) || !_tried.Add(new Vector3Int(Mathf.RoundToInt(hit.point.x * 10f), sector, Mathf.RoundToInt(hit.point.z * 10f))))
                 return;
             if (!Accept(walk, level, hit, n, out var point))
-            {
-                _buckets[bucket] = tried + 1;
                 return;
-            }
-            _buckets[bucket] = -1;
+            _taken.Add(taken);
             result.Add((point, n));
         }
 
@@ -224,7 +223,8 @@ namespace SpaceStation.Interior
             r = new Reach { ParentId = id, Origin = builder.FloorPoint(module.Cells[0]) };
             _reach[module] = r;
             Physics.SyncTransforms();
-            // 몸이 서는 칸 (층마다)
+            CollectPanels(parent);
+            // 몸이 서는 칸 (층마다). 문 패널 안은 뺌 — 문이 열려 있으면 이어진 통로까지 퍼져 통로 벽이 자리로 잡혔음 (행정 관제소)
             foreach (var cell in module.Cells)
             {
                 var floor = builder.FloorPoint(cell);
@@ -237,7 +237,7 @@ namespace SpaceStation.Interior
                         if (r.Floor.ContainsKey(key))
                             continue;
                         var p = PointOf(r, key, floor.y);
-                        if (Stand(p, floor.y, out float y))
+                        if (!InDoorPanel(p + Vector3.up, 0f) && Stand(p, floor.y, out float y))
                             r.Floor[key] = y;
                     }
                 }
