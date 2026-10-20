@@ -404,7 +404,7 @@ namespace SpaceStation.Editor
                     };
                     root.AddComponent<InteriorQueueBoard>().Configure(new[] { Window(1.965f, 2.125f), Window(0.39f, 0.55f) },
                         new InteriorQueueBoard.Panel { Center = new Vector3(-2.752f, -0.5f, 2.6f), Normal = Vector3.right, Up = Vector3.up, Width = 0.26f, Height = 0.14f },
-                        new Vector4(-2.35f, F, 2.6f, -90f), 0f, 1.55f, new Vector3(-1.5f, F, 0f));
+                        new Vector4(-2.35f, F, 2.6f, -90f), 0f, 1.55f, 2.2f, new Vector3(-2.35f, F, 2.2f));   // 발권기 길 = 의자 줄 뒤(z 2.2) — 들어오는 곳을 피함
                 });
         }
 
