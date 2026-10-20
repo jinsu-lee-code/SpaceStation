@@ -477,7 +477,7 @@
 - 측정: 화면 삼각형 코어(주민 47) 125.5만 → 104만, 상업 구역(주민 42) 110만 → 95만 (MODELING 맨 위)
 
 ### `narrative` 합칠 때
-- [ ] 충돌 없음 예상 (`ResidentFigure` 한 줄 + 상수, 모델 `.meta`). 서사판이 주민 모델을 다시 내보냈으면 가져오기 설정이 남아 있는지 확인.
+- [x] (2026-10-20, 1ce16f7) 자동 합침 · 모델 8종 가져오기 설정 그대로 (곰 · 토끼 · 펭귄 LOD 5단계 확인) · EditMode 446개 통과 · 플레이 확인 메뉴 4번(대형 정거장) 콘솔 오류 0.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-20, b058c94) 자동 합침 · 컴파일 오류 0 · 플레이 확인 (편향 1 적용, 1.4m 펭귄 얼굴 정상).
@@ -494,7 +494,7 @@
 - 시험 2개 (`ResidentTests.TitleRanks_GradeOpens_LongestLivedFirst_AnnouncedAndSaved` · `HudTextTests.BigIcons_WrapsEverySpriteOnly`)
 
 ### `narrative` 합칠 때
-- [ ] `StatusBar` · `StationSimulation`은 서사판에도 같은 줄을 넣었음 (같은 내용 → 충돌 없음 예상).
+- [x] (2026-10-20, 1ce16f7) 서사판 작업 트리에 먼저 넣어 둔 같은 변경(main과 내용 같음 확인)을 비우고 main을 합침 — 충돌 없음 · EditMode 446개 통과. 승진 알림 · 발판 · 패드 아이콘은 합치기 전 서사판에서 플레이 확인함.
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. 타이쿤판이 `StatusBar` 주민 알림 · `ResidentText.FullName` · `InteriorResidents.Spawn`을 고쳤으면 그 부분만 맞춤. 발판은 `AnimalModelSet` 에셋에 들어 있어 씬 작업 없음.
