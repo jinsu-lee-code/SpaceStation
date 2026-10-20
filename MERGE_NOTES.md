@@ -452,7 +452,7 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-19, fda99db) 자동 합침 · 템플릿 재빌드 · 플레이 검수 (9종 뚫림 검사 0px · 키트 ↔ 템플릿 같은 평면 = 안 보이는 면뿐).
-- [ ] ⚠ (2026-10-20 narrative에서 발견) `Build New Basic Templates`가 부르는 `Interior/Setup`이 선택 패널 [들어가기] 줄을 다시 만들며 같은 줄의 **[옮기기 (M)] 버튼을 지움** — `origin/tycoon` 씬에 `Move` 버튼이 없음. 메뉴 `SpaceStation/Move/Setup Selection Button`을 한 번 돌리면 되살아남 (M-27 이후로는 `Interior/Setup`이 저절로 부름).
+- [x] ⚠ (2026-10-20 narrative에서 발견) `Build New Basic Templates`가 부르는 `Interior/Setup`이 선택 패널 [들어가기] 줄을 다시 만들며 같은 줄의 **[옮기기 (M)] 버튼을 지움** — `origin/tycoon` 씬에 `Move` 버튼이 없음. 메뉴 `SpaceStation/Move/Setup Selection Button`을 한 번 돌리면 되살아남 (M-27 이후로는 `Interior/Setup`이 저절로 부름). → (2026-10-20, 15f8cfb) tycoon 씬에서 `_moveButton` 비어 있음 확인 → 메뉴로 되살림 · 씬 저장
 
 ---
 
@@ -465,11 +465,26 @@
 - [x] (2026-10-20, 1422264) 충돌 없음 · `Interior/Setup`을 돌려도 [옮기기 (M)]가 Row3 맨 앞에 다시 붙고 템플릿 31개 그대로 확인 (확인용으로 다시 만들어진 씬 · 재질은 되돌림).
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. 합친 뒤 위 M-26 주의대로 [옮기기] 버튼을 되살림 (`Move/Setup Selection Button` 또는 `Interior/Setup`).
+- [x] (2026-10-20, c4f21da) 자동 합침 · 컴파일 오류 0 · [옮기기] 버튼 되살림 (15f8cfb, M-26 주의 항목).
 
 ---
 
-## M-28. 직함 승진 · 동물용 발판 · 패드 비용 아이콘 (2026-10-20, `main`)
+## M-28. 동물 주민 Mesh LOD (2026-10-20, `main`)
+
+**main에 넣은 것** — 화면 동작이 바뀜 (먼 주민일수록 덜 자세한 메시로 그림, 가까이서는 구별 안 됨)
+- 모델 8종(`Art/Models/Resident/Animal/SM_Animal_*.fbx`) 가져오기 설정: `generateMeshLods` 1 · `maximumMeshLod` 4 (LOD0~4, 약 1.2만 → 0.8천 삼각형). `.meta`만 바뀜
+- `ResidentFigure.MeshLodBias` = 1 → 만들 때 `SkinnedMeshRenderer.meshLodSelectionBias` (가장 가까운 주민도 LOD1)
+- 측정: 화면 삼각형 코어(주민 47) 125.5만 → 104만, 상업 구역(주민 42) 110만 → 95만 (MODELING 맨 위)
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상 (`ResidentFigure` 한 줄 + 상수, 모델 `.meta`). 서사판이 주민 모델을 다시 내보냈으면 가져오기 설정이 남아 있는지 확인.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-20, b058c94) 자동 합침 · 컴파일 오류 0 · 플레이 확인 (편향 1 적용, 1.4m 펭귄 얼굴 정상).
+
+---
+
+## M-29. 직함 승진 · 동물용 발판 · 패드 비용 아이콘 (2026-10-20, `main`)
 
 **main에 넣은 것** — 화면 · 주민 표시가 바뀜 (사용자 결정 2026-10-20, 오래 미뤄 둔 것 정리)
 - **직함 승진** (등급 상한 + 오래 산 주민부터, 표시만 · 효과 없음, BALANCE 26번): `ResidentConfig._ranks`(`TitleRank` 앞말 · 열리는 등급 · 근속) — 선임 = 소형 · 10분, 수석 = 대형 · 30분. `RankOf(근속, 가장 높은 등급)` · `TitleOf(특성, 단계)`. `Resident.JoinedAt`(저장, 이전 세이브 = 0) · `Rank`, `ResidentRoster.Now` · `HighestGrade`(시뮬레이션이 연결) · 매 틱 단계 셈 · `Promoted` 이벤트(불러온 직후 첫 셈은 조용히). `ResidentText.FullName` · 내부 이름표가 단계 붙은 직함, `StatusBar` 승진 알림 "승진 · 두부 → 선임 기관사" / "주민 n명 승진 · …". `ResidentSetup.CreateData`가 단계를 넣음 (에셋에도 들어감)
