@@ -402,9 +402,17 @@ namespace SpaceStation.Editor
                         StaffSeat = new Vector3(3.5f, F + 0.49f, z),
                         Counter = new Vector4(2.4f, F, z, 90f),
                     };
-                    root.AddComponent<InteriorQueueBoard>().Configure(new[] { Window(1.965f, 2.125f), Window(0.39f, 0.55f) },
+                    var queue = root.AddComponent<InteriorQueueBoard>();
+                    queue.Configure(new[] { Window(1.965f, 2.125f), Window(0.39f, 0.55f) },
                         new InteriorQueueBoard.Panel { Center = new Vector3(-2.752f, -0.5f, 2.6f), Normal = Vector3.right, Up = Vector3.up, Width = 0.26f, Height = 0.14f },
                         new Vector4(-2.35f, F, 2.6f, -90f), 0f, 1.55f, 2.2f, new Vector3(-2.35f, F, 2.2f));   // 발권기 길 = 의자 줄 뒤(z 2.2) — 들어오는 곳을 피함
+                    // 민원인 통로 (보급 상자 · 부탁 물건을 두지 않음): 의자 앞 두 줄 · 가운데 통로 · 줄 기둥 앞 · 창구 앞 2 · 발권기 길
+                    queue.ConfigureLanes(new[]
+                    {
+                        new Vector4(-0.2f, -1.75f, -0.2f, 2.2f), new Vector4(1.0f, -1.75f, 1.0f, 2.2f), new Vector4(-0.2f, 0f, 1.55f, 0f),
+                        new Vector4(1.55f, 0f, 1.55f, 2.125f), new Vector4(1.55f, 0.55f, 2.4f, 0.55f), new Vector4(1.55f, 2.125f, 2.4f, 2.125f),
+                        new Vector4(1.0f, 2.2f, -2.35f, 2.2f), new Vector4(-2.35f, 2.2f, -2.35f, 2.6f),
+                    }, 0.35f);
                 });
         }
 

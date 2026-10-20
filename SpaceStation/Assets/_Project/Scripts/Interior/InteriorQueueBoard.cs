@@ -18,7 +18,7 @@ namespace SpaceStation.Interior
     ///   여럿이 같은 통로를 오가면 서로 겹쳐 지나갔음 (2026-10-20 플레이 검수)
     /// 바뀐 번호는 1.5초 밝기 깜빡임 (색약), 실제 시간(unscaled). 모듈이 꺼지면 "---".
     /// </summary>
-    public sealed class InteriorQueueBoard : InteriorRoomDisplay
+    public sealed class InteriorQueueBoard : InteriorRoomDisplay, InteriorSpots.IFloorKeepClear
     {
         private const float FlashSeconds = 1.5f;
         private const float ScanSeconds = 1f;
@@ -62,6 +62,9 @@ namespace SpaceStation.Interior
         [SerializeField] private float _seatFront = 0.5f;
         [SerializeField] private Vector2 _restSeconds = new Vector2(20f, 50f);
         [SerializeField] private Vector2 _serveSeconds = new Vector2(6f, 10f);
+        [Tooltip("민원인이 오가는 통로 (프리팹 로컬 x0, z0, x1, z1) — 보급 상자 · 부탁 물건을 두지 않음")]
+        [SerializeField] private Vector4[] _lanes = Array.Empty<Vector4>();
+        [SerializeField] private float _laneHalfWidth = 0.35f;
 
         private sealed class Visitor
         {
@@ -101,6 +104,32 @@ namespace SpaceStation.Interior
             _laneX = laneX;
             _ticketLaneZ = ticketLaneZ;
             _ticketVia = ticketVia;
+        }
+
+        /// <summary>민원인 통로 (프리팹 로컬 선분 x0, z0, x1, z1) — 바닥 소품 자리에서 뺌 (<see cref="InteriorSpots.KeepClear"/>).</summary>
+        public void ConfigureLanes(Vector4[] lanes, float halfWidth)
+        {
+            _lanes = lanes;
+            _laneHalfWidth = halfWidth;
+        }
+
+        private void OnEnable() => InteriorSpots.KeepClear(transform.parent, this);
+
+        private void OnDisable() => InteriorSpots.KeepClear(transform.parent, null);
+
+        public bool Blocks(Vector3 world, float radius)
+        {
+            var p = transform.InverseTransformPoint(world);
+            var q = new Vector2(p.x, p.z);
+            foreach (var l in _lanes)
+            {
+                var a = new Vector2(l.x, l.y);
+                var ab = new Vector2(l.z, l.w) - a;
+                float t = ab.sqrMagnitude > 1e-6f ? Mathf.Clamp01(Vector2.Dot(q - a, ab) / ab.sqrMagnitude) : 0f;
+                if ((a + ab * t - q).magnitude < _laneHalfWidth + radius)
+                    return true;
+            }
+            return false;
         }
 
         private void Setup()
