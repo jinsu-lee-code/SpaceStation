@@ -448,7 +448,21 @@
 - 모델 · 프리팹 · 템플릿 에셋(SM_Interior_* · PF_Interior_* · IT_* · Interior_NewBasic.blend)은 tycoon에서 만들어 binary patch로 옮김 (아래 체크)
 
 ### `narrative` 합칠 때
-- [ ] 충돌 없음 예상 (새 파일 위주). `InteriorAtmosphere` · `InteriorMode` · `InteriorExteriorView` · `TutorialView`를 서사판이 고쳤으면 그 부분만 맞춤. 합친 뒤 `Build New Basic Templates`는 다시 돌리지 않아도 됨 (에셋이 같이 들어옴).
+- [x] (2026-10-20, 6a75189) 코드 · 에셋은 자동 합침. `MODELING.md`만 충돌 — 서사판 7-8 ~ 7-10(난파선 · 이민선 · 지구)을 7-9 ~ 7-11로 밀고 main 7-8을 둠. **씬은 따로 맞춰야 했음**: 새 9종 템플릿이 씬 `InteriorMode._templates`에 없어 새 내부가 쓰이지 않음 (main 씬에도 없음) → 목록만 넣음 (`Interior/Setup`은 아래 주의 때문에 안 돌림). EditMode 444개 통과 · 플레이 모드 연결 허브 내부(표지판 "연결 없음" · 환승 안내 키오스크 = 실제 연결) · 콘솔 오류 0.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-19, fda99db) 자동 합침 · 템플릿 재빌드 · 플레이 검수 (9종 뚫림 검사 0px · 키트 ↔ 템플릿 같은 평면 = 안 보이는 면뿐).
+- [ ] ⚠ (2026-10-20 narrative에서 발견) `Build New Basic Templates`가 부르는 `Interior/Setup`이 선택 패널 [들어가기] 줄을 다시 만들며 같은 줄의 **[옮기기 (M)] 버튼을 지움** — `origin/tycoon` 씬에 `Move` 버튼이 없음. 메뉴 `SpaceStation/Move/Setup Selection Button`을 한 번 돌리면 되살아남 (M-27 이후로는 `Interior/Setup`이 저절로 부름).
+
+---
+
+## M-27. `Interior/Setup`이 [옮기기] 버튼을 지우지 않게 (2026-10-20, `main`)
+
+**main에 넣은 것** — 편집 도구만 (게임 동작 변화 없음)
+- `InteriorSetup.Setup` 끝에서 `MoveSetup.Setup()`을 부름: [들어가기] 줄을 다시 만들며 지운 12-3b [옮기기 (M)] 버튼을 다시 붙이고 `SelectionActionsPanel._moveButton` · `_moveLabel`에 연결 (이미 연결돼 있으면 아무것도 안 함)
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상.
+
+### `tycoon` 합칠 때
+- [ ] 충돌 없음 예상. 합친 뒤 위 M-26 주의대로 [옮기기] 버튼을 되살림 (`Move/Setup Selection Button` 또는 `Interior/Setup`).
