@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using SpaceStation.Core;
@@ -47,6 +48,32 @@ namespace SpaceStation.UI
                 if (sb.Length > 0)
                     sb.Append("  ");
                 sb.Append(HudTheme.Icon(a.Type)).Append(' ').Append((a.Amount * multiplier).ToString("0.#"));
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// 글 속 자원 아이콘(&lt;sprite …&gt;)만 percent% 크기로 — 휴대 패드(월드 캔버스, 작은 글자)에서 비용 아이콘이 점처럼 작게 보여서
+        /// (11-12 남은 것, 2026-10-20). 아이콘이 없으면 그대로.
+        /// </summary>
+        public static string BigIcons(string text, int percent = 150)
+        {
+            if (string.IsNullOrEmpty(text) || text.IndexOf("<sprite", StringComparison.Ordinal) < 0)
+                return text;
+            var sb = new StringBuilder(text.Length + 32);
+            int i = 0;
+            while (i < text.Length)
+            {
+                int start = text.IndexOf("<sprite", i, StringComparison.Ordinal);
+                int end = start >= 0 ? text.IndexOf('>', start) : -1;
+                if (end < 0)
+                {
+                    sb.Append(text, i, text.Length - i);
+                    break;
+                }
+                sb.Append(text, i, start - i);
+                sb.Append("<size=").Append(percent).Append("%>").Append(text, start, end + 1 - start).Append("</size>");
+                i = end + 1;
             }
             return sb.ToString();
         }

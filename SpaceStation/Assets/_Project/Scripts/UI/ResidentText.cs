@@ -11,10 +11,10 @@ namespace SpaceStation.UI
         public const string Good = "#7CFF9A";
         public const string Bad = "#FF8A7A";
 
-        /// <summary>"두부 기관사": 이름 + 직함 (11-11d, 직함은 특성에서 — <see cref="ResidentConfig.TitleOf"/>).</summary>
+        /// <summary>"두부 기관사" · "두부 선임 기관사": 이름 + 직함 (11-11d, 직함은 특성에서 + 승진 단계 — <see cref="ResidentConfig.TitleOf(System.Collections.Generic.IEnumerable{ResidentTrait}, int)"/>).</summary>
         public static string FullName(ResidentConfig config, Resident r)
         {
-            string title = config != null ? config.TitleOf(r.Traits) : null;
+            string title = config != null ? config.TitleOf(r.Traits, r.Rank) : null;
             return string.IsNullOrEmpty(title) ? r.Name : $"{r.Name} {title}";
         }
 

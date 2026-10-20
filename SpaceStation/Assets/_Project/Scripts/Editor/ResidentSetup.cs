@@ -115,6 +115,8 @@ namespace SpaceStation.Editor
             data.EditorSet(traits, 0.35f,
                 new[] { Module("MD_FusionReactor") }, new[] { Module("MD_Refinery") }, new[] { Module("MD_Farm") },
                 given, new string[0], "대원");
+            // 직함 승진 (사용자 결정 2026-10-20, BALANCE 26번): 소형부터 10분 산 주민 = 선임, 대형부터 30분 산 주민 = 수석 (갓 온 주민은 평직함)
+            data.EditorSetRanks(new TitleRank("선임", 1, 600f), new TitleRank("수석", 3, 1800f));
             EditorUtility.SetDirty(data);
             AssetDatabase.SaveAssets();
             return data;

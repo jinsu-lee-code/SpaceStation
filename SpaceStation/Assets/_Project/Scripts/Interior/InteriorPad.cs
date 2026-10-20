@@ -416,7 +416,7 @@ namespace SpaceStation.Interior
         {
             if (_message == null)
                 return;
-            _message.SetText(text);
+            _message.SetText(HudText.BigIcons(text));
             _message.color = HoloUi.TextColor;
             _messageUntil = Time.unscaledTime + 4f;
             _dirty = true;
@@ -875,13 +875,14 @@ namespace SpaceStation.Interior
             SetChip(_status, _statusBack, statusText, statusColor);
 
             var view = _c.Actions.Describe(module);
-            _info.SetText(WithoutName(view.Info));
+            // 비용 · 환급의 자원 아이콘은 패드에서 키움 (작은 글자에서 점처럼 보였음)
+            _info.SetText(HudText.BigIcons(WithoutName(view.Info)));
             _repair.interactable = view.CanRepair;
-            _repairLabel.SetText(view.RepairLabel); // 키 표시 "(R)" 그대로 — 확대 중 단축키가 같음
+            _repairLabel.SetText(HudText.BigIcons(view.RepairLabel)); // 키 표시 "(R)" 그대로 — 확대 중 단축키가 같음
             _maintain.interactable = view.CanMaintain;
-            _maintainLabel.SetText(NoTarget(view.MaintainLabel));
+            _maintainLabel.SetText(HudText.BigIcons(NoTarget(view.MaintainLabel)));
             _rebuild.interactable = view.CanRebuild;
-            _rebuildLabel.SetText(NoTarget(view.RebuildLabel));
+            _rebuildLabel.SetText(HudText.BigIcons(NoTarget(view.RebuildLabel)));
             bool canTravel = CanTravel(module);
             _travel.interactable = canTravel;
             _travelLabel.SetText(module == current ? "지금 있는 방" : canTravel ? "이 방으로 이동" : "갈 수 없음 (연결되지 않은 방)");
@@ -889,7 +890,7 @@ namespace SpaceStation.Interior
             bool removable = module != current && _c.Station.CanRemove(module);
             _demolish.interactable = removable;
             string demolishKey = KeyBindings.Label(GameAction.Demolish);
-            _demolishLabel.SetText(removable ? $"철거 ({demolishKey})\n<size=80%>환급 {HudText.Cost(_c.Station.GetRefund(module))}</size>"
+            _demolishLabel.SetText(removable ? $"철거 ({demolishKey})\n<size=80%>환급 {HudText.BigIcons(HudText.Cost(_c.Station.GetRefund(module)))}</size>"
                 : module == current ? $"철거 ({demolishKey})\n<size=80%>지금 있는 방</size>"
                 : _c.Station.IsSupportingOthers(module) ? "철거 불가\n<size=80%>다른 모듈의 받침</size>" : "철거 불가");
         }
