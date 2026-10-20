@@ -15,6 +15,8 @@ namespace SpaceStation.Interior
         public IReadOnlyList<ResidentTrait> WorkTraits;
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방.</summary>
         public bool Leisure;
+        /// <summary>12-5 일하는 자리를 일터가 없는 주민도 씀 (특성 무관 — 행정 관제소 창구 · 관제 콘솔).</summary>
+        public bool OpenWork;
         /// <summary>사람이 있을 수 있는 방 (코어와 연결 + 파손 아님). 아니면 아무도 두지 않는다.</summary>
         public bool Usable;
     }
@@ -39,7 +41,8 @@ namespace SpaceStation.Interior
     /// <summary>
     /// 11-11 주민 배치 규칙 (순수 계산, 테스트 대상). 걸어 다니는 AI 없이 방문할 때의 "그 순간" 위치만 정한다.
     /// - 밤: 모두 집.
-    /// - 낮: 일터 특성이 맞는 방(빈 일하는 자리)이 있으면 일터. 없으면 일부(<paramref name="leisureShare"/>)는 여가 방, 나머지는 집.
+    /// - 낮: 일터 특성이 맞는 방(빈 일하는 자리)이 있으면 일터. 없으면 특성과 상관없는 일터(<see cref="PlacementRoom.OpenWork"/>, 12-5 행정 관제소),
+    ///   그것도 없으면 일부(<paramref name="leisureShare"/>)는 여가 방, 나머지는 집.
     /// - 방이 쓸 수 없거나(비활성 · 파손) 자리가 없으면 다음 후보, 끝까지 없으면 보이지 않는다.
     /// - 같은 조건이면 언제 방문해도 같은 결과 (주민 번호로 고르는 결정적 규칙).
     /// </summary>
@@ -79,6 +82,18 @@ namespace SpaceStation.Interior
                     if (TryPick(person.Id, candidates, workLeft, out int work))
                     {
                         result.Add(new Placement { Person = p, Room = work, Work = true });
+                        continue;
+                    }
+                    // 일터가 없으면 특성과 상관없는 일터 (12-5 행정 관제소 창구 직원 — 사용자 결정 2026-10-20)
+                    candidates.Clear();
+                    for (int r = 0; r < rooms.Count; r++)
+                    {
+                        if (workLeft[r] > 0 && rooms[r].OpenWork)
+                            candidates.Add(r);
+                    }
+                    if (TryPick(person.Id, candidates, workLeft, out int open))
+                    {
+                        result.Add(new Placement { Person = p, Room = open, Work = true });
                         continue;
                     }
                     // 여가 방 (일터가 없는 사람 중 일부)
