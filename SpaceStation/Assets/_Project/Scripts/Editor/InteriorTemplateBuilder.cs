@@ -98,6 +98,7 @@ namespace SpaceStation.Editor
             BuildWaterExtractor();
             BuildDataCenter();
             BuildCommerce();
+            BuildAdministration();
         }
 
         /// <summary>1칸 방 문 자리: 열린 수평 면(+x · −x · +z · −z) + 위 · 아래 해치(칸 중심에서 hatch만큼).</summary>
@@ -344,6 +345,54 @@ namespace SpaceStation.Editor
                     lights.Add(LightSpec.Point(new Vector3(x, F + 2.2f, z), 3f, 0.9f, new Color(1f, 0.82f, 0.6f)));
             }
             Build("Commerce", "MD_Commerce", TwoCellSockets(Vector3.zero), new Vector3(-2.2f, F, 0f), 90f, lights);
+        }
+
+        /// <summary>12-5 행정 관제소 (2칸): 서쪽 민원 홀 (창구 3 · 대기 의자 · 발권기 · 천장 돔) + 칸막이 + 동쪽 관제실 (모듈 상태 지도 벽 · 콘솔 4 · 레이더).
+        /// 지도 = 실제 정거장 (<see cref="InteriorStationMap"/>), 창구 번호 · 발권기 = 시간에 따라 올라감 (<see cref="InteriorQueueBoard"/>).
+        /// 해치: 0번 칸 (−2.0, −2.0) — 구석 벽기둥 받침과 떨어지게, 1번 칸 (2.25, −2.25).</summary>
+        private static void BuildAdministration()
+        {
+            var warm = new Color(1f, 0.93f, 0.82f);
+            var cool = new Color(0.8f, 0.88f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0.25f, F + 3.0f, 0f), 6.5f, 2.2f, warm),   // 돔 아래
+                LightSpec.Point(new Vector3(-2.3f, F + 3.0f, 0.8f), 4.5f, 1.2f, warm),
+                LightSpec.Point(new Vector3(2.6f, F + 3.0f, 0.5f), 4.5f, 1.2f, warm),  // 창구 앞
+                LightSpec.Point(new Vector3(6.8f, F + 3.1f, 0f), 6f, 1.7f, cool),
+                LightSpec.Point(new Vector3(9.6f, F + 3.1f, 0.3f), 5f, 1.4f, cool),
+            };
+            var sockets = new List<InteriorSocket>();
+            var hatches = new[] { new Vector3(-2.0f, 0f, -2.0f), new Vector3(2.25f, 0f, -2.25f) };
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, hatches[x]));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, F + 3.6f, hatches[x]));
+            }
+            // admin_builder ANCHORS["sweep"] (레이더 화면 법선 축)
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_Admin_Sweep", new Vector3(10.1812f, 0.1083f, 2.2996f), new Vector3(-0.6116f, 0.5736f, -0.5449f), 60f),
+            };
+            Build("Admin", "MD_Administration", sockets, new Vector3(-2.2f, F, 0f), 90f, lights, orbits,
+                configure: root =>
+                {
+                    // admin_builder ANCHORS["map"] · ["queue"] · ["ticket"]
+                    root.AddComponent<InteriorStationMap>().Configure(new Vector3(4.213f, 0.55f, 0.55f), Vector3.right, Vector3.up, new Vector2(4.8f, 1.8f),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath),
+                        AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Accent_Administration.mat"));
+                    InteriorQueueBoard.Panel Board(float z) => new InteriorQueueBoard.Panel
+                    {
+                        Center = new Vector3(3.812f, 0.67f, z), Normal = Vector3.left, Up = Vector3.up, Width = 0.76f, Height = 0.24f,
+                    };
+                    root.AddComponent<InteriorQueueBoard>().Configure(new[] { Board(1.965f), Board(0.39f) },   // 1번 · 2번 창구 (3번 = 발바닥 도장)
+                        new InteriorQueueBoard.Panel { Center = new Vector3(-2.448f, -0.5f, 2.1f), Normal = Vector3.left, Up = Vector3.up, Width = 0.26f, Height = 0.14f });
+                });
         }
 
         /// <summary>11-4 코어: 12각 고리 복도(반지름 4.4~7.0) + 바깥 연결 통로 8곳 + 안쪽 창 너머 허브·통신탑. 고리 중심 = 로컬 (4, 4).</summary>
@@ -1165,7 +1214,7 @@ namespace SpaceStation.Editor
             { "Turret", InteriorAmbience.Electric }, { "ArmorBulkhead", InteriorAmbience.Electric }, { "DamageControl", InteriorAmbience.Electric },
             { "Core", InteriorAmbience.Hall }, { "RotatingRing", InteriorAmbience.Hall },
             // 12-5 새 기본 모듈
-            { "School", InteriorAmbience.Life }, { "Quarantine", InteriorAmbience.Life }, { "Commerce", InteriorAmbience.Life },
+            { "School", InteriorAmbience.Life }, { "Quarantine", InteriorAmbience.Life }, { "Commerce", InteriorAmbience.Life }, { "Admin", InteriorAmbience.Life },
             { "WaterEx", InteriorAmbience.Water }, { "Protein", InteriorAmbience.Machine },
             { "Sensor", InteriorAmbience.Electric }, { "DataCenter", InteriorAmbience.Electric },
             { "Frame", InteriorAmbience.Hall }, { "Hub", InteriorAmbience.Hall },
