@@ -9,9 +9,9 @@ namespace SpaceStation.Interior
     /// 12-5 행정 관제소 관제실 모듈 상태 지도 벽 — 사용자 결정 2026-10-20: 실제 정거장.
     /// 이 모듈과 같은 층의 모듈 칸을 위에서 내려다본 모양으로 그린다 (지도 위 = 화면을 보는 쪽 앞, 지도 오른쪽 = 보는 사람 오른쪽 → 모듈과 같이 돎).
     /// 한 모듈의 칸끼리는 붙이고 모듈 사이만 틈. 상태는 색이 아니라 밝기 · 움직임으로도 구분 (색약):
-    ///   여기 = 가장 밝음 · 천천히 숨 쉬듯 / 정상 = 밝음 / 꺼짐 = 어두움 / 고장 = 밝음 ↔ 어두움 깜빡임.
-    ///   (여기를 모듈 강조색으로 했을 때 어두운 파랑이라 꺼짐처럼 보였음 — 2026-10-20 플레이 검수)
-    /// 범례 견본도 같은 메시에 넣어 똑같이 움직임. 모듈 · 상태가 바뀔 때만 메시를 다시 만든다. 이 모듈이 꺼지면 "전원 꺼짐".
+    ///   여기 = 속 빈 흰 테두리 · 천천히 숨 쉬듯 / 정상 = 밝음 / 꺼짐 = 어두움 / 고장 = 밝음 ↔ 흐림 빠른 깜빡임.
+    ///   (2026-10-20 플레이 검수: 여기를 강조색으로 칠하면 어두운 파랑이라 꺼짐처럼, 밝기만 올리면 정상과 거의 같아 보였음 → 모양으로도 구분)
+    /// 범례(제목 아래 줄) 견본도 같은 메시에 넣어 똑같이 움직임. 모듈 · 상태가 바뀔 때만 메시를 다시 만든다. 이 모듈이 꺼지면 "전원 꺼짐".
     /// </summary>
     public sealed class InteriorStationMap : InteriorRoomDisplay
     {
@@ -20,8 +20,10 @@ namespace SpaceStation.Interior
         private const float Gap = 0.09f;        // 모듈 사이 틈 (칸 크기 비율)
         private const float MaxCell = 0.28f;    // 칸 하나 최대 크기 (m) — 모듈이 몇 개 없을 때
         private const float Lift = 0.006f;      // 화면 면에서 (바탕 격자 윗면 +0.0025보다 3.5mm 위 — 가까우면 겹친 자리가 깜빡임)
-        private const float TitleBand = 0.26f;  // 위 제목 줄 높이
-        private const float LegendBand = 0.22f; // 아래 범례 줄 높이
+        private const float TitleBand = 0.26f;    // 위 제목 줄 높이
+        private const float LegendRow = 0.14f;    // 제목 아래 범례 줄 높이 (아래 끝에 두면 콘솔 모니터에 가려졌음)
+        private const float BottomMargin = 0.1f;
+        private const float HereLine = 0.26f;     // 여기 테두리 두께 (칸 크기 비율)
         private const float Margin = 0.1f;
 
         private enum State { Here, On, Off, Broken }
@@ -46,7 +48,7 @@ namespace SpaceStation.Interior
         private TextMeshPro _title, _summary;
         private readonly TextMeshPro[] _legend = new TextMeshPro[StateCount];
         private MaterialPropertyBlock _block;
-        private Color _onEmission, _offEmission, _offBase;
+        private Color _onEmission;
         private Vector3 _right;
         private int _version = -1;
         private bool _shown;
@@ -72,8 +74,6 @@ namespace SpaceStation.Interior
             _up = _up.normalized;
             _right = Vector3.Cross(_normal, _up);   // 보는 사람 오른쪽 (CreateText 글자 방향과 같음)
             _onEmission = EmissionOf(_on, Color.white);
-            _offEmission = EmissionOf(_off, Color.black);
-            _offBase = _off != null && _off.HasProperty(BaseColorId) ? _off.GetColor(BaseColorId) : Color.black;
             string[] names = { "MapHere", "MapOn", "MapOff", "MapBroken" };
             Material[] mats = { _on, _on, _off, _on };
             for (int i = 0; i < StateCount; i++)
@@ -92,11 +92,11 @@ namespace SpaceStation.Interior
             float ty = h / 2f - TitleBand / 2f;
             _title = CreateText("MapTitle", At(-w / 4f, ty), _normal, _up, w / 2f - Margin * 2f, TitleBand - 0.08f, 1.6f, TextAlignmentOptions.Left);
             _summary = CreateText("MapSummary", At(w / 4f, ty), _normal, _up, w / 2f - Margin * 2f, TitleBand - 0.1f, 1.2f, TextAlignmentOptions.Right);
-            string[] labels = { "여기", "정상", "꺼짐", "고장 (깜빡임)" };
+            string[] labels = { "여기", "정상", "꺼짐", "고장" };
             for (int i = 0; i < StateCount; i++)
             {
-                float u = LegendU(i);
-                _legend[i] = CreateText("MapLegend", At(u + 0.08f + 0.3f, LegendV()), _normal, _up, 0.6f, LegendBand - 0.1f, 1.0f, TextAlignmentOptions.Left);
+                _legend[i] = CreateText("MapLegend", At(LegendU(i) + 0.08f + 0.2f, LegendV()), _normal, _up, 0.4f, LegendRow - 0.03f, 0.9f,
+                    TextAlignmentOptions.Left);
                 _legend[i].SetText(labels[i]);
             }
         }
@@ -104,8 +104,8 @@ namespace SpaceStation.Interior
         private static Color EmissionOf(Material m, Color fallback) => m != null && m.HasProperty(EmissionColorId) ? m.GetColor(EmissionColorId) : fallback;
 
         private Vector3 At(float u, float v) => _center + _right * u + _up * v;
-        private float LegendU(int i) => -_size.x / 2f + Margin + 0.06f + i * 0.85f;
-        private float LegendV() => -_size.y / 2f + LegendBand / 2f;
+        private float LegendU(int i) => -_size.x / 2f + Margin + 0.06f + i * 0.55f;
+        private float LegendV() => _size.y / 2f - TitleBand - LegendRow / 2f;
 
         protected override void Refresh()
         {
@@ -202,8 +202,8 @@ namespace SpaceStation.Interior
                 max = Vector2Int.Max(max, p);
             }
             float areaW = _size.x - Margin * 2f;
-            float areaH = _size.y - TitleBand - LegendBand;
-            float areaV = (LegendBand - TitleBand) / 2f;   // 지도 칸 가운데 높이
+            float areaH = _size.y - TitleBand - LegendRow - BottomMargin;
+            float areaV = (BottomMargin - TitleBand - LegendRow) / 2f;   // 지도 칸 가운데 높이
             float cs = MaxCell;
             if (_cells.Count > 0)
                 cs = Mathf.Min(MaxCell, areaW / (max.x - min.x + 1), areaH / (max.y - min.y + 1));
@@ -224,11 +224,17 @@ namespace SpaceStation.Interior
                     float t = Joined(p, Vector2Int.up, pair.Value) ? 0f : Gap;
                     float u0 = (p.x - mid.x - 0.5f + l) * cs, u1 = (p.x - mid.x + 0.5f - r) * cs;
                     float v0 = areaV + (p.y - mid.y - 0.5f + b) * cs, v1 = areaV + (p.y - mid.y + 0.5f - t) * cs;
-                    Quad(u0, v0, u1, v1);
+                    if (k == (int)State.Here)
+                        Outline(u0, v0, u1, v1, cs * HereLine, l > 0f, r > 0f, b > 0f, t > 0f);
+                    else
+                        Quad(u0, v0, u1, v1);
                 }
                 // 범례 견본
                 float lu = LegendU(k), lv = LegendV();
-                Quad(lu - 0.06f, lv - 0.05f, lu + 0.06f, lv + 0.05f);
+                if (k == (int)State.Here)
+                    Outline(lu - 0.05f, lv - 0.05f, lu + 0.05f, lv + 0.05f, 0.025f, true, true, true, true);
+                else
+                    Quad(lu - 0.05f, lv - 0.05f, lu + 0.05f, lv + 0.05f);
                 var mesh = _meshes[k];
                 mesh.Clear();
                 mesh.SetVertices(_verts);
@@ -248,6 +254,19 @@ namespace SpaceStation.Interior
 
         private bool Joined(Vector2Int p, Vector2Int dir, ModuleInstance m) => _cells.TryGetValue(p + dir, out var other) && other == m;
 
+        /// <summary>속 빈 테두리 (모듈 바깥쪽 변만) — 여기 모듈을 모양으로도 구분.</summary>
+        private void Outline(float u0, float v0, float u1, float v1, float th, bool left, bool right, bool bottom, bool top)
+        {
+            if (left)
+                Quad(u0, v0, u0 + th, v1);
+            if (right)
+                Quad(u1 - th, v0, u1, v1);
+            if (bottom)
+                Quad(u0 + (left ? th : 0f), v0, u1 - (right ? th : 0f), v0 + th);
+            if (top)
+                Quad(u0 + (left ? th : 0f), v1 - th, u1 - (right ? th : 0f), v1);
+        }
+
         private void Quad(float u0, float v0, float u1, float v1)
         {
             int i = _verts.Count;
@@ -266,25 +285,19 @@ namespace SpaceStation.Interior
             if (!_built || !_shown)
                 return;
             float t = Time.unscaledTime;
-            // 여기 = 정상(×1)보다 늘 밝게 ×1.3~2.7, 천천히 숨 쉬듯 (2.4초)
+            // 여기 = 흰 테두리, 정상보다 밝게 천천히 숨 쉬듯 (2.4초)
             var here = _renderers[(int)State.Here];
             _block.Clear();
             _block.SetColor(BaseColorId, Color.white);
-            _block.SetColor(EmissionColorId, _onEmission * (2.0f + 0.7f * Mathf.Sin(t * Mathf.PI * 2f / 2.4f)));
+            _block.SetColor(EmissionColorId, Color.white * (1.4f + 0.6f * Mathf.Sin(t * Mathf.PI * 2f / 2.4f)));
             here.SetPropertyBlock(_block);
-            // 고장 = 밝음 0.35초 ↔ 꺼짐과 같은 어두움 0.25초 (재질은 그대로, 속성 블록만)
+            // 고장 = 밝음 0.35초 ↔ 흐림(×0.3) 0.25초 — 흐릴 때도 모듈 모양은 보이게 (재질은 그대로, 속성 블록만)
             bool lit = Mathf.Repeat(t, 0.6f) < 0.35f;
             if (lit != _brokenLit)
             {
                 _brokenLit = lit;
                 _block.Clear();
-                if (!lit)
-                {
-                    _block.SetColor(EmissionColorId, _offEmission);
-                    _block.SetColor(BaseColorId, _offBase);
-                }
-                else
-                    _block.SetColor(EmissionColorId, _onEmission);
+                _block.SetColor(EmissionColorId, _onEmission * (lit ? 1f : 0.3f));
                 _renderers[(int)State.Broken].SetPropertyBlock(_block);
             }
         }
