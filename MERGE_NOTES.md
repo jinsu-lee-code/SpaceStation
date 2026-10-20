@@ -501,16 +501,25 @@
 
 ---
 
-## M-30. 12-5 행정 관제소 내부 템플릿 · 모듈 상태 지도 · 번호 대기 (2026-10-20, `main`)
+## M-30. 12-5 행정 관제소 내부 템플릿 · 모듈 상태 지도(층 버튼) · 실제 주민 번호 대기 (2026-10-20, `main`)
 
 **main에 넣은 것** — 화면 동작이 바뀜 (행정 관제소가 일반 내부 대신 새 템플릿을 씀)
 - 템플릿 `BuildAdministration` (2칸, `Build New Basic Templates`에 포함, 환경음 Life): 서쪽 민원 홀(창구 3 · 대기 의자 · 발권기 · 천장 돔) + 칸막이 + 동쪽 관제실(모듈 상태 지도 벽 · 콘솔 4 · 레이더 빛줄 `INT_Admin_Sweep` 회전). 문 자리 10, **해치 = 0번 칸 (−2.0, −2.0) · 1번 칸 (2.25, −2.25)** (0번 칸은 구석 벽기둥과 떨어지게)
 - `InteriorStationMap : InteriorRoomDisplay` (사용자 결정 2026-10-20 "실제로 움직이게"): 이 모듈과 같은 층의 실제 모듈 칸을 위에서 본 지도 (지도 위 = 관제실에서 지도 벽을 보는 쪽, 모듈 회전을 따름). 여기 = 속 빈 흰 테두리 · 숨 쉬듯 / 정상 = 밝음 / 꺼짐 = 어두움 / 고장 = 빠른 깜빡임 (색약: 모양 · 밝기 · 움직임). 제목 · 요약 "모듈 n · 꺼짐 n · 고장 n · 다른 층 n" · 범례. `StationGrid.Version` + 모듈 상태가 바뀔 때만 메시 4개(상태별)를 다시 만듦, 깜빡임은 속성 블록. 모듈이 꺼지면 "전원 꺼짐"
-- `InteriorQueueBoard : InteriorRoomDisplay`: 발권기가 4~8초마다 번호표(화면 = 다음 번호), 1 · 2번 창구가 7~14초마다 다음 번호를 부름 (기다리는 번호 9개면 발권 쉼). 바뀐 번호는 1.5초 밝기 깜빡임, 실제 시간(unscaled), 꺼지면 "---"
-- 모델 · 프리팹 · 템플릿 에셋(SM_Interior_Admin · PF_Interior_* · IT_Admin · M_Paint_Administration · Interior_NewBasic.blend `admin_builder`)은 tycoon에서 만들어 binary patch로 옮김
+- `InteriorQueueBoard : InteriorRoomDisplay` — **실제 주민이 움직여야 번호가 바뀜** (사용자 결정 2026-10-20, 같은 날 바꿈 · 처음엔 시간만으로 올라갔음):
+  - 창구 직원 = 창구 의자에 앉은 주민. 직원이 없는 창구(밤 · 배정 없음) = "창구 닫힘"(어둡게) · 번호를 부르지 않음, 모든 창구가 닫히면 발권기 "발권 중지"
+  - 민원인 = 대기 의자의 쉬는 주민. 번호표가 없으면 발권기로 걸어가 뽑음(발권기 번호가 그때만 올라감), 직원이 있는 빈 창구가 가장 작은 번호를 부르면 창구 앞으로 걸어가 6~10초 머문 뒤 돌아옴
+  - 통로는 한 번에 한 명 (돌려보내기 → 호출 → 번호표 순). 오래 막힌 심부름(40초)은 발권기 · 창구를 놓아줌
+- 주민 배치 (`ResidentPlacement`): `PlacementRoom.OpenWork` — 일터 특성이 맞는 방이 없거나 꽉 찬 주민이 특성과 상관없이 일하는 방 (사용자 결정: 행정 관제소 직원 = 일터 없는 주민). 순서 = 특성 일터 → OpenWork → 여가 → 집. 시험 `Day_OpenWork_TakesResidentsWithoutWorkplace`
+- `InteriorTemplate._openWork` · `_visitStatus`(쉬러 온 사람 상태 글, 행정 관제소 = "민원 보는 중") + `EditorSetVisit`, `InteriorResidents`가 넘김. IT_* 에셋에 두 칸이 생김 (값은 기본값)
+- `ResidentSpotBaker`: 행정 관제소는 고정 자리 15 (창구 직원 3 → 관제 콘솔 4 = 앉아서 일함, 대기 의자 8) · 여가 방에 행정 관제소. **휴게실(IT_Recreation)은 다시 구우면 자리가 바뀜** (예전에 템플릿이 바뀐 뒤 굽지 않았던 듯) — 이번엔 되돌려 원래 자리 유지
+- `ResidentWander`: 심부름 `StartErrand(길, 방향, 머묾, 도착 · 떠남 · 돌아옴)` · `EndStay` · `ErrandMoving/Staying` · `Hold`(스스로 나들이 안 함). **버그 고침**: 돌기(Turn) 중 플레이어를 보고 손을 흔들면 걷기 동작이 남아 반응이 끝나지 않고 영영 서 있었음 → 기다리는 동안 `Walk(0)`
+- 지도 층 버튼: `InteriorStationMap.ConfigureFloors` — 지도 아래 위층 · 아래층 버튼(F 한 번, `InteriorInteractable.Tap` = 새 한 번 누르기 — `InteriorMode`가 처리), 모듈이 있는 층만 · 다른 층에서는 이 모듈 자리 점선 · 가운데 층 이름 화면 · 맨 위/아래층이면 안내
+- 모델 · 프리팹 · 템플릿 에셋(SM_Interior_Admin · PF_Interior_* · IT_* · M_Paint_Administration · Interior_NewBasic.blend `admin_builder`)은 tycoon에서 만들어 binary patch로 옮김
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 에셋은 자동 합침 예상. **씬 `InteriorMode._templates`에 `IT_Admin`을 넣어야 행정 관제소 새 내부가 쓰임** (M-26 때처럼 목록만 넣거나 `Interior/Setup` — M-27 이후 [옮기기] 버튼은 안 지워짐). 플레이: 행정 관제소에 들어가 지도 벽이 실제 정거장 모양인지 · 창구 번호가 올라가는지.
+- [ ] 코드 · 에셋은 자동 합침 예상. **씬 `InteriorMode._templates`에 `IT_Admin`을 넣어야 행정 관제소 새 내부가 쓰임** (M-26 때처럼 목록만 넣거나 `Interior/Setup` — M-27 이후 [옮기기] 버튼은 안 지워짐). 서사판이 `ResidentPlacementRules` · `ResidentWander` · `InteriorMode.UpdateHold`를 고쳤으면 그 부분만 맞춤. 플레이 (낮): 행정 관제소 창구에 직원 · 대기 의자에 민원인 · 민원인이 발권기 · 창구로 한 명씩 걸어가고 그때만 번호가 바뀌는지, 지도 층 버튼.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-20, 09ba7c7 ~) 자동 합침 · 템플릿 재빌드 · 플레이 검수 (수동 저장 3: 모듈 64 지도 · 이웃 회전 링을 고장 내 깜빡임 · 요약 "고장 1" · 창구 041/042 → 053/054 · 발권기 다음 번호 045 → 057) · 뚫림 검사 390장 0px (대조 97% 자홍) · 키트 ↔ 템플릿 같은 평면 6곳 = 모두 바닥 밑 아래 보는 면.
+- [x] (2026-10-20, d65da8e) 층 버튼 · 실제 주민 번호 대기: Bake Resident Spots · 템플릿 재빌드 · EditMode 427개 통과 · 플레이 (낮, 주민 150: 직원 7 · 민원인 8, 걷는 민원인 늘 1명 이하, 발권기 051 → 052는 민원인이 뽑을 때만, 창구 2 직원을 숨기면 "창구 닫힘", 위층에 임시 모듈을 놓고 1층 ↔ 2층 버튼 · 점선 확인) · 뚫림 검사 다시 390장 0px.
