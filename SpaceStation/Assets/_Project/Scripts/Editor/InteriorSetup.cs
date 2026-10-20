@@ -241,6 +241,9 @@ namespace SpaceStation.Editor
             BuildEnterRow(mode);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
+            // [들어가기] 줄을 다시 만들면 같은 줄의 12-3b [옮기기] 버튼이 지워짐 → 다시 붙임
+            // (2026-10-19: Build New Basic Templates → 이 메뉴를 돌린 tycoon 씬에서 [옮기기]가 사라졌음)
+            MoveSetup.Setup();
             Debug.Log("[InteriorSetup] 내부 방문 설정 완료");
         }
 
