@@ -466,3 +466,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-20, c4f21da) 자동 합침 · 컴파일 오류 0 · [옮기기] 버튼 되살림 (15f8cfb, M-26 주의 항목).
+
+---
+
+## M-28. 동물 주민 Mesh LOD (2026-10-20, `main`)
+
+**main에 넣은 것** — 화면 동작이 바뀜 (먼 주민일수록 덜 자세한 메시로 그림, 가까이서는 구별 안 됨)
+- 모델 8종(`Art/Models/Resident/Animal/SM_Animal_*.fbx`) 가져오기 설정: `generateMeshLods` 1 · `maximumMeshLod` 4 (LOD0~4, 약 1.2만 → 0.8천 삼각형). `.meta`만 바뀜
+- `ResidentFigure.MeshLodBias` = 1 → 만들 때 `SkinnedMeshRenderer.meshLodSelectionBias` (가장 가까운 주민도 LOD1)
+- 측정: 화면 삼각형 코어(주민 47) 125.5만 → 104만, 상업 구역(주민 42) 110만 → 95만 (MODELING 맨 위)
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상 (`ResidentFigure` 한 줄 + 상수, 모델 `.meta`). 서사판이 주민 모델을 다시 내보냈으면 가져오기 설정이 남아 있는지 확인.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-20, b058c94) 자동 합침 · 컴파일 오류 0 · 플레이 확인 (편향 1 적용, 1.4m 펭귄 얼굴 정상).
