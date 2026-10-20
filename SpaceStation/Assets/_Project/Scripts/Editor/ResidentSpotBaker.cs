@@ -44,10 +44,17 @@ namespace SpaceStation.Editor
             { "Farm", new[] { ResidentTrait.Gardener } },
             { "Oxygen", new[] { ResidentTrait.Gardener } },
             { "WaterRecycler", new[] { ResidentTrait.Gardener } },
+            // 12-5 새 기본 모듈 (기존 비슷한 방과 같은 특성)
+            { "Sensor", new[] { ResidentTrait.Technician } },
+            { "DataCenter", new[] { ResidentTrait.Scientist } },
+            { "Quarantine", new[] { ResidentTrait.Scientist } },
+            { "School", new[] { ResidentTrait.Scientist } },
+            { "Protein", new[] { ResidentTrait.Gardener } },
+            { "WaterEx", new[] { ResidentTrait.Gardener } },
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방.</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce" };
 
         private struct Candidate
         {

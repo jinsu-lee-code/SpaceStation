@@ -2,7 +2,7 @@
 #   1차: 셔틀 + 캡슐 묶음 + 피난선 컨테이너를 다 섞음 → "너무 이상" → 컨테이너 · 덧댄 판을 덜어냄
 #   2차: "화물선처럼 매끈한 흰색이어야 그을음이 잘 보임 · 얼룩처럼 곳곳에 · 캡슐 때문에 끊긴 느낌 → 일자형 + 캡슐은 좌우 또는 후면 상단" → 후면 상단으로 확정
 #   지금: 일자형 흰 동체 하나(코 도킹 고리 → 조종석 유리 → 승객 창 줄 → 엔진 구획) + 생활 캡슐 2개(VARIANT: top = 뒤쪽 위(확정) · sides = 좌우) +
-#         선체 곳곳에 번진 그을음 얼룩 = 노이즈로 칠한 색을 UV 텍스처 T_ArkHull로 구움 (면 재질로 칠하면 디지털 위장 무늬처럼 각졌음, MODELING.md 7-9)
+#         선체 곳곳에 번진 그을음 얼룩 = 노이즈로 칠한 색을 UV 텍스처 T_ArkHull로 구움 (면 재질로 칠하면 디지털 위장 무늬처럼 각졌음, MODELING.md 7-10)
 # 종족 띠(Band)는 흰 재질 슬롯 → Unity가 재질 이름으로 찾아 종족 색으로 물들임 (MODELING.md 7-4).
 # 사용: blender -b --factory-startup -P BlenderWork/ArkShip/arkship_builder.py -- [fbx 출력 폴더] [variant=sides|top]
 # 좌표: Blender y = 배 길이(코 0 → 엔진 +), z = 위 → Unity에서 코 = +Z. 원점 = 코 도킹 고리 끝 가운데 (Unity가 도킹 자리에 그 점을 맞춤).
@@ -103,7 +103,7 @@ def loft(rings, mat, cap_start=None, cap_end=None, closed=False, group=None):
 
 
 def inset(bm, names, frame='Frame', thickness=0.02, depth=-0.01):
-    """창 · 환기구: 같은 묶음 번호의 면끼리 창 하나로 안으로 들여 틀을 만든다 (MODELING 7-8: 들이기 전 normal_update)."""
+    """창 · 환기구: 같은 묶음 번호의 면끼리 창 하나로 안으로 들여 틀을 만든다 (MODELING 7-9: 들이기 전 normal_update)."""
     gl = bm.faces.layers.int['g']
     groups = {}
     for f in bm.faces:

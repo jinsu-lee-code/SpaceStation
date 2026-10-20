@@ -18,6 +18,9 @@ namespace SpaceStation.Interior
         private Quaternion _startRotation;
         private float _angle;
 
+        /// <summary>지금까지 돈 각 (0~360, 도). 12-5 센서 레이더가 빛줄 자리를 읽음.</summary>
+        public float Angle => _angle;
+
         public void Configure(Vector3 localCenter, Vector3 localAxis, float degreesPerSecond)
         {
             _localCenter = localCenter;

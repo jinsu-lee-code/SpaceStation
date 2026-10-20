@@ -1,4 +1,4 @@
-﻿using SpaceStation.Building;
+using SpaceStation.Building;
 using SpaceStation.Core;
 using SpaceStation.Interior;
 using SpaceStation.UI;
@@ -46,10 +46,21 @@ namespace SpaceStation.Editor
         public const string SolarCellPath = MaterialFolder + "/M_InteriorSolarCell.mat";
         public const string ShieldPath = MaterialFolder + "/M_InteriorShield.mat";
         public const string RedPath = MaterialFolder + "/M_InteriorRed.mat";
+        public const string CulturePath = MaterialFolder + "/M_InteriorCulture.mat";
         public const string WindowPath = MaterialFolder + "/M_InteriorWindow.mat";
         public const string SofaPath = MaterialFolder + "/M_InteriorSofa.mat";
         public const string RugPath = MaterialFolder + "/M_InteriorRug.mat";
         public const string InteriorHullDarkPath = MaterialFolder + "/M_InteriorHullDark.mat";
+        // 12-5 소품 색 (발광 없음, 2026-10-19): 발광 재질(Accent · Water · Light)을 색으로 쓴 소품이 평평하게 빛나 "텍스처가 안 들어간" 것처럼 보였음
+        public const string PaperPath = MaterialFolder + "/M_InteriorPaper.mat";
+        public const string PropBluePath = MaterialFolder + "/M_InteriorPropBlue.mat";
+        public const string PropGreenPath = MaterialFolder + "/M_InteriorPropGreen.mat";
+        public const string PropOrangePath = MaterialFolder + "/M_InteriorPropOrange.mat";
+        public const string PropPurplePath = MaterialFolder + "/M_InteriorPropPurple.mat";
+        public const string PropYellowPath = MaterialFolder + "/M_InteriorPropYellow.mat";
+        public const string FishPath = MaterialFolder + "/M_InteriorFish.mat";
+        public const string IcePath = MaterialFolder + "/M_InteriorIce.mat";
+        public const string AquaPath = MaterialFolder + "/M_InteriorAqua.mat";
         private const string SmokePath = MaterialFolder + "/M_InteriorSmoke.mat";
         private const string DustPath = "Assets/_Project/Art/Materials/FX/M_Dust.mat";
         private const string SparkPath = "Assets/_Project/Art/Materials/FX/M_Spark.mat";
@@ -265,6 +276,9 @@ namespace SpaceStation.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// <summary>화면 재질 광택. 0.85는 방 천장 조명이 화면 위에 작고 강한 하얀 반사점(블룸)으로 비쳤음 (2026-10-19, 허브 키오스크 · 센서 레이더) → 0.55</summary>
+        private const float ScreenSmoothness = 0.55f;
+
         internal static void CreateMaterials()
         {
             System.IO.Directory.CreateDirectory(MaterialFolder);
@@ -373,12 +387,14 @@ namespace SpaceStation.Editor
             // 11-6 제련소 쇳물·갓 부은 주괴. 첫 값(발광 ×2.6, 녹색 0.38)은 블룸에 노랗게 날아가 버터처럼 보였음 → 붉은 주황으로 낮춤
             Emissive(MoltenPath, new Color(0.9f, 0.25f, 0.04f), new Color(1f, 0.19f, 0.015f) * 1.6f, 0.3f);
             // 11-6 화면 바탕(어두운 남색, 약한 발광) + 격자 줄(흐린 청록) — 그 위에 밝은 Screen 요소로 화면 구성
-            Emissive(ScreenDarkPath, new Color(0.02f, 0.05f, 0.08f), new Color(0.015f, 0.07f, 0.11f), 0.85f);
-            Emissive(ScreenGridPath, new Color(0.04f, 0.15f, 0.2f), new Color(0.04f, 0.2f, 0.26f) * 1.2f, 0.85f);
+            Emissive(ScreenDarkPath, new Color(0.02f, 0.05f, 0.08f), new Color(0.015f, 0.07f, 0.11f), ScreenSmoothness);
+            Emissive(ScreenGridPath, new Color(0.04f, 0.15f, 0.2f), new Color(0.04f, 0.2f, 0.26f) * 1.2f, ScreenSmoothness);
             // 11-6 핵융합로 플라스마 관찰창 (분홍 보랏빛 — 외부 M_FusionPlasma와 같은 계열)
             Emissive(PlasmaPath, new Color(0.75f, 0.35f, 0.95f), new Color(0.8f, 0.3f, 1f) * 1.5f, 0.3f);
             // 11-7 실드 방출기 코어·에너지 빔 (밝은 하늘색)
             Emissive(ShieldPath, new Color(0.45f, 0.8f, 1f), new Color(0.3f, 0.7f, 1f) * 2.0f, 0.4f);
+            // 12-5 단백질 배양실 배양액 (크림빛 호박색, 은은한 발광 — 탱크 유리 속 · 콘솔 수위 막대)
+            Emissive(CulturePath, new Color(1f, 0.78f, 0.42f), new Color(1f, 0.6f, 0.25f) * 1.1f, 0.5f);
 
             // 장비 재질 (벽 패널 무늬 없는 단색): 배관 금속 · 장비(이음·책상·화면 테두리) · 도장 사물함
             Plain(MetalPath, new Color(0.62f, 0.64f, 0.67f), 0.75f, 0.55f);
@@ -390,7 +406,17 @@ namespace SpaceStation.Editor
             Plain(RockPath, new Color(0.3f, 0.27f, 0.25f), 0.35f, 0.25f);   // 11-6 광석 (컨베이어 고무 벨트도)
             Plain(SolarCellPath, new Color(0.06f, 0.12f, 0.32f), 0.7f, 0.85f); // 11-7 태양전지 면 (짙은 남색, 매끈)
             Plain(RedPath, new Color(0.72f, 0.1f, 0.08f), 0.3f, 0.45f);        // 11-7 소화기·비상 설비 빨강 도장
-            Emissive(ScreenPath, new Color(0.05f, 0.18f, 0.22f), new Color(0.1f, 0.55f, 0.7f) * 1.8f, 0.85f);
+            // 12-5 소품 색 (발광 없음): 종이 · 색 소품(모자 · 책 · 가방 · 과일) · 생선 · 얼음 · 빛나지 않는 물(병 속)
+            Plain(PaperPath, new Color(0.9f, 0.86f, 0.76f), 0f, 0.2f);
+            Plain(PropBluePath, new Color(0.18f, 0.4f, 0.78f), 0.05f, 0.45f);
+            Plain(PropGreenPath, new Color(0.3f, 0.6f, 0.2f), 0f, 0.5f);
+            Plain(PropOrangePath, new Color(0.95f, 0.47f, 0.08f), 0f, 0.5f);
+            Plain(PropPurplePath, new Color(0.35f, 0.13f, 0.42f), 0f, 0.55f);
+            Plain(PropYellowPath, new Color(0.95f, 0.8f, 0.18f), 0f, 0.5f);
+            Plain(FishPath, new Color(0.52f, 0.6f, 0.68f), 0.55f, 0.7f);
+            Plain(IcePath, new Color(0.82f, 0.9f, 0.96f), 0f, 0.85f);
+            Plain(AquaPath, new Color(0.4f, 0.7f, 0.92f), 0f, 0.9f);
+            Emissive(ScreenPath, new Color(0.05f, 0.18f, 0.22f), new Color(0.1f, 0.55f, 0.7f) * 1.8f, ScreenSmoothness);
 
             // 11-4 템플릿 창 유리: 반투명, 살짝 푸른 반사
             var glass = LoadOrCreate(MaterialFolder + "/M_InteriorGlass.mat", lit);

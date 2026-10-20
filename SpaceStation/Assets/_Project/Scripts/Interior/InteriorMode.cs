@@ -168,6 +168,7 @@ namespace SpaceStation.Interior
             var rootGo = new GameObject("InteriorRoot");
             _root = rootGo.transform;
             _root.position = _origin;
+            InteriorRoomDisplay.Font = _font; // 12-5 방 안 표지판 · 화면 글자
             _builder = new InteriorBuilder(_root, _kit, _material, _templates);
             _builder.RoomBuilt += m =>
             {
@@ -316,7 +317,8 @@ namespace SpaceStation.Interior
             }
             _exteriorView = InteriorExteriorView.Create(_camera, _root, _station, _sun, ExteriorViewFarClip,
                 p => _layout != null && _layout.TryGetRoom(_builder.WorldToCell(p), out var r) ? r.Module : null,
-                _builder.CollectLinkedRooms);
+                _builder.CollectLinkedRooms,
+                m => _builder.TemplateFor(m) is { ShowOwnExterior: true });
             _exteriorView.transform.SetParent(transform, false);
             _exteriorView.CollectWindows();
             HidePanels(true);

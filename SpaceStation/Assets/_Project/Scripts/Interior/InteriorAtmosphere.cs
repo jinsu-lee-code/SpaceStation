@@ -36,6 +36,7 @@ namespace SpaceStation.Interior
             public readonly List<Color> LightColor = new List<Color>();
             public readonly List<InteriorBuilder.LightSlot> Slots = new List<InteriorBuilder.LightSlot>();
             public InteriorGauge[] Gauges;
+            public InteriorRoomDisplay[] Displays;
             public RoomMood Mood;
             public bool HasMood;
             public float Seed;
@@ -127,6 +128,7 @@ namespace SpaceStation.Interior
             foreach (var l in room.Lights)
                 room.LightColor.Add(l.color);
             room.Gauges = room.Parent != null ? room.Parent.GetComponentsInChildren<InteriorGauge>() : new InteriorGauge[0];
+            room.Displays = room.Parent != null ? room.Parent.GetComponentsInChildren<InteriorRoomDisplay>(true) : new InteriorRoomDisplay[0];
             _rooms.Add(room);
             _byModule[module] = room;
             if (_station != null && _station.Simulation != null)
@@ -210,6 +212,12 @@ namespace SpaceStation.Interior
             // 배터리 저장량 게이지 (정거장 전체 저장량, 비활성 방은 꺼짐)
             foreach (var g in room.Gauges)
                 g.SetFill(charge, mood.Mode != RoomLightMode.Emergency);
+            // 12-5 방 안 실행 중 표시 (허브 안내 · 레이더 · 서버 표시등 · 컨베이어)
+            foreach (var display in room.Displays)
+            {
+                if (display != null)
+                    display.Poll(_station, m, c.Active);
+            }
         }
 
         // ---------------- 조명 ----------------

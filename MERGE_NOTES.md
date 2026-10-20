@@ -423,3 +423,31 @@
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. 타이쿤판이 `InteriorSupply` 자리 고르기나 `ResidentWander.UpdateWalk`를 고쳤으면 그 부분만 맞춤.
+
+---
+
+## M-26. 12-5 새 기본 모듈 내부 템플릿 9종 · 방 안 실행 중 표시 · 모듈 확인 세이브 (2026-10-19, `main`)
+
+**main에 넣은 것** — 화면 동작이 바뀜 (새 내부 9종이 일반 내부 대신 쓰임)
+- 데이터: `ModuleData._closedFaces` + `IsClosedFace(셀, 방향)` — 문 자리를 만들지 않는 면 (단백질 배양실 +z 생산 라인 벽). `ConnectorDepthBaker`가 닫힌 면 깊이를 −1로 굽는다
+- `InteriorTemplate.ShowOwnExterior` (+ `EditorSetShowOwnExterior`): 창 너머로 자기 바깥 모델을 숨기지 않음 (구조 프레임 트러스 · 센서 접시). `InteriorExteriorView.Create(..., showOwnExterior)`가 받음
+- 재질 `M_InteriorCulture.mat` (배양액 발광, `InteriorSetup.CulturePath`)
+- 방 안 실행 중 표시 틀 `InteriorRoomDisplay` (정적 `Font` · `Poll(정거장, 모듈, 활성)` 0.25초마다 · TMP 글자 칸): `InteriorWayfinding`(허브 표지판 · 키오스크 = 실제 연결 · 이어 주는 인접 효과) · `InteriorRadar`(센서 레이더 = 실제 유성우 예보 · 경광등 깜빡임) · `InteriorConveyor`(단백질 바 컨베이어 · 상자 뚜껑) · `InteriorServerLights`(데이터 센터 표시등 · 상황판 = 연구 처리 상태, 색이 아니라 깜빡임 · 밝기). `InteriorAtmosphere`가 방마다 `Displays`를 모아 부름, `InteriorMode.Awake`가 글꼴을 넣음, `InteriorOrbit.Angle` 공개
+- 편집 도구: `SpaceStation/Interior/Build New Basic Templates` (Build All도 부름), `InteriorPlantSpots`(허브 화분 2 · 상업 구역 나무), `ResidentSpotBaker` 일터 특성 · 여가 방(상업 구역)
+- 검수 반영 (같은 날): 허브 키오스크 · 센서 레이더 화면 빛을 화면 반사점이 안 생기는 자리로, 키오스크 인접 효과 글자 크기 = 목록 줄, 허브 표지판 글자 칸 (0.36, 폭 1.0)
+- 검수 2차 (같은 날, 16항목):
+  - 발광 없는 소품 색 재질 9종 `M_Interior{Paper, PropBlue, PropGreen, PropOrange, PropPurple, PropYellow, Fish, Ice, Aqua}` (`InteriorSetup.Plain`). 소품 색을 발광 재질(Screen · Light · Accent)로 칠해 "텍스처가 안 들어간 것처럼" 보이던 문제
+  - Blender 재질 `Paint` → `M_Paint_{모듈}.mat` (`InteriorTemplateBuilder.PaintFor`: 강조색 바탕색 · 발광 없음). 탱크 · 배관 · 의자처럼 강조색으로 칠할 큰 면
+  - 화면 재질(Screen · ScreenDark · ScreenGrid) 광택 0.85 → 0.55 (`InteriorSetup.ScreenSmoothness`): 천장 조명이 화면에 작고 강한 흰 반사점으로 비침
+  - 물 추출기 드럼 · 단백질 배양 점광원 제거 (붉은 반사광), 허브 키오스크 빛은 화면 면 뒤
+  - `InteriorSlidingDoor` (검역소 격리실 미닫이 문, `_Door` 조각에 MeshCollider) · `InteriorFalling` (물 추출기 낙하관 속 얼음 조각)
+  - 상업 구역 생선 · 포도 디테일 (같은 날, 사용자 요청): 에셋만 바뀜 (SM_Interior_Commerce · PF_Interior_* 재빌드). 생선 · 포도는 INT_Commerce_Soft(충돌체 없음)로 옮김. 상업 구역 9.3만 → 12만 삼각형 — 상업 구역 13개 최악 배치 측정(RTX 3060 Ti, 1080p)에서 폴리곤 2배까지도 렌더 시간 차이가 오차 범위
+- `TutorialView.DockUnderResources`: 내부에서도 자원 패널이 보이면(내부 일시정지 꺼짐 = 기본) 패널 아래에 붙음 — 내부에서 카드가 패널을 덮던 문제. (타이쿤판 Product Name 분리로 설정값이 기본값으로 돌아간 뒤 드러남)
+- `SpaceStation/Module Check (전체 모듈 1개씩 → 수동 저장 3)` (`ModuleCheckSave`): 모든 모듈(진화 포함)을 한 개씩 코어에 이어 붙인 정거장 + 모자란 전력 · 산소 · 물 · 식량을 내는 보조 생산 모듈 → 수동 저장 3. 새 모듈 에셋은 자동 포함
+- 모델 · 프리팹 · 템플릿 에셋(SM_Interior_* · PF_Interior_* · IT_* · Interior_NewBasic.blend)은 tycoon에서 만들어 binary patch로 옮김 (아래 체크)
+
+### `narrative` 합칠 때
+- [ ] 충돌 없음 예상 (새 파일 위주). `InteriorAtmosphere` · `InteriorMode` · `InteriorExteriorView` · `TutorialView`를 서사판이 고쳤으면 그 부분만 맞춤. 합친 뒤 `Build New Basic Templates`는 다시 돌리지 않아도 됨 (에셋이 같이 들어옴).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-19, fda99db) 자동 합침 · 템플릿 재빌드 · 플레이 검수 (9종 뚫림 검사 0px · 키트 ↔ 템플릿 같은 평면 = 안 보이는 면뿐).
