@@ -78,7 +78,7 @@ namespace SpaceStation.Interior
                     var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
                     if (!Physics.Raycast(origin, dir, out var hit, reach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
                         continue;
-                    if (hit.distance < 0.6f || Mathf.Abs(hit.normal.y) > 0.2f || Excluded(hit.collider))
+                    if (hit.distance < 0.6f || Mathf.Abs(hit.normal.y) > 0.2f || Excluded(hit.collider) || OnScreen(hit))
                         continue;
                     var n = new Vector3(hit.normal.x, 0f, hit.normal.z).normalized;
                     if (!Flat(hit.point, n) || !Clear(hit.point, n) || InKitPanel(hit.point + n * 0.05f))
@@ -364,6 +364,30 @@ namespace SpaceStation.Interior
             string n = c.name;
             return n.IndexOf("Door", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("Glass", StringComparison.OrdinalIgnoreCase) >= 0
                 || n.IndexOf("Window", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        /// <summary>
+        /// 12-5 화면 위 (재질 이름에 Screen — 지도 벽 · 번호판 · 큰 화면). 평평하고 넓어 벽 자리로 잡혔음 (행정 관제소 지도 벽에 환풍구 자리, 2026-10-20).
+        /// </summary>
+        private static bool OnScreen(RaycastHit hit)
+        {
+            if (!(hit.collider is MeshCollider mc) || mc.sharedMesh == null || hit.triangleIndex < 0)
+                return false;
+            var renderer = mc.GetComponent<Renderer>();
+            if (renderer == null)
+                return false;
+            var mesh = mc.sharedMesh;
+            int index = hit.triangleIndex * 3;
+            for (int s = 0; s < mesh.subMeshCount; s++)
+            {
+                var sub = mesh.GetSubMesh(s);
+                if (index < sub.indexStart || index >= sub.indexStart + sub.indexCount)
+                    continue;
+                var mats = renderer.sharedMaterials;
+                var m = s < mats.Length ? mats[s] : null;
+                return m != null && m.name.IndexOf("Screen", StringComparison.Ordinal) >= 0;
+            }
+            return false;
         }
 
         private static bool Flat(Vector3 point, Vector3 n)
