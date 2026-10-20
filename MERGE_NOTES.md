@@ -461,7 +461,7 @@
 - `InteriorSetup.Setup` 끝에서 `MoveSetup.Setup()`을 부름: [들어가기] 줄을 다시 만들며 지운 12-3b [옮기기 (M)] 버튼을 다시 붙이고 `SelectionActionsPanel._moveButton` · `_moveLabel`에 연결 (이미 연결돼 있으면 아무것도 안 함)
 
 ### `narrative` 합칠 때
-- [ ] 충돌 없음 예상.
+- [x] (2026-10-20, 1422264) 충돌 없음 · `Interior/Setup`을 돌려도 [옮기기 (M)]가 Row3 맨 앞에 다시 붙고 템플릿 31개 그대로 확인 (확인용으로 다시 만들어진 씬 · 재질은 되돌림).
 
 ### `tycoon` 합칠 때
 - [ ] 충돌 없음 예상. 합친 뒤 위 M-26 주의대로 [옮기기] 버튼을 되살림 (`Move/Setup Selection Button` 또는 `Interior/Setup`).
