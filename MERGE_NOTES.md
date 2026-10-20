@@ -452,7 +452,7 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-19, fda99db) 자동 합침 · 템플릿 재빌드 · 플레이 검수 (9종 뚫림 검사 0px · 키트 ↔ 템플릿 같은 평면 = 안 보이는 면뿐).
-- [ ] ⚠ (2026-10-20 narrative에서 발견) `Build New Basic Templates`가 부르는 `Interior/Setup`이 선택 패널 [들어가기] 줄을 다시 만들며 같은 줄의 **[옮기기 (M)] 버튼을 지움** — `origin/tycoon` 씬에 `Move` 버튼이 없음. 메뉴 `SpaceStation/Move/Setup Selection Button`을 한 번 돌리면 되살아남 (M-27 이후로는 `Interior/Setup`이 저절로 부름).
+- [x] ⚠ (2026-10-20 narrative에서 발견) `Build New Basic Templates`가 부르는 `Interior/Setup`이 선택 패널 [들어가기] 줄을 다시 만들며 같은 줄의 **[옮기기 (M)] 버튼을 지움** — `origin/tycoon` 씬에 `Move` 버튼이 없음. 메뉴 `SpaceStation/Move/Setup Selection Button`을 한 번 돌리면 되살아남 (M-27 이후로는 `Interior/Setup`이 저절로 부름). → (2026-10-20, 15f8cfb) tycoon 씬에서 `_moveButton` 비어 있음 확인 → 메뉴로 되살림 · 씬 저장
 
 ---
 
@@ -465,4 +465,4 @@
 - [ ] 충돌 없음 예상.
 
 ### `tycoon` 합칠 때
-- [ ] 충돌 없음 예상. 합친 뒤 위 M-26 주의대로 [옮기기] 버튼을 되살림 (`Move/Setup Selection Button` 또는 `Interior/Setup`).
+- [x] (2026-10-20, c4f21da) 자동 합침 · 컴파일 오류 0 · [옮기기] 버튼 되살림 (15f8cfb, M-26 주의 항목).
