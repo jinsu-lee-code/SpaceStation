@@ -146,7 +146,8 @@ namespace SpaceStation.UI
             // 예보된 배가 도착 전 날아옴 (처음 만나는 종족은 연출이 보여 줌, 절정 · 전환 중엔 시계가 멈춰 안 보임)
             var next = _ark.NextShip;
             var phase = _sim.Chapters != null ? _sim.Chapters.Phase : ChapterPhase.Preparation;
-            bool showing = next != null && !next.NewSpecies && _ark.ClockOn && _ark.TimeLeft <= _approachSeconds
+            float left = SmoothTimeLeft();
+            bool showing = next != null && !next.NewSpecies && _ark.ClockOn && left <= _approachSeconds
                            && (phase == ChapterPhase.Preparation || phase == ChapterPhase.Warning || next.Convoy) && FindDock(); // 13-6c 대이주 배는 절정 중에도
             if (showing)
             {
@@ -155,10 +156,24 @@ namespace SpaceStation.UI
                     Spawn(next);
                     _mode = Mode.Approach;
                 }
-                PlaceApproach(Ease(1f - Mathf.Clamp01(_ark.TimeLeft / _approachSeconds)));
+                PlaceApproach(Ease(1f - Mathf.Clamp01(left / _approachSeconds)));
             }
             else if (_mode == Mode.Approach)
                 Clear();
+        }
+
+        /// <summary>
+        /// 다음 배까지 남은 게임 시간을 틱 사이에서도 매끄럽게: 시계는 1초 틱마다만 줄어 접근하는 배가 1초에 한 번씩 뚝뚝 옮겨졌음
+        /// (사용자 피드백 2026-10-20, 대이주) → 마지막 틱 뒤 흐른 시간(틱 진행률)만큼 더 뺌. 이 뷰는 시계보다 먼저 돌아 둘 다 지난 프레임 끝 값.
+        /// </summary>
+        private float SmoothTimeLeft()
+        {
+            float left = _ark.TimeLeft;
+            if (_clock == null || _clock.Clock == null)
+                return left;
+            var clock = _clock.Clock;
+            float since = clock.Progress * clock.TickInterval * (_ark.Slowed ? _ark.Config.CrisisClockScale : 1f);
+            return Mathf.Max(0f, left - since);
         }
 
         private void HandleResolved(ArkShip ship, ShipAnswer answer, int boarded)
