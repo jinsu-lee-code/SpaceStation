@@ -446,12 +446,13 @@ namespace SpaceStation.Interior
         {
             public Bounds Box;
             public bool Door;
-            public Vector3 Forward;   // 방 안쪽
-            public float Front;       // 앞면 = Forward 방향 거리 (Dot(점, Forward))
+            public Vector3 Forward;   // 모델 +z (키트는 방 바깥 = 벽 쪽, 보이는 면은 -z)
+            public float FrontPlus;   // +z를 보는 가장 넓은 면 — Forward 방향 거리
+            public float FrontMinus;  // -z를 보는 가장 넓은 면 — -Forward 방향 거리
         }
 
         private static readonly List<Panel> _panels = new List<Panel>();
-        private static readonly Dictionary<Mesh, float> _panelFace = new Dictionary<Mesh, float>();
+        private static readonly Dictionary<Mesh, Vector2> _panelFace = new Dictionary<Mesh, Vector2>();
 
         private static void CollectPanels(Transform roomParent)
         {
@@ -466,19 +467,30 @@ namespace SpaceStation.Interior
                 var panel = new Panel { Box = r.bounds, Door = r.name.StartsWith("KIT_WallDoor", StringComparison.Ordinal), Forward = t.forward };
                 var mesh = r.TryGetComponent<MeshFilter>(out var mf) ? mf.sharedMesh : null;
                 if (!panel.Door && mesh != null)
-                    panel.Front = Vector3.Dot(t.position, t.forward) + FaceDepth(mesh) * t.lossyScale.z;
+                {
+                    var face = FaceDepths(mesh);
+                    float at = Vector3.Dot(t.position, t.forward);
+                    panel.FrontPlus = at + face.x * t.lossyScale.z;
+                    panel.FrontMinus = -(at + face.y * t.lossyScale.z);
+                }
                 else
+                {
                     panel.Door = true;   // 앞면을 모르면 문 패널처럼 뺌
+                }
                 _panels.Add(panel);
             }
         }
 
-        /// <summary>막힌 벽 패널 모델의 앞면 깊이 (모델 +z, 앞을 보는 면 중 가장 넓은 평면 — 가장자리 테 · 위아래 띠 말고 판 자체).</summary>
-        private static float FaceDepth(Mesh mesh)
+        /// <summary>
+        /// 막힌 벽 패널 모델의 앞면 깊이 (모델 z) — x = +z를 보는 면, y = -z를 보는 면 중 가장 넓은 평면 (가장자리 테 · 위아래 띠 말고 판 자체).
+        /// 어느 쪽이 방 안인지는 쓸 때 맞은 면 방향으로 고름.
+        /// </summary>
+        private static Vector2 FaceDepths(Mesh mesh)
         {
-            if (_panelFace.TryGetValue(mesh, out float face))
+            if (_panelFace.TryGetValue(mesh, out var face))
                 return face;
-            var area = new Dictionary<int, float>();
+            var plus = new Dictionary<int, float>();
+            var minus = new Dictionary<int, float>();
             using (var all = Mesh.AcquireReadOnlyMeshData(mesh))
             {
                 var data = all[0];
@@ -494,17 +506,26 @@ namespace SpaceStation.Interior
                             data.GetIndices(idx, s);
                             for (int i = 0; i + 2 < idx.Length; i += 3)
                             {
-                                if (normals[idx[i]].z < 0.99f || normals[idx[i + 1]].z < 0.99f || normals[idx[i + 2]].z < 0.99f)
+                                float z0 = normals[idx[i]].z, z1 = normals[idx[i + 1]].z, z2 = normals[idx[i + 2]].z;
+                                var side = z0 > 0.99f && z1 > 0.99f && z2 > 0.99f ? plus : z0 < -0.99f && z1 < -0.99f && z2 < -0.99f ? minus : null;
+                                if (side == null)
                                     continue;
                                 var a = verts[idx[i]];
                                 float tri = Vector3.Cross(verts[idx[i + 1]] - a, verts[idx[i + 2]] - a).magnitude * 0.5f;
                                 int key = Mathf.RoundToInt(a.z * 1000f);
-                                area[key] = area.TryGetValue(key, out float sum) ? sum + tri : tri;
+                                side[key] = side.TryGetValue(key, out float sum) ? sum + tri : tri;
                             }
                         }
                     }
                 }
             }
+            face = new Vector2(Widest(plus), Widest(minus));
+            _panelFace[mesh] = face;
+            return face;
+        }
+
+        private static float Widest(Dictionary<int, float> area)
+        {
             int best = 0;
             float bestArea = -1f;
             foreach (var kv in area)
@@ -515,9 +536,7 @@ namespace SpaceStation.Interior
                     bestArea = kv.Value;
                 }
             }
-            face = best / 1000f;
-            _panelFace[mesh] = face;
-            return face;
+            return best / 1000f;
         }
 
         /// <summary>
@@ -573,9 +592,10 @@ namespace SpaceStation.Interior
                 b.Expand(0.02f);
                 if (!b.Contains(p))
                     continue;
-                if (Vector3.Dot(panel.Forward, n) < 0.98f)
+                float facing = Vector3.Dot(panel.Forward, n);
+                if (Mathf.Abs(facing) < 0.98f)
                     return -1f;   // 구석 옆벽 패널
-                float d = panel.Front - Vector3.Dot(p, n);
+                float d = (facing > 0f ? panel.FrontPlus : panel.FrontMinus) - Vector3.Dot(p, n);
                 if (d > 0.15f)
                     return -1f;
                 lift = Mathf.Max(lift, d);   // 앞면이 맞은 면보다 안쪽이면(템플릿 벽이 패널을 덮음) 그대로
@@ -619,7 +639,7 @@ namespace SpaceStation.Interior
         private static readonly Vector3[] _flatProbes = new Vector3[6];
 
         /// <summary>
-        /// 가로 ±0.32 · 세로 ±0.28이 같은 면(3cm 안) + 12-5 위아래 끝 ±0.34에도 받치는 면(6cm 안 — 패널 줄눈 정도는 봐 줌).
+        /// 가로 ±0.32 · 세로 ±0.28이 같은 면(3cm 안) + 12-5 위아래 끝 ±0.34에도 받치는 면(6cm 안 — 패널 줄눈 정도는 봐 줌), 어느 점도 화면이 아님.
         /// 가장자리 광선이 가구 앞면도 맞히는데, 낮은 가구 윗모서리에 소품이 반쯤 걸치지 않게.
         /// </summary>
         private static bool Flat(Vector3 point, Vector3 n)
@@ -637,8 +657,8 @@ namespace SpaceStation.Interior
                 if (!Physics.Raycast(from, -n, out var h, 0.4f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
                     return false; // 뚫린 곳 (문 자리 · 창)
                 float tolerance = i < 4 ? 0.03f : 0.06f;
-                if (Mathf.Abs(h.distance - 0.25f) > tolerance || Vector3.Dot(h.normal, n) < 0.95f)
-                    return false;
+                if (Mathf.Abs(h.distance - 0.25f) > tolerance || Vector3.Dot(h.normal, n) < 0.95f || OnScreen(h))
+                    return false;   // 화면: 소품 끝이 지도 벽 화면 아래쪽에 걸쳤음
             }
             return true;
         }
