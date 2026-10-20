@@ -30,6 +30,8 @@ namespace SpaceStation.Interior
     /// 다리 · 팔 흔들기는 <see cref="ResidentMotion.Walk"/>.
     /// 11-16 ④ 앉은 주민(<see cref="InitSeated"/>)은 의자 앞 바닥이 비어 있으면 일어나(약 0.5초, 앞으로 밀려나오며) 같은 방을 걷다가,
     /// 나들이를 마치면 의자 앞으로 돌아와 의자 방향으로 돌아서 뒤로 물러나 앉는다.
+    /// 12-5 방 표시가 심부름을 시킬 수 있다 (<see cref="StartErrand"/> — 행정 관제소 민원인: 발권기 · 창구): 일어나서 정해 준 길로 가서 잠깐 머문 뒤
+    /// 같은 길로 돌아와 앉는다. 길은 방을 만들 때 비워 둔 통로라 막힘 검사를 하지 않는다 (플레이어가 앞을 막으면 기다림). <see cref="Hold"/>면 스스로 나들이를 가지 않음.
     /// </summary>
     public sealed class ResidentWander : MonoBehaviour
     {
@@ -60,6 +62,112 @@ namespace SpaceStation.Interior
         private int _excursions;
 
         public bool Walking => _state != State.Idle;
+
+        // 12-5 심부름: 정해 준 길(자리 앞 → 통로 → 목적지)로 가서 머문 뒤 같은 길로 돌아와 자리로
+        private List<Vector3> _route;
+        private int _routeIndex;
+        private float _routeYaw;
+        private float _routeStay;
+        private int _routePhase;      // 0 = 가는 중, 1 = 목적지에 머묾, 2 = 돌아오는 중, 3 = 자리로 가는 마지막 길
+        private System.Action _onArrive, _onLeave, _onDone;
+
+        /// <summary>12-5 스스로 나들이를 가지 않음 (자리에서 기다림 — 행정 관제소 민원인). 심부름은 됨.</summary>
+        public bool Hold { get; set; }
+
+        /// <summary>12-5 의자에 앉아 쉬는 중 (심부름을 시킬 수 있음).</summary>
+        public bool Seated => _state == State.Idle && _at == Seat && _route == null;
+
+        public bool OnErrand => _route != null;
+
+        /// <summary>
+        /// 12-5 심부름 시작: 앉아 있으면 일어나서 <paramref name="route"/>(월드 점, 마지막 = 목적지)를 차례로 걸어가 <paramref name="yaw"/>를 보고
+        /// <paramref name="stay"/>초 머문 뒤 같은 길로 돌아와 원래 자리로. 도착 · 떠남 · 자리로 돌아옴 때 알림. 쉬는 중이 아니면 false.
+        /// </summary>
+        public bool StartErrand(IReadOnlyList<Vector3> route, float yaw, float stay, System.Action onArrive, System.Action onLeave, System.Action onDone)
+        {
+            if (_state != State.Idle || _route != null || route == null || route.Count == 0 || _room == null)
+                return false;
+            _route = new List<Vector3>(route);
+            _routeIndex = 0;
+            _routeYaw = yaw;
+            _routeStay = stay;
+            _routePhase = 0;
+            _onArrive = onArrive;
+            _onLeave = onLeave;
+            _onDone = onDone;
+            if (_at == Seat)
+            {
+                if (!TryStandUp())
+                {
+                    _route = null;
+                    return false;
+                }
+                return true;   // 일어선 뒤(Idle) 첫 길
+            }
+            _next = Time.unscaledTime;
+            return true;
+        }
+
+        private void ErrandStep(float now)
+        {
+            _justStood = false;
+            if (_routePhase == 1)
+            {
+                // 머묾 끝: 목적지를 뺀 길을 거꾸로
+                _routePhase = 2;
+                _route.RemoveAt(_route.Count - 1);
+                _route.Reverse();
+                _routeIndex = 0;
+                _onLeave?.Invoke();
+            }
+            if ((_routePhase == 0 || _routePhase == 2) && _routeIndex < _route.Count)
+            {
+                var p = _route[_routeIndex++];
+                var d = p - transform.position;
+                BeginWalk(p, -1, d.sqrMagnitude > 1e-4f ? Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg : transform.eulerAngles.y);
+                return;
+            }
+            if (_routePhase == 0)
+            {
+                // 목적지 도착: 보는 쪽으로 돌고 머묾
+                _routePhase = 1;
+                _goalYaw = _routeYaw;
+                _arriveYaw = true;
+                _next = now + _routeStay;
+                LastDecision = "심부름 도착";
+                _onArrive?.Invoke();
+                return;
+            }
+            // 자리로
+            _routePhase = 3;
+            if (_home == Seat)
+                BeginWalk(_seatFront, Seat, _seatYaw);
+            else if (_home >= 0 && (_room.Owner[_home] == null || _room.Owner[_home] == this))
+                BeginWalk(_room.Points[_home], _home, _room.Yaws[_home]);
+            else
+                FinishErrand();
+        }
+
+        private void FinishErrand()
+        {
+            var done = _onDone;
+            _route = null;
+            _onArrive = _onLeave = _onDone = null;
+            _next = Time.unscaledTime + WanderRules.IdleSeconds(_mood, _rng.NextDouble());
+            done?.Invoke();
+        }
+
+        private void BeginWalk(Vector3 point, int target, float yaw)
+        {
+            Release(_at);
+            _at = -1;
+            _target = target;
+            if (target >= 0)
+                _room.Owner[target] = this;
+            _goal = point;
+            _goalYaw = yaw;
+            _state = State.Turn;
+        }
 
         // 11-16 ④ 앉는 자리에서 시작한 주민 (휴게실 · 회전 링 등): 일어나 → 걷고 → 돌아와 앉음
         private ResidentFigure _figure;
@@ -132,7 +240,12 @@ namespace SpaceStation.Interior
                     if (_motion != null)
                         _motion.Walk(0f, dt);
                     if (now >= _next)
-                        Decide(now);
+                    {
+                        if (_route != null)
+                            ErrandStep(now);
+                        else
+                            Decide(now);
+                    }
                     break;
                 case State.Turn:
                     if (Busy())
@@ -181,6 +294,8 @@ namespace SpaceStation.Interior
                         _excursions = 0;
                         _state = State.Idle;
                         _next = now + WanderRules.IdleSeconds(_mood, _rng.NextDouble());
+                        if (_route != null)
+                            FinishErrand();   // 12-5 심부름을 마치고 다시 앉음
                     }
                     break;
                 }
@@ -242,8 +357,8 @@ namespace SpaceStation.Interior
             _next = now + WanderRules.IdleSeconds(_mood, _rng.NextDouble());
             if (_at == Seat)
             {
-                // 앉아 있음: 나들이 갈 기분이면 일어남 (걷기는 일어선 뒤 다음 결정에서)
-                if (WanderRules.ShouldWander(_mood, _excursions, _rng.NextDouble()))
+                // 앉아 있음: 나들이 갈 기분이면 일어남 (걷기는 일어선 뒤 다음 결정에서). 12-5 Hold면 자리에서 기다림
+                if (!Hold && WanderRules.ShouldWander(_mood, _excursions, _rng.NextDouble()))
                     TryStandUp();
                 else
                     LastDecision = "앉아 쉼";
@@ -254,8 +369,8 @@ namespace SpaceStation.Interior
             Vector3 point;
             bool justStood = _justStood;
             _justStood = false;
-            // 일어나자마자 다시 앉으면 어색하므로 일어선 직후엔 꼭 한 번 걸음
-            if (justStood || WanderRules.ShouldWander(_mood, _excursions, _rng.NextDouble()))
+            // 일어나자마자 다시 앉으면 어색하므로 일어선 직후엔 꼭 한 번 걸음 (12-5 Hold면 나들이 없이 자리로)
+            if (!Hold && (justStood || WanderRules.ShouldWander(_mood, _excursions, _rng.NextDouble())))
             {
                 if (!PickTarget(out target, out point))
                 {
@@ -416,9 +531,16 @@ namespace SpaceStation.Interior
                 _state = State.Idle;
                 _next = now + WanderRules.IdleSeconds(_mood, _rng.NextDouble());
                 _arriveYaw = true;
+                if (_route != null)
+                {
+                    // 12-5 심부름: 다음 길로 바로 (서 있는 집 자리로 돌아왔으면 끝)
+                    _next = now;
+                    if (_routePhase == 3)
+                        FinishErrand();
+                }
                 return;
             }
-            if (now >= _propCheck)
+            if (_route == null && now >= _propCheck)
             {
                 _propCheck = now + 0.25f;
                 if (PropAhead(to / dist, dist))

@@ -15,6 +15,8 @@ namespace SpaceStation.Interior
         public Func<string> Blocked;
         /// <summary>끝까지 누르고 있어야 하는 시간(초).</summary>
         public float HoldSeconds = 1.5f;
+        /// <summary>12-5 한 번 누르면 바로 (해치처럼 — 행정 관제소 층 버튼). 끄면 길게 누르기.</summary>
+        public bool Tap;
         /// <summary>누르는 동안 매 프레임 (진행 0~1) — 용접 불꽃 등.</summary>
         public Action<float> Holding;
         /// <summary>다 눌렀을 때. null이면 안내 글만 보여 주는 물건 (누를 수 없음 — 예: 물 주기를 부탁한 주민).</summary>

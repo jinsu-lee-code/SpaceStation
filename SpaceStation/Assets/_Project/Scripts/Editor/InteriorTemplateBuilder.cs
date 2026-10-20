@@ -348,8 +348,8 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>12-5 행정 관제소 (2칸): 서쪽 민원 홀 (창구 3 · 대기 의자 · 발권기 · 천장 돔) + 칸막이 + 동쪽 관제실 (모듈 상태 지도 벽 · 콘솔 4 · 레이더).
-        /// 지도 = 실제 정거장 (<see cref="InteriorStationMap"/>), 창구 번호 · 발권기 = 시간에 따라 올라감 (<see cref="InteriorQueueBoard"/>).
-        /// 해치: 0번 칸 (−2.0, −2.0) — 구석 벽기둥 받침과 떨어지게, 1번 칸 (2.25, −2.25).</summary>
+        /// 지도 = 실제 정거장 + 아래 층 버튼 (<see cref="InteriorStationMap"/>), 창구 번호 · 발권기 = 실제 직원 · 민원인이 움직일 때 (<see cref="InteriorQueueBoard"/>,
+        /// 주민 자리는 ResidentSpotBaker 고정 자리). 해치: 0번 칸 (−2.0, −2.0) — 구석 벽기둥 받침과 떨어지게, 1번 칸 (2.25, −2.25).</summary>
         private static void BuildAdministration()
         {
             var warm = new Color(1f, 0.93f, 0.82f);
@@ -381,16 +381,30 @@ namespace SpaceStation.Editor
             Build("Admin", "MD_Administration", sockets, new Vector3(-2.2f, F, 0f), 90f, lights, orbits,
                 configure: root =>
                 {
-                    // admin_builder ANCHORS["map"] · ["queue"] · ["ticket"]
-                    root.AddComponent<InteriorStationMap>().Configure(new Vector3(4.213f, 0.925f, 0.55f), Vector3.right, Vector3.up, new Vector2(4.8f, 1.55f),
+                    // admin_builder ANCHORS["map"] · ["floor_label"] · ["floor_buttons"]
+                    var map = root.AddComponent<InteriorStationMap>();
+                    map.Configure(new Vector3(4.213f, 0.925f, 0.55f), Vector3.right, Vector3.up, new Vector2(4.8f, 1.55f),
                         AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath),
                         AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath));
-                    InteriorQueueBoard.Panel Board(float z) => new InteriorQueueBoard.Panel
+                    var up = Child(root, "INT_Admin_FloorUp");
+                    var down = Child(root, "INT_Admin_FloorDown");
+                    foreach (var b in new[] { up, down })   // F 시선 광선에 잡히게 (메시 경계 상자)
                     {
-                        Center = new Vector3(3.812f, 0.67f, z), Normal = Vector3.left, Up = Vector3.up, Width = 0.76f, Height = 0.24f,
+                        if (b != null)
+                            b.gameObject.AddComponent<BoxCollider>();
+                    }
+                    map.ConfigureFloors(up, down, new Vector3(4.193f, -0.06f, 0.55f), new Vector3(4.193f, -0.17f, 0.88f), new Vector3(4.193f, -0.17f, 0.22f),
+                        new Vector3(-0.012f, 0f, 0f));
+                    // ["queue"] · ["staff"] · ["customer"] · ["ticket"] · ["ticket_stand"] — 1번 · 2번 창구 (3번 = 발바닥 도장, 번호 없음)
+                    InteriorQueueBoard.Window Window(float boardZ, float z) => new InteriorQueueBoard.Window
+                    {
+                        Board = new InteriorQueueBoard.Panel { Center = new Vector3(3.812f, 0.67f, boardZ), Normal = Vector3.left, Up = Vector3.up, Width = 0.76f, Height = 0.24f },
+                        StaffSeat = new Vector3(3.5f, F + 0.49f, z),
+                        Counter = new Vector4(2.4f, F, z, 90f),
                     };
-                    root.AddComponent<InteriorQueueBoard>().Configure(new[] { Board(1.965f), Board(0.39f) },   // 1번 · 2번 창구 (3번 = 발바닥 도장)
-                        new InteriorQueueBoard.Panel { Center = new Vector3(-2.448f, -0.5f, 2.1f), Normal = Vector3.left, Up = Vector3.up, Width = 0.26f, Height = 0.14f });
+                    root.AddComponent<InteriorQueueBoard>().Configure(new[] { Window(1.965f, 2.125f), Window(0.39f, 0.55f) },
+                        new InteriorQueueBoard.Panel { Center = new Vector3(-2.752f, -0.5f, 2.6f), Normal = Vector3.right, Up = Vector3.up, Width = 0.26f, Height = 0.14f },
+                        new Vector4(-2.35f, F, 2.6f, -90f), 0f, 1.55f, new Vector3(-1.5f, F, 0f));
                 });
         }
 

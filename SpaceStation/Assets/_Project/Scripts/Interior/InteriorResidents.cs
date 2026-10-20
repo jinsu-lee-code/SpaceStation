@@ -165,6 +165,7 @@ namespace SpaceStation.Interior
                     RestSpots = rest,
                     WorkTraits = template.WorkTraits,
                     Leisure = template.Leisure,
+                    OpenWork = template.OpenWork,
                     Usable = _station.Connectivity.IsActive(room.Module) && !sim.Damage.TryGetInfo(room.Module, out _),
                 });
                 _roomModules.Add(room.Module);
@@ -206,7 +207,8 @@ namespace SpaceStation.Interior
                 var spot = NextSpot(template, p.Work, preferStand, taken, ref nextWork);
                 if (spot == null)
                     continue;
-                var figure = Spawn(resident, spot, instance, _builder.RoomParent(module), Status(resident, module, p, _day), roster.Config, out float mood);
+                var figure = Spawn(resident, spot, instance, _builder.RoomParent(module), Status(resident, module, p, _day, template.VisitStatus), roster.Config,
+                    out float mood);
                 figure.Room = module;
                 // 11-16 ③ 서 있는 쉬는 주민은 같은 방의 서기 자리 사이를 가끔 걸어 다님, ④ 앉은 주민은 일어나 걷다가 돌아와 앉음
                 if (_tuning.Wander && !spot.Work)
@@ -349,14 +351,14 @@ namespace SpaceStation.Interior
         private readonly RaycastHit[] _stoolHits = new RaycastHit[8];
         private int _syncedFrame = -1;
 
-        private static string Status(Resident r, ModuleInstance room, Placement p, bool day)
+        private static string Status(Resident r, ModuleInstance room, Placement p, bool day, string visitStatus)
         {
             string place = room.Data != null ? room.Data.DisplayName : "";
             if (p.Work)
                 return $"일하는 중 · {place}";
             if (room == r.Home)
                 return day ? "집에서 쉬는 중" : "집 · 쉬는 시간";
-            return $"쉬는 중 · {place}";
+            return $"{(string.IsNullOrEmpty(visitStatus) ? "쉬는 중" : visitStatus)} · {place}";   // 12-5 행정 관제소 = 민원 보는 중
         }
 
         private AnimalSpecies FindSpecies(string kind)

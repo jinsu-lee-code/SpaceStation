@@ -94,6 +94,35 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Day_OpenWork_TakesResidentsWithoutWorkplace()
+        {
+            // 12-5 행정 관제소 (일터 없는 주민이 직원, 사용자 결정 2026-10-20): 일터가 맞는 주민은 일터 먼저, 일터가 없거나 꽉 찬 주민이 행정 관제소 자리부터,
+            // 그것도 차면 여가 방 · 집. 밤에는 아무도 일하지 않음
+            const int Admin = 3;
+            var rooms = Rooms(labWork: 1);
+            rooms.Add(new PlacementRoom { WorkSpots = 2, RestSpots = 2, OpenWork = true, Leisure = true, Usable = true });
+            var people = new List<PlacementPerson>
+            {
+                Person(1, ResidentTrait.Scientist), Person(2, ResidentTrait.Scientist), Person(3, ResidentTrait.Optimist), Person(4, ResidentTrait.Optimist),
+            };
+            var r = Run(people, rooms, day: true, share: 0f);
+            Assert.AreEqual(Lab, r[0].Room, "일터가 맞으면 일터");
+            Assert.AreEqual(Admin, r[1].Room, "일터가 꽉 차면 행정 관제소 직원");
+            Assert.IsTrue(r[1].Work);
+            Assert.AreEqual(Admin, r[2].Room);
+            Assert.IsTrue(r[2].Work);
+            Assert.AreEqual(Home, r[3].Room, "직원 자리가 차면 다음 후보 (여가 비율 0 → 집)");
+
+            var night = Run(people, rooms, day: false, share: 1f);
+            foreach (var p in night.Values)
+                Assert.IsFalse(p.Work, "밤에는 일하지 않음");
+
+            rooms[Admin] = new PlacementRoom { WorkSpots = 2, RestSpots = 2, OpenWork = true, Leisure = true, Usable = false };
+            foreach (var p in Run(people, rooms, day: true, share: 0f).Values)
+                Assert.AreNotEqual(Admin, p.Room, "꺼지거나 부서진 행정 관제소에는 아무도 없음");
+        }
+
+        [Test]
         public void SameInput_SameResult()
         {
             var people = new List<PlacementPerson>();

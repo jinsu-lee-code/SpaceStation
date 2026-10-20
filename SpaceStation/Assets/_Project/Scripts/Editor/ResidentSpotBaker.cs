@@ -53,8 +53,38 @@ namespace SpaceStation.Editor
             { "WaterEx", new[] { ResidentTrait.Gardener } },
         };
 
-        /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방.</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce" };
+        /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인).</summary>
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin" };
+
+        /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원).</summary>
+        private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin" };
+
+        /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
+        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" } };
+
+        /// <summary>
+        /// 12-5 자리를 직접 정한 방 (찾아낸 자리로는 안 되는 방). 행정 관제소: 주민이 정해진 길로 발권기 · 창구를 오가므로
+        /// (<see cref="Interior.InteriorQueueBoard"/>) 일하는 자리 = 창구 1 · 2 · 3 직원 의자 → 관제 콘솔 4, 쉬는 자리 = 대기 의자 8 (admin_builder ANCHORS).
+        /// </summary>
+        private static readonly Dictionary<string, System.Func<List<ResidentSpot>>> FixedSpots = new Dictionary<string, System.Func<List<ResidentSpot>>>
+        {
+            { "Admin", AdminSpots },
+        };
+
+        private static List<ResidentSpot> AdminSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (float z in new[] { 2.125f, 0.55f, -1.05f })   // 창구 1 · 2 · 3 (손님 쪽 −x를 봄)
+                list.Add(new ResidentSpot(new Vector3(3.5f, Floor + 0.49f, z), -90f, ResidentPose.Sit, work: true));
+            list.Add(new ResidentSpot(new Vector3(6.7172f, Floor + 0.49f, -1.4767f), -51.71f, ResidentPose.Sit, work: true));   // 관제 콘솔 (책상을 봄)
+            list.Add(new ResidentSpot(new Vector3(7.15f, Floor + 0.49f, 0.55f), -90f, ResidentPose.Sit, work: true));
+            list.Add(new ResidentSpot(new Vector3(6.4677f, Floor + 0.49f, 2.376f), -128.23f, ResidentPose.Sit, work: true));
+            list.Add(new ResidentSpot(new Vector3(9.9f, Floor + 0.49f, 0.55f), -90f, ResidentPose.Sit, work: true));
+            // 대기 의자 (+x 창구 쪽을 봄): 앞줄 통로 쪽부터
+            foreach (var (x, z) in new[] { (0.5f, 0.75f), (0.5f, -0.75f), (0.5f, 1.15f), (0.5f, -1.15f), (-0.7f, 0.75f), (-0.7f, -0.75f), (0.5f, 1.55f), (0.5f, -1.55f) })
+                list.Add(new ResidentSpot(new Vector3(x, Floor + 0.43f, z), 90f, ResidentPose.Sit));
+            return list;
+        }
 
         private struct Candidate
         {
@@ -88,6 +118,14 @@ namespace SpaceStation.Editor
         {
             string name = template.name.Replace("IT_", "");
             var module = template.Module;
+            VisitStatus.TryGetValue(name, out var visitStatus);
+            template.EditorSetVisit(OpenWorkRooms.Contains(name), visitStatus);
+            if (FixedSpots.TryGetValue(name, out var fixedSpots))
+            {
+                var spots = fixedSpots();
+                template.EditorSetResidents(spots, new List<ResidentTrait>(), LeisureRooms.Contains(name));
+                return $"{name} 고정 자리 {spots.Count}";
+            }
             var instance = (GameObject)Object.Instantiate(template.Prefab, Far, Quaternion.identity);
             var added = new List<Component>();
             try

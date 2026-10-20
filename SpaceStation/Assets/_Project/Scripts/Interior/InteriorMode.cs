@@ -691,6 +691,14 @@ namespace SpaceStation.Interior
                     AudioService.TryPlay(l => l.UiError);
                 _holdTime = 0f;
             }
+            else if (item.Tap)
+            {
+                // 12-5 한 번 누르기 (층 버튼 등)
+                _prompt.SetText($"<b>{key}</b>  {text}");
+                _holdTime = 0f;
+                if (KeyBindings.WasPressed(GameAction.Interact))
+                    item.Completed?.Invoke();
+            }
             else
             {
                 _prompt.SetText($"<b>{key}</b> <size=80%><color={HudText.Muted}>길게</color></size>  {text}");
