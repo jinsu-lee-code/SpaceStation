@@ -69,6 +69,12 @@ namespace SpaceStation.Editor
             if (chapter >= 1)
                 SetSystem(station, ArkShipSystem.SystemKey, JsonUtility.ToJson(ArkState(config, chapter, station)));
 
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+            if (EditorSceneManager.GetActiveScene().path != GameScene)
+                EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
+            KeepSceneResearch(station);
+
             var file = new SaveFile
             {
                 Meta = new SaveMeta
@@ -86,10 +92,6 @@ namespace SpaceStation.Editor
             string path = Path.Combine(folder, "start.json");
             File.WriteAllText(path, JsonUtility.ToJson(file));
 
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                return;
-            if (EditorSceneManager.GetActiveScene().path != GameScene)
-                EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
             UnityEditor.SessionState.SetString(PlayCheckBoot.StartKey, path); // (SpaceStation.Simulation.SessionState와 다른 것)
             Debug.Log($"[플레이 확인] {label} · {gradeName} 정거장 (봇 {playSeconds / 60f:0}분)으로 플레이 시작");
             EditorApplication.EnterPlaymode();
@@ -126,6 +128,26 @@ namespace SpaceStation.Editor
                 return start.Station;
             }
             return null;
+        }
+
+        /// <summary>
+        /// 봇은 공통 6분야 연구로 플레이하지만 서사판 씬 연구는 기록 4갈래 + 정비 자동화 (13-5b) —
+        /// 씬에 없는 연구 레벨 · 진행 중 연구는 빼서 불러오기 "찾을 수 없는 항목" 경고가 나지 않게.
+        /// </summary>
+        private static void KeepSceneResearch(StationState station)
+        {
+            var host = UnityEngine.Object.FindFirstObjectByType<SimulationHost>();
+            if (host == null)
+                return;
+            var names = new List<string>();
+            var list = new SerializedObject(host).FindProperty("_researchCategories");
+            for (int i = 0; list != null && i < list.arraySize; i++)
+                if (list.GetArrayElementAtIndex(i).objectReferenceValue is ResearchCategoryData c)
+                    names.Add(c.name);
+            if (names.Count == 0)
+                return;
+            station.ResearchLevels.RemoveAll(lv => !names.Contains(lv.Name));
+            station.Projects.RemoveAll(p => !names.Contains(p.Category));
         }
 
         /// <summary><see cref="ChapterSystem"/> 저장 형식과 같은 이름의 칸 (JsonUtility가 이름으로 맞춤).</summary>
