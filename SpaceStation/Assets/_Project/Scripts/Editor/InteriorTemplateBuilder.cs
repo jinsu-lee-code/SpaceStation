@@ -382,10 +382,9 @@ namespace SpaceStation.Editor
                 configure: root =>
                 {
                     // admin_builder ANCHORS["map"] · ["queue"] · ["ticket"]
-                    root.AddComponent<InteriorStationMap>().Configure(new Vector3(4.213f, 0.55f, 0.55f), Vector3.right, Vector3.up, new Vector2(4.8f, 1.8f),
+                    root.AddComponent<InteriorStationMap>().Configure(new Vector3(4.213f, 0.925f, 0.55f), Vector3.right, Vector3.up, new Vector2(4.8f, 1.55f),
                         AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath),
-                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath),
-                        AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Accent_Administration.mat"));
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath));
                     InteriorQueueBoard.Panel Board(float z) => new InteriorQueueBoard.Panel
                     {
                         Center = new Vector3(3.812f, 0.67f, z), Normal = Vector3.left, Up = Vector3.up, Width = 0.76f, Height = 0.24f,
