@@ -40,7 +40,7 @@ namespace SpaceStation.Interior
 
         private TextMeshPro[] _titles, _bodies, _labelTexts;
         private int _lastArrived = -1;
-        private float _lastLeft = -1f;
+        private int _lastVisits = -1;
         private float _flashUntil;
         private string _flash;
 
@@ -92,14 +92,15 @@ namespace SpaceStation.Interior
             }
             float now = Time.unscaledTime;
             int arrived = immigration.Arrived;
+            int visits = immigration.Visits;
             float left = immigration.TimeLeft;
-            // 이민선이 오면 시계가 다시 차오름: 도착 수가 늘었으면 입국, 그대로면 아무도 안 내림 (빈 집 · 만족도 부족)
-            if (_lastArrived >= 0 && arrived > _lastArrived)
-                StartFlash(now, $"이민선 도착  <b>{arrived - _lastArrived}명 입국</b>");
-            else if (_lastLeft >= 0f && left > _lastLeft + 0.5f && arrived == _lastArrived)
-                StartFlash(now, "이민선 출발  <b>내린 주민 없음</b>");
+            // 이민선이 왔음: 도착 수가 늘었으면 입국, 그대로면 아무도 안 내림 (빈 집 · 만족도 부족)
+            if (_lastVisits >= 0 && visits > _lastVisits)
+            {
+                StartFlash(now, arrived > _lastArrived ? $"이민선 도착  <b>{arrived - _lastArrived}명 입국</b>" : "이민선 출발  <b>내린 주민 없음</b>");
+            }
             _lastArrived = arrived;
-            _lastLeft = left;
+            _lastVisits = visits;
 
             string total = $"<size=80%>지금까지 도착  {arrived}명</size>";
             if (now < _flashUntil)
