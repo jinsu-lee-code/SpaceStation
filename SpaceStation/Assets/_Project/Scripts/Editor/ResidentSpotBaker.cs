@@ -56,11 +56,14 @@ namespace SpaceStation.Editor
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인).</summary>
         private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin" };
 
-        /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원).</summary>
-        private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin" };
+        /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리).</summary>
+        private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter" };
 
         /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
         private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" } };
+
+        /// <summary>12-5 일하는 사람 상태 글 (없으면 "일하는 중").</summary>
+        private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" } };
 
         /// <summary>
         /// 12-5 자리를 직접 정한 방 (찾아낸 자리로는 안 되는 방). 행정 관제소: 주민이 정해진 길로 발권기 · 창구를 오가므로
@@ -69,7 +72,23 @@ namespace SpaceStation.Editor
         private static readonly Dictionary<string, System.Func<List<ResidentSpot>>> FixedSpots = new Dictionary<string, System.Func<List<ResidentSpot>>>
         {
             { "Admin", AdminSpots },
+            { "Shelter", ShelterSpots },
         };
+
+        /// <summary>
+        /// 12-5 방사선 차폐실 (shelter_builder ANCHORS): 평소 = 일터 없는 주민이 비축 물자 관리 — 선량계 게이트 콘솔(앉음) · 비상 물자 선반 ·
+        /// 공기 정화기 제어판 · 제염 샤워 부스 점검 (서서 일함). 침상 · 벤치는 대피 때 자리라 평소엔 비움.
+        /// </summary>
+        private static List<ResidentSpot> ShelterSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(1.3f, Floor + 0.49f, -2.38f), 0f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(10.5f, Floor, 2.05f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(10.25f, Floor, -1.95f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(2.25f, Floor, -1.55f), 180f, ResidentPose.Work, work: true),
+            };
+        }
 
         private static List<ResidentSpot> AdminSpots()
         {
@@ -119,7 +138,8 @@ namespace SpaceStation.Editor
             string name = template.name.Replace("IT_", "");
             var module = template.Module;
             VisitStatus.TryGetValue(name, out var visitStatus);
-            template.EditorSetVisit(OpenWorkRooms.Contains(name), visitStatus);
+            WorkStatus.TryGetValue(name, out var workStatus);
+            template.EditorSetVisit(OpenWorkRooms.Contains(name), visitStatus, workStatus);
             if (FixedSpots.TryGetValue(name, out var fixedSpots))
             {
                 var spots = fixedSpots();
