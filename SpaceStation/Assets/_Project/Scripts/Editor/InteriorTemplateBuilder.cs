@@ -99,6 +99,7 @@ namespace SpaceStation.Editor
             BuildDataCenter();
             BuildCommerce();
             BuildAdministration();
+            BuildRadiationShelter();
         }
 
         /// <summary>1칸 방 문 자리: 열린 수평 면(+x · −x · +z · −z) + 위 · 아래 해치(칸 중심에서 hatch만큼).</summary>
@@ -413,6 +414,47 @@ namespace SpaceStation.Editor
                         new Vector4(1.55f, 0f, 1.55f, 2.125f), new Vector4(1.55f, 0.55f, 2.4f, 0.55f), new Vector4(1.55f, 2.125f, 2.4f, 2.125f),
                         new Vector4(1.0f, 2.2f, -2.35f, 2.2f), new Vector4(-2.35f, 2.2f, -2.35f, 2.6f),
                     }, 0.35f);
+                });
+        }
+
+        /// <summary>
+        /// 12-5 방사선 차폐실 (2칸, 사용자 1안 2026-10-21): 원통 콘크리트 천장 + 칸막이 금고문 통로 — 서쪽 제염실(선량계 게이트 · 제염 샤워 부스 ·
+        /// 방호복 · 열린 금고문 문짝) / 동쪽 대피실(2층 침상 · 벤치 · 비상 물자 · 공기 정화기). 경보판 = 통로 위 양면 (<see cref="InteriorRadiationBoard"/>,
+        /// 정원 = 침상 4 + 벤치 8). 해치 = 원통 천장 꼭대기 평평한 띠 (0번 칸 (−0.8, 0) · 1번 칸 (1.5, 0)).
+        /// </summary>
+        private static void BuildRadiationShelter()
+        {
+            var cool = new Color(0.9f, 0.95f, 1f);
+            var warm = new Color(1f, 0.9f, 0.76f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-2.5f, F + 3.3f, 0f), 5.5f, 1.6f, cool),     // 제염실 천장 등 (shelter_builder LAMPS)
+                LightSpec.Point(new Vector3(1.0f, F + 3.3f, 0f), 5.5f, 1.8f, cool),
+                LightSpec.Point(new Vector3(2.7f, F + 2.0f, -2.65f), 2.2f, 0.6f, cool),   // 샤워 부스 안
+                LightSpec.Point(new Vector3(5.2f, F + 3.3f, 0f), 5.5f, 1.7f, warm),      // 대피실 천장 등
+                LightSpec.Point(new Vector3(7.2f, F + 3.3f, 0f), 5.5f, 1.7f, warm),
+                LightSpec.Point(new Vector3(10.3f, F + 2.8f, 0f), 4.5f, 1.1f, warm),     // 동쪽 (선반 · 정화기)
+            };
+            var sockets = new List<InteriorSocket>();
+            var hatches = new[] { new Vector3(-0.8f, 0f, 0f), new Vector3(1.5f, 0f, 0f) };
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, hatches[x]));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, F + 3.6f, hatches[x]));
+            }
+            Build("Shelter", "MD_RadiationShelter", sockets, new Vector3(-2.3f, F, 0f), 90f, lights,
+                configure: root =>
+                {
+                    // shelter_builder ANCHORS["board_w"] · ["board_e"] (화면 1.88 × 0.7)
+                    InteriorRadiationBoard.Panel Board(float x, float nx) => new InteriorRadiationBoard.Panel
+                    {
+                        Center = new Vector3(x, F + 3.02f, 0f), Normal = new Vector3(nx, 0f, 0f), Up = Vector3.up, Width = 1.88f, Height = 0.7f,
+                    };
+                    root.AddComponent<InteriorRadiationBoard>().Configure(new[] { Board(3.625f, -1f), Board(4.375f, 1f) }, 12);
                 });
         }
 
@@ -1236,6 +1278,7 @@ namespace SpaceStation.Editor
             { "Core", InteriorAmbience.Hall }, { "RotatingRing", InteriorAmbience.Hall },
             // 12-5 새 기본 모듈
             { "School", InteriorAmbience.Life }, { "Quarantine", InteriorAmbience.Life }, { "Commerce", InteriorAmbience.Life }, { "Admin", InteriorAmbience.Life },
+            { "Shelter", InteriorAmbience.Machine },   // 공기 정화기 소리
             { "WaterEx", InteriorAmbience.Water }, { "Protein", InteriorAmbience.Machine },
             { "Sensor", InteriorAmbience.Electric }, { "DataCenter", InteriorAmbience.Electric },
             { "Frame", InteriorAmbience.Hall }, { "Hub", InteriorAmbience.Hall },
@@ -1299,6 +1342,7 @@ namespace SpaceStation.Editor
                 { "Fish", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FishPath) },
                 { "Ice", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.IcePath) },
                 { "Aqua", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.AquaPath) },
+                { "Concrete", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ConcretePath) },   // 12-5 방사선 차폐실
             };
 
             var root = new GameObject("PF_Interior_" + name);

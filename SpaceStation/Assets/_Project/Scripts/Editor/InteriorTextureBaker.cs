@@ -114,6 +114,73 @@ namespace SpaceStation.Editor
             Debug.Log("[InteriorTextureBaker] 천 텍스처 생성");
         }
 
+        public const string ConcreteNormalPath = Folder + "T_InteriorConcrete_N.png";
+        public const string ConcreteMaskPath = Folder + "T_InteriorConcrete_M.png";
+
+        /// <summary>
+        /// 12-5 콘크리트 재질(방사선 차폐실 벽 · 원통 천장) 텍스처: 한 장 = 2m × 2m (패널과 같은 타일링 0.5) —
+        /// 거푸집 이음(1m마다 얕은 홈) · 폼타이 구멍(0.5m 격자, 원뿔 홈) · 작은 기포 구멍 · 잔잔한 굴곡 → 노멀 + 마스크(R 틈 그늘, G 얼룩 — 패널보다 진하게).
+        /// </summary>
+        [MenuItem("SpaceStation/Interior/Bake Concrete Textures")]
+        public static void BakeConcrete()
+        {
+            var h = new float[N * N];
+            const int form = N / 2;     // 거푸집 판 1m
+            const int tie = N / 4;      // 폼타이 0.5m
+            for (int y = 0; y < N; y++)
+            {
+                for (int x = 0; x < N; x++)
+                {
+                    float hh = 0.5f;
+                    // 거푸집 이음 (가는 홈 + 판 가장자리가 살짝 솟음)
+                    float ex = Mathf.Min(x % form, form - 1 - x % form), ey = Mathf.Min(y % form, form - 1 - y % form);
+                    float e = Mathf.Min(ex, ey);
+                    hh -= 0.22f * (1f - Smooth(0f, 2.5f, e));
+                    hh += 0.03f * Bump(Mathf.Abs(e - 5f), 3f);
+                    // 폼타이 구멍 (거푸집 판 안쪽 0.25m · 0.75m 자리)
+                    float tx = Mathf.Repeat(x - tie * 0.5f, tie) - tie * 0.5f, ty = Mathf.Repeat(y - tie * 0.5f, tie) - tie * 0.5f;
+                    float d = Mathf.Sqrt(tx * tx + ty * ty);
+                    hh -= 0.45f * (1f - Smooth(4f, 11f, d));
+                    hh += 0.04f * Bump(Mathf.Abs(d - 12f), 2f);
+                    // 기포 구멍 (작은 점, 한 칸에 하나 정도)
+                    float pore = Noise(x, y, 160, 71);
+                    if (pore > 0.86f)
+                        hh -= 0.25f * Smooth(0.86f, 0.95f, pore);
+                    // 굴곡 (큰 물결 + 잔결)
+                    hh += (Noise(x, y, 8, 73) - 0.5f) * 0.06f + (Noise(x, y, 48, 79) - 0.5f) * 0.025f + (Noise(x, y, 256, 83) - 0.5f) * 0.02f;
+                    h[y * N + x] = hh;
+                }
+            }
+            var blur = BoxBlur(h, 6);
+            var normal = new Color32[N * N];
+            var mask = new Color32[N * N];
+            const float strength = 2.0f;
+            for (int y = 0; y < N; y++)
+            {
+                for (int x = 0; x < N; x++)
+                {
+                    float dx = (H(h, x + 1, y) - H(h, x - 1, y)) * strength;
+                    float dy = (H(h, x, y + 1) - H(h, x, y - 1)) * strength;
+                    var n = new Vector3(-dx, -dy, 1f).normalized;
+                    normal[y * N + x] = new Color32(To8(n.x * 0.5f + 0.5f), To8(n.y * 0.5f + 0.5f), To8(n.z * 0.5f + 0.5f), 255);
+                    float cavity = Mathf.Clamp01(1f - Mathf.Max(0f, blur[y * N + x] - h[y * N + x]) * 4f);
+                    float ao = Mathf.Lerp(0.4f, 1f, cavity);
+                    // 얼룩: 거푸집 판마다 다른 밝기 + 큰 얼룩 + 잔 얼룩 (모두 타일 주기에 맞음)
+                    float panel = Hash(x / form, y / form, 89) * 0.12f;
+                    float stain = Noise(x, y, 6, 97) * 0.5f + Noise(x, y, 24, 101) * 0.3f + Noise(x, y, 64, 103) * 0.2f;
+                    float grime = Mathf.Lerp(0.62f, 1f, stain) - panel;
+                    mask[y * N + x] = new Color32(To8(ao), To8(grime), 255, 255);
+                }
+            }
+            System.IO.Directory.CreateDirectory(Folder);
+            Save(ConcreteNormalPath, normal);
+            Save(ConcreteMaskPath, mask);
+            AssetDatabase.Refresh();
+            Configure(ConcreteNormalPath, true);
+            Configure(ConcreteMaskPath, false);
+            Debug.Log("[InteriorTextureBaker] 콘크리트 텍스처 생성");
+        }
+
         private static byte To8(float v) => (byte)Mathf.Clamp(Mathf.RoundToInt(v * 255f), 0, 255);
 
         private static float H(float[] h, int x, int y) => h[((y % N + N) % N) * N + (x % N + N) % N];
