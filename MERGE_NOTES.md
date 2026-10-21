@@ -563,3 +563,24 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-20, c244093) 자동 합침 · EditMode 427개 통과 · 플레이 측정 (위 확인 내용).
+- **고침 (2026-10-21, M-33)**: 패널 모양을 재는 `ShapeOf`가 게임 루프(Update)에서 `SM_InteriorKit.fbx`(Read/Write 꺼짐) 메시를 못 읽어 예외 — 막힌 벽 패널이 있는 방에서 환풍구 부탁을 고를 때마다 났음. 위 측정은 에디터 명령(읽기 허용)으로 돌려 못 봤음.
+
+---
+
+## M-33. 12-5 방사선 차폐실 내부 템플릿 · 방사선 경보판 · 벽 소품 자리 예외 고침 (2026-10-21, `main`)
+
+**main에 넣은 것** — 화면 동작이 바뀜 (방사선 차폐실이 일반 내부 대신 새 템플릿을 씀)
+- 템플릿 `BuildRadiationShelter` (2칸, `Build New Basic Templates`에 포함, 환경음 Machine): 사용자 1안 **제염실 + 대피실**. 원통 콘크리트 천장(`M_InteriorConcrete` · `T_InteriorConcrete_*` 굽기) + 칸막이 둥근 금고문 통로. 서쪽 제염실 = 선량계 게이트(발바닥 발판) · 제염 샤워 부스 2 · 방호복 · 방독면 · 배지판 · 게이트 콘솔 · 폐기물 드럼 · 열린 금고문 문짝 / 동쪽 대피실 = 2층 침상 2 · 벤치 2 · 비상 물자 선반 · 공기 정화기 + 덕트 · 정수기. 문 자리 6, **해치 = 0번 칸 (−0.8, 0) · 1번 칸 (1.5, 0)** (원통 천장 꼭대기 평평한 띠)
+  - 금고문 문짝 = 따로 조각 `INT_Shelter_Door` (충돌체 있음 · `InteriorSpots`가 이름의 `Door`로 벽 소품 자리에서 뺌). 경첩 축을 0° ~ 90° 돌려 보는 검사로 **실제로 닫힘** (닫히면 통로 테 앞 3mm, 가운데 = 통로 가운데). 닫히며 쓸고 가는 자리는 바닥 점선 호로 표시하고 비움 — 사용자 지적 (2026-10-21): 처음엔 선량계 게이트가 그 안에 있어 문을 닫을 수 없었음 → 게이트를 바닥 해치 자리와 문 사분면 사이로 옮김
+  - 정수기 물통 = 물 추출기 정수기와 같은 투명 병 + 속의 물 (사용자 지적: 처음엔 불투명 통)
+- `InteriorRadiationBoard : InteriorRoomDisplay` (사용자 결정 "방사선 경보판", 통로 위 칸막이 양면): 외부 방사선 상태 + 대피 수용 (지금 이 방의 주민 / 정원 = 침상 4 + 벤치 8). 방사선 폭풍이 아직 없어 늘 "정상" — 12-8에서 경보 글 · 경광등으로 이음. 모듈이 꺼지면 "전원 꺼짐"(밝기로 구분)
+- 주민: **일터 없는 주민이 비축 물자 관리** (사용자 결정, `OpenWork` — 행정 관제소와 같음). 고정 자리 3 = 게이트 콘솔(앉음) · 비상 물자 선반 · 공기 정화기 제어판. 샤워 부스 앞 자리는 뺌 (사용자 지적: 샤워 부스는 일하는 자리가 아님). 침상 · 벤치는 대피 때 자리라 평소엔 비움
+  - `InteriorTemplate._workStatus` + `WorkStatus` · `EditorSetVisit(openWork, visitStatus, workStatus)`: 일하는 사람 상태 글 (차폐실 = "물자 관리 중"), `InteriorResidents`가 넘김. **IT_* 에셋 모두에 칸이 생김** (값은 비어 있음 = 기본 글)
+- **벽 소품 자리 예외 고침 (M-32 버그)**: `SM_InteriorKit.fbx` Read/Write 켬 (메시 메모리가 조금 늘어남 — 키트 조각은 작음) + `InteriorSpots.CollectPanels`가 읽을 수 없는 메시는 예외 대신 문 패널처럼 뺌
+- 모델 · 프리팹 · 템플릿 에셋(SM_Interior_Shelter · PF_Interior_* · IT_* · M_InteriorConcrete · M_Paint_RadiationShelter · T_InteriorConcrete_* · Interior_NewBasic.blend `shelter_builder`)은 tycoon에서 만들어 binary patch로 옮김. PF_Interior_* 다른 방은 재빌드로 fileID만 새로
+
+### `narrative` 합칠 때
+- [ ] 코드 · 에셋은 자동 합침 예상. **씬 `InteriorMode._templates`에 `IT_Shelter`를 넣어야 방사선 차폐실 새 내부가 쓰임** (M-30 `IT_Admin`처럼). 서사판에 방사선 차폐실 모듈 데이터(`MD_RadiationShelter`)가 없으면 템플릿만 들어오고 쓰이지 않음. `InteriorTemplate`을 고쳤으면 `_workStatus` 칸만 맞춤. 플레이: 차폐실 안 경보판 글 · 직원 3 · 금고문 문짝 앞에 물건이 없는지, 일반 방에서 환풍구 부탁이 생길 때 콘솔 예외가 없는지.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-21) 자동 합침 · 템플릿 재빌드 · Bake Resident Spots · EditMode 427개 통과 · 플레이 (수동 저장 3: 차폐실 직원 3 · 경보판 "외부 방사선 정상 / 대피 수용 3 / 12명" · 뚫림 검사 2132장 0px (대조 97% 자홍, 자동문은 닫고) · 키트 ↔ 템플릿 같은 평면 0 · 벽 자리 7(문짝 위 0) · 64개 방 벽 자리 계산 · 1분 게임 루프에서 부탁이 생겨도 예외 0). Blender 검사: 겹침(숨은 면 6 = 이전과 같음) · 문 구역 · 벽 뚫림 · 해치 자리 비움 · 문짝 회전 0 ~ 90° 부딪힘 0.
