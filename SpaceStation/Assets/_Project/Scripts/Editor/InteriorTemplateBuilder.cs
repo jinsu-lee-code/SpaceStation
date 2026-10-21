@@ -100,6 +100,7 @@ namespace SpaceStation.Editor
             BuildCommerce();
             BuildAdministration();
             BuildRadiationShelter();
+            BuildPassengerPort();
         }
 
         /// <summary>1칸 방 문 자리: 열린 수평 면(+x · −x · +z · −z) + 위 · 아래 해치(칸 중심에서 hatch만큼).</summary>
@@ -455,6 +456,66 @@ namespace SpaceStation.Editor
                         Center = new Vector3(x, F + 3.02f, 0f), Normal = new Vector3(nx, 0f, 0f), Up = Vector3.up, Width = 1.88f, Height = 0.7f,
                     };
                     root.AddComponent<InteriorRadiationBoard>().Configure(new[] { Board(3.625f, -1f), Board(4.375f, 1f) }, 12);
+                });
+        }
+
+        /// <summary>
+        /// 12-5 여객 도킹 포트 (2칸, 사용자 결정 2026-10-21: 대합실 + 입국장을 칸별로). 앞면(+z) = 이민선 접근로라 문 자리 없음 → 앞벽 전체 유리
+        /// (바깥 화면) + 둥근 탑승구 2. 서쪽 입국장 (탑승구 1 → 입국 심사 부스 → 수하물 컨베이어 → 환영 아치 → 뒤 문) / 동쪽 대합실 (탑승구 2 ·
+        /// 창을 보는 의자 14 · 안내 데스크 · 자판기). 칸막이 위 양면 도착 안내판 = 실제 이민선 시계 (<see cref="InteriorArrivalBoard"/>).
+        /// 천장 = 외형 물결 지붕 (칸 가운데가 높음), 뒤쪽 띠는 평평 F + 3.6 → 해치 = 0번 칸 (−2.15, −2.15) · 1번 칸 (2.15, −2.15).
+        /// </summary>
+        private static void BuildPassengerPort()
+        {
+            var warm = new Color(1f, 0.94f, 0.86f);
+            var cool = new Color(0.86f, 0.92f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, F + 3.4f, 0.9f), 6.5f, 2.0f, warm),     // 입국장 물결 천장 아래
+                LightSpec.Point(new Vector3(-2.0f, F + 3.0f, 1.6f), 4.5f, 1.0f, warm),
+                LightSpec.Point(new Vector3(2.4f, F + 3.0f, -1.0f), 4.5f, 1.1f, warm),   // 수하물 컨베이어
+                LightSpec.Point(new Vector3(0f, F + 2.9f, -2.1f), 4f, 0.9f, warm),       // 환영 아치
+                LightSpec.Point(new Vector3(8f, F + 3.4f, 0.9f), 6.5f, 2.0f, warm),     // 대합실
+                LightSpec.Point(new Vector3(5.6f, F + 3.0f, 0.6f), 5f, 1.2f, warm),
+                LightSpec.Point(new Vector3(10.2f, F + 3.0f, 0.6f), 4.5f, 1.0f, warm),
+                LightSpec.Point(new Vector3(5.8f, F + 2.8f, -1.9f), 4f, 1.0f, warm),     // 안내 데스크
+                LightSpec.Point(new Vector3(4f, F + 2.2f, 2.5f), 5f, 0.5f, cool),        // 유리벽 쪽
+            };
+            var sockets = new List<InteriorSocket>();
+            var hatches = new[] { new Vector3(-2.15f, 0f, -2.15f), new Vector3(2.15f, 0f, -2.15f) };
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, hatches[x]));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, F + 3.6f, hatches[x]));
+            }
+            Build("Passenger", "MD_PassengerPort", sockets, new Vector3(-2.2f, F, 0f), 90f, lights,
+                configure: root =>
+                {
+                    // passenger_builder ANCHORS["board_w"] · ["board_e"] (화면 1.96 × 0.62) · ["labels"] (표지 글자)
+                    InteriorArrivalBoard.Panel Board(float x, float nx) => new InteriorArrivalBoard.Panel
+                    {
+                        Center = new Vector3(x, F + 2.95f, 0.7f), Normal = new Vector3(nx, 0f, 0f), Up = Vector3.up, Width = 1.96f, Height = 0.62f,
+                    };
+                    InteriorArrivalBoard.Label Label(float x, float y, float z, Vector3 normal, float w, float h, string text) => new InteriorArrivalBoard.Label
+                    {
+                        Center = new Vector3(x, y, z), Normal = normal, Up = Vector3.up, Width = w, Height = h, Text = text,
+                    };
+                    var labels = new[]
+                    {
+                        Label(0.17f, 1.51f, 3.005f, Vector3.back, 0.82f, 0.32f, "도착"),
+                        Label(8.17f, 1.51f, 3.005f, Vector3.back, 0.82f, 0.32f, "탑승"),
+                        Label(0f, 0.51f, 0.965f, Vector3.back, 1.1f, 0.2f, "입국 심사"),
+                        Label(0f, 0.51f, 1.035f, Vector3.forward, 1.1f, 0.2f, "입국 심사"),
+                        Label(2.465f, 0.36f, -0.85f, Vector3.left, 0.4f, 0.18f, "수하물"),
+                        Label(2.535f, 0.36f, -0.65f, Vector3.right, 0.4f, 0.18f, "수하물"),
+                        Label(0f, 1.8f, -1.745f, Vector3.back, 1.36f, 0.28f, "입국장"),
+                        Label(0f, 1.8f, -1.655f, Vector3.forward, 1.36f, 0.28f, "어서 오세요"),
+                        Label(5.8f, 0.86f, -1.77f, Vector3.forward, 0.6f, 0.13f, "안내"),
+                    };
+                    root.AddComponent<InteriorArrivalBoard>().Configure(new[] { Board(3.925f, -1f), Board(4.075f, 1f) }, labels);
                 });
         }
 
@@ -1279,6 +1340,7 @@ namespace SpaceStation.Editor
             // 12-5 새 기본 모듈
             { "School", InteriorAmbience.Life }, { "Quarantine", InteriorAmbience.Life }, { "Commerce", InteriorAmbience.Life }, { "Admin", InteriorAmbience.Life },
             { "Shelter", InteriorAmbience.Machine },   // 공기 정화기 소리
+            { "Passenger", InteriorAmbience.Life },
             { "WaterEx", InteriorAmbience.Water }, { "Protein", InteriorAmbience.Machine },
             { "Sensor", InteriorAmbience.Electric }, { "DataCenter", InteriorAmbience.Electric },
             { "Frame", InteriorAmbience.Hall }, { "Hub", InteriorAmbience.Hall },
