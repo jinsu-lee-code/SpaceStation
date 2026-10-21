@@ -46,8 +46,14 @@ namespace SpaceStation.Editor
             });
             // 12-5 cm_builder: 아트리움 아래 원형 화단 (x 4, z 0), 흙 F + 0.4
             Set("IT_Commerce", new List<PlantSpot> { new PlantSpot(new Vector3(4f, F + 0.4f, 0f), PlantKind.Tree, 1f, 40f) });
+            // 12-5 passenger_builder ANCHORS["plants"]: 입국장 앞 구석 · 대합실 칸막이 옆 화분 2, 흙 F + 0.47, 벽 · 유리에서 0.45라 0.7배
+            Set("IT_Passenger", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-2.6f, F + 0.47f, 2.75f), PlantKind.Pot, 0.7f, 75f),
+                new PlantSpot(new Vector3(4.6f, F + 0.47f, 2.75f), PlantKind.Pot, 0.7f, 250f),
+            });
             AssetDatabase.SaveAssets();
-            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1");
+            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2");
         }
 
         private static void Set(string name, List<PlantSpot> spots)
