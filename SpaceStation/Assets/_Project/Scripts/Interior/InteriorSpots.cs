@@ -483,7 +483,8 @@ namespace SpaceStation.Interior
                 if (!r.name.StartsWith("KIT_Wall", StringComparison.Ordinal))
                     continue;
                 var mesh = r.TryGetComponent<MeshFilter>(out var mf) ? mf.sharedMesh : null;
-                if (mesh == null || r.name.StartsWith("KIT_WallDoor", StringComparison.Ordinal))
+                // 읽을 수 없는 메시(가져오기 Read/Write 꺼짐)는 게임 중 꼭짓점을 못 읽음 — 예외 대신 문 패널처럼 뺌 (SM_InteriorKit.fbx는 Read/Write 켬)
+                if (mesh == null || !mesh.isReadable || r.name.StartsWith("KIT_WallDoor", StringComparison.Ordinal))
                 {
                     _doorPanels.Add(r.bounds);   // 모양을 모르는 패널도 문 패널처럼 뺌
                     continue;
