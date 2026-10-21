@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using SpaceStation.Data;
 using SpaceStation.Interior;
 using UnityEditor;
@@ -475,6 +475,9 @@ namespace SpaceStation.Editor
                 LightSpec.Point(new Vector3(-2.0f, F + 3.0f, 1.6f), 4.5f, 1.0f, warm),
                 LightSpec.Point(new Vector3(2.4f, F + 3.0f, -1.0f), 4.5f, 1.1f, warm),   // 수하물 컨베이어
                 LightSpec.Point(new Vector3(0f, F + 2.9f, -2.1f), 4f, 0.9f, warm),       // 환영 아치
+                // 입국 심사 부스 안 (직원 얼굴 앞 · 모니터 화면 뒤 — 화면에 반사점이 생기지 않게): 사용자 요청 2026-10-21 "부스가 너무 어두워 보임"
+                LightSpec.Point(new Vector3(-0.7f, F + 1.3f, 1.0f), 1.6f, 0.9f, warm),
+                LightSpec.Point(new Vector3(0.7f, F + 1.3f, 1.0f), 1.6f, 0.9f, warm),
                 LightSpec.Point(new Vector3(8f, F + 3.4f, 0.9f), 6.5f, 2.0f, warm),     // 대합실
                 LightSpec.Point(new Vector3(5.6f, F + 3.0f, 0.6f), 5f, 1.2f, warm),
                 LightSpec.Point(new Vector3(10.2f, F + 3.0f, 0.6f), 4.5f, 1.0f, warm),
