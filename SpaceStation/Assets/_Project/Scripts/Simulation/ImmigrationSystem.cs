@@ -19,6 +19,8 @@ namespace SpaceStation.Simulation
         /// <summary>다음 이민선까지 (포트가 없으면 -1).</summary>
         public float TimeLeft => _timer;
         public int Arrived { get; private set; }
+        /// <summary>이번 실행에서 이민선이 온 횟수 (내린 주민이 없어도 셈, 저장 안 함) — 12-5 도착 안내판이 도착을 알아챔.</summary>
+        public int Visits { get; private set; }
         /// <summary>13-3 공통 고리: 이민선을 따로 정하는 쪽(서사판 이민선 시계)이 있으면 이 포트 시계를 끔.</summary>
         public bool Suppressed { get; set; }
 
@@ -39,6 +41,7 @@ namespace SpaceStation.Simulation
             if (_timer > 0f)
                 return;
             _timer = interval;
+            Visits++;
             var r = Sim.Resources;
             int room = r.HousingCapacity - r.Population;
             if (room <= 0)
