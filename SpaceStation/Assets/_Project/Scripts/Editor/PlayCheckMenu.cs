@@ -14,7 +14,7 @@ namespace SpaceStation.Editor
     /// <summary>
     /// 플레이 확인 루트 (사용자 요청 2026-10-20): 메뉴 하나로 장 · 절정 확인 지점에서 바로 플레이를 시작한다.
     /// 정거장 = 밸런스 봇이 그 등급(1장 소형 · 2장 중형 · 3장 대형)에 처음 닿은 순간 (누를 때마다 지금 규칙으로 새로 만듦, 같은 시드 = 같은 정거장)
-    /// + 장 상태(번호 · 단계 · 지난 장 기록)를 덮어씀. 장 시작은 앞 장 결과 창에서 시작해 방향을 고르면 실제와 같은 흐름
+    /// + 장 상태(번호 · 단계 · 지난 장 기록)를 덮어씀 + 재고 · 배터리 가득. 장 시작은 앞 장 결과 창에서 시작해 방향을 고르면 실제와 같은 흐름
     /// (전환 연출 → 제목 카드 → 장 시작 알림 · 첫 한마디 · 장 규칙)으로 넘어간다.
     /// 확인용 판의 저장은 Temp/PlayCheck/Saves로 — 실제 세이브를 덮지 않음 (<see cref="PlayCheckBoot"/>).
     /// </summary>
@@ -24,6 +24,11 @@ namespace SpaceStation.Editor
         private const string GameScene = "Assets/_Project/Scenes/Main.unity";
         /// <summary>절정 예고 지점: 절정까지 남길 시간 (초).</summary>
         private const float WarningLead = 15f;
+        /// <summary>
+        /// 결과 창 지점: 다음 장 첫 배까지 (초). 실제로는 지난 장 이민선 시계가 남은 만큼(0 ~ 4분) — 그 안에서 짧게 잡아
+        /// 3장 곰 도착 연출을 곧 보게 (사용자 질문 2026-10-21 "3장 들어갈 때 컷신", 4분을 손대지 않고 두면 유성우 파손이 쌓여 먼저 무너짐).
+        /// </summary>
+        private const float NextChapterFirstShip = 90f;
 
         [MenuItem(Menu + "1. 1장 결과 → 장 전환 연출 → 2장 시작", priority = 1)]
         private static void ChapterOneResult() => Start("1장 결과 창", 1, chapter: 0, ChapterPhase.Transition);
@@ -67,13 +72,14 @@ namespace SpaceStation.Editor
             }
             SetSystem(station, ChapterSystem.SystemKey, JsonUtility.ToJson(ChapterState(config, chapter, phase)));
             if (chapter >= 1)
-                SetSystem(station, ArkShipSystem.SystemKey, JsonUtility.ToJson(ArkState(config, chapter, station)));
+                SetSystem(station, ArkShipSystem.SystemKey, JsonUtility.ToJson(ArkState(config, chapter, phase, station)));
 
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return;
             if (EditorSceneManager.GetActiveScene().path != GameScene)
                 EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
             KeepSceneResearch(station);
+            FillStocks(station);
 
             var file = new SaveFile
             {
@@ -150,6 +156,18 @@ namespace SpaceStation.Editor
             station.Projects.RemoveAll(p => !names.Contains(p.Category));
         }
 
+        /// <summary>
+        /// 재고 · 배터리를 가득 채워 시작 (사용자 결정 2026-10-21): 봇이 등급에 막 닿은 순간은 방금 지은 만큼 금속이 바닥이고
+        /// 배터리도 덜 차 있어(3번 = 금속 19 · 곧 밤) 이야기 흐름을 보기 전에 무너질 수 있었음. 불러올 때 한도에서 잘리므로 큰 값을 넣음.
+        /// </summary>
+        private static void FillStocks(StationState station)
+        {
+            const float Full = 1e9f;
+            foreach (var stock in station.Stock)
+                stock.Value = Full;
+            station.BatteryCharge = Full;
+        }
+
         /// <summary><see cref="ChapterSystem"/> 저장 형식과 같은 이름의 칸 (JsonUtility가 이름으로 맞춤).</summary>
         [Serializable]
         private sealed class ChapterStateData
@@ -212,10 +230,11 @@ namespace SpaceStation.Editor
         /// <summary>
         /// 2장부터 이민선 시계가 돌고 있던 것으로. 그 장까지 새 종족(3장 곰)이 있으면 이미 맞아 주민 6명이 그 종족
         /// (나머지 주민은 비워 두면 게임이 시작 종족으로 채움) — 3장 대이주가 섞인 무리로 오게.
+        /// 결과 창에서 시작하면 다음 장 첫 배(3장 = 곰 도착 연출)가 장 시작 <see cref="NextChapterFirstShip"/>초 뒤에 옴.
         /// </summary>
-        private static ArkStateData ArkState(ChapterConfig config, int chapter, StationState station)
+        private static ArkStateData ArkState(ChapterConfig config, int chapter, ChapterPhase phase, StationState station)
         {
-            var s = new ArkStateData { Timer = config.Chapters[chapter].ShipInterval };
+            var s = new ArkStateData { Timer = phase == ChapterPhase.Transition ? NextChapterFirstShip : config.Chapters[chapter].ShipInterval };
             for (int i = 0; i <= chapter; i++)
             {
                 var species = config.Chapters[i].NewSpecies;
