@@ -77,7 +77,7 @@ namespace SpaceStation.Editor
 
         /// <summary>
         /// 12-5 방사선 차폐실 (shelter_builder ANCHORS): 평소 = 일터 없는 주민이 비축 물자 관리 — 선량계 게이트 콘솔(앉음) · 비상 물자 선반 ·
-        /// 공기 정화기 제어판 · 제염 샤워 부스 점검 (서서 일함). 침상 · 벤치는 대피 때 자리라 평소엔 비움.
+        /// 공기 정화기 제어판 (서서 일함). 샤워 부스는 일하는 자리가 아님 (사용자 결정). 침상 · 벤치는 대피 때 자리라 평소엔 비움.
         /// </summary>
         private static List<ResidentSpot> ShelterSpots()
         {
@@ -86,7 +86,6 @@ namespace SpaceStation.Editor
                 new ResidentSpot(new Vector3(1.3f, Floor + 0.49f, -2.38f), 0f, ResidentPose.Sit, work: true),
                 new ResidentSpot(new Vector3(10.5f, Floor, 2.05f), 0f, ResidentPose.Work, work: true),
                 new ResidentSpot(new Vector3(10.25f, Floor, -1.95f), 180f, ResidentPose.Work, work: true),
-                new ResidentSpot(new Vector3(2.25f, Floor, -1.55f), 180f, ResidentPose.Work, work: true),
             };
         }
 
