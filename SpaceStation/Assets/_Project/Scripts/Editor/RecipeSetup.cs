@@ -399,7 +399,8 @@ namespace SpaceStation.Editor
             new Def
             {
                 Id = "GrandTorus", Name = "대형 토러스", RecipeName = "대형 토러스", Category = ModuleCategory.Life, Color = "#B0E0FF", Stage = 2, UnlockGrade = 5,
-                Cells = Join(Ring(5), new[] { V(2, 0, 1), V(1, 0, 2), V(2, 0, 2), V(3, 0, 2), V(2, 0, 3) }), // 5×5 고리 + 가운데 허브 십자
+                // 5×5 고리 + 가운데 허브 십자 + 허브 한 칸 올림 = 22 (합성은 재료 칸 합과 정확히 같아야 함 — 사용자 결정 2026-10-22)
+                Cells = Join(Ring(5), new[] { V(2, 0, 1), V(1, 0, 2), V(2, 0, 2), V(3, 0, 2), V(2, 0, 3), V(2, 1, 2) }),
                 Ingredients = new[] { ("Evolved/MD_Evo_GravityHabitat", 2) }, SynthesisMetal = 540f, Duration = 90f, Research = ResearchCategory.Habitation,
                 Rationale = "작은 링 둘을 큰 바퀴 하나로 · 바퀴가 클수록 중력이 고르고 사는 곳이 넓다",
                 Stats = so =>
@@ -415,7 +416,8 @@ namespace SpaceStation.Editor
             new Def
             {
                 Id = "OrbitalCity", Name = "궤도 도시", RecipeName = "궤도 도시", Category = ModuleCategory.Life, Color = "#C8E8FF", Stage = 3, UnlockGrade = 6,
-                Cells = Join(Ring(5), Box2x2Tower()), // 5×5 고리 + 가운데 2×2×4 탑 (재료 칸 38 → 32로 줄임)
+                // 계단식 도시: 5×5 바닥 판 + 가운데 3×3 2층 + 가운데 첨탑 4칸 = 38 (아콜로지 16 + 대형 토러스 22, 사용자 결정 2026-10-22)
+                Cells = Join(Box(5, 5), CityTerrace()),
                 Ingredients = new[] { ("Evolved/MD_Evo_Arcology", 1), ("Evolved/MD_Evo_GrandTorus", 1) }, SynthesisMetal = 1300f, Duration = 120f, Research = ResearchCategory.Habitation,
                 Rationale = "토러스 한가운데에 아콜로지 탑을 세워 하나의 도시로 · 사는 곳 · 쉼 · 장보기가 한곳에 (합류)",
                 Stats = so =>
@@ -773,14 +775,15 @@ namespace SpaceStation.Editor
             },
         };
 
-        /// <summary>궤도 도시 가운데 탑: 5×5 고리 안 2×2 × 4층.</summary>
-        private static Vector3Int[] Box2x2Tower()
+        /// <summary>궤도 도시 위층: 5×5 바닥 판 위 가운데 3×3 (2층) + 가운데 첨탑 4칸 (3 ~ 6층).</summary>
+        private static Vector3Int[] CityTerrace()
         {
             var list = new List<Vector3Int>();
-            for (int y = 0; y < 4; y++)
-                for (int z = 1; z <= 2; z++)
-                    for (int x = 1; x <= 2; x++)
-                        list.Add(V(x, y, z));
+            for (int z = 1; z <= 3; z++)
+                for (int x = 1; x <= 3; x++)
+                    list.Add(V(x, 1, z));
+            for (int y = 2; y <= 5; y++)
+                list.Add(V(2, y, 2));
             return list.ToArray();
         }
 
@@ -818,7 +821,7 @@ namespace SpaceStation.Editor
 
                 var material = MakeMaterial(def);
                 var prefab = MakePrefab(def, material);
-                var module = MakeModule(def, prefab, materialCost + def.SynthesisMetal, Mathf.Max(1, gradeCount), limitedShare);
+                var module = MakeModule(def, prefab, materialCost + def.SynthesisMetal, gradeCount, limitedShare);
                 if (AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/_Project/Art/Models/Modules/SM_Evo_{def.Id}.fbx") != null)
                     ConnectorDepthBaker.Measure(module); // 외형 모델 표면까지 통로 깊이 (그레이박스는 기본 깊이)
                 recipePaths.Add(AssetDatabase.GetAssetPath(MakeRecipe(def, module, ingredients)));
@@ -978,7 +981,8 @@ namespace SpaceStation.Editor
             so.FindProperty("_prefab").objectReferenceValue = prefab;
             so.FindProperty("_removable").boolValue = true;
             Amounts(so.FindProperty("_buildCost"), (ResourceType.Metal, buildMetal));
-            so.FindProperty("_gradeModuleCount").intValue = gradeCount;
+            so.FindProperty("_gradeModuleCount").intValue = Mathf.Max(1, gradeCount);
+            so.FindProperty("_countsTowardGrade").boolValue = gradeCount > 0;   // 재료가 모두 등급에 안 드는 결과(장갑 외벽 = 장갑 격벽 ×3)도 안 듦
             so.FindProperty("_limitedModuleShare").intValue = limitedShare;
             def.Stats(so);
             so.ApplyModifiedPropertiesWithoutUndo();
