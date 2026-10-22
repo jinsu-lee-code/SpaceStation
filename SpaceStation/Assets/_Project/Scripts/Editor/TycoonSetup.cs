@@ -187,6 +187,7 @@ namespace SpaceStation.Editor
         private const string PlaguePath = "Assets/_Project/Data/Tycoon/PlagueConfig.asset";
         private const int CityGrade = 4;
         private const int NationGrade = 5;
+        private const int ContinentGrade = 6;
 
         /// <summary>
         /// 13-3 등급별 요구 재배치 (BALANCE 43번): 도시급 새 요구 교육 · 검역 (요구 종류 · 학교 · 검역소 서비스 설정은 main) +
@@ -200,10 +201,12 @@ namespace SpaceStation.Editor
             var grades = AssetDatabase.LoadAssetAtPath<StationGradeConfig>("Assets/_Project/Data/StationGrades.asset");
             var gso = new SerializedObject(grades);
             // 13-3 도시급 교육 · 검역, 13-5 국가급 소비 · 행정 (요구 종류 · 서비스 설정은 main)
+            // 남은 요구 (사용자 결정 2026-10-22): 도시급 식단 다양성 · 대륙급 치안 (보안청 · 치안 본부, 감점 · 식품 종류는 main Needs/Setup Diet and Security)
             var gradeNeeds = new (int Grade, ResidentNeed[] Needs)[]
             {
-                (CityGrade, new[] { ResidentNeed.Education, ResidentNeed.Quarantine }),
+                (CityGrade, new[] { ResidentNeed.Education, ResidentNeed.Quarantine, ResidentNeed.Diet }),
                 (NationGrade, new[] { ResidentNeed.Commerce, ResidentNeed.Administration }),
+                (ContinentGrade, new[] { ResidentNeed.Security }),
             };
             foreach (var (grade, list) in gradeNeeds)
             {
@@ -248,7 +251,7 @@ namespace SpaceStation.Editor
             AddPanel<SpaceStation.UI.PlaguePanel>("PlaguePanel");
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
-            Debug.Log("[TycoonSetup] 요구: 도시급 교육 · 검역 · 국가급 소비 · 행정 · 네 모듈 준비 중 해제 · 역병 설정 · 씬 연결 완료");
+            Debug.Log("[TycoonSetup] 요구: 도시급 교육 · 검역 · 식단 · 국가급 소비 · 행정 · 대륙급 치안 · 네 모듈 준비 중 해제 · 역병 설정 · 씬 연결 완료");
         }
 
         /// <summary>HUD 창 하나를 외부 접촉 창 옆에 새로 만들고 공용 글꼴 · 스프라이트를 연결 (같은 이름이 있으면 바꿈).</summary>
