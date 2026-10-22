@@ -583,7 +583,8 @@ namespace SpaceStation.Editor
                 LightSpec.Point(new Vector3(-2.0f, F + 2.8f, -2.0f), 3.5f, 0.6f, cool),                     // 해치 구석
             };
             var orbits = new List<OrbitSpec> { new OrbitSpec("INT_CommRelay_Drive", Vector3.zero, Vector3.up, 8f) };
-            Build("CommRelay", "MD_CommRelay", OneCellSockets(Socket, new Vector3(-2.25f, 0f, -2.25f)), new Vector3(0f, F, -2.3f), 15f, lights, orbits,
+            // 스폰 = 남쪽 문 앞 조금 동쪽 — 가운데 기둥이 시야를 덜 가리고 북동 해독 책상 · 화면이 보이게
+            Build("CommRelay", "MD_CommRelay", OneCellSockets(Socket, new Vector3(-2.25f, 0f, -2.25f)), new Vector3(0.7f, F, -2.4f), 10f, lights, orbits,
                 configure: root =>
                 {
                     // comm_builder ANCHORS["signal"] · ["reputation"] (화면 1.16 × 1.12) · ["pulse"] (빛 고리 위 끝 → 아래로 2.12)
