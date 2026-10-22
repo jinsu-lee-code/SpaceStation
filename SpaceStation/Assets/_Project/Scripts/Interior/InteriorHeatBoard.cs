@@ -57,8 +57,8 @@ namespace SpaceStation.Interior
             {
                 var c = _center + up * (h * 0.5f - 0.22f - rowH * (i + 0.5f));
                 _rows[i] = c;
-                _names[i] = CreateText("HeatName", c + _right * (-w * 0.5f + w * 0.18f), _normal, up, w * 0.34f, rowH * 0.8f, 1f, TextAlignmentOptions.Left);
-                _values[i] = CreateText("HeatValue", c + _right * (w * 0.5f - w * 0.155f), _normal, up, w * 0.3f, rowH * 0.8f, 1f, TextAlignmentOptions.Right);
+                _names[i] = CreateText("HeatName", c + _right * (-w * 0.5f + w * 0.18f), _normal, up, w * 0.34f, rowH * 0.8f, 0.6f, TextAlignmentOptions.Left);
+                _values[i] = CreateText("HeatValue", c + _right * (w * 0.5f - w * 0.155f), _normal, up, w * 0.3f, rowH * 0.8f, 0.6f, TextAlignmentOptions.Right);
                 _tracks[i] = Quad("HeatTrack", c + _right * (_barX + _barWidth * 0.5f), new Vector2(_barWidth, rowH * 0.36f), _trackMaterial, 0.002f).gameObject;
                 _bars[i] = Quad("HeatBar", c + _right * (_barX + _barWidth * 0.5f), new Vector2(_barWidth, rowH * 0.36f), _barMaterial, 0.003f);
             }
@@ -88,15 +88,16 @@ namespace SpaceStation.Interior
                 ShowRows(0, null);
                 return;
             }
-            if (heat == null || !heat.Active)
-            {
-                SetText(_title, "<b>열 관리 전</b>  <size=75%>대륙급부터 맞닿은 모듈의 열을 뺍니다</size>", ScreenText);
-                ShowRows(0, null);
-                return;
-            }
             _neighbors.Clear();
             Station.Grid.GetNeighborModules(Module, _neighbors);
             _neighbors.RemoveAll(n => n == Module);
+            if (heat == null || !heat.Active)
+            {
+                // 대륙급 전: 맞닿은 모듈 이름만 + "대기" (빈 화면처럼 보이지 않게)
+                SetText(_title, "<b>열 관리 전</b>  대륙급부터 방열", ScreenText);
+                ShowRows(Mathf.Min(Rows, _neighbors.Count), null);
+                return;
+            }
             _neighbors.Sort((a, b) => heat.HeatOf(b).CompareTo(heat.HeatOf(a)));
             float removal = Module.Data != null ? Module.Data.HeatRemoval : 0f;
             string title;
@@ -116,8 +117,8 @@ namespace SpaceStation.Interior
             for (int i = 0; i < Rows; i++)
             {
                 bool on = i < count;
-                _tracks[i].SetActive(on);
-                _bars[i].gameObject.SetActive(on);
+                _tracks[i].SetActive(on && heat != null);
+                _bars[i].gameObject.SetActive(on && heat != null);
                 if (!on)
                 {
                     SetText(_names[i], i == 0 && heat != null ? "맞닿은 모듈 없음" : "", ScreenDim);
@@ -125,6 +126,12 @@ namespace SpaceStation.Interior
                     continue;
                 }
                 var m = _neighbors[i];
+                if (heat == null)
+                {
+                    SetText(_names[i], m.Data != null ? m.Data.DisplayName : "모듈", ScreenText);
+                    SetText(_values[i], "대기", ScreenDim);
+                    continue;
+                }
                 float h = heat.HeatOf(m);
                 float limit = Mathf.Max(0.01f, heat.Limit);
                 bool danger = heat.IsDanger(m);
