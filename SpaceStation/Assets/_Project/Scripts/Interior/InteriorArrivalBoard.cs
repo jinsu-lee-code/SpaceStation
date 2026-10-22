@@ -5,10 +5,10 @@ using UnityEngine;
 namespace SpaceStation.Interior
 {
     /// <summary>
-    /// 12-5 여객 도킹 포트 도착 안내판 (칸막이 위 양면) + 방 안 표지 글자 — 사용자 결정 2026-10-21 "도착 안내판".
+    /// 12-5 여객 도킹 포트 도착 안내판 (칸막이 위 양면) — 사용자 결정 2026-10-21 "도착 안내판".
     /// 실제 이민선 시계(<see cref="SpaceStation.Simulation.ImmigrationSystem"/>): 다음 이민선까지 남은 시간 · 지금까지 도착한 주민 수.
     /// 이민선이 오면 10초 동안 깜빡이며 "이민선 도착 · n명 입국" (아무도 안 내렸으면 "내린 주민 없음") — 색이 아니라 글자 · 깜빡임으로 (색약).
-    /// 모듈이 꺼지면 "운항 중지" (어둡게). 표지 글자(탑승구 · 심사 부스 · 수하물 · 환영 아치 · 안내)는 고정 글.
+    /// 모듈이 꺼지면 "운항 중지" (어둡게). 방 안 고정 표지 글자는 <see cref="InteriorSignLabels"/>.
     /// </summary>
     public sealed class InteriorArrivalBoard : InteriorRoomDisplay
     {
@@ -24,31 +24,15 @@ namespace SpaceStation.Interior
             public float Height;
         }
 
-        [Serializable]
-        public struct Label
-        {
-            public Vector3 Center;
-            public Vector3 Normal;
-            public Vector3 Up;
-            public float Width;
-            public float Height;
-            public string Text;
-        }
-
         [SerializeField] private Panel[] _panels = Array.Empty<Panel>();
-        [SerializeField] private Label[] _labels = Array.Empty<Label>();
 
-        private TextMeshPro[] _titles, _bodies, _labelTexts;
+        private TextMeshPro[] _titles, _bodies;
         private int _lastArrived = -1;
         private int _lastVisits = -1;
         private float _flashUntil;
         private string _flash;
 
-        public void Configure(Panel[] panels, Label[] labels)
-        {
-            _panels = panels ?? Array.Empty<Panel>();
-            _labels = labels ?? Array.Empty<Label>();
-        }
+        public void Configure(Panel[] panels) => _panels = panels ?? Array.Empty<Panel>();
 
         private void Setup()
         {
@@ -65,20 +49,11 @@ namespace SpaceStation.Interior
                 _bodies[i] = CreateText("ArrivalBody", p.Center - up * 0.07f, p.Normal, p.Up, p.Width - 0.12f, p.Height - 0.22f, 2.2f,
                     TextAlignmentOptions.Center);
             }
-            _labelTexts = new TextMeshPro[_labels.Length];
-            for (int i = 0; i < _labels.Length; i++)
-            {
-                var l = _labels[i];
-                _labelTexts[i] = CreateText("Label", l.Center, l.Normal, l.Up, l.Width, l.Height, 2f, TextAlignmentOptions.Center);
-            }
         }
 
         protected override void Refresh()
         {
             Setup();
-            var labelColor = Active ? ScreenText : ScreenDim;
-            for (int i = 0; i < _labelTexts.Length; i++)
-                SetText(_labelTexts[i], _labels[i].Text, labelColor);
             if (!Active)
             {
                 Show("<b>도착 안내</b>", ScreenDim, "<b>운항 중지</b>", ScreenDim);

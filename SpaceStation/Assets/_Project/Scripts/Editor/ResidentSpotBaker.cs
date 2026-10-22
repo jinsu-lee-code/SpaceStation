@@ -51,6 +51,7 @@ namespace SpaceStation.Editor
             { "School", new[] { ResidentTrait.Scientist } },
             { "Protein", new[] { ResidentTrait.Gardener } },
             { "WaterEx", new[] { ResidentTrait.Gardener } },
+            { "Radiator", new[] { ResidentTrait.Technician } },   // 사용자 결정 2026-10-22: 배터리 · 태양광 · 연료전지와 같은 기술자
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -75,7 +76,22 @@ namespace SpaceStation.Editor
             { "Admin", AdminSpots },
             { "Shelter", ShelterSpots },
             { "Passenger", PassengerSpots },
+            { "Radiator", RadiatorSpots },
         };
+
+        /// <summary>
+        /// 12-5 방열판 (radiator_builder ANCHORS["work"]): 기술자가 서서 일함 — 열교환기 조작반 (남쪽을 봄) · 열 감시판 (동쪽 벽을 봄) ·
+        /// 동북 펌프 (펌프를 봄). 찾아낸 자리는 관 다발 사이 · 펌프 뒤로 잡혀 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> RadiatorSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(0.6f, Floor, 1.28f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(2.35f, Floor, -2.45f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(1.55f, Floor, 1.6f), 47f, ResidentPose.Work, work: true),
+            };
+        }
 
         /// <summary>
         /// 12-5 방사선 차폐실 (shelter_builder ANCHORS): 평소 = 일터 없는 주민이 비축 물자 관리 — 선량계 게이트 콘솔(앉음) · 비상 물자 선반 ·
@@ -164,7 +180,9 @@ namespace SpaceStation.Editor
             if (FixedSpots.TryGetValue(name, out var fixedSpots))
             {
                 var spots = fixedSpots();
-                template.EditorSetResidents(spots, new List<ResidentTrait>(), LeisureRooms.Contains(name));
+                // 12-5 방열판: 고정 자리여도 일터 특성(기술자)은 그대로 — 일터 없는 주민 방(OpenWork)은 특성 없음
+                var fixedTraits = WorkTraits.TryGetValue(name, out var ft) ? new List<ResidentTrait>(ft) : new List<ResidentTrait>();
+                template.EditorSetResidents(spots, fixedTraits, LeisureRooms.Contains(name));
                 return $"{name} 고정 자리 {spots.Count}";
             }
             var instance = (GameObject)Object.Instantiate(template.Prefab, Far, Quaternion.identity);
