@@ -306,6 +306,17 @@ namespace SpaceStation.UI
                 return $"\n<size=85%><color={HudText.Muted}>{data.ServiceNeedsText()}</color> 담당 주민 {needs.GetServed(module):0}/{data.ServiceCapacity * needCount * strength:0}"
                        + $" · <color={color}>가동률 {strength * 100f:0}%</color></size>";
             }
+            if (data.FoodKinds != FoodKind.None)
+            {
+                // 남은 요구 식단: 식량 모듈은 식품 종류 · 정거장 식단 균형 (식단 요구가 열렸을 때만)
+                foreach (var status in needs.Statuses)
+                {
+                    if (status.Need != ResidentNeed.Diet)
+                        continue;
+                    string c = status.Ratio >= 0.999f ? "#7CFF9A" : status.Ratio >= 0.5f ? HudText.Yellow : HudText.Red;
+                    return $"\n<size=85%><color={HudText.Muted}>식단 {data.FoodKinds.Text()}</color> · 정거장 식단 균형 <color={c}>{status.Ratio * 100f:0}%</color></size>";
+                }
+            }
             if (data.HousingCapacity <= 0 || needs.Statuses.Count == 0)
                 return string.Empty;
             var sb = new System.Text.StringBuilder($"\n<size=85%><color={HudText.Muted}>주민 요구</color>");

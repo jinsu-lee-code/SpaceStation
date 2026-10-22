@@ -46,6 +46,8 @@ namespace SpaceStation.Editor
             public bool AutoUnlock;
             /// <summary>진화 단계 (1 = 도시급 … 4 = 지구급).</summary>
             public int Stage = 1;
+            /// <summary>남은 요구 식단: 식량 모듈의 식품 종류.</summary>
+            public FoodKind Food;
         }
 
         private static Vector3Int V(int x, int y, int z) => new Vector3Int(x, y, z);
@@ -83,6 +85,7 @@ namespace SpaceStation.Editor
                 Id = "EcoModule", Name = "생태 모듈", RecipeName = "생태 모듈", Category = ModuleCategory.Power, // 생산 탭 (재료 = 농장 · 산소 · 물) Color = "#7CFF9A",
                 Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(2, 0, 0), V(0, 0, 1) },
                 Ingredients = new[] { ("MD_Farm", 1), ("MD_Oxygen", 1), ("MD_WaterRecycler", 1) }, SynthesisMetal = 90f, Duration = 60f, Research = ResearchCategory.Production,
+                Food = FoodKind.Vegetable,
                 Rationale = "식물 · 산소 · 물 순환이 한 곳에서 닫혀, 따로 둘 때보다 덜 쓰고 더 만든다",
                 Stats = so =>
                 {
@@ -170,6 +173,7 @@ namespace SpaceStation.Editor
                 Id = "Biodome", Name = "바이오돔", RecipeName = "바이오돔", Category = ModuleCategory.Power, Color = "#5FE08A", Stage = 2, UnlockGrade = 5, // 생산 탭
                 Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(2, 0, 0), V(3, 0, 0), V(0, 0, 1), V(1, 0, 1), V(2, 0, 1), V(3, 0, 1) },
                 Ingredients = new[] { ("Evolved/MD_Evo_EcoModule", 2) }, SynthesisMetal = 240f, Duration = 80f, Research = ResearchCategory.Production,
+                Food = FoodKind.Vegetable,
                 Rationale = "작은 순환 둘을 큰 생태계 하나로 · 순환이 커질수록 덜 쓰고 더 만든다",
                 Stats = so =>
                 {
@@ -208,6 +212,46 @@ namespace SpaceStation.Editor
                     so.FindProperty("_recipeSlots").intValue = 2;
                     so.FindProperty("_researchSpeedBonus").floatValue = 0.15f;
                     Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 10f));
+                },
+            },
+            // 남은 요구 치안 (사용자 결정 2026-10-22): 치안 계통 = 치안 + 행정을 함께 맡고 포탑 기능 유지 (재료 행정 관제소를 합성해도 행정이 비지 않게). 대륙급
+            new Def
+            {
+                Id = "SecurityBureau", Name = "보안청", RecipeName = "보안청", Category = ModuleCategory.Life, Color = "#7FA8FF", UnlockGrade = 6,
+                Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(0, 0, 1) }, // 행정 관제소 2칸 + 포탑 1칸
+                Ingredients = new[] { ("MD_Administration", 1), ("MD_Turret", 1) }, SynthesisMetal = 160f, Duration = 60f, Research = ResearchCategory.Habitation,
+                Rationale = "행정과 무력을 한 청사에 묶어 치안을 맡는다 · 행정 창구도 그대로, 주변으로 오는 운석도 막는다",
+                Stats = so =>
+                {
+                    SetEnum(so.FindProperty("_serviceNeed"), nameof(ResidentNeed.Security));
+                    var extra = so.FindProperty("_extraServiceNeeds");
+                    extra.arraySize = 1;
+                    SetEnum(extra.GetArrayElementAtIndex(0), nameof(ResidentNeed.Administration));
+                    so.FindProperty("_serviceRadius").intValue = 5;
+                    so.FindProperty("_serviceCapacity").intValue = 45;
+                    so.FindProperty("_turretRadius").intValue = 2;
+                    so.FindProperty("_turretInterceptChance").floatValue = 0.25f;
+                    Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 10f));
+                },
+            },
+            new Def
+            {
+                Id = "SecurityHQ", Name = "치안 본부", RecipeName = "치안 본부", Category = ModuleCategory.Life, Color = "#A0B8FF", Stage = 2, UnlockGrade = 6,
+                Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(0, 0, 1), V(1, 0, 1) },
+                Ingredients = new[] { ("Evolved/MD_Evo_SecurityBureau", 1), ("MD_SensorArray", 1) }, SynthesisMetal = 290f, Duration = 70f, Research = ResearchCategory.Habitation,
+                Rationale = "보안청에 감시망(센서)을 이어 치안 반경을 넓히고 위험을 미리 알린다 · 행정 · 방어도 더 넓게",
+                Stats = so =>
+                {
+                    SetEnum(so.FindProperty("_serviceNeed"), nameof(ResidentNeed.Security));
+                    var extra = so.FindProperty("_extraServiceNeeds");
+                    extra.arraySize = 1;
+                    SetEnum(extra.GetArrayElementAtIndex(0), nameof(ResidentNeed.Administration));
+                    so.FindProperty("_serviceRadius").intValue = 7;
+                    so.FindProperty("_serviceCapacity").intValue = 80;
+                    so.FindProperty("_turretRadius").intValue = 3;
+                    so.FindProperty("_turretInterceptChance").floatValue = 0.3f;
+                    so.FindProperty("_warningBonus").floatValue = 20f;
+                    Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 14f));
                 },
             },
             // 12-3c 지구급 (사용자 결정 2026-10-14: 통신 중계소 상위 모듈 추가, 계통표 47 → 48). 재료 MD_CommRelay는 Grade Rules/Setup Contact가 만듦
@@ -370,6 +414,12 @@ namespace SpaceStation.Editor
             so.FindProperty("_serviceCapacity").intValue = 0;
             so.FindProperty("_extraServiceNeeds").arraySize = 0;
             so.FindProperty("_researchSpeedBonus").floatValue = 0f;
+            SetEnum(so.FindProperty("_serviceNeed"), nameof(ResidentNeed.None));
+            so.FindProperty("_serviceRadius").intValue = 0;
+            so.FindProperty("_turretRadius").intValue = 0;
+            so.FindProperty("_turretInterceptChance").floatValue = 0f;
+            so.FindProperty("_warningBonus").floatValue = 0f;
+            so.FindProperty("_foodKinds").enumValueFlag = (int)def.Food;
 
             so.FindProperty("_displayName").stringValue = def.Name;
             SetEnum(so.FindProperty("_category"), def.Category.ToString());

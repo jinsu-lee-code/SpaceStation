@@ -209,6 +209,8 @@ namespace SpaceStation.UI
                 sb.Append($"<color={Orange}>준비 중</color> <color={Muted}>{data.ComingSoonNote}</color>\n");
             if (data.RelayPower > 0)
                 sb.Append("통신 세기 +").Append(data.RelayPower).Append($" <color={Muted}>(합이 1 · 2 · 4 · 8 이상이면 그 계급 함선까지 신호 해독)</color>\n");
+            if (data.FoodKinds != FoodKind.None)
+                sb.Append("식단 ").Append(data.FoodKinds.Text()).Append($" <color={Muted}>(식단 요구: 정거장 식량 중 채소 · 단백질이 반반이면 충족)</color>\n");
         }
     }
 }

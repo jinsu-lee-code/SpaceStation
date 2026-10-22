@@ -21,6 +21,8 @@ namespace SpaceStation.Simulation
     /// 주민은 활성 거주 모듈(수용 인구 > 0, 코어 포함)에 수용 인구 비율대로 산다고 보고,
     /// 서비스 모듈은 반경(체비셰프) 안 거주 모듈의 주민을 담당 인원 × 가동률까지 맡는다 (앞에서부터 배정).
     /// 만족도 상한 = 100 − Σ 요구별 (1 − 충족 비율) × 상한 감소량.
+    /// 식단(남은 요구, 사용자 결정 2026-10-22)만 서비스 모듈이 아니라 정거장 전체 식량 생산의 종류별 비중 —
+    /// 종류마다 (1 / 종류 수)까지만 더함 (채소 · 단백질 반반 = 100%, 한 종류만 = 50%, 80 · 20 = 70%), 위치 상관없이 모든 거주 모듈이 같은 비율.
     /// </summary>
     public sealed class NeedsSystem
     {
@@ -34,6 +36,9 @@ namespace SpaceStation.Simulation
         private readonly Dictionary<ModuleInstance, float> _serviceUsed = new Dictionary<ModuleInstance, float>();
         // (거주 모듈, 요구) → 충족 비율
         private readonly Dictionary<ModuleInstance, Dictionary<ResidentNeed, float>> _habitatCoverage = new Dictionary<ModuleInstance, Dictionary<ResidentNeed, float>>();
+        // 식단: 종류별 식량 생산 (FoodKindExtensions.All 순서) · 합
+        private readonly float[] _foodByKind = new float[FoodKindExtensions.All.Length];
+        private float _foodTotal;
 
         /// <param name="strength">서비스 모듈 가동률 (0~1)</param>
         /// <param name="housing">모듈의 실제 수용 인구 (비활성이면 0)</param>
@@ -64,6 +69,15 @@ namespace SpaceStation.Simulation
 
         public float GetStrength(ModuleInstance service) => Mathf.Clamp01(_strength(service));
 
+        /// <summary>식단: 이 식품 종류의 식량 생산 비중 (0~1, 식량 생산이 없으면 0). 마지막 계산 기준.</summary>
+        public float DietShare(FoodKind kind)
+        {
+            if (_foodTotal <= 0f)
+                return 0f;
+            int i = System.Array.IndexOf(FoodKindExtensions.All, kind);
+            return i >= 0 ? _foodByKind[i] / _foodTotal : 0f;
+        }
+
         public void Evaluate(StationGrid grid, int population, IReadOnlyList<ResidentNeed> activeNeeds)
         {
             _statuses.Clear();
@@ -89,6 +103,20 @@ namespace SpaceStation.Simulation
                 if (need == ResidentNeed.None)
                     continue;
                 var status = new NeedStatus { Need = need, Demand = population };
+                if (need == ResidentNeed.Diet)
+                {
+                    float diet = EvaluateDiet(grid);
+                    status.Served = population * diet;
+                    foreach (var h in _habitats)
+                    {
+                        if (!_habitatCoverage.TryGetValue(h, out var dd))
+                            _habitatCoverage[h] = dd = new Dictionary<ResidentNeed, float>();
+                        dd[need] = diet;
+                    }
+                    _statuses.Add(status);
+                    cap -= (1f - status.Ratio) * _config.NeedPenaltyFor(need) * (PenaltyScale != null ? PenaltyScale(need) : 1f);
+                    continue;
+                }
                 _remaining.Clear();
                 foreach (var h in _habitats)
                     _remaining.Add(totalHousing > 0f ? population * _housing(h) / totalHousing : 0f);
@@ -127,6 +155,43 @@ namespace SpaceStation.Simulation
             }
             cap += Effects.SatisfactionCapBonus; // 연구: 감점을 받아도 상한이 그만큼 높음 (100은 넘지 않음)
             SatisfactionCap = Mathf.Clamp(cap, 0f, PopulationSimulation.MaxSatisfaction);
+        }
+
+        /// <summary>식단 충족 비율: 식품 종류가 붙은 모듈의 식량 생산(× 가동률)을 종류별로 모아 종류마다 (1 / 종류 수)까지만 더함.</summary>
+        private float EvaluateDiet(StationGrid grid)
+        {
+            var kinds = FoodKindExtensions.All;
+            for (int k = 0; k < kinds.Length; k++)
+                _foodByKind[k] = 0f;
+            _foodTotal = 0f;
+            foreach (var m in grid.Modules)
+            {
+                var data = m.Data;
+                if (data == null || data.FoodKinds == FoodKind.None)
+                    continue;
+                float food = 0f;
+                foreach (var p in data.Production)
+                {
+                    if (p.Type == ResourceType.Food)
+                        food += p.Amount;
+                }
+                food *= GetStrength(m);
+                if (food <= 0f)
+                    continue;
+                int n = data.FoodKinds.Count();
+                for (int k = 0; k < kinds.Length; k++)
+                {
+                    if ((data.FoodKinds & kinds[k]) != 0)
+                        _foodByKind[k] += food / n;
+                }
+                _foodTotal += food;
+            }
+            if (_foodTotal <= 0f)
+                return 0f;
+            float ratio = 0f, each = 1f / kinds.Length;
+            for (int k = 0; k < kinds.Length; k++)
+                ratio += Mathf.Min(_foodByKind[k] / _foodTotal, each);
+            return Mathf.Clamp01(ratio);
         }
 
         /// <summary>배치 미리보기·봇: 이 자리에 서비스 모듈을 두면 범위에 들어올 활성 거주 모듈 수와 주민 수 (현재 배분 기준).</summary>

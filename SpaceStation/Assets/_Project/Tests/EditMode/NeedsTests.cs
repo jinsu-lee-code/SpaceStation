@@ -161,6 +161,91 @@ namespace SpaceStation.Tests
             Assert.AreEqual(20f, needs.GetServed(center), Eps, "요구 둘 × 10명");
         }
 
+        private ModuleData Food(FoodKind kind, float amount)
+        {
+            var food = Create<ModuleData>();
+            var f = new SerializedObject(food);
+            f.FindProperty("_foodKinds").enumValueFlag = (int)kind;
+            var prod = f.FindProperty("_production");
+            prod.arraySize = 1;
+            prod.GetArrayElementAtIndex(0).FindPropertyRelative("Type").enumValueIndex = (int)ResourceType.Food;
+            prod.GetArrayElementAtIndex(0).FindPropertyRelative("Amount").floatValue = amount;
+            f.ApplyModifiedPropertiesWithoutUndo();
+            return food;
+        }
+
+        [Test]
+        public void Diet_CountsFoodKindBalance_StationWide()
+        {
+            // 남은 요구 식단: 종류마다 비중을 절반까지만 (위치 상관없음)
+            var so = new SerializedObject(_config);
+            var list = so.FindProperty("_needPenalties");
+            list.arraySize = 1;
+            list.GetArrayElementAtIndex(0).FindPropertyRelative("Need").enumValueIndex = (int)ResidentNeed.Diet;
+            list.GetArrayElementAtIndex(0).FindPropertyRelative("Penalty").floatValue = 15f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var diet = new[] { ResidentNeed.Diet };
+
+            var needs = System();
+            var near = Place(_habitat, 0);
+            var far = Place(_habitat, 20);
+            needs.Evaluate(_grid, 20, diet);
+            Assert.AreEqual(0f, needs.Statuses[0].Ratio, Eps, "식량 생산 없음");
+
+            var farm = Place(Food(FoodKind.Vegetable, 8f), 2);
+            needs.Evaluate(_grid, 20, diet);
+            Assert.AreEqual(0.5f, needs.Statuses[0].Ratio, Eps, "채소만 = 50%");
+            Assert.AreEqual(100f - 0.5f * 15f, needs.SatisfactionCap, Eps);
+
+            var vat = Place(Food(FoodKind.Protein, 2f), 40);
+            needs.Evaluate(_grid, 20, diet);
+            Assert.AreEqual(0.7f, needs.Statuses[0].Ratio, Eps, "채소 80 · 단백질 20 = 50 + 20");
+            Assert.AreEqual(0.8f, needs.DietShare(FoodKind.Vegetable), Eps);
+            Assert.AreEqual(0.2f, needs.DietShare(FoodKind.Protein), Eps);
+            Assert.AreEqual(0.7f, needs.GetHabitatCoverage(near, ResidentNeed.Diet), Eps, "거리와 상관없이 같은 비율");
+            Assert.AreEqual(0.7f, needs.GetHabitatCoverage(far, ResidentNeed.Diet), Eps);
+
+            Place(Food(FoodKind.Protein, 6f), 42);
+            needs.Evaluate(_grid, 20, diet);
+            Assert.AreEqual(1f, needs.Statuses[0].Ratio, Eps, "반반 = 100%");
+            Assert.AreEqual(100f, needs.SatisfactionCap, Eps);
+
+            _strength[farm] = 0f;
+            needs.Evaluate(_grid, 20, diet);
+            Assert.AreEqual(0.5f, needs.Statuses[0].Ratio, Eps, "채소 모듈이 멈추면 단백질만");
+
+            _strength[farm] = 1f;
+            Place(Food(FoodKind.Vegetable | FoodKind.Protein, 4f), 44); // 둘 다 = 생산을 반씩
+            needs.Evaluate(_grid, 20, diet);
+            Assert.AreEqual(10f / 20f, needs.DietShare(FoodKind.Vegetable), Eps);
+            Assert.AreEqual("식단", ResidentNeed.Diet.DisplayName());
+            Assert.AreEqual("채소 · 단백질", (FoodKind.Vegetable | FoodKind.Protein).Text());
+            _ = vat;
+        }
+
+        [Test]
+        public void Security_ServedWithAdministration_BySameModule()
+        {
+            // 남은 요구 치안: 보안청 = 치안 + 행정을 같은 반경 · 요구마다 담당 인원으로
+            var bureau = Create<ModuleData>();
+            var b = new SerializedObject(bureau);
+            b.FindProperty("_serviceNeed").enumValueIndex = (int)ResidentNeed.Security;
+            b.FindProperty("_serviceRadius").intValue = 5;
+            b.FindProperty("_serviceCapacity").intValue = 45;
+            var extra = b.FindProperty("_extraServiceNeeds");
+            extra.arraySize = 1;
+            extra.GetArrayElementAtIndex(0).enumValueIndex = (int)ResidentNeed.Administration;
+            b.ApplyModifiedPropertiesWithoutUndo();
+
+            var needs = System();
+            Place(_habitat, 0);
+            Place(bureau, 3);
+            needs.Evaluate(_grid, 10, new[] { ResidentNeed.Security, ResidentNeed.Administration });
+            Assert.AreEqual(1f, needs.Statuses[0].Ratio, Eps);
+            Assert.AreEqual(1f, needs.Statuses[1].Ratio, Eps);
+            Assert.AreEqual("치안", ResidentNeed.Security.DisplayName());
+        }
+
         [Test]
         public void Population_DecaysToCap_AndRecoversOnlyUpToCap()
         {
