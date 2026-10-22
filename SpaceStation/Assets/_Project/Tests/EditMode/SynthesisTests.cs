@@ -307,7 +307,8 @@ namespace SpaceStation.Tests
                 Assert.IsNotNull(r.Result, r.name);
                 Assert.IsNotNull(r.Result.Prefab, r.name + " 결과 프리팹");
                 Assert.AreEqual(r.Result.CellOffsets.Count, r.IngredientCells, r.name + ": 재료 칸 수 = 규격 칸 수");
-                Assert.AreEqual(r.IngredientGradeModules, r.Result.GradeModuleCount, r.name + ": A4 모듈 수 = 재료 수");
+                int resultGrade = r.Result.CountsTowardGrade ? r.Result.GradeModuleCount : 0;   // 장갑 외벽처럼 재료가 모두 등급에 안 들면 결과도 안 듦
+                Assert.AreEqual(r.IngredientGradeModules, resultGrade, r.name + ": A4 모듈 수 = 재료 수");
                 float materials = 0f, synth = 0f, build = 0f;
                 foreach (var i in r.Ingredients)
                     foreach (var a in i.Module.BuildCost)
