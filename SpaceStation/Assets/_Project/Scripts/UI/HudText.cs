@@ -150,6 +150,8 @@ namespace SpaceStation.UI
                   .Append((data.CargoFraction * 100f).ToString("0")).Append($"%만큼 <color={Muted}>(터미널마다 따로, 가동률만큼 느려짐)</color>\n");
             if (data.TerminalOnly)
                 sb.Append($"<color={Yellow}>뒷면으로 정거장에 붙음 · 입구 앞 {data.ApproachLaneLength}칸은 접근로 (건설 불가)</color>\n");
+            if (data.LimitedModuleShare > 0)
+                sb.Append($"<color={Muted}>채굴 도킹 한도에 {data.LimitedModuleShare}개로 셈 (재료 도킹 수)</color>\n");
             if (data.IsShield)
                 sb.Append("실드: 반경 ").Append(shieldRadius).Append("칸 안 모듈로 오는 운석을 ")
                   .Append((data.ShieldReduction * 100f).ToString("0")).Append($"% 빗겨냄 <color={Muted}>(중첩 없음)</color>\n")

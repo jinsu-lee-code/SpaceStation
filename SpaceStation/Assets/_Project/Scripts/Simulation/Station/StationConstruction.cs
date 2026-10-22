@@ -192,7 +192,9 @@ namespace SpaceStation.Simulation
                 : progression.IsUnlocked(data);
             if (!unlocked)
                 return RebuildResult.Locked;
-            if (data == progression.LimitedModule && progression.CountLimited(_sim.Grid) - 1 >= progression.CurrentLimit(_sim.Grid))
+            // 철거 후 다시 지으므로 한도를 넘은 상태(등급 하락)면 막음 — 진화 모듈은 도킹 몫만큼
+            int share = data == progression.LimitedModule ? 1 : data.LimitedModuleShare;
+            if (share > 0 && progression.CountLimited(_sim.Grid) > progression.CurrentLimit(_sim.Grid))
                 return RebuildResult.Locked;
             return RebuildResult.Done;
         }

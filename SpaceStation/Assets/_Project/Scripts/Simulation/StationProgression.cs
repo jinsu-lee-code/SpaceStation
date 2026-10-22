@@ -192,6 +192,7 @@ namespace SpaceStation.Simulation
             return (grade >= 0 && grade <= GradeIndex) || IsExtraUnlocked(data);
         }
 
+        /// <summary>제한 모듈(채굴 도킹) 수. 진화 모듈은 재료로 들어간 도킹 수만큼 (<see cref="ModuleData.LimitedModuleShare"/> — 합성해도 한도 자리가 비지 않음).</summary>
         public int CountLimited(StationGrid grid)
         {
             if (_config.LimitedModule == null)
@@ -201,6 +202,8 @@ namespace SpaceStation.Simulation
             {
                 if (m.Data == _config.LimitedModule)
                     count++;
+                else if (m.Data != null)
+                    count += m.Data.LimitedModuleShare;
             }
             return count;
         }

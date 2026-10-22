@@ -38,6 +38,7 @@ namespace SpaceStation.Editor
                 case "ShipEngine": return Additive("M_ShipEngine", new Color(0.6f, 1.6f, 3.5f, 1f));
                 case "ShieldRipple": return ShieldRipple();
                 case "FarmGlass": return Glass("M_FarmGlass", new Color(0.62f, 1f, 0.84f, 0.26f), new Color(0.05f, 0.16f, 0.11f));
+                case "EvoGlass": return Glass("M_EvoGlass", new Color(0.82f, 0.86f, 1f, 0.12f), new Color(0.025f, 0.02f, 0.05f)); // 진화 모듈 공통 유리 (흰 패널 · 유리 = 고급 재질, 사용자 결정 2026-10-22) — 농장 유리 값(알파 0.24)은 돔 속 망원경이 뿌옇게 가려짐
                 case "FarmGrow": return Emissive("M_FarmGrow", new Color(0.35f, 0.9f, 0.4f, 1f), new Color(0.5f, 2.6f, 0.7f, 1f));
                 case "FusionPlasma": return Emissive("M_FusionPlasma", new Color(0.3f, 0.75f, 1f, 1f), new Color(0.3f, 1.3f, 3.0f, 1f));
                 case "RefineryGlow": return Emissive("M_RefineryGlow", new Color(0.9f, 0.22f, 0.03f, 1f), new Color(1.9f, 0.26f, 0.02f, 1f)); // 초록 성분이 크면 톤매핑 뒤 노랗게 보임
@@ -56,6 +57,7 @@ namespace SpaceStation.Editor
                 case "FluorPurple": return Fluorescent("M_FluorPurple", new Color(0.78f, 0.45f, 1f));
                 case "FluorGreen": return Fluorescent("M_FluorGreen", new Color(0.4f, 1f, 0.35f));
                 case "FluorRed": return Fluorescent("M_FluorRed", new Color(1f, 0.25f, 0.22f));
+                case "FluorPink": return Fluorescent("M_FluorPink", new Color(1f, 0.45f, 0.75f)); // 진화 복지 센터 십자 · 돌봄 고리 (의료실 분홍 십자)
                 case "IceChunk": return Glass("M_IceChunk", new Color(0.78f, 0.93f, 1f, 0.55f), new Color(0.08f, 0.16f, 0.24f)); // 12-5 물 추출기 투입 얼음 (반투명)
                 case "WaterColumn": return Emissive("M_WaterColumn", new Color(0.3f, 0.65f, 1f, 1f), new Color(0.35f, 1.1f, 2.6f, 1f)); // 12-5 물 추출기 응축탑 물기둥
                 case "ServerLights": return Emissive("M_ServerLights", new Color(0.55f, 0.85f, 1f, 1f), new Color(0.5f, 1.4f, 2.4f, 1f)); // 12-5 데이터 센터 서버 랙 표시등
