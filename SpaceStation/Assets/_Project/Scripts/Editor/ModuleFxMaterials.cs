@@ -63,6 +63,9 @@ namespace SpaceStation.Editor
                 case "ServerLights": return Emissive("M_ServerLights", new Color(0.55f, 0.85f, 1f, 1f), new Color(0.5f, 1.4f, 2.4f, 1f)); // 12-5 데이터 센터 서버 랙 표시등
                 case "ProteinCulture": return Emissive("M_ProteinCulture", new Color(1f, 0.78f, 0.42f, 1f), new Color(1.6f, 0.95f, 0.35f, 1f)); // 12-5 단백질 배양실 배양액 (크림빛 호박색)
                 case "Rock": return Rock();
+                case "ShieldSail": return Glass("M_ShieldSail", new Color(0.45f, 0.7f, 1f, 0.22f), new Color(0.04f, 0.12f, 0.3f)); // 진화 실드 매트릭스 육각 격자 돔 유리 (하늘빛)
+                case "TwinkleWhite": return Twinkle("M_TwinkleWhite", new Color(1.4f, 1.4f, 1.5f, 1f));   // 진화 복지 · 문화 센터 별빛 점 (점마다 따로 반짝임)
+                case "TwinklePurple": return Twinkle("M_TwinklePurple", new Color(1.0f, 0.55f, 1.4f, 1f));
                 default: return null;
             }
         }
@@ -223,6 +226,16 @@ namespace SpaceStation.Editor
         {
             var m = Load("M_ConnectorFlow", Shader.Find("SpaceStation/ConnectorFlow"));
             m.SetColor("_BaseColor", new Color(0.25f, 1.1f, 2.6f, 1f));
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>별빛 점: 꼭짓점 색 R(점마다 무작위 위상)로 점마다 다른 박자로 반짝임 — 밝기만 바뀜.</summary>
+        private static Material Twinkle(string name, Color hdr)
+        {
+            var m = Load(name, Shader.Find("SpaceStation/Twinkle"));
+            m.SetColor("_BaseColor", hdr);
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             return m;
