@@ -545,7 +545,7 @@ namespace SpaceStation.Editor
                 {
                     // radiator_builder ANCHORS["board"] (화면 1.2 × 1.12, 동쪽 벽 → −x를 봄) · ["labels"]
                     root.AddComponent<InteriorHeatBoard>().Configure(new Vector3(3.105f, F + 1.7f, -2.45f), Vector3.left, Vector3.up, new Vector2(1.2f, 1.12f),
-                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath), AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath));
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath), AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.InteriorHullDarkPath));   // 막대 바탕 = 어두운 홈 (밝으면 0%도 가득 찬 막대처럼 보였음)
                     InteriorSignLabels.Label Label(float x, float y, float z, Vector3 normal, float w, float h, string text) => new InteriorSignLabels.Label
                     {
                         Center = new Vector3(x, y, z), Normal = normal, Up = Vector3.up, Width = w, Height = h, Text = text,
