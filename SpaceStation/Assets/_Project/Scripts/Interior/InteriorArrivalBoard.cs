@@ -94,12 +94,6 @@ namespace SpaceStation.Interior
             _flashUntil = now + FlashSeconds;
         }
 
-        private static string Clock(float seconds)
-        {
-            int s = Mathf.Max(0, Mathf.CeilToInt(seconds));
-            return s >= 60 ? $"{s / 60}분 {s % 60:00}초" : $"{s}초";
-        }
-
         private void Show(string title, Color titleColor, string body, Color bodyColor)
         {
             for (int i = 0; i < _titles.Length; i++)

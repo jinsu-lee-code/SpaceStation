@@ -52,6 +52,7 @@ namespace SpaceStation.Editor
             { "Protein", new[] { ResidentTrait.Gardener } },
             { "WaterEx", new[] { ResidentTrait.Gardener } },
             { "Radiator", new[] { ResidentTrait.Technician } },   // 사용자 결정 2026-10-22: 배터리 · 태양광 · 연료전지와 같은 기술자
+            { "CommRelay", new[] { ResidentTrait.Scientist } },   // 사용자 결정 2026-10-22: 신호 해독 = 연구원 (연구소 · 데이터 센터와 같음)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -77,6 +78,7 @@ namespace SpaceStation.Editor
             { "Shelter", ShelterSpots },
             { "Passenger", PassengerSpots },
             { "Radiator", RadiatorSpots },
+            { "CommRelay", CommRelaySpots },
         };
 
         /// <summary>
@@ -90,6 +92,20 @@ namespace SpaceStation.Editor
                 new ResidentSpot(new Vector3(0.6f, Floor, 1.28f), 180f, ResidentPose.Work, work: true),
                 new ResidentSpot(new Vector3(2.35f, Floor, -2.45f), 90f, ResidentPose.Work, work: true),
                 new ResidentSpot(new Vector3(1.55f, Floor, 1.6f), 47f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 12-5 통신 중계소 (comm_builder ANCHORS): 연구원 — 북동 해독 책상 (구석 화면 2를 봄, 앉음) · 북서 기록 책상 (기록계를 봄, 앉음) ·
+        /// 남동 송수신기 함 앞 (서서 일함).
+        /// </summary>
+        private static List<ResidentSpot> CommRelaySpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(2.25f, Floor + 0.49f, 2.25f), 45f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(-2.15f, Floor + 0.49f, 2.25f), -90f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(2.1f, Floor, -2.5f), 90f, ResidentPose.Work, work: true),
             };
         }
 
