@@ -106,8 +106,9 @@ namespace SpaceStation.Data
                 return;
             if (IngredientCells != _result.CellOffsets.Count)
                 Debug.LogWarning($"{name}: 재료 칸 수 {IngredientCells} ≠ 규격 칸 수 {_result.CellOffsets.Count}: 빈틈없이 채울 수 없음", this);
-            if (IngredientGradeModules != _result.GradeModuleCount)
-                Debug.LogWarning($"{name}: 결과 모듈의 등급 모듈 수 {_result.GradeModuleCount} ≠ 재료 수 {IngredientGradeModules}", this);
+            int resultGrade = _result.CountsTowardGrade ? _result.GradeModuleCount : 0; // 장갑 외벽처럼 재료가 모두 등급에 안 드는 결과는 0
+            if (IngredientGradeModules != resultGrade)
+                Debug.LogWarning($"{name}: 결과 모듈의 등급 모듈 수 {resultGrade} ≠ 재료 수 {IngredientGradeModules}", this);
         }
     }
 }
