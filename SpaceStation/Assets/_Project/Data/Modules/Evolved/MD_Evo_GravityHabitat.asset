@@ -33,7 +33,121 @@ MonoBehaviour:
   _dockFront: {x: 0, y: 0, z: 1}
   _approachLaneLength: 2
   _upperSidesNeedSupport: 0
-  _faceDepths: []
+  _faceDepths:
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: -1
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: -1
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.4201953
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: -1
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.12659615
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.42019534
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: 0.21986577
+  - Cell: {x: 2, y: 0, z: 0}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: -1
+  - Cell: {x: 2, y: 0, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: -1
+  - Cell: {x: 2, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.42019534
+  - Cell: {x: 2, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: -1
+  - Cell: {x: 0, y: 0, z: 1}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: 0.21986577
+  - Cell: {x: 0, y: 0, z: 1}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.10720113
+  - Cell: {x: 0, y: 0, z: 1}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.4201953
+  - Cell: {x: 1, y: 0, z: 1}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.5
+  - Cell: {x: 1, y: 0, z: 1}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.42019534
+  - Cell: {x: 2, y: 0, z: 1}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: 0.21986577
+  - Cell: {x: 2, y: 0, z: 1}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.10720113
+  - Cell: {x: 2, y: 0, z: 1}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.42019534
+  - Cell: {x: 0, y: 0, z: 2}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: -1
+  - Cell: {x: 0, y: 0, z: 2}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: -1
+  - Cell: {x: 0, y: 0, z: 2}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.4201953
+  - Cell: {x: 0, y: 0, z: 2}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: -1
+  - Cell: {x: 1, y: 0, z: 2}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.10720113
+  - Cell: {x: 1, y: 0, z: 2}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.42019534
+  - Cell: {x: 2, y: 0, z: 2}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: -1
+  - Cell: {x: 2, y: 0, z: 2}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: -1
+  - Cell: {x: 2, y: 0, z: 2}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.4201953
+  - Cell: {x: 2, y: 0, z: 2}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: -1
+  - Cell: {x: 1, y: 0, z: 3}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: 0.2788839
+  - Cell: {x: 1, y: 0, z: 3}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: 0.27888387
+  - Cell: {x: 1, y: 0, z: 3}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.14119533
+  - Cell: {x: 1, y: 0, z: 3}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.4201953
+  - Cell: {x: 1, y: 0, z: 4}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: 0.2788839
+  - Cell: {x: 1, y: 0, z: 4}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: 0.27888387
+  - Cell: {x: 1, y: 0, z: 4}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.14119533
+  - Cell: {x: 1, y: 0, z: 4}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.4201953
+  - Cell: {x: 1, y: 0, z: 4}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: 0.35405964
   _closedFaces: []
   _buildCost:
   - Type: 4
