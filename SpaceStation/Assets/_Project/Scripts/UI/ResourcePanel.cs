@@ -312,6 +312,21 @@ namespace SpaceStation.UI
                 if (needs.SatisfactionCap < PopulationSimulation.MaxSatisfaction - 0.5f)
                     _popSb.Append("<pos=80%><color=").Append(HudText.Yellow).Append(">상한 ").Append(needs.SatisfactionCap.ToString("0")).Append("</color>");
                 _popSb.Append("</size>\n");
+                // 남은 요구 식단: 서비스 모듈이 아니라 식량 종류 비중이라 따로 한 줄 (종류마다 절반까지 셈)
+                foreach (var n in needs.Statuses)
+                {
+                    if (n.Need != ResidentNeed.Diet)
+                        continue;
+                    _popSb.Append("<size=80%><color=").Append(HudText.Muted).Append(">식단 균형<pos=36%>");
+                    for (int k = 0; k < FoodKindExtensions.All.Length; k++)
+                    {
+                        var kind = FoodKindExtensions.All[k];
+                        if (k > 0)
+                            _popSb.Append(" · ");
+                        _popSb.Append(kind.DisplayName()).Append(' ').Append((needs.DietShare(kind) * 100f).ToString("0")).Append('%');
+                    }
+                    _popSb.Append(" (반반이면 충족)</color></size>\n");
+                }
             }
 
             _popSb.Append("<size=80%><color=").Append(HudText.Muted).Append('>');

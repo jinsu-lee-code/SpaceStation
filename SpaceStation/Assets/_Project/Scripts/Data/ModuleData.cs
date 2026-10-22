@@ -141,6 +141,10 @@ namespace SpaceStation.Data
         [Tooltip("8-4 회전 링: 가동 중이면 정거장 전체 인구 증가 간격에 곱함 (0.8 = 20% 빨리, 1 = 효과 없음). 여러 개는 중첩 없이 가장 강한 것")]
         [SerializeField, Range(0.1f, 1f)] private float _growthIntervalMultiplier = 1f;
 
+        [Header("Diet (남은 요구 식단 다양성, 2026-10-22)")]
+        [Tooltip("식량 종류 — 식단 요구는 정거장 전체 식량 생산에서 종류별 비중으로 충족 (채소 · 단백질 반반 = 100%, 한 종류만 = 50%). 여러 종류면 생산량을 똑같이 나눠 셈")]
+        [SerializeField] private FoodKind _foodKinds;
+
         [Header("Resident Service (BALANCE 20번)")]
         [Tooltip("충족하는 거주자 요구. None이면 서비스 모듈 아님")]
         [SerializeField] private ResidentNeed _serviceNeed;
@@ -174,6 +178,7 @@ namespace SpaceStation.Data
                         yield return n;
             }
         }
+        public FoodKind FoodKinds => _foodKinds;
         public int ServiceRadius => _serviceRadius;
         public int ServiceCapacity => _serviceCapacity;
         public bool IsService => ServiceNeed != ResidentNeed.None;
