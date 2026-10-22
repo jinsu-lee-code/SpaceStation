@@ -401,11 +401,26 @@ namespace SpaceStation.Editor
             var panel = FindChild(instance.transform, "Panel");
             if (panel != null)
                 panel.gameObject.AddComponent<SpaceStation.Building.SunFacingPanel>();
+            // 진화 태양광 어레이: "SunPanel*" 넓은 패널판도 해를 따라 기움 (Blender 이름 "Panel"은 기본 태양광이 씀, 피벗 = 기둥 위 관절)
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+                if (t.name.StartsWith("SunPanel"))
+                    t.gameObject.AddComponent<SpaceStation.Building.SunFacingPanel>();
             // 실드: Emitter 회전 띠 + 궤도 빛점 연출
             var ringA = FindChild(instance.transform, "EmitterRingA");
             var emitter = FindChild(instance.transform, "Emitter");
             if (ringA != null && emitter != null)
                 WireShieldFx(emitter, ringA, FindChild(instance.transform, "EmitterRingB"), FindChild(instance.transform, "EmitterCore"));
+            // 진화 실드 매트릭스: 발생기 여럿 "Emitter_{이름}" + "EmitterRingA_{이름}" · "EmitterRingB_{이름}" · "EmitterCore_{이름}"
+            //   (Blender 오브젝트 이름은 겹칠 수 없어 뒤를 붙임 — 기본 실드의 "Emitter"와 같은 연출을 발생기마다)
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+            {
+                if (!t.name.StartsWith("Emitter_"))
+                    continue;
+                string tag = t.name.Substring("Emitter".Length);
+                var a = FindChild(instance.transform, "EmitterRingA" + tag);
+                if (a != null)
+                    WireShieldFx(t, a, FindChild(instance.transform, "EmitterRingB" + tag), FindChild(instance.transform, "EmitterCore" + tag));
+            }
             // 8-4 회전 링: "Spin" 부품이 모듈 Y축으로 회전
             var spin = FindChild(instance.transform, "Spin");
             if (spin != null)

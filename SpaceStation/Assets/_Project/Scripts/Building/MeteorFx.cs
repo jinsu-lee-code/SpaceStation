@@ -228,13 +228,21 @@ namespace SpaceStation.Building
             Vector3 muzzle = ModuleCenter(turret) + Vector3.up * 0.3f;
             if (_station.TryGetView(turret, out var view))
             {
-                var head = FindChild(view.transform, "Head");
-                if (head != null)
+                // 포탑 머리: 기본 포탑은 "Head" 하나, 진화 방어 포대는 "Head_*" 여럿 (한 사격 통제) — 모두 운석 쪽으로 돌리고 가장 가까운 포구에서 쏜다
+                float best = float.MaxValue;
+                foreach (var head in view.GetComponentsInChildren<Transform>(true))
                 {
+                    if (head.name != "Head" && !head.name.StartsWith("Head_"))
+                        continue;
                     Vector3 flat = Vector3.ProjectOnPlane(hitAt - head.position, Vector3.up);
                     if (flat.sqrMagnitude > 1e-4f)
                         head.rotation = Quaternion.LookRotation(flat, Vector3.up);
-                    muzzle = head.position + head.forward * 0.4f;
+                    float d = (hitAt - head.position).sqrMagnitude;
+                    if (d < best)
+                    {
+                        best = d;
+                        muzzle = head.position + head.forward * 0.4f;
+                    }
                 }
             }
             var laser = new GameObject("Laser").AddComponent<LineRenderer>();
@@ -451,14 +459,6 @@ namespace SpaceStation.Building
                 }
             }
             return best;
-        }
-
-        private static Transform FindChild(Transform root, string name)
-        {
-            foreach (var t in root.GetComponentsInChildren<Transform>(true))
-                if (t.name == name)
-                    return t;
-            return null;
         }
     }
 }
