@@ -682,7 +682,7 @@
 - [ ] 코드는 자동 합침 예상. 메뉴 **Recipes/Setup**을 돌림 (`Main.unity` 레시피 목록 · 레시피 창, 목록 스크롤은 실행 때 만들어짐). 2 · 3단계는 `SynthesisStage2` · `SynthesisStage3` 규칙이 열려야 하므로 서사판 장 규칙에서 정함 (M-1 · M-6). 서사판 24종 선택(PHASESET)에 안 드는 레시피는 장 데이터에서 빼 둠. 서사판이 `StationProgression.CountLimited` · `StationConstruction.CheckRebuild`를 고쳤으면 도킹 몫 두 줄만 맞춤.
 
 ### `tycoon` 합칠 때
-- [ ] 메뉴 Recipes/Setup → Tycoon/Setup Synthesis(합성 N단계 공개 조건, BALANCE 44번) → Tycoon/Setup Needs를 다시 돌림. 봇이 새 레시피로 합성하므로 측정 결과가 바뀜.
+- [x] (2026-10-22) 자동 합침 · 메뉴 Recipes/Setup → Tycoon/Setup Synthesis → Tycoon/Setup Needs. 첫 실행에서 `RecipeData` 검사가 대형 토러스 · 궤도 도시 칸 수 · 장갑 외벽 등급 모듈 수를 잡아 main에서 고친 뒤 다시 돌림 → 경고 0 · 레시피 48 · EditMode 434개 통과. 봇이 새 레시피로 합성하므로 다음 측정 결과는 바뀔 수 있음.
 
 ## M-39. 진화 모듈 외형 1단계 6종 + 진화 외형 연결 (2026-10-22, `main`)
 
@@ -704,4 +704,4 @@
 - [ ] 코드 · 모델은 자동 합침 예상. 메뉴 **Recipes/Setup**을 돌리면 1단계 6종 프리팹이 모델로 바뀜. 서사판이 `StationArtBuilder`의 움직이는 부품 줄(`SpinRadar` · `SpinDish`)을 고쳤으면 `SpinOrbit` · `SpinClock` 줄만 맞춤. 플레이: 연구 단지 돔 안 망원경이 천천히 돌고, 궤도 고리 위 구체가 고리를 따라 도는지, 비활성 때 빛이 꺼지고 회전이 멈추는지.
 
 ### `tycoon` 합칠 때
-- [ ] 메뉴 Recipes/Setup → Tycoon/Setup Synthesis → Tycoon/Setup Needs. 플레이 확인은 위와 같음.
+- [x] (2026-10-22) 메뉴 Recipes/Setup → 1단계 6종 프리팹이 모델 (칸 상자 0 · 통로 깊이 측정), 회전 부품 축 = 연구 단지 궤도 ±20° · 문화 센터 시계 z축. 편집 모드 렌더(게임 조명 + 후처리)로 재질 · 움직임 확인, 플레이 (수동 저장 3: 이미 있던 진화 모듈 12개가 새 모델로 바뀜 + 6종을 실제 모듈로 붙여 가동 확인, 망원경 · 궤도 · 시계가 회전 배율 1.0으로 돎) · EditMode 434개 통과.
