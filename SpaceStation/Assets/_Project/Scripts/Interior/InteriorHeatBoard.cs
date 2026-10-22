@@ -59,23 +59,9 @@ namespace SpaceStation.Interior
                 _rows[i] = c;
                 _names[i] = CreateText("HeatName", c + _right * (-w * 0.5f + w * 0.18f), _normal, up, w * 0.34f, rowH * 0.8f, 0.6f, TextAlignmentOptions.Left);
                 _values[i] = CreateText("HeatValue", c + _right * (w * 0.5f - w * 0.155f), _normal, up, w * 0.3f, rowH * 0.8f, 0.6f, TextAlignmentOptions.Right);
-                _tracks[i] = Quad("HeatTrack", c + _right * (_barX + _barWidth * 0.5f), new Vector2(_barWidth, rowH * 0.36f), _trackMaterial, 0.002f).gameObject;
-                _bars[i] = Quad("HeatBar", c + _right * (_barX + _barWidth * 0.5f), new Vector2(_barWidth, rowH * 0.36f), _barMaterial, 0.003f);
+                _tracks[i] = CreateQuad("HeatTrack", c + _right * (_barX + _barWidth * 0.5f), _normal, up, new Vector2(_barWidth, rowH * 0.36f), _trackMaterial, 0.002f).gameObject;
+                _bars[i] = CreateQuad("HeatBar", c + _right * (_barX + _barWidth * 0.5f), _normal, up, new Vector2(_barWidth, rowH * 0.36f), _barMaterial, 0.003f);
             }
-        }
-
-        private Transform Quad(string name, Vector3 center, Vector2 size, Material material, float lift)
-        {
-            var go = new GameObject(name);
-            go.transform.SetParent(transform, false);
-            go.transform.localPosition = center + _normal.normalized * lift;
-            go.transform.localRotation = Quaternion.LookRotation(-_normal.normalized, _up.normalized);
-            go.transform.localScale = new Vector3(size.x, size.y, 1f);
-            go.AddComponent<MeshFilter>().sharedMesh = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
-            var r = go.AddComponent<MeshRenderer>();
-            r.sharedMaterial = material;
-            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            return go.transform;
         }
 
         protected override void Refresh()

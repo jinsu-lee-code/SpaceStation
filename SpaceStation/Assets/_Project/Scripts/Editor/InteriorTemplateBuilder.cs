@@ -102,6 +102,7 @@ namespace SpaceStation.Editor
             BuildRadiationShelter();
             BuildPassengerPort();
             BuildRadiator();
+            BuildCommRelay();
         }
 
         /// <summary>1칸 방 문 자리: 열린 수평 면(+x · −x · +z · −z) + 위 · 아래 해치(칸 중심에서 hatch만큼).</summary>
@@ -557,6 +558,47 @@ namespace SpaceStation.Editor
                         Label(0f, F + 1.73f, -0.53f, Vector3.back, 0.86f, 0.15f, "열교환기"),
                         Label(0f, F + 1.73f, 0.53f, Vector3.forward, 0.86f, 0.15f, "열교환기"),
                     });
+                });
+        }
+
+        /// <summary>
+        /// 12-5 통신 중계소 (1칸, 사용자 결정 2026-10-22: 신호 해독실 · 신호판 + 평판 · 연구원 일터). 가운데 수신 기둥 (유리 관 속 빛 고리 4가
+        /// 위에서 아래로 흐름) + 천장 접시 회전 구동부 (INT_CommRelay_Drive, 바깥 접시 SpinDish와 같은 초당 8°). 북동 ㄱ자 해독 책상 + 벽 화면 2
+        /// (북쪽 = 신호판, 동쪽 = 세력 평판 — 실제 외부 접촉 값, <see cref="InteriorSignalBoard"/>), 북서 기록 책상 (기록계 · 릴 테이프 데크),
+        /// 남동 송수신기 함 (다이얼 · 패치 베이). 해치 = (−2.25, −2.25) — 남서 구석 비움.
+        /// </summary>
+        private static void BuildCommRelay()
+        {
+            var cool = new Color(0.88f, 0.92f, 1f);
+            var warm = new Color(1f, 0.9f, 0.78f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(2.15f, F + 3.0f, 0f), 4.5f, 1.1f, cool),
+                LightSpec.Point(new Vector3(-2.15f, F + 3.0f, 0f), 4.5f, 1.1f, cool),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 2.15f), 4.5f, 1.1f, cool),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, -2.15f), 4.5f, 1.1f, cool),
+                LightSpec.Point(new Vector3(0f, F + 1.75f, 0f), 2.8f, 0.7f, new Color(0.78f, 0.68f, 1f)),   // 수신 기둥 빛 (기둥 중심)
+                LightSpec.Point(new Vector3(2.25f, F + 2.5f, 2.25f), 2.2f, 0.45f, warm),                    // 해독 책상 매단 등
+                LightSpec.Point(new Vector3(-2.25f, F + 2.5f, 2.25f), 2.2f, 0.45f, warm),                   // 기록 책상 매단 등
+                LightSpec.Point(new Vector3(-2.0f, F + 2.8f, -2.0f), 3.5f, 0.6f, cool),                     // 해치 구석
+            };
+            var orbits = new List<OrbitSpec> { new OrbitSpec("INT_CommRelay_Drive", Vector3.zero, Vector3.up, 8f) };
+            Build("CommRelay", "MD_CommRelay", OneCellSockets(Socket, new Vector3(-2.25f, 0f, -2.25f)), new Vector3(0f, F, -2.3f), 15f, lights, orbits,
+                configure: root =>
+                {
+                    // comm_builder ANCHORS["signal"] · ["reputation"] (화면 1.16 × 1.12) · ["pulse"] (빛 고리 위 끝 → 아래로 2.12)
+                    var pulses = new List<Transform>();
+                    for (int i = 0; i < 4; i++)
+                    {
+                        var p = Child(root, "INT_CommRelay_Pulse_" + i);
+                        if (p != null)
+                            pulses.Add(p);
+                    }
+                    root.AddComponent<InteriorSignalBoard>().Configure(
+                        new InteriorSignalBoard.Panel { Center = new Vector3(2.51f, F + 1.92f, 3.105f), Normal = Vector3.back, Up = Vector3.up, Size = new Vector2(1.16f, 1.12f) },
+                        new InteriorSignalBoard.Panel { Center = new Vector3(3.105f, F + 1.92f, 2.505f), Normal = Vector3.left, Up = Vector3.up, Size = new Vector2(1.16f, 1.12f) },
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath), AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.InteriorHullDarkPath),
+                        pulses.ToArray(), 2.12f);
                 });
         }
 
@@ -1383,6 +1425,7 @@ namespace SpaceStation.Editor
             { "Shelter", InteriorAmbience.Machine },   // 공기 정화기 소리
             { "Passenger", InteriorAmbience.Life },
             { "Radiator", InteriorAmbience.Machine },   // 냉각 펌프
+            { "CommRelay", InteriorAmbience.Electric }, // 송수신기 · 증폭기
             { "WaterEx", InteriorAmbience.Water }, { "Protein", InteriorAmbience.Machine },
             { "Sensor", InteriorAmbience.Electric }, { "DataCenter", InteriorAmbience.Electric },
             { "Frame", InteriorAmbience.Hall }, { "Hub", InteriorAmbience.Hall },

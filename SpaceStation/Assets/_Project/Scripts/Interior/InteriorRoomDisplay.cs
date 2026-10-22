@@ -57,6 +57,28 @@ namespace SpaceStation.Interior
             return t;
         }
 
+        /// <summary>화면 위 사각 판 (막대 · 막대 바탕 · 파형 칸). center = 판 가운데, lift = 화면에서 띄우는 거리 (겹치는 판끼리 다르게).</summary>
+        protected Transform CreateQuad(string name, Vector3 center, Vector3 normal, Vector3 up, Vector2 size, Material material, float lift)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(transform, false);
+            go.transform.localPosition = center + normal.normalized * lift;
+            go.transform.localRotation = Quaternion.LookRotation(-normal.normalized, up.normalized);
+            go.transform.localScale = new Vector3(size.x, size.y, 1f);
+            go.AddComponent<MeshFilter>().sharedMesh = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = material;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return go.transform;
+        }
+
+        /// <summary>남은 시간 글 ("2분 05초" · "45초").</summary>
+        protected static string Clock(float seconds)
+        {
+            int s = Mathf.Max(0, Mathf.CeilToInt(seconds));
+            return s >= 60 ? $"{s / 60}분 {s % 60:00}초" : $"{s}초";
+        }
+
         /// <summary>화면 글자 기본색 (밝은 청록 — 어두운 화면판 위).</summary>
         protected static readonly Color ScreenText = new Color(0.75f, 0.95f, 1f);
         /// <summary>꺼진 · 없는 항목 (색이 아니라 밝기로 구분 — 색약).</summary>
