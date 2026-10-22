@@ -217,7 +217,7 @@ namespace SpaceStation.Interior
                 {
                     SetText(_repName[i], name, color);
                     SetText(_repTier[i], "-", ScreenDim);
-                    SetText(_repLast[i], "", ScreenDim);
+                    SetText(_repLast[i], Active ? "아직 만난 적 없음" : "", ScreenDim);
                     _repMarker[i].gameObject.SetActive(false);
                     continue;
                 }
