@@ -101,6 +101,7 @@ namespace SpaceStation.Editor
             BuildAdministration();
             BuildRadiationShelter();
             BuildPassengerPort();
+            BuildRadiator();
         }
 
         /// <summary>1칸 방 문 자리: 열린 수평 면(+x · −x · +z · −z) + 위 · 아래 해치(칸 중심에서 hatch만큼).</summary>
@@ -502,7 +503,7 @@ namespace SpaceStation.Editor
                     {
                         Center = new Vector3(x, F + 2.95f, 0.7f), Normal = new Vector3(nx, 0f, 0f), Up = Vector3.up, Width = 1.96f, Height = 0.62f,
                     };
-                    InteriorArrivalBoard.Label Label(float x, float y, float z, Vector3 normal, float w, float h, string text) => new InteriorArrivalBoard.Label
+                    InteriorSignLabels.Label Label(float x, float y, float z, Vector3 normal, float w, float h, string text) => new InteriorSignLabels.Label
                     {
                         Center = new Vector3(x, y, z), Normal = normal, Up = Vector3.up, Width = w, Height = h, Text = text,
                     };
@@ -518,7 +519,44 @@ namespace SpaceStation.Editor
                         Label(0f, 1.8f, -1.655f, Vector3.forward, 1.36f, 0.28f, "어서 오세요"),
                         Label(5.8f, 0.86f, -1.77f, Vector3.forward, 0.6f, 0.13f, "안내"),
                     };
-                    root.AddComponent<InteriorArrivalBoard>().Configure(new[] { Board(3.925f, -1f), Board(4.075f, 1f) }, labels);
+                    root.AddComponent<InteriorArrivalBoard>().Configure(new[] { Board(3.925f, -1f), Board(4.075f, 1f) });
+                    root.AddComponent<InteriorSignLabels>().Configure(labels);
+                });
+        }
+
+        /// <summary>
+        /// 12-5 방열판 (1칸, 사용자 결정 2026-10-22: 냉각 펌프실 · 열 감시판 · 기술자 일터). 가운데 열교환기(관 다발 · 고온 / 저온 집합관 · 조작반),
+        /// 북쪽 두 구석 펌프 2, 천장 = 바깥 날개판 뿌리 10줄 + 주황(고온) · 하늘색(저온) 냉각관. 동쪽 벽 남쪽 칸 열 감시판 = 맞닿은 모듈의 실제 열
+        /// (<see cref="InteriorHeatBoard"/>). 해치 = (−2.25, −2.25) — 남서 구석 비움.
+        /// </summary>
+        private static void BuildRadiator()
+        {
+            var cool = new Color(0.86f, 0.93f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 0f), 6.5f, 1.8f, cool),          // 열교환기 위
+                LightSpec.Point(new Vector3(-2.2f, F + 2.6f, 2.0f), 3.5f, 0.8f, cool),     // 펌프 2
+                LightSpec.Point(new Vector3(2.2f, F + 2.6f, 2.0f), 3.5f, 0.8f, cool),
+                LightSpec.Point(new Vector3(2.2f, F + 2.5f, -2.3f), 3f, 0.7f, cool),       // 열 감시판 앞
+                LightSpec.Point(new Vector3(-2.0f, F + 2.8f, -1.6f), 4f, 0.8f, cool),      // 해치 구석
+            };
+            Build("Radiator", "MD_Radiator", OneCellSockets(Socket, new Vector3(-2.25f, 0f, -2.25f)), new Vector3(0f, F, -2.3f), 0f, lights,
+                configure: root =>
+                {
+                    // radiator_builder ANCHORS["board"] (화면 1.2 × 1.12, 동쪽 벽 → −x를 봄) · ["labels"]
+                    root.AddComponent<InteriorHeatBoard>().Configure(new Vector3(3.105f, F + 1.7f, -2.45f), Vector3.left, Vector3.up, new Vector2(1.2f, 1.12f),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath), AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath));
+                    InteriorSignLabels.Label Label(float x, float y, float z, Vector3 normal, float w, float h, string text) => new InteriorSignLabels.Label
+                    {
+                        Center = new Vector3(x, y, z), Normal = normal, Up = Vector3.up, Width = w, Height = h, Text = text,
+                    };
+                    root.AddComponent<InteriorSignLabels>().Configure(new[]
+                    {
+                        Label(-1.05f, F + 1.27f, -0.145f, Vector3.back, 0.22f, 0.1f, "고온"),
+                        Label(1.05f, F + 1.27f, -0.145f, Vector3.back, 0.22f, 0.1f, "저온"),
+                        Label(0f, F + 1.73f, -0.53f, Vector3.back, 0.86f, 0.15f, "열교환기"),
+                        Label(0f, F + 1.73f, 0.53f, Vector3.forward, 0.86f, 0.15f, "열교환기"),
+                    });
                 });
         }
 
@@ -1344,6 +1382,7 @@ namespace SpaceStation.Editor
             { "School", InteriorAmbience.Life }, { "Quarantine", InteriorAmbience.Life }, { "Commerce", InteriorAmbience.Life }, { "Admin", InteriorAmbience.Life },
             { "Shelter", InteriorAmbience.Machine },   // 공기 정화기 소리
             { "Passenger", InteriorAmbience.Life },
+            { "Radiator", InteriorAmbience.Machine },   // 냉각 펌프
             { "WaterEx", InteriorAmbience.Water }, { "Protein", InteriorAmbience.Machine },
             { "Sensor", InteriorAmbience.Electric }, { "DataCenter", InteriorAmbience.Electric },
             { "Frame", InteriorAmbience.Hall }, { "Hub", InteriorAmbience.Hall },
