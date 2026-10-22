@@ -25,6 +25,7 @@ namespace SpaceStation.UI
         private const float DetailWidth = 640f;
         private const float RowHeight = 46f;
         private const float Cell = 22f;
+        private const float BodyHeight = 560f;
 
         [SerializeField] private StationController _station;
         [SerializeField] private SynthesisController _synthesis;
@@ -55,6 +56,7 @@ namespace SpaceStation.UI
         private Button _researchButton;
         private TMP_Text _researchStatus, _slots;
         private float _listTop, _listX;
+        private RectTransform _listContent;   // 진화 모듈 48종: 목록이 본문 높이를 넘으면 휠 · 끌기로 스크롤
 
         public bool IsOpen => _open;
 
@@ -230,7 +232,7 @@ namespace SpaceStation.UI
             _window = HoloUi.Rect("RecipeWindow", root);
             _window.anchorMin = _window.anchorMax = _window.pivot = new Vector2(0.5f, 0.5f);
             _window.anchoredPosition = new Vector2(-150f, 40f);
-            const float head = 96f, foot = 92f, side = 33f, bodyH = 560f;
+            const float head = 96f, foot = 92f, side = 33f, bodyH = BodyHeight;
             _window.sizeDelta = new Vector2(side * 2f + ListWidth + 24f + DetailWidth, head + bodyH + foot);
             _group = _window.gameObject.AddComponent<CanvasGroup>();
             _group.blocksRaycasts = false;
@@ -242,15 +244,29 @@ namespace SpaceStation.UI
             HoloUi.Place(title.rectTransform, new Vector2(40f, -30f), new Vector2(500f, 46f));
             HoloUi.Glow(title, 0.5f);
 
-            // 왼쪽 목록 (12-4: 미공개 레시피는 빼고 위로 채움 — RefreshList)
-            _listTop = -head;
-            _listX = side;
-            float y = -head;
+            // 왼쪽 목록 (12-4: 미공개 레시피는 빼고 위로 채움 — RefreshList). 진화 모듈 48종: 보이는 줄이 본문 높이를 넘으면 스크롤 (가린 부분은 잘림)
+            var viewport = HoloUi.Rect("ListViewport", _window);
+            HoloUi.Place(viewport, new Vector2(side, -head), new Vector2(ListWidth, bodyH));
+            viewport.gameObject.AddComponent<RectMask2D>();
+            viewport.gameObject.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0f); // 빈 곳에서도 휠을 받게
+            _listContent = HoloUi.Rect("ListContent", viewport);
+            HoloUi.Place(_listContent, Vector2.zero, new Vector2(ListWidth, bodyH));
+            var scroll = viewport.gameObject.AddComponent<ScrollRect>();
+            scroll.content = _listContent;
+            scroll.viewport = viewport;
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.inertia = false;
+            scroll.scrollSensitivity = RowHeight * 0.6f;
+            _listTop = 0f;
+            _listX = 0f;
+            float y = 0f;
             foreach (var recipe in _syn.Recipes)
             {
                 var r = recipe;
-                var b = _ui.TechButton(_window, "", 15f, () => Select(r));
-                HoloUi.Place((RectTransform)b.transform, new Vector2(side, y), new Vector2(ListWidth, RowHeight - 6f));
+                var b = _ui.TechButton(_listContent, "", 15f, () => Select(r));
+                HoloUi.Place((RectTransform)b.transform, new Vector2(0f, y), new Vector2(ListWidth, RowHeight - 6f));
                 var label = b.GetComponentInChildren<TMP_Text>();
                 label.alignment = TextAlignmentOptions.MidlineLeft;
                 label.margin = new Vector4(14f, 0f, 8f, 0f);
@@ -340,6 +356,8 @@ namespace SpaceStation.UI
                     tag = usable ? "" : $" <size=80%><color={HudText.Muted}>등급 잠김</color></size>";
                 label.SetText($"<color={color}>{name}</color>{tag}");
             }
+            if (_listContent != null)
+                _listContent.sizeDelta = new Vector2(ListWidth, Mathf.Max(BodyHeight, _listTop - y));
             if (!selectedVisible && firstVisible != null && firstVisible != _selected)
             {
                 _selected = firstVisible;
