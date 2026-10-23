@@ -719,3 +719,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-22) Recipes/Setup → Tycoon/Setup Synthesis → Setup Needs (경고 0) · 프리팹 23종 모델 + 배선 확인 (도는 부품 · 해 따라 패널 1 · 실드 연출 1 + 돔 유리 · 포탑 머리 3 · 반짝임 재질 + 꼭짓점 색) · EditMode 434개 통과 · 플레이 (수동 저장 3에 20종을 정거장에 붙여 가동 — 도는 부품 19개 회전 배율 1.0, 실드 매트릭스 빛점 4, 패널판 해 쪽으로 기움, 콘솔 오류 0, 저장 되돌림)
+
+## M-41. 진화 모듈 외형 2단계 6종 (Unity 반영 전) + 가는 조각 굽기 색 칸 (2026-10-23, `main`)
+
+**main에 넣은 것**
+- 모델 6종 `SM_Evo_{Id}.fbx` + 텍스처 (Blender `Modules_Work.blend` `evo_builder`, 사용자가 한 종씩 확정). 2단계 몸체 색 = **미드나잇** (짙은 남색 + 은빛 테 + 청백 빛줄 2줄, `evo_palette2`, MODELING 7-9):
+  - 그리드 허브 v2 (유리 볼트 저장 홀 둘 + 배전 탑 · 도는 배전 고리 `SpinOrbit_GridHub`) · 궤도 미러 (오목 거울 지붕 날개동 + 집광 탑 · 도는 작은 거울 셋 `SpinOrbit_OrbitalMirror`) · 융합 플랜트 (유리 돔 토카막 · 세 가닥 플라즈마 `SpinOrbit_FusionPlant`, 보라)
+  - 아콜로지 v2 (유리 알 속 떠 있는 도시 + 도는 혼천의 고리 둘 `SpinOrbit_ArcologyRingA/B`) · 대형 토러스 v2 (은하철도 링 — 도는 밤 열차 `SpinDish_GrandTorusTrain` · 자정 시계탑) · 시민 회관 (천구 회관 — 별자리 유리 돔 · 도는 행성 궤도 셋 `SpinOrbit_CivicHallOrbit1~3`, 분홍 십자 의료동)
+- Blender 굽기 `tex_builder.bake_object`: 텍스처 칸을 못 받는 가는 면 → 텍스처 맨 위 재질별 색 칸 (MODELING 7-9 — 잎 · 가는 기둥 · 창 살이 검게 · 들쭉날쭉하던 것). 1단계 24종은 다시 굽지 않음
+- 아직 안 한 것: 프리팹 (Recipes/Setup) · 새 FX 재질 `ModuleFxMaterials` 등록 (FX_FluorIce · FX_EvoGlassTeal · FX_EvoGlassClear · FX_Mirror · FX_LightBeam) · 받침 없는 모델 통로 깊이 확인 — 2단계를 다 만든 뒤 한꺼번에
+
+### `narrative` 합칠 때
+- [ ] 모델 · 텍스처만이라 자동 합침 예상. 2단계 Unity 반영(M-4x)이 들어온 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [ ] 2단계 Unity 반영 때 함께 확인.
