@@ -35,6 +35,8 @@ namespace SpaceStation.Editor.Balance
         /// <summary>12-2 구간 측정: 시드마다 이 상태에서 시작해 다음 등급까지 (null = 새 판, BaseSeed부터 Runs개).
         /// DurationSeconds는 시작 시점부터의 상한.</summary>
         public IReadOnlyList<BalanceStartState> Starts;
+        /// <summary>13-8 판마다 새로 만들 측정 확장 (null = 공통 봇 그대로, <see cref="IBalanceExtension"/>).</summary>
+        public Func<IBalanceExtension> Extension;
     }
 
     /// <summary>한 판(시드 1개)의 결과 지표.</summary>
@@ -47,6 +49,10 @@ namespace SpaceStation.Editor.Balance
         public float PersonaSaving;
         public bool GameOver;
         public GameOverReason Reason; // 4-10
+        /// <summary>13-8 측정 확장이 남긴 결과 (확장 쪽이 형을 알고 읽음, 없으면 null).</summary>
+        public object Extra;
+        /// <summary>13-8 게임 오버 뒤 확장이 준 상태로 다시 시작한 횟수.</summary>
+        public int Retries;
         public float EndSeconds;
         /// <summary>등급 인덱스별 첫 도달 시간(초). 미도달은 NaN. [0]은 항상 0.</summary>
         public float[] GradeReachSeconds;
