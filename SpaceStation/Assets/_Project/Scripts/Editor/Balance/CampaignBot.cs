@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using SpaceStation.Core;
 using SpaceStation.Data;
 using SpaceStation.Simulation;
 using UnityEditor;
@@ -24,6 +25,8 @@ namespace SpaceStation.Editor.Balance
         public SocietyConfig Society;
         public PolicyConfig Policies;
         public readonly List<ResearchCategoryData> Research = new List<ResearchCategoryData>();
+        /// <summary>절정 대비에 짓는 모듈 (이민선 앞 빈 집 · 유성우 예보 방향 방어).</summary>
+        public ModuleData Housing, Shield, Turret;
 
         private static readonly string[] ResearchFiles =
         {
@@ -51,6 +54,9 @@ namespace SpaceStation.Editor.Balance
                 if (c != null)
                     a.Research.Add(c);
             }
+            a.Housing = AssetDatabase.LoadAssetAtPath<ModuleData>("Assets/_Project/Data/Modules/MD_Habitat.asset");
+            a.Shield = AssetDatabase.LoadAssetAtPath<ModuleData>("Assets/_Project/Data/Modules/MD_Shield.asset");
+            a.Turret = AssetDatabase.LoadAssetAtPath<ModuleData>("Assets/_Project/Data/Modules/MD_Turret.asset");
             return a;
         }
 
@@ -82,6 +88,10 @@ namespace SpaceStation.Editor.Balance
         public int Population = -1;
         /// <summary>이 장에서 게임 오버가 난 횟수 · 그중 체크포인트로 다시 시작한 횟수.</summary>
         public int Falls, Retries;
+        /// <summary>절정 중 운석: 전체 · 막음(격추 · 빗겨냄 · 면역) · 장갑 격벽이 대신 맞음 (판정은 막음만 셈).</summary>
+        public int ClimaxMeteors, ClimaxBlocked, ClimaxArmorHits;
+        /// <summary>절정 예고 중에 평소 유성우가 떨어졌는지 (그 파손이 절정 동안 파괴로 넘어가면 절정 판정의 파괴로 셈).</summary>
+        public bool ShowerInWarning;
     }
 
     /// <summary>캠페인 봇 한 판 결과 (<see cref="BalanceRunResult.Extra"/>).</summary>
@@ -94,6 +104,8 @@ namespace SpaceStation.Editor.Balance
         public int Accepted, Partial, Refused, Offered, Boarded;
         public float ProbeAt = float.NaN, PolicyAt = float.NaN;
         public string Choices = "";
+        /// <summary>절정 대비로 지은 수: 이민선 앞 거주 · 유성우 예보 방향 실드 · 포탑.</summary>
+        public int PrepHousing, PrepDefense;
         /// <summary>기록 연구 단계 (<see cref="CampaignBotAssets.Research"/> 순서 — 공통 요약의 연구 줄은 분야 번호가 겹쳐 서사판에서 틀림).</summary>
         public int[] ResearchLevels = new int[0];
     }
@@ -105,12 +117,21 @@ namespace SpaceStation.Editor.Balance
     /// - 이민선 답 = 봇 성향 (성장 쪽 모두 받기 · 가운데 빈 집만큼 · 안전 쪽은 위기 때 거부)
     /// - 장 끝 방향 · 3장 정책 = 시드마다 무작위 (같은 시드 = 같은 선택)
     /// - 실패 안전망 흉내: 장 시작 · 절정 예고 때 상태를 잡아 두고, 게임 오버면 절정 직전부터 → (두 번째 뒤에는) 장 처음부터, 장마다 3번까지
+    /// - 절정 대비 (사용자 결정 2026-10-25, 첫 측정 뒤 · <see cref="Prepare"/>): 이민선 예보 · 대이주 예고 때 빈 집을 미리 (성향: 성장 쪽 전부 · 가운데 3/4 · 안전 쪽 절반),
+    ///   유성우 예보 중 오는 방향 앞면을 가장 많이 덮는 자리에 실드 · 포탑 (예보 한 번에 평소 1 · 절정 2, 안전 쪽 +1)
+    /// - 금속 관리 (같은 결정, main M-47 고리): 내구도 효율이 하는 일에 걸리지 않는 모듈(거주 · 배터리 · 창고 · 센서 …, 장갑 격벽은 빼고)은 늦게 정비 ·
+    ///   재건축 (<see cref="IdleMaintainAt"/> · <see cref="IdleRebuildBelow"/>, 공통 봇은 모두 55 · 55 → 첫 측정에서 정비 · 재건축이 금속 수입을 거의 다 씀)
     /// </summary>
     public sealed class CampaignBotExtension : IBalanceExtension
     {
         /// <summary>장마다 다시 시작 상한 (넘으면 그 판 게임 오버).</summary>
         public const int RetryLimit = 3;
         private const float Accept = 0.33f;
+        /// <summary>절정 대비 · 금속 관리를 하는지 (비교 측정용, 기본 켬 — 끄면 첫 측정과 같은 봇).</summary>
+        public static bool Prepare = true;
+        /// <summary>늦게 정비해도 되는 모듈(<see cref="Idle"/>): 이 내구도 아래면 정비 (운석 한 발 -20에도 0이 안 되게) · 정비 뒤 최대가 이 아래면 재건축.</summary>
+        public const float IdleMaintainAt = 30f, IdleRebuildBelow = 45f;
+        private const float PrepDefenseScore = 100f; // 덮는 앞면 모듈 하나당 (조밀 · 인접 점수보다 크게)
 
         private readonly CampaignBotAssets _a;
         private readonly CampaignBotStats _stats = new CampaignBotStats();
@@ -126,6 +147,11 @@ namespace SpaceStation.Editor.Balance
         private StationState _chapterCp, _climaxCp;
         private int _chapterCpIndex = -1, _climaxCpIndex = -1;
         private bool _wantChapterCp, _wantClimaxCp;
+        private BalanceBot _policyBot;
+        private bool _defendWarning;
+        private int _defendBuilt;
+        private readonly List<ModuleInstance> _facing = new List<ModuleInstance>();
+        private readonly List<ModuleInstance> _covered = new List<ModuleInstance>();
 
         public CampaignBotExtension(CampaignBotAssets assets) => _a = assets ?? throw new ArgumentNullException(nameof(assets));
 
@@ -175,6 +201,8 @@ namespace SpaceStation.Editor.Balance
                 _chapters.ClimaxStarted += HandleClimax;
                 _chapters.ClimaxEnded += HandleClimaxEnded;
             }
+            sim.MeteorResolved += HandleMeteor;
+            _defendWarning = false;
             _attempt++;
         }
 
@@ -209,9 +237,129 @@ namespace SpaceStation.Editor.Balance
                     _stats.FinishedAt = elapsed;
                 return;
             }
+            var shower = _sim.MeteorShower;
+            if (_chapters.Phase == ChapterPhase.Warning && shower != null && shower.Phase == MeteorShowerSystem.ShowerPhase.Falling && !shower.IsRaid && Current != null)
+                Current.ShowerInWarning = true;
             AnswerShip();
             Explore(bot);
             EnactPolicy();
+            if (!Prepare)
+                return;
+            UsePolicy(bot);
+            PrepareHousing(bot);
+            DefendShower(bot);
+        }
+
+        /// <summary>금속 관리: 이 봇(다시 시작이면 새 봇)에 정비 기준 고리를 한 번 꽂음.</summary>
+        private void UsePolicy(BalanceBot bot)
+        {
+            if (_policyBot == bot)
+                return;
+            _policyBot = bot;
+            bot.MaintainAtFor = m => Idle(m.Data) ? IdleMaintainAt : BalanceBot.DefaultMaintainAt;
+            bot.RebuildBelowFor = m => Idle(m.Data) ? IdleRebuildBelow : BalanceBot.DefaultRebuildBelowMax;
+        }
+
+        /// <summary>늦게 정비해도 되는 모듈: 효율과 무관하고 장갑 격벽(운석을 대신 맞음 — 낮은 내구도로 두면 연달아 맞아 부서짐)이 아님.</summary>
+        private static bool Idle(ModuleData data) => data != null && !BalanceBot.WearMatters(data) && !data.IsDecoy;
+
+        /// <summary>
+        /// 예보된 이민선(대이주 배 포함) 인원 · 대이주 예고 중이면 오는 배 전체 인원만큼 빈 집을 미리 (성향에 따라 그 일부, 결정마다 거주 1개).
+        /// 거부할 배도 짓는다 — 답은 도착 때 정해지고, 안전 쪽은 위기일 때만 거부하므로.
+        /// </summary>
+        private void PrepareHousing(BalanceBot bot)
+        {
+            if (_ark == null || _a.Housing == null)
+                return;
+            int expected = _ark.NextShip != null ? _ark.NextShip.Size : 0;
+            var chapter = _chapters.Current;
+            if (chapter != null && chapter.Climax.Kind == ChapterClimaxKind.GreatMigration && _chapters.Phase == ChapterPhase.Warning)
+            {
+                var c = chapter.Climax;
+                expected = Math.Max(expected, c.MigrationShips * (c.MigrationSizeMin + c.MigrationSizeMax) / 2);
+            }
+            if (expected <= 0)
+                return;
+            float share = _persona.Growth >= Accept ? 1f : _persona.Growth <= -Accept ? 0.5f : 0.75f;
+            if (_ark.FreeHousing >= Mathf.CeilToInt(expected * share))
+                return;
+            if (bot.TryBuild(_a.Housing))
+                _stats.PrepHousing++;
+        }
+
+        /// <summary>유성우 예보 중: 오는 방향 앞면 모듈을 아직 그 종류로 보호받지 않는 만큼 가장 많이 덮는 자리에 실드 또는 포탑 (2개 이상 덮을 때만).</summary>
+        private void DefendShower(BalanceBot bot)
+        {
+            var shower = _sim.MeteorShower;
+            if (shower == null || shower.Phase != MeteorShowerSystem.ShowerPhase.Warning)
+            {
+                _defendWarning = false;
+                return;
+            }
+            if (!_defendWarning)
+            {
+                _defendWarning = true;
+                _defendBuilt = 0;
+            }
+            int cap = (shower.IsRaid ? 2 : 1) + (_persona.Growth <= -Accept ? 1 : 0);
+            if (_defendBuilt >= cap)
+                return;
+            _facing.Clear();
+            foreach (var m in shower.FacingModules)
+                _facing.Add(m);
+            ModuleData pick = null;
+            int bestOpen = 1;
+            foreach (var data in new[] { _a.Shield, _a.Turret })
+            {
+                if (data == null || !_sim.CanAfford(data) || _sim.CheckBuildable(data) != PlacementResult.Valid)
+                    continue;
+                int open = 0;
+                foreach (var m in _facing)
+                    if (!Protected(data, m))
+                        open++;
+                if (open > bestOpen)
+                {
+                    bestOpen = open;
+                    pick = data;
+                }
+            }
+            if (pick == null)
+                return;
+            if (bot.TryBuild(pick, cells => FacingCovered(pick, cells) * PrepDefenseScore))
+            {
+                _defendBuilt++;
+                _stats.PrepDefense++;
+            }
+        }
+
+        private bool Protected(ModuleData data, ModuleInstance m) => data.IsShield
+            ? _sim.Defense.GetShieldBlockChance(_sim.Grid, m) > 0.001f
+            : _sim.Defense.GetInterceptChance(_sim.Grid, m) >= _sim.Effects.TurretMaxIntercept - 1e-3f;
+
+        /// <summary>이 칸에 지으면 새로 덮는 앞면 모듈 수.</summary>
+        private int FacingCovered(ModuleData data, IReadOnlyList<Vector3Int> cells)
+        {
+            DefenseSystem.CountCovered(_sim.Grid, data, cells, _covered, _sim.Effects.DefenseRadiusBonus);
+            int n = 0;
+            foreach (var m in _covered)
+                if (_facing.Contains(m) && !Protected(data, m))
+                    n++;
+            return n;
+        }
+
+        /// <summary>절정 중 운석 집계 (판정과 같은 '막음' + 장갑 격벽이 대신 맞은 수).</summary>
+        private void HandleMeteor(MeteorFlight flight)
+        {
+            if (_chapters == null || _chapters.Phase != ChapterPhase.Climax || flight == null)
+                return;
+            var c = Current;
+            if (c == null)
+                return;
+            c.ClimaxMeteors++;
+            if (flight.Hit == null || flight.Immune)
+                c.ClimaxBlocked++;
+            else if (flight.Hit.Data != null && flight.Hit.Data.IsDecoy)
+                c.ClimaxArmorHits++;
         }
 
         /// <summary>장 끝 방향: 시드마다 무작위 (1~3장 방향은 코어 성향만 바꿈).</summary>
@@ -419,7 +567,8 @@ namespace SpaceStation.Editor.Balance
         {
             var all = Stats(report);
             var sb = new StringBuilder();
-            sb.AppendLine($"캠페인 봇 (노멀) · {runs}판 · 상한 {capMinutes:0}분 · 13-8 준비 ① (필수 목표만 · 이민선 = 봇 성향 · 방향 · 정책 = 시드 무작위 · 안전망 흉내 장마다 {CampaignBotExtension.RetryLimit}번)");
+            sb.AppendLine($"캠페인 봇 (노멀) · {runs}판 · 상한 {capMinutes:0}분 · 13-8 준비 ① (필수 목표만 · 이민선 = 봇 성향 · 방향 · 정책 = 시드 무작위 · 안전망 흉내 장마다 {CampaignBotExtension.RetryLimit}번"
+                          + (CampaignBotExtension.Prepare ? " · 절정 대비 + 금속 관리 켬)" : " · 절정 대비 끔 = 첫 측정 봇)"));
             int finished = all.FindAll(x => x.Finished).Count;
             int gameOver = all.FindAll(x => x.GameOver).Count;
             var totals = new List<float>();
@@ -435,6 +584,7 @@ namespace SpaceStation.Editor.Balance
                 var climax = new List<float>();
                 var whole = new List<float>();
                 int clean = 0, hurt = 0, lost = 0, falls = 0, retries = 0, reached = 0;
+                int meteors = 0, blocked = 0, armorHits = 0, showerInWarning = 0;
                 var pop = new List<float>();
                 foreach (var x in all)
                 {
@@ -461,16 +611,26 @@ namespace SpaceStation.Editor.Balance
                     }
                     falls += c.Falls;
                     retries += c.Retries;
+                    meteors += c.ClimaxMeteors;
+                    blocked += c.ClimaxBlocked;
+                    armorHits += c.ClimaxArmorHits;
+                    if (c.ShowerInWarning)
+                        showerInWarning++;
                 }
                 var data = assets.Chapters.Chapters[i];
                 sb.AppendLine($"{data.DisplayName} {data.Subtitle}: 시작 {reached}판 · 준비(시작 → 예고) {Spread(prep)} · 절정 {Spread(climax)} · 장 전체 {Spread(whole)}");
                 sb.AppendLine($"    결과 깔끔 {clean} · 피해 {hurt} · 잃음 {lost} · 무너짐 {falls}번 (다시 시작 {retries}번) · 장 끝 인구 {Spread(pop, minutes: false)}");
+                if (meteors > 0)
+                    sb.AppendLine($"    절정 중 운석 {meteors}개 · 막음 {blocked} ({blocked * 100f / meteors:0}%) · 장갑 격벽이 대신 맞음 {armorHits} ({armorHits * 100f / meteors:0}%, 판정은 막음만 셈)"
+                                  + (showerInWarning > 0 ? $" · 절정 예고 중 평소 유성우 {showerInWarning}판" : ""));
             }
-            int accepted = 0, partial = 0, refused = 0, offered = 0, boarded = 0;
+            int accepted = 0, partial = 0, refused = 0, offered = 0, boarded = 0, prepHousing = 0, prepDefense = 0;
             var probe = new List<float>();
             var policy = new List<float>();
             foreach (var x in all)
             {
+                prepHousing += x.PrepHousing;
+                prepDefense += x.PrepDefense;
                 accepted += x.Accepted;
                 partial += x.Partial;
                 refused += x.Refused;
@@ -483,6 +643,8 @@ namespace SpaceStation.Editor.Balance
             }
             sb.AppendLine($"이민선 답: 모두 받기 {accepted} · 빈 집만큼 {partial} · 거부 {refused} · 받은 인원 {boarded}/{offered} ({(offered > 0 ? boarded * 100f / offered : 0f):0}%)");
             sb.AppendLine($"탐사선 출발 (판 시작부터) {Spread(probe)} · {probe.Count}판 / 정책 시행 {Spread(policy)} · {policy.Count}판");
+            if (CampaignBotExtension.Prepare && all.Count > 0)
+                sb.AppendLine($"절정 대비로 지음 (판 평균): 이민선 앞 거주 {prepHousing / (float)all.Count:0.0} · 유성우 방향 실드 · 포탑 {prepDefense / (float)all.Count:0.0}");
             sb.Append("기록 연구 최종 단계 평균 (공통 요약의 연구 줄 대신):");
             for (int i = 0; i < assets.Research.Count; i++)
             {
@@ -527,10 +689,10 @@ namespace SpaceStation.Editor.Balance
 
         private static string Csv(BalanceReport report, CampaignBotAssets assets)
         {
-            var sb = new StringBuilder("seed,finished,game_over,finished_at_s,retries,ships_accept,ships_partial,ships_refuse,offered,boarded,probe_at_s,policy_at_s,choices");
+            var sb = new StringBuilder("seed,finished,game_over,finished_at_s,retries,ships_accept,ships_partial,ships_refuse,offered,boarded,probe_at_s,policy_at_s,choices,prep_housing,prep_defense");
             int count = assets.Chapters.Count;
             for (int i = 1; i <= count; i++)
-                sb.Append($",ch{i}_start_s,ch{i}_warning_s,ch{i}_climax_s,ch{i}_end_s,ch{i}_outcome,ch{i}_falls,ch{i}_retries,ch{i}_population,ch{i}_summary");
+                sb.Append($",ch{i}_start_s,ch{i}_warning_s,ch{i}_climax_s,ch{i}_end_s,ch{i}_outcome,ch{i}_falls,ch{i}_retries,ch{i}_population,ch{i}_climax_meteors,ch{i}_climax_blocked,ch{i}_climax_armor,ch{i}_shower_in_warning,ch{i}_summary");
             sb.Append('\n');
             foreach (var r in report.Results)
             {
@@ -539,12 +701,13 @@ namespace SpaceStation.Editor.Balance
                 sb.Append(r.Seed).Append(',').Append(x.Finished ? 1 : 0).Append(',').Append(x.GameOver ? 1 : 0).Append(',').Append(F(x.FinishedAt)).Append(',')
                     .Append(r.Retries).Append(',').Append(x.Accepted).Append(',').Append(x.Partial).Append(',').Append(x.Refused).Append(',')
                     .Append(x.Offered).Append(',').Append(x.Boarded).Append(',').Append(F(x.ProbeAt)).Append(',').Append(F(x.PolicyAt)).Append(',')
-                    .Append(x.Choices.Trim().Replace(' ', '|'));
+                    .Append(x.Choices.Trim().Replace(' ', '|')).Append(',').Append(x.PrepHousing).Append(',').Append(x.PrepDefense);
                 for (int i = 0; i < count; i++)
                 {
                     var c = i < x.Chapters.Length ? x.Chapters[i] : new CampaignChapterRun();
                     sb.Append(',').Append(F(c.Start)).Append(',').Append(F(c.Warning)).Append(',').Append(F(c.Climax)).Append(',').Append(F(c.End))
                         .Append(',').Append(c.HasOutcome ? c.Outcome.ToString() : "").Append(',').Append(c.Falls).Append(',').Append(c.Retries).Append(',').Append(c.Population)
+                        .Append(',').Append(c.ClimaxMeteors).Append(',').Append(c.ClimaxBlocked).Append(',').Append(c.ClimaxArmorHits).Append(',').Append(c.ShowerInWarning ? 1 : 0)
                         .Append(",\"").Append(c.Summary.Replace("\"", "'")).Append('"');
                 }
                 sb.Append('\n');
