@@ -51,10 +51,112 @@ namespace SpaceStation.Editor
             { "School", new[] { ResidentTrait.Scientist } },
             { "Protein", new[] { ResidentTrait.Gardener } },
             { "WaterEx", new[] { ResidentTrait.Gardener } },
+            { "Radiator", new[] { ResidentTrait.Technician } },   // 사용자 결정 2026-10-22: 배터리 · 태양광 · 연료전지와 같은 기술자
+            { "CommRelay", new[] { ResidentTrait.Scientist } },   // 사용자 결정 2026-10-22: 신호 해독 = 연구원 (연구소 · 데이터 센터와 같음)
         };
 
-        /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방.</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce" };
+        /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger" };
+
+        /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
+        /// 여객 도킹 포트 안내 직원).</summary>
+        private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger" };
+
+        /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
+        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" } };
+
+        /// <summary>12-5 일하는 사람 상태 글 (없으면 "일하는 중").</summary>
+        private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" } };
+
+        /// <summary>
+        /// 12-5 자리를 직접 정한 방 (찾아낸 자리로는 안 되는 방). 행정 관제소: 주민이 정해진 길로 발권기 · 창구를 오가므로
+        /// (<see cref="Interior.InteriorQueueBoard"/>) 일하는 자리 = 창구 1 · 2 · 3 직원 의자 → 관제 콘솔 4, 쉬는 자리 = 대기 의자 8 (admin_builder ANCHORS).
+        /// </summary>
+        private static readonly Dictionary<string, System.Func<List<ResidentSpot>>> FixedSpots = new Dictionary<string, System.Func<List<ResidentSpot>>>
+        {
+            { "Admin", AdminSpots },
+            { "Shelter", ShelterSpots },
+            { "Passenger", PassengerSpots },
+            { "Radiator", RadiatorSpots },
+            { "CommRelay", CommRelaySpots },
+        };
+
+        /// <summary>
+        /// 12-5 방열판 (radiator_builder ANCHORS["work"]): 기술자가 서서 일함 — 열교환기 조작반 (남쪽을 봄) · 열 감시판 (동쪽 벽을 봄) ·
+        /// 동북 펌프 (펌프를 봄). 찾아낸 자리는 관 다발 사이 · 펌프 뒤로 잡혀 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> RadiatorSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(0.6f, Floor, 1.28f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(2.35f, Floor, -2.45f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(1.55f, Floor, 1.6f), 47f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 12-5 통신 중계소 (comm_builder ANCHORS): 연구원 — 북동 해독 책상 (구석 화면 2를 봄, 앉음) · 북서 기록 책상 (기록계를 봄, 앉음) ·
+        /// 남동 송수신기 함 앞 (서서 일함).
+        /// </summary>
+        private static List<ResidentSpot> CommRelaySpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(2.25f, Floor + 0.49f, 2.25f), 45f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(-2.15f, Floor + 0.49f, 2.25f), -90f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(2.1f, Floor, -2.5f), 90f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 12-5 방사선 차폐실 (shelter_builder ANCHORS): 평소 = 일터 없는 주민이 비축 물자 관리 — 선량계 게이트 콘솔(앉음) · 비상 물자 선반 ·
+        /// 공기 정화기 제어판 (서서 일함). 샤워 부스는 일하는 자리가 아님 (사용자 결정). 침상 · 벤치는 대피 때 자리라 평소엔 비움.
+        /// </summary>
+        private static List<ResidentSpot> ShelterSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(1.3f, Floor + 0.49f, -2.38f), 0f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(10.5f, Floor, 2.05f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(10.25f, Floor, -1.95f), 180f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 12-5 여객 도킹 포트 (passenger_builder ANCHORS): 안내 직원 = 일터 없는 주민 — 입국 심사 부스 2 (등을 맞대고 양옆 줄을 봄) ·
+        /// 안내 데스크 (창 쪽을 봄). 쉬는 자리 = 대합실 공항 의자 14 (창밖 +z를 봄, 앞줄부터).
+        /// </summary>
+        private static List<ResidentSpot> PassengerSpots()
+        {
+            var list = new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(-0.3f, Floor + 0.49f, 1.0f), -90f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(0.3f, Floor + 0.49f, 1.0f), 90f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(5.8f, Floor + 0.49f, -2.55f), 0f, ResidentPose.Sit, work: true),
+            };
+            foreach (float z in new[] { 1.55f, 0.35f })
+            {
+                foreach (float x in new[] { 5.05f, 5.65f, 6.25f, 6.85f, 9.15f, 9.75f, 10.35f })
+                    list.Add(new ResidentSpot(new Vector3(x, Floor + 0.43f, z), 0f, ResidentPose.Sit));
+            }
+            return list;
+        }
+
+        private static List<ResidentSpot> AdminSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (float z in new[] { 2.125f, 0.55f, -1.05f })   // 창구 1 · 2 · 3 (손님 쪽 −x를 봄)
+                list.Add(new ResidentSpot(new Vector3(3.5f, Floor + 0.49f, z), -90f, ResidentPose.Sit, work: true));
+            list.Add(new ResidentSpot(new Vector3(6.7172f, Floor + 0.49f, -1.4767f), -51.71f, ResidentPose.Sit, work: true));   // 관제 콘솔 (책상을 봄)
+            list.Add(new ResidentSpot(new Vector3(7.15f, Floor + 0.49f, 0.55f), -90f, ResidentPose.Sit, work: true));
+            list.Add(new ResidentSpot(new Vector3(6.4677f, Floor + 0.49f, 2.376f), -128.23f, ResidentPose.Sit, work: true));
+            list.Add(new ResidentSpot(new Vector3(9.9f, Floor + 0.49f, 0.55f), -90f, ResidentPose.Sit, work: true));
+            // 대기 의자 (+x 창구 쪽을 봄): 앞줄 통로 쪽부터
+            foreach (var (x, z) in new[] { (0.5f, 0.75f), (0.5f, -0.75f), (0.5f, 1.15f), (0.5f, -1.15f), (-0.7f, 0.75f), (-0.7f, -0.75f), (0.5f, 1.55f), (0.5f, -1.55f) })
+                list.Add(new ResidentSpot(new Vector3(x, Floor + 0.43f, z), 90f, ResidentPose.Sit));
+            return list;
+        }
 
         private struct Candidate
         {
@@ -88,6 +190,17 @@ namespace SpaceStation.Editor
         {
             string name = template.name.Replace("IT_", "");
             var module = template.Module;
+            VisitStatus.TryGetValue(name, out var visitStatus);
+            WorkStatus.TryGetValue(name, out var workStatus);
+            template.EditorSetVisit(OpenWorkRooms.Contains(name), visitStatus, workStatus);
+            if (FixedSpots.TryGetValue(name, out var fixedSpots))
+            {
+                var spots = fixedSpots();
+                // 12-5 방열판: 고정 자리여도 일터 특성(기술자)은 그대로 — 일터 없는 주민 방(OpenWork)은 특성 없음
+                var fixedTraits = WorkTraits.TryGetValue(name, out var ft) ? new List<ResidentTrait>(ft) : new List<ResidentTrait>();
+                template.EditorSetResidents(spots, fixedTraits, LeisureRooms.Contains(name));
+                return $"{name} 고정 자리 {spots.Count}";
+            }
             var instance = (GameObject)Object.Instantiate(template.Prefab, Far, Quaternion.identity);
             var added = new List<Component>();
             try

@@ -61,6 +61,7 @@ namespace SpaceStation.Editor
         public const string FishPath = MaterialFolder + "/M_InteriorFish.mat";
         public const string IcePath = MaterialFolder + "/M_InteriorIce.mat";
         public const string AquaPath = MaterialFolder + "/M_InteriorAqua.mat";
+        public const string ConcretePath = MaterialFolder + "/M_InteriorConcrete.mat";   // 12-5 방사선 차폐실 벽 · 원통 천장
         private const string SmokePath = MaterialFolder + "/M_InteriorSmoke.mat";
         private const string DustPath = "Assets/_Project/Art/Materials/FX/M_Dust.mat";
         private const string SparkPath = "Assets/_Project/Art/Materials/FX/M_Spark.mat";
@@ -350,6 +351,23 @@ namespace SpaceStation.Editor
                 m.enableInstancing = true;
                 EditorUtility.SetDirty(m);
             }
+            // 12-5 콘크리트 (방사선 차폐실): 같은 트라이플래너 셰이더에 거푸집 · 폼타이 구멍 텍스처. 실내 조명이 따뜻해 살짝 푸른 회색이어야 회색으로 보임 (MODELING 7-7)
+            if (!System.IO.File.Exists(InteriorTextureBaker.ConcreteNormalPath) || !System.IO.File.Exists(InteriorTextureBaker.ConcreteMaskPath))
+                InteriorTextureBaker.BakeConcrete();
+            var concrete = LoadOrCreate(ConcretePath, tri);
+            concrete.shader = tri;
+            concrete.SetColor("_BaseColor", new Color(0.44f, 0.47f, 0.52f));
+            concrete.SetFloat("_Smoothness", 0.12f);
+            concrete.SetFloat("_Metallic", 0f);
+            concrete.SetTexture("_DetailNormal", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.ConcreteNormalPath));
+            concrete.SetTexture("_DetailMask", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.ConcreteMaskPath));
+            concrete.SetFloat("_Tiling", 0.5f);
+            concrete.SetFloat("_NormalStrength", 0.9f);
+            concrete.SetFloat("_OcclusionStrength", 0.8f);
+            concrete.SetFloat("_GrimeStrength", 0.65f);
+            concrete.enableInstancing = true;
+            EditorUtility.SetDirty(concrete);
+
             Fabric(FabricPath, new Color(0.86f, 0.85f, 0.81f));
             Fabric(BlanketPath, new Color(0.56f, 0.42f, 0.27f)); // 차분한 황토색 (거주 강조색 노랑과 어울리게)
             Fabric(SofaPath, new Color(0.3f, 0.29f, 0.36f));     // 11-5 휴게실 소파 (보랏빛 회색)

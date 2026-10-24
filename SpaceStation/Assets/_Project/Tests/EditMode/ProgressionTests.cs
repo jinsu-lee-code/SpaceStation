@@ -179,6 +179,21 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void LimitedModule_EvolvedCountsIngredientDocks()
+        {
+            // 진화 모듈 34종 (사용자 결정 2026-10-22): 도킹을 합성에 넣어도 한도 자리가 비지 않음 (광물 처리 단지 = 1, 정련 콤비나트 = 2)
+            var complex = Module("MineralComplex");
+            var so = new SerializedObject(complex);
+            so.FindProperty("_limitedModuleShare").intValue = 2;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            _progression.Evaluate(10, 8); // 소형: 한도 2
+            _grid.TryPlace(complex, Vector3Int.zero, 0, out _);
+            Assert.AreEqual(2, _progression.CountLimited(_grid), "재료 도킹 수만큼");
+            Assert.AreEqual(PlacementResult.LimitReached, _progression.CheckBuildable(_dock, _grid), "합성 뒤 새 도킹 불가");
+            Assert.AreEqual(PlacementResult.Valid, _progression.CheckBuildable(_basic, _grid), "제한 대상이 아닌 모듈은 무관");
+        }
+
+        [Test]
         public void FinalGrade_LimitGrowsWithModuleCount()
         {
             var so = new SerializedObject(_config);

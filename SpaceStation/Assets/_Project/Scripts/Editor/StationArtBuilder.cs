@@ -28,12 +28,31 @@ namespace SpaceStation.Editor
         /// <summary>모듈 하나만 다시 조립 (예: "Storage").</summary>
         public static void RebuildModule(string key) => RebuildModules(key);
 
+        private static (Material hull, Material hullDark, Material window, Material solar) SharedMaterials() => (
+            Mat("M_Hull", new Color(0.72f, 0.72f, 0.75f), 0.6f, 0.55f),
+            Mat("M_HullDark", new Color(0.22f, 0.23f, 0.26f), 0.7f, 0.45f),
+            Mat("M_Window", new Color(0.08f, 0.07f, 0.06f), 0.1f, 0.9f, new Color(1f, 0.82f, 0.55f) * 2.2f),
+            Mat("M_SolarPanel", new Color(0.05f, 0.1f, 0.3f), 0.35f, 0.88f));
+
+        /// <summary>
+        /// 진화 모듈 외형 (2026-10-22, `RecipeSetup`이 부름): Art/Models/Modules/SM_{key}.fbx가 있으면 root 아래 "Model"로 넣고
+        /// 재질 슬롯 · 움직이는 부품 · 그림자를 기본 모듈과 같게 설정. 칸 판정 · 선택 콜라이더는 부르는 쪽이 칸마다 만든다
+        /// (ㄱ자 · 고리 모양이라 `Rebuild`의 상자 하나 방식을 쓰지 않음). 모델 파일이 없으면 false.
+        /// </summary>
+        public static bool AttachModel(Transform root, string key, Material accent)
+        {
+            var (hull, hullDark, window, solar) = SharedMaterials();
+            var model = ImportedModel(key, hull, hullDark, window, solar, accent);
+            if (model == null)
+                return false;
+            PlaceModel(root, model, null);
+            ApplyShadows(root.gameObject);
+            return true;
+        }
+
         private static void RebuildModules(string only)
         {
-            var hull = Mat("M_Hull", new Color(0.72f, 0.72f, 0.75f), 0.6f, 0.55f);
-            var hullDark = Mat("M_HullDark", new Color(0.22f, 0.23f, 0.26f), 0.7f, 0.45f);
-            var window = Mat("M_Window", new Color(0.08f, 0.07f, 0.06f), 0.1f, 0.9f, new Color(1f, 0.82f, 0.55f) * 2.2f);
-            var solar = Mat("M_SolarPanel", new Color(0.05f, 0.1f, 0.3f), 0.35f, 0.88f);
+            var (hull, hullDark, window, solar) = SharedMaterials();
 
             var log = new List<string>();
             foreach (var guid in AssetDatabase.FindAssets("t:ModuleData", new[] { "Assets/_Project/Data/Modules" }))
@@ -119,6 +138,15 @@ namespace SpaceStation.Editor
                 importer.importAnimation = false;
                 importer.importCameras = false;
                 importer.importLights = false;
+                changed = true;
+            }
+            // 궤도 고리(SpinOrbit*)는 회전축을 메시에서 계산하므로 읽기 허용 — 꺼져 있으면 에디터에서도 점을 못 읽음 (OrbitAxis)
+            bool orbit = false;
+            foreach (var t in model.GetComponentsInChildren<Transform>(true))
+                orbit |= t.name.StartsWith("SpinOrbit") || t.name.StartsWith("SpinClock");
+            if (orbit && !importer.isReadable)
+            {
+                importer.isReadable = true;
                 changed = true;
             }
             if (changed)
@@ -287,63 +315,7 @@ namespace SpaceStation.Editor
                 }
 
                 if (model != null)
-                {
-                    var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, root.transform);
-                    instance.name = "Model";
-                    instance.transform.localPosition = Vector3.zero;
-                    instance.transform.localRotation = model.transform.localRotation; // 임포트 축 보정은 유지
-                    instance.transform.localScale = model.transform.localScale;
-                    // 태양광: 모델의 "Panel" 부품이 태양을 향해 기운다 (MODELING_SPEC 1-5)
-                    var panel = FindChild(instance.transform, "Panel");
-                    if (panel != null)
-                        panel.gameObject.AddComponent<SpaceStation.Building.SunFacingPanel>();
-                    // 실드: Emitter 회전 띠 + 궤도 빛점 연출
-                    var ringA = FindChild(instance.transform, "EmitterRingA");
-                    var emitter = FindChild(instance.transform, "Emitter");
-                    if (ringA != null && emitter != null)
-                        WireShieldFx(emitter, ringA, FindChild(instance.transform, "EmitterRingB"), FindChild(instance.transform, "EmitterCore"));
-                    // 8-4 회전 링: "Spin" 부품이 모듈 Y축으로 회전
-                    var spin = FindChild(instance.transform, "Spin");
-                    if (spin != null)
-                        spin.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
-                    // 12-5 데이터 센터: "SpinFan_*" 냉각팬 날개가 빠르게 회전 (피벗 = 팬 중심, 여러 개)
-                    foreach (var t in instance.GetComponentsInChildren<Transform>(true))
-                    {
-                        if (!t.name.StartsWith("SpinFan"))
-                            continue;
-                        var fan = t.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
-                        var fso2 = new SerializedObject(fan);
-                        fso2.FindProperty("_speed").floatValue = 300f;
-                        fso2.FindProperty("_acceleration").floatValue = 0.5f;
-                        fso2.ApplyModifiedPropertiesWithoutUndo();
-                    }
-                    // 12-5 센서 어레이 · 행정 관제소: "SpinRadar*" 레이더 판이 빠르게 회전 (피벗 = 받침 꼭대기 회전축)
-                    //   Blender 오브젝트 이름은 겹칠 수 없으므로 모듈마다 "SpinRadar_{모듈}"처럼 뒤를 붙여도 된다
-                    // 12-5 통신 중계소: "SpinDish*" 접시 안테나가 천천히 회전 (피벗 = 기둥 위 회전대 중심)
-                    // 12-5 행정 관제소: "Flutter_{이름}" 깃발 사슬 맨 앞 조각에 펄럭임 (같은 부모 아래 "_1", "_2" 조각은 컴포넌트가 따라 찾음)
-                    foreach (var t in instance.GetComponentsInChildren<Transform>(true))
-                    {
-                        bool radar = t.name.StartsWith("SpinRadar");
-                        if (radar || t.name.StartsWith("SpinDish"))
-                        {
-                            var spinner = t.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
-                            var sso = new SerializedObject(spinner);
-                            sso.FindProperty("_speed").floatValue = radar ? 40f : 8f;
-                            sso.ApplyModifiedPropertiesWithoutUndo();
-                        }
-                        else if (SpaceStation.Building.ModuleFlutter.IsChainRoot(t.name))
-                            t.gameObject.AddComponent<SpaceStation.Building.ModuleFlutter>();
-                    }
-                    // 8-5 연료전지: 보조 발전 중에만 "Lamp" 켜짐
-                    var lamp = FindChild(instance.transform, "Lamp");
-                    if (lamp != null && data.OnDemandPower)
-                    {
-                        var fx = instance.AddComponent<SpaceStation.Building.OnDemandPowerFx>();
-                        var fso = new SerializedObject(fx);
-                        fso.FindProperty("_lamp").objectReferenceValue = lamp.gameObject;
-                        fso.ApplyModifiedPropertiesWithoutUndo();
-                    }
-                }
+                    PlaceModel(root.transform, model, data);
                 else switch (style)
                 {
                     case Style.Solar:
@@ -397,18 +369,136 @@ namespace SpaceStation.Editor
                         break;
                 }
 
-                foreach (var r in root.GetComponentsInChildren<MeshRenderer>())
-                {
-                    // 연출 재질(빛나는 코어·반투명 외피)은 그림자 없음
-                    bool fx = r.sharedMaterial != null && AssetDatabase.GetAssetPath(r.sharedMaterial).Contains("/Materials/FX/");
-                    r.shadowCastingMode = fx ? ShadowCastingMode.Off : ShadowCastingMode.On;
-                    r.receiveShadows = !fx;
-                }
+                ApplyShadows(root);
                 PrefabUtility.SaveAsPrefabAsset(root, path);
             }
             finally
             {
                 PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        /// <summary>연출 재질(빛나는 코어·반투명 외피)은 그림자 없음.</summary>
+        private static void ApplyShadows(GameObject root)
+        {
+            foreach (var r in root.GetComponentsInChildren<MeshRenderer>())
+            {
+                bool fx = r.sharedMaterial != null && AssetDatabase.GetAssetPath(r.sharedMaterial).Contains("/Materials/FX/");
+                r.shadowCastingMode = fx ? ShadowCastingMode.Off : ShadowCastingMode.On;
+                r.receiveShadows = !fx;
+            }
+        }
+
+        /// <summary>제작 모델을 "Model" 자식으로 넣고 이름 규칙에 따라 움직이는 부품 컴포넌트를 붙인다 (data = 보조 발전 램프용, 없으면 null).</summary>
+        private static void PlaceModel(Transform root, GameObject model, ModuleData data)
+        {
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, root);
+            instance.name = "Model";
+            instance.transform.localPosition = Vector3.zero;
+            instance.transform.localRotation = model.transform.localRotation; // 임포트 축 보정은 유지
+            instance.transform.localScale = model.transform.localScale;
+            // 태양광: 모델의 "Panel" 부품이 태양을 향해 기운다 (MODELING_SPEC 1-5)
+            var panel = FindChild(instance.transform, "Panel");
+            if (panel != null)
+                panel.gameObject.AddComponent<SpaceStation.Building.SunFacingPanel>();
+            // 진화 태양광 어레이: "SunPanel*" 넓은 패널판도 해를 따라 기움 (Blender 이름 "Panel"은 기본 태양광이 씀, 피벗 = 기둥 위 관절)
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+                if (t.name.StartsWith("SunPanel"))
+                    t.gameObject.AddComponent<SpaceStation.Building.SunFacingPanel>();
+            // 실드: Emitter 회전 띠 + 궤도 빛점 연출
+            var ringA = FindChild(instance.transform, "EmitterRingA");
+            var emitter = FindChild(instance.transform, "Emitter");
+            if (ringA != null && emitter != null)
+                WireShieldFx(emitter, ringA, FindChild(instance.transform, "EmitterRingB"), FindChild(instance.transform, "EmitterCore"));
+            // 진화 실드 매트릭스: 발생기 여럿 "Emitter_{이름}" + "EmitterRingA_{이름}" · "EmitterRingB_{이름}" · "EmitterCore_{이름}"
+            //   (Blender 오브젝트 이름은 겹칠 수 없어 뒤를 붙임 — 기본 실드의 "Emitter"와 같은 연출을 발생기마다)
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+            {
+                if (!t.name.StartsWith("Emitter_"))
+                    continue;
+                string tag = t.name.Substring("Emitter".Length);
+                var a = FindChild(instance.transform, "EmitterRingA" + tag);
+                if (a != null)
+                    WireShieldFx(t, a, FindChild(instance.transform, "EmitterRingB" + tag), FindChild(instance.transform, "EmitterCore" + tag));
+            }
+            // 8-4 회전 링: "Spin" 부품이 모듈 Y축으로 회전
+            var spin = FindChild(instance.transform, "Spin");
+            if (spin != null)
+                spin.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
+            // 12-5 데이터 센터: "SpinFan_*" 냉각팬 날개가 빠르게 회전 (피벗 = 팬 중심, 여러 개)
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+            {
+                if (!t.name.StartsWith("SpinFan"))
+                    continue;
+                var fan = t.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
+                var fso2 = new SerializedObject(fan);
+                fso2.FindProperty("_speed").floatValue = 300f;
+                fso2.FindProperty("_acceleration").floatValue = 0.5f;
+                fso2.ApplyModifiedPropertiesWithoutUndo();
+            }
+            // 12-5 센서 어레이 · 행정 관제소: "SpinRadar*" 레이더 판이 빠르게 회전 (피벗 = 받침 꼭대기 회전축)
+            //   Blender 오브젝트 이름은 겹칠 수 없으므로 모듈마다 "SpinRadar_{모듈}"처럼 뒤를 붙여도 된다
+            // 12-5 통신 중계소: "SpinDish*" 접시 안테나가 천천히 회전 (피벗 = 기둥 위 회전대 중심) — 진화 연구 단지 돔 안 망원경도 (피벗 = 돔 중심)
+            // 진화 연구 단지: "SpinOrbit*" 궤도 고리 + 전자 한 덩어리가 고리 기울기 축으로 회전 → 고리는 제자리처럼, 전자가 고리를 따라 달림
+            //   (피벗 = 고리 중심, 축은 메시에서 계산) — 진화 문화 센터 시계 "SpinClock*" (시계 고리 + 바늘, 초당 6°)도 같은 방식
+            // 12-5 행정 관제소: "Flutter_{이름}" 깃발 사슬 맨 앞 조각에 펄럭임 (같은 부모 아래 "_1", "_2" 조각은 컴포넌트가 따라 찾음)
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+            {
+                bool radar = t.name.StartsWith("SpinRadar");
+                bool clock = t.name.StartsWith("SpinClock");
+                bool orbit = t.name.StartsWith("SpinOrbit") || clock;
+                if (radar || orbit || t.name.StartsWith("SpinDish"))
+                {
+                    var spinner = t.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
+                    var sso = new SerializedObject(spinner);
+                    sso.FindProperty("_speed").floatValue = radar ? 40f : clock ? 6f : orbit ? 45f : 8f;
+                    if (orbit)
+                        sso.FindProperty("_axis").vector3Value = OrbitAxis(t, root);
+                    sso.ApplyModifiedPropertiesWithoutUndo();
+                }
+                else if (SpaceStation.Building.ModuleFlutter.IsChainRoot(t.name))
+                    t.gameObject.AddComponent<SpaceStation.Building.ModuleFlutter>();
+            }
+            // 8-5 연료전지: 보조 발전 중에만 "Lamp" 켜짐
+            var lamp = FindChild(instance.transform, "Lamp");
+            if (lamp != null && data != null && data.OnDemandPower)
+            {
+                var fx = instance.AddComponent<SpaceStation.Building.OnDemandPowerFx>();
+                var fso = new SerializedObject(fx);
+                fso.FindProperty("_lamp").objectReferenceValue = lamp.gameObject;
+                fso.ApplyModifiedPropertiesWithoutUndo();
+            }
+        }
+
+        /// <summary>
+        /// 궤도 고리 부품의 회전축 (모듈 루트 기준): 원점 = 고리 중심이므로 가장 먼 점 A와 A에 가장 직각인 점 B의 외적이 고리 평면 법선.
+        /// 가져온 메시는 읽기 불가일 수 있어 AcquireReadOnlyMeshData로 읽는다 (MODELING 8. 검증 절차와 같은 방법).
+        /// </summary>
+        private static Vector3 OrbitAxis(Transform part, Transform root)
+        {
+            var filter = part.GetComponent<MeshFilter>();
+            if (filter == null || filter.sharedMesh == null)
+                return Vector3.up;
+            using (var meshData = Mesh.AcquireReadOnlyMeshData(filter.sharedMesh))
+            {
+                var vertices = new Unity.Collections.NativeArray<Vector3>(meshData[0].vertexCount, Unity.Collections.Allocator.Temp);
+                meshData[0].GetVertices(vertices);
+                var a = Vector3.zero;
+                foreach (var v in vertices)
+                {
+                    var w = part.TransformVector(v);
+                    if (w.sqrMagnitude > a.sqrMagnitude)
+                        a = w;
+                }
+                var n = Vector3.zero;
+                foreach (var v in vertices)
+                {
+                    var c = Vector3.Cross(a, part.TransformVector(v));
+                    if (c.sqrMagnitude > n.sqrMagnitude)
+                        n = c;
+                }
+                vertices.Dispose();
+                return n == Vector3.zero ? Vector3.up : root.InverseTransformDirection(n.normalized);
             }
         }
 

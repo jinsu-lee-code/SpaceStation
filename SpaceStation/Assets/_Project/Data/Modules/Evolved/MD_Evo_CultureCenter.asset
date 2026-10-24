@@ -26,7 +26,56 @@ MonoBehaviour:
   _dockFront: {x: 0, y: 0, z: 1}
   _approachLaneLength: 2
   _upperSidesNeedSupport: 0
-  _faceDepths: []
+  _faceDepths:
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: 0.29597798
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.07019532
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.42019534
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: 0.29597798
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: 0.29597792
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.07725543
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.4201953
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: 0.29597798
+  - Cell: {x: 0, y: 0, z: 1}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: 0.29597798
+  - Cell: {x: 0, y: 0, z: 1}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.07019535
+  - Cell: {x: 0, y: 0, z: 1}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.4201953
+  - Cell: {x: 0, y: 0, z: 1}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: 0.29597792
+  - Cell: {x: 1, y: 0, z: 1}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: 0.29597792
+  - Cell: {x: 1, y: 0, z: 1}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: 0.07019535
+  - Cell: {x: 1, y: 0, z: 1}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.42019534
+  - Cell: {x: 1, y: 0, z: 1}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: 0.29597792
+  _closedFaces: []
   _buildCost:
   - Type: 4
     Amount: 340
@@ -61,6 +110,7 @@ MonoBehaviour:
   _armored: 0
   _countsTowardGrade: 1
   _gradeModuleCount: 2
+  _limitedModuleShare: 0
   _repairTimeMultiplier: 1
   _cargoInterval: 0
   _cargoFraction: 0
@@ -72,6 +122,7 @@ MonoBehaviour:
   _controlSpreadMultiplier: 1
   _controlDestroyMultiplier: 1
   _growthIntervalMultiplier: 1
+  _foodKinds: 0
   _serviceNeed: 3
   _serviceRadius: 5
   _serviceCapacity: 36

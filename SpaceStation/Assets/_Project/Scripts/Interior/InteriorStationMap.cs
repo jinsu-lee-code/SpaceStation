@@ -1,0 +1,517 @@
+using System.Collections.Generic;
+using SpaceStation.Audio;
+using SpaceStation.Core;
+using TMPro;
+using UnityEngine;
+
+namespace SpaceStation.Interior
+{
+    /// <summary>
+    /// 12-5 행정 관제소 관제실 모듈 상태 지도 벽 — 사용자 결정 2026-10-20: 실제 정거장.
+    /// 보는 층의 모듈 칸을 위에서 내려다본 모양으로 그린다 (지도 위 = 화면을 보는 쪽 앞, 지도 오른쪽 = 보는 사람 오른쪽 → 모듈과 같이 돎).
+    /// 한 모듈의 칸끼리는 붙이고 모듈 사이만 틈. 상태는 색이 아니라 밝기 · 움직임으로도 구분 (색약):
+    ///   여기 = 속 빈 흰 테두리 · 천천히 숨 쉬듯 / 정상 = 밝음 / 꺼짐 = 어두움 / 고장 = 밝음 ↔ 흐림 빠른 깜빡임.
+    ///   (2026-10-20 플레이 검수: 여기를 강조색으로 칠하면 어두운 파랑이라 꺼짐처럼, 밝기만 올리면 정상과 거의 같아 보였음 → 모양으로도 구분)
+    /// 범례(제목 아래 줄) 견본도 같은 메시에 넣어 똑같이 움직임. 모듈 · 상태 · 보는 층이 바뀔 때만 메시를 다시 만든다. 이 모듈이 꺼지면 "전원 꺼짐".
+    /// 층 버튼 (사용자 요청 2026-10-20): 지도 아래 위층 · 아래층 버튼을 F로 한 번 눌러 보는 층을 바꿈 (모듈이 있는 층만, 플레이어는 그대로).
+    /// 다른 층을 볼 때 이 모듈 자리는 흐린 점선 테두리. 방에 들어올 때마다(내부를 새로 지음) 이 모듈의 층부터.
+    /// </summary>
+    public sealed class InteriorStationMap : InteriorRoomDisplay
+    {
+        private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private const float Gap = 0.09f;        // 모듈 사이 틈 (칸 크기 비율)
+        private const float MaxCell = 0.28f;    // 칸 하나 최대 크기 (m) — 모듈이 몇 개 없을 때
+        private const float Lift = 0.006f;      // 화면 면에서 (바탕 격자 윗면 +0.0025보다 3.5mm 위 — 가까우면 겹친 자리가 깜빡임)
+        private const float GhostLift = 0.009f; // 점선 테두리는 아래 칸 위로
+        private const float TitleBand = 0.26f;    // 위 제목 줄 높이
+        private const float LegendRow = 0.14f;    // 제목 아래 범례 줄 높이 (아래 끝에 두면 콘솔 모니터에 가려졌음)
+        private const float BottomMargin = 0.1f;
+        private const float HereLine = 0.26f;     // 여기 테두리 두께 (칸 크기 비율)
+        private const float GhostLine = 0.14f;    // 다른 층에서 이 모듈 자리 점선 두께 · 점 길이 · 틈 (칸 크기 비율)
+        private const float GhostDash = 0.22f;
+        private const float GhostSpace = 0.14f;
+        private const float Margin = 0.1f;
+        private const float PressSeconds = 0.18f;
+
+        private enum State { Here, On, Off, Broken, Ghost }
+        private const int StateCount = 5;
+        private const int LegendCount = 4;
+
+        [SerializeField] private Vector3 _center;
+        [SerializeField] private Vector3 _normal = Vector3.right;
+        [SerializeField] private Vector3 _up = Vector3.up;
+        [SerializeField] private Vector2 _size = new Vector2(4.8f, 1.8f);
+        [SerializeField] private Material _on;
+        [SerializeField] private Material _off;
+        [Header("층 버튼")]
+        [SerializeField] private Transform _floorUp;
+        [SerializeField] private Transform _floorDown;
+        [Tooltip("버튼 사이 층 이름 화면 가운데 (프리팹 로컬)")]
+        [SerializeField] private Vector3 _floorLabel;
+        [SerializeField] private Vector3 _upLabel;
+        [SerializeField] private Vector3 _downLabel;
+        [Tooltip("누를 때 버튼이 들어가는 만큼 (프리팹 로컬)")]
+        [SerializeField] private Vector3 _press = new Vector3(-0.012f, 0f, 0f);
+
+        private readonly Mesh[] _meshes = new Mesh[StateCount];
+        private readonly MeshRenderer[] _renderers = new MeshRenderer[StateCount];
+        private readonly List<Vector3> _verts = new List<Vector3>();
+        private readonly List<int> _tris = new List<int>();
+        private readonly List<Vector3> _norms = new List<Vector3>();
+        private readonly Dictionary<Vector2Int, ModuleInstance> _cells = new Dictionary<Vector2Int, ModuleInstance>();
+        private readonly HashSet<Vector2Int> _ghost = new HashSet<Vector2Int>();
+        private readonly Dictionary<ModuleInstance, State> _states = new Dictionary<ModuleInstance, State>();
+        private readonly List<State> _signature = new List<State>();
+        private readonly List<State> _scratch = new List<State>();
+        private readonly List<int> _floors = new List<int>();
+        private TextMeshPro _title, _summary, _floorText, _upText, _downText;
+        private readonly TextMeshPro[] _legend = new TextMeshPro[LegendCount];
+        private MaterialPropertyBlock _block;
+        private Color _onEmission;
+        private Vector3 _right;
+        private float _lift = Lift;
+        private int _version = -1;
+        private int _floorsVersion = -1;
+        private int _viewFloor;
+        private int _builtFloor = int.MinValue;
+        private bool _floorSet;
+        private bool _shown;
+        private bool _built;
+        private bool _brokenLit;
+        private Vector3 _upRest, _downRest;
+        private Transform _pressed;
+        private float _pressUntil;
+
+        public void Configure(Vector3 center, Vector3 normal, Vector3 up, Vector2 size, Material on, Material off)
+        {
+            _center = center;
+            _normal = normal;
+            _up = up;
+            _size = size;
+            _on = on;
+            _off = off;
+        }
+
+        /// <summary>층 버튼 (FBX 조각 · 충돌체는 템플릿 빌더가 붙임) · 글자 칸 · 누를 때 들어가는 만큼.</summary>
+        public void ConfigureFloors(Transform floorUp, Transform floorDown, Vector3 floorLabel, Vector3 upLabel, Vector3 downLabel, Vector3 press)
+        {
+            _floorUp = floorUp;
+            _floorDown = floorDown;
+            _floorLabel = floorLabel;
+            _upLabel = upLabel;
+            _downLabel = downLabel;
+            _press = press;
+        }
+
+        private void Setup()
+        {
+            if (_block != null)
+                return;
+            _block = new MaterialPropertyBlock();
+            _normal = _normal.normalized;
+            _up = _up.normalized;
+            _right = Vector3.Cross(_normal, _up);   // 보는 사람 오른쪽 (CreateText 글자 방향과 같음)
+            _onEmission = EmissionOf(_on, Color.white);
+            string[] names = { "MapHere", "MapOn", "MapOff", "MapBroken", "MapGhost" };
+            Material[] mats = { _on, _on, _off, _on, _on };
+            for (int i = 0; i < StateCount; i++)
+            {
+                var go = new GameObject(names[i]);
+                go.transform.SetParent(transform, false);
+                _meshes[i] = new Mesh { name = names[i] };
+                go.AddComponent<MeshFilter>().sharedMesh = _meshes[i];
+                var r = go.AddComponent<MeshRenderer>();
+                r.sharedMaterial = mats[i];
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+                _renderers[i] = r;
+            }
+            // 점선 = 흐린 흰색, 움직이지 않음 (여기 = 밝게 숨 쉬는 실선과 구분)
+            _block.Clear();
+            _block.SetColor(BaseColorId, Color.white);
+            _block.SetColor(EmissionColorId, Color.white * 0.7f);
+            _renderers[(int)State.Ghost].SetPropertyBlock(_block);
+            float w = _size.x, h = _size.y;
+            float ty = h / 2f - TitleBand / 2f;
+            _title = CreateText("MapTitle", At(-w / 4f, ty), _normal, _up, w / 2f - Margin * 2f, TitleBand - 0.08f, 1.6f, TextAlignmentOptions.Left);
+            _summary = CreateText("MapSummary", At(w / 4f, ty), _normal, _up, w / 2f - Margin * 2f, TitleBand - 0.1f, 1.2f, TextAlignmentOptions.Right);
+            string[] labels = { "여기", "정상", "꺼짐", "고장" };
+            for (int i = 0; i < LegendCount; i++)
+            {
+                _legend[i] = CreateText("MapLegend", At(LegendU(i) + 0.08f + 0.2f, LegendV()), _normal, _up, 0.4f, LegendRow - 0.03f, 0.9f,
+                    TextAlignmentOptions.Left);
+                _legend[i].SetText(labels[i]);
+            }
+            SetupButtons();
+        }
+
+        private void SetupButtons()
+        {
+            if (_floorUp == null || _floorDown == null)
+                return;
+            _upRest = _floorUp.localPosition;
+            _downRest = _floorDown.localPosition;
+            _floorText = CreateText("FloorName", _floorLabel, _normal, _up, 0.3f, 0.13f, 1.2f, TextAlignmentOptions.Center);
+            _upText = CreateText("FloorUpLabel", _upLabel, _normal, _up, 0.26f, 0.06f, 0.6f, TextAlignmentOptions.Center);
+            _downText = CreateText("FloorDownLabel", _downLabel, _normal, _up, 0.26f, 0.06f, 0.6f, TextAlignmentOptions.Center);
+            _upText.SetText("위층");
+            _downText.SetText("아래층");
+            AddButton(_floorUp, 1);
+            AddButton(_floorDown, -1);
+        }
+
+        private void AddButton(Transform button, int dir)
+        {
+            var it = button.gameObject.AddComponent<InteriorInteractable>();
+            it.Tap = true;
+            it.Prompt = () =>
+            {
+                int next = NextFloor(dir);
+                string verb = dir > 0 ? "지도 위층 보기" : "지도 아래층 보기";
+                return next != int.MinValue ? $"{verb} · {FloorName(next)}" : verb;
+            };
+            it.Blocked = () => BlockedReason(dir);
+            it.Completed = () =>
+            {
+                int next = NextFloor(dir);
+                if (next == int.MinValue)
+                    return;
+                _viewFloor = next;
+                _pressed = button;
+                _pressUntil = Time.unscaledTime + PressSeconds;
+                AudioService.TryPlay(l => l.UiClick);
+                Refresh();
+            };
+        }
+
+        private string BlockedReason(int dir)
+        {
+            if (!Active)
+                return "전원 꺼짐";
+            if (_floors.Count <= 1)
+                return "다른 층 없음";
+            return NextFloor(dir) == int.MinValue ? (dir > 0 ? "맨 위층" : "맨 아래층") : null;
+        }
+
+        /// <summary>모듈이 있는 층 중 지금 보는 층 바로 위(+1) · 아래(−1) 층 (없으면 int.MinValue).</summary>
+        private int NextFloor(int dir)
+        {
+            int at = _floors.IndexOf(_viewFloor);
+            int i = at + dir;
+            return at >= 0 && i >= 0 && i < _floors.Count ? _floors[i] : int.MinValue;
+        }
+
+        /// <summary>층 이름 (휴대 패드와 같음 — 0 = 1층, −1 = 지하 1층).</summary>
+        private static string FloorName(int y) => y >= 0 ? $"{y + 1}층" : $"지하 {-y}층";
+
+        private static Color EmissionOf(Material m, Color fallback) => m != null && m.HasProperty(EmissionColorId) ? m.GetColor(EmissionColorId) : fallback;
+
+        private Vector3 At(float u, float v) => _center + _right * u + _up * v;
+        private float LegendU(int i) => -_size.x / 2f + Margin + 0.06f + i * 0.55f;
+        private float LegendV() => _size.y / 2f - TitleBand - LegendRow / 2f;
+
+        protected override void Refresh()
+        {
+            Setup();
+            var grid = Station != null ? Station.Grid : null;
+            if (!Active || grid == null || Module == null)
+            {
+                Show(false);
+                SetText(_title, Active ? "<b>정거장 모듈 지도</b>" : "<b>전원 꺼짐</b>", ScreenDim);
+                SetText(_summary, "", ScreenDim);
+                _version = -1;   // 다시 켜지면 제목 · 요약까지 새로
+                RefreshButtons();
+                return;
+            }
+            if (!_floorSet)
+            {
+                _viewFloor = Module.Origin.y;
+                _floorSet = true;
+            }
+            if (_floorsVersion != grid.Version)
+            {
+                _floorsVersion = grid.Version;
+                _floors.Clear();
+                foreach (var m in grid.Modules)
+                {
+                    foreach (var c in m.Cells)
+                    {
+                        if (!_floors.Contains(c.y))
+                            _floors.Add(c.y);
+                    }
+                }
+                _floors.Sort();
+                if (!_floors.Contains(_viewFloor))
+                    _viewFloor = Module.Origin.y;
+            }
+            // 상태 모으기 (모듈 순서대로) → 지난번과 같으면 메시 그대로
+            var damage = Station.Simulation != null ? Station.Simulation.Damage : null;
+            var connectivity = Station.Connectivity;
+            _scratch.Clear();
+            foreach (var m in grid.Modules)
+            {
+                State s = m == Module ? State.Here
+                    : damage != null && damage.TryGetInfo(m, out _) ? State.Broken
+                    : connectivity != null && !connectivity.IsActive(m) ? State.Off
+                    : State.On;
+                _scratch.Add(s);
+            }
+            bool same = _built && _version == grid.Version && _builtFloor == _viewFloor && _scratch.Count == _signature.Count;
+            for (int i = 0; same && i < _scratch.Count; i++)
+                same = _scratch[i] == _signature[i];
+            if (!same)
+            {
+                _signature.Clear();
+                _signature.AddRange(_scratch);
+                _version = grid.Version;
+                _builtFloor = _viewFloor;
+                Rebuild(grid);
+            }
+            Show(true);
+            RefreshButtons();
+        }
+
+        private void RefreshButtons()
+        {
+            if (_floorText == null)
+                return;
+            bool on = Active && Module != null && _floorSet;
+            SetText(_floorText, on ? $"<b>{FloorName(_viewFloor)}</b>" : "---", on ? ScreenText : ScreenDim);
+            SetText(_upText, "위층", BlockedReason(1) == null ? ScreenText : ScreenDim);
+            SetText(_downText, "아래층", BlockedReason(-1) == null ? ScreenText : ScreenDim);
+        }
+
+        private void Show(bool on)
+        {
+            if (_shown == on && _built)
+                return;
+            _shown = on;
+            foreach (var r in _renderers)
+            {
+                if (r != null)
+                    r.enabled = on;
+            }
+            foreach (var t in _legend)
+            {
+                if (t != null)
+                    t.gameObject.SetActive(on);
+            }
+        }
+
+        private Vector2Int ToMap(Vector3Int cell)
+        {
+            // 이 모듈 로컬 칸 → 지도 (오른쪽 = 로컬 +z, 위 = 로컬 −x: 관제실에서 지도 벽을 보는 쪽)
+            var local = GridDirections.Rotate(cell - Module.Origin, -Module.Rotation);
+            return new Vector2Int(local.z, -local.x);
+        }
+
+        private void Rebuild(StationGrid grid)
+        {
+            _built = true;
+            _cells.Clear();
+            _ghost.Clear();
+            _states.Clear();
+            int floor = _viewFloor;
+            bool ownFloor = false;
+            int otherFloors = 0, off = 0, broken = 0;
+            int i = 0;
+            foreach (var m in grid.Modules)
+            {
+                var s = _signature[i++];
+                bool onFloor = false;
+                foreach (var c in m.Cells)
+                {
+                    if (c.y != floor)
+                        continue;
+                    onFloor = true;
+                    _cells[ToMap(c)] = m;
+                }
+                if (!onFloor)
+                {
+                    otherFloors++;
+                    continue;
+                }
+                if (m == Module)
+                    ownFloor = true;
+                _states[m] = s;
+                if (s == State.Off)
+                    off++;
+                else if (s == State.Broken)
+                    broken++;
+            }
+            // 다른 층을 볼 때: 이 모듈 자리 (위아래로 겹쳐 본 자리)
+            if (!ownFloor)
+            {
+                foreach (var c in Module.Cells)
+                    _ghost.Add(ToMap(c));
+            }
+            // 칸 범위 → 지도 칸 크기 · 가운데 (이 모듈 자리도 들어오게)
+            var min = new Vector2Int(int.MaxValue, int.MaxValue);
+            var max = new Vector2Int(int.MinValue, int.MinValue);
+            foreach (var p in _cells.Keys)
+            {
+                min = Vector2Int.Min(min, p);
+                max = Vector2Int.Max(max, p);
+            }
+            foreach (var p in _ghost)
+            {
+                min = Vector2Int.Min(min, p);
+                max = Vector2Int.Max(max, p);
+            }
+            bool any = _cells.Count > 0 || _ghost.Count > 0;
+            float areaW = _size.x - Margin * 2f;
+            float areaH = _size.y - TitleBand - LegendRow - BottomMargin;
+            float areaV = (BottomMargin - TitleBand - LegendRow) / 2f;   // 지도 칸 가운데 높이
+            float cs = MaxCell;
+            if (any)
+                cs = Mathf.Min(MaxCell, areaW / (max.x - min.x + 1), areaH / (max.y - min.y + 1));
+            var mid = any ? new Vector2((min.x + max.x) / 2f, (min.y + max.y) / 2f) : Vector2.zero;
+            for (int k = 0; k < StateCount; k++)
+            {
+                _verts.Clear();
+                _tris.Clear();
+                _lift = k == (int)State.Ghost ? GhostLift : Lift;
+                if (k == (int)State.Ghost)
+                {
+                    foreach (var p in _ghost)
+                    {
+                        bool l = !_ghost.Contains(p + Vector2Int.left), r = !_ghost.Contains(p + Vector2Int.right);
+                        bool b = !_ghost.Contains(p + Vector2Int.down), t = !_ghost.Contains(p + Vector2Int.up);
+                        float u0 = (p.x - mid.x - 0.5f + (l ? Gap : 0f)) * cs, u1 = (p.x - mid.x + 0.5f - (r ? Gap : 0f)) * cs;
+                        float v0 = areaV + (p.y - mid.y - 0.5f + (b ? Gap : 0f)) * cs, v1 = areaV + (p.y - mid.y + 0.5f - (t ? Gap : 0f)) * cs;
+                        Dashed(u0, v0, u1, v1, cs, l, r, b, t);
+                    }
+                }
+                else
+                {
+                    foreach (var pair in _cells)
+                    {
+                        if (!_states.TryGetValue(pair.Value, out var s) || (int)s != k)
+                            continue;
+                        var p = pair.Key;
+                        // 같은 모듈 이웃 쪽은 틈 없이 붙임
+                        float l = Joined(p, Vector2Int.left, pair.Value) ? 0f : Gap;
+                        float r = Joined(p, Vector2Int.right, pair.Value) ? 0f : Gap;
+                        float b = Joined(p, Vector2Int.down, pair.Value) ? 0f : Gap;
+                        float t = Joined(p, Vector2Int.up, pair.Value) ? 0f : Gap;
+                        float u0 = (p.x - mid.x - 0.5f + l) * cs, u1 = (p.x - mid.x + 0.5f - r) * cs;
+                        float v0 = areaV + (p.y - mid.y - 0.5f + b) * cs, v1 = areaV + (p.y - mid.y + 0.5f - t) * cs;
+                        if (k == (int)State.Here)
+                            Outline(u0, v0, u1, v1, cs * HereLine, l > 0f, r > 0f, b > 0f, t > 0f);
+                        else
+                            Quad(u0, v0, u1, v1);
+                    }
+                    // 범례 견본
+                    if (k < LegendCount)
+                    {
+                        float lu = LegendU(k), lv = LegendV();
+                        if (k == (int)State.Here)
+                            Outline(lu - 0.05f, lv - 0.05f, lu + 0.05f, lv + 0.05f, 0.025f, true, true, true, true);
+                        else
+                            Quad(lu - 0.05f, lv - 0.05f, lu + 0.05f, lv + 0.05f);
+                    }
+                }
+                var mesh = _meshes[k];
+                mesh.Clear();
+                mesh.SetVertices(_verts);
+                _norms.Clear();
+                for (int n = 0; n < _verts.Count; n++)
+                    _norms.Add(_normal);
+                mesh.SetNormals(_norms);
+                mesh.SetTriangles(_tris, 0);
+                mesh.RecalculateBounds();
+            }
+            string where = ownFloor ? "지금 층" : "다른 층 보는 중";
+            SetText(_title, $"<b>정거장 모듈 지도</b>  <size=70%>{FloorName(floor)} · {where}</size>", ScreenText);
+            string summary = $"모듈 {_states.Count} · 꺼짐 {off} · 고장 {broken}";
+            if (otherFloors > 0)
+                summary += $" · 다른 층 {otherFloors}";
+            SetText(_summary, summary, ScreenText);
+        }
+
+        private bool Joined(Vector2Int p, Vector2Int dir, ModuleInstance m) => _cells.TryGetValue(p + dir, out var other) && other == m;
+
+        /// <summary>속 빈 테두리 (모듈 바깥쪽 변만) — 여기 모듈을 모양으로도 구분.</summary>
+        private void Outline(float u0, float v0, float u1, float v1, float th, bool left, bool right, bool bottom, bool top)
+        {
+            if (left)
+                Quad(u0, v0, u0 + th, v1);
+            if (right)
+                Quad(u1 - th, v0, u1, v1);
+            if (bottom)
+                Quad(u0 + (left ? th : 0f), v0, u1 - (right ? th : 0f), v0 + th);
+            if (top)
+                Quad(u0 + (left ? th : 0f), v1 - th, u1 - (right ? th : 0f), v1);
+        }
+
+        /// <summary>점선 테두리 (바깥쪽 변만) — 다른 층에서 이 모듈 자리.</summary>
+        private void Dashed(float u0, float v0, float u1, float v1, float cs, bool left, bool right, bool bottom, bool top)
+        {
+            float th = cs * GhostLine, dash = cs * GhostDash, step = dash + cs * GhostSpace;
+            if (left)
+                for (float v = v0; v < v1; v += step)
+                    Quad(u0, v, u0 + th, Mathf.Min(v + dash, v1));
+            if (right)
+                for (float v = v0; v < v1; v += step)
+                    Quad(u1 - th, v, u1, Mathf.Min(v + dash, v1));
+            if (bottom)
+                for (float u = u0; u < u1; u += step)
+                    Quad(u, v0, Mathf.Min(u + dash, u1), v0 + th);
+            if (top)
+                for (float u = u0; u < u1; u += step)
+                    Quad(u, v1 - th, Mathf.Min(u + dash, u1), v1);
+        }
+
+        private void Quad(float u0, float v0, float u1, float v1)
+        {
+            int i = _verts.Count;
+            var lift = _normal * _lift;
+            _verts.Add(At(u0, v0) + lift);
+            _verts.Add(At(u1, v0) + lift);
+            _verts.Add(At(u1, v1) + lift);
+            _verts.Add(At(u0, v1) + lift);
+            // 앞면 = 보는 사람 쪽 (_normal)
+            _tris.Add(i); _tris.Add(i + 2); _tris.Add(i + 1);
+            _tris.Add(i); _tris.Add(i + 3); _tris.Add(i + 2);
+        }
+
+        private void Update()
+        {
+            // 누른 버튼이 잠깐 들어갔다 나옴
+            if (_floorText != null)
+            {
+                bool down = Time.unscaledTime < _pressUntil;
+                _floorUp.localPosition = _upRest + (down && _pressed == _floorUp ? _press : Vector3.zero);
+                _floorDown.localPosition = _downRest + (down && _pressed == _floorDown ? _press : Vector3.zero);
+            }
+            if (!_built || !_shown)
+                return;
+            float t = Time.unscaledTime;
+            // 여기 = 흰 테두리, 정상보다 밝게 천천히 숨 쉬듯 (2.4초)
+            var here = _renderers[(int)State.Here];
+            _block.Clear();
+            _block.SetColor(BaseColorId, Color.white);
+            _block.SetColor(EmissionColorId, Color.white * (1.4f + 0.6f * Mathf.Sin(t * Mathf.PI * 2f / 2.4f)));
+            here.SetPropertyBlock(_block);
+            // 고장 = 밝음 0.35초 ↔ 흐림(×0.55) 0.25초 — 흐릴 때도 모듈 모양은 보이게 (×0.3은 바탕과 거의 같았음). 재질은 그대로, 속성 블록만
+            bool lit = Mathf.Repeat(t, 0.6f) < 0.35f;
+            if (lit != _brokenLit)
+            {
+                _brokenLit = lit;
+                _block.Clear();
+                _block.SetColor(EmissionColorId, _onEmission * (lit ? 1f : 0.55f));
+                _renderers[(int)State.Broken].SetPropertyBlock(_block);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            foreach (var m in _meshes)
+            {
+                if (m != null)
+                    Destroy(m);
+            }
+        }
+    }
+}

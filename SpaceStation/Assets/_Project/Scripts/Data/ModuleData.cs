@@ -113,6 +113,8 @@ namespace SpaceStation.Data
         [SerializeField] private bool _countsTowardGrade = true;
         [Tooltip("12-3 진화 모듈: 등급 조건 '모듈 수'에서 몇 개로 세는지 (A4 = 재료 개수, 다단계는 기본 재료 누적). 기본 모듈은 1")]
         [SerializeField, Min(1)] private int _gradeModuleCount = 1;
+        [Tooltip("진화 모듈: 재료로 들어간 제한 모듈(채굴 도킹) 수 — 도킹 한도에 이만큼 셈 (합성으로 한도를 넘지 않게, 사용자 결정 2026-10-22). 기본 모듈은 0 (제한 모듈 자신은 따로 1로 셈)")]
+        [SerializeField, Min(0)] private int _limitedModuleShare;
         [Tooltip("수리 시간 배율 (0.5 = 절반)")]
         [SerializeField, Min(0.05f)] private float _repairTimeMultiplier = 1f;
 
@@ -140,6 +142,10 @@ namespace SpaceStation.Data
 
         [Tooltip("8-4 회전 링: 가동 중이면 정거장 전체 인구 증가 간격에 곱함 (0.8 = 20% 빨리, 1 = 효과 없음). 여러 개는 중첩 없이 가장 강한 것")]
         [SerializeField, Range(0.1f, 1f)] private float _growthIntervalMultiplier = 1f;
+
+        [Header("Diet (남은 요구 식단 다양성, 2026-10-22)")]
+        [Tooltip("식량 종류 — 식단 요구는 정거장 전체 식량 생산에서 종류별 비중으로 충족 (채소 · 단백질 반반 = 100%, 한 종류만 = 50%). 여러 종류면 생산량을 똑같이 나눠 셈")]
+        [SerializeField] private FoodKind _foodKinds;
 
         [Header("Resident Service (BALANCE 20번)")]
         [Tooltip("충족하는 거주자 요구. None이면 서비스 모듈 아님")]
@@ -174,6 +180,7 @@ namespace SpaceStation.Data
                         yield return n;
             }
         }
+        public FoodKind FoodKinds => _foodKinds;
         public int ServiceRadius => _serviceRadius;
         public int ServiceCapacity => _serviceCapacity;
         public bool IsService => ServiceNeed != ResidentNeed.None;
@@ -268,6 +275,7 @@ namespace SpaceStation.Data
         public bool Armored => _armored;
         public bool CountsTowardGrade => _countsTowardGrade;
         public int GradeModuleCount => Mathf.Max(1, _gradeModuleCount);
+        public int LimitedModuleShare => _limitedModuleShare;
         public int DecoyRadius => _decoyChance > 0f ? _decoyRadius : 0;
         public float DecoyChance => _decoyChance;
         public bool IsDecoy => DecoyRadius > 0;

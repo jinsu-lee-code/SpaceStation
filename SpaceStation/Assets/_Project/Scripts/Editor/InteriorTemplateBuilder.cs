@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using SpaceStation.Data;
 using SpaceStation.Interior;
 using UnityEditor;
@@ -98,6 +98,11 @@ namespace SpaceStation.Editor
             BuildWaterExtractor();
             BuildDataCenter();
             BuildCommerce();
+            BuildAdministration();
+            BuildRadiationShelter();
+            BuildPassengerPort();
+            BuildRadiator();
+            BuildCommRelay();
         }
 
         /// <summary>1칸 방 문 자리: 열린 수평 면(+x · −x · +z · −z) + 위 · 아래 해치(칸 중심에서 hatch만큼).</summary>
@@ -344,6 +349,258 @@ namespace SpaceStation.Editor
                     lights.Add(LightSpec.Point(new Vector3(x, F + 2.2f, z), 3f, 0.9f, new Color(1f, 0.82f, 0.6f)));
             }
             Build("Commerce", "MD_Commerce", TwoCellSockets(Vector3.zero), new Vector3(-2.2f, F, 0f), 90f, lights);
+        }
+
+        /// <summary>12-5 행정 관제소 (2칸): 서쪽 민원 홀 (창구 3 · 대기 의자 · 발권기 · 천장 돔) + 칸막이 + 동쪽 관제실 (모듈 상태 지도 벽 · 콘솔 4 · 레이더).
+        /// 지도 = 실제 정거장 + 아래 층 버튼 (<see cref="InteriorStationMap"/>), 창구 번호 · 발권기 = 실제 직원 · 민원인이 움직일 때 (<see cref="InteriorQueueBoard"/>,
+        /// 주민 자리는 ResidentSpotBaker 고정 자리). 해치: 0번 칸 (−2.0, −2.0) — 구석 벽기둥 받침과 떨어지게, 1번 칸 (2.25, −2.25).</summary>
+        private static void BuildAdministration()
+        {
+            var warm = new Color(1f, 0.93f, 0.82f);
+            var cool = new Color(0.8f, 0.88f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0.25f, F + 3.0f, 0f), 6.5f, 2.2f, warm),   // 돔 아래
+                LightSpec.Point(new Vector3(-2.3f, F + 3.0f, 0.8f), 4.5f, 1.2f, warm),
+                LightSpec.Point(new Vector3(2.6f, F + 3.0f, 0.5f), 4.5f, 1.2f, warm),  // 창구 앞
+                LightSpec.Point(new Vector3(6.8f, F + 3.1f, 0f), 6f, 1.7f, cool),
+                LightSpec.Point(new Vector3(9.6f, F + 3.1f, 0.3f), 5f, 1.4f, cool),
+            };
+            var sockets = new List<InteriorSocket>();
+            var hatches = new[] { new Vector3(-2.0f, 0f, -2.0f), new Vector3(2.25f, 0f, -2.25f) };
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, hatches[x]));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, F + 3.6f, hatches[x]));
+            }
+            // admin_builder ANCHORS["sweep"] (레이더 화면 법선 축)
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_Admin_Sweep", new Vector3(10.1812f, 0.1083f, 2.2996f), new Vector3(-0.6116f, 0.5736f, -0.5449f), 60f),
+            };
+            Build("Admin", "MD_Administration", sockets, new Vector3(-2.2f, F, 0f), 90f, lights, orbits,
+                configure: root =>
+                {
+                    // admin_builder ANCHORS["map"] · ["floor_label"] · ["floor_buttons"]
+                    var map = root.AddComponent<InteriorStationMap>();
+                    map.Configure(new Vector3(4.213f, 0.925f, 0.55f), Vector3.right, Vector3.up, new Vector2(4.8f, 1.55f),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath));
+                    var up = Child(root, "INT_Admin_FloorUp");
+                    var down = Child(root, "INT_Admin_FloorDown");
+                    foreach (var b in new[] { up, down })   // F 시선 광선에 잡히게 (메시 경계 상자)
+                    {
+                        if (b != null)
+                            b.gameObject.AddComponent<BoxCollider>();
+                    }
+                    map.ConfigureFloors(up, down, new Vector3(4.193f, -0.06f, 0.55f), new Vector3(4.193f, -0.17f, 0.88f), new Vector3(4.193f, -0.17f, 0.22f),
+                        new Vector3(-0.012f, 0f, 0f));
+                    // ["queue"] · ["staff"] · ["customer"] · ["ticket"] · ["ticket_stand"] — 1번 · 2번 창구 (3번 = 발바닥 도장, 번호 없음)
+                    InteriorQueueBoard.Window Window(float boardZ, float z) => new InteriorQueueBoard.Window
+                    {
+                        Board = new InteriorQueueBoard.Panel { Center = new Vector3(3.812f, 0.67f, boardZ), Normal = Vector3.left, Up = Vector3.up, Width = 0.76f, Height = 0.24f },
+                        StaffSeat = new Vector3(3.5f, F + 0.49f, z),
+                        Counter = new Vector4(2.4f, F, z, 90f),
+                    };
+                    var queue = root.AddComponent<InteriorQueueBoard>();
+                    queue.Configure(new[] { Window(1.965f, 2.125f), Window(0.39f, 0.55f) },
+                        new InteriorQueueBoard.Panel { Center = new Vector3(-2.752f, -0.5f, 2.6f), Normal = Vector3.right, Up = Vector3.up, Width = 0.26f, Height = 0.14f },
+                        new Vector4(-2.35f, F, 2.6f, -90f), 0f, 1.55f, 2.2f, new Vector3(-2.35f, F, 2.2f));   // 발권기 길 = 의자 줄 뒤(z 2.2) — 들어오는 곳을 피함
+                    // 민원인 통로 (보급 상자 · 부탁 물건을 두지 않음): 의자 앞 두 줄 · 가운데 통로 · 줄 기둥 앞 · 창구 앞 2 · 발권기 길
+                    queue.ConfigureLanes(new[]
+                    {
+                        new Vector4(-0.2f, -1.75f, -0.2f, 2.2f), new Vector4(1.0f, -1.75f, 1.0f, 2.2f), new Vector4(-0.2f, 0f, 1.55f, 0f),
+                        new Vector4(1.55f, 0f, 1.55f, 2.125f), new Vector4(1.55f, 0.55f, 2.4f, 0.55f), new Vector4(1.55f, 2.125f, 2.4f, 2.125f),
+                        new Vector4(1.0f, 2.2f, -2.35f, 2.2f), new Vector4(-2.35f, 2.2f, -2.35f, 2.6f),
+                    }, 0.35f);
+                });
+        }
+
+        /// <summary>
+        /// 12-5 방사선 차폐실 (2칸, 사용자 1안 2026-10-21): 원통 콘크리트 천장 + 칸막이 금고문 통로 — 서쪽 제염실(선량계 게이트 · 제염 샤워 부스 ·
+        /// 방호복 · 열린 금고문 문짝) / 동쪽 대피실(2층 침상 · 벤치 · 비상 물자 · 공기 정화기). 경보판 = 통로 위 양면 (<see cref="InteriorRadiationBoard"/>,
+        /// 정원 = 침상 4 + 벤치 8). 해치 = 원통 천장 꼭대기 평평한 띠 (0번 칸 (−0.8, 0) · 1번 칸 (1.5, 0)).
+        /// </summary>
+        private static void BuildRadiationShelter()
+        {
+            var cool = new Color(0.9f, 0.95f, 1f);
+            var warm = new Color(1f, 0.9f, 0.76f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-2.5f, F + 3.3f, 0f), 5.5f, 1.6f, cool),     // 제염실 천장 등 (shelter_builder LAMPS)
+                LightSpec.Point(new Vector3(1.0f, F + 3.3f, 0f), 5.5f, 1.8f, cool),
+                LightSpec.Point(new Vector3(2.7f, F + 2.0f, -2.65f), 2.2f, 0.6f, cool),   // 샤워 부스 안
+                LightSpec.Point(new Vector3(5.2f, F + 3.3f, 0f), 5.5f, 1.7f, warm),      // 대피실 천장 등
+                LightSpec.Point(new Vector3(7.2f, F + 3.3f, 0f), 5.5f, 1.7f, warm),
+                LightSpec.Point(new Vector3(10.3f, F + 2.8f, 0f), 4.5f, 1.1f, warm),     // 동쪽 (선반 · 정화기)
+            };
+            var sockets = new List<InteriorSocket>();
+            var hatches = new[] { new Vector3(-0.8f, 0f, 0f), new Vector3(1.5f, 0f, 0f) };
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, hatches[x]));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, F + 3.6f, hatches[x]));
+            }
+            Build("Shelter", "MD_RadiationShelter", sockets, new Vector3(-2.3f, F, 0f), 90f, lights,
+                configure: root =>
+                {
+                    // shelter_builder ANCHORS["board_w"] · ["board_e"] (화면 1.88 × 0.7)
+                    InteriorRadiationBoard.Panel Board(float x, float nx) => new InteriorRadiationBoard.Panel
+                    {
+                        Center = new Vector3(x, F + 3.02f, 0f), Normal = new Vector3(nx, 0f, 0f), Up = Vector3.up, Width = 1.88f, Height = 0.7f,
+                    };
+                    root.AddComponent<InteriorRadiationBoard>().Configure(new[] { Board(3.625f, -1f), Board(4.375f, 1f) }, 12);
+                });
+        }
+
+        /// <summary>
+        /// 12-5 여객 도킹 포트 (2칸, 사용자 결정 2026-10-21: 대합실 + 입국장을 칸별로). 앞면(+z) = 이민선 접근로라 문 자리 없음 → 앞벽 전체 유리
+        /// (바깥 화면) + 둥근 탑승구 2. 서쪽 입국장 (탑승구 1 → 입국 심사 부스 → 수하물 컨베이어 → 환영 아치 → 뒤 문) / 동쪽 대합실 (탑승구 2 ·
+        /// 창을 보는 의자 14 · 안내 데스크 · 자판기). 칸막이 위 양면 도착 안내판 = 실제 이민선 시계 (<see cref="InteriorArrivalBoard"/>).
+        /// 천장 = 외형 물결 지붕 (칸 가운데가 높음), 뒤쪽 띠는 평평 F + 3.6 → 해치 = 0번 칸 (−2.15, −2.15) · 1번 칸 (2.15, −2.15).
+        /// </summary>
+        private static void BuildPassengerPort()
+        {
+            var warm = new Color(1f, 0.94f, 0.86f);
+            var cool = new Color(0.86f, 0.92f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, F + 3.4f, 0.9f), 6.5f, 2.0f, warm),     // 입국장 물결 천장 아래
+                LightSpec.Point(new Vector3(-2.0f, F + 3.0f, 1.6f), 4.5f, 1.0f, warm),
+                LightSpec.Point(new Vector3(2.4f, F + 3.0f, -1.0f), 4.5f, 1.1f, warm),   // 수하물 컨베이어
+                LightSpec.Point(new Vector3(0f, F + 2.9f, -2.1f), 4f, 0.9f, warm),       // 환영 아치
+                // 입국 심사 부스 안 (직원 얼굴 앞 · 모니터 화면 뒤 — 화면에 반사점이 생기지 않게): 사용자 요청 2026-10-21 "부스가 너무 어두워 보임" → 0.9는 머리가 하얗게 떠서 "조금만 줄이자" → 0.45
+                LightSpec.Point(new Vector3(-0.7f, F + 1.42f, 1.0f), 1.5f, 0.45f, warm),
+                LightSpec.Point(new Vector3(0.7f, F + 1.42f, 1.0f), 1.5f, 0.45f, warm),
+                LightSpec.Point(new Vector3(8f, F + 3.4f, 0.9f), 6.5f, 2.0f, warm),     // 대합실
+                LightSpec.Point(new Vector3(5.6f, F + 3.0f, 0.6f), 5f, 1.2f, warm),
+                LightSpec.Point(new Vector3(10.2f, F + 3.0f, 0.6f), 4.5f, 1.0f, warm),
+                LightSpec.Point(new Vector3(5.8f, F + 2.8f, -1.9f), 4f, 1.0f, warm),     // 안내 데스크
+                LightSpec.Point(new Vector3(4f, F + 2.2f, 2.5f), 5f, 0.5f, cool),        // 유리벽 쪽
+            };
+            var sockets = new List<InteriorSocket>();
+            var hatches = new[] { new Vector3(-2.15f, 0f, -2.15f), new Vector3(2.15f, 0f, -2.15f) };
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, hatches[x]));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, F + 3.6f, hatches[x]));
+            }
+            Build("Passenger", "MD_PassengerPort", sockets, new Vector3(-2.2f, F, 0f), 90f, lights,
+                configure: root =>
+                {
+                    // passenger_builder ANCHORS["board_w"] · ["board_e"] (화면 1.96 × 0.62) · ["labels"] (표지 글자)
+                    InteriorArrivalBoard.Panel Board(float x, float nx) => new InteriorArrivalBoard.Panel
+                    {
+                        Center = new Vector3(x, F + 2.95f, 0.7f), Normal = new Vector3(nx, 0f, 0f), Up = Vector3.up, Width = 1.96f, Height = 0.62f,
+                    };
+                    InteriorSignLabels.Label Label(float x, float y, float z, Vector3 normal, float w, float h, string text) => new InteriorSignLabels.Label
+                    {
+                        Center = new Vector3(x, y, z), Normal = normal, Up = Vector3.up, Width = w, Height = h, Text = text,
+                    };
+                    var labels = new[]
+                    {
+                        Label(0.17f, 1.51f, 3.005f, Vector3.back, 0.82f, 0.32f, "도착"),
+                        Label(8.17f, 1.51f, 3.005f, Vector3.back, 0.82f, 0.32f, "탑승"),
+                        Label(0f, 0.51f, 0.965f, Vector3.back, 1.1f, 0.2f, "입국 심사"),
+                        Label(0f, 0.51f, 1.035f, Vector3.forward, 1.1f, 0.2f, "입국 심사"),
+                        Label(2.465f, 0.36f, -0.85f, Vector3.left, 0.4f, 0.18f, "수하물"),
+                        Label(2.535f, 0.36f, -0.65f, Vector3.right, 0.4f, 0.18f, "수하물"),
+                        Label(0f, 1.8f, -1.745f, Vector3.back, 1.36f, 0.28f, "입국장"),
+                        Label(0f, 1.8f, -1.655f, Vector3.forward, 1.36f, 0.28f, "어서 오세요"),
+                        Label(5.8f, 0.86f, -1.77f, Vector3.forward, 0.6f, 0.13f, "안내"),
+                    };
+                    root.AddComponent<InteriorArrivalBoard>().Configure(new[] { Board(3.925f, -1f), Board(4.075f, 1f) });
+                    root.AddComponent<InteriorSignLabels>().Configure(labels);
+                });
+        }
+
+        /// <summary>
+        /// 12-5 방열판 (1칸, 사용자 결정 2026-10-22: 냉각 펌프실 · 열 감시판 · 기술자 일터). 가운데 열교환기(관 다발 · 고온 / 저온 집합관 · 조작반),
+        /// 북쪽 두 구석 펌프 2, 천장 = 바깥 날개판 뿌리 10줄 + 주황(고온) · 하늘색(저온) 냉각관. 동쪽 벽 남쪽 칸 열 감시판 = 맞닿은 모듈의 실제 열
+        /// (<see cref="InteriorHeatBoard"/>). 해치 = (−2.25, −2.25) — 남서 구석 비움.
+        /// </summary>
+        private static void BuildRadiator()
+        {
+            var cool = new Color(0.86f, 0.93f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 0f), 6.5f, 1.8f, cool),          // 열교환기 위
+                LightSpec.Point(new Vector3(-2.2f, F + 2.6f, 2.0f), 3.5f, 0.8f, cool),     // 펌프 2
+                LightSpec.Point(new Vector3(2.2f, F + 2.6f, 2.0f), 3.5f, 0.8f, cool),
+                LightSpec.Point(new Vector3(2.2f, F + 2.5f, -2.3f), 3f, 0.7f, cool),       // 열 감시판 앞
+                LightSpec.Point(new Vector3(-2.0f, F + 2.8f, -1.6f), 4f, 0.8f, cool),      // 해치 구석
+            };
+            Build("Radiator", "MD_Radiator", OneCellSockets(Socket, new Vector3(-2.25f, 0f, -2.25f)), new Vector3(0f, F, -2.3f), 0f, lights,
+                configure: root =>
+                {
+                    // radiator_builder ANCHORS["board"] (화면 1.2 × 1.12, 동쪽 벽 → −x를 봄) · ["labels"]
+                    root.AddComponent<InteriorHeatBoard>().Configure(new Vector3(3.105f, F + 1.7f, -2.45f), Vector3.left, Vector3.up, new Vector2(1.2f, 1.12f),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath), AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.InteriorHullDarkPath));   // 막대 바탕 = 어두운 홈 (밝으면 0%도 가득 찬 막대처럼 보였음)
+                    InteriorSignLabels.Label Label(float x, float y, float z, Vector3 normal, float w, float h, string text) => new InteriorSignLabels.Label
+                    {
+                        Center = new Vector3(x, y, z), Normal = normal, Up = Vector3.up, Width = w, Height = h, Text = text,
+                    };
+                    root.AddComponent<InteriorSignLabels>().Configure(new[]
+                    {
+                        Label(-1.05f, F + 1.27f, -0.145f, Vector3.back, 0.22f, 0.1f, "고온"),
+                        Label(1.05f, F + 1.27f, -0.145f, Vector3.back, 0.22f, 0.1f, "저온"),
+                        Label(0f, F + 1.73f, -0.53f, Vector3.back, 0.86f, 0.15f, "열교환기"),
+                        Label(0f, F + 1.73f, 0.53f, Vector3.forward, 0.86f, 0.15f, "열교환기"),
+                    });
+                });
+        }
+
+        /// <summary>
+        /// 12-5 통신 중계소 (1칸, 사용자 결정 2026-10-22: 신호 해독실 · 신호판 + 평판 · 연구원 일터). 가운데 수신 기둥 (유리 관 속 빛 고리 4가
+        /// 위에서 아래로 흐름) + 천장 접시 회전 구동부 (INT_CommRelay_Drive, 바깥 접시 SpinDish와 같은 초당 8°). 북동 ㄱ자 해독 책상 + 벽 화면 2
+        /// (북쪽 = 신호판, 동쪽 = 세력 평판 — 실제 외부 접촉 값, <see cref="InteriorSignalBoard"/>), 북서 기록 책상 (기록계 · 릴 테이프 데크),
+        /// 남동 송수신기 함 (다이얼 · 패치 베이). 해치 = (−2.25, −2.25) — 남서 구석 비움.
+        /// </summary>
+        private static void BuildCommRelay()
+        {
+            var cool = new Color(0.88f, 0.92f, 1f);
+            var warm = new Color(1f, 0.9f, 0.78f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(2.15f, F + 3.0f, 0f), 4.5f, 1.1f, cool),
+                LightSpec.Point(new Vector3(-2.15f, F + 3.0f, 0f), 4.5f, 1.1f, cool),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 2.15f), 4.5f, 1.1f, cool),
+                LightSpec.Point(new Vector3(0f, F + 3.0f, -2.15f), 4.5f, 1.1f, cool),
+                LightSpec.Point(new Vector3(0f, F + 1.75f, 0f), 2.8f, 0.7f, new Color(0.78f, 0.68f, 1f)),   // 수신 기둥 빛 (기둥 중심)
+                LightSpec.Point(new Vector3(2.25f, F + 2.5f, 2.25f), 2.2f, 0.45f, warm),                    // 해독 책상 매단 등
+                LightSpec.Point(new Vector3(-2.25f, F + 2.5f, 2.25f), 2.2f, 0.45f, warm),                   // 기록 책상 매단 등
+                LightSpec.Point(new Vector3(-2.0f, F + 2.8f, -2.0f), 3.5f, 0.6f, cool),                     // 해치 구석
+            };
+            var orbits = new List<OrbitSpec> { new OrbitSpec("INT_CommRelay_Drive", Vector3.zero, Vector3.up, 8f) };
+            // 스폰 = 남쪽 문 앞 조금 동쪽 — 가운데 기둥이 시야를 덜 가리고 북동 해독 책상 · 화면이 보이게
+            Build("CommRelay", "MD_CommRelay", OneCellSockets(Socket, new Vector3(-2.25f, 0f, -2.25f)), new Vector3(0.7f, F, -2.4f), 10f, lights, orbits,
+                configure: root =>
+                {
+                    // comm_builder ANCHORS["signal"] · ["reputation"] (화면 1.16 × 1.12) · ["pulse"] (빛 고리 위 끝 → 아래로 2.12)
+                    var pulses = new List<Transform>();
+                    for (int i = 0; i < 4; i++)
+                    {
+                        var p = Child(root, "INT_CommRelay_Pulse_" + i);
+                        if (p != null)
+                            pulses.Add(p);
+                    }
+                    root.AddComponent<InteriorSignalBoard>().Configure(
+                        new InteriorSignalBoard.Panel { Center = new Vector3(2.51f, F + 1.92f, 3.105f), Normal = Vector3.back, Up = Vector3.up, Size = new Vector2(1.16f, 1.12f) },
+                        new InteriorSignalBoard.Panel { Center = new Vector3(3.105f, F + 1.92f, 2.505f), Normal = Vector3.left, Up = Vector3.up, Size = new Vector2(1.16f, 1.12f) },
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath), AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.InteriorHullDarkPath),
+                        pulses.ToArray(), 2.12f);
+                });
         }
 
         /// <summary>11-4 코어: 12각 고리 복도(반지름 4.4~7.0) + 바깥 연결 통로 8곳 + 안쪽 창 너머 허브·통신탑. 고리 중심 = 로컬 (4, 4).</summary>
@@ -1165,7 +1422,11 @@ namespace SpaceStation.Editor
             { "Turret", InteriorAmbience.Electric }, { "ArmorBulkhead", InteriorAmbience.Electric }, { "DamageControl", InteriorAmbience.Electric },
             { "Core", InteriorAmbience.Hall }, { "RotatingRing", InteriorAmbience.Hall },
             // 12-5 새 기본 모듈
-            { "School", InteriorAmbience.Life }, { "Quarantine", InteriorAmbience.Life }, { "Commerce", InteriorAmbience.Life },
+            { "School", InteriorAmbience.Life }, { "Quarantine", InteriorAmbience.Life }, { "Commerce", InteriorAmbience.Life }, { "Admin", InteriorAmbience.Life },
+            { "Shelter", InteriorAmbience.Machine },   // 공기 정화기 소리
+            { "Passenger", InteriorAmbience.Life },
+            { "Radiator", InteriorAmbience.Machine },   // 냉각 펌프
+            { "CommRelay", InteriorAmbience.Electric }, // 송수신기 · 증폭기
             { "WaterEx", InteriorAmbience.Water }, { "Protein", InteriorAmbience.Machine },
             { "Sensor", InteriorAmbience.Electric }, { "DataCenter", InteriorAmbience.Electric },
             { "Frame", InteriorAmbience.Hall }, { "Hub", InteriorAmbience.Hall },
@@ -1229,6 +1490,7 @@ namespace SpaceStation.Editor
                 { "Fish", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FishPath) },
                 { "Ice", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.IcePath) },
                 { "Aqua", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.AquaPath) },
+                { "Concrete", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ConcretePath) },   // 12-5 방사선 차폐실
             };
 
             var root = new GameObject("PF_Interior_" + name);

@@ -51,6 +51,7 @@ namespace SpaceStation.Editor.Balance
         public static bool DefenseFirst;
         private readonly List<ModuleInstance> _covered = new List<ModuleInstance>();
         private readonly List<ModuleData> _services = new List<ModuleData>(); // 4-9 의료·여가
+        private readonly List<ModuleData> _dietFoods = new List<ModuleData>(); // 남은 요구 식단: 식품 종류가 붙은 식량 모듈
         // 전력 모델 (Decide마다 갱신): 낮 여유 = 낮 발전 - 수요 - 밤 대비 충전분
         private float _nightDeficit;     // 밤 동안 초당 부족량
         private float _spareDayPower;    // 밤 충전분을 뺀 낮 여유 (초당)
@@ -88,6 +89,7 @@ namespace SpaceStation.Editor.Balance
                 if (m.IsDamageControl && Pick(_control, m)) _control = m;
                 if (m.ResearchSlots > 0 && Pick(_lab, m)) _lab = m;
                 if (m.IsService && m.HousingCapacity <= 0) _services.Add(m);
+                if (m.FoodKinds != FoodKind.None && Produces(m, ResourceType.Food)) _dietFoods.Add(m); // 남은 요구 식단
                 if (_ring == null && m.HousingCapacity > 0 && m.GrowthIntervalMultiplier < 1f) _ring = m; // 8-4 (거주 겸 서비스)
                 if (_fuelCell == null && m.OnDemandPower && Produces(m, ResourceType.Power)) _fuelCell = m; // 8-5
                 if (_cargo == null && m.IsCargoTerminal) _cargo = m;
@@ -430,6 +432,14 @@ namespace SpaceStation.Editor.Balance
             {
                 if (status.Ratio >= 0.95f)
                     continue;
+                if (status.Need == ResidentNeed.Diet)
+                {
+                    // 식단은 서비스 모듈이 아니라 식량 종류 비중 → 비중이 가장 낮은 종류를 만드는 식량 모듈 (가장 이른 해금)
+                    var diet = PickDietFood();
+                    if (diet != null)
+                        return diet;
+                    continue;
+                }
                 foreach (var m in _services)
                 {
                     if (m.ServiceNeed == status.Need && _sim.CheckBuildable(m) == PlacementResult.Valid)
@@ -437,6 +447,30 @@ namespace SpaceStation.Editor.Balance
                 }
             }
             return null;
+        }
+
+        private ModuleData PickDietFood()
+        {
+            FoodKind lacking = FoodKind.None;
+            float lowest = float.MaxValue;
+            foreach (var kind in FoodKindExtensions.All)
+            {
+                float share = _sim.Needs.DietShare(kind);
+                if (share < lowest)
+                {
+                    lowest = share;
+                    lacking = kind;
+                }
+            }
+            ModuleData best = null;
+            foreach (var m in _dietFoods)
+            {
+                if ((m.FoodKinds & lacking) == 0 || _sim.CheckBuildable(m) != PlacementResult.Valid)
+                    continue;
+                if (best == null || UnlockOrder(m) < UnlockOrder(best))
+                    best = m;
+            }
+            return best;
         }
 
         /// <summary>서비스 모듈 배치 점수: 범위 안 거주 모듈의 아직 충족되지 않은 수용 인원.</summary>

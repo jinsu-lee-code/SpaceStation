@@ -14,6 +14,10 @@ namespace SpaceStation.Data
         Commerce,
         /// <summary>13-5 행정 (행정 관제소).</summary>
         Administration,
+        /// <summary>남은 요구 (2026-10-22): 식단 다양성 — 서비스 모듈이 아니라 정거장 전체 식량 생산의 종류별 비중 (<see cref="FoodKind"/>).</summary>
+        Diet,
+        /// <summary>남은 요구 (2026-10-22): 치안 (진화 모듈 보안청 · 치안 본부).</summary>
+        Security,
     }
 
     public static class ResidentNeedExtensions
@@ -28,6 +32,8 @@ namespace SpaceStation.Data
                 case ResidentNeed.Quarantine: return "검역";
                 case ResidentNeed.Commerce: return "소비";
                 case ResidentNeed.Administration: return "행정";
+                case ResidentNeed.Diet: return "식단";
+                case ResidentNeed.Security: return "치안";
                 default: return "-";
             }
         }

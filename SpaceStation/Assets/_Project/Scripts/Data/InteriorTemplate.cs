@@ -133,6 +133,12 @@ namespace SpaceStation.Data
         [SerializeField] private List<ResidentTrait> _workTraits = new List<ResidentTrait>();
         [Tooltip("낮에 일터가 없는 주민이 쉬러 오는 방")]
         [SerializeField] private bool _leisure;
+        [Tooltip("12-5 일하는 자리를 일터가 없는 주민도 씀 (특성 무관 — 행정 관제소 창구 · 관제 콘솔)")]
+        [SerializeField] private bool _openWork;
+        [Tooltip("12-5 쉬러 온 사람 상태 글 (비면 '쉬는 중') — 행정 관제소 = '민원 보는 중'")]
+        [SerializeField] private string _visitStatus;
+        [Tooltip("12-5 일하는 사람 상태 글 (비면 '일하는 중') — 방사선 차폐실 = '물자 관리 중'")]
+        [SerializeField] private string _workStatus;
 
         [Header("11-17 식물")]
         [Tooltip("따로 놓는 식물 자리 (메뉴 SpaceStation/Interior/Set Plant Spots)")]
@@ -144,6 +150,9 @@ namespace SpaceStation.Data
         public IReadOnlyList<ResidentSpot> ResidentSpots => _residentSpots;
         public IReadOnlyList<ResidentTrait> WorkTraits => _workTraits;
         public bool Leisure => _leisure;
+        public bool OpenWork => _openWork;
+        public string VisitStatus => _visitStatus;
+        public string WorkStatus => _workStatus;
         public InteriorAmbience Ambience => _ambience;
         public bool ShowOwnExterior => _showOwnExterior;
         public GameObject Prefab => _prefab;
@@ -189,6 +198,13 @@ namespace SpaceStation.Data
             _residentSpots = spots ?? new List<ResidentSpot>();
             _workTraits = workTraits ?? new List<ResidentTrait>();
             _leisure = leisure;
+        }
+
+        public void EditorSetVisit(bool openWork, string visitStatus, string workStatus = null)
+        {
+            _openWork = openWork;
+            _visitStatus = visitStatus;
+            _workStatus = workStatus;
         }
 #endif
     }
