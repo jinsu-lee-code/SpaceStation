@@ -787,3 +787,17 @@
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상, 동작 같음. 타이쿤판이 `ResultScreen` 게임 오버 버튼을 고쳤으면 그 부분만 맞춤.
+
+## M-46. 측정 확장 고리 — 봇 위에 모드별 결정 · 게임 오버 뒤 다시 시작 (2026-10-25, `main`)
+
+**main에 넣은 것** — 측정 도구 고리만 (확장이 없으면 결과 같음 — 같은 시드 timeseries 비교). 사용자 결정 2026-10-25 (13-8 준비 ①, S5-3): 서사판 캠페인 봇은 공통 봇 위에 확장으로
+- `Editor/Balance/IBalanceExtension` (새 파일): `Configure`(시뮬레이션 설정 — 모드 데이터) · `Attach`(만든 직후 · 복원 전 — 시스템 붙이기) · `Decide`(매 틱 봇 결정 뒤) · `Finished` · `RetryState`(게임 오버 때 이어 갈 상태) · `Finish`(결과)
+- `BalanceRunSettings.Extension` (판마다 새로 만드는 함수) · `BalanceRunResult.Extra` (확장 결과) · `Retries`
+- `BalanceRun`: 시뮬레이션 만들기를 `CreateSim(seed, attempt)`로 (attempt 0 = 예전과 같은 난수 씨앗), 게임 오버면 확장이 준 상태로 새 시뮬레이션 · 새 봇(같은 성향)을 만들어 이어 감 — 되돌아간 시간은 `Elapsed`에 더함, 봇 수(건설 · 수리 · 정비 …)는 모든 시도의 합, 13-7 새 일 지표는 첫 시도만
+- `BalanceBot.TryBuild(모듈)`: 확장이 원하는 모듈을 봇의 자리 찾기로 지음
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 서사판 캠페인 봇 확장이 꽂힘 (13-8 준비 ①).
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상, 결과 같음 (확장 없음). 타이쿤판이 `BalanceRun` 생성자 · 게임 오버 처리를 고쳤으면 그 부분만 맞춤.

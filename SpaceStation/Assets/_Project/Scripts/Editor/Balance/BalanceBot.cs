@@ -787,6 +787,20 @@ namespace SpaceStation.Editor.Balance
             return total;
         }
 
+        /// <summary>
+        /// 13-8 측정 확장(<see cref="IBalanceExtension"/>)이 원하는 모듈을 봇의 자리 찾기로 지음 (예: 서사판 2장 센서 어레이).
+        /// 해금 · 비용 · 자리가 맞으면 짓고 true.
+        /// </summary>
+        public bool TryBuild(ModuleData data)
+        {
+            if (data == null || !_sim.CanAfford(data) || _sim.CheckBuildable(data) != PlacementResult.Valid)
+                return false;
+            if (!TryFindPlacement(data, out var origin, out int rotation) || !_sim.TryPlace(data, origin, rotation, out _))
+                return false;
+            ModulesBuilt++;
+            return true;
+        }
+
         /// <summary>기존 모듈 주변 빈 셀 × 회전 중 유효한 자리. 맞닿는 면이 많을수록(조밀), 원점에 가까울수록 우선.</summary>
         private bool TryFindPlacement(ModuleData data, out Vector3Int bestOrigin, out int bestRotation)
         {
