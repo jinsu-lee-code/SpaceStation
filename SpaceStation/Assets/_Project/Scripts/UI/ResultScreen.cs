@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using SpaceStation.Core;
 using SpaceStation.Data;
 using SpaceStation.Simulation;
@@ -7,15 +9,30 @@ using UnityEngine.UI;
 
 namespace SpaceStation.UI
 {
+    /// <summary>게임 오버 화면의 다시 시작 지점 하나 (13-7d 고리 — 캠페인 체크포인트 등).</summary>
+    public sealed class RetryOption
+    {
+        /// <summary>버튼 글 (예: "절정 직전부터").</summary>
+        public string Label;
+        public Action Run;
+    }
+
     /// <summary>
     /// 결과 화면 (GDD 12-3).
     /// 12-1 누적 결과 화면: 결과 등급(대형 · 국가급 · 지구급) 첫 도달 → "N구간 달성 · 등급" + 이번 구간 | 누적 기록 + [계속 플레이] [재시작].
     /// 12-1 ★ 등급(초대형 · 도시급 · 대륙급) 첫 도달 → 화면 위쪽 가운데 홀로그램 배너 (게임은 멈추지 않음, 런타임 생성).
     /// 게임 오버: 요약 + [재시작] [메인 메뉴] (5-9, 씬 전환은 SceneFader).
+    /// 13-7d 고리: <see cref="RetryOptions"/>가 다시 시작 지점을 주면 [재시작] 대신 그 지점들 (첫 지점 = 주 버튼, 나머지는 주 버튼을 복제) + [메인 메뉴].
     /// 결과 화면 표시 중에는 시뮬레이션을 일시정지하고 배속 입력을 잠근다.
     /// </summary>
     public sealed class ResultScreen : MonoBehaviour
     {
+        /// <summary>
+        /// 게임 오버 때 [재시작] 대신 보일 다시 시작 지점 (13-7d 공통 고리, 사용자 결정 2026-10-25: 캠페인 = 절정 직전 · 장 처음).
+        /// 모드 쪽이 씬에 있는 동안 넣고 나갈 때 비운다. null이거나 빈 목록이면 예전처럼 [재시작].
+        /// </summary>
+        public static Func<IReadOnlyList<RetryOption>> RetryOptions;
+
         private const string Gold = "#FFD36A";
         private enum Mode { Hidden, Victory, GameOver }
 
@@ -45,6 +62,9 @@ namespace SpaceStation.UI
         private TMP_Text _bannerBody;
         private HoloFx _bannerFx;
         private float _bannerUntil = -1f;
+
+        private IReadOnlyList<RetryOption> _retry; // 13-7d 게임 오버 다시 시작 지점 (없으면 null)
+        private readonly List<GameObject> _retryButtons = new List<GameObject>();
 
         private void Start()
         {
@@ -111,7 +131,35 @@ namespace SpaceStation.UI
         {
             string reason = FailureMonitor.Describe(_progression.Session.Reason);
             HideBannerNow();
-            Show(Mode.GameOver, $"<color={HudText.Red}>게임 오버</color>\n<size=55%>{reason}</size>", "재시작", "메인 메뉴", BuildStats());
+            _retry = RetryOptions?.Invoke();
+            bool retry = _retry != null && _retry.Count > 0;
+            Show(Mode.GameOver, $"<color={HudText.Red}>게임 오버</color>\n<size=55%>{reason}</size>", retry ? _retry[0].Label : "재시작", "메인 메뉴", BuildStats());
+            if (retry)
+                AddRetryButtons();
+        }
+
+        /// <summary>둘째 다시 시작 지점부터: 주 버튼을 복제해 주 버튼 바로 뒤에 (같은 가로 줄).</summary>
+        private void AddRetryButtons()
+        {
+            foreach (var old in _retryButtons)
+                if (old != null)
+                    Destroy(old);
+            _retryButtons.Clear();
+            var parent = _primaryButton.transform.parent;
+            int sibling = _primaryButton.transform.GetSiblingIndex();
+            for (int i = 1; i < _retry.Count; i++)
+            {
+                var option = _retry[i];
+                var button = Instantiate(_primaryButton, parent);
+                button.name = "Retry" + i;
+                button.onClick.RemoveAllListeners();
+                button.transform.SetSiblingIndex(++sibling);
+                var label = button.GetComponentInChildren<TMP_Text>();
+                if (label != null)
+                    label.SetText(option.Label);
+                button.onClick.AddListener(() => option.Run?.Invoke());
+                _retryButtons.Add(button.gameObject);
+            }
         }
 
         private void Show(Mode mode, string title, string primary, string secondary, string stats)
@@ -230,6 +278,8 @@ namespace SpaceStation.UI
         {
             if (_mode == Mode.Victory)
                 Continue();
+            else if (_retry != null && _retry.Count > 0)
+                _retry[0].Run?.Invoke();
             else
                 Restart();
         }
