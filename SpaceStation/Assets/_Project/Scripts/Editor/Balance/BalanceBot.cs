@@ -19,6 +19,19 @@ namespace SpaceStation.Editor.Balance
         // 정비 후 최대 내구도가 이보다 낮으면 재건축. 정비의 초당 비용은 최대치와 무관하게 일정하므로
         // 효율 기준(50)을 유지할 수 있는 동안(최대 55 이상)은 정비가 재건축보다 싸다.
         private const float RebuildBelowMax = 55f;
+        public const float DefaultMaintainAt = MaintainAt;
+        public const float DefaultRebuildBelowMax = RebuildBelowMax;
+
+        /// <summary>
+        /// 13-8 측정 확장 고리 (M-47): 모듈마다 정비 기준 · 재건축 기준 (null = 모두 <see cref="DefaultMaintainAt"/> · <see cref="DefaultRebuildBelowMax"/>, 예전과 같음).
+        /// 예: 서사판 캠페인 봇은 내구도 효율이 하는 일에 걸리지 않는 모듈(<see cref="WearMatters"/> 거짓)을 늦게 정비한다.
+        /// </summary>
+        public System.Func<ModuleInstance, float> MaintainAtFor { get; set; }
+        public System.Func<ModuleInstance, float> RebuildBelowFor { get; set; }
+
+        /// <summary>내구도 효율이 하는 일에 걸리는 모듈인지 (생산 · 실드 · 포탑 · 손상 통제실 · 서비스). 거짓이면(거주 · 배터리 · 창고 · 장갑 격벽 · 센서 …) 파괴(내구도 0) 전까지 하는 일이 같다.</summary>
+        public static bool WearMatters(ModuleData data) =>
+            data != null && (data.Production.Count > 0 || data.IsShield || data.IsTurret || data.IsDamageControl || data.IsService);
 
         private readonly List<DurabilityInfo> _maintainQueue = new List<DurabilityInfo>();
 
@@ -729,7 +742,7 @@ namespace SpaceStation.Editor.Balance
             _maintainQueue.Clear();
             foreach (var info in durability.Modules)
             {
-                if (info.Current < MaintainAt)
+                if (info.Current < (MaintainAtFor != null ? MaintainAtFor(info.Module) : MaintainAt))
                     _maintainQueue.Add(info);
             }
             if (_maintainQueue.Count == 0)
@@ -745,7 +758,7 @@ namespace SpaceStation.Editor.Balance
             foreach (var info in _maintainQueue)
             {
                 var module = info.Module;
-                if (durability.MaxAfterMaintenance(info) < RebuildBelowMax)
+                if (durability.MaxAfterMaintenance(info) < (RebuildBelowFor != null ? RebuildBelowFor(module) : RebuildBelowMax))
                 {
                     float cost = MetalOf(_sim.GetRebuildCost(module));
                     var result = _sim.TryRebuild(module, out _);
@@ -801,6 +814,22 @@ namespace SpaceStation.Editor.Balance
             return true;
         }
 
+        /// <summary>13-8 (M-47): <see cref="TryBuild(ModuleData)"/>와 같되 자리 점수에 extraScore(차지할 칸)를 더함 (예: 유성우 예보 방향 앞면을 덮는 실드 자리).</summary>
+        public bool TryBuild(ModuleData data, System.Func<IReadOnlyList<Vector3Int>, float> extraScore)
+        {
+            _extraScore = extraScore;
+            try
+            {
+                return TryBuild(data);
+            }
+            finally
+            {
+                _extraScore = null;
+            }
+        }
+
+        private System.Func<IReadOnlyList<Vector3Int>, float> _extraScore;
+
         /// <summary>기존 모듈 주변 빈 셀 × 회전 중 유효한 자리. 맞닿는 면이 많을수록(조밀), 원점에 가까울수록 우선.</summary>
         private bool TryFindPlacement(ModuleData data, out Vector3Int bestOrigin, out int bestRotation)
         {
@@ -827,6 +856,8 @@ namespace SpaceStation.Editor.Balance
                         score += FreshDocksAt(origin, rot) * 40f;
                     if (data == _armor) // 미끼는 바깥으로 튀어나올수록 (조밀 가산을 뒤집음)
                         score -= Contacts(data, origin, rot) * contactWeight * 2f;
+                    if (_extraScore != null)
+                        score += _extraScore(StationGrid.ResolveCells(data.CellOffsets, origin, rot));
                     if (score > bestScore)
                     {
                         bestScore = score;
