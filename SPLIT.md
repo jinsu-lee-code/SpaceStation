@@ -142,6 +142,8 @@
 | `StationSimulation.Arrivals` (M-42) | 캠페인 = 서사판 이민선 | 엔드리스 = 포트 시계(기본) — 모드에 붙는 시스템이 정함 |
 | `ResultScreen.RetryOptions` (M-45) | 캠페인 체크포인트가 채움 | 엔드리스는 비움 ([재시작]) |
 | 튜토리얼 (`GameModeData.TutorialChoice` · 게임 씬 `SimulationHost._tutorial`) | 서사판 = 코어 기동(TUT_CoreBoot), 타이쿤판 = 공통 튜토리얼 | 게임 씬 튜토리얼을 모드별로 |
+| `BalanceRunSettings.Extension` (측정 도구, M-46) | 서사판 캠페인 봇(`CampaignBotExtension`, 메뉴 Balance/Campaign Bot)이 채움, 타이쿤판 = 비움(공통 봇) | 둘 다 그대로 — 측정 메뉴가 모드마다 따로. 공통 요약의 "연구 최종 레벨" 줄은 공통 6분야 기준이라 캠페인은 campaign.txt의 기록 연구 줄을 봄 |
 
 - 그 밖에 판마다 다른 게임 씬 · 메뉴 씬 설정 (합칠 때 모드별로 나눔): `SimulationHost` 연구 목록(서사판 = 기록 4갈래 + 자동화) · 장 데이터 · 이민선 · 탐사 · 기록 설정 (메뉴 Chapters/Setup Greybox), 메인 메뉴 배경(서사판 = 꺼져 가는 지구), 난이도 장별 간격(서사판 `DifficultyPreset._chapter*`)
+- 문서: BALANCE.md 번호 — 공통 1~40, 타이쿤판 41~, 서사판 "서사판 N번"(번호가 겹치지 않게 따로) → 합칠 때 한 차례로 다시 매김
 - 새 고리를 만들 때마다 이 표에 한 줄 더한다
