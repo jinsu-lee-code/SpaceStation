@@ -38,6 +38,9 @@ namespace SpaceStation.UI
         [SerializeField, Min(10f)] private float _cloudLap = 3000f;
         [Tooltip("화면 불빛이 목표를 따라가는 빠르기 (초당 비율 — 장이 바뀌어 0.12 떨어지면 약 3초에 걸쳐 꺼짐)")]
         [SerializeField, Min(0.001f)] private float _fadeRate = 0.04f;
+        [Tooltip("13-7d 메인 메뉴 배경: 켜면 방향 대신 카메라 화면의 한 자리(뷰포트 0~1)에 고정 — 메뉴 카메라가 정거장을 돌아도 같은 곳")]
+        [SerializeField] private bool _screenAnchored;
+        [SerializeField] private Vector2 _screenPoint = new Vector2(0.86f, 0.78f);
 
         private StationSimulation _sim;
         private Transform _earth;
@@ -46,6 +49,7 @@ namespace SpaceStation.UI
         private float _spin, _cloud;
         private float _shown = -1f;
         private float _held = -1f; // 13-7b 장 전환 연출이 불빛을 직접 움직이는 동안 (음수 = 시계를 따라감)
+        private Vector3 _toward; // 지금 그리는 쪽 (화면 고정이면 카메라마다 바뀜)
 
         /// <summary>지금 화면에 켜진 불빛 비율 (13-7b 장 전환 연출이 읽음).</summary>
         public float ShownLights => _shown;
@@ -100,11 +104,13 @@ namespace SpaceStation.UI
             if (_earth == null || cam == null)
                 return;
             float d = Mathf.Min(_distance, cam.farClipPlane * 0.8f);
-            _earth.position = cam.transform.position + _direction.normalized * d;
+            _toward = _screenAnchored ? cam.ViewportPointToRay(new Vector3(_screenPoint.x, _screenPoint.y, 0f)).direction : _direction.normalized;
+            _earth.position = cam.transform.position + _toward * d;
             _earth.localScale = Vector3.one * (_radius * d / _distance);
         }
 
-        private float SimDelta => _clock == null || _clock.Clock.IsPaused ? 0f : Time.deltaTime * _clock.Clock.Speed;
+        // 13-7d 메인 메뉴 배경(시계 없음)은 실제 시간으로 천천히 돎
+        private float SimDelta => _clock == null ? Time.deltaTime : _clock.Clock.IsPaused ? 0f : Time.deltaTime * _clock.Clock.Speed;
 
         private void LateUpdate() => Apply(SimDelta);
 
@@ -118,7 +124,7 @@ namespace SpaceStation.UI
                 _cloud -= 1f;
             // 모델: 북극 = +Y, 경도 0 = −X, 동경 90 = −Z (거울상 아님, SM_Earth 가져온 뒤 확인) → Y축 a도 돌리면 경도 a − 90이 +Z(정거장 쪽)에 옴.
             // 땅은 동쪽으로 돌아 정면 경도가 줄어듦 = 음의 회전 (+Y 회전은 서쪽으로 감)
-            var toStation = -_direction.normalized;
+            var toStation = -(_screenAnchored && _toward != Vector3.zero ? _toward : _direction.normalized);
             var flat = new Vector3(toStation.x, 0f, toStation.z);
             var face = Quaternion.LookRotation(flat.sqrMagnitude > 1e-6f ? flat : Vector3.forward, Vector3.up);
             _earth.rotation = face * Quaternion.AngleAxis(_tilt, Vector3.right) * Quaternion.AngleAxis(_startLongitude + 90f - _spin, Vector3.up);

@@ -385,6 +385,28 @@ namespace SpaceStation.Tests
             Assert.IsFalse(sim.RuleOpen(StationRule.MeteorShower, false));
         }
 
+        [Test]
+        public void CampaignRun_ProgressLabel_RunIdSurvivesSave_CheckpointReadable()
+        {
+            var sim = Sim();
+            var chapters = sim.Chapters;
+            Assert.IsFalse(string.IsNullOrEmpty(chapters.RunId), "새 캠페인 = 새 판 번호 (13-7d 체크포인트 구분)");
+            Assert.AreEqual(chapters.ProgressText(), sim.ProgressLabel(), "main M-44 진행 표시 = 장 이름");
+            Assert.AreEqual(chapters.Current.DisplayName, sim.ProgressLabel(), "부제가 없으면 장 이름만");
+            Assert.AreNotEqual(chapters.RunId, Sim().Chapters.RunId, "판마다 다름");
+
+            string state = chapters.Capture(_ => -1);
+            Assert.IsTrue(ChapterSystem.TryReadRun(state, out string run, out int index, out var phase));
+            Assert.AreEqual(chapters.RunId, run);
+            Assert.AreEqual(0, index);
+            Assert.AreEqual(ChapterPhase.Preparation, phase);
+
+            var loaded = Sim();
+            loaded.Chapters.Restore(state, _ => null);
+            Assert.AreEqual(chapters.RunId, loaded.Chapters.RunId, "불러오면 같은 판");
+            Assert.IsFalse(ChapterSystem.TryReadRun("{\"Index\":1}", out _, out _, out _), "판 번호가 없는 이전 저장");
+        }
+
         // ---------------- 도우미 ----------------
 
         private int _nextX = 1;

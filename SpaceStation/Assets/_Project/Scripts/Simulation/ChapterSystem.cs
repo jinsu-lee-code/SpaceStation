@@ -93,9 +93,36 @@ namespace SpaceStation.Simulation
         /// <summary>마지막으로 끝난 장 기록 (없으면 null).</summary>
         public ChapterRecord LastRecord => _records.Count > 0 ? _records[_records.Count - 1] : null;
 
+        /// <summary>13-7d 이 캠페인 판의 번호 (새 캠페인마다 새로, 저장) — 체크포인트가 다른 판 것인지 가림.</summary>
+        public string RunId { get; private set; } = "";
+
         protected override void OnAttached()
         {
             Begin(0, raise: false);
+            RunId = Guid.NewGuid().ToString("N");
+            Sim.ProgressLabel = ProgressText; // main M-44: 이어하기 · 저장 목록 · 로딩 화면 "3장 · 무리 합류"
+        }
+
+        /// <summary>13-7d 저장 진행 표시: "3장 · 무리 합류", 캠페인이 끝났으면 "이어질 이야기".</summary>
+        public string ProgressText() => Phase == ChapterPhase.Finished ? "이어질 이야기"
+            : string.IsNullOrEmpty(Current.Subtitle) ? Current.DisplayName : $"{Current.DisplayName} · {Current.Subtitle}";
+
+        /// <summary>
+        /// 13-7d 체크포인트 읽기: 저장의 장 상태에서 판 번호 · 장 번호 · 단계를 꺼냄 (다른 판 · 다른 장 체크포인트를 가리려고).
+        /// 장 상태가 없거나 판 번호가 없으면(이전 저장) false.
+        /// </summary>
+        public static bool TryReadRun(string state, out string runId, out int index, out ChapterPhase phase)
+        {
+            runId = "";
+            index = -1;
+            phase = ChapterPhase.Preparation;
+            var s = string.IsNullOrEmpty(state) ? null : JsonUtility.FromJson<State>(state);
+            if (s == null || string.IsNullOrEmpty(s.RunId))
+                return false;
+            runId = s.RunId;
+            index = s.Index;
+            phase = (ChapterPhase)s.Phase;
+            return true;
         }
 
         // ---------------- 해금 · 요구 · 규칙 · 규모 ----------------
@@ -545,6 +572,7 @@ namespace SpaceStation.Simulation
             public List<ChapterRecord> Records = new List<ChapterRecord>();
             public int ClimaxKind;
             public string Climax;
+            public string RunId; // 13-7d (이전 저장 = 비어 있음 → 불러올 때 새 번호를 그대로 둠)
         }
 
         public override string Capture(Func<ModuleInstance, int> indexOf)
@@ -559,6 +587,7 @@ namespace SpaceStation.Simulation
                 Done = new List<bool>(_done),
                 Flags = new List<string>(_flags),
                 Records = new List<ChapterRecord>(_records),
+                RunId = RunId,
             };
             if (Phase == ChapterPhase.Climax && _climax != null)
             {
@@ -574,6 +603,8 @@ namespace SpaceStation.Simulation
             if (s == null)
                 return;
             Begin(s.Index, raise: false);
+            if (!string.IsNullOrEmpty(s.RunId))
+                RunId = s.RunId;
             Phase = (ChapterPhase)Mathf.Clamp(s.Phase, 0, (int)ChapterPhase.Finished);
             ChapterSeconds = s.ChapterSeconds;
             WarningLeft = s.WarningLeft;

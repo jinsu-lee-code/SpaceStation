@@ -333,9 +333,23 @@ namespace SpaceStation.Editor
             earthSo.FindProperty("_material").objectReferenceValue = earthMaterial;
             earthSo.ApplyModifiedPropertiesWithoutUndo();
 
+            AddCampaignCheckpoints(station);
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("[ChapterSetup] 장 3개 · 코어 성격 · 이민선 · 종족 · 난이도 장별 간격 · 게임 씬 연결 · 장 화면 · 코어 로그 창 완료");
+        }
+
+        /// <summary>13-7d 캠페인 실패 안전망 (장 시작 · 절정 예고 체크포인트 + 게임 오버 다시 시작 지점) — 씬 맨 위 빈 오브젝트.</summary>
+        public static void AddCampaignCheckpoints(StationController station)
+        {
+            foreach (var old in Object.FindObjectsByType<SpaceStation.UI.CampaignCheckpoints>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                Object.DestroyImmediate(old.gameObject);
+            var go = new GameObject("CampaignCheckpoints");
+            var checkpoints = go.AddComponent<SpaceStation.UI.CampaignCheckpoints>();
+            var so = new SerializedObject(checkpoints);
+            so.FindProperty("_station").objectReferenceValue = station;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private const string CorePath = "Assets/_Project/Data/Chapters/CoreConfig.asset";
@@ -1027,7 +1041,7 @@ namespace SpaceStation.Editor
         /// 13-7a 지구 (BlenderWork/Earth/earth_builder.py → SM_Earth.fbx + T_EarthColor · T_EarthLights · T_EarthClouds): 그림 가져오기 설정
         /// (색 = sRGB, 불빛 · 구름 = 데이터(선형) · 가로 반복 · 세로 고정) + 재질 M_Earth (셰이더 SpaceStation/Earth).
         /// </summary>
-        private static GameObject EarthModel(out Material material)
+        internal static GameObject EarthModel(out Material material)
         {
             material = null;
             var importer = AssetImporter.GetAtPath(EarthFolder + "/SM_Earth.fbx") as ModelImporter;
