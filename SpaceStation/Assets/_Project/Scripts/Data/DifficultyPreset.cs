@@ -78,6 +78,9 @@ namespace SpaceStation.Data
         /// <summary>null이면 게임 씬의 기본 난이도.</summary>
         public static DifficultyPreset Difficulty;
 
+        /// <summary>13-7d 메인 메뉴에서 고른 게임 모드 (모드 목록이 없는 메뉴 · 씬 단독 실행이면 null). 저장 <c>SaveMeta.Mode</c>로 남음.</summary>
+        public static GameModeData Mode;
+
         /// <summary>불러올 저장 (메인 메뉴 [이어하기]/[불러오기], ESC [불러오기]). 게임 씬의 SimulationHost가 한 번 쓰고 비운다.</summary>
         public static SpaceStation.Save.SaveFile PendingLoad;
     }

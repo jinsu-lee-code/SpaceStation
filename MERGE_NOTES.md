@@ -762,3 +762,28 @@
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상. 같은 확인.
+
+## M-44. 게임 모드 고리 — 메인 메뉴 모드 목록 · 저장 모드 · 진행 표시 · 버전 줄 (2026-10-25, `main`)
+
+**main에 넣은 것** — 고리만 (모드 목록이 비면 main · 타이쿤판 동작 변화 없음). 사용자 결정 2026-10-25: 서사판 = 캠페인 모드, 타이쿤판 = 엔드리스 모드, 합칠 때 다시 손대지 않게 고리로 (SPLIT.md 6번 표)
+- `Data/GameModeData` (SO 새 파일): Id · 이름 · 설명 · 고정 난이도(비우면 난이도 셋에서 고름) · 튜토리얼 켜기/끄기 줄 · 새 게임 로딩 제목 · 설명. `GameStartOptions.Mode`
+- `MainMenuController._modes`: 있으면 모드마다 버튼 ([새 게임] 자리부터, 나머지는 복제) → 시작 창(난이도 창 재사용): 고정 난이도면 [시작] + 설명 하나, 아니면 난이도 셋. 모드가 원하면 [뒤로] 모양을 복제한 '튜토리얼 받기 켬 / 끔' 줄 (설정 '다음 새 게임에서 튜토리얼'과 같은 값). `_versionLabel`: 비우지 않으면 오른쪽 아래 버전 글자
+- `SaveMeta.Mode` · `Progress` · `Headline` (진행 표시가 있으면 그것, 없으면 등급 이름) · `StationSimulation.ProgressLabel` (모드가 채움) — `SaveManager`가 저장마다 넣음(불러온 판은 그 저장의 모드). 이어하기 · 저장 목록 · 불러오기 로딩 화면이 진행 표시를 씀. 세이브 버전 그대로 (칸이 없으면 비어 읽힘)
+- 시험 1개 (`SaveTests.Meta_ModeAndProgress_RoundTrip_HiddenSlotsStayOutOfLists` — 목록에 없는 칸(체크포인트용)은 이어하기 · 목록에 안 낌)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 서사판: `GM_Campaign` · 메인 메뉴 씬 `_modes` · `_versionLabel` · `ChapterSystem`이 `ProgressLabel`.
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상, 동작 같음 (메뉴 씬 `_modes` 비움). 타이쿤판이 `MainMenuController` 난이도 단추 · 이어하기 글을 고쳤으면 그 부분만 맞춤. 엔드리스 모드 이름을 붙일 때 `GameModeData` 에셋을 만들어 `_modes`에.
+
+## M-45. 게임 오버 다시 시작 지점 고리 (2026-10-25, `main`)
+
+**main에 넣은 것** — 고리만 (비면 동작 같음). 사용자 결정 2026-10-25: 캠페인 실패 안전망 = 게임 오버 때 [절정 직전부터] [이 장 처음부터] [메인 메뉴]
+- `ResultScreen.RetryOptions` (정적 `Func<IReadOnlyList<RetryOption>>`) · `RetryOption` (글 · 할 일): 게임 오버 때 목록이 있으면 [재시작] 대신 첫 지점 = 주 버튼, 나머지는 주 버튼을 복제해 같은 줄에 + [메인 메뉴]. 모드 쪽이 씬에 있는 동안 넣고 나갈 때 비움
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 서사판 캠페인 체크포인트가 채움.
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상, 동작 같음. 타이쿤판이 `ResultScreen` 게임 오버 버튼을 고쳤으면 그 부분만 맞춤.

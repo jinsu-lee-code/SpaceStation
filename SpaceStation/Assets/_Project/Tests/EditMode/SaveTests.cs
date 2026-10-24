@@ -203,6 +203,24 @@ namespace SpaceStation.Tests
             Assert.AreEqual("slot1", SaveService.MostRecentSlot());
         }
 
+        [Test]
+        public void Meta_ModeAndProgress_RoundTrip_HiddenSlotsStayOutOfLists()
+        {
+            var campaign = new SaveFile { Meta = new SaveMeta { SavedAtTicks = 300, GradeName = "대형", Mode = "campaign", Progress = "3장 · 무리 합류" } };
+            Assert.IsTrue(SaveService.Write("slot1", campaign, null));
+            Assert.AreEqual(SaveSlotStatus.Ok, SaveService.TryRead("slot1", out var read));
+            Assert.AreEqual("campaign", read.Meta.Mode);
+            Assert.AreEqual("3장 · 무리 합류", read.Meta.Headline, "진행 표시가 있으면 머리말");
+            Assert.AreEqual("소형", new SaveMeta { GradeName = "소형" }.Headline, "없으면 등급 이름 (모드를 나누기 전 저장)");
+
+            // 13-7d 체크포인트처럼 목록에 없는 칸은 이어하기 · 저장 목록에 끼지 않음 (불러오기는 됨)
+            var later = new SaveFile { Meta = new SaveMeta { SavedAtTicks = 400, GradeName = "대형" } };
+            Assert.IsTrue(SaveService.Write("checkpoint_test", later, null));
+            Assert.AreEqual("slot1", SaveService.MostRecentSlot());
+            Assert.IsFalse(SaveService.ListSlots().Exists(s => s.Id == "checkpoint_test"));
+            Assert.AreEqual(SaveSlotStatus.Ok, SaveService.TryRead("checkpoint_test", out _));
+        }
+
         // ---------------- 도우미 ----------------
 
         private StationSimulation Sim()

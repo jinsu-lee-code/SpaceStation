@@ -195,6 +195,10 @@ namespace SpaceStation.Simulation
             set => _arrivals = value;
         }
         private IArrivalSchedule _arrivals;
+        /// <summary>
+        /// 13-7d 저장 진행 표시 (이어하기 · 저장 목록 · 로딩 화면). null이면 등급 이름 — 모드가 채움 (서사판 캠페인 = "3장 · 무리 합류").
+        /// </summary>
+        public Func<string> ProgressLabel { get; set; }
         /// <summary>12-4 연구 확장 (설정에 없으면 null).</summary>
         public ResearchExpansionSystem ResearchExpansion { get; }
 
