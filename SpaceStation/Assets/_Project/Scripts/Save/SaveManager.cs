@@ -166,7 +166,7 @@ namespace SpaceStation.Save
                 return;
             if (_sim.ElapsedSeconds < _minExitAutosaveSeconds)
             {
-                Debug.Log($"[Save] 게임 시간 {_sim.ElapsedSeconds:0}초 — 짧은 판이라 나갈 때 자동 저장을 건너뜀 (이전 자동 저장 유지)");
+                Debug.Log($"[Save] 게임 시간 {_sim.ElapsedSeconds:0}초 · 짧은 판이라 나갈 때 자동 저장을 건너뜀 (이전 자동 저장 유지)");
                 return;
             }
             Autosave(false);
