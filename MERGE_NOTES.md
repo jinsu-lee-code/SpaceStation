@@ -7,6 +7,8 @@
 
 **합침 기록**: `narrative` ← main (2026-10-18, 33ad7da · d1dfcf8) — M-6 ~ M-14 해결, 글자 충돌 없음. 서사판 EditMode 403개 통과 · 플레이 확인 (건설 메뉴에 1장 모듈 · [관리] 메뉴 맨 끝 코어 기록).
 
+**합침 기록**: `narrative` ← main (2026-10-25, 0ab1f65 · 5b76f74) — M-30 ~ M-42. 충돌은 문서 둘뿐: MODELING.md (main 7-9 진화 모듈 외형을 두고 서사판 난파선 · 이민선 · 지구를 7-10 ~ 7-12로) · TASKS.md. 씬 = 내부 템플릿 5종만 넣음 (레시피 48은 자동). 서사판 EditMode 455개 통과.
+
 ---
 
 ## M-1. 13-1 공통 판정 고리 (2026-10-15, `main`)
@@ -518,7 +520,7 @@
 - 모델 · 프리팹 · 템플릿 에셋(SM_Interior_Admin · PF_Interior_* · IT_* · M_Paint_Administration · Interior_NewBasic.blend `admin_builder`)은 tycoon에서 만들어 binary patch로 옮김
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 에셋은 자동 합침 예상. **씬 `InteriorMode._templates`에 `IT_Admin`을 넣어야 행정 관제소 새 내부가 쓰임** (M-26 때처럼 목록만 넣거나 `Interior/Setup` — M-27 이후 [옮기기] 버튼은 안 지워짐). 서사판이 `ResidentPlacementRules` · `ResidentWander` · `InteriorMode.UpdateHold`를 고쳤으면 그 부분만 맞춤. 플레이 (낮): 행정 관제소 창구에 직원 · 대기 의자에 민원인 · 민원인이 발권기 · 창구로 한 명씩 걸어가고 그때만 번호가 바뀌는지, 지도 층 버튼.
+- [x] (2026-10-25, 0ab1f65 · 00eb2ce) 자동 합침 · 씬 목록에 `IT_Admin`을 넣음 (목록만, `Interior/Setup`은 안 돌림 — 아래 4종과 함께 31 → 36). 행정 관제소는 서사판 1~3장에서 열리지 않아 플레이 확인은 그 장을 만들 때. EditMode 455개 통과.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-20, 09ba7c7 ~) 자동 합침 · 템플릿 재빌드 · 플레이 검수 (수동 저장 3: 모듈 64 지도 · 이웃 회전 링을 고장 내 깜빡임 · 요약 "고장 1" · 창구 041/042 → 053/054 · 발권기 다음 번호 045 → 057) · 뚫림 검사 390장 0px (대조 97% 자홍) · 키트 ↔ 템플릿 같은 평면 6곳 = 모두 바닥 밑 아래 보는 면.
@@ -539,7 +541,7 @@
 - PF_Interior_* 10개는 tycoon에서 재빌드해 binary patch로 옮김 (fileID만 새로 · 행정 관제소 = 통로 추가)
 
 ### `narrative` 합칠 때
-- [ ] 코드는 자동 합침 예상. 서사판이 `InteriorSpots` · `InteriorMode.UpdateTracker` · `InteriorPad`를 고쳤으면 그 부분만 맞춤 (`UpdateTrackerClick`는 `UpdateTracker` 다음에 부름). 플레이: 행정 관제소 창구 뒤 칸막이 · 지도 화면에 돌발 상황이 안 생기는지, 패드를 꺼낸 채 상단 사고 줄을 눌러 그 모듈이 골라지는지.
+- [x] (2026-10-25, 0ab1f65) 자동 합침 (서사판은 세 파일을 고치지 않았음). 3장 여객 도킹 포트 안에서 소품 자리 계산 · 콘솔 오류 0. 패드 상단 줄 클릭은 따로 확인하지 않음.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-20, 7a23197) 템플릿 재빌드 · EditMode 427개 통과 · 플레이 (수동 저장 3: 회전 링에 "차단기 내려감"을 일으켜 상단 줄 "(클릭하면 패드에서 고름)" · 밑줄 · 클릭 → 패드가 회전 링 선택 · [이 방으로 이동] 누를 수 있음). 모양은 안 바뀜 (통로는 자리 고르기만).
@@ -559,7 +561,7 @@
 - 현장 수리 지점 순서가 바뀜 → 예전 세이브에서 일부만 고친 손상 모듈은 고친 자국 위치가 달라 보일 수 있음 (개수 · 진행은 그대로)
 
 ### `narrative` 합칠 때
-- [ ] 코드는 자동 합침 예상 (`InteriorSpots`만). 플레이: 일반 방(진화 모듈 · 통신 중계소)에서 사고가 패널 앞면에 붙는지, 문 너머 통로에 안 생기는지.
+- [x] (2026-10-25, 0ab1f65) 자동 합침. 일반 방 사고 자리는 따로 일으켜 보지 않음 (공통 코드 그대로).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-20, c244093) 자동 합침 · EditMode 427개 통과 · 플레이 측정 (위 확인 내용).
@@ -580,7 +582,7 @@
 - 모델 · 프리팹 · 템플릿 에셋(SM_Interior_Shelter · PF_Interior_* · IT_* · M_InteriorConcrete · M_Paint_RadiationShelter · T_InteriorConcrete_* · Interior_NewBasic.blend `shelter_builder`)은 tycoon에서 만들어 binary patch로 옮김. PF_Interior_* 다른 방은 재빌드로 fileID만 새로
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 에셋은 자동 합침 예상. **씬 `InteriorMode._templates`에 `IT_Shelter`를 넣어야 방사선 차폐실 새 내부가 쓰임** (M-30 `IT_Admin`처럼). 서사판에 방사선 차폐실 모듈 데이터(`MD_RadiationShelter`)가 없으면 템플릿만 들어오고 쓰이지 않음. `InteriorTemplate`을 고쳤으면 `_workStatus` 칸만 맞춤. 플레이: 차폐실 안 경보판 글 · 직원 3 · 금고문 문짝 앞에 물건이 없는지, 일반 방에서 환풍구 부탁이 생길 때 콘솔 예외가 없는지.
+- [x] (2026-10-25, 0ab1f65 · 00eb2ce) 자동 합침 · 씬 목록에 `IT_Shelter`. 방사선 차폐실은 서사판 5장 모듈이라 1~3장에서 안 쓰임 (D-11).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-21) 자동 합침 · 템플릿 재빌드 · Bake Resident Spots · EditMode 427개 통과 · 플레이 (수동 저장 3: 차폐실 직원 3 · 경보판 "외부 방사선 정상 / 대피 수용 3 / 12명" · 뚫림 검사 2132장 0px (대조 97% 자홍, 자동문은 닫고) · 키트 ↔ 템플릿 같은 평면 0 · 벽 자리 7(문짝 위 0) · 64개 방 벽 자리 계산 · 1분 게임 루프에서 부탁이 생겨도 예외 0). Blender 검사: 겹침(숨은 면 6 = 이전과 같음) · 문 구역 · 벽 뚫림 · 해치 자리 비움 · 문짝 회전 0 ~ 90° 부딪힘 0.
@@ -601,7 +603,7 @@
 - 모델 · 프리팹 · 템플릿 에셋(SM_Interior_Passenger · PF_Interior_* · IT_* · M_Paint_PassengerPort · Interior_NewBasic.blend `passenger_builder`)은 tycoon에서 만들어 binary patch로 옮김. PF_Interior_* 다른 방은 재빌드로 fileID만 새로
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 에셋은 자동 합침 예상. **씬 `InteriorMode._templates`에 `IT_Passenger`를 넣어야 새 내부가 쓰임**. 서사판이 이민선을 따로 정하면(`ImmigrationSystem.Suppressed`) 안내판은 "운항 일정 없음" — 서사판 이민선 시계를 보여 주려면 그쪽 값으로 잇기. 서사판이 `ImmigrationSystem`을 고쳤으면 `Visits` 한 줄만 맞춤. 플레이: 여객 도킹 포트 안 안내판 시계 · 직원 3 · 대합실 주민, 이민선이 올 때 깜빡임.
+- [x] (2026-10-25, 0ab1f65 · 00eb2ce) 자동 합침 · 씬 목록에 `IT_Passenger` · 안내판은 M-42로 서사판 이민선 시계와 이음 (사용자 결정 2026-10-25). 플레이 (확인 메뉴 4 = 3장 대이주, 포트를 붙여서): 안내판 "다음 이민선 19초 후 · 지금까지 도착" · 표지 글자 9개 → 첫 배 모두 받기 → 다시 들어가 "17초 후 · 10명". 답하는 순간의 깜빡임은 서사판에선 안에서 보이지 않음 (도착 창이 바깥에서 뜸).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-21) 자동 합침 · 템플릿 재빌드 · Bake Resident Spots · EditMode 테스트 · 플레이 (수동 저장 3: 주민 17 = 직원 3 · 대합실 14 · 안내판 "다음 이민선 2분 41초 후 / 지금까지 도착 0명" → 이민선을 앞당기면 "이민선 출발 내린 주민 없음" 깜빡임(집 150/150) · 창 너머 실제 바깥 정거장 · 화분 식물 2 · 뚫림 검사 2704장 0px (물결 천장 높이 포함, 자동문은 닫고) · 키트 ↔ 템플릿 같은 평면 0 · 벽 자리 37 · 콘솔 오류 0). Blender 검사: 겹침 0 · 해치 자리 비움 · 벽 뚫림 0 (탑승구 고리 아래 0.1은 바닥 속) · 문 구역 6 = 끝 벽 위 천장 단(띠 끝 면, 소품 아님).
@@ -618,7 +620,7 @@
 - 모델 · 프리팹 · 템플릿 에셋(SM_Interior_Radiator · PF_Interior_* · IT_Radiator · M_Paint_Radiator · Interior_NewBasic.blend `radiator_builder`)은 tycoon에서 만들어 binary patch로 옮김. PF_Interior_* 다른 방은 재빌드로 fileID만 새로 (여객은 표지 글자 컴포넌트가 바뀜)
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 에셋은 자동 합침 예상. **씬 `InteriorMode._templates`에 `IT_Radiator`를 넣어야 새 내부가 쓰임**. 서사판이 칸 단위 열 규칙(`StationRule.Heat`)을 열지 않으면 감시판은 늘 "열 관리 전" + 이웃 이름 "대기". 서사판이 `InteriorArrivalBoard`를 고쳤으면 표지 글자가 `InteriorSignLabels`로 옮겨 간 것만 맞춤. 플레이: 방열판 안 감시판 글 · 기술자 3, 여객 도킹 포트 표지 글자가 그대로 보이는지.
+- [x] (2026-10-25, 0ab1f65 · 00eb2ce) 자동 합침 · 씬 목록에 `IT_Radiator`. 열 규칙은 서사판 5장이라 1~3장에서 안 쓰임.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-22) 자동 합침 · 템플릿 재빌드 · Bake Resident Spots · EditMode 427개 통과 · 플레이 (수동 저장 3: 기술자 3 · 감시판 "열 관리 전" + 이웃 4곳 "대기" → 열 규칙을 켜면 "방열 중 이웃 4곳 -4" · 핵융합로 0.3 / 8 정상 · 심우주 통신기지 · 연료전지 · 물 추출기 0.0 / 8 · 뚫림 검사 1222장 0px (자동문은 닫고) · 키트 ↔ 템플릿 같은 평면 0 · 콘솔 오류 0). Blender 검사: 겹침 0 · 문 구역 0 · 벽 뚫림 0 · 해치 자리 비움.
@@ -638,7 +640,7 @@
 - 모델 · 프리팹 · 템플릿 에셋(SM_Interior_CommRelay · PF_Interior_* · IT_CommRelay · M_Paint_CommRelay · Interior_NewBasic.blend `comm_builder`)은 tycoon에서 만들어 binary patch로 옮김. PF_Interior_* 다른 방은 재빌드로 fileID만 새로 (열 감시판 · 도착 안내판은 코드 도우미만 바뀜)
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 에셋은 자동 합침 예상. **씬 `InteriorMode._templates`에 `IT_CommRelay`를 넣어야 새 내부가 쓰임**. 서사판이 방문 세력 규칙(`StationRule.Contact`)을 열지 않으면 신호판은 늘 "외부 접촉 전" · 평판판 "아직 만난 적 없음". 서사판이 `ContactSystem`을 고쳤으면 `InteriorSignalBoard`가 쓰는 공개 값(`Phase` · `TimeLeft` · `DecodeProgress` · `CanDecode` · `Decoded` · `VisitorName` · `Reputation` · `Tier` · `LastChoice` · `RelayPower` · `Boarding`)만 맞춤. 플레이: 통신 중계소 안 두 화면 · 기둥 빛 고리 · 천장 구동부 회전.
+- [x] (2026-10-25, 0ab1f65 · 00eb2ce) 자동 합침 · 씬 목록에 `IT_CommRelay`. 통신 중계소는 서사판 7장이라 1~3장에서 안 쓰임.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-22) 자동 합침 · 템플릿 재빌드 · Bake Resident Spots · EditMode 427개 통과 · 플레이 (수동 저장 3, 통신 세기 5: "외부 접촉 전 신호 대기" · "통신 세기 5 · 해독 말단 ~ 간부" → 방문 세력 규칙을 켜고 방문 시작 → "함선 접근 도착 1분 00초" · "해독 중 0%" 거친 잡음 → 해독 55% 막대 반 · 파형 반쯤 고름 → "해독 완료 상인 연합 말단" 고른 물결 · 평판 "상인 연합 · 방문 중" (내부에 있는 동안 게임 시간이 멈춰 `ContactSystem.Tick`을 직접 불러 진행) · 연구원 자리 3 (모든 주민에 연구원 특성을 잠시 붙여 확인 — 수동 저장 3 그대로면 0명) · 구동부 회전 · 빛 고리 흐름 · 뚫림 검사 1196장 0px (대조 99% 자홍, 자동문은 닫고) · 키트 ↔ 템플릿 같은 평면 0 · 벽 소품 자리 13 (흩어진 6) · 콘솔 오류 0). Blender 검사: 경계 0 · 겹침 0 · 문 구역 0 · 벽 뚫림 0 · 해치 자리 비움.
@@ -662,7 +664,7 @@
 - 시험 2개 (식단 균형 · 치안 + 행정 함께)
 
 ### `narrative` 합칠 때
-- [ ] 코드는 자동 합침 예상. 메뉴 **Needs/Setup Diet and Security** · **Recipes/Setup**을 돌림 (`Main.unity` 레시피 목록 · 레시피 창). 식단 · 치안을 서사판 어느 장에서 열지는 서사판 등급 표(`_newNeeds`)에서 정함 — 넣지 않으면 두 요구는 없는 것과 같음. 서사판이 `NeedsSystem.Evaluate`를 고쳤으면 식단 분기(`ResidentNeed.Diet` → `EvaluateDiet`)만 맞춤. `PenaltyScale`(종족별 배율)은 식단에도 그대로 곱해짐.
+- [x] (2026-10-25, 0ab1f65) 자동 합침 · 데이터 에셋(binary patch)이 그대로 들어와 메뉴는 안 돌림. 서사판 장 데이터에 식단 · 치안 요구가 없어 1~3장은 그대로.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-22) 자동 합침 · 메뉴 Needs/Setup Diet and Security · Recipes/Setup · Tycoon/Setup Needs (**도시급 식단 · 대륙급 치안**, BALANCE 48번) · EditMode 429개 통과. 봇 측정 120분 × 12판: 등급 도달 · 게임 오버 0 · 만족도 기준과 같음, 봇이 수경 농장 · 단백질 배양실을 반반 · 보안청 · 치안 본부를 지음 (tycoon BALANCE 48번).
@@ -679,7 +681,7 @@
 - 시험 1개 (진화 모듈 도킹 몫)
 
 ### `narrative` 합칠 때
-- [ ] 코드는 자동 합침 예상. 메뉴 **Recipes/Setup**을 돌림 (`Main.unity` 레시피 목록 · 레시피 창, 목록 스크롤은 실행 때 만들어짐). 2 · 3단계는 `SynthesisStage2` · `SynthesisStage3` 규칙이 열려야 하므로 서사판 장 규칙에서 정함 (M-1 · M-6). 서사판 24종 선택(PHASESET)에 안 드는 레시피는 장 데이터에서 빼 둠. 서사판이 `StationProgression.CountLimited` · `StationConstruction.CheckRebuild`를 고쳤으면 도킹 몫 두 줄만 맞춤.
+- [x] (2026-10-25, 0ab1f65) 자동 합침 · 씬 레시피 목록 48개가 main 줄 그대로 들어옴 (빈 칸 0) → **Recipes/Setup은 안 돌림** (합성 = 서사판 4장, 24종 선택 · 장 규칙은 4장을 만들 때).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-22) 자동 합침 · 메뉴 Recipes/Setup → Tycoon/Setup Synthesis → Tycoon/Setup Needs. 첫 실행에서 `RecipeData` 검사가 대형 토러스 · 궤도 도시 칸 수 · 장갑 외벽 등급 모듈 수를 잡아 main에서 고친 뒤 다시 돌림 → 경고 0 · 레시피 48 · EditMode 434개 통과. 봇이 새 레시피로 합성하므로 다음 측정 결과는 바뀔 수 있음.
@@ -701,7 +703,7 @@
 - `ModuleFxMaterials` `EvoGlass` = 진화 모듈 공통 투명 유리 `M_EvoGlass`
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 모델은 자동 합침 예상. 메뉴 **Recipes/Setup**을 돌리면 1단계 6종 프리팹이 모델로 바뀜. 서사판이 `StationArtBuilder`의 움직이는 부품 줄(`SpinRadar` · `SpinDish`)을 고쳤으면 `SpinOrbit` · `SpinClock` 줄만 맞춤. 플레이: 연구 단지 돔 안 망원경이 천천히 돌고, 궤도 고리 위 구체가 고리를 따라 도는지, 비활성 때 빛이 꺼지고 회전이 멈추는지.
+- [x] (2026-10-25, 0ab1f65) 자동 합침 · 모델 프리팹(tycoon에서 만든 것)이 그대로 들어와 메뉴는 안 돌림. 4장 전이라 플레이 확인 없음.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-22) 메뉴 Recipes/Setup → 1단계 6종 프리팹이 모델 (칸 상자 0 · 통로 깊이 측정), 회전 부품 축 = 연구 단지 궤도 ±20° · 문화 센터 시계 z축. 편집 모드 렌더(게임 조명 + 후처리)로 재질 · 움직임 확인, 플레이 (수동 저장 3: 이미 있던 진화 모듈 12개가 새 모델로 바뀜 + 6종을 실제 모듈로 붙여 가동 확인, 망원경 · 궤도 · 시계가 회전 배율 1.0으로 돎) · EditMode 434개 통과.
@@ -715,7 +717,7 @@
 - 공통 규칙 추가 (MODELING 7-9): 모듈 색 포인트 + 받침 옆면, 실내가 있을 수 있는 형태, 부품 이름 꼬리 · 따로 굽기, 반짝이는 점
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 모델 자동 합침 예상. 메뉴 **Recipes/Setup**을 돌리면 1단계 24종 프리팹이 모델. `MeteorFx.Intercept`를 서사판이 고쳤으면 머리 찾기만 `Head` · `Head_*` 둘 다로. 플레이: 실드 매트릭스 빛점 궤도, 태양광 어레이 패널판 기울기, 복지 · 문화 센터 별빛 · 장갑 외벽 · 보안청 신호등 반짝임, 방어 포대 · 보안청 포탑 요격.
+- [x] (2026-10-25, 0ab1f65) 자동 합침 · 프리팹이 그대로 들어와 메뉴는 안 돌림 (서사판은 `MeteorFx` · `StationArtBuilder`를 고치지 않았음). 4장 전이라 플레이 확인 없음.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-22) Recipes/Setup → Tycoon/Setup Synthesis → Setup Needs (경고 0) · 프리팹 23종 모델 + 배선 확인 (도는 부품 · 해 따라 패널 1 · 실드 연출 1 + 돔 유리 · 포탑 머리 3 · 반짝임 재질 + 꼭짓점 색) · EditMode 434개 통과 · 플레이 (수동 저장 3에 20종을 정거장에 붙여 가동 — 도는 부품 19개 회전 배율 1.0, 실드 매트릭스 빛점 4, 패널판 해 쪽으로 기움, 콘솔 오류 0, 저장 되돌림)
@@ -730,7 +732,7 @@
 - 아직 안 한 것: 프리팹 (Recipes/Setup) · 새 FX 재질 `ModuleFxMaterials` 등록 (FX_FluorIce · FX_EvoGlassTeal · FX_EvoGlassClear · FX_Mirror · FX_LightBeam) · 받침 없는 모델 통로 깊이 확인 — 2단계를 다 만든 뒤 한꺼번에
 
 ### `narrative` 합칠 때
-- [ ] 모델 · 텍스처만이라 자동 합침 예상. 2단계 Unity 반영(M-4x)이 들어온 뒤 Recipes/Setup.
+- [x] (2026-10-25, 0ab1f65) 자동 합침 (모델 · 텍스처). 2단계 Unity 반영이 들어오면 다시 봄.
 
 ### `tycoon` 합칠 때
 - [ ] 2단계 Unity 반영 때 함께 확인.
@@ -744,7 +746,7 @@
 - 시험 1개 (`NewModulesTests.Arrivals_DefaultsToPortClock_OtherScheduleReplacesIt`)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 서사판 `ArkShipSystem`이 `IArrivalSchedule`을 따르고 붙을 때 `Sim.Arrivals = this`. 플레이: 3장 여객 도킹 포트 안 안내판에 곰 배 · 대이주 배 시계, 답한 뒤 깜빡임.
+- [x] (2026-10-25, 5b76f74 · e16e049) 자동 합침 · `ArkShipSystem`이 따름(받은 인원 = `Accepted`, 다녀간 횟수 = 답한 배 수 `Answered`) · 시험에 두 줄 · EditMode 455개 통과 · 플레이는 M-34 줄.
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상, 동작 같음. 타이쿤판이 `InteriorArrivalBoard`를 고쳤으면 `Immigration` → `Arrivals` 한 줄만 맞춤.
