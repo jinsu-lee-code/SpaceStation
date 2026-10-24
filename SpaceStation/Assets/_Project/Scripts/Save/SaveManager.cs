@@ -13,6 +13,7 @@ namespace SpaceStation.Save
     /// 게임 씬의 저장 담당 (Phase 6 세이브/로드).
     /// - 수동 저장: <see cref="SaveTo"/> (ESC 메뉴 → 저장 창)
     /// - 자동 저장: 게임 시간 N분마다(설정, 기본 3분), 메인 메뉴로 나갈 때, 게임을 끌 때. 게임 오버면 자동 저장을 지운다.
+    ///   나갈 때는 게임 시간이 짧은 판(새 게임을 열자마자 나감)이면 건너뛰어 이전 판의 자동 저장을 남긴다.
     /// - 불러온 판: 카메라를 저장 당시로 되돌리고 일시정지 상태로 시작, 알림 표시.
     /// 썸네일은 UI 없이 월드 카메라만 작게 렌더링한다.
     /// </summary>
@@ -26,6 +27,8 @@ namespace SpaceStation.Save
         [SerializeField] private OrbitCameraController _cameraController;
         [Tooltip("썸네일을 찍을 카메라 (비우면 Main Camera)")]
         [SerializeField] private Camera _camera;
+        [Tooltip("게임 시간이 이보다 짧은 판은 나갈 때(메인 메뉴 · 게임 종료) 자동 저장하지 않음 (초) — 새 게임을 열자마자 나가도 이전 판의 자동 저장이 남게")]
+        [SerializeField, Min(0f)] private float _minExitAutosaveSeconds = 60f;
 
         private StationSimulation _sim;
         private float _lastAutosaveAt;
@@ -143,15 +146,30 @@ namespace SpaceStation.Save
             if (_leaving)
                 return;
             _leaving = true;
-            if (CanSave)
-                Autosave(false);
+            AutosaveOnExit();
         }
 
         private void OnApplicationQuit()
         {
-            if (!_leaving && CanSave)
-                Autosave(false);
+            if (!_leaving)
+                AutosaveOnExit();
             _leaving = true;
+        }
+
+        /// <summary>
+        /// 나갈 때 자동 저장. 게임 시간이 <see cref="_minExitAutosaveSeconds"/>보다 짧은 판은 건너뜀 (사용자 결정 2026-10-25:
+        /// 새 게임을 열자마자 나가면 0초짜리 판이 이전 판의 자동 저장을 덮었음). 불러온 판은 게임 시간이 이어져 그대로 저장.
+        /// </summary>
+        private void AutosaveOnExit()
+        {
+            if (!CanSave)
+                return;
+            if (_sim.ElapsedSeconds < _minExitAutosaveSeconds)
+            {
+                Debug.Log($"[Save] 게임 시간 {_sim.ElapsedSeconds:0}초 — 짧은 판이라 나갈 때 자동 저장을 건너뜀 (이전 자동 저장 유지)");
+                return;
+            }
+            Autosave(false);
         }
 
         private void HandleGameOver()

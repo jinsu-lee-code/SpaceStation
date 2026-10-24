@@ -315,6 +315,7 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
 - [x] **세이브/로드** (2026-10-02) — 플레이 확인 완료
   - 참고: 게임 오버 후 수동 저장을 불러와 바로 나가도 "나갈 때·종료 시 자동 저장" 규칙대로 자동 저장이 다시 생긴다 (의도대로 유지, 2026-10-02 결정). 저장·삭제 시점은 콘솔 `[Save]` 로그로 확인
   - 결정: 자동 1 + 수동 3 / 자동 저장 = 게임 시간 간격(설정: 끔·1·3·5분, 기본 3분) + 메인 메뉴로 나갈 때·게임 종료 시 / 게임 오버 시 자동 저장만 삭제 / 시뮬레이션 전부 정확히 복원(날아가는 운석 연출만 제외) / ESC 메뉴 [저장] [불러오기] / 칸 = 텍스트 + 썸네일 / 카메라 복원, 불러오면 일시정지로 시작 / 형식 버전 기록, 없어진 데이터는 건너뛰고 알림
+  - 고침 (사용자 결정 2026-10-25, MERGE_NOTES M-43): 나갈 때(메인 메뉴 · 게임 종료) 자동 저장은 게임 시간 60초 미만 판이면 건너뜀 (`SaveManager._minExitAutosaveSeconds`) — 새 게임을 열자마자 나가면 0초짜리 판이 이전 판의 자동 저장을 덮었음
   - 상태: `Simulation/StationState`(JsonUtility, 에셋·자원은 이름으로) + `StationStateSerializer.Capture/Restore` — 모듈(배치 순서·회전)·내구도, 재고·배터리·인구·태양 폭풍 배율, 만족도·성장·인구 감소 타이머, 파손(파괴·수리·확산 타이머, 대기열 순서), 다음 이벤트 타이머·진행 중 이벤트, 최고 등급 도달 기록, 통계, 실패 타이머, 연구 레벨·진행 중 연구(순서·진행률), 자동화 설정. 복원 순서: 연구 레벨 → 모듈 → 재고 → 파손 → 이벤트 → 통계 → 연구 진행 → 0초 틱으로 파생값 재계산
   - 각 시스템에 internal 복원 메서드 추가(`Durability/Damage/Population/Events/Failure/Session/Research.Restore*`, `StationProgression.FindModule`·`RestoreReachedFinal`, `StationSimulation.RestoreElapsed`)
   - 파일: `Save/SaveService` (`{persistentDataPath}/Saves/{auto|slot1~3}.json` + `.png`, 임시 파일 후 교체, 버전 `CurrentVersion` 1 — 더 높은 버전·깨진 파일은 "호환되지 않음"), `Save/SaveFile`(메타: 시각·난이도·등급·인구·모듈·플레이 시간 / 카메라 / 정거장)
