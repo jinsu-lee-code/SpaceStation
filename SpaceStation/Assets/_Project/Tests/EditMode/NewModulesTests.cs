@@ -169,6 +169,26 @@ namespace SpaceStation.Tests
             Assert.AreEqual(sim.Immigration.TimeLeft, loaded.Immigration.TimeLeft, Eps);
         }
 
+        [Test]
+        public void Arrivals_DefaultsToPortClock_OtherScheduleReplacesIt()
+        {
+            var sim = Sim();
+            Assert.AreSame(sim.Immigration, sim.Arrivals, "기본 = 포트 시계");
+            var other = new FixedSchedule { TimeLeft = 42f, Arrived = 7, Visits = 2 };
+            sim.Arrivals = other;
+            Assert.AreSame(other, sim.Arrivals);
+            Assert.AreEqual(42f, sim.Arrivals.TimeLeft, Eps);
+            sim.Arrivals = null;
+            Assert.AreSame(sim.Immigration, sim.Arrivals, "비우면 다시 포트 시계");
+        }
+
+        private sealed class FixedSchedule : IArrivalSchedule
+        {
+            public float TimeLeft { get; set; }
+            public int Arrived { get; set; }
+            public int Visits { get; set; }
+        }
+
         // ---------------- 도우미 ----------------
 
         private StationSimulation Sim() => new StationSimulation(new StationSimulationSettings

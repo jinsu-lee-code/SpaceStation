@@ -734,3 +734,17 @@
 
 ### `tycoon` 합칠 때
 - [ ] 2단계 Unity 반영 때 함께 확인.
+
+## M-42. 도착 안내판이 보는 이민선 일정을 바꿀 수 있게 (2026-10-25, `main`)
+
+**main에 넣은 것** — 공통 고리만 (main · 타이쿤판 동작 변화 없음)
+- `IArrivalSchedule` (`ImmigrationSystem.cs` 안): `TimeLeft` · `Arrived` · `Visits`. `ImmigrationSystem`이 이것을 따름 (이미 있던 값 그대로)
+- `StationSimulation.Arrivals` — 기본 = `Immigration`, 다른 일정을 넣으면 그쪽 (null이면 다시 포트 시계)
+- `InteriorArrivalBoard`가 `Immigration` 대신 `Arrivals`를 봄 — 사용자 결정 2026-10-25: 서사판은 포트 시계를 끄고(`Suppressed`) 자체 이민선을 써서 3장 여객 도킹 포트 안내판이 늘 "운항 일정 없음"이었음 (M-34 서사판 주의)
+- 시험 1개 (`NewModulesTests.Arrivals_DefaultsToPortClock_OtherScheduleReplacesIt`)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 서사판 `ArkShipSystem`이 `IArrivalSchedule`을 따르고 붙을 때 `Sim.Arrivals = this`. 플레이: 3장 여객 도킹 포트 안 안내판에 곰 배 · 대이주 배 시계, 답한 뒤 깜빡임.
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상, 동작 같음. 타이쿤판이 `InteriorArrivalBoard`를 고쳤으면 `Immigration` → `Arrivals` 한 줄만 맞춤.

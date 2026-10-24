@@ -188,6 +188,13 @@ namespace SpaceStation.Simulation
         public ContactSystem Contact { get; }
         /// <summary>12-5 여객 도킹 포트 이민선.</summary>
         public ImmigrationSystem Immigration { get; }
+        /// <summary>도착 안내판이 보는 이민선 일정 — 기본 = <see cref="Immigration"/>, 이민선을 따로 정하는 쪽(서사판)이 바꿈.</summary>
+        public IArrivalSchedule Arrivals
+        {
+            get => _arrivals ?? Immigration;
+            set => _arrivals = value;
+        }
+        private IArrivalSchedule _arrivals;
         /// <summary>12-4 연구 확장 (설정에 없으면 null).</summary>
         public ResearchExpansionSystem ResearchExpansion { get; }
 
