@@ -18,7 +18,7 @@ namespace SpaceStation.Tests
         private readonly List<Object> _created = new List<Object>();
         private BalanceConfig _config;
         private StationGradeConfig _grades;
-        private ModuleData _core, _block, _turret;
+        private ModuleData _core, _block, _turret, _armor;
 
         [SetUp]
         public void SetUp()
@@ -31,6 +31,11 @@ namespace SpaceStation.Tests
             t.FindProperty("_turretRadius").intValue = 6;
             t.FindProperty("_turretInterceptChance").floatValue = 1f;
             t.ApplyModifiedPropertiesWithoutUndo();
+            _armor = Module("MD_TestArmor");
+            var a = new SerializedObject(_armor);
+            a.FindProperty("_decoyRadius").intValue = 1;
+            a.FindProperty("_decoyChance").floatValue = 1f;
+            a.ApplyModifiedPropertiesWithoutUndo();
 
             _grades = Create<StationGradeConfig>();
             var g = new SerializedObject(_grades);
@@ -125,6 +130,41 @@ namespace SpaceStation.Tests
             StringAssert.Contains("(100%)", sim.Chapters.LastRecord.Summary);
         }
 
+        /// <summary>사용자 결정 2026-10-25 (13-8 측정): 장갑 격벽이 대신 맞은 운석도 막음 (설명 "앞면을 가리세요").</summary>
+        [Test]
+        public void GreatShower_ArmorTakesHits_CountsAsBlocked()
+        {
+            var sim = Sim(Chapters(Chapter("CH_2", StationRule.None, ChapterClimaxKind.DirectionalShower)));
+            PlaceAround(sim, _armor);
+            RunUntil(sim, () => sim.Chapters.Phase == ChapterPhase.Transition);
+            Assert.AreEqual(ChapterOutcome.Clean, sim.Chapters.LastRecord.Outcome, "앞면 장갑 격벽이 다 맞음 · 파괴 0");
+            StringAssert.Contains("4개 중 4개 막음 (100%, 장갑 격벽 4)", sim.Chapters.LastRecord.Summary);
+        }
+
+        /// <summary>사용자 결정 2026-10-25 (13-8 측정): 절정 예고 동안 평소 유성우는 오지 않음 — 시계는 예고 뒤로, 예보 중이던 것은 거둠.</summary>
+        [Test]
+        public void ClimaxWarning_HoldsRegularShower()
+        {
+            var sim = Sim(Chapters(Chapter("CH_2", StationRule.MeteorShower, ChapterClimaxKind.None, warning: 30f)));
+            Place(sim, new Vector3Int(1, 0, 0));
+            RunUntil(sim, () => sim.Chapters.Phase == ChapterPhase.Warning);
+            var shower = sim.MeteorShower;
+            Assert.IsTrue(shower.ScheduleNext(5f, 1));
+            sim.Tick(1f);
+            Assert.AreEqual(MeteorShowerSystem.ShowerPhase.Idle, shower.Phase);
+            Assert.Greater(shower.TimeLeft, sim.Chapters.WarningLeft, "예고 안에 올 유성우는 예고 뒤로");
+
+            shower.BeginWarning(5f);
+            sim.Tick(1f);
+            Assert.AreEqual(MeteorShowerSystem.ShowerPhase.Idle, shower.Phase, "예보 중이던 평소 유성우는 거둠");
+            for (int i = 0; i < 40 && sim.Chapters.Phase == ChapterPhase.Warning; i++)
+            {
+                sim.Tick(1f);
+                Assert.AreEqual(MeteorShowerSystem.ShowerPhase.Idle, shower.Phase, "예고 동안 평소 유성우 없음");
+            }
+            Assert.AreNotEqual(ChapterPhase.Warning, sim.Chapters.Phase);
+        }
+
         // ---------------- 도우미 ----------------
 
         private static void RunUntil(StationSimulation sim, System.Func<bool> done)
@@ -134,15 +174,15 @@ namespace SpaceStation.Tests
             Assert.IsTrue(done(), "시간 안에 끝나지 않음");
         }
 
-        private void PlaceAround(StationSimulation sim)
+        private void PlaceAround(StationSimulation sim, ModuleData data = null)
         {
             foreach (var d in new[] { Vector3Int.right, Vector3Int.left, new Vector3Int(0, 0, 1), new Vector3Int(0, 0, -1), Vector3Int.up, Vector3Int.down })
-                Place(sim, d);
+                Place(sim, d, data);
         }
 
-        private ModuleInstance Place(StationSimulation sim, Vector3Int at)
+        private ModuleInstance Place(StationSimulation sim, Vector3Int at, ModuleData data = null)
         {
-            Assert.IsTrue(sim.Grid.TryPlace(_block, at, 0, out var m), $"블록 @ {at}");
+            Assert.IsTrue(sim.Grid.TryPlace(data ?? _block, at, 0, out var m), $"블록 @ {at}");
             return m;
         }
 
@@ -198,8 +238,8 @@ namespace SpaceStation.Tests
             return c;
         }
 
-        /// <summary>필수 = 코어 기동 표시(튜토리얼이 없으면 저절로) [+ 버티기] · 예고 0초 · 큰 유성우 = 2방향 × 2파 × 1개, 예보 3 · 2초, 정리 최대 5초.</summary>
-        private ChapterData Chapter(string name, StationRule rules, ChapterClimaxKind climaxKind, float firstShower = 0f, float survive = 0f)
+        /// <summary>필수 = 코어 기동 표시(튜토리얼이 없으면 저절로) [+ 버티기] · 예고 warning초(기본 0) · 큰 유성우 = 2방향 × 2파 × 1개, 예보 3 · 2초, 정리 최대 5초.</summary>
+        private ChapterData Chapter(string name, StationRule rules, ChapterClimaxKind climaxKind, float firstShower = 0f, float survive = 0f, float warning = 0f)
         {
             var c = Create<ChapterData>();
             c.name = name;
@@ -224,7 +264,7 @@ namespace SpaceStation.Tests
             var climax = so.FindProperty("_climax");
             climax.FindPropertyRelative("_kind").enumValueIndex = (int)climaxKind;
             climax.FindPropertyRelative("_title").stringValue = "큰 유성우";
-            climax.FindPropertyRelative("_warningSeconds").floatValue = 0f;
+            climax.FindPropertyRelative("_warningSeconds").floatValue = warning;
             climax.FindPropertyRelative("_waves").intValue = 2;
             climax.FindPropertyRelative("_hitsPerWave").intValue = 1;
             climax.FindPropertyRelative("_settleSeconds").floatValue = 5f;

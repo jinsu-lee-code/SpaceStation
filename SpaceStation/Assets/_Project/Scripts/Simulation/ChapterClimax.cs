@@ -382,7 +382,7 @@ namespace SpaceStation.Simulation
         private int _directionsDone;
         private bool _started;
         private Vector3Int _last;
-        private int _meteors, _blocked, _damaged, _destroyedAtStart;
+        private int _meteors, _blocked, _armored, _damaged, _destroyedAtStart;
         private float _settle = -1f; // 정리 중 남은 시간 (음수 = 아직 떨어지는 중)
         private bool _subscribed;
 
@@ -434,7 +434,7 @@ namespace SpaceStation.Simulation
             _directionsDone = 0;
             _started = false;
             _last = Vector3Int.zero;
-            _meteors = _blocked = _damaged = 0;
+            _meteors = _blocked = _armored = _damaged = 0;
             _settle = -1f;
             _destroyedAtStart = Sim.Session.ModulesDestroyed;
             Subscribe();
@@ -493,7 +493,8 @@ namespace SpaceStation.Simulation
                 Outcome = ChapterOutcome.Hurt;
             else
                 Outcome = ChapterOutcome.Lost;
-            Summary = $"운석 {_meteors}개 중 {_blocked}개 막음 ({ratio * 100f:0}%) · 파손 {_damaged} · 파괴 {destroyed}";
+            string armored = _armored > 0 ? $", 장갑 격벽 {_armored}" : "";
+            Summary = $"운석 {_meteors}개 중 {_blocked}개 막음 ({ratio * 100f:0}%{armored}) · 파손 {_damaged} · 파괴 {destroyed}";
             Finished = true;
             Detach();
         }
@@ -505,6 +506,11 @@ namespace SpaceStation.Simulation
             _meteors++;
             if (flight.Hit == null || flight.Immune)
                 _blocked++;
+            else if (flight.Hit.Data != null && flight.Hit.Data.IsDecoy)
+            {
+                _blocked++; // 사용자 결정 2026-10-25 (13-8 측정): 장갑 격벽이 대신 맞은 것도 막음 (설명 "예보를 보고 앞면을 가리세요")
+                _armored++;
+            }
         }
 
         private void HandleDamaged(DamageInfo info)
@@ -539,6 +545,7 @@ namespace SpaceStation.Simulation
             public Vector3Int Last;
             public int Meteors;
             public int Blocked;
+            public int Armored;
             public int Damaged;
             public int DestroyedAtStart;
             public float Settle;
@@ -551,6 +558,7 @@ namespace SpaceStation.Simulation
             Last = _last,
             Meteors = _meteors,
             Blocked = _blocked,
+            Armored = _armored,
             Damaged = _damaged,
             DestroyedAtStart = _destroyedAtStart,
             Settle = _settle,
@@ -566,6 +574,7 @@ namespace SpaceStation.Simulation
                 _last = s.Last;
                 _meteors = s.Meteors;
                 _blocked = s.Blocked;
+                _armored = s.Armored;
                 _damaged = s.Damaged;
                 _destroyedAtStart = s.DestroyedAtStart;
                 _settle = s.Settle;

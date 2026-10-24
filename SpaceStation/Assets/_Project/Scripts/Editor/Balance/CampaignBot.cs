@@ -88,7 +88,7 @@ namespace SpaceStation.Editor.Balance
         public int Population = -1;
         /// <summary>이 장에서 게임 오버가 난 횟수 · 그중 체크포인트로 다시 시작한 횟수.</summary>
         public int Falls, Retries;
-        /// <summary>절정 중 운석: 전체 · 막음(격추 · 빗겨냄 · 면역) · 장갑 격벽이 대신 맞음 (판정은 막음만 셈).</summary>
+        /// <summary>절정 중 운석: 전체 · 격추 · 빗겨냄 · 면역 · 장갑 격벽이 대신 맞음 (판정은 둘 다 막음 — 사용자 결정 2026-10-25).</summary>
         public int ClimaxMeteors, ClimaxBlocked, ClimaxArmorHits;
         /// <summary>절정 예고 중에 평소 유성우가 떨어졌는지 (그 파손이 절정 동안 파괴로 넘어가면 절정 판정의 파괴로 셈).</summary>
         public bool ShowerInWarning;
@@ -347,7 +347,7 @@ namespace SpaceStation.Editor.Balance
             return n;
         }
 
-        /// <summary>절정 중 운석 집계 (판정과 같은 '막음' + 장갑 격벽이 대신 맞은 수).</summary>
+        /// <summary>절정 중 운석 집계 (격추 · 빗겨냄 · 면역 / 장갑 격벽이 대신 맞음 — 판정의 '막음'은 둘의 합).</summary>
         private void HandleMeteor(MeteorFlight flight)
         {
             if (_chapters == null || _chapters.Phase != ChapterPhase.Climax || flight == null)
@@ -621,7 +621,7 @@ namespace SpaceStation.Editor.Balance
                 sb.AppendLine($"{data.DisplayName} {data.Subtitle}: 시작 {reached}판 · 준비(시작 → 예고) {Spread(prep)} · 절정 {Spread(climax)} · 장 전체 {Spread(whole)}");
                 sb.AppendLine($"    결과 깔끔 {clean} · 피해 {hurt} · 잃음 {lost} · 무너짐 {falls}번 (다시 시작 {retries}번) · 장 끝 인구 {Spread(pop, minutes: false)}");
                 if (meteors > 0)
-                    sb.AppendLine($"    절정 중 운석 {meteors}개 · 막음 {blocked} ({blocked * 100f / meteors:0}%) · 장갑 격벽이 대신 맞음 {armorHits} ({armorHits * 100f / meteors:0}%, 판정은 막음만 셈)"
+                    sb.AppendLine($"    절정 중 운석 {meteors}개 · 막음 {blocked + armorHits} ({(blocked + armorHits) * 100f / meteors:0}%) = 실드 · 포탑 · 면역 {blocked} + 장갑 격벽이 대신 맞음 {armorHits}"
                                   + (showerInWarning > 0 ? $" · 절정 예고 중 평소 유성우 {showerInWarning}판" : ""));
             }
             int accepted = 0, partial = 0, refused = 0, offered = 0, boarded = 0, prepHousing = 0, prepDefense = 0;
