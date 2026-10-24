@@ -30,8 +30,14 @@ namespace SpaceStation.Save
         /// <summary>승리 등급(대형)보다 높은 등급에 도달 → 세이브 목록에 '★ (TopGradeName) 달성' 표시 (12-1: 도달한 가장 높은 등급).</summary>
         public bool ReachedTopGrade;
         public string TopGradeName;
+        /// <summary>13-7d 게임 모드 Id (<see cref="SpaceStation.Data.GameModeData.Id"/> — 캠페인 · 엔드리스). 비면 모드를 나누기 전 저장 · 씬 단독 실행.</summary>
+        public string Mode;
+        /// <summary>13-7d 진행 표시 (<see cref="StationSimulation.ProgressLabel"/> — 캠페인 = "3장 · 무리 합류"). 비면 등급 이름을 씀.</summary>
+        public string Progress;
 
         public DateTime SavedAt => new DateTime(SavedAtTicks, DateTimeKind.Local);
+        /// <summary>이어하기 · 저장 목록 · 로딩 화면 머리말: 진행 표시가 있으면 그것, 없으면 등급 이름.</summary>
+        public string Headline => !string.IsNullOrEmpty(Progress) ? Progress : GradeName;
     }
 
     [Serializable]
