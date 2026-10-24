@@ -243,9 +243,11 @@ namespace SpaceStation.Editor
                 s.Met.Add(species.Id);
                 s.NewSpeciesChapter = i;
                 s.Ships++;
-                s.Accepted++;
                 for (int r = 0; r < station.Residents.Count && r < 6; r++)
+                {
                     station.Residents[r].Kind = species.Id;
+                    s.Accepted++; // 받은 인원 (도착 안내판 "지금까지 도착 n명")
+                }
             }
             return s;
         }

@@ -36,9 +36,9 @@ namespace SpaceStation.Simulation
     /// - 위기 완충: 만족도가 기준 미만이거나 산소 · 물 · 식량 중 하나가 바닥이면 시계가 느려짐. 절정 · 전환 중에는 멈춤.
     /// - 종족 기본값: 새 주민 종류(자연 증가 = 지금 무리 비율대로), 기술 = 특성 통로에 더함 (종족 + 개인 합산 상한),
     ///   사회 = 중시 요구 감점 × (1 + 가중치 × 그 종족 비율), 견딤 · 정책 반응 = 값만 (5장 · 13-6).
-    /// - 공통 바닥 포트 이민선(<see cref="ImmigrationSystem"/>)은 끔.
+    /// - 공통 바닥 포트 이민선(<see cref="ImmigrationSystem"/>)은 끔. 여객 도킹 포트 도착 안내판은 이 시계를 봄 (<see cref="StationSimulation.Arrivals"/>).
     /// </summary>
-    public sealed class ArkShipSystem : StationSystem
+    public sealed class ArkShipSystem : StationSystem, IArrivalSchedule
     {
         public const string SystemKey = "arkships";
         /// <summary>처음 만나는 종족의 배에 답함 (받기 · 일부 · 거부 무엇이든).</summary>
@@ -85,6 +85,10 @@ namespace SpaceStation.Simulation
         public int Ships { get; private set; }
         public int Accepted { get; private set; }
         public int TurnedAway { get; private set; }
+        /// <summary>이번 실행에서 답한 배 수 (저장 안 함) — 도착 안내판이 답한 순간 "n명 입국" / "내린 주민 없음"을 깜빡임.</summary>
+        public int Answered { get; private set; }
+        int IArrivalSchedule.Arrived => Accepted;
+        int IArrivalSchedule.Visits => Answered;
         /// <summary>위기 완충으로 시계가 느린 중.</summary>
         public bool Slowed { get; private set; }
         /// <summary>13-6c 대이주: 절정이 보낸 배가 오는 중 (절정 중에도 시계가 돎).</summary>
@@ -106,6 +110,7 @@ namespace SpaceStation.Simulation
             var port = Sim.GetSystem<ImmigrationSystem>();
             if (port != null)
                 port.Suppressed = true;
+            Sim.Arrivals = this; // main M-42: 3장 여객 도킹 포트 안내판이 이 배들을 보임 (사용자 결정 2026-10-25)
             Meet(_config.StartSpecies);
             FillEmptyKinds();
         }
@@ -252,6 +257,7 @@ namespace SpaceStation.Simulation
             }
             Accepted += n;
             TurnedAway += turned;
+            Answered++;
             string name = SpeciesName(ship.Species);
             var core = Sim.GetSystem<CorePersonalitySystem>();
             switch (answer)

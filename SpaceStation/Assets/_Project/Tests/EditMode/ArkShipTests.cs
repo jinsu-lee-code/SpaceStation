@@ -76,6 +76,7 @@ namespace SpaceStation.Tests
             var sim = Sim(Chapters(Chapter("1장", ships: true, newSpecies: null, growth: 3f)), out var ark, out var core);
             Assert.IsTrue(sim.Residents.Residents.All(r => r.Kind == "rabbit"), "시작 주민 = 시작 종족");
             Assert.IsTrue(sim.GetSystem<ImmigrationSystem>().Suppressed, "포트 이민선은 꺼짐");
+            Assert.AreSame(ark, sim.Arrivals, "여객 도킹 포트 도착 안내판 = 서사판 이민선 (main M-42)");
             Assert.IsTrue(sim.Grid.TryPlace(_habitat, Vector3Int.right, 0, out _)); // 장 해금과 무관하게 집 하나 (빈 집 3)
             int entries = core.Entries.Count;
 
@@ -110,6 +111,8 @@ namespace SpaceStation.Tests
             Assert.IsTrue(ark.Answer(ShipAnswer.Refuse));
             Assert.AreEqual(7, sim.Resources.Population, "거부 = 아무도 안 내림");
             Assert.Less(core.Value(CoreAxis.Care), care, "거부 = 효율 쪽");
+            Assert.AreEqual(2, sim.Arrivals.Visits, "답한 배 수 (안내판이 답한 순간을 알아챔)");
+            Assert.AreEqual(3, sim.Arrivals.Arrived, "안내판 도착 인원 = 받은 수");
             Assert.AreEqual(entries + 2, core.Entries.Count);
 
             Tick(sim, 100);
