@@ -50,6 +50,8 @@ namespace SpaceStation.UI
         private GameModeData _mode; // 지금 시작 창의 모드 (모드 목록이 없으면 null)
         private TMP_Text _header;
         private string _headerDefault;
+        private TMP_Text _panelTitle; // 창 왼쪽 위 작은 영문 머리말 (DIFFICULTY → 모드 Id)
+        private string _panelTitleDefault;
         private string[] _difficultyTexts = new string[0];
         private Button _tutorialButton;
         private TMP_Text _tutorialText;
@@ -95,6 +97,9 @@ namespace SpaceStation.UI
             var header = _difficultyPanel.transform.Find("Header");
             if (header != null && header.TryGetComponent<TMP_Text>(out _header))
                 _headerDefault = _header.text;
+            var panelTitle = _difficultyPanel.transform.Find("PanelTitle");
+            if (panelTitle != null && panelTitle.TryGetComponent<TMP_Text>(out _panelTitle))
+                _panelTitleDefault = _panelTitle.text;
             if (_modes != null && System.Array.Exists(_modes, m => m != null && m.TutorialChoice))
                 BuildTutorialRow();
             if (!string.IsNullOrEmpty(_versionLabel) && transform.Find("Version") is Transform version && version.TryGetComponent<TMP_Text>(out var versionText))
@@ -200,6 +205,8 @@ namespace SpaceStation.UI
             bool fixedDifficulty = mode != null && mode.FixedDifficulty != null;
             if (_header != null)
                 _header.SetText(mode != null ? mode.DisplayName : _headerDefault);
+            if (_panelTitle != null)
+                _panelTitle.SetText(mode != null && !string.IsNullOrEmpty(mode.Id) ? mode.Id.ToUpperInvariant() : _panelTitleDefault);
             for (int i = 0; i < _difficultyButtons.Length; i++)
             {
                 _difficultyButtons[i].gameObject.SetActive(!fixedDifficulty || i == 0);
