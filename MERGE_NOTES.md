@@ -772,7 +772,7 @@
 - 시험 1개 (`SaveTests.Meta_ModeAndProgress_RoundTrip_HiddenSlotsStayOutOfLists` — 목록에 없는 칸(체크포인트용)은 이어하기 · 목록에 안 낌)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 서사판: `GM_Campaign` · 메인 메뉴 씬 `_modes` · `_versionLabel` · `ChapterSystem`이 `ProgressLabel`.
+- [x] (2026-10-25, 1bb1961) 자동 합침 · 서사판 13-7d: `GM_Campaign` (단일 난이도 노멀 · 코어 기동 안내 줄) · 메뉴 `SpaceStation/Campaign/Setup Main Menu`가 메인 메뉴 씬 `_modes` = [캠페인] · `_versionLabel` "v0.13 · 캠페인 1~3장" · `ChapterSystem`이 `ProgressLabel` ("3장 · 무리 합류"). 시작 창 머리말 = 모드 Id (6094fc9). EditMode 457개 통과 · 플레이 (메뉴 → [캠페인] → 시작 창 → 노멀 캠페인 · 저장 Mode campaign · Progress "1장 · 깨어남").
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상, 동작 같음 (메뉴 씬 `_modes` 비움). 타이쿤판이 `MainMenuController` 난이도 단추 · 이어하기 글을 고쳤으면 그 부분만 맞춤. 엔드리스 모드 이름을 붙일 때 `GameModeData` 에셋을 만들어 `_modes`에.
@@ -783,7 +783,7 @@
 - `ResultScreen.RetryOptions` (정적 `Func<IReadOnlyList<RetryOption>>`) · `RetryOption` (글 · 할 일): 게임 오버 때 목록이 있으면 [재시작] 대신 첫 지점 = 주 버튼, 나머지는 주 버튼을 복제해 같은 줄에 + [메인 메뉴]. 모드 쪽이 씬에 있는 동안 넣고 나갈 때 비움
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 서사판 캠페인 체크포인트가 채움.
+- [x] (2026-10-25, 1bb1961) 자동 합침 · 서사판 `CampaignCheckpoints`가 채움 · 플레이: [이 장 처음부터] 하나 / [절정 직전부터] 하나 / 둘 다 → 세 버튼 한 줄(각 153 폭)에 [메인 메뉴]까지 들어감, 누르면 그 체크포인트로.
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상, 동작 같음. 타이쿤판이 `ResultScreen` 게임 오버 버튼을 고쳤으면 그 부분만 맞춤.
