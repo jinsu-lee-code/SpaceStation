@@ -6,7 +6,7 @@ namespace SpaceStation.Interior
 {
     /// <summary>
     /// 12-5 여객 도킹 포트 도착 안내판 (칸막이 위 양면) — 사용자 결정 2026-10-21 "도착 안내판".
-    /// 실제 이민선 시계(<see cref="SpaceStation.Simulation.ImmigrationSystem"/>): 다음 이민선까지 남은 시간 · 지금까지 도착한 주민 수.
+    /// 실제 이민선 시계(<see cref="SpaceStation.Simulation.StationSimulation.Arrivals"/> — 공통 포트 시계 또는 서사판 이민선): 다음 이민선까지 남은 시간 · 지금까지 도착한 주민 수.
     /// 이민선이 오면 10초 동안 깜빡이며 "이민선 도착 · n명 입국" (아무도 안 내렸으면 "내린 주민 없음") — 색이 아니라 글자 · 깜빡임으로 (색약).
     /// 모듈이 꺼지면 "운항 중지" (어둡게). 방 안 고정 표지 글자는 <see cref="InteriorSignLabels"/>.
     /// </summary>
@@ -59,16 +59,16 @@ namespace SpaceStation.Interior
                 Show("<b>도착 안내</b>", ScreenDim, "<b>운항 중지</b>", ScreenDim);
                 return;
             }
-            var immigration = Station != null && Station.Simulation != null ? Station.Simulation.Immigration : null;
-            if (immigration == null)
+            var schedule = Station != null && Station.Simulation != null ? Station.Simulation.Arrivals : null;
+            if (schedule == null)
             {
                 Show("<b>도착 안내</b>", ScreenText, "운항 일정 없음", ScreenDim);
                 return;
             }
             float now = Time.unscaledTime;
-            int arrived = immigration.Arrived;
-            int visits = immigration.Visits;
-            float left = immigration.TimeLeft;
+            int arrived = schedule.Arrived;
+            int visits = schedule.Visits;
+            float left = schedule.TimeLeft;
             // 이민선이 왔음: 도착 수가 늘었으면 입국, 그대로면 아무도 안 내림 (빈 집 · 만족도 부족)
             if (_lastVisits >= 0 && visits > _lastVisits)
             {

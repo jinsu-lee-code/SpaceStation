@@ -5,11 +5,25 @@ using UnityEngine;
 namespace SpaceStation.Simulation
 {
     /// <summary>
+    /// 여객 도킹 포트 도착 안내판(12-5 <c>InteriorArrivalBoard</c>)이 보는 이민선 일정 — <see cref="StationSimulation.Arrivals"/>.
+    /// 기본 = 이 포트 시계, 이민선을 따로 정하는 쪽(서사판 이민선 시계)이 있으면 그쪽이 바꿈 (사용자 결정 2026-10-25).
+    /// </summary>
+    public interface IArrivalSchedule
+    {
+        /// <summary>다음 이민선까지 (초, 일정이 없으면 -1).</summary>
+        float TimeLeft { get; }
+        /// <summary>지금까지 내린 주민 수.</summary>
+        int Arrived { get; }
+        /// <summary>이민선이 다녀간 횟수 (내린 주민이 없어도 셈) — 안내판이 늘어난 것을 보고 도착을 알림.</summary>
+        int Visits { get; }
+    }
+
+    /// <summary>
     /// 12-5 여객 도킹 포트 — 주기적 이민선 (사용자 결정 2026-10-14, BALANCE 39번).
     /// 가동 중인 포트가 있으면 간격(기본 180초 ÷ 포트 수)마다 이민선이 와서, 빈 수용 인원이 있고 만족도가 기준(60) 이상이면
     /// 주민을 한꺼번에(최대 4명, 빈 자리까지) 내려 준다. 조건이 안 맞으면 그냥 떠남 (알림). 포트가 없으면 시계가 멈춤.
     /// </summary>
-    public sealed class ImmigrationSystem : StationSystem
+    public sealed class ImmigrationSystem : StationSystem, IArrivalSchedule
     {
         public const string SystemKey = "immigration";
 
