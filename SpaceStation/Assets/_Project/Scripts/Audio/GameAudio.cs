@@ -105,6 +105,7 @@ namespace SpaceStation.Audio
                     _sim.Damage.Destroyed += HandleDestroyed;
                     _sim.Durability.WornOut += HandleDestroyed;
                     _sim.Durability.Maintained += HandleMaintained;
+                    _sim.Automation.Performed += HandleAutomationPerformed;
                     _sim.Events.EventStarted += HandleEventStarted;
                     _sim.Events.EventEnded += HandleEventEnded;
                     _sim.Progression.GradeChanged += HandleGradeChanged;
@@ -120,6 +121,7 @@ namespace SpaceStation.Audio
                     _sim.Damage.Destroyed -= HandleDestroyed;
                     _sim.Durability.WornOut -= HandleDestroyed;
                     _sim.Durability.Maintained -= HandleMaintained;
+                    _sim.Automation.Performed -= HandleAutomationPerformed;
                     _sim.Events.EventStarted -= HandleEventStarted;
                     _sim.Events.EventEnded -= HandleEventEnded;
                     _sim.Progression.GradeChanged -= HandleGradeChanged;
@@ -371,7 +373,19 @@ namespace SpaceStation.Audio
         private void HandleRepairStarted(DamageInfo info) => _audio.Play(_lib.RepairStart, pan: Pan(info.Module));
         private void HandleRepaired(ModuleInstance module) => _audio.Play(_lib.RepairDone, pan: Pan(module));
         private void HandleDestroyed(ModuleInstance module) => _audio.Play(_lib.ModuleDestroyed, pan: Pan(module));
-        private void HandleMaintained(DurabilityInfo info) => _audio.Play(_lib.Maintain, pan: Pan(info.Module));
+        private void HandleMaintained(DurabilityInfo info)
+        {
+            if (_sim.Automation.Executing)
+                return; // M-49: 자동 정비 · 일괄 정비는 모듈마다 소리 내지 않음 (사용자 피드백 2026-10-25: 모듈이 많으면 소리가 끊이지 않음)
+            _audio.Play(_lib.Maintain, pan: Pan(info.Module));
+        }
+
+        /// <summary>M-49: 일괄 정비는 직접 누른 것이라 한 번만 소리. 자동 정비 · 재건축은 소리 없음 (상태 줄 알림만).</summary>
+        private void HandleAutomationPerformed(int maintained, int rebuilt, bool batch)
+        {
+            if (batch)
+                _audio.Play(_lib.Maintain);
+        }
 
         // ---------------- 운석·방어·폭풍 ----------------
 

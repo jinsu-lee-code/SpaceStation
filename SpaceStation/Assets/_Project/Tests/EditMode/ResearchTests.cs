@@ -525,6 +525,28 @@ namespace SpaceStation.Tests
             Assert.AreEqual(1, maintained + rebuilt, "일괄 정비는 보호선 무시");
         }
 
+        /// <summary>M-49: 자동 · 일괄 정비가 처리하는 동안만 Executing (소리가 모듈마다 나지 않게), 직접 정비는 아님.</summary>
+        [Test]
+        public void Automation_Executing_OnlyWhileAutoOrBatch()
+        {
+            var (sim, category) = AutomationSim();
+            sim.Research.SetLevel(category, 1);
+            sim.Grid.TryPlace(_block, Vector3Int.left, 0, out var block);
+            var seen = new List<bool>();
+            sim.Durability.Maintained += info => seen.Add(sim.Automation.Executing);
+
+            sim.Durability.ApplyImpact(block, 60f);
+            Ticks(sim, 2);
+            sim.Durability.ApplyImpact(block, 60f);
+            sim.Automation.AutoMaintain = false;
+            sim.Automation.RunBatch();
+            sim.Durability.ApplyImpact(block, 10f);
+            sim.TryMaintain(block);
+
+            CollectionAssert.AreEqual(new[] { true, true, false }, seen, "자동 · 일괄 · 직접");
+            Assert.IsFalse(sim.Automation.Executing);
+        }
+
         [Test]
         public void Automation_SkipsDamagedAndRespectsToggle()
         {
