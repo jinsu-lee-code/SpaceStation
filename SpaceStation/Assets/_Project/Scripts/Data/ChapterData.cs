@@ -19,6 +19,10 @@ namespace SpaceStation.Data
         Flag,
         /// <summary>이 장에서 N초 버팀.</summary>
         SurviveSeconds,
+        /// <summary>14-1c: 합성을 N번 마침 (판 전체에서 센 수).</summary>
+        Synthesize,
+        /// <summary>14-1c: 서로 다른 진화 모듈 N종이 가동 중 (코어에 연결).</summary>
+        EvolvedKinds,
     }
 
     /// <summary>13-1: 장 준비 목표 하나. 한 번 채우면 완료로 남는다 (인구가 줄어도 다시 열리지 않음).</summary>
@@ -34,7 +38,7 @@ namespace SpaceStation.Data
         [SerializeField, Min(0)] private int _grade;
         [Tooltip("BuildModule: 모듈")]
         [SerializeField] private ModuleData _module;
-        [Tooltip("BuildModule · Population: 개수 / 인원")]
+        [Tooltip("BuildModule · Population · Synthesize · EvolvedKinds: 개수 / 인원 / 횟수 / 종류 수")]
         [SerializeField, Min(0)] private int _count = 1;
         [Tooltip("Stock: 자원")]
         [SerializeField] private ResourceType _resource;
@@ -213,6 +217,8 @@ namespace SpaceStation.Data
         [SerializeField] private List<ResidentNeed> _newNeeds = new List<ResidentNeed>();
         [Tooltip("이 장에서 켜는 규칙 (지난 장 규칙도 누적)")]
         [SerializeField] private StationRule _rules;
+        [Tooltip("14-1c: 이 장이 연구 없이 여는 합성 레시피 (지난 장 것도 누적 — 합성하려면 그 단계 규칙도 열려야 함)")]
+        [SerializeField] private List<RecipeData> _recipes = new List<RecipeData>();
 
         [Header("이벤트 규모 (BALANCE 13번과 같은 뜻)")]
         [SerializeField, Min(1)] private int _meteorHitsMin = 1;
@@ -302,6 +308,7 @@ namespace SpaceStation.Data
         public IReadOnlyList<ModuleData> Unlocks => _unlocks;
         public IReadOnlyList<ResidentNeed> NewNeeds => _newNeeds;
         public StationRule Rules => _rules;
+        public IReadOnlyList<RecipeData> Recipes => _recipes;
         public int MeteorHitsMin => Mathf.Max(1, _meteorHitsMin);
         public int MeteorHitsMax => Mathf.Max(MeteorHitsMin, _meteorHitsMax);
         public float EventIntervalMultiplier => _eventIntervalMultiplier > 0f ? _eventIntervalMultiplier : 1f;

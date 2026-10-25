@@ -447,6 +447,73 @@ namespace SpaceStation.Tests
             CollectionAssert.AreEqual(new[] { 2, 3 }, loadedSteps, "불러온 뒤 지난 단계(1)는 다시 알리지 않고, 3단계에서 멈춤");
         }
 
+        [Test]
+        public void ChapterOpensRecipes_SynthesisGoals_ScopedFlags()
+        {
+            // 14-1c: 2장이 레시피를 연구 없이 엶 + 합성 규칙, 목표 = 합성 1번 · 진화 1종 가동(선택) · 2장 안에서 기록 표시(선택)
+            var evolved = Module("MD_TestEvolved", 30f);
+            var eso = new SerializedObject(evolved);
+            var cells = eso.FindProperty("_cellOffsets");
+            cells.arraySize = 2;
+            cells.GetArrayElementAtIndex(0).vector3IntValue = Vector3Int.zero;
+            cells.GetArrayElementAtIndex(1).vector3IntValue = Vector3Int.right;
+            eso.ApplyModifiedPropertiesWithoutUndo();
+            var recipe = Create<RecipeData>();
+            recipe.name = "RC_TestEvolved";
+            var rso = new SerializedObject(recipe);
+            rso.FindProperty("_result").objectReferenceValue = evolved;
+            var ing = rso.FindProperty("_ingredients");
+            ing.arraySize = 1;
+            ing.GetArrayElementAtIndex(0).FindPropertyRelative("Module").objectReferenceValue = _block;
+            ing.GetArrayElementAtIndex(0).FindPropertyRelative("Count").intValue = 2;
+            Fill(rso.FindProperty("_cost"), R(ResourceType.Metal, 10f));
+            rso.FindProperty("_duration").floatValue = 2f;
+            rso.FindProperty("_unlockedByDefault").boolValue = false;
+            rso.ApplyModifiedPropertiesWithoutUndo();
+
+            var so2 = new SerializedObject(_chapters.Chapters[1]);
+            so2.FindProperty("_rules").intValue = (int)(StationRule.MeteorShower | StationRule.Synthesis);
+            so2.FindProperty("_recipes").arraySize = 1;
+            so2.FindProperty("_recipes").GetArrayElementAtIndex(0).objectReferenceValue = recipe;
+            var goals = so2.FindProperty("_goals");
+            goals.arraySize = 3;
+            Goal(goals.GetArrayElementAtIndex(0), ChapterGoalKind.Synthesize);
+            Goal(goals.GetArrayElementAtIndex(1), ChapterGoalKind.EvolvedKinds, optional: true);
+            Goal(goals.GetArrayElementAtIndex(2), ChapterGoalKind.Flag, optional: true, flag: ChapterSystem.ScopedFlag("record", 2));
+            so2.ApplyModifiedPropertiesWithoutUndo();
+
+            var sim = new StationSimulation(new StationSimulationSettings
+            {
+                Balance = _config, Grades = _grades, CoreModule = _core, Events = new List<GameEventData> { _meteor },
+                Random01 = () => 0.5f, Chapters = _chapters, Recipes = new[] { recipe },
+            });
+            var ch = sim.Chapters;
+            Assert.IsFalse(sim.Synthesis.IsUnlocked(recipe), "1장 = 아직 (규칙 · 레시피 모두 2장)");
+            ch.SetFlag("record");
+            Assert.IsTrue(ch.HasFlag(ChapterSystem.ScopedFlag("record", 1)), "장 안 표시도 함께");
+            Place(sim, 2);
+            sim.Tick(1f);
+            ch.StartClimaxNow();
+            RunUntil(sim, () => ch.Phase != ChapterPhase.Climax);
+            Assert.IsTrue(ch.Choose(0));
+
+            Assert.AreEqual(1, ch.Index);
+            Assert.IsTrue(sim.Synthesis.IsUnlocked(recipe), "2장이 연구 없이 엶");
+            Assert.AreEqual("진화 모듈 하나 만들기", ch.GoalText(0));
+            Assert.AreEqual("진화 모듈 1종 가동", ch.GoalText(1));
+            sim.Tick(1f);
+            Assert.IsFalse(ch.IsGoalDone(2), "1장에서 올린 표시는 2장 안 표시가 아님");
+            ch.SetFlag("record");
+            Assert.IsTrue(ch.IsGoalDone(2), "2장 안에서 다시 올리면 채워짐");
+
+            Place(sim, 2); // 새 블록 둘 (1장 위기에 파손됐을 수 있는 블록은 쓰지 않음)
+            Assert.AreEqual(SynthesisResult.Valid, sim.Synthesis.TryStart(recipe, new Vector3Int(3, 0, 0), 0, out _));
+            RunUntil(sim, () => sim.Synthesis.Jobs.Count == 0);
+            sim.Tick(1f);
+            Assert.IsTrue(ch.IsGoalDone(0), "합성 1번");
+            Assert.IsTrue(ch.IsGoalDone(1), "진화 1종 가동");
+        }
+
         // ---------------- 도우미 ----------------
 
         private int _nextX = 1;

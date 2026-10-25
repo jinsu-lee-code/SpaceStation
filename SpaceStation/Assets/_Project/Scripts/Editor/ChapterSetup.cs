@@ -639,6 +639,60 @@ namespace SpaceStation.Editor
             EditorUtility.SetDirty(chapter);
         }
 
+        private const string RecipeFolder = "Assets/_Project/Data/Recipes/";
+
+        private static RecipeData R(string name)
+        {
+            var r = AssetDatabase.LoadAssetAtPath<RecipeData>(RecipeFolder + name + ".asset");
+            if (r == null)
+                Debug.LogError("[ChapterSetup] 레시피 없음: " + name);
+            return r;
+        }
+
+        /// <summary>
+        /// 14-1c 4장 '좁아진 하늘' (사용자 결정 2026-10-26): 합성 규칙 · 레시피 6종을 장이 바로 엶(연구 없이) ·
+        /// 목표 = 필수 3(도시급 · 진화 모듈 하나 만들기 · 여우 무리 맞이하기) + 선택 2(진화 모듈 세 가지 가동 = 금속 +150 · 기록 하나 더 되살리기 = 연구 포인트 +1).
+        /// 위기 '파편 띠'는 14-1d (지금은 14-0 임시 위기).
+        /// </summary>
+        private static void ChapterFour(ChapterData chapter)
+        {
+            var so = new SerializedObject(chapter);
+            so.FindProperty("_subtitle").stringValue = "좁아진 하늘";
+            so.FindProperty("_rules").intValue = (int)StationRule.Synthesis;
+            var recipes = so.FindProperty("_recipes");
+            var names = new[] { "RC_HabitatTower", "RC_EcoModule", "RC_PowerBank", "RC_SolarArray", "RC_WelfareCenter", "RC_ShieldMatrix" };
+            recipes.arraySize = names.Length;
+            for (int i = 0; i < names.Length; i++)
+                recipes.GetArrayElementAtIndex(i).objectReferenceValue = R(names[i]);
+
+            var goals = so.FindProperty("_goals");
+            goals.arraySize = 5;
+            var grade = goals.GetArrayElementAtIndex(0);
+            Clear(grade);
+            grade.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.ReachGrade;
+            grade.FindPropertyRelative("_grade").intValue = 4;
+            var make = goals.GetArrayElementAtIndex(1);
+            Clear(make);
+            make.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.Synthesize;
+            make.FindPropertyRelative("_count").intValue = 1;
+            FlagGoal(goals.GetArrayElementAtIndex(2), SpaceStation.Simulation.ArkShipSystem.MetFlag("fox"), "여우 무리 맞이하기 (모두 받기 · 빈 집만큼 · 거부 무엇이든)", false);
+            var kinds = goals.GetArrayElementAtIndex(3);
+            Clear(kinds);
+            kinds.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.EvolvedKinds;
+            kinds.FindPropertyRelative("_count").intValue = 3;
+            kinds.FindPropertyRelative("_text").stringValue = "진화 모듈 세 가지 가동";
+            kinds.FindPropertyRelative("_optional").boolValue = true;
+            var reward = kinds.FindPropertyRelative("_rewardResources");
+            reward.arraySize = 1;
+            reward.GetArrayElementAtIndex(0).FindPropertyRelative("Type").enumValueIndex = (int)ResourceType.Metal;
+            reward.GetArrayElementAtIndex(0).FindPropertyRelative("Amount").floatValue = 150f;
+            var record = goals.GetArrayElementAtIndex(4);
+            FlagGoal(record, SpaceStation.Simulation.ChapterSystem.ScopedFlag(SpaceStation.Simulation.RecordArchiveSystem.RecordFlag, 4), "기록 하나 더 되살리기", true);
+            record.FindPropertyRelative("_rewardResearchPoints").intValue = 1;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(chapter);
+        }
+
         private static void ModuleGoal(SerializedProperty goal, ModuleData module, string text)
         {
             Clear(goal);
@@ -1074,6 +1128,8 @@ namespace SpaceStation.Editor
                     waves: s.waves, hits: s.hits, warning: 180f);
                 Ships(ch, true, number == 4 ? fox : null, 3f); // 14-1b 4장 첫 배 = 여우 (D-15 안: 5장 펭귄 · 6장 강아지는 그때)
                 SetEarthLights(ch, s.start, s.end, 1800f, s.final);
+                if (number == 4)
+                    ChapterFour(ch);
                 list.Add(ch);
             }
             return list;

@@ -107,6 +107,31 @@ namespace SpaceStation.Simulation
             Begin(0, raise: false);
             RunId = Guid.NewGuid().ToString("N");
             Sim.ProgressLabel = ProgressText; // main M-44: 이어하기 · 저장 목록 · 로딩 화면 "3장 · 무리 합류"
+            HookRecipes();
+        }
+
+        /// <summary>main M-50: 레시피는 장이 바로 엶 (14-1c). 장 시스템이 합성 시스템보다 먼저 붙으므로 붙을 때 · 틱 · 복원에서 확인.</summary>
+        private void HookRecipes()
+        {
+            if (Sim.Synthesis != null && Sim.Synthesis.OpensDirectly == null)
+                Sim.Synthesis.OpensDirectly = OpensRecipe;
+        }
+
+        /// <summary>14-1c: 지금 장까지 연구 없이 연 레시피인지 (장 데이터 누적).</summary>
+        public bool OpensRecipe(RecipeData recipe)
+        {
+            if (recipe == null)
+                return false;
+            for (int i = 0; i <= Index && i < _config.Count; i++)
+            {
+                var c = _config.Chapters[i];
+                if (c == null)
+                    continue;
+                foreach (var r in c.Recipes)
+                    if (r == recipe)
+                        return true;
+            }
+            return false;
         }
 
         /// <summary>13-7d 저장 진행 표시: "3장 · 무리 합류", 캠페인이 끝났으면 "이어질 이야기".</summary>
@@ -262,19 +287,33 @@ namespace SpaceStation.Simulation
                     return $"{g.Resource.DisplayName()} {g.Amount:0} 비축";
                 case ChapterGoalKind.SurviveSeconds:
                     return $"{g.Amount / 60f:0.#}분 버티기";
+                case ChapterGoalKind.Synthesize:
+                    return g.Count <= 1 ? "진화 모듈 하나 만들기" : $"진화 모듈 {g.Count}개 만들기";
+                case ChapterGoalKind.EvolvedKinds:
+                    return $"진화 모듈 {g.Count}종 가동";
                 default:
                     return g.Flag;
             }
         }
 
-        /// <summary>다른 시스템 · 화면이 올리는 표시 (목표 종류 Flag). 한 번 올리면 유지.</summary>
+        /// <summary>
+        /// 다른 시스템 · 화면이 올리는 표시 (목표 종류 Flag). 한 번 올리면 유지.
+        /// 14-1c: 장 안 표시(<see cref="ScopedFlag"/>, 예 <c>record@4</c>)도 함께 올림 — 장을 넘어도 남는 표시를 "이 장에서 한 번 더" 목표에 쓰려고.
+        /// </summary>
         public void SetFlag(string flag)
         {
-            if (string.IsNullOrEmpty(flag) || !_flags.Add(flag))
+            if (string.IsNullOrEmpty(flag))
+                return;
+            bool added = _flags.Add(flag);
+            added |= _flags.Add(ScopedFlag(flag, Index + 1));
+            if (!added)
                 return;
             if (Phase == ChapterPhase.Preparation || Phase == ChapterPhase.Warning)
                 EvaluateGoals();
         }
+
+        /// <summary>14-1c: 그 장(번호, 1부터) 안에서 올라간 표시 이름 ("record@4").</summary>
+        public static string ScopedFlag(string flag, int chapterNumber) => $"{flag}@{chapterNumber}";
 
         public bool HasFlag(string flag) => !string.IsNullOrEmpty(flag) && _flags.Contains(flag);
 
@@ -287,6 +326,8 @@ namespace SpaceStation.Simulation
                     return 1f;
                 case ChapterGoalKind.BuildModule:
                 case ChapterGoalKind.Population:
+                case ChapterGoalKind.Synthesize:
+                case ChapterGoalKind.EvolvedKinds:
                     return Math.Max(1, g.Count);
                 default:
                     return Math.Max(0.001f, g.Amount);
@@ -309,9 +350,28 @@ namespace SpaceStation.Simulation
                     return ChapterSeconds;
                 case ChapterGoalKind.Flag:
                     return HasFlag(g.Flag) ? 1f : 0f;
+                case ChapterGoalKind.Synthesize:
+                    return Sim.Session.Syntheses;
+                case ChapterGoalKind.EvolvedKinds:
+                    return CountEvolvedKinds();
                 default:
                     return 0f;
             }
+        }
+
+        private readonly List<ModuleData> _evolvedKinds = new List<ModuleData>();
+
+        /// <summary>가동 중(코어에 연결)인 진화 모듈의 종류 수.</summary>
+        private int CountEvolvedKinds()
+        {
+            var syn = Sim.Synthesis;
+            if (syn == null)
+                return 0;
+            _evolvedKinds.Clear();
+            foreach (var m in Sim.Grid.Modules)
+                if (m.Data != null && !_evolvedKinds.Contains(m.Data) && syn.IsRecipeResult(m.Data) && Sim.Connectivity.IsActive(m))
+                    _evolvedKinds.Add(m.Data);
+            return _evolvedKinds.Count;
         }
 
         private int CountActive(ModuleData data)
@@ -411,6 +471,7 @@ namespace SpaceStation.Simulation
 
         public override void Tick(float dt)
         {
+            HookRecipes();
             if (Sim.Session.IsGameOver)
                 return;
             switch (Phase)
@@ -527,6 +588,8 @@ namespace SpaceStation.Simulation
                 foreach (var m in Current.Unlocks)
                     if (m != null)
                         sb.Append($"  ·  {m.DisplayName} 해금");
+                if (Current.Recipes.Count > 0)
+                    sb.Append($"  ·  합성 레시피 {Current.Recipes.Count}종 (합성 창 K)"); // 14-1c
                 Sim.Report(CoreSay("chapter.start", "{0} 시작{1}", Current.DisplayName, sb.ToString()), true);
                 ChapterStarted?.Invoke(Index);
             }
@@ -629,6 +692,7 @@ namespace SpaceStation.Simulation
 
         public override void Restore(string state, Func<int, ModuleInstance> moduleAt)
         {
+            HookRecipes();
             var s = string.IsNullOrEmpty(state) ? null : JsonUtility.FromJson<State>(state);
             if (s == null)
                 return;

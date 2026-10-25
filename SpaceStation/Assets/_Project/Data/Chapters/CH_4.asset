@@ -13,14 +13,21 @@ MonoBehaviour:
   m_Name: CH_4
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ChapterData
   _displayName: "4\uC7A5"
-  _subtitle: "(\uAC00\uC81C) \uD569\uC131"
+  _subtitle: "\uC881\uC544\uC9C4 \uD558\uB298"
   _introSpeaker: 
   _introLines: []
   _interiorGuide: {fileID: 0}
   _unlocks:
   - {fileID: 11400000, guid: 54cc69e3298ccc440968bfc7b10261b8, type: 2}
   _newNeeds: 
-  _rules: 0
+  _rules: 4
+  _recipes:
+  - {fileID: 11400000, guid: 657c12f8643a4d34f98ba451beece3d8, type: 2}
+  - {fileID: 11400000, guid: 70b6794e9e217ea43a4cd2d47de1746b, type: 2}
+  - {fileID: 11400000, guid: 8ade514bcdf46d44b9aae76528c0256a, type: 2}
+  - {fileID: 11400000, guid: 32d94f52995ea2743b2229b480e6ec5c, type: 2}
+  - {fileID: 11400000, guid: 836ae8535ade3614f85726599ffa1074, type: 2}
+  - {fileID: 11400000, guid: c234154fe736ed74a8c613511d690a69, type: 2}
   _meteorHitsMin: 6
   _meteorHitsMax: 9
   _eventIntervalMultiplier: 0.25
@@ -68,19 +75,56 @@ MonoBehaviour:
     _rewardResources: []
     _rewardResearchPoints: 0
     _rewardFreeRepairs: 0
-  - _kind: 2
+  - _kind: 6
     _text: 
+    _optional: 0
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 1
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 4
+    _text: "\uC5EC\uC6B0 \uBB34\uB9AC \uB9DE\uC774\uD558\uAE30 (\uBAA8\uB450 \uBC1B\uAE30
+      \xB7 \uBE48 \uC9D1\uB9CC\uD07C \xB7 \uAC70\uBD80 \uBB34\uC5C7\uC774\uB4E0)"
+    _optional: 0
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 110
+    _resource: 4
+    _amount: 0
+    _flag: ship.new.fox
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 7
+    _text: "\uC9C4\uD654 \uBAA8\uB4C8 \uC138 \uAC00\uC9C0 \uAC00\uB3D9"
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 3
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources:
+    - Type: 4
+      Amount: 150
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 4
+    _text: "\uAE30\uB85D \uD558\uB098 \uB354 \uB418\uC0B4\uB9AC\uAE30"
     _optional: 1
     _grade: 0
     _module: {fileID: 0}
     _count: 110
     _resource: 4
     _amount: 0
-    _flag: 
-    _rewardResources:
-    - Type: 4
-      Amount: 100
-    _rewardResearchPoints: 0
+    _flag: record@4
+    _rewardResources: []
+    _rewardResearchPoints: 1
     _rewardFreeRepairs: 0
   _climax:
     _kind: 1
