@@ -507,7 +507,7 @@ namespace SpaceStation.Simulation
             Phase = ChapterPhase.Warning;
             WarningLeft = Current.Climax.WarningSeconds;
             if (WarningLeft > 0f)
-                Sim.Report(CoreSay("climax.warning", "절정 예고: {0} · {1}분 뒤 (대비하세요)", Current.Climax.Title, (WarningLeft / 60f).ToString("0.#")), false);
+                Sim.Report(CoreSay("climax.warning", "위기가 다가옵니다: {0} · {1}분 뒤", Current.Climax.Title, (WarningLeft / 60f).ToString("0.#")), false);
             WarningStarted?.Invoke();
             if (WarningLeft <= 0f)
                 BeginClimax();

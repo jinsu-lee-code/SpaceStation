@@ -354,7 +354,7 @@ namespace SpaceStation.UI
             switch (ch.Phase)
             {
                 case ChapterPhase.Preparation:
-                    _phase.SetText($"<color={Soft}>필수 목표를 모두 채우면 절정 예고: <b>{climax.Title}</b></color>");
+                    _phase.SetText($"<color={Soft}>필수 목표를 모두 채우면 찾아올 위기: <b>{climax.Title}</b></color>");
                     break;
                 case ChapterPhase.Warning:
                     _phase.SetText($"{HudTheme.Icon("warning")} <color={HudText.Orange}><b>{climax.Title}</b>까지 {Clock(ch.WarningLeft)}</color>"

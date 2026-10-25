@@ -1222,9 +1222,9 @@ namespace SpaceStation.Editor
                 ("goal.done", CorePole.Neutral, CoreAxis.Care, "장 목표 완료: {0}{1}"),
                 ("goal.done", CorePole.First, CoreAxis.Care, "목표 처리 완료: {0}{1} · 다음 작업으로"),
                 ("goal.done", CorePole.Second, CoreAxis.Care, "장 목표 완료: {0}{1} · 모두 조금 더 편해질 거예요"),
-                ("climax.warning", CorePole.Neutral, CoreAxis.Care, "절정 예고: {0} · {1}분 뒤 (대비하세요)"),
-                ("climax.warning", CorePole.First, CoreAxis.Control, "절정 예고: {0} · {1}분 뒤 · 배치를 점검합니다"),
-                ("climax.warning", CorePole.Second, CoreAxis.Care, "절정 예고: {0} · {1}분 뒤 · 다들 안쪽으로 모여 주세요"),
+                ("climax.warning", CorePole.Neutral, CoreAxis.Care, "위기가 다가옵니다: {0} · {1}분 뒤"),
+                ("climax.warning", CorePole.First, CoreAxis.Control, "위기가 다가옵니다: {0} · {1}분 뒤 · 배치를 점검합니다"),
+                ("climax.warning", CorePole.Second, CoreAxis.Care, "위기가 다가옵니다: {0} · {1}분 뒤 · 다들 안쪽으로 모여 주세요"),
                 ("chapter.start", CorePole.Neutral, CoreAxis.Care, "{0} 시작{1}"),
                 ("chapter.start", CorePole.Second, CoreAxis.Scope, "{0} 시작 · 더 멀리 갈 수 있다{1}"),
                 ("chapter.start", CorePole.First, CoreAxis.Scope, "{0} 시작 · 지킬 것부터 지킨다{1}"),
@@ -1342,7 +1342,7 @@ namespace SpaceStation.Editor
 
             var climax = so.FindProperty("_climax");
             climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.MeteorBarrage;
-            climax.FindPropertyRelative("_title").stringValue = "운석 연타 (임시 절정)";
+            climax.FindPropertyRelative("_title").stringValue = "운석 연타 (임시 위기)";
             climax.FindPropertyRelative("_description").stringValue = climaxText + $" · 운석 {waves}파 × {hits}개";
             climax.FindPropertyRelative("_warningSeconds").floatValue = warning;
             climax.FindPropertyRelative("_waves").intValue = waves;

@@ -568,7 +568,7 @@ namespace SpaceStation.Editor.Balance
             var all = Stats(report);
             var sb = new StringBuilder();
             sb.AppendLine($"캠페인 봇 (노멀) · {runs}판 · 상한 {capMinutes:0}분 · 13-8 준비 ① (필수 목표만 · 이민선 = 봇 성향 · 방향 · 정책 = 시드 무작위 · 안전망 흉내 장마다 {CampaignBotExtension.RetryLimit}번"
-                          + (CampaignBotExtension.Prepare ? " · 절정 대비 + 금속 관리 켬)" : " · 절정 대비 끔 = 첫 측정 봇)"));
+                          + (CampaignBotExtension.Prepare ? " · 위기 대비 + 금속 관리 켬)" : " · 위기 대비 끔 = 첫 측정 봇)"));
             int finished = all.FindAll(x => x.Finished).Count;
             int gameOver = all.FindAll(x => x.GameOver).Count;
             var totals = new List<float>();
@@ -618,11 +618,11 @@ namespace SpaceStation.Editor.Balance
                         showerInWarning++;
                 }
                 var data = assets.Chapters.Chapters[i];
-                sb.AppendLine($"{data.DisplayName} {data.Subtitle}: 시작 {reached}판 · 준비(시작 → 예고) {Spread(prep)} · 절정 {Spread(climax)} · 장 전체 {Spread(whole)}");
+                sb.AppendLine($"{data.DisplayName} {data.Subtitle}: 시작 {reached}판 · 준비(시작 → 예고) {Spread(prep)} · 위기 {Spread(climax)} · 장 전체 {Spread(whole)}");
                 sb.AppendLine($"    결과 깔끔 {clean} · 피해 {hurt} · 잃음 {lost} · 무너짐 {falls}번 (다시 시작 {retries}번) · 장 끝 인구 {Spread(pop, minutes: false)}");
                 if (meteors > 0)
-                    sb.AppendLine($"    절정 중 운석 {meteors}개 · 막음 {blocked + armorHits} ({(blocked + armorHits) * 100f / meteors:0}%) = 실드 · 포탑 · 면역 {blocked} + 장갑 격벽이 대신 맞음 {armorHits}"
-                                  + (showerInWarning > 0 ? $" · 절정 예고 중 평소 유성우 {showerInWarning}판" : ""));
+                    sb.AppendLine($"    위기 중 운석 {meteors}개 · 막음 {blocked + armorHits} ({(blocked + armorHits) * 100f / meteors:0}%) = 실드 · 포탑 · 면역 {blocked} + 장갑 격벽이 대신 맞음 {armorHits}"
+                                  + (showerInWarning > 0 ? $" · 위기 예고 중 평소 유성우 {showerInWarning}판" : ""));
             }
             int accepted = 0, partial = 0, refused = 0, offered = 0, boarded = 0, prepHousing = 0, prepDefense = 0;
             var probe = new List<float>();
@@ -644,7 +644,7 @@ namespace SpaceStation.Editor.Balance
             sb.AppendLine($"이민선 답: 모두 받기 {accepted} · 빈 집만큼 {partial} · 거부 {refused} · 받은 인원 {boarded}/{offered} ({(offered > 0 ? boarded * 100f / offered : 0f):0}%)");
             sb.AppendLine($"탐사선 출발 (판 시작부터) {Spread(probe)} · {probe.Count}판 / 정책 시행 {Spread(policy)} · {policy.Count}판");
             if (CampaignBotExtension.Prepare && all.Count > 0)
-                sb.AppendLine($"절정 대비로 지음 (판 평균): 이민선 앞 거주 {prepHousing / (float)all.Count:0.0} · 유성우 방향 실드 · 포탑 {prepDefense / (float)all.Count:0.0}");
+                sb.AppendLine($"위기 대비로 지음 (판 평균): 이민선 앞 거주 {prepHousing / (float)all.Count:0.0} · 유성우 방향 실드 · 포탑 {prepDefense / (float)all.Count:0.0}");
             sb.Append("기록 연구 최종 단계 평균 (공통 요약의 연구 줄 대신):");
             for (int i = 0; i < assets.Research.Count; i++)
             {
@@ -659,7 +659,7 @@ namespace SpaceStation.Editor.Balance
                 sb.Append(i == 0 ? " " : " · ").Append(assets.Research[i].DisplayName).Append(' ').Append(avg.ToString("0.0", Inv));
             }
             sb.AppendLine();
-            sb.AppendLine("절정 결과 사유 (판별):");
+            sb.AppendLine("위기 결과 사유 (판별):");
             foreach (var r in report.Results)
             {
                 if (!(r.Extra is CampaignBotStats x))

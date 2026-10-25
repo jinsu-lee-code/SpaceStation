@@ -87,7 +87,7 @@ namespace SpaceStation.Simulation
                 return;
             int n = chapters[record.Chapter].CleanFragments;
             if (n > 0)
-                AddFragments(n, $"절정을 깔끔히 버팀 · 기록 조각 +{n}");
+                AddFragments(n, $"위기를 깔끔히 넘김 · 기록 조각 +{n}");
         }
 
         private void HandleChapterStarted(int index)

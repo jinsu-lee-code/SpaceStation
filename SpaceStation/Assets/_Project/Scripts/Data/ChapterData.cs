@@ -86,10 +86,10 @@ namespace SpaceStation.Data
     public sealed class ChapterClimaxSettings
     {
         [SerializeField] private ChapterClimaxKind _kind;
-        [SerializeField] private string _title = "절정";
+        [SerializeField] private string _title = "위기"; // 화면 용어 = '위기' (사용자 결정 2026-10-25, 코드 · 지난 문서는 '절정')
         [TextArea(2, 4)]
         [SerializeField] private string _description;
-        [Tooltip("필수 목표를 채운 뒤 절정까지 남은 시간 (초, [바로 맞이하기]로 당길 수 있음)")]
+        [Tooltip("필수 목표를 채운 뒤 위기까지 남은 시간 (초, [바로 맞이하기]로 당길 수 있음)")]
         [SerializeField, Min(0f)] private float _warningSeconds = 180f;
 
         [Header("운석 연타 (MeteorBarrage)")]
@@ -123,7 +123,7 @@ namespace SpaceStation.Data
 
         [Header("대이주 (GreatMigration, 13-6c) — 바닥 시간 문턱은 위 '긴 밤' 값, 정리 시간 = 마지막 배에 답한 뒤 지켜보는 시간")]
         [SerializeField, Min(1)] private int _migrationShips = 3;
-        [Tooltip("절정이 시작되고 첫 배가 닿기까지 (초)")]
+        [Tooltip("위기가 시작되고 첫 배가 닿기까지 (초)")]
         [SerializeField, Min(1f)] private float _migrationFirstLead = 20f;
         [Tooltip("앞 배에 답한 뒤 다음 배가 닿기까지 (초)")]
         [SerializeField, Min(1f)] private float _migrationInterval = 45f;
@@ -251,7 +251,7 @@ namespace SpaceStation.Data
         [SerializeField, Min(3)] private int _signalDistanceMax = 10;
 
         [Header("13-5b 기록 복원")]
-        [Tooltip("이 장 절정을 깔끔히 버티면 받는 기록 조각")]
+        [Tooltip("이 장 위기를 깔끔히 넘기면 받는 기록 조각")]
         [SerializeField, Min(0)] private int _cleanFragments;
 
         [Header("13-5c 유성우 (규칙 MeteorShower가 열린 장)")]
@@ -286,7 +286,7 @@ namespace SpaceStation.Data
         [Tooltip("이 장을 마치고 전환 연출에서 재생되는 인간의 옛 녹음 한 줄 (비면 없음)")]
         [SerializeField, TextArea(1, 3)] private string _transmission;
 
-        [Header("준비 목표 · 절정 · 전환")]
+        [Header("준비 목표 · 위기 · 전환")]
         [SerializeField] private List<ChapterGoal> _goals = new List<ChapterGoal>();
         [SerializeField] private ChapterClimaxSettings _climax = new ChapterClimaxSettings();
         [Tooltip("장 전환에서 고르는 방주의 방향 (비면 고르지 않고 넘어감)")]

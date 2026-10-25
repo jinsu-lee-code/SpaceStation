@@ -33,22 +33,22 @@ namespace SpaceStation.Editor
         [MenuItem(Menu + "1. 1장 결과 → 장 전환 연출 → 2장 시작", priority = 1)]
         private static void ChapterOneResult() => Start("1장 결과 창", 1, chapter: 0, ChapterPhase.Transition);
 
-        [MenuItem(Menu + "2. 2장 절정 '큰 유성우' 15초 전", priority = 2)]
-        private static void ChapterTwoClimax() => Start("2장 절정 15초 전", 2, chapter: 1, ChapterPhase.Warning);
+        [MenuItem(Menu + "2. 2장 위기 '큰 유성우' 15초 전", priority = 2)]
+        private static void ChapterTwoClimax() => Start("2장 위기 15초 전", 2, chapter: 1, ChapterPhase.Warning);
 
         [MenuItem(Menu + "3. 2장 결과 → 장 전환 연출 → 3장 시작", priority = 3)]
         private static void ChapterTwoResult() => Start("2장 결과 창", 2, chapter: 1, ChapterPhase.Transition);
 
-        [MenuItem(Menu + "4. 3장 절정 '대이주' 15초 전", priority = 4)]
-        private static void ChapterThreeClimax() => Start("3장 절정 15초 전", 3, chapter: 2, ChapterPhase.Warning);
+        [MenuItem(Menu + "4. 3장 위기 '대이주' 15초 전", priority = 4)]
+        private static void ChapterThreeClimax() => Start("3장 위기 15초 전", 3, chapter: 2, ChapterPhase.Warning);
 
         [MenuItem(Menu + "5. 3장 결과 → 마지막 연출 → 이어질 이야기", priority = 5)]
         private static void ChapterThreeResult() => Start("3장 결과 창", 3, chapter: 2, ChapterPhase.Transition);
 
         [MenuItem(Menu + "1. 1장 결과 → 장 전환 연출 → 2장 시작", true)]
-        [MenuItem(Menu + "2. 2장 절정 '큰 유성우' 15초 전", true)]
+        [MenuItem(Menu + "2. 2장 위기 '큰 유성우' 15초 전", true)]
         [MenuItem(Menu + "3. 2장 결과 → 장 전환 연출 → 3장 시작", true)]
-        [MenuItem(Menu + "4. 3장 절정 '대이주' 15초 전", true)]
+        [MenuItem(Menu + "4. 3장 위기 '대이주' 15초 전", true)]
         [MenuItem(Menu + "5. 3장 결과 → 마지막 연출 → 이어질 이야기", true)]
         private static bool CanStart() => !EditorApplication.isPlayingOrWillChangePlaymode;
 

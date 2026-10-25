@@ -68,7 +68,7 @@ namespace SpaceStation.UI
             var saver = SaveManager.Instance;
             if (saver == null || !saver.SaveTo(slot, false))
                 return;
-            Debug.Log($"[캠페인] 체크포인트 저장 · {(slot == ClimaxSlot ? "절정 직전" : "장 처음")} ({_chapters.ProgressText()})");
+            Debug.Log($"[캠페인] 체크포인트 저장 · {(slot == ClimaxSlot ? "위기 직전" : "장 처음")} ({_chapters.ProgressText()})");
         }
 
         /// <summary>게임 오버 때 다시 시작 지점: 이 판 · 지금 장의 절정 예고 체크포인트, 이 판 · 지금 장의 처음 체크포인트.</summary>
@@ -76,7 +76,7 @@ namespace SpaceStation.UI
         {
             var list = new List<RetryOption>();
             if (Matches(ClimaxSlot, climax: true))
-                list.Add(new RetryOption { Label = "절정 직전부터", Run = () => Load(ClimaxSlot) });
+                list.Add(new RetryOption { Label = "위기 직전부터", Run = () => Load(ClimaxSlot) });
             if (Matches(ChapterSlot, climax: false))
                 list.Add(new RetryOption { Label = "이 장 처음부터", Run = () => Load(ChapterSlot) });
             return list;

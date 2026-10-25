@@ -349,7 +349,7 @@ namespace SpaceStation.Tests
             Place(sim, 2);
             sim.Tick(1f);
             Assert.IsTrue(core.Entries.Any(e => e.Text.StartsWith("완료 ")), "상태 줄 알림도 코어 문장 표로 (로그에 남음)");
-            Assert.IsTrue(core.Entries.Any(e => e.Text.StartsWith("절정 예고")), "표에 없는 계기는 기본 문장으로 로그");
+            Assert.IsTrue(core.Entries.Any(e => e.Text.StartsWith("위기가 다가옵니다")), "표에 없는 계기는 기본 문장으로 로그");
             sim.Chapters.StartClimaxNow();
             RunUntil(sim, () => sim.Chapters.Phase != ChapterPhase.Climax);
             Assert.AreEqual("버텼다 · 1장", sim.Chapters.LastRecord.Monologue, "절정 결과 독백");

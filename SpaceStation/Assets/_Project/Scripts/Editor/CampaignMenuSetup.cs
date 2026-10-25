@@ -74,7 +74,7 @@ namespace SpaceStation.Editor
                     break;
                 }
             }
-            mode.EditorSet("campaign", "캠페인", "1~3장 · 난이도 하나 · 무너지면 절정 직전부터 다시",
+            mode.EditorSet("campaign", "캠페인", "1~3장 · 난이도 하나 · 무너지면 위기 직전부터 다시",
                 AssetDatabase.LoadAssetAtPath<DifficultyPreset>(NormalPath), true, "코어 기동 안내 받기", first, "캠페인");
             EditorUtility.SetDirty(mode);
             AssetDatabase.SaveAssets();
