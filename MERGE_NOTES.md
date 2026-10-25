@@ -858,3 +858,16 @@
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상. 타이쿤판은 셋 다 비워 둠 (값이 없으면 예전과 같음). 타이쿤판이 `ResidentTrait`에 값을 더했으면 순서를 맞춤 (세이브 · 에셋은 정수로 저장 — 맨 끝에 붙이기).
+
+## M-51. 조작을 막지 않는 안내 · 합성 안내 단계 (2026-10-26, `main`)
+
+**main에 넣은 것** — 서사판 14-1c (사용자 결정 2026-10-26: 4장에서 처음 열리는 합성을 따라 하는 짧은 안내로 — 건너뛸 수 있고 조작을 막지 않음). 기존 튜토리얼 틀은 진행 중에 조작 · 무작위 이벤트 · 노후 · 파손 타이머를 멈추고 보급을 하므로, 장 중간 안내용 설정을 더함
+- `TutorialData._free` (`Free`, `SetFree`) — 켜면 `TutorialRunner`가 이벤트를 잡지 않고(`Events.Held` 그대로) · 모든 조작 허용(`Allows`) · 보급 없음 · 끝날 때 이벤트를 풀거나 미루지 않음, `StationSimulation`의 튜토리얼 틱(노후 · 파손 타이머 멈춤)도 끔. `TutorialView`는 막지 않는 안내가 끝나도 설정 "다음 새 게임에서 튜토리얼"을 건드리지 않음
+- `TutorialGoal.OpenRecipes` · `PlaceSynthesis` · `StartSynthesis` (맨 끝에 더함) + `TutorialRunner.ReportSynthesis(goal)` — `RecipePanel.Open`이 창 열기, `SynthesisController.Begin(레시피)`가 위치 지정을 알림, 시작은 진행 중 · 마친 합성으로 판정. 뒤 단계에 닿으면 앞 단계까지 완료, 보고는 시간이 멈춰 있어도 바로 판정. `TutorialView` 단계 줄 3종
+- 시험: `TutorialTests.FreeGuide_HoldsNothing_SynthesisStepsAdvanceOnReports`
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 서사판 = 장 안내(`ChapterData`) 4장 합성 안내 `TUT_Synthesis`(저장 안 함 + 막지 않음), `ChapterSystem.ReleaseEvents`도 막지 않는 안내는 이벤트를 잡지 않게.
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상. 기존 튜토리얼은 `_free` 꺼짐이라 그대로. 타이쿤판이 `TutorialGoal`에 값을 더했으면 순서를 맞춤 (에셋에 정수로 저장 — 맨 끝에 붙이기), 합성 안내가 필요하면 같은 단계를 씀.

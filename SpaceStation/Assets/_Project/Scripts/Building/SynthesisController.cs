@@ -95,6 +95,8 @@ namespace SpaceStation.Building
             RebuildGhost();
             UpdateHint();
             RecipeChanged?.Invoke(recipe);
+            if (recipe != null)
+                _station?.Simulation?.Tutorial?.ReportSynthesis(TutorialGoal.PlaceSynthesis); // M-51 합성 안내
         }
 
         private void Update()

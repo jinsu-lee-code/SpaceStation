@@ -127,6 +127,7 @@ namespace SpaceStation.UI
             _fx?.Replay();
             Refresh();
             AudioService.TryPlay(l => l.UiOpen);
+            _sim.Tutorial?.ReportSynthesis(TutorialGoal.OpenRecipes); // M-51 합성 안내
         }
 
         private void HandleWindowOpened(object window)

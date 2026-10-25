@@ -480,7 +480,7 @@ namespace SpaceStation.Simulation
                 return;
             }
             // 11-18: 튜토리얼 중에는 파손 확산 · 파괴 타이머와 노후화가 멈춤 (안내대로 따라가다 무너지지 않게, 정비는 정비 단계에서)
-            _tutorialTick = Tutorial != null && Tutorial.Active;
+            _tutorialTick = Tutorial != null && Tutorial.Active && !Tutorial.Data.Free; // M-51 막지 않는 안내는 그대로 흐름
             foreach (var step in _tickSteps)
                 step.Run(dt);
         }
