@@ -448,6 +448,34 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void CampaignAsset_ChapterFour_IsConsistent()
+        {
+            // 14-1 4장 '좁아진 하늘' 데이터 (메뉴 Chapters/Setup Later Chapters로 만든 에셋)
+            var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>("Assets/_Project/Data/Chapters/Chapters.asset");
+            Assert.IsNotNull(config);
+            Assert.GreaterOrEqual(config.Count, 4);
+            var ch4 = config.Chapters[3];
+            Assert.AreEqual("좁아진 하늘", ch4.Subtitle);
+            Assert.AreEqual(StationRule.Synthesis, ch4.Rules & StationRule.Synthesis, "합성 규칙");
+            Assert.AreEqual(6, ch4.Recipes.Count, "진화 1단계 6종");
+            foreach (var r in ch4.Recipes)
+            {
+                Assert.IsNotNull(r);
+                Assert.AreEqual(1, r.Stage, r.name + ": 1단계 (합성 규칙으로 열림)");
+            }
+            Assert.AreEqual("fox", ch4.NewSpecies != null ? ch4.NewSpecies.Id : null, "첫 배 = 여우");
+            Assert.AreEqual(ResidentTrait.Artisan, ch4.NewSpecies.TechTrait, "여우 = 합성 속도");
+            Assert.IsNotNull(ch4.Guide, "합성 안내");
+            Assert.IsTrue(ch4.Guide.Free && ch4.Guide.Transient, "막지 않고 저장하지 않는 안내");
+            int required = 0;
+            foreach (var g in ch4.Goals)
+                if (!g.Optional)
+                    required++;
+            Assert.AreEqual(3, required, "필수 3");
+            Assert.AreEqual(5, ch4.Goals.Count, "필수 3 + 선택 2");
+        }
+
+        [Test]
         public void ChapterOpensRecipes_SynthesisGoals_ScopedFlags()
         {
             // 14-1c: 2장이 레시피를 연구 없이 엶 + 합성 규칙, 목표 = 합성 1번 · 진화 1종 가동(선택) · 2장 안에서 기록 표시(선택)

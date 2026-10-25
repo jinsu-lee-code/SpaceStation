@@ -510,6 +510,35 @@ namespace SpaceStation.Editor
             return data;
         }
 
+        private const string SynthesisGuidePath = "Assets/_Project/Data/Chapters/TUT_Synthesis.asset";
+
+        /// <summary>
+        /// 14-1c 4장 합성 안내 (사용자 결정 2026-10-26: 따라 하는 짧은 안내 — 건너뛸 수 있고 조작을 막지 않음, main M-51 막지 않는 안내).
+        /// 창 열기 → 레시피 고르고 위치 지정 → 합성 시작. 저장하지 않음. 문장은 확인용 초안 (코어 줄 = 반말, 안내 = 합니다체).
+        /// </summary>
+        private static TutorialData SynthesisGuide()
+        {
+            var data = LoadOrCreate<TutorialData>(SynthesisGuidePath);
+            data.SetSteps(new[]
+            {
+                new TutorialStep("합성 창",
+                    Body("모듈을 녹여 하나로 잇는 법이 기록에 남아 있다.", "합성은 이미 지은 모듈 여러 개를 더 큰 <b>진화 모듈</b> 하나로 바꿉니다. 합성 창에서 이번 장에 열린 레시피를 봅니다."),
+                    TutorialGoal.OpenRecipes),
+                new TutorialStep("레시피",
+                    Body("칸은 그대로 두고, 쓰임은 더 크게.", "레시피마다 재료와 규격 모양이 정해져 있습니다. 하나를 골라 [위치 지정]을 누르면 정거장 위에 규격이 표시됩니다."),
+                    TutorialGoal.PlaceSynthesis),
+                new TutorialStep("합성 시작",
+                    Body("옛 모양이 사라지고 새 모양이 남는다.", "재료 모듈이 규격 칸을 빈틈없이 채운 자리를 클릭하면 비용을 내고 합성이 시작됩니다. 그동안 재료는 멈추고, 끝나면 같은 칸에 진화 모듈이 생깁니다."),
+                    TutorialGoal.StartSynthesis),
+            });
+            data.SetTexts("합성", "첫 합성 시작",
+                $"<color={CoreHex}>코어 · 좁은 하늘에서는 칸을 아끼는 쪽이 오래 버틴다.</color>\n합성이 끝나면 같은 칸에 진화 모듈이 생깁니다 · 진행은 왼쪽 위 추적기에 표시",
+                transient: true, postTutorialGrace: 0f);
+            data.SetFree(true);
+            EditorUtility.SetDirty(data);
+            return data;
+        }
+
         /// <summary>
         /// 13-4 1장 '깨어남' (사용자 결정 2026-10-18): 직전 컷신(인간이 남긴 방주 시스템 음성 → 코어의 첫 말) · 목표(필수 코어 기동 + 소형,
         /// 선택 방주 안 둘러보기 + 인구 8) · 절정 '첫 긴 밤'(밤 180초 + 운석 2개, 판정 = 생명 유지 바닥 시간 · 파괴). 컷신 · 문장은 확인용 초안.
@@ -656,9 +685,11 @@ namespace SpaceStation.Editor
         /// </summary>
         private static void ChapterFour(ChapterData chapter)
         {
+            var guide = SynthesisGuide(); // 14-1c 합성 안내 (SerializedObject 전에 — 에셋을 만들 수 있음)
             var so = new SerializedObject(chapter);
             so.FindProperty("_subtitle").stringValue = "좁아진 하늘";
             so.FindProperty("_rules").intValue = (int)StationRule.Synthesis;
+            so.FindProperty("_guide").objectReferenceValue = guide;
             var recipes = so.FindProperty("_recipes");
             var names = new[] { "RC_HabitatTower", "RC_EcoModule", "RC_PowerBank", "RC_SolarArray", "RC_WelfareCenter", "RC_ShieldMatrix" };
             recipes.arraySize = names.Length;

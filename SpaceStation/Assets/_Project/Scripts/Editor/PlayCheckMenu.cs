@@ -42,14 +42,14 @@ namespace SpaceStation.Editor
         [MenuItem(Menu + "4. 3장 위기 '대이주' 15초 전", priority = 4)]
         private static void ChapterThreeClimax() => Start("3장 위기 15초 전", 3, chapter: 2, ChapterPhase.Warning);
 
-        [MenuItem(Menu + "5. 3장 결과 → 마지막 연출 → 이어질 이야기", priority = 5)]
+        [MenuItem(Menu + "5. 3장 결과 → 장 전환 연출 → 4장 시작 (합성 안내)", priority = 5)]
         private static void ChapterThreeResult() => Start("3장 결과 창", 3, chapter: 2, ChapterPhase.Transition);
 
         [MenuItem(Menu + "1. 1장 결과 → 장 전환 연출 → 2장 시작", true)]
         [MenuItem(Menu + "2. 2장 위기 '큰 유성우' 15초 전", true)]
         [MenuItem(Menu + "3. 2장 결과 → 장 전환 연출 → 3장 시작", true)]
         [MenuItem(Menu + "4. 3장 위기 '대이주' 15초 전", true)]
-        [MenuItem(Menu + "5. 3장 결과 → 마지막 연출 → 이어질 이야기", true)]
+        [MenuItem(Menu + "5. 3장 결과 → 장 전환 연출 → 4장 시작 (합성 안내)", true)]
         private static bool CanStart() => !EditorApplication.isPlayingOrWillChangePlaymode;
 
         /// <summary>

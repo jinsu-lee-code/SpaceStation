@@ -644,11 +644,14 @@ namespace SpaceStation.Simulation
             ClimaxEnded?.Invoke(record);
         }
 
-        /// <summary>절정 · 전환이 아니면 무작위 이벤트를 다시 (튜토리얼이 진행 중이면 튜토리얼이 잡아 둔 대로).</summary>
+        /// <summary>절정 · 전환이 아니면 무작위 이벤트를 다시 (튜토리얼이 진행 중이면 튜토리얼이 잡아 둔 대로 — 막지 않는 안내는 잡지 않음, M-51).</summary>
         private void ReleaseEvents()
         {
-            Sim.Events.Held = Sim.Tutorial != null && Sim.Tutorial.Active;
+            Sim.Events.Held = Sim.Tutorial != null && Sim.Tutorial.Active && !Sim.Tutorial.Data.Free;
         }
+
+        /// <summary>14-1c 장 안내를 마쳤거나 건너뛴 표시 (장 번호, 1부터).</summary>
+        public const string GuideFlag = "guide";
 
         // ---------------- 세이브 ----------------
 

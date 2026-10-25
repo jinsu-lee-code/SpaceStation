@@ -211,6 +211,8 @@ namespace SpaceStation.Data
         [SerializeField, TextArea(1, 3)] private List<string> _introLines = new List<string>();
         [Tooltip("이 장의 내부 안내 (들어가면 시작 · 끝까지 하면 표시 'interior', 비면 없음)")]
         [SerializeField] private TutorialData _interiorGuide;
+        [Tooltip("14-1c 장이 시작되면 띄우는 짧은 안내 (조작을 막지 않는 안내 · 건너뛸 수 있음 · 끝나거나 건너뛰면 다시 안 뜸, 비면 없음)")]
+        [SerializeField] private TutorialData _guide;
 
         [Header("해금 · 요구 (이 장에서 새로)")]
         [SerializeField] private List<ModuleData> _unlocks = new List<ModuleData>();
@@ -305,6 +307,7 @@ namespace SpaceStation.Data
         public string IntroSpeaker => _introSpeaker;
         public IReadOnlyList<string> IntroLines => _introLines;
         public TutorialData InteriorGuide => _interiorGuide;
+        public TutorialData Guide => _guide;
         public IReadOnlyList<ModuleData> Unlocks => _unlocks;
         public IReadOnlyList<ResidentNeed> NewNeeds => _newNeeds;
         public StationRule Rules => _rules;

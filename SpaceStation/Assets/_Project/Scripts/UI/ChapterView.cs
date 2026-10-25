@@ -43,6 +43,8 @@ namespace SpaceStation.UI
         [SerializeField] private Vector2 _cardOffset = new Vector2(-24f, -408f);
         [SerializeField] private float _panelGap = 14f;
         [SerializeField] private float _refreshSeconds = 0.2f;
+        [Tooltip("14-1c 장 안내(4장 합성)를 장이 시작되고 이만큼 뒤에 띄움 (게임 초)")]
+        [SerializeField] private float _guideDelay = 3f;
 
         private HoloUi _ui;
         private StationSimulation _sim;
@@ -73,6 +75,7 @@ namespace SpaceStation.UI
         // 13-4 내부 안내 (방주 안 둘러보기)
         private Interior.InteriorMode _interior;
         private TutorialRunner _guide;
+        private TutorialRunner _chapterGuide; // 14-1c 장 안내
 
         // 결과 · 선택 / 캠페인 끝
         private RectTransform _modalRoot;
@@ -145,6 +148,8 @@ namespace SpaceStation.UI
                 _interior.InsideChanged -= HandleInsideChanged;
             if (_guide != null)
                 _guide.Finished -= HandleGuideFinished;
+            if (_chapterGuide != null)
+                _chapterGuide.Finished -= HandleChapterGuideFinished;
         }
 
         // ---------------- 13-4 내부 안내 ----------------
@@ -182,6 +187,51 @@ namespace SpaceStation.UI
                 _chapters.SetFlag(ChapterSystem.InteriorFlag);
         }
 
+        // ---------------- 14-1c 장 안내 ----------------
+
+        /// <summary>
+        /// 그 장의 안내(4장 합성, 조작을 막지 않음 · main M-51)를 장이 시작되고 잠시 뒤 한 번 띄움 — 결과 · 이민선 창과 장 전환 연출이 없고
+        /// 다른 튜토리얼이 돌지 않을 때. 끝나거나 건너뛰면 표시 'guide@장'으로 다시 안 뜸. 저장하지 않으므로 불러온 판은 처음부터.
+        /// 이미 합성을 해 봤으면 띄우지 않고 표시만.
+        /// </summary>
+        private void TryStartGuide()
+        {
+            var data = _chapters.Current.Guide;
+            if (data == null || _modalOpen || _chapters.ChapterSeconds < _guideDelay)
+                return;
+            if (_chapters.Phase != ChapterPhase.Preparation && _chapters.Phase != ChapterPhase.Warning)
+                return;
+            if (_chapters.HasFlag(ChapterSystem.ScopedFlag(ChapterSystem.GuideFlag, _chapters.Index + 1)))
+                return;
+            if (_transition != null && _transition.Playing)
+                return;
+            var running = _sim.Tutorial;
+            if (running != null && running.Active)
+                return;
+            if (_sim.Session.Syntheses > 0)
+            {
+                _chapters.SetFlag(ChapterSystem.GuideFlag);
+                return;
+            }
+            _chapterGuide = _sim.StartTutorial(data);
+            _chapterGuide.Finished += HandleChapterGuideFinished;
+        }
+
+        private void HandleChapterGuideFinished(bool skipped)
+        {
+            _chapterGuide.Finished -= HandleChapterGuideFinished;
+            _chapters.SetFlag(ChapterSystem.GuideFlag); // + guide@장
+        }
+
+        /// <summary>장이 넘어가면 지난 장 안내는 닫음 (다음 장 표시를 올리지 않게 구독을 먼저 끊음).</summary>
+        private void EndChapterGuide()
+        {
+            if (_chapterGuide == null || !_chapterGuide.Active)
+                return;
+            _chapterGuide.Finished -= HandleChapterGuideFinished;
+            _chapterGuide.Skip();
+        }
+
         private void Update()
         {
             if (_ui == null)
@@ -201,6 +251,7 @@ namespace SpaceStation.UI
             {
                 _nextRefresh = Time.unscaledTime + _refreshSeconds;
                 Refresh();
+                TryStartGuide();
             }
         }
 
@@ -765,7 +816,11 @@ namespace SpaceStation.UI
             Refresh();
         }
 
-        private void HandleChapterStarted(int index) => Refresh();
+        private void HandleChapterStarted(int index)
+        {
+            EndChapterGuide();
+            Refresh();
+        }
 
         // ---------------- 캠페인 끝 ----------------
 
