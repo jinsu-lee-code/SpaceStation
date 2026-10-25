@@ -115,7 +115,7 @@ namespace SpaceStation.Editor
                     "패드를 들어 보세요.",
                     TutorialGoal.InteriorPad),
                 new TutorialStep("주민 부탁",
-                    "주민이 부탁을 했습니다. 누가 어느 방에서 부탁했는지 왼쪽 위 방 이름 아래에 표시됩니다.\n" +
+                    "주민이 부탁을 했습니다. 누가 어느 방에서 부탁했는지 화면 위쪽 방 이름 아래에 표시됩니다.\n" + // M-17: 방 이름 줄은 상단 가운데
                     "찾아가서 말풍선의 부탁을 들어주면 <b>만족도</b>가 오릅니다.",
                     TutorialGoal.InteriorRequest),
                 new TutorialStep("사고 대응",
