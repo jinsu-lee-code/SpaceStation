@@ -829,3 +829,16 @@
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상. 타이쿤판이 `TutorialData`를 다시 만들었거나 고쳤으면 같은 줄만 맞춤.
+
+## M-49. 자동 정비는 소리 없이 (2026-10-25, `main`)
+
+**main에 넣은 것** — 사용자 피드백 2026-10-25 (서사판 13-8 플레이 확인): 정비 자동화 연구 뒤 모듈이 많아지면 자동 정비가 거의 매초 모듈을 정비해 정비 소리가 끊이지 않음 → 다른 소리가 안 들림. 결정 = **자동 정비는 소리 없이** (직접 누른 정비 · 재건축만 소리, 자동은 상태 줄 알림 그대로)
+- `MaintenanceAutomation.Executing`: 자동 정비(`Tick`) · 일괄 정비(`RunBatch`)가 모듈을 처리하는 동안만 true
+- `GameAudio`: `Durability.Maintained` 소리는 `Executing`이면 건너뜀 · 일괄 정비(`Performed` batch)는 한 번만 정비 소리 (자동 재건축은 원래 소리 없음)
+- 시험: `ResearchTests.Automation_Executing_OnlyWhileAutoOrBatch`
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (`GameAudio` 구독 목록에 서사판 `CampaignFinished` 줄이 있어 근처지만 다른 줄).
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상. 타이쿤판이 `GameAudio`의 정비 소리를 고쳤으면 그 부분만 맞춤.

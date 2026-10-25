@@ -76,6 +76,11 @@ namespace SpaceStation.Simulation
 
         public int AutoMaintainCount { get; internal set; }
         public int AutoRebuildCount { get; internal set; }
+        /// <summary>
+        /// 자동 정비 · 일괄 정비가 모듈을 처리하는 중 (M-49): 화면 쪽(소리 등)이 모듈마다 반응하지 않게.
+        /// 사용자 피드백 2026-10-25: 모듈이 많아지면 자동 정비 소리가 끊이지 않아 다른 소리가 안 들림.
+        /// </summary>
+        public bool Executing { get; private set; }
         /// <summary>마지막 자동 검사에서 보호선 때문에 미룬 모듈이 있었는지.</summary>
         public bool WaitingForReserve { get; private set; }
         /// <summary>보호선 때문에 미뤘을 때 막은 자원 (대기 중이 아니면 의미 없음).</summary>
@@ -155,22 +160,30 @@ namespace SpaceStation.Simulation
             int maintained = 0, rebuilt = 0;
             bool wasWaiting = WaitingForReserve;
             WaitingForReserve = false;
-            foreach (var job in new List<Job>(Plan()))
+            Executing = true;
+            try
             {
-                if (job.Rebuild ? !AutoRebuild : !AutoMaintain)
-                    continue;
-                if (!KeepsReserve(CostOf(job)))
+                foreach (var job in new List<Job>(Plan()))
                 {
-                    WaitingForReserve = true;
-                    if (!wasWaiting)
-                        ReserveWaitStarted?.Invoke(WaitingResource, WaitingShortfall);
-                    break; // 가장 급한 모듈부터 자원을 모은다
+                    if (job.Rebuild ? !AutoRebuild : !AutoMaintain)
+                        continue;
+                    if (!KeepsReserve(CostOf(job)))
+                    {
+                        WaitingForReserve = true;
+                        if (!wasWaiting)
+                            ReserveWaitStarted?.Invoke(WaitingResource, WaitingShortfall);
+                        break; // 가장 급한 모듈부터 자원을 모은다
+                    }
+                    if (Execute(job))
+                    {
+                        if (job.Rebuild) rebuilt++;
+                        else maintained++;
+                    }
                 }
-                if (Execute(job))
-                {
-                    if (job.Rebuild) rebuilt++;
-                    else maintained++;
-                }
+            }
+            finally
+            {
+                Executing = false;
             }
             AutoMaintainCount += maintained;
             AutoRebuildCount += rebuilt;
@@ -184,13 +197,21 @@ namespace SpaceStation.Simulation
             int maintained = 0, rebuilt = 0;
             if (!Unlocked)
                 return (0, 0);
-            foreach (var job in new List<Job>(Plan()))
+            Executing = true;
+            try
             {
-                if (Execute(job))
+                foreach (var job in new List<Job>(Plan()))
                 {
-                    if (job.Rebuild) rebuilt++;
-                    else maintained++;
+                    if (Execute(job))
+                    {
+                        if (job.Rebuild) rebuilt++;
+                        else maintained++;
+                    }
                 }
+            }
+            finally
+            {
+                Executing = false;
             }
             if (maintained + rebuilt > 0)
                 Performed?.Invoke(maintained, rebuilt, true);
