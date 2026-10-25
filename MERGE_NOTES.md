@@ -853,7 +853,8 @@
 - 시험: `SynthesisTests.OpensDirectly_UnlocksWithoutResearch` · `SynthesisSpeed_ShortensJob` · `BuildZone_BlocksNewCells_RebuildAndMoveFollowZone`
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 서사판이 4장에서 채움 (장이 여는 레시피 · 파편 띠 칸 · 여우 `SP_Fox` 기술 통로 = Artisan, `SpeciesData.TechName`에 "합성 속도").
+- [x] 자동 합침 예상. 서사판이 4장에서 채움 (장이 여는 레시피 · 파편 띠 칸 · 여우 `SP_Fox` 기술 통로 = Artisan, `SpeciesData.TechName`에 "합성 속도").
+  - 확인 (2026-10-26): 자동 합침(충돌 0) · EditMode 464개 통과 (서사판 시험 포함) · 서사판 `SpeciesData.TechName`에 손재주 = "합성 속도"
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상. 타이쿤판은 셋 다 비워 둠 (값이 없으면 예전과 같음). 타이쿤판이 `ResidentTrait`에 값을 더했으면 순서를 맞춤 (세이브 · 에셋은 정수로 저장 — 맨 끝에 붙이기).
