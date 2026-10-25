@@ -16,6 +16,10 @@ namespace SpaceStation.UI
 
         public static string ResourceName(ResourceType type) => type.DisplayName();
 
+        /// <summary>M-53: 칸을 정하는 쪽이 막았으면 그쪽 사유 (서사판 4장 '파편 띠').</summary>
+        public static string PlacementReason(PlacementResult result, IBuildZone zone) =>
+            result == PlacementResult.OutsideZone && zone != null && !string.IsNullOrEmpty(zone.Reason) ? zone.Reason : PlacementReason(result);
+
         public static string PlacementReason(PlacementResult result)
         {
             switch (result)

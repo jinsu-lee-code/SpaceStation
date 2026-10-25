@@ -391,6 +391,7 @@ namespace SpaceStation.Tests
             private readonly List<Vector3Int> _cells;
             public CellZone(params Vector3Int[] cells) => _cells = new List<Vector3Int>(cells);
             public bool Allows(Vector3Int cell) => _cells.Contains(cell);
+            public string Reason => "시험 구역";
         }
 
         [Test]

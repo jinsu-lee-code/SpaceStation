@@ -381,7 +381,7 @@ namespace SpaceStation.Interior
         {
             if (_targetResult != PlacementResult.Valid)
             {
-                _message(HudText.PlacementReason(_targetResult), true);
+                _message(HudText.PlacementReason(_targetResult, _station.Simulation.BuildZone), true);
                 AudioService.TryPlay(l => l.UiError);
                 return;
             }
@@ -412,7 +412,7 @@ namespace SpaceStation.Interior
             var sim = _station.Simulation;
             string state = !_hasTarget ? $"<color={HudText.Muted}>모형에서 초록 칸을 가리키세요</color>"
                 : _targetResult == PlacementResult.Valid ? $"<color={HudTheme.GreenHex}>여기에 지을 수 있음</color>"
-                : $"<color={HudText.Red}>{HudText.PlacementReason(_targetResult)}</color>";
+                : $"<color={HudText.Red}>{HudText.PlacementReason(_targetResult, sim.BuildZone)}</color>";
             string adjacency = _adjacencyText.Length > 0 ? "\n" + _adjacencyText : string.Empty;
             _detail.SetText($"<b><size=118%>{_selected.DisplayName}</size></b>  <color={HudText.Muted}>{_selected.CellOffsets.Count}칸</color>\n" +
                             $"비용 {HudText.BigIcons(HudText.Cost(sim.GetBuildCost(_selected)))}\n{state}{adjacency}\n" +
