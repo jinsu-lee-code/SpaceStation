@@ -867,7 +867,8 @@
 - 시험: `TutorialTests.FreeGuide_HoldsNothing_SynthesisStepsAdvanceOnReports`
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 서사판 = 장 안내(`ChapterData`) 4장 합성 안내 `TUT_Synthesis`(저장 안 함 + 막지 않음), `ChapterSystem.ReleaseEvents`도 막지 않는 안내는 이벤트를 잡지 않게.
+- [x] 자동 합침 예상. 서사판 = 장 안내(`ChapterData`) 4장 합성 안내 `TUT_Synthesis`(저장 안 함 + 막지 않음), `ChapterSystem.ReleaseEvents`도 막지 않는 안내는 이벤트를 잡지 않게.
+  - 확인 (2026-10-26): 자동 합침(충돌 0) · EditMode 468개 통과 · 플레이 확인 4장 시작 → 안내 3단계 진행 · 안내 중 무작위 이벤트 그대로
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상. 기존 튜토리얼은 `_free` 꺼짐이라 그대로. 타이쿤판이 `TutorialGoal`에 값을 더했으면 순서를 맞춤 (에셋에 정수로 저장 — 맨 끝에 붙이기), 합성 안내가 필요하면 같은 단계를 씀.
@@ -881,7 +882,8 @@
 - 시험: `SynthesisTests.OpensDirectly_UnlocksWithoutResearch`에 자동 해금이 닫히는 경우를 더함
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 씬 `RecipePanel._windowOffset` = (-50, 40).
+- [x] 자동 합침 예상. 씬 `RecipePanel._windowOffset` = (-50, 40).
+  - 확인 (2026-10-26): 자동 합침(충돌 0) · 씬 값 (-50, 40) · EditMode 468개 통과
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상. 타이쿤판은 `OpensDirectly`를 비워 두므로 자동 해금 그대로, 창 위치 기본값도 그대로.
