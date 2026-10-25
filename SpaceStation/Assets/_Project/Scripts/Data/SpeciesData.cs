@@ -24,7 +24,7 @@ namespace SpaceStation.Data
         [SerializeField, Range(-1f, 1f)] private float _controlReaction;
 
         [Header("기술 (특성 통로에 더함)")]
-        [Tooltip("효과 통로: 원예가(식량 생산) · 기술자(수리 시간) · 과학자(연구 속도) · 정비공(노후 속도)")]
+        [Tooltip("효과 통로: 원예가(식량 생산) · 기술자(수리 시간) · 과학자(연구 속도) · 정비공(노후 속도) · 손재주(합성 속도)")]
         [SerializeField] private ResidentTrait _techTrait = ResidentTrait.Gardener;
         [SerializeField, Min(0f)] private float _techPerResident = 0.02f;
         [SerializeField, Min(0f)] private float _techMax = 0.1f;
@@ -68,6 +68,7 @@ namespace SpaceStation.Data
                 case ResidentTrait.Technician: return "수리 속도";
                 case ResidentTrait.Scientist: return "연구 속도";
                 case ResidentTrait.Mechanic: return "노후 방지";
+                case ResidentTrait.Artisan: return "합성 속도"; // M-50 (여우)
                 default: return trait.ToString();
             }
         }
