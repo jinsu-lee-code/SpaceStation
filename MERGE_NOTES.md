@@ -838,7 +838,8 @@
 - 시험: `ResearchTests.Automation_Executing_OnlyWhileAutoOrBatch`
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (`GameAudio` 구독 목록에 서사판 `CampaignFinished` 줄이 있어 근처지만 다른 줄).
+- [x] 자동 합침 예상 (`GameAudio` 구독 목록에 서사판 `CampaignFinished` 줄이 있어 근처지만 다른 줄).
+  - 확인 (2026-10-25): 자동 합침(충돌 0) · EditMode 461개 통과 (서사판 시험 포함)
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상. 타이쿤판이 `GameAudio`의 정비 소리를 고쳤으면 그 부분만 맞춤.
