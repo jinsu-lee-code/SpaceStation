@@ -871,3 +871,17 @@
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상. 기존 튜토리얼은 `_free` 꺼짐이라 그대로. 타이쿤판이 `TutorialGoal`에 값을 더했으면 순서를 맞춤 (에셋에 정수로 저장 — 맨 끝에 붙이기), 합성 안내가 필요하면 같은 단계를 씀.
+
+## M-52. 여는 쪽이 있으면 자동 해금 레시피도 그쪽이 정함 · 합성 창 문구 · 창 위치 칸 (2026-10-26, `main`)
+
+**main에 넣은 것** — 서사판 14-1c 플레이 확인 (사용자 결정 2026-10-26: 4장 합성 창에 공통 자동 해금 레시피 '연구 단지'가 같이 열림 → 6종만, 연구 단지는 뒤 장)
+- `SynthesisSystem.IsOpenedDirectly` = `OpensDirectly`가 있으면 그쪽만 (자동 해금 `UnlockedByDefault`도 그쪽이 정함), 없으면 자동 해금 — M-50의 뜻을 바꿈 (규칙 고리처럼 "정하는 쪽이 있으면 그쪽")
+- 합성 창을 여는 곳 문구: 버튼은 왼쪽 위 [관리] 메뉴 안 → `TutorialView` 합성 안내 줄 · `RecipePanel` 설명을 "[관리] → [합성]"으로
+- `RecipePanel._windowOffset` (기본 (-150, 40) = 예전과 같음) — 서사판 씬은 (-50, 40): 왼쪽 위 안내 카드와 오른쪽 장 카드 사이 (창이 안내 카드를 가렸음)
+- 시험: `SynthesisTests.OpensDirectly_UnlocksWithoutResearch`에 자동 해금이 닫히는 경우를 더함
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 씬 `RecipePanel._windowOffset` = (-50, 40).
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상. 타이쿤판은 `OpensDirectly`를 비워 두므로 자동 해금 그대로, 창 위치 기본값도 그대로.

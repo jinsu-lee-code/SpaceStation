@@ -107,12 +107,15 @@ namespace SpaceStation.Simulation
             return expansion != null ? expansion.StateOf(recipe) == RecipeState.Unlocked : IsOpenedDirectly(recipe);
         }
 
-        /// <summary>M-50 공통 고리: 연구 없이 레시피를 여는 쪽 (서사판 = 그 장이 여는 레시피). null이면 자동 해금 레시피만.</summary>
+        /// <summary>
+        /// M-50 공통 고리: 연구 없이 레시피를 여는 쪽 (서사판 = 그 장이 여는 레시피). null이면 자동 해금 레시피만.
+        /// M-52: 여는 쪽이 있으면 자동 해금 레시피도 그쪽이 정함 (서사판 4장 = 고른 6종만, 연구 단지는 뒤 장).
+        /// </summary>
         public Func<RecipeData, bool> OpensDirectly { get; set; }
 
-        /// <summary>연구 없이 열린 레시피인지 (자동 해금 또는 <see cref="OpensDirectly"/>). 규칙 · 등급 조건은 따로.</summary>
+        /// <summary>연구 없이 열린 레시피인지 (<see cref="OpensDirectly"/>가 있으면 그쪽, 없으면 자동 해금). 규칙 · 등급 조건은 따로.</summary>
         public bool IsOpenedDirectly(RecipeData recipe) =>
-            recipe != null && (recipe.UnlockedByDefault || (OpensDirectly != null && OpensDirectly(recipe)));
+            recipe != null && (OpensDirectly != null ? OpensDirectly(recipe) : recipe.UnlockedByDefault);
 
         /// <summary>남은 합성 시간 (게임 초, 지금 합성 속도 기준).</summary>
         public float SecondsLeft(SynthesisJob job) => job == null ? 0f : job.Remaining / Sim.Effects.SynthesisSpeedMultiplier;

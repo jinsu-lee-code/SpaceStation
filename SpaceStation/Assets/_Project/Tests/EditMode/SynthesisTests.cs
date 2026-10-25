@@ -343,6 +343,12 @@ namespace SpaceStation.Tests
 
             sim.Synthesis.OpensDirectly = null;
             Assert.IsFalse(sim.Synthesis.IsUnlocked(closed), "여는 쪽이 없으면 다시 잠김");
+
+            // M-52: 여는 쪽이 있으면 자동 해금 레시피도 그쪽이 정함
+            var auto = Sim();
+            Assert.IsTrue(auto.Synthesis.IsUnlocked(_recipe), "자동 해금");
+            auto.Synthesis.OpensDirectly = r => false;
+            Assert.IsFalse(auto.Synthesis.IsUnlocked(_recipe), "여는 쪽이 열지 않으면 자동 해금도 닫힘");
         }
 
         [Test]

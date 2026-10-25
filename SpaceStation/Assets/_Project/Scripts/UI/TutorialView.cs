@@ -477,7 +477,7 @@ namespace SpaceStation.UI
                     break;
                 // M-51 합성 안내
                 case TutorialGoal.OpenRecipes:
-                    _lines.Add(Check(false, $"합성 창 열기: {KeyBindings.Label(GameAction.Recipes)} 또는 왼쪽 위 [합성]"));
+                    _lines.Add(Check(false, $"합성 창 열기: {KeyBindings.Label(GameAction.Recipes)} 또는 왼쪽 위 [관리] → [합성]"));
                     break;
                 case TutorialGoal.PlaceSynthesis:
                     _lines.Add(Check(false, "레시피 고르기 · 재료와 규격 모양 확인"));
