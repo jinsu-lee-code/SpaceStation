@@ -46,8 +46,8 @@ namespace SpaceStation.Data
 
     /// <summary>
     /// 13-5b 서사판 기록 복원 (사용자 결정 2026-10-18 D-7, REDESIGN V4): 연구 = 코어가 지구의 기록을 되살리는 일.
-    /// 4갈래 × 3단계(1~3장), 마지막 단계는 봉인 — 기록 조각으로 풀고, 끝나면 보존(기억) / 덮어쓰기(망각 · 효과 × 1.5)를 고른다.
-    /// 1 · 2단계는 저절로 보존(기억 쪽 작게). 2장부터 열림. 값은 그레이박스 초안.
+    /// 4갈래 × 3단계(1~3장), 3단계는 봉인 — 기록 조각으로 풀고, 끝나면 보존(기억) / 덮어쓰기(망각 · 효과 × 1.5)를 고른다.
+    /// 1 · 2단계는 저절로 보존(기억 쪽 작게). 2장부터 열림. 14-1c (D-22): 4단계는 4장부터 · 봉인 없음 (저절로 보존). 값은 그레이박스 초안.
     /// </summary>
     [CreateAssetMenu(menuName = "SpaceStation/Record Config", fileName = "RecordConfig")]
     public sealed class RecordConfig : ScriptableObject
@@ -60,6 +60,8 @@ namespace SpaceStation.Data
         [SerializeField, Min(1)] private int _sealedLevel = 3;
         [Tooltip("봉인을 푸는 데 쓰는 기록 조각")]
         [SerializeField, Min(0)] private int _fragmentCost = 1;
+        [Tooltip("14-1c 봉인 단계보다 높은 단계(4단계 ~)가 열리는 장 번호 (0 = 1장, 사용자 결정 2026-10-26 D-22: 4장)")]
+        [SerializeField, Min(0)] private int _deepOpenChapter = 3;
 
         [Header("코어 성격 (기억 ↔ 망각)")]
         [Tooltip("1 · 2단계를 마침 (저절로 보존)")]
@@ -73,6 +75,7 @@ namespace SpaceStation.Data
         public int OpenChapter => _openChapter;
         public int SealedLevel => _sealedLevel;
         public int FragmentCost => _fragmentCost;
+        public int DeepOpenChapter => _deepOpenChapter;
         public IReadOnlyList<AxisShift> AutoShifts => _autoShifts;
         public IReadOnlyList<AxisShift> PreserveShifts => _preserveShifts;
         public IReadOnlyList<AxisShift> OverwriteShifts => _overwriteShifts;

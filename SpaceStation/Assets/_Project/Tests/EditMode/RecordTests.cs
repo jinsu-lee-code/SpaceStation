@@ -50,11 +50,12 @@ namespace SpaceStation.Tests
                 Level(ResearchStat.LifeSupportProductionMultiplier, 1.1f),
                 Level(ResearchStat.SolarMultiplier, 1.15f),
                 Level(ResearchStat.LifeSupportProductionMultiplier, 1.2f),
+                Level(ResearchStat.SolarMultiplier, 1.3f), // 14-1c 4단계
             });
             _records = Create<RecordConfig>();
             _records.EditorSet(new List<RecordTrack>
                 {
-                    new RecordTrack(_survival, new List<string> { "온실", "태양", "종자 은행" }, "씨앗보다 먼저",
+                    new RecordTrack(_survival, new List<string> { "온실", "태양", "종자 은행", "거울 밭" }, "씨앗보다 먼저",
                         new List<ResearchModifier> { new ResearchModifier { Stat = ResearchStat.LifeSupportProductionMultiplier, Value = 1.3f } }, "생산 +30%"),
                 },
                 new List<AxisShift> { new AxisShift(CoreAxis.Memory, CorePole.First, ShiftSize.Small) },
@@ -145,6 +146,27 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void DeepLevel_OpensAtDeepChapter_NoSeal_AutoPreserve()
+        {
+            DeepChapter(1); // 14-1c D-22: 4단계는 깊은 장부터 (시험 판은 1장 → 2장으로 두면 닫힘)
+            var sim = Sim(out var records, out var core);
+            sim.Grid.TryPlace(_lab, Vector3Int.right, 0, out _);
+            sim.Research.SetLevel(_survival, 3);
+            Assert.IsTrue(records.Choose(records.Pending, preserve: true));
+            Assert.AreEqual(ResearchStartResult.Gated, sim.CanStartResearch(_survival));
+            StringAssert.Contains("4단계 기록은 2장에서", records.BlockReason(_survival, 4));
+            DeepChapter(0);
+            Assert.IsNull(records.BlockReason(_survival, 4), "봉인 없음 = 조각 없이");
+            Assert.AreEqual(ResearchStartResult.Ok, sim.TryStartResearch(_survival));
+            Tick(sim, 11);
+            Assert.AreEqual(4, sim.Research.GetLevel(_survival));
+            Assert.IsNull(records.Pending, "고를 것 없음 (저절로 보존)");
+            Assert.AreEqual(1.3f, sim.Effects.SolarMultiplier, Eps);
+            Assert.AreEqual(1.2f, sim.Effects.LifeSupportProductionMultiplier, Eps, "봉인 단계 효과는 그대로");
+            StringAssert.Contains("거울 밭", core.Entries.Last().Text, "되살린 기억 한 줄");
+        }
+
+        [Test]
         public void CleanClimax_GivesChapterFragments()
         {
             var sim = Sim(out var records, out _);
@@ -173,6 +195,14 @@ namespace SpaceStation.Tests
             so.FindProperty("_openChapter").intValue = index;
             so.FindProperty("_sealedLevel").intValue = 3;
             so.FindProperty("_fragmentCost").intValue = 1;
+            so.FindProperty("_deepOpenChapter").intValue = 0;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private void DeepChapter(int index)
+        {
+            var so = new SerializedObject(_records);
+            so.FindProperty("_deepOpenChapter").intValue = index;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

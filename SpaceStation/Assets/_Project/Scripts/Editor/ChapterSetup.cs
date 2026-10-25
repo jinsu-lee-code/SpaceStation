@@ -816,20 +816,26 @@ namespace SpaceStation.Editor
             var survival = RecordCategory("RC_RecordSurvival", ResearchCategory.Production, "생존 기록", Icon("RC_Production"),
                 RecordLevel(1, "산소 · 물 · 식량 생산 +10%", (ResearchStat.LifeSupportProductionMultiplier, 1.1f)),
                 RecordLevel(2, "태양광 발전 +15% · 전력 최소 효율 30%", (ResearchStat.SolarMultiplier, 1.15f), (ResearchStat.MinPowerEfficiency, 0.3f)),
-                RecordLevel(3, "산소 · 물 · 식량 생산 +20% · 좋은 인접 효과 +10%p", (ResearchStat.LifeSupportProductionMultiplier, 1.2f), (ResearchStat.AdjacencyBonusBoost, 0.1f)));
+                RecordLevel(3, "산소 · 물 · 식량 생산 +20% · 좋은 인접 효과 +10%p", (ResearchStat.LifeSupportProductionMultiplier, 1.2f), (ResearchStat.AdjacencyBonusBoost, 0.1f)),
+                // 14-1c (D-22) 4단계 = 4장부터 · 봉인 없음 · 공통 Lv.4 수준 — 봉인 단계(덮어쓰기 × 1.5)와 겹치지 않는 효과로 (높은 레벨 값이 덮어쓰므로)
+                RecordLevel(4, "태양광 발전 +30% · 전력 최소 효율 50%", (ResearchStat.SolarMultiplier, 1.3f), (ResearchStat.MinPowerEfficiency, 0.5f)));
             var structure = RecordCategory("RC_RecordStructure", ResearchCategory.Maintenance, "구조 기록", Icon("RC_Maintenance"),
                 RecordLevel(1, "수리 비용 25% · 수리 시간 25초", (ResearchStat.RepairCostRate, 0.25f), (ResearchStat.RepairDuration, 25f)),
                 RecordLevel(2, "건설 비용 -5% · 철거 환급 60%", (ResearchStat.BuildCostMultiplier, 0.95f), (ResearchStat.DemolishRefundRate, 0.6f)),
-                RecordLevel(3, "노후 속도 20% 완화 · 수리 비용 20% · 수리 시간 20초", (ResearchStat.DecayMultiplier, 0.8f), (ResearchStat.RepairCostRate, 0.2f), (ResearchStat.RepairDuration, 20f)));
+                RecordLevel(3, "노후 속도 20% 완화 · 수리 비용 20% · 수리 시간 20초", (ResearchStat.DecayMultiplier, 0.8f), (ResearchStat.RepairCostRate, 0.2f), (ResearchStat.RepairDuration, 20f)),
+                RecordLevel(4, "재건축 비용 50% 할인 · 노후 효율 최저 30%", (ResearchStat.RebuildCostMultiplier, 0.5f), (ResearchStat.DurabilityEfficiencyFloor, 0.3f)));
             float ricochet = balance != null ? balance.ShieldRicochetChance : 0.7f;
+            float turretCap = balance != null ? balance.TurretMaxIntercept : 0.6f;
             var defense = RecordCategory("RC_RecordDefense", ResearchCategory.Defense, "방어 기록", Icon("RC_Defense"),
                 RecordLevel(1, "운석 · 태양 폭풍 15초 전 경보 · 실드 · 포탑 반경 +1칸", (ResearchStat.EarlyWarningSeconds, 15f), (ResearchStat.DefenseRadiusBonus, 1f)),
                 RecordLevel(2, "운석 명중 시 파손 면역 20% · 경보 중 운석 대상 표시", (ResearchStat.HitImmunityChance, 0.2f), (ResearchStat.MeteorTargetPreview, 1f)),
-                RecordLevel(3, $"실드 튕김 명중 {ricochet * 100f:0}% → 45% · 파손 면역 30%", (ResearchStat.RicochetChance, 0.45f), (ResearchStat.HitImmunityChance, 0.3f)));
+                RecordLevel(3, $"실드 튕김 명중 {ricochet * 100f:0}% → 45% · 파손 면역 30%", (ResearchStat.RicochetChance, 0.45f), (ResearchStat.HitImmunityChance, 0.3f)),
+                RecordLevel(4, $"포탑 격추 확률 +30% · 격추 합산 상한 {turretCap * 100f:0}% → 75%", (ResearchStat.TurretInterceptMultiplier, 1.3f), (ResearchStat.TurretMaxIntercept, 0.75f)));
             var life = RecordCategory("RC_RecordLife", ResearchCategory.Habitation, "생활 기록", Icon("RC_Habitation"),
                 RecordLevel(1, "만족도 상한 +5", (ResearchStat.SatisfactionCapBonus, 5f)),
                 RecordLevel(2, "의료실 · 휴게실 반경 +1칸", (ResearchStat.ServiceRadiusBonus, 1f)),
-                RecordLevel(3, "거주 모듈 수용 인원 +1 · 만족도 상한 +8", (ResearchStat.HousingBonus, 1f), (ResearchStat.SatisfactionCapBonus, 8f)));
+                RecordLevel(3, "거주 모듈 수용 인원 +1 · 만족도 상한 +8", (ResearchStat.HousingBonus, 1f), (ResearchStat.SatisfactionCapBonus, 8f)),
+                RecordLevel(4, "만족도 상한 +15 · 의료실 · 휴게실 반경 +2칸", (ResearchStat.SatisfactionCapBonus, 15f), (ResearchStat.ServiceRadiusBonus, 2f)));
 
             var tracks = new List<RecordTrack>
             {
@@ -837,22 +843,26 @@ namespace SpaceStation.Editor
                     "지구의 온실 기록. 유리 지붕 아래 토마토가 한겨울에도 붉게 익었다.",
                     "해가 지지 않는 여름의 북쪽 마을. 지붕마다 검은 판이 해를 따라 돌았다.",
                     "마지막 종자 은행의 목록. 씨앗 4만 종, 봉투마다 누군가의 손글씨 이름표.",
-                    "목록 끝의 메모: '방주에는 씨앗보다 먼저 이것을 실어라.' 무엇을 가리키는지는 지워져 있다."),
+                    "목록 끝의 메모: '방주에는 씨앗보다 먼저 이것을 실어라.' 무엇을 가리키는지는 지워져 있다.",
+                    "사막에 깔린 거울 밭의 운영 기록. 해가 지면 도시는 낮에 모아 둔 빛으로 밤을 건넜다."),
                 Track(structure, balance, "노후 {0} 완화 · 수리 비용 {1} · 수리 시간 {2}",
                     "다리를 고치는 사람들의 작업 일지. 볼트 하나에도 날짜가 적혀 있다.",
                     "무너진 도시를 다시 쌓은 기록. 그들은 남은 벽돌부터 세었다.",
                     "방주 설계 회의록 첫 장: '백 년을 버틸 것. 누구든 고칠 수 있을 것.'",
-                    "회의록 서명란은 열두 칸, 이름은 열한 개. 마지막 칸은 비어 있다."),
+                    "회의록 서명란은 열두 칸, 이름은 열한 개. 마지막 칸은 비어 있다.",
+                    "백 년 된 다리의 보수 기록. 부재를 하나씩 갈아 끼운 끝에, 처음 놓은 쇠는 하나도 남지 않았다. 그래도 사람들은 같은 이름으로 불렀다."),
                 Track(defense, balance, "튕김 명중 {0} · 파손 면역 {1}",
                     "유성우 관측 일지. 아이들이 별똥별에 소원을 빌었다고 적혀 있다.",
                     "옛 정거장의 피격 보고서. 벽에 덧댄 얇은 판 하나가 사람을 살렸다.",
                     "하늘을 지키던 망원경들의 마지막 경보 기록.",
-                    "경보는 정확했다. 다만 너무 늦게 받아들여졌다. 보고서 아래에 누군가 '우리는 알고 있었다'라고 적었다."),
+                    "경보는 정확했다. 다만 너무 늦게 받아들여졌다. 보고서 아래에 누군가 '우리는 알고 있었다'라고 적었다.",
+                    "마지막 방공 기지의 교대 일지. 날마다 이어지던 서명이 어느 날 한 사람의 이름으로만 채워진다."),
                 Track(life, balance, "수용 인원 +{0} · 만족도 상한 +{1}",
                     "어느 집 저녁 식탁 사진. 의자가 하나 남는다.",
                     "병원 복도에 걸린 그림들. 아이들이 그린 해는 모두 웃고 있다.",
                     "이웃끼리 나눈 쪽지 묶음: '불 꺼지면 우리 집으로 와요.'",
-                    "쪽지 하나는 방주 앞으로 쓰였다: '우리 대신 누군가 살아 주기를.' 보낸 이의 이름은 없다."),
+                    "쪽지 하나는 방주 앞으로 쓰였다: '우리 대신 누군가 살아 주기를.' 보낸 이의 이름은 없다.",
+                    "골목 축제의 사진첩. 서로 이름도 모르는 이웃들이 한 식탁에 모여 웃고 있다."),
             };
             var cfg = LoadOrCreate<RecordConfig>(RecordPath);
             cfg.EditorSet(tracks,
@@ -876,10 +886,10 @@ namespace SpaceStation.Editor
             return c;
         }
 
-        /// <summary>단계 하나 (비용 · 전력 · 시간 = RESEARCH.md 2-1 · 2-2 표 Lv.1 ~ 3).</summary>
+        /// <summary>단계 하나 (비용 · 전력 · 시간 = RESEARCH.md 2-1 · 2-2 표 Lv.1 ~ 4).</summary>
         private static ResearchLevel RecordLevel(int level, string description, params (ResearchStat stat, float value)[] modifiers)
         {
-            float[] lifeCost = { 20f, 40f, 70f }, metalCost = { 30f, 60f, 100f }, power = { 5f, 8f, 12f }, seconds = { 60f, 120f, 180f };
+            float[] lifeCost = { 20f, 40f, 70f, 110f }, metalCost = { 30f, 60f, 100f, 150f }, power = { 5f, 8f, 12f, 18f }, seconds = { 60f, 120f, 180f, 240f };
             int i = level - 1;
             var l = new ResearchLevel { PowerDemand = power[i], Duration = seconds[i], Description = description };
             l.StartCost.Add(new ResourceAmount(ResourceType.Oxygen, lifeCost[i]));
@@ -891,7 +901,7 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>갈래 하나: 봉인 단계(3) 효과를 기본값에서 늘어난 만큼 × 1.5 → 덮어쓰기 효과 + 설명({0}, {1} … = 덮어쓴 값).</summary>
-        private static RecordTrack Track(ResearchCategoryData category, BalanceConfig balance, string overwriteFormat, string memory1, string memory2, string memory3, string human)
+        private static RecordTrack Track(ResearchCategoryData category, BalanceConfig balance, string overwriteFormat, string memory1, string memory2, string memory3, string human, string memory4)
         {
             var sealedLevel = category.GetLevel(3);
             var overwrite = new List<ResearchModifier>();
@@ -906,7 +916,7 @@ namespace SpaceStation.Editor
                 overwrite.Add(new ResearchModifier { Stat = m.Stat, Value = v });
                 shown.Add(Shown(m.Stat, v));
             }
-            return new RecordTrack(category, new List<string> { memory1, memory2, memory3 }, human, overwrite, string.Format(overwriteFormat, shown.ToArray()));
+            return new RecordTrack(category, new List<string> { memory1, memory2, memory3, memory4 }, human, overwrite, string.Format(overwriteFormat, shown.ToArray()));
         }
 
         /// <summary>연구가 없을 때의 값 (ResearchEffects의 기본값과 같게).</summary>
@@ -1154,6 +1164,15 @@ namespace SpaceStation.Editor
             SetChapterList(config, chapters);
             AssetDatabase.SaveAssets();
             Debug.Log($"[ChapterSetup] 장 {chapters.Count}개 (4~7장 그레이박스)");
+        }
+
+        /// <summary>14-1c: 기록 복원 갈래 · 단계 에셋만 다시 (씬 연구 목록은 같은 에셋을 가리키므로 그대로).</summary>
+        [MenuItem("SpaceStation/Chapters/Setup Records (기록 복원)")]
+        public static void SetupRecords()
+        {
+            Records();
+            AssetDatabase.SaveAssets();
+            Debug.Log("[ChapterSetup] 기록 복원 4갈래 × 4단계");
         }
 
         private static void SetEarthLights(ChapterData chapter, float start, float end, float seconds, float final = -1f)

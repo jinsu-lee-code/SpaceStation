@@ -116,6 +116,8 @@ namespace SpaceStation.Simulation
             if (!IsOpen)
                 return ClosedReason;
             var track = _config.Find(category);
+            if (track != null && level > _config.SealedLevel && Chapters != null && Chapters.Index < _config.DeepOpenChapter)
+                return $"{level}단계 기록은 {_config.DeepOpenChapter + 1}장에서 열립니다"; // 14-1c D-22
             if (IsSealed(track, level) && Fragments < _config.FragmentCost)
                 return $"봉인된 기록 · 기록 조각 {_config.FragmentCost}개 필요 (보유 {Fragments})";
             return null;
