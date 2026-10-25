@@ -887,3 +887,15 @@
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상. 타이쿤판은 `OpensDirectly`를 비워 두므로 자동 해금 그대로, 창 위치 기본값도 그대로.
+
+## M-53. 칸을 정하는 쪽의 사유 글 (2026-10-26, `main`)
+
+**main에 넣은 것** — 서사판 14-1d (사용자 결정 2026-10-26: 4장 위기 '파편 띠' — 새 칸에 지으려 하면 고스트가 빨갛고 '파편 띠' 사유)
+- `IBuildZone.Reason` (막힌 칸 사유, 비면 기본 문구) · `HudText.PlacementReason(result, zone)` — `OutsideZone`이고 사유가 있으면 그 글. 상태 줄(`StatusBar`) · 휴대 패드 건설(`PadBuild`)이 씀
+- 시험: `HudTextTests.PlacementReason_ZoneReasonOnlyForOutsideZone`
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 서사판 파편 띠 구역이 사유를 채움.
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상 (칸을 정하는 쪽이 없으면 예전과 같음).

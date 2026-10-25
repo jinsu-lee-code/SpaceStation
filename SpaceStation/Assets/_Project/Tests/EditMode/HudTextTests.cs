@@ -18,5 +18,22 @@ namespace SpaceStation.Tests
             Assert.IsNull(HudText.BigIcons(null));
             Assert.AreEqual("깨진 <sprite", HudText.BigIcons("깨진 <sprite")); // 닫는 > 없음 = 그대로
         }
+
+        [Test]
+        public void PlacementReason_ZoneReasonOnlyForOutsideZone()
+        {
+            var zone = new Zone { Reason = "파편 띠" };
+            Assert.AreEqual("파편 띠", HudText.PlacementReason(Core.PlacementResult.OutsideZone, zone), "M-53 칸을 정하는 쪽 사유");
+            Assert.AreEqual(HudText.PlacementReason(Core.PlacementResult.Occupied), HudText.PlacementReason(Core.PlacementResult.Occupied, zone));
+            zone.Reason = "";
+            Assert.AreEqual(HudText.PlacementReason(Core.PlacementResult.OutsideZone), HudText.PlacementReason(Core.PlacementResult.OutsideZone, zone), "사유가 비면 기본");
+            Assert.AreEqual(HudText.PlacementReason(Core.PlacementResult.OutsideZone), HudText.PlacementReason(Core.PlacementResult.OutsideZone, null));
+        }
+
+        private sealed class Zone : Core.IBuildZone
+        {
+            public bool Allows(UnityEngine.Vector3Int cell) => false;
+            public string Reason { get; set; }
+        }
     }
 }

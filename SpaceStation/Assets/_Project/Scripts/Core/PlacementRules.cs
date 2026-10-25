@@ -42,6 +42,9 @@ namespace SpaceStation.Core
     public interface IBuildZone
     {
         bool Allows(Vector3Int cell);
+
+        /// <summary>M-53: 막힌 칸 사유 (배치 불가 글, 비면 기본 문구).</summary>
+        string Reason { get; }
     }
 
     /// <summary>
