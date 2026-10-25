@@ -13,7 +13,7 @@ using UnityEngine.UI;
 namespace SpaceStation.UI
 {
     /// <summary>
-    /// 12-3 합성 레시피(도감) 창 (PHASESET A7 · A9). K 키 또는 왼쪽 위 [합성] 버튼으로 연다. 게임 시간은 멈추지 않는다.
+    /// 12-3 합성 레시피(도감) 창 (PHASESET A7 · A9). K 키 또는 왼쪽 위 [관리] → [합성]으로 연다. 게임 시간은 멈추지 않는다.
     /// 왼쪽 = 레시피 목록, 오른쪽 = 고른 레시피의 재료 · 규격 모양(층별 칸 그림) · 결과 효과 · 비용 · 시간 · 당위성 + [위치 지정].
     /// [위치 지정]을 누르면 창이 닫히고 <see cref="SynthesisController"/>가 규격 고스트를 띄운다.
     /// 왼쪽 위 추적기: 진행 중인 합성 (연구 추적기 아래).
@@ -37,6 +37,8 @@ namespace SpaceStation.UI
         [SerializeField] private Sprite _buttonSprite;
         [SerializeField] private HoloArt _holoArt;
         [SerializeField] private float _refreshSeconds = 0.25f;
+        [Tooltip("M-52 창 위치 (화면 가운데 기준). 서사판 = 왼쪽 위 안내 카드 · 오른쪽 장 카드 사이로 (-50, 40)")]
+        [SerializeField] private Vector2 _windowOffset = new Vector2(-150f, 40f);
 
         private HoloUi _ui;
         private StationSimulation _sim;
@@ -232,7 +234,7 @@ namespace SpaceStation.UI
             var root = (RectTransform)transform;
             _window = HoloUi.Rect("RecipeWindow", root);
             _window.anchorMin = _window.anchorMax = _window.pivot = new Vector2(0.5f, 0.5f);
-            _window.anchoredPosition = new Vector2(-150f, 40f);
+            _window.anchoredPosition = _windowOffset;
             const float head = 96f, foot = 92f, side = 33f, bodyH = BodyHeight;
             _window.sizeDelta = new Vector2(side * 2f + ListWidth + 24f + DetailWidth, head + bodyH + foot);
             _group = _window.gameObject.AddComponent<CanvasGroup>();
