@@ -895,7 +895,8 @@
 - 시험: `HudTextTests.PlacementReason_ZoneReasonOnlyForOutsideZone`
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 서사판 파편 띠 구역이 사유를 채움.
+- [x] 자동 합침 예상. 서사판 파편 띠 구역이 사유를 채움.
+  - 확인 (2026-10-26): 자동 합침(충돌 0) · EditMode 470개 통과 (파편 띠 시험 포함)
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상 (칸을 정하는 쪽이 없으면 예전과 같음).
