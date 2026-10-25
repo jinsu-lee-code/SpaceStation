@@ -366,14 +366,14 @@ namespace SpaceStation.Tests
         {
             var sim = Sim();
             var a = Place(sim, _a, new Vector3Int(1, 0, 0));
-            var zone = new CellZone(new Vector3Int(1, 0, 0), new Vector3Int(2, 0, 0));
+            var zone = new CellZone(new Vector3Int(1, 0, 0), new Vector3Int(2, 0, 0), new Vector3Int(0, 0, 1));
             sim.BuildZone = zone;
 
             Assert.AreEqual(PlacementResult.OutsideZone, sim.EvaluatePlacement(_other, new Vector3Int(-1, 0, 0), 0), "막힌 칸");
             Assert.AreEqual(PlacementResult.Valid, sim.EvaluatePlacement(_other, new Vector3Int(2, 0, 0), 0), "열린 칸");
             Assert.AreEqual(PlacementResult.OutsideZone, sim.EvaluatePlacement(_b, new Vector3Int(2, 0, 0), 0), "2칸 중 하나라도 막히면");
             Assert.AreEqual(PlacementResult.OutsideZone, sim.EvaluateMove(a, new Vector3Int(-1, 0, 0), 0), "막힌 칸으로 옮기기");
-            Assert.AreEqual(PlacementResult.Valid, sim.EvaluateMove(a, new Vector3Int(2, 0, 0), 0), "열린 칸으로 옮기기");
+            Assert.AreEqual(PlacementResult.Valid, sim.EvaluateMove(a, new Vector3Int(0, 0, 1), 0), "열린 칸으로 옮기기 (코어 옆)");
             Assert.AreEqual(RebuildResult.Done, sim.TryRebuild(a, out _), "재건축은 같은 칸");
 
             sim.BuildZone = null;
