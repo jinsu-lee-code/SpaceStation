@@ -55,6 +55,7 @@ namespace SpaceStation.Simulation
         private readonly List<ChapterRecord> _records = new List<ChapterRecord>();
         private bool[] _done = new bool[0];
         private ChapterClimax _climax;
+        private int _earthStep; // 이 장에서 이미 알린 불빛 단계 (저장 안 함 — 장 시간에서 다시 셈)
 
         /// <summary>새 장 시작 (장 인덱스).</summary>
         public event Action<int> ChapterStarted;
@@ -67,6 +68,11 @@ namespace SpaceStation.Simulation
         public event Action<ChapterRecord> ClimaxEnded;
         /// <summary>마지막 장 전환까지 끝남.</summary>
         public event Action CampaignFinished;
+        /// <summary>
+        /// 13-8 ③ 보완 (사용자 결정 2026-10-25): 장 안에서 지구 불빛이 한 단계 줄어듦 (이 장의 단계, 1부터) — 코어 혼잣말은 여기서 알리고, 화면은 지구를 깜빡임.
+        /// 플레이 확인: 바빠서 꺼져 가는 지구에 눈이 가지 않았음.
+        /// </summary>
+        public event Action<int> EarthDimmed;
 
         public ChapterSystem(ChapterConfig config)
         {
@@ -431,6 +437,29 @@ namespace SpaceStation.Simulation
                         EndClimax();
                     break;
             }
+            if (Phase == ChapterPhase.Preparation || Phase == ChapterPhase.Warning || Phase == ChapterPhase.Climax)
+                CheckEarthDim();
+        }
+
+        /// <summary>이 장 시간에서 지구 불빛 단계 (불빛이 줄어드는 시간을 <see cref="ChapterData.EarthDimNotices"/>로 나눈 지점마다 1씩, 줄지 않는 장은 0).</summary>
+        public int EarthStepAt(float chapterSeconds)
+        {
+            var c = Current;
+            int n = c.EarthDimNotices;
+            if (n <= 0 || c.EarthLightsEnd >= c.EarthLightsStart)
+                return 0;
+            return Math.Min(n, Mathf.FloorToInt(chapterSeconds / (c.EarthDimSeconds / n)));
+        }
+
+        /// <summary>불빛이 한 단계 줄었으면 코어 혼잣말(상태 줄은 "코어 · " 머리 · 코어 기록) + <see cref="EarthDimmed"/>.</summary>
+        private void CheckEarthDim()
+        {
+            int step = EarthStepAt(ChapterSeconds);
+            if (step <= _earthStep)
+                return;
+            _earthStep = step;
+            Sim.Report("코어 · " + CoreSay("earth.dim", "저 아래 불빛이 또 꺼졌다."), true);
+            EarthDimmed?.Invoke(step);
         }
 
         /// <summary>[바로 맞이하기]: 예고 중이면 절정을 지금 시작.</summary>
@@ -486,6 +515,7 @@ namespace SpaceStation.Simulation
             Index = Math.Max(0, Math.Min(index, _config.Count - 1));
             Phase = ChapterPhase.Preparation;
             ChapterSeconds = 0f;
+            _earthStep = 0;
             WarningLeft = 0f;
             GradeUpApplied = false;
             _done = new bool[Current.Goals.Count];
@@ -607,6 +637,7 @@ namespace SpaceStation.Simulation
                 RunId = s.RunId;
             Phase = (ChapterPhase)Mathf.Clamp(s.Phase, 0, (int)ChapterPhase.Finished);
             ChapterSeconds = s.ChapterSeconds;
+            _earthStep = EarthStepAt(ChapterSeconds); // 불러온 순간 지난 단계를 한꺼번에 알리지 않게
             WarningLeft = s.WarningLeft;
             GradeUpApplied = s.GradeUp;
             for (int i = 0; i < _done.Length && i < s.Done.Count; i++)

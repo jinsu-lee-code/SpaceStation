@@ -407,6 +407,46 @@ namespace SpaceStation.Tests
             Assert.IsFalse(ChapterSystem.TryReadRun("{\"Index\":1}", out _, out _, out _), "판 번호가 없는 이전 저장");
         }
 
+        /// <summary>13-8 ③ 보완 (사용자 결정 2026-10-25): 불빛이 줄어드는 시간을 3으로 나눈 지점마다 한 번 코어 혼잣말("코어 · ") · 불러온 뒤 지난 단계를 다시 알리지 않음.</summary>
+        [Test]
+        public void EarthDimmed_NoticesPerStep_NotRepeatedAfterLoad()
+        {
+            var chapter = Chapter("E", new ModuleData[0], StationRule.None, 1);
+            var so = new SerializedObject(chapter);
+            so.FindProperty("_earthLightsStart").floatValue = 1f;
+            so.FindProperty("_earthLightsEnd").floatValue = 0.9f;
+            so.FindProperty("_earthDimSeconds").floatValue = 30f;
+            so.FindProperty("_earthDimNotices").intValue = 3;
+            var goals = so.FindProperty("_goals");
+            goals.arraySize = 1;
+            Goal(goals.GetArrayElementAtIndex(0), ChapterGoalKind.BuildModule, module: _block, count: 99); // 끝나지 않는 목표 (준비 단계 유지)
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var config = Create<ChapterConfig>();
+            var c = new SerializedObject(config);
+            c.FindProperty("_chapters").arraySize = 1;
+            c.FindProperty("_chapters").GetArrayElementAtIndex(0).objectReferenceValue = chapter;
+            c.ApplyModifiedPropertiesWithoutUndo();
+            _chapters = config;
+
+            var sim = Sim();
+            var steps = new List<int>();
+            var lines = new List<string>();
+            sim.Chapters.EarthDimmed += steps.Add;
+            sim.EffectReported += (text, _) => { if (text.StartsWith("코어 · ")) lines.Add(text); };
+            for (int i = 0; i < 15; i++)
+                sim.Tick(1f);
+            CollectionAssert.AreEqual(new[] { 1 }, steps, "10초마다 한 단계 (15초 = 1)");
+            Assert.AreEqual("코어 · 저 아래 불빛이 또 꺼졌다.", lines[0]);
+
+            var loaded = Sim();
+            var loadedSteps = new List<int>();
+            loaded.Chapters.EarthDimmed += loadedSteps.Add;
+            loaded.Chapters.Restore(sim.Chapters.Capture(_ => -1), _ => null);
+            for (int i = 0; i < 30; i++)
+                loaded.Tick(1f);
+            CollectionAssert.AreEqual(new[] { 2, 3 }, loadedSteps, "불러온 뒤 지난 단계(1)는 다시 알리지 않고, 3단계에서 멈춤");
+        }
+
         // ---------------- 도우미 ----------------
 
         private int _nextX = 1;

@@ -36,12 +36,17 @@ namespace SpaceStation.UI
         [SerializeField] private float _dimSeconds = 4.5f;
         [Tooltip("제목 카드가 떠 있는 시간")]
         [SerializeField] private float _titleSeconds = 2.6f;
+        [Tooltip("13-8 장 결과 창: 지구 쪽 시점으로 가는 시간 (실제 초) · 지구가 놓이는 화면 가로 자리 (결과 창은 왼쪽)")]
+        [SerializeField] private float _frameSeconds = 1.6f;
+        [SerializeField, Range(0.5f, 0.95f)] private float _earthScreenX = 0.72f;
 
         private StationSimulation _sim;
         private HoloUi _ui;
         private CinematicStage _stage;
         private EarthView _earth;
         private bool _moving;
+        private bool _framing;
+        private Coroutine _frameRoutine;
 
         public bool Playing => _stage != null && _stage.Active;
 
@@ -66,7 +71,69 @@ namespace SpaceStation.UI
         /// next = 다음 장 (마지막 장이면 null), done = 연출이 끝난 뒤 (시간은 연출 전 상태 그대로 — 부른 쪽이 다시 흐르게).
         /// </summary>
         public void Play(ChapterData finished, int finishedNumber, ChapterData next, Action done)
-            => StartCoroutine(Run(finished, finishedNumber, next, done));
+        {
+            StopFraming(); // 결과 창의 지구 시점에서 그대로 이어짐 (궤도 카메라의 시점 기억은 그대로라 끝나면 원래 시점으로)
+            StartCoroutine(Run(finished, finishedNumber, next, done));
+        }
+
+        /// <summary>
+        /// 13-8 ③ 보완 (사용자 결정 2026-10-25): 장 결과 창이 열린 동안 정거장 너머 지구를 화면 오른쪽에 크게 — 시간이 멈춘 결과 창이라 볼 여유가 있음.
+        /// 궤도 카메라만 끄고(시점 기억은 그대로) 방향을 고르면 장 전환 연출이 이 시점에서 이어짐. 연출 없이 창이 닫히면 <see cref="ReleaseEarth"/>.
+        /// </summary>
+        public bool FrameEarth()
+        {
+            if (_stage == null || _stage.Active)
+                return false;
+            if (_framing)
+                return true;
+            _framing = true;
+            _stage.Orbit.enabled = false;
+            _frameRoutine = StartCoroutine(FrameMotion());
+            return true;
+        }
+
+        /// <summary>연출 없이 결과 창이 닫힐 때: 궤도 카메라(원래 시점)로 되돌림.</summary>
+        public void ReleaseEarth()
+        {
+            if (!_framing)
+                return;
+            StopFraming();
+            _stage.Orbit.enabled = true;
+        }
+
+        private void StopFraming()
+        {
+            _framing = false;
+            if (_frameRoutine != null)
+                StopCoroutine(_frameRoutine);
+            _frameRoutine = null;
+        }
+
+        private IEnumerator FrameMotion()
+        {
+            var cam = _stage.Camera;
+            EarthShot(out var pos, out var rot);
+            Vector3 fromPos = cam.position;
+            Quaternion fromRot = cam.rotation;
+            for (float t = 0f; _framing; t += CinematicStage.Dt)
+            {
+                float k = CinematicStage.Smooth(Mathf.Clamp01(t / Mathf.Max(0.01f, _frameSeconds)));
+                cam.SetPositionAndRotation(Vector3.Lerp(fromPos, pos, k), Quaternion.Slerp(fromRot, rot, k));
+                yield return null;
+            }
+        }
+
+        /// <summary>장 전환 연출과 같은 자리(정거장 뒤 위)에서 지구 쪽을 보되, 지구가 화면 가로 <see cref="_earthScreenX"/>에 오게 왼쪽으로 돌린 시점.</summary>
+        private void EarthShot(out Vector3 pos, out Quaternion rot)
+        {
+            StationBounds(out var center, out float radius);
+            var dir = _earth != null ? _earth.Direction : new Vector3(0.5f, -0.45f, 0.75f).normalized;
+            pos = center - dir * (radius * 2.4f + 10f) + Vector3.up * (radius * 0.5f + 3f);
+            var camera = _stage.Orbit.GetComponent<Camera>();
+            float tanHalfW = camera != null ? Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad) * camera.aspect : 0.8f;
+            float yaw = Mathf.Atan((_earthScreenX - 0.5f) * 2f * tanHalfW) * Mathf.Rad2Deg;
+            rot = Quaternion.AngleAxis(-yaw, Vector3.up) * Quaternion.LookRotation(dir, Vector3.up);
+        }
 
         private IEnumerator Run(ChapterData finished, int finishedNumber, ChapterData next, Action done)
         {

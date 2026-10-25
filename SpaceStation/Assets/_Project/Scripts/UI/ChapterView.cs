@@ -23,6 +23,8 @@ namespace SpaceStation.UI
     {
         private const float CardWidth = 430f;
         private const float ModalWidth = 900f;
+        private static readonly Color ModalDim = new Color(0f, 0.01f, 0.02f, 0.62f);
+        private static readonly Color ModalDimEarth = new Color(0f, 0.01f, 0.02f, 0.25f); // 13-8 결과 창: 뒤의 지구가 보이게 옅게
         private const string Soft = "#C8D2DE";
         private const string Gold = "#FFD36A";
         /// <summary>13-2 코어의 말 색 (로그 창과 같게).</summary>
@@ -74,6 +76,8 @@ namespace SpaceStation.UI
 
         // 결과 · 선택 / 캠페인 끝
         private RectTransform _modalRoot;
+        private RectTransform _modalHolder;
+        private Image _modalDim;
         private CanvasGroup _modalGroup;
         private RectTransform _modal;
         private UiTween _modalTween;
@@ -268,11 +272,15 @@ namespace SpaceStation.UI
         {
             _modalRoot = HoloUi.Rect("ChapterModal", transform);
             HoloUi.Stretch(_modalRoot);
-            var dim = _modalRoot.gameObject.AddComponent<Image>();
-            dim.color = new Color(0f, 0.01f, 0.02f, 0.62f);
+            _modalDim = _modalRoot.gameObject.AddComponent<Image>();
+            _modalDim.color = ModalDim;
             _modalGroup = _modalRoot.gameObject.AddComponent<CanvasGroup>();
+            // 13-8 장 결과 창은 지구를 보이려고 왼쪽으로 비켜 섬 — 창의 등장 효과(UiTween)가 창 자리를 붙잡으므로 감싼 틀을 옮김
+            _modalHolder = HoloUi.Rect("Holder", _modalRoot);
+            _modalHolder.anchorMin = _modalHolder.anchorMax = _modalHolder.pivot = new Vector2(0.5f, 0.5f);
+            _modalHolder.sizeDelta = Vector2.zero;
 
-            _modal = HoloUi.Rect("Window", _modalRoot);
+            _modal = HoloUi.Rect("Window", _modalHolder);
             _modal.anchorMin = _modal.anchorMax = _modal.pivot = new Vector2(0.5f, 0.5f);
             _modal.sizeDelta = new Vector2(ModalWidth, 560f);
             _modalFx = _ui.Window(_modal.gameObject, new Color(0.02f, 0.045f, 0.07f, 0.99f), "CHAPTER");
@@ -598,6 +606,8 @@ namespace SpaceStation.UI
             if (record != null && !string.IsNullOrEmpty(record.Summary))
                 _sb.Append($"  ·  {record.Summary}");
             _sb.Append($"\n<color={Soft}>이 장에 걸린 시간</color> {seconds / 60}분 {seconds % 60:00}초");
+            if (data.EarthLightsEnd < data.EarthLightsStart) // 13-8 ③ 보완: 이번 장에 꺼진 만큼 (뒤에 지구가 보임)
+                _sb.Append($"\n<color={Soft}>지구의 불빛</color> {data.EarthLightsStart * 100f:0}% → {data.EarthLightsEnd * 100f:0}%");
             if (_tension != null && (_tension.Value >= 0.5f || _tension.TopChapterCause(out _))) // 13-6a 긴장도 (결과는 6장부터, 지금은 보이기만)
             {
                 _sb.Append($"\n<color={Soft}>긴장도</color> {_tension.Value:0} · {_tension.LevelName}");
@@ -629,6 +639,77 @@ namespace SpaceStation.UI
             else
                 AddButton(_chapters.IsLast ? "이야기 마무리" : "다음 장으로", () => Choose(-1), tall: false);
             OpenModal();
+            // 13-8 ③ 보완 (사용자 결정 2026-10-25): 시간이 멈춘 결과 창 뒤로 지구를 크게 (창은 왼쪽으로 비켜 섬) → 방향을 고르면 장 전환 연출로 이어짐
+            if (_transition != null && _transition.isActiveAndEnabled)
+            {
+                if (_transition.FrameEarth())
+                    SetModalAside(true);
+                else
+                    StartCoroutine(FrameEarthWhenReady()); // 불러오자마자 결과 창이면 연출 쪽 준비(Start)가 아직일 수 있음
+            }
+        }
+
+        private System.Collections.IEnumerator FrameEarthWhenReady()
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                yield return null;
+                if (!_modalOpen || _chapters.Phase != ChapterPhase.Transition)
+                    yield break;
+                if (_transition.FrameEarth())
+                {
+                    SetModalAside(true);
+                    yield break;
+                }
+            }
+        }
+
+        /// <summary>결과 창을 왼쪽으로 비켜 세우고 바탕을 옅게 + 오른쪽 HUD를 감춤 (지구가 가려지지 않게) · 아니면 가운데로.</summary>
+        private void SetModalAside(bool aside)
+        {
+            float x = aside ? -Mathf.Max(0f, _modalRoot.rect.width * 0.5f - ModalWidth * 0.5f - 72f) : 0f;
+            _modalHolder.anchoredPosition = new Vector2(x, 0f);
+            _modalDim.color = aside ? ModalDimEarth : ModalDim;
+            HideSideHud(aside);
+        }
+
+        private readonly System.Collections.Generic.List<(CanvasGroup group, float alpha)> _sideHidden = new System.Collections.Generic.List<(CanvasGroup, float)>();
+
+        /// <summary>
+        /// 13-8 결과 창의 지구가 오른쪽 HUD(정거장 패널 · 장 카드)에 가려졌음 → 결과 창이 열린 동안 다른 HUD와 장 카드를 투명하게 (장 전환 연출의 HUD 감추기와 같은 방식).
+        /// 창이 닫히면(장 전환 연출이 시작되기 전) 되돌림 — 연출은 되돌린 값을 기억했다가 끝나면 다시 되돌림.
+        /// </summary>
+        private void HideSideHud(bool hide)
+        {
+            if (!hide)
+            {
+                foreach (var (group, alpha) in _sideHidden)
+                    if (group != null)
+                        group.alpha = alpha;
+                _sideHidden.Clear();
+                return;
+            }
+            if (_sideHidden.Count > 0)
+                return;
+            var parent = transform.parent;
+            if (parent != null)
+                for (int i = 0; i < parent.childCount; i++)
+                {
+                    var child = parent.GetChild(i);
+                    if (child == transform || !child.gameObject.activeSelf)
+                        continue;
+                    var group = child.GetComponent<CanvasGroup>();
+                    if (group == null)
+                        group = child.gameObject.AddComponent<CanvasGroup>();
+                    _sideHidden.Add((group, group.alpha));
+                    group.alpha = 0f;
+                }
+            var card = _card != null ? _card.GetComponent<CanvasGroup>() : null;
+            if (card != null)
+            {
+                _sideHidden.Add((card, card.alpha));
+                card.alpha = 0f;
+            }
         }
 
         /// <summary>선택지가 코어를 기울이는 쪽 ("보존 쪽 · 연민 쪽"). 크기 · 숫자는 보이지 않음.</summary>
@@ -742,6 +823,7 @@ namespace SpaceStation.UI
 
         private void OpenModal()
         {
+            SetModalAside(false); // 장 결과 창만 비켜 섬 (ShowResult가 연 뒤에 다시)
             _modalRoot.SetAsLastSibling();
             _modalOpen = true;
             _modalGroup.blocksRaycasts = true;
@@ -755,6 +837,7 @@ namespace SpaceStation.UI
 
         private void CloseModal(bool resume)
         {
+            HideSideHud(false); // 결과 창이 감췄던 HUD (창 자리는 사라지는 동안 그대로)
             _modalOpen = false;
             _modalGroup.blocksRaycasts = false;
             _modalGroup.interactable = false;

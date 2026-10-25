@@ -1266,6 +1266,10 @@ namespace SpaceStation.Editor
                 ("transition.3", CorePole.Neutral, CoreAxis.Care, "여러 무리가 한 지붕 아래 모였다.\n지구의 밤은 이제 거의 꺼졌다."),
                 ("transition.3", CorePole.Second, CoreAxis.Care, "문을 열어 두기로 했다.\n저기서 꺼진 만큼, 여기서 불을 켜 두고 싶다."),
                 ("transition.3", CorePole.First, CoreAxis.Control, "규칙부터 세웠다.\n불빛이 줄수록 지켜야 할 것은 분명해진다."),
+                // 13-8 ③ 보완 (사용자 결정 2026-10-25): 장 안에서 지구 불빛이 한 단계 줄 때 코어 혼잣말 (상태 줄 "코어 · " 머리 + 지구 깜빡임)
+                ("earth.dim", CorePole.Neutral, CoreAxis.Care, "저 아래 불빛이 또 꺼졌다."),
+                ("earth.dim", CorePole.First, CoreAxis.Memory, "불빛이 또 하나 꺼졌다. 세어 둔다."),
+                ("earth.dim", CorePole.Second, CoreAxis.Memory, "아래 불빛이 또 줄었다. 돌아보지 않는다."),
             };
             var so = new SerializedObject(config);
             var list = so.FindProperty("_lines");

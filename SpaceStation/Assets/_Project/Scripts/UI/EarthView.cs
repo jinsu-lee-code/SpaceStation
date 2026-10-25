@@ -41,6 +41,9 @@ namespace SpaceStation.UI
         [Tooltip("13-7d 메인 메뉴 배경: 켜면 방향 대신 카메라 화면의 한 자리(뷰포트 0~1)에 고정 — 메뉴 카메라가 정거장을 돌아도 같은 곳")]
         [SerializeField] private bool _screenAnchored;
         [SerializeField] private Vector2 _screenPoint = new Vector2(0.86f, 0.78f);
+        [Tooltip("13-8: 장 안에서 불빛이 한 단계 줄 때 깜빡이는 시간 (실제 초) · 세기 (불빛 비율에 더하고 빼는 폭)")]
+        [SerializeField, Min(0.1f)] private float _flickerSeconds = 1.6f;
+        [SerializeField, Range(0f, 1f)] private float _flickerAmount = 0.35f;
 
         private StationSimulation _sim;
         private Transform _earth;
@@ -49,6 +52,7 @@ namespace SpaceStation.UI
         private float _spin, _cloud;
         private float _shown = -1f;
         private float _held = -1f; // 13-7b 장 전환 연출이 불빛을 직접 움직이는 동안 (음수 = 시계를 따라감)
+        private float _flicker = -1f; // 13-8 깜빡이는 중 지난 시간 (음수 = 아님)
         private Vector3 _toward; // 지금 그리는 쪽 (화면 고정이면 카메라마다 바뀜)
 
         /// <summary>지금 화면에 켜진 불빛 비율 (13-7b 장 전환 연출이 읽음).</summary>
@@ -66,6 +70,9 @@ namespace SpaceStation.UI
         /// <summary>붙잡기를 풀고 다시 시계를 따라감.</summary>
         public void ReleaseLights() => _held = -1f;
 
+        /// <summary>13-8 ③ 보완 (사용자 결정 2026-10-25): 불빛이 한 단계 줄 때 두 번 깜빡였다가 가라앉음 — 바쁜 중에도 눈이 가게.</summary>
+        public void Flicker() => _flicker = 0f;
+
         private void Start()
         {
             _sim = _station != null ? _station.Simulation : null;
@@ -81,6 +88,8 @@ namespace SpaceStation.UI
             _earth.position = _direction.normalized * _distance;
             _earth.localScale = Vector3.one * _radius;
             RenderPipelineManager.beginCameraRendering += FollowCamera;
+            if (_sim?.Chapters != null)
+                _sim.Chapters.EarthDimmed += HandleDimmed;
             foreach (var c in go.GetComponentsInChildren<Collider>())
                 Destroy(c); // 배경 — 클릭 · 배치 광선에 걸리지 않게
             _renderer = go.GetComponentInChildren<Renderer>();
@@ -93,7 +102,14 @@ namespace SpaceStation.UI
             Apply(0f);
         }
 
-        private void OnDestroy() => RenderPipelineManager.beginCameraRendering -= FollowCamera;
+        private void OnDestroy()
+        {
+            RenderPipelineManager.beginCameraRendering -= FollowCamera;
+            if (_sim?.Chapters != null)
+                _sim.Chapters.EarthDimmed -= HandleDimmed;
+        }
+
+        private void HandleDimmed(int step) => Flicker();
 
         /// <summary>
         /// 그리기 직전 그 카메라에서 같은 방향 · 거리로 (정거장이 아무리 커져도 다가갈 수 없음).
@@ -134,10 +150,20 @@ namespace SpaceStation.UI
                 _shown = _held;
             else
                 _shown = _shown < 0f ? target : Mathf.MoveTowards(_shown, target, Time.unscaledDeltaTime * _fadeRate);
+            float lights = _shown;
+            if (_flicker >= 0f)
+            {
+                // 두 번 깜빡 (밝게 → 어둡게) 하며 가라앉음
+                float p = _flicker / _flickerSeconds;
+                lights = Mathf.Clamp01(_shown + _flickerAmount * Mathf.Sin(p * Mathf.PI * 4f) * (1f - p));
+                _flicker += Time.unscaledDeltaTime;
+                if (_flicker >= _flickerSeconds)
+                    _flicker = -1f;
+            }
             if (_renderer == null)
                 return;
             _renderer.GetPropertyBlock(_block);
-            _block.SetFloat(LightsId, _shown);
+            _block.SetFloat(LightsId, lights);
             _block.SetFloat(CloudShiftId, -_cloud); // 구름이 동쪽으로 흐름 (u = 경도)
             _renderer.SetPropertyBlock(_block);
         }
