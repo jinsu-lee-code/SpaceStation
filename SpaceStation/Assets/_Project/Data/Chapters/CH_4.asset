@@ -62,7 +62,10 @@ MonoBehaviour:
   _earthDimSeconds: 1800
   _earthLightsFinal: -1
   _earthDimNotices: 3
-  _transmission: 
+  _transmission: "\uAE30\uB85D 23. \uACE0\uCCD0 \uC4F0\uACE0 \uB610 \uACE0\uCCD0
+    \uC37C\uB2E4. \uCC98\uC74C \uC124\uACC4\uB3C4\uC640 \uB2EE\uC740 \uACF3\uC740
+    \uC774\uC81C \uAC70\uC758 \uC5C6\uB2E4. \uADF8\uB798\uB3C4 \uC6B0\uB9AC\uB294
+    \uC774\uAC83\uC744 \uBC29\uC8FC\uB77C \uBD80\uB978\uB2E4."
   _goals:
   - _kind: 0
     _text: 
@@ -163,4 +166,23 @@ MonoBehaviour:
     _cleanLabel: "\uB109\uB109\uD55C \uC218\uC6A9"
     _hurtLabel: "\uBE60\uB4EF\uD55C \uC218\uC6A9"
     _lostLabel: "\uB9CE\uC740 \uC774\uC758 \uC774\uD0C8"
-  _choices: []
+  _choices:
+  - _id: keep
+    _title: "\uC61B \uBAA8\uC591\uC744 \uB0A8\uACA8 \uB454\uB2E4"
+    _description: "\uD569\uCCD0\uC11C \uC0AC\uB77C\uC9C4 \uBAA8\uB4C8\uC758 \uC774\uB984\uACFC
+      \uBAA8\uC591\uC744 \uAE30\uB85D\uC5D0 \uB0A8\uAE34\uB2E4"
+    _shifts:
+    - Axis: 3
+      Toward: 1
+      Size: 2
+  - _id: reshape
+    _title: "\uC0C8 \uBAA8\uC591\uC73C\uB85C \uBC14\uAFD4 \uAC04\uB2E4"
+    _description: "\uC4F8\uBAA8\uB97C \uB530\uB77C \uAC70\uCE68\uC5C6\uC774 \uB179\uC774\uACE0
+      \uB2E4\uC2DC \uC9D3\uB294\uB2E4"
+    _shifts:
+    - Axis: 3
+      Toward: 2
+      Size: 2
+    - Axis: 0
+      Toward: 1
+      Size: 0

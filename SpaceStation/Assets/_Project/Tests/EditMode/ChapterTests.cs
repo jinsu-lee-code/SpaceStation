@@ -473,6 +473,15 @@ namespace SpaceStation.Tests
                     required++;
             Assert.AreEqual(3, required, "필수 3");
             Assert.AreEqual(5, ch4.Goals.Count, "필수 3 + 선택 2");
+            // 14-1d 위기 · 방향 · 옛 녹음
+            Assert.AreEqual(ChapterClimaxKind.DebrisBand, ch4.Climax.Kind);
+            Assert.AreEqual(360f, ch4.Climax.BandSeconds, 1e-3f, "띠 6분");
+            Assert.AreEqual(4, ch4.Climax.MigrationShips, "배 4척");
+            Assert.AreEqual("넉넉한 수용", ch4.Climax.CleanLabel);
+            Assert.AreEqual(2, ch4.Choices.Count);
+            Assert.AreEqual("옛 모양을 남겨 둔다", ch4.Choices[0].Title);
+            Assert.AreEqual("새 모양으로 바꿔 간다", ch4.Choices[1].Title);
+            Assert.IsFalse(string.IsNullOrEmpty(ch4.Transmission), "옛 녹음");
         }
 
         [Test]

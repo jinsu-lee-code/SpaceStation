@@ -378,6 +378,12 @@ namespace SpaceStation.Editor
                 ("climax.warning.1", "밤이 길어진대요. 불이 꺼지면 어떡하죠?"),
                 ("climax.warning.2", "큰 별똥비가 온대요. 방 안쪽에 있을게요."),
                 ("climax.warning.3", "배가 여러 척 온대요. 다들 들어올 자리가 있을까요?"),
+                // 14-1d 4장 (장 시작 = 3장 대이주 결과 반응 · 파편 띠 예고)
+                ("chapter.start.4.Clean", "새 이웃이 많이 늘었어요. 복도가 북적북적해요."),
+                ("chapter.start.4.Hurt", "다 함께 오지는 못했지만, 온 분들은 잘 지내요."),
+                ("chapter.start.4.Lost", "떠난 분들 방이 아직 비어 있어요."),
+                ("chapter.start.4", "하늘에 반짝이는 조각이 늘었대요. 별똥별일까요?"),
+                ("climax.warning.4", "파편이 하늘을 덮는대요. 그동안은 방을 나눠 써야겠어요."),
                 ("ship.new.bear", "곰이라니, 덩치가 커서 조금 무서워요. 그래도 잘 지내 볼게요."),
                 ("ship.new.fox", "여우들이에요! 손재주가 좋다던데, 고장 난 것도 고쳐 줄까요?"),
                 ("ship.accept", "새 이웃이 왔어요! 방을 같이 꾸며야겠어요."),
@@ -385,6 +391,9 @@ namespace SpaceStation.Editor
                 ("ship.refuse", "배가 돌아가요. 저 안에도 누군가 있었을 텐데."));
             bear.EditorSetRemarks(
                 ("climax.warning.3", "배가 더 온다고. 자리는 만들면 된다."),
+                ("chapter.start.4.Clean", "많이 왔군. 좁아도 괜찮다."),
+                ("chapter.start.4", "밖이 시끄럽다. 조각들이 떠다닌다."),
+                ("climax.warning.4", "밖으로는 못 넓힌다. 안에서 버틴다."),
                 ("ship.accept", "또 왔군. 좁으면 붙어 자면 된다."),
                 ("ship.partial", "다 못 태웠다고. 그래, 할 수 있는 만큼 한 거다."),
                 ("ship.refuse", "돌려보냈군. 우리도 저럴 뻔했다."),
@@ -681,7 +690,7 @@ namespace SpaceStation.Editor
         /// <summary>
         /// 14-1c 4장 '좁아진 하늘' (사용자 결정 2026-10-26): 합성 규칙 · 레시피 6종을 장이 바로 엶(연구 없이) ·
         /// 목표 = 필수 3(도시급 · 진화 모듈 하나 만들기 · 여우 무리 맞이하기) + 선택 2(진화 모듈 세 가지 가동 = 금속 +150 · 기록 하나 더 되살리기 = 연구 포인트 +1).
-        /// 위기 '파편 띠'는 14-1d (지금은 14-0 임시 위기).
+        /// 14-1c 합성 안내 · 14-1d 위기 '파편 띠' · 방향(옛 모양 / 새 모양) · 옛 녹음.
         /// </summary>
         private static void ChapterFour(ChapterData chapter)
         {
@@ -743,8 +752,25 @@ namespace SpaceStation.Editor
             climax.FindPropertyRelative("_cleanLabel").stringValue = "넉넉한 수용";
             climax.FindPropertyRelative("_hurtLabel").stringValue = "빠듯한 수용";
             climax.FindPropertyRelative("_lostLabel").stringValue = "많은 이의 이탈";
+
+            // 14-1d 방향 (사용자 결정 2026-10-26): 옛 모양을 남겨 둔다 = 기억 쪽 / 새 모양으로 바꿔 간다 = 망각 · 효율 쪽 (합성 = 옛 것을 녹여 새것을 만드는 일)
+            var choices = so.FindProperty("_choices");
+            choices.arraySize = 2;
+            SetChoice(choices.GetArrayElementAtIndex(0), "keep", "옛 모양을 남겨 둔다", "합쳐서 사라진 모듈의 이름과 모양을 기록에 남긴다");
+            SetChoice(choices.GetArrayElementAtIndex(1), "reshape", "새 모양으로 바꿔 간다", "쓸모를 따라 거침없이 녹이고 다시 짓는다");
             so.ApplyModifiedPropertiesWithoutUndo();
+            Shifts(chapter, 0, (CoreAxis.Memory, CorePole.First, ShiftSize.Large));
+            Shifts(chapter, 1, (CoreAxis.Memory, CorePole.Second, ShiftSize.Large), (CoreAxis.Care, CorePole.First, ShiftSize.Small));
+            // 14-1d 장 전환 연출의 옛 녹음 (확인용 초안)
+            Transmission(chapter, "기록 23. 고쳐 쓰고 또 고쳐 썼다. 처음 설계도와 닮은 곳은 이제 거의 없다. 그래도 우리는 이것을 방주라 부른다.");
             EditorUtility.SetDirty(chapter);
+        }
+
+        private static void SetChoice(SerializedProperty c, string id, string title, string description)
+        {
+            c.FindPropertyRelative("_id").stringValue = id;
+            c.FindPropertyRelative("_title").stringValue = title;
+            c.FindPropertyRelative("_description").stringValue = description;
         }
 
         private static void ModuleGoal(SerializedProperty goal, ModuleData module, string text)
@@ -1199,8 +1225,8 @@ namespace SpaceStation.Editor
             return list;
         }
 
-        /// <summary>14-0: 1~3장 · 씬은 그대로 두고 4~7장 그레이박스만 만들어 붙임 (Setup Greybox 전체를 다시 돌리지 않을 때).</summary>
-        [MenuItem("SpaceStation/Chapters/Setup Later Chapters (4~7장 그레이박스)")]
+        /// <summary>14-0: 1~3장 · 씬은 그대로 두고 4~7장만 만들어 붙임 (Setup Greybox 전체를 다시 돌리지 않을 때) — 14-1부터 4장은 실제 내용 · 종족 · 코어 문장도 같이.</summary>
+        [MenuItem("SpaceStation/Chapters/Setup Later Chapters (4~7장)")]
         public static void SetupLaterChapters()
         {
             var grades = AssetDatabase.LoadAssetAtPath<StationGradeConfig>(GradesPath);
@@ -1213,11 +1239,12 @@ namespace SpaceStation.Editor
             var chapters = new List<ChapterData> { config.Chapters[0], config.Chapters[1], config.Chapters[2] };
             var ch3 = chapters[2];
             SetEarthLights(ch3, ch3.EarthLightsStart, ch3.EarthLightsEnd, ch3.EarthDimSeconds); // 마지막 장이 아니게 됨
-            ArkShips(out _, out _, out var fox); // 14-1b 종족 (여우)
+            ArkShips(out _, out _, out var fox); // 14-1b 종족 (여우) · 주민 한마디
+            CoreLines(); // 14-1d 4장 코어 문장
             chapters.AddRange(LaterChapters(grades, fox));
             SetChapterList(config, chapters);
             AssetDatabase.SaveAssets();
-            Debug.Log($"[ChapterSetup] 장 {chapters.Count}개 (4~7장 그레이박스)");
+            Debug.Log($"[ChapterSetup] 장 {chapters.Count}개 (4장 좁아진 하늘 · 5~7장 그레이박스)");
         }
 
         /// <summary>14-1c: 기록 복원 갈래 · 단계 에셋만 다시 (씬 연구 목록은 같은 에셋을 가리키므로 그대로).</summary>
@@ -1479,6 +1506,18 @@ namespace SpaceStation.Editor
                 ("transition.3", CorePole.Neutral, CoreAxis.Care, "여러 무리가 한 지붕 아래 모였다.\n지구의 밤은 이제 거의 꺼졌다."),
                 ("transition.3", CorePole.Second, CoreAxis.Care, "문을 열어 두기로 했다.\n저기서 꺼진 만큼, 여기서 불을 켜 두고 싶다."),
                 ("transition.3", CorePole.First, CoreAxis.Control, "규칙부터 세웠다.\n불빛이 줄수록 지켜야 할 것은 분명해진다."),
+                // 14-1d 4장 '좁아진 하늘' (확인용 초안 — 코어 혼잣말 = 반말)
+                ("outcome.DebrisBand.Clean", CorePole.Neutral, CoreAxis.Care, "띠가 지나갔다. 좁아진 하늘 아래서도 자리를 냈다."),
+                ("outcome.DebrisBand.Clean", CorePole.Second, CoreAxis.Memory, "옛 칸을 녹여 새 자리를 만들었다. 그걸로 충분하다."),
+                ("outcome.DebrisBand.Hurt", CorePole.Neutral, CoreAxis.Care, "빠듯했다. 칸이 모자라 다 들이지는 못했다."),
+                ("outcome.DebrisBand.Hurt", CorePole.First, CoreAxis.Control, "들일 수 있는 만큼만 들였다. 칸이 정한 일이다."),
+                ("outcome.DebrisBand.Lost", CorePole.Neutral, CoreAxis.Care, "띠 너머로 많은 이가 떠났다. 그 수를 기록해 둔다."),
+                ("outcome.DebrisBand.Lost", CorePole.Second, CoreAxis.Care, "더 접고 더 쌓았어야 했다. 떠난 얼굴들이 남는다."),
+                ("choice.keep", CorePole.Neutral, CoreAxis.Care, "녹인 모듈의 옛 이름을 기록에 남겨 둔다. 모양은 바뀌어도 잊지 않으려고."),
+                ("choice.reshape", CorePole.Neutral, CoreAxis.Care, "옛 모양은 기록에서 지운다. 쓸모가 곧 모양이다."),
+                ("transition.4", CorePole.Neutral, CoreAxis.Care, "좁은 하늘을 지나왔다.\n칸은 그대로인데, 안에 든 것은 전부 달라졌다."),
+                ("transition.4", CorePole.First, CoreAxis.Memory, "옛 모양을 기록에 남겼다.\n녹여 없앤 것들의 이름까지."),
+                ("transition.4", CorePole.Second, CoreAxis.Memory, "옛 모양은 녹여 버렸다.\n지금 쓸 모양만 남긴다."),
                 // 13-8 ③ 보완 (사용자 결정 2026-10-25): 장 안에서 지구 불빛이 한 단계 줄 때 코어 혼잣말 (상태 줄 "코어 · " 머리 + 지구 깜빡임)
                 ("earth.dim", CorePole.Neutral, CoreAxis.Care, "저 아래 불빛이 또 꺼졌다."),
                 ("earth.dim", CorePole.First, CoreAxis.Memory, "불빛이 또 하나 꺼졌다. 세어 둔다."),
