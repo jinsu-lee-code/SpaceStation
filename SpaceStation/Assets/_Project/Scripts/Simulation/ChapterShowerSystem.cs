@@ -83,7 +83,7 @@ namespace SpaceStation.Simulation
         }
 
         /// <summary>
-        /// 사용자 결정 2026-10-25 (13-8 측정): 절정 예고 동안은 평소 유성우가 오지 않음 — 예보 중이면 거두고, 시계가 예고 안에 다 되면 예고 뒤로 미룸
+        /// 사용자 결정 2026-10-25 (13-8 측정): 절정 예고 동안은 평소 유성우가 오지 않음 — 예보 중이면 조용히 거두고(알림 없음, 사용자 결정), 시계가 예고 안에 다 되면 예고 뒤로 미룸
         /// (이미 떨어지는 중이면 끝날 때까지). 측정: 2장 예고 3분 사이에 떨어진 평소 유성우 파손이 절정 동안 파괴로 넘어가 절정 판정의 파괴로 셈.
         /// </summary>
         private void HoldDuringWarning(MeteorShowerSystem shower, float dt)
@@ -91,10 +91,7 @@ namespace SpaceStation.Simulation
             if (Chapters.Phase != ChapterPhase.Warning || shower.IsRaid)
                 return;
             if (shower.Phase == MeteorShowerSystem.ShowerPhase.Warning)
-            {
-                if (shower.CancelWarning())
-                    Sim.Report("절정 예고 중이라 평소 유성우 예보를 거뒀습니다", true);
-            }
+                shower.CancelWarning();
             else if (shower.Phase == MeteorShowerSystem.ShowerPhase.Idle && shower.TimeLeft <= Chapters.WarningLeft + dt)
                 shower.ScheduleNext(Chapters.WarningLeft + Sim.Balance.ShowerIntervalMin);
         }
