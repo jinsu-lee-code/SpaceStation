@@ -326,6 +326,68 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void OpensDirectly_UnlocksWithoutResearch()
+        {
+            var closed = Recipe(unlockGrade: 0, byDefault: false);
+            var sim = Sim(closed);
+            var origin = new Vector3Int(1, 0, 0);
+            Place(sim, _a, origin);
+            Place(sim, _b, new Vector3Int(2, 0, 0));
+            Assert.IsFalse(sim.Synthesis.IsUnlocked(closed));
+            Assert.AreEqual(SynthesisResult.Locked, sim.Synthesis.Evaluate(closed, origin, 0));
+
+            sim.Synthesis.OpensDirectly = r => r == closed; // M-50: 장이 바로 엶
+            Assert.IsTrue(sim.Synthesis.IsOpenedDirectly(closed));
+            Assert.IsTrue(sim.Synthesis.IsUnlocked(closed));
+            Assert.AreEqual(SynthesisResult.Valid, sim.Synthesis.Evaluate(closed, origin, 0));
+
+            sim.Synthesis.OpensDirectly = null;
+            Assert.IsFalse(sim.Synthesis.IsUnlocked(closed), "여는 쪽이 없으면 다시 잠김");
+        }
+
+        [Test]
+        public void SynthesisSpeed_ShortensJob()
+        {
+            var sim = Sim();
+            var origin = new Vector3Int(1, 0, 0);
+            Place(sim, _a, origin);
+            Place(sim, _b, new Vector3Int(2, 0, 0));
+            sim.Effects.TraitSynthesisSpeedMultiplier = 2f; // M-50 손재주 (명단이 없는 시험이라 직접)
+            Assert.AreEqual(SynthesisResult.Valid, sim.Synthesis.TryStart(_recipe, origin, 0, out var job));
+            Assert.AreEqual(5f, sim.Synthesis.SecondsLeft(job), 1e-4f, "10초 레시피 → 5초");
+            for (int i = 0; i < 5; i++)
+                sim.Tick(1f);
+            Assert.AreEqual(0, sim.Synthesis.Jobs.Count, "5초 만에 끝남");
+            Assert.IsTrue(sim.Grid.TryGetModule(origin, out var evolved) && evolved.Data == _result);
+        }
+
+        [Test]
+        public void BuildZone_BlocksNewCells_RebuildAndMoveFollowZone()
+        {
+            var sim = Sim();
+            var a = Place(sim, _a, new Vector3Int(1, 0, 0));
+            var zone = new CellZone(new Vector3Int(1, 0, 0), new Vector3Int(2, 0, 0));
+            sim.BuildZone = zone;
+
+            Assert.AreEqual(PlacementResult.OutsideZone, sim.EvaluatePlacement(_other, new Vector3Int(-1, 0, 0), 0), "막힌 칸");
+            Assert.AreEqual(PlacementResult.Valid, sim.EvaluatePlacement(_other, new Vector3Int(2, 0, 0), 0), "열린 칸");
+            Assert.AreEqual(PlacementResult.OutsideZone, sim.EvaluatePlacement(_b, new Vector3Int(2, 0, 0), 0), "2칸 중 하나라도 막히면");
+            Assert.AreEqual(PlacementResult.OutsideZone, sim.EvaluateMove(a, new Vector3Int(-1, 0, 0), 0), "막힌 칸으로 옮기기");
+            Assert.AreEqual(PlacementResult.Valid, sim.EvaluateMove(a, new Vector3Int(2, 0, 0), 0), "열린 칸으로 옮기기");
+            Assert.AreEqual(RebuildResult.Done, sim.TryRebuild(a, out _), "재건축은 같은 칸");
+
+            sim.BuildZone = null;
+            Assert.AreEqual(PlacementResult.Valid, sim.EvaluatePlacement(_other, new Vector3Int(-1, 0, 0), 0), "칸을 정하는 쪽이 없으면 자유");
+        }
+
+        private sealed class CellZone : IBuildZone
+        {
+            private readonly List<Vector3Int> _cells;
+            public CellZone(params Vector3Int[] cells) => _cells = new List<Vector3Int>(cells);
+            public bool Allows(Vector3Int cell) => _cells.Contains(cell);
+        }
+
+        [Test]
         public void NoRecipes_NoSynthesisSystem()
         {
             var sim = new StationSimulation(new StationSimulationSettings
@@ -378,7 +440,7 @@ namespace SpaceStation.Tests
             return grades;
         }
 
-        private RecipeData Recipe(int unlockGrade)
+        private RecipeData Recipe(int unlockGrade, bool byDefault = true)
         {
             var r = Create<RecipeData>();
             r.name = "RC_Test" + unlockGrade;
@@ -394,7 +456,7 @@ namespace SpaceStation.Tests
             Fill(so.FindProperty("_cost"), R(ResourceType.Metal, 30f));
             so.FindProperty("_duration").floatValue = 10f;
             so.FindProperty("_unlockGrade").intValue = unlockGrade;
-            so.FindProperty("_unlockedByDefault").boolValue = true;
+            so.FindProperty("_unlockedByDefault").boolValue = byDefault;
             so.ApplyModifiedPropertiesWithoutUndo();
             return r;
         }

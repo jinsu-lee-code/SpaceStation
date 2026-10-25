@@ -153,6 +153,9 @@ namespace SpaceStation.Simulation
         /// <summary>13-3 공통 고리: 자연 인구 증가 간격에 곱하는 배율 (기본 1, 서사판 = 이민선이 주된 공급원인 장에서 크게). 다음 틱부터.</summary>
         public float GrowthIntervalScale { get; set; } = 1f;
 
+        /// <summary>M-50 공통 고리: 지을 수 있는 칸을 정하는 쪽 (서사판 4장 위기 동안 새 칸 금지). null이면 공간 규칙만.</summary>
+        public IBuildZone BuildZone { get; set; }
+
         /// <summary>13-1 공통 판정 고리: 규칙을 정하는 쪽 (서사판 장 틀 · 타이쿤판 해금 선택). null이면 등급 조건 그대로.</summary>
         public IStationRules Rules { get; private set; }
 
@@ -353,6 +356,7 @@ namespace SpaceStation.Simulation
             Effects.TraitDecayMultiplier = 1f - Residents.Ability(ResidentTrait.Mechanic);
             Effects.TraitFoodProductionMultiplier = 1f + Residents.Ability(ResidentTrait.Gardener);
             Effects.TraitResearchSpeedMultiplier = 1f + Residents.Ability(ResidentTrait.Scientist);
+            Effects.TraitSynthesisSpeedMultiplier = 1f + Residents.Ability(ResidentTrait.Artisan);
             ApplyConsumptionMultipliers();
         }
 

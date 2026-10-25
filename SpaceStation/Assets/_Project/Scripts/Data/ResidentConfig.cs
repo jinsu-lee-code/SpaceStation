@@ -21,6 +21,7 @@ namespace SpaceStation.Data
         RadiationTolerant,  // 방사선 내성: 핵융합로 옆 집에 배정 우선 (불만 없음)
         NoiseSensitive,     // 소음 민감: 제련소 옆 집 −
         NatureLover,        // 자연 애호가: 수경 농장 옆 집 +
+        Artisan,            // 손재주: 합성 속도 + (M-50 통로 — 개인 특성 정의는 아직 없음, 서사판 여우 종족 기술이 씀)
     }
 
     /// <summary>특성 하나의 표시·등장·수치.</summary>
