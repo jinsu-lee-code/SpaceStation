@@ -93,12 +93,16 @@ namespace SpaceStation.Editor
             // 13-7a 꺼져 가는 지구의 불빛 (사용자 결정 2026-10-19: 장 안에서 서서히 + 장 전환 때 크게, 1장 100% → 3장 끝 약 48%)
             SetEarthLights(ch1, 1f, 0.92f, 900f);
             SetEarthLights(ch2, 0.8f, 0.7f, 1800f);
-            SetEarthLights(ch3, 0.6f, 0.48f, 1800f, final: 0.4f); // 마지막 장 전환 연출에서 한 번 더 (3장 끝 약 40%)
+            SetEarthLights(ch3, 0.6f, 0.48f, 1800f); // 14-0: 마지막 장이 아니게 됨 → 4장 시작 때 크게 꺼짐 (마지막 한 번 더 꺼지는 값은 7장)
 
             // 13-7b 장 전환 연출의 옛 녹음 조각 (사용자 결정 2026-10-19: 방주에 남은 인간의 기록, T8 — 확인용 초안)
             Transmission(ch1, "기록 07. 시험 운항은 성공이다. 생명 유지 장치는 우리가 아니라 저 아이들에게 맞췄다.");
             Transmission(ch2, "기록 12. 마지막 회의가 끝났다. 남는 쪽이 우리라는 데, 아무도 반대하지 않았다.");
             Transmission(ch3, "기록 19. 판단은 코어에게 맡긴다. 우리보다 나은 선택을 하기를.");
+
+            // 14-0 4~7장 틀 (그레이박스 — 실제 내용은 14-1 · 14-2 · 14-4 · 14-5)
+            var chapters = new List<ChapterData> { ch1, ch2, ch3 };
+            chapters.AddRange(LaterChapters(grades));
 
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
@@ -107,33 +111,7 @@ namespace SpaceStation.Editor
                 config = ScriptableObject.CreateInstance<ChapterConfig>();
                 AssetDatabase.CreateAsset(config, configPath);
             }
-            var cso = new SerializedObject(config);
-            var list = cso.FindProperty("_chapters");
-            list.arraySize = 3;
-            list.GetArrayElementAtIndex(0).objectReferenceValue = ch1;
-            list.GetArrayElementAtIndex(1).objectReferenceValue = ch2;
-            list.GetArrayElementAtIndex(2).objectReferenceValue = ch3;
-            cso.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(config);
-
-            // 난이도: 장 N 시작 = 등급 N-1의 간격 배율, 등급 목표를 채운 뒤 = 등급 N의 간격 배율
-            foreach (var guid in AssetDatabase.FindAssets("t:DifficultyPreset"))
-            {
-                var preset = AssetDatabase.LoadAssetAtPath<DifficultyPreset>(AssetDatabase.GUIDToAssetPath(guid));
-                var pso = new SerializedObject(preset);
-                var from = pso.FindProperty("_eventIntervalMultipliers");
-                var to = pso.FindProperty("_chapterEventIntervalMultipliers");
-                var up = pso.FindProperty("_chapterGradeUpEventIntervalMultipliers");
-                to.arraySize = 3;
-                up.arraySize = 3;
-                for (int i = 0; i < 3; i++)
-                {
-                    to.GetArrayElementAtIndex(i).floatValue = i < from.arraySize ? from.GetArrayElementAtIndex(i).floatValue : -1f;
-                    up.GetArrayElementAtIndex(i).floatValue = i + 1 < from.arraySize ? from.GetArrayElementAtIndex(i + 1).floatValue : -1f;
-                }
-                pso.ApplyModifiedPropertiesWithoutUndo();
-                EditorUtility.SetDirty(preset);
-            }
+            SetChapterList(config, chapters);
             AssetDatabase.SaveAssets();
 
             // 씬: 호스트 연결 + 장 화면
@@ -1014,6 +992,90 @@ namespace SpaceStation.Editor
             importer.SaveAndReimport();
             AssetDatabase.SaveAssets();
             return AssetDatabase.LoadAssetAtPath<GameObject>(ArkModelPath);
+        }
+
+        /// <summary>장 목록 + 난이도의 장별 간격 배율 (장 N 시작 = 등급 N-1의 간격 배율, 등급 목표를 채운 뒤 = 등급 N의 간격 배율).</summary>
+        private static void SetChapterList(ChapterConfig config, List<ChapterData> chapters)
+        {
+            var cso = new SerializedObject(config);
+            var list = cso.FindProperty("_chapters");
+            list.arraySize = chapters.Count;
+            for (int i = 0; i < chapters.Count; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = chapters[i];
+            cso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(config);
+
+            foreach (var guid in AssetDatabase.FindAssets("t:DifficultyPreset"))
+            {
+                var preset = AssetDatabase.LoadAssetAtPath<DifficultyPreset>(AssetDatabase.GUIDToAssetPath(guid));
+                var pso = new SerializedObject(preset);
+                var from = pso.FindProperty("_eventIntervalMultipliers");
+                var to = pso.FindProperty("_chapterEventIntervalMultipliers");
+                var up = pso.FindProperty("_chapterGradeUpEventIntervalMultipliers");
+                to.arraySize = chapters.Count;
+                up.arraySize = chapters.Count;
+                for (int i = 0; i < chapters.Count; i++)
+                {
+                    to.GetArrayElementAtIndex(i).floatValue = i < from.arraySize ? from.GetArrayElementAtIndex(i).floatValue : -1f;
+                    up.GetArrayElementAtIndex(i).floatValue = i + 1 < from.arraySize ? from.GetArrayElementAtIndex(i + 1).floatValue : -1f;
+                }
+                pso.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(preset);
+            }
+        }
+
+        /// <summary>
+        /// 14-0 4~7장 틀 (사용자 결정 2026-10-26): 그레이박스 장 4개 — 1~3장과 같은 틀(장 N = 등급 N-1 → N 구간, 필수 = 다음 등급 도달, 위기 = 임시 운석 연타),
+        /// 이름은 임시 "(가제) …"(실제 이름은 장마다 착수 때 D-14), 방향 선택 없음, 이민선은 이어서 (새 종족은 D-15).
+        /// 지구 불빛 = 7장 끝에 완전히 꺼짐: 4장 36 → 30% · 5장 26 → 20% · 6장 16 → 10% · 7장 7 → 2%, 마지막 연출에서 0%.
+        /// </summary>
+        private static List<ChapterData> LaterChapters(StationGradeConfig grades)
+        {
+            var specs = new (string subtitle, int population, int waves, int hits, float start, float end, float final)[]
+            {
+                ("(가제) 합성", 110, 4, 3, 0.36f, 0.30f, -1f),
+                ("(가제) 환경", 160, 5, 3, 0.26f, 0.20f, -1f),
+                ("(가제) 사회", 240, 5, 4, 0.16f, 0.10f, -1f),
+                ("(가제) 방문 세력", 360, 6, 4, 0.07f, 0.02f, 0f),
+            };
+            var list = new List<ChapterData>();
+            for (int i = 0; i < specs.Length; i++)
+            {
+                int number = 4 + i;
+                if (grades.Grades.Count <= number)
+                {
+                    Debug.LogError($"[ChapterSetup] {number}장 등급 목표가 등급 표에 없음 (등급 {grades.Grades.Count}개)");
+                    break;
+                }
+                var s = specs[i];
+                var ch = Chapter(number, grades, s.subtitle, "장 내용은 만드는 중",
+                    optional: (ChapterGoalKind.Population, s.population, ResourceType.Metal, 0f, metalReward: 100f, research: 0, repairs: 0),
+                    waves: s.waves, hits: s.hits, warning: 180f);
+                Ships(ch, true, null, 3f);
+                SetEarthLights(ch, s.start, s.end, 1800f, s.final);
+                list.Add(ch);
+            }
+            return list;
+        }
+
+        /// <summary>14-0: 1~3장 · 씬은 그대로 두고 4~7장 그레이박스만 만들어 붙임 (Setup Greybox 전체를 다시 돌리지 않을 때).</summary>
+        [MenuItem("SpaceStation/Chapters/Setup Later Chapters (4~7장 그레이박스)")]
+        public static void SetupLaterChapters()
+        {
+            var grades = AssetDatabase.LoadAssetAtPath<StationGradeConfig>(GradesPath);
+            var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(Folder + "/Chapters.asset");
+            if (grades == null || config == null || config.Count < 3)
+            {
+                Debug.LogError("[ChapterSetup] 1~3장이 없음 — SpaceStation/Chapters/Setup Greybox 먼저");
+                return;
+            }
+            var chapters = new List<ChapterData> { config.Chapters[0], config.Chapters[1], config.Chapters[2] };
+            var ch3 = chapters[2];
+            SetEarthLights(ch3, ch3.EarthLightsStart, ch3.EarthLightsEnd, ch3.EarthDimSeconds); // 마지막 장이 아니게 됨
+            chapters.AddRange(LaterChapters(grades));
+            SetChapterList(config, chapters);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[ChapterSetup] 장 {chapters.Count}개 (4~7장 그레이박스)");
         }
 
         private static void SetEarthLights(ChapterData chapter, float start, float end, float seconds, float final = -1f)

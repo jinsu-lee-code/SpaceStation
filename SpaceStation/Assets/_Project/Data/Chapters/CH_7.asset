@@ -1,0 +1,116 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5779d0e21f0e9647a0c673d17ae6ed5, type: 3}
+  m_Name: CH_7
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ChapterData
+  _displayName: "7\uC7A5"
+  _subtitle: "(\uAC00\uC81C) \uBC29\uBB38 \uC138\uB825"
+  _introSpeaker: 
+  _introLines: []
+  _interiorGuide: {fileID: 0}
+  _unlocks:
+  - {fileID: 11400000, guid: 193ceb353af58f74bb102086c4c06f6c, type: 2}
+  _newNeeds: 
+  _rules: 0
+  _meteorHitsMin: 8
+  _meteorHitsMax: 11
+  _eventIntervalMultiplier: 0.21
+  _eventIntensityMultiplier: 2.4
+  _gradeUpNeeds: 
+  _gradeUpScale: 1
+  _gradeUpMeteorHitsMin: 8
+  _gradeUpMeteorHitsMax: 11
+  _gradeUpEventIntervalMultiplier: 0.21
+  _gradeUpEventIntensityMultiplier: 2.4
+  _ships: 1
+  _shipInterval: 240
+  _shipSizeMin: 4
+  _shipSizeMax: 6
+  _shipForecast: 60
+  _newSpecies: {fileID: 0}
+  _growthIntervalScale: 3
+  _signals: 
+  _signalDistanceMin: 6
+  _signalDistanceMax: 10
+  _cleanFragments: 0
+  _firstShowerDelay: 0
+  _firstShowerWaves: 1
+  _policySlots: 0
+  _gradeUpPolicySlots: 0
+  _policies: []
+  _policyApplyDelay: 30
+  _policySwapCooldown: 180
+  _earthLightsStart: 0.07
+  _earthLightsEnd: 0.02
+  _earthDimSeconds: 1800
+  _earthLightsFinal: 0
+  _earthDimNotices: 3
+  _transmission: 
+  _goals:
+  - _kind: 0
+    _text: 
+    _optional: 0
+    _grade: 7
+    _module: {fileID: 0}
+    _count: 0
+    _resource: 0
+    _amount: 0
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 2
+    _text: 
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 360
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources:
+    - Type: 4
+      Amount: 100
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  _climax:
+    _kind: 1
+    _title: "\uC6B4\uC11D \uC5F0\uD0C0 (\uC784\uC2DC \uC704\uAE30)"
+    _description: "\uC7A5 \uB0B4\uC6A9\uC740 \uB9CC\uB4DC\uB294 \uC911 \xB7 \uC6B4\uC11D
+      6\uD30C \xD7 4\uAC1C"
+    _warningSeconds: 180
+    _waves: 6
+    _waveInterval: 20
+    _hitsPerWave: 4
+    _settleSeconds: 30
+    _cleanMaxDamaged: 8
+    _hurtMaxDestroyed: 0
+    _nightSeconds: 180
+    _cleanMaxShortageSeconds: 0
+    _hurtMaxShortageSeconds: 60
+    _showerDirections: 2
+    _showerFirstWarning: 120
+    _showerNextWarning: 40
+    _cleanMinBlocked: 0.5
+    _migrationShips: 3
+    _migrationFirstLead: 20
+    _migrationInterval: 45
+    _migrationSizeMin: 5
+    _migrationSizeMax: 7
+    _cleanMinAccepted: 0.6
+    _cleanMaxDeparted: 0
+    _hurtMinAccepted: 0.3
+    _hurtMaxDeparted: 3
+    _cleanLabel: 
+    _hurtLabel: 
+    _lostLabel: 
+  _choices: []
