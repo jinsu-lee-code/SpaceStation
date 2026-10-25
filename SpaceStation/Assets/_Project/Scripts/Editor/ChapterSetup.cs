@@ -720,6 +720,29 @@ namespace SpaceStation.Editor
             var record = goals.GetArrayElementAtIndex(4);
             FlagGoal(record, SpaceStation.Simulation.ChapterSystem.ScopedFlag(SpaceStation.Simulation.RecordArchiveSystem.RecordFlag, 4), "기록 하나 더 되살리기", true);
             record.FindPropertyRelative("_rewardResearchPoints").intValue = 1;
+
+            // 14-1d 위기 '파편 띠' (사용자 결정 2026-10-26): 예고 3분 → 띠 6분 · 그동안 위기 시작 때 비어 있던 칸에 짓기 · 옮기기 불가 ·
+            // 이민선 4척(첫 배 30초 · 앞 배에 답하고 90초 · 척당 5~7명) · 판정 = 대이주 기준 · 결과 이름 = 넉넉한 수용 / 빠듯한 수용 / 많은 이의 이탈
+            var climax = so.FindProperty("_climax");
+            climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.DebrisBand;
+            climax.FindPropertyRelative("_title").stringValue = "파편 띠";
+            climax.FindPropertyRelative("_description").stringValue = "부서진 위성의 파편 띠가 6분 동안 정거장을 감쌉니다 · 그동안 새 칸에는 지을 수 없고, 이민선 4척이 잇달아 옵니다 (척당 5~7명) · 합성으로 칸을 아껴 빈 집을 미리";
+            climax.FindPropertyRelative("_warningSeconds").floatValue = 180f;
+            climax.FindPropertyRelative("_bandSeconds").floatValue = 360f;
+            climax.FindPropertyRelative("_migrationShips").intValue = 4;
+            climax.FindPropertyRelative("_migrationFirstLead").floatValue = 30f;
+            climax.FindPropertyRelative("_migrationInterval").floatValue = 90f;
+            climax.FindPropertyRelative("_migrationSizeMin").intValue = 5;
+            climax.FindPropertyRelative("_migrationSizeMax").intValue = 7;
+            climax.FindPropertyRelative("_cleanMinAccepted").floatValue = 0.6f;
+            climax.FindPropertyRelative("_cleanMaxDeparted").intValue = 0;
+            climax.FindPropertyRelative("_cleanMaxShortageSeconds").floatValue = 0f;
+            climax.FindPropertyRelative("_hurtMinAccepted").floatValue = 0.3f;
+            climax.FindPropertyRelative("_hurtMaxDeparted").intValue = 3;
+            climax.FindPropertyRelative("_hurtMaxShortageSeconds").floatValue = 60f;
+            climax.FindPropertyRelative("_cleanLabel").stringValue = "넉넉한 수용";
+            climax.FindPropertyRelative("_hurtLabel").stringValue = "빠듯한 수용";
+            climax.FindPropertyRelative("_lostLabel").stringValue = "많은 이의 이탈";
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(chapter);
         }

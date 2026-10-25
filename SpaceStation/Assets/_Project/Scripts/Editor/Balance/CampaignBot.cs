@@ -273,7 +273,8 @@ namespace SpaceStation.Editor.Balance
                 return;
             int expected = _ark.NextShip != null ? _ark.NextShip.Size : 0;
             var chapter = _chapters.Current;
-            if (chapter != null && chapter.Climax.Kind == ChapterClimaxKind.GreatMigration && _chapters.Phase == ChapterPhase.Warning)
+            if (chapter != null && (chapter.Climax.Kind == ChapterClimaxKind.GreatMigration || chapter.Climax.Kind == ChapterClimaxKind.DebrisBand)
+                && _chapters.Phase == ChapterPhase.Warning)
             {
                 var c = chapter.Climax;
                 expected = Math.Max(expected, c.MigrationShips * (c.MigrationSizeMin + c.MigrationSizeMax) / 2);

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using SpaceStation.Core;
 using SpaceStation.Data;
 using UnityEngine;
 
@@ -45,6 +47,8 @@ namespace SpaceStation.Simulation
                     return new DirectionalShowerClimax();
                 case ChapterClimaxKind.GreatMigration:
                     return new GreatMigrationClimax();
+                case ChapterClimaxKind.DebrisBand:
+                    return new DebrisBandClimax();
                 default:
                     return new NoClimax();
             }
@@ -584,93 +588,59 @@ namespace SpaceStation.Simulation
     }
 
     /// <summary>
-    /// 13-6c 3장 절정 '대이주' (사용자 결정 2026-10-18 · 19): 섞인 종족 이민선 N척(3)이 짧은 간격으로 연달아 — 첫 배는 시작 20초 뒤,
-    /// 그다음은 앞 배에 답하고 45초 뒤 (<see cref="ArkShipSystem.SendConvoy"/>, 배마다 평소처럼 게임을 멈추고 받기 · 빈 집만큼 · 거부).
-    /// 마지막 배에 답한 뒤 정리 시간(90초) 동안 더 지켜보고 판정 = 받은 인원 비율 · 떠난 주민(절정 동안 인구가 줄어든 수) · 생명 유지 바닥 시간:
-    /// 넉넉히 맞이함 = 60% 이상 · 0명 · 0초 / 빠듯하게 맞이함 = 30% 이상 · 3명 이하 · 60초 이하 / 그 밖 = 많은 이를 놓침. 유성우는 평소대로.
+    /// 13-6c · 14-1d 이민선을 연달아 보내는 위기의 공통 몸통: 섞인 종족 배 N척(<see cref="ArkShipSystem.SendConvoy"/>, 배마다 평소처럼 게임을 멈추고
+    /// 받기 · 빈 집만큼 · 거부) — 첫 배는 시작 뒤 <see cref="ChapterClimaxSettings.MigrationFirstLead"/>, 그다음은 앞 배에 답하고
+    /// <see cref="ChapterClimaxSettings.MigrationInterval"/> 뒤. 판정 = 받은 인원 비율 · 떠난 주민(위기 동안 인구가 줄어든 수) · 생명 유지 바닥 시간:
+    /// 깔끔 = 60% 이상 · 0명 · 0초 / 빠듯 = 30% 이상 · 3명 이하 · 60초 이하 / 그 밖 = 마지막 등급 (값은 장 데이터).
     /// </summary>
-    internal sealed class GreatMigrationClimax : ChapterClimax
+    internal abstract class ConvoyClimax : ChapterClimax
     {
-        private int _sent, _answered, _offered, _accepted, _departed;
-        private float _shortage;
-        private float _settle = -1f; // 정리 중 남은 시간 (음수 = 아직 배가 옴)
+        protected int _sent, _answered, _offered, _accepted, _departed;
+        protected float _shortage;
         private bool _subscribed;
 
-        private ArkShipSystem Ark => Sim.GetSystem<ArkShipSystem>();
-        private int Ships => Settings.MigrationShips;
+        protected ArkShipSystem Ark => Sim.GetSystem<ArkShipSystem>();
+        protected int Ships => Settings.MigrationShips;
+        protected string Tally => $"받음 {_accepted}/{_offered} · 떠남 {_departed}";
 
-        public override float Progress
+        /// <summary>"배 2/4 도착" · "배 2/4 곰 6명 · 0:40 뒤".</summary>
+        protected string ShipStep()
         {
-            get
-            {
-                if (Finished)
-                    return 1f;
-                float steps = Ships + 1f; // 배마다 + 정리
-                float done = _settle >= 0f ? Ships + 1f - _settle / Math.Max(1f, Settings.SettleSeconds) : _answered;
-                return Mathf.Clamp01(done / steps);
-            }
+            var ark = Ark;
+            string step = $"배 {Math.Min(Ships, _answered + 1)}/{Ships}";
+            if (ark != null && ark.Pending != null && ark.Pending.Convoy)
+                return $"{step} 도착";
+            if (ark != null && ark.ConvoyComing)
+                return $"{step} {ark.SpeciesName(ark.NextShip.Species)} {ark.NextShip.Size}명 · {Clock(ark.TimeLeft)} 뒤";
+            return step;
         }
 
-        public override string Status
-        {
-            get
-            {
-                string tally = $"받음 {_accepted}/{_offered} · 떠남 {_departed}";
-                if (_settle >= 0f)
-                    return $"정리 {Clock(_settle)} · {tally} · 바닥 {Mathf.FloorToInt(_shortage)}초";
-                var ark = Ark;
-                string step = $"배 {Math.Min(Ships, _answered + 1)}/{Ships}";
-                if (ark != null && ark.Pending != null && ark.Pending.Convoy)
-                    return $"{step} 도착 · {tally}";
-                if (ark != null && ark.ConvoyComing)
-                    return $"{step} {ark.SpeciesName(ark.NextShip.Species)} {ark.NextShip.Size}명 · {Clock(ark.TimeLeft)} 뒤 · {tally}";
-                return $"{step} · {tally}";
-            }
-        }
-
-        private static string Clock(float seconds)
+        protected static string Clock(float seconds)
         {
             int s = Mathf.Max(0, Mathf.CeilToInt(seconds));
             return $"{s / 60}:{s % 60:00}";
         }
 
-        internal override void Begin()
+        /// <summary>새로 시작: 셈을 비우고 구독, 이민선이 있으면 첫 배 (없으면 false — 봇 · 시험).</summary>
+        protected bool BeginConvoy()
         {
             _sent = _answered = _offered = _accepted = _departed = 0;
             _shortage = 0f;
-            _settle = -1f;
             Subscribe();
             if (Ark == null)
-            {
-                _settle = 0.01f; // 이민선이 없는 판 (봇 · 시험) → 바로 판정
-                return;
-            }
+                return false;
             SendNext(Settings.MigrationFirstLead);
+            return true;
         }
 
-        internal override void Tick(float dt)
+        protected void TickShortage(float dt)
         {
-            if (Finished)
-                return;
-            if (IsShort())
+            var r = Sim.Resources;
+            if (r.Population > 0 && (r.IsDepleted(ResourceType.Oxygen) || r.IsDepleted(ResourceType.Water) || r.IsDepleted(ResourceType.Food)))
                 _shortage += dt;
-            if (_settle >= 0f)
-            {
-                _settle -= dt;
-                if (_settle <= 0f)
-                    Judge();
-                return;
-            }
-            if (_answered >= Ships)
-            {
-                _settle = Math.Max(0.01f, Settings.SettleSeconds);
-                return;
-            }
-            if (_sent == _answered)
-                SendNext(Settings.MigrationInterval); // 앞 배에 답함 → 다음 배
         }
 
-        private void SendNext(float seconds)
+        protected void SendNext(float seconds)
         {
             var ark = Ark;
             if (ark == null || ark.Pending != null)
@@ -679,13 +649,7 @@ namespace SpaceStation.Simulation
             _sent++;
         }
 
-        private bool IsShort()
-        {
-            var r = Sim.Resources;
-            return r.Population > 0 && (r.IsDepleted(ResourceType.Oxygen) || r.IsDepleted(ResourceType.Water) || r.IsDepleted(ResourceType.Food));
-        }
-
-        private void Judge()
+        protected void Judge(string extra = "")
         {
             float ratio = _offered > 0 ? (float)_accepted / _offered : 1f;
             bool Within(float minAccepted, int maxDeparted, float maxShortage) =>
@@ -696,7 +660,7 @@ namespace SpaceStation.Simulation
                 Outcome = ChapterOutcome.Hurt;
             else
                 Outcome = ChapterOutcome.Lost;
-            Summary = $"이주민 {_offered}명 중 {_accepted}명 받음 ({ratio * 100f:0}%) · 떠난 주민 {_departed}명 · 생명 유지 바닥 {Mathf.FloorToInt(_shortage)}초";
+            Summary = $"이주민 {_offered}명 중 {_accepted}명 받음 ({ratio * 100f:0}%) · 떠난 주민 {_departed}명 · 생명 유지 바닥 {Mathf.FloorToInt(_shortage)}초{extra}";
             Finished = true;
             Detach();
         }
@@ -716,7 +680,7 @@ namespace SpaceStation.Simulation
                 _departed -= delta;
         }
 
-        private void Subscribe()
+        protected void Subscribe()
         {
             if (_subscribed)
                 return;
@@ -736,6 +700,59 @@ namespace SpaceStation.Simulation
                 ark.Resolved -= HandleResolved;
             Sim.Population.PopulationChanged -= HandlePopulation;
             _subscribed = false;
+        }
+    }
+
+    /// <summary>
+    /// 13-6c 3장 절정 '대이주' (사용자 결정 2026-10-18 · 19): 이민선 3척 · 첫 배 20초 · 간격 45초 (<see cref="ConvoyClimax"/>).
+    /// 마지막 배에 답한 뒤 정리 시간(90초) 동안 더 지켜보고 판정. 결과 이름 = 넉넉히 맞이함 · 빠듯하게 맞이함 · 많은 이를 놓침. 유성우는 평소대로.
+    /// </summary>
+    internal sealed class GreatMigrationClimax : ConvoyClimax
+    {
+        private float _settle = -1f; // 정리 중 남은 시간 (음수 = 아직 배가 옴)
+
+        public override float Progress
+        {
+            get
+            {
+                if (Finished)
+                    return 1f;
+                float steps = Ships + 1f; // 배마다 + 정리
+                float done = _settle >= 0f ? Ships + 1f - _settle / Math.Max(1f, Settings.SettleSeconds) : _answered;
+                return Mathf.Clamp01(done / steps);
+            }
+        }
+
+        public override string Status => _settle >= 0f
+            ? $"정리 {Clock(_settle)} · {Tally} · 바닥 {Mathf.FloorToInt(_shortage)}초"
+            : $"{ShipStep()} · {Tally}";
+
+        internal override void Begin()
+        {
+            _settle = -1f;
+            if (!BeginConvoy())
+                _settle = 0.01f; // 이민선이 없는 판 (봇 · 시험) → 바로 판정
+        }
+
+        internal override void Tick(float dt)
+        {
+            if (Finished)
+                return;
+            TickShortage(dt);
+            if (_settle >= 0f)
+            {
+                _settle -= dt;
+                if (_settle <= 0f)
+                    Judge();
+                return;
+            }
+            if (_answered >= Ships)
+            {
+                _settle = Math.Max(0.01f, Settings.SettleSeconds);
+                return;
+            }
+            if (_sent == _answered)
+                SendNext(Settings.MigrationInterval); // 앞 배에 답함 → 다음 배
         }
 
         [Serializable]
@@ -774,6 +791,148 @@ namespace SpaceStation.Simulation
                 _shortage = s.Shortage;
                 _settle = s.Settle;
             }
+            Subscribe(); // 오는 배 · 답을 기다리는 배는 이민선 시스템이 저장
+        }
+    }
+
+    /// <summary>
+    /// 14-1d 4장 위기 '파편 띠' (사용자 결정 2026-10-26): 띠가 정거장을 감싸는 동안(6분) 위기가 시작될 때 비어 있던 칸에는 짓기 · 옮기기 불가
+    /// (main M-50 <see cref="IBuildZone"/> — 철거한 자리 다시 짓기 · 재건축 · 합성은 같은 칸이라 됨). 그동안 이민선 4척이 90초 간격으로 옴 (<see cref="ConvoyClimax"/>).
+    /// 띠가 지나가고 배에 다 답하면 판정 (대이주 기준). 결과 이름 = 넉넉한 수용 · 빠듯한 수용 · 많은 이의 이탈.
+    /// </summary>
+    internal sealed class DebrisBandClimax : ConvoyClimax, IBuildZone
+    {
+        private readonly HashSet<Vector3Int> _cells = new HashSet<Vector3Int>();
+        private float _bandLeft;
+
+        /// <summary>띠가 남은 시간 (0 이하 = 지나감).</summary>
+        public float BandLeft => _bandLeft;
+        public bool BandActive => !Finished && _bandLeft > 0f;
+
+        public override float Progress
+        {
+            get
+            {
+                if (Finished)
+                    return 1f;
+                float band = 1f - _bandLeft / Settings.BandSeconds;
+                float ships = Ships > 0 ? (float)_answered / Ships : 1f;
+                return Mathf.Clamp(Math.Min(band, ships), 0f, 0.99f);
+            }
+        }
+
+        public override string Status => BandActive
+            ? $"파편 띠 {Clock(_bandLeft)} · {ShipStep()} · {Tally}"
+            : $"띠가 지나감 · {ShipStep()} · {Tally}";
+
+        // ---------------- 칸 (IBuildZone) ----------------
+
+        public bool Allows(Vector3Int cell) => _cells.Contains(cell);
+
+        public string Reason => $"파편 띠가 감싸는 중 · 새 칸에는 {Clock(_bandLeft)} 뒤에 지을 수 있음 (모듈이 있던 칸은 지금도)";
+
+        private void SnapshotCells()
+        {
+            _cells.Clear();
+            foreach (var m in Sim.Grid.Modules)
+                foreach (var c in m.Cells)
+                    _cells.Add(c);
+        }
+
+        private void HoldZone() => Sim.BuildZone = this;
+
+        private void ReleaseZone()
+        {
+            if (ReferenceEquals(Sim.BuildZone, this))
+                Sim.BuildZone = null;
+        }
+
+        // ---------------- 진행 ----------------
+
+        internal override void Begin()
+        {
+            SnapshotCells();
+            _bandLeft = Settings.BandSeconds;
+            HoldZone();
+            BeginConvoy();
+        }
+
+        internal override void Tick(float dt)
+        {
+            if (Finished)
+                return;
+            TickShortage(dt);
+            if (_bandLeft > 0f)
+            {
+                _bandLeft -= dt;
+                if (_bandLeft <= 0f)
+                {
+                    ReleaseZone();
+                    Sim.Report("파편 띠가 지나갔습니다 · 새 칸에 다시 지을 수 있습니다", true);
+                }
+            }
+            bool shipsDone = Ark == null || _answered >= Ships;
+            if (!shipsDone && _sent == _answered)
+                SendNext(_sent == 0 ? Settings.MigrationFirstLead : Settings.MigrationInterval); // 첫 배가 평소 배에 막혔으면 그 뒤에
+            if (_bandLeft <= 0f && shipsDone)
+                Judge();
+        }
+
+        internal override void Detach()
+        {
+            base.Detach();
+            ReleaseZone();
+        }
+
+        // ---------------- 세이브 ----------------
+
+        [Serializable]
+        private sealed class State
+        {
+            public int Sent;
+            public int Answered;
+            public int Offered;
+            public int Accepted;
+            public int Departed;
+            public float Shortage;
+            public float BandLeft;
+            public List<Vector3Int> Cells = new List<Vector3Int>();
+        }
+
+        internal override string Capture()
+        {
+            var s = new State
+            {
+                Sent = _sent,
+                Answered = _answered,
+                Offered = _offered,
+                Accepted = _accepted,
+                Departed = _departed,
+                Shortage = _shortage,
+                BandLeft = _bandLeft,
+            };
+            s.Cells.AddRange(_cells);
+            return JsonUtility.ToJson(s);
+        }
+
+        internal override void Restore(string state)
+        {
+            var s = string.IsNullOrEmpty(state) ? null : JsonUtility.FromJson<State>(state);
+            if (s != null)
+            {
+                _sent = s.Sent;
+                _answered = s.Answered;
+                _offered = s.Offered;
+                _accepted = s.Accepted;
+                _departed = s.Departed;
+                _shortage = s.Shortage;
+                _bandLeft = s.BandLeft;
+                _cells.Clear();
+                foreach (var c in s.Cells)
+                    _cells.Add(c);
+            }
+            if (_bandLeft > 0f)
+                HoldZone();
             Subscribe(); // 오는 배 · 답을 기다리는 배는 이민선 시스템이 저장
         }
     }

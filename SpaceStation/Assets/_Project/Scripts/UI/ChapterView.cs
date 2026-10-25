@@ -493,7 +493,8 @@ namespace SpaceStation.UI
                 string slow = _ships.Slowed ? $"\n<size=86%><color={HudText.Orange}>정거장이 불안해 이민선이 늦게 옵니다</color></size>" : "";
                 bool held = _chapters.Phase == ChapterPhase.Climax || _chapters.Phase == ChapterPhase.Transition;
                 string clock = held ? "대기 중" : $"{ArkShipSystem.Clock(_ships.TimeLeft)} 뒤";
-                if (_chapters.Phase != ChapterPhase.Climax || _chapters.Current.Climax.Kind != ChapterClimaxKind.GreatMigration) // 13-6c 대이주 중엔 절정 줄이 배를 보여 줌
+                var kind = _chapters.Current.Climax.Kind;
+                if (_chapters.Phase != ChapterPhase.Climax || (kind != ChapterClimaxKind.GreatMigration && kind != ChapterClimaxKind.DebrisBand)) // 13-6c 대이주 · 14-1d 파편 띠 중엔 위기 줄이 배를 보여 줌
                     text = (next != null
                         ? $"{HudTheme.Icon("warning")} <color={Gold}>이민선 예보</color>  <b>{_ships.SpeciesName(next.Species)} {next.Size}명</b> · {clock}"
                           + (next.NewSpecies ? $"\n<size=86%><color={Gold}>처음 만나는 종족</color></size>" : "")

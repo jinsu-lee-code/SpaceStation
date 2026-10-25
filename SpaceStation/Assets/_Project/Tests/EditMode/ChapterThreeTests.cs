@@ -293,6 +293,54 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void DebrisBand_BlocksNewCellsDuringBand_ShipsArrive_JudgedAfterBand_SurvivesSave()
+        {
+            // 14-1d 4장 위기 '파편 띠' (대이주 틀 + 칸 제한): 배 2척 · 띠 60초
+            var ch = MigrationChapter();
+            var so = new SerializedObject(ch);
+            var climax = so.FindProperty("_climax");
+            climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.DebrisBand;
+            climax.FindPropertyRelative("_migrationShips").intValue = 2;
+            climax.FindPropertyRelative("_bandSeconds").floatValue = 60f;
+            so.FindProperty("_unlocks").arraySize = 1;
+            so.FindProperty("_unlocks").GetArrayElementAtIndex(0).objectReferenceValue = _block;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var sim = Sim(Chapters(ch));
+            var ark = sim.GetSystem<ArkShipSystem>();
+            Assert.IsTrue(sim.TryPlace(_block, new Vector3Int(1, 0, 0), 0, out var block), "띠 전에 지은 칸");
+            RunUntil(sim, () => ark.Pending != null);
+            Assert.IsTrue(ark.Answer(ShipAnswer.Accept)); // 첫 배(곰) → 필수 완료 · 예고 0초
+            Tick(sim, 1);
+            Assert.AreEqual(ChapterPhase.Climax, sim.Chapters.Phase);
+            Assert.IsNotNull(sim.BuildZone, "띠 동안 칸 제한");
+            Assert.AreEqual(PlacementResult.OutsideZone, sim.EvaluatePlacement(_block, new Vector3Int(-1, 0, 0), 0), "위기 시작 때 비어 있던 칸");
+            StringAssert.Contains("파편 띠", sim.BuildZone.Reason);
+            Assert.IsTrue(sim.TryRemove(block));
+            Assert.AreEqual(PlacementResult.Valid, sim.EvaluatePlacement(_block, new Vector3Int(1, 0, 0), 0), "철거한 자리는 다시 지을 수 있음");
+            StringAssert.StartsWith("파편 띠", sim.Chapters.Climax.Status);
+
+            RunUntil(sim, () => ark.Pending != null && ark.Pending.Convoy);
+            Assert.IsTrue(ark.Answer(ShipAnswer.Accept)); // 5/5
+
+            // 띠 가운데 저장 → 불러온 판도 같은 칸 제한
+            var json = JsonUtility.ToJson(StationStateSerializer.Capture(sim));
+            var loaded = Sim(Chapters(ch));
+            StationStateSerializer.Restore(loaded, JsonUtility.FromJson<StationState>(json));
+            Assert.IsNotNull(loaded.BuildZone, "띠 저장 · 복원");
+            Assert.AreEqual(PlacementResult.OutsideZone, loaded.EvaluatePlacement(_block, new Vector3Int(-1, 0, 0), 0));
+            Assert.AreEqual(PlacementResult.Valid, loaded.EvaluatePlacement(_block, new Vector3Int(1, 0, 0), 0));
+            var ark2 = loaded.GetSystem<ArkShipSystem>();
+            RunUntil(loaded, () => ark2.Pending != null && ark2.Pending.Convoy);
+            Assert.IsTrue(ark2.Answer(ShipAnswer.Accept)); // 10/10
+            Tick(loaded, 1);
+            Assert.AreEqual(ChapterPhase.Climax, loaded.Chapters.Phase, "배에 다 답해도 띠가 지나갈 때까지");
+            RunUntil(loaded, () => loaded.Chapters.Phase == ChapterPhase.Transition);
+            Assert.IsNull(loaded.BuildZone, "띠가 지나가면 풀림");
+            Assert.AreEqual(ChapterOutcome.Clean, loaded.Chapters.LastRecord.Outcome);
+            StringAssert.Contains("이주민 10명 중 10명 받음", loaded.Chapters.LastRecord.Summary);
+        }
+
+        [Test]
         public void EarthLights_DimWithinChapter_DropAtNextChapter()
         {
             var ch1 = Chapter("1장", StationRule.None, slots: 0, hold: false);

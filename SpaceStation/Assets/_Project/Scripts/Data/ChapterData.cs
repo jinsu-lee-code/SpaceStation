@@ -83,6 +83,8 @@ namespace SpaceStation.Data
         DirectionalShower,
         /// <summary>13-6c 3장 '대이주': 섞인 종족 이민선 여러 척이 짧은 간격으로 연달아. 판정 = 받은 인원 비율 · 떠난 주민 · 생명 유지 바닥 시간.</summary>
         GreatMigration,
+        /// <summary>14-1d 4장 '파편 띠': 띠가 정거장을 감싸는 동안 새 칸에 짓지 못하고 이민선은 연달아 옴. 판정 = 대이주와 같음.</summary>
+        DebrisBand,
     }
 
     /// <summary>13-1: 절정 설정 (종류마다 쓰는 값이 다름).</summary>
@@ -140,6 +142,10 @@ namespace SpaceStation.Data
         [SerializeField, Range(0f, 1f)] private float _hurtMinAccepted = 0.3f;
         [SerializeField, Min(0)] private int _hurtMaxDeparted = 3;
 
+        [Header("파편 띠 (DebrisBand, 14-1d) — 배 · 판정은 위 대이주 값 (첫 배 = 위기 시작 뒤, 간격 = 앞 배에 답한 뒤)")]
+        [Tooltip("띠가 정거장을 감싸는 시간 (초) — 그동안 위기가 시작될 때 비어 있던 칸에는 짓기 · 옮기기 불가 (철거한 자리 다시 짓기 · 합성은 됨). 띠가 지나가고 배에 다 답하면 판정")]
+        [SerializeField, Min(1f)] private float _bandSeconds = 360f;
+
         [Header("결과 이름 (비면 깔끔히 버팀 · 피해를 입고 버팀 · 일부를 잃음)")]
         [SerializeField] private string _cleanLabel;
         [SerializeField] private string _hurtLabel;
@@ -171,6 +177,7 @@ namespace SpaceStation.Data
         public int CleanMaxDeparted => _cleanMaxDeparted;
         public float HurtMinAccepted => _hurtMinAccepted;
         public int HurtMaxDeparted => _hurtMaxDeparted;
+        public float BandSeconds => Mathf.Max(1f, _bandSeconds);
         public string CleanLabel => _cleanLabel;
         public string HurtLabel => _hurtLabel;
         public string LostLabel => _lostLabel;
