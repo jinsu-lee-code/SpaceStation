@@ -224,6 +224,8 @@ namespace SpaceStation.Tests
             Assert.IsTrue(ark.Pending.NewSpecies, "3장 첫 배 = 처음 만나는 곰");
             Assert.IsTrue(ark.Answer(ShipAnswer.Refuse));
             Assert.IsTrue(sim.Chapters.HasFlag(ArkShipSystem.NewSpeciesFlag), "거부도 '첫 이민선 맞이하기'");
+            Assert.IsTrue(sim.Chapters.HasFlag(ArkShipSystem.MetFlag("bear")), "14-1b 종족별 표시");
+            Assert.IsFalse(sim.Chapters.HasFlag(ArkShipSystem.MetFlag("fox")));
             Tick(sim, 1);
             Assert.AreEqual(ChapterPhase.Climax, sim.Chapters.Phase, "필수 완료 · 예고 0초 → 대이주");
             Assert.IsTrue(ark.ConvoyComing);
@@ -350,6 +352,13 @@ namespace SpaceStation.Tests
                 "처음 온 종족을 맞는 말은 그 종족이 아닌 주민이");
             Assert.IsTrue(ResidentRemarks.Pick(residents, ark.Find, ResidentRemarks.ShipKeys(ShipAnswer.Accept, true, 5), () => 0.99f, out _, out text, exclude: "bear"));
             Assert.AreEqual("곰이라니요.", text);
+
+            // 14-1b 종족마다 맞는 말 (ship.new.{종족} 먼저 → 없으면 ship.new)
+            _rabbit.EditorSetRemarks(("ship.new.fox", "여우들이에요!"), ("ship.new", "누가 왔어요."));
+            Assert.IsTrue(ResidentRemarks.Pick(residents, ark.Find, ResidentRemarks.ShipKeys(ShipAnswer.Accept, true, 5, "fox"), () => 0f, out _, out text, exclude: "fox"));
+            Assert.AreEqual("여우들이에요!", text);
+            Assert.IsTrue(ResidentRemarks.Pick(residents, ark.Find, ResidentRemarks.ShipKeys(ShipAnswer.Accept, true, 5, "bear"), () => 0f, out _, out text, exclude: "bear"));
+            Assert.AreEqual("누가 왔어요.", text, "그 종족 문장이 없으면 공통 문장");
         }
 
         // ---------------- 도우미 ----------------

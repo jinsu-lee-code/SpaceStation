@@ -44,6 +44,9 @@ namespace SpaceStation.Simulation
         /// <summary>처음 만나는 종족의 배에 답함 (받기 · 일부 · 거부 무엇이든).</summary>
         public const string NewSpeciesFlag = "ship.new";
 
+        /// <summary>14-1b 그 종족을 처음 맞음 (답 무엇이든) — 장 표시는 장을 넘어도 남으므로 4장 '여우 무리 맞이하기'처럼 종족마다 따로.</summary>
+        public static string MetFlag(string species) => NewSpeciesFlag + "." + species;
+
         private readonly ArkShipConfig _config;
         private readonly Func<float> _random01;
         private readonly List<string> _met = new List<string>();
@@ -282,7 +285,10 @@ namespace SpaceStation.Simulation
             if (n > 0)
                 Chapters?.SetFlag("ship.accepted");
             if (ship.NewSpecies)
+            {
                 Chapters?.SetFlag(NewSpeciesFlag); // 13-6c 3장 '첫 이민선 맞이하기' (장 표시는 장을 넘어도 남아 2장 'ship'과 따로)
+                Chapters?.SetFlag(MetFlag(ship.Species));
+            }
             Resolved?.Invoke(ship, answer, n);
             return true;
         }

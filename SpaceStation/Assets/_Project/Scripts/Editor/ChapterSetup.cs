@@ -55,7 +55,7 @@ namespace SpaceStation.Editor
             CoreLines();
 
             // 13-3 이민선 시계 + 종족 (사용자 결정 2026-10-18: 시작 토끼 → 3장 곰, 2장부터 약 4분 · 4~6명 · 1분 전 예보, 2장부터 자연 증가 느리게)
-            var ark = ArkShips(out var rabbit, out var bear);
+            var ark = ArkShips(out var rabbit, out var bear, out var fox);
             Ships(ch1, false, null, 1f);
             Ships(ch2, true, null, 3f);
             Ships(ch3, true, bear, 3f);
@@ -102,7 +102,7 @@ namespace SpaceStation.Editor
 
             // 14-0 4~7장 틀 (그레이박스 — 실제 내용은 14-1 · 14-2 · 14-4 · 14-5)
             var chapters = new List<ChapterData> { ch1, ch2, ch3 };
-            chapters.AddRange(LaterChapters(grades));
+            chapters.AddRange(LaterChapters(grades, fox));
 
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
@@ -348,7 +348,7 @@ namespace SpaceStation.Editor
         /// 13-3 종족 2종 + 이민선 설정 (사용자 결정 2026-10-18 D-8: 기본값 = 사회 1 + 기술 1 + 견딤 1, 값은 그레이박스 초안).
         /// 토끼: 의료 중시 · 통제에 순응 · 식량 생산 + / 곰: 여가 중시 · 통제에 반발 · 수리 속도 + · 열에 강함.
         /// </summary>
-        private static ArkShipConfig ArkShips(out SpeciesData rabbit, out SpeciesData bear)
+        private static ArkShipConfig ArkShips(out SpeciesData rabbit, out SpeciesData bear, out SpeciesData fox)
         {
             rabbit = LoadOrCreate<SpeciesData>(Folder + "/SP_Rabbit.asset");
             rabbit.EditorSet("rabbit", "토끼", "겁이 많지만 부지런한 무리. 아플 때 돌봐 줄 곳을 먼저 찾고, 텃밭을 잘 가꾼다.",
@@ -378,7 +378,8 @@ namespace SpaceStation.Editor
                 ("climax.warning.1", "밤이 길어진대요. 불이 꺼지면 어떡하죠?"),
                 ("climax.warning.2", "큰 별똥비가 온대요. 방 안쪽에 있을게요."),
                 ("climax.warning.3", "배가 여러 척 온대요. 다들 들어올 자리가 있을까요?"),
-                ("ship.new", "곰이라니, 덩치가 커서 조금 무서워요. 그래도 잘 지내 볼게요."),
+                ("ship.new.bear", "곰이라니, 덩치가 커서 조금 무서워요. 그래도 잘 지내 볼게요."),
+                ("ship.new.fox", "여우들이에요! 손재주가 좋다던데, 고장 난 것도 고쳐 줄까요?"),
                 ("ship.accept", "새 이웃이 왔어요! 방을 같이 꾸며야겠어요."),
                 ("ship.partial", "다 같이 오지는 못했네요. 남은 분들도 무사하면 좋겠어요."),
                 ("ship.refuse", "배가 돌아가요. 저 안에도 누군가 있었을 텐데."));
@@ -386,12 +387,32 @@ namespace SpaceStation.Editor
                 ("climax.warning.3", "배가 더 온다고. 자리는 만들면 된다."),
                 ("ship.accept", "또 왔군. 좁으면 붙어 자면 된다."),
                 ("ship.partial", "다 못 태웠다고. 그래, 할 수 있는 만큼 한 거다."),
-                ("ship.refuse", "돌려보냈군. 우리도 저럴 뻔했다."));
+                ("ship.refuse", "돌려보냈군. 우리도 저럴 뻔했다."),
+                ("ship.new.fox", "여우군. 손은 빠르겠지. 말은 많겠고."));
             EditorUtility.SetDirty(rabbit);
             EditorUtility.SetDirty(bear);
 
+            // 14-1b 4장 여우 (사용자 결정 2026-10-26): 손재주 · 호기심 — 여가 중시 · 통제 반응 중간 · 합성 속도 +2%/명(최대 +10%) · 방사선 강함 · 열 보통,
+            // 한마디 = 능청스러운 반말 ('~네?' '~지!', 곰의 짧은 '~다.'와 다르게). 문장은 확인용 초안
+            fox = LoadOrCreate<SpeciesData>(Folder + "/SP_Fox.asset");
+            fox.EditorSet("fox", "여우", "손재주 좋고 호기심 많은 무리. 쉬고 노는 자리를 중시하고, 무엇이든 녹여 새로 만드는 손이 빠르다.",
+                ResidentNeed.Recreation, 0.5f, 0f, ResidentTrait.Artisan, 0.02f, 0.1f, 0f, 0.5f);
+            fox.EditorSetShip(new Color(0.95f, 0.52f, 0.2f),
+                "배 한 척이 방주에 닿았다. 선체가 덧댄 판으로 누덕누덕하다.",
+                "여우들이다. 고친 데를 또 고쳐 가며 여기까지 왔다.",
+                "좁아진 하늘에, 손 하나가 더 늘지도 모르겠다.");
+            fox.EditorSetRemarks(
+                ("climax.warning.4", "파편 띠가 온대. 밖으로 못 넓히면 안을 뜯어고치면 되지!"),
+                ("chapter.start.5.Clean", "다 받아 냈네? 그 좁은 데서 용케도 말이야."),
+                ("chapter.start.5.Hurt", "빠듯했지? 그래도 그만하면 솜씨 좋았어."),
+                ("chapter.start.5.Lost", "많이들 떠났네. 다음엔 칸을 더 잘 접어 보자고."),
+                ("ship.accept", "또 손님이네? 자리야 뭐, 접고 쌓으면 나오지!"),
+                ("ship.partial", "다 못 들였네. 칸만 넉넉했어도 말이야."),
+                ("ship.refuse", "돌려보냈어? 저 배에도 쓸 만한 손이 있었을 텐데."));
+            EditorUtility.SetDirty(fox);
+
             var ark = LoadOrCreate<ArkShipConfig>(ArkPath);
-            ark.EditorSet(rabbit, new List<SpeciesData> { rabbit, bear },
+            ark.EditorSet(rabbit, new List<SpeciesData> { rabbit, bear, fox },
                 new List<AxisShift> { new AxisShift(CoreAxis.Care, CorePole.Second, ShiftSize.Medium), new AxisShift(CoreAxis.Scope, CorePole.Second, ShiftSize.Small) },
                 new List<AxisShift> { new AxisShift(CoreAxis.Care, CorePole.First, ShiftSize.Small) },
                 new List<AxisShift> { new AxisShift(CoreAxis.Care, CorePole.First, ShiftSize.Medium), new AxisShift(CoreAxis.Scope, CorePole.First, ShiftSize.Small) });
@@ -1029,7 +1050,7 @@ namespace SpaceStation.Editor
         /// 이름은 임시 "(가제) …"(실제 이름은 장마다 착수 때 D-14), 방향 선택 없음, 이민선은 이어서 (새 종족은 D-15).
         /// 지구 불빛 = 7장 끝에 완전히 꺼짐: 4장 36 → 30% · 5장 26 → 20% · 6장 16 → 10% · 7장 7 → 2%, 마지막 연출에서 0%.
         /// </summary>
-        private static List<ChapterData> LaterChapters(StationGradeConfig grades)
+        private static List<ChapterData> LaterChapters(StationGradeConfig grades, SpeciesData fox)
         {
             var specs = new (string subtitle, int population, int waves, int hits, float start, float end, float final)[]
             {
@@ -1051,7 +1072,7 @@ namespace SpaceStation.Editor
                 var ch = Chapter(number, grades, s.subtitle, "장 내용은 만드는 중",
                     optional: (ChapterGoalKind.Population, s.population, ResourceType.Metal, 0f, metalReward: 100f, research: 0, repairs: 0),
                     waves: s.waves, hits: s.hits, warning: 180f);
-                Ships(ch, true, null, 3f);
+                Ships(ch, true, number == 4 ? fox : null, 3f); // 14-1b 4장 첫 배 = 여우 (D-15 안: 5장 펭귄 · 6장 강아지는 그때)
                 SetEarthLights(ch, s.start, s.end, 1800f, s.final);
                 list.Add(ch);
             }
@@ -1072,7 +1093,8 @@ namespace SpaceStation.Editor
             var chapters = new List<ChapterData> { config.Chapters[0], config.Chapters[1], config.Chapters[2] };
             var ch3 = chapters[2];
             SetEarthLights(ch3, ch3.EarthLightsStart, ch3.EarthLightsEnd, ch3.EarthDimSeconds); // 마지막 장이 아니게 됨
-            chapters.AddRange(LaterChapters(grades));
+            ArkShips(out _, out _, out var fox); // 14-1b 종족 (여우)
+            chapters.AddRange(LaterChapters(grades, fox));
             SetChapterList(config, chapters);
             AssetDatabase.SaveAssets();
             Debug.Log($"[ChapterSetup] 장 {chapters.Count}개 (4~7장 그레이박스)");

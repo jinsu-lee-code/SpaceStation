@@ -106,7 +106,7 @@ namespace SpaceStation.UI
                 return; // 평소 배는 드물게 (대이주처럼 연달아 와도 한 번)
             _lastShip = _sim.ElapsedSeconds;
             // 처음 만나는 종족을 맞는 말은 원래 살던 주민이
-            _queue.Enqueue((ResidentRemarks.ShipKeys(answer, ship.NewSpecies, boarded), ship.NewSpecies ? ship.Species : null));
+            _queue.Enqueue((ResidentRemarks.ShipKeys(answer, ship.NewSpecies, boarded, ship.Species), ship.NewSpecies ? ship.Species : null));
         }
 
         // ---------------- 보이기 ----------------

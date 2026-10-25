@@ -235,6 +235,7 @@ namespace SpaceStation.Editor
         private static ArkStateData ArkState(ChapterConfig config, int chapter, ChapterPhase phase, StationState station)
         {
             var s = new ArkStateData { Timer = phase == ChapterPhase.Transition ? NextChapterFirstShip : config.Chapters[chapter].ShipInterval };
+            int taken = 0; // 14-1b: 새 종족이 여럿이면 (3장 곰 · 4장 여우) 6명씩 다른 주민
             for (int i = 0; i <= chapter; i++)
             {
                 var species = config.Chapters[i].NewSpecies;
@@ -243,11 +244,12 @@ namespace SpaceStation.Editor
                 s.Met.Add(species.Id);
                 s.NewSpeciesChapter = i;
                 s.Ships++;
-                for (int r = 0; r < station.Residents.Count && r < 6; r++)
+                for (int r = taken; r < station.Residents.Count && r < taken + 6; r++)
                 {
                     station.Residents[r].Kind = species.Id;
                     s.Accepted++; // 받은 인원 (도착 안내판 "지금까지 도착 n명")
                 }
+                taken += 6;
             }
             return s;
         }

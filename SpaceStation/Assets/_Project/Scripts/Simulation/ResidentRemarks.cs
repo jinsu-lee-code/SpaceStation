@@ -54,11 +54,13 @@ namespace SpaceStation.Simulation
 
         public static string[] WarningKeys(int number) => new[] { $"climax.warning.{number}", "climax.warning" };
 
-        /// <summary>이민선에 답한 뒤: 처음 만나는 종족을 받으면 <c>ship.new</c>, 아니면 답대로.</summary>
-        public static string[] ShipKeys(ShipAnswer answer, bool newSpecies, int boarded)
+        /// <summary>이민선에 답한 뒤: 처음 만나는 종족을 받으면 <c>ship.new.{종족}</c> → <c>ship.new</c>, 아니면 답대로.</summary>
+        public static string[] ShipKeys(ShipAnswer answer, bool newSpecies, int boarded, string species = null)
         {
             if (newSpecies && boarded > 0)
-                return new[] { "ship.new", "ship.accept" };
+                return string.IsNullOrEmpty(species)
+                    ? new[] { "ship.new", "ship.accept" }
+                    : new[] { "ship.new." + species, "ship.new", "ship.accept" }; // 14-1b: 곰 · 여우를 맞는 말이 다름
             switch (answer)
             {
                 case ShipAnswer.Accept: return new[] { "ship.accept" };
