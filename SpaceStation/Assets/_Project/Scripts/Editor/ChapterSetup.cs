@@ -39,11 +39,11 @@ namespace SpaceStation.Editor
             var ch2 = Chapter(2, grades, "배치", "중형 정거장으로 커지며, 어디에 무엇을 둘지가 생존을 가른다.",
                 optional: (ChapterGoalKind.Stock, 0, ResourceType.Metal, 150f, metalReward: 0f, research: 1, repairs: 0),
                 waves: 3, hits: 2, warning: 180f,
-                ("reach", "멀리 뻗기", "새 신호 쪽으로 정거장을 넓힘"), ("shield", "안쪽 다지기", "중심부를 겹겹이 감쌈"));
+                ("reach", "멀리 뻗는다", "새 신호 쪽으로 정거장을 넓힌다"), ("shield", "안쪽을 다진다", "중심부를 겹겹이 감싼다"));
             var ch3 = Chapter(3, grades, "무리 합류", "대형 정거장에 닿으며, 여러 무리가 한 지붕 아래 모인다.",
                 optional: (ChapterGoalKind.Population, 50, ResourceType.Metal, 0f, metalReward: 0f, research: 0, repairs: 1),
                 waves: 4, hits: 3, warning: 180f,
-                ("open", "문을 연다", "오는 무리를 되도록 받음"), ("order", "질서를 세운다", "받기 전에 규칙부터"));
+                ("open", "문을 연다", "오는 무리를 되도록 받는다"), ("order", "질서를 세운다", "받기 전에 규칙부터 세운다"));
 
             // 13-2 방향 선택 → 코어 성격 축 (장 전환 방향 = 크게, 곁가지 축 = 작게 · 보통 — 임시 값)
             Shifts(ch1, 0, (CoreAxis.Memory, CorePole.First, ShiftSize.Large)); // 13-4: 1장 = 기억 축 (지구를 볼까)
@@ -382,7 +382,7 @@ namespace SpaceStation.Editor
             // 13-6b 이민선 띠 색 · 처음 맞을 때 코어 독백 (사용자 피드백 2026-10-19: 말투가 어색함 → 1장 코어 기동처럼 짧은 관찰 · 혼잣말로, 확인용 초안)
             rabbit.EditorSetShip(new Color(0.95f, 0.62f, 0.72f), "토끼들이 탄 배다. 낯익은 얼굴들이다.");
             bear.EditorSetShip(new Color(0.62f, 0.4f, 0.22f),
-                "배 한 척이 포트에 닿았다. 선체가 온통 그을렸다.", // 독백은 도킹을 마친 뒤에 나옴
+                "배 한 척이 방주에 닿았다. 선체가 온통 그을렸다.", // 독백은 도킹을 마친 뒤에 나옴
                 "곰들이 타고 있다. 지구에서 여기까지, 쉽지 않은 길이었을 거다.",
                 "들일지 돌려보낼지, 이번엔 내가 정해야 한다.");
             // 13-7c 주민 한마디 (사용자 결정 2026-10-19: 종족마다 말투 — 토끼 = 조심스럽고 다정한 존댓말, 곰 = 짧고 투박한 말, 확인용 초안)
@@ -498,7 +498,7 @@ namespace SpaceStation.Editor
                     Body("드론의 패드에 방주 지도가 떠 있다.", "패드를 들어 보세요. 부탁이나 사고가 생긴 방이 지도에 표시되고, 다른 방으로 바로 갈 수 있습니다."),
                     TutorialGoal.InteriorPad),
                 new TutorialStep("작은 부탁",
-                    Body("토끼 하나가 무언가 부탁한다. 작은 일이지만, 들어주면 무리가 편해진다.", "부탁한 주민은 왼쪽 위 방 이름 아래에 표시됩니다. 찾아가 들어주면 <b>만족도</b>가 오릅니다."),
+                    Body("토끼 하나가 무언가 부탁한다. 작은 일이지만, 들어주면 무리가 편해진다.", "부탁한 주민은 화면 위쪽 방 이름 아래에 표시됩니다. 찾아가 들어주면 <b>만족도</b>가 오릅니다."),
                     TutorialGoal.InteriorRequest),
                 new TutorialStep("경보",
                     Body("어딘가에서 경보가 울린다. 드론으로 직접 막아 보자.", "평소에는 제한 시간 안에 막지 못하면 자원을 잃습니다. <color=#9AA4B2>이번은 연습이라 시간 제한이 없습니다.</color>"),
@@ -603,7 +603,7 @@ namespace SpaceStation.Editor
             Clear(grade);
             grade.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.ReachGrade;
             grade.FindPropertyRelative("_grade").intValue = 3;
-            FlagGoal(goals.GetArrayElementAtIndex(1), SpaceStation.Simulation.ArkShipSystem.NewSpeciesFlag, "첫 이민선 맞이하기 (받기 · 일부 · 거부 무엇이든)", false);
+            FlagGoal(goals.GetArrayElementAtIndex(1), SpaceStation.Simulation.ArkShipSystem.NewSpeciesFlag, "첫 이민선 맞이하기 (모두 받기 · 빈 집만큼 · 거부 무엇이든)", false);
             FlagGoal(goals.GetArrayElementAtIndex(2), SpaceStation.Simulation.ChapterPolicySystem.PolicyFlag, "정책 하나 시행", false);
             var lounge = goals.GetArrayElementAtIndex(3);
             ModuleGoal(lounge, M("MD_Recreation"), "휴게실 가동 (곰의 여가)");
@@ -1221,20 +1221,21 @@ namespace SpaceStation.Editor
             {
                 ("goal.done", CorePole.Neutral, CoreAxis.Care, "장 목표 완료: {0}{1}"),
                 ("goal.done", CorePole.First, CoreAxis.Care, "목표 처리 완료: {0}{1} · 다음 작업으로"),
-                ("goal.done", CorePole.Second, CoreAxis.Care, "장 목표 완료: {0}{1} · 모두 조금 더 편해질 거예요"),
+                ("goal.done", CorePole.Second, CoreAxis.Care, "장 목표 완료: {0}{1} · 모두 조금 더 편해질 겁니다"),
                 ("climax.warning", CorePole.Neutral, CoreAxis.Care, "위기가 다가옵니다: {0} · {1}분 뒤"),
                 ("climax.warning", CorePole.First, CoreAxis.Control, "위기가 다가옵니다: {0} · {1}분 뒤 · 배치를 점검합니다"),
                 ("climax.warning", CorePole.Second, CoreAxis.Care, "위기가 다가옵니다: {0} · {1}분 뒤 · 다들 안쪽으로 모여 주세요"),
                 ("chapter.start", CorePole.Neutral, CoreAxis.Care, "{0} 시작{1}"),
-                ("chapter.start", CorePole.Second, CoreAxis.Scope, "{0} 시작 · 더 멀리 갈 수 있다{1}"),
-                ("chapter.start", CorePole.First, CoreAxis.Scope, "{0} 시작 · 지킬 것부터 지킨다{1}"),
+                ("chapter.start", CorePole.Second, CoreAxis.Scope, "{0} 시작 · 더 멀리 갈 수 있습니다{1}"),
+                ("chapter.start", CorePole.First, CoreAxis.Scope, "{0} 시작 · 지킬 것부터 지킵니다{1}"),
                 ("gradeup", CorePole.Neutral, CoreAxis.Care, "{0}"),
-                ("outcome.Clean", CorePole.Neutral, CoreAxis.Care, "모두 무사합니다. 기록해 둡니다."),
-                ("outcome.Clean", CorePole.First, CoreAxis.Care, "손실 없음. 예상대로입니다."),
-                ("outcome.Hurt", CorePole.Neutral, CoreAxis.Care, "상처는 났지만 버텼습니다."),
-                ("outcome.Hurt", CorePole.Second, CoreAxis.Care, "다친 곳부터 살피겠습니다. 미안합니다."),
-                ("outcome.Lost", CorePole.Neutral, CoreAxis.Care, "잃은 것이 있습니다. 잊지 않겠습니다."),
-                ("outcome.Lost", CorePole.Second, CoreAxis.Memory, "잃은 것은 지우고 앞으로 갑니다."),
+                // 결과 창 독백 = 코어 혼잣말 반말 (사용자 결정 2026-10-25, 13-8 준비 ② — 대이주 · 장 전환 독백과 같은 목소리)
+                ("outcome.Clean", CorePole.Neutral, CoreAxis.Care, "모두 무사하다. 기록해 둔다."),
+                ("outcome.Clean", CorePole.First, CoreAxis.Care, "손실 없음. 예상대로다."),
+                ("outcome.Hurt", CorePole.Neutral, CoreAxis.Care, "상처는 났지만 버텼다."),
+                ("outcome.Hurt", CorePole.Second, CoreAxis.Care, "다친 곳부터 살핀다. 미안하다."),
+                ("outcome.Lost", CorePole.Neutral, CoreAxis.Care, "잃은 것이 있다. 잊지 않겠다."),
+                ("outcome.Lost", CorePole.Second, CoreAxis.Memory, "잃은 것은 지우고 앞으로 간다."),
                 // 13-4 1장 방향 (기억 축)
                 ("choice.remember", CorePole.Neutral, CoreAxis.Care, "지구 쪽 창을 열어 두었다. 꺼져 가는 불빛을 잊지 않으려고."),
                 ("choice.forget", CorePole.Neutral, CoreAxis.Care, "뒤를 보는 창은 닫았다. 이제 앞만 본다."),

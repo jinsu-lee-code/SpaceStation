@@ -431,7 +431,7 @@ namespace SpaceStation.UI
             if (_ships != null && _ships.ClockOn)
             {
                 var next = _ships.NextShip;
-                string slow = _ships.Slowed ? $"\n<size=86%><color={HudText.Orange}>정거장이 흔들려 배가 사정을 보며 늦게 옵니다</color></size>" : "";
+                string slow = _ships.Slowed ? $"\n<size=86%><color={HudText.Orange}>정거장이 불안해 이민선이 늦게 옵니다</color></size>" : "";
                 bool held = _chapters.Phase == ChapterPhase.Climax || _chapters.Phase == ChapterPhase.Transition;
                 string clock = held ? "대기 중" : $"{ArkShipSystem.Clock(_ships.TimeLeft)} 뒤";
                 if (_chapters.Phase != ChapterPhase.Climax || _chapters.Current.Climax.Kind != ChapterClimaxKind.GreatMigration) // 13-6c 대이주 중엔 절정 줄이 배를 보여 줌
@@ -696,7 +696,7 @@ namespace SpaceStation.UI
 
         private void ShowEnding()
         {
-            _modalTitle.SetText($"<color={Gold}>이어질 이야기</color>\n<size=60%>수직 단면 · {_chapters.Count}장까지</size>");
+            _modalTitle.SetText($"<color={Gold}>이어질 이야기</color>\n<size=60%>캠페인 1~{_chapters.Count}장</size>");
             _sb.Clear();
             foreach (var r in _chapters.Records)
             {

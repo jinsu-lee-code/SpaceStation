@@ -606,7 +606,7 @@ namespace SpaceStation.UI
             if (lines.Count == 0)
             {
                 string name = _ark.SpeciesName(ship.Species);
-                lines.Add($"배 한 척이 포트에 닿았다. 처음 보는 {name}들이다.");
+                lines.Add($"배 한 척이 방주에 닿았다. 처음 보는 {name}들이다.");
                 lines.Add("들일지 돌려보낼지, 이번엔 내가 정해야 한다.");
             }
             return lines;

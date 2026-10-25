@@ -171,7 +171,7 @@ namespace SpaceStation.UI
             title.fontStyle = FontStyles.Bold;
             HoloUi.Place(title.rectTransform, new Vector2(40f, -26f), new Vector2(400f, 48f));
             HoloUi.Glow(title, 0.5f);
-            var sub = _ui.Label(_window, $"<color={Soft}>방주 \"코어\"의 AI가 남긴 기록 · 성향은 선택에 따라 조금씩 움직입니다</color>", 17f, TextAlignmentOptions.TopLeft);
+            var sub = _ui.Label(_window, $"<color={Soft}>방주 운영 지능 '코어'의 기록 · 성향은 선택에 따라 조금씩 움직입니다</color>", 17f, TextAlignmentOptions.TopLeft);
             HoloUi.Place(sub.rectTransform, new Vector2(40f, -72f), new Vector2(WindowWidth - 80f, 28f));
 
             // 왼쪽: 성향 4축 + 최근 원인 / 오른쪽: 로그
