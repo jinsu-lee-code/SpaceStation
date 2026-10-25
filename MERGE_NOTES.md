@@ -843,3 +843,17 @@
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상. 타이쿤판이 `GameAudio`의 정비 소리를 고쳤으면 그 부분만 맞춤.
+
+## M-50. 장이 여는 레시피 · 지을 수 있는 칸 · 합성 속도 통로 (2026-10-26, `main`)
+
+**main에 넣은 것** — 서사판 14-1 (4장 '좁아진 하늘', 사용자 결정 2026-10-26: 레시피는 장이 바로 엶 · 위기 '파편 띠' 동안 새 칸 금지 · 여우 = 합성 속도)
+- `SynthesisSystem.OpensDirectly` (`Func<RecipeData, bool>`, null = 없음) · `IsOpenedDirectly(recipe)` = 자동 해금 또는 여는 쪽이 연 레시피. `IsUnlocked`(연구 확장 없을 때) · `ResearchExpansionSystem.StateOf` · `RecipePanel`이 이것으로 '해금'을 봄 (규칙 · 등급 조건은 그대로 따로) — 연 레시피는 해금 연구가 '이미 해금'으로 막힘
+- `IBuildZone` (Core, `Allows(cell)`) · `StationSimulation.BuildZone` (null = 없음) · `PlacementResult.OutsideZone` — 건설(`EvaluatePlacement`) · 이동(`EvaluateMove`)은 모든 칸이 허용돼야 함, 재건축 · 합성은 같은 칸이라 막지 않음. 사유 글 "지금은 새 칸에 지을 수 없음 (모듈이 있던 칸에만)"
+- `ResidentTrait.Artisan` (손재주, 맨 끝에 더함 — 개인 특성 정의는 없어 아무도 뽑히지 않음, 서사판 종족 기술이 통로로 씀) · `ResearchEffects.TraitSynthesisSpeedMultiplier` · `SynthesisSpeedMultiplier` → `SynthesisSystem.Tick`이 곱함 · `SecondsLeft(job)` · 레시피 창 시간 · 진행 표시도 반영
+- 시험: `SynthesisTests.OpensDirectly_UnlocksWithoutResearch` · `SynthesisSpeed_ShortensJob` · `BuildZone_BlocksNewCells_RebuildAndMoveFollowZone`
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 서사판이 4장에서 채움 (장이 여는 레시피 · 파편 띠 칸 · 여우 `SP_Fox` 기술 통로 = Artisan, `SpeciesData.TechName`에 "합성 속도").
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상. 타이쿤판은 셋 다 비워 둠 (값이 없으면 예전과 같음). 타이쿤판이 `ResidentTrait`에 값을 더했으면 순서를 맞춤 (세이브 · 에셋은 정수로 저장 — 맨 끝에 붙이기).

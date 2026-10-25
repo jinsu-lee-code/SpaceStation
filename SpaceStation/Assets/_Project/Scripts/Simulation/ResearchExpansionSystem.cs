@@ -114,8 +114,8 @@ namespace SpaceStation.Simulation
         {
             if (recipe == null)
                 return RecipeState.Hidden;
-            if (recipe.UnlockedByDefault || _researched.Contains(recipe))
-                return RecipeState.Unlocked;
+            if (_researched.Contains(recipe) || (Sim.Synthesis != null ? Sim.Synthesis.IsOpenedDirectly(recipe) : recipe.UnlockedByDefault))
+                return RecipeState.Unlocked; // M-50: 장이 바로 연 레시피도
             var category = Sim.Research.Find(recipe.ResearchCategory);
             return category != null && Sim.Research.GetLevel(category) >= RevealLevel(recipe) ? RecipeState.Shadow : RecipeState.Hidden;
         }

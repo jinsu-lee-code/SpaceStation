@@ -200,7 +200,7 @@ namespace SpaceStation.UI
         private RecipeState StateOf(RecipeData r)
         {
             var ex = _sim.ResearchExpansion;
-            return ex != null ? ex.StateOf(r) : r.UnlockedByDefault ? RecipeState.Unlocked : RecipeState.Hidden;
+            return ex != null ? ex.StateOf(r) : _syn.IsOpenedDirectly(r) ? RecipeState.Unlocked : RecipeState.Hidden;
         }
 
         private static string Reason(ExpansionStartResult result, RecipeResearchCost cost, int points) => result switch
@@ -407,7 +407,7 @@ namespace SpaceStation.UI
             }
             sb.Append('\n');
             sb.Append($"<color={HudText.Muted}>합성 비용</color>  ").Append(HudText.Cost(_syn.GetCost(r)))
-              .Append($"   <color={HudText.Muted}>시간</color>  ").Append(r.Duration.ToString("0")).Append("초\n");
+              .Append($"   <color={HudText.Muted}>시간</color>  ").Append((r.Duration / _sim.Effects.SynthesisSpeedMultiplier).ToString("0")).Append("초\n"); // M-50 손재주 반영
             sb.Append($"<color={HudText.Muted}>모듈 수</color>  재료 {r.Result.GradeModuleCount}개로 셈 (등급 조건)\n");
             if (!string.IsNullOrEmpty(r.Rationale))
                 sb.Append($"\n<i>{r.Rationale}</i>\n");
@@ -529,7 +529,7 @@ namespace SpaceStation.UI
                 if (sb.Length > 0)
                     sb.Append('\n');
                 sb.Append("<color=#B79CFF>합성</color> ").Append(job.Recipe.DisplayName).Append("  ").Append((job.Progress01 * 100f).ToString("0")).Append('%');
-                sb.Append(job.Paused ? $" <color={HudText.Orange}>멈춤 (파손 재료)</color>" : $" <color={HudText.Muted}>{ResearchView.FormatTime(job.Remaining)}</color>");
+                sb.Append(job.Paused ? $" <color={HudText.Orange}>멈춤 (파손 재료)</color>" : $" <color={HudText.Muted}>{ResearchView.FormatTime(_syn.SecondsLeft(job))}</color>");
             }
             _tracker.SetText(sb.ToString());
         }
