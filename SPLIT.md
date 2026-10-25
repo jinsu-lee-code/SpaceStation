@@ -144,6 +144,7 @@
 | 튜토리얼 (`GameModeData.TutorialChoice` · 게임 씬 `SimulationHost._tutorial`) | 서사판 = 코어 기동(TUT_CoreBoot), 타이쿤판 = 공통 튜토리얼 | 게임 씬 튜토리얼을 모드별로 |
 | `BalanceRunSettings.Extension` (측정 도구, M-46) · `BalanceBot.MaintainAtFor` · `RebuildBelowFor` · `TryBuild(점수)` (M-47) | 서사판 캠페인 봇(`CampaignBotExtension`, 메뉴 Balance/Campaign Bot)이 채움, 타이쿤판 = 비움(공통 봇) | 둘 다 그대로 — 측정 메뉴가 모드마다 따로. 공통 요약의 "연구 최종 레벨" 줄은 공통 6분야 기준이라 캠페인은 campaign.txt의 기록 연구 줄을 봄 |
 | `SynthesisSystem.OpensDirectly` · `StationSimulation.BuildZone` · `ResidentTrait.Artisan`(합성 속도 통로) (M-50) | 서사판 = 장이 그 장 레시피를 엶 · 4장 위기 동안 새 칸 금지 · 여우 종족 기술, 타이쿤판 = 비움(연구로 해금 · 칸 제한 없음 · 통로 안 씀) | 엔드리스 = 비움 — 캠페인 시스템을 붙일 때만 채워짐 |
+| `TutorialData.Free` · `TutorialGoal.OpenRecipes / PlaceSynthesis / StartSynthesis` (M-51) | 서사판 = 4장 합성 안내(장 안내, 막지 않음), 타이쿤판 = 안 씀(기존 튜토리얼은 막는 안내) | 둘 다 그대로 — 엔드리스에서 합성 안내가 필요하면 같은 단계로 |
 
 - 그 밖에 판마다 다른 게임 씬 · 메뉴 씬 설정 (합칠 때 모드별로 나눔): `SimulationHost` 연구 목록(서사판 = 기록 4갈래 + 자동화) · 장 데이터 · 이민선 · 탐사 · 기록 설정 (메뉴 Chapters/Setup Greybox), 메인 메뉴 배경(서사판 = 꺼져 가는 지구), 난이도 장별 간격(서사판 `DifficultyPreset._chapter*`)
 - 문서: BALANCE.md 번호 — 공통 1~40, 타이쿤판 41~, 서사판 "서사판 N번"(번호가 겹치지 않게 따로) → 합칠 때 한 차례로 다시 매김

@@ -328,6 +328,28 @@ namespace SpaceStation.Tests
             Assert.IsTrue(t.Allows(Core.TutorialAction.Demolish));
         }
 
+        [Test]
+        public void FreeGuide_HoldsNothing_SynthesisStepsAdvanceOnReports()
+        {
+            var sim = Sim();
+            var data = Data(Step(TutorialGoal.OpenRecipes, false), Step(TutorialGoal.PlaceSynthesis, false), Step(TutorialGoal.StartSynthesis, false));
+            data.SetFree(true); // M-51 막지 않는 안내
+            var t = sim.StartTutorial(data);
+            Assert.IsFalse(sim.Events.Held, "무작위 이벤트 그대로");
+            Assert.IsTrue(t.Allows(Core.TutorialAction.Demolish), "모든 조작 허용");
+            Assert.IsTrue(t.Allows(Core.TutorialAction.Build, _block));
+            sim.Tick(1f);
+            Assert.IsFalse(sim.Damage.TimersHeld, "파손 · 노후 타이머 그대로");
+            Assert.AreEqual(0, t.StepIndex);
+
+            t.ReportSynthesis(TutorialGoal.PlaceSynthesis);
+            Assert.AreEqual(2, t.StepIndex, "뒤 단계에 닿으면 앞 단계까지 완료 (틱 없이)");
+            sim.Events.Held = true; // 예: 위기가 이벤트를 잡아 둠
+            t.ReportSynthesis(TutorialGoal.StartSynthesis);
+            Assert.IsFalse(t.Active);
+            Assert.IsTrue(sim.Events.Held, "끝나도 다른 쪽이 잡은 이벤트를 풀지 않음");
+        }
+
         // ---------------- 도우미 ----------------
 
         private static TutorialStep Step(TutorialGoal goal, bool holdBeforeNight, params ModuleData[] modules) =>

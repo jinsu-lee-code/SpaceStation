@@ -15,6 +15,8 @@ namespace SpaceStation.Simulation
     ///   정비 단계는 모듈 하나를 일부러 낡게 해 두고 정비하면 완료. 단계에 해당하는 조작만 허용 (<see cref="Allows"/>).
     /// 카메라 조작·배속은 화면 쪽(TutorialView)이 <see cref="ReportCamera"/>, <see cref="ReportSpeed"/>로 알린다.
     /// - 11-18 내부 단계(들어가기 · 패드 · 부탁 · 사고)는 내부 쪽(InteriorMode)이 <see cref="ReportInside"/>, <see cref="ReportInterior"/>로 알리고 바로 판정.
+    /// - M-51 조작을 막지 않는 안내(<see cref="TutorialData.Free"/>): 이벤트 · 노후 · 파손 타이머를 멈추지 않고 모든 조작을 허용, 보급 없음.
+    ///   합성 단계(창 열기 · 위치 지정 · 시작)는 화면 쪽(RecipePanel · SynthesisController)이 <see cref="ReportSynthesis"/>로 알림.
     /// </summary>
     public sealed class TutorialRunner
     {
@@ -58,6 +60,7 @@ namespace SpaceStation.Simulation
         private bool _wasNight;
         private ModuleInstance _maintainTarget;
         private bool _interiorDone;
+        private int _synthesisReached; // M-51: 1 = 창 열기 · 2 = 위치 지정 · 3 = 시작 (화면 보고, 저장 안 함)
 
         /// <summary>11-18 정비 단계에서 정비할 모듈 (없으면 null).</summary>
         public ModuleInstance MaintainTarget => _maintainTarget;
@@ -66,7 +69,8 @@ namespace SpaceStation.Simulation
         {
             _sim = sim ?? throw new ArgumentNullException(nameof(sim));
             _data = data ?? throw new ArgumentNullException(nameof(data));
-            _sim.Events.Held = true;
+            if (!_data.Free)
+                _sim.Events.Held = true;
             _wasNight = !_sim.DayNight.IsDay(_sim.ElapsedSeconds);
             if (_data.Steps.Count == 0)
                 Finish(false);
@@ -111,6 +115,42 @@ namespace SpaceStation.Simulation
         /// <summary>11-18: 내부에 있어야 진행되는 단계 (패드 · 부탁 · 사고).</summary>
         public static bool NeedsInside(TutorialGoal goal) =>
             goal == TutorialGoal.InteriorPad || goal == TutorialGoal.InteriorRequest || goal == TutorialGoal.InteriorIncident;
+
+        /// <summary>
+        /// M-51 합성 단계: 화면이 창 열기(<see cref="TutorialGoal.OpenRecipes"/>) · 위치 지정(<see cref="TutorialGoal.PlaceSynthesis"/>)을 알림.
+        /// 앞 단계를 건너뛰고 뒤 단계에 닿아도 앞 단계까지 완료로 보며, 시간이 멈춰 있어도 바로 판정한다.
+        /// </summary>
+        public void ReportSynthesis(TutorialGoal reached)
+        {
+            if (!Active)
+                return;
+            _synthesisReached = Math.Max(_synthesisReached, SynthesisOrder(reached));
+            var step = Current;
+            if (step != null && IsComplete(step))
+                Advance();
+        }
+
+        private static int SynthesisOrder(TutorialGoal goal)
+        {
+            switch (goal)
+            {
+                case TutorialGoal.OpenRecipes: return 1;
+                case TutorialGoal.PlaceSynthesis: return 2;
+                case TutorialGoal.StartSynthesis: return 3;
+                default: return 0;
+            }
+        }
+
+        /// <summary>합성 단계 진행 (진행 중이거나 마친 합성이 있으면 3).</summary>
+        private int SynthesisReached
+        {
+            get
+            {
+                var syn = _sim.Synthesis;
+                bool started = syn != null && (syn.Jobs.Count > 0 || _sim.Session.Syntheses > 0);
+                return started ? 3 : _synthesisReached;
+            }
+        }
 
         public void Skip()
         {
@@ -169,7 +209,8 @@ namespace SpaceStation.Simulation
                 Advance();
                 return;
             }
-            UpdateSupply(step, dt);
+            if (!_data.Free)
+                UpdateSupply(step, dt);
         }
 
         private void FireMeteor()
@@ -224,8 +265,8 @@ namespace SpaceStation.Simulation
         public bool Allows(TutorialAction action, ModuleData data = null)
         {
             var step = Current;
-            if (!Active || step == null)
-                return true;
+            if (!Active || step == null || _data.Free)
+                return true; // M-51 막지 않는 안내
             switch (action)
             {
                 case TutorialAction.Build:
@@ -282,6 +323,10 @@ namespace SpaceStation.Simulation
                 case TutorialGoal.InteriorRequest:
                 case TutorialGoal.InteriorIncident:
                     return _interiorDone;
+                case TutorialGoal.OpenRecipes:
+                case TutorialGoal.PlaceSynthesis:
+                case TutorialGoal.StartSynthesis:
+                    return SynthesisReached >= SynthesisOrder(step.Goal);
                 default:
                     return true;
             }
@@ -330,8 +375,11 @@ namespace SpaceStation.Simulation
             Active = false;
             Skipped = skipped;
             UpdateHold();
-            _sim.Events.Held = false;
-            _sim.Events.Postpone(_data.PostTutorialGrace);
+            if (!_data.Free) // M-51 막지 않는 안내는 이벤트를 잡지 않았음 (위기 중 잡힌 이벤트를 풀지 않게)
+            {
+                _sim.Events.Held = false;
+                _sim.Events.Postpone(_data.PostTutorialGrace);
+            }
             Finished?.Invoke(skipped);
         }
 

@@ -25,6 +25,12 @@ namespace SpaceStation.Data
         InteriorRequest,
         /// <summary>11-18: 내부에서 튜토리얼용 사고 하나 처리 (제한 시간 · 손해 없음).</summary>
         InteriorIncident,
+        /// <summary>M-51: 합성 창 열기 (레시피 창이 알림, 합성을 이미 시작했으면 완료).</summary>
+        OpenRecipes,
+        /// <summary>M-51: 레시피를 골라 [위치 지정] (규격 고스트가 뜸).</summary>
+        PlaceSynthesis,
+        /// <summary>M-51: 합성 시작 (진행 중이거나 마친 합성이 있으면 완료).</summary>
+        StartSynthesis,
     }
 
     /// <summary>안내 카드 외에 깜빡일 HUD 영역 (건설 단계는 모듈 버튼·탭을 자동으로 강조).</summary>
@@ -111,6 +117,8 @@ namespace SpaceStation.Data
         [SerializeField, TextArea(3, 8)] private string _finishBody;
         [Tooltip("저장하지 않는 짧은 안내 (서사판 내부 안내 — 진행 중에 저장해도 다음에 처음부터)")]
         [SerializeField] private bool _transient;
+        [Tooltip("M-51 조작을 막지 않는 안내 (서사판 4장 합성 안내): 진행 중에도 모든 조작 · 무작위 이벤트 · 노후 · 파손 타이머가 그대로, 보급 없음")]
+        [SerializeField] private bool _free;
 
         public IReadOnlyList<TutorialStep> Steps => _steps;
         public float CameraRotateDegrees => _cameraRotateDegrees;
@@ -127,6 +135,7 @@ namespace SpaceStation.Data
         public string FinishTitle => _finishTitle;
         public string FinishBody => _finishBody;
         public bool Transient => _transient;
+        public bool Free => _free;
 
         /// <summary>에디터 설정·테스트용.</summary>
         public void SetSteps(IEnumerable<TutorialStep> steps)
@@ -142,6 +151,12 @@ namespace SpaceStation.Data
             _finishBody = finishBody;
             _transient = transient;
             _postTutorialGrace = Mathf.Max(0f, postTutorialGrace);
+        }
+
+        /// <summary>M-51 에디터 설정·테스트용: 조작을 막지 않는 안내.</summary>
+        public void SetFree(bool free)
+        {
+            _free = free;
         }
     }
 }
