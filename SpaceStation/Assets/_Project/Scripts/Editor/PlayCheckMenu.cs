@@ -45,6 +45,14 @@ namespace SpaceStation.Editor
         [MenuItem(Menu + "5. 3장 결과 → 장 전환 연출 → 4장 시작 (합성 안내)", priority = 5)]
         private static void ChapterThreeResult() => Start("3장 결과 창", 3, chapter: 2, ChapterPhase.Transition);
 
+        [MenuItem(Menu + "6. 4장 위기 '파편 띠' 15초 전", priority = 6)]
+        private static void ChapterFourClimax() => Start("4장 위기 15초 전", 4, chapter: 3, ChapterPhase.Warning);
+
+        [MenuItem(Menu + "7. 4장 결과 → 장 전환 연출 → 5장 시작", priority = 7)]
+        private static void ChapterFourResult() => Start("4장 결과 창", 4, chapter: 3, ChapterPhase.Transition);
+
+        [MenuItem(Menu + "6. 4장 위기 '파편 띠' 15초 전", true)]
+        [MenuItem(Menu + "7. 4장 결과 → 장 전환 연출 → 5장 시작", true)]
         [MenuItem(Menu + "1. 1장 결과 → 장 전환 연출 → 2장 시작", true)]
         [MenuItem(Menu + "2. 2장 위기 '큰 유성우' 15초 전", true)]
         [MenuItem(Menu + "3. 2장 결과 → 장 전환 연출 → 3장 시작", true)]

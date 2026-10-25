@@ -821,9 +821,9 @@ namespace SpaceStation.Simulation
             }
         }
 
-        public override string Status => BandActive
-            ? $"파편 띠 {Clock(_bandLeft)} · {ShipStep()} · {Tally}"
-            : $"띠가 지나감 · {ShipStep()} · {Tally}";
+        public override string Status => BandActive // 장 카드는 "위기 이름 + 이 줄"로 보여 줌 (이름을 다시 쓰지 않음)
+            ? $"{Clock(_bandLeft)} 남음 · {ShipStep()} · {Tally}"
+            : $"지나감 · {ShipStep()} · {Tally}";
 
         // ---------------- 칸 (IBuildZone) ----------------
 

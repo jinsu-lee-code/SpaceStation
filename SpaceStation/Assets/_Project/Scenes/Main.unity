@@ -7888,6 +7888,60 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!1 &1129404473
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1129404475}
+  - component: {fileID: 1129404474}
+  m_Layer: 0
+  m_Name: DebrisBandView
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1129404474
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1129404473}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e42cb1bc184ec04eae6b9489ab15f17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.DebrisBandView
+  _station: {fileID: 968511355}
+  _rockMaterial: {fileID: 2100000, guid: db3404358e08eb6488e26aa4cb226597, type: 2}
+  _hullMaterial: {fileID: 2100000, guid: 4ccc109889df983499122c9e6efc85e5, type: 2}
+  _pieces: 160
+  _margin: 4
+  _thickness: 3
+  _height: 2.5
+  _orbitSpeed: 6
+  _gatherSeconds: 2.5
+  _scatterDistance: 12
+--- !u!4 &1129404475
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1129404473}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1132423535
 GameObject:
   m_ObjectHideFlags: 0
@@ -14357,3 +14411,4 @@ SceneRoots:
   - {fileID: 565446689}
   - {fileID: 1685391427}
   - {fileID: 2015711782}
+  - {fileID: 1129404475}

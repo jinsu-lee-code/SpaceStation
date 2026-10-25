@@ -317,7 +317,7 @@ namespace SpaceStation.Tests
             StringAssert.Contains("파편 띠", sim.BuildZone.Reason);
             Assert.IsTrue(sim.TryRemove(block));
             Assert.AreEqual(PlacementResult.Valid, sim.EvaluatePlacement(_block, new Vector3Int(1, 0, 0), 0), "철거한 자리는 다시 지을 수 있음");
-            StringAssert.StartsWith("파편 띠", sim.Chapters.Climax.Status);
+            StringAssert.Contains("남음", sim.Chapters.Climax.Status, "띠 남은 시간");
 
             RunUntil(sim, () => ark.Pending != null && ark.Pending.Convoy);
             Assert.IsTrue(ark.Answer(ShipAnswer.Accept)); // 5/5

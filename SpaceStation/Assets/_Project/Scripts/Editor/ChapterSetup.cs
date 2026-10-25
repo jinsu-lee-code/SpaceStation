@@ -312,6 +312,7 @@ namespace SpaceStation.Editor
             earthSo.ApplyModifiedPropertiesWithoutUndo();
 
             AddCampaignCheckpoints(station);
+            AddDebrisBandView(station);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -328,6 +329,41 @@ namespace SpaceStation.Editor
             var so = new SerializedObject(checkpoints);
             so.FindProperty("_station").objectReferenceValue = station;
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// 14-1d 4장 위기 '파편 띠' 고리 (씬 맨 위 빈 오브젝트) — 바위 = 배경 소행성 재질, 조각 = 탐사 선체 재질.
+        /// 열려 있는 씬에서 부름 (에셋은 씬을 연 뒤 경로로 — 먼저 잡은 참조는 씬을 열면 끊김).
+        /// </summary>
+        public static void AddDebrisBandView(StationController station)
+        {
+            foreach (var old in Object.FindObjectsByType<SpaceStation.UI.DebrisBandView>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                Object.DestroyImmediate(old.gameObject);
+            var go = new GameObject("DebrisBandView");
+            var view = go.AddComponent<SpaceStation.UI.DebrisBandView>();
+            var so = new SerializedObject(view);
+            so.FindProperty("_station").objectReferenceValue = station;
+            var ambient = Object.FindFirstObjectByType<SpaceStation.Building.AmbientSpace>(FindObjectsInactive.Include);
+            so.FindProperty("_rockMaterial").objectReferenceValue = ambient != null ? new SerializedObject(ambient).FindProperty("_rockMaterial").objectReferenceValue : null;
+            so.FindProperty("_hullMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/Explore/M_ExploreHull.mat");
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>14-1d: 지금 열린 게임 씬에 파편 띠 고리만 붙임 (Setup Greybox 전체를 다시 돌리지 않을 때).</summary>
+        [MenuItem("SpaceStation/Chapters/Setup Debris Band View (4장 파편 띠)")]
+        public static void SetupDebrisBandView()
+        {
+            var scene = EditorSceneManager.GetActiveScene();
+            var station = Object.FindFirstObjectByType<StationController>();
+            if (scene.path != GameScene || station == null)
+            {
+                Debug.LogError("[ChapterSetup] 게임 씬(Main)을 열고 다시 — StationController가 없음");
+                return;
+            }
+            AddDebrisBandView(station);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log("[ChapterSetup] 파편 띠 고리 (DebrisBandView)");
         }
 
         private const string CorePath = "Assets/_Project/Data/Chapters/CoreConfig.asset";
