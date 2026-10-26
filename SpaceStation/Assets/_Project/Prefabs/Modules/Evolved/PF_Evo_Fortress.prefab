@@ -574,6 +574,9 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 81d54e14269b4c441a7241d9667b8ea1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2473404360095718566}
     - targetCorrespondingSourceObject: {fileID: -627467743082517586, guid: 81d54e14269b4c441a7241d9667b8ea1, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2283866590697644843}
@@ -598,6 +601,31 @@ MonoBehaviour:
   _speed: 40
   _acceleration: 0.25
   _axis: {x: 0, y: 0, z: 0}
+--- !u!1 &5802054401483011300 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 81d54e14269b4c441a7241d9667b8ea1, type: 3}
+  m_PrefabInstance: {fileID: 6648544971910531509}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2473404360095718566
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5802054401483011300}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67c90b2b32a3698428660f621194f274, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.FireworkFx
+  _sparkMaterial: {fileID: 2100000, guid: 8c490583a03f6ae4c85a131c26bbdb87, type: 2}
+  _lineMaterial: {fileID: 2100000, guid: 2499d14c89deb2f4b8c186f4d4dbc132, type: 2}
+  _mortars:
+  - {x: 0, y: 0.05, z: 1}
+  - {x: 2, y: 0.05, z: 1}
+  _showInterval: 22
+  _burstSize: 1.8
+  _showSize: 1.2
 --- !u!4 &6615463566828023390 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 81d54e14269b4c441a7241d9667b8ea1, type: 3}
