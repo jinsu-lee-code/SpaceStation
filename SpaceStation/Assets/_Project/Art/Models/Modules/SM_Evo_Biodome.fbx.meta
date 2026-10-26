@@ -3,7 +3,27 @@ guid: 6f90f9ba558036a45be1e98ca7f11d59
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FX_FluorWhite
+    second: {fileID: 2100000, guid: 0680c92bd4497f74bbce13f1786073b5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FX_WaterColumn
+    second: {fileID: 2100000, guid: 251a1d0d6a535c1489510dedf9084a3c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tex_Evo_Biodome
+    second: {fileID: 2100000, guid: 66e453afc5dcbd04491196bbc376b630, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tex_Evo_Biodome_Cloud
+    second: {fileID: 2100000, guid: 2900e2e72fb30e944af9ea706912902c, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -42,8 +62,8 @@ ModelImporter:
     importPhysicalCameras: 1
     importVisibility: 1
     importBlendShapes: 1
-    importCameras: 1
-    importLights: 1
+    importCameras: 0
+    importLights: 0
     nodeNameCollisionStrategy: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
@@ -80,7 +100,7 @@ ModelImporter:
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
   referencedClips: []
-  importAnimation: 1
+  importAnimation: 0
   humanDescription:
     serializedVersion: 3
     human: []

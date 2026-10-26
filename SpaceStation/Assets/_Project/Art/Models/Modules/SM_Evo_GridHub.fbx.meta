@@ -3,7 +3,37 @@ guid: 49a3af45ba4d05d44bac3b845e86e85e
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FX_FluorWhite
+    second: {fileID: 2100000, guid: 0680c92bd4497f74bbce13f1786073b5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FX_FluorYellow
+    second: {fileID: 2100000, guid: 02f6cca623168cd45b86ddf525031758, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FX_TwinkleWhite
+    second: {fileID: 2100000, guid: 7344f636b4bd6db49b5851af04a23701, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tex_Evo_GridHub
+    second: {fileID: 2100000, guid: 14f7c45ce90543c498992b78fa3403ab, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tex_Evo_GridHub_Ring
+    second: {fileID: 2100000, guid: f78707359411a3d4fa3b7bf3e99d169e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Window
+    second: {fileID: 2100000, guid: 72bae9e16b61eac49858089a7b6abea2, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -31,7 +61,7 @@ ModelImporter:
     extraExposedTransformPaths: []
     extraUserProperties: []
     clipAnimations: []
-    isReadable: 0
+    isReadable: 1
   meshes:
     lODScreenPercentages: []
     globalScale: 1
@@ -42,8 +72,8 @@ ModelImporter:
     importPhysicalCameras: 1
     importVisibility: 1
     importBlendShapes: 1
-    importCameras: 1
-    importLights: 1
+    importCameras: 0
+    importLights: 0
     nodeNameCollisionStrategy: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
@@ -80,7 +110,7 @@ ModelImporter:
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
   referencedClips: []
-  importAnimation: 1
+  importAnimation: 0
   humanDescription:
     serializedVersion: 3
     human: []
