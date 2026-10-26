@@ -12,6 +12,7 @@ namespace SpaceStation.Building
     /// - 명중: 우주에서 꼬리를 끌며 날아와 모듈 표면에 충돌 → 섬광 + 파편, 이때 모듈 파손 표시 적용
     /// - 포탑 격추: 비행 중 가까운 포탑이 머리를 돌려 레이저 → 공중 폭발
     /// - 실드 빗겨냄: 실드 범위 구면에 닿는 순간 파문 + 실드 코어 번쩍임 → 튕겨서 다른 모듈로(명중/격추) 또는 우주로
+    ///   (진화 실드 돔은 파문 대신 오로라 커튼 장벽 — AuroraBarrierFx)
     /// 시간은 게임 시간(Time.deltaTime)을 따른다. 카메라 흔들림 없음.
     /// </summary>
     public sealed class MeteorFx : MonoBehaviour
@@ -123,9 +124,18 @@ namespace SpaceStation.Building
                 float toContact = _flightTime * Vector3.Distance(start, contact) / Vector3.Distance(start, target);
                 Launched?.Invoke(contact, toContact);
                 yield return Fly(meteor, start, contact, toContact, null);
-                Ripple(center, radius, contact);
+                bool hasView = _station.TryGetView(flight.DeflectedBy, out var shieldView);
+                // 진화 실드 돔: 구면 파문 대신 닿은 자리에 오로라 커튼 장벽 (AuroraBarrierFx)
+                var aurora = hasView ? shieldView.GetComponentInChildren<AuroraBarrierFx>() : null;
+                if (aurora != null)
+                {
+                    aurora.Play(center, radius, contact);
+                    Sparks(contact, 0.5f);
+                }
+                else
+                    Ripple(center, radius, contact);
                 Deflected?.Invoke(contact);
-                if (_station.TryGetView(flight.DeflectedBy, out var shieldView))
+                if (hasView)
                     shieldView.PlayImpulse();
 
                 if (flight.RicochetTarget != null)
