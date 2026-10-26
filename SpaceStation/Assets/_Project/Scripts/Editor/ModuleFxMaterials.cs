@@ -66,6 +66,16 @@ namespace SpaceStation.Editor
                 case "ShieldSail": return Glass("M_ShieldSail", new Color(0.45f, 0.7f, 1f, 0.22f), new Color(0.04f, 0.12f, 0.3f)); // 진화 실드 매트릭스 육각 격자 돔 유리 (하늘빛)
                 case "TwinkleWhite": return Twinkle("M_TwinkleWhite", new Color(1.4f, 1.4f, 1.5f, 1f));   // 진화 복지 · 문화 센터 별빛 점 (점마다 따로 반짝임)
                 case "TwinklePurple": return Twinkle("M_TwinklePurple", new Color(1.0f, 0.55f, 1.4f, 1f));
+                // 진화 2단계 (미드나잇 몸체 · 여가 테마파크, 2026-10-26) — 값은 Blender evo_builder 재질과 맞춤
+                case "FluorIce": return Fluorescent("M_FluorIce", new Color(0.62f, 0.93f, 1f));   // 테두리 띠 홈 안 청백 빛줄 2줄
+                case "EvoGlassTeal": return Glass("M_EvoGlassTeal", new Color(0.5f, 0.9f, 0.93f, 0.22f), new Color(0.02f, 0.07f, 0.075f)); // 넓은 옅은 청록 유리
+                case "EvoGlassClear": return Glass("M_EvoGlassClear", new Color(0.62f, 0.9f, 0.95f, 0.1f), new Color(0.015f, 0.035f, 0.04f)); // 안이 잘 보여야 하는 맑은 유리 (돔 · 드럼 바닥)
+                case "AuroraGreen": return Glow("M_AuroraGreen", new Color(0.15f, 0.5f, 0.3f, 1f));     // 실드 돔 오로라 커튼 (겹친 주름이 더해져 밝아지므로 한 겹은 옅게)
+                case "AuroraViolet": return Glow("M_AuroraViolet", new Color(0.36f, 0.22f, 0.55f, 1f)); // 오로라 · 은하수 빛 띠
+                case "LightBeam": return Glow("M_LightBeam", new Color(0.1f, 0.18f, 0.2f, 1f));         // 등대 빛줄기 · 거울 → 수신기 빛 (옅게)
+                case "GalaxyWater": return GalaxyWater();                                                // 은하수 물 (차폐벽 윗면 · 후룸 물길)
+                case "SplashMist": return Glass("M_SplashMist", new Color(0.82f, 0.92f, 1f, 0.42f), new Color(0.22f, 0.27f, 0.32f), 0.3f); // 큰 낙하 물안개 (윤기 없이)
+                case "Mirror": return Mirror();                                                          // 궤도 미러 해바라기 거울
                 default: return null;
             }
         }
@@ -100,12 +110,12 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>반투명 유리 (수경 농장 온실, 2026-10-02): URP Lit 투명 + 반사 + 은은한 발광 (밤에도 윤곽이 보이게).</summary>
-        private static Material Glass(string name, Color tint, Color emission)
+        private static Material Glass(string name, Color tint, Color emission, float smoothness = 0.92f)
         {
             var m = Load(name, Shader.Find("Universal Render Pipeline/Lit"));
             m.SetColor("_BaseColor", tint);
             m.SetFloat("_Metallic", 0f);
-            m.SetFloat("_Smoothness", 0.92f);
+            m.SetFloat("_Smoothness", smoothness);
             m.SetFloat("_Surface", 1f);   // Transparent
             m.SetFloat("_Blend", 0f);     // Alpha
             m.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
@@ -205,6 +215,49 @@ namespace SpaceStation.Editor
             m.SetColor("_EmissionColor", hdrEmission);
             m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>
+        /// 진화 2단계 빛 막 (오로라 커튼 · 빛줄기): URP Unlit 가산 + 양면. 모델 FX 메시는 꼭짓점 색이 검정(반짝임 위상용)이라
+        /// 꼭짓점 색을 곱하는 Particles/Unlit은 안 보임 → 꼭짓점 색을 안 쓰는 Unlit. ModuleView가 _BaseColor로 비활성 때 어둡게.
+        /// </summary>
+        private static Material Glow(string name, Color hdr)
+        {
+            var m = Load(name, Shader.Find("Universal Render Pipeline/Unlit"));
+            m.SetColor("_BaseColor", hdr);
+            m.SetFloat("_Surface", 1f);   // Transparent
+            m.SetFloat("_Blend", 2f);     // Additive
+            m.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+            m.SetFloat("_DstBlend", (float)BlendMode.One);
+            m.SetFloat("_SrcBlendAlpha", (float)BlendMode.One);
+            m.SetFloat("_DstBlendAlpha", (float)BlendMode.One);
+            m.SetFloat("_ZWrite", 0f);
+            m.SetFloat("_Cull", (float)CullMode.Off);
+            m.SetKeyword(new LocalKeyword(m.shader, "_SURFACE_TYPE_TRANSPARENT"), true);
+            m.renderQueue = (int)RenderQueue.Transparent;
+            m.SetOverrideTag("RenderType", "Transparent");
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>은하수 물: 깊은 남청 반투명 + 은은한 발광. 속 빛 띠 · 별가루(가산 · 반짝임)가 물에 묻히지 않게 물을 먼저 그림.</summary>
+        private static Material GalaxyWater()
+        {
+            var m = Glass("M_GalaxyWater", new Color(0.06f, 0.16f, 0.5f, 0.6f), new Color(0.03f, 0.07f, 0.22f));
+            m.renderQueue = (int)RenderQueue.Transparent - 1;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>해바라기 거울: 하늘을 비추는 은빛 금속 (불투명 Lit, 그늘에서도 윤곽이 보이게 약한 발광).</summary>
+        private static Material Mirror()
+        {
+            var m = Emissive("M_Mirror", new Color(0.78f, 0.88f, 0.98f, 1f), new Color(0.04f, 0.06f, 0.09f));
+            m.SetFloat("_Metallic", 0.9f);
+            m.SetFloat("_Smoothness", 0.9f);
             EditorUtility.SetDirty(m);
             return m;
         }

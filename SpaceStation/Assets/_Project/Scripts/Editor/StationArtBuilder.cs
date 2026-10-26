@@ -154,7 +154,7 @@ namespace SpaceStation.Editor
             return AssetDatabase.LoadAssetAtPath<GameObject>(path);
         }
 
-        private static void WireShieldFx(Transform emitter, Transform ringA, Transform ringB, Transform core)
+        private static void WireShieldFx(Transform emitter, Transform ringA, Transform ringB, Transform core, bool lighthouse = false)
         {
             var fx = emitter.gameObject.AddComponent<SpaceStation.Building.ShieldEmitterFx>();
             var so = new SerializedObject(fx);
@@ -163,9 +163,10 @@ namespace SpaceStation.Editor
             so.FindProperty("_core").objectReferenceValue = core;
             so.FindProperty("_orbMaterial").objectReferenceValue = ModuleFxMaterials.Get("ShieldOrb");
             so.FindProperty("_trailMaterial").objectReferenceValue = ModuleFxMaterials.Get("ShieldTrail");
-            // 게임 카메라 거리(약 12m)에서도 읽히도록 크고 빠르게
-            so.FindProperty("_ringASpeed").floatValue = 120f;
-            so.FindProperty("_ringBSpeed").floatValue = -80f;
+            // 게임 카메라 거리(약 12m)에서도 읽히도록 크고 빠르게 — 진화 실드 돔(등대)은 렌즈 드럼 + 위아래 프리즘이 한 덩어리로
+            // 천천히 돌아 등대 빛 두 줄기(렌즈 드럼의 Fx 자식)가 하늘을 쓸고 지나감 (사용자 2026-10-26)
+            so.FindProperty("_ringASpeed").floatValue = lighthouse ? 40f : 120f;
+            so.FindProperty("_ringBSpeed").floatValue = lighthouse ? 40f : -80f;
             so.FindProperty("_orbCount").intValue = 4;
             so.FindProperty("_orbRadius").floatValue = 0.125f;
             so.FindProperty("_orbSize").floatValue = 0.05f;
@@ -419,7 +420,7 @@ namespace SpaceStation.Editor
                 string tag = t.name.Substring("Emitter".Length);
                 var a = FindChild(instance.transform, "EmitterRingA" + tag);
                 if (a != null)
-                    WireShieldFx(t, a, FindChild(instance.transform, "EmitterRingB" + tag), FindChild(instance.transform, "EmitterCore" + tag));
+                    WireShieldFx(t, a, FindChild(instance.transform, "EmitterRingB" + tag), FindChild(instance.transform, "EmitterCore" + tag), tag == "_ShieldDome");
             }
             // 8-4 회전 링: "Spin" 부품이 모듈 Y축으로 회전
             var spin = FindChild(instance.transform, "Spin");
@@ -442,18 +443,23 @@ namespace SpaceStation.Editor
             // 진화 연구 단지: "SpinOrbit*" 궤도 고리 + 전자 한 덩어리가 고리 기울기 축으로 회전 → 고리는 제자리처럼, 전자가 고리를 따라 달림
             //   (피벗 = 고리 중심, 축은 메시에서 계산) — 진화 문화 센터 시계 "SpinClock*" (시계 고리 + 바늘, 초당 6°)도 같은 방식
             // 12-5 행정 관제소: "Flutter_{이름}" 깃발 사슬 맨 앞 조각에 펄럭임 (같은 부모 아래 "_1", "_2" 조각은 컴포넌트가 따라 찾음)
+            // 진화 식량 공장: "SpinWheel*" 유리 드럼이 부품 로컬 z축(드럼 축)으로 천천히 회전 (피벗 = 드럼 중심) — 테가 둘인 넓은 드럼은
+            //   OrbitAxis가 축을 기울게 잡으므로 메시가 아니라 부품 축을 씀
             foreach (var t in instance.GetComponentsInChildren<Transform>(true))
             {
                 bool radar = t.name.StartsWith("SpinRadar");
                 bool clock = t.name.StartsWith("SpinClock");
                 bool orbit = t.name.StartsWith("SpinOrbit") || clock;
-                if (radar || orbit || t.name.StartsWith("SpinDish"))
+                bool wheel = t.name.StartsWith("SpinWheel");
+                if (radar || orbit || wheel || t.name.StartsWith("SpinDish"))
                 {
                     var spinner = t.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
                     var sso = new SerializedObject(spinner);
-                    sso.FindProperty("_speed").floatValue = radar ? 40f : clock ? 6f : orbit ? 45f : 8f;
+                    sso.FindProperty("_speed").floatValue = radar ? 40f : clock ? 6f : orbit ? 45f : wheel ? 10f : 8f;
                     if (orbit)
                         sso.FindProperty("_axis").vector3Value = OrbitAxis(t, root);
+                    else if (wheel)
+                        sso.FindProperty("_axis").vector3Value = root.InverseTransformDirection(t.forward);
                     sso.ApplyModifiedPropertiesWithoutUndo();
                 }
                 else if (SpaceStation.Building.ModuleFlutter.IsChainRoot(t.name))
