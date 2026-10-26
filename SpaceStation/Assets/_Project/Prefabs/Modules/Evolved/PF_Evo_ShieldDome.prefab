@@ -550,6 +550,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -5885087961246278850, guid: 902ead97857586f4bad6b4f71234a950, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -5885087961246278850, guid: 902ead97857586f4bad6b4f71234a950, type: 3}
+      propertyPath: m_ReceiveShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -5794272841038598916, guid: 902ead97857586f4bad6b4f71234a950, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -5794272841038598916, guid: 902ead97857586f4bad6b4f71234a950, type: 3}
+      propertyPath: m_ReceiveShadows
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: -2529647319899528622, guid: 902ead97857586f4bad6b4f71234a950, type: 3}
       propertyPath: m_CastShadows
       value: 0
@@ -561,6 +577,22 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 902ead97857586f4bad6b4f71234a950, type: 3}
       propertyPath: m_Name
       value: Model
+      objectReference: {fileID: 0}
+    - target: {fileID: 1951257832060867594, guid: 902ead97857586f4bad6b4f71234a950, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1951257832060867594, guid: 902ead97857586f4bad6b4f71234a950, type: 3}
+      propertyPath: m_ReceiveShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5792776876875845094, guid: 902ead97857586f4bad6b4f71234a950, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5792776876875845094, guid: 902ead97857586f4bad6b4f71234a950, type: 3}
+      propertyPath: m_ReceiveShadows
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -625,8 +657,8 @@ MonoBehaviour:
   _core: {fileID: 6248967978075464511}
   _orbMaterial: {fileID: 2100000, guid: 7d04bf0155906d749be2ab1537ed0863, type: 2}
   _trailMaterial: {fileID: 2100000, guid: 758159e4617a68c408fe266163e8394e, type: 2}
-  _ringASpeed: 120
-  _ringBSpeed: -80
+  _ringASpeed: 40
+  _ringBSpeed: 40
   _orbCount: 4
   _orbRadius: 0.125
   _orbSize: 0.05

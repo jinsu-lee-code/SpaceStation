@@ -934,3 +934,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-26) 같은 파일이 tycoon 커밋 `03275d96`에 있음 (tycoon에서 메뉴 · 시험 · 칸 검사를 먼저 함).
+
+## M-56. 2단계 Unity 반영 ① — 새 FX 재질 · 드럼 회전 · 등대 렌즈 속도 · 미드나잇 몸체 그늘 밝기 (2026-10-26, `main`)
+
+**main에 넣은 것** (tycoon에서 생성, tycoon 커밋 `b5be0440`과 같은 파일)
+- `ModuleFxMaterials` 2단계 FX 재질 9종: `FluorIce` (테두리 띠 청백 빛줄) · `EvoGlassTeal` · `EvoGlassClear` (유리) · `AuroraGreen` · `AuroraViolet` · `LightBeam` (URP Unlit 가산 양면 — 모델 FX 메시 꼭짓점 색이 검정(반짝임 위상용)이라 꼭짓점 색을 곱하는 Particles/Unlit은 안 보임) · `GalaxyWater` (반투명 남청, 큐 −1로 먼저 그려 속 빛 띠 · 별가루가 묻히지 않게) · `SplashMist` (윤기 없는 물안개) · `Mirror` (은빛 금속) → 2단계 "알 수 없는 재질 슬롯" 경고 0
+- `StationArtBuilder`: 새 이름 규칙 `SpinWheel*` = 부품 로컬 z축(드럼 축)으로 초당 10° (식량 공장 유리 드럼 둘 — 테가 둘인 넓은 드럼은 `OrbitAxis`가 축을 기울게 잡아 부품 축을 씀) · 실드 돔(`Emitter_ShieldDome`)만 렌즈 드럼 + 위아래 프리즘이 한 덩어리로 초당 40° (등대 빛 두 줄기가 렌즈 드럼 Fx 자식이라 함께 돎, 다른 실드는 120 / −80 그대로)
+- `ModuleTextureMaterials` **미드나잇 몸체 그늘 밝기**: 해가 모듈 뒤(+z)에서 비춰 게임 카메라 쪽 면은 그늘(평평한 환경광 0.34 · 0.27 · 0.24만) → 짙은 남색 · 은빛 2단계가 거의 검게 보임 (금속 값을 낮춰도 그대로) → 2단계 17종(`MidnightBody`) 텍스처 발광에 바탕색 × 0.5를 더함. 1단계 흰 몸체는 그대로. 발광이라 비활성 · 파손 때 ModuleView가 함께 어둡게
+- Recipes/Setup 산출물: 2단계 프리팹 17종 · FBX 리맵(.meta) · 2단계 발광 텍스처 41장 · 새 FX 재질 9개
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (`StationArtBuilder` · `ModuleFxMaterials` · `ModuleTextureMaterials`를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-26) 같은 파일이 tycoon 커밋 `b5be0440`에 있음 (미리보기 렌더 17종 확인 · EditMode 434 통과).

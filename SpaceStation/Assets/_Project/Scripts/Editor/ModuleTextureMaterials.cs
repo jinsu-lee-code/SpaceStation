@@ -36,6 +36,18 @@ namespace SpaceStation.Editor
         };
 
         /// <summary>
+        /// 진화 2단계 미드나잇 몸체 (2026-10-26): 짙은 남색 · 은빛이라 해 반대쪽 그늘(약한 환경광만)에서 거의 검게 보임
+        /// → 바탕색의 이 비율을 발광에 더해 그늘에서도 남색 몸체 · 은빛 테가 읽히게 (Blender 미리보기 밝기). 흰 1단계는 필요 없음.
+        /// </summary>
+        private const float MidnightBodyGlow = 0.5f;
+        private static readonly HashSet<string> MidnightBody = new HashSet<string>
+        {
+            "Evo_GridHub", "Evo_OrbitalMirror", "Evo_FusionPlant", "Evo_Arcology", "Evo_GrandTorus", "Evo_CivicHall", "Evo_SecurityHQ",
+            "Evo_Biodome", "Evo_FoodFactory", "Evo_RefineryCombine", "Evo_ShieldDome", "Evo_Fortress", "Evo_RadiationWall",
+            "Evo_DroneDepot", "Evo_CargoTransfer", "Evo_StorageComplex", "Evo_ResearchInstitute",
+        };
+
+        /// <summary>
         /// 모듈 텍스처 폴더의 세트(T_{이름}_BaseColor.png)마다 재질을 만들거나 갱신한다.
         /// 반환: FBX 슬롯 이름 "Tex_{이름}" → 재질. 부품별 텍스처(예: TurretHead, ShieldEmitter)도 같은 폴더에 둔다.
         /// </summary>
@@ -45,16 +57,17 @@ namespace SpaceStation.Editor
             string dir = TextureRoot + key + "/";
             if (!Directory.Exists(dir))
                 return result;
+            float bodyGlow = MidnightBody.Contains(key) ? MidnightBodyGlow : 0f; // 부품 텍스처(도는 고리 등)도 같은 몸체
             foreach (var file in Directory.GetFiles(dir, "T_*_BaseColor.png"))
             {
                 string fileName = Path.GetFileName(file);
                 string name = fileName.Substring(2, fileName.Length - 2 - "_BaseColor.png".Length);
-                result[SlotPrefix + name] = Ensure(dir, name);
+                result[SlotPrefix + name] = Ensure(dir, name, bodyGlow);
             }
             return result;
         }
 
-        private static Material Ensure(string dir, string key)
+        private static Material Ensure(string dir, string key, float bodyGlow)
         {
             string basePath = dir + $"T_{key}_BaseColor.png";
             string normalPath = dir + $"T_{key}_Normal.png";
@@ -65,7 +78,7 @@ namespace SpaceStation.Editor
             var baseTex = LoadPixels(basePath);
             if (File.Exists(ormPath))
                 WriteMaskMap(LoadPixels(ormPath), maskPath);
-            WriteEmission(baseTex, emissionPath, EmblemMinSaturation.TryGetValue(key, out float minSat) ? minSat : EmissionMinSaturation);
+            WriteEmission(baseTex, emissionPath, EmblemMinSaturation.TryGetValue(key, out float minSat) ? minSat : EmissionMinSaturation, bodyGlow);
             Object.DestroyImmediate(baseTex);
 
             Configure(basePath, TextureImporterType.Default, true);
@@ -125,7 +138,7 @@ namespace SpaceStation.Editor
             Object.DestroyImmediate(orm);
         }
 
-        private static void WriteEmission(Texture2D baseTex, string path, float minSaturation)
+        private static void WriteEmission(Texture2D baseTex, string path, float minSaturation, float bodyGlow)
         {
             // 원본 텍스처 전체를 절반 크기로 (발광 맵은 해상도가 낮아도 충분)
             int w = Mathf.Max(1, baseTex.width / 2), h = Mathf.Max(1, baseTex.height / 2);
@@ -138,6 +151,7 @@ namespace SpaceStation.Editor
                     Color.RGBToHSV(c, out _, out float s, out float v);
                     float k = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(minSaturation, minSaturation + 0.15f, s))
                               * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(EmissionMinValue, EmissionMinValue + 0.15f, v));
+                    k = Mathf.Min(1f, k + bodyGlow);
                     dst[y * w + x] = new Color(c.r * k, c.g * k, c.b * k, 1f);
                 }
             }

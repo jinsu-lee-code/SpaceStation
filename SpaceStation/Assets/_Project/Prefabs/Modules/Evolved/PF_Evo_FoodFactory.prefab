@@ -638,17 +638,87 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -5786098748218831672, guid: 7a30da427f7759f439fdcded57c2ab15, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -5786098748218831672, guid: 7a30da427f7759f439fdcded57c2ab15, type: 3}
+      propertyPath: m_ReceiveShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -1746039893555618837, guid: 7a30da427f7759f439fdcded57c2ab15, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -1746039893555618837, guid: 7a30da427f7759f439fdcded57c2ab15, type: 3}
+      propertyPath: m_ReceiveShadows
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 7a30da427f7759f439fdcded57c2ab15, type: 3}
       propertyPath: m_Name
       value: Model
       objectReference: {fileID: 0}
+    - target: {fileID: 4022486309453934540, guid: 7a30da427f7759f439fdcded57c2ab15, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4022486309453934540, guid: 7a30da427f7759f439fdcded57c2ab15, type: 3}
+      propertyPath: m_ReceiveShadows
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: -464698283136540766, guid: 7a30da427f7759f439fdcded57c2ab15, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1466370547611104039}
+    - targetCorrespondingSourceObject: {fileID: -9061080739152475760, guid: 7a30da427f7759f439fdcded57c2ab15, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2199335763652390783}
   m_SourcePrefab: {fileID: 100100000, guid: 7a30da427f7759f439fdcded57c2ab15, type: 3}
+--- !u!1 &207795368247010949 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -9061080739152475760, guid: 7a30da427f7759f439fdcded57c2ab15, type: 3}
+  m_PrefabInstance: {fileID: 45792297534320405}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2199335763652390783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 207795368247010949}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ac438563565caa4e9808e4c3eb47481, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.ModuleSpinner
+  _speed: 10
+  _acceleration: 0.25
+  _axis: {x: 0, y: 0, z: 1}
 --- !u!4 &515687065548359934 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 7a30da427f7759f439fdcded57c2ab15, type: 3}
   m_PrefabInstance: {fileID: 45792297534320405}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &8732374698707579063 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -464698283136540766, guid: 7a30da427f7759f439fdcded57c2ab15, type: 3}
+  m_PrefabInstance: {fileID: 45792297534320405}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1466370547611104039
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8732374698707579063}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ac438563565caa4e9808e4c3eb47481, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.ModuleSpinner
+  _speed: 10
+  _acceleration: 0.25
+  _axis: {x: 0, y: 0, z: 1}
