@@ -440,6 +440,20 @@ namespace SpaceStation.Editor
                 if (a != null)
                     WireShieldFx(t, a, FindChild(instance.transform, "EmitterRingB" + tag), FindChild(instance.transform, "EmitterCore" + tag), tag == "_ShieldDome");
             }
+            // 진화 요새 포대 (별 요새): 포탑 요격 = 별자리 불꽃, 뒤 능보 박격포대에서 가끔 불꽃 (FireworkFx)
+            //   포구 = Blender build_fortress 박격포대 (0, YW + 0.03, 1) · (2, YW + 0.03, 1) 위 대롱 끝 높이
+            if (model.name == "SM_Evo_Fortress")
+            {
+                var fw = instance.AddComponent<SpaceStation.Building.FireworkFx>();
+                var wso = new SerializedObject(fw);
+                wso.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+                wso.FindProperty("_lineMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+                var mortars = wso.FindProperty("_mortars");
+                mortars.arraySize = 2;
+                mortars.GetArrayElementAtIndex(0).vector3Value = new Vector3(0f, 0.05f, 1f);
+                mortars.GetArrayElementAtIndex(1).vector3Value = new Vector3(2f, 0.05f, 1f);
+                wso.ApplyModifiedPropertiesWithoutUndo();
+            }
             // 8-4 회전 링: "Spin" 부품이 모듈 Y축으로 회전
             var spin = FindChild(instance.transform, "Spin");
             if (spin != null)

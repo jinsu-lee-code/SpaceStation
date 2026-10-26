@@ -77,6 +77,8 @@ namespace SpaceStation.Editor
                 case "SplashMist": return Glass("M_SplashMist", new Color(0.82f, 0.92f, 1f, 0.42f), new Color(0.22f, 0.27f, 0.32f), 0.3f); // 큰 낙하 물안개 (윤기 없이)
                 case "Mirror": return Mirror();                                                          // 궤도 미러 해바라기 거울
                 case "AuroraBarrier": return AuroraBarrier();                                            // 실드 돔이 운석을 막을 때 오로라 커튼 장벽
+                case "FireworkSpark": return Additive("M_FireworkSpark", new Color(1.6f, 1.6f, 1.6f, 1f));  // 요새 포대 불꽃 빛 점 (색은 입자 색)
+                case "FireworkLine": return FireworkLine();                                              // 별자리 잇는 빛줄 · 불꽃 꼬리
                 default: return null;
             }
         }
@@ -260,6 +262,49 @@ namespace SpaceStation.Editor
             m.SetFloat("_Cull", (float)CullMode.Off);
             EditorUtility.SetDirty(m);
             return m;
+        }
+
+        /// <summary>
+        /// 불꽃 빛줄 (FireworkFx 별자리 선 · 입자 꼬리): 가로질러서만 부드러운 띠 텍스처 — 둥근 점 텍스처는 선 길이 방향으로 늘어나 양끝이 어두워짐.
+        /// 불꽃놀이 팩(NamuFX, git 제외)의 Trail 텍스처와 같은 모양을 직접 만듦 (팩이 없는 PC에서도 동작).
+        /// </summary>
+        private static Material FireworkLine()
+        {
+            var m = Additive("M_FireworkLine", new Color(1.3f, 1.3f, 1.4f, 1f), soft: false);
+            m.SetTexture("_BaseMap", SoftBand());
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>가로질러서만 부드러운 띠 (v 방향 가운데가 밝음, u 방향은 고름). 없으면 만든다.</summary>
+        private static Texture2D SoftBand()
+        {
+            string path = $"{Folder}/T_SoftBand.png";
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (tex != null)
+                return tex;
+            const int w = 8, h = 64;
+            var t = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            for (int y = 0; y < h; y++)
+            {
+                float d = Mathf.Abs((y + 0.5f) / h * 2f - 1f);
+                float a = Mathf.Clamp01(1f - d);
+                a = a * a * (3f - 2f * a);
+                for (int x = 0; x < w; x++)
+                    t.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+            }
+            t.Apply();
+            System.IO.File.WriteAllBytes(path, t.EncodeToPNG());
+            Object.DestroyImmediate(t);
+            AssetDatabase.ImportAsset(path);
+            if (AssetImporter.GetAtPath(path) is TextureImporter ti)
+            {
+                ti.alphaIsTransparency = true;
+                ti.wrapMode = TextureWrapMode.Clamp;
+                ti.mipmapEnabled = true;
+                ti.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
         /// <summary>해바라기 거울: 하늘을 비추는 은빛 금속 (불투명 Lit, 그늘에서도 윤곽이 보이게 약한 발광).</summary>

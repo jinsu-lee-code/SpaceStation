@@ -10,9 +10,9 @@ namespace SpaceStation.Building
     /// <summary>
     /// 5-7 운석 연출. 시뮬레이션이 판정한 운석 한 발의 경로(MeteorFlight)를 그대로 보여준다 (판정은 바꾸지 않음).
     /// - 명중: 우주에서 꼬리를 끌며 날아와 모듈 표면에 충돌 → 섬광 + 파편, 이때 모듈 파손 표시 적용
-    /// - 포탑 격추: 비행 중 가까운 포탑이 머리를 돌려 레이저 → 공중 폭발
+    /// - 포탑 격추: 비행 중 가까운 포탑이 머리를 돌려 레이저 → 공중 폭발 (진화 요새 포대는 별자리 불꽃 — FireworkFx)
     /// - 실드 빗겨냄: 실드 범위 구면에 닿는 순간 파문 + 실드 코어 번쩍임 → 튕겨서 다른 모듈로(명중/격추) 또는 우주로
-    ///   (진화 실드 돔은 파문 대신 오로라 커튼 장벽 — AuroraBarrierFx)
+    ///   (진화 실드 돔은 파란 파문 대신 닿은 자리에서 구면을 따라 퍼지는 오로라 파문 — AuroraBarrierFx)
     /// 시간은 게임 시간(Time.deltaTime)을 따른다. 카메라 흔들림 없음.
     /// </summary>
     public sealed class MeteorFx : MonoBehaviour
@@ -125,7 +125,7 @@ namespace SpaceStation.Building
                 Launched?.Invoke(contact, toContact);
                 yield return Fly(meteor, start, contact, toContact, null);
                 bool hasView = _station.TryGetView(flight.DeflectedBy, out var shieldView);
-                // 진화 실드 돔: 구면 파문 대신 닿은 자리에 오로라 커튼 장벽 (AuroraBarrierFx)
+                // 진화 실드 돔: 파란 구면 파문 대신 오로라 구면 파문 (닿은 자리에서 구면을 따라 퍼짐 — AuroraBarrierFx)
                 var aurora = hasView ? shieldView.GetComponentInChildren<AuroraBarrierFx>() : null;
                 if (aurora != null)
                 {
@@ -236,8 +236,10 @@ namespace SpaceStation.Building
         {
             Vector3 hitAt = m.Root.transform.position;
             Vector3 muzzle = ModuleCenter(turret) + Vector3.up * 0.3f;
+            FireworkFx fireworks = null;
             if (_station.TryGetView(turret, out var view))
             {
+                fireworks = view.GetComponentInChildren<FireworkFx>(); // 진화 요새 포대: 공중 폭발 대신 별자리 불꽃
                 // 포탑 머리: 기본 포탑은 "Head" 하나, 진화 방어 포대는 "Head_*" 여럿 (한 사격 통제) — 모두 운석 쪽으로 돌리고 가장 가까운 포구에서 쏜다
                 float best = float.MaxValue;
                 foreach (var head in view.GetComponentsInChildren<Transform>(true))
@@ -263,7 +265,10 @@ namespace SpaceStation.Building
             laser.SetPosition(1, hitAt);
             laser.widthMultiplier = 0.05f;
             laser.shadowCastingMode = ShadowCastingMode.Off;
-            Explode(hitAt, 0.6f);
+            if (fireworks != null)
+                fireworks.Burst(hitAt);
+            else
+                Explode(hitAt, 0.6f);
             LaserFired?.Invoke(muzzle, hitAt);
             Exploded?.Invoke(hitAt);
             Destroy(m.Root);
