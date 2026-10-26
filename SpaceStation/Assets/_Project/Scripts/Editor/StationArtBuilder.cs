@@ -173,6 +173,13 @@ namespace SpaceStation.Editor
             so.FindProperty("_orbSpeed").floatValue = 260f;
             so.FindProperty("_trailTime").floatValue = 0.45f;
             so.ApplyModifiedPropertiesWithoutUndo();
+            if (!lighthouse)
+                return;
+            // 실드 돔: 운석을 막을 때 구면 파문 대신 오로라 커튼 장벽 (MeteorFx가 이 컴포넌트를 찾음)
+            var aurora = emitter.gameObject.AddComponent<SpaceStation.Building.AuroraBarrierFx>();
+            var aso = new SerializedObject(aurora);
+            aso.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("AuroraBarrier");
+            aso.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static Transform FindChild(Transform root, string name)
@@ -398,6 +405,17 @@ namespace SpaceStation.Editor
             instance.transform.localPosition = Vector3.zero;
             instance.transform.localRotation = model.transform.localRotation; // 임포트 축 보정은 유지
             instance.transform.localScale = model.transform.localScale;
+            // 진화 모델: 움직이는 부품 아래 "Fx_*" 자식(유리 · 빛 · 반짝임)은 부품과 같은 원점 · 축으로 구움. Blender FBX 내보내기의
+            //   축 보정 굽기(bake_space_transform)가 손자 오브젝트에 축 보정을 한 번 더 넣어 X 90° + 위치가 밀려 들어옴
+            //   (식량 공장 드럼 유리 커버가 누워 보임, 2026-10-26) → 부품 기준 제자리로
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+            {
+                if (t.parent == instance.transform || t == instance.transform || !t.name.StartsWith("Fx_"))
+                    continue;
+                t.localPosition = Vector3.zero;
+                t.localRotation = Quaternion.identity;
+                t.localScale = Vector3.one;
+            }
             // 태양광: 모델의 "Panel" 부품이 태양을 향해 기운다 (MODELING_SPEC 1-5)
             var panel = FindChild(instance.transform, "Panel");
             if (panel != null)

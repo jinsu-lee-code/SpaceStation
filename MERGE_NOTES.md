@@ -948,3 +948,16 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-26) 같은 파일이 tycoon 커밋 `b5be0440`에 있음 (미리보기 렌더 17종 확인 · EditMode 434 통과).
+
+## M-57. 2단계 Unity 반영 ② — 실드 돔 오로라 장벽 + 움직이는 부품 `Fx_` 자식 제자리 (2026-10-26, `main`)
+
+**main에 넣은 것** (tycoon에서 생성, tycoon 커밋 `55be6dab`과 같은 파일)
+- `AuroraBarrierFx` (새 연출 컴포넌트, `StationArtBuilder`가 실드 돔 발생기 `Emitter_ShieldDome`에 자동 배선): 운석이 실드 구면에 닿으면 `MeteorFx`가 모듈에서 이 컴포넌트를 찾아 구면 파문 대신 `Play` — 닿은 자리에 오로라 커튼(실드 구면에 붙은 조각 메시 48×12, 아래 밝은 단 초록 → 위 보라로 옅어짐 · 세로 빛살 · 가로로 흐르는 주름 · 닿은 자리 번쩍)이 0.12초에 펼쳐져 1.6초 동안 일렁이며 사라짐. 파편 불꽃 · 실드 코어 번쩍임 · `Deflected` 알림(소리)은 그대로. 재질 `M_AuroraBarrier` = 꼭짓점 색을 곱하는 가산 파티클 (HDR 0.9 — 더 세면 블룸에 하얗게 날아감). 시험 `AuroraBarrierFxTests` (구면에 붙음 · 맨 위 / 양옆 투명)
+- `StationArtBuilder.PlaceModel`: 움직이는 부품 아래 `Fx_*` 자식(유리 · 빛 · 반짝임)을 부품 기준 제자리(위치 0 · 회전 0)로 — Blender 내보내기 `bake_space_transform=True`가 손자 오브젝트에 축 변환을 한 번 더 넣어 X 90° + 위치 밀림으로 들어오던 것 (사용자 발견: 식량 공장 드럼 유리 커버가 누움). 1 · 2단계 20개 (1단계 중력 거주구 링 유리 포함). MODELING 7-9
+- 산출물: 프리팹 (Fx 자식 제자리 · 실드 돔 오로라 장벽), 식량 공장 통로 깊이 다시 잼, FX 재질 저장값
+
+### `narrative` 합칠 때
+- [ ] `MeteorFx` 실드 빗겨냄 부분을 서사판이 고쳤으면 `AuroraBarrierFx` 분기만 손으로. 합친 뒤 Recipes/Setup + EditMode.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-26) 같은 파일이 tycoon 커밋 `55be6dab`에 있음 (EditMode 438 통과, 오로라 장벽은 정지 화면으로 확인 — 플레이 확인은 2단계 반영 ④).

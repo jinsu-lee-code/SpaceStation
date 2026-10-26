@@ -76,6 +76,7 @@ namespace SpaceStation.Editor
                 case "GalaxyWater": return GalaxyWater();                                                // 은하수 물 (차폐벽 윗면 · 후룸 물길)
                 case "SplashMist": return Glass("M_SplashMist", new Color(0.82f, 0.92f, 1f, 0.42f), new Color(0.22f, 0.27f, 0.32f), 0.3f); // 큰 낙하 물안개 (윤기 없이)
                 case "Mirror": return Mirror();                                                          // 궤도 미러 해바라기 거울
+                case "AuroraBarrier": return AuroraBarrier();                                            // 실드 돔이 운석을 막을 때 오로라 커튼 장벽
                 default: return null;
             }
         }
@@ -248,6 +249,15 @@ namespace SpaceStation.Editor
         {
             var m = Glass("M_GalaxyWater", new Color(0.06f, 0.16f, 0.5f, 0.6f), new Color(0.03f, 0.07f, 0.22f));
             m.renderQueue = (int)RenderQueue.Transparent - 1;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>오로라 커튼 장벽 (AuroraBarrierFx): 꼭짓점 색(초록 → 보라 · 알파)을 곱하는 가산 파티클 재질, 양면. 세기는 HDR 색으로.</summary>
+        private static Material AuroraBarrier()
+        {
+            var m = Additive("M_AuroraBarrier", new Color(0.9f, 0.9f, 0.9f, 1f), soft: false); // 더 세면 블룸에 하얗게 날아가 초록 · 보라가 안 보임
+            m.SetFloat("_Cull", (float)CullMode.Off);
             EditorUtility.SetDirty(m);
             return m;
         }
