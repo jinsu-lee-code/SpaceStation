@@ -900,3 +900,20 @@
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상 (칸을 정하는 쪽이 없으면 예전과 같음).
+
+## M-54. 진화 모듈 외형 2단계 나머지 11종 + 그리드 허브 · 궤도 미러 다시 만듦 (Unity 반영 전) (2026-10-26, `main`)
+
+**main에 넣은 것** (tycoon에서 생성, tycoon 커밋 `eea9e29c`와 같은 파일)
+- 2단계 테마 = **여가 테마파크** (사용자 결정 2026-10-26, MODELING 7-10 — 기본 = 생존 공업 · 1단계 = 발달한 미래 기술 · 2단계 = 여가 테마파크 · 3단계 미정), 몸체 = 미드나잇. 모델 11종 `SM_Evo_{Id}.fbx` + 텍스처 (Blender `Modules_Work.blend` `evo_builder`, 사용자가 한 종씩 확정):
+  - 치안 본부 (푸른 등 파출소 광장) · 바이오돔 (비눗방울 돔 셋 · 도는 구름 고리) · 식량 공장 (도는 유리 드럼 둘 `SpinWheel_FoodFactoryProtein/Harvest`) · 정련 콤비나트 (작은 해 용광로 · 도는 쇳물 국자)
+  - 실드 돔 (오로라 등대 · 프레넬 렌즈 실드 발생기 `Emitter*_ShieldDome`) · 요새 포대 (별 요새 · 포탑 `Head_FortressA/B`) · 방사선 차폐벽 (별자리 병풍 + 은하수 차폐 몸통) · 드론 정비창 (드론 라이트쇼 격납고)
+  - 화물 환적장 (은하수 후룸라이드) · 저장 단지 (별빛 회전목마 창고) · 연구원 (별빛 데이터 미로)
+- 다시 만듦 (테마 점검 뒤): 그리드 허브 v3 (번개 정원) · 궤도 미러 v3 (해바라기 정원)
+- `MODELING.md` 7-10 (단계별 테마 · 2단계 이상 내부 아이디어 — 우주복 개방형 정원 · 후룸라이드 · 회전목마 직접 탑승), `.gitignore` (NamuFX 불꽃놀이 팩 제외 — 실드 패키지와 같은 정책)
+- 아직 안 한 것 (2단계 Unity 반영 때 한꺼번에, tycoon TASKS): 프리팹 · `SpinWheel_` 접두사 처리 (축 = 부품 로컬 z) · 새 FX 재질 `ModuleFxMaterials` 등록 (FX_AuroraGreen/Violet · FX_FluorTeal · FX_GalaxyWater · FX_SplashMist · FX_FluorYellow/Orange/Red · FX_RefineryGlow · FX_ProteinCulture 등) · 실드 돔 오로라 장벽 · 요새 불꽃놀이 · 1층인데 칸 위로 넘는 6종 처리 (사용자 결정 대기)
+
+### `narrative` 합칠 때
+- [ ] 모델 · 텍스처 · 문서만이라 자동 합침 예상. 2단계 Unity 반영이 들어온 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [ ] 같은 파일이 tycoon 커밋 `eea9e29c`에도 있어 자동 합침 예상. 2단계 Unity 반영 때 함께 확인.
