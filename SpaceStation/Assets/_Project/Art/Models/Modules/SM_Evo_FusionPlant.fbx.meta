@@ -3,7 +3,37 @@ guid: f8e97243097ec0e48b5bb7a1b7f39c74
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FX_FluorCyan
+    second: {fileID: 2100000, guid: e2b8c84a5e8d7fd40861b246028d1f65, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FX_FluorOrange
+    second: {fileID: 2100000, guid: e29d430d47e82dd44a614ed67bfde295, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FX_FluorWhite
+    second: {fileID: 2100000, guid: 0680c92bd4497f74bbce13f1786073b5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FX_FusionPlasma
+    second: {fileID: 2100000, guid: d10e953a1a99d674d83aa0bd580ead85, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FX_WaterColumn
+    second: {fileID: 2100000, guid: 251a1d0d6a535c1489510dedf9084a3c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tex_Evo_FusionPlant
+    second: {fileID: 2100000, guid: a16f53f437830844380f2a983c69919e, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -31,7 +61,7 @@ ModelImporter:
     extraExposedTransformPaths: []
     extraUserProperties: []
     clipAnimations: []
-    isReadable: 0
+    isReadable: 1
   meshes:
     lODScreenPercentages: []
     globalScale: 1
@@ -42,8 +72,8 @@ ModelImporter:
     importPhysicalCameras: 1
     importVisibility: 1
     importBlendShapes: 1
-    importCameras: 1
-    importLights: 1
+    importCameras: 0
+    importLights: 0
     nodeNameCollisionStrategy: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
@@ -80,7 +110,7 @@ ModelImporter:
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
   referencedClips: []
-  importAnimation: 1
+  importAnimation: 0
   humanDescription:
     serializedVersion: 3
     human: []

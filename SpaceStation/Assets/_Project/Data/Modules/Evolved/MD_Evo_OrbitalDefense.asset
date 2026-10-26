@@ -25,6 +25,10 @@ MonoBehaviour:
   - {x: 2, y: 0, z: 1}
   - {x: 3, y: 0, z: 1}
   - {x: 4, y: 0, z: 1}
+  - {x: 0, y: 1, z: 0}
+  - {x: 1, y: 1, z: 0}
+  - {x: 0, y: 1, z: 1}
+  - {x: 1, y: 1, z: 1}
   _prefab: {fileID: 5935323490899930228, guid: 982cd7e9fa72e944886193fd72ac4e22, type: 3}
   _icon: {fileID: 0}
   _removable: 1
@@ -36,7 +40,7 @@ MonoBehaviour:
   _closedFaces: []
   _buildCost:
   - Type: 4
-    Amount: 3230
+    Amount: 4640
   _production: []
   _consumption:
   - Type: 0
@@ -59,7 +63,7 @@ MonoBehaviour:
   _comingSoonNote: 
   _requiredRule: 0
   _adjacencyRelay: 0
-  _warningBonus: 30
+  _warningBonus: 55
   _researchSpeedBonus: 0
   _immigrationPort: 0
   _meteorWeightMultiplier: 1
@@ -67,12 +71,12 @@ MonoBehaviour:
   _decoyChance: 0
   _armored: 0
   _countsTowardGrade: 1
-  _gradeModuleCount: 8
+  _gradeModuleCount: 12
   _limitedModuleShare: 0
   _repairTimeMultiplier: 1
   _cargoInterval: 0
   _cargoFraction: 0
-  _shieldRadius: 8
+  _shieldRadius: 9
   _shieldReduction: 0.9
   _turretRadius: 5
   _turretInterceptChance: 0.7
