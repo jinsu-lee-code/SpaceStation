@@ -997,3 +997,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `1eae392c`에 있음 (40개 다시 가져옴 · EditMode 442 통과 · 렌더 확인).
+
+## M-61. 2단계 후속 ② — 플라즈마 · 오로라 커튼 · 은하수 물 · 궤도 미러 빛기둥 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `0199785f`와 같은 파일)
+- 셰이더 (`Art/Shaders`, HLSL — 기존 Twinkle · ShieldShell과 같은 방식, UV 없는 진화 FX 메시라 물체 공간 위치로 잡음): `StationNoise.hlsl` (공용 값 잡음) · `Plasma` (흐르는 소용돌이 · 빛 실 · 맥동, 가산) · `AuroraCurtain` (꼭짓점 너울 · 아랫단 밝고 위로 옅게 · 세로 빛살, 가산 양면, `_Center` · `_BaseY` · `_Height`) · `GalaxyWater` (흐르는 물결 · 반짝이는 별 · 물빛, 삼면 투영) · `LightShaft` (LineRenderer용 빛기둥: 가운데만 밝게 · 흐르는 알갱이 · 양끝 스며듦). 모두 `_BaseColor`를 곱해 ModuleView 상태(비활성 · 파손)에 따라 어두워짐
+- `ModuleFxMaterials`: `PlasmaBlue` · `PlasmaViolet` · `AuroraCurtainGreen` · `AuroraCurtainViolet` · `LightShaft` · `Hidden`(빈 슬롯), `GalaxyWater`는 새 셰이더로
+- `StationArtBuilder.FxOverrides` (모델마다 다른 슬롯 재질): 실드 돔 FX_AuroraGreen/Violet → 커튼 셰이더 (차폐벽 · 환적장 은하수 띠는 그대로), 융합 발전소 · 융합 플랜트 FX_FusionPlasma → 플라즈마 (기본 핵융합로는 그대로), 궤도 미러 FX_LightBeam → Hidden. 이미 다른 재질로 리맵돼 있어도 바꿈
+- `LightBeamFx` (새 연출 컴포넌트, 궤도 미러에 자동 배선): 모델 빛줄기 메시를 이어진 덩어리로 나눠 거울 → 수신기 끝점 16쌍을 찾아(끝이 몰리는 쪽 = 수신기) 카메라를 향한 넓은 띠로 그림, 비활성이면 옅어짐 · 파손이면 깜빡임
+- 프리팹 · 재질 산출물
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 합친 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `0199785f`에 있음 (플레이 캡처로 확인).
