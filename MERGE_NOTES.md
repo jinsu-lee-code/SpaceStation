@@ -1109,3 +1109,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `c3059229`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-68. 3단계 궤도 방어망 외형 (등대 곶 해안) · 네 모듈 동물 부품 · 진화 모델 가져오기 느려짐 고침 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `c228b8e6` · `bab24594`와 같은 파일)
+- `SM_Evo_OrbitalDefense.fbx` + 텍스처 (`Textures/Evo_OrbitalDefense`, 갈매기 부품 `Evo_OrbitalDefense_Gulls`): **등대 곶 해안** (사용자 C안) — 지층 곶 · 진주 등대 (도는 빛줄기 `SpinDish_OrbitalDefenseBeam` FX만 · 도는 갈매기 `SpinDish_OrbitalDefenseGulls`) · 오로라 커튼 셋 `Fx_OrbitalDefenseAurora1~3` (재질 FX_AuroraGreen · FX_AuroraViolet = 실드 돔과 같은 오로라, UV u = 길이 · v = 아래→위) · 산호 방파제 · 수정 부표 포대 · 모래 해변 · 바다 동굴 둘 (굽은 굴을 층마다 불리언으로 파냄, 굴 안 벽 재질 `EVO_CaveR1~3` · `EVO_CaveS1~3`은 몸체 텍스처에 구움)
+- 궤도 도시 · 바이오스피어 · 항성 발전망 다시 내보냄: **동물을 한 마리씩 따로 부품** (`Critter_<모듈>_<번호>_<종류>`, 원점 = 그 동물 자리, 실제 메시 겹침 0) — 얼굴 · 등딱지 · 점박이 무늬 = 공용 손그림 텍스처 `Textures/Evo_Critters/T_Critters_BaseColor.png` (재질 `FX_Critters`, 굽지 않음)
+- `EvoFxDepthOffset` (진화 모델 가져오기 후처리) 느려짐 고침: 아주 작은 삼각형은 `normalized`가 0이라 같은 평면 칸 하나에 몰려 짝이 될 수 없는데도 서로 비교만 수십억 번 → 법선 0 면은 칸에 넣지 않음 (결과 같음, GetVersion 그대로). 궤도 도시 가져오기 13분 → 6초 (Unity 시작 화면에서 멈춘 것처럼 보였음)
+- MODELING 5 (불리언 잘린 면 재질 = TRANSFER + 번호마다 다른 임시 재질 · 자연 동굴은 굴 덩어리를 층마다 불리언으로), Blender `Modules_Work.blend` (`evo_builder`에 `build_orbital_defense` · 동물 `cr_*` · `CritterSet` · `cr_check`)
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 ModuleFxMaterials에 FX_Critters (T_Critters 텍스처) · FX_Beam · FX_AuroraGreen/Violet (궤도 방어망) 추가, 오로라 커튼이 일렁이게 (실드 돔도), 동물 움직임 (제자리 활동 범위 + 서로 밀어내는 간격)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음). `EvoFxDepthOffset.cs`는 한 곳 (칸에 넣기 전 법선 0 면 건너뜀)만 바뀜.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `c228b8e6` · `bab24594`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
