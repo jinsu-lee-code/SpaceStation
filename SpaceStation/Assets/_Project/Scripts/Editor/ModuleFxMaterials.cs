@@ -79,6 +79,13 @@ namespace SpaceStation.Editor
                 case "AuroraBarrier": return AuroraBarrier();                                            // 실드 돔이 운석을 막을 때 오로라 커튼 장벽
                 case "FireworkSpark": return Additive("M_FireworkSpark", new Color(1.6f, 1.6f, 1.6f, 1f));  // 요새 포대 불꽃 빛 점 (색은 입자 색)
                 case "FireworkLine": return FireworkLine();                                              // 별자리 잇는 빛줄 · 불꽃 꼬리
+                // 2단계 후속 (사용자 2026-10-27): 모델마다 다른 재질은 StationArtBuilder.FxOverrides가 슬롯에 연결
+                case "PlasmaBlue": return Plasma("M_PlasmaBlue", new Color(0.9f, 1.6f, 2.6f, 1f), new Color(0.35f, 0.45f, 1.8f, 1f));   // 융합 발전소 (파랑)
+                case "PlasmaViolet": return Plasma("M_PlasmaViolet", new Color(1.7f, 1.1f, 2.6f, 1f), new Color(0.9f, 0.3f, 1.8f, 1f)); // 융합 플랜트 (보라)
+                case "AuroraCurtainGreen": return AuroraCurtain("M_AuroraCurtainGreen", new Color(0.4f, 1.4f, 0.8f, 1f), new Color(0.25f, 0.8f, 0.75f, 1f), 0.33f);
+                case "AuroraCurtainViolet": return AuroraCurtain("M_AuroraCurtainViolet", new Color(0.45f, 0.75f, 1.3f, 1f), new Color(0.7f, 0.3f, 1.2f, 1f), 0.43f);
+                case "LightShaft": return CustomShader("M_LightShaft", "SpaceStation/LightShaft", new Color(1.5f, 1.3f, 0.85f, 1f));    // 궤도 미러 빛기둥 (LightBeamFx)
+                case "Hidden": return Glow("M_Hidden", Color.clear);                                                                // 모델 연출을 코드 연출로 바꿀 때 슬롯을 비움
                 default: return null;
             }
         }
@@ -246,11 +253,54 @@ namespace SpaceStation.Editor
             return m;
         }
 
-        /// <summary>은하수 물: 깊은 남청 반투명 + 은은한 발광. 속 빛 띠 · 별가루(가산 · 반짝임)가 물에 묻히지 않게 물을 먼저 그림.</summary>
+        /// <summary>
+        /// 은하수 물 (SpaceStation/GalaxyWater, 사용자 2026-10-27 "진짜 은하수처럼 반짝 · 생동감 있는 물"): 깊은 남청 반투명 위로
+        /// 흐르는 물결 반사광 · 저마다 반짝이는 별 · 비스듬할수록 밝은 물빛. 속 빛 띠 · 별가루가 묻히지 않게 물을 먼저 그림.
+        /// </summary>
         private static Material GalaxyWater()
         {
-            var m = Glass("M_GalaxyWater", new Color(0.06f, 0.16f, 0.5f, 0.6f), new Color(0.03f, 0.07f, 0.22f));
+            var m = Load("M_GalaxyWater", UnityEngine.Shader.Find("SpaceStation/GalaxyWater"));
+            m.SetColor("_BaseColor", Color.white);
+            m.SetColor("_DeepColor", new Color(0.03f, 0.08f, 0.3f, 0.72f));
             m.renderQueue = (int)RenderQueue.Transparent - 1;
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>플라즈마 고리 (SpaceStation/Plasma): 흐르는 소용돌이 · 빛 실 · 맥동, 가산.</summary>
+        private static Material Plasma(string name, Color core, Color edge)
+        {
+            var m = Load(name, UnityEngine.Shader.Find("SpaceStation/Plasma"));
+            m.SetColor("_BaseColor", Color.white);
+            m.SetColor("_CoreColor", core);
+            m.SetColor("_EdgeColor", edge);
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>실드 돔 오로라 커튼 (SpaceStation/AuroraCurtain): 등대(모델 0.4, 0.6) 둘레로 일렁이고 아랫단이 밝고 위로 옅어짐. 커튼 아래 높이 = baseY.</summary>
+        private static Material AuroraCurtain(string name, Color low, Color high, float baseY)
+        {
+            var m = Load(name, UnityEngine.Shader.Find("SpaceStation/AuroraCurtain"));
+            m.SetColor("_BaseColor", Color.white);
+            m.SetColor("_LowColor", low);
+            m.SetColor("_HighColor", high);
+            m.SetVector("_Center", new Vector4(0.4f, 0f, 0.6f, 0f));
+            m.SetFloat("_BaseY", baseY);
+            m.SetFloat("_Height", 0.36f);
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>_BaseColor 하나만 정하는 커스텀 셰이더 재질.</summary>
+        private static Material CustomShader(string name, string shader, Color color)
+        {
+            var m = Load(name, UnityEngine.Shader.Find(shader));
+            m.SetColor("_BaseColor", color);
+            m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             return m;
         }

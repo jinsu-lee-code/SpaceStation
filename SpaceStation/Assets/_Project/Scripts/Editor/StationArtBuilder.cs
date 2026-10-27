@@ -22,6 +22,19 @@ namespace SpaceStation.Editor
 
         private enum Style { Standard, Solar, Battery, Storage, Core, Topped }
 
+        /// <summary>
+        /// 모델마다 다른 연출 재질 {모델 key: {FBX 슬롯: ModuleFxMaterials 이름}} (사용자 2026-10-27 플레이 점검):
+        /// 실드 돔 오로라 커튼 = 일렁이는 셰이더 (방사선 차폐벽 · 환적장 은하수 띠는 같은 FX_AuroraViolet이라도 그대로),
+        /// 융합 발전소 · 융합 플랜트 = 흐르는 플라즈마 (기본 핵융합로는 그대로), 궤도 미러 빛줄기 = 숨기고 LightBeamFx가 빛기둥으로 그림.
+        /// </summary>
+        private static readonly Dictionary<string, Dictionary<string, string>> FxOverrides = new Dictionary<string, Dictionary<string, string>>
+        {
+            { "Evo_ShieldDome", new Dictionary<string, string> { { "FX_AuroraGreen", "AuroraCurtainGreen" }, { "FX_AuroraViolet", "AuroraCurtainViolet" } } },
+            { "Evo_FusionStation", new Dictionary<string, string> { { "FX_FusionPlasma", "PlasmaBlue" } } },
+            { "Evo_FusionPlant", new Dictionary<string, string> { { "FX_FusionPlasma", "PlasmaViolet" } } },
+            { "Evo_OrbitalMirror", new Dictionary<string, string> { { "FX_LightBeam", "Hidden" } } },
+        };
+
         [MenuItem("SpaceStation/Art/Rebuild Greybox Modules")]
         public static void RebuildAll() => RebuildModules(null);
 
@@ -114,12 +127,25 @@ namespace SpaceStation.Editor
                 if (fx != null && slot)
                     slots[name] = fx;
             }
+            // 모델마다 다른 연출 재질 (같은 슬롯 이름이라도) — 이미 다른 재질로 리맵돼 있어도 바꿈
+            var forced = new HashSet<string>();
+            if (FxOverrides.TryGetValue(key, out var overrides))
+            {
+                foreach (var o in overrides)
+                {
+                    var fx = ModuleFxMaterials.Get(o.Value);
+                    if (fx == null)
+                        continue;
+                    slots[o.Key] = fx;
+                    forced.Add(o.Key);
+                }
+            }
 
             var existing = importer.GetExternalObjectMap();
             bool changed = false;
             foreach (var slot in slots)
             {
-                if (!used.Contains(slot.Key) && !used.Contains(slot.Value.name))
+                if (!used.Contains(slot.Key) && !used.Contains(slot.Value.name) && !forced.Contains(slot.Key))
                     continue;
                 var id = new AssetImporter.SourceAssetIdentifier(typeof(Material), slot.Key);
                 if (existing.TryGetValue(id, out var current) && current == slot.Value)
@@ -454,6 +480,9 @@ namespace SpaceStation.Editor
                 mortars.GetArrayElementAtIndex(1).vector3Value = new Vector3(2f, 0.05f, 1f);
                 wso.ApplyModifiedPropertiesWithoutUndo();
             }
+            // 진화 궤도 미러: 모델의 가는 빛줄기(FX_LightBeam — 슬롯은 FxOverrides로 비움)를 빛기둥으로 다시 그림 (LightBeamFx)
+            if (model.name == "SM_Evo_OrbitalMirror")
+                WireLightShafts(instance);
             // 8-4 회전 링: "Spin" 부품이 모듈 Y축으로 회전
             var spin = FindChild(instance.transform, "Spin");
             if (spin != null)
@@ -505,6 +534,129 @@ namespace SpaceStation.Editor
                 var fso = new SerializedObject(fx);
                 fso.FindProperty("_lamp").objectReferenceValue = lamp.gameObject;
                 fso.ApplyModifiedPropertiesWithoutUndo();
+            }
+        }
+
+        /// <summary>
+        /// 궤도 미러 빛기둥 (사용자 2026-10-27 "선처럼 보임 → 진짜 빛줄기"): 모델 빛줄기 메시(가는 원기둥 여럿)를 이어진 덩어리로 나눠
+        /// 덩어리마다 양끝을 찾고, 끝이 몰리는 쪽(집광 수신기)을 "to"로 LightBeamFx에 넘긴다. 위치는 모델 기준.
+        /// </summary>
+        private static void WireLightShafts(GameObject instance)
+        {
+            var hidden = ModuleFxMaterials.Get("Hidden");
+            var from = new List<Vector3>();
+            var to = new List<Vector3>();
+            foreach (var r in instance.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                for (int s = 0; s < mats.Length; s++)
+                {
+                    if (mats[s] == null || (mats[s] != hidden && !mats[s].name.Contains("LightBeam")))
+                        continue;
+                    var toModel = instance.transform.worldToLocalMatrix * r.transform.localToWorldMatrix;
+                    BeamSegments(r.GetComponent<MeshFilter>().sharedMesh, s, toModel, from, to);
+                }
+            }
+            if (from.Count == 0)
+            {
+                Debug.LogWarning("[StationArtBuilder] 궤도 미러: 빛줄기 메시를 못 찾아 빛기둥 없음");
+                return;
+            }
+            var fx = instance.AddComponent<SpaceStation.Building.LightBeamFx>();
+            var so = new SerializedObject(fx);
+            so.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("LightShaft");
+            var pf = so.FindProperty("_from");
+            var pt = so.FindProperty("_to");
+            pf.arraySize = from.Count;
+            pt.arraySize = to.Count;
+            for (int i = 0; i < from.Count; i++)
+            {
+                pf.GetArrayElementAtIndex(i).vector3Value = from[i];
+                pt.GetArrayElementAtIndex(i).vector3Value = to[i];
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>한 서브메시의 가는 원기둥들 → (거울 끝, 수신기 끝) 쌍. 수신기 = 덩어리 끝들이 가장 많이 몰린 점.</summary>
+        private static void BeamSegments(Mesh mesh, int sub, Matrix4x4 toModel, List<Vector3> from, List<Vector3> to)
+        {
+            Vector3[] verts;
+            int[] tris;
+            using (var md = Mesh.AcquireReadOnlyMeshData(mesh))
+            {
+                var data = md[0];
+                var v = new Unity.Collections.NativeArray<Vector3>(data.vertexCount, Unity.Collections.Allocator.Temp);
+                data.GetVertices(v);
+                verts = v.ToArray();
+                v.Dispose();
+                var idx = new Unity.Collections.NativeArray<int>(data.GetSubMesh(sub).indexCount, Unity.Collections.Allocator.Temp);
+                data.GetIndices(idx, sub);
+                tris = idx.ToArray();
+                idx.Dispose();
+            }
+            // 같은 자리 꼭짓점(나뉜 법선)은 하나로 보고 삼각형으로 이어진 덩어리 찾기
+            var key = new Dictionary<Vector3Int, int>();
+            var parent = new int[verts.Length];
+            for (int i = 0; i < verts.Length; i++)
+            {
+                var k = Vector3Int.RoundToInt(verts[i] * 10000f);
+                parent[i] = key.TryGetValue(k, out int first) ? first : (key[k] = i);
+            }
+            int Find(int i) { while (parent[i] != i) i = parent[i] = parent[parent[i]]; return i; }
+            for (int i = 0; i + 2 < tris.Length; i += 3)
+            {
+                int a = Find(tris[i]), b = Find(tris[i + 1]), c = Find(tris[i + 2]);
+                parent[b] = a;
+                parent[Find(c)] = a;
+            }
+            var groups = new Dictionary<int, List<Vector3>>();
+            foreach (int i in tris)
+            {
+                int g = Find(i);
+                if (!groups.TryGetValue(g, out var list))
+                    groups[g] = list = new List<Vector3>();
+                list.Add(toModel.MultiplyPoint3x4(verts[i]));
+            }
+            var ends = new List<(Vector3 a, Vector3 b)>();
+            foreach (var list in groups.Values)
+            {
+                var c = Vector3.zero;
+                foreach (var p in list)
+                    c += p;
+                c /= list.Count;
+                Vector3 a = c, b = c;
+                foreach (var p in list)
+                    if ((p - c).sqrMagnitude > (a - c).sqrMagnitude)
+                        a = p;
+                foreach (var p in list)
+                    if ((p - a).sqrMagnitude > (b - a).sqrMagnitude)
+                        b = p;
+                if ((a - b).magnitude > 0.1f)
+                    ends.Add((a, b));
+            }
+            // 수신기: 끝점 가운데 0.15 안에 다른 끝이 가장 많이 모인 점
+            Vector3 receiver = Vector3.zero;
+            int best = -1;
+            foreach (var e in ends)
+            {
+                foreach (var p in new[] { e.a, e.b })
+                {
+                    int n = 0;
+                    foreach (var o in ends)
+                        if ((o.a - p).magnitude < 0.15f || (o.b - p).magnitude < 0.15f)
+                            n++;
+                    if (n > best)
+                    {
+                        best = n;
+                        receiver = p;
+                    }
+                }
+            }
+            foreach (var e in ends)
+            {
+                bool aNear = (e.a - receiver).sqrMagnitude < (e.b - receiver).sqrMagnitude;
+                from.Add(aNear ? e.b : e.a);
+                to.Add(aNear ? e.a : e.b);
             }
         }
 
