@@ -511,6 +511,25 @@ namespace SpaceStation.Editor
             //   여섯 척이 물길 한 바퀴를 돌고 큰 낙하 바닥에서 물보라 (FlumeRideFx, 사용자 2026-10-27)
             if (model.name == "SM_Evo_CargoTransfer")
                 WireFlumeRide(instance);
+            // 진화 그리드 허브 "번개 정원": 탑 에너지 구 → 번개 나무 여섯 · 이웃 나무끼리 치는 번개 (LightningFx, 사용자 2026-10-27)
+            //   위치 = Blender build_grid_hub: 에너지 구 (1, YC1 + 0.17, 0.5) 반지름 0.085, 나무 = 타원 둘레 60°마다 (반지름 0.9 · 0.78),
+            //   높이 0.5 / 0.58 번갈아 + 꼭대기 불꽃 구 (+0.045, 반지름 0.034)
+            if (model.name == "SM_Evo_GridHub")
+            {
+                var lf = instance.AddComponent<SpaceStation.Building.LightningFx>();
+                var lso = new SerializedObject(lf);
+                lso.FindProperty("_lineMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+                lso.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+                lso.FindProperty("_hub").vector3Value = new Vector3(1f, 0.62f + 0.17f, 0.5f);
+                var nodes = lso.FindProperty("_nodes");
+                nodes.arraySize = 6;
+                for (int i = 0; i < 6; i++)
+                {
+                    float a = Mathf.Deg2Rad * 60f * i;
+                    nodes.GetArrayElementAtIndex(i).vector3Value = new Vector3(1f + 0.9f * Mathf.Cos(a), -0.26f + 0.5f + 0.08f * (i % 2) + 0.045f, 0.5f + 0.78f * Mathf.Sin(a));
+                }
+                lso.ApplyModifiedPropertiesWithoutUndo();
+            }
             if (model.name == "SM_Evo_DroneDepot")
             {
                 var show = new GameObject("DroneShow");

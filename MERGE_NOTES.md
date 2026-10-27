@@ -1048,3 +1048,20 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `8e64a9f9`에 있음 (EditMode 446 통과 · 플레이 캡처로 확인).
+
+## M-64. 유리 멍울 고침 · 유리 거의 투명 · 그리드 허브 번개 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `4e453a32`와 같은 파일)
+- 셰이더 `Art/Shaders/Glass.shader` (`SpaceStation/Glass`): 모든 유리 재질(`ModuleFxMaterials.Glass` — FarmGlass · EvoGlass · EvoGlassTeal · EvoGlassClear · ShieldSail · IceChunk · SplashMist)을 URP Lit에서 바꿈.
+  양면 그대로 + 뒷면은 법선을 뒤집어 앞면처럼 비춤 (URP Lit 양면은 안 뒤집어서 껍질 안쪽 뒷면이 프레넬 최대로 하늘을 비춰 뿌연 흰 뭉치 = 사용자 "멍울"),
+  반사 보존 (바탕색만 알파만큼, 해 반짝임 · 하늘 반사는 그대로), `_Reflection` = 하늘 반사 · 주변광 세기. 한 장짜리 유리가 14곳이라 앞면만 그리기(Cull Back)는 안 씀.
+- 유리 값 (사용자 "유리가 있다는 정도만"): 바탕색 알파 0.01~0.04 · 발광 0 (실드 매트릭스만 아주 옅게) · 하늘 반사 0.5~0.7
+- `LightningFx` (그리드 허브 자동 배선): 탑 에너지 구 → 번개 나무 여섯 · 이웃 나무끼리 치는 번개 (가운데 점 나누기 갈래 · 번쩍임 · 흐르는 전류 덩이 · 잔가지 · 불티 · 구 둘레 지직거리는 덩굴) + `LightningFxTests`.
+  구운 번개 줄은 `EvoBakedFxStrip` 규칙으로 지움 (`EvoFxDepthOffset` GetVersion 9 → 모델 다시 가져옴)
+- 재질 · 프리팹 산출물
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 합친 뒤 Recipes/Setup (유리 재질은 `ModuleFxMaterials.Get`이 새 셰이더 · 값으로 다시 씀).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `4e453a32`에 있음 (EditMode 447 통과 · 플레이 캡처로 확인).

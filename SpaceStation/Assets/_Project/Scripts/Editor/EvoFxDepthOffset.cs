@@ -26,8 +26,8 @@ namespace SpaceStation.Editor
 
         private static readonly string[] TransparentNames = { "Glass", "Aurora", "LightBeam", "GalaxyWater", "SplashMist", "ShieldSail", "ShieldShell" };
 
-        // 8: 구운 정지 연출 지우기 (EvoBakedFxStrip) 추가
-        public override uint GetVersion() => 8;
+        // 8: 구운 정지 연출 지우기 (EvoBakedFxStrip) 추가 · 9: 그리드 허브 번개 줄 규칙
+        public override uint GetVersion() => 9;
 
         private struct Tri
         {

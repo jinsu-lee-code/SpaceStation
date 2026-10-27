@@ -239,7 +239,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6244281613255094724}
-  - {fileID: 6766901976553079329}
+  - {fileID: 6766901976553079330}
   - {fileID: 8540110147227769972}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -598,11 +598,48 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 49a3af45ba4d05d44bac3b845e86e85e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 921875597305402749}
     - targetCorrespondingSourceObject: {fileID: 2331505818504766811, guid: 49a3af45ba4d05d44bac3b845e86e85e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5207172215804896908}
   m_SourcePrefab: {fileID: 100100000, guid: 49a3af45ba4d05d44bac3b845e86e85e, type: 3}
---- !u!4 &6766901976553079329 stripped
+--- !u!1 &6766901976553079329 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 49a3af45ba4d05d44bac3b845e86e85e, type: 3}
+  m_PrefabInstance: {fileID: 6766901976553079328}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &921875597305402749
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6766901976553079329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 389449cf62825b74ca697c3dab0c4059, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.LightningFx
+  _lineMaterial: {fileID: 2100000, guid: 2499d14c89deb2f4b8c186f4d4dbc132, type: 2}
+  _sparkMaterial: {fileID: 2100000, guid: 8c490583a03f6ae4c85a131c26bbdb87, type: 2}
+  _hub: {x: 1, y: 0.79, z: 0.5}
+  _hubRadius: 0.085
+  _nodes:
+  - {x: 1.9, y: 0.28500003, z: 0.5}
+  - {x: 1.4499999, y: 0.365, z: 1.1754998}
+  - {x: 0.54999995, y: 0.28500003, z: 1.1754998}
+  - {x: 0.100000024, y: 0.365, z: 0.49999994}
+  - {x: 0.5500001, y: 0.28500003, z: -0.17549983}
+  - {x: 1.4499999, y: 0.365, z: -0.17549983}
+  _nodeRadius: 0.034
+  _links: 000000000100000002000000030000000400000005000000
+  _coreColor: {r: 0.9, g: 0.95, b: 1, a: 1}
+  _glowColor: {r: 0.45, g: 0.62, b: 1, a: 1}
+  _coreWidth: 0.016
+  _glowWidth: 0.09
+--- !u!4 &6766901976553079330 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 49a3af45ba4d05d44bac3b845e86e85e, type: 3}
   m_PrefabInstance: {fileID: 6766901976553079328}

@@ -10,6 +10,7 @@ namespace SpaceStation.Editor
     /// - 대형 토러스 열차 별 연기 (Fx_GrandTorusTrain의 반짝임 전부) → SparkEmitterFx 별빛 가루
     /// - 정련 콤비나트 돔 꼭대기 불꽃 분수 (Emblem_Fx의 반짝임 중 배출구 둘레 반지름 0.3 · 높이 0.36 위) → SparkEmitterFx 불꽃 분수
     /// - 드론 정비창 옥상 드론 무리 + 잇는 빛줄 (SpinDish_DroneDepotSwarm · Fx_DroneDepotSwarm 전부) → DroneShowFx
+    /// - 그리드 허브 번개 줄 (Emblem_Fx의 반짝임 중 높이 0.2 위 — 아래 퍼걸러 축제 전구는 남김) → LightningFx
     /// </summary>
     public static class EvoBakedFxStrip
     {
@@ -29,6 +30,7 @@ namespace SpaceStation.Editor
             new Rule { Model = "SM_Evo_RefineryCombine", Object = "Emblem_Fx_RefineryCombine", Material = "TwinkleWhite", Region = true, Center = new Vector2(1f, 0.5f), Radius = 0.3f, MinY = 0.36f },
             new Rule { Model = "SM_Evo_DroneDepot", Object = "SpinDish_DroneDepotSwarm" },
             new Rule { Model = "SM_Evo_DroneDepot", Object = "Fx_DroneDepotSwarm" },
+            new Rule { Model = "SM_Evo_GridHub", Object = "Emblem_Fx_GridHub", Material = "TwinkleWhite", Region = true, Center = new Vector2(1f, 0.5f), Radius = 2f, MinY = 0.2f },
         };
 
         /// <summary>모델 이름에 맞는 규칙대로 삼각형을 지우고 지운 수를 돌려줌.</summary>
