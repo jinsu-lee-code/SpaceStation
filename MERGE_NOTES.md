@@ -1094,3 +1094,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `a97ad3d9`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-67. 3단계 항성 발전망 외형 (꿀벌 정원) · 3단계 디테일 올림 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `c3059229`와 같은 파일)
+- `SM_Evo_StellarGrid.fbx` + 텍스처 (`Textures/Evo_StellarGrid`): **꿀벌 정원** (사용자 C안) — 바닥 7×2 + 위 2×2 (등나무 꽃 정자: 진주 갈비대 돔 · 보라 꽃송이 커튼 · 수정 꽃송이 · 꿀 샘) · 1×2 (꿀 언덕: 계단처럼 솟은 육각 기둥 · 빛나는 꿀 칸 · 벌집 입구 · 여왕 수정), 사이 들꽃 초원 · 꿀벌 물터 · 해바라기 무리 · 라벤더 이랑
+- 꿀벌 20마리 `BeeSwarm_StellarGrid` (귀여운 2등신, 얼굴 · 줄무늬 = 손그림 텍스처 재질 `FX_Bee` + `T_Bee_BaseColor.png`, 굽지 않음) + `Fx_StellarGridBees` (수정 날개 · 빛 꽃가루 공)
+- **3단계 폴리 한도 = 최대 15만** (사용자 2026-10-27, MODELING 7-10) — 궤도 도시 (8.0만: 강가 등불 · 작은 진주 배 · 창가 꽃상자 · 옹벽 꽃 테두리) · 바이오스피어 (9.1만) 잎 덩이 둥글게 다시 내보냄, 항성 발전망 11.4만
+- **모듈 속 생물 얼굴 = 텍스처** 규칙 (MODELING 7-10), Blender `Modules_Work.blend` (`evo_builder`에 `build_stellar_grid` · 3단계 공용 도우미 `rrect` · `_s3_base` · `_lathe` · `_oval` · `_s3_bee` · `bee_tex` · `_bee_uv`)
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 ModuleFxMaterials에 FX_Bee (T_Bee 텍스처) 추가, 꿀벌이 고리 길을 따라 나는 FX 스크립트
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `c3059229`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
