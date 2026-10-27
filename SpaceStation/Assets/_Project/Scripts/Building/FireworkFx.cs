@@ -353,6 +353,7 @@ namespace SpaceStation.Building
             main.loop = false;
             main.playOnAwake = false;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.startSpeed = 0f; // 속도를 안 준 Emit(섬광 · 포탄 · 별)이 기본 속도 5로 날아가지 않게
             main.gravityModifier = gravity;
             main.maxParticles = 200;
             main.stopAction = ParticleSystemStopAction.Destroy;

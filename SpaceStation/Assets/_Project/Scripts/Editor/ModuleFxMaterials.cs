@@ -86,6 +86,7 @@ namespace SpaceStation.Editor
                 case "AuroraCurtainViolet": return AuroraCurtain("M_AuroraCurtainViolet", new Color(0.45f, 0.75f, 1.3f, 1f), new Color(0.7f, 0.3f, 1.2f, 1f), 0.43f);
                 case "LightShaft": return CustomShader("M_LightShaft", "SpaceStation/LightShaft", new Color(1.5f, 1.3f, 0.85f, 1f));    // 궤도 미러 빛기둥 (LightBeamFx)
                 case "Hidden": return Glow("M_Hidden", Color.clear);                                                                // 모델 연출을 코드 연출로 바꿀 때 슬롯을 비움
+                case "Ripple": return Ripple();                                                                                     // 후룸 큰 낙하 물결 고리 (FlumeRideFx, 수평 입자)
                 default: return null;
             }
         }
@@ -342,6 +343,48 @@ namespace SpaceStation.Editor
                 a = a * a * (3f - 2f * a);
                 for (int x = 0; x < w; x++)
                     t.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+            }
+            t.Apply();
+            System.IO.File.WriteAllBytes(path, t.EncodeToPNG());
+            Object.DestroyImmediate(t);
+            AssetDatabase.ImportAsset(path);
+            if (AssetImporter.GetAtPath(path) is TextureImporter ti)
+            {
+                ti.alphaIsTransparency = true;
+                ti.wrapMode = TextureWrapMode.Clamp;
+                ti.mipmapEnabled = true;
+                ti.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        /// <summary>물결 고리 (FlumeRideFx 큰 낙하 물보라): 가산 입자 + 가장자리만 밝은 고리 텍스처 — 수평 입자가 커지며 퍼짐.</summary>
+        private static Material Ripple()
+        {
+            var m = Additive("M_Ripple", new Color(1.1f, 1.25f, 1.5f, 1f), soft: false);
+            m.SetTexture("_BaseMap", SoftRing());
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>부드러운 고리 텍스처 (반지름 0.8 둘레만 밝음). 없으면 만든다.</summary>
+        private static Texture2D SoftRing()
+        {
+            string path = $"{Folder}/T_SoftRing.png";
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (tex != null)
+                return tex;
+            const int size = 128;
+            var t = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x + 0.5f) / size * 2f - 1f, dy = (y + 0.5f) / size * 2f - 1f;
+                    float a = Mathf.Clamp01(1f - Mathf.Abs(Mathf.Sqrt(dx * dx + dy * dy) - 0.8f) / 0.14f);
+                    a = a * a * (3f - 2f * a);
+                    t.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+                }
             }
             t.Apply();
             System.IO.File.WriteAllBytes(path, t.EncodeToPNG());
