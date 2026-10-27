@@ -1124,3 +1124,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `c228b8e6` · `bab24594`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-69. 3단계 수리 사령부 외형 (반딧불 고목 치유소) (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `1a1817d7`과 같은 파일)
+- `SM_Evo_RepairCommand.fbx` + 텍스처 (`Textures/Evo_RepairCommand`): **반딧불 고목 치유소** (사용자 A안 — 수리 = 돌봄 · 치유, 드론 쇼 = 반딧불 드론 떼, 비상 대응 = 금빛 경종 · 빛 수정 등대). 뒤 3×2 (2층) = 금빛 이음 (킨츠기) 진주 껍질 고목 · 줄기 앞 아치 문간 나무 구멍 공방 둘 · 나무집 관제실 (지붕 위 금빛 경종) · 도르래 구조 바구니, 앞 한 줄 (1층) = 치유의 샘 연못 · 돌봄 오두막 · 빛 버섯
+- 도는 부품 `SpinDish_RepairCommandFireflies` (반딧불 드론 떼, FX만 — 굽지 않음), 동물 19마리 `Critter_RepairCommand_*` (FX_Critters)
+- Blender `Modules_Work.blend` (`evo_builder`에 `build_repair_command` · `_rc_tube` (굵기가 부드럽게 줄어드는 관) · `_rc_firefly` · `_rc_door`)
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 반딧불 드론 떼가 돌며 별 · 하트 대형 (드론 정비창 DroneShowFx처럼), 동물 움직임
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `1a1817d7`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
