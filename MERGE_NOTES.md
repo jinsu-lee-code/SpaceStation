@@ -1,4 +1,4 @@
-# MERGE_NOTES.md — main → 각 판 합칠 때 충돌 예상 체크리스트
+﻿# MERGE_NOTES.md — main → 각 판 합칠 때 충돌 예상 체크리스트
 
 `main`(공통 바닥)을 바꿀 때마다, 각 판 브랜치에 합칠 때 생길 충돌과 해결 방법을 여기에 적는다 (SPLIT.md 3번).
 해결하고 합치면 그 항목에 `[x]`와 날짜 · 커밋을 적는다.
@@ -1065,3 +1065,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `4e453a32`에 있음 (EditMode 447 통과 · 플레이 캡처로 확인).
+
+## M-65. 3단계 첫 모듈 궤도 도시 외형 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a8e345d0`와 같은 파일)
+- 3단계 테마 · 몸체 색 결정 (사용자 2026-10-27, MODELING 7-10): **살아 있는 행성 정원 + 빛과 수정** (유리 없이 바깥에 숲 · 물 · 동물, 수정 · 프리즘이 빛을 다룸 — 지구급 상징 모듈에서 프리즘 = 태양), 몸체 = **진주 · 금** (`evo_builder` `S3_STYLES` · 재질 EVO_S3*)
+- `SM_Evo_OrbitalCity.fbx` + 텍스처 (`Textures/Evo_OrbitalCity`): 알이 깨어난 정원 섬 도시 (고리 강 · 언덕 마을 · 폭포 · 수정 나무가 받친 프리즘), 도는 부품 `SpinDish_OrbitalCityTrain` (궤도열차) · `SpinDish_OrbitalCityHalo` (기운 무지개 고리 + 수정 조각, FX만)
+- Blender `Modules_Work.blend` (`evo_builder`에 3단계 구역 + `build_orbital_city`), MODELING 7-10 표
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영(FX_Prism · FX_FluorGold · FX_Rainbow0~6 재질 · 물 · 프리즘 빛)은 3단계를 다 만든 뒤 한꺼번에. 그 전에 Recipes/Setup을 돌리면 궤도 도시가 모델로 바뀌고 이 FX 슬롯은 "알 수 없는 재질" 경고가 남
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `a8e345d0`에 있음.
