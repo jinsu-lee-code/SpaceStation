@@ -37,8 +37,11 @@ namespace SpaceStation.Editor
                 case "Dust": return Additive("M_Dust", new Color(0.9f, 0.95f, 1.1f, 1f));
                 case "ShipEngine": return Additive("M_ShipEngine", new Color(0.6f, 1.6f, 3.5f, 1f));
                 case "ShieldRipple": return ShieldRipple();
-                case "FarmGlass": return Glass("M_FarmGlass", new Color(0.62f, 1f, 0.84f, 0.26f), new Color(0.05f, 0.16f, 0.11f));
-                case "EvoGlass": return Glass("M_EvoGlass", new Color(0.82f, 0.86f, 1f, 0.12f), new Color(0.025f, 0.02f, 0.05f)); // 진화 모듈 공통 유리 (흰 패널 · 유리 = 고급 재질, 사용자 결정 2026-10-22) — 농장 유리 값(알파 0.24)은 돔 속 망원경이 뿌옇게 가려짐
+                // 유리 투명도 (사용자 2026-10-27 "유리가 있다는 정도만 인식되면"): 거의 투명 — 유리라는 건 하늘 반사 · 해 반짝임 · 비스듬한 가장자리가 알려 줌.
+                //   측정 (물류 허브 지붕, 유리 없을 때 밝기 0.17): 예전 알파 0.12 + 발광 → 0.36 (회색 막). 바탕색은 센 햇빛을 여러 겹 받아 +0.14,
+                //   발광 +0.03, 하늘 반사 +0.05 → 바탕색 알파 0.01~0.03 · 발광 0 · 하늘 반사 0.5~0.7
+                case "FarmGlass": return Glass("M_FarmGlass", new Color(0.62f, 1f, 0.84f, 0.03f), Color.black, 0.92f, 0.7f);
+                case "EvoGlass": return Glass("M_EvoGlass", new Color(0.82f, 0.86f, 1f, 0.015f), Color.black, 0.92f, 0.6f); // 진화 모듈 공통 유리 (흰 패널 · 유리 = 고급 재질, 사용자 결정 2026-10-22)
                 case "FarmGrow": return Emissive("M_FarmGrow", new Color(0.35f, 0.9f, 0.4f, 1f), new Color(0.5f, 2.6f, 0.7f, 1f));
                 case "FusionPlasma": return Emissive("M_FusionPlasma", new Color(0.3f, 0.75f, 1f, 1f), new Color(0.3f, 1.3f, 3.0f, 1f));
                 case "RefineryGlow": return Emissive("M_RefineryGlow", new Color(0.9f, 0.22f, 0.03f, 1f), new Color(1.9f, 0.26f, 0.02f, 1f)); // 초록 성분이 크면 톤매핑 뒤 노랗게 보임
@@ -63,13 +66,13 @@ namespace SpaceStation.Editor
                 case "ServerLights": return Emissive("M_ServerLights", new Color(0.55f, 0.85f, 1f, 1f), new Color(0.5f, 1.4f, 2.4f, 1f)); // 12-5 데이터 센터 서버 랙 표시등
                 case "ProteinCulture": return Emissive("M_ProteinCulture", new Color(1f, 0.78f, 0.42f, 1f), new Color(1.6f, 0.95f, 0.35f, 1f)); // 12-5 단백질 배양실 배양액 (크림빛 호박색)
                 case "Rock": return Rock();
-                case "ShieldSail": return Glass("M_ShieldSail", new Color(0.45f, 0.7f, 1f, 0.22f), new Color(0.04f, 0.12f, 0.3f)); // 진화 실드 매트릭스 육각 격자 돔 유리 (하늘빛)
+                case "ShieldSail": return Glass("M_ShieldSail", new Color(0.45f, 0.7f, 1f, 0.04f), new Color(0.01f, 0.03f, 0.07f), 0.92f, 0.7f); // 진화 실드 매트릭스 육각 격자 돔 유리 (하늘빛 — 실드라 아주 옅은 빛은 남김)
                 case "TwinkleWhite": return Twinkle("M_TwinkleWhite", new Color(1.4f, 1.4f, 1.5f, 1f));   // 진화 복지 · 문화 센터 별빛 점 (점마다 따로 반짝임)
                 case "TwinklePurple": return Twinkle("M_TwinklePurple", new Color(1.0f, 0.55f, 1.4f, 1f));
                 // 진화 2단계 (미드나잇 몸체 · 여가 테마파크, 2026-10-26) — 값은 Blender evo_builder 재질과 맞춤
                 case "FluorIce": return Fluorescent("M_FluorIce", new Color(0.62f, 0.93f, 1f));   // 테두리 띠 홈 안 청백 빛줄 2줄
-                case "EvoGlassTeal": return Glass("M_EvoGlassTeal", new Color(0.5f, 0.9f, 0.93f, 0.22f), new Color(0.02f, 0.07f, 0.075f)); // 넓은 옅은 청록 유리
-                case "EvoGlassClear": return Glass("M_EvoGlassClear", new Color(0.62f, 0.9f, 0.95f, 0.1f), new Color(0.015f, 0.035f, 0.04f)); // 안이 잘 보여야 하는 맑은 유리 (돔 · 드럼 바닥)
+                case "EvoGlassTeal": return Glass("M_EvoGlassTeal", new Color(0.5f, 0.9f, 0.93f, 0.025f), Color.black, 0.92f, 0.6f); // 넓은 옅은 청록 유리
+                case "EvoGlassClear": return Glass("M_EvoGlassClear", new Color(0.62f, 0.9f, 0.95f, 0.012f), Color.black, 0.92f, 0.5f); // 안이 잘 보여야 하는 맑은 유리 (돔 · 드럼 바닥)
                 case "AuroraGreen": return Glow("M_AuroraGreen", new Color(0.15f, 0.5f, 0.3f, 1f));     // 실드 돔 오로라 커튼 (겹친 주름이 더해져 밝아지므로 한 겹은 옅게)
                 case "AuroraViolet": return Glow("M_AuroraViolet", new Color(0.36f, 0.22f, 0.55f, 1f)); // 오로라 · 은하수 빛 띠
                 case "LightBeam": return Glow("M_LightBeam", new Color(0.1f, 0.18f, 0.2f, 1f));         // 등대 빛줄기 · 거울 → 수신기 빛 (옅게)
@@ -121,27 +124,21 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>반투명 유리 (수경 농장 온실, 2026-10-02): URP Lit 투명 + 반사 + 은은한 발광 (밤에도 윤곽이 보이게).</summary>
-        private static Material Glass(string name, Color tint, Color emission, float smoothness = 0.92f)
+        /// <summary>
+        /// 반투명 유리: SpaceStation/Glass (양면, 뒷면은 법선을 뒤집어 앞면처럼 비춤 · 반사 보존). 2026-10-27 전에는 URP Lit 양면이었는데,
+        /// 뒷면 법선이 시선 반대라 프레넬 최대로 하늘 반사가 겹쳐 유리에 뿌연 흰 뭉치(사용자 "멍울")가 생겼다.
+        /// tint 알파 = 바탕색 진하기, reflection = 하늘 반사 · 주변광 세기 (해 반짝임은 그대로).
+        /// </summary>
+        private static Material Glass(string name, Color tint, Color emission, float smoothness = 0.92f, float reflection = 1f)
         {
-            var m = Load(name, Shader.Find("Universal Render Pipeline/Lit"));
+            var m = Load(name, Shader.Find("SpaceStation/Glass"));
             m.SetColor("_BaseColor", tint);
             m.SetFloat("_Metallic", 0f);
             m.SetFloat("_Smoothness", smoothness);
-            m.SetFloat("_Surface", 1f);   // Transparent
-            m.SetFloat("_Blend", 0f);     // Alpha
-            m.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
-            m.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
-            m.SetFloat("_SrcBlendAlpha", (float)BlendMode.One);
-            m.SetFloat("_DstBlendAlpha", (float)BlendMode.OneMinusSrcAlpha);
-            m.SetFloat("_ZWrite", 0f);
-            m.SetFloat("_Cull", (float)CullMode.Off);
-            m.SetKeyword(new LocalKeyword(m.shader, "_SURFACE_TYPE_TRANSPARENT"), true);
-            m.SetKeyword(new LocalKeyword(m.shader, "_EMISSION"), true);
             m.SetColor("_EmissionColor", emission);
-            // GI 플래그가 EmissiveIsBlack이면 URP 재질 검사가 _EMISSION을 꺼 버린다 (2026-10-03 발견)
-            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            m.SetFloat("_Reflection", reflection);
+            m.shaderKeywords = System.Array.Empty<string>(); // URP Lit 시절 키워드 정리
             m.renderQueue = (int)RenderQueue.Transparent;
-            m.SetOverrideTag("RenderType", "Transparent");
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             return m;
