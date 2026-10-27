@@ -141,6 +141,11 @@ namespace SpaceStation.Editor
             var buckets = new Dictionary<long, List<int>>();
             for (int i = 0; i < tris.Count; i++)
             {
+                // 아주 작은 삼각형 (변 2 ~ 3mm 아래)은 normalized가 0 → 법선 0 · 거리 0으로 모두 한 칸에 모여, 짝이 될 수 없는데도 서로 비교만
+                // 수십억 번 했음 (2026-10-27 3단계 동물 부품 · 잔 장식 뒤 궤도 도시 가져오기 13분). 법선 0 면은 같은 평면 검사(법선 내적 0.999)에서
+                // 늘 빠지므로 칸에 넣지 않아도 결과는 같음 (덩어리 묶기에는 그대로 씀)
+                if (tris[i].Cn.sqrMagnitude < 0.5f)
+                    continue;
                 for (int variant = 0; variant < 8; variant++)
                 {
                     long key = PlaneKey(tris[i].Cn, tris[i].D, variant);
