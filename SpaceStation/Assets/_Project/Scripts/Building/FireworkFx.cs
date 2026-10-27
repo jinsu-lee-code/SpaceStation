@@ -9,7 +9,8 @@ namespace SpaceStation.Building
     /// - 포탑 요격: MeteorFx가 포탑 모듈에서 이 컴포넌트를 찾으면 공중 폭발 대신 Burst — 별자리 불꽃
     ///   (빛 점이 꼬리를 끌며 별자리 별 자리로 퍼져 반짝이고, 별을 잇는 빛줄이 차례로 그어진 뒤 불티가 되어 사라짐).
     ///   별자리 5종(북두칠성 · 카시오페이아 · 오리온 · 북십자 · 전갈자리) 중 무작위, 바로 앞과 같은 것은 피함.
-    /// - 박격포대: 가동 중이면 가끔 뒤 능보 포구에서 불꽃이 올라가 터짐 (별자리 또는 둥근 불꽃).
+    /// - 박격포대: 가동 중이면 뒤 능보 좌우 포구에서 번갈아 자주 불꽃이 올라가 터짐 (사용자 2026-10-27 "실제 폭죽이 자주"):
+    ///   평균 4.5초마다, 넷에 하나는 양쪽이 잇달아 쏘는 연발. 별자리 · 국화(둥근) · 고리 · 버들(금빛 꼬리가 늘어져 떨어짐) 넷 중 무작위.
     /// 별자리 면은 카메라를 향하고 위쪽은 월드 위. 시간은 게임 시간. 비활성 · 고스트에서는 박격포대가 쉰다.
     /// </summary>
     public sealed class FireworkFx : MonoBehaviour
@@ -65,7 +66,9 @@ namespace SpaceStation.Building
         [Tooltip("박격포대 포구 (모델 기준 위치)")]
         [SerializeField] private Vector3[] _mortars;
         [Tooltip("박격포대 불꽃 평균 간격 (게임 초)")]
-        [SerializeField] private float _showInterval = 22f;
+        [SerializeField] private float _showInterval = 4.5f;
+        [Tooltip("양쪽 포구가 잇달아 쏘는 연발 확률")]
+        [SerializeField] private float _salvoChance = 0.25f;
         [Tooltip("요격 별자리 폭")]
         [SerializeField] private float _burstSize = 1.8f;
         [Tooltip("박격포대 별자리 폭")]
@@ -84,6 +87,7 @@ namespace SpaceStation.Building
         private bool _live;
         private float _timer;
         private int _last = -1;
+        private int _nextMortar;
 
         private void Start()
         {
@@ -113,13 +117,24 @@ namespace SpaceStation.Building
                 return;
             _timer = _showInterval * Random.Range(0.6f, 1.4f);
             Launch();
+            if (_mortars.Length > 1 && Random.value < _salvoChance)
+                StartCoroutine(Salvo());
         }
 
-        /// <summary>박격포대 불꽃 한 발 (가동 중이면 Update가 가끔 부름 — 확인 · 연출용으로 직접 불러도 됨).</summary>
+        private IEnumerator Salvo()
+        {
+            yield return new WaitForSeconds(Random.Range(0.25f, 0.5f));
+            Launch();
+        }
+
+        /// <summary>박격포대 불꽃 한 발, 좌우 포구 번갈아 (가동 중이면 Update가 자주 부름 — 확인 · 연출용으로 직접 불러도 됨).</summary>
         public void Launch()
         {
-            if (_sparkMaterial != null && _mortars != null && _mortars.Length > 0 && isActiveAndEnabled)
-                StartCoroutine(Show());
+            if (_sparkMaterial == null || _mortars == null || _mortars.Length == 0 || !isActiveAndEnabled)
+                return;
+            int m = _nextMortar % _mortars.Length;
+            _nextMortar = m + 1;
+            StartCoroutine(Show(_mortars[m]));
         }
 
         /// <summary>포탑 요격 자리에 별자리 불꽃 (별자리는 무작위).</summary>
@@ -206,11 +221,12 @@ namespace SpaceStation.Building
             }
         }
 
-        private IEnumerator Show()
+        private IEnumerator Show(Vector3 mortar)
         {
-            var muzzle = transform.TransformPoint(_mortars[Random.Range(0, _mortars.Length)]);
-            var apex = muzzle + Vector3.up * Random.Range(1.4f, 2f) + new Vector3(Random.Range(-0.3f, 0.3f), 0f, Random.Range(-0.3f, 0.3f));
+            var muzzle = transform.TransformPoint(mortar);
+            var apex = muzzle + Vector3.up * Random.Range(1.3f, 2.1f) + new Vector3(Random.Range(-0.35f, 0.35f), 0f, Random.Range(-0.35f, 0.35f));
             var shell = NewSystem("Shell", true, 0f, 0.1f);
+            Flash(shell, muzzle, 0.18f); // 포구 불빛
             shell.Emit(new ParticleSystem.EmitParams { position = muzzle, startLifetime = 1.2f, startSize = 0.05f, startColor = StarColor, applyShapeToPosition = false }, 1);
             var parts = new ParticleSystem.Particle[1];
             float t = 0f;
@@ -228,13 +244,18 @@ namespace SpaceStation.Building
             }
             if (shell != null)
                 shell.Clear();
-            if (Random.value < 0.5f)
+            float kind = Random.value;
+            if (kind < 0.25f)
                 yield return ConstellationBurst(apex, _showSize, Pick());
-            else
+            else if (kind < 0.5f)
                 RoundBurst(apex);
+            else if (kind < 0.75f)
+                RingBurst(apex);
+            else
+                WillowBurst(apex);
         }
 
-        /// <summary>둥근 불꽃: 한 색으로 사방에 퍼지며 꼬리를 끌고 천천히 내려앉음.</summary>
+        /// <summary>국화 (둥근 불꽃): 한 색으로 사방에 퍼지며 꼬리를 끌고 천천히 내려앉음.</summary>
         private void RoundBurst(Vector3 at)
         {
             var ps = NewSystem("Round", true, 0.08f, 0.1f);
@@ -243,6 +264,61 @@ namespace SpaceStation.Building
             limit.drag = 1.6f; // 퍼지다 멈춤
             Flash(ps, at, 0.5f);
             Sparkle(ps, at, Palette[Random.Range(0, Palette.Length)], 36, 1.6f);
+        }
+
+        /// <summary>고리 불꽃: 비스듬히 기운 원을 따라 두 색이 번갈아 퍼짐 (가운데에 작은 국화).</summary>
+        private void RingBurst(Vector3 at)
+        {
+            var ps = NewSystem("Ring", true, 0.06f, 0.1f);
+            var limit = ps.limitVelocityOverLifetime;
+            limit.enabled = true;
+            limit.drag = 1.5f;
+            Flash(ps, at, 0.45f);
+            var normal = Quaternion.Euler(Random.Range(-35f, 35f), Random.Range(0f, 360f), Random.Range(-35f, 35f)) * ViewForward(at);
+            var u = Vector3.Cross(normal, Vector3.up);
+            if (u.sqrMagnitude < 1e-4f)
+                u = Vector3.right;
+            u.Normalize();
+            var v = Vector3.Cross(normal, u).normalized;
+            Color a = Palette[Random.Range(0, Palette.Length)], b = Palette[Random.Range(0, Palette.Length)];
+            const int n = 30;
+            for (int i = 0; i < n; i++)
+            {
+                float ang = 2f * Mathf.PI * i / n;
+                ps.Emit(new ParticleSystem.EmitParams
+                {
+                    position = at,
+                    velocity = (u * Mathf.Cos(ang) + v * Mathf.Sin(ang)) * 1.7f,
+                    startLifetime = Random.Range(0.8f, 1.1f),
+                    startSize = 0.045f,
+                    startColor = i % 2 == 0 ? a : b,
+                    applyShapeToPosition = false,
+                }, 1);
+            }
+            Sparkle(ps, at, Color.white, 10, 0.5f);
+        }
+
+        /// <summary>버들 불꽃: 금빛 불티가 긴 꼬리를 끌며 버들가지처럼 늘어져 떨어짐.</summary>
+        private void WillowBurst(Vector3 at)
+        {
+            var ps = NewSystem("Willow", true, 0.16f, 0.1f, 0.5f);
+            var limit = ps.limitVelocityOverLifetime;
+            limit.enabled = true;
+            limit.drag = 1.1f;
+            Flash(ps, at, 0.55f);
+            var gold = new Color(1f, 0.78f, 0.38f);
+            for (int i = 0; i < 40; i++)
+            {
+                ps.Emit(new ParticleSystem.EmitParams
+                {
+                    position = at,
+                    velocity = (Random.onUnitSphere + Vector3.up * 0.35f) * Random.Range(1.1f, 1.5f),
+                    startLifetime = Random.Range(1.5f, 2.1f),
+                    startSize = Random.Range(0.03f, 0.045f),
+                    startColor = Color.Lerp(gold, Color.white, Random.value * 0.25f),
+                    applyShapeToPosition = false,
+                }, 1);
+            }
         }
 
         private static void Flash(ParticleSystem ps, Vector3 at, float size) =>
@@ -266,7 +342,7 @@ namespace SpaceStation.Building
         }
 
         /// <summary>한 번 쓰고 스스로 지워지는 입자 묶음 (월드 공간, 방출은 Emit으로만).</summary>
-        private ParticleSystem NewSystem(string name, bool trails, float gravity, float duration)
+        private ParticleSystem NewSystem(string name, bool trails, float gravity, float duration, float trailLife = 0.14f)
         {
             var go = new GameObject("Firework_" + name);
             go.transform.SetParent(transform, false);
@@ -295,7 +371,7 @@ namespace SpaceStation.Building
             {
                 var tr = ps.trails;
                 tr.enabled = true;
-                tr.lifetime = new ParticleSystem.MinMaxCurve(0.14f);
+                tr.lifetime = new ParticleSystem.MinMaxCurve(trailLife);
                 tr.minVertexDistance = 0.02f;
                 tr.dieWithParticles = true;
                 tr.inheritParticleColor = true;

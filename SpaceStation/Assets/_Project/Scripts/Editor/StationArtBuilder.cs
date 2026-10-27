@@ -478,11 +478,33 @@ namespace SpaceStation.Editor
                 mortars.arraySize = 2;
                 mortars.GetArrayElementAtIndex(0).vector3Value = new Vector3(0f, 0.05f, 1f);
                 mortars.GetArrayElementAtIndex(1).vector3Value = new Vector3(2f, 0.05f, 1f);
+                wso.FindProperty("_showInterval").floatValue = 4.5f; // 사용자 2026-10-27 "실제 폭죽이 자주"
                 wso.ApplyModifiedPropertiesWithoutUndo();
             }
             // 진화 궤도 미러: 모델의 가는 빛줄기(FX_LightBeam — 슬롯은 FxOverrides로 비움)를 빛기둥으로 다시 그림 (LightBeamFx)
             if (model.name == "SM_Evo_OrbitalMirror")
                 WireLightShafts(instance);
+            // 진화 대형 토러스 · 정련 콤비나트 · 드론 정비창 (사용자 2026-10-27): 모델에 구운 멈춘 입자(가져올 때 지움, EvoBakedFxStrip)를 움직이는 연출로
+            //   열차 굴뚝 = Blender build_grand_torus 기관차 굴뚝 꼭대기 (열차 부품 기준 — 부품 원점 = 허브 축),
+            //   배출구 = build_refinery_combine 꼭대기 열 배출구 위, 드론 쇼 = build_drone_depot 드론 무리 부품 원점 (옥상 위 가운데)
+            if (model.name == "SM_Evo_GrandTorus")
+            {
+                var train = FindChild(instance.transform, "SpinDish_GrandTorusTrain");
+                if (train != null)
+                    AddSparkEmitter(train, new Vector3(2.222f, 0.048f, -0.7f), SpaceStation.Building.SparkEmitterFx.Kind.StarSmoke);
+            }
+            if (model.name == "SM_Evo_RefineryCombine")
+                AddSparkEmitter(instance.transform, new Vector3(1f, 0.5f, 0.5f), SpaceStation.Building.SparkEmitterFx.Kind.SparkFountain);
+            if (model.name == "SM_Evo_DroneDepot")
+            {
+                var show = new GameObject("DroneShow");
+                show.transform.SetParent(instance.transform, false);
+                show.transform.localPosition = new Vector3(1f, 1.38f, 0.5f);
+                var ds = show.AddComponent<SpaceStation.Building.DroneShowFx>();
+                var dso = new SerializedObject(ds);
+                dso.FindProperty("_lightMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+                dso.ApplyModifiedPropertiesWithoutUndo();
+            }
             // 8-4 회전 링: "Spin" 부품이 모듈 Y축으로 회전
             var spin = FindChild(instance.transform, "Spin");
             if (spin != null)
@@ -535,6 +557,20 @@ namespace SpaceStation.Editor
                 fso.FindProperty("_lamp").objectReferenceValue = lamp.gameObject;
                 fso.ApplyModifiedPropertiesWithoutUndo();
             }
+        }
+
+        /// <summary>parent 아래 at(parent 기준)에 반짝이 입자 방출구 (SparkEmitterFx — 위로 뿜음).</summary>
+        private static void AddSparkEmitter(Transform parent, Vector3 at, SpaceStation.Building.SparkEmitterFx.Kind kind)
+        {
+            var go = new GameObject(kind + "Emitter");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = at;
+            var fx = go.AddComponent<SpaceStation.Building.SparkEmitterFx>();
+            var so = new SerializedObject(fx);
+            so.FindProperty("_kind").enumValueIndex = (int)kind;
+            so.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+            so.FindProperty("_trailMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>

@@ -26,7 +26,8 @@ namespace SpaceStation.Editor
 
         private static readonly string[] TransparentNames = { "Glass", "Aurora", "LightBeam", "GalaxyWater", "SplashMist", "ShieldSail", "ShieldShell" };
 
-        public override uint GetVersion() => 7;
+        // 8: 구운 정지 연출 지우기 (EvoBakedFxStrip) 추가
+        public override uint GetVersion() => 8;
 
         private struct Tri
         {
@@ -42,6 +43,7 @@ namespace SpaceStation.Editor
         {
             if (!assetPath.StartsWith(ModelFolder) || !System.IO.Path.GetFileName(assetPath).StartsWith("SM_Evo_"))
                 return;
+            EvoBakedFxStrip.Strip(root, System.IO.Path.GetFileNameWithoutExtension(assetPath));
             Separate(root);
         }
 
