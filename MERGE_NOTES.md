@@ -1079,3 +1079,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `a8e345d0`에 있음.
+
+## M-66. 3단계 바이오스피어 외형 · 물 · 구름 · 빗줄기 · 무지개 · 수정 따로 재질 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a97ad3d9`와 같은 파일)
+- `SM_Evo_Biosphere.fbx` + 텍스처 (`Textures/Evo_Biosphere`): **물의 순환 고리** (사용자 B안 — 3단계 = 자연의 아름다움 예찬) — 고리 땅 · 계단 논밭 다섯 단 · 연꽃 호수 · 물길 셋 · 진주 아치 셋이 받친 하늘 호수 → 폭포 기둥 · 무지개 · 프리즘, 도는 부품 `SpinDish_BiosphereClouds` (새, 따로 구움) + `Fx_BiosphereClouds` (구름 · 빗줄기)
+- **3단계 따로 재질 규칙** (사용자 2026-10-27, MODELING 7-10): 물 `FX_PureWater` · 떨어지는 물 `FX_Falls` · 구름 · 물안개 `FX_Cloud` · 빗줄기 `FX_Rain` · 무지개 `FX_Rainbow0~6` · 프리즘 `FX_Prism`은 몸체 텍스처에 굽지 않고 FX 부품 재질 칸으로 (`evo_builder` `s3_fx_mats`)
+- `SM_Evo_OrbitalCity.fbx` + 텍스처 다시 내보냄: 강 · 개울 · 호수 → `FX_PureWater`, 폭포 → `FX_Falls` (몸체 텍스처에서 물이 빠짐)
+- Blender `Modules_Work.blend` (`evo_builder` 3단계 구역에 `_s3_*` 도우미 · `build_biosphere`), MODELING 7-10
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 ModuleFxMaterials에 위 FX 재질을 더함 (그 전에 Recipes/Setup을 돌리면 이 FX 슬롯에 "알 수 없는 재질" 경고)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `a97ad3d9`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
