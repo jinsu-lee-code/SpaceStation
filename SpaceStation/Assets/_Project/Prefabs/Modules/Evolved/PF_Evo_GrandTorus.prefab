@@ -515,6 +515,53 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.92, y: 0.92, z: 0.92}
   m_Center: {x: 2, y: 1, z: 2}
+--- !u!1 &4635297647390691491
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8157498757439830821}
+  - component: {fileID: 1440490858435167257}
+  m_Layer: 0
+  m_Name: StarSmokeEmitter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8157498757439830821
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4635297647390691491}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.222, y: 0.048, z: -0.7}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5605027834204964324}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1440490858435167257
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4635297647390691491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd5ed0072ea6a0f46a4ed388721f7143, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.SparkEmitterFx
+  _kind: 0
+  _sparkMaterial: {fileID: 2100000, guid: 8c490583a03f6ae4c85a131c26bbdb87, type: 2}
+  _trailMaterial: {fileID: 2100000, guid: 2499d14c89deb2f4b8c186f4d4dbc132, type: 2}
 --- !u!1 &6244849387141974778
 GameObject:
   m_ObjectHideFlags: 0
@@ -1212,12 +1259,20 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 2620393904950069778, guid: e2ec199efcee77a4aa1906fdbc1bd799, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8157498757439830821}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: -9044546923651099782, guid: e2ec199efcee77a4aa1906fdbc1bd799, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1020668893673729383}
   m_SourcePrefab: {fileID: 100100000, guid: e2ec199efcee77a4aa1906fdbc1bd799, type: 3}
+--- !u!4 &5605027834204964324 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2620393904950069778, guid: e2ec199efcee77a4aa1906fdbc1bd799, type: 3}
+  m_PrefabInstance: {fileID: 7607860984368271350}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &7607860984368271351 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: e2ec199efcee77a4aa1906fdbc1bd799, type: 3}
