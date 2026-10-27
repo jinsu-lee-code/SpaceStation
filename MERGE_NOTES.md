@@ -1029,3 +1029,22 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `1746b927`에 있음 (EditMode 444 통과 · 플레이 캡처로 확인).
+
+## M-63. 2단계 후속 ④ — 치안 본부 순찰차 추진 불꽃 · 출동, 화물 환적장 보트 운행 · 입자 물보라 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `8e64a9f9`와 같은 파일)
+- 모델 (Blender `Modules_Work.blend` 같이): 구운 본체에서 움직일 조각만 떼어 부품으로 (본체 텍스처 공유, 다시 굽지 않음)
+  - `SM_Evo_SecurityHQ`: 광장 순찰차 둘 → `PatrolCar_SecurityHQ1 · 2` (+ 빛 `Fx_SecurityHQCar1 · 2`). `build_security_hq`도 다음부터 부품으로 만듦
+  - `SM_Evo_CargoTransfer`: 화물 보트 템플릿 셋 → `FlumeBoat_CargoTransfer1~3` (+ `Fx_CargoTransferBoat1~3`, 원점 = 보트 가운데 · 앞 +x), 나머지 구운 보트 · 고정 큰 물보라 연출 메시는 지움 (`evo_builder`에 `cargo_flume_split()` — 확정 뒤 부름)
+- `PatrolCarFx` (순찰차마다 자동 배선): 합성 고리와 같은 추진 불꽃 (재질 `Synthesis/M_Synth_Particle`, 없으면 `M_FireworkSpark`) + 떠서 출렁임, 가동 중 가끔 출동 (경광등 → 떠오름 → 차 앞쪽으로 날아가 사라짐 → 돌아와 내려앉음) + `PatrolCarFxTests`
+- `FlumeRideFx` (환적장 자동 배선): 보트 여섯이 물길 한 바퀴 (빌더가 Blender와 같은 캣멀-롬 물길을 계산해 넣음) — 체인 리프트 일정 · 낙하 가속 · 평지 감속, 낙하 바닥에서 입자 물보라 + 물결 고리 + `FlumeRideFxTests`
+- `ModuleFxMaterials`: `Ripple` (가산 + 고리 텍스처 `T_SoftRing.png`)
+- `FireworkFx` · 새 입자들: 속도를 안 준 Emit(섬광 등)이 기본 속도 5로 날아가던 것 고침 (`startSpeed = 0`)
+- MODELING.md 7-9 아래 "구운 본체에서 움직일 조각 떼어 내기" 주의 셋
+- 프리팹 산출물
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 서사판에서 Modules_Work.blend를 따로 고쳤으면 충돌, 이쪽을 받음). 합친 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `8e64a9f9`에 있음 (EditMode 446 통과 · 플레이 캡처로 확인).

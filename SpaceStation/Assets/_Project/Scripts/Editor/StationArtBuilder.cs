@@ -495,6 +495,22 @@ namespace SpaceStation.Editor
             }
             if (model.name == "SM_Evo_RefineryCombine")
                 AddSparkEmitter(instance.transform, new Vector3(1f, 0.5f, 0.5f), SpaceStation.Building.SparkEmitterFx.Kind.SparkFountain);
+            // 진화 치안 본부: 광장의 떠 있는 순찰차 "PatrolCar_*" (Blender에서 본체와 떼어 낸 부품, 원점 = 차 바닥 가운데)
+            //   → 합성 고리와 같은 추진 불꽃 + 가끔 출동 (PatrolCarFx, 사용자 2026-10-27)
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+            {
+                if (!t.name.StartsWith("PatrolCar"))
+                    continue;
+                var car = t.gameObject.AddComponent<SpaceStation.Building.PatrolCarFx>();
+                var plume = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/Synthesis/M_Synth_Particle.mat");
+                var cso = new SerializedObject(car);
+                cso.FindProperty("_plumeMaterial").objectReferenceValue = plume != null ? plume : ModuleFxMaterials.Get("FireworkSpark");
+                cso.ApplyModifiedPropertiesWithoutUndo();
+            }
+            // 진화 화물 환적장: 템플릿 보트 "FlumeBoat_*" 셋 (Blender cargo_flume_split, 원점 = 보트 가운데 · 앞 +x)을 복제해
+            //   여섯 척이 물길 한 바퀴를 돌고 큰 낙하 바닥에서 물보라 (FlumeRideFx, 사용자 2026-10-27)
+            if (model.name == "SM_Evo_CargoTransfer")
+                WireFlumeRide(instance);
             if (model.name == "SM_Evo_DroneDepot")
             {
                 var show = new GameObject("DroneShow");
@@ -557,6 +573,94 @@ namespace SpaceStation.Editor
                 fso.FindProperty("_lamp").objectReferenceValue = lamp.gameObject;
                 fso.ApplyModifiedPropertiesWithoutUndo();
             }
+        }
+
+        /// <summary>
+        /// 화물 환적장 후룸라이드 (FlumeRideFx): 물길 한 바퀴 = Blender build_cargo_transfer의 물길과 같은 캣멀-롬 곡선
+        /// (본 물길 ctrl 0.028 간격 · 돌아오는 물길 back 0.03) + 물보라 못 이음 + 항구 부두 앞 길 (화물선 사이로, 크레인 아래를 지나 본 물길 첫 점으로).
+        /// 보트 = 템플릿 셋 + 복제 셋 (짐 색이 번갈아).
+        /// </summary>
+        private static void WireFlumeRide(GameObject instance)
+        {
+            var templates = new List<Transform>();
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+                if (t.name.StartsWith("FlumeBoat_"))
+                    templates.Add(t);
+            if (templates.Count == 0)
+            {
+                Debug.LogWarning("[StationArtBuilder] 화물 환적장: 템플릿 보트(FlumeBoat_*)가 없어 후룸라이드 없음");
+                return;
+            }
+            templates.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            const float YT = -0.26f, WL = YT + 0.04f, H0 = YT + 0.56f;
+            var main = CatmullRom(new[]
+            {
+                new Vector3(1.66f, WL, 1.24f), new Vector3(1.95f, WL, 1.24f), new Vector3(2.12f, WL, 1.24f), new Vector3(2.24f, WL, 1.12f), new Vector3(2.25f, WL, 0.6f),
+                new Vector3(2.24f, WL, 0.1f), new Vector3(2.22f, WL, -0.1f), new Vector3(2.1f, WL, -0.2f), new Vector3(1.98f, WL, -0.12f), new Vector3(1.97f, WL + 0.01f, -0.02f),
+                new Vector3(1.97f, WL + (H0 - WL) * 0.25f, 0.16f), new Vector3(1.97f, WL + (H0 - WL) * 0.5f, 0.33f), new Vector3(1.97f, WL + (H0 - WL) * 0.75f, 0.5f),
+                new Vector3(1.97f, H0 - 0.006f, 0.64f), new Vector3(1.93f, H0, 0.76f), new Vector3(1.8f, H0, 0.84f), new Vector3(1.45f, H0 - 0.003f, 0.82f),
+                new Vector3(1.18f, H0 - 0.006f, 0.75f), new Vector3(1.04f, H0 - 0.01f, 0.64f), new Vector3(1.0f, H0 - 0.014f, 0.52f), new Vector3(1.0f, H0 - 0.04f, 0.44f),
+                new Vector3(1.0f, H0 - 0.17f, 0.3f), new Vector3(1.0f, H0 - 0.31f, 0.16f), new Vector3(1.0f, WL + 0.07f, 0.02f), new Vector3(1.0f, WL + 0.012f, -0.08f),
+                new Vector3(1.0f, WL, -0.15f),
+            }, 0.028f);
+            var link = CatmullRom(new[] { new Vector3(1.0f, WL, -0.15f), new Vector3(0.93f, WL, -0.215f), new Vector3(0.86f, WL, -0.25f) }, 0.03f);
+            var back = CatmullRom(new[]
+            {
+                new Vector3(0.86f, WL, -0.25f), new Vector3(0.6f, WL, -0.28f), new Vector3(0.25f, WL, -0.25f), new Vector3(-0.08f, WL, -0.21f), new Vector3(-0.23f, WL, -0.04f),
+                new Vector3(-0.25f, WL, 0.4f), new Vector3(-0.23f, WL, 0.84f), new Vector3(-0.14f, WL, 1.03f), new Vector3(0.0f, WL, 1.1f),
+            }, 0.03f);
+            var harbor = CatmullRom(new[]
+            {
+                new Vector3(0.0f, WL, 1.1f), new Vector3(0.2f, WL, 1.06f), new Vector3(0.8f, WL, 1.055f), new Vector3(1.4f, WL, 1.06f), new Vector3(1.58f, WL, 1.09f),
+                new Vector3(1.64f, WL, 1.17f), new Vector3(1.66f, WL, 1.24f),
+            }, 0.03f);
+            var path = new List<Vector3>(main);
+            path.AddRange(link.GetRange(1, link.Count - 2));
+            path.AddRange(back);
+            path.AddRange(harbor.GetRange(1, harbor.Count - 2));
+
+            var boats = new List<Transform>(templates);
+            foreach (var t in templates)
+            {
+                var clone = Object.Instantiate(t.gameObject, t.parent);
+                clone.name = t.name + "_b";
+                boats.Add(clone.transform);
+            }
+            var fx = instance.AddComponent<SpaceStation.Building.FlumeRideFx>();
+            var so = new SerializedObject(fx);
+            var pb = so.FindProperty("_boats");
+            pb.arraySize = boats.Count;
+            for (int i = 0; i < boats.Count; i++)
+                pb.GetArrayElementAtIndex(i).objectReferenceValue = boats[i];
+            var pp = so.FindProperty("_path");
+            pp.arraySize = path.Count;
+            for (int i = 0; i < path.Count; i++)
+                pp.GetArrayElementAtIndex(i).vector3Value = path[i];
+            so.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+            so.FindProperty("_rippleMaterial").objectReferenceValue = ModuleFxMaterials.Get("Ripple");
+            so.ApplyModifiedPropertiesWithoutUndo();
+            fx.Apply(0f); // 처음 자리 (고스트 · 정지 화면에서도 물길 위에 고르게)
+        }
+
+        /// <summary>캣멀-롬 곡선 (조절점을 지나는 매끈한 길, 간격 step 안팎) — Blender evo_builder `_cr_path`와 같은 계산.</summary>
+        private static List<Vector3> CatmullRom(Vector3[] ctrl, float step)
+        {
+            var p = new List<Vector3> { ctrl[0] + (ctrl[0] - ctrl[1]) };
+            p.AddRange(ctrl);
+            p.Add(ctrl[ctrl.Length - 1] + (ctrl[ctrl.Length - 1] - ctrl[ctrl.Length - 2]));
+            var result = new List<Vector3>();
+            for (int i = 1; i < p.Count - 2; i++)
+            {
+                Vector3 p0 = p[i - 1], p1 = p[i], p2 = p[i + 1], p3 = p[i + 2];
+                int n = Mathf.Max(2, (int)((p2 - p1).magnitude / step));
+                for (int j = 0; j < n; j++)
+                {
+                    float t = j / (float)n, t2 = t * t, t3 = t2 * t;
+                    result.Add(0.5f * (2f * p1 + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 + (-p0 + 3f * p1 - 3f * p2 + p3) * t3));
+                }
+            }
+            result.Add(p[p.Count - 2]);
+            return result;
         }
 
         /// <summary>parent 아래 at(parent 기준)에 반짝이 입자 방출구 (SparkEmitterFx — 위로 뿜음).</summary>
