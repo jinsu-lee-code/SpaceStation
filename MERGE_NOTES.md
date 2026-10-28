@@ -1152,3 +1152,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-28) 같은 파일이 tycoon 커밋 `9bc8cdba`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-71. 3단계 AI 중추 외형 (수정 뇌 미로 정원) · 진화 모델 가져오기 느려짐 고침 (2026-10-28, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `20c348df`과 같은 파일)
+- `SM_Evo_AICore.fbx` + 텍스처 (`Textures/Evo_AICore`): **수정 뇌 미로 정원** (사용자 A안, "연구와 운영 자동화가 하나의 두뇌로"). 4×2에서 뒤 오른쪽 한 칸이 빠진 7칸 · 1층. 위에서 보면 정원 전체가 뇌 — 앞 · 뒤 두 반구 꽃 생울타리 미로 (뇌 주름처럼 구불구불), 고랑에 빛 신경 (앞 = 연구 보라, 뒤 = 자동화 금), 가운데 큰길 끝 장미 아치 문 · 드론 둥지에서 오는 두 빛이 가운데 진주 유리 돔 정자 속 수정 뇌에서 만남. 오른쪽 앞 칸 = 정원 손질 드론 둥지 · 유리 온실 · 자동 꽃밭
+- 도는 부품 `SpinDish_AICoreThoughts` (생각 고리 — 금빛 고리 · 떠다니는 펼친 책 넷, 따로 굽는 텍스처) + `Fx_AICoreThoughts` (수정 조각 · 보라 빛 구슬), 동물 13마리 `Critter_AICore_*` (FX_Critters, 부엉이 · 고슴도치 새로)
+- `Scripts/Editor/EvoFxDepthOffset.cs`: 같은 평면 짝 찾기에서 짝이 5만 넘는 칸은 칸 안 법선이 모두 같을 때 평면 격자 (`PlaneGrid`)로 테두리 상자가 닿는 삼각형끼리만 비교 — 결과 같음 (정점 해시 확인, GetVersion 9 그대로 → 다시 가져오기 없음). AI 중추 가져오기 247 → 5.4초, 궤도 방어망 59 → 7.6초
+- Blender `Modules_Work.blend` (`evo_builder`에 `build_ai_core` · `_ai_field` / `_ai_iso_lines` (반구 안쪽 거리 + noise 등고선 = 주름 미로) · `_ai_hedge` · `_ai_brain` · `_ai_drone` · `cr_owl` · `cr_hedgehog`). 원래부터 zstd 압축 저장 (크기 = 모델 자체, 50MB 넘어 GitHub 경고만 — 100MB 넘을 것 같으면 끝난 모듈을 다른 .blend로)
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 생각 고리 돌기, 빛 신경 흐름 · 시냅스 깜빡임, 수정 뇌 맥박 빛, 드론 날기, 동물 움직임
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음). `EvoFxDepthOffset.cs`를 그쪽에서 고쳤으면 `PlaneGrid` 부분만 손으로 합침.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-28) 같은 파일이 tycoon 커밋 `20c348df`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).

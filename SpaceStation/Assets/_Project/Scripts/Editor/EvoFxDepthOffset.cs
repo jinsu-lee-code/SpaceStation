@@ -23,6 +23,8 @@ namespace SpaceStation.Editor
         private const float NudgeStep = 0.00055f;
         // 같은 평면으로 볼 거리. 고칠 때 더 넓게(0.5mm · 4번) 했더니 곡면 유리가 계속 밀려 다른 층에 걸려 오히려 늘었음 (융합 플랜트)
         private const float PlaneTolerance = 0.0003f;
+        // 한 칸의 (연출 × 이웃) 짝이 이보다 많으면 격자로 후보를 고름
+        private const long GridMinPairs = 50000;
 
         private static readonly string[] TransparentNames = { "Glass", "Aurora", "LightBeam", "GalaxyWater", "SplashMist", "ShieldSail", "ShieldShell" };
 
@@ -174,11 +176,20 @@ namespace SpaceStation.Editor
                 var near = up == null ? list : new List<int>(list);
                 if (up != null)
                     near.AddRange(up);
+                // 짝이 아주 많은 칸은 겹칠 수 있는 (평면 위 테두리 상자가 닿는) 삼각형끼리만 (결과 · 순서는 같음, PlaneGrid 참고)
+                var grid = (long)fx.Count * near.Count > GridMinPairs ? PlaneGrid.TryCreate(tris, near) : null;
+                var cand = grid != null ? new List<int>() : null;
                 for (int x = 0; x < fx.Count; x++)
                 {
-                    for (int y = 0; y < near.Count; y++)
+                    int count = near.Count;
+                    if (grid != null)
                     {
-                        int i = fx[x], j = near[y];
+                        grid.Query(tris[fx[x]], cand);
+                        count = cand.Count;
+                    }
+                    for (int y = 0; y < count; y++)
+                    {
+                        int i = fx[x], j = grid != null ? near[cand[y]] : near[y];
                         if (i == j)
                             continue;
                         var a = tris[i];
@@ -290,6 +301,82 @@ namespace SpaceStation.Editor
             int ra = Find(parent, a), rb = Find(parent, b);
             if (ra != rb)
                 parent[ra] = rb;
+        }
+
+        /// <summary>
+        /// 큰 평면 칸에서 서로 겹칠 수 있는 삼각형만 고르는 평면 격자 (2026-10-28 AI 중추: 빛 신경 줄 윗면 · 아랫면 3,700여 개가
+        /// 진주 자갈 바닥과 한 칸에 몰려 전부 짝지어 보느라 가져오기 4분). 칸 안 법선이 모두 같을 때만 씀 (평평한 바닥 · 물 높이 —
+        /// 그때 Overlap이 쓰는 평면 좌표가 모두 같아, 넓이 있게 겹치는 두 삼각형은 평면 위 테두리 상자가 반드시 닿음 → 결과가 같음).
+        /// 법선이 조금씩 다른 칸 (곡면 유리)은 null → 전부 비교. 후보는 near 순서 그대로 돌려줘 짝 순서도 같다.
+        /// </summary>
+        private sealed class PlaneGrid
+        {
+            private const float Cell = 0.05f;
+            private const float Pad = 0.002f;
+            private readonly Dictionary<long, List<int>> _cells = new Dictionary<long, List<int>>();
+            private readonly int[] _mark;
+            private int _stamp;
+            private readonly Vector3 _u, _w;
+
+            private PlaneGrid(Vector3 n, int count)
+            {
+                _u = Vector3.Cross(n, Mathf.Abs(n.x) < 0.9f ? Vector3.right : Vector3.up).normalized;
+                _w = Vector3.Cross(n, _u);
+                _mark = new int[count];
+            }
+
+            public static PlaneGrid TryCreate(List<Tri> tris, List<int> near)
+            {
+                var n = tris[near[0]].Cn;
+                foreach (int j in near)
+                    if (Vector3.Dot(tris[j].Cn, n) < 0.99999999f)
+                        return null;
+                var grid = new PlaneGrid(n, near.Count);
+                for (int y = 0; y < near.Count; y++)
+                {
+                    grid.Range(tris[near[y]], out int u0, out int u1, out int w0, out int w1);
+                    for (int a = u0; a <= u1; a++)
+                        for (int b = w0; b <= w1; b++)
+                        {
+                            long key = ((long)a << 32) ^ (uint)b;
+                            if (!grid._cells.TryGetValue(key, out var list))
+                                grid._cells[key] = list = new List<int>();
+                            list.Add(y);
+                        }
+                }
+                return grid;
+            }
+
+            private void Range(Tri t, out int u0, out int u1, out int w0, out int w1)
+            {
+                float a0 = Vector3.Dot(t.P0, _u), a1 = Vector3.Dot(t.P1, _u), a2 = Vector3.Dot(t.P2, _u);
+                float b0 = Vector3.Dot(t.P0, _w), b1 = Vector3.Dot(t.P1, _w), b2 = Vector3.Dot(t.P2, _w);
+                u0 = Mathf.FloorToInt((Mathf.Min(a0, Mathf.Min(a1, a2)) - Pad) / Cell);
+                u1 = Mathf.FloorToInt((Mathf.Max(a0, Mathf.Max(a1, a2)) + Pad) / Cell);
+                w0 = Mathf.FloorToInt((Mathf.Min(b0, Mathf.Min(b1, b2)) - Pad) / Cell);
+                w1 = Mathf.FloorToInt((Mathf.Max(b0, Mathf.Max(b1, b2)) + Pad) / Cell);
+            }
+
+            /// <summary>t와 평면 위 테두리 상자가 닿는 near 위치들 (오름차순).</summary>
+            public void Query(Tri t, List<int> result)
+            {
+                result.Clear();
+                _stamp++;
+                Range(t, out int u0, out int u1, out int w0, out int w1);
+                for (int a = u0; a <= u1; a++)
+                    for (int b = w0; b <= w1; b++)
+                    {
+                        if (!_cells.TryGetValue(((long)a << 32) ^ (uint)b, out var list))
+                            continue;
+                        foreach (int y in list)
+                            if (_mark[y] != _stamp)
+                            {
+                                _mark[y] = _stamp;
+                                result.Add(y);
+                            }
+                    }
+                result.Sort();
+            }
         }
 
         /// <summary>같은 평면 두 삼각형이 넓이 있게 겹치는지 (2D 분리축, 1mm 안쪽으로 줄여 모서리만 닿는 것은 뺌).</summary>
