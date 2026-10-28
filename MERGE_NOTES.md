@@ -1138,3 +1138,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `1a1817d7`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-70. 3단계 궤도 항만 외형 (진주 조개 항구 · 인어 왕국의 항구) (2026-10-28, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `9bc8cdba`과 같은 파일)
+- `SM_Evo_OrbitalPort.fbx` + 텍스처 (`Textures/Evo_OrbitalPort`): **진주 조개 항구 · 인어 왕국의 항구** (사용자 C안 + "살짝 판타지풍, 인어 왕국의 항구 느낌" — 사람 모양 인어 없이 궁전 · 해마 · 꼬리 분수 · 삼지창 · 왕관으로). 7×2 · 1층. 왼쪽 = 산호 섬 위 진주 조개 궁전 (조개 돔 본관 · 소라 첨탑 넷 · 큰 계단 · 삼지창 문 · 인어 꼬리 분수), 가운데 = 석호 위 해마 회전목마, 오른쪽 = 열린 큰 진주 조개 부두 셋 · 진주 잔교 · 산호 기중기 · 앵무조개 나선 창고, 앞 진주 모래 해변 · 뒤 산호 방파제와 바다 문 · 물속 산호초
+- 도는 부품 둘 (따로 굽는 텍스처, 원점 = 받침 가운데 (3, 0, 0.45)): `SpinDish_OrbitalPortCarousel` (해마 넷 민트 · 분홍 · 금 · 연보라 + 진주 조개 저장 칸 넷, 저장 단지 회전목마의 다음) + `Fx_OrbitalPortCarousel`, `SpinDish_OrbitalPortBoats` (해마가 끄는 가리비 배 넷, 환적장 후룸 보트의 다음) + `Fx_OrbitalPortBoats`. 동물 11마리 `Critter_OrbitalPort_*` (FX_Critters)
+- Blender `Modules_Work.blend` (`evo_builder`에 `build_orbital_port` · `_po_fan` (가리비 껍데기) · `_po_clam` (열린 조개 + 같은 모양 진주층) · `_po_conch` · `_po_crown` · `_po_seahorse` · `_po_nautilus`)
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 회전목마가 돌고 배가 그 둘레를 돌기, 분수 물방울 · 조개 속 진주 빛, 동물 움직임
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-28) 같은 파일이 tycoon 커밋 `9bc8cdba`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
