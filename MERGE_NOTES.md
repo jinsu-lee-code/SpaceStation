@@ -1255,3 +1255,16 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e8438277`에 있음.
+
+## M-78. 3 · 4단계 플레이 피드백 2 — 진주 몸체 해 되비침 번쩍임 · 입자 비 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a242ac63`과 같은 파일)
+- 궤도 항만 번쩍임의 진짜 원인 = 몸체 텍스처 진주 면 (텍셀 73%가 매끈함 0.78 넘게 구워짐 → 둥근 진주 면마다 해 되비침 HDR ~20 → 블룸). `ModuleTextureMaterials`: 3 · 4단계 8종 몸체 · 부품 텍스처 재질 매끈함 배율 0.7 (`Stage3Smoothness`) → 해당 `M_Evo_*_Tex.mat` 갱신. 1 · 2단계는 그대로
+- 바이오스피어 비 = 입자: 새 런타임 `Building/RainFx` (구름마다 빗방울 · 비 안개 입자, 월드 공간, 아치 가림) + 새 셰이더 `SpaceStation/RainParticle` + 재질 `M_RainDrop` · `M_RainMist`. 구운 빗줄은 `FxOverrides` Evo_Biosphere FX_Rain → Hidden (`SM_Evo_Biosphere.fbx.meta` 리맵). **M-77의 `RainShelterFx`는 지움** (RainFx로 합침 — 바이오스피어 프리팹을 Recipes/Setup으로 다시 만들면 참조가 없어짐)
+- Recipes/Setup 산출물: 바이오스피어 프리팹 (다른 진화 프리팹 · Main 씬은 fileID만 바뀌어 안 넣음)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 서사판에 `RainShelterFx` 참조가 남아 있으면 Recipes/Setup으로 바이오스피어 프리팹을 다시 만들 것.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `a242ac63`에 있음.

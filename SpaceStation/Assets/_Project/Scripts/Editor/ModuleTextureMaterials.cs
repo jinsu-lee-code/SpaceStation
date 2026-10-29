@@ -55,6 +55,12 @@ namespace SpaceStation.Editor
         /// </summary>
         private const float Stage3Occlusion = 0.3f;
         private const float Stage3BodyGlow = 0.3f;
+        /// <summary>
+        /// 3 · 4단계 몸체 매끈함 배율 (사용자 2026-10-29 플레이 "궤도 항만 빛이 번쩍임"): 진주 몸체는 텍셀 73%가 매끈함 0.78 넘게 구워져
+        /// 둥근 진주 면(방파제 진주 돌 · 조개 부두 · 회전목마)마다 해를 거울처럼 되비치는 점이 HDR 20쯤 → 블룸으로 번쩍, 카메라가 움직이면 깜빡임.
+        /// 0.7배면 밝기 3 넘는 픽셀 991 → 0 ~ 4 (0.8배는 662)로 반짝임이 부드러워짐.
+        /// </summary>
+        private const float Stage3Smoothness = 0.7f;
         private static readonly HashSet<string> Stage3Plus = new HashSet<string>
         {
             "Evo_OrbitalCity", "Evo_Biosphere", "Evo_StellarGrid", "Evo_OrbitalDefense", "Evo_RepairCommand", "Evo_OrbitalPort", "Evo_AICore",
@@ -74,16 +80,17 @@ namespace SpaceStation.Editor
             // 부품 텍스처(도는 고리 등)도 같은 몸체. 3단계 진주 몸체도 색 칸 바탕색에 낮은 AO가 구워져 그늘 쪽이 칙칙 → 약하게 보정
             float bodyGlow = MidnightBody.Contains(key) ? MidnightBodyGlow : Stage3Plus.Contains(key) ? Stage3BodyGlow : 0f;
             float occlusion = Stage3Plus.Contains(key) ? Stage3Occlusion : 1f;
+            float smoothness = Stage3Plus.Contains(key) ? Stage3Smoothness : 1f;
             foreach (var file in Directory.GetFiles(dir, "T_*_BaseColor.png"))
             {
                 string fileName = Path.GetFileName(file);
                 string name = fileName.Substring(2, fileName.Length - 2 - "_BaseColor.png".Length);
-                result[SlotPrefix + name] = Ensure(dir, name, bodyGlow, occlusion);
+                result[SlotPrefix + name] = Ensure(dir, name, bodyGlow, occlusion, smoothness);
             }
             return result;
         }
 
-        private static Material Ensure(string dir, string key, float bodyGlow, float occlusion = 1f)
+        private static Material Ensure(string dir, string key, float bodyGlow, float occlusion = 1f, float smoothness = 1f)
         {
             string basePath = dir + $"T_{key}_BaseColor.png";
             string normalPath = dir + $"T_{key}_Normal.png";
@@ -122,7 +129,7 @@ namespace SpaceStation.Editor
             m.SetTexture("_MetallicGlossMap", mask);
             m.SetTexture("_OcclusionMap", mask); // URP는 차폐를 G에서 읽음
             m.SetFloat("_Metallic", 1f);
-            m.SetFloat("_Smoothness", 1f); // 맵의 A가 매끈함 (배율 1)
+            m.SetFloat("_Smoothness", smoothness); // 맵의 A가 매끈함 × 배율 (3 · 4단계 0.7)
             m.SetFloat("_SmoothnessTextureChannel", 0f);
             m.SetFloat("_OcclusionStrength", occlusion);
             m.SetKeyword(new LocalKeyword(m.shader, "_METALLICSPECGLOSSMAP"), mask != null);

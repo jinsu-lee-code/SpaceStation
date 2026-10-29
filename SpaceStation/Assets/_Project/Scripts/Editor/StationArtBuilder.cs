@@ -38,6 +38,7 @@ namespace SpaceStation.Editor
             { "Evo_DeepSpaceComm", new Dictionary<string, string> { { "FX_FluorCyan", "SignalCyan" } } },
             { "Evo_StellarGrid", new Dictionary<string, string> { { "FX_FluorGold", "HoneyGold" } } },
             { "Evo_OrbitalPort", new Dictionary<string, string> { { "FX_FluorWhite", "PearlWhite" } } },
+            { "Evo_Biosphere", new Dictionary<string, string> { { "FX_Rain", "Hidden" } } }, // 구운 빗줄 막대 대신 RainFx 입자 비 (사용자 2026-10-29)
             { "Evo_FusionStation", new Dictionary<string, string> { { "FX_FusionPlasma", "PlasmaBlue" } } },
             { "Evo_FusionPlant", new Dictionary<string, string> { { "FX_FusionPlasma", "PlasmaViolet" } } },
             { "Evo_OrbitalMirror", new Dictionary<string, string> { { "FX_LightBeam", "Hidden" } } },
@@ -532,15 +533,27 @@ namespace SpaceStation.Editor
             }
             // 진화 3 · 4단계: 동물 "Critter_*" · 꿀벌 "Bee_*" (Blender CritterSet — 한 마리씩 따로 부품, 원점 = 동물 자리)이 움직이며 서로 간격 유지 (CritterFx)
             WireCritters(instance);
-            // 진화 바이오스피어: 도는 구름 아래 빗줄기가 진주 아치 셋 (Blender build_biosphere ARCHES 30° · 150° · 270°, 가운데 (1, 1))을 뚫지 않게 (RainShelterFx, 사용자 2026-10-29)
+            // 진화 바이오스피어: 도는 구름 고리 아래 비 = 입자 (RainFx, 사용자 2026-10-29 "진짜 구름에서 비가 내리는 느낌") — 구운 빗줄 막대는 FxOverrides로 숨김.
+            //   구름 = Blender build_biosphere 구름 고리 (부품 원점 = 가운데 위, 반지름 RC 0.74, 72°마다 다섯, 밑면 −0.035),
+            //   진주 아치 셋 (ARCHES 30° · 150° · 270°, 가운데 (1, 1)) 쪽으로 떨어지는 빗방울은 셰이더가 감춤
             if (model.name == "SM_Evo_Biosphere")
             {
-                var rain = FindChild(instance.transform, "Fx_BiosphereClouds");
-                if (rain != null)
+                var clouds = FindChild(instance.transform, "SpinDish_BiosphereClouds");
+                if (clouds != null)
                 {
-                    var shelter = rain.gameObject.AddComponent<SpaceStation.Building.RainShelterFx>();
-                    var rso = new SerializedObject(shelter);
+                    var rain = instance.AddComponent<SpaceStation.Building.RainFx>();
+                    var rso = new SerializedObject(rain);
+                    rso.FindProperty("_clouds").objectReferenceValue = clouds;
                     rso.FindProperty("_module").objectReferenceValue = instance.transform;
+                    rso.FindProperty("_dropMaterial").objectReferenceValue = ModuleFxMaterials.Get("RainDrop");
+                    rso.FindProperty("_mistMaterial").objectReferenceValue = ModuleFxMaterials.Get("RainMist");
+                    var spots = rso.FindProperty("_cloudSpots");
+                    spots.arraySize = 5;
+                    for (int q = 0; q < 5; q++)
+                    {
+                        float a = 2f * Mathf.PI * q / 5f;
+                        spots.GetArrayElementAtIndex(q).vector3Value = new Vector3(0.74f * Mathf.Cos(a), -0.035f, 0.74f * Mathf.Sin(a));
+                    }
                     rso.ApplyModifiedPropertiesWithoutUndo();
                 }
             }
