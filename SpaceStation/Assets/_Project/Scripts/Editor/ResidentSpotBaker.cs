@@ -53,6 +53,8 @@ namespace SpaceStation.Editor
             { "WaterEx", new[] { ResidentTrait.Gardener } },
             { "Radiator", new[] { ResidentTrait.Technician } },   // 사용자 결정 2026-10-22: 배터리 · 태양광 · 연료전지와 같은 기술자
             { "CommRelay", new[] { ResidentTrait.Scientist } },   // 사용자 결정 2026-10-22: 신호 해독 = 연구원 (연구소 · 데이터 센터와 같음)
+            // 진화 모듈 (재료 모듈과 같은 특성)
+            { "EvoResearch", new[] { ResidentTrait.Scientist } }, // 연구 단지 = 연구소 ×2
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -79,7 +81,26 @@ namespace SpaceStation.Editor
             { "Passenger", PassengerSpots },
             { "Radiator", RadiatorSpots },
             { "CommRelay", CommRelaySpots },
+            { "EvoResearch", EvoResearchSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 연구 단지 (rc_builder): 연구원 — 네 모서리 곡면 책상 의자 (모서리를 봄, 앉음) · 관측 단 콘솔 앞 (단 위 F + 0.1, 기둥을 봄) ·
+        /// 창 아래 계산 설비 장 앞 둘 (장을 봄). 찾아낸 자리는 곡면 책상 · 둥근 단을 잘 못 잡아 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> EvoResearchSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(10.04f, Floor + 0.49f, 2.04f), 45f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(-2.04f, Floor + 0.49f, 2.04f), -45f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(-2.04f, Floor + 0.49f, -2.04f), -135f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(10.04f, Floor + 0.49f, -2.04f), 135f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(2.5f, Floor + 0.1f, 0f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(3.4f, Floor, 2.2f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(4.6f, Floor, -2.2f), 180f, ResidentPose.Work, work: true),
+            };
+        }
 
         /// <summary>
         /// 12-5 방열판 (radiator_builder ANCHORS["work"]): 기술자가 서서 일함 — 열교환기 조작반 (남쪽을 봄) · 열 감시판 (동쪽 벽을 봄) ·
@@ -178,6 +199,25 @@ namespace SpaceStation.Editor
             {
                 var template = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
                 if (template == null || template.Prefab == null || template.Module == null)
+                    continue;
+                log.Add(Bake(template));
+                EditorUtility.SetDirty(template);
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log("[ResidentSpotBaker] " + string.Join(" · ", log));
+        }
+
+        /// <summary>
+        /// 이름이 prefix로 시작하는 템플릿만 굽기 (진화 모듈 내부 = "IT_Evo" — Build Evolved Templates가 부름).
+        /// 전체 굽기는 찾아낸 자리가 실행마다 조금씩 달라지는 방(휴게실 등)까지 다시 써서 관계없는 변경이 생김.
+        /// </summary>
+        public static void BakeTemplates(string prefix)
+        {
+            var log = new List<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:InteriorTemplate", new[] { DataFolder }))
+            {
+                var template = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
+                if (template == null || template.Prefab == null || template.Module == null || !template.name.StartsWith(prefix))
                     continue;
                 log.Add(Bake(template));
                 EditorUtility.SetDirty(template);

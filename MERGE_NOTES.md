@@ -1298,3 +1298,19 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `64330e66`에 있음.
+
+## M-81. 진화 모듈 내부 시작 — 1단계 키트 (파노라마 창 띠) + 연구 단지 내부 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `6a38588f`과 같은 파일)
+- 사용자 결정: 진화 모듈 내부 = **단계 키트 + 대표 공간** (단계마다 벽 · 바닥 · 창 · 조명 키트, 모듈마다 대표 볼거리 · 움직이는 메인 부품은 고유) + 플레이 테스트 의견 "개방감 — 창을 많이" → 1단계 키트 = 벽 둘레 파노라마 창 띠
+- Blender `BlenderWork/Interior_Evo.blend` (텍스트 `evo_kit` · `rc_builder`, `int_common` · `overlap_check` · `nb_preview`는 Interior_NewBasic에서 가져옴) → `SM_Interior_EvoResearch.fbx`
+- 연구 단지 내부 템플릿 `IT_EvoResearch` · `PF_Interior_EvoResearch`: 둥근 모서리 2칸 홀 (천장 F + 4.0) · 네 모서리 곡면 창 + 긴 벽 가운데 창 · 양 끝 천창 · 가운데 관측 돔 (Window), 관측 단 기둥 위 망원경 회전 · 궤도 고리 둘 회전 (`InteriorOrbit`), 창 아래 계산 설비 장, 모서리 연구 책상, 주민 고정 자리 7 (연구원)
+- 새 재질 `M_InteriorEvoWhite` · `EvoFloor` · `EvoDark` (`InteriorSetup`), 강조색 `M_Accent_Evo_ResearchComplex` · `M_Paint_Evo_ResearchComplex` (`InteriorTemplateBuilder.EvoAccent`), `InteriorKit.asset` 강조색 목록에 연구 단지 추가
+- 메뉴 `SpaceStation/Interior/Build Evolved Templates` (진화 템플릿만 + 주민 자리도 진화 템플릿만 — `ResidentSpotBaker.BakeTemplates`), `Build Templates`(전체)에도 포함
+- 주의: `InteriorSetup.CreateMaterials`에 같은 이름 지역 함수(`Plain`)를 하나 더 두면 소품 재질 22종의 금속도 · 광택이 뒤바뀜 (한 번 그렇게 저장됐다가 되돌림 — 커밋에는 없음). 문 구멍은 천장이 높은 방에서 패널 높이까지만 (MODELING 7-11)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (세 편집기 스크립트를 서사판이 고쳤으면 해당 부분만 손으로). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `6a38588f`에 있음.
