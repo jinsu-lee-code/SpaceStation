@@ -99,6 +99,104 @@ namespace SpaceStation.Editor
             BuildEvoSolar();
             BuildEvoFusion();
             BuildEvoHydrogen();
+            BuildEvoGravity();
+        }
+
+        /// <summary>
+        /// 진화 1단계 중력 거주구 (3 × 3 + 꼬리 2칸, gh_builder — 사용자 2026-10-29 시안 3 확정 "유니티로 옮겨볼래?"):
+        /// 가운데 칸 = 유리 엘리베이터 탑 (1층 F ↔ 2층 전망실 F + 2.9, <see cref="InteriorLift"/>) · 탑 둘레 허브 (벤치 · 유리 벽 · 미니 링 + 바퀴살이 돎 — INT_EvoGravity_Spokes),
+        /// 2층 전망실 = 천장을 뚫고 솟은 둥근 방, 낮은 턱 위 360° 바깥 창 (INT_EvoGravity_Lookout — <see cref="InteriorLookoutWindow"/>: 자기 링이 보이게 탑 꼭대기 위에서 그림) ·
+        /// 망원경 (<see cref="InteriorTelescope"/> — 머리 INT_EvoGravity_Scope, F로 들여다봄), 허브 밖 원형 통로 (창가 벤치 · 나무 화단), 꼬리 2칸 = 주민 골목 (작은 집 넷 · 둥근 탁자).
+        /// 문 자리 = 연결점 있는 면 (8), 바닥 해치 = 칸마다 (가운데 (3.2, 0) · 모서리는 안쪽 대각선), 위 해치 = 연결점 있는 칸 (가운데 = 전망실 지붕 (−2.55, 0)), 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoGravity()
+        {
+            const float ceiling = F + 4.0f;
+            const float roof = F + 5.15f;   // gh_builder ROOF (전망실 지붕 아랫면)
+            const float deck = 2.9f;        // 2층 높이 (LV[1] − F)
+            const float lookoutLift = 3.8f;
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(1, 0, 0), new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 3), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 3), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 4), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 4), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 4), new Vector3Int(0, 0, 1), Socket),
+            };
+            // 바닥 해치: 칸마다 (모서리 칸 중심은 둥근 벽 가까이 → 안쪽 대각선으로), 위 해치: 바깥 모델 윗면이 있는 칸 (모서리 칸 없음)
+            foreach (var (cell, offset) in new[]
+                     {
+                         (new Vector3Int(0, 0, 0), new Vector3(0.6f, 0f, 0.6f)), (new Vector3Int(2, 0, 0), new Vector3(-0.6f, 0f, 0.6f)),
+                         (new Vector3Int(0, 0, 2), new Vector3(0.6f, 0f, -0.6f)), (new Vector3Int(2, 0, 2), new Vector3(-0.6f, 0f, -0.6f)),
+                         (new Vector3Int(1, 0, 0), Vector3.zero), (new Vector3Int(0, 0, 1), Vector3.zero), (new Vector3Int(2, 0, 1), Vector3.zero),
+                         (new Vector3Int(1, 0, 2), Vector3.zero), (new Vector3Int(1, 0, 3), Vector3.zero), (new Vector3Int(1, 0, 4), Vector3.zero),
+                         (new Vector3Int(1, 0, 1), new Vector3(3.2f, 0f, 0f)),   // 허브 +x 길 (벤치 · 화분 사이)
+                     })
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, offset));
+            foreach (var cell in new[] { new Vector3Int(1, 0, 0), new Vector3Int(0, 0, 1), new Vector3Int(2, 0, 1), new Vector3Int(1, 0, 2), new Vector3Int(1, 0, 3), new Vector3Int(1, 0, 4) })
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling, Vector3.zero));
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.up, roof, new Vector3(-2.55f, 0f, 0f)));   // 전망실 지붕 (탑 둘레 빛 고리 밖)
+
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.93f, 0.82f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, z) in new[] { (12f, 8f), (4f, 8f), (8f, 12f), (8f, 4f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.4f, z), 6f, 1.6f, white));      // 허브 (전망실 바닥 밑)
+            for (int k = 0; k < 8; k++)
+            {
+                float a = (22.5f + 45f * k) * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(8f + Mathf.Cos(a) * 9f, F + 3.4f, 8f + Mathf.Sin(a) * 9f), 6.5f, 1.8f, white));   // 원형 통로
+            }
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 3.3f, 23.5f), 7f, 2.0f, warm));     // 골목
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 3.3f, 31f), 7f, 2.0f, warm));
+            for (int k = 0; k < 3; k++)
+            {
+                float a = (30f + 120f * k) * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(8f + Mathf.Cos(a) * 2.4f, F + 4.8f, 8f + Mathf.Sin(a) * 2.4f), 4f, 1.0f, white));   // 전망실
+            }
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoGravity_Spokes", new Vector3(8f, 0f, 8f), Vector3.up, 12f),   // 허브 미니 링 + 바퀴살 (바깥 회전 링처럼 천천히)
+            };
+            EvoAccent("GravityHabitat", "#9FD8FF");
+            var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+            // 스폰 = −z 문 안쪽에서 허브 · 탑을 바라봄 (바닥 해치 (8, 0) 앞)
+            Build("EvoGravity", "Evolved/MD_Evo_GravityHabitat", sockets, new Vector3(8f, F, -1.8f), 0f, lights, orbits,
+                configure: root =>
+                {
+                    // 유리 엘리베이터 (거주 타워와 같은 틀): 캡슐 · 층 문 · 호출 버튼 · 캡슐 안 층 버튼
+                    var car = Child(root, "INT_EvoGravity_LiftCar");
+                    var carGlass = Child(root, "INT_EvoGravity_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[2];
+                    var right = new Transform[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoGravity_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoGravity_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoGravity_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoGravity_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, deck }, left, right, new Vector3(8f, F + 0.085f, 8f), Vector3.right, 0.8f);
+                    // 전망실 바깥 창: 탑 꼭대기 위에서 그림 (자기 링 보임)
+                    var lookout = Child(root, "INT_EvoGravity_Lookout");
+                    lookout.gameObject.AddComponent<MeshCollider>().sharedMesh = lookout.GetComponent<MeshFilter>().sharedMesh;
+                    lookout.gameObject.AddComponent<InteriorLookoutWindow>().Lift = lookoutLift;
+                    // 망원경: 머리 경계 상자 (시선 광선) + 들여다보기
+                    var head = Child(root, "INT_EvoGravity_Scope");
+                    BoxOf(head, 0.06f);
+                    root.AddComponent<InteriorTelescope>().Configure(head, new Vector3(8f, F + deck + 1.3f, 11f), 8f, lookoutLift, font);
+                });
         }
 
         /// <summary>
@@ -1945,6 +2043,7 @@ namespace SpaceStation.Editor
             { "EvoResearch", InteriorAmbience.Machine }, { "EvoTower", InteriorAmbience.Life }, { "EvoEco", InteriorAmbience.Water },
             { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life }, { "EvoCulture", InteriorAmbience.Life },
             { "EvoSolar", InteriorAmbience.Electric }, { "EvoFusion", InteriorAmbience.Heat }, { "EvoHydrogen", InteriorAmbience.Water },
+            { "EvoGravity", InteriorAmbience.Life },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
