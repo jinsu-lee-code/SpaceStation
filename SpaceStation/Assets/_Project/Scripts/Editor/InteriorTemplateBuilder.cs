@@ -796,6 +796,165 @@ namespace SpaceStation.Editor
                 });
         }
 
+        /// <summary>
+        /// 진화 템플릿 공용 상태 화면 (사용자 2026-10-30 "주민이 보는 화면에 아무것도 나오지 않아 아쉽다" → 공용 화면 + 다른 진화 모듈도):
+        /// 껍데기 조각의 Screen 재질 면을 덩어리(같은 자리 꼭짓점으로 이어진 삼각형)마다 나눠, 가장 넓은 평면 한 쌍 중 앞면
+        /// (면 바로 앞 4cm 안에 다른 면 — 뒤판 · 테 · 몸체 — 이 없는 쪽)을 화면 칸으로 <see cref="InteriorStatusScreens"/>에 넘긴다.
+        /// 위 · 아래를 보는 면, 작은 면 (가로 0.18m · 세로 0.1m 미만), 사각형을 85% 못 채우는 면 (둥근 면 · 흩어진 작은 면)은 뺀다. 좌표 = 템플릿 루트 기준.
+        /// </summary>
+        private static void AddStatusScreens(GameObject root, Material screen, Material back)
+        {
+            if (screen == null)
+                return;
+            var panels = new List<InteriorStatusScreens.Panel>();
+            var original = root.transform.position;
+            bool backfaces = Physics.queriesHitBackfaces;
+            root.transform.position = new Vector3(0f, -5000f, 0f);   // 씬의 다른 물체와 떨어뜨려 광선 검사
+            Physics.queriesHitBackfaces = true;                       // 뒷면이 다른 몸체 속에 묻힌 화면도 "막힘"으로
+            Physics.SyncTransforms();
+            try
+            {
+                foreach (Transform part in root.transform)
+                {
+                    if (!part.name.EndsWith("_Shell"))
+                        continue;
+                    var mf = part.GetComponent<MeshFilter>();
+                    var mr = part.GetComponent<MeshRenderer>();
+                    if (mf == null || mr == null)
+                        continue;
+                    var mesh = mf.sharedMesh;
+                    var mats = mr.sharedMaterials;
+                    var verts = mesh.vertices;
+                    for (int sub = 0; sub < mats.Length && sub < mesh.subMeshCount; sub++)
+                    {
+                        if (mats[sub] != screen)
+                            continue;
+                        foreach (var island in Islands(mesh.GetTriangles(sub), verts))
+                        {
+                            if (TryPanel(root.transform, part, verts, island, out var panel))
+                                panels.Add(panel);
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                root.transform.position = original;
+                Physics.queriesHitBackfaces = backfaces;
+                Physics.SyncTransforms();
+            }
+            if (panels.Count == 0)
+                return;
+            root.AddComponent<InteriorStatusScreens>().Configure(panels.ToArray(), back, screen);
+            Debug.Log($"[InteriorTemplateBuilder] {root.name}: 상태 화면 {panels.Count}칸");
+        }
+
+        /// <summary>삼각형 목록 → 같은 자리 꼭짓점으로 이어진 덩어리들 (평면 음영이라 면마다 꼭짓점이 갈라져 있어 자리로 잇는다).</summary>
+        private static List<List<int>> Islands(int[] tris, Vector3[] verts)
+        {
+            int n = tris.Length / 3;
+            var parent = new int[n];
+            for (int i = 0; i < n; i++)
+                parent[i] = i;
+            int Find(int a) { while (parent[a] != a) a = parent[a] = parent[parent[a]]; return a; }
+            var owner = new Dictionary<Vector3Int, int>();
+            for (int t = 0; t < n; t++)
+            {
+                for (int k = 0; k < 3; k++)
+                {
+                    var v = verts[tris[t * 3 + k]];
+                    var key = new Vector3Int(Mathf.RoundToInt(v.x * 1000f), Mathf.RoundToInt(v.y * 1000f), Mathf.RoundToInt(v.z * 1000f));
+                    if (owner.TryGetValue(key, out int o))
+                        parent[Find(t)] = Find(o);
+                    else
+                        owner[key] = t;
+                }
+            }
+            var groups = new Dictionary<int, List<int>>();
+            for (int t = 0; t < n; t++)
+            {
+                int r = Find(t);
+                if (!groups.TryGetValue(r, out var list))
+                    groups[r] = list = new List<int>();
+                list.Add(tris[t * 3]); list.Add(tris[t * 3 + 1]); list.Add(tris[t * 3 + 2]);
+            }
+            return new List<List<int>>(groups.Values);
+        }
+
+        /// <summary>덩어리 하나 → 화면 칸 (가장 넓은 옆을 보는 평면 · 그 반대 면 중 앞면).</summary>
+        private static bool TryPanel(Transform root, Transform part, Vector3[] verts, List<int> island, out InteriorStatusScreens.Panel panel)
+        {
+            panel = default;
+            var area = new Dictionary<Vector3Int, float>();
+            var normals = new Dictionary<Vector3Int, Vector3>();
+            var pts = new Dictionary<Vector3Int, List<Vector3>>();
+            for (int i = 0; i < island.Count; i += 3)
+            {
+                var a = root.InverseTransformPoint(part.TransformPoint(verts[island[i]]));
+                var b = root.InverseTransformPoint(part.TransformPoint(verts[island[i + 1]]));
+                var c = root.InverseTransformPoint(part.TransformPoint(verts[island[i + 2]]));
+                var cr = Vector3.Cross(b - a, c - a);
+                float ar = cr.magnitude * 0.5f;
+                if (ar < 1e-6f)
+                    continue;
+                var nrm = cr.normalized;
+                var key = new Vector3Int(Mathf.RoundToInt(nrm.x * 50f), Mathf.RoundToInt(nrm.y * 50f), Mathf.RoundToInt(nrm.z * 50f));
+                area[key] = (area.TryGetValue(key, out float s) ? s : 0f) + ar;
+                normals[key] = nrm;
+                if (!pts.TryGetValue(key, out var list))
+                    pts[key] = list = new List<Vector3>();
+                list.Add(a); list.Add(b); list.Add(c);
+            }
+            Vector3Int best = default;
+            float bestArea = 0f;
+            foreach (var kv in area)
+            {
+                if (Mathf.Abs(normals[kv.Key].y) > 0.7f || kv.Value <= bestArea)
+                    continue;
+                best = kv.Key;
+                bestArea = kv.Value;
+            }
+            if (bestArea <= 0f)
+                return false;
+            var candidates = new List<Vector3Int> { best };
+            var opposite = -best;
+            foreach (var kv in area)
+            {
+                if ((kv.Key - opposite).sqrMagnitude <= 2 && kv.Value > bestArea * 0.5f)
+                {
+                    candidates.Add(kv.Key);
+                    break;
+                }
+            }
+            foreach (var key in candidates)
+            {
+                var n = normals[key];
+                var up = Vector3.ProjectOnPlane(Vector3.up, n).normalized;
+                var right = Vector3.Cross(n, up).normalized;
+                float r0 = float.MaxValue, r1 = float.MinValue, u0 = float.MaxValue, u1 = float.MinValue, d = 0f;
+                foreach (var p in pts[key])
+                {
+                    float r = Vector3.Dot(p, right), u = Vector3.Dot(p, up);
+                    r0 = Mathf.Min(r0, r); r1 = Mathf.Max(r1, r); u0 = Mathf.Min(u0, u); u1 = Mathf.Max(u1, u);
+                    d += Vector3.Dot(p, n);
+                }
+                d /= pts[key].Count;
+                var center = right * ((r0 + r1) * 0.5f) + up * ((u0 + u1) * 0.5f) + n * d;
+                var size = new Vector2(r1 - r0, u1 - u0);
+                if (size.x < 0.18f || size.y < 0.1f)   // 연구 단지 책상 화면 = 0.30 × 0.12 (경계에 걸려 반만 잡히던 것 → 0.1)
+                    return false;
+                // 같은 방향 작은 면 여럿 (콘솔 줄 · 관 옆면)이나 둥근 면은 사각형을 다 채우지 못함 → 화면 아님 (태양광 · 수소에서 잘못 잡힘)
+                if (area[key] < size.x * size.y * 0.85f)
+                    return false;
+                var worldN = root.TransformDirection(n);
+                if (Physics.Raycast(root.TransformPoint(center) + worldN * 0.003f, worldN, 0.04f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                    continue;   // 앞에 뒤판 · 테 · 몸체 → 뒷면
+                panel = new InteriorStatusScreens.Panel { Center = center, Normal = n, Up = up, Size = size };
+                return true;
+            }
+            return false;
+        }
+
         /// <summary>조각 메시 경계 상자 충돌체 (조각은 템플릿 원점에 놓인 채 꼭짓점이 제자리 — 경계 = 템플릿 좌표). pad = 가장자리 여유 (누르기 쉽게).</summary>
         private static BoxCollider BoxOf(Transform part, float pad)
         {
@@ -2401,6 +2560,8 @@ namespace SpaceStation.Editor
             }
 
             configure?.Invoke(root); // 12-5 실행 중 표시 컴포넌트 (허브 안내 · 레이더 · 컨베이어 · 서버 표시등)
+            if (name.StartsWith("Evo"))
+                AddStatusScreens(root, materials["Screen"], materials["ScreenDark"]);   // 진화 모듈 화면 = 공용 상태 화면 (사용자 2026-10-30)
 
             System.IO.Directory.CreateDirectory(PrefabFolder);
             string prefabPath = PrefabFolder + "PF_Interior_" + name + ".prefab";
