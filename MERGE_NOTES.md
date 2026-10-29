@@ -1454,3 +1454,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `15873532`에 있음.
+
+---
+
+## M-92. 융합 발전소 내부 + 창 밖 ㄱ자 모듈 사라짐 고침 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `4153ee95`과 같은 파일)
+- 융합 발전소 내부 `IT_EvoFusion` · `PF_Interior_EvoFusion` · `SM_Interior_EvoFusion.fbx` (Blender `Interior_Evo.blend` 텍스트 `fs_builder`): 3칸 일자 — 가운데 유리 돔 아래 융합로 (유리 도넛 그릇 속 도는 플라스마 `INT_EvoFusion_Plasma` · 파란 코일 · 솔레노이드 + 냉각수 머리), 냉각수 구체 둘 + 천장 밑 관, 제어대 · 펌프 · 자석 전원 · 남는 물 탱크, 정수 필터 기둥. 걸어 다닐 길 1.3m 이상 (사용자 "길을 지나다닐 수가 없네")
+- `InteriorTemplateBuilder.BuildEvoFusion` (문 자리 12 — 가운데 칸 위 해치는 돔을 비켜 오프셋, 조명 10, 환경음 열), `ResidentSpotBaker` 연구원 10, 강조색 `M_Accent_Evo_FusionStation` · `M_Paint_Evo_FusionStation`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (걸어 다닐 길)
+- **공통 코드 고침** `Interior/InteriorExteriorView.Hide`: "카메라를 품은 이웃 모듈"을 카메라 칸 주변 27칸 모듈의 렌더러 경계 상자로 고르던 것을 → 카메라 칸을 실제로 차지한 모듈만. ㄱ자 모듈(생태 모듈)의 경계 상자가 빈 모서리 칸까지 덮어, 그 칸에 놓인 옆 모듈 방 창에서 ㄱ자 모듈이 통째로 사라졌음 (사용자 2026-10-29). 튜브 · 문가에서 옆 모듈 속에 들어간 카메라 처리는 그대로 (그때는 카메라 칸이 옆 모듈 칸)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (서사판이 `InteriorExteriorView.Hide`를 고쳤으면 이 블록 채택). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `4153ee95`에 있음.

@@ -97,6 +97,54 @@ namespace SpaceStation.Editor
             BuildEvoWelfare();
             BuildEvoCulture();
             BuildEvoSolar();
+            BuildEvoFusion();
+        }
+
+        /// <summary>
+        /// 진화 1단계 융합 발전소 (3칸 일자, fs_builder — 사용자 2026-10-29 시안 1 확정 "이대로 옮겨줘"): 가운데 융합로 — 유리 돔 아래 흰 받침 ·
+        /// 유리 도넛 그릇 속에서 도는 플라스마 고리 (INT_EvoFusion_Plasma — 움직이는 메인 부품) · 파란 코일 열둘 · 솔레노이드 기둥 + 냉각수 머리 · 받침 테 위 유리 울타리,
+        /// 냉각수 구체 둘 (x 2.4 · 13.6 — 관 둘씩이 천장 밑을 지나 융합로 머리로) + 구체와 융합로 사이 칸에 제어대 (−z) · 냉각수 펌프 (+z) · 자석 전원 (−z) ·
+        /// 남는 물 탱크 (+z) · 양 끝 정수 필터 기둥 넷. 사용자 2026-10-29 "길을 지나다닐 수가 없네" → 홀을 따라 걷는 길 폭 1.3m 이상 (융합로 · 구체 옆은 비움).
+        /// 문 자리 = 끝 칸 바깥 면 + 칸마다 ±z, 바닥 해치 = 칸 중심, 위 해치 = 가운데 칸만 (돔을 비켜 (4.7, ·, −2.2)), 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoFusion()
+        {
+            const float ceiling = F + 4.0f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 3; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                if (x == 0)
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.left, Socket));
+                if (x == 2)
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+            }
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.up, ceiling, new Vector3(4.7f - 8f, 0f, -2.2f)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var plasma = new Color(0.85f, 0.5f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, F + 2.85f, 0f), 6.5f, 2.2f, white),       // −x 끝 (정수 필터)
+                LightSpec.Point(new Vector3(16f, F + 2.85f, 0f), 6.5f, 2.2f, white),      // +x 끝
+                LightSpec.Point(new Vector3(4.9f, F + 2.85f, -1.9f), 5f, 1.6f, white),    // 제어대
+                LightSpec.Point(new Vector3(4.9f, F + 2.85f, 1.9f), 5f, 1.4f, white),     // 펌프
+                LightSpec.Point(new Vector3(11.1f, F + 2.85f, -1.9f), 5f, 1.4f, white),   // 자석 전원
+                LightSpec.Point(new Vector3(11.1f, F + 2.85f, 1.9f), 5f, 1.4f, white),    // 물 탱크
+                LightSpec.Point(new Vector3(8f, F + 1.6f, 1.25f), 3.5f, 0.8f, plasma),    // 플라스마 빛
+                LightSpec.Point(new Vector3(8f, F + 1.6f, -1.25f), 3.5f, 0.8f, plasma),
+                LightSpec.Point(new Vector3(8f, F + 2.9f, 1.6f), 4f, 1.0f, white),        // 돔 아래 융합로 위쪽
+                LightSpec.Point(new Vector3(8f, F + 2.9f, -1.6f), 4f, 1.0f, white),
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoFusion_Plasma", new Vector3(8f, 0f, 0f), Vector3.up, 45f),   // 도넛 그릇 속 플라스마 고리
+            };
+            EvoAccent("FusionStation", "#FF9F5A");
+            // 스폰 = −x 끝 (바닥 해치 (0, 0)과 문 사이)에서 융합로 쪽을 바라봄
+            Build("EvoFusion", "Evolved/MD_Evo_FusionStation", sockets, new Vector3(-1.8f, F, 0f), 90f, lights, orbits);
         }
 
         /// <summary>
@@ -1841,7 +1889,7 @@ namespace SpaceStation.Editor
             // 진화 모듈
             { "EvoResearch", InteriorAmbience.Machine }, { "EvoTower", InteriorAmbience.Life }, { "EvoEco", InteriorAmbience.Water },
             { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life }, { "EvoCulture", InteriorAmbience.Life },
-            { "EvoSolar", InteriorAmbience.Electric },
+            { "EvoSolar", InteriorAmbience.Electric }, { "EvoFusion", InteriorAmbience.Heat },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
