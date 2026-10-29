@@ -3,6 +3,10 @@
 // 하늘 반사가 뿌연 흰 뭉치로 겹쳐 보였다 → 뒷면은 법선을 뒤집어 앞면처럼 비춘다 (조명 계산 = URP PBR, 상태 표현 MPB _BaseColor · _EmissionColor 유지, SRP Batcher 호환).
 // 한쪽 면만 있는 얇은 유리(보관 단지 · 연구 기관 등)도 양쪽에서 보이도록 앞면만 그리기(Cull Back) 대신 이 방식.
 // 반사 보존(미리 곱한 알파): 유리 바탕색(확산광)만 알파만큼 옅게 하고, 해 반짝임 · 하늘 반사는 그대로 더함 → 거의 투명한데 빛이 닿는 곳에서 유리가 있다는 게 보임.
+// 진화 3 · 4단계 반영 ④ (2026-10-29) — 물 · 수정 움직임 (FX 메시에 UV가 없어 위치로 계산, 키워드로 켬):
+//  - _FLOW_FALL (폭포): 가파른 면에 흰 물줄기가 아래로 흘러내림 (칸마다 다른 박자, 평평한 면은 그대로)
+//  - _FLOW_POOL (호수 · 강 · 연못): 엇갈려 흐르는 잔물결이 위 면 법선을 흔들어 해 반짝임이 일렁이고, 물결이 겹치는 곳에 윤슬
+//  - _GLINT (수정 · 프리즘): 자리마다 다른 박자로 도는 가상 빛이 면을 스칠 때 무지개빛으로 반짝
 Shader "SpaceStation/Glass"
 {
     Properties
@@ -12,6 +16,12 @@ Shader "SpaceStation/Glass"
         _Metallic ("Metallic", Range(0, 1)) = 0
         _Reflection ("하늘 반사 · 주변광 세기 (해 반짝임은 그대로)", Range(0, 1)) = 1
         [HDR] _EmissionColor ("Emission", Color) = (0, 0, 0, 1)
+        [Toggle(_FLOW_FALL)] _FlowFall ("Falling Water", Float) = 0
+        [Toggle(_FLOW_POOL)] _FlowPool ("Rippling Water", Float) = 0
+        [Toggle(_GLINT)] _Glint ("Prism Glint", Float) = 0
+        _Flow ("Fall: 줄 촘촘함 · 속도 · 칸 크기 · 물거품 세기", Vector) = (14, 0.9, 0.02, 0.5)
+        _Ripple ("Ripple: 물결 촘촘함 · 속도 · 흔들림 · 윤슬 세기", Vector) = (70, 1.0, 0.1, 0.18)
+        _GlintParams ("Glint: 세기 · 도는 빠르기 · 날카로움 · 무지개", Vector) = (1.2, 0.35, 24, 0.7)
     }
 
     SubShader
@@ -36,6 +46,9 @@ Shader "SpaceStation/Glass"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
+            #pragma shader_feature_local _FLOW_FALL
+            #pragma shader_feature_local _FLOW_POOL
+            #pragma shader_feature_local _GLINT
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -45,7 +58,20 @@ Shader "SpaceStation/Glass"
                 half _Metallic;
                 half _Reflection;
                 half4 _EmissionColor;
+                float _FlowFall;
+                float _FlowPool;
+                float _Glint;
+                float4 _Flow;
+                float4 _Ripple;
+                float4 _GlintParams;
             CBUFFER_END
+
+            float GlassHash(float2 p) { return frac(sin(dot(p, float2(12.9898, 78.233))) * 43758.5453); }
+
+            float3 GlassHue(float h)
+            {
+                return saturate(abs(frac(h + float3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0);
+            }
 
             struct Attributes
             {
@@ -83,6 +109,44 @@ Shader "SpaceStation/Glass"
                 UNITY_SETUP_INSTANCE_ID(i);
                 float3 n = normalize(i.normalWS);
                 n = front ? n : -n; // 뒷면 = 안쪽에서 본 유리
+                float t = _Time.y;
+                float3 extra = 0;
+                float alphaAdd = 0;
+            #if defined(_FLOW_POOL)
+                {
+                    // 엇갈려 흐르는 잔물결 둘 → 위 면 법선 흔들기 (해 반짝임이 일렁임) + 물결이 겹치는 곳에 윤슬
+                    float2 p = i.positionWS.xz;
+                    float f = _Ripple.x, s = _Ripple.y;
+                    float2 d1 = float2(0.8, 0.6), d2 = float2(-0.45, 0.89);
+                    float a1 = dot(p, d1) * f + t * s, a2 = dot(p, d2) * f * 1.37 - t * s * 0.8;
+                    float2 slope = d1 * cos(a1) + d2 * cos(a2) * 1.37;
+                    float up = saturate(n.y * 2.0 - 1.0);
+                    n = normalize(n + float3(slope.x, 0, slope.y) * _Ripple.z * up);
+                    float glitter = pow(saturate(0.5 + 0.5 * sin(dot(p, float2(0.31, 0.95)) * f * 2.1 + t * s * 1.3) * sin(dot(p, float2(0.97, -0.24)) * f * 1.7 - t * s)), 36.0);
+                    extra += glitter * _Ripple.w * up;
+                }
+            #endif
+            #if defined(_FLOW_FALL)
+                {
+                    // 가파른 면에만 흰 물줄기가 아래로 (칸마다 다른 박자 — 같은 높이가 한꺼번에 번쩍이지 않게)
+                    float steep = saturate(1.0 - abs(n.y) * 1.3);
+                    float h = GlassHash(floor(i.positionWS.xz / max(_Flow.z, 1e-3)));
+                    float s = frac(i.positionWS.y * _Flow.x + t * _Flow.y + h);
+                    float foam = smoothstep(0.72, 1.0, s) * steep;
+                    extra += foam * _Flow.w;
+                    alphaAdd += foam * 0.3;
+                }
+            #endif
+            #if defined(_GLINT)
+                {
+                    // 자리마다 다른 박자로 도는 가상 빛 — 면이 그쪽을 볼 때 반짝 (색 = 면 방향에 따른 무지개빛, 흰빛과 섞음)
+                    float ang = t * _GlintParams.y * 6.2832 + dot(i.positionWS.xz, float2(1.7, 2.3)) + i.positionWS.y * 3.1;
+                    float3 L = normalize(float3(cos(ang), 0.7, sin(ang)));
+                    float g = pow(saturate(dot(n, L)), _GlintParams.z);
+                    float3 tint = lerp(float3(1, 1, 1), GlassHue(dot(n, float3(0.3, 0.9, 0.2)) * 2.0 + t * 0.15), _GlintParams.w);
+                    extra += g * _GlintParams.x * tint;
+                }
+            #endif
 
                 InputData inputData = (InputData)0;
                 inputData.positionWS = i.positionWS;
@@ -101,12 +165,13 @@ Shader "SpaceStation/Glass"
                 surface.metallic = _Metallic;
                 surface.smoothness = _Smoothness;
                 surface.normalTS = half3(0, 0, 1);
-                surface.emission = _EmissionColor.rgb;
+                half lit = saturate(max(_EmissionColor.r, max(_EmissionColor.g, _EmissionColor.b)) * 8.0 + 0.2); // 비활성 · 파손 때 발광을 어둡게 하면 움직임도 같이 어두워짐
+                surface.emission = _EmissionColor.rgb + extra * lit;
                 surface.occlusion = _Reflection; // 간접광(하늘 반사 · 주변광)만 줄임
 
                 half4 color = UniversalFragmentPBR(inputData, surface);
                 color.rgb = MixFog(color.rgb, inputData.fogCoord);
-                color.a = _BaseColor.a; // 뒤가 비치는 정도 (Blend One OneMinusSrcAlpha)
+                color.a = saturate(_BaseColor.a + alphaAdd); // 뒤가 비치는 정도 (Blend One OneMinusSrcAlpha)
                 return color;
             }
             ENDHLSL

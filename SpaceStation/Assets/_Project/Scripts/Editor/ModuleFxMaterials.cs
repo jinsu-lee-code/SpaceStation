@@ -96,13 +96,24 @@ namespace SpaceStation.Editor
                 // 진화 3단계 (진주 · 금 몸체 · 살아 있는 행성 정원 + 빛과 수정, 2026-10-27) · 4단계 (우주 · 별빛, 2026-10-28) — 값은 Blender evo_builder
                 //   (s3_fx_mats · glow_mat · RAINBOW)와 맞춤. 물 · 떨어지는 물 · 구름 · 빗줄기 · 무지개 · 수정은 몸체 텍스처에 굽지 않은 따로 재질 (사용자 2026-10-27)
                 case "FluorGold": return Fluorescent("M_FluorGold", new Color(1f, 0.8f, 0.42f));   // 금빛 등불 · 창 · 꽃가루 · 금빛 신경
-                case "Prism": return Glass("M_Prism", new Color(0.86f, 0.96f, 1f, 0.22f), new Color(0.12f, 0.16f, 0.22f), 0.96f, 0.9f); // 수정 · 프리즘 (맑고 은은히 빛남)
+                //   ④ (2026-10-29) 움직임: 수정 = 도는 빛에 무지개빛 반짝, 물 = 잔물결 · 윤슬, 폭포 = 흘러내리는 물줄기, 무지개 = 빛 물결, 비 = 떨어지는 물방울
+                case "Prism": return GlassMotion(Glass("M_Prism", new Color(0.86f, 0.96f, 1f, 0.22f), new Color(0.12f, 0.16f, 0.22f), 0.96f, 0.9f), "_GLINT", "_Glint"); // 수정 · 프리즘 (맑고 은은히 빛남)
                 case "Rainbow0": case "Rainbow1": case "Rainbow2": case "Rainbow3": case "Rainbow4": case "Rainbow5": case "Rainbow6":
-                    return Glow("M_" + name, Rainbow[name[name.Length - 1] - '0'] * 0.75f);                              // 무지개 띠 일곱 (가산 — 하늘에 비치는 빛)
-                case "PureWater": return Glass("M_PureWater", new Color(0.1f, 0.45f, 0.62f, 0.55f), new Color(0.01f, 0.04f, 0.06f), 0.95f, 0.8f); // 맑은 물 (호수 · 강 · 연못)
-                case "Falls": return Glass("M_Falls", new Color(0.72f, 0.88f, 0.96f, 0.6f), new Color(0.1f, 0.14f, 0.17f), 0.85f, 0.6f);      // 떨어지는 물 (폭포)
+                    return Shimmer("M_" + name, Rainbow[name[name.Length - 1] - '0'] * 0.75f);                           // 무지개 띠 일곱 (가산 — 하늘에 비치는 빛)
+                case "PureWater": return GlassMotion(Glass("M_PureWater", new Color(0.1f, 0.45f, 0.62f, 0.55f), new Color(0.01f, 0.04f, 0.06f), 0.95f, 0.8f), "_FLOW_POOL", "_FlowPool"); // 맑은 물 (호수 · 강 · 연못)
+                case "Falls": return GlassMotion(Glass("M_Falls", new Color(0.72f, 0.88f, 0.96f, 0.6f), new Color(0.1f, 0.14f, 0.17f), 0.85f, 0.6f), "_FLOW_FALL", "_FlowFall"); // 떨어지는 물 (폭포)
                 case "Cloud": return Cloud();                                                                                       // 구름 · 물안개
-                case "Rain": return Glow("M_Rain", new Color(0.3f, 0.36f, 0.45f, 1f));                                             // 빗줄기 (가산, 옅게)
+                case "Rain": return CustomShader("M_Rain", "SpaceStation/Rain", new Color(0.3f, 0.36f, 0.45f, 1f));               // 빗줄기 (가산, 옅게 — 물방울이 떨어짐)
+                // ④ 흐르는 빛 (SpaceStation/PulseGlow — 형광 재질과 같은 바탕 · 발광, 모델 기준 한 점에서 퍼지거나 모여드는 빛 물결): StationArtBuilder.FxOverrides가 모델마다 연결
+                //   AI 중추 빛 신경 = 양쪽 문에서 가운데 수정 뇌(1, −0.05, 0.5)로 모여듦 + 시냅스 깜빡임 + 뇌 둘레 맥박 (build_ai_core CX · YB · CZ)
+                case "NeuralPurple": return PulseGlow("M_NeuralPurple", new Color(0.78f, 0.45f, 1f), new Vector3(1f, -0.05f, 0.5f), new Vector4(0.32f, -0.22f, 5f, 1.5f), 0.4f, new Vector4(1.2f, 0.9f, 0.18f, 0f), new Vector4(0.35f, 0.035f, 2.4f, 0f));
+                case "NeuralGold": return PulseGlow("M_NeuralGold", new Color(1f, 0.8f, 0.42f), new Vector3(1f, -0.05f, 0.5f), new Vector4(0.32f, -0.22f, 5f, 1.5f), 0.4f, new Vector4(1.2f, 0.9f, 0.18f, 0f), new Vector4(0.35f, 0.035f, 2.4f, 0f));
+                //   심우주 통신기지 신호 = 가운데 돔 위 신호 고리 셋 가운데(1, 0.175, 0.05)에서 퍼져 나감 → 고리가 안쪽부터 차례로 빛나고 호 · 케이블을 따라 번짐
+                case "SignalCyan": return PulseGlow("M_SignalCyan", new Color(0.25f, 1f, 1f), new Vector3(1f, 0.175f, 0.05f), new Vector4(0.28f, 0.16f, 6f, 1.6f), 0.5f, Vector4.zero, Vector4.zero);
+                //   항성 발전망 꿀 빛 = 꿀 언덕(5, 0, 0.5)에서 천천히 번지는 따스한 물결 + 칸마다 은은한 반짝
+                case "HoneyGold": return PulseGlow("M_HoneyGold", new Color(1f, 0.8f, 0.42f), new Vector3(5f, 0f, 0.5f), new Vector4(0.9f, 0.3f, 3f, 0.8f), 0.6f, Vector4.zero, new Vector4(0.25f, 0.05f, 1.2f, 0f));
+                //   궤도 항만 진주 빛 = 진주마다 따로 숨 쉬듯 (물결 없음)
+                case "PearlWhite": return PulseGlow("M_PearlWhite", new Color(1f, 1f, 0.94f), Vector3.zero, Vector4.zero, 0.65f, Vector4.zero, new Vector4(0.7f, 0.035f, 1.3f, 0f));
                 case "Beam": return Get("LightBeam");                                                                               // 궤도 방어망 등대 빛줄기 = 실드 돔 등대와 같은 재질
                 case "Critters": return Textured("M_Critters", "Assets/_Project/Art/Models/Modules/Textures/Evo_Critters/T_Critters_BaseColor.png"); // 동물 공용 손그림 아틀라스
                 case "Bee": return Textured("M_Bee", "Assets/_Project/Art/Models/Modules/Textures/Evo_Critters/T_Bee_BaseColor.png");             // 꿀벌 (얼굴 · 줄무늬)
@@ -361,6 +372,50 @@ namespace SpaceStation.Editor
             m.SetFloat("_VStart", vStart);
             m.SetFloat("_Sway", 0.035f);
             m.SetFloat("_Intensity", 0.48f); // 초록 · 보라 두 겹이 겹치는 띠가 하얗게 날지 않게 실드 돔(0.6)보다 옅게
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>유리 셰이더 움직임 켜기 (_FLOW_FALL 폭포 · _FLOW_POOL 물결 · _GLINT 수정 반짝) — Glass()가 키워드를 비우므로 그 뒤에.</summary>
+        private static Material GlassMotion(Material m, string keyword, string toggle)
+        {
+            m.SetVector("_Flow", new Vector4(14f, 0.9f, 0.02f, 0.5f));
+            m.SetVector("_Ripple", new Vector4(70f, 1.0f, 0.1f, 0.18f)); // 해를 받으면 윤슬이 빽빽한 별밭처럼 보여 흔들림 · 윤슬을 옅게
+            m.SetVector("_GlintParams", new Vector4(1.2f, 0.35f, 24f, 0.7f));
+            m.SetFloat(toggle, 1f);
+            m.EnableKeyword(keyword);
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>무지개 띠 빛 흐름 (SpaceStation/Shimmer): 가산 · 양면, 밝은 물결이 비스듬히 지나감.</summary>
+        private static Material Shimmer(string name, Color color)
+        {
+            var m = Load(name, UnityEngine.Shader.Find("SpaceStation/Shimmer"));
+            m.SetColor("_BaseColor", color);
+            m.renderQueue = (int)RenderQueue.Transparent;
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>
+        /// 흐르는 빛 (SpaceStation/PulseGlow): 형광 재질(Fluorescent)과 같은 바탕 (색 × 0.3) · 발광 (색 × 0.85)에 빛 물결 · 맥박 · 칸 반짝을 곱함.
+        /// wave = 파장 · 속도 (+ 퍼짐, − 모임) · 날카로움 · 세기, beat = 세기 · 초당 · 반지름, spark = 세기 · 칸 크기 · 빠르기.
+        /// </summary>
+        private static Material PulseGlow(string name, Color color, Vector3 center, Vector4 wave, float floor, Vector4 beat, Vector4 spark)
+        {
+            var m = Load(name, UnityEngine.Shader.Find("SpaceStation/PulseGlow"));
+            m.SetColor("_BaseColor", color * 0.3f);
+            m.SetColor("_EmissionColor", color * 0.85f);
+            m.SetFloat("_Smoothness", 0.35f);
+            m.SetVector("_Center", center);
+            m.SetVector("_Wave", wave);
+            m.SetFloat("_Floor", floor);
+            m.SetVector("_Beat", beat);
+            m.SetVector("_Spark", spark);
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             return m;

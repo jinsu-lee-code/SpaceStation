@@ -1227,3 +1227,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `10cce603`에 있음.
+
+## M-76. 3 · 4단계 Unity 반영 ④ — 모듈별 연출: 물 흐름 · 비 · 무지개 · 수정 반짝 · 흐르는 빛 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `e6268f3e`와 같은 파일). FX 메시에 UV가 없어 모두 위치로 계산하는 셰이더, 색은 그대로 두고 밝기만 바뀜 (색약 배려)
+- `SpaceStation/Glass` 키워드 셋 (꺼져 있으면 예전과 같음 — 다른 유리 재질은 새 속성 기본값만 더해짐): `_FLOW_POOL` (`M_PureWater` 잔물결 · 윤슬), `_FLOW_FALL` (`M_Falls` 가파른 면에 흘러내리는 물줄기), `_GLINT` (`M_Prism` 도는 빛에 무지개빛 반짝). 움직임 밝기는 발광(`_EmissionColor`)을 따라 비활성 · 파손 때 같이 어두워짐
+- 새 셰이더 `SpaceStation/Rain` (`M_Rain` 떨어지는 물방울), `SpaceStation/Shimmer` (`M_Rainbow0~6` 빛 물결), `SpaceStation/PulseGlow` (형광 재질과 같은 바탕 · 발광 × 한 점에서 퍼지거나 모여드는 빛 물결 · 맥박 · 칸 반짝, 그림자 · 깊이 패스 포함)
+- `ModuleFxMaterials`: `NeuralPurple` · `NeuralGold` · `SignalCyan` · `HoneyGold` · `PearlWhite` (PulseGlow), `GlassMotion` · `Shimmer` · `PulseGlow` 도우미 / `StationArtBuilder.FxOverrides`: AI 중추 (보라 · 금 형광 → 빛 신경), 심우주 통신기지 (하늘빛 → 신호), 항성 발전망 (금 → 꿀 빛), 궤도 항만 (흰 형광 → 진주 빛) + 해당 FBX 리맵 .meta
+- Recipes/Setup을 다시 돌리면 진화 프리팹 12종 · Main 씬은 fileID만 다시 매겨짐 (내용 같음 — main에는 안 넣음)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (Glass.shader · ModuleFxMaterials · StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e6268f3e`에 있음.

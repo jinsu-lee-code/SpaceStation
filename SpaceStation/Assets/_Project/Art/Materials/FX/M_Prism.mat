@@ -11,7 +11,8 @@ Material:
   m_Shader: {fileID: 4800000, guid: c545b0b5571a7764196cfbce0fc98083, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _GLINT
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
@@ -25,11 +26,17 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
+    - _FlowFall: 0
+    - _FlowPool: 0
+    - _Glint: 1
     - _Metallic: 0
     - _Reflection: 0.9
     - _Smoothness: 0.96
     m_Colors:
     - _BaseColor: {r: 0.86, g: 0.96, b: 1, a: 0.22}
     - _EmissionColor: {r: 0.12, g: 0.16, b: 0.22, a: 1}
+    - _Flow: {r: 14, g: 0.9, b: 0.02, a: 0.5}
+    - _GlintParams: {r: 1.2, g: 0.35, b: 24, a: 0.7}
+    - _Ripple: {r: 70, g: 1.2, b: 0.18, a: 0.6}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

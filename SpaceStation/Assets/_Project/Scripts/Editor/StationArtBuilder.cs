@@ -27,11 +27,17 @@ namespace SpaceStation.Editor
         /// 실드 돔 오로라 커튼 = 일렁이는 셰이더 (방사선 차폐벽 · 환적장 은하수 띠는 같은 FX_AuroraViolet이라도 그대로),
         /// 융합 발전소 · 융합 플랜트 = 흐르는 플라즈마 (기본 핵융합로는 그대로), 궤도 미러 빛줄기 = 숨기고 LightBeamFx가 빛기둥으로 그림.
         /// 궤도 방어망 오로라 보호막 커튼 셋 = 같은 셰이더의 UV 모드 (3 · 4단계 반영 ② 2026-10-29).
+        /// 흐르는 빛 (④ 2026-10-29, PulseGlow): AI 중추 빛 신경 (보라 · 금이 뇌로 모여듦), 심우주 통신기지 신호 (하늘빛이 가운데 돔 위에서 퍼짐),
+        /// 항성 발전망 꿀 빛, 궤도 항만 진주 빛 — 같은 형광 재질이라도 다른 모듈은 그대로.
         /// </summary>
         private static readonly Dictionary<string, Dictionary<string, string>> FxOverrides = new Dictionary<string, Dictionary<string, string>>
         {
             { "Evo_ShieldDome", new Dictionary<string, string> { { "FX_AuroraGreen", "AuroraCurtainGreen" }, { "FX_AuroraViolet", "AuroraCurtainViolet" } } },
             { "Evo_OrbitalDefense", new Dictionary<string, string> { { "FX_AuroraGreen", "AuroraCurtainGreenUV" }, { "FX_AuroraViolet", "AuroraCurtainVioletUV" } } },
+            { "Evo_AICore", new Dictionary<string, string> { { "FX_FluorPurple", "NeuralPurple" }, { "FX_FluorGold", "NeuralGold" } } },
+            { "Evo_DeepSpaceComm", new Dictionary<string, string> { { "FX_FluorCyan", "SignalCyan" } } },
+            { "Evo_StellarGrid", new Dictionary<string, string> { { "FX_FluorGold", "HoneyGold" } } },
+            { "Evo_OrbitalPort", new Dictionary<string, string> { { "FX_FluorWhite", "PearlWhite" } } },
             { "Evo_FusionStation", new Dictionary<string, string> { { "FX_FusionPlasma", "PlasmaBlue" } } },
             { "Evo_FusionPlant", new Dictionary<string, string> { { "FX_FusionPlasma", "PlasmaViolet" } } },
             { "Evo_OrbitalMirror", new Dictionary<string, string> { { "FX_LightBeam", "Hidden" } } },
