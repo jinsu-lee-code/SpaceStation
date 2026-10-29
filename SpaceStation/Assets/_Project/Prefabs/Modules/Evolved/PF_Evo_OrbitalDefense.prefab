@@ -968,7 +968,19 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8238a98bb3c59e54f9e069bf0511bfe5, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7227523806600152238}
+      addedObject: {fileID: 1006209823502677646}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8238a98bb3c59e54f9e069bf0511bfe5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8766398063580685813}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8238a98bb3c59e54f9e069bf0511bfe5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1161705364992239252}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8238a98bb3c59e54f9e069bf0511bfe5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7140081158934847969}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8238a98bb3c59e54f9e069bf0511bfe5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1194874242496314570}
     - targetCorrespondingSourceObject: {fileID: 5371508279992330660, guid: 8238a98bb3c59e54f9e069bf0511bfe5, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5743790173997608779}
@@ -1066,7 +1078,82 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 8238a98bb3c59e54f9e069bf0511bfe5, type: 3}
   m_PrefabInstance: {fileID: 6541090361545292878}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7227523806600152238
+--- !u!114 &1006209823502677646
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6199194815237603615}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 831fdedc8cbcf6c43b1289dc31478597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.CrystalBarrierFx
+  _material: {fileID: 2100000, guid: 0979fe97ba9d6b64eb0a5cbcaaaaf154, type: 2}
+  _sparkMaterial: {fileID: 2100000, guid: 8c490583a03f6ae4c85a131c26bbdb87, type: 2}
+  _plateSize: 0.3
+  _rings: 2
+  _growStep: 0.06
+  _growTime: 0.22
+  _hold: 0.35
+  _shatterTime: 0.8
+--- !u!114 &8766398063580685813
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6199194815237603615}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09e2858c7fda94f4db4e8e2720bd2402, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.AuroraBarrierFx
+  _material: {fileID: 2100000, guid: 2d7184fecdf3c034d847f03e92296c57, type: 2}
+  _duration: 1.6
+  _spreadTime: 0.9
+--- !u!114 &1161705364992239252
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6199194815237603615}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67c90b2b32a3698428660f621194f274, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.FireworkFx
+  _sparkMaterial: {fileID: 2100000, guid: 8c490583a03f6ae4c85a131c26bbdb87, type: 2}
+  _lineMaterial: {fileID: 2100000, guid: 2499d14c89deb2f4b8c186f4d4dbc132, type: 2}
+  _mortars: []
+  _showInterval: 4.5
+  _salvoChance: 0.25
+  _burstSize: 1.8
+  _showSize: 1.2
+  _rainbow: 1
+--- !u!114 &7140081158934847969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6199194815237603615}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e3f55ca74f6e614fa0fed3bde3f10a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.PrismBeamFx
+  _lineMaterial: {fileID: 2100000, guid: 2499d14c89deb2f4b8c186f4d4dbc132, type: 2}
+  _muzzles:
+  - {x: 1.85, y: -0.12, z: 0.4}
+  - {x: 2.82, y: -0.12, z: 0.66}
+  - {x: 3.62, y: -0.12, z: 0.34}
+  _duration: 0.32
+  _splitAt: 0.3
+  _fan: 0.06
+--- !u!114 &1194874242496314570
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
