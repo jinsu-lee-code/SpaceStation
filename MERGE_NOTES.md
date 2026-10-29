@@ -1167,3 +1167,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-28) 같은 파일이 tycoon 커밋 `20c348df`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-72. 4단계 심우주 통신기지 외형 (은하수 천문 언덕) · 4단계 테마 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `1fbbc8be`과 같은 파일)
+- **4단계 테마 = 우주 · 별빛** (사용자 2026-10-28), 몸체 색 = **성운 남보라 · 은** (월장석 은빛과 비교해 고름). evo_builder `S4_STYLES` · `s4_style` (재질 EVO_S4Deck · Wall · Low · Trim) · `_s4_base` (남보라 아랫단 · 하늘빛 줄 · 밤 잔디) · `_s4_badge` (별 넷). 밤하늘은 몸체 색보다 풍경 (밤 잔디 · 은하수 빛 강 · 별)으로 — 2단계 미드나잇과 겹치지 않게
+- `SM_Evo_DeepSpaceComm.fbx` + 텍스처 (`Textures/Evo_DeepSpaceComm`): **은하수 천문 언덕** (사용자 B안). 1×3 · 1층. 밤 언덕 능선 위 천문대 돔 셋 (통신 중계소 셋을 한 배열로 — 틈으로 망원경이 하늘을 봄, 은빛 갈비 · 셔터 · 발코니) + 하늘빛 신호 호 · 신호 고리, 뒤 능선 소형 전파 접시 넷 (같은 하늘을 보는 배열) + 빛 케이블, S자 은하수 빛 강 · 은빛 아치 다리, 별똥별 아치 · 별자리 광장 · 초승달 벤치
+- 도는 부품 `SpinDish_DeepSpaceCommDome` (가운데 돔 껍데기 + 망원경, 따로 굽는 텍스처) + `Fx_DeepSpaceCommDome` (렌즈), 동물 9마리 `Critter_DeepSpaceComm_*` (FX_Critters)
+- Blender `Modules_Work.blend` (`evo_builder`에 `build_deep_space_comm` · `_ds_dome` (틈 방향 기준 좌표의 두께 있는 돔 — 틈 가장자리가 반듯함) · `_ds_dome_trim` · `_ds_slab` · `_ds_dish` · `_ds_drape` (언덕 위에 덮는 띠) · `_ds_spline` · `_ds_lantern` · `_ds_star`)
+- **아직 프리팹에 안 씀** — Unity 반영 때 가운데 돔 돌기, 신호 고리 · 은하수 연출, 짙은 몸체 발광 보정 (2단계처럼), FX_GalaxyWater · FX_TelescopeLens · FX_FluorCyan 재질
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `1fbbc8be`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
