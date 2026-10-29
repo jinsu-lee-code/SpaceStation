@@ -1514,3 +1514,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `b51c5c78`에 있음.
+
+---
+
+## M-96. 수직 농장 내부 — 재배 선반 홀 · 공중 재배 기둥 정원 · 꼭대기 배양실 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `ba3a43b0`과 같은 파일)
+- 수직 농장 내부 `IT_EvoFarm` · `PF_Interior_EvoFarm` · `SM_Interior_EvoFarm.fbx` (Blender `Interior_Evo.blend` 텍스트 `vf_builder`): 2칸 × 2층 + 꼭대기 1칸 — 세 층을 가운데 칸 유리 엘리베이터로 잇음 (`InteriorLift` 세 층 0 · 8 · 16, 문 = +x 홀 쪽 → 문짝 축 `Vector3.forward`), 1층 등을 맞댄 3단 재배 선반 (상추 · 재배등), 2층 공중 재배 기둥 넷이 천천히 돎 (`INT_EvoFarm_Tower1~4`) + 창가 모종 선반, 꼭대기 빛나는 배양 통 셋 + 거품 (`Bubbles1~3`) · 관제 책상 · 천창
+- `InteriorTemplateBuilder.BuildEvoFarm` (문 자리 13, 조명 22, 환경음 물, `configure`로 엘리베이터 연결), `ResidentSpotBaker` 정원사 11, `InteriorPlantSpots` 화분 3, 강조색 `M_Accent_Evo_VerticalFarm` · `M_Paint_Evo_VerticalFarm`, `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `ba3a43b0`에 있음.

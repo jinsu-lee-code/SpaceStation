@@ -100,6 +100,86 @@ namespace SpaceStation.Editor
             BuildEvoFusion();
             BuildEvoHydrogen();
             BuildEvoGravity();
+            BuildEvoFarm();
+        }
+
+        /// <summary>
+        /// 진화 1단계 수직 농장 (2칸 × 2층 + 꼭대기 1칸, vf_builder — 사용자 2026-10-29 시안 1 확정 "이대로 넣어줘"): 세 층을 가운데 칸 유리 엘리베이터로 잇음
+        /// (<see cref="InteriorLift"/>, 1층 F · 2층 8 + F · 꼭대기 16 + F, 문 = +x 홀 쪽 — 문짝은 z로 열림).
+        /// 1층 = 등을 맞댄 3단 재배 선반 (상추 · 재배등) + 창가 길, 2층 = 상추가 나선으로 박힌 공중 재배 기둥 넷이 천천히 돎 (INT_EvoFarm_Tower1~4) + 창가 모종 선반,
+        /// 꼭대기 = 빛나는 배양액 통 셋 (둘레로 거품이 돌며 오름 — INT_EvoFarm_Bubbles1~3) + 관제 책상 + 천창.
+        /// 문 자리 = 연결점 있는 면 (11), 바닥 해치 = 1층 두 칸 (+z 창가 길), 위 해치 = 2층 +x 칸 (기둥 고리 조명 비킴) · 꼭대기 (+x 천창 자리), 천장 F + 4.0 (층마다).
+        /// </summary>
+        private static void BuildEvoFarm()
+        {
+            const float ceiling = F + 4.0f;   // 칸 중심 기준 (층마다 같음)
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(0, 1, 0), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(0, 1, 0), new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(new Vector3Int(1, 1, 0), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(0, 2, 0), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(0, 2, 0), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(0, 2, 0), new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(new Vector3Int(0, 2, 0), new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, 2.2f)),    // 엘리베이터 옆 창가 길
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, 2.3f)),    // 선반 옆 창가 길
+                new InteriorSocket(new Vector3Int(1, 1, 0), Vector3Int.up, ceiling, new Vector3(1.6f, 0f, 0f)), // 기둥 고리 조명 밖
+                new InteriorSocket(new Vector3Int(0, 2, 0), Vector3Int.up, ceiling, new Vector3(2.25f, 0f, 0f)),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.82f, 0.55f);
+            var lights = new List<LightSpec>();
+            foreach (float floor in new[] { F, 8f + F })
+            {
+                foreach (float x in new[] { 2.6f, 6.2f, 9.8f })
+                {
+                    lights.Add(LightSpec.Point(new Vector3(x, floor + 3.3f, 1.95f), 5.5f, 1.6f, white));    // 창가 길 위
+                    lights.Add(LightSpec.Point(new Vector3(x, floor + 3.3f, -1.95f), 5.5f, 1.6f, white));
+                }
+                lights.Add(LightSpec.Point(new Vector3(-1.9f, floor + 3.2f, 0f), 5f, 1.4f, white));         // 엘리베이터 뒤
+            }
+            lights.Add(LightSpec.Point(new Vector3(5.8f, 8f + F + 2.6f, 0f), 4f, 0.8f, new Color(0.8f, 1f, 0.75f)));   // 재배 기둥 사이 (초록빛)
+            foreach (var (x, z) in new[] { (1.8f, 0f), (-1.8f, 0f), (0f, 1.8f), (0f, -1.8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, 16f + F + 3.1f, z), 4.5f, 1.2f, white));          // 배양실
+            foreach (var (x, z) in new[] { (2.3f, 2.3f), (2.3f, -2.3f), (-2.3f, 2.3f) })
+                lights.Add(LightSpec.Point(new Vector3(x, 16f + F + 1.7f, z), 2.6f, 0.7f, warm));           // 배양 통 빛
+            var orbits = new List<OrbitSpec>();
+            var towers = new[] { 3.4f, 5.0f, 6.6f, 8.2f };
+            for (int k = 0; k < towers.Length; k++)
+                orbits.Add(new OrbitSpec($"INT_EvoFarm_Tower{k + 1}", new Vector3(towers[k], 0f, 0f), Vector3.up, k % 2 == 0 ? 8f : -8f));   // 이웃끼리 반대로 천천히
+            var vats = new[] { new Vector3(2.3f, 0f, 2.3f), new Vector3(2.3f, 0f, -2.3f), new Vector3(-2.3f, 0f, 2.3f) };
+            for (int k = 0; k < vats.Length; k++)
+                orbits.Add(new OrbitSpec($"INT_EvoFarm_Bubbles{k + 1}", vats[k], Vector3.up, 150f));   // + 방향 = 나선이 위로 오르는 것처럼 보임 (수소 플랜트와 같음)
+            EvoAccent("VerticalFarm", "#8FE07A");
+            // 스폰 = +x 끝 문 안쪽에서 +z 창가 길과 선반을 바라봄
+            Build("EvoFarm", "Evolved/MD_Evo_VerticalFarm", sockets, new Vector3(10.3f, F, 1.6f), -110f, lights, orbits,
+                configure: root =>
+                {
+                    // 유리 엘리베이터 (거주 타워 · 중력 거주구와 같은 틀, 세 층 · 문이 +x를 봄)
+                    var car = Child(root, "INT_EvoFarm_LiftCar");
+                    var carGlass = Child(root, "INT_EvoFarm_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[3];
+                    var right = new Transform[3];
+                    for (int k = 0; k < 3; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoFarm_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoFarm_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoFarm_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoFarm_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, 8f, 16f }, left, right, new Vector3(0f, F + 0.085f, 0f), Vector3.forward, 0.8f);
+                });
         }
 
         /// <summary>
@@ -2043,7 +2123,7 @@ namespace SpaceStation.Editor
             { "EvoResearch", InteriorAmbience.Machine }, { "EvoTower", InteriorAmbience.Life }, { "EvoEco", InteriorAmbience.Water },
             { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life }, { "EvoCulture", InteriorAmbience.Life },
             { "EvoSolar", InteriorAmbience.Electric }, { "EvoFusion", InteriorAmbience.Heat }, { "EvoHydrogen", InteriorAmbience.Water },
-            { "EvoGravity", InteriorAmbience.Life },
+            { "EvoGravity", InteriorAmbience.Life }, { "EvoFarm", InteriorAmbience.Water },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
