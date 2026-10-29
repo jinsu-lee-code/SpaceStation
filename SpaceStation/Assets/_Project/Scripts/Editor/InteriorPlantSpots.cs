@@ -65,8 +65,20 @@ namespace SpaceStation.Editor
             })
                 tower.Add(new PlantSpot(new Vector3(x, y, z), PlantKind.Pot, s, (n++) * 53f));
             Set("IT_EvoTower", tower);
+            // 진화 1단계 생태 모듈 (eco_builder PLANTS — 사용자 2026-10-29 "온실 식물은 수경 농장 등에서 쓰던 식물로"):
+            //   재배대 벽 쪽 줄 화분 식물 18 (흙 F + 0.665, z ±1.95 — 통로 쪽 줄은 템플릿에 구운 수경 농장 상추) + 이음 칸 나무 화분 2 (흙 F + 0.562)
+            var eco = new List<PlantSpot>();
+            n = 0;
+            foreach (float z in new[] { -1.95f, 1.95f })
+            {
+                foreach (float x in new[] { 4.95f, 6.25f, 9.583f, 10.55f, 11.517f, 12.483f, 13.45f, 14.417f, 17.75f })
+                    eco.Add(new PlantSpot(new Vector3(x, F + 0.665f, z), PlantKind.Pot, 0.7f, (n++) * 67f));
+            }
+            eco.Add(new PlantSpot(new Vector3(-2f, F + 0.562f, -2f), PlantKind.Tree, 0.9f, 30f));
+            eco.Add(new PlantSpot(new Vector3(2f, F + 0.562f, -2f), PlantKind.Tree, 0.9f, 200f));
+            Set("IT_EvoEco", eco);
             AssetDatabase.SaveAssets();
-            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14");
+            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20");
         }
 
         private static void Set(string name, List<PlantSpot> spots)
