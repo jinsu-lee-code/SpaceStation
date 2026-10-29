@@ -11,6 +11,8 @@ namespace SpaceStation.Building
     ///   별자리 5종(북두칠성 · 카시오페이아 · 오리온 · 북십자 · 전갈자리) 중 무작위, 바로 앞과 같은 것은 피함.
     /// - 박격포대: 가동 중이면 뒤 능보 좌우 포구에서 번갈아 자주 불꽃이 올라가 터짐 (사용자 2026-10-27 "실제 폭죽이 자주"):
     ///   평균 4.5초마다, 넷에 하나는 양쪽이 잇달아 쏘는 연발. 별자리 · 국화(둥근) · 고리 · 버들(금빛 꼬리가 늘어져 떨어짐) 넷 중 무작위.
+    /// - 수정 불꽃 (_rainbow, 3단계 궤도 방어망 — 사용자 2026-10-29): 프리즘 광선(PrismBeamFx)에 맞은 운석이 무지개 수정 조각으로 부서지고,
+    ///   별이 일곱 빛깔로 별자리를 이뤄 더 반짝이다 사라짐. 박격포대는 없음 (_mortars 비움).
     /// 별자리 면은 카메라를 향하고 위쪽은 월드 위. 시간은 게임 시간. 비활성 · 고스트에서는 박격포대가 쉰다.
     /// </summary>
     public sealed class FireworkFx : MonoBehaviour
@@ -73,6 +75,8 @@ namespace SpaceStation.Building
         [SerializeField] private float _burstSize = 1.8f;
         [Tooltip("박격포대 별자리 폭")]
         [SerializeField] private float _showSize = 1.2f;
+        [Tooltip("수정 불꽃 (3단계 궤도 방어망): 별이 일곱 빛깔, 터질 때 무지개 수정 조각이 흩어지고 별자리가 더 반짝임")]
+        [SerializeField] private bool _rainbow;
 
         private const float Total = 2.3f;   // 별자리 불꽃 길이
         private const float Arrive = 0.38f; // 별이 자리에 닿는 시간
@@ -82,6 +86,17 @@ namespace SpaceStation.Building
         {
             new Color(1f, 0.55f, 0.5f), new Color(1f, 0.84f, 0.4f), new Color(0.75f, 0.9f, 1f), new Color(1f, 1f, 0.92f),
         };
+        private static readonly Color[] Rainbow =
+        {
+            new Color(1f, 0.22f, 0.22f), new Color(1f, 0.58f, 0.12f), new Color(1f, 0.94f, 0.22f), new Color(0.3f, 1f, 0.38f),
+            new Color(0.25f, 0.62f, 1f), new Color(0.42f, 0.32f, 1f), new Color(0.82f, 0.38f, 1f),
+        };
+
+        /// <summary>별 색: 보통은 금빛 하나, 수정 불꽃은 별마다 무지개 차례 (조금 밝게 — 블룸에서 색이 읽히는 정도).</summary>
+        private Color Star(int i) => _rainbow ? Color.Lerp(Rainbow[i % Rainbow.Length], Color.white, 0.2f) : StarColor;
+
+        /// <summary>별을 잇는 빛줄 색: 보통은 하늘빛, 수정 불꽃은 양끝 별 색을 섞은 흰빛.</summary>
+        private Color Link(int a, int b) => _rainbow ? Color.Lerp(Color.Lerp(Star(a), Star(b), 0.5f), Color.white, 0.45f) : LineColor;
 
         private ModuleView _view;
         private bool _live;
@@ -171,9 +186,19 @@ namespace SpaceStation.Building
             var stars = NewSystem("Stars", true, 0f, Total);
             var glitter = NewSystem("Glitter", false, 0.06f, Total);
             Flash(glitter, at, size * 0.5f);
+            if (_rainbow)
+            {
+                // 수정 불꽃: 운석이 무지개 수정 조각으로 부서져 사방에 흩어짐
+                var shards = NewSystem("Shards", true, 0.05f, 0.1f, 0.1f);
+                var limit = shards.limitVelocityOverLifetime;
+                limit.enabled = true;
+                limit.drag = 1.8f;
+                for (int k = 0; k < Rainbow.Length; k++)
+                    Sparkle(shards, at, Rainbow[k], 4, 1.3f * size);
+            }
             // 별마다 시드 = 번호 + 1 (입자 순서는 프레임마다 바뀔 수 있어 시드로 자기 별 자리를 찾음 — 순서로 짝지으면 꼬리가 다른 별 쪽으로 꺾임)
             for (int i = 0; i < n; i++)
-                stars.Emit(new ParticleSystem.EmitParams { position = at, startLifetime = Total, startSize = 0.1f, startColor = StarColor, applyShapeToPosition = false, randomSeed = (uint)(i + 1) }, 1);
+                stars.Emit(new ParticleSystem.EmitParams { position = at, startLifetime = Total, startSize = 0.1f, startColor = Star(i), applyShapeToPosition = false, randomSeed = (uint)(i + 1) }, 1);
             var parts = new ParticleSystem.Particle[n];
             var lines = new LineRenderer[c.Lines.Length / 2];
             bool arrived = false;
@@ -188,10 +213,10 @@ namespace SpaceStation.Building
                 for (int p = 0; p < count; p++)
                 {
                     int i = Mathf.Clamp((int)parts[p].randomSeed - 1, 0, n - 1);
-                    float twinkle = t > Arrive ? 1f + 0.35f * Mathf.Sin(t * 18f + i * 2.1f) : 1f;
+                    float twinkle = t > Arrive ? 1f + (_rainbow ? 0.5f : 0.35f) * Mathf.Sin(t * (_rainbow ? 24f : 18f) + i * 2.1f) : 1f;
                     parts[p].position = Vector3.LerpUnclamped(at, targets[i], spread) + Vector3.down * drop;
                     parts[p].startSize = 0.1f * twinkle * Mathf.Lerp(0.5f, 1f, fade);
-                    var col = StarColor;
+                    var col = Star(i);
                     col.a = fade;
                     parts[p].startColor = col;
                 }
@@ -200,7 +225,7 @@ namespace SpaceStation.Building
                 {
                     arrived = true;
                     for (int i = 0; i < n; i++)
-                        Sparkle(glitter, targets[i], StarColor, 5, 0.3f * size);
+                        Sparkle(glitter, targets[i], Star(i), 5, 0.3f * size);
                 }
                 // 별을 잇는 빛줄이 차례로 그어짐
                 for (int k = 0; k < lines.Length; k++)
@@ -213,7 +238,7 @@ namespace SpaceStation.Building
                     Vector3 a = targets[c.Lines[k * 2]] + Vector3.down * drop, b = targets[c.Lines[k * 2 + 1]] + Vector3.down * drop;
                     lines[k].SetPosition(0, a);
                     lines[k].SetPosition(1, Vector3.Lerp(a, b, Smooth(start, start + 0.14f, t)));
-                    var lc = LineColor;
+                    var lc = Link(c.Lines[k * 2], c.Lines[k * 2 + 1]);
                     lc.a = fade * 0.85f;
                     lines[k].startColor = lines[k].endColor = lc;
                 }

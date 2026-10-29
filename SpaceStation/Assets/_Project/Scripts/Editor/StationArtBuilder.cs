@@ -232,6 +232,32 @@ namespace SpaceStation.Editor
             aso.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// <summary>3단계 궤도 방어망: 수정 결정 막 · 오로라 파문 (차단), 프리즘 광선 · 수정 불꽃 (격추).</summary>
+        private static void WireOrbitalDefenseFx(GameObject instance)
+        {
+            var crystal = new SerializedObject(instance.AddComponent<SpaceStation.Building.CrystalBarrierFx>());
+            crystal.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("CrystalShard");
+            crystal.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+            crystal.ApplyModifiedPropertiesWithoutUndo();
+            var aurora = new SerializedObject(instance.AddComponent<SpaceStation.Building.AuroraBarrierFx>());
+            aurora.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("AuroraBarrier");
+            aurora.ApplyModifiedPropertiesWithoutUndo();
+            var fw = new SerializedObject(instance.AddComponent<SpaceStation.Building.FireworkFx>());
+            fw.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+            fw.FindProperty("_lineMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+            fw.FindProperty("_mortars").arraySize = 0;
+            fw.FindProperty("_rainbow").boolValue = true;
+            fw.ApplyModifiedPropertiesWithoutUndo();
+            var prism = new SerializedObject(instance.AddComponent<SpaceStation.Building.PrismBeamFx>());
+            prism.FindProperty("_lineMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+            var muzzles = prism.FindProperty("_muzzles");
+            var buoys = new[] { new Vector3(1.85f, -0.12f, 0.4f), new Vector3(2.82f, -0.12f, 0.66f), new Vector3(3.62f, -0.12f, 0.34f) };
+            muzzles.arraySize = buoys.Length;
+            for (int i = 0; i < buoys.Length; i++)
+                muzzles.GetArrayElementAtIndex(i).vector3Value = buoys[i];
+            prism.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static Transform FindChild(Transform root, string name)
         {
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
@@ -505,6 +531,18 @@ namespace SpaceStation.Editor
                 wso.FindProperty("_showInterval").floatValue = 4.5f; // 사용자 2026-10-27 "실제 폭죽이 자주"
                 wso.ApplyModifiedPropertiesWithoutUndo();
             }
+            // 실드 계열 단계별 이펙트 (사용자 2026-10-29): 1단계 실드 매트릭스 = 파란 파문 위 육각 무늬 (HexBarrierFx),
+            //   3단계 궤도 방어망 = 차단 시 수정 결정 막 + 오로라 파문, 격추 시 수정 부표의 프리즘 광선 + 수정 불꽃 (무지개 FireworkFx, 박격포대 없음)
+            //   부표 끝 = Blender 궤도 방어망 수정 부표 (1.85, 0.4) · (2.82, 0.66) · (3.62, 0.34), 수정 끝 높이 약 −0.12 (물높이 −0.254 위)
+            if (model.name == "SM_Evo_ShieldMatrix")
+            {
+                var hex = instance.AddComponent<SpaceStation.Building.HexBarrierFx>();
+                var hso = new SerializedObject(hex);
+                hso.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("HexShield");
+                hso.ApplyModifiedPropertiesWithoutUndo();
+            }
+            if (model.name == "SM_Evo_OrbitalDefense")
+                WireOrbitalDefenseFx(instance);
             // 진화 궤도 미러: 모델의 가는 빛줄기(FX_LightBeam — 슬롯은 FxOverrides로 비움)를 빛기둥으로 다시 그림 (LightBeamFx)
             if (model.name == "SM_Evo_OrbitalMirror")
                 WireLightShafts(instance);

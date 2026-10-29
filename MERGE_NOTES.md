@@ -1282,3 +1282,19 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e2fbf0ff`에 있음.
+
+## M-80. 실드 계열 단계별 이펙트 — 1단계 육각 무늬 · 3단계 수정 결정 막 · 프리즘 광선 + 수정 불꽃 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `64330e66`과 같은 파일)
+- 사용자 결정 (2026-10-29): 3단계 궤도 방어망에 연출이 없어 2단계보다 약해 보이던 것 → 차단 = 수정 결정 막, 격추 = 프리즘 광선 + 수정 불꽃, 1단계 실드 매트릭스 = 조금 강하게
+- 1단계: 새 런타임 `Building/HexBarrierFx` + 셰이더 `SpaceStation/HexShield` + 재질 `M_HexShield` — 파란 파문 위로 닿은 자리에서 육각 격자가 구면을 따라 퍼지며 옅어짐 (등거리 방위 투영 · 스치는 각 격자 감춤)
+- 3단계 차단: 새 런타임 `Building/CrystalBarrierFx` + 셰이더 `SpaceStation/CrystalShard` + 재질 `M_CrystalShard` — 육각 수정판 19장이 가운데부터 맺혀 버티다 세모 조각으로 깨져 흩어짐 + 무지개 반짝이, 같은 모듈의 `AuroraBarrierFx` 오로라 파문도 함께
+- 3단계 격추: 새 런타임 `Building/PrismBeamFx` (가장 가까운 수정 부표 끝 → 흰 빛줄기 → 일곱 빛깔 부채꼴 → 운석에서 모임) + `FireworkFx` 무지개 모드 (`_rainbow`, 별 일곱 빛깔 · 수정 조각 흩어짐 · 더 반짝임)
+- `MeteorFx`: 차단 = 수정 → 오로라 → 육각(+파란 파문) → 파란 파문 순, 격추 = 프리즘 광선이 있으면 빨간 레이저 대신. `StationArtBuilder`가 실드 매트릭스 · 궤도 방어망에 자동 배선, `ModuleFxMaterials`에 HexShield · CrystalShard
+- Recipes/Setup 산출물: 실드 매트릭스 · 궤도 방어망 프리팹 (다른 진화 프리팹 · Main 씬은 fileID만 바뀌어 안 넣음)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. `MeteorFx` · `FireworkFx`를 서사판이 고쳤으면 해당 부분만 손으로, 그 뒤 Recipes/Setup으로 두 프리팹을 다시 만들 것.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `64330e66`에 있음.

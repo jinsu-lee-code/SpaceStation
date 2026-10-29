@@ -80,6 +80,8 @@ namespace SpaceStation.Editor
                 case "SplashMist": return Glass("M_SplashMist", new Color(0.82f, 0.92f, 1f, 0.42f), new Color(0.22f, 0.27f, 0.32f), 0.3f); // 큰 낙하 물안개 (윤기 없이)
                 case "Mirror": return Mirror();                                                          // 궤도 미러 해바라기 거울
                 case "AuroraBarrier": return AuroraBarrier();                                            // 실드 돔이 운석을 막을 때 오로라 커튼 장벽
+                case "HexShield": return CustomShader("M_HexShield", "SpaceStation/HexShield", new Color(0.35f, 1.0f, 2.6f, 1f)); // 실드 매트릭스가 운석을 막을 때 육각 무늬 (HexBarrierFx)
+                case "CrystalShard": return CustomShader("M_CrystalShard", "SpaceStation/CrystalShard", new Color(0.9f, 1.0f, 1.2f, 1f)); // 궤도 방어망 수정 결정 막 · 조각 (CrystalBarrierFx)
                 case "FireworkSpark": return Additive("M_FireworkSpark", new Color(1.6f, 1.6f, 1.6f, 1f));  // 요새 포대 불꽃 빛 점 (색은 입자 색)
                 case "FireworkLine": return FireworkLine();                                              // 별자리 잇는 빛줄 · 불꽃 꼬리
                 // 2단계 후속 (사용자 2026-10-27): 모델마다 다른 재질은 StationArtBuilder.FxOverrides가 슬롯에 연결
