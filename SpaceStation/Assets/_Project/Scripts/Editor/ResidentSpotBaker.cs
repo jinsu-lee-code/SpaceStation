@@ -82,7 +82,34 @@ namespace SpaceStation.Editor
             { "Radiator", RadiatorSpots },
             { "CommRelay", CommRelaySpots },
             { "EvoResearch", EvoResearchSpots },
+            { "EvoTower", EvoTowerSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 거주 타워 (ht_builder): 사는 사람 쉬는 자리 — 1층 둥근 식탁 둘 의자 8 (식탁을 봄) · 3층 돔 라운지 곡면 소파 4 (아트리움을 봄).
+        /// 곡면 소파 · 둥근 식탁은 찾아낸 자리로 잘 안 잡혀 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> EvoTowerSpots()
+        {
+            var list = new List<ResidentSpot>();
+            var center = new Vector3(4f, 0f, 4f);
+            foreach (float tx in new[] { -0.4f, 8.4f })
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    float a = (45f + 90f * k) * Mathf.Deg2Rad;
+                    var p = new Vector3(tx + Mathf.Cos(a) * 0.95f, Floor + 0.49f, 4f + Mathf.Sin(a) * 0.95f);
+                    list.Add(new ResidentSpot(p, Mathf.Atan2(tx - p.x, 4f - p.z) * Mathf.Rad2Deg, ResidentPose.Sit));
+                }
+            }
+            foreach (float deg in new[] { 322.5f, 45f, 135f, 222.5f })
+            {
+                float a = deg * Mathf.Deg2Rad;
+                var p = new Vector3(center.x + Mathf.Cos(a) * 4.0f, 8f + Floor + 0.42f, center.z + Mathf.Sin(a) * 4.0f);
+                list.Add(new ResidentSpot(p, Mathf.Atan2(center.x - p.x, center.z - p.z) * Mathf.Rad2Deg, ResidentPose.Sit));
+            }
+            return list;
+        }
 
         /// <summary>
         /// 진화 1단계 연구 단지 (rc_builder): 연구원 — 네 모서리 곡면 책상 의자 (모서리를 봄, 앉음) · 관측 단 콘솔 앞 (단 위 F + 0.1, 기둥을 봄) ·

@@ -1329,3 +1329,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `05f78abb`에 있음.
+
+## M-83. 거주 타워 내부 + 유리 엘리베이터 탑승 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `4c075ced`과 같은 파일)
+- 사용자 결정: 여러 층 진화 모듈 안의 층 이동 = **유리 엘리베이터 탑승** (캡슐이 실제로 오르내리고 플레이어도 함께 실림 — 아콜로지 · 궤도 도시까지 같은 방식)
+- 새 런타임 `Interior/InteriorLift` (캡슐 이동 · 층마다 샤프트 문짝 = 캡슐이 서 있을 때만 열림 · 출발 전 문 닫힘) · `Interior/InteriorLiftButton` (캡슐 안 층 버튼 · 문 옆 호출 버튼)
+- `Interior/FirstPersonController`: `Ride(탈것)` · `Dismount()` · `Riding` (실려 가는 동안 걷기 · 중력 멈춤, 둘러보기 됨 — 따라가기는 LateUpdate). `Interior/InteriorMode`: 시선이 닿은 엘리베이터 버튼 안내 글 + 상호작용 키 한 번으로 누름
+- 거주 타워 내부 `IT_EvoTower` · `PF_Interior_EvoTower` · `SM_Interior_EvoTower.fbx` (Blender `Interior_Evo.blend` 텍스트 `ht_builder`): 2 × 2 칸 × 2층 안 3개 층 + 가운데 아트리움 엘리베이터, 1층 공용 라운지 · 식당 / 2층 모서리 집 / 3층 옥상 돔 라운지. 주민 고정 자리 12 (`ResidentSpotBaker`) · 화분 자리 14 (`InteriorPlantSpots`), 강조색 `M_Accent_Evo_HabitatTower` · `M_Paint_Evo_HabitatTower`, `InteriorKit.asset` 강조색 목록 추가
+- MODELING 7-11 (여러 층 모듈 · 엘리베이터 조각 이름 규칙)
+
+### `narrative` 합칠 때
+- [ ] `FirstPersonController` · `InteriorMode`를 서사판이 고쳤으면 해당 부분만 손으로 (Ride/Dismount · 엘리베이터 버튼 분기). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `4c075ced`에 있음.

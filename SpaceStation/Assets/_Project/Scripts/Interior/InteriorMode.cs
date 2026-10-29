@@ -683,13 +683,28 @@ namespace SpaceStation.Interior
             var eye = _player.Eye;
             InteriorHatch hatch = null;
             InteriorInteractable item = null;
+            InteriorLiftButton liftButton = null;
             // 해치는 더 멀리서도 (사용자 피드백 2026-10-14: 창고 · 융합로처럼 천장이 높은 방은 천장 해치가 눈에서 약 3.2m라 2.6m 광선이 닿지 않았음)
             float reach = Mathf.Max(_interactDistance, _hatchReach);
             if (Physics.Raycast(eye.position, eye.forward, out var hit, reach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             {
                 hatch = hit.collider.GetComponent<InteriorHatch>();
                 if (hatch == null && hit.distance <= _interactDistance)
-                    item = hit.collider.GetComponentInParent<InteriorInteractable>();
+                {
+                    liftButton = hit.collider.GetComponent<InteriorLiftButton>();
+                    if (liftButton == null)
+                        item = hit.collider.GetComponentInParent<InteriorInteractable>();
+                }
+            }
+            if (liftButton != null)
+            {
+                // 진화 모듈 유리 엘리베이터 버튼 (F 한 번): 층 버튼 = 타고 그 층으로, 호출 버튼 = 엘리베이터를 이 층으로
+                ResetHold();
+                string label = liftButton.Prompt(_player);
+                _prompt.SetText(string.IsNullOrEmpty(label) ? string.Empty : $"<b>{KeyBindings.Label(GameAction.Interact)}</b>  {label}");
+                if (!string.IsNullOrEmpty(label) && KeyBindings.WasPressed(GameAction.Interact))
+                    liftButton.Press(_player);
+                return;
             }
             if (item != null)
             {
