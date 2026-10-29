@@ -64,6 +64,7 @@ namespace SpaceStation.Editor
             { "EvoHydrogen", new[] { ResidentTrait.Technician, ResidentTrait.Gardener } },   // 수소 플랜트 = 연료전지 (기술자) + 물 재활용기 · 산소 (정원사)
             { "EvoFarm", new[] { ResidentTrait.Gardener } },        // 수직 농장 = 수경 농장 ×2 + 단백질 배양조 (모두 정원사)
             { "EvoMineral", new[] { ResidentTrait.Mechanic } },     // 광물 처리 단지 = 채굴 도킹 + 제련소 (모두 정비공)
+            { "EvoShield", new[] { ResidentTrait.Scientist } },     // 실드 매트릭스 = 실드 발생기 ×3 (연구원)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -102,7 +103,24 @@ namespace SpaceStation.Editor
             { "EvoGravity", EvoGravitySpots },
             { "EvoFarm", EvoFarmSpots },
             { "EvoMineral", EvoMineralSpots },
+            { "EvoShield", EvoShieldSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 실드 매트릭스 (sm_builder SEATS): 연구원 — 두 팔 벽쪽 관제 콘솔 넷 (콘솔을 봄, 사이 통로 3.4m) · 팔 끝 발생 노드 관리 둘 (노드 바깥쪽, 끝 문 자리 앞 밖).
+        /// </summary>
+        private static List<ResidentSpot> EvoShieldSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(5.2f, Floor, -2.03f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(5.2f, Floor, 2.03f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-2.03f, Floor, 5.2f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(2.03f, Floor, 5.2f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(9.15f, Floor, 0f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(0f, Floor, 9.15f), 180f, ResidentPose.Work, work: true),
+            };
+        }
 
         /// <summary>
         /// 진화 1단계 광물 처리 단지 (mc_builder SEATS): 정비공 — 용광로 틈 창 앞 둘 (용광로를 봄) · 분쇄기 양옆 둘 (분쇄기를 봄) ·
