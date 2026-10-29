@@ -101,6 +101,60 @@ namespace SpaceStation.Editor
             BuildEvoHydrogen();
             BuildEvoGravity();
             BuildEvoFarm();
+            BuildEvoMineral();
+        }
+
+        /// <summary>
+        /// 진화 1단계 광물 처리 단지 (3칸 일자, mc_builder — 사용자 2026-10-30 시안 1 확정 "이대로 옮겨보자"): 광석이 들어와 금속이 되는 한 줄 —
+        /// 가운데 칸 = 하역장 (z 방향 아치 볼트 · 꼭대기 유리 천창 띠 · +z 도킹 문에서 오는 착륙 화살표 · 분쇄기 깔때기 → 광석 승강 기둥 (INT_EvoMineral_OreLift — 유리 관 속 나선이 돎)),
+        /// 천장 밑 갈림 상자에서 양쪽 용광로로 유리 나사 이송관 둘 (AugerA · AugerB — 광석이 붙은 나선이 돌아 바깥쪽으로 실려 가는 것처럼 보임, 외형의 황동 관),
+        /// 양 끝 칸 = 허리 높이 항아리 용광로 (유리 난간 너머 녹은 금속 웅덩이 · 빛나는 틈 창 · 배기 후드 · 광석 낙하 관) + 바깥쪽 모서리 주괴 더미.
+        /// 문 자리 = 연결점 있는 면 8, 바닥 해치 = 칸마다 (용광로 · 분쇄기 비킴), 위 해치 = 칸마다 (가운데 칸은 볼트 밖 평평한 천장), 천장 F + 4.0 (하역장 볼트 꼭대기 F + 5.0).
+        /// </summary>
+        private static void BuildEvoMineral()
+        {
+            const float ceiling = F + 4.0f;
+            var c0 = new Vector3Int(0, 0, 0);
+            var c1 = new Vector3Int(1, 0, 0);
+            var c2 = new Vector3Int(2, 0, 0);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c0, Vector3Int.left, Socket),
+                new InteriorSocket(c0, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c0, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c1, new Vector3Int(0, 0, 1), Socket),   // 도킹 쪽
+                new InteriorSocket(c1, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c2, Vector3Int.right, Socket),
+                new InteriorSocket(c2, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c2, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c0, Vector3Int.down, -F, new Vector3(0f, 0f, -2.2f)),      // 용광로 옆 −z 길
+                new InteriorSocket(c1, Vector3Int.down, -F, new Vector3(-2.9f, 0f, 0f)),      // 분쇄기 서쪽
+                new InteriorSocket(c2, Vector3Int.down, -F, new Vector3(0f, 0f, -2.2f)),
+                new InteriorSocket(c0, Vector3Int.up, ceiling, new Vector3(-2.2f, 0f, 0f)),   // 후드 · 천장 빛 띠 비킴
+                new InteriorSocket(c1, Vector3Int.up, ceiling, new Vector3(-3.0f, 0f, 1.6f)), // 볼트 밖 평평한 천장 · 이송관 걸이 비킴
+                new InteriorSocket(c2, Vector3Int.up, ceiling, new Vector3(2.2f, 0f, 0f)),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var melt = new Color(1f, 0.55f, 0.2f);
+            var lights = new List<LightSpec>();
+            foreach (float cx in new[] { 0f, 16f })
+            {
+                foreach (var (dx, z) in new[] { (-1.6f, 1.9f), (-1.6f, -1.9f), (1.6f, 1.9f), (1.6f, -1.9f) })
+                    lights.Add(LightSpec.Point(new Vector3(cx + dx, F + 3.3f, z), 5f, 1.4f, white));
+                lights.Add(LightSpec.Point(new Vector3(cx, F + 1.6f, 0f), 3.5f, 1.6f, melt));   // 녹은 금속 빛
+            }
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 3.6f, 1.9f), 6f, 1.6f, white));       // 하역장 (볼트 밑)
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 3.6f, -1.9f), 6f, 1.6f, white));
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 2.6f, 1.4f), 3f, 0.8f, white));       // 분쇄기 깔때기 위
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoMineral_OreLift", new Vector3(8f, 0f, 0f), Vector3.up, 90f),          // + = 나선이 위로 오르는 것처럼
+                new OrbitSpec("INT_EvoMineral_AugerA", new Vector3(0f, F + 3.3f, 0f), Vector3.right, 120f),  // + = −x (서쪽 용광로)로 실려 감
+                new OrbitSpec("INT_EvoMineral_AugerB", new Vector3(0f, F + 3.3f, 0f), Vector3.right, -120f), // − = +x (동쪽 용광로)로 실려 감
+            };
+            EvoAccent("MineralComplex", "#C0A080");
+            // 스폰 = 서쪽 용광로 옆 +z 길에서 하역장 쪽을 바라봄
+            Build("EvoMineral", "Evolved/MD_Evo_MineralComplex", sockets, new Vector3(2.6f, F, 2.1f), 100f, lights, orbits);
         }
 
         /// <summary>
@@ -2123,7 +2177,7 @@ namespace SpaceStation.Editor
             { "EvoResearch", InteriorAmbience.Machine }, { "EvoTower", InteriorAmbience.Life }, { "EvoEco", InteriorAmbience.Water },
             { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life }, { "EvoCulture", InteriorAmbience.Life },
             { "EvoSolar", InteriorAmbience.Electric }, { "EvoFusion", InteriorAmbience.Heat }, { "EvoHydrogen", InteriorAmbience.Water },
-            { "EvoGravity", InteriorAmbience.Life }, { "EvoFarm", InteriorAmbience.Water },
+            { "EvoGravity", InteriorAmbience.Life }, { "EvoFarm", InteriorAmbience.Water }, { "EvoMineral", InteriorAmbience.Heat },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,

@@ -1528,3 +1528,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `ba3a43b0`에 있음.
+
+---
+
+## M-97. 광물 처리 단지 내부 — 용광로 · 아치 하역장 · 나사 이송관 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `5f1d9a23`과 같은 파일)
+- 광물 처리 단지 내부 `IT_EvoMineral` · `PF_Interior_EvoMineral` · `SM_Interior_EvoMineral.fbx` (Blender `Interior_Evo.blend` 텍스트 `mc_builder`): 3칸 일자 — 가운데 하역장 (z 방향 아치 볼트 · 꼭대기 유리 천창 띠 · 착륙 화살표 · 분쇄기 깔때기 → 광석 승강 기둥 `INT_EvoMineral_OreLift`), 천장 밑 유리 나사 이송관 둘 (`AugerA` · `AugerB`, 반대 방향으로 돎), 양 끝 허리 높이 항아리 용광로 (녹은 금속 웅덩이 · 유리 난간 · 틈 창 · 배기 후드) + 주괴 더미
+- `InteriorTemplateBuilder.BuildEvoMineral` (문 자리 14, 조명 13, 환경음 열), `ResidentSpotBaker` 정비공 6, 강조색 `M_Accent_Evo_MineralComplex` · `M_Paint_Evo_MineralComplex`, `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `5f1d9a23`에 있음.
