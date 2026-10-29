@@ -1344,3 +1344,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `4c075ced`에 있음.
+
+## M-84. 생태 모듈 내부 — 유리 볼트 온실 · 물 구체 순환 코어 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `397766ab`과 같은 파일)
+- 생태 모듈 내부 `IT_EvoEco` · `PF_Interior_EvoEco` · `SM_Interior_EvoEco.fbx` (Blender `Interior_Evo.blend` 텍스트 `eco_builder`): ㄱ자 4칸 — 온실 세 칸 (낮은 유리 볼트 · 등줄기 재배등 · 재배대 두 줄) + 이음 칸 + 순환 코어 (유리 물 구체 + 도는 고리 `INT_EvoEco_Ring` · 산소 기둥 · 순환관 · 천창)
+- 사용자 요청 "온실 식물은 수경 농장 등에서 쓰던 식물로": 수경 농장 상추 포기(`farm_builder lettuce` → `evo_kit`) + 화분 식물 자리 18 · 나무 자리 2 (`InteriorPlantSpots`)
+- `evo_kit` 일반화: `rounded(다각형, r, d)` — 직각 다각형 둥근 모서리 방 (ㄱ자 등). 기존 사각형 호출은 같은 결과
+- 정원사 자리 5 (`ResidentSpotBaker`), 강조색 `M_Accent_Evo_EcoModule` · `M_Paint_Evo_EcoModule`, `InteriorKit.asset` 강조색 목록, 거주 타워 도장 재질 `_Color` 동기화, MODELING 7-11 (식물 다시 쓰기 · 볼트 아래 문 자리 · 꺾인 방)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `397766ab`에 있음.

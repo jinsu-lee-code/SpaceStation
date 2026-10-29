@@ -92,6 +92,57 @@ namespace SpaceStation.Editor
         {
             BuildEvoResearch();
             BuildEvoTower();
+            BuildEvoEco();
+        }
+
+        /// <summary>
+        /// 진화 1단계 생태 모듈 (ㄱ자 4칸, eco_builder — 사용자 2026-10-29 시안 1): 온실 세 칸 (낮은 유리 볼트 · 재배대 두 줄 — 통로 쪽 수경 농장 상추,
+        /// 벽 쪽 화분 식물 자리) + 이음 칸 (나무 화분 둘 · 수확 수레) + 끝 칸 순환 코어 (유리 물 구체 둘레를 도는 고리 = INT_EvoEco_Ring · 산소 기둥 넷 ·
+        /// 온실로 이어지는 순환관). 문 자리 = 칸마다 바깥 면 + 바닥 · 천장 해치 (온실 = 칸 중심 · 볼트 꼭대기 등줄기 F + 5.1,
+        /// 끝 칸 = 물 구체를 비켜 (0, ·, −2.4) · 천장 F + 4.0).
+        /// </summary>
+        private static void BuildEvoEco()
+        {
+            var sockets = new List<InteriorSocket>();
+            var hall = new[] { new Vector3Int(0, 0, 0), new Vector3Int(1, 0, 0), new Vector3Int(2, 0, 0) };
+            var wing = new Vector3Int(0, 0, 1);
+            var back = new Vector3Int(0, 0, -1);
+            var fwd = new Vector3Int(0, 0, 1);
+            sockets.Add(new InteriorSocket(hall[0], Vector3Int.left, Socket));
+            foreach (var c in hall)
+            {
+                sockets.Add(new InteriorSocket(c, back, Socket));
+                if (c.x > 0)
+                    sockets.Add(new InteriorSocket(c, fwd, Socket));
+                sockets.Add(new InteriorSocket(c, Vector3Int.down, -F, Vector3.zero));
+                sockets.Add(new InteriorSocket(c, Vector3Int.up, F + 5.1f, Vector3.zero));
+            }
+            sockets.Add(new InteriorSocket(hall[2], Vector3Int.right, Socket));
+            var wingHatch = new Vector3(0f, 0f, -2.4f);
+            sockets.Add(new InteriorSocket(wing, Vector3Int.left, Socket));
+            sockets.Add(new InteriorSocket(wing, Vector3Int.right, Socket));
+            sockets.Add(new InteriorSocket(wing, fwd, Socket));
+            sockets.Add(new InteriorSocket(wing, Vector3Int.down, -F, wingHatch));
+            sockets.Add(new InteriorSocket(wing, Vector3Int.up, F + 4.0f, wingHatch));
+            var white = new Color(0.96f, 1f, 0.96f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-0.5f, F + 3.4f, 0f), 7f, 2.4f, white),
+                LightSpec.Point(new Vector3(5.5f, F + 3.6f, 0f), 7f, 2.4f, white),
+                LightSpec.Point(new Vector3(12f, F + 3.6f, 0f), 7f, 2.4f, white),
+                LightSpec.Point(new Vector3(17.5f, F + 3.6f, 0f), 7f, 2.4f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.4f, 6.0f), 6f, 2.0f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.4f, 10.6f), 5f, 1.6f, white),
+                LightSpec.Point(new Vector3(0f, F + 2.0f, 8.8f), 4f, 1.2f, new Color(0.5f, 0.85f, 1f)),   // 물 구체 빛
+            };
+            foreach (float x in new[] { 5.6f, 12f, 17.7f })
+                foreach (float z in new[] { -1.65f, 1.65f })
+                    lights.Add(LightSpec.Point(new Vector3(x, F + 2.2f, z), 3f, 0.7f, new Color(0.7f, 1f, 0.75f)));   // 재배등 아래
+            float s12 = Mathf.Sin(12f * Mathf.Deg2Rad);
+            var orbits = new List<OrbitSpec> { new OrbitSpec("INT_EvoEco_Ring", new Vector3(0f, F + 2.0f, 8.8f), new Vector3(s12, Mathf.Cos(12f * Mathf.Deg2Rad), 0f), 14f) };
+            EvoAccent("EcoModule", "#7CFF9A");
+            // 스폰 = 이음 칸 (바닥 해치 칸 중심 옆)에서 온실 통로와 순환 코어가 같이 보이게
+            Build("EvoEco", "Evolved/MD_Evo_EcoModule", sockets, new Vector3(-1.0f, F, -1.4f), 60f, lights, orbits);
         }
 
         /// <summary>
@@ -1593,7 +1644,7 @@ namespace SpaceStation.Editor
             { "Sensor", InteriorAmbience.Electric }, { "DataCenter", InteriorAmbience.Electric },
             { "Frame", InteriorAmbience.Hall }, { "Hub", InteriorAmbience.Hall },
             // 진화 모듈
-            { "EvoResearch", InteriorAmbience.Machine }, { "EvoTower", InteriorAmbience.Life },
+            { "EvoResearch", InteriorAmbience.Machine }, { "EvoTower", InteriorAmbience.Life }, { "EvoEco", InteriorAmbience.Water },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,

@@ -55,6 +55,7 @@ namespace SpaceStation.Editor
             { "CommRelay", new[] { ResidentTrait.Scientist } },   // 사용자 결정 2026-10-22: 신호 해독 = 연구원 (연구소 · 데이터 센터와 같음)
             // 진화 모듈 (재료 모듈과 같은 특성)
             { "EvoResearch", new[] { ResidentTrait.Scientist } }, // 연구 단지 = 연구소 ×2
+            { "EvoEco", new[] { ResidentTrait.Gardener } },       // 생태 모듈 = 농장 · 산소 · 물 재활용 (모두 정원사)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -83,7 +84,23 @@ namespace SpaceStation.Editor
             { "CommRelay", CommRelaySpots },
             { "EvoResearch", EvoResearchSpots },
             { "EvoTower", EvoTowerSpots },
+            { "EvoEco", EvoEcoSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 생태 모듈 (eco_builder): 정원사 — 온실 가운데 통로에서 양쪽 재배대를 봄 (바닥 해치 x 8 · 16 비킴) 넷 + 순환 코어 물 구체 앞 하나.
+        /// </summary>
+        private static List<ResidentSpot> EvoEcoSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (float x in new[] { 5.6f, 12f })
+            {
+                list.Add(new ResidentSpot(new Vector3(x, Floor, 0.55f), 0f, ResidentPose.Work, work: true));
+                list.Add(new ResidentSpot(new Vector3(x, Floor, -0.55f), 180f, ResidentPose.Work, work: true));
+            }
+            list.Add(new ResidentSpot(new Vector3(1.3f, Floor, 6.9f), Mathf.Atan2(-1.3f, 1.9f) * Mathf.Rad2Deg, ResidentPose.Work, work: true));
+            return list;
+        }
 
         /// <summary>
         /// 진화 1단계 거주 타워 (ht_builder): 사는 사람 쉬는 자리 — 1층 둥근 식탁 둘 의자 8 (식탁을 봄) · 3층 돔 라운지 곡면 소파 4 (아트리움을 봄).
