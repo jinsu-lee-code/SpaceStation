@@ -95,6 +95,50 @@ namespace SpaceStation.Editor
             BuildEvoEco();
             BuildEvoPowerBank();
             BuildEvoWelfare();
+            BuildEvoCulture();
+        }
+
+        /// <summary>
+        /// 진화 1단계 문화 센터 (2 × 2칸, cc_builder — 사용자 2026-10-29 시안 1 확정): 가운데 천체 투영실 (천장 구멍 위 짙은 돔 속에서 별 하늘 ·
+        /// 행성 · 투영기 머리가 함께 도는 INT_EvoCulture_Sky — 움직이는 메인 부품, 투영기를 보는 곡면 벤치 두 겹) + 교실 (−z: 홀로 칠판 · 분침이 도는
+        /// 벽시계 INT_EvoCulture_Clock · 책상 여섯) + 놀이 (+z: 보드게임 탁자 둘) · 독서 (+x: 책장 · 안락의자) · 쉼터 (−x: 긴 벤치 · 화분).
+        /// 문 자리 = 칸마다 바깥 두 면, 해치 = 칸 중심 (천장 F + 4.0).
+        /// </summary>
+        private static void BuildEvoCulture()
+        {
+            const float ceiling = F + 4.0f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                for (int z = 0; z < 2; z++)
+                {
+                    var cell = new Vector3Int(x, 0, z);
+                    sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                    sockets.Add(new InteriorSocket(cell, z == 0 ? new Vector3Int(0, 0, -1) : new Vector3Int(0, 0, 1), Socket));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling, Vector3.zero));
+                }
+            }
+            var white = new Color(1f, 0.97f, 0.92f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(4f, F + 2.85f, -1.6f), 6.5f, 2.3f, white),    // 교실
+                LightSpec.Point(new Vector3(4f, F + 2.85f, 9.6f), 6.5f, 2.2f, white),     // 놀이
+                LightSpec.Point(new Vector3(-1.6f, F + 2.85f, 4f), 6f, 2.0f, white),      // 쉼터
+                LightSpec.Point(new Vector3(9.6f, F + 2.85f, 4f), 6f, 2.0f, white),       // 독서
+                LightSpec.Point(new Vector3(4f, F + 2.2f, 4f), 4.5f, 0.8f, new Color(1f, 0.85f, 0.6f)),   // 투영실 (돔 아래 은은하게)
+                LightSpec.Point(new Vector3(4f, F + 1.7f, -2.5f), 2.5f, 0.4f, new Color(0.6f, 0.85f, 1f)), // 칠판 빛
+            };
+            foreach (var (x, z) in new[] { (-1.6f, -1.6f), (9.6f, -1.6f), (-1.6f, 9.6f), (9.6f, 9.6f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.6f, z), 4f, 1.0f, white));            // 네 모서리
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoCulture_Sky", new Vector3(4f, 0f, 4f), Vector3.up, 4f),
+                new OrbitSpec("INT_EvoCulture_Clock", new Vector3(4f, F + 3.02f, -3.2f), Vector3.forward, 6f),   // 1분에 한 바퀴 (앞에서 보면 시계 방향)
+            };
+            EvoAccent("CultureCenter", "#FFC86B");
+            // 스폰 = −x 쉼터 벤치 앞에서 천체 투영실을 바라봄 (해치 (0, 0) · (0, 8) 사이)
+            Build("EvoCulture", "Evolved/MD_Evo_CultureCenter", sockets, new Vector3(-1.8f, F, 4f), 90f, lights, orbits);
         }
 
         /// <summary>
@@ -1744,7 +1788,7 @@ namespace SpaceStation.Editor
             { "Frame", InteriorAmbience.Hall }, { "Hub", InteriorAmbience.Hall },
             // 진화 모듈
             { "EvoResearch", InteriorAmbience.Machine }, { "EvoTower", InteriorAmbience.Life }, { "EvoEco", InteriorAmbience.Water },
-            { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life },
+            { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life }, { "EvoCulture", InteriorAmbience.Life },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,

@@ -1427,3 +1427,15 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `f6b61400`에 있음.
+
+## M-90. 문화 센터 내부 — 천체 투영실 · 교실 · 놀이 · 독서 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `65c4f2ee`과 같은 파일)
+- 문화 센터 내부 `IT_EvoCulture` · `PF_Interior_EvoCulture` · `SM_Interior_EvoCulture.fbx` (Blender `Interior_Evo.blend` 텍스트 `cc_builder`): 2 × 2칸 — 가운데 천체 투영실 (짙은 돔 속에서 별 하늘 · 행성 · 투영기 머리가 함께 도는 `INT_EvoCulture_Sky` + 곡면 벤치 두 겹), 교실 (홀로 칠판 · 분침이 도는 벽시계 `INT_EvoCulture_Clock` · 책상 여섯), 놀이 (보드게임 탁자), 독서 (책장 · 안락의자), 쉼터 (긴 벤치 · 화분)
+- `InteriorTemplateBuilder.BuildEvoCulture` (문 자리 16 · 조명 10), `ResidentSpotBaker` 연구원(선생님) 2 + 쉬는 방 (`LeisureRooms`에 EvoCulture, 쉬는 자리 26), `InteriorPlantSpots` 화분 2, 강조색 `M_Accent_Evo_CultureCenter` · `M_Paint_Evo_CultureCenter`, `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `65c4f2ee`에 있음.
