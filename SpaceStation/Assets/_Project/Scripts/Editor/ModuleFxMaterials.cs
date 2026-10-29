@@ -104,6 +104,9 @@ namespace SpaceStation.Editor
                 case "Falls": return GlassMotion(Glass("M_Falls", new Color(0.72f, 0.88f, 0.96f, 0.6f), new Color(0.1f, 0.14f, 0.17f), 0.85f, 0.6f), "_FLOW_FALL", "_FlowFall"); // 떨어지는 물 (폭포)
                 case "Cloud": return Cloud();                                                                                       // 구름 · 물안개
                 case "Rain": return CustomShader("M_Rain", "SpaceStation/Rain", new Color(0.3f, 0.36f, 0.45f, 1f));               // 빗줄기 (가산, 옅게 — 물방울이 떨어짐)
+                // 바이오스피어 비 입자 (RainFx, 사용자 2026-10-29 "진짜 구름에서 비가 내리는 느낌") — 색 · 투명도는 입자 색
+                case "RainDrop": return RainParticle("M_RainDrop", 0f);
+                case "RainMist": return RainParticle("M_RainMist", 1f);
                 // ④ 흐르는 빛 (SpaceStation/PulseGlow — 형광 재질과 같은 바탕 · 발광, 모델 기준 한 점에서 퍼지거나 모여드는 빛 물결): StationArtBuilder.FxOverrides가 모델마다 연결
                 //   AI 중추 빛 신경 = 양쪽 문에서 가운데 수정 뇌(1, −0.05, 0.5)로 모여듦 + 시냅스 깜빡임 + 뇌 둘레 맥박 (build_ai_core CX · YB · CZ)
                 case "NeuralPurple": return PulseGlow("M_NeuralPurple", new Color(0.78f, 0.45f, 1f), new Vector3(1f, -0.05f, 0.5f), new Vector4(0.32f, -0.22f, 5f, 1.5f), 0.4f, new Vector4(1.2f, 0.9f, 0.18f, 0f), new Vector4(0.35f, 0.035f, 2.4f, 0f));
@@ -418,6 +421,18 @@ namespace SpaceStation.Editor
             m.SetVector("_Spark", spark);
             m.EnableKeyword("_EMISSION"); // ModuleView가 발광 재질로 알아보고 비활성 · 파손 때 어둡게 (셰이더는 안 씀)
             m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>빗방울 (shape 0, 속도 방향으로 늘여 가는 빗줄) · 비 안개 (shape 1, 둥근 덩이) 입자 재질 (SpaceStation/RainParticle).</summary>
+        private static Material RainParticle(string name, float shape)
+        {
+            var m = Load(name, UnityEngine.Shader.Find("SpaceStation/RainParticle"));
+            m.SetColor("_BaseColor", Color.white);
+            m.SetFloat("_Shape", shape);
+            m.renderQueue = (int)RenderQueue.Transparent;
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             return m;
