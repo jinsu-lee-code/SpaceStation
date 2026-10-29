@@ -569,7 +569,7 @@ namespace SpaceStation.Interior
             {
                 Solid(solidCenter, rotation, new Vector3(panel.Width, h, t));
                 if (_kit != null)
-                    KitPiece(_kit.Wall, module, parent, center, rotation, new Vector3(panel.Width / InteriorGeometry.PanelWidth, 1f, 1f));
+                    KitPiece(_kit.WallFor(module.Data), module, parent, center, rotation, new Vector3(panel.Width / InteriorGeometry.PanelWidth, 1f, 1f)); // 진화 모듈 = 단계 조각 (InteriorKitStage)
                 else
                     Cube(parent, module, solidCenter, rotation, new Vector3(panel.Width, h, t), color);
                 return;
@@ -592,7 +592,7 @@ namespace SpaceStation.Interior
                 Cube(parent, module, solidCenter + up * (doorTop + lintel * 0.5f), rotation, new Vector3(dw, lintel, t), DoorFrame);
                 return;
             }
-            var wall = KitPiece(_kit.WallDoor, module, parent, center, rotation);
+            var wall = KitPiece(_kit.WallDoorFor(module.Data), module, parent, center, rotation);
             if (wall.StatusSlot >= 0 && other != null)
             {
                 if (!_statusByOther.TryGetValue(other, out var lights))
@@ -609,12 +609,13 @@ namespace SpaceStation.Interior
             var go = new GameObject("Door");
             go.transform.SetParent(parent, false);
             go.transform.SetPositionAndRotation(position, rotation);
-            var right = KitPiece(_kit.DoorLeaf, module, go.transform, position, rotation).Renderer.transform;
-            var left = KitPiece(_kit.DoorLeaf, module, go.transform, position, rotation * Quaternion.Euler(0f, 180f, 0f)).Renderer.transform;
+            var leaf = _kit.DoorLeafFor(module != null ? module.Data : null);
+            var right = KitPiece(leaf, module, go.transform, position, rotation).Renderer.transform;
+            var left = KitPiece(leaf, module, go.transform, position, rotation * Quaternion.Euler(0f, 180f, 0f)).Renderer.transform;
             right.name = "LeafRight";
             left.name = "LeafLeft";
             var door = go.AddComponent<InteriorDoor>();
-            float leafWidth = _kit.DoorLeaf.Mesh.bounds.size.x;
+            float leafWidth = leaf.Mesh.bounds.size.x;
             // 안쪽 끝은 문 구멍(±0.7) 밖, 바깥 끝은 문 패널 주머니(±1.6) 안에서 멈추게.
             // 처음 값(구멍 반 폭 + 0.3 = 1.0)은 바깥 끝이 1.72까지 나가 패널 옆으로 문짝 끝(강조색 줄)이 보였음 (튜브 고리에 가려 있다 고리를 벽 속에 묻으며 드러남)
             float travel = InteriorGeometry.PanelWidth * 0.5f - leafWidth - 0.04f;
@@ -631,7 +632,7 @@ namespace SpaceStation.Interior
             var slab = surface + Vector3.up * (rect.Ceiling ? t * 0.5f : -t * 0.5f);
             Solid(slab, Quaternion.identity, size);
             if (_kit != null)
-                KitPiece(rect.Ceiling ? _kit.Ceiling : _kit.Floor, module, parent, surface, Quaternion.identity, new Vector3(rect.Size.x / 4f, 1f, rect.Size.y / 4f));
+                KitPiece(rect.Ceiling ? _kit.CeilingFor(module.Data) : _kit.FloorFor(module.Data), module, parent, surface, Quaternion.identity, new Vector3(rect.Size.x / 4f, 1f, rect.Size.y / 4f));
             else
                 Cube(parent, module, slab, Quaternion.identity, size, rect.Ceiling ? _roomColors[module] : Multiply(_roomColors[module], FloorShade));
             if (rect.Hatch)
@@ -650,8 +651,8 @@ namespace SpaceStation.Interior
             GameObject lid;
             if (_kit != null)
             {
-                KitPiece(_kit.HatchFrame, module, parent, surface, flip);
-                lid = KitPiece(_kit.HatchLid, module, parent, lidCenter, flip).Renderer.gameObject;
+                KitPiece(_kit.HatchFrameFor(module.Data), module, parent, surface, flip);
+                lid = KitPiece(_kit.HatchLidFor(module.Data), module, parent, lidCenter, flip).Renderer.gameObject;
                 var box = lid.AddComponent<BoxCollider>();
                 box.center = Vector3.zero;
                 box.size = new Vector3(InteriorGeometry.HatchSize, 0.08f, InteriorGeometry.HatchSize);

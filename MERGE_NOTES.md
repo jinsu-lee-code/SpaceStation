@@ -1314,3 +1314,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `6a38588f`에 있음.
+
+## M-82. 내부 단계별 키트 벽 — 1단계 매끈한 백색 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `05f78abb`과 같은 파일)
+- 사용자 요청: "내부 벽도 단계별 모듈의 외형에 맞게" · "1단계 진화 모듈은 매끈한 백색의 벽 — 미래형에 걸맞게" (흰 세라믹 방 안에 회색 공업용 문 패널이 어색했음)
+- `Data/InteriorKit`: 새 `InteriorKitStage` (단계 · 모듈 목록 · 벽 / 문 벽 / 문짝 / 바닥 / 천장 / 해치 틀 · 뚜껑) + `WallFor(모듈)` 등 — 그 단계 모듈 방이면 단계 조각, 아니면 기본 조각. `Interior/InteriorBuilder`가 이 함수들로 조각을 고름 (기본 모듈 방은 그대로)
+- `Editor/InteriorSetup`: `SM_InteriorKit_Evo1.fbx`(Read/Write 켬) 조각 + 레시피 단계 1 결과 모듈(23종)로 1단계 묶음을 키트에 등록, 키트 재질 슬롯에 EvoWhite · EvoFloor · EvoDark
+- Blender `Interior_Evo.blend` 텍스트 `evo1_kit_builder` → `SM_InteriorKit_Evo1.fbx` (조각 이름 = 기본 이름 + `_Evo1` — InteriorSpots가 `KIT_Wall`로 시작하는 이름으로 벽 패널을 알아봄). MODELING 7-11
+- 연결 통로(튜브)는 그대로 — 단계별 통로는 따로 작업 (사용자 요청 2026-10-29, TASKS)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (`InteriorBuilder` · `InteriorKit` · `InteriorSetup`을 서사판이 고쳤으면 해당 부분만 손으로). 그 뒤 메뉴 SpaceStation/Interior/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `05f78abb`에 있음.
