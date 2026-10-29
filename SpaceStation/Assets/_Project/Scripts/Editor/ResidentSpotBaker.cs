@@ -61,6 +61,7 @@ namespace SpaceStation.Editor
             { "EvoCulture", new[] { ResidentTrait.Scientist } },    // 문화 센터 = 학교 (연구원 = 선생님) + 휴게실 (쉬는 방)
             { "EvoSolar", new[] { ResidentTrait.Technician } },     // 태양광 어레이 = 태양광 ×4 (기술자)
             { "EvoFusion", new[] { ResidentTrait.Scientist } },     // 융합 발전소 = 핵융합로 (연구원) + 물 재활용기
+            { "EvoHydrogen", new[] { ResidentTrait.Technician, ResidentTrait.Gardener } },   // 수소 플랜트 = 연료전지 (기술자) + 물 재활용기 · 산소 (정원사)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -95,7 +96,27 @@ namespace SpaceStation.Editor
             { "EvoCulture", EvoCultureSpots },
             { "EvoSolar", EvoSolarSpots },
             { "EvoFusion", EvoFusionSpots },
+            { "EvoHydrogen", EvoHydrogenSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 수소 플랜트 (hp_builder): 기술자 · 정원사 — 전기분해조 대각선 둘 (통을 봄) · 연료전지 더미 양옆 둘 (빛 고리 자리 x 8.15를 비킴) ·
+        /// 출력 장 앞 · 흐름 제어대 앞 · 물 구체 뒤 · 산소 구체 압력계 앞. 걸어 다닐 길 (1.6m 이상) 밖.
+        /// </summary>
+        private static List<ResidentSpot> EvoHydrogenSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(1.3f, Floor, 1.3f), -135f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.3f, Floor, -1.3f), 45f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(7.2f, Floor, 1.3f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(9.2f, Floor, -1.3f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(5.2f, Floor, -2.05f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(5.4f, Floor, 1.85f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.75f, Floor, 6.55f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(1.75f, Floor, 3.95f), 0f, ResidentPose.Work, work: true),
+            };
+        }
 
         /// <summary>
         /// 진화 1단계 융합 발전소 (fs_builder): 연구원 — 제어대 의자 셋 (창 쪽 화면을 봄 — 앉아서 일함) · 냉각수 펌프 앞 둘 · 자석 전원 장 앞 둘 ·

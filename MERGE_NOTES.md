@@ -1469,3 +1469,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `4153ee95`에 있음.
+
+---
+
+## M-93. 수소 플랜트 내부 + 투명한 물 재질 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a38b5007`과 같은 파일)
+- 수소 플랜트 내부 `IT_EvoHydrogen` · `PF_Interior_EvoHydrogen` · `SM_Interior_EvoHydrogen.fbx` (Blender `Interior_Evo.blend` 텍스트 `hp_builder`): ㄱ자 3칸 — 모서리 칸 전기분해조 (유리 통 속 물 · 전극 위 쌍둥이 유리관, 나선 거품이 돌아 솟아 보이는 `BubblesA` · `BubblesB`), +x 칸 연료전지 더미 + 빛 고리 `Pulse`, +z 칸 물 · 산소 구체 · 화분
+- `InteriorTemplateBuilder.BuildEvoHydrogen` (문 자리 14 — 해치 둘은 장치를 비켜 오프셋, 조명 8, 환경음 물), `ResidentSpotBaker` 기술자 · 정원사 8, `InteriorPlantSpots` 화분 2, 강조색 `M_Accent_Evo_HydrogenPlant` · `M_Paint_Evo_HydrogenPlant`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (통 속 물은 덩어리로)
+- **새 공용 재질** `M_InteriorWaterClear` (`InteriorSetup.WaterClearPath` + `CreateMaterials`, 템플릿 재질 슬롯 `WaterClear`): 하늘색 반투명 물 (알파 0.55 · 매끈함 0.3 · 반사 하이라이트 · 환경 반사 끔) — 통 · 수조 속 물 덩어리용 (사용자 "물 표면이 어색 · 투명도 조금 줄여 · 반사광")
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates (`CreateMaterials`가 새 재질을 만듦).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `a38b5007`에 있음.

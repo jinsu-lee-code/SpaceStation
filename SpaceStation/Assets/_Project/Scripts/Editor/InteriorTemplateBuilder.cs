@@ -98,6 +98,61 @@ namespace SpaceStation.Editor
             BuildEvoCulture();
             BuildEvoSolar();
             BuildEvoFusion();
+            BuildEvoHydrogen();
+        }
+
+        /// <summary>
+        /// 진화 1단계 수소 플랜트 (ㄱ자 3칸, hp_builder — 사용자 2026-10-29 시안 1 확정 "이대로 옮겨줘"): 모서리 칸 전기분해조 — 흰 기둥 두른 유리 통 · 빛나는 물 ·
+        /// 전극 둘 위로 천장까지 쌍둥이 유리관, 전극 · 관을 따라 나선 거품이 돌아 솟는 것처럼 보임 (INT_EvoHydrogen_BubblesA 수소 · BubblesB 산소 — 움직이는 메인 부품),
+        /// +x 칸 = 누운 연료전지 더미 + 따라 도는 빛 고리 (Pulse) · 출력 장 · 흐름 제어대, +z 칸 = 물 구체 · 산소 구체 · 화분 둘, 천장 밑 수소 · 산소 · 물 관.
+        /// 문 자리 = 연결점 있는 면 모두 (8), 바닥 · 위 해치 = 칸마다 (모서리 칸 (2.75, ·, −2.1) · +x 칸 (5.2, ·, 0) — 장치를 비킴), 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoHydrogen()
+        {
+            const float ceiling = F + 4.0f;
+            var corner = new Vector3Int(0, 0, 0);
+            var east = new Vector3Int(1, 0, 0);
+            var north = new Vector3Int(0, 0, 1);
+            var hatch0 = new Vector3(2.75f, 0f, -2.1f);
+            var hatch1 = new Vector3(5.2f - 8f, 0f, 0f);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(corner, Vector3Int.left, Socket),
+                new InteriorSocket(corner, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(corner, Vector3Int.down, -F, hatch0),
+                new InteriorSocket(corner, Vector3Int.up, ceiling, hatch0),
+                new InteriorSocket(east, Vector3Int.right, Socket),
+                new InteriorSocket(east, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(east, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(east, Vector3Int.down, -F, hatch1),
+                new InteriorSocket(east, Vector3Int.up, ceiling, hatch1),
+                new InteriorSocket(north, Vector3Int.left, Socket),
+                new InteriorSocket(north, Vector3Int.right, Socket),
+                new InteriorSocket(north, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(north, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(north, Vector3Int.up, ceiling, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-1.9f, F + 2.85f, 0f), 6f, 2.0f, white),       // 전기분해조 −x
+                LightSpec.Point(new Vector3(1.6f, F + 2.85f, 1.6f), 5f, 1.4f, white),       // 모서리 안쪽 (두 날개 이음)
+                LightSpec.Point(new Vector3(0f, F + 0.9f, 1.5f), 2.5f, 0.6f, new Color(0.6f, 0.9f, 1f)),   // 물 빛
+                LightSpec.Point(new Vector3(8.8f, F + 2.85f, -1.6f), 6f, 1.8f, white),      // 연료전지
+                LightSpec.Point(new Vector3(8.8f, F + 2.85f, 1.9f), 6f, 1.8f, white),
+                LightSpec.Point(new Vector3(8.15f, F + 2.4f, 0f), 3f, 0.6f, new Color(1f, 0.92f, 0.7f)),   // 더미 위
+                LightSpec.Point(new Vector3(-1.9f, F + 2.85f, 8.4f), 6f, 1.8f, white),      // 저장 칸
+                LightSpec.Point(new Vector3(1.9f, F + 2.85f, 8.4f), 6f, 1.8f, white),
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoHydrogen_BubblesA", new Vector3(0.5f, 0f, 0f), Vector3.up, 150f),   // + 방향 = 나선이 위로 오르는 것처럼 보임
+                new OrbitSpec("INT_EvoHydrogen_BubblesB", new Vector3(0f, 0f, 0.5f), Vector3.up, 150f),
+                new OrbitSpec("INT_EvoHydrogen_Pulse", new Vector3(8.15f, F + 1.2f, 0f), Vector3.right, 60f),
+            };
+            EvoAccent("HydrogenPlant", "#7FE3FF");
+            // 스폰 = 모서리 칸 −x 문 옆에서 전기분해조를 바라봄
+            Build("EvoHydrogen", "Evolved/MD_Evo_HydrogenPlant", sockets, new Vector3(-1.9f, F, 2.4f), 140f, lights, orbits);
         }
 
         /// <summary>
@@ -1889,7 +1944,7 @@ namespace SpaceStation.Editor
             // 진화 모듈
             { "EvoResearch", InteriorAmbience.Machine }, { "EvoTower", InteriorAmbience.Life }, { "EvoEco", InteriorAmbience.Water },
             { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life }, { "EvoCulture", InteriorAmbience.Life },
-            { "EvoSolar", InteriorAmbience.Electric }, { "EvoFusion", InteriorAmbience.Heat },
+            { "EvoSolar", InteriorAmbience.Electric }, { "EvoFusion", InteriorAmbience.Heat }, { "EvoHydrogen", InteriorAmbience.Water },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
@@ -1956,6 +2011,7 @@ namespace SpaceStation.Editor
                 { "Ice", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.IcePath) },
                 { "Aqua", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.AquaPath) },
                 { "Concrete", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ConcretePath) },   // 12-5 방사선 차폐실
+                { "WaterClear", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.WaterClearPath) }, // 투명한 물 (통 속 물 덩어리)
             };
 
             var root = new GameObject("PF_Interior_" + name);

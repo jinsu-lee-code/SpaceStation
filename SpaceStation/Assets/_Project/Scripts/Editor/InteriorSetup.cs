@@ -66,6 +66,8 @@ namespace SpaceStation.Editor
         public const string EvoWhitePath = MaterialFolder + "/M_InteriorEvoWhite.mat";
         public const string EvoFloorPath = MaterialFolder + "/M_InteriorEvoFloor.mat";
         public const string EvoDarkPath = MaterialFolder + "/M_InteriorEvoDark.mat";
+        // 투명한 물 (2026-10-29 수소 플랜트 전기분해조 — 사용자 "위에 보이는 물 표면이 어색": 통 속을 물 덩어리로, 속 거품 · 전극이 비침)
+        public const string WaterClearPath = MaterialFolder + "/M_InteriorWaterClear.mat";
         private const string SmokePath = MaterialFolder + "/M_InteriorSmoke.mat";
         private const string DustPath = "Assets/_Project/Art/Materials/FX/M_Dust.mat";
         private const string SparkPath = "Assets/_Project/Art/Materials/FX/M_Spark.mat";
@@ -527,6 +529,30 @@ namespace SpaceStation.Editor
             glass.SetFloat("_Smoothness", 0.95f);
             glass.SetFloat("_Metallic", 0f);
             EditorUtility.SetDirty(glass);
+
+            // 투명한 물: 유리보다 짙은 하늘색 반투명 + 은은한 빛 (통 속 물 덩어리 — 속의 거품 · 전극이 비침).
+            // 사용자 2026-10-29 "투명도를 조금만 줄여 · 반사광이 생김" → 알파 0.38 → 0.55, 매끈함 0.92 → 0.3 + 반사 하이라이트 · 환경 반사 끔
+            //   (물 윗면이 천장 조명을 하얗게 비췄음)
+            var waterClear = LoadOrCreate(WaterClearPath, lit);
+            waterClear.SetFloat("_Surface", 1f); // Transparent
+            waterClear.SetFloat("_Blend", 0f);   // Alpha
+            waterClear.SetFloat("_ZWrite", 0f);
+            waterClear.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            waterClear.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            waterClear.SetOverrideTag("RenderType", "Transparent");
+            waterClear.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            waterClear.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            waterClear.SetColor("_BaseColor", new Color(0.35f, 0.75f, 0.95f, 0.55f));
+            waterClear.SetFloat("_Smoothness", 0.3f);
+            waterClear.SetFloat("_Metallic", 0f);
+            waterClear.SetFloat("_SpecularHighlights", 0f);
+            waterClear.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+            waterClear.SetFloat("_EnvironmentReflections", 0f);
+            waterClear.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+            waterClear.EnableKeyword("_EMISSION");
+            waterClear.SetColor("_EmissionColor", new Color(0.05f, 0.22f, 0.32f));
+            waterClear.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            EditorUtility.SetDirty(waterClear);
 
             // 11-8 바깥 창: 바깥 카메라 화면을 보여주는 유리 (InteriorExteriorView). 안쪽 유리(탱크·냉장고 등)는 위 M_InteriorGlass 그대로
             var window = LoadOrCreate(WindowPath, Shader.Find(Interior.InteriorExteriorView.WindowShaderName));

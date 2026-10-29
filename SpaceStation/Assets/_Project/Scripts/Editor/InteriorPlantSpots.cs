@@ -102,8 +102,14 @@ namespace SpaceStation.Editor
             solar.Add(new PlantSpot(new Vector3(-2.7f, F + 0.462f, 2.15f), PlantKind.Pot, 0.7f, 30f));
             solar.Add(new PlantSpot(new Vector3(-2.7f, F + 0.462f, 5.85f), PlantKind.Pot, 0.7f, 160f));
             Set("IT_EvoSolar", solar);
+            // 진화 1단계 수소 플랜트 (hp_builder POTS): +z 칸 끝 창가 화분 둘 (흙 F + 0.462, 0.7배)
+            Set("IT_EvoHydrogen", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-2.3f, F + 0.462f, 10.4f), PlantKind.Pot, 0.7f, 50f),
+                new PlantSpot(new Vector3(2.3f, F + 0.462f, 10.4f), PlantKind.Pot, 0.7f, 210f),
+            });
             AssetDatabase.SaveAssets();
-            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3 · 문화 센터 2 · 태양광 어레이 6");
+            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3 · 문화 센터 2 · 태양광 어레이 6 · 수소 플랜트 2");
         }
 
         private static void Set(string name, List<PlantSpot> spots)
