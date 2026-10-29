@@ -56,6 +56,7 @@ namespace SpaceStation.Editor
             // 진화 모듈 (재료 모듈과 같은 특성)
             { "EvoResearch", new[] { ResidentTrait.Scientist } }, // 연구 단지 = 연구소 ×2
             { "EvoEco", new[] { ResidentTrait.Gardener } },       // 생태 모듈 = 농장 · 산소 · 물 재활용 (모두 정원사)
+            { "EvoPowerBank", new[] { ResidentTrait.Technician } }, // 축전 뱅크 = 배터리 ×3 (기술자)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -85,7 +86,26 @@ namespace SpaceStation.Editor
             { "EvoResearch", EvoResearchSpots },
             { "EvoTower", EvoTowerSpots },
             { "EvoEco", EvoEcoSpots },
+            { "EvoPowerBank", EvoPowerBankSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 축전 뱅크 (pb_builder): 기술자 — 충 · 방전 제어대 둘 (x 4 · 12, 반지름 0.86) 둘레 셋씩 (제어대를 봄, 반지름 1.25) +
+        /// 창 아래 예비 셀 선반 앞 넷 (선반을 봄, 엇갈린 벽). 둥근 제어대는 찾아낸 자리로 잘 안 잡혀 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> EvoPowerBankSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (var (x, side) in new[] { (4f, 1f), (12f, -1f) })
+            {
+                list.Add(new ResidentSpot(new Vector3(x - 1.25f, Floor, 0f), 90f, ResidentPose.Work, work: true));
+                list.Add(new ResidentSpot(new Vector3(x + 1.25f, Floor, 0f), -90f, ResidentPose.Work, work: true));
+                list.Add(new ResidentSpot(new Vector3(x, Floor, side * 1.25f), side > 0f ? 180f : 0f, ResidentPose.Work, work: true));
+            }
+            foreach (var (x, side) in new[] { (2.95f, 1f), (5.05f, -1f), (10.95f, -1f), (13.05f, 1f) })
+                list.Add(new ResidentSpot(new Vector3(x, Floor, side * 2.25f), side > 0f ? 0f : 180f, ResidentPose.Work, work: true));
+            return list;
+        }
 
         /// <summary>
         /// 진화 1단계 생태 모듈 (eco_builder): 정원사 — 온실 가운데 통로에서 양쪽 재배대를 봄 (바닥 해치 x 8 · 16 비킴) 넷 + 순환 코어 물 구체 앞 하나.
