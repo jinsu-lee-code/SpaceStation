@@ -93,6 +93,50 @@ namespace SpaceStation.Editor
             BuildEvoResearch();
             BuildEvoTower();
             BuildEvoEco();
+            BuildEvoPowerBank();
+        }
+
+        /// <summary>
+        /// 진화 1단계 축전 뱅크 (3칸 일자, pb_builder — 사용자 2026-10-29 시안 1 확정): 유리 볼트 홀 (외형 유리 캡슐) + 띠 아치 둘 (x 4 · 12, 벽 따라 바닥까지 띠 기둥).
+        /// 머리 위 거대 셀 두 줄 (z ±1.7, 축 F + 3.95)의 셀 심 10칸 = 정거장 저장량 게이지 (INT_EvoPowerBank_Gauge_00 ~ 09 → <see cref="InteriorGauge"/>,
+        /// −x 끝부터 켜짐) · 셀마다 도는 충전 고리 셋 (RingA · RingB — 움직이는 메인 부품) · 띠 아치 아래 모선 다리 + 빛 기둥 + 충 · 방전 제어대 둘 ·
+        /// 창 아래 예비 셀 선반. 문 자리 = 양 끝 + 칸마다 앞뒤 + 칸마다 바닥 해치 (칸 중심) · 볼트 꼭대기 등줄기 해치 (F + 5.1).
+        /// </summary>
+        private static void BuildEvoPowerBank()
+        {
+            const float cellY = F + 3.95f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 3; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                if (x == 0)
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.left, Socket));
+                if (x == 2)
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, F + 5.1f, Vector3.zero));
+            }
+            var white = new Color(0.95f, 0.96f, 1f);
+            var amber = new Color(1f, 0.85f, 0.5f);
+            var lights = new List<LightSpec>();
+            foreach (float x in new[] { -1.5f, 2f, 6f, 10f, 14f, 17.5f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.2f, 0f), 6.5f, 2.8f, white));
+            foreach (float x in new[] { 4f, 12f })
+            {
+                foreach (float z in new[] { -1.7f, 1.7f })
+                    lights.Add(LightSpec.Point(new Vector3(x, F + 3.3f, z), 3.5f, 0.7f, amber));   // 셀 빛
+                lights.Add(LightSpec.Point(new Vector3(x, F + 1.5f, 0f), 2.5f, 0.5f, amber));      // 제어대 · 빛 기둥
+            }
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoPowerBank_RingA", new Vector3(0f, cellY, -1.7f), Vector3.right, 35f),
+                new OrbitSpec("INT_EvoPowerBank_RingB", new Vector3(0f, cellY, 1.7f), Vector3.right, -35f),
+            };
+            EvoAccent("PowerBank", "#FFD24A");
+            // 스폰 = 서쪽 끝 문 앞 (바닥 해치 자리 ±0.95 밖)에서 셀 두 줄 · 제어대가 늘어선 홀을 바라봄
+            Build("EvoPowerBank", "Evolved/MD_Evo_PowerBank", sockets, new Vector3(-2.0f, F, 0f), 90f, lights, orbits);
         }
 
         /// <summary>
@@ -1645,6 +1689,7 @@ namespace SpaceStation.Editor
             { "Frame", InteriorAmbience.Hall }, { "Hub", InteriorAmbience.Hall },
             // 진화 모듈
             { "EvoResearch", InteriorAmbience.Machine }, { "EvoTower", InteriorAmbience.Life }, { "EvoEco", InteriorAmbience.Water },
+            { "EvoPowerBank", InteriorAmbience.Electric },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,

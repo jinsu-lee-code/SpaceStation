@@ -1371,3 +1371,16 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `fcccabd7`에 있음.
+
+## M-86. 축전 뱅크 내부 — 유리 캡슐 홀 · 저장량 게이지 셀 두 줄 · 충전 고리 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a64df445`과 같은 파일)
+- 축전 뱅크 내부 `IT_EvoPowerBank` · `PF_Interior_EvoPowerBank` · `SM_Interior_EvoPowerBank.fbx` (Blender `Interior_Evo.blend` 텍스트 `pb_builder`): 3칸 일자 홀 — 유리 볼트 + 띠 아치 둘 (벽 따라 띠 기둥) · 머리 위 거대 셀 두 줄 · 모선 다리 + 빛 기둥 + 충 · 방전 제어대 둘 · 창 아래 예비 셀 선반
+- 셀 심 10칸 = 실제 정거장 저장량 게이지 (`INT_EvoPowerBank_Gauge_00 ~ 09` → 기존 `InteriorGauge`), 충전 고리 `INT_EvoPowerBank_RingA` · `RingB` (`InteriorOrbit`)
+- `InteriorTemplateBuilder.BuildEvoPowerBank` (문 자리 14 · 조명 12 · 분위기 Electric), 기술자 자리 10 (`ResidentSpotBaker`), 강조색 `M_Accent_Evo_PowerBank` · `M_Paint_Evo_PowerBank`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (실제 값 게이지 조각)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `a64df445`에 있음.
