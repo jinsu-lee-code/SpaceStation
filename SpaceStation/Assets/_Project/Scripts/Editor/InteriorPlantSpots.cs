@@ -85,8 +85,14 @@ namespace SpaceStation.Editor
                 new PlantSpot(new Vector3(-2.55f, F + 0.462f, 3.85f), PlantKind.Pot, 0.7f, 70f),
                 new PlantSpot(new Vector3(2.55f, F + 0.462f, 3.85f), PlantKind.Pot, 0.7f, 220f),
             });
+            // 진화 1단계 문화 센터 (cc_builder PLANTS): −x 쉼터 벤치 양옆 화분 둘 (흙 F + 0.462, 창 가까이 0.7배)
+            Set("IT_EvoCulture", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-2.7f, F + 0.462f, 2.15f), PlantKind.Pot, 0.7f, 40f),
+                new PlantSpot(new Vector3(-2.7f, F + 0.462f, 5.85f), PlantKind.Pot, 0.7f, 190f),
+            });
             AssetDatabase.SaveAssets();
-            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3");
+            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3 · 문화 센터 2");
         }
 
         private static void Set(string name, List<PlantSpot> spots)
