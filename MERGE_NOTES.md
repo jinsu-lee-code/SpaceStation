@@ -1542,3 +1542,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `5f1d9a23`에 있음.
+
+---
+
+## M-98. 실드 매트릭스 내부 — 돔 아래 코어 · 고리 · 장 증폭 통로 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `ec0fde7e`과 같은 파일)
+- 실드 매트릭스 내부 `IT_EvoShield` · `PF_Interior_EvoShield` · `SM_Interior_EvoShield.fbx` (Blender `Interior_Evo.blend` 텍스트 `sm_builder`): ㄱ자 3칸 — 모서리 코어실 (천장 위 유리 돔 · 꼭대기 원 = 위 해치, 유리 구 속 빛나는 코어 + 기운 고리 둘 `INT_EvoShield_RingA` · `RingB`), 두 팔 장 증폭 통로 (천장 유리 도관 속 빛 구슬 나선 `FlowX` · `FlowZ` · 발생 노드 · 관제 콘솔)
+- `InteriorTemplateBuilder.BuildEvoShield` (문 자리 14, 조명 12, 환경음 전기), `ResidentSpotBaker` 연구원 6, 강조색 `M_Accent_Evo_ShieldMatrix` · `M_Paint_Evo_ShieldMatrix`, `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `ec0fde7e`에 있음.

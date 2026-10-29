@@ -102,6 +102,67 @@ namespace SpaceStation.Editor
             BuildEvoGravity();
             BuildEvoFarm();
             BuildEvoMineral();
+            BuildEvoShield();
+        }
+
+        /// <summary>
+        /// 진화 1단계 실드 매트릭스 (ㄱ자 3칸, sm_builder — 사용자 2026-10-30 시안 1 확정 "유니티에 넣어줘"): 모서리 칸 = 매트릭스 코어실 —
+        /// 천장 위로 솟은 유리 돔 (바깥 창 · 갈비살 · 꼭대기 평평한 원 = 위 해치) 아래 유리 구 속 빛나는 코어 구슬 + 기운 고리 둘이 돎 (INT_EvoShield_RingA · RingB),
+        /// 두 팔 = 장 증폭 통로 — 천장 밑 유리 도관 속 빛 구슬 나선이 노드 쪽으로 흐르는 것처럼 돎 (FlowX · FlowZ) · 팔 칸 가운데 발생 노드 · 벽쪽 관제 콘솔 둘씩.
+        /// 문 자리 = 연결점 있는 면 8, 바닥 해치 = 칸마다 (코어 · 노드 비킴), 위 해치 = 모서리 돔 꼭대기 (F + 5.15) · 팔은 벽쪽, 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoShield()
+        {
+            const float ceiling = F + 4.0f;
+            const float domeTop = F + 5.15f;   // sm_builder DOME_TOP
+            const float coreY = F + 1.55f, flowY = F + 3.45f;
+            var corner = new Vector3Int(0, 0, 0);
+            var armX = new Vector3Int(1, 0, 0);
+            var armZ = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(corner, Vector3Int.left, Socket),
+                new InteriorSocket(corner, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(armX, Vector3Int.right, Socket),
+                new InteriorSocket(armX, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(armX, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(armZ, Vector3Int.left, Socket),
+                new InteriorSocket(armZ, Vector3Int.right, Socket),
+                new InteriorSocket(armZ, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(corner, Vector3Int.down, -F, new Vector3(-1.9f, 0f, -1.9f)),   // 코어 받침 밖 모서리 쪽
+                new InteriorSocket(armX, Vector3Int.down, -F, new Vector3(0f, 0f, 2.2f)),
+                new InteriorSocket(armZ, Vector3Int.down, -F, new Vector3(2.2f, 0f, 0f)),
+                new InteriorSocket(corner, Vector3Int.up, domeTop, Vector3.zero),                   // 돔 꼭대기 평평한 원
+                new InteriorSocket(armX, Vector3Int.up, ceiling, new Vector3(0f, 0f, -2.2f)),      // 도관 · 빛 띠 밖
+                new InteriorSocket(armZ, Vector3Int.up, ceiling, new Vector3(-2.2f, 0f, 0f)),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var blue = new Color(0.55f, 0.78f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, coreY, 0f), 4f, 1.5f, blue),                // 코어 빛
+                LightSpec.Point(new Vector3(-2.1f, F + 3.2f, -2.1f), 5f, 1.3f, white),      // 코어실
+                LightSpec.Point(new Vector3(2.1f, F + 3.2f, -2.1f), 5f, 1.1f, white),
+                LightSpec.Point(new Vector3(-2.1f, F + 3.2f, 2.1f), 5f, 1.1f, white),
+                LightSpec.Point(new Vector3(5.2f, F + 3.3f, 1.9f), 5f, 1.4f, white),        // +x 팔
+                LightSpec.Point(new Vector3(5.2f, F + 3.3f, -1.9f), 5f, 1.4f, white),
+                LightSpec.Point(new Vector3(9.6f, F + 3.3f, 0f), 5f, 1.4f, white),
+                LightSpec.Point(new Vector3(8f, F + 1.3f, 0f), 2.5f, 0.8f, blue),           // 노드 빛
+                LightSpec.Point(new Vector3(1.9f, F + 3.3f, 5.2f), 5f, 1.4f, white),        // +z 팔
+                LightSpec.Point(new Vector3(-1.9f, F + 3.3f, 5.2f), 5f, 1.4f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.3f, 9.6f), 5f, 1.4f, white),
+                LightSpec.Point(new Vector3(0f, F + 1.3f, 8f), 2.5f, 0.8f, blue),
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoShield_RingA", new Vector3(0f, coreY, 0f), new Vector3(0f, 0.8829f, 0.4695f), 40f),   // 고리 자체 축 (sm_builder RING AXES)
+                new OrbitSpec("INT_EvoShield_RingB", new Vector3(0f, coreY, 0f), new Vector3(0.6428f, 0.766f, 0f), -55f),
+                new OrbitSpec("INT_EvoShield_FlowX", new Vector3(0f, flowY, 0f), Vector3.right, -120f),     // − = +x (노드 쪽)으로 흐름
+                new OrbitSpec("INT_EvoShield_FlowZ", new Vector3(0f, flowY, 0f), new Vector3(0f, 0f, 1f), 120f), // + = +z (노드 쪽)으로 흐름
+            };
+            EvoAccent("ShieldMatrix", "#8FB8FF");
+            // 스폰 = 코어실 −z 문 안쪽 옆에서 코어와 +x 팔을 바라봄
+            Build("EvoShield", "Evolved/MD_Evo_ShieldMatrix", sockets, new Vector3(-1.6f, F, -2.0f), 55f, lights, orbits);
         }
 
         /// <summary>
@@ -2178,6 +2239,7 @@ namespace SpaceStation.Editor
             { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life }, { "EvoCulture", InteriorAmbience.Life },
             { "EvoSolar", InteriorAmbience.Electric }, { "EvoFusion", InteriorAmbience.Heat }, { "EvoHydrogen", InteriorAmbience.Water },
             { "EvoGravity", InteriorAmbience.Life }, { "EvoFarm", InteriorAmbience.Water }, { "EvoMineral", InteriorAmbience.Heat },
+            { "EvoShield", InteriorAmbience.Electric },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
