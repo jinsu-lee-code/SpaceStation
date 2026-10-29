@@ -388,7 +388,9 @@ TAIL = {'rabbit': ((0, 0.10, 0.27), (0, 0.18, 0.27), False), 'cat': ((0, 0.07, 0
         'penguin': ((0, 0.09, 0.22), (0, 0.16, 0.19), False)}.get(KIND, ((0, 0.10, 0.27), (0, 0.17, 0.27), False))
 T0, T1 = Vector(TAIL[0]), Vector(TAIL[1])
 EXTRA['Tail'] = (T0, T1, 'Hips')
-W_tail = W_soft('Tail', 'Hips', T0, (T1 - T0).normalized(), start=0.0, width=0.05) if TAIL[2] else W_part('Tail')
+# 긴 꼬리는 뿌리에서 첫 마디 끝까지(0.12) 천천히 Hips → Tail — 0.05로 짧게 섞었더니 앉은 꼬리를 크게 들 때 뿌리 5cm가 접혀
+#   꼬리가 끊어진 막대처럼 보였음 (사용자 2026-10-29). 넓게 섞으면 돌린 각이 꼬리 앞쪽에 퍼져 휘어 보임
+W_tail = W_soft('Tail', 'Hips', T0, (T1 - T0).normalized(), start=0.0, width=0.12) if TAIL[2] else W_part('Tail')
 if KIND == 'rabbit':
     ellipsoid(Vector((0, 0.13, 0.27)), (0.05, 0.045, 0.05), seg=10, rings=7, mat='FurLight', w=W_tail)
 elif KIND == 'cat':

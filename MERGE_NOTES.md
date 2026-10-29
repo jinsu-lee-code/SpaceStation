@@ -1413,3 +1413,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e2d1c715`에 있음.
+
+## M-89. 앉은 꼬리 — 뒤통수 안 뚫게 · 끊어진 막대처럼 안 보이게 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `f6b61400`과 같은 파일)
+- 사용자 요청 "꼬리가 뒤통수를 뚫음 · 꼬리가 뚝 끊어진 막대처럼 끊어져 보임"
+- `animal_builder.py`: 긴 꼬리(고양이 · 강아지 · 여우) 섞는 폭 0.05 → 0.12 → `SM_Animal_Cat` · `Dog` · `Fox.fbx` · `animal_*.blend` 다시 뽑음 (꼭짓점 수 그대로, 꼬리 가중치만) — 크게 돌려도 뿌리가 접히지 않고 휘어짐
+- `ResidentSeatFit`: 꼬리 본을 실제로 돌려 메시를 구워 잼, 후보 = 드는 각 × 옆으로 기울이는 각, 머리 타원체 · 앉는 판 · 등받이 높이 조건 (없으면 벌점 최소), `Fit(root, seatHeight, scale)`
+- `ResidentMotion.SeatTailRoll` (앉은 동안만 옆으로 기울임) · `InteriorResidents` 크기 넘김, MODELING 7-1
+
+### `narrative` 합칠 때
+- [ ] 동물 FBX는 이진 파일 — 서사판이 동물 모델을 따로 고쳤으면 `animal_builder.py`를 합친 뒤 세 종류를 다시 뽑음. `ResidentMotion.UpdateTail`은 M-88 메모대로.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `f6b61400`에 있음.

@@ -296,7 +296,7 @@ namespace SpaceStation.Interior
             figure.Configure(Label(resident, species.DisplayName, status, config), mood, _eye, _tuning.WatchRange);
             // 다리 · 꼬리가 의자를 뚫지 않게 꼬리를 들고 앞뒤 맞춤 (사용자 2026-10-29) — 꼬리 처짐이 정해진 기분 다음, 앉은 자리 기억(ResidentWander)보다 먼저
             if (spot.Pose == ResidentPose.Sit)
-                ResidentSeatFit.Fit(figure.transform, _tuning.SitDrop);
+                ResidentSeatFit.Fit(figure.transform, _tuning.SitDrop, _tuning.AnimalScale);
             _figures.Add(figure);
             return figure;
         }
