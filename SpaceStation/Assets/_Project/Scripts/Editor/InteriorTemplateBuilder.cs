@@ -91,6 +91,77 @@ namespace SpaceStation.Editor
         private static void BuildEvolvedTemplates()
         {
             BuildEvoResearch();
+            BuildEvoTower();
+        }
+
+        /// <summary>
+        /// 진화 1단계 거주 타워 (2 × 2 칸 × 2층, ht_builder — 사용자 2026-10-29 시안 1 확정): 가운데 트인 아트리움을 유리 엘리베이터가 오르내리는 3개 층 —
+        /// 1층 (F) 공용 라운지 · 식당 / 2층 (F + 4.4) 네 모서리 집 / 3층 (8 + F) 옥상 돔 라운지. 층 이동 = 유리 엘리베이터 탑승
+        /// (<see cref="InteriorLift"/> — 사용자 결정 2026-10-29: 캡슐이 실제로 오르내리고 플레이어도 함께 실림).
+        /// 문 자리 = 칸마다 바깥 두 면 + 아래 칸 바닥 해치 · 위 칸 천장 해치 (칸 중심, 위 칸 천장 = 위 칸 기준 F + 4.4).
+        /// </summary>
+        private static void BuildEvoTower()
+        {
+            const float upper = 8f + F;
+            var sockets = new List<InteriorSocket>();
+            for (int y = 0; y < 2; y++)
+            {
+                for (int x = 0; x < 2; x++)
+                {
+                    for (int z = 0; z < 2; z++)
+                    {
+                        var cell = new Vector3Int(x, y, z);
+                        sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                        sockets.Add(new InteriorSocket(cell, z == 0 ? new Vector3Int(0, 0, -1) : new Vector3Int(0, 0, 1), Socket));
+                        sockets.Add(y == 0 ? new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero) : new InteriorSocket(cell, Vector3Int.up, F + 4.4f, Vector3.zero));
+                    }
+                }
+            }
+            var warm = new Color(1f, 0.96f, 0.9f);
+            var lights = new List<LightSpec>();
+            foreach (var (floor, h) in new[] { (F, 3.5f), (F + 4.4f, 2.8f), (upper, 3.7f) })
+            {
+                foreach (var (x, z) in new[] { (-0.6f, 4f), (8.6f, 4f), (4f, -0.6f), (4f, 8.6f) })
+                    lights.Add(LightSpec.Point(new Vector3(x, floor + h, z), 6.5f, 2.6f, warm));
+            }
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.4f, 8.2f), 4f, 1.2f, new Color(1f, 0.85f, 0.65f)));   // 부엌 섬 매단 조명
+            lights.Add(LightSpec.Point(new Vector3(4f, upper + 4.6f, 4f), 6f, 1.5f, new Color(0.8f, 0.9f, 1f)));   // 옥상 돔
+            EvoAccent("HabitatTower", "#7FD8FF");
+            // 스폰 = 1층 앞(−z) 가운데에서 엘리베이터를 바라봄 (바닥 해치 칸 중심 (0,0) · (8,0) 사이)
+            Build("EvoTower", "Evolved/MD_Evo_HabitatTower", sockets, new Vector3(4f, F, 0.6f), 0f, lights,
+                configure: root =>
+                {
+                    var car = Child(root, "INT_EvoTower_LiftCar");
+                    var carGlass = Child(root, "INT_EvoTower_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[3];
+                    var right = new Transform[3];
+                    for (int k = 0; k < 3; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoTower_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoTower_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoTower_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoTower_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, 4.4f, 8f }, left, right, new Vector3(4f, F + 0.085f, 4f), Vector3.right, 0.85f);
+                });
+        }
+
+        /// <summary>조각 메시 경계 상자 충돌체 (조각은 템플릿 원점에 놓인 채 꼭짓점이 제자리 — 경계 = 템플릿 좌표). pad = 가장자리 여유 (누르기 쉽게).</summary>
+        private static BoxCollider BoxOf(Transform part, float pad)
+        {
+            var bounds = part.GetComponent<MeshFilter>().sharedMesh.bounds;
+            var box = part.gameObject.AddComponent<BoxCollider>();
+            box.center = bounds.center;
+            box.size = bounds.size + Vector3.one * pad;
+            return box;
         }
 
         /// <summary>
@@ -1522,7 +1593,7 @@ namespace SpaceStation.Editor
             { "Sensor", InteriorAmbience.Electric }, { "DataCenter", InteriorAmbience.Electric },
             { "Frame", InteriorAmbience.Hall }, { "Hub", InteriorAmbience.Hall },
             // 진화 모듈
-            { "EvoResearch", InteriorAmbience.Machine },
+            { "EvoResearch", InteriorAmbience.Machine }, { "EvoTower", InteriorAmbience.Life },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,

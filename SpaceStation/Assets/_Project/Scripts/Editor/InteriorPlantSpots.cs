@@ -52,8 +52,21 @@ namespace SpaceStation.Editor
                 new PlantSpot(new Vector3(-2.6f, F + 0.47f, 2.75f), PlantKind.Pot, 0.7f, 75f),
                 new PlantSpot(new Vector3(4.6f, F + 0.47f, 2.75f), PlantKind.Pot, 0.7f, 250f),
             });
+            // 진화 1단계 거주 타워 (Interior_Evo.blend ht_builder PLANTS): 흰 화분 14 — 1층 창가 4 · 엘리베이터 앞 2 / 2층 모서리 집 앞 4 / 3층 창가 4,
+            //   흙 윗면 = 층 바닥 + 0.462. 창 · 벽 가까운 화분은 0.75배
+            var tower = new List<PlantSpot>();
+            int n = 0;
+            foreach (var (x, y, z, s) in new[]
+            {
+                (-2.5f, F + 0.462f, 2.5f, 0.75f), (-2.5f, F + 0.462f, 5.5f, 0.75f), (10.5f, F + 0.462f, 2.5f, 0.75f), (10.5f, F + 0.462f, 5.5f, 0.75f),
+                (2.4f, F + 0.462f, 2.2f, 0.9f), (5.6f, F + 0.462f, 2.2f, 0.9f),
+                (-0.902f, F + 4.862f, 0.441f, 0.85f), (7.559f, F + 4.862f, -0.902f, 0.85f), (0.441f, F + 4.862f, 8.902f, 0.85f), (8.902f, F + 4.862f, 7.559f, 0.85f),
+                (-2.5f, 8f + F + 0.462f, 4f, 0.75f), (10.5f, 8f + F + 0.462f, 4f, 0.75f), (4f, 8f + F + 0.462f, -2.5f, 0.75f), (4f, 8f + F + 0.462f, 10.5f, 0.75f),
+            })
+                tower.Add(new PlantSpot(new Vector3(x, y, z), PlantKind.Pot, s, (n++) * 53f));
+            Set("IT_EvoTower", tower);
             AssetDatabase.SaveAssets();
-            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2");
+            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14");
         }
 
         private static void Set(string name, List<PlantSpot> spots)
