@@ -49,7 +49,6 @@ namespace SpaceStation.Interior
         private readonly List<Renderer> _hidden = new List<Renderer>();
         private readonly Dictionary<ModuleView, Renderer[]> _moduleRenderers = new Dictionary<ModuleView, Renderer[]>();
         private readonly Plane[] _planes = new Plane[6];
-        private readonly HashSet<ModuleInstance> _nearModules = new HashSet<ModuleInstance>();
         private MaterialPropertyBlock _block;
         private ModuleInstance _hideModule;
         private bool _sunWasEnabled;
@@ -284,23 +283,15 @@ namespace SpaceStation.Interior
             if (module != null && (_showOwnExterior == null || !_showOwnExterior(module)))
                 HideModule(module);
             // 카메라를 품은 이웃 모듈: 바깥 모델(칸의 약 92%)이 내부 방(80%)보다 커서, 튜브 끝·문가에서는 바깥 카메라가
-            // 옆 모듈 바깥 모델 속에 들어가 안쪽 면이 창을 덮음 (장갑 격벽 → 채굴 도킹 튜브에서 검은 창)
-            if (_station != null && _station.Grid != null)
+            // 옆 모듈 바깥 모델 속에 들어가 안쪽 면이 창을 덮음 (장갑 격벽 → 채굴 도킹 튜브에서 검은 창).
+            // 카메라 칸을 실제로 차지한 모듈만 본다 — 렌더러 경계 상자만 보면 ㄱ자 모듈(생태 모듈)의 상자가 빈 모서리 칸까지 덮어,
+            // 그 칸에 놓인 옆 모듈(융합 발전소) 방 안에서도 "품었다"로 잡혀 창 밖 생태 모듈이 통째로 사라졌음 (사용자 2026-10-29)
+            if (_station != null && _station.Grid != null
+                && _station.Grid.TryGetModule(GridConfig.WorldToCell(point), out var near) && near != module)
             {
-                _nearModules.Clear();
-                var center = GridConfig.WorldToCell(point);
-                for (int x = -1; x <= 1; x++)
-                for (int y = -1; y <= 1; y++)
-                for (int z = -1; z <= 1; z++)
+                var rs = RenderersOf(near);
+                if (rs != null)
                 {
-                    if (_station.Grid.TryGetModule(center + new Vector3Int(x, y, z), out var near) && near != module)
-                        _nearModules.Add(near);
-                }
-                foreach (var near in _nearModules)
-                {
-                    var rs = RenderersOf(near);
-                    if (rs == null)
-                        continue;
                     foreach (var r in rs)
                     {
                         if (r == null)

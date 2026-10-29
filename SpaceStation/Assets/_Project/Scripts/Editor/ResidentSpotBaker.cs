@@ -60,6 +60,7 @@ namespace SpaceStation.Editor
             { "EvoWelfare", new[] { ResidentTrait.Scientist } },    // 복지 센터 = 의무실 (연구원) + 휴게실 (쉬는 방 — LeisureRooms)
             { "EvoCulture", new[] { ResidentTrait.Scientist } },    // 문화 센터 = 학교 (연구원 = 선생님) + 휴게실 (쉬는 방)
             { "EvoSolar", new[] { ResidentTrait.Technician } },     // 태양광 어레이 = 태양광 ×4 (기술자)
+            { "EvoFusion", new[] { ResidentTrait.Scientist } },     // 융합 발전소 = 핵융합로 (연구원) + 물 재활용기
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -93,7 +94,28 @@ namespace SpaceStation.Editor
             { "EvoWelfare", EvoWelfareSpots },
             { "EvoCulture", EvoCultureSpots },
             { "EvoSolar", EvoSolarSpots },
+            { "EvoFusion", EvoFusionSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 융합 발전소 (fs_builder): 연구원 — 제어대 의자 셋 (창 쪽 화면을 봄 — 앉아서 일함) · 냉각수 펌프 앞 둘 · 자석 전원 장 앞 둘 ·
+        /// 남는 물 탱크 앞 · 구체와 융합로 사이 가운데 둘 (융합로를 봄). 사용자 2026-10-29 "길을 지나다닐 수가 없네": 주민은 충돌체가 있어
+        /// 융합로 옆 길 (폭 1.3m) · 구체 옆 길에는 자리를 두지 않음. 모서리 정수 필터는 문 자리 사이라 자리 없음.
+        /// </summary>
+        private static List<ResidentSpot> EvoFusionSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (float x in new[] { 4.05f, 4.9f, 5.75f })
+                list.Add(new ResidentSpot(new Vector3(x, Floor + 0.45f, -1.85f), 180f, ResidentPose.Sit, work: true));
+            list.Add(new ResidentSpot(new Vector3(4.25f, Floor, 1.75f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(5.6f, Floor, 1.75f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(10.45f, Floor, -2.05f), 180f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(11.8f, Floor, -2.05f), 180f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(10.4f, Floor, 1.5f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(5.15f, Floor, 0f), 90f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(10.85f, Floor, -0.45f), Mathf.Atan2(8f - 10.85f, 0.45f) * Mathf.Rad2Deg, ResidentPose.Work, work: true));   // 물 탱크 앞 사람과 1.4m 띄움
+            return list;
+        }
 
         /// <summary>
         /// 진화 1단계 태양광 어레이 (sa_builder): 기술자 — 관제석 의자 셋 (곡면 책상 바깥, 추적 가대를 봄 — 앉아서 일함) ·
