@@ -1304,10 +1304,13 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ddfdfb47717cf7b478335511da6f70fe, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4577870865213292446}
+      addedObject: {fileID: 4076062453382092442}
     - targetCorrespondingSourceObject: {fileID: 3522842396455612197, guid: ddfdfb47717cf7b478335511da6f70fe, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7589238234879545286}
+    - targetCorrespondingSourceObject: {fileID: 2269745594503352022, guid: ddfdfb47717cf7b478335511da6f70fe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6446975166070719796}
   m_SourcePrefab: {fileID: 100100000, guid: ddfdfb47717cf7b478335511da6f70fe, type: 3}
 --- !u!4 &27284724477481037 stripped
 Transform:
@@ -1389,6 +1392,27 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -2054578788196372013, guid: ddfdfb47717cf7b478335511da6f70fe, type: 3}
   m_PrefabInstance: {fileID: 6770524745748960863}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &4794783248263321737 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2269745594503352022, guid: ddfdfb47717cf7b478335511da6f70fe, type: 3}
+  m_PrefabInstance: {fileID: 6770524745748960863}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6446975166070719796
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4794783248263321737}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b04dae28a5c3c449a48b06af48eb9a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Building.RainShelterFx
+  _module: {fileID: 6520936416491778484}
+  _center: {x: 1, y: 1}
+  _anglesDeg: {x: 30, y: 150, z: 270}
+  _halfWidth: 0.06
 --- !u!4 &4931973837266516076 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -7384680244771181005, guid: ddfdfb47717cf7b478335511da6f70fe, type: 3}
@@ -1414,7 +1438,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: ddfdfb47717cf7b478335511da6f70fe, type: 3}
   m_PrefabInstance: {fileID: 6770524745748960863}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &4577870865213292446
+--- !u!114 &4076062453382092442
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

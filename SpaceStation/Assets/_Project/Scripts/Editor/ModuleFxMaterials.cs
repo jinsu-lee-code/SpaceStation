@@ -382,6 +382,7 @@ namespace SpaceStation.Editor
         {
             m.SetVector("_Flow", new Vector4(14f, 0.9f, 0.02f, 0.5f));
             m.SetVector("_Ripple", new Vector4(70f, 1.0f, 0.1f, 0.18f)); // 해를 받으면 윤슬이 빽빽한 별밭처럼 보여 흔들림 · 윤슬을 옅게
+            m.SetVector("_Ripple2", new Vector4(1.4f, 0f, 0f, 0f));      // 해 되비침 밝기 상한 (없으면 수백까지 튀어 블룸으로 번쩍임)
             m.SetVector("_GlintParams", new Vector4(1.2f, 0.35f, 24f, 0.7f));
             m.SetFloat(toggle, 1f);
             m.EnableKeyword(keyword);
@@ -415,6 +416,7 @@ namespace SpaceStation.Editor
             m.SetFloat("_Floor", floor);
             m.SetVector("_Beat", beat);
             m.SetVector("_Spark", spark);
+            m.EnableKeyword("_EMISSION"); // ModuleView가 발광 재질로 알아보고 비활성 · 파손 때 어둡게 (셰이더는 안 씀)
             m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);

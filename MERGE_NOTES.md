@@ -1241,3 +1241,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e6268f3e`에 있음.
+
+## M-77. 3 · 4단계 플레이 피드백 — 빗줄기 아치 가림 · 물 해 되비침 번쩍임 · 해마 배 뒤쪽 호 왕복 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `e8438277`과 같은 파일)
+- 빗줄기가 바이오스피어 진주 아치를 뚫음 → 새 런타임 `Building/RainShelterFx` (빗줄기 재질을 모듈 것으로 복제해 모델 좌표 `_WorldToModule`을 넘김) + `SpaceStation/Rain` `_Shelter` (가운데에서 본 각이 아치 방향 띠에 걸친 빗줄기만 감춤). StationArtBuilder가 `Fx_BiosphereClouds`에 배선
+- 궤도 항만 화면 번쩍임 = ④ 물 잔물결이 해를 거울처럼 되비춰 HDR 밝기 최대 470 → 블룸 → `Glass` `_FLOW_POOL`에 최종 밝기 상한 `_Ripple2.x` (1.4, 물 재질만 이 변형). `PulseGlow`에 쓰지 않는 `_EMISSION` 키워드 (ModuleView가 발광 재질로 알아보고 비활성 · 파손 때 어둡게)
+- 해마 가리비 배가 해변을 지남 (사용자 선택 "뒤쪽 호 왕복") → 새 런타임 `Building/BoatShuttleFx` + StationArtBuilder `WirePortBoats`: 배 부품을 네 척 메시로 나눠 `Art/Models/Modules/Generated/OrbitalPortBoat0~3.asset` (다시 만들어도 같은 파일 · GUID) + `PortBoat_0~3`, 원래 `SpinDish_OrbitalPortBoats`는 꺼 두고 회전 속도 표에서 뺌. 갈 수 있는 각은 프리팹 만들 때 해변 다각형 · 높은 지형 검사로 고름 (지금 334° ~ 575°)
+- Recipes/Setup 산출물: 바이오스피어 · 궤도 항만 프리팹 (다른 진화 프리팹 · Main 씬은 fileID만 바뀌어 안 넣음), 물 · 흐르는 빛 재질
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (Glass · Rain 셰이더, StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e8438277`에 있음.
