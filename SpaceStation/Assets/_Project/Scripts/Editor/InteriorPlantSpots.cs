@@ -123,8 +123,15 @@ namespace SpaceStation.Editor
             gravity.Add(new PlantSpot(new Vector3(5.6f, F + 0.385f, 34.2f), PlantKind.Pot, 0.7f, 40f));
             gravity.Add(new PlantSpot(new Vector3(10.4f, F + 0.385f, 34.2f), PlantKind.Pot, 0.7f, 190f));
             Set("IT_EvoGravity", gravity);
+            // 진화 1단계 수직 농장 (vf_builder PLANTS): 1층 엘리베이터 뒤 양옆 화분 둘 · 2층 하나 (흙 층 바닥 + 0.415, 0.7배)
+            Set("IT_EvoFarm", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-1.9f, F + 0.415f, 2.25f), PlantKind.Pot, 0.7f, 30f),
+                new PlantSpot(new Vector3(-1.9f, F + 0.415f, -2.25f), PlantKind.Pot, 0.7f, 150f),
+                new PlantSpot(new Vector3(-1.9f, 8f + F + 0.415f, 2.25f), PlantKind.Pot, 0.7f, 260f),
+            });
             AssetDatabase.SaveAssets();
-            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3 · 문화 센터 2 · 태양광 어레이 6 · 수소 플랜트 2 · 중력 거주구 14");
+            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3 · 문화 센터 2 · 태양광 어레이 6 · 수소 플랜트 2 · 중력 거주구 14 · 수직 농장 3");
         }
 
         private static void Set(string name, List<PlantSpot> spots)

@@ -62,6 +62,7 @@ namespace SpaceStation.Editor
             { "EvoSolar", new[] { ResidentTrait.Technician } },     // 태양광 어레이 = 태양광 ×4 (기술자)
             { "EvoFusion", new[] { ResidentTrait.Scientist } },     // 융합 발전소 = 핵융합로 (연구원) + 물 재활용기
             { "EvoHydrogen", new[] { ResidentTrait.Technician, ResidentTrait.Gardener } },   // 수소 플랜트 = 연료전지 (기술자) + 물 재활용기 · 산소 (정원사)
+            { "EvoFarm", new[] { ResidentTrait.Gardener } },        // 수직 농장 = 수경 농장 ×2 + 단백질 배양조 (모두 정원사)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -98,7 +99,29 @@ namespace SpaceStation.Editor
             { "EvoFusion", EvoFusionSpots },
             { "EvoHydrogen", EvoHydrogenSpots },
             { "EvoGravity", EvoGravitySpots },
+            { "EvoFarm", EvoFarmSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 수직 농장 (vf_builder SEATS): 정원사 — 1층 3단 선반 양쪽 여섯 (선반을 봄, 창가 길 안쪽 가장자리) ·
+        /// 2층 창가 모종 선반 앞 넷 (기둥 받침과 사이 1.3m 남김) · 꼭대기 관제 책상 의자 (앉아서 일함).
+        /// </summary>
+        private static List<ResidentSpot> EvoFarmSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (float x in new[] { 3.8f, 6.15f, 8.5f })
+            {
+                list.Add(new ResidentSpot(new Vector3(x, Floor, -1.25f), 0f, ResidentPose.Work, work: true));
+                list.Add(new ResidentSpot(new Vector3(x, Floor, 1.25f), 180f, ResidentPose.Work, work: true));
+            }
+            foreach (float x in new[] { 4.2f, 7.4f })
+            {
+                list.Add(new ResidentSpot(new Vector3(x, 8f + Floor, -2.1f), 180f, ResidentPose.Work, work: true));
+                list.Add(new ResidentSpot(new Vector3(x, 8f + Floor, 2.1f), 0f, ResidentPose.Work, work: true));
+            }
+            list.Add(new ResidentSpot(new Vector3(-1.95f, 16f + Floor + 0.5f, -1.95f), -135f, ResidentPose.Sit, work: true));
+            return list;
+        }
 
         /// <summary>
         /// 진화 1단계 중력 거주구 (gh_builder SEATS): 사는 사람 · 쉬러 온 사람 (회전 링 = 쉬는 방) — 탑 둘레 벤치 일곱 (바깥을 봄) ·
