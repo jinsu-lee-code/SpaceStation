@@ -26,10 +26,12 @@ namespace SpaceStation.Editor
         /// 모델마다 다른 연출 재질 {모델 key: {FBX 슬롯: ModuleFxMaterials 이름}} (사용자 2026-10-27 플레이 점검):
         /// 실드 돔 오로라 커튼 = 일렁이는 셰이더 (방사선 차폐벽 · 환적장 은하수 띠는 같은 FX_AuroraViolet이라도 그대로),
         /// 융합 발전소 · 융합 플랜트 = 흐르는 플라즈마 (기본 핵융합로는 그대로), 궤도 미러 빛줄기 = 숨기고 LightBeamFx가 빛기둥으로 그림.
+        /// 궤도 방어망 오로라 보호막 커튼 셋 = 같은 셰이더의 UV 모드 (3 · 4단계 반영 ② 2026-10-29).
         /// </summary>
         private static readonly Dictionary<string, Dictionary<string, string>> FxOverrides = new Dictionary<string, Dictionary<string, string>>
         {
             { "Evo_ShieldDome", new Dictionary<string, string> { { "FX_AuroraGreen", "AuroraCurtainGreen" }, { "FX_AuroraViolet", "AuroraCurtainViolet" } } },
+            { "Evo_OrbitalDefense", new Dictionary<string, string> { { "FX_AuroraGreen", "AuroraCurtainGreenUV" }, { "FX_AuroraViolet", "AuroraCurtainVioletUV" } } },
             { "Evo_FusionStation", new Dictionary<string, string> { { "FX_FusionPlasma", "PlasmaBlue" } } },
             { "Evo_FusionPlant", new Dictionary<string, string> { { "FX_FusionPlasma", "PlasmaViolet" } } },
             { "Evo_OrbitalMirror", new Dictionary<string, string> { { "FX_LightBeam", "Hidden" } } },

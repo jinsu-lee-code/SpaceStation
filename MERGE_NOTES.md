@@ -1199,3 +1199,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `3f3a05f8`에 있음 (Unity 미리보기 렌더 8종 확인. EditMode는 MCP에서 실행이 막혀 아직 — Test Runner에서 직접).
+
+## M-74. 3 · 4단계 Unity 반영 ② — 오로라 커튼 일렁임 (궤도 방어망 UV 모드 + 실드 돔) (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `34e5a4ba`와 같은 파일)
+- 셰이더 `SpaceStation/AuroraCurtain` 보강: 커튼 면에 수직으로 길이를 따라 흐르는 너울 셋 (아랫단은 조금 · 위로 갈수록 크게) + 주름이 옆으로 미끄러짐 + 위끝 오르내림. 실드 돔은 지금처럼 둘레 모드 (UV 없는 FX 메시, 등대 중심 기준 각 · 높이)
+- **UV 모드** (`_UVMODE` 토글, 긴 커튼): u = 길이 · v = 아랫단 → 위, 커튼 면 수직 = 접선 (u 방향) × 위 — 얇은 판의 앞 · 뒷면 법선은 서로 반대라 법선으로 밀면 판이 벌어짐. `_VStart` = 그 겹이 시작하는 v (궤도 방어망 위쪽 보라 겹 0.35): 밝기 · 색은 겹 기준, 너울은 커튼 전체 기준 (두 겹이 같이 움직임)
+- `ModuleFxMaterials`: `AuroraCurtainGreenUV` · `AuroraCurtainVioletUV` (세기 0.48) / `StationArtBuilder.FxOverrides`: `Evo_OrbitalDefense` FX_AuroraGreen · FX_AuroraViolet → UV 재질 (`SM_Evo_OrbitalDefense.fbx.meta` 리맵). 기존 실드 돔 재질 둘은 새 속성 기본값만 더해짐
+- Recipes/Setup을 다시 돌리면 진화 프리팹 4종 (화물 환적장 · 요새 포대 · 그리드 허브 · 궤도 미러) · Main 씬 RecipePanel의 fileID만 새로 매겨짐 (내용 같음 — main에는 안 넣음)
+- 확인: 미리보기에서 시간을 0 · 1.5 · 3 · 4.5초 민 프레임 넷으로 두 모듈 커튼 모양이 바뀜. 새 셰이더 변형의 첫 렌더는 비동기 컴파일로 안 보일 수 있음 (`ShaderUtil.allowAsyncCompilation = false`)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (ModuleFxMaterials · StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `34e5a4ba`에 있음.
