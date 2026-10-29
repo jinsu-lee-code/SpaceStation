@@ -65,7 +65,7 @@ namespace SpaceStation.Editor
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity" };
 
         /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
         /// 여객 도킹 포트 안내 직원).</summary>
@@ -97,7 +97,54 @@ namespace SpaceStation.Editor
             { "EvoSolar", EvoSolarSpots },
             { "EvoFusion", EvoFusionSpots },
             { "EvoHydrogen", EvoHydrogenSpots },
+            { "EvoGravity", EvoGravitySpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 중력 거주구 (gh_builder SEATS): 사는 사람 · 쉬러 온 사람 (회전 링 = 쉬는 방) — 탑 둘레 벤치 일곱 (바깥을 봄) ·
+        /// 원형 통로 창가 벤치 열여섯 (창을 봄) · 골목 집 앞 이웃 넷 (집을 봄) · 둥근 탁자 의자 넷 (탁자를 봄) · 전망실 창가 둘 (바깥을 봄 — 탑 둘레 길 1.5m 남김).
+        /// 곡면 벤치 · 둥근 탁자는 찾아낸 자리로 잘 안 잡혀 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> EvoGravitySpots()
+        {
+            var c = new Vector3(8f, 0f, 8f);
+            var list = new List<ResidentSpot>();
+            void Ring(float r, float deg, float y, ResidentPose pose)
+            {
+                float a = deg * Mathf.Deg2Rad;
+                var d = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                list.Add(new ResidentSpot(c + d * r + Vector3.up * y, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg, pose));
+            }
+            foreach (var (a0, a1) in new[] { (-40f, 26f), (34f, 106f), (114f, 220f) })
+            {
+                int n = a1 - a0 < 80f ? 2 : 3;
+                for (int j = 0; j < n; j++)
+                    Ring(1.8f, a0 + (a1 - a0) * (j + 0.5f) / n, Floor + 0.45f, ResidentPose.Sit);
+            }
+            for (int q = 0; q < 4; q++)
+            {
+                foreach (var (b0, b1) in new[] { (16f, 37f), (53f, 74f) })
+                {
+                    foreach (float t in new[] { 0.3f, 0.7f })
+                        Ring(6.93f, q * 90f + b0 + (b1 - b0) * t, Floor + 0.45f, ResidentPose.Sit);
+                }
+            }
+            foreach (float z in new[] { 26.95f, 29.05f })
+            {
+                list.Add(new ResidentSpot(new Vector3(6.75f, Floor, z), -90f, ResidentPose.Stand));
+                list.Add(new ResidentSpot(new Vector3(9.25f, Floor, z), 90f, ResidentPose.Stand));
+            }
+            var table = new Vector3(8f, 0f, 21f);
+            foreach (float deg in new[] { 45f, 135f, 225f, 315f })
+            {
+                float a = deg * Mathf.Deg2Rad;
+                var p = new Vector3(table.x + Mathf.Cos(a) * 0.95f, Floor + 0.45f, table.z + Mathf.Sin(a) * 0.95f);
+                list.Add(new ResidentSpot(p, Mathf.Atan2(table.x - p.x, table.z - p.z) * Mathf.Rad2Deg, ResidentPose.Sit));
+            }
+            foreach (float deg in new[] { 200f, 340f })
+                Ring(3.0f, deg, Floor + 2.9f, ResidentPose.Stand);   // 전망실 (엘리베이터 문 270° · 망원경 90°를 비킴)
+            return list;
+        }
 
         /// <summary>
         /// 진화 1단계 수소 플랜트 (hp_builder): 기술자 · 정원사 — 전기분해조 대각선 둘 (통을 봄) · 연료전지 더미 양옆 둘 (빛 고리 자리 x 8.15를 비킴) ·

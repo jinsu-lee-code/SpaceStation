@@ -1484,3 +1484,19 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `a38b5007`에 있음.
+
+---
+
+## M-94. 중력 거주구 내부 — 엘리베이터 탑 · 지붕 위 전망실 · 망원경 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `fcdb69d3`과 같은 파일)
+- 중력 거주구 내부 `IT_EvoGravity` · `PF_Interior_EvoGravity` · `SM_Interior_EvoGravity.fbx` (Blender `Interior_Evo.blend` 텍스트 `gh_builder`): 3 × 3 + 꼬리 2칸 — 가운데 유리 엘리베이터 탑 (`InteriorLift`, 1층 ↔ 2층 F + 2.9) · 허브 (탑 둘레 벤치 · 유리 벽 · 도는 미니 링 + 바퀴살 `INT_EvoGravity_Spokes`) · 원형 통로 (창가 벤치 · 나무 화단) · 꼬리 골목 (작은 집 넷 · 둥근 탁자). 2층 = 천장을 뚫고 솟은 둥근 전망실, 낮은 턱 위 360° 바깥 창 (`INT_EvoGravity_Lookout`) — 사용자 "2층은 아예 돌출되어 나와서 자유롭게 둘러보게"
+- 새 런타임 `Interior/InteriorLookoutWindow.cs` (전망실 창 표시 — `Lift` 내부 m) + **공통 코드 고침** `Interior/InteriorExteriorView`: 전망실 창은 같은 방의 다른 창과 따로 묶어 자기 모듈 바깥 모델도 보이게 하고 바깥 카메라를 `Lift`만큼 들어 올려 그림 (실내가 바깥 모델보다 낮아 그대로면 카메라가 바깥 탑 속). 카메라가 그 창 경계 (아래 1m 여유) 안일 때만 그리고 그동안 같은 방의 다른 창은 건너뜀. 새 `RenderLookout` (주어진 자리 · 방향 · 시야각으로 target에 바로) · `Suspended`. 전망실 창이 없는 방은 동작 그대로
+- 새 런타임 `Interior/InteriorTelescope.cs`: 망원경 머리를 보고 F → 둥근 시야 화면 (마우스 돌려 보기 · 휠 배율 x2.5 ~ x10 · F / ESC / 오른쪽 클릭 그만 보기, ESC는 내부 나가기보다 먼저 — 실행 순서 −320), 경통이 시선 따라 돎 — 사용자 "망원경으로 실제로 둘러보는 상호작용"
+- `InteriorTemplateBuilder.BuildEvoGravity` (문 자리 26 — 가운데 칸 위 해치는 전망실 지붕, 조명 17, 환경음 생활, `configure`로 엘리베이터 · 전망실 창 · 망원경 연결), `ResidentSpotBaker` 자리 33 + 쉬는 방 (`LeisureRooms`에 EvoGravity), `InteriorPlantSpots` 14, 강조색 `M_Accent_Evo_GravityHabitat` · `M_Paint_Evo_GravityHabitat`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (지붕 위로 솟은 전망실)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (서사판이 `InteriorExteriorView`를 고쳤으면 Group · LateUpdate · SyncPose 블록을 합침). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `fcdb69d3`에 있음.

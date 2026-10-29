@@ -108,8 +108,23 @@ namespace SpaceStation.Editor
                 new PlantSpot(new Vector3(-2.3f, F + 0.462f, 10.4f), PlantKind.Pot, 0.7f, 50f),
                 new PlantSpot(new Vector3(2.3f, F + 0.462f, 10.4f), PlantKind.Pot, 0.7f, 210f),
             });
+            // 진화 1단계 중력 거주구 (gh_builder PLANTS): 허브 대각선 화분 넷 (반지름 4.3, 흙 F + 0.385, 0.7배) · 원형 통로 대각선 나무 화단 넷 (반지름 7.65, 흙 F + 0.475) ·
+            //   골목 집 문 앞 작은 화분 넷 (0.55배) · 골목 끝 화분 둘
+            var gravity = new List<PlantSpot>();
+            n = 0;
+            foreach (float deg in new[] { 45f, 135f, 225f, 315f })
+            {
+                float a = deg * Mathf.Deg2Rad;
+                gravity.Add(new PlantSpot(new Vector3(8f + 4.3f * Mathf.Cos(a), F + 0.385f, 8f + 4.3f * Mathf.Sin(a)), PlantKind.Pot, 0.7f, (n++) * 71f));
+                gravity.Add(new PlantSpot(new Vector3(8f + 7.65f * Mathf.Cos(a), F + 0.475f, 8f + 7.65f * Mathf.Sin(a)), PlantKind.Tree, 0.95f, (n++) * 71f));
+            }
+            foreach (var (x, z) in new[] { (6.69f, 27.78f), (9.31f, 26.12f), (6.69f, 29.88f), (9.31f, 28.22f) })
+                gravity.Add(new PlantSpot(new Vector3(x, F + 0.385f, z), PlantKind.Pot, 0.55f, (n++) * 71f));
+            gravity.Add(new PlantSpot(new Vector3(5.6f, F + 0.385f, 34.2f), PlantKind.Pot, 0.7f, 40f));
+            gravity.Add(new PlantSpot(new Vector3(10.4f, F + 0.385f, 34.2f), PlantKind.Pot, 0.7f, 190f));
+            Set("IT_EvoGravity", gravity);
             AssetDatabase.SaveAssets();
-            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3 · 문화 센터 2 · 태양광 어레이 6 · 수소 플랜트 2");
+            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3 · 문화 센터 2 · 태양광 어레이 6 · 수소 플랜트 2 · 중력 거주구 14");
         }
 
         private static void Set(string name, List<PlantSpot> spots)
