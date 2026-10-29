@@ -1500,3 +1500,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `fcdb69d3`에 있음.
+
+---
+
+## M-95. 중력 거주구 엘리베이터에 못 들어가던 것 고침 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `b51c5c78`과 같은 파일)
+- `SM_Interior_EvoGravity.fbx` · `PF_Interior_EvoGravity` (Blender `gh_builder`): 샤프트를 한 바퀴 두른 허리 높이 색 고리가 1층 엘리베이터 문 자리를 가로질러 막았음 (사용자 "엘리베이터에 들어갈 수가 없는데 · 문이 닫혀 있어") → 문 자리를 비운 부채꼴 띠
+- MODELING 7-11: 걷기 검사는 문 앞에서 멈추지 말고 안쪽까지 · 두르는 고리는 문 자리를 비운 부채꼴로
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `b51c5c78`에 있음.
