@@ -96,6 +96,58 @@ namespace SpaceStation.Editor
             BuildEvoPowerBank();
             BuildEvoWelfare();
             BuildEvoCulture();
+            BuildEvoSolar();
+        }
+
+        /// <summary>
+        /// 진화 1단계 태양광 어레이 (2 × 2칸, sa_builder — 사용자 2026-10-29 시안 1 확정 "실제 방향에 맞춰주고 옮겨줘"): 가운데 추적 가대 —
+        /// 바닥 구동부 (모터 넷이 문 금색 톱니 원판) 위 흰 기둥이 천장 우물 유리 고리를 지나 머리까지, 머리 가로축 둘에 패널 줄 (PanelA · PanelB).
+        /// <see cref="InteriorSunTracker"/>가 바깥 패널처럼 실제 해 쪽으로 돌리고 기울임 (Mast = 해 방위로 돎, 패널 줄 = 축마다 최대 38°).
+        /// 둘레 = 관제석 (−z: 기둥을 보는 곡면 책상 · 의자 셋) · 패널 정비대 (+z: 예비 패널 · 로봇 팔 · 공구 수레) · 변환 장치 (+x: 창 아래 장 둘) ·
+        /// 해 추적 홀로 탁자 (−x: INT_EvoSolar_Holo가 돎) + 모서리 전력 기둥 넷 · 화분 여섯.
+        /// 문 자리 = 칸마다 바깥 두 면, 바닥 해치 = 칸 중심, 위 연결점 없음 (패널 자리, 천장 F + 4.0).
+        /// </summary>
+        private static void BuildEvoSolar()
+        {
+            const float pivotY = F + 4.62f; // sa_builder PIVOT_Y
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                for (int z = 0; z < 2; z++)
+                {
+                    var cell = new Vector3Int(x, 0, z);
+                    sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                    sockets.Add(new InteriorSocket(cell, z == 0 ? new Vector3Int(0, 0, -1) : new Vector3Int(0, 0, 1), Socket));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                }
+            }
+            var white = new Color(1f, 0.97f, 0.92f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(4f, F + 2.85f, -1.6f), 6.5f, 2.2f, white),    // 관제석
+                LightSpec.Point(new Vector3(4f, F + 2.85f, 9.6f), 6.5f, 2.2f, white),     // 정비대
+                LightSpec.Point(new Vector3(-1.6f, F + 2.85f, 4f), 6f, 2.0f, white),      // 홀로 탁자
+                LightSpec.Point(new Vector3(9.6f, F + 2.85f, 4f), 6f, 2.0f, white),       // 변환 장치
+                LightSpec.Point(new Vector3(4f, F + 2.4f, 2.5f), 4f, 1.0f, new Color(1f, 0.9f, 0.7f)),   // 구동부 · 기둥 (앞뒤)
+                LightSpec.Point(new Vector3(4f, F + 2.4f, 5.5f), 4f, 1.0f, new Color(1f, 0.9f, 0.7f)),
+                LightSpec.Point(new Vector3(4f, F + 4.3f, 4f), 2.6f, 0.6f, new Color(0.85f, 0.92f, 1f)), // 우물 속 패널 아랫면
+                LightSpec.Point(new Vector3(-0.6f, F + 1.4f, 4f), 1.5f, 0.3f, new Color(0.6f, 0.85f, 1f)), // 홀로 빛
+            };
+            foreach (var (x, z) in new[] { (-1.6f, -1.6f), (9.6f, -1.6f), (-1.6f, 9.6f), (9.6f, 9.6f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.6f, z), 4f, 1.0f, white));            // 네 모서리 (전력 기둥)
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoSolar_Holo", new Vector3(-0.6f, 0f, 4f), Vector3.up, 20f),   // 해 구슬을 따라 도는 작은 어레이 (홀로 = 연출)
+            };
+            EvoAccent("SolarArray", "#FFD86B");
+            // 스폰 = +x 변환 장치 앞에서 추적 가대를 바라봄 (해치 (8, 0) · (8, 8) 사이)
+            Build("EvoSolar", "Evolved/MD_Evo_SolarArray", sockets, new Vector3(9.3f, F, 4f), -90f, lights, orbits, configure: root =>
+            {
+                var t = root.transform;
+                root.AddComponent<InteriorSunTracker>().Configure(t.Find("INT_EvoSolar_Mast"),
+                    new[] { t.Find("INT_EvoSolar_PanelA"), t.Find("INT_EvoSolar_PanelB") },
+                    new Vector3(4f, 0f, 4f), new[] { new Vector3(4f, pivotY, 4.85f), new Vector3(4f, pivotY, 3.15f) });
+            });
         }
 
         /// <summary>
@@ -1789,6 +1841,7 @@ namespace SpaceStation.Editor
             // 진화 모듈
             { "EvoResearch", InteriorAmbience.Machine }, { "EvoTower", InteriorAmbience.Life }, { "EvoEco", InteriorAmbience.Water },
             { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life }, { "EvoCulture", InteriorAmbience.Life },
+            { "EvoSolar", InteriorAmbience.Electric },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,

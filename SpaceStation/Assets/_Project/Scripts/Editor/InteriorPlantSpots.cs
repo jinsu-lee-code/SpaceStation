@@ -91,8 +91,19 @@ namespace SpaceStation.Editor
                 new PlantSpot(new Vector3(-2.7f, F + 0.462f, 2.15f), PlantKind.Pot, 0.7f, 40f),
                 new PlantSpot(new Vector3(-2.7f, F + 0.462f, 5.85f), PlantKind.Pot, 0.7f, 190f),
             });
+            // 진화 1단계 태양광 어레이 (sa_builder POTS): 천창 아래 대각선 화분 넷 (반지름 2.65, 45° + 90k) + −x 창가 화분 둘, 흙 F + 0.462, 0.7배
+            var solar = new List<PlantSpot>();
+            n = 0;
+            foreach (float deg in new[] { 45f, 135f, 225f, 315f })
+            {
+                float a = deg * Mathf.Deg2Rad;
+                solar.Add(new PlantSpot(new Vector3(4f + 2.65f * Mathf.Cos(a), F + 0.462f, 4f + 2.65f * Mathf.Sin(a)), PlantKind.Pot, 0.7f, (n++) * 71f));
+            }
+            solar.Add(new PlantSpot(new Vector3(-2.7f, F + 0.462f, 2.15f), PlantKind.Pot, 0.7f, 30f));
+            solar.Add(new PlantSpot(new Vector3(-2.7f, F + 0.462f, 5.85f), PlantKind.Pot, 0.7f, 160f));
+            Set("IT_EvoSolar", solar);
             AssetDatabase.SaveAssets();
-            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3 · 문화 센터 2");
+            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3 · 문화 센터 2 · 태양광 어레이 6");
         }
 
         private static void Set(string name, List<PlantSpot> spots)
