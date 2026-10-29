@@ -117,6 +117,43 @@ namespace SpaceStation.Editor
         private const string AccentFolder = "Assets/_Project/Art/Materials/";
         private const string ModuleFolder = "Assets/_Project/Data/Modules/";
 
+        /// <summary>진화 1단계 키트 조각 (Blender Interior_Evo.blend evo1_kit_builder — 기본 조각과 같은 규격, 이름 = 기본 이름 + _Evo1).</summary>
+        public const string EvoKit1Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo1.fbx";
+        private const string RecipeFolder = "Assets/_Project/Data/Recipes";
+
+        /// <summary>단계 키트 FBX의 조각 (없으면 빈 목록). 게임 중 InteriorSpots가 벽 패널 모양을 읽으므로 Read/Write를 켬 (기본 키트와 같음).</summary>
+        private static System.Collections.Generic.Dictionary<string, GameObject> StageParts(string path)
+        {
+            var parts = new System.Collections.Generic.Dictionary<string, GameObject>();
+            if (!(AssetImporter.GetAtPath(path) is ModelImporter importer))
+                return parts;
+            if (!importer.isReadable)
+            {
+                importer.isReadable = true;
+                importer.SaveAndReimport();
+            }
+            foreach (var o in AssetDatabase.LoadAllAssetsAtPath(path))
+            {
+                if (o is GameObject g && g.GetComponent<MeshFilter>() != null)
+                    parts[g.name] = g;
+            }
+            return parts;
+        }
+
+        /// <summary>레시피 단계가 stage인 진화 모듈 (그 단계 키트를 쓰는 방).</summary>
+        private static System.Collections.Generic.List<Data.ModuleData> ModulesOfStage(int stage)
+        {
+            var list = new System.Collections.Generic.List<Data.ModuleData>();
+            foreach (var guid in AssetDatabase.FindAssets("t:RecipeData", new[] { RecipeFolder }))
+            {
+                var r = AssetDatabase.LoadAssetAtPath<Data.RecipeData>(AssetDatabase.GUIDToAssetPath(guid));
+                if (r != null && r.Stage == stage && r.Result != null && !list.Contains(r.Result))
+                    list.Add(r.Result);
+            }
+            list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            return list;
+        }
+
         /// <summary>
         /// 11-2a: FBX 조각(KIT_*)을 키트 에셋으로. 재질 슬롯 이름 → Hull·HullDark = 외부 공용 재질, Light = 천장 조명, Status = 문 상태등,
         /// Accent = 방마다 모듈 강조색(MD_X → M_Accent_X, 없으면 코어색).
@@ -142,9 +179,13 @@ namespace SpaceStation.Editor
             var window = AssetDatabase.LoadAssetAtPath<Material>(WindowPath);
             var defaultAccent = AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Accent_Core.mat");
 
-            Data.InteriorKitPiece Piece(string name)
+            var evoWhite = AssetDatabase.LoadAssetAtPath<Material>(EvoWhitePath);
+            var evoFloor = AssetDatabase.LoadAssetAtPath<Material>(EvoFloorPath);
+            var evoDark = AssetDatabase.LoadAssetAtPath<Material>(EvoDarkPath);
+
+            Data.InteriorKitPiece Piece(string name, System.Collections.Generic.Dictionary<string, GameObject> from = null)
             {
-                if (!parts.TryGetValue(name, out var g))
+                if (!(from ?? parts).TryGetValue(name, out var g))
                 {
                     Debug.LogError($"[InteriorSetup] 키트 조각 없음: {name}");
                     return null;
@@ -163,6 +204,9 @@ namespace SpaceStation.Editor
                         case "Status": mats[i] = status; statusSlot = i; break;
                         case "Accent": mats[i] = defaultAccent; accent = i; break;
                         case "Window": mats[i] = window; break; // 11-8 튜브 현창 유리 (바깥 카메라 화면)
+                        case "EvoWhite": mats[i] = evoWhite; break; // 진화 1단계 키트 (매끈한 흰 세라믹)
+                        case "EvoFloor": mats[i] = evoFloor; break;
+                        case "EvoDark": mats[i] = evoDark; break;
                         default:
                             Debug.LogWarning($"[InteriorSetup] {name}: 모르는 재질 슬롯 '{slot}' → Hull");
                             mats[i] = hull;
@@ -195,6 +239,16 @@ namespace SpaceStation.Editor
                 Piece("KIT_HatchFrame"), Piece("KIT_HatchLid"), modules, accents, defaultAccent);
             kit.EditorSetBalcony(Piece("KIT_Deck"), Piece("KIT_RailBar"), Piece("KIT_RailPost"), Piece("KIT_StairStep"), Piece("KIT_StairPole"));
             kit.EditorSetTube(Piece("KIT_Tube"), Piece("KIT_TubeCollar"), Piece("KIT_TubeWindow"));
+            // 진화 단계별 조각 (사용자 2026-10-29 "1단계 진화 모듈은 매끈한 백색의 벽"): 1단계 = Interior_Evo.blend evo1_kit_builder
+            var stages = new System.Collections.Generic.List<Data.InteriorKitStage>();
+            var evo1 = StageParts(EvoKit1Path);
+            if (evo1.Count > 0)
+            {
+                stages.Add(new Data.InteriorKitStage(1, ModulesOfStage(1),
+                    Piece("KIT_Wall_Evo1", evo1), Piece("KIT_WallDoor_Evo1", evo1), Piece("KIT_DoorLeaf_Evo1", evo1), Piece("KIT_Floor_Evo1", evo1),
+                    Piece("KIT_Ceiling_Evo1", evo1), Piece("KIT_HatchFrame_Evo1", evo1), Piece("KIT_HatchLid_Evo1", evo1)));
+            }
+            kit.EditorSetStages(stages);
             EditorUtility.SetDirty(kit);
             AssetDatabase.SaveAssets();
             Debug.Log($"[InteriorSetup] 키트 {(kit.IsComplete ? "완성" : "불완전")} · 강조색 {modules.Count}종");
