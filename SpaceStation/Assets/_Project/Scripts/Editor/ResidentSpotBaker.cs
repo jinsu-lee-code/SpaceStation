@@ -59,6 +59,7 @@ namespace SpaceStation.Editor
             { "EvoPowerBank", new[] { ResidentTrait.Technician } }, // 축전 뱅크 = 배터리 ×3 (기술자)
             { "EvoWelfare", new[] { ResidentTrait.Scientist } },    // 복지 센터 = 의무실 (연구원) + 휴게실 (쉬는 방 — LeisureRooms)
             { "EvoCulture", new[] { ResidentTrait.Scientist } },    // 문화 센터 = 학교 (연구원 = 선생님) + 휴게실 (쉬는 방)
+            { "EvoSolar", new[] { ResidentTrait.Technician } },     // 태양광 어레이 = 태양광 ×4 (기술자)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -91,7 +92,32 @@ namespace SpaceStation.Editor
             { "EvoPowerBank", EvoPowerBankSpots },
             { "EvoWelfare", EvoWelfareSpots },
             { "EvoCulture", EvoCultureSpots },
+            { "EvoSolar", EvoSolarSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 태양광 어레이 (sa_builder): 기술자 — 관제석 의자 셋 (곡면 책상 바깥, 추적 가대를 봄 — 앉아서 일함) ·
+        /// 변환 장치 장 앞 둘 (창 쪽을 봄) · 패널 정비대 앞 (예비 패널을 봄) · 공구 수레 앞 · 해 추적 홀로 탁자 양쪽 둘.
+        /// 곡면 책상 · 둥근 탁자는 찾아낸 자리로 잘 안 잡혀 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> EvoSolarSpots()
+        {
+            var c = new Vector3(4f, 0f, 4f);
+            var list = new List<ResidentSpot>();
+            foreach (float deg in new[] { 260f, 270f, 280f })
+            {
+                float a = deg * Mathf.Deg2Rad;
+                var p = new Vector3(c.x + Mathf.Cos(a) * 5.6f, Floor + 0.45f, c.z + Mathf.Sin(a) * 5.6f);
+                list.Add(new ResidentSpot(p, Mathf.Atan2(c.x - p.x, c.z - p.z) * Mathf.Rad2Deg, ResidentPose.Sit, work: true));
+            }
+            list.Add(new ResidentSpot(new Vector3(10.15f, Floor, 3.05f), 90f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(10.15f, Floor, 4.95f), 90f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(3.6f, Floor, 8.3f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(2.3f, Floor, 9.0f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(-0.6f, Floor, 3.15f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(-0.6f, Floor, 4.85f), 180f, ResidentPose.Work, work: true));
+            return list;
+        }
 
         /// <summary>
         /// 진화 1단계 문화 센터 (cc_builder): 일하는 자리 = 연구원 (선생님) — 칠판 앞 (칠판을 봄) · 투영기 옆 (투영기를 봄).

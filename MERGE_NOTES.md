@@ -1439,3 +1439,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `65c4f2ee`에 있음.
+
+---
+
+## M-91. 태양광 어레이 내부 — 실제 해를 보는 추적 가대 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `15873532`과 같은 파일)
+- 태양광 어레이 내부 `IT_EvoSolar` · `PF_Interior_EvoSolar` · `SM_Interior_EvoSolar.fbx` (Blender `Interior_Evo.blend` 텍스트 `sa_builder`): 2 × 2칸 — 가운데 추적 가대 (바닥 구동부 · 금색 톱니 · 유리 울타리 → 흰 기둥이 천장 우물 유리 고리를 지나 머리, 머리 가로축 둘에 양면 패널 줄 `INT_EvoSolar_PanelA` · `PanelB`), 관제석 · 패널 정비대 · 변환 장치 · 해 추적 홀로 탁자 (`INT_EvoSolar_Holo`가 돎) · 모서리 전력 기둥 · 화분
+- 새 런타임 `Interior/InteriorSunTracker.cs`: 바깥 `SunFacingPanel`과 같은 규칙으로 머리(`INT_EvoSolar_Mast`)를 해 방위로 돌리고 패널 줄을 해 쪽으로 최대 38° (템플릿 = 모듈 회전을 빼고 계산)
+- `InteriorTemplateBuilder.BuildEvoSolar` (문 자리 12 · 조명 12, `configure`로 추적기 연결), `ResidentSpotBaker` 기술자 9 (관제석은 앉아서 일함), `InteriorPlantSpots` 화분 6, 강조색 `M_Accent_Evo_SolarArray` · `M_Paint_Evo_SolarArray`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (바깥과 같은 방향을 보는 부품)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `15873532`에 있음.
