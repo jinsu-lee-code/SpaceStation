@@ -57,10 +57,11 @@ namespace SpaceStation.Editor
             { "EvoResearch", new[] { ResidentTrait.Scientist } }, // 연구 단지 = 연구소 ×2
             { "EvoEco", new[] { ResidentTrait.Gardener } },       // 생태 모듈 = 농장 · 산소 · 물 재활용 (모두 정원사)
             { "EvoPowerBank", new[] { ResidentTrait.Technician } }, // 축전 뱅크 = 배터리 ×3 (기술자)
+            { "EvoWelfare", new[] { ResidentTrait.Scientist } },    // 복지 센터 = 의무실 (연구원) + 휴게실 (쉬는 방 — LeisureRooms)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare" };
 
         /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
         /// 여객 도킹 포트 안내 직원).</summary>
@@ -87,7 +88,40 @@ namespace SpaceStation.Editor
             { "EvoTower", EvoTowerSpots },
             { "EvoEco", EvoEcoSpots },
             { "EvoPowerBank", EvoPowerBankSpots },
+            { "EvoWelfare", EvoWelfareSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 복지 센터 (wc_builder): 일하는 자리 = 연구원 — 스캔 침대 둘 통로 쪽 둘씩 (침대를 봄).
+        /// 쉬는 자리 (쉬는 방) = 정자 원형 벤치 다섯 (방석 F + 0.45, 바깥 창을 봄) · 여가 날개 소파 넷 (창을 봄) · 끝 모서리 라운지 의자 둘 ·
+        /// 홀로 탁자 둘레 서기 셋. 원형 벤치 · 곡면 의자는 찾아낸 자리로 잘 안 잡혀 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> EvoWelfareSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (float s in new[] { -1f, 1f })
+            {
+                foreach (float x in new[] { 4.5f, 5.75f })
+                    list.Add(new ResidentSpot(new Vector3(x, Floor, s * 0.95f), s > 0f ? 0f : 180f, ResidentPose.Work, work: true));
+            }
+            foreach (float deg in new[] { 150f, 195f, 240f, 285f, 330f })
+            {
+                float a = deg * Mathf.Deg2Rad;
+                var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                list.Add(new ResidentSpot(dir * 1.3f + Vector3.up * (Floor + 0.45f), Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg, ResidentPose.Sit));
+            }
+            foreach (float s in new[] { -1f, 1f })
+            {
+                foreach (float z in new[] { 5.05f, 5.85f })
+                    list.Add(new ResidentSpot(new Vector3(s * 2.05f, Floor + 0.44f, z), s * 90f, ResidentPose.Sit));
+            }
+            list.Add(new ResidentSpot(new Vector3(-1.9f, Floor + 0.42f, 10f), -45f, ResidentPose.Sit));
+            list.Add(new ResidentSpot(new Vector3(1.9f, Floor + 0.42f, 10f), 45f, ResidentPose.Sit));
+            list.Add(new ResidentSpot(new Vector3(0f, Floor, 4.35f), 0f, ResidentPose.Stand));
+            list.Add(new ResidentSpot(new Vector3(0f, Floor, 6.05f), 180f, ResidentPose.Stand));
+            list.Add(new ResidentSpot(new Vector3(-0.85f, Floor, 5.2f), 90f, ResidentPose.Stand));
+            return list;
+        }
 
         /// <summary>
         /// 진화 1단계 축전 뱅크 (pb_builder): 기술자 — 충 · 방전 제어대 둘 (x 4 · 12, 반지름 0.86) 둘레 셋씩 (제어대를 봄, 반지름 1.25) +

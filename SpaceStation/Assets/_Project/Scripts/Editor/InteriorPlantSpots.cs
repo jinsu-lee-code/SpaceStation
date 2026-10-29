@@ -78,8 +78,15 @@ namespace SpaceStation.Editor
             eco.Add(new PlantSpot(new Vector3(-1.95f, F + 0.502f, -1.95f), PlantKind.Tree, 0.8f, 30f));
             eco.Add(new PlantSpot(new Vector3(1.95f, F + 0.502f, -1.95f), PlantKind.Tree, 0.8f, 200f));
             Set("IT_EvoEco", eco);
+            // 진화 1단계 복지 센터 (wc_builder PLANTS): 정자 가운데 둥근 화단 나무 (흙 F + 0.462, 안 테 0.82 > 덤불 0.75) + 여가 날개 이음 쪽 화분 둘 (0.7배)
+            Set("IT_EvoWelfare", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(0f, F + 0.462f, 0f), PlantKind.Tree, 1f, 20f),
+                new PlantSpot(new Vector3(-2.55f, F + 0.462f, 3.85f), PlantKind.Pot, 0.7f, 70f),
+                new PlantSpot(new Vector3(2.55f, F + 0.462f, 3.85f), PlantKind.Pot, 0.7f, 220f),
+            });
             AssetDatabase.SaveAssets();
-            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20");
+            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3");
         }
 
         private static void Set(string name, List<PlantSpot> spots)

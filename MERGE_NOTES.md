@@ -1384,3 +1384,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `a64df445`에 있음.
+
+## M-87. 복지 센터 내부 + 앉은 주민 의자 맞춤 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `841f1385`과 같은 파일)
+- 복지 센터 내부 `IT_EvoWelfare` · `PF_Interior_EvoWelfare` · `SM_Interior_EvoWelfare.fbx` (Blender `Interior_Evo.blend` 텍스트 `wc_builder`): ㄱ자 3칸 — 마음 쉼터 (연결점 없는 두 면 = 둥근 유리 벽, 나무 화단 · 원형 벤치 · 도는 빛 고리 모빌 `INT_EvoWelfare_Halo`) + 몸 돌봄 (스캔 고리가 도는 침대 둘 `GantryA` · `GantryB`) + 여가 (소파 · 라운지 의자 · 홀로 탁자 위 빛 픽셀 `Holo` · 빛 픽셀 천장)
+- `InteriorTemplateBuilder.BuildEvoWelfare` (문 자리 = 연결점 있는 면만 12), `ResidentSpotBaker` 연구원 자리 4 + 쉬는 방 (`LeisureRooms`에 EvoWelfare, 쉬는 자리 14), `InteriorPlantSpots` 나무 1 · 화분 2, 강조색 `M_Accent_Evo_WelfareCenter` · `M_Paint_Evo_WelfareCenter`, `InteriorKit.asset` 강조색 목록
+- `evo_kit.rounded`가 꼭짓점마다 반지름 목록을 받음 (기존 템플릿 결과 그대로)
+- **새 `Interior/ResidentSeatFit` + `InteriorResidents.Spawn` 두 줄** (사용자 요청 "앉을 때 다리가 의자 속으로 · 꼬리가 등받이 뒤로 뚫고 나옴"): 앉힐 때 앉는 판 앞 가장자리 · 등받이를 광선으로, 정강이 · 꼬리를 구운 메시로 재서 앞으로만 옮김. 모든 방 공통 (앉는 판 충돌체가 없으면 그대로)
+- MODELING 7-11 (앉는 가구 충돌체)
+
+### `narrative` 합칠 때
+- [ ] `InteriorResidents.Spawn`을 서사판이 고쳤으면 `ResidentSeatFit.Fit` 두 줄만 손으로 (ResidentFigure.Create 바로 뒤, ResidentWander.InitSeated보다 먼저). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `841f1385`에 있음.

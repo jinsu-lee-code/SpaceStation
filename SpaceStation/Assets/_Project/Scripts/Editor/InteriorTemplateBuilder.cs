@@ -94,6 +94,61 @@ namespace SpaceStation.Editor
             BuildEvoTower();
             BuildEvoEco();
             BuildEvoPowerBank();
+            BuildEvoWelfare();
+        }
+
+        /// <summary>
+        /// 진화 1단계 복지 센터 (ㄱ자 3칸, wc_builder — 사용자 2026-10-29 시안 1 확정): 마음 쉼터 (0번 칸 — 연결점 없는 바깥 두 면을 둥근 유리 벽으로,
+        /// 나무 화단 · 원형 벤치 · 드럼 천창 아래 도는 빛 고리 모빌 INT_EvoWelfare_Halo) + 몸 돌봄 (+x 날개 — 침대를 감싼 스캔 고리가 도는 침대 둘
+        /// GantryA · GantryB) + 여가 (+z 날개 — 창을 보는 소파 · 홀로 놀이 탁자 위 도는 빛 픽셀 Holo · 빛 픽셀 천장).
+        /// 문 자리 = 연결점이 있는 면만 (0번 칸 −x · −z 없음), 해치 = 칸 중심 (0번 칸은 드럼을 비켜 (2.5, ·, 2.5)), 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoWelfare()
+        {
+            const float ceiling = F + 4.0f;
+            var rotunda = new Vector3Int(0, 0, 0);
+            var medical = new Vector3Int(1, 0, 0);
+            var leisure = new Vector3Int(0, 0, 1);
+            var hatch0 = new Vector3(2.5f, 0f, 2.5f);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(rotunda, Vector3Int.down, -F, hatch0),
+                new InteriorSocket(rotunda, Vector3Int.up, ceiling, hatch0),
+                new InteriorSocket(medical, Vector3Int.right, Socket),
+                new InteriorSocket(medical, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(medical, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(medical, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(medical, Vector3Int.up, ceiling, Vector3.zero),
+                new InteriorSocket(leisure, Vector3Int.right, Socket),
+                new InteriorSocket(leisure, Vector3Int.left, Socket),
+                new InteriorSocket(leisure, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(leisure, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(leisure, Vector3Int.up, ceiling, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.97f);
+            var pink = new Color(1f, 0.72f, 0.88f);
+            // 흰 조명은 천장(F + 4.0)에서 1.1 이상 내려 둠 — 0.8 아래에 두었더니 천장에 하얗게 번진 얼룩 (게임 안 확인 2026-10-29)
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, F + 3.2f, 0f), 6f, 2.2f, white),          // 정자 (드럼 속)
+                LightSpec.Point(new Vector3(-1.7f, F + 2.8f, -1.7f), 4f, 1.1f, white),    // 정자 둥근 유리 쪽
+                LightSpec.Point(new Vector3(0f, F + 2.8f, 0f), 3.5f, 0.6f, pink),         // 빛 고리 모빌
+                LightSpec.Point(new Vector3(4.8f, F + 2.85f, 0f), 6.5f, 2.3f, white),     // 의료 날개
+                LightSpec.Point(new Vector3(9.6f, F + 2.85f, 0f), 5.5f, 2.0f, white),
+                LightSpec.Point(new Vector3(0f, F + 2.85f, 5.0f), 6.5f, 2.2f, white),     // 여가 날개
+                LightSpec.Point(new Vector3(0f, F + 2.85f, 9.8f), 5.5f, 1.9f, white),
+                LightSpec.Point(new Vector3(0f, F + 1.5f, 5.2f), 2.5f, 0.5f, pink),       // 홀로 탁자
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoWelfare_Halo", Vector3.zero, Vector3.up, 6f),
+                new OrbitSpec("INT_EvoWelfare_GantryA", new Vector3(5.1f, F + 0.86f, -2f), Vector3.right, 45f),
+                new OrbitSpec("INT_EvoWelfare_GantryB", new Vector3(5.1f, F + 0.86f, 2f), Vector3.right, -45f),
+                new OrbitSpec("INT_EvoWelfare_Holo", new Vector3(0f, 0f, 5.2f), Vector3.up, 25f),
+            };
+            EvoAccent("WelfareCenter", "#FF9ED8");
+            // 스폰 = 의료 날개 (바닥 해치 (8, 0) 앞)에서 스캔 침대 사이로 정자를 바라봄
+            Build("EvoWelfare", "Evolved/MD_Evo_WelfareCenter", sockets, new Vector3(6.7f, F, 0f), -90f, lights, orbits);
         }
 
         /// <summary>
@@ -1689,7 +1744,7 @@ namespace SpaceStation.Editor
             { "Frame", InteriorAmbience.Hall }, { "Hub", InteriorAmbience.Hall },
             // 진화 모듈
             { "EvoResearch", InteriorAmbience.Machine }, { "EvoTower", InteriorAmbience.Life }, { "EvoEco", InteriorAmbience.Water },
-            { "EvoPowerBank", InteriorAmbience.Electric },
+            { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
