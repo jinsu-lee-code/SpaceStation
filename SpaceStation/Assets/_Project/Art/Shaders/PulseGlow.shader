@@ -67,6 +67,8 @@ Shader "SpaceStation/PulseGlow"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
+            // 쓰지는 않지만 켜 두면 ModuleView가 발광 재질로 알아보고 비활성 · 파손 때 _EmissionColor를 어둡게 함 (형광 Lit 재질과 같게)
+            #pragma shader_feature_local_fragment _EMISSION
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
             struct Attributes

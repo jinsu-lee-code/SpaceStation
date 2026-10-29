@@ -21,6 +21,7 @@ Shader "SpaceStation/Glass"
         [Toggle(_GLINT)] _Glint ("Prism Glint", Float) = 0
         _Flow ("Fall: 줄 촘촘함 · 속도 · 칸 크기 · 물거품 세기", Vector) = (14, 0.9, 0.02, 0.5)
         _Ripple ("Ripple: 물결 촘촘함 · 속도 · 흔들림 · 윤슬 세기", Vector) = (70, 1.0, 0.1, 0.18)
+        _Ripple2 ("Ripple: 가장 밝은 빛 (해 되비침 상한) · - · - · -", Vector) = (1.4, 0, 0, 0)
         _GlintParams ("Glint: 세기 · 도는 빠르기 · 날카로움 · 무지개", Vector) = (1.2, 0.35, 24, 0.7)
     }
 
@@ -63,6 +64,7 @@ Shader "SpaceStation/Glass"
                 float _Glint;
                 float4 _Flow;
                 float4 _Ripple;
+                float4 _Ripple2;
                 float4 _GlintParams;
             CBUFFER_END
 
@@ -170,6 +172,10 @@ Shader "SpaceStation/Glass"
                 surface.occlusion = _Reflection; // 간접광(하늘 반사 · 주변광)만 줄임
 
                 half4 color = UniversalFragmentPBR(inputData, surface);
+            #if defined(_FLOW_POOL)
+                // 흔들린 물 법선이 해를 거울처럼 되비추면 밝기가 수백까지 튀어 블룸으로 화면이 번쩍임 (사용자 2026-10-29 플레이 — 궤도 항만) → 윤슬은 은은한 빛까지만
+                color.rgb = min(color.rgb, _Ripple2.x);
+            #endif
                 color.rgb = MixFog(color.rgb, inputData.fogCoord);
                 color.a = saturate(_BaseColor.a + alphaAdd); // 뒤가 비치는 정도 (Blend One OneMinusSrcAlpha)
                 return color;

@@ -45,7 +45,7 @@ namespace SpaceStation.Editor
 
         /// <summary>
         /// 진화 3 · 4단계 도는 부품 "SpinDish_*" 속도 (초당 °, 모듈 Y축 · 기본 8): 등대 빛줄기는 쓸고 지나가게 빠르게, 천문대 돔은 천천히,
-        /// 해마가 끄는 가리비 배는 회전목마와 반대로 (사용자 2026-10-27 · 28 시안 설명).
+        /// (사용자 2026-10-27 · 28 시안 설명). 해마가 끄는 가리비 배 (SpinDish_OrbitalPortBoats)는 돌면 해변을 지나 한 척씩 나눠 BoatShuttleFx로 (2026-10-29).
         /// </summary>
         private static readonly Dictionary<string, float> DishSpeeds = new Dictionary<string, float>
         {
@@ -54,7 +54,6 @@ namespace SpaceStation.Editor
             { "SpinDish_BiosphereClouds", 5f },
             { "SpinDish_RepairCommandFireflies", 10f },
             { "SpinDish_OrbitalPortCarousel", 10f },
-            { "SpinDish_OrbitalPortBoats", -6f },
             { "SpinDish_AICoreThoughts", 6f },
             { "SpinDish_DeepSpaceCommDome", 3f },
         };
@@ -533,10 +532,25 @@ namespace SpaceStation.Editor
             }
             // 진화 3 · 4단계: 동물 "Critter_*" · 꿀벌 "Bee_*" (Blender CritterSet — 한 마리씩 따로 부품, 원점 = 동물 자리)이 움직이며 서로 간격 유지 (CritterFx)
             WireCritters(instance);
+            // 진화 바이오스피어: 도는 구름 아래 빗줄기가 진주 아치 셋 (Blender build_biosphere ARCHES 30° · 150° · 270°, 가운데 (1, 1))을 뚫지 않게 (RainShelterFx, 사용자 2026-10-29)
+            if (model.name == "SM_Evo_Biosphere")
+            {
+                var rain = FindChild(instance.transform, "Fx_BiosphereClouds");
+                if (rain != null)
+                {
+                    var shelter = rain.gameObject.AddComponent<SpaceStation.Building.RainShelterFx>();
+                    var rso = new SerializedObject(shelter);
+                    rso.FindProperty("_module").objectReferenceValue = instance.transform;
+                    rso.ApplyModifiedPropertiesWithoutUndo();
+                }
+            }
             // 진화 화물 환적장: 템플릿 보트 "FlumeBoat_*" 셋 (Blender cargo_flume_split, 원점 = 보트 가운데 · 앞 +x)을 복제해
             //   여섯 척이 물길 한 바퀴를 돌고 큰 낙하 바닥에서 물보라 (FlumeRideFx, 사용자 2026-10-27)
             if (model.name == "SM_Evo_CargoTransfer")
                 WireFlumeRide(instance);
+            // 진화 궤도 항만: 회전목마 둘레를 한 덩어리로 돌던 해마 가리비 배 넷이 해변을 지나지 않게 한 척씩 나눠 뒤쪽 호를 왕복 (BoatShuttleFx, 사용자 2026-10-29)
+            if (model.name == "SM_Evo_OrbitalPort")
+                WirePortBoats(instance);
             // 진화 그리드 허브 "번개 정원": 탑 에너지 구 → 번개 나무 여섯 · 이웃 나무끼리 치는 번개 (LightningFx, 사용자 2026-10-27)
             //   위치 = Blender build_grid_hub: 에너지 구 (1, YC1 + 0.17, 0.5) 반지름 0.085, 나무 = 타원 둘레 60°마다 (반지름 0.9 · 0.78),
             //   높이 0.5 / 0.58 번갈아 + 꼭대기 불꽃 구 (+0.045, 반지름 0.034)
@@ -595,6 +609,8 @@ namespace SpaceStation.Editor
                 bool clock = t.name.StartsWith("SpinClock");
                 bool orbit = t.name.StartsWith("SpinOrbit") || clock;
                 bool wheel = t.name.StartsWith("SpinWheel");
+                if (t.name == "SpinDish_OrbitalPortBoats")
+                    continue; // 한 척씩 나눠 BoatShuttleFx가 움직임 (원래 부품은 꺼 둠)
                 if (radar || orbit || wheel || t.name.StartsWith("SpinDish"))
                 {
                     var spinner = t.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
@@ -767,13 +783,13 @@ namespace SpaceStation.Editor
             private const float Cell = 0.02f;
             private readonly Dictionary<long, List<Vector3>> _cells = new Dictionary<long, List<Vector3>>();
 
-            public CritterHeightGrid(GameObject instance)
+            public CritterHeightGrid(GameObject instance, params string[] skip)
             {
                 var toLocal = instance.transform.worldToLocalMatrix;
                 foreach (var mf in instance.GetComponentsInChildren<MeshFilter>(true))
                 {
                     var n = mf.transform.name;
-                    if (mf.sharedMesh == null || n.StartsWith("Critter_") || n.StartsWith("Bee_") || n.StartsWith("Fx_Bee"))
+                    if (mf.sharedMesh == null || n.StartsWith("Critter_") || n.StartsWith("Bee_") || n.StartsWith("Fx_Bee") || System.Array.Exists(skip, s => n.StartsWith(s)))
                         continue;
                     var m = toLocal * mf.transform.localToWorldMatrix;
                     foreach (var v in mf.sharedMesh.vertices)
@@ -805,6 +821,213 @@ namespace SpaceStation.Editor
                     }
                 return false;
             }
+        }
+
+        // 궤도 항만 해마 가리비 배 = Blender build_orbital_port: 회전목마 가운데 (3, 0.45)에서 반지름 RB 0.72, 배 q의 각 = 0.4 + q × 90°,
+        //   물 높이 WL = −0.252, 앞 해변 (윗면 WL + 0.008 — 물과 거의 같은 높이라 높이로는 못 가림) = 다각형
+        private const float PortBoatRadius = 0.72f, PortBoatAngle0 = 0.4f, PortWater = -0.252f;
+        // 배 길 = x 0.72 · 앞 0.72 · 뒤 0.64 (뒤 z 1.3 일직선 산호 방파제 · 바다 문에 원형 길이 몇 cm 차이로 닿음)
+        private static readonly Vector3 PortBoatPath = new Vector3(0.72f, 0.72f, 0.64f);
+        private static readonly Vector2[] PortBeach =
+        {
+            new Vector2(1.55f, -0.43f), new Vector2(4.35f, -0.43f), new Vector2(4.35f, -0.22f), new Vector2(3.9f, -0.17f),
+            new Vector2(3.3f, -0.2f), new Vector2(2.7f, -0.16f), new Vector2(2.1f, -0.21f), new Vector2(1.6f, -0.18f),
+        };
+        private const string GeneratedDir = "Assets/_Project/Art/Models/Modules/Generated";
+
+        /// <summary>
+        /// 궤도 항만 해마 가리비 배 (BoatShuttleFx): 한 덩어리 부품 "SpinDish_OrbitalPortBoats" (+ Fx 자식 = 등불 · 물결)을 가운데에서 본 각으로 네 척으로 나눠
+        /// 배 가운데를 원점으로 한 메시 (Generated/OrbitalPortBoat0~3.asset, 다시 만들어도 같은 파일 · GUID)와 부품 "PortBoat_0~3"로 만들고 원래 부품은 끔.
+        /// 배 가운데가 갈 수 있는 각 범위 = 배 정점을 1°씩 돌려 앞 해변 (3cm 여유) · 물 위 4.5cm보다 높은 지형에 닿지 않는 가장 긴 구간 (뒤쪽을 지남).
+        /// </summary>
+        private static void WirePortBoats(GameObject instance)
+        {
+            var part = FindChild(instance.transform, "SpinDish_OrbitalPortBoats");
+            if (part == null || part.GetComponent<MeshFilter>() == null)
+                return;
+            var fxPart = FindChild(part, "Fx_OrbitalPortBoats");
+            var sources = new List<(Mesh mesh, Material[] mats, Matrix4x4 toPart)> { (part.GetComponent<MeshFilter>().sharedMesh, part.GetComponent<MeshRenderer>().sharedMaterials, Matrix4x4.identity) };
+            if (fxPart != null && fxPart.GetComponent<MeshFilter>() != null)
+                sources.Add((fxPart.GetComponent<MeshFilter>().sharedMesh, fxPart.GetComponent<MeshRenderer>().sharedMaterials, part.worldToLocalMatrix * fxPart.localToWorldMatrix));
+            if (!AssetDatabase.IsValidFolder(GeneratedDir))
+                AssetDatabase.CreateFolder("Assets/_Project/Art/Models/Modules", "Generated");
+
+            // ── 네 척으로 나누기 (삼각형 가운데의 각이 가장 가까운 배) ──
+            var boats = new Transform[4];
+            var footprints = new List<Vector3>[4];
+            for (int q = 0; q < 4; q++)
+            {
+                float a = PortBoatAngle0 + q * Mathf.PI / 2f;
+                var bc = new Vector3(PortBoatRadius * Mathf.Cos(a), 0f, PortBoatRadius * Mathf.Sin(a));
+                var verts = new List<Vector3>(); var normals = new List<Vector3>(); var uvs = new List<Vector2>(); var colors = new List<Color>(); var tangents = new List<Vector4>();
+                var subs = new List<List<int>>(); var mats = new List<Material>();
+                foreach (var (mesh, smats, toPart) in sources)
+                {
+                    var v = mesh.vertices; var n = mesh.normals; var uv = mesh.uv; var col = mesh.colors; var tg = mesh.tangents;
+                    var remap = new Dictionary<int, int>();
+                    for (int s = 0; s < mesh.subMeshCount && s < smats.Length; s++)
+                    {
+                        var tris = mesh.GetTriangles(s);
+                        var list = new List<int>();
+                        for (int i = 0; i < tris.Length; i += 3)
+                        {
+                            var c = toPart.MultiplyPoint3x4((v[tris[i]] + v[tris[i + 1]] + v[tris[i + 2]]) / 3f);
+                            int sector = Mathf.RoundToInt(Mathf.Repeat(Mathf.Atan2(c.z, c.x) - PortBoatAngle0, 2f * Mathf.PI) / (Mathf.PI / 2f)) % 4;
+                            if (sector != q)
+                                continue;
+                            for (int k = 0; k < 3; k++)
+                            {
+                                int vi = tris[i + k];
+                                if (!remap.TryGetValue(vi, out int ni))
+                                {
+                                    ni = verts.Count;
+                                    remap[vi] = ni;
+                                    verts.Add(toPart.MultiplyPoint3x4(v[vi]) - bc);
+                                    normals.Add(n.Length > vi ? toPart.MultiplyVector(n[vi]).normalized : Vector3.up);
+                                    uvs.Add(uv.Length > vi ? uv[vi] : Vector2.zero);
+                                    colors.Add(col.Length > vi ? col[vi] : Color.black); // 반짝임 위상 (Twinkle) — 없는 쪽은 검정 (원래 FX 메시와 같음)
+                                    var t4 = tg.Length > vi ? tg[vi] : new Vector4(1f, 0f, 0f, 1f);
+                                    var t3 = toPart.MultiplyVector(new Vector3(t4.x, t4.y, t4.z)).normalized;
+                                    tangents.Add(new Vector4(t3.x, t3.y, t3.z, t4.w));
+                                }
+                                list.Add(ni);
+                            }
+                        }
+                        if (list.Count == 0)
+                            continue;
+                        subs.Add(list);
+                        mats.Add(smats[s]);
+                    }
+                }
+                var boatMesh = new Mesh { name = "OrbitalPortBoat" + q };
+                if (verts.Count > 65000)
+                    boatMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+                boatMesh.SetVertices(verts);
+                boatMesh.SetNormals(normals);
+                boatMesh.SetUVs(0, uvs);
+                boatMesh.SetColors(colors);
+                boatMesh.SetTangents(tangents);
+                boatMesh.subMeshCount = subs.Count;
+                for (int s = 0; s < subs.Count; s++)
+                    boatMesh.SetTriangles(subs[s], s);
+                boatMesh.RecalculateBounds();
+                string path = $"{GeneratedDir}/OrbitalPortBoat{q}.asset";
+                var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+                if (existing != null)
+                {
+                    EditorUtility.CopySerialized(boatMesh, existing);
+                    Object.DestroyImmediate(boatMesh);
+                    boatMesh = existing;
+                    EditorUtility.SetDirty(existing);
+                }
+                else
+                    AssetDatabase.CreateAsset(boatMesh, path);
+
+                var go = new GameObject("PortBoat_" + q);
+                go.transform.SetParent(instance.transform, false);
+                go.transform.localPosition = part.localPosition + bc;
+                go.AddComponent<MeshFilter>().sharedMesh = boatMesh;
+                go.AddComponent<MeshRenderer>().sharedMaterials = mats.ToArray();
+                boats[q] = go.transform;
+                footprints[q] = new List<Vector3>();
+                for (int i = 0; i < verts.Count; i += 7)
+                    footprints[q].Add(verts[i]);
+            }
+
+            // ── 배 가운데가 갈 수 있는 각 범위: 해변 (3cm 여유) · 물 위 4.5cm보다 높은 것에 안 닿는 각 (1° 간격) 중 가장 긴 구간 ──
+            // FX 장식 (물 위에 떠 있는 지름 1cm 빛 방울 · 등불 빛)은 배가 지나가도 어색하지 않아 빼고, 지형 · 구조물만 봄
+            var grid = new CritterHeightGrid(instance, "SpinDish_OrbitalPortBoats", "Fx_OrbitalPortBoats", "PortBoat_", "SpinDish_OrbitalPortCarousel", "Fx_OrbitalPortCarousel", "Emblem_Fx");
+            var pivot = part.localPosition;
+            var free = new bool[360];
+            for (int d = 0; d < 360; d++)
+            {
+                float th = d * Mathf.Deg2Rad;
+                free[d] = true;
+                for (int q = 0; q < 4 && free[d]; q++)
+                {
+                    float home = PortBoatAngle0 + q * Mathf.PI / 2f;
+                    var center = pivot + SpaceStation.Building.BoatShuttleFx.PathOffset(PortBoatPath, th);
+                    foreach (float flip in new[] { 0f, -180f }) // 갈 때 · 돌아올 때 (해마가 앞)
+                    {
+                        var rot = Quaternion.AngleAxis(flip + SpaceStation.Building.BoatShuttleFx.PathYaw(PortBoatPath, home, th), Vector3.up);
+                        foreach (var p in footprints[q])
+                        {
+                            var w = center + rot * p;
+                            // 물 위 4.5cm보다 높은 것만 막힘 (물속 산호초 위로 살짝 나온 수정 끝 · 물방울은 지나감)
+                            if (NearPolygon(PortBeach, new Vector2(w.x, w.z), 0.03f) || grid.Blocked(w, 0.012f, PortWater + 0.045f, PortWater + 0.3f))
+                            {
+                                free[d] = false;
+                                break;
+                            }
+                        }
+                        if (!free[d])
+                            break;
+                    }
+                }
+            }
+            int bestStart = -1, bestLen = 0;
+            for (int d = 0; d < 360; d++)
+            {
+                if (!free[d] || free[(d + 359) % 360])
+                    continue;
+                int len = 0;
+                while (len < 360 && free[(d + len) % 360])
+                    len++;
+                if (len > bestLen)
+                {
+                    bestLen = len;
+                    bestStart = d;
+                }
+            }
+            if (bestStart < 0)
+            {
+                Debug.LogWarning("궤도 항만 배: 막히지 않은 각 범위가 없음 — 원래 회전 부품 그대로");
+                foreach (var b in boats)
+                    Object.DestroyImmediate(b.gameObject);
+                return;
+            }
+            float lo = (bestStart + 1) * Mathf.Deg2Rad, hi = (bestStart + bestLen - 2) * Mathf.Deg2Rad; // 양끝 1°씩 여유
+            part.gameObject.SetActive(false);
+
+            // 호를 따라가는 순서 = 범위 시작에서 잰 각 순서 (범위 밖 배는 맨 뒤로)
+            var order = new List<int> { 0, 1, 2, 3 };
+            order.Sort((x, y) => Mathf.Repeat(PortBoatAngle0 + x * Mathf.PI / 2f - lo, 2f * Mathf.PI).CompareTo(Mathf.Repeat(PortBoatAngle0 + y * Mathf.PI / 2f - lo, 2f * Mathf.PI)));
+            var fx = instance.AddComponent<SpaceStation.Building.BoatShuttleFx>();
+            var so = new SerializedObject(fx);
+            var bp = so.FindProperty("_boats");
+            var hp = so.FindProperty("_homeAngles");
+            bp.arraySize = 4;
+            hp.arraySize = 4;
+            for (int i = 0; i < 4; i++)
+            {
+                bp.GetArrayElementAtIndex(i).objectReferenceValue = boats[order[i]];
+                hp.GetArrayElementAtIndex(i).floatValue = PortBoatAngle0 + order[i] * Mathf.PI / 2f;
+            }
+            so.FindProperty("_pivot").vector3Value = pivot;
+            so.FindProperty("_radii").vector3Value = PortBoatPath;
+            so.FindProperty("_range").vector2Value = new Vector2(lo, hi);
+            so.FindProperty("_spacing").floatValue = Mathf.Min(50f * Mathf.Deg2Rad, (hi - lo) / 4.5f);
+            so.FindProperty("_speed").floatValue = 6f * Mathf.Deg2Rad;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Debug.Log($"궤도 항만 배: 갈 수 있는 각 {bestStart + 1}° ~ {bestStart + bestLen - 2}° (뒤쪽 호 {bestLen - 3}°)");
+        }
+
+        /// <summary>점이 다각형 안이거나 가장자리에서 margin 안이면 true.</summary>
+        private static bool NearPolygon(Vector2[] poly, Vector2 p, float margin)
+        {
+            bool inside = false;
+            for (int i = 0, j = poly.Length - 1; i < poly.Length; j = i++)
+            {
+                var a = poly[i];
+                var b = poly[j];
+                if ((a.y > p.y) != (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x)
+                    inside = !inside;
+                var ab = b - a;
+                float k = Mathf.Clamp01(Vector2.Dot(p - a, ab) / Mathf.Max(ab.sqrMagnitude, 1e-8f));
+                if ((a + ab * k - p).sqrMagnitude < margin * margin)
+                    return true;
+            }
+            return inside;
         }
 
         /// <summary>CritterFx.LoopPoint와 같은 꿀벌 고리 길 (정자 쪽 오름은 x ±0.04에서 부드럽게).</summary>
