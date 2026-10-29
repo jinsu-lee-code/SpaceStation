@@ -35,6 +35,22 @@ namespace SpaceStation.Editor
             { "Evo_OrbitalMirror", new Dictionary<string, string> { { "FX_LightBeam", "Hidden" } } },
         };
 
+        /// <summary>
+        /// 진화 3 · 4단계 도는 부품 "SpinDish_*" 속도 (초당 °, 모듈 Y축 · 기본 8): 등대 빛줄기는 쓸고 지나가게 빠르게, 천문대 돔은 천천히,
+        /// 해마가 끄는 가리비 배는 회전목마와 반대로 (사용자 2026-10-27 · 28 시안 설명).
+        /// </summary>
+        private static readonly Dictionary<string, float> DishSpeeds = new Dictionary<string, float>
+        {
+            { "SpinDish_OrbitalDefenseBeam", 30f },
+            { "SpinDish_OrbitalDefenseGulls", 12f },
+            { "SpinDish_BiosphereClouds", 5f },
+            { "SpinDish_RepairCommandFireflies", 10f },
+            { "SpinDish_OrbitalPortCarousel", 10f },
+            { "SpinDish_OrbitalPortBoats", -6f },
+            { "SpinDish_AICoreThoughts", 6f },
+            { "SpinDish_DeepSpaceCommDome", 3f },
+        };
+
         [MenuItem("SpaceStation/Art/Rebuild Greybox Modules")]
         public static void RebuildAll() => RebuildModules(null);
 
@@ -573,7 +589,7 @@ namespace SpaceStation.Editor
                 {
                     var spinner = t.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
                     var sso = new SerializedObject(spinner);
-                    sso.FindProperty("_speed").floatValue = radar ? 40f : clock ? 6f : orbit ? 45f : wheel ? 10f : 8f;
+                    sso.FindProperty("_speed").floatValue = radar ? 40f : clock ? 6f : orbit ? 45f : wheel ? 10f : DishSpeeds.TryGetValue(t.name, out float ds) ? ds : 8f;
                     if (orbit)
                         sso.FindProperty("_axis").vector3Value = OrbitAxis(t, root);
                     else if (wheel)

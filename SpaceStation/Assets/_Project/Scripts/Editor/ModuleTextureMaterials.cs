@@ -45,6 +45,20 @@ namespace SpaceStation.Editor
             "Evo_GridHub", "Evo_OrbitalMirror", "Evo_FusionPlant", "Evo_Arcology", "Evo_GrandTorus", "Evo_CivicHall", "Evo_SecurityHQ",
             "Evo_Biodome", "Evo_FoodFactory", "Evo_RefineryCombine", "Evo_ShieldDome", "Evo_Fortress", "Evo_RadiationWall",
             "Evo_DroneDepot", "Evo_CargoTransfer", "Evo_StorageComplex", "Evo_ResearchInstitute",
+            "Evo_DeepSpaceComm", // 4단계 성운 남보라 몸체도 짙어서 같은 보정 (사용자 2026-10-28 몸체 색 결정)
+        };
+
+        /// <summary>
+        /// 진화 3 · 4단계 (2026-10-29): 몸체를 1024 한 장에 구울 때 대부분의 면이 재질별 색 칸 (MODELING 7-9)을 쓰는데, 칸의 AO는
+        /// 같은 재질 면의 넓이 가중 평균이라 다른 것에 덮인 큰 면 (받침 윗면 등)이 끌어내려 0에 가까움 → URP 차폐 맵이 그늘 쪽 주변광을
+        /// 다 막아 진주 · 흰 몸체가 검게 보였음 (궁전 돔 · 등대 · 꿀 언덕). AO는 바탕색에 이미 구워져 있으므로 차폐 세기를 낮춤.
+        /// </summary>
+        private const float Stage3Occlusion = 0.3f;
+        private const float Stage3BodyGlow = 0.3f;
+        private static readonly HashSet<string> Stage3Plus = new HashSet<string>
+        {
+            "Evo_OrbitalCity", "Evo_Biosphere", "Evo_StellarGrid", "Evo_OrbitalDefense", "Evo_RepairCommand", "Evo_OrbitalPort", "Evo_AICore",
+            "Evo_DeepSpaceComm",
         };
 
         /// <summary>
@@ -57,17 +71,19 @@ namespace SpaceStation.Editor
             string dir = TextureRoot + key + "/";
             if (!Directory.Exists(dir))
                 return result;
-            float bodyGlow = MidnightBody.Contains(key) ? MidnightBodyGlow : 0f; // 부품 텍스처(도는 고리 등)도 같은 몸체
+            // 부품 텍스처(도는 고리 등)도 같은 몸체. 3단계 진주 몸체도 색 칸 바탕색에 낮은 AO가 구워져 그늘 쪽이 칙칙 → 약하게 보정
+            float bodyGlow = MidnightBody.Contains(key) ? MidnightBodyGlow : Stage3Plus.Contains(key) ? Stage3BodyGlow : 0f;
+            float occlusion = Stage3Plus.Contains(key) ? Stage3Occlusion : 1f;
             foreach (var file in Directory.GetFiles(dir, "T_*_BaseColor.png"))
             {
                 string fileName = Path.GetFileName(file);
                 string name = fileName.Substring(2, fileName.Length - 2 - "_BaseColor.png".Length);
-                result[SlotPrefix + name] = Ensure(dir, name, bodyGlow);
+                result[SlotPrefix + name] = Ensure(dir, name, bodyGlow, occlusion);
             }
             return result;
         }
 
-        private static Material Ensure(string dir, string key, float bodyGlow)
+        private static Material Ensure(string dir, string key, float bodyGlow, float occlusion = 1f)
         {
             string basePath = dir + $"T_{key}_BaseColor.png";
             string normalPath = dir + $"T_{key}_Normal.png";
@@ -108,7 +124,7 @@ namespace SpaceStation.Editor
             m.SetFloat("_Metallic", 1f);
             m.SetFloat("_Smoothness", 1f); // 맵의 A가 매끈함 (배율 1)
             m.SetFloat("_SmoothnessTextureChannel", 0f);
-            m.SetFloat("_OcclusionStrength", 1f);
+            m.SetFloat("_OcclusionStrength", occlusion);
             m.SetKeyword(new LocalKeyword(m.shader, "_METALLICSPECGLOSSMAP"), mask != null);
             m.SetKeyword(new LocalKeyword(m.shader, "_OCCLUSIONMAP"), mask != null);
 

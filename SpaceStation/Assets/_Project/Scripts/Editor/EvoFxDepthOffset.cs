@@ -28,8 +28,8 @@ namespace SpaceStation.Editor
 
         private static readonly string[] TransparentNames = { "Glass", "Aurora", "LightBeam", "GalaxyWater", "SplashMist", "ShieldSail", "ShieldShell" };
 
-        // 8: 구운 정지 연출 지우기 (EvoBakedFxStrip) 추가 · 9: 그리드 허브 번개 줄 규칙
-        public override uint GetVersion() => 9;
+        // 8: 구운 정지 연출 지우기 (EvoBakedFxStrip) 추가 · 9: 그리드 허브 번개 줄 규칙 · 10: 실제로 붙어 있는 짝만 (가짜 같은 평면 짝 제외)
+        public override uint GetVersion() => 10;
 
         private struct Tri
         {
@@ -195,6 +195,11 @@ namespace SpaceStation.Editor
                         var a = tris[i];
                         var b = tris[j];
                         if ((a.Mesh == b.Mesh && a.Sub == b.Sub) || Vector3.Dot(a.Cn, b.Cn) < 0.999f || Mathf.Abs(a.D - b.D) > tolerance)
+                            continue;
+                        // 거리 D는 모델 원점 기준이라 법선이 조금 다른 (≤ 2.5°) 비스듬한 면끼리는 실제로 떨어져 있어도 D가 우연히 같을 수 있음
+                        //   (2026-10-29 심우주 통신기지: 언덕 위에 6mm 띄워 덮은 은하수 띠 ↔ 언덕 가짜 짝 250개 → 강 전체가 1.5cm 밀려 언덕 속으로)
+                        //   → 서로의 가운데가 상대 평면에 실제로 가까운지도 봄 (진짜 같은 평면 짝은 그대로)
+                        if (!Touching(a, b, tolerance * 2f))
                             continue;
                         if (!seen.Add(Mathf.Min(i, j) * (long)tris.Count + Mathf.Max(i, j)))
                             continue;
@@ -377,6 +382,13 @@ namespace SpaceStation.Editor
                     }
                 result.Sort();
             }
+        }
+
+        /// <summary>두 삼각형의 가운데가 서로 상대 평면에서 limit 안에 있는지 (실제로 붙어 있는 같은 평면인지).</summary>
+        private static bool Touching(Tri a, Tri b, float limit)
+        {
+            Vector3 ca = (a.P0 + a.P1 + a.P2) / 3f, cb = (b.P0 + b.P1 + b.P2) / 3f;
+            return Mathf.Abs(Vector3.Dot(a.Cn, cb) - a.D) <= limit && Mathf.Abs(Vector3.Dot(b.Cn, ca) - b.D) <= limit;
         }
 
         /// <summary>같은 평면 두 삼각형이 넓이 있게 겹치는지 (2D 분리축, 1mm 안쪽으로 줄여 모서리만 닿는 것은 뺌).</summary>
