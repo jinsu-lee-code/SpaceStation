@@ -38,7 +38,8 @@ Shader "SpaceStation/PulseGlow"
     {
         float t = _Time.y;
         float d = distance(p, _Center.xyz);
-        float band = pow(saturate(0.5 + 0.5 * cos(6.2832 * (d - t * _Wave.y) / max(_Wave.x, 1e-3))), _Wave.z);
+        // 지수 0 (물결 없는 진주 빛)에서 0의 0제곱 = NaN → 그 픽셀 하나를 블룸이 화면만 한 빛 덩어리로 번지게 했음 (사용자 2026-10-29 "궤도 항만 번쩍임") → 물결이 없으면 계산하지 않고, 밑 · 지수를 0보다 크게
+        float band = _Wave.w > 0.0 ? pow(max(saturate(0.5 + 0.5 * cos(6.2832 * (d - t * _Wave.y) / max(_Wave.x, 1e-3))), 1e-6), max(_Wave.z, 1.0)) : 0.0;
         float b = frac(t * _Beat.y);
         float beat = pow(saturate(1.0 - abs(b - 0.08) * 9.0), 2.0) + 0.6 * pow(saturate(1.0 - abs(b - 0.26) * 9.0), 2.0); // 쿵 · 쿵
         float beatMask = _Beat.z > 0.0 ? 1.0 - smoothstep(_Beat.z * 0.6, _Beat.z, d) : 1.0;
@@ -105,7 +106,7 @@ Shader "SpaceStation/PulseGlow"
             half4 Frag(Varyings i) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(i);
-                float3 n = normalize(i.normalWS);
+                float3 n = normalize(i.normalWS + float3(0, 1e-5, 0));
                 InputData inputData = (InputData)0;
                 inputData.positionWS = i.positionWS;
                 inputData.positionCS = i.positionCS;
@@ -127,6 +128,7 @@ Shader "SpaceStation/PulseGlow"
 
                 half4 color = UniversalFragmentPBR(inputData, surface);
                 color.rgb = MixFog(color.rgb, inputData.fogCoord);
+                color.rgb = min(max(color.rgb, 0.0), 64.0); // 혹시 모를 NaN · 무한대가 블룸으로 번지지 않게 (max는 NaN을 버림)
                 color.a = 1.0h;
                 return color;
             }

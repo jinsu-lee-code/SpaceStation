@@ -109,7 +109,7 @@ Shader "SpaceStation/Glass"
             half4 Frag(Varyings i, bool front : SV_IsFrontFace) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(i);
-                float3 n = normalize(i.normalWS);
+                float3 n = normalize(i.normalWS + float3(0, 1e-5, 0)); // 법선 0 (찌그러진 면)에서 NaN 막기
                 n = front ? n : -n; // 뒷면 = 안쪽에서 본 유리
                 float t = _Time.y;
                 float3 extra = 0;
@@ -144,7 +144,7 @@ Shader "SpaceStation/Glass"
                     // 자리마다 다른 박자로 도는 가상 빛 — 면이 그쪽을 볼 때 반짝 (색 = 면 방향에 따른 무지개빛, 흰빛과 섞음)
                     float ang = t * _GlintParams.y * 6.2832 + dot(i.positionWS.xz, float2(1.7, 2.3)) + i.positionWS.y * 3.1;
                     float3 L = normalize(float3(cos(ang), 0.7, sin(ang)));
-                    float g = pow(saturate(dot(n, L)), _GlintParams.z);
+                    float g = pow(max(saturate(dot(n, L)), 1e-6), max(_GlintParams.z, 1.0)); // 지수 0 · 밑 0에서 NaN 막기
                     float3 tint = lerp(float3(1, 1, 1), GlassHue(dot(n, float3(0.3, 0.9, 0.2)) * 2.0 + t * 0.15), _GlintParams.w);
                     extra += g * _GlintParams.x * tint;
                 }
@@ -177,6 +177,7 @@ Shader "SpaceStation/Glass"
                 color.rgb = min(color.rgb, _Ripple2.x);
             #endif
                 color.rgb = MixFog(color.rgb, inputData.fogCoord);
+                color.rgb = min(max(color.rgb, 0.0), 64.0); // 혹시 모를 NaN · 무한대가 블룸으로 번지지 않게 (max는 NaN을 버림)
                 color.a = saturate(_BaseColor.a + alphaAdd); // 뒤가 비치는 정도 (Blend One OneMinusSrcAlpha)
                 return color;
             }
