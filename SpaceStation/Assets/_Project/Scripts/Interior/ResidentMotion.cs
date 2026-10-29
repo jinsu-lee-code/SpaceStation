@@ -193,6 +193,13 @@ namespace SpaceStation.Interior
         /// <summary>일어서기 진행 0(앉음) ~ 1(섬).</summary>
         public float StandBlend => _standBlend;
 
+        /// <summary>꼬리 본 (없으면 null) · 지금 기분의 꼬리 처짐 각 (<see cref="ResidentSeatFit"/>가 앉은 꼬리를 잴 때).</summary>
+        public Transform Tail => _tail;
+        public float TailDroop => _style.TailDroop;
+
+        /// <summary>앉아 있을 때 꼬리를 드는 각 — 처진 꼬리가 앉는 판 속으로 들어가지 않게 (<see cref="ResidentSeatFit"/>, 사용자 2026-10-29). 일어서면 서서히 0.</summary>
+        public float SeatTailLift { get; set; }
+
         /// <summary>일어서기(true) · 앉기(false) 시작 — 약 0.5초에 걸쳐 자세가 바뀜.</summary>
         public void StandUp(bool up) => _standTarget = up && _canStand ? 1f : 0f;
 
@@ -494,8 +501,8 @@ namespace SpaceStation.Interior
             if (_tail == null)
                 return;
             float wag = _style.TailWag * (_act == Act.HopWave ? 1.6f : _act == Act.TurnAway ? 0.2f : 1f);
-            // 꼬리 끝은 뒤(−z) → 인물 오른쪽 축으로 −면 아래로
-            Rotate(_tail, root.right, -_style.TailDroop);
+            // 꼬리 끝은 뒤(−z) → 인물 오른쪽 축으로 −면 아래로. 앉은 동안은 앉는 판 위로 듦
+            Rotate(_tail, root.right, -_style.TailDroop + SeatTailLift * (1f - _standBlend));
             Rotate(_tail, root.up, Mathf.Sin(_wag) * wag);
         }
 

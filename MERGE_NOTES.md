@@ -1399,3 +1399,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `841f1385`에 있음.
+
+## M-88. 앉은 주민 꼬리가 앉는 판을 뚫지 않게 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `e2d1c715`과 같은 파일)
+- 사용자 요청 "고양이 꼬리 하단부가 의자를 뚫고 들어감": 꼬리는 실행 중 기분만큼 처지는데 (보통 8° · 우울 28°) M-87 맞춤은 처지기 전 자세로 재고 있었음
+- `ResidentSeatFit`: 꼬리 뿌리 뒤 꼭짓점을 처짐 각까지 돌려 재서 앉는 판 위에서 앉는 면 아래로 내려가지 않는 가장 작은 드는 각을 고르고, 든 꼬리의 등받이 맞춤도 함께
+- `ResidentMotion`: `SeatTailLift` (앉은 동안만 꼬리를 듦, 일어서면 서서히 0) · `Tail` · `TailDroop`
+- `InteriorResidents.Spawn`: 맞춤 호출을 기분(`Configure`) 다음으로
+
+### `narrative` 합칠 때
+- [ ] `ResidentMotion.UpdateTail` · `InteriorResidents.Spawn`을 서사판이 고쳤으면 해당 줄만 손으로 (꼬리 처짐에 `SeatTailLift * (1 − 일어섬)` 더하기, 맞춤을 Configure 다음으로).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e2d1c715`에 있음.

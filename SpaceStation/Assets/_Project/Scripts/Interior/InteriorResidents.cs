@@ -289,13 +289,14 @@ namespace SpaceStation.Interior
                 position.y += PlaceStool(position, rotation, parent != null ? parent : transform);
             var figure = ResidentFigure.Create(_animals, species, fur, parent != null ? parent : transform, position, rotation, spot.Pose,
                 _tuning.AnimalScale, _tuning.SitDrop, id);
-            if (spot.Pose == ResidentPose.Sit)
-                ResidentSeatFit.Fit(figure.transform, _tuning.SitDrop); // 다리 · 꼬리가 의자를 뚫지 않게 앞뒤 맞춤 (사용자 2026-10-29) — 앉은 자리 기억(ResidentWander)보다 먼저
             figure.name = "Resident_" + id;
             figure.ResidentId = id;
             // 11-16 기분 = 본인 보정(특성) + 정거장 만족도 + 집 없음 → 평소 동작 · 반응 (+ 11-17 ③ 요청을 들어준 보너스)
             mood = MoodOf(resident);
             figure.Configure(Label(resident, species.DisplayName, status, config), mood, _eye, _tuning.WatchRange);
+            // 다리 · 꼬리가 의자를 뚫지 않게 꼬리를 들고 앞뒤 맞춤 (사용자 2026-10-29) — 꼬리 처짐이 정해진 기분 다음, 앉은 자리 기억(ResidentWander)보다 먼저
+            if (spot.Pose == ResidentPose.Sit)
+                ResidentSeatFit.Fit(figure.transform, _tuning.SitDrop);
             _figures.Add(figure);
             return figure;
         }
