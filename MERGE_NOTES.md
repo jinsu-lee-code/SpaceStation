@@ -1358,3 +1358,16 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `397766ab`에 있음.
+
+## M-85. 진화 내부 플레이 확인 고침 — 가구 충돌체 · 재배대 흙 · 수레 작물 · 나무 화분 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `fcccabd7`과 같은 파일)
+- `InteriorTemplateBuilder.Build`: 진화 템플릿(이름 `Evo…`)의 `_Soft` 조각(소파 · 의자 방석)에 MeshCollider — 사용자 플레이 확인 "거주 타워 가구를 지나감". 작물 · 잎은 `_Leaves` (충돌체 없음). 기본 템플릿은 그대로
+- 생태 모듈 (`eco_builder`): 재배대 윗면을 파서 흙이 보이게 (상추 · 화분 식물이 흰 윗면에 파묻혀 보였음), 수확 수레 덩어리 작물 → 흰 쟁반 둘 (상추 포기 · 방울토마토), 나무 화분을 키움 (안 테 0.64) + `InteriorPlantSpots` 나무 자리 (±1.95, F + 0.502, −1.95) · 0.8배
+- 다시 구운 `PF_Interior_EvoTower` · `PF_Interior_EvoResearch` (Soft 충돌체) · `PF_Interior_EvoEco` · `IT_EvoEco`, MODELING 7-11 (가구 충돌 · 작물 조각 이름 · 흙 판 자리 · Tree 화분 크기)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `fcccabd7`에 있음.

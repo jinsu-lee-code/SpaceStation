@@ -1747,7 +1747,10 @@ namespace SpaceStation.Editor
                     }
                 }
                 r.sharedMaterials = mats;
-                if (partName.EndsWith("_Shell") || partName.EndsWith("_Glass") || partName.EndsWith("_Door"))   // _Door = 움직이는 문 (InteriorSlidingDoor)
+                // 진화 템플릿의 _Soft = 의자 방석 · 소파 (플레이 확인 2026-10-29: 거주 타워 소파를 지나감) → 충돌체. 작물 · 잎은 _Leaves (충돌체 없음)
+                bool solid = partName.EndsWith("_Shell") || partName.EndsWith("_Glass") || partName.EndsWith("_Door")   // _Door = 움직이는 문 (InteriorSlidingDoor)
+                    || (name.StartsWith("Evo") && partName.EndsWith("_Soft"));
+                if (solid)
                     go.AddComponent<MeshCollider>().sharedMesh = filter.sharedMesh;
                 if (orbits != null)
                 {
