@@ -1556,3 +1556,16 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `ec0fde7e`에 있음.
+
+## M-99. 진화 모듈 공용 상태 화면 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `187119e8`과 같은 파일)
+- 새 `Interior/InteriorStatusScreens.cs` (`InteriorRoomDisplay` 상속): 화면마다 모듈 이름 · 상태 (가동 중 / 멈춤 / 파손 · 수리 필요 — 경고는 글자 깜빡임) · 생산 · 소비 · 모듈 특성 값 세 줄 · 막대 파형. 세로 0.16m 미만 화면은 이름 · 상태 · 막대만
+- `InteriorTemplateBuilder.AddStatusScreens` · `Islands` · `TryPanel`: `Evo*` 템플릿 빌드 끝에 껍데기 `_Shell`의 Screen 재질 면을 덩어리마다 찾아 앞면 (4cm 앞이 비어 있는 쪽)에 화면 칸을 붙임. 작은 면 (0.18 × 0.1m 미만) · 사각형을 85% 못 채우는 면 제외
+- 프리팹 4개 다시 뽑음: `PF_Interior_EvoShield` (4칸) · `EvoMineral` (3) · `EvoFarm` (2) · `EvoResearch` (8)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (새 파일 + 빌더 메서드 추가). 그 뒤 메뉴 Build Evolved Templates (화면 칸은 빌드 때 붙음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `187119e8`에 있음.
