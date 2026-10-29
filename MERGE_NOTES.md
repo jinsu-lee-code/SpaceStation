@@ -1182,3 +1182,20 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `1fbbc8be`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-73. 3 · 4단계 Unity 반영 ① — FX 재질 · 도는 부품 속도 · 몸체 그늘 밝기 · 가져오기 가짜 같은 평면 짝 고침 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `3f3a05f8`과 같은 파일)
+- `ModuleFxMaterials` 3 · 4단계 FX 재질: `FluorGold` · `Prism` (수정 유리) · `Rainbow0~6` (가산 무지개 띠) · `PureWater` · `Falls` (반투명 물) · `Cloud` · `Rain` · `Beam` (= LightBeam) · `Critters` · `Bee` (손그림 아틀라스 Lit + 약한 발광) → 8종 "알 수 없는 재질 슬롯" 0. 꿀벌 텍스처 `T_Bee_BaseColor.png`는 `Textures/Evo_StellarGrid` → `Textures/Evo_Critters`로 옮김 (GUID 그대로 — 모듈 텍스처 폴더에 있으면 `ModuleTextureMaterials`가 쓸모없는 발광 맵을 만듦)
+- `StationArtBuilder.DishSpeeds`: 도는 부품 `SpinDish_*` 속도 (등대 빛줄기 30 · 갈매기 12 · 구름 5 · 반딧불 10 · 회전목마 10 · 가리비 배 −6 · 생각 고리 6 · 천문대 돔 3, 그 밖 8 그대로)
+- `ModuleTextureMaterials`: 3 · 4단계 8종은 차폐 세기 0.3 + 바탕색 × 0.3 발광 (색 칸 AO가 덮인 큰 면 때문에 0에 가까워 그늘 쪽 진주 몸체가 검게 보였음), 4단계 심우주 통신기지는 미드나잇과 같은 0.5
+- `EvoFxDepthOffset` (GetVersion 10 → 모델 전부 다시 가져옴): 같은 평면 짝을 원점 기준 거리 D만으로 고르면 법선이 조금 다른 비스듬한 면끼리 실제로 떨어져 있어도 짝이 됨 → 서로의 가운데가 상대 평면에 실제로 가까운 짝만 (심우주 통신기지 은하수 강이 1.5cm 밀려 언덕 속으로 들어가던 것). 진짜 같은 평면 짝은 그대로
+- `SM_Evo_AICore.fbx` (생울타리 밑면을 막아 법선 바로 — 열린 면이면 Blender 법선 다시 계산이 안쪽을 골라 Unity에서 검게) · `SM_Evo_DeepSpaceComm.fbx` (언덕 통째로 색 칸 · 언덕 위 띠 닫힌 판 / 은하수 강 한 장) 다시 내보냄 + 텍스처, Blender `Modules_Work.blend` (`tex_builder` 굽기에 재질 `palette_all` 표시 = 재질 전체를 색 칸으로)
+- Recipes/Setup 산출물: 진화 프리팹 48종 (3 · 4단계 8종에 모델) · 3 · 4단계 모듈 데이터 통로 깊이 · FBX 리맵(.meta) · 3 · 4단계 텍스처 재질 · 발광 · 마스크 맵 · 새 FX 재질 16개
+- 아직 안 한 것 (tycoon TASKS 3 · 4단계 Unity 반영 ② ~ ④): 오로라 커튼 일렁임 · 동물 움직임 · 꿀벌 비행 · 반딧불 드론 · 모듈별 연출
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (위 스크립트 넷을 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup + EditMode.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `3f3a05f8`에 있음 (Unity 미리보기 렌더 8종 확인. EditMode는 MCP에서 실행이 막혀 아직 — Test Runner에서 직접).

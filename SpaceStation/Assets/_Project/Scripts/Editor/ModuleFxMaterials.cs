@@ -90,8 +90,60 @@ namespace SpaceStation.Editor
                 case "LightShaft": return CustomShader("M_LightShaft", "SpaceStation/LightShaft", new Color(1.5f, 1.3f, 0.85f, 1f));    // 궤도 미러 빛기둥 (LightBeamFx)
                 case "Hidden": return Glow("M_Hidden", Color.clear);                                                                // 모델 연출을 코드 연출로 바꿀 때 슬롯을 비움
                 case "Ripple": return Ripple();                                                                                     // 후룸 큰 낙하 물결 고리 (FlumeRideFx, 수평 입자)
+                // 진화 3단계 (진주 · 금 몸체 · 살아 있는 행성 정원 + 빛과 수정, 2026-10-27) · 4단계 (우주 · 별빛, 2026-10-28) — 값은 Blender evo_builder
+                //   (s3_fx_mats · glow_mat · RAINBOW)와 맞춤. 물 · 떨어지는 물 · 구름 · 빗줄기 · 무지개 · 수정은 몸체 텍스처에 굽지 않은 따로 재질 (사용자 2026-10-27)
+                case "FluorGold": return Fluorescent("M_FluorGold", new Color(1f, 0.8f, 0.42f));   // 금빛 등불 · 창 · 꽃가루 · 금빛 신경
+                case "Prism": return Glass("M_Prism", new Color(0.86f, 0.96f, 1f, 0.22f), new Color(0.12f, 0.16f, 0.22f), 0.96f, 0.9f); // 수정 · 프리즘 (맑고 은은히 빛남)
+                case "Rainbow0": case "Rainbow1": case "Rainbow2": case "Rainbow3": case "Rainbow4": case "Rainbow5": case "Rainbow6":
+                    return Glow("M_" + name, Rainbow[name[name.Length - 1] - '0'] * 0.75f);                              // 무지개 띠 일곱 (가산 — 하늘에 비치는 빛)
+                case "PureWater": return Glass("M_PureWater", new Color(0.1f, 0.45f, 0.62f, 0.55f), new Color(0.01f, 0.04f, 0.06f), 0.95f, 0.8f); // 맑은 물 (호수 · 강 · 연못)
+                case "Falls": return Glass("M_Falls", new Color(0.72f, 0.88f, 0.96f, 0.6f), new Color(0.1f, 0.14f, 0.17f), 0.85f, 0.6f);      // 떨어지는 물 (폭포)
+                case "Cloud": return Cloud();                                                                                       // 구름 · 물안개
+                case "Rain": return Glow("M_Rain", new Color(0.3f, 0.36f, 0.45f, 1f));                                             // 빗줄기 (가산, 옅게)
+                case "Beam": return Get("LightBeam");                                                                               // 궤도 방어망 등대 빛줄기 = 실드 돔 등대와 같은 재질
+                case "Critters": return Textured("M_Critters", "Assets/_Project/Art/Models/Modules/Textures/Evo_Critters/T_Critters_BaseColor.png"); // 동물 공용 손그림 아틀라스
+                case "Bee": return Textured("M_Bee", "Assets/_Project/Art/Models/Modules/Textures/Evo_Critters/T_Bee_BaseColor.png");             // 꿀벌 (얼굴 · 줄무늬)
                 default: return null;
             }
+        }
+
+        /// <summary>Blender evo_builder RAINBOW (빨 · 주 · 노 · 초 · 파 · 남 · 보)와 같은 색.</summary>
+        private static readonly Color[] Rainbow =
+        {
+            new Color(1f, 0.22f, 0.22f), new Color(1f, 0.58f, 0.12f), new Color(1f, 0.94f, 0.22f), new Color(0.3f, 1f, 0.38f),
+            new Color(0.25f, 0.62f, 1f), new Color(0.42f, 0.32f, 1f), new Color(0.82f, 0.38f, 1f),
+        };
+
+        /// <summary>구름 · 물안개: 윤기 없는 흰 Lit + 약한 발광 (그늘에서도 하얗게).</summary>
+        private static Material Cloud()
+        {
+            var m = Emissive("M_Cloud", new Color(0.95f, 0.96f, 0.99f, 1f), new Color(0.16f, 0.16f, 0.18f, 1f));
+            m.SetFloat("_Smoothness", 0.1f);
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>
+        /// 손그림 텍스처 재질 (진화 3단계 동물 · 꿀벌 — 얼굴 · 무늬 = 텍스처, 사용자 2026-10-27): Lit + 같은 그림의 약한 발광
+        /// (그늘 쪽 동물 얼굴도 읽히게). 텍스처가 없으면 null.
+        /// </summary>
+        private static Material Textured(string name, string texturePath)
+        {
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
+            if (tex == null)
+                return null;
+            var m = Load(name, Shader.Find("Universal Render Pipeline/Lit"));
+            m.SetTexture("_BaseMap", tex);
+            m.SetColor("_BaseColor", Color.white);
+            m.SetFloat("_Metallic", 0f);
+            m.SetFloat("_Smoothness", 0.3f);
+            m.SetTexture("_EmissionMap", tex);
+            m.SetKeyword(new LocalKeyword(m.shader, "_EMISSION"), true);
+            m.SetColor("_EmissionColor", Color.white * 0.22f);
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
         }
 
         private static Material ShieldShell()
