@@ -62,6 +62,10 @@ namespace SpaceStation.Editor
         public const string IcePath = MaterialFolder + "/M_InteriorIce.mat";
         public const string AquaPath = MaterialFolder + "/M_InteriorAqua.mat";
         public const string ConcretePath = MaterialFolder + "/M_InteriorConcrete.mat";   // 12-5 방사선 차폐실 벽 · 원통 천장
+        // 진화 모듈 내부 1단계 키트 (2026-10-29, Blender evo_kit): 흰 세라믹 몸체 · 밝은 회백 바닥 · 짙은 남색 홈 · 화면 테
+        public const string EvoWhitePath = MaterialFolder + "/M_InteriorEvoWhite.mat";
+        public const string EvoFloorPath = MaterialFolder + "/M_InteriorEvoFloor.mat";
+        public const string EvoDarkPath = MaterialFolder + "/M_InteriorEvoDark.mat";
         private const string SmokePath = MaterialFolder + "/M_InteriorSmoke.mat";
         private const string DustPath = "Assets/_Project/Art/Materials/FX/M_Dust.mat";
         private const string SparkPath = "Assets/_Project/Art/Materials/FX/M_Spark.mat";
@@ -367,6 +371,22 @@ namespace SpaceStation.Editor
             concrete.SetFloat("_GrimeStrength", 0.65f);
             concrete.enableInstancing = true;
             EditorUtility.SetDirty(concrete);
+
+            // 진화 모듈 내부 1단계 키트 (2026-10-29): 외형 흰 패널 · 짙은 유리 띠와 같은 계열의 매끈한 재질 (패널 무늬 · 때 없음)
+            //   (이름을 Plain으로 했다가 아래 소품 재질 함수 Plain(경로, 색, 금속도, 광택)을 가려 소품 22종의 금속도 · 광택이 뒤바뀐 적 있음 — 2026-10-29)
+            void EvoSurface(string path, Color color, float metallic, float smoothness)
+            {
+                var m = LoadOrCreate(path, lit);
+                m.shader = lit;
+                m.SetColor("_BaseColor", color);
+                m.SetFloat("_Metallic", metallic);
+                m.SetFloat("_Smoothness", smoothness);
+                m.enableInstancing = true;
+                EditorUtility.SetDirty(m);
+            }
+            EvoSurface(EvoWhitePath, new Color(0.9f, 0.92f, 0.95f), 0f, 0.6f);
+            EvoSurface(EvoFloorPath, new Color(0.6f, 0.62f, 0.67f), 0.05f, 0.45f);
+            EvoSurface(EvoDarkPath, new Color(0.035f, 0.045f, 0.1f), 0.2f, 0.8f);
 
             Fabric(FabricPath, new Color(0.86f, 0.85f, 0.81f));
             Fabric(BlanketPath, new Color(0.56f, 0.42f, 0.27f)); // 차분한 황토색 (거주 강조색 노랑과 어울리게)

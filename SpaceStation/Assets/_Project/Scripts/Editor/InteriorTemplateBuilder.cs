@@ -62,9 +62,100 @@ namespace SpaceStation.Editor
             BuildDamageControl();
             BuildFuelCell();
             BuildNewBasicTemplates();
+            BuildEvolvedTemplates();
             InteriorPlantSpots.SetAll();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
+        }
+
+        /// <summary>
+        /// 진화 모듈 내부만 다시 만들기 (메뉴 SpaceStation/Interior/Build Evolved Templates, 2026-10-29~).
+        /// Blender `BlenderWork/Interior_Evo.blend`(텍스트 블록 `evo_kit` = 단계 키트 · `*_builder` = 모듈별) → `SM_Interior_Evo*.fbx`.
+        /// </summary>
+        [MenuItem("SpaceStation/Interior/Build Evolved Templates")]
+        public static void BuildEvolvedOnly()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogError("[InteriorTemplateBuilder] 플레이 모드를 끈 뒤 실행하세요.");
+                return;
+            }
+            InteriorSetup.CreateMaterials();
+            BuildEvolvedTemplates();
+            InteriorPlantSpots.SetAll();
+            AssetDatabase.SaveAssets();
+            InteriorSetup.Setup();
+            ResidentSpotBaker.BakeTemplates("IT_Evo"); // 주민 자리 (진화 템플릿만)
+        }
+
+        private static void BuildEvolvedTemplates()
+        {
+            BuildEvoResearch();
+        }
+
+        /// <summary>
+        /// 진화 모듈 강조색 `M_Accent_Evo_{Id}.mat` (없으면 만듦) — 기본 모듈 강조 재질과 같은 꼴 (URP Lit · 바탕 = UI 색 · 발광 = 바탕 × 0.6).
+        /// 내부 템플릿의 Accent 슬롯 · 키트 문 패널 띠(InteriorSetup가 M_Accent_*를 모듈마다 등록)에 쓰임.
+        /// </summary>
+        private static void EvoAccent(string id, string hex)
+        {
+            string path = AccentFolder + "M_Accent_Evo_" + id + ".mat";
+            if (AssetDatabase.LoadAssetAtPath<Material>(path) != null || !ColorUtility.TryParseHtmlString(hex, out var color))
+                return;
+            var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            m.SetColor("_BaseColor", color);
+            m.SetFloat("_Metallic", 0.3f);
+            m.SetFloat("_Smoothness", 0.6f);
+            m.EnableKeyword("_EMISSION");
+            m.SetColor("_EmissionColor", color * 0.6f);
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive; // None이면 URP 재질 검사가 _EMISSION을 꺼 버림
+            m.enableInstancing = true;
+            AssetDatabase.CreateAsset(m, path);
+        }
+
+        /// <summary>
+        /// 진화 1단계 연구 단지 (2칸, rc_builder — 사용자 2026-10-29 시안 1 확정): 둥근 모서리 홀 (천장 F + 4.0) · 1단계 키트 파노라마 창 띠
+        /// (네 모서리 곡면 창 + 긴 벽 가운데 창) · 양 끝 천창 · 가운데 천장 구멍 위 유리 관측 돔. 가운데 관측 단 기둥 위 망원경이 돔 안에서 천천히 돌고
+        /// (INT_EvoResearch_Scope), 기둥을 감싼 기운 궤도 고리 둘이 전자를 달고 돎 (RingA · RingB — 고리 + 전자 한 덩어리를 고리 축으로).
+        /// 문 자리 = 양 끝 + 칸마다 앞뒤 + 칸마다 위 · 아래 해치 (칸 중심, 천장 높이 F + 4.0).
+        /// </summary>
+        private static void BuildEvoResearch()
+        {
+            const float ceiling = F + 4.0f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling, Vector3.zero));
+            }
+            var white = new Color(0.94f, 0.96f, 1f);
+            var lavender = new Color(0.72f, 0.58f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-1.4f, F + 3.4f, 0f), 7f, 3.0f, white),   // 흰 세라믹 홀이 회색으로 가라앉지 않게 기본 방보다 밝게 (플레이 확인 2026-10-29)
+                LightSpec.Point(new Vector3(9.4f, F + 3.4f, 0f), 7f, 3.0f, white),
+                LightSpec.Point(new Vector3(2.2f, F + 3.3f, 0f), 5.5f, 2.3f, white),
+                LightSpec.Point(new Vector3(5.8f, F + 3.3f, 0f), 5.5f, 2.3f, white),
+                LightSpec.Point(new Vector3(4f, ceiling + 1.2f, 0f), 4.5f, 1.6f, white),       // 돔 속 망원경
+                LightSpec.Point(new Vector3(4f, F + 0.6f, 0f), 3f, 0.6f, lavender),            // 관측 단 빛
+            };
+            foreach (var (x, z) in new[] { (-2.2f, 2.2f), (-2.2f, -2.2f), (10.2f, 2.2f), (10.2f, -2.2f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.6f, z), 3.2f, 1.1f, white)); // 모서리 연구 책상
+            float s18 = Mathf.Sin(18f * Mathf.Deg2Rad), s15 = Mathf.Sin(15f * Mathf.Deg2Rad);
+            var ring = new Vector3(4f, F + 3.05f, 0f);
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoResearch_Scope", new Vector3(4f, 0f, 0f), Vector3.up, 5f),
+                new OrbitSpec("INT_EvoResearch_RingA", ring, new Vector3(s18, Mathf.Cos(18f * Mathf.Deg2Rad), 0f), 20f),
+                new OrbitSpec("INT_EvoResearch_RingB", ring, new Vector3(-s15 * 0.45f, Mathf.Cos(15f * Mathf.Deg2Rad), s15 * 0.9f).normalized, -14f),
+            };
+            EvoAccent("ResearchComplex", "#9E80FF");
+            // 스폰 = 서쪽 끝 문 앞 (바닥 해치 자리 ±0.95 밖)에서 가운데 망원경을 바라봄
+            Build("EvoResearch", "Evolved/MD_Evo_ResearchComplex", sockets, new Vector3(-2.0f, F, 0f), 90f, lights, orbits);
         }
 
         /// <summary>
@@ -1430,6 +1521,8 @@ namespace SpaceStation.Editor
             { "WaterEx", InteriorAmbience.Water }, { "Protein", InteriorAmbience.Machine },
             { "Sensor", InteriorAmbience.Electric }, { "DataCenter", InteriorAmbience.Electric },
             { "Frame", InteriorAmbience.Hall }, { "Hub", InteriorAmbience.Hall },
+            // 진화 모듈
+            { "EvoResearch", InteriorAmbience.Machine },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
@@ -1444,7 +1537,8 @@ namespace SpaceStation.Editor
                 return;
             }
             var module = AssetDatabase.LoadAssetAtPath<ModuleData>(ModuleFolder + moduleName + ".asset");
-            var accent = AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Accent_" + moduleName.Replace("MD_", "") + ".mat");
+            string moduleKey = System.IO.Path.GetFileName(moduleName); // 진화 모듈은 "Evolved/MD_Evo_*" → 강조 재질 이름은 파일 이름만
+            var accent = AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Accent_" + moduleKey.Replace("MD_", "") + ".mat");
             var materials = new Dictionary<string, Material>
             {
                 { "Hull", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.InteriorHullPath) },
@@ -1480,7 +1574,11 @@ namespace SpaceStation.Editor
                 { "Culture", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.CulturePath) }, // 12-5 단백질 배양액
                 { "Window", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.WindowPath) }, // 11-8 바깥 창
                 // 12-5 소품 색 (발광 없음) + Paint = 이 모듈 강조색 도장 (발광 없음: 큰 소품 · 배관 · 의자 — Accent는 띠 · 표시등만)
-                { "Paint", PaintFor(accent, moduleName) },
+                { "Paint", PaintFor(accent, moduleKey) },
+                // 진화 모듈 내부 1단계 키트 (2026-10-29, Blender evo_kit)
+                { "EvoWhite", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoWhitePath) },
+                { "EvoFloor", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoFloorPath) },
+                { "EvoDark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoDarkPath) },
                 { "Paper", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PaperPath) },
                 { "PropBlue", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropBluePath) },
                 { "PropGreen", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropGreenPath) },
