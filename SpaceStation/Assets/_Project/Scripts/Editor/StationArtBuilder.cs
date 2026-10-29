@@ -525,6 +525,8 @@ namespace SpaceStation.Editor
                 cso.FindProperty("_plumeMaterial").objectReferenceValue = plume != null ? plume : ModuleFxMaterials.Get("FireworkSpark");
                 cso.ApplyModifiedPropertiesWithoutUndo();
             }
+            // 진화 3 · 4단계: 동물 "Critter_*" · 꿀벌 "Bee_*" (Blender CritterSet — 한 마리씩 따로 부품, 원점 = 동물 자리)이 움직이며 서로 간격 유지 (CritterFx)
+            WireCritters(instance);
             // 진화 화물 환적장: 템플릿 보트 "FlumeBoat_*" 셋 (Blender cargo_flume_split, 원점 = 보트 가운데 · 앞 +x)을 복제해
             //   여섯 척이 물길 한 바퀴를 돌고 큰 낙하 바닥에서 물보라 (FlumeRideFx, 사용자 2026-10-27)
             if (model.name == "SM_Evo_CargoTransfer")
@@ -610,6 +612,264 @@ namespace SpaceStation.Editor
                 fso.FindProperty("_lamp").objectReferenceValue = lamp.gameObject;
                 fso.ApplyModifiedPropertiesWithoutUndo();
             }
+        }
+
+        /// <summary>동물 이름 끝 (Blender CritterSet 종류) → 움직임.</summary>
+        private static readonly Dictionary<string, SpaceStation.Building.CritterFx.Kind> CritterKinds = new Dictionary<string, SpaceStation.Building.CritterFx.Kind>
+        {
+            { "Duck", SpaceStation.Building.CritterFx.Kind.Swim }, { "Swan", SpaceStation.Building.CritterFx.Kind.Swim },
+            { "Duckling", SpaceStation.Building.CritterFx.Kind.Follow }, { "Turtle", SpaceStation.Building.CritterFx.Kind.Drift },
+            { "Fish", SpaceStation.Building.CritterFx.Kind.Leap }, { "FlyingFish", SpaceStation.Building.CritterFx.Kind.Glide },
+            { "Butterfly", SpaceStation.Building.CritterFx.Kind.Flutter }, { "Deer", SpaceStation.Building.CritterFx.Kind.Graze },
+            { "Fawn", SpaceStation.Building.CritterFx.Kind.Graze }, { "Bunny", SpaceStation.Building.CritterFx.Kind.Hop },
+            { "Seal", SpaceStation.Building.CritterFx.Kind.Bask }, { "SealPup", SpaceStation.Building.CritterFx.Kind.Bask },
+            { "Crab", SpaceStation.Building.CritterFx.Kind.Scuttle }, { "Owl", SpaceStation.Building.CritterFx.Kind.Perch },
+            { "Hedgehog", SpaceStation.Building.CritterFx.Kind.Snuffle },
+        };
+
+        // 항성 발전망 꿀벌 고리 길 = Blender build_stellar_grid loop(θ): 가운데 (3, 0.45) · 반지름 (EX − 3.06 = 1.42, 0.5),
+        //   높이 0.24 + 0.05 sin 3θ, x < 2.42 (정자 쪽)이면 +0.16
+        private static readonly Vector4 BeeLoop = new Vector4(3f, 0.45f, 1.42f, 0.5f);
+        private static readonly Vector4 BeeLoopHeight = new Vector4(0.24f, 0.05f, 0.16f, 2.42f);
+
+        /// <summary>
+        /// 진화 3 · 4단계 동물 · 꿀벌 움직임 (CritterFx) 배선. 종류 = 이름 끝, 앞쪽 = 메시 모양 (머리 = 가장 높은 쪽, 거북 = 원점에서 가장 멀리 나온 쪽 = 머리,
+        /// 게 = 옆걸음 축), 간격 반지름 = 원점에서 가장 먼 가로 거리 × 0.85. 새끼 오리 = 바로 앞 번호의 어미 오리를 따라감.
+        /// 꿀벌: 고리 길 위에 있으면 고리 비행, 낮으면(꽃 위) 쉼, 그 밖은 제자리 맴돌기.
+        /// </summary>
+        private static void WireCritters(GameObject instance)
+        {
+            var parts = new List<Transform>();
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+                if ((t.name.StartsWith("Critter_") || t.name.StartsWith("Bee_")) && t.GetComponent<MeshFilter>() != null)
+                    parts.Add(t);
+            if (parts.Count == 0)
+                return;
+            parts.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            var kinds = new SpaceStation.Building.CritterFx.Kind[parts.Count];
+            var fx = instance.AddComponent<SpaceStation.Building.CritterFx>();
+            var so = new SerializedObject(fx);
+            var list = so.FindProperty("_critters");
+            list.arraySize = parts.Count;
+            for (int i = 0; i < parts.Count; i++)
+            {
+                var part = parts[i];
+                Transform wings = null;
+                foreach (Transform ch in part)
+                    if (ch.name.StartsWith("Fx_Bee"))
+                        wings = ch;
+                var kind = SpaceStation.Building.CritterFx.Kind.Swim;
+                if (part.name.StartsWith("Bee_"))
+                {
+                    var home = part.localPosition;
+                    float best = float.MaxValue;
+                    for (int k = 0; k < 720; k++)
+                        best = Mathf.Min(best, (BeeLoopPoint(2f * Mathf.PI * k / 720f) - home).magnitude);
+                    kind = best < 0.06f ? SpaceStation.Building.CritterFx.Kind.BeeLoop
+                        : home.y < -0.15f ? SpaceStation.Building.CritterFx.Kind.BeeRest : SpaceStation.Building.CritterFx.Kind.BeeHover;
+                }
+                else if (!CritterKinds.TryGetValue(part.name.Substring(part.name.LastIndexOf('_') + 1), out kind))
+                    Debug.LogWarning("CritterFx: 모르는 동물 종류 " + part.name + " → 오리처럼 헤엄");
+                int leader = -1;
+                if (kind == SpaceStation.Building.CritterFx.Kind.Follow)
+                {
+                    for (int j = i - 1; j >= 0; j--)
+                    {
+                        if (kinds[j] == SpaceStation.Building.CritterFx.Kind.Follow)
+                            continue;
+                        if (kinds[j] == SpaceStation.Building.CritterFx.Kind.Swim)
+                            leader = j;
+                        break;
+                    }
+                    if (leader < 0)
+                        kind = SpaceStation.Building.CritterFx.Kind.Swim; // 따라갈 어미가 없으면 혼자 헤엄
+                }
+                kinds[i] = kind;
+                CritterShape(part, wings, kind, out var heading, out float radius);
+                var e = list.GetArrayElementAtIndex(i);
+                e.FindPropertyRelative("Part").objectReferenceValue = part;
+                e.FindPropertyRelative("Kind").enumValueIndex = (int)kind;
+                e.FindPropertyRelative("Heading").vector3Value = heading;
+                e.FindPropertyRelative("Radius").floatValue = radius;
+                e.FindPropertyRelative("Leader").intValue = leader;
+                e.FindPropertyRelative("Wings").objectReferenceValue = wings;
+            }
+            // 헤엄 타원 · 게 걸음이 물가 · 바위 · 배 · 갈대에 막히지 않게 도는 쪽 · 크기를 고름 (막히면 작게, 다 막히면 제자리)
+            var grid = new CritterHeightGrid(instance);
+            for (int i = 0; i < parts.Count; i++)
+            {
+                var e = list.GetArrayElementAtIndex(i);
+                var home = parts[i].localPosition;
+                var heading = e.FindPropertyRelative("Heading").vector3Value;
+                float radius = e.FindPropertyRelative("Radius").floatValue;
+                float side = 0f;
+                if (kinds[i] == SpaceStation.Building.CritterFx.Kind.Swim || kinds[i] == SpaceStation.Building.CritterFx.Kind.Drift)
+                {
+                    float chain = 0f;
+                    var prev = home;
+                    for (int j = i + 1; j < parts.Count; j++) // 새끼 줄 길이 (CritterFx.Play의 어미 길 자국과 같은 계산)
+                    {
+                        if (list.GetArrayElementAtIndex(j).FindPropertyRelative("Leader").intValue != i)
+                            continue;
+                        var p = parts[j].localPosition;
+                        chain += new Vector2(p.x - prev.x, p.z - prev.z).magnitude;
+                        prev = p;
+                    }
+                    bool turtle = kinds[i] == SpaceStation.Building.CritterFx.Kind.Drift;
+                    foreach (float scale in new[] { 1f, 0.7f, 0.45f })
+                    {
+                        foreach (float s in new[] { 1f, -1f })
+                        {
+                            SpaceStation.Building.CritterFx.SwimSize(turtle, radius, chain, scale, out float ra, out float rb);
+                            bool clear = true;
+                            for (int k = 1; k < 96 && clear; k++)
+                                clear = !grid.Blocked(home + SpaceStation.Building.CritterFx.SwimOffset(heading, s, ra, rb, 2f * Mathf.PI * k / 96f), radius * 0.7f, home.y + 0.02f, home.y + 0.25f);
+                            if (clear)
+                            {
+                                side = s * scale;
+                                break;
+                            }
+                        }
+                        if (side != 0f)
+                            break;
+                    }
+                }
+                else if (kinds[i] == SpaceStation.Building.CritterFx.Kind.Scuttle)
+                {
+                    float reach = SpaceStation.Building.CritterFx.ScuttleReach;
+                    bool fwd = true, back = true;
+                    for (int k = 1; k <= 4; k++)
+                    {
+                        fwd &= !grid.Blocked(home + heading * (reach * k / 4f), radius * 0.7f, home.y + 0.02f, home.y + 0.25f);
+                        back &= !grid.Blocked(home - heading * (reach * k / 4f), radius * 0.7f, home.y + 0.02f, home.y + 0.25f);
+                    }
+                    side = fwd && back ? 2f : fwd ? 1f : back ? -1f : 0f;
+                }
+                e.FindPropertyRelative("Side").floatValue = side;
+            }
+            so.FindProperty("_beeLoop").vector4Value = BeeLoop;
+            so.FindProperty("_beeLoopHeight").vector4Value = BeeLoopHeight;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// 모델 정점 높이를 2cm 칸으로 모은 것 (동물 · 꿀벌 부품 제외) — 동물이 갈 자리에 몸 원점보다 높은 정점(물가 · 바위 · 배 · 갈대)이 있는지 봄.
+        /// 수면은 몸 원점에서 1cm 안이라 막힘이 아님 (거북 · 오리는 수면에 살짝 잠겨 있음).
+        /// </summary>
+        private sealed class CritterHeightGrid
+        {
+            private const float Cell = 0.02f;
+            private readonly Dictionary<long, List<Vector3>> _cells = new Dictionary<long, List<Vector3>>();
+
+            public CritterHeightGrid(GameObject instance)
+            {
+                var toLocal = instance.transform.worldToLocalMatrix;
+                foreach (var mf in instance.GetComponentsInChildren<MeshFilter>(true))
+                {
+                    var n = mf.transform.name;
+                    if (mf.sharedMesh == null || n.StartsWith("Critter_") || n.StartsWith("Bee_") || n.StartsWith("Fx_Bee"))
+                        continue;
+                    var m = toLocal * mf.transform.localToWorldMatrix;
+                    foreach (var v in mf.sharedMesh.vertices)
+                    {
+                        var p = m.MultiplyPoint3x4(v);
+                        long key = Key(Mathf.FloorToInt(p.x / Cell), Mathf.FloorToInt(p.z / Cell));
+                        if (!_cells.TryGetValue(key, out var cell))
+                            _cells[key] = cell = new List<Vector3>();
+                        cell.Add(p);
+                    }
+                }
+            }
+
+            private static long Key(int x, int z) => ((long)x << 32) ^ (uint)z;
+
+            /// <summary>p에서 가로 r 안에 높이 low ~ high 사이 정점이 있으면 막힘.</summary>
+            public bool Blocked(Vector3 p, float r, float low, float high)
+            {
+                int x0 = Mathf.FloorToInt((p.x - r) / Cell), x1 = Mathf.FloorToInt((p.x + r) / Cell);
+                int z0 = Mathf.FloorToInt((p.z - r) / Cell), z1 = Mathf.FloorToInt((p.z + r) / Cell);
+                for (int x = x0; x <= x1; x++)
+                    for (int z = z0; z <= z1; z++)
+                    {
+                        if (!_cells.TryGetValue(Key(x, z), out var cell))
+                            continue;
+                        foreach (var v in cell)
+                            if (v.y > low && v.y < high && (v.x - p.x) * (v.x - p.x) + (v.z - p.z) * (v.z - p.z) < r * r)
+                                return true;
+                    }
+                return false;
+            }
+        }
+
+        /// <summary>CritterFx.LoopPoint와 같은 꿀벌 고리 길 (정자 쪽 오름은 x ±0.04에서 부드럽게).</summary>
+        private static Vector3 BeeLoopPoint(float theta)
+        {
+            float x = BeeLoop.x + BeeLoop.z * Mathf.Cos(theta);
+            float k = Mathf.Clamp01((x - (BeeLoopHeight.w + 0.04f)) / -0.08f);
+            return new Vector3(x, BeeLoopHeight.x + BeeLoopHeight.y * Mathf.Sin(3f * theta) + BeeLoopHeight.z * k * k * (3f - 2f * k), BeeLoop.y + BeeLoop.w * Mathf.Sin(theta));
+        }
+
+        /// <summary>동물 앞쪽 (부모 기준 가로 단위 벡터) · 간격 반지름 — 메시 정점을 부모 축으로 돌려서 잼.</summary>
+        private static void CritterShape(Transform part, Transform wings, SpaceStation.Building.CritterFx.Kind kind, out Vector3 heading, out float radius)
+        {
+            var pts = new List<Vector3>();
+            foreach (var p in part.GetComponent<MeshFilter>().sharedMesh.vertices)
+                pts.Add(part.localRotation * Vector3.Scale(part.localScale, p));
+            radius = 0f;
+            foreach (var p in pts)
+                radius = Mathf.Max(radius, new Vector2(p.x, p.z).magnitude);
+            if (wings != null && wings.GetComponent<MeshFilter>() != null)
+                foreach (var p in wings.GetComponent<MeshFilter>().sharedMesh.vertices)
+                    radius = Mathf.Max(radius, new Vector2(p.x, p.z).magnitude);
+            radius *= 0.85f; // 원 하나로 감싸면 긴 몸은 옆이 넉넉하므로 조금 줄임 (처음 자리끼리는 겹치지 않음 — 백조 한 쌍만 1mm)
+            var c = Vector3.zero;
+            foreach (var p in pts)
+                c += p;
+            c /= Mathf.Max(1, pts.Count);
+            heading = Vector3.right;
+            if (kind == SpaceStation.Building.CritterFx.Kind.Drift || kind == SpaceStation.Building.CritterFx.Kind.Scuttle)
+            {
+                // 가로 주축 (거북 = 몸 길이, 게 = 다리가 벌어진 옆걸음 축) — 거북은 원점(등딱지 가운데)에서 더 멀리 나온 쪽이 머리
+                float xx = 0f, xz = 0f, zz = 0f;
+                foreach (var p in pts)
+                {
+                    var d = p - c;
+                    xx += d.x * d.x;
+                    xz += d.x * d.z;
+                    zz += d.z * d.z;
+                }
+                float a = 0.5f * Mathf.Atan2(2f * xz, xx - zz);
+                heading = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                float lo = 0f, hi = 0f;
+                foreach (var p in pts)
+                {
+                    float s = Vector3.Dot(p, heading);
+                    lo = Mathf.Min(lo, s);
+                    hi = Mathf.Max(hi, s);
+                }
+                if (kind == SpaceStation.Building.CritterFx.Kind.Drift && hi < -lo)
+                    heading = -heading;
+                return;
+            }
+            // 머리 = 위쪽 15% 정점이 몰린 쪽 (오리 · 백조 · 물범 · 사슴 머리, 물고기는 뛰어오르며 든 코)
+            var ys = new List<float>();
+            foreach (var p in pts)
+                ys.Add(p.y);
+            ys.Sort();
+            float cut = ys[Mathf.Min(ys.Count - 1, (int)(ys.Count * 0.85f))];
+            var top = Vector3.zero;
+            int n = 0;
+            foreach (var p in pts)
+            {
+                if (p.y < cut)
+                    continue;
+                top += p;
+                n++;
+            }
+            var h = top / Mathf.Max(1, n) - c;
+            h.y = 0f;
+            if (h.sqrMagnitude > 1e-8f)
+                heading = h.normalized;
         }
 
         /// <summary>
