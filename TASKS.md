@@ -1781,3 +1781,14 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
 - [ ] U-7 내부 이동 중 휴대 패드 (미니맵 + 외부 모듈 조작) → **Phase 11-12**
   - 내부 이동 중 미니맵으로 현재 위치를 바로 알 수 있게
   - 현재 내부에서는 외부 모듈 조작이 불가능 → 플레이어가 패드를 꺼내 미니맵을 보고 외부 모듈 조작도 할 수 있는 인터페이스로 제작
+
+## 합본 (combined 브랜치) — 한 게임 두 모드 검수 빌드 (2026-10-30)
+사용자 결정 2026-10-30: "현재 상태로 검수 한번 받으려고 해 … main에서 캠페인 모드와 현재 브랜치의 엔드리스 모드를 합쳐서 하나의 빌드" → "하나의 합본으로 부탁해 · 체험용으로 세이브 하나 넣어주고" (별도 Unity 프로젝트 폴더 = `Desktop/Unity/SpaceStation_Combined`, git worktree). 합치는 규칙 = SPLIT.md 6번 (고리에 값만 채움).
+- [x] 합치기: `tycoon`(f68223e8) + `main`(공통 고리 M-42 ~ M-53) + `narrative`(10.26, 14-1d 4장 파편 띠까지). 충돌 = 진화 모듈 프리팹 11 (main 쪽이 타이쿤판 예전 버전 → 타이쿤판), BalanceRun (main CreateSim 안에서 타이쿤판 시스템), SimulationHost (두 판 칸 모두 + 모드로 고름), 게임 씬 · 동적 글꼴 = 타이쿤판, 문서 = 두 판 기록 나란히
+- [x] 모드 전환: `SimulationHost` 이번 판 모드 (저장 `Meta.Mode` → 메인 메뉴 `GameStartOptions.Mode` → 씬 기본 = 엔드리스). 캠페인 = 장 틀 · 코어 성격 · 이민선 · 탐사 · 기록 · 장 유성우 · 장 정책 · 긴장도 + 코어 기동 튜토리얼 · 기록 연구 (캠페인 칸), 엔드리스 = 해금 선택 · 성장 비례 위협 · 역병 · 내부 보너스 · 중간 등급 + 공통 튜토리얼 · 공통 연구. 모드 없는 예전 저장 = 엔드리스. `SaveManager` 저장 모드 = 호스트 모드
+- [x] 메뉴 SpaceStation/Combined/Setup Modes (`CombinedSetup`, 배치 입구 `SetupAll` = Chapters/Setup Greybox → Campaign/Setup Main Menu → 이 메뉴): `GM_Endless`, 메인 메뉴 [캠페인, 엔드리스] · 버전 줄 "v0.14 · 합본 (캠페인 + 엔드리스)", 게임 씬 모드 목록. 서사판 `ChapterSetup`은 튜토리얼 · 연구 목록을 캠페인 칸에 씀. 메뉴가 다시 만든 장 데이터는 서사판 원본으로 되돌림 (등급표가 타이쿤판이라 장 해금이 달라졌음)
+- [x] 제품 이름 "Another Earth" · 0.14.0 · `AnotherEarth.exe` (세이브 = LocalLow/BinaryCompany/Another Earth, 모드는 저장마다)
+- [x] 체험용 저장: `StreamingAssets/DemoSaves/slot1.json` = 타이쿤판 수동 저장 3 (대륙급 · 인구 529 · 모듈 144 · 엔드리스, 진행 표시 "체험용 · 대륙급 정거장"). `DemoSaveSeeder` — 빌드 첫 실행 때 수동 저장 1 (차 있으면 비어 있는 다른 수동 슬롯)에 한 번, 있는 저장은 덮지 않음, 에디터 플레이는 넣지 않음
+- [x] 고침: 메인 메뉴 두 번째 모드 버튼 (M-44 고리 — 복제한 버튼 효과 HoloButtonFx 참조가 비어 매 프레임 NullReferenceException · 장식 두 벌) → 꺼진 채 복제 + `HoloSkin.StripRuntimeDecor` (main에도)
+- [x] 확인: EditMode 509개 (두 판 + 합본 4) · PlayMode `CombinedModeSmokeTests` 4 (메인 메뉴 두 버튼 · 캠페인 새 게임 · 엔드리스 새 게임 · 체험용 저장 + 비상 대응 센터 1인칭, 각 게임 3분 · 오류 로그 0) 통과. Windows 빌드 성공 (`SpaceStation_Combined/SpaceStation/Builds/Windows/AnotherEarth.exe`)
+- 알아 둘 것: 캠페인도 모듈 · 밸런스 데이터는 합본 하나 (타이쿤판에만 있던 수치 변경이 캠페인에도 적용 — 서사판 단독 빌드와 수치가 다를 수 있음). 서사판은 원격 10.26 상태 — 다른 PC에 더 있으면 push 뒤 이 브랜치에 `narrative`를 다시 합치고 메뉴 Combined/Setup Modes

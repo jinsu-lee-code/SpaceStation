@@ -29,20 +29,32 @@ namespace SpaceStation.Tests
         }
 
         [Test]
-        public void Seed_CopiesOnlyEmptySlots_WithThumbnail()
+        public void Seed_UsesSameSlotWhenEmpty_WithThumbnail()
         {
             string src = Path.Combine(_dir, "src"), dst = Path.Combine(_dir, "dst");
             File.WriteAllText(Path.Combine(src, "slot1.json"), "demo1");
             File.WriteAllText(Path.Combine(src, "slot1.png"), "png1");
-            File.WriteAllText(Path.Combine(src, "slot2.json"), "demo2");
-            File.WriteAllText(Path.Combine(dst, "slot2.json"), "mine");   // 이미 있는 저장은 그대로
 
             Assert.AreEqual(1, DemoSaveSeeder.Seed(src, dst));
             Assert.AreEqual("demo1", File.ReadAllText(Path.Combine(dst, "slot1.json")));
             Assert.AreEqual("png1", File.ReadAllText(Path.Combine(dst, "slot1.png")));
-            Assert.AreEqual("mine", File.ReadAllText(Path.Combine(dst, "slot2.json")));
-            Assert.AreEqual(0, DemoSaveSeeder.Seed(src, dst), "두 번째는 넣을 게 없음");
             Assert.AreEqual(0, DemoSaveSeeder.Seed(Path.Combine(_dir, "none"), dst), "원본 폴더가 없으면 0");
+        }
+
+        [Test]
+        public void Seed_OccupiedSlot_GoesToFirstEmptyManualSlot_NeverOverwrites()
+        {
+            string src = Path.Combine(_dir, "src"), dst = Path.Combine(_dir, "dst");
+            File.WriteAllText(Path.Combine(src, "slot1.json"), "demo1");
+            File.WriteAllText(Path.Combine(dst, "slot1.json"), "mine1");   // 예전 빌드 저장이 남은 PC
+
+            Assert.AreEqual(1, DemoSaveSeeder.Seed(src, dst));
+            Assert.AreEqual("mine1", File.ReadAllText(Path.Combine(dst, "slot1.json")), "있는 저장은 그대로");
+            Assert.AreEqual("demo1", File.ReadAllText(Path.Combine(dst, "slot2.json")), "비어 있는 첫 수동 슬롯");
+
+            File.WriteAllText(Path.Combine(dst, "slot3.json"), "mine3");
+            Assert.AreEqual(0, DemoSaveSeeder.Seed(src, dst), "수동 슬롯이 다 차면 넣지 않음");
+            Assert.AreEqual("mine3", File.ReadAllText(Path.Combine(dst, "slot3.json")));
         }
 
         [Test]
