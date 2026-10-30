@@ -11,18 +11,18 @@ namespace SpaceStation.Editor
     ///   백그라운드 실행(일시정지는 게임 설정 "창 비활성 시 자동 일시정지"가 결정)
     /// - Build Windows: Builds/Windows/AnotherEarth.exe (Assets 밖). 배포 빌드 = Development Build 꺼짐 → F5 디버그·진단 로그 비활성
     /// 제작사 이름(companyName)은 저장 폴더 경로(LocalLow/{제작사}/{제품})와 PlayerPrefs 레지스트리 경로를 정하므로 바꾸지 않는다.
-    /// 타이쿤판(tycoon 브랜치, SPLIT.md S-7): 제품 이름을 "Another Earth Tycoon"으로 — 서사판과 세이브 폴더 · PlayerPrefs(키 설정 등)가 섞이지 않게.
-    /// 두 판을 한 게임으로 합칠 때 모드별 세이브 구분으로 정리한다.
+    /// 타이쿤판(tycoon 브랜치, SPLIT.md S-7)은 제품 이름 "Another Earth Tycoon"으로 서사판과 세이브를 나눴음 →
+    /// 합본(combined, 2026-10-30)은 한 게임이므로 다시 "Another Earth" 하나 (모드는 저장마다 SaveMeta.Mode로 구분).
     /// </summary>
     public static class BuildSetup
     {
         public const string CompanyName = "BinaryCompany";
-        public const string ProductName = "Another Earth Tycoon";
-        public const string Version = "0.11.0"; // Phase 11 (2026-10-11, 11-19 포트폴리오 빌드)
+        public const string ProductName = "Another Earth";
+        public const string Version = "0.14.0"; // 합본 검수 빌드 (2026-10-30 — 캠페인 1~4장 + 엔드리스)
         /// <summary>메인 메뉴 오른쪽 아래 버전 표시 (11-19: Phase 11 이후에도 "v0.10 · Phase 10"으로 남아 있었음 → 여기 한 곳에서).</summary>
-        public const string VersionLabel = "v0.11 · Phase 11";
+        public const string VersionLabel = "v0.14 · 합본 (캠페인 + 엔드리스)";
         private const string OutputFolder = "Builds/Windows";
-        private const string ExeName = "AnotherEarthTycoon.exe";
+        private const string ExeName = "AnotherEarth.exe";
 
         [MenuItem("SpaceStation/Build/Apply Player Settings")]
         public static void ApplyPlayerSettings()
