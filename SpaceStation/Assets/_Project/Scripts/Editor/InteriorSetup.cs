@@ -70,7 +70,7 @@ namespace SpaceStation.Editor
         public const string WaterClearPath = MaterialFolder + "/M_InteriorWaterClear.mat";
         private const string SmokePath = MaterialFolder + "/M_InteriorSmoke.mat";
         private const string DustPath = "Assets/_Project/Art/Materials/FX/M_Dust.mat";
-        private const string SparkPath = "Assets/_Project/Art/Materials/FX/M_Spark.mat";
+        internal const string SparkPath ="Assets/_Project/Art/Materials/FX/M_Spark.mat";
         private const string RpAssetPath = "Assets/Settings/PC_RPAsset.asset";
         private const string RendererPath = "Assets/Settings/PC_Renderer.asset";
         private const string InteriorRendererPath = "Assets/Settings/PC_InteriorRenderer.asset";

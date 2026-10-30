@@ -105,6 +105,92 @@ namespace SpaceStation.Editor
             BuildEvoShield();
             BuildEvoDefense();
             BuildEvoArmor();
+            BuildEvoWorks();
+        }
+
+        /// <summary>
+        /// 진화 1단계 정비 공창 (3 × 2칸, mw_builder — 사용자 2026-10-30 시안 1 "이대로 옮겨줘 내부에서 체크할게"): 양 격납고 홀 (x 방향 유리 볼트 천장 ·
+        /// 흰 갈비살, 홀마다 양 끝 수리 패드 둘 = 수리 자리 넷 — 도는 회전판 위 고칠 부품 INT_EvoWorks_Pad0 ~ 3 · 용접 팔 (토치 Torch0 ~ 3 끝 불꽃) · 진단 콘솔, 가운데 작업대 위 도는 로봇 팔 ArmA · B,
+        /// 볼트 아래 다리 크레인), 가운데 띠 = 공용 부품 창고 (유리 원통 속 회전 선반 CarouselA · B · 두 홀을 잇는 건널목 · 노란 안전선).
+        /// 문 자리 = 연결점 있는 면 6, 바닥 해치 = 칸마다, 위 해치 = 가운데 줄 두 칸 (창고 건널목 평평한 천장), 천장 F + 4.0 (볼트 꼭대기 F + 5.15).
+        /// </summary>
+        private static void BuildEvoWorks()
+        {
+            const float ceiling = F + 4.0f;
+            var c00 = new Vector3Int(0, 0, 0);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c20 = new Vector3Int(2, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var c11 = new Vector3Int(1, 0, 1);
+            var c21 = new Vector3Int(2, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, Socket),
+                new InteriorSocket(c01, Vector3Int.left, Socket),
+                new InteriorSocket(c20, Vector3Int.right, Socket),
+                new InteriorSocket(c21, Vector3Int.right, Socket),
+                new InteriorSocket(c10, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c11, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(-2.25f, 0f, 2.6f)),     // 패드 · 부품 선반 비킴 (창고 띠 쪽 끝)
+                new InteriorSocket(c10, Vector3Int.down, -F, new Vector3(-2.6f, 0f, 2.6f)),      // 건널목 (5.4, 2.6)
+                new InteriorSocket(c20, Vector3Int.down, -F, new Vector3(2.25f, 0f, 2.6f)),
+                new InteriorSocket(c01, Vector3Int.down, -F, new Vector3(-2.25f, 0f, -2.6f)),
+                new InteriorSocket(c11, Vector3Int.down, -F, new Vector3(2.6f, 0f, -2.6f)),      // 건널목 (10.6, 5.4)
+                new InteriorSocket(c21, Vector3Int.down, -F, new Vector3(2.25f, 0f, -2.6f)),
+                new InteriorSocket(c10, Vector3Int.up, ceiling, new Vector3(-1.2f, 0f, 3.4f)),   // 창고 띠 평평한 천장 (6.8, 3.4)
+                new InteriorSocket(c11, Vector3Int.up, ceiling, new Vector3(1.2f, 0f, -3.4f)),   // (9.2, 4.6)
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (float zc in new[] { -0.4f, 8.4f })
+            {
+                foreach (float x in new[] { -1.2f, 4.0f, 8.0f, 12.0f, 17.2f })
+                    lights.Add(LightSpec.Point(new Vector3(x, F + 3.4f, zc), 6f, 1.5f, white));   // 볼트 아래 홀
+            }
+            foreach (var (x, z) in new[] { (0f, -0.4f), (16f, -0.4f), (0f, 8.4f), (16f, 8.4f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.8f, z), 3.5f, 0.8f, warm));      // 수리 패드
+            lights.Add(LightSpec.Point(new Vector3(6f, F + 3.2f, 4f), 5f, 1.2f, white));         // 창고 띠 건널목
+            lights.Add(LightSpec.Point(new Vector3(10f, F + 3.2f, 4f), 5f, 1.2f, white));
+            lights.Add(LightSpec.Point(new Vector3(2f, F + 2.0f, 4f), 2.5f, 0.6f, cool));         // 부품 선반 원통 속
+            lights.Add(LightSpec.Point(new Vector3(14f, F + 2.0f, 4f), 2.5f, 0.6f, cool));
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoWorks_Pad0", new Vector3(0f, 0f, -0.4f), Vector3.up, 10f),
+                new OrbitSpec("INT_EvoWorks_Pad1", new Vector3(16f, 0f, -0.4f), Vector3.up, -10f),
+                new OrbitSpec("INT_EvoWorks_Pad2", new Vector3(0f, 0f, 8.4f), Vector3.up, -10f),
+                new OrbitSpec("INT_EvoWorks_Pad3", new Vector3(16f, 0f, 8.4f), Vector3.up, 10f),
+                new OrbitSpec("INT_EvoWorks_ArmA", new Vector3(8f, 0f, -0.4f), Vector3.up, 15f),
+                new OrbitSpec("INT_EvoWorks_ArmB", new Vector3(8f, 0f, 8.4f), Vector3.up, -15f),
+                new OrbitSpec("INT_EvoWorks_CarouselA", new Vector3(2f, 0f, 4f), Vector3.up, 12f),
+                new OrbitSpec("INT_EvoWorks_CarouselB", new Vector3(14f, 0f, 4f), Vector3.up, -12f),
+            };
+            EvoAccent("MaintenanceWorks", "#FFC07F");
+            // 스폰 = 창고 띠 건널목에서 앞 홀 서쪽 패드 쪽을 바라봄
+            Build("EvoWorks", "Evolved/MD_Evo_MaintenanceWorks", sockets, new Vector3(5.2f, F, 4.2f), -130f, lights, orbits,
+                configure: root =>
+                {
+                    // 수리 패드 용접 팔 토치 (사용자 2026-10-30, mw_builder TORCHES): 토치를 패드 아래로 옮겨 부품 · 팔과 함께 돌게 하고, 끝에서 불꽃.
+                    // 짝수 = 선체 통 점검 판 끝 이음선 · 홀수 = 추진 노즐 옆면. 모델의 발광 구는 뺌
+                    var centers = new[] { new Vector2(0f, -0.4f), new Vector2(16f, -0.4f), new Vector2(0f, 8.4f), new Vector2(16f, 8.4f) };
+                    var torches = new Transform[4];
+                    var tips = new Vector3[4];
+                    var normals = new Vector3[4];
+                    for (int i = 0; i < 4; i++)
+                    {
+                        torches[i] = Child(root, "INT_EvoWorks_Torch" + i);
+                        var pad = Child(root, "INT_EvoWorks_Pad" + i);
+                        if (torches[i] != null && pad != null)
+                            torches[i].SetParent(pad, true);
+                        var c = centers[i];
+                        var tip = i % 2 == 0 ? new Vector3(c.x + 0.1144f, F + 1.4145f, c.y + 0.248f) : new Vector3(c.x + 0.1102f, F + 1.0579f, c.y + 0.4108f);
+                        var n = i % 2 == 0 ? new Vector3(0.1987f, 0.9801f, 0f) : new Vector3(0.2379f, 0.395f, 0.8873f);
+                        tips[i] = torches[i] != null ? torches[i].InverseTransformPoint(root.transform.TransformPoint(tip)) : tip;
+                        normals[i] = torches[i] != null ? torches[i].InverseTransformDirection(root.transform.TransformDirection(n)) : n;
+                    }
+                    root.AddComponent<InteriorWelder>().Configure(torches, tips, normals, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath));
+                });
         }
 
         /// <summary>
@@ -2727,7 +2813,7 @@ namespace SpaceStation.Editor
             { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life }, { "EvoCulture", InteriorAmbience.Life },
             { "EvoSolar", InteriorAmbience.Electric }, { "EvoFusion", InteriorAmbience.Heat }, { "EvoHydrogen", InteriorAmbience.Water },
             { "EvoGravity", InteriorAmbience.Life }, { "EvoFarm", InteriorAmbience.Water }, { "EvoMineral", InteriorAmbience.Heat },
-            { "EvoShield", InteriorAmbience.Electric }, { "EvoDefense", InteriorAmbience.Electric }, { "EvoArmor", InteriorAmbience.Electric },
+            { "EvoShield", InteriorAmbience.Electric }, { "EvoDefense", InteriorAmbience.Electric }, { "EvoArmor", InteriorAmbience.Electric }, { "EvoWorks", InteriorAmbience.Machine },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
