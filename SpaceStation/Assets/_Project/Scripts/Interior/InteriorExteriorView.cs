@@ -44,6 +44,7 @@ namespace SpaceStation.Interior
         private StationConnectors _connectors;
         private Light _sun;
         private Func<Vector3, ModuleInstance> _roomAt;
+        private Func<Transform, ModuleInstance> _roomOf;
         private Action<ModuleInstance, HashSet<ModuleInstance>> _linkedRooms;
         private Func<ModuleInstance, bool> _showOwnExterior;
         private readonly HashSet<ModuleInstance> _linked = new HashSet<ModuleInstance>();
@@ -67,9 +68,10 @@ namespace SpaceStation.Interior
         /// <param name="roomAt">내부 월드 위치 → 그 칸의 방 모듈 (없으면 null)</param>
         /// <param name="linkedRooms">방 → 그 방 + 열린 통로로 바로 이어진 방들 (창을 그릴 방 범위)</param>
         /// <param name="showOwnExterior">12-5 방 → 그 방 창에 자기 바깥 모델도 비출지 (템플릿 설정, 없으면 숨김)</param>
+        /// <param name="roomOf">창 렌더러 → 그 렌더러가 속한 방 모듈 (방 오브젝트 아래가 아니면 null → 경계 상자 가운데 칸으로)</param>
         public static InteriorExteriorView Create(Camera source, Transform interiorRoot, StationController station, Light sun, float farClip,
             Func<Vector3, ModuleInstance> roomAt, Action<ModuleInstance, HashSet<ModuleInstance>> linkedRooms,
-            Func<ModuleInstance, bool> showOwnExterior = null)
+            Func<ModuleInstance, bool> showOwnExterior = null, Func<Transform, ModuleInstance> roomOf = null)
         {
             var go = new GameObject("InteriorExteriorCamera");
             var view = go.AddComponent<InteriorExteriorView>();
@@ -77,6 +79,7 @@ namespace SpaceStation.Interior
             view._interiorRoot = interiorRoot;
             view._station = station;
             view._roomAt = roomAt;
+            view._roomOf = roomOf;
             view._linkedRooms = linkedRooms;
             view._showOwnExterior = showOwnExterior;
             view._connectors = station != null ? station.GetComponent<StationConnectors>() : null;
@@ -121,7 +124,9 @@ namespace SpaceStation.Interior
             {
                 if (!IsWindow(r))
                     continue;
-                var module = _roomAt != null ? _roomAt(r.bounds.center) : null;
+                // 창이 속한 방 = 렌더러가 든 방 오브젝트. 경계 상자 가운데 칸으로만 정하면 ㄱ자 모듈(비상 대응 센터)은 창 한 덩어리의
+                // 가운데가 빈 모서리 칸(옆 모듈 자리)에 떨어져, 옆 모듈을 숨기고 자기 바깥 모델 안쪽을 비춰 창이 하얗게 보였음 (사용자 2026-10-30)
+                var module = _roomOf?.Invoke(r.transform) ?? (_roomAt != null ? _roomAt(r.bounds.center) : null);
                 var lookout = r.GetComponent<InteriorLookoutWindow>();
                 var group = _groups.Find(g => g.Module == module && g.Lookout == lookout);
                 if (group == null)
