@@ -107,6 +107,29 @@ namespace SpaceStation.UI
                 layout.padding.top = 24;
         }
 
+        /// <summary>
+        /// 실행 중에 꾸민 버튼 · 패널을 복제했을 때 (메인 메뉴 모드 버튼 등): 원본이 만든 장식 자식 · <see cref="HoloButtonFx"/>를 뗀다 —
+        /// 그대로 두면 효과의 내부 참조(실행 중에 채움)가 빈 채로 복사돼 매 프레임 오류, 켤 때 장식이 한 벌 더 생김.
+        /// 꺼진 복제본에 부르고 켜면 <see cref="Awake"/>가 새로 꾸민다.
+        /// </summary>
+        public static void StripRuntimeDecor(GameObject clone)
+        {
+            foreach (var fx in clone.GetComponents<HoloButtonFx>())
+                DestroyImmediate(fx);
+            for (int i = clone.transform.childCount - 1; i >= 0; i--)
+            {
+                var child = clone.transform.GetChild(i);
+                if (IsDecor(child.name))
+                    DestroyImmediate(child.gameObject);
+            }
+            var old = clone.transform.Find("Frame_Old");
+            if (old != null)
+            {
+                old.name = "Frame";
+                old.gameObject.SetActive(true);
+            }
+        }
+
         /// <summary>새로 만든 장식 자식은 레이아웃 그룹이 줄 세우지 않게.</summary>
         private void IgnoreLayout()
         {

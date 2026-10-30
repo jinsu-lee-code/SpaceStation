@@ -183,7 +183,7 @@ namespace SpaceStation.UI
             {
                 if (mode == null)
                     continue;
-                var button = first ? _newGameButton : Instantiate(_newGameButton, parent);
+                var button = first ? _newGameButton : CloneModeButton(parent);
                 if (!first)
                 {
                     button.name = "Mode_" + mode.Id;
@@ -196,6 +196,22 @@ namespace SpaceStation.UI
                     label.SetText(mode.DisplayName);
                 button.onClick.AddListener(() => ShowStart(mode));
             }
+        }
+
+        /// <summary>
+        /// [새 게임] 버튼 복제 (모드가 둘 이상일 때 — 합본 [캠페인, 엔드리스]): 꺼진 채로 복제해 실행 중 장식 · 효과(<see cref="HoloSkin"/>가 원본에 만든 것)를 뗀 뒤 켬
+        /// → 복제본의 HoloSkin이 새로 꾸밈. 그대로 복제하면 효과의 내부 참조가 빈 채로 복사돼 매 프레임 오류가 났음 (합본 실행 확인 2026-10-30).
+        /// </summary>
+        private Button CloneModeButton(Transform parent)
+        {
+            var source = _newGameButton.gameObject;
+            bool active = source.activeSelf;
+            source.SetActive(false);
+            var clone = Instantiate(_newGameButton, parent);
+            source.SetActive(active);
+            HoloSkin.StripRuntimeDecor(clone.gameObject);
+            clone.gameObject.SetActive(active);
+            return clone;
         }
 
         /// <summary>시작 창을 모드에 맞춰 (null = 예전 난이도 선택 그대로).</summary>
