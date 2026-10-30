@@ -53,8 +53,27 @@ namespace SpaceStation.Tests
             Assert.AreEqual("demo1", File.ReadAllText(Path.Combine(dst, "slot2.json")), "비어 있는 첫 수동 슬롯");
 
             File.WriteAllText(Path.Combine(dst, "slot3.json"), "mine3");
-            Assert.AreEqual(0, DemoSaveSeeder.Seed(src, dst), "수동 슬롯이 다 차면 넣지 않음");
+            Assert.AreEqual(0, DemoSaveSeeder.Seed(src, dst), "수동 슬롯이 다 차면 넣지 않음 (읽을 수 있거나 알 수 없는 저장)");
             Assert.AreEqual("mine3", File.ReadAllText(Path.Combine(dst, "slot3.json")));
+        }
+
+        [Test]
+        public void Seed_AllSlotsFull_ReplacesOutdatedSave_KeepsItAside()
+        {
+            string src = Path.Combine(_dir, "src"), dst = Path.Combine(_dir, "dst");
+            File.WriteAllText(Path.Combine(src, "slot1.json"), "demo1");
+            File.WriteAllText(Path.Combine(dst, "slot1.json"), "{\"Version\":2}");   // 지금 버전 = 그대로
+            File.WriteAllText(Path.Combine(dst, "slot2.json"), "{\"Version\":1}");   // 이전 버전 (불러올 수 없음)
+            File.WriteAllText(Path.Combine(dst, "slot2.png"), "oldpng");
+            File.WriteAllText(Path.Combine(dst, "slot3.json"), "{\"Version\":1}");
+
+            Assert.AreEqual(1, DemoSaveSeeder.Seed(src, dst));
+            Assert.AreEqual("{\"Version\":2}", File.ReadAllText(Path.Combine(dst, "slot1.json")));
+            Assert.AreEqual("demo1", File.ReadAllText(Path.Combine(dst, "slot2.json")), "첫 이전 버전 자리");
+            Assert.AreEqual("{\"Version\":1}", File.ReadAllText(Path.Combine(dst, "slot2.old.json")), "예전 저장은 옆으로 남김");
+            Assert.AreEqual("oldpng", File.ReadAllText(Path.Combine(dst, "slot2.old.png")));
+            Assert.IsFalse(File.Exists(Path.Combine(dst, "slot2.png")), "예전 썸네일이 체험용 저장에 붙지 않음");
+            Assert.AreEqual("{\"Version\":1}", File.ReadAllText(Path.Combine(dst, "slot3.json")));
         }
 
         [Test]

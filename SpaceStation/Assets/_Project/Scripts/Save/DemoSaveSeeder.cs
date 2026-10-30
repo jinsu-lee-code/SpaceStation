@@ -51,6 +51,7 @@ namespace SpaceStation.Save
             return copied;
         }
 
+        /// <summary>같은 이름 슬롯 → 비어 있는 첫 수동 슬롯 → 불러올 수 없는 예전 버전 저장이 든 첫 수동 슬롯 (그 파일은 {슬롯}.old.json · .png로 옮겨 남김).</summary>
         private static string FreeSlot(string wanted, string target)
         {
             if (!File.Exists(Path.Combine(target, wanted + ".json")))
@@ -60,7 +61,41 @@ namespace SpaceStation.Save
                 if (!File.Exists(Path.Combine(target, slot + ".json")))
                     return slot;
             }
+            foreach (var slot in SaveService.ManualSlots)
+            {
+                string json = Path.Combine(target, slot + ".json");
+                if (!IsOutdated(json))
+                    continue;
+                MoveAside(json, Path.Combine(target, slot + ".old.json"));
+                MoveAside(Path.Combine(target, slot + ".png"), Path.Combine(target, slot + ".old.png"));
+                return slot;
+            }
             return null;
+        }
+
+        /// <summary>읽을 수 있는 가장 낮은 버전보다 오래된 저장 (지금 게임이 "이전 버전"으로만 보여 주고 불러오지 못함).</summary>
+        private static bool IsOutdated(string json)
+        {
+            try
+            {
+                var file = JsonUtility.FromJson<SaveFile>(File.ReadAllText(json));
+                return file != null && file.Version > 0 && file.Version < SaveService.MinReadableVersion;
+            }
+            catch (System.Exception)
+            {
+                return false; // 깨진 파일은 건드리지 않음
+            }
+        }
+
+        /// <summary>옆으로 옮김 (같은 이름이 있으면 .old2 · .old3 … — 아무것도 지우지 않음).</summary>
+        private static void MoveAside(string from, string to)
+        {
+            if (!File.Exists(from))
+                return;
+            string dest = to;
+            for (int k = 2; File.Exists(dest); k++)
+                dest = to.Replace(".old.", $".old{k}.");
+            File.Move(from, dest);
         }
     }
 }
