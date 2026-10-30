@@ -1,0 +1,188 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5779d0e21f0e9647a0c673d17ae6ed5, type: 3}
+  m_Name: CH_4
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ChapterData
+  _displayName: "4\uC7A5"
+  _subtitle: "\uC881\uC544\uC9C4 \uD558\uB298"
+  _introSpeaker: 
+  _introLines: []
+  _interiorGuide: {fileID: 0}
+  _guide: {fileID: 11400000, guid: 13d05cc91a53980468d5577c353fcb87, type: 2}
+  _unlocks:
+  - {fileID: 11400000, guid: 54cc69e3298ccc440968bfc7b10261b8, type: 2}
+  _newNeeds: 
+  _rules: 4
+  _recipes:
+  - {fileID: 11400000, guid: 657c12f8643a4d34f98ba451beece3d8, type: 2}
+  - {fileID: 11400000, guid: 70b6794e9e217ea43a4cd2d47de1746b, type: 2}
+  - {fileID: 11400000, guid: 8ade514bcdf46d44b9aae76528c0256a, type: 2}
+  - {fileID: 11400000, guid: 32d94f52995ea2743b2229b480e6ec5c, type: 2}
+  - {fileID: 11400000, guid: 836ae8535ade3614f85726599ffa1074, type: 2}
+  - {fileID: 11400000, guid: c234154fe736ed74a8c613511d690a69, type: 2}
+  _meteorHitsMin: 6
+  _meteorHitsMax: 9
+  _eventIntervalMultiplier: 0.25
+  _eventIntensityMultiplier: 2
+  _gradeUpNeeds: 
+  _gradeUpScale: 1
+  _gradeUpMeteorHitsMin: 8
+  _gradeUpMeteorHitsMax: 11
+  _gradeUpEventIntervalMultiplier: 0.21
+  _gradeUpEventIntensityMultiplier: 2.4
+  _ships: 1
+  _shipInterval: 240
+  _shipSizeMin: 4
+  _shipSizeMax: 6
+  _shipForecast: 60
+  _newSpecies: {fileID: 11400000, guid: 5d123fdfb05137b4f943694a74a13e32, type: 2}
+  _growthIntervalScale: 3
+  _signals: 
+  _signalDistanceMin: 6
+  _signalDistanceMax: 10
+  _cleanFragments: 0
+  _firstShowerDelay: 0
+  _firstShowerWaves: 1
+  _policySlots: 0
+  _gradeUpPolicySlots: 0
+  _policies: []
+  _policyApplyDelay: 30
+  _policySwapCooldown: 180
+  _earthLightsStart: 0.36
+  _earthLightsEnd: 0.3
+  _earthDimSeconds: 1800
+  _earthLightsFinal: -1
+  _earthDimNotices: 3
+  _transmission: "\uAE30\uB85D 23. \uACE0\uCCD0 \uC4F0\uACE0 \uB610 \uACE0\uCCD0
+    \uC37C\uB2E4. \uCC98\uC74C \uC124\uACC4\uB3C4\uC640 \uB2EE\uC740 \uACF3\uC740
+    \uC774\uC81C \uAC70\uC758 \uC5C6\uB2E4. \uADF8\uB798\uB3C4 \uC6B0\uB9AC\uB294
+    \uC774\uAC83\uC744 \uBC29\uC8FC\uB77C \uBD80\uB978\uB2E4."
+  _goals:
+  - _kind: 0
+    _text: 
+    _optional: 0
+    _grade: 4
+    _module: {fileID: 0}
+    _count: 0
+    _resource: 0
+    _amount: 0
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 6
+    _text: 
+    _optional: 0
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 1
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 4
+    _text: "\uC5EC\uC6B0 \uBB34\uB9AC \uB9DE\uC774\uD558\uAE30 (\uBAA8\uB450 \uBC1B\uAE30
+      \xB7 \uBE48 \uC9D1\uB9CC\uD07C \xB7 \uAC70\uBD80 \uBB34\uC5C7\uC774\uB4E0)"
+    _optional: 0
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 110
+    _resource: 4
+    _amount: 0
+    _flag: ship.new.fox
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 7
+    _text: "\uC9C4\uD654 \uBAA8\uB4C8 \uC138 \uAC00\uC9C0 \uAC00\uB3D9"
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 3
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources:
+    - Type: 4
+      Amount: 150
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 4
+    _text: "\uAE30\uB85D \uD558\uB098 \uB354 \uB418\uC0B4\uB9AC\uAE30"
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 110
+    _resource: 4
+    _amount: 0
+    _flag: record@4
+    _rewardResources: []
+    _rewardResearchPoints: 1
+    _rewardFreeRepairs: 0
+  _climax:
+    _kind: 5
+    _title: "\uD30C\uD3B8 \uB760"
+    _description: "\uBD80\uC11C\uC9C4 \uC704\uC131\uC758 \uD30C\uD3B8 \uB760\uAC00
+      6\uBD84 \uB3D9\uC548 \uC815\uAC70\uC7A5\uC744 \uAC10\uC309\uB2C8\uB2E4 \xB7
+      \uADF8\uB3D9\uC548 \uC0C8 \uCE78\uC5D0\uB294 \uC9C0\uC744 \uC218 \uC5C6\uACE0,
+      \uC774\uBBFC\uC120 4\uCC99\uC774 \uC787\uB2EC\uC544 \uC635\uB2C8\uB2E4 (\uCC99\uB2F9
+      5~7\uBA85) \xB7 \uD569\uC131\uC73C\uB85C \uCE78\uC744 \uC544\uAEF4 \uBE48 \uC9D1\uC744
+      \uBBF8\uB9AC"
+    _warningSeconds: 180
+    _waves: 4
+    _waveInterval: 20
+    _hitsPerWave: 3
+    _settleSeconds: 30
+    _cleanMaxDamaged: 4
+    _hurtMaxDestroyed: 0
+    _nightSeconds: 180
+    _cleanMaxShortageSeconds: 0
+    _hurtMaxShortageSeconds: 60
+    _showerDirections: 2
+    _showerFirstWarning: 120
+    _showerNextWarning: 40
+    _cleanMinBlocked: 0.5
+    _migrationShips: 4
+    _migrationFirstLead: 30
+    _migrationInterval: 90
+    _migrationSizeMin: 5
+    _migrationSizeMax: 7
+    _cleanMinAccepted: 0.6
+    _cleanMaxDeparted: 0
+    _hurtMinAccepted: 0.3
+    _hurtMaxDeparted: 3
+    _bandSeconds: 360
+    _cleanLabel: "\uB109\uB109\uD55C \uC218\uC6A9"
+    _hurtLabel: "\uBE60\uB4EF\uD55C \uC218\uC6A9"
+    _lostLabel: "\uB9CE\uC740 \uC774\uC758 \uC774\uD0C8"
+  _choices:
+  - _id: keep
+    _title: "\uC61B \uBAA8\uC591\uC744 \uB0A8\uACA8 \uB454\uB2E4"
+    _description: "\uD569\uCCD0\uC11C \uC0AC\uB77C\uC9C4 \uBAA8\uB4C8\uC758 \uC774\uB984\uACFC
+      \uBAA8\uC591\uC744 \uAE30\uB85D\uC5D0 \uB0A8\uAE34\uB2E4"
+    _shifts:
+    - Axis: 3
+      Toward: 1
+      Size: 2
+  - _id: reshape
+    _title: "\uC0C8 \uBAA8\uC591\uC73C\uB85C \uBC14\uAFD4 \uAC04\uB2E4"
+    _description: "\uC4F8\uBAA8\uB97C \uB530\uB77C \uAC70\uCE68\uC5C6\uC774 \uB179\uC774\uACE0
+      \uB2E4\uC2DC \uC9D3\uB294\uB2E4"
+    _shifts:
+    - Axis: 3
+      Toward: 2
+      Size: 2
+    - Axis: 0
+      Toward: 1
+      Size: 0

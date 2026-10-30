@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0698a21dc786dfb40a08307d0a35b4e4, type: 3}
+  m_Name: SP_Bear
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.SpeciesData
+  _id: bear
+  _displayName: "\uACF0"
+  _description: "\uD798\uC774 \uC138\uACE0 \uC5BD\uB9E4\uC774\uAE30 \uC2EB\uC5B4\uD558\uB294
+    \uBB34\uB9AC. \uC26C\uACE0 \uB178\uB294 \uC790\uB9AC\uB97C \uC911\uC2DC\uD558\uACE0,
+    \uACE0\uCE58\uB294 \uC190\uC774 \uBE60\uB974\uB2E4."
+  _favoredNeed: 2
+  _favoredWeight: 0.5
+  _controlReaction: -0.5
+  _techTrait: 0
+  _techPerResident: 0.02
+  _techMax: 0.1
+  _heatTolerance: 0.5
+  _radiationTolerance: 0
+  _shipColor: {r: 0.62, g: 0.4, b: 0.22, a: 1}
+  _arrivalLines:
+  - "\uBC30 \uD55C \uCC99\uC774 \uBC29\uC8FC\uC5D0 \uB2FF\uC558\uB2E4. \uC120\uCCB4\uAC00
+    \uC628\uD1B5 \uADF8\uC744\uB838\uB2E4."
+  - "\uACF0\uB4E4\uC774 \uD0C0\uACE0 \uC788\uB2E4. \uC9C0\uAD6C\uC5D0\uC11C \uC5EC\uAE30\uAE4C\uC9C0,
+    \uC27D\uC9C0 \uC54A\uC740 \uAE38\uC774\uC5C8\uC744 \uAC70\uB2E4."
+  - "\uB4E4\uC77C\uC9C0 \uB3CC\uB824\uBCF4\uB0BC\uC9C0, \uC774\uBC88\uC5D4 \uB0B4\uAC00
+    \uC815\uD574\uC57C \uD55C\uB2E4."
+  _remarks:
+  - Key: climax.warning.3
+    Text: "\uBC30\uAC00 \uB354 \uC628\uB2E4\uACE0. \uC790\uB9AC\uB294 \uB9CC\uB4E4\uBA74
+      \uB41C\uB2E4."
+  - Key: chapter.start.4.Clean
+    Text: "\uB9CE\uC774 \uC654\uAD70. \uC881\uC544\uB3C4 \uAD1C\uCC2E\uB2E4."
+  - Key: chapter.start.4
+    Text: "\uBC16\uC774 \uC2DC\uB044\uB7FD\uB2E4. \uC870\uAC01\uB4E4\uC774 \uB5A0\uB2E4\uB2CC\uB2E4."
+  - Key: climax.warning.4
+    Text: "\uBC16\uC73C\uB85C\uB294 \uBABB \uB113\uD78C\uB2E4. \uC548\uC5D0\uC11C
+      \uBC84\uD2F4\uB2E4."
+  - Key: ship.accept
+    Text: "\uB610 \uC654\uAD70. \uC881\uC73C\uBA74 \uBD99\uC5B4 \uC790\uBA74 \uB41C\uB2E4."
+  - Key: ship.partial
+    Text: "\uB2E4 \uBABB \uD0DC\uC6E0\uB2E4\uACE0. \uADF8\uB798, \uD560 \uC218 \uC788\uB294
+      \uB9CC\uD07C \uD55C \uAC70\uB2E4."
+  - Key: ship.refuse
+    Text: "\uB3CC\uB824\uBCF4\uB0C8\uAD70. \uC6B0\uB9AC\uB3C4 \uC800\uB7F4 \uBED4\uD588\uB2E4."
+  - Key: ship.new.fox
+    Text: "\uC5EC\uC6B0\uAD70. \uC190\uC740 \uBE60\uB974\uACA0\uC9C0. \uB9D0\uC740
+      \uB9CE\uACA0\uACE0."

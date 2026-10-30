@@ -34,6 +34,8 @@ namespace SpaceStation.Simulation
         public ContactConfig Contact;
         /// <summary>12-4 연구 확장 (레시피 그림자 · 해금 연구 · 연계 연구). null이면 없음 = 레시피는 자동 해금만 (12-3과 같음).</summary>
         public ResearchExpansionConfig ResearchExpansion;
+        /// <summary>13-1 장 틀 (null · 비면 없음 = 등급이 해금 · 요구 · 이벤트 규모 · 규칙을 정하는 이전 방식).</summary>
+        public ChapterConfig Chapters;
         /// <summary>
         /// 보급 상자 내용 · 내부 결과 난수의 시드. null이면 매 판 다른 시스템 난수 (게임). 밸런스 봇은 시드에서 섞어 넣는다 —
         /// 2026-10-17: 봇이 상자를 처음부터 줍게 된 뒤(13-7) 같은 시드도 약 10분부터 결과가 갈라졌음.
@@ -134,6 +136,9 @@ namespace SpaceStation.Simulation
         public IReadOnlyList<GameEventData> EventPool => _eventPool;
         /// <summary>시뮬레이션 경과 시간(초).</summary>
         public float ElapsedSeconds { get; private set; }
+        /// <summary>13-1 장 틀 (설정에 없으면 null). 있으면 규칙(<see cref="SetRules"/>)과 이벤트 규모(<see cref="SetEventScale"/>)를 정하는 쪽으로 붙는다 (main 공통 고리, MERGE_NOTES M-1 · M-2).</summary>
+        public ChapterSystem Chapters { get; }
+
         /// <summary>현재 이벤트 강도 배율 (규모를 정하는 쪽이 있으면 그쪽, 없으면 등급).</summary>
         public float EventIntensity => EventScale.EventIntensityMultiplier;
 
@@ -298,6 +303,13 @@ namespace SpaceStation.Simulation
                 ApplyResidentEffects();
             }
             BuildTickSteps();
+            if (settings.Chapters != null && settings.Chapters.Count > 0)
+            {
+                Chapters = AddSystem(new ChapterSystem(settings.Chapters), TickStepNames.Progression); // 등급 판정 바로 뒤
+                Progression.UnlockSource = Chapters;
+                SetRules(Chapters);      // main 공통 판정 고리 (MERGE_NOTES M-1)
+                SetEventScale(Chapters); // main 공통 이벤트 규모 고리 (M-2)
+            }
             if (settings.Recipes != null)
                 Synthesis = AddSystem(new SynthesisSystem(settings.Recipes), TickStepNames.Automation); // 요구 · 인구 계산 전에 교체가 끝나게
             MeteorShower = AddSystem(new MeteorShowerSystem(settings.HazardRandom01), TickStepNames.Events); // 도시급 전에는 아무것도 안 함 (기존 결과 그대로)

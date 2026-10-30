@@ -112,6 +112,8 @@ namespace SpaceStation.Audio
                     _sim.Progression.VictoryReached += HandleVictory;
                     _sim.Session.GameOver += HandleGameOver;
                     _sim.Resources.DepletionChanged += HandleDepletion;
+                    if (_sim.Chapters != null)
+                        _sim.Chapters.CampaignFinished += HandleCampaignFinished; // 13-1 승리 = 마지막 장 끝
                 }
                 else
                 {
@@ -128,6 +130,8 @@ namespace SpaceStation.Audio
                     _sim.Progression.VictoryReached -= HandleVictory;
                     _sim.Session.GameOver -= HandleGameOver;
                     _sim.Resources.DepletionChanged -= HandleDepletion;
+                    if (_sim.Chapters != null)
+                        _sim.Chapters.CampaignFinished -= HandleCampaignFinished;
                 }
             }
             if (_build != null)
@@ -429,7 +433,7 @@ namespace SpaceStation.Audio
             var p = _sim.Progression;
             if (current > previous)
             {
-                if (p.IsAtOrAboveVictory && !p.HasReachedVictory)
+                if (p.IsAtOrAboveVictory && !p.HasReachedVictory && _sim.Chapters == null)
                     return; // 곧 VictoryReached → 완성 소리
                 _audio.Play(_lib.GradeUp);
             }
@@ -440,6 +444,14 @@ namespace SpaceStation.Audio
         }
 
         private void HandleVictory()
+        {
+            if (_sim.Chapters == null) // 13-1 장 틀이면 대형 도달은 승리가 아님
+                PlayVictory();
+        }
+
+        private void HandleCampaignFinished() => PlayVictory();
+
+        private void PlayVictory()
         {
             _audio.Play(_lib.Victory);
             _audio.DuckMusic(0.35f);

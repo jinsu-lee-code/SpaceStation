@@ -69,7 +69,8 @@ namespace SpaceStation.Save
             _sim.Session.GameOver += HandleGameOver;
 
             var loaded = _host.LoadedSave;
-            _modeId = loaded != null ? loaded.Meta?.Mode : GameStartOptions.Mode != null ? GameStartOptions.Mode.Id : null;
+            // 합본: 호스트가 정한 이번 판 모드 (저장 · 메인 메뉴 · 씬 기본) — 모드 없는 예전 저장은 그대로
+            _modeId = _host.Mode != null ? _host.Mode.Id : loaded != null ? loaded.Meta?.Mode : null;
             if (loaded == null)
                 return;
             var c = loaded.Camera;

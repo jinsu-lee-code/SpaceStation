@@ -9,9 +9,22 @@ namespace SpaceStation.Simulation
     /// 해금: 현재 등급 이하 등급들의 해금 목록에 있는 모듈만 건설 가능.
     /// 개수 제한: 제한 모듈(채굴 도킹)은 현재 등급의 최대 수까지만 추가 건설 가능 (초과분은 유지).
     /// </summary>
+    /// <summary>13-1: 등급 대신 모듈 해금을 정하는 쪽 (장 틀).</summary>
+    public interface IModuleUnlocks
+    {
+        bool IsUnlocked(ModuleData data);
+        /// <summary>처음 열리는 단계 (장 인덱스, 없으면 -1).</summary>
+        int UnlockStage(ModuleData data);
+        /// <summary>세이브 · 전시용: 이름으로 모듈 정의 찾기 (없으면 null).</summary>
+        ModuleData Find(string assetName);
+    }
+
     public sealed class StationProgression
     {
         private readonly StationGradeConfig _config;
+
+        /// <summary>13-1: 장 틀이 있으면 해금은 이것이 정함 (null = 등급 해금 목록).</summary>
+        public IModuleUnlocks UnlockSource { get; internal set; }
 
         /// <summary>(이전 등급 인덱스, 새 등급 인덱스).</summary>
         public event Action<int, int> GradeChanged;
@@ -87,7 +100,7 @@ namespace SpaceStation.Simulation
                 foreach (var m in g.Unlocks)
                     if (m != null && m.name == assetName)
                         return m;
-            return null;
+            return UnlockSource?.Find(assetName);
         }
 
         /// <summary>조건을 만족하는 가장 높은 등급 (첫 등급은 조건과 무관하게 항상 만족).</summary>
@@ -153,7 +166,7 @@ namespace SpaceStation.Simulation
         /// 건설 메뉴 정렬 기준: 이 모듈이 열리는 순서 (작을수록 먼저). 지금은 <see cref="GetUnlockGrade"/>와 같음 —
         /// 해금을 따로 정하는 판(서사판 장 틀)은 이 한 곳에서 그 순서를 돌려준다.
         /// </summary>
-        public int UnlockOrder(ModuleData data) => GetUnlockGrade(data);
+        public int UnlockOrder(ModuleData data) => UnlockSource != null ? UnlockSource.UnlockStage(data) : GetUnlockGrade(data); // 서사판: 열리는 장 순
 
         /// <summary>13-1: 규칙을 정하는 쪽이 붙으면 모듈의 <see cref="ModuleData.RequiredRule"/>도 본다 (null = 등급 해금만).</summary>
         public Func<StationRule, bool> RuleCheck { get; internal set; }
@@ -170,6 +183,8 @@ namespace SpaceStation.Simulation
         {
             if (data == null || data.ComingSoon || IsRuleLocked(data))
                 return false;
+            if (UnlockSource != null)
+                return UnlockSource.IsUnlocked(data) || IsExtraUnlocked(data); // 13-1 장 틀: 장은 되돌아가지 않으므로 지금 장 기준 = 지금까지 연 것
             int grade = GetUnlockGrade(data);
             return (grade >= 0 && grade <= Math.Max(GradeIndex, HighestGradeIndex)) || IsExtraUnlocked(data);
         }
@@ -188,6 +203,8 @@ namespace SpaceStation.Simulation
                 return false; // 12-5 준비 중 (기능이 연결되는 작업 전)
             if (IsRuleLocked(data))
                 return false; // 13-1 규칙이 아직 안 열림
+            if (UnlockSource != null)
+                return UnlockSource.IsUnlocked(data) || IsExtraUnlocked(data); // 13-1 장 틀
             int grade = GetUnlockGrade(data);
             return (grade >= 0 && grade <= GradeIndex) || IsExtraUnlocked(data);
         }

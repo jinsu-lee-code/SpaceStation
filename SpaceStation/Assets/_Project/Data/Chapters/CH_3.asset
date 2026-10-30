@@ -1,0 +1,187 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5779d0e21f0e9647a0c673d17ae6ed5, type: 3}
+  m_Name: CH_3
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ChapterData
+  _displayName: "3\uC7A5"
+  _subtitle: "\uBB34\uB9AC \uD569\uB958"
+  _introSpeaker: 
+  _introLines: []
+  _interiorGuide: {fileID: 0}
+  _guide: {fileID: 0}
+  _unlocks:
+  - {fileID: 11400000, guid: 10878b207703a5f4ba93a15b9ce5120f, type: 2}
+  - {fileID: 11400000, guid: 0af3291fd0d56e040b442377ae1bc48c, type: 2}
+  - {fileID: 11400000, guid: 585783da322cda94eb46e8b23b149a25, type: 2}
+  - {fileID: 11400000, guid: 57be1da226ec1fe43987b71b6a5118a5, type: 2}
+  - {fileID: 11400000, guid: baf82f88d7dd8af4485e679bf6e430d9, type: 2}
+  - {fileID: 11400000, guid: d0262f6ccfbe2fa489c03788c788b3a4, type: 2}
+  _newNeeds: 
+  _rules: 2
+  _recipes: []
+  _meteorHitsMin: 3
+  _meteorHitsMax: 6
+  _eventIntervalMultiplier: 0.38
+  _eventIntensityMultiplier: 1.6
+  _gradeUpNeeds: 
+  _gradeUpScale: 1
+  _gradeUpMeteorHitsMin: 6
+  _gradeUpMeteorHitsMax: 9
+  _gradeUpEventIntervalMultiplier: 0.25
+  _gradeUpEventIntensityMultiplier: 2
+  _ships: 1
+  _shipInterval: 240
+  _shipSizeMin: 4
+  _shipSizeMax: 6
+  _shipForecast: 60
+  _newSpecies: {fileID: 11400000, guid: a3f89682510ee10498e67262309628f0, type: 2}
+  _growthIntervalScale: 3
+  _signals: 
+  _signalDistanceMin: 6
+  _signalDistanceMax: 10
+  _cleanFragments: 0
+  _firstShowerDelay: 0
+  _firstShowerWaves: 1
+  _policySlots: 1
+  _gradeUpPolicySlots: 1
+  _policies:
+  - {fileID: 11400000, guid: 024d4f04494ce0942b6a954d33f6b4df, type: 2}
+  - {fileID: 11400000, guid: dc2dc3d4a7001344d8a0cdb95e139be9, type: 2}
+  - {fileID: 11400000, guid: f3bb4f77e71fddd4a90d3aaa01d1c914, type: 2}
+  - {fileID: 11400000, guid: a4241dc2e7299c141a0ce99b12c215f9, type: 2}
+  _policyApplyDelay: 30
+  _policySwapCooldown: 180
+  _earthLightsStart: 0.6
+  _earthLightsEnd: 0.48
+  _earthDimSeconds: 1800
+  _earthLightsFinal: -1
+  _earthDimNotices: 3
+  _transmission: "\uAE30\uB85D 19. \uD310\uB2E8\uC740 \uCF54\uC5B4\uC5D0\uAC8C \uB9E1\uAE34\uB2E4.
+    \uC6B0\uB9AC\uBCF4\uB2E4 \uB098\uC740 \uC120\uD0DD\uC744 \uD558\uAE30\uB97C."
+  _goals:
+  - _kind: 0
+    _text: 
+    _optional: 0
+    _grade: 3
+    _module: {fileID: 0}
+    _count: 0
+    _resource: 0
+    _amount: 0
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 4
+    _text: "\uCCAB \uC774\uBBFC\uC120 \uB9DE\uC774\uD558\uAE30 (\uBAA8\uB450 \uBC1B\uAE30
+      \xB7 \uBE48 \uC9D1\uB9CC\uD07C \xB7 \uAC70\uBD80 \uBB34\uC5C7\uC774\uB4E0)"
+    _optional: 0
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 50
+    _resource: 4
+    _amount: 0
+    _flag: ship.new
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 4
+    _text: "\uC815\uCC45 \uD558\uB098 \uC2DC\uD589"
+    _optional: 0
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 50
+    _resource: 4
+    _amount: 0
+    _flag: policy
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 1
+    _text: "\uD734\uAC8C\uC2E4 \uAC00\uB3D9 (\uACF0\uC758 \uC5EC\uAC00)"
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 11400000, guid: 10878b207703a5f4ba93a15b9ce5120f, type: 2}
+    _count: 1
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources:
+    - Type: 4
+      Amount: 100
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 1
+    _text: "\uC5EC\uAC1D \uB3C4\uD0B9 \uD3EC\uD2B8 \uC9D3\uAE30"
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 11400000, guid: d0262f6ccfbe2fa489c03788c788b3a4, type: 2}
+    _count: 1
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 1
+    _rewardFreeRepairs: 0
+  _climax:
+    _kind: 4
+    _title: "\uB300\uC774\uC8FC"
+    _description: "\uC11E\uC778 \uBB34\uB9AC\uB97C \uD0DC\uC6B4 \uC774\uBBFC\uC120
+      3\uCC99\uC774 \uC787\uB2EC\uC544 \uC635\uB2C8\uB2E4 \xB7 \uCC99\uB2F9 5~7\uBA85
+      \xB7 \uBE48 \uC9D1\uACFC \uC0DD\uBA85 \uC720\uC9C0\uB97C \uBBF8\uB9AC \uB109\uB109\uD788"
+    _warningSeconds: 180
+    _waves: 4
+    _waveInterval: 20
+    _hitsPerWave: 3
+    _settleSeconds: 90
+    _cleanMaxDamaged: 4
+    _hurtMaxDestroyed: 0
+    _nightSeconds: 180
+    _cleanMaxShortageSeconds: 0
+    _hurtMaxShortageSeconds: 60
+    _showerDirections: 2
+    _showerFirstWarning: 120
+    _showerNextWarning: 40
+    _cleanMinBlocked: 0.5
+    _migrationShips: 3
+    _migrationFirstLead: 20
+    _migrationInterval: 45
+    _migrationSizeMin: 5
+    _migrationSizeMax: 7
+    _cleanMinAccepted: 0.6
+    _cleanMaxDeparted: 0
+    _hurtMinAccepted: 0.3
+    _hurtMaxDeparted: 3
+    _bandSeconds: 360
+    _cleanLabel: "\uB109\uB109\uD788 \uB9DE\uC774\uD568"
+    _hurtLabel: "\uBE60\uB4EF\uD558\uAC8C \uB9DE\uC774\uD568"
+    _lostLabel: "\uB9CE\uC740 \uC774\uB97C \uB193\uCE68"
+  _choices:
+  - _id: open
+    _title: "\uBB38\uC744 \uC5F0\uB2E4"
+    _description: "\uC624\uB294 \uBB34\uB9AC\uB97C \uB418\uB3C4\uB85D \uBC1B\uB294\uB2E4"
+    _shifts:
+    - Axis: 0
+      Toward: 2
+      Size: 2
+    - Axis: 1
+      Toward: 2
+      Size: 0
+  - _id: order
+    _title: "\uC9C8\uC11C\uB97C \uC138\uC6B4\uB2E4"
+    _description: "\uBC1B\uAE30 \uC804\uC5D0 \uADDC\uCE59\uBD80\uD130 \uC138\uC6B4\uB2E4"
+    _shifts:
+    - Axis: 1
+      Toward: 1
+      Size: 2
+    - Axis: 0
+      Toward: 1
+      Size: 0

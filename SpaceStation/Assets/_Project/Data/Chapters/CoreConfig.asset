@@ -1,0 +1,288 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5dca64084a95c784fa7be27a45251470, type: 3}
+  m_Name: CoreConfig
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.CoreConfig
+  _small: 5
+  _medium: 10
+  _large: 20
+  _slight: 15
+  _leaning: 40
+  _deep: 70
+  _lines:
+  - Key: goal.done
+    Pole: 0
+    Axis: 0
+    Text: "\uC7A5 \uBAA9\uD45C \uC644\uB8CC: {0}{1}"
+  - Key: goal.done
+    Pole: 1
+    Axis: 0
+    Text: "\uBAA9\uD45C \uCC98\uB9AC \uC644\uB8CC: {0}{1} \xB7 \uB2E4\uC74C \uC791\uC5C5\uC73C\uB85C"
+  - Key: goal.done
+    Pole: 2
+    Axis: 0
+    Text: "\uC7A5 \uBAA9\uD45C \uC644\uB8CC: {0}{1} \xB7 \uBAA8\uB450 \uC870\uAE08
+      \uB354 \uD3B8\uD574\uC9C8 \uAC81\uB2C8\uB2E4"
+  - Key: climax.warning
+    Pole: 0
+    Axis: 0
+    Text: "\uC704\uAE30\uAC00 \uB2E4\uAC00\uC635\uB2C8\uB2E4: {0} \xB7 {1}\uBD84
+      \uB4A4"
+  - Key: climax.warning
+    Pole: 1
+    Axis: 1
+    Text: "\uC704\uAE30\uAC00 \uB2E4\uAC00\uC635\uB2C8\uB2E4: {0} \xB7 {1}\uBD84
+      \uB4A4 \xB7 \uBC30\uCE58\uB97C \uC810\uAC80\uD569\uB2C8\uB2E4"
+  - Key: climax.warning
+    Pole: 2
+    Axis: 0
+    Text: "\uC704\uAE30\uAC00 \uB2E4\uAC00\uC635\uB2C8\uB2E4: {0} \xB7 {1}\uBD84
+      \uB4A4 \xB7 \uB2E4\uB4E4 \uC548\uCABD\uC73C\uB85C \uBAA8\uC5EC \uC8FC\uC138\uC694"
+  - Key: chapter.start
+    Pole: 0
+    Axis: 0
+    Text: "{0} \uC2DC\uC791{1}"
+  - Key: chapter.start
+    Pole: 2
+    Axis: 2
+    Text: "{0} \uC2DC\uC791 \xB7 \uB354 \uBA40\uB9AC \uAC08 \uC218 \uC788\uC2B5\uB2C8\uB2E4{1}"
+  - Key: chapter.start
+    Pole: 1
+    Axis: 2
+    Text: "{0} \uC2DC\uC791 \xB7 \uC9C0\uD0AC \uAC83\uBD80\uD130 \uC9C0\uD0B5\uB2C8\uB2E4{1}"
+  - Key: gradeup
+    Pole: 0
+    Axis: 0
+    Text: '{0}'
+  - Key: outcome.Clean
+    Pole: 0
+    Axis: 0
+    Text: "\uBAA8\uB450 \uBB34\uC0AC\uD558\uB2E4. \uAE30\uB85D\uD574 \uB454\uB2E4."
+  - Key: outcome.Clean
+    Pole: 1
+    Axis: 0
+    Text: "\uC190\uC2E4 \uC5C6\uC74C. \uC608\uC0C1\uB300\uB85C\uB2E4."
+  - Key: outcome.Hurt
+    Pole: 0
+    Axis: 0
+    Text: "\uC0C1\uCC98\uB294 \uB0AC\uC9C0\uB9CC \uBC84\uD17C\uB2E4."
+  - Key: outcome.Hurt
+    Pole: 2
+    Axis: 0
+    Text: "\uB2E4\uCE5C \uACF3\uBD80\uD130 \uC0B4\uD540\uB2E4. \uBBF8\uC548\uD558\uB2E4."
+  - Key: outcome.Lost
+    Pole: 0
+    Axis: 0
+    Text: "\uC783\uC740 \uAC83\uC774 \uC788\uB2E4. \uC78A\uC9C0 \uC54A\uACA0\uB2E4."
+  - Key: outcome.Lost
+    Pole: 2
+    Axis: 3
+    Text: "\uC783\uC740 \uAC83\uC740 \uC9C0\uC6B0\uACE0 \uC55E\uC73C\uB85C \uAC04\uB2E4."
+  - Key: choice.remember
+    Pole: 0
+    Axis: 0
+    Text: "\uC9C0\uAD6C \uCABD \uCC3D\uC744 \uC5F4\uC5B4 \uB450\uC5C8\uB2E4. \uAEBC\uC838
+      \uAC00\uB294 \uBD88\uBE5B\uC744 \uC78A\uC9C0 \uC54A\uC73C\uB824\uACE0."
+  - Key: choice.forget
+    Pole: 0
+    Axis: 0
+    Text: "\uB4A4\uB97C \uBCF4\uB294 \uCC3D\uC740 \uB2EB\uC558\uB2E4. \uC774\uC81C
+      \uC55E\uB9CC \uBCF8\uB2E4."
+  - Key: outcome.Clean
+    Pole: 1
+    Axis: 3
+    Text: "\uC544\uBB34\uB3C4 \uC783\uC9C0 \uC54A\uC558\uB2E4. \uC774 \uBC24\uC744
+      \uAE30\uC5B5\uD574 \uB454\uB2E4."
+  - Key: ship.accept
+    Pole: 0
+    Axis: 0
+    Text: "{0} {1}\uBA85\uC744 \uBAA8\uB450 \uBC1B\uC558\uC2B5\uB2C8\uB2E4. \uC790\uB9AC\uB294
+      \uD568\uAED8 \uB9CC\uB4E4\uC5B4 \uAC11\uB2C8\uB2E4."
+  - Key: ship.accept
+    Pole: 2
+    Axis: 0
+    Text: "{0} {1}\uBA85, \uBAA8\uB450 \uC5B4\uC11C \uC624\uC138\uC694."
+  - Key: ship.partial
+    Pole: 0
+    Axis: 0
+    Text: "{0} {1}\uBA85\uC744 \uBC1B\uACE0 {2}\uBA85\uC740 \uB3CC\uB824\uBCF4\uB0C8\uC2B5\uB2C8\uB2E4."
+  - Key: ship.partial
+    Pole: 1
+    Axis: 0
+    Text: "\uC218\uC6A9 \uAE30\uC900\uB300\uB85C {1}\uBA85\uB9CC \uBC1B\uC558\uC2B5\uB2C8\uB2E4.
+      {2}\uBA85\uC740 \uB2E4\uC74C \uC815\uAC70\uC7A5\uC744 \uCC3E\uC544\uC57C \uD569\uB2C8\uB2E4."
+  - Key: ship.refuse
+    Pole: 0
+    Axis: 0
+    Text: "{0} {2}\uBA85\uC744 \uD0DC\uC6B4 \uBC30\uB97C \uB3CC\uB824\uBCF4\uB0C8\uC2B5\uB2C8\uB2E4.
+      \uAE30\uB85D\uD574 \uB461\uB2C8\uB2E4."
+  - Key: ship.refuse
+    Pole: 1
+    Axis: 0
+    Text: "\uC9C0\uAE08 \uC788\uB294 \uC774\uB4E4\uC774 \uBA3C\uC800\uC785\uB2C8\uB2E4.
+      {0} {2}\uBA85\uC740 \uBC1B\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4."
+  - Key: ship.refuse
+    Pole: 2
+    Axis: 0
+    Text: "{0} {2}\uBA85\uC744 \uB3CC\uB824\uBCF4\uB0C8\uC2B5\uB2C8\uB2E4. \uC774
+      \uACB0\uC815\uC774 \uBB34\uAC81\uC2B5\uB2C8\uB2E4."
+  - Key: outcome.GreatMigration.Clean
+    Pole: 0
+    Axis: 0
+    Text: "\uC0C8 \uC5BC\uAD74\uC774 \uB9CE\uC774 \uB298\uC5C8\uB2E4. \uC9D1\uC740
+      \uC881\uC544\uC84C\uC9C0\uB9CC, \uADF8\uB798\uB3C4 \uB530\uB73B\uD558\uB2E4."
+  - Key: outcome.GreatMigration.Clean
+    Pole: 2
+    Axis: 0
+    Text: "\uB2E4 \uAC19\uC774 \uC0B4 \uC790\uB9AC\uB97C \uB9CC\uB4E4\uC5C8\uB2E4.
+      \uC624\uB298\uC740 \uADF8\uAC78\uB85C \uB410\uB2E4."
+  - Key: outcome.GreatMigration.Clean
+    Pole: 1
+    Axis: 0
+    Text: "\uBC1B\uC740 \uB9CC\uD07C \uC148\uC774 \uB9DE\uC558\uB2E4. \uB2E4\uC74C
+      \uBC30\uB3C4 \uC774\uB807\uAC8C."
+  - Key: outcome.GreatMigration.Hurt
+    Pole: 0
+    Axis: 0
+    Text: "\uBE60\uB4EF\uD588\uB2E4. \uADF8\uB798\uB3C4 \uBB38\uC740 \uB2EB\uC9C0
+      \uC54A\uC558\uB2E4."
+  - Key: outcome.GreatMigration.Hurt
+    Pole: 1
+    Axis: 1
+    Text: "\uBC1B\uC744 \uB9CC\uD07C\uB9CC \uBC1B\uC558\uB2E4. \uC9C8\uC11C\uB294
+      \uC9C0\uCF30\uB2E4."
+  - Key: outcome.GreatMigration.Lost
+    Pole: 0
+    Axis: 0
+    Text: "\uB2E4 \uC9C0\uD0A4\uC9C0 \uBABB\uD588\uB2E4. \uB193\uCE5C \uC774\uB4E4\uC744
+      \uC78A\uC9C0 \uC54A\uACA0\uB2E4."
+  - Key: outcome.GreatMigration.Lost
+    Pole: 2
+    Axis: 0
+    Text: "\uB193\uCE5C \uC5BC\uAD74\uB4E4\uC774 \uC790\uAFB8 \uB5A0\uC624\uB978\uB2E4."
+  - Key: transition.1
+    Pole: 0
+    Axis: 0
+    Text: "\uCCAB \uAE34 \uBC24\uC744 \uB118\uACBC\uB2E4.\n\uADF8\uC0AC\uC774 \uC800
+      \uC544\uB798 \uBD88\uBE5B\uC774 \uB610 \uBA87 \uAC1C \uAEBC\uC84C\uB2E4."
+  - Key: transition.1
+    Pole: 1
+    Axis: 3
+    Text: "\uAEBC\uC9C4 \uBD88\uBE5B\uC744 \uD558\uB098\uC529 \uC138\uC5B4 \uB454\uB2E4.\n\uB204\uAD70\uAC00\uB294
+      \uAE30\uC5B5\uD574\uC57C \uD558\uB2C8\uAE4C."
+  - Key: transition.1
+    Pole: 2
+    Axis: 3
+    Text: "\uB4A4\uB97C \uB3CC\uC544\uBCF4\uB294 \uAC74 \uC5EC\uAE30\uAE4C\uC9C0.\n\uBD88\uBE5B\uC774
+      \uAEBC\uC838\uB3C4, \uC6B0\uB9AC\uB294 \uC55E\uC73C\uB85C \uAC04\uB2E4."
+  - Key: transition.2
+    Pole: 0
+    Axis: 0
+    Text: "\uC720\uC131\uC6B0\uB97C \uC9C0\uB098\uC654\uB2E4.\n\uC815\uAC70\uC7A5\uC740
+      \uB2E8\uB2E8\uD574\uC84C\uACE0, \uC9C0\uAD6C\uB294 \uB354 \uC5B4\uB450\uC6CC\uC84C\uB2E4."
+  - Key: transition.2
+    Pole: 2
+    Axis: 2
+    Text: "\uB354 \uBA40\uB9AC \uBED7\uC5C8\uB2E4.\n\uBA40\uC5B4\uC9C0\uB294 \uB9CC\uD07C
+      \uC800 \uBD88\uBE5B\uB3C4 \uC791\uC544\uC9C4\uB2E4."
+  - Key: transition.2
+    Pole: 1
+    Axis: 2
+    Text: "\uC548\uCABD\uBD80\uD130 \uB2E4\uC84C\uB2E4.\n\uC9C0\uD0AC \uC218 \uC788\uB294
+      \uAC83\uBD80\uD130 \uC9C0\uD0A8\uB2E4."
+  - Key: transition.3
+    Pole: 0
+    Axis: 0
+    Text: "\uC5EC\uB7EC \uBB34\uB9AC\uAC00 \uD55C \uC9C0\uBD95 \uC544\uB798 \uBAA8\uC600\uB2E4.\n\uC9C0\uAD6C\uC758
+      \uBC24\uC740 \uC774\uC81C \uAC70\uC758 \uAEBC\uC84C\uB2E4."
+  - Key: transition.3
+    Pole: 2
+    Axis: 0
+    Text: "\uBB38\uC744 \uC5F4\uC5B4 \uB450\uAE30\uB85C \uD588\uB2E4.\n\uC800\uAE30\uC11C
+      \uAEBC\uC9C4 \uB9CC\uD07C, \uC5EC\uAE30\uC11C \uBD88\uC744 \uCF1C \uB450\uACE0
+      \uC2F6\uB2E4."
+  - Key: transition.3
+    Pole: 1
+    Axis: 1
+    Text: "\uADDC\uCE59\uBD80\uD130 \uC138\uC6E0\uB2E4.\n\uBD88\uBE5B\uC774 \uC904\uC218\uB85D
+      \uC9C0\uCF1C\uC57C \uD560 \uAC83\uC740 \uBD84\uBA85\uD574\uC9C4\uB2E4."
+  - Key: outcome.DebrisBand.Clean
+    Pole: 0
+    Axis: 0
+    Text: "\uB760\uAC00 \uC9C0\uB098\uAC14\uB2E4. \uC881\uC544\uC9C4 \uD558\uB298
+      \uC544\uB798\uC11C\uB3C4 \uC790\uB9AC\uB97C \uB0C8\uB2E4."
+  - Key: outcome.DebrisBand.Clean
+    Pole: 2
+    Axis: 3
+    Text: "\uC61B \uCE78\uC744 \uB179\uC5EC \uC0C8 \uC790\uB9AC\uB97C \uB9CC\uB4E4\uC5C8\uB2E4.
+      \uADF8\uAC78\uB85C \uCDA9\uBD84\uD558\uB2E4."
+  - Key: outcome.DebrisBand.Hurt
+    Pole: 0
+    Axis: 0
+    Text: "\uBE60\uB4EF\uD588\uB2E4. \uCE78\uC774 \uBAA8\uC790\uB77C \uB2E4 \uB4E4\uC774\uC9C0\uB294
+      \uBABB\uD588\uB2E4."
+  - Key: outcome.DebrisBand.Hurt
+    Pole: 1
+    Axis: 1
+    Text: "\uB4E4\uC77C \uC218 \uC788\uB294 \uB9CC\uD07C\uB9CC \uB4E4\uC600\uB2E4.
+      \uCE78\uC774 \uC815\uD55C \uC77C\uC774\uB2E4."
+  - Key: outcome.DebrisBand.Lost
+    Pole: 0
+    Axis: 0
+    Text: "\uB760 \uB108\uBA38\uB85C \uB9CE\uC740 \uC774\uAC00 \uB5A0\uB0AC\uB2E4.
+      \uADF8 \uC218\uB97C \uAE30\uB85D\uD574 \uB454\uB2E4."
+  - Key: outcome.DebrisBand.Lost
+    Pole: 2
+    Axis: 0
+    Text: "\uB354 \uC811\uACE0 \uB354 \uC313\uC558\uC5B4\uC57C \uD588\uB2E4. \uB5A0\uB09C
+      \uC5BC\uAD74\uB4E4\uC774 \uB0A8\uB294\uB2E4."
+  - Key: choice.keep
+    Pole: 0
+    Axis: 0
+    Text: "\uB179\uC778 \uBAA8\uB4C8\uC758 \uC61B \uC774\uB984\uC744 \uAE30\uB85D\uC5D0
+      \uB0A8\uACA8 \uB454\uB2E4. \uBAA8\uC591\uC740 \uBC14\uB00C\uC5B4\uB3C4 \uC78A\uC9C0
+      \uC54A\uC73C\uB824\uACE0."
+  - Key: choice.reshape
+    Pole: 0
+    Axis: 0
+    Text: "\uC61B \uBAA8\uC591\uC740 \uAE30\uB85D\uC5D0\uC11C \uC9C0\uC6B4\uB2E4.
+      \uC4F8\uBAA8\uAC00 \uACE7 \uBAA8\uC591\uC774\uB2E4."
+  - Key: transition.4
+    Pole: 0
+    Axis: 0
+    Text: "\uC881\uC740 \uD558\uB298\uC744 \uC9C0\uB098\uC654\uB2E4.\n\uCE78\uC740
+      \uADF8\uB300\uB85C\uC778\uB370, \uC548\uC5D0 \uB4E0 \uAC83\uC740 \uC804\uBD80
+      \uB2EC\uB77C\uC84C\uB2E4."
+  - Key: transition.4
+    Pole: 1
+    Axis: 3
+    Text: "\uC61B \uBAA8\uC591\uC744 \uAE30\uB85D\uC5D0 \uB0A8\uACBC\uB2E4.\n\uB179\uC5EC
+      \uC5C6\uC564 \uAC83\uB4E4\uC758 \uC774\uB984\uAE4C\uC9C0."
+  - Key: transition.4
+    Pole: 2
+    Axis: 3
+    Text: "\uC61B \uBAA8\uC591\uC740 \uB179\uC5EC \uBC84\uB838\uB2E4.\n\uC9C0\uAE08
+      \uC4F8 \uBAA8\uC591\uB9CC \uB0A8\uAE34\uB2E4."
+  - Key: earth.dim
+    Pole: 0
+    Axis: 0
+    Text: "\uC800 \uC544\uB798 \uBD88\uBE5B\uC774 \uB610 \uAEBC\uC84C\uB2E4."
+  - Key: earth.dim
+    Pole: 1
+    Axis: 3
+    Text: "\uBD88\uBE5B\uC774 \uB610 \uD558\uB098 \uAEBC\uC84C\uB2E4. \uC138\uC5B4
+      \uB454\uB2E4."
+  - Key: earth.dim
+    Pole: 2
+    Axis: 3
+    Text: "\uC544\uB798 \uBD88\uBE5B\uC774 \uB610 \uC904\uC5C8\uB2E4. \uB3CC\uC544\uBCF4\uC9C0
+      \uC54A\uB294\uB2E4."
