@@ -797,56 +797,189 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>
-        /// 진화 템플릿 공용 상태 화면 (사용자 2026-10-30 "주민이 보는 화면에 아무것도 나오지 않아 아쉽다" → 공용 화면 + 다른 진화 모듈도):
-        /// 껍데기 조각의 Screen 재질 면을 덩어리(같은 자리 꼭짓점으로 이어진 삼각형)마다 나눠, 가장 넓은 평면 한 쌍 중 앞면
-        /// (면 바로 앞 4cm 안에 다른 면 — 뒤판 · 테 · 몸체 — 이 없는 쪽)을 화면 칸으로 <see cref="InteriorStatusScreens"/>에 넘긴다.
-        /// 위 · 아래를 보는 면, 작은 면 (가로 0.18m · 세로 0.1m 미만), 사각형을 85% 못 채우는 면 (둥근 면 · 흩어진 작은 면)은 뺀다. 좌표 = 템플릿 루트 기준.
+        /// 공용 상태 화면 (사용자 2026-10-30 "주민이 보는 화면에 아무것도 나오지 않아 아쉽다" → 공용 화면 + 다른 진화 모듈도,
+        /// 같은 날 "다른 단계의 모듈들도 미리 세팅" · "기본 모듈도" → 모든 템플릿): 고정 조각의 화면 재질(<see cref="IsStatusScreenMaterial"/>) 면을
+        /// 덩어리(같은 자리 꼭짓점으로 이어진 삼각형)마다 나눠, 가장 넓은 평면 한 쌍 중 보이는 앞면 (<see cref="Visible"/> — 면 앞 45cm 안에 뒤판 · 몸체 ·
+        /// 다른 장비가 없고 아래를 보지 않는 쪽)을 화면 칸으로 <see cref="InteriorStatusScreens"/>에 넘긴다. 위 · 아래를 보는 면, 작은 면 (가로 0.18m · 세로 0.1m 미만),
+        /// 사각형을 85% 못 채우는 면 (둥근 면 · 흩어진 작은 면), 전용 화면(허브 안내 · 상황판 · 창구판 등 다른 <see cref="InteriorRoomDisplay"/>)이 그리는 자리는 뺀다.
+        /// 기본 모듈처럼 어두운 모니터 면(ScreenDark)에 빛 줄 · 조각을 붙여 화면 무늬를 낸 곳은 빛 조각이 붙은 면을 앞면으로 보고 덮는다 (<see cref="TryDarkPanel"/>).
+        /// 좌표 = 템플릿 루트 기준. 이미 붙은 상태 화면은 새로 찾은 칸으로 바꾼다 (칸이 없으면 뗌). 바뀌었으면 true.
         /// </summary>
-        private static void AddStatusScreens(GameObject root, Material screen, Material back)
+        private static bool AddStatusScreens(GameObject root, Material back)
         {
-            if (screen == null)
-                return;
+            var panels = FindStatusPanels(root);
+            var old = root.GetComponent<InteriorStatusScreens>();
+            if (old != null)
+                Object.DestroyImmediate(old, true);
+            if (panels.Count > 0)
+            {
+                root.AddComponent<InteriorStatusScreens>().Configure(panels.ToArray(), back);
+                Debug.Log($"[InteriorTemplateBuilder] {root.name}: 상태 화면 {panels.Count}칸");
+            }
+            return old != null || panels.Count > 0;
+        }
+
+        /// <summary>
+        /// 상태 화면을 붙일 빛나는 화면 재질 (어두운 모니터 면은 <see cref="TryDarkPanel"/>이 따로): M_InteriorScreen으로 시작하는 재질 중 어두운 판(ScreenDark) · 격자 무늬(ScreenGrid) 말고 전부.
+        /// 단계 키트가 화면 재질을 새로 만들 때 (예: 2단계 M_InteriorScreenNight) 이 이름 규칙만 따르면 그대로 잡힌다 (MODELING 7-11).
+        /// </summary>
+        private static bool IsStatusScreenMaterial(Material m) =>
+            m != null && m.name.StartsWith("M_InteriorScreen") && !m.name.StartsWith("M_InteriorScreenDark") && !m.name.StartsWith("M_InteriorScreenGrid");
+
+        private static List<InteriorStatusScreens.Panel> FindStatusPanels(GameObject root)
+        {
             var panels = new List<InteriorStatusScreens.Panel>();
+            // 전용 화면이 쓰는 자리 (각 표시의 직렬화된 Center · _center · _kioskCenter 같은 이름의 점 — 표시마다 따로 적지 않게)
+            var reserved = new List<Vector3>();
+            foreach (var display in root.GetComponentsInChildren<InteriorRoomDisplay>(true))
+            {
+                if (display is InteriorStatusScreens)
+                    continue;
+                var it = new SerializedObject(display).GetIterator();
+                while (it.Next(true))
+                {
+                    if (it.propertyType == SerializedPropertyType.Vector3 && it.name.IndexOf("center", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        reserved.Add(it.vector3Value);
+                }
+            }
+            // 고정 조각 (도는 조각 · 해 따라 기우는 조각 · 칸 게이지는 뺌 — 칸 좌표가 템플릿 루트 기준으로 멈춰 있어야 함)
+            var parts = new List<Transform>();
+            foreach (Transform part in root.transform)
+            {
+                if (part.GetComponent<MeshFilter>() != null && part.GetComponent<MeshRenderer>() != null
+                    && part.GetComponent<InteriorOrbit>() == null && !part.name.Contains("_Gauge_"))
+                    parts.Add(part);
+            }
             var original = root.transform.position;
             bool backfaces = Physics.queriesHitBackfaces;
+            var temporary = new List<Collider>();
             root.transform.position = new Vector3(0f, -5000f, 0f);   // 씬의 다른 물체와 떨어뜨려 광선 검사
             Physics.queriesHitBackfaces = true;                       // 뒷면이 다른 몸체 속에 묻힌 화면도 "막힘"으로
-            Physics.SyncTransforms();
             try
             {
-                foreach (Transform part in root.transform)
+                // 충돌체 없는 조각(소품 · 책상 모니터)도 앞뒤 판정에 들어가게 잠깐 충돌체
+                foreach (var part in parts)
                 {
-                    if (!part.name.EndsWith("_Shell"))
-                        continue;
-                    var mf = part.GetComponent<MeshFilter>();
-                    var mr = part.GetComponent<MeshRenderer>();
-                    if (mf == null || mr == null)
-                        continue;
-                    var mesh = mf.sharedMesh;
-                    var mats = mr.sharedMaterials;
-                    var verts = mesh.vertices;
+                    if (part.GetComponent<Collider>() == null)
+                    {
+                        var c = part.gameObject.AddComponent<MeshCollider>();
+                        c.sharedMesh = part.GetComponent<MeshFilter>().sharedMesh;
+                        temporary.Add(c);
+                    }
+                }
+                Physics.SyncTransforms();
+                // ① 빛나는 화면 면 (진화 모듈 콘솔 · 책상 화면) + 그 꼭짓점 (②에서 어두운 화면 위 빛 줄 찾기)
+                var glow = new List<(Vector3 Point, Material Material)>();
+                var darkIslands = new List<(Transform Part, Vector3[] Verts, List<int> Island)>();
+                foreach (var part in parts)
+                {
+                    var mesh = part.GetComponent<MeshFilter>().sharedMesh;
+                    var mats = part.GetComponent<MeshRenderer>().sharedMaterials;
+                    Vector3[] verts = null;
                     for (int sub = 0; sub < mats.Length && sub < mesh.subMeshCount; sub++)
                     {
-                        if (mats[sub] != screen)
+                        bool dark = mats[sub] != null && mats[sub].name.StartsWith("M_InteriorScreenDark");
+                        if (!dark && !IsStatusScreenMaterial(mats[sub]))
                             continue;
-                        foreach (var island in Islands(mesh.GetTriangles(sub), verts))
+                        verts ??= mesh.vertices;
+                        var tris = mesh.GetTriangles(sub);
+                        if (dark)
                         {
-                            if (TryPanel(root.transform, part, verts, island, out var panel))
-                                panels.Add(panel);
+                            foreach (var island in Islands(tris, verts))
+                                darkIslands.Add((part, verts, island));
+                            continue;
+                        }
+                        foreach (int index in tris)
+                            glow.Add((root.transform.InverseTransformPoint(part.TransformPoint(verts[index])), mats[sub]));
+                        foreach (var island in Islands(tris, verts))
+                        {
+                            if (!TryPanel(root.transform, part, verts, island, out var panel) || Reserved(panel, reserved))
+                                continue;
+                            panel.Bar = mats[sub];
+                            panels.Add(panel);
                         }
                     }
+                }
+                // ② 어두운 모니터 면 위에 빛 줄 · 조각(가짜 화면 무늬)이 붙은 화면 (기본 모듈 콘솔 · 진화 축전 · 융합 콘솔 — 사용자 "기본 모듈도"):
+                //    빛 조각이 3cm 안에 붙은 쪽이 앞면. 정보창은 빛 조각보다 앞으로 띄워 덮는다. 이미 빛나는 화면 칸이 올라간 모니터는 뺌
+                int glowPanels = panels.Count;
+                foreach (var (part, verts, island) in darkIslands)
+                {
+                    if (TryDarkPanel(root.transform, part, verts, island, glow, out var panel) && !Reserved(panel, reserved)
+                        && !HasPanelOn(panel, panels, glowPanels))
+                        panels.Add(panel);
                 }
             }
             finally
             {
+                foreach (var c in temporary)
+                    Object.DestroyImmediate(c);
                 root.transform.position = original;
                 Physics.queriesHitBackfaces = backfaces;
                 Physics.SyncTransforms();
             }
-            if (panels.Count == 0)
+            return panels;
+        }
+
+        /// <summary>전용 화면 점이 이 칸 사각형 (가장자리 10cm 여유) 안 · 면에서 25cm 안에 있으면 그 화면은 이미 쓰는 중.</summary>
+        private static bool Reserved(InteriorStatusScreens.Panel panel, List<Vector3> reserved)
+        {
+            var right = Vector3.Cross(panel.Normal, panel.Up).normalized;
+            foreach (var point in reserved)
+            {
+                var d = point - panel.Center;
+                if (Mathf.Abs(Vector3.Dot(d, panel.Normal)) < 0.25f && Mathf.Abs(Vector3.Dot(d, right)) < panel.Size.x * 0.5f + 0.1f
+                    && Mathf.Abs(Vector3.Dot(d, panel.Up)) < panel.Size.y * 0.5f + 0.1f)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 이미 만든 내부 프리팹 전부에 상태 화면만 다시 붙이기 (메뉴 SpaceStation/Interior/Add Status Screens, 2026-10-30 — 기본 모듈 템플릿은
+        /// 전체 Build Templates가 모든 프리팹 ID를 새로 매기므로 다시 만들지 않고 화면만). 광선 검사는 씬에 잠깐 꺼낸 복사본으로 하고, 결과를 프리팹에 넣는다.
+        /// </summary>
+        [MenuItem("SpaceStation/Interior/Add Status Screens")]
+        public static void AddStatusScreensToPrefabs()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogError("[InteriorTemplateBuilder] 플레이 모드를 끈 뒤 실행하세요.");
                 return;
-            root.AddComponent<InteriorStatusScreens>().Configure(panels.ToArray(), back, screen);
-            Debug.Log($"[InteriorTemplateBuilder] {root.name}: 상태 화면 {panels.Count}칸");
+            }
+            var back = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenDarkPath);
+            int changed = 0;
+            foreach (var guid in AssetDatabase.FindAssets("PF_Interior_ t:Prefab", new[] { PrefabFolder.TrimEnd('/') }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab == null || !prefab.name.StartsWith("PF_Interior_"))
+                    continue;
+                var copy = (GameObject)Object.Instantiate(prefab);
+                copy.name = prefab.name;
+                var panels = FindStatusPanels(copy);
+                Object.DestroyImmediate(copy);
+                var contents = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    var old = contents.GetComponent<InteriorStatusScreens>();
+                    if (old == null && panels.Count == 0)
+                        continue;
+                    if (old != null)
+                        Object.DestroyImmediate(old, true);
+                    if (panels.Count > 0)
+                        contents.AddComponent<InteriorStatusScreens>().Configure(panels.ToArray(), back);
+                    PrefabUtility.SaveAsPrefabAsset(contents, path);
+                    changed++;
+                    Debug.Log($"[InteriorTemplateBuilder] {prefab.name}: 상태 화면 {panels.Count}칸");
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(contents);
+                }
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[InteriorTemplateBuilder] 상태 화면 다시 붙임: 프리팹 {changed}개");
         }
 
         /// <summary>삼각형 목록 → 같은 자리 꼭짓점으로 이어진 덩어리들 (평면 음영이라 면마다 꼭짓점이 갈라져 있어 자리로 잇는다).</summary>
@@ -881,10 +1014,90 @@ namespace SpaceStation.Editor
             return new List<List<int>>(groups.Values);
         }
 
-        /// <summary>덩어리 하나 → 화면 칸 (가장 넓은 옆을 보는 평면 · 그 반대 면 중 앞면).</summary>
+        /// <summary>빛나는 화면 덩어리 하나 → 화면 칸 (후보 면 중 앞 4cm가 빈 쪽 = 앞면).</summary>
         private static bool TryPanel(Transform root, Transform part, Vector3[] verts, List<int> island, out InteriorStatusScreens.Panel panel)
         {
+            foreach (var face in Faces(root, part, verts, island))
+            {
+                if (!Visible(root, face, 0f))
+                    continue;   // 앞에 뒤판 · 테 · 몸체 → 뒷면, 또는 다른 장비에 가려짐
+                panel = face;
+                return true;
+            }
             panel = default;
+            return false;
+        }
+
+        /// <summary>
+        /// 보이는 화면 면인지: 아래를 보는 면이 아니고 (기울어진 키오스크 밑면 — 창고), 면 앞 45cm가 트여 있음 (바로 앞 4cm = 뒤판 · 몸체 → 뒷면,
+        /// 그 너머 = 다른 장비에 가려진 화면 — 정련소). lift = 어두운 화면 위 빛 조각 두께 (그만큼 앞에서부터 잼).
+        /// </summary>
+        private static bool Visible(Transform root, InteriorStatusScreens.Panel face, float lift)
+        {
+            if (face.Normal.y < -0.3f)
+                return false;
+            var worldN = root.TransformDirection(face.Normal);
+            return !Physics.Raycast(root.TransformPoint(face.Center) + worldN * (lift + 0.003f), worldN, 0.45f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        }
+
+        /// <summary>
+        /// 어두운 모니터 덩어리 하나 → 화면 칸: 후보 면 중 빛 조각 꼭짓점 4개 이상이 면 위 3cm 안 · 면 사각형 안에 있는 쪽 (가짜 화면 무늬가 붙은 쪽 = 앞면).
+        /// 정보창은 가장 앞의 빛 조각보다 3mm 앞으로 띄움 (Lift), 막대는 그 빛 조각 재질. 세로 1.2m 넘거나 아주 길쭉한 판 (축전기 캐비닛 · 띠)은 뺌.
+        /// </summary>
+        private static bool TryDarkPanel(Transform root, Transform part, Vector3[] verts, List<int> island, List<(Vector3 Point, Material Material)> glow,
+            out InteriorStatusScreens.Panel panel)
+        {
+            panel = default;
+            foreach (var face in Faces(root, part, verts, island))
+            {
+                if (face.Size.y > 1.2f || face.Size.x < face.Size.y * 0.5f || face.Size.x > face.Size.y * 4.5f)
+                    return false;
+                var right = Vector3.Cross(face.Normal, face.Up).normalized;
+                float lift = 0f;
+                int count = 0;
+                Material bar = null;
+                foreach (var (point, material) in glow)
+                {
+                    var d = point - face.Center;
+                    float dn = Vector3.Dot(d, face.Normal);
+                    if (dn < -0.003f || dn > 0.03f || Mathf.Abs(Vector3.Dot(d, right)) > face.Size.x * 0.5f + 0.01f
+                        || Mathf.Abs(Vector3.Dot(d, face.Up)) > face.Size.y * 0.5f + 0.01f)
+                        continue;
+                    count++;
+                    lift = Mathf.Max(lift, dn);
+                    bar = material;
+                }
+                if (count < 4 || !Visible(root, face, lift))
+                    continue;
+                panel = face;
+                panel.Lift = lift + 0.003f;
+                panel.Dark = true;
+                panel.Bar = bar;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>앞의 칸들(빛나는 화면) 중 이 어두운 판 위에 이미 올라간 것이 있는지 — 진화 연구 단지 모니터처럼 빛 블록에 칸이 있으면 판은 그대로.</summary>
+        private static bool HasPanelOn(InteriorStatusScreens.Panel dark, List<InteriorStatusScreens.Panel> panels, int count)
+        {
+            var right = Vector3.Cross(dark.Normal, dark.Up).normalized;
+            for (int i = 0; i < count; i++)
+            {
+                var d = panels[i].Center - dark.Center;
+                if (Mathf.Abs(Vector3.Dot(d, dark.Normal)) < 0.05f && Mathf.Abs(Vector3.Dot(d, right)) < dark.Size.x * 0.5f + 0.02f
+                    && Mathf.Abs(Vector3.Dot(d, dark.Up)) < dark.Size.y * 0.5f + 0.02f)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 덩어리 하나의 화면 후보 면: 가장 넓은 옆을 보는 평면 + 그 반대 면 (판의 앞 · 뒤). 작은 면 · 사각형을 85% 못 채우는 면이면 없음.
+        /// </summary>
+        private static List<InteriorStatusScreens.Panel> Faces(Transform root, Transform part, Vector3[] verts, List<int> island)
+        {
+            var faces = new List<InteriorStatusScreens.Panel>(2);
             var area = new Dictionary<Vector3Int, float>();
             var normals = new Dictionary<Vector3Int, Vector3>();
             var pts = new Dictionary<Vector3Int, List<Vector3>>();
@@ -915,7 +1128,7 @@ namespace SpaceStation.Editor
                 bestArea = kv.Value;
             }
             if (bestArea <= 0f)
-                return false;
+                return faces;
             var candidates = new List<Vector3Int> { best };
             var opposite = -best;
             foreach (var kv in area)
@@ -942,17 +1155,13 @@ namespace SpaceStation.Editor
                 var center = right * ((r0 + r1) * 0.5f) + up * ((u0 + u1) * 0.5f) + n * d;
                 var size = new Vector2(r1 - r0, u1 - u0);
                 if (size.x < 0.18f || size.y < 0.1f)   // 연구 단지 책상 화면 = 0.30 × 0.12 (경계에 걸려 반만 잡히던 것 → 0.1)
-                    return false;
+                    break;
                 // 같은 방향 작은 면 여럿 (콘솔 줄 · 관 옆면)이나 둥근 면은 사각형을 다 채우지 못함 → 화면 아님 (태양광 · 수소에서 잘못 잡힘)
                 if (area[key] < size.x * size.y * 0.85f)
-                    return false;
-                var worldN = root.TransformDirection(n);
-                if (Physics.Raycast(root.TransformPoint(center) + worldN * 0.003f, worldN, 0.04f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
-                    continue;   // 앞에 뒤판 · 테 · 몸체 → 뒷면
-                panel = new InteriorStatusScreens.Panel { Center = center, Normal = n, Up = up, Size = size };
-                return true;
+                    break;
+                faces.Add(new InteriorStatusScreens.Panel { Center = center, Normal = n, Up = up, Size = size });
             }
-            return false;
+            return faces;
         }
 
         /// <summary>조각 메시 경계 상자 충돌체 (조각은 템플릿 원점에 놓인 채 꼭짓점이 제자리 — 경계 = 템플릿 좌표). pad = 가장자리 여유 (누르기 쉽게).</summary>
@@ -2560,8 +2769,7 @@ namespace SpaceStation.Editor
             }
 
             configure?.Invoke(root); // 12-5 실행 중 표시 컴포넌트 (허브 안내 · 레이더 · 컨베이어 · 서버 표시등)
-            if (name.StartsWith("Evo"))
-                AddStatusScreens(root, materials["Screen"], materials["ScreenDark"]);   // 진화 모듈 화면 = 공용 상태 화면 (사용자 2026-10-30)
+            AddStatusScreens(root, materials["ScreenDark"]);   // 빈 화면 = 공용 상태 화면 (사용자 2026-10-30 — 기본 · 모든 진화 단계, 전용 화면 자리는 뺌)
 
             System.IO.Directory.CreateDirectory(PrefabFolder);
             string prefabPath = PrefabFolder + "PF_Interior_" + name + ".prefab";

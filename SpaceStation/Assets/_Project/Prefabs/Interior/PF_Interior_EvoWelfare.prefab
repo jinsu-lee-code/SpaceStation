@@ -961,6 +961,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8850142462636906163}
+  - component: {fileID: 6826362066114772729}
   m_Layer: 0
   m_Name: PF_Interior_EvoWelfare
   m_TagString: Untagged
@@ -991,6 +992,34 @@ Transform:
   - {fileID: 683256467824618966}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6826362066114772729
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5200980528500044980}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48e6532be52fea24f879f1472963a74c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Interior.InteriorStatusScreens
+  _panels:
+  - Center: {x: 3.7795625, y: 0.12426746, z: -2}
+    Normal: {x: 0.97815436, y: 0.20787975, z: -0}
+    Up: {x: -0.20787977, y: 0.97815436, z: 0}
+    Size: {x: 0.46000004, y: 0.28004348}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.006521455
+  - Center: {x: 3.7795625, y: 0.12426746, z: 2}
+    Normal: {x: 0.97815436, y: 0.20787975, z: -0}
+    Up: {x: -0.20787977, y: 0.97815436, z: 0}
+    Size: {x: 0.46000004, y: 0.28004348}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.006521455
+  _backMaterial: {fileID: 2100000, guid: 307916ba3660317488945c4964c8fd35, type: 2}
 --- !u!1 &5647834783258316356
 GameObject:
   m_ObjectHideFlags: 0

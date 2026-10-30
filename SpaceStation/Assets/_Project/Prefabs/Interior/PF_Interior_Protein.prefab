@@ -1037,6 +1037,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5731961936099880377}
   - component: {fileID: 5672665592420549270}
+  - component: {fileID: 3401877376908916282}
   m_Layer: 0
   m_Name: PF_Interior_Protein
   m_TagString: Untagged
@@ -1099,3 +1100,31 @@ MonoBehaviour:
   _lidPivot: {x: -0.345, y: -0.98, z: 0.675}
   _lidAxis: {x: 0, y: 0, z: 1}
   _lidCloseDegrees: -100
+--- !u!114 &3401877376908916282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8284614456808214332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48e6532be52fea24f879f1472963a74c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Interior.InteriorStatusScreens
+  _panels:
+  - Center: {x: -1.075, y: -0.041015625, z: 3.022419}
+    Normal: {x: 0, y: 0.3090374, z: -0.95104986}
+    Up: {x: 0, y: 0.95104986, z: 0.3090374}
+    Size: {x: 0.72, y: 0.4199717}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.007537275
+  - Center: {x: -3.135, y: 0.64990234, z: -2.425}
+    Normal: {x: 1, y: 0, z: 0}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.8699999, y: 0.6201172}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.0069999485
+  _backMaterial: {fileID: 2100000, guid: 307916ba3660317488945c4964c8fd35, type: 2}
