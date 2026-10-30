@@ -1594,3 +1594,15 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `a046860c`에 있음.
+
+## M-102. 장갑 외벽 내부 — 긴 방패 회랑 · 수리장 · 충격 감시실 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `9f9aafb4`과 같은 파일)
+- 장갑 외벽 내부 `IT_EvoArmor` · `PF_Interior_EvoArmor` · `SM_Interior_EvoArmor.fbx` (Blender `Interior_Evo.blend` 텍스트 `aw_builder`): 3칸 일자 — 문 사이 기운 장갑면 넷 (큰 흰 육각판 · 밝은 회색 틈 · 고정 띠 양옆 큰 육각 창), 칸 경계 고정 띠 갈비, 천장 미끼 신호등 셋 (`Beacon0` · `1` · `2`), 가운데 장갑판 수리장 (도는 로봇 팔 `Arm` · 수리대 · 예비 판 선반), 양 끝 충격 감시실 (육각 상황판 · 감시 콘솔)
+- `InteriorTemplateBuilder.BuildEvoArmor` (문 자리 14, 조명 15, 환경음 전기), `ResidentSpotBaker` 기술자 8, 강조색 `M_Accent_Evo_ArmorWall` · `M_Paint_Evo_ArmorWall`, `InteriorKit.asset` 강조색 목록, MODELING 6-1 환공포증 배려 규칙 (작은 구멍 · 칸이 빽빽한 무늬 금지)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `9f9aafb4`에 있음.
