@@ -106,6 +106,71 @@ namespace SpaceStation.Editor
             BuildEvoDefense();
             BuildEvoArmor();
             BuildEvoWorks();
+            BuildEvoEmergency();
+        }
+
+        /// <summary>
+        /// 진화 1단계 비상 대응 센터 (ㄱ자 3칸, ec_builder — 사용자 2026-10-30 시안 1 "이대로 유니티에서 한번 보여줄래? 휑한 느낌이 드는지 보게"):
+        /// 지휘탑 (0번 칸, 원통 천장 F + 5.0 · 둘레 고창 띠 · 천창 아래 도는 경광등 INT_EvoEmergency_Beacon · 가운데 상황 테이블 = 실제 정거장 지도
+        /// <see cref="InteriorStationMap"/>을 눕힘), 출동실 (+x 칸 — 유리 발사관 둘 속 천천히 도는 진화 드론 DroneA · B · 발사 콘솔 둘 · 소화약제 선반),
+        /// 긴급 보수실 (+z 칸 — 주황 · 흰 아치 유리 볼트 · 휜 보수판 이음선을 용접하는 팔 (토치 Torch0, <see cref="InteriorWelder"/>) · 보수판 선반).
+        /// 문 자리 = 연결점 있는 면 4, 바닥 해치 = 칸마다, 위 해치 = 지휘탑 천장 (경광등 · 천창 비킴).
+        /// </summary>
+        private static void BuildEvoEmergency()
+        {
+            const float tower = F + 5.0f;
+            var c00 = new Vector3Int(0, 0, 0);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, Socket),
+                new InteriorSocket(c00, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c10, Vector3Int.right, Socket),
+                new InteriorSocket(c01, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(-1.9f, 0f, -2.0f)),    // 두 문 사이 바깥 모서리 (테이블 · 주민 비킴)
+                new InteriorSocket(c10, Vector3Int.down, -F, new Vector3(-0.8f, 0f, -1.8f)),    // 창 쪽 길 (7.2, −1.8)
+                new InteriorSocket(c01, Vector3Int.down, -F, new Vector3(2.3f, 0f, -3.7f)),     // 보수실 들머리 (2.3, 4.3)
+                new InteriorSocket(c00, Vector3Int.up, tower, new Vector3(1.4f, 0f, -1.4f)),    // 지휘탑 천장 (천창 · 경광등 비킴)
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, z) in new[] { (-1.4f, -1.4f), (1.4f, -1.4f), (-1.4f, 1.4f), (1.4f, 1.4f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.3f, z), 5f, 1.3f, white));        // 지휘탑
+            lights.Add(LightSpec.Point(new Vector3(0f, tower - 1.0f, 0f), 4f, 0.8f, new Color(1f, 0.6f, 0.25f)));   // 경광등 주황빛
+            foreach (float x in new[] { 4.6f, 7.2f, 10.0f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.3f, -1.6f), 5f, 1.3f, white));    // 출동실 창 쪽 길
+            foreach (var (tx, tz) in new[] { (5.8f, 0.5f), (8.6f, 0.5f) })
+                lights.Add(LightSpec.Point(new Vector3(tx, F + 2.7f, tz), 2.5f, 0.6f, cool));     // 발사관 속
+            foreach (float z in new[] { 4.4f, 7.0f, 9.6f })
+                lights.Add(LightSpec.Point(new Vector3(0f, F + 3.6f, z), 5.5f, 1.4f, white));     // 보수실 볼트 아래
+            lights.Add(LightSpec.Point(new Vector3(0f, F + 2.4f, 7.0f), 3.5f, 0.8f, warm));      // 용접대
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoEmergency_Beacon", Vector3.zero, Vector3.up, 150f),
+                new OrbitSpec("INT_EvoEmergency_DroneA", new Vector3(5.8f, 0f, 0.5f), Vector3.up, 25f),
+                new OrbitSpec("INT_EvoEmergency_DroneB", new Vector3(8.6f, 0f, 0.5f), Vector3.up, -25f),
+            };
+            EvoAccent("EmergencyCenter", "#FFB07F");
+            // 스폰 = 남쪽 문 안 서쪽에서 상황 테이블 · 출동실 쪽을 바라봄 (테이블 남동 주민이 바로 앞을 가리지 않게 — 플레이 확인 2026-10-30)
+            Build("EvoEmergency", "Evolved/MD_Evo_EmergencyCenter", sockets, new Vector3(-0.7f, F, -2.4f), 25f, lights, orbits,
+                configure: root =>
+                {
+                    // 상황 테이블 윗면 (F + 0.951, ec_builder E_TableScreen 1.76 × 1.2) = 실제 정거장 지도 (지도 위 = +z, 오른쪽 = +x — 남쪽에서 읽힘)
+                    root.AddComponent<InteriorStationMap>().Configure(new Vector3(0f, F + 0.951f, 0f), Vector3.up, Vector3.forward, new Vector2(1.72f, 1.16f),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath));
+                    // 보수판 이음선 용접 (ec_builder TORCHES — 토치 끝 · 이음선 법선)
+                    var torch = Child(root, "INT_EvoEmergency_Torch0");
+                    var tip = new Vector3(0.3221f, F + 1.0115f, 7.0f);
+                    var normal = new Vector3(0.2474f, 0.9689f, 0f);
+                    root.AddComponent<InteriorWelder>().Configure(new[] { torch },
+                        new[] { torch != null ? torch.InverseTransformPoint(root.transform.TransformPoint(tip)) : tip },
+                        new[] { torch != null ? torch.InverseTransformDirection(root.transform.TransformDirection(normal)) : normal },
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath));
+                });
         }
 
         /// <summary>
@@ -2813,7 +2878,7 @@ namespace SpaceStation.Editor
             { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life }, { "EvoCulture", InteriorAmbience.Life },
             { "EvoSolar", InteriorAmbience.Electric }, { "EvoFusion", InteriorAmbience.Heat }, { "EvoHydrogen", InteriorAmbience.Water },
             { "EvoGravity", InteriorAmbience.Life }, { "EvoFarm", InteriorAmbience.Water }, { "EvoMineral", InteriorAmbience.Heat },
-            { "EvoShield", InteriorAmbience.Electric }, { "EvoDefense", InteriorAmbience.Electric }, { "EvoArmor", InteriorAmbience.Electric }, { "EvoWorks", InteriorAmbience.Machine },
+            { "EvoShield", InteriorAmbience.Electric }, { "EvoDefense", InteriorAmbience.Electric }, { "EvoArmor", InteriorAmbience.Electric }, { "EvoWorks", InteriorAmbience.Machine }, { "EvoEmergency", InteriorAmbience.Electric },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,

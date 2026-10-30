@@ -1619,3 +1619,15 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `b53c65cd`에 있음.
+
+## M-104. 비상 대응 센터 내부 — 지휘탑 · 출동실 · 긴급 보수실 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `c1c2f229`과 같은 파일)
+- 비상 대응 센터 내부 `IT_EvoEmergency` · `PF_Interior_EvoEmergency` · `SM_Interior_EvoEmergency.fbx` (Blender `Interior_Evo.blend` 텍스트 `ec_builder`): ㄱ자 3칸 — 지휘탑 (원통 천장 · 둘레 고창 띠 · 도는 경광등 `Beacon` · 실제 정거장 지도 상황 테이블 = `InteriorStationMap` 눕힘), 출동실 (유리 발사관 속 진화 드론 `DroneA` · `DroneB` · 발사 콘솔 둘 · 소화약제 선반), 긴급 보수실 (주황 · 흰 아치 유리 볼트 · 보수판 이음선 용접 팔 `Torch0` = `InteriorWelder` · 보수판 선반)
+- `InteriorTemplateBuilder.BuildEvoEmergency` (문 자리 8, 조명 14, 환경음 전기), `ResidentSpotBaker` 기술자 · 정비공 6, 강조색 `M_Accent_Evo_EmergencyCenter` · `M_Paint_Evo_EmergencyCenter`, `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `c1c2f229`에 있음.
