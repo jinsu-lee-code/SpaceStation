@@ -76,6 +76,7 @@ namespace SpaceStation.Interior
         private readonly Dictionary<Light, float> _lightBase = new Dictionary<Light, float>();
         private readonly Dictionary<ModuleInstance, Color> _roomColors = new Dictionary<ModuleInstance, Color>();
         private readonly Dictionary<ModuleInstance, Transform> _roomParents = new Dictionary<ModuleInstance, Transform>();
+        private readonly Dictionary<Transform, ModuleInstance> _parentRooms = new Dictionary<Transform, ModuleInstance>();
         /// <summary>11-11 템플릿 방: (템플릿, 놓인 프리팹) — 주민 자리를 월드로 옮길 때.</summary>
         private readonly Dictionary<ModuleInstance, (InteriorTemplate Template, Transform Instance)> _templateRooms = new Dictionary<ModuleInstance, (InteriorTemplate, Transform)>();
         /// <summary>문 상태등: 너머 방 → 그 방 상태를 보여 주는 렌더러 조각들.</summary>
@@ -175,6 +176,7 @@ namespace SpaceStation.Interior
             _lightBase.Clear();
             _roomColors.Clear();
             _roomParents.Clear();
+            _parentRooms.Clear();
             _templateRooms.Clear();
             _dimmed.Clear();
             _doors.Clear();
@@ -213,6 +215,7 @@ namespace SpaceStation.Interior
                 go.transform.SetParent(_root, false);
                 go.SetActive(false); // 근처 방만 켬 (InteriorMode → ShowOnly)
                 _roomParents.Add(room.Module, go.transform);
+                _parentRooms.Add(go.transform, room.Module);
                 _roomPieces.Add(room.Module, new List<Piece>());
                 _roomColors.Add(room.Module, RoomColor(room.Module.Data));
                 _rooms.Add(room.Module, room);
@@ -390,6 +393,17 @@ namespace SpaceStation.Interior
 
         /// <summary>방 오브젝트 (연출 오브젝트를 여기 붙이면 내부를 다시 만들 때 함께 지워진다).</summary>
         public Transform RoomParent(ModuleInstance module) => _roomParents.TryGetValue(module, out var t) ? t : null;
+
+        /// <summary>방 안 물체 → 그 방 모듈 (부모를 따라 올라가 방 오브젝트를 찾음). 방 밖(연결 통로 튜브 등)이면 null.</summary>
+        public ModuleInstance RoomOf(Transform t)
+        {
+            for (; t != null && t != _root; t = t.parent)
+            {
+                if (_parentRooms.TryGetValue(t, out var module))
+                    return module;
+            }
+            return null;
+        }
 
         /// <summary>11-11 템플릿으로 만든 방이면 템플릿과 놓인 프리팹 (모듈 로컬 → 월드 변환).</summary>
         public bool TryGetTemplateRoom(ModuleInstance module, out InteriorTemplate template, out Transform instance)
