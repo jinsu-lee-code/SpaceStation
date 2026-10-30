@@ -1541,6 +1541,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8633064966309667932}
+  - component: {fileID: 5935253683198458996}
   m_Layer: 0
   m_Name: PF_Interior_Solar
   m_TagString: Untagged
@@ -1575,6 +1576,34 @@ Transform:
   - {fileID: 4089680636785860952}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5935253683198458996
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6935421399283475162}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48e6532be52fea24f879f1472963a74c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Interior.InteriorStatusScreens
+  _panels:
+  - Center: {x: 2.3200002, y: 0.25, z: 1.8380002}
+    Normal: {x: -0, y: 0, z: -1}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.6800002, y: 0.40039062}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.007000187
+  - Center: {x: -1.8380002, y: 0.19995117, z: -2.33}
+    Normal: {x: 1, y: 0, z: 0}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.6999999, y: 0.80029297}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.008000234
+  _backMaterial: {fileID: 2100000, guid: 307916ba3660317488945c4964c8fd35, type: 2}
 --- !u!1 &7078807525536173534
 GameObject:
   m_ObjectHideFlags: 0

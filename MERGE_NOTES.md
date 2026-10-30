@@ -1569,3 +1569,16 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `187119e8`에 있음.
+
+## M-100. 공용 상태 화면 — 기본 모듈 · 모든 진화 단계 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `97804ebb`과 같은 파일)
+- `InteriorStatusScreens`: 값 줄 = 모듈 정보창 효과 전부를 짧게 (`AppendLines`, 연구 반영), 세 줄씩 5초마다 넘김, 줄 접지 않음, 세로로 긴 화면 두 줄 배치, 칸마다 막대 재질 · 어두운 모니터 (`Panel.Bar` · `Dark` · `Lift`)
+- `InteriorTemplateBuilder`: 모든 템플릿에 붙임 (`Evo*` 조건 없앰), 화면 재질 이름 규칙 `M_InteriorScreen*`, 어두운 모니터 (`TryDarkPanel`), 보이는 면 (`Visible` — 아래를 보는 면 · 앞 45cm 막힘 제외), 전용 화면 자리 (`Reserved`), 메뉴 `SpaceStation/Interior/Add Status Screens` (이미 만든 프리팹에 화면만)
+- 프리팹 32개에 `InteriorStatusScreens` (기본 22 · 진화 10), EditMode `InteriorStatusScreensTests`, MODELING 7-11 화면 모델링 규칙
+
+### `narrative` 합칠 때
+- [ ] 서사판에만 있는 내부 템플릿 (난파선 · 이민선 · 지구 등)이 있으면 합친 뒤 메뉴 Add Status Screens를 한 번 돌림 (프리팹 글자 충돌 시 main 쪽을 받고 다시 돌리면 됨). `InteriorRoomDisplay`를 서사판이 새로 만들었다면 화면 가운데 좌표를 `Center` 같은 이름으로 직렬화해야 상태 화면이 피함.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `97804ebb`에 있음.

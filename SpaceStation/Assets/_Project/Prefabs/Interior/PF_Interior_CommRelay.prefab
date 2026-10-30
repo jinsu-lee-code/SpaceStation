@@ -1636,6 +1636,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5198703317052104647}
   - component: {fileID: 1016664957994199969}
+  - component: {fileID: 4289061855490732}
   m_Layer: 0
   m_Name: PF_Interior_CommRelay
   m_TagString: Untagged
@@ -1697,3 +1698,24 @@ MonoBehaviour:
   - {fileID: 4966054200469918713}
   - {fileID: 2320746812531358565}
   _pulseTravel: 2.12
+--- !u!114 &4289061855490732
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940065879273446474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48e6532be52fea24f879f1472963a74c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Interior.InteriorStatusScreens
+  _panels:
+  - Center: {x: 2.635, y: 0.44995117, z: -2.21}
+    Normal: {x: -1, y: 0, z: 0}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.53999996, y: 0.18017578}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.004999855
+  _backMaterial: {fileID: 2100000, guid: 307916ba3660317488945c4964c8fd35, type: 2}

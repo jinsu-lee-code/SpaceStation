@@ -1138,6 +1138,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7337711371385063040}
   - component: {fileID: 9158186189814641037}
+  - component: {fileID: 5347837206940372617}
   m_Layer: 0
   m_Name: PF_Interior_EvoSolar
   m_TagString: Untagged
@@ -1190,6 +1191,55 @@ MonoBehaviour:
   - {x: 4, y: 3.32, z: 3.15}
   _maxTilt: 38
   _degreesPerSecond: 15
+--- !u!114 &5347837206940372617
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4537740269873771667}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48e6532be52fea24f879f1472963a74c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Interior.InteriorStatusScreens
+  _panels:
+  - Center: {x: 3.1808343, y: -0.32641602, z: -0.64571875}
+    Normal: {x: -0.16773073, y: 0.25883013, z: -0.9512483}
+    Up: {x: 0.044945385, y: 0.96592283, z: 0.25489795}
+    Size: {x: 0.58000016, y: 0.31998625}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.005546761
+  - Center: {x: 4, y: -0.32641602, z: -0.7173867}
+    Normal: {x: 0, y: 0.25883013, z: -0.9659229}
+    Up: {x: 0, y: 0.96592283, z: 0.25883013}
+    Size: {x: 0.5799999, y: 0.31998625}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.0055467216
+  - Center: {x: 4.8191657, y: -0.32641602, z: -0.6457188}
+    Normal: {x: 0.16773088, y: 0.2588299, z: -0.95124835}
+    Up: {x: -0.044945374, y: 0.9659229, z: 0.25489768}
+    Size: {x: 0.5800009, y: 0.31998622}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.005546727
+  - Center: {x: 10.592, y: -0.920166, z: 3.05}
+    Normal: {x: -1, y: 0, z: 0}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 1.4200001, y: 0.39990234}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.007000664
+  - Center: {x: 10.592, y: -0.920166, z: 4.95}
+    Normal: {x: -1, y: 0, z: 0}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 1.4200001, y: 0.39990234}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.007000664
+  _backMaterial: {fileID: 2100000, guid: 307916ba3660317488945c4964c8fd35, type: 2}
 --- !u!1 &5168779387965275335
 GameObject:
   m_ObjectHideFlags: 0
