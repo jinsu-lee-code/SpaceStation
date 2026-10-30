@@ -148,6 +148,9 @@ namespace SpaceStation.Simulation
         /// <summary>13-3 공통 고리: 자연 인구 증가 간격에 곱하는 배율 (기본 1, 서사판 = 이민선이 주된 공급원인 장에서 크게). 다음 틱부터.</summary>
         public float GrowthIntervalScale { get; set; } = 1f;
 
+        /// <summary>M-50 공통 고리: 지을 수 있는 칸을 정하는 쪽 (서사판 4장 위기 동안 새 칸 금지). null이면 공간 규칙만.</summary>
+        public IBuildZone BuildZone { get; set; }
+
         /// <summary>13-1 공통 판정 고리: 규칙을 정하는 쪽 (서사판 장 틀 · 타이쿤판 해금 선택). null이면 등급 조건 그대로.</summary>
         public IStationRules Rules { get; private set; }
 
@@ -183,6 +186,17 @@ namespace SpaceStation.Simulation
         public ContactSystem Contact { get; }
         /// <summary>12-5 여객 도킹 포트 이민선.</summary>
         public ImmigrationSystem Immigration { get; }
+        /// <summary>도착 안내판이 보는 이민선 일정 — 기본 = <see cref="Immigration"/>, 이민선을 따로 정하는 쪽(서사판)이 바꿈.</summary>
+        public IArrivalSchedule Arrivals
+        {
+            get => _arrivals ?? Immigration;
+            set => _arrivals = value;
+        }
+        private IArrivalSchedule _arrivals;
+        /// <summary>
+        /// 13-7d 저장 진행 표시 (이어하기 · 저장 목록 · 로딩 화면). null이면 등급 이름 — 모드가 채움 (서사판 캠페인 = "3장 · 무리 합류").
+        /// </summary>
+        public Func<string> ProgressLabel { get; set; }
         /// <summary>12-4 연구 확장 (설정에 없으면 null).</summary>
         public ResearchExpansionSystem ResearchExpansion { get; }
 
@@ -330,6 +344,7 @@ namespace SpaceStation.Simulation
             Effects.TraitDecayMultiplier = 1f - Residents.Ability(ResidentTrait.Mechanic);
             Effects.TraitFoodProductionMultiplier = 1f + Residents.Ability(ResidentTrait.Gardener);
             Effects.TraitResearchSpeedMultiplier = 1f + Residents.Ability(ResidentTrait.Scientist);
+            Effects.TraitSynthesisSpeedMultiplier = 1f + Residents.Ability(ResidentTrait.Artisan);
             ApplyConsumptionMultipliers();
         }
 
@@ -453,7 +468,7 @@ namespace SpaceStation.Simulation
                 return;
             }
             // 11-18: 튜토리얼 중에는 파손 확산 · 파괴 타이머와 노후화가 멈춤 (안내대로 따라가다 무너지지 않게, 정비는 정비 단계에서)
-            _tutorialTick = Tutorial != null && Tutorial.Active;
+            _tutorialTick = Tutorial != null && Tutorial.Active && !Tutorial.Data.Free; // M-51 막지 않는 안내는 그대로 흐름
             foreach (var step in _tickSteps)
                 step.Run(dt);
         }

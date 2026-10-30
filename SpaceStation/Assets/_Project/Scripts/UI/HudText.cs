@@ -16,6 +16,10 @@ namespace SpaceStation.UI
 
         public static string ResourceName(ResourceType type) => type.DisplayName();
 
+        /// <summary>M-53: 칸을 정하는 쪽이 막았으면 그쪽 사유 (서사판 4장 '파편 띠').</summary>
+        public static string PlacementReason(PlacementResult result, IBuildZone zone) =>
+            result == PlacementResult.OutsideZone && zone != null && !string.IsNullOrEmpty(zone.Reason) ? zone.Reason : PlacementReason(result);
+
         public static string PlacementReason(PlacementResult result)
         {
             switch (result)
@@ -33,6 +37,7 @@ namespace SpaceStation.UI
                 case PlacementResult.InvalidDefinition: return "잘못된 모듈 정의";
                 case PlacementResult.NoChange: return "지금 자리 그대로";
                 case PlacementResult.NeedsContact: return "다른 모듈과 면이 닿는 자리로 옮겨야 함";
+                case PlacementResult.OutsideZone: return "지금은 새 칸에 지을 수 없음 (모듈이 있던 칸에만)";
                 default: return string.Empty;
             }
         }

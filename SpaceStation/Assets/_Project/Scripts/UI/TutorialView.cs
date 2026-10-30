@@ -475,6 +475,18 @@ namespace SpaceStation.UI
                 case TutorialGoal.InteriorIncident:
                     _lines.Add(Check(false, $"말풍선 안내대로 사고 처리하기 ({KeyBindings.Label(GameAction.Interact)} 길게)"));
                     break;
+                // M-51 합성 안내
+                case TutorialGoal.OpenRecipes:
+                    _lines.Add(Check(false, $"합성 창 열기: {KeyBindings.Label(GameAction.Recipes)} 또는 왼쪽 위 [관리] → [합성]"));
+                    break;
+                case TutorialGoal.PlaceSynthesis:
+                    _lines.Add(Check(false, "레시피 고르기 · 재료와 규격 모양 확인"));
+                    _lines.Add(Check(false, "[위치 지정] 누르기"));
+                    break;
+                case TutorialGoal.StartSynthesis:
+                    _lines.Add(Check(false, "재료 모듈이 규격 칸을 빈틈없이 채운 자리 클릭"));
+                    _lines.Add($"<color={HudText.Muted}>{KeyBindings.Label(GameAction.Rotate)} 회전 · 우클릭 취소 · 비용과 합성 시간은 창에 표시</color>");
+                    break;
             }
             return string.Join("\n", _lines);
         }
@@ -554,7 +566,8 @@ namespace SpaceStation.UI
 
         private void HandleFinished(bool skipped)
         {
-            GameSettings.TutorialPending = false;
+            if (!_runner.Data.Free) // M-51 막지 않는 안내(서사판 4장 합성)는 "다음 새 게임에서 튜토리얼" 설정과 무관
+                GameSettings.TutorialPending = false;
             _finished = true;
             _finishedAt = Time.unscaledTime;
             HideHighlights();

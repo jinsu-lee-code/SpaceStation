@@ -31,6 +31,20 @@ namespace SpaceStation.Core
         NoChange,
         /// <summary>12-3b 이동: 옮길 자리에서 다른 모듈과 면이 하나도 닿지 않음 (자기 옛 자리만 닿음).</summary>
         NeedsContact,
+        /// <summary>M-50: 지을 수 있는 칸을 정하는 쪽(<see cref="IBuildZone"/>)이 막은 칸 (서사판 4장 위기 = 새 칸).</summary>
+        OutsideZone,
+    }
+
+    /// <summary>
+    /// M-50 공통 고리: 지을 수 있는 칸을 정하는 쪽. 시뮬레이션에 붙어 있으면 건설 · 이동이 막힌 칸에 들어갈 수 없다
+    /// (재건축 · 합성은 같은 칸이라 막지 않음). 없으면 공간 규칙만.
+    /// </summary>
+    public interface IBuildZone
+    {
+        bool Allows(Vector3Int cell);
+
+        /// <summary>M-53: 막힌 칸 사유 (배치 불가 글, 비면 기본 문구).</summary>
+        string Reason { get; }
     }
 
     /// <summary>

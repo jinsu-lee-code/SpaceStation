@@ -7,6 +7,8 @@
 
 **합침 기록**: `narrative` ← main (2026-10-18, 33ad7da · d1dfcf8) — M-6 ~ M-14 해결, 글자 충돌 없음. 서사판 EditMode 403개 통과 · 플레이 확인 (건설 메뉴에 1장 모듈 · [관리] 메뉴 맨 끝 코어 기록).
 
+**합침 기록**: `narrative` ← main (2026-10-25, 0ab1f65 · 5b76f74) — M-30 ~ M-42. 충돌은 문서 둘뿐: MODELING.md (main 7-9 진화 모듈 외형을 두고 서사판 난파선 · 이민선 · 지구를 7-10 ~ 7-12로) · TASKS.md. 씬 = 내부 템플릿 5종만 넣음 (레시피 48은 자동). 서사판 EditMode 455개 통과.
+
 ---
 
 ## M-1. 13-1 공통 판정 고리 (2026-10-15, `main`)
@@ -518,7 +520,7 @@
 - 모델 · 프리팹 · 템플릿 에셋(SM_Interior_Admin · PF_Interior_* · IT_* · M_Paint_Administration · Interior_NewBasic.blend `admin_builder`)은 tycoon에서 만들어 binary patch로 옮김
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 에셋은 자동 합침 예상. **씬 `InteriorMode._templates`에 `IT_Admin`을 넣어야 행정 관제소 새 내부가 쓰임** (M-26 때처럼 목록만 넣거나 `Interior/Setup` — M-27 이후 [옮기기] 버튼은 안 지워짐). 서사판이 `ResidentPlacementRules` · `ResidentWander` · `InteriorMode.UpdateHold`를 고쳤으면 그 부분만 맞춤. 플레이 (낮): 행정 관제소 창구에 직원 · 대기 의자에 민원인 · 민원인이 발권기 · 창구로 한 명씩 걸어가고 그때만 번호가 바뀌는지, 지도 층 버튼.
+- [x] (2026-10-25, 0ab1f65 · 00eb2ce) 자동 합침 · 씬 목록에 `IT_Admin`을 넣음 (목록만, `Interior/Setup`은 안 돌림 — 아래 4종과 함께 31 → 36). 행정 관제소는 서사판 1~3장에서 열리지 않아 플레이 확인은 그 장을 만들 때. EditMode 455개 통과.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-20, 09ba7c7 ~) 자동 합침 · 템플릿 재빌드 · 플레이 검수 (수동 저장 3: 모듈 64 지도 · 이웃 회전 링을 고장 내 깜빡임 · 요약 "고장 1" · 창구 041/042 → 053/054 · 발권기 다음 번호 045 → 057) · 뚫림 검사 390장 0px (대조 97% 자홍) · 키트 ↔ 템플릿 같은 평면 6곳 = 모두 바닥 밑 아래 보는 면.
@@ -539,7 +541,7 @@
 - PF_Interior_* 10개는 tycoon에서 재빌드해 binary patch로 옮김 (fileID만 새로 · 행정 관제소 = 통로 추가)
 
 ### `narrative` 합칠 때
-- [ ] 코드는 자동 합침 예상. 서사판이 `InteriorSpots` · `InteriorMode.UpdateTracker` · `InteriorPad`를 고쳤으면 그 부분만 맞춤 (`UpdateTrackerClick`는 `UpdateTracker` 다음에 부름). 플레이: 행정 관제소 창구 뒤 칸막이 · 지도 화면에 돌발 상황이 안 생기는지, 패드를 꺼낸 채 상단 사고 줄을 눌러 그 모듈이 골라지는지.
+- [x] (2026-10-25, 0ab1f65) 자동 합침 (서사판은 세 파일을 고치지 않았음). 3장 여객 도킹 포트 안에서 소품 자리 계산 · 콘솔 오류 0. 패드 상단 줄 클릭은 따로 확인하지 않음.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-20, 7a23197) 템플릿 재빌드 · EditMode 427개 통과 · 플레이 (수동 저장 3: 회전 링에 "차단기 내려감"을 일으켜 상단 줄 "(클릭하면 패드에서 고름)" · 밑줄 · 클릭 → 패드가 회전 링 선택 · [이 방으로 이동] 누를 수 있음). 모양은 안 바뀜 (통로는 자리 고르기만).
@@ -559,7 +561,7 @@
 - 현장 수리 지점 순서가 바뀜 → 예전 세이브에서 일부만 고친 손상 모듈은 고친 자국 위치가 달라 보일 수 있음 (개수 · 진행은 그대로)
 
 ### `narrative` 합칠 때
-- [ ] 코드는 자동 합침 예상 (`InteriorSpots`만). 플레이: 일반 방(진화 모듈 · 통신 중계소)에서 사고가 패널 앞면에 붙는지, 문 너머 통로에 안 생기는지.
+- [x] (2026-10-25, 0ab1f65) 자동 합침. 일반 방 사고 자리는 따로 일으켜 보지 않음 (공통 코드 그대로).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-20, c244093) 자동 합침 · EditMode 427개 통과 · 플레이 측정 (위 확인 내용).
@@ -580,7 +582,7 @@
 - 모델 · 프리팹 · 템플릿 에셋(SM_Interior_Shelter · PF_Interior_* · IT_* · M_InteriorConcrete · M_Paint_RadiationShelter · T_InteriorConcrete_* · Interior_NewBasic.blend `shelter_builder`)은 tycoon에서 만들어 binary patch로 옮김. PF_Interior_* 다른 방은 재빌드로 fileID만 새로
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 에셋은 자동 합침 예상. **씬 `InteriorMode._templates`에 `IT_Shelter`를 넣어야 방사선 차폐실 새 내부가 쓰임** (M-30 `IT_Admin`처럼). 서사판에 방사선 차폐실 모듈 데이터(`MD_RadiationShelter`)가 없으면 템플릿만 들어오고 쓰이지 않음. `InteriorTemplate`을 고쳤으면 `_workStatus` 칸만 맞춤. 플레이: 차폐실 안 경보판 글 · 직원 3 · 금고문 문짝 앞에 물건이 없는지, 일반 방에서 환풍구 부탁이 생길 때 콘솔 예외가 없는지.
+- [x] (2026-10-25, 0ab1f65 · 00eb2ce) 자동 합침 · 씬 목록에 `IT_Shelter`. 방사선 차폐실은 서사판 5장 모듈이라 1~3장에서 안 쓰임 (D-11).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-21) 자동 합침 · 템플릿 재빌드 · Bake Resident Spots · EditMode 427개 통과 · 플레이 (수동 저장 3: 차폐실 직원 3 · 경보판 "외부 방사선 정상 / 대피 수용 3 / 12명" · 뚫림 검사 2132장 0px (대조 97% 자홍, 자동문은 닫고) · 키트 ↔ 템플릿 같은 평면 0 · 벽 자리 7(문짝 위 0) · 64개 방 벽 자리 계산 · 1분 게임 루프에서 부탁이 생겨도 예외 0). Blender 검사: 겹침(숨은 면 6 = 이전과 같음) · 문 구역 · 벽 뚫림 · 해치 자리 비움 · 문짝 회전 0 ~ 90° 부딪힘 0.
@@ -601,7 +603,7 @@
 - 모델 · 프리팹 · 템플릿 에셋(SM_Interior_Passenger · PF_Interior_* · IT_* · M_Paint_PassengerPort · Interior_NewBasic.blend `passenger_builder`)은 tycoon에서 만들어 binary patch로 옮김. PF_Interior_* 다른 방은 재빌드로 fileID만 새로
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 에셋은 자동 합침 예상. **씬 `InteriorMode._templates`에 `IT_Passenger`를 넣어야 새 내부가 쓰임**. 서사판이 이민선을 따로 정하면(`ImmigrationSystem.Suppressed`) 안내판은 "운항 일정 없음" — 서사판 이민선 시계를 보여 주려면 그쪽 값으로 잇기. 서사판이 `ImmigrationSystem`을 고쳤으면 `Visits` 한 줄만 맞춤. 플레이: 여객 도킹 포트 안 안내판 시계 · 직원 3 · 대합실 주민, 이민선이 올 때 깜빡임.
+- [x] (2026-10-25, 0ab1f65 · 00eb2ce) 자동 합침 · 씬 목록에 `IT_Passenger` · 안내판은 M-42로 서사판 이민선 시계와 이음 (사용자 결정 2026-10-25). 플레이 (확인 메뉴 4 = 3장 대이주, 포트를 붙여서): 안내판 "다음 이민선 19초 후 · 지금까지 도착" · 표지 글자 9개 → 첫 배 모두 받기 → 다시 들어가 "17초 후 · 10명". 답하는 순간의 깜빡임은 서사판에선 안에서 보이지 않음 (도착 창이 바깥에서 뜸).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-21) 자동 합침 · 템플릿 재빌드 · Bake Resident Spots · EditMode 테스트 · 플레이 (수동 저장 3: 주민 17 = 직원 3 · 대합실 14 · 안내판 "다음 이민선 2분 41초 후 / 지금까지 도착 0명" → 이민선을 앞당기면 "이민선 출발 내린 주민 없음" 깜빡임(집 150/150) · 창 너머 실제 바깥 정거장 · 화분 식물 2 · 뚫림 검사 2704장 0px (물결 천장 높이 포함, 자동문은 닫고) · 키트 ↔ 템플릿 같은 평면 0 · 벽 자리 37 · 콘솔 오류 0). Blender 검사: 겹침 0 · 해치 자리 비움 · 벽 뚫림 0 (탑승구 고리 아래 0.1은 바닥 속) · 문 구역 6 = 끝 벽 위 천장 단(띠 끝 면, 소품 아님).
@@ -618,7 +620,7 @@
 - 모델 · 프리팹 · 템플릿 에셋(SM_Interior_Radiator · PF_Interior_* · IT_Radiator · M_Paint_Radiator · Interior_NewBasic.blend `radiator_builder`)은 tycoon에서 만들어 binary patch로 옮김. PF_Interior_* 다른 방은 재빌드로 fileID만 새로 (여객은 표지 글자 컴포넌트가 바뀜)
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 에셋은 자동 합침 예상. **씬 `InteriorMode._templates`에 `IT_Radiator`를 넣어야 새 내부가 쓰임**. 서사판이 칸 단위 열 규칙(`StationRule.Heat`)을 열지 않으면 감시판은 늘 "열 관리 전" + 이웃 이름 "대기". 서사판이 `InteriorArrivalBoard`를 고쳤으면 표지 글자가 `InteriorSignLabels`로 옮겨 간 것만 맞춤. 플레이: 방열판 안 감시판 글 · 기술자 3, 여객 도킹 포트 표지 글자가 그대로 보이는지.
+- [x] (2026-10-25, 0ab1f65 · 00eb2ce) 자동 합침 · 씬 목록에 `IT_Radiator`. 열 규칙은 서사판 5장이라 1~3장에서 안 쓰임.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-22) 자동 합침 · 템플릿 재빌드 · Bake Resident Spots · EditMode 427개 통과 · 플레이 (수동 저장 3: 기술자 3 · 감시판 "열 관리 전" + 이웃 4곳 "대기" → 열 규칙을 켜면 "방열 중 이웃 4곳 -4" · 핵융합로 0.3 / 8 정상 · 심우주 통신기지 · 연료전지 · 물 추출기 0.0 / 8 · 뚫림 검사 1222장 0px (자동문은 닫고) · 키트 ↔ 템플릿 같은 평면 0 · 콘솔 오류 0). Blender 검사: 겹침 0 · 문 구역 0 · 벽 뚫림 0 · 해치 자리 비움.
@@ -638,7 +640,7 @@
 - 모델 · 프리팹 · 템플릿 에셋(SM_Interior_CommRelay · PF_Interior_* · IT_CommRelay · M_Paint_CommRelay · Interior_NewBasic.blend `comm_builder`)은 tycoon에서 만들어 binary patch로 옮김. PF_Interior_* 다른 방은 재빌드로 fileID만 새로 (열 감시판 · 도착 안내판은 코드 도우미만 바뀜)
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 에셋은 자동 합침 예상. **씬 `InteriorMode._templates`에 `IT_CommRelay`를 넣어야 새 내부가 쓰임**. 서사판이 방문 세력 규칙(`StationRule.Contact`)을 열지 않으면 신호판은 늘 "외부 접촉 전" · 평판판 "아직 만난 적 없음". 서사판이 `ContactSystem`을 고쳤으면 `InteriorSignalBoard`가 쓰는 공개 값(`Phase` · `TimeLeft` · `DecodeProgress` · `CanDecode` · `Decoded` · `VisitorName` · `Reputation` · `Tier` · `LastChoice` · `RelayPower` · `Boarding`)만 맞춤. 플레이: 통신 중계소 안 두 화면 · 기둥 빛 고리 · 천장 구동부 회전.
+- [x] (2026-10-25, 0ab1f65 · 00eb2ce) 자동 합침 · 씬 목록에 `IT_CommRelay`. 통신 중계소는 서사판 7장이라 1~3장에서 안 쓰임.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-22) 자동 합침 · 템플릿 재빌드 · Bake Resident Spots · EditMode 427개 통과 · 플레이 (수동 저장 3, 통신 세기 5: "외부 접촉 전 신호 대기" · "통신 세기 5 · 해독 말단 ~ 간부" → 방문 세력 규칙을 켜고 방문 시작 → "함선 접근 도착 1분 00초" · "해독 중 0%" 거친 잡음 → 해독 55% 막대 반 · 파형 반쯤 고름 → "해독 완료 상인 연합 말단" 고른 물결 · 평판 "상인 연합 · 방문 중" (내부에 있는 동안 게임 시간이 멈춰 `ContactSystem.Tick`을 직접 불러 진행) · 연구원 자리 3 (모든 주민에 연구원 특성을 잠시 붙여 확인 — 수동 저장 3 그대로면 0명) · 구동부 회전 · 빛 고리 흐름 · 뚫림 검사 1196장 0px (대조 99% 자홍, 자동문은 닫고) · 키트 ↔ 템플릿 같은 평면 0 · 벽 소품 자리 13 (흩어진 6) · 콘솔 오류 0). Blender 검사: 경계 0 · 겹침 0 · 문 구역 0 · 벽 뚫림 0 · 해치 자리 비움.
@@ -662,7 +664,7 @@
 - 시험 2개 (식단 균형 · 치안 + 행정 함께)
 
 ### `narrative` 합칠 때
-- [ ] 코드는 자동 합침 예상. 메뉴 **Needs/Setup Diet and Security** · **Recipes/Setup**을 돌림 (`Main.unity` 레시피 목록 · 레시피 창). 식단 · 치안을 서사판 어느 장에서 열지는 서사판 등급 표(`_newNeeds`)에서 정함 — 넣지 않으면 두 요구는 없는 것과 같음. 서사판이 `NeedsSystem.Evaluate`를 고쳤으면 식단 분기(`ResidentNeed.Diet` → `EvaluateDiet`)만 맞춤. `PenaltyScale`(종족별 배율)은 식단에도 그대로 곱해짐.
+- [x] (2026-10-25, 0ab1f65) 자동 합침 · 데이터 에셋(binary patch)이 그대로 들어와 메뉴는 안 돌림. 서사판 장 데이터에 식단 · 치안 요구가 없어 1~3장은 그대로.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-22) 자동 합침 · 메뉴 Needs/Setup Diet and Security · Recipes/Setup · Tycoon/Setup Needs (**도시급 식단 · 대륙급 치안**, BALANCE 48번) · EditMode 429개 통과. 봇 측정 120분 × 12판: 등급 도달 · 게임 오버 0 · 만족도 기준과 같음, 봇이 수경 농장 · 단백질 배양실을 반반 · 보안청 · 치안 본부를 지음 (tycoon BALANCE 48번).
@@ -679,7 +681,7 @@
 - 시험 1개 (진화 모듈 도킹 몫)
 
 ### `narrative` 합칠 때
-- [ ] 코드는 자동 합침 예상. 메뉴 **Recipes/Setup**을 돌림 (`Main.unity` 레시피 목록 · 레시피 창, 목록 스크롤은 실행 때 만들어짐). 2 · 3단계는 `SynthesisStage2` · `SynthesisStage3` 규칙이 열려야 하므로 서사판 장 규칙에서 정함 (M-1 · M-6). 서사판 24종 선택(PHASESET)에 안 드는 레시피는 장 데이터에서 빼 둠. 서사판이 `StationProgression.CountLimited` · `StationConstruction.CheckRebuild`를 고쳤으면 도킹 몫 두 줄만 맞춤.
+- [x] (2026-10-25, 0ab1f65) 자동 합침 · 씬 레시피 목록 48개가 main 줄 그대로 들어옴 (빈 칸 0) → **Recipes/Setup은 안 돌림** (합성 = 서사판 4장, 24종 선택 · 장 규칙은 4장을 만들 때).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-22) 자동 합침 · 메뉴 Recipes/Setup → Tycoon/Setup Synthesis → Tycoon/Setup Needs. 첫 실행에서 `RecipeData` 검사가 대형 토러스 · 궤도 도시 칸 수 · 장갑 외벽 등급 모듈 수를 잡아 main에서 고친 뒤 다시 돌림 → 경고 0 · 레시피 48 · EditMode 434개 통과. 봇이 새 레시피로 합성하므로 다음 측정 결과는 바뀔 수 있음.
@@ -701,7 +703,7 @@
 - `ModuleFxMaterials` `EvoGlass` = 진화 모듈 공통 투명 유리 `M_EvoGlass`
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 모델은 자동 합침 예상. 메뉴 **Recipes/Setup**을 돌리면 1단계 6종 프리팹이 모델로 바뀜. 서사판이 `StationArtBuilder`의 움직이는 부품 줄(`SpinRadar` · `SpinDish`)을 고쳤으면 `SpinOrbit` · `SpinClock` 줄만 맞춤. 플레이: 연구 단지 돔 안 망원경이 천천히 돌고, 궤도 고리 위 구체가 고리를 따라 도는지, 비활성 때 빛이 꺼지고 회전이 멈추는지.
+- [x] (2026-10-25, 0ab1f65) 자동 합침 · 모델 프리팹(tycoon에서 만든 것)이 그대로 들어와 메뉴는 안 돌림. 4장 전이라 플레이 확인 없음.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-22) 메뉴 Recipes/Setup → 1단계 6종 프리팹이 모델 (칸 상자 0 · 통로 깊이 측정), 회전 부품 축 = 연구 단지 궤도 ±20° · 문화 센터 시계 z축. 편집 모드 렌더(게임 조명 + 후처리)로 재질 · 움직임 확인, 플레이 (수동 저장 3: 이미 있던 진화 모듈 12개가 새 모델로 바뀜 + 6종을 실제 모듈로 붙여 가동 확인, 망원경 · 궤도 · 시계가 회전 배율 1.0으로 돎) · EditMode 434개 통과.
@@ -715,7 +717,7 @@
 - 공통 규칙 추가 (MODELING 7-9): 모듈 색 포인트 + 받침 옆면, 실내가 있을 수 있는 형태, 부품 이름 꼬리 · 따로 굽기, 반짝이는 점
 
 ### `narrative` 합칠 때
-- [ ] 코드 · 모델 자동 합침 예상. 메뉴 **Recipes/Setup**을 돌리면 1단계 24종 프리팹이 모델. `MeteorFx.Intercept`를 서사판이 고쳤으면 머리 찾기만 `Head` · `Head_*` 둘 다로. 플레이: 실드 매트릭스 빛점 궤도, 태양광 어레이 패널판 기울기, 복지 · 문화 센터 별빛 · 장갑 외벽 · 보안청 신호등 반짝임, 방어 포대 · 보안청 포탑 요격.
+- [x] (2026-10-25, 0ab1f65) 자동 합침 · 프리팹이 그대로 들어와 메뉴는 안 돌림 (서사판은 `MeteorFx` · `StationArtBuilder`를 고치지 않았음). 4장 전이라 플레이 확인 없음.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-22) Recipes/Setup → Tycoon/Setup Synthesis → Setup Needs (경고 0) · 프리팹 23종 모델 + 배선 확인 (도는 부품 · 해 따라 패널 1 · 실드 연출 1 + 돔 유리 · 포탑 머리 3 · 반짝임 재질 + 꼭짓점 색) · EditMode 434개 통과 · 플레이 (수동 저장 3에 20종을 정거장에 붙여 가동 — 도는 부품 19개 회전 배율 1.0, 실드 매트릭스 빛점 4, 패널판 해 쪽으로 기움, 콘솔 오류 0, 저장 되돌림)
@@ -730,7 +732,914 @@
 - 아직 안 한 것: 프리팹 (Recipes/Setup) · 새 FX 재질 `ModuleFxMaterials` 등록 (FX_FluorIce · FX_EvoGlassTeal · FX_EvoGlassClear · FX_Mirror · FX_LightBeam) · 받침 없는 모델 통로 깊이 확인 — 2단계를 다 만든 뒤 한꺼번에
 
 ### `narrative` 합칠 때
-- [ ] 모델 · 텍스처만이라 자동 합침 예상. 2단계 Unity 반영(M-4x)이 들어온 뒤 Recipes/Setup.
+- [x] (2026-10-25, 0ab1f65) 자동 합침 (모델 · 텍스처). 2단계 Unity 반영이 들어오면 다시 봄.
 
 ### `tycoon` 합칠 때
 - [ ] 2단계 Unity 반영 때 함께 확인.
+
+## M-42. 도착 안내판이 보는 이민선 일정을 바꿀 수 있게 (2026-10-25, `main`)
+
+**main에 넣은 것** — 공통 고리만 (main · 타이쿤판 동작 변화 없음)
+- `IArrivalSchedule` (`ImmigrationSystem.cs` 안): `TimeLeft` · `Arrived` · `Visits`. `ImmigrationSystem`이 이것을 따름 (이미 있던 값 그대로)
+- `StationSimulation.Arrivals` — 기본 = `Immigration`, 다른 일정을 넣으면 그쪽 (null이면 다시 포트 시계)
+- `InteriorArrivalBoard`가 `Immigration` 대신 `Arrivals`를 봄 — 사용자 결정 2026-10-25: 서사판은 포트 시계를 끄고(`Suppressed`) 자체 이민선을 써서 3장 여객 도킹 포트 안내판이 늘 "운항 일정 없음"이었음 (M-34 서사판 주의)
+- 시험 1개 (`NewModulesTests.Arrivals_DefaultsToPortClock_OtherScheduleReplacesIt`)
+
+### `narrative` 합칠 때
+- [x] (2026-10-25, 5b76f74 · e16e049) 자동 합침 · `ArkShipSystem`이 따름(받은 인원 = `Accepted`, 다녀간 횟수 = 답한 배 수 `Answered`) · 시험에 두 줄 · EditMode 455개 통과 · 플레이는 M-34 줄.
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상, 동작 같음. 타이쿤판이 `InteriorArrivalBoard`를 고쳤으면 `Immigration` → `Arrivals` 한 줄만 맞춤.
+
+## M-43. 짧은 판은 나갈 때 자동 저장하지 않음 (2026-10-25, `main`)
+
+**main에 넣은 것** — 저장 동작이 바뀜 (사용자 결정 2026-10-25 "짧은 판은 건너뜀")
+- `SaveManager`: 메인 메뉴로 나갈 때(`SaveBeforeLeaving`) · 게임을 끌 때(`OnApplicationQuit`) 게임 시간이 `_minExitAutosaveSeconds`(기본 60초)보다 짧으면 자동 저장을 건너뛰고 로그 "[Save] 게임 시간 n초 · 짧은 판이라 …". 새 게임을 열자마자 나가면(서사판 1장 컷신은 시간이 멈춰 0초) 0초짜리 판이 이전 판의 자동 저장을 덮었음 (2026-10-20 서사판에서 실제로 일어남). 불러온 판은 게임 시간이 이어져 그대로 저장. 게임 시간 N분마다 자동 저장은 그대로
+- 씬 칸은 기본값으로 읽혀 씬은 바뀌지 않음
+
+### `narrative` 합칠 때
+- [x] (2026-10-25) 자동 합침 · EditMode 455개 통과 (처음 로그의 `—`가 글꼴에 없어 `FontCoverageTests`가 잡음 → `·`로) · 플레이: 저장 폴더를 돌리고 새 게임(1장 컷신, 0초) → 바로 멈춤 → "[Save] 게임 시간 0초 · 짧은 판이라 …" · 폴더의 auto 시각 그대로 / 확인 메뉴 1(불러온 판 220초) → 멈춤 → auto 저장됨. 실제 세이브 그대로.
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상. 같은 확인.
+
+## M-44. 게임 모드 고리 — 메인 메뉴 모드 목록 · 저장 모드 · 진행 표시 · 버전 줄 (2026-10-25, `main`)
+
+**main에 넣은 것** — 고리만 (모드 목록이 비면 main · 타이쿤판 동작 변화 없음). 사용자 결정 2026-10-25: 서사판 = 캠페인 모드, 타이쿤판 = 엔드리스 모드, 합칠 때 다시 손대지 않게 고리로 (SPLIT.md 6번 표)
+- `Data/GameModeData` (SO 새 파일): Id · 이름 · 설명 · 고정 난이도(비우면 난이도 셋에서 고름) · 튜토리얼 켜기/끄기 줄 · 새 게임 로딩 제목 · 설명. `GameStartOptions.Mode`
+- `MainMenuController._modes`: 있으면 모드마다 버튼 ([새 게임] 자리부터, 나머지는 복제) → 시작 창(난이도 창 재사용): 고정 난이도면 [시작] + 설명 하나, 아니면 난이도 셋. 모드가 원하면 [뒤로] 모양을 복제한 '튜토리얼 받기 켬 / 끔' 줄 (설정 '다음 새 게임에서 튜토리얼'과 같은 값). `_versionLabel`: 비우지 않으면 오른쪽 아래 버전 글자
+- `SaveMeta.Mode` · `Progress` · `Headline` (진행 표시가 있으면 그것, 없으면 등급 이름) · `StationSimulation.ProgressLabel` (모드가 채움) — `SaveManager`가 저장마다 넣음(불러온 판은 그 저장의 모드). 이어하기 · 저장 목록 · 불러오기 로딩 화면이 진행 표시를 씀. 세이브 버전 그대로 (칸이 없으면 비어 읽힘)
+- 시험 1개 (`SaveTests.Meta_ModeAndProgress_RoundTrip_HiddenSlotsStayOutOfLists` — 목록에 없는 칸(체크포인트용)은 이어하기 · 목록에 안 낌)
+
+### `narrative` 합칠 때
+- [x] (2026-10-25, 1bb1961) 자동 합침 · 서사판 13-7d: `GM_Campaign` (단일 난이도 노멀 · 코어 기동 안내 줄) · 메뉴 `SpaceStation/Campaign/Setup Main Menu`가 메인 메뉴 씬 `_modes` = [캠페인] · `_versionLabel` "v0.13 · 캠페인 1~3장" · `ChapterSystem`이 `ProgressLabel` ("3장 · 무리 합류"). 시작 창 머리말 = 모드 Id (6094fc9). EditMode 457개 통과 · 플레이 (메뉴 → [캠페인] → 시작 창 → 노멀 캠페인 · 저장 Mode campaign · Progress "1장 · 깨어남").
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상, 동작 같음 (메뉴 씬 `_modes` 비움). 타이쿤판이 `MainMenuController` 난이도 단추 · 이어하기 글을 고쳤으면 그 부분만 맞춤. 엔드리스 모드 이름을 붙일 때 `GameModeData` 에셋을 만들어 `_modes`에.
+
+## M-45. 게임 오버 다시 시작 지점 고리 (2026-10-25, `main`)
+
+**main에 넣은 것** — 고리만 (비면 동작 같음). 사용자 결정 2026-10-25: 캠페인 실패 안전망 = 게임 오버 때 [절정 직전부터] [이 장 처음부터] [메인 메뉴]
+- `ResultScreen.RetryOptions` (정적 `Func<IReadOnlyList<RetryOption>>`) · `RetryOption` (글 · 할 일): 게임 오버 때 목록이 있으면 [재시작] 대신 첫 지점 = 주 버튼, 나머지는 주 버튼을 복제해 같은 줄에 + [메인 메뉴]. 모드 쪽이 씬에 있는 동안 넣고 나갈 때 비움
+
+### `narrative` 합칠 때
+- [x] (2026-10-25, 1bb1961) 자동 합침 · 서사판 `CampaignCheckpoints`가 채움 · 플레이: [이 장 처음부터] 하나 / [절정 직전부터] 하나 / 둘 다 → 세 버튼 한 줄(각 153 폭)에 [메인 메뉴]까지 들어감, 누르면 그 체크포인트로.
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상, 동작 같음. 타이쿤판이 `ResultScreen` 게임 오버 버튼을 고쳤으면 그 부분만 맞춤.
+
+## M-46. 측정 확장 고리 — 봇 위에 모드별 결정 · 게임 오버 뒤 다시 시작 (2026-10-25, `main`)
+
+**main에 넣은 것** — 측정 도구 고리만 (확장이 없으면 결과 같음 — 같은 시드 timeseries 비교). 사용자 결정 2026-10-25 (13-8 준비 ①, S5-3): 서사판 캠페인 봇은 공통 봇 위에 확장으로
+- `Editor/Balance/IBalanceExtension` (새 파일): `Configure`(시뮬레이션 설정 — 모드 데이터) · `Attach`(만든 직후 · 복원 전 — 시스템 붙이기) · `Decide`(매 틱 봇 결정 뒤) · `Finished` · `RetryState`(게임 오버 때 이어 갈 상태) · `Finish`(결과)
+- `BalanceRunSettings.Extension` (판마다 새로 만드는 함수) · `BalanceRunResult.Extra` (확장 결과) · `Retries`
+- `BalanceRun`: 시뮬레이션 만들기를 `CreateSim(seed, attempt)`로 (attempt 0 = 예전과 같은 난수 씨앗), 게임 오버면 확장이 준 상태로 새 시뮬레이션 · 새 봇(같은 성향)을 만들어 이어 감 — 되돌아간 시간은 `Elapsed`에 더함, 봇 수(건설 · 수리 · 정비 …)는 모든 시도의 합, 13-7 새 일 지표는 첫 시도만
+- `BalanceBot.TryBuild(모듈)`: 확장이 원하는 모듈을 봇의 자리 찾기로 지음
+
+### `narrative` 합칠 때
+- [x] 자동 합침 예상. 서사판 캠페인 봇 확장이 꽂힘 (13-8 준비 ①).
+  - 확인 (2026-10-25): 자동 합침(충돌 0). `Editor/Balance/CampaignBot`(`CampaignBotExtension` — 장 · 이민선 · 탐사 · 정책 · 기록 시스템을 붙이고 장 목표 · 이민선 답 · 방향 · 정책 처리, 게임 오버면 체크포인트로 다시 시작) · 메뉴 SpaceStation/Balance/Campaign Bot. 노멀 20판 → 캠페인 끝 20/20 · 무너짐 7번 모두 다시 시작으로 넘김, 같은 시드 두 번 결과 같음
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상, 결과 같음 (확장 없음). 타이쿤판이 `BalanceRun` 생성자 · 게임 오버 처리를 고쳤으면 그 부분만 맞춤.
+
+## M-47. 봇 정비 기준 · 자리 점수 고리 (2026-10-25, `main`)
+
+**main에 넣은 것** — 측정 도구 고리만 (고리를 비우면 결과 같음). 사용자 결정 2026-10-25 (13-8 준비 ① 다시 측정 — 봇 집 · 금속 관리 먼저 · 절정 대비 넣기)
+- `BalanceBot.MaintainAtFor` · `RebuildBelowFor`: 모듈마다 정비 기준 · 재건축 기준 (null = 모두 `DefaultMaintainAt` 55 · `DefaultRebuildBelowMax` 55, 예전과 같음)
+- `BalanceBot.WearMatters(모듈)`: 내구도 효율이 하는 일에 걸리는지 (생산 · 실드 · 포탑 · 손상 통제실 · 서비스). 거짓 = 거주 · 배터리 · 창고 · 장갑 격벽 · 센서 … (파괴 전까지 하는 일이 같음)
+- `BalanceBot.TryBuild(모듈, 자리 점수 더하기)`: 확장이 자리 점수를 더해 지음 (예: 유성우 예보 방향 앞면을 덮는 실드)
+- 측정 메모: 공통 봇은 모든 모듈을 내구도 55에서 정비하고 정비 뒤 최대가 55 아래면 재건축 → 모듈 하나가 약 7분 반마다 재건축되어 실제 유지비가 이론값(건설비 × 0.0004/초)의 약 2.7배. 서사판 3장(모듈 약 100개)에서 금속 수입 분당 250~310 중 정비 · 재건축이 분당 약 250이라 봇이 늘 "정비비 저축"에 묶여 거주를 못 지었음. 효율과 무관한 모듈을 늦게 정비하면 풀림 — 공통 봇 기본값을 바꿀지는 두 판 측정을 보고 정함
+
+### `narrative` 합칠 때
+- [x] 자동 합침. 서사판 캠페인 봇이 꽂음 (효율과 무관한 모듈 · 장갑 격벽 제외 = 내구도 30 아래 정비 · 최대 45 아래 재건축, 유성우 예보 방향 실드 · 포탑 자리).
+  - 확인 (2026-10-25): 캠페인 봇 대비를 끈 20판이 고리 전 측정과 timeseries · summary · milestones 같음. 켠 20판 = 캠페인 총 47.4분 · 3장 준비 꼬리 없어짐 (최대 101.9 → 18.5분)
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상, 결과 같음 (고리 비움). 측정 메모 참고 — 타이쿤판 봇도 같은 이유로 유지비가 클 수 있음 (쓸지는 타이쿤판이 정함)
+
+## M-48. 공통 튜토리얼 '주민 부탁' 문장 — 방 이름 위치 (2026-10-25, `main`)
+
+**main에 넣은 것** — 문장만. 사용자 요청 2026-10-25 (서사판 13-8 준비 ② 문구 톤 확인 중 발견): 공통 튜토리얼 '주민 부탁' 단계가 "왼쪽 위 방 이름 아래에 표시됩니다"였는데 방 이름 · 사고/부탁 줄은 M-17에서 상단 가운데로 옮겼음
+- `Data/Tutorial/TutorialData` '주민 부탁' 단계(12번째) 본문 · `Editor/TutorialSetup` 원본: "누가 어느 방에서 부탁했는지 **화면 위쪽** 방 이름 아래에 표시됩니다."
+
+### `narrative` 합칠 때
+- [x] 자동 합침 예상 (서사판 캠페인은 코어 기동 · 방주 안 안내를 쓰고, 같은 문장은 `TUT_ArkInterior`에서 이미 고침).
+  - 확인 (2026-10-25): 자동 합침(충돌 0) · 에디터에서 에셋 문장 읽힘
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상. 타이쿤판이 `TutorialData`를 다시 만들었거나 고쳤으면 같은 줄만 맞춤.
+
+## M-49. 자동 정비는 소리 없이 (2026-10-25, `main`)
+
+**main에 넣은 것** — 사용자 피드백 2026-10-25 (서사판 13-8 플레이 확인): 정비 자동화 연구 뒤 모듈이 많아지면 자동 정비가 거의 매초 모듈을 정비해 정비 소리가 끊이지 않음 → 다른 소리가 안 들림. 결정 = **자동 정비는 소리 없이** (직접 누른 정비 · 재건축만 소리, 자동은 상태 줄 알림 그대로)
+- `MaintenanceAutomation.Executing`: 자동 정비(`Tick`) · 일괄 정비(`RunBatch`)가 모듈을 처리하는 동안만 true
+- `GameAudio`: `Durability.Maintained` 소리는 `Executing`이면 건너뜀 · 일괄 정비(`Performed` batch)는 한 번만 정비 소리 (자동 재건축은 원래 소리 없음)
+- 시험: `ResearchTests.Automation_Executing_OnlyWhileAutoOrBatch`
+
+### `narrative` 합칠 때
+- [x] 자동 합침 예상 (`GameAudio` 구독 목록에 서사판 `CampaignFinished` 줄이 있어 근처지만 다른 줄).
+  - 확인 (2026-10-25): 자동 합침(충돌 0) · EditMode 461개 통과 (서사판 시험 포함)
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상. 타이쿤판이 `GameAudio`의 정비 소리를 고쳤으면 그 부분만 맞춤.
+
+## M-50. 장이 여는 레시피 · 지을 수 있는 칸 · 합성 속도 통로 (2026-10-26, `main`)
+
+**main에 넣은 것** — 서사판 14-1 (4장 '좁아진 하늘', 사용자 결정 2026-10-26: 레시피는 장이 바로 엶 · 위기 '파편 띠' 동안 새 칸 금지 · 여우 = 합성 속도)
+- `SynthesisSystem.OpensDirectly` (`Func<RecipeData, bool>`, null = 없음) · `IsOpenedDirectly(recipe)` = 자동 해금 또는 여는 쪽이 연 레시피. `IsUnlocked`(연구 확장 없을 때) · `ResearchExpansionSystem.StateOf` · `RecipePanel`이 이것으로 '해금'을 봄 (규칙 · 등급 조건은 그대로 따로) — 연 레시피는 해금 연구가 '이미 해금'으로 막힘
+- `IBuildZone` (Core, `Allows(cell)`) · `StationSimulation.BuildZone` (null = 없음) · `PlacementResult.OutsideZone` — 건설(`EvaluatePlacement`) · 이동(`EvaluateMove`)은 모든 칸이 허용돼야 함, 재건축 · 합성은 같은 칸이라 막지 않음. 사유 글 "지금은 새 칸에 지을 수 없음 (모듈이 있던 칸에만)"
+- `ResidentTrait.Artisan` (손재주, 맨 끝에 더함 — 개인 특성 정의는 없어 아무도 뽑히지 않음, 서사판 종족 기술이 통로로 씀) · `ResearchEffects.TraitSynthesisSpeedMultiplier` · `SynthesisSpeedMultiplier` → `SynthesisSystem.Tick`이 곱함 · `SecondsLeft(job)` · 레시피 창 시간 · 진행 표시도 반영
+- 시험: `SynthesisTests.OpensDirectly_UnlocksWithoutResearch` · `SynthesisSpeed_ShortensJob` · `BuildZone_BlocksNewCells_RebuildAndMoveFollowZone`
+
+### `narrative` 합칠 때
+- [x] 자동 합침 예상. 서사판이 4장에서 채움 (장이 여는 레시피 · 파편 띠 칸 · 여우 `SP_Fox` 기술 통로 = Artisan, `SpeciesData.TechName`에 "합성 속도").
+  - 확인 (2026-10-26): 자동 합침(충돌 0) · EditMode 464개 통과 (서사판 시험 포함) · 서사판 `SpeciesData.TechName`에 손재주 = "합성 속도"
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상. 타이쿤판은 셋 다 비워 둠 (값이 없으면 예전과 같음). 타이쿤판이 `ResidentTrait`에 값을 더했으면 순서를 맞춤 (세이브 · 에셋은 정수로 저장 — 맨 끝에 붙이기).
+
+## M-51. 조작을 막지 않는 안내 · 합성 안내 단계 (2026-10-26, `main`)
+
+**main에 넣은 것** — 서사판 14-1c (사용자 결정 2026-10-26: 4장에서 처음 열리는 합성을 따라 하는 짧은 안내로 — 건너뛸 수 있고 조작을 막지 않음). 기존 튜토리얼 틀은 진행 중에 조작 · 무작위 이벤트 · 노후 · 파손 타이머를 멈추고 보급을 하므로, 장 중간 안내용 설정을 더함
+- `TutorialData._free` (`Free`, `SetFree`) — 켜면 `TutorialRunner`가 이벤트를 잡지 않고(`Events.Held` 그대로) · 모든 조작 허용(`Allows`) · 보급 없음 · 끝날 때 이벤트를 풀거나 미루지 않음, `StationSimulation`의 튜토리얼 틱(노후 · 파손 타이머 멈춤)도 끔. `TutorialView`는 막지 않는 안내가 끝나도 설정 "다음 새 게임에서 튜토리얼"을 건드리지 않음
+- `TutorialGoal.OpenRecipes` · `PlaceSynthesis` · `StartSynthesis` (맨 끝에 더함) + `TutorialRunner.ReportSynthesis(goal)` — `RecipePanel.Open`이 창 열기, `SynthesisController.Begin(레시피)`가 위치 지정을 알림, 시작은 진행 중 · 마친 합성으로 판정. 뒤 단계에 닿으면 앞 단계까지 완료, 보고는 시간이 멈춰 있어도 바로 판정. `TutorialView` 단계 줄 3종
+- 시험: `TutorialTests.FreeGuide_HoldsNothing_SynthesisStepsAdvanceOnReports`
+
+### `narrative` 합칠 때
+- [x] 자동 합침 예상. 서사판 = 장 안내(`ChapterData`) 4장 합성 안내 `TUT_Synthesis`(저장 안 함 + 막지 않음), `ChapterSystem.ReleaseEvents`도 막지 않는 안내는 이벤트를 잡지 않게.
+  - 확인 (2026-10-26): 자동 합침(충돌 0) · EditMode 468개 통과 · 플레이 확인 4장 시작 → 안내 3단계 진행 · 안내 중 무작위 이벤트 그대로
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상. 기존 튜토리얼은 `_free` 꺼짐이라 그대로. 타이쿤판이 `TutorialGoal`에 값을 더했으면 순서를 맞춤 (에셋에 정수로 저장 — 맨 끝에 붙이기), 합성 안내가 필요하면 같은 단계를 씀.
+
+## M-52. 여는 쪽이 있으면 자동 해금 레시피도 그쪽이 정함 · 합성 창 문구 · 창 위치 칸 (2026-10-26, `main`)
+
+**main에 넣은 것** — 서사판 14-1c 플레이 확인 (사용자 결정 2026-10-26: 4장 합성 창에 공통 자동 해금 레시피 '연구 단지'가 같이 열림 → 6종만, 연구 단지는 뒤 장)
+- `SynthesisSystem.IsOpenedDirectly` = `OpensDirectly`가 있으면 그쪽만 (자동 해금 `UnlockedByDefault`도 그쪽이 정함), 없으면 자동 해금 — M-50의 뜻을 바꿈 (규칙 고리처럼 "정하는 쪽이 있으면 그쪽")
+- 합성 창을 여는 곳 문구: 버튼은 왼쪽 위 [관리] 메뉴 안 → `TutorialView` 합성 안내 줄 · `RecipePanel` 설명을 "[관리] → [합성]"으로
+- `RecipePanel._windowOffset` (기본 (-150, 40) = 예전과 같음) — 서사판 씬은 (-50, 40): 왼쪽 위 안내 카드와 오른쪽 장 카드 사이 (창이 안내 카드를 가렸음)
+- 시험: `SynthesisTests.OpensDirectly_UnlocksWithoutResearch`에 자동 해금이 닫히는 경우를 더함
+
+### `narrative` 합칠 때
+- [x] 자동 합침 예상. 씬 `RecipePanel._windowOffset` = (-50, 40).
+  - 확인 (2026-10-26): 자동 합침(충돌 0) · 씬 값 (-50, 40) · EditMode 468개 통과
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상. 타이쿤판은 `OpensDirectly`를 비워 두므로 자동 해금 그대로, 창 위치 기본값도 그대로.
+
+## M-53. 칸을 정하는 쪽의 사유 글 (2026-10-26, `main`)
+
+**main에 넣은 것** — 서사판 14-1d (사용자 결정 2026-10-26: 4장 위기 '파편 띠' — 새 칸에 지으려 하면 고스트가 빨갛고 '파편 띠' 사유)
+- `IBuildZone.Reason` (막힌 칸 사유, 비면 기본 문구) · `HudText.PlacementReason(result, zone)` — `OutsideZone`이고 사유가 있으면 그 글. 상태 줄(`StatusBar`) · 휴대 패드 건설(`PadBuild`)이 씀
+- 시험: `HudTextTests.PlacementReason_ZoneReasonOnlyForOutsideZone`
+
+### `narrative` 합칠 때
+- [x] 자동 합침 예상. 서사판 파편 띠 구역이 사유를 채움.
+  - 확인 (2026-10-26): 자동 합침(충돌 0) · EditMode 470개 통과 (파편 띠 시험 포함)
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상 (칸을 정하는 쪽이 없으면 예전과 같음).
+
+## M-54. 진화 모듈 외형 2단계 나머지 11종 + 그리드 허브 · 궤도 미러 다시 만듦 (Unity 반영 전) (2026-10-26, `main`)
+
+**main에 넣은 것** (tycoon에서 생성, tycoon 커밋 `eea9e29c`와 같은 파일)
+- 2단계 테마 = **여가 테마파크** (사용자 결정 2026-10-26, MODELING 7-10 — 기본 = 생존 공업 · 1단계 = 발달한 미래 기술 · 2단계 = 여가 테마파크 · 3단계 미정), 몸체 = 미드나잇. 모델 11종 `SM_Evo_{Id}.fbx` + 텍스처 (Blender `Modules_Work.blend` `evo_builder`, 사용자가 한 종씩 확정):
+  - 치안 본부 (푸른 등 파출소 광장) · 바이오돔 (비눗방울 돔 셋 · 도는 구름 고리) · 식량 공장 (도는 유리 드럼 둘 `SpinWheel_FoodFactoryProtein/Harvest`) · 정련 콤비나트 (작은 해 용광로 · 도는 쇳물 국자)
+  - 실드 돔 (오로라 등대 · 프레넬 렌즈 실드 발생기 `Emitter*_ShieldDome`) · 요새 포대 (별 요새 · 포탑 `Head_FortressA/B`) · 방사선 차폐벽 (별자리 병풍 + 은하수 차폐 몸통) · 드론 정비창 (드론 라이트쇼 격납고)
+  - 화물 환적장 (은하수 후룸라이드) · 저장 단지 (별빛 회전목마 창고) · 연구원 (별빛 데이터 미로)
+- 다시 만듦 (테마 점검 뒤): 그리드 허브 v3 (번개 정원) · 궤도 미러 v3 (해바라기 정원)
+- `MODELING.md` 7-10 (단계별 테마 · 2단계 이상 내부 아이디어 — 우주복 개방형 정원 · 후룸라이드 · 회전목마 직접 탑승), `.gitignore` (NamuFX 불꽃놀이 팩 제외 — 실드 패키지와 같은 정책)
+- 아직 안 한 것 (2단계 Unity 반영 때 한꺼번에, tycoon TASKS): 프리팹 · `SpinWheel_` 접두사 처리 (축 = 부품 로컬 z) · 새 FX 재질 `ModuleFxMaterials` 등록 (FX_AuroraGreen/Violet · FX_FluorTeal · FX_GalaxyWater · FX_SplashMist · FX_FluorYellow/Orange/Red · FX_RefineryGlow · FX_ProteinCulture 등) · 실드 돔 오로라 장벽 · 요새 불꽃놀이 · 1층인데 칸 위로 넘는 6종 처리 (사용자 결정 대기)
+
+### `narrative` 합칠 때
+- [ ] 모델 · 텍스처 · 문서만이라 자동 합침 예상. 2단계 Unity 반영이 들어온 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [ ] 같은 파일이 tycoon 커밋 `eea9e29c`에도 있어 자동 합침 예상. 2단계 Unity 반영 때 함께 확인.
+
+## M-55. 2단계 위 칸 레시피 (모델 모양 그대로) + 높이 손본 3종 다시 내보냄 + 2단계 프리팹 모델 연결 (2026-10-26, `main`)
+
+**main에 넣은 것** (tycoon에서 생성, tycoon 커밋 `03275d96`과 같은 파일 — 메뉴 · 시험은 tycoon에서 돌림)
+- 높이 점검 (모델 원점 기준 맨 위 vs 칸 위 경계 = 층 수 − 0.5, StationArtBuilder는 모델을 줄이지 않고 그대로 넣어 넘치면 위층 모듈과 겹침): 1층인데 넘던 6종 중
+  - 정련 콤비나트 · 요새 포대 · 융합 플랜트 = 작은 돌출(불꽃 분수 · 뿔지붕 · 돛대 · 빛 기둥)을 낮춰 칸 안으로, 다시 내보냄
+  - 궤도 미러 · 실드 돔 · 그리드 허브 = **모델은 그대로, 레시피 재료를 늘려 위 칸을 얻음** (사용자 결정 2026-10-26 "A안" — 줄인 시안 · 등대 옮긴 배치는 "기존 모듈 형태에 변화가 없도록"으로 멈춤, 두 모델은 원래 모양으로 다시 내보냄)
+- `RecipeSetup.cs` (공통 바닥): 궤도 미러 = 태양광 어레이 ×3 · 4×2 + 가운데 위 2×2 · 190 · 태양광 175 / 실드 돔 = 실드 매트릭스 ×2 + 센서 어레이 ×2 · `Box(2, 2, 2)` · 630 · 반경 8 · 88% · 예보 +45 · 전력 32 / 그리드 허브 = 축전 뱅크 ×2 + 배터리 ×2 · 3×2 + 가운데 위 1×2 · 180 · 7000 / 130 / 이어지는 3단계: 항성 발전망 7×2 + 위 6칸 · 550 · 태양광 210, 궤도 방어망 5×2 + 위 2×2 · 1550 · 반경 9 · 예보 +55. 수치 = BALANCE 34종 표 (칸 수 = 재료 칸 합 · 합성비 ≥ 재료 건설비 × 0.5 · 효과 15 ~ 25%)
+- Recipes/Setup이 만든 파일: 레시피 5종 · 진화 모듈 19종 데이터 (2단계 모델이 생겨 통로 깊이 `_faceDepths`도 채워짐) · 프리팹 2단계 + 3단계 (2단계 = 칸 상자 대신 모델) · 2단계 텍스처 재질 `M_Evo_*_Tex` + Emission · MaskMap · 텍스처 가져오기 설정 (최대 1024). EditMode 434 통과 (tycoon)
+- 아직 안 한 것 (2단계 Unity 반영 때): 새 FX 재질 슬롯 `ModuleFxMaterials` 등록 (지금은 프리팹 만들 때 "알 수 없는 재질 슬롯" 경고) · `SpinWheel_` 처리 · 오로라 장벽 · 요새 불꽃놀이 · 플레이 확인
+- 세이브: 예전 저장에 이 다섯 모듈이 있으면 새 모양으로 다시 놓음 — 위 칸이 다른 모듈과 겹치면 그 모듈만 건너뜀 (불러오기 경고)
+
+### `narrative` 합칠 때
+- [ ] `RecipeSetup.cs` · 데이터 · 프리팹 자동 합침 예상 (서사판이 같은 레시피를 고쳤으면 칸 · 재료만 이쪽으로). 합친 뒤 **Recipes/Setup 다시 돌림** + EditMode (`SynthesisTests` 칸 수 = 재료 칸 합).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-26) 같은 파일이 tycoon 커밋 `03275d96`에 있음 (tycoon에서 메뉴 · 시험 · 칸 검사를 먼저 함).
+
+## M-56. 2단계 Unity 반영 ① — 새 FX 재질 · 드럼 회전 · 등대 렌즈 속도 · 미드나잇 몸체 그늘 밝기 (2026-10-26, `main`)
+
+**main에 넣은 것** (tycoon에서 생성, tycoon 커밋 `b5be0440`과 같은 파일)
+- `ModuleFxMaterials` 2단계 FX 재질 9종: `FluorIce` (테두리 띠 청백 빛줄) · `EvoGlassTeal` · `EvoGlassClear` (유리) · `AuroraGreen` · `AuroraViolet` · `LightBeam` (URP Unlit 가산 양면 — 모델 FX 메시 꼭짓점 색이 검정(반짝임 위상용)이라 꼭짓점 색을 곱하는 Particles/Unlit은 안 보임) · `GalaxyWater` (반투명 남청, 큐 −1로 먼저 그려 속 빛 띠 · 별가루가 묻히지 않게) · `SplashMist` (윤기 없는 물안개) · `Mirror` (은빛 금속) → 2단계 "알 수 없는 재질 슬롯" 경고 0
+- `StationArtBuilder`: 새 이름 규칙 `SpinWheel*` = 부품 로컬 z축(드럼 축)으로 초당 10° (식량 공장 유리 드럼 둘 — 테가 둘인 넓은 드럼은 `OrbitAxis`가 축을 기울게 잡아 부품 축을 씀) · 실드 돔(`Emitter_ShieldDome`)만 렌즈 드럼 + 위아래 프리즘이 한 덩어리로 초당 40° (등대 빛 두 줄기가 렌즈 드럼 Fx 자식이라 함께 돎, 다른 실드는 120 / −80 그대로)
+- `ModuleTextureMaterials` **미드나잇 몸체 그늘 밝기**: 해가 모듈 뒤(+z)에서 비춰 게임 카메라 쪽 면은 그늘(평평한 환경광 0.34 · 0.27 · 0.24만) → 짙은 남색 · 은빛 2단계가 거의 검게 보임 (금속 값을 낮춰도 그대로) → 2단계 17종(`MidnightBody`) 텍스처 발광에 바탕색 × 0.5를 더함. 1단계 흰 몸체는 그대로. 발광이라 비활성 · 파손 때 ModuleView가 함께 어둡게
+- Recipes/Setup 산출물: 2단계 프리팹 17종 · FBX 리맵(.meta) · 2단계 발광 텍스처 41장 · 새 FX 재질 9개
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (`StationArtBuilder` · `ModuleFxMaterials` · `ModuleTextureMaterials`를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-26) 같은 파일이 tycoon 커밋 `b5be0440`에 있음 (미리보기 렌더 17종 확인 · EditMode 434 통과).
+
+## M-57. 2단계 Unity 반영 ② — 실드 돔 오로라 장벽 + 움직이는 부품 `Fx_` 자식 제자리 (2026-10-26, `main`)
+
+**main에 넣은 것** (tycoon에서 생성, tycoon 커밋 `55be6dab`과 같은 파일)
+- `AuroraBarrierFx` (새 연출 컴포넌트, `StationArtBuilder`가 실드 돔 발생기 `Emitter_ShieldDome`에 자동 배선): 운석이 실드 구면에 닿으면 `MeteorFx`가 모듈에서 이 컴포넌트를 찾아 구면 파문 대신 `Play` — 닿은 자리에 오로라 커튼(실드 구면에 붙은 조각 메시 48×12, 아래 밝은 단 초록 → 위 보라로 옅어짐 · 세로 빛살 · 가로로 흐르는 주름 · 닿은 자리 번쩍)이 0.12초에 펼쳐져 1.6초 동안 일렁이며 사라짐. 파편 불꽃 · 실드 코어 번쩍임 · `Deflected` 알림(소리)은 그대로. 재질 `M_AuroraBarrier` = 꼭짓점 색을 곱하는 가산 파티클 (HDR 0.9 — 더 세면 블룸에 하얗게 날아감). 시험 `AuroraBarrierFxTests` (구면에 붙음 · 맨 위 / 양옆 투명)
+- `StationArtBuilder.PlaceModel`: 움직이는 부품 아래 `Fx_*` 자식(유리 · 빛 · 반짝임)을 부품 기준 제자리(위치 0 · 회전 0)로 — Blender 내보내기 `bake_space_transform=True`가 손자 오브젝트에 축 변환을 한 번 더 넣어 X 90° + 위치 밀림으로 들어오던 것 (사용자 발견: 식량 공장 드럼 유리 커버가 누움). 1 · 2단계 20개 (1단계 중력 거주구 링 유리 포함). MODELING 7-9
+- 산출물: 프리팹 (Fx 자식 제자리 · 실드 돔 오로라 장벽), 식량 공장 통로 깊이 다시 잼, FX 재질 저장값
+
+### `narrative` 합칠 때
+- [ ] `MeteorFx` 실드 빗겨냄 부분을 서사판이 고쳤으면 `AuroraBarrierFx` 분기만 손으로. 합친 뒤 Recipes/Setup + EditMode.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-26) 같은 파일이 tycoon 커밋 `55be6dab`에 있음 (EditMode 438 통과, 오로라 장벽은 정지 화면으로 확인 — 플레이 확인은 2단계 반영 ④).
+
+## M-58. 2단계 Unity 반영 ③ ④ — 요새 포대 별자리 불꽃놀이 · 실드 돔 오로라 구면 파문 다시 만듦 (2026-10-26, `main`)
+
+**main에 넣은 것** (tycoon에서 생성, tycoon 커밋 `b290798b`와 같은 파일)
+- `FireworkFx` (새 연출 컴포넌트, `StationArtBuilder`가 `SM_Evo_Fortress` 모델에 자동 배선): 포탑 요격 때 `MeteorFx.Intercept`가 이 컴포넌트를 찾으면 공중 폭발 대신 `Burst` — 빛 점이 꼬리를 끌며 별자리 별 자리로 퍼져 반짝이고 별을 잇는 빛줄이 차례로 그어진 뒤 불티처럼 내려앉음 (2.3초, 면은 카메라를 향하고 위쪽 = 월드 위). 별자리 5종(북두칠성 · 카시오페이아 · 오리온 · 북십자 · 전갈자리) 무작위, 바로 앞과 같은 것은 피함 (사용자 요청). 뒤 능보 박격포대(포구 = 모델 (0, 0.05, 1) · (2, 0.05, 1))에서 가동 중 평균 22초마다 포탄이 올라가 별자리 또는 둥근 불꽃 (`Launch` — 확인용으로 직접 불러도 됨). `Exploded` 알림(소리)은 그대로
+- 재질 `M_FireworkSpark` (둥근 빛 점) · `M_FireworkLine` + `T_SoftBand` (가로질러서만 부드러운 띠 — 별자리 선 · 입자 꼬리). 불꽃놀이 팩(NamuFX, git 제외)은 직접 쓰지 않음 — 프리팹이 반복 발사기 · 모듈의 10배 크기라 같은 모양을 코드로 만들어 팩 없는 PC에서도 동작
+- `AuroraBarrierFx` 다시 만듦 (M-57의 구면 조각 커튼 → 사용자 "잡초 느낌", 평면 원 → "진짜 원, 기존 실드처럼 구형으로"): 파란 구면 파문 대신 실드 구 전체가 오로라로 — 닿은 자리에서 구면을 따라 퍼지고(0.9초) 기존 파문처럼 0.96 → 1.04배로 부풀며 사라짐(1.6초), 구를 가로로 감싸 흐르는 오로라 띠 셋, 앞면 윤곽이 밝고 가운데는 비침 (꼭짓점 색을 매 프레임 카메라 방향으로 칠함, 뒷면 감춤). `MeteorFx`는 실드 돔이면 `Ripple` 대신 `AuroraBarrierFx.Play` + 파편 불꽃
+- 시험 `FireworkFxTests` 4개 (별자리 자료 · 카메라를 향한 배치) · `AuroraBarrierFxTests` 4개 (단위 구 · 닿은 자리부터 퍼짐 · 윤곽 밝고 뒷면 감춤)
+
+### `narrative` 합칠 때
+- [ ] `MeteorFx` 요격 · 빗겨냄 분기를 서사판이 고쳤으면 `FireworkFx` · `AuroraBarrierFx` 분기만 손으로. 합친 뒤 Recipes/Setup + EditMode.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-26) 같은 파일이 tycoon 커밋 `b290798b`에 있음 — EditMode 442 통과, 플레이 확인 (프리팹을 임시로 띄워 별자리 불꽃 무작위 · 박격포대 · 오로라 구면 파문 재생 캡처, 도는 부품 축 · 속도 측정). 실제 판에서 합성한 실드 돔 · 요새 포대로 운석이 오는 장면은 아직.
+
+## M-59. 모듈 확인 세이브 단계별 구획 (2026-10-26, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `eaceb0a6`과 같은 파일)
+- `ModuleCheckSave` (M-26 `SpaceStation/Module Check`): 배치 설정 추가 — 메뉴 `SpaceStation/Module Check 배치/단계별 구획 (기본 · 1 · 2 · 3 · 4단계)` · `한데 모음 (예전 방식)` (체크 표시, `EditorPrefs`에 기억, 기본 = 단계별 구획). 단계별 구획 = 같은 단계 모듈끼리 모임: 기본 = 코어 둘레 · 1단계 = 화면 왼쪽(−x +z) · 2단계 = 오른쪽(+x −z) · 3단계 = 안쪽(+x +z) · 4단계 = 3단계 너머 · 보조 생산 = 기본 구획 앞 (기본 게임 카메라 기준). 단계 = 결과로 만드는 레시피의 `Stage` (기본 모듈 0). 구획 중심 = 방향 × (기본 구획 반지름 + 그 구획 반지름, 바닥 면적으로 어림), 자리 후보는 구획 중심에서 가까운 순이고 기존 덩어리에 면이 닿는 자리만이라 모두 코어에 연결. `Write(slot, confirm)`은 지금 설정, `Write(slot, confirm, layout)`으로 직접 고를 수 있음
+
+### `narrative` · `tycoon` 합칠 때
+- [ ] 편집기 도구만이라 자동 합침 예상. tycoon은 같은 파일 (`eaceb0a6`, 임시 폴더에 만들어 83종 모두 배치 확인).
+
+## M-60. 진화 모델 일렁거림 고침 — FBX 가져오기 후처리 `EvoFxDepthOffset` (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `1eae392c`와 같은 파일)
+- 사용자 점검: 1단계 뚜껑(유리) · 중력 거주구 링 위 · 융합 발전소 플라즈마 아래 바닥이 일렁거림. 원인 = `evo_builder`가 유리 · 창 · 형광 빛줄 · 반짝임(`Emblem_Fx_*`, 부품 아래 `Fx_*`) 면을 몸체 면과 같은 평면(0mm)에 겹쳐 둔 곳이 진화 모델 거의 전부에 수천 개 (투명 유리는 깊이를 안 써서 같은 깊이 불투명 몸체와 화소마다 경쟁)
+- `Scripts/Editor/EvoFxDepthOffset.cs` (AssetPostprocessor, `Art/Models/Modules/SM_Evo_*.fbx`만): 같은 평면(0.3mm 안)에서 넓이 있게 겹친 삼각형 짝을 찾아 우선순위가 높은 쪽(반짝임 3 > 투명 2 > 그 밖 연출 1 > 몸체 0)을 평평한 덩어리째 법선 방향으로 1.7mm × 순위 차이만큼 띄움 (같은 순위는 재질 이름 순 0.9mm), 띄운 면이 다른 층에 새로 걸리면 거리를 바꿔 3번 + 작게 2번 되풀이. 등을 맞댄 불투명 면끼리는 그대로. 남는 것은 0.05 ~ 0.3mm 근접 짝 149개 (32비트 깊이라 안 깜빡임). `CountOverlaps`로 남은 짝을 셀 수 있음
+- 모델 파일 · 프리팹은 그대로 (가져오기 결과만 바뀜 — 다른 PC도 가져오면 같아짐). MODELING 7-9: 앞으로 Blender에서 연출 면은 몸체에서 2mm 이상 띄움
+- FX 유리 재질 몇 개는 URP가 다시 저장한 값
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 합친 뒤 Unity가 진화 모델을 다시 가져옴 (몇 분).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `1eae392c`에 있음 (40개 다시 가져옴 · EditMode 442 통과 · 렌더 확인).
+
+## M-61. 2단계 후속 ② — 플라즈마 · 오로라 커튼 · 은하수 물 · 궤도 미러 빛기둥 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `0199785f`와 같은 파일)
+- 셰이더 (`Art/Shaders`, HLSL — 기존 Twinkle · ShieldShell과 같은 방식, UV 없는 진화 FX 메시라 물체 공간 위치로 잡음): `StationNoise.hlsl` (공용 값 잡음) · `Plasma` (흐르는 소용돌이 · 빛 실 · 맥동, 가산) · `AuroraCurtain` (꼭짓점 너울 · 아랫단 밝고 위로 옅게 · 세로 빛살, 가산 양면, `_Center` · `_BaseY` · `_Height`) · `GalaxyWater` (흐르는 물결 · 반짝이는 별 · 물빛, 삼면 투영) · `LightShaft` (LineRenderer용 빛기둥: 가운데만 밝게 · 흐르는 알갱이 · 양끝 스며듦). 모두 `_BaseColor`를 곱해 ModuleView 상태(비활성 · 파손)에 따라 어두워짐
+- `ModuleFxMaterials`: `PlasmaBlue` · `PlasmaViolet` · `AuroraCurtainGreen` · `AuroraCurtainViolet` · `LightShaft` · `Hidden`(빈 슬롯), `GalaxyWater`는 새 셰이더로
+- `StationArtBuilder.FxOverrides` (모델마다 다른 슬롯 재질): 실드 돔 FX_AuroraGreen/Violet → 커튼 셰이더 (차폐벽 · 환적장 은하수 띠는 그대로), 융합 발전소 · 융합 플랜트 FX_FusionPlasma → 플라즈마 (기본 핵융합로는 그대로), 궤도 미러 FX_LightBeam → Hidden. 이미 다른 재질로 리맵돼 있어도 바꿈
+- `LightBeamFx` (새 연출 컴포넌트, 궤도 미러에 자동 배선): 모델 빛줄기 메시를 이어진 덩어리로 나눠 거울 → 수신기 끝점 16쌍을 찾아(끝이 몰리는 쪽 = 수신기) 카메라를 향한 넓은 띠로 그림, 비활성이면 옅어짐 · 파손이면 깜빡임
+- 프리팹 · 재질 산출물
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 합친 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `0199785f`에 있음 (플레이 캡처로 확인).
+
+## M-62. 2단계 후속 ③ — 열차 별빛 가루 · 정련 불꽃 분수 · 드론 라이트 쇼 · 요새 폭죽 자주 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `1746b927`과 같은 파일)
+- `SparkEmitterFx` (새 연출 컴포넌트, 런타임에 입자 묶음을 만듦): StarSmoke = 대형 토러스 기관차 굴뚝에서 0.4초마다 뭉텅 뿜어져 흩어지며 반짝이다 사라지는 별빛 가루 (월드 공간 — 달리는 열차 뒤로 꼬리), SparkFountain = 정련 콤비나트 돔 꼭대기 배출구에서 열 갈래로 낮게 솟아 돔 둘레로 흘러내리는 금빛 불꽃. 가동 중에만 뿜고 고스트에서는 안 만듦
+- `DroneShowFx` (드론 정비창 옥상): 빛 점 드론 서른이 별 → 왕관 고리 → 하트 → 은하 소용돌이 → 물결 대형을 차례로 이룸 (잇는 선 없음, 대형 위쪽이 카메라 반대편, 비활성이면 멈춰 어두워짐) + `DroneShowFxTests`
+- `FireworkFx`: 박격포대 평균 22초 → 4.5초 (좌우 번갈아 · 넷에 하나는 양쪽 연발 · 포구 불빛), 터짐 = 별자리 · 국화 · 고리 · 버들 넷 중 무작위
+- `EvoBakedFxStrip` (가져오기 후처리, `EvoFxDepthOffset`이 먼저 부름 — GetVersion 8): Blender에 멈춘 입자로 구운 열차 별 연기 · 정련 분수 · 드론 무리(잇는 빛줄 포함)를 FBX 가져올 때 지움. Blender 원본은 그대로
+- `StationArtBuilder.PlaceModel`: 위 셋 자동 배선 (방출구 위치 = Blender 굴뚝 · 배출구 · 드론 무리 원점), 요새 `_showInterval` 4.5
+- MODELING.md 7-9 아래 "멈춘 입자로 구운 연출 → Unity 움직이는 연출" 한 줄
+- 프리팹 · 재질 산출물
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 합친 뒤 Recipes/Setup (FBX는 후처리 버전이 올라 다시 가져옴).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `1746b927`에 있음 (EditMode 444 통과 · 플레이 캡처로 확인).
+
+## M-63. 2단계 후속 ④ — 치안 본부 순찰차 추진 불꽃 · 출동, 화물 환적장 보트 운행 · 입자 물보라 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `8e64a9f9`와 같은 파일)
+- 모델 (Blender `Modules_Work.blend` 같이): 구운 본체에서 움직일 조각만 떼어 부품으로 (본체 텍스처 공유, 다시 굽지 않음)
+  - `SM_Evo_SecurityHQ`: 광장 순찰차 둘 → `PatrolCar_SecurityHQ1 · 2` (+ 빛 `Fx_SecurityHQCar1 · 2`). `build_security_hq`도 다음부터 부품으로 만듦
+  - `SM_Evo_CargoTransfer`: 화물 보트 템플릿 셋 → `FlumeBoat_CargoTransfer1~3` (+ `Fx_CargoTransferBoat1~3`, 원점 = 보트 가운데 · 앞 +x), 나머지 구운 보트 · 고정 큰 물보라 연출 메시는 지움 (`evo_builder`에 `cargo_flume_split()` — 확정 뒤 부름)
+- `PatrolCarFx` (순찰차마다 자동 배선): 합성 고리와 같은 추진 불꽃 (재질 `Synthesis/M_Synth_Particle`, 없으면 `M_FireworkSpark`) + 떠서 출렁임, 가동 중 가끔 출동 (경광등 → 떠오름 → 차 앞쪽으로 날아가 사라짐 → 돌아와 내려앉음) + `PatrolCarFxTests`
+- `FlumeRideFx` (환적장 자동 배선): 보트 여섯이 물길 한 바퀴 (빌더가 Blender와 같은 캣멀-롬 물길을 계산해 넣음) — 체인 리프트 일정 · 낙하 가속 · 평지 감속, 낙하 바닥에서 입자 물보라 + 물결 고리 + `FlumeRideFxTests`
+- `ModuleFxMaterials`: `Ripple` (가산 + 고리 텍스처 `T_SoftRing.png`)
+- `FireworkFx` · 새 입자들: 속도를 안 준 Emit(섬광 등)이 기본 속도 5로 날아가던 것 고침 (`startSpeed = 0`)
+- MODELING.md 7-9 아래 "구운 본체에서 움직일 조각 떼어 내기" 주의 셋
+- 프리팹 산출물
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 서사판에서 Modules_Work.blend를 따로 고쳤으면 충돌, 이쪽을 받음). 합친 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `8e64a9f9`에 있음 (EditMode 446 통과 · 플레이 캡처로 확인).
+
+## M-64. 유리 멍울 고침 · 유리 거의 투명 · 그리드 허브 번개 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `4e453a32`와 같은 파일)
+- 셰이더 `Art/Shaders/Glass.shader` (`SpaceStation/Glass`): 모든 유리 재질(`ModuleFxMaterials.Glass` — FarmGlass · EvoGlass · EvoGlassTeal · EvoGlassClear · ShieldSail · IceChunk · SplashMist)을 URP Lit에서 바꿈.
+  양면 그대로 + 뒷면은 법선을 뒤집어 앞면처럼 비춤 (URP Lit 양면은 안 뒤집어서 껍질 안쪽 뒷면이 프레넬 최대로 하늘을 비춰 뿌연 흰 뭉치 = 사용자 "멍울"),
+  반사 보존 (바탕색만 알파만큼, 해 반짝임 · 하늘 반사는 그대로), `_Reflection` = 하늘 반사 · 주변광 세기. 한 장짜리 유리가 14곳이라 앞면만 그리기(Cull Back)는 안 씀.
+- 유리 값 (사용자 "유리가 있다는 정도만"): 바탕색 알파 0.01~0.04 · 발광 0 (실드 매트릭스만 아주 옅게) · 하늘 반사 0.5~0.7
+- `LightningFx` (그리드 허브 자동 배선): 탑 에너지 구 → 번개 나무 여섯 · 이웃 나무끼리 치는 번개 (가운데 점 나누기 갈래 · 번쩍임 · 흐르는 전류 덩이 · 잔가지 · 불티 · 구 둘레 지직거리는 덩굴) + `LightningFxTests`.
+  구운 번개 줄은 `EvoBakedFxStrip` 규칙으로 지움 (`EvoFxDepthOffset` GetVersion 9 → 모델 다시 가져옴)
+- 재질 · 프리팹 산출물
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 합친 뒤 Recipes/Setup (유리 재질은 `ModuleFxMaterials.Get`이 새 셰이더 · 값으로 다시 씀).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `4e453a32`에 있음 (EditMode 447 통과 · 플레이 캡처로 확인).
+
+## M-65. 3단계 첫 모듈 궤도 도시 외형 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a8e345d0`와 같은 파일)
+- 3단계 테마 · 몸체 색 결정 (사용자 2026-10-27, MODELING 7-10): **살아 있는 행성 정원 + 빛과 수정** (유리 없이 바깥에 숲 · 물 · 동물, 수정 · 프리즘이 빛을 다룸 — 지구급 상징 모듈에서 프리즘 = 태양), 몸체 = **진주 · 금** (`evo_builder` `S3_STYLES` · 재질 EVO_S3*)
+- `SM_Evo_OrbitalCity.fbx` + 텍스처 (`Textures/Evo_OrbitalCity`): 알이 깨어난 정원 섬 도시 (고리 강 · 언덕 마을 · 폭포 · 수정 나무가 받친 프리즘), 도는 부품 `SpinDish_OrbitalCityTrain` (궤도열차) · `SpinDish_OrbitalCityHalo` (기운 무지개 고리 + 수정 조각, FX만)
+- Blender `Modules_Work.blend` (`evo_builder`에 3단계 구역 + `build_orbital_city`), MODELING 7-10 표
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영(FX_Prism · FX_FluorGold · FX_Rainbow0~6 재질 · 물 · 프리즘 빛)은 3단계를 다 만든 뒤 한꺼번에. 그 전에 Recipes/Setup을 돌리면 궤도 도시가 모델로 바뀌고 이 FX 슬롯은 "알 수 없는 재질" 경고가 남
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `a8e345d0`에 있음.
+
+## M-66. 3단계 바이오스피어 외형 · 물 · 구름 · 빗줄기 · 무지개 · 수정 따로 재질 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a97ad3d9`와 같은 파일)
+- `SM_Evo_Biosphere.fbx` + 텍스처 (`Textures/Evo_Biosphere`): **물의 순환 고리** (사용자 B안 — 3단계 = 자연의 아름다움 예찬) — 고리 땅 · 계단 논밭 다섯 단 · 연꽃 호수 · 물길 셋 · 진주 아치 셋이 받친 하늘 호수 → 폭포 기둥 · 무지개 · 프리즘, 도는 부품 `SpinDish_BiosphereClouds` (새, 따로 구움) + `Fx_BiosphereClouds` (구름 · 빗줄기)
+- **3단계 따로 재질 규칙** (사용자 2026-10-27, MODELING 7-10): 물 `FX_PureWater` · 떨어지는 물 `FX_Falls` · 구름 · 물안개 `FX_Cloud` · 빗줄기 `FX_Rain` · 무지개 `FX_Rainbow0~6` · 프리즘 `FX_Prism`은 몸체 텍스처에 굽지 않고 FX 부품 재질 칸으로 (`evo_builder` `s3_fx_mats`)
+- `SM_Evo_OrbitalCity.fbx` + 텍스처 다시 내보냄: 강 · 개울 · 호수 → `FX_PureWater`, 폭포 → `FX_Falls` (몸체 텍스처에서 물이 빠짐)
+- Blender `Modules_Work.blend` (`evo_builder` 3단계 구역에 `_s3_*` 도우미 · `build_biosphere`), MODELING 7-10
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 ModuleFxMaterials에 위 FX 재질을 더함 (그 전에 Recipes/Setup을 돌리면 이 FX 슬롯에 "알 수 없는 재질" 경고)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `a97ad3d9`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-67. 3단계 항성 발전망 외형 (꿀벌 정원) · 3단계 디테일 올림 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `c3059229`와 같은 파일)
+- `SM_Evo_StellarGrid.fbx` + 텍스처 (`Textures/Evo_StellarGrid`): **꿀벌 정원** (사용자 C안) — 바닥 7×2 + 위 2×2 (등나무 꽃 정자: 진주 갈비대 돔 · 보라 꽃송이 커튼 · 수정 꽃송이 · 꿀 샘) · 1×2 (꿀 언덕: 계단처럼 솟은 육각 기둥 · 빛나는 꿀 칸 · 벌집 입구 · 여왕 수정), 사이 들꽃 초원 · 꿀벌 물터 · 해바라기 무리 · 라벤더 이랑
+- 꿀벌 20마리 `BeeSwarm_StellarGrid` (귀여운 2등신, 얼굴 · 줄무늬 = 손그림 텍스처 재질 `FX_Bee` + `T_Bee_BaseColor.png`, 굽지 않음) + `Fx_StellarGridBees` (수정 날개 · 빛 꽃가루 공)
+- **3단계 폴리 한도 = 최대 15만** (사용자 2026-10-27, MODELING 7-10) — 궤도 도시 (8.0만: 강가 등불 · 작은 진주 배 · 창가 꽃상자 · 옹벽 꽃 테두리) · 바이오스피어 (9.1만) 잎 덩이 둥글게 다시 내보냄, 항성 발전망 11.4만
+- **모듈 속 생물 얼굴 = 텍스처** 규칙 (MODELING 7-10), Blender `Modules_Work.blend` (`evo_builder`에 `build_stellar_grid` · 3단계 공용 도우미 `rrect` · `_s3_base` · `_lathe` · `_oval` · `_s3_bee` · `bee_tex` · `_bee_uv`)
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 ModuleFxMaterials에 FX_Bee (T_Bee 텍스처) 추가, 꿀벌이 고리 길을 따라 나는 FX 스크립트
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `c3059229`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-68. 3단계 궤도 방어망 외형 (등대 곶 해안) · 네 모듈 동물 부품 · 진화 모델 가져오기 느려짐 고침 (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `c228b8e6` · `bab24594`와 같은 파일)
+- `SM_Evo_OrbitalDefense.fbx` + 텍스처 (`Textures/Evo_OrbitalDefense`, 갈매기 부품 `Evo_OrbitalDefense_Gulls`): **등대 곶 해안** (사용자 C안) — 지층 곶 · 진주 등대 (도는 빛줄기 `SpinDish_OrbitalDefenseBeam` FX만 · 도는 갈매기 `SpinDish_OrbitalDefenseGulls`) · 오로라 커튼 셋 `Fx_OrbitalDefenseAurora1~3` (재질 FX_AuroraGreen · FX_AuroraViolet = 실드 돔과 같은 오로라, UV u = 길이 · v = 아래→위) · 산호 방파제 · 수정 부표 포대 · 모래 해변 · 바다 동굴 둘 (굽은 굴을 층마다 불리언으로 파냄, 굴 안 벽 재질 `EVO_CaveR1~3` · `EVO_CaveS1~3`은 몸체 텍스처에 구움)
+- 궤도 도시 · 바이오스피어 · 항성 발전망 다시 내보냄: **동물을 한 마리씩 따로 부품** (`Critter_<모듈>_<번호>_<종류>`, 원점 = 그 동물 자리, 실제 메시 겹침 0) — 얼굴 · 등딱지 · 점박이 무늬 = 공용 손그림 텍스처 `Textures/Evo_Critters/T_Critters_BaseColor.png` (재질 `FX_Critters`, 굽지 않음)
+- `EvoFxDepthOffset` (진화 모델 가져오기 후처리) 느려짐 고침: 아주 작은 삼각형은 `normalized`가 0이라 같은 평면 칸 하나에 몰려 짝이 될 수 없는데도 서로 비교만 수십억 번 → 법선 0 면은 칸에 넣지 않음 (결과 같음, GetVersion 그대로). 궤도 도시 가져오기 13분 → 6초 (Unity 시작 화면에서 멈춘 것처럼 보였음)
+- MODELING 5 (불리언 잘린 면 재질 = TRANSFER + 번호마다 다른 임시 재질 · 자연 동굴은 굴 덩어리를 층마다 불리언으로), Blender `Modules_Work.blend` (`evo_builder`에 `build_orbital_defense` · 동물 `cr_*` · `CritterSet` · `cr_check`)
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 ModuleFxMaterials에 FX_Critters (T_Critters 텍스처) · FX_Beam · FX_AuroraGreen/Violet (궤도 방어망) 추가, 오로라 커튼이 일렁이게 (실드 돔도), 동물 움직임 (제자리 활동 범위 + 서로 밀어내는 간격)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음). `EvoFxDepthOffset.cs`는 한 곳 (칸에 넣기 전 법선 0 면 건너뜀)만 바뀜.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `c228b8e6` · `bab24594`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-69. 3단계 수리 사령부 외형 (반딧불 고목 치유소) (2026-10-27, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `1a1817d7`과 같은 파일)
+- `SM_Evo_RepairCommand.fbx` + 텍스처 (`Textures/Evo_RepairCommand`): **반딧불 고목 치유소** (사용자 A안 — 수리 = 돌봄 · 치유, 드론 쇼 = 반딧불 드론 떼, 비상 대응 = 금빛 경종 · 빛 수정 등대). 뒤 3×2 (2층) = 금빛 이음 (킨츠기) 진주 껍질 고목 · 줄기 앞 아치 문간 나무 구멍 공방 둘 · 나무집 관제실 (지붕 위 금빛 경종) · 도르래 구조 바구니, 앞 한 줄 (1층) = 치유의 샘 연못 · 돌봄 오두막 · 빛 버섯
+- 도는 부품 `SpinDish_RepairCommandFireflies` (반딧불 드론 떼, FX만 — 굽지 않음), 동물 19마리 `Critter_RepairCommand_*` (FX_Critters)
+- Blender `Modules_Work.blend` (`evo_builder`에 `build_repair_command` · `_rc_tube` (굵기가 부드럽게 줄어드는 관) · `_rc_firefly` · `_rc_door`)
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 반딧불 드론 떼가 돌며 별 · 하트 대형 (드론 정비창 DroneShowFx처럼), 동물 움직임
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-27) 같은 파일이 tycoon 커밋 `1a1817d7`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-70. 3단계 궤도 항만 외형 (진주 조개 항구 · 인어 왕국의 항구) (2026-10-28, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `9bc8cdba`과 같은 파일)
+- `SM_Evo_OrbitalPort.fbx` + 텍스처 (`Textures/Evo_OrbitalPort`): **진주 조개 항구 · 인어 왕국의 항구** (사용자 C안 + "살짝 판타지풍, 인어 왕국의 항구 느낌" — 사람 모양 인어 없이 궁전 · 해마 · 꼬리 분수 · 삼지창 · 왕관으로). 7×2 · 1층. 왼쪽 = 산호 섬 위 진주 조개 궁전 (조개 돔 본관 · 소라 첨탑 넷 · 큰 계단 · 삼지창 문 · 인어 꼬리 분수), 가운데 = 석호 위 해마 회전목마, 오른쪽 = 열린 큰 진주 조개 부두 셋 · 진주 잔교 · 산호 기중기 · 앵무조개 나선 창고, 앞 진주 모래 해변 · 뒤 산호 방파제와 바다 문 · 물속 산호초
+- 도는 부품 둘 (따로 굽는 텍스처, 원점 = 받침 가운데 (3, 0, 0.45)): `SpinDish_OrbitalPortCarousel` (해마 넷 민트 · 분홍 · 금 · 연보라 + 진주 조개 저장 칸 넷, 저장 단지 회전목마의 다음) + `Fx_OrbitalPortCarousel`, `SpinDish_OrbitalPortBoats` (해마가 끄는 가리비 배 넷, 환적장 후룸 보트의 다음) + `Fx_OrbitalPortBoats`. 동물 11마리 `Critter_OrbitalPort_*` (FX_Critters)
+- Blender `Modules_Work.blend` (`evo_builder`에 `build_orbital_port` · `_po_fan` (가리비 껍데기) · `_po_clam` (열린 조개 + 같은 모양 진주층) · `_po_conch` · `_po_crown` · `_po_seahorse` · `_po_nautilus`)
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 회전목마가 돌고 배가 그 둘레를 돌기, 분수 물방울 · 조개 속 진주 빛, 동물 움직임
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-28) 같은 파일이 tycoon 커밋 `9bc8cdba`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-71. 3단계 AI 중추 외형 (수정 뇌 미로 정원) · 진화 모델 가져오기 느려짐 고침 (2026-10-28, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `20c348df`과 같은 파일)
+- `SM_Evo_AICore.fbx` + 텍스처 (`Textures/Evo_AICore`): **수정 뇌 미로 정원** (사용자 A안, "연구와 운영 자동화가 하나의 두뇌로"). 4×2에서 뒤 오른쪽 한 칸이 빠진 7칸 · 1층. 위에서 보면 정원 전체가 뇌 — 앞 · 뒤 두 반구 꽃 생울타리 미로 (뇌 주름처럼 구불구불), 고랑에 빛 신경 (앞 = 연구 보라, 뒤 = 자동화 금), 가운데 큰길 끝 장미 아치 문 · 드론 둥지에서 오는 두 빛이 가운데 진주 유리 돔 정자 속 수정 뇌에서 만남. 오른쪽 앞 칸 = 정원 손질 드론 둥지 · 유리 온실 · 자동 꽃밭
+- 도는 부품 `SpinDish_AICoreThoughts` (생각 고리 — 금빛 고리 · 떠다니는 펼친 책 넷, 따로 굽는 텍스처) + `Fx_AICoreThoughts` (수정 조각 · 보라 빛 구슬), 동물 13마리 `Critter_AICore_*` (FX_Critters, 부엉이 · 고슴도치 새로)
+- `Scripts/Editor/EvoFxDepthOffset.cs`: 같은 평면 짝 찾기에서 짝이 5만 넘는 칸은 칸 안 법선이 모두 같을 때 평면 격자 (`PlaneGrid`)로 테두리 상자가 닿는 삼각형끼리만 비교 — 결과 같음 (정점 해시 확인, GetVersion 9 그대로 → 다시 가져오기 없음). AI 중추 가져오기 247 → 5.4초, 궤도 방어망 59 → 7.6초
+- Blender `Modules_Work.blend` (`evo_builder`에 `build_ai_core` · `_ai_field` / `_ai_iso_lines` (반구 안쪽 거리 + noise 등고선 = 주름 미로) · `_ai_hedge` · `_ai_brain` · `_ai_drone` · `cr_owl` · `cr_hedgehog`). 원래부터 zstd 압축 저장 (크기 = 모델 자체, 50MB 넘어 GitHub 경고만 — 100MB 넘을 것 같으면 끝난 모듈을 다른 .blend로)
+- **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 생각 고리 돌기, 빛 신경 흐름 · 시냅스 깜빡임, 수정 뇌 맥박 빛, 드론 날기, 동물 움직임
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음). `EvoFxDepthOffset.cs`를 그쪽에서 고쳤으면 `PlaneGrid` 부분만 손으로 합침.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-28) 같은 파일이 tycoon 커밋 `20c348df`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-72. 4단계 심우주 통신기지 외형 (은하수 천문 언덕) · 4단계 테마 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `1fbbc8be`과 같은 파일)
+- **4단계 테마 = 우주 · 별빛** (사용자 2026-10-28), 몸체 색 = **성운 남보라 · 은** (월장석 은빛과 비교해 고름). evo_builder `S4_STYLES` · `s4_style` (재질 EVO_S4Deck · Wall · Low · Trim) · `_s4_base` (남보라 아랫단 · 하늘빛 줄 · 밤 잔디) · `_s4_badge` (별 넷). 밤하늘은 몸체 색보다 풍경 (밤 잔디 · 은하수 빛 강 · 별)으로 — 2단계 미드나잇과 겹치지 않게
+- `SM_Evo_DeepSpaceComm.fbx` + 텍스처 (`Textures/Evo_DeepSpaceComm`): **은하수 천문 언덕** (사용자 B안). 1×3 · 1층. 밤 언덕 능선 위 천문대 돔 셋 (통신 중계소 셋을 한 배열로 — 틈으로 망원경이 하늘을 봄, 은빛 갈비 · 셔터 · 발코니) + 하늘빛 신호 호 · 신호 고리, 뒤 능선 소형 전파 접시 넷 (같은 하늘을 보는 배열) + 빛 케이블, S자 은하수 빛 강 · 은빛 아치 다리, 별똥별 아치 · 별자리 광장 · 초승달 벤치
+- 도는 부품 `SpinDish_DeepSpaceCommDome` (가운데 돔 껍데기 + 망원경, 따로 굽는 텍스처) + `Fx_DeepSpaceCommDome` (렌즈), 동물 9마리 `Critter_DeepSpaceComm_*` (FX_Critters)
+- Blender `Modules_Work.blend` (`evo_builder`에 `build_deep_space_comm` · `_ds_dome` (틈 방향 기준 좌표의 두께 있는 돔 — 틈 가장자리가 반듯함) · `_ds_dome_trim` · `_ds_slab` · `_ds_dish` · `_ds_drape` (언덕 위에 덮는 띠) · `_ds_spline` · `_ds_lantern` · `_ds_star`)
+- **아직 프리팹에 안 씀** — Unity 반영 때 가운데 돔 돌기, 신호 고리 · 은하수 연출, 짙은 몸체 발광 보정 (2단계처럼), FX_GalaxyWater · FX_TelescopeLens · FX_FluorCyan 재질
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `1fbbc8be`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
+
+## M-73. 3 · 4단계 Unity 반영 ① — FX 재질 · 도는 부품 속도 · 몸체 그늘 밝기 · 가져오기 가짜 같은 평면 짝 고침 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `3f3a05f8`과 같은 파일)
+- `ModuleFxMaterials` 3 · 4단계 FX 재질: `FluorGold` · `Prism` (수정 유리) · `Rainbow0~6` (가산 무지개 띠) · `PureWater` · `Falls` (반투명 물) · `Cloud` · `Rain` · `Beam` (= LightBeam) · `Critters` · `Bee` (손그림 아틀라스 Lit + 약한 발광) → 8종 "알 수 없는 재질 슬롯" 0. 꿀벌 텍스처 `T_Bee_BaseColor.png`는 `Textures/Evo_StellarGrid` → `Textures/Evo_Critters`로 옮김 (GUID 그대로 — 모듈 텍스처 폴더에 있으면 `ModuleTextureMaterials`가 쓸모없는 발광 맵을 만듦)
+- `StationArtBuilder.DishSpeeds`: 도는 부품 `SpinDish_*` 속도 (등대 빛줄기 30 · 갈매기 12 · 구름 5 · 반딧불 10 · 회전목마 10 · 가리비 배 −6 · 생각 고리 6 · 천문대 돔 3, 그 밖 8 그대로)
+- `ModuleTextureMaterials`: 3 · 4단계 8종은 차폐 세기 0.3 + 바탕색 × 0.3 발광 (색 칸 AO가 덮인 큰 면 때문에 0에 가까워 그늘 쪽 진주 몸체가 검게 보였음), 4단계 심우주 통신기지는 미드나잇과 같은 0.5
+- `EvoFxDepthOffset` (GetVersion 10 → 모델 전부 다시 가져옴): 같은 평면 짝을 원점 기준 거리 D만으로 고르면 법선이 조금 다른 비스듬한 면끼리 실제로 떨어져 있어도 짝이 됨 → 서로의 가운데가 상대 평면에 실제로 가까운 짝만 (심우주 통신기지 은하수 강이 1.5cm 밀려 언덕 속으로 들어가던 것). 진짜 같은 평면 짝은 그대로
+- `SM_Evo_AICore.fbx` (생울타리 밑면을 막아 법선 바로 — 열린 면이면 Blender 법선 다시 계산이 안쪽을 골라 Unity에서 검게) · `SM_Evo_DeepSpaceComm.fbx` (언덕 통째로 색 칸 · 언덕 위 띠 닫힌 판 / 은하수 강 한 장) 다시 내보냄 + 텍스처, Blender `Modules_Work.blend` (`tex_builder` 굽기에 재질 `palette_all` 표시 = 재질 전체를 색 칸으로)
+- Recipes/Setup 산출물: 진화 프리팹 48종 (3 · 4단계 8종에 모델) · 3 · 4단계 모듈 데이터 통로 깊이 · FBX 리맵(.meta) · 3 · 4단계 텍스처 재질 · 발광 · 마스크 맵 · 새 FX 재질 16개
+- 아직 안 한 것 (tycoon TASKS 3 · 4단계 Unity 반영 ② ~ ④): 오로라 커튼 일렁임 · 동물 움직임 · 꿀벌 비행 · 반딧불 드론 · 모듈별 연출
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (위 스크립트 넷을 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup + EditMode.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `3f3a05f8`에 있음 (Unity 미리보기 렌더 8종 확인. EditMode는 MCP에서 실행이 막혀 아직 — Test Runner에서 직접).
+
+## M-74. 3 · 4단계 Unity 반영 ② — 오로라 커튼 일렁임 (궤도 방어망 UV 모드 + 실드 돔) (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `34e5a4ba`와 같은 파일)
+- 셰이더 `SpaceStation/AuroraCurtain` 보강: 커튼 면에 수직으로 길이를 따라 흐르는 너울 셋 (아랫단은 조금 · 위로 갈수록 크게) + 주름이 옆으로 미끄러짐 + 위끝 오르내림. 실드 돔은 지금처럼 둘레 모드 (UV 없는 FX 메시, 등대 중심 기준 각 · 높이)
+- **UV 모드** (`_UVMODE` 토글, 긴 커튼): u = 길이 · v = 아랫단 → 위, 커튼 면 수직 = 접선 (u 방향) × 위 — 얇은 판의 앞 · 뒷면 법선은 서로 반대라 법선으로 밀면 판이 벌어짐. `_VStart` = 그 겹이 시작하는 v (궤도 방어망 위쪽 보라 겹 0.35): 밝기 · 색은 겹 기준, 너울은 커튼 전체 기준 (두 겹이 같이 움직임)
+- `ModuleFxMaterials`: `AuroraCurtainGreenUV` · `AuroraCurtainVioletUV` (세기 0.48) / `StationArtBuilder.FxOverrides`: `Evo_OrbitalDefense` FX_AuroraGreen · FX_AuroraViolet → UV 재질 (`SM_Evo_OrbitalDefense.fbx.meta` 리맵). 기존 실드 돔 재질 둘은 새 속성 기본값만 더해짐
+- Recipes/Setup을 다시 돌리면 진화 프리팹 4종 (화물 환적장 · 요새 포대 · 그리드 허브 · 궤도 미러) · Main 씬 RecipePanel의 fileID만 새로 매겨짐 (내용 같음 — main에는 안 넣음)
+- 확인: 미리보기에서 시간을 0 · 1.5 · 3 · 4.5초 민 프레임 넷으로 두 모듈 커튼 모양이 바뀜. 새 셰이더 변형의 첫 렌더는 비동기 컴파일로 안 보일 수 있음 (`ShaderUtil.allowAsyncCompilation = false`)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (ModuleFxMaterials · StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `34e5a4ba`에 있음.
+
+## M-75. 3 · 4단계 Unity 반영 ③ — 동물 움직임 · 꿀벌 비행 (CritterFx) (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `10cce603`과 같은 파일)
+- 새 런타임 스크립트 `Building/CritterFx`: 모델 "Model"에 하나 — 동물 "Critter_{모듈}_{번호}_{종류}" · 꿀벌 "Bee_{모듈}_{번호}" 부품 (Blender CritterSet, 원점 = 동물 자리)을 종류별로 움직임. 오리 · 백조 = 물 위 타원, 새끼 오리 = 어미 자국을 처음 간격대로 줄지어, 거북 = 느린 타원, 물고기 · 날치 = 물속에서 기다렸다 뛰어오름 · 활공, 나비 = 팔랑 (날개 = 위아래 납작), 사슴 = 풀 뜯기 · 돌아봄, 토끼 = 깡충, 물범 = 숨 · 고개 듦, 게 = 옆걸음, 부엉이 = 돌아봄, 고슴도치 = 킁킁, 꿀벌 = 항성 발전망 고리 길을 같은 속도로 · 꽃 곁 맴돌기 · 꽃 위 쉼. 가까워지면 서로 밀어냄. 게임 시간, 고스트 멈춤, 화면에 하나도 없으면 계산 안 함
+- `StationArtBuilder.WireCritters`: 프리팹 만들 때 동물마다 종류 · 앞쪽 (메시 모양 — 위쪽 정점이 몰린 쪽 = 머리 · 거북 = 멀리 나온 쪽 · 게 = 옆 주축) · 간격 반지름 · 어미 · 날개, 헤엄 타원 · 게 걸음이 물가 · 바위 · 배에 막히지 않게 모델 정점 높이로 도는 쪽 · 크기를 고름 (`CritterHeightGrid`)
+- Recipes/Setup 산출물: 3 · 4단계 진화 프리팹 8종 (CritterFx 추가). 화물 환적장 · 요새 포대 · 그리드 허브 · 궤도 미러 프리팹과 Main 씬은 fileID만 다시 매겨져 넣지 않음
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `10cce603`에 있음.
+
+## M-76. 3 · 4단계 Unity 반영 ④ — 모듈별 연출: 물 흐름 · 비 · 무지개 · 수정 반짝 · 흐르는 빛 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `e6268f3e`와 같은 파일). FX 메시에 UV가 없어 모두 위치로 계산하는 셰이더, 색은 그대로 두고 밝기만 바뀜 (색약 배려)
+- `SpaceStation/Glass` 키워드 셋 (꺼져 있으면 예전과 같음 — 다른 유리 재질은 새 속성 기본값만 더해짐): `_FLOW_POOL` (`M_PureWater` 잔물결 · 윤슬), `_FLOW_FALL` (`M_Falls` 가파른 면에 흘러내리는 물줄기), `_GLINT` (`M_Prism` 도는 빛에 무지개빛 반짝). 움직임 밝기는 발광(`_EmissionColor`)을 따라 비활성 · 파손 때 같이 어두워짐
+- 새 셰이더 `SpaceStation/Rain` (`M_Rain` 떨어지는 물방울), `SpaceStation/Shimmer` (`M_Rainbow0~6` 빛 물결), `SpaceStation/PulseGlow` (형광 재질과 같은 바탕 · 발광 × 한 점에서 퍼지거나 모여드는 빛 물결 · 맥박 · 칸 반짝, 그림자 · 깊이 패스 포함)
+- `ModuleFxMaterials`: `NeuralPurple` · `NeuralGold` · `SignalCyan` · `HoneyGold` · `PearlWhite` (PulseGlow), `GlassMotion` · `Shimmer` · `PulseGlow` 도우미 / `StationArtBuilder.FxOverrides`: AI 중추 (보라 · 금 형광 → 빛 신경), 심우주 통신기지 (하늘빛 → 신호), 항성 발전망 (금 → 꿀 빛), 궤도 항만 (흰 형광 → 진주 빛) + 해당 FBX 리맵 .meta
+- Recipes/Setup을 다시 돌리면 진화 프리팹 12종 · Main 씬은 fileID만 다시 매겨짐 (내용 같음 — main에는 안 넣음)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (Glass.shader · ModuleFxMaterials · StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e6268f3e`에 있음.
+
+## M-77. 3 · 4단계 플레이 피드백 — 빗줄기 아치 가림 · 물 해 되비침 번쩍임 · 해마 배 뒤쪽 호 왕복 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `e8438277`과 같은 파일)
+- 빗줄기가 바이오스피어 진주 아치를 뚫음 → 새 런타임 `Building/RainShelterFx` (빗줄기 재질을 모듈 것으로 복제해 모델 좌표 `_WorldToModule`을 넘김) + `SpaceStation/Rain` `_Shelter` (가운데에서 본 각이 아치 방향 띠에 걸친 빗줄기만 감춤). StationArtBuilder가 `Fx_BiosphereClouds`에 배선
+- 궤도 항만 화면 번쩍임 = ④ 물 잔물결이 해를 거울처럼 되비춰 HDR 밝기 최대 470 → 블룸 → `Glass` `_FLOW_POOL`에 최종 밝기 상한 `_Ripple2.x` (1.4, 물 재질만 이 변형). `PulseGlow`에 쓰지 않는 `_EMISSION` 키워드 (ModuleView가 발광 재질로 알아보고 비활성 · 파손 때 어둡게)
+- 해마 가리비 배가 해변을 지남 (사용자 선택 "뒤쪽 호 왕복") → 새 런타임 `Building/BoatShuttleFx` + StationArtBuilder `WirePortBoats`: 배 부품을 네 척 메시로 나눠 `Art/Models/Modules/Generated/OrbitalPortBoat0~3.asset` (다시 만들어도 같은 파일 · GUID) + `PortBoat_0~3`, 원래 `SpinDish_OrbitalPortBoats`는 꺼 두고 회전 속도 표에서 뺌. 갈 수 있는 각은 프리팹 만들 때 해변 다각형 · 높은 지형 검사로 고름 (지금 334° ~ 575°)
+- Recipes/Setup 산출물: 바이오스피어 · 궤도 항만 프리팹 (다른 진화 프리팹 · Main 씬은 fileID만 바뀌어 안 넣음), 물 · 흐르는 빛 재질
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (Glass · Rain 셰이더, StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e8438277`에 있음.
+
+## M-78. 3 · 4단계 플레이 피드백 2 — 진주 몸체 해 되비침 번쩍임 · 입자 비 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a242ac63`과 같은 파일)
+- 궤도 항만 번쩍임의 진짜 원인 = 몸체 텍스처 진주 면 (텍셀 73%가 매끈함 0.78 넘게 구워짐 → 둥근 진주 면마다 해 되비침 HDR ~20 → 블룸). `ModuleTextureMaterials`: 3 · 4단계 8종 몸체 · 부품 텍스처 재질 매끈함 배율 0.7 (`Stage3Smoothness`) → 해당 `M_Evo_*_Tex.mat` 갱신. 1 · 2단계는 그대로
+- 바이오스피어 비 = 입자: 새 런타임 `Building/RainFx` (구름마다 빗방울 · 비 안개 입자, 월드 공간, 아치 가림) + 새 셰이더 `SpaceStation/RainParticle` + 재질 `M_RainDrop` · `M_RainMist`. 구운 빗줄은 `FxOverrides` Evo_Biosphere FX_Rain → Hidden (`SM_Evo_Biosphere.fbx.meta` 리맵). **M-77의 `RainShelterFx`는 지움** (RainFx로 합침 — 바이오스피어 프리팹을 Recipes/Setup으로 다시 만들면 참조가 없어짐)
+- Recipes/Setup 산출물: 바이오스피어 프리팹 (다른 진화 프리팹 · Main 씬은 fileID만 바뀌어 안 넣음)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 서사판에 `RainShelterFx` 참조가 남아 있으면 Recipes/Setup으로 바이오스피어 프리팹을 다시 만들 것.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `a242ac63`에 있음.
+
+## M-79. 3 · 4단계 플레이 피드백 3 — 진주 빛 NaN이 블룸으로 번쩍이던 것 고침 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `e2fbf0ff`와 같은 파일)
+- 궤도 항만을 돌려 보면 나타났다 사라지던 큰 빛 덩어리의 진짜 원인: `SpaceStation/PulseGlow` 진주 빛 (`M_PearlWhite`, 물결 지수 0)에서 `pow(0, 0)` = NaN → 픽셀 하나를 블룸이 화면만 한 원으로 번지게 함
+- `PulseGlow`: 물결 세기 0이면 계산 안 함 · 밑과 지수를 0보다 크게, 법선 정규화에 작은 값, 마지막 색을 0 ~ 64로 묶음. `Glass`: 반짝임 지수 · 법선 같은 보호 + 마지막 색 0 ~ 64
+- 확인: 픽셀마다 NaN · 무한대를 세면 궤도 항만 36각도 7 → 0, 3 · 4단계 일곱 모듈 각 16각도 0
+- 참고 (다른 셰이더를 만들 때): HDR + 블룸에서는 NaN 픽셀 하나가 큰 원으로 번짐 — `pow`의 지수가 0이 될 수 있으면 막고, 출력을 `min(max(c, 0), 상한)`으로 묶을 것
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (두 셰이더를 서사판이 고쳤으면 해당 부분만 손으로).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e2fbf0ff`에 있음.
+
+## M-80. 실드 계열 단계별 이펙트 — 1단계 육각 무늬 · 3단계 수정 결정 막 · 프리즘 광선 + 수정 불꽃 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `64330e66`과 같은 파일)
+- 사용자 결정 (2026-10-29): 3단계 궤도 방어망에 연출이 없어 2단계보다 약해 보이던 것 → 차단 = 수정 결정 막, 격추 = 프리즘 광선 + 수정 불꽃, 1단계 실드 매트릭스 = 조금 강하게
+- 1단계: 새 런타임 `Building/HexBarrierFx` + 셰이더 `SpaceStation/HexShield` + 재질 `M_HexShield` — 파란 파문 위로 닿은 자리에서 육각 격자가 구면을 따라 퍼지며 옅어짐 (등거리 방위 투영 · 스치는 각 격자 감춤)
+- 3단계 차단: 새 런타임 `Building/CrystalBarrierFx` + 셰이더 `SpaceStation/CrystalShard` + 재질 `M_CrystalShard` — 육각 수정판 19장이 가운데부터 맺혀 버티다 세모 조각으로 깨져 흩어짐 + 무지개 반짝이, 같은 모듈의 `AuroraBarrierFx` 오로라 파문도 함께
+- 3단계 격추: 새 런타임 `Building/PrismBeamFx` (가장 가까운 수정 부표 끝 → 흰 빛줄기 → 일곱 빛깔 부채꼴 → 운석에서 모임) + `FireworkFx` 무지개 모드 (`_rainbow`, 별 일곱 빛깔 · 수정 조각 흩어짐 · 더 반짝임)
+- `MeteorFx`: 차단 = 수정 → 오로라 → 육각(+파란 파문) → 파란 파문 순, 격추 = 프리즘 광선이 있으면 빨간 레이저 대신. `StationArtBuilder`가 실드 매트릭스 · 궤도 방어망에 자동 배선, `ModuleFxMaterials`에 HexShield · CrystalShard
+- Recipes/Setup 산출물: 실드 매트릭스 · 궤도 방어망 프리팹 (다른 진화 프리팹 · Main 씬은 fileID만 바뀌어 안 넣음)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. `MeteorFx` · `FireworkFx`를 서사판이 고쳤으면 해당 부분만 손으로, 그 뒤 Recipes/Setup으로 두 프리팹을 다시 만들 것.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `64330e66`에 있음.
+
+## M-81. 진화 모듈 내부 시작 — 1단계 키트 (파노라마 창 띠) + 연구 단지 내부 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `6a38588f`과 같은 파일)
+- 사용자 결정: 진화 모듈 내부 = **단계 키트 + 대표 공간** (단계마다 벽 · 바닥 · 창 · 조명 키트, 모듈마다 대표 볼거리 · 움직이는 메인 부품은 고유) + 플레이 테스트 의견 "개방감 — 창을 많이" → 1단계 키트 = 벽 둘레 파노라마 창 띠
+- Blender `BlenderWork/Interior_Evo.blend` (텍스트 `evo_kit` · `rc_builder`, `int_common` · `overlap_check` · `nb_preview`는 Interior_NewBasic에서 가져옴) → `SM_Interior_EvoResearch.fbx`
+- 연구 단지 내부 템플릿 `IT_EvoResearch` · `PF_Interior_EvoResearch`: 둥근 모서리 2칸 홀 (천장 F + 4.0) · 네 모서리 곡면 창 + 긴 벽 가운데 창 · 양 끝 천창 · 가운데 관측 돔 (Window), 관측 단 기둥 위 망원경 회전 · 궤도 고리 둘 회전 (`InteriorOrbit`), 창 아래 계산 설비 장, 모서리 연구 책상, 주민 고정 자리 7 (연구원)
+- 새 재질 `M_InteriorEvoWhite` · `EvoFloor` · `EvoDark` (`InteriorSetup`), 강조색 `M_Accent_Evo_ResearchComplex` · `M_Paint_Evo_ResearchComplex` (`InteriorTemplateBuilder.EvoAccent`), `InteriorKit.asset` 강조색 목록에 연구 단지 추가
+- 메뉴 `SpaceStation/Interior/Build Evolved Templates` (진화 템플릿만 + 주민 자리도 진화 템플릿만 — `ResidentSpotBaker.BakeTemplates`), `Build Templates`(전체)에도 포함
+- 주의: `InteriorSetup.CreateMaterials`에 같은 이름 지역 함수(`Plain`)를 하나 더 두면 소품 재질 22종의 금속도 · 광택이 뒤바뀜 (한 번 그렇게 저장됐다가 되돌림 — 커밋에는 없음). 문 구멍은 천장이 높은 방에서 패널 높이까지만 (MODELING 7-11)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (세 편집기 스크립트를 서사판이 고쳤으면 해당 부분만 손으로). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `6a38588f`에 있음.
+
+## M-82. 내부 단계별 키트 벽 — 1단계 매끈한 백색 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `05f78abb`과 같은 파일)
+- 사용자 요청: "내부 벽도 단계별 모듈의 외형에 맞게" · "1단계 진화 모듈은 매끈한 백색의 벽 — 미래형에 걸맞게" (흰 세라믹 방 안에 회색 공업용 문 패널이 어색했음)
+- `Data/InteriorKit`: 새 `InteriorKitStage` (단계 · 모듈 목록 · 벽 / 문 벽 / 문짝 / 바닥 / 천장 / 해치 틀 · 뚜껑) + `WallFor(모듈)` 등 — 그 단계 모듈 방이면 단계 조각, 아니면 기본 조각. `Interior/InteriorBuilder`가 이 함수들로 조각을 고름 (기본 모듈 방은 그대로)
+- `Editor/InteriorSetup`: `SM_InteriorKit_Evo1.fbx`(Read/Write 켬) 조각 + 레시피 단계 1 결과 모듈(23종)로 1단계 묶음을 키트에 등록, 키트 재질 슬롯에 EvoWhite · EvoFloor · EvoDark
+- Blender `Interior_Evo.blend` 텍스트 `evo1_kit_builder` → `SM_InteriorKit_Evo1.fbx` (조각 이름 = 기본 이름 + `_Evo1` — InteriorSpots가 `KIT_Wall`로 시작하는 이름으로 벽 패널을 알아봄). MODELING 7-11
+- 연결 통로(튜브)는 그대로 — 단계별 통로는 따로 작업 (사용자 요청 2026-10-29, TASKS)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (`InteriorBuilder` · `InteriorKit` · `InteriorSetup`을 서사판이 고쳤으면 해당 부분만 손으로). 그 뒤 메뉴 SpaceStation/Interior/Setup.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `05f78abb`에 있음.
+
+## M-83. 거주 타워 내부 + 유리 엘리베이터 탑승 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `4c075ced`과 같은 파일)
+- 사용자 결정: 여러 층 진화 모듈 안의 층 이동 = **유리 엘리베이터 탑승** (캡슐이 실제로 오르내리고 플레이어도 함께 실림 — 아콜로지 · 궤도 도시까지 같은 방식)
+- 새 런타임 `Interior/InteriorLift` (캡슐 이동 · 층마다 샤프트 문짝 = 캡슐이 서 있을 때만 열림 · 출발 전 문 닫힘) · `Interior/InteriorLiftButton` (캡슐 안 층 버튼 · 문 옆 호출 버튼)
+- `Interior/FirstPersonController`: `Ride(탈것)` · `Dismount()` · `Riding` (실려 가는 동안 걷기 · 중력 멈춤, 둘러보기 됨 — 따라가기는 LateUpdate). `Interior/InteriorMode`: 시선이 닿은 엘리베이터 버튼 안내 글 + 상호작용 키 한 번으로 누름
+- 거주 타워 내부 `IT_EvoTower` · `PF_Interior_EvoTower` · `SM_Interior_EvoTower.fbx` (Blender `Interior_Evo.blend` 텍스트 `ht_builder`): 2 × 2 칸 × 2층 안 3개 층 + 가운데 아트리움 엘리베이터, 1층 공용 라운지 · 식당 / 2층 모서리 집 / 3층 옥상 돔 라운지. 주민 고정 자리 12 (`ResidentSpotBaker`) · 화분 자리 14 (`InteriorPlantSpots`), 강조색 `M_Accent_Evo_HabitatTower` · `M_Paint_Evo_HabitatTower`, `InteriorKit.asset` 강조색 목록 추가
+- MODELING 7-11 (여러 층 모듈 · 엘리베이터 조각 이름 규칙)
+
+### `narrative` 합칠 때
+- [ ] `FirstPersonController` · `InteriorMode`를 서사판이 고쳤으면 해당 부분만 손으로 (Ride/Dismount · 엘리베이터 버튼 분기). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `4c075ced`에 있음.
+
+## M-84. 생태 모듈 내부 — 유리 볼트 온실 · 물 구체 순환 코어 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `397766ab`과 같은 파일)
+- 생태 모듈 내부 `IT_EvoEco` · `PF_Interior_EvoEco` · `SM_Interior_EvoEco.fbx` (Blender `Interior_Evo.blend` 텍스트 `eco_builder`): ㄱ자 4칸 — 온실 세 칸 (낮은 유리 볼트 · 등줄기 재배등 · 재배대 두 줄) + 이음 칸 + 순환 코어 (유리 물 구체 + 도는 고리 `INT_EvoEco_Ring` · 산소 기둥 · 순환관 · 천창)
+- 사용자 요청 "온실 식물은 수경 농장 등에서 쓰던 식물로": 수경 농장 상추 포기(`farm_builder lettuce` → `evo_kit`) + 화분 식물 자리 18 · 나무 자리 2 (`InteriorPlantSpots`)
+- `evo_kit` 일반화: `rounded(다각형, r, d)` — 직각 다각형 둥근 모서리 방 (ㄱ자 등). 기존 사각형 호출은 같은 결과
+- 정원사 자리 5 (`ResidentSpotBaker`), 강조색 `M_Accent_Evo_EcoModule` · `M_Paint_Evo_EcoModule`, `InteriorKit.asset` 강조색 목록, 거주 타워 도장 재질 `_Color` 동기화, MODELING 7-11 (식물 다시 쓰기 · 볼트 아래 문 자리 · 꺾인 방)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `397766ab`에 있음.
+
+## M-85. 진화 내부 플레이 확인 고침 — 가구 충돌체 · 재배대 흙 · 수레 작물 · 나무 화분 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `fcccabd7`과 같은 파일)
+- `InteriorTemplateBuilder.Build`: 진화 템플릿(이름 `Evo…`)의 `_Soft` 조각(소파 · 의자 방석)에 MeshCollider — 사용자 플레이 확인 "거주 타워 가구를 지나감". 작물 · 잎은 `_Leaves` (충돌체 없음). 기본 템플릿은 그대로
+- 생태 모듈 (`eco_builder`): 재배대 윗면을 파서 흙이 보이게 (상추 · 화분 식물이 흰 윗면에 파묻혀 보였음), 수확 수레 덩어리 작물 → 흰 쟁반 둘 (상추 포기 · 방울토마토), 나무 화분을 키움 (안 테 0.64) + `InteriorPlantSpots` 나무 자리 (±1.95, F + 0.502, −1.95) · 0.8배
+- 다시 구운 `PF_Interior_EvoTower` · `PF_Interior_EvoResearch` (Soft 충돌체) · `PF_Interior_EvoEco` · `IT_EvoEco`, MODELING 7-11 (가구 충돌 · 작물 조각 이름 · 흙 판 자리 · Tree 화분 크기)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `fcccabd7`에 있음.
+
+## M-86. 축전 뱅크 내부 — 유리 캡슐 홀 · 저장량 게이지 셀 두 줄 · 충전 고리 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a64df445`과 같은 파일)
+- 축전 뱅크 내부 `IT_EvoPowerBank` · `PF_Interior_EvoPowerBank` · `SM_Interior_EvoPowerBank.fbx` (Blender `Interior_Evo.blend` 텍스트 `pb_builder`): 3칸 일자 홀 — 유리 볼트 + 띠 아치 둘 (벽 따라 띠 기둥) · 머리 위 거대 셀 두 줄 · 모선 다리 + 빛 기둥 + 충 · 방전 제어대 둘 · 창 아래 예비 셀 선반
+- 셀 심 10칸 = 실제 정거장 저장량 게이지 (`INT_EvoPowerBank_Gauge_00 ~ 09` → 기존 `InteriorGauge`), 충전 고리 `INT_EvoPowerBank_RingA` · `RingB` (`InteriorOrbit`)
+- `InteriorTemplateBuilder.BuildEvoPowerBank` (문 자리 14 · 조명 12 · 분위기 Electric), 기술자 자리 10 (`ResidentSpotBaker`), 강조색 `M_Accent_Evo_PowerBank` · `M_Paint_Evo_PowerBank`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (실제 값 게이지 조각)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `a64df445`에 있음.
+
+## M-87. 복지 센터 내부 + 앉은 주민 의자 맞춤 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `841f1385`과 같은 파일)
+- 복지 센터 내부 `IT_EvoWelfare` · `PF_Interior_EvoWelfare` · `SM_Interior_EvoWelfare.fbx` (Blender `Interior_Evo.blend` 텍스트 `wc_builder`): ㄱ자 3칸 — 마음 쉼터 (연결점 없는 두 면 = 둥근 유리 벽, 나무 화단 · 원형 벤치 · 도는 빛 고리 모빌 `INT_EvoWelfare_Halo`) + 몸 돌봄 (스캔 고리가 도는 침대 둘 `GantryA` · `GantryB`) + 여가 (소파 · 라운지 의자 · 홀로 탁자 위 빛 픽셀 `Holo` · 빛 픽셀 천장)
+- `InteriorTemplateBuilder.BuildEvoWelfare` (문 자리 = 연결점 있는 면만 12), `ResidentSpotBaker` 연구원 자리 4 + 쉬는 방 (`LeisureRooms`에 EvoWelfare, 쉬는 자리 14), `InteriorPlantSpots` 나무 1 · 화분 2, 강조색 `M_Accent_Evo_WelfareCenter` · `M_Paint_Evo_WelfareCenter`, `InteriorKit.asset` 강조색 목록
+- `evo_kit.rounded`가 꼭짓점마다 반지름 목록을 받음 (기존 템플릿 결과 그대로)
+- **새 `Interior/ResidentSeatFit` + `InteriorResidents.Spawn` 두 줄** (사용자 요청 "앉을 때 다리가 의자 속으로 · 꼬리가 등받이 뒤로 뚫고 나옴"): 앉힐 때 앉는 판 앞 가장자리 · 등받이를 광선으로, 정강이 · 꼬리를 구운 메시로 재서 앞으로만 옮김. 모든 방 공통 (앉는 판 충돌체가 없으면 그대로)
+- MODELING 7-11 (앉는 가구 충돌체)
+
+### `narrative` 합칠 때
+- [ ] `InteriorResidents.Spawn`을 서사판이 고쳤으면 `ResidentSeatFit.Fit` 두 줄만 손으로 (ResidentFigure.Create 바로 뒤, ResidentWander.InitSeated보다 먼저). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `841f1385`에 있음.
+
+## M-88. 앉은 주민 꼬리가 앉는 판을 뚫지 않게 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `e2d1c715`과 같은 파일)
+- 사용자 요청 "고양이 꼬리 하단부가 의자를 뚫고 들어감": 꼬리는 실행 중 기분만큼 처지는데 (보통 8° · 우울 28°) M-87 맞춤은 처지기 전 자세로 재고 있었음
+- `ResidentSeatFit`: 꼬리 뿌리 뒤 꼭짓점을 처짐 각까지 돌려 재서 앉는 판 위에서 앉는 면 아래로 내려가지 않는 가장 작은 드는 각을 고르고, 든 꼬리의 등받이 맞춤도 함께
+- `ResidentMotion`: `SeatTailLift` (앉은 동안만 꼬리를 듦, 일어서면 서서히 0) · `Tail` · `TailDroop`
+- `InteriorResidents.Spawn`: 맞춤 호출을 기분(`Configure`) 다음으로
+
+### `narrative` 합칠 때
+- [ ] `ResidentMotion.UpdateTail` · `InteriorResidents.Spawn`을 서사판이 고쳤으면 해당 줄만 손으로 (꼬리 처짐에 `SeatTailLift * (1 − 일어섬)` 더하기, 맞춤을 Configure 다음으로).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e2d1c715`에 있음.
+
+## M-89. 앉은 꼬리 — 뒤통수 안 뚫게 · 끊어진 막대처럼 안 보이게 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `f6b61400`과 같은 파일)
+- 사용자 요청 "꼬리가 뒤통수를 뚫음 · 꼬리가 뚝 끊어진 막대처럼 끊어져 보임"
+- `animal_builder.py`: 긴 꼬리(고양이 · 강아지 · 여우) 섞는 폭 0.05 → 0.12 → `SM_Animal_Cat` · `Dog` · `Fox.fbx` · `animal_*.blend` 다시 뽑음 (꼭짓점 수 그대로, 꼬리 가중치만) — 크게 돌려도 뿌리가 접히지 않고 휘어짐
+- `ResidentSeatFit`: 꼬리 본을 실제로 돌려 메시를 구워 잼, 후보 = 드는 각 × 옆으로 기울이는 각, 머리 타원체 · 앉는 판 · 등받이 높이 조건 (없으면 벌점 최소), `Fit(root, seatHeight, scale)`
+- `ResidentMotion.SeatTailRoll` (앉은 동안만 옆으로 기울임) · `InteriorResidents` 크기 넘김, MODELING 7-1
+
+### `narrative` 합칠 때
+- [ ] 동물 FBX는 이진 파일 — 서사판이 동물 모델을 따로 고쳤으면 `animal_builder.py`를 합친 뒤 세 종류를 다시 뽑음. `ResidentMotion.UpdateTail`은 M-88 메모대로.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `f6b61400`에 있음.
+
+## M-90. 문화 센터 내부 — 천체 투영실 · 교실 · 놀이 · 독서 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `65c4f2ee`과 같은 파일)
+- 문화 센터 내부 `IT_EvoCulture` · `PF_Interior_EvoCulture` · `SM_Interior_EvoCulture.fbx` (Blender `Interior_Evo.blend` 텍스트 `cc_builder`): 2 × 2칸 — 가운데 천체 투영실 (짙은 돔 속에서 별 하늘 · 행성 · 투영기 머리가 함께 도는 `INT_EvoCulture_Sky` + 곡면 벤치 두 겹), 교실 (홀로 칠판 · 분침이 도는 벽시계 `INT_EvoCulture_Clock` · 책상 여섯), 놀이 (보드게임 탁자), 독서 (책장 · 안락의자), 쉼터 (긴 벤치 · 화분)
+- `InteriorTemplateBuilder.BuildEvoCulture` (문 자리 16 · 조명 10), `ResidentSpotBaker` 연구원(선생님) 2 + 쉬는 방 (`LeisureRooms`에 EvoCulture, 쉬는 자리 26), `InteriorPlantSpots` 화분 2, 강조색 `M_Accent_Evo_CultureCenter` · `M_Paint_Evo_CultureCenter`, `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `65c4f2ee`에 있음.
+
+---
+
+## M-91. 태양광 어레이 내부 — 실제 해를 보는 추적 가대 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `15873532`과 같은 파일)
+- 태양광 어레이 내부 `IT_EvoSolar` · `PF_Interior_EvoSolar` · `SM_Interior_EvoSolar.fbx` (Blender `Interior_Evo.blend` 텍스트 `sa_builder`): 2 × 2칸 — 가운데 추적 가대 (바닥 구동부 · 금색 톱니 · 유리 울타리 → 흰 기둥이 천장 우물 유리 고리를 지나 머리, 머리 가로축 둘에 양면 패널 줄 `INT_EvoSolar_PanelA` · `PanelB`), 관제석 · 패널 정비대 · 변환 장치 · 해 추적 홀로 탁자 (`INT_EvoSolar_Holo`가 돎) · 모서리 전력 기둥 · 화분
+- 새 런타임 `Interior/InteriorSunTracker.cs`: 바깥 `SunFacingPanel`과 같은 규칙으로 머리(`INT_EvoSolar_Mast`)를 해 방위로 돌리고 패널 줄을 해 쪽으로 최대 38° (템플릿 = 모듈 회전을 빼고 계산)
+- `InteriorTemplateBuilder.BuildEvoSolar` (문 자리 12 · 조명 12, `configure`로 추적기 연결), `ResidentSpotBaker` 기술자 9 (관제석은 앉아서 일함), `InteriorPlantSpots` 화분 6, 강조색 `M_Accent_Evo_SolarArray` · `M_Paint_Evo_SolarArray`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (바깥과 같은 방향을 보는 부품)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `15873532`에 있음.
+
+---
+
+## M-92. 융합 발전소 내부 + 창 밖 ㄱ자 모듈 사라짐 고침 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `4153ee95`과 같은 파일)
+- 융합 발전소 내부 `IT_EvoFusion` · `PF_Interior_EvoFusion` · `SM_Interior_EvoFusion.fbx` (Blender `Interior_Evo.blend` 텍스트 `fs_builder`): 3칸 일자 — 가운데 유리 돔 아래 융합로 (유리 도넛 그릇 속 도는 플라스마 `INT_EvoFusion_Plasma` · 파란 코일 · 솔레노이드 + 냉각수 머리), 냉각수 구체 둘 + 천장 밑 관, 제어대 · 펌프 · 자석 전원 · 남는 물 탱크, 정수 필터 기둥. 걸어 다닐 길 1.3m 이상 (사용자 "길을 지나다닐 수가 없네")
+- `InteriorTemplateBuilder.BuildEvoFusion` (문 자리 12 — 가운데 칸 위 해치는 돔을 비켜 오프셋, 조명 10, 환경음 열), `ResidentSpotBaker` 연구원 10, 강조색 `M_Accent_Evo_FusionStation` · `M_Paint_Evo_FusionStation`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (걸어 다닐 길)
+- **공통 코드 고침** `Interior/InteriorExteriorView.Hide`: "카메라를 품은 이웃 모듈"을 카메라 칸 주변 27칸 모듈의 렌더러 경계 상자로 고르던 것을 → 카메라 칸을 실제로 차지한 모듈만. ㄱ자 모듈(생태 모듈)의 경계 상자가 빈 모서리 칸까지 덮어, 그 칸에 놓인 옆 모듈 방 창에서 ㄱ자 모듈이 통째로 사라졌음 (사용자 2026-10-29). 튜브 · 문가에서 옆 모듈 속에 들어간 카메라 처리는 그대로 (그때는 카메라 칸이 옆 모듈 칸)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (서사판이 `InteriorExteriorView.Hide`를 고쳤으면 이 블록 채택). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `4153ee95`에 있음.
+
+---
+
+## M-93. 수소 플랜트 내부 + 투명한 물 재질 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a38b5007`과 같은 파일)
+- 수소 플랜트 내부 `IT_EvoHydrogen` · `PF_Interior_EvoHydrogen` · `SM_Interior_EvoHydrogen.fbx` (Blender `Interior_Evo.blend` 텍스트 `hp_builder`): ㄱ자 3칸 — 모서리 칸 전기분해조 (유리 통 속 물 · 전극 위 쌍둥이 유리관, 나선 거품이 돌아 솟아 보이는 `BubblesA` · `BubblesB`), +x 칸 연료전지 더미 + 빛 고리 `Pulse`, +z 칸 물 · 산소 구체 · 화분
+- `InteriorTemplateBuilder.BuildEvoHydrogen` (문 자리 14 — 해치 둘은 장치를 비켜 오프셋, 조명 8, 환경음 물), `ResidentSpotBaker` 기술자 · 정원사 8, `InteriorPlantSpots` 화분 2, 강조색 `M_Accent_Evo_HydrogenPlant` · `M_Paint_Evo_HydrogenPlant`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (통 속 물은 덩어리로)
+- **새 공용 재질** `M_InteriorWaterClear` (`InteriorSetup.WaterClearPath` + `CreateMaterials`, 템플릿 재질 슬롯 `WaterClear`): 하늘색 반투명 물 (알파 0.55 · 매끈함 0.3 · 반사 하이라이트 · 환경 반사 끔) — 통 · 수조 속 물 덩어리용 (사용자 "물 표면이 어색 · 투명도 조금 줄여 · 반사광")
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates (`CreateMaterials`가 새 재질을 만듦).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `a38b5007`에 있음.
+
+---
+
+## M-94. 중력 거주구 내부 — 엘리베이터 탑 · 지붕 위 전망실 · 망원경 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `fcdb69d3`과 같은 파일)
+- 중력 거주구 내부 `IT_EvoGravity` · `PF_Interior_EvoGravity` · `SM_Interior_EvoGravity.fbx` (Blender `Interior_Evo.blend` 텍스트 `gh_builder`): 3 × 3 + 꼬리 2칸 — 가운데 유리 엘리베이터 탑 (`InteriorLift`, 1층 ↔ 2층 F + 2.9) · 허브 (탑 둘레 벤치 · 유리 벽 · 도는 미니 링 + 바퀴살 `INT_EvoGravity_Spokes`) · 원형 통로 (창가 벤치 · 나무 화단) · 꼬리 골목 (작은 집 넷 · 둥근 탁자). 2층 = 천장을 뚫고 솟은 둥근 전망실, 낮은 턱 위 360° 바깥 창 (`INT_EvoGravity_Lookout`) — 사용자 "2층은 아예 돌출되어 나와서 자유롭게 둘러보게"
+- 새 런타임 `Interior/InteriorLookoutWindow.cs` (전망실 창 표시 — `Lift` 내부 m) + **공통 코드 고침** `Interior/InteriorExteriorView`: 전망실 창은 같은 방의 다른 창과 따로 묶어 자기 모듈 바깥 모델도 보이게 하고 바깥 카메라를 `Lift`만큼 들어 올려 그림 (실내가 바깥 모델보다 낮아 그대로면 카메라가 바깥 탑 속). 카메라가 그 창 경계 (아래 1m 여유) 안일 때만 그리고 그동안 같은 방의 다른 창은 건너뜀. 새 `RenderLookout` (주어진 자리 · 방향 · 시야각으로 target에 바로) · `Suspended`. 전망실 창이 없는 방은 동작 그대로
+- 새 런타임 `Interior/InteriorTelescope.cs`: 망원경 머리를 보고 F → 둥근 시야 화면 (마우스 돌려 보기 · 휠 배율 x2.5 ~ x10 · F / ESC / 오른쪽 클릭 그만 보기, ESC는 내부 나가기보다 먼저 — 실행 순서 −320), 경통이 시선 따라 돎 — 사용자 "망원경으로 실제로 둘러보는 상호작용"
+- `InteriorTemplateBuilder.BuildEvoGravity` (문 자리 26 — 가운데 칸 위 해치는 전망실 지붕, 조명 17, 환경음 생활, `configure`로 엘리베이터 · 전망실 창 · 망원경 연결), `ResidentSpotBaker` 자리 33 + 쉬는 방 (`LeisureRooms`에 EvoGravity), `InteriorPlantSpots` 14, 강조색 `M_Accent_Evo_GravityHabitat` · `M_Paint_Evo_GravityHabitat`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (지붕 위로 솟은 전망실)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (서사판이 `InteriorExteriorView`를 고쳤으면 Group · LateUpdate · SyncPose 블록을 합침). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `fcdb69d3`에 있음.
+
+---
+
+## M-95. 중력 거주구 엘리베이터에 못 들어가던 것 고침 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `b51c5c78`과 같은 파일)
+- `SM_Interior_EvoGravity.fbx` · `PF_Interior_EvoGravity` (Blender `gh_builder`): 샤프트를 한 바퀴 두른 허리 높이 색 고리가 1층 엘리베이터 문 자리를 가로질러 막았음 (사용자 "엘리베이터에 들어갈 수가 없는데 · 문이 닫혀 있어") → 문 자리를 비운 부채꼴 띠
+- MODELING 7-11: 걷기 검사는 문 앞에서 멈추지 말고 안쪽까지 · 두르는 고리는 문 자리를 비운 부채꼴로
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `b51c5c78`에 있음.
+
+---
+
+## M-96. 수직 농장 내부 — 재배 선반 홀 · 공중 재배 기둥 정원 · 꼭대기 배양실 (2026-10-29, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `ba3a43b0`과 같은 파일)
+- 수직 농장 내부 `IT_EvoFarm` · `PF_Interior_EvoFarm` · `SM_Interior_EvoFarm.fbx` (Blender `Interior_Evo.blend` 텍스트 `vf_builder`): 2칸 × 2층 + 꼭대기 1칸 — 세 층을 가운데 칸 유리 엘리베이터로 잇음 (`InteriorLift` 세 층 0 · 8 · 16, 문 = +x 홀 쪽 → 문짝 축 `Vector3.forward`), 1층 등을 맞댄 3단 재배 선반 (상추 · 재배등), 2층 공중 재배 기둥 넷이 천천히 돎 (`INT_EvoFarm_Tower1~4`) + 창가 모종 선반, 꼭대기 빛나는 배양 통 셋 + 거품 (`Bubbles1~3`) · 관제 책상 · 천창
+- `InteriorTemplateBuilder.BuildEvoFarm` (문 자리 13, 조명 22, 환경음 물, `configure`로 엘리베이터 연결), `ResidentSpotBaker` 정원사 11, `InteriorPlantSpots` 화분 3, 강조색 `M_Accent_Evo_VerticalFarm` · `M_Paint_Evo_VerticalFarm`, `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-29) 같은 파일이 tycoon 커밋 `ba3a43b0`에 있음.
+
+---
+
+## M-97. 광물 처리 단지 내부 — 용광로 · 아치 하역장 · 나사 이송관 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `5f1d9a23`과 같은 파일)
+- 광물 처리 단지 내부 `IT_EvoMineral` · `PF_Interior_EvoMineral` · `SM_Interior_EvoMineral.fbx` (Blender `Interior_Evo.blend` 텍스트 `mc_builder`): 3칸 일자 — 가운데 하역장 (z 방향 아치 볼트 · 꼭대기 유리 천창 띠 · 착륙 화살표 · 분쇄기 깔때기 → 광석 승강 기둥 `INT_EvoMineral_OreLift`), 천장 밑 유리 나사 이송관 둘 (`AugerA` · `AugerB`, 반대 방향으로 돎), 양 끝 허리 높이 항아리 용광로 (녹은 금속 웅덩이 · 유리 난간 · 틈 창 · 배기 후드) + 주괴 더미
+- `InteriorTemplateBuilder.BuildEvoMineral` (문 자리 14, 조명 13, 환경음 열), `ResidentSpotBaker` 정비공 6, 강조색 `M_Accent_Evo_MineralComplex` · `M_Paint_Evo_MineralComplex`, `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `5f1d9a23`에 있음.
+
+---
+
+## M-98. 실드 매트릭스 내부 — 돔 아래 코어 · 고리 · 장 증폭 통로 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `ec0fde7e`과 같은 파일)
+- 실드 매트릭스 내부 `IT_EvoShield` · `PF_Interior_EvoShield` · `SM_Interior_EvoShield.fbx` (Blender `Interior_Evo.blend` 텍스트 `sm_builder`): ㄱ자 3칸 — 모서리 코어실 (천장 위 유리 돔 · 꼭대기 원 = 위 해치, 유리 구 속 빛나는 코어 + 기운 고리 둘 `INT_EvoShield_RingA` · `RingB`), 두 팔 장 증폭 통로 (천장 유리 도관 속 빛 구슬 나선 `FlowX` · `FlowZ` · 발생 노드 · 관제 콘솔)
+- `InteriorTemplateBuilder.BuildEvoShield` (문 자리 14, 조명 12, 환경음 전기), `ResidentSpotBaker` 연구원 6, 강조색 `M_Accent_Evo_ShieldMatrix` · `M_Paint_Evo_ShieldMatrix`, `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `ec0fde7e`에 있음.
+
+## M-99. 진화 모듈 공용 상태 화면 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `187119e8`과 같은 파일)
+- 새 `Interior/InteriorStatusScreens.cs` (`InteriorRoomDisplay` 상속): 화면마다 모듈 이름 · 상태 (가동 중 / 멈춤 / 파손 · 수리 필요 — 경고는 글자 깜빡임) · 생산 · 소비 · 모듈 특성 값 세 줄 · 막대 파형. 세로 0.16m 미만 화면은 이름 · 상태 · 막대만
+- `InteriorTemplateBuilder.AddStatusScreens` · `Islands` · `TryPanel`: `Evo*` 템플릿 빌드 끝에 껍데기 `_Shell`의 Screen 재질 면을 덩어리마다 찾아 앞면 (4cm 앞이 비어 있는 쪽)에 화면 칸을 붙임. 작은 면 (0.18 × 0.1m 미만) · 사각형을 85% 못 채우는 면 제외
+- 프리팹 4개 다시 뽑음: `PF_Interior_EvoShield` (4칸) · `EvoMineral` (3) · `EvoFarm` (2) · `EvoResearch` (8)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (새 파일 + 빌더 메서드 추가). 그 뒤 메뉴 Build Evolved Templates (화면 칸은 빌드 때 붙음).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `187119e8`에 있음.
+
+## M-100. 공용 상태 화면 — 기본 모듈 · 모든 진화 단계 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `97804ebb`과 같은 파일)
+- `InteriorStatusScreens`: 값 줄 = 모듈 정보창 효과 전부를 짧게 (`AppendLines`, 연구 반영), 세 줄씩 5초마다 넘김, 줄 접지 않음, 세로로 긴 화면 두 줄 배치, 칸마다 막대 재질 · 어두운 모니터 (`Panel.Bar` · `Dark` · `Lift`)
+- `InteriorTemplateBuilder`: 모든 템플릿에 붙임 (`Evo*` 조건 없앰), 화면 재질 이름 규칙 `M_InteriorScreen*`, 어두운 모니터 (`TryDarkPanel`), 보이는 면 (`Visible` — 아래를 보는 면 · 앞 45cm 막힘 제외), 전용 화면 자리 (`Reserved`), 메뉴 `SpaceStation/Interior/Add Status Screens` (이미 만든 프리팹에 화면만)
+- 프리팹 32개에 `InteriorStatusScreens` (기본 22 · 진화 10), EditMode `InteriorStatusScreensTests`, MODELING 7-11 화면 모델링 규칙
+
+### `narrative` 합칠 때
+- [ ] 서사판에만 있는 내부 템플릿 (난파선 · 이민선 · 지구 등)이 있으면 합친 뒤 메뉴 Add Status Screens를 한 번 돌림 (프리팹 글자 충돌 시 main 쪽을 받고 다시 돌리면 됨). `InteriorRoomDisplay`를 서사판이 새로 만들었다면 화면 가운데 좌표를 `Center` 같은 이름으로 직렬화해야 상태 화면이 피함.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `97804ebb`에 있음.
+
+## M-101. 방어 포대 내부 — 포탑실 둘 · 장갑 벙커 사격 통제실 · 실제 예보 레이더 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a046860c`과 같은 파일)
+- 방어 포대 내부 `IT_EvoDefense` · `PF_Interior_EvoDefense` · `SM_Interior_EvoDefense.fbx` (Blender `Interior_Evo.blend` 텍스트 `db_builder`): 3칸 일자 — 양 끝 포탑실 (흰 돔 · 관측 창 · 도는 포탑 고리 `TurretA` · `B` · 탄약고 드럼 + 승강관 탄 나선 `HoistA` · `B` · 사수 콘솔), 가운데 장갑 벙커 (격벽 문틀 · 탄 선반 · 틈 창 · 사격 통제 책상 · 레이더 상황판 `Sweep` · 천창 돛대 `Mast` · 경광등 `Beacon`)
+- `InteriorTemplateBuilder.BuildEvoDefense` (문 자리 14, 조명 17, 환경음 전기, 센서 어레이와 같은 `InteriorRadar` 연결 — 실제 유성우 · 포격 예보), `ResidentSpotBaker` 기술자 10, 강조색 `M_Accent_Evo_DefenseBattery` · `M_Paint_Evo_DefenseBattery`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (레이더도 기본 장치를 다시 씀)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `a046860c`에 있음.
+
+## M-102. 장갑 외벽 내부 — 긴 방패 회랑 · 수리장 · 충격 감시실 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `9f9aafb4`과 같은 파일)
+- 장갑 외벽 내부 `IT_EvoArmor` · `PF_Interior_EvoArmor` · `SM_Interior_EvoArmor.fbx` (Blender `Interior_Evo.blend` 텍스트 `aw_builder`): 3칸 일자 — 문 사이 기운 장갑면 넷 (큰 흰 육각판 · 밝은 회색 틈 · 고정 띠 양옆 큰 육각 창), 칸 경계 고정 띠 갈비, 천장 미끼 신호등 셋 (`Beacon0` · `1` · `2`), 가운데 장갑판 수리장 (도는 로봇 팔 `Arm` · 수리대 · 예비 판 선반), 양 끝 충격 감시실 (육각 상황판 · 감시 콘솔)
+- `InteriorTemplateBuilder.BuildEvoArmor` (문 자리 14, 조명 15, 환경음 전기), `ResidentSpotBaker` 기술자 8, 강조색 `M_Accent_Evo_ArmorWall` · `M_Paint_Evo_ArmorWall`, `InteriorKit.asset` 강조색 목록, MODELING 6-1 환공포증 배려 규칙 (작은 구멍 · 칸이 빽빽한 무늬 금지)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `9f9aafb4`에 있음.
+
+## M-103. 정비 공창 내부 — 양 격납고 홀 · 수리 패드 용접 팔 · 부품 창고 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `b53c65cd`과 같은 파일)
+- 정비 공창 내부 `IT_EvoWorks` · `PF_Interior_EvoWorks` · `SM_Interior_EvoWorks.fbx` (Blender `Interior_Evo.blend` 텍스트 `mw_builder`): 3 × 2칸 — 유리 볼트 천장 격납고 홀 둘 (다리 크레인), 수리 패드 넷 (도는 부품 `Pad0` ~ `3` · 용접 팔 · 진단 콘솔), 작업대 위 로봇 팔 `ArmA` · `ArmB`, 가운데 공용 부품 창고 (유리 원통 회전 선반 `CarouselA` · `B` · 건널목 둘)
+- 새 `InteriorWelder` (공통 내부 코드): 패드 아래로 옮긴 토치 `Torch0` ~ `3` 끝에서 현장 수리와 같은 불꽃 (`InteriorFx.Spark`), 한 번에 하나 · 용접 중 토치 떨림 · 모듈이 꺼지면 멈춤. `InteriorSetup.SparkPath` → internal
+- `InteriorTemplateBuilder.BuildEvoWorks` (문 자리 14, 조명 18, 환경음 기계), `ResidentSpotBaker` 기술자 · 정비공 8, 강조색 `M_Accent_Evo_MaintenanceWorks` · `M_Paint_Evo_MaintenanceWorks`, `InteriorKit.asset` 강조색 목록, MODELING 6-1 (빛 연출은 발광 구 말고 이펙트 + 닿는 도구 · 곡면 위 평평한 판 금지)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `b53c65cd`에 있음.
+
+## M-104. 비상 대응 센터 내부 — 지휘탑 · 출동실 · 긴급 보수실 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `c1c2f229`과 같은 파일)
+- 비상 대응 센터 내부 `IT_EvoEmergency` · `PF_Interior_EvoEmergency` · `SM_Interior_EvoEmergency.fbx` (Blender `Interior_Evo.blend` 텍스트 `ec_builder`): ㄱ자 3칸 — 지휘탑 (원통 천장 · 둘레 고창 띠 · 도는 경광등 `Beacon` · 실제 정거장 지도 상황 테이블 = `InteriorStationMap` 눕힘), 출동실 (유리 발사관 속 진화 드론 `DroneA` · `DroneB` · 발사 콘솔 둘 · 소화약제 선반), 긴급 보수실 (주황 · 흰 아치 유리 볼트 · 보수판 이음선 용접 팔 `Torch0` = `InteriorWelder` · 보수판 선반)
+- `InteriorTemplateBuilder.BuildEvoEmergency` (문 자리 8, 조명 14, 환경음 전기), `ResidentSpotBaker` 기술자 · 정비공 6, 강조색 `M_Accent_Evo_EmergencyCenter` · `M_Paint_Evo_EmergencyCenter`, `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `c1c2f229`에 있음.
+
+## M-105. 창 바깥 화면 — 창을 방 오브젝트로 묶음 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `f68223e8`과 같은 파일 — 공통 내부 코드)
+- 바깥 창은 방(모듈)마다 바깥 카메라가 그 방 모듈 바깥 모델을 숨기고 그린다. 창 렌더러를 방에 묶을 때 경계 상자 가운데 칸으로 정해, ㄱ자 비상 대응 센터는 창 덩어리 가운데가 빈 모서리 칸(옆 모듈 자리)에 떨어져 자기 바깥 모델 안쪽(흰색)을 비췄음 (칸 경계 0.5에 걸려 회전에 따라 달라짐)
+- `InteriorBuilder.RoomOf` (렌더러 → 부모를 따라 방 오브젝트 → 모듈) 추가, `InteriorExteriorView.Create`에 `roomOf` (선택 인자, 없거나 방 밖이면 예전처럼 위치로), `InteriorMode`가 넘김. 템플릿 검사에서 기본 농장 유리도 가운데가 위 칸이었음 — 같이 고쳐짐
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (내부 공통 코드 3파일).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `f68223e8`에 있음.

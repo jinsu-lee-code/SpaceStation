@@ -13,6 +13,7 @@ namespace SpaceStation.Save
     /// 게임 씬의 저장 담당 (Phase 6 세이브/로드).
     /// - 수동 저장: <see cref="SaveTo"/> (ESC 메뉴 → 저장 창)
     /// - 자동 저장: 게임 시간 N분마다(설정, 기본 3분), 메인 메뉴로 나갈 때, 게임을 끌 때. 게임 오버면 자동 저장을 지운다.
+    ///   나갈 때는 게임 시간이 짧은 판(새 게임을 열자마자 나감)이면 건너뛰어 이전 판의 자동 저장을 남긴다.
     /// - 불러온 판: 카메라를 저장 당시로 되돌리고 일시정지 상태로 시작, 알림 표시.
     /// 썸네일은 UI 없이 월드 카메라만 작게 렌더링한다.
     /// </summary>
@@ -26,10 +27,13 @@ namespace SpaceStation.Save
         [SerializeField] private OrbitCameraController _cameraController;
         [Tooltip("썸네일을 찍을 카메라 (비우면 Main Camera)")]
         [SerializeField] private Camera _camera;
+        [Tooltip("게임 시간이 이보다 짧은 판은 나갈 때(메인 메뉴 · 게임 종료) 자동 저장하지 않음 (초) — 새 게임을 열자마자 나가도 이전 판의 자동 저장이 남게")]
+        [SerializeField, Min(0f)] private float _minExitAutosaveSeconds = 60f;
 
         private StationSimulation _sim;
         private float _lastAutosaveAt;
         private bool _leaving;
+        private string _modeId; // 13-7d 이 판의 게임 모드 (불러온 판은 그 저장의 모드)
 
         public static SaveManager Instance { get; private set; }
         /// <summary>(메시지, 경고 여부). 상태 표시줄이 구독.</summary>
@@ -65,6 +69,7 @@ namespace SpaceStation.Save
             _sim.Session.GameOver += HandleGameOver;
 
             var loaded = _host.LoadedSave;
+            _modeId = loaded != null ? loaded.Meta?.Mode : GameStartOptions.Mode != null ? GameStartOptions.Mode.Id : null;
             if (loaded == null)
                 return;
             var c = loaded.Camera;
@@ -120,6 +125,8 @@ namespace SpaceStation.Save
                 // 12-1: 승리 등급(대형) 위로 도달한 가장 높은 등급 ('★ 국가급 달성' 식)
                 ReachedTopGrade = _sim.Progression.HighestGradeIndex > _sim.Progression.VictoryGradeIndex,
                 TopGradeName = _sim.Progression.GetGrade(_sim.Progression.HighestGradeIndex).DisplayName,
+                Mode = _modeId,
+                Progress = _sim.ProgressLabel?.Invoke(), // 13-7d (캠페인 = 장 번호 · 이름)
             };
             if (_cameraController != null && _cameraController.Rig != null)
             {
@@ -143,15 +150,30 @@ namespace SpaceStation.Save
             if (_leaving)
                 return;
             _leaving = true;
-            if (CanSave)
-                Autosave(false);
+            AutosaveOnExit();
         }
 
         private void OnApplicationQuit()
         {
-            if (!_leaving && CanSave)
-                Autosave(false);
+            if (!_leaving)
+                AutosaveOnExit();
             _leaving = true;
+        }
+
+        /// <summary>
+        /// 나갈 때 자동 저장. 게임 시간이 <see cref="_minExitAutosaveSeconds"/>보다 짧은 판은 건너뜀 (사용자 결정 2026-10-25:
+        /// 새 게임을 열자마자 나가면 0초짜리 판이 이전 판의 자동 저장을 덮었음). 불러온 판은 게임 시간이 이어져 그대로 저장.
+        /// </summary>
+        private void AutosaveOnExit()
+        {
+            if (!CanSave)
+                return;
+            if (_sim.ElapsedSeconds < _minExitAutosaveSeconds)
+            {
+                Debug.Log($"[Save] 게임 시간 {_sim.ElapsedSeconds:0}초 · 짧은 판이라 나갈 때 자동 저장을 건너뜀 (이전 자동 저장 유지)");
+                return;
+            }
+            Autosave(false);
         }
 
         private void HandleGameOver()
@@ -207,7 +229,7 @@ namespace SpaceStation.Save
             return true;
         }
 
-        /// <summary>12-3c-opt 로딩 화면 카드: 저장 썸네일 + 등급 · 인구 · 모듈 · 플레이 시간 · 난이도.</summary>
+        /// <summary>12-3c-opt 로딩 화면 카드: 저장 썸네일 + 등급(13-7d 진행 표시가 있으면 그것) · 인구 · 모듈 · 플레이 시간 · 난이도.</summary>
         private static LoadingCard CardOf(string slot, SaveMeta meta)
         {
             if (meta == null)
@@ -221,7 +243,8 @@ namespace SpaceStation.Save
                 parts.Add(meta.DifficultyName);
             return new LoadingCard
             {
-                Title = string.IsNullOrEmpty(meta.GradeName) ? SaveService.TitleOf(slot) : $"{meta.GradeName} 정거장",
+                Title = !string.IsNullOrEmpty(meta.Progress) ? meta.Progress
+                    : string.IsNullOrEmpty(meta.GradeName) ? SaveService.TitleOf(slot) : $"{meta.GradeName} 정거장",
                 Detail = string.Join("  ·  ", parts),
                 ThumbnailPath = SaveService.ThumbnailPath(slot),
             };

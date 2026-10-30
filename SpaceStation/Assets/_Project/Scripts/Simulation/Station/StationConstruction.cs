@@ -32,6 +32,8 @@ namespace SpaceStation.Simulation
         public PlacementResult EvaluatePlacement(ModuleData data, UnityEngine.Vector3Int origin, int rotation)
         {
             var result = PlacementRules.Evaluate(_sim.Grid, data, origin, rotation);
+            if (result == PlacementResult.Valid && !InZone(data, origin, rotation))
+                result = PlacementResult.OutsideZone;
             if (result == PlacementResult.Valid)
                 result = CheckBuildable(data);
             if (result == PlacementResult.Valid && !_sim.Resources.CanAfford(GetBuildCost(data)))
@@ -40,6 +42,18 @@ namespace SpaceStation.Simulation
         }
 
         public List<ResourceAmount> GetBuildCost(ModuleData data) => _sim.Effects.BuildCost(data);
+
+        /// <summary>M-50: 칸을 정하는 쪽이 있으면 모든 칸이 허용돼야 함.</summary>
+        private bool InZone(ModuleData data, UnityEngine.Vector3Int origin, int rotation)
+        {
+            var zone = _sim.BuildZone;
+            if (zone == null)
+                return true;
+            foreach (var c in StationGrid.ResolveCells(data.CellOffsets, origin, rotation))
+                if (!zone.Allows(c))
+                    return false;
+            return true;
+        }
 
         public PlacementResult CheckBuildable(ModuleData data)
         {
@@ -135,6 +149,8 @@ namespace SpaceStation.Simulation
             var result = PlacementRules.Evaluate(_sim.Grid, data, origin, rotation, module);
             if (result != PlacementResult.Valid)
                 return result;
+            if (!InZone(data, origin, rotation))
+                return PlacementResult.OutsideZone;
             if (!PlacementRules.TouchesOther(_sim.Grid, StationGrid.ResolveCells(data.CellOffsets, origin, rotation), module))
                 return PlacementResult.NeedsContact;
             if (!_sim.Resources.CanAfford(GetMoveCost(module)))

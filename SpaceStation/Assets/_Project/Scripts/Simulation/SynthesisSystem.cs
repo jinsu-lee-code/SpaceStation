@@ -97,15 +97,28 @@ namespace SpaceStation.Simulation
 
         /// <summary>
         /// 등급이 열렸고 해금된 레시피인지. 12-4: 연구 확장이 있으면 그 상태(자동 해금 또는 해금 연구 완료),
-        /// 없으면 <see cref="RecipeData.UnlockedByDefault"/>만 (12-3과 같음).
+        /// 없으면 <see cref="RecipeData.UnlockedByDefault"/>만 (12-3과 같음). M-50: 바로 여는 쪽(<see cref="OpensDirectly"/>)이 연 레시피도 해금.
         /// </summary>
         public bool IsUnlocked(RecipeData recipe)
         {
             if (recipe == null || !Sim.RuleOpen(StationRules.ForSynthesisStage(recipe.Stage), Sim.Progression.GradeIndex >= recipe.UnlockGrade))
                 return false; // 13-1 규칙을 정하는 쪽이 있으면 레시피 단계별 규칙 (레시피별 등급은 보지 않음)
             var expansion = Sim.ResearchExpansion;
-            return expansion != null ? expansion.StateOf(recipe) == RecipeState.Unlocked : recipe.UnlockedByDefault;
+            return expansion != null ? expansion.StateOf(recipe) == RecipeState.Unlocked : IsOpenedDirectly(recipe);
         }
+
+        /// <summary>
+        /// M-50 공통 고리: 연구 없이 레시피를 여는 쪽 (서사판 = 그 장이 여는 레시피). null이면 자동 해금 레시피만.
+        /// M-52: 여는 쪽이 있으면 자동 해금 레시피도 그쪽이 정함 (서사판 4장 = 고른 6종만, 연구 단지는 뒤 장).
+        /// </summary>
+        public Func<RecipeData, bool> OpensDirectly { get; set; }
+
+        /// <summary>연구 없이 열린 레시피인지 (<see cref="OpensDirectly"/>가 있으면 그쪽, 없으면 자동 해금). 규칙 · 등급 조건은 따로.</summary>
+        public bool IsOpenedDirectly(RecipeData recipe) =>
+            recipe != null && (OpensDirectly != null ? OpensDirectly(recipe) : recipe.UnlockedByDefault);
+
+        /// <summary>남은 합성 시간 (게임 초, 지금 합성 속도 기준).</summary>
+        public float SecondsLeft(SynthesisJob job) => job == null ? 0f : job.Remaining / Sim.Effects.SynthesisSpeedMultiplier;
 
         /// <summary>합성으로만 만드는 진화 모듈인지.</summary>
         public bool IsRecipeResult(ModuleData data)
@@ -320,7 +333,7 @@ namespace SpaceStation.Simulation
                 }
                 if (paused || dt <= 0f)
                     continue;
-                job.Remaining -= dt;
+                job.Remaining -= dt * Sim.Effects.SynthesisSpeedMultiplier; // M-50 손재주
                 if (job.Remaining <= 1e-4f)
                 {
                     Complete(job);
