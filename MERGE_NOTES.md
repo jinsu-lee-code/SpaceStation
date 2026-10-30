@@ -1582,3 +1582,15 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `97804ebb`에 있음.
+
+## M-101. 방어 포대 내부 — 포탑실 둘 · 장갑 벙커 사격 통제실 · 실제 예보 레이더 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a046860c`과 같은 파일)
+- 방어 포대 내부 `IT_EvoDefense` · `PF_Interior_EvoDefense` · `SM_Interior_EvoDefense.fbx` (Blender `Interior_Evo.blend` 텍스트 `db_builder`): 3칸 일자 — 양 끝 포탑실 (흰 돔 · 관측 창 · 도는 포탑 고리 `TurretA` · `B` · 탄약고 드럼 + 승강관 탄 나선 `HoistA` · `B` · 사수 콘솔), 가운데 장갑 벙커 (격벽 문틀 · 탄 선반 · 틈 창 · 사격 통제 책상 · 레이더 상황판 `Sweep` · 천창 돛대 `Mast` · 경광등 `Beacon`)
+- `InteriorTemplateBuilder.BuildEvoDefense` (문 자리 14, 조명 17, 환경음 전기, 센서 어레이와 같은 `InteriorRadar` 연결 — 실제 유성우 · 포격 예보), `ResidentSpotBaker` 기술자 10, 강조색 `M_Accent_Evo_DefenseBattery` · `M_Paint_Evo_DefenseBattery`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (레이더도 기본 장치를 다시 씀)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `a046860c`에 있음.

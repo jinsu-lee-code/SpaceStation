@@ -65,6 +65,7 @@ namespace SpaceStation.Editor
             { "EvoFarm", new[] { ResidentTrait.Gardener } },        // 수직 농장 = 수경 농장 ×2 + 단백질 배양조 (모두 정원사)
             { "EvoMineral", new[] { ResidentTrait.Mechanic } },     // 광물 처리 단지 = 채굴 도킹 + 제련소 (모두 정비공)
             { "EvoShield", new[] { ResidentTrait.Scientist } },     // 실드 매트릭스 = 실드 발생기 ×3 (연구원)
+            { "EvoDefense", new[] { ResidentTrait.Technician } },   // 방어 포대 = 포탑 ×2 + 장갑 격벽 (모두 기술자)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -104,7 +105,31 @@ namespace SpaceStation.Editor
             { "EvoFarm", EvoFarmSpots },
             { "EvoMineral", EvoMineralSpots },
             { "EvoShield", EvoShieldSpots },
+            { "EvoDefense", EvoDefenseSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 방어 포대 (db_builder SEATS): 기술자 — 포탑실 바깥 모서리 사수 콘솔 넷 (콘솔을 봄, 문 자리 가로 ±1.75 밖) ·
+        /// 레이더 상황판 양 끝 둘 (상황판을 봄) · 벙커 틈 창 아래 책상 넷 (책상을 봄). 상황판 옆길 (z ±0.65 ~ 1.67) 1.3m 이상.
+        /// </summary>
+        private static List<ResidentSpot> EvoDefenseSpots()
+        {
+            var list = new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(-2.057f, Floor, -2.057f), -135f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-2.057f, Floor, 2.057f), -45f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(18.057f, Floor, -2.057f), 135f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(18.057f, Floor, 2.057f), 45f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(6.55f, Floor, 0f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(9.45f, Floor, 0f), -90f, ResidentPose.Work, work: true),
+            };
+            foreach (float x in new[] { 5.55f, 10.45f })
+            {
+                list.Add(new ResidentSpot(new Vector3(x, Floor, -1.97f), 180f, ResidentPose.Work, work: true));
+                list.Add(new ResidentSpot(new Vector3(x, Floor, 1.97f), 0f, ResidentPose.Work, work: true));
+            }
+            return list;
+        }
 
         /// <summary>
         /// 진화 1단계 실드 매트릭스 (sm_builder SEATS): 연구원 — 두 팔 벽쪽 관제 콘솔 넷 (콘솔을 봄, 사이 통로 3.4m) · 팔 끝 발생 노드 관리 둘 (노드 바깥쪽, 끝 문 자리 앞 밖).

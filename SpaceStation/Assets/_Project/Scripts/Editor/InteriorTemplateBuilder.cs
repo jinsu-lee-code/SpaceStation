@@ -103,6 +103,73 @@ namespace SpaceStation.Editor
             BuildEvoFarm();
             BuildEvoMineral();
             BuildEvoShield();
+            BuildEvoDefense();
+        }
+
+        /// <summary>
+        /// 진화 1단계 방어 포대 (3칸 일자, db_builder — 사용자 2026-10-30 시안 1 "일단 유니티에 넣어줘 직접 들어가서 체크해볼게"): 포탑 둘을 장갑 뒤에 묶어 한 사격 통제로 —
+        /// 양 끝 칸 = 포탑실 (천장 위로 솟은 흰 돔 · 관측 창 여덟 · 꼭대기 원 = 위 해치, 베어링 레일에 매달려 도는 포탑 고리 — 쌍포 약실 · 평형추 · 급탄 회전판
+        /// (INT_EvoDefense_TurretA · B), 바닥 탄약고 드럼 + 유리 승강관 속 탄 나선 (HoistA · B — 돌면 탄이 솟아 보임), 바깥 모서리 사수 콘솔 둘),
+        /// 가운데 칸 = 장갑 벙커 사격 통제실 (양쪽 장갑 격벽 문틀 · 탄 선반, 외형 같은 가는 틈 창 + 아래 책상 넷, 레이더 상황판 = 센서 어레이와 같은
+        /// <see cref="InteriorRadar"/> (쓸기 빛 Sweep · 실제 유성우 · 포격 예보 운석 점 · 경광등 Beacon · −z 책상 예보 화면), 둥근 천창으로 내려온 도는 레이더 돛대 (Mast)).
+        /// 문 자리 = 연결점 있는 면 8, 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoDefense()
+        {
+            const float ceiling = F + 4.0f;
+            const float domeTop = F + 5.15f;   // db_builder DOME_TOP (포탑실 돔 꼭대기 평평한 원)
+            var c0 = new Vector3Int(0, 0, 0);
+            var c1 = new Vector3Int(1, 0, 0);
+            var c2 = new Vector3Int(2, 0, 0);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c0, Vector3Int.left, Socket),
+                new InteriorSocket(c0, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c0, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c1, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c1, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c2, Vector3Int.right, Socket),
+                new InteriorSocket(c2, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c2, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c0, Vector3Int.down, -F, new Vector3(0f, 0f, -2.2f)),     // 탄약고 드럼 · 바닥 빛 고리 밖 −z 길
+                new InteriorSocket(c1, Vector3Int.down, -F, new Vector3(-2.8f, 0f, 0f)),     // 격벽 문틀과 상황판 사이 (x 5.2)
+                new InteriorSocket(c2, Vector3Int.down, -F, new Vector3(0f, 0f, 2.2f)),
+                new InteriorSocket(c0, Vector3Int.up, domeTop, Vector3.zero),                // 돔 꼭대기 평평한 원
+                new InteriorSocket(c1, Vector3Int.up, ceiling, new Vector3(2.7f, 0f, 0f)),   // 천창 · 신호 줄 · 문틀 비킴 (x 10.7)
+                new InteriorSocket(c2, Vector3Int.up, domeTop, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var coral = new Color(1f, 0.56f, 0.56f);
+            var lights = new List<LightSpec>();
+            foreach (float cx in new[] { 0f, 16f })
+            {
+                foreach (var (dx, z) in new[] { (-1.4f, 2.4f), (-1.4f, -2.4f), (1.4f, 2.4f), (1.4f, -2.4f) })
+                    lights.Add(LightSpec.Point(new Vector3(cx + dx, F + 3.0f, z), 5f, 1.3f, white));   // 포탑 고리 레일 밖
+                lights.Add(LightSpec.Point(new Vector3(cx, F + 4.4f, 0f), 4f, 1.0f, white));            // 돔 속
+                lights.Add(LightSpec.Point(new Vector3(cx, F + 2.4f, 0f), 2.5f, 0.4f, coral));          // 승강관 (드럼 바로 위는 드럼이 분홍으로 물들었음)
+            }
+            foreach (var (x, z) in new[] { (5.7f, 1.7f), (5.7f, -1.7f), (10.3f, 1.7f), (10.3f, -1.7f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.3f, z), 5f, 1.4f, white));              // 벙커
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 1.5f, 0f), 2.5f, 0.8f, coral));              // 레이더 상황판 빛
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoDefense_TurretA", new Vector3(0f, 0f, 0f), Vector3.up, 9f),
+                new OrbitSpec("INT_EvoDefense_TurretB", new Vector3(16f, 0f, 0f), Vector3.up, -7f),
+                new OrbitSpec("INT_EvoDefense_HoistA", new Vector3(0f, 0f, 0f), Vector3.up, 90f),    // + = 탄 나선이 위로 오르는 것처럼 (광물 승강 기둥과 같은 나선)
+                new OrbitSpec("INT_EvoDefense_HoistB", new Vector3(16f, 0f, 0f), Vector3.up, 90f),
+                new OrbitSpec("INT_EvoDefense_Sweep", new Vector3(8f, 0f, 0f), Vector3.up, 60f),     // + = 밝은 앞 가장자리 (+x)가 앞장서고 부채꼴 (+z 쪽)이 뒤따름
+                new OrbitSpec("INT_EvoDefense_Mast", new Vector3(8f, 0f, 0f), Vector3.up, 30f),
+            };
+            EvoAccent("DefenseBattery", "#FF8F8F");
+            // 스폰 = 서쪽 포탑실 격벽 문틀 앞에서 탄약고 · 포탑 고리를 바라봄
+            Build("EvoDefense", "Evolved/MD_Evo_DefenseBattery", sockets, new Vector3(2.4f, F, 1.6f), -125f, lights, orbits,
+                // 레이더 = 센서 어레이와 같은 실제 예보 (사용자 2026-10-30 "레이더는 기존에 있던 걸"): 유성우 · 포격이 오는 방향에 운석 점 · 쓸기 빛이 지날 때 밝아짐,
+                // 경광등 = 돛대 아래 미끼 표지 빛 고리, 예보 글 = 상황판 쪽 −z 책상의 어두운 화면 (db_builder)
+                configure: root => root.AddComponent<InteriorRadar>().Configure(
+                    new Vector3(8f, F + 0.958f, 0f), 0.9f,
+                    Child(root, "INT_EvoDefense_Sweep")?.GetComponent<InteriorOrbit>(),
+                    Child(root, "INT_EvoDefense_Beacon")?.GetComponent<Renderer>(),
+                    new Vector3(5.55f, F + 1.14f, -2.825f), Vector3.forward, Vector3.up, new Vector2(0.58f, 0.32f)));
         }
 
         /// <summary>
@@ -2607,7 +2674,7 @@ namespace SpaceStation.Editor
             { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life }, { "EvoCulture", InteriorAmbience.Life },
             { "EvoSolar", InteriorAmbience.Electric }, { "EvoFusion", InteriorAmbience.Heat }, { "EvoHydrogen", InteriorAmbience.Water },
             { "EvoGravity", InteriorAmbience.Life }, { "EvoFarm", InteriorAmbience.Water }, { "EvoMineral", InteriorAmbience.Heat },
-            { "EvoShield", InteriorAmbience.Electric },
+            { "EvoShield", InteriorAmbience.Electric }, { "EvoDefense", InteriorAmbience.Electric },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
