@@ -1606,3 +1606,16 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `9f9aafb4`에 있음.
+
+## M-103. 정비 공창 내부 — 양 격납고 홀 · 수리 패드 용접 팔 · 부품 창고 (2026-10-30, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `b53c65cd`과 같은 파일)
+- 정비 공창 내부 `IT_EvoWorks` · `PF_Interior_EvoWorks` · `SM_Interior_EvoWorks.fbx` (Blender `Interior_Evo.blend` 텍스트 `mw_builder`): 3 × 2칸 — 유리 볼트 천장 격납고 홀 둘 (다리 크레인), 수리 패드 넷 (도는 부품 `Pad0` ~ `3` · 용접 팔 · 진단 콘솔), 작업대 위 로봇 팔 `ArmA` · `ArmB`, 가운데 공용 부품 창고 (유리 원통 회전 선반 `CarouselA` · `B` · 건널목 둘)
+- 새 `InteriorWelder` (공통 내부 코드): 패드 아래로 옮긴 토치 `Torch0` ~ `3` 끝에서 현장 수리와 같은 불꽃 (`InteriorFx.Spark`), 한 번에 하나 · 용접 중 토치 떨림 · 모듈이 꺼지면 멈춤. `InteriorSetup.SparkPath` → internal
+- `InteriorTemplateBuilder.BuildEvoWorks` (문 자리 14, 조명 18, 환경음 기계), `ResidentSpotBaker` 기술자 · 정비공 8, 강조색 `M_Accent_Evo_MaintenanceWorks` · `M_Paint_Evo_MaintenanceWorks`, `InteriorKit.asset` 강조색 목록, MODELING 6-1 (빛 연출은 발광 구 말고 이펙트 + 닿는 도구 · 곡면 위 평평한 판 금지)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-30) 같은 파일이 tycoon 커밋 `b53c65cd`에 있음.

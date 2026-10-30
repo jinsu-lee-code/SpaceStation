@@ -67,6 +67,7 @@ namespace SpaceStation.Editor
             { "EvoShield", new[] { ResidentTrait.Scientist } },     // 실드 매트릭스 = 실드 발생기 ×3 (연구원)
             { "EvoDefense", new[] { ResidentTrait.Technician } },   // 방어 포대 = 포탑 ×2 + 장갑 격벽 (모두 기술자)
             { "EvoArmor", new[] { ResidentTrait.Technician } },     // 장갑 외벽 = 장갑 격벽 ×3 (기술자)
+            { "EvoWorks", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 정비 공창 = 정비 베이 ×3 (기술자 · 정비공)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -108,7 +109,27 @@ namespace SpaceStation.Editor
             { "EvoShield", EvoShieldSpots },
             { "EvoDefense", EvoDefenseSpots },
             { "EvoArmor", EvoArmorSpots },
+            { "EvoWorks", EvoWorksSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 정비 공창 (mw_builder SEATS): 기술자 · 정비공 — 수리 패드 넷 (진단 콘솔 너머 패드를 봄, 홀 가운데 쪽) · 작업대 둘 (창고 띠 쪽에서 봄) ·
+        /// 부품 선반 원통 둘 (건널목 쪽에서 봄).
+        /// </summary>
+        private static List<ResidentSpot> EvoWorksSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(2.5f, Floor, -0.4f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(13.5f, Floor, -0.4f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(2.5f, Floor, 8.4f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(13.5f, Floor, 8.4f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(8f, Floor, 1.15f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(8f, Floor, 6.85f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(3.6f, Floor, 4f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(12.4f, Floor, 4f), 90f, ResidentPose.Work, work: true),
+            };
+        }
 
         /// <summary>
         /// 진화 1단계 장갑 외벽 (aw_builder SEATS): 기술자 — 수리대 양 끝 둘 (수리대를 봄) · 양 끝 감시실 육각 상황판 홀 쪽 둘 (상황판을 봄) ·
