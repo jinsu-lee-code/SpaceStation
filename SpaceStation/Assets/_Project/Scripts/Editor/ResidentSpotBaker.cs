@@ -66,6 +66,7 @@ namespace SpaceStation.Editor
             { "EvoMineral", new[] { ResidentTrait.Mechanic } },     // 광물 처리 단지 = 채굴 도킹 + 제련소 (모두 정비공)
             { "EvoShield", new[] { ResidentTrait.Scientist } },     // 실드 매트릭스 = 실드 발생기 ×3 (연구원)
             { "EvoDefense", new[] { ResidentTrait.Technician } },   // 방어 포대 = 포탑 ×2 + 장갑 격벽 (모두 기술자)
+            { "EvoArmor", new[] { ResidentTrait.Technician } },     // 장갑 외벽 = 장갑 격벽 ×3 (기술자)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -106,7 +107,27 @@ namespace SpaceStation.Editor
             { "EvoMineral", EvoMineralSpots },
             { "EvoShield", EvoShieldSpots },
             { "EvoDefense", EvoDefenseSpots },
+            { "EvoArmor", EvoArmorSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 장갑 외벽 (aw_builder SEATS): 기술자 — 수리대 양 끝 둘 (수리대를 봄) · 양 끝 감시실 육각 상황판 홀 쪽 둘 (상황판을 봄) ·
+        /// 바깥 모서리 감시 콘솔 넷 (콘솔을 봄, 문 자리 가로 ±1.75 밖). 수리대 · 상황판 옆길 1.3m 이상.
+        /// </summary>
+        private static List<ResidentSpot> EvoArmorSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(6.85f, Floor, 0f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(9.15f, Floor, 0f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(1.35f, Floor, 0f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(14.65f, Floor, 0f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-2.057f, Floor, -2.057f), -135f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-2.057f, Floor, 2.057f), -45f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(18.057f, Floor, -2.057f), 135f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(18.057f, Floor, 2.057f), 45f, ResidentPose.Work, work: true),
+            };
+        }
 
         /// <summary>
         /// 진화 1단계 방어 포대 (db_builder SEATS): 기술자 — 포탑실 바깥 모서리 사수 콘솔 넷 (콘솔을 봄, 문 자리 가로 ±1.75 밖) ·

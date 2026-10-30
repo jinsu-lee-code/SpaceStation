@@ -104,6 +104,59 @@ namespace SpaceStation.Editor
             BuildEvoMineral();
             BuildEvoShield();
             BuildEvoDefense();
+            BuildEvoArmor();
+        }
+
+        /// <summary>
+        /// 진화 1단계 장갑 외벽 (3칸 일자, aw_builder — 사용자 2026-10-30 시안 1 다듬음 "이대로 옮겨줘"): 긴 방패 회랑 — 문 사이 벽 넷 = 안쪽으로 기운 장갑면
+        /// (밝은 회색 틈 위 큰 흰 육각판 · 고정 띠 양옆 큰 육각 바깥 창 하나씩 — 환공포증 배려로 판을 크게 · 대비를 낮게 · 구멍 창을 흩지 않음),
+        /// 칸 경계 = 짙은 고정 띠 갈비 (기운 면 · 천장을 넘음), 천장 미끼 신호등 셋 (유리 갓 속 도는 빛 날개 — INT_EvoArmor_Beacon0 · 1 · 2, 외형의 돔 셋),
+        /// 가운데 칸 = 장갑판 수리장 (천장 회전대에 매달려 도는 로봇 팔 Arm · 수리대 위 육각판 · 예비 판 선반 넷 — 빠른 수리),
+        /// 양 끝 칸 = 충격 감시실 (큰 칸 일곱 육각 상황판 · 바깥 모서리 감시 콘솔 둘). 문 자리 = 연결점 있는 면 8, 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoArmor()
+        {
+            const float ceiling = F + 4.0f;
+            var c0 = new Vector3Int(0, 0, 0);
+            var c1 = new Vector3Int(1, 0, 0);
+            var c2 = new Vector3Int(2, 0, 0);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c0, Vector3Int.left, Socket),
+                new InteriorSocket(c0, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c0, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c1, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c1, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c2, Vector3Int.right, Socket),
+                new InteriorSocket(c2, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c2, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c0, Vector3Int.down, -F, new Vector3(0f, 0f, -2.2f)),      // 상황판 밖 −z 길
+                new InteriorSocket(c1, Vector3Int.down, -F, new Vector3(-2.5f, 0f, 0f)),      // 고정 띠와 수리대 사이 (x 5.5)
+                new InteriorSocket(c2, Vector3Int.down, -F, new Vector3(0f, 0f, 2.2f)),
+                new InteriorSocket(c0, Vector3Int.up, ceiling, new Vector3(-1.9f, 0f, 0f)),   // 미끼 신호등 · 빛 띠 비킴
+                new InteriorSocket(c1, Vector3Int.up, ceiling, new Vector3(-2.5f, 0f, 0f)),   // 고정 띠 · 로봇 팔 회전대 비킴
+                new InteriorSocket(c2, Vector3Int.up, ceiling, new Vector3(1.9f, 0f, 0f)),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var steel = new Color(0.8f, 0.86f, 0.95f);
+            var lights = new List<LightSpec>();
+            foreach (float cx in new[] { 0f, 8f, 16f })
+            {
+                foreach (var (dx, z) in new[] { (-1.6f, 1.6f), (-1.6f, -1.6f), (1.6f, 1.6f), (1.6f, -1.6f) })
+                    lights.Add(LightSpec.Point(new Vector3(cx + dx, F + 3.3f, z), 5f, 1.3f, white));
+            }
+            foreach (float bx in new[] { 0f, 10.5f, 16f })
+                lights.Add(LightSpec.Point(new Vector3(bx, F + 3.3f, 0f), 3f, 0.6f, steel));   // 미끼 신호등 빛
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoArmor_Arm", new Vector3(8f, 0f, 0f), Vector3.up, 12f),
+                new OrbitSpec("INT_EvoArmor_Beacon0", new Vector3(0f, 0f, 0f), Vector3.up, 90f),
+                new OrbitSpec("INT_EvoArmor_Beacon1", new Vector3(10.5f, 0f, 0f), Vector3.up, 90f),
+                new OrbitSpec("INT_EvoArmor_Beacon2", new Vector3(16f, 0f, 0f), Vector3.up, 90f),
+            };
+            EvoAccent("ArmorWall", "#B0B8C0");
+            // 스폰 = 서쪽 감시실에서 회랑 (+x)을 바라봄
+            Build("EvoArmor", "Evolved/MD_Evo_ArmorWall", sockets, new Vector3(1.4f, F, -1.5f), 75f, lights, orbits);
         }
 
         /// <summary>
@@ -2674,7 +2727,7 @@ namespace SpaceStation.Editor
             { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life }, { "EvoCulture", InteriorAmbience.Life },
             { "EvoSolar", InteriorAmbience.Electric }, { "EvoFusion", InteriorAmbience.Heat }, { "EvoHydrogen", InteriorAmbience.Water },
             { "EvoGravity", InteriorAmbience.Life }, { "EvoFarm", InteriorAmbience.Water }, { "EvoMineral", InteriorAmbience.Heat },
-            { "EvoShield", InteriorAmbience.Electric }, { "EvoDefense", InteriorAmbience.Electric },
+            { "EvoShield", InteriorAmbience.Electric }, { "EvoDefense", InteriorAmbience.Electric }, { "EvoArmor", InteriorAmbience.Electric },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
