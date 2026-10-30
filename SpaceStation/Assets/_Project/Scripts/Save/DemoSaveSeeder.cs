@@ -16,7 +16,8 @@ namespace SpaceStation.Save
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void SeedOnStart()
         {
-            if (SaveService.Directory != null || PlayerPrefs.GetInt(SeededKey, 0) == 1)
+            // 에디터 플레이는 넣지 않음 (개발 PC 저장 폴더를 건드리지 않게) — 빌드에서만
+            if (Application.isEditor || SaveService.Directory != null || PlayerPrefs.GetInt(SeededKey, 0) == 1)
                 return;
             int copied = Seed(Path.Combine(Application.streamingAssetsPath, Folder), Path.Combine(Application.persistentDataPath, "Saves"));
             PlayerPrefs.SetInt(SeededKey, 1);
