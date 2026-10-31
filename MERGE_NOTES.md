@@ -1668,3 +1668,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `eea4e963`에 있음.
+
+## M-108. 자재 재생 플랜트 집게 크레인 — 컨베이어 덩이를 집어 쇳물에 넣음 · 작업대 판 뚫림 고침 (2026-10-31, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `8fe892f4`과 같은 파일)
+- 새 `Interior/InteriorScrapCrane` (`InteriorRoomDisplay`): 남 컨베이어가 압축 폐자재 덩이 (`INT_EvoReclaim_Bale` 복제, 벽 쪽 덮개에서 나옴)를 돔 끝까지 실어 오면 붐이 돌고 트롤리가 나가 집게를 벌려 내려 쥐고, 들어 올려 돌아 쇳물 위에서 놓음 → `InteriorFx.Spark` 불꽃 · 가라앉음. 모듈이 멈추면 멈춤
+- `InteriorTemplateBuilder.BuildEvoReclaim`: 크레인 조각마다 피벗 계층 (붐 → 트롤리 → 줄 · 집게 → 손가락 넷, 덩이 본) + `InteriorScrapCrane` (도는 부품 `Gantry` 없앰)
+- 모델 `SM_Interior_EvoReclaim.fbx` · 프리팹: 크레인 조각 분리 · 붐 4.15로 늘림, 남 컨베이어 F + 2.1로 낮춤 + 벽 쪽 덮개, 분해 작업대 부서진 판 (기울어 윗면을 뚫던 것 → 꺾인 판 · 눕힌 판), 폐자재 통 = 위가 열린 통
+- MODELING 6-1: 작업대 위 판을 가운데 높이만 정해 기울이지 않음 · 막힌 통에 판을 꽂지 않음
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-31) 같은 파일이 tycoon 커밋 `8fe892f4`에 있음.

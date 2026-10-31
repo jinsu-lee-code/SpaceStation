@@ -114,8 +114,8 @@ namespace SpaceStation.Editor
         /// 진화 1단계 자재 재생 플랜트 (2 × 2칸, mr_builder — 사용자 2026-10-31 시안 1 "이대로 유니티로 옮겨줘. 천장의 구멍에 유리돔 깔끔하게 씌우는거 잊지말구"):
         /// 가운데 = 천장 구멍을 덮는 큰 유리 돔 (Window 얇은 껍질 — 아래 테 · 꼭대기 테 속으로 가장자리가 묻힘, 끝 뚜껑 없음: 뚜껑이 있으면 천장 높이 평평한 창이
         /// 갈비살을 가림 — 플레이 확인 2026-10-31, 흰 갈비살 · 모듈 색 띠) 아래 둥근 단 위 재생로
-        /// (쇳물 웅덩이 · 유리 난간 · 네 귀 폐자재 깔때기), 돔 꼭대기 돛대에서 도는 집게 크레인 (INT_EvoReclaim_Gantry), 머리 위 컨베이어 둘
-        /// (남 = 폐자재 상자 들어옴 · 동 = 주괴 나감). 벽마다 작업대 = 남 선별대 · 동 주형 줄 · 북 분해 작업대 · 서 제어 콘솔 (상태 화면 둘).
+        /// (쇳물 웅덩이 · 유리 난간 · 네 귀 폐자재 깔때기), 돔 꼭대기 돛대의 집게 크레인 (<see cref="InteriorScrapCrane"/> — 남 컨베이어가 실어 온
+        /// 압축 폐자재 덩이를 집어 쇳물에 넣음), 머리 위 컨베이어 둘 (남 = 덩이 들어옴 F + 2.1, 벽 쪽 덮개에서 나옴 · 동 = 주괴 나감). 벽마다 작업대 = 남 선별대 · 동 주형 줄 · 북 분해 작업대 · 서 제어 콘솔 (상태 화면 둘).
         /// 문 자리 = 칸마다 바깥 두 면 (8), 위 · 아래 해치 = 칸 중심 (천장 F + 3.8, 돔 테 밖).
         /// </summary>
         private static void BuildEvoReclaim()
@@ -145,13 +145,44 @@ namespace SpaceStation.Editor
             lights.Add(LightSpec.Point(new Vector3(10.2f, F + 2.4f, 4f), 3.5f, 0.9f, warm));      // 주형 줄 (동)
             lights.Add(LightSpec.Point(new Vector3(4f, F + 2.4f, 10.2f), 3.5f, 0.9f, white));     // 분해 작업대 (북)
             lights.Add(LightSpec.Point(new Vector3(-2.2f, F + 2.4f, 4f), 3.5f, 0.9f, cool));      // 제어 콘솔 (서)
-            var orbits = new List<OrbitSpec>
-            {
-                new OrbitSpec("INT_EvoReclaim_Gantry", new Vector3(4f, 0f, 4f), Vector3.up, 10f),
-            };
             EvoAccent("MaterialReclaimer", "#D8B080");
             // 스폰 = 남쪽 문 (0번 칸) 안에서 돔 아래 재생로를 바라봄 (바닥 해치 칸 중심 비킴)
-            Build("EvoReclaim", "Evolved/MD_Evo_MaterialReclaimer", sockets, new Vector3(0.6f, F, -2.2f), 30f, lights, orbits);
+            Build("EvoReclaim", "Evolved/MD_Evo_MaterialReclaimer", sockets, new Vector3(0.6f, F, -2.2f), 30f, lights,
+                configure: root =>
+                {
+                    // 집게 크레인 (사용자 2026-10-31 "기계팔이 진짜로 옆쪽에서 물건을 집어와서 용광로에 넣는 동작", mr_builder crane):
+                    // 붐 = 돛대 축 피벗 → 트롤리 (모델 반지름 1.0) → 줄 위 끝 · 집게 경첩 → 손가락 경첩 넷. 덩이 본은 가운데 피벗
+                    const float hinge = F + 2.47f, cableTop = F + 3.21f, beltY = F + 2.232f + 0.11f;
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    var boom = Pivot("CraneBoomPivot", r, new Vector3(4f, 0f, 4f), "INT_EvoReclaim_CraneBoom");
+                    var trolley = Pivot("CraneTrolleyPivot", boom, new Vector3(5f, 0f, 4f), "INT_EvoReclaim_CraneTrolley");
+                    var cable = Pivot("CraneCablePivot", trolley, new Vector3(5f, cableTop, 4f), "INT_EvoReclaim_CraneCable");
+                    var claw = Pivot("CraneClawPivot", trolley, new Vector3(5f, hinge, 4f), "INT_EvoReclaim_CraneClaw");
+                    var fingers = new Transform[4];
+                    var axes = new Vector3[4];
+                    for (int k = 0; k < 4; k++)
+                    {
+                        float a = Mathf.PI / 4f + Mathf.PI / 2f * k;
+                        var d = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                        fingers[k] = Pivot("CraneFingerPivot" + k, claw, new Vector3(5f, hinge, 4f) + d * 0.1f, "INT_EvoReclaim_CraneFinger" + k);
+                        axes[k] = Vector3.Cross(d, Vector3.up);   // + = 손가락 끝이 바깥으로 (벌림)
+                    }
+                    var bale = Pivot("ScrapBalePivot", r, new Vector3(4f, beltY, -2.85f), "INT_EvoReclaim_Bale");
+                    root.AddComponent<InteriorScrapCrane>().Configure(boom, trolley, cable, claw, fingers, axes, bale,
+                        new Vector3(4f, beltY, -2.85f), new Vector3(4f, beltY, 0.05f), new Vector3(0.2f, 0.11f, 0.16f), new Vector3(4f, F + 0.9f, 4f),
+                        1f, 0.7f, hinge, F + 3.0f, cableTop, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath));
+                });
         }
 
         /// <summary>
