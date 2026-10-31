@@ -1709,3 +1709,14 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `86fd5b99`에 있음.
+
+## M-111. 물류 허브 강조색 바로잡음 (2026-10-31, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `9bbf312e`과 같은 파일)
+- M-110에서 물류 허브 내부 강조색을 기본 화물 터미널 색 (#7CD957)으로 잘못 넣었음 → `RecipeSetup` 물류 허브 색 #8FE0B0. `M_Accent_Evo_LogisticsHub` · `M_Paint_Evo_LogisticsHub` 색만 바꿈 (GUID 그대로), `BuildEvoLogistics` 값
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (재질 2 · 빌더 한 줄).
+
+### `tycoon` 합칠 때
+- [x] (2026-10-31) 같은 파일이 tycoon 커밋 `9bbf312e`에 있음.

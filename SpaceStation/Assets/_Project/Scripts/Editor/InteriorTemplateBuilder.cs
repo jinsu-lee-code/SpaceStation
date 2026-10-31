@@ -144,7 +144,7 @@ namespace SpaceStation.Editor
             lights.Add(LightSpec.Point(new Vector3(8f, F + 2.4f, 2.4f), 4.5f, 1.0f, warm));         // 하역문 · 스캔 아치
             lights.Add(LightSpec.Point(new Vector3(-0.5f, F + 2.4f, 2.0f), 3.5f, 0.8f, cool));      // 배차 콘솔
             lights.Add(LightSpec.Point(new Vector3(16.8f, F + 2.4f, 2.0f), 3.5f, 0.8f, warm));      // 포장대
-            EvoAccent("LogisticsHub", "#7CD957");
+            EvoAccent("LogisticsHub", "#8FE0B0");   // RecipeSetup 물류 허브 색 (#7CD957은 기본 화물 터미널 색 — 처음에 잘못 씀)
             // 스폰 = 가운데 칸 남쪽 문 안에서 스캔 아치 · 하역문을 바라봄 (바닥 해치 칸 중심 비킴)
             Build("EvoLogistics", "Evolved/MD_Evo_LogisticsHub", sockets, new Vector3(8f, F, -2.3f), 0f, lights,
                 configure: root =>
