@@ -111,6 +111,101 @@ namespace SpaceStation.Editor
             BuildEvoLogistics();
             BuildEvoStorage();
             BuildEvoShipyard();
+            BuildEvoAutomation();
+        }
+
+        /// <summary>
+        /// 진화 1단계 자동화 센터 (ㄱ자 3칸, ac_builder — 사용자 2026-10-31 시안 1 "이대로 유니티로 옮겨줘"): 기록 → 학습 → 실습 —
+        /// 모서리 = 학습 코어 (천장 구멍 유리 돔 · 매달린 코어 구 · 도는 궤도 고리 RingA · B · 코어 탁자 위 홀로 팔 HoloTurret · HoloFore · 연구 책상 둘),
+        /// +x 칸 = 실습 정비 베이 (천창 · 둥근 패드 위 고장 판 · 로봇 팔 Turret · Fore가 금 두 줄을 번갈아 용접 — <see cref="InteriorMirrorArm"/>가 홀로 팔도 같이,
+        /// 정비 콘솔 · 예비 판 선반 · 정비 로봇 셋 · 부품 수레), +z 칸 = 정비 기록 연구실 (기록 서버장 · 기록 투영대 Logs가 돎 · 귀퉁이 연구 책상 둘),
+        /// 천장 = 기록이 흐르는 유리 관 둘 (속 나선 FlowA = 베이 → 코어, FlowB = 코어 → 서버).
+        /// 문 자리 = 외형 면이 있는 바깥 면 8 (ㄱ자 안쪽 모서리 두 면 포함), 위 · 아래 해치 = 칸마다 (0번 칸은 코어 · 돔 비킴).
+        /// </summary>
+        private static void BuildEvoAutomation()
+        {
+            const float ceiling = F + 3.8f;
+            var c00 = new Vector3Int(0, 0, 0);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var back = new Vector3Int(0, 0, -1);
+            var fwd = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, Socket),
+                new InteriorSocket(c00, back, Socket),
+                new InteriorSocket(c10, Vector3Int.right, Socket),
+                new InteriorSocket(c10, back, Socket),
+                new InteriorSocket(c10, fwd, Socket),
+                new InteriorSocket(c01, Vector3Int.left, Socket),
+                new InteriorSocket(c01, Vector3Int.right, Socket),
+                new InteriorSocket(c01, fwd, Socket),
+                new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(2.2f, 0f, -2.2f)),   // 코어 · 바닥 고리 비킴
+                new InteriorSocket(c10, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c00, Vector3Int.up, ceiling, new Vector3(2.4f, 0f, -2.4f)), // 돔 아래 테 (반지름 2.3) 밖
+                new InteriorSocket(c10, Vector3Int.up, ceiling, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.up, ceiling, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lavender = new Color(0.86f, 0.8f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, F + 3.6f, 0f), 5f, 1.0f, white),        // 돔 아래 (꼭대기 테에서 멀리 — 자재 재생 플랜트와 같음)
+                LightSpec.Point(new Vector3(0f, F + 2.0f, 0f), 3f, 0.6f, lavender),     // 코어 빛
+                LightSpec.Point(new Vector3(2.0f, F + 3.0f, 2.0f), 6f, 1.2f, white),    // 세 칸이 만나는 곳
+                LightSpec.Point(new Vector3(5.3f, F + 2.6f, -1.8f), 4f, 1.0f, warm),    // 실습대
+                LightSpec.Point(new Vector3(9.0f, F + 3.0f, 0f), 6f, 1.3f, white),      // 베이
+                LightSpec.Point(new Vector3(5.5f, F + 2.4f, 2.4f), 3.5f, 0.9f, cool),   // 정비 콘솔
+                LightSpec.Point(new Vector3(10.0f, F + 2.2f, -1.6f), 3f, 0.7f, cool),   // 정비 로봇
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 4.6f), 6f, 1.3f, white),      // 연구실
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 9.0f), 6f, 1.2f, white),
+                LightSpec.Point(new Vector3(-1.9f, F + 2.4f, 4.9f), 3.5f, 0.8f, cool),  // 서버장
+                LightSpec.Point(new Vector3(2.0f, F + 2.4f, 5.3f), 3.5f, 0.8f, cool),
+            };
+            const float coreY = F + 2.6f, flowY = ceiling - 0.32f;
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoAutomation_RingA", new Vector3(0f, coreY, 0f), new Vector3(0f, 0.8829f, 0.4695f), 40f),   // 고리 자체 축 (ac_builder core_rings)
+                new OrbitSpec("INT_EvoAutomation_RingB", new Vector3(0f, coreY, 0f), new Vector3(0.6428f, 0.766f, 0f), -55f),
+                new OrbitSpec("INT_EvoAutomation_FlowA", new Vector3(0f, flowY, -0.45f), Vector3.right, 120f),     // 베이 → 코어 (−x)
+                new OrbitSpec("INT_EvoAutomation_FlowB", new Vector3(-2.2f, flowY, 0f), Vector3.forward, 120f),    // 코어 → 서버 (+z)
+                new OrbitSpec("INT_EvoAutomation_Logs", new Vector3(0f, 0f, 5.3f), Vector3.up, 12f),               // ac_builder LOGS
+            };
+            EvoAccent("AutomationCenter", "#C8B0FF");
+            // 스폰 = 모서리 칸 남쪽 문 안에서 학습 코어 · 유리 돔을 바라봄 (바닥 해치 비킴)
+            Build("EvoAutomation", "Evolved/MD_Evo_AutomationCenter", sockets, new Vector3(-0.9f, F, -2.3f), 30f, lights, orbits,
+                configure: root =>
+                {
+                    // ac_builder 값: 팔 기둥 ARM (4.1, −1.8) · 기둥 위 TURRET_Y · 위 팔 높이 ARM_Y · 팔꿈치 ELBOW_R · 토치 끝 TIP · 금 SEAM_YAW · 홀로 팔 HOLO_BASE · HOLO_S
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    const float turretY = F + 1.18f, armY = F + 1.36f, holoS = 0.38f;
+                    var armBase = new Vector3(4.1f, turretY, -1.8f);
+                    var elbow = new Vector3(4.1f + 1.3f, armY, -1.8f);
+                    var tip = new Vector3(4.1f + 1.565f, F + 0.822f, -1.8f);
+                    var holoBase = new Vector3(0f, F + 1.12f, 0f);
+                    Vector3 ToHolo(Vector3 p) => holoBase + (p - armBase) * holoS;
+                    var turret = Pivot("ArmTurretPivot", r, armBase, "INT_EvoAutomation_Turret");
+                    var fore = Pivot("ArmForePivot", turret, elbow, "INT_EvoAutomation_Fore");
+                    var holoTurret = Pivot("HoloTurretPivot", r, holoBase, "INT_EvoAutomation_HoloTurret");
+                    var holoFore = Pivot("HoloForePivot", holoTurret, ToHolo(elbow), "INT_EvoAutomation_HoloFore");
+                    root.AddComponent<InteriorMirrorArm>().Configure(turret, fore, holoTurret, holoFore,
+                        fore.InverseTransformPoint(r.TransformPoint(tip)), fore.InverseTransformDirection(r.TransformDirection(Vector3.up)),
+                        12f, 28f, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath));
+                });
         }
 
         /// <summary>
@@ -3256,6 +3351,7 @@ namespace SpaceStation.Editor
             { "EvoLogistics", InteriorAmbience.Machine },
             { "EvoStorage", InteriorAmbience.Machine },
             { "EvoShipyard", InteriorAmbience.Machine },
+            { "EvoAutomation", InteriorAmbience.Electric },   // 학습 코어 · 기록 서버
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,

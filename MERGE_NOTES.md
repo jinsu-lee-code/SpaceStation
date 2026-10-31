@@ -1746,3 +1746,16 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `c69d5b56`에 있음.
+
+## M-114. 자동화 센터 내부 — 유리 돔 학습 코어 · 홀로 팔이 따라 하는 실습 팔 · 정비 기록 연구실 (2026-10-31, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `f162c53f`과 같은 파일)
+- 자동화 센터 내부 `IT_EvoAutomation` · `PF_Interior_EvoAutomation` · `SM_Interior_EvoAutomation.fbx` (Blender `Interior_Evo.blend` 텍스트 `ac_builder`): ㄱ자 3칸 기록 → 학습 → 실습 — 모서리 = 천장 구멍 유리 돔 아래 매달린 코어 구 · 도는 궤도 고리 둘 · 코어 탁자 위 홀로 팔 · 연구 책상 둘, +x = 실습 정비 베이 (천창 · 고장 판 · 로봇 팔 · 정비 콘솔 · 예비 판 선반 · 정비 로봇 셋 · 부품 수레), +z = 정비 기록 연구실 (서버장 · 기록 투영대 · 귀퉁이 책상 둘), 천장 = 기록이 흐르는 유리 관 둘
+- 새 `Interior/InteriorMirrorArm` (`InteriorRoomDisplay`): 실습 팔이 금 두 줄을 번갈아 용접 (`InteriorFx.Spark`, 옮길 때 아래 팔을 들어 토치를 뗌), 홀로 팔이 같은 각도로 따라 움직임. 모듈이 멈추면 멈춤
+- `InteriorTemplateBuilder.BuildEvoAutomation` (문 자리 14 — 외형 면이 있는 바깥 면 8 + 칸마다 해치, 조명 11, 도는 물체 5, 환경음 전기, 팔 · 홀로 팔 피벗), `ResidentSpotBaker` 연구원 · 기술자 · 정비공 6, 강조색 `M_Accent_Evo_AutomationCenter` · `M_Paint_Evo_AutomationCenter` (#C8B0FF), `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-31) 같은 파일이 tycoon 커밋 `f162c53f`에 있음.
