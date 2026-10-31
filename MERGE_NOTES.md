@@ -1655,3 +1655,16 @@
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상 (타이쿤판은 M-44 이후 main을 아직 받지 않음 — main을 받을 때 함께).
+
+## M-107. 자재 재생 플랜트 내부 — 유리 돔 아래 재생로 · 집게 크레인 · 벽 작업대 넷 (2026-10-31, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `eea4e963`과 같은 파일)
+- 자재 재생 플랜트 내부 `IT_EvoReclaim` · `PF_Interior_EvoReclaim` · `SM_Interior_EvoReclaim.fbx` (Blender `Interior_Evo.blend` 텍스트 `mr_builder`): 2 × 2칸 — 천장 구멍을 덮는 유리 돔 (흰 갈비살 · 모듈 색 띠) 아래 둥근 단 위 재생로 (쇳물 · 유리 난간 · 깔때기 넷), 돔 꼭대기에서 도는 집게 크레인 `Gantry`, 머리 위 컨베이어 둘, 벽 작업대 넷 (선별대 · 주형 줄 · 분해 작업대 · 제어 콘솔 상태 화면 둘)
+- `InteriorTemplateBuilder.BuildEvoReclaim` (문 자리 16, 조명 10, 환경음 열), `ResidentSpotBaker` 기술자 · 정비공 4, 강조색 `M_Accent_Evo_MaterialReclaimer` · `M_Paint_Evo_MaterialReclaimer`, `InteriorKit.asset` 강조색 목록
+- MODELING 7-11: 천장 구멍 유리 돔 = 끝 뚜껑 없는 얇은 껍질 (회전체 뚜껑이 평평한 창 원판이 되어 갈비살을 가렸음)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-31) 같은 파일이 tycoon 커밋 `eea4e963`에 있음.
