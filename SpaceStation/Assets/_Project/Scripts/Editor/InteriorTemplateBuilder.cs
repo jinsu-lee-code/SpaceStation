@@ -112,6 +112,124 @@ namespace SpaceStation.Editor
             BuildEvoStorage();
             BuildEvoShipyard();
             BuildEvoAutomation();
+            BuildEvoSecurity();
+        }
+
+        /// <summary>
+        /// 진화 1단계 보안청 (ㄱ자 3칸, se_builder — 사용자 2026-10-31 시안 1 "이대로 유니티로 옮겨줘"): 행정과 무력을 한 청사에 —
+        /// 남 홀 = 민원 · 치안 창구 (남쪽 문 안 보안 검색 아치 · 로비 바닥 별 배지, 창구 셋 = 유리 가림막 · 번호판 · 직원 의자 — 행정 관제소와 같은
+        /// <see cref="InteriorQueueBoard"/> (창구 줄이 x축과 나란 → 틀 90°), 창구를 보는 대기 의자 두 줄 · 가운데 통로 끝 발권기 · 남 벽 별 배지,
+        /// 지붕 둥근 창 = 유리 돔 아래 도는 순찰 드론 Drone, 동쪽 둥근 귀퉁이 순찰 장비함 · 드론 충전대 (빈 패드 = 순찰 나간 드론)),
+        /// 북 탑 = 감시 · 요격 관제 (레이더 상황판 = 실제 운석 예보 <see cref="InteriorRadar"/> · 쓸기 빛 Sweep · 뒤 휜 화면 벽 가운데 예보 화면 · 위 경광등 Beacon,
+        /// 서 벽 실제 정거장 지도 <see cref="InteriorStationMap"/>, 천장 포탑 축 (바둑판 띠) 속 포탑 받침 Turret · 쌍포 약실 BreechL · R —
+        /// <see cref="InteriorTurretAim"/>가 예보 방향으로 돌리고 낙하 중엔 쏨, 북쪽 둥근 귀퉁이 관제 책상 둘).
+        /// 문 자리 = 외형 면이 있는 바깥 면 8, 위 · 아래 해치 = 칸마다 (0번 칸 = 남서 귀퉁이, 탑 칸 위 = 상황판 서쪽 천장 · 아래 = 문 길 가운데).
+        /// </summary>
+        private static void BuildEvoSecurity()
+        {
+            const float ceiling = F + 3.8f;
+            var c00 = new Vector3Int(0, 0, 0);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var back = new Vector3Int(0, 0, -1);
+            var fwd = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, Socket),
+                new InteriorSocket(c00, back, Socket),
+                new InteriorSocket(c10, Vector3Int.right, Socket),
+                new InteriorSocket(c10, back, Socket),
+                new InteriorSocket(c10, fwd, Socket),
+                new InteriorSocket(c01, Vector3Int.left, Socket),
+                new InteriorSocket(c01, Vector3Int.right, Socket),
+                new InteriorSocket(c01, fwd, Socket),
+                new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(-1.9f, 0f, -1.9f)),     // 남서 귀퉁이 (검색 아치 발판 · 바닥 별 배지 비킴 — −1.8이면 발판이 2cm 걸림)
+                new InteriorSocket(c10, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.down, -F, Vector3.zero),                      // 탑 문 길 가운데 (포탑 축 아래)
+                new InteriorSocket(c00, Vector3Int.up, ceiling, new Vector3(-1.9f, 0f, -1.9f)),
+                new InteriorSocket(c10, Vector3Int.up, ceiling, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.up, ceiling, new Vector3(-2.0f, 0f, -3.0f)), // 상황판 서쪽 (포탑 축 · 빛 띠 비킴)
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var cool = new Color(0.78f, 0.86f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-0.8f, F + 3.0f, 0.4f), 6f, 1.2f, white),    // 로비
+                LightSpec.Point(new Vector3(4.0f, F + 3.0f, 2.3f), 6f, 1.2f, white),     // 창구 직원 쪽
+                LightSpec.Point(new Vector3(4.0f, F + 3.0f, -1.9f), 6f, 1.2f, white),    // 대기 의자
+                LightSpec.Point(new Vector3(4.0f, F + 3.4f, -0.3f), 3.5f, 0.6f, cool),   // 둥근 천창 · 순찰 드론
+                LightSpec.Point(new Vector3(9.6f, F + 3.0f, 0f), 6f, 1.3f, white),       // 홀 동쪽
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 4.0f), 6f, 1.2f, white),       // 탑 남쪽
+                LightSpec.Point(new Vector3(0f, F + 1.9f, 5.4f), 2.5f, 0.5f, cool),      // 레이더 상황판
+                LightSpec.Point(new Vector3(-2.2f, F + 2.5f, 4.9f), 3f, 0.6f, cool),     // 정거장 지도
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 9.6f), 6f, 1.2f, white),       // 탑 북쪽
+                LightSpec.Point(new Vector3(0f, F + 4.0f, 9.0f), 2.5f, 0.5f, white),     // 포탑 축 속
+                LightSpec.Point(new Vector3(0f, F + 2.2f, 10.4f), 4f, 0.7f, cool),       // 귀퉁이 관제 책상
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoSecurity_Drone", new Vector3(4.0f, 0f, -0.3f), Vector3.up, 18f),   // se_builder HC (+ = +x에서 −z 쪽 = 드론 앞)
+                new OrbitSpec("INT_EvoSecurity_Sweep", new Vector3(0f, 0f, 5.2f), Vector3.up, 60f),     // RC, 방어 포대와 같은 쓸기 빛
+            };
+            EvoAccent("SecurityBureau", "#7FA8FF");
+            // 스폰 = 남쪽 문 (x 0) 안, 검색 아치 너머 로비 별 배지 · 창구를 바라봄
+            Build("EvoSecurity", "Evolved/MD_Evo_SecurityBureau", sockets, new Vector3(0f, F, -2.45f), 15f, lights, orbits,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    // 레이더 상황판 (se_builder RC (0, 5.2) · 화면 반지름 0.86) = 실제 운석 예보, 예보 글 = 휜 화면 벽 가운데 짙은 화면 (반지름 1.72, −z를 봄)
+                    root.AddComponent<InteriorRadar>().Configure(new Vector3(0f, F + 0.958f, 5.2f), 0.78f,
+                        Child(root, "INT_EvoSecurity_Sweep")?.GetComponent<InteriorOrbit>(),
+                        Child(root, "INT_EvoSecurity_Beacon")?.GetComponent<Renderer>(),
+                        new Vector3(0f, F + 1.55f, 6.917f), Vector3.back, Vector3.up, new Vector2(0.7f, 0.5f));
+                    // 탑 서 벽 정거장 지도 (se_builder MAP_C · 흰 테 안쪽 2.28 × 1.18)
+                    root.AddComponent<InteriorStationMap>().Configure(new Vector3(-3.149f, F + 1.75f, 4.9f), Vector3.right, Vector3.up, new Vector2(2.24f, 1.14f),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath));
+                    // 창구 셋 · 발권기 (se_builder WIN_X · STAFF_Z · STAND_Z · KIOSK): 창구 줄이 x축과 나란 → 틀 90° (틀 좌표 = 프리팹 로컬을 −90° 돌린 것:
+                    // 틀 x = −z, 틀 z = x). 대기 의자 앞 → 줄 앞 (x로) → 가운데 통로 x 4 (z로) → 창구 앞 통로 z −0.05 (x로) → 창구 앞 z 0.55 / 통로 끝 발권기 앞 z −2.05
+                    var frame = Quaternion.Euler(0f, -90f, 0f);
+                    Vector3 Fr(float x, float y, float z) => frame * new Vector3(x, y, z);
+                    Vector4 Seg(float x0, float z0, float x1, float z1) => new Vector4(-z0, x0, -z1, x1);
+                    InteriorQueueBoard.Window Window(float x)
+                    {
+                        var stand = Fr(x, F, 0.55f);
+                        return new InteriorQueueBoard.Window
+                        {
+                            Board = new InteriorQueueBoard.Panel { Center = new Vector3(x, F + 2.5f, 0.829f), Normal = Vector3.back, Up = Vector3.up, Width = 0.7f, Height = 0.16f },
+                            StaffSeat = Fr(x, F + 0.49f, 1.95f),
+                            Counter = new Vector4(stand.x, stand.y, stand.z, 0f - 90f),   // 북 (창구)을 봄
+                        };
+                    }
+                    var ticketStand = Fr(4.0f, F, -2.05f);
+                    var queue = root.AddComponent<InteriorQueueBoard>();
+                    queue.ConfigureFrame(90f);
+                    queue.Configure(new[] { Window(2.2f), Window(4.0f), Window(5.8f) },
+                        new InteriorQueueBoard.Panel { Center = new Vector3(4.0f, F + 1.19f, -2.569f), Normal = Vector3.forward, Up = Vector3.up, Width = 0.32f, Height = 0.18f },
+                        new Vector4(ticketStand.x, ticketStand.y, ticketStand.z, 180f - 90f), 4.0f, 0.05f, 4.0f, ticketStand);   // 발권기를 봄 (남)
+                    // 민원인 통로 (보급 상자 · 부탁 물건을 두지 않음): 의자 줄 앞 둘 · 가운데 통로 (발권기까지) · 창구 앞 통로 · 창구 앞 셋
+                    queue.ConfigureLanes(new[]
+                    {
+                        Seg(1.7f, -0.45f, 6.3f, -0.45f), Seg(1.7f, -1.65f, 6.3f, -1.65f), Seg(4.0f, -2.05f, 4.0f, -0.05f),
+                        Seg(2.2f, -0.05f, 5.8f, -0.05f), Seg(2.2f, -0.05f, 2.2f, 0.55f), Seg(4.0f, -0.05f, 4.0f, 0.55f), Seg(5.8f, -0.05f, 5.8f, 0.55f),
+                    }, 0.35f);
+                    // 천장 포탑 축 (se_builder TC (0, 9) · 약실 x ±0.42, 높이 천장 + 0.22) — 받침 = 위 축, 약실 = 받침 자식 (−z로 밀림)
+                    var turret = Pivot("TurretPivot", r, new Vector3(0f, ceiling, 9f), "INT_EvoSecurity_Turret");
+                    var breechL = Pivot("BreechLPivot", turret, new Vector3(-0.42f, ceiling + 0.22f, 9f), "INT_EvoSecurity_BreechL");
+                    var breechR = Pivot("BreechRPivot", turret, new Vector3(0.42f, ceiling + 0.22f, 9f), "INT_EvoSecurity_BreechR");
+                    root.AddComponent<InteriorTurretAim>().Configure(turret, new[] { breechL, breechR }, 0.14f);
+                });
         }
 
         /// <summary>
@@ -3352,6 +3470,7 @@ namespace SpaceStation.Editor
             { "EvoStorage", InteriorAmbience.Machine },
             { "EvoShipyard", InteriorAmbience.Machine },
             { "EvoAutomation", InteriorAmbience.Electric },   // 학습 코어 · 기록 서버
+            { "EvoSecurity", InteriorAmbience.Life },         // 민원 홀 (행정 관제소와 같음)
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,

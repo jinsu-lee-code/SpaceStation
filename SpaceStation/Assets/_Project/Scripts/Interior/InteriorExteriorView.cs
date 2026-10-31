@@ -51,7 +51,7 @@ namespace SpaceStation.Interior
         private ModuleInstance _linkedFrom;
         private readonly List<Group> _groups = new List<Group>();
         private readonly List<Renderer> _hidden = new List<Renderer>();
-        private readonly Dictionary<ModuleView, Renderer[]> _moduleRenderers = new Dictionary<ModuleView, Renderer[]>();
+        private readonly List<Renderer> _moduleRenderers = new List<Renderer>();
         private readonly Plane[] _planes = new Plane[6];
         private MaterialPropertyBlock _block;
         private ModuleInstance _hideModule;
@@ -109,7 +109,6 @@ namespace SpaceStation.Interior
         {
             ReleaseTextures();
             _groups.Clear();
-            _moduleRenderers.Clear();
             _linked.Clear();
             _linkedFrom = null; // 통로가 바뀌었을 수 있음 → 다음 프레임에 다시 계산
             AddWindows(_interiorRoot);
@@ -348,22 +347,21 @@ namespace SpaceStation.Interior
             if (_station != null && _station.Grid != null
                 && _station.Grid.TryGetModule(GridConfig.WorldToCell(point), out var near) && near != module)
             {
-                var rs = RenderersOf(near);
-                if (rs != null)
+                bool contains = false;
+                foreach (var r in RenderersOf(near))
                 {
-                    foreach (var r in rs)
+                    if (r == null)
+                        continue;
+                    var b = r.bounds;
+                    b.Expand(0.04f);
+                    if (b.Contains(point))
                     {
-                        if (r == null)
-                            continue;
-                        var b = r.bounds;
-                        b.Expand(0.04f);
-                        if (b.Contains(point))
-                        {
-                            HideModule(near);
-                            break;
-                        }
+                        contains = true;
+                        break;
                     }
                 }
+                if (contains)
+                    HideModule(near);
             }
             if (_connectors != null)
             {
@@ -382,24 +380,22 @@ namespace SpaceStation.Interior
             }
         }
 
-        private Renderer[] RenderersOf(ModuleInstance module)
+        /// <summary>
+        /// 모듈 바깥 모델의 렌더러 — 그릴 때마다 다시 모음 (목록 재사용, 쓰레기 없음). 처음 한 번만 모아 두면 나중에 생긴 자식이 빠짐:
+        /// 패드를 들면 지금 방이 선택되며 생기는 선택 테두리 복제본(<see cref="ModuleView"/> <c>_Rim</c>)이 숨겨지지 않아,
+        /// 자기 모듈 바깥 모델 속의 바깥 카메라가 청록 테두리 빛을 창 가득 비췄음 (사용자 2026-10-31 보안청 "패드를 들어올리니까 창문 쪽에 빛줄기").
+        /// </summary>
+        private List<Renderer> RenderersOf(ModuleInstance module)
         {
-            if (_station == null || !_station.TryGetView(module, out var view) || view == null)
-                return null;
-            if (!_moduleRenderers.TryGetValue(view, out var rs))
-            {
-                rs = view.GetComponentsInChildren<Renderer>(true);
-                _moduleRenderers[view] = rs;
-            }
-            return rs;
+            _moduleRenderers.Clear();
+            if (_station != null && _station.TryGetView(module, out var view) && view != null)
+                view.GetComponentsInChildren(true, _moduleRenderers);
+            return _moduleRenderers;
         }
 
         private void HideModule(ModuleInstance module)
         {
-            var rs = RenderersOf(module);
-            if (rs == null)
-                return;
-            foreach (var r in rs)
+            foreach (var r in RenderersOf(module))
                 HideOne(r);
         }
 

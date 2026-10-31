@@ -1759,3 +1759,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `f162c53f`에 있음.
+
+## M-115. 보안청 내부 — 민원 창구 · 검색 아치 · 운석 예보 레이더 · 예보 방향으로 도는 포탑 받침 (2026-10-31, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `987c77d4`과 같은 파일)
+- 보안청 내부 `IT_EvoSecurity` · `PF_Interior_EvoSecurity` · `SM_Interior_EvoSecurity.fbx` (Blender `Interior_Evo.blend` 텍스트 `se_builder`): ㄱ자 3칸 — 남 홀 = 민원 · 치안 창구 (남쪽 문 안 보안 검색 아치 · 로비 바닥 별 배지 · 창구 셋 (유리 가림막 · 번호판 · 직원 의자) · 대기 의자 두 줄 · 발권기 · 둥근 천창 아래 순찰 드론 · 순찰 장비함 · 드론 충전대), 북 탑 = 감시 · 요격 관제 (레이더 상황판 · 휜 화면 벽 · 경광등 · 서 벽 정거장 지도 · 천장 포탑 받침 · 귀퉁이 관제 책상 둘)
+- 새 `Interior/InteriorTurretAim` (`InteriorRoomDisplay`): 평소 경계 회전 · 유성우 · 포격 예보 방향으로 돎 · 낙하 중 쌍포 약실 반동. 모듈이 멈추면 멈춤
+- `InteriorQueueBoard`: 창구 · 통로 값의 틀 각 `ConfigureFrame` (창구 줄이 x축과 나란한 방) — 행정 관제소는 0 그대로
+- `InteriorExteriorView.RenderersOf`: 숨길 모듈 렌더러를 그릴 때마다 다시 모음 — 패드를 들면 생기는 선택 테두리 복제본(`_Rim`)이 처음 목록에 없어 창에 청록 빛줄기가 비쳤음 (모든 내부 공통)
+- `InteriorTemplateBuilder.BuildEvoSecurity` (문 자리 14, 조명 11, 도는 물체 2, 환경음 생활, 번호표 · 레이더 · 지도 · 포탑 피벗), `ResidentSpotBaker` 기술자 + 일터 없는 주민 8 · 대기 의자 12 ("민원 보는 중"), 강조색 `M_Accent_Evo_SecurityBureau` · `M_Paint_Evo_SecurityBureau` (#7FA8FF), `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더 · 번호표 · 바깥 창). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-31) 같은 파일이 tycoon 커밋 `987c77d4`에 있음.
