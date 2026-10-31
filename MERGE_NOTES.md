@@ -1694,3 +1694,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `1be8523f`에 있음.
+
+## M-110. 물류 허브 내부 — 하역문 · 화물선 시계 · 자동 창고 스태커 · 셔틀 레일 (2026-10-31, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `86fd5b99`과 같은 파일)
+- 물류 허브 내부 `IT_EvoLogistics` · `PF_Interior_EvoLogistics` · `SM_Interior_EvoLogistics.fbx` (Blender `Interior_Evo.blend` 텍스트 `lh_builder`): 3칸 일자 도킹 — 북 = 화물선이 붙는 파노라마 창 · 화물 하역문 · 스캔 아치 · 팔레트, 남 = 자동 창고 칸 둘 (스태커), 천장 = 천창 · 셔틀 레일 · 덮개 넷, 양 끝 = 배차 콘솔 (상태 화면 둘) · 포장대 · 저울 · 카트
+- 새 `Interior/InteriorCargoBoard` (`InteriorRoomDisplay`): 하역문 위 실제 화물선 시계 — `CargoSystem` 진행도 · `DefenseSystem` 가동률로 남은 시간, `Delivered`로 도착 알림 10초 깜빡임 (색약: 글자 · 밝기). 패널 꼴은 `InteriorArrivalBoard.Panel`
+- 새 `Interior/InteriorLogistics`: 스태커 (나르는 상자 둘 · 빈 칸 셋 사이로 넣고 뺌, 방금 꺼낸 · 넣은 칸 피함) · 셔틀 (덮개 속에서만 상자 켜고 끔). 모듈이 멈추면 멈춤
+- `InteriorTemplateBuilder.BuildEvoLogistics` (문 자리 11, 조명 11, 환경음 기계, 피벗 계층 · 두 컴포넌트), `ResidentSpotBaker` 정비공 5, 강조색 `M_Accent_Evo_LogisticsHub` · `M_Paint_Evo_LogisticsHub`, `InteriorKit.asset` 강조색 목록
+- MODELING 7-11: 나르는 장치는 움직이는 전 범위에서 실은 물건 · 몸체가 겹치지 않게 (짐판 상자가 운반 기둥과 겹쳤음)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (새 파일 2 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-31) 같은 파일이 tycoon 커밋 `86fd5b99`에 있음.
