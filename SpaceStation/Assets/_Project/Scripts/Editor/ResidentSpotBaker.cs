@@ -69,6 +69,7 @@ namespace SpaceStation.Editor
             { "EvoArmor", new[] { ResidentTrait.Technician } },     // 장갑 외벽 = 장갑 격벽 ×3 (기술자)
             { "EvoWorks", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 정비 공창 = 정비 베이 ×3 (기술자 · 정비공)
             { "EvoEmergency", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 비상 대응 센터 = 손상 통제실 + 정비 베이 (기술자 · 정비공)
+            { "EvoReclaim", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },     // 자재 재생 플랜트 = 정비 베이 + 제련소 (기술자 · 정비공)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -112,7 +113,23 @@ namespace SpaceStation.Editor
             { "EvoArmor", EvoArmorSpots },
             { "EvoWorks", EvoWorksSpots },
             { "EvoEmergency", EvoEmergencySpots },
+            { "EvoReclaim", EvoReclaimSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 자재 재생 플랜트 (mr_builder SEATS): 기술자 · 정비공 — 벽 작업대 넷 앞에서 벽 쪽을 봄
+        /// (남 선별대 · 동 주형 줄 · 북 분해 작업대 · 서 제어 콘솔).
+        /// </summary>
+        private static List<ResidentSpot> EvoReclaimSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(5.05f, Floor, -1.85f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(9.7f, Floor, 4f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(4f, Floor, 9.85f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.95f, Floor, 4f), -90f, ResidentPose.Work, work: true),
+            };
+        }
 
         /// <summary>
         /// 진화 1단계 비상 대응 센터 (ec_builder SEATS): 기술자 · 정비공 — 상황 테이블 북서 · 남동 (테이블을 봄) · 발사 콘솔 둘 (발사관을 봄) ·

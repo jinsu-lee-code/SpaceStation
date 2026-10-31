@@ -107,6 +107,51 @@ namespace SpaceStation.Editor
             BuildEvoArmor();
             BuildEvoWorks();
             BuildEvoEmergency();
+            BuildEvoReclaim();
+        }
+
+        /// <summary>
+        /// 진화 1단계 자재 재생 플랜트 (2 × 2칸, mr_builder — 사용자 2026-10-31 시안 1 "이대로 유니티로 옮겨줘. 천장의 구멍에 유리돔 깔끔하게 씌우는거 잊지말구"):
+        /// 가운데 = 천장 구멍을 덮는 큰 유리 돔 (Window 얇은 껍질 — 아래 테 · 꼭대기 테 속으로 가장자리가 묻힘, 끝 뚜껑 없음: 뚜껑이 있으면 천장 높이 평평한 창이
+        /// 갈비살을 가림 — 플레이 확인 2026-10-31, 흰 갈비살 · 모듈 색 띠) 아래 둥근 단 위 재생로
+        /// (쇳물 웅덩이 · 유리 난간 · 네 귀 폐자재 깔때기), 돔 꼭대기 돛대에서 도는 집게 크레인 (INT_EvoReclaim_Gantry), 머리 위 컨베이어 둘
+        /// (남 = 폐자재 상자 들어옴 · 동 = 주괴 나감). 벽마다 작업대 = 남 선별대 · 동 주형 줄 · 북 분해 작업대 · 서 제어 콘솔 (상태 화면 둘).
+        /// 문 자리 = 칸마다 바깥 두 면 (8), 위 · 아래 해치 = 칸 중심 (천장 F + 3.8, 돔 테 밖).
+        /// </summary>
+        private static void BuildEvoReclaim()
+        {
+            const float ceiling = F + 3.8f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                for (int z = 0; z < 2; z++)
+                {
+                    var cell = new Vector3Int(x, 0, z);
+                    sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                    sockets.Add(new InteriorSocket(cell, z == 0 ? new Vector3Int(0, 0, -1) : new Vector3Int(0, 0, 1), Socket));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling, Vector3.zero));
+                }
+            }
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, z) in new[] { (0f, 0f), (8f, 0f), (0f, 8f), (8f, 8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.3f, z), 6f, 1.5f, white));        // 칸마다 (돔 밖 평평한 천장)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 3.6f, 4f), 5f, 1.0f, white));          // 돔 아래 (갈비살 · 크레인 — 꼭대기 테에 가까우면 하얗게 번짐, 플레이 확인 2026-10-31)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 1.7f, 4f), 4.5f, 1.2f, new Color(1f, 0.6f, 0.25f)));   // 쇳물 빛
+            lights.Add(LightSpec.Point(new Vector3(4.8f, F + 2.4f, -2.2f), 3.5f, 0.9f, white));   // 선별대 (남)
+            lights.Add(LightSpec.Point(new Vector3(10.2f, F + 2.4f, 4f), 3.5f, 0.9f, warm));      // 주형 줄 (동)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.4f, 10.2f), 3.5f, 0.9f, white));     // 분해 작업대 (북)
+            lights.Add(LightSpec.Point(new Vector3(-2.2f, F + 2.4f, 4f), 3.5f, 0.9f, cool));      // 제어 콘솔 (서)
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoReclaim_Gantry", new Vector3(4f, 0f, 4f), Vector3.up, 10f),
+            };
+            EvoAccent("MaterialReclaimer", "#D8B080");
+            // 스폰 = 남쪽 문 (0번 칸) 안에서 돔 아래 재생로를 바라봄 (바닥 해치 칸 중심 비킴)
+            Build("EvoReclaim", "Evolved/MD_Evo_MaterialReclaimer", sockets, new Vector3(0.6f, F, -2.2f), 30f, lights, orbits);
         }
 
         /// <summary>
@@ -2879,6 +2924,7 @@ namespace SpaceStation.Editor
             { "EvoSolar", InteriorAmbience.Electric }, { "EvoFusion", InteriorAmbience.Heat }, { "EvoHydrogen", InteriorAmbience.Water },
             { "EvoGravity", InteriorAmbience.Life }, { "EvoFarm", InteriorAmbience.Water }, { "EvoMineral", InteriorAmbience.Heat },
             { "EvoShield", InteriorAmbience.Electric }, { "EvoDefense", InteriorAmbience.Electric }, { "EvoArmor", InteriorAmbience.Electric }, { "EvoWorks", InteriorAmbience.Machine }, { "EvoEmergency", InteriorAmbience.Electric },
+            { "EvoReclaim", InteriorAmbience.Heat },   // 가운데 재생로 (쇳물)
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
