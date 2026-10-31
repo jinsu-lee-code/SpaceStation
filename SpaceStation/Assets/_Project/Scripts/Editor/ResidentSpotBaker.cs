@@ -73,6 +73,7 @@ namespace SpaceStation.Editor
             { "EvoLogistics", new[] { ResidentTrait.Mechanic } },     // 물류 허브 = 화물 터미널 + 창고 (정비공)
             { "EvoStorage", new[] { ResidentTrait.Mechanic } },       // 대형 창고 = 창고 ×4 (정비공)
             { "EvoShipyard", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 조선소 = 화물 터미널 + 제련소 (정비공) + 정비 베이 (기술자 · 정비공)
+            { "EvoAutomation", new[] { ResidentTrait.Scientist, ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 자동화 센터 = 연구소 (연구원) + 정비 베이 (기술자 · 정비공)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -120,7 +121,25 @@ namespace SpaceStation.Editor
             { "EvoLogistics", EvoLogisticsSpots },
             { "EvoStorage", EvoStorageSpots },
             { "EvoShipyard", EvoShipyardSpots },
+            { "EvoAutomation", EvoAutomationSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 자동화 센터 (ac_builder SEATS): 연구원 · 기술자 · 정비공 — 학습 코어 책상 둘 (남서 · 북서 대각, 코어를 봄) ·
+        /// 실습 베이 정비 콘솔 둘 (안쪽 북 벽) · 기록 연구실 귀퉁이 책상 둘 (북서 · 북동, 귀퉁이 창 쪽).
+        /// </summary>
+        private static List<ResidentSpot> EvoAutomationSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(-1.626f, Floor, -1.626f), 45f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.626f, Floor, 1.626f), 135f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(4.95f, Floor, 2.15f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(5.95f, Floor, 2.15f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.9f, Floor, 9.7f), -45f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(1.9f, Floor, 9.7f), 45f, ResidentPose.Work, work: true),
+            };
+        }
 
         /// <summary>
         /// 진화 1단계 조선소 (sy_builder SEATS): 기술자 · 정비공 — 굽힘기 앞 (북을 봄) · 판 받침대 (서 벽) · 설계 홀로 탁자 남 · 북 쪽
