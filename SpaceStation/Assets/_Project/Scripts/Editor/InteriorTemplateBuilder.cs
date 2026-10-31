@@ -108,6 +108,109 @@ namespace SpaceStation.Editor
             BuildEvoWorks();
             BuildEvoEmergency();
             BuildEvoReclaim();
+            BuildEvoLogistics();
+        }
+
+        /// <summary>
+        /// 진화 1단계 물류 허브 (3칸 일자 도킹, lh_builder — 사용자 2026-10-31 시안 1 "이대로 유니티로 옮겨줘"): 북 벽 = 화물선이 붙는 도킹 면 (연결점 없음) —
+        /// 파노라마 창 · 가운데 화물 하역문 (경고 줄무늬 틀, 위 = 실제 화물선 시계 <see cref="InteriorCargoBoard"/>) · 안쪽 스캔 아치 · 바닥 화살표 · 팔레트 상자.
+        /// 남 벽 문 사이 = 자동 창고 칸 둘 (3단 선반, 스태커 크레인 StackerA · B가 나르는 상자 둘을 비워 둔 칸 셋 사이로 넣고 뺌 — <see cref="InteriorLogistics"/>),
+        /// 머리 위 셔틀 레일 (셔틀 PodA · B가 하역문 쪽 덮개 속에서 상자를 받아 레일 끝 덮개 속에 내려놓음). 서쪽 끝 배차 콘솔 · 동쪽 끝 포장대 · 저울 · 카트.
+        /// 문 자리 = 연결점 있는 면 5 (양 끝 + 칸마다 남), 위 · 아래 해치 = 칸 중심.
+        /// </summary>
+        private static void BuildEvoLogistics()
+        {
+            const float ceiling = F + 3.8f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 3; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                if (x == 0)
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.left, Socket));
+                if (x == 2)
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling, Vector3.zero));
+            }
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (float x in new[] { -1.6f, 2.4f, 6.0f, 10.0f, 13.6f, 17.6f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, 0.2f), 6f, 1.35f, white));      // 홀 가운데 줄 (F + 3.2 · 1.6은 천장에 하얀 번짐)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.6f, -1.7f), 4f, 1.0f, cool));          // 창고 칸
+            lights.Add(LightSpec.Point(new Vector3(12f, F + 2.6f, -1.7f), 4f, 1.0f, cool));
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 2.4f, 2.4f), 4.5f, 1.0f, warm));         // 하역문 · 스캔 아치
+            lights.Add(LightSpec.Point(new Vector3(-0.5f, F + 2.4f, 2.0f), 3.5f, 0.8f, cool));      // 배차 콘솔
+            lights.Add(LightSpec.Point(new Vector3(16.8f, F + 2.4f, 2.0f), 3.5f, 0.8f, warm));      // 포장대
+            EvoAccent("LogisticsHub", "#7CD957");
+            // 스폰 = 가운데 칸 남쪽 문 안에서 스캔 아치 · 하역문을 바라봄 (바닥 해치 칸 중심 비킴)
+            Build("EvoLogistics", "Evolved/MD_Evo_LogisticsHub", sockets, new Vector3(8f, F, -2.3f), 0f, lights,
+                configure: root =>
+                {
+                    // lh_builder 값: 선반 윗면 LEVELS · 넣고 빼는 칸 SWAP · 칸 x slot_x · 상자 z (짐판 위 CAR_Z · 칸 속 SLOT_Z) · 셔틀 덮개 HOUSINGS
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    float[] levels = { F + 0.12f, F + 1.17f, F + 2.22f };
+                    float SlotX(int bay, int k)
+                    {
+                        float x0 = bay == 0 ? 1.9f : 9.9f;
+                        float xa = k < 3 ? x0 + 0.08f : x0 + 2.1f + 0.04f;
+                        return xa + 0.34f + (k % 3) * 0.645f;
+                    }
+                    var swap = new[] { new[] { (0, 1), (1, 4), (2, 2) }, new[] { (0, 4), (1, 1), (2, 5) } };   // (단, 칸)
+                    const float slotZ = -2.70f, carZ = -2.10f;   // 짐판 위 상자는 기둥 앞 (레일 z −1.75 − 0.35 — 상자가 기둥을 뚫지 않게, 사용자 2026-10-31)
+                    var rest = new[] { (3.1f, F + 1.45f), (12.9f, F + 2.55f) };   // 스태커 모델 자세 (x, 짐판 윗면)
+                    var stackers = new InteriorLogistics.Stacker[2];
+                    for (int b = 0; b < 2; b++)
+                    {
+                        string l = b == 0 ? "A" : "B";
+                        var mast = Child(root, "INT_EvoLogistics_Stacker" + l);
+                        var car = Child(root, "INT_EvoLogistics_Stacker" + l + "Car");
+                        if (mast != null && car != null)
+                            car.SetParent(mast, true);
+                        var slots = new Vector3[3];
+                        for (int s = 0; s < 3; s++)
+                            slots[s] = new Vector3(SlotX(b, swap[b][s].Item2), levels[swap[b][s].Item1], slotZ);
+                        var crates = new[]
+                        {
+                            Pivot("Bay" + l + "Crate0Pivot", r, new Vector3(rest[b].Item1, rest[b].Item2, carZ), "INT_EvoLogistics_Bay" + l + "Crate0"),
+                            Pivot("Bay" + l + "Crate1Pivot", r, slots[1], "INT_EvoLogistics_Bay" + l + "Crate1"),
+                        };
+                        stackers[b] = new InteriorLogistics.Stacker
+                        {
+                            Mast = mast, Car = car, RestX = rest[b].Item1, RestCarY = rest[b].Item2, CarZ = carZ, Crates = crates, Slots = slots, FirstFull = 1,
+                        };
+                    }
+                    var podX = new[] { (4.6f, 5.9f, 1.9f), (11.6f, 10.1f, 14.1f) };   // (모델 x, 받는 덮개, 내리는 덮개)
+                    var pods = new InteriorLogistics.Pod[2];
+                    for (int i = 0; i < 2; i++)
+                    {
+                        string l = i == 0 ? "A" : "B";
+                        var body = Child(root, "INT_EvoLogistics_Pod" + l);
+                        var crate = Child(root, "INT_EvoLogistics_Pod" + l + "Crate");
+                        if (body != null && crate != null)
+                            crate.SetParent(body, true);
+                        pods[i] = new InteriorLogistics.Pod { Body = body, Crate = crate, RestX = podX[i].Item1, PickX = podX[i].Item2, DropX = podX[i].Item3 };
+                    }
+                    root.AddComponent<InteriorLogistics>().Configure(stackers, pods);
+                    // 하역문 위 안내판 (lh_builder L_Board 앞면 z 3.1, 가운데 F + 3.47, 2.1 × 0.5 — 아치에 가리지 않게 천장 가까이)
+                    root.AddComponent<InteriorCargoBoard>().Configure(new InteriorArrivalBoard.Panel
+                    {
+                        Center = new Vector3(8f, F + 3.47f, 3.1f), Normal = Vector3.back, Up = Vector3.up, Width = 2.1f, Height = 0.5f,
+                    });
+                });
         }
 
         /// <summary>
@@ -2956,6 +3059,7 @@ namespace SpaceStation.Editor
             { "EvoGravity", InteriorAmbience.Life }, { "EvoFarm", InteriorAmbience.Water }, { "EvoMineral", InteriorAmbience.Heat },
             { "EvoShield", InteriorAmbience.Electric }, { "EvoDefense", InteriorAmbience.Electric }, { "EvoArmor", InteriorAmbience.Electric }, { "EvoWorks", InteriorAmbience.Machine }, { "EvoEmergency", InteriorAmbience.Electric },
             { "EvoReclaim", InteriorAmbience.Heat },   // 가운데 재생로 (쇳물)
+            { "EvoLogistics", InteriorAmbience.Machine },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,

@@ -70,6 +70,7 @@ namespace SpaceStation.Editor
             { "EvoWorks", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 정비 공창 = 정비 베이 ×3 (기술자 · 정비공)
             { "EvoEmergency", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 비상 대응 센터 = 손상 통제실 + 정비 베이 (기술자 · 정비공)
             { "EvoReclaim", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },     // 자재 재생 플랜트 = 정비 베이 + 제련소 (기술자 · 정비공)
+            { "EvoLogistics", new[] { ResidentTrait.Mechanic } },     // 물류 허브 = 화물 터미널 + 창고 (정비공)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -114,7 +115,23 @@ namespace SpaceStation.Editor
             { "EvoWorks", EvoWorksSpots },
             { "EvoEmergency", EvoEmergencySpots },
             { "EvoReclaim", EvoReclaimSpots },
+            { "EvoLogistics", EvoLogisticsSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 물류 허브 (lh_builder SEATS): 정비공 — 창고 칸 앞 조작 단말 둘 (선반을 봄) · 배차 콘솔 둘 · 포장대 (북 창 쪽을 봄).
+        /// </summary>
+        private static List<ResidentSpot> EvoLogisticsSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(4f, Floor, -0.8f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(12f, Floor, -0.8f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1f, Floor, 1.95f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(0.1f, Floor, 1.95f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(16.85f, Floor, 1.95f), 0f, ResidentPose.Work, work: true),
+            };
+        }
 
         /// <summary>
         /// 진화 1단계 자재 재생 플랜트 (mr_builder SEATS): 기술자 · 정비공 — 벽 작업대 넷 앞에서 벽 쪽을 봄
