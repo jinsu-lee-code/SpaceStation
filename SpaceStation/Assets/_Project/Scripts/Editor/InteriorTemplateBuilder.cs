@@ -110,6 +110,119 @@ namespace SpaceStation.Editor
             BuildEvoReclaim();
             BuildEvoLogistics();
             BuildEvoStorage();
+            BuildEvoShipyard();
+        }
+
+        /// <summary>
+        /// 진화 1단계 조선소 (3 × 2칸, sy_builder — 사용자 2026-10-31 시안 1 "이대로 유니티로 옮겨줘"): 한 홀 세 구역 —
+        /// 가운데 = 건조 도크 (z 방향 유리 아치 천장 아래 짓는 화물선: 뒤 반 = 판 붙인 흰 선체 · 엔진 셋 · 날개 · 별 배지, 앞 반 = 갈비뼈 골조,
+        /// 레일에 매달린 용접 갠트리 Gantry · 토치 Torch0 · 1이 판 이음선마다 옮겨 용접 — <see cref="InteriorShipyard"/>), 북 벽 = 출항 게이트
+        /// (도킹 앞면 · 연결 없음) · 위 = 실제 화물선 시계 <see cref="InteriorCargoBoard"/>.
+        /// 서 = 선체 판 공방 (용광로 → 롤러 길 → 3롤 굽힘기 Roll0 ~ 2가 돎 · 판 받침대 · 완성 판 수레 · 설계 홀로 탁자 Holo가 돎 ·
+        /// 남 창 아래 판 조립대 = 로봇 팔 토치 Torch2가 이음선 용접 <see cref="InteriorWelder"/>).
+        /// 동 = 출항 관제 콘솔 (상태 화면 둘) · 수리 드론 거치대 · 검사 아치 속 도는 드론 Drone · 엔진 점검 지그 (Engine이 제 축으로 돎) · 조종실 모듈 대차.
+        /// 문 자리 = 서 · 동 · 남 바깥 면 7, 위 · 아래 해치 = 칸마다 (가운데 줄은 아치 · 배 비킴).
+        /// </summary>
+        private static void BuildEvoShipyard()
+        {
+            const float ceiling = F + 3.8f;
+            var c00 = new Vector3Int(0, 0, 0);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c20 = new Vector3Int(2, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var c11 = new Vector3Int(1, 0, 1);
+            var c21 = new Vector3Int(2, 0, 1);
+            var back = new Vector3Int(0, 0, -1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, Socket),
+                new InteriorSocket(c01, Vector3Int.left, Socket),
+                new InteriorSocket(c20, Vector3Int.right, Socket),
+                new InteriorSocket(c21, Vector3Int.right, Socket),
+                new InteriorSocket(c00, back, Socket),
+                new InteriorSocket(c10, back, Socket),
+                new InteriorSocket(c20, back, Socket),
+                new InteriorSocket(c00, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c10, Vector3Int.down, -F, new Vector3(-2.8f, 0f, 0f)),    // 도크 서쪽 통로 (5.2, 0) — 배 · 받침 비킴
+                new InteriorSocket(c11, Vector3Int.down, -F, new Vector3(3.0f, 0f, 0f)),     // 도크 동쪽 통로 (11.0, 8)
+                new InteriorSocket(c20, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c21, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c00, Vector3Int.up, ceiling, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.up, ceiling, Vector3.zero),
+                new InteriorSocket(c10, Vector3Int.up, ceiling, new Vector3(-3.5f, 0f, 0f)),   // 아치 가장자리 보 (x 5.36) 밖 (4.5, 0)
+                new InteriorSocket(c11, Vector3Int.up, ceiling, new Vector3(3.5f, 0f, 0f)),    // (11.5, 8)
+                new InteriorSocket(c20, Vector3Int.up, ceiling, Vector3.zero),
+                new InteriorSocket(c21, Vector3Int.up, ceiling, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (float z in new[] { 0.2f, 4.4f, 8.6f })
+                lights.Add(LightSpec.Point(new Vector3(8f, F + 4.4f, z), 7f, 1.2f, white));      // 유리 아치 아래 도크
+            foreach (var (x, z) in new[] { (0f, 1.4f), (0f, 7f), (16f, 1.4f), (16f, 7f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, z), 6f, 1.35f, white));      // 공방 · 관제 쪽 평평한 천장
+            lights.Add(LightSpec.Point(new Vector3(1.2f, F + 2.6f, 9.0f), 4f, 1.0f, warm));       // 용광로 · 굽힘기
+            lights.Add(LightSpec.Point(new Vector3(2.9f, F + 2.4f, -1.6f), 3.5f, 0.9f, warm));    // 판 조립대
+            lights.Add(LightSpec.Point(new Vector3(15f, F + 2.4f, 9.4f), 3.5f, 0.9f, cool));      // 관제 콘솔
+            lights.Add(LightSpec.Point(new Vector3(13.4f, F + 2.4f, 3.0f), 4f, 0.9f, cool));      // 드론 검사 · 엔진 점검
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoShipyard_Roll0", new Vector3(2.8f, F + 1.035f, 0f), Vector3.forward, 40f),     // 위 롤러와 아래 롤러는 반대로 (판을 함께 밀어냄)
+                new OrbitSpec("INT_EvoShipyard_Roll1", new Vector3(2.3f, F + 0.8181f, 0f), Vector3.forward, -48f),
+                new OrbitSpec("INT_EvoShipyard_Roll2", new Vector3(3.3f, F + 0.8181f, 0f), Vector3.forward, -48f),
+                new OrbitSpec("INT_EvoShipyard_Holo", new Vector3(1.5f, 0f, 4.0f), Vector3.up, 15f),    // sy_builder HOLO
+                new OrbitSpec("INT_EvoShipyard_Drone", new Vector3(14.9f, 0f, 4.0f), Vector3.up, 20f),  // sy_builder STAND
+                new OrbitSpec("INT_EvoShipyard_Engine", new Vector3(12.5f, F + 0.95f, 1.7f), Vector3.right, 12f),
+            };
+            EvoAccent("Shipyard", "#90C8B0");
+            // 스폰 = 남서 문 (0번 칸) 안에서 판 조립대 · 공방 너머 도크를 바라봄 (바닥 해치 칸 중심 비킴)
+            Build("EvoShipyard", "Evolved/MD_Evo_Shipyard", sockets, new Vector3(0.6f, F, -2.2f), 40f, lights, orbits,
+                configure: root =>
+                {
+                    // sy_builder 값: 갠트리 모델 자세 z 2.6 · 판 이음선 SEAMS · 토치 끝 · 법선 TORCHES (선체 각 55°)
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    var spark = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath);
+                    var gantry = Pivot("GantryPivot", r, new Vector3(8f, ceiling - 0.34f, 2.6f), "INT_EvoShipyard_Gantry");
+                    var torchTips = new[] { new Vector3(6.9761f, F + 2.4523f, 2.6f), new Vector3(9.0239f, F + 2.4523f, 2.6f) };
+                    var torchNormals = new[] { new Vector3(-0.7681f, 0.6403f, 0f), new Vector3(0.7681f, 0.6403f, 0f) };
+                    var torches = new Transform[2];
+                    var tips = new Vector3[2];
+                    var normals = new Vector3[2];
+                    for (int i = 0; i < 2; i++)
+                    {
+                        torches[i] = Child(root, "INT_EvoShipyard_Torch" + i);
+                        if (torches[i] != null)
+                            torches[i].SetParent(gantry, true);
+                        tips[i] = torches[i] != null ? torches[i].InverseTransformPoint(r.TransformPoint(torchTips[i])) : torchTips[i];
+                        normals[i] = torches[i] != null ? torches[i].InverseTransformDirection(r.TransformDirection(torchNormals[i])) : torchNormals[i];
+                    }
+                    root.AddComponent<InteriorShipyard>().Configure(gantry, 2.6f, new[] { 1.4f, 2.6f, 3.8f }, torches, tips, normals, spark);
+                    // 판 조립대 로봇 팔 토치 (이음선 꼭대기, 위를 향한 법선)
+                    var jigTorch = Child(root, "INT_EvoShipyard_Torch2");
+                    var jigTip = new Vector3(2.9f, F + 1.02f, -2.1f);
+                    root.AddComponent<InteriorWelder>().Configure(new[] { jigTorch },
+                        new[] { jigTorch != null ? jigTorch.InverseTransformPoint(r.TransformPoint(jigTip)) : jigTip },
+                        new[] { jigTorch != null ? jigTorch.InverseTransformDirection(r.TransformDirection(Vector3.up)) : Vector3.up },
+                        spark);
+                    // 출항 게이트 위 화물선 시계 (sy_builder Y_Board 앞면 z 11.105, 가운데 F + 4.35, 2.16 × 0.62)
+                    root.AddComponent<InteriorCargoBoard>().Configure(new InteriorArrivalBoard.Panel
+                    {
+                        Center = new Vector3(8f, F + 4.35f, 11.1f), Normal = Vector3.back, Up = Vector3.up, Width = 2.1f, Height = 0.5f,
+                    });
+                });
         }
 
         /// <summary>
@@ -3142,6 +3255,7 @@ namespace SpaceStation.Editor
             { "EvoReclaim", InteriorAmbience.Heat },   // 가운데 재생로 (쇳물)
             { "EvoLogistics", InteriorAmbience.Machine },
             { "EvoStorage", InteriorAmbience.Machine },
+            { "EvoShipyard", InteriorAmbience.Machine },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,

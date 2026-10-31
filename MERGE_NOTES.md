@@ -1733,3 +1733,16 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `fffd0083`에 있음.
+
+## M-113. 조선소 내부 — 유리 아치 건조 도크 · 용접 갠트리 · 선체 판 공방 · 출항 관제 (2026-10-31, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `c69d5b56`과 같은 파일)
+- 조선소 내부 `IT_EvoShipyard` · `PF_Interior_EvoShipyard` · `SM_Interior_EvoShipyard.fbx` (Blender `Interior_Evo.blend` 텍스트 `sy_builder`): 3 × 2칸 한 홀 — 가운데 = z 방향 유리 아치 아래 짓는 화물선 (뒤 반 = 판 붙인 선체 · 엔진 셋 · 날개 · 별 배지, 앞 반 = 골조) · 아치 레일 용접 갠트리 · 북 출항 게이트 (도킹 앞면, 연결 없음) · 화물선 시계 판, 서 = 선체 판 공방 (용광로 · 롤러 길 · 3롤 굽힘기 · 판 받침대 · 완성 판 수레 · 홀로 탁자 · 판 조립대 로봇 팔), 동 = 출항 관제 콘솔 (상태 화면 둘) · 수리 드론 거치대 · 검사 아치 드론 · 엔진 점검 지그 · 조종실 모듈 대차
+- 새 `Interior/InteriorShipyard` (`InteriorRoomDisplay`): 갠트리가 판 이음선 셋을 옮겨 다니며 토치를 선체에 대고 한쪽씩 용접 (`InteriorFx.Spark`, 옮길 때 토치를 뗌). 모듈이 멈추면 멈춤. 판 조립대 = `InteriorWelder`, 게이트 위 = `InteriorCargoBoard` 재사용
+- `InteriorTemplateBuilder.BuildEvoShipyard` (문 자리 19, 조명 11, 도는 물체 6, 환경음 기계, 갠트리 피벗 · 토치), `ResidentSpotBaker` 기술자 · 정비공 8, 강조색 `M_Accent_Evo_Shipyard` · `M_Paint_Evo_Shipyard` (#90C8B0), `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-31) 같은 파일이 tycoon 커밋 `c69d5b56`에 있음.

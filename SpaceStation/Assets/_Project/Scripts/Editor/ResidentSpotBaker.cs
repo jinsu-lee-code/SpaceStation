@@ -72,6 +72,7 @@ namespace SpaceStation.Editor
             { "EvoReclaim", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },     // 자재 재생 플랜트 = 정비 베이 + 제련소 (기술자 · 정비공)
             { "EvoLogistics", new[] { ResidentTrait.Mechanic } },     // 물류 허브 = 화물 터미널 + 창고 (정비공)
             { "EvoStorage", new[] { ResidentTrait.Mechanic } },       // 대형 창고 = 창고 ×4 (정비공)
+            { "EvoShipyard", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 조선소 = 화물 터미널 + 제련소 (정비공) + 정비 베이 (기술자 · 정비공)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
@@ -118,7 +119,27 @@ namespace SpaceStation.Editor
             { "EvoReclaim", EvoReclaimSpots },
             { "EvoLogistics", EvoLogisticsSpots },
             { "EvoStorage", EvoStorageSpots },
+            { "EvoShipyard", EvoShipyardSpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 조선소 (sy_builder SEATS): 기술자 · 정비공 — 굽힘기 앞 (북을 봄) · 판 받침대 (서 벽) · 설계 홀로 탁자 남 · 북 쪽
+        /// (서 · 남 문 복도 비킴, 플레이 걷기 검사 2026-10-31) · 출항 관제 콘솔 둘 (북 창) · 드론 검사 아치 앞 · 엔진 점검 지그 앞.
+        /// </summary>
+        private static List<ResidentSpot> EvoShipyardSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(2.8f, Floor, 9.1f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.7f, Floor, 4.0f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(1.5f, Floor, 2.85f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(1.5f, Floor, 5.15f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(14.3f, Floor, 9.9f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(15.7f, Floor, 9.9f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(13.5f, Floor, 4.0f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(12.5f, Floor, 3.1f), 180f, ResidentPose.Work, work: true),
+            };
+        }
 
         /// <summary>
         /// 진화 1단계 대형 창고 (bs_builder SEATS): 정비공 — 크레인 조작 책상 둘 (남 창 쪽 화면을 봄) · 재고 카운터 둘 (북) · 입고 작업대 둘 (서).
