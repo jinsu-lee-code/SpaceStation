@@ -17,6 +17,9 @@ namespace SpaceStation.Interior
     /// - 통로는 한 번에 한 명: 걷는 민원인이 없을 때만 다음 사람이 움직임 (볼일 끝난 사람 돌려보내기 → 창구 호출 → 번호표 뽑기 순).
     ///   여럿이 같은 통로를 오가면 서로 겹쳐 지나갔음 (2026-10-20 플레이 검수)
     /// 바뀐 번호는 1.5초 밝기 깜빡임 (색약), 실제 시간(unscaled). 모듈이 꺼지면 "---".
+    /// 틀 (<see cref="_frameYaw"/>, 진화 보안청 2026-10-31): 창구 · 의자 · 통로 값(직원 의자 · 창구 앞 · 발권기 앞 · 통로 · 꺾는 곳 · 민원인 통로)은
+    /// 프리팹 로컬을 y축으로 −틀 각만큼 돌린 좌표 — 창구 줄이 x축과 나란한 방(보안청 = 90°)도 같은 길 규칙(통로 z · 줄 기둥 앞 x)을 씀.
+    /// 번호판 · 발권기 글자 칸(<see cref="Panel"/>)은 늘 프리팹 로컬. 행정 관제소 = 0 (그대로).
     /// </summary>
     public sealed class InteriorQueueBoard : InteriorRoomDisplay, InteriorSpots.IFloorKeepClear
     {
@@ -40,9 +43,9 @@ namespace SpaceStation.Interior
         public struct Window
         {
             public Panel Board;
-            [Tooltip("직원 의자 (여기 앉은 주민 = 직원)")]
+            [Tooltip("직원 의자 (여기 앉은 주민 = 직원, 틀 좌표)")]
             public Vector3 StaffSeat;
-            [Tooltip("민원인이 서는 곳 (x, y, z) · 보는 방향(도)")]
+            [Tooltip("민원인이 서는 곳 (x, y, z) · 보는 방향(도), 틀 좌표")]
             public Vector4 Counter;
         }
 
@@ -65,6 +68,8 @@ namespace SpaceStation.Interior
         [Tooltip("민원인이 오가는 통로 (프리팹 로컬 x0, z0, x1, z1) — 보급 상자 · 부탁 물건을 두지 않음")]
         [SerializeField] private Vector4[] _lanes = Array.Empty<Vector4>();
         [SerializeField] private float _laneHalfWidth = 0.35f;
+        [Tooltip("창구 · 통로 값의 틀 (도, 프리팹 로컬 y축) — 틀 좌표 = 프리팹 로컬을 −이 각만큼 돌린 것. 번호판 · 발권기 글자 칸은 프리팹 로컬 그대로")]
+        [SerializeField] private float _frameYaw;
 
         private sealed class Visitor
         {
@@ -113,13 +118,24 @@ namespace SpaceStation.Interior
             _laneHalfWidth = halfWidth;
         }
 
+        /// <summary>창구 · 통로 값의 틀 (도) — 창구 줄이 x축과 나란한 방 (진화 보안청 = 90°).</summary>
+        public void ConfigureFrame(float yaw) => _frameYaw = yaw;
+
+        private Quaternion Frame => Quaternion.Euler(0f, _frameYaw, 0f);
+
+        /// <summary>월드 점 → 틀 좌표.</summary>
+        private Vector3 ToFrame(Vector3 world) => Quaternion.Inverse(Frame) * transform.InverseTransformPoint(world);
+
+        /// <summary>틀 좌표 → 월드 점.</summary>
+        private Vector3 FromFrame(Vector3 local) => transform.TransformPoint(Frame * local);
+
         private void OnEnable() => InteriorSpots.KeepClear(transform.parent, this);
 
         private void OnDisable() => InteriorSpots.KeepClear(transform.parent, null);
 
         public bool Blocks(Vector3 world, float radius)
         {
-            var p = transform.InverseTransformPoint(world);
+            var p = ToFrame(world);
             var q = new Vector2(p.x, p.z);
             foreach (var l in _lanes)
             {
@@ -180,7 +196,7 @@ namespace SpaceStation.Interior
             {
                 if (f == null || f.GetComponent<ResidentWander>() != null)
                     continue;
-                var local = transform.InverseTransformPoint(f.transform.position);
+                var local = ToFrame(f.transform.position);
                 for (int i = 0; i < _windows.Length; i++)
                 {
                     var d = local - _windows[i].StaffSeat;
@@ -286,7 +302,7 @@ namespace SpaceStation.Interior
                     continue;
                 BuildRoute(v.Wander, _ticketLaneZ, _ticketVia, _ticketStand, toCounter: false);
                 var visitor = v;
-                bool started = v.Wander.StartErrand(_route, _ticketStand.w + transform.eulerAngles.y, float.PositiveInfinity,
+                bool started = v.Wander.StartErrand(_route, _ticketStand.w + _frameYaw + transform.eulerAngles.y, float.PositiveInfinity,
                     onArrive: () => visitor.StayUntil = Time.unscaledTime + 1.4f,
                     onLeave: () =>
                     {
@@ -327,7 +343,7 @@ namespace SpaceStation.Interior
             BuildRoute(next.Wander, _aisleZ, new Vector3(_laneX, c.y, c.z), c, toCounter: true);
             var visitor = next;
             float serve = Range(_serveSeconds.x, _serveSeconds.y);
-            bool started = next.Wander.StartErrand(_route, c.w + transform.eulerAngles.y, float.PositiveInfinity,
+            bool started = next.Wander.StartErrand(_route, c.w + _frameYaw + transform.eulerAngles.y, float.PositiveInfinity,
                 onArrive: () => visitor.StayUntil = Time.unscaledTime + serve,
                 onLeave: () =>
                 {
@@ -356,12 +372,12 @@ namespace SpaceStation.Interior
             return true;
         }
 
-        /// <summary>의자 앞 → 통로(z = <paramref name="laneZ"/>) → (창구: 줄 기둥 앞 통로) → 꺾는 곳 → 목적지 (월드 점, <see cref="_route"/>).</summary>
+        /// <summary>의자 앞 → 통로(z = <paramref name="laneZ"/>) → (창구: 줄 기둥 앞 통로) → 꺾는 곳 → 목적지 (틀 좌표로 셈 → 월드 점, <see cref="_route"/>).</summary>
         private void BuildRoute(ResidentWander w, float laneZ, Vector3 via, Vector4 goal, bool toCounter)
         {
             _route.Clear();
-            var seat = transform.InverseTransformPoint(w.transform.position);
-            var forward = transform.InverseTransformDirection(w.transform.forward);
+            var seat = ToFrame(w.transform.position);
+            var forward = Quaternion.Inverse(Frame) * transform.InverseTransformDirection(w.transform.forward);
             var front = seat + forward * _seatFront;
             Add(new Vector3(front.x, goal.y, laneZ));
             if (toCounter)
@@ -372,7 +388,7 @@ namespace SpaceStation.Interior
 
         private void Add(Vector3 local)
         {
-            var p = transform.TransformPoint(local);
+            var p = FromFrame(local);
             if (_route.Count > 0)
             {
                 var d = p - _route[_route.Count - 1];

@@ -74,17 +74,18 @@ namespace SpaceStation.Editor
             { "EvoStorage", new[] { ResidentTrait.Mechanic } },       // 대형 창고 = 창고 ×4 (정비공)
             { "EvoShipyard", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 조선소 = 화물 터미널 + 제련소 (정비공) + 정비 베이 (기술자 · 정비공)
             { "EvoAutomation", new[] { ResidentTrait.Scientist, ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 자동화 센터 = 연구소 (연구원) + 정비 베이 (기술자 · 정비공)
+            { "EvoSecurity", new[] { ResidentTrait.Technician } },   // 보안청 = 행정 관제소 (특성 없음 — 창구는 OpenWork) + 포탑 (기술자)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity" };
 
         /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
-        /// 여객 도킹 포트 안내 직원).</summary>
-        private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger" };
+        /// 여객 도킹 포트 안내 직원 · 2026-10-31 보안청 창구 직원).</summary>
+        private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger", "EvoSecurity" };
 
         /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
-        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" } };
+        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" } };
 
         /// <summary>12-5 일하는 사람 상태 글 (없으면 "일하는 중").</summary>
         private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" } };
@@ -122,7 +123,30 @@ namespace SpaceStation.Editor
             { "EvoStorage", EvoStorageSpots },
             { "EvoShipyard", EvoShipyardSpots },
             { "EvoAutomation", EvoAutomationSpots },
+            { "EvoSecurity", EvoSecuritySpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 보안청 (se_builder SEATS): 일하는 자리 = 창구 직원 의자 셋 먼저 (행정 관제소처럼 — 일하는 주민이 적어도 창구가 열려 번호표가 돎,
+        /// <see cref="Interior.InteriorQueueBoard"/>) → 레이더 상황판 서 · 동 · 남 → 북쪽 귀퉁이 관제 책상 둘, 쉬는 자리 = 대기 의자 두 줄 × 여섯 (창구 = +z를 봄).
+        /// </summary>
+        private static List<ResidentSpot> EvoSecuritySpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (float x in new[] { 4.0f, 2.2f, 5.8f })   // 가운데 창구부터
+                list.Add(new ResidentSpot(new Vector3(x, Floor + 0.49f, 1.95f), 180f, ResidentPose.Sit, work: true));
+            list.Add(new ResidentSpot(new Vector3(0f, Floor, 3.9f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(-1.3f, Floor, 5.2f), 90f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(1.3f, Floor, 5.2f), -90f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(-1.9f, Floor, 9.7f), -45f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(1.9f, Floor, 9.7f), 45f, ResidentPose.Work, work: true));
+            foreach (float z in new[] { -0.95f, -2.15f })   // 앞줄부터
+            {
+                foreach (float x in new[] { 3.1f, 4.9f, 2.55f, 5.45f, 2.0f, 6.0f })   // 가운데 통로 쪽부터
+                    list.Add(new ResidentSpot(new Vector3(x, Floor + 0.43f, z), 0f, ResidentPose.Sit));
+            }
+            return list;
+        }
 
         /// <summary>
         /// 진화 1단계 자동화 센터 (ac_builder SEATS): 연구원 · 기술자 · 정비공 — 학습 코어 책상 둘 (남서 · 북서 대각, 코어를 봄) ·
