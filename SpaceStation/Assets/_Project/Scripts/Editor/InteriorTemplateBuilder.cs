@@ -109,6 +109,87 @@ namespace SpaceStation.Editor
             BuildEvoEmergency();
             BuildEvoReclaim();
             BuildEvoLogistics();
+            BuildEvoStorage();
+        }
+
+        /// <summary>
+        /// 진화 1단계 대형 창고 (2 × 2칸, bs_builder — 사용자 2026-10-31 시안 1 "이대로 유니티로 옮겨줘"): 칸막이 없는 한 공간 —
+        /// 가운데 = 양면 3단 높은 선반 세 줄 위 한 단 높인 고창 천장 (네 면 고창 = 창살 촘촘한 외형의 철창 · 가운데 천창 · 외형의 X자 아치 리브 둘),
+        /// 고창 레일의 다리 크레인이 윗단 상자 셋을 빈 윗단 칸으로 옮김 (<see cref="InteriorStorageCrane"/>).
+        /// 네 귀 = 외형 둥근 탑 자리의 유리 원통 회전 보관탑 (Carousel0 ~ 3), 남 = 크레인 조작 책상 · 북 = 재고 카운터 · 서 = 입고 작업대 · 동 = 출고 대기 팔레트.
+        /// 문 자리 = 칸마다 바깥 두 면 (8), 위 · 아래 해치 = 칸 중심 (천장 F + 3.8, 고창 밖).
+        /// </summary>
+        private static void BuildEvoStorage()
+        {
+            const float ceiling = F + 3.8f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                for (int z = 0; z < 2; z++)
+                {
+                    var cell = new Vector3Int(x, 0, z);
+                    sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                    sockets.Add(new InteriorSocket(cell, z == 0 ? new Vector3Int(0, 0, -1) : new Vector3Int(0, 0, 1), Socket));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling, Vector3.zero));
+                }
+            }
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, z) in new[] { (0f, 0f), (8f, 0f), (0f, 8f), (8f, 8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, z), 6f, 1.35f, white));       // 칸마다 (고창 밖 평평한 천장 — F + 3.2 · 1.4는 천장에 하얀 번짐, 플레이 확인 2026-10-31)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 3.6f, 4f), 5.5f, 1.0f, white));        // 고창 아래 (크레인 · 윗단 상자 — F + 3.9는 가운데 고리가 등처럼 하얗게 번짐)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.5f, 2.8f), 4f, 0.9f, cool));         // 선반 사이 통로 둘
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.5f, 5.2f), 4f, 0.9f, cool));
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.4f, -2.2f), 3.5f, 0.9f, white));     // 크레인 조작 책상 (남)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.4f, 10.2f), 3.5f, 0.9f, white));     // 재고 카운터 (북)
+            lights.Add(LightSpec.Point(new Vector3(-2.2f, F + 2.4f, 4f), 3.5f, 0.9f, warm));      // 입고 작업대 (서)
+            lights.Add(LightSpec.Point(new Vector3(10.2f, F + 2.4f, 4f), 3.5f, 0.9f, warm));      // 출고 팔레트 (동)
+            var orbits = new List<OrbitSpec>();
+            var towers = new[] { (-2.1f, -2.1f), (10.1f, -2.1f), (-2.1f, 10.1f), (10.1f, 10.1f) };   // bs_builder TOWERS
+            for (int k = 0; k < towers.Length; k++)
+                orbits.Add(new OrbitSpec($"INT_EvoStorage_Carousel{k}", new Vector3(towers[k].Item1, 0f, towers[k].Item2), Vector3.up, k % 2 == 0 ? 10f : -10f));
+            EvoAccent("BigStorage", "#B0C0A0");
+            // 스폰 = 남쪽 문 (0번 칸) 안에서 선반 · 고창을 바라봄 (바닥 해치 칸 중심 · 보관탑 비킴)
+            Build("EvoStorage", "Evolved/MD_Evo_BigStorage", sockets, new Vector3(0.6f, F, -2.2f), 30f, lights, orbits,
+                configure: root =>
+                {
+                    // bs_builder 값: 윗단 DECK · 칸 x TOP_X · 줄 z ROWS · 옮기는 상자 TOP_MOVE · 빈 칸 TOP_EMPTY · 크레인 RAIL_Y · GRIP_REST · CRANE_X_RANGE
+                    const float deck = F + 3.0f, gripRest = F + 4.0f, cableTop = F + 4.08f;
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    float[] topX = { 1.8f, 2.7f, 3.6f, 4.5f, 5.4f, 6.3f };
+                    float[] rowZ = { 1.6f, 4.0f, 6.4f };
+                    var cells = new[] { (0, 1), (1, 4), (2, 2), (0, 3), (1, 0), (2, 5), (1, 2) };   // 앞 셋 = 상자가 든 칸 (TOP_MOVE), 나머지 = 빈 칸 (TOP_EMPTY)
+                    var slots = new Vector3[cells.Length];
+                    for (int s = 0; s < cells.Length; s++)
+                        slots[s] = new Vector3(topX[cells[s].Item2], deck, rowZ[cells[s].Item1]);
+                    var crates = new Transform[3];
+                    for (int i = 0; i < 3; i++)
+                        crates[i] = Pivot("TopCrate" + i + "Pivot", r, slots[i], "INT_EvoStorage_Top" + i);
+                    var bridge = Pivot("CraneBridgePivot", r, new Vector3(4f, F + 4.45f, 4f), "INT_EvoStorage_Bridge");
+                    var trolley = Pivot("CraneTrolleyPivot", bridge, new Vector3(4f, F + 4.1f, 4f), "INT_EvoStorage_Trolley");
+                    var cable = Pivot("CraneCablePivot", trolley, new Vector3(4f, cableTop, 4f), "INT_EvoStorage_Cable");
+                    var grip = Pivot("CraneGripPivot", trolley, new Vector3(4f, gripRest, 4f), "INT_EvoStorage_Grip");
+                    root.AddComponent<InteriorStorageCrane>().Configure(new InteriorStorageCrane.Rig
+                    {
+                        Bridge = bridge, Trolley = trolley, Cable = cable, Grip = grip,
+                        RestX = 4f, RestZ = 4f, MinX = 1.6f, MaxX = 6.4f,
+                        GripRestY = gripRest, GripFrameHeight = 0.06f, CableTopY = cableTop, CableLength = 1f, CrateHeight = 0.45f,
+                    }, crates, slots);
+                });
         }
 
         /// <summary>
@@ -3060,6 +3141,7 @@ namespace SpaceStation.Editor
             { "EvoShield", InteriorAmbience.Electric }, { "EvoDefense", InteriorAmbience.Electric }, { "EvoArmor", InteriorAmbience.Electric }, { "EvoWorks", InteriorAmbience.Machine }, { "EvoEmergency", InteriorAmbience.Electric },
             { "EvoReclaim", InteriorAmbience.Heat },   // 가운데 재생로 (쇳물)
             { "EvoLogistics", InteriorAmbience.Machine },
+            { "EvoStorage", InteriorAmbience.Machine },
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
