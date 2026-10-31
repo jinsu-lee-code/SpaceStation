@@ -1720,3 +1720,16 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `9bbf312e`에 있음.
+
+## M-112. 대형 창고 내부 — 고창 다리 크레인 · 높은 선반 세 줄 · 회전 보관탑 (2026-10-31, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `fffd0083`과 같은 파일)
+- 대형 창고 내부 `IT_EvoStorage` · `PF_Interior_EvoStorage` · `SM_Interior_EvoStorage.fbx` (Blender `Interior_Evo.blend` 텍스트 `bs_builder`): 2 × 2칸 칸막이 없는 한 공간 — 가운데 양면 3단 높은 선반 세 줄 위 고창 천장 (창살 촘촘한 고창 · 천창 · X자 아치 리브), 네 귀 유리 회전 보관탑 (`Carousel0` ~ 3), 벽 = 크레인 조작 책상 (상태 화면 둘) · 재고 카운터 · 입고 작업대 · 출고 팔레트
+- 새 `Interior/InteriorStorageCrane` (`InteriorRoomDisplay`): 고창 레일의 다리 · 트롤리 · 줄 · 집게가 윗단 상자 셋을 빈 윗단 칸 (넷)으로 옮김 (방금 놓은 상자 · 집은 칸 피함). 모듈이 멈추면 멈춤
+- `InteriorTemplateBuilder.BuildEvoStorage` (문 자리 16, 조명 11, 보관탑 도는 물체 넷, 환경음 기계, 크레인 피벗 계층), `ResidentSpotBaker` 정비공 6, 강조색 `M_Accent_Evo_BigStorage` · `M_Paint_Evo_BigStorage` (#B0C0A0), `InteriorKit.asset` 강조색 목록
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-10-31) 같은 파일이 tycoon 커밋 `fffd0083`에 있음.
