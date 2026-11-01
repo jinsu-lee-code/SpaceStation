@@ -192,6 +192,8 @@ namespace SpaceStation.UI
             AppendRunOutWarning(ResourceType.Food);
             if (_sim.StoppedModuleCount > 0)
                 _sb.Append("<color=").Append(HudText.Red).Append(">입력 자원 부족으로 정지: ").Append(_sim.StoppedModuleCount).Append("개</color>\n");
+            if (_sim.DryRunModuleCount > 0)
+                _sb.Append("<color=").Append(HudText.Orange).Append(">냉각수 없이 낮은 출력: ").Append(_sim.DryRunModuleCount).Append("기</color>\n");
             _sb.Append("<size=40%>\n</size>"); // 구역 사이 작은 간격
 
             foreach (var type in StockOrder)

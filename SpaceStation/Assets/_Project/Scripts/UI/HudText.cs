@@ -128,6 +128,8 @@ namespace SpaceStation.UI
                 sb.Append($"<color={Yellow}>다른 발전·배터리로 모자랄 때만 모자란 만큼 발전 (소비도 그 비율만큼)</color>\n");
             if (data.InputReserveRatio > 0f)
                 sb.Append($"<color={Muted}>입력 자원이 저장 한도의 {data.InputReserveRatio * 100f:0}% 이하면 정지 (주민 몫 보호)</color>\n");
+            if (data.DryRunFactor > 0f)
+                sb.Append($"<color={Muted}>입력 자원이 바닥나도 멈추지 않고 출력 {data.DryRunFactor * 100f:0}%로 가동</color>\n");
             foreach (var a in data.Consumption)
             {
                 if (a.Type == ResourceType.Power)

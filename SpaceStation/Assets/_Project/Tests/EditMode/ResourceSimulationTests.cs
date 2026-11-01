@@ -293,6 +293,28 @@ namespace SpaceStation.Tests
             return fuel;
         }
 
+        /// <summary>M-126: 입력이 바닥나도 멈추지 않는 모듈은 낮은 출력으로 돌고 입력은 쓰지 않음 (물 고갈 → 전력 고갈 고리를 끊음). 다른 모듈은 그대로 멈춤.</summary>
+        [Test]
+        public void DryRun_InputEmpty_LowOutput_NoConsumption()
+        {
+            var reactor = Module("Reactor", supply: 40, cons: new[] { R(ResourceType.Water, 1f) });
+            var so = new SerializedObject(reactor);
+            so.FindProperty("_dryRunFactor").floatValue = 0.5f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var plain = Module("Plain", supply: 40, cons: new[] { R(ResourceType.Water, 1f) });
+            var sim = new ResourceSimulation(_config);
+            sim.SetStock(ResourceType.Water, 0f);
+            sim.Tick(new[] { reactor, plain }, 1f);
+            Assert.AreEqual(20f, sim.PowerSupply, Eps, "낮은 출력만 · 평범한 모듈은 멈춤");
+            Assert.AreEqual(1, sim.StoppedModuleCount);
+            Assert.AreEqual(1, sim.DryRunModuleCount);
+
+            sim.SetStock(ResourceType.Water, 100f);
+            sim.Tick(new[] { reactor, plain }, 1f);
+            Assert.AreEqual(80f, sim.PowerSupply, Eps, "물이 돌아오면 그대로");
+            Assert.AreEqual(0, sim.DryRunModuleCount);
+        }
+
         [Test]
         public void OnDemand_PowerSufficient_Idles_NoWater()
         {
