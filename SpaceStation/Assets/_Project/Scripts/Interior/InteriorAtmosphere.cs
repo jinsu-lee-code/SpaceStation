@@ -179,7 +179,7 @@ namespace SpaceStation.Interior
         private void ReadGlobals(out bool storm, out float power, out float charge)
         {
             var sim = _station.Simulation;
-            storm = false;
+            storm = sim.Radiation != null && sim.Radiation.StormActive; // M-122 방사선 폭풍도 같은 지직거림
             foreach (var e in sim.Events.ActiveEvents)
             {
                 if (e.Data is SolarStormEventData)

@@ -14,6 +14,8 @@ namespace SpaceStation.Simulation
         Crisis,
         /// <summary>12-5 여객 도킹 포트 이민선.</summary>
         Immigration,
+        /// <summary>M-122 폭풍 때 집의 열 · 방사선을 못 견딤.</summary>
+        Environment,
     }
 
     /// <summary>
