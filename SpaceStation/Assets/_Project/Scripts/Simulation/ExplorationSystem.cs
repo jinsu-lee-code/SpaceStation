@@ -114,6 +114,9 @@ namespace SpaceStation.Simulation
                     result.Add(s);
         }
 
+        /// <summary>지난 장에 밝히지 못한 신호 (탐사선을 보낼 수 없으니 공간에 띄우지 않음).</summary>
+        public bool IsExpired(ExploreSite site) => site != null && !site.Revealed && site.Chapter != ChapterIndex;
+
         // ---------------- 진행 ----------------
 
         public override void Tick(float dt)
@@ -264,7 +267,7 @@ namespace SpaceStation.Simulation
                     {
                         site.InReach = near;
                         if (site.Reached)
-                            Sim.Report(near ? $"{ExplorationConfig.Name(site.Kind)} 탐사를 다시 시작합니다" : $"{ExplorationConfig.Name(site.Kind)}와 연결이 끊겨 탐사가 멈췄습니다", near);
+                            Sim.Report(near ? $"{ExplorationConfig.Name(site.Kind)} 탐사를 다시 시작합니다" : $"{ExplorationConfig.Name(site.Kind)} 연결이 끊겨 탐사가 멈췄습니다", near);
                         Changed?.Invoke();
                     }
                 }

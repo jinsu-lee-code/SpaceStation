@@ -999,6 +999,66 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &645490546
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 645490548}
+  - component: {fileID: 645490547}
+  m_Layer: 0
+  m_Name: EarthView
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &645490547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 645490546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e4f82229baa6524a93f0fd6818c3ca1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.EarthView
+  _station: {fileID: 0}
+  _clock: {fileID: 0}
+  _model: {fileID: 919132149155446097, guid: 67137e28bb22629498345757c229529e, type: 3}
+  _material: {fileID: 2100000, guid: d1a96bf19785ffc43b9eda51b8ecda71, type: 2}
+  _direction: {x: 0.5, y: -0.45, z: 0.75}
+  _distance: 700
+  _radius: 140
+  _tilt: 23.4
+  _dayLength: 600
+  _startLongitude: 100
+  _cloudLap: 3000
+  _fadeRate: 0.04
+  _screenAnchored: 1
+  _screenPoint: {x: 0.86, y: 0.78}
+  _flickerSeconds: 1.6
+  _flickerAmount: 0.35
+--- !u!4 &645490548
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 645490546}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &648402967
 GameObject:
   m_ObjectHideFlags: 0
@@ -1234,7 +1294,7 @@ MonoBehaviour:
   _saveLoadPanel: {fileID: 2103398986}
   _modes:
   - {fileID: 11400000, guid: 6defd20b13e45e047874cc505ae7e65d, type: 2}
-  _versionLabel: "v0.13 \xB7 \uCEA0\uD398\uC778 1~3\uC7A5"
+  _versionLabel: "v0.14 \xB7 \uCEA0\uD398\uC778 1~5\uC7A5"
 --- !u!114 &683054968
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3038,64 +3098,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1215485094}
   m_CullTransparentMesh: 1
---- !u!1 &1285692458
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1285692460}
-  - component: {fileID: 1285692459}
-  m_Layer: 0
-  m_Name: EarthView
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1285692459
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1285692458}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9e4f82229baa6524a93f0fd6818c3ca1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.EarthView
-  _station: {fileID: 0}
-  _clock: {fileID: 0}
-  _model: {fileID: 919132149155446097, guid: 67137e28bb22629498345757c229529e, type: 3}
-  _material: {fileID: 2100000, guid: d1a96bf19785ffc43b9eda51b8ecda71, type: 2}
-  _direction: {x: 0.5, y: -0.45, z: 0.75}
-  _distance: 700
-  _radius: 140
-  _tilt: 23.4
-  _dayLength: 600
-  _startLongitude: 100
-  _cloudLap: 3000
-  _fadeRate: 0.04
-  _screenAnchored: 1
-  _screenPoint: {x: 0.86, y: 0.78}
---- !u!4 &1285692460
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1285692458}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1351641403
 GameObject:
   m_ObjectHideFlags: 0
@@ -5287,4 +5289,4 @@ SceneRoots:
   - {fileID: 1351641406}
   - {fileID: 1075157163}
   - {fileID: 683054971}
-  - {fileID: 1285692460}
+  - {fileID: 645490548}

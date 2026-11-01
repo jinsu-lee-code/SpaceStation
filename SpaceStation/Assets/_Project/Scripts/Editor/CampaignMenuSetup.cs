@@ -15,7 +15,7 @@ namespace SpaceStation.Editor
     public static class CampaignMenuSetup
     {
         public const string ModePath = "Assets/_Project/Data/Modes/GM_Campaign.asset";
-        public const string VersionLabel = "v0.13 · 캠페인 1~3장";
+        public const string VersionLabel = "v0.14 · 캠페인 1~5장";
         private const string MenuScene = "Assets/_Project/Scenes/MainMenu.unity";
         private const string NormalPath = "Assets/_Project/Data/Difficulty/DIFF_Normal.asset";
 
@@ -74,7 +74,7 @@ namespace SpaceStation.Editor
                     break;
                 }
             }
-            mode.EditorSet("campaign", "캠페인", "1~3장 · 난이도 하나 · 무너지면 위기 직전부터 다시",
+            mode.EditorSet("campaign", "캠페인", "1~5장 · 난이도 하나 · 무너지면 위기 직전부터 다시",
                 AssetDatabase.LoadAssetAtPath<DifficultyPreset>(NormalPath), true, "코어 기동 안내 받기", first, "캠페인");
             EditorUtility.SetDirty(mode);
             AssetDatabase.SaveAssets();

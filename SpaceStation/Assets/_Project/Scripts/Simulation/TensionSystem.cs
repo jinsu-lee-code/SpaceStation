@@ -8,7 +8,7 @@ namespace SpaceStation.Simulation
     /// <summary>
     /// 13-6a 서사판 긴장도 (REDESIGN S3, 사용자 결정 2026-10-18 D-10: 값 + 표시만 — 결과인 사회 위기는 6장부터).
     /// 쌓이는 곳: 예보가 있었는데 입은 피해(떨어지는 중인 유성우 · 포격의 파손마다) · 종족 불만(중시 요구를 못 채운 만큼) · 과밀(수용을 넘은 만큼) · 정책 반발(통제형 정책 × 반발하는 무리) · 환경 불만(집이 힘든 주민 비율, 14-2b).
-    /// 오를 이유가 없으면 천천히 내려감. 장마다 원인별로 얼마나 쌓였는지 기록 (장 결과 창 "가장 큰 원인").
+    /// 늘 조금씩 가라앉아 오르는 속도가 더 작으면 내려감 (14-3 보완). 장마다 원인별로 얼마나 쌓였는지 기록 (장 결과 창 "가장 큰 원인").
     /// </summary>
     public sealed class TensionSystem : StationSystem
     {
@@ -51,6 +51,18 @@ namespace SpaceStation.Simulation
         /// <summary>지금 오르는 속도 (분당, 원인별 — 파손은 순간이라 0).</summary>
         public float RatePerMinute(Source source) => _rates[(int)source] * 60f;
 
+        /// <summary>오르는 속도 합 − 가라앉는 속도 (분당, 0보다 크면 쌓이는 중).</summary>
+        public float NetPerMinute
+        {
+            get
+            {
+                float rising = 0f;
+                for (int i = 0; i < SourceCount; i++)
+                    rising += _rates[i];
+                return rising * 60f - _config.CalmPerMinute;
+            }
+        }
+
         /// <summary>이 장에서 원인별로 쌓인 양.</summary>
         public float ChapterTotal(Source source) => _chapterTotals[(int)source];
 
@@ -64,6 +76,35 @@ namespace SpaceStation.Simulation
                 case Source.Environment: return "환경 불만";
                 default: return "정책 반발";
             }
+        }
+
+        /// <summary>그 원인을 낮추는 법 (장 카드 안내).</summary>
+        public static string Remedy(Source source)
+        {
+            switch (source)
+            {
+                case Source.ForecastHit: return "예보 때 실드 · 포탑 보강";
+                case Source.Favored: return "의료 · 여가 채우기";
+                case Source.Crowd: return "빈 집 늘리기";
+                case Source.Environment: return "집의 열 · 방사선 낮추기";
+                default: return "통제형 정책 줄이기";
+            }
+        }
+
+        /// <summary>지금 가장 빨리 오르는 원인 (없으면 false).</summary>
+        public bool TopRisingCause(out Source source)
+        {
+            source = Source.ForecastHit;
+            float best = 1e-5f;
+            bool found = false;
+            for (int i = 0; i < SourceCount; i++)
+                if (_rates[i] > best)
+                {
+                    best = _rates[i];
+                    source = (Source)i;
+                    found = true;
+                }
+            return found;
         }
 
         /// <summary>이 장에서 가장 많이 쌓인 원인 (아무것도 없으면 false).</summary>
@@ -125,15 +166,13 @@ namespace SpaceStation.Simulation
                 if (Sim.Residents != null)
                     _rates[(int)Source.Environment] = _config.EnvironmentPerMinute / 60f * Mathf.Clamp01((float)Sim.Residents.StressedCount / population);
             }
-            float rising = 0f;
             for (int i = 0; i < SourceCount; i++)
-            {
-                rising += _rates[i];
                 Add((Source)i, _rates[i] * dt);
-            }
-            if (rising <= 0f)
-                Value = Mathf.Max(0f, Value - _config.CalmPerMinute / 60f * dt);
+            Value = Mathf.Max(0f, Value - _config.CalmPerMinute / 60f * dt);
         }
+
+        /// <summary>못 채운 비율 중 불만으로 치는 몫 (너그러운 만큼 뺌).</summary>
+        public static float FavoredGap(float ratio, float tolerance) => Mathf.Max(0f, 1f - ratio - tolerance);
 
         /// <summary>Σ 종족 비율 × 그 종족이 중시하는 요구를 못 채운 비율 (그 요구가 아직 없으면 0).</summary>
         private float FavoredUnmet()
@@ -153,7 +192,7 @@ namespace SpaceStation.Simulation
                 foreach (var status in Sim.Needs.Statuses)
                     if (status.Need == s.FavoredNeed)
                     {
-                        sum += (float)count / roster.Residents.Count * (1f - status.Ratio);
+                        sum += (float)count / roster.Residents.Count * FavoredGap(status.Ratio, _config.FavoredTolerance);
                         break;
                     }
             }

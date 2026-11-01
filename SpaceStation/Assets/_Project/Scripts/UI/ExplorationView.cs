@@ -440,6 +440,14 @@ namespace SpaceStation.UI
             {
                 if (m.Site == null)
                     continue;
+                if (_explore.IsExpired(m.Site)) // 지난 장 신호: 라벨까지 숨김
+                {
+                    if (m.Root.activeSelf)
+                        m.Root.SetActive(false);
+                    if (m.Label.gameObject.activeSelf)
+                        m.Label.gameObject.SetActive(false);
+                    continue;
+                }
                 if (m.Root.activeSelf == inside)
                     m.Root.SetActive(!inside);
                 var s = m.Site;

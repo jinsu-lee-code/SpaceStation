@@ -75,6 +75,7 @@ namespace SpaceStation.Editor
             MoveUnlock(ch1, ch2, M("MD_ResearchLab"));
             CleanFragments(ch1, 1); // 절정을 깔끔히 버티면 조각 (1장 몫은 2장에서 씀)
             CleanFragments(ch2, 1);
+            CleanFragments(ch3, 1); // 14-3 보완: 3 · 4장 깔끔 보상에도 — 4장 중반부터 연구소가 놀았음
 
             // 13-5c 2장 구성 (사용자 결정 2026-10-18): 평소 유성우 = 시작 3분 뒤 1파 · 이후 7~10분마다 3파, 절정 = 큰 유성우(두 방향 연속 · 파당 2개 · 막은 비율 + 파괴),
             // 목표 = 필수 3(중형 · 유성우 버티기 · 신호 밝히기) + 선택 2(지점 닿기 · 기록 하나 되살리기), 연결 허브도 2장에서
@@ -466,12 +467,12 @@ namespace SpaceStation.Editor
                 ("climax.warning.4", "파편 띠가 온대. 밖으로 못 넓히면 안을 뜯어고치면 되지!"),
                 ("chapter.start.5.Clean", "다 받아 냈네? 그 좁은 데서 용케도 말이야."),
                 ("chapter.start.5.Hurt", "빠듯했지? 그래도 그만하면 솜씨 좋았어."),
-                ("chapter.start.5.Lost", "많이들 떠났네. 다음엔 칸을 더 잘 접어 보자고."),
+                ("chapter.start.5.Lost", "많이들 떠났네. 다음엔 칸을 더 잘 합쳐 보자고."),
                 ("climax.warning.5", "바람이 뜨겁다네? 방사선이야 우리가 맡지, 바깥 자리 줘!"),
                 ("chapter.start.6.Clean", "봤지? 바깥도 살 만하다니까!"),
                 ("chapter.start.6.Hurt", "살짝 탔네? 덧대면 되지!"),
                 ("chapter.start.6.Lost", "바깥이 너무 비었네. 다음엔 벽부터 쌓자고."),
-                ("ship.accept", "또 손님이네? 자리야 뭐, 접고 쌓으면 나오지!"),
+                ("ship.accept", "또 손님이네? 자리야 뭐, 합치고 쌓으면 나오지!"),
                 ("ship.partial", "다 못 들였네. 칸만 넉넉했어도 말이야."),
                 ("ship.refuse", "돌려보냈어? 저 배에도 쓸 만한 손이 있었을 텐데."),
                 ("ship.new.penguin", "펭귄이네? 식히는 일은 저 친구들한테 맡기면 되겠는걸!"));
@@ -731,7 +732,7 @@ namespace SpaceStation.Editor
             var climax = so.FindProperty("_climax");
             climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.GreatMigration;
             climax.FindPropertyRelative("_title").stringValue = "대이주";
-            climax.FindPropertyRelative("_description").stringValue = "섞인 무리를 태운 이민선 3척이 잇달아 옵니다 · 척당 5~7명 · 빈 집과 생명 유지를 미리 넉넉히";
+            climax.FindPropertyRelative("_description").stringValue = "섞인 무리를 태운 이민선 3척이 잇달아 옵니다 · 척당 5~7명, 여객 포트마다 +2 · 빈 집과 생명 유지를 미리 넉넉히";
             climax.FindPropertyRelative("_warningSeconds").floatValue = 180f;
             climax.FindPropertyRelative("_migrationShips").intValue = 3;
             climax.FindPropertyRelative("_migrationFirstLead").floatValue = 20f;
@@ -791,7 +792,7 @@ namespace SpaceStation.Editor
             Clear(make);
             make.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.Synthesize;
             make.FindPropertyRelative("_count").intValue = 1;
-            FlagGoal(goals.GetArrayElementAtIndex(2), SpaceStation.Simulation.ArkShipSystem.MetFlag("fox"), "여우 무리 맞이하기 (모두 받기 · 빈 집만큼 · 거부 무엇이든)", false);
+            FlagGoal(goals.GetArrayElementAtIndex(2), SpaceStation.Simulation.ArkShipSystem.MetFlag("fox"), "여우 무리 맞이하기 (답은 무엇이든)", false);
             var kinds = goals.GetArrayElementAtIndex(3);
             Clear(kinds);
             kinds.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.EvolvedKinds;
@@ -811,7 +812,7 @@ namespace SpaceStation.Editor
             var climax = so.FindProperty("_climax");
             climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.DebrisBand;
             climax.FindPropertyRelative("_title").stringValue = "파편 띠";
-            climax.FindPropertyRelative("_description").stringValue = "부서진 위성의 파편 띠가 6분 동안 정거장을 감쌉니다 · 그동안 새 칸에는 지을 수 없고, 이민선 4척이 잇달아 옵니다 (척당 5~7명) · 합성으로 칸을 아껴 빈 집을 미리";
+            climax.FindPropertyRelative("_description").stringValue = "부서진 위성의 파편 띠가 6분 동안 정거장을 감쌉니다 · 그동안 새 칸에는 지을 수 없고, 이민선 4척이 잇달아 옵니다 (척당 5~7명, 여객 포트마다 +2) · 합성으로 칸을 아껴 빈 집을 미리";
             climax.FindPropertyRelative("_warningSeconds").floatValue = 180f;
             climax.FindPropertyRelative("_bandSeconds").floatValue = 360f;
             climax.FindPropertyRelative("_migrationShips").intValue = 4;
@@ -820,10 +821,10 @@ namespace SpaceStation.Editor
             climax.FindPropertyRelative("_migrationSizeMin").intValue = 5;
             climax.FindPropertyRelative("_migrationSizeMax").intValue = 7;
             climax.FindPropertyRelative("_cleanMinAccepted").floatValue = 0.6f;
-            climax.FindPropertyRelative("_cleanMaxDeparted").intValue = 0;
+            climax.FindPropertyRelative("_cleanMaxDeparted").intValue = 3; // 14-3 보완: 200명 넘는 정거장에서 3명 이탈이 최악이던 것을 5장 방식에 맞춤
             climax.FindPropertyRelative("_cleanMaxShortageSeconds").floatValue = 0f;
             climax.FindPropertyRelative("_hurtMinAccepted").floatValue = 0.3f;
-            climax.FindPropertyRelative("_hurtMaxDeparted").intValue = 3;
+            climax.FindPropertyRelative("_hurtMaxDeparted").intValue = 15;
             climax.FindPropertyRelative("_hurtMaxShortageSeconds").floatValue = 60f;
             climax.FindPropertyRelative("_cleanLabel").stringValue = "넉넉한 수용";
             climax.FindPropertyRelative("_hurtLabel").stringValue = "빠듯한 수용";
@@ -884,7 +885,7 @@ namespace SpaceStation.Editor
             var climax = so.FindProperty("_climax");
             climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.StellarStorm;
             climax.FindPropertyRelative("_title").stringValue = "항성 폭풍";
-            climax.FindPropertyRelative("_description").stringValue = "항성 폭풍이 6분 동안 정거장을 덮칩니다 · 바깥 칸 방사선이 3배로 오르고, 모듈은 더 뜨거워지며 방열판은 절반만 듣습니다 · 힘든 주민은 떠나니 두 겹 안쪽에 집을 · 차폐실은 12명 대피";
+            climax.FindPropertyRelative("_description").stringValue = "항성 폭풍이 6분 동안 정거장을 덮칩니다 · 바깥 칸 방사선이 3배로 오르고, 모듈은 더 뜨거워지며 방열판은 절반만 듣습니다 · 힘든 주민은 떠납니다 · 방사선은 위 · 아래 · 옆 중 가장 얇은 쪽으로 정해지니 지붕까지 막으세요 (장갑 격벽 2겹) · 차폐실은 12명 대피";
             climax.FindPropertyRelative("_warningSeconds").floatValue = 180f;
             climax.FindPropertyRelative("_stormSeconds").floatValue = 360f;
             climax.FindPropertyRelative("_stormSpaceMultiplier").floatValue = 3f;
@@ -932,7 +933,7 @@ namespace SpaceStation.Editor
                     TutorialGoal.Build, TutorialHighlight.None, false, M("MD_Radiator")),
             });
             data.SetTexts("환경", "방열판 가동",
-                $"<color={CoreHex}>코어 · 바깥이 안쪽을 지킨다. 그럼 바깥에는 누가 사나.</color>\n힘든 주민은 덜 힘든 빈집으로 저절로 옮겨 갑니다 · 안쪽 칸 · 장갑 격벽 · 차폐실로 집의 방사선을 낮춥니다",
+                $"<color={CoreHex}>코어 · 바깥이 안쪽을 지킨다. 그럼 바깥에는 누가 사나.</color>\n힘든 주민은 덜 힘든 빈집으로 저절로 옮겨 갑니다 · 집의 방사선은 위 · 아래 · 옆 중 가장 얇은 쪽으로 정해집니다 · 장갑 격벽(2겹) · 차폐실로 낮춥니다",
                 transient: true, postTutorialGrace: 0f);
             data.SetFree(true);
             EditorUtility.SetDirty(data);
@@ -1392,7 +1393,10 @@ namespace SpaceStation.Editor
                 Ships(ch, true, number == 4 ? fox : number == 5 ? penguin : null, 3f); // 14-1b 4장 첫 배 = 여우 · 14-2b 5장 = 펭귄 (D-15 안: 6장 강아지는 그때)
                 SetEarthLights(ch, s.start, s.end, 1800f, s.final);
                 if (number == 4)
+                {
                     ChapterFour(ch);
+                    CleanFragments(ch, 1); // 14-3 보완: 깔끔 보상 기록 조각 (3장과 같이)
+                }
                 if (number == 5)
                     ChapterFive(ch);
                 list.Add(ch);
@@ -1687,7 +1691,7 @@ namespace SpaceStation.Editor
                 ("outcome.DebrisBand.Hurt", CorePole.Neutral, CoreAxis.Care, "빠듯했다. 칸이 모자라 다 들이지는 못했다."),
                 ("outcome.DebrisBand.Hurt", CorePole.First, CoreAxis.Control, "들일 수 있는 만큼만 들였다. 칸이 정한 일이다."),
                 ("outcome.DebrisBand.Lost", CorePole.Neutral, CoreAxis.Care, "띠 너머로 많은 이가 떠났다. 그 수를 기록해 둔다."),
-                ("outcome.DebrisBand.Lost", CorePole.Second, CoreAxis.Care, "더 접고 더 쌓았어야 했다. 떠난 얼굴들이 남는다."),
+                ("outcome.DebrisBand.Lost", CorePole.Second, CoreAxis.Care, "더 합치고 더 쌓았어야 했다. 떠난 얼굴들이 남는다."),
                 ("choice.keep", CorePole.Neutral, CoreAxis.Care, "녹인 모듈의 옛 이름을 기록에 남겨 둔다. 모양은 바뀌어도 잊지 않으려고."),
                 ("choice.reshape", CorePole.Neutral, CoreAxis.Care, "옛 모양은 기록에서 지운다. 쓸모가 곧 모양이다."),
                 ("transition.4", CorePole.Neutral, CoreAxis.Care, "좁은 하늘을 지나왔다.\n칸은 그대로인데, 안에 든 것은 전부 달라졌다."),

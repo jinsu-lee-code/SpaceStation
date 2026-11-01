@@ -146,9 +146,10 @@ namespace SpaceStation.Tests
             StringAssert.Contains("곰 반발", ((IPolicyGate)pol.Gate).Note(_rationing));
             StringAssert.Contains("곰 반김", ((IPolicyGate)pol.Gate).Note(_festival));
 
-            float before = tension.Value;
+            float before = tension.ChapterTotal(TensionSystem.Source.Backlash);
             Tick(sim, 60);
-            Assert.AreEqual(before + 4f * 0.375f, tension.Value, 0.05f, "반발 무리 0.75 × 0.5 · 통제형 1개 → 분당 1.5");
+            Assert.AreEqual(before + 4f * 0.375f, tension.ChapterTotal(TensionSystem.Source.Backlash), 0.05f, "반발 무리 0.75 × 0.5 · 통제형 1개 → 분당 1.5");
+            Assert.Less(tension.NetPerMinute, 0f, "가라앉는 속도(분당 2)보다 느리면 쌓이지 않음");
             Assert.IsTrue(tension.TopChapterCause(out var cause));
             Assert.AreEqual(TensionSystem.Source.Backlash, cause);
             StringAssert.Contains("정책 반발", tension.RisingCauses());
@@ -164,13 +165,15 @@ namespace SpaceStation.Tests
             sim.MeteorShower.BeginRaid(2f, 1, 1, null);
             RunUntil(sim, () => sim.MeteorShower.Phase == MeteorShowerSystem.ShowerPhase.Idle);
             Assert.Greater(sim.Damage.DamagedCount, 0, "포격이 맞음");
-            Assert.AreEqual(3f * sim.Damage.DamagedCount, tension.ChapterTotal(TensionSystem.Source.ForecastHit), Eps, "예보 뒤 파손마다 +3");
+            Assert.AreEqual(1f * sim.Damage.DamagedCount, tension.ChapterTotal(TensionSystem.Source.ForecastHit), Eps, "예보 뒤 파손마다 +1");
 
             var crowd = Sim(Chapters(Chapter("3장", StationRule.None, slots: 0, hold: true)), housing: 2);
             var t2 = crowd.GetSystem<TensionSystem>();
             Tick(crowd, 30); // 수용 2에 4명 = 100% 넘음
-            Assert.AreEqual(3f, t2.Value, 0.05f, "과밀 100% → 분당 6");
+            Assert.AreEqual(2f, t2.Value, 0.05f, "과밀 100% → 분당 6 − 가라앉음 2");
             Assert.AreEqual("과밀", t2.RisingCauses());
+            Assert.IsTrue(t2.TopRisingCause(out var rising));
+            Assert.AreEqual("빈 집 늘리기", TensionSystem.Remedy(rising));
 
             var json = JsonUtility.ToJson(StationStateSerializer.Capture(crowd));
             var loaded = Sim(Chapters(Chapter("3장", StationRule.None, slots: 0, hold: true)), housing: 2);
@@ -180,9 +183,18 @@ namespace SpaceStation.Tests
             Assert.AreEqual(t2.ChapterTotal(TensionSystem.Source.Crowd), t3.ChapterTotal(TensionSystem.Source.Crowd), Eps);
 
             Assert.IsTrue(crowd.Grid.TryPlace(_home, Vector3Int.right, 0, out _)); // 집을 늘려 과밀이 풀림
-            Tick(crowd, 60);
-            Assert.AreEqual(2f, t2.Value, 0.05f, "오를 이유가 없으면 분당 1씩 내려감");
+            Tick(crowd, 30);
+            Assert.AreEqual(1f, t2.Value, 0.05f, "오를 이유가 없으면 분당 2씩 내려감");
             Assert.AreEqual("", t2.RisingCauses());
+        }
+
+        /// <summary>14-3 보완: 중시 요구를 85% 이상 채우면 불만으로 치지 않음.</summary>
+        [Test]
+        public void Tension_FavoredGap_AllowsSmallShortfall()
+        {
+            Assert.AreEqual(0f, TensionSystem.FavoredGap(0.9f, 0.15f), Eps);
+            Assert.AreEqual(0f, TensionSystem.FavoredGap(0.85f, 0.15f), Eps);
+            Assert.AreEqual(0.35f, TensionSystem.FavoredGap(0.5f, 0.15f), Eps);
         }
 
         [Test]

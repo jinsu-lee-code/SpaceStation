@@ -516,17 +516,19 @@ namespace SpaceStation.UI
                 _shipLine.SetText(text);
         }
 
-        /// <summary>13-6a 긴장도 줄: "긴장도 32 · 술렁임 (오름: 과밀 · 정책 반발)". 0이고 오르지 않으면 숨김.</summary>
+        /// <summary>13-6a 긴장도 줄: "긴장도 32 · 술렁임 (오름: 과밀 → 빈 집 늘리기)" · "(가라앉는 중)". 0이고 쌓이지 않으면 숨김.</summary>
         private string TensionText()
         {
             if (_tension == null)
                 return "";
-            string rising = _tension.RisingCauses();
-            if (_tension.Value < 0.5f && rising.Length == 0)
+            bool climbing = _tension.NetPerMinute > 0f && _tension.TopRisingCause(out _);
+            if (_tension.Value < 0.5f && !climbing)
                 return "";
             string color = _tension.Level switch { 0 => Soft, 1 => Gold, 2 => HudText.Orange, _ => HudText.Red };
-            return $"<color={color}>긴장도 {_tension.Value:0} · {_tension.LevelName}</color>"
-                   + (rising.Length > 0 ? $" <size=86%><color={Soft}>(오름: {rising})</color></size>" : "");
+            string note = "가라앉는 중";
+            if (climbing && _tension.TopRisingCause(out var cause))
+                note = $"오름: {TensionSystem.SourceName(cause)} → {TensionSystem.Remedy(cause)}";
+            return $"<color={color}>긴장도 {_tension.Value:0} · {_tension.LevelName}</color> <size=86%><color={Soft}>({note})</color></size>";
         }
 
         private void HandleShipArrived(ArkShip ship)

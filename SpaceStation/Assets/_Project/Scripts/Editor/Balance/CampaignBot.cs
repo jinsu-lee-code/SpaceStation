@@ -100,6 +100,8 @@ namespace SpaceStation.Editor.Balance
         /// <summary>14-2e 위기 시작 때 상태 한 줄 (항성 폭풍 — 과열 · 위험 · 힘든 주민 등, 판별 사유 뒤에 붙임).</summary>
         public string Note = "";
         public int Population = -1;
+        /// <summary>14-3 장 끝 긴장도 (-1 = 끝나지 않음).</summary>
+        public int Tension = -1;
         /// <summary>이 장에서 게임 오버가 난 횟수 · 그중 체크포인트로 다시 시작한 횟수.</summary>
         public int Falls, Retries;
         /// <summary>절정 중 운석: 전체 · 격추 · 빗겨냄 · 면역 · 장갑 격벽이 대신 맞음 (판정은 둘 다 막음 — 사용자 결정 2026-10-25).</summary>
@@ -859,6 +861,8 @@ namespace SpaceStation.Editor.Balance
             c.Outcome = record.Outcome;
             c.Summary = record.Summary ?? "";
             c.Population = _sim.Resources.Population;
+            var tension = _sim.GetSystem<TensionSystem>();
+            c.Tension = tension != null ? Mathf.RoundToInt(tension.Value) : -1;
         }
 
         /// <summary>게임 오버: 이 장 절정 예고 체크포인트 → (두 번 무너진 뒤엔) 이 장 처음 체크포인트, 장마다 <see cref="RetryLimit"/>번까지.</summary>
@@ -971,6 +975,7 @@ namespace SpaceStation.Editor.Balance
                 int clean = 0, hurt = 0, lost = 0, falls = 0, retries = 0, reached = 0;
                 int meteors = 0, blocked = 0, armorHits = 0, showerInWarning = 0;
                 var pop = new List<float>();
+                var tensions = new List<float>();
                 foreach (var x in all)
                 {
                     if (i >= x.Chapters.Length)
@@ -993,6 +998,8 @@ namespace SpaceStation.Editor.Balance
                         else
                             lost++;
                         pop.Add(c.Population);
+                        if (c.Tension >= 0)
+                            tensions.Add(c.Tension);
                     }
                     falls += c.Falls;
                     retries += c.Retries;
@@ -1004,7 +1011,7 @@ namespace SpaceStation.Editor.Balance
                 }
                 var data = assets.Chapters.Chapters[i];
                 sb.AppendLine($"{data.DisplayName} {data.Subtitle}: 시작 {reached}판 · 준비(시작 → 예고) {Spread(prep)} · 위기 {Spread(climax)} · 장 전체 {Spread(whole)}");
-                sb.AppendLine($"    결과 깔끔 {clean} · 피해 {hurt} · 잃음 {lost} · 무너짐 {falls}번 (다시 시작 {retries}번) · 장 끝 인구 {Spread(pop, minutes: false)}");
+                sb.AppendLine($"    결과 깔끔 {clean} · 피해 {hurt} · 잃음 {lost} · 무너짐 {falls}번 (다시 시작 {retries}번) · 장 끝 인구 {Spread(pop, minutes: false)} · 장 끝 긴장도 {Spread(tensions, minutes: false)}");
                 if (meteors > 0)
                     sb.AppendLine($"    위기 중 운석 {meteors}개 · 막음 {blocked + armorHits} ({(blocked + armorHits) * 100f / meteors:0}%) = 실드 · 포탑 · 면역 {blocked} + 장갑 격벽이 대신 맞음 {armorHits}"
                                   + (showerInWarning > 0 ? $" · 위기 예고 중 평소 유성우 {showerInWarning}판" : ""));

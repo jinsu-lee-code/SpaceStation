@@ -49,7 +49,7 @@ MonoBehaviour:
   _signals: 
   _signalDistanceMin: 6
   _signalDistanceMax: 10
-  _cleanFragments: 0
+  _cleanFragments: 1
   _firstShowerDelay: 0
   _firstShowerWaves: 1
   _policySlots: 0
@@ -92,8 +92,7 @@ MonoBehaviour:
     _rewardResearchPoints: 0
     _rewardFreeRepairs: 0
   - _kind: 4
-    _text: "\uC5EC\uC6B0 \uBB34\uB9AC \uB9DE\uC774\uD558\uAE30 (\uBAA8\uB450 \uBC1B\uAE30
-      \xB7 \uBE48 \uC9D1\uB9CC\uD07C \xB7 \uAC70\uBD80 \uBB34\uC5C7\uC774\uB4E0)"
+    _text: "\uC5EC\uC6B0 \uBB34\uB9AC \uB9DE\uC774\uD558\uAE30 (\uB2F5\uC740 \uBB34\uC5C7\uC774\uB4E0)"
     _optional: 0
     _grade: 0
     _module: {fileID: 0}
@@ -137,8 +136,8 @@ MonoBehaviour:
       6\uBD84 \uB3D9\uC548 \uC815\uAC70\uC7A5\uC744 \uAC10\uC309\uB2C8\uB2E4 \xB7
       \uADF8\uB3D9\uC548 \uC0C8 \uCE78\uC5D0\uB294 \uC9C0\uC744 \uC218 \uC5C6\uACE0,
       \uC774\uBBFC\uC120 4\uCC99\uC774 \uC787\uB2EC\uC544 \uC635\uB2C8\uB2E4 (\uCC99\uB2F9
-      5~7\uBA85) \xB7 \uD569\uC131\uC73C\uB85C \uCE78\uC744 \uC544\uAEF4 \uBE48 \uC9D1\uC744
-      \uBBF8\uB9AC"
+      5~7\uBA85, \uC5EC\uAC1D \uD3EC\uD2B8\uB9C8\uB2E4 +2) \xB7 \uD569\uC131\uC73C\uB85C
+      \uCE78\uC744 \uC544\uAEF4 \uBE48 \uC9D1\uC744 \uBBF8\uB9AC"
     _warningSeconds: 180
     _waves: 4
     _waveInterval: 20
@@ -159,9 +158,9 @@ MonoBehaviour:
     _migrationSizeMin: 5
     _migrationSizeMax: 7
     _cleanMinAccepted: 0.6
-    _cleanMaxDeparted: 0
+    _cleanMaxDeparted: 3
     _hurtMinAccepted: 0.3
-    _hurtMaxDeparted: 3
+    _hurtMaxDeparted: 15
     _bandSeconds: 360
     _stormSeconds: 360
     _stormSpaceMultiplier: 3
