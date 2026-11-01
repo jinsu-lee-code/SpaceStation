@@ -55,7 +55,7 @@ namespace SpaceStation.Editor
             CoreLines();
 
             // 13-3 이민선 시계 + 종족 (사용자 결정 2026-10-18: 시작 토끼 → 3장 곰, 2장부터 약 4분 · 4~6명 · 1분 전 예보, 2장부터 자연 증가 느리게)
-            var ark = ArkShips(out var rabbit, out var bear, out var fox);
+            var ark = ArkShips(out var rabbit, out var bear, out var fox, out var penguin);
             Ships(ch1, false, null, 1f);
             Ships(ch2, true, null, 3f);
             Ships(ch3, true, bear, 3f);
@@ -102,7 +102,7 @@ namespace SpaceStation.Editor
 
             // 14-0 4~7장 틀 (그레이박스 — 실제 내용은 14-1 · 14-2 · 14-4 · 14-5)
             var chapters = new List<ChapterData> { ch1, ch2, ch3 };
-            chapters.AddRange(LaterChapters(grades, fox));
+            chapters.AddRange(LaterChapters(grades, fox, penguin));
 
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
@@ -384,7 +384,7 @@ namespace SpaceStation.Editor
         /// 13-3 종족 2종 + 이민선 설정 (사용자 결정 2026-10-18 D-8: 기본값 = 사회 1 + 기술 1 + 견딤 1, 값은 그레이박스 초안).
         /// 토끼: 의료 중시 · 통제에 순응 · 식량 생산 + / 곰: 여가 중시 · 통제에 반발 · 수리 속도 + · 열에 강함.
         /// </summary>
-        private static ArkShipConfig ArkShips(out SpeciesData rabbit, out SpeciesData bear, out SpeciesData fox)
+        private static ArkShipConfig ArkShips(out SpeciesData rabbit, out SpeciesData bear, out SpeciesData fox, out SpeciesData penguin)
         {
             rabbit = LoadOrCreate<SpeciesData>(Folder + "/SP_Rabbit.asset");
             rabbit.EditorSet("rabbit", "토끼", "겁이 많지만 부지런한 무리. 아플 때 돌봐 줄 곳을 먼저 찾고, 텃밭을 잘 가꾼다.",
@@ -422,6 +422,7 @@ namespace SpaceStation.Editor
                 ("climax.warning.4", "파편이 하늘을 덮는대요. 그동안은 방을 나눠 써야겠어요."),
                 ("ship.new.bear", "곰이라니, 덩치가 커서 조금 무서워요. 그래도 잘 지내 볼게요."),
                 ("ship.new.fox", "여우들이에요! 손재주가 좋다던데, 고장 난 것도 고쳐 줄까요?"),
+                ("ship.new.penguin", "펭귄들이에요! 더위를 많이 탄대요. 시원한 방을 봐 줘야겠어요."),
                 ("ship.accept", "새 이웃이 왔어요! 방을 같이 꾸며야겠어요."),
                 ("ship.partial", "다 같이 오지는 못했네요. 남은 분들도 무사하면 좋겠어요."),
                 ("ship.refuse", "배가 돌아가요. 저 안에도 누군가 있었을 텐데."));
@@ -433,7 +434,8 @@ namespace SpaceStation.Editor
                 ("ship.accept", "또 왔군. 좁으면 붙어 자면 된다."),
                 ("ship.partial", "다 못 태웠다고. 그래, 할 수 있는 만큼 한 거다."),
                 ("ship.refuse", "돌려보냈군. 우리도 저럴 뻔했다."),
-                ("ship.new.fox", "여우군. 손은 빠르겠지. 말은 많겠고."));
+                ("ship.new.fox", "여우군. 손은 빠르겠지. 말은 많겠고."),
+                ("ship.new.penguin", "펭귄이군. 더위에 약하다지. 안쪽을 내주면 된다."));
             EditorUtility.SetDirty(rabbit);
             EditorUtility.SetDirty(bear);
 
@@ -453,11 +455,27 @@ namespace SpaceStation.Editor
                 ("chapter.start.5.Lost", "많이들 떠났네. 다음엔 칸을 더 잘 접어 보자고."),
                 ("ship.accept", "또 손님이네? 자리야 뭐, 접고 쌓으면 나오지!"),
                 ("ship.partial", "다 못 들였네. 칸만 넉넉했어도 말이야."),
-                ("ship.refuse", "돌려보냈어? 저 배에도 쓸 만한 손이 있었을 텐데."));
+                ("ship.refuse", "돌려보냈어? 저 배에도 쓸 만한 손이 있었을 텐데."),
+                ("ship.new.penguin", "펭귄이네? 식히는 일은 저 친구들한테 맡기면 되겠는걸!"));
             EditorUtility.SetDirty(fox);
 
+            // 14-2b 5장 펭귄 (사용자 결정 2026-11-01): 서로 붙어 사는 차분한 무리 — 의료 중시 · 통제 반응 중간 · 방열판 효율 +2%/명(최대 +10%) · 열 약함 · 방사선 보통,
+            // 한마디 = 늘 '우리'로 말하는 차분한 존댓말 ('~지요'). 문장은 확인용 초안 (4 · 5장 문구 검수 때)
+            penguin = LoadOrCreate<SpeciesData>(Folder + "/SP_Penguin.asset");
+            penguin.EditorSet("penguin", "펭귄", "서로 몸을 맞대고 사는 차분한 무리. 아픈 이를 먼저 챙기고, 뜨거운 것을 식히는 법을 잘 안다.",
+                ResidentNeed.Medical, 0.5f, 0f, ResidentTrait.Cooler, 0.02f, 0.1f, -0.5f, 0f);
+            penguin.EditorSetShip(new Color(0.55f, 0.75f, 0.95f),
+                "배 한 척이 방주에 닿았다. 선체에 아직 서리가 남아 있다.",
+                "펭귄들이다. 좁은 칸에 서로 붙어 여기까지 왔다.",
+                "더운 자리에는 오래 못 있을 거다. 어디에 살게 할지 봐 둬야 한다.");
+            penguin.EditorSetRemarks(
+                ("ship.accept", "우리를 받아 주셨군요. 우리도 손을 보태지요."),
+                ("ship.partial", "일부만 오른다지요. 우리는 남은 이들을 기억합니다."),
+                ("ship.refuse", "돌아가라 하시는군요. 우리는 다른 곳을 찾아보지요."));
+            EditorUtility.SetDirty(penguin);
+
             var ark = LoadOrCreate<ArkShipConfig>(ArkPath);
-            ark.EditorSet(rabbit, new List<SpeciesData> { rabbit, bear, fox },
+            ark.EditorSet(rabbit, new List<SpeciesData> { rabbit, bear, fox, penguin },
                 new List<AxisShift> { new AxisShift(CoreAxis.Care, CorePole.Second, ShiftSize.Medium), new AxisShift(CoreAxis.Scope, CorePole.Second, ShiftSize.Small) },
                 new List<AxisShift> { new AxisShift(CoreAxis.Care, CorePole.First, ShiftSize.Small) },
                 new List<AxisShift> { new AxisShift(CoreAxis.Care, CorePole.First, ShiftSize.Medium), new AxisShift(CoreAxis.Scope, CorePole.First, ShiftSize.Small) });
@@ -1230,7 +1248,7 @@ namespace SpaceStation.Editor
         /// 이름은 임시 "(가제) …"(실제 이름은 장마다 착수 때 D-14), 방향 선택 없음, 이민선은 이어서 (새 종족은 D-15).
         /// 지구 불빛 = 7장 끝에 완전히 꺼짐: 4장 36 → 30% · 5장 26 → 20% · 6장 16 → 10% · 7장 7 → 2%, 마지막 연출에서 0%.
         /// </summary>
-        private static List<ChapterData> LaterChapters(StationGradeConfig grades, SpeciesData fox)
+        private static List<ChapterData> LaterChapters(StationGradeConfig grades, SpeciesData fox, SpeciesData penguin)
         {
             var specs = new (string subtitle, int population, int waves, int hits, float start, float end, float final)[]
             {
@@ -1252,7 +1270,7 @@ namespace SpaceStation.Editor
                 var ch = Chapter(number, grades, s.subtitle, "장 내용은 만드는 중",
                     optional: (ChapterGoalKind.Population, s.population, ResourceType.Metal, 0f, metalReward: 100f, research: 0, repairs: 0),
                     waves: s.waves, hits: s.hits, warning: 180f);
-                Ships(ch, true, number == 4 ? fox : null, 3f); // 14-1b 4장 첫 배 = 여우 (D-15 안: 5장 펭귄 · 6장 강아지는 그때)
+                Ships(ch, true, number == 4 ? fox : number == 5 ? penguin : null, 3f); // 14-1b 4장 첫 배 = 여우 · 14-2b 5장 = 펭귄 (D-15 안: 6장 강아지는 그때)
                 SetEarthLights(ch, s.start, s.end, 1800f, s.final);
                 if (number == 4)
                     ChapterFour(ch);
@@ -1275,9 +1293,9 @@ namespace SpaceStation.Editor
             var chapters = new List<ChapterData> { config.Chapters[0], config.Chapters[1], config.Chapters[2] };
             var ch3 = chapters[2];
             SetEarthLights(ch3, ch3.EarthLightsStart, ch3.EarthLightsEnd, ch3.EarthDimSeconds); // 마지막 장이 아니게 됨
-            ArkShips(out _, out _, out var fox); // 14-1b 종족 (여우) · 주민 한마디
+            ArkShips(out _, out _, out var fox, out var penguin); // 14-1b 종족 (여우 · 펭귄) · 주민 한마디
             CoreLines(); // 14-1d 4장 코어 문장
-            chapters.AddRange(LaterChapters(grades, fox));
+            chapters.AddRange(LaterChapters(grades, fox, penguin));
             SetChapterList(config, chapters);
             AssetDatabase.SaveAssets();
             Debug.Log($"[ChapterSetup] 장 {chapters.Count}개 (4장 좁아진 하늘 · 5~7장 그레이박스)");

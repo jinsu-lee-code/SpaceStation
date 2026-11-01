@@ -28,6 +28,8 @@ namespace SpaceStation.Data
         [SerializeField, Min(0f)] private float _crowdPerMinute = 6f;
         [Tooltip("통제형 정책 하나에 반발하는 무리 100%일 때 분당 (반발 무리 비율 × 반발 크기만큼)")]
         [SerializeField, Min(0f)] private float _backlashPerMinute = 4f;
+        [Tooltip("14-2b 집 환경이 힘든 주민이 100%일 때 분당 (힘든 주민 비율만큼)")]
+        [SerializeField, Min(0f)] private float _environmentPerMinute = 3f;
         [Tooltip("오를 이유가 없을 때 내려감 (분당)")]
         [SerializeField, Min(0f)] private float _calmPerMinute = 1f;
         [Tooltip("표시 단계 경계: 이 값부터 술렁임 · 팽팽함 · 곧 터질 듯")]
@@ -35,6 +37,12 @@ namespace SpaceStation.Data
         [SerializeField] private float _tense = 50f;
         [SerializeField] private float _critical = 75f;
 
+        [Header("집 환경 (14-2b, REDESIGN S2)")]
+        [Tooltip("모든 주민이 힘들 때 만족도 상한 감소 (힘든 주민 비율만큼 — 인구가 늘어도 같은 비율이면 같은 감소)")]
+        [SerializeField, Min(0f)] private float _stressMoodMax = 20f;
+
+        public float StressMoodMax => _stressMoodMax;
+        public float EnvironmentPerMinute => _environmentPerMinute;
         public float ControlScale => _controlScale;
         public float AutonomyScale => _autonomyScale;
         public float Max => Mathf.Max(1f, _max);

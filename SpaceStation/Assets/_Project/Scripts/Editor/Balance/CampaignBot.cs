@@ -215,6 +215,8 @@ namespace SpaceStation.Editor.Balance
                 sim.AddSystem(new ChapterPolicySystem(_a.Society), TickStepNames.Population);
             if (_a.Society != null && sim.Chapters != null)
                 sim.AddSystem(new TensionSystem(_a.Society), TickStepNames.Population);
+            if (_a.Society != null && sim.Chapters != null)
+                sim.AddSystem(new HomeComfortSystem(_a.Society), TickStepNames.Population);
             _chapters = sim.Chapters;
             if (_chapters != null)
             {

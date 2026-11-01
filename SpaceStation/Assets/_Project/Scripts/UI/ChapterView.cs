@@ -72,6 +72,7 @@ namespace SpaceStation.UI
         private RecordArchiveSystem _records;
         // 13-6a 긴장도 (이민선 줄 아래 · 장 결과 창)
         private TensionSystem _tension;
+        private HomeComfortSystem _comfort;
         // 13-4 내부 안내 (방주 안 둘러보기)
         private Interior.InteriorMode _interior;
         private TutorialRunner _guide;
@@ -116,6 +117,7 @@ namespace SpaceStation.UI
             _explore = _sim.GetSystem<ExplorationSystem>();
             _records = _sim.GetSystem<RecordArchiveSystem>();
             _tension = _sim.GetSystem<TensionSystem>();
+            _comfort = _sim.GetSystem<HomeComfortSystem>();
             _arkView = FindFirstObjectByType<ArkShipView>(FindObjectsInactive.Include);
             _transition = FindFirstObjectByType<ChapterTransitionView>(FindObjectsInactive.Include);
             _interior =FindFirstObjectByType<Interior.InteriorMode>(FindObjectsInactive.Include);
@@ -504,6 +506,9 @@ namespace SpaceStation.UI
             string tension = TensionText(); // 13-6a 긴장도 (값 + 표시만)
             if (tension.Length > 0)
                 text += (text.Length > 0 ? "\n" : "") + tension;
+            string stressed = _comfort != null ? _comfort.Summary() : ""; // 14-2b 집 환경
+            if (stressed.Length > 0)
+                text += (text.Length > 0 ? "\n" : "") + $"<size=86%><color={HudText.Orange}>{stressed}</color></size>";
             bool show = text.Length > 0;
             if (_shipLine.gameObject.activeSelf != show)
                 _shipLine.gameObject.SetActive(show);

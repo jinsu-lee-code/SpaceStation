@@ -7,7 +7,7 @@ namespace SpaceStation.Simulation
 {
     /// <summary>
     /// 13-6a 서사판 긴장도 (REDESIGN S3, 사용자 결정 2026-10-18 D-10: 값 + 표시만 — 결과인 사회 위기는 6장부터).
-    /// 쌓이는 곳: 예보가 있었는데 입은 피해(떨어지는 중인 유성우 · 포격의 파손마다) · 종족 불만(중시 요구를 못 채운 만큼) · 과밀(수용을 넘은 만큼) · 정책 반발(통제형 정책 × 반발하는 무리).
+    /// 쌓이는 곳: 예보가 있었는데 입은 피해(떨어지는 중인 유성우 · 포격의 파손마다) · 종족 불만(중시 요구를 못 채운 만큼) · 과밀(수용을 넘은 만큼) · 정책 반발(통제형 정책 × 반발하는 무리) · 환경 불만(집이 힘든 주민 비율, 14-2b).
     /// 오를 이유가 없으면 천천히 내려감. 장마다 원인별로 얼마나 쌓였는지 기록 (장 결과 창 "가장 큰 원인").
     /// </summary>
     public sealed class TensionSystem : StationSystem
@@ -24,9 +24,11 @@ namespace SpaceStation.Simulation
             Crowd,
             /// <summary>통제형 정책에 반발.</summary>
             Backlash,
+            /// <summary>14-2b 집의 열 · 방사선이 견딤을 넘음.</summary>
+            Environment,
         }
 
-        private const int SourceCount = 4;
+        private const int SourceCount = 5;
 
         private readonly SocietyConfig _config;
         private readonly float[] _chapterTotals = new float[SourceCount];
@@ -59,6 +61,7 @@ namespace SpaceStation.Simulation
                 case Source.ForecastHit: return "예보 뒤 피해";
                 case Source.Favored: return "종족 불만";
                 case Source.Crowd: return "과밀";
+                case Source.Environment: return "환경 불만";
                 default: return "정책 반발";
             }
         }
@@ -119,6 +122,8 @@ namespace SpaceStation.Simulation
                 var policy = Sim.GetSystem<ChapterPolicySystem>();
                 if (policy != null)
                     _rates[(int)Source.Backlash] = _config.BacklashPerMinute / 60f * policy.Opposition * policy.ActiveControl;
+                if (Sim.Residents != null)
+                    _rates[(int)Source.Environment] = _config.EnvironmentPerMinute / 60f * Mathf.Clamp01((float)Sim.Residents.StressedCount / population);
             }
             float rising = 0f;
             for (int i = 0; i < SourceCount; i++)
