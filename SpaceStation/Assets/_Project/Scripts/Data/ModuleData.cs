@@ -61,6 +61,8 @@ namespace SpaceStation.Data
         [SerializeField] private bool _onDemandPower;
         [Tooltip("입력 자원(전력 제외) 재고가 저장 한도의 이 비율 이하이면 정지 (0.2 = 물 20% 이하면 멈춰 주민 몫을 남김). 0이면 바닥날 때만 정지")]
         [SerializeField, Range(0f, 1f)] private float _inputReserveRatio;
+        [Tooltip("입력 자원이 바닥나도 멈추지 않고 이 비율로 가동 (0 = 멈춤). 핵융합로 0.5: 물 고갈이 전력 고갈로 번져 재활용기까지 멈추던 고리를 끊음")]
+        [SerializeField, Range(0f, 1f)] private float _dryRunFactor;
 
         [Header("Support (BALANCE 17번)")]
         [Tooltip("동시 수리 슬롯 추가 수 (정비 베이 1). 활성이고 파손되지 않았을 때만. 코어 몫은 BalanceConfig.BaseRepairSlots")]
@@ -299,6 +301,7 @@ namespace SpaceStation.Data
         public float CargoFraction => _cargoFraction;
         public bool IsCargoTerminal => CargoInterval > 0f;
         public float InputReserveRatio => _inputReserveRatio;
+        public float DryRunFactor => _dryRunFactor;
 
         private void OnValidate()
         {

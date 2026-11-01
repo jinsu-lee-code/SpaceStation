@@ -23,6 +23,7 @@ namespace SpaceStation.Simulation
         private readonly bool[] _depleted = new bool[ResourceCount];
         private readonly float[] _externalDrain = new float[ResourceCount];
         private readonly List<bool> _stopped = new List<bool>();
+        private readonly List<bool> _dryRun = new List<bool>();
         private float _powerSupplyMultiplier = 1f;
 
         /// <summary>틱 처리가 끝난 뒤 발생.</summary>
@@ -51,6 +52,8 @@ namespace SpaceStation.Simulation
         public int HousingCapacity { get; private set; }
         /// <summary>입력 자원 부족으로 이번 틱에 정지한 모듈 수.</summary>
         public int StoppedModuleCount { get; private set; }
+        /// <summary>M-126 입력 없이 낮은 출력으로 돌고 있는 모듈 수.</summary>
+        public int DryRunModuleCount { get; private set; }
 
         /// <summary>모든 전력 생산에 곱하는 전역 배율 (태양 폭풍). 다음 틱부터 반영.</summary>
         public float PowerSupplyMultiplier
@@ -286,18 +289,24 @@ namespace SpaceStation.Simulation
 
             // 입력 자원(전력 제외)이 이전 틱 재고 기준 0이면 정지. 정지한 모듈은 전력도 쓰지 않는다.
             _stopped.Clear();
-            int stoppedCount = 0;
+            _dryRun.Clear();
+            int stoppedCount = 0, dryCount = 0;
             float supply = 0f, demand = 0f, onDemandMax = 0f;
             for (int k = 0; k < activeModules.Count; k++)
             {
                 var m = activeModules[k];
-                bool stopped = HasDepletedInput(m);
+                bool depleted = HasDepletedInput(m);
+                bool dry = depleted && m.DryRunFactor > 0f; // M-126 입력 없이 낮은 출력으로 (핵융합로)
+                bool stopped = depleted && !dry;
                 _stopped.Add(stopped);
+                _dryRun.Add(dry);
                 if (stopped)
                 {
                     stoppedCount++;
                     continue;
                 }
+                if (dry)
+                    dryCount++;
                 demand += Sum(m.Consumption, ResourceType.Power);
                 if (m.OnDemandPower) // 8-5 보조 발전: 최대 출력만 모아 두고 부족분이 있을 때만 쓴다
                 {
@@ -305,13 +314,14 @@ namespace SpaceStation.Simulation
                     continue;
                 }
                 float solar = m.SolarPowered ? SolarMultiplier * Effects.SolarMultiplier : 1f; // 낮/밤 (4-2) × 연구
-                supply += Sum(m.Production, ResourceType.Power) * Multiplier(productionMultipliers, k) * solar;
+                supply += Sum(m.Production, ResourceType.Power) * Multiplier(productionMultipliers, k) * solar * (dry ? m.DryRunFactor : 1f);
             }
             demand *= Effects.Policy(PolicyStat.PowerDemand); // 12-3c 정책 (연구 우선)
             demand += Mathf.Max(0f, ExtraPowerDemand); // 진행 중인 연구 (Phase 6)
             supply *= PowerSupplyMultiplier; // 태양 폭풍 등 전역 배율
             onDemandMax *= PowerSupplyMultiplier;
             StoppedModuleCount = stoppedCount;
+            DryRunModuleCount = dryCount;
             PowerDemand = demand;
 
             // 배터리 (4-2): 남는 전력은 충전, 모자라면 방전. 둘 다 초당 BatteryRate까지.
@@ -362,11 +372,15 @@ namespace SpaceStation.Simulation
                 if (m.OnDemandPower)
                     efficiency *= OnDemandLoad; // 보조 발전: 가동 비율만큼만 입력 소비
                 float productionFactor = efficiency * Multiplier(productionMultipliers, k); // BALANCE 1번: 파손 배율과 곱셈
+                if (_dryRun[k])
+                    productionFactor *= m.DryRunFactor;
                 foreach (var a in m.Production)
                 {
                     if (IsStock(a.Type))
                         _production[(int)a.Type] += a.Amount * productionFactor;
                 }
+                if (_dryRun[k])
+                    continue; // M-126 입력이 없으니 쓰지도 않음
                 float consumptionFactor = efficiency * Multiplier(consumptionMultipliers, k); // 인접 효과 (4-4)
                 foreach (var a in m.Consumption)
                 {
