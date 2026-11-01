@@ -885,7 +885,7 @@ namespace SpaceStation.Editor
             var climax = so.FindProperty("_climax");
             climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.StellarStorm;
             climax.FindPropertyRelative("_title").stringValue = "항성 폭풍";
-            climax.FindPropertyRelative("_description").stringValue = "항성 폭풍이 6분 동안 정거장을 덮칩니다 · 바깥 칸 방사선이 3배로 오르고, 모듈은 더 뜨거워지며 방열판은 절반만 듣습니다 · 힘든 주민은 떠납니다 · 방사선은 위 · 아래 · 옆 중 가장 얇은 쪽으로 정해지니 지붕까지 막으세요 (장갑 격벽 2겹) · 차폐실은 12명 대피";
+            climax.FindPropertyRelative("_description").stringValue = "항성 폭풍이 6분 동안 정거장을 덮칩니다 · 바깥 칸 방사선이 3배로 오르고, 모듈은 더 뜨거워지며 방열판은 절반만 듣습니다 · 힘든 주민은 떠납니다 · 차폐실은 12명이 대피하고 맞닿은 집의 방사선도 낮춥니다 · 장갑 격벽(2겹)은 가장 얇은 쪽까지 막아야 듣고 방열판 자리를 차지합니다";
             climax.FindPropertyRelative("_warningSeconds").floatValue = 180f;
             climax.FindPropertyRelative("_stormSeconds").floatValue = 360f;
             climax.FindPropertyRelative("_stormSpaceMultiplier").floatValue = 3f;
