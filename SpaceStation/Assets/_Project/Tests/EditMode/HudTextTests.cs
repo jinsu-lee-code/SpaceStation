@@ -20,6 +20,17 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Amount_ShortensFromHundredThousand()
+        {
+            Assert.AreEqual("0", HudText.Amount(0f));
+            Assert.AreEqual("350", HudText.Amount(349.6f));
+            Assert.AreEqual("99999", HudText.Amount(99999f));
+            Assert.AreEqual("100k", HudText.Amount(100000f));
+            Assert.AreEqual("123k", HudText.Amount(123999f), "올림하면 실제보다 많아 보임");
+            Assert.AreEqual("1234k", HudText.Amount(1234567f));
+        }
+
+        [Test]
         public void PlacementReason_ZoneReasonOnlyForOutsideZone()
         {
             var zone = new Zone { Reason = "파편 띠" };

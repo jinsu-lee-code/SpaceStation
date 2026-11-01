@@ -50,6 +50,8 @@ namespace SpaceStation.UI
             _station.Connectivity.ActiveStateChanged += HandleActiveStateChanged;
             if (_progression != null)
                 _progression.Changed += MarkDirty;
+            if (_populationText != null)
+                _populationText.enableWordWrapping = true; // M-119 요구 수 · 자릿수만큼 줄을 바꿈 (패널 높이는 내용을 따라감)
             Refresh();
         }
 
@@ -148,8 +150,8 @@ namespace SpaceStation.UI
             float eff = _sim.PowerEfficiency;
             string effColor = eff < 0.5f ? HudText.Red : eff < 1f ? HudText.Yellow : HudTheme.GreenHex;
             _sb.Append("<link=power>").Append(HudTheme.Icon("power")).Append(" <b>전력</b><pos=36%>")
-               .Append(_sim.PowerSupply.ToString("0.#")).Append("<size=78%><color=").Append(HudText.Muted).Append("> 공급  / </color></size>")
-               .Append(_sim.PowerDemand.ToString("0.#")).Append("<size=78%><color=").Append(HudText.Muted).Append("> 수요</color></size>")
+               .Append(PowerAmount(_sim.PowerSupply)).Append("<size=78%><color=").Append(HudText.Muted).Append("> 공급 / </color></size>")
+               .Append(PowerAmount(_sim.PowerDemand)).Append("<size=78%><color=").Append(HudText.Muted).Append("> 수요</color></size>")
                .Append("<pos=80%><color=").Append(effColor).Append('>').Append((eff * 100f).ToString("0")).Append("%</color></link>\n");
             if (eff < 1f) // 전력을 쓰는 모듈의 생산·소비가 효율만큼 함께 줄어듦을 알림
                 _sb.Append("<size=80%><color=").Append(effColor).Append("><pos=36%>전력 부족 · 모듈 가동률 ")
@@ -160,8 +162,8 @@ namespace SpaceStation.UI
             {
                 float flow = _sim.BatteryFlow;
                 string flowColor = flow < 0f ? HudText.Orange : HudTheme.GreenHex;
-                _sb.Append("<size=88%>").Append(HudTheme.Icon("battery")).Append(" 배터리<pos=36%>").Append(_sim.BatteryCharge.ToString("0"))
-                   .Append("<color=").Append(HudText.Muted).Append("> / ").Append(_sim.BatteryCapacity.ToString("0")).Append("</color>")
+                _sb.Append("<size=88%>").Append(HudTheme.Icon("battery")).Append(" 배터리<pos=36%>").Append(HudText.Amount(_sim.BatteryCharge))
+                   .Append("<color=").Append(HudText.Muted).Append("> / ").Append(HudText.Amount(_sim.BatteryCapacity)).Append("</color>")
                    .Append("<pos=80%><color=").Append(flowColor).Append('>').Append(flow.ToString("+0.#;-0.#;0")).Append("/s</color></size>\n");
             }
             var cycle = _resources.DayNight;
@@ -224,6 +226,9 @@ namespace SpaceStation.UI
             if (_gradeText != null && _progression != null)
                 RefreshGrade();
         }
+
+        /// <summary>M-119 전력 줄 값: 1000부터 소수를 뺌 (값 칸 176px — 소수까지 4자리면 넘침).</summary>
+        private static string PowerAmount(float value) => value >= 1000f ? HudText.Amount(value) : value.ToString("0.#");
 
         private void AppendFailureWarning(float remaining, string what)
         {
@@ -289,16 +294,20 @@ namespace SpaceStation.UI
             float s = pop.Satisfaction;
             string sColor = s < _resources.Balance.LowSatisfactionThreshold ? HudText.Red
                 : s < _resources.Balance.GrowthMinSatisfaction ? HudText.Yellow : HudTheme.TextHex;
+            // 4-9: 거주자 요구 충족 (등급이 오르면 생김) → 만족도 상한
+            var needs = _resources.Needs;
             _popSb.Append(HudTheme.Icon("satisfaction")).Append(" <b>만족도</b><pos=36%><color=").Append(sColor).Append('>').Append(s.ToString("0"))
-                  .Append("</color><pos=80%>");
+                  .Append("</color>");
+            if (needs.Statuses.Count > 0 && needs.SatisfactionCap < PopulationSimulation.MaxSatisfaction - 0.5f) // M-119 요구 줄이 길어져도 겹치지 않게 만족도 옆에
+                _popSb.Append("<size=78%><color=").Append(HudText.Yellow).Append("> / 상한 ").Append(needs.SatisfactionCap.ToString("0")).Append("</color></size>");
+            _popSb.Append("<pos=80%>");
             string rateColor = pop.SatisfactionRate < -0.001f ? HudText.Red : pop.SatisfactionRate > 0.001f ? HudTheme.GreenHex : HudText.Muted;
             _popSb.Append("<color=").Append(rateColor).Append('>').Append(pop.SatisfactionRate.ToString("+0.0#;-0.0#;0")).Append("/s</color>\n");
 
-            // 4-9: 거주자 요구 충족 (등급이 오르면 생김) → 만족도 상한
-            var needs = _resources.Needs;
             if (needs.Statuses.Count > 0)
             {
-                _popSb.Append("<size=85%><color=").Append(HudText.Muted).Append(">요구</color><pos=36%>");
+                // M-119 요구 8종 · 인구 자릿수가 늘면 항목 단위로 줄을 바꿈 (둘째 줄도 값 칸에 맞춤, 항목 안에서는 끊지 않음)
+                _popSb.Append("<size=85%><color=").Append(HudText.Muted).Append(">요구</color><indent=36%>");
                 for (int i = 0; i < needs.Statuses.Count; i++)
                 {
                     var n = needs.Statuses[i];
@@ -306,18 +315,16 @@ namespace SpaceStation.UI
                     string c = ratio >= 0.999f ? "#7CFF9A" : ratio >= 0.5f ? HudText.Yellow : HudText.Red;
                     if (i > 0)
                         _popSb.Append("  ");
-                    _popSb.Append(n.Need.DisplayName()).Append(" <color=").Append(c).Append('>')
-                          .Append(Mathf.FloorToInt(n.Served + 1e-3f)).Append('/').Append(Mathf.CeilToInt(n.Demand - 1e-3f)).Append("</color>");
+                    _popSb.Append("<nobr>").Append(n.Need.DisplayName()).Append(" <color=").Append(c).Append('>')
+                          .Append(Mathf.FloorToInt(n.Served + 1e-3f)).Append('/').Append(Mathf.CeilToInt(n.Demand - 1e-3f)).Append("</color></nobr>");
                 }
-                if (needs.SatisfactionCap < PopulationSimulation.MaxSatisfaction - 0.5f)
-                    _popSb.Append("<pos=80%><color=").Append(HudText.Yellow).Append(">상한 ").Append(needs.SatisfactionCap.ToString("0")).Append("</color>");
-                _popSb.Append("</size>\n");
+                _popSb.Append("</indent></size>\n");
                 // 남은 요구 식단: 서비스 모듈이 아니라 식량 종류 비중이라 따로 한 줄 (종류마다 절반까지 셈)
                 foreach (var n in needs.Statuses)
                 {
                     if (n.Need != ResidentNeed.Diet)
                         continue;
-                    _popSb.Append("<size=80%><color=").Append(HudText.Muted).Append(">식단 균형<pos=36%>");
+                    _popSb.Append("<size=80%><color=").Append(HudText.Muted).Append(">식단 균형<indent=36%>");
                     for (int k = 0; k < FoodKindExtensions.All.Length; k++)
                     {
                         var kind = FoodKindExtensions.All[k];
@@ -325,7 +332,7 @@ namespace SpaceStation.UI
                             _popSb.Append(" · ");
                         _popSb.Append(kind.DisplayName()).Append(' ').Append((needs.DietShare(kind) * 100f).ToString("0")).Append('%');
                     }
-                    _popSb.Append(" (반반이면 충족)</color></size>\n");
+                    _popSb.Append(" (반반이면 충족)</indent></color></size>\n");
                 }
             }
 
@@ -375,8 +382,8 @@ namespace SpaceStation.UI
             string stockColor = depleted ? HudText.Red : capacity > 0f && stock < capacity * 0.2f ? HudText.Yellow : HudTheme.TextHex;
             _sb.Append("<link=").Append(HudTheme.IconName(type)).Append('>').Append(HudTheme.Icon(type)).Append(" <b>")
                .Append(HudText.ResourceName(type)).Append("</b><pos=36%><color=").Append(stockColor).Append('>')
-               .Append(stock.ToString("0")).Append("</color><size=78%><color=").Append(HudText.Muted).Append("> / ")
-               .Append(capacity.ToString("0")).Append("</color></size>");
+               .Append(HudText.Amount(stock)).Append("</color><size=78%><color=").Append(HudText.Muted).Append("> / ")
+               .Append(HudText.Amount(capacity)).Append("</color></size>");
             AppendReserveMark(type, stock);
             _sb.Append("<pos=80%>");
             string netColor = net < -0.001f ? HudText.Red : net > 0.001f ? HudTheme.GreenHex : HudText.Muted;
@@ -390,7 +397,8 @@ namespace SpaceStation.UI
 
         /// <summary>
         /// 자원 보호선 눈금 (사용자 피드백 2026-10-15): 자동 정비 · 재건축이 남겨 두는 양을 줄 안에 "남김 80"으로.
-        /// 재고가 그 아래면 주황, 지금 정비를 막고 있는 자원이면 렌치 아이콘. 금속과 지금 막고 있는 자원만 (줄이 붐비지 않게).
+        /// 재고가 그 아래면 주황, 지금 정비를 막고 있는 자원이면 "남김" 대신 렌치 아이콘 (아래 대기 줄이 설명). 금속과 지금 막고 있는 자원만 (줄이 붐비지 않게).
+        /// M-119 고정 칸(58%)이 아니라 재고 바로 뒤에: 재고가 5자리면 고정 칸과 겹쳤음.
         /// </summary>
         private void AppendReserveMark(ResourceType type, float stock)
         {
@@ -402,10 +410,12 @@ namespace SpaceStation.UI
                 return;
             float line = auto.ReserveLine(type);
             string color = blocking || stock < line ? HudText.Orange : HudText.Muted;
-            _sb.Append("<pos=58%><size=70%><color=").Append(color).Append('>');
+            _sb.Append("<size=70%><color=").Append(color).Append(">  ");
             if (blocking)
                 _sb.Append(HudTheme.Icon("repair")).Append(' ');
-            _sb.Append("남김 ").Append(line.ToString("0")).Append("</color></size>");
+            else
+                _sb.Append("남김 ");
+            _sb.Append(HudText.Amount(line)).Append("</color></size>");
         }
 
         /// <summary>툴팁: 자동 정비 · 재건축이 이 자원을 몇 개 남겨 두는지.</summary>
