@@ -1849,7 +1849,7 @@
 - `TutorialGoal.OpenEnvironmentMap` · `TutorialRunner.ReportEnvironmentMap` (`HeatMapView`가 지도를 켤 때 알림) · `TutorialView` 안내 줄. 다른 안내에는 영향 없음
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 5장 환경 안내가 씀.
+- [x] 자동 합침됨. 5장 환경 안내가 씀.
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상 (쓰지 않음).
@@ -1863,7 +1863,7 @@
 - 규칙을 열지 않거나 배율을 바꾸지 않으면 그대로
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 항성 폭풍이 배율을 바꿈.
+- [x] 자동 합침됨. 항성 폭풍이 배율을 바꿈.
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상 (쓰지 않음).
