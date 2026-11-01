@@ -136,7 +136,7 @@ namespace SpaceStation.Simulation
                                     _near[m] = d;
                             }
                         }
-                        float output = s.Data.HeatOutput * OutputScale;
+                        float output = s.Data.HeatOutput * OutputScale * Sim.Effects.HeatOutputMultiplier;
                         foreach (var kv in _near)
                         {
                             float k = kv.Value == 0 ? 1f : kv.Value == 1 ? f1 : f2;

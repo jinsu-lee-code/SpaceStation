@@ -142,6 +142,28 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void LinkedEffect_SecurityRadius_OnlySecurityService()
+        {
+            var sim = Sim(_expansion);
+            var security = Service(ResidentNeed.Security);
+            var medical = Service(ResidentNeed.Medical);
+            sim.Effects.SetLinked(new[] { new ResearchModifier { Stat = ResearchStat.SecurityRadiusExtra, Value = 1f } });
+            Assert.AreEqual(3, sim.Effects.ServiceRadius(security), "공동 순찰: 치안 모듈 반경 +1");
+            Assert.AreEqual(2, sim.Effects.ServiceRadius(medical), "다른 서비스는 그대로");
+        }
+
+        private ModuleData Service(ResidentNeed need)
+        {
+            var m = Create<ModuleData>();
+            var so = new SerializedObject(m);
+            so.FindProperty("_serviceNeed").intValue = (int)need;
+            so.FindProperty("_serviceRadius").intValue = 2;
+            so.FindProperty("_serviceCapacity").intValue = 10;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return m;
+        }
+
+        [Test]
         public void LinkedResearch_NeedsModule_EffectOnlyWhileActive()
         {
             var sim = Sim(_expansion);

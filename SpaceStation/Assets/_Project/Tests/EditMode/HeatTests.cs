@@ -78,6 +78,16 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void LinkedEffect_HeatOutputMultiplier_ScalesHeat()
+        {
+            var sim = Sim();
+            var hot = Place(sim, _hot, 1, 0, 0);
+            sim.Effects.SetLinked(new[] { new ResearchModifier { Stat = ResearchStat.HeatOutputMultiplier, Value = 0.75f } });
+            sim.Tick(1f);
+            Assert.AreEqual(3f, sim.Heat.HeatOf(hot), 1e-4f, "냉각 순환: 발열 -25%");
+        }
+
+        [Test]
         public void Overheat_ReducesEfficiency()
         {
             var sim = Sim();

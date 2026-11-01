@@ -74,7 +74,7 @@ namespace SpaceStation.Editor
             // 레시피 · 연구소 계통 모듈 (담당 카테고리 · 자동 해금 · 레시피 슬롯)
             RecipeSetup.Setup();
 
-            // 연계 연구 3개 + 설정
+            // 연계 연구 5개 + 설정
             var linked = new List<LinkedResearchData>
             {
                 Linked("LR_ClosedLoop", "폐쇄 순환", ResearchCategory.Production, "MD_Evo_EcoModule",
@@ -86,6 +86,12 @@ namespace SpaceStation.Editor
                 Linked("LR_DeepListening", "심우주 청취", ResearchCategory.Defense, "MD_Evo_DeepSpaceComm",
                     "심우주 통신기지의 안테나 배열을 상시 청취에 돌려 통신 세기 +2", Cost(120, 120, 320), 20f, 240f,
                     M(ResearchStat.RelayPowerBonus, 2f)),
+                Linked("LR_CoolingLoop", "냉각 순환", ResearchCategory.Production, "MD_Evo_FusionStation", // M-127
+                    "융합 발전소의 냉각수를 정거장 전체로 돌려 모든 모듈의 발열 -25%", Cost(80, 80, 220), 14f, 180f,
+                    M(ResearchStat.HeatOutputMultiplier, 0.75f)),
+                Linked("LR_JointPatrol", "공동 순찰", ResearchCategory.Defense, "MD_Evo_SecurityBureau", // M-127
+                    "보안청이 순찰 구역을 나눠 맡아 치안 모듈 반경 +1칸", Cost(80, 80, 220), 14f, 180f,
+                    M(ResearchStat.SecurityRadiusExtra, 1f)),
             };
             string configPath = $"{ResearchDir}/ResearchExpansionConfig.asset";
             var config = AssetDatabase.LoadAssetAtPath<ResearchExpansionConfig>(configPath);
