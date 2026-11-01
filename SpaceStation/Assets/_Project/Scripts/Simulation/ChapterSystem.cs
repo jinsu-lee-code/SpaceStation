@@ -107,6 +107,8 @@ namespace SpaceStation.Simulation
             Begin(0, raise: false);
             RunId = Guid.NewGuid().ToString("N");
             Sim.ProgressLabel = ProgressText; // main M-44: 이어하기 · 저장 목록 · 로딩 화면 "3장 · 무리 합류"
+            Sim.Automation.AutoRepair = true; // 14-3 보완 (main M-125 고리): 정비 자동화 연구 뒤 파손 등록은 코어가 맡음 (창에서 끌 수 있음)
+            Sim.Events.MinGapAfterEnd = _config.TimedEventGap;
             HookRecipes();
         }
 

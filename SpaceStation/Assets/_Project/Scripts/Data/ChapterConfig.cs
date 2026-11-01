@@ -11,6 +11,10 @@ namespace SpaceStation.Data
     public sealed class ChapterConfig : ScriptableObject
     {
         [SerializeField] private List<ChapterData> _chapters = new List<ChapterData>();
+        [Tooltip("지속형 이벤트(태양 폭풍)가 끝나고 같은 이벤트가 다시 오지 않는 시간(초) · 14-3 플레이: 끝나자마자 또 와서 5분의 75%가 폭풍 중이었음")]
+        [SerializeField, Min(0f)] private float _timedEventGap = 120f;
+
+        public float TimedEventGap => _timedEventGap;
 
         // 난이도 덮어쓰기 (복사본에만, 장 에셋은 공유라 건드리지 않음). 음수 = 장 값 유지
         private List<float> _intervalOverrides;
