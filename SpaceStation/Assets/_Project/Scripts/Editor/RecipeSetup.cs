@@ -177,13 +177,14 @@ namespace SpaceStation.Editor
             new Def
             {
                 Id = "GridHub", Name = "그리드 허브", RecipeName = "그리드 허브", Category = ModuleCategory.Power, Color = "#FFE07A", Stage = 2, UnlockGrade = 5,
-                Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(2, 0, 0), V(0, 0, 1), V(1, 0, 1), V(2, 0, 1) },
-                Ingredients = new[] { ("Evolved/MD_Evo_PowerBank", 2) }, SynthesisMetal = 160f, Duration = 70f, Research = ResearchCategory.Energy,
-                Rationale = "저장 묶음 둘을 한 배전망으로 이어 정거장 전체에 전력을 나눠 준다 · 저장량과 충 · 방전 속도가 크게",
+                // 바닥 3×2 + 가운데 위 1×2 (테슬라 탑 자리 — 배터리 둘을 위에 쌓음, 사용자 결정 2026-10-26: 1층 위로 솟는 부분은 재료를 늘려 위 칸으로)
+                Cells = new[] { V(0, 0, 0), V(1, 0, 0), V(2, 0, 0), V(0, 0, 1), V(1, 0, 1), V(2, 0, 1), V(1, 1, 0), V(1, 1, 1) },
+                Ingredients = new[] { ("Evolved/MD_Evo_PowerBank", 2), ("MD_Battery", 2) }, SynthesisMetal = 180f, Duration = 70f, Research = ResearchCategory.Energy,
+                Rationale = "저장 묶음 둘을 한 배전망으로 잇고 가운데 위에 배터리 둘을 쌓아 테슬라 탑으로 · 저장량과 충 · 방전 속도가 크게",
                 Stats = so =>
                 {
-                    so.FindProperty("_batteryCapacity").floatValue = 6000f;
-                    so.FindProperty("_batteryRate").floatValue = 110f;
+                    so.FindProperty("_batteryCapacity").floatValue = 7000f;
+                    so.FindProperty("_batteryRate").floatValue = 130f;
                 },
             },
             new Def
@@ -345,12 +346,14 @@ namespace SpaceStation.Editor
             new Def
             {
                 Id = "OrbitalMirror", Name = "궤도 미러", RecipeName = "궤도 미러", Category = ModuleCategory.Power, Color = "#FFE89A", Stage = 2, UnlockGrade = 5,
-                Cells = Box(4, 2), Ingredients = new[] { ("Evolved/MD_Evo_SolarArray", 2) }, SynthesisMetal = 130f, Duration = 70f, Research = ResearchCategory.Energy,
-                Rationale = "거울 날개로 빛을 모아 어레이에 비춘다 · 같은 면적에서 훨씬 많은 태양광",
+                // 바닥 4×2 + 가운데 위 2×2 (집광탑 자리 — 세 번째 어레이를 두 어레이 사이 위에 올림, 사용자 결정 2026-10-26)
+                Cells = Join(Box(4, 2), new[] { V(1, 1, 0), V(2, 1, 0), V(1, 1, 1), V(2, 1, 1) }),
+                Ingredients = new[] { ("Evolved/MD_Evo_SolarArray", 3) }, SynthesisMetal = 190f, Duration = 70f, Research = ResearchCategory.Energy,
+                Rationale = "두 어레이의 거울 해바라기가 가운데 위 세 번째 어레이(집광탑)로 빛을 모은다 · 같은 면적에서 훨씬 많은 태양광",
                 Stats = so =>
                 {
                     so.FindProperty("_solarPowered").boolValue = true;
-                    Amounts(so.FindProperty("_production"), (ResourceType.Power, 120f));
+                    Amounts(so.FindProperty("_production"), (ResourceType.Power, 175f));
                 },
             },
             new Def
@@ -368,12 +371,14 @@ namespace SpaceStation.Editor
             new Def
             {
                 Id = "StellarGrid", Name = "항성 발전망", RecipeName = "항성 발전망", Category = ModuleCategory.Power, Color = "#FFF0A0", Stage = 3, UnlockGrade = 6,
-                Cells = Box(7, 2), Ingredients = new[] { ("Evolved/MD_Evo_OrbitalMirror", 1), ("Evolved/MD_Evo_GridHub", 1) }, SynthesisMetal = 420f, Duration = 100f, Research = ResearchCategory.Energy,
+                // 바닥 7×2 + 위 6칸 (궤도 미러 집광탑 위 2×2 + 그리드 허브 테슬라 탑 위 1×2 — 재료 칸 합 20, 2026-10-26)
+                Cells = Join(Box(7, 2), new[] { V(1, 1, 0), V(2, 1, 0), V(1, 1, 1), V(2, 1, 1), V(5, 1, 0), V(5, 1, 1) }),
+                Ingredients = new[] { ("Evolved/MD_Evo_OrbitalMirror", 1), ("Evolved/MD_Evo_GridHub", 1) }, SynthesisMetal = 550f, Duration = 100f, Research = ResearchCategory.Energy,
                 Rationale = "모은 햇빛을 배전망에 바로 물려 낮에 쌓고 밤에 나눈다 (합류)",
                 Stats = so =>
                 {
                     so.FindProperty("_solarPowered").boolValue = true;
-                    Amounts(so.FindProperty("_production"), (ResourceType.Power, 160f));
+                    Amounts(so.FindProperty("_production"), (ResourceType.Power, 210f));
                     so.FindProperty("_batteryCapacity").floatValue = 9000f;
                     so.FindProperty("_batteryRate").floatValue = 160f;
                 },
@@ -545,14 +550,16 @@ namespace SpaceStation.Editor
             new Def
             {
                 Id = "ShieldDome", Name = "실드 돔", RecipeName = "실드 돔", Category = ModuleCategory.Defense, Color = "#A0C8FF", Stage = 2, UnlockGrade = 5,
-                Cells = Box(2, 2), Ingredients = new[] { ("Evolved/MD_Evo_ShieldMatrix", 1), ("MD_SensorArray", 1) }, SynthesisMetal = 320f, Duration = 70f, Research = ResearchCategory.Defense,
-                Rationale = "센서가 오는 방향을 미리 알려 막을 그쪽으로 두껍게 · 넓은 돔 + 이른 예보",
+                // 2×2 두 층 (층마다 실드 매트릭스 L자 + 센서 — 등대 · 오로라가 네 칸 위로 솟음, 사용자 결정 2026-10-26: 모델 모양은 그대로 두고 재료를 늘려 위 칸으로)
+                Cells = Box(2, 2, 2),
+                Ingredients = new[] { ("Evolved/MD_Evo_ShieldMatrix", 2), ("MD_SensorArray", 2) }, SynthesisMetal = 630f, Duration = 70f, Research = ResearchCategory.Defense,
+                Rationale = "실드 매트릭스 둘을 두 겹으로 쌓고 층마다 센서를 붙여 높이 멀리 본다 · 오는 방향을 미리 알려 막을 그쪽으로 두껍게 · 넓은 돔 + 이른 예보",
                 Stats = so =>
                 {
-                    so.FindProperty("_shieldRadius").intValue = 6;
-                    so.FindProperty("_shieldReduction").floatValue = 0.85f;
-                    so.FindProperty("_warningBonus").floatValue = 20f;
-                    Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 22f));
+                    so.FindProperty("_shieldRadius").intValue = 8;
+                    so.FindProperty("_shieldReduction").floatValue = 0.88f;
+                    so.FindProperty("_warningBonus").floatValue = 45f;
+                    Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 32f));
                 },
             },
             new Def
@@ -591,15 +598,16 @@ namespace SpaceStation.Editor
             new Def
             {
                 Id = "OrbitalDefense", Name = "궤도 방어망", RecipeName = "궤도 방어망", Category = ModuleCategory.Defense, Color = "#B8C8FF", Stage = 3, UnlockGrade = 6,
-                Cells = Box(5, 2), Ingredients = new[] { ("Evolved/MD_Evo_ShieldDome", 1), ("Evolved/MD_Evo_Fortress", 1) }, SynthesisMetal = 1080f, Duration = 120f, Research = ResearchCategory.Defense,
+                // 바닥 5×2 + 실드 돔 위 2×2 (재료 칸 합 14, 2026-10-26)
+                Cells = Join(Box(5, 2), new[] { V(0, 1, 0), V(1, 1, 0), V(0, 1, 1), V(1, 1, 1) }), Ingredients = new[] { ("Evolved/MD_Evo_ShieldDome", 1), ("Evolved/MD_Evo_Fortress", 1) }, SynthesisMetal = 1550f, Duration = 120f, Research = ResearchCategory.Defense,
                 Rationale = "막과 포를 한 지휘망으로 · 막이 늦춘 운석을 포가 떨어뜨린다 (합류)",
                 Stats = so =>
                 {
-                    so.FindProperty("_shieldRadius").intValue = 8;
+                    so.FindProperty("_shieldRadius").intValue = 9;
                     so.FindProperty("_shieldReduction").floatValue = 0.9f;
                     so.FindProperty("_turretRadius").intValue = 5;
                     so.FindProperty("_turretInterceptChance").floatValue = 0.7f;
-                    so.FindProperty("_warningBonus").floatValue = 30f;
+                    so.FindProperty("_warningBonus").floatValue = 55f;
                     Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 45f));
                 },
             },

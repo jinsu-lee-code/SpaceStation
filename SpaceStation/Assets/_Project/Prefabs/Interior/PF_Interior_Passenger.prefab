@@ -300,6 +300,7 @@ GameObject:
   - component: {fileID: 5992369339383760988}
   - component: {fileID: 6026583596599580587}
   - component: {fileID: 4829093592030208183}
+  - component: {fileID: 5402658294504588073}
   m_Layer: 0
   m_Name: PF_Interior_Passenger
   m_TagString: Untagged
@@ -416,6 +417,55 @@ MonoBehaviour:
     Width: 0.6
     Height: 0.13
     Text: "\uC548\uB0B4"
+--- !u!114 &5402658294504588073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1671130904278508164}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48e6532be52fea24f879f1472963a74c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Interior.InteriorStatusScreens
+  _panels:
+  - Center: {x: -0.595, y: -0.43481445, z: 1}
+    Normal: {x: 1, y: -0, z: 0}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.36000007, y: 0.22998047}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.0059999614
+  - Center: {x: 0.595, y: -0.43481445, z: 1}
+    Normal: {x: -1, y: 0, z: 0}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.36000007, y: 0.22998047}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.0059999614
+  - Center: {x: 7.3, y: -0.26489258, z: 1.946}
+    Normal: {x: 0, y: 0, z: -1}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.1800003, y: 0.10986328}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.0069999485
+  - Center: {x: 8.7, y: -0.26489258, z: 1.946}
+    Normal: {x: 0, y: 0, z: -1}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.1800003, y: 0.10986328}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.0069999485
+  - Center: {x: 5.8, y: -0.17993164, z: -1.6549999}
+    Normal: {x: 0, y: 0, z: -1}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.47000027, y: 0.27001953}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.00600014
+  _backMaterial: {fileID: 2100000, guid: 307916ba3660317488945c4964c8fd35, type: 2}
 --- !u!1 &1901881052969729860
 GameObject:
   m_ObjectHideFlags: 0

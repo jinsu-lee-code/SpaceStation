@@ -19,6 +19,10 @@ MonoBehaviour:
   - {x: 1, y: 0, z: 0}
   - {x: 0, y: 0, z: 1}
   - {x: 1, y: 0, z: 1}
+  - {x: 0, y: 1, z: 0}
+  - {x: 1, y: 1, z: 0}
+  - {x: 0, y: 1, z: 1}
+  - {x: 1, y: 1, z: 1}
   _prefab: {fileID: 3441864105406478834, guid: c6cd739b9fa081746a5aa898ddca480f, type: 3}
   _icon: {fileID: 0}
   _removable: 1
@@ -26,15 +30,87 @@ MonoBehaviour:
   _dockFront: {x: 0, y: 0, z: 1}
   _approachLaneLength: 2
   _upperSidesNeedSupport: 0
-  _faceDepths: []
+  _faceDepths:
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: -1
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.4201953
+  - Cell: {x: 0, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: -1
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: 0.24619535
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.42019528
+  - Cell: {x: 1, y: 0, z: 0}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: 0.07450542
+  - Cell: {x: 0, y: 0, z: 1}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: -1
+  - Cell: {x: 0, y: 0, z: 1}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.4201953
+  - Cell: {x: 0, y: 0, z: 1}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: -1
+  - Cell: {x: 1, y: 0, z: 1}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: -1
+  - Cell: {x: 1, y: 0, z: 1}
+    Direction: {x: 0, y: -1, z: 0}
+    Depth: 0.42019528
+  - Cell: {x: 1, y: 0, z: 1}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: -1
+  - Cell: {x: 0, y: 1, z: 0}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: -1
+  - Cell: {x: 0, y: 1, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: -1
+  - Cell: {x: 0, y: 1, z: 0}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: -1
+  - Cell: {x: 1, y: 1, z: 0}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: -1
+  - Cell: {x: 1, y: 1, z: 0}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: -1
+  - Cell: {x: 1, y: 1, z: 0}
+    Direction: {x: 0, y: 0, z: -1}
+    Depth: -1
+  - Cell: {x: 0, y: 1, z: 1}
+    Direction: {x: -1, y: 0, z: 0}
+    Depth: -1
+  - Cell: {x: 0, y: 1, z: 1}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: -1
+  - Cell: {x: 0, y: 1, z: 1}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: -1
+  - Cell: {x: 1, y: 1, z: 1}
+    Direction: {x: 1, y: 0, z: 0}
+    Depth: -1
+  - Cell: {x: 1, y: 1, z: 1}
+    Direction: {x: 0, y: 1, z: 0}
+    Depth: -1
+  - Cell: {x: 1, y: 1, z: 1}
+    Direction: {x: 0, y: 0, z: 1}
+    Depth: -1
   _closedFaces: []
   _buildCost:
   - Type: 4
-    Amount: 950
+    Amount: 1890
   _production: []
   _consumption:
   - Type: 0
-    Amount: 22
+    Amount: 32
   _housingCapacity: 0
   _storageBonus: 0
   _solarPowered: 0
@@ -53,7 +129,7 @@ MonoBehaviour:
   _comingSoonNote: 
   _requiredRule: 0
   _adjacencyRelay: 0
-  _warningBonus: 20
+  _warningBonus: 45
   _researchSpeedBonus: 0
   _immigrationPort: 0
   _meteorWeightMultiplier: 1
@@ -61,13 +137,13 @@ MonoBehaviour:
   _decoyChance: 0
   _armored: 0
   _countsTowardGrade: 1
-  _gradeModuleCount: 4
+  _gradeModuleCount: 8
   _limitedModuleShare: 0
   _repairTimeMultiplier: 1
   _cargoInterval: 0
   _cargoFraction: 0
-  _shieldRadius: 6
-  _shieldReduction: 0.85
+  _shieldRadius: 8
+  _shieldReduction: 0.88
   _turretRadius: 0
   _turretInterceptChance: 0
   _controlRadius: 0

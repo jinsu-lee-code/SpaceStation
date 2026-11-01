@@ -354,6 +354,7 @@ GameObject:
   - component: {fileID: 7399309178797863404}
   - component: {fileID: 4304696141828278120}
   - component: {fileID: 8402791884689210909}
+  - component: {fileID: 7173403081819716174}
   m_Layer: 0
   m_Name: PF_Interior_Admin
   m_TagString: Untagged
@@ -460,6 +461,83 @@ MonoBehaviour:
   - {x: 1, y: 2.2, z: -2.35, w: 2.2}
   - {x: -2.35, y: 2.2, z: -2.35, w: 2.6}
   _laneHalfWidth: 0.35
+--- !u!114 &7173403081819716174
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4767362340448552978}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48e6532be52fea24f879f1472963a74c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Interior.InteriorStatusScreens
+  _panels:
+  - Center: {x: 4.9, y: -0.030029297, z: -2.832}
+    Normal: {x: -0, y: 0, z: 1}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.26000023, y: 0.100097656}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 0
+    Lift: 0
+  - Center: {x: 3.04, y: -0.17993164, z: -0.55}
+    Normal: {x: 1, y: 0, z: 0}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.47000003, y: 0.27001953}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.0059997826
+  - Center: {x: 3.04, y: -0.17993164, z: 0.55}
+    Normal: {x: 1, y: 0, z: 0}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.47000003, y: 0.27001953}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.0059997826
+  - Center: {x: 3.04, y: -0.17993164, z: 2.125}
+    Normal: {x: 1, y: 0, z: 0}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.4699998, y: 0.27001953}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.0059997826
+  - Center: {x: 5.8681955, y: -0.013915896, z: -0.80647016}
+    Normal: {x: 0.7677081, y: 0.2080507, z: -0.6060852}
+    Up: {x: -0.16329542, y: 0.97811806, z: 0.1289174}
+    Size: {x: 1.0999999, y: 0.5396405}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.0076408703
+  - Center: {x: 6.0683656, y: -0.013916254, z: 0.55}
+    Normal: {x: 0.97811794, y: 0.20805101, z: -0}
+    Up: {x: -0.20805103, y: 0.978118, z: 0}
+    Size: {x: 1.1, y: 0.53964055}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.0077859294
+  - Center: {x: 5.618054, y: -0.013916016, z: 1.7066481}
+    Normal: {x: 0.7683039, y: 0.2080506, z: 0.6053298}
+    Up: {x: -0.16342205, y: 0.97811806, z: -0.12875666}
+    Size: {x: 1.1000001, y: 0.5396404}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.007627385
+  - Center: {x: 8.818365, y: -0.013916254, z: 0.55}
+    Normal: {x: 0.9781181, y: 0.20805016, z: -0}
+    Up: {x: -0.20805018, y: 0.9781182, z: 0}
+    Size: {x: 1.1, y: 0.5396403}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.007645442
+  - Center: {x: 10.6, y: 0.21508789, z: -3.1169999}
+    Normal: {x: 0, y: 0, z: 1}
+    Up: {x: 0, y: 1, z: 0}
+    Size: {x: 0.4499998, y: 0.22998047}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.006000021
+  _backMaterial: {fileID: 2100000, guid: 307916ba3660317488945c4964c8fd35, type: 2}
 --- !u!1 &5077789885669901471
 GameObject:
   m_ObjectHideFlags: 0

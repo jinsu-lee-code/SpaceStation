@@ -62,9 +62,2038 @@ namespace SpaceStation.Editor
             BuildDamageControl();
             BuildFuelCell();
             BuildNewBasicTemplates();
+            BuildEvolvedTemplates();
             InteriorPlantSpots.SetAll();
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
+        }
+
+        /// <summary>
+        /// 진화 모듈 내부만 다시 만들기 (메뉴 SpaceStation/Interior/Build Evolved Templates, 2026-10-29~).
+        /// Blender `BlenderWork/Interior_Evo.blend`(텍스트 블록 `evo_kit` = 단계 키트 · `*_builder` = 모듈별) → `SM_Interior_Evo*.fbx`.
+        /// </summary>
+        [MenuItem("SpaceStation/Interior/Build Evolved Templates")]
+        public static void BuildEvolvedOnly()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogError("[InteriorTemplateBuilder] 플레이 모드를 끈 뒤 실행하세요.");
+                return;
+            }
+            InteriorSetup.CreateMaterials();
+            BuildEvolvedTemplates();
+            InteriorPlantSpots.SetAll();
+            AssetDatabase.SaveAssets();
+            InteriorSetup.Setup();
+            ResidentSpotBaker.BakeTemplates("IT_Evo"); // 주민 자리 (진화 템플릿만)
+        }
+
+        private static void BuildEvolvedTemplates()
+        {
+            BuildEvoResearch();
+            BuildEvoTower();
+            BuildEvoEco();
+            BuildEvoPowerBank();
+            BuildEvoWelfare();
+            BuildEvoCulture();
+            BuildEvoSolar();
+            BuildEvoFusion();
+            BuildEvoHydrogen();
+            BuildEvoGravity();
+            BuildEvoFarm();
+            BuildEvoMineral();
+            BuildEvoShield();
+            BuildEvoDefense();
+            BuildEvoArmor();
+            BuildEvoWorks();
+            BuildEvoEmergency();
+            BuildEvoReclaim();
+            BuildEvoLogistics();
+            BuildEvoStorage();
+            BuildEvoShipyard();
+            BuildEvoAutomation();
+            BuildEvoSecurity();
+        }
+
+        /// <summary>
+        /// 진화 1단계 보안청 (ㄱ자 3칸, se_builder — 사용자 2026-10-31 시안 1 "이대로 유니티로 옮겨줘"): 행정과 무력을 한 청사에 —
+        /// 남 홀 = 민원 · 치안 창구 (남쪽 문 안 보안 검색 아치 · 로비 바닥 별 배지, 창구 셋 = 유리 가림막 · 번호판 · 직원 의자 — 행정 관제소와 같은
+        /// <see cref="InteriorQueueBoard"/> (창구 줄이 x축과 나란 → 틀 90°), 창구를 보는 대기 의자 두 줄 · 가운데 통로 끝 발권기 · 남 벽 별 배지,
+        /// 지붕 둥근 창 = 유리 돔 아래 도는 순찰 드론 Drone, 동쪽 둥근 귀퉁이 순찰 장비함 · 드론 충전대 (빈 패드 = 순찰 나간 드론)),
+        /// 북 탑 = 감시 · 요격 관제 (레이더 상황판 = 실제 운석 예보 <see cref="InteriorRadar"/> · 쓸기 빛 Sweep · 뒤 휜 화면 벽 가운데 예보 화면 · 위 경광등 Beacon,
+        /// 서 벽 실제 정거장 지도 <see cref="InteriorStationMap"/>, 천장 포탑 축 (바둑판 띠) 속 포탑 받침 Turret · 쌍포 약실 BreechL · R —
+        /// <see cref="InteriorTurretAim"/>가 예보 방향으로 돌리고 낙하 중엔 쏨, 북쪽 둥근 귀퉁이 관제 책상 둘).
+        /// 문 자리 = 외형 면이 있는 바깥 면 8, 위 · 아래 해치 = 칸마다 (0번 칸 = 남서 귀퉁이, 탑 칸 위 = 상황판 서쪽 천장 · 아래 = 문 길 가운데).
+        /// </summary>
+        private static void BuildEvoSecurity()
+        {
+            const float ceiling = F + 3.8f;
+            var c00 = new Vector3Int(0, 0, 0);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var back = new Vector3Int(0, 0, -1);
+            var fwd = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, Socket),
+                new InteriorSocket(c00, back, Socket),
+                new InteriorSocket(c10, Vector3Int.right, Socket),
+                new InteriorSocket(c10, back, Socket),
+                new InteriorSocket(c10, fwd, Socket),
+                new InteriorSocket(c01, Vector3Int.left, Socket),
+                new InteriorSocket(c01, Vector3Int.right, Socket),
+                new InteriorSocket(c01, fwd, Socket),
+                new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(-1.9f, 0f, -1.9f)),     // 남서 귀퉁이 (검색 아치 발판 · 바닥 별 배지 비킴 — −1.8이면 발판이 2cm 걸림)
+                new InteriorSocket(c10, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.down, -F, Vector3.zero),                      // 탑 문 길 가운데 (포탑 축 아래)
+                new InteriorSocket(c00, Vector3Int.up, ceiling, new Vector3(-1.9f, 0f, -1.9f)),
+                new InteriorSocket(c10, Vector3Int.up, ceiling, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.up, ceiling, new Vector3(-2.0f, 0f, -3.0f)), // 상황판 서쪽 (포탑 축 · 빛 띠 비킴)
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var cool = new Color(0.78f, 0.86f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-0.8f, F + 3.0f, 0.4f), 6f, 1.2f, white),    // 로비
+                LightSpec.Point(new Vector3(4.0f, F + 3.0f, 2.3f), 6f, 1.2f, white),     // 창구 직원 쪽
+                LightSpec.Point(new Vector3(4.0f, F + 3.0f, -1.9f), 6f, 1.2f, white),    // 대기 의자
+                LightSpec.Point(new Vector3(4.0f, F + 3.4f, -0.3f), 3.5f, 0.6f, cool),   // 둥근 천창 · 순찰 드론
+                LightSpec.Point(new Vector3(9.6f, F + 3.0f, 0f), 6f, 1.3f, white),       // 홀 동쪽
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 4.0f), 6f, 1.2f, white),       // 탑 남쪽
+                LightSpec.Point(new Vector3(0f, F + 1.9f, 5.4f), 2.5f, 0.5f, cool),      // 레이더 상황판
+                LightSpec.Point(new Vector3(-2.2f, F + 2.5f, 4.9f), 3f, 0.6f, cool),     // 정거장 지도
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 9.6f), 6f, 1.2f, white),       // 탑 북쪽
+                LightSpec.Point(new Vector3(0f, F + 4.0f, 9.0f), 2.5f, 0.5f, white),     // 포탑 축 속
+                LightSpec.Point(new Vector3(0f, F + 2.2f, 10.4f), 4f, 0.7f, cool),       // 귀퉁이 관제 책상
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoSecurity_Drone", new Vector3(4.0f, 0f, -0.3f), Vector3.up, 18f),   // se_builder HC (+ = +x에서 −z 쪽 = 드론 앞)
+                new OrbitSpec("INT_EvoSecurity_Sweep", new Vector3(0f, 0f, 5.2f), Vector3.up, 60f),     // RC, 방어 포대와 같은 쓸기 빛
+            };
+            EvoAccent("SecurityBureau", "#7FA8FF");
+            // 스폰 = 남쪽 문 (x 0) 안, 검색 아치 너머 로비 별 배지 · 창구를 바라봄
+            Build("EvoSecurity", "Evolved/MD_Evo_SecurityBureau", sockets, new Vector3(0f, F, -2.45f), 15f, lights, orbits,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    // 레이더 상황판 (se_builder RC (0, 5.2) · 화면 반지름 0.86) = 실제 운석 예보, 예보 글 = 휜 화면 벽 가운데 짙은 화면 (반지름 1.72, −z를 봄)
+                    root.AddComponent<InteriorRadar>().Configure(new Vector3(0f, F + 0.958f, 5.2f), 0.78f,
+                        Child(root, "INT_EvoSecurity_Sweep")?.GetComponent<InteriorOrbit>(),
+                        Child(root, "INT_EvoSecurity_Beacon")?.GetComponent<Renderer>(),
+                        new Vector3(0f, F + 1.55f, 6.917f), Vector3.back, Vector3.up, new Vector2(0.7f, 0.5f));
+                    // 탑 서 벽 정거장 지도 (se_builder MAP_C · 흰 테 안쪽 2.28 × 1.18)
+                    root.AddComponent<InteriorStationMap>().Configure(new Vector3(-3.149f, F + 1.75f, 4.9f), Vector3.right, Vector3.up, new Vector2(2.24f, 1.14f),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath));
+                    // 창구 셋 · 발권기 (se_builder WIN_X · STAFF_Z · STAND_Z · KIOSK): 창구 줄이 x축과 나란 → 틀 90° (틀 좌표 = 프리팹 로컬을 −90° 돌린 것:
+                    // 틀 x = −z, 틀 z = x). 대기 의자 앞 → 줄 앞 (x로) → 가운데 통로 x 4 (z로) → 창구 앞 통로 z −0.05 (x로) → 창구 앞 z 0.55 / 통로 끝 발권기 앞 z −2.05
+                    var frame = Quaternion.Euler(0f, -90f, 0f);
+                    Vector3 Fr(float x, float y, float z) => frame * new Vector3(x, y, z);
+                    Vector4 Seg(float x0, float z0, float x1, float z1) => new Vector4(-z0, x0, -z1, x1);
+                    InteriorQueueBoard.Window Window(float x)
+                    {
+                        var stand = Fr(x, F, 0.55f);
+                        return new InteriorQueueBoard.Window
+                        {
+                            Board = new InteriorQueueBoard.Panel { Center = new Vector3(x, F + 2.5f, 0.829f), Normal = Vector3.back, Up = Vector3.up, Width = 0.7f, Height = 0.16f },
+                            StaffSeat = Fr(x, F + 0.49f, 1.95f),
+                            Counter = new Vector4(stand.x, stand.y, stand.z, 0f - 90f),   // 북 (창구)을 봄
+                        };
+                    }
+                    var ticketStand = Fr(4.0f, F, -2.05f);
+                    var queue = root.AddComponent<InteriorQueueBoard>();
+                    queue.ConfigureFrame(90f);
+                    queue.Configure(new[] { Window(2.2f), Window(4.0f), Window(5.8f) },
+                        new InteriorQueueBoard.Panel { Center = new Vector3(4.0f, F + 1.19f, -2.569f), Normal = Vector3.forward, Up = Vector3.up, Width = 0.32f, Height = 0.18f },
+                        new Vector4(ticketStand.x, ticketStand.y, ticketStand.z, 180f - 90f), 4.0f, 0.05f, 4.0f, ticketStand);   // 발권기를 봄 (남)
+                    // 민원인 통로 (보급 상자 · 부탁 물건을 두지 않음): 의자 줄 앞 둘 · 가운데 통로 (발권기까지) · 창구 앞 통로 · 창구 앞 셋
+                    queue.ConfigureLanes(new[]
+                    {
+                        Seg(1.7f, -0.45f, 6.3f, -0.45f), Seg(1.7f, -1.65f, 6.3f, -1.65f), Seg(4.0f, -2.05f, 4.0f, -0.05f),
+                        Seg(2.2f, -0.05f, 5.8f, -0.05f), Seg(2.2f, -0.05f, 2.2f, 0.55f), Seg(4.0f, -0.05f, 4.0f, 0.55f), Seg(5.8f, -0.05f, 5.8f, 0.55f),
+                    }, 0.35f);
+                    // 천장 포탑 축 (se_builder TC (0, 9) · 약실 x ±0.42, 높이 천장 + 0.22) — 받침 = 위 축, 약실 = 받침 자식 (−z로 밀림)
+                    var turret = Pivot("TurretPivot", r, new Vector3(0f, ceiling, 9f), "INT_EvoSecurity_Turret");
+                    var breechL = Pivot("BreechLPivot", turret, new Vector3(-0.42f, ceiling + 0.22f, 9f), "INT_EvoSecurity_BreechL");
+                    var breechR = Pivot("BreechRPivot", turret, new Vector3(0.42f, ceiling + 0.22f, 9f), "INT_EvoSecurity_BreechR");
+                    root.AddComponent<InteriorTurretAim>().Configure(turret, new[] { breechL, breechR }, 0.14f);
+                });
+        }
+
+        /// <summary>
+        /// 진화 1단계 자동화 센터 (ㄱ자 3칸, ac_builder — 사용자 2026-10-31 시안 1 "이대로 유니티로 옮겨줘"): 기록 → 학습 → 실습 —
+        /// 모서리 = 학습 코어 (천장 구멍 유리 돔 · 매달린 코어 구 · 도는 궤도 고리 RingA · B · 코어 탁자 위 홀로 팔 HoloTurret · HoloFore · 연구 책상 둘),
+        /// +x 칸 = 실습 정비 베이 (천창 · 둥근 패드 위 고장 판 · 로봇 팔 Turret · Fore가 금 두 줄을 번갈아 용접 — <see cref="InteriorMirrorArm"/>가 홀로 팔도 같이,
+        /// 정비 콘솔 · 예비 판 선반 · 정비 로봇 셋 · 부품 수레), +z 칸 = 정비 기록 연구실 (기록 서버장 · 기록 투영대 Logs가 돎 · 귀퉁이 연구 책상 둘),
+        /// 천장 = 기록이 흐르는 유리 관 둘 (속 나선 FlowA = 베이 → 코어, FlowB = 코어 → 서버).
+        /// 문 자리 = 외형 면이 있는 바깥 면 8 (ㄱ자 안쪽 모서리 두 면 포함), 위 · 아래 해치 = 칸마다 (0번 칸은 코어 · 돔 비킴).
+        /// </summary>
+        private static void BuildEvoAutomation()
+        {
+            const float ceiling = F + 3.8f;
+            var c00 = new Vector3Int(0, 0, 0);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var back = new Vector3Int(0, 0, -1);
+            var fwd = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, Socket),
+                new InteriorSocket(c00, back, Socket),
+                new InteriorSocket(c10, Vector3Int.right, Socket),
+                new InteriorSocket(c10, back, Socket),
+                new InteriorSocket(c10, fwd, Socket),
+                new InteriorSocket(c01, Vector3Int.left, Socket),
+                new InteriorSocket(c01, Vector3Int.right, Socket),
+                new InteriorSocket(c01, fwd, Socket),
+                new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(2.2f, 0f, -2.2f)),   // 코어 · 바닥 고리 비킴
+                new InteriorSocket(c10, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c00, Vector3Int.up, ceiling, new Vector3(2.4f, 0f, -2.4f)), // 돔 아래 테 (반지름 2.3) 밖
+                new InteriorSocket(c10, Vector3Int.up, ceiling, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.up, ceiling, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lavender = new Color(0.86f, 0.8f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, F + 3.6f, 0f), 5f, 1.0f, white),        // 돔 아래 (꼭대기 테에서 멀리 — 자재 재생 플랜트와 같음)
+                LightSpec.Point(new Vector3(0f, F + 2.0f, 0f), 3f, 0.6f, lavender),     // 코어 빛
+                LightSpec.Point(new Vector3(2.0f, F + 3.0f, 2.0f), 6f, 1.2f, white),    // 세 칸이 만나는 곳
+                LightSpec.Point(new Vector3(5.3f, F + 2.6f, -1.8f), 4f, 1.0f, warm),    // 실습대
+                LightSpec.Point(new Vector3(9.0f, F + 3.0f, 0f), 6f, 1.3f, white),      // 베이
+                LightSpec.Point(new Vector3(5.5f, F + 2.4f, 2.4f), 3.5f, 0.9f, cool),   // 정비 콘솔
+                LightSpec.Point(new Vector3(10.0f, F + 2.2f, -1.6f), 3f, 0.7f, cool),   // 정비 로봇
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 4.6f), 6f, 1.3f, white),      // 연구실
+                LightSpec.Point(new Vector3(0f, F + 3.0f, 9.0f), 6f, 1.2f, white),
+                LightSpec.Point(new Vector3(-1.9f, F + 2.4f, 4.9f), 3.5f, 0.8f, cool),  // 서버장
+                LightSpec.Point(new Vector3(2.0f, F + 2.4f, 5.3f), 3.5f, 0.8f, cool),
+            };
+            const float coreY = F + 2.6f, flowY = ceiling - 0.32f;
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoAutomation_RingA", new Vector3(0f, coreY, 0f), new Vector3(0f, 0.8829f, 0.4695f), 40f),   // 고리 자체 축 (ac_builder core_rings)
+                new OrbitSpec("INT_EvoAutomation_RingB", new Vector3(0f, coreY, 0f), new Vector3(0.6428f, 0.766f, 0f), -55f),
+                new OrbitSpec("INT_EvoAutomation_FlowA", new Vector3(0f, flowY, -0.45f), Vector3.right, 120f),     // 베이 → 코어 (−x)
+                new OrbitSpec("INT_EvoAutomation_FlowB", new Vector3(-2.2f, flowY, 0f), Vector3.forward, 120f),    // 코어 → 서버 (+z)
+                new OrbitSpec("INT_EvoAutomation_Logs", new Vector3(0f, 0f, 5.3f), Vector3.up, 12f),               // ac_builder LOGS
+            };
+            EvoAccent("AutomationCenter", "#C8B0FF");
+            // 스폰 = 모서리 칸 남쪽 문 안에서 학습 코어 · 유리 돔을 바라봄 (바닥 해치 비킴)
+            Build("EvoAutomation", "Evolved/MD_Evo_AutomationCenter", sockets, new Vector3(-0.9f, F, -2.3f), 30f, lights, orbits,
+                configure: root =>
+                {
+                    // ac_builder 값: 팔 기둥 ARM (4.1, −1.8) · 기둥 위 TURRET_Y · 위 팔 높이 ARM_Y · 팔꿈치 ELBOW_R · 토치 끝 TIP · 금 SEAM_YAW · 홀로 팔 HOLO_BASE · HOLO_S
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    const float turretY = F + 1.18f, armY = F + 1.36f, holoS = 0.38f;
+                    var armBase = new Vector3(4.1f, turretY, -1.8f);
+                    var elbow = new Vector3(4.1f + 1.3f, armY, -1.8f);
+                    var tip = new Vector3(4.1f + 1.565f, F + 0.822f, -1.8f);
+                    var holoBase = new Vector3(0f, F + 1.12f, 0f);
+                    Vector3 ToHolo(Vector3 p) => holoBase + (p - armBase) * holoS;
+                    var turret = Pivot("ArmTurretPivot", r, armBase, "INT_EvoAutomation_Turret");
+                    var fore = Pivot("ArmForePivot", turret, elbow, "INT_EvoAutomation_Fore");
+                    var holoTurret = Pivot("HoloTurretPivot", r, holoBase, "INT_EvoAutomation_HoloTurret");
+                    var holoFore = Pivot("HoloForePivot", holoTurret, ToHolo(elbow), "INT_EvoAutomation_HoloFore");
+                    root.AddComponent<InteriorMirrorArm>().Configure(turret, fore, holoTurret, holoFore,
+                        fore.InverseTransformPoint(r.TransformPoint(tip)), fore.InverseTransformDirection(r.TransformDirection(Vector3.up)),
+                        12f, 28f, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath));
+                });
+        }
+
+        /// <summary>
+        /// 진화 1단계 조선소 (3 × 2칸, sy_builder — 사용자 2026-10-31 시안 1 "이대로 유니티로 옮겨줘"): 한 홀 세 구역 —
+        /// 가운데 = 건조 도크 (z 방향 유리 아치 천장 아래 짓는 화물선: 뒤 반 = 판 붙인 흰 선체 · 엔진 셋 · 날개 · 별 배지, 앞 반 = 갈비뼈 골조,
+        /// 레일에 매달린 용접 갠트리 Gantry · 토치 Torch0 · 1이 판 이음선마다 옮겨 용접 — <see cref="InteriorShipyard"/>), 북 벽 = 출항 게이트
+        /// (도킹 앞면 · 연결 없음) · 위 = 실제 화물선 시계 <see cref="InteriorCargoBoard"/>.
+        /// 서 = 선체 판 공방 (용광로 → 롤러 길 → 3롤 굽힘기 Roll0 ~ 2가 돎 · 판 받침대 · 완성 판 수레 · 설계 홀로 탁자 Holo가 돎 ·
+        /// 남 창 아래 판 조립대 = 로봇 팔 토치 Torch2가 이음선 용접 <see cref="InteriorWelder"/>).
+        /// 동 = 출항 관제 콘솔 (상태 화면 둘) · 수리 드론 거치대 · 검사 아치 속 도는 드론 Drone · 엔진 점검 지그 (Engine이 제 축으로 돎) · 조종실 모듈 대차.
+        /// 문 자리 = 서 · 동 · 남 바깥 면 7, 위 · 아래 해치 = 칸마다 (가운데 줄은 아치 · 배 비킴).
+        /// </summary>
+        private static void BuildEvoShipyard()
+        {
+            const float ceiling = F + 3.8f;
+            var c00 = new Vector3Int(0, 0, 0);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c20 = new Vector3Int(2, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var c11 = new Vector3Int(1, 0, 1);
+            var c21 = new Vector3Int(2, 0, 1);
+            var back = new Vector3Int(0, 0, -1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, Socket),
+                new InteriorSocket(c01, Vector3Int.left, Socket),
+                new InteriorSocket(c20, Vector3Int.right, Socket),
+                new InteriorSocket(c21, Vector3Int.right, Socket),
+                new InteriorSocket(c00, back, Socket),
+                new InteriorSocket(c10, back, Socket),
+                new InteriorSocket(c20, back, Socket),
+                new InteriorSocket(c00, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c10, Vector3Int.down, -F, new Vector3(-2.8f, 0f, 0f)),    // 도크 서쪽 통로 (5.2, 0) — 배 · 받침 비킴
+                new InteriorSocket(c11, Vector3Int.down, -F, new Vector3(3.0f, 0f, 0f)),     // 도크 동쪽 통로 (11.0, 8)
+                new InteriorSocket(c20, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c21, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c00, Vector3Int.up, ceiling, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.up, ceiling, Vector3.zero),
+                new InteriorSocket(c10, Vector3Int.up, ceiling, new Vector3(-3.5f, 0f, 0f)),   // 아치 가장자리 보 (x 5.36) 밖 (4.5, 0)
+                new InteriorSocket(c11, Vector3Int.up, ceiling, new Vector3(3.5f, 0f, 0f)),    // (11.5, 8)
+                new InteriorSocket(c20, Vector3Int.up, ceiling, Vector3.zero),
+                new InteriorSocket(c21, Vector3Int.up, ceiling, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (float z in new[] { 0.2f, 4.4f, 8.6f })
+                lights.Add(LightSpec.Point(new Vector3(8f, F + 4.4f, z), 7f, 1.2f, white));      // 유리 아치 아래 도크
+            foreach (var (x, z) in new[] { (0f, 1.4f), (0f, 7f), (16f, 1.4f), (16f, 7f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, z), 6f, 1.35f, white));      // 공방 · 관제 쪽 평평한 천장
+            lights.Add(LightSpec.Point(new Vector3(1.2f, F + 2.6f, 9.0f), 4f, 1.0f, warm));       // 용광로 · 굽힘기
+            lights.Add(LightSpec.Point(new Vector3(2.9f, F + 2.4f, -1.6f), 3.5f, 0.9f, warm));    // 판 조립대
+            lights.Add(LightSpec.Point(new Vector3(15f, F + 2.4f, 9.4f), 3.5f, 0.9f, cool));      // 관제 콘솔
+            lights.Add(LightSpec.Point(new Vector3(13.4f, F + 2.4f, 3.0f), 4f, 0.9f, cool));      // 드론 검사 · 엔진 점검
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoShipyard_Roll0", new Vector3(2.8f, F + 1.035f, 0f), Vector3.forward, 40f),     // 위 롤러와 아래 롤러는 반대로 (판을 함께 밀어냄)
+                new OrbitSpec("INT_EvoShipyard_Roll1", new Vector3(2.3f, F + 0.8181f, 0f), Vector3.forward, -48f),
+                new OrbitSpec("INT_EvoShipyard_Roll2", new Vector3(3.3f, F + 0.8181f, 0f), Vector3.forward, -48f),
+                new OrbitSpec("INT_EvoShipyard_Holo", new Vector3(1.5f, 0f, 4.0f), Vector3.up, 15f),    // sy_builder HOLO
+                new OrbitSpec("INT_EvoShipyard_Drone", new Vector3(14.9f, 0f, 4.0f), Vector3.up, 20f),  // sy_builder STAND
+                new OrbitSpec("INT_EvoShipyard_Engine", new Vector3(12.5f, F + 0.95f, 1.7f), Vector3.right, 12f),
+            };
+            EvoAccent("Shipyard", "#90C8B0");
+            // 스폰 = 남서 문 (0번 칸) 안에서 판 조립대 · 공방 너머 도크를 바라봄 (바닥 해치 칸 중심 비킴)
+            Build("EvoShipyard", "Evolved/MD_Evo_Shipyard", sockets, new Vector3(0.6f, F, -2.2f), 40f, lights, orbits,
+                configure: root =>
+                {
+                    // sy_builder 값: 갠트리 모델 자세 z 2.6 · 판 이음선 SEAMS · 토치 끝 · 법선 TORCHES (선체 각 55°)
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    var spark = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath);
+                    var gantry = Pivot("GantryPivot", r, new Vector3(8f, ceiling - 0.34f, 2.6f), "INT_EvoShipyard_Gantry");
+                    var torchTips = new[] { new Vector3(6.9761f, F + 2.4523f, 2.6f), new Vector3(9.0239f, F + 2.4523f, 2.6f) };
+                    var torchNormals = new[] { new Vector3(-0.7681f, 0.6403f, 0f), new Vector3(0.7681f, 0.6403f, 0f) };
+                    var torches = new Transform[2];
+                    var tips = new Vector3[2];
+                    var normals = new Vector3[2];
+                    for (int i = 0; i < 2; i++)
+                    {
+                        torches[i] = Child(root, "INT_EvoShipyard_Torch" + i);
+                        if (torches[i] != null)
+                            torches[i].SetParent(gantry, true);
+                        tips[i] = torches[i] != null ? torches[i].InverseTransformPoint(r.TransformPoint(torchTips[i])) : torchTips[i];
+                        normals[i] = torches[i] != null ? torches[i].InverseTransformDirection(r.TransformDirection(torchNormals[i])) : torchNormals[i];
+                    }
+                    root.AddComponent<InteriorShipyard>().Configure(gantry, 2.6f, new[] { 1.4f, 2.6f, 3.8f }, torches, tips, normals, spark);
+                    // 판 조립대 로봇 팔 토치 (이음선 꼭대기, 위를 향한 법선)
+                    var jigTorch = Child(root, "INT_EvoShipyard_Torch2");
+                    var jigTip = new Vector3(2.9f, F + 1.02f, -2.1f);
+                    root.AddComponent<InteriorWelder>().Configure(new[] { jigTorch },
+                        new[] { jigTorch != null ? jigTorch.InverseTransformPoint(r.TransformPoint(jigTip)) : jigTip },
+                        new[] { jigTorch != null ? jigTorch.InverseTransformDirection(r.TransformDirection(Vector3.up)) : Vector3.up },
+                        spark);
+                    // 출항 게이트 위 화물선 시계 (sy_builder Y_Board 앞면 z 11.105, 가운데 F + 4.35, 2.16 × 0.62)
+                    root.AddComponent<InteriorCargoBoard>().Configure(new InteriorArrivalBoard.Panel
+                    {
+                        Center = new Vector3(8f, F + 4.35f, 11.1f), Normal = Vector3.back, Up = Vector3.up, Width = 2.1f, Height = 0.5f,
+                    });
+                });
+        }
+
+        /// <summary>
+        /// 진화 1단계 대형 창고 (2 × 2칸, bs_builder — 사용자 2026-10-31 시안 1 "이대로 유니티로 옮겨줘"): 칸막이 없는 한 공간 —
+        /// 가운데 = 양면 3단 높은 선반 세 줄 위 한 단 높인 고창 천장 (네 면 고창 = 창살 촘촘한 외형의 철창 · 가운데 천창 · 외형의 X자 아치 리브 둘),
+        /// 고창 레일의 다리 크레인이 윗단 상자 셋을 빈 윗단 칸으로 옮김 (<see cref="InteriorStorageCrane"/>).
+        /// 네 귀 = 외형 둥근 탑 자리의 유리 원통 회전 보관탑 (Carousel0 ~ 3), 남 = 크레인 조작 책상 · 북 = 재고 카운터 · 서 = 입고 작업대 · 동 = 출고 대기 팔레트.
+        /// 문 자리 = 칸마다 바깥 두 면 (8), 위 · 아래 해치 = 칸 중심 (천장 F + 3.8, 고창 밖).
+        /// </summary>
+        private static void BuildEvoStorage()
+        {
+            const float ceiling = F + 3.8f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                for (int z = 0; z < 2; z++)
+                {
+                    var cell = new Vector3Int(x, 0, z);
+                    sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                    sockets.Add(new InteriorSocket(cell, z == 0 ? new Vector3Int(0, 0, -1) : new Vector3Int(0, 0, 1), Socket));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling, Vector3.zero));
+                }
+            }
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, z) in new[] { (0f, 0f), (8f, 0f), (0f, 8f), (8f, 8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, z), 6f, 1.35f, white));       // 칸마다 (고창 밖 평평한 천장 — F + 3.2 · 1.4는 천장에 하얀 번짐, 플레이 확인 2026-10-31)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 3.6f, 4f), 5.5f, 1.0f, white));        // 고창 아래 (크레인 · 윗단 상자 — F + 3.9는 가운데 고리가 등처럼 하얗게 번짐)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.5f, 2.8f), 4f, 0.9f, cool));         // 선반 사이 통로 둘
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.5f, 5.2f), 4f, 0.9f, cool));
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.4f, -2.2f), 3.5f, 0.9f, white));     // 크레인 조작 책상 (남)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.4f, 10.2f), 3.5f, 0.9f, white));     // 재고 카운터 (북)
+            lights.Add(LightSpec.Point(new Vector3(-2.2f, F + 2.4f, 4f), 3.5f, 0.9f, warm));      // 입고 작업대 (서)
+            lights.Add(LightSpec.Point(new Vector3(10.2f, F + 2.4f, 4f), 3.5f, 0.9f, warm));      // 출고 팔레트 (동)
+            var orbits = new List<OrbitSpec>();
+            var towers = new[] { (-2.1f, -2.1f), (10.1f, -2.1f), (-2.1f, 10.1f), (10.1f, 10.1f) };   // bs_builder TOWERS
+            for (int k = 0; k < towers.Length; k++)
+                orbits.Add(new OrbitSpec($"INT_EvoStorage_Carousel{k}", new Vector3(towers[k].Item1, 0f, towers[k].Item2), Vector3.up, k % 2 == 0 ? 10f : -10f));
+            EvoAccent("BigStorage", "#B0C0A0");
+            // 스폰 = 남쪽 문 (0번 칸) 안에서 선반 · 고창을 바라봄 (바닥 해치 칸 중심 · 보관탑 비킴)
+            Build("EvoStorage", "Evolved/MD_Evo_BigStorage", sockets, new Vector3(0.6f, F, -2.2f), 30f, lights, orbits,
+                configure: root =>
+                {
+                    // bs_builder 값: 윗단 DECK · 칸 x TOP_X · 줄 z ROWS · 옮기는 상자 TOP_MOVE · 빈 칸 TOP_EMPTY · 크레인 RAIL_Y · GRIP_REST · CRANE_X_RANGE
+                    const float deck = F + 3.0f, gripRest = F + 4.0f, cableTop = F + 4.08f;
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    float[] topX = { 1.8f, 2.7f, 3.6f, 4.5f, 5.4f, 6.3f };
+                    float[] rowZ = { 1.6f, 4.0f, 6.4f };
+                    var cells = new[] { (0, 1), (1, 4), (2, 2), (0, 3), (1, 0), (2, 5), (1, 2) };   // 앞 셋 = 상자가 든 칸 (TOP_MOVE), 나머지 = 빈 칸 (TOP_EMPTY)
+                    var slots = new Vector3[cells.Length];
+                    for (int s = 0; s < cells.Length; s++)
+                        slots[s] = new Vector3(topX[cells[s].Item2], deck, rowZ[cells[s].Item1]);
+                    var crates = new Transform[3];
+                    for (int i = 0; i < 3; i++)
+                        crates[i] = Pivot("TopCrate" + i + "Pivot", r, slots[i], "INT_EvoStorage_Top" + i);
+                    var bridge = Pivot("CraneBridgePivot", r, new Vector3(4f, F + 4.45f, 4f), "INT_EvoStorage_Bridge");
+                    var trolley = Pivot("CraneTrolleyPivot", bridge, new Vector3(4f, F + 4.1f, 4f), "INT_EvoStorage_Trolley");
+                    var cable = Pivot("CraneCablePivot", trolley, new Vector3(4f, cableTop, 4f), "INT_EvoStorage_Cable");
+                    var grip = Pivot("CraneGripPivot", trolley, new Vector3(4f, gripRest, 4f), "INT_EvoStorage_Grip");
+                    root.AddComponent<InteriorStorageCrane>().Configure(new InteriorStorageCrane.Rig
+                    {
+                        Bridge = bridge, Trolley = trolley, Cable = cable, Grip = grip,
+                        RestX = 4f, RestZ = 4f, MinX = 1.6f, MaxX = 6.4f,
+                        GripRestY = gripRest, GripFrameHeight = 0.06f, CableTopY = cableTop, CableLength = 1f, CrateHeight = 0.45f,
+                    }, crates, slots);
+                });
+        }
+
+        /// <summary>
+        /// 진화 1단계 물류 허브 (3칸 일자 도킹, lh_builder — 사용자 2026-10-31 시안 1 "이대로 유니티로 옮겨줘"): 북 벽 = 화물선이 붙는 도킹 면 (연결점 없음) —
+        /// 파노라마 창 · 가운데 화물 하역문 (경고 줄무늬 틀, 위 = 실제 화물선 시계 <see cref="InteriorCargoBoard"/>) · 안쪽 스캔 아치 · 바닥 화살표 · 팔레트 상자.
+        /// 남 벽 문 사이 = 자동 창고 칸 둘 (3단 선반, 스태커 크레인 StackerA · B가 나르는 상자 둘을 비워 둔 칸 셋 사이로 넣고 뺌 — <see cref="InteriorLogistics"/>),
+        /// 머리 위 셔틀 레일 (셔틀 PodA · B가 하역문 쪽 덮개 속에서 상자를 받아 레일 끝 덮개 속에 내려놓음). 서쪽 끝 배차 콘솔 · 동쪽 끝 포장대 · 저울 · 카트.
+        /// 문 자리 = 연결점 있는 면 5 (양 끝 + 칸마다 남), 위 · 아래 해치 = 칸 중심.
+        /// </summary>
+        private static void BuildEvoLogistics()
+        {
+            const float ceiling = F + 3.8f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 3; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                if (x == 0)
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.left, Socket));
+                if (x == 2)
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling, Vector3.zero));
+            }
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (float x in new[] { -1.6f, 2.4f, 6.0f, 10.0f, 13.6f, 17.6f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, 0.2f), 6f, 1.35f, white));      // 홀 가운데 줄 (F + 3.2 · 1.6은 천장에 하얀 번짐)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.6f, -1.7f), 4f, 1.0f, cool));          // 창고 칸
+            lights.Add(LightSpec.Point(new Vector3(12f, F + 2.6f, -1.7f), 4f, 1.0f, cool));
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 2.4f, 2.4f), 4.5f, 1.0f, warm));         // 하역문 · 스캔 아치
+            lights.Add(LightSpec.Point(new Vector3(-0.5f, F + 2.4f, 2.0f), 3.5f, 0.8f, cool));      // 배차 콘솔
+            lights.Add(LightSpec.Point(new Vector3(16.8f, F + 2.4f, 2.0f), 3.5f, 0.8f, warm));      // 포장대
+            EvoAccent("LogisticsHub", "#8FE0B0");   // RecipeSetup 물류 허브 색 (#7CD957은 기본 화물 터미널 색 — 처음에 잘못 씀)
+            // 스폰 = 가운데 칸 남쪽 문 안에서 스캔 아치 · 하역문을 바라봄 (바닥 해치 칸 중심 비킴)
+            Build("EvoLogistics", "Evolved/MD_Evo_LogisticsHub", sockets, new Vector3(8f, F, -2.3f), 0f, lights,
+                configure: root =>
+                {
+                    // lh_builder 값: 선반 윗면 LEVELS · 넣고 빼는 칸 SWAP · 칸 x slot_x · 상자 z (짐판 위 CAR_Z · 칸 속 SLOT_Z) · 셔틀 덮개 HOUSINGS
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    float[] levels = { F + 0.12f, F + 1.17f, F + 2.22f };
+                    float SlotX(int bay, int k)
+                    {
+                        float x0 = bay == 0 ? 1.9f : 9.9f;
+                        float xa = k < 3 ? x0 + 0.08f : x0 + 2.1f + 0.04f;
+                        return xa + 0.34f + (k % 3) * 0.645f;
+                    }
+                    var swap = new[] { new[] { (0, 1), (1, 4), (2, 2) }, new[] { (0, 4), (1, 1), (2, 5) } };   // (단, 칸)
+                    const float slotZ = -2.70f, carZ = -2.10f;   // 짐판 위 상자는 기둥 앞 (레일 z −1.75 − 0.35 — 상자가 기둥을 뚫지 않게, 사용자 2026-10-31)
+                    var rest = new[] { (3.1f, F + 1.45f), (12.9f, F + 2.55f) };   // 스태커 모델 자세 (x, 짐판 윗면)
+                    var stackers = new InteriorLogistics.Stacker[2];
+                    for (int b = 0; b < 2; b++)
+                    {
+                        string l = b == 0 ? "A" : "B";
+                        var mast = Child(root, "INT_EvoLogistics_Stacker" + l);
+                        var car = Child(root, "INT_EvoLogistics_Stacker" + l + "Car");
+                        if (mast != null && car != null)
+                            car.SetParent(mast, true);
+                        var slots = new Vector3[3];
+                        for (int s = 0; s < 3; s++)
+                            slots[s] = new Vector3(SlotX(b, swap[b][s].Item2), levels[swap[b][s].Item1], slotZ);
+                        var crates = new[]
+                        {
+                            Pivot("Bay" + l + "Crate0Pivot", r, new Vector3(rest[b].Item1, rest[b].Item2, carZ), "INT_EvoLogistics_Bay" + l + "Crate0"),
+                            Pivot("Bay" + l + "Crate1Pivot", r, slots[1], "INT_EvoLogistics_Bay" + l + "Crate1"),
+                        };
+                        stackers[b] = new InteriorLogistics.Stacker
+                        {
+                            Mast = mast, Car = car, RestX = rest[b].Item1, RestCarY = rest[b].Item2, CarZ = carZ, Crates = crates, Slots = slots, FirstFull = 1,
+                        };
+                    }
+                    var podX = new[] { (4.6f, 5.9f, 1.9f), (11.6f, 10.1f, 14.1f) };   // (모델 x, 받는 덮개, 내리는 덮개)
+                    var pods = new InteriorLogistics.Pod[2];
+                    for (int i = 0; i < 2; i++)
+                    {
+                        string l = i == 0 ? "A" : "B";
+                        var body = Child(root, "INT_EvoLogistics_Pod" + l);
+                        var crate = Child(root, "INT_EvoLogistics_Pod" + l + "Crate");
+                        if (body != null && crate != null)
+                            crate.SetParent(body, true);
+                        pods[i] = new InteriorLogistics.Pod { Body = body, Crate = crate, RestX = podX[i].Item1, PickX = podX[i].Item2, DropX = podX[i].Item3 };
+                    }
+                    root.AddComponent<InteriorLogistics>().Configure(stackers, pods);
+                    // 하역문 위 안내판 (lh_builder L_Board 앞면 z 3.1, 가운데 F + 3.47, 2.1 × 0.5 — 아치에 가리지 않게 천장 가까이)
+                    root.AddComponent<InteriorCargoBoard>().Configure(new InteriorArrivalBoard.Panel
+                    {
+                        Center = new Vector3(8f, F + 3.47f, 3.1f), Normal = Vector3.back, Up = Vector3.up, Width = 2.1f, Height = 0.5f,
+                    });
+                });
+        }
+
+        /// <summary>
+        /// 진화 1단계 자재 재생 플랜트 (2 × 2칸, mr_builder — 사용자 2026-10-31 시안 1 "이대로 유니티로 옮겨줘. 천장의 구멍에 유리돔 깔끔하게 씌우는거 잊지말구"):
+        /// 가운데 = 천장 구멍을 덮는 큰 유리 돔 (Window 얇은 껍질 — 아래 테 · 꼭대기 테 속으로 가장자리가 묻힘, 끝 뚜껑 없음: 뚜껑이 있으면 천장 높이 평평한 창이
+        /// 갈비살을 가림 — 플레이 확인 2026-10-31, 흰 갈비살 · 모듈 색 띠) 아래 둥근 단 위 재생로
+        /// (쇳물 웅덩이 · 유리 난간 · 네 귀 폐자재 깔때기), 돔 꼭대기 돛대의 집게 크레인 (<see cref="InteriorScrapCrane"/> — 남 컨베이어가 실어 온
+        /// 압축 폐자재 덩이를 집어 쇳물에 넣음), 머리 위 컨베이어 둘 (남 = 덩이 들어옴 F + 2.1, 벽 쪽 덮개에서 나옴 · 동 = 주괴 나감). 벽마다 작업대 = 남 선별대 · 동 주형 줄 · 북 분해 작업대 · 서 제어 콘솔 (상태 화면 둘).
+        /// 문 자리 = 칸마다 바깥 두 면 (8), 위 · 아래 해치 = 칸 중심 (천장 F + 3.8, 돔 테 밖).
+        /// </summary>
+        private static void BuildEvoReclaim()
+        {
+            const float ceiling = F + 3.8f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                for (int z = 0; z < 2; z++)
+                {
+                    var cell = new Vector3Int(x, 0, z);
+                    sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                    sockets.Add(new InteriorSocket(cell, z == 0 ? new Vector3Int(0, 0, -1) : new Vector3Int(0, 0, 1), Socket));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling, Vector3.zero));
+                }
+            }
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, z) in new[] { (0f, 0f), (8f, 0f), (0f, 8f), (8f, 8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.3f, z), 6f, 1.5f, white));        // 칸마다 (돔 밖 평평한 천장)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 3.6f, 4f), 5f, 1.0f, white));          // 돔 아래 (갈비살 · 크레인 — 꼭대기 테에 가까우면 하얗게 번짐, 플레이 확인 2026-10-31)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 1.7f, 4f), 4.5f, 1.2f, new Color(1f, 0.6f, 0.25f)));   // 쇳물 빛
+            lights.Add(LightSpec.Point(new Vector3(4.8f, F + 2.4f, -2.2f), 3.5f, 0.9f, white));   // 선별대 (남)
+            lights.Add(LightSpec.Point(new Vector3(10.2f, F + 2.4f, 4f), 3.5f, 0.9f, warm));      // 주형 줄 (동)
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.4f, 10.2f), 3.5f, 0.9f, white));     // 분해 작업대 (북)
+            lights.Add(LightSpec.Point(new Vector3(-2.2f, F + 2.4f, 4f), 3.5f, 0.9f, cool));      // 제어 콘솔 (서)
+            EvoAccent("MaterialReclaimer", "#D8B080");
+            // 스폰 = 남쪽 문 (0번 칸) 안에서 돔 아래 재생로를 바라봄 (바닥 해치 칸 중심 비킴)
+            Build("EvoReclaim", "Evolved/MD_Evo_MaterialReclaimer", sockets, new Vector3(0.6f, F, -2.2f), 30f, lights,
+                configure: root =>
+                {
+                    // 집게 크레인 (사용자 2026-10-31 "기계팔이 진짜로 옆쪽에서 물건을 집어와서 용광로에 넣는 동작", mr_builder crane):
+                    // 붐 = 돛대 축 피벗 → 트롤리 (모델 반지름 1.0) → 줄 위 끝 · 집게 경첩 → 손가락 경첩 넷. 덩이 본은 가운데 피벗
+                    const float hinge = F + 2.47f, cableTop = F + 3.21f, beltY = F + 2.232f + 0.11f;
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    var boom = Pivot("CraneBoomPivot", r, new Vector3(4f, 0f, 4f), "INT_EvoReclaim_CraneBoom");
+                    var trolley = Pivot("CraneTrolleyPivot", boom, new Vector3(5f, 0f, 4f), "INT_EvoReclaim_CraneTrolley");
+                    var cable = Pivot("CraneCablePivot", trolley, new Vector3(5f, cableTop, 4f), "INT_EvoReclaim_CraneCable");
+                    var claw = Pivot("CraneClawPivot", trolley, new Vector3(5f, hinge, 4f), "INT_EvoReclaim_CraneClaw");
+                    var fingers = new Transform[4];
+                    var axes = new Vector3[4];
+                    for (int k = 0; k < 4; k++)
+                    {
+                        float a = Mathf.PI / 4f + Mathf.PI / 2f * k;
+                        var d = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                        fingers[k] = Pivot("CraneFingerPivot" + k, claw, new Vector3(5f, hinge, 4f) + d * 0.1f, "INT_EvoReclaim_CraneFinger" + k);
+                        axes[k] = Vector3.Cross(d, Vector3.up);   // + = 손가락 끝이 바깥으로 (벌림)
+                    }
+                    var bale = Pivot("ScrapBalePivot", r, new Vector3(4f, beltY, -2.85f), "INT_EvoReclaim_Bale");
+                    root.AddComponent<InteriorScrapCrane>().Configure(boom, trolley, cable, claw, fingers, axes, bale,
+                        new Vector3(4f, beltY, -2.85f), new Vector3(4f, beltY, 0.05f), new Vector3(0.2f, 0.11f, 0.16f), new Vector3(4f, F + 0.9f, 4f),
+                        1f, 0.7f, hinge, F + 3.0f, cableTop, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath));
+                });
+        }
+
+        /// <summary>
+        /// 진화 1단계 비상 대응 센터 (ㄱ자 3칸, ec_builder — 사용자 2026-10-30 시안 1 "이대로 유니티에서 한번 보여줄래? 휑한 느낌이 드는지 보게"):
+        /// 지휘탑 (0번 칸, 원통 천장 F + 5.0 · 둘레 고창 띠 · 천창 아래 도는 경광등 INT_EvoEmergency_Beacon · 가운데 상황 테이블 = 실제 정거장 지도
+        /// <see cref="InteriorStationMap"/>을 눕힘), 출동실 (+x 칸 — 유리 발사관 둘 속 천천히 도는 진화 드론 DroneA · B · 발사 콘솔 둘 · 소화약제 선반),
+        /// 긴급 보수실 (+z 칸 — 주황 · 흰 아치 유리 볼트 · 휜 보수판 이음선을 용접하는 팔 (토치 Torch0, <see cref="InteriorWelder"/>) · 보수판 선반).
+        /// 문 자리 = 연결점 있는 면 4, 바닥 해치 = 칸마다, 위 해치 = 지휘탑 천장 (경광등 · 천창 비킴).
+        /// </summary>
+        private static void BuildEvoEmergency()
+        {
+            const float tower = F + 5.0f;
+            var c00 = new Vector3Int(0, 0, 0);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, Socket),
+                new InteriorSocket(c00, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c10, Vector3Int.right, Socket),
+                new InteriorSocket(c01, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(-1.9f, 0f, -2.0f)),    // 두 문 사이 바깥 모서리 (테이블 · 주민 비킴)
+                new InteriorSocket(c10, Vector3Int.down, -F, new Vector3(-0.8f, 0f, -1.8f)),    // 창 쪽 길 (7.2, −1.8)
+                new InteriorSocket(c01, Vector3Int.down, -F, new Vector3(2.3f, 0f, -3.7f)),     // 보수실 들머리 (2.3, 4.3)
+                new InteriorSocket(c00, Vector3Int.up, tower, new Vector3(1.4f, 0f, -1.4f)),    // 지휘탑 천장 (천창 · 경광등 비킴)
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, z) in new[] { (-1.4f, -1.4f), (1.4f, -1.4f), (-1.4f, 1.4f), (1.4f, 1.4f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.3f, z), 5f, 1.3f, white));        // 지휘탑
+            lights.Add(LightSpec.Point(new Vector3(0f, tower - 1.0f, 0f), 4f, 0.8f, new Color(1f, 0.6f, 0.25f)));   // 경광등 주황빛
+            foreach (float x in new[] { 4.6f, 7.2f, 10.0f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.3f, -1.6f), 5f, 1.3f, white));    // 출동실 창 쪽 길
+            foreach (var (tx, tz) in new[] { (5.8f, 0.5f), (8.6f, 0.5f) })
+                lights.Add(LightSpec.Point(new Vector3(tx, F + 2.7f, tz), 2.5f, 0.6f, cool));     // 발사관 속
+            foreach (float z in new[] { 4.4f, 7.0f, 9.6f })
+                lights.Add(LightSpec.Point(new Vector3(0f, F + 3.6f, z), 5.5f, 1.4f, white));     // 보수실 볼트 아래
+            lights.Add(LightSpec.Point(new Vector3(0f, F + 2.4f, 7.0f), 3.5f, 0.8f, warm));      // 용접대
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoEmergency_Beacon", Vector3.zero, Vector3.up, 150f),
+                new OrbitSpec("INT_EvoEmergency_DroneA", new Vector3(5.8f, 0f, 0.5f), Vector3.up, 25f),
+                new OrbitSpec("INT_EvoEmergency_DroneB", new Vector3(8.6f, 0f, 0.5f), Vector3.up, -25f),
+            };
+            EvoAccent("EmergencyCenter", "#FFB07F");
+            // 스폰 = 남쪽 문 안 서쪽에서 상황 테이블 · 출동실 쪽을 바라봄 (테이블 남동 주민이 바로 앞을 가리지 않게 — 플레이 확인 2026-10-30)
+            Build("EvoEmergency", "Evolved/MD_Evo_EmergencyCenter", sockets, new Vector3(-0.7f, F, -2.4f), 25f, lights, orbits,
+                configure: root =>
+                {
+                    // 상황 테이블 윗면 (F + 0.951, ec_builder E_TableScreen 1.76 × 1.2) = 실제 정거장 지도 (지도 위 = +z, 오른쪽 = +x — 남쪽에서 읽힘)
+                    root.AddComponent<InteriorStationMap>().Configure(new Vector3(0f, F + 0.951f, 0f), Vector3.up, Vector3.forward, new Vector2(1.72f, 1.16f),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath));
+                    // 보수판 이음선 용접 (ec_builder TORCHES — 토치 끝 · 이음선 법선)
+                    var torch = Child(root, "INT_EvoEmergency_Torch0");
+                    var tip = new Vector3(0.3221f, F + 1.0115f, 7.0f);
+                    var normal = new Vector3(0.2474f, 0.9689f, 0f);
+                    root.AddComponent<InteriorWelder>().Configure(new[] { torch },
+                        new[] { torch != null ? torch.InverseTransformPoint(root.transform.TransformPoint(tip)) : tip },
+                        new[] { torch != null ? torch.InverseTransformDirection(root.transform.TransformDirection(normal)) : normal },
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath));
+                });
+        }
+
+        /// <summary>
+        /// 진화 1단계 정비 공창 (3 × 2칸, mw_builder — 사용자 2026-10-30 시안 1 "이대로 옮겨줘 내부에서 체크할게"): 양 격납고 홀 (x 방향 유리 볼트 천장 ·
+        /// 흰 갈비살, 홀마다 양 끝 수리 패드 둘 = 수리 자리 넷 — 도는 회전판 위 고칠 부품 INT_EvoWorks_Pad0 ~ 3 · 용접 팔 (토치 Torch0 ~ 3 끝 불꽃) · 진단 콘솔, 가운데 작업대 위 도는 로봇 팔 ArmA · B,
+        /// 볼트 아래 다리 크레인), 가운데 띠 = 공용 부품 창고 (유리 원통 속 회전 선반 CarouselA · B · 두 홀을 잇는 건널목 · 노란 안전선).
+        /// 문 자리 = 연결점 있는 면 6, 바닥 해치 = 칸마다, 위 해치 = 가운데 줄 두 칸 (창고 건널목 평평한 천장), 천장 F + 4.0 (볼트 꼭대기 F + 5.15).
+        /// </summary>
+        private static void BuildEvoWorks()
+        {
+            const float ceiling = F + 4.0f;
+            var c00 = new Vector3Int(0, 0, 0);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c20 = new Vector3Int(2, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var c11 = new Vector3Int(1, 0, 1);
+            var c21 = new Vector3Int(2, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, Socket),
+                new InteriorSocket(c01, Vector3Int.left, Socket),
+                new InteriorSocket(c20, Vector3Int.right, Socket),
+                new InteriorSocket(c21, Vector3Int.right, Socket),
+                new InteriorSocket(c10, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c11, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(-2.25f, 0f, 2.6f)),     // 패드 · 부품 선반 비킴 (창고 띠 쪽 끝)
+                new InteriorSocket(c10, Vector3Int.down, -F, new Vector3(-2.6f, 0f, 2.6f)),      // 건널목 (5.4, 2.6)
+                new InteriorSocket(c20, Vector3Int.down, -F, new Vector3(2.25f, 0f, 2.6f)),
+                new InteriorSocket(c01, Vector3Int.down, -F, new Vector3(-2.25f, 0f, -2.6f)),
+                new InteriorSocket(c11, Vector3Int.down, -F, new Vector3(2.6f, 0f, -2.6f)),      // 건널목 (10.6, 5.4)
+                new InteriorSocket(c21, Vector3Int.down, -F, new Vector3(2.25f, 0f, -2.6f)),
+                new InteriorSocket(c10, Vector3Int.up, ceiling, new Vector3(-1.2f, 0f, 3.4f)),   // 창고 띠 평평한 천장 (6.8, 3.4)
+                new InteriorSocket(c11, Vector3Int.up, ceiling, new Vector3(1.2f, 0f, -3.4f)),   // (9.2, 4.6)
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.85f, 0.65f);
+            var cool = new Color(0.75f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (float zc in new[] { -0.4f, 8.4f })
+            {
+                foreach (float x in new[] { -1.2f, 4.0f, 8.0f, 12.0f, 17.2f })
+                    lights.Add(LightSpec.Point(new Vector3(x, F + 3.4f, zc), 6f, 1.5f, white));   // 볼트 아래 홀
+            }
+            foreach (var (x, z) in new[] { (0f, -0.4f), (16f, -0.4f), (0f, 8.4f), (16f, 8.4f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.8f, z), 3.5f, 0.8f, warm));      // 수리 패드
+            lights.Add(LightSpec.Point(new Vector3(6f, F + 3.2f, 4f), 5f, 1.2f, white));         // 창고 띠 건널목
+            lights.Add(LightSpec.Point(new Vector3(10f, F + 3.2f, 4f), 5f, 1.2f, white));
+            lights.Add(LightSpec.Point(new Vector3(2f, F + 2.0f, 4f), 2.5f, 0.6f, cool));         // 부품 선반 원통 속
+            lights.Add(LightSpec.Point(new Vector3(14f, F + 2.0f, 4f), 2.5f, 0.6f, cool));
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoWorks_Pad0", new Vector3(0f, 0f, -0.4f), Vector3.up, 10f),
+                new OrbitSpec("INT_EvoWorks_Pad1", new Vector3(16f, 0f, -0.4f), Vector3.up, -10f),
+                new OrbitSpec("INT_EvoWorks_Pad2", new Vector3(0f, 0f, 8.4f), Vector3.up, -10f),
+                new OrbitSpec("INT_EvoWorks_Pad3", new Vector3(16f, 0f, 8.4f), Vector3.up, 10f),
+                new OrbitSpec("INT_EvoWorks_ArmA", new Vector3(8f, 0f, -0.4f), Vector3.up, 15f),
+                new OrbitSpec("INT_EvoWorks_ArmB", new Vector3(8f, 0f, 8.4f), Vector3.up, -15f),
+                new OrbitSpec("INT_EvoWorks_CarouselA", new Vector3(2f, 0f, 4f), Vector3.up, 12f),
+                new OrbitSpec("INT_EvoWorks_CarouselB", new Vector3(14f, 0f, 4f), Vector3.up, -12f),
+            };
+            EvoAccent("MaintenanceWorks", "#FFC07F");
+            // 스폰 = 창고 띠 건널목에서 앞 홀 서쪽 패드 쪽을 바라봄
+            Build("EvoWorks", "Evolved/MD_Evo_MaintenanceWorks", sockets, new Vector3(5.2f, F, 4.2f), -130f, lights, orbits,
+                configure: root =>
+                {
+                    // 수리 패드 용접 팔 토치 (사용자 2026-10-30, mw_builder TORCHES): 토치를 패드 아래로 옮겨 부품 · 팔과 함께 돌게 하고, 끝에서 불꽃.
+                    // 짝수 = 선체 통 점검 판 끝 이음선 · 홀수 = 추진 노즐 옆면. 모델의 발광 구는 뺌
+                    var centers = new[] { new Vector2(0f, -0.4f), new Vector2(16f, -0.4f), new Vector2(0f, 8.4f), new Vector2(16f, 8.4f) };
+                    var torches = new Transform[4];
+                    var tips = new Vector3[4];
+                    var normals = new Vector3[4];
+                    for (int i = 0; i < 4; i++)
+                    {
+                        torches[i] = Child(root, "INT_EvoWorks_Torch" + i);
+                        var pad = Child(root, "INT_EvoWorks_Pad" + i);
+                        if (torches[i] != null && pad != null)
+                            torches[i].SetParent(pad, true);
+                        var c = centers[i];
+                        var tip = i % 2 == 0 ? new Vector3(c.x + 0.1144f, F + 1.4145f, c.y + 0.248f) : new Vector3(c.x + 0.1102f, F + 1.0579f, c.y + 0.4108f);
+                        var n = i % 2 == 0 ? new Vector3(0.1987f, 0.9801f, 0f) : new Vector3(0.2379f, 0.395f, 0.8873f);
+                        tips[i] = torches[i] != null ? torches[i].InverseTransformPoint(root.transform.TransformPoint(tip)) : tip;
+                        normals[i] = torches[i] != null ? torches[i].InverseTransformDirection(root.transform.TransformDirection(n)) : n;
+                    }
+                    root.AddComponent<InteriorWelder>().Configure(torches, tips, normals, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath));
+                });
+        }
+
+        /// <summary>
+        /// 진화 1단계 장갑 외벽 (3칸 일자, aw_builder — 사용자 2026-10-30 시안 1 다듬음 "이대로 옮겨줘"): 긴 방패 회랑 — 문 사이 벽 넷 = 안쪽으로 기운 장갑면
+        /// (밝은 회색 틈 위 큰 흰 육각판 · 고정 띠 양옆 큰 육각 바깥 창 하나씩 — 환공포증 배려로 판을 크게 · 대비를 낮게 · 구멍 창을 흩지 않음),
+        /// 칸 경계 = 짙은 고정 띠 갈비 (기운 면 · 천장을 넘음), 천장 미끼 신호등 셋 (유리 갓 속 도는 빛 날개 — INT_EvoArmor_Beacon0 · 1 · 2, 외형의 돔 셋),
+        /// 가운데 칸 = 장갑판 수리장 (천장 회전대에 매달려 도는 로봇 팔 Arm · 수리대 위 육각판 · 예비 판 선반 넷 — 빠른 수리),
+        /// 양 끝 칸 = 충격 감시실 (큰 칸 일곱 육각 상황판 · 바깥 모서리 감시 콘솔 둘). 문 자리 = 연결점 있는 면 8, 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoArmor()
+        {
+            const float ceiling = F + 4.0f;
+            var c0 = new Vector3Int(0, 0, 0);
+            var c1 = new Vector3Int(1, 0, 0);
+            var c2 = new Vector3Int(2, 0, 0);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c0, Vector3Int.left, Socket),
+                new InteriorSocket(c0, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c0, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c1, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c1, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c2, Vector3Int.right, Socket),
+                new InteriorSocket(c2, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c2, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c0, Vector3Int.down, -F, new Vector3(0f, 0f, -2.2f)),      // 상황판 밖 −z 길
+                new InteriorSocket(c1, Vector3Int.down, -F, new Vector3(-2.5f, 0f, 0f)),      // 고정 띠와 수리대 사이 (x 5.5)
+                new InteriorSocket(c2, Vector3Int.down, -F, new Vector3(0f, 0f, 2.2f)),
+                new InteriorSocket(c0, Vector3Int.up, ceiling, new Vector3(-1.9f, 0f, 0f)),   // 미끼 신호등 · 빛 띠 비킴
+                new InteriorSocket(c1, Vector3Int.up, ceiling, new Vector3(-2.5f, 0f, 0f)),   // 고정 띠 · 로봇 팔 회전대 비킴
+                new InteriorSocket(c2, Vector3Int.up, ceiling, new Vector3(1.9f, 0f, 0f)),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var steel = new Color(0.8f, 0.86f, 0.95f);
+            var lights = new List<LightSpec>();
+            foreach (float cx in new[] { 0f, 8f, 16f })
+            {
+                foreach (var (dx, z) in new[] { (-1.6f, 1.6f), (-1.6f, -1.6f), (1.6f, 1.6f), (1.6f, -1.6f) })
+                    lights.Add(LightSpec.Point(new Vector3(cx + dx, F + 3.3f, z), 5f, 1.3f, white));
+            }
+            foreach (float bx in new[] { 0f, 10.5f, 16f })
+                lights.Add(LightSpec.Point(new Vector3(bx, F + 3.3f, 0f), 3f, 0.6f, steel));   // 미끼 신호등 빛
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoArmor_Arm", new Vector3(8f, 0f, 0f), Vector3.up, 12f),
+                new OrbitSpec("INT_EvoArmor_Beacon0", new Vector3(0f, 0f, 0f), Vector3.up, 90f),
+                new OrbitSpec("INT_EvoArmor_Beacon1", new Vector3(10.5f, 0f, 0f), Vector3.up, 90f),
+                new OrbitSpec("INT_EvoArmor_Beacon2", new Vector3(16f, 0f, 0f), Vector3.up, 90f),
+            };
+            EvoAccent("ArmorWall", "#B0B8C0");
+            // 스폰 = 서쪽 감시실에서 회랑 (+x)을 바라봄
+            Build("EvoArmor", "Evolved/MD_Evo_ArmorWall", sockets, new Vector3(1.4f, F, -1.5f), 75f, lights, orbits);
+        }
+
+        /// <summary>
+        /// 진화 1단계 방어 포대 (3칸 일자, db_builder — 사용자 2026-10-30 시안 1 "일단 유니티에 넣어줘 직접 들어가서 체크해볼게"): 포탑 둘을 장갑 뒤에 묶어 한 사격 통제로 —
+        /// 양 끝 칸 = 포탑실 (천장 위로 솟은 흰 돔 · 관측 창 여덟 · 꼭대기 원 = 위 해치, 베어링 레일에 매달려 도는 포탑 고리 — 쌍포 약실 · 평형추 · 급탄 회전판
+        /// (INT_EvoDefense_TurretA · B), 바닥 탄약고 드럼 + 유리 승강관 속 탄 나선 (HoistA · B — 돌면 탄이 솟아 보임), 바깥 모서리 사수 콘솔 둘),
+        /// 가운데 칸 = 장갑 벙커 사격 통제실 (양쪽 장갑 격벽 문틀 · 탄 선반, 외형 같은 가는 틈 창 + 아래 책상 넷, 레이더 상황판 = 센서 어레이와 같은
+        /// <see cref="InteriorRadar"/> (쓸기 빛 Sweep · 실제 유성우 · 포격 예보 운석 점 · 경광등 Beacon · −z 책상 예보 화면), 둥근 천창으로 내려온 도는 레이더 돛대 (Mast)).
+        /// 문 자리 = 연결점 있는 면 8, 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoDefense()
+        {
+            const float ceiling = F + 4.0f;
+            const float domeTop = F + 5.15f;   // db_builder DOME_TOP (포탑실 돔 꼭대기 평평한 원)
+            var c0 = new Vector3Int(0, 0, 0);
+            var c1 = new Vector3Int(1, 0, 0);
+            var c2 = new Vector3Int(2, 0, 0);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c0, Vector3Int.left, Socket),
+                new InteriorSocket(c0, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c0, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c1, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c1, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c2, Vector3Int.right, Socket),
+                new InteriorSocket(c2, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c2, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c0, Vector3Int.down, -F, new Vector3(0f, 0f, -2.2f)),     // 탄약고 드럼 · 바닥 빛 고리 밖 −z 길
+                new InteriorSocket(c1, Vector3Int.down, -F, new Vector3(-2.8f, 0f, 0f)),     // 격벽 문틀과 상황판 사이 (x 5.2)
+                new InteriorSocket(c2, Vector3Int.down, -F, new Vector3(0f, 0f, 2.2f)),
+                new InteriorSocket(c0, Vector3Int.up, domeTop, Vector3.zero),                // 돔 꼭대기 평평한 원
+                new InteriorSocket(c1, Vector3Int.up, ceiling, new Vector3(2.7f, 0f, 0f)),   // 천창 · 신호 줄 · 문틀 비킴 (x 10.7)
+                new InteriorSocket(c2, Vector3Int.up, domeTop, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var coral = new Color(1f, 0.56f, 0.56f);
+            var lights = new List<LightSpec>();
+            foreach (float cx in new[] { 0f, 16f })
+            {
+                foreach (var (dx, z) in new[] { (-1.4f, 2.4f), (-1.4f, -2.4f), (1.4f, 2.4f), (1.4f, -2.4f) })
+                    lights.Add(LightSpec.Point(new Vector3(cx + dx, F + 3.0f, z), 5f, 1.3f, white));   // 포탑 고리 레일 밖
+                lights.Add(LightSpec.Point(new Vector3(cx, F + 4.4f, 0f), 4f, 1.0f, white));            // 돔 속
+                lights.Add(LightSpec.Point(new Vector3(cx, F + 2.4f, 0f), 2.5f, 0.4f, coral));          // 승강관 (드럼 바로 위는 드럼이 분홍으로 물들었음)
+            }
+            foreach (var (x, z) in new[] { (5.7f, 1.7f), (5.7f, -1.7f), (10.3f, 1.7f), (10.3f, -1.7f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.3f, z), 5f, 1.4f, white));              // 벙커
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 1.5f, 0f), 2.5f, 0.8f, coral));              // 레이더 상황판 빛
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoDefense_TurretA", new Vector3(0f, 0f, 0f), Vector3.up, 9f),
+                new OrbitSpec("INT_EvoDefense_TurretB", new Vector3(16f, 0f, 0f), Vector3.up, -7f),
+                new OrbitSpec("INT_EvoDefense_HoistA", new Vector3(0f, 0f, 0f), Vector3.up, 90f),    // + = 탄 나선이 위로 오르는 것처럼 (광물 승강 기둥과 같은 나선)
+                new OrbitSpec("INT_EvoDefense_HoistB", new Vector3(16f, 0f, 0f), Vector3.up, 90f),
+                new OrbitSpec("INT_EvoDefense_Sweep", new Vector3(8f, 0f, 0f), Vector3.up, 60f),     // + = 밝은 앞 가장자리 (+x)가 앞장서고 부채꼴 (+z 쪽)이 뒤따름
+                new OrbitSpec("INT_EvoDefense_Mast", new Vector3(8f, 0f, 0f), Vector3.up, 30f),
+            };
+            EvoAccent("DefenseBattery", "#FF8F8F");
+            // 스폰 = 서쪽 포탑실 격벽 문틀 앞에서 탄약고 · 포탑 고리를 바라봄
+            Build("EvoDefense", "Evolved/MD_Evo_DefenseBattery", sockets, new Vector3(2.4f, F, 1.6f), -125f, lights, orbits,
+                // 레이더 = 센서 어레이와 같은 실제 예보 (사용자 2026-10-30 "레이더는 기존에 있던 걸"): 유성우 · 포격이 오는 방향에 운석 점 · 쓸기 빛이 지날 때 밝아짐,
+                // 경광등 = 돛대 아래 미끼 표지 빛 고리, 예보 글 = 상황판 쪽 −z 책상의 어두운 화면 (db_builder)
+                configure: root => root.AddComponent<InteriorRadar>().Configure(
+                    new Vector3(8f, F + 0.958f, 0f), 0.9f,
+                    Child(root, "INT_EvoDefense_Sweep")?.GetComponent<InteriorOrbit>(),
+                    Child(root, "INT_EvoDefense_Beacon")?.GetComponent<Renderer>(),
+                    new Vector3(5.55f, F + 1.14f, -2.825f), Vector3.forward, Vector3.up, new Vector2(0.58f, 0.32f)));
+        }
+
+        /// <summary>
+        /// 진화 1단계 실드 매트릭스 (ㄱ자 3칸, sm_builder — 사용자 2026-10-30 시안 1 확정 "유니티에 넣어줘"): 모서리 칸 = 매트릭스 코어실 —
+        /// 천장 위로 솟은 유리 돔 (바깥 창 · 갈비살 · 꼭대기 평평한 원 = 위 해치) 아래 유리 구 속 빛나는 코어 구슬 + 기운 고리 둘이 돎 (INT_EvoShield_RingA · RingB),
+        /// 두 팔 = 장 증폭 통로 — 천장 밑 유리 도관 속 빛 구슬 나선이 노드 쪽으로 흐르는 것처럼 돎 (FlowX · FlowZ) · 팔 칸 가운데 발생 노드 · 벽쪽 관제 콘솔 둘씩.
+        /// 문 자리 = 연결점 있는 면 8, 바닥 해치 = 칸마다 (코어 · 노드 비킴), 위 해치 = 모서리 돔 꼭대기 (F + 5.15) · 팔은 벽쪽, 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoShield()
+        {
+            const float ceiling = F + 4.0f;
+            const float domeTop = F + 5.15f;   // sm_builder DOME_TOP
+            const float coreY = F + 1.55f, flowY = F + 3.45f;
+            var corner = new Vector3Int(0, 0, 0);
+            var armX = new Vector3Int(1, 0, 0);
+            var armZ = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(corner, Vector3Int.left, Socket),
+                new InteriorSocket(corner, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(armX, Vector3Int.right, Socket),
+                new InteriorSocket(armX, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(armX, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(armZ, Vector3Int.left, Socket),
+                new InteriorSocket(armZ, Vector3Int.right, Socket),
+                new InteriorSocket(armZ, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(corner, Vector3Int.down, -F, new Vector3(-1.9f, 0f, -1.9f)),   // 코어 받침 밖 모서리 쪽
+                new InteriorSocket(armX, Vector3Int.down, -F, new Vector3(0f, 0f, 2.2f)),
+                new InteriorSocket(armZ, Vector3Int.down, -F, new Vector3(2.2f, 0f, 0f)),
+                new InteriorSocket(corner, Vector3Int.up, domeTop, Vector3.zero),                   // 돔 꼭대기 평평한 원
+                new InteriorSocket(armX, Vector3Int.up, ceiling, new Vector3(0f, 0f, -2.2f)),      // 도관 · 빛 띠 밖
+                new InteriorSocket(armZ, Vector3Int.up, ceiling, new Vector3(-2.2f, 0f, 0f)),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var blue = new Color(0.55f, 0.78f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, coreY, 0f), 4f, 1.5f, blue),                // 코어 빛
+                LightSpec.Point(new Vector3(-2.1f, F + 3.2f, -2.1f), 5f, 1.3f, white),      // 코어실
+                LightSpec.Point(new Vector3(2.1f, F + 3.2f, -2.1f), 5f, 1.1f, white),
+                LightSpec.Point(new Vector3(-2.1f, F + 3.2f, 2.1f), 5f, 1.1f, white),
+                LightSpec.Point(new Vector3(5.2f, F + 3.3f, 1.9f), 5f, 1.4f, white),        // +x 팔
+                LightSpec.Point(new Vector3(5.2f, F + 3.3f, -1.9f), 5f, 1.4f, white),
+                LightSpec.Point(new Vector3(9.6f, F + 3.3f, 0f), 5f, 1.4f, white),
+                LightSpec.Point(new Vector3(8f, F + 1.3f, 0f), 2.5f, 0.8f, blue),           // 노드 빛
+                LightSpec.Point(new Vector3(1.9f, F + 3.3f, 5.2f), 5f, 1.4f, white),        // +z 팔
+                LightSpec.Point(new Vector3(-1.9f, F + 3.3f, 5.2f), 5f, 1.4f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.3f, 9.6f), 5f, 1.4f, white),
+                LightSpec.Point(new Vector3(0f, F + 1.3f, 8f), 2.5f, 0.8f, blue),
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoShield_RingA", new Vector3(0f, coreY, 0f), new Vector3(0f, 0.8829f, 0.4695f), 40f),   // 고리 자체 축 (sm_builder RING AXES)
+                new OrbitSpec("INT_EvoShield_RingB", new Vector3(0f, coreY, 0f), new Vector3(0.6428f, 0.766f, 0f), -55f),
+                new OrbitSpec("INT_EvoShield_FlowX", new Vector3(0f, flowY, 0f), Vector3.right, -120f),     // − = +x (노드 쪽)으로 흐름
+                new OrbitSpec("INT_EvoShield_FlowZ", new Vector3(0f, flowY, 0f), new Vector3(0f, 0f, 1f), 120f), // + = +z (노드 쪽)으로 흐름
+            };
+            EvoAccent("ShieldMatrix", "#8FB8FF");
+            // 스폰 = 코어실 −z 문 안쪽 옆에서 코어와 +x 팔을 바라봄
+            Build("EvoShield", "Evolved/MD_Evo_ShieldMatrix", sockets, new Vector3(-1.6f, F, -2.0f), 55f, lights, orbits);
+        }
+
+        /// <summary>
+        /// 진화 1단계 광물 처리 단지 (3칸 일자, mc_builder — 사용자 2026-10-30 시안 1 확정 "이대로 옮겨보자"): 광석이 들어와 금속이 되는 한 줄 —
+        /// 가운데 칸 = 하역장 (z 방향 아치 볼트 · 꼭대기 유리 천창 띠 · +z 도킹 문에서 오는 착륙 화살표 · 분쇄기 깔때기 → 광석 승강 기둥 (INT_EvoMineral_OreLift — 유리 관 속 나선이 돎)),
+        /// 천장 밑 갈림 상자에서 양쪽 용광로로 유리 나사 이송관 둘 (AugerA · AugerB — 광석이 붙은 나선이 돌아 바깥쪽으로 실려 가는 것처럼 보임, 외형의 황동 관),
+        /// 양 끝 칸 = 허리 높이 항아리 용광로 (유리 난간 너머 녹은 금속 웅덩이 · 빛나는 틈 창 · 배기 후드 · 광석 낙하 관) + 바깥쪽 모서리 주괴 더미.
+        /// 문 자리 = 연결점 있는 면 8, 바닥 해치 = 칸마다 (용광로 · 분쇄기 비킴), 위 해치 = 칸마다 (가운데 칸은 볼트 밖 평평한 천장), 천장 F + 4.0 (하역장 볼트 꼭대기 F + 5.0).
+        /// </summary>
+        private static void BuildEvoMineral()
+        {
+            const float ceiling = F + 4.0f;
+            var c0 = new Vector3Int(0, 0, 0);
+            var c1 = new Vector3Int(1, 0, 0);
+            var c2 = new Vector3Int(2, 0, 0);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c0, Vector3Int.left, Socket),
+                new InteriorSocket(c0, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c0, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c1, new Vector3Int(0, 0, 1), Socket),   // 도킹 쪽
+                new InteriorSocket(c1, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c2, Vector3Int.right, Socket),
+                new InteriorSocket(c2, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c2, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c0, Vector3Int.down, -F, new Vector3(0f, 0f, -2.2f)),      // 용광로 옆 −z 길
+                new InteriorSocket(c1, Vector3Int.down, -F, new Vector3(-2.9f, 0f, 0f)),      // 분쇄기 서쪽
+                new InteriorSocket(c2, Vector3Int.down, -F, new Vector3(0f, 0f, -2.2f)),
+                new InteriorSocket(c0, Vector3Int.up, ceiling, new Vector3(-2.2f, 0f, 0f)),   // 후드 · 천장 빛 띠 비킴
+                new InteriorSocket(c1, Vector3Int.up, ceiling, new Vector3(-3.0f, 0f, 1.6f)), // 볼트 밖 평평한 천장 · 이송관 걸이 비킴
+                new InteriorSocket(c2, Vector3Int.up, ceiling, new Vector3(2.2f, 0f, 0f)),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var melt = new Color(1f, 0.55f, 0.2f);
+            var lights = new List<LightSpec>();
+            foreach (float cx in new[] { 0f, 16f })
+            {
+                foreach (var (dx, z) in new[] { (-1.6f, 1.9f), (-1.6f, -1.9f), (1.6f, 1.9f), (1.6f, -1.9f) })
+                    lights.Add(LightSpec.Point(new Vector3(cx + dx, F + 3.3f, z), 5f, 1.4f, white));
+                lights.Add(LightSpec.Point(new Vector3(cx, F + 1.6f, 0f), 3.5f, 1.6f, melt));   // 녹은 금속 빛
+            }
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 3.6f, 1.9f), 6f, 1.6f, white));       // 하역장 (볼트 밑)
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 3.6f, -1.9f), 6f, 1.6f, white));
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 2.6f, 1.4f), 3f, 0.8f, white));       // 분쇄기 깔때기 위
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoMineral_OreLift", new Vector3(8f, 0f, 0f), Vector3.up, 90f),          // + = 나선이 위로 오르는 것처럼
+                new OrbitSpec("INT_EvoMineral_AugerA", new Vector3(0f, F + 3.3f, 0f), Vector3.right, 120f),  // + = −x (서쪽 용광로)로 실려 감
+                new OrbitSpec("INT_EvoMineral_AugerB", new Vector3(0f, F + 3.3f, 0f), Vector3.right, -120f), // − = +x (동쪽 용광로)로 실려 감
+            };
+            EvoAccent("MineralComplex", "#C0A080");
+            // 스폰 = 서쪽 용광로 옆 +z 길에서 하역장 쪽을 바라봄
+            Build("EvoMineral", "Evolved/MD_Evo_MineralComplex", sockets, new Vector3(2.6f, F, 2.1f), 100f, lights, orbits);
+        }
+
+        /// <summary>
+        /// 진화 1단계 수직 농장 (2칸 × 2층 + 꼭대기 1칸, vf_builder — 사용자 2026-10-29 시안 1 확정 "이대로 넣어줘"): 세 층을 가운데 칸 유리 엘리베이터로 잇음
+        /// (<see cref="InteriorLift"/>, 1층 F · 2층 8 + F · 꼭대기 16 + F, 문 = +x 홀 쪽 — 문짝은 z로 열림).
+        /// 1층 = 등을 맞댄 3단 재배 선반 (상추 · 재배등) + 창가 길, 2층 = 상추가 나선으로 박힌 공중 재배 기둥 넷이 천천히 돎 (INT_EvoFarm_Tower1~4) + 창가 모종 선반,
+        /// 꼭대기 = 빛나는 배양액 통 셋 (둘레로 거품이 돌며 오름 — INT_EvoFarm_Bubbles1~3) + 관제 책상 + 천창.
+        /// 문 자리 = 연결점 있는 면 (11), 바닥 해치 = 1층 두 칸 (+z 창가 길), 위 해치 = 2층 +x 칸 (기둥 고리 조명 비킴) · 꼭대기 (+x 천창 자리), 천장 F + 4.0 (층마다).
+        /// </summary>
+        private static void BuildEvoFarm()
+        {
+            const float ceiling = F + 4.0f;   // 칸 중심 기준 (층마다 같음)
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(0, 1, 0), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(0, 1, 0), new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(new Vector3Int(1, 1, 0), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(0, 2, 0), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(0, 2, 0), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(0, 2, 0), new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(new Vector3Int(0, 2, 0), new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, 2.2f)),    // 엘리베이터 옆 창가 길
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, 2.3f)),    // 선반 옆 창가 길
+                new InteriorSocket(new Vector3Int(1, 1, 0), Vector3Int.up, ceiling, new Vector3(1.6f, 0f, 0f)), // 기둥 고리 조명 밖
+                new InteriorSocket(new Vector3Int(0, 2, 0), Vector3Int.up, ceiling, new Vector3(2.25f, 0f, 0f)),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.82f, 0.55f);
+            var lights = new List<LightSpec>();
+            foreach (float floor in new[] { F, 8f + F })
+            {
+                foreach (float x in new[] { 2.6f, 6.2f, 9.8f })
+                {
+                    lights.Add(LightSpec.Point(new Vector3(x, floor + 3.3f, 1.95f), 5.5f, 1.6f, white));    // 창가 길 위
+                    lights.Add(LightSpec.Point(new Vector3(x, floor + 3.3f, -1.95f), 5.5f, 1.6f, white));
+                }
+                lights.Add(LightSpec.Point(new Vector3(-1.9f, floor + 3.2f, 0f), 5f, 1.4f, white));         // 엘리베이터 뒤
+            }
+            lights.Add(LightSpec.Point(new Vector3(5.8f, 8f + F + 2.6f, 0f), 4f, 0.8f, new Color(0.8f, 1f, 0.75f)));   // 재배 기둥 사이 (초록빛)
+            foreach (var (x, z) in new[] { (1.8f, 0f), (-1.8f, 0f), (0f, 1.8f), (0f, -1.8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, 16f + F + 3.1f, z), 4.5f, 1.2f, white));          // 배양실
+            foreach (var (x, z) in new[] { (2.3f, 2.3f), (2.3f, -2.3f), (-2.3f, 2.3f) })
+                lights.Add(LightSpec.Point(new Vector3(x, 16f + F + 1.7f, z), 2.6f, 0.7f, warm));           // 배양 통 빛
+            var orbits = new List<OrbitSpec>();
+            var towers = new[] { 3.4f, 5.0f, 6.6f, 8.2f };
+            for (int k = 0; k < towers.Length; k++)
+                orbits.Add(new OrbitSpec($"INT_EvoFarm_Tower{k + 1}", new Vector3(towers[k], 0f, 0f), Vector3.up, k % 2 == 0 ? 8f : -8f));   // 이웃끼리 반대로 천천히
+            var vats = new[] { new Vector3(2.3f, 0f, 2.3f), new Vector3(2.3f, 0f, -2.3f), new Vector3(-2.3f, 0f, 2.3f) };
+            for (int k = 0; k < vats.Length; k++)
+                orbits.Add(new OrbitSpec($"INT_EvoFarm_Bubbles{k + 1}", vats[k], Vector3.up, 150f));   // + 방향 = 나선이 위로 오르는 것처럼 보임 (수소 플랜트와 같음)
+            EvoAccent("VerticalFarm", "#8FE07A");
+            // 스폰 = +x 끝 문 안쪽에서 +z 창가 길과 선반을 바라봄
+            Build("EvoFarm", "Evolved/MD_Evo_VerticalFarm", sockets, new Vector3(10.3f, F, 1.6f), -110f, lights, orbits,
+                configure: root =>
+                {
+                    // 유리 엘리베이터 (거주 타워 · 중력 거주구와 같은 틀, 세 층 · 문이 +x를 봄)
+                    var car = Child(root, "INT_EvoFarm_LiftCar");
+                    var carGlass = Child(root, "INT_EvoFarm_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[3];
+                    var right = new Transform[3];
+                    for (int k = 0; k < 3; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoFarm_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoFarm_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoFarm_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoFarm_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, 8f, 16f }, left, right, new Vector3(0f, F + 0.085f, 0f), Vector3.forward, 0.8f);
+                });
+        }
+
+        /// <summary>
+        /// 진화 1단계 중력 거주구 (3 × 3 + 꼬리 2칸, gh_builder — 사용자 2026-10-29 시안 3 확정 "유니티로 옮겨볼래?"):
+        /// 가운데 칸 = 유리 엘리베이터 탑 (1층 F ↔ 2층 전망실 F + 2.9, <see cref="InteriorLift"/>) · 탑 둘레 허브 (벤치 · 유리 벽 · 미니 링 + 바퀴살이 돎 — INT_EvoGravity_Spokes),
+        /// 2층 전망실 = 천장을 뚫고 솟은 둥근 방, 낮은 턱 위 360° 바깥 창 (INT_EvoGravity_Lookout — <see cref="InteriorLookoutWindow"/>: 자기 링이 보이게 탑 꼭대기 위에서 그림) ·
+        /// 망원경 (<see cref="InteriorTelescope"/> — 머리 INT_EvoGravity_Scope, F로 들여다봄), 허브 밖 원형 통로 (창가 벤치 · 나무 화단), 꼬리 2칸 = 주민 골목 (작은 집 넷 · 둥근 탁자).
+        /// 문 자리 = 연결점 있는 면 (8), 바닥 해치 = 칸마다 (가운데 (3.2, 0) · 모서리는 안쪽 대각선), 위 해치 = 연결점 있는 칸 (가운데 = 전망실 지붕 (−2.55, 0)), 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoGravity()
+        {
+            const float ceiling = F + 4.0f;
+            const float roof = F + 5.15f;   // gh_builder ROOF (전망실 지붕 아랫면)
+            const float deck = 2.9f;        // 2층 높이 (LV[1] − F)
+            const float lookoutLift = 3.8f;
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(1, 0, 0), new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 3), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 3), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 4), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 4), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 4), new Vector3Int(0, 0, 1), Socket),
+            };
+            // 바닥 해치: 칸마다 (모서리 칸 중심은 둥근 벽 가까이 → 안쪽 대각선으로), 위 해치: 바깥 모델 윗면이 있는 칸 (모서리 칸 없음)
+            foreach (var (cell, offset) in new[]
+                     {
+                         (new Vector3Int(0, 0, 0), new Vector3(0.6f, 0f, 0.6f)), (new Vector3Int(2, 0, 0), new Vector3(-0.6f, 0f, 0.6f)),
+                         (new Vector3Int(0, 0, 2), new Vector3(0.6f, 0f, -0.6f)), (new Vector3Int(2, 0, 2), new Vector3(-0.6f, 0f, -0.6f)),
+                         (new Vector3Int(1, 0, 0), Vector3.zero), (new Vector3Int(0, 0, 1), Vector3.zero), (new Vector3Int(2, 0, 1), Vector3.zero),
+                         (new Vector3Int(1, 0, 2), Vector3.zero), (new Vector3Int(1, 0, 3), Vector3.zero), (new Vector3Int(1, 0, 4), Vector3.zero),
+                         (new Vector3Int(1, 0, 1), new Vector3(3.2f, 0f, 0f)),   // 허브 +x 길 (벤치 · 화분 사이)
+                     })
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, offset));
+            foreach (var cell in new[] { new Vector3Int(1, 0, 0), new Vector3Int(0, 0, 1), new Vector3Int(2, 0, 1), new Vector3Int(1, 0, 2), new Vector3Int(1, 0, 3), new Vector3Int(1, 0, 4) })
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling, Vector3.zero));
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.up, roof, new Vector3(-2.55f, 0f, 0f)));   // 전망실 지붕 (탑 둘레 빛 고리 밖)
+
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.93f, 0.82f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, z) in new[] { (12f, 8f), (4f, 8f), (8f, 12f), (8f, 4f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.4f, z), 6f, 1.6f, white));      // 허브 (전망실 바닥 밑)
+            for (int k = 0; k < 8; k++)
+            {
+                float a = (22.5f + 45f * k) * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(8f + Mathf.Cos(a) * 9f, F + 3.4f, 8f + Mathf.Sin(a) * 9f), 6.5f, 1.8f, white));   // 원형 통로
+            }
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 3.3f, 23.5f), 7f, 2.0f, warm));     // 골목
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 3.3f, 31f), 7f, 2.0f, warm));
+            for (int k = 0; k < 3; k++)
+            {
+                float a = (30f + 120f * k) * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(8f + Mathf.Cos(a) * 2.4f, F + 4.8f, 8f + Mathf.Sin(a) * 2.4f), 4f, 1.0f, white));   // 전망실
+            }
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoGravity_Spokes", new Vector3(8f, 0f, 8f), Vector3.up, 12f),   // 허브 미니 링 + 바퀴살 (바깥 회전 링처럼 천천히)
+            };
+            EvoAccent("GravityHabitat", "#9FD8FF");
+            var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+            // 스폰 = −z 문 안쪽에서 허브 · 탑을 바라봄 (바닥 해치 (8, 0) 앞)
+            Build("EvoGravity", "Evolved/MD_Evo_GravityHabitat", sockets, new Vector3(8f, F, -1.8f), 0f, lights, orbits,
+                configure: root =>
+                {
+                    // 유리 엘리베이터 (거주 타워와 같은 틀): 캡슐 · 층 문 · 호출 버튼 · 캡슐 안 층 버튼
+                    var car = Child(root, "INT_EvoGravity_LiftCar");
+                    var carGlass = Child(root, "INT_EvoGravity_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[2];
+                    var right = new Transform[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoGravity_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoGravity_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoGravity_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoGravity_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, deck }, left, right, new Vector3(8f, F + 0.085f, 8f), Vector3.right, 0.8f);
+                    // 전망실 바깥 창: 탑 꼭대기 위에서 그림 (자기 링 보임)
+                    var lookout = Child(root, "INT_EvoGravity_Lookout");
+                    lookout.gameObject.AddComponent<MeshCollider>().sharedMesh = lookout.GetComponent<MeshFilter>().sharedMesh;
+                    lookout.gameObject.AddComponent<InteriorLookoutWindow>().Lift = lookoutLift;
+                    // 망원경: 머리 경계 상자 (시선 광선) + 들여다보기
+                    var head = Child(root, "INT_EvoGravity_Scope");
+                    BoxOf(head, 0.06f);
+                    root.AddComponent<InteriorTelescope>().Configure(head, new Vector3(8f, F + deck + 1.3f, 11f), 8f, lookoutLift, font);
+                });
+        }
+
+        /// <summary>
+        /// 진화 1단계 수소 플랜트 (ㄱ자 3칸, hp_builder — 사용자 2026-10-29 시안 1 확정 "이대로 옮겨줘"): 모서리 칸 전기분해조 — 흰 기둥 두른 유리 통 · 빛나는 물 ·
+        /// 전극 둘 위로 천장까지 쌍둥이 유리관, 전극 · 관을 따라 나선 거품이 돌아 솟는 것처럼 보임 (INT_EvoHydrogen_BubblesA 수소 · BubblesB 산소 — 움직이는 메인 부품),
+        /// +x 칸 = 누운 연료전지 더미 + 따라 도는 빛 고리 (Pulse) · 출력 장 · 흐름 제어대, +z 칸 = 물 구체 · 산소 구체 · 화분 둘, 천장 밑 수소 · 산소 · 물 관.
+        /// 문 자리 = 연결점 있는 면 모두 (8), 바닥 · 위 해치 = 칸마다 (모서리 칸 (2.75, ·, −2.1) · +x 칸 (5.2, ·, 0) — 장치를 비킴), 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoHydrogen()
+        {
+            const float ceiling = F + 4.0f;
+            var corner = new Vector3Int(0, 0, 0);
+            var east = new Vector3Int(1, 0, 0);
+            var north = new Vector3Int(0, 0, 1);
+            var hatch0 = new Vector3(2.75f, 0f, -2.1f);
+            var hatch1 = new Vector3(5.2f - 8f, 0f, 0f);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(corner, Vector3Int.left, Socket),
+                new InteriorSocket(corner, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(corner, Vector3Int.down, -F, hatch0),
+                new InteriorSocket(corner, Vector3Int.up, ceiling, hatch0),
+                new InteriorSocket(east, Vector3Int.right, Socket),
+                new InteriorSocket(east, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(east, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(east, Vector3Int.down, -F, hatch1),
+                new InteriorSocket(east, Vector3Int.up, ceiling, hatch1),
+                new InteriorSocket(north, Vector3Int.left, Socket),
+                new InteriorSocket(north, Vector3Int.right, Socket),
+                new InteriorSocket(north, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(north, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(north, Vector3Int.up, ceiling, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-1.9f, F + 2.85f, 0f), 6f, 2.0f, white),       // 전기분해조 −x
+                LightSpec.Point(new Vector3(1.6f, F + 2.85f, 1.6f), 5f, 1.4f, white),       // 모서리 안쪽 (두 날개 이음)
+                LightSpec.Point(new Vector3(0f, F + 0.9f, 1.5f), 2.5f, 0.6f, new Color(0.6f, 0.9f, 1f)),   // 물 빛
+                LightSpec.Point(new Vector3(8.8f, F + 2.85f, -1.6f), 6f, 1.8f, white),      // 연료전지
+                LightSpec.Point(new Vector3(8.8f, F + 2.85f, 1.9f), 6f, 1.8f, white),
+                LightSpec.Point(new Vector3(8.15f, F + 2.4f, 0f), 3f, 0.6f, new Color(1f, 0.92f, 0.7f)),   // 더미 위
+                LightSpec.Point(new Vector3(-1.9f, F + 2.85f, 8.4f), 6f, 1.8f, white),      // 저장 칸
+                LightSpec.Point(new Vector3(1.9f, F + 2.85f, 8.4f), 6f, 1.8f, white),
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoHydrogen_BubblesA", new Vector3(0.5f, 0f, 0f), Vector3.up, 150f),   // + 방향 = 나선이 위로 오르는 것처럼 보임
+                new OrbitSpec("INT_EvoHydrogen_BubblesB", new Vector3(0f, 0f, 0.5f), Vector3.up, 150f),
+                new OrbitSpec("INT_EvoHydrogen_Pulse", new Vector3(8.15f, F + 1.2f, 0f), Vector3.right, 60f),
+            };
+            EvoAccent("HydrogenPlant", "#7FE3FF");
+            // 스폰 = 모서리 칸 −x 문 옆에서 전기분해조를 바라봄
+            Build("EvoHydrogen", "Evolved/MD_Evo_HydrogenPlant", sockets, new Vector3(-1.9f, F, 2.4f), 140f, lights, orbits);
+        }
+
+        /// <summary>
+        /// 진화 1단계 융합 발전소 (3칸 일자, fs_builder — 사용자 2026-10-29 시안 1 확정 "이대로 옮겨줘"): 가운데 융합로 — 유리 돔 아래 흰 받침 ·
+        /// 유리 도넛 그릇 속에서 도는 플라스마 고리 (INT_EvoFusion_Plasma — 움직이는 메인 부품) · 파란 코일 열둘 · 솔레노이드 기둥 + 냉각수 머리 · 받침 테 위 유리 울타리,
+        /// 냉각수 구체 둘 (x 2.4 · 13.6 — 관 둘씩이 천장 밑을 지나 융합로 머리로) + 구체와 융합로 사이 칸에 제어대 (−z) · 냉각수 펌프 (+z) · 자석 전원 (−z) ·
+        /// 남는 물 탱크 (+z) · 양 끝 정수 필터 기둥 넷. 사용자 2026-10-29 "길을 지나다닐 수가 없네" → 홀을 따라 걷는 길 폭 1.3m 이상 (융합로 · 구체 옆은 비움).
+        /// 문 자리 = 끝 칸 바깥 면 + 칸마다 ±z, 바닥 해치 = 칸 중심, 위 해치 = 가운데 칸만 (돔을 비켜 (4.7, ·, −2.2)), 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoFusion()
+        {
+            const float ceiling = F + 4.0f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 3; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                if (x == 0)
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.left, Socket));
+                if (x == 2)
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+            }
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.up, ceiling, new Vector3(4.7f - 8f, 0f, -2.2f)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var plasma = new Color(0.85f, 0.5f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, F + 2.85f, 0f), 6.5f, 2.2f, white),       // −x 끝 (정수 필터)
+                LightSpec.Point(new Vector3(16f, F + 2.85f, 0f), 6.5f, 2.2f, white),      // +x 끝
+                LightSpec.Point(new Vector3(4.9f, F + 2.85f, -1.9f), 5f, 1.6f, white),    // 제어대
+                LightSpec.Point(new Vector3(4.9f, F + 2.85f, 1.9f), 5f, 1.4f, white),     // 펌프
+                LightSpec.Point(new Vector3(11.1f, F + 2.85f, -1.9f), 5f, 1.4f, white),   // 자석 전원
+                LightSpec.Point(new Vector3(11.1f, F + 2.85f, 1.9f), 5f, 1.4f, white),    // 물 탱크
+                LightSpec.Point(new Vector3(8f, F + 1.6f, 1.25f), 3.5f, 0.8f, plasma),    // 플라스마 빛
+                LightSpec.Point(new Vector3(8f, F + 1.6f, -1.25f), 3.5f, 0.8f, plasma),
+                LightSpec.Point(new Vector3(8f, F + 2.9f, 1.6f), 4f, 1.0f, white),        // 돔 아래 융합로 위쪽
+                LightSpec.Point(new Vector3(8f, F + 2.9f, -1.6f), 4f, 1.0f, white),
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoFusion_Plasma", new Vector3(8f, 0f, 0f), Vector3.up, 45f),   // 도넛 그릇 속 플라스마 고리
+            };
+            EvoAccent("FusionStation", "#FF9F5A");
+            // 스폰 = −x 끝 (바닥 해치 (0, 0)과 문 사이)에서 융합로 쪽을 바라봄
+            Build("EvoFusion", "Evolved/MD_Evo_FusionStation", sockets, new Vector3(-1.8f, F, 0f), 90f, lights, orbits);
+        }
+
+        /// <summary>
+        /// 진화 1단계 태양광 어레이 (2 × 2칸, sa_builder — 사용자 2026-10-29 시안 1 확정 "실제 방향에 맞춰주고 옮겨줘"): 가운데 추적 가대 —
+        /// 바닥 구동부 (모터 넷이 문 금색 톱니 원판) 위 흰 기둥이 천장 우물 유리 고리를 지나 머리까지, 머리 가로축 둘에 패널 줄 (PanelA · PanelB).
+        /// <see cref="InteriorSunTracker"/>가 바깥 패널처럼 실제 해 쪽으로 돌리고 기울임 (Mast = 해 방위로 돎, 패널 줄 = 축마다 최대 38°).
+        /// 둘레 = 관제석 (−z: 기둥을 보는 곡면 책상 · 의자 셋) · 패널 정비대 (+z: 예비 패널 · 로봇 팔 · 공구 수레) · 변환 장치 (+x: 창 아래 장 둘) ·
+        /// 해 추적 홀로 탁자 (−x: INT_EvoSolar_Holo가 돎) + 모서리 전력 기둥 넷 · 화분 여섯.
+        /// 문 자리 = 칸마다 바깥 두 면, 바닥 해치 = 칸 중심, 위 연결점 없음 (패널 자리, 천장 F + 4.0).
+        /// </summary>
+        private static void BuildEvoSolar()
+        {
+            const float pivotY = F + 4.62f; // sa_builder PIVOT_Y
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                for (int z = 0; z < 2; z++)
+                {
+                    var cell = new Vector3Int(x, 0, z);
+                    sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                    sockets.Add(new InteriorSocket(cell, z == 0 ? new Vector3Int(0, 0, -1) : new Vector3Int(0, 0, 1), Socket));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                }
+            }
+            var white = new Color(1f, 0.97f, 0.92f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(4f, F + 2.85f, -1.6f), 6.5f, 2.2f, white),    // 관제석
+                LightSpec.Point(new Vector3(4f, F + 2.85f, 9.6f), 6.5f, 2.2f, white),     // 정비대
+                LightSpec.Point(new Vector3(-1.6f, F + 2.85f, 4f), 6f, 2.0f, white),      // 홀로 탁자
+                LightSpec.Point(new Vector3(9.6f, F + 2.85f, 4f), 6f, 2.0f, white),       // 변환 장치
+                LightSpec.Point(new Vector3(4f, F + 2.4f, 2.5f), 4f, 1.0f, new Color(1f, 0.9f, 0.7f)),   // 구동부 · 기둥 (앞뒤)
+                LightSpec.Point(new Vector3(4f, F + 2.4f, 5.5f), 4f, 1.0f, new Color(1f, 0.9f, 0.7f)),
+                LightSpec.Point(new Vector3(4f, F + 4.3f, 4f), 2.6f, 0.6f, new Color(0.85f, 0.92f, 1f)), // 우물 속 패널 아랫면
+                LightSpec.Point(new Vector3(-0.6f, F + 1.4f, 4f), 1.5f, 0.3f, new Color(0.6f, 0.85f, 1f)), // 홀로 빛
+            };
+            foreach (var (x, z) in new[] { (-1.6f, -1.6f), (9.6f, -1.6f), (-1.6f, 9.6f), (9.6f, 9.6f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.6f, z), 4f, 1.0f, white));            // 네 모서리 (전력 기둥)
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoSolar_Holo", new Vector3(-0.6f, 0f, 4f), Vector3.up, 20f),   // 해 구슬을 따라 도는 작은 어레이 (홀로 = 연출)
+            };
+            EvoAccent("SolarArray", "#FFD86B");
+            // 스폰 = +x 변환 장치 앞에서 추적 가대를 바라봄 (해치 (8, 0) · (8, 8) 사이)
+            Build("EvoSolar", "Evolved/MD_Evo_SolarArray", sockets, new Vector3(9.3f, F, 4f), -90f, lights, orbits, configure: root =>
+            {
+                var t = root.transform;
+                root.AddComponent<InteriorSunTracker>().Configure(t.Find("INT_EvoSolar_Mast"),
+                    new[] { t.Find("INT_EvoSolar_PanelA"), t.Find("INT_EvoSolar_PanelB") },
+                    new Vector3(4f, 0f, 4f), new[] { new Vector3(4f, pivotY, 4.85f), new Vector3(4f, pivotY, 3.15f) });
+            });
+        }
+
+        /// <summary>
+        /// 진화 1단계 문화 센터 (2 × 2칸, cc_builder — 사용자 2026-10-29 시안 1 확정): 가운데 천체 투영실 (천장 구멍 위 짙은 돔 속에서 별 하늘 ·
+        /// 행성 · 투영기 머리가 함께 도는 INT_EvoCulture_Sky — 움직이는 메인 부품, 투영기를 보는 곡면 벤치 두 겹) + 교실 (−z: 홀로 칠판 · 분침이 도는
+        /// 벽시계 INT_EvoCulture_Clock · 책상 여섯) + 놀이 (+z: 보드게임 탁자 둘) · 독서 (+x: 책장 · 안락의자) · 쉼터 (−x: 긴 벤치 · 화분).
+        /// 문 자리 = 칸마다 바깥 두 면, 해치 = 칸 중심 (천장 F + 4.0).
+        /// </summary>
+        private static void BuildEvoCulture()
+        {
+            const float ceiling = F + 4.0f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                for (int z = 0; z < 2; z++)
+                {
+                    var cell = new Vector3Int(x, 0, z);
+                    sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                    sockets.Add(new InteriorSocket(cell, z == 0 ? new Vector3Int(0, 0, -1) : new Vector3Int(0, 0, 1), Socket));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling, Vector3.zero));
+                }
+            }
+            var white = new Color(1f, 0.97f, 0.92f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(4f, F + 2.85f, -1.6f), 6.5f, 2.3f, white),    // 교실
+                LightSpec.Point(new Vector3(4f, F + 2.85f, 9.6f), 6.5f, 2.2f, white),     // 놀이
+                LightSpec.Point(new Vector3(-1.6f, F + 2.85f, 4f), 6f, 2.0f, white),      // 쉼터
+                LightSpec.Point(new Vector3(9.6f, F + 2.85f, 4f), 6f, 2.0f, white),       // 독서
+                LightSpec.Point(new Vector3(4f, F + 2.2f, 4f), 4.5f, 0.8f, new Color(1f, 0.85f, 0.6f)),   // 투영실 (돔 아래 은은하게)
+                LightSpec.Point(new Vector3(4f, F + 1.7f, -2.5f), 2.5f, 0.4f, new Color(0.6f, 0.85f, 1f)), // 칠판 빛
+            };
+            foreach (var (x, z) in new[] { (-1.6f, -1.6f), (9.6f, -1.6f), (-1.6f, 9.6f), (9.6f, 9.6f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.6f, z), 4f, 1.0f, white));            // 네 모서리
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoCulture_Sky", new Vector3(4f, 0f, 4f), Vector3.up, 4f),
+                new OrbitSpec("INT_EvoCulture_Clock", new Vector3(4f, F + 3.02f, -3.2f), Vector3.forward, 6f),   // 1분에 한 바퀴 (앞에서 보면 시계 방향)
+            };
+            EvoAccent("CultureCenter", "#FFC86B");
+            // 스폰 = −x 쉼터 벤치 앞에서 천체 투영실을 바라봄 (해치 (0, 0) · (0, 8) 사이)
+            Build("EvoCulture", "Evolved/MD_Evo_CultureCenter", sockets, new Vector3(-1.8f, F, 4f), 90f, lights, orbits);
+        }
+
+        /// <summary>
+        /// 진화 1단계 복지 센터 (ㄱ자 3칸, wc_builder — 사용자 2026-10-29 시안 1 확정): 마음 쉼터 (0번 칸 — 연결점 없는 바깥 두 면을 둥근 유리 벽으로,
+        /// 나무 화단 · 원형 벤치 · 드럼 천창 아래 도는 빛 고리 모빌 INT_EvoWelfare_Halo) + 몸 돌봄 (+x 날개 — 침대를 감싼 스캔 고리가 도는 침대 둘
+        /// GantryA · GantryB) + 여가 (+z 날개 — 창을 보는 소파 · 홀로 놀이 탁자 위 도는 빛 픽셀 Holo · 빛 픽셀 천장).
+        /// 문 자리 = 연결점이 있는 면만 (0번 칸 −x · −z 없음), 해치 = 칸 중심 (0번 칸은 드럼을 비켜 (2.5, ·, 2.5)), 천장 F + 4.0.
+        /// </summary>
+        private static void BuildEvoWelfare()
+        {
+            const float ceiling = F + 4.0f;
+            var rotunda = new Vector3Int(0, 0, 0);
+            var medical = new Vector3Int(1, 0, 0);
+            var leisure = new Vector3Int(0, 0, 1);
+            var hatch0 = new Vector3(2.5f, 0f, 2.5f);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(rotunda, Vector3Int.down, -F, hatch0),
+                new InteriorSocket(rotunda, Vector3Int.up, ceiling, hatch0),
+                new InteriorSocket(medical, Vector3Int.right, Socket),
+                new InteriorSocket(medical, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(medical, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(medical, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(medical, Vector3Int.up, ceiling, Vector3.zero),
+                new InteriorSocket(leisure, Vector3Int.right, Socket),
+                new InteriorSocket(leisure, Vector3Int.left, Socket),
+                new InteriorSocket(leisure, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(leisure, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(leisure, Vector3Int.up, ceiling, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.97f);
+            var pink = new Color(1f, 0.72f, 0.88f);
+            // 흰 조명은 천장(F + 4.0)에서 1.1 이상 내려 둠 — 0.8 아래에 두었더니 천장에 하얗게 번진 얼룩 (게임 안 확인 2026-10-29)
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, F + 3.2f, 0f), 6f, 2.2f, white),          // 정자 (드럼 속)
+                LightSpec.Point(new Vector3(-1.7f, F + 2.8f, -1.7f), 4f, 1.1f, white),    // 정자 둥근 유리 쪽
+                LightSpec.Point(new Vector3(0f, F + 2.8f, 0f), 3.5f, 0.6f, pink),         // 빛 고리 모빌
+                LightSpec.Point(new Vector3(4.8f, F + 2.85f, 0f), 6.5f, 2.3f, white),     // 의료 날개
+                LightSpec.Point(new Vector3(9.6f, F + 2.85f, 0f), 5.5f, 2.0f, white),
+                LightSpec.Point(new Vector3(0f, F + 2.85f, 5.0f), 6.5f, 2.2f, white),     // 여가 날개
+                LightSpec.Point(new Vector3(0f, F + 2.85f, 9.8f), 5.5f, 1.9f, white),
+                LightSpec.Point(new Vector3(0f, F + 1.5f, 5.2f), 2.5f, 0.5f, pink),       // 홀로 탁자
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoWelfare_Halo", Vector3.zero, Vector3.up, 6f),
+                new OrbitSpec("INT_EvoWelfare_GantryA", new Vector3(5.1f, F + 0.86f, -2f), Vector3.right, 45f),
+                new OrbitSpec("INT_EvoWelfare_GantryB", new Vector3(5.1f, F + 0.86f, 2f), Vector3.right, -45f),
+                new OrbitSpec("INT_EvoWelfare_Holo", new Vector3(0f, 0f, 5.2f), Vector3.up, 25f),
+            };
+            EvoAccent("WelfareCenter", "#FF9ED8");
+            // 스폰 = 의료 날개 (바닥 해치 (8, 0) 앞)에서 스캔 침대 사이로 정자를 바라봄
+            Build("EvoWelfare", "Evolved/MD_Evo_WelfareCenter", sockets, new Vector3(6.7f, F, 0f), -90f, lights, orbits);
+        }
+
+        /// <summary>
+        /// 진화 1단계 축전 뱅크 (3칸 일자, pb_builder — 사용자 2026-10-29 시안 1 확정): 유리 볼트 홀 (외형 유리 캡슐) + 띠 아치 둘 (x 4 · 12, 벽 따라 바닥까지 띠 기둥).
+        /// 머리 위 거대 셀 두 줄 (z ±1.7, 축 F + 3.95)의 셀 심 10칸 = 정거장 저장량 게이지 (INT_EvoPowerBank_Gauge_00 ~ 09 → <see cref="InteriorGauge"/>,
+        /// −x 끝부터 켜짐) · 셀마다 도는 충전 고리 셋 (RingA · RingB — 움직이는 메인 부품) · 띠 아치 아래 모선 다리 + 빛 기둥 + 충 · 방전 제어대 둘 ·
+        /// 창 아래 예비 셀 선반. 문 자리 = 양 끝 + 칸마다 앞뒤 + 칸마다 바닥 해치 (칸 중심) · 볼트 꼭대기 등줄기 해치 (F + 5.1).
+        /// </summary>
+        private static void BuildEvoPowerBank()
+        {
+            const float cellY = F + 3.95f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 3; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                if (x == 0)
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.left, Socket));
+                if (x == 2)
+                    sockets.Add(new InteriorSocket(cell, Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, F + 5.1f, Vector3.zero));
+            }
+            var white = new Color(0.95f, 0.96f, 1f);
+            var amber = new Color(1f, 0.85f, 0.5f);
+            var lights = new List<LightSpec>();
+            foreach (float x in new[] { -1.5f, 2f, 6f, 10f, 14f, 17.5f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.2f, 0f), 6.5f, 2.8f, white));
+            foreach (float x in new[] { 4f, 12f })
+            {
+                foreach (float z in new[] { -1.7f, 1.7f })
+                    lights.Add(LightSpec.Point(new Vector3(x, F + 3.3f, z), 3.5f, 0.7f, amber));   // 셀 빛
+                lights.Add(LightSpec.Point(new Vector3(x, F + 1.5f, 0f), 2.5f, 0.5f, amber));      // 제어대 · 빛 기둥
+            }
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoPowerBank_RingA", new Vector3(0f, cellY, -1.7f), Vector3.right, 35f),
+                new OrbitSpec("INT_EvoPowerBank_RingB", new Vector3(0f, cellY, 1.7f), Vector3.right, -35f),
+            };
+            EvoAccent("PowerBank", "#FFD24A");
+            // 스폰 = 서쪽 끝 문 앞 (바닥 해치 자리 ±0.95 밖)에서 셀 두 줄 · 제어대가 늘어선 홀을 바라봄
+            Build("EvoPowerBank", "Evolved/MD_Evo_PowerBank", sockets, new Vector3(-2.0f, F, 0f), 90f, lights, orbits);
+        }
+
+        /// <summary>
+        /// 진화 1단계 생태 모듈 (ㄱ자 4칸, eco_builder — 사용자 2026-10-29 시안 1): 온실 세 칸 (낮은 유리 볼트 · 재배대 두 줄 — 통로 쪽 수경 농장 상추,
+        /// 벽 쪽 화분 식물 자리) + 이음 칸 (나무 화분 둘 · 수확 수레) + 끝 칸 순환 코어 (유리 물 구체 둘레를 도는 고리 = INT_EvoEco_Ring · 산소 기둥 넷 ·
+        /// 온실로 이어지는 순환관). 문 자리 = 칸마다 바깥 면 + 바닥 · 천장 해치 (온실 = 칸 중심 · 볼트 꼭대기 등줄기 F + 5.1,
+        /// 끝 칸 = 물 구체를 비켜 (0, ·, −2.4) · 천장 F + 4.0).
+        /// </summary>
+        private static void BuildEvoEco()
+        {
+            var sockets = new List<InteriorSocket>();
+            var hall = new[] { new Vector3Int(0, 0, 0), new Vector3Int(1, 0, 0), new Vector3Int(2, 0, 0) };
+            var wing = new Vector3Int(0, 0, 1);
+            var back = new Vector3Int(0, 0, -1);
+            var fwd = new Vector3Int(0, 0, 1);
+            sockets.Add(new InteriorSocket(hall[0], Vector3Int.left, Socket));
+            foreach (var c in hall)
+            {
+                sockets.Add(new InteriorSocket(c, back, Socket));
+                if (c.x > 0)
+                    sockets.Add(new InteriorSocket(c, fwd, Socket));
+                sockets.Add(new InteriorSocket(c, Vector3Int.down, -F, Vector3.zero));
+                sockets.Add(new InteriorSocket(c, Vector3Int.up, F + 5.1f, Vector3.zero));
+            }
+            sockets.Add(new InteriorSocket(hall[2], Vector3Int.right, Socket));
+            var wingHatch = new Vector3(0f, 0f, -2.4f);
+            sockets.Add(new InteriorSocket(wing, Vector3Int.left, Socket));
+            sockets.Add(new InteriorSocket(wing, Vector3Int.right, Socket));
+            sockets.Add(new InteriorSocket(wing, fwd, Socket));
+            sockets.Add(new InteriorSocket(wing, Vector3Int.down, -F, wingHatch));
+            sockets.Add(new InteriorSocket(wing, Vector3Int.up, F + 4.0f, wingHatch));
+            var white = new Color(0.96f, 1f, 0.96f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-0.5f, F + 3.4f, 0f), 7f, 2.4f, white),
+                LightSpec.Point(new Vector3(5.5f, F + 3.6f, 0f), 7f, 2.4f, white),
+                LightSpec.Point(new Vector3(12f, F + 3.6f, 0f), 7f, 2.4f, white),
+                LightSpec.Point(new Vector3(17.5f, F + 3.6f, 0f), 7f, 2.4f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.4f, 6.0f), 6f, 2.0f, white),
+                LightSpec.Point(new Vector3(0f, F + 3.4f, 10.6f), 5f, 1.6f, white),
+                LightSpec.Point(new Vector3(0f, F + 2.0f, 8.8f), 4f, 1.2f, new Color(0.5f, 0.85f, 1f)),   // 물 구체 빛
+            };
+            foreach (float x in new[] { 5.6f, 12f, 17.7f })
+                foreach (float z in new[] { -1.65f, 1.65f })
+                    lights.Add(LightSpec.Point(new Vector3(x, F + 2.2f, z), 3f, 0.7f, new Color(0.7f, 1f, 0.75f)));   // 재배등 아래
+            float s12 = Mathf.Sin(12f * Mathf.Deg2Rad);
+            var orbits = new List<OrbitSpec> { new OrbitSpec("INT_EvoEco_Ring", new Vector3(0f, F + 2.0f, 8.8f), new Vector3(s12, Mathf.Cos(12f * Mathf.Deg2Rad), 0f), 14f) };
+            EvoAccent("EcoModule", "#7CFF9A");
+            // 스폰 = 이음 칸 (바닥 해치 칸 중심 옆)에서 온실 통로와 순환 코어가 같이 보이게
+            Build("EvoEco", "Evolved/MD_Evo_EcoModule", sockets, new Vector3(-1.0f, F, -1.4f), 60f, lights, orbits);
+        }
+
+        /// <summary>
+        /// 진화 1단계 거주 타워 (2 × 2 칸 × 2층, ht_builder — 사용자 2026-10-29 시안 1 확정): 가운데 트인 아트리움을 유리 엘리베이터가 오르내리는 3개 층 —
+        /// 1층 (F) 공용 라운지 · 식당 / 2층 (F + 4.4) 네 모서리 집 / 3층 (8 + F) 옥상 돔 라운지. 층 이동 = 유리 엘리베이터 탑승
+        /// (<see cref="InteriorLift"/> — 사용자 결정 2026-10-29: 캡슐이 실제로 오르내리고 플레이어도 함께 실림).
+        /// 문 자리 = 칸마다 바깥 두 면 + 아래 칸 바닥 해치 · 위 칸 천장 해치 (칸 중심, 위 칸 천장 = 위 칸 기준 F + 4.4).
+        /// </summary>
+        private static void BuildEvoTower()
+        {
+            const float upper = 8f + F;
+            var sockets = new List<InteriorSocket>();
+            for (int y = 0; y < 2; y++)
+            {
+                for (int x = 0; x < 2; x++)
+                {
+                    for (int z = 0; z < 2; z++)
+                    {
+                        var cell = new Vector3Int(x, y, z);
+                        sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                        sockets.Add(new InteriorSocket(cell, z == 0 ? new Vector3Int(0, 0, -1) : new Vector3Int(0, 0, 1), Socket));
+                        sockets.Add(y == 0 ? new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero) : new InteriorSocket(cell, Vector3Int.up, F + 4.4f, Vector3.zero));
+                    }
+                }
+            }
+            var warm = new Color(1f, 0.96f, 0.9f);
+            var lights = new List<LightSpec>();
+            foreach (var (floor, h) in new[] { (F, 3.5f), (F + 4.4f, 2.8f), (upper, 3.7f) })
+            {
+                foreach (var (x, z) in new[] { (-0.6f, 4f), (8.6f, 4f), (4f, -0.6f), (4f, 8.6f) })
+                    lights.Add(LightSpec.Point(new Vector3(x, floor + h, z), 6.5f, 2.6f, warm));
+            }
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.4f, 8.2f), 4f, 1.2f, new Color(1f, 0.85f, 0.65f)));   // 부엌 섬 매단 조명
+            lights.Add(LightSpec.Point(new Vector3(4f, upper + 4.6f, 4f), 6f, 1.5f, new Color(0.8f, 0.9f, 1f)));   // 옥상 돔
+            EvoAccent("HabitatTower", "#7FD8FF");
+            // 스폰 = 1층 앞(−z) 가운데에서 엘리베이터를 바라봄 (바닥 해치 칸 중심 (0,0) · (8,0) 사이)
+            Build("EvoTower", "Evolved/MD_Evo_HabitatTower", sockets, new Vector3(4f, F, 0.6f), 0f, lights,
+                configure: root =>
+                {
+                    var car = Child(root, "INT_EvoTower_LiftCar");
+                    var carGlass = Child(root, "INT_EvoTower_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[3];
+                    var right = new Transform[3];
+                    for (int k = 0; k < 3; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoTower_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoTower_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoTower_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoTower_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, 4.4f, 8f }, left, right, new Vector3(4f, F + 0.085f, 4f), Vector3.right, 0.85f);
+                });
+        }
+
+        /// <summary>
+        /// 공용 상태 화면 (사용자 2026-10-30 "주민이 보는 화면에 아무것도 나오지 않아 아쉽다" → 공용 화면 + 다른 진화 모듈도,
+        /// 같은 날 "다른 단계의 모듈들도 미리 세팅" · "기본 모듈도" → 모든 템플릿): 고정 조각의 화면 재질(<see cref="IsStatusScreenMaterial"/>) 면을
+        /// 덩어리(같은 자리 꼭짓점으로 이어진 삼각형)마다 나눠, 가장 넓은 평면 한 쌍 중 보이는 앞면 (<see cref="Visible"/> — 면 앞 45cm 안에 뒤판 · 몸체 ·
+        /// 다른 장비가 없고 아래를 보지 않는 쪽)을 화면 칸으로 <see cref="InteriorStatusScreens"/>에 넘긴다. 위 · 아래를 보는 면, 작은 면 (가로 0.18m · 세로 0.1m 미만),
+        /// 사각형을 85% 못 채우는 면 (둥근 면 · 흩어진 작은 면), 전용 화면(허브 안내 · 상황판 · 창구판 등 다른 <see cref="InteriorRoomDisplay"/>)이 그리는 자리는 뺀다.
+        /// 기본 모듈처럼 어두운 모니터 면(ScreenDark)에 빛 줄 · 조각을 붙여 화면 무늬를 낸 곳은 빛 조각이 붙은 면을 앞면으로 보고 덮는다 (<see cref="TryDarkPanel"/>).
+        /// 좌표 = 템플릿 루트 기준. 이미 붙은 상태 화면은 새로 찾은 칸으로 바꾼다 (칸이 없으면 뗌). 바뀌었으면 true.
+        /// </summary>
+        private static bool AddStatusScreens(GameObject root, Material back)
+        {
+            var panels = FindStatusPanels(root);
+            var old = root.GetComponent<InteriorStatusScreens>();
+            if (old != null)
+                Object.DestroyImmediate(old, true);
+            if (panels.Count > 0)
+            {
+                root.AddComponent<InteriorStatusScreens>().Configure(panels.ToArray(), back);
+                Debug.Log($"[InteriorTemplateBuilder] {root.name}: 상태 화면 {panels.Count}칸");
+            }
+            return old != null || panels.Count > 0;
+        }
+
+        /// <summary>
+        /// 상태 화면을 붙일 빛나는 화면 재질 (어두운 모니터 면은 <see cref="TryDarkPanel"/>이 따로): M_InteriorScreen으로 시작하는 재질 중 어두운 판(ScreenDark) · 격자 무늬(ScreenGrid) 말고 전부.
+        /// 단계 키트가 화면 재질을 새로 만들 때 (예: 2단계 M_InteriorScreenNight) 이 이름 규칙만 따르면 그대로 잡힌다 (MODELING 7-11).
+        /// </summary>
+        private static bool IsStatusScreenMaterial(Material m) =>
+            m != null && m.name.StartsWith("M_InteriorScreen") && !m.name.StartsWith("M_InteriorScreenDark") && !m.name.StartsWith("M_InteriorScreenGrid");
+
+        private static List<InteriorStatusScreens.Panel> FindStatusPanels(GameObject root)
+        {
+            var panels = new List<InteriorStatusScreens.Panel>();
+            // 전용 화면이 쓰는 자리 (각 표시의 직렬화된 Center · _center · _kioskCenter 같은 이름의 점 — 표시마다 따로 적지 않게)
+            var reserved = new List<Vector3>();
+            foreach (var display in root.GetComponentsInChildren<InteriorRoomDisplay>(true))
+            {
+                if (display is InteriorStatusScreens)
+                    continue;
+                var it = new SerializedObject(display).GetIterator();
+                while (it.Next(true))
+                {
+                    if (it.propertyType == SerializedPropertyType.Vector3 && it.name.IndexOf("center", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        reserved.Add(it.vector3Value);
+                }
+            }
+            // 고정 조각 (도는 조각 · 해 따라 기우는 조각 · 칸 게이지는 뺌 — 칸 좌표가 템플릿 루트 기준으로 멈춰 있어야 함)
+            var parts = new List<Transform>();
+            foreach (Transform part in root.transform)
+            {
+                if (part.GetComponent<MeshFilter>() != null && part.GetComponent<MeshRenderer>() != null
+                    && part.GetComponent<InteriorOrbit>() == null && !part.name.Contains("_Gauge_"))
+                    parts.Add(part);
+            }
+            var original = root.transform.position;
+            bool backfaces = Physics.queriesHitBackfaces;
+            var temporary = new List<Collider>();
+            root.transform.position = new Vector3(0f, -5000f, 0f);   // 씬의 다른 물체와 떨어뜨려 광선 검사
+            Physics.queriesHitBackfaces = true;                       // 뒷면이 다른 몸체 속에 묻힌 화면도 "막힘"으로
+            try
+            {
+                // 충돌체 없는 조각(소품 · 책상 모니터)도 앞뒤 판정에 들어가게 잠깐 충돌체
+                foreach (var part in parts)
+                {
+                    if (part.GetComponent<Collider>() == null)
+                    {
+                        var c = part.gameObject.AddComponent<MeshCollider>();
+                        c.sharedMesh = part.GetComponent<MeshFilter>().sharedMesh;
+                        temporary.Add(c);
+                    }
+                }
+                Physics.SyncTransforms();
+                // ① 빛나는 화면 면 (진화 모듈 콘솔 · 책상 화면) + 그 꼭짓점 (②에서 어두운 화면 위 빛 줄 찾기)
+                var glow = new List<(Vector3 Point, Material Material)>();
+                var darkIslands = new List<(Transform Part, Vector3[] Verts, List<int> Island)>();
+                foreach (var part in parts)
+                {
+                    var mesh = part.GetComponent<MeshFilter>().sharedMesh;
+                    var mats = part.GetComponent<MeshRenderer>().sharedMaterials;
+                    Vector3[] verts = null;
+                    for (int sub = 0; sub < mats.Length && sub < mesh.subMeshCount; sub++)
+                    {
+                        bool dark = mats[sub] != null && mats[sub].name.StartsWith("M_InteriorScreenDark");
+                        if (!dark && !IsStatusScreenMaterial(mats[sub]))
+                            continue;
+                        verts ??= mesh.vertices;
+                        var tris = mesh.GetTriangles(sub);
+                        if (dark)
+                        {
+                            foreach (var island in Islands(tris, verts))
+                                darkIslands.Add((part, verts, island));
+                            continue;
+                        }
+                        foreach (int index in tris)
+                            glow.Add((root.transform.InverseTransformPoint(part.TransformPoint(verts[index])), mats[sub]));
+                        foreach (var island in Islands(tris, verts))
+                        {
+                            if (!TryPanel(root.transform, part, verts, island, out var panel) || Reserved(panel, reserved))
+                                continue;
+                            panel.Bar = mats[sub];
+                            panels.Add(panel);
+                        }
+                    }
+                }
+                // ② 어두운 모니터 면 위에 빛 줄 · 조각(가짜 화면 무늬)이 붙은 화면 (기본 모듈 콘솔 · 진화 축전 · 융합 콘솔 — 사용자 "기본 모듈도"):
+                //    빛 조각이 3cm 안에 붙은 쪽이 앞면. 정보창은 빛 조각보다 앞으로 띄워 덮는다. 이미 빛나는 화면 칸이 올라간 모니터는 뺌
+                int glowPanels = panels.Count;
+                foreach (var (part, verts, island) in darkIslands)
+                {
+                    if (TryDarkPanel(root.transform, part, verts, island, glow, out var panel) && !Reserved(panel, reserved)
+                        && !HasPanelOn(panel, panels, glowPanels))
+                        panels.Add(panel);
+                }
+            }
+            finally
+            {
+                foreach (var c in temporary)
+                    Object.DestroyImmediate(c);
+                root.transform.position = original;
+                Physics.queriesHitBackfaces = backfaces;
+                Physics.SyncTransforms();
+            }
+            return panels;
+        }
+
+        /// <summary>전용 화면 점이 이 칸 사각형 (가장자리 10cm 여유) 안 · 면에서 25cm 안에 있으면 그 화면은 이미 쓰는 중.</summary>
+        private static bool Reserved(InteriorStatusScreens.Panel panel, List<Vector3> reserved)
+        {
+            var right = Vector3.Cross(panel.Normal, panel.Up).normalized;
+            foreach (var point in reserved)
+            {
+                var d = point - panel.Center;
+                if (Mathf.Abs(Vector3.Dot(d, panel.Normal)) < 0.25f && Mathf.Abs(Vector3.Dot(d, right)) < panel.Size.x * 0.5f + 0.1f
+                    && Mathf.Abs(Vector3.Dot(d, panel.Up)) < panel.Size.y * 0.5f + 0.1f)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 이미 만든 내부 프리팹 전부에 상태 화면만 다시 붙이기 (메뉴 SpaceStation/Interior/Add Status Screens, 2026-10-30 — 기본 모듈 템플릿은
+        /// 전체 Build Templates가 모든 프리팹 ID를 새로 매기므로 다시 만들지 않고 화면만). 광선 검사는 씬에 잠깐 꺼낸 복사본으로 하고, 결과를 프리팹에 넣는다.
+        /// </summary>
+        [MenuItem("SpaceStation/Interior/Add Status Screens")]
+        public static void AddStatusScreensToPrefabs()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogError("[InteriorTemplateBuilder] 플레이 모드를 끈 뒤 실행하세요.");
+                return;
+            }
+            var back = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenDarkPath);
+            int changed = 0;
+            foreach (var guid in AssetDatabase.FindAssets("PF_Interior_ t:Prefab", new[] { PrefabFolder.TrimEnd('/') }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab == null || !prefab.name.StartsWith("PF_Interior_"))
+                    continue;
+                var copy = (GameObject)Object.Instantiate(prefab);
+                copy.name = prefab.name;
+                var panels = FindStatusPanels(copy);
+                Object.DestroyImmediate(copy);
+                var contents = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    var old = contents.GetComponent<InteriorStatusScreens>();
+                    if (old == null && panels.Count == 0)
+                        continue;
+                    if (old != null)
+                        Object.DestroyImmediate(old, true);
+                    if (panels.Count > 0)
+                        contents.AddComponent<InteriorStatusScreens>().Configure(panels.ToArray(), back);
+                    PrefabUtility.SaveAsPrefabAsset(contents, path);
+                    changed++;
+                    Debug.Log($"[InteriorTemplateBuilder] {prefab.name}: 상태 화면 {panels.Count}칸");
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(contents);
+                }
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[InteriorTemplateBuilder] 상태 화면 다시 붙임: 프리팹 {changed}개");
+        }
+
+        /// <summary>삼각형 목록 → 같은 자리 꼭짓점으로 이어진 덩어리들 (평면 음영이라 면마다 꼭짓점이 갈라져 있어 자리로 잇는다).</summary>
+        private static List<List<int>> Islands(int[] tris, Vector3[] verts)
+        {
+            int n = tris.Length / 3;
+            var parent = new int[n];
+            for (int i = 0; i < n; i++)
+                parent[i] = i;
+            int Find(int a) { while (parent[a] != a) a = parent[a] = parent[parent[a]]; return a; }
+            var owner = new Dictionary<Vector3Int, int>();
+            for (int t = 0; t < n; t++)
+            {
+                for (int k = 0; k < 3; k++)
+                {
+                    var v = verts[tris[t * 3 + k]];
+                    var key = new Vector3Int(Mathf.RoundToInt(v.x * 1000f), Mathf.RoundToInt(v.y * 1000f), Mathf.RoundToInt(v.z * 1000f));
+                    if (owner.TryGetValue(key, out int o))
+                        parent[Find(t)] = Find(o);
+                    else
+                        owner[key] = t;
+                }
+            }
+            var groups = new Dictionary<int, List<int>>();
+            for (int t = 0; t < n; t++)
+            {
+                int r = Find(t);
+                if (!groups.TryGetValue(r, out var list))
+                    groups[r] = list = new List<int>();
+                list.Add(tris[t * 3]); list.Add(tris[t * 3 + 1]); list.Add(tris[t * 3 + 2]);
+            }
+            return new List<List<int>>(groups.Values);
+        }
+
+        /// <summary>빛나는 화면 덩어리 하나 → 화면 칸 (후보 면 중 앞 4cm가 빈 쪽 = 앞면).</summary>
+        private static bool TryPanel(Transform root, Transform part, Vector3[] verts, List<int> island, out InteriorStatusScreens.Panel panel)
+        {
+            foreach (var face in Faces(root, part, verts, island))
+            {
+                if (!Visible(root, face, 0f))
+                    continue;   // 앞에 뒤판 · 테 · 몸체 → 뒷면, 또는 다른 장비에 가려짐
+                panel = face;
+                return true;
+            }
+            panel = default;
+            return false;
+        }
+
+        /// <summary>
+        /// 보이는 화면 면인지: 아래를 보는 면이 아니고 (기울어진 키오스크 밑면 — 창고), 면 앞 45cm가 트여 있음 (바로 앞 4cm = 뒤판 · 몸체 → 뒷면,
+        /// 그 너머 = 다른 장비에 가려진 화면 — 정련소). lift = 어두운 화면 위 빛 조각 두께 (그만큼 앞에서부터 잼).
+        /// </summary>
+        private static bool Visible(Transform root, InteriorStatusScreens.Panel face, float lift)
+        {
+            if (face.Normal.y < -0.3f)
+                return false;
+            var worldN = root.TransformDirection(face.Normal);
+            return !Physics.Raycast(root.TransformPoint(face.Center) + worldN * (lift + 0.003f), worldN, 0.45f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        }
+
+        /// <summary>
+        /// 어두운 모니터 덩어리 하나 → 화면 칸: 후보 면 중 빛 조각 꼭짓점 4개 이상이 면 위 3cm 안 · 면 사각형 안에 있는 쪽 (가짜 화면 무늬가 붙은 쪽 = 앞면).
+        /// 정보창은 가장 앞의 빛 조각보다 3mm 앞으로 띄움 (Lift), 막대는 그 빛 조각 재질. 세로 1.2m 넘거나 아주 길쭉한 판 (축전기 캐비닛 · 띠)은 뺌.
+        /// </summary>
+        private static bool TryDarkPanel(Transform root, Transform part, Vector3[] verts, List<int> island, List<(Vector3 Point, Material Material)> glow,
+            out InteriorStatusScreens.Panel panel)
+        {
+            panel = default;
+            foreach (var face in Faces(root, part, verts, island))
+            {
+                if (face.Size.y > 1.2f || face.Size.x < face.Size.y * 0.5f || face.Size.x > face.Size.y * 4.5f)
+                    return false;
+                var right = Vector3.Cross(face.Normal, face.Up).normalized;
+                float lift = 0f;
+                int count = 0;
+                Material bar = null;
+                foreach (var (point, material) in glow)
+                {
+                    var d = point - face.Center;
+                    float dn = Vector3.Dot(d, face.Normal);
+                    if (dn < -0.003f || dn > 0.03f || Mathf.Abs(Vector3.Dot(d, right)) > face.Size.x * 0.5f + 0.01f
+                        || Mathf.Abs(Vector3.Dot(d, face.Up)) > face.Size.y * 0.5f + 0.01f)
+                        continue;
+                    count++;
+                    lift = Mathf.Max(lift, dn);
+                    bar = material;
+                }
+                if (count < 4 || !Visible(root, face, lift))
+                    continue;
+                panel = face;
+                panel.Lift = lift + 0.003f;
+                panel.Dark = true;
+                panel.Bar = bar;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>앞의 칸들(빛나는 화면) 중 이 어두운 판 위에 이미 올라간 것이 있는지 — 진화 연구 단지 모니터처럼 빛 블록에 칸이 있으면 판은 그대로.</summary>
+        private static bool HasPanelOn(InteriorStatusScreens.Panel dark, List<InteriorStatusScreens.Panel> panels, int count)
+        {
+            var right = Vector3.Cross(dark.Normal, dark.Up).normalized;
+            for (int i = 0; i < count; i++)
+            {
+                var d = panels[i].Center - dark.Center;
+                if (Mathf.Abs(Vector3.Dot(d, dark.Normal)) < 0.05f && Mathf.Abs(Vector3.Dot(d, right)) < dark.Size.x * 0.5f + 0.02f
+                    && Mathf.Abs(Vector3.Dot(d, dark.Up)) < dark.Size.y * 0.5f + 0.02f)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 덩어리 하나의 화면 후보 면: 가장 넓은 옆을 보는 평면 + 그 반대 면 (판의 앞 · 뒤). 작은 면 · 사각형을 85% 못 채우는 면이면 없음.
+        /// </summary>
+        private static List<InteriorStatusScreens.Panel> Faces(Transform root, Transform part, Vector3[] verts, List<int> island)
+        {
+            var faces = new List<InteriorStatusScreens.Panel>(2);
+            var area = new Dictionary<Vector3Int, float>();
+            var normals = new Dictionary<Vector3Int, Vector3>();
+            var pts = new Dictionary<Vector3Int, List<Vector3>>();
+            for (int i = 0; i < island.Count; i += 3)
+            {
+                var a = root.InverseTransformPoint(part.TransformPoint(verts[island[i]]));
+                var b = root.InverseTransformPoint(part.TransformPoint(verts[island[i + 1]]));
+                var c = root.InverseTransformPoint(part.TransformPoint(verts[island[i + 2]]));
+                var cr = Vector3.Cross(b - a, c - a);
+                float ar = cr.magnitude * 0.5f;
+                if (ar < 1e-6f)
+                    continue;
+                var nrm = cr.normalized;
+                var key = new Vector3Int(Mathf.RoundToInt(nrm.x * 50f), Mathf.RoundToInt(nrm.y * 50f), Mathf.RoundToInt(nrm.z * 50f));
+                area[key] = (area.TryGetValue(key, out float s) ? s : 0f) + ar;
+                normals[key] = nrm;
+                if (!pts.TryGetValue(key, out var list))
+                    pts[key] = list = new List<Vector3>();
+                list.Add(a); list.Add(b); list.Add(c);
+            }
+            Vector3Int best = default;
+            float bestArea = 0f;
+            foreach (var kv in area)
+            {
+                if (Mathf.Abs(normals[kv.Key].y) > 0.7f || kv.Value <= bestArea)
+                    continue;
+                best = kv.Key;
+                bestArea = kv.Value;
+            }
+            if (bestArea <= 0f)
+                return faces;
+            var candidates = new List<Vector3Int> { best };
+            var opposite = -best;
+            foreach (var kv in area)
+            {
+                if ((kv.Key - opposite).sqrMagnitude <= 2 && kv.Value > bestArea * 0.5f)
+                {
+                    candidates.Add(kv.Key);
+                    break;
+                }
+            }
+            foreach (var key in candidates)
+            {
+                var n = normals[key];
+                var up = Vector3.ProjectOnPlane(Vector3.up, n).normalized;
+                var right = Vector3.Cross(n, up).normalized;
+                float r0 = float.MaxValue, r1 = float.MinValue, u0 = float.MaxValue, u1 = float.MinValue, d = 0f;
+                foreach (var p in pts[key])
+                {
+                    float r = Vector3.Dot(p, right), u = Vector3.Dot(p, up);
+                    r0 = Mathf.Min(r0, r); r1 = Mathf.Max(r1, r); u0 = Mathf.Min(u0, u); u1 = Mathf.Max(u1, u);
+                    d += Vector3.Dot(p, n);
+                }
+                d /= pts[key].Count;
+                var center = right * ((r0 + r1) * 0.5f) + up * ((u0 + u1) * 0.5f) + n * d;
+                var size = new Vector2(r1 - r0, u1 - u0);
+                if (size.x < 0.18f || size.y < 0.1f)   // 연구 단지 책상 화면 = 0.30 × 0.12 (경계에 걸려 반만 잡히던 것 → 0.1)
+                    break;
+                // 같은 방향 작은 면 여럿 (콘솔 줄 · 관 옆면)이나 둥근 면은 사각형을 다 채우지 못함 → 화면 아님 (태양광 · 수소에서 잘못 잡힘)
+                if (area[key] < size.x * size.y * 0.85f)
+                    break;
+                faces.Add(new InteriorStatusScreens.Panel { Center = center, Normal = n, Up = up, Size = size });
+            }
+            return faces;
+        }
+
+        /// <summary>조각 메시 경계 상자 충돌체 (조각은 템플릿 원점에 놓인 채 꼭짓점이 제자리 — 경계 = 템플릿 좌표). pad = 가장자리 여유 (누르기 쉽게).</summary>
+        private static BoxCollider BoxOf(Transform part, float pad)
+        {
+            var bounds = part.GetComponent<MeshFilter>().sharedMesh.bounds;
+            var box = part.gameObject.AddComponent<BoxCollider>();
+            box.center = bounds.center;
+            box.size = bounds.size + Vector3.one * pad;
+            return box;
+        }
+
+        /// <summary>
+        /// 진화 모듈 강조색 `M_Accent_Evo_{Id}.mat` (없으면 만듦) — 기본 모듈 강조 재질과 같은 꼴 (URP Lit · 바탕 = UI 색 · 발광 = 바탕 × 0.6).
+        /// 내부 템플릿의 Accent 슬롯 · 키트 문 패널 띠(InteriorSetup가 M_Accent_*를 모듈마다 등록)에 쓰임.
+        /// </summary>
+        private static void EvoAccent(string id, string hex)
+        {
+            string path = AccentFolder + "M_Accent_Evo_" + id + ".mat";
+            if (AssetDatabase.LoadAssetAtPath<Material>(path) != null || !ColorUtility.TryParseHtmlString(hex, out var color))
+                return;
+            var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            m.SetColor("_BaseColor", color);
+            m.SetFloat("_Metallic", 0.3f);
+            m.SetFloat("_Smoothness", 0.6f);
+            m.EnableKeyword("_EMISSION");
+            m.SetColor("_EmissionColor", color * 0.6f);
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive; // None이면 URP 재질 검사가 _EMISSION을 꺼 버림
+            m.enableInstancing = true;
+            AssetDatabase.CreateAsset(m, path);
+        }
+
+        /// <summary>
+        /// 진화 1단계 연구 단지 (2칸, rc_builder — 사용자 2026-10-29 시안 1 확정): 둥근 모서리 홀 (천장 F + 4.0) · 1단계 키트 파노라마 창 띠
+        /// (네 모서리 곡면 창 + 긴 벽 가운데 창) · 양 끝 천창 · 가운데 천장 구멍 위 유리 관측 돔. 가운데 관측 단 기둥 위 망원경이 돔 안에서 천천히 돌고
+        /// (INT_EvoResearch_Scope), 기둥을 감싼 기운 궤도 고리 둘이 전자를 달고 돎 (RingA · RingB — 고리 + 전자 한 덩어리를 고리 축으로).
+        /// 문 자리 = 양 끝 + 칸마다 앞뒤 + 칸마다 위 · 아래 해치 (칸 중심, 천장 높이 F + 4.0).
+        /// </summary>
+        private static void BuildEvoResearch()
+        {
+            const float ceiling = F + 4.0f;
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x < 2; x++)
+            {
+                var cell = new Vector3Int(x, 0, 0);
+                sockets.Add(new InteriorSocket(cell, x == 0 ? Vector3Int.left : Vector3Int.right, Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
+                sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, ceiling, Vector3.zero));
+            }
+            var white = new Color(0.94f, 0.96f, 1f);
+            var lavender = new Color(0.72f, 0.58f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(-1.4f, F + 3.4f, 0f), 7f, 3.0f, white),   // 흰 세라믹 홀이 회색으로 가라앉지 않게 기본 방보다 밝게 (플레이 확인 2026-10-29)
+                LightSpec.Point(new Vector3(9.4f, F + 3.4f, 0f), 7f, 3.0f, white),
+                LightSpec.Point(new Vector3(2.2f, F + 3.3f, 0f), 5.5f, 2.3f, white),
+                LightSpec.Point(new Vector3(5.8f, F + 3.3f, 0f), 5.5f, 2.3f, white),
+                LightSpec.Point(new Vector3(4f, ceiling + 1.2f, 0f), 4.5f, 1.6f, white),       // 돔 속 망원경
+                LightSpec.Point(new Vector3(4f, F + 0.6f, 0f), 3f, 0.6f, lavender),            // 관측 단 빛
+            };
+            foreach (var (x, z) in new[] { (-2.2f, 2.2f), (-2.2f, -2.2f), (10.2f, 2.2f), (10.2f, -2.2f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.6f, z), 3.2f, 1.1f, white)); // 모서리 연구 책상
+            float s18 = Mathf.Sin(18f * Mathf.Deg2Rad), s15 = Mathf.Sin(15f * Mathf.Deg2Rad);
+            var ring = new Vector3(4f, F + 3.05f, 0f);
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoResearch_Scope", new Vector3(4f, 0f, 0f), Vector3.up, 5f),
+                new OrbitSpec("INT_EvoResearch_RingA", ring, new Vector3(s18, Mathf.Cos(18f * Mathf.Deg2Rad), 0f), 20f),
+                new OrbitSpec("INT_EvoResearch_RingB", ring, new Vector3(-s15 * 0.45f, Mathf.Cos(15f * Mathf.Deg2Rad), s15 * 0.9f).normalized, -14f),
+            };
+            EvoAccent("ResearchComplex", "#9E80FF");
+            // 스폰 = 서쪽 끝 문 앞 (바닥 해치 자리 ±0.95 밖)에서 가운데 망원경을 바라봄
+            Build("EvoResearch", "Evolved/MD_Evo_ResearchComplex", sockets, new Vector3(-2.0f, F, 0f), 90f, lights, orbits);
         }
 
         /// <summary>
@@ -1430,6 +3459,18 @@ namespace SpaceStation.Editor
             { "WaterEx", InteriorAmbience.Water }, { "Protein", InteriorAmbience.Machine },
             { "Sensor", InteriorAmbience.Electric }, { "DataCenter", InteriorAmbience.Electric },
             { "Frame", InteriorAmbience.Hall }, { "Hub", InteriorAmbience.Hall },
+            // 진화 모듈
+            { "EvoResearch", InteriorAmbience.Machine }, { "EvoTower", InteriorAmbience.Life }, { "EvoEco", InteriorAmbience.Water },
+            { "EvoPowerBank", InteriorAmbience.Electric }, { "EvoWelfare", InteriorAmbience.Life }, { "EvoCulture", InteriorAmbience.Life },
+            { "EvoSolar", InteriorAmbience.Electric }, { "EvoFusion", InteriorAmbience.Heat }, { "EvoHydrogen", InteriorAmbience.Water },
+            { "EvoGravity", InteriorAmbience.Life }, { "EvoFarm", InteriorAmbience.Water }, { "EvoMineral", InteriorAmbience.Heat },
+            { "EvoShield", InteriorAmbience.Electric }, { "EvoDefense", InteriorAmbience.Electric }, { "EvoArmor", InteriorAmbience.Electric }, { "EvoWorks", InteriorAmbience.Machine }, { "EvoEmergency", InteriorAmbience.Electric },
+            { "EvoReclaim", InteriorAmbience.Heat },   // 가운데 재생로 (쇳물)
+            { "EvoLogistics", InteriorAmbience.Machine },
+            { "EvoStorage", InteriorAmbience.Machine },
+            { "EvoShipyard", InteriorAmbience.Machine },
+            { "EvoAutomation", InteriorAmbience.Electric },   // 학습 코어 · 기록 서버
+            { "EvoSecurity", InteriorAmbience.Life },         // 민원 홀 (행정 관제소와 같음)
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
@@ -1444,7 +3485,8 @@ namespace SpaceStation.Editor
                 return;
             }
             var module = AssetDatabase.LoadAssetAtPath<ModuleData>(ModuleFolder + moduleName + ".asset");
-            var accent = AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Accent_" + moduleName.Replace("MD_", "") + ".mat");
+            string moduleKey = System.IO.Path.GetFileName(moduleName); // 진화 모듈은 "Evolved/MD_Evo_*" → 강조 재질 이름은 파일 이름만
+            var accent = AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Accent_" + moduleKey.Replace("MD_", "") + ".mat");
             var materials = new Dictionary<string, Material>
             {
                 { "Hull", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.InteriorHullPath) },
@@ -1480,7 +3522,11 @@ namespace SpaceStation.Editor
                 { "Culture", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.CulturePath) }, // 12-5 단백질 배양액
                 { "Window", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.WindowPath) }, // 11-8 바깥 창
                 // 12-5 소품 색 (발광 없음) + Paint = 이 모듈 강조색 도장 (발광 없음: 큰 소품 · 배관 · 의자 — Accent는 띠 · 표시등만)
-                { "Paint", PaintFor(accent, moduleName) },
+                { "Paint", PaintFor(accent, moduleKey) },
+                // 진화 모듈 내부 1단계 키트 (2026-10-29, Blender evo_kit)
+                { "EvoWhite", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoWhitePath) },
+                { "EvoFloor", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoFloorPath) },
+                { "EvoDark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoDarkPath) },
                 { "Paper", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PaperPath) },
                 { "PropBlue", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropBluePath) },
                 { "PropGreen", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropGreenPath) },
@@ -1491,6 +3537,7 @@ namespace SpaceStation.Editor
                 { "Ice", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.IcePath) },
                 { "Aqua", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.AquaPath) },
                 { "Concrete", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ConcretePath) },   // 12-5 방사선 차폐실
+                { "WaterClear", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.WaterClearPath) }, // 투명한 물 (통 속 물 덩어리)
             };
 
             var root = new GameObject("PF_Interior_" + name);
@@ -1527,7 +3574,10 @@ namespace SpaceStation.Editor
                     }
                 }
                 r.sharedMaterials = mats;
-                if (partName.EndsWith("_Shell") || partName.EndsWith("_Glass") || partName.EndsWith("_Door"))   // _Door = 움직이는 문 (InteriorSlidingDoor)
+                // 진화 템플릿의 _Soft = 의자 방석 · 소파 (플레이 확인 2026-10-29: 거주 타워 소파를 지나감) → 충돌체. 작물 · 잎은 _Leaves (충돌체 없음)
+                bool solid = partName.EndsWith("_Shell") || partName.EndsWith("_Glass") || partName.EndsWith("_Door")   // _Door = 움직이는 문 (InteriorSlidingDoor)
+                    || (name.StartsWith("Evo") && partName.EndsWith("_Soft"));
+                if (solid)
                     go.AddComponent<MeshCollider>().sharedMesh = filter.sharedMesh;
                 if (orbits != null)
                 {
@@ -1582,6 +3632,7 @@ namespace SpaceStation.Editor
             }
 
             configure?.Invoke(root); // 12-5 실행 중 표시 컴포넌트 (허브 안내 · 레이더 · 컨베이어 · 서버 표시등)
+            AddStatusScreens(root, materials["ScreenDark"]);   // 빈 화면 = 공용 상태 화면 (사용자 2026-10-30 — 기본 · 모든 진화 단계, 전용 화면 자리는 뺌)
 
             System.IO.Directory.CreateDirectory(PrefabFolder);
             string prefabPath = PrefabFolder + "PF_Interior_" + name + ".prefab";

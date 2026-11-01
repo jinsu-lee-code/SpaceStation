@@ -52,8 +52,86 @@ namespace SpaceStation.Editor
                 new PlantSpot(new Vector3(-2.6f, F + 0.47f, 2.75f), PlantKind.Pot, 0.7f, 75f),
                 new PlantSpot(new Vector3(4.6f, F + 0.47f, 2.75f), PlantKind.Pot, 0.7f, 250f),
             });
+            // 진화 1단계 거주 타워 (Interior_Evo.blend ht_builder PLANTS): 흰 화분 14 — 1층 창가 4 · 엘리베이터 앞 2 / 2층 모서리 집 앞 4 / 3층 창가 4,
+            //   흙 윗면 = 층 바닥 + 0.462. 창 · 벽 가까운 화분은 0.75배
+            var tower = new List<PlantSpot>();
+            int n = 0;
+            foreach (var (x, y, z, s) in new[]
+            {
+                (-2.5f, F + 0.462f, 2.5f, 0.75f), (-2.5f, F + 0.462f, 5.5f, 0.75f), (10.5f, F + 0.462f, 2.5f, 0.75f), (10.5f, F + 0.462f, 5.5f, 0.75f),
+                (2.4f, F + 0.462f, 2.2f, 0.9f), (5.6f, F + 0.462f, 2.2f, 0.9f),
+                (-0.902f, F + 4.862f, 0.441f, 0.85f), (7.559f, F + 4.862f, -0.902f, 0.85f), (0.441f, F + 4.862f, 8.902f, 0.85f), (8.902f, F + 4.862f, 7.559f, 0.85f),
+                (-2.5f, 8f + F + 0.462f, 4f, 0.75f), (10.5f, 8f + F + 0.462f, 4f, 0.75f), (4f, 8f + F + 0.462f, -2.5f, 0.75f), (4f, 8f + F + 0.462f, 10.5f, 0.75f),
+            })
+                tower.Add(new PlantSpot(new Vector3(x, y, z), PlantKind.Pot, s, (n++) * 53f));
+            Set("IT_EvoTower", tower);
+            // 진화 1단계 생태 모듈 (eco_builder PLANTS — 사용자 2026-10-29 "온실 식물은 수경 농장 등에서 쓰던 식물로"):
+            //   재배대 벽 쪽 줄 화분 식물 18 (흙 F + 0.665, z ±1.95 — 통로 쪽 줄은 템플릿에 구운 수경 농장 상추) + 이음 칸 나무 화분 2
+            //   (흙 F + 0.502, 0.8배 — 나무 모델 흙 위 덤불이 화분 안 테 0.64 안에 들게, 플레이 확인 2026-10-29)
+            var eco = new List<PlantSpot>();
+            n = 0;
+            foreach (float z in new[] { -1.95f, 1.95f })
+            {
+                foreach (float x in new[] { 4.95f, 6.25f, 9.583f, 10.55f, 11.517f, 12.483f, 13.45f, 14.417f, 17.75f })
+                    eco.Add(new PlantSpot(new Vector3(x, F + 0.665f, z), PlantKind.Pot, 0.7f, (n++) * 67f));
+            }
+            eco.Add(new PlantSpot(new Vector3(-1.95f, F + 0.502f, -1.95f), PlantKind.Tree, 0.8f, 30f));
+            eco.Add(new PlantSpot(new Vector3(1.95f, F + 0.502f, -1.95f), PlantKind.Tree, 0.8f, 200f));
+            Set("IT_EvoEco", eco);
+            // 진화 1단계 복지 센터 (wc_builder PLANTS): 정자 가운데 둥근 화단 나무 (흙 F + 0.462, 안 테 0.82 > 덤불 0.75) + 여가 날개 이음 쪽 화분 둘 (0.7배)
+            Set("IT_EvoWelfare", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(0f, F + 0.462f, 0f), PlantKind.Tree, 1f, 20f),
+                new PlantSpot(new Vector3(-2.55f, F + 0.462f, 3.85f), PlantKind.Pot, 0.7f, 70f),
+                new PlantSpot(new Vector3(2.55f, F + 0.462f, 3.85f), PlantKind.Pot, 0.7f, 220f),
+            });
+            // 진화 1단계 문화 센터 (cc_builder PLANTS): −x 쉼터 벤치 양옆 화분 둘 (흙 F + 0.462, 창 가까이 0.7배)
+            Set("IT_EvoCulture", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-2.7f, F + 0.462f, 2.15f), PlantKind.Pot, 0.7f, 40f),
+                new PlantSpot(new Vector3(-2.7f, F + 0.462f, 5.85f), PlantKind.Pot, 0.7f, 190f),
+            });
+            // 진화 1단계 태양광 어레이 (sa_builder POTS): 천창 아래 대각선 화분 넷 (반지름 2.65, 45° + 90k) + −x 창가 화분 둘, 흙 F + 0.462, 0.7배
+            var solar = new List<PlantSpot>();
+            n = 0;
+            foreach (float deg in new[] { 45f, 135f, 225f, 315f })
+            {
+                float a = deg * Mathf.Deg2Rad;
+                solar.Add(new PlantSpot(new Vector3(4f + 2.65f * Mathf.Cos(a), F + 0.462f, 4f + 2.65f * Mathf.Sin(a)), PlantKind.Pot, 0.7f, (n++) * 71f));
+            }
+            solar.Add(new PlantSpot(new Vector3(-2.7f, F + 0.462f, 2.15f), PlantKind.Pot, 0.7f, 30f));
+            solar.Add(new PlantSpot(new Vector3(-2.7f, F + 0.462f, 5.85f), PlantKind.Pot, 0.7f, 160f));
+            Set("IT_EvoSolar", solar);
+            // 진화 1단계 수소 플랜트 (hp_builder POTS): +z 칸 끝 창가 화분 둘 (흙 F + 0.462, 0.7배)
+            Set("IT_EvoHydrogen", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-2.3f, F + 0.462f, 10.4f), PlantKind.Pot, 0.7f, 50f),
+                new PlantSpot(new Vector3(2.3f, F + 0.462f, 10.4f), PlantKind.Pot, 0.7f, 210f),
+            });
+            // 진화 1단계 중력 거주구 (gh_builder PLANTS): 허브 대각선 화분 넷 (반지름 4.3, 흙 F + 0.385, 0.7배) · 원형 통로 대각선 나무 화단 넷 (반지름 7.65, 흙 F + 0.475) ·
+            //   골목 집 문 앞 작은 화분 넷 (0.55배) · 골목 끝 화분 둘
+            var gravity = new List<PlantSpot>();
+            n = 0;
+            foreach (float deg in new[] { 45f, 135f, 225f, 315f })
+            {
+                float a = deg * Mathf.Deg2Rad;
+                gravity.Add(new PlantSpot(new Vector3(8f + 4.3f * Mathf.Cos(a), F + 0.385f, 8f + 4.3f * Mathf.Sin(a)), PlantKind.Pot, 0.7f, (n++) * 71f));
+                gravity.Add(new PlantSpot(new Vector3(8f + 7.65f * Mathf.Cos(a), F + 0.475f, 8f + 7.65f * Mathf.Sin(a)), PlantKind.Tree, 0.95f, (n++) * 71f));
+            }
+            foreach (var (x, z) in new[] { (6.69f, 27.78f), (9.31f, 26.12f), (6.69f, 29.88f), (9.31f, 28.22f) })
+                gravity.Add(new PlantSpot(new Vector3(x, F + 0.385f, z), PlantKind.Pot, 0.55f, (n++) * 71f));
+            gravity.Add(new PlantSpot(new Vector3(5.6f, F + 0.385f, 34.2f), PlantKind.Pot, 0.7f, 40f));
+            gravity.Add(new PlantSpot(new Vector3(10.4f, F + 0.385f, 34.2f), PlantKind.Pot, 0.7f, 190f));
+            Set("IT_EvoGravity", gravity);
+            // 진화 1단계 수직 농장 (vf_builder PLANTS): 1층 엘리베이터 뒤 양옆 화분 둘 · 2층 하나 (흙 층 바닥 + 0.415, 0.7배)
+            Set("IT_EvoFarm", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-1.9f, F + 0.415f, 2.25f), PlantKind.Pot, 0.7f, 30f),
+                new PlantSpot(new Vector3(-1.9f, F + 0.415f, -2.25f), PlantKind.Pot, 0.7f, 150f),
+                new PlantSpot(new Vector3(-1.9f, 8f + F + 0.415f, 2.25f), PlantKind.Pot, 0.7f, 260f),
+            });
             AssetDatabase.SaveAssets();
-            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2");
+            Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3 · 문화 센터 2 · 태양광 어레이 6 · 수소 플랜트 2 · 중력 거주구 14 · 수직 농장 3");
         }
 
         private static void Set(string name, List<PlantSpot> spots)

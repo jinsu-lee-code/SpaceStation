@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4181746731150794942}
   - component: {fileID: 5116307387361738571}
+  - component: {fileID: 8660224915708501885}
   m_Layer: 0
   m_Name: PF_Interior_Sensor
   m_TagString: Untagged
@@ -58,6 +59,34 @@ MonoBehaviour:
   _textNormal: {x: 0.6917, y: 0.2079, z: -0.6917}
   _textUp: {x: -0.147, y: 0.9781, z: 0.147}
   _textSize: {x: 0.48, y: 0.3}
+--- !u!114 &8660224915708501885
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2176927646850039879}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48e6532be52fea24f879f1472963a74c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Interior.InteriorStatusScreens
+  _panels:
+  - Center: {x: 2.6137896, y: -0.013915896, z: 2.6137896}
+    Normal: {x: -0.691634, y: 0.20804991, z: -0.691634}
+    Up: {x: 0.14711352, y: 0.97811824, z: 0.14711352}
+    Size: {x: 1.1, y: 0.5396403}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.007966613
+  - Center: {x: 2.6137898, y: -0.013916016, z: -2.61379}
+    Normal: {x: -0.69163406, y: 0.2080502, z: 0.6916339}
+    Up: {x: 0.14711374, y: 0.9781182, z: -0.1471137}
+    Size: {x: 1.1, y: 0.53964037}
+    Bar: {fileID: 2100000, guid: 3895377df8386c14f8fd603137a2fb25, type: 2}
+    Dark: 1
+    Lift: 0.0075467145
+  _backMaterial: {fileID: 2100000, guid: 307916ba3660317488945c4964c8fd35, type: 2}
 --- !u!1 &2605408825612109799
 GameObject:
   m_ObjectHideFlags: 0

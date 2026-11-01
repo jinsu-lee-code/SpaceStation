@@ -76,6 +76,7 @@ namespace SpaceStation.Interior
         private readonly Dictionary<Light, float> _lightBase = new Dictionary<Light, float>();
         private readonly Dictionary<ModuleInstance, Color> _roomColors = new Dictionary<ModuleInstance, Color>();
         private readonly Dictionary<ModuleInstance, Transform> _roomParents = new Dictionary<ModuleInstance, Transform>();
+        private readonly Dictionary<Transform, ModuleInstance> _parentRooms = new Dictionary<Transform, ModuleInstance>();
         /// <summary>11-11 템플릿 방: (템플릿, 놓인 프리팹) — 주민 자리를 월드로 옮길 때.</summary>
         private readonly Dictionary<ModuleInstance, (InteriorTemplate Template, Transform Instance)> _templateRooms = new Dictionary<ModuleInstance, (InteriorTemplate, Transform)>();
         /// <summary>문 상태등: 너머 방 → 그 방 상태를 보여 주는 렌더러 조각들.</summary>
@@ -175,6 +176,7 @@ namespace SpaceStation.Interior
             _lightBase.Clear();
             _roomColors.Clear();
             _roomParents.Clear();
+            _parentRooms.Clear();
             _templateRooms.Clear();
             _dimmed.Clear();
             _doors.Clear();
@@ -213,6 +215,7 @@ namespace SpaceStation.Interior
                 go.transform.SetParent(_root, false);
                 go.SetActive(false); // 근처 방만 켬 (InteriorMode → ShowOnly)
                 _roomParents.Add(room.Module, go.transform);
+                _parentRooms.Add(go.transform, room.Module);
                 _roomPieces.Add(room.Module, new List<Piece>());
                 _roomColors.Add(room.Module, RoomColor(room.Module.Data));
                 _rooms.Add(room.Module, room);
@@ -390,6 +393,17 @@ namespace SpaceStation.Interior
 
         /// <summary>방 오브젝트 (연출 오브젝트를 여기 붙이면 내부를 다시 만들 때 함께 지워진다).</summary>
         public Transform RoomParent(ModuleInstance module) => _roomParents.TryGetValue(module, out var t) ? t : null;
+
+        /// <summary>방 안 물체 → 그 방 모듈 (부모를 따라 올라가 방 오브젝트를 찾음). 방 밖(연결 통로 튜브 등)이면 null.</summary>
+        public ModuleInstance RoomOf(Transform t)
+        {
+            for (; t != null && t != _root; t = t.parent)
+            {
+                if (_parentRooms.TryGetValue(t, out var module))
+                    return module;
+            }
+            return null;
+        }
 
         /// <summary>11-11 템플릿으로 만든 방이면 템플릿과 놓인 프리팹 (모듈 로컬 → 월드 변환).</summary>
         public bool TryGetTemplateRoom(ModuleInstance module, out InteriorTemplate template, out Transform instance)
@@ -569,7 +583,7 @@ namespace SpaceStation.Interior
             {
                 Solid(solidCenter, rotation, new Vector3(panel.Width, h, t));
                 if (_kit != null)
-                    KitPiece(_kit.Wall, module, parent, center, rotation, new Vector3(panel.Width / InteriorGeometry.PanelWidth, 1f, 1f));
+                    KitPiece(_kit.WallFor(module.Data), module, parent, center, rotation, new Vector3(panel.Width / InteriorGeometry.PanelWidth, 1f, 1f)); // 진화 모듈 = 단계 조각 (InteriorKitStage)
                 else
                     Cube(parent, module, solidCenter, rotation, new Vector3(panel.Width, h, t), color);
                 return;
@@ -592,7 +606,7 @@ namespace SpaceStation.Interior
                 Cube(parent, module, solidCenter + up * (doorTop + lintel * 0.5f), rotation, new Vector3(dw, lintel, t), DoorFrame);
                 return;
             }
-            var wall = KitPiece(_kit.WallDoor, module, parent, center, rotation);
+            var wall = KitPiece(_kit.WallDoorFor(module.Data), module, parent, center, rotation);
             if (wall.StatusSlot >= 0 && other != null)
             {
                 if (!_statusByOther.TryGetValue(other, out var lights))
@@ -609,12 +623,13 @@ namespace SpaceStation.Interior
             var go = new GameObject("Door");
             go.transform.SetParent(parent, false);
             go.transform.SetPositionAndRotation(position, rotation);
-            var right = KitPiece(_kit.DoorLeaf, module, go.transform, position, rotation).Renderer.transform;
-            var left = KitPiece(_kit.DoorLeaf, module, go.transform, position, rotation * Quaternion.Euler(0f, 180f, 0f)).Renderer.transform;
+            var leaf = _kit.DoorLeafFor(module != null ? module.Data : null);
+            var right = KitPiece(leaf, module, go.transform, position, rotation).Renderer.transform;
+            var left = KitPiece(leaf, module, go.transform, position, rotation * Quaternion.Euler(0f, 180f, 0f)).Renderer.transform;
             right.name = "LeafRight";
             left.name = "LeafLeft";
             var door = go.AddComponent<InteriorDoor>();
-            float leafWidth = _kit.DoorLeaf.Mesh.bounds.size.x;
+            float leafWidth = leaf.Mesh.bounds.size.x;
             // 안쪽 끝은 문 구멍(±0.7) 밖, 바깥 끝은 문 패널 주머니(±1.6) 안에서 멈추게.
             // 처음 값(구멍 반 폭 + 0.3 = 1.0)은 바깥 끝이 1.72까지 나가 패널 옆으로 문짝 끝(강조색 줄)이 보였음 (튜브 고리에 가려 있다 고리를 벽 속에 묻으며 드러남)
             float travel = InteriorGeometry.PanelWidth * 0.5f - leafWidth - 0.04f;
@@ -631,7 +646,7 @@ namespace SpaceStation.Interior
             var slab = surface + Vector3.up * (rect.Ceiling ? t * 0.5f : -t * 0.5f);
             Solid(slab, Quaternion.identity, size);
             if (_kit != null)
-                KitPiece(rect.Ceiling ? _kit.Ceiling : _kit.Floor, module, parent, surface, Quaternion.identity, new Vector3(rect.Size.x / 4f, 1f, rect.Size.y / 4f));
+                KitPiece(rect.Ceiling ? _kit.CeilingFor(module.Data) : _kit.FloorFor(module.Data), module, parent, surface, Quaternion.identity, new Vector3(rect.Size.x / 4f, 1f, rect.Size.y / 4f));
             else
                 Cube(parent, module, slab, Quaternion.identity, size, rect.Ceiling ? _roomColors[module] : Multiply(_roomColors[module], FloorShade));
             if (rect.Hatch)
@@ -650,8 +665,8 @@ namespace SpaceStation.Interior
             GameObject lid;
             if (_kit != null)
             {
-                KitPiece(_kit.HatchFrame, module, parent, surface, flip);
-                lid = KitPiece(_kit.HatchLid, module, parent, lidCenter, flip).Renderer.gameObject;
+                KitPiece(_kit.HatchFrameFor(module.Data), module, parent, surface, flip);
+                lid = KitPiece(_kit.HatchLidFor(module.Data), module, parent, lidCenter, flip).Renderer.gameObject;
                 var box = lid.AddComponent<BoxCollider>();
                 box.center = Vector3.zero;
                 box.size = new Vector3(InteriorGeometry.HatchSize, 0.08f, InteriorGeometry.HatchSize);

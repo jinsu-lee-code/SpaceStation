@@ -53,17 +53,39 @@ namespace SpaceStation.Editor
             { "WaterEx", new[] { ResidentTrait.Gardener } },
             { "Radiator", new[] { ResidentTrait.Technician } },   // 사용자 결정 2026-10-22: 배터리 · 태양광 · 연료전지와 같은 기술자
             { "CommRelay", new[] { ResidentTrait.Scientist } },   // 사용자 결정 2026-10-22: 신호 해독 = 연구원 (연구소 · 데이터 센터와 같음)
+            // 진화 모듈 (재료 모듈과 같은 특성)
+            { "EvoResearch", new[] { ResidentTrait.Scientist } }, // 연구 단지 = 연구소 ×2
+            { "EvoEco", new[] { ResidentTrait.Gardener } },       // 생태 모듈 = 농장 · 산소 · 물 재활용 (모두 정원사)
+            { "EvoPowerBank", new[] { ResidentTrait.Technician } }, // 축전 뱅크 = 배터리 ×3 (기술자)
+            { "EvoWelfare", new[] { ResidentTrait.Scientist } },    // 복지 센터 = 의무실 (연구원) + 휴게실 (쉬는 방 — LeisureRooms)
+            { "EvoCulture", new[] { ResidentTrait.Scientist } },    // 문화 센터 = 학교 (연구원 = 선생님) + 휴게실 (쉬는 방)
+            { "EvoSolar", new[] { ResidentTrait.Technician } },     // 태양광 어레이 = 태양광 ×4 (기술자)
+            { "EvoFusion", new[] { ResidentTrait.Scientist } },     // 융합 발전소 = 핵융합로 (연구원) + 물 재활용기
+            { "EvoHydrogen", new[] { ResidentTrait.Technician, ResidentTrait.Gardener } },   // 수소 플랜트 = 연료전지 (기술자) + 물 재활용기 · 산소 (정원사)
+            { "EvoFarm", new[] { ResidentTrait.Gardener } },        // 수직 농장 = 수경 농장 ×2 + 단백질 배양조 (모두 정원사)
+            { "EvoMineral", new[] { ResidentTrait.Mechanic } },     // 광물 처리 단지 = 채굴 도킹 + 제련소 (모두 정비공)
+            { "EvoShield", new[] { ResidentTrait.Scientist } },     // 실드 매트릭스 = 실드 발생기 ×3 (연구원)
+            { "EvoDefense", new[] { ResidentTrait.Technician } },   // 방어 포대 = 포탑 ×2 + 장갑 격벽 (모두 기술자)
+            { "EvoArmor", new[] { ResidentTrait.Technician } },     // 장갑 외벽 = 장갑 격벽 ×3 (기술자)
+            { "EvoWorks", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 정비 공창 = 정비 베이 ×3 (기술자 · 정비공)
+            { "EvoEmergency", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 비상 대응 센터 = 손상 통제실 + 정비 베이 (기술자 · 정비공)
+            { "EvoReclaim", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },     // 자재 재생 플랜트 = 정비 베이 + 제련소 (기술자 · 정비공)
+            { "EvoLogistics", new[] { ResidentTrait.Mechanic } },     // 물류 허브 = 화물 터미널 + 창고 (정비공)
+            { "EvoStorage", new[] { ResidentTrait.Mechanic } },       // 대형 창고 = 창고 ×4 (정비공)
+            { "EvoShipyard", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 조선소 = 화물 터미널 + 제련소 (정비공) + 정비 베이 (기술자 · 정비공)
+            { "EvoAutomation", new[] { ResidentTrait.Scientist, ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 자동화 센터 = 연구소 (연구원) + 정비 베이 (기술자 · 정비공)
+            { "EvoSecurity", new[] { ResidentTrait.Technician } },   // 보안청 = 행정 관제소 (특성 없음 — 창구는 OpenWork) + 포탑 (기술자)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity" };
 
         /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
-        /// 여객 도킹 포트 안내 직원).</summary>
-        private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger" };
+        /// 여객 도킹 포트 안내 직원 · 2026-10-31 보안청 창구 직원).</summary>
+        private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger", "EvoSecurity" };
 
         /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
-        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" } };
+        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" } };
 
         /// <summary>12-5 일하는 사람 상태 글 (없으면 "일하는 중").</summary>
         private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" } };
@@ -79,7 +101,529 @@ namespace SpaceStation.Editor
             { "Passenger", PassengerSpots },
             { "Radiator", RadiatorSpots },
             { "CommRelay", CommRelaySpots },
+            { "EvoResearch", EvoResearchSpots },
+            { "EvoTower", EvoTowerSpots },
+            { "EvoEco", EvoEcoSpots },
+            { "EvoPowerBank", EvoPowerBankSpots },
+            { "EvoWelfare", EvoWelfareSpots },
+            { "EvoCulture", EvoCultureSpots },
+            { "EvoSolar", EvoSolarSpots },
+            { "EvoFusion", EvoFusionSpots },
+            { "EvoHydrogen", EvoHydrogenSpots },
+            { "EvoGravity", EvoGravitySpots },
+            { "EvoFarm", EvoFarmSpots },
+            { "EvoMineral", EvoMineralSpots },
+            { "EvoShield", EvoShieldSpots },
+            { "EvoDefense", EvoDefenseSpots },
+            { "EvoArmor", EvoArmorSpots },
+            { "EvoWorks", EvoWorksSpots },
+            { "EvoEmergency", EvoEmergencySpots },
+            { "EvoReclaim", EvoReclaimSpots },
+            { "EvoLogistics", EvoLogisticsSpots },
+            { "EvoStorage", EvoStorageSpots },
+            { "EvoShipyard", EvoShipyardSpots },
+            { "EvoAutomation", EvoAutomationSpots },
+            { "EvoSecurity", EvoSecuritySpots },
         };
+
+        /// <summary>
+        /// 진화 1단계 보안청 (se_builder SEATS): 일하는 자리 = 창구 직원 의자 셋 먼저 (행정 관제소처럼 — 일하는 주민이 적어도 창구가 열려 번호표가 돎,
+        /// <see cref="Interior.InteriorQueueBoard"/>) → 레이더 상황판 서 · 동 · 남 → 북쪽 귀퉁이 관제 책상 둘, 쉬는 자리 = 대기 의자 두 줄 × 여섯 (창구 = +z를 봄).
+        /// </summary>
+        private static List<ResidentSpot> EvoSecuritySpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (float x in new[] { 4.0f, 2.2f, 5.8f })   // 가운데 창구부터
+                list.Add(new ResidentSpot(new Vector3(x, Floor + 0.49f, 1.95f), 180f, ResidentPose.Sit, work: true));
+            list.Add(new ResidentSpot(new Vector3(0f, Floor, 3.9f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(-1.3f, Floor, 5.2f), 90f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(1.3f, Floor, 5.2f), -90f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(-1.9f, Floor, 9.7f), -45f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(1.9f, Floor, 9.7f), 45f, ResidentPose.Work, work: true));
+            foreach (float z in new[] { -0.95f, -2.15f })   // 앞줄부터
+            {
+                foreach (float x in new[] { 3.1f, 4.9f, 2.55f, 5.45f, 2.0f, 6.0f })   // 가운데 통로 쪽부터
+                    list.Add(new ResidentSpot(new Vector3(x, Floor + 0.43f, z), 0f, ResidentPose.Sit));
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// 진화 1단계 자동화 센터 (ac_builder SEATS): 연구원 · 기술자 · 정비공 — 학습 코어 책상 둘 (남서 · 북서 대각, 코어를 봄) ·
+        /// 실습 베이 정비 콘솔 둘 (안쪽 북 벽) · 기록 연구실 귀퉁이 책상 둘 (북서 · 북동, 귀퉁이 창 쪽).
+        /// </summary>
+        private static List<ResidentSpot> EvoAutomationSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(-1.626f, Floor, -1.626f), 45f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.626f, Floor, 1.626f), 135f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(4.95f, Floor, 2.15f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(5.95f, Floor, 2.15f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.9f, Floor, 9.7f), -45f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(1.9f, Floor, 9.7f), 45f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 진화 1단계 조선소 (sy_builder SEATS): 기술자 · 정비공 — 굽힘기 앞 (북을 봄) · 판 받침대 (서 벽) · 설계 홀로 탁자 남 · 북 쪽
+        /// (서 · 남 문 복도 비킴, 플레이 걷기 검사 2026-10-31) · 출항 관제 콘솔 둘 (북 창) · 드론 검사 아치 앞 · 엔진 점검 지그 앞.
+        /// </summary>
+        private static List<ResidentSpot> EvoShipyardSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(2.8f, Floor, 9.1f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.7f, Floor, 4.0f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(1.5f, Floor, 2.85f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(1.5f, Floor, 5.15f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(14.3f, Floor, 9.9f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(15.7f, Floor, 9.9f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(13.5f, Floor, 4.0f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(12.5f, Floor, 3.1f), 180f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 진화 1단계 대형 창고 (bs_builder SEATS): 정비공 — 크레인 조작 책상 둘 (남 창 쪽 화면을 봄) · 재고 카운터 둘 (북) · 입고 작업대 둘 (서).
+        /// </summary>
+        private static List<ResidentSpot> EvoStorageSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(3.3f, Floor, -1.9f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(4.7f, Floor, -1.9f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(3.3f, Floor, 9.9f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(4.7f, Floor, 9.9f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.95f, Floor, 3.3f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.95f, Floor, 4.7f), -90f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 진화 1단계 물류 허브 (lh_builder SEATS): 정비공 — 창고 칸 앞 조작 단말 둘 (선반을 봄) · 배차 콘솔 둘 · 포장대 (북 창 쪽을 봄).
+        /// </summary>
+        private static List<ResidentSpot> EvoLogisticsSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(4f, Floor, -0.8f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(12f, Floor, -0.8f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1f, Floor, 1.95f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(0.1f, Floor, 1.95f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(16.85f, Floor, 1.95f), 0f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 진화 1단계 자재 재생 플랜트 (mr_builder SEATS): 기술자 · 정비공 — 벽 작업대 넷 앞에서 벽 쪽을 봄
+        /// (남 선별대 · 동 주형 줄 · 북 분해 작업대 · 서 제어 콘솔).
+        /// </summary>
+        private static List<ResidentSpot> EvoReclaimSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(5.05f, Floor, -1.85f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(9.7f, Floor, 4f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(4f, Floor, 9.85f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.95f, Floor, 4f), -90f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 진화 1단계 비상 대응 센터 (ec_builder SEATS): 기술자 · 정비공 — 상황 테이블 북서 · 남동 (테이블을 봄) · 발사 콘솔 둘 (발사관을 봄) ·
+        /// 용접대 −x (보수판을 봄) · 보수판 선반 앞.
+        /// </summary>
+        private static List<ResidentSpot> EvoEmergencySpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(-1.1f, Floor, 1.1f), 135f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(1.1f, Floor, -1.1f), -45f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(5.8f, Floor, 2.35f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(8.6f, Floor, 2.35f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-2.05f, Floor, 7f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-2.2f, Floor, 4.5f), -90f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 진화 1단계 정비 공창 (mw_builder SEATS): 기술자 · 정비공 — 수리 패드 넷 (진단 콘솔 너머 패드를 봄, 홀 가운데 쪽) · 작업대 둘 (창고 띠 쪽에서 봄) ·
+        /// 부품 선반 원통 둘 (건널목 쪽에서 봄).
+        /// </summary>
+        private static List<ResidentSpot> EvoWorksSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(2.5f, Floor, -0.4f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(13.5f, Floor, -0.4f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(2.5f, Floor, 8.4f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(13.5f, Floor, 8.4f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(8f, Floor, 1.15f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(8f, Floor, 6.85f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(3.6f, Floor, 4f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(12.4f, Floor, 4f), 90f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 진화 1단계 장갑 외벽 (aw_builder SEATS): 기술자 — 수리대 양 끝 둘 (수리대를 봄) · 양 끝 감시실 육각 상황판 홀 쪽 둘 (상황판을 봄) ·
+        /// 바깥 모서리 감시 콘솔 넷 (콘솔을 봄, 문 자리 가로 ±1.75 밖). 수리대 · 상황판 옆길 1.3m 이상.
+        /// </summary>
+        private static List<ResidentSpot> EvoArmorSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(6.85f, Floor, 0f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(9.15f, Floor, 0f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(1.35f, Floor, 0f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(14.65f, Floor, 0f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-2.057f, Floor, -2.057f), -135f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-2.057f, Floor, 2.057f), -45f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(18.057f, Floor, -2.057f), 135f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(18.057f, Floor, 2.057f), 45f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 진화 1단계 방어 포대 (db_builder SEATS): 기술자 — 포탑실 바깥 모서리 사수 콘솔 넷 (콘솔을 봄, 문 자리 가로 ±1.75 밖) ·
+        /// 레이더 상황판 양 끝 둘 (상황판을 봄) · 벙커 틈 창 아래 책상 넷 (책상을 봄). 상황판 옆길 (z ±0.65 ~ 1.67) 1.3m 이상.
+        /// </summary>
+        private static List<ResidentSpot> EvoDefenseSpots()
+        {
+            var list = new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(-2.057f, Floor, -2.057f), -135f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-2.057f, Floor, 2.057f), -45f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(18.057f, Floor, -2.057f), 135f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(18.057f, Floor, 2.057f), 45f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(6.55f, Floor, 0f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(9.45f, Floor, 0f), -90f, ResidentPose.Work, work: true),
+            };
+            foreach (float x in new[] { 5.55f, 10.45f })
+            {
+                list.Add(new ResidentSpot(new Vector3(x, Floor, -1.97f), 180f, ResidentPose.Work, work: true));
+                list.Add(new ResidentSpot(new Vector3(x, Floor, 1.97f), 0f, ResidentPose.Work, work: true));
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// 진화 1단계 실드 매트릭스 (sm_builder SEATS): 연구원 — 두 팔 벽쪽 관제 콘솔 넷 (콘솔을 봄, 사이 통로 3.4m) · 팔 끝 발생 노드 관리 둘 (노드 바깥쪽, 끝 문 자리 앞 밖).
+        /// </summary>
+        private static List<ResidentSpot> EvoShieldSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(5.2f, Floor, -2.03f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(5.2f, Floor, 2.03f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-2.03f, Floor, 5.2f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(2.03f, Floor, 5.2f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(9.15f, Floor, 0f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(0f, Floor, 9.15f), 180f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 진화 1단계 광물 처리 단지 (mc_builder SEATS): 정비공 — 용광로 틈 창 앞 둘 (용광로를 봄) · 분쇄기 양옆 둘 (분쇄기를 봄) ·
+        /// 하역장 관제 책상 둘 (−z 서쪽 · +z 동쪽, 문 자리 밖). 모두 가운데 줄 · 책상 앞이라 양옆 길 1.7m 이상 남김.
+        /// </summary>
+        private static List<ResidentSpot> EvoMineralSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(1.85f, Floor, 0f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(14.15f, Floor, 0f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(6.35f, Floor, 0f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(9.65f, Floor, 0f), -90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(5.0f, Floor, -1.97f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(11.0f, Floor, 1.97f), 0f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 진화 1단계 수직 농장 (vf_builder SEATS): 정원사 — 1층 3단 선반 양쪽 여섯 (선반을 봄, 창가 길 안쪽 가장자리) ·
+        /// 2층 창가 모종 선반 앞 넷 (기둥 받침과 사이 1.3m 남김) · 꼭대기 관제 책상 의자 (앉아서 일함).
+        /// </summary>
+        private static List<ResidentSpot> EvoFarmSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (float x in new[] { 3.8f, 6.15f, 8.5f })
+            {
+                list.Add(new ResidentSpot(new Vector3(x, Floor, -1.25f), 0f, ResidentPose.Work, work: true));
+                list.Add(new ResidentSpot(new Vector3(x, Floor, 1.25f), 180f, ResidentPose.Work, work: true));
+            }
+            foreach (float x in new[] { 4.2f, 7.4f })
+            {
+                list.Add(new ResidentSpot(new Vector3(x, 8f + Floor, -2.1f), 180f, ResidentPose.Work, work: true));
+                list.Add(new ResidentSpot(new Vector3(x, 8f + Floor, 2.1f), 0f, ResidentPose.Work, work: true));
+            }
+            list.Add(new ResidentSpot(new Vector3(-1.95f, 16f + Floor + 0.5f, -1.95f), -135f, ResidentPose.Sit, work: true));
+            return list;
+        }
+
+        /// <summary>
+        /// 진화 1단계 중력 거주구 (gh_builder SEATS): 사는 사람 · 쉬러 온 사람 (회전 링 = 쉬는 방) — 탑 둘레 벤치 일곱 (바깥을 봄) ·
+        /// 원형 통로 창가 벤치 열여섯 (창을 봄) · 골목 집 앞 이웃 넷 (집을 봄) · 둥근 탁자 의자 넷 (탁자를 봄) · 전망실 창가 둘 (바깥을 봄 — 탑 둘레 길 1.5m 남김).
+        /// 곡면 벤치 · 둥근 탁자는 찾아낸 자리로 잘 안 잡혀 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> EvoGravitySpots()
+        {
+            var c = new Vector3(8f, 0f, 8f);
+            var list = new List<ResidentSpot>();
+            void Ring(float r, float deg, float y, ResidentPose pose)
+            {
+                float a = deg * Mathf.Deg2Rad;
+                var d = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                list.Add(new ResidentSpot(c + d * r + Vector3.up * y, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg, pose));
+            }
+            foreach (var (a0, a1) in new[] { (-40f, 26f), (34f, 106f), (114f, 220f) })
+            {
+                int n = a1 - a0 < 80f ? 2 : 3;
+                for (int j = 0; j < n; j++)
+                    Ring(1.8f, a0 + (a1 - a0) * (j + 0.5f) / n, Floor + 0.45f, ResidentPose.Sit);
+            }
+            for (int q = 0; q < 4; q++)
+            {
+                foreach (var (b0, b1) in new[] { (16f, 37f), (53f, 74f) })
+                {
+                    foreach (float t in new[] { 0.3f, 0.7f })
+                        Ring(6.93f, q * 90f + b0 + (b1 - b0) * t, Floor + 0.45f, ResidentPose.Sit);
+                }
+            }
+            foreach (float z in new[] { 26.95f, 29.05f })
+            {
+                list.Add(new ResidentSpot(new Vector3(6.75f, Floor, z), -90f, ResidentPose.Stand));
+                list.Add(new ResidentSpot(new Vector3(9.25f, Floor, z), 90f, ResidentPose.Stand));
+            }
+            var table = new Vector3(8f, 0f, 21f);
+            foreach (float deg in new[] { 45f, 135f, 225f, 315f })
+            {
+                float a = deg * Mathf.Deg2Rad;
+                var p = new Vector3(table.x + Mathf.Cos(a) * 0.95f, Floor + 0.45f, table.z + Mathf.Sin(a) * 0.95f);
+                list.Add(new ResidentSpot(p, Mathf.Atan2(table.x - p.x, table.z - p.z) * Mathf.Rad2Deg, ResidentPose.Sit));
+            }
+            foreach (float deg in new[] { 200f, 340f })
+                Ring(3.0f, deg, Floor + 2.9f, ResidentPose.Stand);   // 전망실 (엘리베이터 문 270° · 망원경 90°를 비킴)
+            return list;
+        }
+
+        /// <summary>
+        /// 진화 1단계 수소 플랜트 (hp_builder): 기술자 · 정원사 — 전기분해조 대각선 둘 (통을 봄) · 연료전지 더미 양옆 둘 (빛 고리 자리 x 8.15를 비킴) ·
+        /// 출력 장 앞 · 흐름 제어대 앞 · 물 구체 뒤 · 산소 구체 압력계 앞. 걸어 다닐 길 (1.6m 이상) 밖.
+        /// </summary>
+        private static List<ResidentSpot> EvoHydrogenSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(1.3f, Floor, 1.3f), -135f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.3f, Floor, -1.3f), 45f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(7.2f, Floor, 1.3f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(9.2f, Floor, -1.3f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(5.2f, Floor, -2.05f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(5.4f, Floor, 1.85f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(-1.75f, Floor, 6.55f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(1.75f, Floor, 3.95f), 0f, ResidentPose.Work, work: true),
+            };
+        }
+
+        /// <summary>
+        /// 진화 1단계 융합 발전소 (fs_builder): 연구원 — 제어대 의자 셋 (창 쪽 화면을 봄 — 앉아서 일함) · 냉각수 펌프 앞 둘 · 자석 전원 장 앞 둘 ·
+        /// 남는 물 탱크 앞 · 구체와 융합로 사이 가운데 둘 (융합로를 봄). 사용자 2026-10-29 "길을 지나다닐 수가 없네": 주민은 충돌체가 있어
+        /// 융합로 옆 길 (폭 1.3m) · 구체 옆 길에는 자리를 두지 않음. 모서리 정수 필터는 문 자리 사이라 자리 없음.
+        /// </summary>
+        private static List<ResidentSpot> EvoFusionSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (float x in new[] { 4.05f, 4.9f, 5.75f })
+                list.Add(new ResidentSpot(new Vector3(x, Floor + 0.45f, -1.85f), 180f, ResidentPose.Sit, work: true));
+            list.Add(new ResidentSpot(new Vector3(4.25f, Floor, 1.75f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(5.6f, Floor, 1.75f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(10.45f, Floor, -2.05f), 180f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(11.8f, Floor, -2.05f), 180f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(10.4f, Floor, 1.5f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(5.15f, Floor, 0f), 90f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(10.85f, Floor, -0.45f), Mathf.Atan2(8f - 10.85f, 0.45f) * Mathf.Rad2Deg, ResidentPose.Work, work: true));   // 물 탱크 앞 사람과 1.4m 띄움
+            return list;
+        }
+
+        /// <summary>
+        /// 진화 1단계 태양광 어레이 (sa_builder): 기술자 — 관제석 의자 셋 (곡면 책상 바깥, 추적 가대를 봄 — 앉아서 일함) ·
+        /// 변환 장치 장 앞 둘 (창 쪽을 봄) · 패널 정비대 앞 (예비 패널을 봄) · 공구 수레 앞 · 해 추적 홀로 탁자 양쪽 둘.
+        /// 곡면 책상 · 둥근 탁자는 찾아낸 자리로 잘 안 잡혀 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> EvoSolarSpots()
+        {
+            var c = new Vector3(4f, 0f, 4f);
+            var list = new List<ResidentSpot>();
+            foreach (float deg in new[] { 260f, 270f, 280f })
+            {
+                float a = deg * Mathf.Deg2Rad;
+                var p = new Vector3(c.x + Mathf.Cos(a) * 5.6f, Floor + 0.45f, c.z + Mathf.Sin(a) * 5.6f);
+                list.Add(new ResidentSpot(p, Mathf.Atan2(c.x - p.x, c.z - p.z) * Mathf.Rad2Deg, ResidentPose.Sit, work: true));
+            }
+            list.Add(new ResidentSpot(new Vector3(10.15f, Floor, 3.05f), 90f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(10.15f, Floor, 4.95f), 90f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(3.6f, Floor, 8.3f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(2.3f, Floor, 9.0f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(-0.6f, Floor, 3.15f), 0f, ResidentPose.Work, work: true));
+            list.Add(new ResidentSpot(new Vector3(-0.6f, Floor, 4.85f), 180f, ResidentPose.Work, work: true));
+            return list;
+        }
+
+        /// <summary>
+        /// 진화 1단계 문화 센터 (cc_builder): 일하는 자리 = 연구원 (선생님) — 칠판 앞 (칠판을 봄) · 투영기 옆 (투영기를 봄).
+        /// 쉬는 자리 (쉬는 방) = 투영실 곡면 벤치 여덟 (안 · 바깥 겹 네 쪽, 투영기를 봄) · 책상 의자 여섯 (칠판을 봄) · 보드게임 의자 여섯 (탁자를 봄) ·
+        /// 안락의자 둘 · 쉼터 벤치 둘 (창 · 투영실을 봄) + 서기 둘. 곡면 벤치 · 둥근 탁자 의자는 찾아낸 자리로 잘 안 잡혀 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> EvoCultureSpots()
+        {
+            var c = new Vector3(4f, 0f, 4f);
+            var list = new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(4f, Floor, -2.75f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(4f, Floor, 3.15f), 0f, ResidentPose.Work, work: true),
+            };
+            foreach (float r in new[] { 1.65f, 2.55f })
+            {
+                foreach (float deg in new[] { 45f, 135f, 225f, 315f })
+                {
+                    float a = deg * Mathf.Deg2Rad;
+                    var p = new Vector3(c.x + Mathf.Cos(a) * r, Floor + 0.45f, c.z + Mathf.Sin(a) * r);
+                    list.Add(new ResidentSpot(p, Mathf.Atan2(c.x - p.x, c.z - p.z) * Mathf.Rad2Deg, ResidentPose.Sit));
+                }
+            }
+            foreach (float z in new[] { -2.1f, -0.85f })
+            {
+                foreach (float x in new[] { 2.3f, 4.0f, 5.7f })
+                    list.Add(new ResidentSpot(new Vector3(x, Floor + 0.45f, z + 0.62f), 180f, ResidentPose.Sit));
+            }
+            foreach (var (gx, gz) in new[] { (2.4f, 9.6f), (5.6f, 9.6f) })
+            {
+                foreach (float deg in new[] { 90f, 210f, 330f })
+                {
+                    float a = deg * Mathf.Deg2Rad;
+                    var p = new Vector3(gx + Mathf.Cos(a) * 0.82f, Floor + 0.42f, gz + Mathf.Sin(a) * 0.82f);
+                    list.Add(new ResidentSpot(p, Mathf.Atan2(gx - p.x, gz - p.z) * Mathf.Rad2Deg, ResidentPose.Sit));
+                }
+            }
+            list.Add(new ResidentSpot(new Vector3(9.55f, Floor + 0.42f, 3f), 90f, ResidentPose.Sit));
+            list.Add(new ResidentSpot(new Vector3(9.55f, Floor + 0.42f, 5f), 90f, ResidentPose.Sit));
+            list.Add(new ResidentSpot(new Vector3(-2.9f, Floor + 0.45f, 3.3f), 90f, ResidentPose.Sit));
+            list.Add(new ResidentSpot(new Vector3(-2.9f, Floor + 0.45f, 4.7f), 90f, ResidentPose.Sit));
+            list.Add(new ResidentSpot(new Vector3(4f, Floor, 9.6f), 0f, ResidentPose.Stand));
+            list.Add(new ResidentSpot(new Vector3(10.1f, Floor, 6.6f), 90f, ResidentPose.Stand));
+            return list;
+        }
+
+        /// <summary>
+        /// 진화 1단계 복지 센터 (wc_builder): 일하는 자리 = 연구원 — 스캔 침대 둘 통로 쪽 둘씩 (침대를 봄).
+        /// 쉬는 자리 (쉬는 방) = 정자 원형 벤치 다섯 (방석 F + 0.45, 바깥 창을 봄) · 여가 날개 소파 넷 (창을 봄) · 끝 모서리 라운지 의자 둘 ·
+        /// 홀로 탁자 둘레 서기 셋. 원형 벤치 · 곡면 의자는 찾아낸 자리로 잘 안 잡혀 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> EvoWelfareSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (float s in new[] { -1f, 1f })
+            {
+                foreach (float x in new[] { 4.5f, 5.75f })
+                    list.Add(new ResidentSpot(new Vector3(x, Floor, s * 0.95f), s > 0f ? 0f : 180f, ResidentPose.Work, work: true));
+            }
+            foreach (float deg in new[] { 150f, 195f, 240f, 285f, 330f })
+            {
+                float a = deg * Mathf.Deg2Rad;
+                var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                list.Add(new ResidentSpot(dir * 1.3f + Vector3.up * (Floor + 0.45f), Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg, ResidentPose.Sit));
+            }
+            foreach (float s in new[] { -1f, 1f })
+            {
+                foreach (float z in new[] { 5.05f, 5.85f })
+                    list.Add(new ResidentSpot(new Vector3(s * 2.05f, Floor + 0.44f, z), s * 90f, ResidentPose.Sit));
+            }
+            list.Add(new ResidentSpot(new Vector3(-1.9f, Floor + 0.42f, 10f), -45f, ResidentPose.Sit));
+            list.Add(new ResidentSpot(new Vector3(1.9f, Floor + 0.42f, 10f), 45f, ResidentPose.Sit));
+            list.Add(new ResidentSpot(new Vector3(0f, Floor, 4.35f), 0f, ResidentPose.Stand));
+            list.Add(new ResidentSpot(new Vector3(0f, Floor, 6.05f), 180f, ResidentPose.Stand));
+            list.Add(new ResidentSpot(new Vector3(-0.85f, Floor, 5.2f), 90f, ResidentPose.Stand));
+            return list;
+        }
+
+        /// <summary>
+        /// 진화 1단계 축전 뱅크 (pb_builder): 기술자 — 충 · 방전 제어대 둘 (x 4 · 12, 반지름 0.86) 둘레 셋씩 (제어대를 봄, 반지름 1.25) +
+        /// 창 아래 예비 셀 선반 앞 넷 (선반을 봄, 엇갈린 벽). 둥근 제어대는 찾아낸 자리로 잘 안 잡혀 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> EvoPowerBankSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (var (x, side) in new[] { (4f, 1f), (12f, -1f) })
+            {
+                list.Add(new ResidentSpot(new Vector3(x - 1.25f, Floor, 0f), 90f, ResidentPose.Work, work: true));
+                list.Add(new ResidentSpot(new Vector3(x + 1.25f, Floor, 0f), -90f, ResidentPose.Work, work: true));
+                list.Add(new ResidentSpot(new Vector3(x, Floor, side * 1.25f), side > 0f ? 180f : 0f, ResidentPose.Work, work: true));
+            }
+            foreach (var (x, side) in new[] { (2.95f, 1f), (5.05f, -1f), (10.95f, -1f), (13.05f, 1f) })
+                list.Add(new ResidentSpot(new Vector3(x, Floor, side * 2.25f), side > 0f ? 0f : 180f, ResidentPose.Work, work: true));
+            return list;
+        }
+
+        /// <summary>
+        /// 진화 1단계 생태 모듈 (eco_builder): 정원사 — 온실 가운데 통로에서 양쪽 재배대를 봄 (바닥 해치 x 8 · 16 비킴) 넷 + 순환 코어 물 구체 앞 하나.
+        /// </summary>
+        private static List<ResidentSpot> EvoEcoSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (float x in new[] { 5.6f, 12f })
+            {
+                list.Add(new ResidentSpot(new Vector3(x, Floor, 0.55f), 0f, ResidentPose.Work, work: true));
+                list.Add(new ResidentSpot(new Vector3(x, Floor, -0.55f), 180f, ResidentPose.Work, work: true));
+            }
+            list.Add(new ResidentSpot(new Vector3(1.3f, Floor, 6.9f), Mathf.Atan2(-1.3f, 1.9f) * Mathf.Rad2Deg, ResidentPose.Work, work: true));
+            return list;
+        }
+
+        /// <summary>
+        /// 진화 1단계 거주 타워 (ht_builder): 사는 사람 쉬는 자리 — 1층 둥근 식탁 둘 의자 8 (식탁을 봄) · 3층 돔 라운지 곡면 소파 4 (아트리움을 봄).
+        /// 곡면 소파 · 둥근 식탁은 찾아낸 자리로 잘 안 잡혀 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> EvoTowerSpots()
+        {
+            var list = new List<ResidentSpot>();
+            var center = new Vector3(4f, 0f, 4f);
+            foreach (float tx in new[] { -0.4f, 8.4f })
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    float a = (45f + 90f * k) * Mathf.Deg2Rad;
+                    var p = new Vector3(tx + Mathf.Cos(a) * 0.95f, Floor + 0.49f, 4f + Mathf.Sin(a) * 0.95f);
+                    list.Add(new ResidentSpot(p, Mathf.Atan2(tx - p.x, 4f - p.z) * Mathf.Rad2Deg, ResidentPose.Sit));
+                }
+            }
+            foreach (float deg in new[] { 322.5f, 45f, 135f, 222.5f })
+            {
+                float a = deg * Mathf.Deg2Rad;
+                var p = new Vector3(center.x + Mathf.Cos(a) * 4.0f, 8f + Floor + 0.42f, center.z + Mathf.Sin(a) * 4.0f);
+                list.Add(new ResidentSpot(p, Mathf.Atan2(center.x - p.x, center.z - p.z) * Mathf.Rad2Deg, ResidentPose.Sit));
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// 진화 1단계 연구 단지 (rc_builder): 연구원 — 네 모서리 곡면 책상 의자 (모서리를 봄, 앉음) · 관측 단 콘솔 앞 (단 위 F + 0.1, 기둥을 봄) ·
+        /// 창 아래 계산 설비 장 앞 둘 (장을 봄). 찾아낸 자리는 곡면 책상 · 둥근 단을 잘 못 잡아 고정 자리로.
+        /// </summary>
+        private static List<ResidentSpot> EvoResearchSpots()
+        {
+            return new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(10.04f, Floor + 0.49f, 2.04f), 45f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(-2.04f, Floor + 0.49f, 2.04f), -45f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(-2.04f, Floor + 0.49f, -2.04f), -135f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(10.04f, Floor + 0.49f, -2.04f), 135f, ResidentPose.Sit, work: true),
+                new ResidentSpot(new Vector3(2.5f, Floor + 0.1f, 0f), 90f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(3.4f, Floor, 2.2f), 0f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(4.6f, Floor, -2.2f), 180f, ResidentPose.Work, work: true),
+            };
+        }
 
         /// <summary>
         /// 12-5 방열판 (radiator_builder ANCHORS["work"]): 기술자가 서서 일함 — 열교환기 조작반 (남쪽을 봄) · 열 감시판 (동쪽 벽을 봄) ·
@@ -178,6 +722,25 @@ namespace SpaceStation.Editor
             {
                 var template = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
                 if (template == null || template.Prefab == null || template.Module == null)
+                    continue;
+                log.Add(Bake(template));
+                EditorUtility.SetDirty(template);
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log("[ResidentSpotBaker] " + string.Join(" · ", log));
+        }
+
+        /// <summary>
+        /// 이름이 prefix로 시작하는 템플릿만 굽기 (진화 모듈 내부 = "IT_Evo" — Build Evolved Templates가 부름).
+        /// 전체 굽기는 찾아낸 자리가 실행마다 조금씩 달라지는 방(휴게실 등)까지 다시 써서 관계없는 변경이 생김.
+        /// </summary>
+        public static void BakeTemplates(string prefix)
+        {
+            var log = new List<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:InteriorTemplate", new[] { DataFolder }))
+            {
+                var template = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
+                if (template == null || template.Prefab == null || template.Module == null || !template.name.StartsWith(prefix))
                     continue;
                 log.Add(Bake(template));
                 EditorUtility.SetDirty(template);

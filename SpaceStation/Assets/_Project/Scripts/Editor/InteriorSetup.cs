@@ -62,9 +62,15 @@ namespace SpaceStation.Editor
         public const string IcePath = MaterialFolder + "/M_InteriorIce.mat";
         public const string AquaPath = MaterialFolder + "/M_InteriorAqua.mat";
         public const string ConcretePath = MaterialFolder + "/M_InteriorConcrete.mat";   // 12-5 방사선 차폐실 벽 · 원통 천장
+        // 진화 모듈 내부 1단계 키트 (2026-10-29, Blender evo_kit): 흰 세라믹 몸체 · 밝은 회백 바닥 · 짙은 남색 홈 · 화면 테
+        public const string EvoWhitePath = MaterialFolder + "/M_InteriorEvoWhite.mat";
+        public const string EvoFloorPath = MaterialFolder + "/M_InteriorEvoFloor.mat";
+        public const string EvoDarkPath = MaterialFolder + "/M_InteriorEvoDark.mat";
+        // 투명한 물 (2026-10-29 수소 플랜트 전기분해조 — 사용자 "위에 보이는 물 표면이 어색": 통 속을 물 덩어리로, 속 거품 · 전극이 비침)
+        public const string WaterClearPath = MaterialFolder + "/M_InteriorWaterClear.mat";
         private const string SmokePath = MaterialFolder + "/M_InteriorSmoke.mat";
         private const string DustPath = "Assets/_Project/Art/Materials/FX/M_Dust.mat";
-        private const string SparkPath = "Assets/_Project/Art/Materials/FX/M_Spark.mat";
+        internal const string SparkPath ="Assets/_Project/Art/Materials/FX/M_Spark.mat";
         private const string RpAssetPath = "Assets/Settings/PC_RPAsset.asset";
         private const string RendererPath = "Assets/Settings/PC_Renderer.asset";
         private const string InteriorRendererPath = "Assets/Settings/PC_InteriorRenderer.asset";
@@ -113,6 +119,43 @@ namespace SpaceStation.Editor
         private const string AccentFolder = "Assets/_Project/Art/Materials/";
         private const string ModuleFolder = "Assets/_Project/Data/Modules/";
 
+        /// <summary>진화 1단계 키트 조각 (Blender Interior_Evo.blend evo1_kit_builder — 기본 조각과 같은 규격, 이름 = 기본 이름 + _Evo1).</summary>
+        public const string EvoKit1Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo1.fbx";
+        private const string RecipeFolder = "Assets/_Project/Data/Recipes";
+
+        /// <summary>단계 키트 FBX의 조각 (없으면 빈 목록). 게임 중 InteriorSpots가 벽 패널 모양을 읽으므로 Read/Write를 켬 (기본 키트와 같음).</summary>
+        private static System.Collections.Generic.Dictionary<string, GameObject> StageParts(string path)
+        {
+            var parts = new System.Collections.Generic.Dictionary<string, GameObject>();
+            if (!(AssetImporter.GetAtPath(path) is ModelImporter importer))
+                return parts;
+            if (!importer.isReadable)
+            {
+                importer.isReadable = true;
+                importer.SaveAndReimport();
+            }
+            foreach (var o in AssetDatabase.LoadAllAssetsAtPath(path))
+            {
+                if (o is GameObject g && g.GetComponent<MeshFilter>() != null)
+                    parts[g.name] = g;
+            }
+            return parts;
+        }
+
+        /// <summary>레시피 단계가 stage인 진화 모듈 (그 단계 키트를 쓰는 방).</summary>
+        private static System.Collections.Generic.List<Data.ModuleData> ModulesOfStage(int stage)
+        {
+            var list = new System.Collections.Generic.List<Data.ModuleData>();
+            foreach (var guid in AssetDatabase.FindAssets("t:RecipeData", new[] { RecipeFolder }))
+            {
+                var r = AssetDatabase.LoadAssetAtPath<Data.RecipeData>(AssetDatabase.GUIDToAssetPath(guid));
+                if (r != null && r.Stage == stage && r.Result != null && !list.Contains(r.Result))
+                    list.Add(r.Result);
+            }
+            list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            return list;
+        }
+
         /// <summary>
         /// 11-2a: FBX 조각(KIT_*)을 키트 에셋으로. 재질 슬롯 이름 → Hull·HullDark = 외부 공용 재질, Light = 천장 조명, Status = 문 상태등,
         /// Accent = 방마다 모듈 강조색(MD_X → M_Accent_X, 없으면 코어색).
@@ -138,9 +181,13 @@ namespace SpaceStation.Editor
             var window = AssetDatabase.LoadAssetAtPath<Material>(WindowPath);
             var defaultAccent = AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Accent_Core.mat");
 
-            Data.InteriorKitPiece Piece(string name)
+            var evoWhite = AssetDatabase.LoadAssetAtPath<Material>(EvoWhitePath);
+            var evoFloor = AssetDatabase.LoadAssetAtPath<Material>(EvoFloorPath);
+            var evoDark = AssetDatabase.LoadAssetAtPath<Material>(EvoDarkPath);
+
+            Data.InteriorKitPiece Piece(string name, System.Collections.Generic.Dictionary<string, GameObject> from = null)
             {
-                if (!parts.TryGetValue(name, out var g))
+                if (!(from ?? parts).TryGetValue(name, out var g))
                 {
                     Debug.LogError($"[InteriorSetup] 키트 조각 없음: {name}");
                     return null;
@@ -159,6 +206,9 @@ namespace SpaceStation.Editor
                         case "Status": mats[i] = status; statusSlot = i; break;
                         case "Accent": mats[i] = defaultAccent; accent = i; break;
                         case "Window": mats[i] = window; break; // 11-8 튜브 현창 유리 (바깥 카메라 화면)
+                        case "EvoWhite": mats[i] = evoWhite; break; // 진화 1단계 키트 (매끈한 흰 세라믹)
+                        case "EvoFloor": mats[i] = evoFloor; break;
+                        case "EvoDark": mats[i] = evoDark; break;
                         default:
                             Debug.LogWarning($"[InteriorSetup] {name}: 모르는 재질 슬롯 '{slot}' → Hull");
                             mats[i] = hull;
@@ -191,6 +241,16 @@ namespace SpaceStation.Editor
                 Piece("KIT_HatchFrame"), Piece("KIT_HatchLid"), modules, accents, defaultAccent);
             kit.EditorSetBalcony(Piece("KIT_Deck"), Piece("KIT_RailBar"), Piece("KIT_RailPost"), Piece("KIT_StairStep"), Piece("KIT_StairPole"));
             kit.EditorSetTube(Piece("KIT_Tube"), Piece("KIT_TubeCollar"), Piece("KIT_TubeWindow"));
+            // 진화 단계별 조각 (사용자 2026-10-29 "1단계 진화 모듈은 매끈한 백색의 벽"): 1단계 = Interior_Evo.blend evo1_kit_builder
+            var stages = new System.Collections.Generic.List<Data.InteriorKitStage>();
+            var evo1 = StageParts(EvoKit1Path);
+            if (evo1.Count > 0)
+            {
+                stages.Add(new Data.InteriorKitStage(1, ModulesOfStage(1),
+                    Piece("KIT_Wall_Evo1", evo1), Piece("KIT_WallDoor_Evo1", evo1), Piece("KIT_DoorLeaf_Evo1", evo1), Piece("KIT_Floor_Evo1", evo1),
+                    Piece("KIT_Ceiling_Evo1", evo1), Piece("KIT_HatchFrame_Evo1", evo1), Piece("KIT_HatchLid_Evo1", evo1)));
+            }
+            kit.EditorSetStages(stages);
             EditorUtility.SetDirty(kit);
             AssetDatabase.SaveAssets();
             Debug.Log($"[InteriorSetup] 키트 {(kit.IsComplete ? "완성" : "불완전")} · 강조색 {modules.Count}종");
@@ -368,6 +428,22 @@ namespace SpaceStation.Editor
             concrete.enableInstancing = true;
             EditorUtility.SetDirty(concrete);
 
+            // 진화 모듈 내부 1단계 키트 (2026-10-29): 외형 흰 패널 · 짙은 유리 띠와 같은 계열의 매끈한 재질 (패널 무늬 · 때 없음)
+            //   (이름을 Plain으로 했다가 아래 소품 재질 함수 Plain(경로, 색, 금속도, 광택)을 가려 소품 22종의 금속도 · 광택이 뒤바뀐 적 있음 — 2026-10-29)
+            void EvoSurface(string path, Color color, float metallic, float smoothness)
+            {
+                var m = LoadOrCreate(path, lit);
+                m.shader = lit;
+                m.SetColor("_BaseColor", color);
+                m.SetFloat("_Metallic", metallic);
+                m.SetFloat("_Smoothness", smoothness);
+                m.enableInstancing = true;
+                EditorUtility.SetDirty(m);
+            }
+            EvoSurface(EvoWhitePath, new Color(0.9f, 0.92f, 0.95f), 0f, 0.6f);
+            EvoSurface(EvoFloorPath, new Color(0.6f, 0.62f, 0.67f), 0.05f, 0.45f);
+            EvoSurface(EvoDarkPath, new Color(0.035f, 0.045f, 0.1f), 0.2f, 0.8f);
+
             Fabric(FabricPath, new Color(0.86f, 0.85f, 0.81f));
             Fabric(BlanketPath, new Color(0.56f, 0.42f, 0.27f)); // 차분한 황토색 (거주 강조색 노랑과 어울리게)
             Fabric(SofaPath, new Color(0.3f, 0.29f, 0.36f));     // 11-5 휴게실 소파 (보랏빛 회색)
@@ -453,6 +529,30 @@ namespace SpaceStation.Editor
             glass.SetFloat("_Smoothness", 0.95f);
             glass.SetFloat("_Metallic", 0f);
             EditorUtility.SetDirty(glass);
+
+            // 투명한 물: 유리보다 짙은 하늘색 반투명 + 은은한 빛 (통 속 물 덩어리 — 속의 거품 · 전극이 비침).
+            // 사용자 2026-10-29 "투명도를 조금만 줄여 · 반사광이 생김" → 알파 0.38 → 0.55, 매끈함 0.92 → 0.3 + 반사 하이라이트 · 환경 반사 끔
+            //   (물 윗면이 천장 조명을 하얗게 비췄음)
+            var waterClear = LoadOrCreate(WaterClearPath, lit);
+            waterClear.SetFloat("_Surface", 1f); // Transparent
+            waterClear.SetFloat("_Blend", 0f);   // Alpha
+            waterClear.SetFloat("_ZWrite", 0f);
+            waterClear.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            waterClear.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            waterClear.SetOverrideTag("RenderType", "Transparent");
+            waterClear.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            waterClear.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            waterClear.SetColor("_BaseColor", new Color(0.35f, 0.75f, 0.95f, 0.55f));
+            waterClear.SetFloat("_Smoothness", 0.3f);
+            waterClear.SetFloat("_Metallic", 0f);
+            waterClear.SetFloat("_SpecularHighlights", 0f);
+            waterClear.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+            waterClear.SetFloat("_EnvironmentReflections", 0f);
+            waterClear.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+            waterClear.EnableKeyword("_EMISSION");
+            waterClear.SetColor("_EmissionColor", new Color(0.05f, 0.22f, 0.32f));
+            waterClear.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            EditorUtility.SetDirty(waterClear);
 
             // 11-8 바깥 창: 바깥 카메라 화면을 보여주는 유리 (InteriorExteriorView). 안쪽 유리(탱크·냉장고 등)는 위 M_InteriorGlass 그대로
             var window = LoadOrCreate(WindowPath, Shader.Find(Interior.InteriorExteriorView.WindowShaderName));

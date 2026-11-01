@@ -22,6 +22,43 @@ namespace SpaceStation.Editor
 
         private enum Style { Standard, Solar, Battery, Storage, Core, Topped }
 
+        /// <summary>
+        /// 모델마다 다른 연출 재질 {모델 key: {FBX 슬롯: ModuleFxMaterials 이름}} (사용자 2026-10-27 플레이 점검):
+        /// 실드 돔 오로라 커튼 = 일렁이는 셰이더 (방사선 차폐벽 · 환적장 은하수 띠는 같은 FX_AuroraViolet이라도 그대로),
+        /// 융합 발전소 · 융합 플랜트 = 흐르는 플라즈마 (기본 핵융합로는 그대로), 궤도 미러 빛줄기 = 숨기고 LightBeamFx가 빛기둥으로 그림.
+        /// 궤도 방어망 오로라 보호막 커튼 셋 = 같은 셰이더의 UV 모드 (3 · 4단계 반영 ② 2026-10-29).
+        /// 흐르는 빛 (④ 2026-10-29, PulseGlow): AI 중추 빛 신경 (보라 · 금이 뇌로 모여듦), 심우주 통신기지 신호 (하늘빛이 가운데 돔 위에서 퍼짐),
+        /// 항성 발전망 꿀 빛, 궤도 항만 진주 빛 — 같은 형광 재질이라도 다른 모듈은 그대로.
+        /// </summary>
+        private static readonly Dictionary<string, Dictionary<string, string>> FxOverrides = new Dictionary<string, Dictionary<string, string>>
+        {
+            { "Evo_ShieldDome", new Dictionary<string, string> { { "FX_AuroraGreen", "AuroraCurtainGreen" }, { "FX_AuroraViolet", "AuroraCurtainViolet" } } },
+            { "Evo_OrbitalDefense", new Dictionary<string, string> { { "FX_AuroraGreen", "AuroraCurtainGreenUV" }, { "FX_AuroraViolet", "AuroraCurtainVioletUV" } } },
+            { "Evo_AICore", new Dictionary<string, string> { { "FX_FluorPurple", "NeuralPurple" }, { "FX_FluorGold", "NeuralGold" } } },
+            { "Evo_DeepSpaceComm", new Dictionary<string, string> { { "FX_FluorCyan", "SignalCyan" } } },
+            { "Evo_StellarGrid", new Dictionary<string, string> { { "FX_FluorGold", "HoneyGold" } } },
+            { "Evo_OrbitalPort", new Dictionary<string, string> { { "FX_FluorWhite", "PearlWhite" } } },
+            { "Evo_Biosphere", new Dictionary<string, string> { { "FX_Rain", "Hidden" } } }, // 구운 빗줄 막대 대신 RainFx 입자 비 (사용자 2026-10-29)
+            { "Evo_FusionStation", new Dictionary<string, string> { { "FX_FusionPlasma", "PlasmaBlue" } } },
+            { "Evo_FusionPlant", new Dictionary<string, string> { { "FX_FusionPlasma", "PlasmaViolet" } } },
+            { "Evo_OrbitalMirror", new Dictionary<string, string> { { "FX_LightBeam", "Hidden" } } },
+        };
+
+        /// <summary>
+        /// 진화 3 · 4단계 도는 부품 "SpinDish_*" 속도 (초당 °, 모듈 Y축 · 기본 8): 등대 빛줄기는 쓸고 지나가게 빠르게, 천문대 돔은 천천히,
+        /// (사용자 2026-10-27 · 28 시안 설명). 해마가 끄는 가리비 배 (SpinDish_OrbitalPortBoats)는 돌면 해변을 지나 한 척씩 나눠 BoatShuttleFx로 (2026-10-29).
+        /// </summary>
+        private static readonly Dictionary<string, float> DishSpeeds = new Dictionary<string, float>
+        {
+            { "SpinDish_OrbitalDefenseBeam", 30f },
+            { "SpinDish_OrbitalDefenseGulls", 12f },
+            { "SpinDish_BiosphereClouds", 5f },
+            { "SpinDish_RepairCommandFireflies", 10f },
+            { "SpinDish_OrbitalPortCarousel", 10f },
+            { "SpinDish_AICoreThoughts", 6f },
+            { "SpinDish_DeepSpaceCommDome", 3f },
+        };
+
         [MenuItem("SpaceStation/Art/Rebuild Greybox Modules")]
         public static void RebuildAll() => RebuildModules(null);
 
@@ -114,12 +151,25 @@ namespace SpaceStation.Editor
                 if (fx != null && slot)
                     slots[name] = fx;
             }
+            // 모델마다 다른 연출 재질 (같은 슬롯 이름이라도) — 이미 다른 재질로 리맵돼 있어도 바꿈
+            var forced = new HashSet<string>();
+            if (FxOverrides.TryGetValue(key, out var overrides))
+            {
+                foreach (var o in overrides)
+                {
+                    var fx = ModuleFxMaterials.Get(o.Value);
+                    if (fx == null)
+                        continue;
+                    slots[o.Key] = fx;
+                    forced.Add(o.Key);
+                }
+            }
 
             var existing = importer.GetExternalObjectMap();
             bool changed = false;
             foreach (var slot in slots)
             {
-                if (!used.Contains(slot.Key) && !used.Contains(slot.Value.name))
+                if (!used.Contains(slot.Key) && !used.Contains(slot.Value.name) && !forced.Contains(slot.Key))
                     continue;
                 var id = new AssetImporter.SourceAssetIdentifier(typeof(Material), slot.Key);
                 if (existing.TryGetValue(id, out var current) && current == slot.Value)
@@ -154,7 +204,7 @@ namespace SpaceStation.Editor
             return AssetDatabase.LoadAssetAtPath<GameObject>(path);
         }
 
-        private static void WireShieldFx(Transform emitter, Transform ringA, Transform ringB, Transform core)
+        private static void WireShieldFx(Transform emitter, Transform ringA, Transform ringB, Transform core, bool lighthouse = false)
         {
             var fx = emitter.gameObject.AddComponent<SpaceStation.Building.ShieldEmitterFx>();
             var so = new SerializedObject(fx);
@@ -163,15 +213,49 @@ namespace SpaceStation.Editor
             so.FindProperty("_core").objectReferenceValue = core;
             so.FindProperty("_orbMaterial").objectReferenceValue = ModuleFxMaterials.Get("ShieldOrb");
             so.FindProperty("_trailMaterial").objectReferenceValue = ModuleFxMaterials.Get("ShieldTrail");
-            // 게임 카메라 거리(약 12m)에서도 읽히도록 크고 빠르게
-            so.FindProperty("_ringASpeed").floatValue = 120f;
-            so.FindProperty("_ringBSpeed").floatValue = -80f;
+            // 게임 카메라 거리(약 12m)에서도 읽히도록 크고 빠르게 — 진화 실드 돔(등대)은 렌즈 드럼 + 위아래 프리즘이 한 덩어리로
+            // 천천히 돌아 등대 빛 두 줄기(렌즈 드럼의 Fx 자식)가 하늘을 쓸고 지나감 (사용자 2026-10-26)
+            so.FindProperty("_ringASpeed").floatValue = lighthouse ? 40f : 120f;
+            so.FindProperty("_ringBSpeed").floatValue = lighthouse ? 40f : -80f;
             so.FindProperty("_orbCount").intValue = 4;
             so.FindProperty("_orbRadius").floatValue = 0.125f;
             so.FindProperty("_orbSize").floatValue = 0.05f;
             so.FindProperty("_orbSpeed").floatValue = 260f;
             so.FindProperty("_trailTime").floatValue = 0.45f;
             so.ApplyModifiedPropertiesWithoutUndo();
+            if (!lighthouse)
+                return;
+            // 실드 돔: 운석을 막을 때 구면 파문 대신 오로라 커튼 장벽 (MeteorFx가 이 컴포넌트를 찾음)
+            var aurora = emitter.gameObject.AddComponent<SpaceStation.Building.AuroraBarrierFx>();
+            var aso = new SerializedObject(aurora);
+            aso.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("AuroraBarrier");
+            aso.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>3단계 궤도 방어망: 수정 결정 막 · 오로라 파문 (차단), 프리즘 광선 · 수정 불꽃 (격추).</summary>
+        private static void WireOrbitalDefenseFx(GameObject instance)
+        {
+            var crystal = new SerializedObject(instance.AddComponent<SpaceStation.Building.CrystalBarrierFx>());
+            crystal.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("CrystalShard");
+            crystal.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+            crystal.ApplyModifiedPropertiesWithoutUndo();
+            var aurora = new SerializedObject(instance.AddComponent<SpaceStation.Building.AuroraBarrierFx>());
+            aurora.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("AuroraBarrier");
+            aurora.ApplyModifiedPropertiesWithoutUndo();
+            var fw = new SerializedObject(instance.AddComponent<SpaceStation.Building.FireworkFx>());
+            fw.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+            fw.FindProperty("_lineMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+            fw.FindProperty("_mortars").arraySize = 0;
+            fw.FindProperty("_rainbow").boolValue = true;
+            fw.ApplyModifiedPropertiesWithoutUndo();
+            var prism = new SerializedObject(instance.AddComponent<SpaceStation.Building.PrismBeamFx>());
+            prism.FindProperty("_lineMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+            var muzzles = prism.FindProperty("_muzzles");
+            var buoys = new[] { new Vector3(1.85f, -0.12f, 0.4f), new Vector3(2.82f, -0.12f, 0.66f), new Vector3(3.62f, -0.12f, 0.34f) };
+            muzzles.arraySize = buoys.Length;
+            for (int i = 0; i < buoys.Length; i++)
+                muzzles.GetArrayElementAtIndex(i).vector3Value = buoys[i];
+            prism.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static Transform FindChild(Transform root, string name)
@@ -397,6 +481,17 @@ namespace SpaceStation.Editor
             instance.transform.localPosition = Vector3.zero;
             instance.transform.localRotation = model.transform.localRotation; // 임포트 축 보정은 유지
             instance.transform.localScale = model.transform.localScale;
+            // 진화 모델: 움직이는 부품 아래 "Fx_*" 자식(유리 · 빛 · 반짝임)은 부품과 같은 원점 · 축으로 구움. Blender FBX 내보내기의
+            //   축 보정 굽기(bake_space_transform)가 손자 오브젝트에 축 보정을 한 번 더 넣어 X 90° + 위치가 밀려 들어옴
+            //   (식량 공장 드럼 유리 커버가 누워 보임, 2026-10-26) → 부품 기준 제자리로
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+            {
+                if (t.parent == instance.transform || t == instance.transform || !t.name.StartsWith("Fx_"))
+                    continue;
+                t.localPosition = Vector3.zero;
+                t.localRotation = Quaternion.identity;
+                t.localScale = Vector3.one;
+            }
             // 태양광: 모델의 "Panel" 부품이 태양을 향해 기운다 (MODELING_SPEC 1-5)
             var panel = FindChild(instance.transform, "Panel");
             if (panel != null)
@@ -419,7 +514,122 @@ namespace SpaceStation.Editor
                 string tag = t.name.Substring("Emitter".Length);
                 var a = FindChild(instance.transform, "EmitterRingA" + tag);
                 if (a != null)
-                    WireShieldFx(t, a, FindChild(instance.transform, "EmitterRingB" + tag), FindChild(instance.transform, "EmitterCore" + tag));
+                    WireShieldFx(t, a, FindChild(instance.transform, "EmitterRingB" + tag), FindChild(instance.transform, "EmitterCore" + tag), tag == "_ShieldDome");
+            }
+            // 진화 요새 포대 (별 요새): 포탑 요격 = 별자리 불꽃, 뒤 능보 박격포대에서 가끔 불꽃 (FireworkFx)
+            //   포구 = Blender build_fortress 박격포대 (0, YW + 0.03, 1) · (2, YW + 0.03, 1) 위 대롱 끝 높이
+            if (model.name == "SM_Evo_Fortress")
+            {
+                var fw = instance.AddComponent<SpaceStation.Building.FireworkFx>();
+                var wso = new SerializedObject(fw);
+                wso.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+                wso.FindProperty("_lineMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+                var mortars = wso.FindProperty("_mortars");
+                mortars.arraySize = 2;
+                mortars.GetArrayElementAtIndex(0).vector3Value = new Vector3(0f, 0.05f, 1f);
+                mortars.GetArrayElementAtIndex(1).vector3Value = new Vector3(2f, 0.05f, 1f);
+                wso.FindProperty("_showInterval").floatValue = 4.5f; // 사용자 2026-10-27 "실제 폭죽이 자주"
+                wso.ApplyModifiedPropertiesWithoutUndo();
+            }
+            // 실드 계열 단계별 이펙트 (사용자 2026-10-29): 1단계 실드 매트릭스 = 파란 파문 위 육각 무늬 (HexBarrierFx),
+            //   3단계 궤도 방어망 = 차단 시 수정 결정 막 + 오로라 파문, 격추 시 수정 부표의 프리즘 광선 + 수정 불꽃 (무지개 FireworkFx, 박격포대 없음)
+            //   부표 끝 = Blender 궤도 방어망 수정 부표 (1.85, 0.4) · (2.82, 0.66) · (3.62, 0.34), 수정 끝 높이 약 −0.12 (물높이 −0.254 위)
+            if (model.name == "SM_Evo_ShieldMatrix")
+            {
+                var hex = instance.AddComponent<SpaceStation.Building.HexBarrierFx>();
+                var hso = new SerializedObject(hex);
+                hso.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("HexShield");
+                hso.ApplyModifiedPropertiesWithoutUndo();
+            }
+            if (model.name == "SM_Evo_OrbitalDefense")
+                WireOrbitalDefenseFx(instance);
+            // 진화 궤도 미러: 모델의 가는 빛줄기(FX_LightBeam — 슬롯은 FxOverrides로 비움)를 빛기둥으로 다시 그림 (LightBeamFx)
+            if (model.name == "SM_Evo_OrbitalMirror")
+                WireLightShafts(instance);
+            // 진화 대형 토러스 · 정련 콤비나트 · 드론 정비창 (사용자 2026-10-27): 모델에 구운 멈춘 입자(가져올 때 지움, EvoBakedFxStrip)를 움직이는 연출로
+            //   열차 굴뚝 = Blender build_grand_torus 기관차 굴뚝 꼭대기 (열차 부품 기준 — 부품 원점 = 허브 축),
+            //   배출구 = build_refinery_combine 꼭대기 열 배출구 위, 드론 쇼 = build_drone_depot 드론 무리 부품 원점 (옥상 위 가운데)
+            if (model.name == "SM_Evo_GrandTorus")
+            {
+                var train = FindChild(instance.transform, "SpinDish_GrandTorusTrain");
+                if (train != null)
+                    AddSparkEmitter(train, new Vector3(2.222f, 0.048f, -0.7f), SpaceStation.Building.SparkEmitterFx.Kind.StarSmoke);
+            }
+            if (model.name == "SM_Evo_RefineryCombine")
+                AddSparkEmitter(instance.transform, new Vector3(1f, 0.5f, 0.5f), SpaceStation.Building.SparkEmitterFx.Kind.SparkFountain);
+            // 진화 치안 본부: 광장의 떠 있는 순찰차 "PatrolCar_*" (Blender에서 본체와 떼어 낸 부품, 원점 = 차 바닥 가운데)
+            //   → 합성 고리와 같은 추진 불꽃 + 가끔 출동 (PatrolCarFx, 사용자 2026-10-27)
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+            {
+                if (!t.name.StartsWith("PatrolCar"))
+                    continue;
+                var car = t.gameObject.AddComponent<SpaceStation.Building.PatrolCarFx>();
+                var plume = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/Synthesis/M_Synth_Particle.mat");
+                var cso = new SerializedObject(car);
+                cso.FindProperty("_plumeMaterial").objectReferenceValue = plume != null ? plume : ModuleFxMaterials.Get("FireworkSpark");
+                cso.ApplyModifiedPropertiesWithoutUndo();
+            }
+            // 진화 3 · 4단계: 동물 "Critter_*" · 꿀벌 "Bee_*" (Blender CritterSet — 한 마리씩 따로 부품, 원점 = 동물 자리)이 움직이며 서로 간격 유지 (CritterFx)
+            WireCritters(instance);
+            // 진화 바이오스피어: 도는 구름 고리 아래 비 = 입자 (RainFx, 사용자 2026-10-29 "진짜 구름에서 비가 내리는 느낌") — 구운 빗줄 막대는 FxOverrides로 숨김.
+            //   구름 = Blender build_biosphere 구름 고리 (부품 원점 = 가운데 위, 반지름 RC 0.74, 72°마다 다섯, 밑면 −0.035),
+            //   진주 아치 셋 (ARCHES 30° · 150° · 270°, 가운데 (1, 1)) 쪽으로 떨어지는 빗방울은 셰이더가 감춤
+            if (model.name == "SM_Evo_Biosphere")
+            {
+                var clouds = FindChild(instance.transform, "SpinDish_BiosphereClouds");
+                if (clouds != null)
+                {
+                    var rain = instance.AddComponent<SpaceStation.Building.RainFx>();
+                    var rso = new SerializedObject(rain);
+                    rso.FindProperty("_clouds").objectReferenceValue = clouds;
+                    rso.FindProperty("_module").objectReferenceValue = instance.transform;
+                    rso.FindProperty("_dropMaterial").objectReferenceValue = ModuleFxMaterials.Get("RainDrop");
+                    rso.FindProperty("_mistMaterial").objectReferenceValue = ModuleFxMaterials.Get("RainMist");
+                    var spots = rso.FindProperty("_cloudSpots");
+                    spots.arraySize = 5;
+                    for (int q = 0; q < 5; q++)
+                    {
+                        float a = 2f * Mathf.PI * q / 5f;
+                        spots.GetArrayElementAtIndex(q).vector3Value = new Vector3(0.74f * Mathf.Cos(a), -0.035f, 0.74f * Mathf.Sin(a));
+                    }
+                    rso.ApplyModifiedPropertiesWithoutUndo();
+                }
+            }
+            // 진화 화물 환적장: 템플릿 보트 "FlumeBoat_*" 셋 (Blender cargo_flume_split, 원점 = 보트 가운데 · 앞 +x)을 복제해
+            //   여섯 척이 물길 한 바퀴를 돌고 큰 낙하 바닥에서 물보라 (FlumeRideFx, 사용자 2026-10-27)
+            if (model.name == "SM_Evo_CargoTransfer")
+                WireFlumeRide(instance);
+            // 진화 궤도 항만: 회전목마 둘레를 한 덩어리로 돌던 해마 가리비 배 넷이 해변을 지나지 않게 한 척씩 나눠 뒤쪽 호를 왕복 (BoatShuttleFx, 사용자 2026-10-29)
+            if (model.name == "SM_Evo_OrbitalPort")
+                WirePortBoats(instance);
+            // 진화 그리드 허브 "번개 정원": 탑 에너지 구 → 번개 나무 여섯 · 이웃 나무끼리 치는 번개 (LightningFx, 사용자 2026-10-27)
+            //   위치 = Blender build_grid_hub: 에너지 구 (1, YC1 + 0.17, 0.5) 반지름 0.085, 나무 = 타원 둘레 60°마다 (반지름 0.9 · 0.78),
+            //   높이 0.5 / 0.58 번갈아 + 꼭대기 불꽃 구 (+0.045, 반지름 0.034)
+            if (model.name == "SM_Evo_GridHub")
+            {
+                var lf = instance.AddComponent<SpaceStation.Building.LightningFx>();
+                var lso = new SerializedObject(lf);
+                lso.FindProperty("_lineMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+                lso.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+                lso.FindProperty("_hub").vector3Value = new Vector3(1f, 0.62f + 0.17f, 0.5f);
+                var nodes = lso.FindProperty("_nodes");
+                nodes.arraySize = 6;
+                for (int i = 0; i < 6; i++)
+                {
+                    float a = Mathf.Deg2Rad * 60f * i;
+                    nodes.GetArrayElementAtIndex(i).vector3Value = new Vector3(1f + 0.9f * Mathf.Cos(a), -0.26f + 0.5f + 0.08f * (i % 2) + 0.045f, 0.5f + 0.78f * Mathf.Sin(a));
+                }
+                lso.ApplyModifiedPropertiesWithoutUndo();
+            }
+            if (model.name == "SM_Evo_DroneDepot")
+            {
+                var show = new GameObject("DroneShow");
+                show.transform.SetParent(instance.transform, false);
+                show.transform.localPosition = new Vector3(1f, 1.38f, 0.5f);
+                var ds = show.AddComponent<SpaceStation.Building.DroneShowFx>();
+                var dso = new SerializedObject(ds);
+                dso.FindProperty("_lightMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+                dso.ApplyModifiedPropertiesWithoutUndo();
             }
             // 8-4 회전 링: "Spin" 부품이 모듈 Y축으로 회전
             var spin = FindChild(instance.transform, "Spin");
@@ -442,18 +652,25 @@ namespace SpaceStation.Editor
             // 진화 연구 단지: "SpinOrbit*" 궤도 고리 + 전자 한 덩어리가 고리 기울기 축으로 회전 → 고리는 제자리처럼, 전자가 고리를 따라 달림
             //   (피벗 = 고리 중심, 축은 메시에서 계산) — 진화 문화 센터 시계 "SpinClock*" (시계 고리 + 바늘, 초당 6°)도 같은 방식
             // 12-5 행정 관제소: "Flutter_{이름}" 깃발 사슬 맨 앞 조각에 펄럭임 (같은 부모 아래 "_1", "_2" 조각은 컴포넌트가 따라 찾음)
+            // 진화 식량 공장: "SpinWheel*" 유리 드럼이 부품 로컬 z축(드럼 축)으로 천천히 회전 (피벗 = 드럼 중심) — 테가 둘인 넓은 드럼은
+            //   OrbitAxis가 축을 기울게 잡으므로 메시가 아니라 부품 축을 씀
             foreach (var t in instance.GetComponentsInChildren<Transform>(true))
             {
                 bool radar = t.name.StartsWith("SpinRadar");
                 bool clock = t.name.StartsWith("SpinClock");
                 bool orbit = t.name.StartsWith("SpinOrbit") || clock;
-                if (radar || orbit || t.name.StartsWith("SpinDish"))
+                bool wheel = t.name.StartsWith("SpinWheel");
+                if (t.name == "SpinDish_OrbitalPortBoats")
+                    continue; // 한 척씩 나눠 BoatShuttleFx가 움직임 (원래 부품은 꺼 둠)
+                if (radar || orbit || wheel || t.name.StartsWith("SpinDish"))
                 {
                     var spinner = t.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
                     var sso = new SerializedObject(spinner);
-                    sso.FindProperty("_speed").floatValue = radar ? 40f : clock ? 6f : orbit ? 45f : 8f;
+                    sso.FindProperty("_speed").floatValue = radar ? 40f : clock ? 6f : orbit ? 45f : wheel ? 10f : DishSpeeds.TryGetValue(t.name, out float ds) ? ds : 8f;
                     if (orbit)
                         sso.FindProperty("_axis").vector3Value = OrbitAxis(t, root);
+                    else if (wheel)
+                        sso.FindProperty("_axis").vector3Value = root.InverseTransformDirection(t.forward);
                     sso.ApplyModifiedPropertiesWithoutUndo();
                 }
                 else if (SpaceStation.Building.ModuleFlutter.IsChainRoot(t.name))
@@ -467,6 +684,696 @@ namespace SpaceStation.Editor
                 var fso = new SerializedObject(fx);
                 fso.FindProperty("_lamp").objectReferenceValue = lamp.gameObject;
                 fso.ApplyModifiedPropertiesWithoutUndo();
+            }
+        }
+
+        /// <summary>동물 이름 끝 (Blender CritterSet 종류) → 움직임.</summary>
+        private static readonly Dictionary<string, SpaceStation.Building.CritterFx.Kind> CritterKinds = new Dictionary<string, SpaceStation.Building.CritterFx.Kind>
+        {
+            { "Duck", SpaceStation.Building.CritterFx.Kind.Swim }, { "Swan", SpaceStation.Building.CritterFx.Kind.Swim },
+            { "Duckling", SpaceStation.Building.CritterFx.Kind.Follow }, { "Turtle", SpaceStation.Building.CritterFx.Kind.Drift },
+            { "Fish", SpaceStation.Building.CritterFx.Kind.Leap }, { "FlyingFish", SpaceStation.Building.CritterFx.Kind.Glide },
+            { "Butterfly", SpaceStation.Building.CritterFx.Kind.Flutter }, { "Deer", SpaceStation.Building.CritterFx.Kind.Graze },
+            { "Fawn", SpaceStation.Building.CritterFx.Kind.Graze }, { "Bunny", SpaceStation.Building.CritterFx.Kind.Hop },
+            { "Seal", SpaceStation.Building.CritterFx.Kind.Bask }, { "SealPup", SpaceStation.Building.CritterFx.Kind.Bask },
+            { "Crab", SpaceStation.Building.CritterFx.Kind.Scuttle }, { "Owl", SpaceStation.Building.CritterFx.Kind.Perch },
+            { "Hedgehog", SpaceStation.Building.CritterFx.Kind.Snuffle },
+        };
+
+        // 항성 발전망 꿀벌 고리 길 = Blender build_stellar_grid loop(θ): 가운데 (3, 0.45) · 반지름 (EX − 3.06 = 1.42, 0.5),
+        //   높이 0.24 + 0.05 sin 3θ, x < 2.42 (정자 쪽)이면 +0.16
+        private static readonly Vector4 BeeLoop = new Vector4(3f, 0.45f, 1.42f, 0.5f);
+        private static readonly Vector4 BeeLoopHeight = new Vector4(0.24f, 0.05f, 0.16f, 2.42f);
+
+        /// <summary>
+        /// 진화 3 · 4단계 동물 · 꿀벌 움직임 (CritterFx) 배선. 종류 = 이름 끝, 앞쪽 = 메시 모양 (머리 = 가장 높은 쪽, 거북 = 원점에서 가장 멀리 나온 쪽 = 머리,
+        /// 게 = 옆걸음 축), 간격 반지름 = 원점에서 가장 먼 가로 거리 × 0.85. 새끼 오리 = 바로 앞 번호의 어미 오리를 따라감.
+        /// 꿀벌: 고리 길 위에 있으면 고리 비행, 낮으면(꽃 위) 쉼, 그 밖은 제자리 맴돌기.
+        /// </summary>
+        private static void WireCritters(GameObject instance)
+        {
+            var parts = new List<Transform>();
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+                if ((t.name.StartsWith("Critter_") || t.name.StartsWith("Bee_")) && t.GetComponent<MeshFilter>() != null)
+                    parts.Add(t);
+            if (parts.Count == 0)
+                return;
+            parts.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            var kinds = new SpaceStation.Building.CritterFx.Kind[parts.Count];
+            var fx = instance.AddComponent<SpaceStation.Building.CritterFx>();
+            var so = new SerializedObject(fx);
+            var list = so.FindProperty("_critters");
+            list.arraySize = parts.Count;
+            for (int i = 0; i < parts.Count; i++)
+            {
+                var part = parts[i];
+                Transform wings = null;
+                foreach (Transform ch in part)
+                    if (ch.name.StartsWith("Fx_Bee"))
+                        wings = ch;
+                var kind = SpaceStation.Building.CritterFx.Kind.Swim;
+                if (part.name.StartsWith("Bee_"))
+                {
+                    var home = part.localPosition;
+                    float best = float.MaxValue;
+                    for (int k = 0; k < 720; k++)
+                        best = Mathf.Min(best, (BeeLoopPoint(2f * Mathf.PI * k / 720f) - home).magnitude);
+                    kind = best < 0.06f ? SpaceStation.Building.CritterFx.Kind.BeeLoop
+                        : home.y < -0.15f ? SpaceStation.Building.CritterFx.Kind.BeeRest : SpaceStation.Building.CritterFx.Kind.BeeHover;
+                }
+                else if (!CritterKinds.TryGetValue(part.name.Substring(part.name.LastIndexOf('_') + 1), out kind))
+                    Debug.LogWarning("CritterFx: 모르는 동물 종류 " + part.name + " → 오리처럼 헤엄");
+                int leader = -1;
+                if (kind == SpaceStation.Building.CritterFx.Kind.Follow)
+                {
+                    for (int j = i - 1; j >= 0; j--)
+                    {
+                        if (kinds[j] == SpaceStation.Building.CritterFx.Kind.Follow)
+                            continue;
+                        if (kinds[j] == SpaceStation.Building.CritterFx.Kind.Swim)
+                            leader = j;
+                        break;
+                    }
+                    if (leader < 0)
+                        kind = SpaceStation.Building.CritterFx.Kind.Swim; // 따라갈 어미가 없으면 혼자 헤엄
+                }
+                kinds[i] = kind;
+                CritterShape(part, wings, kind, out var heading, out float radius);
+                var e = list.GetArrayElementAtIndex(i);
+                e.FindPropertyRelative("Part").objectReferenceValue = part;
+                e.FindPropertyRelative("Kind").enumValueIndex = (int)kind;
+                e.FindPropertyRelative("Heading").vector3Value = heading;
+                e.FindPropertyRelative("Radius").floatValue = radius;
+                e.FindPropertyRelative("Leader").intValue = leader;
+                e.FindPropertyRelative("Wings").objectReferenceValue = wings;
+            }
+            // 헤엄 타원 · 게 걸음이 물가 · 바위 · 배 · 갈대에 막히지 않게 도는 쪽 · 크기를 고름 (막히면 작게, 다 막히면 제자리)
+            var grid = new CritterHeightGrid(instance);
+            for (int i = 0; i < parts.Count; i++)
+            {
+                var e = list.GetArrayElementAtIndex(i);
+                var home = parts[i].localPosition;
+                var heading = e.FindPropertyRelative("Heading").vector3Value;
+                float radius = e.FindPropertyRelative("Radius").floatValue;
+                float side = 0f;
+                if (kinds[i] == SpaceStation.Building.CritterFx.Kind.Swim || kinds[i] == SpaceStation.Building.CritterFx.Kind.Drift)
+                {
+                    float chain = 0f;
+                    var prev = home;
+                    for (int j = i + 1; j < parts.Count; j++) // 새끼 줄 길이 (CritterFx.Play의 어미 길 자국과 같은 계산)
+                    {
+                        if (list.GetArrayElementAtIndex(j).FindPropertyRelative("Leader").intValue != i)
+                            continue;
+                        var p = parts[j].localPosition;
+                        chain += new Vector2(p.x - prev.x, p.z - prev.z).magnitude;
+                        prev = p;
+                    }
+                    bool turtle = kinds[i] == SpaceStation.Building.CritterFx.Kind.Drift;
+                    foreach (float scale in new[] { 1f, 0.7f, 0.45f })
+                    {
+                        foreach (float s in new[] { 1f, -1f })
+                        {
+                            SpaceStation.Building.CritterFx.SwimSize(turtle, radius, chain, scale, out float ra, out float rb);
+                            bool clear = true;
+                            for (int k = 1; k < 96 && clear; k++)
+                                clear = !grid.Blocked(home + SpaceStation.Building.CritterFx.SwimOffset(heading, s, ra, rb, 2f * Mathf.PI * k / 96f), radius * 0.7f, home.y + 0.02f, home.y + 0.25f);
+                            if (clear)
+                            {
+                                side = s * scale;
+                                break;
+                            }
+                        }
+                        if (side != 0f)
+                            break;
+                    }
+                }
+                else if (kinds[i] == SpaceStation.Building.CritterFx.Kind.Scuttle)
+                {
+                    float reach = SpaceStation.Building.CritterFx.ScuttleReach;
+                    bool fwd = true, back = true;
+                    for (int k = 1; k <= 4; k++)
+                    {
+                        fwd &= !grid.Blocked(home + heading * (reach * k / 4f), radius * 0.7f, home.y + 0.02f, home.y + 0.25f);
+                        back &= !grid.Blocked(home - heading * (reach * k / 4f), radius * 0.7f, home.y + 0.02f, home.y + 0.25f);
+                    }
+                    side = fwd && back ? 2f : fwd ? 1f : back ? -1f : 0f;
+                }
+                e.FindPropertyRelative("Side").floatValue = side;
+            }
+            so.FindProperty("_beeLoop").vector4Value = BeeLoop;
+            so.FindProperty("_beeLoopHeight").vector4Value = BeeLoopHeight;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// 모델 정점 높이를 2cm 칸으로 모은 것 (동물 · 꿀벌 부품 제외) — 동물이 갈 자리에 몸 원점보다 높은 정점(물가 · 바위 · 배 · 갈대)이 있는지 봄.
+        /// 수면은 몸 원점에서 1cm 안이라 막힘이 아님 (거북 · 오리는 수면에 살짝 잠겨 있음).
+        /// </summary>
+        private sealed class CritterHeightGrid
+        {
+            private const float Cell = 0.02f;
+            private readonly Dictionary<long, List<Vector3>> _cells = new Dictionary<long, List<Vector3>>();
+
+            public CritterHeightGrid(GameObject instance, params string[] skip)
+            {
+                var toLocal = instance.transform.worldToLocalMatrix;
+                foreach (var mf in instance.GetComponentsInChildren<MeshFilter>(true))
+                {
+                    var n = mf.transform.name;
+                    if (mf.sharedMesh == null || n.StartsWith("Critter_") || n.StartsWith("Bee_") || n.StartsWith("Fx_Bee") || System.Array.Exists(skip, s => n.StartsWith(s)))
+                        continue;
+                    var m = toLocal * mf.transform.localToWorldMatrix;
+                    foreach (var v in mf.sharedMesh.vertices)
+                    {
+                        var p = m.MultiplyPoint3x4(v);
+                        long key = Key(Mathf.FloorToInt(p.x / Cell), Mathf.FloorToInt(p.z / Cell));
+                        if (!_cells.TryGetValue(key, out var cell))
+                            _cells[key] = cell = new List<Vector3>();
+                        cell.Add(p);
+                    }
+                }
+            }
+
+            private static long Key(int x, int z) => ((long)x << 32) ^ (uint)z;
+
+            /// <summary>p에서 가로 r 안에 높이 low ~ high 사이 정점이 있으면 막힘.</summary>
+            public bool Blocked(Vector3 p, float r, float low, float high)
+            {
+                int x0 = Mathf.FloorToInt((p.x - r) / Cell), x1 = Mathf.FloorToInt((p.x + r) / Cell);
+                int z0 = Mathf.FloorToInt((p.z - r) / Cell), z1 = Mathf.FloorToInt((p.z + r) / Cell);
+                for (int x = x0; x <= x1; x++)
+                    for (int z = z0; z <= z1; z++)
+                    {
+                        if (!_cells.TryGetValue(Key(x, z), out var cell))
+                            continue;
+                        foreach (var v in cell)
+                            if (v.y > low && v.y < high && (v.x - p.x) * (v.x - p.x) + (v.z - p.z) * (v.z - p.z) < r * r)
+                                return true;
+                    }
+                return false;
+            }
+        }
+
+        // 궤도 항만 해마 가리비 배 = Blender build_orbital_port: 회전목마 가운데 (3, 0.45)에서 반지름 RB 0.72, 배 q의 각 = 0.4 + q × 90°,
+        //   물 높이 WL = −0.252, 앞 해변 (윗면 WL + 0.008 — 물과 거의 같은 높이라 높이로는 못 가림) = 다각형
+        private const float PortBoatRadius = 0.72f, PortBoatAngle0 = 0.4f, PortWater = -0.252f;
+        // 배 길 = x 0.72 · 앞 0.72 · 뒤 0.64 (뒤 z 1.3 일직선 산호 방파제 · 바다 문에 원형 길이 몇 cm 차이로 닿음)
+        private static readonly Vector3 PortBoatPath = new Vector3(0.72f, 0.72f, 0.64f);
+        private static readonly Vector2[] PortBeach =
+        {
+            new Vector2(1.55f, -0.43f), new Vector2(4.35f, -0.43f), new Vector2(4.35f, -0.22f), new Vector2(3.9f, -0.17f),
+            new Vector2(3.3f, -0.2f), new Vector2(2.7f, -0.16f), new Vector2(2.1f, -0.21f), new Vector2(1.6f, -0.18f),
+        };
+        private const string GeneratedDir = "Assets/_Project/Art/Models/Modules/Generated";
+
+        /// <summary>
+        /// 궤도 항만 해마 가리비 배 (BoatShuttleFx): 한 덩어리 부품 "SpinDish_OrbitalPortBoats" (+ Fx 자식 = 등불 · 물결)을 가운데에서 본 각으로 네 척으로 나눠
+        /// 배 가운데를 원점으로 한 메시 (Generated/OrbitalPortBoat0~3.asset, 다시 만들어도 같은 파일 · GUID)와 부품 "PortBoat_0~3"로 만들고 원래 부품은 끔.
+        /// 배 가운데가 갈 수 있는 각 범위 = 배 정점을 1°씩 돌려 앞 해변 (3cm 여유) · 물 위 4.5cm보다 높은 지형에 닿지 않는 가장 긴 구간 (뒤쪽을 지남).
+        /// </summary>
+        private static void WirePortBoats(GameObject instance)
+        {
+            var part = FindChild(instance.transform, "SpinDish_OrbitalPortBoats");
+            if (part == null || part.GetComponent<MeshFilter>() == null)
+                return;
+            var fxPart = FindChild(part, "Fx_OrbitalPortBoats");
+            var sources = new List<(Mesh mesh, Material[] mats, Matrix4x4 toPart)> { (part.GetComponent<MeshFilter>().sharedMesh, part.GetComponent<MeshRenderer>().sharedMaterials, Matrix4x4.identity) };
+            if (fxPart != null && fxPart.GetComponent<MeshFilter>() != null)
+                sources.Add((fxPart.GetComponent<MeshFilter>().sharedMesh, fxPart.GetComponent<MeshRenderer>().sharedMaterials, part.worldToLocalMatrix * fxPart.localToWorldMatrix));
+            if (!AssetDatabase.IsValidFolder(GeneratedDir))
+                AssetDatabase.CreateFolder("Assets/_Project/Art/Models/Modules", "Generated");
+
+            // ── 네 척으로 나누기 (삼각형 가운데의 각이 가장 가까운 배) ──
+            var boats = new Transform[4];
+            var footprints = new List<Vector3>[4];
+            for (int q = 0; q < 4; q++)
+            {
+                float a = PortBoatAngle0 + q * Mathf.PI / 2f;
+                var bc = new Vector3(PortBoatRadius * Mathf.Cos(a), 0f, PortBoatRadius * Mathf.Sin(a));
+                var verts = new List<Vector3>(); var normals = new List<Vector3>(); var uvs = new List<Vector2>(); var colors = new List<Color>(); var tangents = new List<Vector4>();
+                var subs = new List<List<int>>(); var mats = new List<Material>();
+                foreach (var (mesh, smats, toPart) in sources)
+                {
+                    var v = mesh.vertices; var n = mesh.normals; var uv = mesh.uv; var col = mesh.colors; var tg = mesh.tangents;
+                    var remap = new Dictionary<int, int>();
+                    for (int s = 0; s < mesh.subMeshCount && s < smats.Length; s++)
+                    {
+                        var tris = mesh.GetTriangles(s);
+                        var list = new List<int>();
+                        for (int i = 0; i < tris.Length; i += 3)
+                        {
+                            var c = toPart.MultiplyPoint3x4((v[tris[i]] + v[tris[i + 1]] + v[tris[i + 2]]) / 3f);
+                            int sector = Mathf.RoundToInt(Mathf.Repeat(Mathf.Atan2(c.z, c.x) - PortBoatAngle0, 2f * Mathf.PI) / (Mathf.PI / 2f)) % 4;
+                            if (sector != q)
+                                continue;
+                            for (int k = 0; k < 3; k++)
+                            {
+                                int vi = tris[i + k];
+                                if (!remap.TryGetValue(vi, out int ni))
+                                {
+                                    ni = verts.Count;
+                                    remap[vi] = ni;
+                                    verts.Add(toPart.MultiplyPoint3x4(v[vi]) - bc);
+                                    normals.Add(n.Length > vi ? toPart.MultiplyVector(n[vi]).normalized : Vector3.up);
+                                    uvs.Add(uv.Length > vi ? uv[vi] : Vector2.zero);
+                                    colors.Add(col.Length > vi ? col[vi] : Color.black); // 반짝임 위상 (Twinkle) — 없는 쪽은 검정 (원래 FX 메시와 같음)
+                                    var t4 = tg.Length > vi ? tg[vi] : new Vector4(1f, 0f, 0f, 1f);
+                                    var t3 = toPart.MultiplyVector(new Vector3(t4.x, t4.y, t4.z)).normalized;
+                                    tangents.Add(new Vector4(t3.x, t3.y, t3.z, t4.w));
+                                }
+                                list.Add(ni);
+                            }
+                        }
+                        if (list.Count == 0)
+                            continue;
+                        subs.Add(list);
+                        mats.Add(smats[s]);
+                    }
+                }
+                var boatMesh = new Mesh { name = "OrbitalPortBoat" + q };
+                if (verts.Count > 65000)
+                    boatMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+                boatMesh.SetVertices(verts);
+                boatMesh.SetNormals(normals);
+                boatMesh.SetUVs(0, uvs);
+                boatMesh.SetColors(colors);
+                boatMesh.SetTangents(tangents);
+                boatMesh.subMeshCount = subs.Count;
+                for (int s = 0; s < subs.Count; s++)
+                    boatMesh.SetTriangles(subs[s], s);
+                boatMesh.RecalculateBounds();
+                string path = $"{GeneratedDir}/OrbitalPortBoat{q}.asset";
+                var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+                if (existing != null)
+                {
+                    EditorUtility.CopySerialized(boatMesh, existing);
+                    Object.DestroyImmediate(boatMesh);
+                    boatMesh = existing;
+                    EditorUtility.SetDirty(existing);
+                }
+                else
+                    AssetDatabase.CreateAsset(boatMesh, path);
+
+                var go = new GameObject("PortBoat_" + q);
+                go.transform.SetParent(instance.transform, false);
+                go.transform.localPosition = part.localPosition + bc;
+                go.AddComponent<MeshFilter>().sharedMesh = boatMesh;
+                go.AddComponent<MeshRenderer>().sharedMaterials = mats.ToArray();
+                boats[q] = go.transform;
+                footprints[q] = new List<Vector3>();
+                for (int i = 0; i < verts.Count; i += 7)
+                    footprints[q].Add(verts[i]);
+            }
+
+            // ── 배 가운데가 갈 수 있는 각 범위: 해변 (3cm 여유) · 물 위 4.5cm보다 높은 것에 안 닿는 각 (1° 간격) 중 가장 긴 구간 ──
+            // FX 장식 (물 위에 떠 있는 지름 1cm 빛 방울 · 등불 빛)은 배가 지나가도 어색하지 않아 빼고, 지형 · 구조물만 봄
+            var grid = new CritterHeightGrid(instance, "SpinDish_OrbitalPortBoats", "Fx_OrbitalPortBoats", "PortBoat_", "SpinDish_OrbitalPortCarousel", "Fx_OrbitalPortCarousel", "Emblem_Fx");
+            var pivot = part.localPosition;
+            var free = new bool[360];
+            for (int d = 0; d < 360; d++)
+            {
+                float th = d * Mathf.Deg2Rad;
+                free[d] = true;
+                for (int q = 0; q < 4 && free[d]; q++)
+                {
+                    float home = PortBoatAngle0 + q * Mathf.PI / 2f;
+                    var center = pivot + SpaceStation.Building.BoatShuttleFx.PathOffset(PortBoatPath, th);
+                    foreach (float flip in new[] { 0f, -180f }) // 갈 때 · 돌아올 때 (해마가 앞)
+                    {
+                        var rot = Quaternion.AngleAxis(flip + SpaceStation.Building.BoatShuttleFx.PathYaw(PortBoatPath, home, th), Vector3.up);
+                        foreach (var p in footprints[q])
+                        {
+                            var w = center + rot * p;
+                            // 물 위 4.5cm보다 높은 것만 막힘 (물속 산호초 위로 살짝 나온 수정 끝 · 물방울은 지나감)
+                            if (NearPolygon(PortBeach, new Vector2(w.x, w.z), 0.03f) || grid.Blocked(w, 0.012f, PortWater + 0.045f, PortWater + 0.3f))
+                            {
+                                free[d] = false;
+                                break;
+                            }
+                        }
+                        if (!free[d])
+                            break;
+                    }
+                }
+            }
+            int bestStart = -1, bestLen = 0;
+            for (int d = 0; d < 360; d++)
+            {
+                if (!free[d] || free[(d + 359) % 360])
+                    continue;
+                int len = 0;
+                while (len < 360 && free[(d + len) % 360])
+                    len++;
+                if (len > bestLen)
+                {
+                    bestLen = len;
+                    bestStart = d;
+                }
+            }
+            if (bestStart < 0)
+            {
+                Debug.LogWarning("궤도 항만 배: 막히지 않은 각 범위가 없음 — 원래 회전 부품 그대로");
+                foreach (var b in boats)
+                    Object.DestroyImmediate(b.gameObject);
+                return;
+            }
+            float lo = (bestStart + 1) * Mathf.Deg2Rad, hi = (bestStart + bestLen - 2) * Mathf.Deg2Rad; // 양끝 1°씩 여유
+            part.gameObject.SetActive(false);
+
+            // 호를 따라가는 순서 = 범위 시작에서 잰 각 순서 (범위 밖 배는 맨 뒤로)
+            var order = new List<int> { 0, 1, 2, 3 };
+            order.Sort((x, y) => Mathf.Repeat(PortBoatAngle0 + x * Mathf.PI / 2f - lo, 2f * Mathf.PI).CompareTo(Mathf.Repeat(PortBoatAngle0 + y * Mathf.PI / 2f - lo, 2f * Mathf.PI)));
+            var fx = instance.AddComponent<SpaceStation.Building.BoatShuttleFx>();
+            var so = new SerializedObject(fx);
+            var bp = so.FindProperty("_boats");
+            var hp = so.FindProperty("_homeAngles");
+            bp.arraySize = 4;
+            hp.arraySize = 4;
+            for (int i = 0; i < 4; i++)
+            {
+                bp.GetArrayElementAtIndex(i).objectReferenceValue = boats[order[i]];
+                hp.GetArrayElementAtIndex(i).floatValue = PortBoatAngle0 + order[i] * Mathf.PI / 2f;
+            }
+            so.FindProperty("_pivot").vector3Value = pivot;
+            so.FindProperty("_radii").vector3Value = PortBoatPath;
+            so.FindProperty("_range").vector2Value = new Vector2(lo, hi);
+            so.FindProperty("_spacing").floatValue = Mathf.Min(50f * Mathf.Deg2Rad, (hi - lo) / 4.5f);
+            so.FindProperty("_speed").floatValue = 6f * Mathf.Deg2Rad;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Debug.Log($"궤도 항만 배: 갈 수 있는 각 {bestStart + 1}° ~ {bestStart + bestLen - 2}° (뒤쪽 호 {bestLen - 3}°)");
+        }
+
+        /// <summary>점이 다각형 안이거나 가장자리에서 margin 안이면 true.</summary>
+        private static bool NearPolygon(Vector2[] poly, Vector2 p, float margin)
+        {
+            bool inside = false;
+            for (int i = 0, j = poly.Length - 1; i < poly.Length; j = i++)
+            {
+                var a = poly[i];
+                var b = poly[j];
+                if ((a.y > p.y) != (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x)
+                    inside = !inside;
+                var ab = b - a;
+                float k = Mathf.Clamp01(Vector2.Dot(p - a, ab) / Mathf.Max(ab.sqrMagnitude, 1e-8f));
+                if ((a + ab * k - p).sqrMagnitude < margin * margin)
+                    return true;
+            }
+            return inside;
+        }
+
+        /// <summary>CritterFx.LoopPoint와 같은 꿀벌 고리 길 (정자 쪽 오름은 x ±0.04에서 부드럽게).</summary>
+        private static Vector3 BeeLoopPoint(float theta)
+        {
+            float x = BeeLoop.x + BeeLoop.z * Mathf.Cos(theta);
+            float k = Mathf.Clamp01((x - (BeeLoopHeight.w + 0.04f)) / -0.08f);
+            return new Vector3(x, BeeLoopHeight.x + BeeLoopHeight.y * Mathf.Sin(3f * theta) + BeeLoopHeight.z * k * k * (3f - 2f * k), BeeLoop.y + BeeLoop.w * Mathf.Sin(theta));
+        }
+
+        /// <summary>동물 앞쪽 (부모 기준 가로 단위 벡터) · 간격 반지름 — 메시 정점을 부모 축으로 돌려서 잼.</summary>
+        private static void CritterShape(Transform part, Transform wings, SpaceStation.Building.CritterFx.Kind kind, out Vector3 heading, out float radius)
+        {
+            var pts = new List<Vector3>();
+            foreach (var p in part.GetComponent<MeshFilter>().sharedMesh.vertices)
+                pts.Add(part.localRotation * Vector3.Scale(part.localScale, p));
+            radius = 0f;
+            foreach (var p in pts)
+                radius = Mathf.Max(radius, new Vector2(p.x, p.z).magnitude);
+            if (wings != null && wings.GetComponent<MeshFilter>() != null)
+                foreach (var p in wings.GetComponent<MeshFilter>().sharedMesh.vertices)
+                    radius = Mathf.Max(radius, new Vector2(p.x, p.z).magnitude);
+            radius *= 0.85f; // 원 하나로 감싸면 긴 몸은 옆이 넉넉하므로 조금 줄임 (처음 자리끼리는 겹치지 않음 — 백조 한 쌍만 1mm)
+            var c = Vector3.zero;
+            foreach (var p in pts)
+                c += p;
+            c /= Mathf.Max(1, pts.Count);
+            heading = Vector3.right;
+            if (kind == SpaceStation.Building.CritterFx.Kind.Drift || kind == SpaceStation.Building.CritterFx.Kind.Scuttle)
+            {
+                // 가로 주축 (거북 = 몸 길이, 게 = 다리가 벌어진 옆걸음 축) — 거북은 원점(등딱지 가운데)에서 더 멀리 나온 쪽이 머리
+                float xx = 0f, xz = 0f, zz = 0f;
+                foreach (var p in pts)
+                {
+                    var d = p - c;
+                    xx += d.x * d.x;
+                    xz += d.x * d.z;
+                    zz += d.z * d.z;
+                }
+                float a = 0.5f * Mathf.Atan2(2f * xz, xx - zz);
+                heading = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                float lo = 0f, hi = 0f;
+                foreach (var p in pts)
+                {
+                    float s = Vector3.Dot(p, heading);
+                    lo = Mathf.Min(lo, s);
+                    hi = Mathf.Max(hi, s);
+                }
+                if (kind == SpaceStation.Building.CritterFx.Kind.Drift && hi < -lo)
+                    heading = -heading;
+                return;
+            }
+            // 머리 = 위쪽 15% 정점이 몰린 쪽 (오리 · 백조 · 물범 · 사슴 머리, 물고기는 뛰어오르며 든 코)
+            var ys = new List<float>();
+            foreach (var p in pts)
+                ys.Add(p.y);
+            ys.Sort();
+            float cut = ys[Mathf.Min(ys.Count - 1, (int)(ys.Count * 0.85f))];
+            var top = Vector3.zero;
+            int n = 0;
+            foreach (var p in pts)
+            {
+                if (p.y < cut)
+                    continue;
+                top += p;
+                n++;
+            }
+            var h = top / Mathf.Max(1, n) - c;
+            h.y = 0f;
+            if (h.sqrMagnitude > 1e-8f)
+                heading = h.normalized;
+        }
+
+        /// <summary>
+        /// 화물 환적장 후룸라이드 (FlumeRideFx): 물길 한 바퀴 = Blender build_cargo_transfer의 물길과 같은 캣멀-롬 곡선
+        /// (본 물길 ctrl 0.028 간격 · 돌아오는 물길 back 0.03) + 물보라 못 이음 + 항구 부두 앞 길 (화물선 사이로, 크레인 아래를 지나 본 물길 첫 점으로).
+        /// 보트 = 템플릿 셋 + 복제 셋 (짐 색이 번갈아).
+        /// </summary>
+        private static void WireFlumeRide(GameObject instance)
+        {
+            var templates = new List<Transform>();
+            foreach (var t in instance.GetComponentsInChildren<Transform>(true))
+                if (t.name.StartsWith("FlumeBoat_"))
+                    templates.Add(t);
+            if (templates.Count == 0)
+            {
+                Debug.LogWarning("[StationArtBuilder] 화물 환적장: 템플릿 보트(FlumeBoat_*)가 없어 후룸라이드 없음");
+                return;
+            }
+            templates.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            const float YT = -0.26f, WL = YT + 0.04f, H0 = YT + 0.56f;
+            var main = CatmullRom(new[]
+            {
+                new Vector3(1.66f, WL, 1.24f), new Vector3(1.95f, WL, 1.24f), new Vector3(2.12f, WL, 1.24f), new Vector3(2.24f, WL, 1.12f), new Vector3(2.25f, WL, 0.6f),
+                new Vector3(2.24f, WL, 0.1f), new Vector3(2.22f, WL, -0.1f), new Vector3(2.1f, WL, -0.2f), new Vector3(1.98f, WL, -0.12f), new Vector3(1.97f, WL + 0.01f, -0.02f),
+                new Vector3(1.97f, WL + (H0 - WL) * 0.25f, 0.16f), new Vector3(1.97f, WL + (H0 - WL) * 0.5f, 0.33f), new Vector3(1.97f, WL + (H0 - WL) * 0.75f, 0.5f),
+                new Vector3(1.97f, H0 - 0.006f, 0.64f), new Vector3(1.93f, H0, 0.76f), new Vector3(1.8f, H0, 0.84f), new Vector3(1.45f, H0 - 0.003f, 0.82f),
+                new Vector3(1.18f, H0 - 0.006f, 0.75f), new Vector3(1.04f, H0 - 0.01f, 0.64f), new Vector3(1.0f, H0 - 0.014f, 0.52f), new Vector3(1.0f, H0 - 0.04f, 0.44f),
+                new Vector3(1.0f, H0 - 0.17f, 0.3f), new Vector3(1.0f, H0 - 0.31f, 0.16f), new Vector3(1.0f, WL + 0.07f, 0.02f), new Vector3(1.0f, WL + 0.012f, -0.08f),
+                new Vector3(1.0f, WL, -0.15f),
+            }, 0.028f);
+            var link = CatmullRom(new[] { new Vector3(1.0f, WL, -0.15f), new Vector3(0.93f, WL, -0.215f), new Vector3(0.86f, WL, -0.25f) }, 0.03f);
+            var back = CatmullRom(new[]
+            {
+                new Vector3(0.86f, WL, -0.25f), new Vector3(0.6f, WL, -0.28f), new Vector3(0.25f, WL, -0.25f), new Vector3(-0.08f, WL, -0.21f), new Vector3(-0.23f, WL, -0.04f),
+                new Vector3(-0.25f, WL, 0.4f), new Vector3(-0.23f, WL, 0.84f), new Vector3(-0.14f, WL, 1.03f), new Vector3(0.0f, WL, 1.1f),
+            }, 0.03f);
+            var harbor = CatmullRom(new[]
+            {
+                new Vector3(0.0f, WL, 1.1f), new Vector3(0.2f, WL, 1.06f), new Vector3(0.8f, WL, 1.055f), new Vector3(1.4f, WL, 1.06f), new Vector3(1.58f, WL, 1.09f),
+                new Vector3(1.64f, WL, 1.17f), new Vector3(1.66f, WL, 1.24f),
+            }, 0.03f);
+            var path = new List<Vector3>(main);
+            path.AddRange(link.GetRange(1, link.Count - 2));
+            path.AddRange(back);
+            path.AddRange(harbor.GetRange(1, harbor.Count - 2));
+
+            var boats = new List<Transform>(templates);
+            foreach (var t in templates)
+            {
+                var clone = Object.Instantiate(t.gameObject, t.parent);
+                clone.name = t.name + "_b";
+                boats.Add(clone.transform);
+            }
+            var fx = instance.AddComponent<SpaceStation.Building.FlumeRideFx>();
+            var so = new SerializedObject(fx);
+            var pb = so.FindProperty("_boats");
+            pb.arraySize = boats.Count;
+            for (int i = 0; i < boats.Count; i++)
+                pb.GetArrayElementAtIndex(i).objectReferenceValue = boats[i];
+            var pp = so.FindProperty("_path");
+            pp.arraySize = path.Count;
+            for (int i = 0; i < path.Count; i++)
+                pp.GetArrayElementAtIndex(i).vector3Value = path[i];
+            so.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+            so.FindProperty("_rippleMaterial").objectReferenceValue = ModuleFxMaterials.Get("Ripple");
+            so.ApplyModifiedPropertiesWithoutUndo();
+            fx.Apply(0f); // 처음 자리 (고스트 · 정지 화면에서도 물길 위에 고르게)
+        }
+
+        /// <summary>캣멀-롬 곡선 (조절점을 지나는 매끈한 길, 간격 step 안팎) — Blender evo_builder `_cr_path`와 같은 계산.</summary>
+        private static List<Vector3> CatmullRom(Vector3[] ctrl, float step)
+        {
+            var p = new List<Vector3> { ctrl[0] + (ctrl[0] - ctrl[1]) };
+            p.AddRange(ctrl);
+            p.Add(ctrl[ctrl.Length - 1] + (ctrl[ctrl.Length - 1] - ctrl[ctrl.Length - 2]));
+            var result = new List<Vector3>();
+            for (int i = 1; i < p.Count - 2; i++)
+            {
+                Vector3 p0 = p[i - 1], p1 = p[i], p2 = p[i + 1], p3 = p[i + 2];
+                int n = Mathf.Max(2, (int)((p2 - p1).magnitude / step));
+                for (int j = 0; j < n; j++)
+                {
+                    float t = j / (float)n, t2 = t * t, t3 = t2 * t;
+                    result.Add(0.5f * (2f * p1 + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 + (-p0 + 3f * p1 - 3f * p2 + p3) * t3));
+                }
+            }
+            result.Add(p[p.Count - 2]);
+            return result;
+        }
+
+        /// <summary>parent 아래 at(parent 기준)에 반짝이 입자 방출구 (SparkEmitterFx — 위로 뿜음).</summary>
+        private static void AddSparkEmitter(Transform parent, Vector3 at, SpaceStation.Building.SparkEmitterFx.Kind kind)
+        {
+            var go = new GameObject(kind + "Emitter");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = at;
+            var fx = go.AddComponent<SpaceStation.Building.SparkEmitterFx>();
+            var so = new SerializedObject(fx);
+            so.FindProperty("_kind").enumValueIndex = (int)kind;
+            so.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+            so.FindProperty("_trailMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// 궤도 미러 빛기둥 (사용자 2026-10-27 "선처럼 보임 → 진짜 빛줄기"): 모델 빛줄기 메시(가는 원기둥 여럿)를 이어진 덩어리로 나눠
+        /// 덩어리마다 양끝을 찾고, 끝이 몰리는 쪽(집광 수신기)을 "to"로 LightBeamFx에 넘긴다. 위치는 모델 기준.
+        /// </summary>
+        private static void WireLightShafts(GameObject instance)
+        {
+            var hidden = ModuleFxMaterials.Get("Hidden");
+            var from = new List<Vector3>();
+            var to = new List<Vector3>();
+            foreach (var r in instance.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                for (int s = 0; s < mats.Length; s++)
+                {
+                    if (mats[s] == null || (mats[s] != hidden && !mats[s].name.Contains("LightBeam")))
+                        continue;
+                    var toModel = instance.transform.worldToLocalMatrix * r.transform.localToWorldMatrix;
+                    BeamSegments(r.GetComponent<MeshFilter>().sharedMesh, s, toModel, from, to);
+                }
+            }
+            if (from.Count == 0)
+            {
+                Debug.LogWarning("[StationArtBuilder] 궤도 미러: 빛줄기 메시를 못 찾아 빛기둥 없음");
+                return;
+            }
+            var fx = instance.AddComponent<SpaceStation.Building.LightBeamFx>();
+            var so = new SerializedObject(fx);
+            so.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("LightShaft");
+            var pf = so.FindProperty("_from");
+            var pt = so.FindProperty("_to");
+            pf.arraySize = from.Count;
+            pt.arraySize = to.Count;
+            for (int i = 0; i < from.Count; i++)
+            {
+                pf.GetArrayElementAtIndex(i).vector3Value = from[i];
+                pt.GetArrayElementAtIndex(i).vector3Value = to[i];
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>한 서브메시의 가는 원기둥들 → (거울 끝, 수신기 끝) 쌍. 수신기 = 덩어리 끝들이 가장 많이 몰린 점.</summary>
+        private static void BeamSegments(Mesh mesh, int sub, Matrix4x4 toModel, List<Vector3> from, List<Vector3> to)
+        {
+            Vector3[] verts;
+            int[] tris;
+            using (var md = Mesh.AcquireReadOnlyMeshData(mesh))
+            {
+                var data = md[0];
+                var v = new Unity.Collections.NativeArray<Vector3>(data.vertexCount, Unity.Collections.Allocator.Temp);
+                data.GetVertices(v);
+                verts = v.ToArray();
+                v.Dispose();
+                var idx = new Unity.Collections.NativeArray<int>(data.GetSubMesh(sub).indexCount, Unity.Collections.Allocator.Temp);
+                data.GetIndices(idx, sub);
+                tris = idx.ToArray();
+                idx.Dispose();
+            }
+            // 같은 자리 꼭짓점(나뉜 법선)은 하나로 보고 삼각형으로 이어진 덩어리 찾기
+            var key = new Dictionary<Vector3Int, int>();
+            var parent = new int[verts.Length];
+            for (int i = 0; i < verts.Length; i++)
+            {
+                var k = Vector3Int.RoundToInt(verts[i] * 10000f);
+                parent[i] = key.TryGetValue(k, out int first) ? first : (key[k] = i);
+            }
+            int Find(int i) { while (parent[i] != i) i = parent[i] = parent[parent[i]]; return i; }
+            for (int i = 0; i + 2 < tris.Length; i += 3)
+            {
+                int a = Find(tris[i]), b = Find(tris[i + 1]), c = Find(tris[i + 2]);
+                parent[b] = a;
+                parent[Find(c)] = a;
+            }
+            var groups = new Dictionary<int, List<Vector3>>();
+            foreach (int i in tris)
+            {
+                int g = Find(i);
+                if (!groups.TryGetValue(g, out var list))
+                    groups[g] = list = new List<Vector3>();
+                list.Add(toModel.MultiplyPoint3x4(verts[i]));
+            }
+            var ends = new List<(Vector3 a, Vector3 b)>();
+            foreach (var list in groups.Values)
+            {
+                var c = Vector3.zero;
+                foreach (var p in list)
+                    c += p;
+                c /= list.Count;
+                Vector3 a = c, b = c;
+                foreach (var p in list)
+                    if ((p - c).sqrMagnitude > (a - c).sqrMagnitude)
+                        a = p;
+                foreach (var p in list)
+                    if ((p - a).sqrMagnitude > (b - a).sqrMagnitude)
+                        b = p;
+                if ((a - b).magnitude > 0.1f)
+                    ends.Add((a, b));
+            }
+            // 수신기: 끝점 가운데 0.15 안에 다른 끝이 가장 많이 모인 점
+            Vector3 receiver = Vector3.zero;
+            int best = -1;
+            foreach (var e in ends)
+            {
+                foreach (var p in new[] { e.a, e.b })
+                {
+                    int n = 0;
+                    foreach (var o in ends)
+                        if ((o.a - p).magnitude < 0.15f || (o.b - p).magnitude < 0.15f)
+                            n++;
+                    if (n > best)
+                    {
+                        best = n;
+                        receiver = p;
+                    }
+                }
+            }
+            foreach (var e in ends)
+            {
+                bool aNear = (e.a - receiver).sqrMagnitude < (e.b - receiver).sqrMagnitude;
+                from.Add(aNear ? e.b : e.a);
+                to.Add(aNear ? e.a : e.b);
             }
         }
 

@@ -31,6 +31,49 @@ namespace SpaceStation.Data
     }
 
     /// <summary>
+    /// 진화 단계별 키트 조각 묶음 (사용자 2026-10-29 "내부 벽도 단계별 모듈의 외형에 맞게" · "1단계 진화 모듈은 매끈한 백색의 벽 — 미래형에 걸맞게"):
+    /// 이 단계 모듈 방에서 기본 조각 대신 씀. 비어 있는 조각은 기본 조각 그대로. 규격 · 피벗은 기본 조각과 같음.
+    /// </summary>
+    [Serializable]
+    public sealed class InteriorKitStage
+    {
+        [SerializeField] private int _stage;
+        [Tooltip("이 묶음을 쓰는 모듈 (레시피 단계로 채움)")]
+        [SerializeField] private List<ModuleData> _modules = new List<ModuleData>();
+        [SerializeField] private InteriorKitPiece _wall;
+        [SerializeField] private InteriorKitPiece _wallDoor;
+        [SerializeField] private InteriorKitPiece _doorLeaf;
+        [SerializeField] private InteriorKitPiece _floor;
+        [SerializeField] private InteriorKitPiece _ceiling;
+        [SerializeField] private InteriorKitPiece _hatchFrame;
+        [SerializeField] private InteriorKitPiece _hatchLid;
+
+        public int Stage => _stage;
+        public IReadOnlyList<ModuleData> Modules => _modules;
+        public InteriorKitPiece Wall => _wall;
+        public InteriorKitPiece WallDoor => _wallDoor;
+        public InteriorKitPiece DoorLeaf => _doorLeaf;
+        public InteriorKitPiece Floor => _floor;
+        public InteriorKitPiece Ceiling => _ceiling;
+        public InteriorKitPiece HatchFrame => _hatchFrame;
+        public InteriorKitPiece HatchLid => _hatchLid;
+
+        public InteriorKitStage(int stage, List<ModuleData> modules, InteriorKitPiece wall, InteriorKitPiece wallDoor, InteriorKitPiece doorLeaf,
+            InteriorKitPiece floor, InteriorKitPiece ceiling, InteriorKitPiece hatchFrame, InteriorKitPiece hatchLid)
+        {
+            _stage = stage;
+            _modules = modules ?? new List<ModuleData>();
+            _wall = wall;
+            _wallDoor = wallDoor;
+            _doorLeaf = doorLeaf;
+            _floor = floor;
+            _ceiling = ceiling;
+            _hatchFrame = hatchFrame;
+            _hatchLid = hatchLid;
+        }
+    }
+
+    /// <summary>
     /// Phase 11-2a 내부 벽 키트 (Blender `BlenderWork/Interior_Kit.blend` → `Art/Models/Interior/SM_InteriorKit.fbx`).
     /// 조각 규격: 벽 패널 = 폭 3.2 × 높이 4 (11-3, 여러 장 이어 붙임), 피벗 = 바깥면 가운데, +Z = 바깥, 방 쪽(-Z)으로 두께 0.2 + 장식, 바닥은 피벗 −1.8 /
     /// 바닥·천장 = 4×4 (방 크기에 맞춰 늘림), 윗면·아랫면 가운데 피벗.
@@ -67,6 +110,8 @@ namespace SpaceStation.Data
         [SerializeField] private List<ModuleData> _accentModules = new List<ModuleData>();
         [SerializeField] private List<Material> _accentMaterials = new List<Material>();
         [SerializeField] private Material _defaultAccent;
+        [Header("진화 단계별 조각 (2026-10-29)")]
+        [SerializeField] private List<InteriorKitStage> _stages = new List<InteriorKitStage>();
 
         public InteriorKitPiece Wall => _wall;
         public InteriorKitPiece WallDoor => _wallDoor;
@@ -98,6 +143,34 @@ namespace SpaceStation.Data
             int i = data != null ? _accentModules.IndexOf(data) : -1;
             return i >= 0 && i < _accentMaterials.Count && _accentMaterials[i] != null ? _accentMaterials[i] : _defaultAccent;
         }
+
+        // 모듈 방에 쓸 조각 — 진화 단계 묶음에 그 모듈이 있고 조각이 있으면 단계 조각, 아니면 기본 조각
+        public InteriorKitPiece WallFor(ModuleData data) => Pick(StageOf(data)?.Wall, _wall);
+        public InteriorKitPiece WallDoorFor(ModuleData data) => Pick(StageOf(data)?.WallDoor, _wallDoor);
+        public InteriorKitPiece DoorLeafFor(ModuleData data) => Pick(StageOf(data)?.DoorLeaf, _doorLeaf);
+        public InteriorKitPiece FloorFor(ModuleData data) => Pick(StageOf(data)?.Floor, _floor);
+        public InteriorKitPiece CeilingFor(ModuleData data) => Pick(StageOf(data)?.Ceiling, _ceiling);
+        public InteriorKitPiece HatchFrameFor(ModuleData data) => Pick(StageOf(data)?.HatchFrame, _hatchFrame);
+        public InteriorKitPiece HatchLidFor(ModuleData data) => Pick(StageOf(data)?.HatchLid, _hatchLid);
+
+        public InteriorKitStage StageOf(ModuleData data)
+        {
+            if (data == null || _stages == null)
+                return null;
+            foreach (var s in _stages)
+            {
+                if (s == null)
+                    continue;
+                foreach (var m in s.Modules)
+                {
+                    if (m == data)
+                        return s;
+                }
+            }
+            return null;
+        }
+
+        private static InteriorKitPiece Pick(InteriorKitPiece stage, InteriorKitPiece fallback) => stage != null && stage.IsValid ? stage : fallback;
 
 #if UNITY_EDITOR
         public void EditorSet(InteriorKitPiece wall, InteriorKitPiece wallDoor, InteriorKitPiece doorLeaf, InteriorKitPiece floor,
@@ -131,6 +204,8 @@ namespace SpaceStation.Data
             _tubeCollar = tubeCollar;
             _tubeWindow = tubeWindow;
         }
+
+        public void EditorSetStages(List<InteriorKitStage> stages) => _stages = stages ?? new List<InteriorKitStage>();
 #endif
     }
 }

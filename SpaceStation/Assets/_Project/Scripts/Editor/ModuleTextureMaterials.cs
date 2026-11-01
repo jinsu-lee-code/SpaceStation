@@ -36,6 +36,38 @@ namespace SpaceStation.Editor
         };
 
         /// <summary>
+        /// 진화 2단계 미드나잇 몸체 (2026-10-26): 짙은 남색 · 은빛이라 해 반대쪽 그늘(약한 환경광만)에서 거의 검게 보임
+        /// → 바탕색의 이 비율을 발광에 더해 그늘에서도 남색 몸체 · 은빛 테가 읽히게 (Blender 미리보기 밝기). 흰 1단계는 필요 없음.
+        /// </summary>
+        private const float MidnightBodyGlow = 0.5f;
+        private static readonly HashSet<string> MidnightBody = new HashSet<string>
+        {
+            "Evo_GridHub", "Evo_OrbitalMirror", "Evo_FusionPlant", "Evo_Arcology", "Evo_GrandTorus", "Evo_CivicHall", "Evo_SecurityHQ",
+            "Evo_Biodome", "Evo_FoodFactory", "Evo_RefineryCombine", "Evo_ShieldDome", "Evo_Fortress", "Evo_RadiationWall",
+            "Evo_DroneDepot", "Evo_CargoTransfer", "Evo_StorageComplex", "Evo_ResearchInstitute",
+            "Evo_DeepSpaceComm", // 4단계 성운 남보라 몸체도 짙어서 같은 보정 (사용자 2026-10-28 몸체 색 결정)
+        };
+
+        /// <summary>
+        /// 진화 3 · 4단계 (2026-10-29): 몸체를 1024 한 장에 구울 때 대부분의 면이 재질별 색 칸 (MODELING 7-9)을 쓰는데, 칸의 AO는
+        /// 같은 재질 면의 넓이 가중 평균이라 다른 것에 덮인 큰 면 (받침 윗면 등)이 끌어내려 0에 가까움 → URP 차폐 맵이 그늘 쪽 주변광을
+        /// 다 막아 진주 · 흰 몸체가 검게 보였음 (궁전 돔 · 등대 · 꿀 언덕). AO는 바탕색에 이미 구워져 있으므로 차폐 세기를 낮춤.
+        /// </summary>
+        private const float Stage3Occlusion = 0.3f;
+        private const float Stage3BodyGlow = 0.3f;
+        /// <summary>
+        /// 3 · 4단계 몸체 매끈함 배율 (사용자 2026-10-29 플레이 "궤도 항만 빛이 번쩍임"): 진주 몸체는 텍셀 73%가 매끈함 0.78 넘게 구워져
+        /// 둥근 진주 면(방파제 진주 돌 · 조개 부두 · 회전목마)마다 해를 거울처럼 되비치는 점이 HDR 20쯤 → 블룸으로 번쩍, 카메라가 움직이면 깜빡임.
+        /// 0.7배면 밝기 3 넘는 픽셀 991 → 0 ~ 4 (0.8배는 662)로 반짝임이 부드러워짐.
+        /// </summary>
+        private const float Stage3Smoothness = 0.7f;
+        private static readonly HashSet<string> Stage3Plus = new HashSet<string>
+        {
+            "Evo_OrbitalCity", "Evo_Biosphere", "Evo_StellarGrid", "Evo_OrbitalDefense", "Evo_RepairCommand", "Evo_OrbitalPort", "Evo_AICore",
+            "Evo_DeepSpaceComm",
+        };
+
+        /// <summary>
         /// 모듈 텍스처 폴더의 세트(T_{이름}_BaseColor.png)마다 재질을 만들거나 갱신한다.
         /// 반환: FBX 슬롯 이름 "Tex_{이름}" → 재질. 부품별 텍스처(예: TurretHead, ShieldEmitter)도 같은 폴더에 둔다.
         /// </summary>
@@ -45,16 +77,20 @@ namespace SpaceStation.Editor
             string dir = TextureRoot + key + "/";
             if (!Directory.Exists(dir))
                 return result;
+            // 부품 텍스처(도는 고리 등)도 같은 몸체. 3단계 진주 몸체도 색 칸 바탕색에 낮은 AO가 구워져 그늘 쪽이 칙칙 → 약하게 보정
+            float bodyGlow = MidnightBody.Contains(key) ? MidnightBodyGlow : Stage3Plus.Contains(key) ? Stage3BodyGlow : 0f;
+            float occlusion = Stage3Plus.Contains(key) ? Stage3Occlusion : 1f;
+            float smoothness = Stage3Plus.Contains(key) ? Stage3Smoothness : 1f;
             foreach (var file in Directory.GetFiles(dir, "T_*_BaseColor.png"))
             {
                 string fileName = Path.GetFileName(file);
                 string name = fileName.Substring(2, fileName.Length - 2 - "_BaseColor.png".Length);
-                result[SlotPrefix + name] = Ensure(dir, name);
+                result[SlotPrefix + name] = Ensure(dir, name, bodyGlow, occlusion, smoothness);
             }
             return result;
         }
 
-        private static Material Ensure(string dir, string key)
+        private static Material Ensure(string dir, string key, float bodyGlow, float occlusion = 1f, float smoothness = 1f)
         {
             string basePath = dir + $"T_{key}_BaseColor.png";
             string normalPath = dir + $"T_{key}_Normal.png";
@@ -65,7 +101,7 @@ namespace SpaceStation.Editor
             var baseTex = LoadPixels(basePath);
             if (File.Exists(ormPath))
                 WriteMaskMap(LoadPixels(ormPath), maskPath);
-            WriteEmission(baseTex, emissionPath, EmblemMinSaturation.TryGetValue(key, out float minSat) ? minSat : EmissionMinSaturation);
+            WriteEmission(baseTex, emissionPath, EmblemMinSaturation.TryGetValue(key, out float minSat) ? minSat : EmissionMinSaturation, bodyGlow);
             Object.DestroyImmediate(baseTex);
 
             Configure(basePath, TextureImporterType.Default, true);
@@ -93,9 +129,9 @@ namespace SpaceStation.Editor
             m.SetTexture("_MetallicGlossMap", mask);
             m.SetTexture("_OcclusionMap", mask); // URP는 차폐를 G에서 읽음
             m.SetFloat("_Metallic", 1f);
-            m.SetFloat("_Smoothness", 1f); // 맵의 A가 매끈함 (배율 1)
+            m.SetFloat("_Smoothness", smoothness); // 맵의 A가 매끈함 × 배율 (3 · 4단계 0.7)
             m.SetFloat("_SmoothnessTextureChannel", 0f);
-            m.SetFloat("_OcclusionStrength", 1f);
+            m.SetFloat("_OcclusionStrength", occlusion);
             m.SetKeyword(new LocalKeyword(m.shader, "_METALLICSPECGLOSSMAP"), mask != null);
             m.SetKeyword(new LocalKeyword(m.shader, "_OCCLUSIONMAP"), mask != null);
 
@@ -125,7 +161,7 @@ namespace SpaceStation.Editor
             Object.DestroyImmediate(orm);
         }
 
-        private static void WriteEmission(Texture2D baseTex, string path, float minSaturation)
+        private static void WriteEmission(Texture2D baseTex, string path, float minSaturation, float bodyGlow)
         {
             // 원본 텍스처 전체를 절반 크기로 (발광 맵은 해상도가 낮아도 충분)
             int w = Mathf.Max(1, baseTex.width / 2), h = Mathf.Max(1, baseTex.height / 2);
@@ -138,6 +174,7 @@ namespace SpaceStation.Editor
                     Color.RGBToHSV(c, out _, out float s, out float v);
                     float k = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(minSaturation, minSaturation + 0.15f, s))
                               * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(EmissionMinValue, EmissionMinValue + 0.15f, v));
+                    k = Mathf.Min(1f, k + bodyGlow);
                     dst[y * w + x] = new Color(c.r * k, c.g * k, c.b * k, 1f);
                 }
             }
