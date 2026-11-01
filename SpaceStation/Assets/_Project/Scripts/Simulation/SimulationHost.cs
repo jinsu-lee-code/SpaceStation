@@ -152,6 +152,8 @@ namespace SpaceStation.Simulation
 
         private void HandleTicked(long tick)
         {
+            if (Simulation.Session.IsGameOver)
+                return; // M-118 판이 끝나면 멈춤: 시계가 다시 돌아도 파괴 · 이탈과 그 소리가 이어지지 않음
             Simulation.Tick(_clock.Clock.TickInterval);
         }
 

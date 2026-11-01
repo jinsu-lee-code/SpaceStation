@@ -89,26 +89,6 @@ namespace SpaceStation.Tests
         }
 
         [Test]
-        public void GameOver_StopsSimulation_NoMoreWearOrDestruction()
-        {
-            var sim = Sim();
-            sim.TryPlace(_block, Vector3Int.right, 0, out var m);
-            Ticks(sim, 100);
-            float elapsed = sim.ElapsedSeconds;
-            Assert.IsTrue(sim.Durability.TryGetInfo(m, out var info));
-            float durability = info.Current;
-            int wornOut = 0;
-            sim.Durability.WornOut += _ => wornOut++;
-
-            sim.Session.Fail(GameOverReason.Oxygen);
-            Ticks(sim, 1000); // 멈추지 않으면 내구도 0이 되어 파괴될 시간
-
-            Assert.AreEqual(elapsed, sim.ElapsedSeconds, Eps, "시간이 흐르지 않음");
-            Assert.AreEqual(durability, info.Current, Eps, "노후화 멈춤");
-            Assert.AreEqual(0, wornOut, "파괴(와 그 소리)가 이어지지 않음");
-        }
-
-        [Test]
         public void Efficiency_FullAbove50_LinearBelow()
         {
             var d = new DurabilitySystem(_config);

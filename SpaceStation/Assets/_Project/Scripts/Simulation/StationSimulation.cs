@@ -460,8 +460,6 @@ namespace SpaceStation.Simulation
 
         public void Tick(float dt)
         {
-            if (Session.IsGameOver)
-                return; // M-118 판이 끝나면 시뮬레이션도 끝: 시계가 다시 돌아도 파괴 · 이탈과 그 소리가 이어지지 않음
             // Phase 9: 첫 밤 대비 단계가 끝나기 전 해질녘 직전이면 시간이 흐르지 않는다 (건설·안내만)
             if (Tutorial != null && dt > 0f && Tutorial.UpdateHold())
             {
