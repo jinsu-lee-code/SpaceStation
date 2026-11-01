@@ -210,7 +210,7 @@ namespace SpaceStation.UI
             var running = _sim.Tutorial;
             if (running != null && running.Active)
                 return;
-            if (_sim.Session.Syntheses > 0)
+            if (_sim.Session.Syntheses > 0 && data.Steps.Count > 0 && data.Steps[0].Goal == TutorialGoal.OpenRecipes) // 합성 안내만 — 5장 환경 안내는 합성과 무관
             {
                 _chapters.SetFlag(ChapterSystem.GuideFlag);
                 return;

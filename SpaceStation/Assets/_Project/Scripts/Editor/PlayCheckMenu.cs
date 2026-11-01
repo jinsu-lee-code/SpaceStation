@@ -51,6 +51,14 @@ namespace SpaceStation.Editor
         [MenuItem(Menu + "7. 4장 결과 → 장 전환 연출 → 5장 시작", priority = 7)]
         private static void ChapterFourResult() => Start("4장 결과 창", 4, chapter: 3, ChapterPhase.Transition);
 
+        [MenuItem(Menu + "8. 5장 위기 '항성 폭풍' 15초 전", priority = 8)]
+        private static void ChapterFiveClimax() => Start("5장 위기 15초 전", 5, chapter: 4, ChapterPhase.Warning, keepLifeSupport: true);
+
+        [MenuItem(Menu + "9. 5장 결과 → 장 전환 연출 → 6장 시작", priority = 9)]
+        private static void ChapterFiveResult() => Start("5장 결과 창", 5, chapter: 4, ChapterPhase.Transition);
+
+        [MenuItem(Menu + "8. 5장 위기 '항성 폭풍' 15초 전", true)]
+        [MenuItem(Menu + "9. 5장 결과 → 장 전환 연출 → 6장 시작", true)]
         [MenuItem(Menu + "6. 4장 위기 '파편 띠' 15초 전", true)]
         [MenuItem(Menu + "7. 4장 결과 → 장 전환 연출 → 5장 시작", true)]
         [MenuItem(Menu + "1. 1장 결과 → 장 전환 연출 → 2장 시작", true)]
@@ -131,7 +139,7 @@ namespace SpaceStation.Editor
             playSeconds = 0f;
             for (int seed = 1; seed <= 4; seed++)
             {
-                var s = BalanceSimulatorWindow.DefaultSettings(60f, 1, seed);
+                var s = BalanceSimulatorWindow.DefaultSettings(grade >= 5 ? 150f : 60f, 1, seed); // 14-2e 공통 봇 국가급 평균 약 84분
                 s.CaptureGrades = new[] { grade };
                 s.StopAtGrade = grade;
                 s.SampleInterval = 60f;

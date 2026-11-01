@@ -29,6 +29,8 @@ namespace SpaceStation.Editor.Balance
         public ModuleData Housing, Shield, Turret;
         /// <summary>14-1e 파편 띠 예고 동안 여유를 쌓는 차례 (한 바퀴씩 — 띠 동안엔 새 칸에 못 지음).</summary>
         public readonly List<ModuleData> BandReserve = new List<ModuleData>();
+        /// <summary>14-2e 5장: 필수 목표 방열판 · 항성 폭풍 앞 집의 얇은 면을 덮는 장갑 격벽.</summary>
+        public ModuleData Radiator, Armor;
 
         private static readonly string[] ResearchFiles =
         {
@@ -59,6 +61,8 @@ namespace SpaceStation.Editor.Balance
             a.Housing = AssetDatabase.LoadAssetAtPath<ModuleData>("Assets/_Project/Data/Modules/MD_Habitat.asset");
             a.Shield = AssetDatabase.LoadAssetAtPath<ModuleData>("Assets/_Project/Data/Modules/MD_Shield.asset");
             a.Turret = AssetDatabase.LoadAssetAtPath<ModuleData>("Assets/_Project/Data/Modules/MD_Turret.asset");
+            a.Radiator = AssetDatabase.LoadAssetAtPath<ModuleData>("Assets/_Project/Data/Modules/MD_Radiator.asset");
+            a.Armor = AssetDatabase.LoadAssetAtPath<ModuleData>("Assets/_Project/Data/Modules/MD_ArmorBulkhead.asset");
             foreach (string file in new[] { "MD_Battery", "MD_Oxygen", "MD_WaterRecycler", "MD_Storage", "MD_Farm", "MD_Solar" })
             {
                 var m = AssetDatabase.LoadAssetAtPath<ModuleData>($"Assets/_Project/Data/Modules/{file}.asset");
@@ -116,6 +120,8 @@ namespace SpaceStation.Editor.Balance
         public int PrepHousing, PrepDefense;
         /// <summary>14-1e 파편 띠 예고 동안 쌓은 여유 (발전 · 생명 유지 · 저장).</summary>
         public int PrepBand;
+        /// <summary>14-2e 항성 폭풍 예고 동안 집 바깥 면에 덮은 장갑 격벽 · 지은 방열판.</summary>
+        public int PrepStorm, PrepRadiators;
         /// <summary>기록 연구 단계 (<see cref="CampaignBotAssets.Research"/> 순서 — 공통 요약의 연구 줄은 분야 번호가 겹쳐 서사판에서 틀림).</summary>
         public int[] ResearchLevels = new int[0];
         /// <summary>14-1e 합성: 마친 수 · 그중 있던 모듈을 그대로 합친 수 · 처음 시작한 때 · 끝날 때 진화 모듈 종류.</summary>
@@ -275,7 +281,146 @@ namespace SpaceStation.Editor.Balance
             PrepareHousing(bot);
             PrepareBand(bot);
             GrowHousingInPlace();
+            BuildRadiatorGoal(bot);
+            PrepareStorm();
+            PrepareRadiators();
             DefendShower(bot);
+        }
+
+        /// <summary>14-2e 5장 필수 목표 '방열판 하나 짓기' (봇은 평소 방열판을 짓지 않음).</summary>
+        private void BuildRadiatorGoal(BalanceBot bot)
+        {
+            var chapter = _chapters.Current;
+            if (chapter == null || chapter.Climax.Kind != ChapterClimaxKind.StellarStorm || _a.Radiator == null || _chapters.Phase != ChapterPhase.Preparation)
+                return;
+            foreach (var m in _sim.Grid.Modules)
+                if (m.Data == _a.Radiator)
+                    return;
+            bot.TryBuild(_a.Radiator);
+        }
+
+        /// <summary>
+        /// 14-2e 항성 폭풍 예고 3분: 폭풍 때 안전한 집(두 겹 이상 안쪽)의 수용이 인구 + 여유보다 적으면, 안전에 가장 가까운 집의 얇은 면에 장갑 격벽 (결정마다 하나).
+        /// 사람이 예고를 보고 집 바깥을 덮는 일 — 힘든 주민은 안전한 빈집으로 저절로 옮겨 감 (main M-120). 핵융합로 바로 옆 집은 덮어도 소용없어 건너뜀.
+        /// </summary>
+        private void PrepareStorm()
+        {
+            var chapter = _chapters.Current;
+            var roster = _sim.Residents;
+            if (chapter == null || chapter.Climax.Kind != ChapterClimaxKind.StellarStorm || _chapters.Phase != ChapterPhase.Warning || _a.Armor == null || roster == null
+                || !_sim.CanAfford(_a.Armor))
+                return;
+            var radiation = _sim.Radiation;
+            float comfort = radiation.Comfort;
+            float scale = chapter.Climax.StormSpaceMultiplier / Mathf.Max(1f, radiation.SpaceMultiplier);
+            int safe = 0, bestKey = -1;
+            ModuleInstance best = null;
+            foreach (var home in roster.Homes)
+            {
+                int layers = radiation.LayersOf(home);
+                if (radiation.SpaceLevel(layers) * scale <= comfort)
+                {
+                    safe += roster.GetCapacity(home);
+                    continue;
+                }
+                if (radiation.LevelOf(home) > comfort || _stormBlocked.Contains(home))
+                    continue;
+                int key = layers * 1000 + roster.GetCapacity(home);
+                if (key > bestKey)
+                {
+                    bestKey = key;
+                    best = home;
+                }
+            }
+            if (best == null || safe >= _sim.Resources.Population + StormHousingMargin)
+                return;
+            if (ShieldThinFace(best))
+                _stats.PrepStorm++;
+            else
+                _stormBlocked.Add(best);
+        }
+
+        /// <summary>
+        /// 14-2e 항성 폭풍 예고 3분: 폭풍 때 위험 수준(발열 배율)이 될 모듈에 방열판 — 그런 모듈을 가장 많이 맞닿는 빈 칸 (바깥 면이 남는 곳, 결정마다 하나).
+        /// 사람이 J 지도의 추천 칸에 짓는 일 (지도와 같은 기준).
+        /// </summary>
+        private void PrepareRadiators()
+        {
+            var chapter = _chapters.Current;
+            if (chapter == null || chapter.Climax.Kind != ChapterClimaxKind.StellarStorm || _chapters.Phase != ChapterPhase.Warning || _a.Radiator == null
+                || !_sim.CanAfford(_a.Radiator))
+                return;
+            var heat = _sim.Heat;
+            var grid = _sim.Grid;
+            float danger = heat.DangerLevel;
+            float scale = chapter.Climax.StormHeatOutput;
+            _radiatorSpots.Clear();
+            foreach (var kv in heat.HeatMap)
+            {
+                if (kv.Value * scale < danger - 1e-4f || kv.Key == _sim.Core)
+                    continue;
+                foreach (var c in kv.Key.Cells)
+                    foreach (var d in GridDirections.Faces)
+                    {
+                        var p = c + d;
+                        if (grid.IsOccupied(p))
+                            continue;
+                        _radiatorSpots.TryGetValue(p, out int n);
+                        _radiatorSpots[p] = n + 1;
+                    }
+            }
+            Vector3Int best = default;
+            int bestCount = 0;
+            foreach (var kv in _radiatorSpots)
+            {
+                if (kv.Value <= bestCount)
+                    continue;
+                bool open = false;
+                foreach (var d in GridDirections.Faces)
+                    open |= !grid.IsOccupied(kv.Key + d);
+                if (open && _sim.EvaluatePlacement(_a.Radiator, kv.Key, 0) == PlacementResult.Valid)
+                {
+                    best = kv.Key;
+                    bestCount = kv.Value;
+                }
+            }
+            if (bestCount > 0 && _sim.TryPlace(_a.Radiator, best, 0, out _))
+                _stats.PrepRadiators++;
+        }
+
+        private readonly Dictionary<Vector3Int, int> _radiatorSpots = new Dictionary<Vector3Int, int>();
+
+        private const int StormHousingMargin = 20;
+        private const int StormSafeLayers = 2;
+        private const int StormRayCells = 16;
+        private readonly HashSet<ModuleInstance> _stormBlocked = new HashSet<ModuleInstance>();
+
+        /// <summary>집 칸에서 두께가 모자란 방향의 첫 빈 칸에 장갑 격벽.</summary>
+        private bool ShieldThinFace(ModuleInstance home)
+        {
+            var grid = _sim.Grid;
+            foreach (var cell in home.Cells)
+                foreach (var dir in GridDirections.Faces)
+                {
+                    int thickness = 0;
+                    Vector3Int? free = null;
+                    var p = cell + dir;
+                    for (int i = 0; i < StormRayCells; i++, p += dir)
+                    {
+                        if (grid.TryGetModule(p, out var other))
+                        {
+                            if (other != home)
+                                thickness += other.Data != null ? other.Data.RadiationLayers : 1;
+                        }
+                        else if (free == null)
+                            free = p;
+                    }
+                    if (thickness >= StormSafeLayers || free == null)
+                        continue;
+                    if (_sim.EvaluatePlacement(_a.Armor, free.Value, 0) == PlacementResult.Valid && _sim.TryPlace(_a.Armor, free.Value, 0, out _))
+                        return true;
+                }
+            return false;
         }
 
         /// <summary>
@@ -749,7 +894,7 @@ namespace SpaceStation.Editor.Balance
                     sb.AppendLine($"    위기 중 운석 {meteors}개 · 막음 {blocked + armorHits} ({(blocked + armorHits) * 100f / meteors:0}%) = 실드 · 포탑 · 면역 {blocked} + 장갑 격벽이 대신 맞음 {armorHits}"
                                   + (showerInWarning > 0 ? $" · 위기 예고 중 평소 유성우 {showerInWarning}판" : ""));
             }
-            int accepted = 0, partial = 0, refused = 0, offered = 0, boarded = 0, prepHousing = 0, prepDefense = 0, prepBand = 0;
+            int accepted = 0, partial = 0, refused = 0, offered = 0, boarded = 0, prepHousing = 0, prepDefense = 0, prepBand = 0, prepStorm = 0, prepRadiators = 0;
             var probe = new List<float>();
             var policy = new List<float>();
             foreach (var x in all)
@@ -757,6 +902,8 @@ namespace SpaceStation.Editor.Balance
                 prepHousing += x.PrepHousing;
                 prepDefense += x.PrepDefense;
                 prepBand += x.PrepBand;
+                prepStorm += x.PrepStorm;
+                prepRadiators += x.PrepRadiators;
                 accepted += x.Accepted;
                 partial += x.Partial;
                 refused += x.Refused;
@@ -782,7 +929,7 @@ namespace SpaceStation.Editor.Balance
             if (all.Count > 0)
                 sb.AppendLine($"합성 (판 평균): 마침 {syntheses / (float)all.Count:0.0} · 있던 모듈을 그대로 합침 {inPlace / (float)all.Count:0.0} · 끝날 때 진화 모듈 {evolvedKinds / (float)all.Count:0.0}종 · 첫 합성 (판 시작부터) {Spread(firstSynthesis)} · {firstSynthesis.Count}판");
             if (CampaignBotExtension.Prepare && all.Count > 0)
-                sb.AppendLine($"위기 대비로 지음 (판 평균): 이민선 앞 거주 {prepHousing / (float)all.Count:0.0} · 유성우 방향 실드 · 포탑 {prepDefense / (float)all.Count:0.0} · 파편 띠 앞 여유 {prepBand / (float)all.Count:0.0}");
+                sb.AppendLine($"위기 대비로 지음 (판 평균): 이민선 앞 거주 {prepHousing / (float)all.Count:0.0} · 유성우 방향 실드 · 포탑 {prepDefense / (float)all.Count:0.0} · 파편 띠 앞 여유 {prepBand / (float)all.Count:0.0} · 항성 폭풍 앞 장갑 {prepStorm / (float)all.Count:0.0} · 방열판 {prepRadiators / (float)all.Count:0.0}");
             sb.Append("기록 연구 최종 단계 평균 (공통 요약의 연구 줄 대신):");
             for (int i = 0; i < assets.Research.Count; i++)
             {
