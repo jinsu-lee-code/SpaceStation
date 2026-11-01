@@ -231,7 +231,7 @@ namespace SpaceStation.UI
                 string full = ResidentText.FullName(_roster.Config, r);
                 row.Name.SetText(r.Pinned ? $"{full} <size=75%><color={HudText.Muted}>고정</color></size>" : full);
                 row.Traits.SetText(ResidentText.Traits(_roster.Config, r));
-                string env = ResidentText.Environment(_roster.GetEnvironment(r.Home), r);
+                string env = ResidentText.Environment(_roster.GetEnvironment(r.Home), r) + StressTag(r, r.Home);
                 row.Home.SetText(ResidentText.HomeName(_roster, r.Home) + (env.Length > 0 ? "  " + env : ""));
                 row.Mood.SetText(MoodText(_roster.PersonalMood(r)));
                 row.ActionLabel.SetText("이사");
@@ -282,7 +282,7 @@ namespace SpaceStation.UI
                 row.Root.gameObject.SetActive(true);
                 row.Name.SetText(ResidentText.HomeName(_roster, home));
                 row.Traits.SetText($"빈자리 {_roster.GetFreeSlots(home)} / {_roster.GetCapacity(home)}");
-                string env = ResidentText.Environment(_roster.GetEnvironment(home), r);
+                string env = ResidentText.Environment(_roster.GetEnvironment(home), r) + StressTag(r, home);
                 row.Home.SetText(env.Length > 0 ? env : $"<color={HudText.Muted}>주변 특이 사항 없음</color>");
                 row.Mood.SetText(MoodText(_roster.MoodAt(r, home)));
                 row.ActionLabel.SetText("여기로");
@@ -306,6 +306,10 @@ namespace SpaceStation.UI
                 default: return $"상한 {ResidentText.Signed(roster.MoodOf(def.Trait))}";
             }
         }
+
+        /// <summary>M-120 이 주민이 이 집에서 힘들면 표시 (집 환경 고리가 없으면 빈 글).</summary>
+        private string StressTag(Resident r, ModuleInstance home) =>
+            _roster.StressAt(r, home) > 0f ? $"  <color={ResidentText.Bad}>집이 힘듦</color>" : "";
 
         public static string MoodText(float mood)
         {
