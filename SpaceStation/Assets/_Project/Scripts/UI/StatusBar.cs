@@ -188,7 +188,9 @@ namespace SpaceStation.UI
 
         private void HandleAutomationPerformed(int maintained, int rebuilt, bool batch)
         {
-            var sb = new System.Text.StringBuilder(batch ? "일괄 정비: " : "자동 정비: ");
+            if (!batch)
+                return; // 자동 정비는 알리지 않음 — 잦아서 하단 알림을 다 가림 (사용자 피드백 2026-11-02)
+            var sb = new System.Text.StringBuilder("일괄 정비: ");
             if (maintained > 0)
                 sb.Append("정비 ").Append(maintained).Append("개");
             if (rebuilt > 0)

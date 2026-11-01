@@ -167,7 +167,10 @@ namespace SpaceStation.Simulation
                 {
                     if (job.Rebuild ? !AutoRebuild : !AutoMaintain)
                         continue;
-                    if (!KeepsReserve(CostOf(job)))
+                    var cost = CostOf(job);
+                    if (OverCapacity(cost))
+                        continue; // 저장 한도보다 비싸 영원히 못 모음 → 뒤 순번을 막지 않는다
+                    if (!KeepsReserve(cost))
                     {
                         WaitingForReserve = true;
                         if (!wasWaiting)
@@ -228,6 +231,15 @@ namespace SpaceStation.Simulation
             return true;
         }
 
+        /// <summary>어떤 자원이든 비용이 저장 한도보다 큼 (아무리 모아도 낼 수 없음).</summary>
+        private bool OverCapacity(IReadOnlyList<ResourceAmount> cost)
+        {
+            foreach (var a in cost)
+                if (ResourceSimulation.IsStock(a.Type) && a.Amount > _sim.Resources.GetCapacity(a.Type) + 1e-4f)
+                    return true;
+            return false;
+        }
+
         /// <summary>비용을 낸 뒤에도 각 자원이 저장 한도 × 보호 비율 이상 남는지. 아니면 막은 자원 · 모자란 양을 기록.</summary>
         private bool KeepsReserve(IReadOnlyList<ResourceAmount> cost)
         {
@@ -246,7 +258,9 @@ namespace SpaceStation.Simulation
                     WaitingShortfall = 0f;
                     return false;
                 }
-                float line = res.GetCapacity(type) * _reserveRatio;
+                // 비용 + 보호선이 저장 한도를 넘으면 모아도 닿지 않음 → 꽉 찼을 때 처리 (안 그러면 자동 정비 전체가 멈춤)
+                float capacity = res.GetCapacity(type);
+                float line = Math.Min(capacity * _reserveRatio, Math.Max(0f, capacity - _required[i]));
                 if (res.GetStock(type) - _required[i] < line)
                 {
                     WaitingResource = type;
