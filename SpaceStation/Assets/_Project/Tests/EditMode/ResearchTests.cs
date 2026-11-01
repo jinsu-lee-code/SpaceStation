@@ -525,6 +525,54 @@ namespace SpaceStation.Tests
             Assert.AreEqual(1, maintained + rebuilt, "일괄 정비는 보호선 무시");
         }
 
+        private ModuleData Priced(float metal)
+        {
+            var module = Module();
+            var so = new SerializedObject(module);
+            Fill(so.FindProperty("_buildCost"), R(ResourceType.Metal, metal));
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return module;
+        }
+
+        /// <summary>M-123: 비용 + 보호선이 저장 한도를 넘으면 금속이 꽉 차도 자동 정비 전체가 멈췄음 → 꽉 찼을 때 처리.</summary>
+        [Test]
+        public void Automation_CostAboveReserveRoom_RunsWhenFull()
+        {
+            var (sim, category) = AutomationSim();
+            sim.Research.SetLevel(category, 1);
+            sim.Grid.TryPlace(Priced(300f), Vector3Int.left, 0, out var module);
+            sim.Durability.ApplyImpact(module, 60f); // 정비 180 + 보호선 80 > 한도 200
+            sim.Resources.SetStock(ResourceType.Metal, 190f);
+            Ticks(sim, 2);
+            sim.Durability.TryGetInfo(module, out var d);
+            Assert.AreEqual(40f, d.Current, Eps, "꽉 차기 전에는 모은다");
+            Assert.IsTrue(sim.Automation.WaitingForReserve);
+            Assert.AreEqual(10f, sim.Automation.WaitingShortfall, Eps, "한도까지 남은 양");
+
+            sim.Resources.SetStock(ResourceType.Metal, 200f);
+            Ticks(sim, 2);
+            Assert.AreEqual(85f, d.Current, Eps, "꽉 차면 처리");
+            Assert.IsFalse(sim.Automation.WaitingForReserve);
+        }
+
+        /// <summary>M-123: 저장 한도보다 비싼 작업은 건너뛰고 다음 작업을 처리.</summary>
+        [Test]
+        public void Automation_CostOverCapacity_DoesNotBlockNext()
+        {
+            var (sim, category) = AutomationSim();
+            sim.Research.SetLevel(category, 1);
+            sim.Grid.TryPlace(Priced(1000f), Vector3Int.left, 0, out var huge);
+            sim.Durability.ApplyImpact(huge, 70f); // 더 낡아 맨 앞 — 정비 비용 > 한도 200
+            sim.Grid.TryPlace(_block, Vector3Int.back, 0, out var block);
+            sim.Durability.ApplyImpact(block, 60f);
+            sim.Resources.SetStock(ResourceType.Metal, 200f);
+            Ticks(sim, 2);
+            sim.Durability.TryGetInfo(huge, out var h);
+            sim.Durability.TryGetInfo(block, out var b);
+            Assert.AreEqual(30f, h.Current, Eps, "낼 수 없어 그대로");
+            Assert.AreEqual(85f, b.Current, Eps, "뒤 순번은 막히지 않음");
+        }
+
         /// <summary>M-49: 자동 · 일괄 정비가 처리하는 동안만 Executing (소리가 모듈마다 나지 않게), 직접 정비는 아님.</summary>
         [Test]
         public void Automation_Executing_OnlyWhileAutoOrBatch()
