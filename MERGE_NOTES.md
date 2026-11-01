@@ -913,7 +913,8 @@
 - 아직 안 한 것 (2단계 Unity 반영 때 한꺼번에, tycoon TASKS): 프리팹 · `SpinWheel_` 접두사 처리 (축 = 부품 로컬 z) · 새 FX 재질 `ModuleFxMaterials` 등록 (FX_AuroraGreen/Violet · FX_FluorTeal · FX_GalaxyWater · FX_SplashMist · FX_FluorYellow/Orange/Red · FX_RefineryGlow · FX_ProteinCulture 등) · 실드 돔 오로라 장벽 · 요새 불꽃놀이 · 1층인데 칸 위로 넘는 6종 처리 (사용자 결정 대기)
 
 ### `narrative` 합칠 때
-- [ ] 모델 · 텍스처 · 문서만이라 자동 합침 예상. 2단계 Unity 반영이 들어온 뒤 Recipes/Setup.
+- [x] 모델 · 텍스처 · 문서만이라 자동 합침 예상. 2단계 Unity 반영이 들어온 뒤 Recipes/Setup.
+  - 확인 (2026-11-01, M-54 ~ M-115 한꺼번에): 충돌 = MODELING.md 절 번호 겹침 하나 (서사판 절을 7-12 ~ 7-14로) · Recipes/Setup 돌림 (값 변화 없음, 프리팹 내부 번호 · 재생성 잡음) · 내부 템플릿은 main에서 받은 빌드 결과 그대로 (서사판이 내부 코드를 고치지 않아 다시 굽지 않음) · EditMode 486개 통과
 
 ### `tycoon` 합칠 때
 - [ ] 같은 파일이 tycoon 커밋 `eea9e29c`에도 있어 자동 합침 예상. 2단계 Unity 반영 때 함께 확인.
@@ -930,7 +931,7 @@
 - 세이브: 예전 저장에 이 다섯 모듈이 있으면 새 모양으로 다시 놓음 — 위 칸이 다른 모듈과 겹치면 그 모듈만 건너뜀 (불러오기 경고)
 
 ### `narrative` 합칠 때
-- [ ] `RecipeSetup.cs` · 데이터 · 프리팹 자동 합침 예상 (서사판이 같은 레시피를 고쳤으면 칸 · 재료만 이쪽으로). 합친 뒤 **Recipes/Setup 다시 돌림** + EditMode (`SynthesisTests` 칸 수 = 재료 칸 합).
+- [x] `RecipeSetup.cs` · 데이터 · 프리팹 자동 합침 예상 (서사판이 같은 레시피를 고쳤으면 칸 · 재료만 이쪽으로). 합친 뒤 **Recipes/Setup 다시 돌림** + EditMode (`SynthesisTests` 칸 수 = 재료 칸 합).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-26) 같은 파일이 tycoon 커밋 `03275d96`에 있음 (tycoon에서 메뉴 · 시험 · 칸 검사를 먼저 함).
@@ -944,7 +945,7 @@
 - Recipes/Setup 산출물: 2단계 프리팹 17종 · FBX 리맵(.meta) · 2단계 발광 텍스처 41장 · 새 FX 재질 9개
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (`StationArtBuilder` · `ModuleFxMaterials` · `ModuleTextureMaterials`를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+- [x] 자동 합침 예상 (`StationArtBuilder` · `ModuleFxMaterials` · `ModuleTextureMaterials`를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-26) 같은 파일이 tycoon 커밋 `b5be0440`에 있음 (미리보기 렌더 17종 확인 · EditMode 434 통과).
@@ -957,7 +958,7 @@
 - 산출물: 프리팹 (Fx 자식 제자리 · 실드 돔 오로라 장벽), 식량 공장 통로 깊이 다시 잼, FX 재질 저장값
 
 ### `narrative` 합칠 때
-- [ ] `MeteorFx` 실드 빗겨냄 부분을 서사판이 고쳤으면 `AuroraBarrierFx` 분기만 손으로. 합친 뒤 Recipes/Setup + EditMode.
+- [x] `MeteorFx` 실드 빗겨냄 부분을 서사판이 고쳤으면 `AuroraBarrierFx` 분기만 손으로. 합친 뒤 Recipes/Setup + EditMode.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-26) 같은 파일이 tycoon 커밋 `55be6dab`에 있음 (EditMode 438 통과, 오로라 장벽은 정지 화면으로 확인 — 플레이 확인은 2단계 반영 ④).
@@ -971,7 +972,7 @@
 - 시험 `FireworkFxTests` 4개 (별자리 자료 · 카메라를 향한 배치) · `AuroraBarrierFxTests` 4개 (단위 구 · 닿은 자리부터 퍼짐 · 윤곽 밝고 뒷면 감춤)
 
 ### `narrative` 합칠 때
-- [ ] `MeteorFx` 요격 · 빗겨냄 분기를 서사판이 고쳤으면 `FireworkFx` · `AuroraBarrierFx` 분기만 손으로. 합친 뒤 Recipes/Setup + EditMode.
+- [x] `MeteorFx` 요격 · 빗겨냄 분기를 서사판이 고쳤으면 `FireworkFx` · `AuroraBarrierFx` 분기만 손으로. 합친 뒤 Recipes/Setup + EditMode.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-26) 같은 파일이 tycoon 커밋 `b290798b`에 있음 — EditMode 442 통과, 플레이 확인 (프리팹을 임시로 띄워 별자리 불꽃 무작위 · 박격포대 · 오로라 구면 파문 재생 캡처, 도는 부품 축 · 속도 측정). 실제 판에서 합성한 실드 돔 · 요새 포대로 운석이 오는 장면은 아직.
@@ -993,7 +994,7 @@
 - FX 유리 재질 몇 개는 URP가 다시 저장한 값
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 합친 뒤 Unity가 진화 모델을 다시 가져옴 (몇 분).
+- [x] 자동 합침 예상. 합친 뒤 Unity가 진화 모델을 다시 가져옴 (몇 분).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `1eae392c`에 있음 (40개 다시 가져옴 · EditMode 442 통과 · 렌더 확인).
@@ -1008,7 +1009,7 @@
 - 프리팹 · 재질 산출물
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 합친 뒤 Recipes/Setup.
+- [x] 자동 합침 예상. 합친 뒤 Recipes/Setup.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `0199785f`에 있음 (플레이 캡처로 확인).
@@ -1025,7 +1026,7 @@
 - 프리팹 · 재질 산출물
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 합친 뒤 Recipes/Setup (FBX는 후처리 버전이 올라 다시 가져옴).
+- [x] 자동 합침 예상. 합친 뒤 Recipes/Setup (FBX는 후처리 버전이 올라 다시 가져옴).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `1746b927`에 있음 (EditMode 444 통과 · 플레이 캡처로 확인).
@@ -1044,7 +1045,7 @@
 - 프리팹 산출물
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (.blend는 바이너리 — 서사판에서 Modules_Work.blend를 따로 고쳤으면 충돌, 이쪽을 받음). 합친 뒤 Recipes/Setup.
+- [x] 자동 합침 예상 (.blend는 바이너리 — 서사판에서 Modules_Work.blend를 따로 고쳤으면 충돌, 이쪽을 받음). 합친 뒤 Recipes/Setup.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `8e64a9f9`에 있음 (EditMode 446 통과 · 플레이 캡처로 확인).
@@ -1061,7 +1062,7 @@
 - 재질 · 프리팹 산출물
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 합친 뒤 Recipes/Setup (유리 재질은 `ModuleFxMaterials.Get`이 새 셰이더 · 값으로 다시 씀).
+- [x] 자동 합침 예상. 합친 뒤 Recipes/Setup (유리 재질은 `ModuleFxMaterials.Get`이 새 셰이더 · 값으로 다시 씀).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `4e453a32`에 있음 (EditMode 447 통과 · 플레이 캡처로 확인).
@@ -1075,7 +1076,7 @@
 - **아직 프리팹에 안 씀** — 3단계 Unity 반영(FX_Prism · FX_FluorGold · FX_Rainbow0~6 재질 · 물 · 프리즘 빛)은 3단계를 다 만든 뒤 한꺼번에. 그 전에 Recipes/Setup을 돌리면 궤도 도시가 모델로 바뀌고 이 FX 슬롯은 "알 수 없는 재질" 경고가 남
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+- [x] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `a8e345d0`에 있음.
@@ -1090,7 +1091,7 @@
 - **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 ModuleFxMaterials에 위 FX 재질을 더함 (그 전에 Recipes/Setup을 돌리면 이 FX 슬롯에 "알 수 없는 재질" 경고)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+- [x] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `a97ad3d9`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
@@ -1105,7 +1106,7 @@
 - **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 ModuleFxMaterials에 FX_Bee (T_Bee 텍스처) 추가, 꿀벌이 고리 길을 따라 나는 FX 스크립트
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+- [x] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `c3059229`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
@@ -1120,7 +1121,7 @@
 - **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 ModuleFxMaterials에 FX_Critters (T_Critters 텍스처) · FX_Beam · FX_AuroraGreen/Violet (궤도 방어망) 추가, 오로라 커튼이 일렁이게 (실드 돔도), 동물 움직임 (제자리 활동 범위 + 서로 밀어내는 간격)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음). `EvoFxDepthOffset.cs`는 한 곳 (칸에 넣기 전 법선 0 면 건너뜀)만 바뀜.
+- [x] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음). `EvoFxDepthOffset.cs`는 한 곳 (칸에 넣기 전 법선 0 면 건너뜀)만 바뀜.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `c228b8e6` · `bab24594`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
@@ -1134,7 +1135,7 @@
 - **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 반딧불 드론 떼가 돌며 별 · 하트 대형 (드론 정비창 DroneShowFx처럼), 동물 움직임
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+- [x] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-27) 같은 파일이 tycoon 커밋 `1a1817d7`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
@@ -1148,7 +1149,7 @@
 - **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 회전목마가 돌고 배가 그 둘레를 돌기, 분수 물방울 · 조개 속 진주 빛, 동물 움직임
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+- [x] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-28) 같은 파일이 tycoon 커밋 `9bc8cdba`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
@@ -1163,7 +1164,7 @@
 - **아직 프리팹에 안 씀** — 3단계 Unity 반영 때 생각 고리 돌기, 빛 신경 흐름 · 시냅스 깜빡임, 수정 뇌 맥박 빛, 드론 날기, 동물 움직임
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음). `EvoFxDepthOffset.cs`를 그쪽에서 고쳤으면 `PlaneGrid` 부분만 손으로 합침.
+- [x] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음). `EvoFxDepthOffset.cs`를 그쪽에서 고쳤으면 `PlaneGrid` 부분만 손으로 합침.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-28) 같은 파일이 tycoon 커밋 `20c348df`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
@@ -1178,7 +1179,7 @@
 - **아직 프리팹에 안 씀** — Unity 반영 때 가운데 돔 돌기, 신호 고리 · 은하수 연출, 짙은 몸체 발광 보정 (2단계처럼), FX_GalaxyWater · FX_TelescopeLens · FX_FluorCyan 재질
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
+- [x] 자동 합침 예상 (.blend는 바이너리 — 이쪽을 받음).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `1fbbc8be`에 있음 (TASKS.md는 브랜치마다 따로라 안 옮김).
@@ -1195,7 +1196,7 @@
 - 아직 안 한 것 (tycoon TASKS 3 · 4단계 Unity 반영 ② ~ ④): 오로라 커튼 일렁임 · 동물 움직임 · 꿀벌 비행 · 반딧불 드론 · 모듈별 연출
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (위 스크립트 넷을 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup + EditMode.
+- [x] 자동 합침 예상 (위 스크립트 넷을 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup + EditMode.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `3f3a05f8`에 있음 (Unity 미리보기 렌더 8종 확인. EditMode는 MCP에서 실행이 막혀 아직 — Test Runner에서 직접).
@@ -1210,7 +1211,7 @@
 - 확인: 미리보기에서 시간을 0 · 1.5 · 3 · 4.5초 민 프레임 넷으로 두 모듈 커튼 모양이 바뀜. 새 셰이더 변형의 첫 렌더는 비동기 컴파일로 안 보일 수 있음 (`ShaderUtil.allowAsyncCompilation = false`)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (ModuleFxMaterials · StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+- [x] 자동 합침 예상 (ModuleFxMaterials · StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `34e5a4ba`에 있음.
@@ -1223,7 +1224,7 @@
 - Recipes/Setup 산출물: 3 · 4단계 진화 프리팹 8종 (CritterFx 추가). 화물 환적장 · 요새 포대 · 그리드 허브 · 궤도 미러 프리팹과 Main 씬은 fileID만 다시 매겨져 넣지 않음
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+- [x] 자동 합침 예상 (StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `10cce603`에 있음.
@@ -1237,7 +1238,7 @@
 - Recipes/Setup을 다시 돌리면 진화 프리팹 12종 · Main 씬은 fileID만 다시 매겨짐 (내용 같음 — main에는 안 넣음)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (Glass.shader · ModuleFxMaterials · StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+- [x] 자동 합침 예상 (Glass.shader · ModuleFxMaterials · StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e6268f3e`에 있음.
@@ -1251,7 +1252,7 @@
 - Recipes/Setup 산출물: 바이오스피어 · 궤도 항만 프리팹 (다른 진화 프리팹 · Main 씬은 fileID만 바뀌어 안 넣음), 물 · 흐르는 빛 재질
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (Glass · Rain 셰이더, StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
+- [x] 자동 합침 예상 (Glass · Rain 셰이더, StationArtBuilder를 서사판이 고쳤으면 해당 부분만 손으로). 합친 뒤 Recipes/Setup.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e8438277`에 있음.
@@ -1264,7 +1265,7 @@
 - Recipes/Setup 산출물: 바이오스피어 프리팹 (다른 진화 프리팹 · Main 씬은 fileID만 바뀌어 안 넣음)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 서사판에 `RainShelterFx` 참조가 남아 있으면 Recipes/Setup으로 바이오스피어 프리팹을 다시 만들 것.
+- [x] 자동 합침 예상. 서사판에 `RainShelterFx` 참조가 남아 있으면 Recipes/Setup으로 바이오스피어 프리팹을 다시 만들 것.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `a242ac63`에 있음.
@@ -1278,7 +1279,7 @@
 - 참고 (다른 셰이더를 만들 때): HDR + 블룸에서는 NaN 픽셀 하나가 큰 원으로 번짐 — `pow`의 지수가 0이 될 수 있으면 막고, 출력을 `min(max(c, 0), 상한)`으로 묶을 것
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (두 셰이더를 서사판이 고쳤으면 해당 부분만 손으로).
+- [x] 자동 합침 예상 (두 셰이더를 서사판이 고쳤으면 해당 부분만 손으로).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e2fbf0ff`에 있음.
@@ -1294,7 +1295,7 @@
 - Recipes/Setup 산출물: 실드 매트릭스 · 궤도 방어망 프리팹 (다른 진화 프리팹 · Main 씬은 fileID만 바뀌어 안 넣음)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. `MeteorFx` · `FireworkFx`를 서사판이 고쳤으면 해당 부분만 손으로, 그 뒤 Recipes/Setup으로 두 프리팹을 다시 만들 것.
+- [x] 자동 합침 예상. `MeteorFx` · `FireworkFx`를 서사판이 고쳤으면 해당 부분만 손으로, 그 뒤 Recipes/Setup으로 두 프리팹을 다시 만들 것.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `64330e66`에 있음.
@@ -1310,7 +1311,7 @@
 - 주의: `InteriorSetup.CreateMaterials`에 같은 이름 지역 함수(`Plain`)를 하나 더 두면 소품 재질 22종의 금속도 · 광택이 뒤바뀜 (한 번 그렇게 저장됐다가 되돌림 — 커밋에는 없음). 문 구멍은 천장이 높은 방에서 패널 높이까지만 (MODELING 7-11)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (세 편집기 스크립트를 서사판이 고쳤으면 해당 부분만 손으로). 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상 (세 편집기 스크립트를 서사판이 고쳤으면 해당 부분만 손으로). 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `6a38588f`에 있음.
@@ -1325,7 +1326,7 @@
 - 연결 통로(튜브)는 그대로 — 단계별 통로는 따로 작업 (사용자 요청 2026-10-29, TASKS)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (`InteriorBuilder` · `InteriorKit` · `InteriorSetup`을 서사판이 고쳤으면 해당 부분만 손으로). 그 뒤 메뉴 SpaceStation/Interior/Setup.
+- [x] 자동 합침 예상 (`InteriorBuilder` · `InteriorKit` · `InteriorSetup`을 서사판이 고쳤으면 해당 부분만 손으로). 그 뒤 메뉴 SpaceStation/Interior/Setup.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `05f78abb`에 있음.
@@ -1340,7 +1341,7 @@
 - MODELING 7-11 (여러 층 모듈 · 엘리베이터 조각 이름 규칙)
 
 ### `narrative` 합칠 때
-- [ ] `FirstPersonController` · `InteriorMode`를 서사판이 고쳤으면 해당 부분만 손으로 (Ride/Dismount · 엘리베이터 버튼 분기). 그 뒤 메뉴 Build Evolved Templates.
+- [x] `FirstPersonController` · `InteriorMode`를 서사판이 고쳤으면 해당 부분만 손으로 (Ride/Dismount · 엘리베이터 버튼 분기). 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `4c075ced`에 있음.
@@ -1354,7 +1355,7 @@
 - 정원사 자리 5 (`ResidentSpotBaker`), 강조색 `M_Accent_Evo_EcoModule` · `M_Paint_Evo_EcoModule`, `InteriorKit.asset` 강조색 목록, 거주 타워 도장 재질 `_Color` 동기화, MODELING 7-11 (식물 다시 쓰기 · 볼트 아래 문 자리 · 꺾인 방)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `397766ab`에 있음.
@@ -1367,7 +1368,7 @@
 - 다시 구운 `PF_Interior_EvoTower` · `PF_Interior_EvoResearch` (Soft 충돌체) · `PF_Interior_EvoEco` · `IT_EvoEco`, MODELING 7-11 (가구 충돌 · 작물 조각 이름 · 흙 판 자리 · Tree 화분 크기)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `fcccabd7`에 있음.
@@ -1380,7 +1381,7 @@
 - `InteriorTemplateBuilder.BuildEvoPowerBank` (문 자리 14 · 조명 12 · 분위기 Electric), 기술자 자리 10 (`ResidentSpotBaker`), 강조색 `M_Accent_Evo_PowerBank` · `M_Paint_Evo_PowerBank`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (실제 값 게이지 조각)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `a64df445`에 있음.
@@ -1395,7 +1396,7 @@
 - MODELING 7-11 (앉는 가구 충돌체)
 
 ### `narrative` 합칠 때
-- [ ] `InteriorResidents.Spawn`을 서사판이 고쳤으면 `ResidentSeatFit.Fit` 두 줄만 손으로 (ResidentFigure.Create 바로 뒤, ResidentWander.InitSeated보다 먼저). 그 뒤 메뉴 Build Evolved Templates.
+- [x] `InteriorResidents.Spawn`을 서사판이 고쳤으면 `ResidentSeatFit.Fit` 두 줄만 손으로 (ResidentFigure.Create 바로 뒤, ResidentWander.InitSeated보다 먼저). 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `841f1385`에 있음.
@@ -1409,7 +1410,7 @@
 - `InteriorResidents.Spawn`: 맞춤 호출을 기분(`Configure`) 다음으로
 
 ### `narrative` 합칠 때
-- [ ] `ResidentMotion.UpdateTail` · `InteriorResidents.Spawn`을 서사판이 고쳤으면 해당 줄만 손으로 (꼬리 처짐에 `SeatTailLift * (1 − 일어섬)` 더하기, 맞춤을 Configure 다음으로).
+- [x] `ResidentMotion.UpdateTail` · `InteriorResidents.Spawn`을 서사판이 고쳤으면 해당 줄만 손으로 (꼬리 처짐에 `SeatTailLift * (1 − 일어섬)` 더하기, 맞춤을 Configure 다음으로).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `e2d1c715`에 있음.
@@ -1423,7 +1424,7 @@
 - `ResidentMotion.SeatTailRoll` (앉은 동안만 옆으로 기울임) · `InteriorResidents` 크기 넘김, MODELING 7-1
 
 ### `narrative` 합칠 때
-- [ ] 동물 FBX는 이진 파일 — 서사판이 동물 모델을 따로 고쳤으면 `animal_builder.py`를 합친 뒤 세 종류를 다시 뽑음. `ResidentMotion.UpdateTail`은 M-88 메모대로.
+- [x] 동물 FBX는 이진 파일 — 서사판이 동물 모델을 따로 고쳤으면 `animal_builder.py`를 합친 뒤 세 종류를 다시 뽑음. `ResidentMotion.UpdateTail`은 M-88 메모대로.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `f6b61400`에 있음.
@@ -1435,7 +1436,7 @@
 - `InteriorTemplateBuilder.BuildEvoCulture` (문 자리 16 · 조명 10), `ResidentSpotBaker` 연구원(선생님) 2 + 쉬는 방 (`LeisureRooms`에 EvoCulture, 쉬는 자리 26), `InteriorPlantSpots` 화분 2, 강조색 `M_Accent_Evo_CultureCenter` · `M_Paint_Evo_CultureCenter`, `InteriorKit.asset` 강조색 목록
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `65c4f2ee`에 있음.
@@ -1450,7 +1451,7 @@
 - `InteriorTemplateBuilder.BuildEvoSolar` (문 자리 12 · 조명 12, `configure`로 추적기 연결), `ResidentSpotBaker` 기술자 9 (관제석은 앉아서 일함), `InteriorPlantSpots` 화분 6, 강조색 `M_Accent_Evo_SolarArray` · `M_Paint_Evo_SolarArray`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (바깥과 같은 방향을 보는 부품)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `15873532`에 있음.
@@ -1465,7 +1466,7 @@
 - **공통 코드 고침** `Interior/InteriorExteriorView.Hide`: "카메라를 품은 이웃 모듈"을 카메라 칸 주변 27칸 모듈의 렌더러 경계 상자로 고르던 것을 → 카메라 칸을 실제로 차지한 모듈만. ㄱ자 모듈(생태 모듈)의 경계 상자가 빈 모서리 칸까지 덮어, 그 칸에 놓인 옆 모듈 방 창에서 ㄱ자 모듈이 통째로 사라졌음 (사용자 2026-10-29). 튜브 · 문가에서 옆 모듈 속에 들어간 카메라 처리는 그대로 (그때는 카메라 칸이 옆 모듈 칸)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (서사판이 `InteriorExteriorView.Hide`를 고쳤으면 이 블록 채택). 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상 (서사판이 `InteriorExteriorView.Hide`를 고쳤으면 이 블록 채택). 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `4153ee95`에 있음.
@@ -1480,7 +1481,7 @@
 - **새 공용 재질** `M_InteriorWaterClear` (`InteriorSetup.WaterClearPath` + `CreateMaterials`, 템플릿 재질 슬롯 `WaterClear`): 하늘색 반투명 물 (알파 0.55 · 매끈함 0.3 · 반사 하이라이트 · 환경 반사 끔) — 통 · 수조 속 물 덩어리용 (사용자 "물 표면이 어색 · 투명도 조금 줄여 · 반사광")
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates (`CreateMaterials`가 새 재질을 만듦).
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates (`CreateMaterials`가 새 재질을 만듦).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `a38b5007`에 있음.
@@ -1496,7 +1497,7 @@
 - `InteriorTemplateBuilder.BuildEvoGravity` (문 자리 26 — 가운데 칸 위 해치는 전망실 지붕, 조명 17, 환경음 생활, `configure`로 엘리베이터 · 전망실 창 · 망원경 연결), `ResidentSpotBaker` 자리 33 + 쉬는 방 (`LeisureRooms`에 EvoGravity), `InteriorPlantSpots` 14, 강조색 `M_Accent_Evo_GravityHabitat` · `M_Paint_Evo_GravityHabitat`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (지붕 위로 솟은 전망실)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (서사판이 `InteriorExteriorView`를 고쳤으면 Group · LateUpdate · SyncPose 블록을 합침). 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상 (서사판이 `InteriorExteriorView`를 고쳤으면 Group · LateUpdate · SyncPose 블록을 합침). 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `fcdb69d3`에 있음.
@@ -1510,7 +1511,7 @@
 - MODELING 7-11: 걷기 검사는 문 앞에서 멈추지 말고 안쪽까지 · 두르는 고리는 문 자리를 비운 부채꼴로
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `b51c5c78`에 있음.
@@ -1524,7 +1525,7 @@
 - `InteriorTemplateBuilder.BuildEvoFarm` (문 자리 13, 조명 22, 환경음 물, `configure`로 엘리베이터 연결), `ResidentSpotBaker` 정원사 11, `InteriorPlantSpots` 화분 3, 강조색 `M_Accent_Evo_VerticalFarm` · `M_Paint_Evo_VerticalFarm`, `InteriorKit.asset` 강조색 목록
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-29) 같은 파일이 tycoon 커밋 `ba3a43b0`에 있음.
@@ -1538,7 +1539,7 @@
 - `InteriorTemplateBuilder.BuildEvoMineral` (문 자리 14, 조명 13, 환경음 열), `ResidentSpotBaker` 정비공 6, 강조색 `M_Accent_Evo_MineralComplex` · `M_Paint_Evo_MineralComplex`, `InteriorKit.asset` 강조색 목록
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `5f1d9a23`에 있음.
@@ -1552,7 +1553,7 @@
 - `InteriorTemplateBuilder.BuildEvoShield` (문 자리 14, 조명 12, 환경음 전기), `ResidentSpotBaker` 연구원 6, 강조색 `M_Accent_Evo_ShieldMatrix` · `M_Paint_Evo_ShieldMatrix`, `InteriorKit.asset` 강조색 목록
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `ec0fde7e`에 있음.
@@ -1565,7 +1566,7 @@
 - 프리팹 4개 다시 뽑음: `PF_Interior_EvoShield` (4칸) · `EvoMineral` (3) · `EvoFarm` (2) · `EvoResearch` (8)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (새 파일 + 빌더 메서드 추가). 그 뒤 메뉴 Build Evolved Templates (화면 칸은 빌드 때 붙음).
+- [x] 자동 합침 예상 (새 파일 + 빌더 메서드 추가). 그 뒤 메뉴 Build Evolved Templates (화면 칸은 빌드 때 붙음).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `187119e8`에 있음.
@@ -1578,7 +1579,7 @@
 - 프리팹 32개에 `InteriorStatusScreens` (기본 22 · 진화 10), EditMode `InteriorStatusScreensTests`, MODELING 7-11 화면 모델링 규칙
 
 ### `narrative` 합칠 때
-- [ ] 서사판에만 있는 내부 템플릿 (난파선 · 이민선 · 지구 등)이 있으면 합친 뒤 메뉴 Add Status Screens를 한 번 돌림 (프리팹 글자 충돌 시 main 쪽을 받고 다시 돌리면 됨). `InteriorRoomDisplay`를 서사판이 새로 만들었다면 화면 가운데 좌표를 `Center` 같은 이름으로 직렬화해야 상태 화면이 피함.
+- [x] 서사판에만 있는 내부 템플릿 (난파선 · 이민선 · 지구 등)이 있으면 합친 뒤 메뉴 Add Status Screens를 한 번 돌림 (프리팹 글자 충돌 시 main 쪽을 받고 다시 돌리면 됨). `InteriorRoomDisplay`를 서사판이 새로 만들었다면 화면 가운데 좌표를 `Center` 같은 이름으로 직렬화해야 상태 화면이 피함.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `97804ebb`에 있음.
@@ -1590,7 +1591,7 @@
 - `InteriorTemplateBuilder.BuildEvoDefense` (문 자리 14, 조명 17, 환경음 전기, 센서 어레이와 같은 `InteriorRadar` 연결 — 실제 유성우 · 포격 예보), `ResidentSpotBaker` 기술자 10, 강조색 `M_Accent_Evo_DefenseBattery` · `M_Paint_Evo_DefenseBattery`, `InteriorKit.asset` 강조색 목록, MODELING 7-11 (레이더도 기본 장치를 다시 씀)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `a046860c`에 있음.
@@ -1602,7 +1603,7 @@
 - `InteriorTemplateBuilder.BuildEvoArmor` (문 자리 14, 조명 15, 환경음 전기), `ResidentSpotBaker` 기술자 8, 강조색 `M_Accent_Evo_ArmorWall` · `M_Paint_Evo_ArmorWall`, `InteriorKit.asset` 강조색 목록, MODELING 6-1 환공포증 배려 규칙 (작은 구멍 · 칸이 빽빽한 무늬 금지)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `9f9aafb4`에 있음.
@@ -1615,7 +1616,7 @@
 - `InteriorTemplateBuilder.BuildEvoWorks` (문 자리 14, 조명 18, 환경음 기계), `ResidentSpotBaker` 기술자 · 정비공 8, 강조색 `M_Accent_Evo_MaintenanceWorks` · `M_Paint_Evo_MaintenanceWorks`, `InteriorKit.asset` 강조색 목록, MODELING 6-1 (빛 연출은 발광 구 말고 이펙트 + 닿는 도구 · 곡면 위 평평한 판 금지)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `b53c65cd`에 있음.
@@ -1627,7 +1628,7 @@
 - `InteriorTemplateBuilder.BuildEvoEmergency` (문 자리 8, 조명 14, 환경음 전기), `ResidentSpotBaker` 기술자 · 정비공 6, 강조색 `M_Accent_Evo_EmergencyCenter` · `M_Paint_Evo_EmergencyCenter`, `InteriorKit.asset` 강조색 목록
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `c1c2f229`에 있음.
@@ -1639,7 +1640,7 @@
 - `InteriorBuilder.RoomOf` (렌더러 → 부모를 따라 방 오브젝트 → 모듈) 추가, `InteriorExteriorView.Create`에 `roomOf` (선택 인자, 없거나 방 밖이면 예전처럼 위치로), `InteriorMode`가 넘김. 템플릿 검사에서 기본 농장 유리도 가운데가 위 칸이었음 — 같이 고쳐짐
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (내부 공통 코드 3파일).
+- [x] 자동 합침 예상 (내부 공통 코드 3파일).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-30) 같은 파일이 tycoon 커밋 `f68223e8`에 있음.
@@ -1651,7 +1652,7 @@
 - `MainMenuController.CloneModeButton` (꺼진 채 복제 → 떼고 → 켬), `HoloSkin.StripRuntimeDecor(GameObject)` (장식 자식 · HoloButtonFx 떼기, 패널이면 옛 테두리 되살림)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (UI 2파일, 서사판에서 고치지 않은 줄).
+- [x] 자동 합침 예상 (UI 2파일, 서사판에서 고치지 않은 줄).
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상 (타이쿤판은 M-44 이후 main을 아직 받지 않음 — main을 받을 때 함께).
@@ -1664,7 +1665,7 @@
 - MODELING 7-11: 천장 구멍 유리 돔 = 끝 뚜껑 없는 얇은 껍질 (회전체 뚜껑이 평평한 창 원판이 되어 갈비살을 가렸음)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상. 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `eea4e963`에 있음.
@@ -1678,7 +1679,7 @@
 - MODELING 6-1: 작업대 위 판을 가운데 높이만 정해 기울이지 않음 · 막힌 통에 판을 꽂지 않음
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `8fe892f4`에 있음.
@@ -1690,7 +1691,7 @@
 - MODELING 6-1에 규칙 추가
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (모델 · 프리팹만).
+- [x] 자동 합침 예상 (모델 · 프리팹만).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `1be8523f`에 있음.
@@ -1705,7 +1706,7 @@
 - MODELING 7-11: 나르는 장치는 움직이는 전 범위에서 실은 물건 · 몸체가 겹치지 않게 (짐판 상자가 운반 기둥과 겹쳤음)
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (새 파일 2 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상 (새 파일 2 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `86fd5b99`에 있음.
@@ -1716,7 +1717,7 @@
 - M-110에서 물류 허브 내부 강조색을 기본 화물 터미널 색 (#7CD957)으로 잘못 넣었음 → `RecipeSetup` 물류 허브 색 #8FE0B0. `M_Accent_Evo_LogisticsHub` · `M_Paint_Evo_LogisticsHub` 색만 바꿈 (GUID 그대로), `BuildEvoLogistics` 값
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (재질 2 · 빌더 한 줄).
+- [x] 자동 합침 예상 (재질 2 · 빌더 한 줄).
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `9bbf312e`에 있음.
@@ -1729,7 +1730,7 @@
 - `InteriorTemplateBuilder.BuildEvoStorage` (문 자리 16, 조명 11, 보관탑 도는 물체 넷, 환경음 기계, 크레인 피벗 계층), `ResidentSpotBaker` 정비공 6, 강조색 `M_Accent_Evo_BigStorage` · `M_Paint_Evo_BigStorage` (#B0C0A0), `InteriorKit.asset` 강조색 목록
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `fffd0083`에 있음.
@@ -1742,7 +1743,7 @@
 - `InteriorTemplateBuilder.BuildEvoShipyard` (문 자리 19, 조명 11, 도는 물체 6, 환경음 기계, 갠트리 피벗 · 토치), `ResidentSpotBaker` 기술자 · 정비공 8, 강조색 `M_Accent_Evo_Shipyard` · `M_Paint_Evo_Shipyard` (#90C8B0), `InteriorKit.asset` 강조색 목록
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `c69d5b56`에 있음.
@@ -1755,7 +1756,7 @@
 - `InteriorTemplateBuilder.BuildEvoAutomation` (문 자리 14 — 외형 면이 있는 바깥 면 8 + 칸마다 해치, 조명 11, 도는 물체 5, 환경음 전기, 팔 · 홀로 팔 피벗), `ResidentSpotBaker` 연구원 · 기술자 · 정비공 6, 강조색 `M_Accent_Evo_AutomationCenter` · `M_Paint_Evo_AutomationCenter` (#C8B0FF), `InteriorKit.asset` 강조색 목록
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `f162c53f`에 있음.
@@ -1770,7 +1771,19 @@
 - `InteriorTemplateBuilder.BuildEvoSecurity` (문 자리 14, 조명 11, 도는 물체 2, 환경음 생활, 번호표 · 레이더 · 지도 · 포탑 피벗), `ResidentSpotBaker` 기술자 + 일터 없는 주민 8 · 대기 의자 12 ("민원 보는 중"), 강조색 `M_Accent_Evo_SecurityBureau` · `M_Paint_Evo_SecurityBureau` (#7FA8FF), `InteriorKit.asset` 강조색 목록
 
 ### `narrative` 합칠 때
-- [ ] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더 · 번호표 · 바깥 창). 그 뒤 메뉴 Build Evolved Templates.
+- [x] 자동 합침 예상 (새 파일 1 + 진화 내부 빌더 · 번호표 · 바깥 창). 그 뒤 메뉴 Build Evolved Templates.
 
 ### `tycoon` 합칠 때
 - [x] (2026-10-31) 같은 파일이 tycoon 커밋 `987c77d4`에 있음.
+
+## M-116. 봇: 칸 제한을 보고 자리를 찾음 · 합성 시작 조건을 규칙으로 (2026-11-01, `main`)
+
+**main에 넣은 것** — 서사판 14-1e (4장 위기 파편 띠 · 필수 목표 '진화 모듈 하나 만들기'를 캠페인 봇이 실제로 하게)
+- `BalanceBot.TryFindPlacement` · `HasAnyPlacement`: 칸을 정하는 쪽(`BuildZone`)이 있으면 허용된 자리만 (`ZoneAllows`) — 공간 규칙만 보면 막힌 칸을 지을 수 있다고 잘못 알았음. 칸을 정하는 쪽이 없으면 결과 그대로
+- `BalanceBotExpansion.DecideExpansion`: 규칙을 정하는 쪽이 있으면 합성 규칙이 열린 때부터 (타이쿤판 13-4와 **같은 줄**), 없으면 예전대로 도시급부터
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 캠페인 봇 4장 측정에 씀.
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상 (`DecideExpansion`은 타이쿤판과 같은 내용, 자리 찾기는 칸을 정하는 쪽이 없어 그대로).
