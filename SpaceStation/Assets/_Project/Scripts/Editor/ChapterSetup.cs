@@ -880,7 +880,7 @@ namespace SpaceStation.Editor
             calm.FindPropertyRelative("_rewardResearchPoints").intValue = 1;
 
             // 14-2d 위기 '항성 폭풍' (사용자 결정 2026-11-01): 예고 3분 → 6분 · 바깥 칸 방사선 ×3 · 발열 ×1.5 · 방열판 ×0.5 · 힘든 주민이 30초마다 떠남 (1 + 힘든 ÷ 50) ·
-            // 판정 = 떠난 주민 · 과열 파손 · 바닥 (깔끔 0 · 0 · 0초 / 빠듯 5명 · 3개 · 60초) · 결과 이름 = 무사한 안쪽 / 그을린 바깥 / 타 버린 자리
+            // 판정 = 떠난 주민 · 과열 파손 · 바닥 (깔끔 3명 · 0개 · 0초 / 빠듯 30명 · 5개 · 60초, 측정 뒤 사용자 결정 11-01 BALANCE 서사판 4번) · 결과 이름 = 무사한 안쪽 / 그을린 바깥 / 타 버린 자리
             var climax = so.FindProperty("_climax");
             climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.StellarStorm;
             climax.FindPropertyRelative("_title").stringValue = "항성 폭풍";
@@ -892,11 +892,11 @@ namespace SpaceStation.Editor
             climax.FindPropertyRelative("_stormHeatRemoval").floatValue = 0.5f;
             climax.FindPropertyRelative("_stormLeaveInterval").floatValue = 30f;
             climax.FindPropertyRelative("_stormLeavePer").intValue = 50;
-            climax.FindPropertyRelative("_cleanMaxDeparted").intValue = 0;
+            climax.FindPropertyRelative("_cleanMaxDeparted").intValue = 3;
             climax.FindPropertyRelative("_cleanMaxDamaged").intValue = 0;
             climax.FindPropertyRelative("_cleanMaxShortageSeconds").floatValue = 0f;
-            climax.FindPropertyRelative("_hurtMaxDeparted").intValue = 5;
-            climax.FindPropertyRelative("_hurtMaxDamaged").intValue = 3;
+            climax.FindPropertyRelative("_hurtMaxDeparted").intValue = 30;
+            climax.FindPropertyRelative("_hurtMaxDamaged").intValue = 5;
             climax.FindPropertyRelative("_hurtMaxShortageSeconds").floatValue = 60f;
             climax.FindPropertyRelative("_cleanLabel").stringValue = "무사한 안쪽";
             climax.FindPropertyRelative("_hurtLabel").stringValue = "그을린 바깥";

@@ -800,23 +800,26 @@ namespace SpaceStation.Simulation
     /// <summary>
     /// 14-2d 5장 위기 '항성 폭풍' (사용자 결정 2026-11-01): 예고 뒤 6분 동안 바깥 칸 우주 방사선 3배(main M-120 <see cref="RadiationSystem.SpaceMultiplier"/>) +
     /// 발열 1.5배 · 방열판 효율 절반 — 안쪽으로 숨으면 더워지는 딜레마. 힘든 주민이 있으면 30초마다 떠남 (1 + 힘든 주민 ÷ 50명, 대피 정원은 힘든 주민에서 빠짐).
-    /// 판정 = 떠난 주민 · 과열 파손 · 생명 유지 바닥 (깔끔 0 · 0 · 0초 / 빠듯 5명 · 3개 · 60초 / 그 밖). 결과 이름 = 무사한 안쪽 · 그을린 바깥 · 타 버린 자리.
+    /// 판정 = 떠난 주민 · 과열 파손 · 생명 유지 바닥 (깔끔 3명 · 0개 · 0초 / 빠듯 30명 · 5개 · 60초 / 그 밖). 결과 이름 = 무사한 안쪽 · 그을린 바깥 · 타 버린 자리.
     /// </summary>
     internal sealed class StellarStormClimax : ChapterClimax
     {
         private float _left, _leaveTimer, _shortage;
-        private int _departed, _damaged;
+        private int _departed;
+        /// <summary>과열로 파손된 모듈 자리 — 수리 뒤 또 파손돼도 하나로 셈 (11-01 측정: 안쪽 위험 모듈 2개가 수리 · 파손을 되풀이해 9개로 불어남. 되풀이 값은 수리비로 이미 치름).</summary>
+        private readonly HashSet<Vector3Int> _damaged = new HashSet<Vector3Int>();
         private bool _subscribed;
 
         public override float Progress => Finished ? 1f : Mathf.Clamp(1f - _left / Settings.StormSeconds, 0f, 0.99f);
 
-        public override string Status => $"{Clock(_left)} 남음 · 떠남 {_departed} · 과열 파손 {_damaged}"; // 장 카드는 "위기 이름 + 이 줄"
+        public override string Status => $"{Clock(_left)} 남음 · 떠남 {_departed} · 과열 파손 {_damaged.Count}"; // 장 카드는 "위기 이름 + 이 줄"
 
         internal override void Begin()
         {
             _left = Settings.StormSeconds;
             _leaveTimer = _shortage = 0f;
-            _departed = _damaged = 0;
+            _departed = 0;
+            _damaged.Clear();
             Apply();
             Subscribe();
         }
@@ -861,14 +864,14 @@ namespace SpaceStation.Simulation
         private void Judge()
         {
             bool Within(int maxDeparted, int maxDamaged, float maxShortage) =>
-                _departed <= maxDeparted && _damaged <= maxDamaged && _shortage <= maxShortage + 1e-3f;
+                _departed <= maxDeparted && _damaged.Count <= maxDamaged && _shortage <= maxShortage + 1e-3f;
             if (Within(Settings.CleanMaxDeparted, Settings.CleanMaxDamaged, Settings.CleanMaxShortageSeconds))
                 Outcome = ChapterOutcome.Clean;
             else if (Within(Settings.HurtMaxDeparted, Settings.HurtMaxDamaged, Settings.HurtMaxShortageSeconds))
                 Outcome = ChapterOutcome.Hurt;
             else
                 Outcome = ChapterOutcome.Lost;
-            Summary = $"떠난 주민 {_departed}명 · 과열 파손 {_damaged}개 · 생명 유지 바닥 {Mathf.FloorToInt(_shortage)}초";
+            Summary = $"떠난 주민 {_departed}명 · 과열 파손 {_damaged.Count}개 · 생명 유지 바닥 {Mathf.FloorToInt(_shortage)}초";
             Finished = true;
             Detach();
         }
@@ -883,7 +886,7 @@ namespace SpaceStation.Simulation
         private void HandleDamaged(DamageInfo info)
         {
             if (!Finished && info != null && Sim.Heat.IsDanger(info.Module))
-                _damaged++;
+                _damaged.Add(info.Module.Origin);
         }
 
         private void Subscribe()
@@ -914,7 +917,7 @@ namespace SpaceStation.Simulation
             public float LeaveTimer;
             public float Shortage;
             public int Departed;
-            public int Damaged;
+            public List<Vector3Int> Damaged = new List<Vector3Int>();
         }
 
         internal override string Capture() => JsonUtility.ToJson(new State
@@ -923,7 +926,7 @@ namespace SpaceStation.Simulation
             LeaveTimer = _leaveTimer,
             Shortage = _shortage,
             Departed = _departed,
-            Damaged = _damaged,
+            Damaged = new List<Vector3Int>(_damaged),
         });
 
         internal override void Restore(string state)
@@ -935,7 +938,9 @@ namespace SpaceStation.Simulation
                 _leaveTimer = s.LeaveTimer;
                 _shortage = s.Shortage;
                 _departed = s.Departed;
-                _damaged = s.Damaged;
+                _damaged.Clear();
+                foreach (var cell in s.Damaged)
+                    _damaged.Add(cell);
             }
             Apply();
             Subscribe();

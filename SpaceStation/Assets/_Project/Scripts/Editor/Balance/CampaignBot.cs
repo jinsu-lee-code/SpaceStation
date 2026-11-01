@@ -97,6 +97,8 @@ namespace SpaceStation.Editor.Balance
         public ChapterOutcome Outcome;
         /// <summary>절정 결과 사유 한 줄 (결과 화면과 같음 — 막은 비율 · 받은 비율 등).</summary>
         public string Summary = "";
+        /// <summary>14-2e 위기 시작 때 상태 한 줄 (항성 폭풍 — 과열 · 위험 · 힘든 주민 등, 판별 사유 뒤에 붙임).</summary>
+        public string Note = "";
         public int Population = -1;
         /// <summary>이 장에서 게임 오버가 난 횟수 · 그중 체크포인트로 다시 시작한 횟수.</summary>
         public int Falls, Retries;
@@ -233,6 +235,8 @@ namespace SpaceStation.Editor.Balance
             }
             sim.MeteorResolved += HandleMeteor;
             _defendWarning = false;
+            _stormNoted = false;
+            _stormBlocked.Clear();
             _attempt++;
         }
 
@@ -282,9 +286,87 @@ namespace SpaceStation.Editor.Balance
             PrepareBand(bot);
             GrowHousingInPlace();
             BuildRadiatorGoal(bot);
-            PrepareStorm();
+            NoteStorm();
             PrepareRadiators();
+            PrepareStorm();
             DefendShower(bot);
+        }
+
+        /// <summary>폭풍이 시작된 뒤 첫 결정 때 상태를 기록 (측정 사유 줄).</summary>
+        private void NoteStorm()
+        {
+            var chapter = _chapters.Current;
+            var run = Current;
+            if (run == null || chapter == null || chapter.Climax.Kind != ChapterClimaxKind.StellarStorm || _chapters.Phase != ChapterPhase.Climax)
+                return;
+            if (_stormNoted)
+            {
+                NoteStormHomes(run);
+                return;
+            }
+            _stormNoted = true;
+            _stormNotedAt = _now;
+            _stormHomesNoted = false;
+            var heat = _sim.Heat;
+            heat.Recalculate();
+            int over = 0, danger = 0, buried = 0, radiators = 0;
+            foreach (var kv in heat.HeatMap)
+            {
+                if (heat.IsOverheated(kv.Key))
+                    over++;
+                if (!heat.IsDanger(kv.Key) || kv.Key == _sim.Core)
+                    continue;
+                danger++;
+                if (!HasFreeFace(kv.Key))
+                    buried++;
+            }
+            foreach (var m in _sim.Grid.Modules)
+                if (m.Data == _a.Radiator)
+                    radiators++;
+            int stressed = _sim.Residents != null ? _sim.Residents.StressedCount : 0;
+            run.Note = $" · 폭풍 시작: 과열 {over} · 위험 {danger} (빈 면 없음 {buried}) · 힘든 {stressed} · 인구 {_sim.Resources.Population} · 방열판 {radiators} · 금속 {_sim.Resources.GetStock(ResourceType.Metal):0}";
+        }
+
+        /// <summary>폭풍 1분째 집 상태 — 힘든 주민이 열 때문인지 방사선 때문인지 (측정 사유 줄).</summary>
+        private void NoteStormHomes(CampaignChapterRun run)
+        {
+            if (_stormHomesNoted || _now - _stormNotedAt < 60f || _sim.Residents == null)
+                return;
+            _stormHomesNoted = true;
+            var roster = _sim.Residents;
+            float heatLimit = _sim.Balance.HomeHeatComfort, radiationLimit = _sim.Radiation.Comfort;
+            int all = 0, hot = 0, radiated = 0, both = 0;
+            foreach (var home in roster.Homes)
+            {
+                int capacity = roster.GetCapacity(home);
+                bool h = _sim.Heat.HeatOf(home) > heatLimit, r = _sim.Radiation.LevelOf(home) > radiationLimit;
+                all += capacity;
+                if (h && r)
+                    both += capacity;
+                else if (h)
+                    hot += capacity;
+                else if (r)
+                    radiated += capacity;
+            }
+            int stressed = 0, stressedPenguin = 0;
+            foreach (var resident in roster.Residents)
+            {
+                if (roster.StressAt(resident, resident.Home) <= 0f)
+                    continue;
+                stressed++;
+                if (resident.Kind == "penguin")
+                    stressedPenguin++;
+            }
+            run.Note += $" · 1분째: 힘든 {stressed} (펭귄 {stressedPenguin}) · 수용 {all} 중 뜨거움 {hot} · 방사선 {radiated} · 둘 다 {both}";
+        }
+
+        private bool HasFreeFace(ModuleInstance module)
+        {
+            foreach (var c in module.Cells)
+                foreach (var d in GridDirections.Faces)
+                    if (!_sim.Grid.IsOccupied(c + d))
+                        return true;
+            return false;
         }
 
         /// <summary>14-2e 5장 필수 목표 '방열판 하나 짓기' (봇은 평소 방열판을 짓지 않음).</summary>
@@ -300,23 +382,29 @@ namespace SpaceStation.Editor.Balance
         }
 
         /// <summary>
-        /// 14-2e 항성 폭풍 예고 3분: 폭풍 때 안전한 집(두 겹 이상 안쪽)의 수용이 인구 + 여유보다 적으면, 안전에 가장 가까운 집의 얇은 면에 장갑 격벽 (결정마다 하나).
-        /// 사람이 예고를 보고 집 바깥을 덮는 일 — 힘든 주민은 안전한 빈집으로 저절로 옮겨 감 (main M-120). 핵융합로 바로 옆 집은 덮어도 소용없어 건너뜀.
+        /// 14-2e 항성 폭풍 준비 · 예고: 폭풍 때 안전한 집(두 겹 이상 안쪽)의 수용이 인구 + 여유보다 적으면, 안전에 가장 가까운 집의 얇은 면에 장갑 격벽 (결정마다 하나).
+        /// 사람이 장 카드를 보고 집 바깥을 미리 덮는 일 — 준비 동안은 금속이 넉넉할 때만, 예고부터는 되는 만큼. 힘든 주민은 안전한 빈집으로 저절로 옮겨 감 (main M-120). 핵융합로 바로 옆 집은 덮어도 소용없어 건너뜀.
         /// </summary>
         private void PrepareStorm()
         {
             var chapter = _chapters.Current;
             var roster = _sim.Residents;
-            if (chapter == null || chapter.Climax.Kind != ChapterClimaxKind.StellarStorm || _chapters.Phase != ChapterPhase.Warning || _a.Armor == null || roster == null
+            bool warning = _chapters.Phase == ChapterPhase.Warning;
+            if (chapter == null || chapter.Climax.Kind != ChapterClimaxKind.StellarStorm || (!warning && _chapters.Phase != ChapterPhase.Preparation) || _a.Armor == null || roster == null
                 || !_sim.CanAfford(_a.Armor))
+                return;
+            if (!warning && _sim.Resources.GetStock(ResourceType.Metal) < _sim.Resources.GetCapacity(ResourceType.Metal) * StormEarlyMetalRatio)
                 return;
             var radiation = _sim.Radiation;
             float comfort = radiation.Comfort;
             float scale = chapter.Climax.StormSpaceMultiplier / Mathf.Max(1f, radiation.SpaceMultiplier);
             int safe = 0, bestKey = -1;
             ModuleInstance best = null;
+            float heatLimit = _sim.Balance.HomeHeatComfort;
             foreach (var home in roster.Homes)
             {
+                if (_sim.Heat.HeatOf(home) * chapter.Climax.StormHeatOutput > heatLimit)
+                    continue; // 폭풍 때 뜨거운 집은 덮어도 힘듦 (방열판 몫)
                 int layers = radiation.LayersOf(home);
                 if (radiation.SpaceLevel(layers) * scale <= comfort)
                 {
@@ -341,23 +429,40 @@ namespace SpaceStation.Editor.Balance
         }
 
         /// <summary>
-        /// 14-2e 항성 폭풍 예고 3분: 폭풍 때 위험 수준(발열 배율)이 될 모듈에 방열판 — 그런 모듈을 가장 많이 맞닿는 빈 칸 (바깥 면이 남는 곳, 결정마다 하나).
-        /// 사람이 J 지도의 추천 칸에 짓는 일 (지도와 같은 기준).
+        /// 14-2e 항성 폭풍 예고 3분 · 폭풍 동안: 폭풍 때 위험 수준이 되는 모듈과, 편한 집이 모자라면 한도를 조금 넘는 뜨거운 집에 방열판 — 그런 모듈을 가장 많이 맞닿는 빈 칸 (바깥 면이 남는 곳, 결정마다 하나).
+        /// 사람이 J 지도를 보고 짓는 일 (예고 때는 폭풍 배율로 다시 계산해 봄).
         /// </summary>
         private void PrepareRadiators()
         {
             var chapter = _chapters.Current;
-            if (chapter == null || chapter.Climax.Kind != ChapterClimaxKind.StellarStorm || _chapters.Phase != ChapterPhase.Warning || _a.Radiator == null
+            bool warning = _chapters.Phase == ChapterPhase.Warning;
+            if (chapter == null || chapter.Climax.Kind != ChapterClimaxKind.StellarStorm || (!warning && _chapters.Phase != ChapterPhase.Climax) || _a.Radiator == null
                 || !_sim.CanAfford(_a.Radiator))
                 return;
             var heat = _sim.Heat;
             var grid = _sim.Grid;
-            float danger = heat.DangerLevel;
-            float scale = chapter.Climax.StormHeatOutput;
+            if (warning)
+            {
+                heat.OutputScale = chapter.Climax.StormHeatOutput;
+                heat.RemovalScale = chapter.Climax.StormHeatRemoval;
+            }
+            heat.Recalculate();
+            var roster = _sim.Residents;
+            var radiation = _sim.Radiation;
+            float heatLimit = _sim.Balance.HomeHeatComfort;
+            float spaceScale = chapter.Climax.StormSpaceMultiplier / Mathf.Max(1f, radiation.SpaceMultiplier);
+            int cool = 0;
+            if (roster != null)
+                foreach (var home in roster.Homes)
+                    if (heat.HeatOf(home) <= heatLimit && radiation.SpaceLevel(radiation.LayersOf(home)) * spaceScale <= radiation.Comfort)
+                        cool += roster.GetCapacity(home);
+            bool coolHomes = roster != null && cool < _sim.Resources.Population + StormHousingMargin;
             _radiatorSpots.Clear();
             foreach (var kv in heat.HeatMap)
             {
-                if (kv.Value * scale < danger - 1e-4f || kv.Key == _sim.Core)
+                bool danger = heat.IsDanger(kv.Key) && kv.Key != _sim.Core;
+                bool hotHome = coolHomes && roster.GetCapacity(kv.Key) > 0 && kv.Value > heatLimit && kv.Value - heatLimit <= StormRadiatorReach;
+                if (!danger && !hotHome)
                     continue;
                 foreach (var c in kv.Key.Cells)
                     foreach (var d in GridDirections.Faces)
@@ -368,6 +473,12 @@ namespace SpaceStation.Editor.Balance
                         _radiatorSpots.TryGetValue(p, out int n);
                         _radiatorSpots[p] = n + 1;
                     }
+            }
+            if (warning)
+            {
+                heat.OutputScale = 1f;
+                heat.RemovalScale = 1f;
+                heat.Recalculate();
             }
             Vector3Int best = default;
             int bestCount = 0;
@@ -389,7 +500,11 @@ namespace SpaceStation.Editor.Balance
         }
 
         private readonly Dictionary<Vector3Int, int> _radiatorSpots = new Dictionary<Vector3Int, int>();
+        private bool _stormNoted, _stormHomesNoted;
+        private float _stormNotedAt;
 
+        private const float StormEarlyMetalRatio = 0.5f;
+        private const float StormRadiatorReach = 4f; // 폭풍 때 방열판 둘로 내릴 수 있는 만큼까지만 뜨거운 집을 챙김
         private const int StormHousingMargin = 20;
         private const int StormSafeLayers = 2;
         private const int StormRayCells = 16;
@@ -951,7 +1066,7 @@ namespace SpaceStation.Editor.Balance
                     continue;
                 for (int i = 0; i < x.Chapters.Length; i++)
                     if (x.Chapters[i].HasOutcome)
-                        sb.AppendLine($"    시드 {r.Seed} {i + 1}장 {x.Chapters[i].Outcome}: {x.Chapters[i].Summary}");
+                        sb.AppendLine($"    시드 {r.Seed} {i + 1}장 {x.Chapters[i].Outcome}: {x.Chapters[i].Summary}{x.Chapters[i].Note}");
             }
             return sb.ToString();
         }

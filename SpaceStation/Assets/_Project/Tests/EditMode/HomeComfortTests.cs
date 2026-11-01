@@ -279,18 +279,7 @@ namespace SpaceStation.Tests
         [Test]
         public void StellarStorm_DangerHeatDamage_Counted_Hurt_SurvivesSave()
         {
-            var b = new SerializedObject(_config);
-            b.FindProperty("_heatDamageSeconds").floatValue = 5f;
-            b.FindProperty("_radiationSpace").floatValue = 0f; // 방사선 없이 열만
-            b.FindProperty("_homeHeatComfort").floatValue = 100f; // 주민은 괜찮음
-            b.ApplyModifiedPropertiesWithoutUndo();
-            var hotter = Module("MD_TestHotter", heat: 8f); // 폭풍 때 12 = 위험 (한도 8 × 1.5)
-            var g = new SerializedObject(_grades);
-            var unlocks = g.FindProperty("_grades").GetArrayElementAtIndex(0).FindPropertyRelative("_unlocks");
-            unlocks.arraySize = 1;
-            unlocks.GetArrayElementAtIndex(0).objectReferenceValue = hotter;
-            g.ApplyModifiedPropertiesWithoutUndo();
-
+            var hotter = HotterModule();
             var chapters = StormChapters();
             var sim = Sim(chapters);
             Place(sim, hotter, 1, 0, 0);
@@ -311,6 +300,41 @@ namespace SpaceStation.Tests
             StringAssert.Contains("과열 파손 1", loaded.Chapters.Climax.Status);
             RunUntil(loaded, () => loaded.Chapters.Phase == ChapterPhase.Transition);
             Assert.AreEqual(ChapterOutcome.Hurt, loaded.Chapters.LastRecord.Outcome, loaded.Chapters.LastRecord.Summary);
+        }
+
+        [Test]
+        public void StellarStorm_SameModuleBrokenAgain_CountsOnce()
+        {
+            var hotter = HotterModule();
+            var sim = Sim(StormChapters());
+            var hot = Place(sim, hotter, 1, 0, 0);
+            sim.Resources.SetPopulation(3);
+            sim.Tick(1f);
+            sim.Chapters.SetFlag("test.go");
+            RunUntil(sim, () => sim.Chapters.Phase == ChapterPhase.Climax);
+            RunUntil(sim, () => sim.Damage.IsDamaged(hot));
+            Assert.IsTrue(sim.Damage.StartRepair(hot));
+            RunUntil(sim, () => !sim.Damage.IsDamaged(hot));
+            RunUntil(sim, () => sim.Damage.IsDamaged(hot));
+            Assert.AreEqual(ChapterPhase.Climax, sim.Chapters.Phase, "두 번째 파손도 폭풍 안에서");
+            StringAssert.Contains("과열 파손 1", sim.Chapters.Climax.Status);
+        }
+
+        /// <summary>폭풍 때 12 = 위험인 모듈 (한도 8 × 1.5) · 5초 만에 파손 · 방사선 없이 열만 · 주민은 괜찮음.</summary>
+        private ModuleData HotterModule()
+        {
+            var b = new SerializedObject(_config);
+            b.FindProperty("_heatDamageSeconds").floatValue = 5f;
+            b.FindProperty("_radiationSpace").floatValue = 0f;
+            b.FindProperty("_homeHeatComfort").floatValue = 100f;
+            b.ApplyModifiedPropertiesWithoutUndo();
+            var hotter = Module("MD_TestHotter", heat: 8f);
+            var g = new SerializedObject(_grades);
+            var unlocks = g.FindProperty("_grades").GetArrayElementAtIndex(0).FindPropertyRelative("_unlocks");
+            unlocks.arraySize = 1;
+            unlocks.GetArrayElementAtIndex(0).objectReferenceValue = hotter;
+            g.ApplyModifiedPropertiesWithoutUndo();
+            return hotter;
         }
 
         private static void RunUntil(StationSimulation sim, System.Func<bool> done)
