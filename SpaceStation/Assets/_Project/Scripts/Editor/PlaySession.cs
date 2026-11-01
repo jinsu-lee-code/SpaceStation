@@ -27,6 +27,9 @@ namespace SpaceStation.Editor
     /// 받는 파일: BalanceReports/play_14-3/cmd.txt (세미콜론으로 이어 쓴 명령) → 끝나면 report.txt
     /// 명령: start | wait | step 초 [기다림|바쁨] | b 이름 x y z [회전] | try 이름 x y z [회전] | spots 이름 [x y z] [개수] | sel x y z | desel
     ///       click 글 | click! 글 (창 결정 20초) | see | menu | info 이름 | mods | map [x y z 반경] | j | note #태그 글 | sum | shot 이름 | look x y z [거리] | save 이름 | end
+    ///       adv (Space · 대사 다음 줄) | cam (카메라 조작) | goal 안내목표 | out (내부에서 나옴) | time 초 (사람 시간 더하기)
+    ///       clickr 행글 [| 버튼글] (같은 글의 버튼이 여러 개일 때) | clickr! | d (바뀐 화면만) | dmg (파손 위치) | old (낡은 모듈) | load 칸 (메인 메뉴에서 불러오기)
+    ///       syn 레시피 x y z [회전] | syntry 레시피 x y z [회전] | synspots 레시피 (합성 위치) | fix (파손 전부 수리 등록, 한 건 3초)
     /// </summary>
     [InitializeOnLoad]
     public static class PlaySession
@@ -34,7 +37,7 @@ namespace SpaceStation.Editor
         private const string OnKey = "SpaceStation.PlaySession.On";
         private const string MenuScene = "Assets/_Project/Scenes/MainMenu.unity";
         private const float RunSpeed = 8f;
-        private const float BuildCost = 8f, ClickCost = 5f, DecisionCost = 20f, SelectCost = 3f, ReadPerSecond = 10f;
+        private const float BuildCost = 8f, ClickCost = 5f, DecisionCost = 20f, SelectCost = 3f, ReadPerSecond = 10f, RepairCost = 3f;
         private const int GroupLineCap = 40;
 
         private static readonly Queue<string> Queue = new Queue<string>();
@@ -114,6 +117,13 @@ namespace SpaceStation.Editor
             {
                 RunStep((float)real);
                 return;
+            }
+            // 내가 판단하는 동안 시간이 흐르지 않게 (연출이 끝나며 시계를 되돌려도)
+            if (EditorApplication.isPlaying)
+            {
+                var idle = ClockHost();
+                if (idle != null && !idle.Clock.IsPaused)
+                    idle.Clock.SetPaused(true);
             }
             if (now < _waitUntil)
                 return;
@@ -203,6 +213,22 @@ namespace SpaceStation.Editor
                 case "look": Look(words); break;
                 case "save": SaveAs(rest); break;
                 case "end": End(); break;
+                case "adv": Advance(); break;
+                case "cam": Camera(); break;
+                case "goal": InteriorGoal(rest); break;
+                case "out": UnityEngine.Object.FindFirstObjectByType<SpaceStation.Interior.InteriorMode>()?.Exit(); Out.AppendLine("[내부] 나옴"); break;
+                case "time": _pausedRead += ParseFloat(words, 1, 0f); Out.AppendLine($"[사람 시간] +{ParseFloat(words, 1, 0f):0}초"); break;
+                case "clickr": ClickRow(rest, ClickCost); break;
+                case "clickr!": ClickRow(rest, DecisionCost); break;
+                case "fix": FixAll(); break;
+                case "syn": Synth(rest, false); break;
+                case "syntry": Synth(rest, true); break;
+                case "synspots": SynthSpots(rest); break;
+                case "clicki": ClickIndex(rest, ClickCost); break;
+                case "d": Dump(false); break;
+                case "dmg": Damaged(); break;
+                case "old": Worn(); break;
+                case "load": Out.AppendLine($"[불러오기] {rest} {SaveManager.LoadAndPlay(rest)}"); break;
                 default: Out.AppendLine($"[모르는 명령] {head}"); break;
             }
         }
@@ -246,8 +272,53 @@ namespace SpaceStation.Editor
         {
             SaveService.Directory = Path.Combine(Folder, "Saves");
             Directory.CreateDirectory(SaveService.Directory);
-            Out.AppendLine($"저장 폴더: {SaveService.Directory} · 튜토리얼 설정 지금 {GameSettings.TutorialPending}");
+            LoadLedger();
+            Out.AppendLine($"저장 폴더: {SaveService.Directory} · 튜토리얼 설정 지금 {GameSettings.TutorialPending} · 기록 {Rows.Count}주기 이어받음");
             Dump(true);
+        }
+
+        /// <summary>도구를 고치려고 플레이를 껐다 켜도 기록을 이어 감 (cycles.csv · notes.txt).</summary>
+        private static void LoadLedger()
+        {
+            Rows.Clear();
+            NoteCounts.Clear();
+            string csv = Path.Combine(Folder, "cycles.csv");
+            if (File.Exists(csv))
+            {
+                var lines = File.ReadAllLines(csv, Encoding.UTF8);
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    var f = lines[i].Split(',');
+                    if (f.Length < 13)
+                        continue;
+                    Rows.Add(new Row
+                    {
+                        Chapter = int.Parse(f[1]) - 1,
+                        Delta = float.Parse(f[4]),
+                        ChapterSeconds = float.Parse(f[3]),
+                        Tag = f[5],
+                        Builds = int.Parse(f[6]),
+                        Clicks = int.Parse(f[7]),
+                        Read = float.Parse(f[9]),
+                        Scene = float.Parse(f[10]),
+                    });
+                    _cycle = int.Parse(f[0]);
+                    _lastGame = float.Parse(f[2]);
+                }
+            }
+            string notes = Path.Combine(Folder, "notes.txt");
+            if (!File.Exists(notes))
+                return;
+            foreach (string line in File.ReadAllLines(notes, Encoding.UTF8))
+            {
+                var words = line.Split(' ');
+                if (words.Length < 3 || !words[2].StartsWith("#") || !int.TryParse(words[0].Replace("장", ""), out int chapter))
+                    continue;
+                if (!NoteCounts.TryGetValue(words[2], out var counts))
+                    NoteCounts[words[2]] = counts = new int[16];
+                if (chapter >= 1 && chapter <= counts.Length)
+                    counts[chapter - 1]++;
+            }
         }
 
         private static void End()
@@ -285,21 +356,43 @@ namespace SpaceStation.Editor
         }
 
         private static bool _pausedSceneRun;
+        private static float _pausedAccum;
+
+        private static double _nextPoll;
 
         private static void RunStep(float realDelta)
         {
-            CollectPassing();
             var clock = ClockHost();
             var sim = Sim();
-            bool control = AnyVisibleButton();
-            if (clock == null || sim == null)
+            bool loading = SceneFader.Busy || clock == null || sim == null;
+            if (!loading && clock.InputLocked && clock.Clock.IsPaused)
+                _pausedAccum += realDelta;
+            double now = EditorApplication.timeSinceStartup;
+            if (now < _nextPoll)
+                return;
+            _nextPoll = now + 0.1;
+            CollectPassing();
+            if (loading)
             {
                 // 메뉴에서 게임 씬을 불러오는 중
-                if (EditorApplication.timeSinceStartup > _waitUntil + 120.0)
+                if (now > _waitUntil + 120.0)
                     EndRun();
                 return;
             }
             Hook(sim);
+            if (IntroPlaying())
+            {
+                if (IntroWaits())
+                    EndRun();
+                return; // 제목 카드 · 페이드는 저절로
+            }
+            if (StagePlaying() && !ModalOpen())
+            {
+                _pausedScene += _pausedAccum; // 연출: 건너뛰지 않고 실제 길이만큼 (사람도 봄) — 끝나며 시계가 되돌아올 때까지
+                _pausedAccum = 0f;
+                return;
+            }
+            bool control = AnyVisibleButton();
             if (_start < 0f)
             {
                 _start = clock.Clock.SimulatedSeconds;
@@ -311,17 +404,33 @@ namespace SpaceStation.Editor
             {
                 if (!control && !over)
                 {
-                    _pausedScene += realDelta; // 연출: 건너뛰지 않고 실제 길이만큼 (사람도 봄)
+                    _pausedScene += _pausedAccum; // 연출: 건너뛰지 않고 실제 길이만큼 (사람도 봄)
+                    _pausedAccum = 0f;
                     return;
                 }
+                _pausedAccum = 0f;
                 EndRun();
                 return;
             }
+            _pausedAccum = 0f;
             if (!control)
                 return; // 연출이 시작되는 사이
             bool phaseChanged = sim.Chapters != null && ((int)sim.Chapters.Phase != _phaseAtStart || sim.Chapters.Index != _chapterAtStart);
             if (clock.Clock.SimulatedSeconds - _start >= _target - 1e-3f || phaseChanged || _stopAlert || over)
                 EndRun();
+        }
+
+        private static bool StagePlaying()
+        {
+            var transition = UnityEngine.Object.FindFirstObjectByType<ChapterTransitionView>();
+            var ship = UnityEngine.Object.FindFirstObjectByType<ArkShipView>();
+            return (transition != null && transition.Playing) || (ship != null && ship.Playing);
+        }
+
+        private static bool ModalOpen()
+        {
+            var view = UnityEngine.Object.FindFirstObjectByType<ChapterView>();
+            return view != null && (bool)(typeof(ChapterView).GetField("_modalOpen", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(view) ?? false);
         }
 
         private static void EndRun()
@@ -336,13 +445,16 @@ namespace SpaceStation.Editor
         {
             var clock = ClockHost();
             var sim = Sim();
-            float game = clock != null ? clock.Clock.SimulatedSeconds : 0f;
+            float game = sim != null ? sim.ElapsedSeconds : 0f;
+            if (game < _lastGame - 1f)
+                _lastGame = game; // 재도전으로 시간이 되돌아감 (사람의 플레이 시간에는 그대로 쌓임)
             float delta = Mathf.Max(0f, game - _lastGame);
             _lastGame = game;
             int chapter = sim != null && sim.Chapters != null ? sim.Chapters.Index : -1;
             _cycle++;
             float chapterSeconds = sim != null && sim.Chapters != null ? sim.Chapters.ChapterSeconds : 0f;
-            bool busy = _cycleCost > _target + 0.5f;
+            bool timeless = _target <= 0f; // wait: 시간이 흐르지 않았으니 행동 시간은 다음 주기로
+            bool busy = !timeless && _cycleCost > _target + 0.5f;
             string tag = busy && _tag.Length == 0 ? "바쁨" : _tag;
             Rows.Add(new Row
             {
@@ -358,11 +470,14 @@ namespace SpaceStation.Editor
             AppendCsv(chapter, sim, game, delta, tag);
             float scene = _pausedScene;
             _builds = _clicks = 0;
-            _cycleCost = _pausedRead = _pausedScene = 0f;
+            if (!timeless)
+                _cycleCost = Mathf.Max(0f, _cycleCost - delta); // 알림 · 창으로 일찍 멈췄으면 남은 행동 시간은 다음 주기로
+            _pausedRead = _pausedScene = 0f;
             string phase = sim != null && sim.Chapters != null ? sim.Chapters.Phase.ToString() : "-";
             Out.AppendLine($"=== #{_cycle} {chapter + 1}장 {phase} · 장 {Clock(chapterSeconds)} · 총 {Clock(game)} · 이번 {delta:0}초{(scene > 0.5f ? $" · 연출 {scene:0}초" : "")}{(tag.Length > 0 ? " · " + tag : "")}");
             FlushPassing();
             Dump(false);
+            Unattended();
             AddModalReading();
         }
 
@@ -387,13 +502,11 @@ namespace SpaceStation.Editor
         private static void Spend(float seconds)
         {
             var clock = ClockHost();
-            if (clock != null && (clock.InputLocked || !AnyHud()))
+            if (clock == null || clock.InputLocked || clock.Clock.IsPaused && IntroPlaying())
                 _pausedRead += seconds; // 창이 시간을 멈춘 동안 = 사람 시간만
             else
                 _cycleCost += seconds;
         }
-
-        private static bool AnyHud() => Host() != null;
 
         private static ModuleData FindModule(string name)
         {
@@ -560,10 +673,14 @@ namespace SpaceStation.Editor
         {
             Button best = null;
             string bestText = null;
+            bool anyGroup = label == "재개" || label == "일시정지" || label == "x" || label == "바로 맞이하기";
             foreach (var b in UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
             {
                 if (!b.isActiveAndEnabled || !VisibleChain(b) || !CanBlock(b))
                     continue;
+                string group = GroupOf(b);
+                if (!anyGroup && (group.Contains("Time") || group.Contains("Marker") || group.Contains("Damage")))
+                    continue; // 표식 라벨 "수리 24초" · 배속 "F3"를 잘못 누르지 않게
                 string text = ButtonText(b);
                 if (!text.Contains(label))
                     continue;
@@ -589,6 +706,239 @@ namespace SpaceStation.Editor
             Out.AppendLine($"[누름] {bestText}");
         }
 
+        /// <summary>같은 글의 버튼이 여러 개일 때: 그 행(부모)에 이 글이 있는 버튼 — clickr 행글 또는 clickr 행글 | 버튼글.</summary>
+        private static void ClickRow(string rest, float cost)
+        {
+            var parts = rest.Split('|');
+            string row = parts[0].Trim();
+            string label = parts.Length > 1 ? parts[1].Trim() : "";
+            foreach (var b in UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            {
+                if (!b.isActiveAndEnabled || !VisibleChain(b) || !CanBlock(b) || b.transform.parent == null)
+                    continue;
+                if (label.Length > 0 && !ButtonText(b).Contains(label))
+                    continue;
+                bool hit = false;
+                foreach (var t in b.transform.parent.GetComponentsInChildren<TMP_Text>(false))
+                    hit |= Clean(t.text).Contains(row);
+                if (!hit)
+                    continue;
+                if (!b.interactable)
+                {
+                    Out.AppendLine($"[누름] 꺼져 있음: {ButtonText(b)}");
+                    return;
+                }
+                _clicks++;
+                Spend(cost);
+                b.onClick.Invoke();
+                Out.AppendLine($"[누름] {row}: {ButtonText(b)}");
+                return;
+            }
+            Out.AppendLine($"[누름] 보이는 행 없음: {rest}");
+        }
+
+        // ---------------- 합성 (사람은 레시피 창 [위치 지정] 뒤 고스트를 놓고 클릭) ----------------
+
+        private static RecipeData FindRecipe(StationSimulation sim, string name)
+        {
+            if (sim?.Synthesis == null)
+                return null;
+            foreach (var r in sim.Synthesis.Recipes)
+                if (r != null && r.DisplayName.Contains(name))
+                    return r;
+            return null;
+        }
+
+        private static void Synth(string rest, bool preview)
+        {
+            var sim = Sim();
+            var words = rest.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+            var nums = new List<int>();
+            int i = words.Length - 1;
+            for (; i >= 0 && int.TryParse(words[i], out int n); i--)
+                nums.Insert(0, n);
+            string name = string.Join(" ", words, 0, i + 1);
+            var recipe = FindRecipe(sim, name);
+            if (recipe == null || nums.Count < 3)
+            {
+                Out.AppendLine($"[합성] 못 찾음: {rest}");
+                return;
+            }
+            var origin = new Vector3Int(nums[0], nums[1], nums[2]);
+            int rotation = nums.Count > 3 ? nums[3] : 0;
+            if (preview)
+            {
+                var statuses = new List<IngredientStatus>();
+                var result = sim.Synthesis.Evaluate(recipe, origin, rotation, null, statuses);
+                var parts = new List<string>();
+                foreach (var s in statuses)
+                    parts.Add($"{(s.Module != null ? s.Module.DisplayName : "?")} {s.Present}/{s.Needed}");
+                Out.AppendLine($"[합성 미리보기] {recipe.DisplayName} @ {origin.x} {origin.y} {origin.z} r{rotation}: {result} · {string.Join(", ", parts)}");
+                return;
+            }
+            var controller = UnityEngine.Object.FindFirstObjectByType<SynthesisController>();
+            controller?.Begin(recipe);
+            var started = sim.Synthesis.TryStart(recipe, origin, rotation, out var job);
+            if (started == SynthesisResult.Valid)
+            {
+                var startedEvent = typeof(SynthesisController).GetField("Started", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(controller) as Delegate;
+                startedEvent?.DynamicInvoke(job);
+                Spend(BuildCost);
+                _builds++;
+            }
+            else
+            {
+                Spend(BuildCost * 0.5f);
+            }
+            controller?.Begin(null);
+            Out.AppendLine($"[합성] {recipe.DisplayName} @ {origin.x} {origin.y} {origin.z} r{rotation}: {started}");
+        }
+
+        /// <summary>규격이 맞아떨어지는 자리 (사람은 고스트를 옮겨 초록이 뜨는 곳을 찾음).</summary>
+        private static void SynthSpots(string name)
+        {
+            var sim = Sim();
+            var recipe = FindRecipe(sim, name);
+            if (recipe == null)
+            {
+                Out.AppendLine($"[합성 자리] 못 찾음: {name}");
+                return;
+            }
+            var seen = new HashSet<string>();
+            var found = new List<string>();
+            foreach (var m in sim.Grid.Modules)
+                foreach (var c in m.Cells)
+                    foreach (var ing in recipe.Ingredients)
+                    {
+                        if (ing.Module != m.Data)
+                            continue;
+                        foreach (var offset in recipe.Result.CellOffsets)
+                            for (int r = 0; r < 4; r++)
+                            {
+                                var cells = StationGrid.ResolveCells(recipe.Result.CellOffsets, Vector3Int.zero, r);
+                                foreach (var rc in cells)
+                                {
+                                    var origin = c - rc;
+                                    if (!seen.Add($"{origin.x},{origin.y},{origin.z},{r}"))
+                                        continue;
+                                    if (sim.Synthesis.Evaluate(recipe, origin, r) == SynthesisResult.Valid)
+                                        found.Add($"{origin.x} {origin.y} {origin.z} r{r}");
+                                }
+                            }
+                    }
+            Out.AppendLine($"[합성 자리] {recipe.DisplayName} {found.Count}곳: " + string.Join(" | ", found.GetRange(0, Mathf.Min(8, found.Count))));
+        }
+
+        /// <summary>같은 글의 버튼이 한 행에 묶여 있을 때: 화면 위에서 아래로 n번째 (1부터) — clicki 글 n.</summary>
+        private static void ClickIndex(string rest, float cost)
+        {
+            int cut = rest.LastIndexOf(' ');
+            if (cut < 0 || !int.TryParse(rest.Substring(cut + 1), out int n))
+            {
+                Out.AppendLine("[누름] clicki 글 번호");
+                return;
+            }
+            string label = rest.Substring(0, cut).Trim();
+            var list = new List<Button>();
+            foreach (var b in UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+                if (b.isActiveAndEnabled && VisibleChain(b) && CanBlock(b) && ButtonText(b).Contains(label))
+                    list.Add(b);
+            list.Sort((a, b) => b.transform.position.y.CompareTo(a.transform.position.y));
+            if (n < 1 || n > list.Count)
+            {
+                Out.AppendLine($"[누름] {label} {list.Count}개뿐");
+                return;
+            }
+            _clicks++;
+            Spend(cost);
+            list[n - 1].onClick.Invoke();
+            Out.AppendLine($"[누름] {label} {n}번째");
+        }
+
+        /// <summary>
+        /// 11-01 사용자 지적: 이 장르에 익숙한 사람은 파손 표식을 보면 바로 수리를 건다 (대기열에 넣으면 확산이 멈춤).
+        /// 표식 클릭 + R = 한 건 3초. 급한 것부터, 장갑은 마지막 (방치해도 안 부서짐).
+        /// </summary>
+        private static void FixAll()
+        {
+            var sim = Sim();
+            if (sim == null)
+                return;
+            var list = new List<(float urgent, ModuleInstance module)>();
+            foreach (var m in sim.Grid.Modules)
+            {
+                if (!sim.Damage.IsDamaged(m) || !sim.Damage.TryGetInfo(m, out var info) || info.IsRepairing || info.IsQueued)
+                    continue;
+                bool armor = m.Data != null && m.Data.DisplayName.Contains("장갑");
+                list.Add(((armor ? 10000f : 0f) + info.TimeUntilDestroyed, m));
+            }
+            list.Sort((a, b) => a.urgent.CompareTo(b.urgent));
+            int started = 0, broke = 0;
+            foreach (var (_, m) in list)
+            {
+                var result = sim.TryRepair(m);
+                if (result == RepairResult.Started || result == RepairResult.Queued || result == RepairResult.Completed)
+                {
+                    started++;
+                    Spend(RepairCost);
+                }
+                else if (result == RepairResult.InsufficientResources)
+                {
+                    broke++;
+                }
+            }
+            Out.AppendLine($"[수리 등록] {started}건{(broke > 0 ? $" · 금속이 모자라 {broke}건 못 함" : "")}");
+        }
+
+        /// <summary>주기 보고에 항상: 수리를 걸지 않은 파손 (사람 눈에는 빨간 표식으로 늘 보임).</summary>
+        private static void Unattended()
+        {
+            var sim = Sim();
+            if (sim == null)
+                return;
+            var list = new List<string>();
+            int working = 0;
+            foreach (var m in sim.Grid.Modules)
+            {
+                if (!sim.Damage.IsDamaged(m) || !sim.Damage.TryGetInfo(m, out var info))
+                    continue;
+                if (info.IsRepairing || info.IsQueued)
+                    working++;
+                else
+                    list.Add($"{m.Data.DisplayName}@{m.Origin.x},{m.Origin.y},{m.Origin.z}({info.TimeUntilDestroyed:0}초)");
+            }
+            if (list.Count > 0)
+                Out.AppendLine($"[방치 {list.Count}] " + string.Join(" ", list));
+            if (working > 0)
+                Out.AppendLine($"[수리 중 · 대기 {working}]");
+        }
+
+        /// <summary>파손 표식 (사람은 화면의 빨간 표식으로 봄).</summary>
+        private static void Damaged()
+        {
+            var sim = Sim();
+            if (sim == null)
+                return;
+            var list = new List<string>();
+            foreach (var m in sim.Grid.Modules)
+                if (sim.Damage.IsDamaged(m))
+                    list.Add($"{m.Data.DisplayName}@{m.Origin.x},{m.Origin.y},{m.Origin.z}");
+            Out.AppendLine($"[파손 {list.Count}] " + string.Join(" ", list));
+        }
+
+        /// <summary>효율이 떨어진 낡은 모듈 (사람은 모듈 색 · 패널 수로 봄).</summary>
+        private static void Worn()
+        {
+            var sim = Sim();
+            if (sim == null)
+                return;
+            var list = new List<string>();
+            foreach (var m in sim.Grid.Modules)
+                if (sim.Durability.TryGetInfo(m, out var info) && sim.Durability.EfficiencyFor(info.Current) < 1f)
+                    list.Add($"{m.Data.DisplayName}@{m.Origin.x},{m.Origin.y},{m.Origin.z}={info.Current:0}");
+            Out.AppendLine($"[낡음 {list.Count}] " + string.Join(" ", list));
+        }
+
         private static string ButtonText(Button b)
         {
             var parts = new List<string>();
@@ -599,6 +949,64 @@ namespace SpaceStation.Editor
                     parts.Add(s);
             }
             return string.Join(" / ", parts);
+        }
+
+        // ---------------- 키보드 · 마우스로만 하는 일 (사람은 Space · 클릭 · 카메라) ----------------
+
+        private static ChapterIntroView Intro() => UnityEngine.Object.FindFirstObjectByType<ChapterIntroView>();
+
+        private static bool IntroFlag(ChapterIntroView intro, string field)
+            => (bool)(typeof(ChapterIntroView).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(intro) ?? false);
+
+        /// <summary>장 첫 대사가 다음 입력을 기다리는지.</summary>
+        private static bool IntroWaits()
+        {
+            var intro = Intro();
+            return intro != null && intro.Playing && !IntroFlag(intro, "_fading") && !IntroFlag(intro, "_titling");
+        }
+
+        private static bool IntroPlaying()
+        {
+            var intro = Intro();
+            return intro != null && intro.Playing;
+        }
+
+        /// <summary>Space (장 첫 대사 다음 줄). 읽는 시간은 글자 수로.</summary>
+        private static void Advance()
+        {
+            var intro = Intro();
+            if (!IntroWaits())
+            {
+                Out.AppendLine("[다음] 기다리는 대사 없음");
+                return;
+            }
+            typeof(ChapterIntroView).GetMethod("Next", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(intro, null);
+            var line = typeof(ChapterIntroView).GetField("_line", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(intro) as TMP_Text;
+            string text = line != null ? Clean(line.text) : "";
+            _pausedRead += text.Length / ReadPerSecond;
+            Out.AppendLine("[다음] " + text);
+        }
+
+        /// <summary>회전 · 확대 · 이동을 한 번씩 (안내 첫 단계, 사람 15초).</summary>
+        private static void Camera()
+        {
+            var tutorial = Sim()?.Tutorial;
+            if (tutorial == null)
+                return;
+            tutorial.ReportCamera(TutorialRunner.CameraUse.All);
+            Spend(15f);
+            Out.AppendLine("[카메라] 회전 · 확대 · 이동");
+        }
+
+        /// <summary>내부 방문처럼 1인칭 조작이 필요한 안내 단계를 끝난 것으로 알림 (걸린 시간은 time으로 따로 더함).</summary>
+        private static void InteriorGoal(string name)
+        {
+            var tutorial = Sim()?.Tutorial;
+            if (tutorial != null && Enum.TryParse(name, out TutorialGoal goal))
+            {
+                tutorial.ReportInterior(goal);
+                Out.AppendLine($"[안내 단계] {goal}");
+            }
         }
 
         private static void Note(string text)
@@ -736,7 +1144,8 @@ namespace SpaceStation.Editor
             foreach (var kv in GroupsScratch)
             {
                 string g = kv.Key;
-                if (Silent(g) || g.Contains("Resource") || g.Contains("Time") || g.Contains("Chapter") && !g.Contains("Transition") && !g.Contains("Intro"))
+                if (Silent(g) || g.Contains("Resource") || g.Contains("Time") || g.Contains("Loading") || g.Contains("Launcher") || g.Contains("Tutorial") || g.Contains("Panel") || g.Contains("Selection") || g.Contains("Explore") || g.Contains("EarlyWarning") || g.Contains("ActiveEvent")
+                    || g.Contains("Title") || g.Contains("Version") || (g.Contains("Chapter") && !g.Contains("Transition")))
                     continue;
                 foreach (string line in kv.Value)
                 {
@@ -866,14 +1275,14 @@ namespace SpaceStation.Editor
         /// <summary>창이 시간을 멈췄으면 읽는 시간을 사람 시간에 더함.</summary>
         private static void AddModalReading()
         {
-            var clock = ClockHost();
-            if (clock == null || !clock.InputLocked)
+            if (!ModalOpen())
                 return;
+            var view = UnityEngine.Object.FindFirstObjectByType<ChapterView>();
             int chars = 0;
-            foreach (var t in UnityEngine.Object.FindObjectsByType<TMP_Text>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
-                if (t.enabled && VisibleChain(t))
+            foreach (string field in new[] { "_modalTitle", "_modalBody" })
+                if (typeof(ChapterView).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(view) is TMP_Text t)
                     chars += Clean(t.text).Length;
-            _pausedRead += chars / ReadPerSecond;
+            _pausedRead += chars / ReadPerSecond; // 창 글만 (전에는 화면 글 전부를 세어 3장 읽기 시간이 부풀었음 - 요약 때 보정)
         }
 
         // ---------------- 메뉴 · 정거장 ----------------
