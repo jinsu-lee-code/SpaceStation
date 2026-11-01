@@ -261,7 +261,8 @@ namespace SpaceStation.Editor
             if (clean.Length == 0)
                 return;
             Passing.Add((important ? "! " : "") + clean);
-            if (important && _stepping)
+            // 운석이 맞으면 사람은 바로 봄 (빨간 표식 · 소리) → 다음 주기를 기다리지 않음. 알림이 잦은 승진 등은 그대로 흘림
+            if ((important || clean.Contains("충돌")) && _stepping)
                 _stopAlert = true;
         }
 
@@ -345,7 +346,7 @@ namespace SpaceStation.Editor
                 return;
             }
             Hook(sim);
-            _target = Mathf.Max(seconds, seconds > 0f ? _cycleCost : 0f);
+            _target = seconds; // 밀린 행동 시간은 한 번에 흘리지 않고 주기마다 갚음 (긴 주기 동안 파손을 놓치지 않게 — 11-02)
             _start = clock.Clock.SimulatedSeconds;
             _chapterAtStart = sim.Chapters != null ? sim.Chapters.Index : -1;
             _phaseAtStart = sim.Chapters != null ? (int)sim.Chapters.Phase : -1;
@@ -355,6 +356,7 @@ namespace SpaceStation.Editor
             clock.Clock.SetPaused(false);
         }
 
+        private static bool _busyNow;
         private static bool _pausedSceneRun;
         private static float _pausedAccum;
 
@@ -471,10 +473,11 @@ namespace SpaceStation.Editor
             float scene = _pausedScene;
             _builds = _clicks = 0;
             if (!timeless)
-                _cycleCost = Mathf.Max(0f, _cycleCost - delta); // 알림 · 창으로 일찍 멈췄으면 남은 행동 시간은 다음 주기로
+                _cycleCost = Mathf.Max(0f, _cycleCost - delta); // 일찍 멈췄거나 행동이 주기보다 길면 남은 시간은 다음 주기로
             _pausedRead = _pausedScene = 0f;
+            _busyNow = busy;
             string phase = sim != null && sim.Chapters != null ? sim.Chapters.Phase.ToString() : "-";
-            Out.AppendLine($"=== #{_cycle} {chapter + 1}장 {phase} · 장 {Clock(chapterSeconds)} · 총 {Clock(game)} · 이번 {delta:0}초{(scene > 0.5f ? $" · 연출 {scene:0}초" : "")}{(tag.Length > 0 ? " · " + tag : "")}");
+            Out.AppendLine($"=== #{_cycle} {chapter + 1}장 {phase} · 장 {Clock(chapterSeconds)} · 총 {Clock(game)} · 이번 {delta:0}초{(scene > 0.5f ? $" · 연출 {scene:0}초" : "")}{(tag.Length > 0 ? " · " + tag : "")}{(_cycleCost > 0.5f ? $" · 밀린 행동 {_cycleCost:0}초" : "")}");
             FlushPassing();
             Dump(false);
             Unattended();
