@@ -145,6 +145,7 @@
 | `BalanceRunSettings.Extension` (측정 도구, M-46) · `BalanceBot.MaintainAtFor` · `RebuildBelowFor` · `TryBuild(점수)` (M-47) · `SynthesisWanted` (M-117) | 서사판 캠페인 봇(`CampaignBotExtension`, 메뉴 Balance/Campaign Bot)이 채움, 타이쿤판 = 비움(공통 봇) | 둘 다 그대로 — 측정 메뉴가 모드마다 따로. 공통 요약의 "연구 최종 레벨" 줄은 공통 6분야 기준이라 캠페인은 campaign.txt의 기록 연구 줄을 봄 |
 | `SynthesisSystem.OpensDirectly` · `StationSimulation.BuildZone`(+ 사유 `IBuildZone.Reason`) · `ResidentTrait.Artisan`(합성 속도 통로) (M-50, M-52, M-53) | 서사판 = 장이 그 장 레시피를 엶(자동 해금 레시피도 장이 정함) · 4장 위기 동안 새 칸 금지 · 여우 종족 기술, 타이쿤판 = 비움(연구 · 자동 해금 · 칸 제한 없음 · 통로 안 씀) | 엔드리스 = 비움 — 캠페인 시스템을 붙일 때만 채워짐 |
 | `TutorialData.Free` · `TutorialGoal.OpenRecipes / PlaceSynthesis / StartSynthesis` (M-51) | 서사판 = 4장 합성 안내(장 안내, 막지 않음), 타이쿤판 = 안 씀(기존 튜토리얼은 막는 안내) | 둘 다 그대로 — 엔드리스에서 합성 안내가 필요하면 같은 단계로 |
+| `StationRule.Radiation` · `RadiationSystem.SpaceMultiplier` · `HeatSystem.OutputScale` · `RemovalScale` · `ResidentRoster.HomeStress` · `StressExempt` (M-120) | 서사판 = 5장이 규칙을 열고 종족 견딤 × 집 환경을 붙임, 항성 폭풍이 배율을 바꿈 / 타이쿤판 = 비움(방사선 닫힘, 차폐실 · 차폐벽 잠김) — 국가 단계에서 규칙을 열지 그때 정함 | 캠페인 = 장이 엶, 엔드리스 = 타이쿤판 해금 규칙을 따름. 힘든 주민 고리는 종족이 없으면 보통 주민 기준으로 붙이면 됨 |
 | `TutorialView._dockUnderResources` (게임 씬 값 하나) · `RecipePanel._windowOffset` (게임 씬 값, M-52) | 서사판 씬 = 끔(카드 왼쪽 위 — 오른쪽 자원 패널 아래는 장 목표 카드 자리) · (-50, 40), 타이쿤판 씬 = 켬(카드 자원 패널 아래 — 왼쪽 위는 [관리] 메뉴) · 기본 (-150, 40) | **모드별로 나눔**: 캠페인 = 끔 · (-50, 40), 엔드리스 = 켬 · (-150, 40). 아래 "합본 주의사항" 참고 |
 
 - **합본 주의사항** (사용자 확인 2026-11-01: 합본 캠페인 모드에서 튜토리얼 카드와 장 목표 패널이 겹침)

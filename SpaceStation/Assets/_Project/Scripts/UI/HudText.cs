@@ -208,6 +208,14 @@ namespace SpaceStation.UI
                 sb.Append($"<color={Orange}>발열 {data.HeatOutput:0.#}</color> <color={Muted}>(반경 2칸에 거리마다 줄어 퍼짐)</color>\n");
             if (data.HeatRemoval > 0f)
                 sb.Append("방열 -").Append(data.HeatRemoval.ToString("0.#")).Append($" <color={Muted}>(맞닿은 모듈마다, 우주로 노출된 면이 있을 때)</color>\n");
+            if (data.RadiationOutput > 0f)
+                sb.Append($"<color={Orange}>방사선 {data.RadiationOutput:0.#}</color> <color={Muted}>(1칸 안 집, 2칸은 줄어듦 · 합산 없음)</color>\n");
+            if (data.RadiationLayers > 1)
+                sb.Append("방사선 막는 두께 ").Append(data.RadiationLayers).Append($"겹 <color={Muted}>(보통 모듈 1겹)</color>\n");
+            if (data.RadiationRemoval > 0f)
+                sb.Append("차폐 -").Append(data.RadiationRemoval.ToString("0.#")).Append($" <color={Muted}>(맞닿은 집의 방사선)</color>\n");
+            if (data.ShelterCapacity > 0)
+                sb.Append("폭풍 대피 ").Append(data.ShelterCapacity).Append($"명 <color={Muted}>(이만큼의 주민이 폭풍에 힘들지 않음)</color>\n");
             if (data.AdjacencyRelay)
                 sb.Append($"인접 효과 중계 <color={Muted}>(이 모듈에 맞닿은 모듈끼리 서로 맞닿은 것처럼)</color>\n");
             if (data.WarningBonus > 0f)

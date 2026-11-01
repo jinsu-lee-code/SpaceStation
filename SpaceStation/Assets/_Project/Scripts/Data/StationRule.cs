@@ -28,6 +28,8 @@ namespace SpaceStation.Data
         SynthesisStage3 = 128,
         /// <summary>정책 슬롯 확장 (<see cref="PolicyConfig.ExpansionSlots"/>만큼 추가).</summary>
         PolicyExpansion = 256,
+        /// <summary>M-120 칸 단위 방사선 (등급 조건 없음 — 규칙을 정하는 쪽이 열어야 동작).</summary>
+        Radiation = 512,
     }
 
     /// <summary>13-1: 규칙을 정하는 쪽. 시뮬레이션에 붙어 있으면 등급 조건 대신 이것이 시스템 개방을 정한다.</summary>
@@ -56,6 +58,7 @@ namespace SpaceStation.Data
                 case StationRule.SynthesisStage2: return "합성 2단계";
                 case StationRule.SynthesisStage3: return "합성 3단계";
                 case StationRule.PolicyExpansion: return "정책 슬롯 확장";
+                case StationRule.Radiation: return "칸 단위 방사선";
                 default: return rule.ToString();
             }
         }

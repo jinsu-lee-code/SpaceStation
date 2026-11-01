@@ -298,8 +298,8 @@ namespace SpaceStation.UI
             var needs = _resources.Needs;
             _popSb.Append(HudTheme.Icon("satisfaction")).Append(" <b>만족도</b><pos=36%><color=").Append(sColor).Append('>').Append(s.ToString("0"))
                   .Append("</color>");
-            if (needs.Statuses.Count > 0 && needs.SatisfactionCap < PopulationSimulation.MaxSatisfaction - 0.5f) // M-119 요구 줄이 길어져도 겹치지 않게 만족도 옆에
-                _popSb.Append("<size=78%><color=").Append(HudText.Yellow).Append("> / 상한 ").Append(needs.SatisfactionCap.ToString("0")).Append("</color></size>");
+            if (pop.SatisfactionCap < PopulationSimulation.MaxSatisfaction - 0.5f) // M-119 요구 줄이 길어져도 겹치지 않게 만족도 옆에 · M-120 요구 · 특성 · 정책 · 집 환경을 다 더한 상한
+                _popSb.Append("<size=78%><color=").Append(HudText.Yellow).Append("> / 상한 ").Append(pop.SatisfactionCap.ToString("0")).Append("</color></size>");
             _popSb.Append("<pos=80%>");
             string rateColor = pop.SatisfactionRate < -0.001f ? HudText.Red : pop.SatisfactionRate > 0.001f ? HudTheme.GreenHex : HudText.Muted;
             _popSb.Append("<color=").Append(rateColor).Append('>').Append(pop.SatisfactionRate.ToString("+0.0#;-0.0#;0")).Append("/s</color>\n");

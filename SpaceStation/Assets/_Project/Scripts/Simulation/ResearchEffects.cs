@@ -28,6 +28,7 @@ namespace SpaceStation.Simulation
         public float TraitFoodProductionMultiplier { get; set; } = 1f; // 원예가
         public float TraitResearchSpeedMultiplier { get; set; } = 1f;  // 과학자
         public float TraitSynthesisSpeedMultiplier { get; set; } = 1f; // 손재주 (M-50)
+        public float TraitHeatRemovalMultiplier { get; set; } = 1f;    // 방열 (M-120)
 
         // 12-3c 국가급 정책 · 사회 위기 일시 효과 (PolicySystem이 바꿀 때 갱신, 없으면 모두 중립 = 기존 결과 그대로)
         private readonly float[] _policy = NeutralPolicy();
@@ -54,6 +55,8 @@ namespace SpaceStation.Simulation
         public float ResearchSpeedMultiplier => TraitResearchSpeedMultiplier * Policy(PolicyStat.ResearchSpeed) * (1f + DataCenterResearchBonus);
         /// <summary>M-50 합성 진행 배율 (손재주 — 1.2면 합성 시간이 1/1.2).</summary>
         public float SynthesisSpeedMultiplier => Math.Max(0.01f, TraitSynthesisSpeedMultiplier);
+        /// <summary>M-120 방열판 효율 배율 (방열 — 1.1이면 방열량 +10%).</summary>
+        public float HeatRemovalMultiplier => Math.Max(0f, TraitHeatRemovalMultiplier);
 
         /// <summary>12-5 가동 중인 데이터 센터의 연구 속도 증가 합 (0.1 = +10%). StationModuleStats가 매 틱 갱신.</summary>
         public float DataCenterResearchBonus { get; set; }
