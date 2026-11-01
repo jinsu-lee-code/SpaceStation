@@ -224,6 +224,7 @@ namespace SpaceStation.Editor
                 case "syn": Synth(rest, false); break;
                 case "syntry": Synth(rest, true); break;
                 case "synspots": SynthSpots(rest); break;
+                case "mv": MoveCommand(words); break;
                 case "clicki": ClickIndex(rest, ClickCost); break;
                 case "d": Dump(false); break;
                 case "dmg": Damaged(); break;
@@ -594,6 +595,52 @@ namespace SpaceStation.Editor
                 Out.AppendLine($"[건설] {data.DisplayName}: 실패");
             }
             build.Select(null);
+        }
+
+        /// <summary>모듈 옮기기 (사람은 선택 3초 + M + 고스트 배치 8초) — mv x y z 새x 새y 새z [회전].</summary>
+        private static void MoveCommand(string[] words)
+        {
+            var sim = Sim();
+            if (words.Length < 7)
+            {
+                Out.AppendLine("[옮기기] mv x y z 새x 새y 새z [회전]");
+                return;
+            }
+            var from = new Vector3Int(int.Parse(words[1]), int.Parse(words[2]), int.Parse(words[3]));
+            var to = new Vector3Int(int.Parse(words[4]), int.Parse(words[5]), int.Parse(words[6]));
+            if (!sim.Grid.TryGetModule(from, out var module) || module.Data == null)
+            {
+                Out.AppendLine($"[옮기기] {from.x} {from.y} {from.z}: 모듈 없음");
+                return;
+            }
+            Spend(SelectCost);
+            var block = sim.CheckMovable(module);
+            if (block != MoveBlock.None)
+            {
+                Out.AppendLine($"[옮기기] {module.Data.DisplayName}: 못 옮김 · {block}");
+                return;
+            }
+            int rotation = words.Length > 7 ? int.Parse(words[7]) : module.Rotation;
+            var result = sim.EvaluateMove(module, to, rotation);
+            if (result != PlacementResult.Valid)
+            {
+                Out.AppendLine($"[옮기기] {module.Data.DisplayName} → {to.x} {to.y} {to.z} r{rotation}: 안 됨 · {Clean(HudText.PlacementReason(result, sim.BuildZone))}");
+                Spend(BuildCost * 0.5f);
+                return;
+            }
+            if (sim.TryMove(module, to, rotation))
+            {
+                var build = BuildCtl();
+                var movedEvent = typeof(BuildController).GetField("Moved", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(build) as Delegate;
+                movedEvent?.DynamicInvoke(module);
+                _builds++;
+                Spend(BuildCost);
+                Out.AppendLine($"[옮기기] {module.Data.DisplayName} {from.x} {from.y} {from.z} → {to.x} {to.y} {to.z} r{rotation}");
+            }
+            else
+            {
+                Out.AppendLine($"[옮기기] {module.Data.DisplayName}: 실패");
+            }
         }
 
         private static string Neighbors(ModuleData data, Vector3Int origin, int rotation)
