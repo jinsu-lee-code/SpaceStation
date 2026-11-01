@@ -283,6 +283,24 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void TutorialGoal_OpenEnvironmentMap_AdvancesWhenReported()
+        {
+            var sim = Sim(rules: false);
+            var data = Create<TutorialData>();
+            data.SetSteps(new[]
+            {
+                new TutorialStep("지도", "", TutorialGoal.OpenEnvironmentMap),
+                new TutorialStep("다음", "", TutorialGoal.OpenRecipes),
+            });
+            data.SetFree(true);
+            var runner = sim.StartTutorial(data);
+            sim.Tick(1f);
+            Assert.AreEqual(TutorialGoal.OpenEnvironmentMap, runner.Current.Goal, "알리기 전에는 그대로");
+            runner.ReportEnvironmentMap();
+            Assert.AreEqual(TutorialGoal.OpenRecipes, runner.Current.Goal);
+        }
+
+        [Test]
         public void Save_KeepsAnnouncedOnly()
         {
             var sim = Sim();

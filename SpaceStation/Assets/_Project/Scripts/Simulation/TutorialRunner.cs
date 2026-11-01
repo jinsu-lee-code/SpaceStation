@@ -116,6 +116,19 @@ namespace SpaceStation.Simulation
         public static bool NeedsInside(TutorialGoal goal) =>
             goal == TutorialGoal.InteriorPad || goal == TutorialGoal.InteriorRequest || goal == TutorialGoal.InteriorIncident;
 
+        /// <summary>M-121: 지도가 열림을 알림 (시간이 멈춰 있어도 바로 판정).</summary>
+        public void ReportEnvironmentMap()
+        {
+            if (!Active)
+                return;
+            _environmentMapOpened = true;
+            var step = Current;
+            if (step != null && IsComplete(step))
+                Advance();
+        }
+
+        private bool _environmentMapOpened; // M-121 열 · 방사선 지도를 열었음 (저장하지 않음 — 막지 않는 안내)
+
         /// <summary>
         /// M-51 합성 단계: 화면이 창 열기(<see cref="TutorialGoal.OpenRecipes"/>) · 위치 지정(<see cref="TutorialGoal.PlaceSynthesis"/>)을 알림.
         /// 앞 단계를 건너뛰고 뒤 단계에 닿아도 앞 단계까지 완료로 보며, 시간이 멈춰 있어도 바로 판정한다.
@@ -327,6 +340,8 @@ namespace SpaceStation.Simulation
                 case TutorialGoal.PlaceSynthesis:
                 case TutorialGoal.StartSynthesis:
                     return SynthesisReached >= SynthesisOrder(step.Goal);
+                case TutorialGoal.OpenEnvironmentMap:
+                    return _environmentMapOpened;
                 default:
                     return true;
             }
