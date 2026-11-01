@@ -29,8 +29,6 @@ namespace SpaceStation.UI
         private readonly Image _curtain;
         private readonly TMP_Text _title, _subtitle;
         private readonly List<(CanvasGroup group, float alpha, bool blocks)> _hidden = new List<(CanvasGroup, float, bool)>();
-        private SpaceStation.Building.HeatMapView _map;
-        private bool _mapWasEnabled;
         private bool _wasPaused, _wasLocked, _wasBlocked;
         private Vector3 _savedFocus;
         private float _savedYaw, _savedPitch, _savedDistance;
@@ -308,10 +306,10 @@ namespace SpaceStation.UI
                     group.blocksRaycasts = blocks;
                 }
                 _hidden.Clear();
-                if (_map != null)
-                    _map.enabled = _mapWasEnabled;
+                HideMap(false);
                 return;
             }
+            HideMap(true);
             var parent = _root.parent;
             if (parent == null)
                 return;
@@ -320,27 +318,25 @@ namespace SpaceStation.UI
                 var child = parent.GetChild(i);
                 if (child == _root || !child.gameObject.activeSelf)
                     continue;
-                HideGroup(child);
+                var group = child.GetComponent<CanvasGroup>();
+                if (group == null)
+                    group = child.gameObject.AddComponent<CanvasGroup>();
+                _hidden.Add((group, group.alpha, group.blocksRaycasts));
+                group.alpha = 0f;
+                group.blocksRaycasts = false;
             }
-            // 14-2e 열 · 방사선 지도는 HUD 밖 자기 캔버스 + 매 프레임 그리는 상자 (5장부터 안내 줄이 연출 위에 남았음)
-            _map = _map != null ? _map : UnityEngine.Object.FindFirstObjectByType<SpaceStation.Building.HeatMapView>();
-            if (_map == null)
-                return;
-            _mapWasEnabled = _map.enabled;
-            _map.enabled = false;
-            var mapCanvas = _map.GetComponentInChildren<Canvas>(true);
-            if (mapCanvas != null)
-                HideGroup(mapCanvas.transform);
         }
 
-        private void HideGroup(Transform target)
+        /// <summary>14-2e 열 · 방사선 지도는 HUD 밖 자기 캔버스 + 매 프레임 그리는 상자 — 5장부터 안내 줄 · 라벨이 연출 · 결과 창 위에 남았음.</summary>
+        public static void HideMap(bool hide)
         {
-            var group = target.GetComponent<CanvasGroup>();
-            if (group == null)
-                group = target.gameObject.AddComponent<CanvasGroup>();
-            _hidden.Add((group, group.alpha, group.blocksRaycasts));
-            group.alpha = 0f;
-            group.blocksRaycasts = false;
+            var map = UnityEngine.Object.FindFirstObjectByType<SpaceStation.Building.HeatMapView>();
+            if (map == null)
+                return;
+            map.enabled = !hide;
+            var canvas = map.GetComponentInChildren<Canvas>(true);
+            if (canvas != null)
+                canvas.enabled = !hide;
         }
 
         private static RectTransform Bar(RectTransform parent, string name, bool top)

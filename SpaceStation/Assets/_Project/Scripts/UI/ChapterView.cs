@@ -738,6 +738,7 @@ namespace SpaceStation.UI
         /// </summary>
         private void HideSideHud(bool hide)
         {
+            CinematicStage.HideMap(hide);
             if (!hide)
             {
                 foreach (var (group, alpha) in _sideHidden)
