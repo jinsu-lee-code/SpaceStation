@@ -46,7 +46,7 @@ namespace SpaceStation.Editor
         private static void ChapterThreeResult() => Start("3장 결과 창", 3, chapter: 2, ChapterPhase.Transition);
 
         [MenuItem(Menu + "6. 4장 위기 '파편 띠' 15초 전", priority = 6)]
-        private static void ChapterFourClimax() => Start("4장 위기 15초 전", 4, chapter: 3, ChapterPhase.Warning);
+        private static void ChapterFourClimax() => Start("4장 위기 15초 전", 4, chapter: 3, ChapterPhase.Warning, keepLifeSupport: true);
 
         [MenuItem(Menu + "7. 4장 결과 → 장 전환 연출 → 5장 시작", priority = 7)]
         private static void ChapterFourResult() => Start("4장 결과 창", 4, chapter: 3, ChapterPhase.Transition);
@@ -63,8 +63,9 @@ namespace SpaceStation.Editor
         /// <summary>
         /// grade 등급 정거장 + chapter 장의 phase 단계로 시작. Transition = 그 장 절정이 끝나 결과 창 (기록 '깔끔히'),
         /// Warning = 필수 목표를 채우고 절정 <see cref="WarningLead"/>초 전.
+        /// keepLifeSupport = 14-1e 4장 띠 6분처럼 긴 위기: 봇 정거장은 등급에 막 닿은 적자 상태라 2분쯤이면 무너져 끝을 볼 수 없음 → 생명 유지 재고를 계속 채움.
         /// </summary>
-        private static void Start(string label, int grade, int chapter, ChapterPhase phase)
+        private static void Start(string label, int grade, int chapter, ChapterPhase phase, bool keepLifeSupport = false)
         {
             var config = FindChapters();
             if (config == null || chapter >= config.Count)
@@ -107,7 +108,8 @@ namespace SpaceStation.Editor
             File.WriteAllText(path, JsonUtility.ToJson(file));
 
             UnityEditor.SessionState.SetString(PlayCheckBoot.StartKey, path); // (SpaceStation.Simulation.SessionState와 다른 것)
-            Debug.Log($"[플레이 확인] {label} · {gradeName} 정거장 (봇 {playSeconds / 60f:0}분)으로 플레이 시작");
+            UnityEditor.SessionState.SetBool(PlayCheckBoot.KeepLifeSupportKey, keepLifeSupport);
+            Debug.Log($"[플레이 확인] {label} · {gradeName} 정거장 (봇 {playSeconds / 60f:0}분)으로 플레이 시작{(keepLifeSupport ? " · 생명 유지 재고 계속 채움" : "")}");
             EditorApplication.EnterPlaymode();
         }
 
