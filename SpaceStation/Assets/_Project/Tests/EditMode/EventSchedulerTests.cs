@@ -104,6 +104,25 @@ namespace SpaceStation.Tests
             Assert.IsFalse(s.Trigger(storm));
         }
 
+        /// <summary>M-125: 지속형 이벤트가 끝난 직후에는 같은 이벤트를 다시 뽑지 않음 (태양 폭풍이 곧바로 이어지던 구간).</summary>
+        [Test]
+        public void MinGapAfterEnd_SameEventWaits()
+        {
+            var storm = Event("Storm", duration: 60f);
+            var other = Event("Other");
+            var s = Create();
+            s.MinGapAfterEnd = 30f;
+            s.Trigger(storm);
+            Ticks(s, 60, null);
+            Assert.IsFalse(s.IsActive(storm));
+
+            _rolls.Enqueue(0f); // 원래라면 첫 후보(storm)
+            Assert.AreSame(other, s.TriggerRandom(new[] { storm, other }), "끝난 직후에는 다시 뽑지 않음");
+            Ticks(s, 30, null);
+            _rolls.Enqueue(0f);
+            Assert.AreSame(storm, s.TriggerRandom(new[] { storm, other }), "간격이 지나면 다시 후보");
+        }
+
         [Test]
         public void TimedEvent_EndsAfterDuration()
         {

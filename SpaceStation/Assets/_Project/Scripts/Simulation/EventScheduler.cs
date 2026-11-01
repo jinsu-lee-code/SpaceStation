@@ -35,6 +35,8 @@ namespace SpaceStation.Simulation
         private readonly List<ActiveEvent> _active = new List<ActiveEvent>();
         private readonly List<GameEventData> _candidates = new List<GameEventData>();
         private readonly List<ActiveEvent> _ended = new List<ActiveEvent>();
+        private readonly Dictionary<GameEventData, float> _gapLeft = new Dictionary<GameEventData, float>();
+        private readonly List<GameEventData> _gapKeys = new List<GameEventData>();
 
         public event Action<GameEventData> EventStarted;
         public event Action<ActiveEvent> EventEnded;
@@ -49,6 +51,8 @@ namespace SpaceStation.Simulation
         public Func<float> IntervalMultiplier { get; set; }
         /// <summary>지속형 이벤트의 실제 지속시간 (등급별 강도). null이면 데이터 값.</summary>
         public Func<GameEventData, float> DurationProvider { get; set; }
+        /// <summary>M-125 공통 고리: 지속형 이벤트가 끝나고 이 시간(초) 동안은 같은 이벤트를 뽑지 않음. 0이면 없음 (난수 순서 그대로).</summary>
+        public float MinGapAfterEnd { get; set; }
 
         /// <summary>
         /// 조기 경보 (Phase 6 방어 연구): 다음 이벤트까지 이 시간(초) 이하가 되면 다음 이벤트를 미리 뽑는다. 0이면 기존과 같이 발생 순간에 뽑음
@@ -207,6 +211,19 @@ namespace SpaceStation.Simulation
 
         private void AdvanceActive(float dt)
         {
+            if (_gapLeft.Count > 0)
+            {
+                _gapKeys.Clear();
+                _gapKeys.AddRange(_gapLeft.Keys);
+                foreach (var key in _gapKeys)
+                {
+                    float left = _gapLeft[key] - dt;
+                    if (left <= 0f)
+                        _gapLeft.Remove(key);
+                    else
+                        _gapLeft[key] = left;
+                }
+            }
             _ended.Clear();
             foreach (var a in _active)
             {
@@ -220,6 +237,8 @@ namespace SpaceStation.Simulation
             foreach (var a in _ended)
             {
                 _active.Remove(a);
+                if (MinGapAfterEnd > 0f)
+                    _gapLeft[a.Data] = MinGapAfterEnd;
                 EventEnded?.Invoke(a);
             }
         }
@@ -232,7 +251,7 @@ namespace SpaceStation.Simulation
             {
                 foreach (var e in pool)
                 {
-                    if (e == null || e.Weight <= 0f || IsActive(e))
+                    if (e == null || e.Weight <= 0f || IsActive(e) || _gapLeft.ContainsKey(e))
                         continue;
                     _candidates.Add(e);
                     total += e.Weight;

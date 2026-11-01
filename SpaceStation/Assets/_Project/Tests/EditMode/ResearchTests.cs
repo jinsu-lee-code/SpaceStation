@@ -573,6 +573,63 @@ namespace SpaceStation.Tests
             Assert.AreEqual(85f, b.Current, Eps, "뒤 순번은 막히지 않음");
         }
 
+        /// <summary>M-125: 아직 여유가 있는 비싼 작업은 건너뛰고 싼 작업을 먼저.</summary>
+        [Test]
+        public void Automation_ExpensiveNotUrgent_CheapGoesFirst()
+        {
+            var (sim, category) = AutomationSim();
+            sim.Research.SetLevel(category, 1);
+            sim.Grid.TryPlace(Priced(300f), Vector3Int.left, 0, out var dear);
+            sim.Durability.ApplyImpact(dear, 60f); // 비율 0.4 · 정비 180
+            sim.Grid.TryPlace(_block, Vector3Int.back, 0, out var block);
+            sim.Durability.ApplyImpact(block, 50f); // 비율 0.5 · 정비 20
+            sim.Resources.SetStock(ResourceType.Metal, 100f);
+            Ticks(sim, 2);
+            sim.Durability.TryGetInfo(dear, out var d);
+            sim.Durability.TryGetInfo(block, out var b);
+            Assert.AreEqual(40f, d.Current, Eps);
+            Assert.AreEqual(85f, b.Current, Eps, "싼 작업이 먼저");
+            Assert.IsTrue(sim.Automation.WaitingForReserve, "비싼 작업은 아직 기다리는 중");
+        }
+
+        /// <summary>M-125: 파괴가 가까운 모듈은 건너뛰지 않고 그 몫을 모은다.</summary>
+        [Test]
+        public void Automation_ExpensiveUrgent_HoldsQueue()
+        {
+            var (sim, category) = AutomationSim();
+            sim.Research.SetLevel(category, 1);
+            sim.Grid.TryPlace(Priced(200f), Vector3Int.left, 0, out var dear);
+            sim.Durability.ApplyImpact(dear, 80f); // 비율 0.2 · 정비 160
+            sim.Grid.TryPlace(_block, Vector3Int.back, 0, out var block);
+            sim.Durability.ApplyImpact(block, 50f);
+            sim.Resources.SetStock(ResourceType.Metal, 100f);
+            Ticks(sim, 2);
+            sim.Durability.TryGetInfo(block, out var b);
+            Assert.AreEqual(50f, b.Current, Eps, "급한 모듈 몫을 모으는 동안 뒤는 기다림");
+            Assert.IsTrue(sim.Automation.WaitingForReserve);
+        }
+
+        /// <summary>M-125: 자동 수리는 켜야 돌고, 파손을 대기열에 넣음. 저장에 남음.</summary>
+        [Test]
+        public void Automation_AutoRepair_QueuesDamaged_Saved()
+        {
+            var (sim, category) = AutomationSim();
+            sim.Research.SetLevel(category, 1);
+            sim.Grid.TryPlace(_block, Vector3Int.left, 0, out var block);
+            sim.Damage.Damage(block);
+            sim.Resources.SetStock(ResourceType.Metal, 200f);
+            Ticks(sim, 2);
+            Assert.IsTrue(sim.Damage.TryGetInfo(block, out var off) && !off.IsRepairing && !off.IsQueued, "꺼져 있으면 그대로");
+
+            sim.Automation.AutoRepair = true;
+            Assert.IsTrue(sim.Automation.AutoRepairActive);
+            Ticks(sim, 2);
+            Assert.IsTrue(sim.Damage.TryGetInfo(block, out var on) && (on.IsRepairing || on.IsQueued));
+            Assert.AreEqual(1, sim.Automation.AutoRepairCount);
+            var state = StationStateSerializer.Capture(sim);
+            Assert.IsTrue(state.Automation.HasAutoRepair && state.Automation.AutoRepair);
+        }
+
         /// <summary>M-49: 자동 · 일괄 정비가 처리하는 동안만 Executing (소리가 모듈마다 나지 않게), 직접 정비는 아님.</summary>
         [Test]
         public void Automation_Executing_OnlyWhileAutoOrBatch()

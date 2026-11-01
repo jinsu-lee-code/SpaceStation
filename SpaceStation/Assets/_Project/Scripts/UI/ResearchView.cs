@@ -26,7 +26,7 @@ namespace SpaceStation.UI
         private readonly Button _start, _cancel, _point;
         private bool _usePoint; // 11-17 ② 연구 포인트로 시작 비용 할인
         private readonly RectTransform _auto;
-        private readonly Button _autoMaintain, _autoRebuild, _batch;
+        private readonly Button _autoMaintain, _autoRebuild, _autoRepair, _batch;
         private readonly TMP_Text _threshold, _reserve, _autoStatus;
         private ResearchCategoryData _selected;
 
@@ -99,9 +99,12 @@ namespace SpaceStation.UI
             HoloUi.Stretch(_auto);
             var auto = sim.Automation;
             _autoMaintain = ui.TechButton(_auto, "", 14f, () => { auto.AutoMaintain = !auto.AutoMaintain; Refresh(); });
-            HoloUi.Place((RectTransform)_autoMaintain.transform, new Vector2(16f, -62f), new Vector2((pw - 40f) / 2f, 40f));
+            float autoW = (pw - 48f) / 3f;
+            HoloUi.Place((RectTransform)_autoMaintain.transform, new Vector2(16f, -62f), new Vector2(autoW, 40f));
             _autoRebuild = ui.TechButton(_auto, "", 14f, () => { auto.AutoRebuild = !auto.AutoRebuild; Refresh(); });
-            HoloUi.Place((RectTransform)_autoRebuild.transform, new Vector2(24f + (pw - 40f) / 2f, -62f), new Vector2((pw - 40f) / 2f, 40f));
+            HoloUi.Place((RectTransform)_autoRebuild.transform, new Vector2(24f + autoW, -62f), new Vector2(autoW, 40f));
+            _autoRepair = ui.TechButton(_auto, "", 14f, () => { auto.AutoRepair = !auto.AutoRepair; Refresh(); });
+            HoloUi.Place((RectTransform)_autoRepair.transform, new Vector2(32f + 2f * autoW, -62f), new Vector2(autoW, 40f));
             _threshold = ui.Label(_auto, "", 14f, TextAlignmentOptions.MidlineLeft);
             HoloUi.Place(_threshold.rectTransform, new Vector2(16f, -112f), new Vector2(pw - 140f, 34f));
             Stepper(ui, _auto, new Vector2(pw - 108f, -112f), () => auto.Threshold -= 5f, () => auto.Threshold += 5f);
@@ -390,6 +393,7 @@ namespace SpaceStation.UI
             var auto = _sim.Automation;
             _autoMaintain.GetComponentInChildren<TMP_Text>().SetText($"자동 정비  {OnOff(auto.AutoMaintain)}");
             _autoRebuild.GetComponentInChildren<TMP_Text>().SetText($"자동 재건축  {OnOff(auto.AutoRebuild)}");
+            _autoRepair.GetComponentInChildren<TMP_Text>().SetText($"자동 수리  {OnOff(auto.AutoRepair)}");
             _threshold.SetText($"정비 기준 최대치 <b>{auto.Threshold:0}%</b>"); // 12-0: 최대 내구도 대비 %
             var jobs = auto.Plan();
             _reserve.SetText(ReserveText(auto, jobs));
@@ -402,7 +406,7 @@ namespace SpaceStation.UI
                 : $"대상 {jobs.Count}개{(rebuilds > 0 ? $" (재건축 {rebuilds})" : "")}  {HudText.Cost(auto.TotalCost(jobs))}");
             if (auto.WaitingForReserve)
                 sb.Append($"\n<color={HudText.Orange}>대기 중: {WaitText(auto)}</color>");
-            sb.Append($"\n<color={HudText.Muted}>자동 처리: 정비 {auto.AutoMaintainCount}회 · 재건축 {auto.AutoRebuildCount}회 · 파손 모듈은 수리가 우선 · 일괄 정비는 남겨 둘 양을 무시</color>");
+            sb.Append($"\n<color={HudText.Muted}>자동 처리: 정비 {auto.AutoMaintainCount}회 · 재건축 {auto.AutoRebuildCount}회 · 수리 {auto.AutoRepairCount}건 · 보호선이 높으면 정비가 밀리고, 내구도 0이 된 모듈은 파괴됩니다</color>");
             _autoStatus.SetText(sb.ToString());
             _batch.interactable = jobs.Count > 0;
         }

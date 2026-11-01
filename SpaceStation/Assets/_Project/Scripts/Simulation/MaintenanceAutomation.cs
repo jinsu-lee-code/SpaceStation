@@ -12,8 +12,9 @@ namespace SpaceStation.Simulation
     ///   정비 직후는 항상 100%라 다시 대상이 되지 않는다.
     /// - 정비해도 최대 내구도가 **새 모듈(100) × 기준%** 미만이면 정비 대신 재건축.
     /// - 자동 실행은 자원 보호선을 지킨다: 낸 뒤에도 각 자원이 저장 한도 × 보호 비율 이상 남아야 한다.
-    ///   못 내면 그 자리에서 멈추고 다음 검사 때 다시 시도 (가장 급한 모듈부터 자원을 모음).
+    ///   못 내면 건너뛰고 더 싼 작업을 먼저 하되, 내구도가 <see cref="UrgentRatio"/> 아래인 모듈이면 거기서 멈춰 그 모듈 몫을 모은다 (M-125).
     /// - 일괄 정비(<see cref="RunBatch"/>)는 보호선을 무시하고 지금 낼 수 있는 만큼 처리한다.
+    /// - 자동 수리(<see cref="AutoRepair"/>, M-125): 파손을 급한 순서로 수리 대기열에 넣는다. 보호선을 따지지 않음 (파손 모듈은 수리가 우선).
     /// </summary>
     public sealed class MaintenanceAutomation
     {
@@ -24,6 +25,8 @@ namespace SpaceStation.Simulation
         public const float DefaultReserveRatio = 0.4f;
         public const float MaxReserveRatio = 0.8f;
         private const float CheckInterval = 1f;
+        /// <summary>내구도가 최대의 이 비율 아래면 파괴가 가까움 → 못 내도 건너뛰지 않고 그 모듈 몫을 모은다.</summary>
+        public const float UrgentRatio = 0.25f;
 
         /// <summary>처리할 모듈 하나와 방법.</summary>
         public readonly struct Job
@@ -41,6 +44,7 @@ namespace SpaceStation.Simulation
         private readonly StationSimulation _sim;
         private readonly List<DurabilityInfo> _candidates = new List<DurabilityInfo>();
         private readonly List<Job> _jobs = new List<Job>();
+        private readonly List<(float urgent, ModuleInstance module)> _toRepair = new List<(float urgent, ModuleInstance module)>();
         private readonly float[] _required = new float[Enum.GetValues(typeof(ResourceType)).Length];
         private float _threshold = DefaultThreshold;
         private float _reserveRatio = DefaultReserveRatio;
@@ -59,6 +63,8 @@ namespace SpaceStation.Simulation
         public bool Unlocked => _sim.Effects.MaintenanceAutomation;
         public bool AutoMaintain { get; set; } = true;
         public bool AutoRebuild { get; set; } = true;
+        /// <summary>M-125 공통 고리: 파손을 자동으로 수리 대기열에. 기본 꺼짐 (창의 단추 또는 모드가 켬).</summary>
+        public bool AutoRepair { get; set; }
 
         /// <summary>기준 % (30~90). 내구도가 최대 내구도의 이 % 미만이면 정비/재건축 대상.</summary>
         public float Threshold
@@ -76,6 +82,9 @@ namespace SpaceStation.Simulation
 
         public int AutoMaintainCount { get; internal set; }
         public int AutoRebuildCount { get; internal set; }
+        public int AutoRepairCount { get; internal set; }
+        /// <summary>자동 수리가 실제로 돌고 있는지 (연구 완료 + 켜짐) — 파손 알림 문구용.</summary>
+        public bool AutoRepairActive => Unlocked && AutoRepair;
         /// <summary>
         /// 자동 정비 · 일괄 정비가 모듈을 처리하는 중 (M-49): 화면 쪽(소리 등)이 모듈마다 반응하지 않게.
         /// 사용자 피드백 2026-10-25: 모듈이 많아지면 자동 정비 소리가 끊이지 않아 다른 소리가 안 들림.
@@ -147,7 +156,7 @@ namespace SpaceStation.Simulation
 
         internal void Tick(float dt)
         {
-            if (!Unlocked || (!AutoMaintain && !AutoRebuild))
+            if (!Unlocked || (!AutoMaintain && !AutoRebuild && !AutoRepair))
             {
                 WaitingForReserve = false;
                 return;
@@ -157,9 +166,19 @@ namespace SpaceStation.Simulation
                 return;
             _timer = 0f;
 
+            if (AutoRepair)
+                RepairDamaged();
+            if (!AutoMaintain && !AutoRebuild)
+            {
+                WaitingForReserve = false;
+                return;
+            }
+
             int maintained = 0, rebuilt = 0;
             bool wasWaiting = WaitingForReserve;
-            WaitingForReserve = false;
+            bool waiting = false;
+            ResourceType waitResource = default;
+            float waitShortfall = 0f;
             Executing = true;
             try
             {
@@ -172,10 +191,15 @@ namespace SpaceStation.Simulation
                         continue; // 저장 한도보다 비싸 영원히 못 모음 → 뒤 순번을 막지 않는다
                     if (!KeepsReserve(cost))
                     {
-                        WaitingForReserve = true;
-                        if (!wasWaiting)
-                            ReserveWaitStarted?.Invoke(WaitingResource, WaitingShortfall);
-                        break; // 가장 급한 모듈부터 자원을 모은다
+                        if (!waiting) // 표시는 가장 급한 모듈 기준
+                        {
+                            waiting = true;
+                            waitResource = WaitingResource;
+                            waitShortfall = WaitingShortfall;
+                        }
+                        if (IsUrgent(job.Module))
+                            break; // 파괴가 가까우면 이 모듈 몫을 모은다
+                        continue; // 아직 여유가 있으면 더 싼 작업을 먼저 (비싼 작업 하나가 전부를 기다리게 하지 않게)
                     }
                     if (Execute(job))
                     {
@@ -188,10 +212,39 @@ namespace SpaceStation.Simulation
             {
                 Executing = false;
             }
+            WaitingForReserve = waiting;
+            if (waiting)
+            {
+                WaitingResource = waitResource;
+                WaitingShortfall = waitShortfall;
+                if (!wasWaiting)
+                    ReserveWaitStarted?.Invoke(WaitingResource, WaitingShortfall);
+            }
             AutoMaintainCount += maintained;
             AutoRebuildCount += rebuilt;
             if (maintained + rebuilt > 0)
                 Performed?.Invoke(maintained, rebuilt, false);
+        }
+
+        private bool IsUrgent(ModuleInstance module)
+            => _sim.Durability.TryGetInfo(module, out var info) && info.Max > 0f && info.Current < info.Max * UrgentRatio;
+
+        /// <summary>M-125 걸리지 않은 파손을 급한 순서로 수리 대기열에 (방치해도 안 부서지는 장갑은 자연히 마지막).</summary>
+        private void RepairDamaged()
+        {
+            if (_sim.Damage.DamagedCount == 0)
+                return;
+            _toRepair.Clear();
+            foreach (var m in _sim.Grid.Modules)
+                if (_sim.Damage.TryGetInfo(m, out var info) && !info.IsRepairing && !info.IsQueued)
+                    _toRepair.Add((info.TimeUntilDestroyed, m));
+            _toRepair.Sort((a, b) => a.urgent.CompareTo(b.urgent));
+            foreach (var (_, module) in _toRepair)
+            {
+                var result = _sim.TryRepair(module);
+                if (result == RepairResult.Started || result == RepairResult.Queued)
+                    AutoRepairCount++;
+            }
         }
 
         /// <summary>일괄 정비: 기준값 미만 모듈을 지금 처리 (보호선 무시, 못 내는 모듈은 건너뜀). 반환: (정비, 재건축).</summary>

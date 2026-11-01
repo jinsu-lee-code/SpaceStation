@@ -153,5 +153,9 @@ namespace SpaceStation.Simulation
         public float ReserveRatio = MaintenanceAutomation.DefaultReserveRatio;
         public int AutoMaintainCount;
         public int AutoRebuildCount;
+        /// <summary>M-125: 옛 세이브에는 없음 → 모드 기본값 유지.</summary>
+        public bool HasAutoRepair;
+        public bool AutoRepair;
+        public int AutoRepairCount;
     }
 }
