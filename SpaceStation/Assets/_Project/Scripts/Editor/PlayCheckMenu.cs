@@ -57,6 +57,14 @@ namespace SpaceStation.Editor
         [MenuItem(Menu + "9. 5장 결과 → 장 전환 연출 → 6장 시작", priority = 9)]
         private static void ChapterFiveResult() => Start("5장 결과 창", 5, chapter: 4, ChapterPhase.Transition);
 
+        [MenuItem(Menu + "10. 6장 위기 '물음의 시간' 15초 전", priority = 10)]
+        private static void ChapterSixClimax() => Start("6장 위기 15초 전", 6, chapter: 5, ChapterPhase.Warning, keepLifeSupport: true);
+
+        [MenuItem(Menu + "11. 6장 결과 → 장 전환 연출 → 7장 시작", priority = 11)]
+        private static void ChapterSixResult() => Start("6장 결과 창", 6, chapter: 5, ChapterPhase.Transition);
+
+        [MenuItem(Menu + "10. 6장 위기 '물음의 시간' 15초 전", true)]
+        [MenuItem(Menu + "11. 6장 결과 → 장 전환 연출 → 7장 시작", true)]
         [MenuItem(Menu + "8. 5장 위기 '항성 폭풍' 15초 전", true)]
         [MenuItem(Menu + "9. 5장 결과 → 장 전환 연출 → 6장 시작", true)]
         [MenuItem(Menu + "6. 4장 위기 '파편 띠' 15초 전", true)]

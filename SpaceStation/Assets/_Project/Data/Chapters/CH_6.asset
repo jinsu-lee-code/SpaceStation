@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CH_6
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ChapterData
   _displayName: "6\uC7A5"
-  _subtitle: "(\uAC00\uC81C) \uC0AC\uD68C"
+  _subtitle: "\uAC08\uB77C\uC9C4 \uBAA9\uC18C\uB9AC"
   _introSpeaker: 
   _introLines: []
   _interiorGuide: {fileID: 0}
@@ -25,12 +25,18 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d0262f6ccfbe2fa489c03788c788b3a4, type: 2}
   _newNeeds: 
   _rules: 0
-  _recipes: []
+  _recipes:
+  - {fileID: 11400000, guid: 13e17543d7f8f3b42944d9246f90e041, type: 2}
+  - {fileID: 11400000, guid: c234f1c57a2cae24e8be4c55aaf6c321, type: 2}
+  - {fileID: 11400000, guid: 8aedf23b8cf7a4b438eb4af4715d5bef, type: 2}
+  - {fileID: 11400000, guid: 7613a6062ee974745921a4eb84681eb9, type: 2}
+  - {fileID: 11400000, guid: e31312f673c3cf84384c103fa96160d4, type: 2}
+  - {fileID: 11400000, guid: 535841993a90aba4599c9e7ad13375b3, type: 2}
   _meteorHitsMin: 8
   _meteorHitsMax: 11
   _eventIntervalMultiplier: 0.21
   _eventIntensityMultiplier: 2.4
-  _gradeUpNeeds: 
+  _gradeUpNeeds: 08000000
   _gradeUpScale: 1
   _gradeUpMeteorHitsMin: 8
   _gradeUpMeteorHitsMax: 11
@@ -41,7 +47,7 @@ MonoBehaviour:
   _shipSizeMin: 4
   _shipSizeMax: 6
   _shipForecast: 60
-  _newSpecies: {fileID: 0}
+  _newSpecies: {fileID: 11400000, guid: 6c6fe2c0fb0938f4a97b9ef007bff764, type: 2}
   _growthIntervalScale: 3
   _signals: 
   _signalDistanceMin: 6
@@ -49,9 +55,13 @@ MonoBehaviour:
   _cleanFragments: 0
   _firstShowerDelay: 0
   _firstShowerWaves: 1
-  _policySlots: 0
+  _policySlots: 3
   _gradeUpPolicySlots: 0
-  _policies: []
+  _policies:
+  - {fileID: 11400000, guid: cc1e27e87fb15b04ebdd93f49106ee5f, type: 2}
+  - {fileID: 11400000, guid: 20d1ab56fcb8af74ebab12bbe717a51a, type: 2}
+  - {fileID: 11400000, guid: 54d7a3ec0dd9bab4f870f5397e27adc9, type: 2}
+  - {fileID: 11400000, guid: 18029626802c2364a939541c1da9caf0, type: 2}
   _policyApplyDelay: 30
   _policySwapCooldown: 180
   _earthLightsStart: 0.16
@@ -59,7 +69,10 @@ MonoBehaviour:
   _earthDimSeconds: 1800
   _earthLightsFinal: -1
   _earthDimNotices: 3
-  _transmission: 
+  _transmission: "\uAE30\uB85D 31. \uBC29\uC8FC\uB97C \uB744\uC6B0\uAE30 \uC804\uC5D0
+    \uC6B0\uB9AC\uB3C4 \uBAA8\uC5EC \uBB3C\uC5C8\uB2E4. \uB204\uAC00 \uD0C0\uACE0
+    \uB204\uAC00 \uB0A8\uB294\uAC00. \uC544\uBB34\uB3C4 \uB300\uB2F5\uD558\uC9C0
+    \uBABB\uD588\uB2E4. \uADF8\uB798\uC11C \uCF54\uC5B4\uB97C \uB9CC\uB4E4\uC5C8\uB2E4."
   _goals:
   - _kind: 0
     _text: 
@@ -74,26 +87,71 @@ MonoBehaviour:
     _rewardResearchPoints: 0
     _rewardFreeRepairs: 0
     _rewardFragments: 0
-  - _kind: 2
-    _text: 
+  - _kind: 4
+    _text: "\uAC15\uC544\uC9C0 \uBB34\uB9AC \uB9DE\uC774\uD558\uAE30 (\uB2F5\uC740
+      \uBB34\uC5C7\uC774\uB4E0)"
+    _optional: 0
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 240
+    _resource: 4
+    _amount: 0
+    _flag: ship.new.dog
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+    _rewardFragments: 0
+  - _kind: 1
+    _text: "\uBCF4\uC548\uCCAD \uB9CC\uB4E4\uAE30 (\uB300\uB959\uAE09\uBD80\uD130
+      \uCE58\uC548 \uC694\uAD6C)"
+    _optional: 0
+    _grade: 0
+    _module: {fileID: 11400000, guid: 912b663451292134a9cf07bd6620173a, type: 2}
+    _count: 1
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+    _rewardFragments: 0
+  - _kind: 4
+    _text: "\uAE34\uC7A5\uB3C4 '\uC794\uC794\uD568'\uC73C\uB85C 1\uBD84 \uBC84\uD2F0\uAE30"
     _optional: 1
     _grade: 0
     _module: {fileID: 0}
     _count: 240
     _resource: 4
     _amount: 0
-    _flag: 
+    _flag: tension.calm@6
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+    _rewardFragments: 1
+  - _kind: 4
+    _text: "\uCE58\uC548\uC744 \uC8FC\uBBFC 80%\uAE4C\uC9C0 \uCC44\uC6B0\uAE30"
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 240
+    _resource: 4
+    _amount: 0
+    _flag: security.covered@6
     _rewardResources:
     - Type: 4
-      Amount: 100
+      Amount: 150
     _rewardResearchPoints: 0
     _rewardFreeRepairs: 0
     _rewardFragments: 0
   _climax:
-    _kind: 1
-    _title: "\uC6B4\uC11D \uC5F0\uD0C0 (\uC784\uC2DC \uC704\uAE30)"
-    _description: "\uC7A5 \uB0B4\uC6A9\uC740 \uB9CC\uB4DC\uB294 \uC911 \xB7 \uC6B4\uC11D
-      5\uD30C \xD7 4\uAC1C"
+    _kind: 7
+    _title: "\uBB3C\uC74C\uC758 \uC2DC\uAC04"
+    _description: "\uC5EC\uB7EC \uBB34\uB9AC\uAC00 \uCF54\uC5B4\uC5D0\uAC8C \uBB3C\uC73C\uB7EC
+      \uC635\uB2C8\uB2E4 \xB7 6\uBD84 \uB3D9\uC548 \uCCAD\uC6D0 4\uAC74\uC774 \uC55E\uC11C
+      \uB0B4\uB9B0 \uACB0\uC815\uC744 \uADFC\uAC70\uB85C \uBB3B\uACE0, \uB2F5\uB9C8\uB2E4
+      \uB300\uAC00\uAC00 \uB2E4\uB985\uB2C8\uB2E4 \xB7 \uAE34\uC7A5\uB3C4\uAC00 '\uD33D\uD33D\uD568'
+      \uC774\uC0C1\uC774\uBA74 \uC8FC\uBBFC\uC774 \uB5A0\uB0A9\uB2C8\uB2E4 \xB7 \uAE34\uC7A5\uB3C4\uB97C
+      \uBBF8\uB9AC \uB0AE\uCDB0 \uB450\uC138\uC694"
     _warningSeconds: 180
     _waves: 5
     _waveInterval: 20
@@ -114,9 +172,9 @@ MonoBehaviour:
     _migrationSizeMin: 5
     _migrationSizeMax: 7
     _cleanMinAccepted: 0.6
-    _cleanMaxDeparted: 0
+    _cleanMaxDeparted: 3
     _hurtMinAccepted: 0.3
-    _hurtMaxDeparted: 3
+    _hurtMaxDeparted: 30
     _bandSeconds: 360
     _stormSeconds: 360
     _stormSpaceMultiplier: 3
@@ -125,7 +183,35 @@ MonoBehaviour:
     _stormLeaveInterval: 30
     _stormLeavePer: 50
     _hurtMaxDamaged: 3
-    _cleanLabel: 
-    _hurtLabel: 
-    _lostLabel: 
-  _choices: []
+    _inquirySeconds: 360
+    _inquiryPetitions: 4
+    _inquiryFirstLead: 30
+    _inquiryInterval: 90
+    _inquiryLeaveInterval: 30
+    _inquiryLeaveTense: 1
+    _inquiryLeaveCritical: 3
+    _cleanMaxTension: 50
+    _hurtMaxTension: 75
+    _cleanLabel: "\uC774\uC5B4\uC9C4 \uBBFF\uC74C"
+    _hurtLabel: "\uAE08 \uAC04 \uBBFF\uC74C"
+    _lostLabel: "\uB4F1 \uB3CC\uB9B0 \uBB34\uB9AC"
+  _choices:
+  - _id: numbers
+    _title: "\uC22B\uC790\uB85C \uB2F5\uD55C\uB2E4"
+    _description: "\uC65C \uADF8\uB807\uAC8C \uC815\uD588\uB294\uC9C0 \uACC4\uC0B0\uC744
+      \uADF8\uB300\uB85C \uB0B4\uBCF4\uC778\uB2E4"
+    _shifts:
+    - Axis: 0
+      Toward: 1
+      Size: 2
+  - _id: listen
+    _title: "\uC0AC\uC815\uBD80\uD130 \uB4E3\uB294\uB2E4"
+    _description: "\uACC4\uC0B0\uC744 \uB36E\uC5B4 \uB450\uACE0 \uB0A8\uC740 \uC774\uB4E4\uC758
+      \uC0AC\uC815\uBD80\uD130 \uB4E3\uB294\uB2E4"
+    _shifts:
+    - Axis: 0
+      Toward: 2
+      Size: 1
+    - Axis: 2
+      Toward: 1
+      Size: 0

@@ -209,6 +209,19 @@ namespace SpaceStation.Simulation
         }
 
         /// <summary>봉인 단계 선택 (이미 골랐거나 아직 마치지 않았으면 false).</summary>
+        /// <summary>14-4 덮어쓴 봉인 기록 수 (청원 근거).</summary>
+        public int OverwrittenCount
+        {
+            get
+            {
+                int n = 0;
+                foreach (var kv in _choices)
+                    if (kv.Value == RecordChoice.Overwrite)
+                        n++;
+                return n;
+            }
+        }
+
         public bool Choose(RecordTrack track, bool preserve)
         {
             if (track == null || track.Category == null || ChoiceOf(track) != RecordChoice.None

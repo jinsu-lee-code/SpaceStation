@@ -51,6 +51,8 @@ namespace SpaceStation.Simulation
                     return new DebrisBandClimax();
                 case ChapterClimaxKind.StellarStorm:
                     return new StellarStormClimax();
+                case ChapterClimaxKind.Inquiry:
+                    return new InquiryClimax();
                 default:
                     return new NoClimax();
             }
@@ -944,6 +946,173 @@ namespace SpaceStation.Simulation
             }
             Apply();
             Subscribe();
+        }
+    }
+
+    /// <summary>
+    /// 14-4 6장 위기 '물음의 시간' (사용자 결정 2026-11-02): 6분 동안 종족 대표 청원 4건이 90초마다 옴 (<see cref="SocialEventSystem.SendPetition"/>, 게임을 멈추고 답을 고름).
+    /// 앞서 내린 결정을 근거로 물음. 긴장도가 '팽팽함' 이상이면 30초마다 주민이 떠남 (1명 · '곧 터질 듯'이면 3명).
+    /// 판정 = 떠난 주민 · 끝 긴장도 · 생명 유지 바닥 (깔끔 3명 · 50 아래 · 0초 / 빠듯 30명 · 75 아래 · 60초 / 그 밖). 결과 이름 = 이어진 믿음 · 금 간 믿음 · 등 돌린 무리.
+    /// </summary>
+    internal sealed class InquiryClimax : ChapterClimax
+    {
+        private float _left, _timer, _leaveTimer, _shortage;
+        private int _sent, _answered, _departed;
+        private bool _subscribed;
+
+        private SocialEventSystem Social => Sim.GetSystem<SocialEventSystem>();
+        private float TensionValue => Sim.GetSystem<TensionSystem>()?.Value ?? 0f;
+        private int Petitions => Social != null ? Settings.InquiryPetitions : 0;
+
+        public override float Progress => Finished ? 1f : Mathf.Clamp(1f - _left / Settings.InquirySeconds, 0f, 0.99f);
+
+        public override string Status => $"{Clock(_left)} 남음 · 청원 {_answered}/{Petitions} · 떠남 {_departed}"; // 장 카드는 "위기 이름 + 이 줄", 긴장도는 카드 아래 줄
+
+        internal override void Begin()
+        {
+            _left = Settings.InquirySeconds;
+            _timer = Settings.InquiryFirstLead;
+            _leaveTimer = _shortage = 0f;
+            _sent = _answered = _departed = 0;
+            Subscribe();
+        }
+
+        internal override void Tick(float dt)
+        {
+            if (Finished)
+                return;
+            var r = Sim.Resources;
+            if (r.Population > 0 && (r.IsDepleted(ResourceType.Oxygen) || r.IsDepleted(ResourceType.Water) || r.IsDepleted(ResourceType.Food)))
+                _shortage += dt;
+            TickLeaving(dt);
+            _left = Mathf.Max(0f, _left - dt);
+            TickPetitions(dt);
+            if (_left <= 0f && _answered >= Petitions)
+                Judge();
+        }
+
+        private void TickPetitions(float dt)
+        {
+            var social = Social;
+            if (social == null || _sent >= Petitions || _sent > _answered)
+                return;
+            _timer -= dt;
+            if (_timer > 0f || social.Busy)
+                return;
+            if (social.SendPetition(Settings.Title, _sent, Petitions))
+                _sent++;
+            else
+            {
+                _sent = _answered = Petitions; // 남은 청원이 없음
+            }
+        }
+
+        private void TickLeaving(float dt)
+        {
+            var social = Social;
+            int level = social != null ? social.EffectiveLevel : 0;
+            int leave = level >= 3 ? Settings.InquiryLeaveCritical : level == 2 ? Settings.InquiryLeaveTense : 0;
+            if (leave <= 0)
+            {
+                _leaveTimer = 0f;
+                return;
+            }
+            _leaveTimer += dt;
+            if (_leaveTimer < Settings.InquiryLeaveInterval)
+                return;
+            _leaveTimer -= Settings.InquiryLeaveInterval;
+            Sim.Population.Remove(leave, PopulationChangeReason.Crisis);
+        }
+
+        private void Judge()
+        {
+            float tension = TensionValue;
+            bool Within(int maxDeparted, float maxTension, float maxShortage) =>
+                _departed <= maxDeparted && tension < maxTension && _shortage <= maxShortage + 1e-3f;
+            if (Within(Settings.CleanMaxDeparted, Settings.CleanMaxTension, Settings.CleanMaxShortageSeconds))
+                Outcome = ChapterOutcome.Clean;
+            else if (Within(Settings.HurtMaxDeparted, Settings.HurtMaxTension, Settings.HurtMaxShortageSeconds))
+                Outcome = ChapterOutcome.Hurt;
+            else
+                Outcome = ChapterOutcome.Lost;
+            Summary = $"떠난 주민 {_departed}명 · 끝 긴장도 {tension:0} · 생명 유지 바닥 {Mathf.FloorToInt(_shortage)}초";
+            Finished = true;
+            Detach();
+        }
+
+        private void HandleResolved(SocialPending pending, int answer)
+        {
+            if (Finished || pending == null || !pending.Petition)
+                return;
+            _answered++;
+            _timer = Settings.InquiryInterval * Sim.Effects.Policy(PolicyStat.CrisisWarning);
+        }
+
+        private void HandlePopulation(int delta, PopulationChangeReason reason)
+        {
+            if (!Finished && delta < 0)
+                _departed -= delta;
+        }
+
+        private void Subscribe()
+        {
+            if (_subscribed)
+                return;
+            var social = Social;
+            if (social != null)
+                social.Resolved += HandleResolved;
+            Sim.Population.PopulationChanged += HandlePopulation;
+            _subscribed = true;
+        }
+
+        internal override void Detach()
+        {
+            if (!_subscribed)
+                return;
+            var social = Social;
+            if (social != null)
+                social.Resolved -= HandleResolved;
+            Sim.Population.PopulationChanged -= HandlePopulation;
+            _subscribed = false;
+        }
+
+        [Serializable]
+        private sealed class State
+        {
+            public float Left;
+            public float Timer;
+            public float LeaveTimer;
+            public float Shortage;
+            public int Sent;
+            public int Answered;
+            public int Departed;
+        }
+
+        internal override string Capture() => JsonUtility.ToJson(new State
+        {
+            Left = _left,
+            Timer = _timer,
+            LeaveTimer = _leaveTimer,
+            Shortage = _shortage,
+            Sent = _sent,
+            Answered = _answered,
+            Departed = _departed,
+        });
+
+        internal override void Restore(string state)
+        {
+            var s = string.IsNullOrEmpty(state) ? null : JsonUtility.FromJson<State>(state);
+            if (s != null)
+            {
+                _left = s.Left;
+                _timer = s.Timer;
+                _leaveTimer = s.LeaveTimer;
+                _shortage = s.Shortage;
+                _sent = s.Sent;
+                _answered = s.Answered;
+                _departed = s.Departed;
+            }
+            Subscribe(); // 답을 기다리는 청원은 사회 사건 시스템이 저장
         }
     }
 

@@ -90,6 +90,8 @@ namespace SpaceStation.Data
         DebrisBand,
         /// <summary>14-2d 5장 '항성 폭풍': 바깥 칸 방사선 몇 배 + 발열 증가 · 방열판 효율 감소, 힘든 주민이 떠남. 판정 = 떠난 주민 · 과열 파손 · 생명 유지 바닥 시간.</summary>
         StellarStorm,
+        /// <summary>14-4 6장 '물음의 시간': 종족 대표 청원이 잇달아 옴, 긴장도가 높으면 주민이 떠남. 판정 = 떠난 주민 · 끝 긴장도 · 생명 유지 바닥 시간.</summary>
+        Inquiry,
     }
 
     /// <summary>13-1: 절정 설정 (종류마다 쓰는 값이 다름).</summary>
@@ -167,6 +169,23 @@ namespace SpaceStation.Data
         [Tooltip("피해를 입고 버팀: 과열 파손 개수 이하")]
         [SerializeField, Min(0)] private int _hurtMaxDamaged = 3;
 
+        [Header("물음의 시간 (Inquiry, 14-4) — 판정: 떠난 주민 · 바닥 시간은 위 값, 긴장도는 아래")]
+        [Tooltip("위기 길이 (초) — 끝나고 청원에 다 답하면 판정")]
+        [SerializeField, Min(1f)] private float _inquirySeconds = 360f;
+        [SerializeField, Min(1)] private int _inquiryPetitions = 4;
+        [Tooltip("위기가 시작되고 첫 청원까지 (초)")]
+        [SerializeField, Min(1f)] private float _inquiryFirstLead = 30f;
+        [Tooltip("앞 청원에 답한 뒤 다음 청원까지 (초, '감시 강화'가 늘림)")]
+        [SerializeField, Min(1f)] private float _inquiryInterval = 90f;
+        [Tooltip("긴장도가 높으면 이 간격(초)마다 떠남")]
+        [SerializeField, Min(1f)] private float _inquiryLeaveInterval = 30f;
+        [Tooltip("한 번에 떠나는 수: '팽팽함' · '곧 터질 듯'")]
+        [SerializeField, Min(0)] private int _inquiryLeaveTense = 1;
+        [SerializeField, Min(0)] private int _inquiryLeaveCritical = 3;
+        [Tooltip("깔끔 · 빠듯: 끝 긴장도가 이 값 아래")]
+        [SerializeField, Min(0f)] private float _cleanMaxTension = 50f;
+        [SerializeField, Min(0f)] private float _hurtMaxTension = 75f;
+
         [Header("결과 이름 (비면 깔끔히 버팀 · 피해를 입고 버팀 · 일부를 잃음)")]
         [SerializeField] private string _cleanLabel;
         [SerializeField] private string _hurtLabel;
@@ -206,6 +225,15 @@ namespace SpaceStation.Data
         public float StormLeaveInterval => Mathf.Max(1f, _stormLeaveInterval);
         public int StormLeavePer => Mathf.Max(1, _stormLeavePer);
         public int HurtMaxDamaged => _hurtMaxDamaged;
+        public float InquirySeconds => Mathf.Max(1f, _inquirySeconds);
+        public int InquiryPetitions => Mathf.Max(1, _inquiryPetitions);
+        public float InquiryFirstLead => Mathf.Max(1f, _inquiryFirstLead);
+        public float InquiryInterval => Mathf.Max(1f, _inquiryInterval);
+        public float InquiryLeaveInterval => Mathf.Max(1f, _inquiryLeaveInterval);
+        public int InquiryLeaveTense => _inquiryLeaveTense;
+        public int InquiryLeaveCritical => _inquiryLeaveCritical;
+        public float CleanMaxTension => _cleanMaxTension;
+        public float HurtMaxTension => _hurtMaxTension;
         public string CleanLabel => _cleanLabel;
         public string HurtLabel => _hurtLabel;
         public string LostLabel => _lostLabel;

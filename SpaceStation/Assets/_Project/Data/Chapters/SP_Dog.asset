@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0698a21dc786dfb40a08307d0a35b4e4, type: 3}
+  m_Name: SP_Dog
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.SpeciesData
+  _id: dog
+  _displayName: "\uAC15\uC544\uC9C0"
+  _description: "\uCF54\uC5B4\uB97C \uBBFF\uACE0 \uB530\uB974\uB294 \uBB34\uB9AC.
+    \uBCF5\uB3C4\uB97C \uC9C0\uD0A4\uB294 \uC77C\uC744 \uC911\uC2DC\uD558\uACE0,
+    \uACC1\uC5D0 \uC788\uC73C\uBA74 \uB2E4\uB978 \uBB34\uB9AC\uB3C4 \uD55C\uACB0
+    \uCC28\uBD84\uD574\uC9C4\uB2E4."
+  _favoredNeed: 8
+  _favoredWeight: 0.5
+  _controlReaction: 0.5
+  _techTrait: 16
+  _techPerResident: 0.02
+  _techMax: 0.1
+  _heatTolerance: 0
+  _radiationTolerance: 0
+  _shipColor: {r: 0.88, g: 0.72, b: 0.5, a: 1}
+  _arrivalLines:
+  - "\uBC30 \uD55C \uCC99\uC774 \uBC29\uC8FC\uC5D0 \uB2FF\uC558\uB2E4. \uC120\uCCB4\uAC00
+    \uB9D0\uB054\uD558\uAC8C \uB2E6\uC5EC \uC788\uB2E4."
+  - "\uAC15\uC544\uC9C0\uB4E4\uC774\uB2E4. \uB0B4\uB9AC\uC790\uB9C8\uC790 \uC904\uBD80\uD130
+    \uB9DE\uCD98\uB2E4."
+  - "\uB098\uB97C \uBBFF\uB294\uB2E4\uACE0 \uD55C\uB2E4. \uC65C \uBBFF\uB294\uC9C0\uB294
+    \uBB3B\uC9C0 \uC54A\uB294\uB2E4."
+  _remarks:
+  - Key: climax.warning.6
+    Text: "\uB2E4\uB4E4 \uCF54\uC5B4\uAED8 \uBB3B\uACA0\uB2F5\uB2C8\uB2E4! \uC800\uD76C\uB294
+      \uCF54\uC5B4\uB97C \uBBFF\uC2B5\uB2C8\uB2E4!"
+  - Key: chapter.start.7.Clean
+    Text: "\uB2E4 \uAC19\uC774 \uB0A8\uC558\uC2B5\uB2C8\uB2E4! \uCF54\uC5B4\uB97C
+      \uBBFF\uAE38 \uC798\uD588\uC2B5\uB2C8\uB2E4!"
+  - Key: chapter.start.7.Hurt
+    Text: "\uBA87\uBA87\uC774 \uC544\uC9C1 \uD654\uAC00 \uB098 \uC788\uC2B5\uB2C8\uB2E4!
+      \uC800\uD76C\uAC00 \uACC1\uC744 \uC9C0\uD0A4\uACA0\uC2B5\uB2C8\uB2E4!"
+  - Key: chapter.start.7.Lost
+    Text: "\uB9CE\uC774\uB4E4 \uB5A0\uB0AC\uC2B5\uB2C8\uB2E4! \uC800\uD76C\uB294
+      \uB0A8\uACA0\uC2B5\uB2C8\uB2E4!"
+  - Key: ship.accept
+    Text: "\uC0C8\uB85C \uC624\uC2E0 \uBD84\uB4E4 \uC790\uB9AC, \uC800\uD76C\uAC00
+      \uC548\uB0B4\uD558\uACA0\uC2B5\uB2C8\uB2E4!"
+  - Key: ship.partial
+    Text: "\uC804\uBD80 \uBABB \uBAA8\uC2E0 \uAC74 \uC544\uC27D\uC2B5\uB2C8\uB2E4!
+      \uB2E4\uC74C\uC5D4 \uB354 \uBAA8\uC2DC\uACA0\uC2B5\uB2C8\uB2E4!"
+  - Key: ship.refuse
+    Text: "\uCF54\uC5B4 \uD310\uB2E8\uC744 \uBBFF\uC2B5\uB2C8\uB2E4! \uADF8\uB798\uB3C4
+      \uC800 \uBC30\uAC00 \uBB34\uC0AC\uD558\uBA74 \uC88B\uACA0\uC2B5\uB2C8\uB2E4!"

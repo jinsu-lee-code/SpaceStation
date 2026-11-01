@@ -26,10 +26,19 @@ namespace SpaceStation.Simulation
             Backlash,
             /// <summary>14-2b 집의 열 · 방사선이 견딤을 넘음.</summary>
             Environment,
+            /// <summary>14-4 치안을 못 채움.</summary>
+            Security,
+            /// <summary>14-4 사건 · 청원에 준 답.</summary>
+            Decision,
         }
 
-        private const int SourceCount = 5;
+        private const int SourceCount = 7;
 
+        /// <summary>14-4 장 표시: 긴장도 '잔잔함'으로 버팀 · 치안을 기준까지 채움.</summary>
+        public const string CalmGoalFlag = "tension.calm";
+        public const string SecurityFlag = "security.covered";
+
+        private float _calmHold; // 저장하지 않음 — 불러오면 다시 셈
         private readonly SocietyConfig _config;
         private readonly float[] _chapterTotals = new float[SourceCount];
         private readonly float[] _rates = new float[SourceCount];
@@ -59,8 +68,20 @@ namespace SpaceStation.Simulation
                 float rising = 0f;
                 for (int i = 0; i < SourceCount; i++)
                     rising += _rates[i];
-                return rising * 60f - _config.CalmPerMinute;
+                return rising * 60f - CalmPerMinute;
             }
+        }
+
+        /// <summary>가라앉는 속도 (분당) — 강아지 달램 · 연계 연구 '이웃 모임' 반영.</summary>
+        public float CalmPerMinute => _config.CalmPerMinute * Sim.Effects.TraitCalmMultiplier + Sim.Effects.TensionCalmBonus;
+
+        /// <summary>14-4 사건 · 청원의 답이 긴장도를 바꿈 (+ 오름 · − 내림).</summary>
+        public void Adjust(float amount)
+        {
+            if (amount > 0f)
+                Add(Source.Decision, amount);
+            else
+                Value = Mathf.Max(0f, Value + amount);
         }
 
         /// <summary>이 장에서 원인별로 쌓인 양.</summary>
@@ -74,6 +95,8 @@ namespace SpaceStation.Simulation
                 case Source.Favored: return "종족 불만";
                 case Source.Crowd: return "과밀";
                 case Source.Environment: return "환경 불만";
+                case Source.Security: return "치안 불안";
+                case Source.Decision: return "사건의 답";
                 default: return "정책 반발";
             }
         }
@@ -87,6 +110,8 @@ namespace SpaceStation.Simulation
                 case Source.Favored: return "의료 · 여가 채우기";
                 case Source.Crowd: return "빈 집 늘리기";
                 case Source.Environment: return "집의 열 · 방사선 낮추기";
+                case Source.Security: return "보안청 · 치안 본부 짓기";
+                case Source.Decision: return "대가를 치르는 답 고르기";
                 default: return "통제형 정책 줄이기";
             }
         }
@@ -165,10 +190,21 @@ namespace SpaceStation.Simulation
                     _rates[(int)Source.Backlash] = _config.BacklashPerMinute / 60f * policy.Opposition * policy.ActiveControl;
                 if (Sim.Residents != null)
                     _rates[(int)Source.Environment] = _config.EnvironmentPerMinute / 60f * Mathf.Clamp01((float)Sim.Residents.StressedCount / population);
+                foreach (var status in Sim.Needs.Statuses)
+                    if (status.Need == ResidentNeed.Security)
+                    {
+                        _rates[(int)Source.Security] = _config.SecurityPerMinute / 60f * FavoredGap(status.Ratio, _config.FavoredTolerance);
+                        if (status.Ratio >= _config.SecurityGoalRatio)
+                            Sim.Chapters?.SetFlag(SecurityFlag);
+                        break;
+                    }
             }
             for (int i = 0; i < SourceCount; i++)
                 Add((Source)i, _rates[i] * dt);
-            Value = Mathf.Max(0f, Value - _config.CalmPerMinute / 60f * dt);
+            Value = Mathf.Max(0f, Value - CalmPerMinute / 60f * dt);
+            _calmHold = Level == 0 ? _calmHold + dt : 0f;
+            if (_calmHold >= _config.CalmSeconds)
+                Sim.Chapters?.SetFlag(CalmGoalFlag);
         }
 
         /// <summary>못 채운 비율 중 불만으로 치는 몫 (너그러운 만큼 뺌).</summary>

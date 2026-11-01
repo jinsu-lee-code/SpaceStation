@@ -70,6 +70,7 @@ namespace SpaceStation.Data
                 case ResidentTrait.Mechanic: return "노후 방지";
                 case ResidentTrait.Artisan: return "합성 속도"; // M-50 (여우)
                 case ResidentTrait.Cooler: return "방열 효율"; // M-120 (펭귄)
+                case ResidentTrait.Peacemaker: return "긴장도 가라앉음"; // M-127 (강아지)
                 default: return trait.ToString();
             }
         }

@@ -72,6 +72,7 @@ namespace SpaceStation.UI
         private RecordArchiveSystem _records;
         // 13-6a 긴장도 (이민선 줄 아래 · 장 결과 창)
         private TensionSystem _tension;
+        private SocialEventSystem _social;
         private HomeComfortSystem _comfort;
         // 13-4 내부 안내 (방주 안 둘러보기)
         private Interior.InteriorMode _interior;
@@ -117,6 +118,7 @@ namespace SpaceStation.UI
             _explore = _sim.GetSystem<ExplorationSystem>();
             _records = _sim.GetSystem<RecordArchiveSystem>();
             _tension = _sim.GetSystem<TensionSystem>();
+            _social = _sim.GetSystem<SocialEventSystem>();
             _comfort = _sim.GetSystem<HomeComfortSystem>();
             _arkView = FindFirstObjectByType<ArkShipView>(FindObjectsInactive.Include);
             _transition = FindFirstObjectByType<ChapterTransitionView>(FindObjectsInactive.Include);
@@ -249,6 +251,9 @@ namespace SpaceStation.UI
                 return;
             }
             FollowStationPanel();
+            // 14-4 사회 사건 · 청원: 다른 창이 없을 때 (불러온 판 포함)
+            if (_social?.Pending != null && !_modalOpen && (_arkView == null || !_arkView.Playing))
+                ShowSocial(_social.Pending);
             if (Time.unscaledTime >= _nextRefresh)
             {
                 _nextRefresh = Time.unscaledTime + _refreshSeconds;
@@ -581,6 +586,67 @@ namespace SpaceStation.UI
         private void AnswerShip(ShipAnswer answer)
         {
             if (!_ships.Answer(answer))
+            {
+                AudioService.TryPlay(l => l.UiError);
+                return;
+            }
+            AudioService.TryPlay(l => l.UiClick);
+            CloseModal(resume: true);
+            Refresh();
+        }
+
+        // ---------------- 14-4 사회 사건 ----------------
+
+        /// <summary>사건 · 청원 창 (시간 멈춤): 문구 · 긴장도 단계 · 답 2~3개 (대가 · 코어 쪽 표시, 고를 수 없는 답은 사유).</summary>
+        private void ShowSocial(SocialPending p)
+        {
+            string level = _tension != null ? _tension.Config.LevelName(_social.EffectiveTension) : "";
+            string who = string.IsNullOrEmpty(p.Speaker) ? "" : $"<color={Gold}>{p.Speaker} 대표</color>  ";
+            _modalTitle.SetText($"{p.Title}\n<size=70%>{who}<color={Soft}>긴장도 {level} · 대가 ×{p.Weight:0.##}</color></size>");
+            _modalBody.SetText(p.Body);
+            ClearButtons();
+            var answers = _social.Answers(p);
+            for (int i = 0; i < answers.Count; i++)
+                AddSocialButton(i, answers[i]);
+            OpenModal();
+        }
+
+        private void AddSocialButton(int index, SocialAnswer a)
+        {
+            _sb.Clear();
+            _sb.Append($"<b>{a.Title}</b>\n<size=78%><color={Soft}>");
+            if (!string.IsNullOrEmpty(a.Note))
+                _sb.Append(a.Note);
+            string cost = SocialCostText(a);
+            if (cost.Length > 0)
+                _sb.Append(string.IsNullOrEmpty(a.Note) ? cost : $"\n{cost}");
+            _sb.Append("</color></size>");
+            if (!_social.CanAnswer(index, out string reason))
+                _sb.Append($"\n<size=78%><color={HudText.Red}>{reason}</color></size>");
+            string lean = LeanText(a.Shifts);
+            if (lean.Length > 0)
+                _sb.Append($"\n<size=70%><color={CoreTint}>코어: {lean}</color></size>");
+            AddButton(_sb.ToString(), () => AnswerSocial(index), tall: true);
+        }
+
+        /// <summary>대가 한 줄 ("금속 120 · 긴장도 -6 · 2명 떠남").</summary>
+        private string SocialCostText(SocialAnswer a)
+        {
+            var parts = new System.Collections.Generic.List<string>();
+            foreach (var c in _social.CostOf(a))
+                parts.Add($"{c.Type.DisplayName()} {c.Amount:0}");
+            float tension = _social.TensionOf(a);
+            if (Mathf.Abs(tension) >= 0.5f)
+                parts.Add($"긴장도 {tension:+0;-0}");
+            int leave = _social.LeaveOf(a);
+            if (leave > 0)
+                parts.Add($"{leave}명 떠남");
+            return string.Join(" · ", parts);
+        }
+
+        private void AnswerSocial(int index)
+        {
+            if (!_social.Answer(index))
             {
                 AudioService.TryPlay(l => l.UiError);
                 return;

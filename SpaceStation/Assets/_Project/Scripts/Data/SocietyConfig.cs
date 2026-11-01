@@ -32,6 +32,8 @@ namespace SpaceStation.Data
         [SerializeField, Min(0f)] private float _backlashPerMinute = 4f;
         [Tooltip("14-2b 집 환경이 힘든 주민이 100%일 때 분당 (힘든 주민 비율만큼)")]
         [SerializeField, Min(0f)] private float _environmentPerMinute = 3f;
+        [Tooltip("14-4 치안이 전혀 안 채워질 때 분당 (못 채운 비율만큼, 중시 요구와 같은 너그러움)")]
+        [SerializeField, Min(0f)] private float _securityPerMinute = 4f;
         [Tooltip("늘 조금씩 가라앉음 (분당) — 오르는 속도가 이보다 작으면 내려감 (14-3 플레이: 오를 이유가 하나만 있어도 안 내려가 100에 고정됐음)")]
         [SerializeField, Min(0f)] private float _calmPerMinute = 2f;
         [Tooltip("표시 단계 경계: 이 값부터 술렁임 · 팽팽함 · 곧 터질 듯")]
@@ -45,6 +47,15 @@ namespace SpaceStation.Data
         [Tooltip("힘든 주민 0명으로 이 시간(초) 버티면 표시 (5장 선택 목표)")]
         [SerializeField, Min(1f)] private float _calmSeconds = 60f;
 
+        [Header("6장 (14-4)")]
+        [Tooltip("치안을 주민 이 비율까지 채우면 표시 (6장 선택 목표)")]
+        [SerializeField, Range(0f, 1f)] private float _securityGoalRatio = 0.8f;
+        [Tooltip("사회 사건 설정 (없으면 사건이 오지 않음)")]
+        [SerializeField] private SocialEventConfig _events;
+
+        public float SecurityPerMinute => _securityPerMinute;
+        public float SecurityGoalRatio => _securityGoalRatio;
+        public SocialEventConfig Events => _events;
         public float StressMoodMax => _stressMoodMax;
         public float CalmSeconds => _calmSeconds;
         public float EnvironmentPerMinute => _environmentPerMinute;

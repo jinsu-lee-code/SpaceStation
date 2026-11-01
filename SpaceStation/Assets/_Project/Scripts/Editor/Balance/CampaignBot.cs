@@ -168,6 +168,7 @@ namespace SpaceStation.Editor.Balance
         private StationSimulation _sim;
         private ChapterSystem _chapters;
         private ArkShipSystem _ark;
+        private SocialEventSystem _social;
         private ExplorationSystem _explore;
         private BalanceBotPersona _persona;
         private System.Random _choiceRng;
@@ -227,6 +228,8 @@ namespace SpaceStation.Editor.Balance
                 sim.AddSystem(new TensionSystem(_a.Society), TickStepNames.Population);
             if (_a.Society != null && sim.Chapters != null)
                 sim.AddSystem(new HomeComfortSystem(_a.Society), TickStepNames.Population);
+            _social = _a.Society != null && _a.Society.Events != null && sim.Chapters != null
+                ? sim.AddSystem(new SocialEventSystem(_a.Society, _a.Society.Events), TickStepNames.Population) : null;
             _chapters = sim.Chapters;
             if (_chapters != null)
             {
@@ -279,6 +282,7 @@ namespace SpaceStation.Editor.Balance
             if (_chapters.Phase == ChapterPhase.Warning && shower != null && shower.Phase == MeteorShowerSystem.ShowerPhase.Falling && !shower.IsRaid && Current != null)
                 Current.ShowerInWarning = true;
             AnswerShip();
+            AnswerSocial();
             Explore(bot);
             EnactPolicy();
             if (!Prepare)
@@ -765,6 +769,21 @@ namespace SpaceStation.Editor.Balance
                 _stats.Refused++;
             else
                 _stats.Partial++;
+        }
+
+        /// <summary>14-4 사건 · 청원 답 = 낼 수 있으면 맨 앞(대가를 치르는 답), 못 내면 고를 수 있는 다음 답.</summary>
+        private void AnswerSocial()
+        {
+            var pending = _social?.Pending;
+            if (pending == null)
+                return;
+            int count = _social.Answers(pending).Count;
+            for (int i = 0; i < count; i++)
+                if (_social.CanAnswer(i, out _))
+                {
+                    _social.Answer(i);
+                    return;
+                }
         }
 
         private bool Crisis()

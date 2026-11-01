@@ -55,7 +55,7 @@ namespace SpaceStation.Editor
             CoreLines();
 
             // 13-3 이민선 시계 + 종족 (사용자 결정 2026-10-18: 시작 토끼 → 3장 곰, 2장부터 약 4분 · 4~6명 · 1분 전 예보, 2장부터 자연 증가 느리게)
-            var ark = ArkShips(out var rabbit, out var bear, out var fox, out var penguin);
+            var ark = ArkShips(out var rabbit, out var bear, out var fox, out var penguin, out var dog);
             Ships(ch1, false, null, 1f);
             Ships(ch2, true, null, 3f);
             Ships(ch3, true, bear, 3f);
@@ -103,7 +103,7 @@ namespace SpaceStation.Editor
 
             // 14-0 4~7장 틀 (그레이박스 — 실제 내용은 14-1 · 14-2 · 14-4 · 14-5)
             var chapters = new List<ChapterData> { ch1, ch2, ch3 };
-            chapters.AddRange(LaterChapters(grades, fox, penguin));
+            chapters.AddRange(LaterChapters(grades, fox, penguin, dog));
 
             var configPath = Folder + "/Chapters.asset";
             var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>(configPath);
@@ -385,7 +385,7 @@ namespace SpaceStation.Editor
         /// 13-3 종족 2종 + 이민선 설정 (사용자 결정 2026-10-18 D-8: 기본값 = 사회 1 + 기술 1 + 견딤 1, 값은 그레이박스 초안).
         /// 토끼: 의료 중시 · 통제에 순응 · 식량 생산 + / 곰: 여가 중시 · 통제에 반발 · 수리 속도 + · 열에 강함.
         /// </summary>
-        private static ArkShipConfig ArkShips(out SpeciesData rabbit, out SpeciesData bear, out SpeciesData fox, out SpeciesData penguin)
+        private static ArkShipConfig ArkShips(out SpeciesData rabbit, out SpeciesData bear, out SpeciesData fox, out SpeciesData penguin, out SpeciesData dog)
         {
             rabbit = LoadOrCreate<SpeciesData>(Folder + "/SP_Rabbit.asset");
             rabbit.EditorSet("rabbit", "토끼", "겁이 많지만 부지런한 무리. 아플 때 돌봐 줄 곳을 먼저 찾고, 텃밭을 잘 가꾼다.",
@@ -430,6 +430,13 @@ namespace SpaceStation.Editor
                 ("chapter.start.6.Clean", "바람이 지나갔어요. 아무도 안 다쳤대요."),
                 ("chapter.start.6.Hurt", "바깥쪽 벽이 그을렸어요. 그래도 다들 있어요."),
                 ("chapter.start.6.Lost", "바깥쪽에 살던 분들이 안 보여요."),
+                // 14-4 6장 (장 시작 = 폭풍 결과 반응 · 물음의 시간 예고) · 7장 시작 = 물음의 시간 결과 반응
+                ("chapter.start.6", "복도에서 언성이 높아졌어요. 다들 지친 것 같아요."),
+                ("climax.warning.6", "다들 코어에게 물어보러 간대요. 저도 궁금한 게 있어요."),
+                ("chapter.start.7.Clean", "코어가 다 들어 줬어요. 조금 마음이 놓여요."),
+                ("chapter.start.7.Hurt", "대답은 들었는데, 아직 마음이 복잡해요."),
+                ("chapter.start.7.Lost", "복도가 조용해요. 인사할 이웃이 많이 줄었어요."),
+                ("ship.new.dog", "강아지들이에요! 인사를 정말 씩씩하게 해요."),
                 ("ship.new.bear", "곰이라니, 덩치가 커서 조금 무서워요. 그래도 잘 지내 볼게요."),
                 ("ship.new.fox", "여우들이에요! 손재주가 좋다던데, 고장 난 것도 고쳐 줄까요?"),
                 ("ship.new.penguin", "펭귄들이에요! 더위를 많이 탄대요. 시원한 방을 봐 줘야겠어요."),
@@ -446,6 +453,12 @@ namespace SpaceStation.Editor
                 ("chapter.start.6.Clean", "버텼군. 벽이 제 몫을 했다."),
                 ("chapter.start.6.Hurt", "그을렸다. 고치면 된다."),
                 ("chapter.start.6.Lost", "바깥 칸이 비었다. 말은 안 하겠다."),
+                ("chapter.start.6", "복도가 시끄럽다. 말이 거칠어졌다."),
+                ("climax.warning.6", "물을 게 있다. 코어가 답해야 한다."),
+                ("chapter.start.7.Clean", "답은 들었다. 일단 믿어 본다."),
+                ("chapter.start.7.Hurt", "답이 마음에 안 든다. 그래도 남는다."),
+                ("chapter.start.7.Lost", "많이 떠났다. 우리는 일단 남았다."),
+                ("ship.new.dog", "강아지군. 말은 잘 듣겠지. 그게 걱정이다."),
                 ("ship.accept", "또 왔군. 좁으면 붙어 자면 된다."),
                 ("ship.partial", "다 못 태웠다고. 그래, 할 수 있는 만큼 한 거다."),
                 ("ship.refuse", "돌려보냈군. 우리도 저럴 뻔했다."),
@@ -472,6 +485,12 @@ namespace SpaceStation.Editor
                 ("chapter.start.6.Clean", "봤지? 바깥도 살 만하다니까!"),
                 ("chapter.start.6.Hurt", "살짝 탔네? 덧대면 되지!"),
                 ("chapter.start.6.Lost", "바깥이 너무 비었네. 다음엔 벽부터 쌓자고."),
+                ("chapter.start.6", "복도가 시끌시끌하네? 구경은 공짜지!"),
+                ("climax.warning.6", "다들 코어한테 따지러 간다네? 나도 하나 물어볼까!"),
+                ("chapter.start.7.Clean", "말이 통하네? 코어도 제법인걸!"),
+                ("chapter.start.7.Hurt", "대답이 좀 빡빡했지? 뭐, 듣기는 들었네!"),
+                ("chapter.start.7.Lost", "다들 짐 싸서 나갔네. 말 한마디가 그렇게 비싸다니까."),
+                ("ship.new.dog", "강아지네? 코어 말이라면 뭐든 믿겠는걸!"),
                 ("ship.accept", "또 손님이네? 자리야 뭐, 합치고 쌓으면 나오지!"),
                 ("ship.partial", "다 못 들였네. 칸만 넉넉했어도 말이야."),
                 ("ship.refuse", "돌려보냈어? 저 배에도 쓸 만한 손이 있었을 텐데."),
@@ -492,13 +511,38 @@ namespace SpaceStation.Editor
                 ("chapter.start.6.Clean", "우리는 모두 여기 있습니다. 벽 덕분이지요."),
                 ("chapter.start.6.Hurt", "우리 중 몇은 아직 열이 있지요. 곧 나을 겁니다."),
                 ("chapter.start.6.Lost", "우리 자리가 많이 비었습니다. 서로 더 붙어 앉지요."),
+                ("chapter.start.6", "복도가 어수선하지요. 우리는 차분히 있겠습니다."),
+                ("climax.warning.6", "우리도 묻고 싶은 것이 있지요. 차례를 기다립니다."),
+                ("chapter.start.7.Clean", "우리의 물음에 답을 들었지요. 그것으로 됐습니다."),
+                ("chapter.start.7.Hurt", "우리 마음에는 아직 물음이 남았지요. 천천히 풀어 가지요."),
+                ("chapter.start.7.Lost", "우리 곁이 많이 비었습니다. 남은 이들끼리 더 붙어 앉지요."),
+                ("ship.new.dog", "강아지들이군요. 우리 곁에도 자리를 내주지요."),
                 ("ship.accept", "우리를 받아 주셨군요. 우리도 손을 보태지요."),
                 ("ship.partial", "일부만 오른다지요. 우리는 남은 이들을 기억합니다."),
                 ("ship.refuse", "돌아가라 하시는군요. 우리는 다른 곳을 찾아보지요."));
             EditorUtility.SetDirty(penguin);
 
+            // 14-4 6장 강아지 (사용자 결정 2026-11-02): 충직한 경비 — 치안 중시 · 통제 순응 · 긴장도 가라앉음 +2%/명(최대 +10%) · 열 보통 · 방사선 보통,
+            // 한마디 = 씩씩한 '~습니다!', 무리 가운데 코어를 가장 믿음. 문장은 확인용 초안
+            dog = LoadOrCreate<SpeciesData>(Folder + "/SP_Dog.asset");
+            dog.EditorSet("dog", "강아지", "코어를 믿고 따르는 무리. 복도를 지키는 일을 중시하고, 곁에 있으면 다른 무리도 한결 차분해진다.",
+                ResidentNeed.Security, 0.5f, 0.5f, ResidentTrait.Peacemaker, 0.02f, 0.1f, 0f, 0f);
+            dog.EditorSetShip(new Color(0.88f, 0.72f, 0.5f),
+                "배 한 척이 방주에 닿았다. 선체가 말끔하게 닦여 있다.",
+                "강아지들이다. 내리자마자 줄부터 맞춘다.",
+                "나를 믿는다고 한다. 왜 믿는지는 묻지 않는다.");
+            dog.EditorSetRemarks(
+                ("climax.warning.6", "다들 코어께 묻겠답니다! 저희는 코어를 믿습니다!"),
+                ("chapter.start.7.Clean", "다 같이 남았습니다! 코어를 믿길 잘했습니다!"),
+                ("chapter.start.7.Hurt", "몇몇이 아직 화가 나 있습니다! 저희가 곁을 지키겠습니다!"),
+                ("chapter.start.7.Lost", "많이들 떠났습니다! 저희는 남겠습니다!"),
+                ("ship.accept", "새로 오신 분들 자리, 저희가 안내하겠습니다!"),
+                ("ship.partial", "전부 못 모신 건 아쉽습니다! 다음엔 더 모시겠습니다!"),
+                ("ship.refuse", "코어 판단을 믿습니다! 그래도 저 배가 무사하면 좋겠습니다!"));
+            EditorUtility.SetDirty(dog);
+
             var ark = LoadOrCreate<ArkShipConfig>(ArkPath);
-            ark.EditorSet(rabbit, new List<SpeciesData> { rabbit, bear, fox, penguin },
+            ark.EditorSet(rabbit, new List<SpeciesData> { rabbit, bear, fox, penguin, dog },
                 new List<AxisShift> { new AxisShift(CoreAxis.Care, CorePole.Second, ShiftSize.Medium), new AxisShift(CoreAxis.Scope, CorePole.Second, ShiftSize.Small) },
                 new List<AxisShift> { new AxisShift(CoreAxis.Care, CorePole.First, ShiftSize.Small) },
                 new List<AxisShift> { new AxisShift(CoreAxis.Care, CorePole.First, ShiftSize.Medium), new AxisShift(CoreAxis.Scope, CorePole.First, ShiftSize.Small) });
@@ -915,6 +959,178 @@ namespace SpaceStation.Editor
             Transmission(chapter, "기록 27. 차폐 계산은 끝났다. 바깥 칸에 누가 살지는 끝내 정하지 못했다. 그 일은 코어에게 넘긴다.");
             AddUnlocks(chapter, M("MD_Radiator"), M("MD_RadiationShelter"));
             EditorUtility.SetDirty(chapter);
+        }
+
+        /// <summary>
+        /// 14-4 6장 '갈라진 목소리' (사용자 결정 2026-11-02): 사회 사건 · 새 요구 치안(대륙급 도달 때) · 정책 3칸 + 남은 4종 · 레시피 6종 · 강아지 ·
+        /// 목표 = 필수 3(대륙급 · 강아지 맞이하기 · 보안청) + 선택 2(긴장도 잔잔함으로 1분 = 기록 조각 +1 · 치안 80% = 금속 +150) · 위기 '물음의 시간'.
+        /// </summary>
+        private static void ChapterSix(ChapterData chapter)
+        {
+            var so = new SerializedObject(chapter);
+            so.FindProperty("_subtitle").stringValue = "갈라진 목소리";
+            SetNeeds(so.FindProperty("_gradeUpNeeds"), new List<ResidentNeed> { ResidentNeed.Security });
+
+            so.FindProperty("_policySlots").intValue = 3;
+            so.FindProperty("_gradeUpPolicySlots").intValue = 0;
+            so.FindProperty("_policyApplyDelay").floatValue = 30f;
+            so.FindProperty("_policySwapCooldown").floatValue = 180f;
+            var policyNames = new[] { "PO_Surveillance", "PO_EmergencyDrill", "PO_MandatoryUpkeep", "PO_ResearchFirst" };
+            var policies = so.FindProperty("_policies");
+            policies.arraySize = policyNames.Length;
+            for (int i = 0; i < policyNames.Length; i++)
+                policies.GetArrayElementAtIndex(i).objectReferenceValue = AssetDatabase.LoadAssetAtPath<PolicyData>(PolicyFolder + policyNames[i] + ".asset");
+
+            var names = new[] { "RC_SecurityBureau", "RC_SecurityHQ", "RC_Arcology", "RC_Biodome", "RC_VerticalFarm", "RC_MaterialReclaimer" };
+            var recipes = so.FindProperty("_recipes");
+            recipes.arraySize = names.Length;
+            for (int i = 0; i < names.Length; i++)
+                recipes.GetArrayElementAtIndex(i).objectReferenceValue = R(names[i]);
+
+            var goals = so.FindProperty("_goals");
+            goals.arraySize = 5;
+            var grade = goals.GetArrayElementAtIndex(0);
+            Clear(grade);
+            grade.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.ReachGrade;
+            grade.FindPropertyRelative("_grade").intValue = 6;
+            FlagGoal(goals.GetArrayElementAtIndex(1), SpaceStation.Simulation.ArkShipSystem.MetFlag("dog"), "강아지 무리 맞이하기 (답은 무엇이든)", false);
+            var bureau = goals.GetArrayElementAtIndex(2);
+            ModuleGoal(bureau, M("Evolved/MD_Evo_SecurityBureau"), "보안청 만들기 (대륙급부터 치안 요구)");
+            bureau.FindPropertyRelative("_optional").boolValue = false;
+            var calm = goals.GetArrayElementAtIndex(3);
+            FlagGoal(calm, SpaceStation.Simulation.ChapterSystem.ScopedFlag(SpaceStation.Simulation.TensionSystem.CalmGoalFlag, 6), "긴장도 '잔잔함'으로 1분 버티기", true);
+            calm.FindPropertyRelative("_rewardFragments").intValue = 1;
+            var security = goals.GetArrayElementAtIndex(4);
+            FlagGoal(security, SpaceStation.Simulation.ChapterSystem.ScopedFlag(SpaceStation.Simulation.TensionSystem.SecurityFlag, 6), "치안을 주민 80%까지 채우기", true);
+            var reward = security.FindPropertyRelative("_rewardResources");
+            reward.arraySize = 1;
+            reward.GetArrayElementAtIndex(0).FindPropertyRelative("Type").enumValueIndex = (int)ResourceType.Metal;
+            reward.GetArrayElementAtIndex(0).FindPropertyRelative("Amount").floatValue = 150f;
+
+            var climax = so.FindProperty("_climax");
+            climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.Inquiry;
+            climax.FindPropertyRelative("_title").stringValue = "물음의 시간";
+            climax.FindPropertyRelative("_description").stringValue = "여러 무리가 코어에게 물으러 옵니다 · 6분 동안 청원 4건이 앞서 내린 결정을 근거로 묻고, 답마다 대가가 다릅니다 · 긴장도가 '팽팽함' 이상이면 주민이 떠납니다 · 긴장도를 미리 낮춰 두세요";
+            climax.FindPropertyRelative("_warningSeconds").floatValue = 180f;
+            climax.FindPropertyRelative("_inquirySeconds").floatValue = 360f;
+            climax.FindPropertyRelative("_inquiryPetitions").intValue = 4;
+            climax.FindPropertyRelative("_inquiryFirstLead").floatValue = 30f;
+            climax.FindPropertyRelative("_inquiryInterval").floatValue = 90f;
+            climax.FindPropertyRelative("_inquiryLeaveInterval").floatValue = 30f;
+            climax.FindPropertyRelative("_inquiryLeaveTense").intValue = 1;
+            climax.FindPropertyRelative("_inquiryLeaveCritical").intValue = 3;
+            climax.FindPropertyRelative("_cleanMaxDeparted").intValue = 3;
+            climax.FindPropertyRelative("_cleanMaxTension").floatValue = 50f;
+            climax.FindPropertyRelative("_cleanMaxShortageSeconds").floatValue = 0f;
+            climax.FindPropertyRelative("_hurtMaxDeparted").intValue = 30;
+            climax.FindPropertyRelative("_hurtMaxTension").floatValue = 75f;
+            climax.FindPropertyRelative("_hurtMaxShortageSeconds").floatValue = 60f;
+            climax.FindPropertyRelative("_cleanLabel").stringValue = "이어진 믿음";
+            climax.FindPropertyRelative("_hurtLabel").stringValue = "금 간 믿음";
+            climax.FindPropertyRelative("_lostLabel").stringValue = "등 돌린 무리";
+
+            // 방향 (사용자 결정 2026-11-02, 축 점검 — 효율이 가장 적음): 숫자로 답한다 = 효율 크게 / 사정부터 듣는다 = 연민 보통 + 보존 작게
+            var choices = so.FindProperty("_choices");
+            choices.arraySize = 2;
+            SetChoice(choices.GetArrayElementAtIndex(0), "numbers", "숫자로 답한다", "왜 그렇게 정했는지 계산을 그대로 내보인다");
+            SetChoice(choices.GetArrayElementAtIndex(1), "listen", "사정부터 듣는다", "계산을 덮어 두고 남은 이들의 사정부터 듣는다");
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Shifts(chapter, 0, (CoreAxis.Care, CorePole.First, ShiftSize.Large));
+            Shifts(chapter, 1, (CoreAxis.Care, CorePole.Second, ShiftSize.Medium), (CoreAxis.Scope, CorePole.First, ShiftSize.Small));
+            // 장 전환 연출의 옛 녹음 (확인용 초안)
+            Transmission(chapter, "기록 31. 방주를 띄우기 전에 우리도 모여 물었다. 누가 타고 누가 남는가. 아무도 대답하지 못했다. 그래서 코어를 만들었다.");
+            AddUnlocks(chapter, M("MD_Administration"));
+            EditorUtility.SetDirty(chapter);
+        }
+
+        private const string SocialEventsPath = "Assets/_Project/Data/Chapters/SocialEvents.asset";
+
+        /// <summary>
+        /// 14-4 사회 사건 (사용자 결정 2026-11-02): 다툼 → 열병 → 떠남, '곧 터질 듯'이면 소란 + 위기 청원. 답마다 축을 작게 움직이고 연민 · 효율 · 보존 쪽을 하나씩 둠
+        /// (축 점검: 효율 · 보존이 가장 적음). 효율 쪽 답은 '곧 터질 듯'이면 고를 수 없음. 문구 = 안내 합니다체 · 코어 기록 반말 · 청원은 종족 말투 (확인용 초안).
+        /// </summary>
+        private static void SocialEvents()
+        {
+            AxisShift Lean(CoreAxis axis, CorePole pole) => new AxisShift(axis, pole, ShiftSize.Small);
+            var care = Lean(CoreAxis.Care, CorePole.Second);
+            var efficient = Lean(CoreAxis.Care, CorePole.First);
+            var preserve = Lean(CoreAxis.Scope, CorePole.First);
+            var metal = ResourceType.Metal;
+            var noTrust = "지금은 아무도 이 말을 듣지 않습니다";
+
+            var events = new List<SocialEvent>
+            {
+                new SocialEvent("quarrel", 6, "무리 간 다툼", "{a} 무리와 {b} 무리가 복도 자리를 두고 다툽니다. 서로 먼저 왔다고 합니다.", 300f, SocialEventSubject.BiggestTwo,
+                    new SocialAnswer("자리를 나눠 준다", "복도를 넓혀 양쪽에 내줍니다", -6f, "{a}와 {b}에게 자리를 나눠 줬다. 금속은 줄었다.", care).WithCost(new ResourceAmount(metal, 120f)),
+                    new SocialAnswer("수가 많은 쪽 손을 든다", "빠르지만 다른 쪽이 서운해합니다", 4f, "수가 많은 {a} 쪽 손을 들었다. 계산은 맞다.", efficient).WithSatisfaction(-3f).LockedFrom(3, noTrust),
+                    new SocialAnswer("지금 자리를 그대로 둔다", "아무것도 바꾸지 않습니다", 2f, "자리는 그대로 뒀다. 다툼도 그대로다.", preserve)),
+                new SocialEvent("fever", 6, "열병", "복도를 따라 열병이 돕니다. 아픈 주민 {n}명 · 의료가 모자랄수록 많아집니다.", 660f, SocialEventSubject.Sick,
+                    new SocialAnswer("모두 돌본다", "식량과 물을 더 씁니다", -4f, "아픈 이 {n}명을 모두 돌보기로 했다.", care).WithCost(new ResourceAmount(ResourceType.Food, 80f), new ResourceAmount(ResourceType.Water, 80f)),
+                    new SocialAnswer("아픈 칸을 막는다", "2분 동안 생산이 10% 줄어듭니다", 2f, "아픈 칸을 막았다. 더 옮지는 않겠지.", efficient)
+                        .WithTemporary("열병 격리", 120f, new PolicyModifier { Stat = PolicyStat.Production, Value = 0.9f }).LockedFrom(3, noTrust),
+                    new SocialAnswer("하던 일을 계속한다", "일부가 떠납니다", 5f, "하던 일을 계속했다. 몇은 떠났다.", preserve).WithLeave(0, 0.3f)),
+                new SocialEvent("leaving", 6, "자리를 떠나는 무리", "{a} 무리 {n}명이 배 한 척을 내어 달라고 합니다. 여기서는 더 못 살겠다고 합니다.", 1020f, SocialEventSubject.MostDiscontent,
+                    new SocialAnswer("사정을 듣고 붙잡는다", "모자란 것을 채워 주기로 합니다", -6f, "{a} 무리의 사정을 들었다. 남겠다고 했다.", care).WithCost(new ResourceAmount(metal, 200f)),
+                    new SocialAnswer("필요한 손만 남긴다", "절반이 떠납니다", 4f, "손이 필요한 이들만 남겼다. 나머지는 떠났다.", efficient).WithLeave(0, 0.5f).LockedFrom(3, noTrust),
+                    new SocialAnswer("배를 내주고 문을 닫는다", "모두 떠나지만 말썽은 줄어듭니다", -2f, "배를 내줬다. 남은 이들을 지키는 쪽을 골랐다.", preserve).WithLeave(0, 1f)),
+            };
+            var riot = new SocialEvent("riot", 6, "복도의 소란", "쌓인 불만이 터졌습니다. 복도에 주민들이 모여 일손이 멈췄습니다.", 0f, SocialEventSubject.None,
+                new SocialAnswer("달랜다", "식량을 풀어 모두를 먹입니다", -10f, "먹을 것을 풀었다. 소란이 가라앉았다.", care).WithCost(new ResourceAmount(ResourceType.Food, 120f)),
+                new SocialAnswer("일을 먼저 돌린다", "1분 동안 생산이 15% 줄어듭니다", 3f, "일부터 돌리라고 했다. 불만은 그대로 남았다.", efficient)
+                    .WithTemporary("복도의 소란", 60f, new PolicyModifier { Stat = PolicyStat.Production, Value = 0.85f }),
+                new SocialAnswer("자리로 돌려보낸다", "만족도가 떨어집니다", -4f, "각자 자리로 돌려보냈다. 조용해졌다.", preserve).WithSatisfaction(-5f));
+            var petitions = new List<SocialPetition>
+            {
+                new SocialPetition("refused", "rabbit", PetitionCause.RefusedShips, "돌려보낸 배에 {n}명이 타고 있었대요. 그 배들은 어디로 갔나요?"),
+                new SocialPetition("control", "bear", PetitionCause.ControlPolicy, "명령이 늘었다. 우리한테 묻지도 않았다. 왜 코어가 정하나."),
+                new SocialPetition("departed", "penguin", PetitionCause.Departed, "우리 곁을 떠난 이가 {n}명이지요. 다음은 누구인지, 우리는 알고 싶습니다."),
+                new SocialPetition("overwrote", "fox", PetitionCause.OverwroteRecord, "기록을 덮어썼다며? 뭘 지웠는지 말해 줄 수 있지?"),
+                new SocialPetition("earth", "rabbit", PetitionCause.ForgotEarth, "지구 불빛이 또 꺼졌어요. 코어는 이제 저쪽을 안 보나요?"),
+                new SocialPetition("lost", "bear", PetitionCause.LostOutcome, "지난번에 많이 잃었다. 다음엔 안 잃는다고 말할 수 있나."),
+                new SocialPetition("seat", "fox", PetitionCause.Always, "우리 자리는 누가 정한 거야? 계산이 있으면 보여 줘 봐!"),
+                new SocialPetition("road", "penguin", PetitionCause.Always, "우리는 묻기만 합니다. 이 길이 어디로 가는지요."),
+                new SocialPetition("who", "bear", PetitionCause.Always, "누가 코어한테 정하라고 했나."),
+                new SocialPetition("trust", "dog", PetitionCause.Always, "저희는 코어를 믿습니다! 다만 다들 듣고 싶어 합니다!"),
+                new SocialPetition("listen", "rabbit", PetitionCause.Always, "저희 말도 들어 주실 건가요? 그것만 알고 싶어요."),
+            };
+            var answers = new List<SocialAnswer>
+            {
+                new SocialAnswer("들어준다", "자원을 내어 약속을 지킵니다", -8f, "청원을 들어줬다. 약속한 만큼 내줬다.", care).WithCost(new ResourceAmount(metal, 150f), new ResourceAmount(ResourceType.Food, 60f)),
+                new SocialAnswer("계산을 보여 준다", "왜 그렇게 정했는지 내보입니다", -3f, "계산을 그대로 보여 줬다.", efficient).LockedFrom(3, "지금은 아무도 숫자를 듣지 않습니다"),
+                new SocialAnswer("지킬 것부터 지킨다", "지금은 답을 미룹니다", 6f, "지킬 것부터 지키겠다고 했다. 몇은 떠났다.", preserve).WithLeave(2, 0f),
+            };
+            var config = LoadOrCreate<SocialEventConfig>(SocialEventsPath);
+            config.EditorSet(events, riot, petitions, answers);
+            EditorUtility.SetDirty(config);
+            var society = LoadOrCreate<SocietyConfig>(SocietyPath);
+            var so = new SerializedObject(society);
+            so.FindProperty("_events").objectReferenceValue = config;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            NeighborResearch();
+        }
+
+        /// <summary>14-4 서사판 연계 연구 '이웃 모임' (아콜로지 → 긴장도 가라앉음 분당 +1, main M-127 값). 공통 설정 목록에 없으면 더함.</summary>
+        private static void NeighborResearch()
+        {
+            var lr = LoadOrCreate<LinkedResearchData>("Assets/_Project/Data/Research/LR_NeighborMeet.asset");
+            var level = new ResearchLevel { PowerDemand = 14f, Duration = 180f, Description = "아콜로지 층마다 모임을 열어 긴장도가 분당 1 더 가라앉음" };
+            level.StartCost.Add(new ResourceAmount(ResourceType.Oxygen, 80f));
+            level.StartCost.Add(new ResourceAmount(ResourceType.Water, 80f));
+            level.StartCost.Add(new ResourceAmount(ResourceType.Metal, 220f));
+            level.Modifiers.Add(new ResearchModifier { Stat = ResearchStat.TensionCalmBonus, Value = 1f });
+            lr.EditorSet("이웃 모임", ResearchCategory.Habitation, M("Evolved/MD_Evo_Arcology"), level);
+            EditorUtility.SetDirty(lr);
+            var config = AssetDatabase.LoadAssetAtPath<ResearchExpansionConfig>("Assets/_Project/Data/Research/ResearchExpansionConfig.asset");
+            if (config == null)
+                return;
+            var so = new SerializedObject(config);
+            var list = so.FindProperty("_linked");
+            for (int i = 0; i < list.arraySize; i++)
+                if (list.GetArrayElementAtIndex(i).objectReferenceValue == lr)
+                    return;
+            list.arraySize++;
+            list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = lr;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private const string EnvironmentGuidePath = "Assets/_Project/Data/Chapters/TUT_Environment.asset";
@@ -1368,8 +1584,9 @@ namespace SpaceStation.Editor
         /// 이름은 임시 "(가제) …"(실제 이름은 장마다 착수 때 D-14), 방향 선택 없음, 이민선은 이어서 (새 종족은 D-15).
         /// 지구 불빛 = 7장 끝에 완전히 꺼짐: 4장 36 → 30% · 5장 26 → 20% · 6장 16 → 10% · 7장 7 → 2%, 마지막 연출에서 0%.
         /// </summary>
-        private static List<ChapterData> LaterChapters(StationGradeConfig grades, SpeciesData fox, SpeciesData penguin)
+        private static List<ChapterData> LaterChapters(StationGradeConfig grades, SpeciesData fox, SpeciesData penguin, SpeciesData dog)
         {
+            SocialEvents(); // 14-4 사회 사건 · 연계 연구 '이웃 모임'
             var specs = new (string subtitle, int population, int waves, int hits, float start, float end, float final)[]
             {
                 ("(가제) 합성", 110, 4, 3, 0.36f, 0.30f, -1f),
@@ -1390,7 +1607,7 @@ namespace SpaceStation.Editor
                 var ch = Chapter(number, grades, s.subtitle, "장 내용은 만드는 중",
                     optional: (ChapterGoalKind.Population, s.population, ResourceType.Metal, 0f, metalReward: 100f, research: 0, repairs: 0),
                     waves: s.waves, hits: s.hits, warning: 180f);
-                Ships(ch, true, number == 4 ? fox : number == 5 ? penguin : null, 3f); // 14-1b 4장 첫 배 = 여우 · 14-2b 5장 = 펭귄 (D-15 안: 6장 강아지는 그때)
+                Ships(ch, true, number == 4 ? fox : number == 5 ? penguin : number == 6 ? dog : null, 3f); // 14-1b 4장 첫 배 = 여우 · 14-2b 5장 = 펭귄 · 14-4 6장 = 강아지
                 SetEarthLights(ch, s.start, s.end, 1800f, s.final);
                 if (number == 4)
                 {
@@ -1399,6 +1616,8 @@ namespace SpaceStation.Editor
                 }
                 if (number == 5)
                     ChapterFive(ch);
+                if (number == 6)
+                    ChapterSix(ch);
                 list.Add(ch);
             }
             return list;
@@ -1418,9 +1637,9 @@ namespace SpaceStation.Editor
             var chapters = new List<ChapterData> { config.Chapters[0], config.Chapters[1], config.Chapters[2] };
             var ch3 = chapters[2];
             SetEarthLights(ch3, ch3.EarthLightsStart, ch3.EarthLightsEnd, ch3.EarthDimSeconds); // 마지막 장이 아니게 됨
-            ArkShips(out _, out _, out var fox, out var penguin); // 14-1b 종족 (여우 · 펭귄) · 주민 한마디
+            ArkShips(out _, out _, out var fox, out var penguin, out var dog); // 14-1b 종족 (여우 · 펭귄 · 강아지) · 주민 한마디
             CoreLines(); // 14-1d 4장 코어 문장
-            chapters.AddRange(LaterChapters(grades, fox, penguin));
+            chapters.AddRange(LaterChapters(grades, fox, penguin, dog));
             SetChapterList(config, chapters);
             AssetDatabase.SaveAssets();
             Debug.Log($"[ChapterSetup] 장 {chapters.Count}개 (4장 좁아진 하늘 · 5~7장 그레이박스)");
@@ -1711,6 +1930,22 @@ namespace SpaceStation.Editor
                 ("transition.5", CorePole.First, CoreAxis.Control, "자리를 정해 두었다.\n다음 바람이 와도 아무도 헤매지 않는다."),
                 ("climax.warning", CorePole.Second, CoreAxis.Control, "위기가 다가옵니다: {0} · {1}분 뒤 · 각자 자리를 살펴 주세요"),
                 ("goal.done", CorePole.Second, CoreAxis.Control, "장 목표 완료: {0}{1} · 다음은 여러분이 정하세요"),
+                // 14-4 6장 물음의 시간 · 방향 · 장 전환 + 보존 · 확장 쪽 문장 보강 (축 점검: 각 2줄 → 확인용 초안)
+                ("outcome.Inquiry.Clean", CorePole.Neutral, CoreAxis.Care, "다 묻고, 다 들었다. 아직 같이 간다."),
+                ("outcome.Inquiry.Clean", CorePole.First, CoreAxis.Care, "계산을 보여 줬더니 고개를 끄덕였다. 통했다."),
+                ("outcome.Inquiry.Hurt", CorePole.Neutral, CoreAxis.Care, "대답은 했다. 믿음에는 금이 갔다."),
+                ("outcome.Inquiry.Hurt", CorePole.First, CoreAxis.Scope, "지킬 것은 지켰다. 서운한 이들이 남았다."),
+                ("outcome.Inquiry.Lost", CorePole.Neutral, CoreAxis.Care, "등을 돌린 이들이 떠났다. 대답이 모자랐다."),
+                ("outcome.Inquiry.Lost", CorePole.Second, CoreAxis.Care, "듣는 게 늦었다. 떠난 얼굴들이 남는다."),
+                ("choice.numbers", CorePole.Neutral, CoreAxis.Care, "이제 계산을 그대로 내보인다. 믿든 말든 숫자는 같다."),
+                ("choice.listen", CorePole.Neutral, CoreAxis.Care, "계산은 덮어 둔다. 남은 이들의 사정부터 듣는다."),
+                ("transition.6", CorePole.Neutral, CoreAxis.Care, "물음이 지나갔다.\n아래 불빛은 이제 몇 개 남지 않았다."),
+                ("transition.6", CorePole.First, CoreAxis.Care, "숫자로 답했다.\n틀리지 않았다는 것만은 말할 수 있다."),
+                ("transition.6", CorePole.Second, CoreAxis.Care, "사정부터 들었다.\n계산은 그만큼 늦어졌다."),
+                ("climax.warning", CorePole.First, CoreAxis.Scope, "위기가 다가옵니다: {0} · {1}분 뒤 · 있는 것부터 지켜 주세요"),
+                ("climax.warning", CorePole.Second, CoreAxis.Scope, "위기가 다가옵니다: {0} · {1}분 뒤 · 넓힌 자리까지 살펴 주세요"),
+                ("goal.done", CorePole.First, CoreAxis.Scope, "장 목표 완료: {0}{1} · 지금 있는 것부터 다지겠습니다"),
+                ("goal.done", CorePole.Second, CoreAxis.Scope, "장 목표 완료: {0}{1} · 더 넓힐 수 있겠습니다"),
                 // 13-8 ③ 보완 (사용자 결정 2026-10-25): 장 안에서 지구 불빛이 한 단계 줄 때 코어 혼잣말 (상태 줄 "코어 · " 머리 + 지구 깜빡임)
                 ("earth.dim", CorePole.Neutral, CoreAxis.Care, "저 아래 불빛이 또 꺼졌다."),
                 ("earth.dim", CorePole.First, CoreAxis.Memory, "불빛이 또 하나 꺼졌다. 세어 둔다."),

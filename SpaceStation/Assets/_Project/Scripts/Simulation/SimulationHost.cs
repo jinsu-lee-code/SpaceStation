@@ -123,6 +123,9 @@ namespace SpaceStation.Simulation
             // 14-2b 서사판 집 환경 (종족 견딤 × 열 · 방사선, 명단 고리 M-120을 꽂음)
             if (_society != null && Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
                 Simulation.AddSystem(new HomeComfortSystem(_society), TickStepNames.Population);
+            // 14-4 서사판 사회 사건 (긴장도 뒤, 장 틀 위에서만)
+            if (_society != null && _society.Events != null && Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
+                Simulation.AddSystem(new SocialEventSystem(_society, _society.Events), TickStepNames.Population);
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
             {

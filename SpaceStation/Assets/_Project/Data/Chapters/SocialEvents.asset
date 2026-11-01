@@ -1,0 +1,405 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85f6fb8b013cf6242a2ee8c4cb47f407, type: 3}
+  m_Name: SocialEvents
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.SocialEventConfig
+  _events:
+  - _id: quarrel
+    _chapter: 6
+    _title: "\uBB34\uB9AC \uAC04 \uB2E4\uD23C"
+    _body: "{a} \uBB34\uB9AC\uC640 {b} \uBB34\uB9AC\uAC00 \uBCF5\uB3C4 \uC790\uB9AC\uB97C
+      \uB450\uACE0 \uB2E4\uD23D\uB2C8\uB2E4. \uC11C\uB85C \uBA3C\uC800 \uC654\uB2E4\uACE0
+      \uD569\uB2C8\uB2E4."
+    _atSeconds: 300
+    _subject: 1
+    _answers:
+    - _title: "\uC790\uB9AC\uB97C \uB098\uB220 \uC900\uB2E4"
+      _note: "\uBCF5\uB3C4\uB97C \uB113\uD600 \uC591\uCABD\uC5D0 \uB0B4\uC90D\uB2C8\uB2E4"
+      _cost:
+      - Type: 4
+        Amount: 120
+      _tension: -6
+      _satisfaction: 0
+      _leave: 0
+      _leaveShare: 0
+      _temporaryName: 
+      _temporarySeconds: 0
+      _temporary: []
+      _lockedFromLevel: -1
+      _lockedReason: 
+      _shifts:
+      - Axis: 0
+        Toward: 2
+        Size: 0
+      _line: "{a}\uC640 {b}\uC5D0\uAC8C \uC790\uB9AC\uB97C \uB098\uB220 \uC92C\uB2E4.
+        \uAE08\uC18D\uC740 \uC904\uC5C8\uB2E4."
+    - _title: "\uC218\uAC00 \uB9CE\uC740 \uCABD \uC190\uC744 \uB4E0\uB2E4"
+      _note: "\uBE60\uB974\uC9C0\uB9CC \uB2E4\uB978 \uCABD\uC774 \uC11C\uC6B4\uD574\uD569\uB2C8\uB2E4"
+      _cost: []
+      _tension: 4
+      _satisfaction: -3
+      _leave: 0
+      _leaveShare: 0
+      _temporaryName: 
+      _temporarySeconds: 0
+      _temporary: []
+      _lockedFromLevel: 3
+      _lockedReason: "\uC9C0\uAE08\uC740 \uC544\uBB34\uB3C4 \uC774 \uB9D0\uC744 \uB4E3\uC9C0
+        \uC54A\uC2B5\uB2C8\uB2E4"
+      _shifts:
+      - Axis: 0
+        Toward: 1
+        Size: 0
+      _line: "\uC218\uAC00 \uB9CE\uC740 {a} \uCABD \uC190\uC744 \uB4E4\uC5C8\uB2E4.
+        \uACC4\uC0B0\uC740 \uB9DE\uB2E4."
+    - _title: "\uC9C0\uAE08 \uC790\uB9AC\uB97C \uADF8\uB300\uB85C \uB454\uB2E4"
+      _note: "\uC544\uBB34\uAC83\uB3C4 \uBC14\uAFB8\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4"
+      _cost: []
+      _tension: 2
+      _satisfaction: 0
+      _leave: 0
+      _leaveShare: 0
+      _temporaryName: 
+      _temporarySeconds: 0
+      _temporary: []
+      _lockedFromLevel: -1
+      _lockedReason: 
+      _shifts:
+      - Axis: 2
+        Toward: 1
+        Size: 0
+      _line: "\uC790\uB9AC\uB294 \uADF8\uB300\uB85C \uB480\uB2E4. \uB2E4\uD23C\uB3C4
+        \uADF8\uB300\uB85C\uB2E4."
+  - _id: fever
+    _chapter: 6
+    _title: "\uC5F4\uBCD1"
+    _body: "\uBCF5\uB3C4\uB97C \uB530\uB77C \uC5F4\uBCD1\uC774 \uB3D5\uB2C8\uB2E4.
+      \uC544\uD508 \uC8FC\uBBFC {n}\uBA85 \xB7 \uC758\uB8CC\uAC00 \uBAA8\uC790\uB784\uC218\uB85D
+      \uB9CE\uC544\uC9D1\uB2C8\uB2E4."
+    _atSeconds: 660
+    _subject: 3
+    _answers:
+    - _title: "\uBAA8\uB450 \uB3CC\uBCF8\uB2E4"
+      _note: "\uC2DD\uB7C9\uACFC \uBB3C\uC744 \uB354 \uC501\uB2C8\uB2E4"
+      _cost:
+      - Type: 3
+        Amount: 80
+      - Type: 2
+        Amount: 80
+      _tension: -4
+      _satisfaction: 0
+      _leave: 0
+      _leaveShare: 0
+      _temporaryName: 
+      _temporarySeconds: 0
+      _temporary: []
+      _lockedFromLevel: -1
+      _lockedReason: 
+      _shifts:
+      - Axis: 0
+        Toward: 2
+        Size: 0
+      _line: "\uC544\uD508 \uC774 {n}\uBA85\uC744 \uBAA8\uB450 \uB3CC\uBCF4\uAE30\uB85C
+        \uD588\uB2E4."
+    - _title: "\uC544\uD508 \uCE78\uC744 \uB9C9\uB294\uB2E4"
+      _note: "2\uBD84 \uB3D9\uC548 \uC0DD\uC0B0\uC774 10% \uC904\uC5B4\uB4ED\uB2C8\uB2E4"
+      _cost: []
+      _tension: 2
+      _satisfaction: 0
+      _leave: 0
+      _leaveShare: 0
+      _temporaryName: "\uC5F4\uBCD1 \uACA9\uB9AC"
+      _temporarySeconds: 120
+      _temporary:
+      - Stat: 0
+        Value: 0.9
+      _lockedFromLevel: 3
+      _lockedReason: "\uC9C0\uAE08\uC740 \uC544\uBB34\uB3C4 \uC774 \uB9D0\uC744 \uB4E3\uC9C0
+        \uC54A\uC2B5\uB2C8\uB2E4"
+      _shifts:
+      - Axis: 0
+        Toward: 1
+        Size: 0
+      _line: "\uC544\uD508 \uCE78\uC744 \uB9C9\uC558\uB2E4. \uB354 \uC62E\uC9C0\uB294
+        \uC54A\uACA0\uC9C0."
+    - _title: "\uD558\uB358 \uC77C\uC744 \uACC4\uC18D\uD55C\uB2E4"
+      _note: "\uC77C\uBD80\uAC00 \uB5A0\uB0A9\uB2C8\uB2E4"
+      _cost: []
+      _tension: 5
+      _satisfaction: 0
+      _leave: 0
+      _leaveShare: 0.3
+      _temporaryName: 
+      _temporarySeconds: 0
+      _temporary: []
+      _lockedFromLevel: -1
+      _lockedReason: 
+      _shifts:
+      - Axis: 2
+        Toward: 1
+        Size: 0
+      _line: "\uD558\uB358 \uC77C\uC744 \uACC4\uC18D\uD588\uB2E4. \uBA87\uC740 \uB5A0\uB0AC\uB2E4."
+  - _id: leaving
+    _chapter: 6
+    _title: "\uC790\uB9AC\uB97C \uB5A0\uB098\uB294 \uBB34\uB9AC"
+    _body: "{a} \uBB34\uB9AC {n}\uBA85\uC774 \uBC30 \uD55C \uCC99\uC744 \uB0B4\uC5B4
+      \uB2EC\uB77C\uACE0 \uD569\uB2C8\uB2E4. \uC5EC\uAE30\uC11C\uB294 \uB354 \uBABB
+      \uC0B4\uACA0\uB2E4\uACE0 \uD569\uB2C8\uB2E4."
+    _atSeconds: 1020
+    _subject: 2
+    _answers:
+    - _title: "\uC0AC\uC815\uC744 \uB4E3\uACE0 \uBD99\uC7A1\uB294\uB2E4"
+      _note: "\uBAA8\uC790\uB780 \uAC83\uC744 \uCC44\uC6CC \uC8FC\uAE30\uB85C \uD569\uB2C8\uB2E4"
+      _cost:
+      - Type: 4
+        Amount: 200
+      _tension: -6
+      _satisfaction: 0
+      _leave: 0
+      _leaveShare: 0
+      _temporaryName: 
+      _temporarySeconds: 0
+      _temporary: []
+      _lockedFromLevel: -1
+      _lockedReason: 
+      _shifts:
+      - Axis: 0
+        Toward: 2
+        Size: 0
+      _line: "{a} \uBB34\uB9AC\uC758 \uC0AC\uC815\uC744 \uB4E4\uC5C8\uB2E4. \uB0A8\uACA0\uB2E4\uACE0
+        \uD588\uB2E4."
+    - _title: "\uD544\uC694\uD55C \uC190\uB9CC \uB0A8\uAE34\uB2E4"
+      _note: "\uC808\uBC18\uC774 \uB5A0\uB0A9\uB2C8\uB2E4"
+      _cost: []
+      _tension: 4
+      _satisfaction: 0
+      _leave: 0
+      _leaveShare: 0.5
+      _temporaryName: 
+      _temporarySeconds: 0
+      _temporary: []
+      _lockedFromLevel: 3
+      _lockedReason: "\uC9C0\uAE08\uC740 \uC544\uBB34\uB3C4 \uC774 \uB9D0\uC744 \uB4E3\uC9C0
+        \uC54A\uC2B5\uB2C8\uB2E4"
+      _shifts:
+      - Axis: 0
+        Toward: 1
+        Size: 0
+      _line: "\uC190\uC774 \uD544\uC694\uD55C \uC774\uB4E4\uB9CC \uB0A8\uACBC\uB2E4.
+        \uB098\uBA38\uC9C0\uB294 \uB5A0\uB0AC\uB2E4."
+    - _title: "\uBC30\uB97C \uB0B4\uC8FC\uACE0 \uBB38\uC744 \uB2EB\uB294\uB2E4"
+      _note: "\uBAA8\uB450 \uB5A0\uB098\uC9C0\uB9CC \uB9D0\uC37D\uC740 \uC904\uC5B4\uB4ED\uB2C8\uB2E4"
+      _cost: []
+      _tension: -2
+      _satisfaction: 0
+      _leave: 0
+      _leaveShare: 1
+      _temporaryName: 
+      _temporarySeconds: 0
+      _temporary: []
+      _lockedFromLevel: -1
+      _lockedReason: 
+      _shifts:
+      - Axis: 2
+        Toward: 1
+        Size: 0
+      _line: "\uBC30\uB97C \uB0B4\uC92C\uB2E4. \uB0A8\uC740 \uC774\uB4E4\uC744 \uC9C0\uD0A4\uB294
+        \uCABD\uC744 \uACE8\uB790\uB2E4."
+  _riot:
+    _id: riot
+    _chapter: 6
+    _title: "\uBCF5\uB3C4\uC758 \uC18C\uB780"
+    _body: "\uC313\uC778 \uBD88\uB9CC\uC774 \uD130\uC84C\uC2B5\uB2C8\uB2E4. \uBCF5\uB3C4\uC5D0
+      \uC8FC\uBBFC\uB4E4\uC774 \uBAA8\uC5EC \uC77C\uC190\uC774 \uBA48\uCDC4\uC2B5\uB2C8\uB2E4."
+    _atSeconds: 0
+    _subject: 0
+    _answers:
+    - _title: "\uB2EC\uB79C\uB2E4"
+      _note: "\uC2DD\uB7C9\uC744 \uD480\uC5B4 \uBAA8\uB450\uB97C \uBA39\uC785\uB2C8\uB2E4"
+      _cost:
+      - Type: 3
+        Amount: 120
+      _tension: -10
+      _satisfaction: 0
+      _leave: 0
+      _leaveShare: 0
+      _temporaryName: 
+      _temporarySeconds: 0
+      _temporary: []
+      _lockedFromLevel: -1
+      _lockedReason: 
+      _shifts:
+      - Axis: 0
+        Toward: 2
+        Size: 0
+      _line: "\uBA39\uC744 \uAC83\uC744 \uD480\uC5C8\uB2E4. \uC18C\uB780\uC774 \uAC00\uB77C\uC549\uC558\uB2E4."
+    - _title: "\uC77C\uC744 \uBA3C\uC800 \uB3CC\uB9B0\uB2E4"
+      _note: "1\uBD84 \uB3D9\uC548 \uC0DD\uC0B0\uC774 15% \uC904\uC5B4\uB4ED\uB2C8\uB2E4"
+      _cost: []
+      _tension: 3
+      _satisfaction: 0
+      _leave: 0
+      _leaveShare: 0
+      _temporaryName: "\uBCF5\uB3C4\uC758 \uC18C\uB780"
+      _temporarySeconds: 60
+      _temporary:
+      - Stat: 0
+        Value: 0.85
+      _lockedFromLevel: -1
+      _lockedReason: 
+      _shifts:
+      - Axis: 0
+        Toward: 1
+        Size: 0
+      _line: "\uC77C\uBD80\uD130 \uB3CC\uB9AC\uB77C\uACE0 \uD588\uB2E4. \uBD88\uB9CC\uC740
+        \uADF8\uB300\uB85C \uB0A8\uC558\uB2E4."
+    - _title: "\uC790\uB9AC\uB85C \uB3CC\uB824\uBCF4\uB0B8\uB2E4"
+      _note: "\uB9CC\uC871\uB3C4\uAC00 \uB5A8\uC5B4\uC9D1\uB2C8\uB2E4"
+      _cost: []
+      _tension: -4
+      _satisfaction: -5
+      _leave: 0
+      _leaveShare: 0
+      _temporaryName: 
+      _temporarySeconds: 0
+      _temporary: []
+      _lockedFromLevel: -1
+      _lockedReason: 
+      _shifts:
+      - Axis: 2
+        Toward: 1
+        Size: 0
+      _line: "\uAC01\uC790 \uC790\uB9AC\uB85C \uB3CC\uB824\uBCF4\uB0C8\uB2E4. \uC870\uC6A9\uD574\uC84C\uB2E4."
+  _petitions:
+  - _id: refused
+    _speaker: rabbit
+    _cause: 1
+    _body: "\uB3CC\uB824\uBCF4\uB0B8 \uBC30\uC5D0 {n}\uBA85\uC774 \uD0C0\uACE0 \uC788\uC5C8\uB300\uC694.
+      \uADF8 \uBC30\uB4E4\uC740 \uC5B4\uB514\uB85C \uAC14\uB098\uC694?"
+  - _id: control
+    _speaker: bear
+    _cause: 2
+    _body: "\uBA85\uB839\uC774 \uB298\uC5C8\uB2E4. \uC6B0\uB9AC\uD55C\uD14C \uBB3B\uC9C0\uB3C4
+      \uC54A\uC558\uB2E4. \uC65C \uCF54\uC5B4\uAC00 \uC815\uD558\uB098."
+  - _id: departed
+    _speaker: penguin
+    _cause: 3
+    _body: "\uC6B0\uB9AC \uACC1\uC744 \uB5A0\uB09C \uC774\uAC00 {n}\uBA85\uC774\uC9C0\uC694.
+      \uB2E4\uC74C\uC740 \uB204\uAD6C\uC778\uC9C0, \uC6B0\uB9AC\uB294 \uC54C\uACE0
+      \uC2F6\uC2B5\uB2C8\uB2E4."
+  - _id: overwrote
+    _speaker: fox
+    _cause: 4
+    _body: "\uAE30\uB85D\uC744 \uB36E\uC5B4\uC37C\uB2E4\uBA70? \uBB58 \uC9C0\uC6E0\uB294\uC9C0
+      \uB9D0\uD574 \uC904 \uC218 \uC788\uC9C0?"
+  - _id: earth
+    _speaker: rabbit
+    _cause: 5
+    _body: "\uC9C0\uAD6C \uBD88\uBE5B\uC774 \uB610 \uAEBC\uC84C\uC5B4\uC694. \uCF54\uC5B4\uB294
+      \uC774\uC81C \uC800\uCABD\uC744 \uC548 \uBCF4\uB098\uC694?"
+  - _id: lost
+    _speaker: bear
+    _cause: 6
+    _body: "\uC9C0\uB09C\uBC88\uC5D0 \uB9CE\uC774 \uC783\uC5C8\uB2E4. \uB2E4\uC74C\uC5D4
+      \uC548 \uC783\uB294\uB2E4\uACE0 \uB9D0\uD560 \uC218 \uC788\uB098."
+  - _id: seat
+    _speaker: fox
+    _cause: 0
+    _body: "\uC6B0\uB9AC \uC790\uB9AC\uB294 \uB204\uAC00 \uC815\uD55C \uAC70\uC57C?
+      \uACC4\uC0B0\uC774 \uC788\uC73C\uBA74 \uBCF4\uC5EC \uC918 \uBD10!"
+  - _id: road
+    _speaker: penguin
+    _cause: 0
+    _body: "\uC6B0\uB9AC\uB294 \uBB3B\uAE30\uB9CC \uD569\uB2C8\uB2E4. \uC774 \uAE38\uC774
+      \uC5B4\uB514\uB85C \uAC00\uB294\uC9C0\uC694."
+  - _id: who
+    _speaker: bear
+    _cause: 0
+    _body: "\uB204\uAC00 \uCF54\uC5B4\uD55C\uD14C \uC815\uD558\uB77C\uACE0 \uD588\uB098."
+  - _id: trust
+    _speaker: dog
+    _cause: 0
+    _body: "\uC800\uD76C\uB294 \uCF54\uC5B4\uB97C \uBBFF\uC2B5\uB2C8\uB2E4! \uB2E4\uB9CC
+      \uB2E4\uB4E4 \uB4E3\uACE0 \uC2F6\uC5B4 \uD569\uB2C8\uB2E4!"
+  - _id: listen
+    _speaker: rabbit
+    _cause: 0
+    _body: "\uC800\uD76C \uB9D0\uB3C4 \uB4E4\uC5B4 \uC8FC\uC2E4 \uAC74\uAC00\uC694?
+      \uADF8\uAC83\uB9CC \uC54C\uACE0 \uC2F6\uC5B4\uC694."
+  _petitionAnswers:
+  - _title: "\uB4E4\uC5B4\uC900\uB2E4"
+    _note: "\uC790\uC6D0\uC744 \uB0B4\uC5B4 \uC57D\uC18D\uC744 \uC9C0\uD0B5\uB2C8\uB2E4"
+    _cost:
+    - Type: 4
+      Amount: 150
+    - Type: 3
+      Amount: 60
+    _tension: -8
+    _satisfaction: 0
+    _leave: 0
+    _leaveShare: 0
+    _temporaryName: 
+    _temporarySeconds: 0
+    _temporary: []
+    _lockedFromLevel: -1
+    _lockedReason: 
+    _shifts:
+    - Axis: 0
+      Toward: 2
+      Size: 0
+    _line: "\uCCAD\uC6D0\uC744 \uB4E4\uC5B4\uC92C\uB2E4. \uC57D\uC18D\uD55C \uB9CC\uD07C
+      \uB0B4\uC92C\uB2E4."
+  - _title: "\uACC4\uC0B0\uC744 \uBCF4\uC5EC \uC900\uB2E4"
+    _note: "\uC65C \uADF8\uB807\uAC8C \uC815\uD588\uB294\uC9C0 \uB0B4\uBCF4\uC785\uB2C8\uB2E4"
+    _cost: []
+    _tension: -3
+    _satisfaction: 0
+    _leave: 0
+    _leaveShare: 0
+    _temporaryName: 
+    _temporarySeconds: 0
+    _temporary: []
+    _lockedFromLevel: 3
+    _lockedReason: "\uC9C0\uAE08\uC740 \uC544\uBB34\uB3C4 \uC22B\uC790\uB97C \uB4E3\uC9C0
+      \uC54A\uC2B5\uB2C8\uB2E4"
+    _shifts:
+    - Axis: 0
+      Toward: 1
+      Size: 0
+    _line: "\uACC4\uC0B0\uC744 \uADF8\uB300\uB85C \uBCF4\uC5EC \uC92C\uB2E4."
+  - _title: "\uC9C0\uD0AC \uAC83\uBD80\uD130 \uC9C0\uD0A8\uB2E4"
+    _note: "\uC9C0\uAE08\uC740 \uB2F5\uC744 \uBBF8\uB8F9\uB2C8\uB2E4"
+    _cost: []
+    _tension: 6
+    _satisfaction: 0
+    _leave: 2
+    _leaveShare: 0
+    _temporaryName: 
+    _temporarySeconds: 0
+    _temporary: []
+    _lockedFromLevel: -1
+    _lockedReason: 
+    _shifts:
+    - Axis: 2
+      Toward: 1
+      Size: 0
+    _line: "\uC9C0\uD0AC \uAC83\uBD80\uD130 \uC9C0\uD0A4\uACA0\uB2E4\uACE0 \uD588\uB2E4.
+      \uBA87\uC740 \uB5A0\uB0AC\uB2E4."
+  _weightCalm: 0.5
+  _weightRestless: 0.75
+  _weightTense: 1
+  _weightCritical: 1.5
+  _warningGap: 45
+  _autoResolveSeconds: 30
+  _sickShareMin: 0.02
+  _leavingShare: 0.03
+  _forgetLean: 15
