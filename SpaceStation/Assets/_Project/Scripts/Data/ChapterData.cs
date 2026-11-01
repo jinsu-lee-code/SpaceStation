@@ -85,6 +85,8 @@ namespace SpaceStation.Data
         GreatMigration,
         /// <summary>14-1d 4장 '파편 띠': 띠가 정거장을 감싸는 동안 새 칸에 짓지 못하고 이민선은 연달아 옴. 판정 = 대이주와 같음.</summary>
         DebrisBand,
+        /// <summary>14-2d 5장 '항성 폭풍': 바깥 칸 방사선 몇 배 + 발열 증가 · 방열판 효율 감소, 힘든 주민이 떠남. 판정 = 떠난 주민 · 과열 파손 · 생명 유지 바닥 시간.</summary>
+        StellarStorm,
     }
 
     /// <summary>13-1: 절정 설정 (종류마다 쓰는 값이 다름).</summary>
@@ -146,6 +148,22 @@ namespace SpaceStation.Data
         [Tooltip("띠가 정거장을 감싸는 시간 (초) — 그동안 위기가 시작될 때 비어 있던 칸에는 짓기 · 옮기기 불가 (철거한 자리 다시 짓기 · 합성은 됨). 띠가 지나가고 배에 다 답하면 판정")]
         [SerializeField, Min(1f)] private float _bandSeconds = 360f;
 
+        [Header("항성 폭풍 (StellarStorm, 14-2d) — 판정: 떠난 주민 · 바닥 시간은 위 값, 파손은 위 '깔끔 파손 개수'와 아래")]
+        [Tooltip("폭풍 길이 (초)")]
+        [SerializeField, Min(1f)] private float _stormSeconds = 360f;
+        [Tooltip("우주 방사선 배율")]
+        [SerializeField, Min(1f)] private float _stormSpaceMultiplier = 3f;
+        [Tooltip("발열 배율")]
+        [SerializeField, Min(1f)] private float _stormHeatOutput = 1.5f;
+        [Tooltip("방열판 효율 배율")]
+        [SerializeField, Range(0f, 1f)] private float _stormHeatRemoval = 0.5f;
+        [Tooltip("힘든 주민이 있으면 이 간격(초)마다 떠남")]
+        [SerializeField, Min(1f)] private float _stormLeaveInterval = 30f;
+        [Tooltip("한 번에 떠나는 수 = 1 + 힘든 주민 ÷ 이 값")]
+        [SerializeField, Min(1)] private int _stormLeavePer = 50;
+        [Tooltip("피해를 입고 버팀: 과열 파손 개수 이하")]
+        [SerializeField, Min(0)] private int _hurtMaxDamaged = 3;
+
         [Header("결과 이름 (비면 깔끔히 버팀 · 피해를 입고 버팀 · 일부를 잃음)")]
         [SerializeField] private string _cleanLabel;
         [SerializeField] private string _hurtLabel;
@@ -178,6 +196,13 @@ namespace SpaceStation.Data
         public float HurtMinAccepted => _hurtMinAccepted;
         public int HurtMaxDeparted => _hurtMaxDeparted;
         public float BandSeconds => Mathf.Max(1f, _bandSeconds);
+        public float StormSeconds => Mathf.Max(1f, _stormSeconds);
+        public float StormSpaceMultiplier => _stormSpaceMultiplier;
+        public float StormHeatOutput => _stormHeatOutput;
+        public float StormHeatRemoval => _stormHeatRemoval;
+        public float StormLeaveInterval => Mathf.Max(1f, _stormLeaveInterval);
+        public int StormLeavePer => Mathf.Max(1, _stormLeavePer);
+        public int HurtMaxDamaged => _hurtMaxDamaged;
         public string CleanLabel => _cleanLabel;
         public string HurtLabel => _hurtLabel;
         public string LostLabel => _lostLabel;

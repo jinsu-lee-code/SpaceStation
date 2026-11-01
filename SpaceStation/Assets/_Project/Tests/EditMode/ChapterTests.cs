@@ -515,6 +515,18 @@ namespace SpaceStation.Tests
                     required++;
             Assert.AreEqual(3, required, "필수 3");
             Assert.AreEqual(5, ch5.Goals.Count, "필수 3 + 선택 2");
+            // 14-2d 위기 · 방향 · 옛 녹음
+            Assert.AreEqual(ChapterClimaxKind.StellarStorm, ch5.Climax.Kind);
+            Assert.AreEqual("항성 폭풍", ch5.Climax.Title);
+            Assert.AreEqual(360f, ch5.Climax.StormSeconds, 1e-3f, "폭풍 6분");
+            Assert.AreEqual(3f, ch5.Climax.StormSpaceMultiplier, 1e-3f);
+            Assert.AreEqual("무사한 안쪽", ch5.Climax.CleanLabel);
+            Assert.AreEqual(2, ch5.Choices.Count);
+            Assert.AreEqual("자리는 무리가 고른다", ch5.Choices[0].Title);
+            Assert.AreEqual(CorePole.Second, ch5.Choices[0].Shifts[0].Toward, "자율 쪽");
+            Assert.AreEqual(CoreAxis.Control, ch5.Choices[0].Shifts[0].Axis);
+            Assert.AreEqual("자리는 코어가 정한다", ch5.Choices[1].Title);
+            Assert.IsFalse(string.IsNullOrEmpty(ch5.Transmission), "옛 녹음");
         }
 
         [Test]

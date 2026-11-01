@@ -16,7 +16,7 @@ namespace SpaceStation.Tests
         private readonly List<Object> _created = new List<Object>();
         private BalanceConfig _config;
         private StationGradeConfig _grades;
-        private ModuleData _core, _home, _hot, _shelter, _radiator;
+        private ModuleData _core, _home, _hot, _shelter, _radiator, _armor;
         private ResidentConfig _residents;
         private SpeciesData _rabbit, _bear, _penguin, _fox;
         private ArkShipConfig _ark;
@@ -55,6 +55,7 @@ namespace SpaceStation.Tests
             _hot = Module("MD_TestHot", heat: 6f);
             _shelter = Module("MD_TestShelter", shelter: 2);
             _radiator = Module("MD_TestRadiator", heatRemoval: 4f);
+            _armor = Module("MD_TestArmor", layers: 2);
             _residents = Create<ResidentConfig>();
 
             _grades = Create<StationGradeConfig>();
@@ -225,9 +226,133 @@ namespace SpaceStation.Tests
             Assert.AreEqual(1.6f, sim.Heat.HeatOf(hot), Eps, "펭귄 5명 +10%: 6 - 4.4");
         }
 
+        // ---------------- 14-2d 위기 '항성 폭풍' ----------------
+
+        [Test]
+        public void StellarStorm_ExposedHomes_StressedLeave_Lost_ScalesReset()
+        {
+            var sim = Sim(StormChapters());
+            Place(sim, _home, 1, 0, 0);
+            sim.Resources.SetPopulation(10);
+            sim.Tick(1f);
+            sim.Chapters.SetFlag("test.go");
+            RunUntil(sim, () => sim.Chapters.Phase == ChapterPhase.Climax);
+            Assert.AreEqual(3f, sim.Radiation.SpaceMultiplier, Eps, "바깥 칸 방사선 3배");
+            Assert.AreEqual(1.5f, sim.Heat.OutputScale, Eps, "발열");
+            Assert.AreEqual(0.5f, sim.Heat.RemovalScale, Eps, "방열판");
+            Assert.IsTrue(sim.Radiation.StormActive);
+            StringAssert.Contains("남음", sim.Chapters.Climax.Status);
+
+            RunUntil(sim, () => sim.Chapters.Phase == ChapterPhase.Transition);
+            var record = sim.Chapters.LastRecord;
+            Assert.AreEqual(ChapterOutcome.Lost, record.Outcome, record.Summary);
+            StringAssert.Contains("떠난 주민", record.Summary);
+            Assert.Less(sim.Resources.Population, 10, "힘든 주민이 떠남");
+            Assert.AreEqual(1f, sim.Radiation.SpaceMultiplier, Eps, "끝나면 되돌림");
+            Assert.AreEqual(1f, sim.Heat.OutputScale, Eps);
+            Assert.AreEqual(1f, sim.Heat.RemovalScale, Eps);
+            Assert.IsFalse(sim.Radiation.StormActive);
+        }
+
+        [Test]
+        public void StellarStorm_TwoLayersInside_Clean()
+        {
+            var sim = Sim(StormChapters());
+            var home = Place(sim, _home, 1, 0, 0);
+            foreach (var cell in new[] { new Vector3Int(2, 0, 0), new Vector3Int(-1, 0, 0), new Vector3Int(1, 1, 0), new Vector3Int(1, -1, 0), new Vector3Int(1, 0, 1), new Vector3Int(1, 0, -1) })
+                Place(sim, _armor, cell.x, cell.y, cell.z);
+            sim.Resources.SetPopulation(10);
+            sim.Tick(1f);
+            sim.Chapters.SetFlag("test.go");
+            RunUntil(sim, () => sim.Chapters.Phase == ChapterPhase.Climax);
+            sim.Tick(1f);
+            Assert.AreEqual(2, sim.Radiation.LayersOf(home), "코어 + 장갑 또는 장갑 두 겹 몫");
+            Assert.AreEqual(2.25f, sim.Radiation.LevelOf(home), Eps, "9 × 25% — 한도 4 아래");
+
+            RunUntil(sim, () => sim.Chapters.Phase == ChapterPhase.Transition);
+            var record = sim.Chapters.LastRecord;
+            Assert.AreEqual(ChapterOutcome.Clean, record.Outcome, record.Summary);
+            StringAssert.Contains("떠난 주민 0명", record.Summary);
+            Assert.AreEqual(10, sim.Resources.Population);
+        }
+
+        [Test]
+        public void StellarStorm_DangerHeatDamage_Counted_Hurt_SurvivesSave()
+        {
+            var b = new SerializedObject(_config);
+            b.FindProperty("_heatDamageSeconds").floatValue = 5f;
+            b.FindProperty("_radiationSpace").floatValue = 0f; // 방사선 없이 열만
+            b.FindProperty("_homeHeatComfort").floatValue = 100f; // 주민은 괜찮음
+            b.ApplyModifiedPropertiesWithoutUndo();
+            var hotter = Module("MD_TestHotter", heat: 8f); // 폭풍 때 12 = 위험 (한도 8 × 1.5)
+            var g = new SerializedObject(_grades);
+            var unlocks = g.FindProperty("_grades").GetArrayElementAtIndex(0).FindPropertyRelative("_unlocks");
+            unlocks.arraySize = 1;
+            unlocks.GetArrayElementAtIndex(0).objectReferenceValue = hotter;
+            g.ApplyModifiedPropertiesWithoutUndo();
+
+            var chapters = StormChapters();
+            var sim = Sim(chapters);
+            Place(sim, hotter, 1, 0, 0);
+            sim.Resources.SetPopulation(3);
+            sim.Tick(1f);
+            sim.Chapters.SetFlag("test.go");
+            RunUntil(sim, () => sim.Chapters.Phase == ChapterPhase.Climax);
+            for (int i = 0; i < 8; i++)
+                sim.Tick(1f);
+            StringAssert.Contains("과열 파손 1", sim.Chapters.Climax.Status);
+
+            // 폭풍 가운데 저장 → 불러온 판도 같은 배율 · 같은 셈
+            var json = JsonUtility.ToJson(StationStateSerializer.Capture(sim));
+            var loaded = Sim(chapters);
+            StationStateSerializer.Restore(loaded, JsonUtility.FromJson<StationState>(json));
+            Assert.AreEqual(3f, loaded.Radiation.SpaceMultiplier, Eps, "복원 때 배율을 다시 켬");
+            Assert.AreEqual(1.5f, loaded.Heat.OutputScale, Eps);
+            StringAssert.Contains("과열 파손 1", loaded.Chapters.Climax.Status);
+            RunUntil(loaded, () => loaded.Chapters.Phase == ChapterPhase.Transition);
+            Assert.AreEqual(ChapterOutcome.Hurt, loaded.Chapters.LastRecord.Outcome, loaded.Chapters.LastRecord.Summary);
+        }
+
+        private static void RunUntil(StationSimulation sim, System.Func<bool> done)
+        {
+            for (int i = 0; i < 400 && !done(); i++)
+                sim.Tick(1f);
+            Assert.IsTrue(done(), "시간 안에 끝나지 않음");
+        }
+
+        /// <summary>필수 목표 표시 하나 → 예고 0초 → 폭풍 60초 · 떠남 10초마다 · 판정 깔끔 0 · 0 · 0초 / 빠듯 2명 · 3개 · 60초.</summary>
+        private ChapterConfig StormChapters()
+        {
+            var chapter = Create<ChapterData>();
+            var c = new SerializedObject(chapter);
+            var goals = c.FindProperty("_goals");
+            goals.arraySize = 1;
+            goals.GetArrayElementAtIndex(0).FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.Flag;
+            goals.GetArrayElementAtIndex(0).FindPropertyRelative("_flag").stringValue = "test.go";
+            var climax = c.FindProperty("_climax");
+            climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.StellarStorm;
+            climax.FindPropertyRelative("_warningSeconds").floatValue = 0f;
+            climax.FindPropertyRelative("_stormSeconds").floatValue = 60f;
+            climax.FindPropertyRelative("_stormLeaveInterval").floatValue = 10f;
+            climax.FindPropertyRelative("_cleanMaxDeparted").intValue = 0;
+            climax.FindPropertyRelative("_cleanMaxDamaged").intValue = 0;
+            climax.FindPropertyRelative("_cleanMaxShortageSeconds").floatValue = 0f;
+            climax.FindPropertyRelative("_hurtMaxDeparted").intValue = 2;
+            climax.FindPropertyRelative("_hurtMaxDamaged").intValue = 3;
+            climax.FindPropertyRelative("_hurtMaxShortageSeconds").floatValue = 60f;
+            c.ApplyModifiedPropertiesWithoutUndo();
+            var config = Create<ChapterConfig>();
+            var cc = new SerializedObject(config);
+            var list = cc.FindProperty("_chapters");
+            list.arraySize = 1;
+            list.GetArrayElementAtIndex(0).objectReferenceValue = chapter;
+            cc.ApplyModifiedPropertiesWithoutUndo();
+            return config;
+        }
+
         // ---------------- 도우미 ----------------
 
-        private StationSimulation Sim()
+        private StationSimulation Sim(ChapterConfig chapters = null)
         {
             var sim = new StationSimulation(new StationSimulationSettings
             {
@@ -239,7 +364,7 @@ namespace SpaceStation.Tests
                 HazardRandom01 = () => 0.5f,
                 Residents = _residents,
                 ResidentRandom01 = () => 0.5f,
-                Chapters = _chapters,
+                Chapters = chapters ?? _chapters,
             });
             sim.AddSystem(new ArkShipSystem(_ark, () => 0f), TickStepNames.Population);
             sim.AddSystem(new TensionSystem(_society), TickStepNames.Population);
@@ -273,7 +398,7 @@ namespace SpaceStation.Tests
             return s;
         }
 
-        private ModuleData Module(string name, bool removable = true, int housing = 0, float heat = 0f, int shelter = 0, float heatRemoval = 0f)
+        private ModuleData Module(string name, bool removable = true, int housing = 0, float heat = 0f, int shelter = 0, float heatRemoval = 0f, int layers = 0)
         {
             var m = Create<ModuleData>();
             m.name = name;
@@ -286,6 +411,7 @@ namespace SpaceStation.Tests
             so.FindProperty("_heatOutput").floatValue = heat;
             so.FindProperty("_heatRemoval").floatValue = heatRemoval;
             so.FindProperty("_shelterCapacity").intValue = shelter;
+            so.FindProperty("_radiationLayers").intValue = layers;
             so.ApplyModifiedPropertiesWithoutUndo();
             return m;
         }

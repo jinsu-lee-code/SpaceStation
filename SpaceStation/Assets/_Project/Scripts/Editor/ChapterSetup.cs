@@ -420,6 +420,15 @@ namespace SpaceStation.Editor
                 ("chapter.start.4.Lost", "떠난 분들 방이 아직 비어 있어요."),
                 ("chapter.start.4", "하늘에 반짝이는 조각이 늘었대요. 별똥별일까요?"),
                 ("climax.warning.4", "파편이 하늘을 덮는대요. 그동안은 방을 나눠 써야겠어요."),
+                // 14-2d 5장 (장 시작 = 4장 파편 띠 결과 반응 · 폭풍 예고) · 6장 시작 = 폭풍 결과 반응
+                ("chapter.start.5.Clean", "좁아도 다 같이 들어왔어요. 복도에서 인사할 이웃이 늘었어요."),
+                ("chapter.start.5.Hurt", "방이 모자랐지만, 온 분들과는 잘 나눠 쓰고 있어요."),
+                ("chapter.start.5.Lost", "떠난 분들 자리에 아직 아무도 안 들어가요."),
+                ("chapter.start.5", "공기가 따끔따끔해요. 창가 방은 조금 무서워요."),
+                ("climax.warning.5", "뜨거운 바람이 온대요. 안쪽 방으로 옮겨도 될까요?"),
+                ("chapter.start.6.Clean", "바람이 지나갔어요. 아무도 안 다쳤대요."),
+                ("chapter.start.6.Hurt", "바깥쪽 벽이 그을렸어요. 그래도 다들 있어요."),
+                ("chapter.start.6.Lost", "바깥쪽에 살던 분들이 안 보여요."),
                 ("ship.new.bear", "곰이라니, 덩치가 커서 조금 무서워요. 그래도 잘 지내 볼게요."),
                 ("ship.new.fox", "여우들이에요! 손재주가 좋다던데, 고장 난 것도 고쳐 줄까요?"),
                 ("ship.new.penguin", "펭귄들이에요! 더위를 많이 탄대요. 시원한 방을 봐 줘야겠어요."),
@@ -431,6 +440,11 @@ namespace SpaceStation.Editor
                 ("chapter.start.4.Clean", "많이 왔군. 좁아도 괜찮다."),
                 ("chapter.start.4", "밖이 시끄럽다. 조각들이 떠다닌다."),
                 ("climax.warning.4", "밖으로는 못 넓힌다. 안에서 버틴다."),
+                ("chapter.start.5", "공기가 달라졌다. 벽을 더 세워야 한다."),
+                ("climax.warning.5", "더운 건 괜찮다. 약한 애들부터 안으로 보내라."),
+                ("chapter.start.6.Clean", "버텼군. 벽이 제 몫을 했다."),
+                ("chapter.start.6.Hurt", "그을렸다. 고치면 된다."),
+                ("chapter.start.6.Lost", "바깥 칸이 비었다. 말은 안 하겠다."),
                 ("ship.accept", "또 왔군. 좁으면 붙어 자면 된다."),
                 ("ship.partial", "다 못 태웠다고. 그래, 할 수 있는 만큼 한 거다."),
                 ("ship.refuse", "돌려보냈군. 우리도 저럴 뻔했다."),
@@ -453,6 +467,10 @@ namespace SpaceStation.Editor
                 ("chapter.start.5.Clean", "다 받아 냈네? 그 좁은 데서 용케도 말이야."),
                 ("chapter.start.5.Hurt", "빠듯했지? 그래도 그만하면 솜씨 좋았어."),
                 ("chapter.start.5.Lost", "많이들 떠났네. 다음엔 칸을 더 잘 접어 보자고."),
+                ("climax.warning.5", "바람이 뜨겁다네? 방사선이야 우리가 맡지, 바깥 자리 줘!"),
+                ("chapter.start.6.Clean", "봤지? 바깥도 살 만하다니까!"),
+                ("chapter.start.6.Hurt", "살짝 탔네? 덧대면 되지!"),
+                ("chapter.start.6.Lost", "바깥이 너무 비었네. 다음엔 벽부터 쌓자고."),
                 ("ship.accept", "또 손님이네? 자리야 뭐, 접고 쌓으면 나오지!"),
                 ("ship.partial", "다 못 들였네. 칸만 넉넉했어도 말이야."),
                 ("ship.refuse", "돌려보냈어? 저 배에도 쓸 만한 손이 있었을 텐데."),
@@ -469,6 +487,10 @@ namespace SpaceStation.Editor
                 "펭귄들이다. 좁은 칸에 서로 붙어 여기까지 왔다.",
                 "더운 자리에는 오래 못 있을 거다. 어디에 살게 할지 봐 둬야 한다.");
             penguin.EditorSetRemarks(
+                ("climax.warning.5", "더운 바람이 온다지요. 우리는 안쪽으로 모입니다."),
+                ("chapter.start.6.Clean", "우리는 모두 여기 있습니다. 벽 덕분이지요."),
+                ("chapter.start.6.Hurt", "우리 중 몇은 아직 열이 있지요. 곧 나을 겁니다."),
+                ("chapter.start.6.Lost", "우리 자리가 많이 비었습니다. 서로 더 붙어 앉지요."),
                 ("ship.accept", "우리를 받아 주셨군요. 우리도 손을 보태지요."),
                 ("ship.partial", "일부만 오른다지요. 우리는 남은 이들을 기억합니다."),
                 ("ship.refuse", "돌아가라 하시는군요. 우리는 다른 곳을 찾아보지요."));
@@ -856,7 +878,40 @@ namespace SpaceStation.Editor
             var calm = goals.GetArrayElementAtIndex(4);
             FlagGoal(calm, SpaceStation.Simulation.ChapterSystem.ScopedFlag(SpaceStation.Simulation.HomeComfortSystem.CalmFlag, 5), "힘든 주민 0명으로 1분 버티기", true);
             calm.FindPropertyRelative("_rewardResearchPoints").intValue = 1;
+
+            // 14-2d 위기 '항성 폭풍' (사용자 결정 2026-11-01): 예고 3분 → 6분 · 바깥 칸 방사선 ×3 · 발열 ×1.5 · 방열판 ×0.5 · 힘든 주민이 30초마다 떠남 (1 + 힘든 ÷ 50) ·
+            // 판정 = 떠난 주민 · 과열 파손 · 바닥 (깔끔 0 · 0 · 0초 / 빠듯 5명 · 3개 · 60초) · 결과 이름 = 무사한 안쪽 / 그을린 바깥 / 타 버린 자리
+            var climax = so.FindProperty("_climax");
+            climax.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterClimaxKind.StellarStorm;
+            climax.FindPropertyRelative("_title").stringValue = "항성 폭풍";
+            climax.FindPropertyRelative("_description").stringValue = "항성 폭풍이 6분 동안 정거장을 덮칩니다 · 바깥 칸 방사선이 3배로 오르고, 모듈은 더 뜨거워지며 방열판은 절반만 듣습니다 · 힘든 주민은 떠나니 두 겹 안쪽에 집을 · 차폐실은 12명 대피";
+            climax.FindPropertyRelative("_warningSeconds").floatValue = 180f;
+            climax.FindPropertyRelative("_stormSeconds").floatValue = 360f;
+            climax.FindPropertyRelative("_stormSpaceMultiplier").floatValue = 3f;
+            climax.FindPropertyRelative("_stormHeatOutput").floatValue = 1.5f;
+            climax.FindPropertyRelative("_stormHeatRemoval").floatValue = 0.5f;
+            climax.FindPropertyRelative("_stormLeaveInterval").floatValue = 30f;
+            climax.FindPropertyRelative("_stormLeavePer").intValue = 50;
+            climax.FindPropertyRelative("_cleanMaxDeparted").intValue = 0;
+            climax.FindPropertyRelative("_cleanMaxDamaged").intValue = 0;
+            climax.FindPropertyRelative("_cleanMaxShortageSeconds").floatValue = 0f;
+            climax.FindPropertyRelative("_hurtMaxDeparted").intValue = 5;
+            climax.FindPropertyRelative("_hurtMaxDamaged").intValue = 3;
+            climax.FindPropertyRelative("_hurtMaxShortageSeconds").floatValue = 60f;
+            climax.FindPropertyRelative("_cleanLabel").stringValue = "무사한 안쪽";
+            climax.FindPropertyRelative("_hurtLabel").stringValue = "그을린 바깥";
+            climax.FindPropertyRelative("_lostLabel").stringValue = "타 버린 자리";
+
+            // 방향 (사용자 결정 2026-11-01, 축 점검 — 자율이 가장 부족 · 다음이 보존): 자리는 무리가 고른다 = 자율 크게 / 자리는 코어가 정한다 = 통제 보통 + 보존 작게
+            var choices = so.FindProperty("_choices");
+            choices.arraySize = 2;
+            SetChoice(choices.GetArrayElementAtIndex(0), "choose", "자리는 무리가 고른다", "어디가 뜨거운지만 알려 주고, 어디에 살지는 각 무리가 정하게 둔다");
+            SetChoice(choices.GetArrayElementAtIndex(1), "assign", "자리는 코어가 정한다", "누가 얼마나 견디는지 재어 두고, 코어가 자리를 나눈다");
             so.ApplyModifiedPropertiesWithoutUndo();
+            Shifts(chapter, 0, (CoreAxis.Control, CorePole.Second, ShiftSize.Large));
+            Shifts(chapter, 1, (CoreAxis.Control, CorePole.First, ShiftSize.Medium), (CoreAxis.Scope, CorePole.First, ShiftSize.Small));
+            // 장 전환 연출의 옛 녹음 (확인용 초안)
+            Transmission(chapter, "기록 27. 차폐 계산은 끝났다. 바깥 칸에 누가 살지는 끝내 정하지 못했다. 그 일은 코어에게 넘긴다.");
             AddUnlocks(chapter, M("MD_Radiator"), M("MD_RadiationShelter"));
             EditorUtility.SetDirty(chapter);
         }
@@ -1638,6 +1693,20 @@ namespace SpaceStation.Editor
                 ("transition.4", CorePole.Neutral, CoreAxis.Care, "좁은 하늘을 지나왔다.\n칸은 그대로인데, 안에 든 것은 전부 달라졌다."),
                 ("transition.4", CorePole.First, CoreAxis.Memory, "옛 모양을 기록에 남겼다.\n녹여 없앤 것들의 이름까지."),
                 ("transition.4", CorePole.Second, CoreAxis.Memory, "옛 모양은 녹여 버렸다.\n지금 쓸 모양만 남긴다."),
+                // 14-2d 5장 항성 폭풍 · 방향 · 장 전환 + 자율 쪽 문장 처음 (축 점검: 자율 0줄 → 확인용 초안)
+                ("outcome.StellarStorm.Clean", CorePole.Neutral, CoreAxis.Care, "바람이 지나갔다. 안쪽은 무사하다."),
+                ("outcome.StellarStorm.Clean", CorePole.Second, CoreAxis.Control, "각자 자리를 찾아 들어갔다. 시키지 않아도 됐다."),
+                ("outcome.StellarStorm.Hurt", CorePole.Neutral, CoreAxis.Care, "바깥이 그을렸다. 그래도 불은 꺼지지 않았다."),
+                ("outcome.StellarStorm.Hurt", CorePole.First, CoreAxis.Control, "자리를 더 일찍 나눴어야 했다. 다음엔 먼저 정한다."),
+                ("outcome.StellarStorm.Lost", CorePole.Neutral, CoreAxis.Care, "바깥 칸이 비었다. 거기 살던 이들을 적어 둔다."),
+                ("outcome.StellarStorm.Lost", CorePole.Second, CoreAxis.Care, "바깥에 살던 얼굴들이 떠오른다. 안쪽이 너무 좁았다."),
+                ("choice.choose", CorePole.Neutral, CoreAxis.Care, "자리를 고르는 일은 그들에게 맡긴다. 나는 어디가 뜨거운지만 말해 준다."),
+                ("choice.assign", CorePole.Neutral, CoreAxis.Care, "자리는 내가 나눈다. 누가 얼마나 견디는지 다 재어 두었다."),
+                ("transition.5", CorePole.Neutral, CoreAxis.Care, "뜨거운 바람을 지나왔다.\n아래의 불빛은 이제 손에 꼽을 만큼 남았다."),
+                ("transition.5", CorePole.Second, CoreAxis.Control, "누가 어디 살지, 이제 그들이 정한다.\n나는 벽만 지킨다."),
+                ("transition.5", CorePole.First, CoreAxis.Control, "자리를 정해 두었다.\n다음 바람이 와도 아무도 헤매지 않는다."),
+                ("climax.warning", CorePole.Second, CoreAxis.Control, "위기가 다가옵니다: {0} · {1}분 뒤 · 각자 자리를 살펴 주세요"),
+                ("goal.done", CorePole.Second, CoreAxis.Control, "장 목표 완료: {0}{1} · 다음은 여러분이 정하세요"),
                 // 13-8 ③ 보완 (사용자 결정 2026-10-25): 장 안에서 지구 불빛이 한 단계 줄 때 코어 혼잣말 (상태 줄 "코어 · " 머리 + 지구 깜빡임)
                 ("earth.dim", CorePole.Neutral, CoreAxis.Care, "저 아래 불빛이 또 꺼졌다."),
                 ("earth.dim", CorePole.First, CoreAxis.Memory, "불빛이 또 하나 꺼졌다. 세어 둔다."),

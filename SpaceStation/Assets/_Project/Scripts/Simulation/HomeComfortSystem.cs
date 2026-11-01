@@ -32,9 +32,6 @@ namespace SpaceStation.Simulation
 
         public override string Key => SystemKey;
         public bool Active => Sim.Radiation.Active || Sim.Heat.Active;
-        /// <summary>폭풍 중 (우주 방사선 배율이 올라감) — 대피 정원을 셈.</summary>
-        public bool StormOn => Sim.Radiation.SpaceMultiplier > 1f + 1e-3f;
-
         protected override void OnAttached()
         {
             if (Sim.Residents != null)
@@ -60,7 +57,7 @@ namespace SpaceStation.Simulation
                 return;
             roster.StressMoodMax = _config.StressMoodMax;
             roster.StressMoodPerResident = _config.StressMoodMax / Math.Max(1, roster.Residents.Count); // 비율 — 인구가 늘어도 같은 비율이면 같은 감소
-            roster.StressExempt = StormOn ? Sim.Radiation.ShelterCapacity : 0;
+            roster.StressExempt = Sim.Radiation.StormActive ? Sim.Radiation.ShelterCapacity : 0;
             UpdateCalm(dt, roster);
         }
 

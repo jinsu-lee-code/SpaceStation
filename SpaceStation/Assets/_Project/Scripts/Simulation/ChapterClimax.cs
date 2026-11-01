@@ -49,6 +49,8 @@ namespace SpaceStation.Simulation
                     return new GreatMigrationClimax();
                 case ChapterClimaxKind.DebrisBand:
                     return new DebrisBandClimax();
+                case ChapterClimaxKind.StellarStorm:
+                    return new StellarStormClimax();
                 default:
                     return new NoClimax();
             }
@@ -71,6 +73,12 @@ namespace SpaceStation.Simulation
         internal virtual string Capture() => null;
 
         internal virtual void Restore(string state) { }
+
+        protected static string Clock(float seconds)
+        {
+            int s = Mathf.Max(0, Mathf.CeilToInt(seconds));
+            return $"{s / 60}:{s % 60:00}";
+        }
     }
 
     /// <summary>절정 없음: 시작하자마자 '깔끔히 버팀'.</summary>
@@ -615,12 +623,6 @@ namespace SpaceStation.Simulation
             return step;
         }
 
-        protected static string Clock(float seconds)
-        {
-            int s = Mathf.Max(0, Mathf.CeilToInt(seconds));
-            return $"{s / 60}:{s % 60:00}";
-        }
-
         /// <summary>새로 시작: 셈을 비우고 구독, 이민선이 있으면 첫 배 (없으면 false — 봇 · 시험).</summary>
         protected bool BeginConvoy()
         {
@@ -792,6 +794,151 @@ namespace SpaceStation.Simulation
                 _settle = s.Settle;
             }
             Subscribe(); // 오는 배 · 답을 기다리는 배는 이민선 시스템이 저장
+        }
+    }
+
+    /// <summary>
+    /// 14-2d 5장 위기 '항성 폭풍' (사용자 결정 2026-11-01): 예고 뒤 6분 동안 바깥 칸 우주 방사선 3배(main M-120 <see cref="RadiationSystem.SpaceMultiplier"/>) +
+    /// 발열 1.5배 · 방열판 효율 절반 — 안쪽으로 숨으면 더워지는 딜레마. 힘든 주민이 있으면 30초마다 떠남 (1 + 힘든 주민 ÷ 50명, 대피 정원은 힘든 주민에서 빠짐).
+    /// 판정 = 떠난 주민 · 과열 파손 · 생명 유지 바닥 (깔끔 0 · 0 · 0초 / 빠듯 5명 · 3개 · 60초 / 그 밖). 결과 이름 = 무사한 안쪽 · 그을린 바깥 · 타 버린 자리.
+    /// </summary>
+    internal sealed class StellarStormClimax : ChapterClimax
+    {
+        private float _left, _leaveTimer, _shortage;
+        private int _departed, _damaged;
+        private bool _subscribed;
+
+        public override float Progress => Finished ? 1f : Mathf.Clamp(1f - _left / Settings.StormSeconds, 0f, 0.99f);
+
+        public override string Status => $"{Clock(_left)} 남음 · 떠남 {_departed} · 과열 파손 {_damaged}"; // 장 카드는 "위기 이름 + 이 줄"
+
+        internal override void Begin()
+        {
+            _left = Settings.StormSeconds;
+            _leaveTimer = _shortage = 0f;
+            _departed = _damaged = 0;
+            Apply();
+            Subscribe();
+        }
+
+        /// <summary>폭풍 배율을 켬 (시작 · 복원 — 배율은 저장하지 않음).</summary>
+        private void Apply()
+        {
+            Sim.Radiation.SpaceMultiplier = Settings.StormSpaceMultiplier;
+            Sim.Heat.OutputScale = Settings.StormHeatOutput;
+            Sim.Heat.RemovalScale = Settings.StormHeatRemoval;
+        }
+
+        internal override void Tick(float dt)
+        {
+            if (Finished)
+                return;
+            var r = Sim.Resources;
+            if (r.Population > 0 && (r.IsDepleted(ResourceType.Oxygen) || r.IsDepleted(ResourceType.Water) || r.IsDepleted(ResourceType.Food)))
+                _shortage += dt;
+            TickLeaving(dt);
+            _left -= dt;
+            if (_left <= 0f)
+                Judge();
+        }
+
+        /// <summary>힘든 주민이 있는 동안 간격마다 떠남 (대피 정원은 힘든 주민에서 이미 빠짐). 없으면 시계를 되돌림 — 잠깐 힘들었다고 바로 떠나지 않게.</summary>
+        private void TickLeaving(float dt)
+        {
+            int stressed = Sim.Residents != null ? Sim.Residents.StressedCount : 0;
+            if (stressed <= 0)
+            {
+                _leaveTimer = 0f;
+                return;
+            }
+            _leaveTimer += dt;
+            if (_leaveTimer < Settings.StormLeaveInterval)
+                return;
+            _leaveTimer -= Settings.StormLeaveInterval;
+            Sim.Population.Remove(1 + stressed / Settings.StormLeavePer, PopulationChangeReason.Environment);
+        }
+
+        private void Judge()
+        {
+            bool Within(int maxDeparted, int maxDamaged, float maxShortage) =>
+                _departed <= maxDeparted && _damaged <= maxDamaged && _shortage <= maxShortage + 1e-3f;
+            if (Within(Settings.CleanMaxDeparted, Settings.CleanMaxDamaged, Settings.CleanMaxShortageSeconds))
+                Outcome = ChapterOutcome.Clean;
+            else if (Within(Settings.HurtMaxDeparted, Settings.HurtMaxDamaged, Settings.HurtMaxShortageSeconds))
+                Outcome = ChapterOutcome.Hurt;
+            else
+                Outcome = ChapterOutcome.Lost;
+            Summary = $"떠난 주민 {_departed}명 · 과열 파손 {_damaged}개 · 생명 유지 바닥 {Mathf.FloorToInt(_shortage)}초";
+            Finished = true;
+            Detach();
+        }
+
+        private void HandlePopulation(int delta, PopulationChangeReason reason)
+        {
+            if (!Finished && delta < 0)
+                _departed -= delta;
+        }
+
+        /// <summary>위험 수준으로 달아오른 모듈이 파손되면 과열 파손 (운석에 맞은 파손은 세지 않음).</summary>
+        private void HandleDamaged(DamageInfo info)
+        {
+            if (!Finished && info != null && Sim.Heat.IsDanger(info.Module))
+                _damaged++;
+        }
+
+        private void Subscribe()
+        {
+            if (_subscribed)
+                return;
+            Sim.Population.PopulationChanged += HandlePopulation;
+            Sim.Damage.Damaged += HandleDamaged;
+            _subscribed = true;
+        }
+
+        internal override void Detach()
+        {
+            Sim.Radiation.SpaceMultiplier = 1f;
+            Sim.Heat.OutputScale = 1f;
+            Sim.Heat.RemovalScale = 1f;
+            if (!_subscribed)
+                return;
+            Sim.Population.PopulationChanged -= HandlePopulation;
+            Sim.Damage.Damaged -= HandleDamaged;
+            _subscribed = false;
+        }
+
+        [Serializable]
+        private sealed class State
+        {
+            public float Left;
+            public float LeaveTimer;
+            public float Shortage;
+            public int Departed;
+            public int Damaged;
+        }
+
+        internal override string Capture() => JsonUtility.ToJson(new State
+        {
+            Left = _left,
+            LeaveTimer = _leaveTimer,
+            Shortage = _shortage,
+            Departed = _departed,
+            Damaged = _damaged,
+        });
+
+        internal override void Restore(string state)
+        {
+            var s = string.IsNullOrEmpty(state) ? null : JsonUtility.FromJson<State>(state);
+            if (s != null)
+            {
+                _left = s.Left;
+                _leaveTimer = s.LeaveTimer;
+                _shortage = s.Shortage;
+                _departed = s.Departed;
+                _damaged = s.Damaged;
+            }
+            Apply();
+            Subscribe();
         }
     }
 
