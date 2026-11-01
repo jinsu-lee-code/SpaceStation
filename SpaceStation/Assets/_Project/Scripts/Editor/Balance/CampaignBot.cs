@@ -27,6 +27,8 @@ namespace SpaceStation.Editor.Balance
         public readonly List<ResearchCategoryData> Research = new List<ResearchCategoryData>();
         /// <summary>절정 대비에 짓는 모듈 (이민선 앞 빈 집 · 유성우 예보 방향 방어).</summary>
         public ModuleData Housing, Shield, Turret;
+        /// <summary>14-1e 파편 띠 예고 동안 여유를 쌓는 차례 (한 바퀴씩 — 띠 동안엔 새 칸에 못 지음).</summary>
+        public readonly List<ModuleData> BandReserve = new List<ModuleData>();
 
         private static readonly string[] ResearchFiles =
         {
@@ -57,6 +59,12 @@ namespace SpaceStation.Editor.Balance
             a.Housing = AssetDatabase.LoadAssetAtPath<ModuleData>("Assets/_Project/Data/Modules/MD_Habitat.asset");
             a.Shield = AssetDatabase.LoadAssetAtPath<ModuleData>("Assets/_Project/Data/Modules/MD_Shield.asset");
             a.Turret = AssetDatabase.LoadAssetAtPath<ModuleData>("Assets/_Project/Data/Modules/MD_Turret.asset");
+            foreach (string file in new[] { "MD_Battery", "MD_Oxygen", "MD_WaterRecycler", "MD_Storage", "MD_Farm", "MD_Solar" })
+            {
+                var m = AssetDatabase.LoadAssetAtPath<ModuleData>($"Assets/_Project/Data/Modules/{file}.asset");
+                if (m != null)
+                    a.BandReserve.Add(m);
+            }
             return a;
         }
 
@@ -106,6 +114,8 @@ namespace SpaceStation.Editor.Balance
         public string Choices = "";
         /// <summary>절정 대비로 지은 수: 이민선 앞 거주 · 유성우 예보 방향 실드 · 포탑.</summary>
         public int PrepHousing, PrepDefense;
+        /// <summary>14-1e 파편 띠 예고 동안 쌓은 여유 (발전 · 생명 유지 · 저장).</summary>
+        public int PrepBand;
         /// <summary>기록 연구 단계 (<see cref="CampaignBotAssets.Research"/> 순서 — 공통 요약의 연구 줄은 분야 번호가 겹쳐 서사판에서 틀림).</summary>
         public int[] ResearchLevels = new int[0];
         /// <summary>14-1e 합성: 마친 수 · 그중 있던 모듈을 그대로 합친 수 · 처음 시작한 때 · 끝날 때 진화 모듈 종류.</summary>
@@ -162,6 +172,7 @@ namespace SpaceStation.Editor.Balance
         private readonly List<ModuleInstance> _facing = new List<ModuleInstance>();
         private readonly List<ModuleInstance> _covered = new List<ModuleInstance>();
         private float _nextInPlace;
+        private int _bandReserveAt;
 
         public CampaignBotExtension(CampaignBotAssets assets) => _a = assets ?? throw new ArgumentNullException(nameof(assets));
 
@@ -260,8 +271,26 @@ namespace SpaceStation.Editor.Balance
                 return;
             UsePolicy(bot);
             PrepareHousing(bot);
+            PrepareBand(bot);
             GrowHousingInPlace();
             DefendShower(bot);
+        }
+
+        /// <summary>
+        /// 14-1e 파편 띠 예고 3분 동안 여유를 쌓음: 평소 봇은 모자란 만큼만 그때그때 짓는데 띠 6분 동안은 새 칸이 막혀, 밤 전력 · 생명 유지가 모자라면 바로 무너졌음
+        /// (11-01 측정). 사람이 예고를 보고 미리 짓는 일 — 배터리 · 산소 · 물 · 창고 · 농장 · 태양광을 차례로, 결정마다 하나 (금속이 되는 만큼).
+        /// </summary>
+        private void PrepareBand(BalanceBot bot)
+        {
+            var chapter = _chapters.Current;
+            if (chapter == null || chapter.Climax.Kind != ChapterClimaxKind.DebrisBand || _chapters.Phase != ChapterPhase.Warning || _a.BandReserve.Count == 0)
+                return;
+            var next = _a.BandReserve[_bandReserveAt % _a.BandReserve.Count];
+            if (bot.TryBuild(next))
+            {
+                _bandReserveAt++;
+                _stats.PrepBand++;
+            }
         }
 
         /// <summary>
@@ -322,6 +351,22 @@ namespace SpaceStation.Editor.Balance
             _policyBot = bot;
             bot.MaintainAtFor = m => Idle(m.Data) ? IdleMaintainAt : BalanceBot.DefaultMaintainAt;
             bot.RebuildBelowFor = m => Idle(m.Data) ? IdleRebuildBelow : BalanceBot.DefaultRebuildBelowMax;
+            bot.SynthesisWanted = WantsSynthesis;
+        }
+
+        /// <summary>
+        /// 14-1e 새 합성 계획 = 필수 목표 몫만 (첫 진화 모듈이 생길 때까지, main M-117). 레시피마다 합성하면 계획 시작 기준 금속(저장 한도의 60%)이
+        /// 핵융합로 저축액보다 낮아 저축을 먹고, 발전이 모자라 무너졌음 (11-01 첫 4장 측정). 레시피는 기본 재료 수가 적은 것부터가 아니라 목록 순 — 어느 쪽이든 목표는 채움.
+        /// </summary>
+        private bool WantsSynthesis(RecipeData recipe)
+        {
+            var syn = _sim.Synthesis;
+            if (syn == null || _sim.Session.Syntheses > 0 || syn.Jobs.Count > 0)
+                return false;
+            foreach (var m in _sim.Grid.Modules)
+                if (m.Data != null && syn.IsRecipeResult(m.Data))
+                    return false;
+            return true;
         }
 
         /// <summary>늦게 정비해도 되는 모듈: 효율과 무관하고 장갑 격벽(운석을 대신 맞음 — 낮은 내구도로 두면 연달아 맞아 부서짐)이 아님.</summary>
@@ -702,13 +747,14 @@ namespace SpaceStation.Editor.Balance
                     sb.AppendLine($"    위기 중 운석 {meteors}개 · 막음 {blocked + armorHits} ({(blocked + armorHits) * 100f / meteors:0}%) = 실드 · 포탑 · 면역 {blocked} + 장갑 격벽이 대신 맞음 {armorHits}"
                                   + (showerInWarning > 0 ? $" · 위기 예고 중 평소 유성우 {showerInWarning}판" : ""));
             }
-            int accepted = 0, partial = 0, refused = 0, offered = 0, boarded = 0, prepHousing = 0, prepDefense = 0;
+            int accepted = 0, partial = 0, refused = 0, offered = 0, boarded = 0, prepHousing = 0, prepDefense = 0, prepBand = 0;
             var probe = new List<float>();
             var policy = new List<float>();
             foreach (var x in all)
             {
                 prepHousing += x.PrepHousing;
                 prepDefense += x.PrepDefense;
+                prepBand += x.PrepBand;
                 accepted += x.Accepted;
                 partial += x.Partial;
                 refused += x.Refused;
@@ -734,7 +780,7 @@ namespace SpaceStation.Editor.Balance
             if (all.Count > 0)
                 sb.AppendLine($"합성 (판 평균): 마침 {syntheses / (float)all.Count:0.0} · 있던 모듈을 그대로 합침 {inPlace / (float)all.Count:0.0} · 끝날 때 진화 모듈 {evolvedKinds / (float)all.Count:0.0}종 · 첫 합성 (판 시작부터) {Spread(firstSynthesis)} · {firstSynthesis.Count}판");
             if (CampaignBotExtension.Prepare && all.Count > 0)
-                sb.AppendLine($"위기 대비로 지음 (판 평균): 이민선 앞 거주 {prepHousing / (float)all.Count:0.0} · 유성우 방향 실드 · 포탑 {prepDefense / (float)all.Count:0.0}");
+                sb.AppendLine($"위기 대비로 지음 (판 평균): 이민선 앞 거주 {prepHousing / (float)all.Count:0.0} · 유성우 방향 실드 · 포탑 {prepDefense / (float)all.Count:0.0} · 파편 띠 앞 여유 {prepBand / (float)all.Count:0.0}");
             sb.Append("기록 연구 최종 단계 평균 (공통 요약의 연구 줄 대신):");
             for (int i = 0; i < assets.Research.Count; i++)
             {
