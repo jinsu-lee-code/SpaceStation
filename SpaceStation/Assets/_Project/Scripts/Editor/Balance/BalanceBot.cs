@@ -846,7 +846,7 @@ namespace SpaceStation.Editor.Balance
                 foreach (var rotation in rotations)
                 {
                     int rot = rotation.Rotation;
-                    if (AnyOccupied(origin, rotation.Offsets) || PlacementRules.Evaluate(_sim.Grid, data, origin, rot) != PlacementResult.Valid)
+                    if (AnyOccupied(origin, rotation.Offsets) || !ZoneAllows(origin, rotation.Offsets) || PlacementRules.Evaluate(_sim.Grid, data, origin, rot) != PlacementResult.Valid)
                         continue;
                     // 조밀 배치(운석 노출 감소) 선호. 태양광은 그늘 때문에 접촉 가산을 줄임.
                     float contactWeight = data.SolarPowered ? 1f : 10f;
@@ -877,10 +877,22 @@ namespace SpaceStation.Editor.Balance
             var rotations = Rotations(data);
             foreach (var origin in _candidates)
                 foreach (var rotation in rotations)
-                    if (!AnyOccupied(origin, rotation.Offsets)
+                    if (!AnyOccupied(origin, rotation.Offsets) && ZoneAllows(origin, rotation.Offsets)
                         && PlacementRules.Evaluate(_sim.Grid, data, origin, rotation.Rotation) == PlacementResult.Valid)
                         return true;
             return false;
+        }
+
+        /// <summary>M-116: 칸을 정하는 쪽(<see cref="IBuildZone"/>)이 허용한 자리인지 (없으면 언제나 — 기존 결과 그대로). 공간 규칙만 보면 막힌 칸을 지을 수 있다고 잘못 앎.</summary>
+        private bool ZoneAllows(Vector3Int origin, Vector3Int[] offsets)
+        {
+            var zone = _sim.BuildZone;
+            if (zone == null)
+                return true;
+            foreach (var o in offsets)
+                if (!zone.Allows(origin + o))
+                    return false;
+            return true;
         }
 
         /// <summary>

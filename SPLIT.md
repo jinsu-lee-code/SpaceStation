@@ -145,7 +145,12 @@
 | `BalanceRunSettings.Extension` (측정 도구, M-46) · `BalanceBot.MaintainAtFor` · `RebuildBelowFor` · `TryBuild(점수)` (M-47) | 서사판 캠페인 봇(`CampaignBotExtension`, 메뉴 Balance/Campaign Bot)이 채움, 타이쿤판 = 비움(공통 봇) | 둘 다 그대로 — 측정 메뉴가 모드마다 따로. 공통 요약의 "연구 최종 레벨" 줄은 공통 6분야 기준이라 캠페인은 campaign.txt의 기록 연구 줄을 봄 |
 | `SynthesisSystem.OpensDirectly` · `StationSimulation.BuildZone`(+ 사유 `IBuildZone.Reason`) · `ResidentTrait.Artisan`(합성 속도 통로) (M-50, M-52, M-53) | 서사판 = 장이 그 장 레시피를 엶(자동 해금 레시피도 장이 정함) · 4장 위기 동안 새 칸 금지 · 여우 종족 기술, 타이쿤판 = 비움(연구 · 자동 해금 · 칸 제한 없음 · 통로 안 씀) | 엔드리스 = 비움 — 캠페인 시스템을 붙일 때만 채워짐 |
 | `TutorialData.Free` · `TutorialGoal.OpenRecipes / PlaceSynthesis / StartSynthesis` (M-51) | 서사판 = 4장 합성 안내(장 안내, 막지 않음), 타이쿤판 = 안 씀(기존 튜토리얼은 막는 안내) | 둘 다 그대로 — 엔드리스에서 합성 안내가 필요하면 같은 단계로 |
+| `TutorialView._dockUnderResources` (게임 씬 값 하나) · `RecipePanel._windowOffset` (게임 씬 값, M-52) | 서사판 씬 = 끔(카드 왼쪽 위 — 오른쪽 자원 패널 아래는 장 목표 카드 자리) · (-50, 40), 타이쿤판 씬 = 켬(카드 자원 패널 아래 — 왼쪽 위는 [관리] 메뉴) · 기본 (-150, 40) | **모드별로 나눔**: 캠페인 = 끔 · (-50, 40), 엔드리스 = 켬 · (-150, 40). 아래 "합본 주의사항" 참고 |
 
+- **합본 주의사항** (사용자 확인 2026-11-01: 합본 캠페인 모드에서 튜토리얼 카드와 장 목표 패널이 겹침)
+  - 원인: 합본은 게임 씬을 타이쿤판으로 받으므로 `TutorialView._dockUnderResources` = 켬으로 남고, 캠페인에서는 튜토리얼 카드와 장 목표 카드(`ChapterView`)가 둘 다 자원 패널 바로 아래에 붙는다
+  - 합칠 때 할 일: 위 표대로 이 씬 값들을 모드 전환에서 모드별로 정한다. 게임 씬을 한쪽 판 것으로 받으면 다른 판의 씬 값은 사라지므로, 두 판 `Main.unity`에서 값이 다른 HUD 칸을 먼저 비교해 모드별로 나눌 것을 찾는다
+  - 확인: 실행 시험(오류 로그 0)은 화면 겹침을 잡지 못한다. 캠페인 · 엔드리스 각각 새 게임에서 튜토리얼 카드가 뜬 화면을 보고, 캠페인은 장 목표 카드와 겹치지 않는지 · 4장 합성 창을 열어도 안내 카드와 겹치지 않는지까지 본다
 - 그 밖에 판마다 다른 게임 씬 · 메뉴 씬 설정 (합칠 때 모드별로 나눔): `SimulationHost` 연구 목록(서사판 = 기록 4갈래 + 자동화) · 장 데이터 · 이민선 · 탐사 · 기록 설정 (메뉴 Chapters/Setup Greybox), 메인 메뉴 배경(서사판 = 꺼져 가는 지구), 난이도 장별 간격(서사판 `DifficultyPreset._chapter*`)
 - 문서: BALANCE.md 번호 — 공통 1~40, 타이쿤판 41~, 서사판 "서사판 N번"(번호가 겹치지 않게 따로) → 합칠 때 한 차례로 다시 매김
 - 새 고리를 만들 때마다 이 표에 한 줄 더한다
