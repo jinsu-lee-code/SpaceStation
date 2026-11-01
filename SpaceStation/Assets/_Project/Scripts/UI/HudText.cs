@@ -16,6 +16,10 @@ namespace SpaceStation.UI
 
         public static string ResourceName(ResourceType type) => type.DisplayName();
 
+        /// <summary>M-119 정해진 칸에 넣는 수량: 소수 없이, 10만부터 "123k" (자릿수가 늘어도 칸을 넘지 않게).</summary>
+        public static string Amount(float value) =>
+            value >= 100000f ? (int)(value / 1000f) + "k" : value.ToString("0");
+
         /// <summary>M-53: 칸을 정하는 쪽이 막았으면 그쪽 사유 (서사판 4장 '파편 띠').</summary>
         public static string PlacementReason(PlacementResult result, IBuildZone zone) =>
             result == PlacementResult.OutsideZone && zone != null && !string.IsNullOrEmpty(zone.Reason) ? zone.Reason : PlacementReason(result);
