@@ -439,7 +439,7 @@ namespace SpaceStation.Building
                 ? (spots > 0 ? "\n<color=#7FE0FF>깜빡이는 하늘색 칸 = 방열판 추천 자리</color>  <color=#C8D2DE>흐린 라벨 = 안쪽에 가려진 과열 · 라벨을 누르면 그 모듈로</color>" : "")
                 : $"  <color=#C8D2DE>{key}: 지도 보기</color>";
             string heatLine = _heat.Active ? $"<b>열 관리</b>  과열 {over} · 위험 {danger}  <color=#C8D2DE>(한도 {limit:0} · 위험 {_heat.DangerLevel:0.#})</color>" : "";
-            string radLine = RadiationOn ? $"<b>방사선</b>  높은 집 {radiated}  <color=#C8D2DE>(한도 {_radiation.Comfort:0.#} · 안쪽 칸 · 장갑 격벽 · 차폐실로 낮춤)</color>" : "";
+            string radLine = RadiationOn ? $"<b>방사선</b>  높은 집 {radiated}  <color=#C8D2DE>(한도 {_radiation.Comfort:0.#} · 위 · 아래 · 옆 중 가장 얇은 쪽으로 정해짐 · 장갑 격벽 2겹 · 차폐실로 낮춤)</color>" : "";
             _hud.SetText(string.IsNullOrEmpty(heatLine) || string.IsNullOrEmpty(radLine) ? heatLine + radLine + tail : heatLine + "\n" + radLine + tail);
         }
 
