@@ -183,6 +183,31 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Calm_SetsFlagAfterSeconds_ResetsWhenStressed()
+        {
+            var sim = Sim();
+            var so = new SerializedObject(_society);
+            so.FindProperty("_calmSeconds").floatValue = 5f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Place(sim, _home, 1, 0, 0);
+            sim.Resources.SetPopulation(3);
+            string flag = ChapterSystem.ScopedFlag(HomeComfortSystem.CalmFlag, 1);
+
+            sim.Radiation.SpaceMultiplier = 3f; // 노출 9 → 모두 힘듦
+            for (int i = 0; i < 10; i++)
+                sim.Tick(1f);
+            Assert.IsFalse(sim.Chapters.HasFlag(flag), "힘든 주민이 있으면 세지 않음");
+
+            sim.Radiation.SpaceMultiplier = 1f;
+            for (int i = 0; i < 3; i++)
+                sim.Tick(1f);
+            Assert.IsFalse(sim.Chapters.HasFlag(flag), "아직 5초 안 됨");
+            for (int i = 0; i < 5; i++)
+                sim.Tick(1f);
+            Assert.IsTrue(sim.Chapters.HasFlag(flag));
+        }
+
+        [Test]
         public void Penguin_CoolerSkill_BoostsRadiators()
         {
             var sim = Sim();

@@ -40,8 +40,11 @@ namespace SpaceStation.Data
         [Header("집 환경 (14-2b, REDESIGN S2)")]
         [Tooltip("모든 주민이 힘들 때 만족도 상한 감소 (힘든 주민 비율만큼 — 인구가 늘어도 같은 비율이면 같은 감소)")]
         [SerializeField, Min(0f)] private float _stressMoodMax = 20f;
+        [Tooltip("힘든 주민 0명으로 이 시간(초) 버티면 표시 (5장 선택 목표)")]
+        [SerializeField, Min(1f)] private float _calmSeconds = 60f;
 
         public float StressMoodMax => _stressMoodMax;
+        public float CalmSeconds => _calmSeconds;
         public float EnvironmentPerMinute => _environmentPerMinute;
         public float ControlScale => _controlScale;
         public float AutonomyScale => _autonomyScale;

@@ -485,6 +485,39 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void CampaignAsset_ChapterFive_IsConsistent()
+        {
+            // 14-2 5장 '타오르는 바람' 데이터 (메뉴 Chapters/Setup Later Chapters로 만든 에셋)
+            var config = AssetDatabase.LoadAssetAtPath<ChapterConfig>("Assets/_Project/Data/Chapters/Chapters.asset");
+            Assert.IsNotNull(config);
+            Assert.GreaterOrEqual(config.Count, 5);
+            var ch5 = config.Chapters[4];
+            Assert.AreEqual("타오르는 바람", ch5.Subtitle);
+            foreach (var rule in new[] { StationRule.Heat, StationRule.Radiation, StationRule.SynthesisStage2 })
+                Assert.AreEqual(rule, ch5.Rules & rule, rule + " 규칙");
+            Assert.AreEqual(7, ch5.Recipes.Count, "진화 7종");
+            int stage2 = 0;
+            foreach (var r in ch5.Recipes)
+            {
+                Assert.IsNotNull(r);
+                if (r.Stage == 2)
+                    stage2++;
+            }
+            Assert.AreEqual(1, stage2, "2단계는 방사선 차폐벽 하나");
+            Assert.AreEqual("penguin", ch5.NewSpecies != null ? ch5.NewSpecies.Id : null, "첫 배 = 펭귄");
+            Assert.AreEqual(ResidentTrait.Cooler, ch5.NewSpecies.TechTrait, "펭귄 = 방열 효율");
+            Assert.Less(ch5.NewSpecies.HeatTolerance, 0f, "펭귄 = 열 약함");
+            Assert.IsNotNull(ch5.Guide, "환경 안내");
+            Assert.IsTrue(ch5.Guide.Free && ch5.Guide.Transient, "막지 않고 저장하지 않는 안내");
+            int required = 0;
+            foreach (var g in ch5.Goals)
+                if (!g.Optional)
+                    required++;
+            Assert.AreEqual(3, required, "필수 3");
+            Assert.AreEqual(5, ch5.Goals.Count, "필수 3 + 선택 2");
+        }
+
+        [Test]
         public void ChapterOpensRecipes_SynthesisGoals_ScopedFlags()
         {
             // 14-1c: 2장이 레시피를 연구 없이 엶 + 합성 규칙, 목표 = 합성 1번 · 진화 1종 가동(선택) · 2장 안에서 기록 표시(선택)

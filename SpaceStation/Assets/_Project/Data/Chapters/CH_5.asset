@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: CH_5
   m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.ChapterData
   _displayName: "5\uC7A5"
-  _subtitle: "(\uAC00\uC81C) \uD658\uACBD"
+  _subtitle: "\uD0C0\uC624\uB974\uB294 \uBC14\uB78C"
   _introSpeaker: 
   _introLines: []
   _interiorGuide: {fileID: 0}
-  _guide: {fileID: 0}
+  _guide: {fileID: 11400000, guid: b2eeba73bb5ce2c439be5082c228c1e1, type: 2}
   _unlocks:
   - {fileID: 11400000, guid: 5d098f11b60bbf74b9d2895b1568ba47, type: 2}
   - {fileID: 11400000, guid: b7b4f6178f0f04042b3cff17e0bb328a, type: 2}
@@ -27,9 +27,18 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 04bcc3e5dfbd18443a0236485713e72e, type: 2}
   - {fileID: 11400000, guid: 0b91b20790256d449bd6c500187e4c80, type: 2}
   - {fileID: 11400000, guid: 19f5e13d96963bc4cbd0bceaba860cab, type: 2}
+  - {fileID: 11400000, guid: 193ceb353af58f74bb102086c4c06f6c, type: 2}
+  - {fileID: 11400000, guid: f032e9be637a48d498f150c66f2df71b, type: 2}
   _newNeeds: 
-  _rules: 0
-  _recipes: []
+  _rules: 584
+  _recipes:
+  - {fileID: 11400000, guid: 5e04aa79b567bbf49b82e5fbe1599a10, type: 2}
+  - {fileID: 11400000, guid: 09404a0d442371445ac13228fe445658, type: 2}
+  - {fileID: 11400000, guid: a6498d91fc8ee1b4f94e2c13a1c2bb5e, type: 2}
+  - {fileID: 11400000, guid: 774a3c24759f62245a8574e895234e70, type: 2}
+  - {fileID: 11400000, guid: d4df498248cd02d47bb31d019426bb13, type: 2}
+  - {fileID: 11400000, guid: 11dbb80617636aa4ba156ba1b12e887f, type: 2}
+  - {fileID: 11400000, guid: 4cd416f4686de1548b99262ce3b9d65b, type: 2}
   _meteorHitsMin: 8
   _meteorHitsMax: 11
   _eventIntervalMultiplier: 0.21
@@ -77,19 +86,55 @@ MonoBehaviour:
     _rewardResources: []
     _rewardResearchPoints: 0
     _rewardFreeRepairs: 0
-  - _kind: 2
-    _text: 
+  - _kind: 4
+    _text: "\uD3AD\uADC4 \uBB34\uB9AC \uB9DE\uC774\uD558\uAE30 (\uB2F5\uC740 \uBB34\uC5C7\uC774\uB4E0)"
+    _optional: 0
+    _grade: 0
+    _module: {fileID: 0}
+    _count: 160
+    _resource: 4
+    _amount: 0
+    _flag: ship.new.penguin
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 1
+    _text: "\uBC29\uC5F4\uD310 \uD558\uB098 \uC9D3\uAE30"
+    _optional: 0
+    _grade: 0
+    _module: {fileID: 11400000, guid: 193ceb353af58f74bb102086c4c06f6c, type: 2}
+    _count: 1
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources: []
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 1
+    _text: "\uBC29\uC0AC\uC120 \uCC28\uD3D0\uC2E4 \uC9D3\uAE30"
+    _optional: 1
+    _grade: 0
+    _module: {fileID: 11400000, guid: f032e9be637a48d498f150c66f2df71b, type: 2}
+    _count: 1
+    _resource: 4
+    _amount: 0
+    _flag: 
+    _rewardResources:
+    - Type: 4
+      Amount: 150
+    _rewardResearchPoints: 0
+    _rewardFreeRepairs: 0
+  - _kind: 4
+    _text: "\uD798\uB4E0 \uC8FC\uBBFC 0\uBA85\uC73C\uB85C 1\uBD84 \uBC84\uD2F0\uAE30"
     _optional: 1
     _grade: 0
     _module: {fileID: 0}
     _count: 160
     _resource: 4
     _amount: 0
-    _flag: 
-    _rewardResources:
-    - Type: 4
-      Amount: 100
-    _rewardResearchPoints: 0
+    _flag: comfort.calm@5
+    _rewardResources: []
+    _rewardResearchPoints: 1
     _rewardFreeRepairs: 0
   _climax:
     _kind: 1

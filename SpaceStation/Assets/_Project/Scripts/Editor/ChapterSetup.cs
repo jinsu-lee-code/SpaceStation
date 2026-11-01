@@ -820,6 +820,70 @@ namespace SpaceStation.Editor
             EditorUtility.SetDirty(chapter);
         }
 
+        /// <summary>
+        /// 14-2c 5장 '타오르는 바람' (사용자 결정 2026-11-01): 규칙 = 칸 단위 열 + 방사선 + 합성 2단계(차폐벽 몫, 장이 연 레시피만) · 레시피 7종 · 환경 안내 ·
+        /// 목표 = 필수 3(국가급 · 펭귄 맞이하기 · 방열판) + 선택 2(방사선 차폐실 = 금속 +150 · 힘든 주민 0명으로 1분 = 연구 포인트 +1) · 방열판 · 차폐실을 5장에서 엶.
+        /// </summary>
+        private static void ChapterFive(ChapterData chapter)
+        {
+            var guide = EnvironmentGuide(); // SerializedObject 전에 — 에셋을 만들 수 있음
+            var so = new SerializedObject(chapter);
+            so.FindProperty("_subtitle").stringValue = "타오르는 바람"; // 후보 별바람 · 별의 숨결 (4 · 5장 문구 검수 때 정함)
+            so.FindProperty("_rules").intValue = (int)(StationRule.Heat | StationRule.Radiation | StationRule.SynthesisStage2);
+            so.FindProperty("_guide").objectReferenceValue = guide;
+            var recipes = so.FindProperty("_recipes");
+            var names = new[] { "RC_FusionStation", "RC_HydrogenPlant", "RC_ArmorWall", "RC_GravityHabitat", "RC_EmergencyCenter", "RC_MaintenanceWorks", "RC_RadiationWall" };
+            recipes.arraySize = names.Length;
+            for (int i = 0; i < names.Length; i++)
+                recipes.GetArrayElementAtIndex(i).objectReferenceValue = R(names[i]);
+
+            var goals = so.FindProperty("_goals");
+            goals.arraySize = 5;
+            var grade = goals.GetArrayElementAtIndex(0);
+            Clear(grade);
+            grade.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.ReachGrade;
+            grade.FindPropertyRelative("_grade").intValue = 5;
+            FlagGoal(goals.GetArrayElementAtIndex(1), SpaceStation.Simulation.ArkShipSystem.MetFlag("penguin"), "펭귄 무리 맞이하기 (답은 무엇이든)", false);
+            var radiator = goals.GetArrayElementAtIndex(2);
+            ModuleGoal(radiator, M("MD_Radiator"), "방열판 하나 짓기");
+            radiator.FindPropertyRelative("_optional").boolValue = false;
+            var shelter = goals.GetArrayElementAtIndex(3);
+            ModuleGoal(shelter, M("MD_RadiationShelter"), "방사선 차폐실 짓기");
+            var reward = shelter.FindPropertyRelative("_rewardResources");
+            reward.arraySize = 1;
+            reward.GetArrayElementAtIndex(0).FindPropertyRelative("Type").enumValueIndex = (int)ResourceType.Metal;
+            reward.GetArrayElementAtIndex(0).FindPropertyRelative("Amount").floatValue = 150f;
+            var calm = goals.GetArrayElementAtIndex(4);
+            FlagGoal(calm, SpaceStation.Simulation.ChapterSystem.ScopedFlag(SpaceStation.Simulation.HomeComfortSystem.CalmFlag, 5), "힘든 주민 0명으로 1분 버티기", true);
+            calm.FindPropertyRelative("_rewardResearchPoints").intValue = 1;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            AddUnlocks(chapter, M("MD_Radiator"), M("MD_RadiationShelter"));
+            EditorUtility.SetDirty(chapter);
+        }
+
+        private const string EnvironmentGuidePath = "Assets/_Project/Data/Chapters/TUT_Environment.asset";
+
+        /// <summary>14-2c 5장 환경 안내 (4장 합성 안내와 같은 방식 — 건너뛸 수 있고 조작을 막지 않음): 지도 열기 → 방열판. 문장은 확인용 초안 (코어 줄 = 반말, 안내 = 합니다체).</summary>
+        private static TutorialData EnvironmentGuide()
+        {
+            var data = LoadOrCreate<TutorialData>(EnvironmentGuidePath);
+            data.SetSteps(new[]
+            {
+                new TutorialStep("열 · 방사선 지도",
+                    Body("별이 거칠어지고 있다. 어느 칸이 위험한지부터 본다.", "집의 열과 방사선이 높으면 주민이 힘들어합니다. 바깥 칸과 핵융합로 옆 집일수록 방사선이 높고, 종족마다 견디는 정도가 다릅니다."),
+                    TutorialGoal.OpenEnvironmentMap),
+                new TutorialStep("방열판",
+                    Body("열은 바깥으로 내보낸다.", "방열판은 맞닿은 모듈의 열을 줄입니다. 우주로 노출된 면이 있어야 동작합니다."),
+                    TutorialGoal.Build, TutorialHighlight.None, false, M("MD_Radiator")),
+            });
+            data.SetTexts("환경", "방열판 가동",
+                $"<color={CoreHex}>코어 · 바깥이 안쪽을 지킨다. 그럼 바깥에는 누가 사나.</color>\n힘든 주민은 덜 힘든 빈집으로 저절로 옮겨 갑니다 · 안쪽 칸 · 장갑 격벽 · 차폐실로 집의 방사선을 낮춥니다",
+                transient: true, postTutorialGrace: 0f);
+            data.SetFree(true);
+            EditorUtility.SetDirty(data);
+            return data;
+        }
+
         private static void SetChoice(SerializedProperty c, string id, string title, string description)
         {
             c.FindPropertyRelative("_id").stringValue = id;
@@ -1274,6 +1338,8 @@ namespace SpaceStation.Editor
                 SetEarthLights(ch, s.start, s.end, 1800f, s.final);
                 if (number == 4)
                     ChapterFour(ch);
+                if (number == 5)
+                    ChapterFive(ch);
                 list.Add(ch);
             }
             return list;

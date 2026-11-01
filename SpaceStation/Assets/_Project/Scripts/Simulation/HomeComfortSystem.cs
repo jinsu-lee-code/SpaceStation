@@ -16,7 +16,10 @@ namespace SpaceStation.Simulation
     public sealed class HomeComfortSystem : StationSystem
     {
         public const string SystemKey = "homecomfort";
+        /// <summary>장 표시: 힘든 주민 0명으로 버팀.</summary>
+        public const string CalmFlag = "comfort.calm";
 
+        private float _calm; // 저장하지 않음 — 불러오면 다시 셈
         private readonly SocietyConfig _config;
         private readonly Dictionary<string, int> _stressedKinds = new Dictionary<string, int>();
         private readonly StringBuilder _sb = new StringBuilder(64);
@@ -58,6 +61,20 @@ namespace SpaceStation.Simulation
             roster.StressMoodMax = _config.StressMoodMax;
             roster.StressMoodPerResident = _config.StressMoodMax / Math.Max(1, roster.Residents.Count); // 비율 — 인구가 늘어도 같은 비율이면 같은 감소
             roster.StressExempt = StormOn ? Sim.Radiation.ShelterCapacity : 0;
+            UpdateCalm(dt, roster);
+        }
+
+        /// <summary>힘든 주민 0명이 이어지면 장 표시 (5장 선택 목표 "힘든 주민 0명으로 1분 버티기").</summary>
+        private void UpdateCalm(float dt, ResidentRoster roster)
+        {
+            if (!Active || roster.StressedCount > 0 || roster.Residents.Count == 0)
+            {
+                _calm = 0f;
+                return;
+            }
+            _calm += dt;
+            if (_calm >= _config.CalmSeconds && Sim.Chapters != null)
+                Sim.Chapters.SetFlag(CalmFlag);
         }
 
         /// <summary>장 카드 줄: "힘든 주민 12명 (펭귄 8 · 토끼 4)", 폭풍 때 대피한 만큼은 "힘든 주민 8명 · 대피 2명". 없으면 "".</summary>
