@@ -14,6 +14,9 @@ namespace SpaceStation.UI
     /// </summary>
     public sealed class ResourcePanel : MonoBehaviour
     {
+        private const float RunOutWarnSeconds = 60f; // M-125 이 시간 안에 바닥나면 미리 경고
+        private const float BreakWarnDurability = 15f; // M-125 내구도 이 값 이하면 파괴 임박
+
         private static readonly ResourceType[] StockOrder =
         {
             ResourceType.Oxygen, ResourceType.Water, ResourceType.Food, ResourceType.Metal,
@@ -184,6 +187,9 @@ namespace SpaceStation.UI
             AppendFailureWarning(failure.OxygenRemaining, "산소 고갈");
             AppendFailureWarning(failure.SatisfactionRemaining, "만족도 0 · 폭동");
             AppendFailureWarning(failure.CoreRemaining, "코어 주변 전부 파손");
+            AppendRunOutWarning(ResourceType.Oxygen);
+            AppendRunOutWarning(ResourceType.Water);
+            AppendRunOutWarning(ResourceType.Food);
             if (_sim.StoppedModuleCount > 0)
                 _sb.Append("<color=").Append(HudText.Red).Append(">입력 자원 부족으로 정지: ").Append(_sim.StoppedModuleCount).Append("개</color>\n");
             _sb.Append("<size=40%>\n</size>"); // 구역 사이 작은 간격
@@ -208,16 +214,20 @@ namespace SpaceStation.UI
             _sb.Append("</color></size>\n");
 
             // 4-3: 노후 모듈 (효율 저하 중)
-            int worn = 0;
+            int worn = 0, breaking = 0;
             var durability = _resources.Durability;
             foreach (var info in durability.Modules)
             {
                 if (durability.EfficiencyFor(info.Current) < 1f)
                     worn++;
+                if (info.Current <= BreakWarnDurability)
+                    breaking++;
             }
             if (worn > 0)
                 _sb.Append("<color=").Append(HudText.Yellow).Append(">노후 모듈(효율 저하): ").Append(worn).Append("개 · 정비(").Append(KeyBindings.Label(GameAction.Maintain))
                    .Append(") 또는 재건축(").Append(KeyBindings.Label(GameAction.Rebuild)).Append(")</color>");
+            if (breaking > 0) // M-125 내구도 0이면 파괴 (14-3 플레이: 한 줄 알림 뒤에야 알았음)
+                _sb.Append("\n<color=").Append(HudText.Red).Append(">파괴 임박 ").Append(breaking).Append("개 · 내구도 0이 되면 사라집니다</color>");
 
             _body.SetText(_sb);
 
@@ -229,6 +239,19 @@ namespace SpaceStation.UI
 
         /// <summary>M-119 전력 줄 값: 1000부터 소수를 뺌 (값 칸 176px — 소수까지 4자리면 넘침).</summary>
         private static string PowerAmount(float value) => value >= 1000f ? HudText.Amount(value) : value.ToString("0.#");
+
+        /// <summary>M-125 바닥나기 전 경고 (14-3 플레이: 물이 45초 만에 0이 되어 발전 · 산소까지 멈출 때까지 뚜렷한 신호가 없었음).</summary>
+        private void AppendRunOutWarning(ResourceType type)
+        {
+            float stock = _sim.GetStock(type), net = _sim.GetNetRate(type);
+            if (stock <= 0f || net >= -0.01f || stock / -net > RunOutWarnSeconds)
+                return;
+            _sb.Append("<color=").Append(HudText.Orange).Append("><b>").Append(HudText.ResourceName(type)).Append(' ')
+               .Append(Mathf.CeilToInt(stock / -net)).Append("초 뒤 바닥</b>");
+            if (type == ResourceType.Water)
+                _sb.Append(" · 물을 쓰는 발전 · 생산도 멈춥니다");
+            _sb.Append("</color>\n");
+        }
 
         private void AppendFailureWarning(float remaining, string what)
         {

@@ -110,6 +110,9 @@ namespace SpaceStation.Simulation
                 ReserveRatio = auto.ReserveRatio,
                 AutoMaintainCount = auto.AutoMaintainCount,
                 AutoRebuildCount = auto.AutoRebuildCount,
+                HasAutoRepair = true,
+                AutoRepair = auto.AutoRepair,
+                AutoRepairCount = auto.AutoRepairCount,
             };
             if (sim.Tutorial != null && sim.Tutorial.Active && !sim.Tutorial.Data.Transient) // 13-4 저장하지 않는 짧은 안내는 빼고
                 s.Tutorial = sim.Tutorial.Capture();
@@ -173,6 +176,11 @@ namespace SpaceStation.Simulation
             auto.ReserveRatio = s.Automation.ReserveRatio;
             auto.AutoMaintainCount = s.Automation.AutoMaintainCount;
             auto.AutoRebuildCount = s.Automation.AutoRebuildCount;
+            if (s.Automation.HasAutoRepair)
+            {
+                auto.AutoRepair = s.Automation.AutoRepair;
+                auto.AutoRepairCount = s.Automation.AutoRepairCount;
+            }
 
             // 2. 모듈 (규칙·비용 없이 그대로 배치) + 내구도
             var placed = new ModuleInstance[s.Modules.Count];

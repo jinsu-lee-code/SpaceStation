@@ -221,7 +221,8 @@ namespace SpaceStation.Simulation
             }
             string head = prefix + (_candidates.Count > 1 ? $"운석 {_candidates.Count}개 충돌! " : "") + interceptText + "파손: ";
             string spread = balance.SpreadAfterSeconds > 0f ? $", {balance.SpreadAfterSeconds:0}초 방치 시 이웃으로 확산" : "";
-            _sim.Report($"{head}{sb}  ·  {balance.DestroyAfterSeconds:0}초 안에 수리 (선택 후 R){spread}", false);
+            string repair = _sim.Automation.AutoRepairActive ? "자동 수리 등록" : $"{balance.DestroyAfterSeconds:0}초 안에 수리 (선택 후 R){spread}";
+            _sim.Report($"{head}{sb}  ·  {repair}", false);
         }
 
         /// <summary>
