@@ -845,13 +845,13 @@ namespace SpaceStation.Editor
 
         /// <summary>
         /// 14-2c 5장 '타오르는 바람' (사용자 결정 2026-11-01): 규칙 = 칸 단위 열 + 방사선 + 합성 2단계(차폐벽 몫, 장이 연 레시피만) · 레시피 7종 · 환경 안내 ·
-        /// 목표 = 필수 3(국가급 · 펭귄 맞이하기 · 방열판) + 선택 2(방사선 차폐실 = 금속 +150 · 힘든 주민 0명으로 1분 = 연구 포인트 +1) · 방열판 · 차폐실을 5장에서 엶.
+        /// 목표 = 필수 3(국가급 · 펭귄 맞이하기 · 방열판) + 선택 2(방사선 차폐실 = 금속 +150 · 힘든 주민 0명으로 1분 = 기록 조각 +1, 14-3 보완) · 방열판 · 차폐실을 5장에서 엶.
         /// </summary>
         private static void ChapterFive(ChapterData chapter)
         {
             var guide = EnvironmentGuide(); // SerializedObject 전에 — 에셋을 만들 수 있음
             var so = new SerializedObject(chapter);
-            so.FindProperty("_subtitle").stringValue = "타오르는 바람"; // 후보 별바람 · 별의 숨결 (4 · 5장 문구 검수 때 정함)
+            so.FindProperty("_subtitle").stringValue = "타오르는 바람"; // 이 이름으로 정함 (사용자 결정 2026-11-02)
             so.FindProperty("_rules").intValue = (int)(StationRule.Heat | StationRule.Radiation | StationRule.SynthesisStage2);
             so.FindProperty("_guide").objectReferenceValue = guide;
             var recipes = so.FindProperty("_recipes");
@@ -878,7 +878,7 @@ namespace SpaceStation.Editor
             reward.GetArrayElementAtIndex(0).FindPropertyRelative("Amount").floatValue = 150f;
             var calm = goals.GetArrayElementAtIndex(4);
             FlagGoal(calm, SpaceStation.Simulation.ChapterSystem.ScopedFlag(SpaceStation.Simulation.HomeComfortSystem.CalmFlag, 5), "힘든 주민 0명으로 1분 버티기", true);
-            calm.FindPropertyRelative("_rewardResearchPoints").intValue = 1;
+            calm.FindPropertyRelative("_rewardFragments").intValue = 1; // 14-3 보완 (사용자 결정 2026-11-02): 4장이 깔끔이 아니면 5장에 할 연구가 없어 연구 포인트는 쓸 곳이 없었음
 
             // 14-2d 위기 '항성 폭풍' (사용자 결정 2026-11-01): 예고 3분 → 6분 · 바깥 칸 방사선 ×3 · 발열 ×1.5 · 방열판 ×0.5 · 힘든 주민이 30초마다 떠남 (1 + 힘든 ÷ 50) ·
             // 판정 = 떠난 주민 · 과열 파손 · 바닥 (깔끔 3명 · 0개 · 0초 / 빠듯 30명 · 5개 · 60초, 측정 뒤 사용자 결정 11-01 BALANCE 서사판 4번) · 결과 이름 = 무사한 안쪽 / 그을린 바깥 / 타 버린 자리
@@ -1832,6 +1832,7 @@ namespace SpaceStation.Editor
             goal.FindPropertyRelative("_rewardResources").arraySize = 0;
             goal.FindPropertyRelative("_rewardResearchPoints").intValue = 0;
             goal.FindPropertyRelative("_rewardFreeRepairs").intValue = 0;
+            goal.FindPropertyRelative("_rewardFragments").intValue = 0;
         }
     }
 }

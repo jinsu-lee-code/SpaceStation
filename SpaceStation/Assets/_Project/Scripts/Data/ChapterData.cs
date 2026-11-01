@@ -51,6 +51,8 @@ namespace SpaceStation.Data
         [SerializeField] private List<ResourceAmount> _rewardResources = new List<ResourceAmount>();
         [SerializeField, Min(0)] private int _rewardResearchPoints;
         [SerializeField, Min(0)] private int _rewardFreeRepairs;
+        [Tooltip("기록 조각 (14-3 보완: 쓸 연구가 남은 때 다시 잇는 보상)")]
+        [SerializeField, Min(0)] private int _rewardFragments;
 
         public ChapterGoalKind Kind => _kind;
         public string Text => _text;
@@ -64,7 +66,8 @@ namespace SpaceStation.Data
         public IReadOnlyList<ResourceAmount> RewardResources => _rewardResources;
         public int RewardResearchPoints => _rewardResearchPoints;
         public int RewardFreeRepairs => _rewardFreeRepairs;
-        public bool HasReward => _rewardResources.Count > 0 || _rewardResearchPoints > 0 || _rewardFreeRepairs > 0;
+        public int RewardFragments => _rewardFragments;
+        public bool HasReward => _rewardResources.Count > 0 || _rewardResearchPoints > 0 || _rewardFreeRepairs > 0 || _rewardFragments > 0;
     }
 
     // 13-1 장마다 켜는 규칙 = main 공통 `StationRule` (Data/StationRule.cs, 같은 이름 · 같은 값 — MERGE_NOTES M-1).

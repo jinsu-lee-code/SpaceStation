@@ -437,6 +437,8 @@ namespace SpaceStation.Simulation
                 parts.Add($"연구 포인트 +{g.RewardResearchPoints}");
             if (g.RewardFreeRepairs > 0)
                 parts.Add($"무료 수리권 +{g.RewardFreeRepairs}");
+            if (g.RewardFragments > 0)
+                parts.Add($"기록 조각 +{g.RewardFragments}");
             return string.Join(" · ", parts);
         }
 
@@ -467,6 +469,8 @@ namespace SpaceStation.Simulation
                 Sim.Resources.AddStock(r.Type, r.Amount);
             if (g.RewardResearchPoints > 0 || g.RewardFreeRepairs > 0)
                 Sim.Supply.SetCounts(Sim.Supply.ResearchPoints + g.RewardResearchPoints, Sim.Supply.FreeRepairs + g.RewardFreeRepairs);
+            if (g.RewardFragments > 0)
+                Sim.GetSystem<RecordArchiveSystem>()?.AddFragments(g.RewardFragments); // 알림은 장 목표 완료 줄에 함께
         }
 
         // ---------------- 진행 ----------------

@@ -177,6 +177,19 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void OptionalGoal_RewardFragments_AddsToRecords()
+        {
+            var sim = Sim(out var records, out _);
+            var goal = sim.Chapters.Current.Goals[1];
+            Assert.IsTrue(goal.HasReward);
+            StringAssert.Contains("기록 조각 +1", ChapterSystem.RewardText(goal));
+            sim.Chapters.SetFlag("calm");
+            Assert.IsTrue(sim.Chapters.IsGoalDone(1));
+            Assert.AreEqual(1, records.Fragments, "선택 목표 보상으로 조각");
+            Assert.AreEqual(0, sim.Supply.ResearchPoints, "연구 포인트는 그대로");
+        }
+
+        [Test]
         public void LinkedResearch_HiddenUntilSynthesisRule()
         {
             var sim = Sim(out _, out _);
@@ -244,9 +257,14 @@ namespace SpaceStation.Tests
             var so = new SerializedObject(c);
             so.FindProperty("_displayName").stringValue = "시험 장";
             var goals = so.FindProperty("_goals");
-            goals.arraySize = 1;
+            goals.arraySize = 2;
             goals.GetArrayElementAtIndex(0).FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.SurviveSeconds;
             goals.GetArrayElementAtIndex(0).FindPropertyRelative("_amount").floatValue = 100000f;
+            var optional = goals.GetArrayElementAtIndex(1);
+            optional.FindPropertyRelative("_kind").enumValueIndex = (int)ChapterGoalKind.Flag;
+            optional.FindPropertyRelative("_optional").boolValue = true;
+            optional.FindPropertyRelative("_flag").stringValue = "calm";
+            optional.FindPropertyRelative("_rewardFragments").intValue = 1;
             so.FindProperty("_cleanFragments").intValue = 1;
             so.ApplyModifiedPropertiesWithoutUndo();
             var cfg = Create<ChapterConfig>();
