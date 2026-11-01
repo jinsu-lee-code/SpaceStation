@@ -224,22 +224,39 @@ namespace SpaceStation.Building
         private void DrawLabels()
         {
             _layer.Begin();
-            for (int i = 0; i < _used; i++)
+            // M-122 큰 정거장에서 라벨이 100개 넘게 떠 읽을 수 없었음 → 상한 (상자는 그대로, 수는 왼쪽 아래 줄). 위험 → 방사선 → 나머지 순, 가려진 것은 위험만 몇 개
+            int left = MaxLabels, faintLeft = MaxFaintLabels;
+            DrawLabels(b => b.Kind == Kind.Danger, ref left, ref faintLeft);
+            DrawLabels(b => b.Kind == Kind.Radiated, ref left, ref faintLeft);
+            DrawLabels(b => b.Kind != Kind.Danger && b.Kind != Kind.Radiated, ref left, ref faintLeft);
+            _layer.End();
+        }
+
+        private const int MaxLabels = 24;
+        private const int MaxFaintLabels = 8;
+
+        private void DrawLabels(System.Predicate<Box> which, ref int left, ref int faintLeft)
+        {
+            for (int i = 0; i < _used && left > 0; i++)
             {
                 var b = _boxes[i];
-                if (b.Label == null)
+                if (b.Label == null || !which(b))
                     continue;
                 bool hidden = !b.Visible;
-                if (hidden && b.Kind != Kind.Over && b.Kind != Kind.Danger)
-                    continue; // 가려진 방열판 · 빈 칸은 표시 안 함
-                // 가려진 과열 모듈: 흐린 작은 라벨, 화면 밖이면 생략 (보이는 것만 가장자리 화살표)
+                if (hidden && b.Kind != Kind.Danger)
+                    continue; // 가려진 방열판 · 빈 칸 · 과열 · 방사선은 표시 안 함 (수는 왼쪽 아래 줄)
+                if (hidden && faintLeft <= 0)
+                    continue;
+                // 가려진 과열 위험 모듈: 흐린 작은 라벨, 화면 밖이면 생략 (보이는 것만 가장자리 화살표)
                 var m = _layer.Show(b, b.Anchor, faint: hidden, edgeArrow: !hidden && b.Kind == Kind.Danger);
-                string text = hidden ? (b.Kind == Kind.Danger ? "안쪽 과열 위험" : "안쪽 과열") : b.Label;
+                string text = hidden ? "안쪽 과열 위험" : b.Label;
                 string arrow = m.Arrow.Length > 0 ? m.Arrow : "";
                 _layer.Set(m, (int)b.Kind * 2 + (hidden ? 1 : 0), arrow + text,
                     b.Kind == Kind.Danger ? DangerAccent : b.Kind == Kind.Over ? OverAccent : b.Kind == Kind.Radiated ? RadiatedAccent : RadiatorAccent);
+                left--;
+                if (hidden)
+                    faintLeft--;
             }
-            _layer.End();
         }
 
         /// <summary>
