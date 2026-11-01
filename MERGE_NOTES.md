@@ -1859,6 +1859,7 @@
 **main에 넣은 것** — 서사판 14-2d 5장 위기 '항성 폭풍'이 쓸 연출. 새 화면을 만들지 않고 태양 폭풍 것을 씀
 - `RadiationSystem.StormActive` (`SpaceMultiplier` > 1) → `SolarStormFx`(화면 톤 · 패널 스파크) · `GameAudio`(폭풍 소리) · `InteriorAtmosphere`(내부 지직거림)가 함께 켜짐 · `InteriorRadiationBoard` "방사선 폭풍 · 매우 높음 · 대피"
 - `PopulationChangeReason.Environment` ("열 · 방사선") — 알림 · 주민 기록
+- `HeatMapView` 라벨 상한 (보임 24 · 가려진 위험 8, 위험 → 방사선 → 나머지 순): 모듈 400개 정거장에서 '안쪽 과열' 라벨 100개 넘게 떠 읽을 수 없었음. 가려진 일반 과열은 라벨 없음, 상자 · 왼쪽 아래 수는 그대로
 - 규칙을 열지 않거나 배율을 바꾸지 않으면 그대로
 
 ### `narrative` 합칠 때
