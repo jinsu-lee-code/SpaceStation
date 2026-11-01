@@ -242,6 +242,57 @@ namespace SpaceStation.Editor
             Debug.Log("[GradeRulesSetup] 열 관리: 발열 3종 · 방열판 · 대륙급 해금 · 열 지도 연결 완료");
         }
 
+        /// <summary>
+        /// M-120 칸 단위 방사선 값 (BALANCE 칸 단위 방사선, 사용자 결정 2026-11-01): 방출 = 핵융합로 5 · 융합 발전소 · 융합 플랜트 3 (열 확산 ×0.6과 같은 비율) /
+        /// 막는 두께 · 차폐 = 장갑 격벽 2겹 · -1, 장갑 외벽 2겹 · -2 / 차폐실 · 차폐벽 = 차폐 -3 · 대피 12명, 준비 중을 풀고 규칙으로 잠금.
+        /// </summary>
+        [MenuItem("SpaceStation/Grade Rules/Setup Radiation")]
+        public static void SetupRadiation()
+        {
+            Radiation("MD_FusionReactor", so => so.FindProperty("_radiationOutput").floatValue = 5f);
+            Radiation("Evolved/MD_Evo_FusionStation", so => so.FindProperty("_radiationOutput").floatValue = 3f);
+            Radiation("Evolved/MD_Evo_FusionPlant", so => so.FindProperty("_radiationOutput").floatValue = 3f);
+            Radiation("MD_ArmorBulkhead", so =>
+            {
+                so.FindProperty("_radiationLayers").intValue = 2;
+                so.FindProperty("_radiationRemoval").floatValue = 1f;
+            });
+            Radiation("Evolved/MD_Evo_ArmorWall", so =>
+            {
+                so.FindProperty("_radiationLayers").intValue = 2;
+                so.FindProperty("_radiationRemoval").floatValue = 2f;
+            });
+            Radiation("MD_RadiationShelter", so => RadiationStats(so, layers: 0, removal: 3f, shelter: 12));
+            Radiation("Evolved/MD_Evo_RadiationWall", so => RadiationStats(so, layers: 2, removal: 3f, shelter: 12));
+            AssetDatabase.SaveAssets();
+            Debug.Log("[GradeRulesSetup] 칸 단위 방사선: 방출 3종 · 막는 두께 · 차폐 · 대피 값");
+        }
+
+        /// <summary>차폐실 · 차폐벽 공통: 차폐 · 대피 값 + 준비 중을 풀고 규칙이 열려야 건설.</summary>
+        internal static void RadiationStats(SerializedObject so, int layers, float removal, int shelter)
+        {
+            so.FindProperty("_radiationLayers").intValue = layers;
+            so.FindProperty("_radiationRemoval").floatValue = removal;
+            so.FindProperty("_shelterCapacity").intValue = shelter;
+            so.FindProperty("_comingSoon").boolValue = false;
+            so.FindProperty("_comingSoonNote").stringValue = "";
+            so.FindProperty("_requiredRule").intValue = (int)StationRule.Radiation;
+        }
+
+        private static void Radiation(string module, System.Action<SerializedObject> set)
+        {
+            var m = AssetDatabase.LoadAssetAtPath<ModuleData>($"{ModuleDir}/{module}.asset");
+            if (m == null)
+            {
+                Debug.LogWarning($"[GradeRulesSetup] {module} 없음");
+                return;
+            }
+            var so = new SerializedObject(m);
+            set(so);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(m);
+        }
+
         private static void SetHeat(string module, float heat)
         {
             var m = AssetDatabase.LoadAssetAtPath<ModuleData>($"{ModuleDir}/{module}.asset");

@@ -331,6 +331,26 @@ namespace SpaceStation.UI
             return sb.Append("</size>").ToString();
         }
 
+        /// <summary>M-120 거주 모듈이면 집 환경 (열 · 방사선, 규칙이 열렸을 때만).</summary>
+        private string HomeEnvironmentLine(ModuleInstance module)
+        {
+            var sim = _station.Simulation;
+            if (module.Data == null || module.Data.HousingCapacity <= 0 || !(sim.Radiation.Active || sim.Heat.Active))
+                return string.Empty;
+            var sb = new System.Text.StringBuilder($"\n<size=85%><color={HudText.Muted}>집 환경</color>");
+            if (sim.Radiation.Active)
+            {
+                float rad = sim.Radiation.LevelOf(module);
+                sb.Append($" 방사선 <color={(rad > sim.Radiation.Comfort ? HudText.Orange : "#7CFF9A")}>{rad:0.#}</color>");
+            }
+            if (sim.Heat.Active)
+            {
+                float heat = sim.Heat.HeatOf(module);
+                sb.Append($" 열 <color={(heat > sim.Balance.HomeHeatComfort ? HudText.Orange : "#7CFF9A")}>{heat:0.#}</color>");
+            }
+            return sb.Append("</size>").ToString();
+        }
+
         private readonly List<Resident> _occupants = new List<Resident>();
 
         /// <summary>Phase 10: 거주 모듈이면 입주 인원·환경·주민 이름 (3명까지 + 외 N명).</summary>
@@ -447,7 +467,7 @@ namespace SpaceStation.UI
             var applied = _resources.Adjacency.GetApplied(module);
             if (applied.Count > 0)
                 adjacencyLine = $"\n<size=85%><color={HudText.Muted}>인접</color> {AdjacencySystem.DescribeAll(applied)}</size>";
-            view.Info = $"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{DefenseLine(module)}{NeedsLine(module)}{ResidentsLine(module)}";
+            view.Info = $"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{DefenseLine(module)}{NeedsLine(module)}{HomeEnvironmentLine(module)}{ResidentsLine(module)}";
 
             var sim = _resources.Simulation;
 

@@ -105,7 +105,7 @@ namespace SpaceStation.Core
             new Info { Action = GameAction.Roster, Group = "창", Label = "주민 명단", Default = Key.Y, Context = ActionContext.Always },
             new Info { Action = GameAction.Recipes, Group = "창", Label = "합성 레시피 창", Default = Key.K, Context = ActionContext.Always },
             new Info { Action = GameAction.Policies, Group = "창", Label = "정책 창", Default = Key.O, Context = ActionContext.Always },
-            new Info { Action = GameAction.HeatMap, Group = "창", Label = "열 지도 보기", Default = Key.J, Context = ActionContext.Always },
+            new Info { Action = GameAction.HeatMap, Group = "창", Label = "열 · 방사선 지도 보기", Default = Key.J, Context = ActionContext.Always },
             new Info { Action = GameAction.Contacts, Group = "창", Label = "외부 접촉 창", Default = Key.U, Context = ActionContext.Always },
             new Info { Action = GameAction.ToggleHelp, Group = "창", Label = "조작 안내 고정 / 숨기기", Default = Key.H, Context = ActionContext.Always },
         };

@@ -179,6 +179,8 @@ namespace SpaceStation.Simulation
         public MeteorShowerSystem MeteorShower { get; }
         /// <summary>12-3c 대륙급 열 관리.</summary>
         public HeatSystem Heat { get; }
+        /// <summary>M-120 칸 단위 방사선 (규칙이 열려야 동작).</summary>
+        public RadiationSystem Radiation { get; }
 
         /// <summary>12-3c 과열 생산 배율 (열 관리 전 · 한도 이하면 1).</summary>
         public float HeatMultiplier(ModuleInstance module) => Heat != null ? Heat.ProductionMultiplier(module) : 1f;
@@ -314,6 +316,7 @@ namespace SpaceStation.Simulation
                 Synthesis = AddSystem(new SynthesisSystem(settings.Recipes), TickStepNames.Automation); // 요구 · 인구 계산 전에 교체가 끝나게
             MeteorShower = AddSystem(new MeteorShowerSystem(settings.HazardRandom01), TickStepNames.Events); // 도시급 전에는 아무것도 안 함 (기존 결과 그대로)
             Heat = AddSystem(new HeatSystem(), MeteorShowerSystem.SystemKey); // 대륙급 전에는 열 0 (기존 결과 그대로)
+            Radiation = AddSystem(new RadiationSystem(), HeatSystem.SystemKey); // M-120 규칙이 열리기 전에는 0 (기존 결과 그대로)
             if (settings.Policies != null)
             {
                 Policies = AddSystem(new PolicySystem(settings.Policies), MeteorShowerSystem.SystemKey);
@@ -357,6 +360,7 @@ namespace SpaceStation.Simulation
             Effects.TraitFoodProductionMultiplier = 1f + Residents.Ability(ResidentTrait.Gardener);
             Effects.TraitResearchSpeedMultiplier = 1f + Residents.Ability(ResidentTrait.Scientist);
             Effects.TraitSynthesisSpeedMultiplier = 1f + Residents.Ability(ResidentTrait.Artisan);
+            Effects.TraitHeatRemovalMultiplier = 1f + Residents.Ability(ResidentTrait.Cooler);
             ApplyConsumptionMultipliers();
         }
 

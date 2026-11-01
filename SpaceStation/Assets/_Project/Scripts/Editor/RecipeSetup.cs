@@ -583,15 +583,14 @@ namespace SpaceStation.Editor
                 Id = "RadiationWall", Name = "방사선 차폐벽", RecipeName = "방사선 차폐벽", Category = ModuleCategory.Defense, Color = "#C8D0A0", Stage = 2, UnlockGrade = 5,
                 Cells = Join(Box(3, 1), new[] { V(0, 0, 1), V(1, 0, 1) }), // 외벽 3칸 + 차폐실 2칸
                 Ingredients = new[] { ("Evolved/MD_Evo_ArmorWall", 1), ("MD_RadiationShelter", 1) }, SynthesisMetal = 170f, Duration = 60f, Research = ResearchCategory.Defense,
-                Rationale = "장갑 외벽에 차폐층을 덧대 방사선까지 막는다 (방사선 차폐 시스템과 함께 연결)",
+                Rationale = "장갑 외벽에 차폐층을 덧대 방사선까지 막는다 (M-120 칸 단위 방사선)",
                 Stats = so =>
                 {
                     so.FindProperty("_armored").boolValue = true;
                     so.FindProperty("_meteorWeightMultiplier").floatValue = 3f;
                     so.FindProperty("_decoyRadius").intValue = 3;
                     so.FindProperty("_decoyChance").floatValue = 0.7f;
-                    so.FindProperty("_comingSoon").boolValue = true; // 사용자 결정: 방사선 시스템(국가급 이후 작업) 전까지
-                    so.FindProperty("_comingSoonNote").stringValue = "방사선 차폐 시스템 (국가급 이후 작업)";
+                    GradeRulesSetup.RadiationStats(so, layers: 2, removal: 3f, shelter: 12); // M-120 준비 중을 풀고 규칙으로
                     Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 3f));
                 },
             },

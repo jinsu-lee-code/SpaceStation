@@ -76,6 +76,16 @@ namespace SpaceStation.Data
         [Tooltip("방열량 — 면이 맞닿은 모듈마다 이만큼 열을 뺌 (우주로 노출된 면이 있을 때만). 0이면 방열판 아님")]
         [SerializeField, Min(0f)] private float _heatRemoval;
 
+        [Header("Radiation (M-120 칸 단위 방사선, BALANCE 칸 단위 방사선)")]
+        [Tooltip("방사선 방출 — 가동 중이면 1칸 안 집에 이 값, 2칸 집에 비율만큼 (합산 없이 가장 센 값). 0이면 방출 없음")]
+        [SerializeField, Min(0f)] private float _radiationOutput;
+        [Tooltip("우주 방사선을 막는 두께 (겹). 0 = 보통 모듈 1겹 — 장갑 격벽 · 외벽 2겹")]
+        [SerializeField, Min(0)] private int _radiationLayers;
+        [Tooltip("차폐 — 가동 중이면 면이 맞닿은 집의 방사선을 이만큼 뺌")]
+        [SerializeField, Min(0f)] private float _radiationRemoval;
+        [Tooltip("대피 정원 — 가동 중이면 폭풍 때 이만큼의 주민이 힘들지 않음")]
+        [SerializeField, Min(0)] private int _shelterCapacity;
+
         [Header("External contact (12-3c 지구급)")]
         [Tooltip("통신 세기 — 가동 중인 모듈의 합이 방문 세력 계급 해독 기준(1 · 2 · 4 · 8)을 넘으면 그 계급까지 해독. 0이면 중계소 아님")]
         [SerializeField, Min(0)] private int _relayPower;
@@ -263,6 +273,11 @@ namespace SpaceStation.Data
         public float MeteorWeightMultiplier => Mathf.Max(0f, _meteorWeightMultiplier);
         public float HeatOutput => _heatOutput;
         public float HeatRemoval => _heatRemoval;
+        public float RadiationOutput => _radiationOutput;
+        /// <summary>우주 방사선을 막는 두께 (겹, 최소 1).</summary>
+        public int RadiationLayers => _radiationLayers > 0 ? _radiationLayers : 1;
+        public float RadiationRemoval => _radiationRemoval;
+        public int ShelterCapacity => _shelterCapacity;
         public int RelayPower => _relayPower;
         public int RecipeSlots => _recipeSlots;
         public bool ComingSoon => _comingSoon;

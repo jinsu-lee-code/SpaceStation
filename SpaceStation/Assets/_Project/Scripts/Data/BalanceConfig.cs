@@ -246,6 +246,19 @@ namespace SpaceStation.Data
         [Tooltip("위험 상태가 이 시간(초) 이어지면 파손")]
         [SerializeField, Min(1f)] private float _heatDamageSeconds = 60f;
 
+        [Header("Radiation (M-120, BALANCE 칸 단위 방사선) — 규칙 StationRule.Radiation이 열려야 동작")]
+        [Tooltip("바깥에 노출된 집의 우주 방사선")]
+        [SerializeField, Min(0f)] private float _radiationSpace = 3f;
+        [Tooltip("한 겹 · 두 겹 안쪽 비율 (세 겹 이상 0)")]
+        [SerializeField, Range(0f, 1f)] private float _radiationLayer1 = 0.5f;
+        [SerializeField, Range(0f, 1f)] private float _radiationLayer2 = 0.25f;
+        [Tooltip("방출 모듈에서 2칸 떨어진 집이 받는 비율 (1칸 = 100%, 그 너머 = 0)")]
+        [SerializeField, Range(0f, 1f)] private float _radiationFalloff2 = 0.5f;
+        [Tooltip("보통 주민이 편한 집 방사선 한도")]
+        [SerializeField, Min(0.1f)] private float _radiationComfort = 4f;
+        [Tooltip("보통 주민이 편한 집 열 한도 (모듈 과열 한도와 별개)")]
+        [SerializeField, Min(0.1f)] private float _homeHeatComfort = 4f;
+
         [Header("New basic modules (BALANCE 39번, 12-5)")]
         [Tooltip("센서 어레이 예보 시간 증가 상한 (초, 여러 개의 합)")]
         [SerializeField, Min(0f)] private float _sensorWarningCap = 60f;
@@ -363,6 +376,12 @@ namespace SpaceStation.Data
         public float HeatMaxPenalty => _heatMaxPenalty;
         public float HeatDangerRatio => _heatDangerRatio;
         public float HeatDamageSeconds => _heatDamageSeconds;
+        public float RadiationSpace => _radiationSpace;
+        public float RadiationLayer1 => _radiationLayer1;
+        public float RadiationLayer2 => _radiationLayer2;
+        public float RadiationFalloff2 => _radiationFalloff2;
+        public float RadiationComfort => _radiationComfort;
+        public float HomeHeatComfort => _homeHeatComfort;
 
         /// <summary>난이도 덮어쓰기 — <see cref="DifficultyPreset.ApplyTo(BalanceConfig)"/>가 만든 복사본에만 호출.</summary>
         internal void ApplyDifficulty(DifficultyPreset preset)

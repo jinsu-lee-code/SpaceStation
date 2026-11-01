@@ -161,7 +161,70 @@ namespace SpaceStation.Simulation
             return n;
         }
 
-        /// <summary>만족도 상한 보정 합계 (특성별 상한을 적용한 뒤 더함).</summary>
+        // ---------------- M-120 공통 고리: 집 환경 ----------------
+
+        /// <summary>이 주민이 이 집에서 힘든 정도 (0 = 괜찮음, null = 없음). 서사판 = 종족 견딤 × 집의 열 · 방사선.</summary>
+        public Func<Resident, ModuleInstance, float> HomeStress { get; set; }
+
+        /// <summary>힘든 주민 1명당 만족도 상한 감소 · 합계 최대 (<see cref="HomeStress"/>를 붙이는 쪽이 정함).</summary>
+        public float StressMoodPerResident { get; set; }
+        public float StressMoodMax { get; set; }
+
+        /// <summary>힘든 주민 중 세지 않는 수 (폭풍 때 대피 정원).</summary>
+        public int StressExempt { get; set; }
+
+        /// <summary>지금 힘든 주민 수 (<see cref="StressExempt"/>를 뺀 뒤).</summary>
+        public int StressedCount { get; private set; }
+
+        /// <summary>힘든 주민 때문에 깎인 만족도 상한 (0 이하, <see cref="MoodTotal"/>에 포함).</summary>
+        public float StressMood { get; private set; }
+
+        public float StressAt(Resident r, ModuleInstance home) => HomeStress != null && home != null ? HomeStress(r, home) : 0f;
+
+        /// <summary>한 틱에 더 나은 집으로 옮기는 힘든 주민 수 (명단이 커도 틱이 무겁지 않게).</summary>
+        private const int MaxStressMovesPerTick = 8;
+
+        /// <summary>
+        /// 힘든 주민을 덜 힘든 빈자리로 옮김 (고정한 주민은 그대로). 주민이 수백 명이라 손으로 옮길 수 없어,
+        /// 플레이어가 좋은 집을 지으면 저절로 채워지게. 바뀌었으면 true.
+        /// </summary>
+        private bool MoveStressed()
+        {
+            if (HomeStress == null)
+                return false;
+            int moves = 0;
+            foreach (var r in _residents)
+            {
+                if (r.Pinned || r.Home == null)
+                    continue;
+                float now = HomeStress(r, r.Home);
+                if (now <= 0f)
+                    continue;
+                ModuleInstance best = null;
+                float bestStress = now - 1e-3f;
+                foreach (var home in _homes)
+                {
+                    if (home == r.Home || GetCapacity(home) - GetOccupantCount(home) <= 0)
+                        continue;
+                    float s = HomeStress(r, home);
+                    if (s < bestStress)
+                    {
+                        bestStress = s;
+                        best = home;
+                    }
+                }
+                if (best == null)
+                    continue;
+                _occupants[r.Home] = GetOccupantCount(r.Home) - 1;
+                _occupants[best] = GetOccupantCount(best) + 1;
+                r.Home = best;
+                if (++moves >= MaxStressMovesPerTick)
+                    break;
+            }
+            return moves > 0;
+        }
+
+        /// <summary>만족도 상한 보정 합계 (특성별 상한을 적용한 뒤 더함, M-120 힘든 주민 감소 포함).</summary>
         public float MoodTotal { get; private set; }
 
         /// <summary>특성별 만족도 보정 (상한 적용 후, UI).</summary>
@@ -204,6 +267,8 @@ namespace SpaceStation.Simulation
                     continue;
                 sum += t == ResidentTrait.Optimist || t == ResidentTrait.Complainer ? def.PerResident : EnvironmentMood(t, env);
             }
+            if (StressAt(r, home) > 0f)
+                sum -= StressMoodPerResident;
             return sum;
         }
 
@@ -234,7 +299,7 @@ namespace SpaceStation.Simulation
         {
             float d = r.Home == null ? _config.HomelessDiscontent : 0f;
             var env = GetEnvironment(r.Home);
-            if (r.Has(ResidentTrait.Complainer) || (r.Has(ResidentTrait.RadiationSensitive) && (env & HomeEnvironment.Radiation) != 0))
+            if (r.Has(ResidentTrait.Complainer) || (r.Has(ResidentTrait.RadiationSensitive) && (env & HomeEnvironment.Radiation) != 0) || StressAt(r, r.Home) > 0f)
                 d += _config.LeaveFirstDiscontent;
             float mood = PersonalMood(r);
             if (mood < 0f)
@@ -300,6 +365,7 @@ namespace SpaceStation.Simulation
             }
             _pendingKinds.Clear();
             RecountOccupants();
+            changed |= MoveStressed();
             RecalculateMood();
             changed |= UpdateRanks();
             if (changed)
@@ -537,7 +603,7 @@ namespace SpaceStation.Simulation
                 int free = cap - GetOccupantCount(home);
                 if (free <= 0)
                     continue;
-                float score = Preference(r, GetEnvironment(home)) * 10f + (float)free / cap;
+                float score = (Preference(r, GetEnvironment(home)) - StressAt(r, home)) * 10f + (float)free / cap;
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -620,6 +686,18 @@ namespace SpaceStation.Simulation
                 float clamped = def != null ? def.ClampTotal(_moodByTrait[t]) : _moodByTrait[t];
                 _moodByTrait[t] = clamped;
                 total += clamped;
+            }
+            StressedCount = 0;
+            StressMood = 0f;
+            if (HomeStress != null)
+            {
+                int stressed = 0;
+                foreach (var r in _residents)
+                    if (StressAt(r, r.Home) > 0f)
+                        stressed++;
+                StressedCount = Math.Max(0, stressed - StressExempt);
+                StressMood = -Math.Min(StressedCount * StressMoodPerResident, StressMoodMax);
+                total += StressMood;
             }
             MoodTotal = total;
         }
