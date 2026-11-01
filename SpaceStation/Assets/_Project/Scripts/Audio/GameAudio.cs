@@ -292,6 +292,8 @@ namespace SpaceStation.Audio
         {
             if (_storm != null)
                 return _storm.StormActive;
+            if (_sim.Radiation != null && _sim.Radiation.StormActive)
+                return true; // M-122
             foreach (var a in _sim.Events.ActiveEvents)
             {
                 if (a.Data is SolarStormEventData)

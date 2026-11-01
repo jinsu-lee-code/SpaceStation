@@ -499,6 +499,7 @@ namespace SpaceStation.UI
                 case PopulationChangeReason.LowSatisfaction: cause = "만족도 낮음"; break;
                 case PopulationChangeReason.Overcrowded: cause = "수용 인구 초과"; break;
                 case PopulationChangeReason.Crisis: cause = "사회 위기"; break;
+                case PopulationChangeReason.Environment: cause = "열 · 방사선"; break;
                 default: cause = reason.ToString(); break;
             }
             ShowMessage($"<color={HudText.Red}>주민 {-delta}명 감소 ({cause})</color>");

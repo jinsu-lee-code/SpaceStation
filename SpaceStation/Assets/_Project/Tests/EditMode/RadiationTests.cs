@@ -192,7 +192,9 @@ namespace SpaceStation.Tests
         {
             var sim = Sim();
             var home = Place(sim, _home, 5, 5, 5);
+            Assert.IsFalse(sim.Radiation.StormActive);
             sim.Radiation.SpaceMultiplier = 3f;
+            Assert.IsTrue(sim.Radiation.StormActive, "연출이 함께 켜짐");
             sim.Tick(1f);
             Assert.AreEqual(9f, sim.Radiation.LevelOf(home), Eps);
 

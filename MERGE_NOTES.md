@@ -1853,3 +1853,16 @@
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상 (쓰지 않음).
+
+## M-122. 방사선 폭풍 연출 · 이탈 사유 (2026-11-01, `main`)
+
+**main에 넣은 것** — 서사판 14-2d 5장 위기 '항성 폭풍'이 쓸 연출. 새 화면을 만들지 않고 태양 폭풍 것을 씀
+- `RadiationSystem.StormActive` (`SpaceMultiplier` > 1) → `SolarStormFx`(화면 톤 · 패널 스파크) · `GameAudio`(폭풍 소리) · `InteriorAtmosphere`(내부 지직거림)가 함께 켜짐 · `InteriorRadiationBoard` "방사선 폭풍 · 매우 높음 · 대피"
+- `PopulationChangeReason.Environment` ("열 · 방사선") — 알림 · 주민 기록
+- 규칙을 열지 않거나 배율을 바꾸지 않으면 그대로
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 항성 폭풍이 배율을 바꿈.
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상 (쓰지 않음).

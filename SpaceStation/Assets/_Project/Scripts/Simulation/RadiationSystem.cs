@@ -37,6 +37,8 @@ namespace SpaceStation.Simulation
         public float Comfort => Sim.Balance.RadiationComfort;
         /// <summary>우주 방사선 배율 (폭풍 등, 1 = 평소). 저장은 바꾸는 쪽이.</summary>
         public float SpaceMultiplier { get; set; } = 1f;
+        /// <summary>M-122 폭풍 중 (우주 방사선 배율이 올라감) — 태양 폭풍 연출 · 소리 · 내부 · 경보판이 함께 켜짐.</summary>
+        public bool StormActive => Active && SpaceMultiplier > 1f + 1e-3f;
         /// <summary>집마다 방사선 (0 초과만).</summary>
         public IReadOnlyDictionary<ModuleInstance, float> HomeLevels => _level;
         /// <summary>가동 중인 대피 시설 정원 합.</summary>
