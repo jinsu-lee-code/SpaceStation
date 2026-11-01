@@ -108,6 +108,9 @@ namespace SpaceStation.Editor.Balance
         public int PrepHousing, PrepDefense;
         /// <summary>기록 연구 단계 (<see cref="CampaignBotAssets.Research"/> 순서 — 공통 요약의 연구 줄은 분야 번호가 겹쳐 서사판에서 틀림).</summary>
         public int[] ResearchLevels = new int[0];
+        /// <summary>14-1e 합성: 마친 수 · 그중 있던 모듈을 그대로 합친 수 · 처음 시작한 때 · 끝날 때 진화 모듈 종류.</summary>
+        public int Syntheses, InPlace, EvolvedKinds;
+        public float FirstSynthesisAt = float.NaN;
     }
 
     /// <summary>
@@ -121,6 +124,8 @@ namespace SpaceStation.Editor.Balance
     ///   유성우 예보 중 오는 방향 앞면을 가장 많이 덮는 자리에 실드 · 포탑 (예보 한 번에 평소 1 · 절정 2, 안전 쪽 +1)
     /// - 금속 관리 (같은 결정, main M-47 고리): 내구도 효율이 하는 일에 걸리지 않는 모듈(거주 · 배터리 · 창고 · 센서 …, 장갑 격벽은 빼고)은 늦게 정비 ·
     ///   재건축 (<see cref="IdleMaintainAt"/> · <see cref="IdleRebuildBelow"/>, 공통 봇은 모두 55 · 55 → 첫 측정에서 정비 · 재건축이 금속 수입을 거의 다 씀)
+    /// - 14-1e 4장: 합성은 공통 봇이 함 (재료를 새 자리에 지어 합침, main M-116 합성 규칙부터 · 칸 제한을 봄). 파편 띠 예고 · 띠 동안 빈 집이 모자라면
+    ///   새 칸을 못 쓰므로 있던 거주 모듈을 그 자리에서 합쳐 수용을 늘림 (<see cref="GrowHousingInPlace"/>).
     /// </summary>
     public sealed class CampaignBotExtension : IBalanceExtension
     {
@@ -129,6 +134,10 @@ namespace SpaceStation.Editor.Balance
         private const float Accept = 0.33f;
         /// <summary>절정 대비 · 금속 관리를 하는지 (비교 측정용, 기본 켬 — 끄면 첫 측정과 같은 봇).</summary>
         public static bool Prepare = true;
+        /// <summary>14-1e 측정: 이 장 번호(1부터)를 마치면 판을 끝냄 (0 = 캠페인 끝까지 — 아직 그레이박스인 뒤 장을 돌지 않으려고).</summary>
+        public static int StopAfterChapter;
+        /// <summary>있던 모듈을 합칠 자리 찾기 간격 (게임 초, 찾는 값이 커서 결정마다 하지 않음).</summary>
+        private const float InPlaceInterval = 30f;
         /// <summary>늦게 정비해도 되는 모듈(<see cref="Idle"/>): 이 내구도 아래면 정비 (운석 한 발 -20에도 0이 안 되게) · 정비 뒤 최대가 이 아래면 재건축.</summary>
         public const float IdleMaintainAt = 30f, IdleRebuildBelow = 45f;
         private const float PrepDefenseScore = 100f; // 덮는 앞면 모듈 하나당 (조밀 · 인접 점수보다 크게)
@@ -152,10 +161,12 @@ namespace SpaceStation.Editor.Balance
         private int _defendBuilt;
         private readonly List<ModuleInstance> _facing = new List<ModuleInstance>();
         private readonly List<ModuleInstance> _covered = new List<ModuleInstance>();
+        private float _nextInPlace;
 
         public CampaignBotExtension(CampaignBotAssets assets) => _a = assets ?? throw new ArgumentNullException(nameof(assets));
 
-        public bool Finished => _chapters != null && _chapters.Phase == ChapterPhase.Finished;
+        public bool Finished => _chapters != null
+            && (_chapters.Phase == ChapterPhase.Finished || (StopAfterChapter > 0 && _chapters.Index >= StopAfterChapter));
 
         public void Configure(StationSimulationSettings settings, int seed)
         {
@@ -226,6 +237,8 @@ namespace SpaceStation.Editor.Balance
             }
             if (_sim.Session.IsGameOver)
                 return;
+            if (float.IsNaN(_stats.FirstSynthesisAt) && _sim.Synthesis != null && _sim.Synthesis.Jobs.Count > 0)
+                _stats.FirstSynthesisAt = elapsed;
             if (_chapters.Phase == ChapterPhase.Transition)
             {
                 Choose();
@@ -247,7 +260,58 @@ namespace SpaceStation.Editor.Balance
                 return;
             UsePolicy(bot);
             PrepareHousing(bot);
+            GrowHousingInPlace();
             DefendShower(bot);
+        }
+
+        /// <summary>
+        /// 14-1e 파편 띠 예고 · 띠 동안 오는 배를 받을 빈 집이 모자라면: 있던 재료 모듈이 규격을 빈틈없이 채운 자리를 찾아 수용이 느는 레시피를 합침
+        /// (사람이 할 '같은 칸에서 더 많이 받기'). 새 재료를 짓는 합성은 띠 동안 막혀 공통 봇이 멈추므로 따로 둠.
+        /// </summary>
+        private void GrowHousingInPlace()
+        {
+            var syn = _sim.Synthesis;
+            var chapter = _chapters.Current;
+            if (syn == null || _ark == null || chapter == null || chapter.Climax.Kind != ChapterClimaxKind.DebrisBand
+                || (_chapters.Phase != ChapterPhase.Warning && _chapters.Phase != ChapterPhase.Climax) || _now < _nextInPlace)
+                return;
+            _nextInPlace = _now + InPlaceInterval;
+            if (_ark.FreeHousing >= chapter.Climax.MigrationSizeMax)
+                return;
+            foreach (var recipe in chapter.Recipes)
+            {
+                if (recipe == null || recipe.Result == null || recipe.Result.HousingCapacity <= 0 || !syn.IsUnlocked(recipe)
+                    || !_sim.Resources.CanAfford(syn.GetCost(recipe)))
+                    continue;
+                if (TryInPlace(recipe))
+                {
+                    _stats.InPlace++;
+                    return;
+                }
+            }
+        }
+
+        /// <summary>첫 재료 모듈마다 규격의 칸 × 회전을 맞춰 봄 (재료가 규격 안에 있어야 하므로 이 자리면 충분).</summary>
+        private bool TryInPlace(RecipeData recipe)
+        {
+            var syn = _sim.Synthesis;
+            var first = recipe.Ingredients.Count > 0 ? recipe.Ingredients[0].Module : null;
+            if (first == null)
+                return false;
+            foreach (var m in _sim.Grid.Modules)
+            {
+                if (m.Data != first || syn.IsHalted(m))
+                    continue;
+                for (int rotation = 0; rotation < 4; rotation++)
+                    foreach (var offset in StationGrid.ResolveCells(recipe.Result.CellOffsets, Vector3Int.zero, rotation))
+                    {
+                        var origin = m.Origin - offset;
+                        if (syn.Evaluate(recipe, origin, rotation) == SynthesisResult.Valid
+                            && syn.TryStart(recipe, origin, rotation, out _) == SynthesisResult.Valid)
+                            return true;
+                    }
+            }
+            return false;
         }
 
         /// <summary>금속 관리: 이 봇(다시 시작이면 새 봇)에 정비 기준 고리를 한 번 꽂음.</summary>
@@ -519,6 +583,16 @@ namespace SpaceStation.Editor.Balance
             _stats.ResearchLevels = new int[_a.Research.Count];
             for (int i = 0; i < _a.Research.Count; i++)
                 _stats.ResearchLevels[i] = _sim != null ? _sim.Research.GetLevel(_a.Research[i]) : 0;
+            if (_sim != null)
+            {
+                _stats.Syntheses = _sim.Session.Syntheses;
+                var kinds = new List<ModuleData>();
+                if (_sim.Synthesis != null)
+                    foreach (var m in _sim.Grid.Modules)
+                        if (m.Data != null && !kinds.Contains(m.Data) && _sim.Synthesis.IsRecipeResult(m.Data))
+                            kinds.Add(m.Data);
+                _stats.EvolvedKinds = kinds.Count;
+            }
             result.Extra = _stats;
         }
     }
@@ -528,7 +602,7 @@ namespace SpaceStation.Editor.Balance
     {
         private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
-        [MenuItem("SpaceStation/Balance/Campaign Bot (노멀 20판 · 3장 끝)")]
+        [MenuItem("SpaceStation/Balance/Campaign Bot (노멀 20판)")]
         private static void RunMenu()
         {
             var (folder, summary) = Run();
@@ -536,16 +610,19 @@ namespace SpaceStation.Editor.Balance
             EditorUtility.RevealInFinder(Path.Combine(folder, "campaign.txt"));
         }
 
-        public static (string folder, string summary) Run(int runs = 20, int baseSeed = 1, float capMinutes = 150f)
+        /// <param name="stopAfterChapter">이 장 번호(1부터)를 마치면 판을 끝냄 (0 = 캠페인 끝까지, 14-1e)</param>
+        public static (string folder, string summary) Run(int runs = 20, int baseSeed = 1, float capMinutes = 150f, int stopAfterChapter = 0)
         {
             var assets = CampaignBotAssets.Load();
             if (assets.Chapters == null)
                 throw new InvalidOperationException("장 데이터(ChapterConfig) 없음 — SpaceStation/Chapters/Setup Greybox 먼저");
+            CampaignBotExtension.StopAfterChapter = stopAfterChapter;
             var s = BalanceSimulatorWindow.DefaultSettings(capMinutes, runs, baseSeed);
             s.ResearchCategories = assets.Research;
             s.SampleInterval = 30f;
             s.Extension = () => new CampaignBotExtension(assets);
             var report = BalanceRunner.Run(s);
+            CampaignBotExtension.StopAfterChapter = 0;
             string folder = BalanceReportWriter.NewFolder();
             BalanceReportWriter.Write(folder, s, report, $"캠페인 봇 (노멀) · 상한 {capMinutes:0}분 × {runs}판");
             string text = Summary(report, assets, runs, capMinutes);
@@ -644,6 +721,18 @@ namespace SpaceStation.Editor.Balance
             }
             sb.AppendLine($"이민선 답: 모두 받기 {accepted} · 빈 집만큼 {partial} · 거부 {refused} · 받은 인원 {boarded}/{offered} ({(offered > 0 ? boarded * 100f / offered : 0f):0}%)");
             sb.AppendLine($"탐사선 출발 (판 시작부터) {Spread(probe)} · {probe.Count}판 / 정책 시행 {Spread(policy)} · {policy.Count}판");
+            var firstSynthesis = new List<float>();
+            int syntheses = 0, inPlace = 0, evolvedKinds = 0;
+            foreach (var x in all)
+            {
+                syntheses += x.Syntheses;
+                inPlace += x.InPlace;
+                evolvedKinds += x.EvolvedKinds;
+                if (!float.IsNaN(x.FirstSynthesisAt))
+                    firstSynthesis.Add(x.FirstSynthesisAt);
+            }
+            if (all.Count > 0)
+                sb.AppendLine($"합성 (판 평균): 마침 {syntheses / (float)all.Count:0.0} · 있던 모듈을 그대로 합침 {inPlace / (float)all.Count:0.0} · 끝날 때 진화 모듈 {evolvedKinds / (float)all.Count:0.0}종 · 첫 합성 (판 시작부터) {Spread(firstSynthesis)} · {firstSynthesis.Count}판");
             if (CampaignBotExtension.Prepare && all.Count > 0)
                 sb.AppendLine($"위기 대비로 지음 (판 평균): 이민선 앞 거주 {prepHousing / (float)all.Count:0.0} · 유성우 방향 실드 · 포탑 {prepDefense / (float)all.Count:0.0}");
             sb.Append("기록 연구 최종 단계 평균 (공통 요약의 연구 줄 대신):");
