@@ -155,4 +155,5 @@
 - 그 밖에 판마다 다른 게임 씬 · 메뉴 씬 설정 (합칠 때 모드별로 나눔): `SimulationHost` 연구 목록(서사판 = 기록 4갈래 + 자동화) · 장 데이터 · 이민선 · 탐사 · 기록 설정 (메뉴 Chapters/Setup Greybox), 메인 메뉴 배경(서사판 = 꺼져 가는 지구), 난이도 장별 간격(서사판 `DifficultyPreset._chapter*`)
 - 문서: BALANCE.md 번호 — 공통 1~40, 타이쿤판 41~, 서사판 "서사판 N번"(번호가 겹치지 않게 따로) → 합칠 때 한 차례로 다시 매김
 - `MaintenanceAutomation.AutoRepair` · `EventScheduler.MinGapAfterEnd` (M-125): 서사판 = 장 시스템이 켬 (자동 수리 켬, 폭풍 뒤 120초) / 타이쿤판 = 꺼짐 (창의 단추로 자동 수리는 켤 수 있음, 간격 0) / 합칠 때 = 모드마다 값만
+- `ResearchStat.TensionCalmBonus` · `ResidentTrait.Peacemaker` · `ResearchEffects.TraitCalmMultiplier` (M-127): 서사판 = 긴장도가 읽음 (강아지 · 연계 연구 '이웃 모임') / 타이쿤판 = 읽는 곳 없음 (중립) / 합칠 때 = 그대로, 엔드리스에 긴장도를 쓸 때만 읽으면 됨
 - 새 고리를 만들 때마다 이 표에 한 줄 더한다

@@ -1922,3 +1922,18 @@
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상. 봇 결과가 달라질 수 있음 (물 고갈 판 · 타워 수용).
+
+## M-127. 행정 관제소 준비 중 풀기 · 연계 연구 2종 · 달램 통로 (2026-11-02, `main`)
+
+**main에 넣은 것** — 서사판 6장(14-4) 고리, 타이쿤판은 값이 바뀌지 않게
+- `MD_Administration`: 준비 중을 풂 (보안청 재료, 타이쿤판은 이미 풀려 있어 같은 값). `NewModulesSetup`도 같이 — 메뉴를 다시 돌려도 잠기지 않음
+- `ResearchStat` 끝에 `HeatOutputMultiplier` · `SecurityRadiusExtra` · `TensionCalmBonus`, `ResearchEffects` 같은 이름 값 (기본 = 중립). `HeatSystem` 발열 × 값, `ServiceRadius`는 치안을 맡는 모듈만 +칸. `TensionCalmBonus`는 공통 바닥이 읽지 않음 (긴장도를 쓰는 판이 읽음)
+- 연계 연구 2종 `LR_CoolingLoop` 냉각 순환 (융합 발전소 → 모든 모듈 발열 -25%) · `LR_JointPatrol` 공동 순찰 (보안청 → 치안 모듈 반경 +1칸), 비용 산소 · 물 80 · 금속 220 · 전력 14 · 180초 (공공 복지와 같은 값). `ResearchExpansionSetup` · `ResearchExpansionConfig`
+- `ResidentTrait.Peacemaker` 달램 통로 + `ResearchEffects.TraitCalmMultiplier` (Artisan · Cooler와 같은 방식 — 개인 특성 정의는 없음)
+- 시험 2개
+
+### `narrative` 합칠 때
+- [x] 자동 합침됨. 6장이 행정 관제소를 열고 강아지 · 긴장도가 통로를 읽음.
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상. 연계 연구가 2개 늘어 봇 연구 순서가 달라질 수 있음 (냉각 순환은 열 쪽 값이 줄어듦). 쓰지 않으려면 그 판 설정 목록에서 뺄 것.

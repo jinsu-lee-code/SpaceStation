@@ -59,6 +59,10 @@ namespace SpaceStation.Data
         ResidentLifeConsumption, // 주민 산소 · 물 소비 배율, 기본 1
         RelayPowerBonus,         // 통신 세기 +N, 기본 0
         ServiceRadiusExtra,      // 의료 · 여가 반경 +칸 (레벨 효과에 더함), 기본 0
+        // M-127 연계 연구
+        HeatOutputMultiplier,    // 모듈 발열 배율, 기본 1
+        SecurityRadiusExtra,     // 치안 모듈 반경 +칸, 기본 0
+        TensionCalmBonus,        // 긴장도 가라앉음 분당 +N (긴장도를 쓰는 판만 읽음), 기본 0
     }
 
     [Serializable]

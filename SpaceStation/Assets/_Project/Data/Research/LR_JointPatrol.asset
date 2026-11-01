@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb62ba3c3de152d4ea51cf1d8227dae1, type: 3}
+  m_Name: LR_JointPatrol
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.LinkedResearchData
+  _displayName: "공동 순찰"
+  _category: 1
+  _requiredModule: {fileID: 11400000, guid: 912b663451292134a9cf07bd6620173a, type: 2}
+  _level:
+    StartCost:
+    - Type: 1
+      Amount: 80
+    - Type: 2
+      Amount: 80
+    - Type: 4
+      Amount: 220
+    PowerDemand: 14
+    Duration: 180
+    Description: "보안청이 순찰 구역을 나눠 맡아 치안 모듈 반경 +1칸"
+    Modifiers:
+    - Stat: 29
+      Value: 1

@@ -349,6 +349,7 @@ namespace SpaceStation.Simulation
             Effects.TraitResearchSpeedMultiplier = 1f + Residents.Ability(ResidentTrait.Scientist);
             Effects.TraitSynthesisSpeedMultiplier = 1f + Residents.Ability(ResidentTrait.Artisan);
             Effects.TraitHeatRemovalMultiplier = 1f + Residents.Ability(ResidentTrait.Cooler);
+            Effects.TraitCalmMultiplier = 1f + Residents.Ability(ResidentTrait.Peacemaker);
             ApplyConsumptionMultipliers();
         }
 

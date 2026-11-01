@@ -29,6 +29,7 @@ namespace SpaceStation.Simulation
         public float TraitResearchSpeedMultiplier { get; set; } = 1f;  // 과학자
         public float TraitSynthesisSpeedMultiplier { get; set; } = 1f; // 손재주 (M-50)
         public float TraitHeatRemovalMultiplier { get; set; } = 1f;    // 방열 (M-120)
+        public float TraitCalmMultiplier { get; set; } = 1f;           // 달램 (M-127)
 
         // 12-3c 국가급 정책 · 사회 위기 일시 효과 (PolicySystem이 바꿀 때 갱신, 없으면 모두 중립 = 기존 결과 그대로)
         private readonly float[] _policy = NeutralPolicy();
@@ -92,6 +93,12 @@ namespace SpaceStation.Simulation
         public int RelayPowerBonus => (int)Math.Round(Get(ResearchStat.RelayPowerBonus, 0f));
         /// <summary>의료 · 여가 반경 +칸 (공공 복지, 레벨 효과에 더함).</summary>
         public int ServiceRadiusExtra => (int)Math.Round(Get(ResearchStat.ServiceRadiusExtra, 0f));
+        /// <summary>M-127 모듈 발열 배율 (냉각 순환).</summary>
+        public float HeatOutputMultiplier => Math.Max(0f, Get(ResearchStat.HeatOutputMultiplier, 1f));
+        /// <summary>M-127 치안 모듈 반경 +칸 (공동 순찰).</summary>
+        public int SecurityRadiusExtra => (int)Math.Round(Get(ResearchStat.SecurityRadiusExtra, 0f));
+        /// <summary>M-127 긴장도 가라앉음 분당 +N (긴장도를 쓰는 판만 읽음).</summary>
+        public float TensionCalmBonus => Get(ResearchStat.TensionCalmBonus, 0f);
 
         // ---------------- 모듈별 값 (UI·연출도 이걸 쓴다) ----------------
 
@@ -99,7 +106,7 @@ namespace SpaceStation.Simulation
         public int TurretRadius(ModuleData data) => data != null && data.TurretRadius > 0 ? data.TurretRadius + DefenseRadiusBonus : 0;
         public int DecoyRadius(ModuleData data) => data != null && data.DecoyRadius > 0 ? data.DecoyRadius + DefenseRadiusBonus : 0;
         public int ControlRadius(ModuleData data) => data != null && data.ControlRadius > 0 ? data.ControlRadius + DefenseRadiusBonus : 0;
-        public int ServiceRadius(ModuleData data) => data != null && data.IsService ? data.ServiceRadius + ServiceRadiusBonus + ServiceRadiusExtra : 0;
+        public int ServiceRadius(ModuleData data) => data != null && data.IsService ? data.ServiceRadius + ServiceRadiusBonus + ServiceRadiusExtra + (data.Serves(ResidentNeed.Security) ? SecurityRadiusExtra : 0) : 0;
         public int Housing(ModuleData data) => data != null && data.HousingCapacity > 0 ? data.HousingCapacity + HousingBonus : 0;
         public float BatteryCapacity(ModuleData data) => data != null ? data.BatteryCapacity * BatteryMultiplier : 0f;
         public float StorageBonus(ModuleData data) => data != null && data.StorageBonus > 0f ? data.StorageBonus + StorageBonusAdd : 0f;
