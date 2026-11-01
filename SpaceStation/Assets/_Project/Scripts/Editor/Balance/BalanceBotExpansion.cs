@@ -41,6 +41,12 @@ namespace SpaceStation.Editor.Balance
             public readonly List<(RecipeData Recipe, Vector3Int Origin, int Rotation)> Subs = new List<(RecipeData, Vector3Int, int)>();
         }
 
+        /// <summary>
+        /// M-117: 새 합성 계획을 세울 레시피를 고르는 고리 (측정 확장용, null = 해금된 레시피 모두 — 기존 결과 그대로).
+        /// 서사판 캠페인 봇 = 필수 목표 몫만 (계획 시작 기준 금속이 핵융합로 저축액보다 낮아, 레시피마다 합성하면 저축을 먹어 발전이 모자람).
+        /// </summary>
+        public System.Func<RecipeData, bool> SynthesisWanted { get; set; }
+
         private SynthesisPlan _plan;
         private readonly HashSet<RecipeData> _failedRecipes = new HashSet<RecipeData>();
         private int _failedAtModules = -1;
@@ -143,6 +149,8 @@ namespace SpaceStation.Editor.Balance
                 if (recipe.Result == null || _failedRecipes.Contains(recipe) || !_sim.Synthesis.IsUnlocked(recipe))
                     continue;
                 if (CountOf(recipe.Result) + RunningJobs(recipe) >= 1)
+                    continue;
+                if (SynthesisWanted != null && !SynthesisWanted(recipe))
                     continue;
                 bool buildable = true;
                 foreach (var ing in recipe.Ingredients)
