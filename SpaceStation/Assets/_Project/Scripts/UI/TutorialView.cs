@@ -475,6 +475,9 @@ namespace SpaceStation.UI
                 case TutorialGoal.InteriorIncident:
                     _lines.Add(Check(false, $"말풍선 안내대로 사고 처리하기 ({KeyBindings.Label(GameAction.Interact)} 길게)"));
                     break;
+                case TutorialGoal.OpenEnvironmentMap: // M-121
+                    _lines.Add(Check(false, $"열 · 방사선 지도 열기: {KeyBindings.Label(GameAction.HeatMap)}"));
+                    break;
                 // M-51 합성 안내
                 case TutorialGoal.OpenRecipes:
                     _lines.Add(Check(false, $"합성 창 열기: {KeyBindings.Label(GameAction.Recipes)} 또는 왼쪽 위 [관리] → [합성]"));

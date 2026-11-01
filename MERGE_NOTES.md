@@ -1832,6 +1832,7 @@
 - `ModuleData`: `RadiationOutput` · `RadiationLayers` · `RadiationRemoval` · `ShelterCapacity` / `BalanceConfig`: Radiation 헤더, `HomeHeatComfort`
 - `HeatSystem.OutputScale` · `RemovalScale` (위기 등이 바꾸는 배율, 1 = 그대로) · `ResidentTrait.Cooler` + `ResearchEffects.HeatRemovalMultiplier` (방열 통로, 개인 특성 정의는 없음 — M-50 손재주와 같은 방식)
 - `ResidentRoster.HomeStress` (주민 × 집 → 힘든 정도, null = 없음): 있으면 자동 배정이 피함 · 힘든 주민을 덜 힘든 빈집으로 틱마다 8명까지 옮김(고정 주민 제외) · 이탈 때 먼저 떠남 · `StressMoodPerResident` × 수만큼 상한 감소(`StressMoodMax`까지) · `StressExempt` = 세지 않는 수(대피 정원) · `StressedCount` · `StressMood`
+- `RosterView`: 힘든 주민 · 이사 고를 때 "집이 힘듦"
 - `HeatMapView`: J 지도에 방사선 높은 집 (같은 뷰, 씬 변경 없음) · 조작 안내 "열 · 방사선 지도 보기" / `HudText`: 모듈 툴팁 4줄 / `SelectionActionsPanel`: 거주 모듈 "집 환경" / `ResourcePanel`: 만족도 옆 `상한`을 요구 · 특성 · 정책 · 집 환경을 다 더한 값으로
 - 에셋 (`SpaceStation/Grade Rules/Setup Radiation`과 같은 값): 핵융합로 · 융합 발전소 · 융합 플랜트 방출, 장갑 격벽 · 외벽 두께 · 차폐, **방사선 차폐실 · 차폐벽 '준비 중' 풀고 `_requiredRule` = Radiation**
 - 밸런스 봇 · 기존 시험: 규칙을 열지 않으면 결과 그대로
@@ -1841,3 +1842,14 @@
 
 ### `tycoon` 합칠 때
 - [ ] 자동 합침 예상. 차폐실 · 차폐벽이 "잠김 · 칸 단위 방사선"으로 보임 (규칙을 정하는 쪽이 있는 판) — 국가 단계에서 규칙을 열지 그때 정함 (BALANCE 표 '5 국가 — 방사선 차폐는 시스템이 생기면 여기에'). `tycoon` `BalanceBot`은 방사선을 모름.
+
+## M-121. 안내 단계 '열 · 방사선 지도 열기' (2026-11-01, `main`)
+
+**main에 넣은 것** — 서사판 14-2c 5장 안내 (M-51 합성 안내와 같은 방식)
+- `TutorialGoal.OpenEnvironmentMap` · `TutorialRunner.ReportEnvironmentMap` (`HeatMapView`가 지도를 켤 때 알림) · `TutorialView` 안내 줄. 다른 안내에는 영향 없음
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 5장 환경 안내가 씀.
+
+### `tycoon` 합칠 때
+- [ ] 자동 합침 예상 (쓰지 않음).

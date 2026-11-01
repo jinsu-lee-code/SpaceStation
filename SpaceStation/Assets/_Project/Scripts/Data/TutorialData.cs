@@ -31,6 +31,8 @@ namespace SpaceStation.Data
         PlaceSynthesis,
         /// <summary>M-51: 합성 시작 (진행 중이거나 마친 합성이 있으면 완료).</summary>
         StartSynthesis,
+        /// <summary>M-121: 열 · 방사선 지도 열기 (지도가 알림).</summary>
+        OpenEnvironmentMap,
     }
 
     /// <summary>안내 카드 외에 깜빡일 HUD 영역 (건설 단계는 모듈 버튼·탭을 자동으로 강조).</summary>

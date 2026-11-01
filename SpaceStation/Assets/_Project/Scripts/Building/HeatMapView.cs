@@ -165,6 +165,8 @@ namespace SpaceStation.Building
             {
                 _mapOn = !_mapOn;
                 _dirty = true;
+                if (_mapOn)
+                    _station.Simulation.Tutorial?.ReportEnvironmentMap(); // M-121 환경 안내
             }
             // 방열판 · 차폐 모듈을 고르면 지도가 저절로 켜져 추천 칸 · 방사선 높은 집이 바로 보임 (배치를 끝내거나 다른 모듈을 고르면 원래대로)
             var selected = _build != null ? _build.Selected : null;
