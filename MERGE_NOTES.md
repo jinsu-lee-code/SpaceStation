@@ -1952,12 +1952,12 @@
 ## M-128. 그리드 허브 내부 "번개 정원" — 2단계 개방형 첫 방 · 우주복 · 압력 막 · 번개 (2026-11-02, `main`)
 
 **main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `628e995e`과 같은 파일)
-- 그리드 허브 내부 `IT_EvoGridHub` · `PF_Interior_EvoGridHub` · `SM_Interior_EvoGridHub.fbx` (Blender `Interior_Evo.blend` 텍스트 `gd_builder`): 2×1×3칸 넓은 정원 — 가운데 둥근 전시관 (빛 나선 기둥 · 금빛 아치 입구 둘 · 관제 단말) + 테슬라 탑 · 도는 배전 고리, 번개 나무 여섯 · 화단 · 퍼걸러 길 · 귀퉁이 벤치 · 송전 단자. 하늘 = 창 셰이더 껍질 `_Sky` (바깥이 진짜로 보이고 이웃 방 내부를 가림), 해치는 바닥 6개
+- 그리드 허브 내부 `IT_EvoGridHub` · `PF_Interior_EvoGridHub` · `SM_Interior_EvoGridHub.fbx` (Blender `Interior_Evo.blend` 텍스트 `gd_builder`): 3×2칸 한 층 넓은 정원 — 가운데 둥근 전시관 (빛 나선 기둥 · 금빛 아치 입구 둘 · 관제 단말) + 테슬라 탑 · 도는 배전 고리, 번개 나무 여섯 · 화단 · 퍼걸러 길 · 귀퉁이 벤치 · 송전 단자. 하늘 = 창 셰이더 껍질 `_Sky` (바깥이 진짜로 보이고 이웃 방 내부를 가림), 해치는 바닥 6개
 - 2단계 키트 `SM_InteriorKit_Evo2.fbx` · 재질 `M_InteriorEvo2*` (`InteriorSetup` 경로 · 조각 전환), `InteriorKit.asset` 2단계 키트 · 강조색 목록
 - 새 `Interior/InteriorOpenAir` + `SM_ResidentSuit.fbx` + `M_InteriorSuitHelmet`: 실내 구역 밖 주민 = 유리 헬멧 · 금빛 목 테 · 등 팩, 들어오면 끔. 치수는 동물마다 쉬는 자세로 재서 본 기준으로 저장. 귀가 긴 동물은 귀만 유리 밖으로 + 유리 면에 눕는 금빛 고리 (귀를 따라 면을 미끄러짐)
 - 새 `Interior/InteriorLightning` (나무 번개 깜빡임 · 번쩍 빛, 방에 있을 때만)
 - 새 셰이더 `Art/Shaders/PressureVeil` · `M_InteriorEvo2Curtain` (압력 막: 도는 안개 · 테두리 금빛 · 빛 알갱이, UV = 아치 기준 미터)
-- `InteriorTemplateBuilder.BuildEvoGridHub` (문 자리 = 바닥 해치 6, 조명 19, 도는 물체 2, 환경음 전기), `ResidentSpotBaker` 기술자 + 앉는 자리 20 · 서는 자리 8 ("정원 구경 중"), 강조색 `M_Accent_Evo_GridHub` · `M_Paint_Evo_GridHub` (#FFE07A), `MODELING.md` 7-11 2단계 개방형 방
+- `InteriorTemplateBuilder.BuildEvoGridHub` (문 자리 = 바닥 해치 6, 조명 16 + 번쩍 빛 1, 도는 물체 2, 환경음 전기), `ResidentSpotBaker` 기술자 + 앉는 자리 20 · 서는 자리 8 ("정원 구경 중"), 강조색 `M_Accent_Evo_GridHub` · `M_Paint_Evo_GridHub` (#FFE07A), `MODELING.md` 7-11 2단계 개방형 방
 
 ### `narrative` 합칠 때
 - [ ] 자동 합침 예상 (새 파일 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
