@@ -76,6 +76,7 @@ namespace SpaceStation.Editor
         public const string Evo2BedPath = MaterialFolder + "/M_InteriorEvo2Bed.mat";
         public const string Evo2IcePath = MaterialFolder + "/M_InteriorEvo2Ice.mat";
         public const string Evo2GlassPath = MaterialFolder + "/M_InteriorEvo2Glass.mat";
+        public const string Evo2EggGlassPath = MaterialFolder + "/M_InteriorEvo2EggGlass.mat";
         public const string Evo2CurtainPath = MaterialFolder + "/M_InteriorEvo2Curtain.mat";
         public const string Evo2SkyPath = MaterialFolder + "/M_InteriorEvo2Sky.mat";
         public const string Evo2MirrorPath = MaterialFolder + "/M_InteriorEvo2Mirror.mat";
@@ -662,6 +663,11 @@ namespace SpaceStation.Editor
                 EditorUtility.SetDirty(m);
             }
             Clear(Evo2GlassPath, new Color(0.5f, 0.85f, 0.85f, 0.2f), 0.95f, Color.black);
+            Clear(Evo2EggGlassPath, new Color(0.5f, 0.85f, 0.85f, 0.1f), 0.95f, Color.black);   // 아콜로지 유리 알: 두 겹이라 더 옅게, 큰 곡면에서 등불 하이라이트가 긴 띠로 번져 하이라이트 끔
+            var eggGlass = LoadOrCreate(Evo2EggGlassPath, lit);
+            eggGlass.SetFloat("_SpecularHighlights", 0f);
+            eggGlass.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+            EditorUtility.SetDirty(eggGlass);
             EditorUtility.SetDirty(LoadOrCreate(Evo2CurtainPath, Shader.Find("SpaceStation/PressureVeil")));   // 압력 막 (사용자 2026-11-02 "신비감", UV = 아치 기준 미터)
             Clear(SuitHelmetPath, new Color(0.8f, 0.92f, 1f, 0.14f), 0.97f, Color.black);
             Clear(Evo2WaterGlowPath, new Color(0.45f, 0.85f, 1f, 0.5f), 0.55f, new Color(0.07f, 0.3f, 0.42f));   // 융합 플랜트 물 캡슐 · 물 달: 은은히 빛나는 물 (속 거품 · 전극이 비침)

@@ -116,6 +116,83 @@ namespace SpaceStation.Editor
             BuildEvoGridHub();
             BuildEvoOrbitalMirror();
             BuildEvoFusionPlant();
+            BuildEvoArcology();
+        }
+
+        /// <summary>
+        /// 진화 2단계 아콜로지 "유리 알 속 하늘 섬" (2 × 2칸 × 4층, ar_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘"): 알 전체가 실내 (살아 있는 잔디 · 나무, 우주복 없음), 유리 엘리베이터 탑 (<see cref="InteriorLift"/>)으로 네 층:
+        /// 전망대 (유리 바닥 고리 · 탑을 두른 벤치 · 별 관측경) · 섬 도시 (돌 광장 · 잔디 띠의 타워 다섯 · 작은 집 · 나무 · 디딤돌 · 둘레 산책로 · 유리 난간) ·
+        /// 뿌리 층 (고리 복도 둘레 집 여섯: 금빛 아치 문 · 침대 · 안락의자 · 창 · 화분, 아래턱 매달린 정원) · 결정실 (유리 바닥 아래 중력 결정 Crystal · 머리 위로 떠도는 돌 Stones · 벽 벤치).
+        /// 유리 알 밖 = 고정 적도 띠 + 도는 혼천의 고리 RingA · RingB · 받침 · 발톱 셋. 문 자리 · 해치 없음 (외형 모든 면 연결점 없음 — 바깥에서 바로 입장).
+        /// </summary>
+        private static void BuildEvoArcology()
+        {
+            const float L0 = 2.35f, L1 = 6.55f, YI = 10.9f, L3 = 18.7f;
+            var sockets = new List<InteriorSocket>();
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(6.2f, YI + 3f, 4f), 6f, 0.8f, white),       // 광장 (탑 둘레)
+                LightSpec.Point(new Vector3(1.8f, YI + 3f, 4f), 6f, 0.8f, white),
+                LightSpec.Point(new Vector3(4f, YI + 3f, 6.2f), 6f, 0.8f, white),
+                LightSpec.Point(new Vector3(4f, YI + 3f, 1.8f), 6f, 0.8f, white),
+                LightSpec.Point(new Vector3(4f, L3 + 2.2f, 1.6f), 5f, 0.7f, cool),      // 전망대
+                LightSpec.Point(new Vector3(4f, L3 + 2.2f, 6.4f), 5f, 0.7f, cool),
+                LightSpec.Point(new Vector3(6f, L0 + 2.7f, 4f), 5f, 1.05f, cool),       // 결정실
+                LightSpec.Point(new Vector3(2f, L0 + 2.7f, 4f), 5f, 1.05f, cool),
+                LightSpec.Point(new Vector3(5.5f, L0 - 0.9f, 4f), 3.2f, 0.9f, cool),    // 유리 바닥 아래 결정
+                LightSpec.Point(new Vector3(2.5f, L0 - 0.9f, 4f), 3.2f, 0.9f, cool),
+            };
+            for (int k = 0; k < 5; k++)   // 둘레 산책로 · 잔디 띠 (타워 사이)
+            {
+                float a = (56f + 72f * k) * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(4f + 4.8f * Mathf.Cos(a), YI + 2.6f, 4f + 4.8f * Mathf.Sin(a)), 5.5f, 0.8f, warm));
+            }
+            for (int k = 0; k < 3; k++)   // 뿌리 층 복도
+            {
+                float a = (90f + 120f * k) * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(4f + 2f * Mathf.Cos(a), L1 + 2.9f, 4f + 2f * Mathf.Sin(a)), 4.5f, 0.8f, white));
+            }
+            for (int k = 0; k < 6; k++)   // 집 여섯
+            {
+                float a = 60f * k * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(4f + 3.85f * Mathf.Cos(a), L1 + 2.9f, 4f + 3.85f * Mathf.Sin(a)), 3.6f, 0.9f, warm));
+            }
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoArcology_Crystal", new Vector3(4f, 0f, 4f), Vector3.up, 20f),                                 // 중력 결정 (유리 바닥 아래)
+                new OrbitSpec("INT_EvoArcology_Stones", new Vector3(4f, 0f, 4f), Vector3.up, 14f),                                  // 머리 위로 떠도는 돌
+                new OrbitSpec("INT_EvoArcology_RingA", new Vector3(4f, 15.6f, 4f), new Vector3(0f, 0.9272f, 0.3746f), 12f),         // 혼천의 고리 (ar_builder armillary_ring)
+                new OrbitSpec("INT_EvoArcology_RingB", new Vector3(4f, 8.4f, 4f), new Vector3(0f, 0.866f, -0.5f), -16f),
+            };
+            EvoAccent("Arcology", "#8FD0FF");
+            // 스폰 = 남쪽 산책로에서 유리 엘리베이터 탑을 바라봄 (디딤돌 길 끝)
+            Build("EvoArcology", "Evolved/MD_Evo_Arcology", sockets, new Vector3(4.18f, YI + 0.02f, -1.1f), -2f, lights, orbits,
+                configure: root =>
+                {
+                    var car = Child(root, "INT_EvoArcology_LiftCar");
+                    var carGlass = Child(root, "INT_EvoArcology_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[4];
+                    var right = new Transform[4];
+                    for (int k = 0; k < 4; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoArcology_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoArcology_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoArcology_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoArcology_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, L1 - L0, YI - L0, L3 - L0 }, left, right, new Vector3(4f, L0 + 0.085f, 4f), Vector3.right, 0.85f);
+                });
         }
 
         /// <summary>
@@ -3801,6 +3878,7 @@ namespace SpaceStation.Editor
             { "EvoSecurity", InteriorAmbience.Life },         // 민원 홀 (행정 관제소와 같음)
             { "EvoGridHub", InteriorAmbience.Electric },      // 테슬라 탑 · 번개
             { "EvoFusionPlant", InteriorAmbience.Heat },      // 융합로 · 열 관
+            { "EvoArcology", InteriorAmbience.Life },         // 섬 도시
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
@@ -3866,6 +3944,7 @@ namespace SpaceStation.Editor
                 { "Evo2Bed", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2BedPath) },
                 { "Evo2Ice", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2IcePath) },
                 { "Evo2Glass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GlassPath) },
+                { "Evo2EggGlass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2EggGlassPath) },
                 { "Evo2Curtain", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2CurtainPath) },
                 { "Evo2Sky", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SkyPath) },
                 { "Evo2Mirror", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MirrorPath) },
