@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: M_AuroraCurtainGreen
+  m_Name: M_AuroraCurtain
   m_Shader: {fileID: 4800000, guid: baad436fb1542184a9baf3b4dcf25974, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -25,18 +25,18 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _BaseY: 0.33
-    - _Height: 0.36
-    - _Intensity: 0.6
-    - _Length: 2.5
+    - _EndSoft: 0.18
+    - _HemSoft: 0.2
+    - _Intensity: 0.5
+    - _Level: 1
+    - _RayScale: 12
+    - _RayStrength: 0.7
     - _Speed: 1
-    - _Sway: 0.035
-    - _UVMode: 0
-    - _VStart: 0
+    - _Sway: 0.05
+    - _Wander: 0.07
     m_Colors:
-    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Center: {r: 0.4, g: 0, b: 0.6, a: 0}
-    - _HighColor: {r: 0.25, g: 0.8, b: 0.75, a: 1}
-    - _LowColor: {r: 0.4, g: 1.4, b: 0.8, a: 1}
+    - _HighColor: {r: 0.55, g: 0.22, b: 1.05, a: 1}
+    - _LowColor: {r: 0.22, g: 1.2, b: 0.55, a: 1}
+    - _MidColor: {r: 0.2, g: 0.85, b: 0.75, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

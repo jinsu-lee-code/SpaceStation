@@ -2007,3 +2007,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-11-02) 같은 파일이 tycoon 커밋 `4975ff24`에 있음.
+
+## M-132. 오로라 커튼 다시 만듦, 방사선 차폐벽 은하수 강 (2026-11-02, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `5f03d370`과 같은 파일) — 사용자 플레이 의견 반영
+- 새 `AuroraFx` (`Scripts/Building`): 띠 메시를 Start에서 만듦 (띠마다 겹 둘), 모듈 상태는 `_Level` (비활성 = 옅어짐 · 파손 = 깜빡임). `StationArtBuilder.WireAurora`가 실드 돔 · 궤도 방어망에 띠 자리를 넣음
+- `AuroraCurtain` 셰이더 다시 씀: UV 방식 하나로 (옛 원 모드 · `_UVMODE` 없앰). 재질 하나 `M_AuroraCurtain` (슬라이더), 옛 `M_AuroraCurtainGreen` · `Violet` · `GreenUV` · `VioletUV` 삭제. 모델의 오로라 판 · 빛줄 슬롯 = `M_Hidden` (`SM_Evo_ShieldDome` · `SM_Evo_OrbitalDefense` fbx.meta, `FxOverrides`)
+- 새 `MilkyRiver` 셰이더 · `M_MilkyRiver`: 방사선 차폐벽 물만 (`FxOverrides`의 `Evo_RadiationWall`, 속 보라 띠 슬롯 = `M_Hidden`). 환적장 · 심우주 통신의 `M_GalaxyWater` · `M_AuroraViolet`은 그대로
+- `MODELING.md` 7-9에 자연 현상 효과 규칙
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 삭제된 재질 넷을 쓰는 자기 쪽 프리팹이 있으면 슬롯이 비므로 `M_AuroraCurtain` 대상이 아니라 `M_Hidden` + `AuroraFx`로.
+
+### `tycoon` 합칠 때
+- [x] (2026-11-02) 같은 파일이 tycoon 커밋 `5f03d370`에 있음.
