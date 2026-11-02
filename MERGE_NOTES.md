@@ -1992,3 +1992,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-11-02) 같은 파일이 tycoon 커밋 `de07f882`에 있음.
+
+## M-131. 빛기둥 광량 · 감쇠 조절, 플라즈마 잡음, 번개 심 (2026-11-02, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `4975ff24`과 같은 파일) — 사용자 플레이 의견 넷
+- `LightShaft` 셰이더 재질 슬라이더: 광량 · 감쇠 · 반사 지점 · 거울 면 빛 · 윤곽 · 빛 결 잘기 · 진하기. 바깥 `M_LightShaft` · 내부 새 `M_InteriorLightShaft` 따로, 기본값 낮춤, 빛 결 잘기 7 → 0.8 (줄이 넓고 적게). `LightBeamFx`의 색 칸은 없앰 (밝기는 재질 한 곳)
+- `Plasma` 셰이더: 도메인 왜곡 · 대비 · 능선 잡음 빛 실 (슬라이더), 가산 / 불투명 (`_DstBlend` · `_ZWrite`). 기본 핵융합로 바깥 `M_FusionPlasma` · 내부 `M_InteriorPlasma` (Lit이던 것)도 불투명 모드로, 융합 발전소 내부 고리의 밝은 덩이 = 새 `M_InteriorPlasmaHot` (`BuildEvoFusion` configure)
+- `LightningFx`: 흰 심 0.016 → 0.008 · 푸른 빛 0.09 → 0.07 (`PF_Evo_GridHub`), `_hubTargets` · `_rimCenter` · `_rimRadius` · `_fxScale` · `_roughness` · `Running` · `StrikeLevel`. 값을 안 넣으면 바깥 모델은 그대로
+- 그리드 허브 내부: 메시 번개 Bolt00 ~ 09 지움 (`SM_Interior_EvoGridHub.fbx`), `InteriorLightning`이 `LightningFx`를 방에 있을 때만 켬 · 번쩍임에 맞춰 찬 빛
+- `InteriorSetup`: 내부 플라즈마 · 빛기둥 재질은 처음 만들 때만 값을 넣음 (슬라이더 값을 덮어쓰지 않게), `MODELING.md` 7-11
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. 그 뒤 메뉴 Interior/Setup · Build Evolved Templates. 핵융합로가 서사판에서 눈에 잘 띄면 플라즈마 대비 · 밝기 확인.
+
+### `tycoon` 합칠 때
+- [x] (2026-11-02) 같은 파일이 tycoon 커밋 `4975ff24`에 있음.

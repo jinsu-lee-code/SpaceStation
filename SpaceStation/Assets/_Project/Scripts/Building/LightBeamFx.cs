@@ -8,6 +8,7 @@ namespace SpaceStation.Building
     /// 2026-11-02 "그냥 선같아보여서 반사광 느낌이 안나" · "빛줄기 시작점 해바라기 표면에서 명확하게 시작하도록"): 거울마다 집광 수신기까지 3D 빛기둥 하나 (SpaceStation/LightShaft).
     /// 아래 테두리 = 거울 테두리 그대로 (거울 면에 기운 원 — 카메라를 향한 띠로는 거울 모양에서 시작할 수 없었음), 위 끝 = 수신기 크기로 모임, 거울 면 자체도 환하게 빛남.
     /// 끝점 · 지름은 모델 기준 — 바깥 모델은 StationArtBuilder가 모델 빛줄기 메시에서 찾아 넣고, 내부 템플릿은 InteriorTemplateBuilder가 넣는다. 비활성이면 서서히 옅어짐, 파손이면 깜빡임.
+    /// 광량 · 감쇠 · 빛 결은 재질에서 조절 (바깥 M_LightShaft, 내부 M_InteriorLightShaft — 사용자 2026-11-02 "감쇄 효과를 조절할 수 있게").
     /// </summary>
     public sealed class LightBeamFx : MonoBehaviour
     {
@@ -26,8 +27,6 @@ namespace SpaceStation.Building
         [SerializeField] private Vector3[] _mirrorNormals;
         [Tooltip("수신기 쪽 지름 (빛이 모이는 곳)")]
         [SerializeField] private float _receiverDiameter = 0.08f;
-        [SerializeField] private Color _mirrorColor = new Color(1f, 1f, 1f, 0.3f);
-        [SerializeField] private Color _receiverColor = new Color(1f, 1f, 1f, 0.2f);
 
         private Mesh _mesh;
         private Vector3[] _vertices;
@@ -76,7 +75,6 @@ namespace SpaceStation.Building
             _vertices = new Vector3[total];
             _normals = new Vector3[total];
             var uv = new Vector2[total];
-            var colors = new Color[total];
             var tris = new int[count * (Along * Around * 6 + Around * 3)];
             int t = 0;
             for (int i = 0; i < count; i++)
@@ -85,12 +83,10 @@ namespace SpaceStation.Building
                 for (int k = 0; k <= Along; k++)
                 {
                     float along = k / (float)Along;
-                    var c = Color.Lerp(_mirrorColor, _receiverColor, along);
                     for (int a = 0; a <= Around; a++)
                     {
                         int v = start + k * (Around + 1) + a;
                         uv[v] = new Vector2(along, a / (float)Around);
-                        colors[v] = c;
                         if (k < Along && a < Around)
                         {
                             tris[t++] = v;
@@ -105,12 +101,10 @@ namespace SpaceStation.Building
                 // 거울 면: uv.x < 0 = 셰이더가 면으로 그림, uv.y = 가운데 0 ~ 테두리 1
                 int center = start + TubeVertices;
                 uv[center] = new Vector2(-1f, 0f);
-                colors[center] = _mirrorColor;
                 for (int a = 0; a <= Around; a++)
                 {
                     int v = center + 1 + a;
                     uv[v] = new Vector2(-1f, 1f);
-                    colors[v] = _mirrorColor;
                     if (a < Around)
                     {
                         tris[t++] = center;
@@ -125,7 +119,6 @@ namespace SpaceStation.Building
             _mesh.vertices = _vertices;
             _mesh.normals = _normals;
             _mesh.uv = uv;
-            _mesh.colors = colors;
             _mesh.triangles = tris;
             _mesh.RecalculateBounds();
             var go = new GameObject("LightShafts");
