@@ -77,6 +77,7 @@ namespace SpaceStation.Editor
         public const string Evo2IcePath = MaterialFolder + "/M_InteriorEvo2Ice.mat";
         public const string Evo2GlassPath = MaterialFolder + "/M_InteriorEvo2Glass.mat";
         public const string Evo2EggGlassPath = MaterialFolder + "/M_InteriorEvo2EggGlass.mat";
+        public const string Evo2ClearGlassPath = MaterialFolder + "/M_InteriorEvo2ClearGlass.mat";
         public const string Evo2CurtainPath = MaterialFolder + "/M_InteriorEvo2Curtain.mat";
         public const string Evo2SkyPath = MaterialFolder + "/M_InteriorEvo2Sky.mat";
         public const string Evo2MirrorPath = MaterialFolder + "/M_InteriorEvo2Mirror.mat";
@@ -668,6 +669,14 @@ namespace SpaceStation.Editor
             eggGlass.SetFloat("_SpecularHighlights", 0f);
             eggGlass.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
             EditorUtility.SetDirty(eggGlass);
+            // 대형 토러스 큰 유리 (창 · 지붕 · 벽, 여러 겹으로 겹침): 환경 반사 · 하이라이트를 끔 (겹치면 바깥이 초록으로 탁해지고 반사의 지평선이 비침), 어두운 색 (가까운 등불에 물들어 빛나지 않게)
+            Clear(Evo2ClearGlassPath, new Color(0.1f, 0.14f, 0.16f, 0.07f), 0.95f, Color.black);
+            var clearGlass = LoadOrCreate(Evo2ClearGlassPath, lit);
+            clearGlass.SetFloat("_SpecularHighlights", 0f);
+            clearGlass.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+            clearGlass.SetFloat("_EnvironmentReflections", 0f);
+            clearGlass.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+            EditorUtility.SetDirty(clearGlass);
             EditorUtility.SetDirty(LoadOrCreate(Evo2CurtainPath, Shader.Find("SpaceStation/PressureVeil")));   // 압력 막 (사용자 2026-11-02 "신비감", UV = 아치 기준 미터)
             Clear(SuitHelmetPath, new Color(0.8f, 0.92f, 1f, 0.14f), 0.97f, Color.black);
             Clear(Evo2WaterGlowPath, new Color(0.45f, 0.85f, 1f, 0.5f), 0.55f, new Color(0.07f, 0.3f, 0.42f));   // 융합 플랜트 물 캡슐 · 물 달: 은은히 빛나는 물 (속 거품 · 전극이 비침)

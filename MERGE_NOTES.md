@@ -2061,3 +2061,18 @@
 
 ### `tycoon` 합칠 때
 - [ ] 같은 파일 (tycoon에 이미 있음).
+
+## M-136. 대형 토러스 내부 "은하철도 링" · 열차 탑승 · 의자 앉기 (2026-11-02, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `57a73879`과 같은 파일)
+- 대형 토러스 내부 `IT_EvoGrandTorus` · `PF_Interior_EvoGrandTorus` · `SM_Interior_EvoGrandTorus.fbx` (Blender `Interior_Evo.blend` 텍스트 `gt_builder`): 5 × 5칸 바퀴 — 고가 선로 · 역 넷 (승강장 · 스크린 도어 · 계단 · 유리 홀) · 둑 동네 넷 · 고가 아래 아치 회랑 · 아치 집 여덟 · 유리 통로 넷 · 돔 허브 · 엘리베이터 · 시계탑 방 (유리 시계 넷 · 도는 톱니). 전부 유리 · 지붕 안 실내 (우주복 없음), 하늘 껍질 = 바퀴 전체를 감싼 큰 상자
+- 새 `Interior/InteriorTrain`: 직접 체험 — 열차가 역 넷을 돎, 스크린 도어 · 열차 문, 문 앞에 있으면 안 닫음, 객차 안 플레이어를 실어 나름, 긴 의자에 F로 앉기 · 일어나기, 승강장 이름판 (다음 열차 시간), 탑승 안내, 굴뚝 별빛 가루
+- `InteriorTemplateBuilder.BuildEvoGrandTorus` (문 자리 12 — 가운데 칸은 깊이 3.9, 아래 해치 17, 조명 60, 엘리베이터 2층, 환경음 생활), `ResidentSpotBaker` 앉는 자리 68 · 서는 자리 16 ("은하철도 구경 중"), `InteriorPlantSpots` 나무 16 · 화분 8, 강조색 `M_Accent_Evo_GrandTorus` · `M_Paint_Evo_GrandTorus` (#B0E0FF)
+- 새 재질 슬롯 Evo2ClearGlass = `M_InteriorEvo2ClearGlass` (`InteriorSetup` · `InteriorTemplateBuilder` 재질 표), `InteriorKit.asset`, `MODELING.md` 7-11
+- **공통 동작 변경** `FirstPersonController`: 탈것이 돌면 시선도 같이 돎 (엘리베이터는 돌지 않아 그대로), 새 `RideAt` (탈것의 정해진 자리 · 눈높이), `Dismount` · `Teleport`가 눈높이를 되돌림
+
+### `narrative` 합칠 때
+- 없음 (공통 파일만, 충돌 없을 것). `FirstPersonController`를 고쳤다면 `Ride` · `LateUpdate`만 합치면 됨
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `57a73879`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
