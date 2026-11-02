@@ -121,7 +121,7 @@ namespace SpaceStation.Editor
 
         /// <summary>
         /// 진화 2단계 아콜로지 "유리 알 속 하늘 섬" (2 × 2칸 × 4층, ar_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘"): 알 전체가 실내 (살아 있는 잔디 · 나무, 우주복 없음), 유리 엘리베이터 탑 (<see cref="InteriorLift"/>)으로 네 층:
-        /// 전망대 (유리 바닥 고리 · 탑을 두른 벤치 · 별 관측경) · 섬 도시 (돌 광장 · 잔디 띠의 타워 다섯 · 작은 집 · 나무 · 디딤돌 · 둘레 산책로 · 유리 난간) ·
+        /// 전망대 (유리 바닥 고리 · 탑을 두른 벤치 · 난간 곁 망원경 둘 <see cref="InteriorTelescope"/> — 머리 Scope1 · 2, F로 들여다봄) · 섬 도시 (돌 광장 · 잔디 띠의 타워 다섯 · 작은 집 · 나무 · 디딤돌 · 둘레 산책로 · 유리 난간) ·
         /// 뿌리 층 (고리 복도 둘레 집 여섯: 금빛 아치 문 · 침대 · 안락의자 · 창 · 화분, 아래턱 매달린 정원) · 결정실 (유리 바닥 아래 중력 결정 Crystal · 머리 위로 떠도는 돌 Stones · 벽 벤치).
         /// 유리 알 밖 = 고정 적도 띠 + 도는 혼천의 고리 RingA · RingB · 받침 · 발톱 셋. 문 자리 · 해치 없음 (외형 모든 면 연결점 없음 — 바깥에서 바로 입장).
         /// </summary>
@@ -192,6 +192,17 @@ namespace SpaceStation.Editor
                         BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
                     }
                     lift.Configure(car, new[] { 0f, L1 - L0, YI - L0, L3 - L0 }, left, right, new Vector3(4f, L0 + 0.085f, 4f), Vector3.right, 0.85f);
+                    // 망원경 둘 (ar_builder SCOPE_AZ · SCOPE_R): 머리 경계 상자 (시선 광선) + 들여다보기, 바깥쪽을 쉴 때 방향으로 좌우 ±100° (둘이 거의 한 바퀴).
+                    // 처음 시선 = 넓게 · 아래로 (정거장 판을 봄 — 수평이면 놓인 자리에 따라 빈 하늘만 보임), 아래로 더 볼 수 있게 (알 꼭대기 근처라 옆 모듈이 발밑)
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    var scopes = new[] { 202.5f, 337.5f };
+                    for (int k = 0; k < scopes.Length; k++)
+                    {
+                        var head = Child(root, $"INT_EvoArcology_Scope{k + 1}");
+                        BoxOf(head, 0.06f);
+                        float a = scopes[k] * Mathf.Deg2Rad;
+                        root.AddComponent<InteriorTelescope>().Configure(head, new Vector3(4f + 2.7f * Mathf.Cos(a), L3 + 1.3f, 4f + 2.7f * Mathf.Sin(a)), 18f, 0f, font, 90f - scopes[k], 100f, startPitch: -16f, startFov: 24f, minPitch: -60f);
+                    }
                 });
         }
 

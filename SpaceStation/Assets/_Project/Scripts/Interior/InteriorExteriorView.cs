@@ -242,7 +242,9 @@ namespace SpaceStation.Interior
             _lift = lift;
             _camera.targetTexture = target;
             _cameraData.renderShadows = true;
+            _cameraData.renderPostProcessing = true; // 창 화면은 내부 카메라가 한 번에 입히지만 망원경 화면은 UI로 바로 나감 — 없으면 창밖보다 뿌옇게 보임
             _camera.Render();
+            _cameraData.renderPostProcessing = false;
             _camera.targetTexture = null;
             _poseOverride = false;
             _lift = 0f;
