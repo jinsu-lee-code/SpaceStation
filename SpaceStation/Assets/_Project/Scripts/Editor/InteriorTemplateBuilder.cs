@@ -217,7 +217,7 @@ namespace SpaceStation.Editor
         {
             var fx = on.AddComponent<SpaceStation.Building.LightBeamFx>();
             var so = new SerializedObject(fx);
-            so.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("LightShaft");
+            so.FindProperty("_material").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.LightShaftPath);
             void Vectors(string property, Vector3[] values)
             {
                 var p = so.FindProperty(property);
@@ -233,9 +233,6 @@ namespace SpaceStation.Editor
             for (int i = 0; i < diameters.Length; i++)
                 d.GetArrayElementAtIndex(i).floatValue = diameters[i];
             so.FindProperty("_receiverDiameter").floatValue = receiverDiameter;
-            // 바깥 모듈보다 옅게: 안에서는 빛기둥이 눈앞 가까이 지나감
-            so.FindProperty("_mirrorColor").colorValue = new Color(1f, 1f, 1f, 0.22f);
-            so.FindProperty("_receiverColor").colorValue = new Color(1f, 1f, 1f, 0.15f);
             so.ApplyModifiedPropertiesWithoutUndo();
             return fx;
         }
@@ -309,13 +306,39 @@ namespace SpaceStation.Editor
             Build("EvoGridHub", "Evolved/MD_Evo_GridHub", sockets, new Vector3(16.4f, F, 9.4f), -123f, lights, orbits,
                 configure: root =>
                 {
-                    var bolts = new List<Renderer>();
-                    for (int i = 0; i < 10; i++)
+                    // 번개 = 바깥 모듈과 같은 LightningFx (가는 흰 심 + 옅은 푸른 빛, 갈래가 계속 바뀜 — 사용자 2026-11-02 "심이 얇아야 번개 느낌"). 탑 → 안쪽 나무 넷 · 나무 ↔ 나무 (옆 칸 나무로 가는 번개는 나무끼리만 — 위 칸 하늘 안에 머무름, gd_builder)
+                    var fx = root.AddComponent<SpaceStation.Building.LightningFx>();
+                    var so = new SerializedObject(fx);
+                    so.FindProperty("_lineMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+                    so.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+                    so.FindProperty("_hub").vector3Value = new Vector3(8f, sphereY, 4f);
+                    so.FindProperty("_hubRadius").floatValue = 0.72f;
+                    so.FindProperty("_rimCenter").vector3Value = new Vector3(8f, F + 7.08f, 4f);   // 토로이드 테두리 (gd_builder GD_ToroidLine)
+                    so.FindProperty("_rimRadius").floatValue = 1.62f;
+                    so.FindProperty("_nodeRadius").floatValue = 0.25f;
+                    Vector3[] nodes =
                     {
-                        var b = Child(root, $"INT_EvoGridHub_Bolt{i:00}");
-                        if (b != null)
-                            bolts.Add(b.GetComponent<Renderer>());
+                        new Vector3(1.04f, F + 4.64f, 4f), new Vector3(4.48f, F + 3.94f, -1.28f), new Vector3(11.52f, F + 4.64f, -1.28f),
+                        new Vector3(14.96f, F + 3.94f, 4f), new Vector3(11.52f, F + 4.64f, 9.28f), new Vector3(4.48f, F + 3.94f, 9.28f),
+                    };
+                    var pn = so.FindProperty("_nodes");
+                    pn.arraySize = nodes.Length;
+                    for (int i = 0; i < nodes.Length; i++)
+                        pn.GetArrayElementAtIndex(i).vector3Value = nodes[i];
+                    void Ints(string property, int[] values)
+                    {
+                        var p = so.FindProperty(property);
+                        p.arraySize = values.Length;
+                        for (int i = 0; i < values.Length; i++)
+                            p.GetArrayElementAtIndex(i).intValue = values[i];
                     }
+                    Ints("_hubTargets", new[] { 1, 2, 4, 5 });
+                    Ints("_links", new[] { 0, 1, 0, 5, 3, 2, 3, 4, 1, 2, 5, 4 });
+                    so.FindProperty("_coreWidth").floatValue = 0.022f;
+                    so.FindProperty("_glowWidth").floatValue = 0.26f;
+                    so.FindProperty("_fxScale").floatValue = 8f;
+                    so.FindProperty("_roughness").floatValue = 0.14f;   // 양옆 칸 하늘 (y 3.95) 밖으로 크게 튀지 않게
+                    so.ApplyModifiedPropertiesWithoutUndo();
                     var flash = new GameObject("BoltFlash").AddComponent<Light>();
                     flash.transform.SetParent(root.transform, false);
                     flash.transform.localPosition = new Vector3(8f, F + 5.2f, 4f);
@@ -324,7 +347,7 @@ namespace SpaceStation.Editor
                     flash.range = 14f;
                     flash.intensity = 0f;
                     flash.color = new Color(0.75f, 0.88f, 1f);
-                    root.AddComponent<InteriorLightning>().Configure(bolts.ToArray(), flash);
+                    root.AddComponent<InteriorLightning>().Configure(fx, flash);
                     AddOpenAir(root, new[] { new Vector3(8f, 4f, 3.45f) });   // 전시관 (gd_builder CX · CZ, 벽 바깥 반지름)
                 });
         }
@@ -1563,7 +1586,20 @@ namespace SpaceStation.Editor
             };
             EvoAccent("FusionStation", "#FF9F5A");
             // 스폰 = −x 끝 (바닥 해치 (0, 0)과 문 사이)에서 융합로 쪽을 바라봄
-            Build("EvoFusion", "Evolved/MD_Evo_FusionStation", sockets, new Vector3(-1.8f, F, 0f), 90f, lights, orbits);
+            Build("EvoFusion", "Evolved/MD_Evo_FusionStation", sockets, new Vector3(-1.8f, F, 0f), 90f, lights, orbits,
+                configure: root =>
+                {
+                    // 고리의 밝은 덩이 여섯: 흰 공이 잡음 플라즈마를 가려 → 같은 잡음의 더 뜨거운 플라즈마 (사용자 2026-11-02 "제대로 된 플라즈마")
+                    var plasma = Child(root, "INT_EvoFusion_Plasma").GetComponent<MeshRenderer>();
+                    var hot = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PlasmaHotPath);
+                    var mats = plasma.sharedMaterials;
+                    for (int i = 0; i < mats.Length; i++)
+                    {
+                        if (mats[i] != null && mats[i].name == "M_InteriorLight")
+                            mats[i] = hot;
+                    }
+                    plasma.sharedMaterials = mats;
+                });
         }
 
         /// <summary>

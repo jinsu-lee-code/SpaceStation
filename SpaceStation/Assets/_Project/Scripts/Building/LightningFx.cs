@@ -9,7 +9,8 @@ namespace SpaceStation.Building
     /// - 테슬라 탑 꼭대기 에너지 구 → 번개 나무 여섯으로 번개가 제각각 박자로 내리침. 치는 동안 갈래 모양이 계속 바뀌며 번쩍이고,
     ///   밝은 전류 덩이가 탑에서 나무 쪽으로 흘러감. 가끔 중간에서 잔가지가 갈라졌다 사라짐. 닿는 곳마다 불티 · 섬광.
     /// - 이웃 나무끼리 (0-1, 2-3, 4-5) 가끔 번개가 튐. 에너지 구 둘레엔 짧은 전기 덩굴이 늘 지직거림 (플라스마 공처럼).
-    /// 번개 = 가운데 흰 심 + 넓고 옅은 푸른 빛 (선 둘). 가동 중에만 침. 고스트(배치 미리보기)에서는 만들지 않음.
+    /// 번개 = 가운데 가는 흰 심 + 넓고 옅은 푸른 빛 (선 둘 — 사용자 2026-11-02 "심이 좀 더 얇아야 번개 느낌"). 가동 중에만 침. 고스트(배치 미리보기)에서는 만들지 않음.
+    /// 내부 템플릿도 같은 효과 (InteriorLightning이 방에 있을 때만 켬 — _fxScale · 폭 값은 미터 기준으로).
     /// </summary>
     public sealed class LightningFx : MonoBehaviour
     {
@@ -23,11 +24,20 @@ namespace SpaceStation.Building
         [SerializeField] private float _nodeRadius = 0.034f;
         [Tooltip("번개가 튀는 이웃 나무 (번호 둘씩)")]
         [SerializeField] private int[] _links = { 0, 1, 2, 3, 4, 5 };
+        [Tooltip("탑에서 번개가 가는 나무 번호 (비우면 모두)")]
+        [SerializeField] private int[] _hubTargets = System.Array.Empty<int>();
+        [Tooltip("탑에서 가는 번개가 시작하는 토로이드 테두리 (반지름 0 = 에너지 구에서 바로 — 바깥 모델). 내부에서는 올려다보면 구에서 나온 번개가 토로이드를 뚫고 지나감")]
+        [SerializeField] private Vector3 _rimCenter;
+        [SerializeField] private float _rimRadius;
         [SerializeField] private Color _coreColor = new Color(0.9f, 0.95f, 1f, 1f);
         [SerializeField] private Color _glowColor = new Color(0.45f, 0.62f, 1f, 1f);
-        [Tooltip("흰 심 굵기 · 푸른 빛 번짐 굵기 — 게임 카메라 거리(약 12m)에서도 보이게")]
-        [SerializeField] private float _coreWidth = 0.016f;
-        [SerializeField] private float _glowWidth = 0.09f;
+        [Tooltip("흰 심 굵기 · 푸른 빛 번짐 굵기")]
+        [SerializeField] private float _coreWidth = 0.008f;
+        [SerializeField] private float _glowWidth = 0.07f;
+        [Tooltip("불티 · 섬광 · 덩굴 길이 배율 (바깥 모델 1, 내부 미터 8)")]
+        [SerializeField] private float _fxScale = 1f;
+        [Tooltip("꺾임 폭 (구간 길이 비율)")]
+        [SerializeField] private float _roughness = 0.22f;
 
         private const int Points = 17; // 2⁴ + 1 (가운데 점 나누기)
 
@@ -52,6 +62,12 @@ namespace SpaceStation.Building
 
         public int ArcCount => _arcs != null ? _arcs.Length : 0;
 
+        /// <summary>꺼 두면 새 번개를 치지 않음 (내부: 방에 있을 때만).</summary>
+        public bool Running { get; set; } = true;
+
+        /// <summary>지금 치는 번개 중 가장 센 번쩍임 (0 = 없음) — 내부 조명이 맞춰 번쩍임.</summary>
+        public float StrikeLevel { get; private set; }
+
         private void Start()
         {
             _view = GetComponentInParent<ModuleView>();
@@ -67,10 +83,12 @@ namespace SpaceStation.Building
                 return;
             int links = _links != null ? _links.Length / 2 : 0;
             const int crackles = 3;
-            _arcs = new Arc[_nodes.Length + links + crackles];
+            bool some = _hubTargets != null && _hubTargets.Length > 0;
+            int hubArcs = some ? _hubTargets.Length : _nodes.Length;
+            _arcs = new Arc[hubArcs + links + crackles];
             int k = 0;
-            for (int i = 0; i < _nodes.Length; i++)
-                _arcs[k++] = NewArc(-1, i, false);
+            for (int i = 0; i < hubArcs; i++)
+                _arcs[k++] = NewArc(-1, some ? _hubTargets[i] : i, false);
             for (int i = 0; i < links; i++)
                 _arcs[k++] = NewArc(_links[i * 2], _links[i * 2 + 1], false);
             for (int i = 0; i < crackles; i++)
@@ -93,10 +111,16 @@ namespace SpaceStation.Building
         {
             if (_arcs == null)
                 return;
-            bool on = !_live || _view.Operational;
+            bool on = Running && (!_live || _view.Operational);
             _clock += Time.deltaTime;
+            float strike = 0f;
             foreach (var a in _arcs)
+            {
                 Step(a, on);
+                if (!a.Crackle && _clock < a.End)
+                    strike = Mathf.Max(strike, a.Strength);
+            }
+            StrikeLevel = strike;
         }
 
         private void Step(Arc a, bool on)
@@ -134,7 +158,7 @@ namespace SpaceStation.Building
             Ends(a, out var from, out var to);
             var wFrom = transform.TransformPoint(from);
             var wTo = transform.TransformPoint(to);
-            float scale = transform.lossyScale.x;
+            float scale = transform.lossyScale.x * _fxScale;
             Flash(wFrom, 0.12f * scale);
             Flash(wTo, 0.1f * scale);
             for (int i = 0; i < 10; i++)
@@ -164,12 +188,19 @@ namespace SpaceStation.Building
                 dir.Normalize();
                 var side = Vector3.Cross(dir, Random.onUnitSphere).normalized;
                 from = _hub + dir * _hubRadius * 0.9f;
-                to = _hub + (dir + side * 0.6f).normalized * (_hubRadius + Random.Range(0.05f, 0.11f));
+                to = _hub + (dir + side * 0.6f).normalized * (_hubRadius + Random.Range(0.05f, 0.11f) * _fxScale);
                 return;
             }
             var src = a.From < 0 ? _hub : _nodes[a.From];
             float srcR = a.From < 0 ? _hubRadius : _nodeRadius;
             var dst = _nodes[a.To];
+            if (a.From < 0 && _rimRadius > 0f)
+            {
+                var flat = Vector3.ProjectOnPlane(dst - _rimCenter, Vector3.up).normalized;
+                from = _rimCenter + flat * _rimRadius;
+                to = dst - (dst - from).normalized * _nodeRadius * 0.9f;
+                return;
+            }
             var d = (dst - src).normalized;
             from = src + d * srcR * 0.9f;
             to = dst - d * _nodeRadius * 0.9f;
@@ -178,7 +209,7 @@ namespace SpaceStation.Building
         private void Build(Arc a)
         {
             Ends(a, out var from, out var to);
-            Jag(from, to, a.Crackle ? 0.3f : 0.22f, a.Pts);
+            Jag(from, to, a.Crackle ? 0.3f : _roughness, a.Pts);
             a.Core.SetPositions(a.Pts);
             a.Glow.SetPositions(a.Pts);
             a.Strength = Random.Range(0.55f, 1f); // 번쩍임

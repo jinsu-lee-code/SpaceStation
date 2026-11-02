@@ -43,6 +43,7 @@ namespace SpaceStation.Editor
         public const string ScreenDarkPath = MaterialFolder + "/M_InteriorScreenDark.mat";
         public const string ScreenGridPath = MaterialFolder + "/M_InteriorScreenGrid.mat";
         public const string PlasmaPath = MaterialFolder + "/M_InteriorPlasma.mat";
+        public const string PlasmaHotPath = MaterialFolder + "/M_InteriorPlasmaHot.mat";
         public const string SolarCellPath = MaterialFolder + "/M_InteriorSolarCell.mat";
         public const string ShieldPath = MaterialFolder + "/M_InteriorShield.mat";
         public const string RedPath = MaterialFolder + "/M_InteriorRed.mat";
@@ -78,6 +79,7 @@ namespace SpaceStation.Editor
         public const string Evo2CurtainPath = MaterialFolder + "/M_InteriorEvo2Curtain.mat";
         public const string Evo2SkyPath = MaterialFolder + "/M_InteriorEvo2Sky.mat";
         public const string Evo2MirrorPath = MaterialFolder + "/M_InteriorEvo2Mirror.mat";
+        public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
         public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
         public const string ResidentSuitModelPath = "Assets/_Project/Art/Models/Interior/SM_ResidentSuit.fbx";
         // 투명한 물 (2026-10-29 수소 플랜트 전기분해조 — 사용자 "위에 보이는 물 표면이 어색": 통 속을 물 덩어리로, 속 거품 · 전극이 비침)
@@ -528,7 +530,29 @@ namespace SpaceStation.Editor
             Emissive(ScreenDarkPath, new Color(0.02f, 0.05f, 0.08f), new Color(0.015f, 0.07f, 0.11f), ScreenSmoothness);
             Emissive(ScreenGridPath, new Color(0.04f, 0.15f, 0.2f), new Color(0.04f, 0.2f, 0.26f) * 1.2f, ScreenSmoothness);
             // 11-6 핵융합로 플라스마 관찰창 (분홍 보랏빛 — 외부 M_FusionPlasma와 같은 계열)
-            Emissive(PlasmaPath, new Color(0.75f, 0.35f, 0.95f), new Color(0.8f, 0.3f, 1f) * 1.5f, 0.3f);
+            // 잡음 플라즈마 (사용자 2026-11-02 "내부에 노이즈 — 제대로 된 플라즈마"), 뒤가 비치면 안 되는 관찰창에도 쓰여 불투명. 내부는 미터 단위라 덩어리 값이 바깥(모델 기준 14)보다 작음.
+            // 처음 만들 때만 값을 넣음 (슬라이더로 맞춘 값을 덮어쓰지 않게)
+            void InteriorPlasma(string path, Color core, Color edge, float scale)
+            {
+                var shader = Shader.Find("SpaceStation/Plasma");
+                var old = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (old != null && old.shader == shader)
+                    return;
+                var m = LoadOrCreate(path, shader);
+                m.shader = shader;
+                m.shaderKeywords = new string[0];
+                m.SetColor("_BaseColor", Color.white);
+                m.SetColor("_CoreColor", core);
+                m.SetColor("_EdgeColor", edge);
+                m.SetFloat("_Scale", scale);
+                m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.Zero);
+                m.SetFloat("_ZWrite", 1f);
+                m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
+                m.enableInstancing = true;
+                EditorUtility.SetDirty(m);
+            }
+            InteriorPlasma(PlasmaPath, new Color(2f, 1.05f, 2.5f), new Color(0.85f, 0.22f, 1.4f), 2.4f);
+            InteriorPlasma(PlasmaHotPath, new Color(3.4f, 2f, 3.8f), new Color(1.7f, 0.7f, 2.5f), 3.2f);   // 융합 발전소 고리의 밝은 덩이
             // 11-7 실드 방출기 코어·에너지 빔 (밝은 하늘색)
             Emissive(ShieldPath, new Color(0.45f, 0.8f, 1f), new Color(0.3f, 0.7f, 1f) * 2.0f, 0.4f);
             // 12-5 단백질 배양실 배양액 (크림빛 호박색, 은은한 발광 — 탱크 유리 속 · 콘솔 수위 막대)
@@ -653,6 +677,15 @@ namespace SpaceStation.Editor
             mirror.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             mirror.enableInstancing = true;
             EditorUtility.SetDirty(mirror);
+            // 내부 빛기둥 (바깥 M_LightShaft와 따로 조절 — 안에서는 빛기둥이 눈앞 가까이 지나감): 없을 때만 값을 넣음, 사용자가 슬라이더로 맞춘 값을 덮어쓰지 않게
+            if (AssetDatabase.LoadAssetAtPath<Material>(LightShaftPath) == null)
+            {
+                var shaft = LoadOrCreate(LightShaftPath, Shader.Find("SpaceStation/LightShaft"));
+                shaft.SetFloat("_Intensity", 0.12f);
+                shaft.SetFloat("_MirrorGlow", 0.25f);
+                shaft.enableInstancing = true;
+                EditorUtility.SetDirty(shaft);
+            }
 
             // 문 상태등: 색은 런타임 MaterialPropertyBlock (정상 청록 / 경고 빨강)
             var status = LoadOrCreate(StatusPath, lit);

@@ -314,6 +314,7 @@ Phase 11(모듈 내부) 키트·템플릿을 Blender로 만들며 실제로 겪�
   - 압력 막 = `_Curtain` 조각 (이름이 `_Shell · _Glass · _Door · _Soft`로 안 끝나서 충돌체 없음), `evo2_kit.arch_veil`로 UV = 아치 기준 미터 (u = 가운데에서 가로, v = 바닥에서 위), 재질 Evo2Curtain = `SpaceStation/PressureVeil`, 재질의 `_Arch` = (반폭, 둥근 부분 시작 높이)
   - 우주복 = `InteriorOpenAir` + `SM_ResidentSuit.fbx`: 실내 구역 원 밖 주민만 입힘. 새 개방형 방은 프리팹에 이 컴포넌트와 실내 원만 넣으면 됨
   - 문 자리 (첫 사용 = 궤도 미러): `evo2_deck(doors=…)`가 난간을 패널 폭 ±1.6만큼 비우고 양옆에 기둥, `evo2_sky(holes=…)`가 하늘 껍질에 문 구멍 (열린 문 너머 통로 튜브가 보이게). 닫힌 자리 = 키트 `KIT_Wall_Evo2` (같은 모양 난간 + 껍질 자리의 하늘 조각 — 보이지 않는 충돌체는 `InteriorBuilder`가 패널 크기로 둠), 열린 자리 = `KIT_WallDoor_Evo2` (사방에서 보이는 둥근 문)
+  - 빛 효과는 재질 슬라이더로 조절: 빛기둥 `M_LightShaft` (바깥) · `M_InteriorLightShaft` (내부) = 광량 · 감쇠 · 빛 결 등, 플라즈마 `M_Plasma*` · `M_FusionPlasma` · `M_InteriorPlasma*` = 휘말림 · 대비 · 빛 실. 플레이 중에 바꾸면 바로 보이고 저장됨 (Setup은 처음 만들 때만 값을 넣어 덮어쓰지 않음). 번개 = 바깥 · 내부 모두 `LightningFx` (메시 번개 금지 — 사용자 2026-11-02 "심이 얇아야")
   - 빛줄기 = `LightBeamFx` (3D 빛기둥, 거울 지름 · 면 방향 · 수신기 지름을 넘김). 시안에서 가는 관으로 그리지 말 것 (사용자 2026-11-02 "선 같아 보여서 반사광 느낌이 안 나"). 쉬는 자세의 머리 메시 + `InteriorHeliostat` = 실제 해를 따라 돌고 빛기둥 시작 면도 같이 옮김. 빛줄기는 양옆 낮은 칸 하늘(y 3.95) 밖으로 나가면 껍질 뒤로 숨음 → `om_builder.check_beams`로 줄기 높이를 맞춤
   - 두꺼운 잎은 `evo_kit.leaf_u` 말고 `om_builder._leaf` (leaf_u 첫 줄은 꼭짓점이 겹쳐 두께가 있으면 비다양체로 남음)
   - 동물 몸에 붙는 것은 **쉬는 자세로 재서 본 기준으로 저장** (사용자 2026-11-02 "에어팩이 공중부양"): 지금 자세를 구우면 앉은 주민의 든 꼬리 · 숙인 고개가 치수에 섞임. 동물 FBX는 읽기 꺼짐이라 `sharedMesh.vertices`가 비어 있음 → 본을 바인드 포즈로 돌려 `BakeMesh(mesh, true)` 후 같은 프레임에 되돌림

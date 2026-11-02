@@ -43,7 +43,7 @@ namespace SpaceStation.Editor
                 case "FarmGlass": return Glass("M_FarmGlass", new Color(0.62f, 1f, 0.84f, 0.03f), Color.black, 0.92f, 0.7f);
                 case "EvoGlass": return Glass("M_EvoGlass", new Color(0.82f, 0.86f, 1f, 0.015f), Color.black, 0.92f, 0.6f); // 진화 모듈 공통 유리 (흰 패널 · 유리 = 고급 재질, 사용자 결정 2026-10-22)
                 case "FarmGrow": return Emissive("M_FarmGrow", new Color(0.35f, 0.9f, 0.4f, 1f), new Color(0.5f, 2.6f, 0.7f, 1f));
-                case "FusionPlasma": return Emissive("M_FusionPlasma", new Color(0.3f, 0.75f, 1f, 1f), new Color(0.3f, 1.3f, 3.0f, 1f));
+                case "FusionPlasma": return PlasmaOpaque("M_FusionPlasma", new Color(0.6f, 1.5f, 3f, 1f), new Color(0.15f, 0.45f, 1.7f, 1f));   // 기본 핵융합로 (사용자 2026-11-02 "내부에 노이즈 — 제대로 된 플라즈마")
                 case "RefineryGlow": return Emissive("M_RefineryGlow", new Color(0.9f, 0.22f, 0.03f, 1f), new Color(1.9f, 0.26f, 0.02f, 1f)); // 초록 성분이 크면 톤매핑 뒤 노랗게 보임
                 case "ControlLamp": return Emissive("M_ControlLamp", new Color(1f, 0.55f, 0.08f, 1f), new Color(2.0f, 0.6f, 0.04f, 1f)); // 8-3 경광등·상황창
                 case "FuelCellGlow": return Emissive("M_FuelCellGlow", new Color(0.2f, 0.9f, 0.8f, 1f), new Color(0.15f, 1.5f, 1.35f, 1f)); // 8-5 연료전지 (보조 발전 중에만 켜짐)
@@ -345,6 +345,17 @@ namespace SpaceStation.Editor
             m.SetColor("_CoreColor", core);
             m.SetColor("_EdgeColor", edge);
             m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>같은 플라즈마를 불투명으로: 뒤가 비치면 안 되는 자리 (기본 핵융합로 관찰창).</summary>
+        private static Material PlasmaOpaque(string name, Color core, Color edge)
+        {
+            var m = Plasma(name, core, edge);
+            m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.Zero);
+            m.SetFloat("_ZWrite", 1f);
+            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
             EditorUtility.SetDirty(m);
             return m;
         }
