@@ -66,6 +66,19 @@ namespace SpaceStation.Editor
         public const string EvoWhitePath = MaterialFolder + "/M_InteriorEvoWhite.mat";
         public const string EvoFloorPath = MaterialFolder + "/M_InteriorEvoFloor.mat";
         public const string EvoDarkPath = MaterialFolder + "/M_InteriorEvoDark.mat";
+        // 진화 2단계 키트 (2026-11-02 그리드 허브 — 미드나잇 · 은빛 · 금빛, 바깥 정원: Blender evo2_kit)
+        public const string Evo2DeckPath = MaterialFolder + "/M_InteriorEvo2Deck.mat";
+        public const string Evo2WallPath = MaterialFolder + "/M_InteriorEvo2Wall.mat";
+        public const string Evo2TrimPath = MaterialFolder + "/M_InteriorEvo2Trim.mat";
+        public const string Evo2GoldPath = MaterialFolder + "/M_InteriorEvo2Gold.mat";
+        public const string Evo2PathPath = MaterialFolder + "/M_InteriorEvo2Path.mat";
+        public const string Evo2BedPath = MaterialFolder + "/M_InteriorEvo2Bed.mat";
+        public const string Evo2IcePath = MaterialFolder + "/M_InteriorEvo2Ice.mat";
+        public const string Evo2GlassPath = MaterialFolder + "/M_InteriorEvo2Glass.mat";
+        public const string Evo2CurtainPath = MaterialFolder + "/M_InteriorEvo2Curtain.mat";
+        public const string Evo2SkyPath = MaterialFolder + "/M_InteriorEvo2Sky.mat";
+        public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
+        public const string ResidentSuitModelPath = "Assets/_Project/Art/Models/Interior/SM_ResidentSuit.fbx";
         // 투명한 물 (2026-10-29 수소 플랜트 전기분해조 — 사용자 "위에 보이는 물 표면이 어색": 통 속을 물 덩어리로, 속 거품 · 전극이 비침)
         public const string WaterClearPath = MaterialFolder + "/M_InteriorWaterClear.mat";
         private const string SmokePath = MaterialFolder + "/M_InteriorSmoke.mat";
@@ -121,6 +134,7 @@ namespace SpaceStation.Editor
 
         /// <summary>진화 1단계 키트 조각 (Blender Interior_Evo.blend evo1_kit_builder — 기본 조각과 같은 규격, 이름 = 기본 이름 + _Evo1).</summary>
         public const string EvoKit1Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo1.fbx";
+        public const string EvoKit2Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo2.fbx";
         private const string RecipeFolder = "Assets/_Project/Data/Recipes";
 
         /// <summary>단계 키트 FBX의 조각 (없으면 빈 목록). 게임 중 InteriorSpots가 벽 패널 모양을 읽으므로 Read/Write를 켬 (기본 키트와 같음).</summary>
@@ -184,6 +198,10 @@ namespace SpaceStation.Editor
             var evoWhite = AssetDatabase.LoadAssetAtPath<Material>(EvoWhitePath);
             var evoFloor = AssetDatabase.LoadAssetAtPath<Material>(EvoFloorPath);
             var evoDark = AssetDatabase.LoadAssetAtPath<Material>(EvoDarkPath);
+            var evo2Deck = AssetDatabase.LoadAssetAtPath<Material>(Evo2DeckPath);
+            var evo2Wall = AssetDatabase.LoadAssetAtPath<Material>(Evo2WallPath);
+            var evo2Trim = AssetDatabase.LoadAssetAtPath<Material>(Evo2TrimPath);
+            var evo2Gold = AssetDatabase.LoadAssetAtPath<Material>(Evo2GoldPath);
 
             Data.InteriorKitPiece Piece(string name, System.Collections.Generic.Dictionary<string, GameObject> from = null)
             {
@@ -209,6 +227,10 @@ namespace SpaceStation.Editor
                         case "EvoWhite": mats[i] = evoWhite; break; // 진화 1단계 키트 (매끈한 흰 세라믹)
                         case "EvoFloor": mats[i] = evoFloor; break;
                         case "EvoDark": mats[i] = evoDark; break;
+                        case "Evo2Deck": mats[i] = evo2Deck; break; // 진화 2단계 키트 (미드나잇)
+                        case "Evo2Wall": mats[i] = evo2Wall; break;
+                        case "Evo2Trim": mats[i] = evo2Trim; break;
+                        case "Evo2Gold": mats[i] = evo2Gold; break;
                         default:
                             Debug.LogWarning($"[InteriorSetup] {name}: 모르는 재질 슬롯 '{slot}' → Hull");
                             mats[i] = hull;
@@ -249,6 +271,13 @@ namespace SpaceStation.Editor
                 stages.Add(new Data.InteriorKitStage(1, ModulesOfStage(1),
                     Piece("KIT_Wall_Evo1", evo1), Piece("KIT_WallDoor_Evo1", evo1), Piece("KIT_DoorLeaf_Evo1", evo1), Piece("KIT_Floor_Evo1", evo1),
                     Piece("KIT_Ceiling_Evo1", evo1), Piece("KIT_HatchFrame_Evo1", evo1), Piece("KIT_HatchLid_Evo1", evo1)));
+            }
+            var evo2 = StageParts(EvoKit2Path);   // 2단계 = Interior_Evo.blend evo2_kit_builder (미드나잇 · 은빛 테 · 금빛 문틀)
+            if (evo2.Count > 0)
+            {
+                stages.Add(new Data.InteriorKitStage(2, ModulesOfStage(2),
+                    Piece("KIT_Wall_Evo2", evo2), Piece("KIT_WallDoor_Evo2", evo2), Piece("KIT_DoorLeaf_Evo2", evo2), Piece("KIT_Floor_Evo2", evo2),
+                    Piece("KIT_Ceiling_Evo2", evo2), Piece("KIT_HatchFrame_Evo2", evo2), Piece("KIT_HatchLid_Evo2", evo2)));
             }
             kit.EditorSetStages(stages);
             EditorUtility.SetDirty(kit);
@@ -443,6 +472,13 @@ namespace SpaceStation.Editor
             EvoSurface(EvoWhitePath, new Color(0.9f, 0.92f, 0.95f), 0f, 0.6f);
             EvoSurface(EvoFloorPath, new Color(0.6f, 0.62f, 0.67f), 0.05f, 0.45f);
             EvoSurface(EvoDarkPath, new Color(0.035f, 0.045f, 0.1f), 0.2f, 0.8f);
+            // 진화 2단계 (미드나잇 · 은빛 · 금빛): 짙은 몸체는 방 조명에서 묻히지 않게 외형보다 조금 밝게
+            EvoSurface(Evo2DeckPath, new Color(0.13f, 0.17f, 0.3f), 0.1f, 0.55f);
+            EvoSurface(Evo2WallPath, new Color(0.17f, 0.23f, 0.4f), 0.1f, 0.35f);   // 광택이 높으면 짙은 천장에 조명이 작은 해처럼 비침
+            EvoSurface(Evo2TrimPath, new Color(0.8f, 0.83f, 0.88f), 0.45f, 0.7f);
+            EvoSurface(Evo2GoldPath, new Color(0.93f, 0.7f, 0.3f), 0.5f, 0.65f);
+            EvoSurface(Evo2PathPath, new Color(0.78f, 0.69f, 0.58f), 0f, 0.35f);
+            EvoSurface(Evo2BedPath, new Color(0.26f, 0.19f, 0.15f), 0f, 0.2f);
 
             Fabric(FabricPath, new Color(0.86f, 0.85f, 0.81f));
             Fabric(BlanketPath, new Color(0.56f, 0.42f, 0.27f)); // 차분한 황토색 (거주 강조색 노랑과 어울리게)
@@ -561,6 +597,47 @@ namespace SpaceStation.Editor
             window.SetFloat("_RimPower", 4f);
             window.SetFloat("_Streak", 0.03f);
             EditorUtility.SetDirty(window);
+            // 2단계 바깥 하늘: 창과 같은 셰이더, 유리 느낌 없이 (껍데기 면이 보이지 않게 — InteriorExteriorView가 창처럼 그림)
+            var sky = LoadOrCreate(Evo2SkyPath, Shader.Find(Interior.InteriorExteriorView.WindowShaderName));
+            sky.SetColor("_Tint", Color.white);
+            sky.SetColor("_RimColor", Color.black);
+            sky.SetFloat("_RimPower", 8f);
+            sky.SetFloat("_Streak", 0f);
+            EditorUtility.SetDirty(sky);
+
+            // 2단계 유리 · 압력 막 · 우주복 헬멧 (M_InteriorGlass와 같은 반투명 꼴), 청백 빛줄
+            void Clear(string path, Color color, float smoothness, Color emission)
+            {
+                var m = LoadOrCreate(path, lit);
+                m.SetFloat("_Surface", 1f);
+                m.SetFloat("_Blend", 0f);
+                m.SetFloat("_ZWrite", 0f);
+                m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                m.SetOverrideTag("RenderType", "Transparent");
+                m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                m.SetColor("_BaseColor", color);
+                m.SetFloat("_Smoothness", smoothness);
+                m.SetFloat("_Metallic", 0f);
+                if (emission != Color.black)
+                {
+                    m.EnableKeyword("_EMISSION");
+                    m.SetColor("_EmissionColor", emission);
+                    m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                }
+                EditorUtility.SetDirty(m);
+            }
+            Clear(Evo2GlassPath, new Color(0.5f, 0.85f, 0.85f, 0.2f), 0.95f, Color.black);
+            EditorUtility.SetDirty(LoadOrCreate(Evo2CurtainPath, Shader.Find("SpaceStation/PressureVeil")));   // 압력 막 (사용자 2026-11-02 "신비감", UV = 아치 기준 미터)
+            Clear(SuitHelmetPath, new Color(0.8f, 0.92f, 1f, 0.14f), 0.97f, Color.black);
+            var ice = LoadOrCreate(Evo2IcePath, lit);
+            ice.SetColor("_BaseColor", new Color(0.8f, 0.93f, 1f));
+            ice.EnableKeyword("_EMISSION");
+            ice.SetColor("_EmissionColor", new Color(0.75f, 0.92f, 1f) * 1.3f);
+            ice.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            ice.enableInstancing = true;
+            EditorUtility.SetDirty(ice);
 
             // 문 상태등: 색은 런타임 MaterialPropertyBlock (정상 청록 / 경고 빨강)
             var status = LoadOrCreate(StatusPath, lit);
