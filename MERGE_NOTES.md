@@ -1977,3 +1977,18 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-11-02) 같은 파일이 tycoon 커밋 `8a970b1d`에 있음.
+
+## M-130. 궤도 미러 내부 "해바라기 정원" · 3D 빛기둥 · 열린 갑판의 문 (2026-11-02, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `de07f882`과 같은 파일)
+- 궤도 미러 내부 `IT_EvoOrbitalMirror` · `PF_Interior_EvoOrbitalMirror` · `SM_Interior_EvoOrbitalMirror.fbx` (Blender `Interior_Evo.blend` 텍스트 `om_builder`): 4×2칸 + 가운데 위 2×2 — 거울 해바라기 열여섯 · 화단을 가르는 오솔길 · 거울 데이지 · 돌 마당 · 서 · 동 · 남 길 · 유리 덮개 속 진짜 해바라기 · 별 관측경 · 벤치, 가운데 전시관 (압력 막 아치 셋 · 해 우물 혼천의 · 해시계 바닥 · 북쪽 콘솔 둘), 위 집광탑 (금빛 해살 왕관 · 도는 거울 고리)
+- 새 `Interior/InteriorHeliostat`: 해바라기 머리가 실제 태양을 따라 돎 (거울 면 = 해 방향과 수신기 방향의 가운데), 빛기둥 시작 면도 같이 옮김
+- `LightBeamFx`: 카메라를 향한 띠 → 3D 빛기둥 (아래 테두리 = 거울 테두리, 거울 면도 빛남, `_mirrorNormals` · `SetMirror`), `LightShaft` 셰이더는 시선과 법선으로 윤곽을 흐리게 · `_Level` (모듈 상태), `PF_Evo_OrbitalMirror` 값 갱신 — 사용자 "빛줄기 시작점 해바라기 표면에서 명확하게"
+- 2단계 키트 `SM_InteriorKit_Evo2.fbx`: 열린 갑판의 문 자리 — `KIT_Wall_Evo2` = 유리 난간 + 하늘 조각, `KIT_WallDoor_Evo2` = 둥근 문 (금빛 부채살). `InteriorSetup` 키트 슬롯 Evo2Glass · Evo2Sky, 재질 `M_InteriorEvo2Mirror`
+- `InteriorTemplateBuilder.BuildEvoOrbitalMirror` (문 자리 4, 아래 해치 8, 조명 17, 도는 물체 3, `AddLightShafts` · `AddOpenAir`로 묶음), `ResidentSpotBaker` 기술자 + 앉는 자리 24 · 서는 자리 8 ("정원 구경 중"), 강조색 `M_Accent_Evo_OrbitalMirror` · `M_Paint_Evo_OrbitalMirror` (#FFE89A), `InteriorKit.asset`, `MODELING.md` 7-11
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (새 파일 + 진화 내부 빌더). 그 뒤 메뉴 Build Evolved Templates.
+
+### `tycoon` 합칠 때
+- [x] (2026-11-02) 같은 파일이 tycoon 커밋 `de07f882`에 있음.

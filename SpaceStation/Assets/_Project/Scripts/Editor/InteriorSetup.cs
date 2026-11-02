@@ -77,6 +77,7 @@ namespace SpaceStation.Editor
         public const string Evo2GlassPath = MaterialFolder + "/M_InteriorEvo2Glass.mat";
         public const string Evo2CurtainPath = MaterialFolder + "/M_InteriorEvo2Curtain.mat";
         public const string Evo2SkyPath = MaterialFolder + "/M_InteriorEvo2Sky.mat";
+        public const string Evo2MirrorPath = MaterialFolder + "/M_InteriorEvo2Mirror.mat";
         public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
         public const string ResidentSuitModelPath = "Assets/_Project/Art/Models/Interior/SM_ResidentSuit.fbx";
         // 투명한 물 (2026-10-29 수소 플랜트 전기분해조 — 사용자 "위에 보이는 물 표면이 어색": 통 속을 물 덩어리로, 속 거품 · 전극이 비침)
@@ -202,6 +203,8 @@ namespace SpaceStation.Editor
             var evo2Wall = AssetDatabase.LoadAssetAtPath<Material>(Evo2WallPath);
             var evo2Trim = AssetDatabase.LoadAssetAtPath<Material>(Evo2TrimPath);
             var evo2Gold = AssetDatabase.LoadAssetAtPath<Material>(Evo2GoldPath);
+            var evo2Glass = AssetDatabase.LoadAssetAtPath<Material>(Evo2GlassPath);
+            var evo2Sky = AssetDatabase.LoadAssetAtPath<Material>(Evo2SkyPath);
 
             Data.InteriorKitPiece Piece(string name, System.Collections.Generic.Dictionary<string, GameObject> from = null)
             {
@@ -231,6 +234,8 @@ namespace SpaceStation.Editor
                         case "Evo2Wall": mats[i] = evo2Wall; break;
                         case "Evo2Trim": mats[i] = evo2Trim; break;
                         case "Evo2Gold": mats[i] = evo2Gold; break;
+                        case "Evo2Glass": mats[i] = evo2Glass; break;   // 닫힌 문 자리 = 유리 난간 + 하늘 조각 (열린 갑판)
+                        case "Evo2Sky": mats[i] = evo2Sky; break;
                         default:
                             Debug.LogWarning($"[InteriorSetup] {name}: 모르는 재질 슬롯 '{slot}' → Hull");
                             mats[i] = hull;
@@ -638,6 +643,16 @@ namespace SpaceStation.Editor
             ice.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             ice.enableInstancing = true;
             EditorUtility.SetDirty(ice);
+            // 거울 해바라기 거울 (바깥 M_Mirror와 같은 값)
+            var mirror = LoadOrCreate(Evo2MirrorPath, lit);
+            mirror.SetColor("_BaseColor", new Color(0.78f, 0.88f, 0.98f));
+            mirror.SetFloat("_Metallic", 0.9f);
+            mirror.SetFloat("_Smoothness", 0.9f);
+            mirror.EnableKeyword("_EMISSION");
+            mirror.SetColor("_EmissionColor", new Color(0.04f, 0.06f, 0.09f));
+            mirror.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            mirror.enableInstancing = true;
+            EditorUtility.SetDirty(mirror);
 
             // 문 상태등: 색은 런타임 MaterialPropertyBlock (정상 청록 / 경고 빨강)
             var status = LoadOrCreate(StatusPath, lit);

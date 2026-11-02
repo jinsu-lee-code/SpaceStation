@@ -1,0 +1,228 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51d0696eedafc1c46b0d4d9cf26162e1, type: 3}
+  m_Name: IT_EvoOrbitalMirror
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.InteriorTemplate
+  _module: {fileID: 11400000, guid: 57bcf0fa89c039545b3bccae91cbdfc3, type: 2}
+  _prefab: {fileID: 8718928502046448295, guid: 1918afc91f193fd4db45100a4dd791e3, type: 3}
+  _sockets:
+  - _cell: {x: 0, y: 0, z: 0}
+    _direction: {x: -1, y: 0, z: 0}
+    _depth: 3.2
+    _offset: {x: 0, y: 0, z: 0}
+  - _cell: {x: 0, y: 0, z: 0}
+    _direction: {x: 0, y: 0, z: -1}
+    _depth: 3.2
+    _offset: {x: 0, y: 0, z: 0}
+  - _cell: {x: 3, y: 0, z: 0}
+    _direction: {x: 1, y: 0, z: 0}
+    _depth: 3.2
+    _offset: {x: 0, y: 0, z: 0}
+  - _cell: {x: 3, y: 0, z: 0}
+    _direction: {x: 0, y: 0, z: -1}
+    _depth: 3.2
+    _offset: {x: 0, y: 0, z: 0}
+  - _cell: {x: 0, y: 0, z: 0}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 1.3
+    _offset: {x: 3.2, y: 0, z: -2}
+  - _cell: {x: 1, y: 0, z: 0}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 1.3
+    _offset: {x: 0, y: 0, z: 0}
+  - _cell: {x: 2, y: 0, z: 0}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 1.3
+    _offset: {x: 0, y: 0, z: 0}
+  - _cell: {x: 3, y: 0, z: 0}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 1.3
+    _offset: {x: -3.2, y: 0, z: -2}
+  - _cell: {x: 0, y: 0, z: 1}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 1.3
+    _offset: {x: 3.2, y: 0, z: 2}
+  - _cell: {x: 1, y: 0, z: 1}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 1.3
+    _offset: {x: 0, y: 0, z: 0}
+  - _cell: {x: 2, y: 0, z: 1}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 1.3
+    _offset: {x: 0, y: 0, z: 0}
+  - _cell: {x: 3, y: 0, z: 1}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 1.3
+    _offset: {x: -3.2, y: 0, z: 2}
+  _spawn: {x: 8.5, y: -1.3, z: -2.3}
+  _spawnYaw: 30
+  _ambience: 5
+  _showOwnExterior: 0
+  _residentSpots:
+  - _position: {x: 13.855, y: -1.3, z: 5.921}
+    _yaw: 44
+    _pose: 2
+    _work: 1
+  - _position: {x: 10.145, y: -1.3, z: 5.921}
+    _yaw: -44
+    _pose: 2
+    _work: 1
+  - _position: {x: 12.913, y: -1.3, z: 6.509}
+    _yaw: 20
+    _pose: 2
+    _work: 1
+  - _position: {x: 11.087, y: -1.3, z: 6.509}
+    _yaw: -20
+    _pose: 2
+    _work: 1
+  - _position: {x: 6.68, y: -1.3, z: 0.9}
+    _yaw: -90
+    _pose: 2
+    _work: 1
+  - _position: {x: 17.32, y: -1.3, z: 0.9}
+    _yaw: 90
+    _pose: 2
+    _work: 1
+  - _position: {x: -2.438, y: -0.86999995, z: -2.036}
+    _yaw: 69.7
+    _pose: 1
+    _work: 0
+  - _position: {x: -2.281, y: -0.86999995, z: -2.281}
+    _yaw: 45
+    _pose: 1
+    _work: 0
+  - _position: {x: -2.036, y: -0.86999995, z: -2.438}
+    _yaw: 20.3
+    _pose: 1
+    _work: 0
+  - _position: {x: 26.036, y: -0.86999995, z: -2.438}
+    _yaw: -20.3
+    _pose: 1
+    _work: 0
+  - _position: {x: 26.281, y: -0.86999995, z: -2.281}
+    _yaw: -45
+    _pose: 1
+    _work: 0
+  - _position: {x: 26.438, y: -0.86999995, z: -2.036}
+    _yaw: -69.7
+    _pose: 1
+    _work: 0
+  - _position: {x: -2.036, y: -0.86999995, z: 10.438}
+    _yaw: 159.7
+    _pose: 1
+    _work: 0
+  - _position: {x: -2.281, y: -0.86999995, z: 10.281}
+    _yaw: 135
+    _pose: 1
+    _work: 0
+  - _position: {x: -2.438, y: -0.86999995, z: 10.036}
+    _yaw: 110.3
+    _pose: 1
+    _work: 0
+  - _position: {x: 26.438, y: -0.86999995, z: 10.036}
+    _yaw: -110.3
+    _pose: 1
+    _work: 0
+  - _position: {x: 26.281, y: -0.86999995, z: 10.281}
+    _yaw: -135
+    _pose: 1
+    _work: 0
+  - _position: {x: 26.036, y: -0.86999995, z: 10.438}
+    _yaw: -159.7
+    _pose: 1
+    _work: 0
+  - _position: {x: 4.64, y: -0.86999995, z: 2.62}
+    _yaw: 0
+    _pose: 1
+    _work: 0
+  - _position: {x: 5.36, y: -0.86999995, z: 2.62}
+    _yaw: 0
+    _pose: 1
+    _work: 0
+  - _position: {x: 4.64, y: -0.86999995, z: 5.38}
+    _yaw: 180
+    _pose: 1
+    _work: 0
+  - _position: {x: 5.36, y: -0.86999995, z: 5.38}
+    _yaw: 180
+    _pose: 1
+    _work: 0
+  - _position: {x: 18.64, y: -0.86999995, z: 2.62}
+    _yaw: 0
+    _pose: 1
+    _work: 0
+  - _position: {x: 19.36, y: -0.86999995, z: 2.62}
+    _yaw: 0
+    _pose: 1
+    _work: 0
+  - _position: {x: 18.64, y: -0.86999995, z: 5.38}
+    _yaw: 180
+    _pose: 1
+    _work: 0
+  - _position: {x: 19.36, y: -0.86999995, z: 5.38}
+    _yaw: 180
+    _pose: 1
+    _work: 0
+  - _position: {x: 9.382, y: -0.86999995, z: 1.991}
+    _yaw: 52.5
+    _pose: 1
+    _work: 0
+  - _position: {x: 9.991, y: -0.86999995, z: 1.382}
+    _yaw: 37.5
+    _pose: 1
+    _work: 0
+  - _position: {x: 14.009, y: -0.86999995, z: 1.382}
+    _yaw: -37.5
+    _pose: 1
+    _work: 0
+  - _position: {x: 14.618, y: -0.86999995, z: 1.991}
+    _yaw: -52.5
+    _pose: 1
+    _work: 0
+  - _position: {x: 5.9, y: -1.3, z: -1.7}
+    _yaw: 60
+    _pose: 0
+    _work: 0
+  - _position: {x: 18.1, y: -1.3, z: -1.7}
+    _yaw: -60
+    _pose: 0
+    _work: 0
+  - _position: {x: 5.9, y: -1.3, z: 9.7}
+    _yaw: 120
+    _pose: 0
+    _work: 0
+  - _position: {x: 18.1, y: -1.3, z: 9.7}
+    _yaw: -120
+    _pose: 0
+    _work: 0
+  - _position: {x: 6.5, y: -1.3, z: 8.5}
+    _yaw: 120
+    _pose: 0
+    _work: 0
+  - _position: {x: 17.5, y: -1.3, z: 8.5}
+    _yaw: -120
+    _pose: 0
+    _work: 0
+  - _position: {x: 9.6, y: -1.3, z: -2.4}
+    _yaw: 30
+    _pose: 0
+    _work: 0
+  - _position: {x: 14.7, y: -1.3, z: -2.4}
+    _yaw: -30
+    _pose: 0
+    _work: 0
+  _workTraits: 00000000
+  _leisure: 1
+  _openWork: 0
+  _visitStatus: "\uC815\uC6D0 \uAD6C\uACBD \uC911"
+  _workStatus: 
+  _plantSpots: []
