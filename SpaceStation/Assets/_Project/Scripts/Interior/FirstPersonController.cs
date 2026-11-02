@@ -59,13 +59,14 @@ namespace SpaceStation.Interior
 
         private Transform _carrier;
         private Vector3 _carrierOffset;
+        private float _carrierYaw;
 
         /// <summary>탈것에 실려 가는 중 (진화 모듈 유리 엘리베이터 등).</summary>
         public bool Riding => _carrier != null;
 
         /// <summary>
         /// 탈것에 실림 (사용자 결정 2026-10-29 "유리 엘리베이터 탑승"): 타는 동안 carrier를 따라 움직이고 걷기 · 중력은 멈춤, 둘러보기는 됨.
-        /// 따라가기는 LateUpdate (탈것이 Update에서 움직인 뒤).
+        /// 따라가기는 LateUpdate (탈것이 Update에서 움직인 뒤). 탈것이 돌면 시선도 같이 돎 (대형 토러스 열차).
         /// </summary>
         public void Ride(Transform carrier)
         {
@@ -73,7 +74,23 @@ namespace SpaceStation.Interior
                 return;
             _carrier = carrier;
             _carrierOffset = carrier.InverseTransformPoint(transform.position);
+            _carrierYaw = carrier.eulerAngles.y;
             _body.enabled = false;
+        }
+
+        /// <summary>탈것의 정해진 자리에 실림 (열차 의자에 앉기 · 일어나기): 발 자리 · 눈높이를 정함, yaw를 주면 그쪽을 봄.</summary>
+        public void RideAt(Transform carrier, Vector3 feet, float eyeHeight, float? yaw = null)
+        {
+            if (carrier == null)
+                return;
+            _body.enabled = false;
+            transform.position = feet;
+            if (yaw.HasValue)
+                transform.rotation = Quaternion.Euler(0f, yaw.Value, 0f);
+            _carrier = carrier;
+            _carrierOffset = carrier.InverseTransformPoint(feet);
+            _carrierYaw = carrier.eulerAngles.y;
+            _eye.localPosition = new Vector3(0f, eyeHeight, 0f);
         }
 
         /// <summary>탈것에서 내림 (그 자리에서 다시 걷기 · 중력).</summary>
@@ -85,12 +102,17 @@ namespace SpaceStation.Interior
             _carrier = null;
             _body.enabled = true;
             _fallSpeed = 0f;
+            _eye.localPosition = new Vector3(0f, EyeHeight, 0f);
         }
 
         private void LateUpdate()
         {
-            if (_carrier != null)
-                transform.position = _carrier.TransformPoint(_carrierOffset);
+            if (_carrier == null)
+                return;
+            transform.position = _carrier.TransformPoint(_carrierOffset);
+            float yaw = _carrier.eulerAngles.y;
+            transform.Rotate(0f, Mathf.DeltaAngle(_carrierYaw, yaw), 0f, Space.World);
+            _carrierYaw = yaw;
         }
 
         /// <summary>발 위치·바라보는 방향으로 순간 이동 (입장·해치).</summary>
@@ -103,6 +125,7 @@ namespace SpaceStation.Interior
             _pitch = Mathf.Clamp(pitch, -85f, 85f);
             _fallSpeed = 0f;
             _eye.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
+            _eye.localPosition = new Vector3(0f, EyeHeight, 0f);
         }
 
         private void Update()

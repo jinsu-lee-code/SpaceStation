@@ -117,6 +117,170 @@ namespace SpaceStation.Editor
             BuildEvoOrbitalMirror();
             BuildEvoFusionPlant();
             BuildEvoArcology();
+            BuildEvoGrandTorus();
+        }
+
+        /// <summary>
+        /// 진화 2단계 대형 토러스 "은하철도 링" (5 × 5칸 바퀴 = 고리 + 가운데 십자 + 허브 위 한 칸, gt_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘, 의자 앉기도"): 직접 체험 = 밤 열차 타고 역 넷을 돎 (<see cref="InteriorTrain"/>).
+        /// 고가 선로 · 역 넷 (승강장 · 스크린 도어 · 계단 · 유리 홀) · 둑 동네 넷 (집 · 잔디 · 나무, 유리 지붕) · 고가 아래 아치 회랑 · 아치 집 여덟 · 유리 통로 넷 · 돔 허브 · 엘리베이터 (<see cref="InteriorLift"/>) · 시계탑 방 (유리 시계 넷 · 도는 톱니 GearA).
+        /// 전부 유리 · 지붕 안이라 우주복 없음. 하늘 껍질 = 바퀴 전체를 감싼 큰 상자 (안쪽 빈 칸 넷을 벽으로 두르면 허브 · 건너편이 가려짐).
+        /// 문 자리 = 외형 면이 있는 바깥 칸 12 (가운데 칸은 고가 벽 바로 뒤 깊이 3.9 — 표준 3.2면 문 패널이 선로로 들어옴, 양옆 칸은 유리 현관), 아래 해치 = 바닥 칸 17, 시계탑 칸 문 · 위 해치 없음 (네 면이 유리 시계).
+        /// </summary>
+        private static void BuildEvoGrandTorus()
+        {
+            const float HX = 16f, HZ = 16f, YF = 1.5f, YR = 6.4f, YD0 = 1.12f, RTK = 18.18f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            const float Rim = 3.9f;
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(1, 0, 0), back, Socket),
+                new InteriorSocket(new Vector3Int(2, 0, 0), back, Rim),
+                new InteriorSocket(new Vector3Int(3, 0, 0), back, Socket),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(0, 0, 2), Vector3Int.left, Rim),
+                new InteriorSocket(new Vector3Int(0, 0, 3), Vector3Int.left, Socket),
+                new InteriorSocket(new Vector3Int(4, 0, 1), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(4, 0, 2), Vector3Int.right, Rim),
+                new InteriorSocket(new Vector3Int(4, 0, 3), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 4), front, Socket),
+                new InteriorSocket(new Vector3Int(2, 0, 4), front, Rim),
+                new InteriorSocket(new Vector3Int(3, 0, 4), front, Socket),
+                // 고리 칸 = 회랑 바닥 (칸 가운데가 안쪽 벽에 가까워 바깥으로 살짝), 역 칸 = 승강장 아래, 십자 칸 = 유리 통로, 허브 칸 = 엘리베이터를 비켜 동쪽
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(-0.16f, 0f, -0.31f)),
+                new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(3, 0, 0), Vector3Int.down, -F, new Vector3(0.16f, 0f, -0.31f)),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(-0.31f, 0f, -0.16f)),
+                new InteriorSocket(new Vector3Int(0, 0, 2), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(0, 0, 3), Vector3Int.down, -F, new Vector3(-0.31f, 0f, 0.16f)),
+                new InteriorSocket(new Vector3Int(4, 0, 1), Vector3Int.down, -F, new Vector3(0.31f, 0f, -0.16f)),
+                new InteriorSocket(new Vector3Int(4, 0, 2), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(4, 0, 3), Vector3Int.down, -F, new Vector3(0.31f, 0f, 0.16f)),
+                new InteriorSocket(new Vector3Int(1, 0, 4), Vector3Int.down, -F, new Vector3(-0.16f, 0f, 0.31f)),
+                new InteriorSocket(new Vector3Int(2, 0, 4), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(3, 0, 4), Vector3Int.down, -F, new Vector3(0.16f, 0f, 0.31f)),
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(1, 0, 2), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(3, 0, 2), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(2, 0, 3), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(2, 0, 2), Vector3Int.down, -F, new Vector3(2.4f, 0f, 0f)),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            Vector3 Polar(float r, float az, float y)
+            {
+                float a = az * Mathf.Deg2Rad;
+                return new Vector3(HX + r * Mathf.Cos(a), y, HZ + r * Mathf.Sin(a));
+            }
+            var lights = new List<LightSpec>();
+            for (int k = 0; k < 4; k++)
+            {
+                lights.Add(LightSpec.Point(Polar(2.4f, 45f + 90f * k, 1.7f), 6f, 0.85f, white));           // 허브
+                lights.Add(LightSpec.Point(Polar(2.15f, 45f + 90f * k, YR + 3f), 5f, 0.8f, cool));         // 시계탑 방
+                float s = 270f - 90f * k;   // 남 · 서 · 북 · 동 (gt_builder rot_y 순서)
+                lights.Add(LightSpec.Point(Polar(10.5f, s, F + 3.4f), 7f, 0.85f, warm));                   // 역 앞 광장
+                lights.Add(LightSpec.Point(Polar(13f, s, F + 3.9f), 5f, 0.9f, white));                     // 승강장 계단
+                lights.Add(LightSpec.Point(Polar(6.5f, s, F + 2.2f), 5f, 0.7f, cool));                     // 유리 통로
+                lights.Add(LightSpec.Point(Polar(16f, s, YD0 - 0.3f), 5f, 0.7f, warm));                    // 승강장 아래 길
+                foreach (float off in new[] { -9f, 9f })
+                    lights.Add(LightSpec.Point(Polar(16f, s + off, YF + 1.9f), 6f, 0.9f, white));          // 승강장
+                foreach (float off in new[] { -29f, 29f })
+                    lights.Add(LightSpec.Point(Polar(15.2f, s + off, F + 2.4f), 6f, 0.85f, warm));         // 둑 동네
+                foreach (float off in new[] { 39.84f, 50.16f })
+                    lights.Add(LightSpec.Point(Polar(20.9f, 90f * k + off, F + 2.35f), 3.6f, 0.9f, warm)); // 아치 집
+            }
+            for (int k = 0; k < 16; k++)
+                lights.Add(LightSpec.Point(Polar(18.2f, 11.25f + 22.5f * k, YD0 - 0.35f), 6f, 0.75f, warm)); // 고가 아래 회랑
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoGrandTorus_GearA", new Vector3(HX, 0f, HZ), Vector3.up, 14f),         // 시계탑 천장 밑 톱니
+            };
+            EvoAccent("GrandTorus", "#B0E0FF");
+            // 스폰 = 남쪽 역 앞 광장에서 승강장 계단을 바라봄
+            Build("EvoGrandTorus", "Evolved/MD_Evo_GrandTorus", sockets, new Vector3(HX, F, HZ - 9.6f), 180f, lights, orbits,
+                configure: root =>
+                {
+                    // 엘리베이터 (허브 ↔ 시계탑 방)
+                    var car = Child(root, "INT_EvoGrandTorus_LiftCar");
+                    var carGlass = Child(root, "INT_EvoGrandTorus_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[2];
+                    var right = new Transform[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoGrandTorus_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoGrandTorus_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoGrandTorus_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoGrandTorus_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, YR - F }, left, right, new Vector3(HX, F + 0.085f, HZ), Vector3.right, 0.85f);
+                    // 열차: 허브 축 피벗 아래 (쉬는 자세 = 남쪽 역). 문 · 스크린 도어는 움직이는 상자 충돌체
+                    var pivot = new GameObject("TrainPivot").transform;
+                    pivot.SetParent(root.transform, false);
+                    pivot.localPosition = new Vector3(HX, 0f, HZ);
+                    var seats = new Transform[2];
+                    foreach (var part in new[] { "Train", "TrainGlass", "TrainSeat1", "TrainSeat2" })
+                    {
+                        var t = Child(root, "INT_EvoGrandTorus_" + part);
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                        t.SetParent(pivot, true);
+                    }
+                    var doorsLeft = new Transform[2];
+                    var doorsRight = new Transform[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        seats[k] = pivot.Find($"INT_EvoGrandTorus_TrainSeat{k + 1}");
+                        doorsLeft[k] = Child(root, $"INT_EvoGrandTorus_TrainDoor{k + 1}L");
+                        doorsRight[k] = Child(root, $"INT_EvoGrandTorus_TrainDoor{k + 1}R");
+                        BoxOf(doorsLeft[k], 0f);
+                        BoxOf(doorsRight[k], 0f);
+                        doorsLeft[k].SetParent(pivot, true);
+                        doorsRight[k].SetParent(pivot, true);
+                    }
+                    var gatesLeft = new Transform[8];
+                    var gatesRight = new Transform[8];
+                    for (int q = 0; q < 4; q++)
+                    {
+                        for (int k = 0; k < 2; k++)
+                        {
+                            gatesLeft[q * 2 + k] = Child(root, $"INT_EvoGrandTorus_Gate{q}{k + 1}L");
+                            gatesRight[q * 2 + k] = Child(root, $"INT_EvoGrandTorus_Gate{q}{k + 1}R");
+                            BoxOf(gatesLeft[q * 2 + k], 0f);
+                            BoxOf(gatesRight[q * 2 + k], 0f);
+                        }
+                    }
+                    // 객차 등 (열차와 함께 돎) · 굴뚝 별빛 가루 자리 (gt_builder loco: 기관차 앞에서 30%, 꼭대기)
+                    const float doorAngle = 7.879f, carHalf = 7.406f;
+                    foreach (float off in new[] { -doorAngle, doorAngle })
+                    {
+                        var lamp = new GameObject("CarLight").transform;
+                        lamp.SetParent(pivot, false);
+                        float a = (270f + off) * Mathf.Deg2Rad;
+                        lamp.localPosition = new Vector3(18.5f * Mathf.Cos(a), YF + 1.8f, 18.5f * Mathf.Sin(a));   // 문 쪽 은빛 테가 하얗게 번지지 않게 바깥 벽 쪽으로
+                        var l = lamp.gameObject.AddComponent<Light>();
+                        l.type = LightType.Point;
+                        l.shadows = LightShadows.None;
+                        l.range = 4.5f;
+                        l.intensity = 0.7f;
+                        l.color = warm;
+                    }
+                    var stack = new GameObject("StackSmoke").transform;
+                    stack.SetParent(pivot, false);
+                    float sa = 241.86f * Mathf.Deg2Rad;
+                    stack.localPosition = new Vector3(RTK * Mathf.Cos(sa), 3.84f, RTK * Mathf.Sin(sa));
+                    stack.localScale = Vector3.one * 5f;
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    root.AddComponent<InteriorTrain>().Configure(pivot, doorsLeft, doorsRight, gatesLeft, gatesRight, seats, stack, ModuleFxMaterials.Get("FireworkSpark"), font,
+                        new[] { "새벽", "은하", "자정", "달빛" }, doorAngle, doorAngle + carHalf, carHalf - 0.9f, 17.12f, 19.24f, 18.95f, 18.3f, YF + 0.07f, new Vector2(16.865f, YF + 2.31f));
+                });
         }
 
         /// <summary>
@@ -3890,6 +4054,7 @@ namespace SpaceStation.Editor
             { "EvoGridHub", InteriorAmbience.Electric },      // 테슬라 탑 · 번개
             { "EvoFusionPlant", InteriorAmbience.Heat },      // 융합로 · 열 관
             { "EvoArcology", InteriorAmbience.Life },         // 섬 도시
+            { "EvoGrandTorus", InteriorAmbience.Life },       // 바퀴 마을
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
@@ -3956,6 +4121,7 @@ namespace SpaceStation.Editor
                 { "Evo2Ice", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2IcePath) },
                 { "Evo2Glass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GlassPath) },
                 { "Evo2EggGlass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2EggGlassPath) },
+                { "Evo2ClearGlass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2ClearGlassPath) },
                 { "Evo2Curtain", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2CurtainPath) },
                 { "Evo2Sky", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SkyPath) },
                 { "Evo2Mirror", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MirrorPath) },
