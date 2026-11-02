@@ -2021,3 +2021,16 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-11-02) 같은 파일이 tycoon 커밋 `5f03d370`에 있음.
+
+## M-133. 융합 플랜트 내부 "별을 키우는 온실" (2026-11-02, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `899e79f8`과 같은 파일)
+- 융합 플랜트 내부 `IT_EvoFusionPlant` · `PF_Interior_EvoFusionPlant` · `SM_Interior_EvoFusionPlant.fbx` (Blender `Interior_Evo.blend` 텍스트 `fp_builder`): 3×2칸 — 유리 돔 (압력 막 아치 셋) 속 보라 코일 · 꼬인 플라즈마 · 받침 패널 넷, 돔 둘레 산책로 · 물 달 둘, 주황 열 관 아래 전구 길 · 둥근 화단 벤치 둘 (플라즈마 볼 꽃), 물 캡슐 · 거품 기둥 넷 · 열 교환 콘솔 둘 · 수소 풍선 수레 · 귀퉁이 벤치
+- `InteriorTemplateBuilder.BuildEvoFusionPlant` (문 자리 4, 아래 해치 6, 조명 23, 도는 물체 8, 환경음 열), `ResidentSpotBaker` 연구원 · 기술자 · 정원사 + 일하는 자리 6 · 앉는 자리 13 · 서는 자리 6 ("정원 구경 중"), 강조색 `M_Accent_Evo_FusionPlant` · `M_Paint_Evo_FusionPlant` (#FFB070)
+- 2단계 키트 재질 슬롯 Evo2Violet · Evo2Heat · Evo2WaterGlow (`InteriorSetup` · `InteriorTemplateBuilder` 재질 표), `InteriorKit.asset`, `MODELING.md` 7-11
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (새 파일 + 진화 내부 빌더). `Main.unity`는 넣지 않았으므로 합친 뒤 메뉴 Interior/Setup · Build Evolved Templates로 템플릿 목록에 등록.
+
+### `tycoon` 합칠 때
+- [x] (2026-11-02) 같은 파일이 tycoon 커밋 `899e79f8`에 있음.
