@@ -75,17 +75,18 @@ namespace SpaceStation.Editor
             { "EvoShipyard", new[] { ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 조선소 = 화물 터미널 + 제련소 (정비공) + 정비 베이 (기술자 · 정비공)
             { "EvoAutomation", new[] { ResidentTrait.Scientist, ResidentTrait.Technician, ResidentTrait.Mechanic } },   // 자동화 센터 = 연구소 (연구원) + 정비 베이 (기술자 · 정비공)
             { "EvoSecurity", new[] { ResidentTrait.Technician } },   // 보안청 = 행정 관제소 (특성 없음 — 창구는 OpenWork) + 포탑 (기술자)
+            { "EvoGridHub", new[] { ResidentTrait.Technician } },    // 그리드 허브 = 축전 뱅크 ×2 + 배터리 ×2 (기술자)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub" };
 
         /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
         /// 여객 도킹 포트 안내 직원 · 2026-10-31 보안청 창구 직원).</summary>
         private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger", "EvoSecurity" };
 
         /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
-        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" } };
+        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" } };
 
         /// <summary>12-5 일하는 사람 상태 글 (없으면 "일하는 중").</summary>
         private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" } };
@@ -124,7 +125,29 @@ namespace SpaceStation.Editor
             { "EvoShipyard", EvoShipyardSpots },
             { "EvoAutomation", EvoAutomationSpots },
             { "EvoSecurity", EvoSecuritySpots },
+            { "EvoGridHub", EvoGridHubSpots },
         };
+
+        /// <summary>
+        /// 진화 2단계 그리드 허브 (gd_builder SPOTS): 일하는 자리 = 전시관 배전 콘솔 넷 → 옆 칸 나무 점검 단말 둘 (기술자),
+        /// 쉬는 자리 = 귀퉁이 벤치 12 · 전시관 벤치 8 (앉음) + 정원 산책 자리 8 (서서 돌아다님 — 바깥 주민은 우주복, <see cref="Interior.InteriorOpenAir"/>).
+        /// </summary>
+        private static List<ResidentSpot> EvoGridHubSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (var (x, z, yaw) in new[] { (10.241f, 3.483f, 103f), (5.759f, 4.517f, -77f), (10.241f, 4.517f, 77f), (5.759f, 3.483f, -103f), (-1.37f, 4f, 90f), (17.37f, 4f, -90f) })
+                list.Add(new ResidentSpot(new Vector3(x, Floor, z), yaw, ResidentPose.Work, work: true));
+            foreach (var (x, z, yaw) in new[]
+            {
+                (-2.438f, -2.036f, 69.7f), (-2.281f, -2.281f, 45f), (-2.036f, -2.438f, 20.3f), (18.036f, -2.438f, -20.3f), (18.281f, -2.281f, -45f), (18.438f, -2.036f, -69.7f),
+                (-2.036f, 10.438f, 159.7f), (-2.281f, 10.281f, 135f), (-2.438f, 10.036f, 110.3f), (18.438f, 10.036f, -110.3f), (18.281f, 10.281f, -135f), (18.036f, 10.438f, -159.7f),
+                (10.253f, 5.857f, -129.5f), (9.857f, 6.253f, -140.5f), (6.143f, 6.253f, 140.5f), (5.747f, 5.857f, 129.5f), (5.747f, 2.143f, 50.5f), (6.143f, 1.747f, 39.5f), (9.857f, 1.747f, -39.5f), (10.253f, 2.143f, -50.5f),
+            })
+                list.Add(new ResidentSpot(new Vector3(x, Floor + 0.43f, z), yaw, ResidentPose.Sit));
+            foreach (var (x, z, yaw) in new[] { (4f, 2.4f, 70f), (12f, 5.6f, -110f), (2.1f, -1.65f, 180f), (13.9f, 9.65f, 0f), (2.2f, 9.9f, 110f), (13.8f, -1.9f, -70f), (3.4f, 5.6f, 110f), (12.6f, 2.4f, -70f) })
+                list.Add(new ResidentSpot(new Vector3(x, Floor, z), yaw, ResidentPose.Stand));
+            return list;
+        }
 
         /// <summary>
         /// 진화 1단계 보안청 (se_builder SEATS): 일하는 자리 = 창구 직원 의자 셋 먼저 (행정 관제소처럼 — 일하는 주민이 적어도 창구가 열려 번호표가 돎,

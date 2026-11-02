@@ -113,6 +113,91 @@ namespace SpaceStation.Editor
             BuildEvoShipyard();
             BuildEvoAutomation();
             BuildEvoSecurity();
+            BuildEvoGridHub();
+        }
+
+        /// <summary>
+        /// 진화 2단계 그리드 허브 "번개 정원" (3 × 2칸 + 가운데 위 1 × 2, gd_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘"): 2단계 첫 개방형 —
+        /// 천장 없는 바깥 정원 (하늘 INT_EvoGridHub_Sky = 창과 같은 실제 바깥 화면) · 유리 난간 갑판 · 돌 마당 · 남북 돌길 (아치 · 축제 전구 · 송전 단자),
+        /// 가운데 전시관 (문 없이 지나가는 압력 막 아치 Curtain · 탑으로 오르는 유리 기둥 속 빛 나선 Flow · 배전 콘솔 둘 · 벤치), 위 테슬라 탑 (코일 · 토로이드 · 에너지 구 · 도는 고리 Ring),
+        /// 번개 나무 여섯 (축전지 유리 화분 · 코일 줄기 · 전구 꽃 · 코일 덤불), 번개 Bolt00 ~ 09 = <see cref="InteriorLightning"/> (번갈아 번쩍임),
+        /// 귀퉁이 벤치 · 별 관측경 · 갑판 별자리. 바깥 주민 = 유리 헬멧 · 등 팩 (<see cref="InteriorOpenAir"/>).
+        /// 문 자리 = 없음 (외형 옆면 연결점 없음), 아래 해치 = 바닥 칸 여섯 (가운데 줄은 전시관을 비켜 길 위로).
+        /// </summary>
+        private static void BuildEvoGridHub()
+        {
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -1.6f)),   // 남쪽 길 위
+                new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(0f, 0f, 1.6f)),    // 북쪽 길 위
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(6.1f, F + 2.7f, 4f), 5.5f, 0.9f, white),   // 전시관 (유리 기둥 속 · 천장 가까이 두면 하얗게 번졌음, 플레이 확인 2026-11-02)
+                LightSpec.Point(new Vector3(9.9f, F + 2.7f, 4f), 5.5f, 0.9f, white),
+                LightSpec.Point(new Vector3(8f, F + 2.6f, -1.9f), 5.5f, 1.1f, warm),   // 남쪽 길 전구
+                LightSpec.Point(new Vector3(8f, F + 2.6f, 9.9f), 5.5f, 1.1f, warm),    // 북쪽 길 전구
+                LightSpec.Point(new Vector3(6.2f, F + 5.0f, 4f), 5.5f, 0.45f, warm),   // 코일 · 토로이드 아래 (축 위에 두면 아랫면이 하얗게 번졌음)
+                LightSpec.Point(new Vector3(9.8f, F + 5.0f, 4f), 5.5f, 0.45f, warm),
+                LightSpec.Point(new Vector3(0f, F + 2.8f, 0f), 7f, 0.7f, cool),        // 빈 갑판 (밤하늘 찬 빛)
+                LightSpec.Point(new Vector3(16f, F + 2.8f, 0f), 7f, 0.7f, cool),
+                LightSpec.Point(new Vector3(0f, F + 2.8f, 8f), 7f, 0.7f, cool),
+                LightSpec.Point(new Vector3(16f, F + 2.8f, 8f), 7f, 0.7f, cool),
+            };
+            foreach (var (x, z, top) in new[] { (1.04f, 4f, 4.3f), (4.48f, -1.28f, 3.6f), (11.52f, -1.28f, 4.3f), (14.96f, 4f, 3.6f), (11.52f, 9.28f, 4.3f), (4.48f, 9.28f, 3.6f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + top - 1.3f, z), 4.5f, 0.7f, warm));   // 나무 코일 · 화단 (gd_builder TREES, 꼭대기 판 바로 밑은 하얗게 번졌음)
+            const float sphereY = F + 7.75f;
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoGridHub_Flow", new Vector3(8f, 0f, 4f), Vector3.up, 120f),
+                new OrbitSpec("INT_EvoGridHub_Ring", new Vector3(8f, sphereY, 4f), new Vector3(0.26f, 0.95f, 0.17f), 35f),   // 고리 자체 축 (gd_builder tower_ring)
+            };
+            EvoAccent("GridHub", "#FFE07A");
+            // 스폰 = 북동 갑판에서 정원 전체 · 전시관 · 탑을 바라봄 (해치 · 벤치 비킴)
+            Build("EvoGridHub", "Evolved/MD_Evo_GridHub", sockets, new Vector3(16.4f, F, 9.4f), -123f, lights, orbits,
+                configure: root =>
+                {
+                    var bolts = new List<Renderer>();
+                    for (int i = 0; i < 10; i++)
+                    {
+                        var b = Child(root, $"INT_EvoGridHub_Bolt{i:00}");
+                        if (b != null)
+                            bolts.Add(b.GetComponent<Renderer>());
+                    }
+                    var flash = new GameObject("BoltFlash").AddComponent<Light>();
+                    flash.transform.SetParent(root.transform, false);
+                    flash.transform.localPosition = new Vector3(8f, F + 5.2f, 4f);
+                    flash.type = LightType.Point;
+                    flash.shadows = LightShadows.None;
+                    flash.range = 14f;
+                    flash.intensity = 0f;
+                    flash.color = new Color(0.75f, 0.88f, 1f);
+                    root.AddComponent<InteriorLightning>().Configure(bolts.ToArray(), flash);
+                    // 우주복: 전시관 (gd_builder CX · CZ, 벽 바깥 반지름 3.45) 밖 주민
+                    Mesh Suit(string part)
+                    {
+                        foreach (var o in AssetDatabase.LoadAllAssetsAtPath(InteriorSetup.ResidentSuitModelPath))
+                        {
+                            if (o is Mesh m && m.name == part)
+                                return m;
+                        }
+                        Debug.LogError($"[InteriorTemplateBuilder] 우주복 조각 없음: {part}");
+                        return null;
+                    }
+                    root.AddComponent<InteriorOpenAir>().Configure(new[] { new Vector3(8f, 4f, 3.45f) },
+                        Suit("SUIT_Helmet"), Suit("SUIT_Rim"), Suit("SUIT_Pack"), Suit("SUIT_PackLight"),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SuitHelmetPath),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GoldPath),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2TrimPath),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2IcePath));
+                });
         }
 
         /// <summary>
@@ -3471,6 +3556,7 @@ namespace SpaceStation.Editor
             { "EvoShipyard", InteriorAmbience.Machine },
             { "EvoAutomation", InteriorAmbience.Electric },   // 학습 코어 · 기록 서버
             { "EvoSecurity", InteriorAmbience.Life },         // 민원 홀 (행정 관제소와 같음)
+            { "EvoGridHub", InteriorAmbience.Electric },      // 테슬라 탑 · 번개
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
@@ -3527,6 +3613,17 @@ namespace SpaceStation.Editor
                 { "EvoWhite", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoWhitePath) },
                 { "EvoFloor", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoFloorPath) },
                 { "EvoDark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoDarkPath) },
+                // 진화 내부 2단계 키트 (2026-11-02, Blender evo2_kit)
+                { "Evo2Deck", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2DeckPath) },
+                { "Evo2Wall", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2WallPath) },
+                { "Evo2Trim", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2TrimPath) },
+                { "Evo2Gold", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GoldPath) },
+                { "Evo2Path", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PathPath) },
+                { "Evo2Bed", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2BedPath) },
+                { "Evo2Ice", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2IcePath) },
+                { "Evo2Glass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GlassPath) },
+                { "Evo2Curtain", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2CurtainPath) },
+                { "Evo2Sky", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SkyPath) },
                 { "Paper", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PaperPath) },
                 { "PropBlue", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropBluePath) },
                 { "PropGreen", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropGreenPath) },
