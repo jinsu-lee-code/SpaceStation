@@ -79,6 +79,9 @@ namespace SpaceStation.Editor
         public const string Evo2CurtainPath = MaterialFolder + "/M_InteriorEvo2Curtain.mat";
         public const string Evo2SkyPath = MaterialFolder + "/M_InteriorEvo2Sky.mat";
         public const string Evo2MirrorPath = MaterialFolder + "/M_InteriorEvo2Mirror.mat";
+        public const string Evo2VioletPath = MaterialFolder + "/M_InteriorEvo2Violet.mat";
+        public const string Evo2HeatPath = MaterialFolder + "/M_InteriorEvo2Heat.mat";
+        public const string Evo2WaterGlowPath = MaterialFolder + "/M_InteriorEvo2WaterGlow.mat";
         public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
         public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
         public const string ResidentSuitModelPath = "Assets/_Project/Art/Models/Interior/SM_ResidentSuit.fbx";
@@ -484,6 +487,7 @@ namespace SpaceStation.Editor
             EvoSurface(Evo2WallPath, new Color(0.17f, 0.23f, 0.4f), 0.1f, 0.35f);   // 광택이 높으면 짙은 천장에 조명이 작은 해처럼 비침
             EvoSurface(Evo2TrimPath, new Color(0.8f, 0.83f, 0.88f), 0.45f, 0.7f);
             EvoSurface(Evo2GoldPath, new Color(0.93f, 0.7f, 0.3f), 0.5f, 0.65f);
+            EvoSurface(Evo2VioletPath, new Color(0.66f, 0.42f, 0.95f), 0.1f, 0.55f);   // 융합 플랜트 코일 · 뚜껑 (바깥 모델 모듈 색 — 사용자 2026-10-23 보라. Blender 값 (0.5, 0.25, 0.9)은 선형이라 여기 값이 더 밝음)
             EvoSurface(Evo2PathPath, new Color(0.78f, 0.69f, 0.58f), 0f, 0.35f);
             EvoSurface(Evo2BedPath, new Color(0.26f, 0.19f, 0.15f), 0f, 0.2f);
 
@@ -660,6 +664,14 @@ namespace SpaceStation.Editor
             Clear(Evo2GlassPath, new Color(0.5f, 0.85f, 0.85f, 0.2f), 0.95f, Color.black);
             EditorUtility.SetDirty(LoadOrCreate(Evo2CurtainPath, Shader.Find("SpaceStation/PressureVeil")));   // 압력 막 (사용자 2026-11-02 "신비감", UV = 아치 기준 미터)
             Clear(SuitHelmetPath, new Color(0.8f, 0.92f, 1f, 0.14f), 0.97f, Color.black);
+            Clear(Evo2WaterGlowPath, new Color(0.45f, 0.85f, 1f, 0.5f), 0.55f, new Color(0.07f, 0.3f, 0.42f));   // 융합 플랜트 물 캡슐 · 물 달: 은은히 빛나는 물 (속 거품 · 전극이 비침)
+            var heat = LoadOrCreate(Evo2HeatPath, lit);   // 융합 플랜트 열 관 · 열 띠: 주황 빛 (모듈 색 Accent는 빛나면 희게 날아감)
+            heat.SetColor("_BaseColor", new Color(1f, 0.55f, 0.2f));
+            heat.EnableKeyword("_EMISSION");
+            heat.SetColor("_EmissionColor", new Color(1f, 0.36f, 0.05f) * 1.5f);
+            heat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            heat.enableInstancing = true;
+            EditorUtility.SetDirty(heat);
             var ice = LoadOrCreate(Evo2IcePath, lit);
             ice.SetColor("_BaseColor", new Color(0.8f, 0.93f, 1f));
             ice.EnableKeyword("_EMISSION");

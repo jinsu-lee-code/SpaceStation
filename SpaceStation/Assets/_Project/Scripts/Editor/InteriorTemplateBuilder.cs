@@ -115,6 +115,84 @@ namespace SpaceStation.Editor
             BuildEvoSecurity();
             BuildEvoGridHub();
             BuildEvoOrbitalMirror();
+            BuildEvoFusionPlant();
+        }
+
+        /// <summary>
+        /// 진화 2단계 융합 플랜트 "별을 키우는 온실" (3 × 2칸, fp_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘"): 2단계 개방형 — 레시피 "융합로의 열로 물을 갈라 수소 · 산소까지"를 순서대로 걸으며 봄:
+        /// 유리 돔 (실내, 압력 막 아치 셋) 속 눈높이의 보라 코일 여덟 · 세 가닥으로 꼬인 플라즈마 (Plasma, 돎) · 받침 패널 넷 → 주황 열 관 둘 아래 전구 길 (퍼걸러 둘) →
+        /// 물 캡슐 (전극 둘 둘레 거품 BubblesA · B — 수소 쪽이 두 배) · 거품 기둥 넷 (Gas0 ~ 3, 수소 흰 기둥이 산소 기둥의 두 배 높이) · 열 교환 콘솔 둘,
+        /// 서쪽 모서리 물 달 둘 (유리 관이 돔으로) · 가운데 마당 둥근 화단 벤치 둘 (플라즈마 볼 꽃 = 기술 식물) · 별 관측경 · 수소 풍선 수레 (Balloons, 천천히 돎) · 귀퉁이 벤치.
+        /// 문 자리 = 외형 면이 있는 동쪽 칸 네 곳 (동 둘 · 남 · 북 — 닫힌 자리 = 난간 조각, 열린 자리 = 둥근 문, 키트), 아래 해치 = 바닥 칸 여섯 (돔 칸 넷은 돔을 비켜 남 · 북 갑판으로), 위 해치 없음 (하늘).
+        /// </summary>
+        private static void BuildEvoFusionPlant()
+        {
+            var c20 = new Vector3Int(2, 0, 0);
+            var c21 = new Vector3Int(2, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c20, Vector3Int.right, Socket),
+                new InteriorSocket(c20, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c21, Vector3Int.right, Socket),
+                new InteriorSocket(c21, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(0.2f, 0f, -2f)),   // 돔 칸 = 돔을 비켜 남 · 북 갑판으로
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(-0.2f, 0f, -2f)),
+                new InteriorSocket(c20, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(0.2f, 0f, 2f)),
+                new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(-0.2f, 0f, 2f)),
+                new InteriorSocket(c21, Vector3Int.down, -F, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var plasma = new Color(0.8f, 0.5f, 1f);
+            var water = new Color(0.6f, 0.9f, 1f);
+            const float plasmaY = F + 1.57f;
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(4f, F + 3.1f, -0.4f), 6f, 0.75f, white),    // 돔 둘레 길
+                LightSpec.Point(new Vector3(4f, F + 3.1f, 8.4f), 6f, 0.75f, white),
+                LightSpec.Point(new Vector3(-0.4f, F + 3.1f, 4f), 6f, 0.75f, white),
+                LightSpec.Point(new Vector3(8.4f, F + 3.1f, 4f), 6f, 0.75f, white),
+                LightSpec.Point(new Vector3(1.65f, plasmaY, 4f), 4f, 0.8f, plasma),     // 플라즈마 빛 (그릇 속)
+                LightSpec.Point(new Vector3(6.35f, plasmaY, 4f), 4f, 0.8f, plasma),
+                LightSpec.Point(new Vector3(4f, plasmaY, 1.65f), 4f, 0.8f, plasma),
+                LightSpec.Point(new Vector3(4f, plasmaY, 6.35f), 4f, 0.8f, plasma),
+                LightSpec.Point(new Vector3(11.9f, F + 2.6f, 4f), 5.5f, 1.1f, warm),    // 전구 길
+                LightSpec.Point(new Vector3(16f, F + 3.2f, 4f), 6f, 0.9f, water),       // 물 캡슐 위
+                LightSpec.Point(new Vector3(14.2f, F + 2.2f, 1.25f), 3.5f, 0.7f, white),// 수소 기둥
+                LightSpec.Point(new Vector3(14.2f, F + 2.2f, 6.75f), 3.5f, 0.7f, white),
+                LightSpec.Point(new Vector3(14.2f, F + 1.3f, -0.55f), 3.5f, 0.6f, water),// 산소 기둥
+                LightSpec.Point(new Vector3(14.2f, F + 1.3f, 8.55f), 3.5f, 0.6f, water),
+                LightSpec.Point(new Vector3(-1.75f, F + 1.25f, -1.75f), 4f, 0.8f, water),   // 물 달
+                LightSpec.Point(new Vector3(-1.75f, F + 1.25f, 9.75f), 4f, 0.8f, water),
+                LightSpec.Point(new Vector3(10.9f, F + 2.3f, -0.4f), 4.5f, 0.7f, plasma),   // 화단 (플라즈마 볼 꽃)
+                LightSpec.Point(new Vector3(10.9f, F + 2.3f, 8.4f), 4.5f, 0.7f, plasma),
+                LightSpec.Point(new Vector3(4f, F + 2.8f, -2.4f), 6f, 0.6f, cool),      // 빈 갑판 (밤하늘 찬 빛)
+                LightSpec.Point(new Vector3(4f, F + 2.8f, 10.4f), 6f, 0.6f, cool),
+                LightSpec.Point(new Vector3(-2.4f, F + 2.8f, 4f), 6f, 0.6f, cool),
+                LightSpec.Point(new Vector3(17.6f, F + 2.8f, -0.6f), 7f, 0.7f, cool),   // 동쪽 마당
+                LightSpec.Point(new Vector3(17.6f, F + 2.8f, 8.6f), 7f, 0.7f, cool),
+            };
+            const float capsuleBubbles = 110f, gasBubbles = 90f;
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoFusionPlant_Plasma", new Vector3(4f, 0f, 4f), Vector3.up, 24f),          // 꼬인 플라즈마 (fp_builder plasma)
+                new OrbitSpec("INT_EvoFusionPlant_BubblesA", new Vector3(16f, 0f, 3f), Vector3.up, capsuleBubbles),   // 전극 둘레 거품 — 나선을 돌리면 오르는 것처럼 보임 (수소)
+                new OrbitSpec("INT_EvoFusionPlant_BubblesB", new Vector3(16f, 0f, 5f), Vector3.up, capsuleBubbles),   // 산소
+                new OrbitSpec("INT_EvoFusionPlant_Gas0", new Vector3(14.2f, 0f, 1.25f), Vector3.up, gasBubbles),      // 거품 기둥 (fp_builder GAS)
+                new OrbitSpec("INT_EvoFusionPlant_Gas1", new Vector3(14.2f, 0f, -0.55f), Vector3.up, gasBubbles),
+                new OrbitSpec("INT_EvoFusionPlant_Gas2", new Vector3(14.2f, 0f, 6.75f), Vector3.up, gasBubbles),
+                new OrbitSpec("INT_EvoFusionPlant_Gas3", new Vector3(14.2f, 0f, 8.55f), Vector3.up, gasBubbles),
+                new OrbitSpec("INT_EvoFusionPlant_Balloons", new Vector3(17.85f, 0f, 9.95f), Vector3.up, 7f),         // 풍선 (끈이 수레 기둥 끝 = 축에 모임)
+            };
+            EvoAccent("FusionPlant", "#FFB070");
+            // 스폰 = 전구 길에서 돔 아치 · 융합로를 바라봄
+            Build("EvoFusionPlant", "Evolved/MD_Evo_FusionPlant", sockets, new Vector3(12.2f, F, 4f), -90f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[] { new Vector3(4f, 4f, 5.4f) });   // 돔 (fp_builder CX · CZ, 압력 막 반지름 CURTAIN_R)
+                });
         }
 
         /// <summary>
@@ -3722,6 +3800,7 @@ namespace SpaceStation.Editor
             { "EvoAutomation", InteriorAmbience.Electric },   // 학습 코어 · 기록 서버
             { "EvoSecurity", InteriorAmbience.Life },         // 민원 홀 (행정 관제소와 같음)
             { "EvoGridHub", InteriorAmbience.Electric },      // 테슬라 탑 · 번개
+            { "EvoFusionPlant", InteriorAmbience.Heat },      // 융합로 · 열 관
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
@@ -3790,6 +3869,9 @@ namespace SpaceStation.Editor
                 { "Evo2Curtain", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2CurtainPath) },
                 { "Evo2Sky", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SkyPath) },
                 { "Evo2Mirror", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MirrorPath) },
+                { "Evo2Violet", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2VioletPath) },
+                { "Evo2Heat", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2HeatPath) },
+                { "Evo2WaterGlow", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2WaterGlowPath) },
                 { "Paper", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PaperPath) },
                 { "PropBlue", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropBluePath) },
                 { "PropGreen", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropGreenPath) },

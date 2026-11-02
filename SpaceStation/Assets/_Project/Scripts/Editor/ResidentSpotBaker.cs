@@ -77,17 +77,18 @@ namespace SpaceStation.Editor
             { "EvoSecurity", new[] { ResidentTrait.Technician } },   // 보안청 = 행정 관제소 (특성 없음 — 창구는 OpenWork) + 포탑 (기술자)
             { "EvoGridHub", new[] { ResidentTrait.Technician } },    // 그리드 허브 = 축전 뱅크 ×2 + 배터리 ×2 (기술자)
             { "EvoOrbitalMirror", new[] { ResidentTrait.Technician } },    // 궤도 미러 = 태양광 어레이 ×3 (기술자)
+            { "EvoFusionPlant", new[] { ResidentTrait.Scientist, ResidentTrait.Technician, ResidentTrait.Gardener } },   // 융합 플랜트 = 융합 발전소 (연구원) + 수소 플랜트 (기술자 · 정원사)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant" };
 
         /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
         /// 여객 도킹 포트 안내 직원 · 2026-10-31 보안청 창구 직원).</summary>
         private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger", "EvoSecurity" };
 
         /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
-        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" } };
+        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" } };
 
         /// <summary>12-5 일하는 사람 상태 글 (없으면 "일하는 중").</summary>
         private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" } };
@@ -128,7 +129,29 @@ namespace SpaceStation.Editor
             { "EvoSecurity", EvoSecuritySpots },
             { "EvoGridHub", EvoGridHubSpots },
             { "EvoOrbitalMirror", EvoOrbitalMirrorSpots },
+            { "EvoFusionPlant", EvoFusionPlantSpots },
         };
+
+        /// <summary>
+        /// 진화 2단계 융합 플랜트 (fp_builder SPOTS): 일하는 자리 = 돔 받침 패널 넷 → 물 캡슐 열 교환 콘솔 둘,
+        /// 쉬는 자리 = 둥근 화단 벤치 10 · 귀퉁이 벤치 3 (앉음) + 구경 자리 6 (서서 돌아다님 — 돔 밖 주민은 우주복, <see cref="Interior.InteriorOpenAir"/>).
+        /// </summary>
+        private static List<ResidentSpot> EvoFusionPlantSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (var (x, z, yaw) in new[] { (1.278f, 1.278f, 45f), (1.278f, 6.722f, 135f), (6.722f, 1.278f, -45f), (6.722f, 6.722f, -135f), (14.2f, 3f, 180f), (14.2f, 5f, 0f) })
+                list.Add(new ResidentSpot(new Vector3(x, Floor, z), yaw, ResidentPose.Work, work: true));
+            foreach (var (x, z, yaw) in new[]
+            {
+                (11.868f, -0.048f, 70f), (10.9f, 0.63f, 0f), (9.932f, -0.048f, -70f), (10.238f, -1.189f, -140f), (11.415f, -1.292f, 150f),
+                (11.868f, 8.048f, 110f), (10.9f, 7.37f, 180f), (9.932f, 8.048f, -110f), (10.238f, 9.189f, -40f), (11.415f, 9.292f, 30f),
+                (18.036f, -2.438f, -20.3f), (18.281f, -2.281f, -45f), (18.438f, -2.036f, -69.7f),
+            })
+                list.Add(new ResidentSpot(new Vector3(x, Floor + 0.43f, z), yaw, ResidentPose.Sit));
+            foreach (var (x, z, yaw) in new[] { (0.15f, 4f, 90f), (11.2f, 1.45f, -40f), (11.2f, 6.55f, -140f), (17.35f, 9.1f, 40f), (18.55f, 3.3f, -90f), (18.55f, 4.7f, -90f) })
+                list.Add(new ResidentSpot(new Vector3(x, Floor, z), yaw, ResidentPose.Stand));
+            return list;
+        }
 
         /// <summary>
         /// 진화 2단계 궤도 미러 (om_builder SPOTS): 일하는 자리 = 전시관 콘솔 넷 → 해바라기 점검 단말 둘 (기술자),
