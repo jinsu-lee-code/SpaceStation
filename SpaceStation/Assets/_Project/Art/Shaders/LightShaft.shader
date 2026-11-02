@@ -1,7 +1,7 @@
-// 궤도 미러 빛줄기 (사용자 2026-10-27 "선처럼 보임 → 진짜 빛줄기", 2026-11-02 "그냥 선같아보여서 반사광 느낌이 안나"): LineRenderer가 카메라를 향한 띠로 그리고,
-// 이 셰이더가 넓고 옅은 몸통 + 가운데 심 (가운데 한 줄만 밝으면 띠가 넓어도 선으로 보임), 길이로 뻗은 빛 결 (거울면 곳곳에서 나온 빛), 거울 쪽이 환한 반사 지점,
-// 길이 방향으로 천천히 흐르는 밝기를 만든다. 수신기 쪽 끝은 스며들게.
-// LineRenderer UV: x = 길이(0 거울 ~ 1 수신기), y = 폭. 꼭짓점 색(LineRenderer 색 · 투명도)을 곱한다. 가산.
+// 궤도 미러 빛기둥 (사용자 2026-10-27 "선처럼 보임 → 진짜 빛줄기", 2026-11-02 "그냥 선같아보여서 반사광 느낌이 안나" · "해바라기 표면에서 명확하게 시작"): LightBeamFx가 만든 3D 빛기둥.
+// 시선과 나란한 가운데가 밝고 윤곽으로 갈수록 사라져 (법선과 시선) 어느 쪽에서 봐도 부드러운 빛기둥, 길이로 뻗은 빛 결, 거울 쪽이 환한 반사 지점, 수신기 쪽만 스며듦.
+// 거울 쪽 끝은 스며들지 않음: 빛기둥 아래 테두리가 거울 테두리와 같고 거울 면(uv.x < 0)도 환하게 빛나 시작점이 또렷함.
+// UV: x = 길이 (0 거울 ~ 1 수신기), y = 둘레 (0 ~ 1). 꼭짓점 색 · 투명도를 곱한다. 가산. _Level = 모듈 상태 (ModuleView).
 Shader "SpaceStation/LightShaft"
 {
     Properties
@@ -9,7 +9,8 @@ Shader "SpaceStation/LightShaft"
         [HDR] _BaseColor ("Color", Color) = (1.6, 1.4, 0.9, 1)
         _Speed ("Flow Speed", Float) = 0.6
         _Noise ("Noise Scale", Float) = 7
-        _Streak ("Streak Count", Float) = 7
+        _Streak ("Streak Scale", Float) = 2.2
+        _Level ("Level", Float) = 1
     }
     SubShader
     {
@@ -33,17 +34,20 @@ Shader "SpaceStation/LightShaft"
                 float _Speed;
                 float _Noise;
                 float _Streak;
+                float _Level;
             CBUFFER_END
 
-            struct Attributes { float4 positionOS : POSITION; half4 color : COLOR; float2 uv : TEXCOORD0; UNITY_VERTEX_INPUT_INSTANCE_ID };
-            struct Varyings { float4 positionCS : SV_POSITION; half4 color : COLOR; float2 uv : TEXCOORD0; UNITY_VERTEX_INPUT_INSTANCE_ID };
+            struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; half4 color : COLOR; float2 uv : TEXCOORD0; UNITY_VERTEX_INPUT_INSTANCE_ID };
+            struct Varyings { float4 positionCS : SV_POSITION; half4 color : COLOR; float2 uv : TEXCOORD0; float3 normalWS : TEXCOORD1; float3 positionWS : TEXCOORD2; UNITY_VERTEX_INPUT_INSTANCE_ID };
 
             Varyings Vert(Attributes input)
             {
                 Varyings o;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, o);
-                o.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+                o.positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                o.positionCS = TransformWorldToHClip(o.positionWS);
+                o.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 o.color = input.color;
                 o.uv = input.uv;
                 return o;
@@ -52,16 +56,22 @@ Shader "SpaceStation/LightShaft"
             half4 Frag(Varyings i) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(i);
-                float across = saturate(1.0 - abs(i.uv.y * 2.0 - 1.0));
-                float body = smoothstep(0.0, 0.8, across);                                 // 넓고 옅은 몸통 (거울 지름 쯤에서 사라짐)
-                float core = across * across * across;                                     // 가운데 심
-                float ends = smoothstep(0.0, 0.015, i.uv.x) * smoothstep(1.0, 0.86, i.uv.x); // 거울에서 바로 시작, 수신기 쪽만 스며듦
-                float grain = StationNoise3(float3(i.uv.y * _Streak, i.uv.x * 1.3 - _Time.y * _Speed * 0.12, _Time.y * 0.1));
+                float3 toCamera = _WorldSpaceCameraPos - i.positionWS;
+                float distance = length(toCamera);
+                float near = saturate((distance - 0.35) / 1.4);                             // 빛기둥 속을 지날 때 눈앞을 덮지 않게 (내부)
+                if (i.uv.x < 0.0)                                                           // 거울 면: 가운데가 조금 더 환한 원판 (빛이 여기서 나옴)
+                    return half4(_BaseColor.rgb * i.color.rgb * (i.color.a * _Level * near * (1.5 - 0.6 * i.uv.y * i.uv.y)), 1);
+                float facing = abs(dot(normalize(i.normalWS), toCamera / max(distance, 1e-4)));
+                float body = facing * facing;                                               // 넓고 옅은 몸통 (윤곽에서 사라짐)
+                float core = body * body * body;                                            // 가운데 심
+                float ends = smoothstep(1.0, 0.86, i.uv.x);                                 // 수신기 쪽만 스며듦
+                float angle = i.uv.y * 6.28318;
+                float grain = StationNoise3(float3(cos(angle) * _Streak, sin(angle) * _Streak, i.uv.x * 1.3 - _Time.y * _Speed * 0.12));
                 float streak = 0.55 + 0.9 * grain;                                          // 길이로 뻗은 빛 결
-                float motes = StationNoise3(float3(i.uv.x * _Noise - _Time.y * _Speed, i.uv.y * 3.0, _Time.y * 0.3));
+                float motes = StationNoise3(float3(i.uv.x * _Noise - _Time.y * _Speed, cos(angle) * 1.5, sin(angle) * 1.5 + _Time.y * 0.3));
                 float flow = 0.7 + 0.3 * motes;                                             // 천천히 흐르는 밝기
-                float glint = 1.0 + 2.2 * exp(-i.uv.x * 11.0);                              // 거울 쪽 = 환한 반사 지점
-                float light = (body * 0.5 + core * 0.5) * streak * flow * glint * ends;
+                float glint = 1.0 + 1.8 * exp(-i.uv.x * 10.0);                              // 거울 쪽 = 환한 반사 지점
+                float light = (body * 0.55 + core * 0.45) * streak * flow * glint * ends * near * _Level;
                 return half4(_BaseColor.rgb * i.color.rgb * (i.color.a * light), 1);
             }
             ENDHLSL

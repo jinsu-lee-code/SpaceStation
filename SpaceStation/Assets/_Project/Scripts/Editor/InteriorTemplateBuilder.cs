@@ -114,6 +114,151 @@ namespace SpaceStation.Editor
             BuildEvoAutomation();
             BuildEvoSecurity();
             BuildEvoGridHub();
+            BuildEvoOrbitalMirror();
+        }
+
+        /// <summary>
+        /// 진화 2단계 궤도 미러 "해바라기 정원" (4 × 2칸 + 가운데 위 2 × 2, om_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘"): 2단계 개방형 —
+        /// 거울 해바라기 열여섯 (머리 Head00 ~ 15 = <see cref="InteriorHeliostat"/>가 실제 해를 따라 돌림) · 거울에서 집광탑 수신기로 모이는 빛기둥 (<see cref="SpaceStation.Building.LightBeamFx"/>, 바깥 모듈과 같은 효과) ·
+        /// 화단을 가르는 오솔길 (머리 아래를 걸음) · 거울 데이지 · 돌 마당 · 서 · 동 · 남 길 (아치 · 축제 전구) · 유리 덮개 속 진짜 해바라기 · 별 관측경 · 귀퉁이 · 길가 벤치,
+        /// 가운데 전시관 (압력 막 아치 셋, 천장 렌즈에서 내려온 빛기둥 · 해 우물 혼천의 작은 해 + 도는 고리 ArmA · ArmB · 해시계 바닥 · 북쪽 콘솔 둘 · 벤치), 위 집광탑 (금빛 해살 왕관 · 도는 거울 고리 Ring).
+        /// 문 자리 = 외형 면이 있는 네 곳 (0번 칸 서 · 남, 3번 칸 동 · 남 — 열린 갑판이라 닫힌 자리 = 난간 조각, 열린 자리 = 둥근 문, 키트), 아래 해치 = 바닥 칸 여덟 (양 끝 칸은 화단을 비킴), 위 해치 없음 (하늘).
+        /// </summary>
+        private static void BuildEvoOrbitalMirror()
+        {
+            var c0 = new Vector3Int(0, 0, 0);
+            var c3 = new Vector3Int(3, 0, 0);
+            var back = new Vector3Int(0, 0, -1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c0, Vector3Int.left, Socket),
+                new InteriorSocket(c0, back, Socket),
+                new InteriorSocket(c3, Vector3Int.right, Socket),
+                new InteriorSocket(c3, back, Socket),
+                new InteriorSocket(c0, Vector3Int.down, -F, new Vector3(3.2f, 0f, -2f)),               // 양 끝 칸 = 화단을 비켜 바깥 갑판으로
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c3, Vector3Int.down, -F, new Vector3(-3.2f, 0f, -2f)),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(3.2f, 0f, 2f)),
+                new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(3, 0, 1), Vector3Int.down, -F, new Vector3(-3.2f, 0f, 2f)),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            const float sunY = F + 1.42f;
+            var receiver = new Vector3(12f, F + 8.96f, 4f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(9.9f, F + 2.7f, 4f), 6f, 0.9f, white),      // 전시관
+                LightSpec.Point(new Vector3(14.1f, F + 2.7f, 4f), 6f, 0.9f, white),
+                LightSpec.Point(new Vector3(12f, sunY, 4f), 4.5f, 0.9f, warm),          // 해 우물 작은 해
+                LightSpec.Point(new Vector3(12f, F + 2.6f, -2f), 5.5f, 1.1f, warm),     // 남쪽 입구 전구
+                LightSpec.Point(new Vector3(5.5f, F + 2.6f, 4f), 5.5f, 1f, warm),       // 서 · 동 길
+                LightSpec.Point(new Vector3(18.5f, F + 2.6f, 4f), 5.5f, 1f, warm),
+                LightSpec.Point(new Vector3(0f, F + 2.8f, -1.2f), 7f, 0.7f, cool),      // 빈 갑판 (밤하늘 찬 빛)
+                LightSpec.Point(new Vector3(24f, F + 2.8f, -1.2f), 7f, 0.7f, cool),
+                LightSpec.Point(new Vector3(0f, F + 2.8f, 9.2f), 7f, 0.7f, cool),
+                LightSpec.Point(new Vector3(24f, F + 2.8f, 9.2f), 7f, 0.7f, cool),
+                LightSpec.Point(new Vector3(12f, F + 2.8f, 10f), 6f, 0.6f, cool),       // 북쪽 갑판 (유리 덮개 · 관측경)
+                LightSpec.Point(new Vector3(10.2f, receiver.y - 1f, 4f), 5.5f, 0.5f, warm),   // 탑 · 수신기 아래 (축 위에 두면 아랫면이 하얗게 번짐)
+                LightSpec.Point(new Vector3(13.8f, receiver.y - 1f, 4f), 5.5f, 0.5f, warm),
+                LightSpec.Point(new Vector3(2f, F + 2f, 0.85f), 5.5f, 0.7f, warm),      // 화단 (해바라기 머리 아래)
+                LightSpec.Point(new Vector3(2f, F + 2f, 7.15f), 5.5f, 0.7f, warm),
+                LightSpec.Point(new Vector3(22f, F + 2f, 0.85f), 5.5f, 0.7f, warm),
+                LightSpec.Point(new Vector3(22f, F + 2f, 7.15f), 5.5f, 0.7f, warm),
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoOrbitalMirror_ArmA", new Vector3(12f, sunY, 4f), new Vector3(0.4067f, 0.9135f, 0f), 28f),   // 혼천의 고리 (om_builder armillary)
+                new OrbitSpec("INT_EvoOrbitalMirror_ArmB", new Vector3(12f, sunY, 4f), new Vector3(0f, 0.342f, 0.9397f), -40f),
+                new OrbitSpec("INT_EvoOrbitalMirror_Ring", receiver, new Vector3(0.309f, 0.9511f, 0f), 30f),                     // 수신기 거울 고리 (tower_ring)
+            };
+            EvoAccent("OrbitalMirror", "#FFE89A");
+            // 스폰 = 남쪽 갑판에서 전시관 · 탑 · 동쪽 해바라기를 바라봄 (해치 · 등불 비킴)
+            Build("EvoOrbitalMirror", "Evolved/MD_Evo_OrbitalMirror", sockets, new Vector3(8.5f, F, -2.3f), 30f, lights, orbits,
+                configure: root =>
+                {
+                    // 머리 가운데 · 지름 = om_builder HEADS · FLOWERS (지름 = 거울 반지름 머리 × 0.78 × 2)
+                    Vector3[] centers =
+                    {
+                        new Vector3(0.057f, 1.59f, 0.403f), new Vector3(-0.072f, 1.29f, 1.618f), new Vector3(3.783f, 2.44f, 0.178f), new Vector3(4.472f, 1.89f, 1.378f),
+                        new Vector3(0.08f, 1.64f, 6.88f), new Vector3(3.441f, 2.54f, 7.852f), new Vector3(4.473f, 1.94f, 6.448f), new Vector3(-1.895f, 1.09f, 4.061f),
+                        new Vector3(23.968f, 1.59f, 0.673f), new Vector3(24.143f, 1.29f, 1.589f), new Vector3(20.425f, 2.44f, 0.079f), new Vector3(19.617f, 1.89f, 1.459f),
+                        new Vector3(23.828f, 1.64f, 6.869f), new Vector3(20.373f, 2.54f, 7.838f), new Vector3(19.706f, 1.94f, 6.486f), new Vector3(25.594f, 1.09f, 4.13f),
+                    };
+                    float[] heads = { 0.62f, 0.56f, 0.8f, 0.64f, 0.66f, 0.82f, 0.64f, 0.86f, 0.62f, 0.56f, 0.8f, 0.64f, 0.66f, 0.82f, 0.64f, 0.86f };
+                    const float mirrorLift = 0.032f;   // 머리 가운데 → 거울 면 (om_builder flower)
+                    var parts = new Transform[centers.Length];
+                    var from = new Vector3[centers.Length];
+                    var to = new Vector3[centers.Length];
+                    var diameters = new float[centers.Length];
+                    var normals = new Vector3[centers.Length];
+                    for (int i = 0; i < centers.Length; i++)
+                    {
+                        parts[i] = Child(root, $"INT_EvoOrbitalMirror_Head{i:00}");
+                        normals[i] = ((receiver - centers[i]).normalized + Vector3.up).normalized;
+                        from[i] = centers[i] + normals[i] * mirrorLift;
+                        to[i] = receiver;
+                        diameters[i] = heads[i] * 0.78f * 2f;
+                    }
+                    var beams = AddLightShafts(root, from, to, diameters, normals, 0.64f);
+                    root.AddComponent<InteriorHeliostat>().Configure(parts, centers, receiver, mirrorLift, beams);
+                    // 전시관: 천장 렌즈 → 해 우물 작은 해 (om_builder hall_inside)
+                    var well = new GameObject("WellShaft");
+                    well.transform.SetParent(root.transform, false);
+                    AddLightShafts(well, new[] { new Vector3(12f, F + 3.4f - 0.07f, 4f) }, new[] { new Vector3(12f, sunY + 0.1f, 4f) }, new[] { 1.05f }, new[] { Vector3.down }, 0.4f);
+                    AddOpenAir(root, new[] { new Vector3(12f, 4f, 3.85f) });   // 전시관 (om_builder CX · CZ, 벽 바깥 반지름)
+                });
+        }
+
+        private static SpaceStation.Building.LightBeamFx AddLightShafts(GameObject on, Vector3[] from, Vector3[] to, float[] diameters, Vector3[] normals, float receiverDiameter)
+        {
+            var fx = on.AddComponent<SpaceStation.Building.LightBeamFx>();
+            var so = new SerializedObject(fx);
+            so.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("LightShaft");
+            void Vectors(string property, Vector3[] values)
+            {
+                var p = so.FindProperty(property);
+                p.arraySize = values.Length;
+                for (int i = 0; i < values.Length; i++)
+                    p.GetArrayElementAtIndex(i).vector3Value = values[i];
+            }
+            Vectors("_from", from);
+            Vectors("_to", to);
+            Vectors("_mirrorNormals", normals);
+            var d = so.FindProperty("_mirrorDiameters");
+            d.arraySize = diameters.Length;
+            for (int i = 0; i < diameters.Length; i++)
+                d.GetArrayElementAtIndex(i).floatValue = diameters[i];
+            so.FindProperty("_receiverDiameter").floatValue = receiverDiameter;
+            // 바깥 모듈보다 옅게: 안에서는 빛기둥이 눈앞 가까이 지나감
+            so.FindProperty("_mirrorColor").colorValue = new Color(1f, 1f, 1f, 0.22f);
+            so.FindProperty("_receiverColor").colorValue = new Color(1f, 1f, 1f, 0.15f);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return fx;
+        }
+
+        /// <summary>우주복: 실내 원 (프리팹 로컬 x, z, 반지름) 밖 주민 — 2단계 개방형 방 공통.</summary>
+        private static void AddOpenAir(GameObject root, Vector3[] indoor)
+        {
+            Mesh Suit(string part)
+            {
+                foreach (var o in AssetDatabase.LoadAllAssetsAtPath(InteriorSetup.ResidentSuitModelPath))
+                {
+                    if (o is Mesh m && m.name == part)
+                        return m;
+                }
+                Debug.LogError($"[InteriorTemplateBuilder] 우주복 조각 없음: {part}");
+                return null;
+            }
+            root.AddComponent<InteriorOpenAir>().Configure(indoor,
+                Suit("SUIT_Helmet"), Suit("SUIT_Rim"), Suit("SUIT_Pack"), Suit("SUIT_PackLight"),
+                AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SuitHelmetPath),
+                AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GoldPath),
+                AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2TrimPath),
+                AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2IcePath));
         }
 
         /// <summary>
@@ -180,23 +325,7 @@ namespace SpaceStation.Editor
                     flash.intensity = 0f;
                     flash.color = new Color(0.75f, 0.88f, 1f);
                     root.AddComponent<InteriorLightning>().Configure(bolts.ToArray(), flash);
-                    // 우주복: 전시관 (gd_builder CX · CZ, 벽 바깥 반지름 3.45) 밖 주민
-                    Mesh Suit(string part)
-                    {
-                        foreach (var o in AssetDatabase.LoadAllAssetsAtPath(InteriorSetup.ResidentSuitModelPath))
-                        {
-                            if (o is Mesh m && m.name == part)
-                                return m;
-                        }
-                        Debug.LogError($"[InteriorTemplateBuilder] 우주복 조각 없음: {part}");
-                        return null;
-                    }
-                    root.AddComponent<InteriorOpenAir>().Configure(new[] { new Vector3(8f, 4f, 3.45f) },
-                        Suit("SUIT_Helmet"), Suit("SUIT_Rim"), Suit("SUIT_Pack"), Suit("SUIT_PackLight"),
-                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SuitHelmetPath),
-                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GoldPath),
-                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2TrimPath),
-                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2IcePath));
+                    AddOpenAir(root, new[] { new Vector3(8f, 4f, 3.45f) });   // 전시관 (gd_builder CX · CZ, 벽 바깥 반지름)
                 });
         }
 
@@ -3624,6 +3753,7 @@ namespace SpaceStation.Editor
                 { "Evo2Glass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GlassPath) },
                 { "Evo2Curtain", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2CurtainPath) },
                 { "Evo2Sky", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SkyPath) },
+                { "Evo2Mirror", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MirrorPath) },
                 { "Paper", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PaperPath) },
                 { "PropBlue", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropBluePath) },
                 { "PropGreen", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropGreenPath) },
