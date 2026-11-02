@@ -65,6 +65,21 @@ namespace SpaceStation.Editor
             })
                 tower.Add(new PlantSpot(new Vector3(x, y, z), PlantKind.Pot, s, (n++) * 53f));
             Set("IT_EvoTower", tower);
+            // 진화 2단계 아콜로지 (ar_builder PLANTS): 섬 도시 나무 다섯 (돌 테 안 반지름 0.42 — 0.62배), 뿌리 층 집 창 아래 화분 여섯 (0.42배). 알 속이라 살아 있는 식물도 유리 덮개 없음
+            Set("IT_EvoArcology", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(7.999f, 11.005f, 4.105f), PlantKind.Tree, 0.62f, 20f),
+                new PlantSpot(new Vector3(5.136f, 11.005f, 7.835f), PlantKind.Tree, 0.62f, 92f),
+                new PlantSpot(new Vector3(0.703f, 11.005f, 6.266f), PlantKind.Tree, 0.62f, 164f),
+                new PlantSpot(new Vector3(0.827f, 11.005f, 1.565f), PlantKind.Tree, 0.62f, 236f),
+                new PlantSpot(new Vector3(5.335f, 11.005f, 0.229f), PlantKind.Tree, 0.62f, 308f),
+                new PlantSpot(new Vector3(8.38f, 6.86f, 4f), PlantKind.Pot, 0.42f, 30f),
+                new PlantSpot(new Vector3(6.19f, 6.86f, 7.793f), PlantKind.Pot, 0.42f, 90f),
+                new PlantSpot(new Vector3(1.81f, 6.86f, 7.793f), PlantKind.Pot, 0.42f, 150f),
+                new PlantSpot(new Vector3(-0.38f, 6.86f, 4f), PlantKind.Pot, 0.42f, 210f),
+                new PlantSpot(new Vector3(1.81f, 6.86f, 0.207f), PlantKind.Pot, 0.42f, 270f),
+                new PlantSpot(new Vector3(6.19f, 6.86f, 0.207f), PlantKind.Pot, 0.42f, 330f),
+            });
             // 진화 1단계 생태 모듈 (eco_builder PLANTS — 사용자 2026-10-29 "온실 식물은 수경 농장 등에서 쓰던 식물로"):
             //   재배대 벽 쪽 줄 화분 식물 18 (흙 F + 0.665, z ±1.95 — 통로 쪽 줄은 템플릿에 구운 수경 농장 상추) + 이음 칸 나무 화분 2
             //   (흙 F + 0.502, 0.8배 — 나무 모델 흙 위 덤불이 화분 안 테 0.64 안에 들게, 플레이 확인 2026-10-29)

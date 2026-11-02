@@ -406,25 +406,40 @@ namespace SpaceStation.Interior
                     _state = State.SeatTurn;
                     return;
                 }
-                if (!PathClear(_seatFront))
+                if (PathClear(_seatFront))
+                {
+                    target = Seat;
+                    point = _seatFront;
+                }
+                else if (PickFloor(out point))
+                    target = -1; // 곧장 못 가면 (굽은 벤치 · 복도 모퉁이) 제자리에 굳지 않고 둘레를 돌다가 트이면 앉음
+                else
                 {
                     LastDecision = "의자로 가는 길이 막힘";
                     return;
                 }
-                target = Seat;
-                point = _seatFront;
             }
             else if (away)
             {
-                // 원래 자리로 (누가 차지했거나 길이 막혔으면 다음에)
-                if ((_room.Owner[_home] != null && _room.Owner[_home] != this) || !PathClear(_room.Points[_home]))
+                // 원래 자리로 (누가 차지했으면 다음에, 길이 막혔으면 둘레를 돌다가 트이면)
+                if (_room.Owner[_home] != null && _room.Owner[_home] != this)
                 {
                     LastDecision = "돌아갈 자리가 막힘";
                     return;
                 }
-                target = _home;
-                point = _room.Points[_home];
-                _excursions = 0;
+                if (PathClear(_room.Points[_home]))
+                {
+                    target = _home;
+                    point = _room.Points[_home];
+                    _excursions = 0;
+                }
+                else if (PickFloor(out point))
+                    target = -1;
+                else
+                {
+                    LastDecision = "돌아갈 자리가 막힘";
+                    return;
+                }
             }
             else
             {
@@ -464,6 +479,12 @@ namespace SpaceStation.Interior
                 return true;
             }
             target = -1;
+            return PickFloor(out point);
+        }
+
+        /// <summary>지금 자리 주변 바닥 중 비어 있고 가는 길이 트인 곳.</summary>
+        private bool PickFloor(out Vector3 point)
+        {
             var here = transform.position;
             for (int attempt = 0; attempt < 8; attempt++)
             {

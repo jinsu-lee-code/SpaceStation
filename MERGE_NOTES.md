@@ -2034,3 +2034,17 @@
 
 ### `tycoon` 합칠 때
 - [x] (2026-11-02) 같은 파일이 tycoon 커밋 `899e79f8`에 있음.
+
+## M-134. 아콜로지 내부 "유리 알 속 하늘 섬" (2026-11-02, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `e4475d95`과 같은 파일)
+- 아콜로지 내부 `IT_EvoArcology` · `PF_Interior_EvoArcology` · `SM_Interior_EvoArcology.fbx` (Blender `Interior_Evo.blend` 텍스트 `ar_builder`): 2×2칸 × 4층 — 유리 알 전체가 실내, 유리 엘리베이터 탑으로 전망대 (유리 바닥 고리 · 벤치 · 별 관측경) · 섬 도시 (광장 · 잔디 띠 · 타워 다섯 · 작은 집 · 나무 · 디딤돌 · 둘레 산책로) · 뿌리 층 (복도 둘레 집 여섯) · 결정실 (유리 바닥 아래 중력 결정 · 떠도는 돌), 알 밖 혼천의 고리 둘
+- `InteriorTemplateBuilder.BuildEvoArcology` (문 자리 · 해치 없음, 조명 24, 도는 물체 4, 엘리베이터 4층, 환경음 생활), `ResidentSpotBaker` 앉는 자리 26 · 서는 자리 5 ("섬 도시 구경 중"), `InteriorPlantSpots` 나무 5 · 화분 6, 강조색 `M_Accent_Evo_Arcology` · `M_Paint_Evo_Arcology` (#8FD0FF)
+- 재질 슬롯 Evo2EggGlass = `M_InteriorEvo2EggGlass` (`InteriorSetup` · `InteriorTemplateBuilder` 재질 표), `InteriorKit.asset`, `MODELING.md` 7-11
+- **공통 동작 변경** `ResidentWander`: 의자 · 집 자리로 곧장 못 가면 제자리에 굳지 않고 둘레 바닥을 돌다가 트이면 돌아감 (`PickFloor` 분리, 모든 방)
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상 (새 파일 + 진화 내부 빌더). `Main.unity`는 넣지 않았으므로 합친 뒤 메뉴 Interior/Setup · Build Evolved Templates로 템플릿 목록에 등록. `ResidentWander`를 고쳤다면 `Decide`의 돌아가는 분기 확인.
+
+### `tycoon` 합칠 때
+- [ ] 같은 파일 (tycoon에 이미 있음).
