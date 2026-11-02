@@ -78,6 +78,7 @@ namespace SpaceStation.Editor
         public const string Evo2GlassPath = MaterialFolder + "/M_InteriorEvo2Glass.mat";
         public const string Evo2EggGlassPath = MaterialFolder + "/M_InteriorEvo2EggGlass.mat";
         public const string Evo2ClearGlassPath = MaterialFolder + "/M_InteriorEvo2ClearGlass.mat";
+        public const string Evo2WindowPath = MaterialFolder + "/M_InteriorEvo2Window.mat";
         public const string Evo2CurtainPath = MaterialFolder + "/M_InteriorEvo2Curtain.mat";
         public const string Evo2SkyPath = MaterialFolder + "/M_InteriorEvo2Sky.mat";
         public const string Evo2MirrorPath = MaterialFolder + "/M_InteriorEvo2Mirror.mat";
@@ -687,6 +688,13 @@ namespace SpaceStation.Editor
             heat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             heat.enableInstancing = true;
             EditorUtility.SetDirty(heat);
+            var houseWindow = LoadOrCreate(Evo2WindowPath, lit);   // 대형 토러스 집 창: 따뜻한 불빛 (Light는 하얗게 번져 창살이 묻힘)
+            houseWindow.SetColor("_BaseColor", new Color(1f, 0.86f, 0.62f));
+            houseWindow.EnableKeyword("_EMISSION");
+            houseWindow.SetColor("_EmissionColor", new Color(1f, 0.74f, 0.42f) * 1.05f);
+            houseWindow.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            houseWindow.enableInstancing = true;
+            EditorUtility.SetDirty(houseWindow);
             var ice = LoadOrCreate(Evo2IcePath, lit);
             ice.SetColor("_BaseColor", new Color(0.8f, 0.93f, 1f));
             ice.EnableKeyword("_EMISSION");
