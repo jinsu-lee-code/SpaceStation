@@ -87,11 +87,8 @@ namespace SpaceStation.Editor
                 // 2단계 후속 (사용자 2026-10-27): 모델마다 다른 재질은 StationArtBuilder.FxOverrides가 슬롯에 연결
                 case "PlasmaBlue": return Plasma("M_PlasmaBlue", new Color(0.9f, 1.6f, 2.6f, 1f), new Color(0.35f, 0.45f, 1.8f, 1f));   // 융합 발전소 (파랑)
                 case "PlasmaViolet": return Plasma("M_PlasmaViolet", new Color(1.7f, 1.1f, 2.6f, 1f), new Color(0.9f, 0.3f, 1.8f, 1f)); // 융합 플랜트 (보라)
-                case "AuroraCurtainGreen": return AuroraCurtain("M_AuroraCurtainGreen", new Color(0.4f, 1.4f, 0.8f, 1f), new Color(0.25f, 0.8f, 0.75f, 1f), 0.33f);
-                case "AuroraCurtainViolet": return AuroraCurtain("M_AuroraCurtainViolet", new Color(0.45f, 0.75f, 1.3f, 1f), new Color(0.7f, 0.3f, 1.2f, 1f), 0.43f);
-                // 궤도 방어망 긴 커튼 (UV 모드, 3 · 4단계 반영 ② 2026-10-29): 초록 = 커튼 전체, 보라 = 위쪽 65% 겹 (Blender og_final _curtain_sheet)
-                case "AuroraCurtainGreenUV": return AuroraCurtainUV("M_AuroraCurtainGreenUV", new Color(0.4f, 1.4f, 0.8f, 1f), new Color(0.25f, 0.8f, 0.75f, 1f), 0f);
-                case "AuroraCurtainVioletUV": return AuroraCurtainUV("M_AuroraCurtainVioletUV", new Color(0.45f, 0.75f, 1.3f, 1f), new Color(0.7f, 0.3f, 1.2f, 1f), 0.35f);
+                case "AuroraCurtain": return AuroraCurtain();                                            // 실드 돔 · 궤도 방어망 오로라 커튼 (AuroraFx, 사용자 2026-11-02 슬라이더)
+                case "MilkyRiver": return MilkyRiver();                                                  // 방사선 차폐벽 은하수 강 (사용자 2026-11-02)
                 case "LightShaft": return CustomShader("M_LightShaft", "SpaceStation/LightShaft", new Color(1.5f, 1.3f, 0.85f, 1f));    // 궤도 미러 빛기둥 (LightBeamFx — 바깥 모듈 · 내부 템플릿)
                 case "Hidden": return Glow("M_Hidden", Color.clear);                                                                // 모델 연출을 코드 연출로 바꿀 때 슬롯을 비움
                 case "Ripple": return Ripple();                                                                                     // 후룸 큰 낙하 물결 고리 (FlumeRideFx, 수평 입자)
@@ -360,34 +357,19 @@ namespace SpaceStation.Editor
             return m;
         }
 
-        /// <summary>실드 돔 오로라 커튼 (SpaceStation/AuroraCurtain): 등대(모델 0.4, 0.6) 둘레로 일렁이고 아랫단이 밝고 위로 옅어짐. 커튼 아래 높이 = baseY.</summary>
-        private static Material AuroraCurtain(string name, Color low, Color high, float baseY)
+        /// <summary>오로라 커튼 (SpaceStation/AuroraCurtain, AuroraFx 띠 메시): 값은 셰이더 기본값 — 사용자가 재질 슬라이더로 맞추므로 이미 있는 재질은 그대로 둠.</summary>
+        private static Material AuroraCurtain()
         {
-            var m = Load(name, UnityEngine.Shader.Find("SpaceStation/AuroraCurtain"));
-            m.SetColor("_BaseColor", Color.white);
-            m.SetColor("_LowColor", low);
-            m.SetColor("_HighColor", high);
-            m.SetVector("_Center", new Vector4(0.4f, 0f, 0.6f, 0f));
-            m.SetFloat("_BaseY", baseY);
-            m.SetFloat("_Height", 0.36f);
+            var m = Load("M_AuroraCurtain", UnityEngine.Shader.Find("SpaceStation/AuroraCurtain"));
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             return m;
         }
 
-        /// <summary>궤도 방어망 긴 커튼 (AuroraCurtain UV 모드): u = 길이, v = 아랫단 → 위, 커튼 면 수직 = 접선 × 위. vStart = 이 겹이 시작하는 v.</summary>
-        private static Material AuroraCurtainUV(string name, Color low, Color high, float vStart)
+        /// <summary>방사선 차폐벽 은하수 강 (SpaceStation/MilkyRiver): 값은 셰이더 기본값 — 사용자가 재질 슬라이더로 맞추므로 이미 있는 재질은 그대로 둠.</summary>
+        private static Material MilkyRiver()
         {
-            var m = Load(name, UnityEngine.Shader.Find("SpaceStation/AuroraCurtain"));
-            m.SetColor("_BaseColor", Color.white);
-            m.SetColor("_LowColor", low);
-            m.SetColor("_HighColor", high);
-            m.SetFloat("_UVMode", 1f);
-            m.EnableKeyword("_UVMODE");
-            m.SetFloat("_Length", 2.5f);
-            m.SetFloat("_VStart", vStart);
-            m.SetFloat("_Sway", 0.035f);
-            m.SetFloat("_Intensity", 0.48f); // 초록 · 보라 두 겹이 겹치는 띠가 하얗게 날지 않게 실드 돔(0.6)보다 옅게
+            var m = Load("M_MilkyRiver", UnityEngine.Shader.Find("SpaceStation/MilkyRiver"));
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);
             return m;

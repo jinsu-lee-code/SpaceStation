@@ -24,16 +24,17 @@ namespace SpaceStation.Editor
 
         /// <summary>
         /// 모델마다 다른 연출 재질 {모델 key: {FBX 슬롯: ModuleFxMaterials 이름}} (사용자 2026-10-27 플레이 점검):
-        /// 실드 돔 오로라 커튼 = 일렁이는 셰이더 (방사선 차폐벽 · 환적장 은하수 띠는 같은 FX_AuroraViolet이라도 그대로),
-        /// 융합 발전소 · 융합 플랜트 = 흐르는 플라즈마 (기본 핵융합로는 그대로), 궤도 미러 빛줄기 = 숨기고 LightBeamFx가 빛기둥으로 그림.
-        /// 궤도 방어망 오로라 보호막 커튼 셋 = 같은 셰이더의 UV 모드 (3 · 4단계 반영 ② 2026-10-29).
+        /// 실드 돔 · 궤도 방어망 오로라 = 구운 얇은 판 · 빛줄을 숨기고 AuroraFx가 부드러운 커튼으로 그림 (사용자 2026-11-02 "칼로 자른 것처럼 보임", 환적장 은하수 띠는 같은 FX_AuroraViolet이라도 그대로),
+        /// 방사선 차폐벽 물 = 은하수 강 셰이더 (사용자 2026-11-02 "보라색 선 — 오염된 물 같음", 속 보라 띠는 숨김),
+        /// 융합 발전소 · 융합 플랜트 = 흐르는 플라즈마, 궤도 미러 빛줄기 = 숨기고 LightBeamFx가 빛기둥으로 그림.
         /// 흐르는 빛 (④ 2026-10-29, PulseGlow): AI 중추 빛 신경 (보라 · 금이 뇌로 모여듦), 심우주 통신기지 신호 (하늘빛이 가운데 돔 위에서 퍼짐),
         /// 항성 발전망 꿀 빛, 궤도 항만 진주 빛 — 같은 형광 재질이라도 다른 모듈은 그대로.
         /// </summary>
         private static readonly Dictionary<string, Dictionary<string, string>> FxOverrides = new Dictionary<string, Dictionary<string, string>>
         {
-            { "Evo_ShieldDome", new Dictionary<string, string> { { "FX_AuroraGreen", "AuroraCurtainGreen" }, { "FX_AuroraViolet", "AuroraCurtainViolet" } } },
-            { "Evo_OrbitalDefense", new Dictionary<string, string> { { "FX_AuroraGreen", "AuroraCurtainGreenUV" }, { "FX_AuroraViolet", "AuroraCurtainVioletUV" } } },
+            { "Evo_ShieldDome", new Dictionary<string, string> { { "FX_AuroraGreen", "Hidden" }, { "FX_AuroraViolet", "Hidden" }, { "FX_FluorTeal", "Hidden" } } },
+            { "Evo_OrbitalDefense", new Dictionary<string, string> { { "FX_AuroraGreen", "Hidden" }, { "FX_AuroraViolet", "Hidden" } } },
+            { "Evo_RadiationWall", new Dictionary<string, string> { { "FX_GalaxyWater", "MilkyRiver" }, { "FX_AuroraViolet", "Hidden" } } },
             { "Evo_AICore", new Dictionary<string, string> { { "FX_FluorPurple", "NeuralPurple" }, { "FX_FluorGold", "NeuralGold" } } },
             { "Evo_DeepSpaceComm", new Dictionary<string, string> { { "FX_FluorCyan", "SignalCyan" } } },
             { "Evo_StellarGrid", new Dictionary<string, string> { { "FX_FluorGold", "HoneyGold" } } },
@@ -546,6 +547,7 @@ namespace SpaceStation.Editor
             // 진화 궤도 미러: 모델의 가는 빛줄기(FX_LightBeam — 슬롯은 FxOverrides로 비움)를 빛기둥으로 다시 그림 (LightBeamFx)
             if (model.name == "SM_Evo_OrbitalMirror")
                 WireLightShafts(instance);
+            WireAurora(instance, model.name);
             // 진화 대형 토러스 · 정련 콤비나트 · 드론 정비창 (사용자 2026-10-27): 모델에 구운 멈춘 입자(가져올 때 지움, EvoBakedFxStrip)를 움직이는 연출로
             //   열차 굴뚝 = Blender build_grand_torus 기관차 굴뚝 꼭대기 (열차 부품 기준 — 부품 원점 = 허브 축),
             //   배출구 = build_refinery_combine 꼭대기 열 배출구 위, 드론 쇼 = build_drone_depot 드론 무리 부품 원점 (옥상 위 가운데)
@@ -1252,6 +1254,55 @@ namespace SpaceStation.Editor
             so.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
             so.FindProperty("_trailMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// 오로라 커튼 (AuroraFx, 사용자 2026-11-02): 띠 자리 = Blender 원본의 띠 — 실드 돔 _aurora_ribbon 셋 (등대 둘레 호 + 주름), 궤도 방어망 CURTAINS 셋 (x, z 길 · 아래 높이 · 높이).
+        /// 프리팹을 다시 굽지 않고 고칠 때도 부를 수 있게 public.
+        /// </summary>
+        public static void WireAurora(GameObject instance, string modelName)
+        {
+            SpaceStation.Building.AuroraRibbon[] ribbons = null;
+            if (modelName == "SM_Evo_ShieldDome")
+            {
+                SpaceStation.Building.AuroraRibbon Arc(float radius, float from, float to, float y, float height, float folds, float phase)
+                {
+                    const int n = 48;
+                    var path = new Vector3[n + 1];
+                    for (int i = 0; i <= n; i++)
+                    {
+                        float s = i / (float)n;
+                        float a = Mathf.Deg2Rad * Mathf.Lerp(from, to, s);
+                        float r = radius + 0.04f * Mathf.Sin(2f * Mathf.PI * folds * s + phase);
+                        path[i] = new Vector3(0.4f + r * Mathf.Cos(a), y + 0.05f * Mathf.Sin(2f * Mathf.PI * 1.5f * s + phase), 0.6f + r * Mathf.Sin(a));
+                    }
+                    // 각이 늘어나는 호 = 면 수직이 등대 바깥 — 위로 갈수록 바깥으로 기움
+                    return new SpaceStation.Building.AuroraRibbon(path, height, 0.05f);
+                }
+                ribbons = new[] { Arc(0.55f, 5f, 150f, 0.38f, 0.36f, 3f, 0.7f), Arc(0.68f, 35f, 172f, 0.48f, 0.32f, 4f, 2.4f), Arc(0.68f, 182f, 238f, 0.42f, 0.28f, 2f, 4.1f) };
+            }
+            else if (modelName == "SM_Evo_OrbitalDefense")
+            {
+                SpaceStation.Building.AuroraRibbon Curtain(int n, System.Func<float, Vector2> at, float y, float height)
+                {
+                    var path = new Vector3[n + 1];
+                    for (int i = 0; i <= n; i++)
+                    {
+                        var p = at(i / (float)n);
+                        path[i] = new Vector3(p.x, y, p.y);
+                    }
+                    return new SpaceStation.Building.AuroraRibbon(path, height, 0.04f);
+                }
+                ribbons = new[]
+                {
+                    Curtain(30, t => new Vector2(1.3f + 2.75f * t, 1.02f - 0.3f * t + 0.12f * Mathf.Sin(5f * t)), 0.2f, 0.34f),
+                    Curtain(28, t => new Vector2(1.32f + 2.6f * t, 0.5f + 0.1f * Mathf.Sin(4f * t + 1f)), 0.25f, 0.26f),
+                    Curtain(18, t => new Vector2(-0.25f + 1.55f * t, 1.15f - 0.32f * Mathf.Sin(Mathf.PI * t)), 1.02f, 0.34f),
+                };
+            }
+            if (ribbons == null)
+                return;
+            instance.AddComponent<SpaceStation.Building.AuroraFx>().Configure(ModuleFxMaterials.Get("AuroraCurtain"), ribbons);
         }
 
         /// <summary>
