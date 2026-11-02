@@ -92,7 +92,7 @@ namespace SpaceStation.Editor
                 // 궤도 방어망 긴 커튼 (UV 모드, 3 · 4단계 반영 ② 2026-10-29): 초록 = 커튼 전체, 보라 = 위쪽 65% 겹 (Blender og_final _curtain_sheet)
                 case "AuroraCurtainGreenUV": return AuroraCurtainUV("M_AuroraCurtainGreenUV", new Color(0.4f, 1.4f, 0.8f, 1f), new Color(0.25f, 0.8f, 0.75f, 1f), 0f);
                 case "AuroraCurtainVioletUV": return AuroraCurtainUV("M_AuroraCurtainVioletUV", new Color(0.45f, 0.75f, 1.3f, 1f), new Color(0.7f, 0.3f, 1.2f, 1f), 0.35f);
-                case "LightShaft": return CustomShader("M_LightShaft", "SpaceStation/LightShaft", new Color(1.5f, 1.3f, 0.85f, 1f));    // 궤도 미러 빛기둥 (LightBeamFx)
+                case "LightShaft": return CustomShader("M_LightShaft", "SpaceStation/LightShaft", new Color(1.5f, 1.3f, 0.85f, 1f));    // 궤도 미러 빛기둥 (LightBeamFx — 바깥 모듈 · 내부 템플릿)
                 case "Hidden": return Glow("M_Hidden", Color.clear);                                                                // 모델 연출을 코드 연출로 바꿀 때 슬롯을 비움
                 case "Ripple": return Ripple();                                                                                     // 후룸 큰 낙하 물결 고리 (FlumeRideFx, 수평 입자)
                 // 진화 3단계 (진주 · 금 몸체 · 살아 있는 행성 정원 + 빛과 수정, 2026-10-27) · 4단계 (우주 · 별빛, 2026-10-28) — 값은 Blender evo_builder

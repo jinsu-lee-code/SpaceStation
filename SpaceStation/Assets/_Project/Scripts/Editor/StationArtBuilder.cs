@@ -1284,14 +1284,57 @@ namespace SpaceStation.Editor
             so.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("LightShaft");
             var pf = so.FindProperty("_from");
             var pt = so.FindProperty("_to");
+            var pd = so.FindProperty("_mirrorDiameters");
             pf.arraySize = from.Count;
             pt.arraySize = to.Count;
+            pd.arraySize = from.Count;
+            var mirrors = MirrorPoints(instance);
             for (int i = 0; i < from.Count; i++)
             {
                 pf.GetArrayElementAtIndex(i).vector3Value = from[i];
                 pt.GetArrayElementAtIndex(i).vector3Value = to[i];
+                pd.GetArrayElementAtIndex(i).floatValue = MirrorDiameter(mirrors, from[i]);
             }
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>해바라기 거울(FX_Mirror → M_Mirror) 꼭짓점 전부 (모델 기준).</summary>
+        private static List<Vector3> MirrorPoints(GameObject instance)
+        {
+            var points = new List<Vector3>();
+            foreach (var r in instance.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                var mesh = r.GetComponent<MeshFilter>().sharedMesh;
+                var toModel = instance.transform.worldToLocalMatrix * r.transform.localToWorldMatrix;
+                for (int s = 0; s < mats.Length; s++)
+                {
+                    if (mats[s] == null || mats[s].name != "M_Mirror")   // 몸체 재질 이름 M_Evo_OrbitalMirror_Tex도 "Mirror"를 포함함
+                        continue;
+                    using (var md = Mesh.AcquireReadOnlyMeshData(mesh))
+                    {
+                        var data = md[0];
+                        var v = new Unity.Collections.NativeArray<Vector3>(data.vertexCount, Unity.Collections.Allocator.Temp);
+                        data.GetVertices(v);
+                        var idx = new Unity.Collections.NativeArray<int>(data.GetSubMesh(s).indexCount, Unity.Collections.Allocator.Temp);
+                        data.GetIndices(idx, s);
+                        foreach (int i in idx)
+                            points.Add(toModel.MultiplyPoint3x4(v[i]));
+                        idx.Dispose();
+                        v.Dispose();
+                    }
+                }
+            }
+            return points;
+        }
+
+        /// <summary>빛줄기 시작점(거울 가운데)에서 가장 가까운 거울 꼭짓점까지 = 반지름 (거울 원판은 가장자리에만 꼭짓점이 있음, 옆 해바라기 거울은 더 멀어서 세지 않음).</summary>
+        private static float MirrorDiameter(List<Vector3> mirrors, Vector3 center)
+        {
+            float radius = float.PositiveInfinity;
+            foreach (var p in mirrors)
+                radius = Mathf.Min(radius, Vector3.Distance(p, center));
+            return radius < 0.12f ? radius * 2f : 0.13f;
         }
 
         /// <summary>한 서브메시의 가는 원기둥들 → (거울 끝, 수신기 끝) 쌍. 수신기 = 덩어리 끝들이 가장 많이 몰린 점.</summary>
