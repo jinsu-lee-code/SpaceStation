@@ -2048,3 +2048,16 @@
 
 ### `tycoon` 합칠 때
 - [ ] 같은 파일 (tycoon에 이미 있음).
+
+## M-135. 아콜로지 전망대 망원경 들여다보기 (2026-11-02, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `c08e5936`과 같은 파일)
+- 아콜로지 내부 `SM_Interior_EvoArcology.fbx` · `PF_Interior_EvoArcology` (`ar_builder`): 망원경 둘을 난간 바로 안으로 옮기고 머리 `INT_EvoArcology_Scope1` · `2`를 따로 뺌, `InteriorTemplateBuilder.BuildEvoArcology`에서 `InteriorTelescope` 연결
+- **공통 동작 변경** `InteriorTelescope.Configure`: 선택 인자 restYaw · yawLimit · startPitch · startFov · minPitch 추가 (기본값이면 이전과 같음), `InteriorExteriorView.RenderLookout`: 망원경 화면에 후처리 켬 (중력 거주구 망원경도 색이 또렷해짐)
+- `MODELING.md` 7-11
+
+### `narrative` 합칠 때
+- [ ] 자동 합침 예상. `Main.unity`는 넣지 않았으므로 합친 뒤 메뉴 Interior/Setup · Build Evolved Templates로 템플릿 갱신.
+
+### `tycoon` 합칠 때
+- [ ] 같은 파일 (tycoon에 이미 있음).

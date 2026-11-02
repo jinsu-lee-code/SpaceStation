@@ -13,6 +13,7 @@ namespace SpaceStation.Interior
     /// 휠 = 배율, F · ESC · 오른쪽 클릭 = 그만 보기 (패드 키를 누르면 그만 보고 패드).
     /// 화면은 <see cref="InteriorExteriorView.RenderLookout"/>이 바깥 정거장을 바로 그림 — 전망실 창과 같이 탑 꼭대기 위로 들어 올림 (자기 링 · 꼬리가 내려다보임).
     /// 머리 조각(경통)은 시선을 따라 피벗을 축으로 돎 (위아래는 손잡이에 닿지 않게 <see cref="_headPitchRange"/>까지만). 보는 동안 플레이어는 멈춤.
+    /// 2단계 아콜로지 전망대 (사용자 2026-11-02 "1단계 모듈 때 했던 것처럼 상호작용으로 주변 둘러볼 수 있게"): 난간 곁 둘 — 쉴 때 방향 <see cref="_restYaw"/>가 저마다 바깥쪽, 들어 올림 없음 (알 속이라 자기 바깥 모델은 카메라를 품어 숨겨짐).
     /// </summary>
     [DefaultExecutionOrder(-320)] // InteriorMode(-300) · 패드(-310)보다 먼저: 같은 프레임의 F · ESC를 여기서 먼저 씀
     public sealed class InteriorTelescope : MonoBehaviour
@@ -24,6 +25,8 @@ namespace SpaceStation.Interior
         [SerializeField] private float _restTilt = 8f;
         [Tooltip("회전 중심 → 접안경 (m) — 화면 카메라 자리")]
         [SerializeField] private float _eyeBack = 0.5f;
+        [Tooltip("쉴 때 방향 (도, 템플릿 기준 — 0 = +z)")]
+        [SerializeField] private float _restYaw;
         [SerializeField] private float _yawLimit = 80f;
         [Tooltip("시선 위아래 (도, 위 +)")]
         [SerializeField] private Vector2 _pitchRange = new Vector2(-40f, 30f);
@@ -61,13 +64,18 @@ namespace SpaceStation.Interior
 
         public bool Active => _active;
 
-        public void Configure(Transform head, Vector3 pivot, float restTilt, float lift, TMP_FontAsset font)
+        public void Configure(Transform head, Vector3 pivot, float restTilt, float lift, TMP_FontAsset font, float restYaw = 0f, float yawLimit = 80f, float startPitch = -6f, float startFov = 15f, float minPitch = -40f)
         {
             _head = head;
             _pivot = pivot;
             _restTilt = restTilt;
             _lift = lift;
             _font = font;
+            _restYaw = restYaw;
+            _yawLimit = yawLimit;
+            _startPitch = startPitch;
+            _startFov = startFov;
+            _pitchRange.x = minPitch;
         }
 
         private void Awake()
@@ -179,17 +187,17 @@ namespace SpaceStation.Interior
                 return;
             ApplyHead();
             var parent = _head.parent;
-            var look = Quaternion.Euler(-_pitch, _yaw, 0f);
+            var look = Quaternion.Euler(-_pitch, _restYaw + _yaw, 0f);
             var eye = parent.TransformPoint(_pivot + look * new Vector3(0f, 0f, -_eyeBack));
             _view.RenderLookout(_texture, eye, parent.rotation * look, _fov, _lift);
             _zoom.SetText($"×{_baseFov / _fov:0.0}");
         }
 
-        /// <summary>경통: 쉴 때 자세(+z로 _restTilt 들림)에서 지금 시선까지 피벗을 축으로 돌림.</summary>
+        /// <summary>경통: 쉴 때 자세(_restYaw 쪽으로 _restTilt 들림)에서 지금 시선까지 피벗을 축으로 돌림.</summary>
         private void ApplyHead()
         {
             float headPitch = Mathf.Clamp(_pitch, _headPitchRange.x, _headPitchRange.y);
-            var turn = Quaternion.Euler(-headPitch, _yaw, 0f) * Quaternion.Inverse(Quaternion.Euler(-_restTilt, 0f, 0f));
+            var turn = Quaternion.Euler(-headPitch, _restYaw + _yaw, 0f) * Quaternion.Inverse(Quaternion.Euler(-_restTilt, _restYaw, 0f));
             _head.localRotation = turn * _baseRotation;
             _head.localPosition = _pivot + turn * (_basePosition - _pivot);
         }
