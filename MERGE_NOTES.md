@@ -2076,3 +2076,17 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `57a73879`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-137. 대형 토러스 내부 다시 짬 · 원형 고리 · 시계탑 · 열차 65초 (2026-11-03, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `fc70e029`과 같은 파일)
+- 대형 토러스 내부 `IT_EvoGrandTorus` · `PF_Interior_EvoGrandTorus` · `SM_Interior_EvoGrandTorus.fbx` (Blender `Interior_Evo.blend` 텍스트 `gt_builder`): 사용자 플레이 의견으로 내부 배치를 다시 짬 — 네모 광장 · 곧은 유리벽 · 유리 현관 · 떠 있는 상자 집 없앰 → 외형대로 원형 동네 고리 (안쪽 유리벽 r 13.55) + 통로 넷 + 시계탑 허브. 시계탑 = 둥근 사각 몸통 · 네 면 시계 (새 조각 `INT_EvoGrandTorus_DialFace`: 바깥에서만 보이는 판, 안에서는 창) · 종루 · 첨탑. 집 = 앞면이 허브 쪽으로 줄지음, 아치 집 여덟 = 고가 아래, 계단 = 고리를 따라 휨 (폭 1.33m)
+- `InteriorTemplateBuilder.BuildEvoGrandTorus`: 시계탑 방 높이 5.7, 양옆 문 소켓 깊이 2.9 (가운데 3.9 그대로), 조명 89, 시작 자리 통로 끝, 엘리베이터 안쪽 반지름 0.62. `ResidentSpotBaker` 앉는 자리 56 · 서는 자리 16, `InteriorPlantSpots` 나무 12 · 화분 8
+- `InteriorTrain`: 문 0.9초 · 정차 8초 · 달림 6.5초 (한 바퀴 약 96 → 65초)
+- 새 재질 슬롯 Evo2Window = `M_InteriorEvo2Window` (`InteriorSetup` · `InteriorTemplateBuilder` 재질 표), `MODELING.md` 7-11
+
+### `narrative` 합칠 때
+- 없음 (공통 파일만, 충돌 없을 것). `InteriorSetup` · `InteriorTemplateBuilder`를 고쳤다면 재질 표 줄 하나 · `BuildEvoGrandTorus`만 합치면 됨
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `fc70e029`). TASKS · 글꼴 · `Main.unity`는 tycoon에만

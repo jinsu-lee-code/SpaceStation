@@ -51,9 +51,9 @@ namespace SpaceStation.Interior
         [Tooltip("이름판 자리: 허브에서 거리 · 높이")]
         [SerializeField] private Vector2 _sign;
         [SerializeField] private float _doorTravel = 0.72f;
-        [SerializeField] private float _doorSeconds = 1.1f;
-        [SerializeField] private float _dwell = 12f;
-        [SerializeField] private float _travel = 10f;
+        [SerializeField] private float _doorSeconds = 0.9f;
+        [SerializeField] private float _dwell = 8f;
+        [SerializeField] private float _travel = 6.5f;
         [Tooltip("앉았을 때 눈높이 (객차 바닥에서 m)")]
         [SerializeField] private float _seatedEye = 1.18f;
 
