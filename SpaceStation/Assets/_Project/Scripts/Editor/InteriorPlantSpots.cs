@@ -65,6 +65,18 @@ namespace SpaceStation.Editor
             })
                 tower.Add(new PlantSpot(new Vector3(x, y, z), PlantKind.Pot, s, (n++) * 53f));
             Set("IT_EvoTower", tower);
+            // 진화 2단계 시민 회관 (civ_builder PLANTS): 의료동 화단 나무 넷 · 라운지 화분 넷 (실내라 유리 덮개 없음)
+            Set("IT_EvoCivicHall", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(10.35f, -0.99f, -2.73f), PlantKind.Tree, 0.62f, 0f),
+                new PlantSpot(new Vector3(13.65f, -0.99f, -2.73f), PlantKind.Tree, 0.62f, 47f),
+                new PlantSpot(new Vector3(11f, -0.99f, 10.83f), PlantKind.Tree, 0.62f, 94f),
+                new PlantSpot(new Vector3(13f, -0.99f, 10.83f), PlantKind.Tree, 0.62f, 141f),
+                new PlantSpot(new Vector3(26.298f, -0.92f, 2.298f), PlantKind.Pot, 0.7f, 188f),
+                new PlantSpot(new Vector3(21.702f, -0.92f, 2.298f), PlantKind.Pot, 0.7f, 235f),
+                new PlantSpot(new Vector3(21.702f, -0.92f, -2.298f), PlantKind.Pot, 0.7f, 282f),
+                new PlantSpot(new Vector3(26.298f, -0.92f, -2.298f), PlantKind.Pot, 0.7f, 329f),
+            });
             // 진화 2단계 대형 토러스 (gt_builder PLANTS): 동네 나무 12 (집 사이 8 · 0.42배, 마당 4 · 0.5배) · 아치 집 화분 8 (0.42배). 유리 지붕 안이라 살아 있는 식물도 유리 덮개 없음
             Set("IT_EvoGrandTorus", new List<PlantSpot>
             {

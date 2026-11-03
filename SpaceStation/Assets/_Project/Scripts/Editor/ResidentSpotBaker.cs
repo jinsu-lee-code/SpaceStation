@@ -78,17 +78,18 @@ namespace SpaceStation.Editor
             { "EvoGridHub", new[] { ResidentTrait.Technician } },    // 그리드 허브 = 축전 뱅크 ×2 + 배터리 ×2 (기술자)
             { "EvoOrbitalMirror", new[] { ResidentTrait.Technician } },    // 궤도 미러 = 태양광 어레이 ×3 (기술자)
             { "EvoFusionPlant", new[] { ResidentTrait.Scientist, ResidentTrait.Technician, ResidentTrait.Gardener } },   // 융합 플랜트 = 융합 발전소 (연구원) + 수소 플랜트 (기술자 · 정원사)
+            { "EvoCivicHall", new[] { ResidentTrait.Scientist } },   // 시민 회관 = 복지 센터 · 문화 센터 (의무실 · 학교 = 연구원) + 쉬는 방
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus", "EvoCivicHall" };
 
         /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
         /// 여객 도킹 포트 안내 직원 · 2026-10-31 보안청 창구 직원).</summary>
         private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger", "EvoSecurity" };
 
         /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
-        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" } };
+        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" }, { "EvoCivicHall", "별 구경 중" } };
 
         /// <summary>12-5 일하는 사람 상태 글 (없으면 "일하는 중").</summary>
         private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" } };
@@ -132,7 +133,31 @@ namespace SpaceStation.Editor
             { "EvoFusionPlant", EvoFusionPlantSpots },
             { "EvoArcology", EvoArcologySpots },
             { "EvoGrandTorus", EvoGrandTorusSpots },
+            { "EvoCivicHall", EvoCivicHallSpots },
         };
+
+        /// <summary>
+        /// 진화 2단계 시민 회관 (civ_builder SPOTS, 돔 객석은 칸 바닥보다 아래 — 서기 자리는 바닥층에만): 일하는 자리 = 창구 · 돌봄 캡슐 곁 · 별 지도판 앞, 쉬는 자리 = 객석 20 · 교실 책상 · 벤치 · 라운지 소파 (앉음) + 돌아다니는 자리 (갑판은 우주복).
+        /// </summary>
+        private static List<ResidentSpot> EvoCivicHallSpots()
+        {
+            var list = new List<ResidentSpot>();
+            void Seats(float y, (float x, float z, float yaw)[] seats)
+            {
+                foreach (var (x, z, yaw) in seats)
+                    list.Add(new ResidentSpot(new Vector3(x, y, z), yaw, ResidentPose.Sit));
+            }
+            Seats(-1.18f, new[] { (8.153f, 2.488f, -70f), (8.409f, 4.308f, -94f), (7.903f, 6.075f, -118f), (5.512f, 8.153f, -160f), (3.692f, 8.409f, 176f), (1.925f, 7.903f, 152f), (-0.153f, 5.512f, 110f), (-0.409f, 3.692f, 86f), (0.097f, 1.925f, 62f), (2.488f, -0.153f, 20f), (4.308f, -0.409f, -4f), (6.075f, 0.097f, -28f) });
+            Seats(-1.53f, new[] { (7.191f, 3.085f, -74f), (7.191f, 4.915f, -106f), (4.915f, 7.191f, -164f), (3.085f, 7.191f, 164f), (0.809f, 4.915f, 106f), (0.809f, 3.085f, 74f), (3.085f, 0.809f, 16f), (4.915f, 0.809f, -16f) });
+            Seats(-0.87f, new[] { (-3.207f, -2.726f, 75f), (-3.031f, -3.031f, 45f), (-2.726f, -3.207f, 15f), (-2.726f, 11.207f, 165f), (-3.031f, 11.031f, 135f), (-3.207f, 10.726f, 105f), (11.55f, -2.9f, 0f), (12.45f, -2.9f, 0f), (18.275f, -2.9f, 0f), (18.925f, -2.9f, 0f) });
+            Seats(-0.96f, new[] { (11.7f, 3.39f, -90f), (11.7f, 3.91f, -90f), (11.7f, 5.04f, -90f), (11.7f, 5.56f, -90f), (11.7f, 6.69f, -90f), (11.7f, 7.21f, -90f), (12.8f, 3.39f, -90f), (12.8f, 3.91f, -90f), (12.8f, 5.04f, -90f), (12.8f, 5.56f, -90f), (12.8f, 6.69f, -90f), (12.8f, 7.21f, -90f) });
+            Seats(-0.86f, new[] { (23.689f, -1.159f, 15f), (24.41f, -1.128f, -20f), (24.983f, -0.688f, -55f), (25.2f, 0f, -90f), (24.983f, 0.688f, -125f), (24.41f, 1.128f, -160f), (23.689f, 1.159f, 165f) });
+            foreach (var (x, z, yaw) in new[] { (12f, 2.76f, 180f), (16.95f, 2.15f, 90f), (16.95f, 4.95f, 90f), (16.95f, 10.6f, 90f), (10.9f, 5.3f, 90f) })
+                list.Add(new ResidentSpot(new Vector3(x, Floor, z), yaw, ResidentPose.Work, true));
+            foreach (var (x, z, yaw) in new[] { (12.2f, 1.42f, 0f), (12f, -1.3f, 180f), (17.5f, -1.8f, 90f), (16.2f, 10.6f, 90f), (10.2f, 10.4f, -160f), (21.3f, 1.7f, 110f), (26.3f, -2.3f, -60f), (9.356f, 5.95f, -110f), (-1.356f, 5.95f, 110f), (2.05f, -1.356f, 20f), (9.356f, 2.05f, -70f), (-3f, 1f, 90f), (1.5f, 11f, 180f) })
+                list.Add(new ResidentSpot(new Vector3(x, Floor, z), yaw, ResidentPose.Stand));
+            return list;
+        }
 
         /// <summary>
         /// 진화 2단계 대형 토러스 (gt_builder SPOTS, 층마다 바닥 높이 다름): 일하는 자리 없음 (거주), 쉬는 자리 = 아치 집 안락의자 8 → 회랑 벤치 · 마당 벤치 · 허브 벤치 → 승강장 벤치 16 (앉음, 시계탑 방은 좁아 벤치 없음)

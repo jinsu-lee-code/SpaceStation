@@ -2116,3 +2116,17 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `c69f4481`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-140. 시민 회관 내부 "스텔라돔" · 별 상영 · 객석 앉기 (2026-11-03, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `aa6107b7`과 같은 파일)
+- 새 템플릿 `IT_EvoCivicHall` · `PF_Interior_EvoCivicHall` · `SM_Interior_EvoCivicHall.fbx` (Blender `civ_builder`, `Interior_Evo.blend`), 재질 `M_InteriorEvo2StarDome` · `M_InteriorEvo2StarLines` · `M_Accent_Evo_CivicHall` · `M_Paint_Evo_CivicHall`, 셰이더 `StellaDome` · `StellaLines`
+- 새 코드 `InteriorStellaDome` (상영 75초 · 별자리 8개 · 객석 F로 앉기), `InteriorTemplateBuilder.BuildEvoCivicHall`, `ResidentSpotBaker.EvoCivicHallSpots`, `InteriorPlantSpots`, `InteriorSetup` 재질 경로 둘 · `InteriorKit.asset` 재질 슬롯
+- **공통 코드 변경** `InteriorSocket.SealedWall` (소켓별 닫힌 문 자리 = 아치 창, 생성자 인자 기본 false) · `InteriorBuilder.Panel(sealedWall)`, `FirstPersonController.RideAt`에 선택 인자 `yaw` · `pitch` (기본 null, 기존 호출 동작 그대로)
+- `MODELING.md` 7-11 · 8-8 · 8-9
+
+### `narrative` 합칠 때
+- 없음 (공통 파일만). `InteriorBuilder.Panel` · `RideAt`을 고쳤다면 새 인자 줄만 합치면 됨
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `aa6107b7`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
