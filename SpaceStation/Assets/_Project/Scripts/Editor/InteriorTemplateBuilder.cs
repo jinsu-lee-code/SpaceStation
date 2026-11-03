@@ -119,6 +119,166 @@ namespace SpaceStation.Editor
             BuildEvoArcology();
             BuildEvoGrandTorus();
             BuildEvoCivicHall();
+            BuildEvoSecurityHQ();
+        }
+
+        /// <summary>
+        /// 진화 2단계 치안 본부 "푸른 등 파출소 광장" (2 × 2칸, sh_builder — 사용자 2026-11-03 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 감시탑 전망실 (엘리베이터 + 망원경 둘, <see cref="InteriorLift"/> · <see cref="InteriorTelescope"/>) · 광장에서 출동하는 순찰차 (<see cref="InteriorPatrolCar"/>).
+        /// 외형 평면 그대로: 왼쪽 아래 칸 = 천장 없는 광장 (우주복, 돌바닥 · 벤치 · 가로등 · 머리 위 순찰 드론 고리 Orbit1 · 떠 있는 순찰차 Car1 · 2 · 번호표 발권기), ㄱ자 청사 = 나머지 세 칸 (유리 벽 + 박공 현관, 깎은 안쪽 모서리에 금빛 아치 + 압력 막 Curtain).
+        /// 민원 창구 셋은 광장 쪽 벽 (바깥 턱 · 번호판, 유리 너머 직원) — 번호표 받은 광장 벤치 주민이 창구 앞으로 (<see cref="InteriorQueueBoard"/>, 틀 0° · 민원인 구역 = 광장),
+        /// 청사 안 = 동쪽 전시장 (도는 판 위 순찰차 Show · 진열장 셋) · 북쪽 둥근 유리 상황실 (실제 운석 예보 <see cref="InteriorRadar"/> Sweep · Beacon) · 로비 (감시탑 몸통 · 안내 데스크 + 실제 정거장 지도 <see cref="InteriorStationMap"/>) · 지붕 착륙장 천창 + 드론 PadDrone1 · 2.
+        /// 문 자리 8 = 광장 둘 (깊이 3.95, 닫힘 = 난간) · 청사 여섯 (깊이 3.79, 닫힘 = 막힌 창 패널 <see cref="InteriorSocket.SealedWall"/>). 아래 해치 = 칸마다 넷, 위 해치 = (1, 0) · (0, 1) — 광장은 하늘, (1, 1)은 감시탑.
+        /// </summary>
+        private static void BuildEvoSecurityHQ()
+        {
+            const float Ceil = F + 3.85f, DeckEdge = 3.95f, Wall = 3.79f, TowerFloor = F + 2.95f, TowerCeil = 3.78f, TX = 8.6f, TZ = 8.6f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var c00 = new Vector3Int(0, 0, 0);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var c11 = new Vector3Int(1, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, DeckEdge),
+                new InteriorSocket(c00, back, DeckEdge),
+                new InteriorSocket(c10, back, Wall, default, true),
+                new InteriorSocket(c10, Vector3Int.right, Wall, default, true),
+                new InteriorSocket(c01, Vector3Int.left, Wall, default, true),
+                new InteriorSocket(c01, front, Wall, default, true),
+                new InteriorSocket(c11, front, Wall, default, true),
+                new InteriorSocket(c11, Vector3Int.right, Wall, default, true),
+                new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(-1.9f, 0f, 2.0f)),   // 광장 휘장 · 드론 고리 아래 비킴
+                new InteriorSocket(c10, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.down, -F, new Vector3(-2.1f, 0f, 0f)),     // 상황실 서쪽
+                new InteriorSocket(c11, Vector3Int.down, -F, new Vector3(-2.1f, 0f, 0.6f)),   // 감시탑 서쪽 로비
+                new InteriorSocket(c10, Vector3Int.up, Ceil, new Vector3(0.5f, 0f, 2.6f)),    // 천창 비킴
+                new InteriorSocket(c01, Vector3Int.up, Ceil, new Vector3(-2.1f, 0f, 0.6f)),
+            };
+            var hall = Color.white;   // 청사 = 맑은 흰빛 (누런 등이면 흰 벽이 갈색으로 보임)
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, z, range, power) in new[]
+            {
+                (7.6f, -1.8f, 7.5f, 1.7f), (10.2f, -1f, 7.5f, 1.6f), (7.8f, 2.9f, 7.5f, 1.6f), (10.3f, 3f, 7f, 1.5f),      // 동쪽 전시장
+                (5.4f, -0.9f, 5.5f, 1.2f), (5.4f, 1.4f, 5.5f, 1.2f),                                                     // 창구 직원 칸
+                (5.6f, 6.4f, 7f, 1.6f), (10.4f, 6.6f, 6f, 1.2f), (6.8f, 10f, 6f, 1.2f), (10.2f, 10.2f, 6f, 1.2f),         // 로비
+                (-2.2f, 6.6f, 6f, 1.5f), (1f, 5.7f, 6f, 1.4f), (3.6f, 8f, 6f, 1.5f), (-2.2f, 10f, 6f, 1.3f), (0.8f, 10.6f, 6f, 1.3f), (3.8f, 10.4f, 6f, 1.2f),   // 북쪽 칸 · 안내 데스크
+            })
+                lights.Add(LightSpec.Point(new Vector3(x, Ceil - 0.5f, z), range, power, hall));
+            lights.Add(LightSpec.Point(new Vector3(0.6f, F + 2.4f, 8.05f), 3f, 0.7f, cool));                   // 둥근 상황실
+            lights.Add(LightSpec.Point(new Vector3(TX, TowerCeil - 0.5f, TZ), 5.5f, 1.5f, hall));                // 전망실
+            foreach (var (x, z) in new[] { (-3.2f, 3.95f), (-3.45f, -1.75f), (4.2f, -3.35f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.35f, z), 5f, 0.85f, cool));                    // 광장 가로등
+            lights.Add(LightSpec.Point(new Vector3(-1.2f, F + 3f, 1.6f), 8f, 0.9f, hall));                     // 광장
+            lights.Add(LightSpec.Point(new Vector3(1.8f, F + 3f, -1.2f), 8f, 0.9f, hall));
+            lights.Add(LightSpec.Point(new Vector3(2.6f, F + 2.2f, 2.85f), 4f, 0.8f, new Color(0.5f, 0.65f, 1f)));   // 현관 푸른 등 밑
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoSecurityHQ_Orbit1", new Vector3(0.4f, 0f, 0.6f), Vector3.up, 18f),       // 광장 순찰 드론 고리
+                new OrbitSpec("INT_EvoSecurityHQ_PadDrone1", new Vector3(-0.4f, 0f, 8.6f), Vector3.up, 25f),   // 지붕 착륙장
+                new OrbitSpec("INT_EvoSecurityHQ_PadDrone2", new Vector3(8.6f, 0f, -0.25f), Vector3.up, -20f),
+                new OrbitSpec("INT_EvoSecurityHQ_Show", new Vector3(9.95f, 0f, -1.95f), Vector3.up, 12f),      // 전시대
+                new OrbitSpec("INT_EvoSecurityHQ_Cam", new Vector3(TX, 0f, TZ + 2f), Vector3.up, 30f),              // 감시탑 카메라
+                new OrbitSpec("INT_EvoSecurityHQ_Sweep", new Vector3(0.6f, 0f, 8.05f), Vector3.up, 60f),       // 상황판 쓸기 빛
+            };
+            EvoAccent("SecurityHQ", "#A0B8FF");
+            // 스폰 = 서쪽 문 안 광장에서 현관을 바라봄
+            Build("EvoSecurityHQ", "Evolved/MD_Evo_SecurityHQ", sockets, new Vector3(-2.6f, F, -0.1f), 56f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[]
+                    {
+                        new Vector3(7f, -1.8f, 2.35f), new Vector3(7f, 2f, 2.35f), new Vector3(9.8f, -1.5f, 2.6f), new Vector3(9.8f, 2.6f, 2.6f),   // 동쪽 칸
+                        new Vector3(6f, 4.5f, 1.4f),
+                        new Vector3(-1.6f, 7.4f, 2.5f), new Vector3(2f, 7.4f, 2.5f), new Vector3(-1.6f, 10f, 2.3f), new Vector3(2f, 10f, 2.3f),     // 북쪽 칸
+                        new Vector3(4.2f, 6.4f, 1.6f),
+                        new Vector3(6.9f, 7.1f, 2.2f), new Vector3(9.5f, 9.5f, 2.6f), new Vector3(6.5f, 10f, 2f), new Vector3(10f, 6.5f, 1.9f),     // 로비
+                    });
+                    // 전시대 유리 캐노피는 판과 함께 돎, 충돌체 = 판 전체 원기둥 (도는 차를 지나가지 못함)
+                    var showHit = new GameObject("ShowHit");
+                    showHit.transform.SetParent(root.transform, false);
+                    showHit.transform.localPosition = new Vector3(9.95f, F + 1f, -1.95f);
+                    var showCapsule = showHit.AddComponent<CapsuleCollider>();
+                    showCapsule.radius = 1.1f;
+                    showCapsule.height = 2f;
+                    Child(root, "INT_EvoSecurityHQ_ShowGlass").SetParent(Child(root, "INT_EvoSecurityHQ_Show"), true);
+                    // 떠 있는 순찰차 둘: 차 바닥 가운데 피벗 아래로 (앞 = +x), 평소 충돌체 = 차 경계 상자 (날 때는 꺼짐)
+                    var plume = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/Synthesis/M_Synth_Particle.mat");
+                    var thrusters = new[] { new Vector3(0.88f, 0.27f, 0.9f), new Vector3(0.88f, 0.27f, -0.9f), new Vector3(-0.88f, 0.27f, 0.9f), new Vector3(-0.88f, 0.27f, -0.9f) };
+                    foreach (var (part, at, heading, distance) in new[]
+                    {
+                        ("Car1", new Vector3(-1.85f, F + 0.36f, -2.25f), Vector3.left, 1.9f),
+                        ("Car2", new Vector3(2.1f, F + 0.36f, -2.35f), Vector3.back, 1.5f),
+                    })
+                    {
+                        var pivot = new GameObject(part + "Pivot").transform;
+                        pivot.SetParent(root.transform, false);
+                        pivot.localPosition = at;
+                        var body = Child(root, $"INT_EvoSecurityHQ_{part}");
+                        body.SetParent(pivot, true);
+                        Child(root, $"INT_EvoSecurityHQ_{part}Glass").SetParent(pivot, true);
+                        BoxOf(body, 0f);
+                        root.AddComponent<InteriorPatrolCar>().Configure(pivot, thrusters, new Vector3(-0.05f, 1.18f, -0.18f), new Vector3(-0.05f, 1.18f, 0.18f), new Vector3(0.2f, 0.14f, 0.34f), plume, heading, distance);
+                    }
+                    // 민원 창구 셋 (광장 쪽 벽 x 4.6, sh_builder WINS · counters_outside): 번호판 = 창 위, 직원 = 유리 안, 민원인 = 바깥 턱 앞에서 동쪽을 봄
+                    InteriorQueueBoard.Window Window(float z) => new InteriorQueueBoard.Window
+                    {
+                        Board = new InteriorQueueBoard.Panel { Center = new Vector3(4.579f, F + 3.14f, z), Normal = Vector3.left, Up = Vector3.up, Width = 0.7f, Height = 0.16f },
+                        StaffSeat = new Vector3(5.94f, F + 0.49f, z),
+                        Counter = new Vector4(3.85f, F, z, 90f),
+                    };
+                    var queue = root.AddComponent<InteriorQueueBoard>();
+                    queue.Configure(new[] { Window(-0.9f), Window(0.6f), Window(2.1f) },
+                        new InteriorQueueBoard.Panel { Center = new Vector3(1.1f, F + 1.19f, 4.281f), Normal = Vector3.back, Up = Vector3.up, Width = 0.32f, Height = 0.18f },
+                        new Vector4(1.1f, F, 3.82f, 0f), 2.9f, 3.7f, 3.4f, new Vector3(1.1f, F, 3.4f));
+                    queue.ConfigureLanes(new[]
+                    {
+                        new Vector4(-2.75f, 2.9f, 3.7f, 2.9f), new Vector4(-2.75f, 3.4f, 1.1f, 3.4f), new Vector4(1.1f, 3.4f, 1.1f, 3.82f),
+                        new Vector4(3.7f, 2.9f, 3.7f, -0.9f), new Vector4(-2.7f, 2.1f, -2.7f, 3.4f),
+                    }, 0.35f);
+                    queue.ConfigureVisitorArea(new Rect(-3.95f, -3.95f, 8.55f, 8.8f));   // 광장 벤치 주민만 민원인 — 청사 안 주민은 그대로 돌아다님
+                    // 둥근 상황실 레이더 (sh_builder RC) = 실제 운석 예보, 예보 글 = 뒤쪽 상황판 (앞면 z = RC + 1.405)
+                    root.AddComponent<InteriorRadar>().Configure(new Vector3(0.6f, F + 0.958f, 8.05f), 0.78f,
+                        Child(root, "INT_EvoSecurityHQ_Sweep").GetComponent<InteriorOrbit>(),
+                        Child(root, "INT_EvoSecurityHQ_Beacon").GetComponent<Renderer>(),
+                        new Vector3(0.6f, F + 1.55f, 9.454f), Vector3.back, Vector3.up, new Vector2(0.7f, 0.5f));
+                    // 안내 데스크 뒤 벽 실제 정거장 지도
+                    root.AddComponent<InteriorStationMap>().Configure(new Vector3(4f, F + 1.85f, 11.399f), Vector3.back, Vector3.up, new Vector2(2.24f, 1.14f),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath));
+                    // 감시탑 엘리베이터 (로비 ↔ 전망실)
+                    var car = Child(root, "INT_EvoSecurityHQ_LiftCar");
+                    var carGlass = Child(root, "INT_EvoSecurityHQ_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[2];
+                    var right = new Transform[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoSecurityHQ_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoSecurityHQ_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoSecurityHQ_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoSecurityHQ_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, TowerFloor - F }, left, right, new Vector3(TX, F + 0.085f, TZ), Vector3.right, 0.75f);
+                    // 전망실 망원경 둘 (sh_builder scopes): 아콜로지 · 1단계와 같은 들여다보기, 바깥쪽을 쉴 때 방향으로 좌우 ±100°
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    var scopes = new[] { 190f, 350f };
+                    for (int k = 0; k < scopes.Length; k++)
+                    {
+                        var head = Child(root, $"INT_EvoSecurityHQ_Scope{k + 1}");
+                        BoxOf(head, 0.06f);
+                        float a = scopes[k] * Mathf.Deg2Rad;
+                        root.AddComponent<InteriorTelescope>().Configure(head, new Vector3(TX + 2.25f * Mathf.Cos(a), TowerFloor + 1.3f, TZ + 2.25f * Mathf.Sin(a)), 18f, 0f, font, 90f - scopes[k], 100f, startPitch: -16f, startFov: 24f, minPitch: -60f);
+                    }
+                });
         }
 
         /// <summary>
@@ -4197,6 +4357,7 @@ namespace SpaceStation.Editor
             { "EvoArcology", InteriorAmbience.Life },         // 섬 도시
             { "EvoGrandTorus", InteriorAmbience.Life },       // 바퀴 마을
             { "EvoCivicHall", InteriorAmbience.Life },        // 회관 · 돌봄 · 교실
+            { "EvoSecurityHQ", InteriorAmbience.Life },       // 파출소 광장 · 민원 창구
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,

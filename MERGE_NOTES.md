@@ -2144,3 +2144,20 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `8f799fe0`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-142. 치안 본부 내부 "푸른 등 파출소 광장" · 순찰차 경광등 · 닫힌 문 자리 하늘 조각 (2026-11-03, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `9b7e2bde`과 같은 파일)
+- 치안 본부 템플릿 (`SM_Interior_EvoSecurityHQ.fbx` · `PF_Interior_EvoSecurityHQ` · `IT_EvoSecurityHQ` · `M_Accent_Evo_SecurityHQ` · `M_Paint_Evo_SecurityHQ`, Blender `sh_builder`, `Interior_Evo.blend`), `InteriorTemplateBuilder.BuildEvoSecurityHQ` · `ResidentSpotBaker.EvoSecurityHQSpots` · `InteriorPlantSpots`
+- 새 코드 `InteriorPatrolCar` (내부 떠 있는 순찰차 출동) · `PatrolSiren` (순찰차 경광등 공통: 렌즈 모양 상자가 파랑 · 빨강 번쩍임)
+- **공통 코드 변경** `PatrolCarFx` (바깥 모듈 순찰차): 둥근 입자 경광등 → `PatrolSiren`. 실행 때 상자 둘을 만들 뿐 프리팹 변경 없음
+- **공통 코드 변경** `InteriorQueueBoard`: 창구를 돌아가며 부름 (행정 관제소 · 보안청도 번호가 고르게 바뀜), 새 `ConfigureVisitorArea` (비어 있으면 예전과 같음)
+- **공통 자산 변경 (2단계 내부 모두)** 닫힌 문 자리 하늘 조각을 패널에서 분리: `SM_InteriorKit_Evo2.fbx` (`KIT_Wall_Evo2` · `KIT_WallSealed_Evo2`에서 빼고 `KIT_SkyPatch_Evo2` 추가) · `InteriorKit.asset` · `InteriorKit.cs` (`SkyPatch` · `SkyPatchFor`) · `InteriorSetup` · `InteriorBuilder.Panel` (칸 가운데 + 3.98에 놓음)
+- 시험 `InteriorLiftShaftTests` · `InteriorKitSkyPatchTests` · `PatrolCarFxTests` 추가분, `MODELING.md` 7-11 · 8-11 · 8-12
+
+### `narrative` 합칠 때
+- `InteriorBuilder` · `InteriorKit` · `InteriorQueueBoard` · `PatrolCarFx`를 고쳤다면 그 파일만 손으로 합칠 것. `SM_InteriorKit_Evo2.fbx` · `InteriorKit.asset`은 메뉴 `SpaceStation/Interior/Setup`으로 다시 만들 수 있음
+- 새 2단계 템플릿은 문 자리 하늘 조각을 Blender에서 만들지 말 것 (빌더가 놓음), 하늘 껍질의 문 구멍 안쪽 끝은 그대로 3.93
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `9b7e2bde`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
