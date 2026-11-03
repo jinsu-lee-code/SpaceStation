@@ -2103,3 +2103,16 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `45d49617`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-139. 진화 내부 전체 모델 검사 · 떠 있는 조각 수리 (2026-11-03, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `c69f4481`과 같은 파일. 그 커밋 때 main으로 옮기지 않아 M-140 앞에서 함께 옮김)
+- 받침 없이 떠 있던 조각 수리 (Blender `Interior_Evo.blend`, FBX 8종: `SM_Interior_EvoArmor` · `EvoDefense` · `EvoFarm` · `EvoFusionPlant` · `EvoGridHub` · `EvoReclaim` · `EvoShield` · `EvoTower`): 코일 나무 · 덤불 · 콘솔 화면 받침 · 의자 등받이 · 예비 장갑판 · 재배등 · 쌓은 상자 · 깔때기 고철 · 수레 축
+- 템플릿을 다시 구운 결과: `PF_Interior_Evo*` 프리팹 (fileID가 다시 매겨진 것이 대부분), `IT_*.asset` (`_sealedSockets: 0` 직렬화 한 줄, `IT_Recreation`은 `_workStatus`도), `M_Paint_Evo_*` 11종 `_Color`, `M_InteriorEvo2WaterGlow` · `M_InteriorWaterClear`
+- 검사 도구 `interior_scan`을 모든 템플릿 공용으로, `MODELING.md` 7-11 · 8-7
+
+### `narrative` 합칠 때
+- 없음 (공통 파일만). 위 템플릿 · 프리팹을 고쳤다면 Build Evolved Templates로 다시 구우면 됨
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `c69f4481`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
