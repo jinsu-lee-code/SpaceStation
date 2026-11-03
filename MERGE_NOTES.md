@@ -2090,3 +2090,16 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `fc70e029`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-138. 대형 토러스 난간 · 구멍 수리 · 실내형 방의 닫힌 문 자리 (2026-11-03, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `45d49617`과 같은 파일)
+- 대형 토러스 모델 수리 (`SM_Interior_EvoGrandTorus.fbx` · `PF_Interior_EvoGrandTorus` · `IT_EvoGrandTorus`, Blender `gt_builder`): 계단 안쪽 손잡이 받침 · 층계참 난간, 통로 입구 · 허브 문 · 통로 바닥 · 층계참 · 승강장 끝 · 돔 꼭대기 · 45° 이음매 틈. `arch_wall` 타원 구멍 · 구멍 없는 칸
+- **공통 데이터 추가** 새 키트 조각 `KIT_WallSealed_Evo2` (`SM_InteriorKit_Evo2.fbx`, `InteriorKit.asset` 2단계 묶음), `InteriorKitStage.SealedWall` · `InteriorKit.SealedWallFor`, `InteriorTemplate.SealedSockets` (기본 꺼짐, 대형 토러스만 켬): 지붕 · 유리 안 실내형 방의 연결 안 된 문 자리에 난간 + 하늘 대신 아치 창 패널. `InteriorBuilder.Panel`이 이 값으로 고름, `InteriorSetup` 재질 슬롯 Evo2ClearGlass · `InteriorSpots`가 창 패널에 소품을 붙이지 않음
+- Blender 텍스트 `interior_scan` (떠 있는 조각 · 바닥 구멍 · 밀폐 검사), `MODELING.md` 7-11 · 8-7
+
+### `narrative` 합칠 때
+- 없음 (공통 파일만, 충돌 없을 것). `InteriorBuilder.Panel` · `InteriorSetup` 조각 표를 고쳤다면 그 줄만 합치면 됨. 다른 템플릿은 `_sealedSockets` 없어도 꺼짐
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `45d49617`). TASKS · 글꼴 · `Main.unity`는 tycoon에만

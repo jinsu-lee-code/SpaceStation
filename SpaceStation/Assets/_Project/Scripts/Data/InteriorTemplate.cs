@@ -125,6 +125,8 @@ namespace SpaceStation.Data
         [SerializeField] private InteriorAmbience _ambience = InteriorAmbience.Hall;
         [Tooltip("12-5 바깥 창에 이 방 모듈의 바깥 모델도 비춤 (구조 프레임 = 트러스 속 · 센서 어레이 = 천창 위 접시). 끄면 다른 방처럼 자기 껍데기를 숨김")]
         [SerializeField] private bool _showOwnExterior;
+        [Tooltip("지붕 · 유리 안 실내형 방: 닫힌 문 자리에 난간 + 하늘 대신 막힌 창 패널 (InteriorKit.SealedWallFor). 개방형 갑판이 아닌 2단계 방에서 켬")]
+        [SerializeField] private bool _sealedSockets;
 
         [Header("11-11 주민")]
         [Tooltip("주민이 서거나 앉는 자리 (모듈 로컬)")]
@@ -155,6 +157,7 @@ namespace SpaceStation.Data
         public string WorkStatus => _workStatus;
         public InteriorAmbience Ambience => _ambience;
         public bool ShowOwnExterior => _showOwnExterior;
+        public bool SealedSockets => _sealedSockets;
         public GameObject Prefab => _prefab;
         public IReadOnlyList<InteriorSocket> Sockets => _sockets;
         public Vector3 Spawn => _spawn;
@@ -190,6 +193,8 @@ namespace SpaceStation.Data
         public void EditorSetAmbience(InteriorAmbience ambience) => _ambience = ambience;
 
         public void EditorSetShowOwnExterior(bool show) => _showOwnExterior = show;
+
+        public void EditorSetSealedSockets(bool sealedSockets) => _sealedSockets = sealedSockets;
 
         public void EditorSetPlants(List<PlantSpot> spots) => _plantSpots = spots ?? new List<PlantSpot>();
 

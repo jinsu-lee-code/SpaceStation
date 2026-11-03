@@ -583,7 +583,7 @@ namespace SpaceStation.Interior
             {
                 Solid(solidCenter, rotation, new Vector3(panel.Width, h, t));
                 if (_kit != null)
-                    KitPiece(_kit.WallFor(module.Data), module, parent, center, rotation, new Vector3(panel.Width / InteriorGeometry.PanelWidth, 1f, 1f)); // 진화 모듈 = 단계 조각 (InteriorKitStage)
+                    KitPiece(TemplateFor(module)?.SealedSockets == true ? _kit.SealedWallFor(module.Data) : _kit.WallFor(module.Data), module, parent, center, rotation, new Vector3(panel.Width / InteriorGeometry.PanelWidth, 1f, 1f)); // 진화 모듈 = 단계 조각 (InteriorKitStage), 실내형 방 = 막힌 창 패널
                 else
                     Cube(parent, module, solidCenter, rotation, new Vector3(panel.Width, h, t), color);
                 return;
