@@ -49,6 +49,8 @@ namespace SpaceStation.Data
         [SerializeField] private InteriorKitPiece _hatchLid;
         [Tooltip("실내형 방의 닫힌 문 자리 (InteriorTemplate.SealedSockets): 비어 있으면 Wall")]
         [SerializeField] private InteriorKitPiece _sealedWall;
+        [Tooltip("닫힌 문 자리 뒤 하늘 조각 (하늘 껍질의 문 구멍을 메움): 칸 경계에 놓음 — 패널 뒤에 붙이면 문 깊이에 따라 옆 칸으로 튀어나옴")]
+        [SerializeField] private InteriorKitPiece _skyPatch;
 
         public int Stage => _stage;
         public IReadOnlyList<ModuleData> Modules => _modules;
@@ -60,11 +62,13 @@ namespace SpaceStation.Data
         public InteriorKitPiece HatchFrame => _hatchFrame;
         public InteriorKitPiece HatchLid => _hatchLid;
         public InteriorKitPiece SealedWall => _sealedWall;
+        public InteriorKitPiece SkyPatch => _skyPatch;
 
         public InteriorKitStage(int stage, List<ModuleData> modules, InteriorKitPiece wall, InteriorKitPiece wallDoor, InteriorKitPiece doorLeaf,
-            InteriorKitPiece floor, InteriorKitPiece ceiling, InteriorKitPiece hatchFrame, InteriorKitPiece hatchLid, InteriorKitPiece sealedWall = null)
+            InteriorKitPiece floor, InteriorKitPiece ceiling, InteriorKitPiece hatchFrame, InteriorKitPiece hatchLid, InteriorKitPiece sealedWall = null, InteriorKitPiece skyPatch = null)
         {
             _sealedWall = sealedWall;
+            _skyPatch = skyPatch;
             _stage = stage;
             _modules = modules ?? new List<ModuleData>();
             _wall = wall;
@@ -151,6 +155,7 @@ namespace SpaceStation.Data
         // 모듈 방에 쓸 조각 — 진화 단계 묶음에 그 모듈이 있고 조각이 있으면 단계 조각, 아니면 기본 조각
         public InteriorKitPiece WallFor(ModuleData data) => Pick(StageOf(data)?.Wall, _wall);
         public InteriorKitPiece SealedWallFor(ModuleData data) => Pick(StageOf(data)?.SealedWall, WallFor(data));
+        public InteriorKitPiece SkyPatchFor(ModuleData data) => Pick(StageOf(data)?.SkyPatch, null);
         public InteriorKitPiece WallDoorFor(ModuleData data) => Pick(StageOf(data)?.WallDoor, _wallDoor);
         public InteriorKitPiece DoorLeafFor(ModuleData data) => Pick(StageOf(data)?.DoorLeaf, _doorLeaf);
         public InteriorKitPiece FloorFor(ModuleData data) => Pick(StageOf(data)?.Floor, _floor);

@@ -8,7 +8,7 @@ namespace SpaceStation.Building
     /// 진화 치안 본부 광장의 떠 있는 순찰차 (사용자 2026-10-27 "실제 비행이 가능한 느낌 — 합성 때 쓴 추진체 이펙트 · 출동 연출",
     /// StationArtBuilder가 "PatrolCar_*" 부품마다 자동 배선 — 부품 원점 = 차 바닥 가운데, 앞 = +x):
     /// - 네 모서리 덕트 팬 아래로 합성 고리와 같은 추진 불꽃 (흰 심 → 청백, 아래로 뿜음), 살짝 떠올라 출렁이며 대기.
-    /// - 가동 중이면 가끔 출동: 경광등이 좌우 번갈아 번쩍 → 추진을 세게 하며 떠오름 → 바깥쪽으로 돌아섬 → 앞으로 숙이고
+    /// - 가동 중이면 가끔 출동: 경광등이 파랑 · 빨강 번갈아 번쩍 (<see cref="PatrolSiren"/>) → 추진을 세게 하며 떠오름 → 바깥쪽으로 돌아섬 → 앞으로 숙이고
     ///   가속하며 날아가 멀어지며 사라짐 → 잠시 뒤 같은 길로 돌아와 제자리에 내려앉음.
     /// 움직임은 게임 시간. 비활성이면 출동하지 않음. 고스트(배치 미리보기)에서는 아무것도 하지 않음.
     /// </summary>
@@ -35,7 +35,7 @@ namespace SpaceStation.Building
         private const float AlertTime = 0.7f, LiftTime = 1.2f, TurnTime = 0.8f, FlyTime = 2.6f;
 
         private ParticleSystem[] _plumes;
-        private ParticleSystem _siren;
+        private PatrolSiren _siren;
         private ModuleView _view;
         private bool _live;
         private bool _built;
@@ -69,7 +69,7 @@ namespace SpaceStation.Building
             _plumes = new ParticleSystem[_thrusters.Length];
             for (int i = 0; i < _thrusters.Length; i++)
                 _plumes[i] = Plume(_thrusters[i]);
-            _siren = Siren();
+            _siren = new PatrolSiren(transform, _plumeMaterial, _sirenA, _sirenB, new Vector3(0.022f, 0.012f, 0.02f), 1.6f);
             SetThrust(0f);
         }
 
@@ -134,6 +134,7 @@ namespace SpaceStation.Building
             });
             SetThrust(-1f);
             StopCoroutine(sirenOn);
+            _siren.Stop();
             yield return new WaitForSeconds(Random.Range(6f, 10f));
             // 같은 길로 돌아옴 (감속)
             sirenOn = StartCoroutine(SirenLoop());
@@ -154,6 +155,7 @@ namespace SpaceStation.Building
                 transform.localPosition = Vector3.Lerp(top, _home + Vector3.up * _hover, Ease(k));
             });
             StopCoroutine(sirenOn);
+            _siren.Stop();
             SetThrust(0f);
             transform.localScale = Vector3.one;
             _timer = Random.Range(_dispatchEvery.x, _dispatchEvery.y);
@@ -186,19 +188,11 @@ namespace SpaceStation.Building
 
         private IEnumerator SirenLoop()
         {
-            bool left = false;
+            _siren.Start();
             while (true)
             {
-                left = !left;
-                _siren.Emit(new ParticleSystem.EmitParams
-                {
-                    position = left ? _sirenA : _sirenB,
-                    startSize = left ? 0.07f : 0.055f,
-                    startColor = left ? new Color(0.45f, 0.65f, 1f, 1f) : Color.white,
-                    startLifetime = 0.09f,
-                    applyShapeToPosition = false,
-                }, 1);
-                yield return new WaitForSeconds(0.12f);
+                _siren.Tick(Time.deltaTime);
+                yield return null;
             }
         }
 
@@ -251,30 +245,6 @@ namespace SpaceStation.Building
             g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(_plumeColor, 1f) },
                 new[] { new GradientAlphaKey(0.9f, 0f), new GradientAlphaKey(0f, 1f) });
             color.color = g;
-            var r = go.GetComponent<ParticleSystemRenderer>();
-            r.sharedMaterial = _plumeMaterial;
-            r.shadowCastingMode = ShadowCastingMode.Off;
-            r.receiveShadows = false;
-            ps.Play();
-            return ps;
-        }
-
-        private ParticleSystem Siren()
-        {
-            var go = new GameObject("Siren");
-            go.transform.SetParent(transform, false);
-            var ps = go.AddComponent<ParticleSystem>();
-            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            var main = ps.main;
-            main.loop = true;
-            main.simulationSpace = ParticleSystemSimulationSpace.Local; // 차와 함께 움직임
-            main.scalingMode = ParticleSystemScalingMode.Hierarchy;
-            main.startSpeed = 0f; // 경광등 자리에 머묾 (기본 속도 5면 날아감)
-            main.maxParticles = 8;
-            var emission = ps.emission;
-            emission.enabled = false;
-            var shape = ps.shape;
-            shape.enabled = false;
             var r = go.GetComponent<ParticleSystemRenderer>();
             r.sharedMaterial = _plumeMaterial;
             r.shadowCastingMode = ShadowCastingMode.Off;

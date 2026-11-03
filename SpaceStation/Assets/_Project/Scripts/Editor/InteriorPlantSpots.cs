@@ -65,6 +65,12 @@ namespace SpaceStation.Editor
             })
                 tower.Add(new PlantSpot(new Vector3(x, y, z), PlantKind.Pot, s, (n++) * 53f));
             Set("IT_EvoTower", tower);
+            // 진화 2단계 치안 본부 (sh_builder PLANTS): 청사 안 화단 나무 둘 (실내라 유리 덮개 없음)
+            Set("IT_EvoSecurityHQ", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-2.2f, -0.99f, 10.2f), PlantKind.Tree, 0.62f, 0f),
+                new PlantSpot(new Vector3(2.3f, -0.99f, 10.6f), PlantKind.Tree, 0.55f, 47f),
+            });
             // 진화 2단계 시민 회관 (civ_builder PLANTS): 의료동 화단 나무 넷 · 라운지 화분 넷 (실내라 유리 덮개 없음)
             Set("IT_EvoCivicHall", new List<PlantSpot>
             {

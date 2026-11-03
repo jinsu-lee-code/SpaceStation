@@ -542,7 +542,9 @@ namespace SpaceStation.Interior
                 }
                 var center = CellCenter(cell) + (Vector3)dir * socket.Depth;
                 center.y = _root.position.y + InteriorGeometry.FloorY(cell) + InteriorGeometry.PanelCenterAboveFloor;
-                Panel(new WallPanel(center - _root.position, dir, InteriorGeometry.PanelWidth, open), module, parent, open ? OtherRoom(cell, dir) : null, socket.SealedWall);
+                var skyPatch = CellCenter(cell) + (Vector3)dir * SkyPatchDepth;
+                skyPatch.y = center.y;
+                Panel(new WallPanel(center - _root.position, dir, InteriorGeometry.PanelWidth, open), module, parent, open ? OtherRoom(cell, dir) : null, socket.SealedWall, skyPatch);
             }
         }
 
@@ -569,7 +571,13 @@ namespace SpaceStation.Interior
             BuildBalcony(room, parent);
         }
 
-        private void Panel(WallPanel panel, ModuleInstance module, Transform parent, ModuleInstance other, bool sealedWall = false)
+        /// <summary>칸 가운데 → 닫힌 문 자리 하늘 조각 (하늘 껍질 3.95 바로 뒤 · 칸 경계 안). 옆 칸의 방은 4.05부터라 어느 방에서도 튀어나와 보이지 않음.</summary>
+        private const float SkyPatchDepth = 3.98f;
+
+        /// <summary>대체 방 (문 깊이가 템플릿과 다름): 패널 뒤 하늘 조각 거리 (표준 문 깊이 3.2 + 이 값 = 하늘 껍질).</summary>
+        private const float SkyPatchBehindPanel = 0.7425f;
+
+        private void Panel(WallPanel panel, ModuleInstance module, Transform parent, ModuleInstance other, bool sealedWall = false, Vector3? skyPatch = null)
         {
             var rotation = Quaternion.LookRotation(panel.Normal, Vector3.up);
             var center = _root.position + panel.Center;
@@ -584,6 +592,8 @@ namespace SpaceStation.Interior
                 Solid(solidCenter, rotation, new Vector3(panel.Width, h, t));
                 if (_kit != null)
                     KitPiece(sealedWall || TemplateFor(module)?.SealedSockets == true ? _kit.SealedWallFor(module.Data) : _kit.WallFor(module.Data), module, parent, center, rotation, new Vector3(panel.Width / InteriorGeometry.PanelWidth, 1f, 1f)); // 진화 모듈 = 단계 조각 (InteriorKitStage), 실내형 방 = 막힌 창 패널
+                if (_kit != null && _kit.SkyPatchFor(module.Data) is { IsValid: true } patch)
+                    KitPiece(patch, module, parent, skyPatch ?? center + panel.Normal * SkyPatchBehindPanel, rotation);
                 else
                     Cube(parent, module, solidCenter, rotation, new Vector3(panel.Width, h, t), color);
                 return;

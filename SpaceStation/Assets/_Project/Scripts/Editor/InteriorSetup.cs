@@ -294,7 +294,7 @@ namespace SpaceStation.Editor
             {
                 stages.Add(new Data.InteriorKitStage(2, ModulesOfStage(2),
                     Piece("KIT_Wall_Evo2", evo2), Piece("KIT_WallDoor_Evo2", evo2), Piece("KIT_DoorLeaf_Evo2", evo2), Piece("KIT_Floor_Evo2", evo2),
-                    Piece("KIT_Ceiling_Evo2", evo2), Piece("KIT_HatchFrame_Evo2", evo2), Piece("KIT_HatchLid_Evo2", evo2), Piece("KIT_WallSealed_Evo2", evo2)));
+                    Piece("KIT_Ceiling_Evo2", evo2), Piece("KIT_HatchFrame_Evo2", evo2), Piece("KIT_HatchLid_Evo2", evo2), Piece("KIT_WallSealed_Evo2", evo2), Piece("KIT_SkyPatch_Evo2", evo2)));
             }
             kit.EditorSetStages(stages);
             EditorUtility.SetDirty(kit);
