@@ -118,6 +118,132 @@ namespace SpaceStation.Editor
             BuildEvoFusionPlant();
             BuildEvoArcology();
             BuildEvoGrandTorus();
+            BuildEvoCivicHall();
+        }
+
+        /// <summary>
+        /// 진화 2단계 시민 회관 "스텔라돔" (7칸 = (0 ~ 3, 0) + (0 ~ 2, 1), civ_builder — 사용자 2026-11-03 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 객석에 앉아 보는 상영 (<see cref="InteriorStellaDome"/>).
+        /// 외형 평면 그대로: 2 × 2칸 유리 돔 (바닥이 칸 아래로 내려가는 그릇 — 입구 통로 · 객석 두 열 56석 · 천구의 우물, 궤도 셋이 우물 걷는 머리 위로 돎 Orbit1 ~ 3) · 드럼의 하루 띠 DayBand ·
+        /// 돔 둘레 바깥 갑판 (서 · 남 · 북, 우주복, 압력 막 아치) · 의료동 (T자 지붕 유리 띠 아래 흰 아치 복도 · 돌봄 캡슐 셋 · 별빛 교실 · 복지 창구, 창 + 5칸마다 분홍 십자) · 둥근 유리 라운지 (C자 소파 · 떠 있는 구체 Orbs).
+        /// 문 자리 12 = 갑판 넷 (깊이 3.95, 닫힘 = 난간) · 의료동 다섯 · 라운지 셋 (깊이 3.79, 닫힘 = 막힌 창 패널 <see cref="InteriorSocket.SealedWall"/>). 돔 칸 넷은 해치 없음 (사용자 시안 결정: 돔 높이를 위해 바닥을 파냄), 아래 해치 = (2, 0) · (2, 1) · 라운지, 위 해치 = (2, 1) · 라운지.
+        /// </summary>
+        private static void BuildEvoCivicHall()
+        {
+            const float CX = 4f, CZ = 4f, RW = 6.35f, T1Y = F - 0.35f, T2Y = F - 0.7f, YP = F - 1.05f, Ceil = F + 3.85f;
+            const float DeckEdge = 3.95f, Wall = 3.79f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var c00 = new Vector3Int(0, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c11 = new Vector3Int(1, 0, 1);
+            var c20 = new Vector3Int(2, 0, 0);
+            var c21 = new Vector3Int(2, 0, 1);
+            var c30 = new Vector3Int(3, 0, 0);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, DeckEdge),
+                new InteriorSocket(c01, Vector3Int.left, DeckEdge),
+                new InteriorSocket(c00, back, DeckEdge),
+                new InteriorSocket(c01, front, DeckEdge),
+                new InteriorSocket(c10, back, Wall, default, true),
+                new InteriorSocket(c20, back, Wall, default, true),
+                new InteriorSocket(c11, front, Wall, default, true),
+                new InteriorSocket(c21, front, Wall, default, true),
+                new InteriorSocket(c21, Vector3Int.right, Wall, default, true),
+                new InteriorSocket(c30, back, Wall, default, true),
+                new InteriorSocket(c30, front, Wall, default, true),
+                new InteriorSocket(c30, Vector3Int.right, Wall, default, true),
+                new InteriorSocket(c20, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c21, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c30, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c21, Vector3Int.up, Ceil, new Vector3(0.3f, 0f, 0f)),   // 지붕 유리 띠를 비킴
+                new InteriorSocket(c30, Vector3Int.up, Ceil, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            Vector3 Polar(float r, float az, float y)
+            {
+                float a = az * Mathf.Deg2Rad;
+                return new Vector3(CX + r * Mathf.Cos(a), y, CZ + r * Mathf.Sin(a));
+            }
+            var lights = new List<LightSpec>();
+            for (int k = 0; k < 8; k++)
+                lights.Add(LightSpec.Point(Polar(5.7f, 22.5f + 45f * k, F + 2.05f), 5.5f, 0.75f, white));          // 입구 통로
+            for (int k = 0; k < 4; k++)
+                lights.Add(LightSpec.Point(Polar(3.9f, 90f * k, F + 0.9f), 5f, 0.85f, warm));                      // 객석 (상영 땐 어두워짐 — InteriorStellaDome)
+            for (int k = 0; k < 3; k++)
+                lights.Add(LightSpec.Point(Polar(1.7f, 60f + 120f * k, YP + 1.7f), 4f, 0.7f, white));              // 천구의 우물
+            lights.Add(LightSpec.Point(new Vector3(CX, 0.9f, CZ), 6f, 0.9f, warm));                                // 태양
+            foreach (float az in new[] { 211f, 239f, 121f, 149f })
+                lights.Add(LightSpec.Point(Polar(6.95f, az, F + 2.35f), 5f, 0.85f, cool));                         // 갑판 등불
+            lights.Add(LightSpec.Point(new Vector3(-2.6f, F + 2.2f, 4f), 4.5f, 0.45f, cool));
+            lights.Add(LightSpec.Point(new Vector3(3f, F + 2.2f, -3f), 4.5f, 0.45f, cool));
+            lights.Add(LightSpec.Point(new Vector3(3f, F + 2.2f, 11f), 4.5f, 0.45f, cool));
+            var hall = Color.white;   // 의료동 · 라운지 = 맑은 흰빛 (누런 등이면 흰 벽이 갈색으로 보임)
+            foreach (float x in new[] { 10.6f, 14.4f, 18.2f })
+                lights.Add(LightSpec.Point(new Vector3(x, Ceil - 0.5f, 0f), 7.5f, 1.9f, hall));                    // 동서 복도
+            foreach (float z in new[] { 4.2f, 8.2f })
+                lights.Add(LightSpec.Point(new Vector3(14.45f, Ceil - 0.5f, z), 7f, 1.7f, hall));                  // 남북 복도
+            foreach (float z in new[] { 3.5f, 10.4f })
+                lights.Add(LightSpec.Point(new Vector3(17.9f, Ceil - 0.6f, z), 6f, 1.6f, hall));                   // 돌봄실
+            lights.Add(LightSpec.Point(new Vector3(12f, Ceil - 0.6f, 5.3f), 6f, 1.7f, hall));                      // 교실
+            lights.Add(LightSpec.Point(new Vector3(8f, Ceil - 0.6f, 10.5f), 5.5f, 1.4f, hall));                    // 북쪽 끝
+            lights.Add(LightSpec.Point(new Vector3(8f, Ceil - 0.6f, -2.5f), 5.5f, 1.4f, hall));                    // 남쪽 끝
+            lights.Add(LightSpec.Point(new Vector3(12f, Ceil - 0.6f, -2.5f), 5.5f, 1.4f, hall));                   // 남쪽 쉼터
+            lights.Add(LightSpec.Point(new Vector3(17.9f, Ceil - 0.6f, -2.5f), 5.5f, 1.4f, hall));
+            lights.Add(LightSpec.Point(new Vector3(11.8f, Ceil - 0.6f, 10.4f), 5.5f, 1.4f, hall));                 // 북쪽 화단
+            for (int k = 0; k < 4; k++)
+            {
+                float a = (45f + 90f * k) * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(24f + 2.1f * Mathf.Cos(a), Ceil - 0.5f, 2.1f * Mathf.Sin(a)), 6f, 1.4f, hall));   // 라운지
+            }
+            lights.Add(LightSpec.Point(new Vector3(24f, Ceil - 0.5f, 0f), 3.5f, 0.5f, new Color(0.85f, 0.75f, 1f)));   // 떠 있는 구체 위
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoCivicHall_Orbit1", new Vector3(CX, 0f, CZ), Vector3.up, 24f),
+                new OrbitSpec("INT_EvoCivicHall_Orbit2", new Vector3(CX, 0f, CZ), Vector3.up, 13f),
+                new OrbitSpec("INT_EvoCivicHall_Orbit3", new Vector3(CX, 0f, CZ), Vector3.up, 7f),
+            };
+            EvoAccent("CivicHall", "#FFB4E0");
+            // 스폰 = 서남쪽 아치 안 입구 통로에서 천구의를 바라봄
+            float spawnA = 225f * Mathf.Deg2Rad;
+            Build("EvoCivicHall", "Evolved/MD_Evo_CivicHall", sockets, new Vector3(CX + 5.7f * Mathf.Cos(spawnA), F, CZ + 5.7f * Mathf.Sin(spawnA)), 45f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[]
+                    {
+                        new Vector3(CX, CZ, 6.5f),       // 돔
+                        new Vector3(10.6f, -1.2f, 4.5f), // 의료동 (갑판은 x 6.1 서쪽)
+                        new Vector3(10.6f, 9.2f, 4.5f),
+                        new Vector3(15.5f, 0f, 6.2f),
+                        new Vector3(15.5f, 8f, 6.2f),
+                        new Vector3(24f, 0f, 3.95f),     // 라운지
+                    });
+                    var seats = Child(root, "INT_EvoCivicHall_Seats");
+                    seats.gameObject.AddComponent<MeshCollider>().sharedMesh = seats.GetComponent<MeshFilter>().sharedMesh;
+                    // 앉는 자리: 눈이 등받이 바로 앞에 오게 발을 자리 가운데에서 0.28m 뒤로 (civ_builder seating과 같은 각 · 반지름)
+                    var spots = new List<Vector4>();
+                    foreach (float section in new[] { 0f, 90f, 180f, 270f })
+                    {
+                        const float span = 32f;
+                        foreach (var (radius, y, count) in new[] { (4.45f, T1Y, 8), (3.35f, T2Y, 6) })
+                        {
+                            for (int k = 0; k < count; k++)
+                            {
+                                float az = section - span + 2f * span * (k + 0.5f) / count;
+                                var p = Polar(radius + 0.28f, az, y);
+                                spots.Add(new Vector4(p.x, p.y, p.z, Mathf.Atan2(CX - p.x, CZ - p.z) * Mathf.Rad2Deg));
+                            }
+                        }
+                    }
+                    root.AddComponent<InteriorStellaDome>().Configure(
+                        Child(root, "INT_EvoCivicHall_StarDome").GetComponent<Renderer>(),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2StarLinesPath),
+                        new[] { Child(root, "INT_EvoCivicHall_DayBand").GetComponent<Renderer>(), Child(root, "INT_EvoCivicHall_DomeGlow").GetComponent<Renderer>() },
+                        seats, spots.ToArray(), Child(root, "INT_EvoCivicHall_Orbs"), new Vector3(CX, CZ, RW), new Vector3(1.2f, 3.78f, 2.3f));
+                });
         }
 
         /// <summary>
@@ -4064,6 +4190,7 @@ namespace SpaceStation.Editor
             { "EvoFusionPlant", InteriorAmbience.Heat },      // 융합로 · 열 관
             { "EvoArcology", InteriorAmbience.Life },         // 섬 도시
             { "EvoGrandTorus", InteriorAmbience.Life },       // 바퀴 마을
+            { "EvoCivicHall", InteriorAmbience.Life },        // 회관 · 돌봄 · 교실
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
@@ -4133,6 +4260,7 @@ namespace SpaceStation.Editor
                 { "Evo2ClearGlass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2ClearGlassPath) },
                 { "Evo2Window", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2WindowPath) },
                 { "Evo2Curtain", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2CurtainPath) },
+                { "Evo2StarDome", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2StarDomePath) },
                 { "Evo2Sky", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SkyPath) },
                 { "Evo2Mirror", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MirrorPath) },
                 { "Evo2Violet", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2VioletPath) },

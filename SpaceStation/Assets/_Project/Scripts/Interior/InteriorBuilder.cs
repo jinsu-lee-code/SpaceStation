@@ -542,7 +542,7 @@ namespace SpaceStation.Interior
                 }
                 var center = CellCenter(cell) + (Vector3)dir * socket.Depth;
                 center.y = _root.position.y + InteriorGeometry.FloorY(cell) + InteriorGeometry.PanelCenterAboveFloor;
-                Panel(new WallPanel(center - _root.position, dir, InteriorGeometry.PanelWidth, open), module, parent, open ? OtherRoom(cell, dir) : null);
+                Panel(new WallPanel(center - _root.position, dir, InteriorGeometry.PanelWidth, open), module, parent, open ? OtherRoom(cell, dir) : null, socket.SealedWall);
             }
         }
 
@@ -569,7 +569,7 @@ namespace SpaceStation.Interior
             BuildBalcony(room, parent);
         }
 
-        private void Panel(WallPanel panel, ModuleInstance module, Transform parent, ModuleInstance other)
+        private void Panel(WallPanel panel, ModuleInstance module, Transform parent, ModuleInstance other, bool sealedWall = false)
         {
             var rotation = Quaternion.LookRotation(panel.Normal, Vector3.up);
             var center = _root.position + panel.Center;
@@ -583,7 +583,7 @@ namespace SpaceStation.Interior
             {
                 Solid(solidCenter, rotation, new Vector3(panel.Width, h, t));
                 if (_kit != null)
-                    KitPiece(TemplateFor(module)?.SealedSockets == true ? _kit.SealedWallFor(module.Data) : _kit.WallFor(module.Data), module, parent, center, rotation, new Vector3(panel.Width / InteriorGeometry.PanelWidth, 1f, 1f)); // 진화 모듈 = 단계 조각 (InteriorKitStage), 실내형 방 = 막힌 창 패널
+                    KitPiece(sealedWall || TemplateFor(module)?.SealedSockets == true ? _kit.SealedWallFor(module.Data) : _kit.WallFor(module.Data), module, parent, center, rotation, new Vector3(panel.Width / InteriorGeometry.PanelWidth, 1f, 1f)); // 진화 모듈 = 단계 조각 (InteriorKitStage), 실내형 방 = 막힌 창 패널
                 else
                     Cube(parent, module, solidCenter, rotation, new Vector3(panel.Width, h, t), color);
                 return;

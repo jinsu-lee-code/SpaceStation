@@ -79,6 +79,8 @@ namespace SpaceStation.Editor
         public const string Evo2EggGlassPath = MaterialFolder + "/M_InteriorEvo2EggGlass.mat";
         public const string Evo2ClearGlassPath = MaterialFolder + "/M_InteriorEvo2ClearGlass.mat";
         public const string Evo2WindowPath = MaterialFolder + "/M_InteriorEvo2Window.mat";
+        public const string Evo2StarDomePath = MaterialFolder + "/M_InteriorEvo2StarDome.mat";
+        public const string Evo2StarLinesPath = MaterialFolder + "/M_InteriorEvo2StarLines.mat";
         public const string Evo2CurtainPath = MaterialFolder + "/M_InteriorEvo2Curtain.mat";
         public const string Evo2SkyPath = MaterialFolder + "/M_InteriorEvo2Sky.mat";
         public const string Evo2MirrorPath = MaterialFolder + "/M_InteriorEvo2Mirror.mat";
@@ -680,6 +682,8 @@ namespace SpaceStation.Editor
             clearGlass.SetFloat("_EnvironmentReflections", 0f);
             clearGlass.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
             EditorUtility.SetDirty(clearGlass);
+            EditorUtility.SetDirty(LoadOrCreate(Evo2StarDomePath, Shader.Find("SpaceStation/StellaDome")));     // 시민 회관 상영 하늘 (슬라이더 = 재질)
+            EditorUtility.SetDirty(LoadOrCreate(Evo2StarLinesPath, Shader.Find("SpaceStation/StellaLines")));   // 시민 회관 별자리
             EditorUtility.SetDirty(LoadOrCreate(Evo2CurtainPath, Shader.Find("SpaceStation/PressureVeil")));   // 압력 막 (사용자 2026-11-02 "신비감", UV = 아치 기준 미터)
             Clear(SuitHelmetPath, new Color(0.8f, 0.92f, 1f, 0.14f), 0.97f, Color.black);
             Clear(Evo2WaterGlowPath, new Color(0.45f, 0.85f, 1f, 0.5f), 0.55f, new Color(0.07f, 0.3f, 0.42f));   // 융합 플랜트 물 캡슐 · 물 달: 은은히 빛나는 물 (속 거품 · 전극이 비침)

@@ -78,8 +78,8 @@ namespace SpaceStation.Interior
             _body.enabled = false;
         }
 
-        /// <summary>탈것의 정해진 자리에 실림 (열차 의자에 앉기 · 일어나기): 발 자리 · 눈높이를 정함, yaw를 주면 그쪽을 봄.</summary>
-        public void RideAt(Transform carrier, Vector3 feet, float eyeHeight, float? yaw = null)
+        /// <summary>탈것의 정해진 자리에 실림 (열차 의자에 앉기 · 일어나기): 발 자리 · 눈높이를 정함, yaw를 주면 그쪽을, pitch를 주면 그 위아래를 봄 (음수 = 위).</summary>
+        public void RideAt(Transform carrier, Vector3 feet, float eyeHeight, float? yaw = null, float? pitch = null)
         {
             if (carrier == null)
                 return;
@@ -91,6 +91,11 @@ namespace SpaceStation.Interior
             _carrierOffset = carrier.InverseTransformPoint(feet);
             _carrierYaw = carrier.eulerAngles.y;
             _eye.localPosition = new Vector3(0f, eyeHeight, 0f);
+            if (pitch.HasValue)
+            {
+                _pitch = Mathf.Clamp(pitch.Value, -85f, 85f);
+                _eye.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
+            }
         }
 
         /// <summary>탈것에서 내림 (그 자리에서 다시 걷기 · 중력).</summary>

@@ -16,18 +16,22 @@ namespace SpaceStation.Data
         [SerializeField] private float _depth = 3.2f;
         [Tooltip("수직 문 자리(해치)만: 칸 중심에서 수평으로 옮기는 거리 (모듈 로컬). 통로 쪽에 두려고")]
         [SerializeField] private Vector3 _offset;
+        [Tooltip("수평 문 자리만: 닫혀 있을 때 난간 + 하늘 대신 막힌 창 패널 (지붕 안 구역의 문 자리 — 개방형 갑판과 실내가 함께 있는 2단계 방)")]
+        [SerializeField] private bool _sealedWall;
 
         public Vector3Int Cell => _cell;
         public Vector3Int Direction => _direction;
         public float Depth => _depth;
         public Vector3 Offset => _offset;
+        public bool SealedWall => _sealedWall;
 
-        public InteriorSocket(Vector3Int cell, Vector3Int direction, float depth, Vector3 offset = default)
+        public InteriorSocket(Vector3Int cell, Vector3Int direction, float depth, Vector3 offset = default, bool sealedWall = false)
         {
             _cell = cell;
             _direction = direction;
             _depth = depth;
             _offset = offset;
+            _sealedWall = sealedWall;
         }
     }
 
