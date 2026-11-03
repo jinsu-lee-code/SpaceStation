@@ -2161,3 +2161,17 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `9b7e2bde`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-143. 바이오돔 내부 "비눗방울 돔 정원" · 내부 비 (2026-11-03, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `f5449ca4`과 같은 파일)
+- 바이오돔 템플릿 (`SM_Interior_EvoBiodome.fbx` · `PF_Interior_EvoBiodome` · `IT_EvoBiodome` · `M_Accent_Evo_Biodome` · `M_Paint_Evo_Biodome`, Blender `bd_builder`, `Interior_Evo.blend`), `InteriorTemplateBuilder.BuildEvoBiodome` · `BiodomeTrees` · `ResidentSpotBaker.EvoBiodomeSpots` · `InteriorPlantSpots`
+- 새 내부 재질 `M_InteriorEvo2Lawn` · `Soil` · `Pond` · `Falls` · `Rock` (`InteriorSetup`), 새 텍스처 `T_InteriorLawn` · `T_InteriorSoil`
+- **공통 코드 변경** `RainFx` (바깥 바이오스피어와 같은 비): 크기 · 고리 가운데 · 항상 내림을 직렬화 값으로 뺌 (기본값 = 예전 값, 바깥 프리팹 변경 없음). `_shelterHalfWidth`가 0이면 아치 가림을 끔
+- `MODELING.md` 7-11 · 8-13
+
+### `narrative` 합칠 때
+- `RainFx`를 고쳤다면 그 파일만 손으로 합칠 것 (`Drops` · `Mist`의 숫자가 필드로 바뀌었을 뿐 값은 같음)
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `f5449ca4`). TASKS · 글꼴 · `Main.unity`는 tycoon에만

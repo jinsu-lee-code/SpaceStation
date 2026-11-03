@@ -87,6 +87,12 @@ namespace SpaceStation.Editor
         public const string Evo2VioletPath = MaterialFolder + "/M_InteriorEvo2Violet.mat";
         public const string Evo2HeatPath = MaterialFolder + "/M_InteriorEvo2Heat.mat";
         public const string Evo2WaterGlowPath = MaterialFolder + "/M_InteriorEvo2WaterGlow.mat";
+        public const string Evo2LawnPath = MaterialFolder + "/M_InteriorEvo2Lawn.mat";     // 바이오돔 잔디 판 (T_InteriorLawn, UV = 위에서 내려다본 평면 3m 한 장)
+        public const string Evo2SoilPath = MaterialFolder + "/M_InteriorEvo2Soil.mat";     // 바이오돔 텃밭 흙 (T_InteriorSoil)
+        public const string Evo2PondPath = MaterialFolder + "/M_InteriorEvo2Pond.mat";     // 호수 · 연못 (바깥 M_PureWater와 같은 셰이더, 잔물결 간격만 내부 크기로)
+        public const string Evo2FallsPath = MaterialFolder + "/M_InteriorEvo2Falls.mat";   // 폭포 · 분수 (바깥 M_Falls와 같은 셰이더, 물줄기 간격만 내부 크기로)
+        public const string Evo2RockPath = MaterialFolder + "/M_InteriorEvo2Rock.mat";     // 바이오돔 바위 · 물가 돌 (외형의 밝은 돌, M_InteriorRock은 거의 검게 보임)
+        public const string CloudPath = "Assets/_Project/Art/Materials/FX/M_Cloud.mat";    // 바깥 구름과 같은 재질
         public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
         public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
         public const string ResidentSuitModelPath = "Assets/_Project/Art/Models/Interior/SM_ResidentSuit.fbx";
@@ -497,6 +503,20 @@ namespace SpaceStation.Editor
             EvoSurface(Evo2VioletPath, new Color(0.66f, 0.42f, 0.95f), 0.1f, 0.55f);   // 융합 플랜트 코일 · 뚜껑 (바깥 모델 모듈 색 — 사용자 2026-10-23 보라. Blender 값 (0.5, 0.25, 0.9)은 선형이라 여기 값이 더 밝음)
             EvoSurface(Evo2PathPath, new Color(0.78f, 0.69f, 0.58f), 0f, 0.35f);
             EvoSurface(Evo2BedPath, new Color(0.26f, 0.19f, 0.15f), 0f, 0.2f);
+            EvoSurface(Evo2RockPath, new Color(0.72f, 0.67f, 0.6f), 0f, 0.12f);
+            // 바이오돔 잔디 · 흙 (사용자 2026-11-03 "나무와 풀 디테일"): 색 판이 아니라 풀잎 · 흙 무늬 텍스처
+            void Ground(string path, string texture, float smoothness)
+            {
+                var m = LoadOrCreate(path, lit);
+                m.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.Folder + texture));
+                m.SetColor("_BaseColor", Color.white);
+                m.SetFloat("_Metallic", 0f);
+                m.SetFloat("_Smoothness", smoothness);
+                m.enableInstancing = true;
+                EditorUtility.SetDirty(m);
+            }
+            Ground(Evo2LawnPath, "T_InteriorLawn.png", 0.12f);
+            Ground(Evo2SoilPath, "T_InteriorSoil.png", 0.08f);
 
             Fabric(FabricPath, new Color(0.86f, 0.85f, 0.81f));
             Fabric(BlanketPath, new Color(0.56f, 0.42f, 0.27f)); // 차분한 황토색 (거주 강조색 노랑과 어울리게)
@@ -687,6 +707,21 @@ namespace SpaceStation.Editor
             EditorUtility.SetDirty(LoadOrCreate(Evo2CurtainPath, Shader.Find("SpaceStation/PressureVeil")));   // 압력 막 (사용자 2026-11-02 "신비감", UV = 아치 기준 미터)
             Clear(SuitHelmetPath, new Color(0.8f, 0.92f, 1f, 0.14f), 0.97f, Color.black);
             Clear(Evo2WaterGlowPath, new Color(0.45f, 0.85f, 1f, 0.5f), 0.55f, new Color(0.07f, 0.3f, 0.42f));   // 융합 플랜트 물 캡슐 · 물 달: 은은히 빛나는 물 (속 거품 · 전극이 비침)
+            // 바이오돔 물: 바깥 재질을 그대로 베끼고 간격만 8배 (바깥 1칸 = 1, 내부 1칸 = 8m — 셰이더가 월드 좌표로 무늬를 그림)
+            void Water8(string path, string source, string keyword, string toggle, string property, Vector4 value)
+            {
+                var from = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/" + source + ".mat");
+                var m = LoadOrCreate(path, from.shader);
+                m.CopyPropertiesFromMaterial(from);
+                m.renderQueue = from.renderQueue;
+                m.EnableKeyword(keyword);
+                m.SetFloat(toggle, 1f);
+                m.SetVector(property, value);
+                EditorUtility.SetDirty(m);
+            }
+            // 윤슬 세기 0: 눈앞에서는 규칙적인 흰 점 무늬로 보임. 물줄기: 가늘고 긴 결이 아래로 (칸이 넓으면 벽돌 무늬)
+            Water8(Evo2PondPath, "M_PureWater", "_FLOW_POOL", "_FlowPool", "_Ripple", new Vector4(8.75f, 1f, 0.1f, 0f));
+            Water8(Evo2FallsPath, "M_Falls", "_FLOW_FALL", "_FlowFall", "_Flow", new Vector4(0.9f, 1.8f, 0.045f, 0.45f));
             var heat = LoadOrCreate(Evo2HeatPath, lit);   // 융합 플랜트 열 관 · 열 띠: 주황 빛 (모듈 색 Accent는 빛나면 희게 날아감)
             heat.SetColor("_BaseColor", new Color(1f, 0.55f, 0.2f));
             heat.EnableKeyword("_EMISSION");
