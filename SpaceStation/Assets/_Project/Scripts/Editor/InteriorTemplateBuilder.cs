@@ -123,7 +123,7 @@ namespace SpaceStation.Editor
 
         /// <summary>
         /// 진화 2단계 시민 회관 "스텔라돔" (7칸 = (0 ~ 3, 0) + (0 ~ 2, 1), civ_builder — 사용자 2026-11-03 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 객석에 앉아 보는 상영 (<see cref="InteriorStellaDome"/>).
-        /// 외형 평면 그대로: 2 × 2칸 유리 돔 (바닥이 칸 아래로 내려가는 그릇 — 입구 통로 · 객석 두 열 56석 · 천구의 우물, 궤도 셋이 우물 걷는 머리 위로 돎 Orbit1 ~ 3) · 드럼의 하루 띠 DayBand ·
+        /// 외형 평면 그대로: 2 × 2칸 유리 돔 (바닥이 칸 아래로 내려가는 그릇 — 입구 통로 · 객석 두 열 56석 (상영 때 등받이가 눕는 Back00 ~ 55) · 천구의 우물, 궤도 셋이 우물 걷는 머리 위로 돎 Orbit1 ~ 3) · 드럼의 하루 띠 DayBand ·
         /// 돔 둘레 바깥 갑판 (서 · 남 · 북, 우주복, 압력 막 아치) · 의료동 (T자 지붕 유리 띠 아래 흰 아치 복도 · 돌봄 캡슐 셋 · 별빛 교실 · 복지 창구, 창 + 5칸마다 분홍 십자) · 둥근 유리 라운지 (C자 소파 · 떠 있는 구체 Orbs).
         /// 문 자리 12 = 갑판 넷 (깊이 3.95, 닫힘 = 난간) · 의료동 다섯 · 라운지 셋 (깊이 3.79, 닫힘 = 막힌 창 패널 <see cref="InteriorSocket.SealedWall"/>). 돔 칸 넷은 해치 없음 (사용자 시안 결정: 돔 높이를 위해 바닥을 파냄), 아래 해치 = (2, 0) · (2, 1) · 라운지, 위 해치 = (2, 1) · 라운지.
         /// </summary>
@@ -172,7 +172,7 @@ namespace SpaceStation.Editor
             for (int k = 0; k < 8; k++)
                 lights.Add(LightSpec.Point(Polar(5.7f, 22.5f + 45f * k, F + 2.05f), 5.5f, 0.75f, white));          // 입구 통로
             for (int k = 0; k < 4; k++)
-                lights.Add(LightSpec.Point(Polar(3.9f, 90f * k, F + 0.9f), 5f, 0.85f, warm));                      // 객석 (상영 땐 어두워짐 — InteriorStellaDome)
+                lights.Add(LightSpec.Point(Polar(3.6f, 90f * k, F + 1.5f), 5f, 0.85f, warm));                      // 객석 (상영 땐 어두워짐 — InteriorStellaDome, 낮으면 팔걸이에 뜨거운 점)
             for (int k = 0; k < 3; k++)
                 lights.Add(LightSpec.Point(Polar(1.7f, 60f + 120f * k, YP + 1.7f), 4f, 0.7f, white));              // 천구의 우물
             lights.Add(LightSpec.Point(new Vector3(CX, 0.9f, CZ), 6f, 0.9f, warm));                                // 태양
@@ -221,20 +221,26 @@ namespace SpaceStation.Editor
                         new Vector3(15.5f, 8f, 6.2f),
                         new Vector3(24f, 0f, 3.95f),     // 라운지
                     });
-                    var seats = Child(root, "INT_EvoCivicHall_Seats");
+                    // 충돌체 = 세운 의자 전체 모양 (F로 앉기 · 주민 맞춤), 보이는 앉는 판 _Seats · 눕는 등받이 _Back00 ~ 55는 충돌체 없음
+                    var seats = Child(root, "INT_EvoCivicHall_SeatHit");
                     seats.gameObject.AddComponent<MeshCollider>().sharedMesh = seats.GetComponent<MeshFilter>().sharedMesh;
-                    // 앉는 자리: 눈이 등받이 바로 앞에 오게 발을 자리 가운데에서 0.28m 뒤로 (civ_builder seating과 같은 각 · 반지름)
+                    Object.DestroyImmediate(seats.GetComponent<MeshRenderer>());
+                    // 앉는 자리: 눈이 등받이 바로 앞에 오게 발을 자리 가운데에서 0.28m 뒤로, 경첩 = 자리 가운데에서 0.19m 뒤 · 0.44m 위 (civ_builder seating · HINGE와 같은 각 · 반지름)
                     var spots = new List<Vector4>();
+                    var backs = new List<Transform>();
+                    var hinges = new List<Vector3>();
                     foreach (float section in new[] { 0f, 90f, 180f, 270f })
                     {
                         const float span = 32f;
-                        foreach (var (radius, y, count) in new[] { (4.45f, T1Y, 8), (3.35f, T2Y, 6) })
+                        foreach (var (radius, y, count) in new[] { (4.27f, T1Y, 8), (3.12f, T2Y, 6) })
                         {
                             for (int k = 0; k < count; k++)
                             {
                                 float az = section - span + 2f * span * (k + 0.5f) / count;
                                 var p = Polar(radius + 0.28f, az, y);
                                 spots.Add(new Vector4(p.x, p.y, p.z, Mathf.Atan2(CX - p.x, CZ - p.z) * Mathf.Rad2Deg));
+                                hinges.Add(Polar(radius + 0.19f, az, y + 0.44f));
+                                backs.Add(Child(root, $"INT_EvoCivicHall_Back{backs.Count:00}"));
                             }
                         }
                     }
@@ -242,7 +248,7 @@ namespace SpaceStation.Editor
                         Child(root, "INT_EvoCivicHall_StarDome").GetComponent<Renderer>(),
                         AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2StarLinesPath),
                         new[] { Child(root, "INT_EvoCivicHall_DayBand").GetComponent<Renderer>(), Child(root, "INT_EvoCivicHall_DomeGlow").GetComponent<Renderer>() },
-                        seats, spots.ToArray(), Child(root, "INT_EvoCivicHall_Orbs"), new Vector3(CX, CZ, RW), new Vector3(1.2f, 3.78f, 2.3f));
+                        seats, spots.ToArray(), backs.ToArray(), hinges.ToArray(), Child(root, "INT_EvoCivicHall_Orbs"), new Vector3(CX, CZ, RW), new Vector3(1.2f, 3.78f, 2.3f));
                 });
         }
 

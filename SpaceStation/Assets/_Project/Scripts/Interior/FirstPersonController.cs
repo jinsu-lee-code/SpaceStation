@@ -64,6 +64,9 @@ namespace SpaceStation.Interior
         /// <summary>탈것에 실려 가는 중 (진화 모듈 유리 엘리베이터 등).</summary>
         public bool Riding => _carrier != null;
 
+        /// <summary>지금 위아래 시선 (음수 = 위).</summary>
+        public float Pitch => _pitch;
+
         /// <summary>
         /// 탈것에 실림 (사용자 결정 2026-10-29 "유리 엘리베이터 탑승"): 타는 동안 carrier를 따라 움직이고 걷기 · 중력은 멈춤, 둘러보기는 됨.
         /// 따라가기는 LateUpdate (탈것이 Update에서 움직인 뒤). 탈것이 돌면 시선도 같이 돎 (대형 토러스 열차).

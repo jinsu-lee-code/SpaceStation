@@ -111,13 +111,13 @@ Shader "SpaceStation/StellaDome"
                 float w = 0.14 * (0.8 + 0.7 * rim);
                 float band = exp(-lat * lat / (w * w));
                 float wide = exp(-lat * lat / (w * w * 5.0));
-                float cloud = StationFbm3(float3(lon * 7.0, lat * 26.0, 4.2));
+                float cloud = StationFbm3(float3(lon * 10.0, lat * 26.0, 4.2));   // 누워서 머리 위를 크게 보므로 결이 길면 번져 보임
                 float patches = 0.55 + 0.9 * StationFbm3(float3(lon * 1.6, 7.7, 1.3));
                 float warp = StationNoise3(float3(lon * 1.8, lat * 6.0, 2.3));
                 float lane = smoothstep(0.42, 0.62, StationFbm3(float3(lon * 3.0 + warp * 1.4, lat * 22.0, 1.9))) * exp(-lat * lat / (w * w * 0.42));
                 float core = exp(-(lon + 0.42) * (lon + 0.42) / 0.5);
                 float3 c = _ArmColor.rgb * wide * (0.02 + 0.13 * cloud);
-                c += lerp(_ArmColor.rgb, _CoreColor.rgb, saturate(band * band * (0.4 + core))) * band * patches * (0.05 + 1.0 * cloud * cloud) * (1.0 - 0.9 * lane) * (0.55 + 1.15 * core);
+                c += lerp(_ArmColor.rgb, _CoreColor.rgb, saturate(band * band * (0.4 + core))) * band * patches * (0.3 + 0.8 * cloud * cloud) * (1.0 - 0.7 * lane) * (0.55 + 1.15 * core);
                 c += _NebulaColor.rgb * smoothstep(0.5, 0.75, StationFbm3(float3(lon * 2.1, lat * 7.0, 9.1))) * wide * 0.1;
                 bandAmount = wide;
                 laneAmount = lane;

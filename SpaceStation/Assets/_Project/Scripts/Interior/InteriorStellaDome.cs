@@ -10,7 +10,9 @@ namespace SpaceStation.Interior
     /// <summary>
     /// 진화 2단계 시민 회관 "스텔라돔" 상영 (사용자 2026-11-03 시안 1 — 2단계 직접 체험 "스텔라돔"): 쉼 → 어두워짐 → 별 · 은하수 → 별자리 여덟 → 별똥별 · 오로라 → 새벽, 쉼으로 돌아감 (실제 시간, 앉지 않아도 돔 안에서 함께 봄).
     /// 돔 안 조명 · 빛 조각은 상영 동안 어두워짐 (조명은 <see cref="InteriorAtmosphere"/>가 바꾼 세기를 존중해 곱함). 별 하늘 = 껍질 <see cref="_starDome"/> (SpaceStation/StellaDome), 별자리 = 실행 중 만드는 메시 (SpaceStation/StellaLines).
-    /// 객석: 보고 F = 앉음 (젖혀 올려다봄, 앉은 채 둘러보기), 다시 F = 앉기 전 자리로 일어남. 쉬는 중에 앉으면 곧 시작. 바라본 별자리는 이름 · 선이 밝아지고 아래 글에 설명이 나옴 (색이 아니라 글 · 밝기 — 색약).
+    /// 객석: 보고 F = 앉음 (앉은 채 둘러보기), 다시 F = 앉기 전 자리로 일어남. 쉬는 중에 앉으면 곧 시작. 바라본 별자리는 이름 · 선이 밝아지고 아래 글에 설명이 나옴 (색이 아니라 글 · 밝기 — 색약).
+    /// 상영 동안 등받이가 차례로 뒤로 눕고, 앉은 플레이어도 함께 누워 하늘을 봄 (사용자 2026-11-03 "어느 자리에 앉아도 자연스럽게 관람"), 시선은 더하기로 옮겨 그 사이 마우스로 둘러본 만큼은 남음.
+    /// 앉아 있던 주민도 같이 눕고 (<see cref="ResidentMotion.SeatRecline"/>), 누운 동안은 일어나 돌아다니지 않음 (<see cref="ResidentWander.Hold"/>, 사용자 2026-11-03). 상영 중 걸어와 앉은 주민은 앉은 뒤부터 눕고 묶임.
     /// 위치는 모두 템플릿 루트(이 물체) 기준. 템플릿 빌더가 configure에서 붙임. 라운지 구체가 천천히 오르내리는 것도 여기서.
     /// </summary>
     [DefaultExecutionOrder(-320)] // InteriorMode(-300)보다 먼저: 앉은 채 누른 F를 여기서 먼저 씀
@@ -24,6 +26,7 @@ namespace SpaceStation.Interior
         private const float StarSize = 0.17f;     // 네 갈래 별 반 크기 (m)
         private const float SkyInset = -0.13f;    // 돔 곡면에서 안쪽으로 (별 하늘 껍질 -0.11보다 앞)
         private const float LabelInset = -0.3f;
+        private const float LabelPull = 0.6f;     // 이름표를 눈 쪽으로 당기는 비율 (곡면에 파묻혀 글자가 잘리지 않게, 그만큼 줄여 보이는 크기 · 자리는 같음)
 
         private readonly struct Chart
         {
@@ -103,6 +106,20 @@ namespace SpaceStation.Interior
         [SerializeField] private float _seatedEye = 1.1f;
         [Tooltip("앉았을 때 처음 시선 (음수 = 위)")]
         [SerializeField] private float _seatedPitch = -32f;
+        [Tooltip("상영 때 누운 시선 (음수 = 위)")]
+        [SerializeField] private float _lyingPitch = -68f;
+        [Tooltip("눕는 등받이 (자리 순서대로)")]
+        [SerializeField] private Transform[] _backs;
+        [Tooltip("등받이 경첩 (템플릿 기준, 자리 순서대로)")]
+        [SerializeField] private Vector3[] _hinges;
+        [Tooltip("상영 때 등받이가 눕는 각 (도)")]
+        [SerializeField] private float _reclineAngle = 28f;
+        [Tooltip("등받이 · 플레이어가 눕고 일어나는 데 걸리는 시간 (초)")]
+        [SerializeField] private float _reclineSeconds = 3.2f;
+        [Tooltip("등받이가 차례로 움직이는 시차 (초)")]
+        [SerializeField] private float _reclineWave = 0.9f;
+        [Tooltip("새벽의 이 비율에서 등받이가 일어나기 시작")]
+        [SerializeField] private float _riseAtDawn = 0.4f;
 
         private Phase _phase = Phase.Idle;
         private float _timer;
@@ -120,6 +137,7 @@ namespace SpaceStation.Interior
         private Vector3[] _chartCenters;
         private TextMeshPro[] _labels;
         private float[] _labelAlpha;
+        private Vector3[] _labelAnchor;
         private int _looking = -1;
         private readonly List<Light> _lights = new List<Light>();
         private float[] _lightBase;
@@ -134,13 +152,28 @@ namespace SpaceStation.Interior
         private TextMeshProUGUI _hint;
         private string _hintShown;
         private Vector3 _orbsBase;
+        private readonly Collider[] _overlap = new Collider[16];
+        private Vector3[] _backAxis;
+        private Vector3[] _backPos;
+        private Quaternion[] _backRot;
+        private float[] _backDelay;
+        private float[] _backAmount;   // 0 = 세움 ~ 1 = 누움
+        private ResidentFigure[] _residents;   // 자리에 앉은 주민 (상영 동안 찾음)
+        private float[] _bodyAmount;           // 주민: 0 = 앉음 ~ 1 = 누움
+        private int _residentCheck;
+        private bool _reclined;
+        private float _reclineClock;
+        private int _seat = -1;
+        private float _lie;            // 앉은 플레이어: 0 = 앉음 ~ 1 = 누움
 
         public bool Seated => _seated;
         public bool ShowRunning => _phase != Phase.Idle;
         public string PhaseName => _phase.ToString();
 
-        public void Configure(Renderer starDome, Material lineMaterial, Renderer[] glow, Transform seats, Vector4[] seatSpots, Transform orbs, Vector3 axis, Vector3 curve)
+        public void Configure(Renderer starDome, Material lineMaterial, Renderer[] glow, Transform seats, Vector4[] seatSpots, Transform[] backs, Vector3[] hinges, Transform orbs, Vector3 axis, Vector3 curve)
         {
+            _backs = backs;
+            _hinges = hinges;
             _starDome = starDome;
             _lineMaterial = lineMaterial;
             _glow = glow;
@@ -161,13 +194,14 @@ namespace SpaceStation.Interior
             BuildChartMesh();
             BuildLabels();
             CollectHouse();
+            SetupBacks();
             if (_seats != null)
             {
                 _seatCollider = _seats.GetComponent<Collider>();
                 var use = _seats.gameObject.AddComponent<InteriorInteractable>();
                 use.Tap = true;
                 use.Prompt = () => "앉아서 별 보기";
-                use.Blocked = () => AimSeat() >= 0 && Occupied(AimSeat()) ? "주민이 앉아 있는 자리" : null;
+                use.Blocked = () => AimSeat() >= 0 && ResidentOn(AimSeat()) != null ? "주민이 앉아 있는 자리" : null;
                 use.Completed = Sit;
             }
             ApplySky(0f, 0f, 0f, 0f, 0f, 0f, 0f);
@@ -182,6 +216,7 @@ namespace SpaceStation.Interior
             if (_sky == null)
                 return;
             ResetShow();
+            ResetBacks();
         }
 
         private void OnDestroy()
@@ -300,6 +335,7 @@ namespace SpaceStation.Interior
                     break;
                 }
             }
+            UpdateRecline(dt);
             UpdateLooking(dt);
             ApplySky(show, stars, milky, aurora, meteor, dawn, fade);
             UpdateLabels(fade, dt);
@@ -532,13 +568,15 @@ namespace SpaceStation.Interior
                 return;
             _labels = new TextMeshPro[ChartCount];
             _labelAlpha = new float[ChartCount];
+            _labelAnchor = new Vector3[ChartCount];
             var center = new Vector3(_axis.x, _curve.x, _axis.y);
             for (int c = 0; c < ChartCount; c++)
             {
                 var go = new GameObject("StellaLabel" + c);
                 go.transform.SetParent(transform, false);
                 var p = _chartCenters[c];
-                go.transform.localPosition = p + (center - p).normalized * -LabelInset;
+                _labelAnchor[c] = p + (center - p).normalized * -LabelInset;
+                go.transform.localPosition = _labelAnchor[c];
                 var text = go.AddComponent<TextMeshPro>();
                 text.font = Font;
                 text.fontSize = 3.2f;
@@ -593,8 +631,175 @@ namespace SpaceStation.Interior
                 if (label.gameObject.activeSelf != on)
                     label.gameObject.SetActive(on);
                 if (on && _player != null)
-                    label.transform.rotation = Quaternion.LookRotation(label.transform.position - _player.Eye.position, Vector3.up);
+                {
+                    var eye = _player.Eye;
+                    label.transform.position = Vector3.Lerp(eye.position, transform.TransformPoint(_labelAnchor[c]), LabelPull);
+                    label.transform.localScale = Vector3.one * LabelPull;
+                    label.transform.rotation = Quaternion.LookRotation(label.transform.position - eye.position, eye.up);   // 누운 시선에서도 화면에 똑바로
+                }
             }
+        }
+
+        // ---------------- 눕는 등받이 ----------------
+
+        private void SetupBacks()
+        {
+            if (_backs == null || _hinges == null || _backs.Length != _hinges.Length)
+            {
+                _backs = null;
+                return;
+            }
+            int n = _backs.Length;
+            _backAxis = new Vector3[n];
+            _backPos = new Vector3[n];
+            _backRot = new Quaternion[n];
+            _backDelay = new float[n];
+            _backAmount = new float[n];
+            _residents = new ResidentFigure[n];
+            _bodyAmount = new float[n];
+            for (int i = 0; i < n; i++)
+            {
+                var outward = new Vector3(_hinges[i].x - _axis.x, 0f, _hinges[i].z - _axis.y).normalized;
+                _backAxis[i] = Vector3.Cross(Vector3.up, outward);   // 양의 각 = 위 끝이 돔 축에서 멀어짐
+                _backPos[i] = _backs[i].localPosition;
+                _backRot[i] = _backs[i].localRotation;
+                float az = Mathf.Atan2(outward.z, outward.x) * Mathf.Rad2Deg;
+                _backDelay[i] = _reclineWave * Mathf.Repeat(az + 45f, 90f) / 90f;   // 부채꼴마다 한쪽 끝에서 차례로
+            }
+        }
+
+        private bool WantRecline()
+        {
+            switch (_phase)
+            {
+                case Phase.Idle:
+                    return false;
+                case Phase.Dawn:
+                    return _timer < _dawnSeconds * _riseAtDawn;
+                default:
+                    return true;
+            }
+        }
+
+        private void UpdateRecline(float dt)
+        {
+            if (_backs == null)
+                return;
+            bool want = WantRecline();
+            int n = _backs.Length;
+            if (want != _reclined)
+            {
+                _reclined = want;
+                _reclineClock = 0f;
+                if (want)
+                {
+                    for (int i = 0; i < n; i++)
+                        FindResident(i);
+                }
+            }
+            _reclineClock += dt;
+            if (want)
+            {
+                // 상영 중에 걸어와 앉은 주민 (한 프레임에 한 자리씩)
+                _residentCheck = (_residentCheck + 1) % n;
+                FindResident(_residentCheck);
+            }
+            float step = dt / Mathf.Max(_reclineSeconds, 0.01f);
+            for (int i = 0; i < n; i++)
+            {
+                if (i != _seat && _reclineClock < _backDelay[i])
+                    continue;
+                float amount = Mathf.MoveTowards(_backAmount[i], want ? 1f : 0f, step);
+                if (amount != _backAmount[i])
+                {
+                    _backAmount[i] = amount;
+                    ApplyBack(i);
+                }
+                UpdateResident(i, want, step);
+            }
+            if (_seated && _seat >= 0)
+            {
+                float lie = Mathf.MoveTowards(_lie, want ? 1f : 0f, step);
+                if (lie != _lie)
+                    SetLie(lie);
+            }
+        }
+
+        private void FindResident(int i)
+        {
+            var figure = i == _seat ? null : ResidentOn(i);
+            if (figure != _residents[i])
+            {
+                ReleaseResident(i);
+                _residents[i] = figure;
+            }
+        }
+
+        /// <summary>자리의 주민을 등받이와 같은 빠르기로 눕히고, 누운 동안 일어나지 못하게 묶음.</summary>
+        private void UpdateResident(int i, bool want, float step)
+        {
+            var figure = _residents[i];
+            if (figure == null || figure.Motion == null)
+                return;
+            bool seated = figure.Motion.StandBlend <= 0.01f;
+            float amount = Mathf.MoveTowards(_bodyAmount[i], want && seated ? 1f : 0f, step);
+            _bodyAmount[i] = amount;
+            figure.Motion.SeatRecline = Mathf.SmoothStep(0f, 1f, amount);
+            var wander = figure.GetComponent<ResidentWander>();
+            if (wander != null)
+                wander.Hold = seated && (want || amount > 0f);
+            if (!want && amount <= 0f)
+                _residents[i] = null;
+        }
+
+        private void ReleaseResident(int i)
+        {
+            var figure = _residents[i];
+            _bodyAmount[i] = 0f;
+            _residents[i] = null;
+            if (figure == null)
+                return;
+            if (figure.Motion != null)
+                figure.Motion.SeatRecline = 0f;
+            var wander = figure.GetComponent<ResidentWander>();
+            if (wander != null)
+                wander.Hold = false;
+        }
+
+        private void ApplyBack(int i)
+        {
+            var q = Quaternion.AngleAxis(_reclineAngle * Mathf.SmoothStep(0f, 1f, _backAmount[i]), _backAxis[i]);
+            _backs[i].localRotation = q * _backRot[i];
+            _backs[i].localPosition = _hinges[i] + q * (_backPos[i] - _hinges[i]);
+        }
+
+        private void ResetBacks()
+        {
+            if (_backs == null)
+                return;
+            _reclined = false;
+            for (int i = 0; i < _backs.Length; i++)
+            {
+                ReleaseResident(i);
+                if (_backAmount[i] > 0f)
+                {
+                    _backAmount[i] = 0f;
+                    ApplyBack(i);
+                }
+            }
+        }
+
+        /// <summary>앉은 플레이어를 등받이와 같은 경첩으로 눕힘: 눈이 뒤로 내려가고 시선이 위로 (그 사이 마우스로 움직인 만큼은 남음).</summary>
+        private void SetLie(float lie)
+        {
+            float before = Mathf.SmoothStep(0f, 1f, _lie), after = Mathf.SmoothStep(0f, 1f, lie);
+            _lie = lie;
+            var s = _seatSpots[_seat];
+            var eye = new Vector3(s.x, s.y + _seatedEye, s.z);
+            var hinge = _hinges[_seat];
+            var moved = hinge + Quaternion.AngleAxis(_reclineAngle * after, _backAxis[_seat]) * (eye - hinge);
+            float pitch = _player.Pitch + (_lyingPitch - _seatedPitch) * (after - before);
+            _player.RideAt(transform, transform.TransformPoint(moved - Vector3.up * _seatedEye), _seatedEye, null, pitch);
         }
 
         // ---------------- 객석 ----------------
@@ -625,22 +830,26 @@ namespace SpaceStation.Interior
             return _aimSeat;
         }
 
-        private bool Occupied(int seat)
+        private ResidentFigure ResidentOn(int seat)
         {
-            var s = _seatSpots[seat];
-            var world = transform.TransformPoint(new Vector3(s.x, s.y + 0.6f, s.z));
-            foreach (var c in Physics.OverlapSphere(world, 0.18f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            // 앉는 판 위 몸통 자리 (경첩에서 돔 축 쪽으로 0.2m)
+            var hinge = _hinges[seat];
+            var toAxis = new Vector3(_axis.x - hinge.x, 0f, _axis.y - hinge.z).normalized;
+            var world = transform.TransformPoint(hinge + toAxis * 0.2f + Vector3.up * 0.2f);
+            int n = Physics.OverlapSphereNonAlloc(world, 0.18f, _overlap, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < n; i++)
             {
-                if (c.GetComponentInParent<ResidentFigure>() != null)
-                    return true;
+                var figure = _overlap[i].GetComponentInParent<ResidentFigure>();
+                if (figure != null)
+                    return figure;
             }
-            return false;
+            return null;
         }
 
         private void Sit()
         {
             int seat = AimSeat();
-            if (_seated || _player == null || seat < 0 || Time.frameCount == _standFrame || Occupied(seat))
+            if (_seated || _player == null || seat < 0 || Time.frameCount == _standFrame || ResidentOn(seat) != null)
                 return; // 일어나기와 같은 프레임의 F (InteriorMode가 뒤에서 다시 부름)
             var s = _seatSpots[seat];
             _standPoint = _player.transform.position;
@@ -648,6 +857,8 @@ namespace SpaceStation.Interior
             var feet = transform.TransformPoint(new Vector3(s.x, s.y, s.z));
             _player.RideAt(transform, feet, _seatedEye, yaw, _seatedPitch);
             _seated = true;
+            _seat = seat;
+            _lie = 0f;
             if (_seatCollider != null)
                 _seatCollider.enabled = false;
             if (_phase == Phase.Idle && _timer > _seatedWait)
@@ -659,6 +870,8 @@ namespace SpaceStation.Interior
         {
             _standFrame = Time.frameCount;
             _seated = false;
+            _seat = -1;
+            _lie = 0f;
             if (_seatCollider != null)
                 _seatCollider.enabled = true;
             _player.RideAt(transform, _standPoint, FirstPersonController.EyeHeight, null, 0f);
@@ -671,6 +884,8 @@ namespace SpaceStation.Interior
             if (!_seated)
                 return;
             _seated = false;
+            _seat = -1;
+            _lie = 0f;
             if (_seatCollider != null)
                 _seatCollider.enabled = true;
             if (_player != null)

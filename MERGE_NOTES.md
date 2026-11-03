@@ -2130,3 +2130,17 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `aa6107b7`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-141. 시민 회관 눕는 객석 · 주민도 함께 누워 관람 · 앉은 꼬리 몸통 검사 (2026-11-03, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `8f799fe0`과 같은 파일)
+- 시민 회관 객석 다시 짬 (`SM_Interior_EvoCivicHall.fbx` · `PF_Interior_EvoCivicHall` · `IT_EvoCivicHall`, Blender `civ_builder`, `Interior_Evo.blend`): 눕는 등받이 56 (`INT_EvoCivicHall_Back00` ~ `55`), 충돌체 전용 `_SeatHit`, 객석 열 안쪽으로 (1열 4.27 · 2열 3.12 · 우물 끝 2.8), `InteriorTemplateBuilder.BuildEvoCivicHall` · `ResidentSpotBaker.EvoCivicHallSpots` 좌표
+- `InteriorStellaDome`: 상영 동안 등받이 · 플레이어 · 앉은 주민이 함께 눕고 일어남, 이름표를 시선 위쪽 기준 · 눈 쪽으로 당김. `StellaDome` 셰이더 은하수 결
+- **공통 코드 변경 (모든 모듈)** `ResidentSeatFit`: 꼬리가 몸통에 들어가는 각을 탈락, 어느 각도 안 맞으면 꼬리를 줄여 다시 잼 (`ResidentMotion.SeatTailSize`). `ResidentMotion`: `SeatTailSize` · `SeatRecline` (기본 1 · 0, 시민 회관 말고는 눕기 안 씀), 꼬리 크기를 매 프레임 씀. `FirstPersonController.Pitch` 읽기 속성
+- `MODELING.md` 7-11 · 8-10
+
+### `narrative` 합칠 때
+- `ResidentSeatFit` · `ResidentMotion`을 고쳤다면 그 파일만 손으로 합칠 것: 꼬리 크기 반복 · 몸통 칸 (`Slice`) · 눕기 블록. 앉은 주민의 꼬리 크기가 다른 모듈에서도 줄어들 수 있음 (큰 꼬리 종이 등받이 있는 의자에 앉을 때)
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `8f799fe0`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
