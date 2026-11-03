@@ -124,7 +124,7 @@ namespace SpaceStation.Editor
         /// 진화 2단계 대형 토러스 "은하철도 링" (5 × 5칸 바퀴 = 고리 + 가운데 십자 + 허브 위 한 칸, gt_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘, 의자 앉기도", 2026-11-03 플레이 의견으로 다시 짬): 직접 체험 = 밤 열차 타고 역 넷을 돎 (<see cref="InteriorTrain"/>).
         /// 외형 그대로 원형 고리 + 바큇살 넷 + 시계탑 허브: 고가 선로 · 역 넷 (승강장 · 스크린 도어 · 고리를 따라 휜 계단 · 유리 홀) · 동네 고리 (산책로 · 흰 집 · 잔디 · 나무, 유리 지붕) · 고가 아래 아치 회랑 · 고가 아래 아치 집 여덟 · 유리 통로 넷 · 돔 허브 · 엘리베이터 (<see cref="InteriorLift"/>) · 시계탑 (둥근 사각 몸통 · 바깥에서 흰 시계판 · 안에서 내다보는 시계 방 · 종루 · 첨탑 · 도는 톱니 GearA).
         /// 전부 유리 · 지붕 안이라 우주복 없음. 하늘 껍질 = 바퀴 전체를 감싼 큰 상자 (안쪽 빈 칸 넷을 벽으로 두르면 허브 · 건너편이 가려짐).
-        /// 문 자리 = 외형 면이 있는 바깥 칸 12 (가운데 칸은 고가 벽 바로 뒤 깊이 3.9, 양옆 칸은 고가가 비스듬히 지나 짧은 문간 깊이 2.9 — 표준 3.2면 문 패널이 고리 곡면에서 떠 보임), 아래 해치 = 바닥 칸 17, 시계탑 칸 문 · 위 해치 없음 (네 면이 시계).
+        /// 문 자리 = 외형 면이 있는 바깥 칸 12 (가운데 칸은 고가 벽 바로 뒤 깊이 3.9, 양옆 칸은 고가가 비스듬히 지나 짧은 문간 깊이 2.9 — 표준 3.2면 문 패널이 고리 곡면에서 떠 보임, 연결 안 된 자리 = 막힌 아치 창 패널 <see cref="InteriorTemplate.SealedSockets"/>), 아래 해치 = 바닥 칸 17, 시계탑 칸 문 · 위 해치 없음 (네 면이 시계).
         /// </summary>
         private static void BuildEvoGrandTorus()
         {
@@ -4260,6 +4260,7 @@ namespace SpaceStation.Editor
             template.EditorSet(module, prefab, sockets, spawn, spawnYaw);
             template.EditorSetAmbience(Ambiences.TryGetValue(name, out var ambience) ? ambience : InteriorAmbience.Hall);
             template.EditorSetShowOwnExterior(showOwnExterior);
+            template.EditorSetSealedSockets(name == "EvoGrandTorus");   // 전부 지붕 · 유리 안 (우주복 없음): 닫힌 문 자리가 우주로 뚫리면 안 됨 (사용자 2026-11-03 "모델링에 구멍")
             EditorUtility.SetDirty(template);
             Debug.Log($"[InteriorTemplateBuilder] {name}: 문 자리 {sockets.Count}곳, 조명 {lights.Count}개");
         }

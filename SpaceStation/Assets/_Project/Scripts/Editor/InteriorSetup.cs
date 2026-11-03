@@ -213,6 +213,7 @@ namespace SpaceStation.Editor
             var evo2Gold = AssetDatabase.LoadAssetAtPath<Material>(Evo2GoldPath);
             var evo2Glass = AssetDatabase.LoadAssetAtPath<Material>(Evo2GlassPath);
             var evo2Sky = AssetDatabase.LoadAssetAtPath<Material>(Evo2SkyPath);
+            var evo2ClearGlass = AssetDatabase.LoadAssetAtPath<Material>(Evo2ClearGlassPath);
 
             Data.InteriorKitPiece Piece(string name, System.Collections.Generic.Dictionary<string, GameObject> from = null)
             {
@@ -244,6 +245,7 @@ namespace SpaceStation.Editor
                         case "Evo2Gold": mats[i] = evo2Gold; break;
                         case "Evo2Glass": mats[i] = evo2Glass; break;   // 닫힌 문 자리 = 유리 난간 + 하늘 조각 (열린 갑판)
                         case "Evo2Sky": mats[i] = evo2Sky; break;
+                        case "Evo2ClearGlass": mats[i] = evo2ClearGlass; break;   // 실내형 방의 닫힌 문 자리 = 아치 창
                         default:
                             Debug.LogWarning($"[InteriorSetup] {name}: 모르는 재질 슬롯 '{slot}' → Hull");
                             mats[i] = hull;
@@ -290,7 +292,7 @@ namespace SpaceStation.Editor
             {
                 stages.Add(new Data.InteriorKitStage(2, ModulesOfStage(2),
                     Piece("KIT_Wall_Evo2", evo2), Piece("KIT_WallDoor_Evo2", evo2), Piece("KIT_DoorLeaf_Evo2", evo2), Piece("KIT_Floor_Evo2", evo2),
-                    Piece("KIT_Ceiling_Evo2", evo2), Piece("KIT_HatchFrame_Evo2", evo2), Piece("KIT_HatchLid_Evo2", evo2)));
+                    Piece("KIT_Ceiling_Evo2", evo2), Piece("KIT_HatchFrame_Evo2", evo2), Piece("KIT_HatchLid_Evo2", evo2), Piece("KIT_WallSealed_Evo2", evo2)));
             }
             kit.EditorSetStages(stages);
             EditorUtility.SetDirty(kit);
