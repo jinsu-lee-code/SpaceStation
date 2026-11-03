@@ -120,7 +120,149 @@ namespace SpaceStation.Editor
             BuildEvoGrandTorus();
             BuildEvoCivicHall();
             BuildEvoSecurityHQ();
+            BuildEvoBiodome();
         }
+
+        /// <summary>
+        /// 진화 2단계 바이오돔 "비눗방울 돔 정원" (4 × 2칸, bd_builder — 사용자 2026-11-03 시안 1 "좋아 이대로 유니티로 옮겨줘"): 정원 · 전시관 구성 (직접 체험 모듈 아님).
+        /// 외형 평면 그대로: 미드나잇 갑판 (우주복, 기술 식물만) 위에 따로 선 지오데식 유리 돔 셋 + 유리 연결 통로 둘 (돔 안 = 실내, 살아 있는 식물).
+        /// 큰 돔 "구름 숲" = 바위 폭포 → 웅덩이 → 호수 · 디딤돌 · 나무 아홉 (<see cref="PlantKind.Tree"/>) · 도는 구름 고리 여섯 Clouds + 비 (<see cref="SpaceStation.Building.RainFx"/>, 바깥 모듈과 같은 효과),
+        /// 왼쪽 돔 "바퀴 텃밭" = 분수 · 크림색 고리 + 십자 길 · 여덟 칸 작물 · 매단 재배등 고리, 오른쪽 돔 "산소 습지" = 연못 · 갈대 · 수련 · 잉어 Fish · 전망 데크 · 산소 기둥 셋 (거품 Bubbles1 ~ 3).
+        /// 풀 = 잔디 무늬 텍스처 Lawn (충돌 없음, 발은 그 아래 갑판) + 풀잎 · 고사리 · 들꽃 한 장씩 Leaves. 호수 · 연못에 못 들어가는 벽 = LakeHit (렌더러 없음).
+        /// 문 자리 12 = 갑판 둘레 (깊이 3.95, 닫힘 = 난간), 아래 해치 = 칸마다 갑판으로, 위 해치 없음 (하늘).
+        /// </summary>
+        private static void BuildEvoBiodome()
+        {
+            const float DeckEdge = 3.95f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.left, DeckEdge),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.left, DeckEdge),
+                new InteriorSocket(new Vector3Int(3, 0, 0), Vector3Int.right, DeckEdge),
+                new InteriorSocket(new Vector3Int(3, 0, 1), Vector3Int.right, DeckEdge),
+            };
+            for (int x = 0; x < 4; x++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), back, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 1), front, DeckEdge));
+            }
+            for (int x = 0; x < 4; x++)
+            {
+                // 돔을 비켜 남 · 북 갑판으로 (양 끝 칸은 가로등도 비킴)
+                float side = x == 0 ? 2.2f : x == 1 ? -2.6f : x == 2 ? 2.6f : -2.2f;
+                float depth = x == 0 || x == 3 ? 2f : 2.4f;
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), Vector3Int.down, -F, new Vector3(side, 0f, -depth)));
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 1), Vector3Int.down, -F, new Vector3(side, 0f, depth)));
+            }
+            var sun = new Color(1f, 0.98f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var water = new Color(0.6f, 0.9f, 1f);
+            var plasma = new Color(0.8f, 0.5f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(12f, F + 4f, 4f), 10f, 2f, sun),             // 큰 돔 (구름 고리 가운데)
+                LightSpec.Point(new Vector3(9.2f, F + 3.2f, 3f), 7f, 1.3f, sun),         // 호수
+                LightSpec.Point(new Vector3(9.9f, F + 2.8f, 5.4f), 5f, 1f, sun),         // 폭포
+                LightSpec.Point(new Vector3(14.6f, F + 3f, 2.2f), 7f, 1.4f, sun),        // 동쪽 숲
+                LightSpec.Point(new Vector3(14.6f, F + 3f, 6f), 7f, 1.4f, sun),
+                LightSpec.Point(new Vector3(12f, F + 2.6f, -0.2f), 5f, 0.8f, sun),       // 남 · 북 입구 안쪽
+                LightSpec.Point(new Vector3(12f, F + 2.6f, 8.2f), 5f, 0.8f, sun),
+                LightSpec.Point(new Vector3(1.5f, F + 2.3f, 4f), 6.5f, 1.3f, sun),       // 텃밭 재배등 고리 아래
+                LightSpec.Point(new Vector3(-0.6f, F + 2.2f, 4f), 4.5f, 0.7f, warm),
+                LightSpec.Point(new Vector3(3.6f, F + 2.2f, 4f), 4.5f, 0.7f, warm),
+                LightSpec.Point(new Vector3(1.5f, F + 2.2f, 1.9f), 4.5f, 0.7f, warm),
+                LightSpec.Point(new Vector3(1.5f, F + 2.2f, 6.1f), 4.5f, 0.7f, warm),
+                LightSpec.Point(new Vector3(22.5f, F + 3f, 4f), 8f, 1.7f, sun),          // 습지
+                LightSpec.Point(new Vector3(24.6f, F + 2.2f, 2.6f), 4.5f, 0.7f, sun),
+                LightSpec.Point(new Vector3(24.6f, F + 2.2f, 5.6f), 4.5f, 0.7f, sun),
+                LightSpec.Point(new Vector3(23.5f, F + 1.8f, 4.2f), 3.5f, 0.5f, water),  // 연못
+                LightSpec.Point(new Vector3(20.3f, F + 1.2f, 5.95f), 3f, 0.5f, water),   // 산소 기둥
+                LightSpec.Point(new Vector3(20.2f, F + 1.2f, 2.5f), 3f, 0.5f, water),
+                LightSpec.Point(new Vector3(6f, F + 1.9f, 4f), 3.5f, 0.7f, sun),         // 연결 통로
+                LightSpec.Point(new Vector3(18f, F + 1.9f, 4f), 3.5f, 0.7f, sun),
+                LightSpec.Point(new Vector3(6.05f, F + 1.6f, 0f), 3.5f, 0.5f, plasma),   // 화단 (플라즈마 볼 꽃)
+                LightSpec.Point(new Vector3(17.95f, F + 1.6f, 0f), 3.5f, 0.5f, plasma),
+                LightSpec.Point(new Vector3(6.05f, F + 1.6f, 8f), 3.5f, 0.5f, plasma),
+                LightSpec.Point(new Vector3(17.95f, F + 1.6f, 8f), 3.5f, 0.5f, plasma),
+            };
+            foreach (var (x, z) in new[] { (3.6f, -3.1f), (12f, -3.1f), (20.4f, -3.1f), (3.6f, 11.1f), (12f, 11.1f), (20.4f, 11.1f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.3f, z), 6.5f, 0.85f, warm));   // 갑판 가로등
+            foreach (var (x, z) in new[] { (-2.6f, -1.2f), (26.6f, -1.2f), (-2.6f, 9.2f), (26.6f, 9.2f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.2f, z), 7f, 0.45f, cool));     // 빈 갑판 (밤하늘 찬 빛, 세면 윤나는 갑판에 하얗게 비침)
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoBiodome_Clouds", new Vector3(12f, 0f, 4f), Vector3.up, 6f),        // 구름 고리 (bd_builder clouds)
+                new OrbitSpec("INT_EvoBiodome_Fish", new Vector3(22.85f, 0f, 4.2f), Vector3.up, -18f),   // 잉어 (연못 가운데 축, bd_builder fish — 머리 쪽으로 헤엄침)
+                new OrbitSpec("INT_EvoBiodome_Bubbles1", new Vector3(20.95f, 0f, 6.55f), Vector3.up, 90f),   // 산소 기둥 거품 — 나선을 돌리면 오르는 것처럼 보임
+                new OrbitSpec("INT_EvoBiodome_Bubbles2", new Vector3(19.85f, 0f, 5.45f), Vector3.up, 90f),
+                new OrbitSpec("INT_EvoBiodome_Bubbles3", new Vector3(20.2f, 0f, 2.5f), Vector3.up, 90f),
+            };
+            EvoAccent("Biodome", "#5FE08A");
+            // 스폰 = 큰 돔 남쪽 입구 안에서 호수 · 바위 폭포를 바라봄
+            Build("EvoBiodome", "Evolved/MD_Evo_Biodome", sockets, new Vector3(12.1f, F, -0.2f), -20f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[]
+                    {
+                        new Vector3(1.5f, 4f, 3.88f), new Vector3(12f, 4f, 5.26f), new Vector3(22.5f, 4f, 3.88f),   // 돔 (bd_builder DL · DC · DR, 압력 막 반지름)
+                        new Vector3(6f, 4f, 1.25f), new Vector3(18f, 4f, 1.25f),                                    // 연결 통로
+                    });
+                    // 물에 못 들어가는 벽: 모양만 쓰고 보이지 않음
+                    var lakeHit = Child(root, "INT_EvoBiodome_LakeHit");
+                    var lakeMesh = lakeHit.GetComponent<MeshFilter>().sharedMesh;
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshRenderer>());
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshFilter>());
+                    lakeHit.gameObject.AddComponent<MeshCollider>().sharedMesh = lakeMesh;
+                    // 나무 줄기 충돌체 (PlantSpot 나무 모델에는 충돌체가 없음, 잔디밭 한가운데라 화분 턱도 없음 — InteriorPlantSpots와 같은 자리)
+                    foreach (var (x, z, s) in BiodomeTrees)
+                    {
+                        var trunk = new GameObject("TreeHit");
+                        trunk.transform.SetParent(root.transform, false);
+                        trunk.transform.localPosition = new Vector3(x, F + 1f, z);
+                        var capsule = trunk.AddComponent<CapsuleCollider>();
+                        capsule.radius = 0.1f * s;
+                        capsule.height = 2f;
+                    }
+                    // 비: 바깥 모듈과 같은 RainFx를 미터 단위로 (구름 고리와 함께 돌고, 비는 곧게 떨어짐)
+                    var clouds = Child(root, "INT_EvoBiodome_Clouds");
+                    var rain = root.AddComponent<SpaceStation.Building.RainFx>();
+                    var so = new SerializedObject(rain);
+                    so.FindProperty("_clouds").objectReferenceValue = clouds;
+                    so.FindProperty("_module").objectReferenceValue = root.transform;
+                    var spots = so.FindProperty("_cloudSpots");
+                    spots.arraySize = 6;
+                    for (int i = 0; i < 6; i++)
+                    {
+                        float a = i * 60f * Mathf.Deg2Rad;
+                        spots.GetArrayElementAtIndex(i).vector3Value = new Vector3(12f + 2.3f * Mathf.Cos(a), F + 3.17f, 4f + 2.3f * Mathf.Sin(a));
+                    }
+                    so.FindProperty("_ringCenter").vector3Value = new Vector3(12f, 0f, 4f);
+                    so.FindProperty("_area").vector2Value = new Vector2(1.3f, 0.7f);
+                    so.FindProperty("_dropMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_RainDrop.mat");
+                    so.FindProperty("_mistMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_RainMist.mat");
+                    so.FindProperty("_fallSpeed").floatValue = 5.5f;
+                    so.FindProperty("_groundY").floatValue = F - 0.07f;
+                    so.FindProperty("_rate").floatValue = 110f;
+                    so.FindProperty("_shelterHalfWidth").floatValue = 0f;   // 아치 없음
+                    so.FindProperty("_dropSize").vector2Value = new Vector2(0.005f, 0.008f);
+                    so.FindProperty("_dropStretch").floatValue = 0.05f;
+                    so.FindProperty("_sway").floatValue = 0.1f;
+                    so.FindProperty("_mistSize").vector2Value = new Vector2(1.2f, 1.9f);
+                    so.FindProperty("_mistFall").vector2Value = new Vector2(0.5f, 0.8f);
+                    so.FindProperty("_alwaysOn").boolValue = true;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                });
+        }
+
+        /// <summary>바이오돔 큰 돔 나무 (x, z, 크기) — bd_builder PLANTS. <see cref="InteriorPlantSpots"/>와 줄기 충돌체가 함께 씀.</summary>
+        public static readonly (float x, float z, float s)[] BiodomeTrees =
+        {
+            (14.05f, 6.75f, 1.5f), (15.1f, 5.45f, 1.45f), (13.95f, 5.25f, 1.3f), (15.25f, 2.75f, 1.5f), (14f, 2.45f, 1.6f),
+            (14.15f, 1f, 1.35f), (9.3f, 1.3f, 1.25f), (8.3f, 2.15f, 1.1f), (11.05f, 7.7f, 1.2f),
+        };
 
         /// <summary>
         /// 진화 2단계 치안 본부 "푸른 등 파출소 광장" (2 × 2칸, sh_builder — 사용자 2026-11-03 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 감시탑 전망실 (엘리베이터 + 망원경 둘, <see cref="InteriorLift"/> · <see cref="InteriorTelescope"/>) · 광장에서 출동하는 순찰차 (<see cref="InteriorPatrolCar"/>).
@@ -4358,6 +4500,7 @@ namespace SpaceStation.Editor
             { "EvoGrandTorus", InteriorAmbience.Life },       // 바퀴 마을
             { "EvoCivicHall", InteriorAmbience.Life },        // 회관 · 돌봄 · 교실
             { "EvoSecurityHQ", InteriorAmbience.Life },       // 파출소 광장 · 민원 창구
+            { "EvoBiodome", InteriorAmbience.Water },         // 호수 · 폭포 · 비
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
@@ -4433,6 +4576,12 @@ namespace SpaceStation.Editor
                 { "Evo2Violet", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2VioletPath) },
                 { "Evo2Heat", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2HeatPath) },
                 { "Evo2WaterGlow", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2WaterGlowPath) },
+                { "Evo2Lawn", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2LawnPath) },
+                { "Evo2Soil", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SoilPath) },
+                { "Evo2Rock", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2RockPath) },
+                { "PureWater", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PondPath) },
+                { "Falls", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2FallsPath) },
+                { "Cloud", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.CloudPath) },
                 { "Paper", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PaperPath) },
                 { "PropBlue", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropBluePath) },
                 { "PropGreen", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropGreenPath) },

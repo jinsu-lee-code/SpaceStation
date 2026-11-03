@@ -65,6 +65,14 @@ namespace SpaceStation.Editor
             })
                 tower.Add(new PlantSpot(new Vector3(x, y, z), PlantKind.Pot, s, (n++) * 53f));
             Set("IT_EvoTower", tower);
+            // 진화 2단계 바이오돔 (bd_builder PLANTS): 큰 돔 잔디에 바로 심은 나무 아홉 (돔 안이라 유리 덮개 없음, 회전은 시안에서 유리까지 잰 그대로)
+            var biodome = new List<PlantSpot>();
+            for (int i = 0; i < InteriorTemplateBuilder.BiodomeTrees.Length; i++)
+            {
+                var (x, z, s) = InteriorTemplateBuilder.BiodomeTrees[i];
+                biodome.Add(new PlantSpot(new Vector3(x, -1.288f, z), PlantKind.Tree, s, -47f * i));
+            }
+            Set("IT_EvoBiodome", biodome);
             // 진화 2단계 치안 본부 (sh_builder PLANTS): 청사 안 화단 나무 둘 (실내라 유리 덮개 없음)
             Set("IT_EvoSecurityHQ", new List<PlantSpot>
             {
