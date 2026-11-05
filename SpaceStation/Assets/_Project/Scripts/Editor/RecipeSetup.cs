@@ -33,6 +33,8 @@ namespace SpaceStation.Editor
             public ModuleCategory Category;
             public string Color;
             public Vector3Int[] Cells;
+            /// <summary>비워 둘 칸 (모델이 지나가는 칸 밖 자리 — 접근로처럼 못 지음).</summary>
+            public Vector3Int[] KeepClear;
             public (string module, int count)[] Ingredients;
             public float SynthesisMetal;
             public float Duration;
@@ -406,6 +408,8 @@ namespace SpaceStation.Editor
                 Id = "GrandTorus", Name = "대형 토러스", RecipeName = "대형 토러스", Category = ModuleCategory.Life, Color = "#B0E0FF", Stage = 2, UnlockGrade = 5,
                 // 5×5 고리 + 가운데 허브 십자 + 허브 한 칸 올림 = 22 (합성은 재료 칸 합과 정확히 같아야 함 — 사용자 결정 2026-10-22)
                 Cells = Join(Ring(5), new[] { V(2, 0, 1), V(1, 0, 2), V(2, 0, 2), V(3, 0, 2), V(2, 0, 3), V(2, 1, 2) }),
+                // 고리가 안쪽 대각선 네 칸을 지나감 → 칸은 22 그대로 두고 그 칸만 비워 둠 (사용자 2026-11-06 "채굴 도킹이나 여객포트처럼 해당 칸에 배치를 못하게")
+                KeepClear = new[] { V(1, 0, 1), V(3, 0, 1), V(1, 0, 3), V(3, 0, 3) },
                 Ingredients = new[] { ("Evolved/MD_Evo_GravityHabitat", 2) }, SynthesisMetal = 540f, Duration = 90f, Research = ResearchCategory.Habitation,
                 Rationale = "작은 링 둘을 큰 바퀴 하나로 · 바퀴가 클수록 중력이 고르고 사는 곳이 넓다",
                 Stats = so =>
@@ -985,6 +989,10 @@ namespace SpaceStation.Editor
             cells.arraySize = def.Cells.Length;
             for (int i = 0; i < def.Cells.Length; i++)
                 cells.GetArrayElementAtIndex(i).vector3IntValue = def.Cells[i];
+            var keepClear = so.FindProperty("_keepClearCells");
+            keepClear.arraySize = def.KeepClear?.Length ?? 0;
+            for (int i = 0; i < keepClear.arraySize; i++)
+                keepClear.GetArrayElementAtIndex(i).vector3IntValue = def.KeepClear[i];
             so.FindProperty("_prefab").objectReferenceValue = prefab;
             so.FindProperty("_removable").boolValue = true;
             Amounts(so.FindProperty("_buildCost"), (ResourceType.Metal, buildMetal));

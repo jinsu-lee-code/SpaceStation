@@ -5376,7 +5376,7 @@ namespace SpaceStation.Editor
             for (int i = 0; i < verts.Length; i++)
                 world[i] = toRoot.MultiplyPoint3x4(verts[i]);
             var mesh = Object.Instantiate(src);
-            mesh.name = src.name + "_Doors";
+            mesh.name = "SM_Interior_" + name + "_SkyDoors"; // 파일 이름과 같게 (다르면 다시 가져올 때마다 이름이 바뀌어 빌드마다 변경이 생김)
             int removed = 0, emptySockets = 0;
             var boxes = new List<(Vector3 center, Vector3 dir, Vector3 right, float floor, float depth)>();
             foreach (var s in sockets)

@@ -177,6 +177,75 @@ namespace SpaceStation.Tests
             Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _block, new Vector3Int(0, 0, 3), 0));
         }
 
+        // ---- 비워 둘 칸 (대형 토러스 고리 안쪽, 사용자 2026-11-06 "채굴 도킹이나 여객포트처럼 해당 칸에 배치를 못하게") ----
+
+        /// <summary>3×3 고리 (가운데 빔) + 비워 둘 칸 = 가운데. 원점 = 고리 왼쪽 앞 모서리.</summary>
+        private ModuleData Donut(params Vector3Int[] keepClear)
+        {
+            var cells = new List<Vector3Int>();
+            for (int x = 0; x < 3; x++)
+                for (int z = 0; z < 3; z++)
+                    if (x != 1 || z != 1)
+                        cells.Add(new Vector3Int(x, 0, z));
+            var donut = Module("Donut", cells.ToArray(), terminal: false);
+            var so = new SerializedObject(donut);
+            var list = so.FindProperty("_keepClearCells");
+            list.arraySize = keepClear.Length;
+            for (int i = 0; i < keepClear.Length; i++)
+                list.GetArrayElementAtIndex(i).vector3IntValue = keepClear[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return donut;
+        }
+
+        [Test]
+        public void KeepClear_AfterPlaced_NothingCanBeBuiltThere()
+        {
+            var donut = Donut(new Vector3Int(1, 0, 1));
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, donut, Vector3Int.right, 0));
+            _grid.TryPlace(donut, Vector3Int.right, 0, out _); // (1..3, 0..2), 가운데 (2,0,1)
+            Assert.AreEqual(PlacementResult.BlockedByKeepClear, PlacementRules.Evaluate(_grid, _block, new Vector3Int(2, 0, 1), 0));
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _block, new Vector3Int(2, 1, 1), 0), "고리 위는 자유 (비워 둘 칸만)");
+        }
+
+        [Test]
+        public void KeepClear_MustBeEmpty_WhenPlacing()
+        {
+            var donut = Donut(new Vector3Int(1, 0, 1));
+            _grid.TryPlace(_block, new Vector3Int(2, 0, 1), 0, out _); // 고리 가운데에 미리 지음 (예전 세이브처럼)
+            Assert.AreEqual(PlacementResult.KeepClearBlocked, PlacementRules.Evaluate(_grid, donut, Vector3Int.right, 0));
+        }
+
+        [Test]
+        public void KeepClear_FollowsRotation()
+        {
+            // 비워 둘 칸이 고리 밖 (원점 앞 −Z 한 칸) → 회전하면 다른 칸
+            var donut = Donut(new Vector3Int(0, 0, -1));
+            var origin = new Vector3Int(5, 0, 5);
+            var cells = new List<Vector3Int>();
+            for (int r = 0; r < 4; r++)
+            {
+                PlacementRules.GetKeepClearCells(donut, origin, r, cells);
+                Assert.AreEqual(origin + GridDirections.Rotate(new Vector3Int(0, 0, -1), r), cells[0]);
+            }
+            _grid.TryPlace(donut, origin, 1, out _);
+            PlacementRules.GetKeepClearCells(donut, origin, 1, cells);
+            Assert.AreEqual(PlacementResult.BlockedByKeepClear, PlacementRules.Evaluate(_grid, _block, cells[0], 0));
+            Assert.AreEqual(new Vector3Int(4, 0, 5), cells[0]);
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _block, new Vector3Int(5, 0, 6), 0), "다른 회전(2)의 자리는 아님");
+        }
+
+        [Test]
+        public void KeepClear_IgnoredModule_DoesNotBlock_AndRemovedFreesIt()
+        {
+            var donut = Donut(new Vector3Int(1, 0, 1));
+            _grid.TryPlace(donut, Vector3Int.right, 0, out var placed);
+            // 옮기는 고리 자신: 옛 자리 비워 둘 칸은 없다고 봄
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _block, new Vector3Int(2, 0, 1), 0, placed));
+            Assert.IsTrue(PlacementRules.HitsKeepClear(_grid, new[] { new Vector3Int(2, 0, 1) }));
+            _grid.Remove(placed);
+            Assert.AreEqual(PlacementResult.Valid, PlacementRules.Evaluate(_grid, _block, new Vector3Int(2, 0, 1), 0));
+        }
+
         // ---- 받침 규칙 (7-7: 코어 2층 옆 칸만 받침 필요) ----
 
         private StationGrid BigCoreGrid()

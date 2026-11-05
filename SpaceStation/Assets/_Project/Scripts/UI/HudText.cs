@@ -32,6 +32,8 @@ namespace SpaceStation.UI
                 case PlacementResult.DockNeedsBackContact: return "채굴 도킹은 뒷면(연결 칼라)으로 정거장에 붙여야 함";
                 case PlacementResult.DockLaneBlocked: return "채굴 도킹 앞쪽 접근로가 막혀 있음 (입구 앞 2칸은 비어 있어야 함)";
                 case PlacementResult.BlockedByDockLane: return "채굴 도킹 접근로 (채굴선이 드나드는 길이라 지을 수 없음)";
+                case PlacementResult.KeepClearBlocked: return "안쪽에 비워 둘 칸이 막혀 있음 (고리 안 빈 칸에 다른 모듈이 있음)";
+                case PlacementResult.BlockedByKeepClear: return "대형 토러스 고리 안쪽 (고리가 지나가는 자리라 지을 수 없음)";
                 case PlacementResult.NeedsSupport: return "코어 2층 옆에는 바로 붙일 수 없음 (바로 아래 1층에 모듈을 먼저 지어야 함)";
                 case PlacementResult.CoreTopNeedsSideContact: return "코어 윗면에는 옆에 다른 모듈이 닿아야 설치 가능 (연결 통로 필요)";
                 case PlacementResult.TutorialLocked: return "튜토리얼 중에는 지금 단계의 모듈만 지을 수 있습니다";
@@ -161,6 +163,8 @@ namespace SpaceStation.UI
                   .Append((data.CargoFraction * 100f).ToString("0")).Append($"%만큼 <color={Muted}>(터미널마다 따로, 가동률만큼 느려짐)</color>\n");
             if (data.TerminalOnly)
                 sb.Append($"<color={Yellow}>뒷면으로 정거장에 붙음 · 입구 앞 {data.ApproachLaneLength}칸은 접근로 (건설 불가)</color>\n");
+            if (data.KeepClearCells.Count > 0)
+                sb.Append($"<color={Yellow}>고리 안쪽 빈 칸 {data.KeepClearCells.Count}개는 비워 둠 (건설 불가)</color>\n");
             if (data.LimitedModuleShare > 0)
                 sb.Append($"<color={Muted}>채굴 도킹 한도에 {data.LimitedModuleShare}개로 셈 (재료 도킹 수)</color>\n");
             if (data.IsShield)

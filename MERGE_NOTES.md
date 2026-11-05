@@ -2339,3 +2339,22 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `d316fd94`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-155. 대형 토러스 안쪽 네 칸 "비워 둘 칸" (배치 금지) (2026-11-06, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `ba145675`의 변경분을 패치로 — 두 브랜치 내용이 원래 다른 파일 8개라 파일째 옮기지 않음. `PlacementRules` · `StationConstruction`은 main의 건설 구역 (`OutsideZone`, M-50)과 겹쳐 둘 다 살림: 열거는 `OutsideZone` 다음, 판정은 건설 구역 → 비워 둘 칸 순)
+- 사용자 결정 (2026-11-06 "채굴 도킹이나 여객포트처럼 해당 칸에 배치를 못하게 막기만 해도"): 대형 토러스 고리가 칸 목록 밖 안쪽 대각선 네 칸 (1,0,1) · (3,0,1) · (1,0,3) · (3,0,3)을 지나감 → 칸 수 · 레시피는 그대로, 그 칸만 막음
+- `ModuleData._keepClearCells` / `KeepClearCells` (새 필드, 회전 0 기준 오프셋, 비어 있으면 예전과 같음), `MD_Evo_GrandTorus`에 네 칸, `RecipeSetup` `Def.KeepClear`
+- `PlacementRules`: `PlacementResult.KeepClearBlocked` (내 비워 둘 칸이 막힘) · `BlockedByKeepClear` (남의 비워 둘 칸에 지음) — 열거 끝에 추가, `GetKeepClearCells`, `HitsKeepClear`. 이동 (ignore)은 자기 칸을 없다고 봄
+- `SynthesisSystem`: `SynthesisResult.KeepClearBlocked` (Overhang 다음 — 열거 값이 하나씩 밀림, 저장 · 비교에 안 씀) · `HitsPendingKeepClear` (합성 중인 결과의 칸 예약) / `StationConstruction`: 배치 · 이동 판정에 합성 중 예약 칸
+- `HudText` 사유 · 툴팁 줄, `SynthesisController` 사유, `BuildController` 배치 중 호박색 칸 표시 (도킹 접근로와 같은 표시)
+- `InteriorTemplateBuilder.PunchSkyDoors`: 메시 이름 = 파일 이름 (다르면 빌드마다 하늘 구멍 메시 14개가 바뀌었음)
+- 테스트: `PlacementRulesTests` 넷 · `SynthesisTests` 하나 + 레시피 검사 한 줄, `InteriorTemplateBoundsTests` (비워 둘 칸 = 자기 자리, 토러스 `Pending` 해제 → `ExtraUp` 8m: 하늘이 고리 위층까지 — 시계탑 전망, 위층은 결정 대기). `MODELING.md` 7-11 · 8-13
+
+### `narrative` 합칠 때
+- 새 필드는 비어 있으면 예전과 같음. 대형 토러스가 있는 세이브는 안쪽 네 칸에 이미 지은 모듈을 그대로 둠 (새로 짓기 · 옮기기 · 합성만 막음)
+- `SynthesisResult` 열거 중간에 하나 들어감 (`Overhang` 다음) — 숫자로 쓰는 곳이 있으면 확인
+
+### `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `ba145675`). tycoon에는 `OutsideZone`이 없어 `PlacementResult` 열거 순서만 다름 (이름으로만 씀). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+- 따로 남은 일 (TASKS): 재료로 채울 수 없는 레시피 6종 (대형 토러스 · 궤도 도시 · 바이오스피어 · 식량 공장 · 융합 플랜트 · 수리 사령부) — 사용자 결정 대기
