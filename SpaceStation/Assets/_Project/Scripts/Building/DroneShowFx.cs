@@ -32,6 +32,17 @@ namespace SpaceStation.Building
             new Color(1f, 0.93f, 0.7f), new Color(0.65f, 0.88f, 1f), new Color(1f, 0.55f, 0.78f), new Color(0.78f, 0.58f, 1f) * 0.85f, new Color(1f, 0.75f, 0.5f),
         };
 
+        private static readonly string[] FormationNames = { "별", "왕관", "하트", "소용돌이", "물결" };
+
+        // 내부 하늘 화면 (드론 정비창 옥상 관람, 사용자 2026-11-05): 원래 높이는 관람석 눈높이라 평소에도 머리 위로 올림. 큰 쇼 = 관람석 앞쪽 하늘 (관람석 가운데 x, 건물 앞쪽 z)로 옮겨 더 높이 · 크게 · 기울여 대형이 읽히게 (칸 단위, × 8 = 내부 m)
+        private const float InsideLift = 0.9f;
+        private static readonly Vector3 GrandShift = new Vector3(-0.344f, 1.15f, -1f);
+        private const float GrandScale = 1.2f;
+        private const float GrandTilt = 30f;
+        private const float GrandEase = 1.5f;
+
+        private const string LightsName = "DroneLights";
+
         private ParticleSystem _ps;
         private ParticleSystem.Particle[] _parts;
         private Vector3[] _pose;
@@ -42,8 +53,36 @@ namespace SpaceStation.Building
         private float _clock;
         private float _level = 1f;
         private float _seed;
+        private float _grandLevel;
 
         public int Count => _parts != null ? _parts.Length : 0;
+
+        /// <summary>큰 쇼 중 (내부 관람석에서 봄).</summary>
+        public bool Grand { get; set; }
+
+        /// <summary>지금 대형 이름 (옮겨 가는 중이면 다음 대형).</summary>
+        public string CurrentFormationName
+        {
+            get
+            {
+                float cycle = _hold + _move;
+                int step = Mathf.FloorToInt(_clock / cycle);
+                int f = _clock - step * cycle < _hold ? step : step + 1;
+                return FormationNames[((f % FormationCount) + FormationCount) % FormationCount];
+            }
+        }
+
+        /// <summary>드론 빛 입자 (내부 하늘 화면에서 숨기지 않음).</summary>
+        public static bool IsDroneLight(Transform t) => t != null && t.name == LightsName;
+
+        /// <summary>큰 쇼를 첫 대형부터 시작. 대형 다섯을 도는 시간(초)을 돌려줌.</summary>
+        public float BeginGrand()
+        {
+            Grand = true;
+            _clock = 0f;
+            _level = 0.1f;   // 대형이 갑자기 바뀌는 게 보이지 않게 어두운 데서 시작
+            return (_hold + _move) * FormationCount;
+        }
 
         private void Start()
         {
@@ -60,7 +99,7 @@ namespace SpaceStation.Building
                 return;
             _seed = Random.value * 100f;
             _clock = Random.Range(0f, (_hold + _move) * FormationCount);
-            var go = new GameObject("DroneLights");
+            var go = new GameObject(LightsName);
             go.transform.SetParent(transform, false);
             _ps = go.AddComponent<ParticleSystem>();
             _ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
@@ -90,32 +129,47 @@ namespace SpaceStation.Building
         {
             if (_ps == null)
                 return;
+            float dt = FireworkFx.ViewCamera != null ? Time.unscaledDeltaTime : Time.deltaTime;   // 내부 방문 중엔 게임 시간이 멈춰 있어도 날아다님
             bool on = !_live || _view.Operational;
             if (on)
-                _clock += Time.deltaTime;
-            _level = Mathf.MoveTowards(_level, on ? 1f : 0.2f, Time.deltaTime * 1.5f);
+                _clock += dt;
+            _level = Mathf.MoveTowards(_level, on ? 1f : 0.2f, dt * 1.5f);
+            _grandLevel = Mathf.MoveTowards(_grandLevel, Grand ? 1f : 0f, dt / GrandEase);
             Refresh();
         }
 
         private void Refresh()
         {
             Color color = Pose(_clock, _count, _hold, _move, _pose, _a, _b);
-            // 대형 위쪽(+z)이 카메라 반대편을 향하도록 가로로 돌림 (모듈이 90도씩 돌아가 있어도 똑바로 읽힘)
+            // 대형 위쪽(+z)이 화면 위로 오도록 가로로 돌림 (모듈이 90도씩 돌아가 있어도 똑바로 읽힘): 위에서 내려다보면 카메라 반대편, 아래에서 올려다보면 카메라 쪽 (하늘 천장은 머리 위가 화면 위)
+            bool inside = FireworkFx.ViewCamera != null;
+            float grand = Mathf.SmoothStep(0f, 1f, _grandLevel);
+            var shift = Vector3.Lerp(Vector3.up * (inside ? InsideLift : 0f), GrandShift, grand);
+            float size = Mathf.Lerp(1f, GrandScale, grand);
             var rot = Quaternion.identity;
-            var cam = Camera.main;
+            var cam = inside ? FireworkFx.ViewCamera : Camera.main;
             if (cam != null)
             {
-                var away = transform.InverseTransformDirection(Vector3.ProjectOnPlane(transform.position - cam.transform.position, Vector3.up));
+                var center = transform.TransformPoint(shift);
+                var away = transform.InverseTransformDirection(Vector3.ProjectOnPlane(center - cam.transform.position, Vector3.up));
                 away.y = 0f;
                 if (away.sqrMagnitude > 1e-4f)
-                    rot = Quaternion.LookRotation(away.normalized, Vector3.up);
+                {
+                    bool fromBelow = cam.transform.position.y < center.y;
+                    var top = fromBelow ? -away.normalized : away.normalized;
+                    // 큰 쇼: 판을 보는 사람 쪽으로 기울임 (옆에서 납작하게 보이지 않게)
+                    float tilt = GrandTilt * grand * Mathf.Deg2Rad;
+                    var forward = top * Mathf.Cos(tilt) + Vector3.up * Mathf.Sin(tilt);
+                    var normal = Vector3.up * Mathf.Cos(tilt) - top * Mathf.Sin(tilt);
+                    rot = Quaternion.LookRotation(forward, normal);
+                }
             }
             for (int i = 0; i < _count; i++)
             {
                 float twinkle = 0.8f + 0.2f * Mathf.Sin(_clock * 7f + i * 2.3f + _seed);
                 var c = color * (twinkle * _level);
                 c.a = 1f;
-                _parts[i].position = rot * (_pose[i] * _radius);
+                _parts[i].position = rot * (_pose[i] * (_radius * size)) + shift;
                 _parts[i].startSize = _lightSize * (0.85f + 0.15f * twinkle);
                 _parts[i].startColor = c;
                 _parts[i].startLifetime = 1000f;

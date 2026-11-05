@@ -65,6 +65,75 @@ namespace SpaceStation.Tests
             Assert.IsEmpty(problems.ToString(), "옆 칸으로 나간 조각 (옆 방을 뚫고 보임):\n" + problems);
         }
 
+        /// <summary>
+        /// 하늘 껍질 (2단계 개방형 방의 바깥 화면)은 문 자리마다 뚫려 있음 (2026-11-06 코드 검토): Blender에서 2cm 홈만 남아 열린 문 안을 하늘 그림이 덮었음.
+        /// 문 자리 가운데 (바닥 + 1.1) 에서 문 깊이 −0.5 → +1.0 사이에 하늘 삼각형이 없어야 함. 닫힌 자리는 키트 하늘 조각이 따로 메움.
+        /// </summary>
+        [Test]
+        public void SkyShellIsOpenAtEveryDoor()
+        {
+            var problems = new StringBuilder();
+            int checkedDoors = 0;
+            foreach (var guid in AssetDatabase.FindAssets("t:InteriorTemplate"))
+            {
+                var template = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
+                if (template == null || template.Prefab == null)
+                    continue;
+                MeshFilter sky = null;
+                foreach (Transform part in template.Prefab.transform)
+                {
+                    var r = part.GetComponent<MeshRenderer>();
+                    if (part.name.EndsWith("_Sky") && r != null && r.sharedMaterial != null && r.sharedMaterial.name.Contains("Evo2Sky"))
+                        sky = part.GetComponent<MeshFilter>();
+                }
+                if (sky == null || sky.sharedMesh == null)
+                    continue;
+                var toRoot = template.Prefab.transform.worldToLocalMatrix * sky.transform.localToWorldMatrix;
+                var verts = sky.sharedMesh.vertices.Select(v => toRoot.MultiplyPoint3x4(v)).ToArray();
+                var tris = sky.sharedMesh.triangles;
+                foreach (var socket in template.Sockets)
+                {
+                    if (socket.Direction.y != 0)
+                        continue;
+                    checkedDoors++;
+                    var dir = (Vector3)socket.Direction;
+                    var start = (Vector3)socket.Cell * CellSize + dir * (socket.Depth - 0.5f);
+                    start.y = socket.Cell.y * CellSize - 1.3f + 1.1f;
+                    for (int i = 0; i < tris.Length; i += 3)
+                    {
+                        if (Hit(start, dir, 1.5f, verts[tris[i]], verts[tris[i + 1]], verts[tris[i + 2]]))
+                        {
+                            problems.AppendLine($"{template.name}: 문 자리 칸 {socket.Cell} 방향 {socket.Direction} 깊이 {socket.Depth} 앞을 하늘이 막음");
+                            break;
+                        }
+                    }
+                }
+            }
+            Assert.Greater(checkedDoors, 0, "하늘 껍질 방의 문 자리가 있어야 함");
+            Assert.IsEmpty(problems.ToString(), "열린 문이 하늘 그림에 가려짐:\n" + problems);
+        }
+
+        private static bool Hit(Vector3 origin, Vector3 dir, float length, Vector3 a, Vector3 b, Vector3 c)
+        {
+            var e1 = b - a;
+            var e2 = c - a;
+            var h = Vector3.Cross(dir, e2);
+            float det = Vector3.Dot(e1, h);
+            if (Mathf.Abs(det) < 1e-7f)
+                return false;
+            float inv = 1f / det;
+            var s = origin - a;
+            float u = inv * Vector3.Dot(s, h);
+            if (u < 0f || u > 1f)
+                return false;
+            var q = Vector3.Cross(s, e1);
+            float v = inv * Vector3.Dot(dir, q);
+            if (v < 0f || u + v > 1f)
+                return false;
+            float t = inv * Vector3.Dot(e2, q);
+            return t >= 0f && t <= length;
+        }
+
         /// <summary>칸 상자 (옆 0.06 · 위 2m 여유) 중 가장 가까운 것까지 벗어난 거리. 안이면 0.</summary>
         private static float Outside(Vector3 p, List<Vector3Int> cells)
         {

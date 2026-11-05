@@ -126,6 +126,184 @@ namespace SpaceStation.Editor
             BuildEvoShieldDome();
             BuildEvoFortress();
             BuildEvoRadiationWall();
+            BuildEvoDroneDepot();
+        }
+
+        /// <summary>
+        /// 진화 2단계 드론 정비창 "드론 라이트쇼 격납고" (3 × 2칸 2층, dd_builder — 사용자 2026-11-05 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 옥상 드론 쇼 관람 (<see cref="InteriorDroneShow"/>).
+        /// 외형 × 8: 앞면 통유리 수리 칸 3 × 2층 (받침 위 드론 · 천장 로봇 팔 둘 · 환한 작업 벽 · 공구 선반) · 옥상 이착륙장 셋 · 유리 관제탑 (못 들어감) · 관람석 세 단, 앞마당 유도선 · 수레.
+        /// 동선: 갑판 (우주복) → 칸 사이 입구 아치 둘 · 뒤 입구 (압력 막) → 복도 → 수리 칸 안 / 2층 높이 뚫린 홀 (드론 모빌 SwarmA · B, 쇼 대형 그림) / 드론 비행장 (FlyA · B) → 유리 엘리베이터 (1층 · 2층 · 옥상, 문 = 남쪽) → 2층 전시 · 관제실 / 옥상 (우주복).
+        /// 문 자리 10 = 1층 갑판 둘레 (깊이 3.95, 닫힘 = 난간), 아래 해치 = 바닥 칸 여섯, 위 해치 없음 (하늘). 벤치 · 의자 · 관람석에 앉음 (<see cref="InteriorBenchSeats"/>). 드론은 하늘 화면 (바깥 모델 <see cref="SpaceStation.Building.DroneShowFx"/>)에 뜸.
+        /// </summary>
+        private static void BuildEvoDroneDepot()
+        {
+            const float DeckEdge = 3.95f, L1 = F + 4.94f, Roof = F + 9.67f, LX = 12.9f, LZ = 7.6f;
+            const float BX0 = -2.2f, BX1 = 18.2f, BZ0 = -1.7f, BZ1 = 9.7f, Wall = BZ1 - 0.25f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x <= 2; x++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), back, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 1), front, DeckEdge));
+            }
+            for (int z = 0; z <= 1; z++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(0, 0, z), Vector3Int.left, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(2, 0, z), Vector3Int.right, DeckEdge));
+            }
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -2.6f)));       // 앞 갑판 (틀 ±0.95가 열린 문 패널 · 걸레받이에 닿지 않게, 코드 검토 2026-11-06)
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -2.6f)));
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -2.6f)));
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(2f, 0f, -1f)));         // 1층 홀 (전시대와 원형 벤치 사이)
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(-0.8f, 0f, -1f)));      // 1층 홀 (원형 벤치와 전시대 사이)
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(0f, 0f, 2.65f)));       // 뒤 갑판 (1층 동쪽은 비행장)
+            var white = new Color(1f, 0.97f, 0.9f);
+            var warm = new Color(1f, 0.86f, 0.62f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (float cx in new[] { 0.6f, 8f, 15.4f })
+            {
+                lights.Add(LightSpec.Point(new Vector3(cx, F + 2.7f, 0.9f), 8.5f, 1.5f, white));      // 수리 칸
+                lights.Add(LightSpec.Point(new Vector3(cx, L1 + 2.7f, 0.9f), 8.5f, 1.5f, white));
+            }
+            foreach (float x in new[] { 4.03f, 11.97f })
+            {
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.1f, 0.9f), 5f, 0.7f, warm));          // 입구 통로
+                lights.Add(LightSpec.Point(new Vector3(x, L1 + 2.4f, 0.9f), 5f, 0.7f, warm));         // 2층 벽감
+            }
+            lights.Add(LightSpec.Point(new Vector3(-0.4f, F + 3.2f, 6.3f), 9.5f, 1.6f, warm));        // 1층 복도 · 홀
+            lights.Add(LightSpec.Point(new Vector3(9.5f, F + 3.2f, 6.2f), 9.5f, 1.6f, warm));
+            lights.Add(LightSpec.Point(new Vector3(15.9f, F + 3.9f, 4.6f), 8.5f, 1.3f, warm));
+            lights.Add(LightSpec.Point(new Vector3(-0.2f, L1 + 3.2f, 6.2f), 9.5f, 1.6f, warm));       // 2층 복도 · 전시
+            lights.Add(LightSpec.Point(new Vector3(10.1f, L1 + 3.2f, 6.2f), 9.5f, 1.6f, warm));
+            lights.Add(LightSpec.Point(new Vector3(16f, L1 + 3.2f, 6f), 8.5f, 1.3f, cool));           // 관제실
+            lights.Add(LightSpec.Point(new Vector3(7.2f, L1 + 1.6f, 6.5f), 11f, 1.8f, warm));         // 뚫린 홀 (모빌 드론이 도는 길 밖 — 길 위면 지나갈 때마다 번쩍임)
+            lights.Add(LightSpec.Point(new Vector3(15.9f, F + 2.9f, 7.35f), 5.5f, 0.9f, white));      // 비행장
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.2f, -2.8f), 7f, 0.55f, cool));           // 갑판
+            lights.Add(LightSpec.Point(new Vector3(12f, F + 2.2f, -2.8f), 7f, 0.55f, cool));
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 2.2f, 10.8f), 8f, 0.55f, cool));
+            lights.Add(LightSpec.Point(new Vector3(-3.1f, F + 2.2f, 4f), 7f, 0.5f, cool));
+            lights.Add(LightSpec.Point(new Vector3(19.1f, F + 2.2f, 4f), 7f, 0.5f, cool));
+            lights.Add(LightSpec.Point(new Vector3(1.2f, Roof + 2.4f, 2f), 7f, 0.6f, cool));          // 옥상 이착륙장
+            lights.Add(LightSpec.Point(new Vector3(14.8f, Roof + 2.4f, 2f), 7f, 0.6f, cool));
+            lights.Add(LightSpec.Point(new Vector3(2f, Roof + 3f, 5f), 8f, 0.7f, warm));              // 관람석
+            lights.Add(LightSpec.Point(new Vector3(9f, Roof + 3f, 5f), 8f, 0.7f, warm));
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoDroneDepot_SwarmA", new Vector3(4.9f, 0f, 7.575f), Vector3.up, 14f),    // 드론 모빌 (dd_builder swarm)
+                new OrbitSpec("INT_EvoDroneDepot_SwarmB", new Vector3(4.9f, 0f, 7.575f), Vector3.up, -24f),
+                new OrbitSpec("INT_EvoDroneDepot_FlyA", new Vector3(15.9f, 0f, 7.35f), Vector3.up, 60f),      // 비행장: 고리 넷을 통과
+                new OrbitSpec("INT_EvoDroneDepot_FlyB", new Vector3(15.9f, 0f, 7.35f), Vector3.up, -90f),
+            };
+            EvoAccent("DroneDepot", "#FFD09F");
+            // 스폰 = 앞 갑판에서 입구 아치를 바라봄
+            Build("EvoDroneDepot", "Evolved/MD_Evo_DroneDepot", sockets, new Vector3(4.03f, F, -2.6f), 0f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, System.Array.Empty<Vector3>());
+                    root.GetComponent<InteriorOpenAir>().SetIndoorBox(new Rect(BX0, BZ0, BX1 - BX0, BZ1 - BZ0), Roof - 0.1f);
+                    // 옥상 난간 위 보이지 않는 벽 (난간은 허리 높이, 칸 경계 벽은 건물 바깥 갑판 끝이라 옥상에서 떨어지는 건 못 막음)
+                    var fence = new GameObject("RoofFence") { layer = 2 };   // Ignore Raycast
+                    fence.transform.SetParent(root.transform, false);
+                    const float FenceIn = 0.18f, FenceH = 4f;
+                    void Fence(float x0, float x1, float z0, float z1)
+                    {
+                        var box = fence.AddComponent<BoxCollider>();
+                        box.center = new Vector3((x0 + x1) * 0.5f, Roof + FenceH * 0.5f, (z0 + z1) * 0.5f);
+                        box.size = new Vector3(Mathf.Max(x1 - x0, 0.04f), FenceH, Mathf.Max(z1 - z0, 0.04f));
+                    }
+                    Fence(BX0 + FenceIn, BX1 - FenceIn, BZ0 + FenceIn, BZ0 + FenceIn);
+                    Fence(BX0 + FenceIn, BX1 - FenceIn, BZ1 - FenceIn, BZ1 - FenceIn);
+                    Fence(BX0 + FenceIn, BX0 + FenceIn, BZ0 + FenceIn, BZ1 - FenceIn);
+                    Fence(BX1 - FenceIn, BX1 - FenceIn, BZ0 + FenceIn, BZ1 - FenceIn);
+                    // 유리 엘리베이터 (1층 · 2층 · 옥상, 문 = 남쪽, 문짝이 열리면 기둥 속으로)
+                    var car = Child(root, "INT_EvoDroneDepot_LiftCar");
+                    var carGlass = Child(root, "INT_EvoDroneDepot_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[3];
+                    var right = new Transform[3];
+                    for (int k = 0; k < 3; k++)
+                    {
+                        string levelName = k == 2 ? "옥상" : null;
+                        left[k] = Child(root, $"INT_EvoDroneDepot_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoDroneDepot_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoDroneDepot_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true, levelName);
+                        var button = Child(root, $"INT_EvoDroneDepot_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false, levelName);
+                    }
+                    lift.Configure(car, new[] { 0f, L1 - F, Roof - F }, left, right, new Vector3(LX, F + 0.085f, LZ), Vector3.right, 0.75f);
+                    var liftSo = new SerializedObject(lift);
+                    liftSo.FindProperty("_doorTravel").floatValue = 0.5f;
+                    liftSo.ApplyModifiedPropertiesWithoutUndo();
+                    // 벤치 · 의자 (dd_builder hall · front, 앉는 자리 = 쉬는 자리와 같음)
+                    var seats = new List<Vector4>();
+                    var boxes = new List<Bounds>();
+                    void Seat(float x0, float x1, float z0, float z1, float y0, float top, float z, float yaw, params float[] xs)
+                    {
+                        boxes.Add(new Bounds(new Vector3((x0 + x1) * 0.5f, (y0 + top + 0.01f) * 0.5f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, top + 0.01f - y0, z1 - z0)));
+                        foreach (var x in xs)
+                            seats.Add(new Vector4(x, top, z, yaw));
+                    }
+                    Seat(-1.7f, 0.9f, 8.85f, 9.35f, F, F + 0.44f, 9.05f, 180f, -1.3f, -0.4f, 0.5f);
+                    Seat(6.5f, 8.9f, 8.85f, 9.35f, F, F + 0.44f, 9.05f, 180f, 6.9f, 7.7f, 8.5f);
+                    Seat(-1.8f, 1.1f, 8.9f, 9.4f, L1, L1 + 0.44f, 9.1f, 180f, -1.35f, -0.35f, 0.65f);
+                    Seat(8.7f, 11.7f, 8.9f, 9.4f, L1, L1 + 0.44f, 9.1f, 180f, 9.2f, 10.2f, 11.2f);
+                    Seat(2.8f, 5.2f, 11.1f, 11.6f, F, F + 0.44f, 11.3f, 180f, 3.2f, 4f, 4.8f);
+                    Seat(11.1f, 13.5f, 11.1f, 11.6f, F, F + 0.44f, 11.3f, 180f, 11.5f, 12.3f, 13.1f);
+                    foreach (float x in new[] { 15.6f, 16.6f })
+                        Seat(x - 0.24f, x + 0.24f, 6.16f, 6.64f, L1, L1 + 0.44f, 6.4f, 0f, x);
+                    for (int k = 0; k < 8; k++)
+                    {
+                        float a = Mathf.Deg2Rad * (45f + 45f * k);
+                        float x = 4.9f + 0.8f * Mathf.Cos(a), z = 7.575f + 0.8f * Mathf.Sin(a);
+                        Seat(x - 0.2f, x + 0.2f, z - 0.2f, z + 0.2f, F, F + 0.47f, z, Mathf.Rad2Deg * Mathf.Atan2(Mathf.Cos(a), Mathf.Sin(a)), x);
+                    }
+                    root.AddComponent<InteriorBenchSeats>().Configure(seats.ToArray(), boxes.ToArray(), -6f);
+                    // 관람석 (dd_builder roof ROWS): 어느 자리든 앉으면 쇼 쪽 하늘을 올려다봄 (DroneShowFx 큰 쇼 가운데 x, z를 향해)
+                    const float ShowX = 5.25f, ShowZ = -4f;
+                    var standSeats = new List<Vector4>();
+                    var standBoxes = new List<Bounds>();
+                    foreach (var (z0, h) in new[] { (5.74f, 0.45f), (6.84f, 0.9f), (7.94f, 1.35f) })
+                    {
+                        foreach (var (a0, a1, xs) in new[] { (-1.2f, 4.6f, new[] { -0.7f, 0.25f, 1.2f, 2.15f, 3.1f, 4.05f }), (6f, 11.7f, new[] { 6.55f, 7.5f, 8.45f, 9.4f, 10.35f, 11.25f }) })
+                        {
+                            float top = Roof + h;
+                            standBoxes.Add(new Bounds(new Vector3((a0 + a1) * 0.5f, (Roof + top + 0.01f) * 0.5f, z0 + 0.275f), new Vector3(a1 - a0, top + 0.01f - Roof, 0.59f)));
+                            foreach (var x in xs)
+                                standSeats.Add(new Vector4(x, top, z0 + 0.3f, Mathf.Rad2Deg * Mathf.Atan2(ShowX - x, ShowZ - (z0 + 0.3f))));
+                        }
+                    }
+                    var stands = root.AddComponent<InteriorBenchSeats>();
+                    stands.Configure(standSeats.ToArray(), standBoxes.ToArray(), -42f);
+                    // 쇼: 버튼 · 로비 화면 · 관제실 화면 (dd_builder hall DD_Screen · DD_DeskScreen)
+                    var showButton = BoxOf(Child(root, "INT_EvoDroneDepot_ShowBtn"), 0.06f).transform;
+                    var boards = new[]
+                    {
+                        new InteriorDroneShow.Screen { Center = new Vector3(4.9f, F + 1.9f, Wall - 0.07f), Normal = new Vector3(0f, 0f, -1f), Width = 3.04f, Height = 1.54f },
+                        new InteriorDroneShow.Screen { Center = new Vector3(16.1f, L1 + 1.9f, Wall - 0.07f), Normal = new Vector3(0f, 0f, -1f), Width = 3.04f, Height = 1.54f },
+                    };
+                    var desks = new List<InteriorDroneShow.Screen>();
+                    foreach (float x in new[] { 15.2f, 16.1f, 17f })
+                        desks.Add(new InteriorDroneShow.Screen { Center = new Vector3(x, L1 + 1.02f, 7.46f), Normal = new Vector3(0f, 0f, -1f), Width = 0.68f, Height = 0.4f });
+                    root.AddComponent<InteriorDroneShow>().Configure(showButton, stands, boards, desks.ToArray());
+                    // 글자: 쇼 버튼 표지 · 쇼 대형 그림 이름 (dd_builder show_boards)
+                    InteriorSignLabels.Label Board(float x, string text) => new InteriorSignLabels.Label
+                    {
+                        Center = new Vector3(x, L1 + 0.6f, Wall - 0.047f), Normal = new Vector3(0f, 0f, -1f), Up = Vector3.up, Width = 0.9f, Height = 0.2f, Text = text,
+                    };
+                    root.AddComponent<InteriorSignLabels>().Configure(new[]
+                    {
+                        new InteriorSignLabels.Label { Center = new Vector3(6.9f, Roof + 0.7f, 4.9f), Normal = new Vector3(0f, 0f, -1f), Up = Vector3.up, Width = 0.46f, Height = 0.24f, Text = "<b>드론 쇼</b>\n<size=70%>위 버튼</size>" },
+                        Board(2.3f, "별"), Board(3.6f, "왕관"), Board(4.9f, "하트"), Board(6.2f, "소용돌이"), Board(7.5f, "물결"),
+                    });
+                });
         }
 
         /// <summary>
@@ -5171,7 +5349,92 @@ namespace SpaceStation.Editor
             { "EvoShieldDome", InteriorAmbience.Electric },       // 렌즈 · 실드 장치
             { "EvoFortress", InteriorAmbience.Life },             // 연병장 · 불꽃 구경
             { "EvoRadiationWall", InteriorAmbience.Life },        // 병풍 정원 · 찻집
+            { "EvoDroneDepot", InteriorAmbience.Machine },        // 수리 칸 · 드론
         };
+
+        /// <summary>
+        /// 하늘 껍질 문 자리에 진짜 구멍 (2026-11-06 코드 검토): Blender <c>evo2_sky</c>는 꽉 찬 상자에서 문 상자를 빼서 구멍 대신 2cm 홈만 남겼음 →
+        /// 문이 열려도 하늘 그림(바깥 화면)이 문 안을 덮어 통로 대신 바깥이 보였음 (2단계 개방형 방 전부). 문 자리마다 그 자리(폭 ±0.81 · 바닥 −0.2 ~ +2.5 · 문 깊이 −0.1 ~ 칸 경계) 삼각형을 지운 메시를 따로 저장.
+        /// 닫힌 자리는 지금처럼 빌더가 키트 하늘 조각(칸 가운데 + 3.98)으로 메움. 구멍 크기 = Blender 하늘 구멍 · 키트 하늘 조각과 같음.
+        /// </summary>
+        private static void PunchSkyDoors(GameObject root, string name, List<InteriorSocket> sockets, Material skyMaterial)
+        {
+            const float HalfWidth = 0.81f, Bottom = -0.21f, Top = 2.51f, Front = 0.1f, Edge = 4.05f;
+            MeshFilter sky = null;
+            foreach (Transform part in root.transform)
+            {
+                var r = part.GetComponent<MeshRenderer>();
+                if (part.name.EndsWith("_Sky") && r != null && r.sharedMaterial == skyMaterial && skyMaterial != null)
+                    sky = part.GetComponent<MeshFilter>();
+            }
+            if (sky == null || sky.sharedMesh == null)
+                return;
+            var src = sky.sharedMesh;
+            var toRoot = sky.transform.localToWorldMatrix;   // 루트 = 원점 (Build가 새로 만든 물체)
+            var verts = src.vertices;
+            var world = new Vector3[verts.Length];
+            for (int i = 0; i < verts.Length; i++)
+                world[i] = toRoot.MultiplyPoint3x4(verts[i]);
+            var mesh = Object.Instantiate(src);
+            mesh.name = src.name + "_Doors";
+            int removed = 0, emptySockets = 0;
+            var boxes = new List<(Vector3 center, Vector3 dir, Vector3 right, float floor, float depth)>();
+            foreach (var s in sockets)
+            {
+                if (s.Direction.y != 0)
+                    continue;
+                var dir = (Vector3)s.Direction;
+                boxes.Add(((Vector3)s.Cell * InteriorGeometry.CellSize, dir, new Vector3(dir.z, 0f, -dir.x), InteriorGeometry.FloorY(s.Cell), s.Depth));
+            }
+            var hits = new int[boxes.Count];
+            for (int sub = 0; sub < mesh.subMeshCount; sub++)
+            {
+                var tris = mesh.GetTriangles(sub);
+                var keep = new List<int>(tris.Length);
+                for (int i = 0; i < tris.Length; i += 3)
+                {
+                    var c = (world[tris[i]] + world[tris[i + 1]] + world[tris[i + 2]]) / 3f;
+                    int inBox = -1;
+                    for (int b = 0; b < boxes.Count && inBox < 0; b++)
+                    {
+                        var d = c - boxes[b].center;
+                        float along = Vector3.Dot(d, boxes[b].dir), side = Vector3.Dot(d, boxes[b].right), up = c.y - boxes[b].floor;
+                        if (along >= boxes[b].depth - Front && along <= Edge && Mathf.Abs(side) <= HalfWidth && up >= Bottom && up <= Top)
+                            inBox = b;
+                    }
+                    if (inBox >= 0)
+                    {
+                        removed++;
+                        hits[inBox]++;
+                        continue;
+                    }
+                    keep.Add(tris[i]);
+                    keep.Add(tris[i + 1]);
+                    keep.Add(tris[i + 2]);
+                }
+                mesh.SetTriangles(keep, sub);
+            }
+            foreach (var h in hits)
+            {
+                if (h == 0)
+                    emptySockets++;
+            }
+            System.IO.Directory.CreateDirectory(SkyDoorsFolder);
+            string path = SkyDoorsFolder + "SM_Interior_" + name + "_SkyDoors.asset";
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing != null)
+            {
+                EditorUtility.CopySerialized(mesh, existing);
+                Object.DestroyImmediate(mesh);
+                mesh = existing;
+            }
+            else
+                AssetDatabase.CreateAsset(mesh, path);
+            sky.sharedMesh = mesh;
+            Debug.Log($"[InteriorTemplateBuilder] {name}: 하늘 껍질 문 구멍 {boxes.Count}곳, 지운 삼각형 {removed}" + (emptySockets > 0 ? $", 하늘이 없던 문 자리 {emptySockets}" : ""));
+        }
+
+        private const string SkyDoorsFolder = "Assets/_Project/Art/Models/Interior/Generated/";
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
             List<LightSpec> lights, List<OrbitSpec> orbits = null, Dictionary<string, Vector3> sunTilts = null, bool showOwnExterior = false,
@@ -5367,6 +5630,7 @@ namespace SpaceStation.Editor
                 }
             }
 
+            PunchSkyDoors(root, name, sockets, materials["Evo2Sky"]);
             configure?.Invoke(root); // 12-5 실행 중 표시 컴포넌트 (허브 안내 · 레이더 · 컨베이어 · 서버 표시등)
             AddStatusScreens(root, materials["ScreenDark"]);   // 빈 화면 = 공용 상태 화면 (사용자 2026-10-30 — 기본 · 모든 진화 단계, 전용 화면 자리는 뺌)
 
