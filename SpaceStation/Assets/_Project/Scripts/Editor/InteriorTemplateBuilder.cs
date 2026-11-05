@@ -124,6 +124,125 @@ namespace SpaceStation.Editor
             BuildEvoFoodFactory();
             BuildEvoRefineryCombine();
             BuildEvoShieldDome();
+            BuildEvoFortress();
+        }
+
+        /// <summary>
+        /// 진화 2단계 요새 포대 "별 요새 불꽃놀이" (3 × 2칸, fo_builder — 사용자 2026-11-05 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 폭죽놀이 직관 (<see cref="InteriorFireworkShow"/>).
+        /// 외형 × 8 그대로: 별 모양 능보 성곽 (계단 비탈 · 산호 띠, 위 = 걷는 성벽 길) · 앞 반월보 · 연병장 + 십자 길 · 육각 본성 (망루 셋 · 뿔지붕 · 깃발 · 도는 거리 측정기 Range) · 앞 능보 쌍열 포탑 (실제 운석 방향, <see cref="InteriorTurretAim"/>) · 뒤 능보 박격포대 · 깃발 줄.
+        /// 동선: 갑판 → 서쪽 성벽 계단 → 성벽 위 길 → 북쪽 계단 둘 → 연병장 → 남쪽 관람석 · 쇼 레버 / 본성 (압력 막, 실제 운석 예보 <see cref="InteriorRadar"/> · 불꽃 별자리표).
+        /// 문 자리 10 = 갑판 둘레 (깊이 3.95, 닫힘 = 난간), 아래 해치 = 칸마다, 위 해치 없음 (하늘). 불꽃은 하늘 화면 (바깥 모델 <see cref="SpaceStation.Building.FireworkFx"/>)에 터짐.
+        /// </summary>
+        private static void BuildEvoFortress()
+        {
+            const float DeckEdge = 3.95f, Ramp = F + 1.8f, GunY = Ramp + 1.95f, KX = 8f, KZ = 4.2f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x <= 2; x++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), back, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 1), front, DeckEdge));
+            }
+            for (int z = 0; z <= 1; z++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(0, 0, z), Vector3Int.left, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(2, 0, z), Vector3Int.right, DeckEdge));
+            }
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(-3.1f, 0f, -1.5f)));   // 서쪽 갑판
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(-3f, 0f, 2.9f)));      // 연병장 남쪽
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(3.1f, 0f, -1.5f)));    // 동쪽 갑판
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(-3.1f, 0f, -1.6f)));
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(-2.8f, 0f, -2.8f)));   // 연병장 북쪽
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(3.1f, 0f, -1.6f)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(KX, F + 2.6f, KZ), 5f, 1.4f, white),               // 본성 안
+                LightSpec.Point(new Vector3(KX, F + 3.2f, 1f), 7f, 0.75f, warm),               // 본성 앞 · 관람석
+                LightSpec.Point(new Vector3(KX, F + 3.2f, 7f), 6f, 0.5f, warm),
+                LightSpec.Point(new Vector3(-0.3f, Ramp + 2.2f, 8.4f), 6f, 0.8f, warm),        // 뒤 능보
+                LightSpec.Point(new Vector3(16.3f, Ramp + 2.2f, 8.4f), 6f, 0.8f, warm),
+                LightSpec.Point(new Vector3(-0.25f, Ramp + 2.6f, -0.2f), 6f, 0.8f, cool),      // 앞 능보
+                LightSpec.Point(new Vector3(16.25f, Ramp + 2.6f, -0.2f), 6f, 0.8f, cool),
+                LightSpec.Point(new Vector3(-3.1f, F + 2.2f, 4f), 7f, 0.55f, cool),            // 갑판
+                LightSpec.Point(new Vector3(19.1f, F + 2.2f, 4f), 7f, 0.55f, cool),
+                LightSpec.Point(new Vector3(4f, F + 2.2f, -3.2f), 7f, 0.55f, cool),
+                LightSpec.Point(new Vector3(12f, F + 2.2f, -3.2f), 7f, 0.55f, cool),
+                LightSpec.Point(new Vector3(4f, F + 2.2f, 10.8f), 7f, 0.55f, cool),
+                LightSpec.Point(new Vector3(12f, F + 2.2f, 10.8f), 7f, 0.55f, cool),
+            };
+            foreach (var (x, z) in new[] { (3.5f, 5.2f), (12.5f, 5.2f), (3.5f, 2.5f), (12.5f, 2.5f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.3f, z), 6f, 0.85f, warm));     // 연병장 등
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoFortress_Range", new Vector3(KX, 0f, KZ), Vector3.up, 60f),         // 꼭대기 거리 측정기
+                new OrbitSpec("INT_EvoFortress_Sweep", new Vector3(8f, 0f, 4.85f), Vector3.up, 60f),      // 상황판 쓸기 빛
+            };
+            EvoAccent("Fortress", "#FF9F9F");
+            // 스폰 = 서쪽 성벽 위에서 연병장 · 본성을 바라봄
+            Build("EvoFortress", "Evolved/MD_Evo_Fortress", sockets, new Vector3(-0.3f, Ramp, 4f), 90f, lights, orbits,
+                configure: root =>
+                {
+                    const string N = "INT_EvoFortress_";
+                    AddOpenAir(root, new[] { new Vector3(KX, KZ, 1.85f), new Vector3(KX, 2.3f, 0.7f) });   // 본성 · 정문 굴
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    // 앞 능보 쌍열 포탑 (fo_builder GUN · 포신 x ±0.17): 받침 = 위 축, 포신 = 받침 자식 (−z로 밀림), 실제 운석 방향
+                    void Gun(string tag, float cx, float cz)
+                    {
+                        var turret = Pivot("TurretPivot" + tag, r, new Vector3(cx, GunY, cz), N + "Turret" + tag);
+                        var left = Pivot("BarrelPivot" + tag + "L", turret, new Vector3(cx - 0.17f, GunY, cz), N + "Barrel" + tag + "L");
+                        var right = Pivot("BarrelPivot" + tag + "R", turret, new Vector3(cx + 0.17f, GunY, cz), N + "Barrel" + tag + "R");
+                        root.AddComponent<InteriorTurretAim>().Configure(turret, new[] { left, right }, 0.14f);
+                    }
+                    Gun("A", -0.25f, -0.2f);
+                    Gun("B", 16.25f, -0.2f);
+                    // 본성 레이더 상황판 (fo_builder RADAR) = 실제 운석 예보, 예보 글 = 북서 면 화면 (중심에서 1.548m)
+                    root.AddComponent<InteriorRadar>().Configure(new Vector3(8f, F + 0.958f, 4.85f), 0.48f,
+                        Child(root, N + "Sweep").GetComponent<InteriorOrbit>(),
+                        Child(root, N + "Beacon").GetComponent<Renderer>(),
+                        new Vector3(7.226f, F + 1.6f, 5.541f), new Vector3(0.5f, 0f, -0.866f), Vector3.up, new Vector2(1.2f, 0.7f));
+                    // 불꽃놀이: 관람석 (fo_builder SEAT_ROWS · SEAT_BLOCKS, 줄마다 4자리, 뒤 능보 쪽을 봄) · 쇼 레버 · 박격포대 대롱 끝 (fo_builder mortar_pad)
+                    var rows = new[] { (1.25f, 1.7f, 0.42f), (0.87f, 1.25f, 0.82f), (0.5f, 0.87f, 1.22f) };
+                    var blocks = new[] { (2.85f, 5.7f, -25f), (10.3f, 13.15f, 25f) };
+                    var seats = new List<Vector4>();
+                    var boxes = new List<Bounds>();
+                    foreach (var (x0, x1, yaw) in blocks)
+                    {
+                        foreach (var (z0, z1, h) in rows)
+                        {
+                            boxes.Add(new Bounds(new Vector3((x0 + x1) * 0.5f, F + h * 0.5f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, h + 0.01f, z1 - z0)));
+                            for (int k = 0; k < 4; k++)
+                                seats.Add(new Vector4(x0 + (x1 - x0) * (k + 0.5f) / 4f, F + h, (z0 + z1) * 0.5f - 0.02f, yaw));
+                        }
+                    }
+                    var muzzles = new List<Vector3>();
+                    foreach (var (cx, cz) in new[] { (-0.35f, 8.4f), (16.35f, 8.4f) })
+                    {
+                        for (int k = 0; k < 4; k++)
+                        {
+                            float a = (45f + 90f * k) * Mathf.Deg2Rad;
+                            muzzles.Add(new Vector3(cx + 0.42f * Mathf.Cos(a), Ramp + 1.16f, cz + 0.42f * Mathf.Sin(a)));
+                        }
+                    }
+                    BoxOf(Child(root, N + "Lever"), 0.08f);
+                    var lever = Pivot("LeverPivot", r, new Vector3(6.25f, F + 1.02f, 1f), N + "Lever");
+                    root.AddComponent<InteriorFireworkShow>().Configure(seats.ToArray(), boxes.ToArray(), muzzles.ToArray(), 4, lever, new Vector3(KX, 8f, KZ),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath));
+                });
         }
 
         /// <summary>
@@ -4927,6 +5046,7 @@ namespace SpaceStation.Editor
             { "EvoFoodFactory", InteriorAmbience.Machine },   // 가공 라인 · 바퀴
             { "EvoRefineryCombine", InteriorAmbience.Machine },   // 용광로 · 크레인
             { "EvoShieldDome", InteriorAmbience.Electric },       // 렌즈 · 실드 장치
+            { "EvoFortress", InteriorAmbience.Life },             // 연병장 · 불꽃 구경
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
