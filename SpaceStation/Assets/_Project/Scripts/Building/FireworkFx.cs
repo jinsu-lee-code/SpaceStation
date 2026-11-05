@@ -365,7 +365,7 @@ namespace SpaceStation.Building
         }
 
         private static void Flash(ParticleSystem ps, Vector3 at, float size) =>
-            ps.Emit(new ParticleSystem.EmitParams { position = at, startLifetime = 0.22f, startSize = size, startColor = Color.white, applyShapeToPosition = false }, 1);
+            ps.Emit(new ParticleSystem.EmitParams { position = at, startLifetime = 0.22f, startSize = ViewCamera != null ? size * 0.45f : size, startColor = Color.white, applyShapeToPosition = false }, 1);   // 내부 하늘 화면은 8배로 보여 작게
 
         private static void Sparkle(ParticleSystem ps, Vector3 at, Color color, int count, float speed)
         {
