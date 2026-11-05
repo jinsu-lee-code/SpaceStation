@@ -85,20 +85,21 @@ namespace SpaceStation.Editor
             { "EvoRefineryCombine", new[] { ResidentTrait.Mechanic } },   // 정련 콤비나트 = 광물 처리 단지 둘 (정비공)
             { "EvoShieldDome", new[] { ResidentTrait.Scientist, ResidentTrait.Technician } },   // 실드 돔 = 실드 발생기 (과학자) + 센서 (기술자)
             { "EvoFortress", new[] { ResidentTrait.Technician } },   // 요새 포대 = 방어 포대 둘 (기술자)
+            { "EvoRadiationWall", new[] { ResidentTrait.Technician } },   // 방사선 차폐벽 = 장갑 외벽 (기술자) + 차폐실
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus", "EvoCivicHall", "EvoSecurityHQ", "EvoBiodome", "EvoFoodFactory", "EvoRefineryCombine", "EvoShieldDome", "EvoFortress" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus", "EvoCivicHall", "EvoSecurityHQ", "EvoBiodome", "EvoFoodFactory", "EvoRefineryCombine", "EvoShieldDome", "EvoFortress", "EvoRadiationWall" };
 
         /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
         /// 여객 도킹 포트 안내 직원 · 2026-10-31 보안청 창구 직원).</summary>
-        private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger", "EvoSecurity", "EvoSecurityHQ" };
+        private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger", "EvoSecurity", "EvoSecurityHQ", "EvoRadiationWall" };
 
         /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
-        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" }, { "EvoCivicHall", "별 구경 중" }, { "EvoSecurityHQ", "민원 보는 중" }, { "EvoBiodome", "정원 구경 중" }, { "EvoFoodFactory", "관람차 구경 중" }, { "EvoRefineryCombine", "제철소 구경 중" }, { "EvoShieldDome", "등대 구경 중" }, { "EvoFortress", "불꽃 구경 중" } };
+        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" }, { "EvoCivicHall", "별 구경 중" }, { "EvoSecurityHQ", "민원 보는 중" }, { "EvoBiodome", "정원 구경 중" }, { "EvoFoodFactory", "관람차 구경 중" }, { "EvoRefineryCombine", "제철소 구경 중" }, { "EvoShieldDome", "등대 구경 중" }, { "EvoFortress", "불꽃 구경 중" }, { "EvoRadiationWall", "별자리 구경 중" } };
 
         /// <summary>12-5 일하는 사람 상태 글 (없으면 "일하는 중").</summary>
-        private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" }, { "EvoBiodome", "정원 돌보는 중" }, { "EvoFoodFactory", "식품 만드는 중" }, { "EvoRefineryCombine", "광석 나르는 중" }, { "EvoShieldDome", "운석 살피는 중" }, { "EvoFortress", "포대 살피는 중" } };
+        private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" }, { "EvoBiodome", "정원 돌보는 중" }, { "EvoFoodFactory", "식품 만드는 중" }, { "EvoRefineryCombine", "광석 나르는 중" }, { "EvoShieldDome", "운석 살피는 중" }, { "EvoFortress", "포대 살피는 중" }, { "EvoRadiationWall", "피난처 살피는 중" } };
 
         /// <summary>
         /// 12-5 자리를 직접 정한 방 (찾아낸 자리로는 안 되는 방). 행정 관제소: 주민이 정해진 길로 발권기 · 창구를 오가므로
@@ -146,12 +147,44 @@ namespace SpaceStation.Editor
             { "EvoRefineryCombine", EvoRefineryCombineSpots },
             { "EvoShieldDome", EvoShieldDomeSpots },
             { "EvoFortress", EvoFortressSpots },
+            { "EvoRadiationWall", EvoRadiationWallSpots },
         };
 
         /// <summary>
         /// 진화 2단계 치안 본부 (sh_builder SPOTS): 일하는 자리 = 창구 직원 의자 셋 (가운데부터, 일터 없는 주민도 — OpenWork) · 상황실 레이더 곁 둘 · 안내 데스크,
         /// 쉬는 자리 = 광장 벤치 6 (민원인, 번호표 뽑고 창구로 — <see cref="Interior.InteriorQueueBoard"/>) · 청사 안 벤치 4 (앉음) + 돌아다니는 자리 (광장은 우주복).
         /// </summary>
+        /// <summary>
+        /// 진화 2단계 방사선 차폐벽 (rw_builder SPOTS): 일하는 자리 = 강 아래 회랑 방사선 경보판 앞 · 찻집 (서서, 일터 없는 주민도 — OpenWork), 쉬는 자리 = 찻집 귀퉁이 벤치 4 · 북쪽 벤치 2 · 돌 벤치 2 · 병풍 앞 벤치 4 (앉음, 나머지 벤치는 플레이어 몫 — 자리가 44면 43명이 들어와 길을 막음)
+        /// + 서는 자리 (병풍 앞 · 마당 · 갑판 = 우주복, 강둑 회랑 = 난간에 붙어, 전시 회랑 · 찻집 = 실내).
+        /// </summary>
+        private static List<ResidentSpot> EvoRadiationWallSpots()
+        {
+            var list = new List<ResidentSpot>
+            {
+                new ResidentSpot(new Vector3(16.5f, Floor, 1.35f), 0f, ResidentPose.Stand, work: true),
+                new ResidentSpot(new Vector3(5.1f, Floor, 9.2f), -80f, ResidentPose.Stand, work: true),
+            };
+            foreach (var (x, y, z, yaw) in new[]
+            {
+                (-0.91f, -0.87f, 6.672f, 22.5f), (9.278f, -0.87f, 7.04f, -67.5f), (8.91f, -0.87f, 9.328f, -157.5f), (-1.278f, -0.87f, 8.96f, 112.5f),
+                (1.775f, -0.86f, 9.5f, 180f), (6.225f, -0.86f, 9.5f, 180f),
+                (-0.3f, -0.86f, 2.3f, 0f), (2.1f, -0.86f, 2.3f, 0f),
+                (2.575f, -0.86f, -3.1f, 0f), (4.475f, -0.86f, -3.1f, 0f), (11.525f, -0.86f, -3.1f, 0f), (13.425f, -0.86f, -3.1f, 0f),
+            })
+                list.Add(new ResidentSpot(new Vector3(x, y, z), yaw, ResidentPose.Sit));
+            foreach (var (x, y, z, yaw) in new[]
+            {
+                (0.5f, Floor, -1.42f, 0f), (15.5f, Floor, -1.42f, 0f),                                                    // 병풍 앞
+                (-3.1f, Floor, 3.9f, 80f), (18.9f, Floor, 2.7f, -80f), (2.6f, Floor, 4.75f, 180f),                        // 마당 · 갑판
+                (1.5f, 1.15f, 3.05f, 0f), (15.8f, 1.15f, 3.05f, 0f),                                                      // 강둑 회랑 난간
+                (-0.05f, Floor, 0.35f, 90f), (9.25f, Floor, 0.35f, 80f),                                                  // 전시 회랑
+                (2f, Floor, 7.6f, 60f), (6f, Floor, 7.6f, -60f),                                                          // 찻집
+            })
+                list.Add(new ResidentSpot(new Vector3(x, y, z), yaw, ResidentPose.Stand));
+            return list;
+        }
+
         /// <summary>
         /// 진화 2단계 요새 포대 (fo_builder SPOTS): 일하는 자리 = 본성 레이더 상황판 곁 둘 (서서), 쉬는 자리 = 관람석 앞줄 (앉아서 불꽃 봄 — 위 줄은 일어나면 아래 줄 위에 서게 되어 플레이어 자리로만)
         /// + 서는 자리 (성벽 위 난간 · 연병장 · 갑판 = 우주복, 성벽 위 길은 폭이 좁아 난간에 붙어).

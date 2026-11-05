@@ -15,6 +15,7 @@ namespace SpaceStation.Interior
     /// 관람석: 보고 F = 앉음 (뒤 능보 쪽 하늘을 올려다봄), 다시 F = 앉기 전 자리로 일어남. 쇼 레버: 당기면 24초 동안 연달아 쏨.
     /// 모듈이 꺼지면 쏘지 않음 (평소 불꽃도 <see cref="FireworkFx"/>가 멈춤). 실제 시간 (unscaled).
     /// </summary>
+    [DefaultExecutionOrder(-320)] // InteriorMode(-300)보다 먼저: 앉은 채 누른 F를 여기서 먼저 씀 (늦게 돌면 앉자마자 같은 프레임에 일어남)
     public sealed class InteriorFireworkShow : InteriorRoomDisplay
     {
         private const float ShowSeconds = 24f;
@@ -142,6 +143,8 @@ namespace SpaceStation.Interior
             float dt = Time.unscaledDeltaTime;
             if (_player == null)
                 _player = FindFirstObjectByType<FirstPersonController>();
+            if (_seated && _player != null && !_player.Riding)
+                ClearSeat();   // 앉은 채 패드로 빠른 이동 (Teleport가 탈것을 지움)
             if (_seated && KeyBindings.WasPressed(GameAction.Interact))
                 StandUp();
             // 쇼: 포구를 번갈아 연달아
@@ -266,15 +269,20 @@ namespace SpaceStation.Interior
         {
             if (!_seated)
                 return;
-            _seated = false;
-            if (_seatRoot != null)
-                _seatRoot.SetActive(true);
-            ShowHint(false);
+            ClearSeat();
             if (_player != null)
             {
                 _player.RideAt(transform, _standPoint, FirstPersonController.EyeHeight, null, 0f);
                 _player.Dismount();
             }
+        }
+
+        private void ClearSeat()
+        {
+            _seated = false;
+            if (_seatRoot != null)
+                _seatRoot.SetActive(true);
+            ShowHint(false);
         }
 
         // ---------------- 안내 ----------------

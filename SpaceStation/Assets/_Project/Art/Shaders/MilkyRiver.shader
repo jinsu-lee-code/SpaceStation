@@ -24,6 +24,14 @@ Shader "SpaceStation/MilkyRiver"
         _Reflect ("하늘 되비침", Range(0, 2)) = 0.8
         _Glint ("햇빛 윤슬", Range(0, 2)) = 0.35
         _Depth ("별 깊이", Range(0, 0.1)) = 0.03
+        _CoordScale ("좌표 배율 (바깥 = 1, 내부 = 1/8)", Float) = 1
+        _StarSize ("별 크기 (바깥 = 1, 가까이서 보면 줄임)", Range(0.1, 1)) = 1
+        _StarDensity ("별 밀도 (바깥 = 1)", Range(0.1, 1)) = 1
+        _BankPeriod ("물가 지그재그 간격", Float) = 0.6
+        _BankOffset ("물가 지그재그 어긋남", Float) = 0.1
+        _BankFront ("물가 앞 끝", Float) = -0.058
+        _BankAmp ("물가 지그재그 폭", Float) = 0.12
+        _BankBack ("물가 뒤 끝", Float) = 0.2314
     }
     SubShader
     {
@@ -57,6 +65,14 @@ Shader "SpaceStation/MilkyRiver"
                 float _Reflect;
                 float _Glint;
                 float _Depth;
+                float _CoordScale;
+                float _StarSize;
+                float _StarDensity;
+                float _BankPeriod;
+                float _BankOffset;
+                float _BankFront;
+                float _BankAmp;
+                float _BankBack;
             CBUFFER_END
 
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; UNITY_VERTEX_INPUT_INSTANCE_ID };
@@ -90,12 +106,12 @@ Shader "SpaceStation/MilkyRiver"
                 float2 g = p / cell;
                 float2 id = floor(g);
                 float h = StationHash3(float3(id, seed));
-                if (h > density)
+                if (h > density * _StarDensity)
                     return 0.0;
                 float2 at = float2(StationHash3(float3(id, seed + 3.0)), StationHash3(float3(id, seed + 5.0))) * 0.6 + 0.2;
                 float d = length(frac(g) - at);
                 float twinkle = 0.65 + 0.35 * sin(_Time.y * (1.5 + h * 20.0) + h * 80.0);
-                return smoothstep(size, 0.0, d) * twinkle * smoothstep(1.5, 4.0, cell / pixel);
+                return smoothstep(size * _StarSize, 0.0, d) * twinkle * smoothstep(1.5, 4.0, cell / pixel);
             }
 
             // 물 높이: 흐름 쪽으로 늘어난 부드러운 너울 (윤슬 줄이 흐름을 가로지름)
@@ -108,9 +124,9 @@ Shader "SpaceStation/MilkyRiver"
             {
                 UNITY_SETUP_INSTANCE_ID(i);
                 float t = _Time.y;
-                if (i.normalOS.y < 0.5)   // 옆면 (테두리에 가려 거의 안 보임)
+                if (abs(i.normalOS.y) < 0.5)   // 옆면 (테두리에 가려 거의 안 보임). 아랫면 = 내부 전시 회랑 천장 (강 아래에서 올려다봄)
                     return half4(_DeepColor.rgb * _BaseColor.rgb, 1);
-                float2 p = i.positionOS.xz;
+                float2 p = i.positionOS.xz * _CoordScale;
                 float pixel = max(fwidth(p.x) + fwidth(p.y), 0.00001);
                 // 물결: 흐름과 함께 밀려가는 너울의 기울기 — 이것이 비친 은하수를 일그러뜨리고 하늘 · 햇빛 반사를 흔듦
                 float2 rp = p * float2(13.0, 30.0) - float2(t * _Flow * 13.0, t * 0.04);
@@ -121,7 +137,7 @@ Shader "SpaceStation/MilkyRiver"
                 // 시점
                 float3 viewWS = normalize(_WorldSpaceCameraPos - i.positionWS);
                 float3 viewOS = normalize(TransformWorldToObjectDir(viewWS));
-                float2 parallax = viewOS.xz / max(viewOS.y, 0.25);
+                float2 parallax = viewOS.xz / max(abs(viewOS.y), 0.25);
                 // 강: 흐르는 좌표 x, 강 가운데에서 떨어진 거리 d
                 float x = q.x - t * _Flow;
                 float zc = _RiverZ + _Meander * sin(q.x * 2.6 + 0.8) + 0.008 * sin(q.x * 6.1);
@@ -151,10 +167,10 @@ Shader "SpaceStation/MilkyRiver"
                 // 물결의 굴곡: 너울 한쪽 비탈이 하늘빛을 받아 위에서 봐도 수면으로 읽힘
                 color += _ArmColor.rgb * saturate(grad.x * 0.5 + grad.y * 0.3) * _Current;
                 // 물가: 벽 앞(지그재그) · 뒤 쪽으로 갈수록 어두워져 물이 깊어 보임
-                float front = -0.058 + 0.12 * abs(frac((p.x - 0.1) / 0.6 + 0.5) * 2.0 - 1.0);
-                color *= 0.45 + 0.55 * smoothstep(0.0, 0.03, min(p.y - front, 0.2314 - p.y));
+                float front = _BankFront + _BankAmp * abs(frac((p.x - _BankOffset) / _BankPeriod + 0.5) * 2.0 - 1.0);
+                color *= 0.45 + 0.55 * smoothstep(0.0, 0.03, min(p.y - front, _BankBack - p.y));
                 // 물 표면: 실제 하늘 되비침 (비스듬할수록) · 물결에 부서지는 햇빛
-                float3 normalWS = normalize(TransformObjectToWorldNormal(normalize(float3(-grad.x * 0.16, 1.0, -grad.y * 0.16))));
+                float3 normalWS = normalize(TransformObjectToWorldNormal(normalize(float3(-grad.x * 0.16, i.normalOS.y > 0.0 ? 1.0 : -1.0, -grad.y * 0.16))));
                 float facing = saturate(dot(normalWS, viewWS));
                 float fresnel = 0.02 + 0.5 * pow(1.0 - facing, 5.0);
                 float3 reflected = reflect(-viewWS, normalWS);

@@ -820,8 +820,12 @@ namespace SpaceStation.Interior
             // 해치 뚜껑(칸 가운데) 옆, 지금 바라보는 쪽으로 한 걸음
             var forward = _player.transform.forward;
             forward.y = 0f;
-            var offset = forward.sqrMagnitude > 0.01f ? forward.normalized * 1.1f : Vector3.forward * 1.1f;
-            _player.Teleport(arrival + offset + Vector3.up * 0.05f, _player.transform.eulerAngles.y);
+            var direction = forward.sqrMagnitude > 0.01f ? forward.normalized : Vector3.forward;
+            float step = 1.1f;
+            // 앞이 막혔으면 덜 감: 개방형 방에서 난간 너머 · 벤치 속으로 가지 않게
+            if (Physics.CapsuleCast(arrival + Vector3.up * 0.45f, arrival + Vector3.up * 1.5f, 0.3f, direction, out var block, step, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                step = Mathf.Max(0f, block.distance - 0.1f);
+            _player.Teleport(arrival + direction * step + Vector3.up * 0.05f, _player.transform.eulerAngles.y);
             UpdateNearbyRooms(RoomAtPlayer(), force: false);
             yield return Fade(1f, 0f, 0.2f);
             _busy = false;
