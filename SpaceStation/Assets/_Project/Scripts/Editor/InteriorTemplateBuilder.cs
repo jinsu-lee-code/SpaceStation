@@ -222,10 +222,10 @@ namespace SpaceStation.Editor
                         ladles[k] = Pivot("LadlePivot" + (k + 1), carousel, new Vector3(CX, LadleY, CZ) + dir * LadleR, N + "Ladle" + (k + 1));
                         streams[k] = Pivot("StreamPivot" + (k + 1), carousel, new Vector3(CX, StreamTop, CZ) + dir * StreamR, N + "Stream" + (k + 1));
                     }
-                    var flares = Pivot("FlaresPivot", r, new Vector3(CX, L1 + 1.85f, CZ), N + "Flares");
-                    root.AddComponent<InteriorSunForge>().Configure(carousel, ladles, streams, ladleAz, flares, new[] { 45f, 195f, 315f },
-                        StreamR, L1 + 0.11f, new Vector3(CX, L1 + 1.85f, CZ), new Vector3(CX, 3.78f, CZ),
-                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath), ModuleFxMaterials.Get("FireworkSpark"), ModuleFxMaterials.Get("FireworkLine"));
+                    root.AddComponent<InteriorSunForge>().Configure(carousel, ladles, streams, ladleAz, new[] { 45f, 195f, 315f },
+                        StreamR, L1 + 0.11f, new Vector3(CX, L1 + 1.85f, CZ), 1.35f, new Vector3(CX, 3.78f, CZ),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath), ModuleFxMaterials.Get("FireworkSpark"), ModuleFxMaterials.Get("FireworkLine"),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SolarFlarePath));
                     // 격납고 크레인: 들보 → 줄 위 끝 · 집게 경첩 → 손가락 경첩 넷 (광석 원형은 크레인 둘이 함께 씀)
                     const float RailY = F + 2.1f, Hinge = F + 1.85f, CableTop = RailY - 0.1f, RestZ = 2.4f;
                     var rock = Child(root, N + "OreRock");

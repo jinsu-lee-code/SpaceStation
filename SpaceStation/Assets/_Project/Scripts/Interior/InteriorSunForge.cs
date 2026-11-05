@@ -5,11 +5,14 @@ namespace SpaceStation.Interior
 {
     /// <summary>
     /// 진화 2단계 정련 콤비나트 "작은 해 용광로": 해 둘레를 도는 쇳물 국자 셋 (받침 팔이 돎), 정해진 주형 위를 지날 때 국자가 바깥으로 기울어 쇳물 줄기를 붓고 불꽃이 튐
-    /// (<see cref="InteriorFx.Spark"/> — 줄기가 닿는 주형에서만), 표면 홍염 고리가 천천히 돎, 꼭대기 배출구에서 금빛 불꽃 분수가 돔을 따라 흘러내림 (바깥 모듈 SparkEmitterFx의 분수를 내부 크기로).
+    /// (<see cref="InteriorFx.Spark"/> — 줄기가 닿는 주형에서만), 꼭대기 배출구에서 금빛 불꽃 분수가 돔을 따라 흘러내림 (바깥 모듈 SparkEmitterFx의 분수를 내부 크기로).
+    /// 홍염 = 끝이 흐린 빛 띠 (SolarFlare 셰이더, 사용자 "태양의 고리가 뚫고 지나가는 점 · 고정되어 있는 점"): 해 표면 아무 데서나 고리가 솟아 일렁이다 사라지고 다른 자리에서 다시 솟음.
     /// 주형 자리가 셋이고 국자 사이 각과 달라, 붓는 때가 어긋남. 모듈이 멈추면(비활성 · 전력 부족) 그 자리에 멈추고 분수도 꺼짐. 템플릿 빌더가 configure에서 붙임.
     /// </summary>
     public sealed class InteriorSunForge : InteriorRoomDisplay
     {
+        private const int FlarePoints = 24;
+
         [Tooltip("도는 받침 (피벗 = 돔 가운데 축). 국자 · 줄기 피벗이 이 아래")]
         [SerializeField] private Transform _carousel;
         [Tooltip("국자 피벗 (기울기 축 위)")]
@@ -18,49 +21,61 @@ namespace SpaceStation.Interior
         [SerializeField] private Transform[] _streams;
         [Tooltip("국자 쉬는 자세 방위 (도, x = cos · z = sin)")]
         [SerializeField] private float[] _ladleAzimuth;
-        [SerializeField] private Transform _flares;
         [Tooltip("붓는 주형 방위 (도)")]
         [SerializeField] private float[] _pourAzimuth;
         [Tooltip("불꽃이 튀는 주형 윗면: 가운데 반지름 · 높이 (템플릿 기준)")]
         [SerializeField] private float _moldRadius;
         [SerializeField] private float _moldY;
+        [Tooltip("해 가운데 (템플릿 기준)")]
         [SerializeField] private Vector3 _center;
+        [SerializeField] private float _sunRadius = 1.35f;
         [Tooltip("불꽃 분수 자리 (템플릿 기준)")]
         [SerializeField] private Vector3 _fountainAt;
         [SerializeField] private Material _spark;
         [SerializeField] private Material _fountainSpark;
         [SerializeField] private Material _fountainTrail;
         [SerializeField] private float _lapSeconds = 42f;
-        [SerializeField] private float _flareSeconds = 90f;
+        [SerializeField] private Material _flareMaterial;
+        [SerializeField] private int _flareCount = 7;
         [SerializeField] private float _tiltDegrees = 36f;
         [Tooltip("주형 앞뒤로 기울기 시작하는 각 (도)")]
         [SerializeField] private float _pourWindow = 15f;
         [SerializeField] private float _sparkEvery = 0.28f;
 
         private float _angle;
-        private float _flareAngle;
         private Vector3[] _tiltAxis;
         private float[] _sparkTimer;
-        private Quaternion _flareRest;
+        private Flare[] _sunFlares;
+        private System.Random _rng;
         private ParticleSystem _fountain;
         private bool _emitting = true;
 
-        public void Configure(Transform carousel, Transform[] ladles, Transform[] streams, float[] ladleAzimuth, Transform flares, float[] pourAzimuth,
-            float moldRadius, float moldY, Vector3 center, Vector3 fountainAt, Material spark, Material fountainSpark, Material fountainTrail)
+        /// <summary>홍염 고리 하나: 표면 방향 Mid에서 Axis 축으로 ±Spread (라디안) 벌어진 두 발 사이로 Lift만큼 솟음.</summary>
+        private sealed class Flare
+        {
+            public LineRenderer Line;
+            public Vector3[] Points;
+            public Vector3 Mid, Axis;
+            public float Spread, Lift, Width, Life, Age, Phase;
+        }
+
+        public void Configure(Transform carousel, Transform[] ladles, Transform[] streams, float[] ladleAzimuth, float[] pourAzimuth,
+            float moldRadius, float moldY, Vector3 center, float sunRadius, Vector3 fountainAt, Material spark, Material fountainSpark, Material fountainTrail, Material flareMaterial)
         {
             _carousel = carousel;
             _ladles = ladles;
             _streams = streams;
             _ladleAzimuth = ladleAzimuth;
-            _flares = flares;
             _pourAzimuth = pourAzimuth;
             _moldRadius = moldRadius;
             _moldY = moldY;
             _center = center;
+            _sunRadius = sunRadius;
             _fountainAt = fountainAt;
             _spark = spark;
             _fountainSpark = fountainSpark;
             _fountainTrail = fountainTrail;
+            _flareMaterial = flareMaterial;
         }
 
         private void Awake()
@@ -77,8 +92,7 @@ namespace SpaceStation.Interior
                 _streams[k].localScale = new Vector3(1f, 0f, 1f);
                 _streams[k].gameObject.SetActive(false);
             }
-            if (_flares != null)
-                _flareRest = _flares.localRotation;
+            BuildFlares();
             if (_fountainSpark != null)
                 _fountain = BuildFountain();
         }
@@ -103,14 +117,111 @@ namespace SpaceStation.Interior
             float dt = Time.deltaTime;
             _angle = Mathf.Repeat(_angle + dt * 360f / _lapSeconds, 360f);
             _carousel.localRotation = Quaternion.AngleAxis(_angle, Vector3.up);
-            if (_flares != null)
-            {
-                _flareAngle = Mathf.Repeat(_flareAngle + dt * 360f / _flareSeconds, 360f);
-                _flares.localRotation = _flareRest * Quaternion.AngleAxis(-_flareAngle, Vector3.up);
-            }
             for (int k = 0; k < _ladles.Length; k++)
                 UpdateLadle(k, dt);
+            UpdateFlares(dt);
         }
+
+        // ---------------- 홍염 ----------------
+
+        private void BuildFlares()
+        {
+            if (_flareMaterial == null)
+                return;
+            _rng = new System.Random(4217);
+            var root = new GameObject("SunFlares").transform;
+            root.SetParent(transform, false);
+            root.localPosition = _center;
+            var widths = new AnimationCurve(new Keyframe(0f, 0.3f), new Keyframe(0.5f, 1f), new Keyframe(1f, 0.3f));
+            _sunFlares = new Flare[_flareCount];
+            for (int i = 0; i < _flareCount; i++)
+            {
+                var go = new GameObject("Flare" + i);
+                go.transform.SetParent(root, false);
+                var line = go.AddComponent<LineRenderer>();
+                line.useWorldSpace = false;
+                line.alignment = LineAlignment.View;
+                line.textureMode = LineTextureMode.Stretch;
+                line.numCapVertices = 0;
+                line.numCornerVertices = 2;
+                line.sharedMaterial = _flareMaterial;
+                line.widthCurve = widths;
+                line.shadowCastingMode = ShadowCastingMode.Off;
+                line.receiveShadows = false;
+                line.lightProbeUsage = LightProbeUsage.Off;
+                line.reflectionProbeUsage = ReflectionProbeUsage.Off;
+                var seed = new MaterialPropertyBlock();
+                seed.SetFloat("_Seed", i * 3.7f);
+                line.SetPropertyBlock(seed);
+                var f = new Flare { Line = line, Points = new Vector3[FlarePoints] };
+                line.positionCount = FlarePoints;
+                Respawn(f);
+                f.Age = (float)_rng.NextDouble() * f.Life;   // 처음부터 저마다 다른 때
+                _sunFlares[i] = f;
+                PoseFlare(f);
+            }
+        }
+
+        private void Respawn(Flare f)
+        {
+            float y = Mathf.Lerp(-0.7f, 0.9f, (float)_rng.NextDouble());
+            float a = (float)_rng.NextDouble() * Mathf.PI * 2f;
+            float h = Mathf.Sqrt(1f - y * y);
+            f.Mid = new Vector3(h * Mathf.Cos(a), y, h * Mathf.Sin(a));
+            float turn = (float)_rng.NextDouble() * 360f;
+            f.Axis = Quaternion.AngleAxis(turn, f.Mid) * Vector3.Cross(f.Mid, Mathf.Abs(y) < 0.9f ? Vector3.up : Vector3.right).normalized;
+            f.Spread = Mathf.Lerp(0.26f, 0.62f, (float)_rng.NextDouble());
+            f.Lift = Mathf.Lerp(0.22f, 0.72f, (float)_rng.NextDouble());
+            f.Width = Mathf.Lerp(0.16f, 0.3f, (float)_rng.NextDouble());
+            f.Life = Mathf.Lerp(7f, 14f, (float)_rng.NextDouble());
+            f.Phase = (float)_rng.NextDouble() * 10f;
+            f.Age = 0f;
+        }
+
+        private void UpdateFlares(float dt)
+        {
+            if (_sunFlares == null)
+                return;
+            foreach (var f in _sunFlares)
+            {
+                f.Age += dt;
+                if (f.Age >= f.Life)
+                    Respawn(f);
+                PoseFlare(f);
+            }
+        }
+
+        private void PoseFlare(Flare f)
+        {
+            float p = f.Age / f.Life;
+            float rise = Smooth(p / 0.45f);
+            float alpha = Smooth(p / 0.2f) * Smooth((1f - p) / 0.35f);
+            float t = Time.time;
+            // 두 발이 표면을 따라 천천히 벌어지고, 꼭대기가 일렁임
+            float spread = f.Spread * (0.75f + 0.25f * rise);
+            for (int i = 0; i < FlarePoints; i++)
+            {
+                float u = i / (FlarePoints - 1f);
+                float arch = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(u * Mathf.PI)), 0.85f);   // 끝 점의 sin(π)은 아주 작은 음수 → 그대로 거듭제곱하면 NaN (띠 전체가 잘림)
+                var dir = Quaternion.AngleAxis((u - 0.5f) * 2f * spread * Mathf.Rad2Deg, f.Axis) * f.Mid;
+                float sway = Mathf.Sin(u * 7.5f + t * 0.9f + f.Phase) * 0.05f * arch;
+                float r = _sunRadius - 0.03f + f.Lift * rise * arch * (1f + 0.1f * Mathf.Sin(t * 0.6f + f.Phase));
+                f.Points[i] = dir * r + f.Axis * sway;
+            }
+            f.Line.SetPositions(f.Points);
+            f.Line.widthMultiplier = f.Width * (0.55f + 0.45f * rise);
+            var c = new Color(1f, 1f, 1f, alpha);
+            f.Line.startColor = c;
+            f.Line.endColor = c;
+        }
+
+        private static float Smooth(float x)
+        {
+            x = Mathf.Clamp01(x);
+            return x * x * (3f - 2f * x);
+        }
+
+        // ---------------- 국자 ----------------
 
         private void UpdateLadle(int k, float dt)
         {
