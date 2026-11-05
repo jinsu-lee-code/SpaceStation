@@ -2306,3 +2306,17 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `ba8cdf65`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-153. 내부 모델 칸 경계 검사 · 방사선 차폐벽 · 시민 회관 고침 (2026-11-06, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `7a88c0a2`과 같은 파일)
+- 새 테스트 `InteriorTemplateBoundsTests`: 모든 내부 템플릿 모델이 자기 칸 밖으로 옆 0.06 · 위 2m 넘게 나가지 않음 (옆 칸에 모듈을 붙이면 옆 방 벽을 뚫고 보였음). 대형 토러스는 사용자 결정 대기로 뺌
+- `SM_Interior_EvoRadiationWall.fbx`: ㄱ자 안쪽 모서리 갑판 · 난간 반지름 0.7 → 0.12 (빈 칸으로 0.26m 나갔음, Blender `rw_builder`)
+- `SM_Interior_EvoCivicHall.fbx`: 라운지 지붕 처마 칸 경계 안으로 (Blender `civ_builder`)
+- `MODELING.md` 7-11 · 8-13
+
+### `narrative` 합칠 때
+- 모델 두 개 · 테스트 하나. 새 템플릿을 만들면 이 테스트가 칸 밖 조각을 잡음
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `7a88c0a2`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
