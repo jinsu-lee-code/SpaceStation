@@ -72,49 +72,6 @@ namespace SpaceStation.Editor
             }
         }
 
-        /// <summary>
-        /// 지스타 시연 빌드 (사용자 2026-11-05): Builds/GStar/AnotherEarth.exe + 시연 세이브를 빌드 폴더 StreamingAssets/Demo/demo_save.json으로 복사 (이 파일이 있어야 <see cref="UI.GStarDemo"/>가 켜짐, Assets에는 넣지 않음).
-        /// 끝나면 프로젝트 폴더 gstar_build.txt에 요약을 씀. 시연 세이브 원본 = 저장 폴더 Saves/gstar_demo_source.json (slot3 사본).
-        /// 프로젝트 폴더에 gstar_scripts_only.txt가 있으면 코드만 다시 빌드 (전체 빌드 약 5분 → 15초, 이미 빌드한 폴더에 덮어씀).
-        /// </summary>
-        [MenuItem("SpaceStation/Build/Build GStar Demo")]
-        public static void BuildGStar()
-        {
-            string root = Directory.GetParent(Application.dataPath).FullName;
-            string resultFile = Path.Combine(root, "gstar_build.txt");
-            string save = Path.Combine(Application.persistentDataPath, "Saves", "gstar_demo_source.json");
-            if (!File.Exists(save))
-            {
-                File.WriteAllText(resultFile, "실패: 시연 세이브 없음 " + save);
-                return;
-            }
-            ApplyPlayerSettings();
-            string folder = Path.Combine(root, "Builds", "GStar");
-            Directory.CreateDirectory(folder);
-            var scenes = new System.Collections.Generic.List<string>();
-            foreach (var s in EditorBuildSettings.scenes)
-                if (s.enabled)
-                    scenes.Add(s.path);
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
-            {
-                scenes = scenes.ToArray(),
-                locationPathName = Path.Combine(folder, "AnotherEarth.exe"),
-                target = BuildTarget.StandaloneWindows64,
-                options = System.IO.File.Exists(Path.Combine(root, "gstar_scripts_only.txt")) ? BuildOptions.BuildScriptsOnly : BuildOptions.None,
-            });
-            var sum = report.summary;
-            string text = $"{sum.result} · {sum.totalSize / (1024f * 1024f):0.0} MB · {sum.totalTime.TotalSeconds:0}초 · 오류 {sum.totalErrors} · 경고 {sum.totalWarnings}";
-            if (sum.result == BuildResult.Succeeded)
-            {
-                string demo = Path.Combine(folder, "AnotherEarth_Data", "StreamingAssets", "Demo");
-                Directory.CreateDirectory(demo);
-                File.Copy(save, Path.Combine(demo, "demo_save.json"), true);
-                text += " · 시연 세이브 복사 완료";
-            }
-            File.WriteAllText(resultFile, text);
-            Debug.Log("[BuildSetup] 지스타 시연 빌드: " + text);
-        }
-
         [MenuItem("SpaceStation/Build/Build Windows")]
         public static void BuildWindowsMenu() => BuildWindows(false);
 
