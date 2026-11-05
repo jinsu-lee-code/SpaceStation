@@ -32,6 +32,12 @@ namespace SpaceStation.Interior
         private Canvas _canvas;
         private TextMeshProUGUI _hint;
 
+        /// <summary>플레이어가 이 벤치에 앉아 있음.</summary>
+        public bool IsSeated => _seated;
+
+        /// <summary>플레이어가 앉음 (드론 쇼 관람석 = 쇼 시작).</summary>
+        public event System.Action SatDown;
+
         public void Configure(Vector4[] seats, Bounds[] seatBoxes, float seatedPitch)
         {
             _seats = seats;
@@ -136,6 +142,7 @@ namespace SpaceStation.Interior
             _seatRoot.SetActive(false);
             ShowHint(true);
             AudioService.TryPlay(l => l.UiOpen);
+            SatDown?.Invoke();
         }
 
         private void StandUp()

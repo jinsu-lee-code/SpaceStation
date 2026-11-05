@@ -2320,3 +2320,22 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `7a88c0a2`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-154. 드론 정비창 내부 "드론 라이트쇼 격납고" · 2단계 열린 문 하늘 구멍 (2026-11-06, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `d316fd94`과 같은 파일)
+- 진화 2단계 드론 정비창 템플릿 (`BuildEvoDroneDepot`, 모델 · 프리팹 · 재질, Blender `dd_builder`): 수리 칸 3 × 2층 (안으로 걸어 들어감) · 뚫린 홀 드론 모빌 · 쇼 대형 그림 · 드론 비행장 · 관제실 · 유리 엘리베이터 3정지 · 옥상 관람석. 코드 검토 반영 (통로 · 조명 · 해치 · 난간)
+- `InteriorDroneShow` (새 파일): 쇼 버튼 · 관람석에 앉으면 시작 · 로비 / 관제실 화면
+- `DroneShowFx`: 내부 하늘 화면 자세 (`Grand`, `BeginGrand`, `CurrentFormationName`, `IsDroneLight`), 아래에서 볼 때 대형 방향, 내부 방문 중 실제 시간. 바깥에서 볼 때 동작은 그대로
+- `InteriorExteriorView.HideModule`: 드론 빛은 숨기지 않음
+- `InteriorBenchSeats`: `IsSeated`, `SatDown` / `InteriorLiftButton`: 층 이름 (선택) / `InteriorOpenAir`: `SetIndoorBox` (건물 옥상 = 바깥)
+- `InteriorLift.Start`: 내부를 다시 지으면 플레이어가 선 층에서 캡슐 시작 (위층에서 다시 지으면 빈 샤프트로 떨어졌음 — 모든 엘리베이터)
+- **2단계 개방형 방 열린 문**: `InteriorTemplateBuilder.PunchSkyDoors` — 하늘 껍질 문 자리에 진짜 구멍 (Blender 하늘은 2cm 홈만 있어 열린 문 안을 하늘 그림이 덮었음). 새 메시 `Art/Models/Interior/Generated/*_SkyDoors.asset`, 바뀐 프리팹 14 (하늘 껍질 방), 새 테스트 `SkyShellIsOpenAtEveryDoor`
+- `ResidentSpotBaker`: 드론 정비창 자리 30, `MODELING.md` 7-11
+
+### `narrative` 합칠 때
+- 하늘 구멍 · 엘리베이터는 공통 동작 수정 (2단계 개방형 방 · 엘리베이터 있는 방 전부). 닫힌 문 자리는 예전처럼 키트 하늘 조각이 메움
+- `InteriorOpenAir` · `InteriorLiftButton`의 새 값은 비어 있으면 예전과 같음. `DroneShowFx`는 카메라가 쇼보다 아래면 대형 방향이 뒤집힘 (지금까지 그런 시점 없음)
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `d316fd94`). TASKS · 글꼴 · `Main.unity`는 tycoon에만

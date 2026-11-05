@@ -401,7 +401,7 @@ namespace SpaceStation.Interior
         {
             foreach (var r in RenderersOf(module))
             {
-                if (!SpaceStation.Building.FireworkFx.IsFirework(r.transform))   // 불꽃은 하늘 화면에 보임 (요새 포대 폭죽놀이 직관)
+                if (!SpaceStation.Building.FireworkFx.IsFirework(r.transform) && !SpaceStation.Building.DroneShowFx.IsDroneLight(r.transform))   // 불꽃 · 드론 빛은 하늘 화면에 보임 (요새 포대 폭죽놀이 · 드론 정비창 쇼 직관)
                     HideOne(r);
             }
         }

@@ -13,12 +13,15 @@ namespace SpaceStation.Interior
         [SerializeField] private int _level;
         [Tooltip("층마다 문 옆 호출 버튼 (아니면 캡슐 안 층 버튼)")]
         [SerializeField] private bool _call;
+        [Tooltip("층 이름 (비면 N층)")]
+        [SerializeField] private string _levelName;
 
-        public void Configure(InteriorLift lift, int level, bool call)
+        public void Configure(InteriorLift lift, int level, bool call, string levelName = null)
         {
             _lift = lift;
             _level = level;
             _call = call;
+            _levelName = levelName;
         }
 
         /// <summary>안내 글 (빈 글 = 지금 누를 일 없음).</summary>
@@ -30,7 +33,7 @@ namespace SpaceStation.Interior
                 return _lift.Level == _level ? string.Empty : "엘리베이터 부르기";
             if (_lift.Level == _level)
                 return string.Empty;
-            return player != null && _lift.Contains(player.transform.position) ? $"{_level + 1}층으로" : string.Empty;
+            return player != null && _lift.Contains(player.transform.position) ? (string.IsNullOrEmpty(_levelName) ? $"{_level + 1}층으로" : $"{_levelName}으로") : string.Empty;
         }
 
         public void Press(FirstPersonController player)

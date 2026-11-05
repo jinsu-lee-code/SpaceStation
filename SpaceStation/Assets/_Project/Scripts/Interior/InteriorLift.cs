@@ -65,6 +65,28 @@ namespace SpaceStation.Interior
             }
         }
 
+        private void Start()
+        {
+            // 내부를 다시 지으면 (패드로 모듈 놓기 · 연결 바뀜) 새 캡슐이 1층에서 시작해, 위층 캡슐 안에 서 있던 플레이어가 빈 샤프트로 떨어졌음 (2026-11-06 코드 검토)
+            // → 플레이어가 캡슐 자리 안 · 어느 층 높이에 서 있으면 캡슐을 그 층에 두고 문을 연 채로 시작
+            var player = FindFirstObjectByType<FirstPersonController>();
+            if (player == null || _car == null)
+                return;
+            var p = transform.InverseTransformPoint(player.transform.position) - _center;
+            if (new Vector2(p.x, p.z).magnitude >= _innerRadius)
+                return;
+            for (int i = 1; i < StopCount; i++)
+            {
+                if (Mathf.Abs(p.y - _stops[i]) > 1.2f)
+                    continue;
+                _level = i;
+                _y = _stops[i];
+                _car.localPosition = _carBase + Vector3.up * _y;
+                _open[i] = 1f;
+                break;
+            }
+        }
+
         private void OnDisable()
         {
             // 내부에서 나가거나 방이 꺼지면 실려 가던 플레이어를 내려놓고 캡슐은 목표 층에 바로 세움
