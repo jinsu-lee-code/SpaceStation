@@ -122,6 +122,134 @@ namespace SpaceStation.Editor
             BuildEvoSecurityHQ();
             BuildEvoBiodome();
             BuildEvoFoodFactory();
+            BuildEvoRefineryCombine();
+        }
+
+        /// <summary>
+        /// 진화 2단계 정련 콤비나트 "작은 해 용광로 · 견학 제철소" (3 × 2칸, rf_builder — 사용자 2026-11-05 시안 1 "좋아 이대로 유니티로 옮겨줘"): 정원 · 전시관 구성 (직접 체험 모듈 아님).
+        /// 외형 그대로: 가운데 유리 돔 (높은 단, 남쪽 계단 둘) 속 떠 있는 작은 해 · 은빛 발톱 · 홍염 고리 · 도는 쇳물 국자 셋 (<see cref="InteriorSunForge"/>, 돔 안 갤러리에서 눈앞에 봄), 돔 둘레 산책로 (우주복),
+        /// 양옆 유리 볼트 격납고 둘 (실내, 관람 통로 · 채굴선 · 광석 통 · 집게 크레인 <see cref="InteriorOreCrane"/> · 북쪽 끝 에너지 막), 앞쪽 견학 광장 (황동 주괴 기념탑 · 금빛 해살).
+        /// 문 자리 10 = 갑판 둘레 (깊이 3.95, 닫힘 = 난간), 아래 해치 = 격납고 통로 넷 · 광장 · 북쪽 길, 위 해치 없음 (하늘).
+        /// </summary>
+        private static void BuildEvoRefineryCombine()
+        {
+            const float DeckEdge = 3.95f, L1 = F + 1f, CX = 8f, CZ = 4.5f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x <= 2; x++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), back, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 1), front, DeckEdge));
+            }
+            for (int z = 0; z <= 1; z++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(0, 0, z), Vector3Int.left, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(2, 0, z), Vector3Int.right, DeckEdge));
+            }
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(1.25f, 0f, 1.3f)));    // 서쪽 격납고 통로 (문 북쪽)
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(1.25f, 0f, 0f)));
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -3.1f)));      // 견학 광장 (기념탑 앞)
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(0f, 0f, 3.05f)));      // 북쪽 길
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(-1.25f, 0f, 1.3f)));   // 동쪽 격납고 통로
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(-1.25f, 0f, 0f)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var ember = new Color(1f, 0.58f, 0.24f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(CX, L1 + 1.85f, CZ), 9f, 2.6f, new Color(1f, 0.72f, 0.42f)),   // 작은 해
+                LightSpec.Point(new Vector3(CX, L1 + 0.5f, CZ), 4f, 1f, ember),                            // 주형 고리
+                LightSpec.Point(new Vector3(CX, F + 2.4f, -2.7f), 4.5f, 0.9f, warm),                       // 기념탑
+                LightSpec.Point(new Vector3(6.15f, F + 2.3f, -3.3f), 6f, 0.85f, warm),                     // 광장 등불
+                LightSpec.Point(new Vector3(9.85f, F + 2.3f, -3.3f), 6f, 0.85f, warm),
+                LightSpec.Point(new Vector3(CX, F + 2.4f, 11f), 6f, 0.6f, cool),                           // 북쪽 길
+                LightSpec.Point(new Vector3(3.6f, F + 2.2f, 9.3f), 5f, 0.6f, warm),                        // 북쪽 빈터
+                LightSpec.Point(new Vector3(12.4f, F + 2.2f, 9.3f), 5f, 0.6f, warm),
+                LightSpec.Point(new Vector3(-3.2f, F + 2f, 4f), 7f, 0.45f, cool),                          // 바깥 길
+                LightSpec.Point(new Vector3(19.2f, F + 2f, 4f), 7f, 0.45f, cool),
+                LightSpec.Point(new Vector3(CX, F + 0.5f, -1.7f), 3f, 0.6f, ember),                        // 단 통풍 홈
+                LightSpec.Point(new Vector3(2.8f, F + 0.5f, 1.6f), 3f, 0.6f, ember),
+                LightSpec.Point(new Vector3(13.2f, F + 0.5f, 1.6f), 3f, 0.6f, ember),
+                LightSpec.Point(new Vector3(2.8f, F + 0.5f, 7.4f), 3f, 0.6f, ember),
+                LightSpec.Point(new Vector3(13.2f, F + 0.5f, 7.4f), 3f, 0.6f, ember),
+            };
+            foreach (var az in new[] { 45f, 135f, 225f, 315f })
+            {
+                float a = az * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(CX + 5.7f * Mathf.Cos(a), L1 + 2.3f, CZ + 5.7f * Mathf.Sin(a)), 5.5f, 0.8f, warm));   // 산책로 등불
+            }
+            foreach (var hx in new[] { -0.2f, 16.2f })
+            {
+                foreach (var z in new[] { 0f, 4f, 8f })
+                    lights.Add(LightSpec.Point(new Vector3(hx, F + 2.6f, z), 6f, 1.25f, white));   // 격납고
+            }
+            EvoAccent("RefineryCombine", "#D0B090");
+            // 스폰 = 견학 광장 남쪽 길에서 기념탑 · 돔을 바라봄
+            Build("EvoRefineryCombine", "Evolved/MD_Evo_RefineryCombine", sockets, new Vector3(10.8f, F, -3.1f), -20f, lights,
+                configure: root =>
+                {
+                    const string N = "INT_EvoRefineryCombine_";
+                    AddOpenAir(root, new[]
+                    {
+                        new Vector3(CX, CZ, 4.42f),                                                                                                             // 돔
+                        new Vector3(-0.2f, -0.35f, 2.25f), new Vector3(-0.2f, 1.9f, 2.25f), new Vector3(-0.2f, 4.15f, 2.25f), new Vector3(-0.2f, 6.4f, 2.25f), new Vector3(-0.2f, 8.2f, 2.25f),   // 서쪽 격납고
+                        new Vector3(16.2f, -0.35f, 2.25f), new Vector3(16.2f, 1.9f, 2.25f), new Vector3(16.2f, 4.15f, 2.25f), new Vector3(16.2f, 6.4f, 2.25f), new Vector3(16.2f, 8.2f, 2.25f),   // 동쪽 격납고
+                    });
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    // 작은 해 용광로: 받침 팔 (돔 축) → 국자 (기울기 축) · 쇳물 줄기 (맨 위)
+                    const float LadleR = 2f, LadleY = L1 + 0.86f, StreamR = 2.38f, StreamTop = LadleY - 0.17f;
+                    var ladleAz = new[] { 270f, 30f, 150f };
+                    var carousel = Pivot("CarouselPivot", r, new Vector3(CX, L1 + 0.2f, CZ), N + "Carousel");
+                    var ladles = new Transform[3];
+                    var streams = new Transform[3];
+                    for (int k = 0; k < 3; k++)
+                    {
+                        float a = ladleAz[k] * Mathf.Deg2Rad;
+                        var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                        ladles[k] = Pivot("LadlePivot" + (k + 1), carousel, new Vector3(CX, LadleY, CZ) + dir * LadleR, N + "Ladle" + (k + 1));
+                        streams[k] = Pivot("StreamPivot" + (k + 1), carousel, new Vector3(CX, StreamTop, CZ) + dir * StreamR, N + "Stream" + (k + 1));
+                    }
+                    var flares = Pivot("FlaresPivot", r, new Vector3(CX, L1 + 1.85f, CZ), N + "Flares");
+                    root.AddComponent<InteriorSunForge>().Configure(carousel, ladles, streams, ladleAz, flares, new[] { 45f, 195f, 315f },
+                        StreamR, L1 + 0.11f, new Vector3(CX, L1 + 1.85f, CZ), new Vector3(CX, 3.78f, CZ),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath), ModuleFxMaterials.Get("FireworkSpark"), ModuleFxMaterials.Get("FireworkLine"));
+                    // 격납고 크레인: 들보 → 줄 위 끝 · 집게 경첩 → 손가락 경첩 넷 (광석 원형은 크레인 둘이 함께 씀)
+                    const float RailY = F + 2.1f, Hinge = F + 1.85f, CableTop = RailY - 0.1f, RestZ = 2.4f;
+                    var rock = Child(root, N + "OreRock");
+                    rock.gameObject.SetActive(false);
+                    void Crane(string tag, float gx, float startDelay)
+                    {
+                        var gantry = Pivot("GantryPivot" + tag, r, new Vector3(gx, 0f, RestZ), N + "Gantry" + tag);
+                        var cable = Pivot("CablePivot" + tag, gantry, new Vector3(gx, CableTop, RestZ), N + "Cable" + tag);
+                        var claw = Pivot("ClawPivot" + tag, gantry, new Vector3(gx, Hinge, RestZ), N + "Claw" + tag);
+                        var fingers = new Transform[4];
+                        var axes = new Vector3[4];
+                        for (int k = 0; k < 4; k++)
+                        {
+                            float a = Mathf.PI / 4f + Mathf.PI / 2f * k;
+                            var d = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                            fingers[k] = Pivot("FingerPivot" + tag + k, claw, new Vector3(gx, Hinge, RestZ) + d * 0.1f, N + "Finger" + tag + k);
+                            axes[k] = Vector3.Cross(d, Vector3.up);   // + = 손가락 끝이 바깥으로 (벌림)
+                        }
+                        root.AddComponent<InteriorOreCrane>().Configure(gantry, cable, claw, fingers, axes, rock, RestZ,
+                            new Vector3(gx, F + 1.34f, 5.1f), new Vector3(gx, F + 1.31f, -0.78f), F + 0.86f, Hinge, CableTop, startDelay);
+                    }
+                    Crane("A", -0.95f, 0f);
+                    Crane("B", 16.95f, 6f);
+                });
         }
 
         // 식량 공장 바퀴 (ff_builder 값): 축 높이 · 곤돌라 고리 반지름 · 핀 → 곤돌라 바닥
@@ -4682,6 +4810,7 @@ namespace SpaceStation.Editor
             { "EvoSecurityHQ", InteriorAmbience.Life },       // 파출소 광장 · 민원 창구
             { "EvoBiodome", InteriorAmbience.Water },         // 호수 · 폭포 · 비
             { "EvoFoodFactory", InteriorAmbience.Machine },   // 가공 라인 · 바퀴
+            { "EvoRefineryCombine", InteriorAmbience.Machine },   // 용광로 · 크레인
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
@@ -4761,6 +4890,8 @@ namespace SpaceStation.Editor
                 { "Evo2Soil", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SoilPath) },
                 { "Evo2Rock", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2RockPath) },
                 { "Evo2Bar", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2BarPath) },
+                { "Evo2Sun", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SunPath) },
+                { "Evo2Membrane", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MembranePath) },
                 { "PureWater", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PondPath) },
                 { "Falls", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2FallsPath) },
                 { "Cloud", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.CloudPath) },

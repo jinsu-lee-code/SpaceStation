@@ -82,20 +82,21 @@ namespace SpaceStation.Editor
             { "EvoSecurityHQ", new[] { ResidentTrait.Technician } },   // 치안 본부 = 보안청 (창구는 OpenWork) + 레이더 관제 (기술자)
             { "EvoBiodome", new[] { ResidentTrait.Gardener } },        // 바이오돔 = 바이오스피어 · 수경 농장 (정원사)
             { "EvoFoodFactory", new[] { ResidentTrait.Gardener, ResidentTrait.Technician } },   // 식량 공장 = 수직 농장 둘 (정원사) + 가공 라인 (기술자)
+            { "EvoRefineryCombine", new[] { ResidentTrait.Mechanic } },   // 정련 콤비나트 = 광물 처리 단지 둘 (정비공)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus", "EvoCivicHall", "EvoSecurityHQ", "EvoBiodome", "EvoFoodFactory" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus", "EvoCivicHall", "EvoSecurityHQ", "EvoBiodome", "EvoFoodFactory", "EvoRefineryCombine" };
 
         /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
         /// 여객 도킹 포트 안내 직원 · 2026-10-31 보안청 창구 직원).</summary>
         private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger", "EvoSecurity", "EvoSecurityHQ" };
 
         /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
-        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" }, { "EvoCivicHall", "별 구경 중" }, { "EvoSecurityHQ", "민원 보는 중" }, { "EvoBiodome", "정원 구경 중" }, { "EvoFoodFactory", "관람차 구경 중" } };
+        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" }, { "EvoCivicHall", "별 구경 중" }, { "EvoSecurityHQ", "민원 보는 중" }, { "EvoBiodome", "정원 구경 중" }, { "EvoFoodFactory", "관람차 구경 중" }, { "EvoRefineryCombine", "제철소 구경 중" } };
 
         /// <summary>12-5 일하는 사람 상태 글 (없으면 "일하는 중").</summary>
-        private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" }, { "EvoBiodome", "정원 돌보는 중" }, { "EvoFoodFactory", "식품 만드는 중" } };
+        private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" }, { "EvoBiodome", "정원 돌보는 중" }, { "EvoFoodFactory", "식품 만드는 중" }, { "EvoRefineryCombine", "광석 나르는 중" } };
 
         /// <summary>
         /// 12-5 자리를 직접 정한 방 (찾아낸 자리로는 안 되는 방). 행정 관제소: 주민이 정해진 길로 발권기 · 창구를 오가므로
@@ -140,12 +141,41 @@ namespace SpaceStation.Editor
             { "EvoSecurityHQ", EvoSecurityHQSpots },
             { "EvoBiodome", EvoBiodomeSpots },
             { "EvoFoodFactory", EvoFoodFactorySpots },
+            { "EvoRefineryCombine", EvoRefineryCombineSpots },
         };
 
         /// <summary>
         /// 진화 2단계 치안 본부 (sh_builder SPOTS): 일하는 자리 = 창구 직원 의자 셋 (가운데부터, 일터 없는 주민도 — OpenWork) · 상황실 레이더 곁 둘 · 안내 데스크,
         /// 쉬는 자리 = 광장 벤치 6 (민원인, 번호표 뽑고 창구로 — <see cref="Interior.InteriorQueueBoard"/>) · 청사 안 벤치 4 (앉음) + 돌아다니는 자리 (광장은 우주복).
         /// </summary>
+        /// <summary>
+        /// 진화 2단계 정련 콤비나트 (rf_builder SPOTS): 일하는 자리 = 격납고 제어대 앞 넷 (책상이 낮아 서서), 쉬는 자리 = 돔 안 갤러리 벤치 여덟 (해를 봄) · 북쪽 빈터 벤치 넷 (앉음)
+        /// + 서는 자리 (돔 갤러리 · 격납고 도크 = 실내, 산책로 · 갑판 = 우주복).
+        /// </summary>
+        private static List<ResidentSpot> EvoRefineryCombineSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (var (x, z) in new[] { (-1.6f, 2.15f), (-0.5f, 2.15f), (17.6f, 2.15f), (16.5f, 2.15f) })
+                list.Add(new ResidentSpot(new Vector3(x, Floor, z), 0f, ResidentPose.Stand, work: true));
+            foreach (var (x, y, z, yaw) in new[]
+            {
+                (11.07f, 0.13f, 6.856f, -127.5f), (10.356f, 0.13f, 7.57f, -142.5f), (5.644f, 0.13f, 7.57f, 142.5f), (4.93f, 0.13f, 6.856f, 127.5f),
+                (4.93f, 0.13f, 2.144f, 52.5f), (5.644f, 0.13f, 1.43f, 37.5f), (10.356f, 0.13f, 1.43f, -37.5f), (11.07f, 0.13f, 2.144f, -52.5f),
+                (11.741f, -0.87f, 9.556f, 36.5f), (10.508f, -0.87f, 10.268f, 23.5f), (5.492f, -0.87f, 10.268f, -23.5f), (4.259f, -0.87f, 9.556f, -36.5f),
+            })
+                list.Add(new ResidentSpot(new Vector3(x, y, z), yaw, ResidentPose.Sit));
+            foreach (var (x, y, z, yaw) in new[]
+            {
+                // 폭 1.3m 길 가운데는 비움 (주민이 막으면 못 지나감): 갤러리 = 안쪽 난간에 붙어, 산책로 = 바깥 난간에 붙어
+                (10.82f, -0.3f, 4.5f, -90f), (5.18f, -0.3f, 4.5f, 90f),                                                                       // 돔 갤러리
+                (-1.15f, Floor, 9.2f, 0f), (17.15f, Floor, 9.2f, 0f), (-0.8f, Floor, 1.25f, 0f), (16.8f, Floor, 1.25f, 0f),                   // 격납고 도크 (난간 안)
+                (2.74f, -0.3f, 2.585f, -110f), (13.26f, -0.3f, 2.585f, 110f), (13.26f, -0.3f, 6.415f, 70f), (2.74f, -0.3f, 6.415f, -70f),     // 산책로
+                (3.6f, Floor, -3.25f, 30f), (12.4f, Floor, -3.25f, -30f), (3f, Floor, 8.6f, 120f), (13f, Floor, 8.6f, -120f), (3.3f, Floor, 10.3f, 150f), (12.7f, Floor, 10.3f, -150f),   // 갑판
+            })
+                list.Add(new ResidentSpot(new Vector3(x, y, z), yaw, ResidentPose.Stand));
+            return list;
+        }
+
         /// <summary>
         /// 진화 2단계 식량 공장 (ff_builder SPOTS): 곤돌라 벤치 여섯 (앞에 두어 먼저 참 — InteriorFerrisWheel이 곤돌라로 옮겨 태움) · 일하는 자리 = 포장기 앞 둘 (책상 없음, 서서) ·
         /// 2층 카페 · 양 끝 마당 벤치 (앉음) + 서는 자리 (공장 1층 · 갑판, 갑판 주민은 우주복).
