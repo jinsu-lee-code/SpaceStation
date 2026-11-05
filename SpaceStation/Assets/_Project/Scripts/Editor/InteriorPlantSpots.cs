@@ -65,6 +65,12 @@ namespace SpaceStation.Editor
             })
                 tower.Add(new PlantSpot(new Vector3(x, y, z), PlantKind.Pot, s, (n++) * 53f));
             Set("IT_EvoTower", tower);
+            // 진화 2단계 식량 공장 (ff_builder PLANTS): 2층 카페 화분 둘
+            Set("IT_EvoFoodFactory", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(13.75f, 4.81f, 2.1f), PlantKind.Pot, 0.62f, 0f),
+                new PlantSpot(new Vector3(20.2f, 4.81f, 2.1f), PlantKind.Pot, 0.62f, 53f),
+            });
             // 진화 2단계 바이오돔 (bd_builder PLANTS): 큰 돔 잔디에 바로 심은 나무 아홉 (돔 안이라 유리 덮개 없음, 회전은 시안에서 유리까지 잰 그대로)
             var biodome = new List<PlantSpot>();
             for (int i = 0; i < InteriorTemplateBuilder.BiodomeTrees.Length; i++)

@@ -121,6 +121,186 @@ namespace SpaceStation.Editor
             BuildEvoCivicHall();
             BuildEvoSecurityHQ();
             BuildEvoBiodome();
+            BuildEvoFoodFactory();
+        }
+
+        // 식량 공장 바퀴 (ff_builder 값): 축 높이 · 곤돌라 고리 반지름 · 핀 → 곤돌라 바닥
+        private const float FoodWheelY = F + 7.12f, FoodPodRadius = 2.85f, FoodPodHang = 2.25f;
+        private static readonly int[] FoodRiderPods = { 1, 2, 4 };
+
+        /// <summary>식량 공장 곤돌라 벤치의 탄 주민 자리 (쉬는 자세, 템플릿 기준) — <see cref="ResidentSpotBaker"/>와 <see cref="InteriorFerrisWheel"/>가 함께 씀.</summary>
+        public static Vector3[] FoodRiderSeats(float wheelX)
+        {
+            var seats = new Vector3[FoodRiderPods.Length];
+            for (int i = 0; i < seats.Length; i++)
+            {
+                float a = (270f + 72f * FoodRiderPods[i]) * Mathf.Deg2Rad;
+                seats[i] = new Vector3(wheelX + FoodPodRadius * Mathf.Cos(a) + 0.36f, FoodWheelY + FoodPodRadius * Mathf.Sin(a) - FoodPodHang + 0.43f, 0.6f);   // 방석 앞 끝(0.53) 바로 뒤: 무릎 · 발이 방석 앞으로 나옴
+            }
+            return seats;
+        }
+
+        public const float FoodWheelA = 4.96f, FoodWheelB = 27.04f;
+
+        /// <summary>
+        /// 진화 2단계 식량 공장 "유리 바퀴 관람차 공장" (5 × 1칸 + 위층, ff_builder — 사용자 2026-11-05 시안 1 "유니티로 옮겨줘"): 직접 체험 = 관람차 탑승 (<see cref="InteriorFerrisWheel"/>).
+        /// 외형 × 8 그대로: 왼쪽 프로틴 바 바퀴 · 가운데 2층 유리 공장 + 지붕 배양조 셋 · 오른쪽 수확 작물 바퀴. 바퀴 안에 수평을 유지하는 곤돌라 다섯 (탄 주민 있음), 앞쪽 양 끝 계단 → 층계참 → 승강장 문 · 다리.
+        /// 공장 1층 = 가공 라인 (<see cref="InteriorFoodLine"/> 벨트 물건 · 로봇 팔, 가운데 통로 = 남북 압력 막), 2층 = 시식 카페 (유리 엘리베이터 <see cref="InteriorLift"/>).
+        /// 문 자리 6 = 외형 면이 있는 칸 1 · 2 · 3의 남 · 북 (깊이 3.95, 닫힘 = 난간), 아래 해치 = 칸마다, 위 해치 = 공장 지붕 칸.
+        /// </summary>
+        private static void BuildEvoFoodFactory()
+        {
+            const float DeckEdge = 3.95f, L1 = F + 5.73f, Plat = FoodWheelY - FoodPodRadius - FoodPodHang, LX = 12.3f, LZ = 1.44f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>();
+            for (int x = 1; x <= 3; x++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), back, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), front, DeckEdge));
+            }
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(-0.4f, 0f, 2.9f)));   // 뒤쪽 길 (바퀴 밑 비킴)
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(1.9f, 0f, -1.7f)));   // 바퀴와 공장 사이
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, Vector3.zero));                   // 공장 가운데 통로
+            sockets.Add(new InteriorSocket(new Vector3Int(3, 0, 0), Vector3Int.down, -F, new Vector3(-1.9f, 0f, -1.7f)));
+            sockets.Add(new InteriorSocket(new Vector3Int(4, 0, 0), Vector3Int.down, -F, new Vector3(0.4f, 0f, 2.9f)));
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 1, 0), Vector3Int.up, 1.45f, new Vector3(1.85f, 0f, 0f)));    // 2층 천장 (카운터와 배양액 관 사이 통로 위)
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var fresh = new Color(0.78f, 0.92f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(FoodWheelA, FoodWheelY, 0f), 8.5f, 1.4f, warm),     // 바퀴 축 (배양액 · 신선 등)
+                LightSpec.Point(new Vector3(FoodWheelB, FoodWheelY, 0f), 8.5f, 1.4f, fresh),
+                LightSpec.Point(new Vector3(FoodWheelA, FoodWheelY - 3.6f, 0f), 6.5f, 1.1f, white),   // 아래쪽 칸 · 승강장
+                LightSpec.Point(new Vector3(FoodWheelB, FoodWheelY - 3.6f, 0f), 6.5f, 1.1f, white),
+                LightSpec.Point(new Vector3(FoodWheelA, FoodWheelY + 3.4f, 0f), 6.5f, 1f, white),     // 위쪽 칸
+                LightSpec.Point(new Vector3(FoodWheelB, FoodWheelY + 3.4f, 0f), 6.5f, 1f, white),
+                LightSpec.Point(new Vector3(FoodWheelA - 2.6f, F + 3.6f, -3.2f), 5.5f, 1f, warm),     // 계단
+                LightSpec.Point(new Vector3(FoodWheelB + 2.6f, F + 3.6f, -3.2f), 5.5f, 1f, warm),
+                LightSpec.Point(new Vector3(13f, F + 4.6f, -1.2f), 7f, 1.4f, white),                  // 공장 1층
+                LightSpec.Point(new Vector3(19f, F + 4.6f, -1.2f), 7f, 1.4f, white),
+                LightSpec.Point(new Vector3(13.6f, F + 4.6f, 1.3f), 7f, 1.2f, white),
+                LightSpec.Point(new Vector3(18.6f, F + 4.6f, 1.3f), 7f, 1.2f, white),
+                LightSpec.Point(new Vector3(16f, F + 2.8f, 0f), 5f, 0.9f, white),
+                LightSpec.Point(new Vector3(13.4f, L1 + 3.6f, 0f), 7f, 1.3f, white),                  // 카페
+                LightSpec.Point(new Vector3(18.6f, L1 + 3.6f, 0f), 7f, 1.3f, white),
+                LightSpec.Point(new Vector3(16f, L1 + 2.4f, -1.4f), 4.5f, 0.8f, warm),
+                LightSpec.Point(new Vector3(16f, L1 + 2.4f, 1.4f), 4.5f, 0.8f, warm),
+                LightSpec.Point(new Vector3(-2.05f, F + 1.6f, 0f), 3.5f, 0.5f, new Color(0.8f, 0.5f, 1f)),   // 화단 (플라즈마 볼 꽃)
+                LightSpec.Point(new Vector3(34.05f, F + 1.6f, 0f), 3.5f, 0.5f, new Color(0.8f, 0.5f, 1f)),
+            };
+            foreach (var (x, z) in new[] { (11f, -3.1f), (21f, -3.1f), (11f, 3.1f), (21f, 3.1f), (1f, 3.1f), (31f, 3.1f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.3f, z), 6f, 0.85f, warm));   // 갑판 가로등
+            foreach (var x in new[] { -2.6f, 34.6f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.2f, 0f), 7f, 0.45f, cool));  // 양 끝 마당 (밤하늘 찬 빛)
+            EvoAccent("FoodFactory", "#A8E880");
+            // 스폰 = 공장과 왼쪽 바퀴 사이 앞쪽 길에서 바퀴 · 계단을 바라봄
+            Build("EvoFoodFactory", "Evolved/MD_Evo_FoodFactory", sockets, new Vector3(9.8f, F, -3.2f), -59f, lights,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[] { new Vector3(12.9f, 0f, 2.7f), new Vector3(16f, 0f, 2.75f), new Vector3(19.1f, 0f, 2.7f) });   // 공장
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    void Wheel(string tag, float cx, float startDelay, string title)
+                    {
+                        var hub = new GameObject($"Wheel{tag}_Pivot").transform;
+                        hub.SetParent(root.transform, false);
+                        hub.localPosition = new Vector3(cx, FoodWheelY, 0f);
+                        Child(root, $"INT_EvoFoodFactory_Wheel{tag}").SetParent(hub, true);
+                        Child(root, $"INT_EvoFoodFactory_Wheel{tag}Glass").SetParent(hub, true);
+                        var pods = new Transform[5];
+                        var doors = new Transform[5];
+                        var seats = new Transform[5];
+                        for (int k = 0; k < 5; k++)
+                        {
+                            float a = (270f + 72f * k) * Mathf.Deg2Rad;
+                            var pivot = new GameObject($"Pod{tag}{k + 1}_Pivot").transform;
+                            pivot.SetParent(root.transform, false);
+                            pivot.localPosition = new Vector3(cx + FoodPodRadius * Mathf.Cos(a), FoodWheelY + FoodPodRadius * Mathf.Sin(a), 0f);
+                            pods[k] = pivot;
+                            foreach (var suffix in new[] { "", "Glass" })
+                            {
+                                var part = Child(root, $"INT_EvoFoodFactory_Pod{tag}{k + 1}{suffix}");
+                                part.SetParent(pivot, true);
+                                part.gameObject.AddComponent<MeshCollider>().sharedMesh = part.GetComponent<MeshFilter>().sharedMesh;
+                            }
+                            doors[k] = Child(root, $"INT_EvoFoodFactory_Pod{tag}{k + 1}Door");
+                            doors[k].SetParent(pivot, true);
+                            BoxOf(doors[k], 0f);
+                            var seat = new GameObject("Seat").transform;
+                            seat.SetParent(pivot, false);
+                            seat.localPosition = new Vector3(0f, -FoodPodHang + 0.24f, 0.69f);
+                            seat.gameObject.AddComponent<BoxCollider>().size = new Vector3(1.44f, 0.5f, 0.34f);
+                            seats[k] = seat;
+                        }
+                        // 다리 (윗면만 밟음) · 승강장 문 · 다리 옆 보이지 않는 벽 · 바퀴 밑 받침 위 보이지 않는 벽 (도는 테는 충돌체 없음)
+                        var bridge = Child(root, $"INT_EvoFoodFactory_Bridge{tag}");
+                        var plate = bridge.gameObject.AddComponent<BoxCollider>();
+                        plate.center = new Vector3(cx, Plat - 0.0775f, -1.775f);
+                        plate.size = new Vector3(1.2f, 0.065f, 1.55f);
+                        var gateL = Child(root, $"INT_EvoFoodFactory_Gate{tag}L");
+                        var gateR = Child(root, $"INT_EvoFoodFactory_Gate{tag}R");
+                        BoxOf(gateL, 0f);
+                        BoxOf(gateR, 0f);
+                        var walls = new GameObject($"Wheel{tag}_Walls");
+                        walls.transform.SetParent(root.transform, false);
+                        foreach (var s in new[] { -1f, 1f })
+                        {
+                            var wall = walls.AddComponent<BoxCollider>();
+                            wall.center = new Vector3(cx + s * 0.64f, Plat + 1f, -1.76f);
+                            wall.size = new Vector3(0.04f, 2.2f, 1.52f);
+                        }
+                        var under = walls.AddComponent<BoxCollider>();
+                        under.center = new Vector3(cx, F + 0.95f, 0f);   // 윗면이 다리 판보다 낮게 (곤돌라로 들어가는 발 높이가 뜨지 않게)
+                        under.size = new Vector3(6.7f, 1.9f, 5.04f);
+                        root.AddComponent<InteriorFerrisWheel>().Configure(hub, pods, doors, seats, bridge, gateL, gateR, font, title,
+                            new Vector3(cx, Plat + 2.46f, -2.6f), FoodPodHang, startDelay, FoodRiderSeats(cx), FoodRiderPods);
+                    }
+                    Wheel("A", FoodWheelA, 0f, "프로틴 바 관람차");
+                    Wheel("B", FoodWheelB, 6f, "수확 관람차");
+                    // 가공 라인: 벨트 넷 (바깥 → 안 → 포장기) · 로봇 팔 (어깨 피벗)
+                    var arms = new Transform[4];
+                    var shoulders = new[] { new Vector2(11.95f, -0.78f), new Vector2(13.85f, -0.78f), new Vector2(18.15f, -0.78f), new Vector2(20.05f, -0.78f) };
+                    for (int i = 0; i < arms.Length; i++)
+                    {
+                        var pivot = new GameObject($"Arm{i + 1}_Pivot").transform;
+                        pivot.SetParent(root.transform, false);
+                        pivot.localPosition = new Vector3(shoulders[i].x, F + 0.78f, shoulders[i].y);
+                        Child(root, $"INT_EvoFoodFactory_Arm{i + 1}").SetParent(pivot, true);
+                        arms[i] = pivot;
+                    }
+                    const float OutY = F + 1.09f, InY = F + 0.88f;
+                    root.AddComponent<InteriorFoodLine>().Configure(
+                        new[] { Child(root, "INT_EvoFoodFactory_ItemBar"), Child(root, "INT_EvoFoodFactory_ItemCrate") },
+                        new[] { new Vector3(8.4f, OutY, 0f), new Vector3(11.3f, InY, 0f), new Vector3(23.6f, OutY, 0f), new Vector3(20.7f, InY, 0f) },
+                        new[] { new Vector3(11.2f, OutY, 0f), new Vector3(14.25f, InY, 0f), new Vector3(20.8f, OutY, 0f), new Vector3(17.75f, InY, 0f) },
+                        new[] { 0, 0, 1, 1 }, arms);
+                    // 유리 엘리베이터 (1층 ↔ 2층 카페, 문 = 동쪽)
+                    var car = Child(root, "INT_EvoFoodFactory_LiftCar");
+                    var carGlass = Child(root, "INT_EvoFoodFactory_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[2];
+                    var right = new Transform[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoFoodFactory_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoFoodFactory_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoFoodFactory_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoFoodFactory_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, L1 - F }, left, right, new Vector3(LX, F + 0.085f, LZ), Vector3.forward, 0.75f);
+                    var liftSo = new SerializedObject(lift);
+                    liftSo.FindProperty("_doorTravel").floatValue = 0.44f;   // 문짝이 공장 벽 · 벨트에 닿지 않게 (ff_builder)
+                    liftSo.ApplyModifiedPropertiesWithoutUndo();
+                });
         }
 
         /// <summary>
@@ -4501,6 +4681,7 @@ namespace SpaceStation.Editor
             { "EvoCivicHall", InteriorAmbience.Life },        // 회관 · 돌봄 · 교실
             { "EvoSecurityHQ", InteriorAmbience.Life },       // 파출소 광장 · 민원 창구
             { "EvoBiodome", InteriorAmbience.Water },         // 호수 · 폭포 · 비
+            { "EvoFoodFactory", InteriorAmbience.Machine },   // 가공 라인 · 바퀴
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
@@ -4579,6 +4760,7 @@ namespace SpaceStation.Editor
                 { "Evo2Lawn", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2LawnPath) },
                 { "Evo2Soil", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SoilPath) },
                 { "Evo2Rock", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2RockPath) },
+                { "Evo2Bar", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2BarPath) },
                 { "PureWater", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PondPath) },
                 { "Falls", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2FallsPath) },
                 { "Cloud", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.CloudPath) },
