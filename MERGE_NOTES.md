@@ -2203,3 +2203,16 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `379b7837`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-146. 정련 콤비나트 내부: 채굴선 앞면 · 해 홍염 빛 띠 (2026-11-05, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `30b72fb4`과 같은 파일)
+- 채굴선 앞면을 이음새 없는 한 덩어리 코로 (`SM_Interior_EvoRefineryCombine.fbx`, 유리 조종석은 코 위, Blender `rf_builder`)
+- 해 홍염 고리 메시를 지우고 움직이는 빛 띠로: 새 셰이더 `SolarFlare` · 재질 `M_InteriorEvo2SolarFlare`, `InteriorSunForge`가 LineRenderer로 그림
+- `MODELING.md` 7-11
+
+### `narrative` 합칠 때
+- 새 파일과 이 모듈 전용 코드뿐 (공통 코드 동작 변경 없음)
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `30b72fb4`). TASKS · 글꼴 · `Main.unity`는 tycoon에만

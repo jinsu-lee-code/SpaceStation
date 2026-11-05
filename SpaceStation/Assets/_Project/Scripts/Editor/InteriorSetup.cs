@@ -93,7 +93,8 @@ namespace SpaceStation.Editor
         public const string Evo2FallsPath = MaterialFolder + "/M_InteriorEvo2Falls.mat";   // 폭포 · 분수 (바깥 M_Falls와 같은 셰이더, 물줄기 간격만 내부 크기로)
         public const string Evo2RockPath = MaterialFolder + "/M_InteriorEvo2Rock.mat";     // 바이오돔 바위 · 물가 돌 (외형의 밝은 돌, M_InteriorRock은 거의 검게 보임)
         public const string Evo2BarPath = MaterialFolder + "/M_InteriorEvo2Bar.mat";       // 식량 공장 프로틴 바 (외형의 산호빛)
-        public const string Evo2SunPath = MaterialFolder + "/M_InteriorEvo2Sun.mat";       // 정련 콤비나트 작은 해 · 홍염 (잡음 플라즈마, 주황)
+        public const string Evo2SunPath = MaterialFolder + "/M_InteriorEvo2Sun.mat";       // 정련 콤비나트 작은 해 (잡음 플라즈마, 주황)
+        public const string Evo2SolarFlarePath = MaterialFolder + "/M_InteriorEvo2SolarFlare.mat";   // 정련 콤비나트 홍염 빛 띠 (LineRenderer)
         public const string Evo2MembranePath = MaterialFolder + "/M_InteriorEvo2Membrane.mat";   // 정련 콤비나트 격납고 입구 에너지 막 (압력 막 셰이더, 큰 아치 · 옅게)
         public const string CloudPath = "Assets/_Project/Art/Materials/FX/M_Cloud.mat";    // 바깥 구름과 같은 재질
         public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
@@ -710,6 +711,7 @@ namespace SpaceStation.Editor
             EditorUtility.SetDirty(LoadOrCreate(Evo2StarDomePath, Shader.Find("SpaceStation/StellaDome")));     // 시민 회관 상영 하늘 (슬라이더 = 재질)
             EditorUtility.SetDirty(LoadOrCreate(Evo2StarLinesPath, Shader.Find("SpaceStation/StellaLines")));   // 시민 회관 별자리
             EditorUtility.SetDirty(LoadOrCreate(Evo2CurtainPath, Shader.Find("SpaceStation/PressureVeil")));   // 압력 막 (사용자 2026-11-02 "신비감", UV = 아치 기준 미터)
+            EditorUtility.SetDirty(LoadOrCreate(Evo2SolarFlarePath, Shader.Find("SpaceStation/SolarFlare")));
             var membrane = LoadOrCreate(Evo2MembranePath, Shader.Find("SpaceStation/PressureVeil"));   // 격납고 입구: 아치 치수가 달라 따로 (기본 값이면 반폭 1m 밖이 전부 테두리로 빛남), 채굴선이 비쳐 보이게 옅게
             membrane.SetVector("_Arch", new Vector4(2.2f, 0.93f, 0f, 0f));
             membrane.SetFloat("_Veil", 0.22f);
