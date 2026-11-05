@@ -125,6 +125,129 @@ namespace SpaceStation.Editor
             BuildEvoRefineryCombine();
             BuildEvoShieldDome();
             BuildEvoFortress();
+            BuildEvoRadiationWall();
+        }
+
+        /// <summary>
+        /// 진화 2단계 방사선 차폐벽 "별자리 병풍 정원" (ㄱ자 5칸, rw_builder — 사용자 2026-11-05 시안 1 "좋아 이대로 유니티로 옮겨줘"): 정원 · 전시관 구성 (직접 체험 모듈 아님).
+        /// 외형 × 8: 앞 3칸 = 차폐판 여덟 장 지그재그 병풍 (밤의 일월오봉도, 별 Stars는 저마다 반짝임) + 병풍에 붙은 은하수 차폐 몸통 (윗면 River · 안 천장 RiverUnder = MilkyRiver 셰이더 내부 크기) + 양 끝 세 날개 표지 기둥, 뒤 왼쪽 2칸 = 달문 피난처.
+        /// 동선: 갑판 (우주복) → 병풍 앞 산책길 · 벤치 / 마당 (디딤돌 · 석등 · 돌 정원) → 계단 → 강둑 회랑 → 네 단 → 강 위 전망 부두 / 뒷벽 아치 둘 (압력 막) → 강 아래 전시 회랑 (혼천의 Armillary · 천구의 Globe · 별자리 석판 · 차폐층 단면 · 방사선 경보판 <see cref="InteriorRadiationBoard"/>) / 달문 (압력 막) → 달맞이 찻집.
+        /// 문 자리 10 = 갑판 둘레 (깊이 3.95, 닫힘 = 난간, 오목한 자리 포함), 아래 해치 = 칸마다, 위 해치 없음 (하늘). 벤치 · 찻집 자리에 앉음 (<see cref="InteriorBenchSeats"/>).
+        /// </summary>
+        private static void BuildEvoRadiationWall()
+        {
+            const float DeckEdge = 3.95f, WalkY = F + 2.45f, RoofLight = F + 2.4f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x <= 2; x++)
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), back, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), front, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), front, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), front, DeckEdge));         // 오목한 자리 (동쪽 뒷길)
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.left, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.left, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.right, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.right, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(-2.4f, 0f, -2.3f)));    // 병풍 앞 서쪽 (뚜껑 · 틀이 난간 · 벤치와 겹치지 않게)
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -2.2f)));       // 병풍 앞 가운데
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(2.4f, 0f, -2.3f)));     // 병풍 앞 동쪽
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(-1.3f, 0f, -3.2f)));    // 마당 서쪽
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(-0.8f, 0f, -0.1f)));    // 찻집 동쪽
+            var warm = new Color(1f, 0.86f, 0.6f);
+            var white = new Color(1f, 0.97f, 0.9f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lemon = new Color(1f, 0.88f, 0.5f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, F + 1.5f, -1.7f), 6.5f, 1.1f, white),            // 병풍 앞
+                LightSpec.Point(new Vector3(5f, F + 1.5f, -1.7f), 6.5f, 1.1f, white),
+                LightSpec.Point(new Vector3(11f, F + 1.5f, -1.7f), 6.5f, 1.1f, white),
+                LightSpec.Point(new Vector3(16f, F + 1.5f, -1.7f), 6.5f, 1.1f, white),
+                LightSpec.Point(new Vector3(0.62f, F + 1.5f, 4.75f), 5f, 0.9f, lemon),           // 석등
+                LightSpec.Point(new Vector3(7.38f, F + 2.25f, 5.1f), 3.5f, 0.6f, lemon),
+                LightSpec.Point(new Vector3(4f, F + 1.9f, 4.4f), 5f, 0.7f, warm),                // 달문 앞
+                LightSpec.Point(new Vector3(2.8f, F + 1.8f, 2.8f), 4.5f, 0.55f, cool),             // 회랑 아래
+                LightSpec.Point(new Vector3(8f, F + 1.8f, 2.75f), 4.5f, 0.55f, cool),
+                LightSpec.Point(new Vector3(13.4f, F + 1.8f, 2.8f), 4.5f, 0.55f, cool),
+                LightSpec.Point(new Vector3(3f, WalkY + 2.1f, 2.7f), 7f, 0.65f, cool),           // 강둑 회랑
+                LightSpec.Point(new Vector3(13f, WalkY + 2.1f, 2.7f), 7f, 0.65f, cool),
+                LightSpec.Point(new Vector3(1.1f, RoofLight, 0.45f), 4f, 0.8f, white),           // 강 아래 전시 벽감
+                LightSpec.Point(new Vector3(5.7f, RoofLight, 0.45f), 4f, 0.8f, white),
+                LightSpec.Point(new Vector3(10.3f, RoofLight, 0.45f), 4f, 0.8f, white),
+                LightSpec.Point(new Vector3(14.9f, RoofLight, 0.45f), 4f, 0.8f, white),
+                LightSpec.Point(new Vector3(4f, F + 1.75f, 8f), 7.5f, 1.3f, warm),               // 찻집: 달 등 아래 (등에 너무 가까우면 아랫면이 번쩍임)
+                LightSpec.Point(new Vector3(-0.4f, F + 2.4f, 8f), 5.5f, 1f, warm),
+                LightSpec.Point(new Vector3(8.4f, F + 2.4f, 8f), 5.5f, 1f, warm),
+                LightSpec.Point(new Vector3(-3.1f, F + 2.2f, 8f), 7f, 0.5f, cool),               // 갑판
+                LightSpec.Point(new Vector3(19f, F + 2.2f, 1.8f), 7f, 0.55f, cool),
+                LightSpec.Point(new Vector3(4f, F + 2.2f, 11f), 7f, 0.5f, cool),
+                LightSpec.Point(new Vector3(11f, F + 2.2f, 6.5f), 6f, 0.5f, cool),
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoRadiationWall_Armillary", new Vector3(1.1f, 0f, 0f), Vector3.up, 20f),     // 혼천의 안쪽 고리
+                new OrbitSpec("INT_EvoRadiationWall_Globe", new Vector3(5.7f, 0f, 0f), Vector3.up, 12f),         // 천구의
+            };
+            EvoAccent("RadiationWall", "#C8D0A0");
+            // 스폰 = 병풍 앞 산책길에서 병풍을 바라봄
+            Build("EvoRadiationWall", "Evolved/MD_Evo_RadiationWall", sockets, new Vector3(4f, F, -2.2f), 0f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[]
+                    {
+                        // 찻집 (rw_builder SROOM) · 강 아래 회랑 (몸통 안)
+                        new Vector3(-0.1f, 8f, 2.05f), new Vector3(2.7f, 8f, 2.05f), new Vector3(5.3f, 8f, 2.05f), new Vector3(8.1f, 8f, 2.05f),
+                        new Vector3(0f, 0.65f, 1.3f), new Vector3(1.6f, 0.65f, 1.3f), new Vector3(3.2f, 0.65f, 1.3f), new Vector3(4.8f, 0.65f, 1.3f), new Vector3(6.4f, 0.65f, 1.3f), new Vector3(8f, 0.65f, 1.3f),
+                        new Vector3(9.6f, 0.65f, 1.3f), new Vector3(11.2f, 0.65f, 1.3f), new Vector3(12.8f, 0.65f, 1.3f), new Vector3(14.4f, 0.65f, 1.3f), new Vector3(16f, 0.65f, 1.3f),
+                    });
+                    // 방사선 경보판 (rw_builder RW_DoseScreen): 수용 = 주민 자리 수
+                    root.AddComponent<InteriorRadiationBoard>().Configure(new[]
+                    {
+                        new InteriorRadiationBoard.Panel { Center = new Vector3(16f, F + 1.45f, 1.73f), Normal = new Vector3(0f, 0f, -1f), Up = Vector3.up, Width = 1.28f, Height = 0.78f },
+                    }, 25);
+                    // 글자: 벽 설명판 (rw_builder INFO, 병풍과 같은 별자리) · 전시 안내판 · 달문 표지판
+                    InteriorSignLabels.Label Info(float x, float z, float nx, string text) => new InteriorSignLabels.Label
+                    {
+                        Center = new Vector3(x, -0.04f, z), Normal = new Vector3(nx, 0f, 0.921f), Up = Vector3.up, Width = 1.3f, Height = 0.15f, Text = text,
+                    };
+                    InteriorSignLabels.Label Plaque(float x, float z, string text) => new InteriorSignLabels.Label
+                    {
+                        Center = new Vector3(x, F + 0.957f, z + 0.0222f), Normal = new Vector3(0f, 0.5f, 0.866f), Up = new Vector3(0f, 0.866f, -0.5f), Width = 0.48f, Height = 0.22f, Text = text,
+                    };
+                    InteriorSignLabels.Label Sign(float x, string text) => new InteriorSignLabels.Label
+                    {
+                        Center = new Vector3(x, F + 1.2f, 5.74f), Normal = new Vector3(0f, 0f, -1f), Up = Vector3.up, Width = 0.72f, Height = 0.32f, Text = text,
+                    };
+                    root.AddComponent<InteriorSignLabels>().Configure(new[]
+                    {
+                        Info(0.082f, -0.087f, 0.389f, "카시오페이아"), Info(2.238f, -0.037f, -0.389f, "직녀"), Info(4.562f, -0.037f, 0.389f, "오리온"), Info(6.838f, -0.037f, -0.389f, "북두칠성"),
+                        Info(9.162f, -0.037f, 0.389f, "백조"), Info(11.438f, -0.037f, -0.389f, "사자"), Info(13.762f, -0.037f, 0.389f, "견우"), Info(15.918f, -0.087f, -0.389f, "전갈"),
+                        Plaque(1.72f, 0.12f, "<b>혼천의</b>\n<size=70%>하늘의 움직임을 재는 기구</size>"),
+                        Plaque(6.32f, 0.12f, "<b>천구의</b>\n<size=70%>별자리를 새긴 하늘 공</size>"),
+                        Plaque(11.28f, 0.12f, "<b>별자리 석판</b>\n<size=70%>돌에 새긴 별 지도</size>"),
+                        Plaque(13.98f, 0.14f, "<b>차폐층 단면</b>\n<size=70%>금속 · 흡수층 · 물 · 바깥판</size>"),
+                        Sign(1.5f, "<b>방사선\n피난처</b>"),
+                        Sign(6.5f, "<b>달맞이\n찻집</b>"),
+                    });
+                    // 벤치 (rw_builder front · yard · shelter, 앉는 자리 = 쉬는 자리와 같음)
+                    var seats = new List<Vector4>();
+                    var boxes = new List<Bounds>();
+                    void Bench(float x0, float x1, float z0, float z1, float top, float z, float yaw, params float[] xs)
+                    {
+                        boxes.Add(new Bounds(new Vector3((x0 + x1) * 0.5f, F + (top + 0.01f) * 0.5f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, top + 0.01f, z1 - z0)));
+                        foreach (var x in xs)
+                            seats.Add(new Vector4(x, F + top, z, yaw));
+                    }
+                    Bench(2.1f, 5.9f, -3.42f, -2.92f, 0.44f, -3.1f, 0f, 2.575f, 3.525f, 4.475f, 5.425f);
+                    Bench(10.1f, 13.9f, -3.42f, -2.92f, 0.44f, -3.1f, 0f, 10.575f, 11.525f, 12.475f, 13.425f);
+                    Bench(-0.75f, 2.55f, 2.07f, 2.52f, 0.44f, 2.3f, 0f, -0.3f, 0.9f, 2.1f);
+                    Bench(0.05f, 2.35f, 9.3f, 9.78f, 0.44f, 9.5f, 180f, 0.625f, 1.775f);
+                    Bench(5.65f, 7.95f, 9.3f, 9.78f, 0.44f, 9.5f, 180f, 6.225f, 7.375f);
+                    foreach (var (x, z, yaw) in new[] { (-1.278f, 7.04f, 67.5f), (-0.91f, 6.672f, 22.5f), (8.91f, 6.672f, -22.5f), (9.278f, 7.04f, -67.5f), (9.278f, 8.96f, -112.5f), (8.91f, 9.328f, -157.5f), (-0.91f, 9.328f, 157.5f), (-1.278f, 8.96f, 112.5f) })
+                        Bench(x - 0.26f, x + 0.26f, z - 0.26f, z + 0.26f, 0.43f, z, yaw, x);
+                    root.AddComponent<InteriorBenchSeats>().Configure(seats.ToArray(), boxes.ToArray(), -15f);   // 앉으면 병풍이 눈앞에 높이 서므로 조금 올려다봄
+                });
         }
 
         /// <summary>
@@ -5047,6 +5170,7 @@ namespace SpaceStation.Editor
             { "EvoRefineryCombine", InteriorAmbience.Machine },   // 용광로 · 크레인
             { "EvoShieldDome", InteriorAmbience.Electric },       // 렌즈 · 실드 장치
             { "EvoFortress", InteriorAmbience.Life },             // 연병장 · 불꽃 구경
+            { "EvoRadiationWall", InteriorAmbience.Life },        // 병풍 정원 · 찻집
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
@@ -5130,6 +5254,12 @@ namespace SpaceStation.Editor
                 { "Evo2Membrane", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MembranePath) },
                 { "Evo2StarSea", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2StarSeaPath) },
                 { "Evo2BeaconCore", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2BeaconCorePath) },
+                { "Evo2River", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2RiverPath) },
+                { "Evo2Star", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2StarPath) },
+                { "Evo2Mount", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MountPath) },
+                { "Evo2Sand", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SandPath) },
+                { "Evo2Moon", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MoonPath) },
+                { "Evo2Lemon", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2LemonPath) },
                 { "PureWater", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PondPath) },
                 { "Falls", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2FallsPath) },
                 { "Cloud", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.CloudPath) },

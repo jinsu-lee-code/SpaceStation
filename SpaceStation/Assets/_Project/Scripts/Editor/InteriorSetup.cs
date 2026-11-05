@@ -101,6 +101,12 @@ namespace SpaceStation.Editor
         public const string Evo2AuroraPath = MaterialFolder + "/M_InteriorEvo2Aurora.mat";       // 실드 돔 내부 오로라 (바깥 M_AuroraCurtain을 베끼고 움직임만 내부 크기로)
         public const string Evo2BeaconBeamPath = MaterialFolder + "/M_InteriorEvo2BeaconBeam.mat";   // 실드 돔 등대 빛 (찬 빛, 빛기둥 셰이더)
         public const string Evo2BeaconCorePath = MaterialFolder + "/M_InteriorEvo2BeaconCore.mat";   // 실드 돔 렌즈 속 빛 (잡음 플라즈마, 하늘색)
+        public const string Evo2RiverPath = MaterialFolder + "/M_InteriorEvo2River.mat";     // 방사선 차폐벽 은하수 강 (바깥 M_MilkyRiver를 베끼고 좌표 · 물가만 내부 크기로)
+        public const string Evo2StarPath = MaterialFolder + "/M_InteriorEvo2Star.mat";       // 병풍 별 (별마다 다른 박자로 반짝임, 꼭짓점 색 R = 위상)
+        public const string Evo2MountPath = MaterialFolder + "/M_InteriorEvo2Mount.mat";     // 병풍 은빛 산
+        public const string Evo2SandPath = MaterialFolder + "/M_InteriorEvo2Sand.mat";       // 달빛 자갈 마당
+        public const string Evo2MoonPath = MaterialFolder + "/M_InteriorEvo2Moon.mat";       // 달 등 (은은한 흰빛)
+        public const string Evo2LemonPath = MaterialFolder + "/M_InteriorEvo2Lemon.mat";     // 병풍 해 · 세 날개 표지 · 석등 불빛 (레몬빛)
         public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
         public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
         public const string ResidentSuitModelPath = "Assets/_Project/Art/Models/Interior/SM_ResidentSuit.fbx";
@@ -513,6 +519,8 @@ namespace SpaceStation.Editor
             EvoSurface(Evo2BedPath, new Color(0.26f, 0.19f, 0.15f), 0f, 0.2f);
             EvoSurface(Evo2RockPath, new Color(0.72f, 0.67f, 0.6f), 0f, 0.12f);
             EvoSurface(Evo2BarPath, new Color(0.93f, 0.56f, 0.46f), 0f, 0.35f);
+            EvoSurface(Evo2MountPath, new Color(0.55f, 0.62f, 0.76f), 0.25f, 0.45f);
+            EvoSurface(Evo2SandPath, new Color(0.3f, 0.35f, 0.46f), 0f, 0.2f);
             // 바이오돔 잔디 · 흙 (사용자 2026-11-03 "나무와 풀 디테일"): 색 판이 아니라 풀잎 · 흙 무늬 텍스처
             void Ground(string path, string texture, float smoothness)
             {
@@ -595,6 +603,8 @@ namespace SpaceStation.Editor
             InteriorPlasma(PlasmaHotPath, new Color(3.4f, 2f, 3.8f), new Color(1.7f, 0.7f, 2.5f), 3.2f);   // 융합 발전소 고리의 밝은 덩이
             InteriorPlasma(Evo2SunPath, new Color(3f, 1.4f, 0.32f), new Color(1.75f, 0.5f, 0.06f), 1.8f);   // 정련 콤비나트 작은 해
             InteriorPlasma(Evo2BeaconCorePath, new Color(2.2f, 2.8f, 3.2f), new Color(0.4f, 1.1f, 2.2f), 2.6f);   // 실드 돔 렌즈 속 빛
+            Emissive(Evo2MoonPath, new Color(1f, 0.96f, 0.82f), new Color(1f, 0.93f, 0.76f) * 0.72f, 0.12f);
+            Emissive(Evo2LemonPath, new Color(1f, 0.86f, 0.3f), new Color(1f, 0.76f, 0.16f) * 1.05f, 0.5f);
             // 11-7 실드 방출기 코어·에너지 빔 (밝은 하늘색)
             Emissive(ShieldPath, new Color(0.45f, 0.8f, 1f), new Color(0.3f, 0.7f, 1f) * 2.0f, 0.4f);
             // 12-5 단백질 배양실 배양액 (크림빛 호박색, 은은한 발광 — 탱크 유리 속 · 콘솔 수위 막대)
@@ -802,6 +812,34 @@ namespace SpaceStation.Editor
                 beacon.SetFloat("_MirrorGlow", 0.3f);
                 beacon.enableInstancing = true;
                 EditorUtility.SetDirty(beacon);
+            }
+
+            // 방사선 차폐벽: 은하수 강 · 병풍 별 (없을 때만 값을 넣음, 슬라이더로 맞춘 값을 덮어쓰지 않게)
+            if (AssetDatabase.LoadAssetAtPath<Material>(Evo2RiverPath) == null)
+            {
+                var from = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_MilkyRiver.mat");
+                var river = LoadOrCreate(Evo2RiverPath, from.shader);
+                river.CopyPropertiesFromMaterial(from);
+                river.SetFloat("_CoordScale", 0.125f);
+                river.SetFloat("_BankPeriod", 0.575f);    // rw_builder PDX 2.3 × 2 ÷ 8
+                river.SetFloat("_BankOffset", 0.1375f);   // 앞 꼭짓점 x = 1.1 ÷ 8
+                river.SetFloat("_BankFront", -0.0741f);   // 강 앞 끝 z = -0.593 ÷ 8
+                river.SetFloat("_BankAmp", 0.1212f);
+                river.SetFloat("_BankBack", 0.2375f);     // 강 뒤 끝 z = 1.9 ÷ 8
+                river.SetFloat("_StarSize", 0.38f);       // 가까이서 보므로 별을 작게 (바깥 크기면 눈송이처럼 보임)
+                river.SetFloat("_StarDensity", 0.6f);
+                river.enableInstancing = true;
+                EditorUtility.SetDirty(river);
+            }
+            if (AssetDatabase.LoadAssetAtPath<Material>(Evo2StarPath) == null)
+            {
+                var star = LoadOrCreate(Evo2StarPath, Shader.Find("SpaceStation/Twinkle"));
+                star.SetColor("_BaseColor", new Color(1.3f, 1.35f, 1.5f));
+                star.SetFloat("_Min", 0.35f);
+                star.SetFloat("_Peak", 1.7f);
+                star.SetFloat("_Speed", 1.2f);
+                star.enableInstancing = true;
+                EditorUtility.SetDirty(star);
             }
 
             // 문 상태등: 색은 런타임 MaterialPropertyBlock (정상 청록 / 경고 빨강)

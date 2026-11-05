@@ -2271,3 +2271,22 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `6a7970c0`). 글꼴 · `Main.unity`는 tycoon에만
+
+## M-151. 방사선 차폐벽 내부 "별자리 병풍 정원" (2026-11-05, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `29f6b8d7`과 같은 파일)
+- 방사선 차폐벽 템플릿 (`SM_Interior_EvoRadiationWall.fbx` · `PF_Interior_EvoRadiationWall` · `IT_EvoRadiationWall` · `M_Accent_Evo_RadiationWall` · `M_Paint_Evo_RadiationWall`, Blender `rw_builder`, `Interior_Evo.blend`), `InteriorTemplateBuilder.BuildEvoRadiationWall` · `ResidentSpotBaker.EvoRadiationWallSpots`
+- 새 스크립트 `InteriorBenchSeats` (벤치 앉기 — 보고 F, 다시 F로 일어남, 주민이 앉은 자리는 비었을 때만)
+- `InteriorFireworkShow`: 실행 순서 -320 (요새 포대 관람석이 F를 누르면 앉자마자 일어나던 문제), 앉은 채 패드로 이동한 뒤 상태 정리
+- `InteriorMode.UseHatch`: 해치로 올라올 때 앞이 막혔으면 덜 감 (개방형 방 난간 밖으로 나가던 문제, 모든 모듈 공통)
+- 새 재질 `M_InteriorEvo2River` · `Star` · `Mount` · `Sand` · `Moon` · `Lemon` (`InteriorSetup`)
+- `MilkyRiver.shader`: 프로퍼티 추가 (`_CoordScale` · `_StarSize` · `_StarDensity` · `_Bank*`, 기본값 = 지금까지의 숫자), 아랫면도 은하수로 그림
+- `MODELING.md` 7-11
+
+### `narrative` 합칠 때
+- `UseHatch`는 공통 동작: 도착 자리 앞이 막혔을 때만 달라짐
+- 바깥 `M_MilkyRiver`는 새 프로퍼티가 모두 기본값이라 그림이 같음. 아랫면을 그리게 된 것은 바깥에서 안 보임
+- 방사선 경보판은 12-5 `InteriorRadiationBoard` 그대로 (방사선 폭풍이 생기면 함께 경보)
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `29f6b8d7`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
