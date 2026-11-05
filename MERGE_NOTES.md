@@ -2260,3 +2260,14 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `889fe3ab`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-150. 요새 포대 내부 하늘 불꽃 섬광 줄임 (2026-11-05, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `6a7970c0`과 같은 파일)
+- `FireworkFx`: 내부 하늘 화면에서 터질 때 섬광을 0.45배로 (바깥 크기 그대로면 흰 공이 지름 4m로 보임)
+
+### `narrative` 합칠 때
+- 내부 방문 중이 아니면 동작 같음
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `6a7970c0`). 글꼴 · `Main.unity`는 tycoon에만
