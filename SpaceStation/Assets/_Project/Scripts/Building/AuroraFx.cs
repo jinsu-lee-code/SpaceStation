@@ -93,7 +93,7 @@ namespace SpaceStation.Building
             _mesh.RecalculateBounds();
             // 꼭짓점이 셰이더에서 움직이므로 넉넉히 (셰이더 슬라이더 최대 움직임)
             var bounds = _mesh.bounds;
-            bounds.Expand(0.8f * _unit);
+            bounds.Expand(Mathf.Max(0.8f * _unit, 5.6f));   // 슬라이더 최대 움직임 약 2.75 (면마다)
             _mesh.bounds = bounds;
             var go = new GameObject("AuroraCurtains");
             go.layer = gameObject.layer;

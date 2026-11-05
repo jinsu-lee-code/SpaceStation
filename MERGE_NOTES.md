@@ -2231,3 +2231,16 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `6f625708`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-148. 실드 돔 내부 오로라 · 바다 다듬기 (2026-11-05, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a4f9d7a1`과 같은 파일)
+- 오로라 띠를 안쪽으로 (가장 멀리 움직여도 하늘 벽 안, `PF_Interior_EvoShieldDome` · `M_InteriorEvo2Aurora`)
+- `StarSea` 셰이더: 멀리서 물결이 굵어지거나 별이 지글거리지 않게
+- `AuroraFx`: 그리기 범위를 슬라이더 최대 움직임까지 넓힘
+
+### `narrative` 합칠 때
+- 바깥 모델 오로라는 그리기 범위만 넓어짐 (보이는 모습 같음)
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `a4f9d7a1`). 글꼴 · `Main.unity`는 tycoon에만
