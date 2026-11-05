@@ -45,3 +45,6 @@
   - 측정 도구: `BalanceRunSettings.BaseGrades`(난이도 측정 때 `RunWithDifficulty`가 채움) · `MidGrade`, 창 `_midGrade`
   - `SimulationHost`: `_midGrade` 필드 + 있으면 `MidGradeSystem.AttachTo` (main 고리 M-12 `StationProgression.ExtraUnlock`에 값을 정함)
   - 데이터(에셋): 해금 선택 열 ↔ 유성우 교환 (중형 = 합성 1단계 · 열, 대형 = 유성우) · `MidGradeConfig` 중형 확장
+- **지스타 시연 빌드 (2026-11-05)**
+  - 새 파일 `UI/GStarDemo.cs` (타이쿤 전용): 빌드 폴더 `StreamingAssets/Demo/demo_save.json`이 있을 때만 켜짐 — 시작 화면 · 15분 타이머 · 체험 안내 카드 · 바로 가기 F6 ~ F9 · 자원 채움 · 방치 초기화 · 아이콘 없는 모듈 아이콘 만들기. 일반 빌드 · 에디터 Play는 그대로 (에디터 시험 = EditorPrefs `GStarDemoSave`에 세이브 경로)
+  - `BuildSetup`: 메뉴 Build GStar Demo (`Builds/GStar/AnotherEarth.exe` + 시연 세이브 복사, `gstar_scripts_only.txt`가 있으면 코드만)
