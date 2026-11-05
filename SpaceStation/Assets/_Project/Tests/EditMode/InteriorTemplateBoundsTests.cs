@@ -21,10 +21,16 @@ namespace SpaceStation.Tests
         private const float UpTolerance = 2f;
 
         /// <summary>사용자 결정을 기다리는 모델 (이유와 함께). 결정되면 빼서 검사에 다시 넣음.</summary>
-        private static readonly Dictionary<string, string> Pending = new Dictionary<string, string>
+        private static readonly Dictionary<string, string> Pending = new Dictionary<string, string>();
+
+        /// <summary>
+        /// 위로 더 봐주는 모델 (m, 이유). 옆 칸 검사는 그대로.
+        /// 대형 토러스: 고리가 지나가는 안쪽 대각선 네 칸은 "비워 둘 칸"으로 막음 (사용자 2026-11-06). 하늘 껍질은 시계탑 방에서 내려다보는 마을이
+        /// 가려지지 않게 바퀴 전체 위층 끝 (11.95)까지 — 고리 위 칸에 모듈을 지으면 그 방이 하늘 안에 보임 (위층을 막을지 사용자 결정 대기).
+        /// </summary>
+        private static readonly Dictionary<string, (float up, string reason)> ExtraUp = new Dictionary<string, (float, string)>
         {
-            // 고리 · 하늘이 안쪽 대각선 네 칸 · 위층을 지나감 — 칸 목록을 늘릴지 내부를 칸 안으로 줄일지 (2026-11-06 보고)
-            { "IT_EvoGrandTorus", "고리가 칸 목록 밖 안쪽 대각선 칸을 지나감" },
+            { "IT_EvoGrandTorus", (8f, "하늘이 고리 위층까지 덮음 (시계탑 전망)") },
         };
 
         [Test]
@@ -39,6 +45,8 @@ namespace SpaceStation.Tests
                     continue;
                 checkedCount++;
                 var cells = template.Module.CellOffsets.Count > 0 ? template.Module.CellOffsets.ToList() : new List<Vector3Int> { Vector3Int.zero };
+                cells.AddRange(template.Module.KeepClearCells); // 비워 둘 칸 (대형 토러스 고리 안쪽)은 아무것도 못 지으므로 지나가도 됨
+                float upTolerance = ExtraUp.TryGetValue(template.name, out var extra) ? extra.up : UpTolerance;
                 var root = template.Prefab.transform;
                 foreach (var filter in template.Prefab.GetComponentsInChildren<MeshFilter>(true))
                 {
@@ -50,7 +58,7 @@ namespace SpaceStation.Tests
                     foreach (var v in filter.sharedMesh.vertices)
                     {
                         var p = toRoot.MultiplyPoint3x4(v);
-                        float d = Outside(p, cells);
+                        float d = Outside(p, cells, upTolerance);
                         if (d > worst)
                         {
                             worst = d;
@@ -134,8 +142,8 @@ namespace SpaceStation.Tests
             return t >= 0f && t <= length;
         }
 
-        /// <summary>칸 상자 (옆 0.06 · 위 2m 여유) 중 가장 가까운 것까지 벗어난 거리. 안이면 0.</summary>
-        private static float Outside(Vector3 p, List<Vector3Int> cells)
+        /// <summary>칸 상자 (옆 0.06 · 위 upTolerance 여유) 중 가장 가까운 것까지 벗어난 거리. 안이면 0.</summary>
+        private static float Outside(Vector3 p, List<Vector3Int> cells, float upTolerance)
         {
             const float Half = CellSize * 0.5f;
             float best = float.MaxValue;
@@ -146,7 +154,7 @@ namespace SpaceStation.Tests
                 float dz = Mathf.Max(0f, Mathf.Abs(p.z - center.z) - Half - SideTolerance);
                 float up = p.y - center.y - Half;
                 float down = center.y - Half - p.y;
-                float dy = Mathf.Max(0f, Mathf.Max(up - UpTolerance, down - SideTolerance));
+                float dy = Mathf.Max(0f, Mathf.Max(up - upTolerance, down - SideTolerance));
                 best = Mathf.Min(best, new Vector3(dx, dy, dz).magnitude);
                 if (best <= 0f)
                     return 0f;

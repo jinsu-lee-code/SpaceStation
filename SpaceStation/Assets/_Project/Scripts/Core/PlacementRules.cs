@@ -31,6 +31,10 @@ namespace SpaceStation.Core
         NoChange,
         /// <summary>12-3b 이동: 옮길 자리에서 다른 모듈과 면이 하나도 닿지 않음 (자기 옛 자리만 닿음).</summary>
         NeedsContact,
+        /// <summary>이 모듈의 비워 둘 칸(<see cref="ModuleData.KeepClearCells"/>)에 이미 모듈이 있음.</summary>
+        KeepClearBlocked,
+        /// <summary>기존 모듈(또는 합성 중인 결과)의 비워 둘 칸에 지으려 함 (대형 토러스 고리 안쪽).</summary>
+        BlockedByKeepClear,
     }
 
     /// <summary>
@@ -42,6 +46,8 @@ namespace SpaceStation.Core
     /// 도킹 규칙 (8-0, A안 "앞쪽 접근로"): <see cref="ModuleData.TerminalOnly"/> 모듈은 뒷면 칸에 모듈이 있어야 하고,
     /// 앞쪽 접근로(<see cref="ModuleData.ApproachLaneLength"/>칸)는 비어 있어야 하며 이후에도 그 칸에는 아무것도 못 짓는다.
     /// 옆·위·아래는 자유 (도킹끼리 나란히 가능). 예전 규칙으로 지은 도킹은 그대로 인정한다 (배치할 때만 검사).
+    /// 비워 둘 칸 (사용자 2026-11-06 "채굴 도킹이나 여객포트처럼 해당 칸에 배치를 못하게"): <see cref="ModuleData.KeepClearCells"/>는
+    /// 모델이 지나가는 칸 밖 자리 (대형 토러스 고리 안쪽 대각선 4칸) — 접근로처럼 지을 때 비어 있어야 하고 이후에도 못 짓는다.
     /// </summary>
     public static class PlacementRules
     {
@@ -68,6 +74,14 @@ namespace SpaceStation.Core
             {
                 if (IsInDockLane(grid, cell, ignore))
                     return PlacementResult.BlockedByDockLane;
+            }
+            // 기존 모듈의 비워 둘 칸에는 아무것도 못 지음 · 내 비워 둘 칸은 비어 있어야 함
+            if (HitsKeepClear(grid, cells, ignore))
+                return PlacementResult.BlockedByKeepClear;
+            foreach (var local in data.KeepClearCells)
+            {
+                if (IsOccupied(grid, origin + GridDirections.Rotate(local, rotation), ignore))
+                    return PlacementResult.KeepClearBlocked;
             }
             if (data.TerminalOnly)
             {
@@ -173,6 +187,32 @@ namespace SpaceStation.Core
                         && k <= other.Data.ApproachLaneLength && DockFrontWorld(other.Data, other.Rotation) == dir)
                         return true;
                     break; // 접근로 사이에 다른 모듈이 끼면 그 너머 도킹은 이 칸과 무관
+                }
+            }
+            return false;
+        }
+
+        /// <summary>비워 둘 칸 목록 (월드 격자, 회전 반영).</summary>
+        public static void GetKeepClearCells(ModuleData data, Vector3Int origin, int rotation, List<Vector3Int> results)
+        {
+            results.Clear();
+            if (data == null)
+                return;
+            foreach (var local in data.KeepClearCells)
+                results.Add(origin + GridDirections.Rotate(local, rotation));
+        }
+
+        /// <summary>칸 중 하나라도 (ignore가 아닌) 이미 지어진 모듈의 비워 둘 칸인지.</summary>
+        public static bool HitsKeepClear(StationGrid grid, IReadOnlyList<Vector3Int> cells, ModuleInstance ignore = null)
+        {
+            foreach (var m in grid.Modules)
+            {
+                if (m == ignore || m.Data == null || m.Data.KeepClearCells.Count == 0)
+                    continue;
+                foreach (var local in m.Data.KeepClearCells)
+                {
+                    if (Contains(cells, m.Origin + GridDirections.Rotate(local, m.Rotation)))
+                        return true;
                 }
             }
             return false;

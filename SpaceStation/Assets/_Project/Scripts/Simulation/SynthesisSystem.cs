@@ -18,6 +18,8 @@ namespace SpaceStation.Simulation
         EmptyCell,
         /// <summary>규격 밖으로 튀어나온 모듈이 있음 (모듈이 통째로 규격 안에 있어야 함).</summary>
         Overhang,
+        /// <summary>결과 모듈의 비워 둘 칸(<see cref="ModuleData.KeepClearCells"/>, 대형 토러스 고리 안쪽)에 모듈이 있음.</summary>
+        KeepClearBlocked,
         /// <summary>레시피에 없는 모듈(코어 포함)이 섞여 있음.</summary>
         Mixed,
         /// <summary>재료 구성(종류별 개수)이 레시피와 다름.</summary>
@@ -233,6 +235,11 @@ namespace SpaceStation.Simulation
                     if (Array.IndexOf(cells, c) < 0)
                         return SynthesisResult.Overhang;
             }
+            foreach (var local in recipe.Result.KeepClearCells)
+            {
+                if (grid.IsOccupied(origin + GridDirections.Rotate(local, rotation)))
+                    return SynthesisResult.KeepClearBlocked;
+            }
             foreach (var m in found)
             {
                 if (m == Sim.Core || m.Data == null || recipe.CountOf(m.Data) == 0)
@@ -258,6 +265,22 @@ namespace SpaceStation.Simulation
             if (!Sim.Resources.CanAfford(GetCost(recipe)))
                 return SynthesisResult.InsufficientResources;
             return SynthesisResult.Valid;
+        }
+
+        /// <summary>칸 중 하나라도 진행 중인 합성 결과의 비워 둘 칸인지 (끝나면 생길 대형 토러스 고리 안쪽 — 그동안 지으면 고리가 그 모듈을 지나감).</summary>
+        public bool HitsPendingKeepClear(IReadOnlyList<Vector3Int> cells)
+        {
+            foreach (var job in _jobs)
+            {
+                foreach (var local in job.Recipe.Result.KeepClearCells)
+                {
+                    var c = job.Origin + GridDirections.Rotate(local, job.Rotation);
+                    for (int i = 0; i < cells.Count; i++)
+                        if (cells[i] == c)
+                            return true;
+                }
+            }
+            return false;
         }
 
         private static int IndexOf(List<IngredientStatus> list, ModuleData data)

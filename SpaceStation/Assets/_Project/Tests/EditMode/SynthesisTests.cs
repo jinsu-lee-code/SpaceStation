@@ -232,6 +232,33 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void KeepClearCells_MustBeEmpty_AndStayReservedDuringAndAfterSynthesis()
+        {
+            // 결과 옆 칸 (1,0,1) = 비워 둘 칸 (대형 토러스 고리 안쪽처럼 모델이 지나감)
+            var so = new SerializedObject(_result);
+            var keep = so.FindProperty("_keepClearCells");
+            keep.arraySize = 1;
+            keep.GetArrayElementAtIndex(0).vector3IntValue = new Vector3Int(1, 0, 1);
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var sim = Sim();
+            var origin = new Vector3Int(1, 0, 0);
+            Place(sim, _a, origin);
+            Place(sim, _b, new Vector3Int(2, 0, 0));
+            var blocker = Place(sim, _other, new Vector3Int(2, 0, 1));
+            Assert.AreEqual(SynthesisResult.KeepClearBlocked, sim.Synthesis.Evaluate(_recipe, origin, 0));
+            Assert.IsTrue(sim.TryRemove(blocker));
+            Assert.AreEqual(SynthesisResult.Valid, sim.Synthesis.TryStart(_recipe, origin, 0, out _));
+
+            Assert.AreEqual(PlacementResult.BlockedByKeepClear, sim.EvaluatePlacement(_other, new Vector3Int(2, 0, 1), 0), "합성 중에도 자리를 지킴");
+            Assert.AreEqual(PlacementResult.Valid, sim.EvaluatePlacement(_other, new Vector3Int(1, 0, 1), 0), "옆 칸은 자유");
+            for (int i = 0; i < 20 && sim.Synthesis.Jobs.Count > 0; i++)
+                sim.Tick(1f);
+            Assert.AreEqual(0, sim.Synthesis.Jobs.Count);
+            Assert.AreEqual(PlacementResult.BlockedByKeepClear, sim.EvaluatePlacement(_other, new Vector3Int(2, 0, 1), 0), "완성 뒤에도");
+        }
+
+        [Test]
         public void DamagedMaterial_PausesSynthesis_DestroyedMaterial_Cancels()
         {
             var sim = Sim();
@@ -307,6 +334,8 @@ namespace SpaceStation.Tests
                 Assert.IsNotNull(r.Result, r.name);
                 Assert.IsNotNull(r.Result.Prefab, r.name + " 결과 프리팹");
                 Assert.AreEqual(r.Result.CellOffsets.Count, r.IngredientCells, r.name + ": 재료 칸 수 = 규격 칸 수");
+                foreach (var c in r.Result.KeepClearCells)
+                    CollectionAssert.DoesNotContain(r.Result.CellOffsets, c, r.name + ": 비워 둘 칸은 모듈 칸 밖");
                 int resultGrade = r.Result.CountsTowardGrade ? r.Result.GradeModuleCount : 0;   // 장갑 외벽처럼 재료가 모두 등급에 안 들면 결과도 안 듦
                 Assert.AreEqual(r.IngredientGradeModules, resultGrade, r.name + ": A4 모듈 수 = 재료 수");
                 float materials = 0f, synth = 0f, build = 0f;

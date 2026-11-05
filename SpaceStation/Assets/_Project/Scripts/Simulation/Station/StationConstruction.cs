@@ -32,12 +32,18 @@ namespace SpaceStation.Simulation
         public PlacementResult EvaluatePlacement(ModuleData data, UnityEngine.Vector3Int origin, int rotation)
         {
             var result = PlacementRules.Evaluate(_sim.Grid, data, origin, rotation);
+            if (result == PlacementResult.Valid && HitsPendingKeepClear(data, origin, rotation))
+                result = PlacementResult.BlockedByKeepClear;
             if (result == PlacementResult.Valid)
                 result = CheckBuildable(data);
             if (result == PlacementResult.Valid && !_sim.Resources.CanAfford(GetBuildCost(data)))
                 return PlacementResult.InsufficientResources;
             return result;
         }
+
+        /// <summary>합성 중인 결과(대형 토러스)의 비워 둘 칸에 지으려 하는지 — 끝나면 고리가 그 모듈을 지나감.</summary>
+        private bool HitsPendingKeepClear(ModuleData data, UnityEngine.Vector3Int origin, int rotation)
+            => _sim.Synthesis != null && _sim.Synthesis.HitsPendingKeepClear(StationGrid.ResolveCells(data.CellOffsets, origin, rotation));
 
         public List<ResourceAmount> GetBuildCost(ModuleData data) => _sim.Effects.BuildCost(data);
 
@@ -135,6 +141,8 @@ namespace SpaceStation.Simulation
             var result = PlacementRules.Evaluate(_sim.Grid, data, origin, rotation, module);
             if (result != PlacementResult.Valid)
                 return result;
+            if (HitsPendingKeepClear(data, origin, rotation))
+                return PlacementResult.BlockedByKeepClear;
             if (!PlacementRules.TouchesOther(_sim.Grid, StationGrid.ResolveCells(data.CellOffsets, origin, rotation), module))
                 return PlacementResult.NeedsContact;
             if (!_sim.Resources.CanAfford(GetMoveCost(module)))

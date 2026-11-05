@@ -375,11 +375,14 @@ namespace SpaceStation.Building
                     RebuildExistingLanes();
                 foreach (var cell in _existingLanes)
                     AddLane(cell, _existingLaneColor);
-                if (_hasTarget && _selected.TerminalOnly)
+                if (_hasTarget && (_selected.TerminalOnly || _selected.KeepClearCells.Count > 0))
                 {
-                    PlacementRules.GetDockLane(_selected, _targetCell, _rotation, _laneScratch);
                     var c = _ghostColor;
                     c.a *= _ghostLaneAlpha;
+                    PlacementRules.GetDockLane(_selected, _targetCell, _rotation, _laneScratch);
+                    foreach (var cell in _laneScratch)
+                        AddLane(cell, c);
+                    PlacementRules.GetKeepClearCells(_selected, _targetCell, _rotation, _laneScratch);
                     foreach (var cell in _laneScratch)
                         AddLane(cell, c);
                 }
@@ -397,12 +400,17 @@ namespace SpaceStation.Building
             _existingLanes.Clear();
             foreach (var m in _station.Grid.Modules)
             {
-                if (m.Data == null || !m.Data.TerminalOnly || m == _moving)
+                if (m.Data == null || m == _moving)
                     continue;
-                PlacementRules.GetDockLane(m.Data, m.Origin, m.Rotation, _laneScratch);
+                if (m.Data.TerminalOnly)
+                    PlacementRules.GetDockLane(m.Data, m.Origin, m.Rotation, _laneScratch);
+                else if (m.Data.KeepClearCells.Count > 0) // 대형 토러스 고리 안쪽도 접근로처럼 표시
+                    PlacementRules.GetKeepClearCells(m.Data, m.Origin, m.Rotation, _laneScratch);
+                else
+                    continue;
                 foreach (var cell in _laneScratch)
                 {
-                    if (!_station.Grid.IsOccupied(cell)) // 예전 규칙 도킹은 막혀 있을 수 있음
+                    if (!_station.Grid.IsOccupied(cell)) // 예전 규칙 도킹 · 예전 세이브 토러스는 막혀 있을 수 있음
                         _existingLanes.Add(cell);
                 }
             }

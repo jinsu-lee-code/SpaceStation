@@ -288,6 +288,7 @@ namespace SpaceStation.Building
                 case SynthesisResult.Locked: return "아직 열리지 않은 레시피";
                 case SynthesisResult.EmptyCell: return "규격 안에 빈 칸이 있음" + Shortfall(statuses);
                 case SynthesisResult.Overhang: return "규격 밖으로 튀어나온 모듈이 있음";
+                case SynthesisResult.KeepClearBlocked: return "고리 안쪽 빈 칸에 모듈이 있음 (고리가 지나가는 자리라 비워야 함)";
                 case SynthesisResult.Mixed: return "레시피에 없는 모듈이 섞여 있음" + Extra(statuses);
                 case SynthesisResult.Missing: return "재료 구성이 다름" + Shortfall(statuses);
                 case SynthesisResult.Busy: return "이미 합성 중인 재료가 있음";
