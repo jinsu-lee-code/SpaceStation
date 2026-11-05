@@ -467,7 +467,8 @@ namespace SpaceStation.Interior
             for (int i = 0; i < _room.Points.Count; i++)
             {
                 float d2 = (_room.Points[i] - transform.position).sqrMagnitude;
-                if (i != _at && _room.Owner[i] == null && d2 > 0.25f && d2 < 36f && PathClear(_room.Points[i]))
+                // 다른 높이의 자리는 뺌: 걷는 동안 높이를 유지해서, 난간에 붙은 자리에서는 (처음부터 닿은 난간은 길 검사에서 빠짐) 성벽 위 → 갑판으로 공중을 걸어감
+                if (i != _at && _room.Owner[i] == null && d2 > 0.25f && d2 < 36f && Mathf.Abs(_room.Points[i].y - transform.position.y) < 0.3f && PathClear(_room.Points[i]))
                     free.Add(i);
             }
             if (free.Count > 0)

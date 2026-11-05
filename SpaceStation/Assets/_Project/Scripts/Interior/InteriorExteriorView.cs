@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using SpaceStation.Building;
 using SpaceStation.Core;
@@ -101,6 +101,7 @@ namespace SpaceStation.Interior
             view._camera = cam;
             view._cameraData = data;
             Shader.SetGlobalFloat(OnId, 1f);
+            SpaceStation.Building.FireworkFx.ViewCamera = cam;
             return view;
         }
 
@@ -164,6 +165,7 @@ namespace SpaceStation.Interior
         private void OnDestroy()
         {
             Shader.SetGlobalFloat(OnId, 0f);
+            SpaceStation.Building.FireworkFx.ViewCamera = null;
             ReleaseTextures();
         }
 
@@ -398,7 +400,10 @@ namespace SpaceStation.Interior
         private void HideModule(ModuleInstance module)
         {
             foreach (var r in RenderersOf(module))
-                HideOne(r);
+            {
+                if (!SpaceStation.Building.FireworkFx.IsFirework(r.transform))   // 불꽃은 하늘 화면에 보임 (요새 포대 폭죽놀이 직관)
+                    HideOne(r);
+            }
         }
 
         private void HideOne(Renderer r)

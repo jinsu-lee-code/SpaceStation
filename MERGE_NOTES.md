@@ -2244,3 +2244,19 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `a4f9d7a1`). 글꼴 · `Main.unity`는 tycoon에만
+
+## M-149. 요새 포대 내부 "별 요새 불꽃놀이" · 주민은 같은 높이 자리로만 (2026-11-05, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `889fe3ab`과 같은 파일)
+- 요새 포대 템플릿 (`SM_Interior_EvoFortress.fbx` · `PF_Interior_EvoFortress` · `IT_EvoFortress` · `M_Accent_Evo_Fortress` · `M_Paint_Evo_Fortress`, Blender `fo_builder`, `Interior_Evo.blend`), `InteriorTemplateBuilder.BuildEvoFortress` · `ResidentSpotBaker.EvoFortressSpots`
+- 새 스크립트 `InteriorFireworkShow` (관람석 앉기 · 쇼 레버 · 대롱 불티 · 터질 때 번쩍임)
+- `FireworkFx`: 내부 방문 중 하늘 화면용 (`ViewCamera` · `Launched` · `IsFirework`, 실제 시간으로 움직임, 터지는 높이를 조금 낮춤), `InteriorExteriorView`: 자기 모듈을 숨겨도 불꽃은 보임
+- `ResidentWander.PickTarget`: 높이가 0.3m 넘게 다른 자리로는 가지 않음 (모든 모듈 공통 — 공중을 걸어가는 문제 수정)
+- `MODELING.md` 7-11
+
+### `narrative` 합칠 때
+- `ResidentWander` 조건 한 줄은 공통 동작 변경 (층이 다른 자리로 걸어가지 않음). `FireworkFx`는 내부 방문 중이 아니면 동작 같음
+- 궤도 방어망 (`FireworkFx`, 박격포대 없음)도 내부 방문 중에는 하늘 화면에 불꽃이 보임
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `889fe3ab`). TASKS · 글꼴 · `Main.unity`는 tycoon에만

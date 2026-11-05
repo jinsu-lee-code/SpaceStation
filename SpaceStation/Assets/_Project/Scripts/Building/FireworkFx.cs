@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -14,6 +14,7 @@ namespace SpaceStation.Building
     /// - 수정 불꽃 (_rainbow, 3단계 궤도 방어망 — 사용자 2026-10-29): 프리즘 광선(PrismBeamFx)에 맞은 운석이 무지개 수정 조각으로 부서지고,
     ///   별이 일곱 빛깔로 별자리를 이뤄 더 반짝이다 사라짐. 박격포대는 없음 (_mortars 비움).
     /// 별자리 면은 카메라를 향하고 위쪽은 월드 위. 시간은 게임 시간. 비활성 · 고스트에서는 박격포대가 쉰다.
+    /// 내부 방문 중 (<see cref="ViewCamera"/>): 요새 포대 안 하늘 화면에도 보임 (사용자 2026-11-05 폭죽놀이 직관) — 별자리 면이 그 화면 카메라를 향하고, 게임 시간이 멈춰도 실제 시간으로 움직임.
     /// </summary>
     public sealed class FireworkFx : MonoBehaviour
     {
@@ -98,6 +99,18 @@ namespace SpaceStation.Building
         /// <summary>별을 잇는 빛줄 색: 보통은 하늘빛, 수정 불꽃은 양끝 별 색을 섞은 흰빛.</summary>
         private Color Link(int a, int b) => _rainbow ? Color.Lerp(Color.Lerp(Star(a), Star(b), 0.5f), Color.white, 0.45f) : LineColor;
 
+        /// <summary>내부 방문 중 창 · 하늘 화면을 그리는 바깥 카메라 (<c>InteriorExteriorView</c>가 넣음). 없으면 보통 때.</summary>
+        public static Camera ViewCamera { get; set; }
+
+        /// <summary>박격포대 한 발을 쐈음 (포구 번호 — 내부 대롱 불티).</summary>
+        public event System.Action<int> Launched;
+
+        /// <summary>불꽃 입자 · 빛줄 (내부 하늘 화면에서 숨기지 않음).</summary>
+        public static bool IsFirework(Transform t) =>
+            t != null && (t.name.StartsWith("Firework_", System.StringComparison.Ordinal) || (t.parent != null && t.parent.name.StartsWith("Firework_", System.StringComparison.Ordinal)));
+
+        private static float Dt => ViewCamera != null ? Time.unscaledDeltaTime : Time.deltaTime;
+
         private ModuleView _view;
         private bool _live;
         private float _timer;
@@ -127,7 +140,7 @@ namespace SpaceStation.Building
         {
             if (!_live || _mortars == null || _mortars.Length == 0 || !_view.Operational)
                 return;
-            _timer -= Time.deltaTime;
+            _timer -= Dt;
             if (_timer > 0f)
                 return;
             _timer = _showInterval * Random.Range(0.6f, 1.4f);
@@ -138,7 +151,10 @@ namespace SpaceStation.Building
 
         private IEnumerator Salvo()
         {
-            yield return new WaitForSeconds(Random.Range(0.25f, 0.5f));
+            if (ViewCamera != null)
+                yield return new WaitForSecondsRealtime(Random.Range(0.25f, 0.5f));
+            else
+                yield return new WaitForSeconds(Random.Range(0.25f, 0.5f));
             Launch();
         }
 
@@ -150,6 +166,7 @@ namespace SpaceStation.Building
             int m = _nextMortar % _mortars.Length;
             _nextMortar = m + 1;
             StartCoroutine(Show(_mortars[m]));
+            Launched?.Invoke(m);
         }
 
         /// <summary>포탑 요격 자리에 별자리 불꽃 (별자리는 무작위).</summary>
@@ -173,7 +190,7 @@ namespace SpaceStation.Building
 
         private Vector3 ViewForward(Vector3 at)
         {
-            var cam = Camera.main;
+            var cam = ViewCamera != null ? ViewCamera : Camera.main;
             return cam != null ? (at - cam.transform.position).normalized : Vector3.forward;
         }
 
@@ -205,7 +222,7 @@ namespace SpaceStation.Building
             float t = 0f;
             while (t < Total && stars != null)
             {
-                t += Time.deltaTime;
+                t += Dt;
                 float spread = 1f - Mathf.Pow(1f - Mathf.Clamp01(t / Arrive), 3f); // 빠르게 퍼졌다 멈춤
                 float fade = 1f - Smooth(1.35f, Total, t);
                 float drop = Smooth(1.35f, Total, t) * 0.15f * size;              // 끝에 불티처럼 살짝 내려앉음
@@ -249,16 +266,17 @@ namespace SpaceStation.Building
         private IEnumerator Show(Vector3 mortar)
         {
             var muzzle = transform.TransformPoint(mortar);
-            var apex = muzzle + Vector3.up * Random.Range(1.3f, 2.1f) + new Vector3(Random.Range(-0.35f, 0.35f), 0f, Random.Range(-0.35f, 0.35f));
+            // 내부 하늘 화면에서는 조금 낮게 (관람석에서 고개를 덜 들고 보게)
+            var apex = muzzle + Vector3.up * (ViewCamera != null ? Random.Range(0.95f, 1.55f) : Random.Range(1.3f, 2.1f)) + new Vector3(Random.Range(-0.35f, 0.35f), 0f, Random.Range(-0.35f, 0.35f));
             var shell = NewSystem("Shell", true, 0f, 0.1f);
-            Flash(shell, muzzle, 0.18f); // 포구 불빛
+            Flash(shell, muzzle, ViewCamera != null ? 0.06f : 0.18f); // 포구 불빛 (내부 하늘에서는 작게 — 내부 대롱이 따로 불티를 냄)
             shell.Emit(new ParticleSystem.EmitParams { position = muzzle, startLifetime = 1.2f, startSize = 0.05f, startColor = StarColor, applyShapeToPosition = false }, 1);
             var parts = new ParticleSystem.Particle[1];
             float t = 0f;
             const float rise = 0.8f;
             while (t < rise && shell != null)
             {
-                t += Time.deltaTime;
+                t += Dt;
                 float k = 1f - Mathf.Pow(1f - Mathf.Clamp01(t / rise), 2f);
                 if (shell.GetParticles(parts) > 0)
                 {
@@ -377,6 +395,7 @@ namespace SpaceStation.Building
             main.duration = duration; // 이 시간 동안은 입자가 없어도 남아 있음 (늦게 Emit하는 묶음)
             main.loop = false;
             main.playOnAwake = false;
+            main.useUnscaledTime = ViewCamera != null;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.startSpeed = 0f; // 속도를 안 준 Emit(섬광 · 포탄 · 별)이 기본 속도 5로 날아가지 않게
             main.gravityModifier = gravity;
