@@ -2290,3 +2290,19 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `29f6b8d7`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-152. 개방형 방 밖으로 떨어지지 않게 · 차폐벽 설명판 별자리 틀 안으로 (2026-11-05, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `ba8cdf65`과 같은 파일)
+- `InteriorBuilder.OpenAirBarrier`: 개방형 방 (하늘 조각 `_Sky`가 있는 템플릿)의 칸 경계 전체에 보이지 않는 벽, 열린 문 자리만 뚫림 (Ignore Raycast — 바라보기 · 상호작용 빛은 통과)
+- `ResidentFigure`: 주민마다 머리 위까지 보이지 않는 기둥 `NoClimb` (앉은 주민 위로 올라서면 발 1.17m로 난간 1.05m를 넘어갔음, Ignore Raycast)
+- `FirstPersonController.FallSeconds` · `InteriorMode`: 3초 넘게 떨어지면 있던 방 입구로 되돌림 (마지막 안전장치)
+- 방사선 차폐벽 설명판 별자리를 판 안에 맞춤 (`SM_Interior_EvoRadiationWall.fbx`, Blender `rw_builder`)
+- `MODELING.md` 7-11
+
+### `narrative` 합칠 때
+- 세 가지 다 공통 동작 변경. 벽은 개방형 방에만, 기둥 · 낙하 복구는 모든 내부에 적용됨. 걷는 자리 · 문 통과는 그대로
+- 문을 새로 뚫는 코드를 만들면 `OpenAirBarrier`의 문 자리 (`InteriorGeometry.DoorWidth` · `DoorHeight`)와 맞출 것
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `ba8cdf65`). TASKS · 글꼴 · `Main.unity`는 tycoon에만

@@ -516,10 +516,18 @@ namespace SpaceStation.Interior
             Settled?.Invoke();
         }
 
+        private const float FallRescueSeconds = 3f;
+
         private void Update()
         {
             if (!_inside || _busy)
                 return;
+            // 방 밖 빈 공간으로 떨어짐 (가장 긴 층 사이 낙하도 2초 안쪽): 있던 방 입구로 되돌림 — 개방형 방은 둘레 벽이 막으므로 마지막 안전장치
+            if (_player.FallSeconds > FallRescueSeconds && _currentModule != null)
+            {
+                StartCoroutine(TravelRoutine(_currentModule));
+                return;
+            }
             // 11-16 피드백: 가이드는 필요한 곳에만 — 패드를 들면 화면 아래 내부 이동 안내 대신 패드 안 안내만
             bool showWalkHint = _pad == null || !_pad.IsRaised;
             if (_hint != null && _hint.gameObject.activeSelf != showWalkHint)
