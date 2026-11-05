@@ -88,7 +88,8 @@ Shader "SpaceStation/StarSea"
                 float2 at = float2(StationHash3(float3(id, seed + 3.0)), StationHash3(float3(id, seed + 5.0))) * 0.6 + 0.2;
                 float d = length(frac(g) - at);
                 float twinkle = 0.6 + 0.4 * sin(_Time.y * (0.6 + h * 8.0) + h * 80.0);
-                return smoothstep(size, 0.0, d) * twinkle * smoothstep(1.5, 4.0, cell / pixel);
+                float radius = max(size, pixel / cell);   // 한 픽셀보다 작아지면 넓히고 그만큼 어둡게 (멀리서 지글거리지 않게)
+                return smoothstep(radius, 0.0, d) * (size / radius) * (size / radius) * twinkle * smoothstep(1.5, 4.0, cell / pixel);
             }
 
             half4 Frag(Varyings i) : SV_Target
@@ -112,7 +113,7 @@ Shader "SpaceStation/StarSea"
                 float id = floor(phase);
                 float dist = abs(frac(phase) - 0.5) * _RingSpacing;
                 float arc = smoothstep(0.3, 0.5, StationNoise3(float3(dir * 1.2, id * 3.7 + 1.3)));
-                float core = smoothstep(max(_RingWidth, pixel * 1.2), 0.0, dist);
+                float core = smoothstep(max(_RingWidth, fwidth(phase) * _RingSpacing * 1.2), 0.0, dist);   // 물결을 가로지르는 방향의 픽셀 크기 (시선과 나란한 물결이 멀리서 굵어지지 않게)
                 float glow = exp(-dist * dist / (_RingGlow * _RingGlow));
                 color += _RingColor.rgb * arc * (core * 0.9 + glow * 0.22) * _RingAmount * (0.55 + 0.45 * exp(-r * 0.1));
                 // 별: 깊은 겹 둘 + 표면의 드문 밝은 별

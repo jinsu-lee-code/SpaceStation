@@ -216,12 +216,12 @@ namespace SpaceStation.Editor
                             float rr = radius + 0.32f * Mathf.Sin(2f * Mathf.PI * folds * s + phase);
                             path[i] = new Vector3(CX + rr * Mathf.Cos(a), y + 0.4f * Mathf.Sin(2f * Mathf.PI * 1.5f * s + phase), CZ + rr * Mathf.Sin(a));
                         }
-                        return new SpaceStation.Building.AuroraRibbon(path, height, 0.4f);
+                        return new SpaceStation.Building.AuroraRibbon(path, height, 0.3f);
                     }
                     var aurora = new GameObject("Aurora");
                     aurora.transform.SetParent(root.transform, false);
                     aurora.AddComponent<SpaceStation.Building.AuroraFx>().Configure(AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2AuroraPath),
-                        new[] { Arc(5.2f, 5f, 150f, 6.8f, 3.9f, 3f, 0.7f), Arc(6.2f, 35f, 172f, 7.4f, 3.6f, 4f, 2.4f), Arc(6.2f, 182f, 238f, 7f, 3.4f, 2f, 4.1f) }, 8f);
+                        new[] { Arc(4.8f, 5f, 150f, 6.8f, 3.9f, 3f, 0.7f), Arc(5.5f, 35f, 172f, 7.4f, 3.3f, 4f, 2.4f), Arc(5.5f, 182f, 238f, 7f, 3.4f, 2f, 4.1f) }, 8f);   // 가장 멀리 움직여도 하늘 벽 (등대에서 7.15m) 안: 떠돎 + 주름 + 기울기 + 뒤 겹 = 1.65m
                     // 집 레이더 상황판 (sd_builder RADAR) = 실제 운석 예보, 예보 글 = 동쪽 벽 화면
                     root.AddComponent<InteriorRadar>().Configure(new Vector3(8.95f, F + 0.958f, 1.05f), 0.56f,
                         Child(root, N + "Sweep").GetComponent<InteriorOrbit>(),

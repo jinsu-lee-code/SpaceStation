@@ -788,7 +788,7 @@ namespace SpaceStation.Editor
                 aurora.CopyPropertiesFromMaterial(from);
                 aurora.renderQueue = from.renderQueue;
                 aurora.SetFloat("_Intensity", 0.35f);
-                aurora.SetFloat("_Wander", 0.5f);
+                aurora.SetFloat("_Wander", 0.35f);
                 aurora.SetFloat("_Sway", 0.35f);
                 EditorUtility.SetDirty(aurora);
             }
