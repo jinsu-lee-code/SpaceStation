@@ -81,20 +81,21 @@ namespace SpaceStation.Editor
             { "EvoCivicHall", new[] { ResidentTrait.Scientist } },   // 시민 회관 = 복지 센터 · 문화 센터 (의무실 · 학교 = 연구원) + 쉬는 방
             { "EvoSecurityHQ", new[] { ResidentTrait.Technician } },   // 치안 본부 = 보안청 (창구는 OpenWork) + 레이더 관제 (기술자)
             { "EvoBiodome", new[] { ResidentTrait.Gardener } },        // 바이오돔 = 바이오스피어 · 수경 농장 (정원사)
+            { "EvoFoodFactory", new[] { ResidentTrait.Gardener, ResidentTrait.Technician } },   // 식량 공장 = 수직 농장 둘 (정원사) + 가공 라인 (기술자)
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus", "EvoCivicHall", "EvoSecurityHQ", "EvoBiodome" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus", "EvoCivicHall", "EvoSecurityHQ", "EvoBiodome", "EvoFoodFactory" };
 
         /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
         /// 여객 도킹 포트 안내 직원 · 2026-10-31 보안청 창구 직원).</summary>
         private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger", "EvoSecurity", "EvoSecurityHQ" };
 
         /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
-        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" }, { "EvoCivicHall", "별 구경 중" }, { "EvoSecurityHQ", "민원 보는 중" }, { "EvoBiodome", "정원 구경 중" } };
+        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" }, { "EvoCivicHall", "별 구경 중" }, { "EvoSecurityHQ", "민원 보는 중" }, { "EvoBiodome", "정원 구경 중" }, { "EvoFoodFactory", "관람차 구경 중" } };
 
         /// <summary>12-5 일하는 사람 상태 글 (없으면 "일하는 중").</summary>
-        private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" }, { "EvoBiodome", "정원 돌보는 중" } };
+        private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" }, { "EvoBiodome", "정원 돌보는 중" }, { "EvoFoodFactory", "식품 만드는 중" } };
 
         /// <summary>
         /// 12-5 자리를 직접 정한 방 (찾아낸 자리로는 안 되는 방). 행정 관제소: 주민이 정해진 길로 발권기 · 창구를 오가므로
@@ -138,12 +139,51 @@ namespace SpaceStation.Editor
             { "EvoCivicHall", EvoCivicHallSpots },
             { "EvoSecurityHQ", EvoSecurityHQSpots },
             { "EvoBiodome", EvoBiodomeSpots },
+            { "EvoFoodFactory", EvoFoodFactorySpots },
         };
 
         /// <summary>
         /// 진화 2단계 치안 본부 (sh_builder SPOTS): 일하는 자리 = 창구 직원 의자 셋 (가운데부터, 일터 없는 주민도 — OpenWork) · 상황실 레이더 곁 둘 · 안내 데스크,
         /// 쉬는 자리 = 광장 벤치 6 (민원인, 번호표 뽑고 창구로 — <see cref="Interior.InteriorQueueBoard"/>) · 청사 안 벤치 4 (앉음) + 돌아다니는 자리 (광장은 우주복).
         /// </summary>
+        /// <summary>
+        /// 진화 2단계 식량 공장 (ff_builder SPOTS): 곤돌라 벤치 여섯 (앞에 두어 먼저 참 — InteriorFerrisWheel이 곤돌라로 옮겨 태움) · 일하는 자리 = 포장기 앞 둘 (책상 없음, 서서) ·
+        /// 2층 카페 · 양 끝 마당 벤치 (앉음) + 서는 자리 (공장 1층 · 갑판, 갑판 주민은 우주복).
+        /// </summary>
+        private static List<ResidentSpot> EvoFoodFactorySpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (var (x, z, yaw) in new[] { (14.7f, -1.1f, 0f), (17.3f, 1.1f, 180f) })
+                list.Add(new ResidentSpot(new Vector3(x, Floor, z), yaw, ResidentPose.Stand, work: true));
+            foreach (float wheel in new[] { InteriorTemplateBuilder.FoodWheelA, InteriorTemplateBuilder.FoodWheelB })
+            {
+                foreach (var seat in InteriorTemplateBuilder.FoodRiderSeats(wheel))
+                    list.Add(new ResidentSpot(seat, 180f, ResidentPose.Sit));
+            }
+            // 의자 앞쪽 끝 가까이에 앉힘: 주민 무릎 · 발이 엉덩이보다 0.14m 앞이라, 의자 가운데면 종아리가 방석을 뚫음 (의자 앞 끝 = 엉덩이 + 0.07m)
+            void Seats(float forward, params (float x, float y, float z, float yaw)[] seats)
+            {
+                foreach (var (x, y, z, yaw) in seats)
+                {
+                    float a = yaw * Mathf.Deg2Rad;
+                    list.Add(new ResidentSpot(new Vector3(x + Mathf.Sin(a) * forward, y, z + Mathf.Cos(a) * forward), yaw, ResidentPose.Sit));
+                }
+            }
+            Seats(0.1f, (15.4f, 5.13f, -0.92f, 0f), (15.4f, 5.13f, 0.92f, 180f), (16.6f, 5.13f, -0.92f, 0f), (16.6f, 5.13f, 0.92f, 180f),
+                (12.48f, 4.91f, -1.75f, 90f), (13.92f, 4.91f, -1.75f, -90f), (18.08f, 4.91f, -1.75f, 90f), (19.52f, 4.91f, -1.75f, -90f), (18.68f, 4.91f, 1.6f, 90f), (20.12f, 4.91f, 1.6f, -90f));
+            Seats(0.06f, (20.18f, 4.86f, -0.94f, 90f), (20.18f, 4.86f, -1.66f, 90f), (11.82f, 4.86f, -1.66f, -90f), (11.82f, 4.86f, -0.94f, -90f));
+            Seats(0.15f, (-3.08f, -0.87f, 0f, -90f), (-2.565f, -0.87f, 0.892f, -30f), (-2.565f, -0.87f, -0.892f, -150f), (35.08f, -0.87f, 0f, 90f), (34.565f, -0.87f, 0.892f, 30f), (34.565f, -0.87f, -0.892f, 150f));
+            Seats(0.16f, (-3.178f, -0.87f, -2.81f, 67.5f), (-2.81f, -0.87f, -3.178f, 22.5f), (34.81f, -0.87f, -3.178f, -22.5f), (35.178f, -0.87f, -2.81f, -67.5f),
+                (-2.81f, -0.87f, 3.178f, 157.5f), (-3.178f, -0.87f, 2.81f, 112.5f), (35.178f, -0.87f, 2.81f, -112.5f), (34.81f, -0.87f, 3.178f, -157.5f));
+            foreach (var (x, z, yaw) in new[]
+            {
+                (13.6f, -1.75f, 0f), (18.4f, 1.75f, 180f), (19.4f, -1.75f, 0f),                                             // 공장 1층 통로
+                (-3.2f, 1.8f, 120f), (-1.6f, 2.9f, 170f), (11f, -3.2f, 10f), (21f, -3.2f, -10f), (33.6f, 2.9f, -170f), (35.2f, -1.8f, -60f), (9.8f, 3.2f, 170f), (22.2f, 3.2f, -170f),   // 갑판
+            })
+                list.Add(new ResidentSpot(new Vector3(x, Floor, z), yaw, ResidentPose.Stand));
+            return list;
+        }
+
         private static List<ResidentSpot> EvoBiodomeSpots()
         {
             var list = new List<ResidentSpot>();

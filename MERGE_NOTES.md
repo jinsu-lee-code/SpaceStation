@@ -2175,3 +2175,17 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `f5449ca4`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-144. 식량 공장 내부 "유리 바퀴 관람차 공장" (2026-11-05, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `ebbf27f0`과 같은 파일)
+- 식량 공장 템플릿 (`SM_Interior_EvoFoodFactory.fbx` · `PF_Interior_EvoFoodFactory` · `IT_EvoFoodFactory` · `M_Accent_Evo_FoodFactory` · `M_Paint_Evo_FoodFactory`, Blender `ff_builder`, `Interior_Evo.blend`), `InteriorTemplateBuilder.BuildEvoFoodFactory` · `FoodRiderSeats` · `ResidentSpotBaker.EvoFoodFactorySpots` · `InteriorPlantSpots`
+- 새 스크립트 `InteriorFerrisWheel` (관람차 한 바퀴: 칸마다 정차 · 다리 · 문 · 탑승 · 벤치 앉기 · 탄 주민) · `InteriorFoodLine` (벨트 물건 · 로봇 팔)
+- 새 내부 재질 `M_InteriorEvo2Bar` (`InteriorSetup`)
+- `MODELING.md` 7-11 · 8-14
+
+### `narrative` 합칠 때
+- 새 파일뿐 (공통 코드 동작 변경 없음). `InteriorTemplateBuilder` · `ResidentSpotBaker` · `InteriorSetup` · `InteriorPlantSpots`는 항목 추가만
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `ebbf27f0`). TASKS · 글꼴 · `Main.unity`는 tycoon에만

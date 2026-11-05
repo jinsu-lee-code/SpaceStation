@@ -92,6 +92,7 @@ namespace SpaceStation.Editor
         public const string Evo2PondPath = MaterialFolder + "/M_InteriorEvo2Pond.mat";     // 호수 · 연못 (바깥 M_PureWater와 같은 셰이더, 잔물결 간격만 내부 크기로)
         public const string Evo2FallsPath = MaterialFolder + "/M_InteriorEvo2Falls.mat";   // 폭포 · 분수 (바깥 M_Falls와 같은 셰이더, 물줄기 간격만 내부 크기로)
         public const string Evo2RockPath = MaterialFolder + "/M_InteriorEvo2Rock.mat";     // 바이오돔 바위 · 물가 돌 (외형의 밝은 돌, M_InteriorRock은 거의 검게 보임)
+        public const string Evo2BarPath = MaterialFolder + "/M_InteriorEvo2Bar.mat";       // 식량 공장 프로틴 바 (외형의 산호빛)
         public const string CloudPath = "Assets/_Project/Art/Materials/FX/M_Cloud.mat";    // 바깥 구름과 같은 재질
         public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
         public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
@@ -504,6 +505,7 @@ namespace SpaceStation.Editor
             EvoSurface(Evo2PathPath, new Color(0.78f, 0.69f, 0.58f), 0f, 0.35f);
             EvoSurface(Evo2BedPath, new Color(0.26f, 0.19f, 0.15f), 0f, 0.2f);
             EvoSurface(Evo2RockPath, new Color(0.72f, 0.67f, 0.6f), 0f, 0.12f);
+            EvoSurface(Evo2BarPath, new Color(0.93f, 0.56f, 0.46f), 0f, 0.35f);
             // 바이오돔 잔디 · 흙 (사용자 2026-11-03 "나무와 풀 디테일"): 색 판이 아니라 풀잎 · 흙 무늬 텍스처
             void Ground(string path, string texture, float smoothness)
             {
