@@ -93,6 +93,8 @@ namespace SpaceStation.Editor
         public const string Evo2FallsPath = MaterialFolder + "/M_InteriorEvo2Falls.mat";   // 폭포 · 분수 (바깥 M_Falls와 같은 셰이더, 물줄기 간격만 내부 크기로)
         public const string Evo2RockPath = MaterialFolder + "/M_InteriorEvo2Rock.mat";     // 바이오돔 바위 · 물가 돌 (외형의 밝은 돌, M_InteriorRock은 거의 검게 보임)
         public const string Evo2BarPath = MaterialFolder + "/M_InteriorEvo2Bar.mat";       // 식량 공장 프로틴 바 (외형의 산호빛)
+        public const string Evo2SunPath = MaterialFolder + "/M_InteriorEvo2Sun.mat";       // 정련 콤비나트 작은 해 · 홍염 (잡음 플라즈마, 주황)
+        public const string Evo2MembranePath = MaterialFolder + "/M_InteriorEvo2Membrane.mat";   // 정련 콤비나트 격납고 입구 에너지 막 (압력 막 셰이더, 큰 아치 · 옅게)
         public const string CloudPath = "Assets/_Project/Art/Materials/FX/M_Cloud.mat";    // 바깥 구름과 같은 재질
         public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
         public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
@@ -586,6 +588,7 @@ namespace SpaceStation.Editor
             }
             InteriorPlasma(PlasmaPath, new Color(2f, 1.05f, 2.5f), new Color(0.85f, 0.22f, 1.4f), 2.4f);
             InteriorPlasma(PlasmaHotPath, new Color(3.4f, 2f, 3.8f), new Color(1.7f, 0.7f, 2.5f), 3.2f);   // 융합 발전소 고리의 밝은 덩이
+            InteriorPlasma(Evo2SunPath, new Color(3f, 1.4f, 0.32f), new Color(1.75f, 0.5f, 0.06f), 1.8f);   // 정련 콤비나트 작은 해
             // 11-7 실드 방출기 코어·에너지 빔 (밝은 하늘색)
             Emissive(ShieldPath, new Color(0.45f, 0.8f, 1f), new Color(0.3f, 0.7f, 1f) * 2.0f, 0.4f);
             // 12-5 단백질 배양실 배양액 (크림빛 호박색, 은은한 발광 — 탱크 유리 속 · 콘솔 수위 막대)
@@ -707,6 +710,11 @@ namespace SpaceStation.Editor
             EditorUtility.SetDirty(LoadOrCreate(Evo2StarDomePath, Shader.Find("SpaceStation/StellaDome")));     // 시민 회관 상영 하늘 (슬라이더 = 재질)
             EditorUtility.SetDirty(LoadOrCreate(Evo2StarLinesPath, Shader.Find("SpaceStation/StellaLines")));   // 시민 회관 별자리
             EditorUtility.SetDirty(LoadOrCreate(Evo2CurtainPath, Shader.Find("SpaceStation/PressureVeil")));   // 압력 막 (사용자 2026-11-02 "신비감", UV = 아치 기준 미터)
+            var membrane = LoadOrCreate(Evo2MembranePath, Shader.Find("SpaceStation/PressureVeil"));   // 격납고 입구: 아치 치수가 달라 따로 (기본 값이면 반폭 1m 밖이 전부 테두리로 빛남), 채굴선이 비쳐 보이게 옅게
+            membrane.SetVector("_Arch", new Vector4(2.2f, 0.93f, 0f, 0f));
+            membrane.SetFloat("_Veil", 0.22f);
+            membrane.SetFloat("_Glow", 0.38f);
+            EditorUtility.SetDirty(membrane);
             Clear(SuitHelmetPath, new Color(0.8f, 0.92f, 1f, 0.14f), 0.97f, Color.black);
             Clear(Evo2WaterGlowPath, new Color(0.45f, 0.85f, 1f, 0.5f), 0.55f, new Color(0.07f, 0.3f, 0.42f));   // 융합 플랜트 물 캡슐 · 물 달: 은은히 빛나는 물 (속 거품 · 전극이 비침)
             // 바이오돔 물: 바깥 재질을 그대로 베끼고 간격만 8배 (바깥 1칸 = 1, 내부 1칸 = 8m — 셰이더가 월드 좌표로 무늬를 그림)

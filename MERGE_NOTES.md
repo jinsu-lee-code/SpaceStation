@@ -2189,3 +2189,17 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `ebbf27f0`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-145. 정련 콤비나트 내부 "작은 해 용광로 · 견학 제철소" (2026-11-05, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `379b7837`과 같은 파일)
+- 정련 콤비나트 템플릿 (`SM_Interior_EvoRefineryCombine.fbx` · `PF_Interior_EvoRefineryCombine` · `IT_EvoRefineryCombine` · `M_Accent_Evo_RefineryCombine` · `M_Paint_Evo_RefineryCombine`, Blender `rf_builder`, `Interior_Evo.blend`), `InteriorTemplateBuilder.BuildEvoRefineryCombine` · `ResidentSpotBaker.EvoRefineryCombineSpots`
+- 새 스크립트 `InteriorSunForge` (도는 쇳물 국자 · 붓기 · 불꽃 · 홍염 · 불꽃 분수) · `InteriorOreCrane` (격납고 집게 크레인)
+- 새 내부 재질 `M_InteriorEvo2Sun` · `M_InteriorEvo2Membrane` (`InteriorSetup`)
+- `MODELING.md` 7-11
+
+### `narrative` 합칠 때
+- 새 파일뿐 (공통 코드 동작 변경 없음). `InteriorTemplateBuilder` · `ResidentSpotBaker` · `InteriorSetup`은 항목 추가만
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `379b7837`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
