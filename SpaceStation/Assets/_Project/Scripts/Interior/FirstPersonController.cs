@@ -67,6 +67,9 @@ namespace SpaceStation.Interior
         /// <summary>지금 위아래 시선 (음수 = 위).</summary>
         public float Pitch => _pitch;
 
+        /// <summary>이어서 떨어지는 중인 시간 (초). 바닥에 닿거나 탈것에 타면 0.</summary>
+        public float FallSeconds { get; private set; }
+
         /// <summary>
         /// 탈것에 실림 (사용자 결정 2026-10-29 "유리 엘리베이터 탑승"): 타는 동안 carrier를 따라 움직이고 걷기 · 중력은 멈춤, 둘러보기는 됨.
         /// 따라가기는 LateUpdate (탈것이 Update에서 움직인 뒤). 탈것이 돌면 시선도 같이 돎 (대형 토러스 열차).
@@ -132,6 +135,7 @@ namespace SpaceStation.Interior
             _body.enabled = true;
             _pitch = Mathf.Clamp(pitch, -85f, 85f);
             _fallSpeed = 0f;
+            FallSeconds = 0f;
             _eye.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
             _eye.localPosition = new Vector3(0f, EyeHeight, 0f);
         }
@@ -153,7 +157,10 @@ namespace SpaceStation.Interior
             }
 
             if (_carrier != null)
+            {
+                FallSeconds = 0f;
                 return; // 탈것에 실려 가는 중: 걷기 · 중력 없음 (자리는 LateUpdate)
+            }
 
             // 이동
             float right = Frozen ? 0f : Axis(GameAction.CameraRight, GameAction.CameraLeft);
@@ -169,6 +176,7 @@ namespace SpaceStation.Interior
             move.y = -_fallSpeed;
             var before = transform.position;
             _body.Move(move * dt);
+            FallSeconds = _body.isGrounded ? 0f : FallSeconds + dt;
             UpdateSteps(transform.position - before, run, dt);
         }
 

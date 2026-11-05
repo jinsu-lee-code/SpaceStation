@@ -546,6 +546,60 @@ namespace SpaceStation.Interior
                 skyPatch.y = center.y;
                 Panel(new WallPanel(center - _root.position, dir, InteriorGeometry.PanelWidth, open), module, parent, open ? OtherRoom(cell, dir) : null, socket.SealedWall, skyPatch);
             }
+            // 하늘 껍질이 있는 방 = 개방형 (아콜로지 · 대형 토러스는 우주복 없이도 하늘이 있음)
+            foreach (Transform part in instance.transform)
+            {
+                if (part.name.EndsWith("_Sky"))
+                {
+                    OpenAirBarrier(room);
+                    break;
+                }
+            }
+        }
+
+        private static readonly Vector3Int[] HorizontalDirections = { Vector3Int.left, Vector3Int.right, new Vector3Int(0, 0, 1), new Vector3Int(0, 0, -1) };
+
+        /// <summary>
+        /// 개방형 방 둘레의 보이지 않는 벽 (칸 경계 전체, 문 자리만 뚫림): 난간은 허리 높이라 벤치 · 앉은 주민을 밟고 올라서면 넘어갈 수 있었음 (사용자 2026-11-05 "바깥으로 나가서 떨어질 수 있더라").
+        /// 하늘 껍질 바로 뒤라 걷는 자리는 그대로이고, 안에서 쏘는 빛 (바라보기 · 상호작용 · 망원경)은 통과한다 (Ignore Raycast).
+        /// </summary>
+        private void OpenAirBarrier(InteriorRoom room)
+        {
+            const float Half = InteriorGeometry.CellSize * 0.5f;
+            const float T = 0.04f;
+            float doorHalf = InteriorGeometry.DoorWidth * 0.5f;
+            float sideWidth = Half - doorHalf;
+            float floor = InteriorGeometry.FloorY(Vector3Int.zero);
+            float doorTop = floor + InteriorGeometry.DoorHeight;
+            var cells = new HashSet<Vector3Int>(room.Cells);
+            foreach (var cell in room.Cells)
+            {
+                foreach (var dir in HorizontalDirections)
+                {
+                    if (cells.Contains(cell + dir))
+                        continue;
+                    var rotation = Quaternion.LookRotation(dir, Vector3.up);
+                    var center = CellCenter(cell) + (Vector3)dir * (Half - T * 0.5f);
+                    var right = rotation * Vector3.right;
+                    if (!_open.Contains((cell, dir)))
+                    {
+                        BarrierPiece(center, rotation, new Vector3(InteriorGeometry.CellSize, InteriorGeometry.CellSize, T));
+                        continue;
+                    }
+                    BarrierPiece(center - right * (doorHalf + sideWidth * 0.5f), rotation, new Vector3(sideWidth, InteriorGeometry.CellSize, T));
+                    BarrierPiece(center + right * (doorHalf + sideWidth * 0.5f), rotation, new Vector3(sideWidth, InteriorGeometry.CellSize, T));
+                    BarrierPiece(center + Vector3.up * ((doorTop + Half) * 0.5f), rotation, new Vector3(InteriorGeometry.DoorWidth, Half - doorTop, T));
+                    BarrierPiece(center + Vector3.up * ((floor - Half) * 0.5f), rotation, new Vector3(InteriorGeometry.DoorWidth, floor + Half, T));
+                }
+            }
+        }
+
+        private void BarrierPiece(Vector3 position, Quaternion rotation, Vector3 size)
+        {
+            var go = new GameObject("OpenAirBarrier") { layer = 2 };   // Ignore Raycast
+            go.transform.SetParent(_colliders, false);
+            go.transform.SetPositionAndRotation(position, rotation);
+            go.AddComponent<BoxCollider>().size = size;
         }
 
         // ---------------- 대체 방 (벽 키트) ----------------
