@@ -11,8 +11,8 @@ Shader "SpaceStation/AuroraCurtain"
         [HDR] _MidColor ("가운데 색", Color) = (0.2, 0.85, 0.75, 1)
         [HDR] _HighColor ("위 색", Color) = (0.55, 0.22, 1.05, 1)
         _Intensity ("광량", Range(0, 2)) = 0.5
-        _Wander ("떠도는 범위", Range(0, 0.3)) = 0.07
-        _Sway ("주름 너울", Range(0, 0.2)) = 0.05
+        _Wander ("떠도는 범위", Range(0, 1)) = 0.07
+        _Sway ("주름 너울", Range(0, 1)) = 0.05
         _Speed ("움직임 속도", Range(0, 3)) = 1
         _HemSoft ("아랫단 부드러움", Range(0.02, 0.6)) = 0.2
         _EndSoft ("양 끝 부드러움", Range(0.02, 0.5)) = 0.18

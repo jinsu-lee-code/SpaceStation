@@ -97,6 +97,10 @@ namespace SpaceStation.Editor
         public const string Evo2SolarFlarePath = MaterialFolder + "/M_InteriorEvo2SolarFlare.mat";   // 정련 콤비나트 홍염 빛 띠 (LineRenderer)
         public const string Evo2MembranePath = MaterialFolder + "/M_InteriorEvo2Membrane.mat";   // 정련 콤비나트 격납고 입구 에너지 막 (압력 막 셰이더, 큰 아치 · 옅게)
         public const string CloudPath = "Assets/_Project/Art/Materials/FX/M_Cloud.mat";    // 바깥 구름과 같은 재질
+        public const string Evo2StarSeaPath = MaterialFolder + "/M_InteriorEvo2StarSea.mat";     // 실드 돔 별빛 유리 바다
+        public const string Evo2AuroraPath = MaterialFolder + "/M_InteriorEvo2Aurora.mat";       // 실드 돔 내부 오로라 (바깥 M_AuroraCurtain을 베끼고 움직임만 내부 크기로)
+        public const string Evo2BeaconBeamPath = MaterialFolder + "/M_InteriorEvo2BeaconBeam.mat";   // 실드 돔 등대 빛 (찬 빛, 빛기둥 셰이더)
+        public const string Evo2BeaconCorePath = MaterialFolder + "/M_InteriorEvo2BeaconCore.mat";   // 실드 돔 렌즈 속 빛 (잡음 플라즈마, 하늘색)
         public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
         public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
         public const string ResidentSuitModelPath = "Assets/_Project/Art/Models/Interior/SM_ResidentSuit.fbx";
@@ -590,6 +594,7 @@ namespace SpaceStation.Editor
             InteriorPlasma(PlasmaPath, new Color(2f, 1.05f, 2.5f), new Color(0.85f, 0.22f, 1.4f), 2.4f);
             InteriorPlasma(PlasmaHotPath, new Color(3.4f, 2f, 3.8f), new Color(1.7f, 0.7f, 2.5f), 3.2f);   // 융합 발전소 고리의 밝은 덩이
             InteriorPlasma(Evo2SunPath, new Color(3f, 1.4f, 0.32f), new Color(1.75f, 0.5f, 0.06f), 1.8f);   // 정련 콤비나트 작은 해
+            InteriorPlasma(Evo2BeaconCorePath, new Color(2.2f, 2.8f, 3.2f), new Color(0.4f, 1.1f, 2.2f), 2.6f);   // 실드 돔 렌즈 속 빛
             // 11-7 실드 방출기 코어·에너지 빔 (밝은 하늘색)
             Emissive(ShieldPath, new Color(0.45f, 0.8f, 1f), new Color(0.3f, 0.7f, 1f) * 2.0f, 0.4f);
             // 12-5 단백질 배양실 배양액 (크림빛 호박색, 은은한 발광 — 탱크 유리 속 · 콘솔 수위 막대)
@@ -773,6 +778,30 @@ namespace SpaceStation.Editor
                 shaft.SetFloat("_MirrorGlow", 0.25f);
                 shaft.enableInstancing = true;
                 EditorUtility.SetDirty(shaft);
+            }
+            // 실드 돔: 바다 · 오로라 · 등대 빛 (없을 때만 값을 넣음, 슬라이더로 맞춘 값을 덮어쓰지 않게)
+            EditorUtility.SetDirty(LoadOrCreate(Evo2StarSeaPath, Shader.Find("SpaceStation/StarSea")));
+            if (AssetDatabase.LoadAssetAtPath<Material>(Evo2AuroraPath) == null)
+            {
+                var from = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_AuroraCurtain.mat");
+                var aurora = LoadOrCreate(Evo2AuroraPath, from.shader);
+                aurora.CopyPropertiesFromMaterial(from);
+                aurora.renderQueue = from.renderQueue;
+                aurora.SetFloat("_Intensity", 0.35f);
+                aurora.SetFloat("_Wander", 0.5f);
+                aurora.SetFloat("_Sway", 0.35f);
+                EditorUtility.SetDirty(aurora);
+            }
+            if (AssetDatabase.LoadAssetAtPath<Material>(Evo2BeaconBeamPath) == null)
+            {
+                var beacon = LoadOrCreate(Evo2BeaconBeamPath, Shader.Find("SpaceStation/LightShaft"));
+                beacon.SetColor("_BaseColor", new Color(0.6f, 1.25f, 1.35f));
+                beacon.SetFloat("_Intensity", 0.16f);
+                beacon.SetFloat("_Attenuation", 1.6f);
+                beacon.SetFloat("_Glint", 0.6f);
+                beacon.SetFloat("_MirrorGlow", 0.3f);
+                beacon.enableInstancing = true;
+                EditorUtility.SetDirty(beacon);
             }
 
             // 문 상태등: 색은 런타임 MaterialPropertyBlock (정상 청록 / 경고 빨강)

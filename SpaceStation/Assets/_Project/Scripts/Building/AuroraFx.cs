@@ -37,6 +37,8 @@ namespace SpaceStation.Building
 
         [SerializeField] private Material _material;
         [SerializeField] private AuroraRibbon[] _ribbons;
+        [Tooltip("모델 한 칸 길이 (바깥 모델 1, 내부 템플릿 8): 빛살 · 주름 크기와 겹 간격이 같은 비율로 커짐")]
+        [SerializeField] private float _unit = 1f;
 
         private Mesh _mesh;
         private MeshRenderer _renderer;
@@ -49,10 +51,11 @@ namespace SpaceStation.Building
 
         public int RibbonCount => _ribbons != null ? _ribbons.Length : 0;
 
-        public void Configure(Material material, AuroraRibbon[] ribbons)
+        public void Configure(Material material, AuroraRibbon[] ribbons, float unit = 1f)
         {
             _material = material;
             _ribbons = ribbons;
+            _unit = unit;
         }
 
         private void Start()
@@ -76,8 +79,8 @@ namespace SpaceStation.Building
             var tris = new System.Collections.Generic.List<int>();
             for (int i = 0; i < _ribbons.Length; i++)
             {
-                AddLayer(_ribbons[i], 0f, 1f, i * 0.37f + 0.11f, positions, normals, tangents, uv, uv2, tris);
-                AddLayer(_ribbons[i], BackOffset, BackHeight, i * 0.37f + 0.63f, positions, normals, tangents, uv, uv2, tris);
+                AddLayer(_ribbons[i], 0f, 1f, i * 0.37f + 0.11f, _unit, positions, normals, tangents, uv, uv2, tris);
+                AddLayer(_ribbons[i], BackOffset * _unit, BackHeight, i * 0.37f + 0.63f, _unit, positions, normals, tangents, uv, uv2, tris);
             }
             _mesh = new Mesh { name = "AuroraCurtains" };
             _mesh.indexFormat = positions.Count > 65000 ? IndexFormat.UInt32 : IndexFormat.UInt16;
@@ -90,7 +93,7 @@ namespace SpaceStation.Building
             _mesh.RecalculateBounds();
             // 꼭짓점이 셰이더에서 움직이므로 넉넉히 (셰이더 슬라이더 최대 움직임)
             var bounds = _mesh.bounds;
-            bounds.Expand(0.8f);
+            bounds.Expand(0.8f * _unit);
             _mesh.bounds = bounds;
             var go = new GameObject("AuroraCurtains");
             go.layer = gameObject.layer;
@@ -103,7 +106,7 @@ namespace SpaceStation.Building
             _block = new MaterialPropertyBlock();
         }
 
-        private static void AddLayer(AuroraRibbon ribbon, float offset, float heightScale, float seed,
+        private static void AddLayer(AuroraRibbon ribbon, float offset, float heightScale, float seed, float unit,
             System.Collections.Generic.List<Vector3> positions, System.Collections.Generic.List<Vector3> normals, System.Collections.Generic.List<Vector4> tangents,
             System.Collections.Generic.List<Vector2> uv, System.Collections.Generic.List<Vector2> uv2, System.Collections.Generic.List<int> tris)
         {
@@ -113,7 +116,7 @@ namespace SpaceStation.Building
             float length = 0f;
             for (int i = 1; i < path.Length; i++)
                 length += Vector3.Distance(path[i - 1], path[i]);
-            int segments = Mathf.Clamp(Mathf.CeilToInt(length / SegmentLength), 8, MaxSegments);
+            int segments = Mathf.Clamp(Mathf.CeilToInt(length / (SegmentLength * unit)), 8, MaxSegments);
             int start = positions.Count;
             for (int k = 0; k <= segments; k++)
             {
@@ -129,7 +132,7 @@ namespace SpaceStation.Building
                     normals.Add(normal);
                     tangents.Add(new Vector4(tangent.x, tangent.y, tangent.z, 1f));
                     uv.Add(new Vector2(along, v));
-                    uv2.Add(new Vector2(along * length, seed));
+                    uv2.Add(new Vector2(along * length / unit, seed));
                     if (k < segments && r < Rows)
                     {
                         int a = start + k * (Rows + 1) + r;

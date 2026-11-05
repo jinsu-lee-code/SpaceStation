@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using SpaceStation.Data;
 using SpaceStation.Interior;
 using UnityEditor;
@@ -123,6 +123,121 @@ namespace SpaceStation.Editor
             BuildEvoBiodome();
             BuildEvoFoodFactory();
             BuildEvoRefineryCombine();
+            BuildEvoShieldDome();
+        }
+
+        /// <summary>
+        /// 진화 2단계 실드 돔 "오로라 등대" (2 × 2칸, 2칸 높이, sd_builder — 사용자 2026-11-05 시안 1 "좋아 이대로 유니티로 옮겨줘"): 정원 · 전시관 구성 (직접 체험 모듈 아님).
+        /// 외형 그대로: 별빛 유리 바다 (걸어 다니는 바닥, StarSea 셰이더) · 바위섬 · 나선 줄무늬 등대 · 유리 등불 방의 도는 렌즈 드럼 Lens + 등대 빛 둘 (LightBeamFx, 렌즈와 함께 돎) · 꼭대기 레이더 Radar · 둘레 오로라 커튼 셋 (AuroraFx, 바깥과 같은 호) · 앞 오른쪽 등대지기 집 ↔ 유리 통로 ↔ 등대.
+        /// 동선: 갑판 (우주복) → 집 남쪽 압력 막 → 집 안 (실제 운석 예보 레이더 상황판 <see cref="InteriorRadar"/> · 탁자 · 긴 의자) → 유리 통로 → 등대 1층 → 나선 계단 (폭 1.3m, 층계참 끝 밑 머리 공간 때문에 한 바퀴 2.86m) → 꼭대기 층계참 → 압력 막 → 전망대 (우주복, 망원경 둘 <see cref="InteriorTelescope"/>).
+        /// 문 자리 8 = 갑판 둘레 (깊이 3.95, 닫힘 = 난간), 아래 해치 = 칸마다 넷, 위 해치 없음 (하늘).
+        /// </summary>
+        private static void BuildEvoShieldDome()
+        {
+            const float DeckEdge = 3.95f, CX = 3.2f, CZ = 4.8f, Balcony = F + 7.4f, LensY = Balcony + 2.55f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>();
+            for (int k = 0; k <= 1; k++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(k, 0, 0), back, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(k, 0, 1), front, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(0, 0, k), Vector3Int.left, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(1, 0, k), Vector3Int.right, DeckEdge));
+            }
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -1.5f)));      // 남쪽 갑판
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(2.9f, 0f, 0f)));       // 집 동쪽
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(-1.6f, 0f, 1.6f)));    // 북서쪽 갑판
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F));                                  // 북동쪽 갑판
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var white = new Color(1f, 0.97f, 0.92f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var beacon = new Color(0.62f, 0.92f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(CX, LensY, CZ), 8f, 2.2f, beacon),               // 렌즈 (등불 방 · 전망대)
+                LightSpec.Point(new Vector3(CX, F + 1.7f, CZ), 4.5f, 1.2f, white),           // 등대 1층
+                LightSpec.Point(new Vector3(CX, F + 4.4f, CZ), 4.5f, 1f, cool),              // 계단 가운데
+                LightSpec.Point(new Vector3(CX, Balcony - 0.6f, CZ), 4f, 0.9f, cool),        // 꼭대기 층계참
+                LightSpec.Point(new Vector3(7f, F + 2.45f, 0.2f), 5f, 1.1f, warm),           // 집 매단 등
+                LightSpec.Point(new Vector3(9f, F + 2.45f, 0.2f), 5f, 1.1f, warm),
+                LightSpec.Point(new Vector3(8.98f, F + 2.1f, -2.1f), 4.5f, 0.8f, warm),      // 집 문 위 등
+                LightSpec.Point(new Vector3(5.8f, F + 1.75f, 2.2f), 4f, 0.7f, cool),         // 유리 통로
+            };
+            foreach (var (x, z) in new[] { (-2.4f, -2.4f), (10.8f, 10.8f), (-2.4f, 10.8f), (4.4f, -3.4f), (10.85f, -3f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.3f, z), 6f, 0.85f, warm));   // 갑판 가로등
+            foreach (var az in new[] { 60f, 150f, 240f, 330f })
+            {
+                float a = az * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(CX + 4.8f * Mathf.Cos(a), F + 3.4f, CZ + 4.8f * Mathf.Sin(a)), 9f, 1f, cool));   // 밤하늘 찬 빛 (등대 몸통 · 바위)
+            }
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoShieldDome_Lens", new Vector3(CX, 0f, CZ), Vector3.up, 24f),         // 렌즈 드럼 + 등대 빛 (자식)
+                new OrbitSpec("INT_EvoShieldDome_Radar", new Vector3(CX, 0f, CZ), Vector3.up, 90f),        // 꼭대기 레이더
+                new OrbitSpec("INT_EvoShieldDome_Sweep", new Vector3(8.95f, 0f, 1.05f), Vector3.up, 60f),  // 상황판 쓸기 빛
+            };
+            EvoAccent("ShieldDome", "#A0C8FF");
+            // 스폰 = 남쪽 갑판에서 바위섬 · 등대를 바라봄
+            Build("EvoShieldDome", "Evolved/MD_Evo_ShieldDome", sockets, new Vector3(4.5f, F, -2.6f), -10f, lights, orbits,
+                configure: root =>
+                {
+                    const string N = "INT_EvoShieldDome_";
+                    AddOpenAir(root, new[]
+                    {
+                        new Vector3(CX, CZ, 1.6f),                                                                                                               // 등대 (전망대 = 밖)
+                        new Vector3(4.9f, 3.1f, 0.95f), new Vector3(5.46f, 2.54f, 0.95f), new Vector3(6.03f, 1.97f, 0.95f), new Vector3(6.45f, 1.55f, 0.95f),   // 유리 통로
+                        new Vector3(7.1f, -0.75f, 1.45f), new Vector3(8.9f, -0.75f, 1.45f), new Vector3(8.9f, 1f, 1.45f), new Vector3(7.4f, 0.8f, 1.2f),         // 집
+                    });
+                    // 등대 빛 둘: 렌즈 원판 (sd_builder lens, 방위 45 · 225)에서 시작해 렌즈와 함께 돎, 하늘 벽 앞에서 스며듦. 등대 재질은 내부 빛기둥과 따로
+                    var beamRoot = new GameObject("BeaconBeams");
+                    beamRoot.transform.SetParent(root.transform, false);
+                    beamRoot.transform.SetParent(Child(root, N + "Lens"), true);
+                    var from = new Vector3[2];
+                    var to = new Vector3[2];
+                    var normals = new Vector3[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        float a = (45f + 180f * k) * Mathf.Deg2Rad;
+                        normals[k] = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                        from[k] = new Vector3(CX, LensY, CZ) + normals[k] * 1f;
+                        to[k] = new Vector3(CX, LensY, CZ) + normals[k] * 6.9f;
+                    }
+                    AddLightShafts(beamRoot, from, to, new[] { 1.16f, 1.16f }, normals, 3.2f, InteriorSetup.Evo2BeaconBeamPath);
+                    // 오로라: 바깥 WireAurora와 같은 호를 등대 둘레에, 하늘 벽 안으로 (× 8이 아님). 아랫단이 전망대 눈높이 근처 — 더 낮으면 전망대에서 온 시야가 초록으로 덮임
+                    SpaceStation.Building.AuroraRibbon Arc(float radius, float az0, float az1, float y, float height, float folds, float phase)
+                    {
+                        const int count = 48;
+                        var path = new Vector3[count + 1];
+                        for (int i = 0; i <= count; i++)
+                        {
+                            float s = i / (float)count;
+                            float a = Mathf.Deg2Rad * Mathf.Lerp(az0, az1, s);
+                            float rr = radius + 0.32f * Mathf.Sin(2f * Mathf.PI * folds * s + phase);
+                            path[i] = new Vector3(CX + rr * Mathf.Cos(a), y + 0.4f * Mathf.Sin(2f * Mathf.PI * 1.5f * s + phase), CZ + rr * Mathf.Sin(a));
+                        }
+                        return new SpaceStation.Building.AuroraRibbon(path, height, 0.4f);
+                    }
+                    var aurora = new GameObject("Aurora");
+                    aurora.transform.SetParent(root.transform, false);
+                    aurora.AddComponent<SpaceStation.Building.AuroraFx>().Configure(AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2AuroraPath),
+                        new[] { Arc(5.2f, 5f, 150f, 6.8f, 3.9f, 3f, 0.7f), Arc(6.2f, 35f, 172f, 7.4f, 3.6f, 4f, 2.4f), Arc(6.2f, 182f, 238f, 7f, 3.4f, 2f, 4.1f) }, 8f);
+                    // 집 레이더 상황판 (sd_builder RADAR) = 실제 운석 예보, 예보 글 = 동쪽 벽 화면
+                    root.AddComponent<InteriorRadar>().Configure(new Vector3(8.95f, F + 0.958f, 1.05f), 0.56f,
+                        Child(root, N + "Sweep").GetComponent<InteriorOrbit>(),
+                        Child(root, N + "Beacon").GetComponent<Renderer>(),
+                        new Vector3(9.905f, F + 1.6f, 1.32f), Vector3.left, Vector3.up, new Vector2(0.8f, 0.6f));
+                    // 전망대 망원경 둘 (sd_builder SCOPE_AZ): 아콜로지 · 치안 본부와 같은 들여다보기, 바깥쪽을 쉴 때 방향으로 좌우 ±100°
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    var scopes = new[] { 150f, 340f };
+                    for (int k = 0; k < scopes.Length; k++)
+                    {
+                        var head = Child(root, $"{N}Scope{k + 1}");
+                        BoxOf(head, 0.06f);
+                        float a = scopes[k] * Mathf.Deg2Rad;
+                        root.AddComponent<InteriorTelescope>().Configure(head, new Vector3(CX + 2.75f * Mathf.Cos(a), Balcony + 1.3f, CZ + 2.75f * Mathf.Sin(a)), 18f, 0f, font, 90f - scopes[k], 100f, startPitch: -16f, startFov: 24f, minPitch: -60f);
+                    }
+                });
         }
 
         /// <summary>
@@ -1294,11 +1409,11 @@ namespace SpaceStation.Editor
                 });
         }
 
-        private static SpaceStation.Building.LightBeamFx AddLightShafts(GameObject on, Vector3[] from, Vector3[] to, float[] diameters, Vector3[] normals, float receiverDiameter)
+        private static SpaceStation.Building.LightBeamFx AddLightShafts(GameObject on, Vector3[] from, Vector3[] to, float[] diameters, Vector3[] normals, float receiverDiameter, string materialPath = InteriorSetup.LightShaftPath)
         {
             var fx = on.AddComponent<SpaceStation.Building.LightBeamFx>();
             var so = new SerializedObject(fx);
-            so.FindProperty("_material").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.LightShaftPath);
+            so.FindProperty("_material").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
             void Vectors(string property, Vector3[] values)
             {
                 var p = so.FindProperty(property);
@@ -4811,6 +4926,7 @@ namespace SpaceStation.Editor
             { "EvoBiodome", InteriorAmbience.Water },         // 호수 · 폭포 · 비
             { "EvoFoodFactory", InteriorAmbience.Machine },   // 가공 라인 · 바퀴
             { "EvoRefineryCombine", InteriorAmbience.Machine },   // 용광로 · 크레인
+            { "EvoShieldDome", InteriorAmbience.Electric },       // 렌즈 · 실드 장치
         };
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
@@ -4892,6 +5008,8 @@ namespace SpaceStation.Editor
                 { "Evo2Bar", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2BarPath) },
                 { "Evo2Sun", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SunPath) },
                 { "Evo2Membrane", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MembranePath) },
+                { "Evo2StarSea", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2StarSeaPath) },
+                { "Evo2BeaconCore", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2BeaconCorePath) },
                 { "PureWater", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PondPath) },
                 { "Falls", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2FallsPath) },
                 { "Cloud", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.CloudPath) },
