@@ -2216,3 +2216,18 @@
 
 ### `tycoon` 합칠 때
 - 이미 같은 파일 (tycoon 커밋 `30b72fb4`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-147. 실드 돔 내부 "오로라 등대" (2026-11-05, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `6f625708`과 같은 파일)
+- 실드 돔 템플릿 (`SM_Interior_EvoShieldDome.fbx` · `PF_Interior_EvoShieldDome` · `IT_EvoShieldDome` · `M_Accent_Evo_ShieldDome` · `M_Paint_Evo_ShieldDome`, Blender `sd_builder`, `Interior_Evo.blend`), `InteriorTemplateBuilder.BuildEvoShieldDome` · `ResidentSpotBaker.EvoShieldDomeSpots`
+- 새 셰이더 `StarSea` (걷는 별빛 유리 바다), 새 내부 재질 `M_InteriorEvo2StarSea` · `M_InteriorEvo2Aurora` · `M_InteriorEvo2BeaconBeam` · `M_InteriorEvo2BeaconCore` (`InteriorSetup`)
+- `AuroraFx`에 칸 크기 값 `_unit` (기본 1, 내부 템플릿 8), `AuroraCurtain` 셰이더의 떠도는 범위 · 주름 슬라이더 최대를 1로 (값은 그대로)
+- `InteriorTemplateBuilder.AddLightShafts`에 재질 경로 인자 (기본값 = 기존 재질)
+- `MODELING.md` 7-11
+
+### `narrative` 합칠 때
+- `AuroraFx` · `AuroraCurtain` · `AddLightShafts`는 기본값이 그대로라 바깥 모델 오로라와 궤도 미러 빛줄기 동작 변경 없음. 나머지는 새 파일과 항목 추가
+
+### `tycoon` 합칠 때
+- 이미 같은 파일 (tycoon 커밋 `6f625708`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
