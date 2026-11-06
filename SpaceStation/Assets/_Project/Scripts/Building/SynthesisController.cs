@@ -15,6 +15,8 @@ namespace SpaceStation.Building
     /// 마우스가 가리킨 모듈 칸을 포함하는 자리 중 합성 가능한 자리로 자동으로 붙고(지금 회전 우선, 없으면 다른 회전),
     /// 맞는 자리가 없으면 재료가 가장 많이 들어가는 자리를 빨갛게 보여 준다. 좌클릭 = 합성 시작, 회전 키 = 회전, 우클릭/ESC = 취소.
     /// 배치 고스트와 같은 홀로그램 재질 · 초록/빨강 색을 쓴다. 상태 표시줄 문구는 <see cref="Hint"/>.
+    /// 합성 틀이 있는 레시피는 세 부분을 색이 아니라 크기 · 깜박임으로 나눈다 (색약 사용자): 재료 칸 = 큰 상자,
+    /// 그중 완성 때 비워질 칸 = 깜박이는 큰 상자, 완성 때 새로 채워질 칸 = 작은 상자.
     /// </summary>
     public sealed class SynthesisController : MonoBehaviour
     {
@@ -28,6 +30,10 @@ namespace SpaceStation.Building
         [SerializeField] private Color _invalidColor = new Color(1f, 0.2f, 0.2f, 0.45f);
         [Tooltip("고스트가 재료 모듈을 덮도록 칸보다 조금 크게")]
         [SerializeField, Range(1f, 1.2f)] private float _ghostScale = 1.04f;
+        [Tooltip("합성 틀: 완성 때 새로 채워질 칸 상자 크기 (칸 대비)")]
+        [SerializeField, Range(0.2f, 0.9f)] private float _fillScale = 0.55f;
+        [Tooltip("합성 틀: 완성 때 비워질 칸 깜박임 (초당)")]
+        [SerializeField, Min(0.1f)] private float _vacateBlinkRate = 1.6f;
         [SerializeField] private LayerMask _moduleMask = ~0;
         [SerializeField] private float _maxRayDistance = 500f;
 
@@ -35,6 +41,7 @@ namespace SpaceStation.Building
         private int _rotation;
         private GameObject _ghost;
         private Renderer[] _ghostRenderers;
+        private Renderer[] _vacateRenderers;   // 합성 틀: 완성 때 비워질 칸 (깜박임)
         private MaterialPropertyBlock _block;
         private bool _hasTarget;
         private Vector3Int _origin;
@@ -167,13 +174,13 @@ namespace SpaceStation.Building
             Set(origin, _rotation);
         }
 
-        /// <summary>가리킨 칸이 규격의 각 칸이 되는 원점들 중 가장 좋은 것 (합성 가능 > 재료 칸 많음 > 앞쪽).</summary>
+        /// <summary>가리킨 칸이 규격(합성 틀이 있으면 틀)의 각 칸이 되는 원점들 중 가장 좋은 것 (합성 가능 > 재료 칸 많음 > 앞쪽).</summary>
         private bool TryFind(Vector3Int cell, int rotation, out Vector3Int best, out bool valid)
         {
             best = cell;
             valid = false;
             int bestScore = int.MinValue;
-            var offsets = StationGrid.ResolveCells(_recipe.Result.CellOffsets, Vector3Int.zero, rotation);
+            var offsets = StationGrid.ResolveCells(_recipe.MaterialCells, Vector3Int.zero, rotation);
             foreach (var o in offsets)
             {
                 var origin = cell - o;
@@ -217,6 +224,15 @@ namespace SpaceStation.Building
                 return;
             _ghost.transform.SetPositionAndRotation(GridConfig.CellToWorld(_origin), GridDirections.ToQuaternion(_rotation));
             var color = _result == SynthesisResult.Valid ? _validColor : _invalidColor;
+            if (_vacateRenderers.Length > 0)
+            {
+                // 완성 때 비워질 칸: 밝기가 오르내림 (색이 아니라 깜박임으로 구분)
+                var blink = color;
+                blink.a *= Mathf.Lerp(0.15f, 1f, 0.5f + 0.5f * Mathf.Cos(Time.unscaledTime * _vacateBlinkRate * Mathf.PI * 2f));
+                _block.SetColor(BaseColorId, blink);
+                foreach (var r in _vacateRenderers)
+                    r.SetPropertyBlock(_block);
+            }
             if ((Vector4)color == (Vector4)_appliedColor)
                 return;
             _appliedColor = color;
@@ -231,32 +247,44 @@ namespace SpaceStation.Building
                 Destroy(_ghost);
             _ghost = null;
             _ghostRenderers = null;
+            _vacateRenderers = null;
             _appliedColor = new Color(-1f, -1f, -1f, -1f);
             if (_recipe == null || _recipe.Result == null)
                 return;
 
-            // 결과 모듈 모양을 칸 상자로 (모델이 생기기 전에도, 모델이 있어도 규격이 잘 보이게)
+            // 재료 칸(규격 · 합성 틀)을 칸 상자로 (모델이 생기기 전에도, 모델이 있어도 규격이 잘 보이게)
             _ghost = new GameObject("SynthesisGhost_" + _recipe.name);
             _ghost.transform.SetParent(transform, false);
             var renderers = new List<Renderer>();
-            foreach (var o in _recipe.Result.CellOffsets)
-            {
-                var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                var col = cube.GetComponent<Collider>();
-                col.enabled = false;
-                Destroy(col);
-                cube.transform.SetParent(_ghost.transform, false);
-                cube.transform.localPosition = GridConfig.CellToWorld(o) - GridConfig.CellToWorld(Vector3Int.zero);
-                cube.transform.localScale = Vector3.one * (GridConfig.CellSize * _ghostScale);
-                var r = cube.GetComponent<Renderer>();
-                r.shadowCastingMode = ShadowCastingMode.Off;
-                r.receiveShadows = false;
-                if (_ghostMaterial != null)
-                    r.sharedMaterial = _ghostMaterial;
-                renderers.Add(r);
-            }
+            var vacate = new List<Renderer>();
+            var cells = new List<Vector3Int>();
+            _recipe.GetVacatedCells(cells);
+            foreach (var o in _recipe.MaterialCells)
+                (cells.Contains(o) ? vacate : renderers).Add(GhostCube(o, _ghostScale));
+            // 합성 틀: 완성 때 새로 채워질 칸은 작은 상자
+            _recipe.GetFillCells(cells);
+            foreach (var o in cells)
+                renderers.Add(GhostCube(o, _fillScale));
             _ghostRenderers = renderers.ToArray();
+            _vacateRenderers = vacate.ToArray();
             _ghost.SetActive(false);
+        }
+
+        private Renderer GhostCube(Vector3Int offset, float scale)
+        {
+            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var col = cube.GetComponent<Collider>();
+            col.enabled = false;
+            Destroy(col);
+            cube.transform.SetParent(_ghost.transform, false);
+            cube.transform.localPosition = GridConfig.CellToWorld(offset) - GridConfig.CellToWorld(Vector3Int.zero);
+            cube.transform.localScale = Vector3.one * (GridConfig.CellSize * scale);
+            var r = cube.GetComponent<Renderer>();
+            r.shadowCastingMode = ShadowCastingMode.Off;
+            r.receiveShadows = false;
+            if (_ghostMaterial != null)
+                r.sharedMaterial = _ghostMaterial;
+            return r;
         }
 
         // ---------------- 안내 ----------------
@@ -271,6 +299,8 @@ namespace SpaceStation.Building
             var sb = new StringBuilder();
             sb.Append("<b>").Append(_recipe.DisplayName).Append("</b> 합성  ·  재료 위에 규격을 맞춰 좌클릭  ·  ")
               .Append(KeyBindings.Label(GameAction.Rotate)).Append(": 회전  ·  우클릭/ESC: 취소");
+            if (_recipe.HasTemplate)
+                sb.Append("\n<size=90%>큰 상자 = 재료 자리  ·  깜박이는 상자 = 완성 때 비워짐  ·  작은 상자 = 완성 때 새로 채워짐 (비워 둬야 함)</size>");
             if (_hasTarget && _result != SynthesisResult.Valid)
                 sb.Append("\n<color=#FF6B5E>합성 불가: ").Append(Reason(_result, _statuses)).Append("</color>");
             else if (_hasTarget)
@@ -288,6 +318,7 @@ namespace SpaceStation.Building
                 case SynthesisResult.Locked: return "아직 열리지 않은 레시피";
                 case SynthesisResult.EmptyCell: return "규격 안에 빈 칸이 있음" + Shortfall(statuses);
                 case SynthesisResult.Overhang: return "규격 밖으로 튀어나온 모듈이 있음";
+                case SynthesisResult.FillBlocked: return "완성 때 채워질 칸(작은 상자)이 막혀 있음 (다른 모듈 · 접근로 · 고리 안쪽 · 다른 합성 자리)";
                 case SynthesisResult.KeepClearBlocked: return "고리 안쪽 빈 칸에 모듈이 있음 (고리가 지나가는 자리라 비워야 함)";
                 case SynthesisResult.Mixed: return "레시피에 없는 모듈이 섞여 있음" + Extra(statuses);
                 case SynthesisResult.Missing: return "재료 구성이 다름" + Shortfall(statuses);

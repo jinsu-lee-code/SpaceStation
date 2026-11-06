@@ -35,6 +35,8 @@ namespace SpaceStation.Core
         KeepClearBlocked,
         /// <summary>기존 모듈(또는 합성 중인 결과)의 비워 둘 칸에 지으려 함 (대형 토러스 고리 안쪽).</summary>
         BlockedByKeepClear,
+        /// <summary>합성 중인 진화 모듈이 완성 때 들어설 칸 (합성 틀의 채울 칸, StationSimulation이 판정).</summary>
+        ReservedBySynthesis,
     }
 
     /// <summary>
@@ -205,9 +207,9 @@ namespace SpaceStation.Core
         /// <summary>칸 중 하나라도 (ignore가 아닌) 이미 지어진 모듈의 비워 둘 칸인지.</summary>
         public static bool HitsKeepClear(StationGrid grid, IReadOnlyList<Vector3Int> cells, ModuleInstance ignore = null)
         {
-            foreach (var m in grid.Modules)
+            foreach (var m in grid.KeepClearModules)
             {
-                if (m == ignore || m.Data == null || m.Data.KeepClearCells.Count == 0)
+                if (m == ignore)
                     continue;
                 foreach (var local in m.Data.KeepClearCells)
                 {

@@ -13,6 +13,7 @@ namespace SpaceStation.Tests
     /// <summary>
     /// 12-3 합성: 규격 판정(빈 칸 · 튀어나옴 · 섞임 · 구성 · 파손 · 등급 · 비용 · 회전), 시작 → 가동 정지 · 철거/재건축 불가,
     /// 완료 → 같은 칸에 결과(내구도 100, 모듈 수 = 재료 수), 파손 재료 = 일시 정지, 재료 파괴 = 취소, 세이브.
+    /// 합성 틀(재료 칸 ≠ 결과 칸): 채울 칸 판정 · 합성 중 예약 · 완성 때 틀에만 있는 칸 비움, 레시피 에셋마다 재료로 실제로 채워지는지.
     /// </summary>
     public class SynthesisTests
     {
@@ -259,6 +260,77 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Template_MaterialsFillTemplate_ResultTakesItsOwnCells()
+        {
+            // 합성 틀 (사용자 결정 2026-11-06): 결과는 1×3 일자, 재료는 ㄱ자 틀 (B 일자 2칸 + 그 앞 A 1칸)
+            // → 완성 때 A 자리 (0,0,1)이 비고 (2,0,0)이 채워짐. A 자리는 결과의 비워 둘 칸 (대형 토러스처럼 재료가 덮었다가 비움)
+            var keep = new SerializedObject(_result);
+            var keepCells = keep.FindProperty("_keepClearCells");
+            keepCells.arraySize = 1;
+            keepCells.GetArrayElementAtIndex(0).vector3IntValue = new Vector3Int(0, 0, 1);
+            keep.ApplyModifiedPropertiesWithoutUndo();
+            var recipe = TemplateRecipe();
+            Assert.IsTrue(recipe.HasTemplate);
+
+            var sim = Sim(recipe);
+            var origin = new Vector3Int(1, 0, 0);
+            Place(sim, _b, origin);
+            Assert.AreEqual(SynthesisResult.EmptyCell, sim.Synthesis.Evaluate(recipe, origin, 0), "틀의 A 자리가 빔");
+            var a = Place(sim, _a, new Vector3Int(1, 0, 1));
+            var materials = new List<ModuleInstance>();
+            Assert.AreEqual(SynthesisResult.Valid, sim.Synthesis.Evaluate(recipe, origin, 0, materials), "재료가 비워 둘 칸을 덮어도 됨 (완성 때 비워짐)");
+            Assert.AreEqual(2, materials.Count);
+
+            var blocker = Place(sim, _other, new Vector3Int(3, 0, 0));
+            Assert.AreEqual(SynthesisResult.FillBlocked, sim.Synthesis.Evaluate(recipe, origin, 0), "완성 때 채울 칸이 막힘");
+            Assert.IsTrue(sim.TryRemove(blocker));
+
+            // 같은 칸을 채우려는 다른 합성 (반대로 돌린 틀) — 먼저 시작한 합성이 그 칸을 예약
+            var origin2 = new Vector3Int(5, 0, 0);
+            Assert.IsTrue(sim.TryPlace(_b, origin2, 2, out _));
+            Place(sim, _a, new Vector3Int(5, 0, -1));
+            Assert.AreEqual(SynthesisResult.Valid, sim.Synthesis.Evaluate(recipe, origin2, 2));
+
+            int gradeModules = StationProgression.CountGradeModules(sim.Grid);
+            Assert.AreEqual(SynthesisResult.Valid, sim.Synthesis.TryStart(recipe, origin, 0, out _));
+            Assert.AreEqual(SynthesisResult.FillBlocked, sim.Synthesis.Evaluate(recipe, origin2, 2), "다른 합성이 채울 칸");
+            Assert.AreEqual(PlacementResult.ReservedBySynthesis, sim.EvaluatePlacement(_other, new Vector3Int(3, 0, 0), 0), "합성 중 채울 칸에는 못 지음");
+            Assert.AreEqual(PlacementResult.Valid, sim.EvaluatePlacement(_other, new Vector3Int(2, 0, 1), 0), "옆 칸은 자유");
+
+            for (int i = 0; i < 20 && sim.Synthesis.Jobs.Count > 0; i++)
+                sim.Tick(1f);
+            Assert.AreEqual(0, sim.Synthesis.Jobs.Count);
+            Assert.IsFalse(sim.Grid.Modules.Contains(a), "재료가 사라짐");
+            Assert.IsTrue(sim.Grid.TryGetModule(new Vector3Int(3, 0, 0), out var evolved));
+            Assert.AreSame(_result, evolved.Data);
+            CollectionAssert.AreEquivalent(new[] { origin, new Vector3Int(2, 0, 0), new Vector3Int(3, 0, 0) }, evolved.Cells, "결과는 결과 칸에");
+            Assert.IsFalse(sim.Grid.IsOccupied(new Vector3Int(1, 0, 1)), "틀에만 있던 칸은 비워짐");
+            Assert.AreEqual(PlacementResult.BlockedByKeepClear, sim.EvaluatePlacement(_other, new Vector3Int(1, 0, 1), 0), "비운 자리 = 결과의 비워 둘 칸");
+            Assert.AreEqual(gradeModules, StationProgression.CountGradeModules(sim.Grid), "A4: 모듈 수 = 재료 수");
+        }
+
+        [Test]
+        public void Template_PendingFillCell_BlocksMoveToo_AndSaveKeepsJob()
+        {
+            var recipe = TemplateRecipe();
+            var sim = Sim(recipe);
+            var origin = new Vector3Int(1, 0, 0);
+            Place(sim, _b, origin);
+            Place(sim, _a, new Vector3Int(1, 0, 1));
+            var mover = Place(sim, _other, new Vector3Int(0, 0, 1));
+            Assert.AreEqual(SynthesisResult.Valid, sim.Synthesis.TryStart(recipe, origin, 0, out _));
+            Assert.AreEqual(PlacementResult.ReservedBySynthesis, sim.EvaluateMove(mover, new Vector3Int(3, 0, 0), 0), "합성 중 채울 칸으로 옮길 수 없음");
+
+            var json = JsonUtility.ToJson(StationStateSerializer.Capture(sim));
+            var copy = Sim(recipe);
+            Assert.AreEqual(0, StationStateSerializer.Restore(copy, JsonUtility.FromJson<StationState>(json)));
+            Assert.AreEqual(PlacementResult.ReservedBySynthesis, copy.EvaluatePlacement(_other, new Vector3Int(3, 0, 0), 0), "불러온 뒤에도 예약");
+            for (int i = 0; i < 20 && copy.Synthesis.Jobs.Count > 0; i++)
+                copy.Tick(1f);
+            Assert.IsTrue(copy.Grid.TryGetModule(new Vector3Int(3, 0, 0), out var evolved) && evolved.Data == _result);
+        }
+
+        [Test]
         public void DamagedMaterial_PausesSynthesis_DestroyedMaterial_Cancels()
         {
             var sim = Sim();
@@ -334,6 +406,8 @@ namespace SpaceStation.Tests
                 Assert.IsNotNull(r.Result, r.name);
                 Assert.IsNotNull(r.Result.Prefab, r.name + " 결과 프리팹");
                 Assert.AreEqual(r.Result.CellOffsets.Count, r.IngredientCells, r.name + ": 재료 칸 수 = 규격 칸 수");
+                Assert.AreEqual(r.Result.CellOffsets.Count, r.MaterialCells.Count, r.name + ": 합성 틀 칸 수 = 결과 칸 수");
+                CollectionAssert.AllItemsAreUnique(r.MaterialCells, r.name + ": 합성 틀 칸이 겹침");
                 foreach (var c in r.Result.KeepClearCells)
                     CollectionAssert.DoesNotContain(r.Result.CellOffsets, c, r.name + ": 비워 둘 칸은 모듈 칸 밖");
                 int resultGrade = r.Result.CountsTowardGrade ? r.Result.GradeModuleCount : 0;   // 장갑 외벽처럼 재료가 모두 등급에 안 들면 결과도 안 듦
@@ -352,6 +426,76 @@ namespace SpaceStation.Tests
                     CollectionAssert.DoesNotContain(g.Unlocks, r.Result, r.name + ": 진화 모듈은 건설 메뉴에 없음");
                 Assert.IsFalse(string.IsNullOrEmpty(r.Rationale), r.name + ": 당위성 한 줄 (A2)");
             }
+        }
+
+        /// <summary>
+        /// 레시피마다 재료 모양(90도 회전만)으로 재료 칸(합성 틀이 있으면 틀)을 실제로 빈틈없이 채울 수 있는지 — 칸 수만 맞고 모양이 안 맞아
+        /// 합성할 수 없던 6종(2026-11-06)이 다시 생기지 않게. 재료의 비워 둘 칸(대형 토러스 고리 안쪽)에는 다른 재료가 못 들어감.
+        /// </summary>
+        [Test]
+        public void RecipeAssets_IngredientsTileTheirCells()
+        {
+            var guids = AssetDatabase.FindAssets("t:RecipeData", new[] { "Assets/_Project/Data" });
+            var broken = new List<string>();
+            foreach (var guid in guids)
+            {
+                var r = AssetDatabase.LoadAssetAtPath<RecipeData>(AssetDatabase.GUIDToAssetPath(guid));
+                var pieces = new List<ModuleData>();
+                foreach (var ing in r.Ingredients)
+                    for (int i = 0; i < ing.Count; i++)
+                        pieces.Add(ing.Module);
+                pieces.Sort((x, y) => y.CellOffsets.Count.CompareTo(x.CellOffsets.Count));
+                var target = new HashSet<Vector3Int>(r.MaterialCells);
+                if (!Cover(target, pieces, new bool[pieces.Count], new HashSet<Vector3Int>()))
+                    broken.Add(r.name);
+            }
+            CollectionAssert.IsEmpty(broken, "재료로 채울 수 없는 레시피");
+        }
+
+        /// <summary>남은 첫 칸(아래 · 앞 · 왼쪽)을 덮을 재료 · 회전 · 위치를 하나씩 시도 (정확 덮기).</summary>
+        private static bool Cover(HashSet<Vector3Int> target, List<ModuleData> pieces, bool[] used, HashSet<Vector3Int> covered)
+        {
+            Vector3Int? first = null;
+            foreach (var c in target)
+            {
+                if (covered.Contains(c))
+                    continue;
+                if (first == null || c.y < first.Value.y || (c.y == first.Value.y && (c.z < first.Value.z || (c.z == first.Value.z && c.x < first.Value.x))))
+                    first = c;
+            }
+            if (first == null)
+                return true;
+            var tried = new HashSet<ModuleData>();
+            for (int i = 0; i < pieces.Count; i++)
+            {
+                if (used[i] || !tried.Add(pieces[i]))
+                    continue;
+                for (int rot = 0; rot < 4; rot++)
+                {
+                    var rel = StationGrid.ResolveCells(pieces[i].CellOffsets, Vector3Int.zero, rot);
+                    var keep = StationGrid.ResolveCells(pieces[i].KeepClearCells, Vector3Int.zero, rot);
+                    foreach (var anchor in rel)
+                    {
+                        var origin = first.Value - anchor;
+                        bool fits = true;
+                        foreach (var c in rel)
+                            fits &= target.Contains(c + origin) && !covered.Contains(c + origin);
+                        foreach (var c in keep)
+                            fits &= !target.Contains(c + origin); // 비워 둘 칸에는 다른 재료가 못 옴
+                        if (!fits)
+                            continue;
+                        foreach (var c in rel)
+                            covered.Add(c + origin);
+                        used[i] = true;
+                        if (Cover(target, pieces, used, covered))
+                            return true;
+                        used[i] = false;
+                        foreach (var c in rel)
+                            covered.Remove(c + origin);
+                    }
+                }
+            }
+            return false;
         }
 
         [Test]
@@ -424,6 +568,21 @@ namespace SpaceStation.Tests
             so.FindProperty("_duration").floatValue = 10f;
             so.FindProperty("_unlockGrade").intValue = unlockGrade;
             so.FindProperty("_unlockedByDefault").boolValue = true;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return r;
+        }
+
+        /// <summary>시험 레시피 + 합성 틀 ㄱ자 (B 일자 (0,0,0)~(1,0,0) + A (0,0,1)) — 결과 일자의 (2,0,0)은 완성 때 채워짐.</summary>
+        private RecipeData TemplateRecipe()
+        {
+            var r = Recipe(unlockGrade: 0);
+            r.name = "RC_TestTemplate";
+            var so = new SerializedObject(r);
+            var t = so.FindProperty("_templateCells");
+            var cells = new[] { Vector3Int.zero, Vector3Int.right, new Vector3Int(0, 0, 1) };
+            t.arraySize = cells.Length;
+            for (int i = 0; i < cells.Length; i++)
+                t.GetArrayElementAtIndex(i).vector3IntValue = cells[i];
             so.ApplyModifiedPropertiesWithoutUndo();
             return r;
         }

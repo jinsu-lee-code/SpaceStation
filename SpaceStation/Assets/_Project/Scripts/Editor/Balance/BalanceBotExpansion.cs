@@ -14,6 +14,7 @@ namespace SpaceStation.Editor.Balance
     /// - 합성: 해금된 레시피마다 결과 모듈 1개까지. 금속이 저장 한도의 60% 이상이고 생활 자원이 안정적일 때 규격 자리를 정해
     ///   (결과 모듈을 놓을 수 있는 자리 = 기존 배치 탐색) 재료 모듈로 빈틈없이 채우는 배치를 찾아(작은 완전 탐색) 하나씩 짓고, 다 지으면 합성 시작.
     ///   다른 건설이 규격 칸을 차지하면 계획을 버림.
+    ///   합성 틀이 있는 레시피는 결과 칸에 더해 틀에만 있는 칸도 비어 있는 자리에서 틀을 채움 (하위 합성은 틀 없는 레시피만).
     /// </summary>
     public sealed partial class BalanceBot
     {
@@ -33,6 +34,7 @@ namespace SpaceStation.Editor.Balance
             public RecipeData Recipe;
             public Vector3Int Origin;
             public int Rotation;
+            /// <summary>지킬 칸 = 재료 칸(합성 틀) + 결과 칸 + 결과의 비워 둘 칸 (재료 조각 · 하위 합성 결과만 허용).</summary>
             public HashSet<Vector3Int> Cells = new HashSet<Vector3Int>();
             public readonly List<(ModuleData Data, Vector3Int Origin, int Rotation)> Pieces = new List<(ModuleData, Vector3Int, int)>();
             /// <summary>조각마다: 먼저 할 하위 합성 번호 (-1 = 바로 쓰는 재료).</summary>
@@ -252,16 +254,18 @@ namespace SpaceStation.Editor.Balance
             return false; // 끝 (다음 레시피로)
         }
 
-        /// <summary>결과 모듈을 놓을 수 있는 자리 = 규격 자리, 재료로 빈틈없이 채우는 배치 (없으면 null).</summary>
+        /// <summary>결과 모듈을 놓을 수 있는 자리 = 규격 자리, 재료로 빈틈없이 채우는 배치 (없으면 null). 합성 틀이면 틀을 채움.</summary>
         private SynthesisPlan MakePlan(RecipeData recipe)
         {
-            if (!TryFindPlacement(recipe.Result, out var origin, out int rotation))
+            if (!TryFindPlacement(recipe.Result, out var origin, out int rotation, recipe.HasTemplate ? (o, r) => TemplateFree(recipe, o, r) : null))
                 return null;
             var plan = new SynthesisPlan { Recipe = recipe, Origin = origin, Rotation = rotation };
-            foreach (var c in StationGrid.ResolveCells(recipe.Result.CellOffsets, origin, rotation))
-                plan.Cells.Add(c);
-            var top = new List<(ModuleData Data, Vector3Int Origin, int Rotation)>();
-            if (!TileShape(plan.Cells, Pieces(recipe), top))
+            var materialCells = new HashSet<Vector3Int>(StationGrid.ResolveCells(recipe.MaterialCells, origin, rotation));
+            plan.Cells.UnionWith(materialCells);
+            plan.Cells.UnionWith(StationGrid.ResolveCells(recipe.Result.CellOffsets, origin, rotation));
+            plan.Cells.UnionWith(StationGrid.ResolveCells(recipe.Result.KeepClearCells, origin, rotation));
+            var top =new List<(ModuleData Data, Vector3Int Origin, int Rotation)>();
+            if (!TileShape(materialCells, Pieces(recipe), top))
                 return null;
             // 13-4 2단계: 진화 모듈 조각은 그 자리를 1단계 재료로 다시 채우고, 그 자리에서 1단계 합성
             foreach (var piece in top)
@@ -273,8 +277,8 @@ namespace SpaceStation.Editor.Balance
                     continue;
                 }
                 var sub = SubRecipe(piece.Data);
-                if (sub == null)
-                    return null;
+                if (sub == null || sub.HasTemplate)
+                    return null; // 하위 합성은 결과 칸 = 재료 칸인 레시피만 (틀에만 있는 칸이 다른 조각과 겹칠 수 있음)
                 var subCells = new HashSet<Vector3Int>(StationGrid.ResolveCells(piece.Data.CellOffsets, piece.Origin, piece.Rotation));
                 var subPieces = new List<(ModuleData Data, Vector3Int Origin, int Rotation)>();
                 if (!TileShape(subCells, Pieces(sub), subPieces))
@@ -287,6 +291,19 @@ namespace SpaceStation.Editor.Balance
                 }
             }
             return plan;
+        }
+
+        /// <summary>합성 틀에만 있는 칸(재료가 잠깐 놓일 칸)이 지금 비어 있고 지을 수 있는 칸인지 (결과 칸은 TryFindPlacement가 봄).</summary>
+        private bool TemplateFree(RecipeData recipe, Vector3Int origin, int rotation)
+        {
+            var cells = new List<Vector3Int>();
+            recipe.GetVacatedCells(cells);
+            for (int i = 0; i < cells.Count; i++)
+                cells[i] = origin + GridDirections.Rotate(cells[i], rotation);
+            foreach (var c in cells)
+                if (_sim.Grid.IsOccupied(c) || PlacementRules.IsInDockLane(_sim.Grid, c))
+                    return false;
+            return !PlacementRules.HitsKeepClear(_sim.Grid, cells) && !_sim.Synthesis.HitsPendingKeepClear(cells) && !_sim.Synthesis.HitsPendingFill(cells);
         }
 
         private static List<ModuleData> Pieces(RecipeData recipe)

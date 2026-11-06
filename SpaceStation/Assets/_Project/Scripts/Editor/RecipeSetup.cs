@@ -35,6 +35,8 @@ namespace SpaceStation.Editor
             public Vector3Int[] Cells;
             /// <summary>비워 둘 칸 (모델이 지나가는 칸 밖 자리 — 접근로처럼 못 지음).</summary>
             public Vector3Int[] KeepClear;
+            /// <summary>합성 틀: 재료가 채울 칸 (없으면 결과 칸). 재료 모양으로 결과 칸을 채울 수 없는 레시피만 (사용자 결정 2026-11-06).</summary>
+            public Vector3Int[] Template;
             public (string module, int count)[] Ingredients;
             public float SynthesisMetal;
             public float Duration;
@@ -87,6 +89,19 @@ namespace SpaceStation.Editor
         }
 
         private static readonly Vector3Int[] L3 = { V(0, 0, 0), V(1, 0, 0), V(0, 0, 1) };
+
+        /// <summary>칸 묶음을 옮김 (합성 틀 = 재료 모양을 놓을 자리).</summary>
+        private static Vector3Int[] Shift(Vector3Int[] cells, Vector3Int by)
+        {
+            var list = new Vector3Int[cells.Length];
+            for (int i = 0; i < cells.Length; i++)
+                list[i] = cells[i] + by;
+            return list;
+        }
+
+        // 중력 거주구 = 회전 링 3×3 + 거주 2칸 축 / 대형 토러스 = 5×5 고리 + 가운데 허브 십자 + 허브 한 칸 올림 (합성 틀에서도 씀)
+        private static readonly Vector3Int[] GravityCells = Join(Box(3, 3), new[] { V(1, 0, 3), V(1, 0, 4) });
+        private static readonly Vector3Int[] TorusCells = Join(Ring(5), new[] { V(2, 0, 1), V(1, 0, 2), V(2, 0, 2), V(3, 0, 2), V(2, 0, 3), V(2, 1, 2) });
 
         private static readonly Def[] Defs =
         {
@@ -362,6 +377,8 @@ namespace SpaceStation.Editor
             {
                 Id = "FusionPlant", Name = "융합 플랜트", RecipeName = "융합 플랜트", Category = ModuleCategory.Power, Color = "#FFB070", Stage = 2, UnlockGrade = 5,
                 Cells = Box(3, 2), Ingredients = new[] { ("Evolved/MD_Evo_FusionStation", 1), ("Evolved/MD_Evo_HydrogenPlant", 1) }, SynthesisMetal = 330f, Duration = 80f, Research = ResearchCategory.Energy,
+                // 합성 틀: 발전소 일자 옆에 수소 플랜트 ㄱ자 (일자 + ㄱ자로는 3×2를 못 채움 — 완성 때 ㄱ자 모서리 1칸이 비고 빈 1칸이 채워짐)
+                Template = Join(Box(3, 1), Shift(L3, V(0, 0, 1))),
                 Rationale = "융합로의 열로 물을 갈라 수소 · 산소까지 한 공정에서 · 전력과 산소를 함께 크게 (합류)",
                 Stats = so =>
                 {
@@ -390,7 +407,7 @@ namespace SpaceStation.Editor
             new Def
             {
                 Id = "GravityHabitat", Name = "중력 거주구", RecipeName = "중력 거주구", Category = ModuleCategory.Life, Color = "#9FD8FF",
-                Cells = Join(Box(3, 3), new[] { V(1, 0, 3), V(1, 0, 4) }), // 회전 링 3×3 + 거주 2칸 축
+                Cells = GravityCells, // 회전 링 3×3 + 거주 2칸 축
                 Ingredients = new[] { ("MD_RotatingRing", 1), ("MD_Habitat", 1) }, SynthesisMetal = 180f, Duration = 70f, Research = ResearchCategory.Habitation,
                 Rationale = "회전 링 안쪽에 집을 들여 인공 중력 속에서 산다 · 더 많이 살고 더 빨리 는다",
                 Stats = so =>
@@ -407,9 +424,11 @@ namespace SpaceStation.Editor
             {
                 Id = "GrandTorus", Name = "대형 토러스", RecipeName = "대형 토러스", Category = ModuleCategory.Life, Color = "#B0E0FF", Stage = 2, UnlockGrade = 5,
                 // 5×5 고리 + 가운데 허브 십자 + 허브 한 칸 올림 = 22 (합성은 재료 칸 합과 정확히 같아야 함 — 사용자 결정 2026-10-22)
-                Cells = Join(Ring(5), new[] { V(2, 0, 1), V(1, 0, 2), V(2, 0, 2), V(3, 0, 2), V(2, 0, 3), V(2, 1, 2) }),
+                Cells = TorusCells,
                 // 고리가 안쪽 대각선 네 칸을 지나감 → 칸은 22 그대로 두고 그 칸만 비워 둠 (사용자 2026-11-06 "채굴 도킹이나 여객포트처럼 해당 칸에 배치를 못하게")
                 KeepClear = new[] { V(1, 0, 1), V(3, 0, 1), V(1, 0, 3), V(3, 0, 3) },
+                // 합성 틀: 중력 거주구 둘을 나란히 (3×3 몸통이 고리 칸에 안 들어감) — 완성 때 오른쪽 한 줄 · 고리 안쪽 세 칸이 비고 아래쪽 고리 · 허브 위가 채워짐
+                Template = Join(GravityCells, Shift(GravityCells, V(3, 0, 0))),
                 Ingredients = new[] { ("Evolved/MD_Evo_GravityHabitat", 2) }, SynthesisMetal = 540f, Duration = 90f, Research = ResearchCategory.Habitation,
                 Rationale = "작은 링 둘을 큰 바퀴 하나로 · 바퀴가 클수록 중력이 고르고 사는 곳이 넓다",
                 Stats = so =>
@@ -428,6 +447,8 @@ namespace SpaceStation.Editor
                 // 계단식 도시: 5×5 바닥 판 + 가운데 3×3 2층 + 가운데 첨탑 4칸 = 38 (아콜로지 16 + 대형 토러스 22, 사용자 결정 2026-10-22)
                 Cells = Join(Box(5, 5), CityTerrace()),
                 Ingredients = new[] { ("Evolved/MD_Evo_Arcology", 1), ("Evolved/MD_Evo_GrandTorus", 1) }, SynthesisMetal = 1300f, Duration = 120f, Research = ResearchCategory.Habitation,
+                // 합성 틀: 대형 토러스 허브 위에 아콜로지 탑 — 완성 때 탑이 첨탑 · 2층 테라스로 바뀌고 고리 안쪽 네 칸이 채워짐
+                Template = Join(TorusCells, Shift(Box(2, 2, 4), V(2, 2, 2))),
                 Rationale = "토러스 한가운데에 아콜로지 탑을 세워 하나의 도시로 · 사는 곳 · 쉼 · 장보기가 한곳에 (합류)",
                 Stats = so =>
                 {
@@ -474,6 +495,8 @@ namespace SpaceStation.Editor
             {
                 Id = "FoodFactory", Name = "식량 공장", RecipeName = "식량 공장", Category = ModuleCategory.Power, Color = "#A8E880", Stage = 2, UnlockGrade = 5,
                 Cells = Box(5, 1, 2), Ingredients = new[] { ("Evolved/MD_Evo_VerticalFarm", 2) }, SynthesisMetal = 300f, Duration = 70f, Research = ResearchCategory.Production,
+                // 합성 틀: 양 끝에 수직 농장 둘 (3층 높이라 2층 칸에 못 섬) — 완성 때 두 꼭대기 배양실이 비고 가운데 가공 줄이 채워짐
+                Template = new[] { V(0, 0, 0), V(1, 0, 0), V(0, 1, 0), V(1, 1, 0), V(0, 2, 0), V(4, 0, 0), V(3, 0, 0), V(4, 1, 0), V(3, 1, 0), V(4, 2, 0) },
                 Rationale = "재배와 가공을 한 줄로 이어 거둔 것을 바로 식품으로 · 식량을 크게, 식단도 고르게",
                 Food = FoodKind.Vegetable | FoodKind.Protein,
                 Stats = so =>
@@ -499,6 +522,8 @@ namespace SpaceStation.Editor
             {
                 Id = "Biosphere", Name = "바이오스피어", RecipeName = "바이오스피어", Category = ModuleCategory.Power, Color = "#7FE8A0", Stage = 3, UnlockGrade = 6,
                 Cells = Box(3, 3, 2), Ingredients = new[] { ("Evolved/MD_Evo_Biodome", 1), ("Evolved/MD_Evo_FoodFactory", 1) }, SynthesisMetal = 800f, Duration = 120f, Research = ResearchCategory.Production,
+                // 합성 틀: 식량 공장(5칸 길이) 둑 앞에 바이오돔 들판 (3×3 바닥에 길이 4 · 5가 안 들어감) — 완성 때 밖으로 나온 6칸이 비고 위층 6칸이 채워짐
+                Template = Join(Box(5, 1, 2), Shift(Box(4, 2), V(0, 0, 1))),
                 Rationale = "생산과 순환이 하나의 생태계로 · 물은 안에서 돌고 식량 · 산소가 크게 (합류)",
                 Food = FoodKind.Vegetable | FoodKind.Protein,
                 Stats = so =>
@@ -671,6 +696,8 @@ namespace SpaceStation.Editor
                 Id = "RepairCommand", Name = "수리 사령부", RecipeName = "수리 사령부", Category = ModuleCategory.Defense, Color = "#FFE0B0", Stage = 3, UnlockGrade = 6,
                 Cells = Join(Box(3, 2, 2), new[] { V(0, 0, 2), V(1, 0, 2), V(2, 0, 2) }), // 정비창 + 대응 센터 3칸
                 Ingredients = new[] { ("Evolved/MD_Evo_DroneDepot", 1), ("Evolved/MD_Evo_EmergencyCenter", 1) }, SynthesisMetal = 840f, Duration = 110f, Research = ResearchCategory.Maintenance,
+                // 합성 틀: 드론 정비창 앞에 비상 대응 센터 ㄱ자 (정비창 뒤 남는 일자 3칸에 ㄱ자가 안 들어감) — 완성 때 앞으로 나온 1칸이 비고 앞줄 빈 1칸이 채워짐
+                Template = Join(Box(3, 2, 2), Shift(L3, V(0, 0, 2))),
                 Rationale = "드론과 대응 팀을 한 지휘로 · 번짐을 넓게 막고 한꺼번에 고친다 (합류)",
                 Stats = so =>
                 {
@@ -1026,6 +1053,10 @@ namespace SpaceStation.Editor
                 e.FindPropertyRelative("Module").objectReferenceValue = ingredients[i].module;
                 e.FindPropertyRelative("Count").intValue = ingredients[i].count;
             }
+            var template = so.FindProperty("_templateCells");
+            template.arraySize = def.Template?.Length ?? 0;
+            for (int i = 0; i < template.arraySize; i++)
+                template.GetArrayElementAtIndex(i).vector3IntValue = def.Template[i];
             Amounts(so.FindProperty("_cost"), (ResourceType.Metal, def.SynthesisMetal));
             so.FindProperty("_duration").floatValue = def.Duration;
             so.FindProperty("_stage").intValue = def.Stage;

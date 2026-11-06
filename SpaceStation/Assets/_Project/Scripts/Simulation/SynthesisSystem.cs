@@ -18,6 +18,8 @@ namespace SpaceStation.Simulation
         EmptyCell,
         /// <summary>규격 밖으로 튀어나온 모듈이 있음 (모듈이 통째로 규격 안에 있어야 함).</summary>
         Overhang,
+        /// <summary>합성 틀: 완성 때 채워질 칸(결과에만 있는 칸)에 다른 모듈 · 도킹 접근로 · 비워 둘 칸 · 다른 합성 자리가 있음.</summary>
+        FillBlocked,
         /// <summary>결과 모듈의 비워 둘 칸(<see cref="ModuleData.KeepClearCells"/>, 대형 토러스 고리 안쪽)에 모듈이 있음.</summary>
         KeepClearBlocked,
         /// <summary>레시피에 없는 모듈(코어 포함)이 섞여 있음.</summary>
@@ -59,6 +61,8 @@ namespace SpaceStation.Simulation
     /// 12-3 합성 시스템 (PHASESET.md 3번 A, 12-0b 공통 틀). 레시피 규격(결과 모듈의 점유 칸)을 재료 모듈로 빈틈없이 채운 자리에서
     /// 비용을 내고 합성을 시작하면, 합성 시간 동안 재료는 가동이 멈추고(수리 중과 같음 — 생산 · 가동률 · 슬롯 0, 수용 · 저장은 유지)
     /// 끝나면 재료가 사라지고 같은 칸에 결과 모듈이 내구도 100%로 생긴다 (모듈 수 = 재료 수, 분해 불가).
+    /// 합성 틀이 있는 레시피(<see cref="RecipeData.HasTemplate"/>)는 재료가 틀을 채우고, 결과에만 있는 칸(완성 때 채워질 칸)은 비어 있어야 하며
+    /// 합성 중에도 그 칸에는 아무것도 못 짓는다 (<see cref="HitsPendingFill"/>). 완성 때 틀에만 있는 칸은 비워진다.
     /// 사용자 결정 (2026-10-12): 합성 중 재료가 파손되면 합성 시간이 멈추고 수리되면 이어감 / 합성 중 재료는 철거 · 재건축 불가 /
     /// 진화 모듈 건설비(수리 · 정비 · 재건축 · 철거 환급 기준) = 재료 건설비 합 + 합성 비용 (결과 ModuleData의 BuildCost에 넣어 둠).
     /// 재료가 파괴되면(방치 등) 그 합성은 취소되고 비용은 돌려받지 못한다.
@@ -72,6 +76,8 @@ namespace SpaceStation.Simulation
         private readonly Dictionary<ModuleInstance, SynthesisJob> _jobOf = new Dictionary<ModuleInstance, SynthesisJob>();
         private readonly HashSet<ModuleInstance> _seen = new HashSet<ModuleInstance>();
         private readonly List<ModuleInstance> _scratch = new List<ModuleInstance>();
+        private readonly List<Vector3Int> _local = new List<Vector3Int>();
+        private readonly List<Vector3Int> _world = new List<Vector3Int>();
         private bool _completing;
 
         /// <summary>합성 시작.</summary>
@@ -165,7 +171,7 @@ namespace SpaceStation.Simulation
         // ---------------- 판정 ----------------
 
         /// <summary>
-        /// 이 자리 · 회전에서 합성할 수 있는지. materials = 규격 안 모듈(서로 다른 것만), statuses = 재료 종류별 필요 · 현재 개수
+        /// 이 자리 · 회전에서 합성할 수 있는지. materials = 규격(합성 틀이 있으면 틀) 안 모듈(서로 다른 것만), statuses = 재료 종류별 필요 · 현재 개수
         /// (레시피에 없는 모듈도 Needed 0으로 들어감). 둘 다 null 가능.
         /// </summary>
         public SynthesisResult Evaluate(RecipeData recipe, Vector3Int origin, int rotation,
@@ -177,7 +183,7 @@ namespace SpaceStation.Simulation
                 return SynthesisResult.InvalidRecipe;
 
             var grid = Sim.Grid;
-            var cells = StationGrid.ResolveCells(recipe.Result.CellOffsets, origin, rotation);
+            var cells = StationGrid.ResolveCells(recipe.MaterialCells, origin, rotation);
             var found = materials ?? _scratch;
             if (materials == null)
                 _scratch.Clear();
@@ -235,9 +241,13 @@ namespace SpaceStation.Simulation
                     if (Array.IndexOf(cells, c) < 0)
                         return SynthesisResult.Overhang;
             }
+            if (recipe.HasTemplate && IsFillBlocked(recipe, origin, rotation))
+                return SynthesisResult.FillBlocked;
             foreach (var local in recipe.Result.KeepClearCells)
             {
-                if (grid.IsOccupied(origin + GridDirections.Rotate(local, rotation)))
+                // 합성 틀이면 재료가 비워 둘 칸에 있어도 됨 (대형 토러스: 중력 거주구가 고리 안쪽 세 칸을 덮었다가 완성 때 비움)
+                var c = origin + GridDirections.Rotate(local, rotation);
+                if ((grid.TryGetModule(c, out var other) && !_seen.Contains(other)) || PendingFillAt(c))
                     return SynthesisResult.KeepClearBlocked;
             }
             foreach (var m in found)
@@ -280,6 +290,78 @@ namespace SpaceStation.Simulation
                             return true;
                 }
             }
+            return false;
+        }
+
+        /// <summary>칸 중 하나라도 진행 중인 합성(합성 틀)이 완성 때 채울 칸인지 — 그동안 지으면 결과 모듈이 들어설 수 없음.</summary>
+        public bool HitsPendingFill(IReadOnlyList<Vector3Int> cells)
+        {
+            for (int i = 0; i < cells.Count; i++)
+                if (PendingFillAt(cells[i]))
+                    return true;
+            return false;
+        }
+
+        private bool PendingFillAt(Vector3Int cell)
+        {
+            foreach (var job in _jobs)
+            {
+                var recipe = job.Recipe;
+                if (!recipe.HasTemplate)
+                    continue;
+                foreach (var local in recipe.Result.CellOffsets)
+                {
+                    if (job.Origin + GridDirections.Rotate(local, job.Rotation) == cell && !Contains(recipe.MaterialCells, local))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 합성 틀: 완성 때 채워질 칸이 막혔는지 — 모듈 · 도킹 접근로 · 재료가 아닌 모듈의 비워 둘 칸 · 진행 중인 합성의 채울 칸 · 비워 둘 칸.
+        /// 재료의 비워 둘 칸은 상관없음 (완성 때 재료가 사라짐 — 궤도 도시는 재료 대형 토러스의 고리 안쪽 칸을 채움). _seen = 재료 (Evaluate).
+        /// </summary>
+        private bool IsFillBlocked(RecipeData recipe, Vector3Int origin, int rotation)
+        {
+            var grid = Sim.Grid;
+            recipe.GetFillCells(_local);
+            _world.Clear();
+            foreach (var local in _local)
+                _world.Add(origin + GridDirections.Rotate(local, rotation));
+            foreach (var c in _world)
+            {
+                if (grid.IsOccupied(c) || PlacementRules.IsInDockLane(grid, c))
+                    return true;
+            }
+            foreach (var m in grid.KeepClearModules)
+            {
+                if (_seen.Contains(m))
+                    continue;
+                foreach (var local in m.Data.KeepClearCells)
+                    if (_world.Contains(m.Origin + GridDirections.Rotate(local, m.Rotation)))
+                        return true;
+            }
+            return HitsPendingKeepClear(_world) || HitsPendingFill(_world);
+        }
+
+        /// <summary>완성 칸이 비었는지 (합성 틀의 채울 칸 — 합성 중에는 지을 수 없게 막지만 혹시 막혔으면 비워질 때까지 기다림).</summary>
+        private bool FillClear(SynthesisJob job)
+        {
+            if (!job.Recipe.HasTemplate)
+                return true;
+            job.Recipe.GetFillCells(_local);
+            foreach (var local in _local)
+                if (Sim.Grid.IsOccupied(job.Origin + GridDirections.Rotate(local, job.Rotation)))
+                    return false;
+            return true;
+        }
+
+        private static bool Contains(IReadOnlyList<Vector3Int> cells, Vector3Int cell)
+        {
+            for (int i = 0; i < cells.Count; i++)
+                if (cells[i] == cell)
+                    return true;
             return false;
         }
 
@@ -344,7 +426,7 @@ namespace SpaceStation.Simulation
                 if (paused || dt <= 0f)
                     continue;
                 job.Remaining -= dt;
-                if (job.Remaining <= 1e-4f)
+                if (job.Remaining <= 1e-4f && FillClear(job))
                 {
                     Complete(job);
                     i--; // 목록에서 빠짐
@@ -352,7 +434,7 @@ namespace SpaceStation.Simulation
             }
         }
 
-        /// <summary>재료를 치우고 같은 칸에 결과 모듈을 놓는다 (등급 재판정은 교체가 끝난 뒤 한 번).</summary>
+        /// <summary>재료를 치우고 결과 모듈을 놓는다 (같은 칸, 합성 틀이면 재료가 비운 칸 + 비어 있는 채울 칸). 등급 재판정은 교체가 끝난 뒤 한 번.</summary>
         private void Complete(SynthesisJob job)
         {
             Remove(job);

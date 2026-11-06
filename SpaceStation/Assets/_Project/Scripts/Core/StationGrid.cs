@@ -13,6 +13,7 @@ namespace SpaceStation.Core
     {
         private readonly Dictionary<Vector3Int, ModuleInstance> _occupancy = new Dictionary<Vector3Int, ModuleInstance>();
         private readonly List<ModuleInstance> _modules = new List<ModuleInstance>();
+        private readonly List<ModuleInstance> _keepClearModules = new List<ModuleInstance>();
         private int _nextId = 1;
 
         public event Action<ModuleInstance> ModulePlaced;
@@ -21,6 +22,8 @@ namespace SpaceStation.Core
         public event Action<ModuleInstance, IReadOnlyList<Vector3Int>> ModuleMoved;
 
         public IReadOnlyList<ModuleInstance> Modules => _modules;
+        /// <summary>비워 둘 칸(<see cref="ModuleData.KeepClearCells"/>)이 있는 모듈만 — 배치 판정이 칸마다 모든 모듈을 훑지 않게 (봇 자리 탐색).</summary>
+        public IReadOnlyList<ModuleInstance> KeepClearModules => _keepClearModules;
         /// <summary>12-3c-opt: 배치 · 철거 · 이동마다 1씩 오름 (모양이 바뀌었는지 캐시가 확인).</summary>
         public int Version { get; private set; }
         public int ModuleCount => _modules.Count;
@@ -85,6 +88,8 @@ namespace SpaceStation.Core
             foreach (var cell in cells)
                 _occupancy.Add(cell, module);
             _modules.Add(module);
+            if (data != null && data.KeepClearCells.Count > 0)
+                _keepClearModules.Add(module);
             Version++;
 
             ModulePlaced?.Invoke(module);
@@ -98,6 +103,7 @@ namespace SpaceStation.Core
 
             foreach (var cell in module.Cells)
                 _occupancy.Remove(cell);
+            _keepClearModules.Remove(module);
             Version++;
 
             ModuleRemoved?.Invoke(module);

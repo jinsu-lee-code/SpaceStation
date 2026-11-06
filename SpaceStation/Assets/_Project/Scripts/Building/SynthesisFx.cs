@@ -187,13 +187,21 @@ namespace SpaceStation.Building
             var fx = new Fx { Job = job, Intro = intro ? 0f : 1f, Weight = intro ? 0f : 1f };
             fx.Visual = job.Progress01;
 
-            // 규격 둘레 (칸 경계, 월드)
+            // 규격 둘레 (칸 경계, 월드) — 합성 틀이면 재료 칸과 결과 칸을 함께 감쌈
             var cells = StationGrid.ResolveCells(job.Recipe.Result.CellOffsets, job.Origin, job.Rotation);
             Vector3Int min = cells[0], max = cells[0];
             foreach (var c in cells)
             {
                 min = Vector3Int.Min(min, c);
                 max = Vector3Int.Max(max, c);
+            }
+            if (job.Recipe.HasTemplate)
+            {
+                foreach (var c in StationGrid.ResolveCells(job.Recipe.MaterialCells, job.Origin, job.Rotation))
+                {
+                    min = Vector3Int.Min(min, c);
+                    max = Vector3Int.Max(max, c);
+                }
             }
             float cs = GridConfig.CellSize;
             Vector3 lo = GridConfig.CellToWorld(min) - Vector3.one * (cs * 0.5f);

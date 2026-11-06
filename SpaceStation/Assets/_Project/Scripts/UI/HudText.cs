@@ -26,6 +26,7 @@ namespace SpaceStation.UI
                 case PlacementResult.BlockedByDockLane: return "채굴 도킹 접근로 (채굴선이 드나드는 길이라 지을 수 없음)";
                 case PlacementResult.KeepClearBlocked: return "안쪽에 비워 둘 칸이 막혀 있음 (고리 안 빈 칸에 다른 모듈이 있음)";
                 case PlacementResult.BlockedByKeepClear: return "대형 토러스 고리 안쪽 (고리가 지나가는 자리라 지을 수 없음)";
+                case PlacementResult.ReservedBySynthesis: return "합성 중인 진화 모듈이 완성 때 들어설 칸 (합성이 끝날 때까지 지을 수 없음)";
                 case PlacementResult.NeedsSupport: return "코어 2층 옆에는 바로 붙일 수 없음 (바로 아래 1층에 모듈을 먼저 지어야 함)";
                 case PlacementResult.CoreTopNeedsSideContact: return "코어 윗면에는 옆에 다른 모듈이 닿아야 설치 가능 (연결 통로 필요)";
                 case PlacementResult.TutorialLocked: return "튜토리얼 중에는 지금 단계의 모듈만 지을 수 있습니다";

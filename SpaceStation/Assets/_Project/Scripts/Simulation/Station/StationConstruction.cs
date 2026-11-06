@@ -32,8 +32,8 @@ namespace SpaceStation.Simulation
         public PlacementResult EvaluatePlacement(ModuleData data, UnityEngine.Vector3Int origin, int rotation)
         {
             var result = PlacementRules.Evaluate(_sim.Grid, data, origin, rotation);
-            if (result == PlacementResult.Valid && HitsPendingKeepClear(data, origin, rotation))
-                result = PlacementResult.BlockedByKeepClear;
+            if (result == PlacementResult.Valid)
+                result = CheckPending(data, origin, rotation);
             if (result == PlacementResult.Valid)
                 result = CheckBuildable(data);
             if (result == PlacementResult.Valid && !_sim.Resources.CanAfford(GetBuildCost(data)))
@@ -41,9 +41,22 @@ namespace SpaceStation.Simulation
             return result;
         }
 
-        /// <summary>합성 중인 결과(대형 토러스)의 비워 둘 칸에 지으려 하는지 — 끝나면 고리가 그 모듈을 지나감.</summary>
-        private bool HitsPendingKeepClear(ModuleData data, UnityEngine.Vector3Int origin, int rotation)
-            => _sim.Synthesis != null && _sim.Synthesis.HitsPendingKeepClear(StationGrid.ResolveCells(data.CellOffsets, origin, rotation));
+        /// <summary>
+        /// 합성 중인 결과 자리에 지으려 하는지: 비워 둘 칸(대형 토러스 고리 안쪽 — 끝나면 고리가 그 모듈을 지나감) ·
+        /// 합성 틀의 채울 칸(끝나면 진화 모듈이 들어섬).
+        /// </summary>
+        private PlacementResult CheckPending(ModuleData data, UnityEngine.Vector3Int origin, int rotation)
+        {
+            var synthesis = _sim.Synthesis;
+            if (synthesis == null)
+                return PlacementResult.Valid;
+            var cells = StationGrid.ResolveCells(data.CellOffsets, origin, rotation);
+            if (synthesis.HitsPendingKeepClear(cells))
+                return PlacementResult.BlockedByKeepClear;
+            if (synthesis.HitsPendingFill(cells))
+                return PlacementResult.ReservedBySynthesis;
+            return PlacementResult.Valid;
+        }
 
         public List<ResourceAmount> GetBuildCost(ModuleData data) => _sim.Effects.BuildCost(data);
 
@@ -141,8 +154,9 @@ namespace SpaceStation.Simulation
             var result = PlacementRules.Evaluate(_sim.Grid, data, origin, rotation, module);
             if (result != PlacementResult.Valid)
                 return result;
-            if (HitsPendingKeepClear(data, origin, rotation))
-                return PlacementResult.BlockedByKeepClear;
+            var pending = CheckPending(data, origin, rotation);
+            if (pending != PlacementResult.Valid)
+                return pending;
             if (!PlacementRules.TouchesOther(_sim.Grid, StationGrid.ResolveCells(data.CellOffsets, origin, rotation), module))
                 return PlacementResult.NeedsContact;
             if (!_sim.Resources.CanAfford(GetMoveCost(module)))
