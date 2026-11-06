@@ -21,6 +21,8 @@ namespace SpaceStation.Data
     /// <summary>
     /// 12-3 합성 레시피 (PHASESET.md 3번 A). 결과 모듈의 점유 칸이 규격이고, 그 칸을 재료 모듈로 빈틈없이 채우면 합성할 수 있다.
     /// 어느 칸에 어떤 재료가 있는지는 자유(구성만 맞으면 됨, A3-1), 규격은 90도 회전 가능. 비용 · 시간은 BALANCE.md 32번.
+    /// 합성 틀 (사용자 결정 2026-11-06): 재료 모양으로 결과 칸을 채울 수 없는 레시피(대형 토러스 등 6종)는 재료가 채울 칸을 따로 둔다.
+    /// 재료가 틀을 빈틈없이 채우면 합성, 완성 때 틀에만 있는 칸은 비워지고 결과에만 있는 칸이 채워진다 (틀 칸 수 = 결과 칸 수 = 재료 칸 합).
     /// </summary>
     [CreateAssetMenu(menuName = "SpaceStation/Recipe Data", fileName = "RC_NewRecipe")]
     public sealed class RecipeData : ScriptableObject
@@ -31,6 +33,9 @@ namespace SpaceStation.Data
         [SerializeField] private ModuleData _result;
 
         [SerializeField] private List<RecipeIngredient> _ingredients = new List<RecipeIngredient>();
+
+        [Tooltip("합성 틀: 재료가 채울 칸 (결과 모듈 원점 · 회전 0 기준). 비우면 결과 칸 그대로. 틀에만 있는 칸은 완성 때 비워지고, 결과에만 있는 칸은 완성 때 채워짐 (메뉴 SpaceStation/Recipes/Setup이 맞춤)")]
+        [SerializeField] private List<Vector3Int> _templateCells = new List<Vector3Int>();
 
         [Tooltip("합성 시작 때 내는 추가 비용 (건설 연구 할인 적용)")]
         [SerializeField] private List<ResourceAmount> _cost = new List<ResourceAmount>();
@@ -63,6 +68,42 @@ namespace SpaceStation.Data
         public bool UnlockedByDefault => _unlockedByDefault;
         public ResearchCategory ResearchCategory => _researchCategory;
         public string Rationale => _rationale;
+
+        /// <summary>결과 칸과 다른 합성 틀이 있는지.</summary>
+        public bool HasTemplate => _templateCells.Count > 0;
+
+        /// <summary>재료가 채울 칸 (회전 0 기준) = 합성 틀, 틀이 없으면 결과 칸.</summary>
+        public IReadOnlyList<Vector3Int> MaterialCells => HasTemplate || _result == null ? _templateCells : _result.CellOffsets;
+
+        /// <summary>완성 때 새로 채워질 칸 (결과에만 있는 칸, 회전 0 기준). 틀이 없으면 없음.</summary>
+        public void GetFillCells(List<Vector3Int> results)
+        {
+            results.Clear();
+            if (!HasTemplate || _result == null)
+                return;
+            foreach (var c in _result.CellOffsets)
+                if (!_templateCells.Contains(c))
+                    results.Add(c);
+        }
+
+        /// <summary>완성 때 비워질 칸 (틀에만 있는 칸, 회전 0 기준). 틀이 없으면 없음.</summary>
+        public void GetVacatedCells(List<Vector3Int> results)
+        {
+            results.Clear();
+            if (!HasTemplate || _result == null)
+                return;
+            foreach (var c in _templateCells)
+                if (!Contains(_result.CellOffsets, c))
+                    results.Add(c);
+        }
+
+        private static bool Contains(IReadOnlyList<Vector3Int> cells, Vector3Int cell)
+        {
+            for (int i = 0; i < cells.Count; i++)
+                if (cells[i] == cell)
+                    return true;
+            return false;
+        }
 
         /// <summary>재료 모듈 칸 수 합 (= 규격 칸 수여야 빈틈없이 채울 수 있음).</summary>
         public int IngredientCells
@@ -106,6 +147,8 @@ namespace SpaceStation.Data
                 return;
             if (IngredientCells != _result.CellOffsets.Count)
                 Debug.LogWarning($"{name}: 재료 칸 수 {IngredientCells} ≠ 규격 칸 수 {_result.CellOffsets.Count}: 빈틈없이 채울 수 없음", this);
+            if (HasTemplate && _templateCells.Count != _result.CellOffsets.Count)
+                Debug.LogWarning($"{name}: 합성 틀 칸 수 {_templateCells.Count} ≠ 결과 칸 수 {_result.CellOffsets.Count}", this);
             int resultGrade = _result.CountsTowardGrade ? _result.GradeModuleCount : 0; // 장갑 외벽처럼 재료가 모두 등급에 안 드는 결과는 0
             if (IngredientGradeModules != resultGrade)
                 Debug.LogWarning($"{name}: 결과 모듈의 등급 모듈 수 {resultGrade} ≠ 재료 수 {IngredientGradeModules}", this);

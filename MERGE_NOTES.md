@@ -2358,3 +2358,22 @@
 ### `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `ba145675`). tycoon에는 `OutsideZone`이 없어 `PlacementResult` 열거 순서만 다름 (이름으로만 씀). TASKS · 글꼴 · `Main.unity`는 tycoon에만
 - 따로 남은 일 (TASKS): 재료로 채울 수 없는 레시피 6종 (대형 토러스 · 궤도 도시 · 바이오스피어 · 식량 공장 · 융합 플랜트 · 수리 사령부) — 사용자 결정 대기
+
+## M-156. 합성 틀 — 재료로 채울 수 없던 진화 레시피 6종 (2026-11-06, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `e928b93b` · `56a81eb1` · `1b98971f`의 변경분을 패치로 — `PlacementRules` · `StationConstruction` 등은 main의 건설 구역 (M-50)과 내용이 달라 파일째 옮기지 않음)
+- 사용자 결정 (2026-11-06 "합성 틀로 진행해줘", 시안 https://claude.ai/artifact/RRwMM23MQ4GKi3QrwbTGQk): 칸 수만 맞고 재료 모양으로 결과 칸을 채울 수 없던 6종 (대형 토러스 · 궤도 도시 · 바이오스피어 · 식량 공장 · 융합 플랜트 · 수리 사령부)은 재료가 채울 칸(합성 틀)을 따로 둠. 재료 · 결과 모양 · 모델 · 내부 · 계통은 그대로. `PHASESET.md` A3-1에 변경 기록
+- `RecipeData._templateCells` (새 필드, 비어 있으면 예전과 같음) · `HasTemplate` · `MaterialCells` · `GetFillCells` · `GetVacatedCells`, `RecipeSetup` `Def.Template` (+ `GravityCells` · `TorusCells` · `Shift` — 칸 값은 그대로), RC 6종 에셋에 틀 칸
+- `SynthesisSystem`: 판정은 틀 칸 기준, `SynthesisResult.FillBlocked` (Overhang 다음 — 열거 값이 하나씩 밀림): 완성 때 채울 칸에 모듈 · 도킹 접근로 · 재료가 아닌 모듈의 비워 둘 칸 · 진행 중인 합성의 채울 칸 / 비워 둘 칸. 결과의 비워 둘 칸은 재료가 덮어도 됨 (토러스). `HitsPendingFill` (합성 중 채울 칸 예약), 완성 칸이 막혔으면 비워질 때까지 기다림
+- `PlacementResult.ReservedBySynthesis` (열거 끝) — `StationConstruction` 배치 · 이동 판정 (`CheckPending`), `HudText` 사유
+- `StationGrid.KeepClearModules`: 비워 둘 칸이 있는 모듈만 따로 — `PlacementRules.HitsKeepClear`가 배치 판정마다 모든 모듈을 훑어 큰 정거장에서 봇 자리 탐색이 크게 느려지던 것 (M-155에서 생김)
+- `SynthesisController` 고스트 세 부분 (큰 상자 = 재료 자리 · 깜박이는 상자 = 완성 때 비워짐 · 작은 상자 = 완성 때 채워짐 — 색 대신 크기 · 깜박임) · 사유, `SynthesisFx` 고리가 틀 · 결과를 함께 감쌈, `RecipePanel` 규격 그림 = 층별 칸 그림 대신 입체 그림 (사용자 "레시피 표시 알아보기 너무 불편" — 새 `UI/IsoShapeRenderer`가 텍스처로 그림, 합성 틀이면 "재료 놓는 모양"(재료마다 번호 · 밝기, 새 `Core/ShapeTiling`이 배치를 찾음) → "완성되면 이 모양", 그림자 = 검은 실루엣, 레시피 · 상태가 같으면 다시 안 그림)
+- 밸런스 봇: 틀 칸도 비어 있는 자리를 찾아 틀을 채움 (`TryFindPlacement` 선택 조건 인자, 하위 합성은 틀 없는 레시피만)
+- 테스트: `SynthesisTests` 셋 (틀 합성 · 채울 칸 예약 · 이동 · 세이브, 레시피 48종이 재료로 실제로 채워지는지 — `ShapeTiling`) + 레시피 검사 두 줄
+
+### `narrative` 합칠 때
+- 새 필드는 비어 있으면 예전과 같음. 예전 세이브에는 틀 레시피 합성 중인 판이 없음 (전에는 합성 불가였음)
+- `SynthesisResult` 열거 중간에 하나 들어감 (`Overhang` 다음) — 숫자로 쓰는 곳이 있으면 확인
+
+### `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `e928b93b` · `56a81eb1` · `1b98971f`). TASKS · 글꼴 · `Main.unity`는 tycoon에만

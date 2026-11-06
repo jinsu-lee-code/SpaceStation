@@ -14,7 +14,7 @@ namespace SpaceStation.UI
 {
     /// <summary>
     /// 12-3 합성 레시피(도감) 창 (PHASESET A7 · A9). K 키 또는 왼쪽 위 [관리] → [합성]으로 연다. 게임 시간은 멈추지 않는다.
-    /// 왼쪽 = 레시피 목록, 오른쪽 = 고른 레시피의 재료 · 규격 모양(층별 칸 그림) · 결과 효과 · 비용 · 시간 · 당위성 + [위치 지정].
+    /// 왼쪽 = 레시피 목록, 오른쪽 = 고른 레시피의 재료 · 규격 모양(입체 그림, 합성 틀이면 재료 놓는 모양 → 완성 모양) · 결과 효과 · 비용 · 시간 · 당위성 + [위치 지정].
     /// [위치 지정]을 누르면 창이 닫히고 <see cref="SynthesisController"/>가 규격 고스트를 띄운다.
     /// 왼쪽 위 추적기: 진행 중인 합성 (연구 추적기 아래).
     /// </summary>
@@ -24,7 +24,7 @@ namespace SpaceStation.UI
         private const float ListWidth = 250f;
         private const float DetailWidth = 640f;
         private const float RowHeight = 46f;
-        private const float Cell = 22f;
+        private const float ShapeWidth = 220f, ShapeHeight = 280f;
         private const float BodyHeight = 560f;
 
         [SerializeField] private StationController _station;
@@ -53,6 +53,10 @@ namespace SpaceStation.UI
         private readonly List<(RecipeData recipe, Button button, TMP_Text label)> _rows = new List<(RecipeData, Button, TMP_Text)>();
         private TMP_Text _title, _body, _effects, _tracker;
         private RectTransform _shape;
+        private RecipeData _drawnRecipe;
+        private bool _drawnSilhouette;
+        private readonly List<ShapeTiling.Piece> _tiling = new List<ShapeTiling.Piece>();
+        private readonly Dictionary<(RecipeData, int), Texture2D> _shapeTextures = new Dictionary<(RecipeData, int), Texture2D>();
         private Button _place;
         // 12-4 그림자 · 해금 연구
         private Button _researchButton;
@@ -85,6 +89,9 @@ namespace SpaceStation.UI
             HudWindows.Opened -= HandleWindowOpened;
             if (_syn != null)
                 _syn.Completed -= HandleCompleted;
+            foreach (var tex in _shapeTextures.Values)
+                if (tex != null)
+                    Destroy(tex);
         }
 
         private void Update()
@@ -287,11 +294,11 @@ namespace SpaceStation.UI
             _title.fontStyle = FontStyles.Bold;
             HoloUi.Place(_title.rectTransform, new Vector2(20f, -14f), new Vector2(DetailWidth - 40f, 34f));
             _body = _ui.Label(panel, "", 16f, TextAlignmentOptions.TopLeft, wrap: true);
-            HoloUi.Place(_body.rectTransform, new Vector2(20f, -54f), new Vector2(DetailWidth - 220f, 250f));
+            HoloUi.Place(_body.rectTransform, new Vector2(20f, -54f), new Vector2(DetailWidth - ShapeWidth - 50f, 250f));
             _shape = HoloUi.Rect("Shape", panel);
-            HoloUi.Place(_shape, new Vector2(DetailWidth - 190f, -54f), new Vector2(170f, 200f));
+            HoloUi.Place(_shape, new Vector2(DetailWidth - ShapeWidth - 20f, -54f), new Vector2(ShapeWidth, ShapeHeight));
             _effects = _ui.Label(panel, "", 15f, TextAlignmentOptions.TopLeft, wrap: true);
-            HoloUi.Place(_effects.rectTransform, new Vector2(20f, -310f), new Vector2(DetailWidth - 40f, 170f));
+            HoloUi.Place(_effects.rectTransform, new Vector2(20f, -64f - ShapeHeight), new Vector2(DetailWidth - 40f, 150f));
 
             _place = _ui.TechButton(panel, "위치 지정", 18f, PlaceSelected);
             HoloUi.Place((RectTransform)_place.transform, new Vector2(DetailWidth - 200f, -bodyH + 66f), new Vector2(180f, 48f));
@@ -414,12 +421,14 @@ namespace SpaceStation.UI
             sb.Append($"<color={HudText.Muted}>모듈 수</color>  재료 {r.Result.GradeModuleCount}개로 셈 (등급 조건)\n");
             if (!string.IsNullOrEmpty(r.Rationale))
                 sb.Append($"\n<i>{r.Rationale}</i>\n");
-            sb.Append($"\n<size=90%><color={HudText.Muted}>규격 모양 안을 재료로 빈틈없이 채우면 합성 (어느 칸에 무엇이 있든 상관없음, 회전 가능)</color></size>");
+            sb.Append(r.HasTemplate
+                ? $"\n<size=90%><color={HudText.Muted}>오른쪽 그림처럼 재료를 붙여 지으면 합성 · 완성되면 아래 모양으로 바뀜 (완성 모양에서 새로 생기는 칸은 비워 둬야 함, 위치 지정 때 작은 상자로 보임) · 회전 가능</color></size>"
+                : $"\n<size=90%><color={HudText.Muted}>규격 모양 안을 재료로 빈틈없이 채우면 합성 (어느 칸에 무엇이 있든 상관없음, 회전 가능)</color></size>");
             _body.SetText(sb.ToString());
 
             _effects.SetText($"<color=#7FD8FF><b>결과: {r.Result.DisplayName}</b></color>  <size=85%><color={HudText.Muted}>내구도 100%로 새로 시작</color></size>\n"
                              + HudText.ModuleEffects(r.Result, _sim.Effects));
-            DrawShape(r.Result, silhouette: false);
+            DrawShape(r, silhouette: false);
             _place.interactable = unlocked;
         }
 
@@ -442,7 +451,7 @@ namespace SpaceStation.UI
             if (r.UnlockGrade > _sim.Progression.GradeIndex && r.UnlockGrade < _sim.Progression.GradeCount)
                 sb.Append($"\n<color={HudText.Orange}>합성은 {_sim.Progression.GetGrade(r.UnlockGrade).DisplayName} 등급부터</color>");
             _body.SetText(sb.ToString());
-            DrawShape(r.Result, silhouette: true);
+            DrawShape(r, silhouette: true);
 
             var project = ex.ProjectOf(r);
             var label = _researchButton.GetComponentInChildren<TMP_Text>();
@@ -462,47 +471,127 @@ namespace SpaceStation.UI
             _researchStatus.SetText(reason != null ? $"<color={HudText.Orange}>{reason}</color>" : $"<color={HudTheme.GreenHex}>해금 연구를 시작할 수 있습니다</color>");
         }
 
-        /// <summary>규격 모양: 층마다 위에서 본 칸 그림 (아래층부터 왼쪽→오른쪽). 그림자 레시피는 검은 실루엣.</summary>
-        private void DrawShape(ModuleData result, bool silhouette)
+        // 입체 그림 밝기 (색약 사용자: 재료마다 색이 아니라 밝기 + 번호로 나눔)
+        private static readonly Color[] PiecePalette =
         {
+            new Color(0.55f, 0.85f, 1f), new Color(0.93f, 0.93f, 0.93f), new Color(0.3f, 0.55f, 0.8f), new Color(0.62f, 0.62f, 0.66f),
+        };
+        private static readonly Color[] ResultPalette = { new Color(0.55f, 0.85f, 1f) };
+        private static readonly Color[] SilhouettePalette = { new Color(0.07f, 0.07f, 0.09f) };
+        private static readonly Color ShapeEdge = new Color(0.02f, 0.05f, 0.08f);
+        private static readonly Color SilhouetteEdge = new Color(0.55f, 0.6f, 0.7f);
+
+        /// <summary>
+        /// 규격 모양: 비스듬히 위에서 본 입체 상자 그림 (<see cref="IsoShapeRenderer"/>, 사용자 2026-11-06 "레시피 표시 알아보기 너무 불편" — 층별 칸 그림을 바꿈).
+        /// 그림자 레시피는 결과 모양의 검은 실루엣. 합성 틀이 있는 레시피는 "재료 놓는 모양"(재료마다 번호 · 밝기) → "완성 모양" 두 그림.
+        /// 같은 레시피 · 상태면 다시 그리지 않음 (창은 0.25초마다 새로 고침).
+        /// </summary>
+        private void DrawShape(RecipeData recipe, bool silhouette)
+        {
+            if (recipe == _drawnRecipe && silhouette == _drawnSilhouette)
+                return;
+            _drawnRecipe = recipe;
+            _drawnSilhouette = silhouette;
             for (int i = _shape.childCount - 1; i >= 0; i--)
                 Destroy(_shape.GetChild(i).gameObject);
-            var cells = result.CellOffsets;
-            int minX = int.MaxValue, maxX = int.MinValue, minY = int.MaxValue, maxY = int.MinValue, minZ = int.MaxValue, maxZ = int.MinValue;
-            foreach (var c in cells)
+            var result = recipe.Result.CellOffsets;
+            const float captionHeight = 20f;
+
+            _tiling.Clear();
+            if (recipe.HasTemplate && !silhouette)
             {
-                minX = Mathf.Min(minX, c.x); maxX = Mathf.Max(maxX, c.x);
-                minY = Mathf.Min(minY, c.y); maxY = Mathf.Max(maxY, c.y);
-                minZ = Mathf.Min(minZ, c.z); maxZ = Mathf.Max(maxZ, c.z);
+                var pieces = new List<ModuleData>();
+                foreach (var ing in recipe.Ingredients)
+                    for (int i = 0; i < ing.Count; i++)
+                        pieces.Add(ing.Module);
+                ShapeTiling.TryTile(recipe.MaterialCells, pieces, _tiling);
             }
-            int w = maxX - minX + 1, d = maxZ - minZ + 1, layers = maxY - minY + 1;
-            var caption = _ui.Label(_shape, layers > 1 ? $"규격 ({layers}층, 위에서 본 모양)" : "규격 (위에서 본 모양)", 13f, TextAlignmentOptions.TopLeft);
-            HoloUi.Place(caption.rectTransform, Vector2.zero, new Vector2(170f, 20f));
-            for (int layer = 0; layer < layers; layer++)
+            if (_tiling.Count == 0)
             {
-                float ox = layer * (w * Cell + 14f), oy = -26f;
-                for (int x = 0; x < w; x++)
-                    for (int z = 0; z < d; z++)
-                    {
-                        bool filled = false;
-                        foreach (var c in cells)
-                            filled |= c.x - minX == x && c.y - minY == layer && c.z - minZ == z;
-                        var rt = HoloUi.Rect("Cell", _shape);
-                        HoloUi.Place(rt, new Vector2(ox + x * Cell, oy - (d - 1 - z) * Cell), new Vector2(Cell - 3f, Cell - 3f));
-                        var img = rt.gameObject.AddComponent<Image>();
-                        img.sprite = _fillSprite;
-                        img.raycastTarget = false;
-                        img.color = filled
-                            ? silhouette ? new Color(0.02f, 0.02f, 0.03f, 1f) : new Color(0.45f, 0.85f, 1f, 0.9f)
-                            : new Color(1f, 1f, 1f, 0.06f);
-                        if (filled && silhouette)
-                            rt.gameObject.AddComponent<Outline>().effectColor = new Color(0.6f, 0.65f, 0.75f, 0.6f); // 검은 칸 가장자리만 보이게
-                    }
-                if (layers > 1)
+                Caption(silhouette ? "규격" : $"규격 ({result.Count}칸, 회전 가능)", 0f);
+                var tex = ShapeTexture(recipe, silhouette ? 2 : 1, result, null, silhouette ? SilhouettePalette : ResultPalette,
+                    silhouette ? SilhouetteEdge : ShapeEdge, ShapeHeight - captionHeight, null);
+                Picture(tex, -captionHeight, ShapeHeight - captionHeight, null);
+                return;
+            }
+
+            // 합성 틀: 재료 놓는 모양 (재료마다 번호) → 완성 모양
+            var cells = new List<Vector3Int>();
+            var groups = new List<int>();
+            var names = new StringBuilder();
+            for (int p = 0; p < _tiling.Count; p++)
+            {
+                var piece = _tiling[p];
+                foreach (var c in StationGrid.ResolveCells(piece.Data.CellOffsets, piece.Origin, piece.Rotation))
                 {
-                    var l = _ui.Label(_shape, $"{layer + 1}층", 12f, TextAlignmentOptions.TopLeft);
-                    HoloUi.Place(l.rectTransform, new Vector2(ox, oy - d * Cell - 2f), new Vector2(60f, 18f));
+                    cells.Add(c);
+                    groups.Add(p % PiecePalette.Length);
                 }
+                names.Append(p == 0 ? "" : "  ").Append("<b>").Append(p + 1).Append("</b> ").Append(piece.Data.DisplayName);
+            }
+            const float materialHeight = 112f, legendHeight = 34f;
+            Caption("재료 놓는 모양", 0f);
+            var labels = new List<Vector2>();
+            var materialTex = ShapeTexture(recipe, 0, cells, groups, PiecePalette, ShapeEdge, materialHeight, labels);
+            Picture(materialTex, -captionHeight, materialHeight, labels);
+            var legend = _ui.Label(_shape, names.ToString(), 12f, TextAlignmentOptions.TopLeft, wrap: true);
+            HoloUi.Place(legend.rectTransform, new Vector2(0f, -captionHeight - materialHeight - 2f), new Vector2(ShapeWidth, legendHeight));
+            float y = captionHeight + materialHeight + legendHeight + 4f;
+            Caption("완성되면 이 모양", -y);
+            var resultTex = ShapeTexture(recipe, 1, result, null, ResultPalette, ShapeEdge, ShapeHeight - y - captionHeight, null);
+            Picture(resultTex, -y - captionHeight, ShapeHeight - y - captionHeight, null);
+        }
+
+        private void Caption(string text, float y)
+        {
+            var label = _ui.Label(_shape, text, 13f, TextAlignmentOptions.TopLeft);
+            HoloUi.Place(label.rectTransform, new Vector2(0f, y), new Vector2(ShapeWidth, 20f));
+        }
+
+        /// <summary>레시피마다 그림 텍스처 (kind 0 = 재료 놓는 모양, 1 = 완성 · 규격, 2 = 실루엣). 2배 해상도로 그려 둠.</summary>
+        private Texture2D ShapeTexture(RecipeData recipe, int kind, IReadOnlyList<Vector3Int> cells, IReadOnlyList<int> groups, Color[] palette, Color edge,
+            float boxHeight, List<Vector2> labels)
+        {
+            var key = (recipe, kind);
+            var zeros = groups ?? new int[cells.Count];
+            if (_shapeTextures.TryGetValue(key, out var cached) && labels == null)
+                return cached;
+            if (cached != null)
+                Destroy(cached);
+            var tex = IsoShapeRenderer.Render(cells, zeros, palette, edge, Mathf.RoundToInt(ShapeWidth * 2f), Mathf.RoundToInt(boxHeight * 2f), labels);
+            _shapeTextures[key] = tex;
+            return tex;
+        }
+
+        /// <summary>그림을 상자(너비 ShapeWidth × boxHeight) 가운데 위에 비율대로 · 재료 번호 표시. 2배 해상도 텍스처라 그보다 키우지 않음.</summary>
+        private void Picture(Texture2D tex, float y, float boxHeight, List<Vector2> labels)
+        {
+            float scale = Mathf.Min(0.5f, Mathf.Min(ShapeWidth / tex.width, boxHeight / tex.height));
+            var size = new Vector2(tex.width * scale, tex.height * scale);
+            var rt = HoloUi.Rect("ShapePicture", _shape);
+            float x = (ShapeWidth - size.x) * 0.5f;
+            HoloUi.Place(rt, new Vector2(x, y), size);
+            var image = rt.gameObject.AddComponent<RawImage>();
+            image.texture = tex;
+            image.raycastTarget = false;
+            if (labels == null)
+                return;
+            for (int i = 0; i < labels.Count; i++)
+            {
+                if (labels[i].x < 0f)
+                    continue;
+                // 번호 딱지: 어두운 바탕 + 흰 숫자 (그 재료 윗면 가운데)
+                const float badge = 16f;
+                var at = new Vector2(x + labels[i].x * scale - badge * 0.5f, y - labels[i].y * scale + badge * 0.5f);
+                var back = HoloUi.Rect("Badge", _shape);
+                HoloUi.Place(back, at, new Vector2(badge, badge));
+                var backImage = back.gameObject.AddComponent<Image>();
+                backImage.sprite = _fillSprite;
+                backImage.raycastTarget = false;
+                backImage.color = new Color(0.03f, 0.06f, 0.1f, 0.92f);
+                var number = _ui.Label(back, (i + 1).ToString(), 12f, TextAlignmentOptions.Center);
+                number.fontStyle = FontStyles.Bold;
+                HoloUi.Place(number.rectTransform, Vector2.zero, new Vector2(badge, badge));
             }
         }
 
