@@ -437,6 +437,7 @@ namespace SpaceStation.Tests
         {
             var guids = AssetDatabase.FindAssets("t:RecipeData", new[] { "Assets/_Project/Data" });
             var broken = new List<string>();
+            var tiling = new List<ShapeTiling.Piece>();
             foreach (var guid in guids)
             {
                 var r = AssetDatabase.LoadAssetAtPath<RecipeData>(AssetDatabase.GUIDToAssetPath(guid));
@@ -444,58 +445,10 @@ namespace SpaceStation.Tests
                 foreach (var ing in r.Ingredients)
                     for (int i = 0; i < ing.Count; i++)
                         pieces.Add(ing.Module);
-                pieces.Sort((x, y) => y.CellOffsets.Count.CompareTo(x.CellOffsets.Count));
-                var target = new HashSet<Vector3Int>(r.MaterialCells);
-                if (!Cover(target, pieces, new bool[pieces.Count], new HashSet<Vector3Int>()))
+                if (!ShapeTiling.TryTile(r.MaterialCells, pieces, tiling) || tiling.Count != pieces.Count)
                     broken.Add(r.name);
             }
             CollectionAssert.IsEmpty(broken, "재료로 채울 수 없는 레시피");
-        }
-
-        /// <summary>남은 첫 칸(아래 · 앞 · 왼쪽)을 덮을 재료 · 회전 · 위치를 하나씩 시도 (정확 덮기).</summary>
-        private static bool Cover(HashSet<Vector3Int> target, List<ModuleData> pieces, bool[] used, HashSet<Vector3Int> covered)
-        {
-            Vector3Int? first = null;
-            foreach (var c in target)
-            {
-                if (covered.Contains(c))
-                    continue;
-                if (first == null || c.y < first.Value.y || (c.y == first.Value.y && (c.z < first.Value.z || (c.z == first.Value.z && c.x < first.Value.x))))
-                    first = c;
-            }
-            if (first == null)
-                return true;
-            var tried = new HashSet<ModuleData>();
-            for (int i = 0; i < pieces.Count; i++)
-            {
-                if (used[i] || !tried.Add(pieces[i]))
-                    continue;
-                for (int rot = 0; rot < 4; rot++)
-                {
-                    var rel = StationGrid.ResolveCells(pieces[i].CellOffsets, Vector3Int.zero, rot);
-                    var keep = StationGrid.ResolveCells(pieces[i].KeepClearCells, Vector3Int.zero, rot);
-                    foreach (var anchor in rel)
-                    {
-                        var origin = first.Value - anchor;
-                        bool fits = true;
-                        foreach (var c in rel)
-                            fits &= target.Contains(c + origin) && !covered.Contains(c + origin);
-                        foreach (var c in keep)
-                            fits &= !target.Contains(c + origin); // 비워 둘 칸에는 다른 재료가 못 옴
-                        if (!fits)
-                            continue;
-                        foreach (var c in rel)
-                            covered.Add(c + origin);
-                        used[i] = true;
-                        if (Cover(target, pieces, used, covered))
-                            return true;
-                        used[i] = false;
-                        foreach (var c in rel)
-                            covered.Remove(c + origin);
-                    }
-                }
-            }
-            return false;
         }
 
         [Test]
