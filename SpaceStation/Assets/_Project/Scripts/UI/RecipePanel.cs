@@ -413,7 +413,7 @@ namespace SpaceStation.UI
             if (!string.IsNullOrEmpty(r.Rationale))
                 sb.Append($"\n<i>{r.Rationale}</i>\n");
             sb.Append(r.HasTemplate
-                ? $"\n<size=90%><color={HudText.Muted}>그림의 재료 칸을 재료로 빈틈없이 채우면 합성 · 완성되면 결과 모양으로 바뀜 (흐린 칸은 비워지고 작은 칸이 채워짐, 작은 칸은 비워 둬야 함) · 회전 가능</color></size>"
+                ? $"\n<size=90%><color={HudText.Muted}>그림의 재료 칸을 재료로 빈틈없이 채우면 합성 · 완성되면 결과 모양으로 바뀜 (테두리 칸은 비워지고 작은 칸이 채워짐, 작은 칸은 비워 둬야 함) · 회전 가능</color></size>"
                 : $"\n<size=90%><color={HudText.Muted}>규격 모양 안을 재료로 빈틈없이 채우면 합성 (어느 칸에 무엇이 있든 상관없음, 회전 가능)</color></size>");
             _body.SetText(sb.ToString());
 
@@ -474,8 +474,8 @@ namespace SpaceStation.UI
 
         /// <summary>
         /// 규격 모양: 층마다 위에서 본 칸 그림 (아래층부터 왼쪽→오른쪽, 층이 많으면 줄을 바꾸고 칸을 줄여 상자 안에 맞춤).
-        /// 그림자 레시피는 결과 모양의 검은 실루엣. 합성 틀이 있는 레시피는 재료 칸과 결과 칸을 함께 — 색이 아니라 밝기 · 크기로 나눔 (색약 사용자):
-        /// 밝은 칸 = 재료 칸(완성 뒤에도 결과), 흐린 칸 = 재료 칸(완성 때 비워짐), 작은 칸 = 완성 때 새로 채워짐.
+        /// 그림자 레시피는 결과 모양의 검은 실루엣. 합성 틀이 있는 레시피는 재료 칸과 결과 칸을 함께 — 색이 아니라 모양 · 크기로 나눔 (색약 사용자,
+        /// 흐린 칸은 빈 칸과 밝기가 비슷해 바꿈): 밝은 칸 = 재료 칸(완성 뒤에도 결과), 테두리 칸 = 재료 칸(완성 때 비워짐), 작은 칸 = 완성 때 새로 채워짐.
         /// </summary>
         private void DrawShape(RecipeData recipe, bool silhouette)
         {
@@ -538,10 +538,20 @@ namespace SpaceStation.UI
                         bool filled = inMaterial || inResult;
                         img.color = !filled ? new Color(1f, 1f, 1f, 0.06f)
                             : silhouette ? new Color(0.02f, 0.02f, 0.03f, 1f)
-                            : inMaterial && !inResult ? new Color(0.45f, 0.85f, 1f, 0.3f)   // 완성 때 비워질 재료 칸
                             : new Color(0.45f, 0.85f, 1f, 0.9f);
                         if (filled && silhouette)
                             rt.gameObject.AddComponent<Outline>().effectColor = new Color(0.6f, 0.65f, 0.75f, 0.6f); // 검은 칸 가장자리만 보이게
+                        if (template && inMaterial && !inResult)
+                        {
+                            // 완성 때 비워질 재료 칸: 가운데를 뚫어 테두리만
+                            float hole = Mathf.Max(1f, Mathf.Round(s * 0.5f));
+                            var holeRect = HoloUi.Rect("Hole", rt);
+                            HoloUi.Place(holeRect, new Vector2((s - hole) * 0.5f, -(s - hole) * 0.5f), new Vector2(hole, hole));
+                            var holeImage = holeRect.gameObject.AddComponent<Image>();
+                            holeImage.sprite = _fillSprite;
+                            holeImage.raycastTarget = false;
+                            holeImage.color = new Color(0.04f, 0.08f, 0.12f, 1f);
+                        }
                     }
                 if (layers > 1)
                 {
@@ -551,9 +561,12 @@ namespace SpaceStation.UI
             }
             if (template)
             {
-                var l = _ui.Label(_shape, $"<color={HudText.Muted}>밝은 칸 = 재료 · 흐린 칸 = 재료 (완성 때 비워짐) · 작은 칸 = 완성 때 채워짐</color>", 11f,
+                // 설명은 그림 바로 아래
+                int rows = (layers + perRow - 1) / perRow;
+                float bottom = top + rows * (d * cell + label) + (rows - 1) * LayerGap + 4f;
+                var l = _ui.Label(_shape, $"<color={HudText.Muted}>밝은 칸 = 재료 · 테두리 칸 = 재료 (완성 때 비워짐) · 작은 칸 = 완성 때 채워짐</color>", 11f,
                     TextAlignmentOptions.TopLeft, wrap: true);
-                HoloUi.Place(l.rectTransform, new Vector2(0f, -(ShapeHeight - legend)), new Vector2(ShapeWidth, legend));
+                HoloUi.Place(l.rectTransform, new Vector2(0f, -bottom), new Vector2(ShapeWidth, legend));
             }
         }
 
