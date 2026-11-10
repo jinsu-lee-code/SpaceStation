@@ -127,6 +127,7 @@ namespace SpaceStation.Editor
             BuildEvoFortress();
             BuildEvoRadiationWall();
             BuildEvoDroneDepot();
+            BuildEvoCargoTransfer();
         }
 
         /// <summary>
@@ -4092,6 +4093,278 @@ namespace SpaceStation.Editor
                 });
         }
 
+        /// <summary>화물 환적장 보트 처음 자리 (s, <see cref="CargoFlumeCourse"/>): 0 = 정차 · 대기 둘 (앞 보트 뒤 3.1씩).</summary>
+        public static readonly float[] CargoBoatStarts = { 0f, 70.562f, 67.462f };
+
+        /// <summary>화물 환적장 탄 주민 자리 (보트마다 뒷줄 둘, 처음 자세 · 엉덩이 = 방석 앞 끝 − 0.07) · 보트 번호.</summary>
+        public static Vector3[] CargoRiderSeats()
+        {
+            var seats = new Vector3[CargoBoatStarts.Length * 2];
+            for (int b = 0; b < CargoBoatStarts.Length; b++)
+            {
+                CargoFlumeCourse.Pose(CargoBoatStarts[b], out var p, out var r);
+                for (int k = 0; k < 2; k++)
+                {
+                    var local = new Vector3(k == 0 ? -0.25f : 0.25f, 0.46f, -0.33f);
+                    seats[b * 2 + k] = p + r * local;
+                }
+            }
+            return seats;
+        }
+
+        public static readonly int[] CargoRiderBoats = { 0, 0, 1, 1, 2, 2 };
+
+        /// <summary>
+        /// 진화 2단계 화물 환적장 "은하수 후룸 항구" (3 × 2칸, ct_builder — 사용자 2026-11-09 시안 1 "유니티로 옮겨줘"): 직접 체험 = 후룸 보트 탑승 (<see cref="InteriorFlumeRide"/>).
+        /// 외형 평면 × 8 그대로: 뒤쪽 은하수 항구 못 (화물선 둘 · 뒷벽 레일 크레인 둘 — B가 정차 보트 고물에 컨테이너를 싣고 내림) · 동쪽 부두 정차장 · 오른쪽 물길 · 회전 못 (등대) ·
+        /// 체인 리프트 2.7 m · 산 뒤 능선 · 정상 터널 · 42° 큰 낙하 · 물보라 못 (<see cref="InteriorFlumeSplash"/>) · 앞 · 왼쪽 물길. 산 = 봉우리 여섯 (눈 모자 · 별), 산 속 실내 홀 둘 (별 동굴 라운지 · 관제실).
+        /// 높이만 낮춤 (탄 사람 눈 · 터널 머리 공간이 3.95 아래). 문 자리 = (2,0,0) 뒷면 하나 (외형 연결점이 있으면 열림, 닫힘 = 난간), 아래 해치 6, 위 해치 없음 (하늘).
+        /// 벤치 · 관람석에 앉음 (<see cref="InteriorBenchSeats"/>). 바깥 주민 = 우주복 (<see cref="InteriorOpenAir"/>), 산 속 홀 = 실내 상자.
+        /// </summary>
+        private static void BuildEvoCargoTransfer()
+        {
+            const float DeckEdge = 3.95f;
+            const string N = "INT_EvoCargoTransfer_";
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(2, 0, 0), new Vector3Int(0, 0, -1), DeckEdge),                         // 뒷면 문 (남쪽 길)
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(1.40f, 0f, 0.40f)),        // 서쪽 광장
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(2.40f, 0f, 1.05f)),        // 동남 광장 서쪽
+                new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(-2.35f, 0f, 1.10f)),       // 동남 광장 동쪽
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(1.20f, 0f, -1.15f)),       // 부두 만
+                new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(-3.42f, 0f, -3.42f)),      // 라운지
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(-1.98f, 0f, -1.42f)),      // 정차장 동쪽
+            };
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var white = new Color(1f, 0.97f, 0.92f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(2.40f, 0.60f, 4.15f), 5f, 0.5f, warm),      // 라운지
+                LightSpec.Point(new Vector3(5.30f, 0.60f, 4.75f), 5f, 0.5f, warm),
+                LightSpec.Point(new Vector3(10.30f, 0.60f, 4.25f), 5f, 0.5f, white),    // 관제실
+                LightSpec.Point(new Vector3(12.60f, 0.70f, 4.10f), 5f, 0.5f, cool),
+                LightSpec.Point(new Vector3(4.00f, 0.55f, 2.70f), 3f, 0.35f, warm),     // 현관 굴
+                LightSpec.Point(new Vector3(12.00f, 0.55f, 2.75f), 3f, 0.35f, warm),
+                LightSpec.Point(new Vector3(0.40f, 0.75f, 1.60f), 7f, 0.5f, warm),      // 서쪽 광장
+                LightSpec.Point(new Vector3(4.70f, 0.75f, -1.00f), 7f, 0.5f, warm),
+                LightSpec.Point(new Vector3(7.40f, 2.00f, -1.30f), 7f, 0.6f, cool),     // 물보라 못
+                LightSpec.Point(new Vector3(14.70f, 0.75f, 2.55f), 6f, 0.5f, warm),     // 동남 등불 · 관람석 빛 대롱 · 남쪽 길
+                LightSpec.Point(new Vector3(14.85f, 0.70f, -1.20f), 7f, 0.5f, warm),
+                LightSpec.Point(new Vector3(12.00f, 0.70f, -2.55f), 6f, 0.45f, warm),
+                LightSpec.Point(new Vector3(11.20f, 0.55f, 5.62f), 6f, 0.5f, warm),     // 정차장 바위 벽 등
+                LightSpec.Point(new Vector3(13.70f, 0.55f, 5.52f), 6f, 0.5f, warm),
+                LightSpec.Point(new Vector3(8.80f, 0.40f, 7.05f), 4f, 0.35f, warm),     // 바위 회랑
+                LightSpec.Point(new Vector3(2.20f, 0.75f, 7.80f), 6f, 0.45f, warm),     // 서쪽 부두
+                LightSpec.Point(new Vector3(5.90f, 0.75f, 7.80f), 6f, 0.45f, warm),
+                LightSpec.Point(new Vector3(17.20f, 0.30f, -0.10f), 4f, 0.4f, cool),    // 회전 못 등대
+                LightSpec.Point(new Vector3(16.50f, 0.80f, 10.60f), 7f, 0.5f, cool),    // 야적장
+                LightSpec.Point(new Vector3(6.90f, 1.50f, 10.45f), 7f, 0.5f, cool),     // 화물선 사이
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec(N + "Beacon", new Vector3(17.20f, 0f, -0.10f), Vector3.up, 60f),   // 등대 렌즈
+            };
+            EvoAccent("CargoTransfer", "#A0E8C0");
+            // 스폰 = 서쪽 광장에서 정상 문 · 협곡 · 물보라 못을 바라봄
+            Build("EvoCargoTransfer", "Evolved/MD_Evo_CargoTransfer", sockets, new Vector3(1.70f, F, -0.55f), 62f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, System.Array.Empty<Vector3>());
+                    root.GetComponent<InteriorOpenAir>().SetIndoorBox(new Rect(0.70f, 3.25f, 13.60f, 2.40f), 0.70f);   // 산 속 홀 둘 (낙하 · 터널을 지나는 주민 발은 그 위라 바깥)
+                    var r = root.transform;
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, Quaternion rot, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation * rot;
+                        if (part != null)
+                        {
+                            var mesh = Child(root, part);
+                            if (mesh != null)
+                                mesh.SetParent(p, true);
+                        }
+                        return p;
+                    }
+                    // 컨테이너: 모델 하나 (정차 보트 고물, 바닥 가운데) → 화물선 칸 · 보트 고물에 복제, 몸통 색만 바꿈
+                    var containerMesh = Child(root, N + "Container");
+                    var containerBottom = new Vector3(CargoFlumeCourse.StationX - 0.925f, CargoFlumeCourse.LowWater + 0.15f, CargoFlumeCourse.LaneZ);
+                    var violet = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2VioletPath);
+                    var bodies = new[]
+                    {
+                        AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Paint_Evo_CargoTransfer.mat"),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoWhitePath),
+                        violet,
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GoldPath),
+                    };
+                    int crateCount = 0;
+                    Transform Crate(Vector3 bottom, int color)
+                    {
+                        var pivot = Pivot("Crate" + crateCount++, r, bottom, Quaternion.identity, null);
+                        var mesh = Object.Instantiate(containerMesh.gameObject, pivot).transform;
+                        mesh.name = "Container";
+                        mesh.localPosition = -containerBottom;
+                        mesh.localRotation = Quaternion.identity;
+                        var rend = mesh.GetComponent<MeshRenderer>();
+                        var mats = rend.sharedMaterials;
+                        for (int i = 0; i < mats.Length; i++)
+                        {
+                            if (mats[i] == violet && bodies[color % bodies.Length] != null)
+                                mats[i] = bodies[color % bodies.Length];
+                        }
+                        rend.sharedMaterials = mats;
+                        return pivot;
+                    }
+                    // 화물선 칸 8 (ct_builder freighter: x = 배 중심 + −0.6 · 0 · 0.6 · 1.2, z 9.99 · 10.89, 갑판 −0.87) — 앞 다섯 = 상자 든 칸
+                    const float DeckY = -0.87f;
+                    var order = new[] { (0, 0), (0, 1), (1, 1), (2, 1), (3, 0), (1, 0), (2, 0), (3, 1) };
+                    var colors = new[] { 0, 1, 3, 1, 2 };
+                    float[] dxs = { -0.6f, 0f, 0.6f, 1.2f };
+                    float[] zs = { 9.99f, 10.89f };
+                    Vector3[] ShipSlots(float cx)
+                    {
+                        var slots = new Vector3[order.Length];
+                        for (int i = 0; i < order.Length; i++)
+                            slots[i] = new Vector3(cx + dxs[order[i].Item1], DeckY, zs[order[i].Item2]);
+                        return slots;
+                    }
+                    InteriorStorageCrane.Rig Crane(string tag, float x, float minX, float maxX, float lift)
+                    {
+                        const float zr = 11.575f, tz = 10.44f;
+                        var bridge = Pivot("Crane" + tag + "BridgePivot", r, new Vector3(x, 1.7f, zr), Quaternion.identity, N + "Crane" + tag + "_Bridge");
+                        var trolley = Pivot("Crane" + tag + "TrolleyPivot", bridge, new Vector3(x, 1.58f, tz), Quaternion.identity, N + "Crane" + tag + "_Trolley");
+                        var cable = Pivot("Crane" + tag + "CablePivot", trolley, new Vector3(x, 1.53f, tz), Quaternion.identity, N + "Crane" + tag + "_Cable");
+                        var grip = Pivot("Crane" + tag + "GripPivot", trolley, new Vector3(x, 0f, tz), Quaternion.identity, N + "Crane" + tag + "_Grip");
+                        return new InteriorStorageCrane.Rig
+                        {
+                            Bridge = bridge, Trolley = trolley, Cable = cable, Grip = grip,
+                            RestX = x, RestZ = tz, MinX = minX, MaxX = maxX,
+                            GripRestY = 0f, GripFrameHeight = 0.06f, CableTopY = 1.53f, CableLength = 1f, CrateHeight = 0.40f, LiftSpeed = lift,
+                        };
+                    }
+                    var slotsA = ShipSlots(3.56f);
+                    var cratesA = new Transform[5];
+                    for (int i = 0; i < 5; i++)
+                        cratesA[i] = Crate(slotsA[i], colors[i]);
+                    root.AddComponent<InteriorStorageCrane>().Configure(Crane("A", 3.56f, 2.9f, 4.8f, 0.3f), cratesA, slotsA);
+                    // 보트 셋 (피벗 = 흘수선 가운데, +z = 앞): 0번 = 모델 (정차 자세), 1 · 2 = 복제. 객실 색 0 = Paint · 1 = Evo2Violet · 2 = EvoWhite, 고물 컨테이너 0 · 2 = 실음
+                    CargoFlumeCourse.Pose(0f, out var dockPos, out var dockRot);
+                    int n = CargoBoatStarts.Length;
+                    var boats = new Transform[n];
+                    var seats = new Transform[n * 2];
+                    var barsF = new Transform[n];
+                    var barsR = new Transform[n];
+                    var anchors = new Transform[n];
+                    var cargo = new Transform[n];
+                    var boat0 = Pivot("Boat0_Pivot", r, dockPos, dockRot, N + "Boat");
+                    Child(root, N + "BoatSoft").SetParent(boat0, true);
+                    var hingeF = new GameObject("BarF").transform;
+                    hingeF.SetParent(boat0, false);
+                    hingeF.localPosition = new Vector3(0f, 0.62f, 0.62f);
+                    Child(root, N + "BoatBarF").SetParent(hingeF, true);
+                    var hingeR = new GameObject("BarR").transform;
+                    hingeR.SetParent(boat0, false);
+                    hingeR.localPosition = new Vector3(0f, 0.62f, -0.20f);
+                    Child(root, N + "BoatBarR").SetParent(hingeR, true);
+                    for (int k = 0; k < 2; k++)
+                    {
+                        var seat = new GameObject(k == 0 ? "SeatL" : "SeatR").transform;
+                        seat.SetParent(boat0, false);
+                        seat.localPosition = new Vector3(k == 0 ? -0.25f : 0.25f, 0.53f, 0.38f);
+                        seat.gameObject.AddComponent<BoxCollider>().size = new Vector3(0.46f, 0.15f, 0.36f);
+                    }
+                    var anchor0 = new GameObject("CargoAnchor").transform;
+                    anchor0.SetParent(boat0, false);
+                    anchor0.localPosition = new Vector3(0f, 0.15f, -0.925f);
+                    anchor0.localRotation = Quaternion.Inverse(dockRot);   // 정차 자세에서 템플릿과 같은 방향 (컨테이너 긴 변 = 템플릿 z)
+                    var cabinMats = new[] { null, violet, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoWhitePath) };
+                    var paint = bodies[0];
+                    for (int b = 0; b < n; b++)
+                    {
+                        var boat = b == 0 ? boat0 : Object.Instantiate(boat0.gameObject, r).transform;
+                        boat.name = $"Boat{b}_Pivot";
+                        if (b > 0 && cabinMats[b] != null)
+                        {
+                            var rend = boat.Find(N + "Boat").GetComponent<MeshRenderer>();
+                            var mats = rend.sharedMaterials;
+                            for (int i = 0; i < mats.Length; i++)
+                            {
+                                if (mats[i] == paint)
+                                    mats[i] = cabinMats[b];
+                            }
+                            rend.sharedMaterials = mats;
+                        }
+                        boats[b] = boat;
+                        barsF[b] = boat.Find("BarF");
+                        barsR[b] = boat.Find("BarR");
+                        seats[b * 2] = boat.Find("SeatL");
+                        seats[b * 2 + 1] = boat.Find("SeatR");
+                        anchors[b] = boat.Find("CargoAnchor");
+                    }
+                    for (int b = 0; b < n; b++)
+                    {
+                        if (b == 1)
+                            continue;   // 컨테이너는 복제가 끝난 뒤 실음 (먼저 실으면 복제 보트에 크레인이 모르는 상자가 따라감)
+                        var crate = Crate(containerBottom, b == 0 ? 3 : 0);
+                        crate.SetParent(anchors[b], true);
+                        cargo[b] = crate;
+                    }
+                    containerMesh.gameObject.SetActive(false);   // 원본은 복제용
+                    // 크레인 B: 화물선 B 칸 다섯 + 보트 고물 상자 둘 (정차 일 — 빈 보트에 싣고 실린 보트에서 내림)
+                    var slotsB = ShipSlots(10.20f);
+                    var cratesB = new List<Transform>();
+                    var colorsB = new[] { 2, 0, 1, 3, 0 };
+                    for (int i = 0; i < 5; i++)
+                        cratesB.Add(Crate(slotsB[i], colorsB[i]));
+                    foreach (var c in cargo)
+                    {
+                        if (c != null)
+                            cratesB.Add(c);
+                    }
+                    var craneB = root.AddComponent<InteriorStorageCrane>();
+                    craneB.Configure(Crane("B", CargoFlumeCourse.StationX - 0.925f, 9.55f, 11.45f, 0.4f), cratesB.ToArray(), slotsB, 5);
+                    // 문짝 (정차장 못 벽 위, −x로 주머니 속)
+                    var gate = Child(root, N + "Gate");
+                    BoxOf(gate, 0f);
+                    // 체인 고리 17 (모델 = 리프트 시작 + 0.3 자세)
+                    const int Lugs = 17;
+                    var lugs = new Transform[Lugs];
+                    float lugS = CargoFlumeCourse.LiftStart + 0.3f;
+                    CargoFlumeCourse.Pose(lugS, out var lugPos, out var lugRot);
+                    lugPos.y = CargoFlumeCourse.Water(lugS);
+                    lugs[0] = Pivot("Lug0", r, lugPos, lugRot, N + "ChainLug");
+                    for (int k = 1; k < Lugs; k++)
+                    {
+                        lugs[k] = Object.Instantiate(lugs[0].gameObject, r).transform;
+                        lugs[k].name = "Lug" + k;
+                    }
+                    var splash = root.AddComponent<InteriorFlumeSplash>();
+                    splash.Configure(ModuleFxMaterials.Get("FireworkSpark"), ModuleFxMaterials.Get("Ripple"));
+                    var starts = (float[])CargoBoatStarts.Clone();
+                    root.AddComponent<InteriorFlumeRide>().Configure(boats, seats, barsF, barsR, anchors, cargo, starts, gate, lugs, craneB, splash, font,
+                        new Vector3(11.6f, F + 2.0f, 7.70f), CargoRiderSeats(), CargoRiderBoats);
+                    // 벤치 · 관람석 (ct_builder bleachers · plazas · hall_props, 엉덩이 = 앞 끝 − 0.07)
+                    var benchSeats = new List<Vector4>();
+                    var boxes = new List<Bounds>();
+                    void Seat(float x0, float x1, float z0, float z1, float y0, float top, float yaw, params Vector2[] at)
+                    {
+                        boxes.Add(new Bounds(new Vector3((x0 + x1) * 0.5f, (y0 + top + 0.01f) * 0.5f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, top + 0.01f - y0, z1 - z0)));
+                        foreach (var p in at)
+                            benchSeats.Add(new Vector4(p.x, top, p.y, yaw));
+                    }
+                    foreach (var (sa, top) in new[] { (11.70f, F + 0.42f), (12.80f, F + 0.66f), (13.90f, F + 0.90f) })
+                        Seat(sa, sa + 0.40f, -2.30f, -0.85f, top - 0.3f, top, -90f, new Vector2(sa + 0.07f, -2.125f), new Vector2(sa + 0.07f, -1.575f), new Vector2(sa + 0.07f, -1.025f));
+                    Seat(2.60f, 2.96f, -0.60f, 0.60f, F, F + 0.42f, 90f, new Vector2(2.89f, -0.30f), new Vector2(2.89f, 0.30f));
+                    Seat(-1.22f, -0.80f, -1.02f, -0.60f, F, F + 0.43f, 62.5f, new Vector2(-1.003f, -0.814f));
+                    Seat(-0.93f, -0.50f, -1.32f, -0.88f, F, F + 0.43f, 27.5f, new Vector2(-0.714f, -1.103f));
+                    Seat(1.42f, 1.78f, 3.75f, 4.45f, F, F + 0.42f, 90f, new Vector2(1.71f, 3.92f), new Vector2(1.71f, 4.28f));
+                    Seat(5.70f, 6.70f, 5.15f, 5.51f, F, F + 0.42f, 180f, new Vector2(5.95f, 5.22f), new Vector2(6.45f, 5.22f));
+                    root.AddComponent<InteriorBenchSeats>().Configure(benchSeats.ToArray(), boxes.ToArray(), -6f);
+                });
+        }
+
         private static Transform Child(GameObject root, string name) => root.transform.Find(name);
 
         /// <summary>12-5 모듈 강조색 도장 (발광 없음) `M_Paint_{모듈}.mat` — 강조 재질 바탕색을 따름. 강조 재질(발광)을 큰 소품에 쓰면 평평하게 빛났음.</summary>
@@ -5350,6 +5623,7 @@ namespace SpaceStation.Editor
             { "EvoFortress", InteriorAmbience.Life },             // 연병장 · 불꽃 구경
             { "EvoRadiationWall", InteriorAmbience.Life },        // 병풍 정원 · 찻집
             { "EvoDroneDepot", InteriorAmbience.Machine },        // 수리 칸 · 드론
+            { "EvoCargoTransfer", InteriorAmbience.Water },       // 은하수 후룸 · 항구 못
         };
 
         /// <summary>

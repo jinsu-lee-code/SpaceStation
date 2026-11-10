@@ -65,6 +65,13 @@ namespace SpaceStation.Editor
             })
                 tower.Add(new PlantSpot(new Vector3(x, y, z), PlantKind.Pot, s, (n++) * 53f));
             Set("IT_EvoTower", tower);
+            // 진화 2단계 화물 환적장 (ct_builder PLANTS): 모두 유리 덮개 속 — 라운지 나무 · 화분, 서쪽 광장 화분
+            Set("IT_EvoCargoTransfer", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(3.05f, -0.92f, 5.0f), PlantKind.Tree, 0.55f, 0f),
+                new PlantSpot(new Vector3(6.4f, -0.92f, 4.55f), PlantKind.Pot, 0.4f, 0f),
+                new PlantSpot(new Vector3(5.05f, -0.92f, 1.3f), PlantKind.Pot, 0.4f, 53f),
+            });
             // 진화 2단계 식량 공장 (ff_builder PLANTS): 2층 카페 화분 둘
             Set("IT_EvoFoodFactory", new List<PlantSpot>
             {
