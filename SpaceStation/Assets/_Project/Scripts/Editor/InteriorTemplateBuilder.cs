@@ -4712,6 +4712,11 @@ namespace SpaceStation.Editor
                         BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
                     }
                     lift.Configure(car, offsets, left, right, new Vector3(16f, stops[0] + 0.085f, 16f), Vector3.right, OrbitalCity.CarRadius - 0.1f);
+                    // 옥상 망원경 (oc_builder ScopeHead — 관절 = 받침 위 1.14, 쉬는 기울기 18°, 사용자 2026-11-11 "정면 망원경에 상호작용 없음"):
+                    // 다른 전망대처럼 들여다보기, 앞 (−z · 폭포 · 섬 앞)을 쉴 때 방향으로 좌우 ±100°
+                    var scope = Child(root, N + "ScopeHead");
+                    BoxOf(scope, 0.06f);
+                    root.AddComponent<InteriorTelescope>().Configure(scope, P(3.1f, 270f, stops[stops.Length - 1] + 1.14f), 18f, 0f, font, 90f - 270f, 100f, startPitch: -16f, startFov: 24f, minPitch: -60f);
                     // 궤도열차: 허브 축 피벗 아래 (쉬는 자세 = 역), 운전석 = 앞 차 방석 (보고 F)
                     var pivot = new GameObject("TrainPivot").transform;
                     pivot.SetParent(r, false);

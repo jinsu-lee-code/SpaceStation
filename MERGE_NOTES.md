@@ -2462,3 +2462,13 @@
 ### `narrative` · `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `647ce7bd`). 씬 (템플릿 등록) · TASKS · 글꼴은 tycoon에만
 - **KWS 패키지 (`Assets/KriptoFX`)는 git에 없음** — 다른 PC는 사용자가 패키지를 넣고 KWS_PATCH.md대로 셰이더 두 곳을 고쳐야 우주 하늘 반사가 나옴 (없으면 물은 Blender 수면 · 만화 물로 보임, 컴파일은 됨)
+
+## M-165. 궤도 도시 지적 넷 고침 (2026-11-11, `main`)
+
+**main에 넣은 것**
+- 단 웅덩이를 물줄기 폭보다 크게 (0.95 · 바닥 0.85) 옹벽 밑에 붙이고 단 잔디 · 꼭대기 길 원판에 구멍 (2층부터 폭포가 풀에 떨어졌음) — `OrbitalCity.Falls` 착지점 갱신
+- 옥상 망원경 머리 `ScopeHead` + `InteriorTelescope` (앞 ±100°), 옥상 화단 · 벤치 · 망원경을 바깥으로 (꼬인 줄기 때문에 1/4만 다녔음) — 시험 `Walk_RoofDeckAllAround`
+- 섬을 모듈 경계까지 꽉 찬 둥근 사각 (초타원 n 9) + 모서리 나무 여덟 (안에서 이웃 모듈이 멀어 보였음), `InteriorPlantSpots` 47 · 해치 자리 갱신
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `46b0e84c`). 씬 (템플릿 등록) · TASKS · 글꼴은 tycoon에만
