@@ -20,6 +20,26 @@ namespace SpaceStation.Interior
             public GameObject PotWilted;
             public GameObject Tree;
             public GameObject TreeWilted;
+            public GameObject Pine;
+            public GameObject PineWilted;
+            public GameObject Blossom;
+            public GameObject BlossomWilted;
+
+            public GameObject Healthy(PlantKind kind) => kind switch
+            {
+                PlantKind.Tree => Tree,
+                PlantKind.Pine => Pine != null ? Pine : Tree,
+                PlantKind.Blossom => Blossom != null ? Blossom : Tree,
+                _ => Pot,
+            };
+
+            public GameObject Wilted(PlantKind kind) => kind switch
+            {
+                PlantKind.Tree => TreeWilted,
+                PlantKind.Pine => Pine != null ? PineWilted : TreeWilted,
+                PlantKind.Blossom => Blossom != null ? BlossomWilted : TreeWilted,
+                _ => PotWilted,
+            };
         }
 
         /// <summary>놓인 식물 하나.</summary>
@@ -85,8 +105,8 @@ namespace SpaceStation.Interior
                 return;
             foreach (var spot in template.PlantSpots)
             {
-                var healthy = spot.Kind == PlantKind.Tree ? _s.Tree : _s.Pot;
-                var wilted = spot.Kind == PlantKind.Tree ? _s.TreeWilted : _s.PotWilted;
+                var healthy = _s.Healthy(spot.Kind);
+                var wilted = _s.Wilted(spot.Kind);
                 if (healthy == null)
                     continue;
                 var root = new GameObject("Plant").transform;

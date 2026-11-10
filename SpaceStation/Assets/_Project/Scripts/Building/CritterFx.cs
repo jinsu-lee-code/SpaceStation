@@ -46,6 +46,8 @@ namespace SpaceStation.Building
         [SerializeField] private float _beeSpeed = 0.14f;
         [Tooltip("밀어내기 여유")]
         [SerializeField] private float _gap = 0.006f;
+        [Tooltip("모듈 화면 없이 바로 움직임 (내부 템플릿 — 궤도 도시 정원의 사슴 · 토끼 · 백조 · 나비, 2026-11-10)")]
+        [SerializeField] private bool _autoPlay;
 
         private struct State
         {
@@ -79,7 +81,7 @@ namespace SpaceStation.Building
         private void Start()
         {
             var view = GetComponentInParent<ModuleView>();
-            if (view != null && view.Module != null)
+            if (_autoPlay || (view != null && view.Module != null))
                 Play();
         }
 
