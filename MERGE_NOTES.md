@@ -2392,3 +2392,11 @@
 
 ### `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `38904126`). TASKS · 글꼴은 tycoon에만
+
+## M-158. 화물 환적장 물통 · 못 입구 이음새 (2026-11-10, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `a16aa9f2`)
+- 사용자 플레이 확인 "서로 연결이 끊겨있잖아" (물통 벽이 둥근 못 벽과 떨어짐 · 물 없는 구덩이): Blender `ct_builder`에서 물통을 못 안쪽으로 2 m 더 쓴 뒤 못 안쪽 면으로 잘라 끝을 못 벽 안면에 맞춤, 물 띠는 못 물 1 cm 아래로 이어 줌 → `SM_Interior_EvoCargoTransfer.fbx` · `PF_Interior_EvoCargoTransfer` 다시 빌드. 코드 변경 없음
+
+### `narrative` · `tycoon` 합칠 때
+- 모델 · 프리팹만 바뀜 (tycoon 커밋 `a16aa9f2`). TASKS · 글꼴은 tycoon에만
