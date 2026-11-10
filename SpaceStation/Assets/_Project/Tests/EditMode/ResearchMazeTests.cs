@@ -43,6 +43,23 @@ namespace SpaceStation.Tests
             }
         }
 
+        /// <summary>주민 서는 자리가 미로 길 (바깥 고리 ~ 안 고리 사이, 폭 1.4 ~ 1.5) 안에 없음 — 선 주민이 길을 막음 (사용자 2026-11-10).</summary>
+        [Test]
+        public void ResidentSpots_StayOutOfCorridors()
+        {
+            var template = AssetDatabase.LoadAssetAtPath<SpaceStation.Data.InteriorTemplate>("Assets/_Project/Data/Interior/IT_EvoResearchInstitute.asset");
+            if (template == null)
+                Assert.Ignore("템플릿 없음 (Build Evolved Templates 먼저)");
+            var c = ResearchMaze.Center;
+            float outer = ResearchMaze.Rings[0] + ResearchMaze.Wall / 2f, inner = ResearchMaze.Rings[2] - ResearchMaze.Wall / 2f;
+            Assert.Greater(template.ResidentSpots.Count, 4);
+            foreach (var spot in template.ResidentSpots)
+            {
+                float d = Mathf.Max(Mathf.Abs(spot.Position.x - c.x), Mathf.Abs(spot.Position.z - c.z));
+                Assert.IsTrue(d > outer + 0.3f || d < inner - 0.3f, $"미로 길 안 주민 자리 {spot.Position}");
+            }
+        }
+
         /// <summary>프리팹 몸체 · 유리 · 벤치 충돌체로 0.2 m 격자를 걸어 봄 (몸 반지름 0.28): 입구 · 해치 넷에서 연구실 가운데까지 닿고, 해치 뚜껑 · 길잡이 점이 벽에 묻히지 않음.</summary>
         [Test]
         public void Walk_ReachesLab_FromEntranceAndHatches()

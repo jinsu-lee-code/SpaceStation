@@ -2430,3 +2430,12 @@
 
 ### `narrative` · `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `fc55f5b1`). 씬 · TASKS · 글꼴은 tycoon에만
+
+## M-162. 연구원 미로 글씨 넘침 · 길 막는 주민 · 튀어나온 턱 (2026-11-10, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `c164d215`의 변경분을 패치로)
+- 사용자 확인 1차 세 가지: `InteriorMaze` 화면 글씨 (404 · 간판 · 길잡이) = 글씨 상자를 화면보다 작게 + 저절로 줄어듦 · `ResidentSpotBaker` 연구원 서는 자리를 미로 길 밖 (갑판 · 연구실 둘레)으로 · `mz_builder` 반쯤 막은 턱 다섯 없앰 (가로막 둘만) → `SM_Interior_EvoResearchInstitute.fbx` · 프리팹 · 템플릿 다시 빌드
+- 테스트: `ResearchMazeTests.ResidentSpots_StayOutOfCorridors`
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `c164d215`). 씬 · TASKS · 글꼴은 tycoon에만
