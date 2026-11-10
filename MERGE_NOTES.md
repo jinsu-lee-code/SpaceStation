@@ -2472,3 +2472,12 @@
 
 ### `narrative` · `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `46b0e84c`). 씬 (템플릿 등록) · TASKS · 글꼴은 tycoon에만
+
+## M-166. 궤도 도시 계단 난간 · 다리 내린 자리 (2026-11-11, `main`)
+
+**main에 넣은 것**
+- 단 계단 여섯 바깥 손잡이 + 꼭대기 끝막이 · 꼭대기 참 · 위 두 단 계단 폭 1.3, 바닥 단 계단 둘을 뒤집어 315° 다리 안쪽 끝과 안 겹치게 (Blender oc_builder · FBX · 프리팹)
+- 시험 `Walk_BridgeLandingsBothWays`
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `a962e008`). 씬 · TASKS · 글꼴은 tycoon에만

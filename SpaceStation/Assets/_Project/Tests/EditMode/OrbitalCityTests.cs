@@ -177,6 +177,94 @@ namespace SpaceStation.Tests
         }
 
         /// <summary>
+        /// 고리 강 다리 넷 (사용자 2026-11-11 "다리를 넘어가면 계단과 겹친 방향으로 못 감"): 315° 다리 안쪽 끝이 바닥 단 계단 꼭대기와 겹쳐 한쪽이 막혔음 →
+        /// 다리 가운데에서 내려 양옆 (다리 각 ± 12°, 언덕 앞 고리 길 · 계단 아랫 칸)까지 다리 근처 (± 32°) 안에서만 걸어 닿아야 함.
+        /// 바닥 · 다리 · 계단 아랫 칸 (F + 0.8 아래)만 마디 (0.1 m 격자, 몸 반지름 0.28 · 발 위 0.5 ~ 1.6).
+        /// </summary>
+        [Test]
+        public void Walk_BridgeLandingsBothWays()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                const float F = -1.3f, step = 0.1f, x0 = 1f, z0 = 1f;
+                int n = Mathf.RoundToInt(30f / step) + 1;
+                var node = new int[n, n];
+                var pos = new List<Vector3>();
+                for (int i = 0; i < n; i++)
+                {
+                    for (int j = 0; j < n; j++)
+                    {
+                        node[i, j] = -1;
+                        float x = x0 + i * step, z = z0 + j * step, r = Mathf.Sqrt((x - 16f) * (x - 16f) + (z - 16f) * (z - 16f));
+                        if (r < 9.6f || r > 14.8f)
+                            continue;
+                        if (!Physics.Raycast(new Vector3(x, F + 3.3f, z), Vector3.down, out var hit, 4.5f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) || hit.normal.y < 0.7f || hit.point.y > F + 0.8f)
+                            continue;
+                        var p = hit.point;
+                        if (Physics.CheckCapsule(p + Vector3.up * 0.5f, p + Vector3.up * 1.6f, 0.28f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                            continue;
+                        node[i, j] = pos.Count;
+                        pos.Add(p);
+                    }
+                }
+                float Ang(Vector3 p) => Mathf.Repeat(Mathf.Atan2(p.z - 16f, p.x - 16f) * Mathf.Rad2Deg, 360f);
+                foreach (float b in new[] { 45f, 135f, 225f, 315f })
+                {
+                    var c = OrbitalCity.Polar(12.8f, b, F);
+                    int ci = Mathf.RoundToInt((c.x - x0) / step), cj = Mathf.RoundToInt((c.z - z0) / step), start = -1;
+                    for (int r = 0; r <= 4 && start < 0; r++)
+                        for (int di = -r; di <= r && start < 0; di++)
+                            for (int dj = -r; dj <= r && start < 0; dj++)
+                                if (node[ci + di, cj + dj] >= 0)
+                                    start = node[ci + di, cj + dj];
+                    Assert.GreaterOrEqual(start, 0, $"다리 {b}°: 다리 위에 설 곳 없음");
+                    var seen = new bool[pos.Count];
+                    var q = new Queue<int>();
+                    q.Enqueue(start);
+                    seen[start] = true;
+                    while (q.Count > 0)
+                    {
+                        var p = pos[q.Dequeue()];
+                        int i = Mathf.RoundToInt((p.x - x0) / step), j = Mathf.RoundToInt((p.z - z0) / step);
+                        foreach (var (di, dj) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+                        {
+                            int a = i + di, k = j + dj;
+                            if (a < 0 || k < 0 || a >= n || k >= n || node[a, k] < 0 || seen[node[a, k]])
+                                continue;
+                            var o = pos[node[a, k]];
+                            if (Mathf.Abs(o.y - p.y) > 0.36f || Mathf.Abs(Mathf.DeltaAngle(Ang(o), b)) > 32f)
+                                continue;
+                            seen[node[a, k]] = true;
+                            q.Enqueue(node[a, k]);
+                        }
+                    }
+                    foreach (float s in new[] { -12f, 12f })
+                    {
+                        bool any = false, reached = false;
+                        for (float r = 10.2f; r <= 11.3f; r += 0.05f)
+                        {
+                            var t = OrbitalCity.Polar(r, b + s, F);
+                            int a = Mathf.RoundToInt((t.x - x0) / step), k = Mathf.RoundToInt((t.z - z0) / step);
+                            if (node[a, k] < 0)
+                                continue;
+                            any = true;
+                            reached |= seen[node[a, k]];
+                        }
+                        Assert.IsTrue(any, $"다리 {b}° 옆 {b + s}°: 언덕 앞에 설 곳 없음");
+                        Assert.IsTrue(reached, $"다리 {b}°에서 내려 {b + s}° 쪽으로 못 감 (계단 · 다리 기둥에 막힘)");
+                    }
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>
         /// 0.25 m 격자 기둥마다 아래로 쏜 모든 바닥 (높이가 다른 바닥 = 층) 중 몸 (반지름 0.28 · 발 위 0.5 ~ 1.6 — 계단 한 칸은 넘음)이 들어가는 곳을 마디로,
         /// 이웃 마디 높이 차 0.36 이하면 이어 걸음 (계단 한 칸 0.18). 스폰 (앞 고리 길)에서: 해치 21 · 승강장 · 아래 · 위 단 · 꼭대기 광장 · 뿌리 홀까지 닿음.
         /// </summary>
