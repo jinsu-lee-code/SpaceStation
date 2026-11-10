@@ -125,6 +125,9 @@ namespace SpaceStation.Editor
         public const string Evo3FlowerPath = MaterialFolder + "/M_InteriorEvo3Flower.mat";   // 해바라기 꽃잎 · 노란 꽃
         public const string Evo3Leaf2Path = MaterialFolder + "/M_InteriorEvo3Leaf2.mat";     // 양배추 · 밝은 잎
         public const string Evo3BarkPath = MaterialFolder + "/M_InteriorEvo3Bark.mat";       // 통나무 · 바구니
+        public const string Evo3FallsColumnPath = MaterialFolder + "/M_InteriorEvo3FallsColumn.mat";   // 둥근 폭포 기둥 (WaterFalls, 옆 흐림 끔 — 원기둥 UV에서 한쪽이 지워졌음)
+        public const string SoftRainbowPath = MaterialFolder + "/M_InteriorSoftRainbow.mat";   // 오로라처럼 옅은 무지개 띠 (SoftRainbow, 발끝 흐림)
+        public const string SoftHaloPath = MaterialFolder + "/M_InteriorSoftHalo.mat";         // 프리즘 둘레 옅은 무지개 고리 (끝 없음)
         public const string Evo3BlossomPath = MaterialFolder + "/M_InteriorEvo3Blossom.mat"; // 열차 방석 (연분홍 천)     // 병풍 해 · 세 날개 표지 · 석등 불빛 (레몬빛)
         public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
         public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
@@ -567,7 +570,7 @@ namespace SpaceStation.Editor
             EvoSurface(Evo3BlossomPath, new Color(0.97f, 0.7f, 0.8f), 0f, 0.3f);
             EvoSurface(Evo3RoofPath, new Color(0.93f, 0.6f, 0.5f), 0f, 0.35f);    // 시안 2 마을 집 (Blender Evo3Roof와 같은 색)
             EvoSurface(Evo3DoorPath, new Color(0.45f, 0.68f, 0.78f), 0.1f, 0.5f);
-            EvoSurface(Evo3WheatPath, new Color(0.93f, 0.76f, 0.38f), 0f, 0.25f);
+            EvoSurface(Evo3WheatPath, new Color(0.95f, 0.84f, 0.55f), 0f, 0.25f);   // 밝은 밀빛 (주황 원뿔처럼 보였음)
             EvoSurface(Evo3LavenderPath, new Color(0.62f, 0.48f, 0.92f), 0f, 0.3f);
             EvoSurface(Evo3TulipPath, new Color(0.95f, 0.3f, 0.35f), 0f, 0.35f);
             EvoSurface(Evo3FieldPath, new Color(0.62f, 0.48f, 0.3f), 0f, 0.08f);
@@ -973,6 +976,21 @@ namespace SpaceStation.Editor
             falls.SetTexture("_MaskTex", AssetDatabase.LoadAssetAtPath<Texture2D>(FallsMaskPath));
             falls.renderQueue = -1;
             EditorUtility.SetDirty(falls);
+            var column = Fresh(Evo3FallsColumnPath, "SpaceStation/WaterFalls");   // 둥근 기둥: 옆 흐림 · 찢김 끔, 결은 둘레를 따라 촘촘히
+            column.SetTexture("_MaskTex", AssetDatabase.LoadAssetAtPath<Texture2D>(FallsMaskPath));
+            column.SetFloat("_EdgeSoft", 0.01f);
+            column.SetFloat("_EdgeBreak", 0f);
+            column.SetVector("_StreakScale", new Vector4(2.4f, 1.1f, 0f, 0f));
+            column.renderQueue = -1;
+            EditorUtility.SetDirty(column);
+            var rainbow = Fresh(SoftRainbowPath, "SpaceStation/SoftRainbow");
+            rainbow.SetFloat("_Intensity", 0.32f);
+            rainbow.SetFloat("_EndFade", 0.25f);
+            EditorUtility.SetDirty(rainbow);
+            var halo = Fresh(SoftHaloPath, "SpaceStation/SoftRainbow");
+            halo.SetFloat("_Intensity", 0.26f);
+            halo.SetFloat("_EndFade", 0f);
+            EditorUtility.SetDirty(halo);
             // 물안개 · 물방울 · 거품 입자: URP Particles/Unlit 반투명 섞기 + 부드러운 점 (T_SoftDot)
             var mist = LoadOrCreate(FallsMistPath, Shader.Find("Universal Render Pipeline/Particles/Unlit"));
             mist.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/_Project/Art/Materials/FX/T_SoftDot.png"));

@@ -76,13 +76,26 @@ namespace SpaceStation.Interior
             (Polar(RidgeOuter + 0.12f, 330f, RidgeTop + 0.21f), Polar(RidgeOuter - 0.12f, 330f, RidgeTop - 0.15f), 0.6f),
         };
 
-        /// <summary>물레방아 셋 (물길마다 넷째 단 → 셋째 단 작은 폭포 속, 굴대 = 물길 가로).</summary>
-        public static Vector3 WheelCenter(int stream) => Polar(TerraceInner(3) - 0.12f, Streams[stream], TerraceTop(2) + 0.2f);
+        /// <summary>물레방아 셋 (물길마다 넷째 단 → 셋째 단 작은 폭포 바로 앞, 반지름 0.32, 굴대 = 물길 가로).</summary>
+        public static Vector3 WheelCenter(int stream) => Polar(TerraceInner(3) - 0.3f, Streams[stream], TerraceTop(2) + 0.12f);
         public static Vector3 WheelAxis(int stream)
         {
             float a = Streams[stream] * Mathf.Deg2Rad;
             return new Vector3(-Mathf.Sin(a), 0f, Mathf.Cos(a));
         }
+
+        /// <summary>
+        /// 동물 자리 (Blender bio3_builder CRITTERS와 같은 값 — 꽃 · 잎 · 나무가 이 자리를 비킴, 사용자 2026-11-11 "동물들이랑도 겹친다"):
+        /// 종류 · 반지름 · 각 · 비탈 위 (아니면 바닥 F).
+        /// </summary>
+        public static readonly (string Kind, float Radius, float Angle, bool OnSlope)[] Critters =
+        {
+            ("Deer", 9.45f, 196f, true), ("Fawn", 9.6f, 203f, true), ("Deer", 13.6f, 140f, false),
+            ("Bunny", 9.5f, 122f, true), ("Bunny", 9.6f, 300f, true), ("Bunny", 12.2f, 60f, false),
+        };
+
+        /// <summary>숲 비탈 높이 (능선 바깥 8.6 → 옹벽 9.95, 위가 둥근 언덕).</summary>
+        public static float SlopeY(float r) => Floor + 0.55f + 1.0f * Mathf.Sin(Mathf.Clamp01((WallInner - r) / (WallInner - RidgeOuter)) * Mathf.PI * 0.5f);
 
         /// <summary>허브 둘레 각 deg · 반지름 r · 높이 y의 템플릿 좌표.</summary>
         public static Vector3 Polar(float r, float deg, float y)

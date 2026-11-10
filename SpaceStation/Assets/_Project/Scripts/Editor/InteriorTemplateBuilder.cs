@@ -4895,7 +4895,6 @@ namespace SpaceStation.Editor
             var warm = new Color(1f, 0.88f, 0.66f);
             var cool = new Color(0.82f, 0.9f, 1f);
             Vector3 P(float r, float deg, float y) => Biosphere.Polar(r, deg, y);
-            float SlopeY(float r) => Biosphere.Floor + 0.55f + 1.0f * Mathf.Sin(Mathf.Clamp01((Biosphere.WallInner - r) / (Biosphere.WallInner - Biosphere.RidgeOuter)) * Mathf.PI * 0.5f);
             var lights = new List<LightSpec>();
             for (int k = 0; k < 8; k++)
                 lights.Add(LightSpec.Point(P(8.1f, 22.5f + 45f * k, Biosphere.RidgeTop + 2.4f), 7f, 1.0f, white));        // 능선 산책길
@@ -4954,22 +4953,55 @@ namespace SpaceStation.Editor
                         if (plate != null)
                             plate.localPosition += Vector3.up * 0.5f;
                     }
-                    // 동물: 사슴 · 아기 사슴 · 토끼 · 백조 (오리 가족 자리, 내부 오리 모델은 다음) = SM_InteriorCritters (미터)
+                    // 물 · 나무 줄기에 못 들어가는 벽 (bio3_builder LakeHit — 호수 · 하늘 호수 · 연못 + 나무 줄기): 모양만 쓰고 보이지 않음
+                    //  (사용자 "중앙 호수 들어가면 나오지도 못함", 체크리스트 31 = 바이오돔과 같은 방식)
+                    var lakeHit = Child(root, N + "LakeHit");
+                    var lakeMesh = lakeHit.GetComponent<MeshFilter>().sharedMesh;
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshRenderer>());
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshFilter>());
+                    lakeHit.gameObject.AddComponent<MeshCollider>().sharedMesh = lakeMesh;
+                    // 비: 바깥 모듈과 같은 RainFx를 미터 단위로 (구름 고리와 함께 돌고, 비는 곧게 떨어짐 — 구운 빗줄 막대는 바깥 크기 값이라 점선처럼 멈춰 보였음)
+                    var rain = root.AddComponent<SpaceStation.Building.RainFx>();
+                    var rso = new SerializedObject(rain);
+                    rso.FindProperty("_clouds").objectReferenceValue = Child(root, N + "Halo");
+                    rso.FindProperty("_module").objectReferenceValue = r;
+                    var spots = rso.FindProperty("_cloudSpots");
+                    spots.arraySize = 5;
+                    for (int q = 0; q < 5; q++)
+                        spots.GetArrayElementAtIndex(q).vector3Value = P(5.9f, 72f * q + 18f, F + 8.1f);   // bio3_builder clouds() 구름 밑면 가운데
+                    rso.FindProperty("_ringCenter").vector3Value = Biosphere.Hub;
+                    rso.FindProperty("_area").vector2Value = new Vector2(1.5f, 0.6f);
+                    rso.FindProperty("_dropMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_RainDrop.mat");
+                    rso.FindProperty("_mistMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_RainMist.mat");
+                    rso.FindProperty("_fallSpeed").floatValue = 5.5f;
+                    rso.FindProperty("_groundY").floatValue = F - 0.07f;
+                    rso.FindProperty("_rate").floatValue = 90f;
+                    rso.FindProperty("_shelterHalfWidth").floatValue = 0f;   // 구름 아래엔 아치가 없음 (아치 다리는 구름 위)
+                    rso.FindProperty("_dropSize").vector2Value = new Vector2(0.005f, 0.008f);
+                    rso.FindProperty("_dropStretch").floatValue = 0.05f;
+                    rso.FindProperty("_sway").floatValue = 0.1f;
+                    rso.FindProperty("_mistSize").vector2Value = new Vector2(1.2f, 1.9f);
+                    rso.FindProperty("_mistFall").vector2Value = new Vector2(0.5f, 0.8f);
+                    rso.FindProperty("_alwaysOn").boolValue = true;
+                    rso.ApplyModifiedPropertiesWithoutUndo();
+                    // 동물: 사슴 · 아기 사슴 · 토끼 (Biosphere.Critters — 꽃 · 잎이 비킨 자리) · 백조 (오리 가족 자리, 내부 오리 모델은 다음) = SM_InteriorCritters (미터)
                     var critterSrc = new Dictionary<string, GameObject>();
                     foreach (var o in AssetDatabase.LoadAllAssetsAtPath("Assets/_Project/Art/Models/Interior/SM_InteriorCritters.fbx"))
                     {
                         if (o is GameObject g && g.name.StartsWith("Critter_") && g.GetComponent<MeshFilter>() != null)
                             critterSrc[g.name] = g;
                     }
-                    CritterGroup(r, critterSrc, "Critters_Deer", 13f, new[]
+                    float[] yaws = { 40f, -60f, 80f, 30f, 200f, -40f };
+                    var deer = new List<(string, Vector3, float)>();
+                    var bunnies = new List<(string, Vector3, float)>();
+                    for (int k = 0; k < Biosphere.Critters.Length; k++)
                     {
-                        ("Deer", P(9.45f, 196f, SlopeY(9.45f)), 40f), ("Fawn", P(9.6f, 203f, SlopeY(9.6f)), -60f),   // 숲 비탈 (어미 · 아기)
-                        ("Deer", P(13.6f, 140f, F), 80f),                                                              // 과수원
-                    });
-                    CritterGroup(r, critterSrc, "Critters_Bunny", 6f, new[]
-                    {
-                        ("Bunny", P(9.5f, 122f, SlopeY(9.5f)), 30f), ("Bunny", P(9.6f, 300f, SlopeY(9.6f)), 200f), ("Bunny", P(13.2f, 55f, F), -40f),
-                    });
+                        var (kind, cr, ca, slope) = Biosphere.Critters[k];
+                        var at = P(cr, ca, slope ? Biosphere.SlopeY(cr) : F);
+                        (kind == "Bunny" ? bunnies : deer).Add((kind, at, yaws[k]));
+                    }
+                    CritterGroup(r, critterSrc, "Critters_Deer", 13f, deer.ToArray());
+                    CritterGroup(r, critterSrc, "Critters_Bunny", 6f, bunnies.ToArray());
                     CritterGroup(r, critterSrc, "Critters_Swan", 7f, new[]
                     {
                         ("Swan", P(1.9f, 300f, Biosphere.WaterLevels[0]), 90f), ("Swan", P(2.0f, 60f, Biosphere.WaterLevels[0]), -80f),   // 가운데 호수
@@ -6525,6 +6557,10 @@ namespace SpaceStation.Editor
                 { "Evo3Bark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3BarkPath) },
                 { "Evo3Channel", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PondPath) },
                 { "Evo3Rain", ModuleFxMaterials.Get("Rain") },
+                { "Evo3Spill", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PondPath) },              // 단 사이 작은 폭포 · 수문 폭포 (맑은 물 — WaterFalls 결은 큰 물줄기용)
+                { "Evo3FallsColumn", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3FallsColumnPath) },
+                { "Evo3SoftRainbow", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SoftRainbowPath) },
+                { "Evo3SoftHalo", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SoftHaloPath) },
             };
             for (int i = 0; i < 7; i++)
                 materials["Evo3Rainbow" + i] = ModuleFxMaterials.Get("Rainbow" + i);   // 프리즘 무지개 고리 일곱 (바깥과 같은 빛 물결)

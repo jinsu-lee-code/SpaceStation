@@ -48,7 +48,7 @@ namespace SpaceStation.Tests
             var root = Object.Instantiate(prefab);
             root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             foreach (var col in root.GetComponentsInChildren<Collider>(true))
-                col.enabled = col is MeshCollider ? col.name.EndsWith("_Shell") || col.name.EndsWith("_Glass") : false;
+                col.enabled = col is MeshCollider ? col.name.EndsWith("_Shell") || col.name.EndsWith("_Glass") || col.name.EndsWith("_LakeHit") : false;
             Physics.SyncTransforms();
             ok = true;
             return root;
@@ -144,6 +144,14 @@ namespace SpaceStation.Tests
                     return seen;
                 }
                 var ground = Flood(new Vector3(8f, F, -3.0f), "정문 스폰");
+                // 호수 · 연못 바닥에 못 내려감 (사용자 "중앙 호수 들어가면 나오지도 못함" — LakeHit 벽)
+                for (int k = 0; k < nodes.Count; k++)
+                {
+                    if (!ground[k])
+                        continue;
+                    var p = nodes[k];
+                    Assert.IsFalse(p.y < F - 0.25f, $"물 바닥까지 걸어 내려감 {p}");
+                }
                 void Reach(bool[] seen, Vector3 p, string what)
                 {
                     int k = Node(p);
@@ -178,6 +186,50 @@ namespace SpaceStation.Tests
                 var up = Biosphere.Polar(Biosphere.UpHatchOffset.z - 0.25f, 90f, Biosphere.SkyTop);
                 Reach(sky, up, "위 해치 밑");
                 Assert.Less(Biosphere.UpHatchCell.y * 8f + Biosphere.UpHatchDepth - (Biosphere.SkyTop + 1.6f), 2.6f, "위 해치가 눈에서 손 닿는 거리 (해치 4 m)");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>
+        /// 승강기 칸 안에서 서는 곳마다 문으로 걸어 나감 (사용자 2026-11-11 "엘리베이터 2층 문에서 막혀서 못 나감" — 아치 위 곡선 관이 문 위 머리 높이를 막았는데,
+        /// 걷기 검사가 문 바깥에서 시작해 못 잡았음, 체크리스트 29 "문 · 엘리베이터는 안쪽까지 지나가 봄"). 칸 · 칸 유리 충돌체를 켜고 칸을 그 층으로 옮김, 문짝은 열림 (충돌체 끔).
+        /// </summary>
+        [Test]
+        public void Walk_LiftExitsAtEveryStop()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                var car = root.transform.Find("INT_EvoBiosphere_LiftCar");
+                Assert.IsNotNull(car, "승강기 칸 없음");
+                foreach (var col in car.GetComponentsInChildren<MeshCollider>(true))
+                    col.enabled = true;
+                var basePos = car.localPosition;
+                for (int k = 0; k < Biosphere.LiftStops.Length; k++)
+                {
+                    float stop = Biosphere.LiftStops[k];
+                    car.localPosition = basePos + Vector3.up * (stop - Biosphere.LiftStops[0]);
+                    Physics.SyncTransforms();
+                    var c = Biosphere.LiftCenter;
+                    var inside = new Vector3(c.x, stop + 0.085f, c.z);
+                    var outside = Biosphere.Polar(Biosphere.LegRadius - Biosphere.LegThickness - 0.7f, Biosphere.LiftAngle, stop);
+                    // 칸 가운데 → 문 → 바깥까지 0.05 m 간격으로 몸 (반지름 0.28 · 발 위 0.3 ~ 1.83 = 실제 키)이 지나가는지
+                    for (int t = 0; t <= 40; t++)
+                    {
+                        var p = Vector3.Lerp(inside, outside, t / 40f);
+                        // 발밑 = 작은 공 (반지름 0.12)으로 — 칸 바닥 끝 ↔ 문턱 1.5 cm 틈 (몸은 안 빠짐)으로 가는 광선이 빠졌음
+                        Assert.IsTrue(Physics.SphereCast(p + Vector3.up * 0.6f, 0.12f, Vector3.down, out var hit, 1.2f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"{k + 1}층: 발밑 바닥 없음 {p}");
+                        var f = hit.point;
+                        Assert.Less(Mathf.Abs(f.y - p.y), 0.2f, $"{k + 1}층: 문턱 높이 {f.y - p.y:F2}");
+                        Assert.IsFalse(Physics.CheckCapsule(f + Vector3.up * 0.58f, f + Vector3.up * 1.55f, 0.28f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore),
+                            $"{k + 1}층: 칸에서 나가는 길이 막힘 {f} (가운데에서 {t * 2.5f:F0}%)");
+                    }
+                }
             }
             finally
             {

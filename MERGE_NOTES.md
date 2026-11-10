@@ -2492,3 +2492,14 @@
 ### `narrative` · `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `68789355`). 씬 (템플릿 등록) · TASKS · 글꼴은 tycoon에만
 - KWS 패키지 없는 PC = 호수 · 하늘 호수는 Blender 수면 (만화 물)로 보임 (M-164와 같음)
+
+## M-168. 바이오스피어 1차 지적 열하나 · MODELING.md 나눔 (2026-11-11, `main`)
+
+**main에 넣은 것**
+- 바이오스피어 내부 고침: 승강기 2층 문 (아치 위 관), 비 = RainFx 입자, 폭포 기둥 전용 재질, 무지개 = 새 셰이더 `SoftRainbow` (`M_InteriorSoftRainbow` · `SoftHalo`), 작물 잎 한 장씩, 물길 · 물레방아 · 수문 바퀴, 자리 비움 + 겹침 자동 검사, 반딧불이 쉼터, `_LakeHit` + 나무 줄기 충돌체, 시험 `Walk_LiftExitsAtEveryStop` · 물 바닥 못 내려감
+- **MODELING.md → `docs/modeling/`** 주제 파일 아홉 + `00-checklist.md` (68항목), MODELING.md = 목차, CLAUDE.md 아트 규칙 줄 (체크리스트를 매번 처음부터 끝까지)
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `00046208`). 씬 · TASKS · 글꼴은 tycoon에만
+- MODELING.md 충돌: main 판은 tycoon 판보다 한 줄 (3단계 내부 결정) 적었음 → tycoon에서 나눈 판을 그대로 씀. **narrative에서 MODELING.md를 고쳤다면 그 줄을 해당 `docs/modeling/` 주제 파일로 옮길 것**
+- CLAUDE.md는 아트 규칙 한 줄만 바뀜 (브랜치별 머리말은 그대로)
