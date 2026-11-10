@@ -55,9 +55,9 @@ namespace SpaceStation.Interior
         /// <summary>계단 폭포 셋 (위 → 아래): 턱 (물이 넘어가는 곳) · 떨어지는 자리 (아래 웅덩이 수면) · 물줄기 폭 — 물안개 · 물방울 · 웅덩이 물결 자리.</summary>
         public static readonly (Vector3 Lip, Vector3 Landing, float Width)[] Falls =
         {
-            (new Vector3(16f, 6.61f, 11.05f), new Vector3(16f, 3.81f, 10.02f), 0.86f),
-            (new Vector3(16f, 3.81f, 8.65f), new Vector3(16f, 1.41f, 7.62f), 0.86f),
-            (new Vector3(16f, 1.41f, 6.25f), new Vector3(16f, -1.45f, 5.37f), 0.86f),
+            (new Vector3(16f, 6.61f, 11.05f), new Vector3(16f, 3.81f, 10.12f), 0.86f),
+            (new Vector3(16f, 3.81f, 8.65f), new Vector3(16f, 1.41f, 7.72f), 0.86f),
+            (new Vector3(16f, 1.41f, 6.25f), new Vector3(16f, -1.45f, 5.42f), 0.86f),
         };
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace SpaceStation.Interior
         public static readonly (Vector3Int Cell, Vector2 Offset)[] Hatches =
         {
             (new Vector3Int(0, 0, 1), new Vector2(0f, -2f)), (new Vector3Int(0, 0, 2), new Vector2(0.8f, 0f)), (new Vector3Int(0, 0, 3), new Vector2(0f, 2f)),
-            (new Vector3Int(1, 0, 0), new Vector2(0f, 1.4f)), (new Vector3Int(1, 0, 1), new Vector2(2f, 2.2f)), (new Vector3Int(1, 0, 2), Vector2.zero),
+            (new Vector3Int(1, 0, 0), new Vector2(2.8f, -2f)), (new Vector3Int(1, 0, 1), new Vector2(2f, 2.2f)), (new Vector3Int(1, 0, 2), Vector2.zero),
             (new Vector3Int(1, 0, 3), new Vector2(2f, -2.2f)), (new Vector3Int(1, 0, 4), new Vector2(-2f, 0f)), (new Vector3Int(2, 0, 0), new Vector2(0f, 0.8f)),
             (new Vector3Int(2, 0, 1), new Vector2(0f, 1.6f)), (new Vector3Int(2, 0, 2), Vector2.zero), (new Vector3Int(2, 0, 3), Vector2.zero),
             (new Vector3Int(2, 0, 4), new Vector2(0f, -0.8f)), (new Vector3Int(3, 0, 0), new Vector2(-0.4f, -1.2f)), (new Vector3Int(3, 0, 1), new Vector2(-2.2f, 2f)),

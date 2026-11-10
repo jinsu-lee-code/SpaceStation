@@ -100,6 +100,83 @@ namespace SpaceStation.Tests
         }
 
         /// <summary>
+        /// 옥상 전망대 (사용자 2026-11-11 "주변 기둥 때문에 움직일 수 있는 공간이 1/4"): 꼬인 줄기 넷이 대각선 화단과 붙어 승강기 앞 1/4만 다녔음 →
+        /// 승강기 앞에서 걸어서 대각선 넷 · 문 다리 셋 · 뒤까지 모두 닿아야 함 (0.1 m 격자, 몸 반지름 0.28 · 발 위 0.5 ~ 1.6).
+        /// </summary>
+        [Test]
+        public void Walk_RoofDeckAllAround()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                float roof = OrbitalCity.LiftStops[OrbitalCity.LiftStops.Length - 1];
+                const float step = 0.1f, x0 = 11.5f, z0 = 11.5f;
+                int n = Mathf.RoundToInt(9f / step) + 1;
+                var node = new int[n, n];
+                var pos = new List<Vector3>();
+                for (int i = 0; i < n; i++)
+                {
+                    for (int j = 0; j < n; j++)
+                    {
+                        node[i, j] = -1;
+                        var origin = new Vector3(x0 + i * step, roof + 1.7f, z0 + j * step);
+                        if (!Physics.Raycast(origin, Vector3.down, out var hit, 2.2f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) || hit.normal.y < 0.7f || hit.point.y < roof - 0.3f)
+                            continue;
+                        var p = hit.point;
+                        if (Physics.CheckCapsule(p + Vector3.up * 0.5f, p + Vector3.up * 1.6f, 0.28f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                            continue;
+                        node[i, j] = pos.Count;
+                        pos.Add(p);
+                    }
+                }
+                int At(Vector3 p)
+                {
+                    int i0 = Mathf.RoundToInt((p.x - x0) / step), j0 = Mathf.RoundToInt((p.z - z0) / step);
+                    for (int r = 0; r <= 3; r++)
+                        for (int di = -r; di <= r; di++)
+                            for (int dj = -r; dj <= r; dj++)
+                            {
+                                int a = i0 + di, b = j0 + dj;
+                                if (a >= 0 && b >= 0 && a < n && b < n && node[a, b] >= 0)
+                                    return node[a, b];
+                            }
+                    return -1;
+                }
+                var seen = new bool[pos.Count];
+                int start = At(OrbitalCity.Polar(1.6f, 270f, roof));   // 승강기 문 앞
+                Assert.GreaterOrEqual(start, 0, "승강기 앞에 설 곳 없음");
+                var q = new Queue<int>();
+                q.Enqueue(start);
+                seen[start] = true;
+                while (q.Count > 0)
+                {
+                    var p = pos[q.Dequeue()];
+                    int i = Mathf.RoundToInt((p.x - x0) / step), j = Mathf.RoundToInt((p.z - z0) / step);
+                    foreach (var (di, dj) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+                    {
+                        int a = i + di, b = j + dj;
+                        if (a < 0 || b < 0 || a >= n || b >= n || node[a, b] < 0 || seen[node[a, b]] || Mathf.Abs(pos[node[a, b]].y - p.y) > 0.36f)
+                            continue;
+                        seen[node[a, b]] = true;
+                        q.Enqueue(node[a, b]);
+                    }
+                }
+                foreach (float a in new[] { 0f, 45f, 90f, 135f, 180f, 225f, 315f })
+                {
+                    int k = At(OrbitalCity.Polar(a % 90f == 0f ? 3.6f : 3.0f, a, roof));
+                    Assert.GreaterOrEqual(k, 0, $"옥상 {a}°: 설 곳 없음");
+                    Assert.IsTrue(seen[k], $"옥상 {a}°: 승강기 앞에서 걸어서 못 감");
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>
         /// 0.25 m 격자 기둥마다 아래로 쏜 모든 바닥 (높이가 다른 바닥 = 층) 중 몸 (반지름 0.28 · 발 위 0.5 ~ 1.6 — 계단 한 칸은 넘음)이 들어가는 곳을 마디로,
         /// 이웃 마디 높이 차 0.36 이하면 이어 걸음 (계단 한 칸 0.18). 스폰 (앞 고리 길)에서: 해치 21 · 승강장 · 아래 · 위 단 · 꼭대기 광장 · 뿌리 홀까지 닿음.
         /// </summary>
