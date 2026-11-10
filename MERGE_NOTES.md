@@ -2409,3 +2409,14 @@
 
 ### `narrative` · `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `5c5179d7`). 씬 · TASKS · 글꼴은 tycoon에만
+
+## M-160. 저장 단지 내부 "별빛 회전목마 창고" · 회전목마 탑승 (2026-11-10, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `593c8569`의 변경분을 패치로)
+- 진화 2단계 저장 단지 내부 (사용자 2026-11-10 "좋아 이대로 유니티로 옮겨줘"): `SM_Interior_EvoStorageComplex.fbx` (Blender `sc_builder`) · `PF_Interior_EvoStorageComplex` · `IT_EvoStorageComplex` · `InteriorKit` 등록 · 강조 · 도장 재질, `InteriorTemplateBuilder.BuildEvoStorageComplex` (판 피벗 · 캡슐 22 복제 · 색 셋 · 안장 · 집게 팔 · 트임 막이 · 벤치 8 · 창고 둘 실내 상자 · 문 자리 10 · 해치 8), `ResidentSpotBaker` (자리 17 · 정비공 · 여가 방 · "회전목마 구경 중" / "캡슐 정리 중"), `InteriorPlantSpots` (창고 화분 둘)
+- 새 스크립트: `StorageCarousel` (회전목마 값 — Blender와 같은 값, 캡슐 자세 · 오르내림) · `InteriorCarousel` (서고 돌기 · 안장 탑승 F · 멈추면 내림 · 판 위 사람 실어 감 · 탄 주민 · 집게 팔 · 앞뒤 간판 · 안내)
+- `InteriorOpenAir.SetIndoorBox(xz, top, params Rect[] more)`: 같은 높이의 실내 상자를 더 받음 (`_moreBoxes`) — 기존 호출 (드론 정비창 · 화물 환적장)은 그대로
+- 테스트: `StorageCarouselTests` (설 때 쉬는 높이 · 운행 곡선 · 앉은 머리가 지붕 밑 · 캡슐 · 탄 사람이 몸체 · 유리 · 집게 팔을 비킴)
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `593c8569`). 씬 · TASKS · 글꼴은 tycoon에만
