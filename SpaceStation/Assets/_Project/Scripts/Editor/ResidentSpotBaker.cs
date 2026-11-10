@@ -216,7 +216,8 @@ namespace SpaceStation.Editor
 
         /// <summary>
         /// 진화 2단계 연구원 (mz_builder SPOTS): 일하는 자리 = 연구실 책상 셋 (서서, 화면을 봄), 쉬는 자리 = 연구실 벤치 한 자리 (나머지는 플레이어 몫)
-        /// + 서는 자리 (입구 밖 · 막다른 길 화면 앞 · 길 구석 — 길 가운데 · 해치 · 길잡이 화면 앞은 비킴). 미로 · 갑판 = 우주복, 연구실 = 실내.
+        /// + 서는 자리 (미로 밖 갑판 · 연구실 둘레 — 미로 길 안에는 두지 않음: 길 폭 1.4 ~ 1.5라 선 주민이 길을 막음, 사용자 2026-11-10).
+        /// 입구 앞 자리는 걸어 다녀도 (0.8 ~ 1.4 m) 아치 · 길잡이 화면에 닿지 않는 거리. 미로 · 갑판 = 우주복, 연구실 = 실내.
         /// </summary>
         private static List<ResidentSpot> EvoResearchInstituteSpots()
         {
@@ -229,7 +230,7 @@ namespace SpaceStation.Editor
             }
             var seat = InteriorTemplateBuilder.MazeBenchSeat(InteriorTemplateBuilder.MazeBenchAngles[0]);
             list.Add(new ResidentSpot(new Vector3(seat.x, seat.y, seat.z), seat.w, ResidentPose.Sit));
-            foreach (var (x, z, yaw) in new[] { (2.6f, -3.35f, 20f), (6.9f, -3.35f, -20f), (-1.68f, 5.0f, 180f), (9.68f, 9.0f, 180f), (5.4f, 9.68f, 90f), (1.4f, 8.0f, 90f), (9.68f, 1.0f, 180f), (1.0f, 3.1f, 45f) })
+            foreach (var (x, z, yaw) in new[] { (0.6f, -3.35f, 20f), (8.2f, -3.35f, -20f), (4.0f, 11.25f, 180f), (4.0f, 6.55f, 180f), (6.55f, 4.0f, -90f) })
                 list.Add(new ResidentSpot(new Vector3(x, Floor, z), yaw, ResidentPose.Stand));
             return list;
         }

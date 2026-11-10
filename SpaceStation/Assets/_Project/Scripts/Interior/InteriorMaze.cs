@@ -326,13 +326,14 @@ namespace SpaceStation.Interior
         {
             if (_font == null)
                 return;
-            _signText = Text("MazeSign", ResearchMaze.SignFace, new Vector2(0f, -1f), 1.6f, new Vector2(1.05f, 0.38f));
-            _hintText = Text("MazeHintText", ResearchMaze.HintScreen, new Vector2(0f, -1f), 0.9f, new Vector2(0.62f, 0.48f));
+            // 글씨 상자 = 화면 판보다 조금 작게, 넘치면 저절로 줄어듦 (사용자 2026-11-10 "글자가 화면 밖으로 나와있는 문제")
+            _signText = Text("MazeSign", ResearchMaze.SignFace, new Vector2(0f, -1f), 1.6f, new Vector2(1.0f, 0.34f));
+            _hintText = Text("MazeHintText", ResearchMaze.HintScreen, new Vector2(0f, -1f), 0.9f, new Vector2(0.56f, 0.42f));
             foreach (var (face, normal) in ResearchMaze.DeadScreens)
             {
-                var t = Text("Maze404", face, normal, 1.6f, new Vector2(0.66f, 0.42f));
+                var t = Text("Maze404", face, normal, 1.5f, new Vector2(0.62f, 0.38f));
                 t.color = new Color(0.82f, 0.74f, 1f);
-                t.SetText("404\n<size=42%>길을 찾을 수 없음 · 되돌아가세요</size>");
+                t.SetText("404\n<size=40%>길을 찾을 수 없음\n되돌아가세요</size>");
             }
         }
 
@@ -345,9 +346,13 @@ namespace SpaceStation.Interior
             var text = go.AddComponent<TextMeshPro>();
             text.font = _font;
             text.fontSize = size;
+            text.enableAutoSizing = true;
+            text.fontSizeMax = size;
+            text.fontSizeMin = size * 0.2f;
             text.color = new Color(0.92f, 0.96f, 1f);
             text.alignment = TextAlignmentOptions.Center;
             text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.overflowMode = TextOverflowModes.Truncate;
             text.rectTransform.sizeDelta = rect;
             return text;
         }
