@@ -93,14 +93,14 @@ namespace SpaceStation.Editor
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus", "EvoCivicHall", "EvoSecurityHQ", "EvoBiodome", "EvoFoodFactory", "EvoRefineryCombine", "EvoShieldDome", "EvoFortress", "EvoRadiationWall", "EvoDroneDepot", "EvoCargoTransfer", "EvoStorageComplex", "EvoResearchInstitute" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus", "EvoCivicHall", "EvoSecurityHQ", "EvoBiodome", "EvoFoodFactory", "EvoRefineryCombine", "EvoShieldDome", "EvoFortress", "EvoRadiationWall", "EvoDroneDepot", "EvoCargoTransfer", "EvoStorageComplex", "EvoResearchInstitute", "EvoOrbitalCity" };
 
         /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
         /// 여객 도킹 포트 안내 직원 · 2026-10-31 보안청 창구 직원).</summary>
         private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger", "EvoSecurity", "EvoSecurityHQ", "EvoRadiationWall", "EvoDroneDepot" };
 
         /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
-        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" }, { "EvoCivicHall", "별 구경 중" }, { "EvoSecurityHQ", "민원 보는 중" }, { "EvoBiodome", "정원 구경 중" }, { "EvoFoodFactory", "관람차 구경 중" }, { "EvoRefineryCombine", "제철소 구경 중" }, { "EvoShieldDome", "등대 구경 중" }, { "EvoFortress", "불꽃 구경 중" }, { "EvoRadiationWall", "별자리 구경 중" }, { "EvoDroneDepot", "드론 쇼 구경 중" }, { "EvoCargoTransfer", "후룸 구경 중" }, { "EvoStorageComplex", "회전목마 구경 중" }, { "EvoResearchInstitute", "미로 구경 중" } };
+        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" }, { "EvoCivicHall", "별 구경 중" }, { "EvoSecurityHQ", "민원 보는 중" }, { "EvoBiodome", "정원 구경 중" }, { "EvoFoodFactory", "관람차 구경 중" }, { "EvoRefineryCombine", "제철소 구경 중" }, { "EvoShieldDome", "등대 구경 중" }, { "EvoFortress", "불꽃 구경 중" }, { "EvoRadiationWall", "별자리 구경 중" }, { "EvoDroneDepot", "드론 쇼 구경 중" }, { "EvoCargoTransfer", "후룸 구경 중" }, { "EvoStorageComplex", "회전목마 구경 중" }, { "EvoResearchInstitute", "미로 구경 중" }, { "EvoOrbitalCity", "정원 섬 구경 중" } };
 
         /// <summary>12-5 일하는 사람 상태 글 (없으면 "일하는 중").</summary>
         private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" }, { "EvoBiodome", "정원 돌보는 중" }, { "EvoFoodFactory", "식품 만드는 중" }, { "EvoRefineryCombine", "광석 나르는 중" }, { "EvoShieldDome", "운석 살피는 중" }, { "EvoFortress", "포대 살피는 중" }, { "EvoRadiationWall", "피난처 살피는 중" }, { "EvoDroneDepot", "드론 고치는 중" }, { "EvoCargoTransfer", "후룸 운행 중" }, { "EvoStorageComplex", "캡슐 정리 중" }, { "EvoResearchInstitute", "데이터 연구 중" } };
@@ -156,6 +156,7 @@ namespace SpaceStation.Editor
             { "EvoCargoTransfer", EvoCargoTransferSpots },
             { "EvoStorageComplex", EvoStorageComplexSpots },
             { "EvoResearchInstitute", EvoResearchInstituteSpots },
+            { "EvoOrbitalCity", EvoOrbitalCitySpots },
         };
 
         /// <summary>
@@ -232,6 +233,50 @@ namespace SpaceStation.Editor
             list.Add(new ResidentSpot(new Vector3(seat.x, seat.y, seat.z), seat.w, ResidentPose.Sit));
             foreach (var (x, z, yaw) in new[] { (0.6f, -3.35f, 20f), (8.2f, -3.35f, -20f), (4.0f, 11.25f, 180f), (4.0f, 6.55f, 180f), (6.55f, 4.0f, -90f) })
                 list.Add(new ResidentSpot(new Vector3(x, Floor, z), yaw, ResidentPose.Stand));
+            return list;
+        }
+
+        /// <summary>
+        /// 진화 3단계 궤도 도시 (oc_builder 자리 — 3단계 = 맨몸, 우주복 없음): 사는 방 (일하는 자리 없음).
+        /// 앉는 자리 = 역 승강장 벤치 둘 (선로를 봄), 서는 자리 = 승강장 · 호숫가 정자 · 다리 넷 (강을 따라 봄) · 언덕 아래 · 위 단 · 꼭대기 광장 · 뿌리 홀 ·
+        /// 기둥 테라스 넷 (대각선 화단 쪽, 난간 안쪽 길 폭 0.76 m를 남김) · 강 바깥 잔디. 계단 · 다리 가운데 · 엘리베이터 문 · 문 쪽 다리는 비킴.
+        /// </summary>
+        private static List<ResidentSpot> EvoOrbitalCitySpots()
+        {
+            var list = new List<ResidentSpot>();
+            Vector3 P(float r, float deg, float y) => Interior.OrbitalCity.Polar(r, deg, y);
+            float Out(float deg) => Interior.OrbitalCity.OutwardYaw(deg);
+            float yp = Interior.OrbitalCity.PlatformTop;
+            foreach (float d in new[] { Interior.OrbitalCity.StationAngle - 8f, Interior.OrbitalCity.StationAngle + 8f })
+            {
+                foreach (float t in new[] { -0.3f, 0.3f })
+                    list.Add(new ResidentSpot(P(Interior.OrbitalCity.TrackRadius + 2.2f, d + t / (Interior.OrbitalCity.TrackRadius + 2.2f) * Mathf.Rad2Deg, yp + 0.45f), Out(d) + 180f, ResidentPose.Sit));
+            }
+            list.Add(new ResidentSpot(P(18.5f, Interior.OrbitalCity.StationAngle, yp), Out(Interior.OrbitalCity.StationAngle) + 180f, ResidentPose.Stand));
+            list.Add(new ResidentSpot(P(18.7f, Interior.OrbitalCity.StationAngle - 13f, yp), Out(Interior.OrbitalCity.StationAngle - 13f) + 180f, ResidentPose.Stand));
+            var pond = P(19f, 225f, Floor);
+            var pav = P(19.3f, 235.5f, Floor + 0.18f);
+            list.Add(new ResidentSpot(pav, Mathf.Atan2(pond.x - pav.x, pond.z - pav.z) * Mathf.Rad2Deg, ResidentPose.Stand));   // 정자에서 연꽃 호수를 봄
+            foreach (float d in new[] { 45f, 135f, 225f, 315f })
+            {
+                float a = d * Mathf.Deg2Rad;
+                var side = new Vector3(-Mathf.Sin(a), 0f, Mathf.Cos(a)) * 0.75f;
+                list.Add(new ResidentSpot(P(12.8f, d, Floor + 0.61f) + side, Interior.OrbitalCity.ForwardYaw(d), ResidentPose.Stand));   // 다리 위 한쪽 (강을 따라)
+            }
+            list.Add(new ResidentSpot(P(9.4f, 280f, Floor + 2.8f), Out(280f), ResidentPose.Stand));    // 아래 단 (폭포 옆)
+            list.Add(new ResidentSpot(P(9.3f, 0f, Floor + 2.8f), Out(0f), ResidentPose.Stand));
+            list.Add(new ResidentSpot(P(7.0f, 300f, Floor + 5.2f), Out(300f), ResidentPose.Stand));    // 위 단
+            list.Add(new ResidentSpot(P(3.6f, 250f, Floor + 8f), Out(250f), ResidentPose.Stand));      // 꼭대기 광장 (폭포 쪽 내려다봄)
+            list.Add(new ResidentSpot(P(3.6f, 80f, Floor + 8f), Out(80f), ResidentPose.Stand));
+            list.Add(new ResidentSpot(P(2.0f, 135f, Floor), Out(135f) + 180f, ResidentPose.Stand));    // 뿌리 홀
+            list.Add(new ResidentSpot(P(2.0f, 315f, Floor), Out(315f) + 180f, ResidentPose.Stand));
+            for (int k = 1; k < Interior.OrbitalCity.LiftStops.Length; k++)
+            {
+                float d = 45f + 90f * (2 * ((k + 1) % 2) + (k - 1) % 2);   // oc_builder 화단 각 (층마다 엇갈림) 중 하나
+                list.Add(new ResidentSpot(P(3.2f, d, Interior.OrbitalCity.LiftStops[k]), Out(d), ResidentPose.Stand));
+            }
+            list.Add(new ResidentSpot(P(15.7f, 10f, Floor), Out(10f) + 180f, ResidentPose.Stand));      // 강 바깥 잔디 (강을 봄)
+            list.Add(new ResidentSpot(P(15.7f, 190f, Floor), Out(190f) + 180f, ResidentPose.Stand));
             return list;
         }
 

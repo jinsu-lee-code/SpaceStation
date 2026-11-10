@@ -106,7 +106,11 @@ namespace SpaceStation.Editor
         public const string Evo2MountPath = MaterialFolder + "/M_InteriorEvo2Mount.mat";     // 병풍 은빛 산
         public const string Evo2SandPath = MaterialFolder + "/M_InteriorEvo2Sand.mat";       // 달빛 자갈 마당
         public const string Evo2MoonPath = MaterialFolder + "/M_InteriorEvo2Moon.mat";       // 달 등 (은은한 흰빛)
-        public const string Evo2LemonPath = MaterialFolder + "/M_InteriorEvo2Lemon.mat";     // 병풍 해 · 세 날개 표지 · 석등 불빛 (레몬빛)
+        public const string Evo2LemonPath = MaterialFolder + "/M_InteriorEvo2Lemon.mat";
+        // 진화 3단계 (진주 · 금 · 살아 있는 정원 + 빛과 수정, 궤도 도시부터 2026-11-10): 잔디 · 길 · 돌 · 흙 · 물 · 폭포는 2단계 재질, 수정 · 무지개는 바깥 FX 재질 (ModuleFxMaterials)
+        public const string Evo3PearlPath = MaterialFolder + "/M_InteriorEvo3Pearl.mat";     // 진주빛 몸체 (따뜻한 흰빛 · 은은한 윤기)
+        public const string Evo3GoldPath = MaterialFolder + "/M_InteriorEvo3Gold.mat";       // 금빛 테 · 난간 손잡이 (2단계 금보다 밝고 매끈)
+        public const string Evo3BlossomPath = MaterialFolder + "/M_InteriorEvo3Blossom.mat"; // 열차 방석 (연분홍 천)     // 병풍 해 · 세 날개 표지 · 석등 불빛 (레몬빛)
         public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
         public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
         public const string ResidentSuitModelPath = "Assets/_Project/Art/Models/Interior/SM_ResidentSuit.fbx";
@@ -166,6 +170,7 @@ namespace SpaceStation.Editor
         /// <summary>진화 1단계 키트 조각 (Blender Interior_Evo.blend evo1_kit_builder — 기본 조각과 같은 규격, 이름 = 기본 이름 + _Evo1).</summary>
         public const string EvoKit1Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo1.fbx";
         public const string EvoKit2Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo2.fbx";
+        public const string EvoKit3Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo3.fbx";
         private const string RecipeFolder = "Assets/_Project/Data/Recipes";
 
         /// <summary>단계 키트 FBX의 조각 (없으면 빈 목록). 게임 중 InteriorSpots가 벽 패널 모양을 읽으므로 Read/Write를 켬 (기본 키트와 같음).</summary>
@@ -236,6 +241,10 @@ namespace SpaceStation.Editor
             var evo2Glass = AssetDatabase.LoadAssetAtPath<Material>(Evo2GlassPath);
             var evo2Sky = AssetDatabase.LoadAssetAtPath<Material>(Evo2SkyPath);
             var evo2ClearGlass = AssetDatabase.LoadAssetAtPath<Material>(Evo2ClearGlassPath);
+            var evo3Pearl = AssetDatabase.LoadAssetAtPath<Material>(Evo3PearlPath);
+            var evo3Gold = AssetDatabase.LoadAssetAtPath<Material>(Evo3GoldPath);
+            var evo2Path = AssetDatabase.LoadAssetAtPath<Material>(Evo2PathPath);
+            var prism = ModuleFxMaterials.Get("Prism");
 
             Data.InteriorKitPiece Piece(string name, System.Collections.Generic.Dictionary<string, GameObject> from = null)
             {
@@ -268,6 +277,10 @@ namespace SpaceStation.Editor
                         case "Evo2Glass": mats[i] = evo2Glass; break;   // 닫힌 문 자리 = 유리 난간 + 하늘 조각 (열린 갑판)
                         case "Evo2Sky": mats[i] = evo2Sky; break;
                         case "Evo2ClearGlass": mats[i] = evo2ClearGlass; break;   // 실내형 방의 닫힌 문 자리 = 아치 창
+                        case "Evo3Pearl": mats[i] = evo3Pearl; break;   // 진화 3단계 키트 (진주 · 금 · 수정)
+                        case "Evo3Gold": mats[i] = evo3Gold; break;
+                        case "Evo3Path": mats[i] = evo2Path; break;
+                        case "Evo3Prism": mats[i] = prism; break;
                         default:
                             Debug.LogWarning($"[InteriorSetup] {name}: 모르는 재질 슬롯 '{slot}' → Hull");
                             mats[i] = hull;
@@ -316,6 +329,15 @@ namespace SpaceStation.Editor
                     Piece("KIT_Wall_Evo2", evo2), Piece("KIT_WallDoor_Evo2", evo2), Piece("KIT_DoorLeaf_Evo2", evo2), Piece("KIT_Floor_Evo2", evo2),
                     Piece("KIT_Ceiling_Evo2", evo2), Piece("KIT_HatchFrame_Evo2", evo2), Piece("KIT_HatchLid_Evo2", evo2), Piece("KIT_WallSealed_Evo2", evo2), Piece("KIT_SkyPatch_Evo2", evo2)));
             }
+            var evo3 = StageParts(EvoKit3Path);   // 3단계 = Interior_Evo.blend evo3_kit_builder (진주 · 금빛 테 · 수정 난간)
+            if (evo3.Count > 0)
+            {
+                // 내부 템플릿이 있는 3단계 모듈만 — 템플릿 없는 방의 대체 벽까지 난간 + 하늘 조각이 되면 우주로 뚫린 방이 됨 (템플릿을 만들 때마다 Setup으로 다시 넣음)
+                var withInterior = ModulesOfStage(3).FindAll(m => AssetDatabase.FindAssets("IT_" + m.name.Replace("MD_", "").Replace("_", "") + " t:InteriorTemplate").Length > 0);
+                stages.Add(new Data.InteriorKitStage(3, withInterior,
+                    Piece("KIT_Wall_Evo3", evo3), Piece("KIT_WallDoor_Evo3", evo3), Piece("KIT_DoorLeaf_Evo3", evo3), Piece("KIT_Floor_Evo3", evo3),
+                    Piece("KIT_Ceiling_Evo3", evo3), Piece("KIT_HatchFrame_Evo3", evo3), Piece("KIT_HatchLid_Evo3", evo3), Piece("KIT_WallSealed_Evo3", evo3), Piece("KIT_SkyPatch_Evo3", evo3)));
+            }
             kit.EditorSetStages(stages);
             EditorUtility.SetDirty(kit);
             AssetDatabase.SaveAssets();
@@ -363,6 +385,10 @@ namespace SpaceStation.Editor
             so.FindProperty("_smokeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(SmokePath);
             so.FindProperty("_sparkMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(SparkPath);
             so.FindProperty("_beaconMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(StatusPath);
+            // 3단계 정원 나무 (plant_builder build_pine · build_blossom, 2026-11-10 궤도 도시 — 화분 · 나무는 처음에 손으로 연결해 둠)
+            var plants = so.FindProperty("_plantSettings");
+            foreach (var (field, file) in new[] { ("Pine", "SM_PlantPine"), ("PineWilted", "SM_PlantPineWilted"), ("Blossom", "SM_PlantBlossom"), ("BlossomWilted", "SM_PlantBlossomWilted") })
+                plants.FindPropertyRelative(field).objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Art/Models/Interior/Plants/" + file + ".fbx");
             so.ApplyModifiedPropertiesWithoutUndo();
 
             BuildEnterRow(mode);
@@ -521,6 +547,9 @@ namespace SpaceStation.Editor
             EvoSurface(Evo2BarPath, new Color(0.93f, 0.56f, 0.46f), 0f, 0.35f);
             EvoSurface(Evo2MountPath, new Color(0.55f, 0.62f, 0.76f), 0.25f, 0.45f);
             EvoSurface(Evo2SandPath, new Color(0.3f, 0.35f, 0.46f), 0f, 0.2f);
+            EvoSurface(Evo3PearlPath, new Color(0.95f, 0.92f, 0.87f), 0.15f, 0.72f);
+            EvoSurface(Evo3GoldPath, new Color(0.96f, 0.76f, 0.36f), 0.65f, 0.72f);
+            EvoSurface(Evo3BlossomPath, new Color(0.97f, 0.7f, 0.8f), 0f, 0.3f);
             // 바이오돔 잔디 · 흙 (사용자 2026-11-03 "나무와 풀 디테일"): 색 판이 아니라 풀잎 · 흙 무늬 텍스처
             void Ground(string path, string texture, float smoothness)
             {

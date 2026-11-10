@@ -3,6 +3,8 @@
 #   잎 = 가운데 잎맥이 솟은 마름모 단면을 잎 길이 따라 쓸어 만든 닫힌 얇은 판 (폭은 밑 · 끝이 좁고 가운데가 넓음, 길이 따라 아래로 휨, 가장자리가 살짝 내려가 오목)
 #   SM_PlantPot / SM_PlantPotWilted : 화분 식물 (회전 링 · 휴게실 화분 흙 위) — 잎자루 + 큰 잎 14장 나선, 시든 것은 잎이 축 처지고 누렇게 + 흙 위 떨어진 잎
 #   SM_PlantTree / SM_PlantTreeWilted : 수경 농장 돔 아래 나무 — 휘어진 줄기 · 가지 4 · 가지 끝과 줄기 꼭대기 잎 뭉치(작은 잎 여러 장), 흙 위 작은 덤불
+#   SM_PlantPine / SM_PlantPineWilted : 3단계 바깥 정원 소나무 (2026-11-10) — 곧은 줄기 · 층층 가지 여섯 단 · 가지마다 바늘잎 (가는 잎) 묶음 · 꼭대기 잎
+#   SM_PlantBlossom / SM_PlantBlossomWilted : 3단계 꽃나무 (2026-11-10) — 넓게 퍼진 가지 · 가지 끝 꽃 뭉치 (다섯 꽃잎 꽃 + 작은 잎)
 # 원점 = 흙 윗면 가운데, 위 = +z (Unity +y). 상추(수경 선반)는 farm_builder 안에서 같은 잎 함수로 만든다.
 # 사용: blender -b --factory-startup -P BlenderWork/InteriorProps/plant_builder.py -- <fbx 출력 폴더>
 import bpy, bmesh, sys, os, math, random
@@ -20,6 +22,11 @@ COLORS = {
     'Bark': ((0.3, 0.22, 0.15), 0.1),
     'Dry': ((0.55, 0.48, 0.18), 0.15),      # 시든 잎 (누런 갈색)
     'DryDark': ((0.4, 0.3, 0.13), 0.12),
+    'Needle': ((0.1, 0.32, 0.18), 0.3),       # 소나무 바늘잎
+    'NeedleLight': ((0.2, 0.45, 0.24), 0.3),
+    'Blossom': ((0.97, 0.66, 0.77), 0.25),    # 꽃나무 꽃잎
+    'BlossomLight': ((1.0, 0.86, 0.9), 0.25),
+    'Pistil': ((1.0, 0.84, 0.36), 0.3),       # 꽃 가운데
 }
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -197,6 +204,96 @@ def build_tree(wilted, seed=9):
             leaf(c, yaw, math.radians(35 + 10 * (j % 2)) - (0.4 if wilted else 0), 0.17, 0.08, 0.9, mat, segs=5, cup=0.3, thick=0.004)
 
 
+# ================= 3단계 소나무 · 꽃나무 (2026-11-10) =================
+def build_pine(wilted, seed=21):
+    rnd = random.Random(seed)
+    trunk = curve(Vector((0, 0, -0.03)), Vector((0.02, 0.01, 1)), 2.35, 0.0, 8)
+    tube(trunk, 0.085, 0.022, 'Bark', seg=10)
+    needle = ('Dry', 'DryDark') if wilted else ('Needle', 'NeedleLight')
+    levels = 7
+    for k in range(levels):
+        z = 0.45 + k * 0.27
+        Lb = 1.0 * (1 - k / 7.6) + 0.1
+        for b in range(6):
+            yaw = b * 2 * math.pi / 6 + k * 0.5 + rnd.uniform(-0.15, 0.15)
+            start = Vector((0.02 * z, 0.01 * z, z))
+            d0 = Vector((math.cos(yaw), math.sin(yaw), -0.1 - (0.25 if wilted else 0)))
+            pts = curve(start, d0, Lb, 0.2 if not wilted else -0.15, 4)
+            tube(pts, 0.022 - 0.002 * k, 0.007, 'Bark', seg=6)
+            for j in range(5):                                  # 가지를 따라 넓은 바늘잎 판 (양옆으로 겹쳐 가지 덮음)
+                t = 0.15 + 0.85 * j / 4
+                i0 = min(len(pts) - 2, int(t * (len(pts) - 1)))
+                base = pts[i0].lerp(pts[i0 + 1], t * (len(pts) - 1) - i0)
+                L = (0.3 - 0.1 * t) * (1.0 - 0.04 * k)
+                for e in (-1, 1):
+                    leaf(base, yaw + e * 0.75 + rnd.uniform(-0.1, 0.1), 0.18 - (0.45 if wilted else 0), L, 0.085, 0.42 + (0.5 if wilted else 0),
+                         needle[(j + (e > 0)) % 2], segs=3, cup=0.2, thick=0.004)
+    top = trunk[-1]
+    for j in range(8):                                          # 꼭대기 잎
+        leaf(top - Vector((0, 0, 0.05)), j * 2 * math.pi / 8, math.radians(58) - (0.6 if wilted else 0), 0.24, 0.06, 0.25, needle[j % 2], segs=3, cup=0.2, thick=0.004)
+
+
+def flower(c, n, R, rot, mat):
+    """다섯 꽃잎 꽃 한 송이 = 얇은 별꽃 판 (꽃잎 끝 R · 사이 0.5R, 가운데가 살짝 오목), n = 꽃이 보는 쪽."""
+    n = Vector(n).normalized()
+    u = n.cross(Vector((0, 0, 1)) if abs(n.z) < 0.9 else Vector((1, 0, 0))).normalized(); v = n.cross(u)
+    bm = bmesh.new()
+    top, bot = [], []
+    for i in range(10):
+        a = rot + math.pi * i / 5
+        r = R if i % 2 == 0 else R * 0.5
+        q = c + (u * math.cos(a) + v * math.sin(a)) * r + n * (0.012 * (r / R))
+        top.append(bm.verts.new(q + n * 0.003)); bot.append(bm.verts.new(q - n * 0.003))
+    ct = bm.verts.new(c + n * 0.006); cb = bm.verts.new(c - n * 0.002)
+    for i in range(10):
+        j = (i + 1) % 10
+        bm.faces.new((ct, top[i], top[j])); bm.faces.new((cb, bot[j], bot[i]))
+        bm.faces.new((top[i], bot[i], bot[j], top[j]))
+    orient_outward(bm)
+    PARTS.append((bm, mat))
+
+
+def blossom_cluster(center, size, nf, nl, rnd, wilted):
+    """꽃 뭉치: 다섯 꽃잎 꽃 nf송이 (밖을 봄, 연분홍 · 분홍 · 꽃술색 가운데 없이 판 둘 겹침) + 작은 잎 nl장."""
+    for f in range(nf if not wilted else nf // 3):
+        off = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-0.45, 0.75)))
+        c = center + off * size * 0.9
+        nrm = (off + Vector((0, 0, 0.6))).normalized()
+        R = rnd.uniform(0.055, 0.075)
+        mat = ('Dry' if f % 2 else 'DryDark') if wilted else ('BlossomLight' if f % 3 == 0 else 'Blossom')
+        flower(c, nrm, R, rnd.uniform(0, 2 * math.pi), mat)
+        if not wilted and f % 2 == 0:
+            flower(c + nrm * 0.008, nrm, R * 0.3, rnd.uniform(0, 2 * math.pi), 'Pistil')
+    for k in range(nl):
+        yaw = rnd.uniform(0, 2 * math.pi)
+        off = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-0.7, 0.3))) * size
+        leaf(center + off, yaw, rnd.uniform(-0.2, 0.6), size * 0.75, size * 0.32, 0.6 + (0.8 if wilted else 0),
+             ('Dry' if wilted else ('LeafLight', 'Leaf')[k % 2]), segs=4, cup=0.25, thick=0.004)
+
+
+def build_blossom(wilted, seed=33):
+    rnd = random.Random(seed)
+    trunk = curve(Vector((0, 0, -0.03)), Vector((0.08, 0.04, 1)), 1.25, 0.0, 7)
+    for i, p in enumerate(trunk):
+        p.x += 0.06 * math.sin(i * 0.8); p.y += 0.04 * math.cos(i * 0.6)
+    tube(trunk, 0.085, 0.04, 'Bark', seg=10)
+    clusters = [trunk[-1] + Vector((0, 0, 0.1))]
+    for b in range(7):
+        yaw = b * 2 * math.pi / 7 + 0.3 + rnd.uniform(-0.2, 0.2)
+        start = trunk[3 + b % 4]
+        d0 = Vector((math.cos(yaw), math.sin(yaw), 0.55 if not wilted else 0.25))
+        pts = curve(start, d0, 0.7 + rnd.uniform(-0.05, 0.12), 0.3 if not wilted else -0.2, 5)
+        tube(pts, 0.035, 0.012, 'Bark', seg=7)
+        clusters.append(pts[-1])
+        mid = pts[3]
+        side = Vector((math.cos(yaw - 1.1), math.sin(yaw - 1.1), 0.45))
+        twig = curve(mid, side, 0.28, 0.2, 3)
+        tube(twig, 0.014, 0.007, 'Bark', seg=6)
+        clusters.append(twig[-1])
+    for i, c in enumerate(clusters):
+        blossom_cluster(c, 0.3 if i == 0 else 0.26, 22 if i == 0 else 16, 4, rnd, wilted)
+
+
 def finish(name):
     me = bpy.data.meshes.new(name); ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
@@ -225,7 +322,9 @@ def finish(name):
 
 objs = []
 for name, fn in (('PlantPot', lambda: build_pot(False)), ('PlantPotWilted', lambda: build_pot(True)),
-                 ('PlantTree', lambda: build_tree(False)), ('PlantTreeWilted', lambda: build_tree(True))):
+                 ('PlantTree', lambda: build_tree(False)), ('PlantTreeWilted', lambda: build_tree(True)),
+                 ('PlantPine', lambda: build_pine(False)), ('PlantPineWilted', lambda: build_pine(True)),
+                 ('PlantBlossom', lambda: build_blossom(False)), ('PlantBlossomWilted', lambda: build_blossom(True))):
     fn()
     objs.append(finish(name))
 for i, ob in enumerate(objs):
@@ -265,7 +364,7 @@ lo = bpy.data.objects.new('Sun', ld); sc.collection.objects.link(lo); lo.rotatio
 cd = bpy.data.cameras.new('C'); cd.type = 'ORTHO'; cam = bpy.data.objects.new('C', cd); sc.collection.objects.link(cam); sc.camera = cam
 pv = os.path.join(HERE, 'preview'); os.makedirs(pv, exist_ok=True)
 for tag, d, scale, target in (('all', Vector((0.3, -1, 0.35)), 7.2, Vector((0, 0, 0.9))), ('pot', Vector((0.4, -1, 0.5)), 2.2, Vector((-1.8, 0, 0.35))),
-                              ('tree', Vector((0.3, -1, 0.3)), 3.2, Vector((1.8, 0, 1.0)))):
+                              ('tree', Vector((0.3, -1, 0.3)), 3.2, Vector((1.8, 0, 1.0))), ('s3', Vector((0.3, -1, 0.3)), 9.0, Vector((7.2, 0, 1.2)))):
     d = d.normalized(); cam.location = target + d * 6; cam.rotation_euler = (-d).to_track_quat('-Z', 'Y').to_euler()
     cd.ortho_scale = scale; sc.render.resolution_x = 900; sc.render.resolution_y = 520
     sc.render.filepath = os.path.join(pv, 'plant_%s.png' % tag); bpy.ops.render.render(write_still=True)

@@ -690,7 +690,7 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>동물 이름 끝 (Blender CritterSet 종류) → 움직임.</summary>
-        private static readonly Dictionary<string, SpaceStation.Building.CritterFx.Kind> CritterKinds = new Dictionary<string, SpaceStation.Building.CritterFx.Kind>
+        internal static readonly Dictionary<string, SpaceStation.Building.CritterFx.Kind> CritterKinds = new Dictionary<string, SpaceStation.Building.CritterFx.Kind>
         {
             { "Duck", SpaceStation.Building.CritterFx.Kind.Swim }, { "Swan", SpaceStation.Building.CritterFx.Kind.Swim },
             { "Duckling", SpaceStation.Building.CritterFx.Kind.Follow }, { "Turtle", SpaceStation.Building.CritterFx.Kind.Drift },
@@ -1092,7 +1092,7 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>동물 앞쪽 (부모 기준 가로 단위 벡터) · 간격 반지름 — 메시 정점을 부모 축으로 돌려서 잼.</summary>
-        private static void CritterShape(Transform part, Transform wings, SpaceStation.Building.CritterFx.Kind kind, out Vector3 heading, out float radius)
+        internal static void CritterShape(Transform part, Transform wings, SpaceStation.Building.CritterFx.Kind kind, out Vector3 heading, out float radius)
         {
             var pts = new List<Vector3>();
             foreach (var p in part.GetComponent<MeshFilter>().sharedMesh.vertices)

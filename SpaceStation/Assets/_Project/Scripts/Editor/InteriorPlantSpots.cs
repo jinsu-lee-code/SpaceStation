@@ -78,6 +78,43 @@ namespace SpaceStation.Editor
                 new PlantSpot(new Vector3(-1.16f, -0.92f, -1.39f), PlantKind.Pot, 0.45f, 0f),
                 new PlantSpot(new Vector3(25.16f, -0.92f, -1.39f), PlantKind.Pot, 0.45f, 53f),
             });
+            // 진화 3단계 궤도 도시 (oc_builder PLANTS, 사용자 2026-11-10 "나무가 뭉뚱그려져있네" → 잎 한 장씩 나무 모델): 뒤 왼쪽 숲 소나무 · 활엽수, 뒤 오른쪽 꽃 들판 꽃나무,
+            //  언덕 단 위 나무 · 꽃나무 (반쯤 묻힌 집 사이), 기둥 테라스 난간 밖 화단 (층마다 둘). 크기 = 바깥 나무 4 ~ 5 m (모델 높이 Tree 1.87 · Pine 2.47 · Blossom 1.67)
+            Set("IT_EvoOrbitalCity", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(0.85f, -1.3f, 29.749f), PlantKind.Tree, 1.95f, 0f),
+                new PlantSpot(new Vector3(4.203f, -1.3f, 31.415f), PlantKind.Tree, 1.81f, 47f),
+                new PlantSpot(new Vector3(5.08f, -1.3f, 32.494f), PlantKind.Tree, 2.06f, 94f),
+                new PlantSpot(new Vector3(6.544f, -1.3f, 32.877f), PlantKind.Tree, 1.76f, 141f),
+                new PlantSpot(new Vector3(3.701f, -1.3f, 31.568f), PlantKind.Tree, 2.06f, 188f),
+                new PlantSpot(new Vector3(0.274f, -1.3f, 28.214f), PlantKind.Tree, 1.87f, 235f),
+                new PlantSpot(new Vector3(-0.226f, -1.3f, 28.112f), PlantKind.Tree, 1.89f, 282f),
+                new PlantSpot(new Vector3(-0.031f, -1.3f, 27.538f), PlantKind.Tree, 1.81f, 329f),
+                new PlantSpot(new Vector3(28.283f, -1.3f, 31.739f), PlantKind.Blossom, 2.16f, 16f),
+                new PlantSpot(new Vector3(30.601f, -1.3f, 29.819f), PlantKind.Blossom, 2.3f, 63f),
+                new PlantSpot(new Vector3(30.354f, -1.3f, 29.895f), PlantKind.Blossom, 2.2f, 110f),
+                new PlantSpot(new Vector3(28.22f, -1.3f, 31.785f), PlantKind.Blossom, 2.19f, 157f),
+                new PlantSpot(new Vector3(26.883f, -1.3f, 32.498f), PlantKind.Blossom, 1.97f, 204f),
+                new PlantSpot(new Vector3(28.503f, -1.3f, 31.48f), PlantKind.Blossom, 1.81f, 251f),
+                new PlantSpot(new Vector3(32.489f, -1.3f, 26.729f), PlantKind.Blossom, 1.87f, 298f),
+                new PlantSpot(new Vector3(27.423f, -1.3f, 32.108f), PlantKind.Blossom, 1.88f, 345f),
+                new PlantSpot(new Vector3(14.42f, 1.5f, 24.962f), PlantKind.Tree, 1.15f, 32f),
+                new PlantSpot(new Vector3(8.546f, 1.5f, 21.22f), PlantKind.Tree, 1.15f, 79f),
+                new PlantSpot(new Vector3(7.038f, 1.5f, 14.42f), PlantKind.Blossom, 1.2f, 126f),
+                new PlantSpot(new Vector3(23.454f, 1.5f, 10.78f), PlantKind.Blossom, 1.2f, 173f),
+                new PlantSpot(new Vector3(24.962f, 1.5f, 17.58f), PlantKind.Tree, 1.15f, 220f),
+                new PlantSpot(new Vector3(18.292f, 3.9f, 22.296f), PlantKind.Blossom, 1.2f, 267f),
+                new PlantSpot(new Vector3(11.693f, 3.9f, 21.132f), PlantKind.Tree, 1.15f, 314f),
+                new PlantSpot(new Vector3(13.708f, 3.9f, 9.704f), PlantKind.Blossom, 1.2f, 1f),
+                new PlantSpot(new Vector3(18.913f, 15.245f, 18.913f), PlantKind.Tree, 0.75f, 48f),
+                new PlantSpot(new Vector3(13.087f, 15.245f, 13.087f), PlantKind.Blossom, 0.75f, 95f),
+                new PlantSpot(new Vector3(13.087f, 23.245f, 18.913f), PlantKind.Blossom, 0.75f, 142f),
+                new PlantSpot(new Vector3(18.913f, 23.245f, 13.087f), PlantKind.Tree, 0.75f, 189f),
+                new PlantSpot(new Vector3(18.913f, 31.245f, 18.913f), PlantKind.Tree, 0.75f, 236f),
+                new PlantSpot(new Vector3(13.087f, 31.245f, 13.087f), PlantKind.Blossom, 0.75f, 283f),
+                new PlantSpot(new Vector3(13.087f, 39.245f, 18.913f), PlantKind.Blossom, 0.75f, 330f),
+                new PlantSpot(new Vector3(18.913f, 39.245f, 13.087f), PlantKind.Tree, 0.75f, 17f),
+            });
             // 진화 2단계 연구원 (mz_builder PLANTS): 연구실 안 화분 하나 (유리 연구실 = 실내)
             Set("IT_EvoResearchInstitute", new List<PlantSpot>
             {

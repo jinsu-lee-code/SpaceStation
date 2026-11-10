@@ -2439,3 +2439,14 @@
 
 ### `narrative` · `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `c164d215`). 씬 · TASKS · 글꼴은 tycoon에만
+
+## M-163. 궤도 도시 내부 (3단계 첫 내부) · 3단계 키트 · 궤도열차 정지선 미니게임 · 소나무 · 꽃나무 (2026-11-10, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `2c751f88`의 변경분을 패치로)
+- 3단계 진주 · 금 키트 `SM_InteriorKit_Evo3.fbx` (Interior_Evo.blend `evo3_kit_builder`) · `InteriorSetup` 3단계 재질 (`M_InteriorEvo3Pearl` · `Gold` · `Blossom`) · 키트 3단계 (내부 템플릿이 있는 3단계 모듈만 — 템플릿 없는 방의 대체 벽이 난간 + 하늘이 되지 않게)
+- 식물 `PlantKind.Pine` · `Blossom` (`plant_builder` 소나무 · 꽃나무 + 시든 것, `SM_PlantPine*` · `SM_PlantBlossom*`), `InteriorPlants.Settings` 네 칸 — Setup이 장면 `InteriorMode._plantSettings`에 연결 (main 장면은 Setup을 한 번 돌리면 연결됨)
+- 궤도 도시 템플릿 (`IT_EvoOrbitalCity` · `PF_Interior_EvoOrbitalCity` · `SM_Interior_EvoOrbitalCity.fbx`, `InteriorTemplateBuilder.BuildEvoOrbitalCity`, 값 = `OrbitalCity`): 둥근 언덕 단 셋 + 휘어 오르는 계단 · 언덕 속 길 · 뿌리 홀, 수정 나무 기둥 엘리베이터 5층 · 테라스 문 자리 15, 해치 21, 강둑 · 승강장 보이지 않는 턱, 외형 동물 (CritterFx `_autoPlay`), 주민 자리 24 · 식물 자리 32
+- `InteriorOrbitTrain` (운전석 F · W 가속 · S 브레이크 · 정지선 판정 · 최고 기록), `OrbitalCityTests`, `StationArtBuilder.CritterKinds` · `CritterShape` internal
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `2c751f88`). 씬 (식물 연결 · 템플릿 등록) · TASKS · 글꼴은 tycoon에만
