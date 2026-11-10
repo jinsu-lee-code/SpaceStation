@@ -2503,3 +2503,12 @@
 - 같은 변경 (tycoon 커밋 `00046208`). 씬 · TASKS · 글꼴은 tycoon에만
 - MODELING.md 충돌: main 판은 tycoon 판보다 한 줄 (3단계 내부 결정) 적었음 → tycoon에서 나눈 판을 그대로 씀. **narrative에서 MODELING.md를 고쳤다면 그 줄을 해당 `docs/modeling/` 주제 파일로 옮길 것**
 - CLAUDE.md는 아트 규칙 한 줄만 바뀜 (브랜치별 머리말은 그대로)
+
+## M-169. 바이오스피어 2차 지적 넷 (2026-11-11, `main`)
+
+**main에 넣은 것**
+- 뜬 덩굴 · 밭 덮개 물길 자리 · 나무 가지 자리 비움 · Z 겹침 0, 작은 폭포 재질 `M_InteriorEvo3Spill` (WaterFalls 맑은 변형) · 물보라 (`Biosphere.SmallFallLandings`)
+- 체크리스트 69 ~ 72 · 06c 바이오스피어 2차 기록
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `b7f3a495`). 씬 · TASKS · 글꼴은 tycoon에만

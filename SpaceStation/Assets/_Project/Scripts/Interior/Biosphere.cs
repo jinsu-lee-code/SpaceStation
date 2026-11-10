@@ -76,6 +76,22 @@ namespace SpaceStation.Interior
             (Polar(RidgeOuter + 0.12f, 330f, RidgeTop + 0.21f), Polar(RidgeOuter - 0.12f, 330f, RidgeTop - 0.15f), 0.6f),
         };
 
+        /// <summary>
+        /// 단마다 작은 폭포 (물길 셋 × (능선 → 다섯째 단 · 단 → 아래 단 넷 · 첫째 단 → 물가 물길)): 떨어지는 자리 (아래 물길 수면) — 물보라 · 물결 (폭 0.5).
+        /// Blender bio3_builder terraces() · springs()와 같은 값.
+        /// </summary>
+        public static Vector3[] SmallFallLandings()
+        {
+            var list = new System.Collections.Generic.List<Vector3>();
+            foreach (float a in Streams)
+            {
+                list.Add(Polar(RidgeInner - 0.16f, a, TerraceTop(4) - 0.1f));
+                for (int k = 0; k < 5; k++)
+                    list.Add(Polar(TerraceInner(k) - 0.16f, a, k > 0 ? TerraceTop(k - 1) - 0.1f : Floor - 0.13f));
+            }
+            return list.ToArray();
+        }
+
         /// <summary>물레방아 셋 (물길마다 넷째 단 → 셋째 단 작은 폭포 바로 앞, 반지름 0.32, 굴대 = 물길 가로).</summary>
         public static Vector3 WheelCenter(int stream) => Polar(TerraceInner(3) - 0.3f, Streams[stream], TerraceTop(2) + 0.12f);
         public static Vector3 WheelAxis(int stream)
