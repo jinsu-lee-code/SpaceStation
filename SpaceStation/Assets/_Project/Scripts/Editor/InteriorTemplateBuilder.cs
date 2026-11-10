@@ -4094,7 +4094,7 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>화물 환적장 보트 처음 자리 (s, <see cref="CargoFlumeCourse"/>): 0 = 정차 · 대기 둘 (앞 보트 뒤 3.1씩).</summary>
-        public static readonly float[] CargoBoatStarts = { 0f, 70.562f, 67.462f };
+        public static readonly float[] CargoBoatStarts = { 0f, CargoFlumeCourse.Loop - 3.1f, CargoFlumeCourse.Loop - 6.2f };
 
         /// <summary>화물 환적장 탄 주민 자리 (보트마다 뒷줄 둘, 처음 자세 · 엉덩이 = 방석 앞 끝 − 0.07) · 보트 번호.</summary>
         public static Vector3[] CargoRiderSeats()

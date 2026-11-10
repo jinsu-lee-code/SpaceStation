@@ -11,11 +11,11 @@ namespace SpaceStation.Tests
         [Test]
         public void Loop_MatchesBlender()
         {
-            Assert.AreEqual(73.662f, CargoFlumeCourse.Loop, 0.01f);
+            Assert.AreEqual(73.979f, CargoFlumeCourse.Loop, 0.01f);
             Assert.AreEqual(34.4f, CargoFlumeCourse.LiftAngle, 0.15f);
-            Assert.AreEqual(37.37f, CargoFlumeCourse.SplashS, 0.01f);
-            Assert.AreEqual(29.35f, CargoFlumeCourse.TunnelIn, 0.01f);
-            Assert.AreEqual(33.07f, CargoFlumeCourse.TunnelOut, 0.01f);
+            Assert.AreEqual(37.485f, CargoFlumeCourse.SplashS, 0.01f);
+            Assert.AreEqual(29.465f, CargoFlumeCourse.TunnelIn, 0.01f);
+            Assert.AreEqual(33.185f, CargoFlumeCourse.TunnelOut, 0.01f);
         }
 
         [Test]
