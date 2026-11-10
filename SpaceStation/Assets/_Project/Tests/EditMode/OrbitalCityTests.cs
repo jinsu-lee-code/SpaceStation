@@ -28,17 +28,43 @@ namespace SpaceStation.Tests
                 Assert.Less(Mathf.Abs(off.x), 3.05f, $"{cell}");
                 Assert.Less(Mathf.Abs(off.y), 3.05f, $"{cell}");
             }
-            Assert.AreEqual(15, OrbitalCity.TowerDoors.Length);
+            // 문 자리 = 옥상 칸만 (가운데 기둥 칸은 승강장이 없어 문 없음, 2026-11-11)
+            Assert.AreEqual(3, OrbitalCity.TowerDoors.Length);
             foreach (var (cell, dir) in OrbitalCity.TowerDoors)
             {
-                Assert.AreEqual(2, cell.x);
-                Assert.AreEqual(2, cell.z);
+                Assert.AreEqual(new Vector3Int(2, 5, 2), cell);
                 Assert.AreEqual(0, dir.y);
-                Assert.IsFalse(cell.y == 5 && dir.z < 0, "맨 위 칸 −z = 외형 연결점 없음");
+                Assert.IsFalse(dir.z < 0, "맨 위 칸 −z = 외형 연결점 없음");
             }
-            Assert.AreEqual(5, OrbitalCity.LiftStops.Length);
-            for (int k = 1; k < OrbitalCity.LiftStops.Length; k++)
-                Assert.AreEqual(k + 1 + 0f, (OrbitalCity.LiftStops[k] - F) / 8f, 1e-4f, "기둥 칸 바닥");
+            // 엘리베이터 = 언덕 꼭대기 광장 → 옥상 직행
+            Assert.AreEqual(2, OrbitalCity.LiftStops.Length);
+            Assert.AreEqual(F + 8f, OrbitalCity.LiftStops[0], 1e-4f);
+            Assert.AreEqual(5f, (OrbitalCity.LiftStops[1] - F) / 8f, 1e-4f, "옥상 칸 바닥");
+        }
+
+        [Test]
+        public void Water_FallsLandInPools()
+        {
+            // 수면 = 아래부터 차례로, 폭포 = 턱이 한 수면 · 떨어지는 자리가 바로 아래 수면 (KWS 물 기준점 = 수면 — 어긋나면 물이 떠 보임)
+            for (int k = 1; k < OrbitalCity.WaterLevels.Length; k++)
+                Assert.Greater(OrbitalCity.WaterLevels[k], OrbitalCity.WaterLevels[k - 1]);
+            Assert.AreEqual(F - 0.15f, OrbitalCity.WaterLevels[0], 1e-4f, "땅 높이 수면 = 강");
+            int Level(float y)
+            {
+                for (int k = 0; k < OrbitalCity.WaterLevels.Length; k++)
+                {
+                    if (Mathf.Abs(OrbitalCity.WaterLevels[k] - y) < 1e-3f)
+                        return k;
+                }
+                return -1;
+            }
+            foreach (var (lip, landing, width) in OrbitalCity.Falls)
+            {
+                int a = Level(lip.y), b = Level(landing.y);
+                Assert.GreaterOrEqual(a, 0, $"턱 {lip} 수면 아님");
+                Assert.AreEqual(a - 1, b, $"폭포 {lip} → {landing} = 바로 아래 수면");
+                Assert.Greater(width, 0.3f);
+            }
         }
 
         [Test]

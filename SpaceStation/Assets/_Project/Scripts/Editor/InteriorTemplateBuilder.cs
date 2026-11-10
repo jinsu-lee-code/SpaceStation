@@ -4647,7 +4647,7 @@ namespace SpaceStation.Editor
             const string N = "INT_EvoOrbitalCity_";
             var sockets = new List<InteriorSocket>();
             foreach (var (cell, dir) in OrbitalCity.TowerDoors)
-                sockets.Add(new InteriorSocket(cell, dir, OrbitalCity.TowerDoorDepth));   // 테라스 다리 끝 (3.93 바로 안)
+                sockets.Add(new InteriorSocket(cell, dir, OrbitalCity.TowerDoorDepth));   // 옥상 전망대 문 다리 끝 (3.93 바로 안)
             foreach (var (cell, off) in OrbitalCity.Hatches)
                 sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, new Vector3(off.x, 0f, off.y)));
             var white = new Color(1f, 0.97f, 0.92f);
@@ -4663,7 +4663,7 @@ namespace SpaceStation.Editor
             {
                 lights.Add(LightSpec.Point(P(9.3f, 90f * k, F + 4.8f), 8f, 0.9f, white));               // 아래 단 마을
                 lights.Add(LightSpec.Point(P(7.5f, 45f + 90f * k, F + 7.2f), 7f, 0.8f, white));         // 위 단
-                lights.Add(LightSpec.Point(P(8.1f, 45f + 90f * k, F + 2.1f), 4.5f, 0.7f, warm));        // 언덕 속 고리 길 모서리
+                lights.Add(LightSpec.Point(P(6.4f, 45f + 90f * k, F + 2.1f), 4.5f, 0.7f, warm));        // 언덕 속 고리 길 모서리 (굴 반지름 5.2 ~ 7.6)
                 lights.Add(LightSpec.Point(P(6.4f, 90f * k, F + 2.1f), 4.5f, 0.7f, warm));              // 고리 길 가운데 (바깥 통로 쪽)
             }
             lights.Add(LightSpec.Point(new Vector3(16f, F + 2.5f, 16f), 4.5f, 0.8f, warm));             // 뿌리 홀
@@ -4673,10 +4673,10 @@ namespace SpaceStation.Editor
             {
                 if (fl < 10f)
                     continue;
-                lights.Add(LightSpec.Point(new Vector3(16f, fl + 2.6f, 13.1f), 5f, 0.8f, white));        // 테라스 (엘리베이터 앞 · 뒤)
+                lights.Add(LightSpec.Point(new Vector3(16f, fl + 2.6f, 13.1f), 5f, 0.8f, white));        // 옥상 전망대 (엘리베이터 앞 · 뒤)
                 lights.Add(LightSpec.Point(new Vector3(16f, fl + 2.6f, 18.9f), 5f, 0.6f, white));
             }
-            lights.Add(LightSpec.Point(new Vector3(16f, OrbitalCity.LiftStops[4] + 3.6f, 16f), 4f, 0.9f, cool));   // 프리즘 속 빛
+            lights.Add(LightSpec.Point(new Vector3(16f, OrbitalCity.LiftStops[OrbitalCity.LiftStops.Length - 1] + 3.6f, 16f), 4f, 0.9f, cool));   // 프리즘 속 빛
             for (int k = -1; k <= 1; k++)
                 lights.Add(LightSpec.Point(P(OrbitalCity.TrackRadius + 1.9f, OrbitalCity.StationAngle + 11f * k, OrbitalCity.PlatformTop + 2.2f), 6f, 0.9f, warm));   // 역 지붕 밑
             lights.Add(LightSpec.Point(P(19.55f, 237f, F + 2.0f), 4f, 0.8f, warm));                      // 호숫가 정자
@@ -4688,7 +4688,7 @@ namespace SpaceStation.Editor
                 {
                     var r = root.transform;
                     var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
-                    // 엘리베이터 (꼭대기 광장 ↔ 테라스 넷, 문 = −z, gt_builder lift 틀)
+                    // 엘리베이터 (언덕 꼭대기 광장 ↔ 옥상 전망대 직행, 문 = −z, gt_builder lift 틀)
                     var stops = OrbitalCity.LiftStops;
                     var car = Child(root, N + "LiftCar");
                     var carGlass = Child(root, N + "LiftCarGlass");
@@ -4756,12 +4756,17 @@ namespace SpaceStation.Editor
                                 Guard(P(rb, a, F), P(rb, Mathf.Min(a + 5f, s1), F), 1.0f);
                         }
                     }
-                    // 동물: 외형 손그림 동물 (SM_Evo_OrbitalCity Critter_*)을 내부 크기로 — 묶음마다 배율 (사슴 1 m · 토끼 0.4 m · 백조 0.9 m · 나비 0.2 m), 움직임 = 외형과 같은 CritterFx (제자리)
+                    // 동물: 사슴 · 아기 사슴 · 토끼 · 백조 = 내부 전용 모델 (SM_InteriorCritters, 미터 — critter_builder.py 메타볼 몸, 사용자 2026-11-10 · 11 사진 · 애니메이션 참고),
+                    // 나비 = 외형 손그림 동물 (SM_Evo_OrbitalCity Critter_*)을 키워서. 움직임 = 외형과 같은 CritterFx (제자리) — CritterFx 흔들림 폭이 외형 크기 기준이라
+                    // 묶음은 예전 배율 그대로 키우고 내부 모델은 그만큼 줄여 넣음 (실제 크기 = 미터)
                     var critterSrc = new Dictionary<string, GameObject>();
-                    foreach (var o in AssetDatabase.LoadAllAssetsAtPath("Assets/_Project/Art/Models/Modules/SM_Evo_OrbitalCity.fbx"))
+                    foreach (var path in new[] { "Assets/_Project/Art/Models/Modules/SM_Evo_OrbitalCity.fbx", "Assets/_Project/Art/Models/Interior/SM_InteriorCritters.fbx" })
                     {
-                        if (o is GameObject g && g.name.StartsWith("Critter_") && g.GetComponent<MeshFilter>() != null)
-                            critterSrc[g.name] = g;
+                        foreach (var o in AssetDatabase.LoadAllAssetsAtPath(path))
+                        {
+                            if (o is GameObject g && g.name.StartsWith("Critter_") && g.GetComponent<MeshFilter>() != null)
+                                critterSrc[g.name] = g;
+                        }
                     }
                     var critterMat = ModuleFxMaterials.Get("Critters");
                     void Critters(string holderName, float scale, (string src, Vector3 at, float yaw)[] list)
@@ -4773,7 +4778,8 @@ namespace SpaceStation.Editor
                         var kinds = new List<SpaceStation.Building.CritterFx.Kind>();
                         foreach (var (src, at, yaw) in list)
                         {
-                            if (!critterSrc.TryGetValue("Critter_OrbitalCity_" + src, out var g))
+                            bool interior = critterSrc.TryGetValue("Critter_" + src, out var g);   // 내부 모델 (미터)
+                            if (!interior && !critterSrc.TryGetValue("Critter_OrbitalCity_" + src, out g))
                             {
                                 Debug.LogWarning("[InteriorTemplateBuilder] 궤도 도시 동물 없음: " + src);
                                 continue;
@@ -4782,7 +4788,7 @@ namespace SpaceStation.Editor
                             t.SetParent(holder, false);
                             t.localPosition = at / scale;
                             t.localRotation = Quaternion.Euler(0f, yaw, 0f) * g.transform.localRotation;
-                            t.localScale = g.transform.localScale;
+                            t.localScale = interior ? g.transform.localScale / scale : g.transform.localScale;
                             t.gameObject.AddComponent<MeshFilter>().sharedMesh = g.GetComponent<MeshFilter>().sharedMesh;
                             var mr = t.gameObject.AddComponent<MeshRenderer>();
                             mr.sharedMaterial = critterMat;
@@ -4810,18 +4816,49 @@ namespace SpaceStation.Editor
                     }
                     Critters("Critters_Deer", 13f, new[]
                     {
-                        ("15_Deer", P(19.3f, 211.5f, F), 40f), ("16_Deer", P(20.6f, 216f, F), -70f),   // 연꽃 호숫가
-                        ("17_Deer", P(18.3f, 166f, F), 150f), ("18_Deer", P(18.4f, 80f, F), -20f),      // 숲 · 들판 가장자리
+                        ("Deer", P(19.3f, 211.5f, F), 40f), ("Fawn", P(20.4f, 216.5f, F), -60f),   // 연꽃 호숫가 (어미 · 아기)
+                        ("Deer", P(18.3f, 166f, F), 150f), ("Deer", P(18.4f, 80f, F), -20f),        // 숲 · 들판 가장자리
                     });
                     Critters("Critters_Bunny", 6f, new[]
                     {
-                        ("19_Bunny", P(15.8f, 105f, F), 30f), ("20_Bunny", P(15.8f, 165f, F), 200f), ("21_Bunny", P(15.8f, 285f, F), 120f),   // 고리 길 밖 잔디 (레일 기둥 사이)
+                        ("Bunny", P(15.8f, 105f, F), 30f), ("Bunny", P(15.8f, 165f, F), 200f), ("Bunny", P(15.8f, 285f, F), 120f),   // 고리 길 밖 잔디 (레일 기둥 사이)
                     });
+                    float water = OrbitalCity.WaterLevels[0];   // 백조 원점 = 물높이
                     Critters("Critters_Swan", 7f, new[]
                     {
-                        ("11_Swan", P(12.8f, 200f, F - 0.24f), 90f), ("12_Swan", P(12.8f, 203.5f, F - 0.24f), 95f),    // 고리 강 (다리 비킴)
-                        ("13_Swan", P(12.8f, 338f, F - 0.24f), -80f), ("14_Swan", P(12.8f, 341.5f, F - 0.24f), -85f),
+                        ("Swan", P(12.8f, 200f, water), 90f), ("Swan", P(12.8f, 203.5f, water), 95f),    // 고리 강 (다리 비킴)
+                        ("Swan", P(12.8f, 338f, water), -80f), ("Swan", P(12.8f, 341.5f, water), -85f),
+                        ("Swan", P(19.0f, 228f, water), 20f),                                             // 연꽃 호수
                     });
+                    // 물: 수면 높이마다 KWS 물 (꺼 둠 → InteriorKwsWater가 켬) + 패키지 없는 PC용 Blender 수면, 폭포 물보라 · 웅덩이 물결
+                    var kws = new List<GameObject>();
+                    var surfaces = new List<Renderer>();
+                    for (int k = 0; k < OrbitalCity.WaterLevels.Length; k++)
+                    {
+                        var surface = Child(root, N + "Water" + (k == 0 ? "" : k.ToString()));
+                        if (surface == null)
+                            continue;
+                        surfaces.Add(surface.GetComponent<Renderer>());
+                        kws.Add(KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), OrbitalCity.WaterLevels[k], k == 0 ? 0.6f : 0.35f, "OrbitalCity" + k, true));
+                    }
+                    var landings = new Vector3[OrbitalCity.Falls.Length];
+                    var widths = new float[OrbitalCity.Falls.Length];
+                    for (int i = 0; i < OrbitalCity.Falls.Length; i++)
+                    {
+                        landings[i] = OrbitalCity.Falls[i].Landing;
+                        widths[i] = OrbitalCity.Falls[i].Width;
+                        int lv = 0;   // 떨어지는 웅덩이 = 가장 가까운 수면
+                        for (int k = 1; k < OrbitalCity.WaterLevels.Length; k++)
+                        {
+                            if (Mathf.Abs(OrbitalCity.WaterLevels[k] - landings[i].y) < Mathf.Abs(OrbitalCity.WaterLevels[lv] - landings[i].y))
+                                lv = k;
+                        }
+                        if (lv < kws.Count && kws[lv] != null)
+                            KwsWaterBuilder.Ripple(kws[lv], landings[i], 0.45f, 0.35f);
+                    }
+                    kws.RemoveAll(x => x == null);
+                    root.AddComponent<InteriorKwsWater>().Configure(kws.ToArray(), surfaces.ToArray(), Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(16f, 4f, 16f));
+                    root.AddComponent<InteriorWaterfallFx>().Configure(landings, widths, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FallsMistPath));
                     Critters("Critters_Butterfly", 4f, new[]
                     {
                         ("22_Butterfly", P(18.6f, 38f, F + 1.1f), 0f), ("23_Butterfly", P(19.2f, 47f, F + 0.8f), 60f), ("24_Butterfly", P(18.2f, 55f, F + 1.3f), 120f),
@@ -6288,8 +6325,10 @@ namespace SpaceStation.Editor
                 { "Evo3Path", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PathPath) },
                 { "Evo3Rock", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2RockPath) },
                 { "Evo3Soil", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SoilPath) },
-                { "Evo3Water", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PondPath) },
-                { "Evo3Falls", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2FallsPath) },
+                { "Evo3Water", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3WaterPath) },   // KWS 패키지가 없는 PC에서 보이는 수면 (KWS 물은 KwsWaterBuilder)
+                { "Evo3Falls", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3FallsPath) },
+                { "Evo3Roof", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3RoofPath) },
+                { "Evo3Door", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3DoorPath) },
                 { "Evo3Leaf", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PlantPath) },
                 { "Evo3Prism", ModuleFxMaterials.Get("Prism") },
             };

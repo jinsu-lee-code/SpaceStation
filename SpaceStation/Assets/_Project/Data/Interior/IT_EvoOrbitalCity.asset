@@ -15,66 +15,6 @@ MonoBehaviour:
   _module: {fileID: 11400000, guid: 924687bf2bec13048a66cd5f06603b1b, type: 2}
   _prefab: {fileID: 8041885484200456583, guid: d68a934286998d94ea135d294ce4bd61, type: 3}
   _sockets:
-  - _cell: {x: 2, y: 2, z: 2}
-    _direction: {x: 1, y: 0, z: 0}
-    _depth: 3.9
-    _offset: {x: 0, y: 0, z: 0}
-    _sealedWall: 0
-  - _cell: {x: 2, y: 2, z: 2}
-    _direction: {x: 0, y: 0, z: 1}
-    _depth: 3.9
-    _offset: {x: 0, y: 0, z: 0}
-    _sealedWall: 0
-  - _cell: {x: 2, y: 2, z: 2}
-    _direction: {x: -1, y: 0, z: 0}
-    _depth: 3.9
-    _offset: {x: 0, y: 0, z: 0}
-    _sealedWall: 0
-  - _cell: {x: 2, y: 2, z: 2}
-    _direction: {x: 0, y: 0, z: -1}
-    _depth: 3.9
-    _offset: {x: 0, y: 0, z: 0}
-    _sealedWall: 0
-  - _cell: {x: 2, y: 3, z: 2}
-    _direction: {x: 1, y: 0, z: 0}
-    _depth: 3.9
-    _offset: {x: 0, y: 0, z: 0}
-    _sealedWall: 0
-  - _cell: {x: 2, y: 3, z: 2}
-    _direction: {x: 0, y: 0, z: 1}
-    _depth: 3.9
-    _offset: {x: 0, y: 0, z: 0}
-    _sealedWall: 0
-  - _cell: {x: 2, y: 3, z: 2}
-    _direction: {x: -1, y: 0, z: 0}
-    _depth: 3.9
-    _offset: {x: 0, y: 0, z: 0}
-    _sealedWall: 0
-  - _cell: {x: 2, y: 3, z: 2}
-    _direction: {x: 0, y: 0, z: -1}
-    _depth: 3.9
-    _offset: {x: 0, y: 0, z: 0}
-    _sealedWall: 0
-  - _cell: {x: 2, y: 4, z: 2}
-    _direction: {x: 1, y: 0, z: 0}
-    _depth: 3.9
-    _offset: {x: 0, y: 0, z: 0}
-    _sealedWall: 0
-  - _cell: {x: 2, y: 4, z: 2}
-    _direction: {x: 0, y: 0, z: 1}
-    _depth: 3.9
-    _offset: {x: 0, y: 0, z: 0}
-    _sealedWall: 0
-  - _cell: {x: 2, y: 4, z: 2}
-    _direction: {x: -1, y: 0, z: 0}
-    _depth: 3.9
-    _offset: {x: 0, y: 0, z: 0}
-    _sealedWall: 0
-  - _cell: {x: 2, y: 4, z: 2}
-    _direction: {x: 0, y: 0, z: -1}
-    _depth: 3.9
-    _offset: {x: 0, y: 0, z: 0}
-    _sealedWall: 0
   - _cell: {x: 2, y: 5, z: 2}
     _direction: {x: 1, y: 0, z: 0}
     _depth: 3.9
@@ -108,7 +48,7 @@ MonoBehaviour:
   - _cell: {x: 1, y: 0, z: 0}
     _direction: {x: 0, y: -1, z: 0}
     _depth: 1.3
-    _offset: {x: 0, y: 0, z: 1.2}
+    _offset: {x: 0, y: 0, z: 1.4}
     _sealedWall: 0
   - _cell: {x: 1, y: 0, z: 1}
     _direction: {x: 0, y: -1, z: 0}
@@ -138,7 +78,7 @@ MonoBehaviour:
   - _cell: {x: 2, y: 0, z: 1}
     _direction: {x: 0, y: -1, z: 0}
     _depth: 1.3
-    _offset: {x: 0, y: 0, z: 0}
+    _offset: {x: 0, y: 0, z: 1.6}
     _sealedWall: 0
   - _cell: {x: 2, y: 0, z: 2}
     _direction: {x: 0, y: -1, z: 0}
@@ -273,20 +213,12 @@ MonoBehaviour:
     _yaw: 315
     _pose: 0
     _work: 0
-  - _position: {x: 18.262741, y: 14.7, z: 18.262741}
-    _yaw: 45
+  - _position: {x: 18.6, y: 38.7, z: 16}
+    _yaw: 90
     _pose: 0
     _work: 0
-  - _position: {x: 18.262741, y: 22.7, z: 13.737258}
-    _yaw: 135.00002
-    _pose: 0
-    _work: 0
-  - _position: {x: 18.262741, y: 30.7, z: 18.262741}
-    _yaw: 45
-    _pose: 0
-    _work: 0
-  - _position: {x: 18.262741, y: 38.7, z: 13.737258}
-    _yaw: 135.00002
+  - _position: {x: 13.4, y: 38.7, z: 16}
+    _yaw: -90
     _pose: 0
     _work: 0
   - _position: {x: 31.461481, y: -1.3, z: 18.726276}
@@ -303,131 +235,107 @@ MonoBehaviour:
   _visitStatus: "\uC815\uC6D0 \uC12C \uAD6C\uACBD \uC911"
   _workStatus: 
   _plantSpots:
-  - _position: {x: 0.85, y: -1.3, z: 29.749}
-    _kind: 1
-    _scale: 1.95
-    _yaw: 0
-  - _position: {x: 4.203, y: -1.3, z: 31.415}
+  - _position: {x: 3.494, y: -1.3, z: 31.634}
     _kind: 1
     _scale: 1.81
-    _yaw: 47
-  - _position: {x: 5.08, y: -1.3, z: 32.494}
-    _kind: 1
-    _scale: 2.06
-    _yaw: 94
-  - _position: {x: 6.544, y: -1.3, z: 32.877}
+    _yaw: 0
+  - _position: {x: 3.173, y: -1.3, z: 31.197}
     _kind: 1
     _scale: 1.76
+    _yaw: 47
+  - _position: {x: 6.412, y: -1.3, z: 32.936}
+    _kind: 1
+    _scale: 1.78
+    _yaw: 94
+  - _position: {x: 4.499, y: -1.3, z: 32.402}
+    _kind: 1
+    _scale: 2.09
     _yaw: 141
-  - _position: {x: 3.701, y: -1.3, z: 31.568}
-    _kind: 1
-    _scale: 2.06
+  - _position: {x: 1.097, y: -1.3, z: 29.524}
+    _kind: 2
+    _scale: 1.61
     _yaw: 188
-  - _position: {x: 0.274, y: -1.3, z: 28.214}
-    _kind: 1
-    _scale: 1.87
+  - _position: {x: 3.932, y: -1.3, z: 31.77}
+    _kind: 2
+    _scale: 1.49
     _yaw: 235
-  - _position: {x: -0.226, y: -1.3, z: 28.112}
+  - _position: {x: 3.85, y: -1.3, z: 31.492}
     _kind: 1
-    _scale: 1.89
+    _scale: 2.19
     _yaw: 282
-  - _position: {x: -0.031, y: -1.3, z: 27.538}
+  - _position: {x: 3.349, y: -1.3, z: 30.861}
     _kind: 1
-    _scale: 1.81
+    _scale: 2.04
     _yaw: 329
+  - _position: {x: 0.585, y: -1.3, z: 28.264}
+    _kind: 1
+    _scale: 1.97
+    _yaw: 16
+  - _position: {x: 1.085, y: -1.3, z: 29.392}
+    _kind: 2
+    _scale: 1.64
+    _yaw: 63
+  - _position: {x: 29.983, y: -1.3, z: 30.433}
+    _kind: 3
+    _scale: 2.33
+    _yaw: 110
+  - _position: {x: 27.588, y: -1.3, z: 32.101}
+    _kind: 3
+    _scale: 1.89
+    _yaw: 157
   - _position: {x: 28.283, y: -1.3, z: 31.739}
     _kind: 3
     _scale: 2.16
-    _yaw: 16
-  - _position: {x: 30.601, y: -1.3, z: 29.819}
-    _kind: 3
-    _scale: 2.3
-    _yaw: 63
-  - _position: {x: 30.354, y: -1.3, z: 29.895}
-    _kind: 3
-    _scale: 2.2
-    _yaw: 110
-  - _position: {x: 28.22, y: -1.3, z: 31.785}
-    _kind: 3
-    _scale: 2.19
-    _yaw: 157
-  - _position: {x: 26.883, y: -1.3, z: 32.498}
-    _kind: 3
-    _scale: 1.97
     _yaw: 204
-  - _position: {x: 28.503, y: -1.3, z: 31.48}
+  - _position: {x: 14.463, y: 1.5, z: 24.716}
     _kind: 3
-    _scale: 1.81
+    _scale: 1.2
     _yaw: 251
-  - _position: {x: 32.489, y: -1.3, z: 26.729}
-    _kind: 3
-    _scale: 1.87
+  - _position: {x: 9.221, y: 1.5, z: 21.689}
+    _kind: 1
+    _scale: 1.15
     _yaw: 298
-  - _position: {x: 27.423, y: -1.3, z: 32.108}
+  - _position: {x: 7.15, y: 1.5, z: 16}
     _kind: 3
-    _scale: 1.88
+    _scale: 1.2
     _yaw: 345
-  - _position: {x: 14.42, y: 1.5, z: 24.962}
+  - _position: {x: 19.027, y: 1.5, z: 7.684}
     _kind: 1
     _scale: 1.15
     _yaw: 32
-  - _position: {x: 8.546, y: 1.5, z: 21.22}
-    _kind: 1
-    _scale: 1.15
+  - _position: {x: 23.422, y: 1.5, z: 11.18}
+    _kind: 3
+    _scale: 1.2
     _yaw: 79
-  - _position: {x: 7.038, y: 1.5, z: 14.42}
+  - _position: {x: 21.406, y: 3.9, z: 19.786}
     _kind: 3
-    _scale: 1.2
+    _scale: 1.08
     _yaw: 126
-  - _position: {x: 23.454, y: 1.5, z: 10.78}
-    _kind: 3
-    _scale: 1.2
+  - _position: {x: 12.7, y: 3.9, z: 21.716}
+    _kind: 1
+    _scale: 1.03
     _yaw: 173
-  - _position: {x: 24.962, y: 1.5, z: 17.58}
-    _kind: 1
-    _scale: 1.15
+  - _position: {x: 14.292, y: 3.9, z: 9.625}
+    _kind: 3
+    _scale: 1.08
     _yaw: 220
-  - _position: {x: 18.292, y: 3.9, z: 22.296}
-    _kind: 3
-    _scale: 1.2
+  - _position: {x: 19.3, y: 3.9, z: 10.284}
+    _kind: 1
+    _scale: 1.03
     _yaw: 267
-  - _position: {x: 11.693, y: 3.9, z: 21.132}
-    _kind: 1
-    _scale: 1.15
+  - _position: {x: 18.44, y: 39.2, z: 18.44}
+    _kind: 3
+    _scale: 0.62
     _yaw: 314
-  - _position: {x: 13.708, y: 3.9, z: 9.704}
-    _kind: 3
-    _scale: 1.2
+  - _position: {x: 13.56, y: 39.2, z: 18.44}
+    _kind: 1
+    _scale: 0.62
     _yaw: 1
-  - _position: {x: 18.913, y: 15.245, z: 18.913}
-    _kind: 1
-    _scale: 0.75
+  - _position: {x: 13.56, y: 39.2, z: 13.56}
+    _kind: 3
+    _scale: 0.62
     _yaw: 48
-  - _position: {x: 13.087, y: 15.245, z: 13.087}
-    _kind: 3
-    _scale: 0.75
+  - _position: {x: 18.44, y: 39.2, z: 13.56}
+    _kind: 1
+    _scale: 0.62
     _yaw: 95
-  - _position: {x: 13.087, y: 23.245, z: 18.913}
-    _kind: 3
-    _scale: 0.75
-    _yaw: 142
-  - _position: {x: 18.913, y: 23.245, z: 13.087}
-    _kind: 1
-    _scale: 0.75
-    _yaw: 189
-  - _position: {x: 18.913, y: 31.245, z: 18.913}
-    _kind: 1
-    _scale: 0.75
-    _yaw: 236
-  - _position: {x: 13.087, y: 31.245, z: 13.087}
-    _kind: 3
-    _scale: 0.75
-    _yaw: 283
-  - _position: {x: 13.087, y: 39.245, z: 18.913}
-    _kind: 3
-    _scale: 0.75
-    _yaw: 330
-  - _position: {x: 18.913, y: 39.245, z: 13.087}
-    _kind: 1
-    _scale: 0.75
-    _yaw: 17
