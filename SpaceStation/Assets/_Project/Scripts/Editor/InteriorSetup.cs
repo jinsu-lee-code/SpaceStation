@@ -110,6 +110,13 @@ namespace SpaceStation.Editor
         // 진화 3단계 (진주 · 금 · 살아 있는 정원 + 빛과 수정, 궤도 도시부터 2026-11-10): 잔디 · 길 · 돌 · 흙 · 물 · 폭포는 2단계 재질, 수정 · 무지개는 바깥 FX 재질 (ModuleFxMaterials)
         public const string Evo3PearlPath = MaterialFolder + "/M_InteriorEvo3Pearl.mat";     // 진주빛 몸체 (따뜻한 흰빛 · 은은한 윤기)
         public const string Evo3GoldPath = MaterialFolder + "/M_InteriorEvo3Gold.mat";       // 금빛 테 · 난간 손잡이 (2단계 금보다 밝고 매끈)
+        // 3단계 물 · 폭포 (사용자 2026-11-11): 물 = KWS 실사 물 (KwsWaterBuilder · InteriorKwsWater), 아래 재질은 KWS 패키지가 없는 PC에서 보이는 수면 (만화풍 ToonWater)
+        public const string Evo3WaterPath = MaterialFolder + "/M_InteriorEvo3Water.mat";
+        public const string Evo3FallsPath = MaterialFolder + "/M_InteriorEvo3Falls.mat";     // 실사 물줄기 (WaterFalls: 맑은 턱 → 흰 물 · 굴절 · 찢긴 옆, UV u 가로 · v 아래로)
+        public const string FallsMaskPath = "Assets/_Project/Art/Textures/T_WaterFallsMask.png";   // R 물줄기 결 · G 거품 덩어리 · B 찢김 (sRGB 끔)
+        public const string FallsMistPath = MaterialFolder + "/M_InteriorFallsMist.mat";     // 폭포 물안개 · 물방울 · 수면 거품 입자 (부드러운 점, 반투명)
+        public const string Evo3RoofPath = MaterialFolder + "/M_InteriorEvo3Roof.mat";       // 마을 집 · 옹벽 집 처마 (복숭아빛 기와)
+        public const string Evo3DoorPath = MaterialFolder + "/M_InteriorEvo3Door.mat";       // 집 문짝 (하늘빛)
         public const string Evo3BlossomPath = MaterialFolder + "/M_InteriorEvo3Blossom.mat"; // 열차 방석 (연분홍 천)     // 병풍 해 · 세 날개 표지 · 석등 불빛 (레몬빛)
         public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
         public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
@@ -550,6 +557,8 @@ namespace SpaceStation.Editor
             EvoSurface(Evo3PearlPath, new Color(0.95f, 0.92f, 0.87f), 0.15f, 0.72f);
             EvoSurface(Evo3GoldPath, new Color(0.96f, 0.76f, 0.36f), 0.65f, 0.72f);
             EvoSurface(Evo3BlossomPath, new Color(0.97f, 0.7f, 0.8f), 0f, 0.3f);
+            EvoSurface(Evo3RoofPath, new Color(0.93f, 0.6f, 0.5f), 0f, 0.35f);    // 시안 2 마을 집 (Blender Evo3Roof와 같은 색)
+            EvoSurface(Evo3DoorPath, new Color(0.45f, 0.68f, 0.78f), 0.1f, 0.5f);
             // 바이오돔 잔디 · 흙 (사용자 2026-11-03 "나무와 풀 디테일"): 색 판이 아니라 풀잎 · 흙 무늬 텍스처
             void Ground(string path, string texture, float smoothness)
             {
@@ -778,6 +787,7 @@ namespace SpaceStation.Editor
             // 윤슬 세기 0: 눈앞에서는 규칙적인 흰 점 무늬로 보임. 물줄기: 가늘고 긴 결이 아래로 (칸이 넓으면 벽돌 무늬)
             Water8(Evo2PondPath, "M_PureWater", "_FLOW_POOL", "_FlowPool", "_Ripple", new Vector4(8.75f, 1f, 0.1f, 0f));
             Water8(Evo2FallsPath, "M_Falls", "_FLOW_FALL", "_FlowFall", "_Flow", new Vector4(0.9f, 1.8f, 0.045f, 0.45f));
+            ToonWaterMaterials();
             var heat = LoadOrCreate(Evo2HeatPath, lit);   // 융합 플랜트 열 관 · 열 띠: 주황 빛 (모듈 색 Accent는 빛나면 희게 날아감)
             heat.SetColor("_BaseColor", new Color(1f, 0.55f, 0.2f));
             heat.EnableKeyword("_EMISSION");
@@ -926,6 +936,41 @@ namespace SpaceStation.Editor
             m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive; // None이면 URP 재질 검사가 _EMISSION을 꺼 버림 (ModuleFxMaterials 2026-10-03)
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);
+        }
+
+        // 3단계 물 · 폭포: 값은 셰이더 기본값 (ToonWater · WaterFalls 머리글 참고) — 셰이더를 바꾸면 기본값으로 되돌림, 폭포만 무늬 텍스처를 꽂음
+        public static void ToonWaterMaterials()
+        {
+            Material Fresh(string path, string shaderName)
+            {
+                var shader = Shader.Find(shaderName);
+                var m = LoadOrCreate(path, shader);
+                if (m.shader != shader)
+                {
+                    m.shader = shader;
+                    m.CopyPropertiesFromMaterial(new Material(shader));
+                }
+                return m;
+            }
+            var water = Fresh(Evo3WaterPath, "SpaceStation/ToonWater");
+            EditorUtility.SetDirty(water);
+            var falls = Fresh(Evo3FallsPath, "SpaceStation/WaterFalls");
+            falls.SetTexture("_MaskTex", AssetDatabase.LoadAssetAtPath<Texture2D>(FallsMaskPath));
+            falls.renderQueue = -1;
+            EditorUtility.SetDirty(falls);
+            // 물안개 · 물방울 · 거품 입자: URP Particles/Unlit 반투명 섞기 + 부드러운 점 (T_SoftDot)
+            var mist = LoadOrCreate(FallsMistPath, Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            mist.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/_Project/Art/Materials/FX/T_SoftDot.png"));
+            mist.SetColor("_BaseColor", Color.white);
+            mist.SetFloat("_Surface", 1f);
+            mist.SetFloat("_Blend", 0f);   // Alpha
+            mist.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            mist.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mist.SetFloat("_ZWrite", 0f);
+            mist.SetKeyword(new UnityEngine.Rendering.LocalKeyword(mist.shader, "_SURFACE_TYPE_TRANSPARENT"), true);
+            mist.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent + 20;
+            mist.SetOverrideTag("RenderType", "Transparent");
+            EditorUtility.SetDirty(mist);
         }
 
         private static Material LoadOrCreate(string path, Shader shader)

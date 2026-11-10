@@ -4,7 +4,8 @@ namespace SpaceStation.Interior
 {
     /// <summary>
     /// 진화 3단계 궤도 도시 "알이 깨어난 정원 섬 도시" 내부 값 (Blender oc_builder와 같은 값, 원점 = 0번 칸 중심 · 칸 8 m):
-    /// 섬 가운데 허브 (16, 16) · 높인 궤도열차 고리 (반지름 16.8) · 앞 오른쪽 역 (−45°) · 수정 나무 기둥 엘리베이터 다섯 층 · 해치 21 · 기둥 문 자리 15.
+    /// 섬 가운데 허브 (16, 16) · 높인 궤도열차 고리 (반지름 16.8) · 앞 오른쪽 역 (−45°) · 프리즘 나무 기둥 엘리베이터 (언덕 꼭대기 광장 → 옥상 전망대 직행) ·
+    /// 해치 21 · 옥상 문 자리 3 · 앞 계단 폭포 셋 · 수면 넷 (땅 높이 강 · 연못 + 단마다 웅덩이 — KWS 물 하나씩).
     /// 각은 x-z 평면 수학 각 (0° = +x, 90° = +z, 270° = −z = 앞).
     /// </summary>
     public static class OrbitalCity
@@ -35,19 +36,28 @@ namespace SpaceStation.Interior
         public static float Lap => 2f * Mathf.PI * TrackRadius;
 
         // ---------------- 수정 나무 기둥 ----------------
-        /// <summary>엘리베이터 층 바닥: 언덕 꼭대기 광장 (2층 바닥) · 기둥 칸 넷의 테라스.</summary>
-        public static readonly float[] LiftStops = { Floor + 8f, 14.7f, 22.7f, 30.7f, 38.7f };
+        /// <summary>엘리베이터 층 바닥: 언덕 꼭대기 광장 (2층 바닥) → 옥상 전망대 직행 (사용자 2026-11-11 "나머지 층 전부 없애줘 — 프리즘 나무 외관을 해침").</summary>
+        public static readonly float[] LiftStops = { Floor + 8f, 38.7f };
         public const float ShaftRadius = 1.1f, CarRadius = 0.98f;
         /// <summary>기둥 문 자리 (칸 중심에서 문 패널 바깥면까지) — 테라스 다리 끝 3.93 바로 안.</summary>
         public const float TowerDoorDepth = 3.9f;
 
-        /// <summary>기둥 칸 (2, 2 ~ 5, 2) 문 자리 = 외형 옆 연결점 (맨 위 칸 −z 없음).</summary>
+        /// <summary>옥상 칸 (2, 5, 2) 문 자리 = 외형 옆 연결점 (−z 없음). 가운데 기둥 칸 (2, 2 ~ 4, 2)은 승강장이 없어 문 없는 면.</summary>
         public static readonly (Vector3Int Cell, Vector3Int Direction)[] TowerDoors =
         {
-            (new Vector3Int(2, 2, 2), Vector3Int.right), (new Vector3Int(2, 2, 2), new Vector3Int(0, 0, 1)), (new Vector3Int(2, 2, 2), Vector3Int.left), (new Vector3Int(2, 2, 2), new Vector3Int(0, 0, -1)),
-            (new Vector3Int(2, 3, 2), Vector3Int.right), (new Vector3Int(2, 3, 2), new Vector3Int(0, 0, 1)), (new Vector3Int(2, 3, 2), Vector3Int.left), (new Vector3Int(2, 3, 2), new Vector3Int(0, 0, -1)),
-            (new Vector3Int(2, 4, 2), Vector3Int.right), (new Vector3Int(2, 4, 2), new Vector3Int(0, 0, 1)), (new Vector3Int(2, 4, 2), Vector3Int.left), (new Vector3Int(2, 4, 2), new Vector3Int(0, 0, -1)),
             (new Vector3Int(2, 5, 2), Vector3Int.right), (new Vector3Int(2, 5, 2), new Vector3Int(0, 0, 1)), (new Vector3Int(2, 5, 2), Vector3Int.left),
+        };
+
+        // ---------------- 물 · 폭포 ----------------
+        /// <summary>수면 높이 (KWS 물 하나씩, 기준점 = 수면): 땅 높이 (강 · 연못 · 바닥 웅덩이 · 강으로 가는 물길) · 아래 단 · 위 단 · 꼭대기 물길. Blender 물체 Water · Water1 · 2 · 3.</summary>
+        public static readonly float[] WaterLevels = { Floor - 0.15f, 1.41f, 3.81f, 6.61f };
+
+        /// <summary>계단 폭포 셋 (위 → 아래): 턱 (물이 넘어가는 곳) · 떨어지는 자리 (아래 웅덩이 수면) · 물줄기 폭 — 물안개 · 물방울 · 웅덩이 물결 자리.</summary>
+        public static readonly (Vector3 Lip, Vector3 Landing, float Width)[] Falls =
+        {
+            (new Vector3(16f, 6.61f, 11.05f), new Vector3(16f, 3.81f, 10.02f), 0.86f),
+            (new Vector3(16f, 3.81f, 8.65f), new Vector3(16f, 1.41f, 7.62f), 0.86f),
+            (new Vector3(16f, 1.41f, 6.25f), new Vector3(16f, -1.45f, 5.37f), 0.86f),
         };
 
         /// <summary>
@@ -57,9 +67,9 @@ namespace SpaceStation.Interior
         public static readonly (Vector3Int Cell, Vector2 Offset)[] Hatches =
         {
             (new Vector3Int(0, 0, 1), new Vector2(0f, -2f)), (new Vector3Int(0, 0, 2), new Vector2(0.8f, 0f)), (new Vector3Int(0, 0, 3), new Vector2(0f, 2f)),
-            (new Vector3Int(1, 0, 0), new Vector2(0f, 1.2f)), (new Vector3Int(1, 0, 1), new Vector2(2f, 2.2f)), (new Vector3Int(1, 0, 2), Vector2.zero),
+            (new Vector3Int(1, 0, 0), new Vector2(0f, 1.4f)), (new Vector3Int(1, 0, 1), new Vector2(2f, 2.2f)), (new Vector3Int(1, 0, 2), Vector2.zero),
             (new Vector3Int(1, 0, 3), new Vector2(2f, -2.2f)), (new Vector3Int(1, 0, 4), new Vector2(-2f, 0f)), (new Vector3Int(2, 0, 0), new Vector2(0f, 0.8f)),
-            (new Vector3Int(2, 0, 1), Vector2.zero), (new Vector3Int(2, 0, 2), Vector2.zero), (new Vector3Int(2, 0, 3), Vector2.zero),
+            (new Vector3Int(2, 0, 1), new Vector2(0f, 1.6f)), (new Vector3Int(2, 0, 2), Vector2.zero), (new Vector3Int(2, 0, 3), Vector2.zero),
             (new Vector3Int(2, 0, 4), new Vector2(0f, -0.8f)), (new Vector3Int(3, 0, 0), new Vector2(-0.4f, -1.2f)), (new Vector3Int(3, 0, 1), new Vector2(-2.2f, 2f)),
             (new Vector3Int(3, 0, 2), Vector2.zero), (new Vector3Int(3, 0, 3), new Vector2(-2.2f, -2f)), (new Vector3Int(3, 0, 4), new Vector2(2f, 0f)),
             (new Vector3Int(4, 0, 1), new Vector2(-1.4f, 0f)), (new Vector3Int(4, 0, 2), new Vector2(-0.8f, 0f)), (new Vector3Int(4, 0, 3), new Vector2(0f, 2f)),

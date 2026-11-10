@@ -270,11 +270,9 @@ namespace SpaceStation.Editor
             list.Add(new ResidentSpot(P(3.6f, 80f, Floor + 8f), Out(80f), ResidentPose.Stand));
             list.Add(new ResidentSpot(P(2.0f, 135f, Floor), Out(135f) + 180f, ResidentPose.Stand));    // 뿌리 홀
             list.Add(new ResidentSpot(P(2.0f, 315f, Floor), Out(315f) + 180f, ResidentPose.Stand));
-            for (int k = 1; k < Interior.OrbitalCity.LiftStops.Length; k++)
-            {
-                float d = 45f + 90f * (2 * ((k + 1) % 2) + (k - 1) % 2);   // oc_builder 화단 각 (층마다 엇갈림) 중 하나
-                list.Add(new ResidentSpot(P(3.2f, d, Interior.OrbitalCity.LiftStops[k]), Out(d), ResidentPose.Stand));
-            }
+            float roof = Interior.OrbitalCity.LiftStops[Interior.OrbitalCity.LiftStops.Length - 1];   // 옥상 전망대 (가운데 층 테라스는 없앰, 2026-11-11) — 화단 (45° + 90°) 사이 문 다리 쪽
+            list.Add(new ResidentSpot(P(2.6f, 0f, roof), Out(0f), ResidentPose.Stand));
+            list.Add(new ResidentSpot(P(2.6f, 180f, roof), Out(180f), ResidentPose.Stand));
             list.Add(new ResidentSpot(P(15.7f, 10f, Floor), Out(10f) + 180f, ResidentPose.Stand));      // 강 바깥 잔디 (강을 봄)
             list.Add(new ResidentSpot(P(15.7f, 190f, Floor), Out(190f) + 180f, ResidentPose.Stand));
             return list;

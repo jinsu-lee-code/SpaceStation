@@ -2450,3 +2450,15 @@
 
 ### `narrative` · `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `2c751f88`). 씬 (식물 연결 · 템플릿 등록) · TASKS · 글꼴은 tycoon에만
+
+## M-164. 궤도 도시 시안 2 이식 · KWS 실사 물 · 우주 하늘 반사 · 폭포 (2026-11-11, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `647ce7bd`의 변경분을 패치로)
+- 궤도 도시 내부 시안 2 (`SM_Interior_EvoOrbitalCity.fbx` · 템플릿 · `OrbitalCity`): 진주 벽 · 기와 지붕 집, 기둥 가운데 층 승강장 · 문 자리 삭제 (엘리베이터 = 언덕 꼭대기 → 옥상 직행, `LiftStops` 2 · `TowerDoors` 3), 해치 · 식물 자리 · 주민 자리 갱신, 재질 `M_InteriorEvo3Roof` · `Door`
+- 정원 동물 내부 전용 모델 `SM_InteriorCritters.fbx` (`BlenderWork/InteriorProps/critter_builder.py` 메타볼 몸)
+- 물 = KWS Water System: `KwsWaterBuilder` (KWS 타입을 이름으로 찾아 수면 높이마다 꺼 둔 KWS 물 · 부피 메시 `SM_KWS_*` · 설정 `Data/Interior/Water/KWS_*`) · `InteriorKwsWater` (켜기 · 물 전용 우주 하늘 큐브맵 · 반사 세기, 패키지 없으면 Blender 수면 + `ToonWater`) · `OrbitalCity.WaterLevels` · `Falls`
+- 폭포 `WaterFalls` 셰이더 · `T_WaterFallsMask` · `InteriorWaterfallFx` (물안개 · 물방울 · 수면 거품) · `M_InteriorFallsMist`, `OrbitalCityTests` 폭포 시험, KWS_PATCH.md · .gitignore (`Assets/KriptoFX`)
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `647ce7bd`). 씬 (템플릿 등록) · TASKS · 글꼴은 tycoon에만
+- **KWS 패키지 (`Assets/KriptoFX`)는 git에 없음** — 다른 PC는 사용자가 패키지를 넣고 KWS_PATCH.md대로 셰이더 두 곳을 고쳐야 우주 하늘 반사가 나옴 (없으면 물은 Blender 수면 · 만화 물로 보임, 컴파일은 됨)
