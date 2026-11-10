@@ -2400,3 +2400,12 @@
 
 ### `narrative` · `tycoon` 합칠 때
 - 모델 · 프리팹만 바뀜 (tycoon 커밋 `a16aa9f2`). TASKS · 글꼴은 tycoon에만
+
+## M-159. 화물 환적장 물통 · 항구 벽 맞물림 (2026-11-10, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `5c5179d7`)
+- 사용자 플레이 확인 "난간 끝나는 지점에서 끝단이 서로 맞물려서 연결이 되어야지": 항구 뱃길 z 8.65 → 8.852 — 물통 바깥벽 (중심 ± 0.90 ~ 1.05)이 항구 남쪽 벽 (z 7.80 ~ 7.95)과 한 줄 (2 mm 엇갈림)이라 벽 · 은빛 테 · 민트 띠가 끝끼리 이어짐. 항구 끝에서 물통을 늘려 덮던 것 없앰. 항구 벽 위 은빛 테 (`CT_HarborRim`)가 안 · 밖 값이 바뀌어 빈 메시였던 것 고침
+- `CargoFlumeCourse`: `LaneZ` 8.852, 항구 출구 굽이 반지름 = LaneZ − 5.15 (오른쪽 물길 x 18.4 그대로), 북서 굽이 중심 z = LaneZ − 2 → 한 바퀴 73.98 m, `SplashDragEnd` = 물보라 + 2.24. `InteriorTemplateBuilder.CargoBoatStarts` = 0 · Loop − 3.1 · Loop − 6.2. 모델 · 프리팹 · 템플릿 다시 빌드, `CargoFlumeCourseTests` 값 갱신
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `5c5179d7`). 씬 · TASKS · 글꼴은 tycoon에만

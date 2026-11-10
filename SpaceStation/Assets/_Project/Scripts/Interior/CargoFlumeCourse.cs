@@ -10,9 +10,11 @@ namespace SpaceStation.Interior
     public static class CargoFlumeCourse
     {
         public const float LowWater = -1.33f, HighWater = 1.40f;   // LW · YS
-        public const float StationX = 11.60f, LaneZ = 8.65f;       // SX · LANE_Z
+        public const float StationX = 11.60f, LaneZ = 8.852f;      // SX · LANE_Z — 물통 바깥벽이 항구 남쪽 벽과 한 줄 (사용자 2026-11-10 "끝단이 서로 맞물려서")
         public const float LiftChainSpeed = 1.0f;
-        public const float SplashDragEnd = 39.61f;
+        private const float ExitR = LaneZ - 5.15f;                 // 항구 출구 굽이 반지름 (오른쪽 물길 x 18.4)
+        /// <summary>물보라 끌림이 끝나는 곳 (물보라 + 2.24).</summary>
+        public static float SplashDragEnd => SplashS + 2.24f;
 
         private struct Seg
         {
@@ -30,8 +32,8 @@ namespace SpaceStation.Interior
 
         private static readonly Seg[] Segs =
         {
-            Line("항구 출발", StationX, LaneZ, 14.9f, LaneZ),
-            Arc("항구 출구 굽이", 14.9f, 5.15f, 3.5f, R90, 0f),
+            Line("항구 출발", StationX, LaneZ, 18.4f - ExitR, LaneZ),
+            Arc("항구 출구 굽이", 18.4f - ExitR, 5.15f, ExitR, R90, 0f),
             Line("오른쪽 물길", 18.4f, 5.15f, 18.4f, BZ),
             Arc("회전 못", 17.2f, BZ, 1.2f, 0f, -Pi),
             Line("체인 리프트", 16.0f, BZ, 16.0f, 5.0f),
@@ -42,8 +44,8 @@ namespace SpaceStation.Interior
             Arc("물보라 못", 6.7f, -1.0f, 1.5f, 0f, -R90),
             Line("앞 물길", 6.7f, -2.5f, -0.4f, -2.5f),
             Arc("남서 굽이", -0.4f, -0.5f, 2.0f, -R90, -Pi),
-            Line("왼쪽 물길", -2.4f, -0.5f, -2.4f, 6.65f),
-            Arc("북서 굽이", -0.4f, 6.65f, 2.0f, Pi, R90),
+            Line("왼쪽 물길", -2.4f, -0.5f, -2.4f, LaneZ - 2.0f),
+            Arc("북서 굽이", -0.4f, LaneZ - 2.0f, 2.0f, Pi, R90),
             Line("항구로", -0.4f, LaneZ, StationX, LaneZ),
         };
 
