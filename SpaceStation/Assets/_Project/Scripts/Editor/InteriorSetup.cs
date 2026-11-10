@@ -126,6 +126,7 @@ namespace SpaceStation.Editor
         public const string Evo3Leaf2Path = MaterialFolder + "/M_InteriorEvo3Leaf2.mat";     // 양배추 · 밝은 잎
         public const string Evo3BarkPath = MaterialFolder + "/M_InteriorEvo3Bark.mat";       // 통나무 · 바구니
         public const string Evo3FallsColumnPath = MaterialFolder + "/M_InteriorEvo3FallsColumn.mat";   // 둥근 폭포 기둥 (WaterFalls, 옆 흐림 끔 — 원기둥 UV에서 한쪽이 지워졌음)
+        public const string Evo3SpillPath = MaterialFolder + "/M_InteriorEvo3Spill.mat";     // 단 사이 작은 폭포 (WaterFalls 맑은 변형 — 맑은 물 판이 파란 유리처럼 보였음)
         public const string SoftRainbowPath = MaterialFolder + "/M_InteriorSoftRainbow.mat";   // 오로라처럼 옅은 무지개 띠 (SoftRainbow, 발끝 흐림)
         public const string SoftHaloPath = MaterialFolder + "/M_InteriorSoftHalo.mat";         // 프리즘 둘레 옅은 무지개 고리 (끝 없음)
         public const string Evo3BlossomPath = MaterialFolder + "/M_InteriorEvo3Blossom.mat"; // 열차 방석 (연분홍 천)     // 병풍 해 · 세 날개 표지 · 석등 불빛 (레몬빛)
@@ -983,6 +984,15 @@ namespace SpaceStation.Editor
             column.SetVector("_StreakScale", new Vector4(2.4f, 1.1f, 0f, 0f));
             column.renderQueue = -1;
             EditorUtility.SetDirty(column);
+            var spill = Fresh(Evo3SpillPath, "SpaceStation/WaterFalls");   // 0.3 m 안 짧은 폭포: 거의 맑게, 끝에서만 희게, 결은 성기게
+            spill.SetTexture("_MaskTex", AssetDatabase.LoadAssetAtPath<Texture2D>(FallsMaskPath));
+            spill.SetFloat("_ClearUntil", 0.55f);
+            spill.SetFloat("_WhiteFrom", 1f);
+            spill.SetFloat("_ClearAlpha", 0.45f);
+            spill.SetFloat("_EdgeSoft", 0.12f);
+            spill.SetVector("_StreakScale", new Vector4(1.4f, 0.45f, 0f, 0f));
+            spill.renderQueue = -1;
+            EditorUtility.SetDirty(spill);
             var rainbow = Fresh(SoftRainbowPath, "SpaceStation/SoftRainbow");
             rainbow.SetFloat("_Intensity", 0.32f);
             rainbow.SetFloat("_EndFade", 0.25f);

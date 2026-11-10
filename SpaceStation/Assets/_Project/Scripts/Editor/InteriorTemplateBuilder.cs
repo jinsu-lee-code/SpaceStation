@@ -5019,12 +5019,18 @@ namespace SpaceStation.Editor
                         surfaces.Add(surface.GetComponent<Renderer>());
                         kws.Add(KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), Biosphere.WaterLevels[k], depth[k], "Biosphere" + k, k != 1));
                     }
-                    var landings = new Vector3[Biosphere.Falls.Length];
-                    var widths = new float[Biosphere.Falls.Length];
+                    var small = Biosphere.SmallFallLandings();   // 단마다 작은 폭포 떨어지는 자리도 물보라 · 물결 (물이 흐르는 게 보이게)
+                    var landings = new Vector3[Biosphere.Falls.Length + small.Length];
+                    var widths = new float[landings.Length];
                     for (int i = 0; i < Biosphere.Falls.Length; i++)
                     {
                         landings[i] = Biosphere.Falls[i].Landing;
                         widths[i] = Biosphere.Falls[i].Width;
+                    }
+                    for (int i = 0; i < small.Length; i++)
+                    {
+                        landings[Biosphere.Falls.Length + i] = small[i];
+                        widths[Biosphere.Falls.Length + i] = 0.4f;
                     }
                     if (kws.Count > 0 && kws[0] != null)
                         KwsWaterBuilder.Ripple(kws[0], landings[0], 1.0f, 0.5f);   // 폭포 기둥이 떨어지는 호수 가운데
@@ -6557,7 +6563,7 @@ namespace SpaceStation.Editor
                 { "Evo3Bark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3BarkPath) },
                 { "Evo3Channel", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PondPath) },
                 { "Evo3Rain", ModuleFxMaterials.Get("Rain") },
-                { "Evo3Spill", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PondPath) },              // 단 사이 작은 폭포 · 수문 폭포 (맑은 물 — WaterFalls 결은 큰 물줄기용)
+                { "Evo3Spill", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3SpillPath) },             // 단 사이 작은 폭포 · 수문 폭포 (WaterFalls 맑은 변형)
                 { "Evo3FallsColumn", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3FallsColumnPath) },
                 { "Evo3SoftRainbow", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SoftRainbowPath) },
                 { "Evo3SoftHalo", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SoftHaloPath) },
