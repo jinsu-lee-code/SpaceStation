@@ -78,6 +78,11 @@ namespace SpaceStation.Editor
                 new PlantSpot(new Vector3(-1.16f, -0.92f, -1.39f), PlantKind.Pot, 0.45f, 0f),
                 new PlantSpot(new Vector3(25.16f, -0.92f, -1.39f), PlantKind.Pot, 0.45f, 53f),
             });
+            // 진화 2단계 연구원 (mz_builder PLANTS): 연구실 안 화분 하나 (유리 연구실 = 실내)
+            Set("IT_EvoResearchInstitute", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(2.883f, -0.94f, 5.117f), PlantKind.Pot, 0.42f, 0f),
+            });
             // 진화 2단계 식량 공장 (ff_builder PLANTS): 2층 카페 화분 둘
             Set("IT_EvoFoodFactory", new List<PlantSpot>
             {

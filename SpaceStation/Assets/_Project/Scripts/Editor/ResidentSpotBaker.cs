@@ -89,20 +89,21 @@ namespace SpaceStation.Editor
             { "EvoDroneDepot", new[] { ResidentTrait.Mechanic, ResidentTrait.Technician } },   // 드론 정비창 = 수리 칸 (정비공) + 관제 (기술자)
             { "EvoCargoTransfer", new[] { ResidentTrait.Mechanic } },   // 화물 환적장 = 물류 허브 둘 (정비공) — 후룸 관제 · 운행
             { "EvoStorageComplex", new[] { ResidentTrait.Mechanic } },  // 저장 단지 = 대형 창고 둘 (정비공) — 캡슐 내리는 자리 · 매표소
+            { "EvoResearchInstitute", new[] { ResidentTrait.Scientist } },   // 연구원 = 연구 단지 + 데이터 센터 (연구원) — 연구실 책상
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus", "EvoCivicHall", "EvoSecurityHQ", "EvoBiodome", "EvoFoodFactory", "EvoRefineryCombine", "EvoShieldDome", "EvoFortress", "EvoRadiationWall", "EvoDroneDepot", "EvoCargoTransfer", "EvoStorageComplex" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus", "EvoCivicHall", "EvoSecurityHQ", "EvoBiodome", "EvoFoodFactory", "EvoRefineryCombine", "EvoShieldDome", "EvoFortress", "EvoRadiationWall", "EvoDroneDepot", "EvoCargoTransfer", "EvoStorageComplex", "EvoResearchInstitute" };
 
         /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
         /// 여객 도킹 포트 안내 직원 · 2026-10-31 보안청 창구 직원).</summary>
         private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger", "EvoSecurity", "EvoSecurityHQ", "EvoRadiationWall", "EvoDroneDepot" };
 
         /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
-        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" }, { "EvoCivicHall", "별 구경 중" }, { "EvoSecurityHQ", "민원 보는 중" }, { "EvoBiodome", "정원 구경 중" }, { "EvoFoodFactory", "관람차 구경 중" }, { "EvoRefineryCombine", "제철소 구경 중" }, { "EvoShieldDome", "등대 구경 중" }, { "EvoFortress", "불꽃 구경 중" }, { "EvoRadiationWall", "별자리 구경 중" }, { "EvoDroneDepot", "드론 쇼 구경 중" }, { "EvoCargoTransfer", "후룸 구경 중" }, { "EvoStorageComplex", "회전목마 구경 중" } };
+        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" }, { "EvoCivicHall", "별 구경 중" }, { "EvoSecurityHQ", "민원 보는 중" }, { "EvoBiodome", "정원 구경 중" }, { "EvoFoodFactory", "관람차 구경 중" }, { "EvoRefineryCombine", "제철소 구경 중" }, { "EvoShieldDome", "등대 구경 중" }, { "EvoFortress", "불꽃 구경 중" }, { "EvoRadiationWall", "별자리 구경 중" }, { "EvoDroneDepot", "드론 쇼 구경 중" }, { "EvoCargoTransfer", "후룸 구경 중" }, { "EvoStorageComplex", "회전목마 구경 중" }, { "EvoResearchInstitute", "미로 구경 중" } };
 
         /// <summary>12-5 일하는 사람 상태 글 (없으면 "일하는 중").</summary>
-        private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" }, { "EvoBiodome", "정원 돌보는 중" }, { "EvoFoodFactory", "식품 만드는 중" }, { "EvoRefineryCombine", "광석 나르는 중" }, { "EvoShieldDome", "운석 살피는 중" }, { "EvoFortress", "포대 살피는 중" }, { "EvoRadiationWall", "피난처 살피는 중" }, { "EvoDroneDepot", "드론 고치는 중" }, { "EvoCargoTransfer", "후룸 운행 중" }, { "EvoStorageComplex", "캡슐 정리 중" } };
+        private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" }, { "EvoBiodome", "정원 돌보는 중" }, { "EvoFoodFactory", "식품 만드는 중" }, { "EvoRefineryCombine", "광석 나르는 중" }, { "EvoShieldDome", "운석 살피는 중" }, { "EvoFortress", "포대 살피는 중" }, { "EvoRadiationWall", "피난처 살피는 중" }, { "EvoDroneDepot", "드론 고치는 중" }, { "EvoCargoTransfer", "후룸 운행 중" }, { "EvoStorageComplex", "캡슐 정리 중" }, { "EvoResearchInstitute", "데이터 연구 중" } };
 
         /// <summary>
         /// 12-5 자리를 직접 정한 방 (찾아낸 자리로는 안 되는 방). 행정 관제소: 주민이 정해진 길로 발권기 · 창구를 오가므로
@@ -154,6 +155,7 @@ namespace SpaceStation.Editor
             { "EvoDroneDepot", EvoDroneDepotSpots },
             { "EvoCargoTransfer", EvoCargoTransferSpots },
             { "EvoStorageComplex", EvoStorageComplexSpots },
+            { "EvoResearchInstitute", EvoResearchInstituteSpots },
         };
 
         /// <summary>
@@ -208,6 +210,26 @@ namespace SpaceStation.Editor
             foreach (var (x, z, yaw) in new[] { (1.36f, -1.27f, 180f), (21.84f, -1.27f, 180f), (8.85f, -0.47f, 0f), (14.45f, -0.47f, 0f) })
                 list.Add(new ResidentSpot(new Vector3(x, -0.88f, z), yaw, ResidentPose.Sit));
             foreach (var (x, z, yaw) in new[] { (10.2f, 10.9f, 165f), (13.8f, 10.9f, -165f), (12f, 11f, 180f), (7.2f, 1.2f, 60f), (16.8f, 6.8f, -120f), (0.56f, 3f, 90f), (23.44f, 3f, -90f) })
+                list.Add(new ResidentSpot(new Vector3(x, Floor, z), yaw, ResidentPose.Stand));
+            return list;
+        }
+
+        /// <summary>
+        /// 진화 2단계 연구원 (mz_builder SPOTS): 일하는 자리 = 연구실 책상 셋 (서서, 화면을 봄), 쉬는 자리 = 연구실 벤치 한 자리 (나머지는 플레이어 몫)
+        /// + 서는 자리 (입구 밖 · 막다른 길 화면 앞 · 길 구석 — 길 가운데 · 해치 · 길잡이 화면 앞은 비킴). 미로 · 갑판 = 우주복, 연구실 = 실내.
+        /// </summary>
+        private static List<ResidentSpot> EvoResearchInstituteSpots()
+        {
+            var list = new List<ResidentSpot>();
+            var c = Interior.ResearchMaze.Center;
+            foreach (var a in new[] { 0f, 90f, 270f })
+            {
+                float r = a * Mathf.Deg2Rad;
+                list.Add(new ResidentSpot(new Vector3(c.x + 1.12f * Mathf.Cos(r), Floor, c.z + 1.12f * Mathf.Sin(r)), Mathf.Atan2(Mathf.Cos(r), Mathf.Sin(r)) * Mathf.Rad2Deg, ResidentPose.Stand, work: true));
+            }
+            var seat = InteriorTemplateBuilder.MazeBenchSeat(InteriorTemplateBuilder.MazeBenchAngles[0]);
+            list.Add(new ResidentSpot(new Vector3(seat.x, seat.y, seat.z), seat.w, ResidentPose.Sit));
+            foreach (var (x, z, yaw) in new[] { (2.6f, -3.35f, 20f), (6.9f, -3.35f, -20f), (-1.68f, 5.0f, 180f), (9.68f, 9.0f, 180f), (5.4f, 9.68f, 90f), (1.4f, 8.0f, 90f), (9.68f, 1.0f, 180f), (1.0f, 3.1f, 45f) })
                 list.Add(new ResidentSpot(new Vector3(x, Floor, z), yaw, ResidentPose.Stand));
             return list;
         }
