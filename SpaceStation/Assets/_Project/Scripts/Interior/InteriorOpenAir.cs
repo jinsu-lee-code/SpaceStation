@@ -28,6 +28,8 @@ namespace SpaceStation.Interior
         [Tooltip("실내 상자 (프리팹 로컬 x, z 직사각형) — 높이 _indoorBoxTop 아래만 (건물 옥상은 바깥)")]
         [SerializeField] private Rect _indoorBox;
         [SerializeField] private float _indoorBoxTop;
+        [Tooltip("실내 상자 더 (같은 높이 아래) — 실내 건물이 떨어져 둘 이상 (저장 단지 창고 둘)")]
+        [SerializeField] private Rect[] _moreBoxes = System.Array.Empty<Rect>();
         [SerializeField] private Mesh _helmet;
         [SerializeField] private Mesh _rim;
         [SerializeField] private Mesh _pack;
@@ -110,11 +112,12 @@ namespace SpaceStation.Interior
             _light = light;
         }
 
-        /// <summary>옥상을 걷는 건물 (드론 정비창): 건물 평면 + 지붕 높이.</summary>
-        public void SetIndoorBox(Rect xz, float top)
+        /// <summary>옥상을 걷는 건물 (드론 정비창): 건물 평면 + 지붕 높이. more = 같은 높이의 다른 건물 평면.</summary>
+        public void SetIndoorBox(Rect xz, float top, params Rect[] more)
         {
             _indoorBox = xz;
             _indoorBoxTop = top;
+            _moreBoxes = more;
         }
 
         /// <summary>이 프리팹 로컬 자리가 실내 구역 안인지.</summary>
@@ -122,6 +125,11 @@ namespace SpaceStation.Interior
         {
             if (_indoorBox.width > 0f && local.y < _indoorBoxTop && _indoorBox.Contains(new Vector2(local.x, local.z)))
                 return true;
+            foreach (var box in _moreBoxes)
+            {
+                if (local.y < _indoorBoxTop && box.Contains(new Vector2(local.x, local.z)))
+                    return true;
+            }
             foreach (var c in _indoor)
             {
                 float dx = local.x - c.x, dz = local.z - c.y;

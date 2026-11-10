@@ -128,6 +128,7 @@ namespace SpaceStation.Editor
             BuildEvoRadiationWall();
             BuildEvoDroneDepot();
             BuildEvoCargoTransfer();
+            BuildEvoStorageComplex();
         }
 
         /// <summary>
@@ -4365,6 +4366,187 @@ namespace SpaceStation.Editor
                 });
         }
 
+        /// <summary>저장 단지 안 줄 캡슐에 탄 주민 (안 줄 0 · 3 · 6번) — <see cref="ResidentSpotBaker"/>와 <see cref="InteriorCarousel"/>가 함께 씀.</summary>
+        public static readonly int[] StorageRiderCapsules = { StorageCarousel.OuterCount, StorageCarousel.OuterCount + 3, StorageCarousel.OuterCount + 6 };
+
+        /// <summary>탄 주민 안장 자리 (판 0°, 템플릿 기준) · 바라보는 y각 (나아가는 쪽, 기둥이 앞).</summary>
+        public static Vector3[] StorageRiderSeats(out float[] yaws)
+        {
+            var seats = new Vector3[StorageRiderCapsules.Length];
+            yaws = new float[seats.Length];
+            for (int i = 0; i < seats.Length; i++)
+                seats[i] = StorageCarousel.RestSaddle(StorageRiderCapsules[i], out yaws[i]);
+            return seats;
+        }
+
+        /// <summary>
+        /// 진화 2단계 저장 단지 "별빛 회전목마 창고" (4 × 2칸, sc_builder — 사용자 2026-11-10 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 회전목마 탑승 (<see cref="InteriorCarousel"/>).
+        /// 외형 평면 × 8 그대로: 가운데 회전목마 (받침 · 반짝 울타리 트임 서 · 동 · 남, 도는 판 · 거울 기둥 · 캡슐 바깥 12 · 안 10 · 줄무늬 원뿔 지붕),
+        /// 양옆 실내 창고 둘 (앞 진열 유리창 · 회전목마 쪽 아치 출입구 셋 (압력 막) · 자동 선반 세 줄 · 캡슐 내리는 자리) + 창고 벽에서 뻗은 집게 팔 둘, 앞 매표소 · 가로등 광장.
+        /// 캡슐 높이만 낮춤 (안장에 앉은 머리 위 지붕까지 약 0.4 m 남음). 문 자리 10 = 외형 연결점이 있는 면 (깊이 3.95, 닫힘 = 난간), 아래 해치 8, 위 해치 없음 (하늘).
+        /// 벤치에 앉음 (<see cref="InteriorBenchSeats"/>). 바깥 주민 = 우주복 (<see cref="InteriorOpenAir"/>), 창고 둘 = 실내 상자.
+        /// </summary>
+        private static void BuildEvoStorageComplex()
+        {
+            const float DeckEdge = 3.95f;
+            const string N = "INT_EvoStorageComplex_";
+            var west = new Vector3Int(-1, 0, 0);
+            var east = new Vector3Int(1, 0, 0);
+            var south = new Vector3Int(0, 0, -1);
+            var north = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(0, 0, 0), west, DeckEdge), new InteriorSocket(new Vector3Int(0, 0, 1), west, DeckEdge),
+                new InteriorSocket(new Vector3Int(3, 0, 0), east, DeckEdge), new InteriorSocket(new Vector3Int(3, 0, 1), east, DeckEdge),
+                new InteriorSocket(new Vector3Int(0, 0, 0), south, DeckEdge), new InteriorSocket(new Vector3Int(1, 0, 0), south, DeckEdge), new InteriorSocket(new Vector3Int(3, 0, 0), south, DeckEdge),
+                new InteriorSocket(new Vector3Int(0, 0, 1), north, DeckEdge), new InteriorSocket(new Vector3Int(1, 0, 1), north, DeckEdge), new InteriorSocket(new Vector3Int(3, 0, 1), north, DeckEdge),
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(-0.6f, 0f, 0f)),      // 서쪽 창고 선반 앞 (화분 · 벤치 비킴)
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(-0.6f, 0f, 0.1f)),    // 서쪽 창고 선반 뒤
+                new InteriorSocket(new Vector3Int(3, 0, 0), Vector3Int.down, -F, new Vector3(0.6f, 0f, 0f)),       // 동쪽 창고
+                new InteriorSocket(new Vector3Int(3, 0, 1), Vector3Int.down, -F, new Vector3(0.6f, 0f, 0.1f)),
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(1.8f, 0f, -2.5f)),    // 앞 광장 (가로등 · 매표소 사이)
+                new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(-1.8f, 0f, -2.5f)),
+                new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(0.8f, 0f, 2.5f)),     // 뒤 갑판
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(-0.8f, 0f, 2.5f)),
+            };
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var white = new Color(1f, 0.97f, 0.92f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            float roof = StorageCarousel.DiskTop + 2.2f;
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(12f, roof, 4f), 6.5f, 0.9f, white),         // 회전목마 지붕 밑 (거울 기둥 둘레, 흰 빛 = 캡슐 색 그대로 · 따뜻함은 전구가)
+                LightSpec.Point(new Vector3(12f, roof, 0.7f), 4.5f, 0.6f, white),
+                LightSpec.Point(new Vector3(12f, roof, 7.3f), 4.5f, 0.6f, white),
+                LightSpec.Point(new Vector3(8.7f, roof, 4f), 4.5f, 0.6f, white),
+                LightSpec.Point(new Vector3(15.3f, roof, 4f), 4.5f, 0.6f, white),
+                LightSpec.Point(new Vector3(7.6f, F + 2.3f, -2.4f), 6f, 0.6f, warm),    // 가로등
+                LightSpec.Point(new Vector3(16.4f, F + 2.3f, -2.4f), 6f, 0.6f, warm),
+                LightSpec.Point(new Vector3(12f, F + 1.2f, -3.1f), 3f, 0.4f, warm),     // 매표소
+                LightSpec.Point(new Vector3(12f, F + 2.4f, 10.8f), 7f, 0.45f, cool),    // 뒤 갑판
+                LightSpec.Point(new Vector3(6.9f, F + 2.1f, 4f), 4.5f, 0.45f, warm),    // 창고 출입구 등 · 집게 팔
+                LightSpec.Point(new Vector3(17.1f, F + 2.1f, 4f), 4.5f, 0.45f, warm),
+            };
+            foreach (var xm in new[] { 1.76f, 22.24f })
+            {
+                foreach (var z in new[] { -0.3f, 4f, 8.2f })
+                    lights.Add(LightSpec.Point(new Vector3(xm, F + 2.45f, z), 6f, 0.85f, white));   // 창고 천장 등
+            }
+            EvoAccent("StorageComplex", "#C0D0B0");
+            // 스폰 = 서쪽 광장에서 회전목마 · 매표소를 바라봄
+            Build("EvoStorageComplex", "Evolved/MD_Evo_StorageComplex", sockets, new Vector3(7.1f, F, -0.9f), 45f, lights,
+                configure: root =>
+                {
+                    AddOpenAir(root, System.Array.Empty<Vector3>());
+                    root.GetComponent<InteriorOpenAir>().SetIndoorBox(new Rect(-2.56f, -2.24f, 8.64f, 12.48f), F + 2.75f, new Rect(17.92f, -2.24f, 8.64f, 12.48f));   // 창고 둘
+                    var r = root.transform;
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    // 판 피벗 (판 윗면 가운데): 판 · 거울 기둥 · 기둥 · 지붕 한 조각 (도는 동안에도 밟고 부딪힘)
+                    var disk = new GameObject("Carousel_Pivot").transform;
+                    disk.SetParent(r, false);
+                    disk.position = r.TransformPoint(StorageCarousel.Center);
+                    var carousel = Child(root, N + "Carousel");
+                    carousel.SetParent(disk, true);
+                    carousel.gameObject.AddComponent<MeshCollider>().sharedMesh = carousel.GetComponent<MeshFilter>().sharedMesh;
+                    // 캡슐 22: 모델 하나 (바깥 0번 자리) → 피벗마다 복제, 몸통 색 셋 번갈아 (도장 · 흰 · 보라), 바깥 줄은 안장 (보고 F)
+                    var capsuleMesh = Child(root, N + "Capsule");
+                    var paint = AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Paint_Evo_StorageComplex.mat");
+                    var bodies = new[] { paint, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoWhitePath), AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2VioletPath) };
+                    var capsules = new Transform[StorageCarousel.Count];
+                    var seats = new Transform[StorageCarousel.Count];
+                    var meshOffset = Vector3.zero;
+                    for (int i = 0; i < StorageCarousel.Count; i++)
+                    {
+                        var pivot = new GameObject($"Capsule{i}_Pivot").transform;
+                        pivot.SetParent(disk, false);
+                        pivot.localPosition = StorageCarousel.LocalPosition(i, 0f);
+                        pivot.localRotation = StorageCarousel.LocalRotation(i);
+                        capsules[i] = pivot;
+                        Transform mesh;
+                        if (i == 0)
+                        {
+                            capsuleMesh.SetParent(pivot, true);
+                            meshOffset = capsuleMesh.localPosition;
+                            mesh = capsuleMesh;
+                        }
+                        else
+                        {
+                            mesh = Object.Instantiate(capsuleMesh.gameObject, pivot).transform;
+                            mesh.name = capsuleMesh.name;
+                            mesh.localPosition = meshOffset;
+                            mesh.localRotation = Quaternion.identity;
+                        }
+                        int ring = StorageCarousel.Outer(i) ? 0 : 1;
+                        int q = ring == 0 ? i : i - StorageCarousel.OuterCount;
+                        var body = bodies[(q + ring) % bodies.Length];
+                        if (body != null && body != paint)
+                        {
+                            var rend = mesh.GetComponent<MeshRenderer>();
+                            var mats = rend.sharedMaterials;
+                            for (int m = 0; m < mats.Length; m++)
+                            {
+                                if (mats[m] == paint)
+                                    mats[m] = body;
+                            }
+                            rend.sharedMaterials = mats;
+                        }
+                        pivot.gameObject.AddComponent<BoxCollider>().size = new Vector3(0.46f, 0.5f, 1f);   // 몸통 (판 위를 걸을 때 부딪힘)
+                        if (ring == 0)
+                        {
+                            var seat = new GameObject("Seat").transform;
+                            seat.SetParent(pivot, false);
+                            seat.localPosition = new Vector3(0f, StorageCarousel.SaddleUp - 0.04f, StorageCarousel.SaddleBack);
+                            seat.gameObject.AddComponent<BoxCollider>().size = new Vector3(0.42f, 0.14f, 0.42f);
+                            seats[i] = seat;
+                        }
+                    }
+                    // 집게 팔 둘 (창고 벽 받침 피벗, 서 = +x로 뻗음 → z각 음수가 숙임)
+                    Transform Claw(string tag, Vector3 at)
+                    {
+                        var p = new GameObject("Claw" + tag + "_Pivot").transform;
+                        p.SetParent(r, false);
+                        p.position = r.TransformPoint(at);
+                        Child(root, N + "Claw" + tag).SetParent(p, true);
+                        return p;
+                    }
+                    var claws = new[] { Claw("W", new Vector3(6.13f, F + 2.35f, 4f)), Claw("E", new Vector3(17.87f, F + 2.35f, 4f)) };
+                    // 트임 막이 셋 (울타리 트임 양 끝을 잇는 줄, 도는 동안만 켬)
+                    var walls = new GameObject("CarouselGateWalls").transform;
+                    walls.SetParent(r, false);
+                    var gateWalls = new Collider[StorageCarousel.Gaps.Length];
+                    float chord = StorageCarousel.FenceRadius * Mathf.Cos(StorageCarousel.GapHalf * Mathf.Deg2Rad);
+                    float span = 2f * StorageCarousel.FenceRadius * Mathf.Sin(StorageCarousel.GapHalf * Mathf.Deg2Rad) + 0.3f;
+                    for (int k = 0; k < gateWalls.Length; k++)
+                    {
+                        float a = StorageCarousel.Gaps[k];
+                        var go = new GameObject("Gate" + k);
+                        go.transform.SetParent(walls, false);
+                        go.transform.localPosition = new Vector3(StorageCarousel.Center.x + chord * Mathf.Cos(a * Mathf.Deg2Rad), StorageCarousel.BaseTop + 0.7f,
+                            StorageCarousel.Center.z + chord * Mathf.Sin(a * Mathf.Deg2Rad));
+                        go.transform.localRotation = Quaternion.Euler(0f, -a, 0f);
+                        var box = go.AddComponent<BoxCollider>();
+                        box.size = new Vector3(0.1f, 1.4f, span);
+                        gateWalls[k] = box;
+                    }
+                    root.AddComponent<InteriorCarousel>().Configure(disk, capsules, seats, claws, new[] { -1f, 1f }, gateWalls, font,
+                        new Vector3(12f, F + 2.45f, -2.4f), StorageRiderSeats(out _), StorageRiderCapsules);
+                    // 벤치 (sc_builder warehouse · plaza, 엉덩이 = 앞 끝 − 0.07): 창고 진열창 앞 (밖을 봄) · 광장 (회전목마를 봄)
+                    var benchSeats = new List<Vector4>();
+                    var boxes = new List<Bounds>();
+                    void Seat(float x0, float x1, float z0, float z1, float top, float yaw, params Vector2[] at)
+                    {
+                        boxes.Add(new Bounds(new Vector3((x0 + x1) * 0.5f, (F + top + 0.01f) * 0.5f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, top + 0.01f - F, z1 - z0)));
+                        foreach (var p in at)
+                            benchSeats.Add(new Vector4(p.x, top, p.y, yaw));
+                    }
+                    foreach (var xm in new[] { 1.76f, 22.24f })
+                        Seat(xm - 0.8f, xm + 0.8f, -1.34f, -0.94f, F + 0.42f, 180f, new Vector2(xm - 0.4f, -1.27f), new Vector2(xm + 0.4f, -1.27f));
+                    foreach (var x in new[] { 9.2f, 14.8f })
+                        Seat(x - 0.7f, x + 0.7f, -0.8f, -0.4f, F + 0.42f, 0f, new Vector2(x - 0.35f, -0.47f), new Vector2(x + 0.35f, -0.47f));
+                    root.AddComponent<InteriorBenchSeats>().Configure(benchSeats.ToArray(), boxes.ToArray(), -6f);
+                });
+        }
+
         private static Transform Child(GameObject root, string name) => root.transform.Find(name);
 
         /// <summary>12-5 모듈 강조색 도장 (발광 없음) `M_Paint_{모듈}.mat` — 강조 재질 바탕색을 따름. 강조 재질(발광)을 큰 소품에 쓰면 평평하게 빛났음.</summary>
@@ -5624,6 +5806,7 @@ namespace SpaceStation.Editor
             { "EvoRadiationWall", InteriorAmbience.Life },        // 병풍 정원 · 찻집
             { "EvoDroneDepot", InteriorAmbience.Machine },        // 수리 칸 · 드론
             { "EvoCargoTransfer", InteriorAmbience.Water },       // 은하수 후룸 · 항구 못
+            { "EvoStorageComplex", InteriorAmbience.Machine },    // 자동 선반 · 회전목마
         };
 
         /// <summary>

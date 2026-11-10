@@ -72,6 +72,12 @@ namespace SpaceStation.Editor
                 new PlantSpot(new Vector3(6.4f, -0.92f, 4.55f), PlantKind.Pot, 0.4f, 0f),
                 new PlantSpot(new Vector3(5.05f, -0.92f, 1.3f), PlantKind.Pot, 0.4f, 53f),
             });
+            // 진화 2단계 저장 단지 (sc_builder PLANTS): 창고 진열창 안 화분 둘 (실내라 유리 덮개 없음)
+            Set("IT_EvoStorageComplex", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-1.16f, -0.92f, -1.39f), PlantKind.Pot, 0.45f, 0f),
+                new PlantSpot(new Vector3(25.16f, -0.92f, -1.39f), PlantKind.Pot, 0.45f, 53f),
+            });
             // 진화 2단계 식량 공장 (ff_builder PLANTS): 2층 카페 화분 둘
             Set("IT_EvoFoodFactory", new List<PlantSpot>
             {
