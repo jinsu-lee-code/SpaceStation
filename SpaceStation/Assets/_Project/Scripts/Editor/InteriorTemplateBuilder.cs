@@ -131,6 +131,7 @@ namespace SpaceStation.Editor
             BuildEvoStorageComplex();
             BuildEvoResearchInstitute();
             BuildEvoOrbitalCity();
+            BuildEvoBiosphere();
         }
 
         /// <summary>
@@ -4873,6 +4874,183 @@ namespace SpaceStation.Editor
                 });
         }
 
+        /// <summary>
+        /// 진화 3단계 바이오스피어 "물의 순환 고리" (3 × 3칸 2층, Blender bio3_builder — 사용자 2026-11-11 시안 1 "유니티로 옮겨줘, 내부에서 직접 돌아다녀볼게"). 맨몸 정원 (우주복 없음).
+        /// 외형 × 8: 가운데 연꽃 호수 · 물가 길 · 선착장 → 계단 밭 다섯 단 (밀 · 채소 · 라벤더 · 해바라기 · 튤립 조각보, 아치 방향 계단 셋) → 능선 산책길 → 숲 비탈 → 진주 옹벽 → 고리 산책길 · 네 모서리
+        /// (정자 · 연못 · 과수원 · 반딧불이 숲). 물길 셋 = 비탈 위 샘 → 수문 (금빛 바퀴) → 능선 길 밑 → 단마다 작은 폭포 · 물레방아 → 호수.
+        /// 진주 아치 셋이 하늘 호수 그릇을 받치고 (정문 아치 = 뿌리 두 갈래 사이 계단), 그릇 밑 폭포 기둥 · 무지개, 위 프리즘, 다리 아래 도는 구름 고리.
+        /// 문 자리 = 옆 넷 (깊이 3.9), 아래 해치 = 바닥 칸 아홉, 위 해치 = 하늘 정원 뒤 천장 (사다리). 승강기 = 뒤 왼쪽 아치 기둥 속 (능선 ↔ 하늘 정원).
+        /// 체험 (수문 · 반딧불이 잡기)은 다음 단계 — 이번엔 걸어 다니는 공간 · 물 · 승강기.
+        /// </summary>
+        private static void BuildEvoBiosphere()
+        {
+            const string N = "INT_EvoBiosphere_";
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in Biosphere.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, Biosphere.DoorDepth));
+            foreach (var (cell, off) in Biosphere.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, new Vector3(off.x, 0f, off.y)));
+            sockets.Add(new InteriorSocket(Biosphere.UpHatchCell, Vector3Int.up, Biosphere.UpHatchDepth, Biosphere.UpHatchOffset));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.88f, 0.66f);
+            var cool = new Color(0.82f, 0.9f, 1f);
+            Vector3 P(float r, float deg, float y) => Biosphere.Polar(r, deg, y);
+            float SlopeY(float r) => Biosphere.Floor + 0.55f + 1.0f * Mathf.Sin(Mathf.Clamp01((Biosphere.WallInner - r) / (Biosphere.WallInner - Biosphere.RidgeOuter)) * Mathf.PI * 0.5f);
+            var lights = new List<LightSpec>();
+            for (int k = 0; k < 8; k++)
+                lights.Add(LightSpec.Point(P(8.1f, 22.5f + 45f * k, Biosphere.RidgeTop + 2.4f), 7f, 1.0f, white));        // 능선 산책길
+            for (int k = 0; k < 6; k++)
+                lights.Add(LightSpec.Point(P(5.6f, 60f * k, F + 3.0f), 6f, 0.8f, warm));                              // 계단 밭
+            for (int k = 0; k < 4; k++)
+            {
+                lights.Add(LightSpec.Point(P(14.0f, 45f + 90f * k, F + 2.6f), 7f, 0.9f, white));                       // 네 모서리
+                lights.Add(LightSpec.Point(P(10.9f, 90f * k, F + 2.2f), 5f, 0.7f, warm));                             // 옆 문 계단 · 고리 산책길
+            }
+            lights.Add(LightSpec.Point(P(2.4f, 270f, F + 2.0f), 5f, 0.8f, cool));                                     // 호수 · 폭포 기둥
+            lights.Add(LightSpec.Point(P(2.4f, 90f, F + 2.0f), 5f, 0.6f, cool));
+            for (int k = 0; k < 3; k++)
+                lights.Add(LightSpec.Point(P(3.0f, Biosphere.Arches[k] + 60f, Biosphere.SkyTop + 2.2f), 5f, 0.8f, white));   // 하늘 정원
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 12.05f, 8f), 4f, 0.9f, cool));                              // 프리즘 속 빛
+            var orbits = new List<OrbitSpec> { new OrbitSpec(N + "Halo", Biosphere.Hub, Vector3.up, 5f) };            // 구름 고리 · 새 (다리 아래)
+            for (int i = 0; i < 3; i++)
+                orbits.Add(new OrbitSpec(N + "Wheel" + i, Biosphere.WheelCenter(i), Biosphere.WheelAxis(i), -40f));   // 물레방아 (물이 떨어지는 쪽으로)
+            EvoAccent("Biosphere", "#7CD67C");
+            // 스폰 = 정문 (−z) 안: 아치 뿌리 두 갈래 사이 계단 · 무지개 · 폭포 기둥 · 하늘 호수를 바라봄
+            Build("EvoBiosphere", "Evolved/MD_Evo_Biosphere", sockets, new Vector3(8f, F, -3.0f), 0f, lights, orbits,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    // 승강기 (능선 ↔ 하늘 정원, 아치 기둥 속 — Blender에서 −z 문으로 지은 뒤 허브 쪽 (330°)으로 돌림 → 문 미닫이 축 = 60°)
+                    var stops = Biosphere.LiftStops;
+                    var car = Child(root, N + "LiftCar");
+                    var carGlass = Child(root, N + "LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[stops.Length];
+                    var right = new Transform[stops.Length];
+                    var offsets = new float[stops.Length];
+                    for (int k = 0; k < stops.Length; k++)
+                    {
+                        offsets[k] = stops[k] - stops[0];
+                        left[k] = Child(root, $"{N}LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"{N}LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"{N}LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"{N}LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    float slide = (Biosphere.LiftAngle + 180f - 270f) * Mathf.Deg2Rad;   // 문 미닫이 축 = +x를 (문 각 − 270°)만큼
+                    var center = Biosphere.LiftCenter;
+                    center.y = stops[0] + 0.085f;
+                    lift.Configure(car, offsets, left, right, center, new Vector3(Mathf.Cos(slide), 0f, Mathf.Sin(slide)), Biosphere.CarRadius - 0.1f);
+                    // 수문 셋: 지금은 열어 둠 (물이 흐름) — 체험 (닫고 열어 단마다 물 대기)은 다음 단계
+                    for (int i = 0; i < 3; i++)
+                    {
+                        var plate = Child(root, N + "GatePlate" + i);
+                        if (plate != null)
+                            plate.localPosition += Vector3.up * 0.5f;
+                    }
+                    // 동물: 사슴 · 아기 사슴 · 토끼 · 백조 (오리 가족 자리, 내부 오리 모델은 다음) = SM_InteriorCritters (미터)
+                    var critterSrc = new Dictionary<string, GameObject>();
+                    foreach (var o in AssetDatabase.LoadAllAssetsAtPath("Assets/_Project/Art/Models/Interior/SM_InteriorCritters.fbx"))
+                    {
+                        if (o is GameObject g && g.name.StartsWith("Critter_") && g.GetComponent<MeshFilter>() != null)
+                            critterSrc[g.name] = g;
+                    }
+                    CritterGroup(r, critterSrc, "Critters_Deer", 13f, new[]
+                    {
+                        ("Deer", P(9.45f, 196f, SlopeY(9.45f)), 40f), ("Fawn", P(9.6f, 203f, SlopeY(9.6f)), -60f),   // 숲 비탈 (어미 · 아기)
+                        ("Deer", P(13.6f, 140f, F), 80f),                                                              // 과수원
+                    });
+                    CritterGroup(r, critterSrc, "Critters_Bunny", 6f, new[]
+                    {
+                        ("Bunny", P(9.5f, 122f, SlopeY(9.5f)), 30f), ("Bunny", P(9.6f, 300f, SlopeY(9.6f)), 200f), ("Bunny", P(13.2f, 55f, F), -40f),
+                    });
+                    CritterGroup(r, critterSrc, "Critters_Swan", 7f, new[]
+                    {
+                        ("Swan", P(1.9f, 300f, Biosphere.WaterLevels[0]), 90f), ("Swan", P(2.0f, 60f, Biosphere.WaterLevels[0]), -80f),   // 가운데 호수
+                        ("Swan", P(1.4f, 120f, Biosphere.WaterLevels[2]), 20f), ("Swan", P(1.5f, 300f, Biosphere.WaterLevels[2]), 160f), // 하늘 호수
+                    });
+                    // 물: 호수 · 연못 · 하늘 호수 = KWS 물 (꺼 둠 → InteriorKwsWater가 켬) + 패키지 없는 PC용 Blender 수면, 물길 · 샘 = 바깥 물결 재질 (늘 보임)
+                    var kws = new List<GameObject>();
+                    var surfaces = new List<Renderer>();
+                    float[] depth = { 0.65f, 0.4f, 0.4f };
+                    for (int k = 0; k < Biosphere.WaterLevels.Length; k++)
+                    {
+                        var surface = Child(root, N + "Water" + (k == 0 ? "" : k.ToString()));
+                        if (surface == null)
+                            continue;
+                        surfaces.Add(surface.GetComponent<Renderer>());
+                        kws.Add(KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), Biosphere.WaterLevels[k], depth[k], "Biosphere" + k, k != 1));
+                    }
+                    var landings = new Vector3[Biosphere.Falls.Length];
+                    var widths = new float[Biosphere.Falls.Length];
+                    for (int i = 0; i < Biosphere.Falls.Length; i++)
+                    {
+                        landings[i] = Biosphere.Falls[i].Landing;
+                        widths[i] = Biosphere.Falls[i].Width;
+                    }
+                    if (kws.Count > 0 && kws[0] != null)
+                        KwsWaterBuilder.Ripple(kws[0], landings[0], 1.0f, 0.5f);   // 폭포 기둥이 떨어지는 호수 가운데
+                    kws.RemoveAll(x => x == null);
+                    root.AddComponent<InteriorKwsWater>().Configure(kws.ToArray(), surfaces.ToArray(), Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(8f, 4f, 8f));
+                    root.AddComponent<InteriorWaterfallFx>().Configure(landings, widths, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FallsMistPath));
+                });
+        }
+
+        /// <summary>
+        /// 내부 동물 묶음 (궤도 도시와 같은 틀): 묶음 = CritterFx 흔들림 폭에 맞춘 배율, 동물 = 내부 전용 모델 (미터)을 그만큼 줄여 넣음 (실제 크기 = 미터).
+        /// </summary>
+        private static void CritterGroup(Transform parent, Dictionary<string, GameObject> critterSrc, string holderName, float scale, (string src, Vector3 at, float yaw)[] list)
+        {
+            var holder = new GameObject(holderName).transform;
+            holder.SetParent(parent, false);
+            holder.localScale = Vector3.one * scale;
+            var critterMat = ModuleFxMaterials.Get("Critters");
+            var parts = new List<Transform>();
+            var kinds = new List<SpaceStation.Building.CritterFx.Kind>();
+            foreach (var (src, at, yaw) in list)
+            {
+                if (!critterSrc.TryGetValue("Critter_" + src, out var g))
+                {
+                    Debug.LogWarning("[InteriorTemplateBuilder] 내부 동물 없음: " + src);
+                    continue;
+                }
+                var t = new GameObject("Critter_" + src).transform;
+                t.SetParent(holder, false);
+                t.localPosition = at / scale;
+                t.localRotation = Quaternion.Euler(0f, yaw, 0f) * g.transform.localRotation;
+                t.localScale = g.transform.localScale / scale;
+                t.gameObject.AddComponent<MeshFilter>().sharedMesh = g.GetComponent<MeshFilter>().sharedMesh;
+                var mr = t.gameObject.AddComponent<MeshRenderer>();
+                mr.sharedMaterial = critterMat;
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                parts.Add(t);
+                kinds.Add(StationArtBuilder.CritterKinds.TryGetValue(src, out var kind) ? kind : SpaceStation.Building.CritterFx.Kind.Swim);
+            }
+            var fx = holder.gameObject.AddComponent<SpaceStation.Building.CritterFx>();
+            var so = new SerializedObject(fx);
+            var arr = so.FindProperty("_critters");
+            arr.arraySize = parts.Count;
+            for (int i = 0; i < parts.Count; i++)
+            {
+                StationArtBuilder.CritterShape(parts[i], null, kinds[i], out var heading, out float radius);
+                var e = arr.GetArrayElementAtIndex(i);
+                e.FindPropertyRelative("Part").objectReferenceValue = parts[i];
+                e.FindPropertyRelative("Kind").enumValueIndex = (int)kinds[i];
+                e.FindPropertyRelative("Heading").vector3Value = heading;
+                e.FindPropertyRelative("Radius").floatValue = radius;
+                e.FindPropertyRelative("Leader").intValue = -1;
+                e.FindPropertyRelative("Side").floatValue = 0f;
+            }
+            so.FindProperty("_autoPlay").boolValue = true;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static Transform Child(GameObject root, string name) => root.transform.Find(name);
 
         /// <summary>12-5 모듈 강조색 도장 (발광 없음) `M_Paint_{모듈}.mat` — 강조 재질 바탕색을 따름. 강조 재질(발광)을 큰 소품에 쓰면 평평하게 빛났음.</summary>
@@ -6122,6 +6300,7 @@ namespace SpaceStation.Editor
             { "EvoFusionPlant", InteriorAmbience.Heat },      // 융합로 · 열 관
             { "EvoArcology", InteriorAmbience.Life },         // 섬 도시
             { "EvoOrbitalCity", InteriorAmbience.Life },      // 정원 섬 도시 (3단계)
+            { "EvoBiosphere", InteriorAmbience.Life },        // 물의 순환 고리 (3단계)
             { "EvoGrandTorus", InteriorAmbience.Life },       // 바퀴 마을
             { "EvoCivicHall", InteriorAmbience.Life },        // 회관 · 돌봄 · 교실
             { "EvoSecurityHQ", InteriorAmbience.Life },       // 파출소 광장 · 민원 창구
@@ -6336,6 +6515,16 @@ namespace SpaceStation.Editor
                 { "Evo3Door", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3DoorPath) },
                 { "Evo3Leaf", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PlantPath) },
                 { "Evo3Prism", ModuleFxMaterials.Get("Prism") },
+                // 바이오스피어 (2026-11-11): 작물 · 들꽃 · 물길 (작은 물 = 바깥 물결 재질) · 비 (바깥 빗줄기)
+                { "Evo3Wheat", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3WheatPath) },
+                { "Evo3Lavender", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LavenderPath) },
+                { "Evo3Tulip", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3TulipPath) },
+                { "Evo3Field", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3FieldPath) },
+                { "Evo3Flower", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3FlowerPath) },
+                { "Evo3Leaf2", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3Leaf2Path) },
+                { "Evo3Bark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3BarkPath) },
+                { "Evo3Channel", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PondPath) },
+                { "Evo3Rain", ModuleFxMaterials.Get("Rain") },
             };
             for (int i = 0; i < 7; i++)
                 materials["Evo3Rainbow" + i] = ModuleFxMaterials.Get("Rainbow" + i);   // 프리즘 무지개 고리 일곱 (바깥과 같은 빛 물결)
