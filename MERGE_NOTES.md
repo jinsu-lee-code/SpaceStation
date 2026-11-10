@@ -2420,3 +2420,13 @@
 
 ### `narrative` · `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `593c8569`). 씬 · TASKS · 글꼴은 tycoon에만
+
+## M-161. 연구원 내부 "별빛 데이터 미로" · 미로 체험 (2026-11-10, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `fc55f5b1`의 변경분을 패치로)
+- 진화 2단계 연구원 내부 (사용자 2026-11-10 "좋아 이대로 유니티로 옮겨줘"): `SM_Interior_EvoResearchInstitute.fbx` (Blender `mz_builder`) · `PF_Interior_EvoResearchInstitute` · `IT_EvoResearchInstitute` · `InteriorKit` 등록 · 강조 · 도장 재질, `InteriorTemplateBuilder.BuildEvoResearchInstitute` (아래 해치 4 = 바깥 길 · 냉각탑 팬 넷 · 코어 빛 고리 피벗 · 길잡이 화면 누르는 자리 · 연구실 실내 원 · 벤치 둘), `ResidentSpotBaker` (자리 12 · 연구원 · 여가 방 · "미로 구경 중" / "데이터 연구 중"), `InteriorPlantSpots` (연구실 화분)
+- 새 스크립트: `ResearchMaze` (미로 값 — Blender와 같은 값, 길잡이 길 · 해치 · 404 화면 · 고리 둘레 자리) · `InteriorMaze` (아치 통과 = 시간 재기 · 연구실 도착 = 기록 · 이번 실행 최고 기록 간판, 길잡이 화면 F = 점이 차례로 켜짐, 404 글씨, 데이터 빛 알갱이, 도착 때 코어 고리 · 빛)
+- 테스트: `ResearchMazeTests` (길잡이 길 · 트임 · 해치 · 입구와 해치 넷에서 연구실까지 걸어 닿음 · 해치 뚜껑이 벽에 묻히지 않음)
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `fc55f5b1`). 씬 · TASKS · 글꼴은 tycoon에만

@@ -129,6 +129,7 @@ namespace SpaceStation.Editor
             BuildEvoDroneDepot();
             BuildEvoCargoTransfer();
             BuildEvoStorageComplex();
+            BuildEvoResearchInstitute();
         }
 
         /// <summary>
@@ -4547,6 +4548,90 @@ namespace SpaceStation.Editor
                 });
         }
 
+        /// <summary>연구원 연구실 쉬는 벤치 (남서 225°, 코어를 봄) 두 자리 각 — 엉덩이 = 방석 앞 끝 (r 1.45) + 0.07.</summary>
+        public static readonly float[] MazeBenchAngles = { 218f, 232f };
+
+        public static Vector4 MazeBenchSeat(float angle)
+        {
+            float a = angle * Mathf.Deg2Rad;
+            var c = ResearchMaze.Center;
+            return new Vector4(c.x + 1.52f * Mathf.Cos(a), F + 0.44f, c.z + 1.52f * Mathf.Sin(a), Mathf.Atan2(-Mathf.Cos(a), -Mathf.Sin(a)) * Mathf.Rad2Deg);
+        }
+
+        /// <summary>
+        /// 진화 2단계 연구원 "별빛 데이터 미로" (2 × 2칸, mz_builder — 사용자 2026-11-10 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 미로 (<see cref="InteriorMaze"/>).
+        /// 외형 평면 × 8 그대로: 서버 랙 벽 세 겹 네모 미로 (트임 = 바깥 앞 · 가운데 뒤 · 안 서쪽, 가로막 · 반쯤 막은 턱, 막다른 길 화면 셋), 네 모서리 냉각탑 (팬 돎),
+        /// 앞 입구 아치 · 간판 (최고 기록) · 길잡이 화면, 가운데 둥근 유리 연구실 (데이터 코어 · 위 빛 고리 · 연구 책상 셋 · 쉬는 벤치 · 화분, 서쪽 압력 막 문).
+        /// 벽 높이 2.6 (눈높이 위), 앞 바깥 길 가로막 = 턱 (동쪽 바깥 길 = 긴 막다른 길). 외형 옆면 연결점이 없어 문 자리 없음, 아래 해치 4 = 바깥 길 바닥.
+        /// 미로 · 갑판 주민 = 우주복 (<see cref="InteriorOpenAir"/>), 연구실 = 실내 원.
+        /// </summary>
+        private static void BuildEvoResearchInstitute()
+        {
+            const string N = "INT_EvoResearchInstitute_";
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, off) in ResearchMaze.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, new Vector3(off.x, 0f, off.y)));   // 바깥 길 가운데 (뚜껑 1.4 · 길 폭 1.52)
+            var c = ResearchMaze.Center;
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.8f, 0.86f, 1f);
+            var lavender = new Color(0.78f, 0.66f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(c.x, F + 2.35f, c.z + 0.9f), 4.5f, 1.0f, white),     // 연구실 (코어 위 고리 비킴)
+                LightSpec.Point(new Vector3(c.x - 0.9f, F + 1.2f, c.z), 3f, 0.6f, lavender),     // 코어 빛
+                LightSpec.Point(new Vector3(c.x, F + 2.4f, c.z - 7.2f), 5f, 0.55f, warm),        // 입구 아치
+                LightSpec.Point(new Vector3(c.x - 7.25f, F + 2.2f, c.z), 6f, 0.35f, cool),       // 둘레 갑판
+                LightSpec.Point(new Vector3(c.x + 7.25f, F + 2.2f, c.z), 6f, 0.35f, cool),
+                LightSpec.Point(new Vector3(c.x, F + 2.2f, c.z + 7.25f), 6f, 0.35f, cool),
+                LightSpec.Point(new Vector3(c.x - 2.8f, F + 2.3f, c.z), 3f, 0.4f, cool),         // 안 고리 트임 · 연구실 문
+            };
+            foreach (var (dx, dz) in new[] { (-5.68f, -5.68f), (5.68f, -5.68f), (-5.68f, 5.68f), (5.68f, 5.68f), (0f, -5.68f), (-5.68f, 0f), (5.68f, 0f), (0f, 5.68f) })
+                lights.Add(LightSpec.Point(new Vector3(c.x + dx, F + 2.3f, c.z + dz), 4.5f, 0.5f, cool));   // 바깥 길 모서리 · 가운데
+            foreach (var (dx, dz) in new[] { (-4f, -4f), (4f, -4f), (-4f, 4f), (4f, 4f) })
+                lights.Add(LightSpec.Point(new Vector3(c.x + dx, F + 2.3f, c.z + dz), 4f, 0.45f, cool));    // 가운데 길 모서리
+            var orbits = new List<OrbitSpec>();
+            float h = ResearchMaze.Rings[0];
+            int fan = 0;
+            foreach (var (sx, sz) in new[] { (-h, -h), (h, -h), (-h, h), (h, h) })
+                orbits.Add(new OrbitSpec(N + "Fan" + fan++, new Vector3(c.x + sx, 0f, c.z + sz), Vector3.up, fan % 2 == 0 ? 120f : -120f));   // 냉각탑 팬
+            EvoAccent("ResearchInstitute", "#B79CFF");
+            // 스폰 = 입구 아치 앞 갑판에서 미로를 바라봄
+            Build("EvoResearchInstitute", "Evolved/MD_Evo_ResearchInstitute", sockets, new Vector3(c.x, F, ResearchMaze.ArchZ - 0.95f), 0f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[] { new Vector3(c.x, c.z, ResearchMaze.LabRadius) });   // 연구실 안 = 실내
+                    var r = root.transform;
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    // 길잡이 점 구간 (길 순서) · 코어 위 빛 고리 피벗 · 길잡이 화면 누르는 자리
+                    var dots = new List<Renderer>();
+                    for (int i = 0; i < ResearchMaze.Route.Length - 1; i++)
+                    {
+                        var d = Child(root, $"{N}Dots{i:00}");
+                        if (d != null)
+                            dots.Add(d.GetComponent<Renderer>());
+                    }
+                    var ringPivot = new GameObject("CoreRing_Pivot").transform;
+                    ringPivot.SetParent(r, false);
+                    ringPivot.position = r.TransformPoint(new Vector3(c.x, F + 2.62f, c.z));
+                    Child(root, N + "CoreRing").SetParent(ringPivot, true);
+                    var hintGo = new GameObject("MazeHintUse");
+                    hintGo.transform.SetParent(r, false);
+                    hintGo.transform.localPosition = ResearchMaze.HintScreen + new Vector3(0f, 0f, -0.05f);
+                    var hintBox = hintGo.AddComponent<BoxCollider>();
+                    hintBox.size = new Vector3(0.8f, 0.62f, 0.1f);
+                    var pulse = AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorLight.mat");
+                    root.AddComponent<InteriorMaze>().Configure(dots.ToArray(), ringPivot, hintBox, pulse, font);
+                    // 연구실 쉬는 벤치 두 자리 (mz_builder lab bench, 남서 225° ± 16°)
+                    float ba = 225f * Mathf.Deg2Rad;
+                    var bc = new Vector3(c.x + 1.635f * Mathf.Cos(ba), (F + F + 0.45f) * 0.5f, c.z + 1.635f * Mathf.Sin(ba));
+                    var seats = new Vector4[MazeBenchAngles.Length];
+                    for (int i = 0; i < seats.Length; i++)
+                        seats[i] = MazeBenchSeat(MazeBenchAngles[i]);
+                    root.AddComponent<InteriorBenchSeats>().Configure(seats, new[] { new Bounds(bc, new Vector3(0.62f, 0.45f, 0.62f)) }, -6f);
+                });
+        }
+
         private static Transform Child(GameObject root, string name) => root.transform.Find(name);
 
         /// <summary>12-5 모듈 강조색 도장 (발광 없음) `M_Paint_{모듈}.mat` — 강조 재질 바탕색을 따름. 강조 재질(발광)을 큰 소품에 쓰면 평평하게 빛났음.</summary>
@@ -5807,6 +5892,7 @@ namespace SpaceStation.Editor
             { "EvoDroneDepot", InteriorAmbience.Machine },        // 수리 칸 · 드론
             { "EvoCargoTransfer", InteriorAmbience.Water },       // 은하수 후룸 · 항구 못
             { "EvoStorageComplex", InteriorAmbience.Machine },    // 자동 선반 · 회전목마
+            { "EvoResearchInstitute", InteriorAmbience.Machine }, // 서버 랙 · 냉각탑
         };
 
         /// <summary>
