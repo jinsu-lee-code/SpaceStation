@@ -2377,3 +2377,18 @@
 
 ### `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `e928b93b` · `56a81eb1` · `1b98971f`). TASKS · 글꼴 · `Main.unity`는 tycoon에만
+
+## M-157. 화물 환적장 내부 "은하수 후룸 항구" · 탈것 시선이 앞뒤 기울기를 따라감 (2026-11-10, `main`)
+
+**main에 넣은 것** (tycoon에서 만듦, tycoon 커밋 `38904126`의 변경분을 패치로)
+- 진화 2단계 화물 환적장 내부 (사용자 2026-11-09 "유니티로 옮겨줘"): `SM_Interior_EvoCargoTransfer.fbx` (Blender `ct_builder`) · `PF_Interior_EvoCargoTransfer` · `IT_EvoCargoTransfer` · `InteriorKit` 등록 · 강조 · 도장 재질, `InteriorTemplateBuilder.BuildEvoCargoTransfer` (보트 셋 · 크레인 둘 · 컨테이너 복제 · 체인 고리 · 벤치 17 · 실내 상자), `ResidentSpotBaker` (자리 24 · 정비공 · 여가 방 · "후룸 구경 중" / "후룸 운행 중"), `InteriorPlantSpots` (유리 덮개 식물 셋)
+- 새 스크립트: `CargoFlumeCourse` (물길 표 — Blender와 같은 값) · `InteriorFlumeRide` (보트 탑승 · 정차 · 탄 주민 · 안내) · `InteriorFlumeSplash` (큰 물보라 입자)
+- `InteriorStorageCrane`: `Rig.LiftSpeed` (0 = 기본 0.3) · `Configure(..., placed)` (처음 칸에 놓인 상자 수, 기본 = 모두) · 정차 자리 일 `RequestDock` / `CancelDock` / `DockBusy` / `DockCommitted` / `DockResult` / `Running` — 기존 대형 창고 크레인 동작은 같음
+- **공통 바닥 `FirstPersonController`**: `RideAt(..., followPitch = false)` 새 인자 — 켜면 탈것 앞 방향의 위아래 각을 둘러본 시선에 더함 (`GameSettings.HeadBob`이 꺼져 있으면 수평 유지, 사용자 2026-11-09 "낙하 때 각도에 맞게 따라가게"). 기본값 false라 기존 탈것 (관람차 · 기차 · 엘리베이터 · 벤치)은 그대로. `Ride` · `Dismount` · `Teleport`가 이 상태를 지움
+- 테스트: `CargoFlumeCourseTests` (코스 길이 · 리프트 각 · 물보라 자리 · 칸 안 · 옆 기울기 없음 · 보트 몸 통과 290곳)
+
+### `narrative` 합칠 때
+- `FirstPersonController.RideAt` 인자가 하나 늘었지만 선택 인자라 호출부 변경 없음. 이 브랜치의 탈것이 앞뒤로 기울면 `followPitch: true`로 쓸 수 있음
+
+### `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `38904126`). TASKS · 글꼴은 tycoon에만

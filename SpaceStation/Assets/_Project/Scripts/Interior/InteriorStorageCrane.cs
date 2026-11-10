@@ -8,6 +8,8 @@ namespace SpaceStation.Interior
     /// 고창 천장 레일 위 다리(Bridge, x)와 트롤리(Trolley, z)가 선반 윗단의 상자 하나로 가서 집게(Grip)를 내려 집고,
     /// 다른 빈 윗단 칸으로 옮겨 내려놓는다 (방금 내려놓은 상자를 바로 다시 집지 않음). 줄(Cable)은 트롤리에서 집게 틀 위까지 늘고 준다.
     /// 모듈이 멈추면(비활성 · 전력 부족) 그 자리에 멈춤. 좌표는 모두 템플릿 루트 로컬 (모델 자세 그대로 = 0).
+    /// 정차 자리 일 (화물 환적장 크레인 B, 2026-11-10): <see cref="RequestDock"/> = 정차한 보트 고물에 상자를 내려놓거나(빈 보트) 실린 상자를 집어 옴(실린 보트) —
+    /// 하던 한 번을 마친 뒤 그 자리로 가서 내리고 올림. 보트는 <see cref="DockBusy"/>가 풀릴 때까지 기다림 (<see cref="InteriorFlumeRide"/>).
     /// </summary>
     public sealed class InteriorStorageCrane : InteriorRoomDisplay
     {
@@ -31,9 +33,11 @@ namespace SpaceStation.Interior
             public float CableTopY;
             public float CableLength;
             public float CrateHeight;    // 집게 틀 아랫면이 닿는 상자 윗면 = 칸 바닥 + 이 값
+            public float LiftSpeed;      // 집게 오르내림 m/s (0 = 기본 0.3)
         }
 
         private enum Phase { Wait, Travel, Lower, Raise }
+        private enum Dock { None, Requested, Going, Working }
 
         [SerializeField] private Rig _rig;
         [SerializeField] private Transform[] _crates = Array.Empty<Transform>();   // 옮기는 상자 (피벗 = 바닥 가운데). 처음 Crates[i]는 Slots[i]
@@ -48,12 +52,44 @@ namespace SpaceStation.Interior
         private int _lastFilled = -1;      // 방금 놓은 칸 (바로 다시 집지 않음)
         private int _lastEmptied = -1;     // 방금 집은 칸 (제자리에 도로 놓지 않음)
         private bool _ready;
+        [SerializeField] private int _placed = -1;   // 처음 칸에 놓인 상자 수 (나머지 상자 = 보트 고물 등 칸 밖, -1 = 모두)
+        private Dock _dock;
+        private Transform _dockAnchor;   // 보트 고물 상자 자리 (바닥 가운데, 보트 피벗 자식)
+        private Transform _dockCargo;    // 보트에 실린 상자 (없으면 빈 보트) — 일이 끝나면 결과
 
-        public void Configure(Rig rig, Transform[] crates, Vector3[] slots)
+        /// <summary>정차 자리 일을 맡았거나 하는 중 (보트는 이게 풀릴 때까지 기다림).</summary>
+        public bool DockBusy => _dock != Dock.None;
+        /// <summary>정차 자리 위에서 내리는 중 (이때는 보트를 보내면 안 됨 — 취소 불가).</summary>
+        public bool DockCommitted => _dock == Dock.Working;
+        /// <summary>모듈이 돌고 있음 (멈추면 정차 일은 건너뜀).</summary>
+        public bool Running => Active;
+        /// <summary>정차 일 뒤 보트 고물에 실린 상자 (없으면 null).</summary>
+        public Transform DockResult => _dockCargo;
+
+        public void Configure(Rig rig, Transform[] crates, Vector3[] slots, int placed = -1)
         {
             _rig = rig;
             _crates = crates ?? Array.Empty<Transform>();
             _slots = slots ?? Array.Empty<Vector3>();
+            _placed = placed;
+        }
+
+        /// <summary>정차 자리 일 요청: anchor = 보트 고물 상자 자리, cargo = 지금 실린 상자 (null = 빈 보트 → 화물선 상자를 실어 줌).</summary>
+        public void RequestDock(Transform anchor, Transform cargo)
+        {
+            if (anchor == null || (cargo != null && Array.IndexOf(_crates, cargo) < 0))
+                return;
+            _dockAnchor = anchor;
+            _dockCargo = cargo;
+            _dock = Dock.Requested;
+        }
+
+        /// <summary>정차 일 취소 (보트가 떠나야 함). 정차 자리 위에서 내리는 중이면 무시.</summary>
+        public void CancelDock()
+        {
+            if (_dock == Dock.Working)
+                return;
+            _dock = Dock.None;
         }
 
         private void Setup()
@@ -69,8 +105,9 @@ namespace SpaceStation.Interior
             _z = _rig.RestZ;
             _y = _rig.GripRestY;
             _slotCrate = new int[_slots.Length];
+            int placed = _placed < 0 ? _crates.Length : Mathf.Min(_placed, _crates.Length);
             for (int k = 0; k < _slotCrate.Length; k++)
-                _slotCrate[k] = k < _crates.Length && _crates[k] != null ? k : -1;
+                _slotCrate[k] = k < placed && _crates[k] != null ? k : -1;
             _phase = Phase.Wait;
             _pause = 1f;
             Apply();
@@ -96,6 +133,21 @@ namespace SpaceStation.Interior
                 case Phase.Travel:
                     if (Step(dt))
                     {
+                        if (_target < 0)
+                        {
+                            if (_dock == Dock.Going && _dockAnchor != null)
+                            {
+                                // 정차 자리 위 → 보트 고물 상자 윗면까지 내림
+                                _dock = Dock.Working;
+                                BeginLift(transform.InverseTransformPoint(_dockAnchor.position).y + _rig.CrateHeight, Phase.Lower);
+                            }
+                            else
+                            {
+                                _phase = Phase.Wait;   // 가는 사이 취소됨
+                                _pause = 0.3f;
+                            }
+                            break;
+                        }
                         // 칸 위에 섬 → 상자 윗면까지 내림
                         BeginLift(_slots[_target].y + _rig.CrateHeight, Phase.Lower);
                     }
@@ -103,7 +155,10 @@ namespace SpaceStation.Interior
                 case Phase.Lower:
                     if (Step(dt))
                     {
-                        Grab();
+                        if (_target < 0)
+                            DockGrab();
+                        else
+                            Grab();
                         _pause = GrabPause;
                         BeginLift(_rig.GripRestY, Phase.Raise);
                     }
@@ -118,15 +173,69 @@ namespace SpaceStation.Interior
                     {
                         _phase = Phase.Wait;
                         _pause = _held >= 0 ? 0.2f : CyclePause;
+                        if (_dock == Dock.Working)
+                        {
+                            _dock = Dock.None;   // 정차 일 끝
+                            _pause = 0.2f;
+                        }
+                        else if (_dock != Dock.None)
+                            _pause = 0f;
                     }
                     break;
             }
             Apply();
         }
 
+        /// <summary>
+        /// 정차 일 차례: 빈 보트 + 빈 손 → 평소처럼 화물선 상자를 집으러 감 (다음 차례에 정차 자리로), 실린 보트 + 든 손 → 평소처럼 빈 칸에 먼저 내려놓음,
+        /// 그 밖 = 정차 자리로 감.
+        /// </summary>
+        private bool NextDock()
+        {
+            if (_dock == Dock.None || _dockAnchor == null)
+                return false;
+            bool unload = _dockCargo != null;
+            if (unload == (_held >= 0))
+                return false;
+            var to = transform.InverseTransformPoint(_dockAnchor.position);
+            _target = -1;
+            _dock = Dock.Going;
+            _fromX = _x;
+            _fromZ = _z;
+            _toX = Mathf.Clamp(to.x, _rig.MinX, _rig.MaxX);
+            _toZ = to.z;
+            _fromY = _toY = _y;
+            _duration = Mathf.Max(0.4f, Mathf.Abs(_toX - _fromX) / BridgeSpeed, Mathf.Abs(_toZ - _fromZ) / TrolleySpeed);
+            _t = 0f;
+            _phase = Phase.Travel;
+            return true;
+        }
+
+        /// <summary>보트 고물에서: 들었으면 고물 상자 자리에 내려놓고, 비었으면 실린 상자를 집음.</summary>
+        private void DockGrab()
+        {
+            if (_held >= 0)
+            {
+                var crate = _crates[_held];
+                crate.SetParent(_dockAnchor, true);
+                crate.localPosition = Vector3.zero;
+                crate.localRotation = Quaternion.identity;
+                _held = -1;
+                _dockCargo = crate;
+            }
+            else if (_dockCargo != null)
+            {
+                _dockCargo.SetParent(_rig.Grip, true);
+                _held = Array.IndexOf(_crates, _dockCargo);
+                _dockCargo = null;
+            }
+        }
+
         /// <summary>다음 칸: 들었으면 방금 집은 칸이 아닌 빈 칸, 비었으면 방금 놓은 칸이 아닌 찬 칸.</summary>
         private void Next()
         {
+            if (NextDock())
+                return;
             bool wantEmpty = _held >= 0;
             int avoid = wantEmpty ? _lastEmptied : _lastFilled;
             int candidates = wantEmpty ? _slotCrate.Length - Occupied() : Occupied();
@@ -163,7 +272,7 @@ namespace SpaceStation.Interior
             _fromZ = _toZ = _z;
             _fromY = _y;
             _toY = toY;
-            _duration = Mathf.Max(0.3f, Mathf.Abs(_toY - _fromY) / LiftSpeed);
+            _duration = Mathf.Max(0.3f, Mathf.Abs(_toY - _fromY) / (_rig.LiftSpeed > 0f ? _rig.LiftSpeed : LiftSpeed));
             _t = 0f;
             _phase = phase;
         }
