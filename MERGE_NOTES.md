@@ -2481,3 +2481,14 @@
 
 ### `narrative` · `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `a962e008`). 씬 · TASKS · 글꼴은 tycoon에만
+
+## M-167. 바이오스피어 내부 1차 (2026-11-11, `main`)
+
+**main에 넣은 것**
+- 진화 3단계 바이오스피어 내부 템플릿 "물의 순환 고리": Blender bio3_builder (Interior_Evo.blend) → `SM_Interior_EvoBiosphere.fbx` · `PF_Interior_EvoBiosphere` · `IT_EvoBiosphere`, 값 = `Biosphere`
+- `InteriorTemplateBuilder.BuildEvoBiosphere` (승강기 · KWS 물 셋 · 폭포 물안개 · 물레방아 · 구름 고리 회전 · 동물) + 공용 `CritterGroup`, 재질 일곱 (밀 · 라벤더 · 튤립 · 밀밭 흙 · 노란 꽃 · 밝은 잎 · 나무껍질) + 물길 = Evo2Pond · 비 = 바깥 Rain
+- 식물 자리 38 · 주민 자리 21, `BiosphereTests` 3, InteriorKit 등록
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `68789355`). 씬 (템플릿 등록) · TASKS · 글꼴은 tycoon에만
+- KWS 패키지 없는 PC = 호수 · 하늘 호수는 Blender 수면 (만화 물)로 보임 (M-164와 같음)

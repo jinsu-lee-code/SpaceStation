@@ -117,6 +117,14 @@ namespace SpaceStation.Editor
         public const string FallsMistPath = MaterialFolder + "/M_InteriorFallsMist.mat";     // 폭포 물안개 · 물방울 · 수면 거품 입자 (부드러운 점, 반투명)
         public const string Evo3RoofPath = MaterialFolder + "/M_InteriorEvo3Roof.mat";       // 마을 집 · 옹벽 집 처마 (복숭아빛 기와)
         public const string Evo3DoorPath = MaterialFolder + "/M_InteriorEvo3Door.mat";       // 집 문짝 (하늘빛)
+        // 바이오스피어 계단 밭 작물 · 들꽃 (2026-11-11, Blender bio3_builder와 같은 색)
+        public const string Evo3WheatPath = MaterialFolder + "/M_InteriorEvo3Wheat.mat";
+        public const string Evo3LavenderPath = MaterialFolder + "/M_InteriorEvo3Lavender.mat";
+        public const string Evo3TulipPath = MaterialFolder + "/M_InteriorEvo3Tulip.mat";
+        public const string Evo3FieldPath = MaterialFolder + "/M_InteriorEvo3Field.mat";     // 밀밭 흙 (황토빛)
+        public const string Evo3FlowerPath = MaterialFolder + "/M_InteriorEvo3Flower.mat";   // 해바라기 꽃잎 · 노란 꽃
+        public const string Evo3Leaf2Path = MaterialFolder + "/M_InteriorEvo3Leaf2.mat";     // 양배추 · 밝은 잎
+        public const string Evo3BarkPath = MaterialFolder + "/M_InteriorEvo3Bark.mat";       // 통나무 · 바구니
         public const string Evo3BlossomPath = MaterialFolder + "/M_InteriorEvo3Blossom.mat"; // 열차 방석 (연분홍 천)     // 병풍 해 · 세 날개 표지 · 석등 불빛 (레몬빛)
         public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
         public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
@@ -559,6 +567,13 @@ namespace SpaceStation.Editor
             EvoSurface(Evo3BlossomPath, new Color(0.97f, 0.7f, 0.8f), 0f, 0.3f);
             EvoSurface(Evo3RoofPath, new Color(0.93f, 0.6f, 0.5f), 0f, 0.35f);    // 시안 2 마을 집 (Blender Evo3Roof와 같은 색)
             EvoSurface(Evo3DoorPath, new Color(0.45f, 0.68f, 0.78f), 0.1f, 0.5f);
+            EvoSurface(Evo3WheatPath, new Color(0.93f, 0.76f, 0.38f), 0f, 0.25f);
+            EvoSurface(Evo3LavenderPath, new Color(0.62f, 0.48f, 0.92f), 0f, 0.3f);
+            EvoSurface(Evo3TulipPath, new Color(0.95f, 0.3f, 0.35f), 0f, 0.35f);
+            EvoSurface(Evo3FieldPath, new Color(0.62f, 0.48f, 0.3f), 0f, 0.08f);
+            EvoSurface(Evo3FlowerPath, new Color(1f, 0.82f, 0.25f), 0f, 0.3f);
+            EvoSurface(Evo3Leaf2Path, new Color(0.45f, 0.68f, 0.3f), 0f, 0.25f);
+            EvoSurface(Evo3BarkPath, new Color(0.5f, 0.36f, 0.25f), 0f, 0.15f);
             // 바이오돔 잔디 · 흙 (사용자 2026-11-03 "나무와 풀 디테일"): 색 판이 아니라 풀잎 · 흙 무늬 텍스처
             void Ground(string path, string texture, float smoothness)
             {
