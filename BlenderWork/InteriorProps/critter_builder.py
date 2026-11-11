@@ -173,6 +173,7 @@ def finish(name):
     me.materials.append(MAT)
     ob = bpy.data.objects.new(name, me); bpy.context.scene.collection.objects.link(ob)
     tris = sum(len(p.vertices) - 2 for p in me.polygons)
+    print('CRITTER %s raw tris %d' % (name, tris))
     if tris > 14000:   # 메타볼 몸은 촘촘함 → 1.4만 삼각형 안으로 (모양 · 칸 경계 유지)
         md = ob.modifiers.new("Dec", 'DECIMATE'); md.ratio = 14000 / tris
         bpy.context.view_layer.objects.active = ob
@@ -277,6 +278,20 @@ def meta_part(res, head_c=None, head_R=1.0, face="white", base="white", pattern=
     bpy.data.objects.remove(ob); bpy.data.metaballs.remove(mb)
     bm = bmesh.new(); bm.from_mesh(me); bpy.data.meshes.remove(me)
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=res * 0.05)
+    # 메타볼 면이 몇 장 접혀 나옴 (이웃과 법선이 반대 — 오리 5 · 새끼 6 · 사슴 1장, 부드러운 음영에서 검은 점) → 접힌 면 꼭짓점 · 둘레를 이웃 평균으로 폄
+    for _ in range(6):
+        bm.normal_update()
+        bad = set()
+        for f in bm.faces:
+            nb = [g.normal for e in f.edges for g in e.link_faces if g is not f]
+            if nb and sum(f.normal.dot(m) for m in nb) / len(nb) < 0.0:
+                bad.update(f.verts)
+        if not bad:
+            break
+        ring_ = set(bad)
+        for v in bad:
+            ring_.update(e.other_vert(v) for e in v.link_edges)
+        bmesh.ops.smooth_vert(bm, verts=list(ring_), factor=1.0, use_axis_x=True, use_axis_y=True, use_axis_z=True)
     uvl = bm.loops.layers.uv.new("UVMap")
     cu, cv = face_center(face) if head_c is not None else (0, 0)
     for f in bm.faces:
@@ -382,7 +397,41 @@ def build_swan():
     return finish("Critter_Swan")
 
 
-objs = [build_bunny(), build_deer("Critter_Deer"), build_deer("Critter_Fawn", 0.72, spots=True, head_k=1.15), build_swan()]
+# ---------------- 오리 가족 (바이오스피어 호수 — 바깥 모듈과 같은 흰 어미 · 노란 새끼, 2026-11-11) ----------------
+# 흰 집오리 사진: 물에 반쯤 잠긴 둥근 배 모양 몸 · 앞으로 불룩한 가슴 · 위로 들린 짧은 꽁지 · 짧고 굵은 목 · 둥근 머리 · 넓적한 주황 부리 /
+#   새끼 = 공 같은 솜털 몸 · 목 없이 몸만 한 머리 · 조그만 날개. 몸 · 목 · 머리 = 메타볼 한 덩어리, 날개 · 부리 = 겹친 타원체, 얼굴 = 아틀라스 (부리가 입을 덮음).
+
+def build_duck():
+    W = "white"
+    mell((-0.02, 0, 0.075), (0.175, 0.125, 0.105))                                 # 몸 (물높이 z 0 아래로 3 cm 잠김)
+    mell((0.085, 0, 0.1), (0.1, 0.105, 0.1))                                        # 앞으로 불룩한 가슴
+    mell((-0.19, 0, 0.14), (0.075, 0.055, 0.034), rot_=rot(35))                     # 위로 들린 꽁지
+    mchain([(0.13, 0, 0.17), (0.15, 0, 0.23)], [0.055, 0.055])                      # 짧은 목 (가슴 위로 곧게)
+    mell((0.15, 0, 0.3), (0.1, 0.095, 0.095), "head")                               # 큰 둥근 머리 (2등신)
+    mneg((0.04, 0, 0.215), (0.055, 0.12, 0.04))                                    # 목덜미 오목 (등에서 머리까지 한 비탈 = 물개처럼 보였음)
+    meta_part(0.011, head_c=(0.15, 0, 0.3), head_R=0.097, face="white", base=W, eye_back=12.0)
+    for s in (-1, 1):
+        ellipsoid((-0.045, s * 0.097, 0.11), (0.115, 0.035, 0.058), W, rot=rot(10))  # 접은 날개 (몸 옆에 붙어 끝이 꽁지 쪽으로 들림 — 크면 꽁지가 둘로 보였음)
+    ellipsoid((0.262, 0, 0.27), (0.078, 0.05, 0.021), "orange", rot=rot(8))         # 넓적한 윗부리
+    ellipsoid((0.25, 0, 0.255), (0.062, 0.04, 0.014), "orange", rot=rot(14))        # 아랫부리
+    return finish("Critter_Duck")
+
+
+def build_duckling():
+    Y = "yellow"
+    mell((-0.01, 0, 0.045), (0.085, 0.07, 0.065))                                  # 동글동글 솜털 몸
+    mball((-0.085, 0, 0.075), 0.026)                                                # 짧은 꽁지
+    mell((0.055, 0, 0.13), (0.066, 0.063, 0.063), "head")                          # 목 없이 몸만 한 머리
+    meta_part(0.006, head_c=(0.055, 0, 0.13), head_R=0.064, face="yellow", base=Y, eye_back=10.0)
+    for s in (-1, 1):
+        ellipsoid((-0.01, s * 0.064, 0.06), (0.045, 0.02, 0.03), Y, rot=rot(15))    # 조그만 날개
+    ellipsoid((0.124, 0, 0.12), (0.036, 0.028, 0.011), "orange", rot=rot(6))        # 작은 부리
+    ellipsoid((0.118, 0, 0.112), (0.028, 0.022, 0.008), "orange", rot=rot(12))
+    return finish("Critter_Duckling")
+
+
+objs = [build_bunny(), build_deer("Critter_Deer"), build_deer("Critter_Fawn", 0.72, spots=True, head_k=1.15), build_swan(),
+        build_duck(), build_duckling()]
 
 if OUT:
     for x in bpy.context.view_layer.objects: x.select_set(x in objs)
@@ -392,8 +441,12 @@ if OUT:
     print('EXPORTED', OUT)
 
 # 미리보기: 나란히 놓고 옆 · 비스듬히 (EEVEE, 회색 바닥)
-for i, ob in enumerate(objs):
+for i, ob in enumerate(objs[:4]):
     ob.location.x = i * 1.25 - 1.9
+objs[4].location.x = 3.1                                   # 오리 가족: 어미 뒤에 새끼 셋 (Unity 줄 간격)
+objs[5].location.x = 2.65
+for k, x in enumerate((2.35, 2.05)):
+    dup = bpy.data.objects.new("Duckling%d" % k, objs[5].data); dup.location = (x, 0.04 * (-1) ** k, 0); bpy.context.scene.collection.objects.link(dup)
 sc = bpy.context.scene
 for eng in ('BLENDER_EEVEE_NEXT', 'BLENDER_EEVEE'):
     try:
@@ -414,9 +467,11 @@ ld = bpy.data.lights.new('Sun', 'SUN'); ld.energy = 3.5
 lo = bpy.data.objects.new('Sun', ld); lo.rotation_euler = (math.radians(50), 0, math.radians(30)); sc.collection.objects.link(lo)
 cd = bpy.data.cameras.new('Cam'); cam = bpy.data.objects.new('Cam', cd); sc.collection.objects.link(cam); sc.camera = cam
 os.makedirs(os.path.join(HERE, 'preview'), exist_ok=True)
-for tag, loc, tgt in (("side", (0.0, -7.6, 0.7), (0.0, 0, 0.45)), ("front", (4.6, -5.2, 1.8), (0.0, 0, 0.4)),
+for tag, loc, tgt in (("side", (0.6, -9.2, 0.7), (0.6, 0, 0.45)), ("front", (5.6, -5.6, 1.8), (0.6, 0, 0.4)),
                       ("bunny", (-1.7, -1.35, 0.32), (-1.9, 0, 0.2)), ("swan", (2.25, -1.9, 0.75), (1.85, 0, 0.35)),
-                      ("deer", (0.6, -1.9, 1.15), (-0.2, 0, 0.85)), ("fawn", (1.5, -1.25, 0.6), (0.95, 0, 0.55))):
+                      ("deer", (0.6, -1.9, 1.15), (-0.2, 0, 0.85)), ("fawn", (1.5, -1.25, 0.6), (0.95, 0, 0.55)),
+                      ("duck", (3.75, -0.95, 0.45), (3.12, 0, 0.18)), ("duck_side", (3.05, -1.25, 0.2), (3.05, 0, 0.17)),
+                      ("duckling", (2.95, -0.5, 0.2), (2.65, 0, 0.08)), ("family", (3.6, -1.9, 0.75), (2.65, 0, 0.1))):
     cam.location = loc
     d = Vector(tgt) - Vector(loc)
     cam.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler()

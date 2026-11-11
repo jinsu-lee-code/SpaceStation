@@ -154,6 +154,39 @@ namespace SpaceStation.Interior
             ("Bunny", 9.5f, 122f, true), ("Bunny", 9.6f, 300f, true), ("Bunny", 12.2f, 60f, false),
         };
 
+        /// <summary>
+        /// 오리 가족 (바깥 모듈의 흰 어미 · 노란 새끼): 호수 (WaterLevels 번호) · 어미 자리 반지름 · 각 · 새끼 수 · 보는 방향 (각, Polar와 같은 기준 — x = cos · z = sin).
+        /// 새끼는 어미 바로 뒤로 줄지음 (어미 → 첫 새끼 DuckLead, 새끼끼리 DuckSpacing, 번갈아 옆으로 4 cm).
+        /// 가운데 호수 = 어미 + 새끼 셋 — 연잎 (수면 높이) · 갈대 · 선착장 (140 ~ 220°)이 빽빽해 가장 크게 헤엄치는 자리 (고리 1.5배 = 왕복 1.8 m, 방향 ± 4° · 자리 5 cm가
+        /// 흔들려도 그대로)를 찾음 = 정문 쪽 폭포 기둥 앞 (265°, 반지름 1.2),
+        /// 하늘 호수 (비어 있음) = 어미 한 쌍 + 맞은편에 어미 + 새끼 둘 (바깥 모듈은 가운데 호수에 두 가족 — 내부 호수는 둘째 가족 고리가 0.8 m뿐이었음).
+        /// </summary>
+        public static readonly (int Lake, float Radius, float Angle, int Kids, float Heading)[] DuckFamilies =
+        {
+            (0, 1.2f, 265f, 3, 150f), (2, 1.45f, 105f, 0, 15f), (2, 1.45f, 135f, 0, 225f), (2, 1.4f, 290f, 2, 20f),
+        };
+        /// <summary>새끼 줄 간격 (m) — CritterFx 간격 밀기 (몸 반지름 합 + 4 cm: 어미 ↔ 새끼 0.47 · 새끼끼리 0.31)보다 조금 넓게.</summary>
+        public const float DuckLead = 0.5f, DuckSpacing = 0.34f;
+        /// <summary>가운데 호수 헤엄 금지 반지름 (폭포 기둥 밑동 0.62 + 물보라).</summary>
+        public const float FallsKeepOut = 1.05f;
+
+        /// <summary>오리 가족 자리: 이름 (Duck · Duckling) · 템플릿 좌표 (원점 = 물높이) · y 회전 (모델 앞 = −x → 보는 방향 각 h이면 180 − h).</summary>
+        public static (string Kind, Vector3 At, float Yaw)[] DuckSpots()
+        {
+            var list = new System.Collections.Generic.List<(string, Vector3, float)>();
+            foreach (var (lake, r, deg, kids, heading) in DuckFamilies)
+            {
+                var home = Polar(r, deg, WaterLevels[lake]);
+                float h = heading * Mathf.Deg2Rad;
+                var fwd = new Vector3(Mathf.Cos(h), 0f, Mathf.Sin(h));
+                var side = new Vector3(-fwd.z, 0f, fwd.x);
+                list.Add(("Duck", home, 180f - heading));
+                for (int k = 0; k < kids; k++)
+                    list.Add(("Duckling", home - fwd * (DuckLead + DuckSpacing * k) + side * (k % 2 == 0 ? 0.04f : -0.04f), 180f - heading));
+            }
+            return list.ToArray();
+        }
+
         /// <summary>숲 비탈 높이 (능선 바깥 8.6 → 옹벽 9.95, 위가 둥근 언덕).</summary>
         public static float SlopeY(float r) => Floor + 0.55f + 1.0f * Mathf.Sin(Mathf.Clamp01((WallInner - r) / (WallInner - RidgeOuter)) * Mathf.PI * 0.5f);
 
