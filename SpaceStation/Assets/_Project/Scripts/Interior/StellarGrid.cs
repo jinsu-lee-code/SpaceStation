@@ -37,7 +37,7 @@ namespace SpaceStation.Interior
         /// <summary>꿀 언덕 꼭대기 여왕 수정 가운데 (sg3_builder PEAK).</summary>
         public static readonly Vector3 Queen = new Vector3(40f, 10.62f, 4.83f);
 
-        // ---------------- 꿀 샘 (미니게임 "곰 몰래 꿀 먹기" 무대) ----------------
+        // ---------------- 꿀 샘 (미니게임 "벌 몰래 꿀 먹기" 무대) ----------------
         public static readonly Vector3 HoneySpring = new Vector3(34.4f, Floor, 0.96f);
         public static readonly Vector3 Stump = new Vector3(33.05f, Floor + 0.42f, 1f);
 
@@ -48,7 +48,7 @@ namespace SpaceStation.Interior
         /// <summary>꿀벌이 앉아 쉬는 큰 꽃 넷 (꽃술 윗면).</summary>
         public static readonly Vector3[] RestFlowers =
         {
-            new Vector3(3f, Floor + 1.13f, 4f), new Vector3(20.8f, Floor + 1.33f, 6f), new Vector3(27.2f, Floor + 1.13f, -1f), new Vector3(32.4f, Floor + 1.33f, 9f),
+            new Vector3(4.5f, Floor + 1.13f, 4f), new Vector3(20.8f, Floor + 1.33f, 6f), new Vector3(27.2f, Floor + 1.13f, -1f), new Vector3(32.4f, Floor + 1.33f, 9f),
         };
         /// <summary>전망대 원판 가운데 (윗면) — 위 해치 바로 밑.</summary>
         public static readonly Vector3 Lookout = new Vector3(24.5f, Floor + 2.6f, 8f);
@@ -63,11 +63,12 @@ namespace SpaceStation.Interior
         };
         /// <summary>
         /// 아래 해치 14 (바닥 칸 모두 — 외형 아래 연결점, sg3_builder HATCHES · sg_export에서 1.6 m 평평 · 위 2.3 m 빔 확인):
-        /// 꽃나무 숲 · 정자 둘레 (돔 밖) · 앞뒤 산책길 · 벌집 홀 (꿀 저장 기둥 앞뒤) · 라벤더 이랑 사이 넓은 길.
+        /// 꽃나무 숲 모서리 (앞뒤 산책길 왼쪽 끝 — 숲 가운데에 두면 해치 위 머리 공간 때문에 나무가 다섯 그루뿐이었음) · 정자 둘레 (돔 밖) · 앞뒤 산책길 ·
+        /// 벌집 홀 (꿀 저장 기둥 앞뒤) · 라벤더 이랑 사이 넓은 길.
         /// </summary>
         public static readonly (Vector3Int Cell, Vector2 Offset)[] Hatches =
         {
-            (new Vector3Int(0, 0, 0), new Vector2(2f, 1.8f)), (new Vector3Int(0, 0, 1), new Vector2(2f, -1.8f)),
+            (new Vector3Int(0, 0, 0), new Vector2(3f, -2.75f)), (new Vector3Int(0, 0, 1), new Vector2(3f, 2.85f)),
             (new Vector3Int(1, 0, 0), new Vector2(-3f, -1f)), (new Vector3Int(1, 0, 1), new Vector2(-3f, 1f)),
             (new Vector3Int(2, 0, 0), new Vector2(3f, -1f)), (new Vector3Int(2, 0, 1), new Vector2(3f, 1f)),
             (new Vector3Int(3, 0, 0), new Vector2(0f, -2.6f)), (new Vector3Int(3, 0, 1), new Vector2(-2.5f, 2.6f)),

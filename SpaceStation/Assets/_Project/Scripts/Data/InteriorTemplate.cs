@@ -131,6 +131,8 @@ namespace SpaceStation.Data
         [SerializeField] private InteriorAmbience _ambience = InteriorAmbience.Hall;
         [Tooltip("12-5 바깥 창에 이 방 모듈의 바깥 모델도 비춤 (구조 프레임 = 트러스 속 · 센서 어레이 = 천창 위 접시). 끄면 다른 방처럼 자기 껍데기를 숨김")]
         [SerializeField] private bool _showOwnExterior;
+        [Tooltip("하늘 화면에 바깥 모델 대신 이 방 (내부 모델)의 윗부분을 1/8로 같은 자리에 비춤 — 위 칸이 일부 칸뿐이라 바닥 칸 천장이 옆 위 칸 건물 (정자 돔 · 언덕) 윗부분을 가리는 방 (항성 발전망)")]
+        [SerializeField] private bool _showOwnInterior;
         [Tooltip("지붕 · 유리 안 실내형 방: 닫힌 문 자리에 난간 + 하늘 대신 막힌 창 패널 (InteriorKit.SealedWallFor). 개방형 갑판이 아닌 2단계 방에서 켬")]
         [SerializeField] private bool _sealedSockets;
 
@@ -163,6 +165,7 @@ namespace SpaceStation.Data
         public string WorkStatus => _workStatus;
         public InteriorAmbience Ambience => _ambience;
         public bool ShowOwnExterior => _showOwnExterior;
+        public bool ShowOwnInterior => _showOwnInterior;
         public bool SealedSockets => _sealedSockets;
         public GameObject Prefab => _prefab;
         public IReadOnlyList<InteriorSocket> Sockets => _sockets;
@@ -199,6 +202,8 @@ namespace SpaceStation.Data
         public void EditorSetAmbience(InteriorAmbience ambience) => _ambience = ambience;
 
         public void EditorSetShowOwnExterior(bool show) => _showOwnExterior = show;
+
+        public void EditorSetShowOwnInterior(bool show) => _showOwnInterior = show;
 
         public void EditorSetSealedSockets(bool sealedSockets) => _sealedSockets = sealedSockets;
 

@@ -322,7 +322,8 @@ namespace SpaceStation.Interior
                 p => _layout != null && _layout.TryGetRoom(_builder.WorldToCell(p), out var r) ? r.Module : null,
                 _builder.CollectLinkedRooms,
                 m => _builder.TemplateFor(m) is { ShowOwnExterior: true },
-                _builder.RoomOf);
+                _builder.RoomOf,
+                m => _builder.TryGetTemplateRoom(m, out var t, out var room) && t.ShowOwnInterior ? room : null);
             _exteriorView.transform.SetParent(transform, false);
             _exteriorView.CollectWindows();
             HidePanels(true);

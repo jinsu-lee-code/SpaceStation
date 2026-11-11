@@ -145,12 +145,21 @@ namespace SpaceStation.Editor
                 new PlantSpot(new Vector3(1.798f, 0.042f, 0.738f), PlantKind.Blossom, 0.99f, 16f),
                 new PlantSpot(new Vector3(14.202f, 0.042f, 0.738f), PlantKind.Blossom, 0.99f, 63f),
             });
-            // 진화 3단계 항성 발전망 (sg3_builder PLANTS, 2026-11-11): 왼쪽 끝 꽃나무 숲 (외형 왼쪽 끝 꽃나무) — 산책길 · 해치 · 하늘 면 비킴
+            // 진화 3단계 항성 발전망 (sg3_builder PLANTS · GROVE, 2026-11-11): 왼쪽 끝 꽃나무 숲 열하나 (외형 왼쪽 끝 꽃나무 무리) — 하늘 면 · 바닥 칸 천장 · 정자 커튼 ·
+            //  해치 · 산책길 머리 높이 비킴, 큰 나무부터 · 잎 지붕이 겹치게. 크기 = Unity 배율 (빌더 크기 × 2.4 — 처음엔 빌더 크기 1을 그대로 넣어 1.7 m 나무 셋뿐이었음)
             Set("IT_EvoStellarGrid", new List<PlantSpot>
             {
-                new PlantSpot(new Vector3(-1.05f, -1.3f, -1.05f), PlantKind.Blossom, 1f, 0f),
-                new PlantSpot(new Vector3(-1.05f, -1.3f, 9.05f), PlantKind.Blossom, 1f, 120f),
-                new PlantSpot(new Vector3(-0.9f, -1.3f, 4f), PlantKind.Blossom, 0.8f, 240f),
+                new PlantSpot(new Vector3(-0.36f, -1.3f, 8.15f), PlantKind.Blossom, 2.76f, 0.0f),
+                new PlantSpot(new Vector3(-0.26f, -1.3f, 4.18f), PlantKind.Blossom, 2.76f, 47.0f),
+                new PlantSpot(new Vector3(0.01f, -1.3f, 0.91f), PlantKind.Blossom, 2.76f, 94.0f),
+                new PlantSpot(new Vector3(2.16f, -1.3f, 6.49f), PlantKind.Blossom, 2.4f, 141.0f),
+                new PlantSpot(new Vector3(2.8f, -1.3f, 1.58f), PlantKind.Blossom, 2.04f, 188.0f),
+                new PlantSpot(new Vector3(-1.37f, -1.3f, -1.75f), PlantKind.Blossom, 1.73f, 235.0f),
+                new PlantSpot(new Vector3(2.23f, -1.3f, 4.26f), PlantKind.Blossom, 1.44f, 282.0f),
+                new PlantSpot(new Vector3(-2.04f, -1.3f, 6.37f), PlantKind.Blossom, 1.44f, 329.0f),
+                new PlantSpot(new Vector3(-2.05f, -1.3f, 2.21f), PlantKind.Blossom, 1.44f, 16.0f),
+                new PlantSpot(new Vector3(-2.24f, -1.3f, 0.44f), PlantKind.Blossom, 1.2f, 63.0f),
+                new PlantSpot(new Vector3(-2.12f, -1.3f, 10.31f), PlantKind.Blossom, 1.2f, 110.0f),
             });
             // 진화 2단계 연구원 (mz_builder PLANTS): 연구실 안 화분 하나 (유리 연구실 = 실내)
             Set("IT_EvoResearchInstitute", new List<PlantSpot>
