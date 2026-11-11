@@ -2512,3 +2512,12 @@
 
 ### `narrative` · `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `b7f3a495`). 씬 · TASKS · 글꼴은 tycoon에만
+
+## M-170. 바이오스피어 3차 지적 둘 (2026-11-11, `main`)
+
+**main에 넣은 것**
+- 하늘 면 밖에 심긴 나무 다섯 그루 · 같은 높이 겹침 여섯 곳 고침, 비탈 진주 화분 꽃나무 (나무 10그루, `InteriorPlantSpots` IT_EvoBiosphere)
+- 체크리스트 73 ~ 76 · 06c 바이오스피어 3차 기록
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `38dacc5c`). 씬 · TASKS · 글꼴은 tycoon에만
