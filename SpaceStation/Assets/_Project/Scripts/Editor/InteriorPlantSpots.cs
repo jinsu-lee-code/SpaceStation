@@ -145,6 +145,13 @@ namespace SpaceStation.Editor
                 new PlantSpot(new Vector3(1.798f, 0.042f, 0.738f), PlantKind.Blossom, 0.99f, 16f),
                 new PlantSpot(new Vector3(14.202f, 0.042f, 0.738f), PlantKind.Blossom, 0.99f, 63f),
             });
+            // 진화 3단계 항성 발전망 (sg3_builder PLANTS, 2026-11-11): 왼쪽 끝 꽃나무 숲 (외형 왼쪽 끝 꽃나무) — 산책길 · 해치 · 하늘 면 비킴
+            Set("IT_EvoStellarGrid", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-1.05f, -1.3f, -1.05f), PlantKind.Blossom, 1f, 0f),
+                new PlantSpot(new Vector3(-1.05f, -1.3f, 9.05f), PlantKind.Blossom, 1f, 120f),
+                new PlantSpot(new Vector3(-0.9f, -1.3f, 4f), PlantKind.Blossom, 0.8f, 240f),
+            });
             // 진화 2단계 연구원 (mz_builder PLANTS): 연구실 안 화분 하나 (유리 연구실 = 실내)
             Set("IT_EvoResearchInstitute", new List<PlantSpot>
             {

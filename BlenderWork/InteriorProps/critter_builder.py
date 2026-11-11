@@ -430,8 +430,48 @@ def build_duckling():
     return finish("Critter_Duckling")
 
 
+# ---------------- 꿀벌 (항성 발전망 내부 — 바깥 모듈 꿀벌처럼 귀여운 2등신 · 다리 · 침 없음, 2026-11-11) ----------------
+# 둥근 솜털 몸 (노랑 + 짙은 띠 둘 · 짙은 꽁무니) · 몸만 한 둥근 머리 (노란 얼굴 칸) · 끝이 동그란 더듬이 둘.
+# 날개 = 따로 물체 Critter_BeeWings (Unity에서 수정 재질 · 파닥임 — 원점 = 몸 가운데, 가로로 줄였다 폈다).
+
+def build_bee():
+    Y = "yellow"
+    HC, HR_ = (0.105, 0, 0.06), 0.1
+    mell((-0.075, 0, 0.0), (0.118, 0.106, 0.1), rot_=rot(-12))                     # 둥근 배 (뒤가 살짝 처짐 — 길면 애벌레 같았음)
+    mell(HC, (0.096, 0.1, 0.094), "head")                                           # 몸만 한 둥근 머리 (몸보다 조금 위)
+    mneg((0.012, 0, 0.125), (0.034, 0.14, 0.03))                                    # 머리 · 몸 사이 오목 (위 · 아래) — 머리가 몸에 묻혀 한 덩어리 캡슐 같았음
+    mneg((0.012, 0, -0.07), (0.034, 0.14, 0.026))
+    meta_part(0.008, head_c=HC, head_R=HR_, face="yellow", base=Y, eye_back=8.0)
+    bm = PARTS[-1]
+    for xc in (-0.05, -0.088, -0.128, -0.166, -0.184):                               # 띠 경계를 곧게 (면 단위로 칠하면 들쭉날쭉)
+        geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
+        bmesh.ops.bisect_plane(bm, geom=geom, plane_co=(xc, 0, 0), plane_no=(1, 0, 0))
+    uvl = bm.loops.layers.uv.active
+    for f in bm.faces:                                                              # 짙은 띠 둘 + 꽁무니 (머리 빼고)
+        p = f.calc_center_median()
+        if (p - Vector(HC)).length < HR_ * 1.05:
+            continue
+        if -0.088 < p.x < -0.05 or -0.166 < p.x < -0.128 or p.x < -0.184:
+            for l in f.loops:
+                l[uvl].uv = color_uv("dark")
+        else:
+            for l in f.loops:
+                l[uvl].uv = color_uv(Y)
+    for s in (-1, 1):
+        limb([(0.11, s * 0.035, 0.14), (0.135, s * 0.055, 0.2), (0.17, s * 0.08, 0.23)], [0.008, 0.007, 0.006], "dark")
+        ellipsoid((0.175, s * 0.083, 0.235), (0.019, 0.019, 0.019), "dark")
+    return finish("Critter_Bee")
+
+
+def build_bee_wings():
+    for s in (-1, 1):
+        ellipsoid((-0.035, s * 0.1, 0.135), (0.09, 0.062, 0.006), "silver", rot=rot(z_deg=-s * 25, x_deg=s * 22))   # 큰 앞날개 (뒤로 비스듬히 들림)
+        ellipsoid((-0.085, s * 0.075, 0.11), (0.052, 0.036, 0.005), "silver", rot=rot(z_deg=-s * 42, x_deg=s * 15))  # 작은 뒷날개
+    return finish("Critter_BeeWings")
+
+
 objs = [build_bunny(), build_deer("Critter_Deer"), build_deer("Critter_Fawn", 0.72, spots=True, head_k=1.15), build_swan(),
-        build_duck(), build_duckling()]
+        build_duck(), build_duckling(), build_bee(), build_bee_wings()]
 
 if OUT:
     for x in bpy.context.view_layer.objects: x.select_set(x in objs)
@@ -447,6 +487,16 @@ objs[4].location.x = 3.1                                   # 오리 가족: 어�
 objs[5].location.x = 2.65
 for k, x in enumerate((2.35, 2.05)):
     dup = bpy.data.objects.new("Duckling%d" % k, objs[5].data); dup.location = (x, 0.04 * (-1) ** k, 0); bpy.context.scene.collection.objects.link(dup)
+for o_ in objs[6:8]:
+    o_.location = (4.2, 0, 0.35)                           # 꿀벌 (날개 = 같은 원점)
+WM = bpy.data.materials.new('Wing'); WM.use_nodes = True
+_wb = next(x for x in WM.node_tree.nodes if x.type == 'BSDF_PRINCIPLED')
+_wb.inputs['Base Color'].default_value = (0.85, 0.95, 1.0, 1); _wb.inputs['Alpha'].default_value = 0.45; _wb.inputs['Roughness'].default_value = 0.05
+try:
+    WM.surface_render_method = 'BLENDED'
+except Exception:
+    WM.blend_method = 'BLEND'
+objs[7].data.materials[0] = WM
 sc = bpy.context.scene
 for eng in ('BLENDER_EEVEE_NEXT', 'BLENDER_EEVEE'):
     try:
@@ -471,7 +521,8 @@ for tag, loc, tgt in (("side", (0.6, -9.2, 0.7), (0.6, 0, 0.45)), ("front", (5.6
                       ("bunny", (-1.7, -1.35, 0.32), (-1.9, 0, 0.2)), ("swan", (2.25, -1.9, 0.75), (1.85, 0, 0.35)),
                       ("deer", (0.6, -1.9, 1.15), (-0.2, 0, 0.85)), ("fawn", (1.5, -1.25, 0.6), (0.95, 0, 0.55)),
                       ("duck", (3.75, -0.95, 0.45), (3.12, 0, 0.18)), ("duck_side", (3.05, -1.25, 0.2), (3.05, 0, 0.17)),
-                      ("duckling", (2.95, -0.5, 0.2), (2.65, 0, 0.08)), ("family", (3.6, -1.9, 0.75), (2.65, 0, 0.1))):
+                      ("duckling", (2.95, -0.5, 0.2), (2.65, 0, 0.08)), ("family", (3.6, -1.9, 0.75), (2.65, 0, 0.1)),
+                      ("bee", (4.75, -0.6, 0.55), (4.22, 0, 0.38)), ("bee_side", (4.2, -0.95, 0.42), (4.2, 0, 0.38)), ("bee_back", (3.75, 0.55, 0.62), (4.2, 0, 0.38))):
     cam.location = loc
     d = Vector(tgt) - Vector(loc)
     cam.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler()

@@ -2542,3 +2542,25 @@
 
 ### `narrative` · `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `cedde2da`). 씬 · TASKS · 글꼴은 tycoon에만
+
+## M-173. 항성 발전망 내부 1차 — 꿀벌 정원 (2026-11-11, `main`)
+
+
+
+**main에 넣은 것**
+
+- 3단계 항성 발전망 내부 템플릿 `IT_EvoStellarGrid` · `PF_Interior_EvoStellarGrid` (Blender sg3_builder → `SM_Interior_EvoStellarGrid.fbx`, 값 = `StellarGrid`): 꽃나무 숲 · 등나무 꽃 정자 · 해바라기 · 초원 · 연못 (KWS 물) · 전망대 (위 해치) · 꿀 샘 무대 · 꿀 언덕 (속 = 벌집 홀 · 굴) · 라벤더 이랑
+
+- 내부 동물 모델에 `Critter_Bee` · `Critter_BeeWings` (critter_builder), `InteriorBeeFlight` (고리 길 · 맴돎 · 꽃 위 쉼)
+
+- 공통: `InteriorExteriorView` — 자기 바깥 모델을 하늘 화면에 보일 때 (`showOwnExterior`) 바깥 동물 · 꿀벌 · 나비는 숨김
+
+- 밀랍 · 꿀 · 등나무 재질 (InteriorSetup), 식물 자리 · 주민 자리 22, StellarGridTests 4, 체크리스트 81 ~ 83 · 06c 기록
+
+- 체험 (정자 꽃 그네 · 곰 몰래 꿀 먹기 미니게임)은 다음 단계
+
+
+
+### `narrative` · `tycoon` 합칠 때
+
+- 같은 변경 (tycoon 커밋 `d649f63c`). 씬 (템플릿 등록) · TASKS · 글꼴은 tycoon에만

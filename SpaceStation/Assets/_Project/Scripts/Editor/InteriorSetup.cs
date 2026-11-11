@@ -125,6 +125,11 @@ namespace SpaceStation.Editor
         public const string Evo3FlowerPath = MaterialFolder + "/M_InteriorEvo3Flower.mat";   // 해바라기 꽃잎 · 노란 꽃
         public const string Evo3Leaf2Path = MaterialFolder + "/M_InteriorEvo3Leaf2.mat";     // 양배추 · 밝은 잎
         public const string Evo3BarkPath = MaterialFolder + "/M_InteriorEvo3Bark.mat";       // 통나무 · 바구니
+        // 항성 발전망 꿀벌 정원 (2026-11-11, Blender sg3_builder와 같은 색): 꿀 언덕 육각 기둥 옆면 (밀랍) · 흰 밀랍 뚜껑 · 빛나는 꿀 · 등나무 꽃 (연보라)
+        public const string Evo3WaxPath = MaterialFolder + "/M_InteriorEvo3Wax.mat";
+        public const string Evo3Wax2Path = MaterialFolder + "/M_InteriorEvo3Wax2.mat";
+        public const string Evo3HoneyPath = MaterialFolder + "/M_InteriorEvo3Honey.mat";
+        public const string Evo3WisteriaPath = MaterialFolder + "/M_InteriorEvo3Wisteria.mat";
         public const string Evo3FallsColumnPath = MaterialFolder + "/M_InteriorEvo3FallsColumn.mat";   // 둥근 폭포 기둥 (WaterFalls, 옆 흐림 끔 — 원기둥 UV에서 한쪽이 지워졌음)
         public const string Evo3SpillPath = MaterialFolder + "/M_InteriorEvo3Spill.mat";     // 단 사이 작은 폭포 (WaterFalls 맑은 변형 — 맑은 물 판이 파란 유리처럼 보였음)
         public const string SoftRainbowPath = MaterialFolder + "/M_InteriorSoftRainbow.mat";   // 오로라처럼 옅은 무지개 띠 (SoftRainbow, 발끝 흐림)
@@ -578,6 +583,10 @@ namespace SpaceStation.Editor
             EvoSurface(Evo3FlowerPath, new Color(1f, 0.82f, 0.25f), 0f, 0.3f);
             EvoSurface(Evo3Leaf2Path, new Color(0.45f, 0.68f, 0.3f), 0f, 0.25f);
             EvoSurface(Evo3BarkPath, new Color(0.5f, 0.36f, 0.25f), 0f, 0.15f);
+            EvoSurface(Evo3WaxPath, new Color(0.98f, 0.87f, 0.66f), 0.05f, 0.5f);     // 꿀 언덕 밀랍 옆면 (밝은 크림빛 — 외형 "따뜻한 진주 옆면", 꿀빛으로 짙게 하니 우주 하늘 아래 갈색으로 보였음)
+            EvoSurface(Evo3Wax2Path, new Color(0.99f, 0.91f, 0.74f), 0f, 0.4f);       // 흰 밀랍 뚜껑 · 빈 칸 (밝게 — 어두운 구멍처럼 보이지 않게)
+            EvoSurface(Evo3WisteriaPath, new Color(0.82f, 0.74f, 0.98f), 0f, 0.3f);
+            Emissive(Evo3HoneyPath, new Color(1f, 0.7f, 0.22f), new Color(1f, 0.58f, 0.12f) * 1.1f, 0.8f);   // 빛나는 꿀 (언덕 윗면 · 방울 · 저장 기둥 · 등불)
             // 바이오돔 잔디 · 흙 (사용자 2026-11-03 "나무와 풀 디테일"): 색 판이 아니라 풀잎 · 흙 무늬 텍스처
             void Ground(string path, string texture, float smoothness)
             {

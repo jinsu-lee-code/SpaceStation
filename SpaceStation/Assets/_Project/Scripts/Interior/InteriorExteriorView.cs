@@ -344,6 +344,8 @@ namespace SpaceStation.Interior
             _hidden.Clear();
             if (module != null && (_showOwnExterior == null || !_showOwnExterior(module)))
                 HideModule(module);
+            else if (module != null)
+                HideCritters(module);   // 자기 외형을 보여도 바깥 동물 · 꿀벌은 숨김 — 내부 동물과 겹쳐 하늘에 큰 꿀벌이 떴음 (항성 발전망)
             // 카메라를 품은 이웃 모듈: 바깥 모델(칸의 약 92%)이 내부 방(80%)보다 커서, 튜브 끝·문가에서는 바깥 카메라가
             // 옆 모듈 바깥 모델 속에 들어가 안쪽 면이 창을 덮음 (장갑 격벽 → 채굴 도킹 튜브에서 검은 창).
             // 카메라 칸을 실제로 차지한 모듈만 본다 — 렌더러 경계 상자만 보면 ㄱ자 모듈(생태 모듈)의 상자가 빈 모서리 칸까지 덮어,
@@ -402,6 +404,17 @@ namespace SpaceStation.Interior
             foreach (var r in RenderersOf(module))
             {
                 if (!SpaceStation.Building.FireworkFx.IsFirework(r.transform) && !SpaceStation.Building.DroneShowFx.IsDroneLight(r.transform))   // 불꽃 · 드론 빛은 하늘 화면에 보임 (요새 포대 폭죽놀이 · 드론 정비창 쇼 직관)
+                    HideOne(r);
+            }
+        }
+
+        /// <summary>바깥 모델의 움직이는 동물 · 꿀벌 부품 (CritterFx — "Critter_*" · "Bee_*" · 날개 "Fx_Bee_*")만 숨김.</summary>
+        private void HideCritters(ModuleInstance module)
+        {
+            foreach (var r in RenderersOf(module))
+            {
+                var n = r.name;
+                if (n.StartsWith("Bee_") || n.StartsWith("Fx_Bee") || n.StartsWith("Critter_"))
                     HideOne(r);
             }
         }
