@@ -7,6 +7,8 @@ namespace SpaceStation.Interior
     /// 바깥 모듈 CritterFx의 BeeLoop · BeeHover · BeeRest와 같은 느낌을 미터 크기로 — 길 = 템플릿 좌표 닫힌 길 (<see cref="StellarGrid.BeePath"/>, Catmull-Rom),
     /// 날개는 세로로 줄였다 폈다 (CritterFx.Buzz와 같은 파닥임). 연출 전용이라 실제 시간으로 움직임 (일시정지 중 방문해도).
     /// 모델 앞 = 로컬 −x (critter_builder +x → FBX), 날개는 몸의 자식 (같은 원점).
+    /// 경비 꿀벌 (맴도는 벌 가운데 하나)은 미니게임 "벌 몰래 꿀 먹기" 동안 <see cref="InteriorHoneySneak"/>가 자리 · 방향을 잡고 (<see cref="GuardHeld"/>),
+    /// 날갯짓만 여기서 (<see cref="GuardBuzz"/>배 빠르게 · 크게 — 돌아보기 전 경고).
     /// </summary>
     public sealed class InteriorBeeFlight : MonoBehaviour
     {
@@ -17,6 +19,8 @@ namespace SpaceStation.Interior
         [SerializeField] private Transform[] _resters;
         [SerializeField] private float _speed = 1.1f;
         [SerializeField] private Quaternion _modelRot = Quaternion.identity;   // 모델 자체 회전 (FBX 자식 회전)
+        [Tooltip("미니게임 경비 꿀벌 (맴도는 벌 가운데 하나)")]
+        [SerializeField] private Transform _guard;
 
         private static readonly Quaternion ModelFace = Quaternion.Euler(0f, 90f, 0f);   // 로컬 −x를 +z로
         private Vector3[] _hoverHome;
@@ -26,8 +30,18 @@ namespace SpaceStation.Interior
         private Vector3[] _wingScale;
         private float _length = 1f;
 
-        public void Configure(Vector3[] path, Transform[] flyers, Transform[] hovers, Transform[] resters, float speed, Quaternion modelRot)
+        /// <summary>미니게임 경비 꿀벌.</summary>
+        public Transform Guard => _guard;
+        /// <summary>미니게임이 경비 꿀벌 자리 · 방향을 잡는 중 (여기선 날갯짓만).</summary>
+        public bool GuardHeld { get; set; }
+        /// <summary>경비 꿀벌 날갯짓 빠르기 · 크기 배율.</summary>
+        public float GuardBuzz { get; set; } = 1f;
+        /// <summary>방향 dir (템플릿 기준)을 보는 꿀벌 회전 (모델 회전 포함).</summary>
+        public Quaternion FacingOf(Vector3 dir) => Facing(dir) * _modelRot;
+
+        public void Configure(Vector3[] path, Transform[] flyers, Transform[] hovers, Transform[] resters, float speed, Quaternion modelRot, Transform guard = null)
         {
+            _guard = guard;
             _path = path;
             _flyers = flyers;
             _hovers = hovers;
@@ -94,6 +108,11 @@ namespace SpaceStation.Interior
             for (int i = 0; i < _hovers.Length; i++, k++)
             {
                 float seed = 11f + i * 2.1f;
+                if (GuardHeld && _hovers[i] == _guard)
+                {
+                    Wing(k, t, seed, 1f, GuardBuzz);
+                    continue;
+                }
                 _hovers[i].localPosition = _hoverHome[i] + new Vector3(0.16f * Mathf.Sin(1.8f * t + seed), 0.06f * Mathf.Sin(2.9f * t + 2f * seed), 0.11f * Mathf.Sin(3.6f * t + seed));
                 _hovers[i].localRotation = Quaternion.Euler(0f, 14f * Mathf.Sin(0.9f * t + seed), 0f) * _hoverRot[i];
                 Wing(k, t, seed, 1f);
@@ -108,14 +127,15 @@ namespace SpaceStation.Interior
             }
         }
 
-        private void Wing(int k, float t, float seed, float amount)
+        private void Wing(int k, float t, float seed, float amount, float buzz = 1f)
         {
             var w = _allWings[k];
             if (w == null)
                 return;
             // 날개 뿌리 (WingPivot)에서: 펼침 (폭 그대로) ↔ 위로 접음 (폭 줄고 높이 늘어남) — 얇은 날개라 세로만 줄이면 안 보였음
-            float f = amount * (0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * 11f * t + seed));
-            w.localScale = new Vector3(_wingScale[k].x, _wingScale[k].y * (1f + 2.2f * f), _wingScale[k].z * (1f - 0.5f * f));
+            float f = amount * (0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * 11f * buzz * t + seed));
+            float big = Mathf.Max(1f, 0.6f + 0.4f * buzz);   // 경고 = 더 크게 파닥임
+            w.localScale = new Vector3(_wingScale[k].x, _wingScale[k].y * (1f + 2.2f * big * f), _wingScale[k].z * (1f - Mathf.Min(0.8f, 0.5f * big) * f));
         }
     }
 }

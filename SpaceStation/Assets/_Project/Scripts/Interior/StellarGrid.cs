@@ -37,9 +37,20 @@ namespace SpaceStation.Interior
         /// <summary>꿀 언덕 꼭대기 여왕 수정 가운데 (sg3_builder PEAK).</summary>
         public static readonly Vector3 Queen = new Vector3(40f, 10.62f, 4.83f);
 
-        // ---------------- 꿀 샘 (미니게임 "벌 몰래 꿀 먹기" 무대) ----------------
+        // ---------------- 꿀 샘 (미니게임 "벌 몰래 꿀 먹기" 무대, InteriorHoneySneak) ----------------
         public static readonly Vector3 HoneySpring = new Vector3(34.4f, Floor, 0.96f);
         public static readonly Vector3 Stump = new Vector3(33.05f, Floor + 0.42f, 1f);
+        /// <summary>그루터기 윗면 가운데 (곰이 앉는 곳 · 평소 꿀단지 밑면 = 여기 + 2 mm, sg3_builder POT_BASE).</summary>
+        public static readonly Vector3 StumpTop = new Vector3(33.05f, Floor + 0.43f, 1f);
+        /// <summary>
+        /// 옆에서 보는 카메라 (앞 산책길 — 곰 · 꿀 샘 · 경비 꿀벌이 화면 가운데 띠에, 사용자 결정 "옆에서 보는 무대") · 바라보는 곳.
+        /// 꿀 샘 바로 앞 (z −1.45)에서 내려다보면 곰이 왼쪽 끝에 걸리고 꿀벌이 오른쪽 위 정거장 정보 창에 가렸음.
+        /// </summary>
+        public static readonly Vector3 SneakCamera = new Vector3(34.5f, Floor + 1.15f, -2.6f);
+        public static readonly Vector3 SneakLookAt = new Vector3(34.45f, Floor + 1.25f, 1.1f);
+        /// <summary>그루터기 옆 안내판 판 가운데 (sg3_builder SG_Sign) · 글자가 보는 쪽 (yaw, 앞 산책길 쪽 — Blender ry −12 = Unity yaw −12, +12면 글자 왼쪽 절반이 판 뒤로 숨었음).</summary>
+        public static readonly Vector3 SignBoard = new Vector3(32.25f, Floor + 1.2f, -0.1f);
+        public const float SignYaw = -12f;
 
         // ---------------- 사이 ----------------
         public static readonly Vector3 PondCenter = new Vector3(29f, Floor, 7.84f);
@@ -101,8 +112,11 @@ namespace SpaceStation.Interior
             new Vector3(29.2f, Floor + 0.95f, 7.9f), new Vector3(35.6f, Floor + 2.4f, 4.6f), new Vector3(47.5f, Floor + 1.2f, 2.3f), new Vector3(49.5f, Floor + 1.1f, 7.7f),
             new Vector3(7.4f, Floor + 1.2f, 4.2f),
         };
-        /// <summary>미니게임 경비 꿀벌 (꿀 샘과 언덕 사이, 평소엔 벌집 쪽 +x를 봄 — 크기 1.7배).</summary>
-        public static readonly Vector3 GuardBee = new Vector3(35.95f, Floor + 1.75f, 1.15f);
+        /// <summary>
+        /// 미니게임 경비 꿀벌 (꿀 샘 너머 언덕 앞, 평소엔 벌집 쪽 +x를 봄 — 크기 1.7배). 처음엔 F + 1.75 · x 35.95라 옆 카메라 화면에서
+        /// 머리 위 "!"가 오른쪽 위 정거장 정보 창에 가렸음 → 30 cm 낮추고 곰 쪽으로 40 cm.
+        /// </summary>
+        public static readonly Vector3 GuardBee = new Vector3(35.55f, Floor + 1.45f, 1.15f);
         public const float GuardScale = 1.7f;
 
         /// <summary>닫힌 길 위 점 (Catmull-Rom, u = 0 ~ 1 한 바퀴, 마디마다 같은 몫).</summary>

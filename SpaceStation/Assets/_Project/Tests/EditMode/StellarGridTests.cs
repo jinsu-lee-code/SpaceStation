@@ -292,5 +292,270 @@ namespace SpaceStation.Tests
                 Object.DestroyImmediate(root);
             }
         }
+
+        // ---------------- 체험 "정자 꽃 그네" ----------------
+
+        /// <summary>그네를 타며 끝 (박자 ≥ 0.9)에서만 구르면 60초 안에 종 여섯 개, 바닥 근처에서 막 누르면 첫 종 (28°)도 못 닿음, 가장 높이 ≤ MaxAngle.</summary>
+        [Test]
+        public void Swing_RhythmRingsAllBells()
+        {
+            var good = new FlowerSwing(StellarGrid.SwingLength, StellarGrid.BellAngles);
+            good.Begin();
+            Assert.AreEqual(FlowerSwing.Kick.Start, good.Pump());
+            float t = 0f;
+            const float dt = 1f / 60f;
+            int perfect = 0;
+            while (t < 60f && !good.AllRung)
+            {
+                good.Step(dt, null);
+                t += dt;
+                if (!good.Kicked && good.Timing >= 0.9f && good.Pump() == FlowerSwing.Kick.Perfect)
+                    perfect++;
+                Assert.LessOrEqual(good.Amplitude, FlowerSwing.MaxAngle + 0.5f);
+            }
+            Assert.IsTrue(good.AllRung, $"박자 맞춰 60초에 종 {good.RungCount} / 6 (폭 {good.Amplitude:F0}°)");
+            Assert.Greater(perfect, 5);
+            Debug.Log($"[StellarGridTests] 그네: 박자 딱 {perfect}번 · 종 여섯 {t:F1}초");
+
+            var bad = new FlowerSwing(StellarGrid.SwingLength, StellarGrid.BellAngles);
+            bad.Begin();
+            bad.Pump();
+            for (t = 0f; t < 60f; t += dt)
+            {
+                bad.Step(dt, null);
+                if (bad.Timing < 0.3f)
+                    bad.Pump();
+            }
+            Assert.AreEqual(0, bad.RungCount, $"막 누르기만 해도 종이 울림 (폭 {bad.Highest:F0}°)");
+        }
+
+        /// <summary>멈춘 그네에서 F = 출발 (12°), 한 흔들림에 두 번 구르면 "벌써 굴렀어요", S 꾹 (발로 끌기) 8초 안에 멈춤.</summary>
+        [Test]
+        public void Swing_StartsAndBrakes()
+        {
+            var s = new FlowerSwing(StellarGrid.SwingLength, StellarGrid.BellAngles);
+            s.Begin();
+            Assert.IsTrue(s.AtRest);
+            Assert.AreEqual(FlowerSwing.Kick.Start, s.Pump());
+            Assert.AreEqual(FlowerSwing.StartAngle, s.Amplitude, 0.3f);
+            Assert.AreEqual(FlowerSwing.Kick.Again, s.Pump());
+            for (int i = 0; i < 600; i++)
+                s.Step(1f / 60f, null);
+            Assert.Greater(s.Amplitude, 8f, "10초 만에 멈춤 (공기 저항이 너무 셈)");
+            s.Braking = true;
+            float t = 0f;
+            while (!s.AtRest && t < 8f)
+            {
+                s.Step(1f / 60f, null);
+                t += 1f / 60f;
+            }
+            Assert.IsTrue(s.AtRest, $"발로 끌어도 8초에 안 멈춤 ({s.Amplitude:F1}°)");
+        }
+
+        /// <summary>
+        /// 그네가 움직이는 전 범위 (± MaxAngle, 2°마다 — 체크리스트 23): 자리 상자 · 탄 몸 (자리 → 눈 + 머리 위 0.15, 반지름 0.3)이 몸체에 안 닿고 잎 · 꽃송이에서 떨어짐,
+        /// + 각 = 자리가 +x (앞, 앞 종 Bell0_k 쪽). 종 각에서 자리가 그 종 아래 옆 (z 1 m 안 · 꽃송이 끝보다 아래).
+        /// </summary>
+        [Test]
+        public void Swing_ArcClear()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                var swing = root.GetComponentInChildren<InteriorFlowerSwing>(true);
+                Assert.IsNotNull(swing, "그네 체험 없음");
+                var pivot = root.transform.Find("SwingPivot");
+                Assert.IsNotNull(pivot);
+                Assert.IsTrue(pivot.Find("INT_EvoStellarGrid_Swing") != null, "그네 조각이 피벗 아래에 없음");
+                var leaves = new List<Vector3>();
+                foreach (var f in root.GetComponentsInChildren<MeshFilter>(true))
+                {
+                    if (!f.name.EndsWith("_Leaves") || f.sharedMesh == null)
+                        continue;
+                    var m = f.transform.localToWorldMatrix;
+                    foreach (var v in f.sharedMesh.vertices)
+                    {
+                        var w = m.MultiplyPoint3x4(v);
+                        if (w.x > 6f && w.x < 18f && w.z > 5f && w.z < 9.5f)
+                            leaves.Add(w);
+                    }
+                }
+                float L = StellarGrid.SwingLength;
+                for (float a = -FlowerSwing.MaxAngle; a <= FlowerSwing.MaxAngle + 0.01f; a += 2f)
+                {
+                    pivot.localRotation = Quaternion.AngleAxis(a, Vector3.forward);
+                    Physics.SyncTransforms();
+                    var seat = pivot.TransformPoint(new Vector3(0f, -L + 0.035f, 0f));
+                    var head = pivot.TransformPoint(new Vector3(0f, -L + 0.035f + 0.85f + 0.15f, 0f));
+                    var foot = pivot.TransformPoint(new Vector3(0.25f, -L - 0.45f, 0f));   // 늘어뜨린 발 (자리 앞 아래)
+                    Assert.IsFalse(Physics.CheckCapsule(seat + (head - seat).normalized * 0.3f, head - (head - seat).normalized * 0.3f, 0.3f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore),
+                        $"{a}°: 탄 몸이 몸체에 닿음 {seat}");
+                    Assert.IsFalse(Physics.CheckSphere(foot, 0.12f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"{a}°: 발이 몸체에 닿음 {foot}");
+                    foreach (var w in leaves)
+                    {
+                        var d = DistanceToSegment(w, seat, head);
+                        Assert.Greater(d, 0.28f, $"{a}°: 탄 몸이 잎 · 꽃에 닿음 {w} ({d:F2} m)");
+                    }
+                    if (Mathf.Abs(a - 60f) < 0.01f)
+                        Assert.Greater(seat.x, StellarGrid.SwingPivot.x + 3f, "+ 각인데 자리가 앞 (+x)으로 안 감");
+                }
+                pivot.localRotation = Quaternion.identity;
+                for (int k = 0; k < 6; k++)
+                {
+                    var bell = root.transform.Find($"INT_EvoStellarGrid_Bell{(k < 3 ? 0 : 1)}_{k % 3}");
+                    Assert.IsNotNull(bell, $"종 {k}");
+                    float a = (k < 3 ? 1f : -1f) * StellarGrid.BellAngles[k % 3];
+                    pivot.localRotation = Quaternion.AngleAxis(a, Vector3.forward);
+                    var seat = pivot.TransformPoint(new Vector3(0f, -L + 0.035f, 0f));
+                    var b = bell.GetComponent<Renderer>().bounds;
+                    Assert.Less(Mathf.Abs(b.center.x - seat.x), 0.35f, $"종 {k}: 그네가 {a}°일 때 자리 x {seat.x:F2} ↔ 종 {b.center.x:F2}");
+                    Assert.Less(Mathf.Abs(b.center.z - seat.z), 1.0f, $"종 {k}: 자리 옆이 아님");
+                    Assert.Greater(b.min.y, seat.y + 0.15f, $"종 {k}: 자리 높이보다 아래 (몸을 뚫음)");
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        private static float DistanceToSegment(Vector3 p, Vector3 a, Vector3 b)
+        {
+            var ab = b - a;
+            float t = Mathf.Clamp01(Vector3.Dot(p - a, ab) / Mathf.Max(1e-6f, ab.sqrMagnitude));
+            return (a + ab * t - p).magnitude;
+        }
+
+        // ---------------- 미니게임 "벌 몰래 꿀 먹기" ----------------
+
+        /// <summary>
+        /// 규칙: 안 먹으면 안 들킴 · 꿀벌이 등을 돌렸을 때 (Back)만 먹으면 안 들키고 꿀단지를 다 비움 (속임수에 속아 손을 떼도) ·
+        /// 계속 먹으면 세 번 쏘이고 끝 (목숨 0) · 속임수 (반쯤 돌다 맒)가 나오고 그동안은 곰을 못 봄 · 많이 먹을수록 등 돌린 시간이 짧아짐.
+        /// </summary>
+        [Test]
+        public void HoneySneak_Rules()
+        {
+            const float dt = 1f / 60f;
+            var idle = new HoneySneak();
+            idle.Start(3);
+            for (float t = 0f; t < 60f; t += dt)
+                Assert.AreNotEqual(HoneySneak.Event.Caught, idle.Step(dt, false));
+            Assert.AreEqual(HoneySneak.Lives, idle.LivesLeft);
+            Assert.AreEqual(0, idle.Spoons);
+
+            for (int seed = 1; seed <= 5; seed++)
+            {
+                var careful = new HoneySneak();
+                careful.Start(seed);
+                int feints = 0;
+                var last = careful.State;
+                float time = 0f;
+                while (!careful.Finished && time < 600f)
+                {
+                    bool eat = !careful.Ready && careful.State == HoneySneak.Guard.Back;
+                    var ev = careful.Step(dt, eat);
+                    Assert.AreNotEqual(HoneySneak.Event.Caught, ev, $"시드 {seed}: 등 돌렸을 때만 먹었는데 들킴 ({careful.State})");
+                    if (careful.State == HoneySneak.Guard.Feint)
+                        Assert.IsFalse(careful.Seeing, "속임수인데 곰을 봄");
+                    if (careful.State != last && careful.State == HoneySneak.Guard.Feint)
+                        feints++;
+                    last = careful.State;
+                    time += dt;
+                }
+                Assert.IsTrue(careful.Emptied, $"시드 {seed}: 조심히 먹어 600초에 꿀단지를 못 비움 ({careful.Spoons}숟갈)");
+                Assert.Greater(feints, 0, $"시드 {seed}: 속임수가 한 번도 없음");
+            }
+
+            var greedy = new HoneySneak();
+            greedy.Start(9);
+            int caught = 0;
+            for (float t = 0f; t < 120f && !greedy.Finished; t += dt)
+                if (greedy.Step(dt, true) == HoneySneak.Event.Caught)
+                    caught++;
+            Assert.IsTrue(greedy.Finished, "계속 먹어도 안 끝남");
+            Assert.IsFalse(greedy.Emptied, "계속 먹었는데 꿀단지를 비움 (안 들킴)");
+            Assert.AreEqual(HoneySneak.Lives, caught);
+            Assert.AreEqual(0, greedy.LivesLeft);
+        }
+
+        /// <summary>옆 카메라에서 곰 머리 · 꿀단지 · 경비 꿀벌까지 몸체 · 잎이 가리지 않고, 꿀단지가 그루터기 위에 (밑면 = 윗면 + 2 mm).</summary>
+        [Test]
+        public void HoneySneak_StageVisible()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                Assert.IsNotNull(root.GetComponentInChildren<InteriorHoneySneak>(true), "미니게임 없음");
+                var pot = root.transform.Find("INT_EvoStellarGrid_HoneyPot");
+                Assert.IsNotNull(pot, "꿀단지 (따로 물체) 없음");
+                var pb = pot.GetComponent<Renderer>().bounds;
+                Assert.AreEqual(StellarGrid.StumpTop.y + 0.002f, pb.min.y, 0.01f, "꿀단지 밑면");
+                Assert.Less(new Vector2(pb.center.x - StellarGrid.StumpTop.x, pb.center.z - StellarGrid.StumpTop.z).magnitude, 0.05f, "꿀단지가 그루터기 가운데가 아님");
+                var cam = StellarGrid.SneakCamera;
+                Assert.IsFalse(Physics.CheckSphere(cam, 0.25f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), "카메라 자리가 몸체 속");
+                var targets = new[]
+                {
+                    (StellarGrid.StumpTop + Vector3.up * 0.75f, "곰 머리"),
+                    (StellarGrid.StumpTop + new Vector3(0.18f, 0.3f, 0f), "무릎 꿀단지"),
+                    (StellarGrid.GuardBee, "경비 꿀벌"),
+                    (StellarGrid.GuardBee + InteriorHoneySneak.MarkOffset, "경비 꿀벌 머리 위 !"),
+                };
+                foreach (var (p, what) in targets)
+                {
+                    var to = p - cam;
+                    Assert.IsFalse(Physics.Raycast(cam, to.normalized, out var hit, to.magnitude - 0.25f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore),
+                        $"카메라 → {what}: 가림 ({hit.collider?.name} {hit.point})");
+                    var look = (StellarGrid.SneakLookAt - cam).normalized;
+                    Assert.Greater(Vector3.Dot(to.normalized, look), Mathf.Cos(40f * Mathf.Deg2Rad), $"{what}: 화면 밖");
+                }
+                foreach (var f in root.GetComponentsInChildren<MeshFilter>(true))
+                {
+                    if (!f.name.EndsWith("_Leaves") || f.sharedMesh == null)
+                        continue;
+                    var m = f.transform.localToWorldMatrix;
+                    foreach (var v in f.sharedMesh.vertices)
+                    {
+                        var w = m.MultiplyPoint3x4(v);
+                        foreach (var (p, what) in targets)
+                            Assert.Greater(DistanceToSegment(w, cam, p), 0.05f, $"카메라 → {what}: 잎 · 꽃이 가림 {w}");
+                    }
+                }
+                // 화면 (세로 시야 60°, 16:9 · 4:3) 안: 곰 · 그루터기는 아래 안내 상자 (아래 14 %) 위, 꿀벌 · "!"는 오른쪽 위 정거장 정보 창 (오른쪽 26 % · 위 34 %) 밖
+                var camGo = new GameObject("SneakCam");
+                try
+                {
+                    var c = camGo.AddComponent<Camera>();
+                    c.fieldOfView = 60f;
+                    camGo.transform.SetPositionAndRotation(cam, Quaternion.LookRotation(StellarGrid.SneakLookAt - cam));
+                    foreach (float aspect in new[] { 16f / 9f, 4f / 3f })
+                    {
+                        c.aspect = aspect;
+                        foreach (var (p, what, bottom) in new[]
+                        {
+                            (StellarGrid.StumpTop + Vector3.up * 0.75f, "곰 머리", false), (StellarGrid.StumpTop + Vector3.down * 0.3f, "그루터기", true),
+                            (StellarGrid.GuardBee, "경비 꿀벌", false), (StellarGrid.GuardBee + InteriorHoneySneak.MarkOffset + Vector3.up * 0.25f, "꿀벌 머리 위 ! (위 끝)", false),
+                        })
+                        {
+                            var v = c.WorldToViewportPoint(p);
+                            Assert.IsTrue(v.z > 0f && v.x > 0.06f && v.x < 0.94f && v.y < 0.94f, $"{what}: 화면 밖 {v} (화면비 {aspect:F2})");
+                            Assert.Greater(v.y, bottom ? 0.08f : 0.16f, $"{what}: 아래 안내 상자에 가림 {v}");
+                            Assert.IsFalse(v.x > 0.74f && v.y > 0.64f, $"{what}: 오른쪽 위 정거장 정보 창에 가림 {v} (화면비 {aspect:F2})");
+                        }
+                    }
+                }
+                finally
+                {
+                    Object.DestroyImmediate(camGo);
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
     }
 }

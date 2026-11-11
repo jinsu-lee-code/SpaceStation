@@ -5092,7 +5092,7 @@ namespace SpaceStation.Editor
         /// 외형 × 8: 왼쪽 꽃나무 숲 → 등나무 꽃 정자 (진주 갈비대 여섯 · 금빛 띠 둘 · 진주 · 금 시렁 위 덩굴 · 잎 지붕 · 꽃송이, 금빛 처마 고리의 꽃송이 커튼, 안 = 꽃 고리 화단 · 진주 벤치 · 꿀 샘 · 떠 있는 수정 · 그네 틀)
         /// → 징검돌 길 · 해바라기 무리 · 들꽃 초원 · 꿀벌 물터 연못 · 전망대 (위 해치) → 꿀 샘 (미니게임 무대) → 꿀 언덕 (육각 기둥, 속 = 벌집 홀 · 꿀 저장 기둥) → 라벤더 이랑.
         /// 문 자리 = 꿀 언덕 칸 앞뒤 둘 (굴로 벌집 홀 · 언덕 앞뒤 산책길), 아래 해치 = 바닥 칸 열넷, 위 해치 = 전망대 위. 꿀벌 = 내부 전용 모델 (고리 길 · 맴돎 · 꽃 위 쉼).
-        /// 체험 (정자 꽃 그네) · 미니게임 (벌 몰래 꿀 먹기)은 다음 단계 — 이번엔 걸어 다니는 공간 · 물 · 꿀벌.
+        /// 체험 = 정자 꽃 그네 (<see cref="InteriorFlowerSwing"/>), 미니게임 = 벌 몰래 꿀 먹기 (<see cref="InteriorHoneySneak"/>).
         /// </summary>
         private static void BuildEvoStellarGrid()
         {
@@ -5152,6 +5152,27 @@ namespace SpaceStation.Editor
                     var kws = KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), StellarGrid.PondLevel, 0.35f, "StellarGrid0", false);
                     root.AddComponent<InteriorKwsWater>().Configure(kws != null ? new[] { kws } : new GameObject[0], new[] { surface.GetComponent<Renderer>() },
                         Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(24f, 2f, 4f));
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    // 체험 "정자 꽃 그네" (InteriorFlowerSwing, 사용자 4안): 그네 조각 (원점 = 굴대, sg3_builder SW_PIV)을 굴대 피벗 아래로 · 자리 상자 (보고 F) ·
+                    //  수정 꽃송이 종 여섯 (앞 Bell0_k · 뒤 Bell1_k, 원점 = 매달린 꼭대기)
+                    var swingPivot = new GameObject("SwingPivot").transform;
+                    swingPivot.SetParent(r, false);
+                    swingPivot.localPosition = StellarGrid.SwingPivot;
+                    var swingMesh = Child(root, N + "Swing");
+                    if (swingMesh != null)
+                        swingMesh.SetParent(swingPivot, true);
+                    var seat = new GameObject("SwingSeat").transform;
+                    seat.SetParent(swingPivot, false);
+                    seat.localPosition = new Vector3(0f, -StellarGrid.SwingLength + 0.1f, 0f);
+                    var seatBox = seat.gameObject.AddComponent<BoxCollider>();
+                    seatBox.size = new Vector3(0.6f, 0.3f, 0.78f);
+                    var bells = new Transform[6];
+                    for (int k = 0; k < 3; k++)
+                    {
+                        bells[k] = Child(root, $"{N}Bell0_{k}");
+                        bells[3 + k] = Child(root, $"{N}Bell1_{k}");
+                    }
+                    root.AddComponent<InteriorFlowerSwing>().Configure(swingPivot, seatBox, bells, ModuleFxMaterials.Get("FireworkSpark"), font);
                     // 꿀벌 (내부 전용 모델 SM_InteriorCritters — Critter_Bee + 날개 Critter_BeeWings, 미터): 고리 길 열둘 · 맴돎 다섯 + 경비 꿀벌 · 꽃 위 쉼 넷
                     GameObject body = null, wings = null;
                     foreach (var o in AssetDatabase.LoadAllAssetsAtPath("Assets/_Project/Art/Models/Interior/SM_InteriorCritters.fbx"))
@@ -5211,7 +5232,18 @@ namespace SpaceStation.Editor
                     var resters = new Transform[StellarGrid.RestFlowers.Length];
                     for (int i = 0; i < resters.Length; i++)
                         resters[i] = Bee("Bee_Rest" + i, StellarGrid.RestFlowers[i] + Vector3.up * 0.1f, new Vector3(Mathf.Cos(i * 1.9f), 0f, Mathf.Sin(i * 1.9f)), 0.9f);
-                    holder.gameObject.AddComponent<InteriorBeeFlight>().Configure(path, flyers, hovers, resters, 1.1f, body.transform.localRotation);
+                    var flight = holder.gameObject.AddComponent<InteriorBeeFlight>();
+                    flight.Configure(path, flyers, hovers, resters, 1.1f, body.transform.localRotation, hovers[hovers.Length - 1]);
+                    // 미니게임 "벌 몰래 꿀 먹기" (InteriorHoneySneak): 그루터기 위 꿀단지 (따로 물체, 원점 = 밑면) · 시작 상자 (그루터기 · 꿀단지를 보고 F) ·
+                    //  곰 = 동물 주민 모델 (곰) · 경비 꿀벌 = 위 맴도는 벌 마지막 · 옆에서 보는 카메라 · 안내판 글자
+                    var start = new GameObject("HoneySneakStart").transform;
+                    start.SetParent(r, false);
+                    start.localPosition = StellarGrid.StumpTop + Vector3.up * 0.05f;
+                    var startBox = start.gameObject.AddComponent<BoxCollider>();
+                    startBox.size = new Vector3(0.9f, 1.0f, 0.9f);
+                    root.AddComponent<InteriorHoneySneak>().Configure(Child(root, N + "HoneyPot"), startBox, flight,
+                        AssetDatabase.LoadAssetAtPath<SpaceStation.Data.AnimalModelSet>("Assets/_Project/Data/Residents/AnimalModelSet.asset"), font,
+                        StellarGrid.SneakCamera, StellarGrid.SneakLookAt, StellarGrid.StumpTop, 90f, StellarGrid.SignBoard, StellarGrid.SignYaw);
                 });
         }
 

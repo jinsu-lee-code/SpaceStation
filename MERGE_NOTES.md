@@ -2584,3 +2584,23 @@
 - 같은 변경 (tycoon 커밋 `aa68ad5c`). 씬 · TASKS · 글꼴은 tycoon에만
 
 - 메모: main 작업 폴더가 Temp 아래라 Windows 임시 파일 정리가 오래된 파일 (바이오돔 23개)을 지웠음 — 합치기 전 `git ls-files -d` 확인 · `git checkout`으로 되살림
+
+## M-175. 항성 발전망 정자 꽃 그네 · 벌 몰래 꿀 먹기 (2026-11-12, `main`)
+
+
+
+**main에 넣은 것**
+
+- 항성 발전망 체험 "정자 꽃 그네": 규칙 `FlowerSwing` (진자 · 끝에서 구르기 박자 판정 · 수정 종 여섯) + 연출 `InteriorFlowerSwing` (그네 피벗 · 탄 시선 · 종 흔들림 · 반짝 · 기록)
+
+- 항성 발전망 미니게임 "벌 몰래 꿀 먹기": 규칙 `HoneySneak` (경비 꿀벌 등 · 경고 · 돌아봄 · 속임수 · 목숨 셋 · 30숟갈) + 연출 `InteriorHoneySneak` (옆 카메라 · 곰 주민 · 꿀단지 · 표시 글 · 안내판) + `InteriorHoneyBear` (곰 팔 IK · 시치미 · 쏘임)
+
+- 공통 조금: `InteriorBeeFlight` 경비 꿀벌 잡기 (`GuardHeld` · `GuardBuzz` · `FacingOf`, Configure 끝에 guard 인자)
+
+- Blender: 꿀단지 따로 물체 `HoneyPot` · 안내판 기둥, 템플릿 빌더 연결 · 프리팹, StellarGridTests 9, 체크리스트 86 ~ 88 · 06c 기록
+
+
+
+### `narrative` · `tycoon` 합칠 때
+
+- 같은 변경 (tycoon 커밋 `38f0fce3`). 씬 · TASKS · 글꼴은 tycoon에만
