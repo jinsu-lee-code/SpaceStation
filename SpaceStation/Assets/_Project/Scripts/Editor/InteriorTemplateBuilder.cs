@@ -132,6 +132,7 @@ namespace SpaceStation.Editor
             BuildEvoResearchInstitute();
             BuildEvoOrbitalCity();
             BuildEvoBiosphere();
+            BuildEvoStellarGrid();
         }
 
         /// <summary>
@@ -5086,6 +5087,132 @@ namespace SpaceStation.Editor
                 });
         }
 
+        /// <summary>
+        /// 진화 3단계 항성 발전망 "꿀벌 정원" (바닥 7 × 2칸 + 위 2 × 2 (x 1 ~ 2) · 1 × 2 (x 5), Blender sg3_builder — 사용자 2026-11-11 시안 1 "좋아 이대로 유니티로 옮겨줘"). 맨몸 정원.
+        /// 외형 × 8: 왼쪽 꽃나무 숲 → 등나무 꽃 정자 (진주 갈비대 여섯 · 금빛 띠 둘 · 진주 · 금 시렁 위 덩굴 · 잎 지붕 · 꽃송이, 금빛 처마 고리의 꽃송이 커튼, 안 = 꽃 고리 화단 · 진주 벤치 · 꿀 샘 · 떠 있는 수정 · 그네 틀)
+        /// → 징검돌 길 · 해바라기 무리 · 들꽃 초원 · 꿀벌 물터 연못 · 전망대 (위 해치) → 꿀 샘 (미니게임 무대) → 꿀 언덕 (육각 기둥, 속 = 벌집 홀 · 꿀 저장 기둥) → 라벤더 이랑.
+        /// 문 자리 = 꿀 언덕 칸 앞뒤 둘 (굴로 벌집 홀 · 언덕 앞뒤 산책길), 아래 해치 = 바닥 칸 열넷, 위 해치 = 전망대 위. 꿀벌 = 내부 전용 모델 (고리 길 · 맴돎 · 꽃 위 쉼).
+        /// 체험 (정자 꽃 그네) · 미니게임 (곰 몰래 꿀 먹기)은 다음 단계 — 이번엔 걸어 다니는 공간 · 물 · 꿀벌.
+        /// </summary>
+        private static void BuildEvoStellarGrid()
+        {
+            const string N = "INT_EvoStellarGrid_";
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in StellarGrid.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, StellarGrid.DoorDepth));
+            foreach (var (cell, off) in StellarGrid.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, new Vector3(off.x, 0f, off.y)));
+            sockets.Add(new InteriorSocket(StellarGrid.UpHatchCell, Vector3Int.up, StellarGrid.UpHatchDepth, StellarGrid.UpHatchOffset));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.62f);
+            var honey = new Color(1f, 0.74f, 0.4f);
+            var cool = new Color(0.82f, 0.9f, 1f);
+            var lights = new List<LightSpec>();
+            var pc = StellarGrid.PavilionCenter;
+            lights.Add(LightSpec.Point(new Vector3(pc.x, F + 3.4f, pc.z), 8f, 1.0f, warm));                                    // 정자 가운데
+            for (int k = 0; k < 6; k++)
+                lights.Add(LightSpec.Point(StellarGrid.Lantern(k) + Vector3.down * 0.5f, 4.5f, 0.55f, honey));               // 꿀빛 등불 여섯
+            foreach (float x in new[] { 4f, 20f, 28f, 35f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.8f, -2.6f), 7f, 0.8f, white));                               // 앞 산책길
+            foreach (float x in new[] { 4f, 20f, 28f, 36f, 44f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.8f, 10.6f), 7f, 0.8f, white));                               // 뒤 산책길
+            lights.Add(LightSpec.Point(new Vector3(0f, F + 3.0f, 4f), 7f, 0.8f, white));                                     // 꽃나무 숲
+            lights.Add(LightSpec.Point(new Vector3(24f, F + 3.2f, 3.5f), 8f, 0.9f, white));                                  // 초원 · 해바라기
+            lights.Add(LightSpec.Point(new Vector3(29f, F + 2.0f, 7.8f), 5f, 0.6f, cool));                                   // 연못
+            lights.Add(LightSpec.Point(StellarGrid.Lookout + Vector3.up * 1.9f, 5f, 0.7f, white));                           // 전망대
+            lights.Add(LightSpec.Point(StellarGrid.HoneySpring + new Vector3(0f, 2.4f, -0.6f), 5f, 0.8f, warm));             // 꿀 샘 (미니게임 무대)
+            var hall = StellarGrid.HallCenter;
+            lights.Add(LightSpec.Point(new Vector3(hall.x, F + 3.0f, hall.z), 6f, 1.1f, honey));                             // 벌집 홀 (꿀 저장 기둥)
+            lights.Add(LightSpec.Point(new Vector3(hall.x, F + 2.1f, -0.6f), 4f, 0.8f, honey));                              // 앞 굴
+            lights.Add(LightSpec.Point(new Vector3(hall.x, F + 2.1f, 9.6f), 4f, 0.8f, honey));                               // 뒤 굴
+            lights.Add(LightSpec.Point(new Vector3(37.8f, F + 2.0f, StellarGrid.Portal.z), 4f, 0.7f, honey));                // 벌집 입구 굴
+            lights.Add(LightSpec.Point(new Vector3(48f, F + 2.8f, 4f), 8f, 0.85f, white));                                   // 라벤더 이랑
+            foreach (float x in new[] { 8f, 16f, 24f, 31f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 4.2f, x < 20f ? -1.8f : 4.4f), 9f, 0.7f, white));                  // 초원 · 정자 앞 (어두운 우주 하늘 아래 잔디가 묻히지 않게)
+            lights.Add(LightSpec.Point(new Vector3(34.6f, F + 4.4f, 4.6f), 9f, 0.9f, white));                                // 꿀 언덕 정자 쪽 면
+            lights.Add(LightSpec.Point(new Vector3(45.4f, F + 4.4f, 4.4f), 8f, 0.8f, white));                                // 꿀 언덕 라벤더 쪽 면
+            EvoAccent("StellarGrid", "#FFF0A0");
+            // 스폰 = 앞 문 안 (꿀 언덕 앞 산책길): 앞 산책길 · 꿀 샘 · 해바라기 너머 등나무 꽃 정자를 바라봄.
+            // 자기 바깥 모델을 하늘 화면에 보임: 위 칸 (정자 · 꿀 언덕)이 좁아, 초원에서 올려다보면 바닥 칸 천장 (3.95)이 정자 돔 · 언덕 꼭대기를 가렸음 —
+            //  천장 너머 바깥 모델의 돔 · 언덕 윗부분이 같은 자리 (1/8 축척 화면)에 이어 보임
+            Build("EvoStellarGrid", "Evolved/MD_Evo_StellarGrid", sockets, new Vector3(38.4f, F, -2.8f), 270f, lights, showOwnExterior: true,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    // 연못 · 해바라기 · 쉬는 큰 꽃 줄기 · 나무 줄기에 못 들어가는 벽 (sg3_builder LakeHit): 모양만 쓰고 보이지 않음
+                    var lakeHit = Child(root, N + "LakeHit");
+                    var lakeMesh = lakeHit.GetComponent<MeshFilter>().sharedMesh;
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshRenderer>());
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshFilter>());
+                    lakeHit.gameObject.AddComponent<MeshCollider>().sharedMesh = lakeMesh;
+                    // 물: 꿀벌 물터 연못 = KWS 물 (꺼 둠 → InteriorKwsWater가 켬) + 패키지 없는 PC용 Blender 수면
+                    var surface = Child(root, N + "Water");
+                    var kws = KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), StellarGrid.PondLevel, 0.35f, "StellarGrid0", false);
+                    root.AddComponent<InteriorKwsWater>().Configure(kws != null ? new[] { kws } : new GameObject[0], new[] { surface.GetComponent<Renderer>() },
+                        Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(24f, 2f, 4f));
+                    // 꿀벌 (내부 전용 모델 SM_InteriorCritters — Critter_Bee + 날개 Critter_BeeWings, 미터): 고리 길 열둘 · 맴돎 다섯 + 경비 꿀벌 · 꽃 위 쉼 넷
+                    GameObject body = null, wings = null;
+                    foreach (var o in AssetDatabase.LoadAllAssetsAtPath("Assets/_Project/Art/Models/Interior/SM_InteriorCritters.fbx"))
+                    {
+                        if (o is GameObject g && g.GetComponent<MeshFilter>() != null)
+                        {
+                            if (g.name == "Critter_Bee") body = g;
+                            else if (g.name == "Critter_BeeWings") wings = g;
+                        }
+                    }
+                    if (body == null || wings == null)
+                    {
+                        Debug.LogWarning("[InteriorTemplateBuilder] 내부 꿀벌 모델 없음 (SM_InteriorCritters Critter_Bee · Critter_BeeWings)");
+                        return;
+                    }
+                    var holder = new GameObject("Bees").transform;
+                    holder.SetParent(r, false);
+                    var face = Quaternion.Euler(0f, 90f, 0f);   // 모델 앞 (로컬 −x) → +z
+                    Transform Bee(string name, Vector3 at, Vector3 dir, float scale)
+                    {
+                        var t = new GameObject(name).transform;
+                        t.SetParent(holder, false);
+                        t.localPosition = at;
+                        t.localRotation = Quaternion.LookRotation(dir, Vector3.up) * face * body.transform.localRotation;
+                        t.localScale = body.transform.localScale * scale;
+                        t.gameObject.AddComponent<MeshFilter>().sharedMesh = body.GetComponent<MeshFilter>().sharedMesh;
+                        var mr = t.gameObject.AddComponent<MeshRenderer>();
+                        mr.sharedMaterial = ModuleFxMaterials.Get("Critters");
+                        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                        var pivot = new GameObject("WingPivot").transform;   // 날개 뿌리 (등 위) — 여기서 폭 · 높이를 번갈아 바꿔 파닥임
+                        pivot.SetParent(t, false);
+                        pivot.localPosition = new Vector3(0f, 0.115f, 0f);
+                        var w = new GameObject("Wings").transform;
+                        w.SetParent(pivot, false);
+                        w.localPosition = new Vector3(0f, -0.115f, 0f);
+                        w.localRotation = Quaternion.Inverse(body.transform.localRotation) * wings.transform.localRotation;
+                        w.localScale = new Vector3(wings.transform.localScale.x / body.transform.localScale.x, wings.transform.localScale.y / body.transform.localScale.y,
+                            wings.transform.localScale.z / body.transform.localScale.z);
+                        w.gameObject.AddComponent<MeshFilter>().sharedMesh = wings.GetComponent<MeshFilter>().sharedMesh;
+                        var wr = w.gameObject.AddComponent<MeshRenderer>();
+                        wr.sharedMaterial = ModuleFxMaterials.Get("Prism");
+                        wr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                        return t;
+                    }
+                    var path = StellarGrid.BeePath;
+                    var flyers = new Transform[12];
+                    for (int i = 0; i < flyers.Length; i++)
+                    {
+                        float u = (float)i / flyers.Length;
+                        var p = StellarGrid.PathPoint(path, u);
+                        flyers[i] = Bee("Bee_Fly" + i, p, StellarGrid.PathPoint(path, u + 0.004f) - p, 1f);
+                    }
+                    var hovers = new Transform[StellarGrid.HoverBees.Length + 1];
+                    for (int i = 0; i < StellarGrid.HoverBees.Length; i++)
+                        hovers[i] = Bee("Bee_Hover" + i, StellarGrid.HoverBees[i], new Vector3(Mathf.Sin(i * 2.1f), 0f, Mathf.Cos(i * 2.1f)), 1f);
+                    hovers[hovers.Length - 1] = Bee("Bee_Guard", StellarGrid.GuardBee, Vector3.right, StellarGrid.GuardScale);   // 미니게임 경비 꿀벌 (평소 = 벌집 쪽)
+                    var resters = new Transform[StellarGrid.RestFlowers.Length];
+                    for (int i = 0; i < resters.Length; i++)
+                        resters[i] = Bee("Bee_Rest" + i, StellarGrid.RestFlowers[i] + Vector3.up * 0.1f, new Vector3(Mathf.Cos(i * 1.9f), 0f, Mathf.Sin(i * 1.9f)), 0.9f);
+                    holder.gameObject.AddComponent<InteriorBeeFlight>().Configure(path, flyers, hovers, resters, 1.1f, body.transform.localRotation);
+                });
+        }
+
         /// <summary>내부 헤엄 고리 크기 (CritterFx.SwimSize 배율) — 큰 것부터 막히지 않는 것 (바깥 모듈 1 · 0.7 · 0.45보다 넓은 호수).</summary>
         private static readonly float[] InteriorSwimScales = { 2.5f, 2f, 1.5f, 1.2f, 1f, 0.7f, 0.45f };
         /// <summary>헤엄 막힘 몸 여유 = 간격 반지름 × 이만큼 (물높이 몸통 둘레 — 오리 가슴 끝 0.19 m · 간격 반지름 0.29 m).</summary>
@@ -6521,6 +6648,7 @@ namespace SpaceStation.Editor
             { "EvoArcology", InteriorAmbience.Life },         // 섬 도시
             { "EvoOrbitalCity", InteriorAmbience.Life },      // 정원 섬 도시 (3단계)
             { "EvoBiosphere", InteriorAmbience.Life },        // 물의 순환 고리 (3단계)
+            { "EvoStellarGrid", InteriorAmbience.Life },      // 꿀벌 정원 (3단계)
             { "EvoGrandTorus", InteriorAmbience.Life },       // 바퀴 마을
             { "EvoCivicHall", InteriorAmbience.Life },        // 회관 · 돌봄 · 교실
             { "EvoSecurityHQ", InteriorAmbience.Life },       // 파출소 광장 · 민원 창구
@@ -6749,6 +6877,11 @@ namespace SpaceStation.Editor
                 { "Evo3FallsColumn", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3FallsColumnPath) },
                 { "Evo3SoftRainbow", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SoftRainbowPath) },
                 { "Evo3SoftHalo", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SoftHaloPath) },
+                // 항성 발전망 꿀벌 정원 (2026-11-11): 꿀 언덕 밀랍 · 흰 밀랍 · 빛나는 꿀 · 등나무 꽃
+                { "Evo3Wax", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3WaxPath) },
+                { "Evo3Wax2", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3Wax2Path) },
+                { "Evo3Honey", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3HoneyPath) },
+                { "Evo3Wisteria", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3WisteriaPath) },
             };
             for (int i = 0; i < 7; i++)
                 materials["Evo3Rainbow" + i] = ModuleFxMaterials.Get("Rainbow" + i);   // 프리즘 무지개 고리 일곱 (바깥과 같은 빛 물결)
