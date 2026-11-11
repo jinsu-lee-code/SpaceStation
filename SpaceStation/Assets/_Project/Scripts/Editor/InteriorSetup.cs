@@ -130,6 +130,11 @@ namespace SpaceStation.Editor
         public const string Evo3Wax2Path = MaterialFolder + "/M_InteriorEvo3Wax2.mat";
         public const string Evo3HoneyPath = MaterialFolder + "/M_InteriorEvo3Honey.mat";
         public const string Evo3WisteriaPath = MaterialFolder + "/M_InteriorEvo3Wisteria.mat";
+        // 궤도 방어망 등대 곶 해안 (2026-11-12, Blender od3_builder와 같은 색): 해변 모래 · 바다 바닥 · 곶 밝은 돌 지층 · 바다 동굴 벽
+        public const string Evo3SandPath = MaterialFolder + "/M_InteriorEvo3Sand.mat";
+        public const string Evo3SeaBedPath = MaterialFolder + "/M_InteriorEvo3SeaBed.mat";
+        public const string Evo3StonePath = MaterialFolder + "/M_InteriorEvo3Stone.mat";
+        public const string Evo3CavePath = MaterialFolder + "/M_InteriorEvo3Cave.mat";
         public const string Evo3FallsColumnPath = MaterialFolder + "/M_InteriorEvo3FallsColumn.mat";   // 둥근 폭포 기둥 (WaterFalls, 옆 흐림 끔 — 원기둥 UV에서 한쪽이 지워졌음)
         public const string Evo3SpillPath = MaterialFolder + "/M_InteriorEvo3Spill.mat";     // 단 사이 작은 폭포 (WaterFalls 맑은 변형 — 맑은 물 판이 파란 유리처럼 보였음)
         public const string SoftRainbowPath = MaterialFolder + "/M_InteriorSoftRainbow.mat";   // 오로라처럼 옅은 무지개 띠 (SoftRainbow, 발끝 흐림)
@@ -586,6 +591,10 @@ namespace SpaceStation.Editor
             EvoSurface(Evo3WaxPath, new Color(0.98f, 0.87f, 0.66f), 0.05f, 0.5f);     // 꿀 언덕 밀랍 옆면 (밝은 크림빛 — 외형 "따뜻한 진주 옆면", 꿀빛으로 짙게 하니 우주 하늘 아래 갈색으로 보였음)
             EvoSurface(Evo3Wax2Path, new Color(0.99f, 0.91f, 0.74f), 0f, 0.4f);       // 흰 밀랍 뚜껑 · 빈 칸 (밝게 — 어두운 구멍처럼 보이지 않게)
             EvoSurface(Evo3WisteriaPath, new Color(0.82f, 0.74f, 0.98f), 0f, 0.3f);
+            EvoSurface(Evo3SandPath, new Color(0.93f, 0.84f, 0.64f), 0f, 0.12f);     // 해변 · 곶 둘레 자갈 해안
+            EvoSurface(Evo3SeaBedPath, new Color(0.6f, 0.55f, 0.43f), 0f, 0.2f);      // 바다 바닥 (물 밑 젖은 모래)
+            EvoSurface(Evo3StonePath, new Color(0.84f, 0.78f, 0.68f), 0f, 0.15f);     // 곶 밝은 돌 지층 · 절벽 계단 단
+            EvoSurface(Evo3CavePath, new Color(0.3f, 0.29f, 0.32f), 0f, 0.25f);       // 동굴 종유석
             Emissive(Evo3HoneyPath, new Color(1f, 0.7f, 0.22f), new Color(1f, 0.58f, 0.12f) * 1.1f, 0.8f);   // 빛나는 꿀 (언덕 윗면 · 방울 · 저장 기둥 · 등불)
             // 바이오돔 잔디 · 흙 (사용자 2026-11-03 "나무와 풀 디테일"): 색 판이 아니라 풀잎 · 흙 무늬 텍스처
             void Ground(string path, string texture, float smoothness)

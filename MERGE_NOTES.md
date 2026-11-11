@@ -2604,3 +2604,21 @@
 ### `narrative` · `tycoon` 합칠 때
 
 - 같은 변경 (tycoon 커밋 `38f0fce3`). 씬 · TASKS · 글꼴은 tycoon에만
+
+## M-176. 궤도 방어망 내부 1차 — 등대 곶 해안 공간 (2026-11-12, `main`)
+
+
+
+**main에 넣은 것**
+
+- 3단계 궤도 방어망 내부 공간: Blender `od3_builder` → `SM_Interior_EvoOrbitalDefense.fbx` (층층 바위 곶 · 절벽 진주 계단 · 바다 동굴 · 진주 등대 바깥 나선 계단 · 하늘 다리 · 등실, 모래 해변 · 잔교 · 수정 부표 포대 · 산호 방파제 · 조수 웅덩이, KWS 바다)
+
+- 값 `OrbitalDefense` · 템플릿 빌더 `BuildEvoOrbitalDefense` (물 셋 · 폭포 · 망원경) · 새 재질 Evo3Sand · SeaBed · Stone · Cave · 주민 자리 · 나무 자리 · 생성 자산 (IT · PF · KWS · 하늘 문 메시)
+
+- `OrbitalDefenseTests` 3, 체크리스트 89 ~ 91 · 06c 기록
+
+
+
+### `narrative` · `tycoon` 합칠 때
+
+- 같은 변경 (tycoon 커밋 `7bbadf9f`). 씬 (템플릿 등록) · TASKS · 글꼴은 tycoon에만

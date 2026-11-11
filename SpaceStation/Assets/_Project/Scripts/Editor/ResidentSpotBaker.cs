@@ -93,14 +93,14 @@ namespace SpaceStation.Editor
         };
 
         /// <summary>낮에 일터가 없는 주민이 쉬러 오는 방 (12-5 행정 관제소 = 민원인 · 여객 도킹 포트 = 대합실에서 창밖 구경).</summary>
-        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus", "EvoCivicHall", "EvoSecurityHQ", "EvoBiodome", "EvoFoodFactory", "EvoRefineryCombine", "EvoShieldDome", "EvoFortress", "EvoRadiationWall", "EvoDroneDepot", "EvoCargoTransfer", "EvoStorageComplex", "EvoResearchInstitute", "EvoOrbitalCity", "EvoBiosphere", "EvoStellarGrid" };
+        private static readonly HashSet<string> LeisureRooms = new HashSet<string> { "Recreation", "RotatingRing", "Core", "Commerce", "Admin", "Passenger", "EvoWelfare", "EvoCulture", "EvoGravity", "EvoSecurity", "EvoGridHub", "EvoOrbitalMirror", "EvoFusionPlant", "EvoArcology", "EvoGrandTorus", "EvoCivicHall", "EvoSecurityHQ", "EvoBiodome", "EvoFoodFactory", "EvoRefineryCombine", "EvoShieldDome", "EvoFortress", "EvoRadiationWall", "EvoDroneDepot", "EvoCargoTransfer", "EvoStorageComplex", "EvoResearchInstitute", "EvoOrbitalCity", "EvoBiosphere", "EvoStellarGrid", "EvoOrbitalDefense" };
 
         /// <summary>12-5 일하는 자리를 일터가 없는 주민도 쓰는 방 (사용자 결정 2026-10-20: 행정 관제소 창구 직원 · 2026-10-21: 방사선 차폐실 비축 물자 관리 ·
         /// 여객 도킹 포트 안내 직원 · 2026-10-31 보안청 창구 직원).</summary>
         private static readonly HashSet<string> OpenWorkRooms = new HashSet<string> { "Admin", "Shelter", "Passenger", "EvoSecurity", "EvoSecurityHQ", "EvoRadiationWall", "EvoDroneDepot" };
 
         /// <summary>12-5 쉬러 온 사람 상태 글.</summary>
-        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" }, { "EvoCivicHall", "별 구경 중" }, { "EvoSecurityHQ", "민원 보는 중" }, { "EvoBiodome", "정원 구경 중" }, { "EvoFoodFactory", "관람차 구경 중" }, { "EvoRefineryCombine", "제철소 구경 중" }, { "EvoShieldDome", "등대 구경 중" }, { "EvoFortress", "불꽃 구경 중" }, { "EvoRadiationWall", "별자리 구경 중" }, { "EvoDroneDepot", "드론 쇼 구경 중" }, { "EvoCargoTransfer", "후룸 구경 중" }, { "EvoStorageComplex", "회전목마 구경 중" }, { "EvoResearchInstitute", "미로 구경 중" }, { "EvoOrbitalCity", "정원 섬 구경 중" }, { "EvoBiosphere", "계단 밭 구경 중" }, { "EvoStellarGrid", "꿀벌 정원 구경 중" } };
+        private static readonly Dictionary<string, string> VisitStatus = new Dictionary<string, string> { { "Admin", "민원 보는 중" }, { "Passenger", "우주 구경 중" }, { "EvoSecurity", "민원 보는 중" }, { "EvoGridHub", "정원 구경 중" }, { "EvoOrbitalMirror", "정원 구경 중" }, { "EvoFusionPlant", "정원 구경 중" }, { "EvoArcology", "섬 도시 구경 중" }, { "EvoGrandTorus", "은하철도 구경 중" }, { "EvoCivicHall", "별 구경 중" }, { "EvoSecurityHQ", "민원 보는 중" }, { "EvoBiodome", "정원 구경 중" }, { "EvoFoodFactory", "관람차 구경 중" }, { "EvoRefineryCombine", "제철소 구경 중" }, { "EvoShieldDome", "등대 구경 중" }, { "EvoFortress", "불꽃 구경 중" }, { "EvoRadiationWall", "별자리 구경 중" }, { "EvoDroneDepot", "드론 쇼 구경 중" }, { "EvoCargoTransfer", "후룸 구경 중" }, { "EvoStorageComplex", "회전목마 구경 중" }, { "EvoResearchInstitute", "미로 구경 중" }, { "EvoOrbitalCity", "정원 섬 구경 중" }, { "EvoBiosphere", "계단 밭 구경 중" }, { "EvoStellarGrid", "꿀벌 정원 구경 중" }, { "EvoOrbitalDefense", "바닷가 구경 중" } };
 
         /// <summary>12-5 일하는 사람 상태 글 (없으면 "일하는 중").</summary>
         private static readonly Dictionary<string, string> WorkStatus = new Dictionary<string, string> { { "Shelter", "물자 관리 중" }, { "Passenger", "여객 안내 중" }, { "EvoBiodome", "정원 돌보는 중" }, { "EvoFoodFactory", "식품 만드는 중" }, { "EvoRefineryCombine", "광석 나르는 중" }, { "EvoShieldDome", "운석 살피는 중" }, { "EvoFortress", "포대 살피는 중" }, { "EvoRadiationWall", "피난처 살피는 중" }, { "EvoDroneDepot", "드론 고치는 중" }, { "EvoCargoTransfer", "후룸 운행 중" }, { "EvoStorageComplex", "캡슐 정리 중" }, { "EvoResearchInstitute", "데이터 연구 중" } };
@@ -159,6 +159,7 @@ namespace SpaceStation.Editor
             { "EvoOrbitalCity", EvoOrbitalCitySpots },
             { "EvoBiosphere", EvoBiosphereSpots },
             { "EvoStellarGrid", EvoStellarGridSpots },
+            { "EvoOrbitalDefense", EvoOrbitalDefenseSpots },
         };
 
         /// <summary>
@@ -333,6 +334,45 @@ namespace SpaceStation.Editor
                 (new Vector3(23.9f, Interior.StellarGrid.Lookout.y, 7.4f), new Vector3(12f, Floor, 4f)),   // 전망대 (정원을 내려다봄)
             })
                 list.Add(new ResidentSpot(at, Yaw(at, look), ResidentPose.Stand));
+            return list;
+        }
+
+        /// <summary>
+        /// 궤도 방어망 "등대 곶 해안" (od3_builder SPOTS): 등대 발코니 · 하늘 다리 · 곶 윗면 (오두막 앞 · 망원경 · 벤치 둘) · 해변 (유목 · 선베드 셋) ·
+        /// 방파제 (벤치 둘 · 끝 등불대 참) · 동굴 · 곶 둘레 자갈 해안.
+        /// </summary>
+        private static List<ResidentSpot> EvoOrbitalDefenseSpots()
+        {
+            var list = new List<ResidentSpot>();
+            foreach (var (at, yaw, pose) in new[]
+            {
+                (new Vector3(4.539f, 8.6f, 3.864f), 97.2f, ResidentPose.Stand),
+                (new Vector3(-0.762f, 6.7f, 7.931f), 300.0f, ResidentPose.Stand),
+                (new Vector3(8.685f, 6.7f, 8.153f), 250.0f, ResidentPose.Stand),
+                (new Vector3(4.3f, 3.76f, 1.85f), 90.0f, ResidentPose.Stand),
+                (new Vector3(6.65f, 3.76f, 3.6f), 60.0f, ResidentPose.Stand),
+                (new Vector3(7.9f, 4.22f, 1.55f), 70.0f, ResidentPose.Sit),
+                (new Vector3(0.35f, 4.22f, 6.4f), 90.0f, ResidentPose.Sit),
+                (new Vector3(13.2f, -1.02f, -2.95f), 180.0f, ResidentPose.Sit),
+                (new Vector3(25.4f, -0.85f, -2.7f), 0.0f, ResidentPose.Sit),
+                (new Vector3(27.4f, -0.85f, -2.7f), 0.0f, ResidentPose.Sit),
+                (new Vector3(29.4f, -0.85f, -2.7f), 0.0f, ResidentPose.Sit),
+                (new Vector3(33.1f, -1.18f, 4.2f), 200.0f, ResidentPose.Stand),
+                (new Vector3(17.94f, -0.72f, 9.891f), 181.8f, ResidentPose.Sit),
+                (new Vector3(26.73f, -0.72f, 8.829f), 195.7f, ResidentPose.Sit),
+                (new Vector3(12.209f, -1.18f, 10.701f), 270.0f, ResidentPose.Stand),
+                (new Vector3(21.501f, -1.18f, 10.448f), 270.0f, ResidentPose.Stand),
+                (new Vector3(28.904f, -1.18f, 8.862f), 270.0f, ResidentPose.Stand),
+                (new Vector3(7.816f, -1.3f, 2.361f), 0.0f, ResidentPose.Stand),
+                (new Vector3(12.0f, -1.3f, -1.5f), 0.0f, ResidentPose.Stand),
+                (new Vector3(16.5f, -1.3f, -1.5f), 20.0f, ResidentPose.Stand),
+                (new Vector3(22.5f, -1.3f, -1.6f), 340.0f, ResidentPose.Stand),
+                (new Vector3(-2.7f, -1.3f, 6.0f), 90.0f, ResidentPose.Stand),
+                (new Vector3(-2.6f, -1.3f, 2.4f), 90.0f, ResidentPose.Stand),
+                (new Vector3(2.2f, -1.3f, 11.0f), 0.0f, ResidentPose.Stand),
+                (new Vector3(6.2f, -1.3f, -2.4f), 0.0f, ResidentPose.Stand),
+            })
+                list.Add(new ResidentSpot(at, yaw, pose));
             return list;
         }
 

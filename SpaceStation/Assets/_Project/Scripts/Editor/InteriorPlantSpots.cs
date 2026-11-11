@@ -161,6 +161,11 @@ namespace SpaceStation.Editor
                 new PlantSpot(new Vector3(-2.24f, -1.3f, 0.44f), PlantKind.Blossom, 1.2f, 63.0f),
                 new PlantSpot(new Vector3(-2.12f, -1.3f, 10.31f), PlantKind.Blossom, 1.2f, 110.0f),
             });
+            // 진화 3단계 궤도 방어망 (od3_builder PLANTS): 곶 윗면 바람 맞은 나무 하나 (나머지는 등대 나선 계단 · 오두막 · 하늘 다리 · 길 자리)
+            Set("IT_EvoOrbitalDefense", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(8.7f, 3.76f, 4.8f), PlantKind.Tree, 0.97f, 30.0f),
+            });
             // 진화 2단계 연구원 (mz_builder PLANTS): 연구실 안 화분 하나 (유리 연구실 = 실내)
             Set("IT_EvoResearchInstitute", new List<PlantSpot>
             {
