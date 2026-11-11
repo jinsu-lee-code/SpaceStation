@@ -134,18 +134,16 @@ namespace SpaceStation.Editor
             //  고리 산책길 모서리 끝 꽃나무 (모델 = 궤도 도시와 같은 잎 한 장씩 나무)
             Set("IT_EvoBiosphere", new List<PlantSpot>
             {
-                new PlantSpot(new Vector3(14.239f, -0.117f, 14.902f), PlantKind.Tree, 2.3f, 0f),
-                new PlantSpot(new Vector3(12.057f, -0.351f, 16.646f), PlantKind.Pine, 1.97f, 47f),
-                new PlantSpot(new Vector3(3.175f, 0.091f, 0.396f), PlantKind.Blossom, 2.19f, 94f),
-                new PlantSpot(new Vector3(20.226f, -1.3f, 11.048f), PlantKind.Blossom, 2.16f, 141f),
-                new PlantSpot(new Vector3(-4.226f, -1.3f, 11.048f), PlantKind.Blossom, 2.16f, 188f),
-                new PlantSpot(new Vector3(-4.226f, -1.3f, 4.952f), PlantKind.Blossom, 2.16f, 235f),
-                new PlantSpot(new Vector3(4.952f, -1.3f, -4.226f), PlantKind.Tree, 2.07f, 282f),
-                new PlantSpot(new Vector3(11.048f, -1.3f, -4.226f), PlantKind.Tree, 2.07f, 329f),
-                new PlantSpot(new Vector3(20.226f, -1.3f, 4.952f), PlantKind.Blossom, 2.16f, 16f),
-                new PlantSpot(new Vector3(20.041f, -1.3f, -3.941f), PlantKind.Pine, 1.9f, 63f),
-                new PlantSpot(new Vector3(1.033f, -1.3f, 20.831f), PlantKind.Blossom, 2.64f, 110f),
-                new PlantSpot(new Vector3(-5.924f, -1.3f, 12.39f), PlantKind.Blossom, 2.88f, 157f),
+                new PlantSpot(new Vector3(-1.393f, -1.3f, 1.9f), PlantKind.Tree, 1.07f, 0f),
+                new PlantSpot(new Vector3(1.9f, -1.3f, -1.393f), PlantKind.Tree, 1.07f, 47f),
+                new PlantSpot(new Vector3(14.1f, -1.3f, -1.393f), PlantKind.Tree, 1.07f, 94f),
+                new PlantSpot(new Vector3(17.393f, -1.3f, 1.9f), PlantKind.Tree, 1.07f, 141f),
+                new PlantSpot(new Vector3(17.286f, 0.042f, 10.229f), PlantKind.Blossom, 0.99f, 188f),
+                new PlantSpot(new Vector3(14.574f, 0.042f, 14.927f), PlantKind.Blossom, 1.04f, 235f),
+                new PlantSpot(new Vector3(12.99f, 0.042f, 16.143f), PlantKind.Blossom, 0.99f, 282f),
+                new PlantSpot(new Vector3(-1.286f, 0.042f, 10.229f), PlantKind.Blossom, 1.11f, 329f),
+                new PlantSpot(new Vector3(1.798f, 0.042f, 0.738f), PlantKind.Blossom, 0.99f, 16f),
+                new PlantSpot(new Vector3(14.202f, 0.042f, 0.738f), PlantKind.Blossom, 0.99f, 63f),
             });
             // 진화 2단계 연구원 (mz_builder PLANTS): 연구실 안 화분 하나 (유리 연구실 = 실내)
             Set("IT_EvoResearchInstitute", new List<PlantSpot>
