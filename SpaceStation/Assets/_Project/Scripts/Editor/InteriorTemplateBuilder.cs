@@ -4977,7 +4977,7 @@ namespace SpaceStation.Editor
                     rso.FindProperty("_mistFall").vector2Value = new Vector2(0.5f, 0.8f);
                     rso.FindProperty("_alwaysOn").boolValue = true;
                     rso.ApplyModifiedPropertiesWithoutUndo();
-                    // 동물: 사슴 · 아기 사슴 · 토끼 (Biosphere.Critters — 꽃 · 잎이 비킨 자리) · 백조 (오리 가족 자리, 내부 오리 모델은 다음) = SM_InteriorCritters (미터)
+                    // 동물: 사슴 · 아기 사슴 · 토끼 (Biosphere.Critters — 꽃 · 잎이 비킨 자리) · 오리 가족 (Biosphere.DuckSpots) = SM_InteriorCritters (미터)
                     var critterSrc = new Dictionary<string, GameObject>();
                     foreach (var o in AssetDatabase.LoadAllAssetsAtPath("Assets/_Project/Art/Models/Interior/SM_InteriorCritters.fbx"))
                     {
@@ -4995,11 +4995,9 @@ namespace SpaceStation.Editor
                     }
                     CritterGroup(r, critterSrc, "Critters_Deer", 13f, deer.ToArray());
                     CritterGroup(r, critterSrc, "Critters_Bunny", 6f, bunnies.ToArray());
-                    CritterGroup(r, critterSrc, "Critters_Swan", 7f, new[]
-                    {
-                        ("Swan", P(1.9f, 300f, Biosphere.WaterLevels[0]), 90f), ("Swan", P(2.0f, 60f, Biosphere.WaterLevels[0]), -80f),   // 가운데 호수
-                        ("Swan", P(1.4f, 120f, Biosphere.WaterLevels[2]), 20f), ("Swan", P(1.5f, 300f, Biosphere.WaterLevels[2]), 160f), // 하늘 호수
-                    });
+                    // 오리 가족 (바깥 모듈과 같은 흰 어미 · 노란 새끼): 새끼는 어미가 지나간 자리를 줄지어 따라감, 헤엄 고리 = 연잎 · 갈대 · 바위 · 둑 · 선착장 · 폭포 기둥을 비키는 가장 큰 것
+                    CritterGroup(r, critterSrc, "Critters_Duck", 7f, Biosphere.DuckSpots(),
+                        SwimBlocker(root, Biosphere.Hub, Biosphere.ShoreRadius, (Biosphere.WaterLevels[0], Biosphere.FallsKeepOut), (Biosphere.WaterLevels[2], 0f)));
                     // 물: 호수 · 연못 · 하늘 호수 = KWS 물 (꺼 둠 → InteriorKwsWater가 켬) + 패키지 없는 PC용 Blender 수면, 물길 · 샘 = 바깥 물결 재질 (늘 보임)
                     var kws = new List<GameObject>();
                     var surfaces = new List<Renderer>();
@@ -5088,10 +5086,18 @@ namespace SpaceStation.Editor
                 });
         }
 
+        /// <summary>내부 헤엄 고리 크기 (CritterFx.SwimSize 배율) — 큰 것부터 막히지 않는 것 (바깥 모듈 1 · 0.7 · 0.45보다 넓은 호수).</summary>
+        private static readonly float[] InteriorSwimScales = { 2.5f, 2f, 1.5f, 1.2f, 1f, 0.7f, 0.45f };
+        /// <summary>헤엄 막힘 몸 여유 = 간격 반지름 × 이만큼 (물높이 몸통 둘레 — 오리 가슴 끝 0.19 m · 간격 반지름 0.29 m).</summary>
+        private const float SwimBody = 0.75f;
+
         /// <summary>
         /// 내부 동물 묶음 (궤도 도시와 같은 틀): 묶음 = CritterFx 흔들림 폭에 맞춘 배율, 동물 = 내부 전용 모델 (미터)을 그만큼 줄여 넣음 (실제 크기 = 미터).
+        /// 새끼 오리 = 바로 앞 어미 (Swim)를 따라감 (StationArtBuilder.WireCritters와 같음). swimBlocked (템플릿 좌표 · 미터 반지름)가 있으면
+        /// 헤엄 동물마다 고리 크기 · 도는 쪽을 골라 막히지 않게 (새끼 줄 길이 포함), 없으면 제자리에서 두리번.
         /// </summary>
-        private static void CritterGroup(Transform parent, Dictionary<string, GameObject> critterSrc, string holderName, float scale, (string src, Vector3 at, float yaw)[] list)
+        private static void CritterGroup(Transform parent, Dictionary<string, GameObject> critterSrc, string holderName, float scale, (string src, Vector3 at, float yaw)[] list,
+            System.Func<Vector3, float, bool> swimBlocked = null)
         {
             var holder = new GameObject(holderName).transform;
             holder.SetParent(parent, false);
@@ -5122,19 +5128,147 @@ namespace SpaceStation.Editor
             var so = new SerializedObject(fx);
             var arr = so.FindProperty("_critters");
             arr.arraySize = parts.Count;
+            var leaders = new int[parts.Count];
+            var headings = new Vector3[parts.Count];
+            var radii = new float[parts.Count];
             for (int i = 0; i < parts.Count; i++)
             {
-                StationArtBuilder.CritterShape(parts[i], null, kinds[i], out var heading, out float radius);
+                int leader = -1;
+                if (kinds[i] == SpaceStation.Building.CritterFx.Kind.Follow)
+                {
+                    for (int j = i - 1; j >= 0 && leader < 0; j--)
+                    {
+                        if (kinds[j] == SpaceStation.Building.CritterFx.Kind.Swim)
+                            leader = j;
+                        else if (kinds[j] != SpaceStation.Building.CritterFx.Kind.Follow)
+                            break;
+                    }
+                    if (leader < 0)
+                        kinds[i] = SpaceStation.Building.CritterFx.Kind.Swim;   // 따라갈 어미가 없으면 혼자 헤엄
+                }
+                leaders[i] = leader;
+                StationArtBuilder.CritterShape(parts[i], null, kinds[i], out headings[i], out radii[i]);
                 var e = arr.GetArrayElementAtIndex(i);
                 e.FindPropertyRelative("Part").objectReferenceValue = parts[i];
                 e.FindPropertyRelative("Kind").enumValueIndex = (int)kinds[i];
-                e.FindPropertyRelative("Heading").vector3Value = heading;
-                e.FindPropertyRelative("Radius").floatValue = radius;
-                e.FindPropertyRelative("Leader").intValue = -1;
+                e.FindPropertyRelative("Heading").vector3Value = headings[i];
+                e.FindPropertyRelative("Radius").floatValue = radii[i];
+                e.FindPropertyRelative("Leader").intValue = leader;
                 e.FindPropertyRelative("Side").floatValue = 0f;
+            }
+            for (int i = 0; i < parts.Count && swimBlocked != null; i++)
+            {
+                if (kinds[i] != SpaceStation.Building.CritterFx.Kind.Swim)
+                    continue;
+                // 새끼 줄 길이 (CritterFx.Play의 어미 길 자국과 같은 계산) · 새끼 처음 자리도 막히면 안 됨
+                var home = parts[i].localPosition;
+                float chain = 0f;
+                var prev = home;
+                for (int j = i + 1; j < parts.Count; j++)
+                {
+                    if (leaders[j] != i)
+                        continue;
+                    var p = parts[j].localPosition;
+                    chain += new Vector2(p.x - prev.x, p.z - prev.z).magnitude;
+                    prev = p;
+                    if (swimBlocked(p * scale, radii[j] * scale * SwimBody))
+                        Debug.LogWarning($"[InteriorTemplateBuilder] {holderName}: 새끼 {j} 처음 자리가 물 위 물체에 닿음 {p * scale}");
+                }
+                if (swimBlocked(home * scale, radii[i] * scale * SwimBody))
+                    Debug.LogWarning($"[InteriorTemplateBuilder] {holderName}: {parts[i].name} {i} 처음 자리가 물 위 물체에 닿음 {home * scale}");
+                float side = 0f;
+                foreach (float size in InteriorSwimScales)
+                {
+                    foreach (float s in new[] { 1f, -1f })
+                    {
+                        SpaceStation.Building.CritterFx.SwimSize(false, radii[i], chain, size, out float ra, out float rb);
+                        bool clear = true;
+                        for (int k = 1; k < 96 && clear; k++)
+                            clear = !swimBlocked((home + SpaceStation.Building.CritterFx.SwimOffset(headings[i], s, ra, rb, 2f * Mathf.PI * k / 96f)) * scale, radii[i] * scale * SwimBody);
+                        if (clear)
+                        {
+                            side = s * size;
+                            break;
+                        }
+                    }
+                    if (side != 0f)
+                        break;
+                }
+                if (side == 0f)
+                    Debug.LogWarning($"[InteriorTemplateBuilder] {holderName}: {parts[i].name} {i} 헤엄 고리가 다 막힘 → 제자리");
+                arr.GetArrayElementAtIndex(i).FindPropertyRelative("Side").floatValue = side;
             }
             so.FindProperty("_autoPlay").boolValue = true;
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// 물 위 동물 헤엄 막힘 (CritterGroup): 수면 − 2 cm ~ + 1.5 m 몸체 면 (연잎 · 갈대 · 바위 · 둑 · 선착장 · 물 위 빛 구슬)이 가로 반지름 안에 있거나
+        /// 금지 원 안 (폭포 기둥 + 물보라)이면 막힘. 면은 10 cm 간격 점으로 — 꼭짓점만 보면 큰 상자 (선착장 마루 = 모서리 넷)를 못 잡아 마루 밑으로 헤엄칠 뻔했음.
+        /// 연잎은 수면 − 1 ~ + 0.5 cm라 수면 위만 보면 빠져 오리가 연잎 위에 앉았음 → 수면 물체 (`Water*`)만 빼고 수면에 걸친 것도 봄. 무지개 띠 (옅은 빛)만 지나가도 됨. 좌표 = 템플릿 (미터), lakes = (수면 높이, 가운데에서 금지 반지름).
+        /// </summary>
+        private static System.Func<Vector3, float, bool> SwimBlocker(GameObject root, Vector3 center, float reach, params (float water, float keepOut)[] lakes)
+        {
+            const float Cell = 0.25f;
+            var grid = new Dictionary<(int, int), List<Vector3>>();
+            var toLocal = root.transform.worldToLocalMatrix;
+            void Add(Vector3 p)
+            {
+                if (new Vector2(p.x - center.x, p.z - center.z).sqrMagnitude > reach * reach)
+                    return;
+                foreach (var (water, _) in lakes)
+                {
+                    if (p.y > water - 0.02f && p.y < water + 1.5f)
+                    {
+                        var key = (Mathf.FloorToInt(p.x / Cell), Mathf.FloorToInt(p.z / Cell));
+                        if (!grid.TryGetValue(key, out var cell))
+                            grid[key] = cell = new List<Vector3>();
+                        cell.Add(p);
+                        return;
+                    }
+                }
+            }
+            foreach (var mf in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh == null || mf.name.StartsWith("Critter_") || mf.name.EndsWith("Rainbow") || mf.name.Contains("_Water"))
+                    continue;
+                var m = toLocal * mf.transform.localToWorldMatrix;
+                var vs = mf.sharedMesh.vertices;
+                for (int i = 0; i < vs.Length; i++)
+                    vs[i] = m.MultiplyPoint3x4(vs[i]);
+                var tris = mf.sharedMesh.triangles;
+                for (int t = 0; t < tris.Length; t += 3)
+                {
+                    Vector3 a = vs[tris[t]], b = vs[tris[t + 1]], c = vs[tris[t + 2]];
+                    float lo = Mathf.Min(a.y, Mathf.Min(b.y, c.y)), hi = Mathf.Max(a.y, Mathf.Max(b.y, c.y));
+                    bool band = false;
+                    foreach (var (water, _) in lakes)
+                        band |= hi > water - 0.02f && lo < water + 1.5f;
+                    if (!band || Mathf.Max(a.x, Mathf.Max(b.x, c.x)) < center.x - reach || Mathf.Min(a.x, Mathf.Min(b.x, c.x)) > center.x + reach
+                        || Mathf.Max(a.z, Mathf.Max(b.z, c.z)) < center.z - reach || Mathf.Min(a.z, Mathf.Min(b.z, c.z)) > center.z + reach)
+                        continue;
+                    int n = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max((a - b).magnitude, Mathf.Max((b - c).magnitude, (c - a).magnitude)) / 0.1f), 1, 200);
+                    for (int u = 0; u <= n; u++)
+                        for (int v = 0; u + v <= n; v++)
+                            Add(a + (b - a) * ((float)u / n) + (c - a) * ((float)v / n));
+                }
+            }
+            return (p, radius) =>
+            {
+                foreach (var (water, keepOut) in lakes)
+                    if (Mathf.Abs(p.y - water) < 0.05f && new Vector2(p.x - center.x, p.z - center.z).sqrMagnitude < keepOut * keepOut)
+                        return true;
+                for (int x = Mathf.FloorToInt((p.x - radius) / Cell); x <= Mathf.FloorToInt((p.x + radius) / Cell); x++)
+                    for (int z = Mathf.FloorToInt((p.z - radius) / Cell); z <= Mathf.FloorToInt((p.z + radius) / Cell); z++)
+                    {
+                        if (!grid.TryGetValue((x, z), out var cell))
+                            continue;
+                        foreach (var q in cell)
+                            if (q.y > p.y - 0.02f && q.y < p.y + 1.5f && (q.x - p.x) * (q.x - p.x) + (q.z - p.z) * (q.z - p.z) < radius * radius)
+                                return true;
+                    }
+                return false;
+            };
         }
 
         private static Transform Child(GameObject root, string name) => root.transform.Find(name);

@@ -400,5 +400,125 @@ namespace SpaceStation.Tests
                 Object.DestroyImmediate(root);
             }
         }
+
+        /// <summary>
+        /// 오리 가족 (Biosphere.DuckSpots): 어미 = 헤엄 (고리 크기가 골라져 움직임) · 새끼 = 바로 앞 어미를 따라감, 모두 보는 쪽 = 가족 보는 방향.
+        /// 2분 동안 움직여 봐도 물 안 (둑 · 폭포 기둥 · 선착장 밖), 수면 위 물체 (연잎 · 갈대 · 바위) 꼭짓점이 몸 반지름 0.6배 안에 안 들고, 새끼가 어미 뒤 줄에서 안 떨어짐.
+        /// </summary>
+        [Test]
+        public void DuckFamilies_SwimInWater()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                var holder = root.transform.Find("Critters_Duck");
+                Assert.IsNotNull(holder, "Critters_Duck 없음");
+                var fx = holder.GetComponent<SpaceStation.Building.CritterFx>();
+                var spots = Biosphere.DuckSpots();
+                Assert.AreEqual(spots.Length, fx.Count, "오리 수");
+                var so = new SerializedObject(fx);
+                var arr = so.FindProperty("_critters");
+                float scale = holder.localScale.x;
+                var parts = new Transform[spots.Length];
+                var radius = new float[spots.Length];
+                var leader = new int[spots.Length];
+                var famOf = new int[spots.Length];
+                for (int k = 0, idx = 0; k < Biosphere.DuckFamilies.Length; k++)
+                    for (int j = 0; j <= Biosphere.DuckFamilies[k].Kids; j++)
+                        famOf[idx++] = k;
+                int mother = -1;
+                for (int i = 0; i < spots.Length; i++)
+                {
+                    var e = arr.GetArrayElementAtIndex(i);
+                    parts[i] = e.FindPropertyRelative("Part").objectReferenceValue as Transform;
+                    Assert.IsNotNull(parts[i], $"오리 {i} 모델");
+                    radius[i] = e.FindPropertyRelative("Radius").floatValue * scale;
+                    leader[i] = e.FindPropertyRelative("Leader").intValue;
+                    var kind = (SpaceStation.Building.CritterFx.Kind)e.FindPropertyRelative("Kind").enumValueIndex;
+                    if (spots[i].Kind == "Duck")
+                    {
+                        mother = i;
+                        Assert.AreEqual(SpaceStation.Building.CritterFx.Kind.Swim, kind, $"어미 {i}");
+                        Assert.AreNotEqual(0f, e.FindPropertyRelative("Side").floatValue, $"어미 {i} 헤엄 고리가 다 막혀 제자리");
+                    }
+                    else
+                    {
+                        Assert.AreEqual(SpaceStation.Building.CritterFx.Kind.Follow, kind, $"새끼 {i}");
+                        Assert.AreEqual(mother, leader[i], $"새끼 {i}가 따라가는 어미");
+                    }
+                    // 보는 쪽 = 가족 보는 방향 (모델 앞 · y 회전 부호 확인 — 머리 = 위쪽 꼭짓점이 몰린 쪽)
+                    float h = Biosphere.DuckFamilies[famOf[i]].Heading * Mathf.Deg2Rad;
+                    var heading = e.FindPropertyRelative("Heading").vector3Value;
+                    Assert.Greater(Vector3.Dot(heading, new Vector3(Mathf.Cos(h), 0f, Mathf.Sin(h))), 0.9f, $"오리 {i} 보는 쪽이 다름 {heading}");
+                }
+                // 물 위 물체 꼭짓점 (수면 − 2 cm ~ + 1.5 m, 호수 둘레 3.6 m 안 — 연잎은 수면 − 1 ~ + 0.5 cm, 수면 물체 · 무지개 띠는 빼고, 큰 판 선착장은 아래에서 따로)
+                var above = new List<Vector3>();
+                foreach (var mf in root.GetComponentsInChildren<MeshFilter>(true))
+                {
+                    if (mf.sharedMesh == null || mf.name.StartsWith("Critter_") || mf.name.EndsWith("Rainbow") || mf.name.Contains("_Water"))
+                        continue;
+                    var m = mf.transform.localToWorldMatrix;
+                    foreach (var v in mf.sharedMesh.vertices)
+                    {
+                        var p = m.MultiplyPoint3x4(v);
+                        if (new Vector2(p.x - Biosphere.Hub.x, p.z - Biosphere.Hub.z).magnitude > Biosphere.ShoreRadius)
+                            continue;
+                        foreach (int lake in new[] { 0, 2 })
+                            if (p.y > Biosphere.WaterLevels[lake] - 0.02f && p.y < Biosphere.WaterLevels[lake] + 1.5f)
+                                above.Add(p);
+                    }
+                }
+                float pa = Biosphere.PierAngle * Mathf.Deg2Rad;
+                var rd = new Vector3(Mathf.Cos(pa), 0f, Mathf.Sin(pa));
+                var td = new Vector3(-rd.z, 0f, rd.x);
+                var pier = Biosphere.Polar(2.45f, Biosphere.PierAngle, 0f);
+                var start = new Vector3[spots.Length];
+                var moved = new float[spots.Length];
+                for (int i = 0; i < spots.Length; i++)
+                    start[i] = parts[i].localPosition * scale;
+                fx.Play();
+                for (int step = 1; step <= 2400; step++)
+                {
+                    fx.Step(0.05f, step * 0.05f);
+                    for (int i = 0; i < spots.Length; i++)
+                    {
+                        var p = parts[i].localPosition * scale;
+                        moved[i] = Mathf.Max(moved[i], new Vector2(p.x - start[i].x, p.z - start[i].z).magnitude);
+                        bool sky = Mathf.Abs(p.y - Biosphere.WaterLevels[2]) < 0.1f;
+                        Assert.IsTrue(sky || Mathf.Abs(p.y - Biosphere.WaterLevels[0]) < 0.05f, $"오리 {i} 높이 {p.y:0.000}");
+                        float d = new Vector2(p.x - Biosphere.Hub.x, p.z - Biosphere.Hub.z).magnitude;
+                        float rim = sky ? Biosphere.SkyWater - 0.02f : Biosphere.LakeRadius - 0.12f;
+                        Assert.Less(d + radius[i] * 0.6f, rim, $"오리 {i}가 둑에 닿음 ({step * 0.05f:0.0}초, 가운데에서 {d:0.00})");
+                        if (!sky)
+                        {
+                            Assert.Greater(d, Biosphere.FallsKeepOut - 0.1f, $"오리 {i}가 폭포 기둥 밑 ({step * 0.05f:0.0}초)");
+                            var q = p - pier;
+                            Assert.IsFalse(Mathf.Abs(Vector3.Dot(q, rd)) < 1.15f + radius[i] * 0.6f && Mathf.Abs(Vector3.Dot(q, td)) < 1.2f + radius[i] * 0.6f,
+                                $"오리 {i}가 선착장 밑 ({step * 0.05f:0.0}초)");
+                        }
+                        if (step % 10 == 0)
+                        {
+                            float r2 = radius[i] * 0.6f * radius[i] * 0.6f;
+                            foreach (var v in above)
+                                if (v.y > p.y - 0.02f && v.y < p.y + 1.5f && (v.x - p.x) * (v.x - p.x) + (v.z - p.z) * (v.z - p.z) < r2)
+                                    Assert.Fail($"오리 {i}가 물 위 물체에 닿음 ({step * 0.05f:0.0}초, {v})");
+                        }
+                        if (leader[i] >= 0)
+                        {
+                            var lp = parts[leader[i]].localPosition * scale;
+                            Assert.Less(new Vector2(p.x - lp.x, p.z - lp.z).magnitude, Biosphere.DuckLead + Biosphere.DuckSpacing * 3f + 0.3f, $"새끼 {i}가 어미에게서 떨어짐");
+                        }
+                    }
+                }
+                for (int i = 0; i < spots.Length; i++)
+                    Assert.Greater(moved[i], 0.4f, $"오리 {i}가 거의 안 움직임");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
     }
 }

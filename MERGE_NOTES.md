@@ -2531,3 +2531,14 @@
 
 ### `narrative` · `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `100b1ca0`). 씬 · TASKS · 글꼴은 tycoon에만
+
+## M-172. 바이오스피어 내부 오리 가족 (2026-11-11, `main`)
+
+**main에 넣은 것**
+- 내부 동물 모델 `SM_InteriorCritters.fbx`에 흰 어미 `Critter_Duck` · 노란 새끼 `Critter_Duckling` (critter_builder — 메타볼 접힌 면 펴기, 사슴 · 토끼 메시도 몇 꼭짓점 바뀜)
+- 바이오스피어 백조 넷 → 오리 가족 (`Biosphere.DuckFamilies` · `DuckSpots`): 가운데 호수 어미 + 새끼 셋, 하늘 호수 어미 한 쌍 + 어미 + 새끼 둘
+- 공통: `InteriorTemplateBuilder.CritterGroup` 새끼 → 앞 어미 따라감 · 헤엄 고리 크기 고름 (`SwimBlocker`, 인자 없으면 예전처럼 제자리 — 궤도 도시는 그대로)
+- 체크리스트 79 · 80 · 06c 기록, BiosphereTests 7 (`DuckFamilies_SwimInWater`)
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `cedde2da`). 씬 · TASKS · 글꼴은 tycoon에만
