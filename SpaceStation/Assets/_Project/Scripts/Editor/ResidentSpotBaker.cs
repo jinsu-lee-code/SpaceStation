@@ -326,7 +326,7 @@ namespace SpaceStation.Editor
                 (new Vector3(26.4f, Floor, 10.4f), new Vector3(29f, Floor, 7.8f)),          // 뒤 산책길 → 연못
                 (new Vector3(33.7f, Floor, 10.4f), new Vector3(29f, Floor, 7.8f)),     // 해치 (4, 1) 옆
                 (new Vector3(44.9f, Floor, 5.8f), new Vector3(50f, Floor, 5.8f)),           // 라벤더 이랑 앞
-                (new Vector3(2.2f, Floor, 4.6f), new Vector3(-1f, Floor, 4f)),              // 꽃나무 숲
+                (new Vector3(4.1f, Floor, 5.4f), new Vector3(0f, Floor, 4.2f)),              // 꽃나무 숲 가장자리 (숲을 봄)
                 (new Vector3(38.3f, Floor + 0.03f, 5.8f), new Vector3(40f, Floor, 4.6f)),   // 벌집 홀 (꿀 저장 기둥을 봄)
                 (new Vector3(41.7f, Floor + 0.03f, 3.6f), new Vector3(40f, Floor, 4.6f)),
                 (new Vector3(43.0f, Floor, -2.9f), new Vector3(42f, Floor, 2f)),            // 꿀 언덕 앞 (올려다봄)

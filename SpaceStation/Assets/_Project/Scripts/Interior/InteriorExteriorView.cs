@@ -47,6 +47,7 @@ namespace SpaceStation.Interior
         private Func<Transform, ModuleInstance> _roomOf;
         private Action<ModuleInstance, HashSet<ModuleInstance>> _linkedRooms;
         private Func<ModuleInstance, bool> _showOwnExterior;
+        private Func<ModuleInstance, Transform> _ownRoom;
         private readonly HashSet<ModuleInstance> _linked = new HashSet<ModuleInstance>();
         private ModuleInstance _linkedFrom;
         private readonly List<Group> _groups = new List<Group>();
@@ -62,6 +63,25 @@ namespace SpaceStation.Interior
         private float _overrideFov;
         private bool _sunWasEnabled;
 
+        /// <summary>하늘 화면에 비추는 방 복제 (방 내부 모델 중 바닥 칸 천장 위로 솟은 렌더러만 + 방 조명, 1/8 축척) — 그릴 때만 켬.</summary>
+        private sealed class Mirror
+        {
+            public Transform Room;
+            public Transform Root;
+            public readonly List<(Renderer Source, MeshRenderer Copy)> Pairs = new List<(Renderer, MeshRenderer)>();
+            public readonly List<(Light Source, Light Copy)> Lights = new List<(Light, Light)>();
+        }
+
+        /// <summary>복제 전용 렌더링 레이어 (Light Layer 7): 복제 조명은 복제만, 해 · 정거장 조명 (Default)은 복제를 비추지 않음
+        /// (해를 받으면 천장 경계 위만 금빛으로 환해 꿀 언덕이 두 토막으로 보였음). 조명 쪽은 UniversalAdditionalLightData.renderingLayers —
+        /// Light.renderingLayerMask는 그림자 레이어라 바꿔도 빛은 Default만 비춤.</summary>
+        private const uint MirrorLayer = 1u << 7;
+
+        private readonly Dictionary<ModuleInstance, Mirror> _mirrors = new Dictionary<ModuleInstance, Mirror>();
+        private readonly List<MeshRenderer> _mirrorShown = new List<MeshRenderer>();
+        private readonly List<Light> _mirrorLightsShown = new List<Light>();
+        private MaterialPropertyBlock _mirrorBlock;
+
         /// <summary>망원경을 보는 동안: 창 화면을 새로 그리지 않음 (화면을 망원경이 덮음).</summary>
         public bool Suspended { get; set; }
 
@@ -69,9 +89,11 @@ namespace SpaceStation.Interior
         /// <param name="linkedRooms">방 → 그 방 + 열린 통로로 바로 이어진 방들 (창을 그릴 방 범위)</param>
         /// <param name="showOwnExterior">12-5 방 → 그 방 창에 자기 바깥 모델도 비출지 (템플릿 설정, 없으면 숨김)</param>
         /// <param name="roomOf">창 렌더러 → 그 렌더러가 속한 방 모듈 (방 오브젝트 아래가 아니면 null → 경계 상자 가운데 칸으로)</param>
+        /// <param name="ownRoom">방 → 하늘 화면에 바깥 모델 대신 비출 그 방 내부 모델 (템플릿 ShowOwnInterior, 아니면 null)</param>
         public static InteriorExteriorView Create(Camera source, Transform interiorRoot, StationController station, Light sun, float farClip,
             Func<Vector3, ModuleInstance> roomAt, Action<ModuleInstance, HashSet<ModuleInstance>> linkedRooms,
-            Func<ModuleInstance, bool> showOwnExterior = null, Func<Transform, ModuleInstance> roomOf = null)
+            Func<ModuleInstance, bool> showOwnExterior = null, Func<Transform, ModuleInstance> roomOf = null,
+            Func<ModuleInstance, Transform> ownRoom = null)
         {
             var go = new GameObject("InteriorExteriorCamera");
             var view = go.AddComponent<InteriorExteriorView>();
@@ -82,6 +104,7 @@ namespace SpaceStation.Interior
             view._roomOf = roomOf;
             view._linkedRooms = linkedRooms;
             view._showOwnExterior = showOwnExterior;
+            view._ownRoom = ownRoom;
             view._connectors = station != null ? station.GetComponent<StationConnectors>() : null;
             if (view._connectors == null)
                 view._connectors = FindFirstObjectByType<StationConnectors>();
@@ -112,6 +135,7 @@ namespace SpaceStation.Interior
             _groups.Clear();
             _linked.Clear();
             _linkedFrom = null; // 통로가 바뀌었을 수 있음 → 다음 프레임에 다시 계산
+            ClearMirrors();     // 방을 다시 지었으면 복제할 렌더러도 바뀜
             AddWindows(_interiorRoot);
         }
 
@@ -167,6 +191,7 @@ namespace SpaceStation.Interior
             Shader.SetGlobalFloat(OnId, 0f);
             SpaceStation.Building.FireworkFx.ViewCamera = null;
             ReleaseTextures();
+            ClearMirrors();
         }
 
         private void LateUpdate()
@@ -342,7 +367,13 @@ namespace SpaceStation.Interior
         private void Hide(ModuleInstance module, Vector3 point)
         {
             _hidden.Clear();
-            if (module != null && (_showOwnExterior == null || !_showOwnExterior(module)))
+            var ownRoom = module != null && _ownRoom != null ? _ownRoom(module) : null;
+            if (ownRoom != null)
+            {
+                HideModule(module);
+                ShowMirror(module, ownRoom);
+            }
+            else if (module != null && (_showOwnExterior == null || !_showOwnExterior(module)))
                 HideModule(module);
             else if (module != null)
                 HideCritters(module);   // 자기 외형을 보여도 바깥 동물 · 꿀벌은 숨김 — 내부 동물과 겹쳐 하늘에 큰 꿀벌이 떴음 (항성 발전망)
@@ -435,6 +466,115 @@ namespace SpaceStation.Interior
                     r.forceRenderingOff = false;
             }
             _hidden.Clear();
+            foreach (var r in _mirrorShown)
+            {
+                if (r != null)
+                    r.forceRenderingOff = true;
+            }
+            _mirrorShown.Clear();
+            foreach (var l in _mirrorLightsShown)
+            {
+                if (l != null)
+                    l.enabled = false;
+            }
+            _mirrorLightsShown.Clear();
+        }
+
+        /// <summary>
+        /// 방 내부 모델의 윗부분을 바깥 축척 같은 자리에 (바깥 카메라가 이 화면을 그리는 동안만). 하늘 화면은 방 경계 (하늘 껍질) 너머를 비추므로
+        /// 천장 너머에 가린 자기 방 윗부분 (위 칸 정자 돔 · 언덕 꼭대기)이 내부와 같은 모양 · 같은 자리로 이어짐 — 바깥 모델을 비추면 거친 잎 덩어리가 보였음 (항성 발전망).
+        /// 움직이는 부품도 따라가게 그릴 때마다 자리 · 상태 블록을 옮김. 빛도 내부와 같게: 방 점광원을 같은 자리에 (범위 1/8 · 세기 1/64 — 거리 제곱으로 줄어드는 빛이라
+        /// 같은 밝기), 해는 비추지 않음 (<see cref="MirrorLayer"/>), 그림자 끔.
+        /// </summary>
+        private void ShowMirror(ModuleInstance module, Transform room)
+        {
+            if (!_mirrors.TryGetValue(module, out var mirror) || mirror.Room != room || mirror.Root == null)
+            {
+                if (mirror != null && mirror.Root != null)
+                    Destroy(mirror.Root.gameObject);
+                mirror = BuildMirror(room);
+                _mirrors[module] = mirror;
+            }
+            float scale = GridConfig.CellSize / InteriorGeometry.CellSize;
+            _mirrorBlock ??= new MaterialPropertyBlock();
+            foreach (var (source, copy) in mirror.Pairs)
+            {
+                if (source == null || copy == null || !source.enabled || source.forceRenderingOff || !source.gameObject.activeInHierarchy)
+                    continue;
+                var t = source.transform;
+                copy.transform.SetPositionAndRotation((t.position - _interiorRoot.position) * scale, t.rotation);
+                copy.transform.localScale = t.lossyScale * scale;
+                for (int i = 0; i < copy.sharedMaterials.Length; i++)
+                {
+                    source.GetPropertyBlock(_mirrorBlock, i);   // 꺼진 방 어둡게 (InteriorBuilder 칸별 블록) 그대로
+                    copy.SetPropertyBlock(_mirrorBlock, i);
+                }
+                copy.forceRenderingOff = false;
+                _mirrorShown.Add(copy);
+            }
+            foreach (var (source, copy) in mirror.Lights)
+            {
+                if (source == null || copy == null || !source.enabled || !source.gameObject.activeInHierarchy)
+                    continue;
+                var t = source.transform;
+                copy.transform.SetPositionAndRotation((t.position - _interiorRoot.position) * scale, t.rotation);
+                copy.color = source.color;
+                copy.range = source.range * scale;
+                copy.intensity = source.intensity * scale * scale;   // 방 상태 (꺼짐 · 고장 깜박임 — InteriorAtmosphere)도 그대로
+                copy.spotAngle = source.spotAngle;
+                copy.innerSpotAngle = source.innerSpotAngle;
+                copy.enabled = true;
+                _mirrorLightsShown.Add(copy);
+            }
+        }
+
+        private Mirror BuildMirror(Transform room)
+        {
+            // 바깥 축척 월드 자리에 직접 놓음 (부모 없이 — 자리 · 크기를 월드 값으로 맞춤), 이 보기를 없앨 때 함께 지움
+            var mirror = new Mirror { Room = room, Root = new GameObject("InteriorSkyMirror").transform };
+            float ceiling = room.position.y + InteriorGeometry.CellSize * 0.5f - 0.2f;   // 바닥 칸 천장 (칸 가운데 + 3.95) 바로 아래
+            foreach (var r in room.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (IsWindow(r) || !r.TryGetComponent<MeshFilter>(out var filter) || filter.sharedMesh == null || r.bounds.max.y < ceiling)
+                    continue;
+                var go = new GameObject(r.name);
+                go.transform.SetParent(mirror.Root, false);
+                go.AddComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
+                var copy = go.AddComponent<MeshRenderer>();
+                copy.sharedMaterials = r.sharedMaterials;
+                copy.shadowCastingMode = ShadowCastingMode.Off;
+                copy.receiveShadows = false;
+                copy.renderingLayerMask = MirrorLayer;
+                copy.forceRenderingOff = true;
+                mirror.Pairs.Add((r, copy));
+            }
+            foreach (var l in room.GetComponentsInChildren<Light>(true))
+            {
+                if (l.type != LightType.Point && l.type != LightType.Spot)
+                    continue;
+                var go = new GameObject(l.name);
+                go.transform.SetParent(mirror.Root, false);
+                var copy = go.AddComponent<Light>();
+                copy.type = l.type;
+                copy.shadows = LightShadows.None;
+                copy.renderMode = l.renderMode;
+                copy.GetUniversalAdditionalLightData().renderingLayers = MirrorLayer;
+                copy.enabled = false;
+                mirror.Lights.Add((l, copy));
+            }
+            return mirror;
+        }
+
+        private void ClearMirrors()
+        {
+            foreach (var mirror in _mirrors.Values)
+            {
+                if (mirror.Root != null)
+                    Destroy(mirror.Root.gameObject);
+            }
+            _mirrors.Clear();
+            _mirrorShown.Clear();
+            _mirrorLightsShown.Clear();
         }
     }
 }

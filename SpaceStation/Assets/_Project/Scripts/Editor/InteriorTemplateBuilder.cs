@@ -5092,7 +5092,7 @@ namespace SpaceStation.Editor
         /// 외형 × 8: 왼쪽 꽃나무 숲 → 등나무 꽃 정자 (진주 갈비대 여섯 · 금빛 띠 둘 · 진주 · 금 시렁 위 덩굴 · 잎 지붕 · 꽃송이, 금빛 처마 고리의 꽃송이 커튼, 안 = 꽃 고리 화단 · 진주 벤치 · 꿀 샘 · 떠 있는 수정 · 그네 틀)
         /// → 징검돌 길 · 해바라기 무리 · 들꽃 초원 · 꿀벌 물터 연못 · 전망대 (위 해치) → 꿀 샘 (미니게임 무대) → 꿀 언덕 (육각 기둥, 속 = 벌집 홀 · 꿀 저장 기둥) → 라벤더 이랑.
         /// 문 자리 = 꿀 언덕 칸 앞뒤 둘 (굴로 벌집 홀 · 언덕 앞뒤 산책길), 아래 해치 = 바닥 칸 열넷, 위 해치 = 전망대 위. 꿀벌 = 내부 전용 모델 (고리 길 · 맴돎 · 꽃 위 쉼).
-        /// 체험 (정자 꽃 그네) · 미니게임 (곰 몰래 꿀 먹기)은 다음 단계 — 이번엔 걸어 다니는 공간 · 물 · 꿀벌.
+        /// 체험 (정자 꽃 그네) · 미니게임 (벌 몰래 꿀 먹기)은 다음 단계 — 이번엔 걸어 다니는 공간 · 물 · 꿀벌.
         /// </summary>
         private static void BuildEvoStellarGrid()
         {
@@ -5116,7 +5116,8 @@ namespace SpaceStation.Editor
                 lights.Add(LightSpec.Point(new Vector3(x, F + 2.8f, -2.6f), 7f, 0.8f, white));                               // 앞 산책길
             foreach (float x in new[] { 4f, 20f, 28f, 36f, 44f })
                 lights.Add(LightSpec.Point(new Vector3(x, F + 2.8f, 10.6f), 7f, 0.8f, white));                               // 뒤 산책길
-            lights.Add(LightSpec.Point(new Vector3(0f, F + 3.0f, 4f), 7f, 0.8f, white));                                     // 꽃나무 숲
+            foreach (var (x, z) in new[] { (1.2f, 2.6f), (0.9f, 6.3f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 5.0f, z), 8.5f, 0.95f, new Color(1f, 0.9f, 0.95f)));          // 꽃나무 숲 (나무 사이 빈 곳 · 잎 지붕 위 (큰 나무 꼭대기 F + 4.6) — 잎 지붕 속이면 꽃잎 한 장만 하얗게 탐)
             lights.Add(LightSpec.Point(new Vector3(24f, F + 3.2f, 3.5f), 8f, 0.9f, white));                                  // 초원 · 해바라기
             lights.Add(LightSpec.Point(new Vector3(29f, F + 2.0f, 7.8f), 5f, 0.6f, cool));                                   // 연못
             lights.Add(LightSpec.Point(StellarGrid.Lookout + Vector3.up * 1.9f, 5f, 0.7f, white));                           // 전망대
@@ -5133,9 +5134,10 @@ namespace SpaceStation.Editor
             lights.Add(LightSpec.Point(new Vector3(45.4f, F + 4.4f, 4.4f), 8f, 0.8f, white));                                // 꿀 언덕 라벤더 쪽 면
             EvoAccent("StellarGrid", "#FFF0A0");
             // 스폰 = 앞 문 안 (꿀 언덕 앞 산책길): 앞 산책길 · 꿀 샘 · 해바라기 너머 등나무 꽃 정자를 바라봄.
-            // 자기 바깥 모델을 하늘 화면에 보임: 위 칸 (정자 · 꿀 언덕)이 좁아, 초원에서 올려다보면 바닥 칸 천장 (3.95)이 정자 돔 · 언덕 꼭대기를 가렸음 —
-            //  천장 너머 바깥 모델의 돔 · 언덕 윗부분이 같은 자리 (1/8 축척 화면)에 이어 보임
-            Build("EvoStellarGrid", "Evolved/MD_Evo_StellarGrid", sockets, new Vector3(38.4f, F, -2.8f), 270f, lights, showOwnExterior: true,
+            // 자기 방을 하늘 화면에 보임: 위 칸 (정자 · 꿀 언덕)이 좁아, 초원에서 올려다보면 바닥 칸 천장 (3.95)이 정자 돔 · 언덕 꼭대기를 가렸음 —
+            //  천장 너머 이 내부 모델의 돔 · 언덕 윗부분이 같은 자리 (1/8 축척 화면)에 이어 보임. 처음엔 바깥 모델을 비췄는데 큰 잎 덩어리 · 마름모 꽃송이라
+            //  꼭대기만 거칠게 보였음 (사용자 2026-11-11 "꼭대기 내부 모델로 맞추고")
+            Build("EvoStellarGrid", "Evolved/MD_Evo_StellarGrid", sockets, new Vector3(38.4f, F, -2.8f), 270f, lights, showOwnInterior: true,
                 configure: root =>
                 {
                     var r = root.transform;
@@ -6750,7 +6752,7 @@ namespace SpaceStation.Editor
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
             List<LightSpec> lights, List<OrbitSpec> orbits = null, Dictionary<string, Vector3> sunTilts = null, bool showOwnExterior = false,
-            System.Action<GameObject> configure = null)
+            System.Action<GameObject> configure = null, bool showOwnInterior = false)
         {
             string modelPath = ModelFolder + "SM_Interior_" + name + ".fbx";
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
@@ -6996,6 +6998,7 @@ namespace SpaceStation.Editor
             template.EditorSet(module, prefab, sockets, spawn, spawnYaw);
             template.EditorSetAmbience(Ambiences.TryGetValue(name, out var ambience) ? ambience : InteriorAmbience.Hall);
             template.EditorSetShowOwnExterior(showOwnExterior);
+            template.EditorSetShowOwnInterior(showOwnInterior);
             template.EditorSetSealedSockets(name == "EvoGrandTorus");   // 전부 지붕 · 유리 안 (우주복 없음): 닫힌 문 자리가 우주로 뚫리면 안 됨 (사용자 2026-11-03 "모델링에 구멍")
             EditorUtility.SetDirty(template);
             Debug.Log($"[InteriorTemplateBuilder] {name}: 문 자리 {sockets.Count}곳, 조명 {lights.Count}개");

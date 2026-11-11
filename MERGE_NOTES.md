@@ -2557,10 +2557,30 @@
 
 - 밀랍 · 꿀 · 등나무 재질 (InteriorSetup), 식물 자리 · 주민 자리 22, StellarGridTests 4, 체크리스트 81 ~ 83 · 06c 기록
 
-- 체험 (정자 꽃 그네 · 곰 몰래 꿀 먹기 미니게임)은 다음 단계
+- 체험 (정자 꽃 그네 · 벌 몰래 꿀 먹기 미니게임)은 다음 단계
 
 
 
 ### `narrative` · `tycoon` 합칠 때
 
 - 같은 변경 (tycoon 커밋 `d649f63c`). 씬 (템플릿 등록) · TASKS · 글꼴은 tycoon에만
+
+## M-174. 항성 발전망 꼭대기 내부 모델 · 꽃나무 숲 (2026-11-11, `main`)
+
+
+
+**main에 넣은 것**
+
+- 공통: 템플릿 `showOwnInterior` (`InteriorTemplate.ShowOwnInterior`) — 하늘 화면에 바깥 모델 대신 자기 방 내부 모델 중 바닥 칸 천장 위로 솟은 렌더러를 1/8로 같은 자리에 (`InteriorExteriorView.ShowMirror`, `InteriorMode`가 방 → 템플릿 방을 넘김). 방 점광원도 범위 1/8 · 세기 1/64로 복제, 복제 · 복제 조명만 렌더링 레이어 7 (조명은 `UniversalAdditionalLightData.renderingLayers`)
+
+- 항성 발전망: showOwnExterior → showOwnInterior, 왼쪽 끝 꽃나무 숲 열하나 (식물 자리 크기 = Unity 배율), 숲 가운데 아래 해치 둘 → 앞뒤 산책길 왼쪽 끝, 쉬는 큰 꽃 · 주민 자리 · 숲 조명 옮김, 미니게임 이름 "벌 몰래 꿀 먹기"
+
+- 체크리스트 82 고침 · 84 · 85, 06c 기록, StellarGridTests 걷기 대상 (숲 안 둘)
+
+
+
+### `narrative` · `tycoon` 합칠 때
+
+- 같은 변경 (tycoon 커밋 `aa68ad5c`). 씬 · TASKS · 글꼴은 tycoon에만
+
+- 메모: main 작업 폴더가 Temp 아래라 Windows 임시 파일 정리가 오래된 파일 (바이오돔 23개)을 지웠음 — 합치기 전 `git ls-files -d` 확인 · `git checkout`으로 되살림

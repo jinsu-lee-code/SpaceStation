@@ -176,7 +176,8 @@ namespace SpaceStation.Tests
                 Reach(new Vector3(StellarGrid.Lookout.x - 0.4f, StellarGrid.Lookout.y, StellarGrid.Lookout.z - 0.4f), "전망대 원판");
                 Reach(new Vector3(32.6f, F, -0.4f), "꿀 샘 무대 앞");
                 Reach(new Vector3(47f, F, 0f), "라벤더 이랑 사이");
-                Reach(new Vector3(1.5f, F, 4.6f), "꽃나무 숲");
+                Reach(new Vector3(1.2f, F, 2.6f), "꽃나무 숲 안 (앞)");
+                Reach(new Vector3(0.9f, F, 6.3f), "꽃나무 숲 안 (뒤)");
                 Reach(new Vector3(26.4f, F, 9.9f), "연못가 (뒤 산책길)");
                 Reach(new Vector3(22.5f, F, 2.5f), "징검돌 길");
                 Assert.Less(StellarGrid.UpHatchCell.y * 8f + StellarGrid.UpHatchDepth - (StellarGrid.Lookout.y + 1.6f), 2.6f, "위 해치가 전망대 눈에서 손 닿는 거리 (해치 4 m)");
