@@ -133,6 +133,7 @@ namespace SpaceStation.Editor
             BuildEvoOrbitalCity();
             BuildEvoBiosphere();
             BuildEvoStellarGrid();
+            BuildEvoOrbitalDefense();
         }
 
         /// <summary>
@@ -5247,6 +5248,85 @@ namespace SpaceStation.Editor
                 });
         }
 
+        /// <summary>
+        /// 진화 3단계 궤도 방어망 "등대 곶 해안" (바닥 5 × 2칸 + 왼쪽 위 2 × 2, Blender od3_builder — 사용자 2026-11-12 시안 1 "유니티로 옮겨줘"). 맨몸 정원.
+        /// 외형 × 8: 왼쪽 층층 바위 곶 (지층 다섯 · 풀 턱 · 바닷새 둥지 · 앞면에 판 진주 계단 · 앞 오른쪽 큰 바다 동굴, 윗면 = 진주 등대 · 관리인 오두막 · 망원경 · 개울 → 폭포)
+        /// · 앞 모래 해변 (진주 잔교 · 매인 배 · 선베드) · 바다 (KWS 실사 물, 수정 부표 셋 — 가운데 = 잔교에서 건너가는 포대 자리) · 뒤 방파제 (걸어 다니는 둑 · 산호, 끝 등불대 · 레버)
+        /// · 오른쪽 끝 조수 웅덩이 · 물범 바위. 외형과 다른 곳: 등대 금빛 나선 띠 = 바깥 나선 계단 (곶 윗면 → 하늘 다리 6.7 → 꼭대기 발코니 8.6, 등실 안 렌즈 · 손잡이),
+        /// 위 문 둘 (곶 뒤 칸 왼쪽 · 오른쪽 면 = 외형 연결점)을 잇는 곶 뒤 하늘 다리, 큰 동굴 앞 모래 후미.
+        /// 문 자리 = 여덟 (곶 둘레 여섯 + 하늘 다리 양 끝), 아래 해치 = 바닥 칸 열, 위 해치 = 하늘 다리 위 둘 · 방파제 위 하나.
+        /// 체험 (다음 단계) = 등대 빛 돌리기 · 오로라 보호막 펼치기, 미니게임 = 별똥별 막기.
+        /// </summary>
+        private static void BuildEvoOrbitalDefense()
+        {
+            const string N = "INT_EvoOrbitalDefense_";
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in OrbitalDefense.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, OrbitalDefense.DoorDepth));
+            foreach (var (cell, off, floorY) in OrbitalDefense.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -floorY, new Vector3(off.x, 0f, off.y)));
+            foreach (var (cell, off) in OrbitalDefense.UpHatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, OrbitalDefense.UpHatchDepth, new Vector3(off.x, 0f, off.y)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.62f);
+            var cool = new Color(0.82f, 0.9f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (float x in new[] { 11f, 17f, 23f, 29f, 34f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, -2.2f), 8f, 0.85f, white));                              // 해변
+            foreach (float x in new[] { 14f, 22f, 29f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, x < 28f ? 9.8f : 7.6f), 8f, 0.8f, white));                // 방파제
+            foreach (float x in new[] { 15f, 21f, 27f, 33f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.4f, 4f), 9f, 0.7f, cool));                                    // 바다 (부표 · 포대)
+            lights.Add(LightSpec.Point(new Vector3(-2.6f, F + 2.8f, 4f), 7f, 0.75f, white));                                  // 곶 왼쪽 자갈 해안
+            foreach (float x in new[] { 1f, 8f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.8f, 11f), 7f, 0.75f, white));                                 // 곶 뒤 자갈 해안
+            lights.Add(LightSpec.Point(new Vector3(3f, F + 2.8f, -2.8f), 7f, 0.8f, white));                                   // 곶 앞 해변 · 절벽 계단 아래
+            lights.Add(LightSpec.Point(new Vector3(2.4f, OrbitalDefense.CapeTop + 3.4f, 1.6f), 8f, 0.85f, warm));             // 곶 윗면 (오두막 · 계단 꼭대기)
+            lights.Add(LightSpec.Point(new Vector3(7.6f, OrbitalDefense.CapeTop + 3.4f, 7.2f), 8f, 0.8f, white));             // 곶 윗면 (개울 · 망원경)
+            lights.Add(LightSpec.Point(OrbitalDefense.LensCenter + Vector3.up * 0.7f, 6f, 0.9f, warm));                        // 등실
+            foreach (float x in new[] { -1f, 9f })
+                lights.Add(LightSpec.Point(new Vector3(x, OrbitalDefense.SkywalkY + 2.6f, 8.6f), 7f, 0.7f, white));            // 하늘 다리
+            var cave = OrbitalDefense.CavePath;
+            lights.Add(LightSpec.Point(new Vector3(cave[3].x, F + 1.6f, cave[3].y), 5f, 0.85f, warm));                          // 큰 바다 동굴 (빛 이끼 · 수정)
+            lights.Add(LightSpec.Point(new Vector3(33.6f, F + 2.8f, 0f), 7f, 0.75f, white));                                  // 조수 웅덩이
+            EvoAccent("OrbitalDefense", "#B8C8FF");
+            // 스폰 = 해변 잔교 옆: 바다 · 포대 부표 · 방파제 너머 왼쪽 곶 · 등대를 봄.
+            // 자기 방을 하늘 화면에 보임: 위 칸은 곶 (x ≤ 11.95)뿐이라, 바다 쪽에서 올려다보면 바닥 칸 천장 (3.95)이 등대 · 하늘 다리를 가림 (항성 발전망과 같음)
+            Build("EvoOrbitalDefense", "Evolved/MD_Evo_OrbitalDefense", sockets, OrbitalDefense.Spawn, OrbitalDefense.SpawnYaw, lights, showOwnInterior: true,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    // 바다 · 폭포 웅덩이 · 조수 웅덩이 · 나무 줄기에 못 들어가는 벽 (od3_builder LakeHit): 모양만 쓰고 보이지 않음
+                    var lakeHit = Child(root, N + "LakeHit");
+                    var lakeMesh = lakeHit.GetComponent<MeshFilter>().sharedMesh;
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshRenderer>());
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshFilter>());
+                    lakeHit.gameObject.AddComponent<MeshCollider>().sharedMesh = lakeMesh;
+                    // 물: 수면 높이마다 KWS 실사 물 (바다 = 물결 · 곶 개울 · 조수 웅덩이, 꺼 둠 → InteriorKwsWater가 켬) + 패키지 없는 PC용 Blender 수면
+                    var kws = new List<GameObject>();
+                    var surfaces = new List<Renderer>();
+                    var depth = new[] { 1.2f, 0.12f, 0.1f };
+                    for (int k = 0; k < OrbitalDefense.WaterLevels.Length; k++)
+                    {
+                        var surface = Child(root, N + "Water" + (k == 0 ? "" : k.ToString()));
+                        if (surface == null)
+                            continue;
+                        surfaces.Add(surface.GetComponent<Renderer>());
+                        kws.Add(KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), OrbitalDefense.WaterLevels[k], depth[k], "OrbitalDefense" + k, k == 0));
+                    }
+                    if (kws.Count > 0 && kws[0] != null)
+                        KwsWaterBuilder.Ripple(kws[0], OrbitalDefense.FallsLanding, 0.6f, 0.4f);   // 곶 폭포가 떨어지는 웅덩이
+                    kws.RemoveAll(x => x == null);
+                    root.AddComponent<InteriorKwsWater>().Configure(kws.ToArray(), surfaces.ToArray(), Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(16f, 2f, 4f));
+                    root.AddComponent<InteriorWaterfallFx>().Configure(new[] { OrbitalDefense.FallsLanding }, new[] { OrbitalDefense.FallsWidth },
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FallsMistPath));
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    // 곶 끝 망원경 (외형 "감지"): 머리 따로 (원점 = 받침 위), F로 들여다봄 — 앞 오른쪽 바다 쪽 ± 100°
+                    root.AddComponent<InteriorTelescope>().Configure(Child(root, N + "ScopeHead"), OrbitalDefense.ScopeHead, 18f, 0f, font, OrbitalDefense.ScopeYaw, 100f,
+                        startPitch: -12f, startFov: 24f, minPitch: -60f);
+                });
+        }
+
         /// <summary>내부 헤엄 고리 크기 (CritterFx.SwimSize 배율) — 큰 것부터 막히지 않는 것 (바깥 모듈 1 · 0.7 · 0.45보다 넓은 호수).</summary>
         private static readonly float[] InteriorSwimScales = { 2.5f, 2f, 1.5f, 1.2f, 1f, 0.7f, 0.45f };
         /// <summary>헤엄 막힘 몸 여유 = 간격 반지름 × 이만큼 (물높이 몸통 둘레 — 오리 가슴 끝 0.19 m · 간격 반지름 0.29 m).</summary>
@@ -6683,6 +6763,7 @@ namespace SpaceStation.Editor
             { "EvoOrbitalCity", InteriorAmbience.Life },      // 정원 섬 도시 (3단계)
             { "EvoBiosphere", InteriorAmbience.Life },        // 물의 순환 고리 (3단계)
             { "EvoStellarGrid", InteriorAmbience.Life },      // 꿀벌 정원 (3단계)
+            { "EvoOrbitalDefense", InteriorAmbience.Life },   // 등대 곶 해안 (3단계)
             { "EvoGrandTorus", InteriorAmbience.Life },       // 바퀴 마을
             { "EvoCivicHall", InteriorAmbience.Life },        // 회관 · 돌봄 · 교실
             { "EvoSecurityHQ", InteriorAmbience.Life },       // 파출소 광장 · 민원 창구
@@ -6916,6 +6997,12 @@ namespace SpaceStation.Editor
                 { "Evo3Wax2", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3Wax2Path) },
                 { "Evo3Honey", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3HoneyPath) },
                 { "Evo3Wisteria", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3WisteriaPath) },
+                // 궤도 방어망 등대 곶 해안 (2026-11-12): 해변 모래 · 바다 바닥 · 곶 밝은 돌 지층 · 동굴 종유석 · 등실 유리
+                { "Evo3Sand", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3SandPath) },
+                { "Evo3SeaBed", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3SeaBedPath) },
+                { "Evo3Stone", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3StonePath) },
+                { "Evo3Cave", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3CavePath) },
+                { "Evo3LampGlass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GlassPath) },
             };
             for (int i = 0; i < 7; i++)
                 materials["Evo3Rainbow" + i] = ModuleFxMaterials.Get("Rainbow" + i);   // 프리즘 무지개 고리 일곱 (바깥과 같은 빛 물결)
