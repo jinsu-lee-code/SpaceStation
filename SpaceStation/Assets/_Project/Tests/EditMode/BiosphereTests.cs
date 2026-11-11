@@ -267,5 +267,138 @@ namespace SpaceStation.Tests
                 Object.DestroyImmediate(root);
             }
         }
+
+        /// <summary>물꼬 맞추기 규칙: 쉬는 동안 호수까지 · 시작 = 모두 닫힘 · 바퀴 = 한 단씩 (5단 다음 닫힘) · 판마다 목마른 밭 1 → 2 → 3곳 (물길마다 하나, 지금 물꼬와 다른 단) · 세 판 뒤 끝.</summary>
+        [Test]
+        public void SluicePuzzle_RoundsAndTurns()
+        {
+            var p = new SluicePuzzle();
+            for (int s = 0; s < 3; s++)
+                Assert.AreEqual(SluicePuzzle.Lake, p.Gate(s));
+            Assert.IsFalse(p.Running);
+            for (int seed = 0; seed < 40; seed++)
+            {
+                p.Start(seed);
+                Assert.IsTrue(p.Running);
+                for (int round = 0; round < SluicePuzzle.Rounds; round++)
+                {
+                    Assert.AreEqual(round, p.Round);
+                    Assert.AreEqual(round + 1, p.Thirsty.Count, $"seed {seed} 판 {round}");
+                    var streams = new HashSet<int>();
+                    foreach (var t in p.Thirsty)
+                    {
+                        Assert.IsTrue(streams.Add(t.Stream), "목마른 밭은 물길마다 하나");
+                        Assert.That(t.Level, Is.InRange(1, SluicePuzzle.Levels));
+                        Assert.AreNotEqual(p.Gate(t.Stream), t.Level, "이미 맞아 있는 판");
+                    }
+                    Assert.IsFalse(p.Solved);
+                    // 바퀴를 맞춤 (한 단씩 돌려서)
+                    foreach (var t in p.Thirsty)
+                    {
+                        int guard = 0;
+                        while (p.Gate(t.Stream) != t.Level && guard++ < 10)
+                            p.Turn(t.Stream);
+                        Assert.IsTrue(p.Waters(t.Stream, t.Level));
+                    }
+                    Assert.IsTrue(p.Solved);
+                    bool end = p.Advance();
+                    Assert.AreEqual(round == SluicePuzzle.Rounds - 1, end);
+                }
+                Assert.IsTrue(p.Finished);
+                Assert.IsFalse(p.Running);
+            }
+            // 바퀴 한 바퀴: 닫힘 → 1 … 5 → 닫힘
+            p.Start(3);
+            int g = p.Gate(0);
+            Assert.AreEqual(0, g);
+            for (int k = 1; k <= 6; k++)
+                Assert.AreEqual(k % 6, p.Turn(0));
+            p.Reset();
+            Assert.AreEqual(SluicePuzzle.Lake, p.Gate(1));
+        }
+
+        /// <summary>
+        /// 체험 연결 (빌더): 수문 바퀴 셋 (피벗 = 바퀴 가운데 · 시선 공) · 문판 · 물길 물 / 폭포 조각 18 + 18 · 밭 15 (피벗 높이 = 단 윗면, 작물 메시 있음) · 물레방아 셋 ·
+        /// 물보라 번호가 물보라 배열 안 · 능선 길에서 바퀴에 시선이 닿음 (2.6 m 안, 몸체에 안 가림) · 반딧불이 선반이 고리 산책길에서 보이고 숲 자리가 방 안.
+        /// </summary>
+        [Test]
+        public void Experiences_Wired()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                var gates = root.GetComponent<InteriorSluiceGates>();
+                Assert.IsNotNull(gates, "InteriorSluiceGates 없음");
+                var so = new SerializedObject(gates);
+                Transform Ref(string field, int i) => so.FindProperty(field).GetArrayElementAtIndex(i).objectReferenceValue as Transform;
+                Object Obj(string field, int i) => so.FindProperty(field).GetArrayElementAtIndex(i).objectReferenceValue;
+                Assert.AreEqual(3, so.FindProperty("_wheels").arraySize);
+                Assert.AreEqual(18, so.FindProperty("_chans").arraySize);
+                Assert.AreEqual(18, so.FindProperty("_spills").arraySize);
+                Assert.AreEqual(15, so.FindProperty("_crops").arraySize);
+                for (int i = 0; i < 18; i++)
+                {
+                    Assert.IsNotNull(Obj("_chans", i), $"물길 물 {i / 6}_{i % 6}");
+                    Assert.IsNotNull(Obj("_spills", i), $"폭포 {i / 6}_{i % 6}");
+                }
+                var fx = root.GetComponent<InteriorWaterfallFx>();
+                int landings = new SerializedObject(fx).FindProperty("_landings").arraySize;
+                for (int s = 0; s < 3; s++)
+                {
+                    for (int n = 0; n <= 5; n++)
+                        foreach (int idx in Biosphere.SpillLandings(s, n))
+                            Assert.That(idx, Is.InRange(0, landings - 1));
+                    for (int n = 1; n <= 5; n++)
+                    {
+                        var crop = Ref("_crops", s * 5 + n - 1);
+                        Assert.IsNotNull(crop, $"밭 {s}_{n}");
+                        Assert.AreEqual(Biosphere.TerraceTop(Biosphere.TerraceOfLevel(n)), crop.localPosition.y, 1e-4f);
+                        var mf = crop.GetComponentInChildren<MeshFilter>();
+                        Assert.IsTrue(mf != null && mf.sharedMesh != null && mf.sharedMesh.vertexCount > 100, $"밭 작물 메시 {s}_{n}");
+                    }
+                    var wheel = Ref("_wheels", s);
+                    Assert.IsNotNull(wheel);
+                    Assert.Less((wheel.localPosition - Biosphere.GateWheelHub(s)).magnitude, 1e-3f);
+                    var ball = wheel.GetComponent<SphereCollider>();
+                    Assert.IsNotNull(ball, "바퀴 시선 공");
+                    Assert.IsNotNull(Ref("_plates", s), "문판");
+                    Assert.IsNotNull(so.FindProperty("_waterWheels").GetArrayElementAtIndex(s).objectReferenceValue, "물레방아");
+                    // 능선 길 (바깥 가장자리 0.3 m 안)에 선 눈 (발 + 1.6)에서 바퀴로: 2.6 m 안, 몸체에 가리지 않음
+                    ball.enabled = true;
+                    Physics.SyncTransforms();
+                    var eye = Biosphere.Polar(Biosphere.RidgeOuter - 0.35f, Biosphere.Streams[s] + 4f, Biosphere.RidgeTop + 1.6f);
+                    var hub = Biosphere.GateWheelHub(s);
+                    Assert.Less((hub - eye).magnitude, 2.4f);
+                    Assert.IsTrue(Physics.Raycast(eye, (hub - eye).normalized, out var hit, 2.6f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), "바퀴에 시선이 안 닿음");
+                    Assert.AreEqual(ball, hit.collider, $"바퀴 앞을 {hit.collider.name}이 가림");
+                    ball.enabled = false;
+                }
+                var catcher = root.GetComponent<InteriorFireflyCatch>();
+                Assert.IsNotNull(catcher, "InteriorFireflyCatch 없음");
+                var cso = new SerializedObject(catcher);
+                var rack = cso.FindProperty("_rack").objectReferenceValue as BoxCollider;
+                Assert.IsNotNull(rack, "유리병 선반 충돌체");
+                Assert.IsNotNull(cso.FindProperty("_glowMaterial").objectReferenceValue, "반딧불이 빛 재질");
+                var zone = cso.FindProperty("_zoneCenter").vector3Value;
+                float zr = cso.FindProperty("_zoneRadius").floatValue;
+                Assert.Less(Mathf.Max(zone.x, zone.z) + zr, 19.6f, "반딧불이 숲이 하늘 면 밖");
+                Assert.Greater(new Vector2(zone.x - Biosphere.Hub.x, zone.z - Biosphere.Hub.z).magnitude - zr, Biosphere.WallOuter, "반딧불이 숲이 옹벽 안");
+                // 고리 산책길 모서리 (선반 바깥 1.3 m)에 선 눈에서 선반으로 시선이 닿음
+                rack.enabled = true;
+                Physics.SyncTransforms();
+                float a = Biosphere.FireflyAngle * Mathf.Deg2Rad;
+                var u = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                var rackAt = rack.transform.position;
+                var from = rackAt + u * 1.3f + Vector3.up * (F + 1.6f - rackAt.y);
+                Assert.IsTrue(Physics.Raycast(from, (rackAt - from).normalized, out var rh, 2.6f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), "선반에 시선이 안 닿음");
+                Assert.AreEqual(rack, rh.collider, $"선반 앞을 {rh.collider.name}이 가림");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
     }
 }

@@ -2521,3 +2521,13 @@
 
 ### `narrative` · `tycoon` 합칠 때
 - 같은 변경 (tycoon 커밋 `38dacc5c`). 씬 · TASKS · 글꼴은 tycoon에만
+
+## M-171. 바이오스피어 체험 둘 · 물꼬 맞추기 · 반딧불이 잡기 (2026-11-11, `main`)
+
+**main에 넣은 것**
+- 체험 `SluicePuzzle` · `InteriorSluiceGates` (수문 바퀴로 물꼬 단 고르기, 세 판 · 최고 기록) · 미니게임 `InteriorFireflyCatch` (밤 · 반딧불이 30마리 · 60초 · 하늘 호수로 풀어 줌), 바이오스피어 모델 조각 나눔 (밭 15 · 물길 물 / 폭포 물길 × 단 · 수문 바퀴)
+- 공통: `InteriorOrbit.SpeedScale` (도는 빠르기 배율) · `InteriorWaterfallFx.SetLanding` (물보라 자리마다 켜고 끔) · `InteriorOrbitTrain` 안내 긴 줄표 (□) → 가운뎃점
+- 정자 처마 칸 밖 · 연못 다리 끝 기둥 · 승강기 기둥 꼭대기 통로 걸림 고침, 체크리스트 77 · 78 · 06c 기록, BiosphereTests 6
+
+### `narrative` · `tycoon` 합칠 때
+- 같은 변경 (tycoon 커밋 `100b1ca0`). 씬 · TASKS · 글꼴은 tycoon에만

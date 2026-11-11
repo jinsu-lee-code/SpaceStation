@@ -293,7 +293,7 @@ namespace SpaceStation.Editor
             list.Add(new ResidentSpot(P(1.9f, Interior.Biosphere.PierAngle, Floor), Out(Interior.Biosphere.PierAngle) + 180f, ResidentPose.Stand));   // 선착장 끝
             foreach (float d in new[] { 0f, 120f, 240f })
                 list.Add(new ResidentSpot(P(2.8f, d + 60f, Interior.Biosphere.SkyTop), Out(d + 60f), ResidentPose.Stand));   // 하늘 정원 (바깥을 내려다봄)
-            list.Add(new ResidentSpot(P(15.3f, 225f, Floor + 0.15f), Out(225f) + 180f, ResidentPose.Stand));        // 정자 가운데
+            list.Add(new ResidentSpot(P(14.9f, 225f, Floor + 0.15f), Out(225f) + 180f, ResidentPose.Stand));        // 정자 가운데 (bio3_builder PAV_R)
             list.Add(new ResidentSpot(P(12.4f, 300f, Floor), Out(300f) + 135f, ResidentPose.Stand));                // 연못가
             list.Add(new ResidentSpot(P(13.0f, 125f, Floor), Out(125f), ResidentPose.Stand));                       // 과수원
             list.Add(new ResidentSpot(P(12.9f, 37f, Floor), Out(37f), ResidentPose.Stand));                         // 반딧불이 숲

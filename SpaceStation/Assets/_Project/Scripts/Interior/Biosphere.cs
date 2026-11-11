@@ -100,6 +100,50 @@ namespace SpaceStation.Interior
             return new Vector3(-Mathf.Sin(a), 0f, Mathf.Cos(a));
         }
 
+        // ---------------- 체험: 물꼬 맞추기 (SluicePuzzle · InteriorSluiceGates) ----------------
+        /// <summary>단 번호 n (1 = 맨 위 · 능선 쪽 … 5 = 맨 아래 · 호수 쪽) → 계단 밭 k (안 → 바깥, <see cref="TerraceInner"/>).</summary>
+        public static int TerraceOfLevel(int n) => SluicePuzzle.Levels - n;
+        /// <summary>수문 (능선 바깥 가장자리, 금빛 문판 · 바퀴 — Blender springs()와 같은 값). 문판은 열리면 0.5 m 올라감.</summary>
+        public const float GateRadius = RidgeOuter + 0.12f, GateLift = 0.5f;
+        public static Vector3 GateWheelHub(int stream) => Polar(GateRadius, Streams[stream], RidgeTop + 1.36f);
+        public static Vector3 GateWheelAxis(int stream)
+        {
+            float a = Streams[stream] * Mathf.Deg2Rad;
+            return new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+        }
+
+        /// <summary>목마른 밭 글자 자리 (물길에서 24° 옆 밭 위 1.4 m — 능선에서 맨 위 단 해바라기 (1.2 m) 너머로 보이게).</summary>
+        public static Vector3 FieldLabel(int stream, int level)
+        {
+            int k = TerraceOfLevel(level);
+            return Polar(TerraceInner(k) + 0.4f, Streams[stream] + 24f, TerraceTop(k) + 1.4f);
+        }
+
+        /// <summary>
+        /// 폭포 조각 Spill{물길}_{단}이 떨어지는 자리 = 물보라 번호 (빌더가 <see cref="Falls"/> 뒤에 <see cref="SmallFallLandings"/>를 이어 붙인 배열):
+        /// 단 0 = 수문 폭포 + 능선 끝 폭포, 단 n = 그 단에서 아래 단 (5단은 물가 물길)으로.
+        /// </summary>
+        public static int[] SpillLandings(int stream, int level)
+        {
+            int block = Falls.Length + stream * 6;
+            return level == 0 ? new[] { 1 + stream, block } : new[] { block + 1 + TerraceOfLevel(level) };
+        }
+
+        // ---------------- 미니게임: 반딧불이 잡기 (InteriorFireflyCatch) ----------------
+        /// <summary>반딧불이 숲 모서리 (뒤 오른쪽 45°): 길가 유리병 선반 (시작) · 반딧불이가 나는 곳 (가운데 · 반지름).</summary>
+        public const float FireflyAngle = 45f, FireflyZoneDistance = 13.2f, FireflyZoneRadius = 2.1f;
+        public static Vector3 FireflyRack
+        {
+            get
+            {
+                float a = FireflyAngle * Mathf.Deg2Rad;
+                var u = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                var v = new Vector3(-u.z, 0f, u.x);
+                return Hub + u * 12.55f + v * 0.9f + Vector3.up * Floor;
+            }
+        }
+        public static Vector3 FireflyZone => Polar(FireflyZoneDistance, FireflyAngle, Floor);
+
         /// <summary>
         /// 동물 자리 (Blender bio3_builder CRITTERS와 같은 값 — 꽃 · 잎 · 나무가 이 자리를 비킴, 사용자 2026-11-11 "동물들이랑도 겹친다"):
         /// 종류 · 반지름 · 각 · 비탈 위 (아니면 바닥 F).

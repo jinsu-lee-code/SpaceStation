@@ -13,6 +13,9 @@ namespace SpaceStation.Interior
         [SerializeField] private float[] _widths;
         [SerializeField] private Material _material;
 
+        private ParticleSystem[][] _systems;
+        private bool[] _on;
+
         public void Configure(Vector3[] landings, float[] widths, Material material)
         {
             _landings = landings;
@@ -24,14 +27,51 @@ namespace SpaceStation.Interior
         {
             if (_material == null || _landings == null)
                 return;
+            _systems = new ParticleSystem[_landings.Length][];
             for (int i = 0; i < _landings.Length; i++)
             {
                 float w = _widths != null && i < _widths.Length ? _widths[i] : 0.8f;
                 var at = _landings[i];
-                Mist(at, w);
-                Spray(at, w);
-                Foam(at + Vector3.up * 0.015f, w);
+                _systems[i] = new[] { Mist(at, w), Spray(at, w), Foam(at + Vector3.up * 0.015f, w) };
+                if (_on != null && i < _on.Length && !_on[i])
+                    Stop(_systems[i]);
             }
+        }
+
+        /// <summary>
+        /// 떨어지는 자리 하나의 물보라를 켜고 끔 (바이오스피어 물꼬 맞추기 — 물이 안 흐르는 폭포 자리는 조용히).
+        /// 끌 때는 새로 뿜지 않고 남은 입자는 사라질 때까지 둠.
+        /// </summary>
+        public void SetLanding(int index, bool on)
+        {
+            if (_landings == null || index < 0 || index >= _landings.Length)
+                return;
+            if (_on == null)
+            {
+                _on = new bool[_landings.Length];
+                for (int i = 0; i < _on.Length; i++)
+                    _on[i] = true;
+            }
+            if (_on[index] == on)
+                return;
+            _on[index] = on;
+            if (_systems == null || _systems[index] == null)
+                return;   // Start 전: 만들 때 반영
+            if (on)
+            {
+                foreach (var ps in _systems[index])
+                    ps.Play();
+            }
+            else
+                Stop(_systems[index]);
+        }
+
+        public bool LandingOn(int index) => _on == null || index < 0 || index >= _on.Length || _on[index];
+
+        private static void Stop(ParticleSystem[] systems)
+        {
+            foreach (var ps in systems)
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
         }
 
         private ParticleSystem Make(string name, Vector3 local, Vector3 euler)
@@ -63,7 +103,7 @@ namespace SpaceStation.Interior
         }
 
         // 물안개: 떨어진 자리에서 천천히 피어올라 커지며 사라짐
-        private void Mist(Vector3 at, float w)
+        private ParticleSystem Mist(Vector3 at, float w)
         {
             var ps = Make("FallsMist", at, new Vector3(-90f, 0f, 0f));
             var main = ps.main;
@@ -91,10 +131,11 @@ namespace SpaceStation.Interior
             noise.strength = 0.25f;
             noise.frequency = 0.4f;
             ps.Play();
+            return ps;
         }
 
         // 물방울: 떨어진 자리에서 튀어 올라 다시 떨어짐
-        private void Spray(Vector3 at, float w)
+        private ParticleSystem Spray(Vector3 at, float w)
         {
             var ps = Make("FallsSpray", at, new Vector3(-90f, 0f, 0f));
             var main = ps.main;
@@ -114,10 +155,11 @@ namespace SpaceStation.Interior
             col.enabled = true;
             col.color = Fade(0.85f, 0.05f, 0.7f);
             ps.Play();
+            return ps;
         }
 
         // 수면 거품: 떨어진 자리 둘레로 퍼져 나가며 사라지는 흰 조각 (수면에 눕힌 판)
-        private void Foam(Vector3 at, float w)
+        private ParticleSystem Foam(Vector3 at, float w)
         {
             var ps = Make("FallsFoam", at, new Vector3(90f, 0f, 0f));
             var main = ps.main;
@@ -142,6 +184,7 @@ namespace SpaceStation.Interior
             var r = ps.GetComponent<ParticleSystemRenderer>();
             r.renderMode = ParticleSystemRenderMode.HorizontalBillboard;
             ps.Play();
+            return ps;
         }
     }
 }

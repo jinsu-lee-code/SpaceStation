@@ -4946,13 +4946,6 @@ namespace SpaceStation.Editor
                     var center = Biosphere.LiftCenter;
                     center.y = stops[0] + 0.085f;
                     lift.Configure(car, offsets, left, right, center, new Vector3(Mathf.Cos(slide), 0f, Mathf.Sin(slide)), Biosphere.CarRadius - 0.1f);
-                    // 수문 셋: 지금은 열어 둠 (물이 흐름) — 체험 (닫고 열어 단마다 물 대기)은 다음 단계
-                    for (int i = 0; i < 3; i++)
-                    {
-                        var plate = Child(root, N + "GatePlate" + i);
-                        if (plate != null)
-                            plate.localPosition += Vector3.up * 0.5f;
-                    }
                     // 물 · 나무 줄기에 못 들어가는 벽 (bio3_builder LakeHit — 호수 · 하늘 호수 · 연못 + 나무 줄기): 모양만 쓰고 보이지 않음
                     //  (사용자 "중앙 호수 들어가면 나오지도 못함", 체크리스트 31 = 바이오돔과 같은 방식)
                     var lakeHit = Child(root, N + "LakeHit");
@@ -5036,7 +5029,62 @@ namespace SpaceStation.Editor
                         KwsWaterBuilder.Ripple(kws[0], landings[0], 1.0f, 0.5f);   // 폭포 기둥이 떨어지는 호수 가운데
                     kws.RemoveAll(x => x == null);
                     root.AddComponent<InteriorKwsWater>().Configure(kws.ToArray(), surfaces.ToArray(), Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(8f, 4f, 8f));
-                    root.AddComponent<InteriorWaterfallFx>().Configure(landings, widths, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FallsMistPath));
+                    var fallsFx = root.AddComponent<InteriorWaterfallFx>();
+                    fallsFx.Configure(landings, widths, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FallsMistPath));
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    // 체험 "물꼬 맞추기" (InteriorSluiceGates, 사용자 2026-11-11): 수문 바퀴 = 바퀴 가운데 피벗 (시선 공) · 문판 · 물길 물 / 폭포 조각 (물길 × 단) ·
+                    //  밭 (물길 × 단, 피벗 높이 = 단 윗면 — 세로로 줄이면 시듦) · 물레방아 (물이 지나갈 때만 돎)
+                    int streams = SluicePuzzle.StreamCount, levels = SluicePuzzle.Levels;
+                    var gateWheels = new Transform[streams];
+                    var plates = new Transform[streams];
+                    var chans = new Renderer[streams * (levels + 1)];
+                    var spills = new Renderer[streams * (levels + 1)];
+                    var crops = new Transform[streams * levels];
+                    var waterWheels = new InteriorOrbit[streams];
+                    for (int s = 0; s < streams; s++)
+                    {
+                        plates[s] = Child(root, N + "GatePlate" + s);
+                        var wheel = Child(root, N + "GateWheel" + s);
+                        var pivot = new GameObject("GateWheelPivot" + s).transform;
+                        pivot.SetParent(r, false);
+                        pivot.localPosition = Biosphere.GateWheelHub(s);
+                        if (wheel != null)
+                            wheel.SetParent(pivot, true);
+                        pivot.gameObject.AddComponent<SphereCollider>().radius = 0.32f;
+                        gateWheels[s] = pivot;
+                        var ww = Child(root, N + "Wheel" + s);
+                        waterWheels[s] = ww != null ? ww.GetComponent<InteriorOrbit>() : null;
+                        for (int n = 0; n <= levels; n++)
+                        {
+                            var c = Child(root, $"{N}Chan{s}_{n}");
+                            var f = Child(root, $"{N}Spill{s}_{n}");
+                            chans[s * (levels + 1) + n] = c != null ? c.GetComponent<Renderer>() : null;
+                            spills[s * (levels + 1) + n] = f != null ? f.GetComponent<Renderer>() : null;
+                        }
+                        for (int n = 1; n <= levels; n++)
+                        {
+                            var crop = Child(root, $"{N}Crop{s}_{n}");
+                            if (crop == null)
+                                continue;
+                            var cp = new GameObject($"CropPivot{s}_{n}").transform;
+                            cp.SetParent(r, false);
+                            cp.localPosition = new Vector3(0f, Biosphere.TerraceTop(Biosphere.TerraceOfLevel(n)), 0f);
+                            crop.SetParent(cp, true);
+                            crops[s * levels + n - 1] = cp;
+                        }
+                    }
+                    root.AddComponent<InteriorSluiceGates>().Configure(gateWheels, plates, chans, spills, crops, waterWheels, fallsFx, font);
+                    // 미니게임 "반딧불이 잡기" (InteriorFireflyCatch): 길가 유리병 선반 (보고 F) · 숲 모서리 · 하늘 호수로 풀어 줌 · 선반 위 안내판
+                    var rack = new GameObject("FireflyRack").transform;
+                    rack.SetParent(r, false);
+                    float rackYaw = Biosphere.OutwardYaw(Biosphere.FireflyAngle);
+                    rack.localPosition = Biosphere.FireflyRack + Vector3.up * 0.65f;
+                    rack.localRotation = Quaternion.Euler(0f, rackYaw, 0f);
+                    var rackBox = rack.gameObject.AddComponent<BoxCollider>();
+                    rackBox.size = new Vector3(1.2f, 1.3f, 0.4f);
+                    root.AddComponent<InteriorFireflyCatch>().Configure(rackBox, ModuleFxMaterials.Get("FireworkSpark"), font, Child(root, N + "Sky").GetComponent<Renderer>(),
+                        Biosphere.FireflyZone, Biosphere.FireflyZoneRadius, F, new Vector3(Biosphere.Hub.x, Biosphere.SkyTop + 0.6f, Biosphere.Hub.z),
+                        Biosphere.FireflyRack + Vector3.up * 1.75f, rackYaw, Child(root, N + "Fx").GetComponent<Renderer>());
                 });
         }
 

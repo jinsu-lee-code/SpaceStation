@@ -152,7 +152,7 @@ namespace SpaceStation.Interior
             if (error > JudgeZone)
             {
                 _s -= lap;
-                Notice("정지선을 지나쳤어요 — 한 바퀴 더!");
+                Notice("정지선을 지나쳤어요! 한 바퀴 더!");   // 글꼴에 긴 줄표가 없어 □로 나왔음 (FontCoverageTests)
                 return;
             }
             if (_v > 0f || gas)
@@ -160,7 +160,7 @@ namespace SpaceStation.Interior
             if (Mathf.Abs(error) <= JudgeZone && _s > lap * 0.5f)
                 Judge(error);
             else if (_s > lap * 0.5f)
-                Notice($"역까지 {-error:F0} m 남았어요 — W로 다시 출발");
+                Notice($"역까지 {-error:F0} m 남았어요 · W로 다시 출발");
         }
 
         private void Judge(float error)
@@ -214,7 +214,7 @@ namespace SpaceStation.Interior
             _seated = true;
             if (_seat != null)
                 _seat.enabled = false;
-            Notice("W 출발 · S 브레이크 — 한 바퀴 돌아 앞 차 코를 금빛 정지선에 맞춰 세워요", 5f);
+            Notice("W 출발 · S 브레이크 · 한 바퀴 돌아 앞 차 코를 금빛 정지선에 맞춰 세워요", 5f);
             AudioService.TryPlay(l => l.UiOpen);
         }
 
