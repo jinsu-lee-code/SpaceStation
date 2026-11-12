@@ -346,13 +346,12 @@ namespace SpaceStation.Editor
             var list = new List<ResidentSpot>();
             foreach (var (at, yaw, pose) in new[]
             {
-                (new Vector3(4.539f, 8.6f, 3.864f), 97.2f, ResidentPose.Stand),
+                (new Vector3(4.512f, 8.6f, 3.861f), 96.3f, ResidentPose.Stand),
                 (new Vector3(-0.762f, 6.7f, 7.931f), 300.0f, ResidentPose.Stand),
                 (new Vector3(8.685f, 6.7f, 8.153f), 250.0f, ResidentPose.Stand),
-                (new Vector3(4.3f, 3.76f, 1.85f), 90.0f, ResidentPose.Stand),
+                (new Vector3(2.05f, 3.76f, 2.0f), 180.0f, ResidentPose.Stand),
                 (new Vector3(6.65f, 3.76f, 3.6f), 60.0f, ResidentPose.Stand),
                 (new Vector3(7.9f, 4.22f, 1.55f), 70.0f, ResidentPose.Sit),
-                (new Vector3(0.35f, 4.22f, 6.4f), 90.0f, ResidentPose.Sit),
                 (new Vector3(13.2f, -1.02f, -2.95f), 180.0f, ResidentPose.Sit),
                 (new Vector3(25.4f, -0.85f, -2.7f), 0.0f, ResidentPose.Sit),
                 (new Vector3(27.4f, -0.85f, -2.7f), 0.0f, ResidentPose.Sit),
