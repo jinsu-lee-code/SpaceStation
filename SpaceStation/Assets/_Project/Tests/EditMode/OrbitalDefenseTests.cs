@@ -169,15 +169,15 @@ namespace SpaceStation.Tests
                 }
                 var lh = OrbitalDefense.Lighthouse;
                 float top_ = OrbitalDefense.CapeTop;
-                Reach(new Vector3(0.063f, -0.923f, 1.875f), "절벽 계단 2단");
-                Reach(new Vector3(0.622f, 0.089f, 0.33f), "절벽 계단 8단");
-                Reach(new Vector3(1.934f, 1.101f, -0.323f), "절벽 계단 14단");
-                Reach(new Vector3(3.372f, 2.113f, -0.679f), "절벽 계단 20단");
-                Reach(new Vector3(4.712f, 3.125f, 0.358f), "절벽 계단 26단");
-                Reach(new Vector3(5.387f, 3.631f, 0.654f), "절벽 계단 29단");
+                Reach(new Vector3(0.042f, -0.923f, 1.862f), "절벽 계단 2단");
+                Reach(new Vector3(0.604f, 0.089f, 0.309f), "절벽 계단 8단");
+                Reach(new Vector3(1.942f, 1.101f, -0.314f), "절벽 계단 14단");
+                Reach(new Vector3(3.377f, 2.113f, -0.665f), "절벽 계단 20단");
+                Reach(new Vector3(4.724f, 3.125f, 0.332f), "절벽 계단 26단");
+                Reach(new Vector3(5.405f, 3.631f, 0.619f), "절벽 계단 29단");
                 Reach(new Vector3(5.0f, top_, 1.2f), "곶 윗면 (계단 꼭대기 → 등대 길)");
                 Reach(new Vector3(6.65f, top_, 3.6f), "곶 끝 망원경 앞");
-                Reach(new Vector3(3.8f, top_, 2.05f), "관리인 오두막 문 앞");
+                Reach(new Vector3(1.55f, top_, 2.3f), "관리인 오두막 문 앞");
                 Reach(new Vector3(lh.x + 2.0f, top_, lh.z - 2.4f), "등대 둘레 (나선 계단 첫 단 앞)");
                 Reach(new Vector3(lh.x, OrbitalDefense.GalleryY, lh.z - 1.85f), "꼭대기 발코니 (앞)");
                 Reach(new Vector3(lh.x + 1.85f, OrbitalDefense.GalleryY, lh.z), "꼭대기 발코니 (바다 쪽)");
@@ -198,6 +198,28 @@ namespace SpaceStation.Tests
                 foreach (float x in OrbitalDefense.Loungers)
                     Reach(new Vector3(x, F, OrbitalDefense.LoungerZ + 0.9f), $"선베드 앞 {x}");
                 Reach(new Vector3(32.2f, F, -2.0f), "조수 웅덩이 앞 해변");
+                // 주민 자리 모두 걸어서 닿음 (앉는 자리 = 의자 앞 · 옆 바닥) — 곶 윗면 뒤 벤치가 오두막 · 샘에 막혀 부탁을 끝낼 수 없었음 (2026-11-12 사용자 지적)
+                var template = AssetDatabase.LoadAssetAtPath<SpaceStation.Data.InteriorTemplate>("Assets/_Project/Data/Interior/IT_EvoOrbitalDefense.asset");
+                Assert.IsNotNull(template);
+                foreach (var spot in template.ResidentSpots)
+                {
+                    bool sit = spot.Pose == SpaceStation.Data.ResidentPose.Sit;
+                    bool okSpot = false;
+                    foreach (var d in new[] { Vector3.zero, Vector3.forward * 0.5f, Vector3.back * 0.5f, Vector3.left * 0.5f, Vector3.right * 0.5f })
+                    {
+                        var sp = spot.Position + d;
+                        if (sit)
+                            sp.y -= 0.46f;
+                        int k = Node(sp);
+                        if (k >= 0 && seen[k] && Mathf.Abs(nodes[k].y - sp.y) < 0.6f)
+                        {
+                            okSpot = true;
+                            break;
+                        }
+                    }
+                    if (!okSpot)
+                        fails.Add($"주민 자리 ({(sit ? "앉음" : "섬")}) {spot.Position}: 걸어서 못 감");
+                }
                 Assert.IsEmpty(fails, string.Join(" / ", fails));
             }
             finally

@@ -75,8 +75,8 @@ namespace SpaceStation.Interior
         /// </summary>
         public static readonly (Vector3Int Cell, Vector2 Offset, float FloorY)[] Hatches =
         {
-            (new Vector3Int(0, 0, 0), new Vector2(-1.6f, -0.2f), Floor), (new Vector3Int(0, 0, 1), new Vector2(-1.2f, 2.4f), Floor),
-            (new Vector3Int(1, 0, 0), new Vector2(1.0f, -1.2f), Floor), (new Vector3Int(1, 0, 1), new Vector2(2.2f, 2.4f), MoleTop),
+            (new Vector3Int(0, 0, 0), new Vector2(-1.6f, -0.2f), Floor), (new Vector3Int(0, 0, 1), new Vector2(-1.2f, 2.2f), Floor),
+            (new Vector3Int(1, 0, 0), new Vector2(0.6f, -1.4f), Floor), (new Vector3Int(1, 0, 1), new Vector2(2.2f, 2.4f), MoleTop),
             (new Vector3Int(2, 0, 0), new Vector2(0.0f, -2.4f), Floor), (new Vector3Int(2, 0, 1), new Vector2(0.0f, 2.4f), MoleTop),
             (new Vector3Int(3, 0, 0), new Vector2(-0.8f, -2.6f), Floor), (new Vector3Int(3, 0, 1), new Vector2(0.8f, 1.8f), MoleTop),
             (new Vector3Int(4, 0, 0), new Vector2(0.0f, -2.2f), Floor), (new Vector3Int(4, 0, 1), new Vector2(0.5f, -2.3f), Floor + 0.135f),
@@ -84,7 +84,7 @@ namespace SpaceStation.Interior
         /// <summary>위 해치 셋 (외형 위 연결점): 곶 뒤 칸 둘 천장 = 하늘 다리 위, 칸 (2, 0, 1) 천장 = 방파제 위.</summary>
         public static readonly (Vector3Int Cell, Vector2 Offset)[] UpHatches =
         {
-            (new Vector3Int(0, 1, 1), new Vector2(-2.6f, 0f)), (new Vector3Int(1, 1, 1), new Vector2(2.6f, 0f)), (new Vector3Int(2, 0, 1), new Vector2(0.1f, 2.68f)),
+            (new Vector3Int(0, 1, 1), new Vector2(0.6f, 1.08f)), (new Vector3Int(1, 1, 1), new Vector2(0.68f, 0.55f)), (new Vector3Int(2, 0, 1), new Vector2(0.1f, 2.68f)),
         };
         public const float UpHatchDepth = 3.9f;
     }
