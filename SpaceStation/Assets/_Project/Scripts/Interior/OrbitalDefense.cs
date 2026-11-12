@@ -34,8 +34,8 @@ namespace SpaceStation.Interior
         {
             new Vector2(10.42f, 0.86f), new Vector2(9.17f, 1.48f), new Vector2(7.82f, 2.36f), new Vector2(6.96f, 3.34f), new Vector2(6.37f, 4.41f), new Vector2(5.96f, 5.39f),
         };
-        /// <summary>곶 윗면 개울이 뒤 오른쪽 절벽으로 떨어지는 폭포 (물줄기 판 Falls) — 바다 웅덩이에 닿는 자리 · 폭.</summary>
-        public static readonly Vector3 FallsLanding = new Vector3(8.0f, SeaLevel, 9.95f);
+        /// <summary>곶 윗면 개울이 뒤 오른쪽 절벽으로 떨어지는 폭포 (물줄기 판 Falls — 지층 턱마다 흘러 넘음, 2026-11-13) — 바다 웅덩이에 닿는 자리 · 폭.</summary>
+        public static readonly Vector3 FallsLanding = new Vector3(7.76f, SeaLevel, 9.62f);
         public const float FallsWidth = 1.1f;
 
         // ---------------- 해변 · 바다 ----------------
@@ -75,7 +75,7 @@ namespace SpaceStation.Interior
         /// </summary>
         public static readonly (Vector3Int Cell, Vector2 Offset, float FloorY)[] Hatches =
         {
-            (new Vector3Int(0, 0, 0), new Vector2(-1.6f, -0.2f), Floor), (new Vector3Int(0, 0, 1), new Vector2(-1.2f, 2.2f), Floor),
+            (new Vector3Int(0, 0, 0), new Vector2(-1.2f, -2.4f), Floor), (new Vector3Int(0, 0, 1), new Vector2(-0.6f, 2.4f), Floor),
             (new Vector3Int(1, 0, 0), new Vector2(0.6f, -1.4f), Floor), (new Vector3Int(1, 0, 1), new Vector2(2.2f, 2.4f), MoleTop),
             (new Vector3Int(2, 0, 0), new Vector2(0.0f, -2.4f), Floor), (new Vector3Int(2, 0, 1), new Vector2(0.0f, 2.4f), MoleTop),
             (new Vector3Int(3, 0, 0), new Vector2(-0.8f, -2.6f), Floor), (new Vector3Int(3, 0, 1), new Vector2(0.8f, 1.8f), MoleTop),

@@ -169,13 +169,15 @@ namespace SpaceStation.Tests
                 }
                 var lh = OrbitalDefense.Lighthouse;
                 float top_ = OrbitalDefense.CapeTop;
-                Reach(new Vector3(0.042f, -0.923f, 1.862f), "절벽 계단 2단");
-                Reach(new Vector3(0.604f, 0.089f, 0.309f), "절벽 계단 8단");
-                Reach(new Vector3(1.942f, 1.101f, -0.314f), "절벽 계단 14단");
-                Reach(new Vector3(3.377f, 2.113f, -0.665f), "절벽 계단 20단");
-                Reach(new Vector3(4.724f, 3.125f, 0.332f), "절벽 계단 26단");
-                Reach(new Vector3(5.405f, 3.631f, 0.619f), "절벽 계단 29단");
-                Reach(new Vector3(5.0f, top_, 1.2f), "곶 윗면 (계단 꼭대기 → 등대 길)");
+                // 절벽 계단 = 곶을 감고 올라가는 곡선 계단 (2026-11-13 다시 — od3_builder CLIFFSTEPS 단 가운데)
+                Reach(new Vector3(-1.179f, -0.963f, 0.337f), "절벽 계단 2단");
+                Reach(new Vector3(0.104f, 0.049f, -0.915f), "절벽 계단 8단");
+                Reach(new Vector3(1.694f, 1.061f, -1.723f), "절벽 계단 14단");
+                Reach(new Vector3(3.474f, 2.073f, -1.865f), "절벽 계단 20단");
+                Reach(new Vector3(5.218f, 3.085f, -1.491f), "절벽 계단 26단");
+                Reach(new Vector3(5.981f, 3.591f, -1.023f), "절벽 계단 29단");
+                Reach(new Vector3(5.54f, top_, 0.37f), "곶 윗면 (계단 꼭대기 → 등대 길)");
+                Reach(new Vector3(-2.6f, F, -0.4f), "절벽 계단 들머리 (왼쪽 해변)");
                 Reach(new Vector3(6.65f, top_, 3.6f), "곶 끝 망원경 앞");
                 Reach(new Vector3(1.55f, top_, 2.3f), "관리인 오두막 문 앞");
                 Reach(new Vector3(lh.x + 2.0f, top_, lh.z - 2.4f), "등대 둘레 (나선 계단 첫 단 앞)");
@@ -252,6 +254,47 @@ namespace SpaceStation.Tests
                     if (!sit)
                         Assert.IsFalse(Physics.CheckCapsule(p + Vector3.up * 0.3f, p + Vector3.up * 1.1f, 0.24f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"주민 자리가 묻힘 {p}");
                 }
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>
+        /// 선베드 셋 = 누운 자리 (앉은 채 눕고 옆으로 일어섬 — 앞으로 일어서면 선베드 앞 길을 막았음, 사용자 2026-11-13):
+        /// 누운 자리 수 = 선베드 수, 선베드 양옆 0.7 m에 서는 몸 (반지름 0.24)이 들어가는 빈 모래 (탁자 · 파라솔은 등받이 사이).
+        /// </summary>
+        [Test]
+        public void Loungers_LieAndStandUpSideways()
+        {
+            var template = AssetDatabase.LoadAssetAtPath<SpaceStation.Data.InteriorTemplate>("Assets/_Project/Data/Interior/IT_EvoOrbitalDefense.asset");
+            var root = Spawn(out bool ok);
+            if (!ok || template == null)
+            {
+                if (root != null)
+                    Object.DestroyImmediate(root);
+                Assert.Ignore("템플릿 없음 (Build Evolved Templates 먼저)");
+            }
+            try
+            {
+                int lie = 0;
+                foreach (var spot in template.ResidentSpots)
+                {
+                    if (!spot.Lie)
+                        continue;
+                    lie++;
+                    Assert.AreEqual(SpaceStation.Data.ResidentPose.Sit, spot.Pose, $"누운 자리는 앉는 자리 {spot.Position}");
+                    int side = 0;
+                    foreach (float e in new[] { -0.7f, 0.7f })
+                    {
+                        var p = new Vector3(spot.Position.x + e, F, spot.Position.z);
+                        if (!Physics.CheckCapsule(p + Vector3.up * 0.3f, p + Vector3.up * 1.1f, 0.24f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                            side++;
+                    }
+                    Assert.Greater(side, 0, $"선베드 {spot.Position} 양옆이 막혀 옆으로 못 일어남");
+                }
+                Assert.AreEqual(OrbitalDefense.Loungers.Length, lie, "누운 자리 수 = 선베드 수");
             }
             finally
             {
