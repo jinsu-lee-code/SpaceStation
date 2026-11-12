@@ -225,7 +225,7 @@ namespace SpaceStation.Interior
                         }
                     }
                     if (spot.Pose == ResidentPose.Sit)
-                        figure.gameObject.AddComponent<ResidentWander>().InitSeated(wr.Room, mood, _eye, _tuning.AnimalScale, resident.Id);
+                        figure.gameObject.AddComponent<ResidentWander>().InitSeated(wr.Room, mood, _eye, _tuning.AnimalScale, resident.Id, spot.Lie);
                     else
                     {
                         int home = wr.Spots.IndexOf(spot);
@@ -297,6 +297,9 @@ namespace SpaceStation.Interior
             // 다리 · 꼬리가 의자를 뚫지 않게 꼬리를 들고 앞뒤 맞춤 (사용자 2026-10-29) — 꼬리 처짐이 정해진 기분 다음, 앉은 자리 기억(ResidentWander)보다 먼저
             if (spot.Pose == ResidentPose.Sit)
                 ResidentSeatFit.Fit(figure.transform, _tuning.SitDrop, _tuning.AnimalScale);
+            // 누운 자리 (선베드, 사용자 2026-11-13): 앉아 있는 동안 늘 누움 — 일어서면 ResidentMotion이 자세를 풀고, 다시 앉으면 다시 누움
+            if (spot.Pose == ResidentPose.Sit && spot.Lie && figure.Motion != null)
+                figure.Motion.SeatRecline = 1f;
             _figures.Add(figure);
             return figure;
         }

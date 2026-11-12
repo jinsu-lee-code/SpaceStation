@@ -53,18 +53,22 @@ namespace SpaceStation.Data
         [SerializeField] private ResidentPose _pose;
         [Tooltip("일하는 사람 자리 (아니면 사는 사람 · 쉬러 온 사람 자리)")]
         [SerializeField] private bool _work;
+        [Tooltip("누운 자리 (선베드 · 앉는 자리만): 앉은 채 늘 눕고, 일어설 땐 옆으로 내려섬 — 앞 길을 막지 않게")]
+        [SerializeField] private bool _lie;
 
         public Vector3 Position => _position;
         public float Yaw => _yaw;
         public ResidentPose Pose => _pose;
         public bool Work => _work;
+        public bool Lie => _lie;
 
-        public ResidentSpot(Vector3 position, float yaw, ResidentPose pose, bool work = false)
+        public ResidentSpot(Vector3 position, float yaw, ResidentPose pose, bool work = false, bool lie = false)
         {
             _position = position;
             _yaw = yaw;
             _pose = pose;
             _work = work;
+            _lie = lie;
         }
     }
 

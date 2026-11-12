@@ -344,34 +344,34 @@ namespace SpaceStation.Editor
         private static List<ResidentSpot> EvoOrbitalDefenseSpots()
         {
             var list = new List<ResidentSpot>();
-            foreach (var (at, yaw, pose) in new[]
+            foreach (var (at, yaw, pose, lie) in new[]
             {
-                (new Vector3(4.512f, 8.6f, 3.861f), 96.3f, ResidentPose.Stand),
-                (new Vector3(-0.762f, 6.7f, 7.931f), 300.0f, ResidentPose.Stand),
-                (new Vector3(8.685f, 6.7f, 8.153f), 250.0f, ResidentPose.Stand),
-                (new Vector3(2.05f, 3.76f, 2.0f), 180.0f, ResidentPose.Stand),
-                (new Vector3(6.65f, 3.76f, 3.6f), 60.0f, ResidentPose.Stand),
-                (new Vector3(7.9f, 4.22f, 1.55f), 70.0f, ResidentPose.Sit),
-                (new Vector3(13.2f, -1.02f, -2.95f), 180.0f, ResidentPose.Sit),
-                (new Vector3(25.4f, -0.85f, -2.7f), 0.0f, ResidentPose.Sit),
-                (new Vector3(27.4f, -0.85f, -2.7f), 0.0f, ResidentPose.Sit),
-                (new Vector3(29.4f, -0.85f, -2.7f), 0.0f, ResidentPose.Sit),
-                (new Vector3(33.1f, -1.18f, 4.2f), 200.0f, ResidentPose.Stand),
-                (new Vector3(17.94f, -0.72f, 9.891f), 181.8f, ResidentPose.Sit),
-                (new Vector3(26.73f, -0.72f, 8.829f), 195.7f, ResidentPose.Sit),
-                (new Vector3(12.209f, -1.18f, 10.701f), 270.0f, ResidentPose.Stand),
-                (new Vector3(21.501f, -1.18f, 10.448f), 270.0f, ResidentPose.Stand),
-                (new Vector3(28.904f, -1.18f, 8.862f), 270.0f, ResidentPose.Stand),
-                (new Vector3(7.816f, -1.3f, 2.361f), 0.0f, ResidentPose.Stand),
-                (new Vector3(12.0f, -1.3f, -1.5f), 0.0f, ResidentPose.Stand),
-                (new Vector3(16.5f, -1.3f, -1.5f), 20.0f, ResidentPose.Stand),
-                (new Vector3(22.5f, -1.3f, -1.6f), 340.0f, ResidentPose.Stand),
-                (new Vector3(-2.7f, -1.3f, 6.0f), 90.0f, ResidentPose.Stand),
-                (new Vector3(-2.6f, -1.3f, 2.4f), 90.0f, ResidentPose.Stand),
-                (new Vector3(2.2f, -1.3f, 11.0f), 0.0f, ResidentPose.Stand),
-                (new Vector3(6.2f, -1.3f, -2.4f), 0.0f, ResidentPose.Stand),
+                (new Vector3(4.512f, 8.6f, 3.861f), 96.3f, ResidentPose.Stand, false),
+                (new Vector3(-0.762f, 6.7f, 7.931f), 300.0f, ResidentPose.Stand, false),
+                (new Vector3(8.685f, 6.7f, 8.153f), 250.0f, ResidentPose.Stand, false),
+                (new Vector3(2.05f, 3.76f, 2.0f), 180.0f, ResidentPose.Stand, false),
+                (new Vector3(6.65f, 3.76f, 3.6f), 60.0f, ResidentPose.Stand, false),
+                (new Vector3(3.2f, 4.22f, 0.0f), 186.6f, ResidentPose.Sit, false),
+                (new Vector3(13.2f, -1.02f, -2.95f), 180.0f, ResidentPose.Sit, false),
+                (new Vector3(25.4f, -0.85f, -2.7f), 0.0f, ResidentPose.Sit, true),
+                (new Vector3(27.4f, -0.85f, -2.7f), 0.0f, ResidentPose.Sit, true),
+                (new Vector3(29.4f, -0.85f, -2.7f), 0.0f, ResidentPose.Sit, true),
+                (new Vector3(33.1f, -1.18f, 4.2f), 200.0f, ResidentPose.Stand, false),
+                (new Vector3(17.94f, -0.72f, 9.891f), 181.8f, ResidentPose.Sit, false),
+                (new Vector3(26.73f, -0.72f, 8.829f), 195.7f, ResidentPose.Sit, false),
+                (new Vector3(12.209f, -1.18f, 10.701f), 270.0f, ResidentPose.Stand, false),
+                (new Vector3(21.501f, -1.18f, 10.448f), 270.0f, ResidentPose.Stand, false),
+                (new Vector3(28.904f, -1.18f, 8.862f), 270.0f, ResidentPose.Stand, false),
+                (new Vector3(7.816f, -1.3f, 2.361f), 0.0f, ResidentPose.Stand, false),
+                (new Vector3(12.0f, -1.3f, -1.5f), 0.0f, ResidentPose.Stand, false),
+                (new Vector3(16.5f, -1.3f, -1.5f), 20.0f, ResidentPose.Stand, false),
+                (new Vector3(22.5f, -1.3f, -1.6f), 340.0f, ResidentPose.Stand, false),
+                (new Vector3(-2.7f, -1.3f, 6.0f), 90.0f, ResidentPose.Stand, false),
+                (new Vector3(-2.6f, -1.3f, 2.4f), 90.0f, ResidentPose.Stand, false),
+                (new Vector3(2.2f, -1.3f, 11.0f), 0.0f, ResidentPose.Stand, false),
+                (new Vector3(6.6f, -1.3f, -2.4f), 0.0f, ResidentPose.Stand, false),
             })
-                list.Add(new ResidentSpot(at, yaw, pose));
+                list.Add(new ResidentSpot(at, yaw, pose, lie: lie));   // 선베드 = 누운 자리 (앉은 채 눕고 옆으로 일어섬, 2026-11-13)
             return list;
         }
 
