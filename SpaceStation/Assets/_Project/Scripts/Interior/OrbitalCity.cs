@@ -70,7 +70,7 @@ namespace SpaceStation.Interior
             (new Vector3Int(1, 0, 0), new Vector2(2.8f, -2f)), (new Vector3Int(1, 0, 1), new Vector2(2f, 2.2f)), (new Vector3Int(1, 0, 2), Vector2.zero),
             (new Vector3Int(1, 0, 3), new Vector2(2f, -2.2f)), (new Vector3Int(1, 0, 4), new Vector2(-2f, 0f)), (new Vector3Int(2, 0, 0), new Vector2(0f, 0.8f)),
             (new Vector3Int(2, 0, 1), new Vector2(0f, 1.6f)), (new Vector3Int(2, 0, 2), Vector2.zero), (new Vector3Int(2, 0, 3), Vector2.zero),
-            (new Vector3Int(2, 0, 4), new Vector2(0f, -0.8f)), (new Vector3Int(3, 0, 0), new Vector2(-0.4f, -1.2f)), (new Vector3Int(3, 0, 1), new Vector2(-2.2f, 2f)),
+            (new Vector3Int(2, 0, 4), new Vector2(0f, -0.8f)), (new Vector3Int(3, 0, 0), new Vector2(-0.6f, -1.2f)), (new Vector3Int(3, 0, 1), new Vector2(-2f, 1.8f)),
             (new Vector3Int(3, 0, 2), Vector2.zero), (new Vector3Int(3, 0, 3), new Vector2(-2.2f, -2f)), (new Vector3Int(3, 0, 4), new Vector2(2f, 0f)),
             (new Vector3Int(4, 0, 1), new Vector2(-1.4f, 0f)), (new Vector3Int(4, 0, 2), new Vector2(-0.8f, 0f)), (new Vector3Int(4, 0, 3), new Vector2(0f, 2f)),
         };

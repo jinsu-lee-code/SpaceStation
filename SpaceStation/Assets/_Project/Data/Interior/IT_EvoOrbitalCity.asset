@@ -98,12 +98,12 @@ MonoBehaviour:
   - _cell: {x: 3, y: 0, z: 0}
     _direction: {x: 0, y: -1, z: 0}
     _depth: 1.3
-    _offset: {x: -0.4, y: 0, z: -1.2}
+    _offset: {x: -0.6, y: 0, z: -1.2}
     _sealedWall: 0
   - _cell: {x: 3, y: 0, z: 1}
     _direction: {x: 0, y: -1, z: 0}
     _depth: 1.3
-    _offset: {x: -2.2, y: 0, z: 2}
+    _offset: {x: -2, y: 0, z: 1.8}
     _sealedWall: 0
   - _cell: {x: 3, y: 0, z: 2}
     _direction: {x: 0, y: -1, z: 0}
@@ -139,6 +139,7 @@ MonoBehaviour:
   _spawnYaw: 0
   _ambience: 0
   _showOwnExterior: 0
+  _showOwnInterior: 0
   _sealedSockets: 0
   _residentSpots:
   - _position: {x: 27.19348, y: 2.15, z: 0.64728034}
@@ -185,15 +186,15 @@ MonoBehaviour:
     _yaw: 45.000008
     _pose: 0
     _work: 0
-  - _position: {x: 17.632292, y: 1.5, z: 6.742808}
+  - _position: {x: 17.580198, y: 1.5, z: 7.0382495}
     _yaw: 170.00002
     _pose: 0
     _work: 0
-  - _position: {x: 25.3, y: 1.5, z: 16}
+  - _position: {x: 25.1, y: 1.5, z: 16}
     _yaw: 90
     _pose: 0
     _work: 0
-  - _position: {x: 19.5, y: 3.8999999, z: 9.937822}
+  - _position: {x: 19.4, y: 3.8999999, z: 10.111027}
     _yaw: 150.00002
     _pose: 0
     _work: 0
@@ -291,135 +292,131 @@ MonoBehaviour:
     _kind: 2
     _scale: 1.72
     _yaw: 251
-  - _position: {x: -1.869, y: -1.3, z: 32.216}
-    _kind: 1
-    _scale: 1.95
-    _yaw: 298
   - _position: {x: 6.23, y: -1.3, z: 33.862}
     _kind: 2
     _scale: 1.83
-    _yaw: 345
+    _yaw: 298
   - _position: {x: 5.287, y: -1.3, z: 33.017}
     _kind: 1
     _scale: 1.79
-    _yaw: 32
+    _yaw: 345
   - _position: {x: -1.563, y: -1.3, z: 27.677}
     _kind: 2
     _scale: 1.51
-    _yaw: 79
+    _yaw: 32
   - _position: {x: -0.722, y: -1.3, z: 30.031}
     _kind: 1
     _scale: 1.94
-    _yaw: 126
+    _yaw: 79
   - _position: {x: 6.207, y: -1.3, z: 33.48}
     _kind: 2
     _scale: 1.45
-    _yaw: 173
+    _yaw: 126
   - _position: {x: -0.191, y: -1.3, z: 28.881}
     _kind: 1
     _scale: 1.97
-    _yaw: 220
+    _yaw: 173
   - _position: {x: 0.254, y: -1.3, z: 30.138}
     _kind: 2
     _scale: 1.64
-    _yaw: 267
+    _yaw: 220
   - _position: {x: -0.682, y: -1.3, z: 27.424}
     _kind: 1
     _scale: 2.13
-    _yaw: 314
+    _yaw: 267
   - _position: {x: -1.289, y: -1.3, z: 31.743}
     _kind: 2
     _scale: 1.67
-    _yaw: 1
+    _yaw: 314
   - _position: {x: 29.623, y: -1.3, z: 34.25}
     _kind: 3
     _scale: 1.97
-    _yaw: 48
+    _yaw: 1
   - _position: {x: 33.982, y: -1.3, z: 26.912}
     _kind: 3
     _scale: 2.05
-    _yaw: 95
+    _yaw: 48
   - _position: {x: 32.823, y: -1.3, z: 26.705}
     _kind: 3
     _scale: 2.09
-    _yaw: 142
+    _yaw: 95
   - _position: {x: 29.739, y: -1.3, z: 33}
     _kind: 3
     _scale: 2.26
-    _yaw: 189
+    _yaw: 142
   - _position: {x: 26.957, y: -1.3, z: 33.892}
     _kind: 3
     _scale: 1.99
-    _yaw: 236
+    _yaw: 189
   - _position: {x: 30.412, y: -1.3, z: 32.231}
     _kind: 3
     _scale: 2.15
-    _yaw: 283
+    _yaw: 236
   - _position: {x: 27.269, y: -1.3, z: 33.512}
     _kind: 3
     _scale: 2.37
-    _yaw: 330
+    _yaw: 283
   - _position: {x: 30.087, y: -1.3, z: 33.34}
     _kind: 3
     _scale: 1.84
-    _yaw: 17
+    _yaw: 330
   - _position: {x: 30.539, y: -1.3, z: 33.51}
     _kind: 3
     _scale: 2.4
-    _yaw: 64
+    _yaw: 17
   - _position: {x: 33.432, y: -1.3, z: 29.254}
     _kind: 3
     _scale: 2.03
-    _yaw: 111
-  - _position: {x: 14.463, y: 1.5, z: 24.716}
+    _yaw: 64
+  - _position: {x: 12.4, y: 1.5, z: 24.085}
     _kind: 3
     _scale: 1.2
-    _yaw: 158
+    _yaw: 111
   - _position: {x: 9.221, y: 1.5, z: 21.689}
     _kind: 1
     _scale: 1.15
-    _yaw: 205
+    _yaw: 158
   - _position: {x: 7.15, y: 1.5, z: 16}
     _kind: 3
     _scale: 1.2
-    _yaw: 252
+    _yaw: 205
   - _position: {x: 19.027, y: 1.5, z: 7.684}
     _kind: 1
     _scale: 1.15
-    _yaw: 299
+    _yaw: 252
   - _position: {x: 23.422, y: 1.5, z: 11.18}
     _kind: 3
     _scale: 1.2
-    _yaw: 346
+    _yaw: 299
   - _position: {x: 21.406, y: 3.9, z: 19.786}
     _kind: 3
     _scale: 1.08
-    _yaw: 33
+    _yaw: 346
   - _position: {x: 12.7, y: 3.9, z: 21.716}
     _kind: 1
     _scale: 1.03
-    _yaw: 80
+    _yaw: 33
   - _position: {x: 14.292, y: 3.9, z: 9.625}
     _kind: 3
     _scale: 1.08
-    _yaw: 127
+    _yaw: 80
   - _position: {x: 19.3, y: 3.9, z: 10.284}
     _kind: 1
     _scale: 1.03
-    _yaw: 174
+    _yaw: 127
   - _position: {x: 18.864, y: 39.2, z: 18.864}
     _kind: 3
     _scale: 0.5
-    _yaw: 221
+    _yaw: 174
   - _position: {x: 13.136, y: 39.2, z: 18.864}
     _kind: 1
     _scale: 0.5
-    _yaw: 268
+    _yaw: 221
   - _position: {x: 13.136, y: 39.2, z: 13.136}
     _kind: 3
     _scale: 0.5
-    _yaw: 315
+    _yaw: 268
   - _position: {x: 18.864, y: 39.2, z: 13.136}
     _kind: 1
     _scale: 0.5
-    _yaw: 2
+    _yaw: 315

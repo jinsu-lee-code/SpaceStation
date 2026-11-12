@@ -169,6 +169,15 @@ namespace SpaceStation.Tests
                     Assert.GreaterOrEqual(k, 0, $"옥상 {a}°: 설 곳 없음");
                     Assert.IsTrue(seen[k], $"옥상 {a}°: 승강기 앞에서 걸어서 못 감");
                 }
+                var template = AssetDatabase.LoadAssetAtPath<SpaceStation.Data.InteriorTemplate>("Assets/_Project/Data/Interior/IT_EvoOrbitalCity.asset");
+                Assert.IsNotNull(template);
+                foreach (var spot in template.ResidentSpots)
+                {
+                    if (spot.Position.y < roof - 1f)
+                        continue;
+                    int k = At(spot.Position);
+                    Assert.IsTrue(k >= 0 && seen[k], $"옥상 주민 자리 {spot.Position}: 승강기 앞에서 걸어서 못 감");
+                }
             }
             finally
             {
@@ -362,11 +371,34 @@ namespace SpaceStation.Tests
                     Assert.IsFalse(Physics.CheckBox(h + Vector3.up * 0.06f, new Vector3(0.7f, 0.04f, 0.7f), Quaternion.identity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"해치 {cell} 뚜껑이 묻힘");
                 }
                 Reach(OrbitalCity.Polar(OrbitalCity.TrackRadius + 1.8f, OrbitalCity.FrontAngle, OrbitalCity.PlatformTop), "승강장 운전석 옆");
-                Reach(OrbitalCity.Polar(9.3f, 0f, F + 2.8f), "아래 단");
-                Reach(OrbitalCity.Polar(7.5f, 45f, F + 5.2f), "위 단");
+                Reach(OrbitalCity.Polar(9.1f, 0f, F + 2.8f), "아래 단");
+                Reach(OrbitalCity.Polar(6.9f, 45f, F + 5.2f), "위 단");
                 Reach(new Vector3(16f, F + 8f, 13.2f), "꼭대기 광장 (엘리베이터 앞)");
                 Reach(new Vector3(17.6f, F, 16f), "뿌리 홀");
                 Reach(OrbitalCity.Polar(19.55f, 237f, F + 0.18f), "호숫가 정자");
+                // 주민 자리 = 모두 걸어서 닿음 (2026-11-12 궤도 방어망 지적 — 갈 수 없는 자리의 주민은 부탁을 끝낼 수 없음): 앉는 자리는 의자 앞 · 옆 바닥, 옥상은 승강기라 Walk_RoofDeckAllAround
+                var template = AssetDatabase.LoadAssetAtPath<SpaceStation.Data.InteriorTemplate>("Assets/_Project/Data/Interior/IT_EvoOrbitalCity.asset");
+                Assert.IsNotNull(template);
+                foreach (var spot in template.ResidentSpots)
+                {
+                    if (spot.Position.y > OrbitalCity.LiftStops[OrbitalCity.LiftStops.Length - 1] - 1f)
+                        continue;
+                    bool sit = spot.Pose == SpaceStation.Data.ResidentPose.Sit;
+                    bool okSpot = false;
+                    foreach (var d in new[] { Vector3.zero, Vector3.forward * 0.5f, Vector3.back * 0.5f, Vector3.left * 0.5f, Vector3.right * 0.5f })
+                    {
+                        var sp = spot.Position + d;
+                        if (sit)
+                            sp.y -= 0.45f;
+                        int k = Node(sp);
+                        if (k >= 0 && seen[k] && Mathf.Abs(nodes[k].y - sp.y) < 0.6f)
+                        {
+                            okSpot = true;
+                            break;
+                        }
+                    }
+                    Assert.IsTrue(okSpot, $"주민 자리 {spot.Position}: 스폰에서 걸어서 못 감");
+                }
             }
             finally
             {
