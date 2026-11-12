@@ -185,6 +185,29 @@ namespace SpaceStation.Tests
                     Reach(sky, Biosphere.Polar(6.5f, a, Biosphere.SkyTop), $"아치 다리 {a}°");
                 var up = Biosphere.Polar(Biosphere.UpHatchOffset.z - 0.25f, 90f, Biosphere.SkyTop);
                 Reach(sky, up, "위 해치 밑");
+                // 주민 자리 = 모두 걸어서 닿음 (2026-11-12 궤도 방어망 지적을 앞 모듈에도 — 정자 고리 의자 (0.45 m)가 한 바퀴를 막아 가운데 주민 자리에 못 들어갔음):
+                //  땅 = 정문 스폰에서, 하늘 정원 = 승강기 위 문 앞에서
+                var template = AssetDatabase.LoadAssetAtPath<SpaceStation.Data.InteriorTemplate>("Assets/_Project/Data/Interior/IT_EvoBiosphere.asset");
+                Assert.IsNotNull(template);
+                foreach (var spot in template.ResidentSpots)
+                {
+                    var seenAt = spot.Position.y > Biosphere.SkyTop - 1f ? sky : ground;
+                    bool sit = spot.Pose == SpaceStation.Data.ResidentPose.Sit;
+                    bool okSpot = false;
+                    foreach (var d in new[] { Vector3.zero, Vector3.forward * 0.5f, Vector3.back * 0.5f, Vector3.left * 0.5f, Vector3.right * 0.5f })
+                    {
+                        var sp = spot.Position + d;
+                        if (sit)
+                            sp.y -= 0.45f;
+                        int k = Node(sp);
+                        if (k >= 0 && seenAt[k] && Mathf.Abs(nodes[k].y - sp.y) < 0.6f)
+                        {
+                            okSpot = true;
+                            break;
+                        }
+                    }
+                    Assert.IsTrue(okSpot, $"주민 자리 {spot.Position}: 걸어서 못 감");
+                }
                 Assert.Less(Biosphere.UpHatchCell.y * 8f + Biosphere.UpHatchDepth - (Biosphere.SkyTop + 1.6f), 2.6f, "위 해치가 눈에서 손 닿는 거리 (해치 4 m)");
             }
             finally
