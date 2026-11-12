@@ -44,8 +44,8 @@ namespace SpaceStation.Interior
         public static readonly Vector3 Turret = new Vector3(22.45f, Floor + 0.12f, 5.05f);
         public const float TurretRadius = 1.75f;
         public static readonly Vector3[] Buoys = { new Vector3(14.8f, SeaLevel, 3.2f), new Vector3(28.96f, SeaLevel, 2.72f) };
-        /// <summary>방파제 끝 등불대 참 (가운데 · 반지름, 윗면 Floor + 0.135) — 오로라 레버 받침이 앞 왼쪽 가장자리.</summary>
-        public static readonly Vector3 MoleEnd = new Vector3(32.5f, Floor + 0.135f, 5.7f);
+        /// <summary>방파제 끝 등불대 참 (가운데 · 반지름, 윗면 = 길과 같은 Floor + 0.12 — 2026-11-13, 턱이 참 둘레를 한 줄로 감음) — 오로라 레버 받침이 앞 왼쪽 가장자리.</summary>
+        public static readonly Vector3 MoleEnd = new Vector3(32.5f, Floor + 0.12f, 5.7f);
         public const float MoleEndRadius = 2.3f;
         public const float MoleTop = Floor + 0.12f;
         /// <summary>선베드 셋 (오로라 관람, 바다 = +z를 봄).</summary>
@@ -79,7 +79,7 @@ namespace SpaceStation.Interior
             (new Vector3Int(1, 0, 0), new Vector2(0.6f, -1.4f), Floor), (new Vector3Int(1, 0, 1), new Vector2(2.2f, 2.4f), MoleTop),
             (new Vector3Int(2, 0, 0), new Vector2(0.0f, -2.4f), Floor), (new Vector3Int(2, 0, 1), new Vector2(0.0f, 2.4f), MoleTop),
             (new Vector3Int(3, 0, 0), new Vector2(-0.8f, -2.6f), Floor), (new Vector3Int(3, 0, 1), new Vector2(0.8f, 1.8f), MoleTop),
-            (new Vector3Int(4, 0, 0), new Vector2(0.0f, -2.2f), Floor), (new Vector3Int(4, 0, 1), new Vector2(0.5f, -2.3f), Floor + 0.135f),
+            (new Vector3Int(4, 0, 0), new Vector2(0.0f, -2.2f), Floor), (new Vector3Int(4, 0, 1), new Vector2(0.5f, -2.3f), MoleTop),
         };
         /// <summary>위 해치 셋 (외형 위 연결점): 곶 뒤 칸 둘 천장 = 하늘 다리 위, 칸 (2, 0, 1) 천장 = 방파제 위.</summary>
         public static readonly (Vector3Int Cell, Vector2 Offset)[] UpHatches =

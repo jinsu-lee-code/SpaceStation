@@ -285,6 +285,9 @@ namespace SpaceStation.Tests
                         continue;
                     lie++;
                     Assert.AreEqual(SpaceStation.Data.ResidentPose.Sit, spot.Pose, $"누운 자리는 앉는 자리 {spot.Position}");
+                    // 누운 자리 = 방석 윗면 (의자 높이 0.45로 두었더니 누운 몸이 8.5 cm 떠 있었음, 사용자 2026-11-13)
+                    Assert.IsTrue(Physics.Raycast(spot.Position + Vector3.up * 0.3f, Vector3.down, out var seat, 0.6f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"선베드 방석 없음 {spot.Position}");
+                    Assert.Less(Mathf.Abs(seat.point.y - spot.Position.y), 0.02f, $"누운 자리 높이 ≠ 방석 윗면 {spot.Position} → {seat.point.y:F3}");
                     int side = 0;
                     foreach (float e in new[] { -0.7f, 0.7f })
                     {
