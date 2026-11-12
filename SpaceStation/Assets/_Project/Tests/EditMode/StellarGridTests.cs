@@ -180,6 +180,27 @@ namespace SpaceStation.Tests
                 Reach(new Vector3(0.9f, F, 6.3f), "꽃나무 숲 안 (뒤)");
                 Reach(new Vector3(26.4f, F, 9.9f), "연못가 (뒤 산책길)");
                 Reach(new Vector3(22.5f, F, 2.5f), "징검돌 길");
+                // 주민 자리 = 모두 걸어서 닿음 (2026-11-12 궤도 방어망 지적을 앞 모듈에도 — 갈 수 없는 자리의 주민은 부탁을 끝낼 수 없음): 앉는 자리는 의자 앞 · 옆 바닥
+                var template = AssetDatabase.LoadAssetAtPath<SpaceStation.Data.InteriorTemplate>("Assets/_Project/Data/Interior/IT_EvoStellarGrid.asset");
+                Assert.IsNotNull(template);
+                foreach (var spot in template.ResidentSpots)
+                {
+                    bool sit = spot.Pose == SpaceStation.Data.ResidentPose.Sit;
+                    bool okSpot = false;
+                    foreach (var d in new[] { Vector3.zero, Vector3.forward * 0.5f, Vector3.back * 0.5f, Vector3.left * 0.5f, Vector3.right * 0.5f })
+                    {
+                        var sp = spot.Position + d;
+                        if (sit)
+                            sp.y -= 0.45f;
+                        int k = Node(sp);
+                        if (k >= 0 && seen[k] && Mathf.Abs(nodes[k].y - sp.y) < 0.6f)
+                        {
+                            okSpot = true;
+                            break;
+                        }
+                    }
+                    Assert.IsTrue(okSpot, $"주민 자리 {spot.Position}: 걸어서 못 감");
+                }
                 Assert.Less(StellarGrid.UpHatchCell.y * 8f + StellarGrid.UpHatchDepth - (StellarGrid.Lookout.y + 1.6f), 2.6f, "위 해치가 전망대 눈에서 손 닿는 거리 (해치 4 m)");
             }
             finally
