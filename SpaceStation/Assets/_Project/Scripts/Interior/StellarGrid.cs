@@ -35,7 +35,7 @@ namespace SpaceStation.Interior
         public static readonly Vector3 HallCenter = new Vector3(40f, Floor, 4.6f);
         public static readonly Vector3 Portal = new Vector3(36.75f, Floor + 1.15f, 3.6f);
         /// <summary>꿀 언덕 꼭대기 여왕 수정 가운데 (sg3_builder PEAK).</summary>
-        public static readonly Vector3 Queen = new Vector3(40f, 10.62f, 4.83f);
+        public static readonly Vector3 Queen = new Vector3(40f, 10.54f, 4.83f);
 
         // ---------------- 꿀 샘 (미니게임 "벌 몰래 꿀 먹기" 무대, InteriorHoneySneak) ----------------
         public static readonly Vector3 HoneySpring = new Vector3(34.4f, Floor, 0.96f);
