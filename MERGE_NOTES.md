@@ -2740,3 +2740,15 @@
 - `ResidentSpot.Lie` (누운 자리) · `InteriorResidents` (앉은 채 눕기) · `ResidentWander` (누운 자리는 옆으로 일어섬) · `OrbitalDefense` (해치 둘 · 폭포 자리) · 주민 자리 · 시험 (`Loungers_LieAndStandUpSideways`, 절벽 계단 단 좌표)
 
 - 체크리스트 125 ~ 132 · 06c 기록
+
+## M-185. 궤도 방어망 3차 다섯 — 선베드 누운 몸 맞춤 · 노 · 잔교 난간만 · 방파제 끝 턱 한 띠 · 나선 계단 낮은 단 (2026-11-13, `main`)
+
+
+
+**main에 넣은 것**
+
+- Interior_Evo blend (od3_builder) · 궤도 방어망 내부 모델 · 프리팹 · 템플릿: 선베드 등받이 45° · 경첩 뒤로 (누운 몸에 맞춤), 노 = 앉음판 위, 잔교 = 난간 한 줄 (말뚝은 판 밑), 방파제 끝 = 턱 한 띠가 참 둘레를 감음 · 참 윗면 = 길 높이, 나선 계단 낮은 단 탑에서 뗌
+
+- `InteriorResidents` (누운 자리는 ResidentSeatFit 안 씀) · `OrbitalDefense` (MoleEnd · 해치 (4, 1) = MoleTop) · 누운 자리 높이 = 방석 윗면 · 시험 (누운 자리 = 방석 윗면)
+
+- 체크리스트 133 · 134 · 06c 기록
