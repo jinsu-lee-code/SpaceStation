@@ -266,9 +266,9 @@ namespace SpaceStation.Editor
                 var side = new Vector3(-Mathf.Sin(a), 0f, Mathf.Cos(a)) * 0.75f;
                 list.Add(new ResidentSpot(P(12.8f, d, Floor + 0.61f) + side, Interior.OrbitalCity.ForwardYaw(d), ResidentPose.Stand));   // 다리 위 한쪽 (강을 따라)
             }
-            list.Add(new ResidentSpot(P(9.4f, 280f, Floor + 2.8f), Out(280f), ResidentPose.Stand));    // 아래 단 (폭포 옆)
-            list.Add(new ResidentSpot(P(9.3f, 0f, Floor + 2.8f), Out(0f), ResidentPose.Stand));
-            list.Add(new ResidentSpot(P(7.0f, 300f, Floor + 5.2f), Out(300f), ResidentPose.Stand));    // 위 단
+            list.Add(new ResidentSpot(P(9.1f, 280f, Floor + 2.8f), Out(280f), ResidentPose.Stand));    // 아래 단 (폭포 옆) — 단 가장자리 난간 (가장자리 안 0.32) 안
+            list.Add(new ResidentSpot(P(9.1f, 0f, Floor + 2.8f), Out(0f), ResidentPose.Stand));
+            list.Add(new ResidentSpot(P(6.8f, 300f, Floor + 5.2f), Out(300f), ResidentPose.Stand));    // 위 단
             list.Add(new ResidentSpot(P(3.6f, 250f, Floor + 8f), Out(250f), ResidentPose.Stand));      // 꼭대기 광장 (폭포 쪽 내려다봄)
             list.Add(new ResidentSpot(P(3.6f, 80f, Floor + 8f), Out(80f), ResidentPose.Stand));
             list.Add(new ResidentSpot(P(2.0f, 135f, Floor), Out(135f) + 180f, ResidentPose.Stand));    // 뿌리 홀
