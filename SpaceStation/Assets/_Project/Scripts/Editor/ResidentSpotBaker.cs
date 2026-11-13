@@ -395,7 +395,7 @@ namespace SpaceStation.Editor
                 (new Vector3(11.188f, 9.2f, 4.266f), 105.0f, ResidentPose.Stand, false),
                 (new Vector3(-2.8f, -2.08f, 8.4f), 106.9f, ResidentPose.Stand, false),
                 (new Vector3(17.9f, -2.08f, 17.1f), 219.6f, ResidentPose.Stand, false),
-                (new Vector3(-2.6f, -2.08f, 18.4f), 141.4f, ResidentPose.Stand, false),
+                (new Vector3(-3.0f, -2.08f, 18.4f), 140.4f, ResidentPose.Stand, false),
                 (new Vector3(12.4f, -2.08f, -2.6f), 330.3f, ResidentPose.Stand, false),
                 (new Vector3(7.3f, -2.08f, 16.6f), 176.5f, ResidentPose.Stand, false),
                 (new Vector3(9.8f, -2.08f, 18.6f), 187.6f, ResidentPose.Stand, false),
@@ -406,7 +406,7 @@ namespace SpaceStation.Editor
                 (new Vector3(1.8f, -1.63f, 5.6f), 94.4f, ResidentPose.Stand, false),
                 (new Vector3(1.8f, -2.08f, -1.6f), 42.7f, ResidentPose.Stand, false),
                 (new Vector3(14.2f, -2.049f, 0.4f), 307.3f, ResidentPose.Stand, false),
-                (new Vector3(17.6f, -2.08f, 10.8f), 239.4f, ResidentPose.Stand, false),
+                (new Vector3(18.3f, -2.08f, 11.5f), 238.2f, ResidentPose.Stand, false),
             })
                 list.Add(new ResidentSpot(at, yaw, pose, lie: lie));
             return list;

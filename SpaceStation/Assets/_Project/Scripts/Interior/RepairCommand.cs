@@ -86,7 +86,7 @@ namespace SpaceStation.Interior
         {
             (new Vector3Int(0, 0, 0), new Vector2(0.0f, 0.0f), -2.079f), (new Vector3Int(0, 0, 1), new Vector2(-1.3f, 0.0f), Floor), (new Vector3Int(0, 0, 2), new Vector2(-1.2f, 0.0f), Floor),
             (new Vector3Int(1, 0, 0), new Vector2(2.9f, -2.9f), -2.069f), (new Vector3Int(1, 0, 1), new Vector2(0.9f, 1.6f), HillTop), (new Vector3Int(1, 0, 2), new Vector2(-1.9f, 1.3f), Floor),
-            (new Vector3Int(2, 0, 0), new Vector2(0.0f, 0.0f), Floor), (new Vector3Int(2, 0, 1), new Vector2(1.9f, 0.4f), Floor), (new Vector3Int(2, 0, 2), new Vector2(1.0f, 0.0f), Floor),
+            (new Vector3Int(2, 0, 0), new Vector2(0.0f, 0.0f), Floor), (new Vector3Int(2, 0, 1), new Vector2(2.1f, -0.5f), Floor), (new Vector3Int(2, 0, 2), new Vector2(1.0f, 0.0f), Floor),
         };
         /// <summary>위 해치 둘 (외형 위 연결점): 칸 (1, 1, 0) · (1, 1, 1) 천장 = 꼭대기 관측대 위 (계단 구멍 난간과 바깥 난간 사이, 축에서 3.2 m).</summary>
         public static readonly (Vector3Int Cell, Vector2 Offset)[] UpHatches =

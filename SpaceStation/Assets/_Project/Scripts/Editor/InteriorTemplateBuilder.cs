@@ -5452,6 +5452,11 @@ namespace SpaceStation.Editor
                 lights.Add(LightSpec.Point(new Vector3(t.x + dx, RepairCommand.DeckY + 1.8f, t.z), 7f, 0.75f, white));        // 꼭대기 관측대 (수정 등대 둘레)
             foreach (var p in new[] { new Vector3(13f, 7.2f, 6f), new Vector3(3f, 7.2f, 4f) })
                 lights.Add(LightSpec.Point(p, 7f, 0.55f, warm));                                                              // 잎 구름 아래 (가지 등불)
+            // 빨래 = 줄 양쪽 1.3 m에 가까운 하얀 등 둘 (멀고 약한 등 하나는 천 그늘면 · 화면 공간 그늘 얼룩만 보여 빨지 않은 천처럼 어두웠음 — 2026-11-13 Unity 확인) + 약초 밭
+            lights.Add(LightSpec.Point(new Vector3(-1.7f, RF + 2.3f, 11.5f), 5f, 2.2f, white));
+            lights.Add(LightSpec.Point(new Vector3(-1.8f, RF + 2.3f, 14.2f), 5f, 2.0f, white));
+            lights.Add(LightSpec.Point(new Vector3(-1.3f, RF + 2.4f, 17.6f), 4f, 1.2f, white));
+            lights.Add(LightSpec.Point(new Vector3(16.2f, RF + 2.9f, 9.0f), 6f, 0.7f, white));                              // 길옆에 세운 수정 수레
             EvoAccent("RepairCommand", "#FFE0B0");
             // 스폰 = 앞 빈터 그루터기 뒤 (기억 등불 다섯 · 고목 · 관측대를 봄).
             // 자기 방을 하늘 화면에 보임: 위 칸은 뒤 두 줄뿐이라, 앞 빈터에서 올려다보면 바닥 칸 천장 (3.95)이 관측대 · 잎 구름 윗부분을 가림 (궤도 방어망과 같음)
@@ -7189,6 +7194,11 @@ namespace SpaceStation.Editor
                 { "Evo3MushCap", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3RoofPath) },
                 { "Evo3Cushion", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3Wax2Path) },
                 { "Evo3Moss", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PlantPath) },
+                { "Evo3TreeBark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3TreeBarkPath) },   // 고목 줄기 · 뿌리 · 가지 · 그루터기 (트라이플래너 껍질)
+                { "Evo3Wood", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3WoodPath) },
+                { "Evo3LinenBlue", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LinenBluePath) },
+                { "Evo3LinenRose", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LinenRosePath) },
+                { "Evo3LinenWhite", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LinenWhitePath) },
             };
             for (int i = 0; i < 7; i++)
                 materials["Evo3Rainbow" + i] = ModuleFxMaterials.Get("Rainbow" + i);   // 프리즘 무지개 고리 일곱 (바깥과 같은 빛 물결)
