@@ -16,6 +16,8 @@ namespace SpaceStation.Interior
     /// 마우스로 조준해 클릭 = 포 끝 수정에서 프리즘 광선 (바깥 포대와 같은 <see cref="PrismBeamFx"/>) → 맞으면 무지개 수정 불꽃, 바다에 떨어지면 놓침.
     /// 포대 수정 무리는 조준하는 쪽으로 기움. 끝나면 맞힌 수 · 놓친 수 · 최고 기록 (글자), 클릭 = 다시, F · ESC = 내림. 실제 시간.
     /// 조준 표시 = 흰 십자 (별똥별이 겨눠지면 커지고 밝아짐 — 색 대신 크기 · 밝기, 색약).
+    /// 별똥별은 길 전체가 앉은 처음 화면 안일 때만 떨어지고 (<see cref="OrbitalDefense.StarfallPathVisible"/>), 고개를 돌려 화면 밖이 된 것은 가장자리 흰 세모로 알려 줌
+    /// (사용자 2026-11-13 "앉은 시야 밖으로 떨어지는 별똥별도 있어서 놓치기 쉬움").
     /// </summary>
     [DefaultExecutionOrder(-320)] // InteriorMode(-300)보다 먼저: 앉은 채 누른 F · ESC를 여기서 먼저 씀
     public sealed class InteriorStarfall : MonoBehaviour
@@ -63,6 +65,8 @@ namespace SpaceStation.Interior
         private Canvas _canvas;
         private TextMeshProUGUI _hint;
         private RectTransform _cross;
+        private readonly List<RectTransform> _arrows = new List<RectTransform>();
+        private Sprite _arrowSprite;
         private string _hintShown;
 
         public StarfallGame Game => _game;
@@ -110,6 +114,11 @@ namespace SpaceStation.Interior
         {
             if (_canvas != null)
                 Destroy(_canvas.gameObject);
+            if (_arrowSprite != null)
+            {
+                Destroy(_arrowSprite.texture);
+                Destroy(_arrowSprite);
+            }
         }
 
         private void Update()
@@ -287,13 +296,13 @@ namespace SpaceStation.Interior
 
         private void Launch()
         {
-            for (int tries = 0; tries < 8; tries++)
+            for (int tries = 0; tries < 16; tries++)
             {
                 var to = OrbitalDefense.StarfallTarget(Random.Range(-OrbitalDefense.StarfallSpread, OrbitalDefense.StarfallSpread),
                     Random.Range(OrbitalDefense.StarfallNear, OrbitalDefense.StarfallFar));
-                var from = OrbitalDefense.MeteorStart(to, OrbitalDefense.StarfallIncoming(to, Random.Range(OrbitalDefense.StarfallOutMin, OrbitalDefense.StarfallOutMax), Random.Range(-1f, 1f)), 9f);
-                if ((from - to).magnitude < 3f || !OrbitalDefense.StarfallVisible(from))
-                    continue;   // 짧거나 포수 등 뒤 · 머리 바로 위에서 오면 다시 고름
+                var from = OrbitalDefense.MeteorStart(to, OrbitalDefense.StarfallIncoming(to, Random.Range(OrbitalDefense.StarfallRiseMin, OrbitalDefense.StarfallRiseMax), Random.Range(-1f, 1f)), 12f);
+                if ((from - to).magnitude < 3f || !OrbitalDefense.StarfallPathVisible(from, to))
+                    continue;   // 짧거나 앉은 처음 화면 밖을 지나면 다시 고름 (시야 밖에 떨어져 놓치기 쉬웠음)
                 _stars.Add(new ShootingStar(transform, _streakMaterial, transform.TransformPoint(from), transform.TransformPoint(to), _game.Speed));
                 AudioService.TryPlay(l => l.MeteorIncoming);
                 return;
@@ -456,6 +465,80 @@ namespace SpaceStation.Interior
                 foreach (var g in _cross.GetComponentsInChildren<Image>())
                     g.color = new Color(1f, 1f, 1f, aimed ? 1f : 0.7f);
             }
+            UpdateArrows();
+        }
+
+        /// <summary>
+        /// 화면 밖 별똥별: 화면 가장자리에 그쪽을 가리키는 흰 세모 (마우스로 고개를 돌려 시야 밖이 된 것 — 떨어지는 자리는 처음 화면 안).
+        /// 색 대신 모양 · 밝기 (색약), 가까이 떨어질수록 진함.
+        /// </summary>
+        private void UpdateArrows()
+        {
+            var cam = Camera.main;
+            int used = 0;
+            if (cam != null && _canvas != null && _game.Playing)
+            {
+                var size = ((RectTransform)_canvas.transform).rect.size;
+                foreach (var s in _stars)
+                {
+                    var vp = cam.WorldToViewportPoint(s.Head);
+                    bool behind = vp.z < 0f;
+                    if (!behind && vp.x > 0.03f && vp.x < 0.97f && vp.y > 0.03f && vp.y < 0.97f)
+                        continue;
+                    var dir = new Vector2(vp.x - 0.5f, vp.y - 0.5f);
+                    if (behind)
+                        dir = -dir;
+                    if (dir.sqrMagnitude < 1e-6f)
+                        dir = Vector2.down;
+                    var edge = dir * (0.44f / Mathf.Max(Mathf.Abs(dir.x), Mathf.Abs(dir.y)));
+                    var arrow = Arrow(used++);
+                    arrow.anchoredPosition = new Vector2(edge.x * size.x, edge.y * size.y);
+                    arrow.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f);
+                    arrow.GetComponent<Image>().color = new Color(1f, 1f, 1f, Mathf.Lerp(0.95f, 0.5f, s.T / s.Duration));
+                    arrow.gameObject.SetActive(true);
+                }
+            }
+            for (int i = used; i < _arrows.Count; i++)
+                _arrows[i].gameObject.SetActive(false);
+        }
+
+        private RectTransform Arrow(int i)
+        {
+            while (_arrows.Count <= i)
+            {
+                var image = new GameObject("OffscreenStar", typeof(RectTransform)).AddComponent<Image>();
+                image.transform.SetParent(_canvas.transform, false);
+                image.sprite = ArrowSprite();
+                image.raycastTarget = false;
+                var rt = image.rectTransform;
+                rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.sizeDelta = new Vector2(34f, 34f);
+                _arrows.Add(rt);
+            }
+            return _arrows[i];
+        }
+
+        /// <summary>위를 가리키는 흰 세모 (가장자리 부드럽게).</summary>
+        private Sprite ArrowSprite()
+        {
+            if (_arrowSprite != null)
+                return _arrowSprite;
+            const int N = 32;
+            var tex = new Texture2D(N, N, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "OffscreenStarArrow" };
+            var px = new Color32[N * N];
+            for (int y = 0; y < N; y++)
+            {
+                for (int x = 0; x < N; x++)
+                {
+                    float v = (y + 0.5f) / N, u = Mathf.Abs((x + 0.5f) / N - 0.5f) * 2f;
+                    float a = Mathf.Clamp01(((1f - v) - u) * N * 0.5f) * Mathf.Clamp01(v * N * 0.5f);
+                    px[y * N + x] = new Color32(255, 255, 255, (byte)(a * 255f));
+                }
+            }
+            tex.SetPixels32(px);
+            tex.Apply();
+            _arrowSprite = Sprite.Create(tex, new Rect(0, 0, N, N), new Vector2(0.5f, 0.5f));
+            return _arrowSprite;
         }
 
         private void ShowHint(string text)

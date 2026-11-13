@@ -468,7 +468,10 @@ namespace SpaceStation.Tests
             Assert.AreEqual(0, g.Hits, "새 판에 맞힌 수가 남음");
         }
 
-        /// <summary>별똥별 길: 닿을 자리 = 방 안 수면, 출발 = 하늘 면 (천장 · 벽) 안, 대부분 3 m 넘게 날아 보이고 포수 앞쪽 (± 100°) · 너무 높지 않게 (70° 아래) 보임, 포수 몸을 지나지 않음.</summary>
+        /// <summary>
+        /// 별똥별 길: 닿을 자리 = 방 안 수면, 출발 = 하늘 면 (천장 · 벽) 안, 고른 길은 3 m 넘게 날고 길 전체가 앉은 처음 화면 안 (사용자 2026-11-13 "시야 밖으로 떨어져 놓치기 쉬움"),
+        /// 포수 몸을 지나지 않음. 처음 화면 안 길을 한 번에 고를 확률이 충분해 실행 중 16번 다시 고르기 안에 거의 늘 나옴. 포수 눈은 포대 테 난간 손잡이보다 높음.
+        /// </summary>
         [Test]
         public void Starfall_Paths()
         {
@@ -483,20 +486,24 @@ namespace SpaceStation.Tests
                 Assert.AreEqual(OrbitalDefense.SeaLevel, to.y, 1e-4f);
                 Assert.That(to.x, Is.InRange(OrbitalDefense.LowRoomFromX + 1.9f, OrbitalDefense.RoomMaxX - 1.9f));
                 Assert.That(to.z, Is.InRange(OrbitalDefense.RoomMinZ + 1.9f, OrbitalDefense.RoomMaxZ - 1.9f));
-                var from = OrbitalDefense.MeteorStart(to, OrbitalDefense.StarfallIncoming(to, R(OrbitalDefense.StarfallOutMin, OrbitalDefense.StarfallOutMax), R(-1f, 1f)), 9f);
+                var from = OrbitalDefense.MeteorStart(to, OrbitalDefense.StarfallIncoming(to, R(OrbitalDefense.StarfallRiseMin, OrbitalDefense.StarfallRiseMax), R(-1f, 1f)), 12f);
                 Assert.LessOrEqual(from.y, OrbitalDefense.LowCeilingY - 0.09f, "천장 밖에서 출발");
-                if ((from - to).magnitude < 3f || !OrbitalDefense.StarfallVisible(from))
-                    continue;   // 실행 중에는 다시 고름 (8번까지)
+                if ((from - to).magnitude < 3f || !OrbitalDefense.StarfallPathVisible(from, to))
+                    continue;   // 실행 중에는 다시 고름 (16번까지)
                 ok++;
-                var d = from - eye;
-                float yaw = Mathf.DeltaAngle(OrbitalDefense.GunSeatYaw, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg);
-                float el = Mathf.Atan2(d.y, new Vector2(d.x, d.z).magnitude) * Mathf.Rad2Deg;
-                Assert.Less(Mathf.Abs(yaw), 100f, $"포수 뒤에서 출발 ({yaw:F0}°)");
-                Assert.Less(el, 70f, $"머리 바로 위에서 출발 ({el:F0}°)");
                 for (int k = 0; k <= 10; k++)
-                    Assert.Greater((Vector3.Lerp(from, to, k / 10f) - eye).magnitude, 1f, "별똥별이 포수 몸을 지나감");
+                {
+                    var p = Vector3.Lerp(from, to, k / 10f);
+                    var d = p - eye;
+                    float yaw = Mathf.DeltaAngle(OrbitalDefense.GunSeatYaw, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg);
+                    float el = Mathf.Atan2(d.y, new Vector2(d.x, d.z).magnitude) * Mathf.Rad2Deg + OrbitalDefense.GunPitch;
+                    Assert.Less(Mathf.Abs(yaw), 34f, $"처음 화면 옆 밖을 지나감 ({yaw:F0}°)");
+                    Assert.Less(Mathf.Abs(el), 28f, $"처음 화면 위아래 밖을 지나감 ({el:F0}°)");
+                    Assert.Greater(d.magnitude, 1f, "별똥별이 포수 몸을 지나감");
+                }
             }
-            Assert.Greater(ok, 150, $"한 번에 고른 별똥별 {ok} / 300 (실행 중에는 8번까지 다시 고름)");
+            float rate = ok / 300f;
+            Assert.Greater(1f - Mathf.Pow(1f - rate, 16f), 0.995f, $"한 번에 고른 별똥별 {ok} / 300 — 16번 안에 못 고를 때가 잦음");
         }
 
         /// <summary>조준: 시선에 가까운 머리 중 가장 가까운 것을 고름, 뒤 · 멀리 빗나간 것은 안 고름.</summary>
