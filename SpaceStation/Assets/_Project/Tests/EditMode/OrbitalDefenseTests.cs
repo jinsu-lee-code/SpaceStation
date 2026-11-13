@@ -469,36 +469,47 @@ namespace SpaceStation.Tests
         }
 
         /// <summary>
-        /// 별똥별 길: 닿을 자리 = 방 안 수면, 출발 = 하늘 면 (천장 · 벽) 안, 고른 길은 3 m 넘게 날고 길 전체가 앉은 처음 화면 안 (사용자 2026-11-13 "시야 밖으로 떨어져 놓치기 쉬움"),
-        /// 포수 몸을 지나지 않음. 처음 화면 안 길을 한 번에 고를 확률이 충분해 실행 중 16번 다시 고르기 안에 거의 늘 나옴. 포수 눈은 포대 테 난간 손잡이보다 높음.
+        /// 별똥별 길: 출발 = 바다 쪽 하늘 면 바로 밑 · 방 안 · 포수 눈에서 대각선 위 (25° 넘게 — 사용자 "너무 아래쪽에서 운석이 시작해"), 떨어질 자리 = 방 안 수면,
+        /// 고른 길은 출발이 앉은 처음 화면 안쪽 · 길 앞 60%가 화면 좌우 안 (사용자 "시야 밖으로 떨어져 놓치기 쉬움"), 포수 몸을 지나지 않음,
+        /// 한 번에 고를 확률이 충분해 실행 중 16번 다시 고르기 안에 거의 늘 나옴. 포수 눈은 포대 테 난간 손잡이보다 높음.
         /// </summary>
         [Test]
         public void Starfall_Paths()
         {
             var random = new System.Random(11);
             float R(float a, float b) => a + (float)random.NextDouble() * (b - a);
-            var eye = OrbitalDefense.GunSeat + Vector3.up * OrbitalDefense.GunEye;
+            var eye = OrbitalDefense.GunEyePoint;
             Assert.Greater(eye.y - (OrbitalDefense.Floor + 0.12f + 1.05f), 0.25f, "포수 눈이 포대 테 난간 손잡이 (받침 윗면 + 1.05)에 걸려 화면 가운데를 가로막음");
+            Assert.LessOrEqual(OrbitalDefense.GunPitch, -25f, "처음 시선이 대각선 위가 아님");
             int ok = 0;
             for (int i = 0; i < 300; i++)
             {
-                var to = OrbitalDefense.StarfallTarget(R(-OrbitalDefense.StarfallSpread, OrbitalDefense.StarfallSpread), R(OrbitalDefense.StarfallNear, OrbitalDefense.StarfallFar));
+                var from = OrbitalDefense.StarfallStart(R(-OrbitalDefense.StarfallStartYaw, OrbitalDefense.StarfallStartYaw), R(OrbitalDefense.StarfallStartElevMin, OrbitalDefense.StarfallStartElevMax));
+                var to = OrbitalDefense.StarfallLanding(R(-OrbitalDefense.StarfallLandYaw, OrbitalDefense.StarfallLandYaw), R(OrbitalDefense.StarfallLandNear, OrbitalDefense.StarfallLandFar));
+                Assert.AreEqual(OrbitalDefense.LowCeilingY - 0.1f, from.y, 1e-4f, "출발이 하늘 면 바로 밑이 아님");
                 Assert.AreEqual(OrbitalDefense.SeaLevel, to.y, 1e-4f);
                 Assert.That(to.x, Is.InRange(OrbitalDefense.LowRoomFromX + 1.9f, OrbitalDefense.RoomMaxX - 1.9f));
                 Assert.That(to.z, Is.InRange(OrbitalDefense.RoomMinZ + 1.9f, OrbitalDefense.RoomMaxZ - 1.9f));
-                var from = OrbitalDefense.MeteorStart(to, OrbitalDefense.StarfallIncoming(to, R(OrbitalDefense.StarfallRiseMin, OrbitalDefense.StarfallRiseMax), R(-1f, 1f)), 12f);
-                Assert.LessOrEqual(from.y, OrbitalDefense.LowCeilingY - 0.09f, "천장 밖에서 출발");
                 if ((from - to).magnitude < 3f || !OrbitalDefense.StarfallPathVisible(from, to))
                     continue;   // 실행 중에는 다시 고름 (16번까지)
                 ok++;
+                Assert.IsTrue(OrbitalDefense.InsideLowRoom(from), "방 밖에서 출발");
                 for (int k = 0; k <= 10; k++)
                 {
                     var p = Vector3.Lerp(from, to, k / 10f);
                     var d = p - eye;
                     float yaw = Mathf.DeltaAngle(OrbitalDefense.GunSeatYaw, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg);
-                    float el = Mathf.Atan2(d.y, new Vector2(d.x, d.z).magnitude) * Mathf.Rad2Deg + OrbitalDefense.GunPitch;
-                    Assert.Less(Mathf.Abs(yaw), 34f, $"처음 화면 옆 밖을 지나감 ({yaw:F0}°)");
-                    Assert.Less(Mathf.Abs(el), 28f, $"처음 화면 위아래 밖을 지나감 ({el:F0}°)");
+                    float el = Mathf.Atan2(d.y, new Vector2(d.x, d.z).magnitude) * Mathf.Rad2Deg;
+                    if (k == 0)
+                    {
+                        Assert.Greater(el, 25f, $"출발이 낮음 ({el:F0}° — 대각선 위가 아님)");
+                        Assert.Less(Mathf.Abs(el + OrbitalDefense.GunPitch), 28f, $"출발이 처음 화면 위아래 밖 ({el:F0}°)");
+                    }
+                    if (k <= 6)
+                    {
+                        Assert.Less(Mathf.Abs(yaw), 34f, $"길 앞쪽이 처음 화면 옆 밖 ({yaw:F0}°)");
+                        Assert.Less(el + OrbitalDefense.GunPitch, 28f, $"길 앞쪽이 처음 화면 위 밖 ({el:F0}°)");
+                    }
                     Assert.Greater(d.magnitude, 1f, "별똥별이 포수 몸을 지나감");
                 }
             }

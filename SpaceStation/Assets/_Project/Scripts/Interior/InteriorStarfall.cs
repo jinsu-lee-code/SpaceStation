@@ -16,8 +16,9 @@ namespace SpaceStation.Interior
     /// 마우스로 조준해 클릭 = 포 끝 수정에서 프리즘 광선 (바깥 포대와 같은 <see cref="PrismBeamFx"/>) → 맞으면 무지개 수정 불꽃, 바다에 떨어지면 놓침.
     /// 포대 수정 무리는 조준하는 쪽으로 기움. 끝나면 맞힌 수 · 놓친 수 · 최고 기록 (글자), 클릭 = 다시, F · ESC = 내림. 실제 시간.
     /// 조준 표시 = 흰 십자 (별똥별이 겨눠지면 커지고 밝아짐 — 색 대신 크기 · 밝기, 색약).
-    /// 별똥별은 길 전체가 앉은 처음 화면 안일 때만 떨어지고 (<see cref="OrbitalDefense.StarfallPathVisible"/>), 고개를 돌려 화면 밖이 된 것은 가장자리 흰 세모로 알려 줌
-    /// (사용자 2026-11-13 "앉은 시야 밖으로 떨어지는 별똥별도 있어서 놓치기 쉬움").
+    /// 앉으면 대각선 위 30°를 올려다보고, 별똥별은 바다 쪽 하늘 높이에서 출발해 앞쪽 바다로 비스듬히 떨어짐 — 위에서 쏘아 막음
+    /// (사용자 2026-11-13 "너무 아래쪽에서 운석이 시작해 — 대각선으로 막는 정도의 시야각"). 출발 · 길 앞쪽은 앉은 처음 화면 안일 때만 (<see cref="OrbitalDefense.StarfallPathVisible"/>),
+    /// 고개를 돌려 화면 밖이 된 것은 가장자리 흰 세모로 알려 줌 (사용자 "앉은 시야 밖으로 떨어지는 별똥별도 있어서 놓치기 쉬움").
     /// </summary>
     [DefaultExecutionOrder(-320)] // InteriorMode(-300)보다 먼저: 앉은 채 누른 F · ESC를 여기서 먼저 씀
     public sealed class InteriorStarfall : MonoBehaviour
@@ -298,11 +299,13 @@ namespace SpaceStation.Interior
         {
             for (int tries = 0; tries < 16; tries++)
             {
-                var to = OrbitalDefense.StarfallTarget(Random.Range(-OrbitalDefense.StarfallSpread, OrbitalDefense.StarfallSpread),
-                    Random.Range(OrbitalDefense.StarfallNear, OrbitalDefense.StarfallFar));
-                var from = OrbitalDefense.MeteorStart(to, OrbitalDefense.StarfallIncoming(to, Random.Range(OrbitalDefense.StarfallRiseMin, OrbitalDefense.StarfallRiseMax), Random.Range(-1f, 1f)), 12f);
+                // 바다 쪽 하늘 높이 (대각선 위)에서 출발 → 앞쪽 바다로 비스듬히 떨어짐
+                var from = OrbitalDefense.StarfallStart(Random.Range(-OrbitalDefense.StarfallStartYaw, OrbitalDefense.StarfallStartYaw),
+                    Random.Range(OrbitalDefense.StarfallStartElevMin, OrbitalDefense.StarfallStartElevMax));
+                var to = OrbitalDefense.StarfallLanding(Random.Range(-OrbitalDefense.StarfallLandYaw, OrbitalDefense.StarfallLandYaw),
+                    Random.Range(OrbitalDefense.StarfallLandNear, OrbitalDefense.StarfallLandFar));
                 if ((from - to).magnitude < 3f || !OrbitalDefense.StarfallPathVisible(from, to))
-                    continue;   // 짧거나 앉은 처음 화면 밖을 지나면 다시 고름 (시야 밖에 떨어져 놓치기 쉬웠음)
+                    continue;   // 짧거나 출발 · 길 앞쪽이 앉은 처음 화면 밖이면 다시 고름
                 _stars.Add(new ShootingStar(transform, _streakMaterial, transform.TransformPoint(from), transform.TransformPoint(to), _game.Speed));
                 AudioService.TryPlay(l => l.MeteorIncoming);
                 return;

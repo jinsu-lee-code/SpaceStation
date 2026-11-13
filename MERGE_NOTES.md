@@ -2804,3 +2804,15 @@
 - `InteriorStarfall`: 16번 다시 고름, 고개를 돌려 화면 밖이 된 별똥별은 가장자리 흰 세모 · 시험 (길 전체 화면 안 · 한 번에 고를 확률)
 
 - 체크리스트 143 · 06c 기록
+
+## M-190. 별똥별 막기 2차 — 대각선 위 30° 시선 · 하늘 높이에서 출발하는 별똥별 (2026-11-13, `main`)
+
+
+
+**main에 넣은 것**
+
+- `OrbitalDefense` 별똥별: 처음 시선 대각선 위 30°, 출발 = 바다 쪽 하늘 면 바로 밑 · 포수 눈에서 30 ~ 48° 위 (`StarfallStart`), 떨어질 자리 = 앞쪽 바다 (`StarfallLanding`), 출발 · 길 앞 60%만 처음 화면 안 (`StarfallPathVisible` · `InsideLowRoom` · `GunEyePoint`)
+
+- `InteriorStarfall` 새 출발 · 떨어질 자리, `StarfallGame` 빠르기 2.2 → 3.8 m/초 · 시험 (출발 25° 넘게 위)
+
+- 체크리스트 144 · 06c 기록

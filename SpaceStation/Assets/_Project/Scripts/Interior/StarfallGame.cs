@@ -10,7 +10,7 @@ namespace SpaceStation.Interior
         public enum Phase { Idle, Countdown, Play, Done }
 
         public const float CountdownTime = 3f, RoundTime = 60f;
-        public const float GapStart = 1.5f, GapEnd = 0.65f, SpeedStart = 2.6f, SpeedEnd = 4.6f;
+        public const float GapStart = 1.5f, GapEnd = 0.65f, SpeedStart = 2.2f, SpeedEnd = 3.8f;   // 하늘 (천장 3.95) 밑에서 출발해 길이 짧음 — 2.6 · 4.6은 맞힐 틈이 1초 남짓
         /// <summary>쏘고 다음에 쏠 수 있을 때까지 (초).</summary>
         public const float FireCooldown = 0.22f;
 
