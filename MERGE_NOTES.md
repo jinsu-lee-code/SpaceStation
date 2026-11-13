@@ -2816,3 +2816,15 @@
 - `InteriorStarfall` 새 출발 · 떨어질 자리, `StarfallGame` 빠르기 2.2 → 3.8 m/초 · 시험 (출발 25° 넘게 위)
 
 - 체크리스트 144 · 06c 기록
+
+## M-191. 궤도 방어망 내부 바다 동물 — 물범 · 아기 물범 · 돌고래 · 퍼핀 · 바다거북 · 게 (2026-11-13, `main`)
+
+
+
+**main에 넣은 것**
+
+- `critter_builder.py` 바다 동물 여섯 (메타볼 몸 · 아틀라스 얼굴, `--sea` 미리보기) → `SM_InteriorCritters.fbx`: 색 경계 = 평면으로 곧게 자르고 Decimate 없이, 자른 다각형만 삼각형, 작은 뒤집힌 삼각형 접기, `finish` 접힌 면 수
+
+- `OrbitalDefense` 동물 자리 (Seals · Crabs · Dolphins · Turtles · Puffins · LedgePuffins), `InteriorTemplateBuilder` 궤도 방어망 동물 묶음 · `CritterGroup` (묶음 kind 지정 · 게 양쪽 옆걸음 · 거북 헤엄 고리 막힘 검사) · `InteriorCritterModels` · `CritterSpots`, `StationArtBuilder.CritterKinds` Dolphin = Leap · Puffin = Perch
+
+- 궤도 방어망 프리팹 다시 지음, 시험 `OrbitalDefenseTests.Critters_OnTheirSpots`, 체크리스트 145 ~ 147 · 06c 기록

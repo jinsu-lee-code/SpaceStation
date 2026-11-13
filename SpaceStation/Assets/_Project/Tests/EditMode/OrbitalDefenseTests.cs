@@ -713,5 +713,94 @@ namespace SpaceStation.Tests
                 Object.DestroyImmediate(root);
             }
         }
+
+        // ---------------- 바다 동물 ----------------
+
+        /// <summary>
+        /// 바다 동물 묶음마다 수 · 움직임 · 앞쪽: 땅 · 바위 동물은 원점이 면에 0.3 ~ 2 cm 묻힘 (뜨거나 파묻히지 않음), 모델 앞쪽 = 바라보는 쪽, 게는 물가를 따라 (x) 양쪽으로 옆걸음 ·
+        /// 그 길 모래 높이 차 1.5 cm 안, 돌고래는 뛰는 길 (± 1.3 m, 수면 ~ + 1 m)에 막는 것이 없고 밑이 1.5 m 넘게 깊음, 거북은 막히지 않는 헤엄 고리를 고름.
+        /// </summary>
+        [Test]
+        public void Critters_OnTheirSpots()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("템플릿 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                var groups = new (string Holder, (string Kind, Vector3 At, float Facing)[] Spots, SpaceStation.Building.CritterFx.Kind Kind, bool Land)[]
+                {
+                    ("Critters_Seal", OrbitalDefense.Seals, SpaceStation.Building.CritterFx.Kind.Bask, true),
+                    ("Critters_Crab", OrbitalDefense.Crabs, SpaceStation.Building.CritterFx.Kind.Scuttle, true),
+                    ("Critters_Dolphin", OrbitalDefense.Dolphins, SpaceStation.Building.CritterFx.Kind.Leap, false),
+                    ("Critters_Turtle", OrbitalDefense.Turtles, SpaceStation.Building.CritterFx.Kind.Drift, false),
+                    ("Critters_Puffin", OrbitalDefense.Puffins, SpaceStation.Building.CritterFx.Kind.Perch, true),
+                    ("Critters_LedgePuffin", OrbitalDefense.LedgePuffins, SpaceStation.Building.CritterFx.Kind.Bask, true),
+                };
+                foreach (var (holderName, spots, kind, land) in groups)
+                {
+                    var holder = root.transform.Find(holderName);
+                    Assert.IsNotNull(holder, holderName);
+                    var fx = holder.GetComponent<SpaceStation.Building.CritterFx>();
+                    Assert.IsNotNull(fx, holderName);
+                    var arr = new SerializedObject(fx).FindProperty("_critters");
+                    Assert.AreEqual(spots.Length, arr.arraySize, $"{holderName} 수");
+                    float scale = holder.localScale.x;
+                    for (int i = 0; i < spots.Length; i++)
+                    {
+                        var (name, at, facing) = spots[i];
+                        var e = arr.GetArrayElementAtIndex(i);
+                        var part = (Transform)e.FindPropertyRelative("Part").objectReferenceValue;
+                        Assert.AreEqual("Critter_" + name, part.name);
+                        Assert.AreEqual((int)kind, e.FindPropertyRelative("Kind").enumValueIndex, $"{holderName} {i} 움직임");
+                        Assert.Less((holder.TransformPoint(part.localPosition) - root.transform.TransformPoint(at)).magnitude, 0.001f, $"{holderName} {i} 자리");
+                        var face = new Vector3(Mathf.Cos(facing * Mathf.Deg2Rad), 0f, Mathf.Sin(facing * Mathf.Deg2Rad));
+                        var front = part.localRotation * Vector3.left;      // 모델 앞 = Blender +x = Unity −x
+                        Assert.Greater(Vector3.Dot(new Vector3(front.x, 0f, front.z).normalized, face), 0.995f, $"{holderName} {i} 앞쪽");
+                        var heading = e.FindPropertyRelative("Heading").vector3Value;
+                        if (kind == SpaceStation.Building.CritterFx.Kind.Scuttle)
+                            Assert.Greater(Mathf.Abs(heading.x), 0.95f, $"{holderName} {i} 옆걸음 축이 물가 (x)를 따라야 함 {heading}");
+                        else if (kind != SpaceStation.Building.CritterFx.Kind.Perch && holderName != "Critters_LedgePuffin")
+                            Assert.Greater(Vector3.Dot(heading, face), 0.9f, $"{holderName} {i} 머리 쪽 (움직임 앞) {heading}");
+                        if (land)
+                        {
+                            Assert.IsTrue(Physics.Raycast(at + Vector3.up * 0.3f, Vector3.down, out var hit, 0.6f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"{holderName} {i} 발밑 없음");
+                            float sink = hit.point.y - at.y;
+                            Assert.That(sink, Is.InRange(0.003f, 0.02f), $"{holderName} {i} 원점이 면에 묻힌 깊이 {sink:F3}");
+                        }
+                        if (kind == SpaceStation.Building.CritterFx.Kind.Scuttle)
+                        {
+                            Assert.AreEqual(2f, e.FindPropertyRelative("Side").floatValue, $"{holderName} {i} 양쪽 옆걸음");
+                            float reach = SpaceStation.Building.CritterFx.ScuttleReach * scale;
+                            foreach (float s in new[] { -1f, 1f })
+                            {
+                                var p = at + heading.normalized * (reach * s);
+                                Assert.IsTrue(Physics.Raycast(p + Vector3.up * 0.3f, Vector3.down, out var hit, 0.6f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore));
+                                Assert.Less(Mathf.Abs(hit.point.y - at.y - 0.005f), 0.015f, $"{holderName} {i} 옆걸음 끝 모래 높이 {hit.point.y:F3}");
+                            }
+                        }
+                        if (kind == SpaceStation.Building.CritterFx.Kind.Leap)
+                        {
+                            var a = at - face * 1.3f;
+                            var b = at + face * 1.3f;
+                            foreach (var c in Physics.OverlapCapsule(new Vector3(a.x, OrbitalDefense.SeaLevel + 0.35f, a.z), new Vector3(b.x, OrbitalDefense.SeaLevel + 0.35f, b.z), 0.35f,
+                                         Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                                Assert.IsTrue(c.name.EndsWith("_LakeHit"), $"{holderName} {i} 뛰는 길이 막힘 ({c.name})");   // 바다에 못 들어가는 보이지 않는 벽만 빼고
+                            foreach (var p in new[] { a, at, b })
+                            {
+                                Assert.IsTrue(Physics.Raycast(new Vector3(p.x, OrbitalDefense.SeaLevel, p.z), Vector3.down, out var bed, 5f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore));
+                                Assert.Greater(OrbitalDefense.SeaLevel - bed.point.y, 1.5f, $"{holderName} {i} 바다 깊이 {p}");
+                            }
+                        }
+                        if (kind == SpaceStation.Building.CritterFx.Kind.Drift)
+                            Assert.AreNotEqual(0f, e.FindPropertyRelative("Side").floatValue, $"{holderName} {i} 헤엄 고리가 다 막힘");
+                    }
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
     }
 }

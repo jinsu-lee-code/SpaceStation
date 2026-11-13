@@ -700,6 +700,7 @@ namespace SpaceStation.Editor
             { "Seal", SpaceStation.Building.CritterFx.Kind.Bask }, { "SealPup", SpaceStation.Building.CritterFx.Kind.Bask },
             { "Crab", SpaceStation.Building.CritterFx.Kind.Scuttle }, { "Owl", SpaceStation.Building.CritterFx.Kind.Perch },
             { "Hedgehog", SpaceStation.Building.CritterFx.Kind.Snuffle },
+            { "Dolphin", SpaceStation.Building.CritterFx.Kind.Leap }, { "Puffin", SpaceStation.Building.CritterFx.Kind.Perch },   // 궤도 방어망 내부 바다 동물
         };
 
         // 항성 발전망 꿀벌 고리 길 = Blender build_stellar_grid loop(θ): 가운데 (3, 0.45) · 반지름 (EX − 3.06 = 1.42, 0.5),
