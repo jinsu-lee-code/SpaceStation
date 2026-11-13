@@ -137,7 +137,13 @@ namespace SpaceStation.Editor
         public const string Evo3CavePath = MaterialFolder + "/M_InteriorEvo3Cave.mat";
         public const string Evo3FallsColumnPath = MaterialFolder + "/M_InteriorEvo3FallsColumn.mat";   // 둥근 폭포 기둥 (WaterFalls, 옆 흐림 끔 — 원기둥 UV에서 한쪽이 지워졌음)
         public const string Evo3SpillPath = MaterialFolder + "/M_InteriorEvo3Spill.mat";     // 단 사이 작은 폭포 (WaterFalls 맑은 변형 — 맑은 물 판이 파란 유리처럼 보였음)
-        public const string Evo3LighthouseBeamPath = MaterialFolder + "/M_InteriorEvo3LighthouseBeam.mat";   // 궤도 방어망 등대 빛 (따뜻한 빛, 빛기둥 셰이더 — 실드 돔 찬 빛 0.16은 밤바다에서 안 보였음)
+        public const string Evo3LighthouseBeamPath = MaterialFolder + "/M_InteriorEvo3LighthouseBeam.mat";
+        // 수리 사령부 고목 (2026-11-13, 사용자 "실제 자연의 나무처럼"): 껍질 = 트라이플래너 (세로로 긴 판 · 깊은 골 텍스처), 그루터기 잘린 면 나뭇결, 빨래 천 연하늘 · 연분홍
+        public const string Evo3TreeBarkPath = MaterialFolder + "/M_InteriorEvo3TreeBark.mat";
+        public const string Evo3WoodPath = MaterialFolder + "/M_InteriorEvo3Wood.mat";
+        public const string Evo3LinenBluePath = MaterialFolder + "/M_InteriorEvo3LinenBlue.mat";
+        public const string Evo3LinenRosePath = MaterialFolder + "/M_InteriorEvo3LinenRose.mat";
+        public const string Evo3LinenWhitePath = MaterialFolder + "/M_InteriorEvo3LinenWhite.mat";   // 궤도 방어망 등대 빛 (따뜻한 빛, 빛기둥 셰이더 — 실드 돔 찬 빛 0.16은 밤바다에서 안 보였음)
         public const string SoftRainbowPath = MaterialFolder + "/M_InteriorSoftRainbow.mat";   // 오로라처럼 옅은 무지개 띠 (SoftRainbow, 발끝 흐림)
         public const string SoftHaloPath = MaterialFolder + "/M_InteriorSoftHalo.mat";         // 프리즘 둘레 옅은 무지개 고리 (끝 없음)
         public const string Evo3BlossomPath = MaterialFolder + "/M_InteriorEvo3Blossom.mat"; // 열차 방석 (연분홍 천)     // 병풍 해 · 세 날개 표지 · 석등 불빛 (레몬빛)
@@ -533,6 +539,16 @@ namespace SpaceStation.Editor
                 m.enableInstancing = true;
                 EditorUtility.SetDirty(m);
             }
+            // 갓 빤 빨래 (수리 사령부 빨랫줄): 천 결은 같게, 때 (Grime) 없이 · 그늘 약하게 — 공용 천 재질 그대로면 가운데가 얼룩져 빨지 않은 천처럼 보였음 (2026-11-13 Unity 확인)
+            void Linen(string path, Color color)
+            {
+                Fabric(path, color);
+                var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+                m.SetFloat("_NormalStrength", 0.6f);
+                m.SetFloat("_OcclusionStrength", 0.25f);
+                m.SetFloat("_GrimeStrength", 0f);
+                EditorUtility.SetDirty(m);
+            }
             // 12-5 콘크리트 (방사선 차폐실): 같은 트라이플래너 셰이더에 거푸집 · 폼타이 구멍 텍스처. 실내 조명이 따뜻해 살짝 푸른 회색이어야 회색으로 보임 (MODELING 7-7)
             if (!System.IO.File.Exists(InteriorTextureBaker.ConcreteNormalPath) || !System.IO.File.Exists(InteriorTextureBaker.ConcreteMaskPath))
                 InteriorTextureBaker.BakeConcrete();
@@ -549,6 +565,22 @@ namespace SpaceStation.Editor
             concrete.SetFloat("_GrimeStrength", 0.65f);
             concrete.enableInstancing = true;
             EditorUtility.SetDirty(concrete);
+            // 수리 사령부 고목 껍질: 같은 트라이플래너 셰이더에 세로로 긴 판 · 깊은 골 · 세로 결 텍스처 (한 장 1.6 m), 은은한 진주빛 회갈색 — 골은 마스크 R로 어둡게
+            if (!System.IO.File.Exists(InteriorTextureBaker.BarkNormalPath) || !System.IO.File.Exists(InteriorTextureBaker.BarkMaskPath))
+                InteriorTextureBaker.BakeBark();
+            var bark = LoadOrCreate(Evo3TreeBarkPath, tri);
+            bark.shader = tri;
+            bark.SetColor("_BaseColor", new Color(0.8f, 0.74f, 0.66f));
+            bark.SetFloat("_Smoothness", 0.1f);
+            bark.SetFloat("_Metallic", 0f);
+            bark.SetTexture("_DetailNormal", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.BarkNormalPath));
+            bark.SetTexture("_DetailMask", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.BarkMaskPath));
+            bark.SetFloat("_Tiling", 0.625f);
+            bark.SetFloat("_NormalStrength", 1.25f);
+            bark.SetFloat("_OcclusionStrength", 0.8f);
+            bark.SetFloat("_GrimeStrength", 0.45f);   // 밤빛에서 0.68 · 0.9 · 0.6은 짙은 초콜릿색 (2026-11-13 Unity 확인)
+            bark.enableInstancing = true;
+            EditorUtility.SetDirty(bark);
 
             // 진화 모듈 내부 1단계 키트 (2026-10-29): 외형 흰 패널 · 짙은 유리 띠와 같은 계열의 매끈한 재질 (패널 무늬 · 때 없음)
             //   (이름을 Plain으로 했다가 아래 소품 재질 함수 Plain(경로, 색, 금속도, 광택)을 가려 소품 22종의 금속도 · 광택이 뒤바뀐 적 있음 — 2026-10-29)
@@ -596,6 +628,7 @@ namespace SpaceStation.Editor
             EvoSurface(Evo3SeaBedPath, new Color(0.6f, 0.55f, 0.43f), 0f, 0.2f);      // 바다 바닥 (물 밑 젖은 모래)
             EvoSurface(Evo3StonePath, new Color(0.84f, 0.78f, 0.68f), 0f, 0.15f);     // 곶 밝은 돌 지층 · 절벽 계단 단
             EvoSurface(Evo3CavePath, new Color(0.3f, 0.29f, 0.32f), 0f, 0.25f);       // 동굴 종유석
+            EvoSurface(Evo3WoodPath, new Color(0.88f, 0.76f, 0.57f), 0f, 0.2f);       // 그루터기 잘린 면 (밝은 나뭇결, 나이테 = 얕은 물결 메시)
             Emissive(Evo3HoneyPath, new Color(1f, 0.7f, 0.22f), new Color(1f, 0.58f, 0.12f) * 1.1f, 0.8f);   // 빛나는 꿀 (언덕 윗면 · 방울 · 저장 기둥 · 등불)
             // 바이오돔 잔디 · 흙 (사용자 2026-11-03 "나무와 풀 디테일"): 색 판이 아니라 풀잎 · 흙 무늬 텍스처
             void Ground(string path, string texture, float smoothness)
@@ -613,6 +646,9 @@ namespace SpaceStation.Editor
 
             Fabric(FabricPath, new Color(0.86f, 0.85f, 0.81f));
             Fabric(BlanketPath, new Color(0.56f, 0.42f, 0.27f)); // 차분한 황토색 (거주 강조색 노랑과 어울리게)
+            Linen(Evo3LinenWhitePath, new Color(0.97f, 0.97f, 0.95f));   // 수리 사령부 빨래 (흰 천)
+            Linen(Evo3LinenBluePath, new Color(0.72f, 0.85f, 0.96f));    // 수리 사령부 빨래 (깨끗한 연하늘 — 황토 담요는 빨지 않은 천처럼 어두웠음)
+            Linen(Evo3LinenRosePath, new Color(0.98f, 0.84f, 0.84f));    // 수리 사령부 빨래 (연분홍)
             Fabric(SofaPath, new Color(0.3f, 0.29f, 0.36f));     // 11-5 휴게실 소파 (보랏빛 회색)
             Fabric(RugPath, new Color(0.38f, 0.24f, 0.5f));      // 휴게실 러그·쿠션 (보라)
 

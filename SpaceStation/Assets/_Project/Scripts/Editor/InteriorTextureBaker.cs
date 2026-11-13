@@ -181,6 +181,91 @@ namespace SpaceStation.Editor
             Debug.Log("[InteriorTextureBaker] 콘크리트 텍스처 생성");
         }
 
+        public const string BarkNormalPath = Folder + "T_InteriorBark_N.png";
+        public const string BarkMaskPath = Folder + "T_InteriorBark_M.png";
+
+        /// <summary>
+        /// 수리 사령부 고목 껍질 (2026-11-13, 사용자 "실제 자연의 나무처럼 디테일 빡세게"): 한 장 = 1.6 m (타일링 0.625) —
+        /// 세로로 긴 껍질 판 (가로 10 · 세로 3칸 보로노이, 판 가장자리가 굽이침) 사이 깊은 골 + 가는 버금 골 + 판 위 세로 결 · 잔 굴곡 → 노멀 + 마스크 (R 골 그늘, G 판마다 밝기).
+        /// 작은 구멍 · 점 무늬 없음 (환공포증), 골은 이어진 선.
+        /// </summary>
+        [MenuItem("SpaceStation/Interior/Bake Bark Textures")]
+        public static void BakeBark()
+        {
+            var h = new float[N * N];
+            var plate = new float[N * N];
+            for (int y = 0; y < N; y++)
+            {
+                for (int x = 0; x < N; x++)
+                {
+                    float warp = (Noise(x, y, 4, 211) - 0.5f) * 70f + (Noise(x, y, 12, 213) - 0.5f) * 18f;
+                    float e1 = Edge(x + warp, y, 10, 3, 217, out float id1);
+                    float e2 = Edge(x + warp * 0.6f, y, 22, 6, 223, out _);
+                    float furrow = 1f - Smooth(0f, 0.2f, e1);
+                    float fine = 1f - Smooth(0f, 0.1f, e2);
+                    float hh = 0.62f - 0.55f * furrow - 0.14f * fine * (1f - furrow);
+                    hh += 0.035f * Mathf.Sin(2f * Mathf.PI * 64f * x / N + 6f * Noise(x, y, 6, 227));    // 세로 결
+                    hh += (Noise(x, y, 24, 229) - 0.5f) * 0.06f + (Noise(x, y, 96, 233) - 0.5f) * 0.03f;
+                    hh += (id1 - 0.5f) * 0.05f;
+                    h[y * N + x] = hh;
+                    plate[y * N + x] = id1;
+                }
+            }
+            var blur = BoxBlur(h, 8);
+            var normal = new Color32[N * N];
+            var mask = new Color32[N * N];
+            const float strength = 2.6f;
+            for (int y = 0; y < N; y++)
+            {
+                for (int x = 0; x < N; x++)
+                {
+                    float dx = (H(h, x + 1, y) - H(h, x - 1, y)) * strength;
+                    float dy = (H(h, x, y + 1) - H(h, x, y - 1)) * strength;
+                    var n = new Vector3(-dx, -dy, 1f).normalized;
+                    normal[y * N + x] = new Color32(To8(n.x * 0.5f + 0.5f), To8(n.y * 0.5f + 0.5f), To8(n.z * 0.5f + 0.5f), 255);
+                    float cavity = Mathf.Clamp01(1f - Mathf.Max(0f, blur[y * N + x] - h[y * N + x]) * 3.2f);
+                    float ao = Mathf.Lerp(0.3f, 1f, cavity);
+                    float tone = Mathf.Lerp(0.78f, 1f, plate[y * N + x]) * Mathf.Lerp(0.85f, 1f, Noise(x, y, 8, 239));
+                    mask[y * N + x] = new Color32(To8(ao), To8(tone), 255, 255);
+                }
+            }
+            System.IO.Directory.CreateDirectory(Folder);
+            Save(BarkNormalPath, normal);
+            Save(BarkMaskPath, mask);
+            AssetDatabase.Refresh();
+            Configure(BarkNormalPath, true);
+            Configure(BarkMaskPath, false);
+            Debug.Log("[InteriorTextureBaker] 고목 껍질 텍스처 생성");
+        }
+
+        /// <summary>이어지는 보로노이 (가로 cx · 세로 cy칸, 칸 공간 거리): F2 − F1 (판 가장자리까지, 칸 단위) · 가장 가까운 점의 값 (판마다 다른 0~1).</summary>
+        private static float Edge(float x, float y, int cx, int cy, int seed, out float id)
+        {
+            float fx = x * cx / N, fy = y * cy / N;
+            int ix = Mathf.FloorToInt(fx), iy = Mathf.FloorToInt(fy);
+            float f1 = 9f, f2 = 9f;
+            id = 0f;
+            for (int j = -1; j <= 1; j++)
+            {
+                for (int i = -1; i <= 1; i++)
+                {
+                    int gx = ix + i, gy = iy + j;
+                    int wx = ((gx % cx) + cx) % cx, wy = ((gy % cy) + cy) % cy;
+                    float px = gx + 0.15f + 0.7f * Hash(wx, wy, seed), py = gy + 0.15f + 0.7f * Hash(wx, wy, seed + 7);
+                    float d = Mathf.Sqrt((px - fx) * (px - fx) + (py - fy) * (py - fy));
+                    if (d < f1)
+                    {
+                        f2 = f1;
+                        f1 = d;
+                        id = Hash(wx, wy, seed + 13);
+                    }
+                    else if (d < f2)
+                        f2 = d;
+                }
+            }
+            return f2 - f1;
+        }
+
         private static byte To8(float v) => (byte)Mathf.Clamp(Mathf.RoundToInt(v * 255f), 0, 255);
 
         private static float H(float[] h, int x, int y) => h[((y % N + N) % N) * N + (x % N + N) % N];

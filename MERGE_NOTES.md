@@ -2862,3 +2862,17 @@
 - `RepairCommand` 값 · `BuildEvoRepairCommand` (빛 · 재질 대응 · 연못 · 샘 KWS 물 · LakeHit) · 주민 자리 22 · 식물 자리 없음 · `RepairCommandTests` 넷, 공용 `oc_builder` 오두막 미세 고침 (처마 테 · 꽃상자 테 끝 · 창살 · 창 유리 깊이 · 꽃 자리)
 
 - 체크리스트 150 ~ 156 · 06c 기록 (TASKS · 글꼴 · Main.unity는 tycoon만)
+
+
+
+## M-195. 수리 사령부 내부 — 사용자 플레이 지적 일곱 고침 (2026-11-13, `main`)
+
+
+
+**main에 넣은 것**
+
+- `rc3_builder` → `SM_Interior_EvoRepairCommand.fbx` (14.89만 삼각형, `rc_export` ALLOK): 그루터기 = 판근 · 나이테 단면 + 둥근 판석 마당 (길이 마당 가장자리에서 시작), 약초 밭 울타리 밖, 빨래 리넨, 고목 줄기 격자 한 몸 (등줄기 · V 골 · 판근 · 혹) · 껍질 관 뿌리 · 가지, 줄기 문틀 껍질 면에 붙임, 수레 길옆 (닫힌 바퀴 고리), 공방 장비 (서랍장 · 바이스 · 도구판 · 공구 상자 · 단지 선반 · 등 · 의자)
+
+- 재질 `M_InteriorEvo3TreeBark` (트라이플래너 + `InteriorTextureBaker.BakeBark` 껍질 텍스처) · `Evo3Wood` · `Evo3LinenWhite/Blue/Rose` (때 없음), 빨래 양쪽 등 둘 · 약초 밭 등 (빛 21), 해치 (2,1) · 주민 자리 둘
+
+- `InteriorKit.asset` 수리 사령부 단계 키트 등록 (옆문 패널이 기본 모듈 벽이던 원인), 체크리스트 157 ~ 163 · 06c (TASKS · 글꼴 · Main.unity는 tycoon만)
