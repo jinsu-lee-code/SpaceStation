@@ -2792,3 +2792,15 @@
 - `PrismBeamFx` 굵기 배율 `_width` (기본 1 — 바깥 포대 그대로), `OrbitalDefense` 포수 자리 · 포 끝 · 별똥별 떨어질 자리 (`StarfallTarget` · `StarfallIncoming` · `StarfallVisible`), 템플릿: 포수 의자 충돌체 · 프리즘 광선 · 궤도 방어망 프리팹 · 시험 넷
 
 - 체크리스트 141 · 142 · 06c 기록
+
+## M-189. 별똥별 막기 — 별똥별 길 전체가 앉은 처음 화면 안 · 화면 밖은 가장자리 세모 (2026-11-13, `main`)
+
+
+
+**main에 넣은 것**
+
+- `OrbitalDefense` 별똥별 고르기: 출발 · 사이 · 떨어질 자리가 모두 앉은 처음 화면 안 (`ViewHalfYaw` · `ViewHalfPitch` · `StarfallPathVisible`), 떨어질 자리 ± 30° · 6 ~ 12 m, 먼 벽 하늘에서 비스듬히 (`StarfallIncoming` rise), 처음 시선 −2°
+
+- `InteriorStarfall`: 16번 다시 고름, 고개를 돌려 화면 밖이 된 별똥별은 가장자리 흰 세모 · 시험 (길 전체 화면 안 · 한 번에 고를 확률)
+
+- 체크리스트 143 · 06c 기록

@@ -138,12 +138,17 @@ namespace SpaceStation.Interior
         // ---------------- 미니게임 "별똥별 막기" (InteriorStarfall · StarfallGame, 사용자 2026-11-13 "포대에 앉아 조준 · 발사") ----------------
         /// <summary>포수 의자 앉는 면 (od3_builder turret() — 포대 가운데에서 북동 1.1 m) · 바라보는 쪽 (yaw, 바다 오른쪽 뒤) · 눈 높이 · 처음 시선 (음수 = 위).</summary>
         public static readonly Vector3 GunSeat = new Vector3(23.16f, Floor + 0.52f, 5.89f);
-        public const float GunSeatYaw = 40f, GunEye = 1.0f, GunPitch = -6f;   // 눈 0.72는 포대 테 난간 손잡이와 같은 높이라 화면 가운데를 가로막았음, −16°는 별똥별이 떨어지는 바다가 화면 밖이었음
+        public const float GunSeatYaw = 40f, GunEye = 1.0f, GunPitch = -2f;   // 눈 0.72는 포대 테 난간 손잡이와 같은 높이라 화면 가운데를 가로막았음, 거의 수평 = 하늘 · 바다가 반반
+        /// <summary>
+        /// 앉은 처음 화면 안 (시야각 60° · 4:3 화면에서 여유 4°): 시선 가운데에서 좌우 ± ViewHalfYaw · 위아래 ± ViewHalfPitch.
+        /// 별똥별은 출발 · 가운데 · 떨어질 자리가 모두 이 안일 때만 띄움 (사용자 2026-11-13 "앉은 시야 밖으로 떨어지는 별똥별도 있어서 놓치기 쉬움").
+        /// </summary>
+        public const float ViewHalfYaw = 32f, ViewHalfPitch = 26f;
         /// <summary>포 끝 = 포대 수정 무리 가운데 큰 수정 꼭짓점 (Turret 원점 받침 윗면 + 1.9).</summary>
         public static readonly Vector3 TurretMuzzle = new Vector3(22.45f, Floor + 2.28f, 5.05f);
-        /// <summary>별똥별이 떨어지는 자리: 포수가 보는 쪽 ± StarfallSpread (도), 포대에서 StarfallNear ~ StarfallFar m (수면, 벽에서 2 m 안). 들어오는 쪽 바깥 기울기 = StarfallOutMin ~ Max.</summary>
-        public const float StarfallSpread = 60f, StarfallNear = 5f, StarfallFar = 12f;
-        public const float StarfallOutMin = 0.15f, StarfallOutMax = 0.6f;
+        /// <summary>별똥별이 떨어지는 자리: 포수가 보는 쪽 ± StarfallSpread (도), 포대에서 StarfallNear ~ StarfallFar m (수면, 벽에서 2 m 안). 들어올 때 오르는 기울기 = StarfallRiseMin ~ Max (먼 벽 하늘에서 비스듬히).</summary>
+        public const float StarfallSpread = 30f, StarfallNear = 6f, StarfallFar = 12f;
+        public const float StarfallRiseMin = 0.3f, StarfallRiseMax = 0.8f;
 
         /// <summary>포수가 보는 쪽에서 yawOffset (도) · 포대에서 dist (m) 떨어진 수면 자리 (방 안으로 당김).</summary>
         public static Vector3 StarfallTarget(float yawOffset, float dist)
@@ -154,21 +159,32 @@ namespace SpaceStation.Interior
             return new Vector3(x, SeaLevel, z);
         }
 
-        /// <summary>출발점이 포수에게 보이는 쪽인지: 보는 쪽 ± 95° 안 · 70° 아래 (등 뒤 · 머리 바로 위에서 오면 못 봄).</summary>
-        public static bool StarfallVisible(Vector3 from)
+        /// <summary>점이 앉은 처음 화면 안인지 (<see cref="ViewHalfYaw"/> · <see cref="ViewHalfPitch"/>).</summary>
+        public static bool StarfallVisible(Vector3 point)
         {
-            var d = from - (GunSeat + Vector3.up * GunEye);
+            var d = point - (GunSeat + Vector3.up * GunEye);
             float yaw = Mathf.DeltaAngle(GunSeatYaw, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg);
             float el = Mathf.Atan2(d.y, new Vector2(d.x, d.z).magnitude) * Mathf.Rad2Deg;
-            return Mathf.Abs(yaw) < 95f && el < 70f;
+            return Mathf.Abs(yaw) < ViewHalfYaw && Mathf.Abs(el + GunPitch) < ViewHalfPitch;
         }
 
-        /// <summary>별똥별이 들어오는 쪽 (닿을 자리에서 출발점 쪽): 위 + 포수에게서 먼 쪽으로 out (0 ~ 1) + 옆 side (−1 ~ 1).</summary>
-        public static Vector3 StarfallIncoming(Vector3 target, float outward, float side)
+        /// <summary>별똥별 길 전체 (출발 · 사이 셋 · 떨어질 자리)가 앉은 처음 화면 안인지.</summary>
+        public static bool StarfallPathVisible(Vector3 from, Vector3 to)
+        {
+            for (int k = 0; k <= 4; k++)
+            {
+                if (!StarfallVisible(Vector3.Lerp(from, to, k / 4f)))
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>별똥별이 들어오는 쪽 (닿을 자리에서 출발점 쪽): 포수에게서 먼 쪽 + 위로 rise (0 ~ 1) + 옆 side (−1 ~ 1) — 먼 벽 하늘에서 비스듬히 떨어짐.</summary>
+        public static Vector3 StarfallIncoming(Vector3 target, float rise, float side)
         {
             var away = new Vector3(target.x - GunSeat.x, 0f, target.z - GunSeat.z).normalized;
             var across = new Vector3(-away.z, 0f, away.x);
-            return (Vector3.up + away * outward + across * side * 0.4f).normalized;
+            return (away + Vector3.up * rise + across * side * 0.3f).normalized;
         }
 
         /// <summary>망원경 머리 (ScopeHead 원점) · 쉬는 방향 (Unity yaw, 앞 오른쪽 바다).</summary>
