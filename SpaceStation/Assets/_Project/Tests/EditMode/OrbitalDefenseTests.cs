@@ -431,6 +431,119 @@ namespace SpaceStation.Tests
             }
         }
 
+        // ---------------- 체험 "오로라 보호막 펼치기" ----------------
+
+        /// <summary>
+        /// 보호막 (바다 위 납작한 반구)이 방 안에 들어감: 꼭대기는 바다 쪽 아래 칸 천장보다 1 m 넘게 낮음 (별똥별이 하늘 면에서 떨어질 틈) · 발은 벽 안,
+        /// 레버 · 레버 앞에 선 사람 · 선베드에 누운 눈은 막 밖, 포대 수정 · 먼 부표 · 매인 배는 막 안 (덮어 지킴).
+        /// </summary>
+        [Test]
+        public void AuroraShield_FitsRoom()
+        {
+            var c = OrbitalDefense.ShieldCenter;
+            var r = OrbitalDefense.ShieldRadii;
+            Assert.Less(c.y + r.y, OrbitalDefense.LowCeilingY - 1f, "보호막 꼭대기가 천장에 붙음");
+            Assert.Greater(c.x - r.x, OrbitalDefense.RoomMinX);
+            Assert.Less(c.x + r.x, OrbitalDefense.RoomMaxX);
+            Assert.Greater(c.z - r.z, OrbitalDefense.RoomMinZ + 1f, "남쪽 발이 벽에 붙음 (선베드 자리)");
+            Assert.Less(c.z + r.z, OrbitalDefense.RoomMaxZ - 1f, "북쪽 발이 벽에 붙음 (별똥별 틈)");
+            Assert.IsFalse(OrbitalDefense.InsideShield(OrbitalDefense.AuroraLever), "레버가 막 안");
+            Assert.IsFalse(OrbitalDefense.InsideShield(OrbitalDefense.AuroraLever + new Vector3(0.6f, 0.6f, -0.6f)), "레버 앞에 선 사람 머리가 막 안");
+            foreach (float x in OrbitalDefense.Loungers)
+            {
+                var eye = new Vector3(x, OrbitalDefense.LoungerSeatY + OrbitalDefense.LoungerEye, OrbitalDefense.LoungerZ - 0.3f);
+                Assert.IsFalse(OrbitalDefense.InsideShield(eye), $"선베드 {x} 눈이 막 안");
+            }
+            for (int i = 0; i < 3; i++)
+                Assert.IsTrue(OrbitalDefense.InsideShield(OrbitalDefense.BeamTargets[i].At), $"{OrbitalDefense.BeamTargets[i].Name}가 막 밖");
+            Assert.AreEqual(1f, Vector3.Dot(OrbitalDefense.ShieldNormal(OrbitalDefense.ShieldPoint(Vector3.up)), Vector3.up), 1e-4f, "꼭대기 법선");
+        }
+
+        /// <summary>별똥별 길: 하늘 면 (천장 · 벽) 안에서 출발해 막 밖을 지나 닿는 자리에 떨어짐, 대부분 1.2 m 넘게 보임 (짧으면 다시 고름).</summary>
+        [Test]
+        public void AuroraShield_MeteorPaths()
+        {
+            var random = new System.Random(7);
+            float R(float a, float b) => a + (float)random.NextDouble() * (b - a);
+            int tried = 0, long_ = 0;
+            while (tried < 300)
+            {
+                float lat = R(25f, 68f) * Mathf.Deg2Rad, lon = R(0f, 2f * Mathf.PI);
+                var unit = new Vector3(Mathf.Cos(lat) * Mathf.Cos(lon), Mathf.Sin(lat), Mathf.Cos(lat) * Mathf.Sin(lon));
+                if (unit.z > 0.35f)
+                    continue;
+                tried++;
+                var to = OrbitalDefense.ShieldPoint(unit);
+                var from = OrbitalDefense.MeteorStart(to, new Vector3(R(-0.5f, 0.5f), 1f, R(0.2f, 0.8f)), 4.5f);
+                Assert.LessOrEqual(from.y, OrbitalDefense.LowCeilingY - 0.09f, "천장 밖에서 출발");
+                Assert.LessOrEqual(from.z, OrbitalDefense.RoomMaxZ - 0.09f, "북쪽 벽 밖에서 출발");
+                Assert.That(from.x, Is.InRange(OrbitalDefense.LowRoomFromX + 0.09f, OrbitalDefense.RoomMaxX - 0.09f), "옆 벽 밖에서 출발");
+                if ((from - to).magnitude < 1.2f)
+                    continue;
+                long_++;
+                for (int k = 1; k < 10; k++)
+                    Assert.IsFalse(OrbitalDefense.InsideShield(Vector3.Lerp(from, to, k / 10f)), "별똥별이 막 안을 지나감");
+            }
+            Assert.Greater(long_, tried * 0.7f, $"보이는 길이 별똥별 {long_} / {tried}");
+        }
+
+        /// <summary>쇼 순서: 당김 → 펼침 → 버팀 (별똥별 1.6 ~ 3.2초마다) → 접힘 → 레버 돌아옴 → 쉼, 도는 중에는 다시 당겨지지 않음.</summary>
+        [Test]
+        public void AuroraShieldShow_Sequence()
+        {
+            var show = new AuroraShieldShow(3);
+            Assert.IsFalse(show.Step(0.1f), "쉬는 중 별똥별");
+            Assert.IsTrue(show.Start());
+            Assert.IsFalse(show.Start(), "도는 중 다시 당겨짐");
+            int meteors = 0;
+            float t = 0f, total = AuroraShieldShow.PullTime + AuroraShieldShow.UnfoldTime + AuroraShieldShow.HoldTime + AuroraShieldShow.FoldTime + AuroraShieldShow.ReturnTime;
+            bool leverDown = false, covered = false;
+            while (show.Running && t < total + 1f)
+            {
+                if (show.Step(0.02f))
+                    meteors++;
+                t += 0.02f;
+                leverDown |= show.Lever > 0.999f;
+                covered |= show.Spread > 0.999f && show.Alpha > 0.999f;
+            }
+            Assert.IsFalse(show.Running, "쇼가 끝나지 않음");
+            Assert.AreEqual(total, t, 0.1f);
+            Assert.IsTrue(leverDown && covered, "레버 · 막이 다 펼쳐지지 않음");
+            Assert.AreEqual(0f, show.Lever);
+            Assert.AreEqual(0f, show.Alpha);
+            Assert.That(meteors, Is.InRange(Mathf.FloorToInt(AuroraShieldShow.HoldTime / AuroraShieldShow.MeteorGapMax), Mathf.CeilToInt((AuroraShieldShow.HoldTime + AuroraShieldShow.MeteorLead) / AuroraShieldShow.MeteorGapMin) + 1));
+            Assert.IsTrue(show.Start(), "끝난 뒤 다시 당겨지지 않음");
+        }
+
+        /// <summary>프리팹: 레버에 손잡이 충돌체 (레버 자식 — 같이 기울어짐), 보호막 · 수정 결정 막 (실제 시간) · 선베드 눕기.</summary>
+        [Test]
+        public void AuroraShield_Wired()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                Assert.IsNotNull(root.GetComponentInChildren<InteriorAuroraShield>(true), "보호막 체험 없음");
+                var lever = root.transform.Find("INT_EvoOrbitalDefense_AuroraLever");
+                Assert.IsNotNull(lever);
+                Assert.AreEqual(OrbitalDefense.AuroraLever.x, lever.localPosition.x, 0.02f, "레버 원점 = 굴대");
+                var grip = lever.Find("LeverGrip");
+                Assert.IsNotNull(grip, "손잡이 충돌체가 레버 자식이 아님");
+                Assert.IsNotNull(grip.GetComponent<BoxCollider>());
+                var crystal = root.GetComponentInChildren<SpaceStation.Building.CrystalBarrierFx>(true);
+                Assert.IsNotNull(crystal, "수정 결정 막 없음");
+                var so = new SerializedObject(crystal);
+                Assert.IsTrue(so.FindProperty("_unscaled").boolValue, "수정 결정 막이 게임 시간 (멈추면 멈춤)");
+                Assert.IsNotNull(so.FindProperty("_material").objectReferenceValue);
+                Assert.GreaterOrEqual(root.GetComponents<InteriorBenchSeats>().Length, 1, "선베드 눕기 없음");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
         /// <summary>
         /// 선베드 셋 = 누운 자리 (앉은 채 눕고 옆으로 일어섬 — 앞으로 일어서면 선베드 앞 길을 막았음, 사용자 2026-11-13):
         /// 누운 자리 수 = 선베드 수, 선베드 양옆 0.7 m에 서는 몸 (반지름 0.24)이 들어가는 빈 모래 (탁자 · 파라솔은 등받이 사이).

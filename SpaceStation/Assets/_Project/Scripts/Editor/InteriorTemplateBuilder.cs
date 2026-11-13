@@ -5358,6 +5358,36 @@ namespace SpaceStation.Editor
                     };
                     var lightTargets = new[] { Child(root, N + "Buoy1"), Child(root, N + "Turret"), Child(root, N + "Boat"), null, null, null };
                     root.AddComponent<InteriorLighthouse>().Configure(lens, knobCollider, lightTargets, lightAnswers, ModuleFxMaterials.Get("FireworkSpark"), font);
+                    // 체험 "오로라 보호막 펼치기" (InteriorAuroraShield, 사용자 2026-11-13 "레버 → 보호막 쇼 관람"): 방파제 끝 레버 손잡이 충돌체 (레버 자식, 보고 F) ·
+                    //  선베드 셋 눕기 (InteriorBenchSeats — 주민 누운 자리와 같은 엉덩이 자리, 하늘을 올려다봄) · 닿은 자리 수정 결정 막 (바깥 3단계 실드와 같은 CrystalBarrierFx, 실제 시간)
+                    var leverT = Child(root, N + "AuroraLever");
+                    var grip = new GameObject("LeverGrip");
+                    grip.transform.SetParent(r, false);
+                    grip.transform.localPosition = OrbitalDefense.AuroraLever + new Vector3(0f, 0.3f, -0.12f);
+                    var gripBox = grip.AddComponent<BoxCollider>();
+                    gripBox.size = new Vector3(0.4f, 0.75f, 0.45f);
+                    grip.transform.SetParent(leverT, true);
+                    var loungerSeats = new Vector4[OrbitalDefense.Loungers.Length];
+                    var loungerBoxes = new Bounds[OrbitalDefense.Loungers.Length];
+                    for (int k = 0; k < loungerSeats.Length; k++)
+                    {
+                        float x = OrbitalDefense.Loungers[k];
+                        loungerSeats[k] = new Vector4(x, OrbitalDefense.LoungerSeatY, OrbitalDefense.LoungerZ - 0.3f, 0f);
+                        loungerBoxes[k] = new Bounds(new Vector3(x, OrbitalDefense.Floor + 0.45f, OrbitalDefense.LoungerZ - 0.45f), new Vector3(0.66f, 0.5f, 1.3f));
+                    }
+                    var loungers = root.AddComponent<InteriorBenchSeats>();
+                    loungers.Configure(loungerSeats, loungerBoxes, OrbitalDefense.LoungerPitch, OrbitalDefense.LoungerEye, "눕기");
+                    var crystalGo = new GameObject("AuroraShieldCrystal");
+                    crystalGo.transform.SetParent(r, false);
+                    var crystal = crystalGo.AddComponent<SpaceStation.Building.CrystalBarrierFx>();
+                    var cso = new SerializedObject(crystal);
+                    cso.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("CrystalShard");
+                    cso.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+                    cso.FindProperty("_plateSize").floatValue = 0.45f;   // 바깥 0.3 (모듈 크기) → 내부 막 크기
+                    cso.FindProperty("_unscaled").boolValue = true;
+                    cso.ApplyModifiedPropertiesWithoutUndo();
+                    root.AddComponent<InteriorAuroraShield>().Configure(leverT, gripBox, ModuleFxMaterials.Get("AuroraBarrier"), ModuleFxMaterials.Get("FireworkLine"),
+                        ModuleFxMaterials.Get("FireworkSpark"), crystal, loungers, font);
                 });
         }
 

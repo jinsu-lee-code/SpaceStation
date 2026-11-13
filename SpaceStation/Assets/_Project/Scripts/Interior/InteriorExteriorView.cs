@@ -535,7 +535,8 @@ namespace SpaceStation.Interior
             float ceiling = room.position.y + InteriorGeometry.CellSize * 0.5f - 0.2f;   // 바닥 칸 천장 (칸 가운데 + 3.95) 바로 아래
             foreach (var r in room.GetComponentsInChildren<MeshRenderer>(true))
             {
-                if (IsWindow(r) || !r.TryGetComponent<MeshFilter>(out var filter) || filter.sharedMesh == null || r.bounds.max.y < ceiling)
+                if (IsWindow(r) || !r.TryGetComponent<MeshFilter>(out var filter) || filter.sharedMesh == null
+                    || (r.bounds.max.y < ceiling && !r.TryGetComponent<InteriorSkyMirrorAlways>(out _)))
                     continue;
                 var go = new GameObject(r.name);
                 go.transform.SetParent(mirror.Root, false);

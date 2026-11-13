@@ -22,6 +22,10 @@ namespace SpaceStation.Interior
         [SerializeField] private Bounds[] _seatBoxes = System.Array.Empty<Bounds>();
         [Tooltip("앉았을 때 위아래 시선 (음수 = 위)")]
         [SerializeField] private float _seatedPitch = -6f;
+        [Tooltip("앉는 면 → 눈 높이 (m)")]
+        [SerializeField] private float _seatedEye = SeatedEye;
+        [Tooltip("보고 F 안내 (선베드 = 눕기)")]
+        [SerializeField] private string _prompt = "앉기";
 
         private FirstPersonController _player;
         private GameObject _seatRoot;
@@ -38,11 +42,13 @@ namespace SpaceStation.Interior
         /// <summary>플레이어가 앉음 (드론 쇼 관람석 = 쇼 시작).</summary>
         public event System.Action SatDown;
 
-        public void Configure(Vector4[] seats, Bounds[] seatBoxes, float seatedPitch)
+        public void Configure(Vector4[] seats, Bounds[] seatBoxes, float seatedPitch, float seatedEye = SeatedEye, string prompt = "앉기")
         {
             _seats = seats;
             _seatBoxes = seatBoxes;
             _seatedPitch = seatedPitch;
+            _seatedEye = seatedEye;
+            _prompt = prompt;
         }
 
         private void Awake()
@@ -59,7 +65,7 @@ namespace SpaceStation.Interior
             {
                 var use = _seatRoot.AddComponent<InteriorInteractable>();
                 use.Tap = true;
-                use.Prompt = () => "앉기";
+                use.Prompt = () => _prompt;
                 use.Blocked = () => AimSeat() >= 0 && ResidentOn(AimSeat()) ? "주민이 앉아 있는 자리" : null;
                 use.Completed = Sit;
             }
@@ -137,7 +143,7 @@ namespace SpaceStation.Interior
                 return; // 일어나기와 같은 프레임의 F (InteriorMode가 뒤에서 다시 부름)
             var s = _seats[seat];
             _standPoint = _player.transform.position;
-            _player.RideAt(transform, transform.TransformPoint(new Vector3(s.x, s.y, s.z)), SeatedEye, s.w + transform.eulerAngles.y, _seatedPitch);
+            _player.RideAt(transform, transform.TransformPoint(new Vector3(s.x, s.y, s.z)), _seatedEye, s.w + transform.eulerAngles.y, _seatedPitch);
             _seated = true;
             _seatRoot.SetActive(false);
             ShowHint(true);
