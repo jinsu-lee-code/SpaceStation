@@ -2752,3 +2752,17 @@
 - `InteriorResidents` (누운 자리는 ResidentSeatFit 안 씀) · `OrbitalDefense` (MoleEnd · 해치 (4, 1) = MoleTop) · 누운 자리 높이 = 방석 윗면 · 시험 (누운 자리 = 방석 윗면)
 
 - 체크리스트 133 · 134 · 06c 기록
+
+## M-186. 궤도 방어망 체험 ① 등대 빛 돌리기 — 렌즈에서 거의 수평 빛 · 비추면 답하는 여섯 곳 (2026-11-13, `main`)
+
+
+
+**main에 넣은 것**
+
+- 새 `LighthouseBeam` (순수 규칙 — 천천히 돎 · 잡으면 A · D 가속, 0.5초 머문 곳이 답함, 모두 답하면 시간 · 최고 기록) · `InteriorLighthouse` (손잡이 F = 잡기 → 렌즈와 같이 돎, 답: 환하게 · 출렁 · 흔들림 · 깜빡, 안내 글 = 밝기 · 글)
+
+- `OrbitalDefense` 등대 값 (빛 10° 아래 · 렌즈 수정 고리에서 시작 · 하늘 면 앞에서 끝 `BeamReach` · 답할 곳 여섯 = 손잡이 자리에서 회랑 끝에 가리지 않는 곳), `LightBeamFx.SetEnd`, `LightShaft` 셰이더 `_EndFade` (기본 0.14 — 다른 빛기둥은 그대로), 새 재질 `M_InteriorEvo3LighthouseBeam`
+
+- 템플릿: 렌즈에 빛줄기 둘 · 손잡이 구슬 충돌체, 등실 유리 = 맑은 유리 · 궤도 방어망 프리팹 · 시험 `Lighthouse_*` 다섯
+
+- 체크리스트 135 ~ 137 · 06c 기록

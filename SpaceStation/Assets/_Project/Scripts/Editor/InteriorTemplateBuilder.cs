@@ -5324,6 +5324,40 @@ namespace SpaceStation.Editor
                     // 곶 끝 망원경 (외형 "감지"): 머리 따로 (원점 = 받침 위), F로 들여다봄 — 앞 오른쪽 바다 쪽 ± 100°
                     root.AddComponent<InteriorTelescope>().Configure(Child(root, N + "ScopeHead"), OrbitalDefense.ScopeHead, 18f, 0f, font, OrbitalDefense.ScopeYaw, 100f,
                         startPitch: -12f, startFov: 24f, minPitch: -60f);
+                    // 체험 "등대 빛 돌리기" (InteriorLighthouse, 사용자 2026-11-13 "비추면 반응"): 렌즈 (원점 = 렌즈 가운데, 손잡이 포함)에
+                    //  앞뒤 빛 두 줄기 (LightBeamFx — 렌즈 수정 고리에서 아래로 BeamPitch, 거의 수평으로 등실 유리 · 회랑 위를 지나 스러짐) ·
+                    //  손잡이 구슬 충돌체 (보고 F) — 모두 렌즈 자식이라 같이 돎. 스포트라이트는 없음 (렌즈 앞 회랑 바닥을 하얗게 태웠음 — 빛이 닿은 곳은 반응으로 보임)
+                    var lens = Child(root, N + "Lens");
+                    var lc = OrbitalDefense.LensCenter;
+                    var beamRoot = new GameObject("LensBeams");
+                    beamRoot.transform.SetParent(r, false);
+                    var beamFrom = new Vector3[2];
+                    var beamTo = new Vector3[2];
+                    var beamNormals = new Vector3[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        float yaw = OrbitalDefense.LensHandleYaw + 180f * k;
+                        var dir = Quaternion.Euler(OrbitalDefense.BeamPitch, yaw, 0f) * Vector3.forward;
+                        beamFrom[k] = lc + dir * OrbitalDefense.BeamStart;
+                        beamTo[k] = lc + dir * OrbitalDefense.BeamReach(yaw);   // 벽 쪽이면 하늘 면 앞에서 끝 (돌 때는 InteriorLighthouse가 맞춤)
+                        beamNormals[k] = dir;
+                    }
+                    AddLightShafts(beamRoot, beamFrom, beamTo, new[] { OrbitalDefense.BeamStartDiameter, OrbitalDefense.BeamStartDiameter }, beamNormals,
+                        OrbitalDefense.BeamEndDiameter, InteriorSetup.Evo3LighthouseBeamPath);
+                    beamRoot.transform.SetParent(lens, true);
+                    var knob = new GameObject("LensHandle");
+                    knob.transform.SetParent(r, false);
+                    knob.transform.localPosition = lc + Quaternion.Euler(0f, OrbitalDefense.LensHandleYaw, 0f) * Vector3.forward * OrbitalDefense.HandleReach + Vector3.down * OrbitalDefense.HandleDrop;
+                    var knobCollider = knob.AddComponent<SphereCollider>();
+                    knobCollider.radius = 0.14f;
+                    knob.transform.SetParent(lens, true);
+                    var lightAnswers = new[]
+                    {
+                        InteriorLighthouse.Answer.Bob, InteriorLighthouse.Answer.Glow, InteriorLighthouse.Answer.Sway,
+                        InteriorLighthouse.Answer.Flash, InteriorLighthouse.Answer.Flash, InteriorLighthouse.Answer.Flash,
+                    };
+                    var lightTargets = new[] { Child(root, N + "Buoy1"), Child(root, N + "Turret"), Child(root, N + "Boat"), null, null, null };
+                    root.AddComponent<InteriorLighthouse>().Configure(lens, knobCollider, lightTargets, lightAnswers, ModuleFxMaterials.Get("FireworkSpark"), font);
                 });
         }
 
@@ -7002,7 +7036,7 @@ namespace SpaceStation.Editor
                 { "Evo3SeaBed", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3SeaBedPath) },
                 { "Evo3Stone", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3StonePath) },
                 { "Evo3Cave", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3CavePath) },
-                { "Evo3LampGlass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GlassPath) },
+                { "Evo3LampGlass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2ClearGlassPath) },   // 등실 유리 = 맑은 유리 (청록 유리 두 겹이라 등실 안에서 바다가 온통 초록으로 보였음, 2026-11-13)
             };
             for (int i = 0; i < 7; i++)
                 materials["Evo3Rainbow" + i] = ModuleFxMaterials.Get("Rainbow" + i);   // 프리즘 무지개 고리 일곱 (바깥과 같은 빛 물결)

@@ -261,6 +261,176 @@ namespace SpaceStation.Tests
             }
         }
 
+        // ---------------- 체험 "등대 빛 돌리기" ----------------
+
+        /// <summary>
+        /// 잡고 D로 돌리다 빛 안에 든 곳에서 멈추면 40초 안에 모든 곳이 답함 · 멈추지 않고 가장 빠르게 쓸기만 하면 다 답하지 않음 (머물러야 답함) ·
+        /// 잡지 않고 천천히 도는 동안은 답만 하고 세지 않음 · 한꺼번에 셋 넘게 답하지 않음.
+        /// </summary>
+        [Test]
+        public void Lighthouse_SweepAnswersAll()
+        {
+            var yaws = new List<float>();
+            var widths = new List<float>();
+            foreach (var (_, at) in OrbitalDefense.BeamTargets)
+            {
+                yaws.Add(OrbitalDefense.BeamTargetYaw(at));
+                widths.Add(OrbitalDefense.BeamTargetWidth(at));
+            }
+            var idle = new LighthouseBeam(OrbitalDefense.LensHandleYaw, yaws, widths);
+            var answered = new List<int>();
+            for (int i = 0; i < 60 * 50; i++)
+                idle.Step(1f / 60f, answered);
+            Assert.Greater(answered.Count, 0, "천천히 돌 때 답하는 곳이 없음");
+            Assert.AreEqual(0, idle.FoundCount, "잡지 않았는데 셈");
+
+            var sweep = new LighthouseBeam(OrbitalDefense.LensHandleYaw, yaws, widths);
+            sweep.Begin();
+            sweep.Steer = 1f;
+            for (int i = 0; i < 60 * 30; i++)
+                sweep.Step(1f / 60f, null);
+            Assert.Less(sweep.FoundCount, sweep.TargetCount, "가장 빠르게 쓸기만 해도 다 답함 (머물러야 답해야 함)");
+
+            var b = new LighthouseBeam(OrbitalDefense.LensHandleYaw, yaws, widths);
+            b.Begin();
+            float t = 0f;
+            int most = 0;
+            var now = new List<int>();
+            while (!b.AllFound && t < 40f)
+            {
+                float near = 999f;                   // 가장 가까운 아직 안 답한 곳 (앞 · 뒤 줄기) — 사람처럼 가까우면 그쪽으로 조금씩, 아니면 오른쪽으로
+                for (int i = 0; i < b.TargetCount; i++)
+                {
+                    if (b.Found(i))
+                        continue;
+                    foreach (float off in new[] { 0f, 180f })
+                    {
+                        float d = Mathf.DeltaAngle(b.Yaw + off, yaws[i]);
+                        if (Mathf.Abs(d) < Mathf.Abs(near))
+                            near = d;
+                    }
+                }
+                b.Steer = Mathf.Abs(near) < 20f ? Mathf.Clamp(near / 6f, -1f, 1f) : 1f;
+                now.Clear();
+                b.Step(1f / 60f, now);
+                most = Mathf.Max(most, now.Count);
+                t += 1f / 60f;
+            }
+            Assert.IsTrue(b.AllFound, $"40초에 {b.FoundCount} / {b.TargetCount}");
+            Assert.Less(most, 3, "한 번에 셋 넘게 답함 (곳 방향이 겹침)");
+            Debug.Log($"[OrbitalDefenseTests] 등대 빛: 멈춰 비추며 {b.TargetCount}곳 {t:F1}초 · 쓸기만 {sweep.FoundCount} / {sweep.TargetCount}");
+        }
+
+        /// <summary>
+        /// 빛줄기는 렌즈 (수정)에서 나와 등실 유리 아래 턱 · 회랑 바닥 위로 지나감 — 45°였을 때 회랑 바닥 밑에서 나왔음 (사용자 2026-11-13 "회랑 바닥면에서 빛이 나옴").
+        /// 어느 방향이든 빛줄기 아래 끝 (BeamRadius, 가장 짧은 빛줄기 = 가장 빨리 퍼짐)이 턱 · 회랑 끝보다 위.
+        /// </summary>
+        [Test]
+        public void Lighthouse_BeamLeavesOverGallery()
+        {
+            var c = OrbitalDefense.LensCenter;
+            float p = OrbitalDefense.BeamPitch * Mathf.Deg2Rad;
+            for (int yaw = 0; yaw < 360; yaw += 3)
+            {
+                float reach = OrbitalDefense.BeamReach(yaw);
+                foreach (var (r, floor, what) in new[] { (OrbitalDefense.LampRadius, OrbitalDefense.LampSillTop, "등실 유리 아래 턱"), (OrbitalDefense.GalleryEdge, OrbitalDefense.GalleryY, "회랑 끝") })
+                {
+                    float s = r / Mathf.Cos(p);
+                    float low = c.y - r * Mathf.Tan(p) - OrbitalDefense.BeamRadius(s, reach) / Mathf.Cos(p);
+                    Assert.Greater(low, floor + 0.03f, $"yaw {yaw}: 빛줄기 아래 끝 {low:F2} m가 {what} ({floor:F2}) 밑으로 지나감");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 답하는 곳은 손잡이를 잡은 자리 (등실, 눈 = 바닥 + 1.6 m)에서 회랑 바닥 끝에 가리지 않음 — 폭포 · 오두막 등은 회랑 밑이라 잡은 채 볼 수 없었음.
+        /// 그 곳을 비출 때 선 자리 (손잡이 왼쪽 RiderSide · RiderRadius)에서 곳까지 내려다보는 각 < 회랑 끝까지 내려다보는 각 − 2°.
+        /// </summary>
+        [Test]
+        public void Lighthouse_TargetsSeenFromLamp()
+        {
+            var c = OrbitalDefense.LensCenter;
+            foreach (var (name, at) in OrbitalDefense.BeamTargets)
+            {
+                float yaw = OrbitalDefense.BeamTargetYaw(at);
+                var feet = new Vector2(c.x, c.z) + Rot(yaw + InteriorLighthouse.RiderSide) * InteriorLighthouse.RiderRadius;
+                float eye = OrbitalDefense.GalleryY + FirstPersonController.EyeHeight;
+                var to = new Vector2(at.x, at.z) - feet;
+                float down = Mathf.Atan2(eye - at.y, to.magnitude) * Mathf.Rad2Deg;
+                // 선 자리에서 곳 쪽으로 회랑 끝 원 (반지름 GalleryEdge)까지
+                var d = to.normalized;
+                var f = feet - new Vector2(c.x, c.z);
+                float b = Vector2.Dot(f, d), q = f.sqrMagnitude - OrbitalDefense.GalleryEdge * OrbitalDefense.GalleryEdge;
+                float edge = -b + Mathf.Sqrt(b * b - q);
+                float deck = Mathf.Atan2(eye - OrbitalDefense.GalleryY, edge) * Mathf.Rad2Deg;
+                Assert.Less(down, deck - 2f, $"{name}: 내려다보는 각 {down:F1}° — 회랑 끝 ({deck:F1}°)에 가림");
+            }
+        }
+
+        private static Vector2 Rot(float yaw) => new Vector2(Mathf.Sin(yaw * Mathf.Deg2Rad), Mathf.Cos(yaw * Mathf.Deg2Rad));
+
+        /// <summary>
+        /// 빛줄기 끝 (BeamReach): 어느 방향이든 끝 고리 (지름 BeamEndDiameter)가 하늘 면 (벽 · 아래 칸 천장 턱) 안 — 뒤쪽 벽을 비출 때 하늘 면에 잘린 끝이 보였음.
+        /// 넓은 바다 쪽은 다 뻗음 (BeamLength), 벽 쪽은 짧아짐.
+        /// </summary>
+        [Test]
+        public void Lighthouse_BeamStopsBeforeSky()
+        {
+            var c = OrbitalDefense.LensCenter;
+            float shortest = OrbitalDefense.BeamLength, longest = 0f;
+            for (int yaw = 0; yaw < 360; yaw++)
+            {
+                float reach = OrbitalDefense.BeamReach(yaw);
+                Assert.LessOrEqual(reach, OrbitalDefense.BeamLength + 0.001f, $"yaw {yaw}: 가장 긴 길이보다 김");
+                shortest = Mathf.Min(shortest, reach);
+                longest = Mathf.Max(longest, reach);
+                var dir = Quaternion.Euler(OrbitalDefense.BeamPitch, yaw, 0f) * Vector3.forward;
+                var end = c + dir * reach;
+                var x2 = Vector3.Cross(dir, Vector3.up).normalized;
+                var y2 = Vector3.Cross(dir, x2);
+                for (int a = 0; a < 16; a++)
+                {
+                    float ang = a * Mathf.PI / 8f;
+                    var q = end + (x2 * Mathf.Cos(ang) + y2 * Mathf.Sin(ang)) * (OrbitalDefense.BeamEndDiameter / 2f);
+                    bool inside = q.x > OrbitalDefense.RoomMinX && q.x < OrbitalDefense.RoomMaxX && q.z > OrbitalDefense.RoomMinZ && q.z < OrbitalDefense.RoomMaxZ
+                                  && (q.x < OrbitalDefense.LowRoomFromX || q.y < OrbitalDefense.LowCeilingY);
+                    Assert.IsTrue(inside, $"yaw {yaw}: 빛줄기 끝 고리 {q}가 하늘 면 밖");
+                }
+            }
+            Assert.Less(shortest, OrbitalDefense.BeamLength - 2f, "벽 쪽에서도 줄지 않음");
+            Assert.AreEqual(OrbitalDefense.BeamLength, longest, 0.001f, "어느 쪽으로도 다 뻗지 못함");
+        }
+
+        /// <summary>프리팹: 렌즈에 손잡이 구슬 (충돌체, 등실 바닥에서 손 닿는 높이) · 빛줄기 둘이 붙어 같이 돎 (스포트라이트 없음), 답하는 곳 여섯.</summary>
+        [Test]
+        public void Lighthouse_Wired()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                var lh = root.GetComponentInChildren<InteriorLighthouse>(true);
+                Assert.IsNotNull(lh, "등대 빛 체험 없음");
+                var lens = root.transform.Find("INT_EvoOrbitalDefense_Lens");
+                Assert.IsNotNull(lens);
+                var knob = lens.Find("LensHandle");
+                Assert.IsNotNull(knob, "손잡이 구슬이 렌즈 자식이 아님");
+                Assert.IsNotNull(knob.GetComponent<SphereCollider>());
+                float h = knob.position.y - OrbitalDefense.GalleryY;
+                Assert.That(h, Is.InRange(0.4f, 1.2f), $"손잡이 높이 {h:F2} m (등실 바닥에서)");
+                var beams = lens.Find("LensBeams");
+                Assert.IsNotNull(beams, "빛줄기가 렌즈 자식이 아님");
+                Assert.IsNotNull(beams.GetComponent<SpaceStation.Building.LightBeamFx>());
+                Assert.AreEqual(0, beams.GetComponentsInChildren<Light>(true).Length, "스포트라이트는 렌즈 앞 회랑 바닥을 태움");
+                Assert.AreEqual(6, OrbitalDefense.BeamTargets.Length);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
         /// <summary>
         /// 선베드 셋 = 누운 자리 (앉은 채 눕고 옆으로 일어섬 — 앞으로 일어서면 선베드 앞 길을 막았음, 사용자 2026-11-13):
         /// 누운 자리 수 = 선베드 수, 선베드 양옆 0.7 m에 서는 몸 (반지름 0.24)이 들어가는 빈 모래 (탁자 · 파라솔은 등받이 사이).

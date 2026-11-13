@@ -137,6 +137,7 @@ namespace SpaceStation.Editor
         public const string Evo3CavePath = MaterialFolder + "/M_InteriorEvo3Cave.mat";
         public const string Evo3FallsColumnPath = MaterialFolder + "/M_InteriorEvo3FallsColumn.mat";   // 둥근 폭포 기둥 (WaterFalls, 옆 흐림 끔 — 원기둥 UV에서 한쪽이 지워졌음)
         public const string Evo3SpillPath = MaterialFolder + "/M_InteriorEvo3Spill.mat";     // 단 사이 작은 폭포 (WaterFalls 맑은 변형 — 맑은 물 판이 파란 유리처럼 보였음)
+        public const string Evo3LighthouseBeamPath = MaterialFolder + "/M_InteriorEvo3LighthouseBeam.mat";   // 궤도 방어망 등대 빛 (따뜻한 빛, 빛기둥 셰이더 — 실드 돔 찬 빛 0.16은 밤바다에서 안 보였음)
         public const string SoftRainbowPath = MaterialFolder + "/M_InteriorSoftRainbow.mat";   // 오로라처럼 옅은 무지개 띠 (SoftRainbow, 발끝 흐림)
         public const string SoftHaloPath = MaterialFolder + "/M_InteriorSoftHalo.mat";         // 프리즘 둘레 옅은 무지개 고리 (끝 없음)
         public const string Evo3BlossomPath = MaterialFolder + "/M_InteriorEvo3Blossom.mat"; // 열차 방석 (연분홍 천)     // 병풍 해 · 세 날개 표지 · 석등 불빛 (레몬빛)
@@ -888,6 +889,19 @@ namespace SpaceStation.Editor
                 beacon.SetFloat("_MirrorGlow", 0.3f);
                 beacon.enableInstancing = true;
                 EditorUtility.SetDirty(beacon);
+            }
+            if (AssetDatabase.LoadAssetAtPath<Material>(Evo3LighthouseBeamPath) == null)
+            {
+                var lamp = LoadOrCreate(Evo3LighthouseBeamPath, Shader.Find("SpaceStation/LightShaft"));
+                lamp.SetColor("_BaseColor", new Color(1.45f, 1.18f, 0.72f));
+                lamp.SetFloat("_Intensity", 0.6f);
+                lamp.SetFloat("_Attenuation", 0.6f);
+                lamp.SetFloat("_Glint", 0.9f);
+                lamp.SetFloat("_MirrorGlow", 0.6f);
+                lamp.SetFloat("_Softness", 1.35f);   // 손잡이 자리 (빛줄기를 거의 뒤에서 봄)에서도 보이게 — 1.0은 옆에서 크림색 판처럼 단단했음
+                lamp.SetFloat("_EndFade", 0.55f);   // 공중에서 끝남 (바다 · 벽에 닿지 않음) — 끝이 뭉툭하지 않게 길게 스러짐
+                lamp.enableInstancing = true;
+                EditorUtility.SetDirty(lamp);
             }
 
             // 방사선 차폐벽: 은하수 강 · 병풍 별 (없을 때만 값을 넣음, 슬라이더로 맞춘 값을 덮어쓰지 않게)
