@@ -2828,3 +2828,15 @@
 - `OrbitalDefense` 동물 자리 (Seals · Crabs · Dolphins · Turtles · Puffins · LedgePuffins), `InteriorTemplateBuilder` 궤도 방어망 동물 묶음 · `CritterGroup` (묶음 kind 지정 · 게 양쪽 옆걸음 · 거북 헤엄 고리 막힘 검사) · `InteriorCritterModels` · `CritterSpots`, `StationArtBuilder.CritterKinds` Dolphin = Leap · Puffin = Perch
 
 - 궤도 방어망 프리팹 다시 지음, 시험 `OrbitalDefenseTests.Critters_OnTheirSpots`, 체크리스트 145 ~ 147 · 06c 기록
+
+## M-192. 바다 동물 바위 · 모래 닿게 — 물범이 떠 있던 것 고침 (2026-11-13, `main`)
+
+
+
+**main에 넣은 것**
+
+- `OrbitalDefense` 바다 동물 자리: 몸 밑 닿는 점 (물범 배 · 지느러미, 퍼핀 발바닥, 게 다리 끝)을 바위 높이 지도 위에 놓아 찾은 자리 · 높이 (어른 물범 10 cm 옆 · 5.4 cm 내림 등 — 원점 한 점만 맞춰 둥근 바위 위로 최대 11 cm 떠 있었음)
+
+- `InteriorTemplateBuilder` 퍼핀 묶음 배율 8 → 2 (돌아볼 때 위아래 흔들림 1.2 cm → 3 mm), 궤도 방어망 프리팹 다시 지음
+
+- 시험 `OrbitalDefenseTests.Critters_OnTheirSpots` = 닿는 점 전체 (97 %가 1.5 cm 안 · 가장 큰 틈 3 cm 미만), 체크리스트 148 · 06c 기록

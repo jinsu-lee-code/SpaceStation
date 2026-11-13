@@ -241,17 +241,21 @@ namespace SpaceStation.Interior
         public static readonly Vector4[] TidePools = { new Vector4(33.9f, -0.5f, 0.95f, 0.7f), new Vector4(35.0f, 1.5f, 0.75f, 0.55f), new Vector4(34.8f, -2.7f, 0.7f, 0.55f) };
 
         // ---------------- 바다 동물 (critter_builder 바다 동물, 사용자 2026-11-13 "좋아 다음으로 넘어가자" — 물범 · 돌고래 · 바닷새 · 거북 · 게) ----------------
-        // (모델, 자리 (모델 원점), 바라보는 쪽 수학 각). 땅 · 바위 위 자리 높이 = 템플릿 면을 광선으로 잰 값 − 0.5 ~ 1.5 cm (OrbitalDefenseTests.Critters_OnTheirSpots가 지킴).
-        /// <summary>물범 바위 둘 (od3_builder 물범 바위 — 바다 가장자리): 큰 바위 = 어른 물범 (해변 · 잔교 쪽을 봄), 작은 바위 = 하얀 아기 물범.</summary>
+        // (모델, 자리 (모델 원점), 바라보는 쪽 수학 각). 땅 · 바위 위 자리 = 몸 밑 닿는 점 (물범 = 배 · 지느러미 · 엉덩이 밑, 새 = 발바닥, 게 = 다리 끝)이 모두 면에서 1.5 cm 안이 되게
+        //  자리 · 높이를 찾은 값 (원점 한 점만 면에 맞췄더니 둥근 바위 위 물범 배 · 꼬리가 최대 11 cm 떠 있었음, 사용자 2026-11-13) — OrbitalDefenseTests.Critters_OnTheirSpots가 지킴.
+        /// <summary>
+        /// 물범 바위 둘 (od3_builder 물범 바위 — 바다 가장자리): 큰 바위 = 어른 물범 (해변 · 잔교 쪽을 봄), 작은 바위 = 하얀 아기 물범.
+        /// 둥근 바위에 둥근 배라 한 점에서만 닿음 → 어른 물범은 꼭대기에서 10 cm 옆으로 · 배 가운데가 바위 속 6.6 cm (배 둘레 · 앞지느러미가 바위에 닿아 퍼져 누운 모양).
+        /// </summary>
         public static readonly (string Kind, Vector3 At, float Facing)[] Seals =
         {
-            ("Seal", new Vector3(32.55f, -0.863f, 1.6f), 200f), ("SealPup", new Vector3(35.05f, -0.965f, 3.4f), 215f),
+            ("Seal", new Vector3(32.55f, -0.917f, 1.5f), 200f), ("SealPup", new Vector3(35.05f, -0.983f, 3.4f), 215f),
         };
         /// <summary>게 넷 = 물가 모래 (주민 자리 · 선베드 · 잔교에서 1.2 m 넘게): 해변 쪽을 보고 물가를 따라 (x) 옆걸음 — 그 길 위 모래 높이 차 1 cm 안.</summary>
         public static readonly (string Kind, Vector3 At, float Facing)[] Crabs =
         {
-            ("Crab", new Vector3(31.2f, -1.305f, -1.6f), 268f), ("Crab", new Vector3(24.2f, -1.342f, -1.4f), 274f),
-            ("Crab", new Vector3(20.6f, -1.38f, -1.0f), 275f), ("Crab", new Vector3(14.3f, -1.374f, -1.1f), 265f),
+            ("Crab", new Vector3(31.2f, -1.31f, -1.6f), 268f), ("Crab", new Vector3(24.2f, -1.345f, -1.4f), 274f),
+            ("Crab", new Vector3(20.6f, -1.383f, -1.0f), 275f), ("Crab", new Vector3(14.3f, -1.377f, -1.1f), 265f),
         };
         /// <summary>돌고래 둘 = 깊은 바다 (2.1 m 넘게): 처음 자리 = 뛰어오른 한가운데 (수면 + 0.2), 바라보는 쪽으로 2.4 m를 0.7 m 높이로 뜀 (CritterFx Leap × 34).</summary>
         public static readonly (string Kind, Vector3 At, float Facing)[] Dolphins =
@@ -266,8 +270,8 @@ namespace SpaceStation.Interior
         /// <summary>퍼핀 넷 = 방파제 앞 바다 바위 셋 · 조수 웅덩이 바위 하나 (둘레가 트여 휙 돌아봄).</summary>
         public static readonly (string Kind, Vector3 At, float Facing)[] Puffins =
         {
-            ("Puffin", new Vector3(21.35f, -1.202f, 8.6f), 250f), ("Puffin", new Vector3(23.7f, -1.157f, 8.35f), 280f),
-            ("Puffin", new Vector3(24.4f, -1.153f, 8.2f), 230f), ("Puffin", new Vector3(34.6f, -1.042f, 2.2f), 200f),
+            ("Puffin", new Vector3(21.38f, -1.212f, 8.6f), 250f), ("Puffin", new Vector3(23.7f, -1.167f, 8.35f), 280f),
+            ("Puffin", new Vector3(24.4f, -1.163f, 8.2f), 230f), ("Puffin", new Vector3(34.6f, -1.05f, 2.2f), 200f),
         };
         /// <summary>
         /// 곶 동쪽 지층 풀 턱의 퍼핀 둘 (바닷새 둥지 자리, 2.83 · 1.99 m): 턱 폭이 0.3 m (벽 0.11 ~ 0.13 · 끝 0.15 ~ 0.18)라 바깥에서 40° 비스듬히 앉아
@@ -275,7 +279,7 @@ namespace SpaceStation.Interior
         /// </summary>
         public static readonly (string Kind, Vector3 At, float Facing)[] LedgePuffins =
         {
-            ("Puffin", new Vector3(9.06f, 2.827f, 5.304f), -28f), ("Puffin", new Vector3(9.215f, 1.984f, 5.958f), -22f),
+            ("Puffin", new Vector3(9.06f, 2.822f, 5.304f), -28f), ("Puffin", new Vector3(9.215f, 1.979f, 5.958f), -22f),
         };
 
         // ---------------- 연결점 ----------------

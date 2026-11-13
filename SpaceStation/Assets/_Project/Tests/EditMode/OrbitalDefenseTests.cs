@@ -717,7 +717,7 @@ namespace SpaceStation.Tests
         // ---------------- 바다 동물 ----------------
 
         /// <summary>
-        /// 바다 동물 묶음마다 수 · 움직임 · 앞쪽: 땅 · 바위 동물은 원점이 면에 0.3 ~ 2 cm 묻힘 (뜨거나 파묻히지 않음), 모델 앞쪽 = 바라보는 쪽, 게는 물가를 따라 (x) 양쪽으로 옆걸음 ·
+        /// 바다 동물 묶음마다 수 · 움직임 · 앞쪽: 땅 · 바위 동물은 몸 밑 닿는 점이 면에서 1.5 cm 안 (97 %, 가장 큰 틈 3 cm 미만 · 너무 깊이 묻히지 않음), 모델 앞쪽 = 바라보는 쪽, 게는 물가를 따라 (x) 양쪽으로 옆걸음 ·
         /// 그 길 모래 높이 차 1.5 cm 안, 돌고래는 뛰는 길 (± 1.3 m, 수면 ~ + 1 m)에 막는 것이 없고 밑이 1.5 m 넘게 깊음, 거북은 막히지 않는 헤엄 고리를 고름.
         /// </summary>
         [Test]
@@ -764,9 +764,32 @@ namespace SpaceStation.Tests
                             Assert.Greater(Vector3.Dot(heading, face), 0.9f, $"{holderName} {i} 머리 쪽 (움직임 앞) {heading}");
                         if (land)
                         {
-                            Assert.IsTrue(Physics.Raycast(at + Vector3.up * 0.3f, Vector3.down, out var hit, 0.6f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"{holderName} {i} 발밑 없음");
-                            float sink = hit.point.y - at.y;
-                            Assert.That(sink, Is.InRange(0.003f, 0.02f), $"{holderName} {i} 원점이 면에 묻힌 깊이 {sink:F3}");
+                            // 몸 밑 닿는 점 (아래를 보는 면 — 물범 = 원점 위 3.5 cm 안 배 · 지느러미 · 엉덩이, 새 · 게 = 1 cm 안 발바닥 · 다리 끝)이 모두 면 가까이:
+                            //  원점 한 점만 맞추면 둥근 바위 위 물범 배 · 꼬리가 최대 11 cm 떠 있었음 (사용자 2026-11-13)
+                            bool seal = name.StartsWith("Seal");
+                            float band = seal ? 0.035f : 0.01f, deepest = name == "Seal" ? 0.07f : seal ? 0.04f : 0.015f;
+                            var mesh = part.GetComponent<MeshFilter>().sharedMesh;
+                            var vs = mesh.vertices;
+                            var ns = mesh.normals;
+                            int contact = 0, floating = 0;
+                            float worst = 0f, buried = 0f;
+                            for (int v = 0; v < vs.Length; v++)
+                            {
+                                var w = part.TransformPoint(vs[v]);
+                                if (w.y - part.position.y > band || part.TransformDirection(ns[v]).y > -0.5f)
+                                    continue;
+                                Assert.IsTrue(Physics.Raycast(w + Vector3.up * 0.3f, Vector3.down, out var hit, 1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"{holderName} {i} 발밑 없음 {w}");
+                                float gap = w.y - hit.point.y;
+                                contact++;
+                                if (gap > 0.015f)
+                                    floating++;
+                                worst = Mathf.Max(worst, gap);
+                                buried = Mathf.Min(buried, gap);
+                            }
+                            Assert.Greater(contact, 8, $"{holderName} {i} 닿는 점");
+                            Assert.LessOrEqual(floating, contact * 0.03f, $"{holderName} {i} 몸 밑이 1.5 cm 넘게 뜬 점 {floating}/{contact} (가장 큰 틈 {worst:F3})");
+                            Assert.Less(worst, 0.03f, $"{holderName} {i} 가장 큰 틈 {worst:F3}");
+                            Assert.Greater(buried, -deepest, $"{holderName} {i} 바위 · 모래 속에 너무 깊이 묻힘 {buried:F3}");
                         }
                         if (kind == SpaceStation.Building.CritterFx.Kind.Scuttle)
                         {

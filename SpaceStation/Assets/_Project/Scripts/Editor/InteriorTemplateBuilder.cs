@@ -5411,7 +5411,7 @@ namespace SpaceStation.Editor
                     CritterGroup(r, critterSrc, "Critters_Dolphin", 34f, CritterSpots(OrbitalDefense.Dolphins));
                     CritterGroup(r, critterSrc, "Critters_Turtle", 10f, CritterSpots(OrbitalDefense.Turtles),
                         SwimBlocker(root, new Vector3(22f, OrbitalDefense.SeaLevel, 4f), 15f, (OrbitalDefense.SeaLevel, 0f)));
-                    CritterGroup(r, critterSrc, "Critters_Puffin", 8f, CritterSpots(OrbitalDefense.Puffins));
+                    CritterGroup(r, critterSrc, "Critters_Puffin", 2f, CritterSpots(OrbitalDefense.Puffins));   // 돌아볼 때 위아래 흔들림 = 0.0015 × 배율 (8이면 1.2 cm — 발이 들썩였음)
                     CritterGroup(r, critterSrc, "Critters_LedgePuffin", 8f, CritterSpots(OrbitalDefense.LedgePuffins), kind: SpaceStation.Building.CritterFx.Kind.Bask);
                 });
         }
