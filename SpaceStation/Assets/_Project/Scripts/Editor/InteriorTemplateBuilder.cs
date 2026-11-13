@@ -4980,12 +4980,7 @@ namespace SpaceStation.Editor
                     rso.FindProperty("_alwaysOn").boolValue = true;
                     rso.ApplyModifiedPropertiesWithoutUndo();
                     // 동물: 사슴 · 아기 사슴 · 토끼 (Biosphere.Critters — 꽃 · 잎이 비킨 자리) · 오리 가족 (Biosphere.DuckSpots) = SM_InteriorCritters (미터)
-                    var critterSrc = new Dictionary<string, GameObject>();
-                    foreach (var o in AssetDatabase.LoadAllAssetsAtPath("Assets/_Project/Art/Models/Interior/SM_InteriorCritters.fbx"))
-                    {
-                        if (o is GameObject g && g.name.StartsWith("Critter_") && g.GetComponent<MeshFilter>() != null)
-                            critterSrc[g.name] = g;
-                    }
+                    var critterSrc = InteriorCritterModels();
                     float[] yaws = { 40f, -60f, 80f, 30f, 200f, -40f };
                     var deer = new List<(string, Vector3, float)>();
                     var bunnies = new List<(string, Vector3, float)>();
@@ -5407,7 +5402,39 @@ namespace SpaceStation.Editor
                     pso.ApplyModifiedPropertiesWithoutUndo();
                     root.AddComponent<InteriorStarfall>().Configure(Child(root, N + "Turret"), gunBox, prismBeam, ModuleFxMaterials.Get("FireworkLine"),
                         ModuleFxMaterials.Get("FireworkSpark"), font);
+                    // 바다 동물 (critter_builder 바다 동물 — 귀여운 2등신, 얼굴 = 아틀라스): 묶음 배율 = CritterFx 움직임 크기 (게 옆걸음 0.31 m · 돌고래 2.4 m 뜀 · 흔들림 cm)
+                    //  물범 · 아기 물범 = 물범 바위에서 숨 쉬며 고개 듦, 게 = 물가 모래를 따라 옆걸음, 돌고래 = 깊은 바다에서 뛰어오름, 거북 = 얕은 바다 고리 헤엄
+                    //  (잔교 · 배 · 부표 · 물가 · 방파제를 비킴), 퍼핀 = 바다 · 조수 웅덩이 바위에서 휙 돌아봄 + 곶 풀 턱 둘은 숨만 쉼 (턱 폭 0.3 m)
+                    var critterSrc = InteriorCritterModels();
+                    CritterGroup(r, critterSrc, "Critters_Seal", 8f, CritterSpots(OrbitalDefense.Seals));
+                    CritterGroup(r, critterSrc, "Critters_Crab", 14f, CritterSpots(OrbitalDefense.Crabs));
+                    CritterGroup(r, critterSrc, "Critters_Dolphin", 34f, CritterSpots(OrbitalDefense.Dolphins));
+                    CritterGroup(r, critterSrc, "Critters_Turtle", 10f, CritterSpots(OrbitalDefense.Turtles),
+                        SwimBlocker(root, new Vector3(22f, OrbitalDefense.SeaLevel, 4f), 15f, (OrbitalDefense.SeaLevel, 0f)));
+                    CritterGroup(r, critterSrc, "Critters_Puffin", 8f, CritterSpots(OrbitalDefense.Puffins));
+                    CritterGroup(r, critterSrc, "Critters_LedgePuffin", 8f, CritterSpots(OrbitalDefense.LedgePuffins), kind: SpaceStation.Building.CritterFx.Kind.Bask);
                 });
+        }
+
+        /// <summary>내부 전용 동물 모델 (critter_builder — SM_InteriorCritters, 미터): 이름 "Critter_종류" → 모델.</summary>
+        private static Dictionary<string, GameObject> InteriorCritterModels()
+        {
+            var critterSrc = new Dictionary<string, GameObject>();
+            foreach (var o in AssetDatabase.LoadAllAssetsAtPath("Assets/_Project/Art/Models/Interior/SM_InteriorCritters.fbx"))
+            {
+                if (o is GameObject g && g.name.StartsWith("Critter_") && g.GetComponent<MeshFilter>() != null)
+                    critterSrc[g.name] = g;
+            }
+            return critterSrc;
+        }
+
+        /// <summary>바라보는 쪽 (수학 각 — 0° = +x, 90° = +z) → 내부 동물 모델 yaw (모델 앞 = Blender +x = Unity −x).</summary>
+        private static (string, Vector3, float)[] CritterSpots((string Kind, Vector3 At, float Facing)[] spots)
+        {
+            var list = new (string, Vector3, float)[spots.Length];
+            for (int i = 0; i < spots.Length; i++)
+                list[i] = (spots[i].Kind, spots[i].At, 180f - spots[i].Facing);
+            return list;
         }
 
         /// <summary>내부 헤엄 고리 크기 (CritterFx.SwimSize 배율) — 큰 것부터 막히지 않는 것 (바깥 모듈 1 · 0.7 · 0.45보다 넓은 호수).</summary>
@@ -5418,10 +5445,11 @@ namespace SpaceStation.Editor
         /// <summary>
         /// 내부 동물 묶음 (궤도 도시와 같은 틀): 묶음 = CritterFx 흔들림 폭에 맞춘 배율, 동물 = 내부 전용 모델 (미터)을 그만큼 줄여 넣음 (실제 크기 = 미터).
         /// 새끼 오리 = 바로 앞 어미 (Swim)를 따라감 (StationArtBuilder.WireCritters와 같음). swimBlocked (템플릿 좌표 · 미터 반지름)가 있으면
-        /// 헤엄 동물마다 고리 크기 · 도는 쪽을 골라 막히지 않게 (새끼 줄 길이 포함), 없으면 제자리에서 두리번.
+        /// 헤엄 동물 (오리 · 백조 · 거북)마다 고리 크기 · 도는 쪽을 골라 막히지 않게 (새끼 줄 길이 포함), 없으면 제자리에서 두리번. 게는 양쪽으로 옆걸음 (자리 고를 때 길 위 높이를 잼).
+        /// kind = 이 묶음 모두의 움직임 (없으면 이름으로 — 좁은 턱의 퍼핀은 돌아보지 않고 숨만 쉼).
         /// </summary>
         private static void CritterGroup(Transform parent, Dictionary<string, GameObject> critterSrc, string holderName, float scale, (string src, Vector3 at, float yaw)[] list,
-            System.Func<Vector3, float, bool> swimBlocked = null)
+            System.Func<Vector3, float, bool> swimBlocked = null, SpaceStation.Building.CritterFx.Kind? kind = null)
         {
             var holder = new GameObject(holderName).transform;
             holder.SetParent(parent, false);
@@ -5446,7 +5474,7 @@ namespace SpaceStation.Editor
                 mr.sharedMaterial = critterMat;
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 parts.Add(t);
-                kinds.Add(StationArtBuilder.CritterKinds.TryGetValue(src, out var kind) ? kind : SpaceStation.Building.CritterFx.Kind.Swim);
+                kinds.Add(kind ?? (StationArtBuilder.CritterKinds.TryGetValue(src, out var named) ? named : SpaceStation.Building.CritterFx.Kind.Swim));
             }
             var fx = holder.gameObject.AddComponent<SpaceStation.Building.CritterFx>();
             var so = new SerializedObject(fx);
@@ -5478,11 +5506,12 @@ namespace SpaceStation.Editor
                 e.FindPropertyRelative("Heading").vector3Value = headings[i];
                 e.FindPropertyRelative("Radius").floatValue = radii[i];
                 e.FindPropertyRelative("Leader").intValue = leader;
-                e.FindPropertyRelative("Side").floatValue = 0f;
+                e.FindPropertyRelative("Side").floatValue = kinds[i] == SpaceStation.Building.CritterFx.Kind.Scuttle ? 2f : 0f;   // 게 = 이쪽저쪽 번갈아 (0이면 제자리)
             }
             for (int i = 0; i < parts.Count && swimBlocked != null; i++)
             {
-                if (kinds[i] != SpaceStation.Building.CritterFx.Kind.Swim)
+                bool turtle = kinds[i] == SpaceStation.Building.CritterFx.Kind.Drift;
+                if (kinds[i] != SpaceStation.Building.CritterFx.Kind.Swim && !turtle)
                     continue;
                 // 새끼 줄 길이 (CritterFx.Play의 어미 길 자국과 같은 계산) · 새끼 처음 자리도 막히면 안 됨
                 var home = parts[i].localPosition;
@@ -5505,7 +5534,7 @@ namespace SpaceStation.Editor
                 {
                     foreach (float s in new[] { 1f, -1f })
                     {
-                        SpaceStation.Building.CritterFx.SwimSize(false, radii[i], chain, size, out float ra, out float rb);
+                        SpaceStation.Building.CritterFx.SwimSize(turtle, radii[i], chain, size, out float ra, out float rb);
                         bool clear = true;
                         for (int k = 1; k < 96 && clear; k++)
                             clear = !swimBlocked((home + SpaceStation.Building.CritterFx.SwimOffset(headings[i], s, ra, rb, 2f * Mathf.PI * k / 96f)) * scale, radii[i] * scale * SwimBody);
