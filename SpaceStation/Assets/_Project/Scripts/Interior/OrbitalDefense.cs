@@ -135,6 +135,42 @@ namespace SpaceStation.Interior
             return len < 0.5f ? target : target + d * len;
         }
 
+        // ---------------- 미니게임 "별똥별 막기" (InteriorStarfall · StarfallGame, 사용자 2026-11-13 "포대에 앉아 조준 · 발사") ----------------
+        /// <summary>포수 의자 앉는 면 (od3_builder turret() — 포대 가운데에서 북동 1.1 m) · 바라보는 쪽 (yaw, 바다 오른쪽 뒤) · 눈 높이 · 처음 시선 (음수 = 위).</summary>
+        public static readonly Vector3 GunSeat = new Vector3(23.16f, Floor + 0.52f, 5.89f);
+        public const float GunSeatYaw = 40f, GunEye = 1.0f, GunPitch = -6f;   // 눈 0.72는 포대 테 난간 손잡이와 같은 높이라 화면 가운데를 가로막았음, −16°는 별똥별이 떨어지는 바다가 화면 밖이었음
+        /// <summary>포 끝 = 포대 수정 무리 가운데 큰 수정 꼭짓점 (Turret 원점 받침 윗면 + 1.9).</summary>
+        public static readonly Vector3 TurretMuzzle = new Vector3(22.45f, Floor + 2.28f, 5.05f);
+        /// <summary>별똥별이 떨어지는 자리: 포수가 보는 쪽 ± StarfallSpread (도), 포대에서 StarfallNear ~ StarfallFar m (수면, 벽에서 2 m 안). 들어오는 쪽 바깥 기울기 = StarfallOutMin ~ Max.</summary>
+        public const float StarfallSpread = 60f, StarfallNear = 5f, StarfallFar = 12f;
+        public const float StarfallOutMin = 0.15f, StarfallOutMax = 0.6f;
+
+        /// <summary>포수가 보는 쪽에서 yawOffset (도) · 포대에서 dist (m) 떨어진 수면 자리 (방 안으로 당김).</summary>
+        public static Vector3 StarfallTarget(float yawOffset, float dist)
+        {
+            float a = (GunSeatYaw + yawOffset) * Mathf.Deg2Rad;
+            float x = Mathf.Clamp(Turret.x + Mathf.Sin(a) * dist, LowRoomFromX + 2f, RoomMaxX - 2f);
+            float z = Mathf.Clamp(Turret.z + Mathf.Cos(a) * dist, RoomMinZ + 2f, RoomMaxZ - 2f);   // 벽에서 1 m는 바깥으로 들어오는 별똥별이 벽에 막혀 짧았음
+            return new Vector3(x, SeaLevel, z);
+        }
+
+        /// <summary>출발점이 포수에게 보이는 쪽인지: 보는 쪽 ± 95° 안 · 70° 아래 (등 뒤 · 머리 바로 위에서 오면 못 봄).</summary>
+        public static bool StarfallVisible(Vector3 from)
+        {
+            var d = from - (GunSeat + Vector3.up * GunEye);
+            float yaw = Mathf.DeltaAngle(GunSeatYaw, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg);
+            float el = Mathf.Atan2(d.y, new Vector2(d.x, d.z).magnitude) * Mathf.Rad2Deg;
+            return Mathf.Abs(yaw) < 95f && el < 70f;
+        }
+
+        /// <summary>별똥별이 들어오는 쪽 (닿을 자리에서 출발점 쪽): 위 + 포수에게서 먼 쪽으로 out (0 ~ 1) + 옆 side (−1 ~ 1).</summary>
+        public static Vector3 StarfallIncoming(Vector3 target, float outward, float side)
+        {
+            var away = new Vector3(target.x - GunSeat.x, 0f, target.z - GunSeat.z).normalized;
+            var across = new Vector3(-away.z, 0f, away.x);
+            return (Vector3.up + away * outward + across * side * 0.4f).normalized;
+        }
+
         /// <summary>망원경 머리 (ScopeHead 원점) · 쉬는 방향 (Unity yaw, 앞 오른쪽 바다).</summary>
         public static readonly Vector3 ScopeHead = new Vector3(7.55f, CapeTop + 1.22f, 3.3f);
         public const float ScopeYaw = 121.4f;

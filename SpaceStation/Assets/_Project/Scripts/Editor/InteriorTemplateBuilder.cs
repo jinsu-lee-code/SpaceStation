@@ -5388,6 +5388,25 @@ namespace SpaceStation.Editor
                     cso.ApplyModifiedPropertiesWithoutUndo();
                     root.AddComponent<InteriorAuroraShield>().Configure(leverT, gripBox, ModuleFxMaterials.Get("AuroraBarrier"), ModuleFxMaterials.Get("FireworkLine"),
                         ModuleFxMaterials.Get("FireworkSpark"), crystal, loungers, font);
+                    // 미니게임 "별똥별 막기" (InteriorStarfall, 사용자 2026-11-13 "포대에 앉아 조준 · 발사"): 포수 의자 충돌체 (보고 F) · 포대 수정 무리 (조준하는 쪽으로 기움) ·
+                    //  프리즘 광선 (바깥 포대와 같은 PrismBeamFx — 8배 방이라 굵기 2.5배, 실제 시간으로 InteriorStarfall이 돌림)
+                    var gunYaw = Quaternion.Euler(0f, OrbitalDefense.GunSeatYaw, 0f);
+                    var gun = new GameObject("GunSeatUse");
+                    gun.transform.SetParent(r, false);
+                    gun.transform.localPosition = OrbitalDefense.GunSeat + Vector3.up * 0.3f - gunYaw * Vector3.forward * 0.05f;
+                    gun.transform.localRotation = gunYaw;
+                    var gunBox = gun.AddComponent<BoxCollider>();
+                    gunBox.size = new Vector3(0.6f, 0.75f, 0.6f);
+                    var beamGo = new GameObject("StarfallBeam");
+                    beamGo.transform.SetParent(r, false);
+                    var prismBeam = beamGo.AddComponent<SpaceStation.Building.PrismBeamFx>();
+                    var pso = new SerializedObject(prismBeam);
+                    pso.FindProperty("_lineMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+                    pso.FindProperty("_width").floatValue = 2.5f;
+                    pso.FindProperty("_muzzles").arraySize = 0;
+                    pso.ApplyModifiedPropertiesWithoutUndo();
+                    root.AddComponent<InteriorStarfall>().Configure(Child(root, N + "Turret"), gunBox, prismBeam, ModuleFxMaterials.Get("FireworkLine"),
+                        ModuleFxMaterials.Get("FireworkSpark"), font);
                 });
         }
 
