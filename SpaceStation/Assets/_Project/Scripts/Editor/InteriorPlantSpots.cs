@@ -162,6 +162,8 @@ namespace SpaceStation.Editor
             });
             // 궤도 방어망: 곶 윗면이 등대 · 나선 계단 · 오두막 · 판석 길 · 둘레 난간으로 차서 나무 자리 없음 (2026-11-12 — 가장자리 나무가 둘레 난간과 겹침)
             Set("IT_EvoOrbitalDefense", new List<PlantSpot>());
+            // 수리 사령부: 고목 · 잎 구름 · 나무집이 위 칸을 채우고 앞 빈터는 오두막 · 연못 · 길 · 기억 등불 (식물 = 잎 한 장씩 빌더 모델) — 나무 자리 없음
+            Set("IT_EvoRepairCommand", new List<PlantSpot>());
             // 진화 2단계 연구원 (mz_builder PLANTS): 연구실 안 화분 하나 (유리 연구실 = 실내)
             Set("IT_EvoResearchInstitute", new List<PlantSpot>
             {

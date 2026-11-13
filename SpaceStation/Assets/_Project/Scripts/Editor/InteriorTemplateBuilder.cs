@@ -134,6 +134,7 @@ namespace SpaceStation.Editor
             BuildEvoBiosphere();
             BuildEvoStellarGrid();
             BuildEvoOrbitalDefense();
+            BuildEvoRepairCommand();
         }
 
         /// <summary>
@@ -5416,6 +5417,73 @@ namespace SpaceStation.Editor
                 });
         }
 
+        /// <summary>
+        /// 진화 3단계 수리 사령부 "반딧불 고목 치유소" (바닥 3 × 3 + 뒤 두 줄 위 칸 — rc3_builder, 사용자 2026-11-13 시안 1 "유니티로 옮겨줘"):
+        /// 이끼 언덕 위 진주 고목 (줄기 속 나선 계단 → 나무집 관제실 · 꼭대기 관측대) · 도르래 구조 바구니 · 나무 구멍 공방 · 샘 → 물길 → 연못 · 앞 이끼 숲 빈터.
+        /// 움직이는 조각 (Basket · BasketRope · Bell · Lantern{k} · MemLamp{k})은 원점 = 쓰는 자리 — 체험 (구조 바구니 + 경종) · 미니게임 (드론 순서 기억하기)이 씀.
+        /// </summary>
+        private static void BuildEvoRepairCommand()
+        {
+            const string N = "INT_EvoRepairCommand_";
+            const float RF = RepairCommand.Floor, Hill = RepairCommand.HillTop;
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in RepairCommand.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, RepairCommand.DoorDepth));
+            foreach (var (cell, off, floorY) in RepairCommand.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -floorY, new Vector3(off.x, 0f, off.y)));
+            foreach (var (cell, off) in RepairCommand.UpHatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, RepairCommand.UpHatchDepth, new Vector3(off.x, 0f, off.y)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.62f);
+            var t = RepairCommand.TreeAxis;
+            var lights = new List<LightSpec>();
+            foreach (float x in new[] { 1.5f, 8f, 14.5f })
+                lights.Add(LightSpec.Point(new Vector3(x, RF + 3.0f, 16.4f), 8f, 0.8f, white));                               // 앞 빈터 (오두막 · 그루터기 · 연못)
+            foreach (var (x, z) in new[] { (0.6f, 6f), (15.4f, 6f), (1.6f, -1.8f), (14.4f, -1.8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, Hill + 3.2f, z), 8f, 0.75f, white));                              // 언덕 둘레 (뿌리 · 공방 · 샘 · 바구니 정류장)
+            lights.Add(LightSpec.Point(new Vector3(t.x + 1.1f, Hill + 2.4f, t.z + 0.3f), 5f, 0.8f, warm));                // 줄기 속 (계단 아래 · 가운데 기둥 속은 피함)
+            lights.Add(LightSpec.Point(new Vector3(t.x - 1.1f, RepairCommand.SkyFloor + 1.8f, t.z - 0.3f), 5f, 0.75f, warm)); // 줄기 속 나무집 층계참
+            foreach (float a in RepairCommand.WorkshopAngles)
+                lights.Add(LightSpec.Point(new Vector3(t.x + 3.6f * Mathf.Cos(a * Mathf.Deg2Rad), Hill + 2.0f, t.z + 3.6f * Mathf.Sin(a * Mathf.Deg2Rad)), 4f, 0.75f, warm));   // 나무 구멍 공방
+            var th = RepairCommand.Treehouse;
+            lights.Add(LightSpec.Point(th + Vector3.up * 1.9f, 4f, 0.8f, warm));                                            // 나무집 관제실 안
+            lights.Add(LightSpec.Point(th + new Vector3(0f, 2.6f, 2.4f), 6f, 0.7f, white));                                 // 나무집 마루 · 줄기 다리
+            foreach (float dx in new[] { -3.3f, 3.3f })
+                lights.Add(LightSpec.Point(new Vector3(t.x + dx, RepairCommand.DeckY + 1.8f, t.z), 7f, 0.75f, white));        // 꼭대기 관측대 (수정 등대 둘레)
+            foreach (var p in new[] { new Vector3(13f, 7.2f, 6f), new Vector3(3f, 7.2f, 4f) })
+                lights.Add(LightSpec.Point(p, 7f, 0.55f, warm));                                                              // 잎 구름 아래 (가지 등불)
+            EvoAccent("RepairCommand", "#FFE0B0");
+            // 스폰 = 앞 빈터 그루터기 뒤 (기억 등불 다섯 · 고목 · 관측대를 봄).
+            // 자기 방을 하늘 화면에 보임: 위 칸은 뒤 두 줄뿐이라, 앞 빈터에서 올려다보면 바닥 칸 천장 (3.95)이 관측대 · 잎 구름 윗부분을 가림 (궤도 방어망과 같음)
+            Build("EvoRepairCommand", "Evolved/MD_Evo_RepairCommand", sockets, RepairCommand.Spawn, RepairCommand.SpawnYaw, lights, showOwnInterior: true,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    // 연못 · 샘에 못 들어가는 벽 (rc3_builder LakeHit): 모양만 쓰고 보이지 않음
+                    var lakeHit = Child(root, N + "LakeHit");
+                    var lakeMesh = lakeHit.GetComponent<MeshFilter>().sharedMesh;
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshRenderer>());
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshFilter>());
+                    lakeHit.gameObject.AddComponent<MeshCollider>().sharedMesh = lakeMesh;
+                    // 물: 수면 높이마다 KWS 실사 물 (연못 · 샘, 꺼 둠 → InteriorKwsWater가 켬) + 패키지 없는 PC용 Blender 수면
+                    var kws = new List<GameObject>();
+                    var surfaces = new List<Renderer>();
+                    var depth = new[] { 0.75f, 0.32f };
+                    for (int k = 0; k < RepairCommand.WaterLevels.Length; k++)
+                    {
+                        var surface = Child(root, N + "Water" + (k == 0 ? "" : k.ToString()));
+                        if (surface == null)
+                            continue;
+                        surfaces.Add(surface.GetComponent<Renderer>());
+                        kws.Add(KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), RepairCommand.WaterLevels[k], depth[k], "RepairCommand" + k, false));
+                    }
+                    if (kws.Count > 0 && kws[0] != null)
+                        KwsWaterBuilder.Ripple(kws[0], RepairCommand.StreamMouth, 0.4f, 0.3f);   // 물길이 연못에 닿는 곳
+                    kws.RemoveAll(x => x == null);
+                    root.AddComponent<InteriorKwsWater>().Configure(kws.ToArray(), surfaces.ToArray(), Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(8f, 2f, 8f));
+                });
+        }
+
         /// <summary>내부 전용 동물 모델 (critter_builder — SM_InteriorCritters, 미터): 이름 "Critter_종류" → 모델.</summary>
         private static Dictionary<string, GameObject> InteriorCritterModels()
         {
@@ -6876,6 +6944,7 @@ namespace SpaceStation.Editor
             { "EvoBiosphere", InteriorAmbience.Life },        // 물의 순환 고리 (3단계)
             { "EvoStellarGrid", InteriorAmbience.Life },      // 꿀벌 정원 (3단계)
             { "EvoOrbitalDefense", InteriorAmbience.Life },   // 등대 곶 해안 (3단계)
+            { "EvoRepairCommand", InteriorAmbience.Life },    // 반딧불 고목 치유소 (3단계)
             { "EvoGrandTorus", InteriorAmbience.Life },       // 바퀴 마을
             { "EvoCivicHall", InteriorAmbience.Life },        // 회관 · 돌봄 · 교실
             { "EvoSecurityHQ", InteriorAmbience.Life },       // 파출소 광장 · 민원 창구
@@ -7115,6 +7184,11 @@ namespace SpaceStation.Editor
                 { "Evo3Stone", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3StonePath) },
                 { "Evo3Cave", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3CavePath) },
                 { "Evo3LampGlass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2ClearGlassPath) },   // 등실 유리 = 맑은 유리 (청록 유리 두 겹이라 등실 안에서 바다가 온통 초록으로 보였음, 2026-11-13)
+                // 수리 사령부 (rc3_builder, 2026-11-13): 금빛 잎 = 금빛, 버섯 갓 = 복숭아빛 기와, 방석 · 빨래 = 크림빛 밀랍 뚜껑, 통나무 이끼 = 잎
+                { "Evo3GoldLeaf", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3GoldPath) },
+                { "Evo3MushCap", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3RoofPath) },
+                { "Evo3Cushion", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3Wax2Path) },
+                { "Evo3Moss", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PlantPath) },
             };
             for (int i = 0; i < 7; i++)
                 materials["Evo3Rainbow" + i] = ModuleFxMaterials.Get("Rainbow" + i);   // 프리즘 무지개 고리 일곱 (바깥과 같은 빛 물결)
