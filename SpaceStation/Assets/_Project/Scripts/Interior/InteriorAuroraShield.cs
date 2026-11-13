@@ -18,7 +18,7 @@ namespace SpaceStation.Interior
     {
         private const int HalfRings = 18;            // 수면 → 꼭대기 위도 줄
         private const int Segments = 72;             // 경도 칸
-        private const float MeteorSpeed = 8f, MeteorTail = 3.2f, MeteorWidth = 0.17f, MeteorReach = 4.5f;   // 0.13 · 1.6 m는 가는 흰 줄, 0.28 · 2.4 m는 흰 송곳처럼 보였음
+        private const float MeteorSpeed = 8f, MeteorReach = 4.5f;   // 별똥별 모양 = ShootingStar
         private const float BandLift = 0.42f;        // 오로라 띠 셋을 수면 위 반구에 (바깥 실드 구는 가운데 위아래로 걸침)
         private const float HitLife = 1.6f;          // 닿은 자리 번쩍 · 고리가 퍼지는 시간
         private const float CrystalRadius = 4f;      // 수정판을 맺는 구 (닿은 자리에서 막에 접함)
@@ -43,9 +43,8 @@ namespace SpaceStation.Interior
 
         private sealed class Meteor
         {
-            public LineRenderer Line;
-            public Vector3 From, To, Unit;
-            public float T, Duration;
+            public ShootingStar Star;
+            public Vector3 Unit;
         }
 
         private readonly AuroraShieldShow _show = new AuroraShieldShow();
@@ -111,8 +110,7 @@ namespace SpaceStation.Interior
             while (_show.Running)
                 _show.Step(1f);
             foreach (var m in _meteors)
-                if (m.Line != null)
-                    Destroy(m.Line.gameObject);
+                m.Star.Destroy();
             _meteors.Clear();
             _hits.Clear();
             _noticeTimer = 0f;
@@ -286,26 +284,10 @@ namespace SpaceStation.Interior
                 var to = OrbitalDefense.ShieldPoint(unit);
                 var incoming = new Vector3(Random.Range(-0.5f, 0.5f), 1f, Random.Range(0.2f, 0.8f));
                 var from = OrbitalDefense.MeteorStart(to, incoming, MeteorReach);
-                float length = (from - to).magnitude;
-                if (length < 1.2f)
+                if ((from - to).magnitude < 1.2f)
                     continue;
-                var line = new GameObject("ShieldMeteor").AddComponent<LineRenderer>();
-                line.transform.SetParent(transform, false);
-                line.useWorldSpace = true;
-                line.positionCount = 2;
-                line.sharedMaterial = _streakMaterial;
-                line.shadowCastingMode = ShadowCastingMode.Off;
-                line.receiveShadows = false;
-                line.textureMode = LineTextureMode.Stretch;
-                line.widthCurve = new AnimationCurve(new Keyframe(0f, MeteorWidth), new Keyframe(0.15f, MeteorWidth * 0.55f), new Keyframe(1f, 0.01f));
-                var gradient = new Gradient();
-                gradient.SetKeys(
-                    new[] { new GradientColorKey(new Color(1f, 0.98f, 0.94f), 0f), new GradientColorKey(new Color(0.62f, 0.84f, 1f), 0.35f), new GradientColorKey(new Color(0.5f, 0.7f, 1f), 1f) },
-                    new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0.45f, 0.25f), new GradientAlphaKey(0f, 1f) });   // 머리만 환하고 꼬리는 길게 옅어짐
-                line.colorGradient = gradient;
-                var m = new Meteor { Line = line, From = transform.TransformPoint(from), To = transform.TransformPoint(to), Unit = unit, Duration = length / MeteorSpeed };
-                SetMeteor(m);
-                _meteors.Add(m);
+                var star = new ShootingStar(transform, _streakMaterial, transform.TransformPoint(from), transform.TransformPoint(to), MeteorSpeed);
+                _meteors.Add(new Meteor { Star = star, Unit = unit });
                 AudioService.TryPlay(l => l.MeteorIncoming);
                 return;
             }
@@ -316,74 +298,17 @@ namespace SpaceStation.Interior
             for (int i = _meteors.Count - 1; i >= 0; i--)
             {
                 var m = _meteors[i];
-                m.T += dt;
-                if (m.T < m.Duration)
+                m.Star.Step(dt);
+                if (!m.Star.Arrived)
                 {
-                    SetMeteor(m);
-                    TrailSparks(m);
+                    if (_sparks == null && _sparkMaterial != null)
+                        _sparks = ShootingStar.CreateSparks(transform, _sparkMaterial);
+                    m.Star.EmitTrail(_sparks);
                     continue;
                 }
                 Impact(m);
-                if (m.Line != null)
-                    Destroy(m.Line.gameObject);
+                m.Star.Destroy();
                 _meteors.RemoveAt(i);
-            }
-        }
-
-        private static void SetMeteor(Meteor m)
-        {
-            float k = Mathf.Clamp01(m.T / m.Duration);
-            var head = Vector3.Lerp(m.From, m.To, k);
-            var back = (m.From - m.To).normalized;
-            float tail = Mathf.Min(MeteorTail, (head - m.From).magnitude);
-            m.Line.SetPosition(0, head);
-            m.Line.SetPosition(1, head + back * Mathf.Max(tail, 0.05f));
-        }
-
-        /// <summary>날아가는 머리에서 옅은 반짝이를 흩뿌림 (꼬리 뒤로 잠깐 남음 — 가산 빛 점).</summary>
-        private void TrailSparks(Meteor m)
-        {
-            if (_sparkMaterial == null)
-                return;
-            if (_sparks == null)
-            {
-                var go = new GameObject("ShieldMeteorSparks");
-                go.transform.SetParent(transform, false);
-                _sparks = go.AddComponent<ParticleSystem>();
-                _sparks.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                var main = _sparks.main;
-                main.loop = false;
-                main.playOnAwake = false;
-                main.simulationSpace = ParticleSystemSimulationSpace.World;
-                main.startSpeed = 0f;
-                main.maxParticles = 400;
-                main.useUnscaledTime = true;
-                var emission = _sparks.emission;
-                emission.rateOverTime = 0f;
-                var shape = _sparks.shape;
-                shape.enabled = false;
-                var size = _sparks.sizeOverLifetime;
-                size.enabled = true;
-                size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 1f, 1f, 0f));
-                var r = go.GetComponent<ParticleSystemRenderer>();
-                r.sharedMaterial = _sparkMaterial;
-                r.shadowCastingMode = ShadowCastingMode.Off;
-                r.receiveShadows = false;
-                _sparks.Play();
-            }
-            var head = m.Line.GetPosition(0);
-            var back = (m.From - m.To).normalized;
-            for (int k = 0; k < 3; k++)
-            {
-                _sparks.Emit(new ParticleSystem.EmitParams
-                {
-                    position = head + back * Random.Range(0f, 0.3f),
-                    velocity = back * Random.Range(0.3f, 0.9f) + Random.insideUnitSphere * 0.35f,
-                    startLifetime = Random.Range(0.35f, 0.7f),
-                    startSize = Random.Range(0.05f, 0.11f),
-                    startColor = Color.Lerp(new Color(0.7f, 0.88f, 1f), Color.white, Random.value),
-                    applyShapeToPosition = false,
-                }, 1);
             }
         }
 
@@ -393,9 +318,9 @@ namespace SpaceStation.Interior
             _show.CountBlocked();
             if (_crystal != null)
             {
-                var local = transform.InverseTransformPoint(m.To);
-                var normal = transform.TransformDirection(OrbitalDefense.ShieldNormal(local)).normalized;
-                _crystal.Play(m.To - normal * CrystalRadius, CrystalRadius, m.To);
+                var to = m.Star.To;
+                var normal = transform.TransformDirection(OrbitalDefense.ShieldNormal(transform.InverseTransformPoint(to))).normalized;
+                _crystal.Play(to - normal * CrystalRadius, CrystalRadius, to);
             }
             AudioService.TryPlay(l => l.ShieldDeflect);
         }

@@ -431,6 +431,114 @@ namespace SpaceStation.Tests
             }
         }
 
+        // ---------------- 미니게임 "별똥별 막기" ----------------
+
+        /// <summary>판 순서: 앉음 → 3초 세기 → 60초 (별똥별이 갈수록 자주 · 빠르게) → 끝, 쏘기는 판 중에만 · 0.22초마다, 다시 Begin = 새 판.</summary>
+        [Test]
+        public void StarfallGame_Round()
+        {
+            var g = new StarfallGame(5);
+            Assert.IsFalse(g.Step(0.1f), "쉬는 중 별똥별");
+            g.Begin();
+            Assert.IsFalse(g.TryFire(), "세는 중에 쏨");
+            int spawned = 0, early = 0, late = 0, fired = 0;
+            float t = 0f, firstSpeed = -1f, lastSpeed = 0f;
+            while (g.Current != StarfallGame.Phase.Done && t < 70f)
+            {
+                if (g.Step(0.02f))
+                {
+                    spawned++;
+                    if (g.Progress < 0.25f) early++;
+                    if (g.Progress > 0.75f) late++;
+                    if (firstSpeed < 0f) firstSpeed = g.Speed;
+                    lastSpeed = g.Speed;
+                }
+                if (g.TryFire())
+                    fired++;
+                t += 0.02f;
+            }
+            Assert.AreEqual(StarfallGame.CountdownTime + StarfallGame.RoundTime, t, 0.1f, "판 길이");
+            Assert.That(spawned, Is.InRange(45, 110), "별똥별 수");
+            Assert.Greater(late, early, "갈수록 자주 떨어지지 않음");
+            Assert.Greater(lastSpeed, firstSpeed + 1f, "갈수록 빨라지지 않음");
+            Assert.That(fired, Is.InRange(Mathf.FloorToInt(StarfallGame.RoundTime / (StarfallGame.FireCooldown + 0.02f)) - 5, Mathf.CeilToInt(StarfallGame.RoundTime / StarfallGame.FireCooldown) + 5), "쏘는 간격");
+            Assert.IsFalse(g.TryFire(), "끝난 뒤 쏨 (다시 = Begin)");
+            g.Hit();
+            g.Begin();
+            Assert.AreEqual(0, g.Hits, "새 판에 맞힌 수가 남음");
+        }
+
+        /// <summary>별똥별 길: 닿을 자리 = 방 안 수면, 출발 = 하늘 면 (천장 · 벽) 안, 대부분 3 m 넘게 날아 보이고 포수 앞쪽 (± 100°) · 너무 높지 않게 (70° 아래) 보임, 포수 몸을 지나지 않음.</summary>
+        [Test]
+        public void Starfall_Paths()
+        {
+            var random = new System.Random(11);
+            float R(float a, float b) => a + (float)random.NextDouble() * (b - a);
+            var eye = OrbitalDefense.GunSeat + Vector3.up * OrbitalDefense.GunEye;
+            Assert.Greater(eye.y - (OrbitalDefense.Floor + 0.12f + 1.05f), 0.25f, "포수 눈이 포대 테 난간 손잡이 (받침 윗면 + 1.05)에 걸려 화면 가운데를 가로막음");
+            int ok = 0;
+            for (int i = 0; i < 300; i++)
+            {
+                var to = OrbitalDefense.StarfallTarget(R(-OrbitalDefense.StarfallSpread, OrbitalDefense.StarfallSpread), R(OrbitalDefense.StarfallNear, OrbitalDefense.StarfallFar));
+                Assert.AreEqual(OrbitalDefense.SeaLevel, to.y, 1e-4f);
+                Assert.That(to.x, Is.InRange(OrbitalDefense.LowRoomFromX + 1.9f, OrbitalDefense.RoomMaxX - 1.9f));
+                Assert.That(to.z, Is.InRange(OrbitalDefense.RoomMinZ + 1.9f, OrbitalDefense.RoomMaxZ - 1.9f));
+                var from = OrbitalDefense.MeteorStart(to, OrbitalDefense.StarfallIncoming(to, R(OrbitalDefense.StarfallOutMin, OrbitalDefense.StarfallOutMax), R(-1f, 1f)), 9f);
+                Assert.LessOrEqual(from.y, OrbitalDefense.LowCeilingY - 0.09f, "천장 밖에서 출발");
+                if ((from - to).magnitude < 3f || !OrbitalDefense.StarfallVisible(from))
+                    continue;   // 실행 중에는 다시 고름 (8번까지)
+                ok++;
+                var d = from - eye;
+                float yaw = Mathf.DeltaAngle(OrbitalDefense.GunSeatYaw, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg);
+                float el = Mathf.Atan2(d.y, new Vector2(d.x, d.z).magnitude) * Mathf.Rad2Deg;
+                Assert.Less(Mathf.Abs(yaw), 100f, $"포수 뒤에서 출발 ({yaw:F0}°)");
+                Assert.Less(el, 70f, $"머리 바로 위에서 출발 ({el:F0}°)");
+                for (int k = 0; k <= 10; k++)
+                    Assert.Greater((Vector3.Lerp(from, to, k / 10f) - eye).magnitude, 1f, "별똥별이 포수 몸을 지나감");
+            }
+            Assert.Greater(ok, 150, $"한 번에 고른 별똥별 {ok} / 300 (실행 중에는 8번까지 다시 고름)");
+        }
+
+        /// <summary>조준: 시선에 가까운 머리 중 가장 가까운 것을 고름, 뒤 · 멀리 빗나간 것은 안 고름.</summary>
+        [Test]
+        public void Starfall_PickStar()
+        {
+            var heads = new List<Vector3> { new Vector3(0.3f, 0f, 10f), new Vector3(0f, 0.2f, 5f), new Vector3(0f, 0f, -4f), new Vector3(3f, 0f, 6f) };
+            Assert.AreEqual(1, InteriorStarfall.PickStar(Vector3.zero, Vector3.forward, heads, InteriorStarfall.AimRadius, InteriorStarfall.AimPerMeter), "가까운 것");
+            Assert.AreEqual(-1, InteriorStarfall.PickStar(Vector3.zero, Vector3.forward, new List<Vector3> { new Vector3(0f, 0f, -4f) }, InteriorStarfall.AimRadius, InteriorStarfall.AimPerMeter), "뒤에 있는 것");
+            Assert.AreEqual(-1, InteriorStarfall.PickStar(Vector3.zero, Vector3.forward, new List<Vector3> { new Vector3(3f, 0f, 6f) }, InteriorStarfall.AimRadius, InteriorStarfall.AimPerMeter), "멀리 빗나간 것");
+        }
+
+        /// <summary>프리팹: 포수 의자 충돌체 · 프리즘 광선 (굵기 2.5) · 포대 수정 무리 (원점 = 받침 윗면).</summary>
+        [Test]
+        public void Starfall_Wired()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                Assert.IsNotNull(root.GetComponentInChildren<InteriorStarfall>(true), "별똥별 막기 없음");
+                var seat = root.transform.Find("GunSeatUse");
+                Assert.IsNotNull(seat, "포수 의자 충돌체 없음");
+                Assert.IsNotNull(seat.GetComponent<BoxCollider>());
+                Assert.AreEqual(0f, new Vector2(seat.localPosition.x - OrbitalDefense.GunSeat.x, seat.localPosition.z - OrbitalDefense.GunSeat.z).magnitude, 0.1f);
+                var beam = root.transform.Find("StarfallBeam");
+                Assert.IsNotNull(beam);
+                var so = new SerializedObject(beam.GetComponent<SpaceStation.Building.PrismBeamFx>());
+                Assert.AreEqual(2.5f, so.FindProperty("_width").floatValue, 1e-4f);
+                Assert.IsNotNull(so.FindProperty("_lineMaterial").objectReferenceValue);
+                var turret = root.transform.Find("INT_EvoOrbitalDefense_Turret");
+                Assert.IsNotNull(turret);
+                Assert.AreEqual(OrbitalDefense.Turret.x, turret.localPosition.x, 0.02f);
+                Assert.Less(OrbitalDefense.TurretMuzzle.y - turret.localPosition.y, 2.2f, "포 끝이 수정 무리보다 높음");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
         // ---------------- 체험 "오로라 보호막 펼치기" ----------------
 
         /// <summary>

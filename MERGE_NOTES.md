@@ -2780,3 +2780,15 @@
 - `OrbitalDefense` 보호막 값 (가운데 · 반지름 · 레버 · 선베드 눕기 · `ShieldPoint` · `ShieldNormal` · `InsideShield` · `MeteorStart`), 템플릿: 레버 손잡이 충돌체 · 선베드 눕기 · 수정 결정 막 · 궤도 방어망 프리팹 · 시험 넷
 
 - 체크리스트 138 ~ 140 · 06c 기록
+
+## M-188. 궤도 방어망 미니게임 별똥별 막기 — 포수 의자 · 조준 · 프리즘 광선 · 60초 판 (2026-11-13, `main`)
+
+
+
+**main에 넣은 것**
+
+- 새 `StarfallGame` (순수 판 — 3 · 2 · 1 → 60초, 갈수록 자주 · 빠르게, 쏘기 간격, 맞힌 수 · 놓친 수) · `InteriorStarfall` (포수 의자 F, 마우스 조준 · 클릭 = 포 끝 수정에서 프리즘 광선, 무지개 불꽃 · 물보라, 포대 수정 기울기, 조준 십자, 최고 기록) · `ShootingStar` (별똥별 빛줄 · 머리 반짝이 — 오로라 보호막도 이것으로)
+
+- `PrismBeamFx` 굵기 배율 `_width` (기본 1 — 바깥 포대 그대로), `OrbitalDefense` 포수 자리 · 포 끝 · 별똥별 떨어질 자리 (`StarfallTarget` · `StarfallIncoming` · `StarfallVisible`), 템플릿: 포수 의자 충돌체 · 프리즘 광선 · 궤도 방어망 프리팹 · 시험 넷
+
+- 체크리스트 141 · 142 · 06c 기록
