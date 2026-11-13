@@ -2840,3 +2840,13 @@
 - `InteriorTemplateBuilder` 퍼핀 묶음 배율 8 → 2 (돌아볼 때 위아래 흔들림 1.2 cm → 3 mm), 궤도 방어망 프리팹 다시 지음
 
 - 시험 `OrbitalDefenseTests.Critters_OnTheirSpots` = 닿는 점 전체 (97 %가 1.5 cm 안 · 가장 큰 틈 3 cm 미만), 체크리스트 148 · 06c 기록
+
+## M-193. 어른 물범 뒤통수 패임 고침 (2026-11-13, `main`)
+
+
+
+**main에 넣은 것**
+
+- `critter_builder.py` 어른 물범: 머리 · 등 사이를 판 빼는 메타볼 (목덜미 오목)을 뺌 — 목 없는 물범은 위 · 뒤에서 패인 자국으로 보였음, 미리보기 위 · 뒤 샷 (`_top`) 더함
+
+- `SM_InteriorCritters.fbx` 다시 내보냄 · 궤도 방어망 프리팹 다시 지음, 체크리스트 149 · 06c 기록
