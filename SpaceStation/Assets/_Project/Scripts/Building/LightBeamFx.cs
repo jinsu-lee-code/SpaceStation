@@ -69,6 +69,17 @@ namespace SpaceStation.Building
             _dirty = true;
         }
 
+        /// <summary>도는 등대 빛 (내부 템플릿 <c>InteriorLighthouse</c>): 이 빛줄기의 끝을 옮김 (방 하늘 면 앞에서 끝나게). 아직 메시가 없으면 false.</summary>
+        public bool SetEnd(int index, Vector3 to)
+        {
+            if (_mesh == null || _to == null || index < 0 || index >= BeamCount)
+                return false;
+            _to[index] = to;
+            FillBeam(index);
+            _dirty = true;
+            return true;
+        }
+
         private void Build(int count)
         {
             int total = count * BeamVertices;

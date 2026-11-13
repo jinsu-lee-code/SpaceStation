@@ -26,6 +26,68 @@ namespace SpaceStation.Interior
         public static readonly Vector3 LensCenter = new Vector3(4.32f, 9.65f, 5.6f);
         /// <summary>하늘 다리 바닥 (= 위 칸 바닥, 위 문 둘).</summary>
         public const float SkywalkY = Floor + 8f;
+        // ---------------- 체험 "등대 빛 돌리기" (InteriorLighthouse · LighthouseBeam, 사용자 2026-11-13 "비추면 반응") ----------------
+        /// <summary>렌즈 손잡이 쉴 때 방향 (Unity yaw) — od3_builder lighthouse() 손잡이 = 등실 문 맞은편 (수학 각 6.3°). 앞 빛줄기 = 손잡이 쪽.</summary>
+        public const float LensHandleYaw = 83.7f;
+        /// <summary>손잡이 끝 구슬 (렌즈 가운데에서 바깥 · 아래, m).</summary>
+        public const float HandleReach = 0.9f, HandleDrop = 0.38f;
+        /// <summary>
+        /// 빛줄기가 아래로 기운 각 (도) · 시작 (렌즈 수정 고리 바깥, 렌즈 가운데에서 m) · 시작 지름 (렌즈 높이) · 끝 지름 · 가장 긴 길이 (빛줄기를 따라, m).
+        /// 진짜 등대처럼 거의 수평 (2026-11-13 사용자: 45°였을 때 빛이 수정이 아니라 회랑 바닥 밑에서 나왔고, 손잡이를 잡으면 빛이 안 보였음):
+        /// 렌즈에서 나와 등실 유리 (턱 위)와 회랑 끝 (<see cref="GalleryEdge"/>) 위로 지나 밤하늘에 뻗다 스러짐 — 바다에는 닿지 않고, 빛이 지나가는 쪽의 곳이 답함 (먼 바다의 배를 비추는 등대처럼).
+        /// </summary>
+        public const float BeamPitch = 10f, BeamStart = 0.46f, BeamStartDiameter = 0.6f, BeamEndDiameter = 1.8f, BeamLength = 9f;
+        /// <summary>등실 유리 아래 진주 턱 위 · 회랑 바닥 바깥 끝 (렌즈 가운데에서, 실측).</summary>
+        public const float LampSillTop = GalleryY + 0.25f, GalleryEdge = 2.4f;
+        /// <summary>방 하늘 면 (칸 상자): 벽 x · z, 바다 쪽 아래 칸 천장 턱 (x <see cref="LowRoomFromX"/>부터 천장 <see cref="LowCeilingY"/>).</summary>
+        public const float RoomMinX = -3.95f, RoomMaxX = 35.95f, RoomMinZ = -3.95f, RoomMaxZ = 11.95f, LowRoomFromX = 11.95f, LowCeilingY = 3.95f;
+        /// <summary>빛줄기 끝 고리 바깥 ~ 하늘 면 (벽에 수직, m) — 하늘 면에 잘린 끝 대신 셰이더 끝 흐림으로 스러짐.</summary>
+        public const float BeamWallGap = 0.2f;
+
+        /// <summary>
+        /// 빛줄기 길이 (렌즈 가운데에서 빛줄기를 따라, m): <see cref="BeamLength"/>, 하늘 면 (벽 · 아래 칸 천장 턱)이 먼저면 끝 고리가 그 <see cref="BeamWallGap"/> 앞에서 끝남.
+        /// 뒤쪽 벽을 비출 때 빛기둥이 하늘 면에 칼로 자른 듯 끊겼음 (2026-11-13 플레이).
+        /// </summary>
+        public static float BeamReach(float yaw)
+        {
+            float tan = Mathf.Tan(BeamPitch * Mathf.Deg2Rad);
+            float dx = Mathf.Sin(yaw * Mathf.Deg2Rad), dz = Mathf.Cos(yaw * Mathf.Deg2Rad);
+            float m = BeamEndDiameter * 0.5f + BeamWallGap;   // 끝 고리가 비스듬히 닿아도 옆이 하늘 면에 걸리지 않게 (벽에 수직으로 잼)
+            float wall = Mathf.Min(Cross(LensCenter.x, dx, RoomMinX + m, RoomMaxX - m), Cross(LensCenter.z, dz, RoomMinZ + m, RoomMaxZ - m));
+            if (dx > 1e-4f && LensCenter.y - (LowRoomFromX - LensCenter.x) / dx * tan > LowCeilingY)
+                wall = Mathf.Min(wall, (LowRoomFromX - m - LensCenter.x) / dx);
+            float cos = Mathf.Cos(BeamPitch * Mathf.Deg2Rad);
+            return Mathf.Clamp(wall / cos, BeamStart + 1f, BeamLength);
+        }
+
+        /// <summary>빛줄기 반지름 (빛줄기를 따라 s m, 길이 reach) — LightBeamFx와 같이 시작 → 끝 지름을 곧게 이음.</summary>
+        public static float BeamRadius(float s, float reach) =>
+            Mathf.Lerp(BeamStartDiameter, BeamEndDiameter, Mathf.Clamp01((s - BeamStart) / (reach - BeamStart))) * 0.5f;
+
+        /// <summary>수평 빛이 한 축 [min, max] 밖으로 나가는 거리.</summary>
+        private static float Cross(float from, float dir, float min, float max) =>
+            dir > 1e-4f ? (max - from) / dir : dir < -1e-4f ? (min - from) / dir : float.MaxValue;
+        /// <summary>
+        /// 빛이 닿으면 답하는 곳 (템플릿 기준 — 방향 = 렌즈에서 본 yaw, 폭은 거리로): 먼 부표 수정 · 포대 수정 · 매인 배 · 방파제 끝 등불대 · 하늘 다리 꽃 둘.
+        /// 모두 손잡이를 잡은 자리 (등실)에서 회랑 바닥 끝에 가리지 않고 보이는 곳 (가까운 부표 · 폭포 · 오두막은 회랑 밑이라 빠짐). 순서 = InteriorLighthouse가 붙이는 반응 순서.
+        /// </summary>
+        public static readonly (string Name, Vector3 At)[] BeamTargets =
+        {
+            ("부표 수정", new Vector3(28.96f, SeaLevel + 0.9f, 2.72f)),
+            ("포대 수정", new Vector3(22.45f, Floor + 1.3f, 5.05f)),
+            ("매인 배", new Vector3(20.6f, SeaLevel + 0.2f, 1.2f)),
+            ("방파제 등불대", new Vector3(33.95f, Floor + 2.78f, 6.6f)),
+            ("하늘 다리 동쪽 꽃", new Vector3(7.75f, SkywalkY + 1.0f, 9.2f)),
+            ("하늘 다리 서쪽 꽃", new Vector3(0.8f, SkywalkY + 1.0f, 9.2f)),
+        };
+        /// <summary>곳 폭 (± 도) = 반지름 0.9 m가 보이는 각, 2.5 ~ 8°.</summary>
+        public static float BeamTargetWidth(Vector3 at)
+        {
+            var d = new Vector2(at.x - LensCenter.x, at.z - LensCenter.z).magnitude;
+            return Mathf.Clamp(Mathf.Atan2(0.9f, d) * Mathf.Rad2Deg, 2.5f, 8f);
+        }
+        public static float BeamTargetYaw(Vector3 at) => Mathf.Atan2(at.x - LensCenter.x, at.z - LensCenter.z) * Mathf.Rad2Deg;
+
         /// <summary>망원경 머리 (ScopeHead 원점) · 쉬는 방향 (Unity yaw, 앞 오른쪽 바다).</summary>
         public static readonly Vector3 ScopeHead = new Vector3(7.55f, CapeTop + 1.22f, 3.3f);
         public const float ScopeYaw = 121.4f;

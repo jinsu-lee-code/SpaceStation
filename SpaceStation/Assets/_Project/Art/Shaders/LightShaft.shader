@@ -17,6 +17,7 @@ Shader "SpaceStation/LightShaft"
         _StreakStrength ("빛 결 진하기", Range(0, 1)) = 0.7
         _Speed ("흐름 속도", Float) = 0.6
         _Noise ("흐르는 밝기 잘기", Float) = 7
+        _EndFade ("끝 흐림 (길이 비율 — 공중에서 끝나는 빛은 길게)", Range(0.05, 0.9)) = 0.14
         [HideInInspector] _Level ("Level", Float) = 1
     }
     SubShader
@@ -47,6 +48,7 @@ Shader "SpaceStation/LightShaft"
                 float _StreakStrength;
                 float _Speed;
                 float _Noise;
+                float _EndFade;
                 float _Level;
             CBUFFER_END
 
@@ -76,7 +78,7 @@ Shader "SpaceStation/LightShaft"
                 float facing = abs(dot(normalize(i.normalWS), toCamera / max(distance, 1e-4)));
                 float body = pow(facing, _Softness);                                        // 넓고 옅은 몸통 (윤곽에서 사라짐)
                 float core = body * body * body;                                            // 가운데 심
-                float fade = exp(-i.uv.x * _Attenuation) * smoothstep(1.0, 0.86, i.uv.x);   // 감쇠 + 수신기 쪽 끝이 스며듦
+                float fade = exp(-i.uv.x * _Attenuation) * smoothstep(1.0, 1.0 - _EndFade, i.uv.x);   // 감쇠 + 수신기 쪽 끝이 스며듦
                 float angle = i.uv.y * 6.28318;
                 float grain = StationNoise3(float3(cos(angle) * _Streak, sin(angle) * _Streak, i.uv.x * 1.3 - _Time.y * _Speed * 0.12));
                 float streak = lerp(1.0, 0.4 + 1.2 * grain, _StreakStrength);               // 길이로 뻗은 빛 결
