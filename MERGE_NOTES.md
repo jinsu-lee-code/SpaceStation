@@ -2850,3 +2850,15 @@
 - `critter_builder.py` 어른 물범: 머리 · 등 사이를 판 빼는 메타볼 (목덜미 오목)을 뺌 — 목 없는 물범은 위 · 뒤에서 패인 자국으로 보였음, 미리보기 위 · 뒤 샷 (`_top`) 더함
 
 - `SM_InteriorCritters.fbx` 다시 내보냄 · 궤도 방어망 프리팹 다시 지음, 체크리스트 149 · 06c 기록
+
+## M-194. 수리 사령부 내부 반딧불 고목 치유소 — 시안 1을 Unity로 (2026-11-13, `main`)
+
+
+
+**main에 넣은 것**
+
+- `rc3_builder` (Interior_Evo.blend) 시안 1 → `SM_Interior_EvoRepairCommand.fbx` (13.05만 삼각형, `rc_export` 검사 ALLOK): 이끼 언덕 위 진주 고목 · 줄기 속 나선 계단 → 나무집 관제실 · 꼭대기 관측대 · 도르래 구조 바구니 · 경종 · 가지 등불 열셋 · 기억 등불 다섯 · 공방 둘 · 샘 → 물길 → 연못 · 앞 빈터
+
+- `RepairCommand` 값 · `BuildEvoRepairCommand` (빛 · 재질 대응 · 연못 · 샘 KWS 물 · LakeHit) · 주민 자리 22 · 식물 자리 없음 · `RepairCommandTests` 넷, 공용 `oc_builder` 오두막 미세 고침 (처마 테 · 꽃상자 테 끝 · 창살 · 창 유리 깊이 · 꽃 자리)
+
+- 체크리스트 150 ~ 156 · 06c 기록 (TASKS · 글꼴 · Main.unity는 tycoon만)
