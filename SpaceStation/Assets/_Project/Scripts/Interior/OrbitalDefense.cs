@@ -88,6 +88,53 @@ namespace SpaceStation.Interior
         }
         public static float BeamTargetYaw(Vector3 at) => Mathf.Atan2(at.x - LensCenter.x, at.z - LensCenter.z) * Mathf.Rad2Deg;
 
+        // ---------------- 체험 "오로라 보호막 펼치기" (InteriorAuroraShield · AuroraShieldShow, 사용자 2026-11-13 "레버 → 보호막 쇼 관람") ----------------
+        /// <summary>방파제 끝 레버 굴대 (AuroraLever 원점 = od3_builder mole() piv) · 당긴 각 (템플릿 x축, 도 — 끝이 −z 쪽으로 눕음).</summary>
+        public static readonly Vector3 AuroraLever = new Vector3(31.25f, Floor + 1.06f, 4.7f);
+        public const float LeverPull = -50f;
+        /// <summary>
+        /// 보호막 = 바다 위 납작한 반구 (타원체 위 절반, 바깥 3단계 실드와 같은 오로라 구면 파문 + 수정 결정 막): 가운데 (수면) · 반지름 x · y · z.
+        /// 꼭대기 2.2 m (바다 쪽 아래 칸 천장 3.95 밑 — 별똥별이 떨어질 틈), 동쪽 발 = 레버 바로 안쪽 (레버 자리에서 퍼져 나감), 선베드는 밖에서 올려다봄.
+        /// </summary>
+        public static readonly Vector3 ShieldCenter = new Vector3(21.4f, SeaLevel, 4.6f);
+        public static readonly Vector3 ShieldRadii = new Vector3(9.4f, 3.6f, 5.4f);
+        /// <summary>선베드에 누운 자리 (= 주민 누운 자리, 엉덩이) · 눈 높이 · 올려다보는 각 (음수 = 위).</summary>
+        public const float LoungerSeatY = Floor + 0.365f, LoungerEye = 0.5f, LoungerPitch = -24f;
+
+        /// <summary>단위 구 방향 → 보호막 면 위 점 (템플릿 기준).</summary>
+        public static Vector3 ShieldPoint(Vector3 unit) => ShieldCenter + Vector3.Scale(unit, ShieldRadii);
+
+        /// <summary>보호막 면 위 점의 바깥 법선.</summary>
+        public static Vector3 ShieldNormal(Vector3 point)
+        {
+            var d = point - ShieldCenter;
+            return new Vector3(d.x / (ShieldRadii.x * ShieldRadii.x), d.y / (ShieldRadii.y * ShieldRadii.y), d.z / (ShieldRadii.z * ShieldRadii.z)).normalized;
+        }
+
+        /// <summary>점이 보호막 안 (수면 위 반구 속)인지.</summary>
+        public static bool InsideShield(Vector3 point)
+        {
+            var d = point - ShieldCenter;
+            if (d.y < 0f)
+                return false;
+            float x = d.x / ShieldRadii.x, y = d.y / ShieldRadii.y, z = d.z / ShieldRadii.z;
+            return x * x + y * y + z * z < 1f;
+        }
+
+        /// <summary>
+        /// 별똥별 출발점: 막 위 닿는 자리 target에서 들어오는 반대 방향 incoming (위쪽 · 하늘 면 쪽)으로 가장 길게 maxLength,
+        /// 바다 쪽 아래 칸 천장 · 벽 (하늘 면) 앞 0.1 m에서 멈춤 — 하늘 면에서 나와 막에 떨어지는 것처럼. 반환 = 출발점 (거리가 0.5 m 아래면 target).
+        /// </summary>
+        public static Vector3 MeteorStart(Vector3 target, Vector3 incoming, float maxLength)
+        {
+            var d = incoming.normalized;
+            float len = maxLength;
+            if (d.y > 1e-4f)
+                len = Mathf.Min(len, (LowCeilingY - 0.1f - target.y) / d.y);
+            len = Mathf.Min(len, Cross(target.x, d.x, LowRoomFromX + 0.1f, RoomMaxX - 0.1f), Cross(target.z, d.z, RoomMinZ + 0.1f, RoomMaxZ - 0.1f));
+            return len < 0.5f ? target : target + d * len;
+        }
+
         /// <summary>망원경 머리 (ScopeHead 원점) · 쉬는 방향 (Unity yaw, 앞 오른쪽 바다).</summary>
         public static readonly Vector3 ScopeHead = new Vector3(7.55f, CapeTop + 1.22f, 3.3f);
         public const float ScopeYaw = 121.4f;

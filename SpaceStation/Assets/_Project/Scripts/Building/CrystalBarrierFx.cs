@@ -27,6 +27,8 @@ namespace SpaceStation.Building
         [SerializeField] private float _hold = 0.35f;
         [Tooltip("깨진 조각이 흩어져 사라지는 시간")]
         [SerializeField] private float _shatterTime = 0.8f;
+        [Tooltip("실제 시간으로 돎 (내부 체험 — 게임을 멈춰도), 끄면 게임 시간")]
+        [SerializeField] private bool _unscaled;
 
         private const float ShatterStep = 0.04f; // 고리마다 늦게 깨짐 (가운데부터)
         private const float HalfThick = 0.09f;   // 판 두께 절반 (판 크기 기준)
@@ -94,7 +96,7 @@ namespace SpaceStation.Building
             float duration = Duration;
             while (t < duration && shot.Go != null)
             {
-                t += Time.deltaTime;
+                t += _unscaled ? Time.unscaledDeltaTime : Time.deltaTime;
                 if (!shot.Shattered && t >= ShatterAt)
                 {
                     shot.Shattered = true;
@@ -306,9 +308,11 @@ namespace SpaceStation.Building
             shot.Triangles.Add(c);
         }
 
-        /// <summary>무지개 반짝이 (flash = 닿은 자리 흰 섬광 함께). 스스로 지워지는 입자 묶음, 모듈 아래.</summary>
+        /// <summary>무지개 반짝이 (flash = 닿은 자리 흰 섬광 함께). 스스로 지워지는 입자 묶음, 모듈 아래. 크기 · 빠르기는 판 크기에 비례 (바깥 0.3 = 1배).</summary>
         private void Sparkle(Vector3 at, int count, float speed, bool flash)
         {
+            float k = _plateSize / 0.3f;
+            speed *= k;
             if (_sparkMaterial == null)
                 return;
             var go = new GameObject("CrystalSparkle");
@@ -323,6 +327,7 @@ namespace SpaceStation.Building
             main.startSpeed = 0f;
             main.maxParticles = 100;
             main.stopAction = ParticleSystemStopAction.Destroy;
+            main.useUnscaledTime = _unscaled;
             var emission = ps.emission;
             emission.rateOverTime = 0f;
             var shape = ps.shape;
@@ -347,7 +352,7 @@ namespace SpaceStation.Building
                     position = at,
                     velocity = Random.onUnitSphere * speed * Random.Range(0.5f, 1f),
                     startLifetime = Random.Range(0.6f, 1.1f),
-                    startSize = Random.Range(0.03f, 0.06f),
+                    startSize = Random.Range(0.03f, 0.06f) * k,
                     startColor = Color.Lerp(Rainbow[Random.Range(0, Rainbow.Length)], Color.white, 0.25f),
                     applyShapeToPosition = false,
                 }, 1);

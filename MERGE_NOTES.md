@@ -2766,3 +2766,17 @@
 - 템플릿: 렌즈에 빛줄기 둘 · 손잡이 구슬 충돌체, 등실 유리 = 맑은 유리 · 궤도 방어망 프리팹 · 시험 `Lighthouse_*` 다섯
 
 - 체크리스트 135 ~ 137 · 06c 기록
+
+## M-187. 궤도 방어망 체험 ② 오로라 보호막 펼치기 — 레버 · 바다 위 오로라 막 · 별똥별 · 선베드 관람 (2026-11-13, `main`)
+
+
+
+**main에 넣은 것**
+
+- 새 `AuroraShieldShow` (순수 순서 — 당김 · 펼침 · 버팀 (별똥별 1.6 ~ 3.2초마다) · 접힘 · 레버 돌아옴) · `InteriorAuroraShield` (방파제 끝 레버 F, 바다 위 납작한 반구 오로라 막, 별똥별 · 수정판, 끝나면 막은 별똥별 수) · `InteriorSkyMirrorAlways` (하늘 화면 방 복제에 높이와 상관없이 — 곶 · 등대에서 칸 턱 너머 막이 직선으로 잘렸음)
+
+- `AuroraBarrierFx.Paint` 선택 값 (fromInside · bandLift — 기본값이면 바깥 실드 그대로), `CrystalBarrierFx` 선택 값 (`_unscaled` 실제 시간 · 반짝이가 판 크기에 비례 — 바깥 0.3이면 그대로), `InteriorBenchSeats` 눈 높이 · 안내 글 선택 (기본 0.72 · "앉기"), `InteriorExteriorView` 복제 고르기
+
+- `OrbitalDefense` 보호막 값 (가운데 · 반지름 · 레버 · 선베드 눕기 · `ShieldPoint` · `ShieldNormal` · `InsideShield` · `MeteorStart`), 템플릿: 레버 손잡이 충돌체 · 선베드 눕기 · 수정 결정 막 · 궤도 방어망 프리팹 · 시험 넷
+
+- 체크리스트 138 ~ 140 · 06c 기록
