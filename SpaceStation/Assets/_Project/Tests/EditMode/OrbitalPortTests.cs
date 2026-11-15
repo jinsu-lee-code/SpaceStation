@@ -277,8 +277,13 @@ namespace SpaceStation.Tests
             At("Carousel", OrbitalPort.Carousel);
             Assert.IsNotNull(prefab.transform.Find(N + "Carousel").GetComponent<SpaceStation.Building.ModuleSpinner>(), "회전목마가 돌지 않음");
             for (int k = 0; k < OrbitalPort.Boats.Length; k++)
-                At("Boat" + k, OrbitalPort.Boats[k]);
-            Assert.IsNull(prefab.transform.Find(N + "Boat" + OrbitalPort.Boats.Length), "배가 값보다 많음");
+            {
+                var boat = prefab.transform.Find($"Boat{k}_Pivot/{N}Boat{k}");   // 뱃놀이 피벗 아래 (InteriorScallopRide가 피벗을 배 길로 돌림)
+                Assert.IsNotNull(boat, $"Boat{k} 없음");
+                var p = prefab.transform.InverseTransformPoint(boat.position);
+                Assert.Less(Vector3.Distance(p, OrbitalPort.Boats[k]), 0.01f, $"Boat{k} 원점 {p} ≠ {OrbitalPort.Boats[k]}");
+            }
+            Assert.IsNull(prefab.transform.Find($"Boat{OrbitalPort.Boats.Length}_Pivot"), "배가 값보다 많음");
             for (int k = 0; k < OrbitalPort.Clams.Length; k++)
             {
                 At("ClamLid" + k, OrbitalPort.ClamHinges[k]);
@@ -348,6 +353,96 @@ namespace SpaceStation.Tests
             Assert.Less(new Vector2(tip.x - fo.x, tip.z - fo.z).magnitude + reach + 0.3f, OrbitalPort.FountainRadius, "물줄기가 분수 테 밖에 떨어짐");
             Assert.Greater(tip.y, fo.y + 1.5f);
             Assert.IsNotNull(so.FindProperty("_material").objectReferenceValue);
+        }
+
+        /// <summary>
+        /// 해마 가리비 배 뱃놀이 (사용자 2026-11-16 "가리비 배 뱃놀이 체험 진행해줘"): 배 길 = Blender op3_builder와 같은 길이 · 배 처음 자리, 배 넷 = 피벗 (+z = 배 길 앞) 아래 ·
+        /// 앉음판 자리 둘씩 (상자 충돌체), 배 길 한 바퀴 내내 배 몸 (고물 0.95 ~ 해마 코 2.2 m · 반폭 0.7)이 땅 · 회전목마 · 산호초 · 조개 · 잔교에 닿지 않음,
+        /// 선착장 끝에서 정차한 배의 앉음판이 손 닿는 거리, 내리는 자리 = 선착장 마루 위.
+        /// </summary>
+        [Test]
+        public void BoatRide_Wired()
+        {
+            Assert.AreEqual(44.93f, OrbitalPort.CourseLoop, 0.05f, "배 길 길이 (op3_builder COURSE LEN)");
+            for (int k = 0; k < OrbitalPort.Boats.Length; k++)
+            {
+                var at = OrbitalPort.CoursePoint(OrbitalPort.BoatStartS(k));
+                Assert.Less(Vector2.Distance(at, new Vector2(OrbitalPort.Boats[k].x, OrbitalPort.Boats[k].z)), 0.01f, $"배 {k} 처음 자리");
+            }
+            Assert.Less(OrbitalPort.BoatStartS(0), 0.001f, "배 0 = 선착장 앞");
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                var ride = root.GetComponent<InteriorScallopRide>();
+                Assert.IsNotNull(ride, "뱃놀이 없음");
+                var so = new SerializedObject(ride);
+                var boats = so.FindProperty("_boats");
+                var seats = so.FindProperty("_seats");
+                Assert.AreEqual(OrbitalPort.Boats.Length, boats.arraySize);
+                Assert.AreEqual(OrbitalPort.Boats.Length * 2, seats.arraySize);
+                for (int b = 0; b < boats.arraySize; b++)
+                {
+                    var pivot = (Transform)boats.GetArrayElementAtIndex(b).objectReferenceValue;
+                    Assert.AreEqual($"Boat{b}_Pivot", pivot.name);
+                    Assert.IsNotNull(pivot.Find(N + "Boat" + b), $"배 {b} 메시가 피벗 밑에 없음");
+                    OrbitalPort.CoursePose(OrbitalPort.BoatStartS(b), out _, out var dir);
+                    Assert.Greater(Vector3.Dot(pivot.forward, new Vector3(dir.x, 0f, dir.y)), 0.999f, $"배 {b} 피벗 앞 = 배 길 앞");
+                    for (int k = 0; k < 2; k++)
+                    {
+                        var seat = (Transform)seats.GetArrayElementAtIndex(b * 2 + k).objectReferenceValue;
+                        Assert.AreEqual(pivot, seat.parent, $"배 {b} 자리 {k}");
+                        Assert.IsNotNull(seat.GetComponent<BoxCollider>(), $"배 {b} 자리 {k} 충돌체");
+                    }
+                }
+                foreach (var col in root.GetComponentsInChildren<Collider>())
+                    if (col.name.EndsWith("_LakeHit"))
+                        col.enabled = false;
+                Physics.SyncTransforms();
+                // 배 길 한 바퀴: 물 위 배 몸 상자 (고물 0.95 ~ 해마 코 2.2 m · 반폭 0.8 · 수면 + 0.15 ~ 1.0 — 땅 = 수면 + 0.1이라 바로 위부터) +
+                //  물속 배 밑 (가운데 · 해마 밑이 바닥에서 뜸 — Blender COURSECHK와 같은 기준). 움직이지 않는 몸체만 (배 · 자리 충돌체는 피벗 밑이라 뺌)
+                float loop = OrbitalPort.CourseLoop;
+                for (float s = 0f; s < loop; s += 0.25f)
+                {
+                    OrbitalPort.CoursePose(s, out var at, out var dir);
+                    var d = new Vector3(dir.x, 0f, dir.y);
+                    var c = new Vector3(at.x, OrbitalPort.LagoonLevel, at.y);
+                    foreach (var (ahead, need) in new[] { (0f, 0.45f), (1.9f, 0.4f) })
+                    {
+                        var p = c + d * ahead;
+                        Assert.IsTrue(Physics.Raycast(new Vector3(p.x, OrbitalPort.LagoonLevel + 0.01f, p.z), Vector3.down, out var bed, 3f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore));
+                        Assert.Greater(OrbitalPort.LagoonLevel - bed.point.y, need, $"배 길 s {s:F2} 배 밑 ({ahead} m 앞)이 얕음 {bed.collider.name}");
+                    }
+                    // 가리비 그릇 (고물 0.95 ~ 앞 0.95, 반폭 0.82) · 해마 한 쌍 (앞 0.95 ~ 2.2, 반폭 0.5)
+                    var hits = new List<Collider>(Physics.OverlapBox(c + Vector3.up * 0.575f, new Vector3(0.82f, 0.425f, 0.95f), Quaternion.LookRotation(d), Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore));
+                    hits.AddRange(Physics.OverlapBox(c + d * 1.575f + Vector3.up * 0.575f, new Vector3(0.5f, 0.425f, 0.625f), Quaternion.LookRotation(d), Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore));
+                    foreach (var hit in hits)
+                    {
+                        bool anyPivot = false;
+                        for (int b = 0; b < boats.arraySize; b++)
+                            anyPivot |= hit.transform.IsChildOf((Transform)boats.GetArrayElementAtIndex(b).objectReferenceValue);
+                        if (anyPivot)
+                            continue;
+                        if ((s < 0.3f || s > loop - 0.3f) && hit.name.EndsWith("_Shell") && Mathf.Abs(c.x - OrbitalPort.Stop.x) < 1.5f)
+                            continue;   // 선착장 끝 마루에 배 옆이 닿아 섬 (정차 자리)
+                        Assert.Fail($"배 길 s {s:F2} ({c.x:F2}, {c.z:F2})에서 배 몸이 {hit.name}에 닿음");
+                    }
+                }
+                // 선착장 끝에 선 눈 (마루 끝 0.3 m 안, 눈높이 1.6)에서 정차한 배 앉음판까지 손 닿는 거리 (상호작용 2.6 m)
+                var eye = OrbitalPort.Stop + new Vector3(0f, 1.6f, 0.15f);
+                for (int k = 0; k < 2; k++)
+                {
+                    var seat = (Transform)seats.GetArrayElementAtIndex(k).objectReferenceValue;
+                    Assert.Less(Vector3.Distance(eye, root.transform.InverseTransformPoint(seat.position)), 2.3f, $"정차한 배 자리 {k}가 선착장 끝에서 멂");
+                }
+                Assert.IsTrue(Physics.Raycast(OrbitalPort.BoatExit + Vector3.up * 0.5f, Vector3.down, out var deck, 1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), "내리는 자리 발밑 없음");
+                Assert.AreEqual(OrbitalPort.BoatExit.y, deck.point.y, 0.02f, "내리는 자리 = 선착장 마루 윗면");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
         }
 
         /// <summary>
