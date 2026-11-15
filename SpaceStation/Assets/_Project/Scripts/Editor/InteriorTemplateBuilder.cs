@@ -5563,6 +5563,7 @@ namespace SpaceStation.Editor
                     CritterGroup(r, critterSrc, "Critters_Bunny", 6f, CritterSpots(RepairCommand.Bunnies));
                     CritterGroup(r, critterSrc, "Critters_Duck", 7f, CritterSpots(RepairCommand.Ducks),
                         SwimBlocker(root, RepairCommand.Pond, 4f, (RepairCommand.Pond.y, 0f)));
+                    CritterGroup(r, critterSrc, "Critters_Turtle", 8f, CritterSpots(RepairCommand.Turtles));   // 연못 거북 = 돌 테 바위 위 볕 쬐기 (숨 · 고개 듦)
                     CritterGroup(r, critterSrc, "Critters_Butterfly", 4f, CritterSpots(RepairCommand.Butterflies), kind: SpaceStation.Building.CritterFx.Kind.Flutter, modelScale: 4f);
                 });
         }
