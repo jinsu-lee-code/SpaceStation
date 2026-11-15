@@ -67,6 +67,60 @@ namespace SpaceStation.Interior
         /// <summary>석호 수면 · 분수 수면 (op3_builder Water · Water1).</summary>
         public static readonly float[] WaterLevels = { LagoonLevel, Floor + 0.38f };
 
+        /// <summary>배 길 (CourseControl 닫힌 Catmull-Rom — op3_builder course_curve와 같은 0.25 m 이음)까지 수평 거리.</summary>
+        public static float CourseDistance(Vector2 p)
+        {
+            int n = CourseControl.Length;
+            float best = float.MaxValue;
+            var prev = CourseControl[0];
+            for (int i = 0; i < n; i++)
+            {
+                Vector2 p0 = CourseControl[(i - 1 + n) % n], p1 = CourseControl[i], p2 = CourseControl[(i + 1) % n], p3 = CourseControl[(i + 2) % n];
+                int m = Mathf.Max(2, (int)((p2 - p1).magnitude / 0.25f));
+                for (int k = 1; k <= m; k++)
+                {
+                    float t = (float)k / m;
+                    var q = 0.5f * (2f * p1 + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * (t * t) + (-p0 + 3f * p1 - 3f * p2 + p3) * (t * t * t));
+                    var seg = q - prev;
+                    float u = Mathf.Clamp01(Vector2.Dot(p - prev, seg) / Mathf.Max(1e-6f, seg.sqrMagnitude));
+                    best = Mathf.Min(best, (prev + seg * u - p).magnitude);
+                    prev = q;
+                }
+            }
+            return best;
+        }
+
+        // ---------------- 바다 동물 (critter_builder 바다 동물 — 궤도 방어망과 같은 모델, 사용자 2026-11-16 "이제 동물 배치 진행해줘") ----------------
+        // (모델, 자리 (모델 원점), 바라보는 쪽 수학 각). 땅 위 자리 = 몸 밑 닿는 점 (물범 = 원점 위 3.5 cm 안 배 · 지느러미 · 엉덩이 밑, 게 = 다리 끝)이 97 % 모래 1.5 cm 안 ·
+        //  가장 큰 틈 3 cm 미만이 되게 템플릿 면을 광선으로 재서 찾은 높이 — OrbitalPortTests.Critters_OnTheirSpots가 지킴.
+        /// <summary>
+        /// 물범 · 하얀 아기 물범 = 진주 조개 잡기 단 서쪽 모래톱 물가 (나란히 석호 쪽을 봄 — 앞 1 m가 물가 턱): 평평한 모래 위 (물가 턱 비탈에 두면 1 m 몸 밑이 8 cm 묻혔음),
+        /// 어른 물범 몸 밑 1.4 %만 1.5 cm 넘게 뜨고 가장 깊이 3.3 cm 묻힘 · 아기 물범 뜬 점 없음.
+        /// </summary>
+        public static readonly (string Kind, Vector3 At, float Facing)[] Seals =
+        {
+            ("Seal", new Vector3(40.5f, -2.109f, 2.6f), 100f), ("SealPup", new Vector3(39.6f, -2.101f, 2.3f), 75f),
+        };
+        /// <summary>
+        /// 게 넷 = 물가선에서 0.55 m 안쪽 평평한 모래 (해변 둘 · 방파제 만 · 모래톱 동쪽 — 주민 자리 · 등에서 1.2 m 넘게): 물을 보고 물가를 따라 옆걸음.
+        /// 옆걸음 띠 (물가 따라 ± 0.55 · 앞뒤 ± 0.2)에 해변 조개 · 불가사리 장식이 없게 (16.5에서는 다리가 불가사리 위에 걸쳐 보였음).
+        /// </summary>
+        public static readonly (string Kind, Vector3 At, float Facing)[] Crabs =
+        {
+            ("Crab", new Vector3(15.4f, -2.073f, -2.01f), 88f), ("Crab", new Vector3(30.5f, -2.073f, -1.95f), 98f),
+            ("Crab", new Vector3(16.2f, -2.073f, 10.47f), 268f), ("Crab", new Vector3(47.2f, -2.073f, 3.95f), 92f),
+        };
+        /// <summary>
+        /// 바다거북 둘 = 석호 수면 (원점 = 등딱지 가장자리 = 수면): 배 길 안쪽 산호초 곁 · 동쪽 조개 앞 물 — 배는 배 길을 따라 돌므로 길 전체 (배 반폭 0.85 + 0.3)와
+        /// 물 위 물체 (회전목마 받침 · 산호초 · 조개 · 잔교 · 물가)를 비키는 고리로 천천히 헤엄.
+        /// </summary>
+        public static readonly (string Kind, Vector3 At, float Facing)[] Turtles =
+        {
+            ("Turtle", new Vector3(17.8f, LagoonLevel, 2.6f), 30f), ("Turtle", new Vector3(35.8f, LagoonLevel, 6.9f), 200f),
+        };
+        /// <summary>거북 헤엄 고리가 배 길에서 떨어질 거리 (배 반폭 0.85 + 여유 0.3).</summary>
+        public const float TurtleCourseClear = 1.15f;
+
         // ---------------- 연결점 ----------------
         /// <summary>스폰 = 선착장 뒤 진주 모래 해변 (선착장 · 배 · 회전목마 · 방파제 소라 문을 봄).</summary>
         public static readonly Vector3 Spawn = new Vector3(24f, Floor, -3.3f);

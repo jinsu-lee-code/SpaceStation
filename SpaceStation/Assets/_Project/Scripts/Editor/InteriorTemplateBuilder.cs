@@ -5646,6 +5646,14 @@ namespace SpaceStation.Editor
                     var sso = new SerializedObject(spinner);
                     sso.FindProperty("_speed").floatValue = 9f;
                     sso.ApplyModifiedPropertiesWithoutUndo();
+                    // 바다 동물 (critter_builder — 궤도 방어망과 같은 모델): 물범 · 아기 물범 = 모래톱 물가에서 숨 쉬며 고개 듦, 게 = 물가 모래를 따라 옆걸음,
+                    //  거북 = 석호 수면 고리 헤엄 (배는 배 길을 따라 돌므로 길 전체 + 회전목마 받침 · 산호초 · 조개 · 잔교 · 물가를 비킴)
+                    var critterSrc = InteriorCritterModels();
+                    CritterGroup(r, critterSrc, "Critters_Seal", 8f, CritterSpots(OrbitalPort.Seals));
+                    CritterGroup(r, critterSrc, "Critters_Crab", 14f, CritterSpots(OrbitalPort.Crabs));
+                    var swim = SwimBlocker(root, new Vector3(26f, OrbitalPort.LagoonLevel, 4f), 30f, (OrbitalPort.LagoonLevel, 0f));
+                    CritterGroup(r, critterSrc, "Critters_Turtle", 10f, CritterSpots(OrbitalPort.Turtles),
+                        (p, radius) => swim(p, radius) || OrbitalPort.CourseDistance(new Vector2(p.x, p.z)) < OrbitalPort.TurtleCourseClear + radius);
                 });
         }
 

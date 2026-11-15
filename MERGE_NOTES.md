@@ -2986,3 +2986,15 @@
 - `OrbitalPort.Hatches` 일곱 자리 · `ResidentSpotBaker` 궤도 항만 주민 자리 여섯 다시, 프리팹 · 템플릿 `IT_EvoOrbitalPort`
 
 - 체크리스트 190 ~ 192 · 06c
+
+
+
+## M-204. 궤도 항만 내부 — 바다 동물 넷 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 궤도 항만 내부 바다 동물 (궤도 방어망과 같은 `SM_InteriorCritters` 모델 · `CritterGroup`): 물범 · 아기 물범 (모래톱 물가) · 게 넷 (물가 모래 옆걸음) · 바다거북 둘 (석호, 배 길을 비키는 헤엄 고리) — `OrbitalPort.Seals · Crabs · Turtles · CourseDistance · TurtleCourseClear`, `InteriorTemplateBuilder.BuildEvoOrbitalPort`, 프리팹
+
+- `OrbitalPortTests.Critters_OnTheirSpots`, 체크리스트 193 · 06c
