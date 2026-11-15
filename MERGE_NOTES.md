@@ -2998,3 +2998,13 @@
 - 궤도 항만 내부 바다 동물 (궤도 방어망과 같은 `SM_InteriorCritters` 모델 · `CritterGroup`): 물범 · 아기 물범 (모래톱 물가) · 게 넷 (물가 모래 옆걸음) · 바다거북 둘 (석호, 배 길을 비키는 헤엄 고리) — `OrbitalPort.Seals · Crabs · Turtles · CourseDistance · TurtleCourseClear`, `InteriorTemplateBuilder.BuildEvoOrbitalPort`, 프리팹
 
 - `OrbitalPortTests.Critters_OnTheirSpots`, 체크리스트 193 · 06c
+
+
+
+## M-205. 궤도 항만 날치 모델 시트 1차 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- `BlenderWork/InteriorProps/critter_builder.py`: `Critter_FlyingFish` (`--fly` = 날치 모델 시트만, 아직 내보내지 않음) · 지느러미 판 `fin_blade` · `fin_fan`, 미리보기 `preview/critter_fly_size.png` · `critter_flyingfish_*.png` · 시트 `critter_flyingfish_sheet.png`
