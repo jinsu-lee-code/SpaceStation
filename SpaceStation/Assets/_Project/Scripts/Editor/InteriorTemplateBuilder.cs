@@ -5665,7 +5665,9 @@ namespace SpaceStation.Editor
                             var seat = new GameObject(k == 0 ? "SeatL" : "SeatR").transform;
                             seat.SetParent(pivot, false);
                             seat.localPosition = OrbitalPort.BoatSeat(k);
-                            seat.gameObject.AddComponent<BoxCollider>().size = new Vector3(0.4f, 0.16f, 0.4f);
+                            var seatBox = seat.gameObject.AddComponent<BoxCollider>();   // 앉음판 + 앉은 몸 자리 (선착장에서 내려다보며 겨누기 쉽게 — 0.16 m 판만이면 찾기 어려웠음)
+                            seatBox.size = new Vector3(0.44f, 0.6f, 0.9f);
+                            seatBox.center = new Vector3(0f, 0.22f, 0.05f);
                             boatSeats[b * 2 + k] = seat;
                         }
                         boatPivots[b] = pivot;

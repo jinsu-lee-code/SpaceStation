@@ -696,7 +696,7 @@ namespace SpaceStation.Interior
             InteriorLiftButton liftButton = null;
             // 해치는 더 멀리서도 (사용자 피드백 2026-10-14: 창고 · 융합로처럼 천장이 높은 방은 천장 해치가 눈에서 약 3.2m라 2.6m 광선이 닿지 않았음)
             float reach = Mathf.Max(_interactDistance, _hatchReach);
-            if (Physics.Raycast(eye.position, eye.forward, out var hit, reach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            if (LookHit(eye.position, eye.forward, reach, out var hit))
             {
                 hatch = hit.collider.GetComponent<InteriorHatch>();
                 if (hatch == null && hit.distance <= _interactDistance)
@@ -736,6 +736,27 @@ namespace SpaceStation.Interior
                     _builder.EnsureBuilt(room.Module); // 맞은편 해치(도착점)가 생기게
                 StartCoroutine(UseHatch(hatch.Arrival ?? _builder.FloorPoint(hatch.ToCell)));
             }
+        }
+
+        private static readonly RaycastHit[] LookHits = new RaycastHit[16];
+
+        /// <summary>
+        /// 시선 광선이 처음 닿은 물체 — 물에 못 들어가게 막는 보이지 않는 벽 (`_LakeHit`)은 지나감: 물 위에 선 배 자리 (궤도 항만 뱃놀이) ·
+        /// 물속 물건을 보고 쓸 수 있게 (첫 물체만 보면 물가의 벽에 막혀 배 자리 안내가 뜨지 않았음, 사용자 2026-11-16 "탑승 기능 안 나오는데").
+        /// </summary>
+        public static bool LookHit(Vector3 from, Vector3 dir, float reach, out RaycastHit hit)
+        {
+            int n = Physics.RaycastNonAlloc(from, dir, LookHits, reach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            hit = default;
+            float best = float.MaxValue;
+            for (int i = 0; i < n; i++)
+            {
+                if (LookHits[i].distance >= best || LookHits[i].collider.name.EndsWith("_LakeHit"))
+                    continue;
+                best = LookHits[i].distance;
+                hit = LookHits[i];
+            }
+            return best < float.MaxValue;
         }
 
         private void UpdateHold(InteriorInteractable item)
