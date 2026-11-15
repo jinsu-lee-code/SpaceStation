@@ -463,6 +463,137 @@ namespace SpaceStation.Tests
         }
 
         /// <summary>
+        /// 진주 조개 잡기 (사용자 2026-11-16 "미니게임 진행해줘"): 뚜껑 · 진주 · 시작 상자 · 게 모델 연결, 시작 상자가 잡기 단 마루 (난간 안)를 막지 않음,
+        /// 단 세 자리에서 조개 셋을 보면 시선 (InteriorMode.LookHit)이 2.6 m 안에서 시작 상자에 먼저 닿음 (플레이어가 실제로 보는 길 — 체크리스트 196),
+        /// 뚜껑을 경첩 축으로 −52° 돌리면 입이 닫힘 (뚜껑이 내려와 진주를 덮고 입술이 경첩 높이에서 만남 · 물에 안 닿음 — 축 부호가 틀리면 물속으로 감).
+        /// </summary>
+        [Test]
+        public void PearlClams_Wired()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                var game = root.GetComponent<InteriorPearlClams>();
+                Assert.IsNotNull(game, "진주 조개 잡기 없음");
+                var so = new SerializedObject(game);
+                var start = so.FindProperty("_start").objectReferenceValue as BoxCollider;
+                Assert.IsNotNull(start, "시작 상자 없음");
+                Assert.IsNotNull(so.FindProperty("_crabMesh").objectReferenceValue, "게 모델 없음");
+                Assert.IsNotNull(so.FindProperty("_sparkMaterial").objectReferenceValue, "반짝이 재질 없음");
+                var lids = so.FindProperty("_lids");
+                var pearls = so.FindProperty("_pearls");
+                for (int k = 0; k < OrbitalPort.Clams.Length; k++)
+                {
+                    Assert.AreEqual(root.transform.Find(N + "ClamLid" + k), lids.GetArrayElementAtIndex(k).objectReferenceValue, $"뚜껑 {k}");
+                    Assert.AreEqual(root.transform.Find(N + "ClamPearl" + k), pearls.GetArrayElementAtIndex(k).objectReferenceValue, $"진주 {k}");
+                }
+                Assert.Greater(OrbitalPort.ClamGameStart.z - OrbitalPort.ClamGameStartSize.z * 0.5f, OrbitalPort.ClamStage.z + 1.0f, "시작 상자가 단 난간 안 마루를 막음");
+                start.enabled = true;
+                Physics.SyncTransforms();
+                foreach (var ex in new[] { -0.9f, 0f, 0.9f })
+                {
+                    var eye = OrbitalPort.ClamStage + new Vector3(ex, 1.6f, 0.2f);
+                    for (int k = 0; k < OrbitalPort.Clams.Length; k++)
+                    {
+                        var dir = (OrbitalPort.ClamPearls[k] - eye).normalized;
+                        bool hit = InteriorMode.LookHit(eye, dir, 2.6f, out var look);
+                        Assert.IsTrue(hit && look.collider == start, $"단 ({ex}) → 조개 {k}: 시선이 시작 상자에 안 닿음 ({(hit ? look.collider.name : "없음")})");
+                    }
+                }
+                // 뚜껑 표면을 위에서 쏜 광선으로 잼 (돌린 뒤 Renderer.bounds는 상자를 돌린 큰 상자라 못 씀): 열림 = 입 앞 1.6 m까지 안 덮음,
+                //  닫힘 = 입 앞 1.6 m 위가 경첩 높이 근처 (입술이 만남 · 물에 안 닿음) · 진주 위를 덮음
+                for (int k = 0; k < OrbitalPort.Clams.Length; k++)
+                {
+                    var lid = root.transform.Find(N + "ClamLid" + k);
+                    var probe = lid.gameObject.AddComponent<MeshCollider>();
+                    probe.sharedMesh = lid.GetComponent<MeshFilter>().sharedMesh;
+                    Physics.SyncTransforms();
+                    float a = OrbitalPort.Clams[k].z * Mathf.Deg2Rad;
+                    var mouth = OrbitalPort.ClamHinges[k] + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 1.6f + Vector3.up * 3f;
+                    Assert.IsFalse(probe.Raycast(new Ray(mouth, Vector3.down), out _, 6f), $"조개 {k} 열린 뚜껑이 입 앞까지 덮음 (모델이 열린 채가 아님)");
+                    lid.localRotation = Quaternion.AngleAxis(-OrbitalPort.ClamLidOpen, OrbitalPort.ClamHingeAxis(k)) * lid.localRotation;
+                    Physics.SyncTransforms();
+                    Assert.IsTrue(probe.Raycast(new Ray(mouth, Vector3.down), out var lip, 6f), $"조개 {k} 닫아도 입 앞이 안 덮임 (경첩 축 부호)");
+                    Assert.AreEqual(OrbitalPort.ClamY + 0.2f, lip.point.y, 0.25f, $"조개 {k} 닫힌 입술 높이 (경첩 {OrbitalPort.ClamY:0.00})");
+                    Assert.Greater(lip.point.y, OrbitalPort.LagoonLevel + 0.2f, $"조개 {k} 닫힌 뚜껑이 물에 닿음");
+                    var pearl = OrbitalPort.ClamPearls[k];
+                    Assert.IsTrue(probe.Raycast(new Ray(pearl + Vector3.up * 3f, Vector3.down), out var cover, 6f), $"조개 {k} 닫힌 뚜껑이 진주 위에 없음");
+                    Assert.Greater(cover.point.y, pearl.y + 0.35f, $"조개 {k} 닫힌 뚜껑이 진주 (꼭대기 {pearl.y + 0.3f:0.00})를 못 덮음");
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>
+        /// 인어 분수 진주 던지기 (사용자 2026-11-16 "미니게임 진행해줘"): 시작 상자 · 진주 메시 · 고리 재질 연결, 분수 둘레 여덟 자리 (테 밖 마당)에서 물을 보면 시선이 2.6 m 안에서
+        /// 시작 상자에 닿음, 빛 고리 셋이 2분 내내 분수 물 위 (고리 둘레 12점에서 지느러미 밑으로부터 쏜 광선이 꼬리 기둥 · 테에 걸리지 않고 수면 밑 바닥에 닿음 —
+        /// 가운데에서 쏘면 꼬리에 닿는지 먼저 봐서 광선이 꼬리를 보는지 확인), 안내판이 꼬리 끝 · 지느러미 위.
+        /// </summary>
+        [Test]
+        public void FountainToss_Wired()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                var game = root.GetComponent<InteriorFountainToss>();
+                Assert.IsNotNull(game, "분수 진주 던지기 없음");
+                var so = new SerializedObject(game);
+                var start = so.FindProperty("_start").objectReferenceValue as BoxCollider;
+                Assert.IsNotNull(start, "시작 상자 없음");
+                Assert.IsNotNull(so.FindProperty("_pearlMesh").objectReferenceValue, "진주 메시 없음");
+                Assert.IsNotNull(so.FindProperty("_pearlMaterial").objectReferenceValue, "진주 재질 없음");
+                Assert.IsNotNull(so.FindProperty("_lineMaterial").objectReferenceValue, "고리 재질 없음");
+                var fo = OrbitalPort.Fountain;
+                start.enabled = true;
+                Physics.SyncTransforms();
+                for (int q = 0; q < 8; q++)
+                {
+                    float a = q * Mathf.PI / 4f;
+                    var out_ = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                    var eye = new Vector3(fo.x, OrbitalPort.PaveTop + 1.6f, fo.z) + out_ * 2.55f;
+                    var target = new Vector3(fo.x, fo.y, fo.z) + out_ * 1.0f;
+                    bool hit = InteriorMode.LookHit(eye, (target - eye).normalized, 2.6f, out var look);
+                    Assert.IsTrue(hit && look.collider == start, $"분수 둘레 {q * 45}° → 물: 시선이 시작 상자에 안 닿음 ({(hit ? look.collider.name : "없음")})");
+                }
+                start.enabled = false;
+                Physics.SyncTransforms();
+                const float above = 3f;
+                Assert.IsTrue(Physics.Raycast(new Vector3(fo.x, fo.y + above, fo.z), Vector3.down, out var tail, above + 1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)
+                    && tail.point.y > fo.y + 0.1f, "가운데 광선이 꼬리를 못 봄 (검사가 헛돎)");
+                // 고리 둘레는 꼬리지느러미 밑 (수면 위 1.2 m — 지느러미는 수면 위 1.9 m부터 고리 위로 넓게 펼쳐짐)에서 쏨: 꼬리 기둥 · 테만 잼
+                const float under = 1.2f;
+                var toss = new FountainToss(new Vector2(fo.x, fo.z), OrbitalPort.FountainWaterRadius);
+                for (float t = 0f; t < 120f; t += 0.25f)
+                {
+                    for (int i = 0; i < FountainToss.Rings.Length; i++)
+                    {
+                        var c = toss.RingCenter(i, t);
+                        float rr = FountainToss.Rings[i].Radius + 0.03f;
+                        for (int q = 0; q < 12; q++)
+                        {
+                            float a = q * Mathf.PI / 6f;
+                            var p = new Vector3(c.x + rr * Mathf.Cos(a), fo.y + under, c.y + rr * Mathf.Sin(a));
+                            bool down = Physics.Raycast(p, Vector3.down, out var bed, under + 1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+                            Assert.IsTrue(down && bed.point.y < fo.y - 0.05f, $"고리 {i} ({t:0.00}초) 둘레 {q * 30}°가 꼬리 · 테에 걸림 ({(down ? bed.point.y.ToString("0.00") : "없음")})");
+                        }
+                    }
+                }
+                Assert.Greater(OrbitalPort.TossSign.y, OrbitalPort.FountainTip.y + 0.7f, "안내판이 꼬리 끝 · 지느러미에 걸림");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>
         /// 바다 동물 (사용자 2026-11-16 "이제 동물 배치 진행해줘"): 자리 · 앞쪽 · 움직임 = OrbitalPort 값, 물범 · 게 몸 밑 닿는 점이 모래 1.5 cm 안 (원점 한 점만 맞추면
         /// 둥근 배 · 꼬리가 떴음 — 체크리스트 148), 게 옆걸음 끝도 같은 모래 높이, 거북 헤엄 고리 = 막히지 않고 · 배 길에서 1.15 m · 발밑 물 깊이 0.25 m 넘게,
         /// 날치 활공 길 = 머리 쪽 · 막히지 않고 · 물 깊이 0.5 m · 배 길에서 1.3 m.

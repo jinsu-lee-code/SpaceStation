@@ -3050,3 +3050,17 @@
 - `InteriorTemplateBuilder.BuildEvoOrbitalPort` 배 자리 상자 키움 (앉음판 + 앉은 몸 자리 0.44 × 0.6 × 0.9), 프리팹
 
 - `OrbitalPortTests.BoatRide_Wired`: 선착장 끝 세 자리에서 바라본 광선이 정차한 배 자리에 닿는지, 체크리스트 196 · 06c
+
+
+
+## M-209. 궤도 항만 미니게임 둘 (진주 조개 잡기 · 인어 분수 진주 던지기) · 해마 시안 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 새 판 규칙 `PearlClamGame` · `FountainToss` (순수 클래스), 새 `InteriorPearlClams` (잡기 단에서 조개를 보고 F — 30초 동안 번갈아 열리는 조개 속 진주 +1 · 금빛 진주 +3 · 게 -1) · `InteriorFountainToss` (분수 물을 보고 F — 도는 빛 고리 1 · 2 · 3점에 진주 일곱 개를 보는 자리로 던짐)
+
+- `OrbitalPort` 미니게임 자리 값 (시작 상자 · 안내판 · 경첩 축 `ClamHingeAxis` · 분수 물 반지름), `InteriorTemplateBuilder.BuildEvoOrbitalPort` 시작 상자 · 연결, 프리팹
+
+- `OrbitalPortTests.PearlClams_Wired` · `FountainToss_Wired`, 새 `PortMinigameTests`, critter_builder `--seahorse` 해마 시안 시트 (아직 적용 안 함), 체크리스트 197 ~ 200 · 06c

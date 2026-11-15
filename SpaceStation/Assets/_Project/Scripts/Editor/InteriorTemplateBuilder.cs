@@ -5684,6 +5684,31 @@ namespace SpaceStation.Editor
                         (p, radius) => swim(p, radius) || OrbitalPort.CourseDistance(new Vector2(p.x, p.z)) < OrbitalPort.TurtleCourseClear + radius);
                     // 날치 = 석호 물에서 튀어나와 날개를 편 채 낮게 활공 (사용자 2026-11-16 모델 시트 "좋아 유니티로 옮겨줘")
                     CritterGroup(r, critterSrc, "Critters_FlyingFish", OrbitalPort.FlyingFishScale, CritterSpots(OrbitalPort.FlyingFish));
+                    // 미니게임 둘 (사용자 2026-11-16 "미니게임 진행해줘"): 시작 상자 = 보이지 않는 상자 (보고 F — 판 중에는 꺼짐)
+                    BoxCollider StartBox(string name, Vector3 at, Vector3 size)
+                    {
+                        var go = new GameObject(name);
+                        go.transform.SetParent(r, false);
+                        go.transform.localPosition = at;
+                        go.AddComponent<BoxCollider>().size = size;
+                        return go.GetComponent<BoxCollider>();
+                    }
+                    var clamLids = new Transform[OrbitalPort.Clams.Length];
+                    var clamPearls = new Transform[clamLids.Length];
+                    for (int k = 0; k < clamLids.Length; k++)
+                    {
+                        clamLids[k] = Child(root, N + "ClamLid" + k);
+                        clamPearls[k] = Child(root, N + "ClamPearl" + k);
+                    }
+                    //  진주 조개 잡기: 잡기 단에서 조개 쪽 = 난간 밖 물 위 얇은 판, 게 = 내부 동물 게 모델
+                    critterSrc.TryGetValue("Critter_Crab", out var crabSrc);
+                    root.AddComponent<InteriorPearlClams>().Configure(clamLids, clamPearls, StartBox("PearlClamStart", OrbitalPort.ClamGameStart, OrbitalPort.ClamGameStartSize),
+                        crabSrc != null ? crabSrc.GetComponent<MeshFilter>().sharedMesh : null, ModuleFxMaterials.Get("Critters"), ModuleFxMaterials.Get("FireworkSpark"), rideFont);
+                    //  인어 분수 진주 던지기: 분수 물 위 상자, 던지는 진주 = 조개 진주 메시 · 재질
+                    var pearlSrc = clamPearls[0];
+                    root.AddComponent<InteriorFountainToss>().Configure(StartBox("FountainTossStart", OrbitalPort.TossStart, OrbitalPort.TossStartSize),
+                        pearlSrc.GetComponent<MeshFilter>().sharedMesh, pearlSrc.GetComponent<Renderer>().sharedMaterial,
+                        ModuleFxMaterials.Get("FireworkLine"), ModuleFxMaterials.Get("FireworkSpark"), rideFont);
                 });
         }
 
