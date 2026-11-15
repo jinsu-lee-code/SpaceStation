@@ -168,6 +168,28 @@ def rot(y_deg=0.0, z_deg=0.0, x_deg=0.0):
     return (Matrix.Rotation(math.radians(z_deg), 3, 'Z') @ Matrix.Rotation(math.radians(y_deg), 3, 'Y') @ Matrix.Rotation(math.radians(x_deg), 3, 'X'))
 
 
+def unfold(bm):
+    # 메타볼 면이 몇 장 접혀 나옴 (이웃과 법선이 반대 — 오리 5 · 새끼 6 · 사슴 1장, 부드러운 음영에서 검은 점) → 접힌 면 꼭짓점 · 둘레를 이웃 평균으로 폄
+    for _ in range(6):
+        bm.normal_update()
+        bad = set()
+        for f in bm.faces:
+            nb = [g.normal for e in f.edges for g in e.link_faces if g is not f]
+            if nb and sum(f.normal.dot(m) for m in nb) / len(nb) < 0.0:
+                bad.update(f.verts)
+        if not bad:
+            break
+        ring_ = set(bad)
+        for v in bad:
+            ring_.update(e.other_vert(v) for e in v.link_edges)
+        bmesh.ops.smooth_vert(bm, verts=list(ring_), factor=1.0, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+    # 펴도 남는 아주 작은 뒤집힌 삼각형 (이웃 모두와 법선이 반대 — 돌고래 옆구리 0.3 mm²)은 가장 짧은 변을 접어 없앰
+    bm.normal_update()
+    for f in [f for f in bm.faces if all(f.normal.dot(g.normal) < -0.5 for e in f.edges for g in e.link_faces if g is not f)]:
+        if f.is_valid:
+            bmesh.ops.collapse(bm, edges=[min(f.edges, key=lambda e: e.calc_length())], uvs=False)
+
+
 def finish(name):
     me = bpy.data.meshes.new(name); bm = bmesh.new()
     for p in PARTS:
@@ -185,6 +207,10 @@ def finish(name):
         md = ob.modifiers.new("Dec", 'DECIMATE'); md.ratio = 14000 / tris
         bpy.context.view_layer.objects.active = ob
         bpy.ops.object.modifier_apply(modifier="Dec")
+        # 줄이기도 면을 접음 (사슴 · 아기 사슴 배 밑 한 장씩 6 ~ 11 mm², 2026-11-15) → 메타볼 때와 같이 폄 (접힌 면이 없으면 메시 그대로)
+        b = bmesh.new(); b.from_mesh(me)
+        unfold(b)
+        b.to_mesh(me); b.free()
     b = bmesh.new(); b.from_mesh(me); b.normal_update()
     fold = 0                                   # 접힌 면 (이웃과 법선이 반대 — 체크리스트 80) 0이어야 함
     for f in b.faces:
@@ -291,25 +317,7 @@ def meta_part(res, head_c=None, head_R=1.0, face="white", base="white", pattern=
     bpy.data.objects.remove(ob); bpy.data.metaballs.remove(mb)
     bm = bmesh.new(); bm.from_mesh(me); bpy.data.meshes.remove(me)
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=res * 0.05)
-    # 메타볼 면이 몇 장 접혀 나옴 (이웃과 법선이 반대 — 오리 5 · 새끼 6 · 사슴 1장, 부드러운 음영에서 검은 점) → 접힌 면 꼭짓점 · 둘레를 이웃 평균으로 폄
-    for _ in range(6):
-        bm.normal_update()
-        bad = set()
-        for f in bm.faces:
-            nb = [g.normal for e in f.edges for g in e.link_faces if g is not f]
-            if nb and sum(f.normal.dot(m) for m in nb) / len(nb) < 0.0:
-                bad.update(f.verts)
-        if not bad:
-            break
-        ring_ = set(bad)
-        for v in bad:
-            ring_.update(e.other_vert(v) for e in v.link_edges)
-        bmesh.ops.smooth_vert(bm, verts=list(ring_), factor=1.0, use_axis_x=True, use_axis_y=True, use_axis_z=True)
-    # 펴도 남는 아주 작은 뒤집힌 삼각형 (이웃 모두와 법선이 반대 — 돌고래 옆구리 0.3 mm²)은 가장 짧은 변을 접어 없앰
-    bm.normal_update()
-    for f in [f for f in bm.faces if all(f.normal.dot(g.normal) < -0.5 for e in f.edges for g in e.link_faces if g is not f)]:
-        if f.is_valid:
-            bmesh.ops.collapse(bm, edges=[min(f.edges, key=lambda e: e.calc_length())], uvs=False)
+    unfold(bm)
     uvl = bm.loops.layers.uv.new("UVMap")
     cu, cv = face_center(face) if head_c is not None else (0, 0)
     for f in bm.faces:

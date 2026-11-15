@@ -2932,3 +2932,15 @@
 - 연못 동쪽 첫 돌 테 바위를 윗면 평평한 넓적 바위로 바꾼 `SM_Interior_EvoRepairCommand.fbx` (`rc3_builder` BASK_STONE · BASK_TOP), `RepairCommand.Turtles` · `BaskStone`, 거북 묶음을 넣은 프리팹
 
 - `RepairCommandTests.Critters_OnTheirSpots` (동물 열아홉 · 몸 밑 묻힘 · 넓적 바위 윗면), 체크리스트 172 · 06c (TASKS · Main.unity는 tycoon만)
+
+
+
+## M-200. 사슴 접힌 면 고침 · 남은 3단계용 Interior_Evo2.blend (2026-11-15, `main`)
+
+
+
+**main에 넣은 것**
+
+- 사슴 · 아기 사슴 접힌 면을 편 `SM_InteriorCritters.fbx` (`critter_builder` `unfold` — 줄이기 뒤에도 접힌 면 펴기, 다른 동물 메시는 같음)
+
+- 새 작업 파일 `BlenderWork/Interior_Evo2.blend` (남은 3단계 궤도 항만 · AI 중추부터 — `Interior_Evo.blend` 92.7 MB, GitHub 100 MB 제한), 06a 작업 파일 나눔 · 체크리스트 173
