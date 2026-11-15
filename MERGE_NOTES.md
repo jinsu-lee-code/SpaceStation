@@ -2904,3 +2904,17 @@
 - 기억 등불을 그루터기 중심 부채꼴로 옮긴 `SM_Interior_EvoRepairCommand.fbx` · 주민 자리 23, `InteriorFireflyShow` 드론 만들기 · 빛무리 · 반짝이 공용 함수
 
 - `RepairCommandTests` 둘 더함 (판 순서 · 그루터기에서 보임 · 드론 길) + 연결, 체크리스트 169 ~ 170 · 06c (TASKS · 글꼴 · Main.unity는 tycoon만)
+
+
+
+## M-198. 수리 사령부 내부 동물 열여덟 · 연못 거북 모델 시트 (2026-11-15, `main`)
+
+
+
+**main에 넣은 것**
+
+- `RepairCommand` 동물 자리 (Deer · Bunnies · Ducks · Butterflies — 아기 사슴 방석 · 사슴 · 토끼 여섯 · 오리 가족 연못 · 나비 일곱), `BuildEvoRepairCommand` 동물 묶음 넷 (나비 = 외형 나비 × 4), `CritterGroup` 모델 크기 배율 (modelScale)
+
+- 동물을 넣은 `PF_Interior_EvoRepairCommand.prefab`, `critter_builder` 연못 거북 (남생이) 모델 시트 (`--pond`, 아직 내보내지 않음 · 사용자 확인 대기) + 미리보기
+
+- `RepairCommandTests.Critters_OnTheirSpots`, 체크리스트 171 · 06c (TASKS · Main.unity는 tycoon만)

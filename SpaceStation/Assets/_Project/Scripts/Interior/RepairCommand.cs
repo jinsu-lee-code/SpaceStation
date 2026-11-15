@@ -154,6 +154,35 @@ namespace SpaceStation.Interior
         /// <summary>물길이 연못에 닿는 곳 (작은 물결).</summary>
         public static readonly Vector3 StreamMouth = new Vector3(12.64f, Floor - 0.08f, 14.3f);
 
+        // ---------------- 동물 (외형 열아홉과 같은 수 — 사용자 2026-11-15 "동물로 넘어가자") ----------------
+        // (모델, 자리 (모델 원점), 바라보는 쪽 수학 각). 땅 동물 = 발바닥 가장 낮은 점이 면 속 1 cm 안 (빈터 = 평평한 F, 토끼 모델은 발바닥이 원점 1.4 cm 아래라 + 4 mm), 해치 틀 (가운데 ± 0.95 + 올라오는 자리) · 주민 자리 · 등 · 길에서 1.2 m 넘게
+        //  (외형 자리 × 8을 그대로 두면 오두막 옆 사슴 · 오두막 왼쪽 · 연못 오른쪽 토끼가 해치 틀 위였음) — RepairCommandTests.Critters_OnTheirSpots가 지킴.
+        /// <summary>아기 사슴 = 오두막 마루 방석 위 (외형처럼, 스폰 쪽을 봄), 사슴 = 언덕 왼쪽 숲 가장자리 풀밭에서 풀을 뜯음.</summary>
+        public static readonly (string Kind, Vector3 At, float Facing)[] Deer =
+        {
+            ("Fawn", new Vector3(5.802f, Floor + 0.255f, 15.693f), 10f), ("Deer", new Vector3(-2.3f, Floor - 0.005f, 5.8f), 45f),
+        };
+        /// <summary>토끼 여섯 = 약초 밭 양쪽 (밭을 봄) · 빨랫줄 앞 · 연못 오른쪽 · 요정 버섯 고리 한가운데 · 쓰러진 통나무 왼쪽.</summary>
+        public static readonly (string Kind, Vector3 At, float Facing)[] Bunnies =
+        {
+            ("Bunny", new Vector3(0.15f, Floor + 0.004f, 18.3f), 180f), ("Bunny", new Vector3(-2.6f, Floor + 0.004f, 17.3f), 40f),
+            ("Bunny", new Vector3(-2.2f, Floor + 0.004f, 14.2f), 30f), ("Bunny", new Vector3(18.4f, Floor + 0.004f, 13.6f), 150f),
+            ("Bunny", new Vector3(16.8f, Floor + 0.004f, 4.96f), 100f), ("Bunny", new Vector3(-2.6f, Floor + 0.004f, 10.2f), 0f),
+        };
+        /// <summary>오리 어미 + 새끼 둘 = 연못 (원점 = 수면, 외형처럼 서쪽으로 — 새끼는 뒤 0.5 · 0.34 m 간격), 연잎 · 연꽃 · 갈대 · 돌 테를 비키는 고리로 헤엄.</summary>
+        public static readonly (string Kind, Vector3 At, float Facing)[] Ducks =
+        {
+            ("Duck", new Vector3(12.4f, Floor - 0.08f, 15.35f), 180f), ("Duckling", new Vector3(12.9f, Floor - 0.08f, 15.39f), 180f),
+            ("Duckling", new Vector3(13.24f, Floor - 0.08f, 15.31f), 180f),
+        };
+        /// <summary>나비 일곱 (외형 나비를 키워서) = 약초 밭 라벤더 위 둘 · 오두막 왼쪽 · 빛 연꽃 위 · 갈대 위 · 요정 버섯 고리 · 물길 위 (땅 · 잎에서 0.45 m 넘게).</summary>
+        public static readonly (string Kind, Vector3 At, float Facing)[] Butterflies =
+        {
+            ("Butterfly0", new Vector3(-0.9f, -1.07f, 18.35f), 0f), ("Butterfly1", new Vector3(-1.85f, -1.0f, 18.75f), 90f), ("Butterfly2", new Vector3(0.3f, -1.0f, 15.1f), 200f),
+            ("Butterfly3", new Vector3(11.7f, -1.55f, 16.5f), 30f), ("Butterfly4", new Vector3(15.0f, -1.2f, 17.3f), 120f), ("Butterfly5", new Vector3(17.3f, -1.15f, 5.7f), 250f),
+            ("Butterfly6", new Vector3(11.3f, -0.6f, 10.0f), 300f),
+        };
+
         // ---------------- 연결점 ----------------
         /// <summary>스폰 = 앞 빈터 (그루터기 뒤, 기억 등불 다섯 · 고목 · 관측대를 봄).</summary>
         public static readonly Vector3 Spawn = new Vector3(8.6f, Floor, 17.2f);
