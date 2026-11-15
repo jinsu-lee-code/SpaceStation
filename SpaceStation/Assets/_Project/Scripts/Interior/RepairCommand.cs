@@ -175,6 +175,19 @@ namespace SpaceStation.Interior
             ("Duck", new Vector3(12.4f, Floor - 0.08f, 15.35f), 180f), ("Duckling", new Vector3(12.9f, Floor - 0.08f, 15.39f), 180f),
             ("Duckling", new Vector3(13.24f, Floor - 0.08f, 15.31f), 180f),
         };
+        /// <summary>
+        /// 거북이 볕 쬐는 넓적 바위 (rc3_builder BASK_STONE · BASK_TOP — 외형 거북 자리 = 연못 동쪽 첫 돌 테 바위를 크게 · 깊이 묻고 윗면을 평평하게 자름):
+        /// 둥근 돌 테 바위 26개 어디에서도 거북 발 넷이 동시에 닿지 않았음 (가장 좋은 곳도 발바닥 7 %가 2 ~ 3 cm 뜸). 평평한 윗면 반지름 ≈ 0.31 × 0.36.
+        /// </summary>
+        public static readonly Vector3 BaskStone = new Vector3(15.42f, Floor + 0.07f, 16.25f);
+        /// <summary>
+        /// 연못 거북 (남생이 — critter_builder 연못 거북, 사용자 2026-11-15 모델 시트 확인) = 넓적 바위 위에서 볕 쬐기 (연못 · 그루터기 쪽을 봄):
+        /// 원점 = 바위 윗면 + 2 mm (모델 발바닥 가장 낮은 점이 원점 1.4 cm 아래 → 발바닥 띠 전체가 바위에서 1.2 cm 안, 체크리스트 148).
+        /// </summary>
+        public static readonly (string Kind, Vector3 At, float Facing)[] Turtles =
+        {
+            ("PondTurtle", new Vector3(15.44f, Floor + 0.072f, 16.28f), 185f),
+        };
         /// <summary>나비 일곱 (외형 나비를 키워서) = 약초 밭 라벤더 위 둘 · 오두막 왼쪽 · 빛 연꽃 위 · 갈대 위 · 요정 버섯 고리 · 물길 위 (땅 · 잎에서 0.45 m 넘게).</summary>
         public static readonly (string Kind, Vector3 At, float Facing)[] Butterflies =
         {

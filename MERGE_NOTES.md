@@ -2918,3 +2918,17 @@
 - 동물을 넣은 `PF_Interior_EvoRepairCommand.prefab`, `critter_builder` 연못 거북 (남생이) 모델 시트 (`--pond`, 아직 내보내지 않음 · 사용자 확인 대기) + 미리보기
 
 - `RepairCommandTests.Critters_OnTheirSpots`, 체크리스트 171 · 06c (TASKS · Main.unity는 tycoon만)
+
+
+
+## M-199. 수리 사령부 연못 거북 · 넓적 바위 (2026-11-15, `main`)
+
+
+
+**main에 넣은 것**
+
+- 연못 거북 (남생이) 모델을 더한 `SM_InteriorCritters.fbx` (`critter_builder` `build_pond_turtle`, 다른 동물 메시는 같음), `StationArtBuilder.CritterKinds` PondTurtle = Bask
+
+- 연못 동쪽 첫 돌 테 바위를 윗면 평평한 넓적 바위로 바꾼 `SM_Interior_EvoRepairCommand.fbx` (`rc3_builder` BASK_STONE · BASK_TOP), `RepairCommand.Turtles` · `BaskStone`, 거북 묶음을 넣은 프리팹
+
+- `RepairCommandTests.Critters_OnTheirSpots` (동물 열아홉 · 몸 밑 묻힘 · 넓적 바위 윗면), 체크리스트 172 · 06c (TASKS · Main.unity는 tycoon만)

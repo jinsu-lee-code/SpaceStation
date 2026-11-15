@@ -699,7 +699,7 @@ namespace SpaceStation.Editor
             { "Fawn", SpaceStation.Building.CritterFx.Kind.Graze }, { "Bunny", SpaceStation.Building.CritterFx.Kind.Hop },
             { "Seal", SpaceStation.Building.CritterFx.Kind.Bask }, { "SealPup", SpaceStation.Building.CritterFx.Kind.Bask },
             { "Crab", SpaceStation.Building.CritterFx.Kind.Scuttle }, { "Owl", SpaceStation.Building.CritterFx.Kind.Perch },
-            { "Hedgehog", SpaceStation.Building.CritterFx.Kind.Snuffle },
+            { "Hedgehog", SpaceStation.Building.CritterFx.Kind.Snuffle }, { "PondTurtle", SpaceStation.Building.CritterFx.Kind.Bask },   // 연못 거북 = 바위 위 볕 쬐기 (수리 사령부 내부)
             { "Dolphin", SpaceStation.Building.CritterFx.Kind.Leap }, { "Puffin", SpaceStation.Building.CritterFx.Kind.Perch },   // 궤도 방어망 내부 바다 동물
         };
 

@@ -677,8 +677,8 @@ namespace SpaceStation.Tests
         }
 
         /// <summary>
-        /// 동물 묶음마다 수 · 움직임 · 자리 · 앞쪽 (외형 열아홉과 같은 수): 땅 동물 (사슴 · 아기 사슴 · 토끼)은 발바닥 (원점 위 1 cm 안 아래를 보는 면)이 면에서 1.5 cm 안 (97 %, 가장 큰 틈 3 cm 미만 ·
-        /// 1.5 cm 넘게 묻히지 않음) · 해치 가운데에서 1.5 m · 주민 자리에서 1 m 넘게 (외형 자리 × 8은 해치 틀 위였음), 오리는 수면에서 막히지 않는 헤엄 고리 · 새끼는 어미를 따라감,
+        /// 동물 묶음마다 수 · 움직임 · 자리 · 앞쪽 (외형 열아홉과 같은 수): 땅 동물 (사슴 · 아기 사슴 · 토끼 · 바위 위 연못 거북)은 발바닥 (원점 위 1 cm 안 아래를 보는 면)이 면에서 1.5 cm 안 (97 %, 가장 큰 틈 3 cm 미만 ·
+        /// 1.5 cm 넘게 묻히지 않음) · 몸 밑 (배 · 등딱지 테) 어디도 1.5 cm 넘게 묻히지 않음 · 해치 가운데에서 1.5 m · 주민 자리에서 1 m 넘게 (외형 자리 × 8은 해치 틀 위였음), 오리는 수면에서 막히지 않는 헤엄 고리 · 새끼는 어미를 따라감,
         /// 나비는 땅 · 몸체에서 0.45 m 넘게 떠 있고 몸체에 닿지 않음.
         /// </summary>
         [Test]
@@ -696,7 +696,7 @@ namespace SpaceStation.Tests
             {
                 var groups = new (string Holder, (string Kind, Vector3 At, float Facing)[] Spots, bool Land)[]
                 {
-                    ("Critters_Deer", RepairCommand.Deer, true), ("Critters_Bunny", RepairCommand.Bunnies, true),
+                    ("Critters_Deer", RepairCommand.Deer, true), ("Critters_Bunny", RepairCommand.Bunnies, true), ("Critters_Turtle", RepairCommand.Turtles, true),
                     ("Critters_Duck", RepairCommand.Ducks, false), ("Critters_Butterfly", RepairCommand.Butterflies, false),
                 };
                 int total = 0;
@@ -745,7 +745,9 @@ namespace SpaceStation.Tests
                             }
                             continue;
                         }
-                        Assert.AreEqual(name == "Bunny" ? SpaceStation.Building.CritterFx.Kind.Hop : SpaceStation.Building.CritterFx.Kind.Graze, kind, $"{holderName} {i} 움직임");
+                        var expectKind = name == "Bunny" ? SpaceStation.Building.CritterFx.Kind.Hop
+                            : name == "PondTurtle" ? SpaceStation.Building.CritterFx.Kind.Bask : SpaceStation.Building.CritterFx.Kind.Graze;
+                        Assert.AreEqual(expectKind, kind, $"{holderName} {i} 움직임");
                         foreach (var (cell, off, _) in RepairCommand.Hatches)
                             Assert.Greater(new Vector2(at.x - (cell.x * 8f + off.x), at.z - (cell.z * 8f + off.y)).magnitude, 1.5f, $"{holderName} {i} 해치 {cell} 가까이");
                         foreach (var spot in template.ResidentSpots)
@@ -759,7 +761,10 @@ namespace SpaceStation.Tests
                         for (int v = 0; v < vs.Length; v++)
                         {
                             var w = part.TransformPoint(vs[v]);
-                            if (w.y - part.position.y > 0.01f || part.TransformDirection(ns[v]).y > -0.5f)
+                            float ny = part.TransformDirection(ns[v]).y;
+                            if (ny < -0.3f && w.y - part.position.y > 0.01f && Physics.Raycast(w + Vector3.up * 0.3f, Vector3.down, out var under, 1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                                Assert.Greater(w.y - under.point.y, -0.015f, $"{holderName} {i} 몸 밑 (배 · 등딱지 테)이 묻힘 {w}");   // 바위 위 거북 = 배딱지 · 등딱지 테도
+                            if (w.y - part.position.y > 0.01f || ny > -0.5f)
                                 continue;
                             Assert.IsTrue(Physics.Raycast(w + Vector3.up * 0.3f, Vector3.down, out var hit, 1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"{holderName} {i} 발밑 없음 {w}");
                             float gap = w.y - hit.point.y;
@@ -775,7 +780,14 @@ namespace SpaceStation.Tests
                         Assert.Greater(buried, -0.015f, $"{holderName} {i} 너무 깊이 묻힘 {buried:F3}");
                     }
                 }
-                Assert.AreEqual(18, total, "외형 열아홉 (거북 빼고) 수");
+                Assert.AreEqual(19, total, "외형 열아홉과 같은 수");
+                // 거북 넓적 바위 윗면 = 평평 (가운데 ± 0.12 m에서 높이 차 3 mm 안 — 가장자리는 바위 결이 울퉁불퉁, 발 닿음은 위 발바닥 검사가 지킴)
+                var stone = RepairCommand.BaskStone;
+                foreach (var d in new[] { Vector3.zero, new Vector3(0.12f, 0f, 0f), new Vector3(-0.12f, 0f, 0f), new Vector3(0f, 0f, 0.12f), new Vector3(0f, 0f, -0.12f) })
+                {
+                    Assert.IsTrue(Physics.Raycast(stone + d + Vector3.up * 0.5f, Vector3.down, out var top, 1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"넓적 바위 없음 {d}");
+                    Assert.AreEqual(stone.y, top.point.y, 0.003f, $"넓적 바위 윗면 {d}");
+                }
             }
             finally
             {

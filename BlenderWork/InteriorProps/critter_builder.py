@@ -831,9 +831,12 @@ else:
     objs = [build_bunny(), build_deer("Critter_Deer"), build_deer("Critter_Fawn", 0.72, spots=True, head_k=1.15), build_swan(),
             build_duck(), build_duckling(), build_bee(), build_bee_wings()]
     sea = [f() for f in SEA_BUILDERS]
+    pond = [build_pond_turtle()]                               # 연못 거북 (수리 사령부) — 미리보기는 --pond 시트, 여기선 숨김
+    for o_ in pond:
+        o_.hide_render = True
 
     if OUT:
-        for x in bpy.context.view_layer.objects: x.select_set(x in objs or x in sea)
+        for x in bpy.context.view_layer.objects: x.select_set(x in objs or x in sea or x in pond)
         bpy.context.view_layer.objects.active = objs[0]
         bpy.ops.export_scene.fbx(filepath=OUT, use_selection=True, object_types={'MESH'}, axis_forward='-Z', axis_up='Y',
                                  bake_space_transform=True, apply_scale_options='FBX_SCALE_ALL', mesh_smooth_type='FACE')
