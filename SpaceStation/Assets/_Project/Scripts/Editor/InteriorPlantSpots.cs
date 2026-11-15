@@ -164,6 +164,8 @@ namespace SpaceStation.Editor
             Set("IT_EvoOrbitalDefense", new List<PlantSpot>());
             // 수리 사령부: 고목 · 잎 구름 · 나무집이 위 칸을 채우고 앞 빈터는 오두막 · 연못 · 길 · 기억 등불 (식물 = 잎 한 장씩 빌더 모델) — 나무 자리 없음
             Set("IT_EvoRepairCommand", new List<PlantSpot>());
+            // 궤도 항만: 산호 섬 · 해변 · 방파제 · 잔교 (식물 = 섬 꽃밭 · 산호초 — 잎 한 장씩 빌더 모델) — 나무 자리 없음 (바닷가 진주 항구)
+            Set("IT_EvoOrbitalPort", new List<PlantSpot>());
             // 진화 2단계 연구원 (mz_builder PLANTS): 연구실 안 화분 하나 (유리 연구실 = 실내)
             Set("IT_EvoResearchInstitute", new List<PlantSpot>
             {
