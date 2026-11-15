@@ -1,5 +1,5 @@
 // Phase 11 내부 표면 디테일: 월드 위치로 투영(트라이플래너)하는 금속 패널. UV 없이 늘린 키트·템플릿 어디에나 같은 크기로 붙는다.
-// _DetailNormal = 패널 이음선·볼트·굴곡 (InteriorTextureBaker가 만든 타일), _DetailMask R = 틈 어둡게(AO), G = 얼룩.
+// _DetailNormal = 패널 이음선·볼트·굴곡 (InteriorTextureBaker가 만든 타일), _DetailMask R = 틈 어둡게(AO), G = 얼룩. _WetColor.a > 0이면 _WetLevel 아래를 젖은 색 · 윤기로 (모래 해변).
 // 조명은 URP PBR (Forward+ 추가 조명·SSAO 포함). 상태 표현은 기존처럼 MPB로 _BaseColor·_EmissionColor를 바꾼다. SRP Batcher 호환.
 Shader "SpaceStation/InteriorTriplanar"
 {
@@ -15,6 +15,10 @@ Shader "SpaceStation/InteriorTriplanar"
         _Smoothness ("Smoothness", Range(0, 1)) = 0.5
         _Metallic ("Metallic", Range(0, 1)) = 0.5
         [HDR] _EmissionColor ("Emission", Color) = (0, 0, 0, 1)
+        _WetColor ("Wet Color (a = 켬)", Color) = (0, 0, 0, 0)
+        _WetLevel ("Wet Level (물체 공간 높이)", Float) = 0
+        _WetBand ("Wet Band (m)", Float) = 0.1
+        _WetSmoothness ("Wet Smoothness", Range(0, 1)) = 0.5
     }
 
     HLSLINCLUDE
@@ -29,6 +33,10 @@ Shader "SpaceStation/InteriorTriplanar"
         half _Smoothness;
         half _Metallic;
         half4 _EmissionColor;
+        half4 _WetColor;
+        float _WetLevel;
+        float _WetBand;
+        half _WetSmoothness;
     CBUFFER_END
 
     TEXTURE2D(_DetailNormal); SAMPLER(sampler_DetailNormal);
@@ -146,6 +154,10 @@ Shader "SpaceStation/InteriorTriplanar"
                 surface.albedo = _BaseColor.rgb * lerp(1.0h, mask.g, _GrimeStrength);
                 surface.metallic = _Metallic;
                 surface.smoothness = _Smoothness * lerp(1.0h, mask.g, _GrimeStrength * 0.6h);
+                // 젖은 띠 (궤도 항만 모래 해변, 2026-11-16): 물체 공간 높이가 _WetLevel 아래로 갈수록 젖은 색 · 윤기 — 땅 격자 면마다 재질을 나누면 물가선이 톱니였음
+                half wet = _WetColor.a * (1.0h - smoothstep(_WetLevel - _WetBand, _WetLevel + _WetBand, TransformWorldToObject(i.positionWS).y));
+                surface.albedo = lerp(surface.albedo, _WetColor.rgb * lerp(1.0h, mask.g, _GrimeStrength), wet);
+                surface.smoothness = lerp(surface.smoothness, _WetSmoothness, wet);
                 surface.normalTS = half3(0, 0, 1);
                 surface.emission = _EmissionColor.rgb;
                 surface.occlusion = lerp(1.0h, mask.r, _OcclusionStrength);

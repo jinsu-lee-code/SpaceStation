@@ -2958,3 +2958,17 @@
 - `InteriorFountainFx` (인어 꼬리 분수 물줄기 입자), 새 재질 산호 · 자개 · 민트 · 라일락 (`InteriorSetup`), `ResidentSpotBaker` · `InteriorPlantSpots` 등록, `InteriorKit.asset` 새 모듈 줄
 
 - `OrbitalPortTests` 다섯, 체크리스트 174 ~ 180 · 06c
+
+
+
+## M-202. 궤도 항만 내부 — 사용자 지적 일곱 고침 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 궤도 항만 내부 다시 내보냄 (`SM_Interior_EvoOrbitalPort.fbx` · `Interior_Evo2.blend`): 조개 뚜껑 위로 열림 · 몸 수면 위 (`OrbitalPort.ClamY`), 잔교 항만 화물 · 진주 그물 트러스 기중기, 배 앉음판 Z 겹침, 섬 계단 밑 물로 파냄, 궁전 옥좌 · 진주 보물 방, 물가 완만한 턱 · 배 길 다시
+
+- 해안 모래: 새 재질 `M_InteriorEvo3BeachSand` · 텍스처 `T_InteriorSand_N` · `_M` (`InteriorTextureBaker.BakeSand`, `InteriorSetup`), `InteriorTriplanar` 높이 젖은 띠 (`_WetColor` · `_WetLevel` · `_WetBand` · `_WetSmoothness`, 기본 꺼짐 — 다른 재질은 그대로), `KwsWaterBuilder.Build` 투명 · 탁도 인자 (기본값 = 이전 그대로)
+
+- `OrbitalPortTests` 둘 더 (`Clams_AboveWater` · `Beach_SandAndClearWater`), `ResidentSpotBaker` 궤도 항만 자리 다시, 체크리스트 181 ~ 189 · 06c

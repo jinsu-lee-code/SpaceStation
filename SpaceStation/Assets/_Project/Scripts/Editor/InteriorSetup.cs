@@ -146,6 +146,7 @@ namespace SpaceStation.Editor
         public const string Evo3NacrePath = MaterialFolder + "/M_InteriorEvo3Nacre.mat";
         public const string Evo3MintPath = MaterialFolder + "/M_InteriorEvo3Mint.mat";
         public const string Evo3LilacPath = MaterialFolder + "/M_InteriorEvo3Lilac.mat";
+        public const string Evo3BeachSandPath = MaterialFolder + "/M_InteriorEvo3BeachSand.mat";   // 모래 해변 (트라이플래너 바람 물결 · 잔 알갱이 + 물가선 아래 젖은 띠)
         public const string Evo3LinenBluePath = MaterialFolder + "/M_InteriorEvo3LinenBlue.mat";
         public const string Evo3LinenRosePath = MaterialFolder + "/M_InteriorEvo3LinenRose.mat";
         public const string Evo3LinenWhitePath = MaterialFolder + "/M_InteriorEvo3LinenWhite.mat";   // 궤도 방어망 등대 빛 (따뜻한 빛, 빛기둥 셰이더 — 실드 돔 찬 빛 0.16은 밤바다에서 안 보였음)
@@ -586,6 +587,32 @@ namespace SpaceStation.Editor
             bark.SetFloat("_GrimeStrength", 0.45f);   // 밤빛에서 0.68 · 0.9 · 0.6은 짙은 초콜릿색 (2026-11-13 Unity 확인)
             bark.enableInstancing = true;
             EditorUtility.SetDirty(bark);
+            // 궤도 항만 모래 해변 (2026-11-16, 사용자 "해안선 · 바닥이 모래 느낌이 안 든다"): 같은 트라이플래너 셰이더에 바람 물결 · 잔 알갱이 (한 장 1 m),
+            //  마른 모래 = 밝은 진주빛 모래 (단색 황토는 밤빛에서 주황 흙처럼 보였음) · 젖은 모래 = 물가 띠, 어둡고 윤기
+            if (!System.IO.File.Exists(InteriorTextureBaker.SandNormalPath) || !System.IO.File.Exists(InteriorTextureBaker.SandMaskPath))
+                InteriorTextureBaker.BakeSand();
+            void Sand(string path, Color color, float smoothness, float grime, Color wet, float wetLevel)
+            {
+                var m = LoadOrCreate(path, tri);
+                m.shader = tri;
+                m.SetColor("_BaseColor", color);
+                m.SetFloat("_Smoothness", smoothness);
+                m.SetFloat("_Metallic", 0f);
+                m.SetTexture("_DetailNormal", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.SandNormalPath));
+                m.SetTexture("_DetailMask", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.SandMaskPath));
+                m.SetFloat("_Tiling", 0.8f);
+                m.SetFloat("_NormalStrength", 1.7f);
+                m.SetFloat("_OcclusionStrength", 0.8f);
+                m.SetFloat("_GrimeStrength", grime);
+                m.SetColor("_WetColor", wet);
+                m.SetFloat("_WetLevel", wetLevel);
+                m.SetFloat("_WetBand", 0.06f);
+                m.SetFloat("_WetSmoothness", 0.55f);
+                m.enableInstancing = true;
+                EditorUtility.SetDirty(m);
+            }
+            // 젖은 띠 = 땅 높이로 (템플릿 좌표 — 궤도 항만 석호 수면 F − 0.1 위 5 cm까지 젖음, 그 아래 물속 모래도 젖은 색)
+            Sand(Evo3BeachSandPath, new Color(0.97f, 0.93f, 0.84f), 0.08f, 0.45f, new Color(0.56f, 0.48f, 0.37f, 1f), SpaceStation.Interior.OrbitalPort.LagoonLevel + 0.05f);
 
             // 진화 모듈 내부 1단계 키트 (2026-10-29): 외형 흰 패널 · 짙은 유리 띠와 같은 계열의 매끈한 재질 (패널 무늬 · 때 없음)
             //   (이름을 Plain으로 했다가 아래 소품 재질 함수 Plain(경로, 색, 금속도, 광택)을 가려 소품 22종의 금속도 · 광택이 뒤바뀐 적 있음 — 2026-10-29)

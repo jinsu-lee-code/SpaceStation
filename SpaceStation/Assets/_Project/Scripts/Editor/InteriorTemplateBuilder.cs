@@ -5629,7 +5629,9 @@ namespace SpaceStation.Editor
                         if (surface == null)
                             continue;
                         surfaces.Add(surface.GetComponent<Renderer>());
-                        kws.Add(KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), OrbitalPort.WaterLevels[k], depth[k], "OrbitalPort" + k, k == 0));
+                        kws.Add(k == 0
+                            ? KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), OrbitalPort.WaterLevels[k], depth[k], "OrbitalPort" + k, true, 2.4f, new Color(0.08f, 0.38f, 0.4f))   // 석호 = 맑은 청록 (물가 모래 턱 · 젖은 모래가 비침 — 사용자 2026-11-16 "해안선이 해안처럼 느껴지지 않음")
+                            : KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), OrbitalPort.WaterLevels[k], depth[k], "OrbitalPort" + k, false));
                     }
                     var tip = OrbitalPort.FountainTip;
                     if (kws.Count > 1 && kws[1] != null)
@@ -7363,6 +7365,7 @@ namespace SpaceStation.Editor
                 { "Evo3Nacre", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3NacrePath) },
                 { "Evo3Mint", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3MintPath) },
                 { "Evo3Lilac", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LilacPath) },
+                { "Evo3BeachSand", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3BeachSandPath) },   // 궤도 항만 땅 (2026-11-16 — 모래 + 물가 젖은 띠)
             };
             for (int i = 0; i < 7; i++)
                 materials["Evo3Rainbow" + i] = ModuleFxMaterials.Get("Rainbow" + i);   // 프리즘 무지개 고리 일곱 (바깥과 같은 빛 물결)
