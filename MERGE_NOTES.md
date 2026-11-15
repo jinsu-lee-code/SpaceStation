@@ -2890,3 +2890,17 @@
 - 경종 → 반딧불 드론 등불 쇼 `InteriorFireflyShow` · 규칙 `FireflyLanternShow` (종 흔들림 · 드론 스물넷 · 가지 등불 13개 켜짐 = 재질 칸 블록 · 잎 구름 아래 등), `RepairCommand` 바구니 · 드론 길 값, `BuildEvoRepairCommand` 연결
 
 - `RepairCommandTests` 넷 더함 (바구니 규칙 · 쇼 순서 · 드론 길 막힘 · 연결), 체크리스트 164 ~ 168 · 06c (TASKS · 글꼴 · Main.unity는 tycoon만)
+
+
+
+## M-197. 수리 사령부 미니게임 드론 순서 기억하기 (2026-11-15, `main`)
+
+
+
+**main에 넣은 것**
+
+- `InteriorDroneMemory` · 판 `DroneMemoryGame` (그루터기 F = 올라섬, 반딧불 드론이 등불 다섯을 차례로 켬, 겨눠 클릭 · 숫자 1 ~ 5로 따라 하기, 맞히면 하나씩 길어지고 빨라짐 · 틀리면 기억한 길이 · 최고 기록), `RepairCommand` 그루터기 · 드론 길 값, `BuildEvoRepairCommand` 연결 (그루터기 충돌 상자)
+
+- 기억 등불을 그루터기 중심 부채꼴로 옮긴 `SM_Interior_EvoRepairCommand.fbx` · 주민 자리 23, `InteriorFireflyShow` 드론 만들기 · 빛무리 · 반짝이 공용 함수
+
+- `RepairCommandTests` 둘 더함 (판 순서 · 그루터기에서 보임 · 드론 길) + 연결, 체크리스트 169 ~ 170 · 06c (TASKS · 글꼴 · Main.unity는 tycoon만)

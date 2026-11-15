@@ -5533,9 +5533,20 @@ namespace SpaceStation.Editor
                     var lanterns = new Transform[RepairCommand.Lanterns.Length];
                     for (int k = 0; k < lanterns.Length; k++)
                         lanterns[k] = Child(root, N + "Lantern" + k);
-                    root.AddComponent<InteriorFireflyShow>().Configure(Child(root, N + "Bell"), bellRope, handle, lanterns,
-                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3PearlPath), AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorLight.mat"),
-                        ModuleFxMaterials.Get("FireworkSpark"), font);
+                    var droneBody = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3PearlPath);
+                    var droneGlow = AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorLight.mat");
+                    root.AddComponent<InteriorFireflyShow>().Configure(Child(root, N + "Bell"), bellRope, handle, lanterns, droneBody, droneGlow, ModuleFxMaterials.Get("FireworkSpark"), font);
+                    // 미니게임 "드론 순서 기억하기" (InteriorDroneMemory, 사용자 2026-11-15 "미니게임으로 넘어가자"): 그루터기 충돌 상자 (보고 F = 올라섬 — 그루터기 몸체 위 1 cm까지) ·
+                    //  기억 등불 다섯 (그루터기에서 왼쪽부터 별 · 달 · 하트 · 잎 · 물방울, 밝기 = 재질 칸 블록) · 반딧불 드론 한 마리 (쇼와 같은 모양)
+                    var stumpUse = new GameObject("MemoryStumpUse").AddComponent<BoxCollider>();
+                    stumpUse.transform.SetParent(r, false);
+                    float stumpH = RepairCommand.MemoryStumpTop - RepairCommand.Floor + 0.01f;
+                    stumpUse.transform.localPosition = new Vector3(RepairCommand.MemoryStump.x, RepairCommand.Floor + stumpH * 0.5f, RepairCommand.MemoryStump.z);
+                    stumpUse.size = new Vector3(1.0f, stumpH, 1.0f);
+                    var memLamps = new Transform[RepairCommand.MemoryLamps.Length];
+                    for (int k = 0; k < memLamps.Length; k++)
+                        memLamps[k] = Child(root, N + "MemLamp" + k);
+                    root.AddComponent<InteriorDroneMemory>().Configure(memLamps, stumpUse, droneBody, droneGlow, ModuleFxMaterials.Get("FireworkSpark"), font);
                 });
         }
 

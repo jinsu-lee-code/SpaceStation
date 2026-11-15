@@ -98,14 +98,51 @@ namespace SpaceStation.Interior
             new Vector3(4.058f, 7.857f, 1.416f), new Vector3(2.626f, 6.238f, 6.532f), new Vector3(11.743f, 6.0f, 8.843f), new Vector3(10.901f, 4.738f, 3.63f),
             new Vector3(6.585f, 4.361f, 8.407f),
         };
-        /// <summary>고목 앞 기억 등불 다섯 빛 구슬 (따로 조각 MemLamp{k}) — 별 · 달 · 하트 · 잎 · 물방울 모양 표 (색이 아니라 자리 · 모양으로 구분).</summary>
+        /// <summary>
+        /// 그루터기 앞 기억 등불 다섯 빛 구슬 (따로 조각 MemLamp{k}) — 별 · 달 · 하트 · 잎 · 물방울 모양 표 (색이 아니라 자리 · 모양으로 구분).
+        /// 그루터기에서 고목 쪽 부채꼴 (왼쪽부터 −44 · −22 · 0 · 22 · 44°, 3.5 m — 2026-11-15 미니게임: 고목 둘레 원이던 때는 하트 · 물방울이 앞뒤로 줄을 서 가렸음).
+        /// </summary>
         public static readonly Vector3[] MemoryLamps =
         {
-            new Vector3(12.807f, 0.77f, 8.876f), new Vector3(10.318f, 1.37f, 10.327f), new Vector3(6.115f, 1.652f, 10.921f), new Vector3(4.767f, 1.363f, 10.293f), new Vector3(3.064f, 0.77f, 7.97f),
+            new Vector3(10.155f, 0.437f, 11.842f), new Vector3(9.311f, 1.267f, 11.355f), new Vector3(8.0f, 1.649f, 11.1f), new Vector3(6.357f, 1.204f, 11.51f), new Vector3(5.569f, 0.351f, 12.082f),
         };
         public static readonly string[] MemoryShapes = { "별", "달", "하트", "잎", "물방울" };
         /// <summary>그루터기 (서서 등불을 보는 자리).</summary>
         public static readonly Vector3 MemoryStump = new Vector3(8f, Floor, 14.6f);
+
+        // ---------------- 미니게임 드론 순서 기억하기 (InteriorDroneMemory · DroneMemoryGame) ----------------
+        /// <summary>그루터기 잘린 면 (올라서는 자리 = 가운데, rc3_builder 그루터기 높이 0.46 − 2 cm) · 올라서서 보는 쪽 (등불 다섯 가운데, yaw) · 처음 위아래 시선 (음수 = 위).</summary>
+        public const float MemoryStumpTop = Floor + 0.44f, MemoryYaw = 183f, MemoryPitch = -16f;
+        /// <summary>
+        /// 드론이 쉬는 자리 (그루터기 앞 2 m · 올라선 눈 높이 — 등불 다섯 (눈에서 6 ~ 26° 위) 아래 가운데라 등불을 가리지 않음) · 등불 옆 머무는 자리 (고목 축에서 바깥 · 위) ·
+        /// 멀리 날 때 등불 위 모양 (≤ 2.6)을 넘는 무지개 꼭대기 높이 (앞 줄 천장 3.95 아래).
+        /// </summary>
+        public static readonly Vector3 MemoryPerch = new Vector3(8f, 0.1f, 12.6f);
+        public const float MemoryHoverOut = 0.42f, MemoryHoverUp = 0.25f, MemoryArchY = 3.0f;
+        /// <summary>등불을 겨누는 너그러움 (시선과 등불 사이 각, 도) — 그루터기 눈에서 이웃 등불 사이가 두 배를 넘음 (시험).</summary>
+        public const float MemoryAimDegrees = 6f;
+
+        /// <summary>등불 k 옆 드론이 머무는 자리.</summary>
+        public static Vector3 MemoryHover(int k)
+        {
+            var l = MemoryLamps[k];
+            var o = new Vector3(l.x - TreeAxis.x, 0f, l.z - TreeAxis.z).normalized;
+            return l + o * MemoryHoverOut + Vector3.up * MemoryHoverUp;
+        }
+
+        /// <summary>
+        /// 미니게임 드론이 두 자리 사이를 나는 길 (s 0 ~ 1): 고목 축 둘레로 (반지름 · 각 · 높이 따로 — 곧은 줄이면 등불 둘레 안쪽 줄기 앞을 가로지름) +
+        /// 위로 무지개 (가까우면 0.35 m 껑충, 25° 넘게 떨어지면 꼭대기 MemoryArchY — 사이 등불 위 모양을 넘음). 같은 등불 두 번 = 제자리에서 껑충.
+        /// </summary>
+        public static Vector3 MemoryFlight(Vector3 from, Vector3 to, float s)
+        {
+            float r0 = new Vector2(from.x - TreeAxis.x, from.z - TreeAxis.z).magnitude, r1 = new Vector2(to.x - TreeAxis.x, to.z - TreeAxis.z).magnitude;
+            float a0 = AngleAroundTree(from), da = Mathf.DeltaAngle(a0, AngleAroundTree(to));
+            float mid = Mathf.Lerp(from.y, to.y, 0.5f), hop = Mathf.Max(from.y, to.y) + 0.35f;
+            float top = Mathf.Max(hop, Mathf.Lerp(hop, MemoryArchY, Mathf.Clamp01(Mathf.Abs(da) / 25f)));
+            float y = Mathf.Lerp(from.y, to.y, s) + (top - mid) * Mathf.Sin(Mathf.PI * s);
+            return AroundTree(Mathf.Lerp(r0, r1, s), a0 + da * s, y);
+        }
 
         // ---------------- 물 ----------------
         /// <summary>연못 수면 · 샘 수면 (rc3_builder Water · Water1).</summary>

@@ -238,32 +238,90 @@ namespace SpaceStation.Interior
             int n = RepairCommand.Lanterns.Length + RepairCommand.EscortDrones;
             for (int i = 0; i < n; i++)
             {
-                var root = new GameObject($"FireflyDrone{i}").transform;
-                root.SetParent(transform, false);
-                var body = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                Destroy(body.GetComponent<Collider>());
-                body.name = "Body";
-                body.transform.SetParent(root, false);
-                body.transform.localScale = new Vector3(DroneBody, DroneBody * 0.5f, DroneBody);
-                Style(body, _bodyMaterial);
-                var glow = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                Destroy(glow.GetComponent<Collider>());
-                glow.name = "Glow";
-                glow.transform.SetParent(root, false);
-                glow.transform.localPosition = new Vector3(0f, -0.05f, -DroneBody * 0.32f);   // 배 · 꼬리 쪽 빛
-                glow.transform.localScale = Vector3.one * DroneGlow;
-                Style(glow, _glowMaterial);
+                var root = BuildDrone(transform, $"FireflyDrone{i}", _bodyMaterial, _glowMaterial, out var glow);
                 root.gameObject.SetActive(false);
                 float a = Hash(i, 1), b = Hash(i, 2), c = Hash(i, 3);
                 _drones.Add(new Drone
                 {
                     Root = root,
-                    Glow = glow.transform,
+                    Glow = glow,
                     A = a,
                     B = b,
                     C = c,
                     Workshop = RepairCommand.WorkshopAngles[i % RepairCommand.WorkshopAngles.Length],
                 });
+            }
+        }
+
+        /// <summary>반딧불 드론 하나 (진주 납작 몸 + 배 · 꼬리 쪽 빛 구슬) — 미니게임 드론 순서 기억하기도 씀. 충돌 없음.</summary>
+        public static Transform BuildDrone(Transform parent, string name, Material bodyMaterial, Material glowMaterial, out Transform glow)
+        {
+            var root = new GameObject(name).transform;
+            root.SetParent(parent, false);
+            var body = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            Destroy(body.GetComponent<Collider>());
+            body.name = "Body";
+            body.transform.SetParent(root, false);
+            body.transform.localScale = new Vector3(DroneBody, DroneBody * 0.5f, DroneBody);
+            Style(body, bodyMaterial);
+            var g = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            Destroy(g.GetComponent<Collider>());
+            g.name = "Glow";
+            g.transform.SetParent(root, false);
+            g.transform.localPosition = new Vector3(0f, -0.05f, -DroneBody * 0.32f);   // 배 · 꼬리 쪽 빛
+            g.transform.localScale = Vector3.one * DroneGlow;
+            Style(g, glowMaterial);
+            glow = g.transform;
+            return root;
+        }
+
+        /// <summary>드론 꼬리 빛 크기 · 둘레 빛무리 (반딧불처럼 숨 쉬듯 깜박 — 밝기 · 크기, strength 0 = 꺼짐).</summary>
+        public static void Shine(Transform glow, ParticleSystem sparks, float strength, float blinkPhase, float dt)
+        {
+            float blink = 0.75f + 0.35f * Mathf.Sin(Time.unscaledTime * 5.5f + blinkPhase);
+            float g = Mathf.Max(0f, strength) * blink;
+            if (glow != null)
+                glow.localScale = Vector3.one * (DroneGlow * g);
+            if (sparks == null || g < 0.05f || glow == null)
+                return;
+            sparks.Emit(new ParticleSystem.EmitParams
+            {
+                position = glow.position,
+                velocity = Vector3.zero,
+                startLifetime = Mathf.Max(0.02f, dt * 1.5f),
+                startSize = HaloSize * Mathf.Min(1.6f, g),
+                startColor = new Color(SparkWarm.r, SparkWarm.g, SparkWarm.b, Mathf.Clamp01(0.35f + 0.4f * g)),
+                applyShapeToPosition = false,
+            }, 1);
+        }
+
+        /// <summary>반딧불 반짝이 입자 (빛무리 · 꼬리 · 터짐 — 실제 시간, 많이).</summary>
+        public static ParticleSystem CreateSparks(Transform parent, Material spark)
+        {
+            if (spark == null)
+                return null;
+            var ps = ShootingStar.CreateSparks(parent, spark);
+            var main = ps.main;
+            main.maxParticles = 1200;   // 빛무리 (드론마다 한 프레임 한 알) + 꼬리 + 등불 · 흩어질 때 반짝이
+            return ps;
+        }
+
+        /// <summary>한 자리에서 따뜻한 반짝이가 사방으로 (등불 켜짐 · 드론 나타남).</summary>
+        public static void Burst(ParticleSystem sparks, Vector3 at, int count, float speed)
+        {
+            if (sparks == null)
+                return;
+            for (int k = 0; k < count; k++)
+            {
+                sparks.Emit(new ParticleSystem.EmitParams
+                {
+                    position = at,
+                    velocity = Random.insideUnitSphere * speed + Vector3.up * 0.2f,
+                    startLifetime = Random.Range(0.5f, 1.1f),
+                    startSize = Random.Range(0.05f, 0.12f),
+                    startColor = Color.Lerp(SparkWarm, Color.white, Random.value),
+                    applyShapeToPosition = false,
+                }, 1);
             }
         }
 
@@ -392,9 +450,8 @@ namespace SpaceStation.Interior
                 if (flat.sqrMagnitude > 1e-6f)
                     d.Root.localRotation = Quaternion.Slerp(d.Root.localRotation, Quaternion.LookRotation(flat.normalized, Vector3.up) * Quaternion.Euler(8f, 0f, 0f), 1f - Mathf.Exp(-dt * 8f));
                 // 반딧불처럼 꼬리 빛이 숨 쉬듯 깜박 (밝기 · 크기)
-                float blink = 0.75f + 0.35f * Mathf.Sin(t * 5.5f + i * 2.1f);
-                d.Glow.localScale = Vector3.one * (DroneGlow * Mathf.Max(0f, glow) * blink);
-                Halo(d.Glow.position, Mathf.Max(0f, glow) * blink, dt);
+                EnsureSparks();
+                Shine(d.Glow, _sparks, glow, i * 2.1f, dt);
                 if (glow > 0.2f && Random.value < TrailRate * dt && move.sqrMagnitude > 1e-6f)
                     Trail(d.Root.position, -move.normalized);
             }
@@ -402,30 +459,8 @@ namespace SpaceStation.Interior
 
         private void EnsureSparks()
         {
-            if (_sparks != null || _sparkMaterial == null)
-                return;
-            _sparks = ShootingStar.CreateSparks(transform, _sparkMaterial);
-            var main = _sparks.main;
-            main.maxParticles = 1200;   // 빛무리 (드론마다 한 프레임 한 알) + 꼬리 + 등불 · 흩어질 때 반짝이
-        }
-
-        /// <summary>꼬리 빛 둘레 빛무리: 한 프레임 동안만 사는 큰 반짝이 한 알 (깜박임 · 밝기를 크기 · 알파로).</summary>
-        private void Halo(Vector3 at, float strength, float dt)
-        {
-            if (strength < 0.05f)
-                return;
-            EnsureSparks();
             if (_sparks == null)
-                return;
-            _sparks.Emit(new ParticleSystem.EmitParams
-            {
-                position = at,
-                velocity = Vector3.zero,
-                startLifetime = Mathf.Max(0.02f, dt * 1.5f),
-                startSize = HaloSize * Mathf.Min(1.6f, strength),
-                startColor = new Color(SparkWarm.r, SparkWarm.g, SparkWarm.b, Mathf.Clamp01(0.35f + 0.4f * strength)),
-                applyShapeToPosition = false,
-            }, 1);
+                _sparks = CreateSparks(transform, _sparkMaterial);
         }
 
         private void Trail(Vector3 at, Vector3 back)
@@ -447,20 +482,7 @@ namespace SpaceStation.Interior
         private void Sparkle(Vector3 at, int count, float speed)
         {
             EnsureSparks();
-            if (_sparks == null)
-                return;
-            for (int k = 0; k < count; k++)
-            {
-                _sparks.Emit(new ParticleSystem.EmitParams
-                {
-                    position = at,
-                    velocity = Random.insideUnitSphere * speed + Vector3.up * 0.2f,
-                    startLifetime = Random.Range(0.5f, 1.1f),
-                    startSize = Random.Range(0.05f, 0.12f),
-                    startColor = Color.Lerp(SparkWarm, Color.white, Random.value),
-                    applyShapeToPosition = false,
-                }, 1);
-            }
+            Burst(_sparks, at, count, speed);
         }
 
         // ---------------- 종 · 등불 ----------------
