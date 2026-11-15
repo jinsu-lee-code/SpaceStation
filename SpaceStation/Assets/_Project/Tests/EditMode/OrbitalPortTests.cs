@@ -352,7 +352,8 @@ namespace SpaceStation.Tests
 
         /// <summary>
         /// 바다 동물 (사용자 2026-11-16 "이제 동물 배치 진행해줘"): 자리 · 앞쪽 · 움직임 = OrbitalPort 값, 물범 · 게 몸 밑 닿는 점이 모래 1.5 cm 안 (원점 한 점만 맞추면
-        /// 둥근 배 · 꼬리가 떴음 — 체크리스트 148), 게 옆걸음 끝도 같은 모래 높이, 거북 헤엄 고리 = 막히지 않고 · 배 길에서 1.15 m · 발밑 물 깊이 0.25 m 넘게.
+        /// 둥근 배 · 꼬리가 떴음 — 체크리스트 148), 게 옆걸음 끝도 같은 모래 높이, 거북 헤엄 고리 = 막히지 않고 · 배 길에서 1.15 m · 발밑 물 깊이 0.25 m 넘게,
+        /// 날치 활공 길 = 머리 쪽 · 막히지 않고 · 물 깊이 0.5 m · 배 길에서 1.3 m.
         /// </summary>
         [Test]
         public void Critters_OnTheirSpots()
@@ -371,6 +372,7 @@ namespace SpaceStation.Tests
                     ("Critters_Seal", OrbitalPort.Seals, SpaceStation.Building.CritterFx.Kind.Bask, true),
                     ("Critters_Crab", OrbitalPort.Crabs, SpaceStation.Building.CritterFx.Kind.Scuttle, true),
                     ("Critters_Turtle", OrbitalPort.Turtles, SpaceStation.Building.CritterFx.Kind.Drift, false),
+                    ("Critters_FlyingFish", OrbitalPort.FlyingFish, SpaceStation.Building.CritterFx.Kind.Glide, false),
                 };
                 foreach (var (holderName, spots, kind, land) in groups)
                 {
@@ -441,6 +443,26 @@ namespace SpaceStation.Tests
                                     Assert.IsTrue(Physics.Raycast(new Vector3(p.x, at.y + 0.5f, p.z), Vector3.down, out var hit, 1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore));
                                     Assert.Less(Mathf.Abs(hit.point.y - OrbitalPort.Floor), 0.004f, $"{holderName} {i} 옆걸음 띠에 장식 · 물가 턱 {p} {hit.point.y:F3}");
                                 }
+                        }
+                        if (kind == SpaceStation.Building.CritterFx.Kind.Glide)
+                        {
+                            // 날치 활공 길 (CritterFx Glide — 처음 자리 = 한가운데, 앞 · 뒤 반 길이씩): 머리 쪽으로 날고, 길 둘레 0.45 m · 수면 위 0.7 m 안에 물체 없음,
+                            //  길 아래 물 깊이 0.5 m (양 끝에서 수면 아래 0.6 m로 들어감), 배 길에서 1.3 m, 방 벽에서 0.6 m
+                            Assert.AreEqual(OrbitalPort.FlyingFishScale, scale, 0.001f, $"{holderName} 묶음 배율 = 활공 크기");
+                            Assert.Greater(Vector3.Dot(heading.normalized, face), 0.9f, $"{holderName} {i} 머리 쪽 (나는 쪽) {heading}");
+                            var a = at - face * (OrbitalPort.FlyingFishGlide * 0.5f);
+                            var b = at + face * (OrbitalPort.FlyingFishGlide * 0.5f);
+                            foreach (var c in Physics.OverlapCapsule(new Vector3(a.x, OrbitalPort.LagoonLevel + 0.35f, a.z), new Vector3(b.x, OrbitalPort.LagoonLevel + 0.35f, b.z), 0.45f,
+                                         Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                                Assert.Fail($"{holderName} {i} 활공 길이 막힘 ({c.name})");
+                            for (int k = 0; k <= 8; k++)
+                            {
+                                var p = Vector3.Lerp(a, b, k / 8f);
+                                Assert.IsTrue(p.x > -3.35f && p.x < 51.35f && p.z > -3.35f && p.z < 11.35f, $"{holderName} {i} 활공 길이 방 벽에 붙음 {p}");
+                                Assert.Greater(OrbitalPort.CourseDistance(new Vector2(p.x, p.z)), 1.3f, $"{holderName} {i} 활공 길이 배 길에 걸림 {p}");
+                                Assert.IsTrue(Physics.Raycast(new Vector3(p.x, OrbitalPort.LagoonLevel + 0.01f, p.z), Vector3.down, out var bed, 3f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore));
+                                Assert.Greater(OrbitalPort.LagoonLevel - bed.point.y, 0.5f, $"{holderName} {i} 활공 길 아래 물이 얕음 {p}");
+                            }
                         }
                         if (kind == SpaceStation.Building.CritterFx.Kind.Drift)
                         {

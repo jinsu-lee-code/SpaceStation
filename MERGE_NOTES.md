@@ -3008,3 +3008,17 @@
 **main에 넣은 것**
 
 - `BlenderWork/InteriorProps/critter_builder.py`: `Critter_FlyingFish` (`--fly` = 날치 모델 시트만, 아직 내보내지 않음) · 지느러미 판 `fin_blade` · `fin_fan`, 미리보기 `preview/critter_fly_size.png` · `critter_flyingfish_*.png` · 시트 `critter_flyingfish_sheet.png`
+
+
+
+## M-206. 궤도 항만 날치 셋 — Unity (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- `SM_InteriorCritters.fbx`에 `Critter_FlyingFish` (critter_builder 내보내기 · `critters.blend`, 다른 동물 모델은 그대로)
+
+- 궤도 항만 날치 셋 (석호 활공, `CritterFx` Glide × 15): `OrbitalPort.FlyingFish · FlyingFishScale · FlyingFishGlide`, `InteriorTemplateBuilder.BuildEvoOrbitalPort`, 프리팹
+
+- `OrbitalPortTests.Critters_OnTheirSpots` 날치 활공 길, 체크리스트 194 · 06c

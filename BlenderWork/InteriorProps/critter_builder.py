@@ -937,7 +937,7 @@ else:
     objs = [build_bunny(), build_deer("Critter_Deer"), build_deer("Critter_Fawn", 0.72, spots=True, head_k=1.15), build_swan(),
             build_duck(), build_duckling(), build_bee(), build_bee_wings()]
     sea = [f() for f in SEA_BUILDERS]
-    pond = [build_pond_turtle()]                               # 연못 거북 (수리 사령부) — 미리보기는 --pond 시트, 여기선 숨김
+    pond = [build_pond_turtle(), build_flying_fish()]          # 연못 거북 (수리 사령부) · 날치 (궤도 항만) — 미리보기는 --pond · --fly 시트, 여기선 숨김
     for o_ in pond:
         o_.hide_render = True
 

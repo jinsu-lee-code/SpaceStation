@@ -5654,6 +5654,8 @@ namespace SpaceStation.Editor
                     var swim = SwimBlocker(root, new Vector3(26f, OrbitalPort.LagoonLevel, 4f), 30f, (OrbitalPort.LagoonLevel, 0f));
                     CritterGroup(r, critterSrc, "Critters_Turtle", 10f, CritterSpots(OrbitalPort.Turtles),
                         (p, radius) => swim(p, radius) || OrbitalPort.CourseDistance(new Vector2(p.x, p.z)) < OrbitalPort.TurtleCourseClear + radius);
+                    // 날치 = 석호 물에서 튀어나와 날개를 편 채 낮게 활공 (사용자 2026-11-16 모델 시트 "좋아 유니티로 옮겨줘")
+                    CritterGroup(r, critterSrc, "Critters_FlyingFish", OrbitalPort.FlyingFishScale, CritterSpots(OrbitalPort.FlyingFish));
                 });
         }
 
