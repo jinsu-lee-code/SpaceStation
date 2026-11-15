@@ -426,7 +426,7 @@ namespace SpaceStation.Editor
                 (new Vector3(18.0f, -1.62f, -2.85f), 360.0f, ResidentPose.Sit, false),
                 (new Vector3(30.0f, -1.62f, -2.85f), 360.0f, ResidentPose.Sit, false),
                 (new Vector3(39.8f, -1.62f, -3.1f), 360.0f, ResidentPose.Sit, false),
-                (new Vector3(13.6f, -2.08f, -1.561f), 0.0f, ResidentPose.Stand, false),
+                (new Vector3(14.2f, -2.08f, -2.6f), 0.0f, ResidentPose.Stand, false),
                 (new Vector3(26.4f, -2.08f, -2.5f), 340.0f, ResidentPose.Stand, false),
                 (new Vector3(33.4f, -2.08f, -2.6f), 0.0f, ResidentPose.Stand, false),
                 (new Vector3(12.8f, -2.08f, -1.693f), 200.0f, ResidentPose.Stand, false),

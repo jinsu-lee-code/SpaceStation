@@ -238,6 +238,58 @@ namespace SpaceStation.Editor
             Debug.Log("[InteriorTextureBaker] 고목 껍질 텍스처 생성");
         }
 
+        public const string SandNormalPath = Folder + "T_InteriorSand_N.png";
+        public const string SandMaskPath = Folder + "T_InteriorSand_M.png";
+
+        /// <summary>
+        /// 궤도 항만 모래 해변 (2026-11-16, 사용자 "바닥이 모래 느낌이 안 든다"): 한 장 = 1 m (타일링 1) — 바람 물결 (한 장에 열두 줄, 낮은 주파수로 굽이침 · 바람 쪽이 완만한 비대칭)
+        /// + 잔 알갱이 결 (아주 높은 주파수 · 낮은 대비) → 노멀 + 마스크 (R 물결 골 그늘, G 큰 얼룩 밝기). 점 · 구멍 무늬 없음 (환공포증 — 알갱이는 이어진 잔결).
+        /// </summary>
+        [MenuItem("SpaceStation/Interior/Bake Sand Textures")]
+        public static void BakeSand()
+        {
+            var h = new float[N * N];
+            for (int y = 0; y < N; y++)
+            {
+                for (int x = 0; x < N; x++)
+                {
+                    float warp = (Noise(x, y, 3, 241) - 0.5f) * 2.4f + (Noise(x, y, 8, 243) - 0.5f) * 0.8f;
+                    float ph = Mathf.Repeat(12f * y / N + warp, 1f);
+                    float ripple = ph < 0.72f ? Smooth(0f, 0.72f, ph) : 1f - Smooth(0.72f, 1f, ph);   // 바람 쪽 완만 · 반대쪽 가파름
+                    float fade = Mathf.Lerp(0.45f, 1f, Noise(x, y, 4, 247));                          // 물결이 옅은 곳 · 짙은 곳
+                    float hh = 0.5f + 0.2f * ripple * fade;
+                    hh += (Noise(x, y, 256, 251) - 0.5f) * 0.06f + (Noise(x, y, 512, 253) - 0.5f) * 0.045f;    // 잔 알갱이 결
+                    hh += (Noise(x, y, 32, 257) - 0.5f) * 0.04f;
+                    h[y * N + x] = hh;
+                }
+            }
+            var blur = BoxBlur(h, 10);
+            var normal = new Color32[N * N];
+            var mask = new Color32[N * N];
+            const float strength = 3.2f;
+            for (int y = 0; y < N; y++)
+            {
+                for (int x = 0; x < N; x++)
+                {
+                    float dx = (H(h, x + 1, y) - H(h, x - 1, y)) * strength;
+                    float dy = (H(h, x, y + 1) - H(h, x, y - 1)) * strength;
+                    var n = new Vector3(-dx, -dy, 1f).normalized;
+                    normal[y * N + x] = new Color32(To8(n.x * 0.5f + 0.5f), To8(n.y * 0.5f + 0.5f), To8(n.z * 0.5f + 0.5f), 255);
+                    float cavity = Mathf.Clamp01(1f - Mathf.Max(0f, blur[y * N + x] - h[y * N + x]) * 5f);
+                    float ao = Mathf.Lerp(0.6f, 1f, cavity);
+                    float tone = Mathf.Lerp(0.74f, 1f, Noise(x, y, 5, 261) * 0.5f + Noise(x, y, 20, 263) * 0.3f + Noise(x, y, 128, 265) * 0.2f);
+                    mask[y * N + x] = new Color32(To8(ao), To8(tone), 255, 255);
+                }
+            }
+            System.IO.Directory.CreateDirectory(Folder);
+            Save(SandNormalPath, normal);
+            Save(SandMaskPath, mask);
+            AssetDatabase.Refresh();
+            Configure(SandNormalPath, true);
+            Configure(SandMaskPath, false);
+            Debug.Log("[InteriorTextureBaker] 모래 텍스처 생성");
+        }
+
         /// <summary>이어지는 보로노이 (가로 cx · 세로 cy칸, 칸 공간 거리): F2 − F1 (판 가장자리까지, 칸 단위) · 가장 가까운 점의 값 (판마다 다른 0~1).</summary>
         private static float Edge(float x, float y, int cx, int cy, int seed, out float id)
         {

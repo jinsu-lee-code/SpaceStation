@@ -22,7 +22,7 @@ namespace SpaceStation.Editor
         /// Blender 수면 물체 (윗면 = 수면 높이 level)에서 부피 메시를 만들어 꺼 둔 "KWS_<id>" 물체로 (켜기 = InteriorKwsWater).
         /// dynamicWaves = 폭포 물결 (KWS_InteractWithWater)을 받을 물.
         /// </summary>
-        public static GameObject Build(Transform root, MeshFilter surface, float level, float depth, string id, bool dynamicWaves)
+        public static GameObject Build(Transform root, MeshFilter surface, float level, float depth, string id, bool dynamicWaves, float transparent = 1f, Color? turbidity = null)
         {
             var waterType = WaterType;
             var settingsType = SettingsType;
@@ -40,8 +40,8 @@ namespace SpaceStation.Editor
             I("WaterMeshType", 3);   // CustomMesh
             so.FindProperty("CustomMesh").objectReferenceValue = mesh;
             // 우리 정원 물 (2026-11-11 Unity 시험 값): 짙은 청록 탁도 · 맑음 1 m, 잔잔한 바람 물결, 화면 반사 + 물 전용 우주 하늘 (InteriorKwsWater)
-            F("Transparent", 1f);
-            C("TurbidityColor", new Color(0.06f, 0.3f, 0.32f));
+            F("Transparent", transparent);   // 맑음 (m) — 궤도 항만 석호는 모래 턱이 비치게 더 맑게
+            C("TurbidityColor", turbidity ?? new Color(0.06f, 0.3f, 0.32f));
             C("DyeColor", new Color(0.85f, 1f, 0.96f, 1f));
             B("OverrideSkyColor", false);
             B("UsePlanarReflection", false);

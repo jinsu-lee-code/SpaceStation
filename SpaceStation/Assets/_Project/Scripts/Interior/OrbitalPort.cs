@@ -28,15 +28,15 @@ namespace SpaceStation.Interior
         // ---------------- 석호 · 회전목마 · 배 ----------------
         /// <summary>해마 회전목마 (따로 조각 Carousel, 원점 = 받침 윗면 가운데 — 이 축으로 돎).</summary>
         public static readonly Vector3 Carousel = new Vector3(24f, Floor + 0.4f, 3.5f);
-        /// <summary>해마 가리비 배 넷 (따로 조각 Boat{k}, 원점 = 배 가운데 수면) — 배 길 (op3_builder COURSE_CTRL, 닫힌 Catmull-Rom 45.7 m)을 넷으로 나눈 자리.</summary>
+        /// <summary>해마 가리비 배 넷 (따로 조각 Boat{k}, 원점 = 배 가운데 수면) — 배 길 (op3_builder COURSE_CTRL, 닫힌 Catmull-Rom 44.9 m)을 넷으로 나눈 자리.</summary>
         public static readonly Vector3[] Boats =
         {
-            new Vector3(24f, LagoonLevel, -0.3f), new Vector3(14.453f, LagoonLevel, 3.953f), new Vector3(23.487f, LagoonLevel, 7.383f), new Vector3(33.361f, LagoonLevel, 4.642f),
+            new Vector3(24f, LagoonLevel, -0.3f), new Vector3(14.85f, LagoonLevel, 4.25f), new Vector3(24f, LagoonLevel, 7.38f), new Vector3(33.317f, LagoonLevel, 4.373f),
         };
         /// <summary>배 길 이음점 (닫힌 Catmull-Rom — 선착장 앞에서 시작해 궁전 앞 → 방파제 앞 → 동쪽으로 돎).</summary>
         public static readonly Vector2[] CourseControl =
         {
-            new Vector2(24f, -0.3f), new Vector2(18f, 0.45f), new Vector2(14.8f, 2.9f), new Vector2(14.8f, 6.3f), new Vector2(18.2f, 7.35f),
+            new Vector2(24f, -0.3f), new Vector2(18f, 0.45f), new Vector2(15.2f, 2.9f), new Vector2(15.2f, 6.3f), new Vector2(18.4f, 7.25f),
             new Vector2(24f, 7.38f), new Vector2(29.8f, 7.35f), new Vector2(33.2f, 5.8f), new Vector2(32.6f, 2.6f), new Vector2(29.8f, 0.45f),
         };
         /// <summary>선착장 (해변 → 배 길 앞 끝 진주 마루, 가운데 · 마루 윗면).</summary>
@@ -46,9 +46,13 @@ namespace SpaceStation.Interior
         /// <summary>조개 셋 (가운데 x, z · 입이 보는 쪽 수학 각) · 잡기 단 (반원 마루 가운데, 윗면 Floor + 0.04).</summary>
         public static readonly Vector3[] Clams = { new Vector3(38.6f, 6.55f, 210f), new Vector3(42f, 6.9f, 270f), new Vector3(45.4f, 6.55f, 330f) };
         public static readonly Vector3 ClamStage = new Vector3(42f, Floor + 0.04f, 3.75f);
-        /// <summary>조개 뚜껑 (따로 조각 ClamLid{k}, 원점 = 경첩 — 52° 열린 채 내보냄) · 조개 속 진주 (따로 조각 ClamPearl{k}, 원점 = 진주 가운데).</summary>
-        public static readonly Vector3[] ClamHinges = { new Vector3(39.379f, Floor + 0.02f, 7.0f), new Vector3(42f, Floor + 0.02f, 7.8f), new Vector3(44.621f, Floor + 0.02f, 7.0f) };
-        public static readonly Vector3[] ClamPearls = { new Vector3(38.6f, LagoonLevel, 6.55f), new Vector3(42f, LagoonLevel, 6.9f), new Vector3(45.4f, LagoonLevel, 6.55f) };
+        /// <summary>
+        /// 조개 경첩 · 입술 높이 (수면 위 0.53 — 아래 껍데기 안 바닥이 수면 위 4 cm, 수면에 닿은 바위 받침 위: 사용자 2026-11-16 "조개가 물속에 파묻혀 있음") ·
+        /// 조개 뚜껑 (따로 조각 ClamLid{k}, 원점 = 경첩 — 52° 열린 채 내보냄) · 조개 속 진주 (따로 조각 ClamPearl{k}, 원점 = 진주 가운데 — 그릇 안 바닥에 얹힘, 꼭대기가 입술 위 10 cm).
+        /// </summary>
+        public const float ClamY = LagoonLevel + 0.53f;
+        public static readonly Vector3[] ClamHinges = { new Vector3(39.379f, ClamY, 7.0f), new Vector3(42f, ClamY, 7.8f), new Vector3(44.621f, ClamY, 7.0f) };
+        public static readonly Vector3[] ClamPearls = { new Vector3(38.6f, ClamY - 0.2f, 6.55f), new Vector3(42f, ClamY - 0.2f, 6.9f), new Vector3(45.4f, ClamY - 0.2f, 6.55f) };
         public const float ClamLidOpen = 52f;
         /// <summary>산호 기중기 운전대 마루 (x0, x1, z0, z1 · 윗면 — 잔교 위를 가로질러 밑으로 지나감).</summary>
         public static readonly Vector4 CraneDeck = new Vector4(37f, 40.2f, 8.25f, 11.85f);
@@ -81,9 +85,9 @@ namespace SpaceStation.Interior
         /// </summary>
         public static readonly (Vector3Int Cell, Vector2 Offset, float FloorY)[] Hatches =
         {
-            (new Vector3Int(0, 0, 0), new Vector2(-0.2f, 3.0f), LawnTop), (new Vector3Int(0, 0, 1), new Vector2(0.2f, -1.0f), Floor),
+            (new Vector3Int(0, 0, 0), new Vector2(-0.4f, 2.8f), LawnTop), (new Vector3Int(0, 0, 1), new Vector2(0.2f, -1.0f), Floor),
             (new Vector3Int(1, 0, 0), new Vector2(-2.4f, 0.6f), LawnTop), (new Vector3Int(1, 0, 1), new Vector2(-0.6f, 2.4f), Floor),
-            (new Vector3Int(2, 0, 0), new Vector2(-1.4f, -2.4f), Floor), (new Vector3Int(2, 0, 1), new Vector2(0f, 1.8f), Floor),
+            (new Vector3Int(2, 0, 0), new Vector2(-0.4f, -1.8f), Floor), (new Vector3Int(2, 0, 1), new Vector2(0f, 1.8f), Floor),
             (new Vector3Int(3, 0, 0), new Vector2(-2.2f, -2.8f), Floor), (new Vector3Int(3, 0, 1), new Vector2(0f, 1.8f), Floor),
             (new Vector3Int(4, 0, 0), new Vector2(0f, -1.8f), Floor), (new Vector3Int(4, 0, 1), new Vector2(0f, 1.8f), Floor),
             (new Vector3Int(5, 0, 0), new Vector2(-0.2f, 0f), Floor), (new Vector3Int(5, 0, 1), new Vector2(3.0f, 1.2f), PierY),
@@ -92,7 +96,7 @@ namespace SpaceStation.Interior
         /// <summary>위 해치 셋 (외형 위 연결점): 섬 전망 첨탑 원판 (1, 0, 1) · 기중기 운전대 마루 (5, 0, 1) · 등대 전망대 원판 (6, 0, 0) — 마루 위 ± 0.5 m가 한 판, 난간 · 기둥과 0.4 m.</summary>
         public static readonly (Vector3Int Cell, Vector2 Offset)[] UpHatches =
         {
-            (new Vector3Int(1, 0, 1), new Vector2(0.3f, 0f)), (new Vector3Int(5, 0, 1), new Vector2(-0.4f, 0.85f)), (new Vector3Int(6, 0, 0), new Vector2(0.25f, 0.65f)),
+            (new Vector3Int(1, 0, 1), new Vector2(0.3f, 0f)), (new Vector3Int(5, 0, 1), new Vector2(-0.55f, 0.85f)), (new Vector3Int(6, 0, 0), new Vector2(0.25f, 0.65f)),
         };
         public const float UpHatchDepth = 3.9f;
 

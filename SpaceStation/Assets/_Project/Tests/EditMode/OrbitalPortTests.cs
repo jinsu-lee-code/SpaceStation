@@ -286,6 +286,50 @@ namespace SpaceStation.Tests
             }
         }
 
+        /// <summary>큰 진주 조개가 물에 잠기지 않음 (사용자 2026-11-16 "조개가 물속에 파묻혀 있음"): 진주 밑 · 뚜껑 밑이 수면 위, 진주 꼭대기가 입술 (경첩 높이) 위.</summary>
+        [Test]
+        public void Clams_AboveWater()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                for (int k = 0; k < OrbitalPort.Clams.Length; k++)
+                {
+                    var pearl = root.transform.Find(N + "ClamPearl" + k).GetComponent<Renderer>().bounds;   // 월드 경계 (FBX 가져오기 회전 포함)
+                    var lid = root.transform.Find(N + "ClamLid" + k).GetComponent<Renderer>().bounds;
+                    Assert.Greater(pearl.min.y, OrbitalPort.LagoonLevel + 0.02f, $"조개 {k} 진주가 물에 잠김");
+                    Assert.Greater(pearl.max.y, OrbitalPort.ClamY + 0.05f, $"조개 {k} 진주가 입술 위로 안 보임");
+                    Assert.Greater(lid.min.y, OrbitalPort.LagoonLevel + 0.2f, $"조개 {k} 뚜껑이 물에 닿음");
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>해변 = 마른 모래 · 젖은 모래 (물가 띠) 재질, 석호 = 모래 턱이 비치는 맑은 물 (사용자 2026-11-16 "해안선이 해안처럼 느껴지지 않음").</summary>
+        [Test]
+        public void Beach_SandAndClearWater()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            if (prefab == null)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            var names = new HashSet<string>();
+            foreach (var m in prefab.transform.Find(N + "Shell").GetComponent<MeshRenderer>().sharedMaterials)
+                names.Add(m != null ? m.name : "");
+            Assert.IsTrue(names.Contains("M_InteriorEvo3BeachSand"), "모래 재질 없음");
+            var sand = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/Interior/M_InteriorEvo3BeachSand.mat");
+            Assert.IsNotNull(sand.GetTexture("_DetailNormal"), "모래 결 텍스처 없음");
+            Assert.Greater(sand.GetColor("_WetColor").a, 0.5f, "물가 젖은 띠 꺼짐");
+            Assert.AreEqual(OrbitalPort.LagoonLevel + 0.05f, sand.GetFloat("_WetLevel"), 0.02f, "젖은 띠 높이 = 수면 + 5 cm");
+            var settings = AssetDatabase.LoadAssetAtPath<ScriptableObject>("Assets/_Project/Data/Interior/Water/KWS_OrbitalPort0.asset");
+            if (settings != null)
+                Assert.GreaterOrEqual(new SerializedObject(settings).FindProperty("Transparent").floatValue, 2f, "석호가 탁해 모래 턱이 안 비침");
+        }
+
         /// <summary>분수 물줄기 = 꼬리 끝에서 솟아 분수 물 안 (테 안쪽)에 떨어짐, 공중에 박힌 물방울 메시 없음.</summary>
         [Test]
         public void Fountain_Wired()
