@@ -2876,3 +2876,17 @@
 - 재질 `M_InteriorEvo3TreeBark` (트라이플래너 + `InteriorTextureBaker.BakeBark` 껍질 텍스처) · `Evo3Wood` · `Evo3LinenWhite/Blue/Rose` (때 없음), 빨래 양쪽 등 둘 · 약초 밭 등 (빛 21), 해치 (2,1) · 주민 자리 둘
 
 - `InteriorKit.asset` 수리 사령부 단계 키트 등록 (옆문 패널이 기본 모듈 벽이던 원인), 체크리스트 157 ~ 163 · 06c (TASKS · 글꼴 · Main.unity는 tycoon만)
+
+
+
+## M-196. 수리 사령부 체험 — 구조 바구니 + 경종 → 반딧불 드론 등불 쇼 (2026-11-15, `main`)
+
+
+
+**main에 넣은 것**
+
+- 구조 바구니 `InteriorRescueBasket` · 규칙 `RescueBasketRide` (F = 도르래 줄 한 번 당김, 멈춤쇠 · S 꾹 내려감 · 빈 바구니 부르기 · 마루 문 보이지 않는 벽 + 금빛 막대 · 걸이 줄 길이), 바구니 바닥 · 엮은 벽 충돌 상자, 당기는 줄 = 충돌 없는 따로 조각 `PullRope` (rc3_builder · SM_Interior_EvoRepairCommand.fbx)
+
+- 경종 → 반딧불 드론 등불 쇼 `InteriorFireflyShow` · 규칙 `FireflyLanternShow` (종 흔들림 · 드론 스물넷 · 가지 등불 13개 켜짐 = 재질 칸 블록 · 잎 구름 아래 등), `RepairCommand` 바구니 · 드론 길 값, `BuildEvoRepairCommand` 연결
+
+- `RepairCommandTests` 넷 더함 (바구니 규칙 · 쇼 순서 · 드론 길 막힘 · 연결), 체크리스트 164 ~ 168 · 06c (TASKS · 글꼴 · Main.unity는 tycoon만)

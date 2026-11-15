@@ -5486,6 +5486,56 @@ namespace SpaceStation.Editor
                         KwsWaterBuilder.Ripple(kws[0], RepairCommand.StreamMouth, 0.4f, 0.3f);   // 물길이 연못에 닿는 곳
                     kws.RemoveAll(x => x == null);
                     root.AddComponent<InteriorKwsWater>().Configure(kws.ToArray(), surfaces.ToArray(), Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(8f, 2f, 8f));
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    var gold = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3GoldPath);
+                    // 체험 ① 구조 바구니 (InteriorRescueBasket, 사용자 2026-11-15 "체험으로 넘어가자"): 바구니 바닥 판 · 엮은 벽 충돌 상자 (바구니 자식 — 정류장 · 마루에서 걸어 들어가고
+                    //  공중에서는 실려 감, 마루 쪽 트임 ±38°는 비움, 바닥 판은 마루 끝 (+0.74)까지) · 마루 바구니 문 보이지 않는 벽 + 금빛 막대 (경첩 = 문 −z 끝, 바구니가 마루에 서면 들림)
+                    var basket = Child(root, N + "Basket");
+                    var floorBox = new GameObject("BasketFloor").AddComponent<BoxCollider>();
+                    floorBox.transform.SetParent(basket, false);
+                    floorBox.center = new Vector3(0.04f, RepairCommand.BasketFloorTop - 0.03f, 0f);
+                    floorBox.size = new Vector3(1.4f, 0.06f, 1.32f);
+                    const int wallSegs = 10;
+                    float wallFrom = RepairCommand.BasketOpening, wallStep = (360f - 2f * RepairCommand.BasketOpening) / wallSegs;
+                    for (int k = 0; k < wallSegs; k++)
+                    {
+                        float a = (wallFrom + wallStep * (k + 0.5f)) * Mathf.Deg2Rad;
+                        var radial = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                        var wall = new GameObject("BasketWall" + k).AddComponent<BoxCollider>();
+                        wall.transform.SetParent(basket, false);
+                        wall.transform.localPosition = radial * RepairCommand.BasketRadius + Vector3.up * (RepairCommand.BasketWallHeight * 0.5f + 0.03f);
+                        wall.transform.localRotation = Quaternion.LookRotation(radial, Vector3.up);
+                        wall.size = new Vector3(2f * RepairCommand.BasketRadius * Mathf.Sin(wallStep * 0.5f * Mathf.Deg2Rad) + 0.04f, RepairCommand.BasketWallHeight, 0.08f);
+                    }
+                    var gateGo = new GameObject("BasketGate");
+                    gateGo.transform.SetParent(r, false);
+                    gateGo.transform.localPosition = RepairCommand.BasketGate + Vector3.up * 0.6f;
+                    var gateBox = gateGo.AddComponent<BoxCollider>();
+                    gateBox.size = new Vector3(0.1f, 1.2f, RepairCommand.BasketGateWidth);
+                    var gatePivot = new GameObject("BasketGateBar").transform;
+                    gatePivot.SetParent(r, false);
+                    gatePivot.localPosition = RepairCommand.BasketGate + new Vector3(0f, 1.0f, -0.64f);
+                    var bar = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    Object.DestroyImmediate(bar.GetComponent<Collider>());
+                    bar.name = "Bar";
+                    bar.transform.SetParent(gatePivot, false);
+                    bar.transform.localPosition = new Vector3(0f, 0f, 0.64f);
+                    bar.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                    bar.transform.localScale = new Vector3(0.06f, 0.64f, 0.06f);
+                    bar.GetComponent<MeshRenderer>().sharedMaterial = gold;
+                    root.AddComponent<InteriorRescueBasket>().Configure(basket, Child(root, N + "BasketRope"), gateBox, gatePivot, font);
+                    // 체험 ② 경종 → 반딧불 드론 등불 쇼 (InteriorFireflyShow): 종 줄 손잡이 고리 충돌체 (종 줄 자식 — 줄 자체는 충돌 없음, 보고 F) · 가지 등불 열셋 (밝기 = 재질 블록) ·
+                    //  드론 몸 = 진주 · 꼬리 빛 = 등불과 같은 발광 재질 · 반짝이 = 불꽃놀이 반짝이
+                    var bellRope = Child(root, N + "BellRope");
+                    var handle = new GameObject("BellHandle").AddComponent<SphereCollider>();
+                    handle.transform.SetParent(bellRope, false);
+                    handle.radius = 0.16f;
+                    var lanterns = new Transform[RepairCommand.Lanterns.Length];
+                    for (int k = 0; k < lanterns.Length; k++)
+                        lanterns[k] = Child(root, N + "Lantern" + k);
+                    root.AddComponent<InteriorFireflyShow>().Configure(Child(root, N + "Bell"), bellRope, handle, lanterns,
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3PearlPath), AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorLight.mat"),
+                        ModuleFxMaterials.Get("FireworkSpark"), font);
                 });
         }
 
