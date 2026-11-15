@@ -396,6 +396,23 @@ namespace SpaceStation.Tests
                         Assert.IsNotNull(seat.GetComponent<BoxCollider>(), $"배 {b} 자리 {k} 충돌체");
                     }
                 }
+                // 선착장 끝에 서서 정차한 배 자리를 바라보면 시선 광선 (InteriorMode.LookHit — 물 막이 벽은 지나감)이 그 자리에 닿음, 상호작용 거리 2.6 m 안
+                //  (첫 물체만 보던 광선은 물가의 보이지 않는 벽에 막혀 "가리비 배 타기"가 뜨지 않았음, 사용자 2026-11-16 "탑승 기능 안 나오는데")
+                for (int k = 0; k < 2; k++)   // Spawn이 상자 충돌체를 끔 → 게임처럼 선착장에 선 배 (0)의 자리만 켬 (InteriorScallopRide.UpdateColliders)
+                    ((Transform)seats.GetArrayElementAtIndex(k).objectReferenceValue).GetComponent<BoxCollider>().enabled = true;
+                Physics.SyncTransforms();
+                foreach (float ex in new[] { 23.3f, 24f, 24.7f })
+                {
+                    var standEye = root.transform.TransformPoint(new Vector3(ex, OrbitalPort.Stop.y + 1.6f, -1.45f));
+                    for (int k = 0; k < 2; k++)
+                    {
+                        var seat = (Transform)seats.GetArrayElementAtIndex(k).objectReferenceValue;
+                        var target = seat.GetComponent<BoxCollider>().bounds.center;
+                        Assert.IsTrue(InteriorMode.LookHit(standEye, (target - standEye).normalized, 2.6f, out var look), $"선착장 ({ex}) → 자리 {k}: 시선이 아무것도 못 맞힘");
+                        Assert.IsTrue(look.collider.name.StartsWith("Seat") && look.collider.transform.parent == seat.parent,
+                            $"선착장 ({ex}) → 자리 {k}: 시선이 {look.collider.name}에 먼저 닿음");   // 먼 쪽 자리는 가까운 쪽 자리 상자가 먼저 — 그 배를 타는 것은 같음
+                    }
+                }
                 foreach (var col in root.GetComponentsInChildren<Collider>())
                     if (col.name.EndsWith("_LakeHit"))
                         col.enabled = false;

@@ -3036,3 +3036,17 @@
 - 궤도 항만 내부 다시 내보냄 (`SM_Interior_EvoOrbitalPort.fbx` · `Interior_Evo2.blend`): 이물 등불 기둥 낮춤, 진주 계단 넷 · 배 길 앞에서 끝
 
 - `OrbitalPortTests.BoatRide_Wired` · Movers (배 = 피벗 밑), 체크리스트 195 · 06c
+
+
+
+## M-208. 궤도 항만 뱃놀이 탑승 안내가 안 뜨던 것 고침 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- `InteriorMode.LookHit`: 상호작용 시선 광선이 물 막이 보이지 않는 벽 (`_LakeHit`)은 지나감 — 선착장에서 정차한 배 자리를 바라봐도 물 막이에 먼저 맞아 "가리비 배 타기" 안내가 뜨지 않았음
+
+- `InteriorTemplateBuilder.BuildEvoOrbitalPort` 배 자리 상자 키움 (앉음판 + 앉은 몸 자리 0.44 × 0.6 × 0.9), 프리팹
+
+- `OrbitalPortTests.BoatRide_Wired`: 선착장 끝 세 자리에서 바라본 광선이 정차한 배 자리에 닿는지, 체크리스트 196 · 06c
