@@ -675,5 +675,112 @@ namespace SpaceStation.Tests
             foreach (var p in new[] { "_stump", "_bodyMaterial", "_glowMaterial", "_sparkMaterial" })
                 Assert.IsNotNull(sm.FindProperty(p).objectReferenceValue, p);
         }
+
+        /// <summary>
+        /// 동물 묶음마다 수 · 움직임 · 자리 · 앞쪽 (외형 열아홉과 같은 수): 땅 동물 (사슴 · 아기 사슴 · 토끼)은 발바닥 (원점 위 1 cm 안 아래를 보는 면)이 면에서 1.5 cm 안 (97 %, 가장 큰 틈 3 cm 미만 ·
+        /// 1.5 cm 넘게 묻히지 않음) · 해치 가운데에서 1.5 m · 주민 자리에서 1 m 넘게 (외형 자리 × 8은 해치 틀 위였음), 오리는 수면에서 막히지 않는 헤엄 고리 · 새끼는 어미를 따라감,
+        /// 나비는 땅 · 몸체에서 0.45 m 넘게 떠 있고 몸체에 닿지 않음.
+        /// </summary>
+        [Test]
+        public void Critters_OnTheirSpots()
+        {
+            var template = AssetDatabase.LoadAssetAtPath<SpaceStation.Data.InteriorTemplate>(TemplatePath);
+            var root = Spawn(out bool ok);
+            if (!ok || template == null)
+            {
+                if (root != null)
+                    Object.DestroyImmediate(root);
+                Assert.Ignore("템플릿 없음 (Build Evolved Templates 먼저)");
+            }
+            try
+            {
+                var groups = new (string Holder, (string Kind, Vector3 At, float Facing)[] Spots, bool Land)[]
+                {
+                    ("Critters_Deer", RepairCommand.Deer, true), ("Critters_Bunny", RepairCommand.Bunnies, true),
+                    ("Critters_Duck", RepairCommand.Ducks, false), ("Critters_Butterfly", RepairCommand.Butterflies, false),
+                };
+                int total = 0;
+                foreach (var (holderName, spots, land) in groups)
+                {
+                    var holder = root.transform.Find(holderName);
+                    Assert.IsNotNull(holder, holderName);
+                    var fx = holder.GetComponent<SpaceStation.Building.CritterFx>();
+                    Assert.IsNotNull(fx, holderName);
+                    var arr = new SerializedObject(fx).FindProperty("_critters");
+                    Assert.AreEqual(spots.Length, arr.arraySize, $"{holderName} 수");
+                    total += spots.Length;
+                    for (int i = 0; i < spots.Length; i++)
+                    {
+                        var (name, at, facing) = spots[i];
+                        var e = arr.GetArrayElementAtIndex(i);
+                        var part = (Transform)e.FindPropertyRelative("Part").objectReferenceValue;
+                        Assert.AreEqual("Critter_" + name, part.name);
+                        Assert.Less((part.position - root.transform.TransformPoint(at)).magnitude, 0.001f, $"{holderName} {i} 자리");
+                        var kind = (SpaceStation.Building.CritterFx.Kind)e.FindPropertyRelative("Kind").enumValueIndex;
+                        var face = new Vector3(Mathf.Cos(facing * Mathf.Deg2Rad), 0f, Mathf.Sin(facing * Mathf.Deg2Rad));
+                        if (holderName == "Critters_Butterfly")
+                        {
+                            Assert.AreEqual(SpaceStation.Building.CritterFx.Kind.Flutter, kind, $"{holderName} {i} 움직임");
+                            Assert.IsTrue(Physics.Raycast(at, Vector3.down, out var below, 3f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"{holderName} {i} 밑 땅 없음");
+                            Assert.Greater(at.y - below.point.y, 0.45f, $"{holderName} {i} 땅 · 몸체에서 높이");
+                            foreach (var c in Physics.OverlapSphere(at, 0.15f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                                Assert.IsTrue(c.name.EndsWith("_LakeHit"), $"{holderName} {i} 몸체에 닿음 ({c.name})");   // 연못에 못 들어가는 보이지 않는 벽만 빼고 (갈대 위 나비)
+                            continue;
+                        }
+                        var front = part.localRotation * Vector3.left;      // 모델 앞 = Blender +x = Unity −x
+                        Assert.Greater(Vector3.Dot(new Vector3(front.x, 0f, front.z).normalized, face), 0.995f, $"{holderName} {i} 앞쪽");
+                        Assert.Greater(Vector3.Dot(e.FindPropertyRelative("Heading").vector3Value, face), 0.9f, $"{holderName} {i} 머리 쪽 (움직임 앞)");
+                        if (!land)
+                        {
+                            Assert.AreEqual(RepairCommand.Pond.y, at.y, 1e-4f, $"{holderName} {i} 원점 = 수면");
+                            if (name == "Duck")
+                            {
+                                Assert.AreEqual(SpaceStation.Building.CritterFx.Kind.Swim, kind);
+                                Assert.AreNotEqual(0f, e.FindPropertyRelative("Side").floatValue, $"{holderName} {i} 헤엄 고리가 다 막힘");
+                            }
+                            else
+                            {
+                                Assert.AreEqual(SpaceStation.Building.CritterFx.Kind.Follow, kind, $"{holderName} {i} 새끼는 따라감");
+                                Assert.AreEqual(0, e.FindPropertyRelative("Leader").intValue, $"{holderName} {i} 어미");
+                            }
+                            continue;
+                        }
+                        Assert.AreEqual(name == "Bunny" ? SpaceStation.Building.CritterFx.Kind.Hop : SpaceStation.Building.CritterFx.Kind.Graze, kind, $"{holderName} {i} 움직임");
+                        foreach (var (cell, off, _) in RepairCommand.Hatches)
+                            Assert.Greater(new Vector2(at.x - (cell.x * 8f + off.x), at.z - (cell.z * 8f + off.y)).magnitude, 1.5f, $"{holderName} {i} 해치 {cell} 가까이");
+                        foreach (var spot in template.ResidentSpots)
+                            Assert.Greater(new Vector2(at.x - spot.Position.x, at.z - spot.Position.z).magnitude, 1.0f, $"{holderName} {i} 주민 자리 {spot.Position} 가까이");
+                        // 발바닥 (아래를 보는 면, 원점 위 1 cm 안)이 모두 면 가까이
+                        var mesh = part.GetComponent<MeshFilter>().sharedMesh;
+                        var vs = mesh.vertices;
+                        var ns = mesh.normals;
+                        int contact = 0, floating = 0;
+                        float worst = 0f, buried = 0f;
+                        for (int v = 0; v < vs.Length; v++)
+                        {
+                            var w = part.TransformPoint(vs[v]);
+                            if (w.y - part.position.y > 0.01f || part.TransformDirection(ns[v]).y > -0.5f)
+                                continue;
+                            Assert.IsTrue(Physics.Raycast(w + Vector3.up * 0.3f, Vector3.down, out var hit, 1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"{holderName} {i} 발밑 없음 {w}");
+                            float gap = w.y - hit.point.y;
+                            contact++;
+                            if (gap > 0.015f)
+                                floating++;
+                            worst = Mathf.Max(worst, gap);
+                            buried = Mathf.Min(buried, gap);
+                        }
+                        Assert.Greater(contact, 8, $"{holderName} {i} 닿는 점");
+                        Assert.LessOrEqual(floating, contact * 0.03f, $"{holderName} {i} 발이 1.5 cm 넘게 뜬 점 {floating}/{contact} (가장 큰 틈 {worst:F3})");
+                        Assert.Less(worst, 0.03f, $"{holderName} {i} 가장 큰 틈 {worst:F3}");
+                        Assert.Greater(buried, -0.015f, $"{holderName} {i} 너무 깊이 묻힘 {buried:F3}");
+                    }
+                }
+                Assert.AreEqual(18, total, "외형 열아홉 (거북 빼고) 수");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
     }
 }

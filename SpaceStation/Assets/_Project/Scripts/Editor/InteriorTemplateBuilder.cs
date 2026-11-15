@@ -5547,6 +5547,23 @@ namespace SpaceStation.Editor
                     for (int k = 0; k < memLamps.Length; k++)
                         memLamps[k] = Child(root, N + "MemLamp" + k);
                     root.AddComponent<InteriorDroneMemory>().Configure(memLamps, stumpUse, droneBody, droneGlow, ModuleFxMaterials.Get("FireworkSpark"), font);
+                    // 동물 (외형 열아홉과 같은 수, 사용자 2026-11-15 "동물로 넘어가자"): 사슴 · 아기 사슴 · 토끼 · 오리 가족 = 내부 전용 모델 (critter_builder, 미터 — 궤도 도시 · 바이오스피어와 같은 모델),
+                    //  나비 = 외형 나비 (SM_Evo_RepairCommand Critter_*_Butterfly)를 궤도 도시와 같은 크기 (× 4)로. 묶음 배율 = CritterFx 움직임 크기 (궤도 도시 · 바이오스피어와 같음)
+                    var critterSrc = InteriorCritterModels();
+                    var extButterflies = new List<GameObject>();
+                    foreach (var o in AssetDatabase.LoadAllAssetsAtPath("Assets/_Project/Art/Models/Modules/SM_Evo_RepairCommand.fbx"))
+                    {
+                        if (o is GameObject g && g.name.StartsWith("Critter_") && g.name.EndsWith("_Butterfly") && g.GetComponent<MeshFilter>() != null)
+                            extButterflies.Add(g);
+                    }
+                    extButterflies.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+                    for (int k = 0; k < extButterflies.Count; k++)
+                        critterSrc["Critter_Butterfly" + k] = extButterflies[k];
+                    CritterGroup(r, critterSrc, "Critters_Deer", 13f, CritterSpots(RepairCommand.Deer));
+                    CritterGroup(r, critterSrc, "Critters_Bunny", 6f, CritterSpots(RepairCommand.Bunnies));
+                    CritterGroup(r, critterSrc, "Critters_Duck", 7f, CritterSpots(RepairCommand.Ducks),
+                        SwimBlocker(root, RepairCommand.Pond, 4f, (RepairCommand.Pond.y, 0f)));
+                    CritterGroup(r, critterSrc, "Critters_Butterfly", 4f, CritterSpots(RepairCommand.Butterflies), kind: SpaceStation.Building.CritterFx.Kind.Flutter, modelScale: 4f);
                 });
         }
 
@@ -5580,10 +5597,10 @@ namespace SpaceStation.Editor
         /// 내부 동물 묶음 (궤도 도시와 같은 틀): 묶음 = CritterFx 흔들림 폭에 맞춘 배율, 동물 = 내부 전용 모델 (미터)을 그만큼 줄여 넣음 (실제 크기 = 미터).
         /// 새끼 오리 = 바로 앞 어미 (Swim)를 따라감 (StationArtBuilder.WireCritters와 같음). swimBlocked (템플릿 좌표 · 미터 반지름)가 있으면
         /// 헤엄 동물 (오리 · 백조 · 거북)마다 고리 크기 · 도는 쪽을 골라 막히지 않게 (새끼 줄 길이 포함), 없으면 제자리에서 두리번. 게는 양쪽으로 옆걸음 (자리 고를 때 길 위 높이를 잼).
-        /// kind = 이 묶음 모두의 움직임 (없으면 이름으로 — 좁은 턱의 퍼핀은 돌아보지 않고 숨만 쉼).
+        /// kind = 이 묶음 모두의 움직임 (없으면 이름으로 — 좁은 턱의 퍼핀은 돌아보지 않고 숨만 쉼). modelScale = 모델 크기 배율 (외형 모델을 키워 쓸 때 — 외형 나비 × 4).
         /// </summary>
         private static void CritterGroup(Transform parent, Dictionary<string, GameObject> critterSrc, string holderName, float scale, (string src, Vector3 at, float yaw)[] list,
-            System.Func<Vector3, float, bool> swimBlocked = null, SpaceStation.Building.CritterFx.Kind? kind = null)
+            System.Func<Vector3, float, bool> swimBlocked = null, SpaceStation.Building.CritterFx.Kind? kind = null, float modelScale = 1f)
         {
             var holder = new GameObject(holderName).transform;
             holder.SetParent(parent, false);
@@ -5602,7 +5619,7 @@ namespace SpaceStation.Editor
                 t.SetParent(holder, false);
                 t.localPosition = at / scale;
                 t.localRotation = Quaternion.Euler(0f, yaw, 0f) * g.transform.localRotation;
-                t.localScale = g.transform.localScale / scale;
+                t.localScale = g.transform.localScale * (modelScale / scale);
                 t.gameObject.AddComponent<MeshFilter>().sharedMesh = g.GetComponent<MeshFilter>().sharedMesh;
                 var mr = t.gameObject.AddComponent<MeshRenderer>();
                 mr.sharedMaterial = critterMat;

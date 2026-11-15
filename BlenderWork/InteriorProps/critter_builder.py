@@ -15,6 +15,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ATLAS = os.path.join(HERE, '..', '..', 'SpaceStation', 'Assets', '_Project', 'Art', 'Models', 'Modules', 'Textures', 'Evo_Critters', 'T_Critters_BaseColor.png')
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 SEA_ONLY = '--sea' in argv                     # 바다 동물만 짓고 미리보기 (내보내지 않음)
+POND_ONLY = '--pond' in argv                   # 연못 거북 모델 시트만 (내보내지 않음)
 argv = [a for a in argv if not a.startswith('--')]
 OUT = argv[0] if argv else None
 
@@ -672,8 +673,9 @@ def loft(secs, colors, seg=16):
     return bm
 
 
-def turtle_shell(c, ra, rb, top, bot, seg=48, rings=24):
-    """등딱지: 앞이 조금 넓은 물방울 돔 (위 = 아틀라스 등딱지 무늬 (큰 판 · 낮은 대비)를 위에서 투영, 아래 = 밝은 배딱지)."""
+def turtle_shell(c, ra, rb, top, bot, seg=48, rings=24, flare=0.0):
+    """등딱지: 앞이 조금 넓은 물방울 돔 (위 = 아틀라스 등딱지 무늬 (큰 판 · 낮은 대비)를 위에서 투영, 아래 = 밝은 배딱지).
+    flare = 가장자리 판 턱 (연못 거북): 둘레 가까이만 바깥으로 벌림 — 따로 테 판을 두르면 접시처럼 떠 보였음."""
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=seg, v_segments=rings, radius=1.0)
     uvl = bm.loops.layers.uv.new("UVMap")
@@ -684,7 +686,8 @@ def turtle_shell(c, ra, rb, top, bot, seg=48, rings=24):
             l[uvl].uv = (0.125 + co.y * 0.112, 0.125 + co.x * 0.112) if up else color_uv("cream")
     for v in bm.verts:
         x, y, z = v.co
-        v.co = Vector((c[0] + x * ra, c[1] + y * rb * (1.0 + 0.1 * x), c[2] + (z * top if z > 0 else z * bot)))
+        k = 1.0 + flare * max(0.0, 1.0 - abs(z) / (0.3 if z > 0 else 0.6)) ** 2
+        v.co = Vector((c[0] + x * ra * k, c[1] + y * rb * (1.0 + 0.1 * x) * k, c[2] + (z * top if z > 0 else z * bot)))
     orient_outward(bm)
     PARTS.append(bm)
     return bm
@@ -722,6 +725,46 @@ def build_crab():
 
 
 SEA_BUILDERS = (build_seal, build_seal_pup, build_dolphin, build_puffin, build_turtle, build_crab)
+
+
+# ---------------- 연못 거북 (수리 사령부 연못, 2026-11-15) ----------------
+# 사진 참고 (위키미디어 공용 · 도감): 남생이 · 붉은귀거북 = 바다거북보다 높은 둥근 돔 등딱지 (길이의 0.4) · 뒤가 조금 넓은 타원 · 가장자리 판 테 ·
+#   평평한 밝은 배딱지 · 지느러미 대신 짧고 굵은 비늘 다리 넷 (앞발 발톱) · 짧고 뾰족한 꼬리 · 목을 내밀면 둥근 머리 · 밝은 턱 · 목 옆 줄무늬 (빨강 줄은 쓰지 않음 — 색약).
+# → 귀여운 2등신 (큰 머리), 원점 = 발바닥 (z 0) — 통나무 · 바위에서 볕을 쬐거나 연못 가를 걸음, 헤엄 땐 Unity에서 등딱지 가장자리를 물높이로 내림.
+
+def build_pond_turtle():
+    GR = "green"
+    SC, RA, RB, TOP, BOT = (0.0, 0, 0.085), 0.185, 0.14, 0.13, 0.034               # 등딱지 (길이 0.37 · 꼭대기 0.215 · 배딱지 밑 0.051)
+    HC, HR_ = (0.27, 0, 0.16), 0.074
+    mell((0.0, 0, 0.083), (0.16, 0.115, 0.04))                                      # 등딱지 속 몸 (다리 · 목 · 꼬리 뿌리를 이음)
+    mchain([(0.13, 0, 0.09), (0.2, 0, 0.125)], [0.05, 0.046])                       # 내민 목 (앞 위로, 짧고 굵게 — 길면 위에서 볼 때 막대 위 공)
+    mell(HC, (0.08, 0.072, 0.068), "head")                                          # 큰 둥근 머리
+    for s in (-1, 1):                                                               # 짧고 굵은 다리 (등딱지 밑에서 발만 나옴 — 길게 뻗으면 도마뱀 같았음)
+        mchain([(0.095, s * 0.085, 0.07), (0.125, s * 0.115, 0.035), (0.13, s * 0.12, 0.02)], [0.034, 0.031, 0.03])
+        mell((0.148, s * 0.125, 0.015), (0.04, 0.031, 0.016), rot_=rot(z_deg=s * 15))   # 앞발 (앞 바깥으로)
+        mchain([(-0.095, s * 0.08, 0.07), (-0.12, s * 0.11, 0.035), (-0.125, s * 0.115, 0.02)], [0.036, 0.032, 0.031])
+        mell((-0.14, s * 0.12, 0.015), (0.04, 0.032, 0.016), rot_=rot(z_deg=-s * 20))   # 뒷발 (뒤 바깥으로)
+    mchain([(-0.15, 0, 0.075), (-0.215, 0, 0.05), (-0.255, 0, 0.036)], [0.027, 0.017, 0.008])   # 짧고 뾰족한 꼬리 (등딱지 뒤로 5 cm 나옴)
+    meta_part(0.0095, head_c=HC, head_R=HR_, face="green", base=GR, eye_back=10.0)
+    turtle_shell(SC, RA, RB, TOP, BOT, flare=0.07)
+    return finish("Critter_PondTurtle")
+
+
+def pond_preview():
+    """연못 거북 모델 시트: 크기 비교 (토끼 · 오리 · 새끼 오리 · 바다거북과 나란히 옆) + 거북 비스듬히 · 정면 · 옆 · 뒤 · 위 (풀밭 바닥)."""
+    others = [build_bunny(), build_duck(), build_duckling(), build_turtle()]
+    pt = build_pond_turtle()
+    sc, cam, cd, g = setup_preview((0.35, 0.55, 0.3))
+    sc.render.resolution_x, sc.render.resolution_y = 1400, 900
+    for o_, x in zip(others + [pt], (-1.2, -0.5, 0.0, 1.3, 0.55)):
+        o_.location = (x, 0, 0.065 if o_ is others[3] else 0.0)                     # 바다거북 원점 = 물높이 → 배딱지만큼 띄움
+    shoot(sc, cam, cd, "pond_size", (0.2, -3.5, 0.34), (0.2, 0, 0.18), 35)
+    c = Vector((0.45, 0, 0.1))
+    for o_ in others:
+        o_.hide_render = True
+    for tag, d in (("q", (1.25, -1.05, 0.55)), ("face", (1.6, -0.3, 0.25)), ("side", (0.05, -1.7, 0.2)),
+                   ("back", (-1.45, 0.65, 0.28)), ("top", (-0.8, -0.7, 1.2))):
+        shoot(sc, cam, cd, "pondturtle_" + tag, c + Vector(d) * 0.72, c)
 
 
 def setup_preview(ground_rgb):
@@ -780,7 +823,9 @@ def sea_preview(sea, hide=()):
         shoot(sc, cam, cd, tag + "_top", c + Vector((-0.8, -0.7, 1.2)) * s * 1.35, c)   # 위 · 뒤에서 (뒤통수 · 등 이음 — 옆에선 안 보이는 패임)
 
 
-if SEA_ONLY:
+if POND_ONLY:
+    pond_preview()
+elif SEA_ONLY:
     sea_preview([f() for f in SEA_BUILDERS])
 else:
     objs = [build_bunny(), build_deer("Critter_Deer"), build_deer("Critter_Fawn", 0.72, spots=True, head_k=1.15), build_swan(),
