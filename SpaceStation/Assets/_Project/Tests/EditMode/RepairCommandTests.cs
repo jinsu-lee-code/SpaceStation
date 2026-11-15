@@ -480,6 +480,142 @@ namespace SpaceStation.Tests
         }
 
         /// <summary>
+        /// 드론 순서 기억하기 판: 준비 → 보여 주기 (드론이 날아가 닿을 때 순서대로 켜짐, 이때 고르기는 무시) → 따라 하기 → 다 맞히면 같은 순서 + 하나 →
+        /// 틀리면 끝 (기록 = 끝까지 따라 한 길이, 맞는 등불 · 고른 등불), 길수록 빨라지되 가장 빠른 값 밑으로는 안 감, 같은 등불이 셋 잇따르지 않음.
+        /// </summary>
+        [Test]
+        public void DroneMemoryGame_Rounds()
+        {
+            int lamps = RepairCommand.MemoryLamps.Length;
+            var game = new DroneMemoryGame(lamps, 7);
+            game.Begin();
+            Assert.AreEqual(DroneMemoryGame.Phase.Ready, game.Current);
+            Assert.AreEqual(DroneMemoryGame.StartLength, game.Length);
+            float firstStep = game.StepTime;
+            for (int round = 0; round < 4; round++)
+            {
+                var prefix = new List<int>(game.Sequence);
+                var shown = new List<int>();
+                int litStep = -1;
+                for (int guard = 0; guard < 5000 && game.Current != DroneMemoryGame.Phase.Input; guard++)
+                {
+                    Assert.AreEqual(DroneMemoryGame.Result.Ignored, game.Pick(0), "보여 주는 동안 고르기");
+                    game.Step(0.01f);
+                    int lit = game.ShowLit;
+                    if (lit < 0)
+                        continue;
+                    Assert.AreEqual(1f, game.ShowFly, 1e-4f, "켜진 동안 드론은 등불 옆");
+                    if (game.ShowIndex != litStep)
+                    {
+                        litStep = game.ShowIndex;
+                        shown.Add(lit);
+                    }
+                }
+                CollectionAssert.AreEqual(game.Sequence, shown, "보여 준 차례");
+                for (int i = 0; i < game.Length; i++)
+                {
+                    var r = game.Pick(game.Sequence[i]);
+                    Assert.AreEqual(i == game.Length - 1 ? DroneMemoryGame.Result.Cleared : DroneMemoryGame.Result.Correct, r);
+                }
+                Assert.AreEqual(game.Length, game.Score);
+                for (int k = 0; k < 200 && game.Current == DroneMemoryGame.Phase.Cleared; k++)
+                    game.Step(0.01f);
+                Assert.AreEqual(DroneMemoryGame.Phase.Show, game.Current);
+                Assert.AreEqual(prefix.Count + 1, game.Length, "하나 더 길어짐");
+                for (int i = 0; i < prefix.Count; i++)
+                    Assert.AreEqual(prefix[i], game.Sequence[i], "앞 순서는 그대로");
+            }
+            Assert.Less(game.StepTime, firstStep, "길수록 빨라짐");
+            for (int guard = 0; guard < 5000 && game.Current != DroneMemoryGame.Phase.Input; guard++)
+                game.Step(0.01f);
+            int cleared = game.Score;
+            int expected = game.Sequence[0];
+            int wrong = (expected + 1) % lamps;
+            Assert.AreEqual(DroneMemoryGame.Result.Wrong, game.Pick(wrong));
+            Assert.AreEqual(DroneMemoryGame.Phase.Done, game.Current);
+            Assert.AreEqual(cleared, game.Score, "기록 = 끝까지 따라 한 길이");
+            Assert.AreEqual(expected, game.ExpectedLamp);
+            Assert.AreEqual(wrong, game.WrongLamp);
+            Assert.AreEqual(DroneMemoryGame.Result.Ignored, game.Pick(expected), "끝난 뒤 고르기");
+            // 아주 길어져도 가장 빠른 값 밑으로 안 가고, 같은 등불 셋이 잇따르지 않음
+            var g2 = new DroneMemoryGame(lamps, 3);
+            g2.Begin();
+            for (int n = 0; n < 40; n++)
+            {
+                for (int guard = 0; guard < 20000 && g2.Current != DroneMemoryGame.Phase.Input; guard++)
+                    g2.Step(0.05f);
+                for (int i = 0; i < g2.Length; i++)
+                    g2.Pick(g2.Sequence[i]);
+                for (int k = 0; k < 100 && g2.Current == DroneMemoryGame.Phase.Cleared; k++)
+                    g2.Step(0.05f);
+            }
+            Assert.AreEqual(DroneMemoryGame.FlyMin + DroneMemoryGame.LightMin, g2.StepTime, 1e-4f);
+            for (int i = 2; i < g2.Length; i++)
+                Assert.IsFalse(g2.Sequence[i] == g2.Sequence[i - 1] && g2.Sequence[i] == g2.Sequence[i - 2], $"같은 등불 셋 ({i})");
+        }
+
+        /// <summary>
+        /// 그루터기에서 본 기억 등불: 잘린 면 높이 = MemoryStumpTop, 올라선 눈에서 다섯이 다 보이고 (몸체에 안 가림) 왼쪽부터 차례대로 ·
+        /// 이웃 등불 사이 각이 겨누는 너그러움의 두 배를 넘음 · 처음 보는 쪽에서 ± 50° 안 (양 끝은 고개를 조금 돌림). 드론 길 (쉬는 자리 · 등불 옆 사이 모든 짝, 같은 등불 껑충)이 몸체에 안 닿음.
+        /// </summary>
+        [Test]
+        public void DroneMemory_ViewAndFlight()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                var stump = RepairCommand.MemoryStump;
+                Assert.IsTrue(Physics.Raycast(new Vector3(stump.x, 3f, stump.z), Vector3.down, out var top, 10f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore));
+                Assert.AreEqual(RepairCommand.MemoryStumpTop, top.point.y, 0.03f, "그루터기 잘린 면 높이");
+                var eye = new Vector3(stump.x, RepairCommand.MemoryStumpTop + 1.6f, stump.z);
+                var forward = Quaternion.Euler(0f, RepairCommand.MemoryYaw, 0f) * Vector3.forward;
+                var lamps = RepairCommand.MemoryLamps;
+                var dirs = new Vector3[lamps.Length];
+                float prevSide = -999f;
+                for (int k = 0; k < lamps.Length; k++)
+                {
+                    var d = lamps[k] - eye;
+                    dirs[k] = d.normalized;
+                    Assert.IsFalse(Physics.Raycast(eye, d.normalized, d.magnitude - 0.3f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"등불 {k} ({RepairCommand.MemoryShapes[k]})이 그루터기에서 가림");
+                    float side = Vector3.SignedAngle(forward, new Vector3(d.x, 0f, d.z), Vector3.up);
+                    Assert.Less(Mathf.Abs(side), 50f, $"등불 {k}이 처음 보는 쪽에서 멂 (고개를 조금 돌리는 정도까지)");
+                    Assert.Greater(side, prevSide, $"등불 {k}이 왼쪽부터 차례가 아님 (숫자 키 1 ~ 5)");
+                    prevSide = side;
+                }
+                for (int a = 0; a < lamps.Length; a++)
+                    for (int b = a + 1; b < lamps.Length; b++)
+                        Assert.Greater(Vector3.Angle(dirs[a], dirs[b]), 2f * RepairCommand.MemoryAimDegrees, $"등불 {a} · {b}가 너무 붙어 겨누기 어려움");
+                var fails = new List<string>();
+                var spots = new List<Vector3> { RepairCommand.MemoryPerch };
+                for (int k = 0; k < lamps.Length; k++)
+                    spots.Add(RepairCommand.MemoryHover(k));
+                for (int a = 0; a < spots.Count; a++)
+                {
+                    for (int b = 0; b < spots.Count; b++)
+                    {
+                        for (float s = 0f; s <= 1.0001f; s += 0.04f)
+                        {
+                            var p = RepairCommand.MemoryFlight(spots[a], spots[b], s);
+                            if (Physics.CheckSphere(p, 0.13f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                            {
+                                fails.Add($"{a} → {b} s {s:F2} {p}");
+                                break;
+                            }
+                            Assert.Less(p.y + 0.13f, p.z > RepairCommand.BackRowMaxZ ? RepairCommand.LowCeilingY : RepairCommand.HighCeilingY, "드론이 천장 밖");
+                        }
+                    }
+                }
+                Assert.IsEmpty(fails, "드론 길이 몸체에 닿음: " + string.Join(" / ", fails));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>
         /// 체험 연결: 구조 바구니 (바닥 판 윗면 = 바구니 바닥 · 엮은 벽 열 칸은 마루 쪽 트임 밖 · 마루 끝까지 닿는 바닥) · 마루 바구니 문 벽 · 금빛 막대 ·
         /// 종 줄 손잡이 충돌체 (종 줄 자식) · 등불 열셋 · 쇼 · 바구니가 마루에 서면 걸어 나가는 트임이 마루 문과 마주봄.
         /// </summary>
@@ -525,6 +661,19 @@ namespace SpaceStation.Tests
             var sb = new SerializedObject(prefab.GetComponent<InteriorRescueBasket>());
             foreach (var p in new[] { "_basket", "_rope", "_gate", "_gateBar" })
                 Assert.IsNotNull(sb.FindProperty(p).objectReferenceValue, p);
+            // 미니게임 드론 순서 기억하기: 그루터기 충돌 상자 (윗면 = 잘린 면 위 1 cm) · 기억 등불 다섯
+            var memory = prefab.GetComponent<InteriorDroneMemory>();
+            Assert.IsNotNull(memory, "드론 순서 기억하기 없음");
+            var stumpUse = prefab.transform.Find("MemoryStumpUse")?.GetComponent<BoxCollider>();
+            Assert.IsNotNull(stumpUse, "그루터기 충돌 상자 없음");
+            Assert.AreEqual(RepairCommand.MemoryStumpTop + 0.01f, stumpUse.transform.localPosition.y + stumpUse.size.y * 0.5f, 1e-3f);
+            var sm = new SerializedObject(memory);
+            var memLamps = sm.FindProperty("_lamps");
+            Assert.AreEqual(RepairCommand.MemoryLamps.Length, memLamps.arraySize);
+            for (int k = 0; k < memLamps.arraySize; k++)
+                Assert.AreEqual(N + "MemLamp" + k, ((Transform)memLamps.GetArrayElementAtIndex(k).objectReferenceValue)?.name, $"기억 등불 {k}");
+            foreach (var p in new[] { "_stump", "_bodyMaterial", "_glowMaterial", "_sparkMaterial" })
+                Assert.IsNotNull(sm.FindProperty(p).objectReferenceValue, p);
         }
     }
 }
