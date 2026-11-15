@@ -54,6 +54,34 @@ namespace SpaceStation.Interior
         public static readonly Vector3[] ClamHinges = { new Vector3(39.379f, ClamY, 7.0f), new Vector3(42f, ClamY, 7.8f), new Vector3(44.621f, ClamY, 7.0f) };
         public static readonly Vector3[] ClamPearls = { new Vector3(38.6f, ClamY - 0.2f, 6.55f), new Vector3(42f, ClamY - 0.2f, 6.9f), new Vector3(45.4f, ClamY - 0.2f, 6.55f) };
         public const float ClamLidOpen = 52f;
+        /// <summary>
+        /// 조개 k 뚜껑 경첩 축 (op3_builder clam_half side = 입 방향 × 위 — 이 축으로 + 돌리면 입 쪽이 들림). 닫기 = −<see cref="ClamLidOpen"/>°.
+        /// </summary>
+        public static Vector3 ClamHingeAxis(int k)
+        {
+            float a = Clams[k].z * Mathf.Deg2Rad;
+            return new Vector3(-Mathf.Sin(a), 0f, Mathf.Cos(a));
+        }
+
+        // ---------------- 미니게임 (사용자 2026-11-16 "미니게임 진행해줘") ----------------
+        /// <summary>
+        /// 진주 조개 잡기 시작 상자 (보이지 않음): 잡기 단 난간 바로 밖 물 위에 세운 얇은 판 — 단에서 조개 쪽을 보면 시선이 먼저 닿아 "F 진주 조개 잡기"
+        /// (난간 안 마루는 막지 않음, 판 중에는 꺼서 조개를 겨눔) · 안내판 (단 뒤 머리 위 — 조개를 볼 때 등 뒤) · 단 위로 치는 반지름 (단 가운데에서 수평).
+        /// </summary>
+        public static readonly Vector3 ClamGameStart = new Vector3(42f, Floor + 0.95f, 4.83f);
+        public static readonly Vector3 ClamGameStartSize = new Vector3(5f, 1.7f, 0.14f);
+        public static readonly Vector3 ClamGameSign = new Vector3(42f, Floor + 2.55f, 3.2f);
+        public const float ClamStageReach = 1.9f;
+        /// <summary>
+        /// 인어 분수 진주 던지기 시작 상자 (보이지 않음, 분수 물 위 — 테 앞에서 물을 보면 "F 진주 던지기", 판 중에는 꺼서 물 위 고리를 겨눔) ·
+        /// 안내판 (꼬리 끝 위) · 판을 이어 가는 거리 (분수 가운데에서 수평 — 더 멀어지면 끝).
+        /// </summary>
+        public static readonly Vector3 TossStart = new Vector3(9.8f, Floor + 0.68f, -0.5f);
+        public static readonly Vector3 TossStartSize = new Vector3(2.5f, 0.6f, 2.5f);
+        public static readonly Vector3 TossSign = new Vector3(9.7f, 1.3f, -0.5f);
+        public const float TossLeave = 8f;
+        /// <summary>분수 물 반지름 (op3_builder OP_FountWater = FOUNT_R − 0.04) — 이 안에 떨어진 진주만 셈.</summary>
+        public const float FountainWaterRadius = 1.86f;
         /// <summary>산호 기중기 운전대 마루 (x0, x1, z0, z1 · 윗면 — 잔교 위를 가로질러 밑으로 지나감).</summary>
         public static readonly Vector4 CraneDeck = new Vector4(37f, 40.2f, 8.25f, 11.85f);
         public const float CraneDeckY = Floor + 2.36f;

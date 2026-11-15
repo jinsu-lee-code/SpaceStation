@@ -18,6 +18,7 @@ argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 SEA_ONLY = '--sea' in argv                     # 바다 동물만 짓고 미리보기 (내보내지 않음)
 POND_ONLY = '--pond' in argv                   # 연못 거북 모델 시트만 (내보내지 않음)
 FLY_ONLY = '--fly' in argv                     # 날치 모델 시트만 (내보내지 않음)
+SEAHORSE_ONLY = "--seahorse" in argv           # 해마 시안 시트만 (내보내지 않음)
 argv = [a for a in argv if not a.startswith('--')]
 OUT = argv[0] if argv else None
 
@@ -837,6 +838,74 @@ def build_flying_fish():
     return finish("Critter_FlyingFish")
 
 
+# ---------------- 해마 (궤도 항만 — 사용자 2026-11-16 "해마가 좀 못생긴 것 같아서" → 시안) ----------------
+# 내부 빌더 해마 = 관 · 공을 이어 붙인 얼굴 없는 기둥 (배 끄는 해마 · 회전목마 · 궁전 상). 귀여운 2등신으로 다시:
+#   큰 둥근 머리 (얼굴 = 아틀라스 얼굴 칸 — 짧은 주둥이 끝에 미소가 옴) · 머리 위 작은 금빛 왕관 셋 · 귀처럼 보이는 작은 가슴지느러미 ·
+#   볼록한 크림색 배 · 등지느러미 (흰 막 · 몸 색 살) · 앞으로 말린 꼬리 (메타볼로 녹이면 말린 꼬리끼리 붙어 덩어리 → 따로 관).
+# 원점 = 말린 꼬리 밑 (z 0), 앞 = +x, 키 약 0.62 m.
+
+def build_seahorse(name, face):
+    n0 = len(PARTS)
+    HC, HR_ = (0.05, 0, 0.455), 0.13
+    mell(HC, (0.128, 0.12, 0.124), "head")                                           # 큰 둥근 머리 (2등신 — 키의 절반 가까이)
+    mchain([(0.15, 0, 0.425), (0.19, 0, 0.418), (0.226, 0, 0.415)], [0.031, 0.023, 0.028], "head")   # 대롱 주둥이 (끝이 살짝 벌어짐 — 미소가 주둥이 끝에)
+    mchain([(0.01, 0, 0.36), (-0.01, 0, 0.32)], [0.058, 0.064])                      # 짧은 목 (앞으로 숙인 머리)
+    mell((-0.008, 0, 0.255), (0.074, 0.068, 0.085))                                  # 몸
+    mell((0.028, 0, 0.235), (0.062, 0.058, 0.066))                                   # 볼록한 배 (앞으로)
+    mell((-0.026, 0, 0.18), (0.048, 0.046, 0.055))                                   # 몸 → 꼬리 이음
+    meta_part(0.0098, head_c=HC, head_R=HR_, face=face, base=face, eye_back=10.0)    # 해상도로 1.4만 삼각형 안 (줄이기는 배 경계를 들쭉날쭉하게 함 — 날치와 같음)
+    skin = PARTS[-1]
+    BP, BN = (0.032, 0, 0.24), (1.0, 0, 0.12)                                        # 크림색 배 (곧은 경계 둘 — 앞 · 목 밑)
+    TP, TN = (0, 0, 0.345), (0, 0, 1)
+    cut(skin, BP, BN); cut(skin, TP, TN)
+    repaint(skin, lambda p, tex: None if tex else ("cream" if side(BP, BN, p) > 0 and side(TP, TN, p) < 0 else None))
+    C, pts, rads = Vector((0.03, 0, 0.08)), [Vector((-0.024, 0, 0.19)), Vector((-0.04, 0, 0.13))], [0.048, 0.044]
+    for k in range(10):                                                               # 앞으로 말린 꼬리 (반 바퀴 + 안으로)
+        t = k / 9
+        a = math.radians(180 + 300 * t)
+        r = 0.07 - 0.038 * t
+        pts.append(C + Vector((math.cos(a), 0, math.sin(a))) * r)
+        rads.append(0.04 - 0.025 * t)
+    limb(pts, rads, face, seg=14, cap=6, step=0.008)
+    top = Vector((0.03, 0, 0.574))                                                    # 머리 위 작은 금빛 왕관 (낮은 띠 + 뾰족 다섯, 바깥으로 벌어짐)
+    ellipsoid(top, (0.046, 0.046, 0.016), "yellow", seg=20, rings=8)
+    for k in range(5):
+        a = 2 * math.pi * k / 5 + math.pi / 2
+        o = Vector((math.cos(a), math.sin(a), 0))
+        b = top + o * 0.034 + Vector((0, 0, 0.004))
+        limb([b, b + o * 0.01 + Vector((0, 0, 0.032))], [0.011, 0.004], "yellow", seg=8, cap=3, step=0.005)
+    for s in (-1, 1):                                                                 # 귀 같은 가슴지느러미 (눈 뒤)
+        fin_blade((-0.0, s * 0.095, 0.415), (-0.55, s * 0.75, 0.25), (0, 0, 1), 0.07, 0.036, "white", face, rays=3, thick=0.006, sweep=0.1, ray_sides=(s,))
+    fin_blade((-0.072, 0, 0.25), (-1.0, 0, 0.15), (0, 0, 1), 0.08, 0.05, "white", face, rays=4, thick=0.006, sweep=0.0, ray_sides=(1, -1))   # 등지느러미
+    lo = min(v.co.z for p in PARTS[n0:] for v in p.verts)
+    for p in PARTS[n0:]:
+        bmesh.ops.translate(p, vec=(0, 0, -lo), verts=p.verts)
+    return finish(name)
+
+
+def seahorse_preview():
+    """해마 시안 시트: 크기 비교 (날치 · 아기 물범 · 게 · 해마 둘) + 민트 · 분홍 해마 비스듬히 · 정면 · 옆 · 뒤 · 위 (물빛 바닥)."""
+    others = [build_seal_pup(), build_crab(), build_flying_fish()]
+    hm = build_seahorse("Critter_SeahorseMint", "green")
+    hp = build_seahorse("Critter_SeahorsePink", "pink")
+    sc, cam, cd, g = setup_preview((0.55, 0.72, 0.78))
+    sc.render.resolution_x, sc.render.resolution_y = 1400, 900
+    for o_, (x, z) in zip(others + [hm, hp], ((0.0, 0.0), (0.9, 0.0), (1.75, 0.25), (2.65, 0.0), (3.35, 0.0))):
+        o_.location = (x, 0, z)
+    shoot(sc, cam, cd, "seahorse_size", (1.75, -4.2, 0.55), (1.75, 0, 0.25), 32)
+    for o_ in others:
+        o_.hide_render = True
+    hp.location = (3.05, 0.0, 0.0)
+    shoot(sc, cam, cd, "seahorse_pair", (3.95, -1.6, 0.6), (2.85, 0, 0.3), 40)
+    hp.hide_render = True
+    c = Vector((2.65 + 0.03, 0, 0.32))
+    for tag, d in (("q", (0.95, -0.95, 0.35)), ("face", (1.3, -0.12, 0.12)), ("side", (0.0, -1.35, 0.05)),
+                   ("back", (-1.05, 0.75, 0.3)), ("top", (-0.35, -0.6, 1.2))):
+        shoot(sc, cam, cd, "seahorse_" + tag, c + Vector(d) * 1.45, c)
+    if OUT:                                                                            # 배 위 비교 렌더용 (내부 .blend로 불러 씀)
+        bpy.ops.wm.save_as_mainfile(filepath=OUT)
+
+
 def pond_preview():
     """연못 거북 모델 시트: 크기 비교 (토끼 · 오리 · 새끼 오리 · 바다거북과 나란히 옆) + 거북 비스듬히 · 정면 · 옆 · 뒤 · 위 (풀밭 바닥)."""
     others = [build_bunny(), build_duck(), build_duckling(), build_turtle()]
@@ -927,7 +996,9 @@ def fly_preview():
         shoot(sc, cam, cd, "flyingfish_" + tag, c + Vector(d) * 0.85, c)
 
 
-if FLY_ONLY:
+if SEAHORSE_ONLY:
+    seahorse_preview()
+elif FLY_ONLY:
     fly_preview()
 elif POND_ONLY:
     pond_preview()
