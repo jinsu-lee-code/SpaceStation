@@ -85,11 +85,11 @@ namespace SpaceStation.Interior
         /// </summary>
         public static readonly (Vector3Int Cell, Vector2 Offset, float FloorY)[] Hatches =
         {
-            (new Vector3Int(0, 0, 0), new Vector2(-0.4f, 2.8f), LawnTop), (new Vector3Int(0, 0, 1), new Vector2(0.2f, -1.0f), Floor),
-            (new Vector3Int(1, 0, 0), new Vector2(-2.4f, 0.6f), LawnTop), (new Vector3Int(1, 0, 1), new Vector2(-0.6f, 2.4f), Floor),
-            (new Vector3Int(2, 0, 0), new Vector2(-0.4f, -1.8f), Floor), (new Vector3Int(2, 0, 1), new Vector2(0f, 1.8f), Floor),
-            (new Vector3Int(3, 0, 0), new Vector2(-2.2f, -2.8f), Floor), (new Vector3Int(3, 0, 1), new Vector2(0f, 1.8f), Floor),
-            (new Vector3Int(4, 0, 0), new Vector2(0f, -1.8f), Floor), (new Vector3Int(4, 0, 1), new Vector2(0f, 1.8f), Floor),
+            (new Vector3Int(0, 0, 0), new Vector2(-0.4f, 2.8f), LawnTop), (new Vector3Int(0, 0, 1), new Vector2(0f, -0.2f), Floor),
+            (new Vector3Int(1, 0, 0), new Vector2(-2.4f, 0.6f), LawnTop), (new Vector3Int(1, 0, 1), new Vector2(-1.0f, 2.0f), Floor),
+            (new Vector3Int(2, 0, 0), new Vector2(-1.4f, -2.4f), Floor), (new Vector3Int(2, 0, 1), new Vector2(0.4f, 2.8f), Floor),
+            (new Vector3Int(3, 0, 0), new Vector2(-2.2f, -2.8f), Floor), (new Vector3Int(3, 0, 1), new Vector2(0f, 2.4f), Floor),
+            (new Vector3Int(4, 0, 0), new Vector2(0.8f, -1.4f), Floor), (new Vector3Int(4, 0, 1), new Vector2(0f, 2.4f), Floor),
             (new Vector3Int(5, 0, 0), new Vector2(-0.2f, 0f), Floor), (new Vector3Int(5, 0, 1), new Vector2(3.0f, 1.2f), PierY),
             (new Vector3Int(6, 0, 0), new Vector2(0.8f, -2.2f), Floor), (new Vector3Int(6, 0, 1), new Vector2(-0.4f, 1.2f), PierY),
         };

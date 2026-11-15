@@ -2972,3 +2972,17 @@
 - 해안 모래: 새 재질 `M_InteriorEvo3BeachSand` · 텍스처 `T_InteriorSand_N` · `_M` (`InteriorTextureBaker.BakeSand`, `InteriorSetup`), `InteriorTriplanar` 높이 젖은 띠 (`_WetColor` · `_WetLevel` · `_WetBand` · `_WetSmoothness`, 기본 꺼짐 — 다른 재질은 그대로), `KwsWaterBuilder.Build` 투명 · 탁도 인자 (기본값 = 이전 그대로)
 
 - `OrbitalPortTests` 둘 더 (`Clams_AboveWater` · `Beach_SandAndClearWater`), `ResidentSpotBaker` 궤도 항만 자리 다시, 체크리스트 181 ~ 189 · 06c
+
+
+
+## M-203. 궤도 항만 내부 — 자연스러운 해안선 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 궤도 항만 내부 다시 내보냄 (`SM_Interior_EvoOrbitalPort.fbx` · `Interior_Evo2.blend`): 땅 조각을 합친 거리 지도를 흐리고 물결로 만 · 곶을 낸 해안선 (곧은 방파제 · 꺾인 해변 · 타원 섬이 자로 그은 선이었음), 곶마다 무리 지은 물가 바위, 물가 턱을 따라 내려가는 진주 계단
+
+- `OrbitalPort.Hatches` 일곱 자리 · `ResidentSpotBaker` 궤도 항만 주민 자리 여섯 다시, 프리팹 · 템플릿 `IT_EvoOrbitalPort`
+
+- 체크리스트 190 ~ 192 · 06c
