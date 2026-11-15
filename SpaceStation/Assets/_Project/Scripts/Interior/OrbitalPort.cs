@@ -120,6 +120,19 @@ namespace SpaceStation.Interior
         };
         /// <summary>거북 헤엄 고리가 배 길에서 떨어질 거리 (배 반폭 0.85 + 여유 0.3).</summary>
         public const float TurtleCourseClear = 1.15f;
+        /// <summary>
+        /// 날치 셋 (critter_builder Critter_FlyingFish — 사용자 2026-11-16 모델 시트 "좋아 유니티로 옮겨줘"): 처음 자리 = 활공 한가운데 (수면 + 0.15), 바라보는 쪽으로
+        /// 물에서 튀어나와 날개를 편 채 낮게 미끄러져 다시 물에 듦 (CritterFx Glide). 배 길 안쪽 오른편 · 왼편 산호초 곁 · 섬 뒤 북서쪽 물 —
+        /// 활공 길 아래 물 깊이 0.5 m 넘게 · 배 길에서 1.3 m · 거북 자리에서 1.6 m · 길 둘레 0.45 m 안에 물 위 물체 없음 · 방 벽에서 0.6 m.
+        /// </summary>
+        public static readonly (string Kind, Vector3 At, float Facing)[] FlyingFish =
+        {
+            ("FlyingFish", new Vector3(29.0f, LagoonLevel + 0.15f, 5.5f), 180f), ("FlyingFish", new Vector3(20.5f, LagoonLevel + 0.15f, 4.5f), 60f),
+            ("FlyingFish", new Vector3(-1.9f, LagoonLevel + 0.15f, 11.1f), 0f),
+        };
+        /// <summary>날치 묶음 배율 (CritterFx Glide 움직임 크기 — 활공 길이 0.18 × 15 = 2.7 m · 높이 0.025 × 15 = 0.375 m · 물속 0.04 × 15 = 0.6 m).</summary>
+        public const float FlyingFishScale = 15f;
+        public const float FlyingFishGlide = 0.18f * FlyingFishScale;
 
         // ---------------- 연결점 ----------------
         /// <summary>스폰 = 선착장 뒤 진주 모래 해변 (선착장 · 배 · 회전목마 · 방파제 소라 문을 봄).</summary>
