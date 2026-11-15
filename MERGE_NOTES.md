@@ -2944,3 +2944,17 @@
 - 사슴 · 아기 사슴 접힌 면을 편 `SM_InteriorCritters.fbx` (`critter_builder` `unfold` — 줄이기 뒤에도 접힌 면 펴기, 다른 동물 메시는 같음)
 
 - 새 작업 파일 `BlenderWork/Interior_Evo2.blend` (남은 3단계 궤도 항만 · AI 중추부터 — `Interior_Evo.blend` 92.7 MB, GitHub 100 MB 제한), 06a 작업 파일 나눔 · 체크리스트 173
+
+
+
+## M-201. 궤도 항만 내부 — 가리비 배 고침 · Unity 1차 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 진화 3단계 궤도 항만 "진주 조개 항구 · 인어 왕국의 항구" 내부: `SM_Interior_EvoOrbitalPort.fbx` (op3_builder, `BlenderWork/Interior_Evo2.blend`) · `OrbitalPort` 값 · `InteriorTemplateBuilder.BuildEvoOrbitalPort` · 프리팹 · 템플릿 `IT_EvoOrbitalPort` (해치 열넷 · 위 해치 셋 · 옆문 넷, 주민 자리 25) · KWS 석호 · 분수
+
+- `InteriorFountainFx` (인어 꼬리 분수 물줄기 입자), 새 재질 산호 · 자개 · 민트 · 라일락 (`InteriorSetup`), `ResidentSpotBaker` · `InteriorPlantSpots` 등록, `InteriorKit.asset` 새 모듈 줄
+
+- `OrbitalPortTests` 다섯, 체크리스트 174 ~ 180 · 06c

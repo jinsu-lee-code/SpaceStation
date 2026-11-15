@@ -135,6 +135,7 @@ namespace SpaceStation.Editor
             BuildEvoStellarGrid();
             BuildEvoOrbitalDefense();
             BuildEvoRepairCommand();
+            BuildEvoOrbitalPort();
         }
 
         /// <summary>
@@ -5568,6 +5569,84 @@ namespace SpaceStation.Editor
                 });
         }
 
+        /// <summary>
+        /// 진화 3단계 궤도 항만 "진주 조개 항구 · 인어 왕국의 항구" (바닥 7 × 2칸 한 층 — op3_builder, 사용자 2026-11-16 "배를 가리비 모양으로 고치고 유니티로 옮겨줘"):
+        /// 산호 섬 진주 조개 궁전 · 인어 꼬리 분수 · 석호 해마 회전목마 · 해마 가리비 배 넷 · 진주 모래 해변 선착장 · 산호 방파제 · 진주 잔교 · 산호 기중기 · 큰 진주 조개 셋 · 앵무조개 · 등대 전망대.
+        /// 움직이는 조각 (Carousel · Boat{k} · ClamLid{k} · ClamPearl{k})은 원점 = 쓰는 자리 (회전목마 축 · 배 가운데 수면 · 조개 경첩 · 진주 가운데) — 체험 (뱃놀이) · 미니게임 (진주 조개 잡기 ·
+        /// 분수 진주 던지기)이 쓸 자리. 이번 이식에서는 회전목마만 천천히 돎.
+        /// </summary>
+        private static void BuildEvoOrbitalPort()
+        {
+            const string N = "INT_EvoOrbitalPort_";
+            const float PF = OrbitalPort.Floor;
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in OrbitalPort.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, OrbitalPort.DoorDepth));
+            foreach (var (cell, off, floorY) in OrbitalPort.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -floorY, new Vector3(off.x, 0f, off.y)));
+            foreach (var (cell, off) in OrbitalPort.UpHatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, OrbitalPort.UpHatchDepth, new Vector3(off.x, 0f, off.y)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.62f);
+            var cool = new Color(0.82f, 0.9f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (float x in new[] { 14f, 20f, 28f, 34f })
+                lights.Add(LightSpec.Point(new Vector3(x, PF + 3.0f, -2.4f), 8f, 0.85f, white));                              // 진주 모래 해변 · 선착장
+            foreach (float x in new[] { 13f, 20f, 28f })
+                lights.Add(LightSpec.Point(new Vector3(x, PF + 3.0f, 10.4f), 8f, 0.8f, white));                               // 산호 방파제 · 소라 문
+            foreach (var (x, z) in new[] { (18f, 4f), (30f, 4f), (24f, 0.4f) })
+                lights.Add(LightSpec.Point(new Vector3(x, PF + 3.4f, z), 9f, 0.7f, cool));                                    // 석호 (배 길 · 회전목마 둘레 — 도는 판 밖)
+            foreach (var (x, z) in new[] { (0f, 1.8f), (9.2f, 1.6f), (0.8f, 9.2f), (6.4f, 9.8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, PF + 3.2f, z), 8f, 0.8f, white));                                   // 산호 섬 (궁전 둘레 · 분수 마당 · 첨탑)
+            var pal = OrbitalPort.Palace;
+            lights.Add(LightSpec.Point(pal + new Vector3(-1.2f, 1.6f, 0f), 4.5f, 0.8f, warm));                               // 궁전 안 (샹들리에 바로 밑은 피함)
+            foreach (var (x, z) in new[] { (44f, 10f), (49.6f, 8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, PF + 3.0f, z), 8f, 0.8f, white));                                   // 진주 잔교 · 잔교 끝
+            var cd = OrbitalPort.CraneDeck;
+            lights.Add(LightSpec.Point(new Vector3((cd.x + cd.y) * 0.5f, OrbitalPort.CraneDeckY + 2.1f, (cd.z + cd.w) * 0.5f), 6f, 0.75f, white));   // 기중기 운전대
+            lights.Add(LightSpec.Point(new Vector3(OrbitalPort.ClamStage.x, PF + 3.0f, OrbitalPort.ClamStage.z - 0.6f), 8f, 0.85f, white));   // 진주 조개 잡기 단
+            foreach (var (x, z) in new[] { (40f, -1.6f), (44.6f, 4.4f) })
+                lights.Add(LightSpec.Point(new Vector3(x, PF + 3.2f, z), 8f, 0.8f, white));                                   // 앵무조개 창고 · 등대 전망대 둘레 모래톱
+            EvoAccent("OrbitalPort", "#B0F0D0");
+            // 스폰 = 선착장 뒤 해변 (선착장 · 배 · 회전목마 · 방파제 소라 문을 봄). 한 층이라 자기 방을 하늘 화면에 비출 것 없음
+            Build("EvoOrbitalPort", "Evolved/MD_Evo_OrbitalPort", sockets, OrbitalPort.Spawn, OrbitalPort.SpawnYaw, lights,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    // 석호에 못 들어가는 벽 (op3_builder LakeHit — 해변 · 섬 · 방파제 물가, 선착장 · 잔교 · 잡기 단은 비움): 모양만 쓰고 보이지 않음
+                    var lakeHit = Child(root, N + "LakeHit");
+                    var lakeMesh = lakeHit.GetComponent<MeshFilter>().sharedMesh;
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshRenderer>());
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshFilter>());
+                    lakeHit.gameObject.AddComponent<MeshCollider>().sharedMesh = lakeMesh;
+                    // 물: 수면 높이마다 KWS 실사 물 (석호 = 물결 · 분수, 꺼 둠 → InteriorKwsWater가 켬) + 패키지 없는 PC용 Blender 수면
+                    var kws = new List<GameObject>();
+                    var surfaces = new List<Renderer>();
+                    var depth = new[] { OrbitalPort.LagoonLevel - OrbitalPort.SeaBed, 0.4f };
+                    for (int k = 0; k < OrbitalPort.WaterLevels.Length; k++)
+                    {
+                        var surface = Child(root, N + "Water" + (k == 0 ? "" : k.ToString()));
+                        if (surface == null)
+                            continue;
+                        surfaces.Add(surface.GetComponent<Renderer>());
+                        kws.Add(KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), OrbitalPort.WaterLevels[k], depth[k], "OrbitalPort" + k, k == 0));
+                    }
+                    var tip = OrbitalPort.FountainTip;
+                    if (kws.Count > 1 && kws[1] != null)
+                        KwsWaterBuilder.Ripple(kws[1], new Vector3(tip.x, OrbitalPort.Fountain.y, tip.z), 1.1f, 0.3f);   // 분수 물줄기가 떨어지는 고리
+                    kws.RemoveAll(x => x == null);
+                    root.AddComponent<InteriorKwsWater>().Configure(kws.ToArray(), surfaces.ToArray(), Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(24f, 2f, 4f));
+                    // 인어 꼬리 분수 물줄기 (꼬리지느러미 사이에서 사방으로 · 수면 고리에 거품 · 물안개)
+                    root.AddComponent<InteriorFountainFx>().Configure(tip, OrbitalPort.Fountain.y, 1.1f, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FallsMistPath));
+                    // 해마 회전목마 = 받침 축으로 천천히 돎 (체험 전 — 원점 = 받침 윗면 가운데)
+                    var carousel = Child(root, N + "Carousel");
+                    var spinner = carousel.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
+                    var sso = new SerializedObject(spinner);
+                    sso.FindProperty("_speed").floatValue = 9f;
+                    sso.ApplyModifiedPropertiesWithoutUndo();
+                });
+        }
+
         /// <summary>내부 전용 동물 모델 (critter_builder — SM_InteriorCritters, 미터): 이름 "Critter_종류" → 모델.</summary>
         private static Dictionary<string, GameObject> InteriorCritterModels()
         {
@@ -7029,6 +7108,7 @@ namespace SpaceStation.Editor
             { "EvoStellarGrid", InteriorAmbience.Life },      // 꿀벌 정원 (3단계)
             { "EvoOrbitalDefense", InteriorAmbience.Life },   // 등대 곶 해안 (3단계)
             { "EvoRepairCommand", InteriorAmbience.Life },    // 반딧불 고목 치유소 (3단계)
+            { "EvoOrbitalPort", InteriorAmbience.Life },      // 진주 조개 항구 (3단계)
             { "EvoGrandTorus", InteriorAmbience.Life },       // 바퀴 마을
             { "EvoCivicHall", InteriorAmbience.Life },        // 회관 · 돌봄 · 교실
             { "EvoSecurityHQ", InteriorAmbience.Life },       // 파출소 광장 · 민원 창구
@@ -7278,6 +7358,11 @@ namespace SpaceStation.Editor
                 { "Evo3LinenBlue", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LinenBluePath) },
                 { "Evo3LinenRose", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LinenRosePath) },
                 { "Evo3LinenWhite", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LinenWhitePath) },
+                // 궤도 항만 (op3_builder, 2026-11-16): 산호 · 자개 · 민트 · 라일락
+                { "Evo3Coral", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3CoralPath) },
+                { "Evo3Nacre", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3NacrePath) },
+                { "Evo3Mint", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3MintPath) },
+                { "Evo3Lilac", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LilacPath) },
             };
             for (int i = 0; i < 7; i++)
                 materials["Evo3Rainbow" + i] = ModuleFxMaterials.Get("Rainbow" + i);   // 프리즘 무지개 고리 일곱 (바깥과 같은 빛 물결)
