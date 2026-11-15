@@ -3022,3 +3022,17 @@
 - 궤도 항만 날치 셋 (석호 활공, `CritterFx` Glide × 15): `OrbitalPort.FlyingFish · FlyingFishScale · FlyingFishGlide`, `InteriorTemplateBuilder.BuildEvoOrbitalPort`, 프리팹
 
 - `OrbitalPortTests.Critters_OnTheirSpots` 날치 활공 길, 체크리스트 194 · 06c
+
+
+
+## M-207. 궤도 항만 해마 가리비 배 뱃놀이 체험 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 새 `InteriorScallopRide` (배 넷 배 길 한 바퀴 · 선착장 정차 · 앉기 / 내리기 · 지나는 곳 안내 줄 · 선착장 안내판), `OrbitalPort` 배 길 표 (`CourseLoop` · `CoursePoint` · `CoursePose` · `BoatStartS` · `CourseSection` · `BoatSeat` · `BoatFeet` 등), `InteriorTemplateBuilder.BuildEvoOrbitalPort` 배 피벗 · 자리, 프리팹
+
+- 궤도 항만 내부 다시 내보냄 (`SM_Interior_EvoOrbitalPort.fbx` · `Interior_Evo2.blend`): 이물 등불 기둥 낮춤, 진주 계단 넷 · 배 길 앞에서 끝
+
+- `OrbitalPortTests.BoatRide_Wired` · Movers (배 = 피벗 밑), 체크리스트 195 · 06c

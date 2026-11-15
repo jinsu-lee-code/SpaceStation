@@ -5646,6 +5646,32 @@ namespace SpaceStation.Editor
                     var sso = new SerializedObject(spinner);
                     sso.FindProperty("_speed").floatValue = 9f;
                     sso.ApplyModifiedPropertiesWithoutUndo();
+                    // 해마 가리비 배 뱃놀이 (체험, 사용자 2026-11-16 "가리비 배 뱃놀이 체험 진행해줘"): 배 넷 (op3_builder Boat{k}, 처음 자리에 구운 메시 · 원점 = 배 가운데 수면)을
+                    //  배 길 처음 자세의 피벗 (+z = 배 길 앞) 아래로 옮겨 피벗이 배 길을 돎, 피벗마다 앉음판 왼쪽 · 오른쪽 자리 (보고 F = 앉기)
+                    var boatPivots = new Transform[OrbitalPort.Boats.Length];
+                    var boatSeats = new Transform[boatPivots.Length * 2];
+                    var boatStarts = new float[boatPivots.Length];
+                    for (int b = 0; b < boatPivots.Length; b++)
+                    {
+                        boatStarts[b] = OrbitalPort.BoatStartS(b);
+                        OrbitalPort.CoursePose(boatStarts[b], out var at, out var dir);
+                        var pivot = new GameObject($"Boat{b}_Pivot").transform;
+                        pivot.SetParent(r, false);
+                        pivot.localPosition = new Vector3(at.x, OrbitalPort.LagoonLevel, at.y);
+                        pivot.localRotation = Quaternion.LookRotation(new Vector3(dir.x, 0f, dir.y));
+                        Child(root, N + "Boat" + b).SetParent(pivot, true);
+                        for (int k = 0; k < 2; k++)
+                        {
+                            var seat = new GameObject(k == 0 ? "SeatL" : "SeatR").transform;
+                            seat.SetParent(pivot, false);
+                            seat.localPosition = OrbitalPort.BoatSeat(k);
+                            seat.gameObject.AddComponent<BoxCollider>().size = new Vector3(0.4f, 0.16f, 0.4f);
+                            boatSeats[b * 2 + k] = seat;
+                        }
+                        boatPivots[b] = pivot;
+                    }
+                    var rideFont = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    root.AddComponent<InteriorScallopRide>().Configure(boatPivots, boatSeats, boatStarts, rideFont);
                     // 바다 동물 (critter_builder — 궤도 방어망과 같은 모델): 물범 · 아기 물범 = 모래톱 물가에서 숨 쉬며 고개 듦, 게 = 물가 모래를 따라 옆걸음,
                     //  거북 = 석호 수면 고리 헤엄 (배는 배 길을 따라 돌므로 길 전체 + 회전목마 받침 · 산호초 · 조개 · 잔교 · 물가를 비킴)
                     var critterSrc = InteriorCritterModels();

@@ -67,28 +67,121 @@ namespace SpaceStation.Interior
         /// <summary>석호 수면 · 분수 수면 (op3_builder Water · Water1).</summary>
         public static readonly float[] WaterLevels = { LagoonLevel, Floor + 0.38f };
 
+        // ---------------- 배 길 (op3_builder course_curve와 같은 점 — 닫힌 Catmull-Rom, 이음점 사이를 0.25 m 남짓으로 나눔) ----------------
+        private static Vector2[] _course;
+        private static float[] _courseS;
+        private static int[] _courseControlIndex;
+
+        private static void InitCourse()
+        {
+            if (_course != null)
+                return;
+            int n = CourseControl.Length;
+            var pts = new System.Collections.Generic.List<Vector2>();
+            var ctrl = new int[n];
+            for (int i = 0; i < n; i++)
+            {
+                ctrl[i] = pts.Count;
+                Vector2 p0 = CourseControl[(i - 1 + n) % n], p1 = CourseControl[i], p2 = CourseControl[(i + 1) % n], p3 = CourseControl[(i + 2) % n];
+                int m = Mathf.Max(2, (int)((p2 - p1).magnitude / 0.25f));
+                for (int k = 0; k < m; k++)
+                {
+                    float t = (float)k / m;
+                    pts.Add(0.5f * (2f * p1 + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * (t * t) + (-p0 + 3f * p1 - 3f * p2 + p3) * (t * t * t)));
+                }
+            }
+            var s = new float[pts.Count + 1];
+            for (int i = 0; i < pts.Count; i++)
+                s[i + 1] = s[i] + (pts[(i + 1) % pts.Count] - pts[i]).magnitude;
+            _courseS = s;
+            _courseControlIndex = ctrl;
+            _course = pts.ToArray();
+        }
+
+        /// <summary>배 길 한 바퀴 길이 (m, s = 선착장 앞에서 잰 길이 — 배가 가는 쪽으로 늘어남).</summary>
+        public static float CourseLoop { get { InitCourse(); return _courseS[_course.Length]; } }
+
+        /// <summary>s를 한 바퀴 안으로 (0 ~ <see cref="CourseLoop"/>).</summary>
+        public static float CourseWrap(float s) => Mathf.Repeat(s, CourseLoop);
+
+        /// <summary>배 길 위 s 자리 (x, z).</summary>
+        public static Vector2 CoursePoint(float s)
+        {
+            InitCourse();
+            s = CourseWrap(s);
+            int lo = 0, hi = _course.Length;
+            while (hi - lo > 1)
+            {
+                int mid = (lo + hi) / 2;
+                if (_courseS[mid] <= s)
+                    lo = mid;
+                else
+                    hi = mid;
+            }
+            float len = _courseS[lo + 1] - _courseS[lo];
+            return Vector2.Lerp(_course[lo], _course[(lo + 1) % _course.Length], len > 1e-6f ? (s - _courseS[lo]) / len : 0f);
+        }
+
+        /// <summary>배 길 s 자리 · 가는 쪽 (앞뒤 0.3 m로 잰 매끈한 방향, 단위 벡터 x, z).</summary>
+        public static void CoursePose(float s, out Vector2 at, out Vector2 dir)
+        {
+            at = CoursePoint(s);
+            dir = (CoursePoint(s + 0.3f) - CoursePoint(s - 0.3f)).normalized;
+        }
+
+        /// <summary>배 k의 처음 자리 (op3_builder boats — 배 길 점을 넷으로 나눈 점 번호 n·k/4, <see cref="Boats"/>와 같은 자리).</summary>
+        public static float BoatStartS(int k)
+        {
+            InitCourse();
+            return _courseS[_course.Length * k / 4];
+        }
+
         /// <summary>배 길 (CourseControl 닫힌 Catmull-Rom — op3_builder course_curve와 같은 0.25 m 이음)까지 수평 거리.</summary>
         public static float CourseDistance(Vector2 p)
         {
-            int n = CourseControl.Length;
+            InitCourse();
             float best = float.MaxValue;
-            var prev = CourseControl[0];
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < _course.Length; i++)
             {
-                Vector2 p0 = CourseControl[(i - 1 + n) % n], p1 = CourseControl[i], p2 = CourseControl[(i + 1) % n], p3 = CourseControl[(i + 2) % n];
-                int m = Mathf.Max(2, (int)((p2 - p1).magnitude / 0.25f));
-                for (int k = 1; k <= m; k++)
-                {
-                    float t = (float)k / m;
-                    var q = 0.5f * (2f * p1 + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * (t * t) + (-p0 + 3f * p1 - 3f * p2 + p3) * (t * t * t));
-                    var seg = q - prev;
-                    float u = Mathf.Clamp01(Vector2.Dot(p - prev, seg) / Mathf.Max(1e-6f, seg.sqrMagnitude));
-                    best = Mathf.Min(best, (prev + seg * u - p).magnitude);
-                    prev = q;
-                }
+                Vector2 a = _course[i], seg = _course[(i + 1) % _course.Length] - a;
+                float u = Mathf.Clamp01(Vector2.Dot(p - a, seg) / Mathf.Max(1e-6f, seg.sqrMagnitude));
+                best = Mathf.Min(best, (a + seg * u - p).magnitude);
             }
             return best;
         }
+
+        /// <summary>뱃놀이 안내 줄 — 이음점 사이마다 지나는 곳 (이음점 0 = 선착장 앞에서 궁전 쪽으로 출발).</summary>
+        private static readonly string[] CourseSections =
+        {
+            "선착장 출발 · 인어 꼬리 분수", "산호 섬 · 진주 조개 궁전", "진주 계단 · 삼지창 문", "섬 전망 첨탑", "산호 방파제 · 왕관 바다 문",
+            "산호 방파제 · 해마 회전목마", "진주 잔교 · 산호 기중기", "큰 진주 조개 부두", "모래톱 · 물범 쉼터", "선착장으로",
+        };
+
+        /// <summary>배 길 s 자리를 지나는 곳 이름 (뱃놀이 안내 줄).</summary>
+        public static string CourseSection(float s)
+        {
+            InitCourse();
+            s = CourseWrap(s);
+            int i = 0;
+            for (int k = 0; k < _courseControlIndex.Length; k++)
+            {
+                if (_courseS[_courseControlIndex[k]] <= s)
+                    i = k;
+            }
+            return CourseSections[i];
+        }
+
+        // ---------------- 해마 가리비 배 뱃놀이 (체험 — InteriorScallopRide) ----------------
+        /// <summary>배 피벗 기준 앉음판 왼쪽 · 오른쪽 자리 (원점 = 배 가운데 수면, +z = 앞 — op3_builder boat: 앉음판 = 가운데 − 앞 0.2, 윗면 수면 + 0.30, 폭 0.9).</summary>
+        public static Vector3 BoatSeat(int side) => new Vector3(side == 0 ? -0.22f : 0.22f, 0.32f, -0.2f);
+        /// <summary>앉은 발 자리 (앉음판 앞 바닥판 윗면 = 수면 + 0.06) · 앉은 눈높이 (발 위).</summary>
+        public static Vector3 BoatFeet(int side) => new Vector3(side == 0 ? -0.22f : 0.22f, 0.06f, 0.12f);
+        public const float BoatSeatedEye = 0.98f;
+        /// <summary>뱃놀이 빠르기 (m/초 — 한 바퀴 약 53초) · 선착장에 서 있는 시간 (앉아 있으면 짧게) · 앞 배와 간격 (배 길이 3.3 + 0.3).</summary>
+        public const float BoatCruise = 0.85f, BoatDwell = 8f, BoatDwellSeated = 3f, BoatGap = 3.6f;
+        /// <summary>내리는 자리 (선착장 마루 가운데 · 끝에서 0.45 m, 윗면 = Stop.y) · 선착장 안내판 (마루 들머리 위).</summary>
+        public static readonly Vector3 BoatExit = new Vector3(24f, Floor + 0.06f, -1.6f);
+        public static readonly Vector3 BoatSign = new Vector3(24f, Floor + 2.15f, -2.9f);
 
         // ---------------- 바다 동물 (critter_builder 바다 동물 — 궤도 방어망과 같은 모델, 사용자 2026-11-16 "이제 동물 배치 진행해줘") ----------------
         // (모델, 자리 (모델 원점), 바라보는 쪽 수학 각). 땅 위 자리 = 몸 밑 닿는 점 (물범 = 원점 위 3.5 cm 안 배 · 지느러미 · 엉덩이 밑, 게 = 다리 끝)이 97 % 모래 1.5 cm 안 ·
