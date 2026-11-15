@@ -5,6 +5,7 @@
 #   Critter_Fawn   아기 사슴 (흰 점 무늬) 0.75배
 #   Critter_Swan   백조 (물에 뜬 몸 · 접은 날개 · S자 목 · 주황 부리, 원점 = 물높이)
 #   Critter_Seal · SealPup · Dolphin · Puffin · Turtle · Crab  궤도 방어망 바다 동물 (2026-11-13, 아래 "바다 동물" — `--sea` = 바다 동물만 미리보기)
+#   Critter_FlyingFish  궤도 항만 석호 날치 (2026-11-16, 아래 "날치" — `--fly` = 날치 모델 시트)
 # 좌표: 미터, 발 · 물높이 z = 0, 앞 = +x. 재질 슬롯 하나 (M_Critters — Unity가 ModuleFxMaterials "Critters"로 바꿈).
 # 사용: blender -b --factory-startup -P BlenderWork/InteriorProps/critter_builder.py -- [fbx 경로]
 import bpy, bmesh, sys, os, math
@@ -16,6 +17,7 @@ ATLAS = os.path.join(HERE, '..', '..', 'SpaceStation', 'Assets', '_Project', 'Ar
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 SEA_ONLY = '--sea' in argv                     # 바다 동물만 짓고 미리보기 (내보내지 않음)
 POND_ONLY = '--pond' in argv                   # 연못 거북 모델 시트만 (내보내지 않음)
+FLY_ONLY = '--fly' in argv                     # 날치 모델 시트만 (내보내지 않음)
 argv = [a for a in argv if not a.startswith('--')]
 OUT = argv[0] if argv else None
 
@@ -758,6 +760,83 @@ def build_pond_turtle():
     return finish("Critter_PondTurtle")
 
 
+# ---------------- 날치 (궤도 항만 석호, 2026-11-16 — 사용자 "날치 모델 시트 만들어줘") ----------------
+# 사진 참고 (도감 · 위키미디어 공용): 날치 = 가늘고 긴 어뢰 몸 (옆에서 보면 등 · 배가 거의 곧음) · 짙은 남청 등 · 은빛 배 (곧은 경계) · 큰 눈 · 짧고 뭉툭한 주둥이 ·
+#   몸 길이만 한 큰 가슴지느러미 (날개 — 활공 땐 옆으로 펼침, 얇은 막 사이로 지느러미 살이 뻗음) · 작은 배지느러미 · 등 뒤 작은 등지느러미 ·
+#   깊게 갈라진 꼬리 (아래 갈래가 더 김 — 물을 차고 날아오름).
+# → 귀여운 2등신 (몸 앞 큰 둥근 머리, 얼굴 = 아틀라스 얼굴 칸), 몸 = 짧게, 날개 = 큰 얇은 부채 (밝은 은빛 막 + 짙은 살 넷), 비늘 무늬는 쓰지 않음 (환공포증 — 체크리스트 47).
+# 원점 = 몸 가운데 (CritterFx Glide — 처음 자리 = 활공 한가운데, 모델은 날개를 편 활공 모습).
+
+def fin_blade(root, u, w, span, chord, color, ray_color, rays=4, thick=0.006, sweep=0.25, round_tip=True, ray_sides=(1,)):
+    """얇은 지느러미 판: 뿌리 (root)에서 u 쪽으로 span만큼 펴진 부채 (뿌리 좁게 · 끝 넓고 둥글게, 폭 = w 쪽 반폭 chord, 끝으로 갈수록 −w로 sweep × chord 쏠림)
+    단면을 이은 한 덩어리 + 판 위 (ray_sides = 법선 쪽 부호)로 1 mm 돋은 지느러미 살 (뿌리 → 가장자리)."""
+    root, u, w = Vector(root), Vector(u).normalized(), Vector(w)
+    w = (w - u * w.dot(u)).normalized()
+    n = u.cross(w).normalized()
+    N, M = 14, 10
+    bm = bmesh.new()
+    rings = []
+    for i in range(N + 1):
+        t = i / N
+        half = chord * (0.16 + 0.84 * math.sin(min(1.0, t * 1.15) * math.pi / 2) ** 1.2)
+        if round_tip and t > 0.8:
+            half *= math.sqrt(max(0.0, 1 - ((t - 0.8) / 0.2) ** 2)) * 0.97 + 0.03
+        th = thick * (1.0 - 0.6 * t)
+        c = root + u * (span * t) - w * (chord * sweep * t)
+        rings.append([bm.verts.new(c + w * (half * math.cos(2 * math.pi * k / M)) + n * (th * math.sin(2 * math.pi * k / M))) for k in range(M)])
+    for a_, b_ in zip(rings, rings[1:]):
+        for k in range(M):
+            bm.faces.new((a_[k], a_[(k + 1) % M], b_[(k + 1) % M], b_[k]))
+    c0 = bm.verts.new(root - u * 0.004)
+    c1 = bm.verts.new(root + u * (span + 0.002) - w * (chord * sweep))
+    for k in range(M):
+        bm.faces.new((rings[0][(k + 1) % M], rings[0][k], c0))
+        bm.faces.new((rings[-1][k], rings[-1][(k + 1) % M], c1))
+    uv0 = color_uv(color)
+    _uv_all(bm, lambda co: uv0)
+    orient_outward(bm)
+    PARTS.append(bm)
+    for r in range(rays):
+        f = (r + 0.5) / rays - 0.5
+        tip = root + u * (span * (0.92 - 0.22 * abs(f))) - w * (chord * sweep) + w * (chord * 1.65 * f)
+        for e in ray_sides:
+            limb([root + u * 0.01 + n * e * 0.003, (root + tip) / 2 + n * e * (thick * 0.55), tip + n * e * (thick * 0.25)],
+                 [0.0032, 0.0026, 0.0017], ray_color, seg=5, cap=2)
+
+
+def fin_fan(root, back_deg, span, chord, up_deg, color, ray_color, rays=4, thick=0.006, s=1):
+    """날개 (가슴지느러미): 몸 옆 뿌리에서 바깥 · 뒤로 (back_deg = 옆에서 뒤로 기운 각, up_deg = 위로 든 각) 펴진 부채, 살 = 윗면."""
+    a = math.radians(back_deg)
+    u = Vector((-math.sin(a), s * math.cos(a), 0.0))
+    axis = Vector((math.cos(a), s * math.sin(a), 0.0)).normalized()
+    u = (Matrix.Rotation(math.radians(s * up_deg), 3, axis) @ u).normalized()
+    w = Vector((math.cos(a), s * math.sin(a), 0.0))
+    n = u.cross((w - u * w.dot(u)).normalized())
+    fin_blade(root, u, w, span, chord, color, ray_color, rays, thick, ray_sides=(1 if n.z > 0 else -1,))
+
+
+def build_flying_fish():
+    G, B = "gray", "blue"
+    HC, HR_ = (0.1, 0, 0.0), 0.088
+    mchain([(0.05, 0, 0.0), (-0.06, 0, 0.004), (-0.16, 0, 0.006), (-0.235, 0, 0.004)], [0.074, 0.066, 0.045, 0.022])   # 어뢰 몸 (짧게, 꼬리로 가늘게)
+    mell((-0.26, 0, 0.003), (0.03, 0.014, 0.022))                                   # 꼬리자루 (옆으로 납작)
+    mell(HC, (0.088, 0.084, 0.082), "head")                                         # 큰 둥근 머리 (2등신)
+    mell((0.172, 0, -0.012), (0.03, 0.04, 0.026), "head")                           # 짧고 뭉툭한 주둥이
+    meta_part(0.0098, head_c=HC, head_R=HR_, face="gray", base=G, eye_back=6.0)    # 해상도로 1.4만 삼각형 안 (줄이기는 색 경계를 들쭉날쭉하게 함 — 체크리스트 80 · 145)
+    skin = PARTS[-1]
+    BACK_P, BACK_N = (0, 0, 0.034), (-0.12, 0, 1)                                    # 짙은 남청 등 줄 (머리 위 → 꼬리, 꼬리 쪽이 조금 낮음) · 은회색 옆 · 배 (얼굴 칸과 같은 회색)
+    cut(skin, BACK_P, BACK_N)
+    repaint(skin, lambda p, tex: None if tex else (B if side(BACK_P, BACK_N, p) > 0 else G))
+    for s in (-1, 1):
+        fin_fan((0.035, s * 0.06, 0.012), 32.0, 0.27, 0.075, 9.0, "white", B, s=s)    # 큰 가슴지느러미 날개 (옆 · 뒤로 펴고 살짝 듦, 흰 막 · 남청 살)
+        fin_fan((-0.13, s * 0.03, -0.035), 55.0, 0.075, 0.025, -20.0, "white", B, rays=2, thick=0.004, s=s)   # 작은 배지느러미 (뒤 · 아래로)
+    fin_blade((-0.15, 0, 0.04), (-0.55, 0, 1.0), (1, 0, 0), 0.045, 0.022, B, B, rays=0, thick=0.004, sweep=0.35)   # 작은 등지느러미 (뒤로 누움)
+    TAIL = (-0.275, 0, 0.003)
+    fin_blade(TAIL, (-math.cos(math.radians(35)), 0, math.sin(math.radians(35))), (0, 0, 1), 0.11, 0.03, B, B, rays=0, thick=0.005, sweep=-0.3)   # 꼬리 위 갈래 (작으면 꼬리로 안 읽혔음)
+    fin_blade(TAIL, (-math.cos(math.radians(30)), 0, -math.sin(math.radians(30))), (0, 0, 1), 0.15, 0.032, B, B, rays=0, thick=0.005, sweep=0.3)   # 꼬리 아래 갈래 (더 김)
+    return finish("Critter_FlyingFish")
+
+
 def pond_preview():
     """연못 거북 모델 시트: 크기 비교 (토끼 · 오리 · 새끼 오리 · 바다거북과 나란히 옆) + 거북 비스듬히 · 정면 · 옆 · 뒤 · 위 (풀밭 바닥)."""
     others = [build_bunny(), build_duck(), build_duckling(), build_turtle()]
@@ -831,7 +910,26 @@ def sea_preview(sea, hide=()):
         shoot(sc, cam, cd, tag + "_top", c + Vector((-0.8, -0.7, 1.2)) * s * 1.35, c)   # 위 · 뒤에서 (뒤통수 · 등 이음 — 옆에선 안 보이는 패임)
 
 
-if POND_ONLY:
+def fly_preview():
+    """날치 모델 시트: 크기 비교 (물범 · 아기 물범 · 거북 · 게와 나란히 옆) + 날치 비스듬히 · 정면 · 옆 · 위 · 아래 · 뒤 (모래 바닥, 활공 높이)."""
+    others = [build_seal(), build_seal_pup(), build_turtle(), build_crab()]
+    ff = build_flying_fish()
+    sc, cam, cd, g = setup_preview((0.78, 0.7, 0.52))
+    sc.render.resolution_x, sc.render.resolution_y = 1400, 900
+    for o_, (x, z) in zip(others + [ff], ((0.0, 0.0), (1.2, 0.0), (2.35, 0.065), (3.3, 0.0), (4.2, 0.25))):
+        o_.location = (x, 0, z)                                                     # 거북 원점 = 물높이 → 배딱지만큼 띄움, 날치 = 활공 높이
+    shoot(sc, cam, cd, "fly_size", (2.15, -4.6, 0.5), (2.15, 0, 0.2), 30)
+    for o_ in others:
+        o_.hide_render = True
+    c = Vector((4.2, 0, 0.25))
+    for tag, d in (("q", (0.95, -0.85, 0.42)), ("face", (1.25, -0.22, 0.12)), ("side", (0.0, -1.3, 0.05)),
+                   ("top", (-0.15, -0.35, 1.25)), ("under", (0.45, -0.75, -0.2)), ("back", (-1.1, 0.55, 0.35))):
+        shoot(sc, cam, cd, "flyingfish_" + tag, c + Vector(d) * 0.85, c)
+
+
+if FLY_ONLY:
+    fly_preview()
+elif POND_ONLY:
     pond_preview()
 elif SEA_ONLY:
     sea_preview([f() for f in SEA_BUILDERS])
