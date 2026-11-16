@@ -3190,3 +3190,11 @@
 **main에 넣은 것**
 
 - `BlenderWork/Tools/trim_uv_export.py` (지어 둔 내부 모델에 트림 UV를 붙여 다시 내보냄 · 모양 비교), 셰이더 `SpaceStation/InteriorTrim` · 재질 여덟, `InteriorTrimImporter` (16비트 묶기 · 빈 UV0 · 내부 FBX 접선 뺌 — 열면 모델을 다시 가져옴), 아콜로지 · AI 중추 FBX, 시험 `InteriorTrimTests`, 문서 06a 7-11t · 체크리스트 222
+
+## M-221. 트림 — 진화 내부 47 · 키트 셋 트림 UV로 다시 내보내기 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 진화 내부 47 · 진화 키트 셋 FBX (트림 UV), `trim_uv_export.py` (방 여럿 · 품질 검사 · 선 고르기 · 조각 자리 · 법선 비교 · `--from-fbx` · 나눈 면 법선 그대로), 셰이더 `InteriorTrim` (면 폭 0이면 트림 아님), 시험 `InteriorTrimTests` (진화 프리팹 전부), 문서 06a 7-11t · 체크리스트 223
