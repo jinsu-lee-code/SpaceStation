@@ -528,6 +528,34 @@ namespace SpaceStation.Interior
             }
         }
 
+        /// <summary>
+        /// LODGroup 안 렌더러면 가장 정밀한 단계 (LOD0)인지 — 복사본엔 LODGroup이 없어 단계마다 복사하면 겹쳐 그려짐
+        /// (⑤-4 식물 LOD 프리팹 · 아틀라스 식물 _LOD0 ~ 2). 창밖 화면은 늘 가장 정밀하게.
+        /// </summary>
+        private static bool IsFinestLod(Renderer r)
+        {
+            var group = r.GetComponentInParent<LODGroup>();
+            if (group == null)
+                return true;
+            var lods = group.GetLODs();
+            if (lods.Length == 0)
+                return true;
+            foreach (var lr in lods[0].renderers)
+            {
+                if (lr == r)
+                    return true;
+            }
+            foreach (var lod in lods)
+            {
+                foreach (var lr in lod.renderers)
+                {
+                    if (lr == r)
+                        return false;
+                }
+            }
+            return true;   // 그룹에 없는 렌더러 (같은 부모 아래 다른 조각)
+        }
+
         private Mirror BuildMirror(Transform room)
         {
             // 바깥 축척 월드 자리에 직접 놓음 (부모 없이 — 자리 · 크기를 월드 값으로 맞춤), 이 보기를 없앨 때 함께 지움
@@ -536,7 +564,7 @@ namespace SpaceStation.Interior
             foreach (var r in room.GetComponentsInChildren<MeshRenderer>(true))
             {
                 if (IsWindow(r) || !r.TryGetComponent<MeshFilter>(out var filter) || filter.sharedMesh == null
-                    || (r.bounds.max.y < ceiling && !r.TryGetComponent<InteriorSkyMirrorAlways>(out _)))
+                    || (r.bounds.max.y < ceiling && !r.TryGetComponent<InteriorSkyMirrorAlways>(out _)) || !IsFinestLod(r))
                     continue;
                 var go = new GameObject(r.name);
                 go.transform.SetParent(mirror.Root, false);
@@ -546,6 +574,7 @@ namespace SpaceStation.Interior
                 copy.shadowCastingMode = ShadowCastingMode.Off;
                 copy.receiveShadows = false;
                 copy.renderingLayerMask = MirrorLayer;
+                copy.forceMeshLod = 0;   // ⑤-4 창밖 · 망원경 화면은 늘 가장 정밀하게 (1/8 축척이라 그냥 두면 식물 · 동물 Mesh LOD가 가장 낮게 골라짐)
                 copy.forceRenderingOff = true;
                 mirror.Pairs.Add((r, copy));
             }
