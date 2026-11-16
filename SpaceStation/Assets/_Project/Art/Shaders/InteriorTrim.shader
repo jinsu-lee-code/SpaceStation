@@ -3,6 +3,7 @@
 //   가져올 때 InteriorTrimImporter가 16비트로 묶음: UV1 = (선0, 선1) · UV2 = (선2, 선3, 면 폭, 0), 선이 없으면 11.
 //   묶음 = 같은 재질 · 46° 안 굽은 면이라 원기둥 · 굽은 띠는 한 덩이, 테두리 = 재질이 바뀌거나 각진 곳.
 //   UV1 · UV2가 0이면 (트림 UV 없는 메시 — 아직 다시 내보내지 않은 방 · 키트 · 다른 곳에서 같은 재질을 쓰는 메시) 장식 없이 예전 모습 그대로.
+//   면 폭 (UV2.z)이 0이면 UV1이 있어도 트림 아님 (Unity 기본 메시의 라이트맵 UV1).
 // _TrimKind: 0 금 띠 (모서리 빛 + 가로 결) · 1 금 상감 (테두리 안쪽 두 번째 선) · 2 진주 (보는 각에 따라 옅은 무지개 빛) · 3 흰 몸체 판 (1.2 m 이음선)
 //            4 금속 테 (테두리 따라 홈 둘) · 5 벽 판 (안쪽 테 어둡게) · 6 짙은 광택 (모서리 빛만, 세게)
 //   면 폭 (마주 보는 테두리 사이, m) — 가는 면 (손잡이 · 가는 테)은 모서리 빛 폭 ≤ 면 폭의 30 % (면 전체가 빛나지 않게).
@@ -71,7 +72,7 @@ Shader "SpaceStation/InteriorTrim"
         o.positionWS = pos.positionWS;
         o.normalWS = TransformObjectToWorldNormal(input.normalOS);
         o.trim = float4(input.trimA, input.trimB.xy);
-        o.width = input.trimB.z > 0.0 ? input.trimB.z : 10.0;
+        o.width = input.trimB.z;                       // 0 = 트림 값 없음 (UV1만 있는 메시 — Unity 기본 원기둥의 라이트맵 UV를 트림으로 읽어 막대 전체가 빛났음)
         o.fogFactor = ComputeFogFactor(pos.positionCS.z);
         return o;
     }
@@ -122,7 +123,7 @@ Shader "SpaceStation/InteriorTrim"
                 half3 albedo = _BaseColor.rgb;
                 half smooth = _Smoothness;
 
-                bool hasTrim = max(max(i.trim.x, i.trim.y), max(i.trim.z, i.trim.w)) > 0.5;
+                bool hasTrim = i.width > 0.0 && max(max(i.trim.x, i.trim.y), max(i.trim.z, i.trim.w)) > 0.5;
                 if (hasTrim)
                 {
                     float4 d = i.trim - 1.0;                                   // 선 넷까지 거리 (m)

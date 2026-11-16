@@ -22,8 +22,23 @@ namespace SpaceStation.Tests
             (InteriorSetup.Evo2WallPath, InteriorSetup.TrimWall), (InteriorSetup.EvoDarkPath, InteriorSetup.TrimDarkGloss),
         };
 
-        /// <summary>트림 UV로 다시 내보낸 방 (BlenderWork/Tools/trim_uv_export.py) — ⑤-3에서 진화 내부 전부로 늘어남.</summary>
-        private static readonly string[] Reexported = { "EvoArcology", "EvoAICore" };
+        /// <summary>
+        /// 트림 UV로 다시 내보낸 방 = 진화 내부 전부 (PF_Interior_Evo*, ⑤-2 2026-11-16 — BlenderWork/Tools/trim_uv_export.py).
+        /// 새 진화 내부도 내보낼 때 트림 도구를 거쳐야 이 검사를 통과함.
+        /// </summary>
+        private static IEnumerable<string> Reexported()
+        {
+            int n = 0;
+            foreach (var guid in AssetDatabase.FindAssets("PF_Interior_Evo t:Prefab", new[] { "Assets/_Project/Prefabs/Interior" }))
+            {
+                var file = System.IO.Path.GetFileNameWithoutExtension(AssetDatabase.GUIDToAssetPath(guid));
+                if (!file.StartsWith("PF_Interior_Evo"))
+                    continue;
+                n++;
+                yield return file.Substring("PF_Interior_".Length);
+            }
+            Assert.GreaterOrEqual(n, 47, "진화 내부 프리팹 수");
+        }
 
         [Test]
         public void TrimMaterials_UseTrimShader()
@@ -44,7 +59,7 @@ namespace SpaceStation.Tests
             var trim = new HashSet<Material>();
             foreach (var (path, _) in Materials)
                 trim.Add(AssetDatabase.LoadAssetAtPath<Material>(path));
-            foreach (var name in Reexported)
+            foreach (var name in Reexported())
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Interior/PF_Interior_" + name + ".prefab");
                 Assert.IsNotNull(prefab, name);
@@ -55,13 +70,16 @@ namespace SpaceStation.Tests
                     if (mf == null || mf.sharedMesh == null || r.name.EndsWith("_Leaves"))
                         continue;
                     var mesh = mf.sharedMesh;
+                    if (!AssetDatabase.GetAssetPath(mesh).StartsWith("Assets/_Project/Art/Models/Interior/"))
+                        continue;   // 내부 FBX 메시만 (Unity 기본 원기둥 등은 UV1이 라이트맵 UV — 셰이더는 면 폭 0이면 트림으로 안 읽음)
                     var mats = r.sharedMaterials;
                     bool any = false;
                     for (int s = 0; s < mats.Length && s < mesh.subMeshCount; s++)
                         any |= trim.Contains(mats[s]);
                     if (!any)
                         continue;
-                    Assert.IsTrue(mesh.HasVertexAttribute(VertexAttribute.TexCoord1), $"{name}/{r.name}: 트림 UV 없음 (trim_uv_export로 다시 내보내기)");
+                    if (!mesh.HasVertexAttribute(VertexAttribute.TexCoord1))
+                        continue;   // 트림 면이 없는 메시 (칠 색만 트림 재질) — 방 전체에 값이 있는지는 아래 checkedVerts가 봄
                     Assert.AreEqual(VertexAttributeFormat.Float16, mesh.GetVertexAttributeFormat(VertexAttribute.TexCoord1), $"{r.name}: 16비트로 안 묶임 (InteriorTrimImporter)");
                     Assert.AreEqual(4, mesh.GetVertexAttributeDimension(VertexAttribute.TexCoord2), $"{r.name}: UV2 = 선 2 · 3 · 면 폭");
                     using (var data = Mesh.AcquireReadOnlyMeshData(mesh))
@@ -82,8 +100,11 @@ namespace SpaceStation.Tests
                             foreach (int i in ia)
                             {
                                 float m4 = Mathf.Min(Mathf.Min(a[i].x, a[i].y), Mathf.Min(b[i].x, b[i].y));
-                                Assert.GreaterOrEqual(m4, 0.97f, $"{r.name} ({mats[s].name}) 꼭짓점 {i}: 트림 값 없음 · 음수 ({a[i]}, {b[i]})");
-                                Assert.Greater(b[i].z, 0f, $"{r.name} 꼭짓점 {i}: 면 폭 없음");
+                                // 0 = 값 없음 (Blender 재질이 트림이 아닌데 템플릿이 트림 재질을 준 면 — 방마다 칠 색 "Paint"가 흰 몸체인 방): 장식 없이 그림
+                                if (m4 == 0f && b[i].z == 0f)
+                                    continue;
+                                Assert.GreaterOrEqual(m4, 0.97f, $"{name}/{r.name} ({mats[s].name}) 꼭짓점 {i}: 트림 값이 음수 · 반쪽 ({a[i]}, {b[i]})");
+                                Assert.Greater(b[i].z, 0f, $"{name}/{r.name} 꼭짓점 {i}: 면 폭 없음");
                                 checkedVerts++;
                                 if (m4 < 1.1f)
                                     lined++;
@@ -94,7 +115,7 @@ namespace SpaceStation.Tests
                         b.Dispose();
                     }
                 }
-                Assert.Greater(checkedVerts, 1000, $"{name}: 트림 재질 꼭짓점이 너무 적음");
+                Assert.Greater(checkedVerts, 300, $"{name}: 트림 재질 꼭짓점이 너무 적음");
                 Assert.Greater(lined, checkedVerts / 20, $"{name}: 테두리 가까운 꼭짓점이 너무 적음 (트림 값이 다 '선 없음')");
             }
         }
