@@ -730,5 +730,122 @@ namespace SpaceStation.Tests
                 Object.DestroyImmediate(root);
             }
         }
+
+        /// <summary>
+        /// 석호 수련 (식물 아틀라스 ④ 2026-11-16): 정원 식물 수 = <see cref="OrbitalPort.Lilies"/> · 거리별 단순화 · 충돌체 없음 · 재질 M_Foliage 하나,
+        /// 잎 꼭짓점 (가장 가까운 단계)이 모두 수면 위 (25 cm 안) · 밑 물 깊이 4 cm 넘게 · 위 1.5 m 안에 모델 없음 · 배 길에서 1.3 m · 거북 헤엄 고리에서 0.5 m ·
+        /// 날치 활공 길에서 0.6 m · 조개 · 경첩에서 1.4 m · 방 벽 안쪽 · 등이 닿는 곳 (점광원 합 0.2), 삼각형 예산 (내부 모델 조각 INT_* + 식물 가장 가까운 단계 ≤ 150k).
+        /// </summary>
+        [Test]
+        public void Lilies_OnOpenWaterClearOfRides()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                foreach (var col in root.GetComponentsInChildren<Collider>())
+                    if (col.name.EndsWith("_LakeHit"))
+                        col.enabled = false;                        // 물 깊이 = 석호 바닥 (물 막이 상자 말고)
+                Physics.SyncTransforms();
+                var foliage = AssetDatabase.LoadAssetAtPath<Material>(SpaceStation.Editor.PlantAtlas.MaterialPath);
+                var garden = root.transform.Find("Garden");
+                Assert.IsNotNull(garden, "Garden 없음");
+                Assert.AreEqual(OrbitalPort.Lilies.Length, garden.childCount, "수련 수");
+                Assert.GreaterOrEqual(OrbitalPort.Lilies.Length, 12, "수련이 너무 적음");
+
+                // 거북 헤엄 고리 (Critters_OnTheirSpots와 같은 계산)
+                var loop = new List<Vector3>();
+                var holder = root.transform.Find("Critters_Turtle");
+                var arr = new SerializedObject(holder.GetComponent<SpaceStation.Building.CritterFx>()).FindProperty("_critters");
+                for (int i = 0; i < arr.arraySize; i++)
+                {
+                    var e = arr.GetArrayElementAtIndex(i);
+                    var part = (Transform)e.FindPropertyRelative("Part").objectReferenceValue;
+                    float side = e.FindPropertyRelative("Side").floatValue;
+                    SpaceStation.Building.CritterFx.SwimSize(true, e.FindPropertyRelative("Radius").floatValue, 0f, Mathf.Abs(side), out float ra, out float rb);
+                    var heading = e.FindPropertyRelative("Heading").vector3Value;
+                    for (int k = 0; k < 48; k++)
+                        loop.Add(holder.TransformPoint(part.localPosition + SpaceStation.Building.CritterFx.SwimOffset(heading, Mathf.Sign(side), ra, rb, 2f * Mathf.PI * k / 48f)));
+                }
+                Assert.Greater(loop.Count, 0, "거북 고리 없음");
+
+                var lights = new List<Light>();
+                foreach (var l in root.GetComponentsInChildren<Light>(true))
+                    if (l.type == LightType.Point)
+                        lights.Add(l);
+                Assert.Greater(lights.Count, 0, "방 등 없음");
+
+                long tris = 0;
+                foreach (Transform plant in garden)
+                {
+                    Assert.IsNotNull(plant.GetComponent<LODGroup>(), $"{plant.name}: 거리별 단순화 없음");
+                    float lit = 0f;                                 // 등이 닿는 곳 (어두운 물에서는 수련이 검은 점 무늬)
+                    foreach (var l in lights)
+                    {
+                        float d = Vector3.Distance(l.transform.position, plant.position);
+                        if (d < l.range)
+                            lit += l.intensity * (1f - d / l.range) * (1f - d / l.range);
+                    }
+                    Assert.GreaterOrEqual(lit, 0.2f, $"{plant.name} {plant.localPosition}: 등이 닿지 않는 어두운 물");
+                    Assert.AreEqual(0, plant.GetComponentsInChildren<Collider>(true).Length, $"{plant.name}: 충돌체");
+                    foreach (var r in plant.GetComponentsInChildren<MeshRenderer>(true))
+                    {
+                        Assert.AreEqual(1, r.sharedMaterials.Length, $"{r.name}: 재질 칸이 하나가 아님");
+                        Assert.AreEqual(foliage, r.sharedMaterial, $"{plant.name}/{r.name}: 재질이 M_Foliage가 아님");
+                        if (r.name.EndsWith("_LOD0"))
+                            tris += Tris(r.GetComponent<MeshFilter>().sharedMesh);
+                    }
+                    foreach (var v in SpaceStation.Editor.InteriorPlantVariants.Vertices(plant.gameObject))
+                    {
+                        var p = plant.TransformPoint(v);
+                        var xz = new Vector2(p.x, p.z);
+                        string at = $"{plant.name} {p}";
+                        Assert.IsTrue(p.y > OrbitalPort.LagoonLevel + 0.003f && p.y < OrbitalPort.LagoonLevel + 0.25f, $"{at}: 수면 위가 아님");
+                        Assert.IsTrue(p.x > -3.75f && p.x < 51.75f && p.z > -3.75f && p.z < 11.75f, $"{at}: 방 벽에 붙음");
+                        Assert.IsTrue(Physics.Raycast(new Vector3(p.x, OrbitalPort.LagoonLevel + 0.01f, p.z), Vector3.down, out var bed, 3f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), $"{at}: 밑 없음");
+                        Assert.Greater(OrbitalPort.LagoonLevel - bed.point.y, 0.04f, $"{at}: 물이 얕음 (모래 위)");
+                        Assert.IsFalse(Physics.Raycast(new Vector3(p.x, OrbitalPort.LagoonLevel + 0.02f, p.z), Vector3.up, out var over, 1.5f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore),
+                            $"{at}: 위에 모델 ({over.collider?.name})");
+                        Assert.Greater(OrbitalPort.CourseDistance(xz), 1.3f, $"{at}: 배 길에 걸림");
+                        foreach (var q in loop)
+                            Assert.Greater((new Vector2(q.x, q.z) - xz).magnitude, 0.5f, $"{at}: 거북 헤엄 고리에 걸림");
+                        foreach (var (_, fish, facing) in OrbitalPort.FlyingFish)
+                        {
+                            var face = new Vector2(Mathf.Cos(facing * Mathf.Deg2Rad), Mathf.Sin(facing * Mathf.Deg2Rad));
+                            var a = new Vector2(fish.x, fish.z) - face * (OrbitalPort.FlyingFishGlide * 0.5f);
+                            var seg = face * OrbitalPort.FlyingFishGlide;
+                            float u = Mathf.Clamp01(Vector2.Dot(xz - a, seg) / seg.sqrMagnitude);
+                            Assert.Greater((xz - (a + seg * u)).magnitude, 0.6f, $"{at}: 날치 활공 길에 걸림");
+                        }
+                        for (int k = 0; k < OrbitalPort.Clams.Length; k++)
+                        {
+                            Assert.Greater((xz - new Vector2(OrbitalPort.Clams[k].x, OrbitalPort.Clams[k].y)).magnitude, 1.4f, $"{at}: 조개 {k}에 붙음");
+                            Assert.Greater((xz - new Vector2(OrbitalPort.ClamHinges[k].x, OrbitalPort.ClamHinges[k].z)).magnitude, 1.4f, $"{at}: 조개 경첩 {k}에 붙음");
+                        }
+                    }
+                }
+                foreach (var f in root.GetComponentsInChildren<MeshFilter>(true))
+                {
+                    if (f.name.StartsWith(N))                       // 내부 모델 조각만 (동물 = 따로 모델 SM_InteriorCritters — 이 예산 밖)
+                        tris += Tris(f.sharedMesh);
+                }
+                Assert.LessOrEqual(tris, 150000, "삼각형 예산 (내부 모델 조각 + 수련 가장 가까운 단계)");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        private static long Tris(Mesh mesh)
+        {
+            long n = 0;
+            if (mesh == null)
+                return 0;
+            for (int s = 0; s < mesh.subMeshCount; s++)
+                n += mesh.GetIndexCount(s) / 3;
+            return n;
+        }
     }
 }

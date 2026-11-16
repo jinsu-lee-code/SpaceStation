@@ -5710,6 +5710,7 @@ namespace SpaceStation.Editor
                     root.AddComponent<InteriorFountainToss>().Configure(StartBox("FountainTossStart", OrbitalPort.TossStart, OrbitalPort.TossStartSize),
                         pearlSrc.GetComponent<MeshFilter>().sharedMesh, pearlSrc.GetComponent<Renderer>().sharedMaterial,
                         ModuleFxMaterials.Get("FireworkLine"), ModuleFxMaterials.Get("FireworkSpark"), rideFont);
+                    PlaceGarden(root, OrbitalPort.Lilies);   // 석호 수련 (식물 아틀라스 ④) — 헤엄 막힘을 잰 뒤라 거북 고리에 끼지 않음 (자리가 고리 · 배 길을 비킴)
                 });
         }
 

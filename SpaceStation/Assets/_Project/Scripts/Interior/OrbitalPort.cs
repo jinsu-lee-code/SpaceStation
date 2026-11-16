@@ -8,7 +8,7 @@ namespace SpaceStation.Interior
     /// 뒤 산호 방파제 (소라 문), 오른쪽 = 진주 잔교 · 산호 기중기 운전대 · 큰 진주 조개 셋 + 잡기 단 · 앵무조개 창고 · 등대 전망대.
     /// 사용자 결정 (2026-11-16): 체험 = 해마 가리비 배 뱃놀이, 미니게임 = 진주 조개 잡기 + 인어 분수 진주 던지기. 각은 x-z 평면 수학 각 (0° = +x, 90° = +z).
     /// </summary>
-    public static class OrbitalPort
+    public static partial class OrbitalPort
     {
         public const float Floor = -2.08f;
         /// <summary>석호 수면 · 바닥, 섬 풀밭 윗면 (땅 위 1.8 cm), 궁전 길 · 분수 마당 돌판 윗면, 잔교 마루.</summary>
