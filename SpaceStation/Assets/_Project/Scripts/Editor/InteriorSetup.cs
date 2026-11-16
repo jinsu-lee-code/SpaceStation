@@ -628,6 +628,8 @@ namespace SpaceStation.Editor
             hedge.SetTexture("_DetailAlbedo", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.HedgeAlbedoPath));
             hedge.SetFloat("_UseDetailAlbedo", 1f);
             hedge.EnableKeyword("_DETAIL_ALBEDO");
+            hedge.SetFloat("_UseVertexAO", 1f);                    // 잎 덩이 골 그늘 = 꼭짓점 색 (Blender HedgeAO — 옆면 굴곡과 같은 자리, 2026-11-16 사용자 "옆면도 음영에 따라 굴곡지게")
+            hedge.EnableKeyword("_VERTEX_AO");
             hedge.SetTexture("_DetailNormal", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.HedgeNormalPath));
             hedge.SetTexture("_DetailMask", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.HedgeMaskPath));
             hedge.SetFloat("_Tiling", 0.6f);
