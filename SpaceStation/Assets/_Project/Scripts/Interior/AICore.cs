@@ -9,7 +9,7 @@ namespace SpaceStation.Interior
     /// 사용자 결정 (2026-11-16): 체험 = 정원 드론 타고 뇌 위 날기 + 수정 뇌 깨우기 빛 쇼, 미니게임 = 뇌 미로 빨리 빠져나가기 (빛 구슬 셋 모으기) + 시냅스 따라 켜기.
     /// 각은 x-z 평면 수학 각 (0° = +x, 90° = +z), yaw는 Unity (0° = +z, 90° = +x).
     /// </summary>
-    public static class AICore
+    public static partial class AICore
     {
         public const float Floor = -2.08f;
         /// <summary>미로 진주 자갈 윗면 · 빈터 · 앞마당 판석 윗면 · 판석 길 윗면 · 정자 단 윗면 (ai3_builder GRAVEL_Y · PAVE_Y · POD_Y).</summary>

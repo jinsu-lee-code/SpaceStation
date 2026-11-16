@@ -57,11 +57,15 @@
 ### 7-5a. 식물 아틀라스 · 공용 식물 재질 (2026-11-16, 사용자 "트림 시트처럼 한 장으로 — 우리 식물까지")
 
 - 모든 식물 = 텍스처 한 벌 (`Art/Plants/T_PlantAtlas_A` 4096 sRGB · 알파 잘라내기, `_N` · `_M` 2048 — 마스크 R 윤기 · G 차폐 · B 두께) + 재질 하나 `M_Foliage` (셰이더 `SpaceStation/Foliage`: 양면 · 빛 비침 (해 + 점광원 — 밤 내부는 등불이 거의 다) · 꼭짓점 색 R 그늘 · 살랑임 · 시듦 MPB `_Wilt`). 굽기 = `PlantAtlas` (메뉴 SpaceStation/Plants/Bake Plant Atlas · Setup).
-- 칸 (바탕 px, 왼쪽 아래 원점): 샘플 잎 · 꽃 (0, 2048, 2048²) · 벚꽃 가지 (2048, 3072, 1024²) · 우리 색 칸 (2048, 2048, 8 × 8 · 128 px — `PlantAtlas.SwatchUV(재질 이름)`) · 우리 그림 (3072, 2048, 1024 × 2048 — 비움, ④에서) · 줄기 트림 띠 (아래 256 px씩: 등나무 · 대나무 · 벚나무 · 빈 띠).
+- 칸 (바탕 px, 왼쪽 아래 원점): 샘플 잎 · 꽃 (0, 2048, 2048²) · 벚꽃 가지 (2048, 3072, 1024²) · 우리 색 칸 (2048, 2048, 8 × 8 · 128 px — `PlantAtlas.SwatchUV(재질 이름)`) · 우리 그림 (3072, 2048, 1024 × 2048 — 왼쪽 아래 금빛 등나무 꽃송이 (`GoldRaceme`, 샘플 보라 꽃송이를 톤 뒤 밝은 금빛으로), 나머지는 ④에서) · 줄기 트림 띠 (아래 256 px씩: 등나무 · 대나무 · 벚나무 · 빈 띠).
 - 줄기처럼 길이 방향으로 반복하는 UV는 칸에 못 넣음 → **가로 끝까지 이어진 띠** (트림 시트): 원래 v (길이) → 가로 (128 px마다, 4096 = 32번 · 텍스처 가로 반복), 원래 u (둘레 −0.5 ~ 1.5) → 띠 높이 (128 px = 한 바퀴). 노멀은 축을 바꿨으니 x · y도 바꿔 붙임.
 - 원본 = 저장소 `ArtSource/Plants/URPSample` (Unity URP 3D Sample Garden, Unity Companion License — Unity 프로젝트 안에서만), 메시 = `Art/Plants/Meshes`에 원본 FBX 그대로 → `PlantMeshImporter`가 가져올 때 FBX 재질 이름으로 칸을 골라 UV를 옮기고 재질 칸을 하나로 합침 (식물 하나 = 그리기 한 번, _LOD0 ~ 2는 Unity LODGroup). 가져오기 결과가 재질 `M_Foliage`에 기대므로 `context.DependsOnSourceAsset` 필수 (빠지면 "inconsistent result" 경고).
 - 톤 (사용자: 우리 잎 색 + 조금 만화풍): 잎 안쪽 명암 대비 55 % · 밝기 6단계 30 % · × 1.12 + 0.035 · 초록 색상 → 0.265 (새순 연두) 쪽 20 % · 채도 × 1.15. 투명 자리는 밀고 당기기로 둘레 잎 색을 채움 (검은 바탕이 밉맵에서 검은 테로 섞임). 압축 = BC7 (밉맵 덮음 유지 · 잘라내기 0.45) · 노멀 BC5.
 - 뺀 샘플: 큰 벚나무 (6.2만 삼각형), 감탕나무 덤불 (작은 잎 사이 구멍이 촘촘히 비침 — 환공포증), Oasis 마른 풀 · 수크령 · 야자.
+- **정원 식물 놓기 (② AI 중추, 2026-11-16)**: 자리는 Blender 빌더가 실제 식물 꼭짓점으로 정하고 (`ai3_part6` — FBX를 읽어 Unity 좌표 (−X, Z, −Y)로, Unity와 같은 크기 → yaw 식), 목록 `AICore.Garden` (`GardenPlant` 메시 · 자리 · yaw · 크기)을 템플릿 빌드가 `Garden` 아래에 모델 프리팹으로 놓음 (`PlaceGarden`, 충돌체 없음 · 그림자 끔 · LODGroup 그대로). 내보내기 검사에 **삼각형 = 모델 + 식물 LOD0 ≤ 15만** (`BUDGET`), Unity 시험 `Garden_OnFoliageWithinBudget`.
+- **생울타리에 붙는 덩굴 = 꽃송이 단 벽 덩굴** (`ArtSource/Plants/make_wisteria_bloom.py` → `WisteriaVineWallBloom_Mesh` 보라 · `WisteriaVineWallBloomGold_Mesh` 금빛, 100 삼각형): 샘플 벽 덩굴만으로는 짙은 잎이 생울타리 잎과 같아 플레이에서 거의 묻혔음 (가지만 보임) → 샘플 땅 덩굴의 빽빽한 꽃송이 UV 칸으로 엇갈린 판 두 장 꽃송이 일곱을 잎 앞 3 cm에 매담. 길 찾기 색을 지켜 앞 반구 = 보라 · 뒤 반구 = 금빛 (크림은 밤빛에서 누런 갈색으로 묻혀 밝은 금빛으로). 원점 = 어깨 면 (가운데 선 바깥 0.3 m · 윗면 − 3 ~ 17 cm에서 가장 가까운 면 + 4 mm), −z = 면 바깥, **면 법선 축을 0.42 ~ 0.7배로 눌러** 길 폭을 지킴, 면 맞춤 = 꼭짓점 속 비율 ≤ 32 % · 면 밖 가장 먼 점 ≤ 24 cm · 15 cm 넘게 뜬 비율 ≤ 12 %, 꽃 무리 (`BLOSSOM_AT`) 0.62 m · 열린 끝 0.6 m · 입구 기둥은 비킴.
+- **혼자 서는 식물 (땅 등나무 — 줄기 · 잎 덩어리)은 벽 · 생울타리 면에 붙이지 않음**: 면 앞에 세우면 잎 덩어리가 30 cm 넘게 뜸 (뜬 비율 25 ~ 60 %), 처음엔 가장 가까운 면을 골라 생울타리 뒤 (미로 안) 면에 붙었음 → 붙일 면은 바라는 자리 쪽 법선만.
+- **FBX에 새 재질 칸을 만들 땐 기존 잎 재질을 복사** (`material.copy()`): 속성 없는 빈 재질 (`bpy.data.materials.new`)이 든 FBX는 Unity가 가져올 때마다 결과가 달라 "Importer generated inconsistent result" 경고 (금빛 덩굴만).
 
 ## 7-6. 움직이는 계층 모델 (12-3b 합성 기계팔 · 고리, `BlenderWork/SynthArm/arm_builder.py`)
 - **관절 계층이 있는 FBX는 `bake_space_transform=False`로 내보내고 Unity `ModelImporter.bakeAxisConversion = true`로 축을 맞춘다.** `True`로 내보냈더니 자식 관절의 위치 · 회전이 엉켜 들어왔음(윗팔이 90° 돌아 있고 원점이 어긋남). 결과: 루트만 축 변환 회전, 관절은 모두 회전 0.

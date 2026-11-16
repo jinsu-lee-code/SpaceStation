@@ -3122,3 +3122,15 @@
 - `PlantMeshImporter` (식물 메시 UV를 아틀라스 칸으로 · 재질 하나로), 메시 `Art/Plants/Meshes` (URP 3D Sample Garden 원본 FBX 15), 원본 `ArtSource/Plants/URPSample` (Unity Companion License)
 
 - 문서: 03 7-5a · 체크리스트 216
+
+## M-214. AI 중추 정원 식물 — 꽃송이 단 등나무 덩굴 · 풀밭 식물 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 생울타리 윗면 새순 뺌 → 꽃송이 단 등나무 벽 덩굴 45 (앞 반구 보라 · 뒤 반구 금빛), 풀밭 맥문동 · 수호초 · 벚나무 덤불 10 — 자리 `AICore.Garden` (`GardenPlant`), 템플릿 `PlaceGarden`
+
+- 꽃송이 덩굴 메시 `WisteriaVineWallBloom` · `BloomGold` (`ArtSource/Plants/make_wisteria_bloom.py`), 아틀라스 금빛 꽃송이 칸 `PlantAtlas.GoldRaceme`, `PlantMeshImporter` 판 2
+
+- 시험 `Garden_OnFoliageWithinBudget` (삼각형 모델 + 식물 LOD0 ≤ 15만), 문서: 03 7-5a · 체크리스트 217
