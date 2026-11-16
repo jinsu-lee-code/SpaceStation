@@ -136,6 +136,7 @@ namespace SpaceStation.Editor
             BuildEvoOrbitalDefense();
             BuildEvoRepairCommand();
             BuildEvoOrbitalPort();
+            BuildEvoAICore();
         }
 
         /// <summary>
@@ -5712,6 +5713,99 @@ namespace SpaceStation.Editor
                 });
         }
 
+        /// <summary>
+        /// 진화 3단계 AI 중추 "수정 뇌 미로 정원" (바닥 L자 일곱 칸 한 층 — ai3_builder, 사용자 2026-11-16 시안 1-2 "좋아 이대로 Unity 작업 진행해줘"):
+        /// 뇌 두 반구 생울타리 미로 · 빈터 유리 돔 정자 (수정 뇌 · 책 받침 넷 · 시냅스 수정 여섯) · 장미 아치 문 앞마당 · 드론 마당 앞마당 · 드론 둥지 탑 · 유리 온실 · 꽃밭.
+        /// 움직이는 조각 (Brain · BookL{k} · BookR{k} · Synapse{k} · MazeBoard · Drone · VeinsFront · VeinsBack)은 원점 = 쓰는 자리 —
+        /// 체험 둘 (<see cref="InteriorDroneRide"/> 정원 드론 · <see cref="InteriorBrainShow"/> 수정 뇌 빛 쇼) · 미니게임 둘 (<see cref="InteriorMazeRun"/> 뇌 미로 · <see cref="InteriorSynapseMemory"/> 시냅스 따라 켜기).
+        /// </summary>
+        private static void BuildEvoAICore()
+        {
+            const string N = "INT_EvoAICore_";
+            const float F = AICore.Floor;
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in AICore.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, AICore.DoorDepth));
+            foreach (var (cell, off, floorY) in AICore.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -floorY, new Vector3(off.x, 0f, off.y)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var cool = new Color(0.9f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, z) in new[] { (4.6f, 4f), (11.4f, 4f), (8f, 0.3f), (8f, 7.7f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.1f, z), 7f, 0.8f, white));                                    // 빈터 둘레 (정자 돔 · 꼭대기 테에서 떨어져)
+            foreach (var l in AICore.Lobbies)
+                lights.Add(LightSpec.Point(new Vector3(l.x, F + 3.0f, l.y), 7f, 0.8f, white));                                // 앞마당 둘
+            foreach (var (x, z) in new[] { (1f, 0.2f), (15f, 0.2f), (1f, 7.8f), (15f, 7.8f), (8f, -1.6f), (8f, 9.6f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.2f, z), 7f, 0.7f, cool));                                     // 미로 (생울타리 위 — 드론 길 1.5 m 아래)
+            foreach (var (x, z) in new[] { (21.5f, 1.4f), (26.6f, 2.3f), (23.2f, -2.6f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, z), 7f, 0.75f, white));                                   // 드론 마당 (판석 길 · 작업대 · 꽃밭 · 온실)
+            EvoAccent("AICore", "#D8C0FF");
+            // 스폰 = 드론 마당 앞마당 옆 판석 길 (큰길 너머 정자 · 미로 입구 시냅스 기둥을 봄). 한 층이라 자기 방을 하늘 화면에 비출 것 없음
+            Build("EvoAICore", "Evolved/MD_Evo_AICore", sockets, AICore.Spawn, AICore.SpawnYaw, lights,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    var glow = AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorLight.mat");
+                    var spark = ModuleFxMaterials.Get("FireworkSpark");
+                    BoxCollider Box(string name, Transform parent, Vector3 at, Vector3 size, int layer = 0)
+                    {
+                        var go = new GameObject(name);
+                        go.layer = layer;
+                        go.transform.SetParent(parent, false);
+                        go.transform.localPosition = at;
+                        var box = go.AddComponent<BoxCollider>();
+                        box.size = size;
+                        return box;
+                    }
+                    // 체험 ① 정원 드론 (InteriorDroneRide): 앉음판 둘 (보고 F) · 바구니 엮은 벽 충돌 상자 (서쪽 트임 ±45°는 비움, 보는 광선은 지나감 = Ignore Raycast —
+                    //  착륙장에 선 드론 바구니로 걸어 들어가지 않게, 앉음판은 트임으로 겨눔)
+                    var drone = Child(root, N + "Drone");
+                    var seats = new Transform[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        var seat = Box(k == 0 ? "DroneSeatL" : "DroneSeatR", drone, AICore.DroneSeat(k), new Vector3(0.5f, 0.7f, 0.46f));
+                        seat.center = new Vector3(0f, 0.1f, 0f);
+                        seats[k] = seat.transform;
+                    }
+                    const int wallSegs = 9;
+                    float wallFrom = 180f + AICore.BasketOpening, wallStep = (360f - 2f * AICore.BasketOpening) / wallSegs;
+                    for (int k = 0; k < wallSegs; k++)
+                    {
+                        float a = (wallFrom + wallStep * (k + 0.5f)) * Mathf.Deg2Rad;
+                        var radial = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                        var wall = Box("BasketWall" + k, drone, radial * AICore.BasketRadius + Vector3.up * (AICore.BasketRim * 0.5f + 0.06f),
+                            new Vector3(2f * AICore.BasketRadius * Mathf.Sin(wallStep * 0.5f * Mathf.Deg2Rad) + 0.04f, AICore.BasketRim, 0.08f), 2);
+                        wall.transform.localRotation = Quaternion.LookRotation(radial, Vector3.up);
+                    }
+                    root.AddComponent<InteriorDroneRide>().Configure(drone, seats, font);
+                    // 미니게임 시냅스 따라 켜기 (InteriorSynapseMemory) · 체험 ② 수정 뇌 빛 쇼 (InteriorBrainShow) — 서로 막음
+                    var synapses = new Transform[AICore.Synapses.Length];
+                    for (int k = 0; k < synapses.Length; k++)
+                        synapses[k] = Child(root, N + "Synapse" + k);
+                    var books = new Transform[AICore.LecternAngles.Length];
+                    var lecterns = new Collider[books.Length];
+                    for (int k = 0; k < books.Length; k++)
+                    {
+                        books[k] = Child(root, N + "BookR" + k);
+                        var use = new GameObject("LecternUse" + k).AddComponent<SphereCollider>();   // 받침 판 · 책 (보고 F)
+                        use.transform.SetParent(r, false);
+                        use.transform.localPosition = AICore.LecternPlate(k);
+                        use.radius = 0.32f;
+                        lecterns[k] = use;
+                    }
+                    var veins = new[] { Child(root, N + "VeinsFront").GetComponent<Renderer>(), Child(root, N + "VeinsBack").GetComponent<Renderer>() };
+                    var show = root.AddComponent<InteriorBrainShow>();
+                    var memory = root.AddComponent<InteriorSynapseMemory>();
+                    memory.Configure(synapses, Box("SynapseStart", r, AICore.SynapseStart, AICore.SynapseStartSize), glow, spark, show, font);
+                    show.Configure(Child(root, N + "Brain"), books, lecterns, veins, spark, memory, font);
+                    // 미니게임 뇌 미로 빨리 빠져나가기 (InteriorMazeRun): 기록판 충돌 상자 (판 앞면 · 보고 F), 빛 구슬 = 빛 재질 + 작은 등
+                    var board = Child(root, N + "MazeBoard");
+                    var boardUse = Box("MazeBoardUse", board, new Vector3(-0.012f, 0f, 0f), new Vector3(0.05f, AICore.MazeBoardSize.y + 0.06f, AICore.MazeBoardSize.x + 0.06f));
+                    root.AddComponent<InteriorMazeRun>().Configure(board, boardUse, glow, spark, font);
+                });
+        }
+
         /// <summary>내부 전용 동물 모델 (critter_builder — SM_InteriorCritters, 미터): 이름 "Critter_종류" → 모델.</summary>
         private static Dictionary<string, GameObject> InteriorCritterModels()
         {
@@ -7429,6 +7523,11 @@ namespace SpaceStation.Editor
                 { "Evo3Mint", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3MintPath) },
                 { "Evo3Lilac", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LilacPath) },
                 { "Evo3BeachSand", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3BeachSandPath) },   // 궤도 항만 땅 (2026-11-16 — 모래 + 물가 젖은 띠)
+                // AI 중추 (ai3_builder, 2026-11-16): 다듬은 생울타리 (트라이플래너 잎) · 바닥 빛 신경 (외형과 같은 흐르는 빛 — 앞 보라 · 뒤 금, 물결 가운데는 빛 쇼가 칸 블록으로 정함) · 시냅스 점 (반짝임)
+                { "Evo3Hedge", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3HedgePath) },
+                { "Evo3NeuronPurple", ModuleFxMaterials.Get("NeuralPurple") },
+                { "Evo3NeuronGold", ModuleFxMaterials.Get("NeuralGold") },
+                { "Evo3Synapse", ModuleFxMaterials.Get("TwinkleWhite") },
             };
             for (int i = 0; i < 7; i++)
                 materials["Evo3Rainbow" + i] = ModuleFxMaterials.Get("Rainbow" + i);   // 프리즘 무지개 고리 일곱 (바깥과 같은 빛 물결)
