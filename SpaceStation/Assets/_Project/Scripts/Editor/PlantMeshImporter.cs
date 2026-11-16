@@ -13,7 +13,7 @@ namespace SpaceStation.Editor
         private bool IsPlant => assetPath.Replace('\\', '/').StartsWith(PlantAtlas.MeshFolder);
 
         /// <summary>칸 표 (`PlantAtlas.ToAtlas`)를 바꾸면 올림 — 식물 메시를 모두 다시 가져옴.</summary>
-        public override uint GetVersion() => 1;
+        public override uint GetVersion() => 2;
 
         private void OnPreprocessModel()
         {

@@ -5803,7 +5803,34 @@ namespace SpaceStation.Editor
                     var board = Child(root, N + "MazeBoard");
                     var boardUse = Box("MazeBoardUse", board, new Vector3(-0.012f, 0f, 0f), new Vector3(0.05f, AICore.MazeBoardSize.y + 0.06f, AICore.MazeBoardSize.x + 0.06f));
                     root.AddComponent<InteriorMazeRun>().Configure(board, boardUse, glow, spark, font);
+                    PlaceGarden(root, AICore.Garden);   // 생울타리 등나무 덩굴 · 꽃 등나무 · 풀밭 맥문동 · 수호초 · 벚나무 덤불 (식물 아틀라스)
                 });
+        }
+
+        /// <summary>
+        /// 정원 식물 (식물 아틀라스 메시 <c>Art/Plants/Meshes</c> — 재질 M_Foliage 하나 · 거리별 단순화 LODGroup 그대로): 모델 프리팹을 "Garden" 아래에 놓음.
+        /// 충돌체 없음 (잎은 지나감), 다른 내부 조각처럼 그림자 끔. 자리 · 크기는 Blender 빌더가 검사한 값 (<see cref="GardenPlant"/>).
+        /// </summary>
+        private static void PlaceGarden(GameObject root, IReadOnlyList<GardenPlant> plants)
+        {
+            var parent = new GameObject("Garden").transform;
+            parent.SetParent(root.transform, false);
+            foreach (var p in plants)
+            {
+                string path = PlantAtlas.MeshFolder + p.Mesh + ".fbx";
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (model == null)
+                {
+                    Debug.LogError($"[InteriorTemplateBuilder] 식물 모델 없음: {path}");
+                    continue;
+                }
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(model, parent);
+                go.transform.localPosition = p.Position;
+                go.transform.localRotation = Quaternion.Euler(0f, p.Yaw, 0f);
+                go.transform.localScale = p.Scale;
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                    r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
         }
 
         /// <summary>내부 전용 동물 모델 (critter_builder — SM_InteriorCritters, 미터): 이름 "Critter_종류" → 모델.</summary>

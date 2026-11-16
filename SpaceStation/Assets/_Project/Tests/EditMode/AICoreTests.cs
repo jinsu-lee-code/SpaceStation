@@ -497,5 +497,51 @@ namespace SpaceStation.Tests
                 Object.DestroyImmediate(root);
             }
         }
+
+        /// <summary>
+        /// 정원 식물 (식물 아틀라스 ②): 빌더 DECOR 수만큼 Garden 아래에 놓임 · 식물마다 거리별 단순화 (LODGroup) · 재질 M_Foliage 하나 · 충돌체 없음,
+        /// 삼각형 = 내부 모델 + 식물 가장 가까운 단계 (LOD0)까지 15만 안 (3단계 예산, 체크리스트 54).
+        /// </summary>
+        [Test]
+        public void Garden_OnFoliageWithinBudget()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            if (prefab == null)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            var foliage = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Plants/M_Foliage.mat");
+            var garden = prefab.transform.Find("Garden");
+            Assert.IsNotNull(garden, "Garden 없음");
+            Assert.AreEqual(AICore.Garden.Length, garden.childCount, "식물 수 = 빌더 DECOR 수");
+            Assert.Greater(AICore.Garden.Length, 30, "정원 식물이 너무 적음");
+            long tris = 0;
+            foreach (Transform plant in garden)
+            {
+                Assert.IsNotNull(plant.GetComponent<LODGroup>(), $"{plant.name}: 거리별 단순화 없음");
+                Assert.AreEqual(0, plant.GetComponentsInChildren<Collider>(true).Length, $"{plant.name}: 충돌체 (잎은 지나가야 함)");
+                foreach (var r in plant.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    Assert.AreEqual(1, r.sharedMaterials.Length, $"{r.name}: 재질 칸이 하나가 아님");
+                    Assert.AreEqual(foliage, r.sharedMaterial, $"{plant.name}/{r.name}: 재질이 M_Foliage가 아님");
+                    if (r.name.EndsWith("_LOD0"))
+                        tris += Tris(r.GetComponent<MeshFilter>().sharedMesh);
+                }
+            }
+            foreach (var f in prefab.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (!f.transform.IsChildOf(garden))
+                    tris += Tris(f.sharedMesh);
+            }
+            Assert.LessOrEqual(tris, 150000, "삼각형 예산 (내부 모델 + 식물 LOD0)");
+        }
+
+        private static long Tris(Mesh mesh)
+        {
+            long n = 0;
+            if (mesh == null)
+                return 0;
+            for (int s = 0; s < mesh.subMeshCount; s++)
+                n += mesh.GetIndexCount(s) / 3;
+            return n;
+        }
     }
 }

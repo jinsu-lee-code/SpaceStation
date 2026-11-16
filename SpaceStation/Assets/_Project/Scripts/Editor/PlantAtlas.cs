@@ -8,7 +8,7 @@ namespace SpaceStation.Editor
     /// 식물 아틀라스 (2026-11-16, 사용자 "트림 시트처럼 텍스처 한 장으로 — 우리 식물까지 합쳐서"): 게임의 모든 식물이 텍스처 한 벌 · 재질 하나 (`M_Foliage`, 셰이더 SpaceStation/Foliage)를 씀.
     /// 바탕 4096 (알파 = 잘라내기) · 노멀 · 마스크 2048 (R 윤기 · G 차폐 · B 두께). 칸 (왼쪽 아래 원점, 바탕 px):
     ///   샘플 잎 · 꽃 (Unity URP 3D Sample Garden, 2048²) — 왼쪽 위 / 벚꽃 가지 (1024²) — 가운데 위 / 우리 기하학 식물 색 칸 (8 × 8, 128 px) — 가운데 /
-    ///   우리 그림 (팔레트로 바꾼 꽃 · 생울타리 잔가지 등, 1024 × 2048 — 아직 비움) — 오른쪽 위 / 줄기 트림 띠 (가로 끝까지 · 길이 방향 반복, 띠 256 = 둘레 두 바퀴) — 아래.
+    ///   우리 그림 (팔레트로 바꾼 꽃 · 생울타리 잔가지 등, 1024 × 2048 — 지금은 왼쪽 아래 금빛 등나무 꽃송이뿐) — 오른쪽 위 / 줄기 트림 띠 (가로 끝까지 · 길이 방향 반복, 띠 256 = 둘레 두 바퀴) — 아래.
     /// 톤 = 우리 잎 색 + 조금 만화풍 (사용자 고름 — 밝게 × 1.12 · 초록을 새순 연두 쪽으로 · 채도 × 1.15 · 잎 안쪽 명암 대비 55 % · 밝기 단계 살짝).
     /// 원본 = 저장소 `ArtSource/Plants/URPSample` (Unity가 읽지 않음, Unity Companion License). 메시 UV는 가져올 때 `PlantMeshImporter`가 이 칸으로 옮김.
     /// </summary>
@@ -27,6 +27,12 @@ namespace SpaceStation.Editor
         public static readonly RectInt Cherry = new RectInt(2048, 3072, 1024, 1024);
         public static readonly RectInt Swatches = new RectInt(2048, 2048, 1024, 1024);
         public static readonly RectInt Ours = new RectInt(3072, 2048, 1024, 2048);
+        /// <summary>
+        /// 금빛 등나무 꽃송이 (2026-11-16 AI 중추 뒤 반구 — 길 찾기 색 앞 보라 · 뒤 금빛): 샘플 잎 · 꽃 텍스처의 빽빽한 꽃송이 칸 (원본 px, <see cref="RacemeSrc"/>)을
+        /// 톤을 바꾼 뒤 보라를 밝은 금빛으로 바꿔 '우리 그림' 칸 왼쪽 아래에 같은 크기로 (<see cref="GoldRaceme"/>). 재질 이름에 "wisteriagold"가 든 면이 이 칸을 씀.
+        /// </summary>
+        public static readonly RectInt RacemeSrc = new RectInt(1252, 488, 108, 144);
+        public static readonly RectInt GoldRaceme = new RectInt(3072, 2048, 108, 144);
         public const int StripHeight = 256;
         public const int BarkTile = 128;
         public const int SwatchCell = 128;
@@ -70,6 +76,9 @@ namespace SpaceStation.Editor
                 var b = m.Contains("bamboo") ? Bark.Bamboo : m.Contains("cherry") ? Bark.CherryRough : Bark.Wisteria;
                 return new Vector2(uv.y * BarkTile / Size, ((int)b * StripHeight + (uv.x + 0.5f) * BarkTile) / Size);
             }
+            if (m.Contains("wisteriagold"))
+                return new Vector2(GoldRaceme.x + Mathf.Clamp(uv.x * Garden.width - RacemeSrc.x, 0f, RacemeSrc.width),
+                    GoldRaceme.y + Mathf.Clamp(uv.y * Garden.height - RacemeSrc.y, 0f, RacemeSrc.height)) / Size;
             var r = m.Contains("cherry") ? Cherry : Garden;
             return new Vector2(r.x + uv.x * r.width, r.y + uv.y * r.height) / Size;
         }
@@ -277,6 +286,34 @@ namespace SpaceStation.Editor
             var cN = Half(Load("CherryTree_01_T_N.png"));
             Blit(normal, M, cN.Px, cN.W, cN.H, Cherry.x / 2, Cherry.y / 2);
             FillMask(mask, M, Half(Load("CherryTree_01_T_Mask.png")), Half(Load("CherryTree_01_T_SS.png")), Cherry.x / 2, Cherry.y / 2);
+
+            // 금빛 등나무 꽃송이 (보라 → 밝은 금빛 · 노란 무늬 · 줄기는 그대로, 노멀 · 마스크는 같은 칸 복사)
+            for (int y = 0; y < RacemeSrc.height; y++)
+            {
+                for (int x = 0; x < RacemeSrc.width; x++)
+                {
+                    var c = albedo[(Garden.y + RacemeSrc.y + y) * S + Garden.x + RacemeSrc.x + x];
+                    if (c.a > 8)
+                    {
+                        Color.RGBToHSV(c, out float hh, out float ss, out float vv);
+                        if (hh > 0.55f && hh < 0.95f)
+                        {
+                            var nc = Color.HSVToRGB(0.125f, 0.42f + 0.25f * ss, Mathf.Clamp01(0.6f + 0.45f * vv));   // 밝은 금빛 (밤빛에서 크림은 누런 갈색으로 묻혔음)
+                            c = new Color32(To8(nc.r), To8(nc.g), To8(nc.b), c.a);
+                        }
+                    }
+                    albedo[(GoldRaceme.y + y) * S + GoldRaceme.x + x] = c;
+                }
+            }
+            for (int y = 0; y < RacemeSrc.height / 2; y++)
+            {
+                for (int x = 0; x < RacemeSrc.width / 2; x++)
+                {
+                    int src = ((Garden.y + RacemeSrc.y) / 2 + y) * M + (Garden.x + RacemeSrc.x) / 2 + x, dst = (GoldRaceme.y / 2 + y) * M + GoldRaceme.x / 2 + x;
+                    normal[dst] = normal[src];
+                    mask[dst] = mask[src];
+                }
+            }
 
             // 우리 기하학 식물 색 칸 (재질 색 그대로 · 윤기 = 재질 윤기 · 두께 0.5)
             int per = Swatches.width / SwatchCell;
