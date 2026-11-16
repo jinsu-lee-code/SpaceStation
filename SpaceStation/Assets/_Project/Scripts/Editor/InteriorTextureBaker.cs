@@ -290,90 +290,143 @@ namespace SpaceStation.Editor
             Debug.Log("[InteriorTextureBaker] 모래 텍스처 생성");
         }
 
+        public const string HedgeAlbedoPath = Folder + "T_InteriorHedge_A.png";
         public const string HedgeNormalPath = Folder + "T_InteriorHedge_N.png";
         public const string HedgeMaskPath = Folder + "T_InteriorHedge_M.png";
 
         /// <summary>
-        /// AI 중추 다듬은 생울타리 (2026-11-16, 사용자 "퀄리티 올려줄래" — 매끈한 초록 덩어리 = 쿠션처럼 보였음): 한 장 = 1 m (타일링 1) —
-        /// 작은 잎 (길이 2.4 ~ 3.4 cm · 폭 1.2 ~ 1.6 cm) 12,000장을 아무 방향으로 겹쳐 찍음 (잎마다 둥근 등 + 가운데 잎맥 홈 · 이음 둘레 이어짐) + 큰 잎 덩이 흔들림 →
-        /// 노멀 + 마스크 (R 잎 사이 그늘 — 낮은 대비, G 잎마다 밝기). 잎이 빽빽이 겹쳐 틈은 가는 조각 선뿐 — 둥근 구멍 · 점 무늬 없음 (환공포증).
+        /// AI 중추 다듬은 생울타리 잎 (2026-11-16 다시 — 사용자 "풀 질감이 아쉽다, 더 풀인 느낌으로": 2 ~ 3 cm 잎 12,000장 한 색 = 몇 걸음만 떨어져도 매끈한 초록 벨벳).
+        /// 한 장 = 1.67 m (타일링 0.6, 614 px/m) — 잔가지 1,500개 (가지마다 잎 5 ~ 8장 어긋나기, 끝으로 갈수록 작아지고 가지 방향으로 모임 · 끝잎 하나):
+        /// 잎 = 길이 7 ~ 10 cm · 끝이 뾰족한 달걀꼴, 둥근 등 · 가운데 잎맥 (밝은 줄) · 곁맥 홈 · 잎마다 기울기 (빛을 다르게 받음).
+        /// 색 = 잔가지마다 짙은 초록 ~ 초록 (안쪽 · 아래 가지일수록 짙게), 가지 끝 절반은 새순 연두, 잎 밑동 → 끝 밝아짐.
+        /// 큰 잎 덩이 (약 30 cm, 노이즈 둘) = 덩이 꼭대기 밝게 · 덩이 사이 골 짙게 — 멀리서 보이는 결. 골은 이어진 그물이라 둥근 구멍 · 점 무늬 없음 (환공포증),
+        /// 잎이 다 못 덮은 자리 (약 0.1 %)도 검은 점 대신 짙은 초록 안쪽 잎 높이.
+        /// 결과 = 색 (sRGB, 셰이더 _DETAIL_ALBEDO) + 노멀 + 마스크 (R 잎 사이 · 덩이 골 그늘, G 잎마다 윤기).
         /// </summary>
         [MenuItem("SpaceStation/Interior/Bake Hedge Textures")]
         public static void BakeHedge()
         {
             var h = new float[N * N];
-            var tone = new float[N * N];
+            var col = new Color[N * N];
+            var gloss = new float[N * N];
+            var clump = new float[N * N];
             for (int i = 0; i < h.Length; i++)
-                h[i] = -1f;
+                h[i] = -999f;
+            for (int y = 0; y < N; y++)
+            {
+                for (int x = 0; x < N; x++)
+                {
+                    float v = Noise(x, y, 5, 31) * 0.6f + Noise(x, y, 11, 37) * 0.4f;
+                    clump[y * N + x] = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((v - 0.22f) / 0.56f));
+                }
+            }
+            // 잎 모양 = t^0.55 · (1 − t)^0.85 (t = 밑동 0 → 끝 1: 밑동 둥글고 끝 뾰족, 가장 넓은 곳 = 밑동 쪽 40 %) — 최댓값으로 나눠 폭 W에 맞춤
+            float fmax = 0f;
+            for (int q = 1; q < 100; q++)
+                fmax = Mathf.Max(fmax, Mathf.Pow(q / 100f, 0.55f) * Mathf.Pow(1f - q / 100f, 0.85f));
+            var deep = new Color(0.2f, 0.43f, 0.15f);
+            var mid = new Color(0.36f, 0.64f, 0.21f);
+            var fresh = new Color(0.64f, 0.84f, 0.27f);
             var rng = new System.Random(1116);
-            const int leaves = 12000;                                   // 덮는 비율 약 94 % (3,600장은 반쯤 비어 틈이 얼룩으로 보일 수 있음)
-            for (int k = 0; k < leaves; k++)
+            const int sprigs = 1500;
+            for (int k = 0; k < sprigs; k++)
             {
                 float cx = (float)rng.NextDouble() * N, cy = (float)rng.NextDouble() * N;
-                float len = (0.024f + 0.01f * (float)rng.NextDouble()) * N * 0.5f;
-                float wid = (0.012f + 0.004f * (float)rng.NextDouble()) * N * 0.5f;
                 float ang = (float)rng.NextDouble() * Mathf.PI * 2f;
-                float depth = (float)rng.NextDouble();                 // 위에 찍힌 잎일수록 높음 (겹침 순서)
-                float lt = 0.7f + 0.3f * (float)rng.NextDouble();
-                float ca = Mathf.Cos(ang), sa = Mathf.Sin(ang);
-                int r = Mathf.CeilToInt(len) + 1;
-                for (int dy = -r; dy <= r; dy++)
+                float depth = (float)rng.NextDouble();                 // 위 가지일수록 높고 밝음 (겹침 순서)
+                float c0 = clump[((int)cy & (N - 1)) * N + ((int)cx & (N - 1))];
+                float sprigH = 60f * c0 + 22f * depth;
+                int n = 5 + rng.Next(4);
+                float l0 = 52f * (0.85f + 0.3f * (float)rng.NextDouble());
+                float twig = n * 0.34f * l0;
+                var tw = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang));
+                var tint = Color.Lerp(deep, mid, Mathf.Clamp01((float)rng.NextDouble() * (0.35f + 0.65f * depth) + 0.5f * c0 - 0.1f));
+                for (int i = 0; i < n; i++)
                 {
-                    for (int dx = -r; dx <= r; dx++)
+                    float s = i / (float)(n - 1);
+                    var p = new Vector2(cx, cy) + tw * (s - 0.5f) * twig;
+                    float side = i % 2 == 0 ? 1f : -1f;
+                    float la = i == n - 1 ? ang : ang + side * (0.65f + 0.35f * (float)rng.NextDouble()) * (1f - 0.5f * s);
+                    float len = l0 * (1f - 0.32f * s) * (0.9f + 0.2f * (float)rng.NextDouble());
+                    float wid = len * (0.5f + 0.1f * (float)rng.NextDouble());
+                    float ca = Mathf.Cos(la), sa = Mathf.Sin(la);
+                    var c = p + new Vector2(ca, sa) * len * 0.5f;
+                    float hl = sprigH + 10f * s;
+                    float tiltU = ((float)rng.NextDouble() - 0.3f) * 0.5f, tiltV = ((float)rng.NextDouble() - 0.5f) * 0.55f;
+                    var lc = tint * (0.86f + 0.26f * (float)rng.NextDouble());
+                    if (s > 0.6f && rng.NextDouble() < 0.5)
+                        lc = Color.Lerp(lc, fresh, 0.5f + 0.35f * (float)rng.NextDouble());
+                    float gl = 0.72f + 0.28f * (float)rng.NextDouble();
+                    float hu = len * 0.5f;
+                    int r = Mathf.CeilToInt(hu) + 2;
+                    for (int dy = -r; dy <= r; dy++)
                     {
-                        float u = (dx * ca + dy * sa) / len, v = (-dx * sa + dy * ca) / wid;
-                        float taper = 1f - u * u;                           // 끝이 뾰족한 잎 (가운데 폭 · 양 끝 0)
-                        if (taper <= 0f)
-                            continue;
-                        float e = v * v / taper;
-                        if (e >= 1f)
-                            continue;
-                        float hh = 0.35f * depth + 0.55f * Mathf.Sqrt(1f - e) * (0.75f + 0.25f * taper) - 0.06f * Mathf.Exp(-v * v * 40f) * taper;   // 둥근 등 · 잎맥 홈
-                        int x = ((int)cx + dx) & (N - 1), y = ((int)cy + dy) & (N - 1);
-                        int idx = y * N + x;
-                        if (hh > h[idx])
+                        for (int dx = -r; dx <= r; dx++)
                         {
+                            float fx = (int)c.x + dx - c.x, fy = (int)c.y + dy - c.y;
+                            float u = (fx * ca + fy * sa) / hu, v = -fx * sa + fy * ca;
+                            if (u <= -1f || u >= 1f)
+                                continue;
+                            float t = (u + 1f) * 0.5f;
+                            float wv = wid * 0.5f * Mathf.Pow(t, 0.55f) * Mathf.Pow(1f - t, 0.85f) / fmax;
+                            if (wv <= 0.3f)
+                                continue;
+                            float e = v / wv;
+                            if (e <= -1f || e >= 1f)
+                                continue;
+                            float dome = 0.32f * wv * Mathf.Sqrt(1f - e * e);
+                            float rib = 0.8f * Mathf.Exp(-e * e * 70f) * (1f - u * u);
+                            float vein = 0.25f * Mathf.Exp(-Mathf.Pow(Mathf.Repeat(u * 3.2f - Mathf.Abs(e) * 1.4f, 1f) - 0.5f, 2f) * 90f) * (1f - Mathf.Abs(e));
+                            float hh = hl + dome - rib - vein + tiltU * u * hu + tiltV * v;
+                            int idx = (((int)c.y + dy) & (N - 1)) * N + (((int)c.x + dx) & (N - 1));
+                            if (hh <= h[idx])
+                                continue;
                             h[idx] = hh;
-                            tone[idx] = lt;
+                            var cc = lc * ((0.84f + 0.22f * t) * (Mathf.Abs(e) > 0.84f ? 0.88f : 1f));      // 밑동 → 끝 밝게 · 잎 가장자리 살짝 짙게
+                            col[idx] = Color.Lerp(cc, cc * 1.15f + new Color(0.03f, 0.03f, 0f), Mathf.Exp(-e * e * 90f) * (1f - u * u) * 0.85f);   // 가운데 잎맥 밝은 줄
+                            gloss[idx] = gl;
                         }
                     }
                 }
             }
-            for (int y = 0; y < N; y++)
+            for (int i = 0; i < h.Length; i++)
             {
-                for (int x = 0; x < N; x++)
+                if (h[i] < -900f)
                 {
-                    int idx = y * N + x;
-                    if (h[idx] < 0f)
-                    {
-                        h[idx] = 0.12f;                                  // 잎 사이 (드묾) = 안쪽 그늘 잎 높이
-                        tone[idx] = 0.78f;
-                    }
-                    h[idx] += (Noise(x, y, 4, 271) - 0.5f) * 0.5f + (Noise(x, y, 12, 273) - 0.5f) * 0.18f;   // 큰 잎 덩이 흔들림
+                    h[i] = 60f * clump[i] - 8f;                         // 덮이지 않은 자리 = 짙은 안쪽 잎 (검은 점 아님)
+                    col[i] = deep * 0.72f;
+                    gloss[i] = 0.6f;
                 }
             }
-            var blur = BoxBlur(h, 12);
+            var wide = BoxBlur(h, 26);
+            var near = BoxBlur(h, 4);
+            var albedo = new Color32[N * N];
             var normal = new Color32[N * N];
             var mask = new Color32[N * N];
-            const float strength = 2.2f;
             for (int y = 0; y < N; y++)
             {
                 for (int x = 0; x < N; x++)
                 {
-                    float dx = (H(h, x + 1, y) - H(h, x - 1, y)) * strength;
-                    float dy = (H(h, x, y + 1) - H(h, x, y - 1)) * strength;
+                    int i = y * N + x;
+                    float dx = Mathf.Clamp(H(h, x + 1, y) - H(h, x - 1, y), -3f, 3f) * 0.5f;   // 겹친 잎 턱 = 가는 테두리 (기울기 상한)
+                    float dy = Mathf.Clamp(H(h, x, y + 1) - H(h, x, y - 1), -3f, 3f) * 0.5f;
                     var n = new Vector3(-dx, -dy, 1f).normalized;
-                    normal[y * N + x] = new Color32(To8(n.x * 0.5f + 0.5f), To8(n.y * 0.5f + 0.5f), To8(n.z * 0.5f + 0.5f), 255);
-                    float cavity = Mathf.Clamp01(1f - Mathf.Max(0f, blur[y * N + x] - h[y * N + x]) * 1.6f);
-                    float ao = Mathf.Lerp(0.62f, 1f, cavity);
-                    float t = tone[y * N + x] * Mathf.Lerp(0.88f, 1f, Noise(x, y, 6, 277));
-                    mask[y * N + x] = new Color32(To8(ao), To8(t), 255, 255);
+                    normal[i] = new Color32(To8(n.x * 0.5f + 0.5f), To8(n.y * 0.5f + 0.5f), To8(n.z * 0.5f + 0.5f), 255);
+                    float occ = Mathf.Clamp01((wide[i] - h[i]) / 30f);      // 덩이 사이 골 · 아래 가지
+                    float occNear = Mathf.Clamp01((near[i] - h[i]) / 6f);   // 잎 바로 밑
+                    float ao = Mathf.Lerp(1f, 0.58f, occ) * Mathf.Lerp(1f, 0.8f, occNear);
+                    // 전체 × 1.28 (처음 굽기는 평균 선형 밝기 0.25 = 예전 한 색 재질 0.44의 절반 — 밤빛 아래에서 너무 어두웠음, 2026-11-16 Unity 확인), 새순 잎맥 끝만 조금 넘침
+                    var a = col[i] * Mathf.Lerp(0.76f, 1.06f, clump[i]) * Mathf.Lerp(1f, 0.68f, occ) * 1.28f;
+                    albedo[i] = new Color32(To8(a.r), To8(a.g), To8(a.b), 255);
+                    mask[i] = new Color32(To8(ao), To8(gloss[i]), 255, 255);
                 }
             }
             System.IO.Directory.CreateDirectory(Folder);
+            Save(HedgeAlbedoPath, albedo);
             Save(HedgeNormalPath, normal);
             Save(HedgeMaskPath, mask);
             AssetDatabase.Refresh();
+            Configure(HedgeAlbedoPath, false, true);
             Configure(HedgeNormalPath, true);
             Configure(HedgeMaskPath, false);
             Debug.Log("[InteriorTextureBaker] 생울타리 잎 텍스처 생성");
@@ -537,11 +590,12 @@ namespace SpaceStation.Editor
             Object.DestroyImmediate(tex);
         }
 
-        private static void Configure(string path, bool normalMap)
+        /// <param name="srgb">색 텍스처 (생울타리 잎 색)만 true — 노멀 · 마스크는 선형 값</param>
+        private static void Configure(string path, bool normalMap, bool srgb = false)
         {
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             importer.textureType = normalMap ? TextureImporterType.NormalMap : TextureImporterType.Default;
-            importer.sRGBTexture = false;
+            importer.sRGBTexture = srgb;
             importer.wrapMode = TextureWrapMode.Repeat;
             importer.mipmapEnabled = true;
             importer.anisoLevel = 4;
