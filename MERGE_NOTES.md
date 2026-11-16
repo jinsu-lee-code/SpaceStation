@@ -3218,3 +3218,11 @@
 **main에서 따로 할 것**
 
 - `Main.unity`는 넘기지 않음 → main 씬의 `InteriorMode._plantSettings` 여덟 칸 (Pot · PotWilted · Tree · TreeWilted · Pine · PineWilted · Blossom · BlossomWilted)을 `PF_Plant*` 프리팹으로 (SpaceStation/Interior/Setup을 돌리면 자동). 그대로 두면 지금처럼 LOD 없는 FBX를 씀 (동작은 같음)
+
+## M-224. 충돌 메시 — 빌드에서 미리 굽기 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- Player Settings `Prebake Collision Meshes` 켬 (처음 들어가는 방마다 겉껍질 충돌 메시를 굽느라 멈칫 — 궤도 도시 117 ms), 시험 `InteriorColliderTests`, 문서 01 머리말 (간이 충돌 메시 시험 — 쓰지 않음) · 체크리스트 225
