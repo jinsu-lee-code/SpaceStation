@@ -3108,3 +3108,17 @@
 - `InteriorTriplanar` `_VERTEX_AO` 키워드 (꼭짓점 색을 색 · 차폐에 곱함, `M_InteriorEvo3Hedge`만 켬 — 다른 트라이플래너 재질은 새 속성만 저장됨), `InteriorSetup` 생울타리 값
 
 - 체크리스트 213 ~ 215 · 06c
+
+
+
+## M-213. 식물 아틀라스 · 공용 식물 재질 (URP 샘플 식물 15종) (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 식물 아틀라스 `PlantAtlas` (바탕 4096 · 노멀 · 마스크 2048 — 샘플 잎 · 꽃 · 벚꽃 · 우리 색 칸 · 줄기 트림 띠, 톤 = 우리 잎 색 + 조금 만화풍) · 셰이더 `SpaceStation/Foliage` · 재질 `M_Foliage`
+
+- `PlantMeshImporter` (식물 메시 UV를 아틀라스 칸으로 · 재질 하나로), 메시 `Art/Plants/Meshes` (URP 3D Sample Garden 원본 FBX 15), 원본 `ArtSource/Plants/URPSample` (Unity Companion License)
+
+- 문서: 03 7-5a · 체크리스트 216
