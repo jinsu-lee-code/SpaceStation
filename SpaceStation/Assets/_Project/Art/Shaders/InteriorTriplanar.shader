@@ -1,6 +1,7 @@
 // Phase 11 내부 표면 디테일: 월드 위치로 투영(트라이플래너)하는 금속 패널. UV 없이 늘린 키트·템플릿 어디에나 같은 크기로 붙는다.
 // _DetailNormal = 패널 이음선·볼트·굴곡 (InteriorTextureBaker가 만든 타일), _DetailMask R = 틈 어둡게(AO), G = 얼룩. _WetColor.a > 0이면 _WetLevel 아래를 젖은 색 · 윤기로 (모래 해변).
 // _DETAIL_ALBEDO (재질 토글) = _DetailAlbedo 색 텍스처를 같은 트라이플래너로 _BaseColor에 곱함 (AI 중추 생울타리 잎 색, 2026-11-16) — 끄면 예전과 같음.
+// _VERTEX_AO (재질 토글) = 꼭짓점 색 RGB를 색 · 차폐에 곱함 (AI 중추 생울타리 잎 덩이 골 그늘 — Blender HedgeAO, 굴곡과 같은 자리) — 끄면 예전과 같음.
 // 조명은 URP PBR (Forward+ 추가 조명·SSAO 포함). 상태 표현은 기존처럼 MPB로 _BaseColor·_EmissionColor를 바꾼다. SRP Batcher 호환.
 Shader "SpaceStation/InteriorTriplanar"
 {
@@ -11,6 +12,7 @@ Shader "SpaceStation/InteriorTriplanar"
         [NoScaleOffset] _DetailMask ("Detail Mask (R 틈 AO, G 얼룩)", 2D) = "white" {}
         [Toggle(_DETAIL_ALBEDO)] _UseDetailAlbedo ("Use Detail Albedo", Float) = 0
         [NoScaleOffset] _DetailAlbedo ("Detail Albedo (sRGB 색, _DETAIL_ALBEDO)", 2D) = "white" {}
+        [Toggle(_VERTEX_AO)] _UseVertexAO ("Use Vertex AO (꼭짓점 색 그늘)", Float) = 0
         _Tiling ("Tiling (1m당 타일 수)", Float) = 0.5
         _NormalStrength ("Normal Strength", Range(0, 2)) = 1
         _OcclusionStrength ("Occlusion Strength", Range(0, 1)) = 0.8
@@ -97,6 +99,7 @@ Shader "SpaceStation/InteriorTriplanar"
     {
         float4 positionOS : POSITION;
         float3 normalOS : NORMAL;
+        half4 color : COLOR;
         UNITY_VERTEX_INPUT_INSTANCE_ID
     };
 
@@ -106,6 +109,7 @@ Shader "SpaceStation/InteriorTriplanar"
         float3 positionWS : TEXCOORD0;
         float3 normalWS : TEXCOORD1;
         half fogFactor : TEXCOORD2;
+        half4 color : TEXCOORD3;
         UNITY_VERTEX_INPUT_INSTANCE_ID
         UNITY_VERTEX_OUTPUT_STEREO
     };
@@ -121,6 +125,7 @@ Shader "SpaceStation/InteriorTriplanar"
         o.positionWS = pos.positionWS;
         o.normalWS = TransformObjectToWorldNormal(input.normalOS);
         o.fogFactor = ComputeFogFactor(pos.positionCS.z);
+        o.color = input.color;
         return o;
     }
     ENDHLSL
@@ -145,6 +150,7 @@ Shader "SpaceStation/InteriorTriplanar"
             #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
             #pragma multi_compile_fog
             #pragma shader_feature_local_fragment _DETAIL_ALBEDO
+            #pragma shader_feature_local_fragment _VERTEX_AO
             #pragma multi_compile_instancing
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -172,6 +178,9 @@ Shader "SpaceStation/InteriorTriplanar"
                 #if defined(_DETAIL_ALBEDO)
                     baseRgb *= TriAlbedo(i.positionWS, n, w);
                 #endif
+                #if defined(_VERTEX_AO)
+                    baseRgb *= i.color.rgb;
+                #endif
                 surface.albedo = baseRgb * lerp(1.0h, mask.g, _GrimeStrength);
                 surface.metallic = _Metallic;
                 surface.smoothness = _Smoothness * lerp(1.0h, mask.g, _GrimeStrength * 0.6h);
@@ -182,6 +191,9 @@ Shader "SpaceStation/InteriorTriplanar"
                 surface.normalTS = half3(0, 0, 1);
                 surface.emission = _EmissionColor.rgb;
                 surface.occlusion = lerp(1.0h, mask.r, _OcclusionStrength);
+                #if defined(_VERTEX_AO)
+                    surface.occlusion *= i.color.r;
+                #endif
                 surface.alpha = 1.0h;
 
                 half4 color = UniversalFragmentPBR(inputData, surface);

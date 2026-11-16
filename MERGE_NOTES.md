@@ -3094,3 +3094,17 @@
 - 생울타리 잎 색 텍스처 `T_InteriorHedge_A` (`InteriorTextureBaker.BakeHedge` 다시 짬) + `InteriorTriplanar` `_DETAIL_ALBEDO` 키워드 (`M_InteriorEvo3Hedge`만 켬, 다른 트라이플래너 재질은 새 속성만 저장됨), `InteriorSetup` 생울타리 값
 
 - 체크리스트 211 · 212 · 06c
+
+
+
+## M-212. AI 중추 생울타리 옆면 잎 덩이 굴곡 · 골 그늘 · 윗면 새순 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 생울타리 옆면 큰 잎 덩이 굴곡 (안으로만 7.5 cm) · 윗면 새순 450곳 (닫힌 잎) — `SM_Interior_EvoAICore.fbx` (꼭짓점 색 `HedgeAO`, 선형) · `Interior_Evo2.blend` · 프리팹
+
+- `InteriorTriplanar` `_VERTEX_AO` 키워드 (꼭짓점 색을 색 · 차폐에 곱함, `M_InteriorEvo3Hedge`만 켬 — 다른 트라이플래너 재질은 새 속성만 저장됨), `InteriorSetup` 생울타리 값
+
+- 체크리스트 213 ~ 215 · 06c
