@@ -19,104 +19,129 @@ MonoBehaviour:
     _direction: {x: -1, y: 0, z: 0}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
   - _cell: {x: 1, y: 0, z: 0}
     _direction: {x: 1, y: 0, z: 0}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
   - _cell: {x: 0, y: 1, z: 0}
     _direction: {x: -1, y: 0, z: 0}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
   - _cell: {x: 0, y: 1, z: 0}
     _direction: {x: 0, y: 0, z: -1}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
   - _cell: {x: 1, y: 1, z: 0}
     _direction: {x: 1, y: 0, z: 0}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
   - _cell: {x: 0, y: 2, z: 0}
     _direction: {x: -1, y: 0, z: 0}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
   - _cell: {x: 0, y: 2, z: 0}
     _direction: {x: 1, y: 0, z: 0}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
   - _cell: {x: 0, y: 2, z: 0}
     _direction: {x: 0, y: 0, z: -1}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
   - _cell: {x: 0, y: 2, z: 0}
     _direction: {x: 0, y: 0, z: 1}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
   - _cell: {x: 0, y: 0, z: 0}
     _direction: {x: 0, y: -1, z: 0}
     _depth: 1.3
     _offset: {x: 0, y: 0, z: 2.2}
+    _sealedWall: 0
   - _cell: {x: 1, y: 0, z: 0}
     _direction: {x: 0, y: -1, z: 0}
     _depth: 1.3
     _offset: {x: 0, y: 0, z: 2.3}
+    _sealedWall: 0
   - _cell: {x: 1, y: 1, z: 0}
     _direction: {x: 0, y: 1, z: 0}
     _depth: 2.7
     _offset: {x: 1.6, y: 0, z: 0}
+    _sealedWall: 0
   - _cell: {x: 0, y: 2, z: 0}
     _direction: {x: 0, y: 1, z: 0}
     _depth: 2.7
     _offset: {x: 2.25, y: 0, z: 0}
+    _sealedWall: 0
   _spawn: {x: 10.3, y: -1.3, z: 1.6}
   _spawnYaw: -110
   _ambience: 1
   _showOwnExterior: 0
+  _showOwnInterior: 0
   _sealedSockets: 0
   _residentSpots:
   - _position: {x: 3.8, y: -1.3, z: -1.25}
     _yaw: 0
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: 3.8, y: -1.3, z: 1.25}
     _yaw: 180
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: 6.15, y: -1.3, z: -1.25}
     _yaw: 0
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: 6.15, y: -1.3, z: 1.25}
     _yaw: 180
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: 8.5, y: -1.3, z: -1.25}
     _yaw: 0
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: 8.5, y: -1.3, z: 1.25}
     _yaw: 180
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: 4.2, y: 6.7, z: -2.1}
     _yaw: 180
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: 4.2, y: 6.7, z: 2.1}
     _yaw: 0
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: 7.4, y: 6.7, z: -2.1}
     _yaw: 180
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: 7.4, y: 6.7, z: 2.1}
     _yaw: 0
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: -1.95, y: 15.2, z: -1.95}
     _yaw: -135
     _pose: 1
     _work: 1
+    _lie: 0
   _workTraits: 02000000
   _leisure: 0
   _openWork: 0
@@ -132,6 +157,6 @@ MonoBehaviour:
     _scale: 0.7
     _yaw: 150
   - _position: {x: -1.9, y: 7.115, z: 2.25}
-    _kind: 0
+    _kind: 4
     _scale: 0.7
     _yaw: 260

@@ -433,6 +433,16 @@ namespace SpaceStation.Editor
             var plants = so.FindProperty("_plantSettings");
             foreach (var (field, file) in new[] { ("Pine", "SM_PlantPine"), ("PineWilted", "SM_PlantPineWilted"), ("Blossom", "SM_PlantBlossom"), ("BlossomWilted", "SM_PlantBlossomWilted") })
                 plants.FindPropertyRelative(field).objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Art/Models/Interior/Plants/" + file + ".fbx");
+            // 식물 아틀라스 화분 식물 (③ 2026-11-16 — 종류 · 모델 · 모델 배율은 InteriorPlantVariants.Pot)
+            var atlas = plants.FindPropertyRelative("Atlas");
+            atlas.arraySize = InteriorPlantVariants.Pot.Length;
+            for (int i = 0; i < InteriorPlantVariants.Pot.Length; i++)
+            {
+                var e = atlas.GetArrayElementAtIndex(i);
+                e.FindPropertyRelative("Kind").enumValueIndex = (int)InteriorPlantVariants.Pot[i].Kind;
+                e.FindPropertyRelative("Model").objectReferenceValue = InteriorPlantVariants.Model(InteriorPlantVariants.Pot[i].Mesh);
+                e.FindPropertyRelative("Scale").floatValue = InteriorPlantVariants.Pot[i].Scale;
+            }
             so.ApplyModifiedPropertiesWithoutUndo();
 
             BuildEnterRow(mode);

@@ -309,6 +309,7 @@ namespace SpaceStation.Editor
                 new PlantSpot(new Vector3(-1.9f, F + 0.415f, -2.25f), PlantKind.Pot, 0.7f, 150f),
                 new PlantSpot(new Vector3(-1.9f, 8f + F + 0.415f, 2.25f), PlantKind.Pot, 0.7f, 260f),
             });
+            InteriorPlantVariants.Assign();   // ③ 화분마다 테를 재서 우리 화분 식물 · 아틀라스 식물 섞기
             AssetDatabase.SaveAssets();
             Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3 · 문화 센터 2 · 태양광 어레이 6 · 수소 플랜트 2 · 중력 거주구 14 · 수직 농장 3");
         }
