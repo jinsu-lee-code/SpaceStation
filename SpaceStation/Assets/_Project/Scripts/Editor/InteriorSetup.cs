@@ -432,10 +432,13 @@ namespace SpaceStation.Editor
             so.FindProperty("_smokeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(SmokePath);
             so.FindProperty("_sparkMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(SparkPath);
             so.FindProperty("_beaconMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(StatusPath);
-            // 3단계 정원 나무 (plant_builder build_pine · build_blossom, 2026-11-10 궤도 도시 — 화분 · 나무는 처음에 손으로 연결해 둠)
+            // plant_builder 식물 여덟 (화분 · 나무 · 3단계 정원 소나무 · 꽃나무와 시든 것) = ⑤-4 LODGroup 프리팹 (PlantLods — LOD0 원래 FBX · LOD1 · LOD2 plant_builder --lod)
             var plants = so.FindProperty("_plantSettings");
-            foreach (var (field, file) in new[] { ("Pine", "SM_PlantPine"), ("PineWilted", "SM_PlantPineWilted"), ("Blossom", "SM_PlantBlossom"), ("BlossomWilted", "SM_PlantBlossomWilted") })
-                plants.FindPropertyRelative(field).objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Art/Models/Interior/Plants/" + file + ".fbx");
+            if (PlantLods.Prefab(PlantLods.Names[0]) == null)
+                PlantLods.Build();
+            foreach (var (field, name) in new[] { ("Pot", "PlantPot"), ("PotWilted", "PlantPotWilted"), ("Tree", "PlantTree"), ("TreeWilted", "PlantTreeWilted"),
+                         ("Pine", "PlantPine"), ("PineWilted", "PlantPineWilted"), ("Blossom", "PlantBlossom"), ("BlossomWilted", "PlantBlossomWilted") })
+                plants.FindPropertyRelative(field).objectReferenceValue = PlantLods.Prefab(name);
             // 식물 아틀라스 화분 식물 (③ 2026-11-16 — 종류 · 모델 · 모델 배율은 InteriorPlantVariants.Pot)
             var atlas = plants.FindPropertyRelative("Atlas");
             atlas.arraySize = InteriorPlantVariants.Pot.Length;

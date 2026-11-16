@@ -3206,3 +3206,15 @@
 **main에 넣은 것**
 
 - `InteriorStatusScreens` 막대를 재질마다 메시 하나로 (막대마다 렌더러이던 것), 문서 01 머리말 (프레임 출처별 측정 · 색표 합치기를 하지 않은 근거)
+
+## M-223. 거리별 단순화 — 식물 LOD 프리팹 · 동물 Mesh LOD (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- plant_builder `--lod 1 · 2` · 식물 LOD FBX 열여섯, LODGroup 프리팹 `Prefabs/Interior/Plants/PF_Plant*` 여덟 (`PlantLods`, 메뉴 SpaceStation/Interior/Build Plant LOD Prefabs), 동물 `SM_InteriorCritters` Mesh LOD, `InteriorExteriorView` 창밖 · 망원경 복사본은 LOD0만 · `forceMeshLod 0`, `InteriorSetup` 식물 여덟 칸 = 프리팹, 시험 `PlantLodTests`, 문서 03 7-5f · 체크리스트 224
+
+**main에서 따로 할 것**
+
+- `Main.unity`는 넘기지 않음 → main 씬의 `InteriorMode._plantSettings` 여덟 칸 (Pot · PotWilted · Tree · TreeWilted · Pine · PineWilted · Blossom · BlossomWilted)을 `PF_Plant*` 프리팹으로 (SpaceStation/Interior/Setup을 돌리면 자동). 그대로 두면 지금처럼 LOD 없는 FBX를 씀 (동작은 같음)
