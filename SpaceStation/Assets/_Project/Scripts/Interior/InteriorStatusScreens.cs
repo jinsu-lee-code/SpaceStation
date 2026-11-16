@@ -43,13 +43,33 @@ namespace SpaceStation.Interior
         {
             public Panel P;
             public TextMeshPro Title, Status, Body;
-            public Transform[] Bars;
-            public Vector3 BarBase;
+            public Bars Batch;
+            public int First;              // 이 화면 첫 막대의 첫 꼭짓점 (Batch 안)
+            public Vector3[] Bottoms;      // 막대 아래 끝 가운데 (화면에서 띄움)
+            public float[] Heights;
+            public Vector3 Up, Right;
+            public float HalfWidth;
             public float BarHeight;
             public float Seed;
         }
 
+        /// <summary>
+        /// ⑤-3 막대 묶음 (2026-11-16): 같은 재질 막대를 메시 하나로 — 예전엔 막대마다 사각형 렌더러 (화면마다 6 ~ 22개, 실드 방 44개 = 그리기 44번),
+        /// 이제 재질마다 한 번. 높이는 꼭짓점 위 두 점만 옮김 (아래 끝은 그대로). 바운드는 가장 높을 때로 한 번만.
+        /// </summary>
+        private sealed class Bars
+        {
+            public Mesh Mesh;
+            public readonly List<Vector3> Verts = new List<Vector3>();
+            public readonly List<Vector3> Normals = new List<Vector3>();
+            public readonly List<Vector4> Tangents = new List<Vector4>();
+            public readonly List<Vector2> Uvs = new List<Vector2>();
+            public readonly List<int> Tris = new List<int>();
+            public bool Dirty;
+        }
+
         private readonly List<View> _views = new List<View>();
+        private readonly Dictionary<Material, Bars> _bars = new Dictionary<Material, Bars>();
         private readonly List<string> _lines = new List<string>();
         private string[] _pages = { "" };   // 세 줄씩 묶은 장 (Refresh에서 만들고 Update는 고르기만)
         private bool _built;
@@ -111,16 +131,87 @@ namespace SpaceStation.Interior
                 }
                 // 아래: 막대 파형
                 int count = Mathf.Clamp(Mathf.RoundToInt(iw / 0.07f), 6, 22);
-                v.Bars = new Transform[count];
                 v.BarHeight = ih * (compact ? 0.45f : narrow ? 0.18f : 0.24f);
-                v.BarBase = center - up * (ih * 0.5f);
+                var barBase = center - up * (ih * 0.5f) + n * 0.004f;   // 막대는 화면에서 4 mm 띄움 (글자 · 바탕보다 앞)
                 float step = iw / count;
+                v.Up = up;
+                v.Right = right;
+                v.HalfWidth = step * 0.3f;
+                var barMaterial = p.Bar != null ? p.Bar : _backMaterial;
+                if (barMaterial == null)
+                    count = 0;
+                v.Bottoms = new Vector3[count];
+                v.Heights = new float[count];
+                v.Batch = count > 0 ? BarsFor(barMaterial) : new Bars();
+                v.First = v.Batch.Verts.Count;
                 for (int k = 0; k < count; k++)
                 {
-                    var c = v.BarBase - right * (iw * 0.5f - step * (k + 0.5f)) + up * (v.BarHeight * 0.5f);
-                    v.Bars[k] = CreateQuad("StatusBar", c, n, up, new Vector2(step * 0.6f, v.BarHeight), p.Bar, 0.004f);
+                    v.Bottoms[k] = barBase - right * (iw * 0.5f - step * (k + 0.5f));
+                    v.Heights[k] = v.BarHeight;
+                    AddBar(v.Batch, v.Bottoms[k], right * v.HalfWidth, up * v.BarHeight, n);
                 }
                 _views.Add(v);
+            }
+            foreach (var b in _bars.Values)
+            {
+                b.Mesh.SetVertices(b.Verts);
+                b.Mesh.SetNormals(b.Normals);
+                b.Mesh.SetTangents(b.Tangents);
+                b.Mesh.SetUVs(0, b.Uvs);
+                b.Mesh.SetTriangles(b.Tris, 0);
+                b.Mesh.RecalculateBounds();   // 가장 높을 때 — 낮아져도 그대로 (매 프레임 다시 재지 않음)
+            }
+        }
+
+        /// <summary>이 재질 막대 묶음 (없으면 만듦 — 프리팹 로컬, 그림자 없음).</summary>
+        private Bars BarsFor(Material material)
+        {
+            if (_bars.TryGetValue(material, out var b))
+                return b;
+            var go = new GameObject("StatusBars");
+            go.transform.SetParent(transform, false);
+            b = new Bars { Mesh = new Mesh { name = "StatusBars" } };
+            b.Mesh.MarkDynamic();
+            go.AddComponent<MeshFilter>().sharedMesh = b.Mesh;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = material;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            _bars[material] = b;
+            return b;
+        }
+
+        /// <summary>막대 사각형 하나 (Unity 사각형과 같은 꼭짓점 순서 · 감김: 아래 왼 · 아래 오른 · 위 왼 · 위 오른).</summary>
+        private static void AddBar(Bars b, Vector3 bottom, Vector3 halfRight, Vector3 height, Vector3 normal)
+        {
+            int i = b.Verts.Count;
+            b.Verts.Add(bottom - halfRight);
+            b.Verts.Add(bottom + halfRight);
+            b.Verts.Add(bottom - halfRight + height);
+            b.Verts.Add(bottom + halfRight + height);
+            var t = new Vector4(halfRight.normalized.x, halfRight.normalized.y, halfRight.normalized.z, -1f);
+            for (int k = 0; k < 4; k++)
+            {
+                b.Normals.Add(normal);
+                b.Tangents.Add(t);
+            }
+            b.Uvs.Add(new Vector2(0f, 0f));
+            b.Uvs.Add(new Vector2(1f, 0f));
+            b.Uvs.Add(new Vector2(0f, 1f));
+            b.Uvs.Add(new Vector2(1f, 1f));
+            b.Tris.Add(i);
+            b.Tris.Add(i + 3);
+            b.Tris.Add(i + 1);
+            b.Tris.Add(i + 3);
+            b.Tris.Add(i);
+            b.Tris.Add(i + 2);
+        }
+
+        private void OnDestroy()
+        {
+            foreach (var b in _bars.Values)
+            {
+                if (b.Mesh != null)
+                    Destroy(b.Mesh);
             }
         }
 
@@ -256,23 +347,30 @@ namespace SpaceStation.Interior
                 SetText(v.Status, show ? _statusText : "", ScreenText);
                 if (v.Body != null)
                     SetText(v.Body, body, _bodyColor);
-                for (int k = 0; k < v.Bars.Length; k++)
+                var verts = v.Batch.Verts;
+                for (int k = 0; k < v.Bottoms.Length; k++)
                 {
                     float level = Active && !_warn
                         ? 0.25f + 0.75f * Mathf.Abs(Mathf.Sin(t * 1.7f + k * 0.55f + v.Seed) * 0.6f + Mathf.Sin(t * 3.1f + k * 1.3f + v.Seed) * 0.4f)
                         : 0.08f;
                     float hgt = Mathf.Max(0.01f, v.BarHeight * level);
-                    var bar = v.Bars[k];
-                    var s = bar.localScale;
-                    if (Mathf.Abs(s.y - hgt) > 0.0005f)
-                    {
-                        bar.localScale = new Vector3(s.x, hgt, 1f);
-                        var up = v.P.Up.normalized;
-                        // 아래 끝을 바닥에 붙인 채 높이만 (위치 = 바닥 + 높이 절반)
-                        var basePos = bar.localPosition - up * Vector3.Dot(bar.localPosition - v.BarBase, up);
-                        bar.localPosition = basePos + up * (hgt * 0.5f);
-                    }
+                    if (Mathf.Abs(v.Heights[k] - hgt) <= 0.0005f)
+                        continue;
+                    // 아래 끝은 그대로, 위 두 점만
+                    v.Heights[k] = hgt;
+                    int i = v.First + k * 4;
+                    var top = v.Bottoms[k] + v.Up * hgt;
+                    verts[i + 2] = top - v.Right * v.HalfWidth;
+                    verts[i + 3] = top + v.Right * v.HalfWidth;
+                    v.Batch.Dirty = true;
                 }
+            }
+            foreach (var b in _bars.Values)
+            {
+                if (!b.Dirty)
+                    continue;
+                b.Dirty = false;
+                b.Mesh.SetVertices(b.Verts, 0, b.Verts.Count, UnityEngine.Rendering.MeshUpdateFlags.DontRecalculateBounds);
             }
         }
     }
