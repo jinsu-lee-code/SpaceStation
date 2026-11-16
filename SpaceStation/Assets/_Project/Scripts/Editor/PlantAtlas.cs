@@ -52,7 +52,17 @@ namespace SpaceStation.Editor
             ("Evo3Lavender", InteriorSetup.Evo3LavenderPath), ("Evo3Coral", InteriorSetup.Evo3CoralPath), ("Evo3Nacre", InteriorSetup.Evo3NacrePath),
             ("Evo3Gold", InteriorSetup.Evo3GoldPath), ("EvoWhite", InteriorSetup.EvoWhitePath), ("PropYellow", InteriorSetup.PropYellowPath),
             ("PropOrange", InteriorSetup.PropOrangePath), ("PropPurple", InteriorSetup.PropPurplePath), ("Evo3Mint", InteriorSetup.Evo3MintPath),
+            // 우리 식물 모델 (plant_builder SM_Plant* — FBX 안 재질 색 그대로, ④ 2026-11-16): 가져올 때 PlantMeshImporter가 재질 "M_{이름}" → 이 칸
+            ("PlantStem", OurSwatchFolder + "M_PlantStem.mat"), ("PlantLeafDark", OurSwatchFolder + "M_PlantLeafDark.mat"), ("PlantLeaf", OurSwatchFolder + "M_PlantLeaf.mat"),
+            ("PlantLeafLight", OurSwatchFolder + "M_PlantLeafLight.mat"), ("PlantDry", OurSwatchFolder + "M_PlantDry.mat"), ("PlantDryDark", OurSwatchFolder + "M_PlantDryDark.mat"),
+            ("PlantBark", OurSwatchFolder + "M_PlantBark.mat"), ("PlantNeedle", OurSwatchFolder + "M_PlantNeedle.mat"), ("PlantNeedleLight", OurSwatchFolder + "M_PlantNeedleLight.mat"),
+            ("PlantBlossom", OurSwatchFolder + "M_PlantBlossom.mat"), ("PlantBlossomLight", OurSwatchFolder + "M_PlantBlossomLight.mat"), ("PlantPistil", OurSwatchFolder + "M_PlantPistil.mat"),
         };
+
+        /// <summary>우리 식물 모델 FBX 폴더 (plant_builder 내보내기 — 화분 식물 · 나무 · 소나무 · 꽃나무와 시든 것).</summary>
+        public const string OursFolder = "Assets/_Project/Art/Models/Interior/Plants/";
+        /// <summary>우리 식물 색 칸의 색 재질 (FBX 안 재질을 꺼낸 것 — 아틀라스 굽기가 색 · 윤기를 읽음, 다른 데는 안 씀).</summary>
+        public const string OurSwatchFolder = Folder + "Swatches/";
 
         /// <summary>색 칸 가운데 UV (0 ~ 1). 없는 이름이면 false.</summary>
         public static bool SwatchUV(string material, out Vector2 uv)

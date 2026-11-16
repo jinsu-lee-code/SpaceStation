@@ -53,5 +53,45 @@ namespace SpaceStation.Tests
             }
             Assert.GreaterOrEqual(parts, 10, "바뀐 잎 조각이 너무 적음 (Build Evolved Templates 먼저)");
         }
+
+        /// <summary>
+        /// 우리 식물 모델 (plant_builder SM_Plant* — 화분 식물 · 나무 · 소나무 · 꽃나무와 시든 것, ④ 2026-11-16): 가져올 때 재질 M_Foliage 하나 ·
+        /// UV가 모두 색 칸 가운데 · 꼭짓점 색 있음, 색 칸 재질이 다 있음 (아틀라스 굽기가 읽는 색).
+        /// </summary>
+        [Test]
+        public void OurPlantModels_OnAtlasSwatches()
+        {
+            var foliage = AssetDatabase.LoadAssetAtPath<Material>(PlantAtlas.MaterialPath);
+            var centers = new HashSet<Vector2>();
+            foreach (var (n, path) in PlantAtlas.SwatchMaterials)
+            {
+                Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<Material>(path), $"색 칸 재질 없음: {path}");
+                Assert.IsTrue(PlantAtlas.SwatchUV(n, out var uv));
+                centers.Add(uv);
+            }
+            int models = 0;
+            foreach (var guid in AssetDatabase.FindAssets("SM_Plant t:Model", new[] { PlantAtlas.OursFolder.TrimEnd('/') }))
+            {
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid));
+                foreach (var r in model.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    Assert.AreEqual(1, r.sharedMaterials.Length, $"{model.name}: 재질 칸이 하나가 아님");
+                    Assert.AreEqual(foliage, r.sharedMaterial, $"{model.name}: 재질이 M_Foliage가 아님");
+                    var mesh = r.GetComponent<MeshFilter>().sharedMesh;
+                    using (var data = Mesh.AcquireReadOnlyMeshData(mesh))
+                    {
+                        var d = data[0];
+                        Assert.IsTrue(d.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Color), $"{model.name}: 꼭짓점 색 없음");
+                        var uv = new Unity.Collections.NativeArray<Vector2>(d.vertexCount, Unity.Collections.Allocator.Temp);
+                        d.GetUVs(0, uv);
+                        foreach (var p in uv)
+                            Assert.IsTrue(centers.Contains(p), $"{model.name}: UV {p}가 색 칸 가운데가 아님");
+                        uv.Dispose();
+                    }
+                    models++;
+                }
+            }
+            Assert.GreaterOrEqual(models, 8, "우리 식물 모델 (멀쩡한 것 · 시든 것 넷씩)");
+        }
     }
 }
