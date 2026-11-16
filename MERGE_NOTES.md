@@ -3166,3 +3166,11 @@
 **main에 넣은 것**
 
 - 템플릿 빌드가 진화 내부 잎 조각 (`_Leaves`)의 우리 색 잎 · 꽃잎을 아틀라스 색 칸 + `M_FoliageStill` 한 칸으로 (`InteriorFoliage`, `Generated/SM_Interior_*_Leaves`), 바뀐 진화 프리팹 11 · 시험 `InteriorFoliageTests`, 문서 03 7-5c · 체크리스트 219
+
+## M-218. 궤도 항만 석호 수련 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 샘플 작은 수련 · 잎만 14포기를 등이 닿는 석호 물가 6곳에 (`OrbitalPort.Lilies` → 템플릿 빌드 `PlaceGarden`, 헤엄 막힘을 잰 뒤), 바뀐 궤도 항만 프리팹 · 시험 `Lilies_OnOpenWaterClearOfRides`, 문서 03 7-5d · 체크리스트 220
