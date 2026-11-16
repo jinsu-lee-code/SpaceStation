@@ -54,6 +54,15 @@
 - 벽 가까운 화분은 잎 폭을 재서 벽을 뚫지 않게 크기를 줄인다(회전 링 안쪽 벽 0.45m → 0.7배).
 - 템플릿에서 재질 슬롯이 바뀌면(잎 재질 제거) **Build Templates로 프리팹을 다시 만든다** — 안 그러면 남은 재질이 마지막 서브메시에 덧그려짐. Build Templates는 모든 프리팹 ID를 새로 매기고 공용 재질 값을 바꿀 수 있으니 관계없는 파일은 되돌린다.
 
+### 7-5a. 식물 아틀라스 · 공용 식물 재질 (2026-11-16, 사용자 "트림 시트처럼 한 장으로 — 우리 식물까지")
+
+- 모든 식물 = 텍스처 한 벌 (`Art/Plants/T_PlantAtlas_A` 4096 sRGB · 알파 잘라내기, `_N` · `_M` 2048 — 마스크 R 윤기 · G 차폐 · B 두께) + 재질 하나 `M_Foliage` (셰이더 `SpaceStation/Foliage`: 양면 · 빛 비침 (해 + 점광원 — 밤 내부는 등불이 거의 다) · 꼭짓점 색 R 그늘 · 살랑임 · 시듦 MPB `_Wilt`). 굽기 = `PlantAtlas` (메뉴 SpaceStation/Plants/Bake Plant Atlas · Setup).
+- 칸 (바탕 px, 왼쪽 아래 원점): 샘플 잎 · 꽃 (0, 2048, 2048²) · 벚꽃 가지 (2048, 3072, 1024²) · 우리 색 칸 (2048, 2048, 8 × 8 · 128 px — `PlantAtlas.SwatchUV(재질 이름)`) · 우리 그림 (3072, 2048, 1024 × 2048 — 비움, ④에서) · 줄기 트림 띠 (아래 256 px씩: 등나무 · 대나무 · 벚나무 · 빈 띠).
+- 줄기처럼 길이 방향으로 반복하는 UV는 칸에 못 넣음 → **가로 끝까지 이어진 띠** (트림 시트): 원래 v (길이) → 가로 (128 px마다, 4096 = 32번 · 텍스처 가로 반복), 원래 u (둘레 −0.5 ~ 1.5) → 띠 높이 (128 px = 한 바퀴). 노멀은 축을 바꿨으니 x · y도 바꿔 붙임.
+- 원본 = 저장소 `ArtSource/Plants/URPSample` (Unity URP 3D Sample Garden, Unity Companion License — Unity 프로젝트 안에서만), 메시 = `Art/Plants/Meshes`에 원본 FBX 그대로 → `PlantMeshImporter`가 가져올 때 FBX 재질 이름으로 칸을 골라 UV를 옮기고 재질 칸을 하나로 합침 (식물 하나 = 그리기 한 번, _LOD0 ~ 2는 Unity LODGroup). 가져오기 결과가 재질 `M_Foliage`에 기대므로 `context.DependsOnSourceAsset` 필수 (빠지면 "inconsistent result" 경고).
+- 톤 (사용자: 우리 잎 색 + 조금 만화풍): 잎 안쪽 명암 대비 55 % · 밝기 6단계 30 % · × 1.12 + 0.035 · 초록 색상 → 0.265 (새순 연두) 쪽 20 % · 채도 × 1.15. 투명 자리는 밀고 당기기로 둘레 잎 색을 채움 (검은 바탕이 밉맵에서 검은 테로 섞임). 압축 = BC7 (밉맵 덮음 유지 · 잘라내기 0.45) · 노멀 BC5.
+- 뺀 샘플: 큰 벚나무 (6.2만 삼각형), 감탕나무 덤불 (작은 잎 사이 구멍이 촘촘히 비침 — 환공포증), Oasis 마른 풀 · 수크령 · 야자.
+
 ## 7-6. 움직이는 계층 모델 (12-3b 합성 기계팔 · 고리, `BlenderWork/SynthArm/arm_builder.py`)
 - **관절 계층이 있는 FBX는 `bake_space_transform=False`로 내보내고 Unity `ModelImporter.bakeAxisConversion = true`로 축을 맞춘다.** `True`로 내보냈더니 자식 관절의 위치 · 회전이 엉켜 들어왔음(윗팔이 90° 돌아 있고 원점이 어긋남). 결과: 루트만 축 변환 회전, 관절은 모두 회전 0.
 - 관절마다 오브젝트를 나누고 **원점을 관절 축에** 둔다. Unity IK는 모델 루트 로컬 축(위 = Blender z, 앞 = Blender +y)을 기준으로 계산 — Blender 미리보기에도 같은 IK를 넣어 토치 끝이 목표에 닿는지(오차 0) 먼저 확인한다.
