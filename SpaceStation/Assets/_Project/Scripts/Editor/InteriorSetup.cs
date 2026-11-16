@@ -63,6 +63,9 @@ namespace SpaceStation.Editor
         public const string IcePath = MaterialFolder + "/M_InteriorIce.mat";
         public const string AquaPath = MaterialFolder + "/M_InteriorAqua.mat";
         public const string ConcretePath = MaterialFolder + "/M_InteriorConcrete.mat";   // 12-5 방사선 차폐실 벽 · 원통 천장
+        // ⑤ 트림 셰이더 (Art/Shaders/InteriorTrim.shader)와 장식 종류 (_TrimKind)
+        public const string TrimShaderName = "SpaceStation/InteriorTrim";
+        public const int TrimGold = 0, TrimGoldInlay = 1, TrimPearl = 2, TrimPanel = 3, TrimMetal = 4, TrimWall = 5, TrimDarkGloss = 6;
         // 진화 모듈 내부 1단계 키트 (2026-10-29, Blender evo_kit): 흰 세라믹 몸체 · 밝은 회백 바닥 · 짙은 남색 홈 · 화면 테
         public const string EvoWhitePath = MaterialFolder + "/M_InteriorEvoWhite.mat";
         public const string EvoFloorPath = MaterialFolder + "/M_InteriorEvoFloor.mat";
@@ -651,24 +654,29 @@ namespace SpaceStation.Editor
 
             // 진화 모듈 내부 1단계 키트 (2026-10-29): 외형 흰 패널 · 짙은 유리 띠와 같은 계열의 매끈한 재질 (패널 무늬 · 때 없음)
             //   (이름을 Plain으로 했다가 아래 소품 재질 함수 Plain(경로, 색, 금속도, 광택)을 가려 소품 22종의 금속도 · 광택이 뒤바뀐 적 있음 — 2026-10-29)
-            void EvoSurface(string path, Color color, float metallic, float smoothness)
+            // ⑤ 트림 (2026-11-16): 금 · 진주 · 흰 몸체 · 금속 테 · 벽 · 짙은 광택 = SpaceStation/InteriorTrim (trim = 장식 종류) —
+            //   트림 UV가 있는 메시 (BlenderWork/Tools/trim_uv_export.py로 내보낸 방)만 실제 크기 모서리 빛 · 이음선 · 홈, 없으면 Lit과 같은 모습
+            var trimShader = Shader.Find(TrimShaderName);
+            void EvoSurface(string path, Color color, float metallic, float smoothness, int trim = -1)
             {
                 var m = LoadOrCreate(path, lit);
-                m.shader = lit;
+                m.shader = trim >= 0 && trimShader != null ? trimShader : lit;
                 m.SetColor("_BaseColor", color);
                 m.SetFloat("_Metallic", metallic);
                 m.SetFloat("_Smoothness", smoothness);
+                if (trim >= 0)
+                    m.SetFloat("_TrimKind", trim);
                 m.enableInstancing = true;
                 EditorUtility.SetDirty(m);
             }
-            EvoSurface(EvoWhitePath, new Color(0.9f, 0.92f, 0.95f), 0f, 0.6f);
+            EvoSurface(EvoWhitePath, new Color(0.9f, 0.92f, 0.95f), 0f, 0.6f, TrimPanel);
             EvoSurface(EvoFloorPath, new Color(0.6f, 0.62f, 0.67f), 0.05f, 0.45f);
-            EvoSurface(EvoDarkPath, new Color(0.035f, 0.045f, 0.1f), 0.2f, 0.8f);
+            EvoSurface(EvoDarkPath, new Color(0.035f, 0.045f, 0.1f), 0.2f, 0.8f, TrimDarkGloss);
             // 진화 2단계 (미드나잇 · 은빛 · 금빛): 짙은 몸체는 방 조명에서 묻히지 않게 외형보다 조금 밝게
             EvoSurface(Evo2DeckPath, new Color(0.13f, 0.17f, 0.3f), 0.1f, 0.55f);
-            EvoSurface(Evo2WallPath, new Color(0.17f, 0.23f, 0.4f), 0.1f, 0.35f);   // 광택이 높으면 짙은 천장에 조명이 작은 해처럼 비침
-            EvoSurface(Evo2TrimPath, new Color(0.8f, 0.83f, 0.88f), 0.45f, 0.7f);
-            EvoSurface(Evo2GoldPath, new Color(0.93f, 0.7f, 0.3f), 0.5f, 0.65f);
+            EvoSurface(Evo2WallPath, new Color(0.17f, 0.23f, 0.4f), 0.1f, 0.35f, TrimWall);   // 광택이 높으면 짙은 천장에 조명이 작은 해처럼 비침
+            EvoSurface(Evo2TrimPath, new Color(0.8f, 0.83f, 0.88f), 0.45f, 0.7f, TrimMetal);
+            EvoSurface(Evo2GoldPath, new Color(0.93f, 0.7f, 0.3f), 0.5f, 0.65f, TrimGold);
             EvoSurface(Evo2VioletPath, new Color(0.66f, 0.42f, 0.95f), 0.1f, 0.55f);   // 융합 플랜트 코일 · 뚜껑 (바깥 모델 모듈 색 — 사용자 2026-10-23 보라. Blender 값 (0.5, 0.25, 0.9)은 선형이라 여기 값이 더 밝음)
             EvoSurface(Evo2PathPath, new Color(0.78f, 0.69f, 0.58f), 0f, 0.35f);
             EvoSurface(Evo2BedPath, new Color(0.26f, 0.19f, 0.15f), 0f, 0.2f);
@@ -676,8 +684,8 @@ namespace SpaceStation.Editor
             EvoSurface(Evo2BarPath, new Color(0.93f, 0.56f, 0.46f), 0f, 0.35f);
             EvoSurface(Evo2MountPath, new Color(0.55f, 0.62f, 0.76f), 0.25f, 0.45f);
             EvoSurface(Evo2SandPath, new Color(0.3f, 0.35f, 0.46f), 0f, 0.2f);
-            EvoSurface(Evo3PearlPath, new Color(0.95f, 0.92f, 0.87f), 0.15f, 0.72f);
-            EvoSurface(Evo3GoldPath, new Color(0.96f, 0.76f, 0.36f), 0.65f, 0.72f);
+            EvoSurface(Evo3PearlPath, new Color(0.95f, 0.92f, 0.87f), 0.15f, 0.72f, TrimPearl);
+            EvoSurface(Evo3GoldPath, new Color(0.96f, 0.76f, 0.36f), 0.65f, 0.72f, TrimGoldInlay);
             EvoSurface(Evo3BlossomPath, new Color(0.97f, 0.7f, 0.8f), 0f, 0.3f);
             EvoSurface(Evo3RoofPath, new Color(0.93f, 0.6f, 0.5f), 0f, 0.35f);    // 시안 2 마을 집 (Blender Evo3Roof와 같은 색)
             EvoSurface(Evo3DoorPath, new Color(0.45f, 0.68f, 0.78f), 0.1f, 0.5f);
@@ -697,7 +705,7 @@ namespace SpaceStation.Editor
             EvoSurface(Evo3CavePath, new Color(0.3f, 0.29f, 0.32f), 0f, 0.25f);       // 동굴 종유석
             EvoSurface(Evo3WoodPath, new Color(0.88f, 0.76f, 0.57f), 0f, 0.2f);       // 그루터기 잘린 면 (밝은 나뭇결, 나이테 = 얕은 물결 메시)
             EvoSurface(Evo3CoralPath, new Color(0.98f, 0.56f, 0.52f), 0f, 0.35f);     // 궤도 항만 산호 (Blender Evo3Coral과 같은 색)
-            EvoSurface(Evo3NacrePath, new Color(0.99f, 0.86f, 0.84f), 0.2f, 0.78f);   // 자개 (분홍빛 흰색 · 진주보다 윤기)
+            EvoSurface(Evo3NacrePath, new Color(0.99f, 0.86f, 0.84f), 0.2f, 0.78f, TrimPearl);   // 자개 (분홍빛 흰색 · 진주보다 윤기)
             EvoSurface(Evo3MintPath, new Color(0.55f, 0.9f, 0.78f), 0f, 0.4f);
             EvoSurface(Evo3LilacPath, new Color(0.8f, 0.73f, 0.97f), 0f, 0.35f);
             Emissive(Evo3HoneyPath, new Color(1f, 0.7f, 0.22f), new Color(1f, 0.58f, 0.12f) * 1.1f, 0.8f);   // 빛나는 꿀 (언덕 윗면 · 방울 · 저장 기둥 · 등불)

@@ -3182,3 +3182,11 @@
 **main에 넣은 것**
 
 - plant_builder `SM_Plant*` 여덟 (화분 식물 · 나무 · 소나무 · 꽃나무와 시든 것)을 가져올 때 재질 "M_{이름}" → 아틀라스 색 칸 UV · `M_Foliage` 하나 (`PlantMeshImporter` 버전 4 — 열면 모델을 다시 가져옴), 색 칸 12 (`Art/Plants/Swatches`) · 다시 구운 아틀라스, 시험 `OurPlantModels_OnAtlasSwatches`, 문서 03 7-5e · 체크리스트 221
+
+## M-220. 트림 — 내보내기 단계 트림 UV · 실제 크기 모서리 셰이더 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- `BlenderWork/Tools/trim_uv_export.py` (지어 둔 내부 모델에 트림 UV를 붙여 다시 내보냄 · 모양 비교), 셰이더 `SpaceStation/InteriorTrim` · 재질 여덟, `InteriorTrimImporter` (16비트 묶기 · 빈 UV0 · 내부 FBX 접선 뺌 — 열면 모델을 다시 가져옴), 아콜로지 · AI 중추 FBX, 시험 `InteriorTrimTests`, 문서 06a 7-11t · 체크리스트 222
