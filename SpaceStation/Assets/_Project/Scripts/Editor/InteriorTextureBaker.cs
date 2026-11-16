@@ -290,6 +290,95 @@ namespace SpaceStation.Editor
             Debug.Log("[InteriorTextureBaker] 모래 텍스처 생성");
         }
 
+        public const string HedgeNormalPath = Folder + "T_InteriorHedge_N.png";
+        public const string HedgeMaskPath = Folder + "T_InteriorHedge_M.png";
+
+        /// <summary>
+        /// AI 중추 다듬은 생울타리 (2026-11-16, 사용자 "퀄리티 올려줄래" — 매끈한 초록 덩어리 = 쿠션처럼 보였음): 한 장 = 1 m (타일링 1) —
+        /// 작은 잎 (길이 2.4 ~ 3.4 cm · 폭 1.2 ~ 1.6 cm) 12,000장을 아무 방향으로 겹쳐 찍음 (잎마다 둥근 등 + 가운데 잎맥 홈 · 이음 둘레 이어짐) + 큰 잎 덩이 흔들림 →
+        /// 노멀 + 마스크 (R 잎 사이 그늘 — 낮은 대비, G 잎마다 밝기). 잎이 빽빽이 겹쳐 틈은 가는 조각 선뿐 — 둥근 구멍 · 점 무늬 없음 (환공포증).
+        /// </summary>
+        [MenuItem("SpaceStation/Interior/Bake Hedge Textures")]
+        public static void BakeHedge()
+        {
+            var h = new float[N * N];
+            var tone = new float[N * N];
+            for (int i = 0; i < h.Length; i++)
+                h[i] = -1f;
+            var rng = new System.Random(1116);
+            const int leaves = 12000;                                   // 덮는 비율 약 94 % (3,600장은 반쯤 비어 틈이 얼룩으로 보일 수 있음)
+            for (int k = 0; k < leaves; k++)
+            {
+                float cx = (float)rng.NextDouble() * N, cy = (float)rng.NextDouble() * N;
+                float len = (0.024f + 0.01f * (float)rng.NextDouble()) * N * 0.5f;
+                float wid = (0.012f + 0.004f * (float)rng.NextDouble()) * N * 0.5f;
+                float ang = (float)rng.NextDouble() * Mathf.PI * 2f;
+                float depth = (float)rng.NextDouble();                 // 위에 찍힌 잎일수록 높음 (겹침 순서)
+                float lt = 0.7f + 0.3f * (float)rng.NextDouble();
+                float ca = Mathf.Cos(ang), sa = Mathf.Sin(ang);
+                int r = Mathf.CeilToInt(len) + 1;
+                for (int dy = -r; dy <= r; dy++)
+                {
+                    for (int dx = -r; dx <= r; dx++)
+                    {
+                        float u = (dx * ca + dy * sa) / len, v = (-dx * sa + dy * ca) / wid;
+                        float taper = 1f - u * u;                           // 끝이 뾰족한 잎 (가운데 폭 · 양 끝 0)
+                        if (taper <= 0f)
+                            continue;
+                        float e = v * v / taper;
+                        if (e >= 1f)
+                            continue;
+                        float hh = 0.35f * depth + 0.55f * Mathf.Sqrt(1f - e) * (0.75f + 0.25f * taper) - 0.06f * Mathf.Exp(-v * v * 40f) * taper;   // 둥근 등 · 잎맥 홈
+                        int x = ((int)cx + dx) & (N - 1), y = ((int)cy + dy) & (N - 1);
+                        int idx = y * N + x;
+                        if (hh > h[idx])
+                        {
+                            h[idx] = hh;
+                            tone[idx] = lt;
+                        }
+                    }
+                }
+            }
+            for (int y = 0; y < N; y++)
+            {
+                for (int x = 0; x < N; x++)
+                {
+                    int idx = y * N + x;
+                    if (h[idx] < 0f)
+                    {
+                        h[idx] = 0.12f;                                  // 잎 사이 (드묾) = 안쪽 그늘 잎 높이
+                        tone[idx] = 0.78f;
+                    }
+                    h[idx] += (Noise(x, y, 4, 271) - 0.5f) * 0.5f + (Noise(x, y, 12, 273) - 0.5f) * 0.18f;   // 큰 잎 덩이 흔들림
+                }
+            }
+            var blur = BoxBlur(h, 12);
+            var normal = new Color32[N * N];
+            var mask = new Color32[N * N];
+            const float strength = 2.2f;
+            for (int y = 0; y < N; y++)
+            {
+                for (int x = 0; x < N; x++)
+                {
+                    float dx = (H(h, x + 1, y) - H(h, x - 1, y)) * strength;
+                    float dy = (H(h, x, y + 1) - H(h, x, y - 1)) * strength;
+                    var n = new Vector3(-dx, -dy, 1f).normalized;
+                    normal[y * N + x] = new Color32(To8(n.x * 0.5f + 0.5f), To8(n.y * 0.5f + 0.5f), To8(n.z * 0.5f + 0.5f), 255);
+                    float cavity = Mathf.Clamp01(1f - Mathf.Max(0f, blur[y * N + x] - h[y * N + x]) * 1.6f);
+                    float ao = Mathf.Lerp(0.62f, 1f, cavity);
+                    float t = tone[y * N + x] * Mathf.Lerp(0.88f, 1f, Noise(x, y, 6, 277));
+                    mask[y * N + x] = new Color32(To8(ao), To8(t), 255, 255);
+                }
+            }
+            System.IO.Directory.CreateDirectory(Folder);
+            Save(HedgeNormalPath, normal);
+            Save(HedgeMaskPath, mask);
+            AssetDatabase.Refresh();
+            Configure(HedgeNormalPath, true);
+            Configure(HedgeMaskPath, false);
+            Debug.Log("[InteriorTextureBaker] 생울타리 잎 텍스처 생성");
+        }
+
         /// <summary>이어지는 보로노이 (가로 cx · 세로 cy칸, 칸 공간 거리): F2 − F1 (판 가장자리까지, 칸 단위) · 가장 가까운 점의 값 (판마다 다른 0~1).</summary>
         private static float Edge(float x, float y, int cx, int cy, int seed, out float id)
         {

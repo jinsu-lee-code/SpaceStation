@@ -3064,3 +3064,19 @@
 - `OrbitalPort` 미니게임 자리 값 (시작 상자 · 안내판 · 경첩 축 `ClamHingeAxis` · 분수 물 반지름), `InteriorTemplateBuilder.BuildEvoOrbitalPort` 시작 상자 · 연결, 프리팹
 
 - `OrbitalPortTests.PearlClams_Wired` · `FountainToss_Wired`, 새 `PortMinigameTests`, critter_builder `--seahorse` 해마 시안 시트 (아직 적용 안 함), 체크리스트 197 ~ 200 · 06c
+
+
+
+## M-210. AI 중추 "수정 뇌 미로 정원" 내부 · 체험 둘 · 미니게임 둘 (빛 구슬 모으기) (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 새 모델 `SM_Interior_EvoAICore.fbx` (Blender ai3_builder, `Interior_Evo2.blend`) · 템플릿 `IT_EvoAICore` · 프리팹 · 하늘 문 구멍, 새 값 `AICore`, `InteriorTemplateBuilder.BuildEvoAICore`, 키트 강조색 줄 (`InteriorKit`)
+
+- 새 재질 생울타리 `M_InteriorEvo3Hedge` (`InteriorTextureBaker.BakeHedge` 잎 결 텍스처) · 재질 표 (생울타리 · 빛 신경 `NeuralPurple` · `NeuralGold` · 시냅스 점 `TwinkleWhite`), 주민 자리 21 (`ResidentSpotBaker`), 식물 자리 없음
+
+- 체험 `InteriorDroneRide` (정원 드론 미로 위 한 바퀴) · `InteriorBrainShow` (책 넷 펼치면 수정 뇌 빛 쇼), 미니게임 `InteriorMazeRun` · `MazeRunGame` (막다른 길 빛 구슬 셋 → 정자) · `InteriorSynapseMemory` (시냅스 따라 켜기)
+
+- `AICoreTests` · `AICoreMinigameTests`, 체크리스트 201 ~ 210 · 06c

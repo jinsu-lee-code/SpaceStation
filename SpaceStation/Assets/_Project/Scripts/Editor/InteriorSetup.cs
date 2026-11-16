@@ -147,6 +147,8 @@ namespace SpaceStation.Editor
         public const string Evo3MintPath = MaterialFolder + "/M_InteriorEvo3Mint.mat";
         public const string Evo3LilacPath = MaterialFolder + "/M_InteriorEvo3Lilac.mat";
         public const string Evo3BeachSandPath = MaterialFolder + "/M_InteriorEvo3BeachSand.mat";   // 모래 해변 (트라이플래너 바람 물결 · 잔 알갱이 + 물가선 아래 젖은 띠)
+        // AI 중추 수정 뇌 미로 정원 (2026-11-16, ai3_builder): 다듬은 생울타리 = 트라이플래너 잎 텍스처 (작은 잎을 빽빽이 겹친 결 — 매끈한 초록 덩어리는 쿠션처럼 보였음)
+        public const string Evo3HedgePath = MaterialFolder + "/M_InteriorEvo3Hedge.mat";
         public const string Evo3LinenBluePath = MaterialFolder + "/M_InteriorEvo3LinenBlue.mat";
         public const string Evo3LinenRosePath = MaterialFolder + "/M_InteriorEvo3LinenRose.mat";
         public const string Evo3LinenWhitePath = MaterialFolder + "/M_InteriorEvo3LinenWhite.mat";   // 궤도 방어망 등대 빛 (따뜻한 빛, 빛기둥 셰이더 — 실드 돔 찬 빛 0.16은 밤바다에서 안 보였음)
@@ -613,6 +615,23 @@ namespace SpaceStation.Editor
             }
             // 젖은 띠 = 땅 높이로 (템플릿 좌표 — 궤도 항만 석호 수면 F − 0.1 위 5 cm까지 젖음, 그 아래 물속 모래도 젖은 색)
             Sand(Evo3BeachSandPath, new Color(0.97f, 0.93f, 0.84f), 0.08f, 0.45f, new Color(0.56f, 0.48f, 0.37f, 1f), SpaceStation.Interior.OrbitalPort.LagoonLevel + 0.05f);
+            // AI 중추 다듬은 생울타리 (2026-11-16): 같은 트라이플래너 셰이더에 잎을 빽빽이 겹친 결 (한 장 1 m) — 잎 사이 그늘은 옅게 (환공포증: 구멍 · 점 무늬 없음),
+            //  초록 = 밝게 (0.3 · 0.5 · 0.24는 밤빛에서 거의 검게 보였음 — 2026-11-16 Unity 확인), 잎 사이 그늘 · 때 옅게, 윤기 약간 (잎 표면)
+            if (!System.IO.File.Exists(InteriorTextureBaker.HedgeNormalPath) || !System.IO.File.Exists(InteriorTextureBaker.HedgeMaskPath))
+                InteriorTextureBaker.BakeHedge();
+            var hedge = LoadOrCreate(Evo3HedgePath, tri);
+            hedge.shader = tri;
+            hedge.SetColor("_BaseColor", new Color(0.46f, 0.7f, 0.34f));
+            hedge.SetFloat("_Smoothness", 0.18f);
+            hedge.SetFloat("_Metallic", 0f);
+            hedge.SetTexture("_DetailNormal", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.HedgeNormalPath));
+            hedge.SetTexture("_DetailMask", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.HedgeMaskPath));
+            hedge.SetFloat("_Tiling", 1f);
+            hedge.SetFloat("_NormalStrength", 1.3f);
+            hedge.SetFloat("_OcclusionStrength", 0.4f);
+            hedge.SetFloat("_GrimeStrength", 0.08f);
+            hedge.enableInstancing = true;
+            EditorUtility.SetDirty(hedge);
 
             // 진화 모듈 내부 1단계 키트 (2026-10-29): 외형 흰 패널 · 짙은 유리 띠와 같은 계열의 매끈한 재질 (패널 무늬 · 때 없음)
             //   (이름을 Plain으로 했다가 아래 소품 재질 함수 Plain(경로, 색, 금속도, 광택)을 가려 소품 22종의 금속도 · 광택이 뒤바뀐 적 있음 — 2026-10-29)
