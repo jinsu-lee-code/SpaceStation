@@ -615,21 +615,25 @@ namespace SpaceStation.Editor
             }
             // 젖은 띠 = 땅 높이로 (템플릿 좌표 — 궤도 항만 석호 수면 F − 0.1 위 5 cm까지 젖음, 그 아래 물속 모래도 젖은 색)
             Sand(Evo3BeachSandPath, new Color(0.97f, 0.93f, 0.84f), 0.08f, 0.45f, new Color(0.56f, 0.48f, 0.37f, 1f), SpaceStation.Interior.OrbitalPort.LagoonLevel + 0.05f);
-            // AI 중추 다듬은 생울타리 (2026-11-16): 같은 트라이플래너 셰이더에 잎을 빽빽이 겹친 결 (한 장 1 m) — 잎 사이 그늘은 옅게 (환공포증: 구멍 · 점 무늬 없음),
-            //  초록 = 밝게 (0.3 · 0.5 · 0.24는 밤빛에서 거의 검게 보였음 — 2026-11-16 Unity 확인), 잎 사이 그늘 · 때 옅게, 윤기 약간 (잎 표면)
-            if (!System.IO.File.Exists(InteriorTextureBaker.HedgeNormalPath) || !System.IO.File.Exists(InteriorTextureBaker.HedgeMaskPath))
+            // AI 중추 다듬은 생울타리 (2026-11-16): 같은 트라이플래너 셰이더 + 잎 색 텍스처 (_DETAIL_ALBEDO) — 잔가지째 겹친 7 ~ 10 cm 잎 · 새순 연두 · 큰 잎 덩이 (한 장 1.67 m),
+            //  처음 (한 색 + 2 ~ 3 cm 잎 노멀)은 몇 걸음만 떨어져도 매끈한 초록 벨벳 — 사용자 "풀 질감이 아쉽다" (같은 날 다시). 색은 텍스처가 맡고 _BaseColor = 흰색 (밝기만),
+            //  잎 윤기 (마스크 G = 잎마다 윤기 차이), 덩이 골 그늘 = 마스크 R. 구멍 · 점 무늬 없음 (환공포증).
+            if (!System.IO.File.Exists(InteriorTextureBaker.HedgeAlbedoPath) || !System.IO.File.Exists(InteriorTextureBaker.HedgeNormalPath) || !System.IO.File.Exists(InteriorTextureBaker.HedgeMaskPath))
                 InteriorTextureBaker.BakeHedge();
             var hedge = LoadOrCreate(Evo3HedgePath, tri);
             hedge.shader = tri;
-            hedge.SetColor("_BaseColor", new Color(0.46f, 0.7f, 0.34f));
-            hedge.SetFloat("_Smoothness", 0.18f);
+            hedge.SetColor("_BaseColor", Color.white);
+            hedge.SetFloat("_Smoothness", 0.32f);
             hedge.SetFloat("_Metallic", 0f);
+            hedge.SetTexture("_DetailAlbedo", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.HedgeAlbedoPath));
+            hedge.SetFloat("_UseDetailAlbedo", 1f);
+            hedge.EnableKeyword("_DETAIL_ALBEDO");
             hedge.SetTexture("_DetailNormal", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.HedgeNormalPath));
             hedge.SetTexture("_DetailMask", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.HedgeMaskPath));
-            hedge.SetFloat("_Tiling", 1f);
-            hedge.SetFloat("_NormalStrength", 1.3f);
-            hedge.SetFloat("_OcclusionStrength", 0.4f);
-            hedge.SetFloat("_GrimeStrength", 0.08f);
+            hedge.SetFloat("_Tiling", 0.6f);
+            hedge.SetFloat("_NormalStrength", 1f);
+            hedge.SetFloat("_OcclusionStrength", 0.6f);
+            hedge.SetFloat("_GrimeStrength", 0.3f);
             hedge.enableInstancing = true;
             EditorUtility.SetDirty(hedge);
 

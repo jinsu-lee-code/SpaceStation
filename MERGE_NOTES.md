@@ -3080,3 +3080,17 @@
 - 체험 `InteriorDroneRide` (정원 드론 미로 위 한 바퀴) · `InteriorBrainShow` (책 넷 펼치면 수정 뇌 빛 쇼), 미니게임 `InteriorMazeRun` · `MazeRunGame` (막다른 길 빛 구슬 셋 → 정자) · `InteriorSynapseMemory` (시냅스 따라 켜기)
 
 - `AICoreTests` · `AICoreMinigameTests`, 체크리스트 201 ~ 210 · 06c
+
+
+
+## M-211. AI 중추 드론 둥지 탑 문 옮김 (계단에 막힘) · 생울타리 잎 색 텍스처 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 드론 둥지 탑 창고 문: 나선 계단이 문 높이로 앞을 가로지르던 200° → 계단 밖 북 76°, 탑 벽을 파낸 아치 문간 · 두 짝 문 · 휜 아치 테 · 쐐기돌 · 반달 디딤돌 (`SM_Interior_EvoAICore.fbx` · `Interior_Evo2.blend` · 프리팹)
+
+- 생울타리 잎 색 텍스처 `T_InteriorHedge_A` (`InteriorTextureBaker.BakeHedge` 다시 짬) + `InteriorTriplanar` `_DETAIL_ALBEDO` 키워드 (`M_InteriorEvo3Hedge`만 켬, 다른 트라이플래너 재질은 새 속성만 저장됨), `InteriorSetup` 생울타리 값
+
+- 체크리스트 211 · 212 · 06c

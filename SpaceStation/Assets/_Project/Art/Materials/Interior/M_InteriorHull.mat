@@ -23,6 +23,10 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _DetailAlbedo:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _DetailMask:
         m_Texture: {fileID: 2800000, guid: 7a984ec3ce9a7b646897b9c8a6de98ef, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -39,8 +43,13 @@ Material:
     - _OcclusionStrength: 0.85
     - _Smoothness: 0.55
     - _Tiling: 0.5
+    - _UseDetailAlbedo: 0
+    - _WetBand: 0.1
+    - _WetLevel: 0
+    - _WetSmoothness: 0.5
     m_Colors:
     - _BaseColor: {r: 0.72, g: 0.72, b: 0.75, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _WetColor: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
