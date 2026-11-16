@@ -19,6 +19,8 @@ namespace SpaceStation.Editor
         public const string NormalPath = Folder + "T_PlantAtlas_N.png";
         public const string MaskPath = Folder + "T_PlantAtlas_M.png";
         public const string MaterialPath = Folder + "M_Foliage.mat";
+        /// <summary>살랑임을 끈 같은 재질 (④ 내부 잎 조각 — 조각 원점이 방 원점이라 흔들면 잎이 통째로 움직여 줄기에서 떨어져 보임, InteriorFoliage).</summary>
+        public const string StillMaterialPath = Folder + "M_FoliageStill.mat";
         public const string MeshFolder = Folder + "Meshes/";
         public const string ShaderName = "SpaceStation/Foliage";
 
@@ -458,6 +460,16 @@ namespace SpaceStation.Editor
             mat.SetTexture("_MaskMap", AssetDatabase.LoadAssetAtPath<Texture2D>(MaskPath));
             mat.enableInstancing = true;
             EditorUtility.SetDirty(mat);
+            var still = AssetDatabase.LoadAssetAtPath<Material>(StillMaterialPath);
+            if (still == null)
+            {
+                still = new Material(mat);
+                AssetDatabase.CreateAsset(still, StillMaterialPath);
+            }
+            still.CopyPropertiesFromMaterial(mat);
+            still.SetFloat("_WindStrength", 0f);
+            still.enableInstancing = true;
+            EditorUtility.SetDirty(still);
             AssetDatabase.SaveAssets();
             foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { MeshFolder.TrimEnd('/') }))
                 AssetDatabase.ImportAsset(AssetDatabase.GUIDToAssetPath(guid), ImportAssetOptions.ForceUpdate);

@@ -3158,3 +3158,11 @@
 **main에서 할 것**
 
 - `Main.unity`는 넣지 않았음 → main 장면에서 메뉴 SpaceStation/Interior/Setup (InteriorSetup)을 한 번 돌려 식물 설정 `Atlas`에 아틀라스 화분 식물을 연결 (안 하면 새 종류 자리는 우리 화분 식물로 그려짐)
+
+## M-217. 내부 잎 조각 → 아틀라스 색 칸 + 식물 재질 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 템플릿 빌드가 진화 내부 잎 조각 (`_Leaves`)의 우리 색 잎 · 꽃잎을 아틀라스 색 칸 + `M_FoliageStill` 한 칸으로 (`InteriorFoliage`, `Generated/SM_Interior_*_Leaves`), 바뀐 진화 프리팹 11 · 시험 `InteriorFoliageTests`, 문서 03 7-5c · 체크리스트 219

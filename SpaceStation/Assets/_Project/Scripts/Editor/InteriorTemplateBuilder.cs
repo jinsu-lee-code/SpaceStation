@@ -7593,6 +7593,8 @@ namespace SpaceStation.Editor
                     }
                 }
                 r.sharedMaterials = mats;
+                if (name.StartsWith("Evo"))
+                    InteriorFoliage.Convert(name, go);   // ④ 잎 조각의 우리 색 잎 · 꽃잎 → 식물 아틀라스 색 칸 + M_FoliageStill 한 칸 (양면 · 빛 비침)
                 // 진화 템플릿의 _Soft = 의자 방석 · 소파 (플레이 확인 2026-10-29: 거주 타워 소파를 지나감) → 충돌체. 작물 · 잎은 _Leaves (충돌체 없음)
                 bool solid = partName.EndsWith("_Shell") || partName.EndsWith("_Glass") || partName.EndsWith("_Door")   // _Door = 움직이는 문 (InteriorSlidingDoor)
                     || (name.StartsWith("Evo") && partName.EndsWith("_Soft"));
