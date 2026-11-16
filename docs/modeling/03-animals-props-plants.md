@@ -88,6 +88,13 @@
 - **등이 닿는 물에만** (점광원 세기 × (1 − 거리/범위)² 합 0.22): 서쪽 바다 띠 · 남서 끝 (등 없음)에서는 짙은 초록 잎이 밝은 성운 반사 위 **검은 점 무늬**로 보였음 (흩어진 어두운 둥근 점 = 피할 무늬). 가운데 석호는 배 길이 대부분을 차지해 남서 · 북서 구석 · 회전목마 섬 동쪽 · 진주 조개 앞 · 동쪽 조개 물길만 남음.
 - 삼각형 = 내부 모델 조각 (`INT_*`) + 수련 가까운 단계 ≤ 15만 (동물 모델은 따로라 이 예산 밖 — 프리팹 전체를 세면 27.5만). 시험 `OrbitalPortTests.Lilies_OnOpenWaterClearOfRides` (물 위 · 깊이 · 위 막힘 · 배 길 · 거북 헤엄 고리 실제 점 48개 · 날치 · 조개 · 벽 · 밝기 · 예산). 눈 = 물가 눈높이 샷 (무리마다 둘레 2.2 ~ 5.2 m 땅에서 — 물 막이 상자 `_LakeHit`은 시선 검사에서 빼야 함).
 
+### 7-5e. 우리 식물 모델 → 아틀라스 색 칸 (④, 2026-11-16)
+
+- plant_builder 식물 (`Art/Models/Interior/Plants/SM_Plant*` — 화분 식물 · 나무 · 소나무 · 꽃나무와 시든 것 여덟, UV 없는 색 재질 기하학)을 가져올 때 `PlantMeshImporter`가 재질 "M_{이름}"마다 색 칸 가운데 UV (`PlantAtlas.SwatchUV` — `PlantStem` · `PlantLeaf` · `PlantDry` · `PlantBark` · `PlantNeedle` · `PlantBlossom` · `PlantPistil` 등 12칸) · 흰 꼭짓점 색으로 바꾸고 재질 칸을 `M_Foliage` 하나로 합침. 재질 경계에서 함께 쓰던 꼭짓점은 칸마다 나눔 (지금 모델엔 없음 — 꼭짓점 수 그대로). Blender 다시 내보낼 것 없음, 시듦은 지금처럼 시든 모델로 바꿈.
+- 색 칸 색 = `Art/Plants/Swatches/M_Plant*.mat` (FBX 안 재질을 꺼낸 것 — 아틀라스 굽기만 읽음). plant_builder 색을 바꾸면 이 재질 색도 고치고 아틀라스를 다시 굽기. 모르는 재질 이름이 있으면 그 렌더러는 그대로 두고 알림.
+- **가져오기 후처리에서 `mesh.Clear()` 금지**: 가져오는 중인데도 메시가 읽기 금지 (isReadable false)로 바뀌어 삼각형 · 접선 · 경계 계산이 모두 "Not allowed" 오류 → 메시를 그대로 덮어씀 (꼭짓점 수는 늘기만). **후처리 코드를 고치면 `GetVersion`을 올림** — 같은 버전으로 다시 가져오면 고치기 전 (잘못된) 결과가 기준으로 남아 매번 "inconsistent result" 경고 (결과 메시는 같았음).
+- 확인 = 전 / 후 같은 자리 사진 (궤도 도시 꽃나무 · 나무 · 소나무, 생태 모듈 화분 · 나무, 농장 나무 — 멀쩡한 것 · 시든 것) 색 · 모양 그대로, 시험 `InteriorFoliageTests.OurPlantModels_OnAtlasSwatches`.
+
 ## 7-6. 움직이는 계층 모델 (12-3b 합성 기계팔 · 고리, `BlenderWork/SynthArm/arm_builder.py`)
 - **관절 계층이 있는 FBX는 `bake_space_transform=False`로 내보내고 Unity `ModelImporter.bakeAxisConversion = true`로 축을 맞춘다.** `True`로 내보냈더니 자식 관절의 위치 · 회전이 엉켜 들어왔음(윗팔이 90° 돌아 있고 원점이 어긋남). 결과: 루트만 축 변환 회전, 관절은 모두 회전 0.
 - 관절마다 오브젝트를 나누고 **원점을 관절 축에** 둔다. Unity IK는 모델 루트 로컬 축(위 = Blender z, 앞 = Blender +y)을 기준으로 계산 — Blender 미리보기에도 같은 IK를 넣어 토치 끝이 목표에 닿는지(오차 0) 먼저 확인한다.

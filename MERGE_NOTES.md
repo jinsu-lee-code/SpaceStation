@@ -3174,3 +3174,11 @@
 **main에 넣은 것**
 
 - 샘플 작은 수련 · 잎만 14포기를 등이 닿는 석호 물가 6곳에 (`OrbitalPort.Lilies` → 템플릿 빌드 `PlaceGarden`, 헤엄 막힘을 잰 뒤), 바뀐 궤도 항만 프리팹 · 시험 `Lilies_OnOpenWaterClearOfRides`, 문서 03 7-5d · 체크리스트 220
+
+## M-219. 우리 식물 모델 → 아틀라스 색 칸 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- plant_builder `SM_Plant*` 여덟 (화분 식물 · 나무 · 소나무 · 꽃나무와 시든 것)을 가져올 때 재질 "M_{이름}" → 아틀라스 색 칸 UV · `M_Foliage` 하나 (`PlantMeshImporter` 버전 4 — 열면 모델을 다시 가져옴), 색 칸 12 (`Art/Plants/Swatches`) · 다시 구운 아틀라스, 시험 `OurPlantModels_OnAtlasSwatches`, 문서 03 7-5e · 체크리스트 221
