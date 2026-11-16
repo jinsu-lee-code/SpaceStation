@@ -1,5 +1,6 @@
 # 꽃송이 단 등나무 벽 덩굴 (2026-11-16 AI 중추 — 사용자 "생울타리 위 이파리는 없애고 덩굴과 꽃으로 입체감")
-#  = 샘플 벽 덩굴 (WisteriaVineWall, 잎 · 가지 판 72 삼각형) + 등나무 꽃송이 판 (샘플 땅 덩굴의 빽빽한 꽃송이 UV 칸) 일곱 송이 (엇갈린 판 두 장씩)
+#  = 샘플 벽 덩굴 (WisteriaVineWall, 잎 · 가지 판 72 삼각형) + 등나무 꽃송이 판 (샘플 땅 덩굴의 빽빽한 꽃송이 UV 칸) 열한 송이 (엇갈린 판 두 장씩)
+#  (처음 일곱 송이 · 높이 0.36 ~ 0.48은 밤빛 미로에서 잘 안 보여 사용자 "좀 더 잘 보이게 · 풍성하게" → 열한 송이 · 0.44 ~ 0.58)
 #  보라 = WisteriaVineWallBloom_Mesh (꽃송이도 잎 재질 이름 → 잎 · 꽃 칸), 금빛 = WisteriaVineWallBloomGold_Mesh (꽃송이 재질 WisteriaGold_Mat →
 #  아틀라스 '우리 그림' 칸의 금빛 꽃송이 — PlantAtlas.GoldRaceme, AI 중추 뒤 반구 길 찾기 색). 벽 덩굴만으로는 짙은 잎이 생울타리 잎과 같아 묻혔음 (플레이 확인).
 # 실행: blender -b -P ArtSource/Plants/make_wisteria_bloom.py  → Assets/_Project/Art/Plants/Meshes 에 FBX 둘 (거리별 단순화 _LOD0 ~ 2)
@@ -9,7 +10,7 @@ from mathutils import Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MESH = os.path.normpath(os.path.join(HERE, "../../SpaceStation/Assets/_Project/Art/Plants/Meshes"))
-RACEMES = (7, 7, 4)                              # LOD별 꽃송이 수
+RACEMES = (11, 11, 6)                            # LOD별 꽃송이 수
 
 
 def unity(p):
@@ -59,8 +60,8 @@ def raceme_rect(faces):
 
 
 def anchors(faces, k, rr):
-    # 꽃송이를 매달 자리: 잎 판 꼭짓점 중 높이 −1.5 ~ −0.35 · 앞쪽 (z 작음) — 서로 먼 점부터 (x · y)
-    pts = [v for (vs, _, _, _) in faces for v in vs if -1.5 < v.y < -0.35]
+    # 꽃송이를 매달 자리: 잎 판 꼭짓점 중 높이 −1.65 ~ −0.25 · 앞쪽 (z 작음) — 서로 먼 점부터 (x · y)
+    pts = [v for (vs, _, _, _) in faces for v in vs if -1.65 < v.y < -0.25]
     pts.sort(key=lambda v: v.z)
     pts = pts[:max(k * 4, len(pts) // 2)]
     pick = [max(pts, key=lambda v: -v.y)]
@@ -70,12 +71,12 @@ def anchors(faces, k, rr):
 
 
 def racemes(at, rect, rr, cross):
-    # 꽃송이 = 위 끝에 매달려 늘어진 판 (엇갈린 두 장 ±40° · 앞 위를 보는 법선): 높이 0.36 ~ 0.48 (덩굴 크기 1 기준), 폭 = 높이 / 1.45
+    # 꽃송이 = 위 끝에 매달려 늘어진 판 (엇갈린 두 장 ±40° · 앞 위를 보는 법선): 높이 0.44 ~ 0.58 (덩굴 크기 1 기준), 폭 = 높이 / 1.45
     u0, u1, v0, v1 = rect
     out = []
     n = Vector((0.0, 0.45, -1.0)).normalized()
     for a in at:
-        h = rr.uniform(0.36, 0.48)
+        h = rr.uniform(0.44, 0.58)
         w = h / 1.45
         tilt = rr.uniform(-0.12, 0.12)
         d = Vector((tilt, -1.0, -0.12)).normalized()

@@ -3134,3 +3134,13 @@
 - 꽃송이 덩굴 메시 `WisteriaVineWallBloom` · `BloomGold` (`ArtSource/Plants/make_wisteria_bloom.py`), 아틀라스 금빛 꽃송이 칸 `PlantAtlas.GoldRaceme`, `PlantMeshImporter` 판 2
 
 - 시험 `Garden_OnFoliageWithinBudget` (삼각형 모델 + 식물 LOD0 ≤ 15만), 문서: 03 7-5a · 체크리스트 217
+
+## M-215. AI 중추 덩굴 풍성하게 · 잘 보이게 (2026-11-16, `main`)
+
+
+
+**main에 넣은 것**
+
+- 꽃송이 단 등나무 덩굴 45 → 90 (면마다 1.6 ~ 2.3 m · 크기 0.62 ~ 0.82), 덩굴마다 꽃송이 열한 송이 · 크게, 아틀라스 보라 · 금빛 꽃송이 밝게 (`PlantAtlas.RacemeLift`)
+
+- 미로 등 넷 더함 · 0.85, 삼각형 모델 + 식물 = 14.97만, 문서 03 7-5a

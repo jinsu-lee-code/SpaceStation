@@ -5735,8 +5735,8 @@ namespace SpaceStation.Editor
                 lights.Add(LightSpec.Point(new Vector3(x, F + 3.1f, z), 7f, 0.8f, white));                                    // 빈터 둘레 (정자 돔 · 꼭대기 테에서 떨어져)
             foreach (var l in AICore.Lobbies)
                 lights.Add(LightSpec.Point(new Vector3(l.x, F + 3.0f, l.y), 7f, 0.8f, white));                                // 앞마당 둘
-            foreach (var (x, z) in new[] { (1f, 0.2f), (15f, 0.2f), (1f, 7.8f), (15f, 7.8f), (8f, -1.6f), (8f, 9.6f) })
-                lights.Add(LightSpec.Point(new Vector3(x, F + 3.2f, z), 7f, 0.7f, cool));                                     // 미로 (생울타리 위 — 드론 길 1.5 m 아래)
+            foreach (var (x, z) in new[] { (1f, 0.2f), (15f, 0.2f), (1f, 7.8f), (15f, 7.8f), (8f, -1.6f), (8f, 9.6f), (4.5f, -1.3f), (11.5f, -1.3f), (4.5f, 9.3f), (11.5f, 9.3f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.2f, z), 7f, 0.85f, cool));                                    // 미로 (생울타리 위 — 드론 길 1.5 m 아래), 반구 가운데 넷 더함 · 0.7 → 0.85 (꽃송이 덩굴이 어두운 구석에서 묻혔음)
             foreach (var (x, z) in new[] { (21.5f, 1.4f), (26.6f, 2.3f), (23.2f, -2.6f) })
                 lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, z), 7f, 0.75f, white));                                   // 드론 마당 (판석 길 · 작업대 · 꽃밭 · 온실)
             EvoAccent("AICore", "#D8C0FF");

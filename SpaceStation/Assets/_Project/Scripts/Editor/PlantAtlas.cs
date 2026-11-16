@@ -33,6 +33,8 @@ namespace SpaceStation.Editor
         /// </summary>
         public static readonly RectInt RacemeSrc = new RectInt(1252, 488, 108, 144);
         public static readonly RectInt GoldRaceme = new RectInt(3072, 2048, 108, 144);
+        /// <summary>보라 등나무 꽃송이 (빽빽한 · 긴 꽃송이) 칸 — 원본 px, 톤 뒤 보라만 밝게.</summary>
+        public static readonly RectInt RacemeLift = new RectInt(1228, 389, 308, 370);
         public const int StripHeight = 256;
         public const int BarkTile = 128;
         public const int SwatchCell = 128;
@@ -287,6 +289,24 @@ namespace SpaceStation.Editor
             Blit(normal, M, cN.Px, cN.W, cN.H, Cherry.x / 2, Cherry.y / 2);
             FillMask(mask, M, Half(Load("CherryTree_01_T_Mask.png")), Half(Load("CherryTree_01_T_SS.png")), Cherry.x / 2, Cherry.y / 2);
 
+            // 등나무 꽃송이 밝게 (빽빽한 · 긴 꽃송이 칸의 보라만 — 밤빛 미로에서 잎에 묻혔음, 사용자 "좀 더 잘 보이게")
+            for (int y = RacemeLift.yMin; y < RacemeLift.yMax; y++)
+            {
+                for (int x = RacemeLift.xMin; x < RacemeLift.xMax; x++)
+                {
+                    int i = (Garden.y + y) * S + Garden.x + x;
+                    var c = albedo[i];
+                    if (c.a <= 8)
+                        continue;
+                    Color.RGBToHSV(c, out float hh, out float ss, out float vv);
+                    if (hh > 0.6f && hh < 0.95f && ss > 0.15f)
+                    {
+                        var nc = Color.HSVToRGB(hh, ss * 0.95f, Mathf.Clamp01(vv * 1.22f + 0.06f));
+                        albedo[i] = new Color32(To8(nc.r), To8(nc.g), To8(nc.b), c.a);
+                    }
+                }
+            }
+
             // 금빛 등나무 꽃송이 (보라 → 밝은 금빛 · 노란 무늬 · 줄기는 그대로, 노멀 · 마스크는 같은 칸 복사)
             for (int y = 0; y < RacemeSrc.height; y++)
             {
@@ -298,7 +318,7 @@ namespace SpaceStation.Editor
                         Color.RGBToHSV(c, out float hh, out float ss, out float vv);
                         if (hh > 0.55f && hh < 0.95f)
                         {
-                            var nc = Color.HSVToRGB(0.125f, 0.42f + 0.25f * ss, Mathf.Clamp01(0.6f + 0.45f * vv));   // 밝은 금빛 (밤빛에서 크림은 누런 갈색으로 묻혔음)
+                            var nc = Color.HSVToRGB(0.125f, 0.42f + 0.25f * ss, Mathf.Clamp01(0.68f + 0.4f * vv));   // 밝은 금빛 (밤빛에서 크림은 누런 갈색으로 묻혔음)
                             c = new Color32(To8(nc.r), To8(nc.g), To8(nc.b), c.a);
                         }
                     }
