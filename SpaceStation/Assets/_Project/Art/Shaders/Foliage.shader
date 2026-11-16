@@ -1,6 +1,6 @@
 // 식물 아틀라스 공용 셰이더 (2026-11-16): 식물 아틀라스 한 벌 (`PlantAtlas` — 샘플 잎 · 꽃 · 벚꽃 · 줄기 트림 띠 · 우리 색 칸)을 쓰는 모든 식물이 이 재질 하나를 씀.
 // 알파 잘라내기 · 양면 (뒷면은 법선을 뒤집음) · 빛 비침 (잎 뒤에서 오는 해 · 점광원 빛이 두께 (마스크 B)만큼 비침 — 밤 내부는 등불이 거의 다라 점광원도 셈)
-// · 꼭짓점 색 그늘 (샘플 메시 꼭짓점 색 R) · 시듦 (MPB `_Wilt` 0 → 1 = 누렇게 · 채도 낮춤 — 식물 자리 물 주기) · 살랑임 (원점 위 높이만큼, 자리마다 다른 박자).
+// · 꼭짓점 색 그늘 (샘플 메시 꼭짓점 색 R) · 시듦 (MPB `_Wilt` 0 → 1 = 누렇게 · 채도 낮춤 + 잎이 바깥 · 아래로 처짐 — 식물 자리 물 주기) · 살랑임 (원점 위 높이만큼, 자리마다 다른 박자).
 // 마스크: R = 윤기, G = 차폐, B = 두께. 톤 (밝게 · 연두 · 명암 대비 줄임)은 아틀라스를 구울 때 이미 들어 있음. SRP Batcher 호환.
 Shader "SpaceStation/Foliage"
 {
@@ -17,8 +17,10 @@ Shader "SpaceStation/Foliage"
         _VertexAO ("Vertex Color AO", Range(0, 1)) = 0.6
         _Translucency ("Translucency", Range(0, 2)) = 0.6
         _TranslucencyColor ("Translucency Color", Color) = (0.85, 1, 0.55, 1)
+        _TranslucencyMax ("Translucency Max (빛 비침 상한)", Range(0, 2)) = 0.45
         _Wilt ("Wilt (MPB)", Range(0, 1)) = 0
         _WiltColor ("Wilt Color", Color) = (0.72, 0.6, 0.32, 1)
+        _WiltDroop ("Wilt Droop (높이² 배율)", Range(0, 0.6)) = 0.35
         _WindStrength ("Wind Strength (m)", Range(0, 0.1)) = 0.012
         _WindSpeed ("Wind Speed", Range(0, 4)) = 1.1
     }
@@ -36,8 +38,10 @@ Shader "SpaceStation/Foliage"
         half _VertexAO;
         half _Translucency;
         half4 _TranslucencyColor;
+        half _TranslucencyMax;
         half _Wilt;
         half4 _WiltColor;
+        float _WiltDroop;
         float _WindStrength;
         float _WindSpeed;
     CBUFFER_END
@@ -78,13 +82,24 @@ Shader "SpaceStation/Foliage"
         return positionWS + float3(d.x, 0, d.y);
     }
 
+    // 시듦 처짐 (물체 공간): 밑동은 그대로, 위로 갈수록 바깥으로 벌어지며 아래로 (y − k y² — 키 1.4 안에서는 접히지 않음), 흙 밑 (2 cm 아래)으로는 안 내려감
+    float3 Droop(float3 p)
+    {
+        float k = _Wilt * _WiltDroop;
+        float h = max(p.y, 0.0);
+        float3 q = p;
+        q.xz *= 1.0 + k * 0.8 * h;
+        q.y = max(p.y - k * h * h, min(p.y, 0.02));
+        return q;
+    }
+
     Varyings Vert(Attributes input)
     {
         Varyings o = (Varyings)0;
         UNITY_SETUP_INSTANCE_ID(input);
         UNITY_TRANSFER_INSTANCE_ID(input, o);
         UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
-        float3 ws = TransformObjectToWorld(input.positionOS.xyz);
+        float3 ws = TransformObjectToWorld(Droop(input.positionOS.xyz));
         ws = Sway(input.positionOS.xyz, ws);
         o.positionWS = ws;
         o.positionCS = TransformWorldToHClip(ws);
@@ -100,7 +115,7 @@ Shader "SpaceStation/Foliage"
     half4 SampleAlbedo(float2 uv)
     {
         half4 c = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uv) * _BaseColor;
-        // 시듦: 채도를 낮추고 누런 색으로 (식물 자리 물 주기 요청 — 처짐은 모델이 함)
+        // 시듦: 채도를 낮추고 누런 색으로 (식물 자리 물 주기 요청 — 처짐은 Droop)
         half l = dot(c.rgb, half3(0.299, 0.587, 0.114));
         c.rgb = lerp(c.rgb, l * _WiltColor.rgb * 1.6, _Wilt);
         return c;
@@ -192,6 +207,7 @@ Shader "SpaceStation/Foliage"
                     tr += Transmit(GetAdditionalLight(lightIndex, i.positionWS, inputData.shadowMask), normalWS, thick);
                 LIGHT_LOOP_END
                 #endif
+                tr = min(tr, _TranslucencyMax);                                     // 창으로 든 해 (세기 2 넘음) 뒤에서 벚꽃 (두께 큼)이 하얗게 날아갔음 (회전 링 화분, 2026-11-16)
                 color.rgb += tr * albedo.rgb * _TranslucencyColor.rgb * vao;
                 color.rgb = MixFog(color.rgb, inputData.fogCoord);
                 color.a = 1;
@@ -223,7 +239,7 @@ Shader "SpaceStation/Foliage"
             {
                 Varyings o = (Varyings)0;
                 UNITY_SETUP_INSTANCE_ID(input);
-                float3 ws = Sway(input.positionOS.xyz, TransformObjectToWorld(input.positionOS.xyz));
+                float3 ws = Sway(input.positionOS.xyz, TransformObjectToWorld(Droop(input.positionOS.xyz)));
                 float3 nws = TransformObjectToWorldNormal(input.normalOS);
                 #if _CASTING_PUNCTUAL_LIGHT_SHADOW
                     float3 ld = normalize(_LightPosition - ws);

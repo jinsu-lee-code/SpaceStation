@@ -79,6 +79,10 @@ namespace SpaceStation.Data
         Tree,   // 화단 나무 (수경 농장 돔 아래)
         Pine,   // 소나무 (3단계 정원 숲 — 층층 가지 · 바늘잎, 2026-11-10)
         Blossom, // 꽃나무 (3단계 정원 꽃 들판 — 가지 끝 다섯 꽃잎 꽃)
+        // 식물 아틀라스 화분 식물 (2026-11-16 ③ — 화분 자리를 화분마다 테 · 둘레를 재서 고름, InteriorPlantVariants)
+        Liriope,     // 맥문동 꽃대
+        Bamboo,      // 대나무 새싹
+        CherryShrub, // 작은 벚나무 덤불
     }
 
     /// <summary>11-17 템플릿의 식물 자리 (모듈 로컬, 흙 윗면 가운데). 템플릿 빌더(Blender)는 화분 · 화단만 만들고 식물은 실행 중에 놓는다 — 시들고 물을 줄 수 있게.</summary>
