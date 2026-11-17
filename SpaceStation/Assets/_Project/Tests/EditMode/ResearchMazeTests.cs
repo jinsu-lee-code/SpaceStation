@@ -52,7 +52,7 @@ namespace SpaceStation.Tests
                 Assert.Ignore("템플릿 없음 (Build Evolved Templates 먼저)");
             var c = ResearchMaze.Center;
             float outer = ResearchMaze.Rings[0] + ResearchMaze.Wall / 2f, inner = ResearchMaze.Rings[2] - ResearchMaze.Wall / 2f;
-            Assert.Greater(template.ResidentSpots.Count, 4);
+            Assert.GreaterOrEqual(template.ResidentSpots.Count, 4);   // 일하는 셋 + 연구실 쉬는 자리 하나 (둘레 · 연구실 길목 다섯은 붐빔 줄여 뺌, 2026-11-18)
             foreach (var spot in template.ResidentSpots)
             {
                 float d = Mathf.Max(Mathf.Abs(spot.Position.x - c.x), Mathf.Abs(spot.Position.z - c.z));

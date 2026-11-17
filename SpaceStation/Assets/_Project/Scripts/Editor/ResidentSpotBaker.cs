@@ -167,6 +167,153 @@ namespace SpaceStation.Editor
         };
 
         /// <summary>
+        /// 주민이 덜 붐비게 뺀 자리 (사용자 2026-11-17 "주민들이 모듈에 너무 많아서 걸어다니기 조금 불편" → 2026-11-18 방마다 골라 뺀 시안 승인):
+        /// 고정 자리 표 (빌더 SPOTS 그대로)를 만든 뒤 여기 자리 (템플릿 좌표, 3 cm 안)를 굽기 때 뺌. 고른 기준 = 양옆 벽 · 난간 사이 1.9 m 안 길목에 선 자리 +
+        /// 걷는 넓이 100 m²당 쉬는 자리 9 넘는 방은 쉬는 자리 약 25% (서는 자리 → 바짝 붙은 자리, 벤치는 한 칸 건너 — 서 있는 주민은 서는 자리 사이를 걷고 앉은 주민도 가끔 일어나 걸음).
+        /// 일하는 자리 · 놀이기구 좌석 (식량 공장 관람차 곤돌라 · 화물 환적장 보트)은 그대로. 정련 콤비나트 · 심우주 통신기지 착지 원판 자리는 표 자체에서 뺐음.
+        /// </summary>
+        public static readonly Dictionary<string, Vector3[]> TrimmedSpots = new Dictionary<string, Vector3[]>
+        {
+            {
+                "Admin", new[]   // 15 → 13
+                {
+                    new Vector3(0.5f, -0.87f, 0.75f), new Vector3(0.5f, -0.87f, -0.75f)
+                }
+            },
+            {
+                "EvoArcology", new[]   // 31 → 23
+                {
+                    new Vector3(1.11f, 11.33f, 4.05f), new Vector3(3.059f, 11.33f, 1.267f), new Vector3(5.229f, 19.13f, 4.86f), new Vector3(3.14f, 19.13f, 5.229f),
+                    new Vector3(5.578f, 10.92f, 7.236f), new Vector3(1.41f, 10.92f, 6.501f), new Vector3(0.821f, 10.92f, 2.31f), new Vector3(4.625f, 10.92f, 0.455f)
+                }
+            },
+            {
+                "EvoBiodome", new[]   // 51 → 40
+                {
+                    new Vector3(12.25f, -1.3f, 4.4f), new Vector3(8.7f, -1.3f, 3.0f), new Vector3(11.4f, -1.3f, 1.95f), new Vector3(13.4f, -1.3f, 7.15f),
+                    new Vector3(15.1f, -1.3f, 3.4f), new Vector3(-1.04f, -1.3f, 3.08f), new Vector3(0.58f, -1.3f, 6.54f), new Vector3(23.4f, -1.3f, 1.6f),
+                    new Vector3(21.7f, -1.3f, 2.15f), new Vector3(25.4f, -1.3f, 3.3f), new Vector3(4.0f, -1.3f, -1.6f)
+                }
+            },
+            {
+                "EvoCargoTransfer", new[]   // 24 → 20
+                {
+                    new Vector3(1.71f, -0.88f, 3.92f), new Vector3(6.45f, -0.88f, 5.22f), new Vector3(10.1f, -1.3f, 2.4f), new Vector3(2.95f, -1.3f, 4.35f)
+                }
+            },
+            {
+                "EvoCivicHall", new[]   // 67 → 51
+                {
+                    new Vector3(-3.207f, -0.87f, -2.726f), new Vector3(-3.031f, -0.87f, -3.031f), new Vector3(-3.031f, -0.87f, 11.031f), new Vector3(18.925f, -0.87f, -2.9f),
+                    new Vector3(12.2f, -1.3f, 1.42f), new Vector3(12.0f, -1.3f, -1.3f), new Vector3(17.5f, -1.3f, -1.8f), new Vector3(16.2f, -1.3f, 10.6f),
+                    new Vector3(10.2f, -1.3f, 10.4f), new Vector3(21.3f, -1.3f, 1.7f), new Vector3(26.3f, -1.3f, -2.3f), new Vector3(9.356f, -1.3f, 5.95f),
+                    new Vector3(-1.356f, -1.3f, 5.95f), new Vector3(2.05f, -1.3f, -1.356f), new Vector3(9.356f, -1.3f, 2.05f), new Vector3(1.5f, -1.3f, 11.0f)
+                }
+            },
+            {
+                "EvoCulture", new[]   // 28 → 21
+                {
+                    new Vector3(5.167f, -0.85f, 5.167f), new Vector3(2.833f, -0.85f, 5.167f), new Vector3(2.833f, -0.85f, 2.833f), new Vector3(5.167f, -0.85f, 2.833f),
+                    new Vector3(5.803f, -0.85f, 5.803f), new Vector3(2.197f, -0.85f, 5.803f), new Vector3(4.0f, -1.3f, 9.6f)
+                }
+            },
+            {
+                "EvoFoodFactory", new[]   // 47 → 37
+                {
+                    new Vector3(13.6f, -1.3f, -1.75f), new Vector3(18.4f, -1.3f, 1.75f), new Vector3(19.4f, -1.3f, -1.75f), new Vector3(-3.2f, -1.3f, 1.8f),
+                    new Vector3(-1.6f, -1.3f, 2.9f), new Vector3(11.0f, -1.3f, -3.2f), new Vector3(21.0f, -1.3f, -3.2f), new Vector3(33.6f, -1.3f, 2.9f),
+                    new Vector3(35.2f, -1.3f, -1.8f), new Vector3(9.8f, -1.3f, 3.2f)
+                }
+            },
+            {
+                "EvoFusionPlant", new[]   // 25 → 20
+                {
+                    new Vector3(0.15f, -1.3f, 4.0f), new Vector3(11.2f, -1.3f, 1.45f), new Vector3(11.2f, -1.3f, 6.55f), new Vector3(18.55f, -1.3f, 3.3f),
+                    new Vector3(18.55f, -1.3f, 4.7f)
+                }
+            },
+            {
+                "EvoGridHub", new[]   // 34 → 27
+                {
+                    new Vector3(-2.438f, -0.87f, -2.036f), new Vector3(-2.281f, -0.87f, -2.281f), new Vector3(18.036f, -0.87f, -2.438f), new Vector3(18.281f, -0.87f, -2.281f),
+                    new Vector3(-2.036f, -0.87f, 10.438f), new Vector3(-2.281f, -0.87f, 10.281f), new Vector3(18.281f, -0.87f, 10.281f)
+                }
+            },
+            {
+                "EvoOrbitalMirror", new[]   // 38 → 30
+                {
+                    new Vector3(-2.438f, -0.87f, -2.036f), new Vector3(-2.281f, -0.87f, -2.281f), new Vector3(26.036f, -0.87f, -2.438f), new Vector3(26.281f, -0.87f, -2.281f),
+                    new Vector3(-2.036f, -0.87f, 10.438f), new Vector3(-2.281f, -0.87f, 10.281f), new Vector3(26.281f, -0.87f, 10.281f), new Vector3(5.9f, -1.3f, -1.7f)
+                }
+            },
+            {
+                "EvoRadiationWall", new[]   // 25 → 19
+                {
+                    new Vector3(0.5f, -1.3f, -1.42f), new Vector3(15.5f, -1.3f, -1.42f), new Vector3(-3.1f, -1.3f, 3.9f), new Vector3(18.9f, -1.3f, 2.7f),
+                    new Vector3(-0.05f, -1.3f, 0.35f), new Vector3(9.25f, -1.3f, 0.35f)
+                }
+            },
+            {
+                "EvoRefineryCombine", new[]   // 26 → 20
+                {
+                    new Vector3(10.82f, -0.3f, 4.5f), new Vector3(5.18f, -0.3f, 4.5f), new Vector3(2.74f, -0.3f, 2.585f), new Vector3(13.26f, -0.3f, 2.585f),
+                    new Vector3(13.26f, -0.3f, 6.415f), new Vector3(2.74f, -0.3f, 6.415f)
+                }
+            },
+            {
+                "EvoRepairCommand", new[]   // 23 → 21
+                {
+                    new Vector3(4.523f, -1.63f, 3.112f), new Vector3(10.303f, -1.63f, 1.831f)
+                }
+            },
+            {
+                "EvoResearchInstitute", new[]   // 9 → 4
+                {
+                    new Vector3(0.6f, -1.3f, -3.35f), new Vector3(8.2f, -1.3f, -3.35f), new Vector3(4.0f, -1.3f, 11.25f), new Vector3(4.0f, -1.3f, 6.55f),
+                    new Vector3(6.55f, -1.3f, 4.0f)
+                }
+            },
+            {
+                "EvoSecurity", new[]   // 20 → 17
+                {
+                    new Vector3(4.9f, -0.87f, -0.95f), new Vector3(2.55f, -0.87f, -0.95f), new Vector3(5.45f, -0.87f, -0.95f)
+                }
+            },
+            {
+                "EvoSecurityHQ", new[]   // 26 → 21
+                {
+                    new Vector3(-2.75f, -0.87f, 4.43f), new Vector3(1.9f, -1.3f, -0.4f), new Vector3(-1.4f, -1.3f, -0.6f), new Vector3(-1.9f, -1.3f, 6.5f),
+                    new Vector3(2.9f, -1.3f, 6.35f)
+                }
+            },
+            {
+                "EvoShieldDome", new[]   // 20 → 15
+                {
+                    new Vector3(9.25f, -0.82f, -1.44f), new Vector3(6.41f, -0.87f, -1.05f), new Vector3(-1.6f, -1.3f, -2.9f), new Vector3(2.2f, -1.3f, 10.6f),
+                    new Vector3(5.812f, 6.1f, 5.751f)
+                }
+            },
+            {
+                "EvoStorageComplex", new[]   // 17 → 15
+                {
+                    new Vector3(0.56f, -1.3f, 3.0f), new Vector3(23.44f, -1.3f, 3.0f)
+                }
+            },
+            {
+                "EvoWelfare", new[]   // 18 → 14
+                {
+                    new Vector3(-2.05f, -0.86f, 5.05f), new Vector3(2.05f, -0.86f, 5.05f), new Vector3(0.0f, -1.3f, 4.35f), new Vector3(0.0f, -1.3f, 6.05f)
+                }
+            },
+            {
+                "Passenger", new[]   // 17 → 13
+                {
+                    new Vector3(5.65f, -0.87f, 1.55f), new Vector3(6.25f, -0.87f, 1.55f), new Vector3(9.15f, -0.87f, 1.55f), new Vector3(9.75f, -0.87f, 1.55f)
+                }
+            },
+        };
+
+        /// <summary>
         /// 진화 2단계 치안 본부 (sh_builder SPOTS): 일하는 자리 = 창구 직원 의자 셋 (가운데부터, 일터 없는 주민도 — OpenWork) · 상황실 레이더 곁 둘 · 안내 데스크,
         /// 쉬는 자리 = 광장 벤치 6 (민원인, 번호표 뽑고 창구로 — <see cref="Interior.InteriorQueueBoard"/>) · 청사 안 벤치 4 (앉음) + 돌아다니는 자리 (광장은 우주복).
         /// </summary>
@@ -1500,10 +1647,21 @@ namespace SpaceStation.Editor
             if (FixedSpots.TryGetValue(name, out var fixedSpots))
             {
                 var spots = fixedSpots();
+                int trimmed = 0;
+                if (TrimmedSpots.TryGetValue(name, out var cut))
+                {
+                    foreach (var c in cut)
+                    {
+                        int n = spots.RemoveAll(s => (s.Position - c).sqrMagnitude < 0.03f * 0.03f);
+                        if (n == 0)
+                            Debug.LogWarning($"[ResidentSpotBaker] {name}: 뺄 자리 {c}가 고정 자리 표에 없음 (표가 바뀌었으면 TrimmedSpots도 고칠 것)");
+                        trimmed += n;
+                    }
+                }
                 // 12-5 방열판: 고정 자리여도 일터 특성(기술자)은 그대로 — 일터 없는 주민 방(OpenWork)은 특성 없음
                 var fixedTraits = WorkTraits.TryGetValue(name, out var ft) ? new List<ResidentTrait>(ft) : new List<ResidentTrait>();
                 template.EditorSetResidents(spots, fixedTraits, LeisureRooms.Contains(name));
-                return $"{name} 고정 자리 {spots.Count}";
+                return $"{name} 고정 자리 {spots.Count}" + (trimmed > 0 ? $" (붐빔 줄여 {trimmed} 뺌)" : "");
             }
             var instance = (GameObject)Object.Instantiate(template.Prefab, Far, Quaternion.identity);
             var added = new List<Component>();
