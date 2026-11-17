@@ -111,6 +111,9 @@ namespace SpaceStation.Tests
                             problems.AppendLine($"{at}: 판 · 기둥 속에 장식 (동물 · 케이블 · 풀 · 덩굴)");
                         if (center.y + s.Depth - pad.y < InteriorSkyLiftSpots.MinRise)
                             problems.AppendLine($"{at}: 떠오를 높이가 너무 낮음");
+                        // 판 테가 벽 · 기둥 · 물건에 겹치지 않음 (전체 검토 때 방사선 장벽 판이 벽 속으로 9 cm 들어가 있었음, 2026-11-18)
+                        if (InteriorSkyLiftSpots.EdgeGap(pad) < 0f)
+                            problems.AppendLine($"{at}: 판 테가 벽 · 물건에 겹침 ({InteriorSkyLiftSpots.EdgeGap(pad):F2} m)");
                         int k = graph.Node(pad, 0.4f);
                         if (k < 0 || !graph.Reached(k))
                             problems.AppendLine($"{at}: 들어오는 곳에서 걸어서 못 감");

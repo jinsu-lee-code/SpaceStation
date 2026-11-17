@@ -249,6 +249,17 @@ namespace SpaceStation.Editor
         /// 판이 틀에 걸쳤음 — 정련 콤비나트 · 식량 공장 · 융합 플랜트 · 궤도 방어망 · 방사선 장벽, 2026-11-18 플레이).
         /// </summary>
         private static readonly (float Door, float Hatch, float Frame, float Resident)[] Rules = { (1.8f, 1.6f, 0.25f, 0.6f), (1.5f, 1.4f, 0.1f, 0.25f) };
+        /// <summary>
+        /// 승강판만 (천장 해치 · 모델 착지 원판 말고): 판 테에서 몸 높이 (0.3 · 1.0 · 1.8 m) 물체까지 · 옆으로 지나갈 폭 (허리 높이 마주 보는 두 면 사이) · 문까지 —
+        /// 엄하게 → 느슨하게 → 마지막 (판이 벽에 겹치지만 않게 — 그 칸에 다른 자리가 없을 때, 기록에 "좁은 자리"). 전체 검토 (사용자 2026-11-18 "추천대로 같이 고쳐줘")에서
+        /// 판 테 3 ~ 10 cm에 수레 · 안내판 · 벽, 폭 1.6 ~ 2.3 m 골목 · 옆 통로를 판이 막고, 문 1.6 m 앞에 판이 있었음.
+        /// </summary>
+        private static readonly (float Gap, float Width, float Door)[] LiftRules = { (0.25f, 2.8f, 2.4f), (0.2f, 2.4f, 1.9f), (0f, 0f, 0f) };
+        /// <summary>
+        /// 도구가 못 알아보는 좁은 곳 (방 · 칸 · 칸 가운데 기준 x · z · 반지름) — 승강판을 놓지 않음. 드론 정비창 격납고 아치 문간 (폭 1.7 m): 폭 재기 광선이 문간 너머로 빠져
+        /// 넓다고 보고 아치 1 m 앞 통로에 판을 놓았음 (2026-11-18 눈높이 사진). 문간을 광선으로 찾게 하면 계단 입구 · 벤치 틈까지 걸려 멀쩡한 자리가 옮겨졌음.
+        /// </summary>
+        private static readonly (string Room, Vector3Int Cell, Vector2 Center, float Radius)[] Avoid = { ("IT_EvoDroneDepot", new Vector3Int(1, 1, 1), new Vector2(2.0f, 1.75f), 1.8f) };
         /// <summary>바닥 해치 틀 반 변 (키트 KIT_HatchFrame 1.9 m).</summary>
         public const float HatchFrameHalf = 0.95f;
         private const float PadGap = 1.0f;
@@ -513,12 +524,13 @@ namespace SpaceStation.Editor
                     bool atModel = exact.Contains(cell) && TryDesigned(t, graph, decor, cell, target, pads, out pad);
                     if (exact.Contains(cell) && !atModel)
                         Debug.LogWarning($"[InteriorSkyLiftSpots] {t.name} {cell}: 모델 착지 자리 ({target.x:F2}, {target.y:F2})에 판을 못 놓음 — 다른 곳을 찾음 (원판과 어긋남)");
-                    if (atModel || TryFindLift(t, graph, decor, cell, target, pads, why, out pad))
+                    int usedRule = 0;
+                    if (atModel || TryFindLift(t, graph, decor, cell, target, pads, why, out pad, out usedRule))
                     {
                         pads.Add(pad);
                         sockets.Add(new InteriorSocket(cell, Vector3Int.up, RingDepth, pad - center, skyLift: true));
                         lifts++;
-                        log.Append($" {cell}→판 ({pad.x - center.x:F2}, {pad.y - center.y:F2}, {pad.z - center.z:F2})");
+                        log.Append($" {cell}→판 ({pad.x - center.x:F2}, {pad.y - center.y:F2}, {pad.z - center.z:F2})" + (usedRule == LiftRules.Length - 1 ? " [좁은 자리]" : ""));
                     }
                     else if (TryFindCeilingHatch(t, graph, decor, cell, target, pads, out var hatch, out var under))
                     {
@@ -578,13 +590,14 @@ namespace SpaceStation.Editor
             }
         }
 
-        private static bool TryFindLift(InteriorTemplate t, InteriorWalkGraph graph, DecorGrid decor, Vector3Int cell, Vector2 target, List<Vector3> pads, Dictionary<string, int> why, out Vector3 pad)
+        private static bool TryFindLift(InteriorTemplate t, InteriorWalkGraph graph, DecorGrid decor, Vector3Int cell, Vector2 target, List<Vector3> pads, Dictionary<string, int> why, out Vector3 pad, out int usedRule)
         {
             pad = default;
+            usedRule = -1;
             var center = Away + (Vector3)cell * InteriorGeometry.CellSize;
             float ringY = center.y + RingDepth;
-            // 거리 규칙을 엄하게 먼저, 없으면 느슨하게 (언덕 · 붐비는 칸 — 심우주 통신기지)
-            for (int rule = 0; rule < Rules.Length; rule++)
+            // 거리 규칙을 엄하게 먼저, 없으면 느슨하게 (언덕 · 붐비는 칸 — 심우주 통신기지), 마지막 = 판이 벽에 겹치지만 않게 (좁은 자리 — 기록에 표시)
+            for (int rule = 0; rule < LiftRules.Length; rule++)
             {
                 var candidates = new List<(float Score, Vector3 P)>();
                 foreach (int k in CellNodes(graph, center))
@@ -595,7 +608,12 @@ namespace SpaceStation.Editor
                         Count(why, "낮음");
                         continue;
                     }
-                    string blocked = Blocked(t, p, pads, rule);
+                    if (Avoided(t, cell, new Vector2(p.x - center.x, p.z - center.z)))
+                    {
+                        Count(why, "피함");
+                        continue;
+                    }
+                    string blocked = Blocked(t, p, pads, Mathf.Min(rule, Rules.Length - 1));
                     if (blocked != null)
                     {
                         Count(why, blocked);
@@ -627,8 +645,17 @@ namespace SpaceStation.Editor
                             Count(why, "장식X");
                             continue;
                         }
+                        string tight = Tight(t, q, rule);
+                        if (tight != null)
+                        {
+                            Count(why, tight);
+                            continue;
+                        }
                         // 둘레가 좁으면 (반지름 1.3 · 몸 높이까지 무언가) 덜 고름 — 길목 · 벽에 바짝 붙은 자리. 기운 땅도 덜 (평평한 길 · 광장 먼저)
                         float s = score + (Roomy(q, 1.3f, 2.3f) ? 0f : 1.5f) + uneven * 8f;
+                        // 느슨한 규칙에서는 옛 자리에 가까운 곳보다 넉넉한 곳을 — 엄한 규칙에 모자란 만큼 덜 고름 (벽 · 기둥에 5 cm까지 붙은 판 · 문 바로 안쪽 판, 2026-11-18 눈높이 사진)
+                        if (rule > 0)
+                            s += Shortfall(t, q);
                         if (s < best)
                         {
                             best = s;
@@ -636,7 +663,10 @@ namespace SpaceStation.Editor
                         }
                     }
                     if (best < float.MaxValue)
+                    {
+                        usedRule = rule;
                         return true;
+                    }
                 }
             }
             return false;
@@ -778,6 +808,82 @@ namespace SpaceStation.Editor
         }
 
         private static float Flat2(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
+
+        /// <summary>승강판 둘레가 좁으면 그 이유 (<see cref="LiftRules"/>) — 판 테 여유 · 옆으로 지나갈 폭 · 문 앞. 아니면 null.</summary>
+        private static string Tight(InteriorTemplate t, Vector3 pad, int rule)
+        {
+            var r = LiftRules[rule];
+            if (EdgeGap(pad) < r.Gap)
+                return "테여유";
+            if (PassWidth(pad) < r.Width)
+                return "폭";
+            return DoorDistance(t, pad) < r.Door ? "문앞" : null;
+        }
+
+        /// <summary>칸 가운데 기준 자리가 <see cref="Avoid"/> 안인지.</summary>
+        private static bool Avoided(InteriorTemplate t, Vector3Int cell, Vector2 local)
+        {
+            foreach (var a in Avoid)
+            {
+                if (a.Room == t.name && a.Cell == cell && (local - a.Center).magnitude < a.Radius)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>엄한 규칙 (<see cref="LiftRules"/> 첫 줄)에 모자란 만큼 (m, 판 테 여유는 4배 — 벽에 바짝 붙은 판이 가장 눈에 띔).</summary>
+        private static float Shortfall(InteriorTemplate t, Vector3 pad)
+        {
+            var r = LiftRules[0];
+            return Mathf.Max(0f, r.Gap - EdgeGap(pad)) * 4f + Mathf.Max(0f, r.Width - PassWidth(pad)) + Mathf.Max(0f, r.Door - DoorDistance(t, pad));
+        }
+
+        /// <summary>같은 층 (높이 2.5 m 안) 옆 문 자리에서 판까지 가장 가까운 평면 거리 (없으면 99).</summary>
+        private static float DoorDistance(InteriorTemplate t, Vector3 pad)
+        {
+            float best = 99f;
+            foreach (var s in t.Sockets)
+            {
+                if (s.Direction.y != 0)
+                    continue;
+                var c = Away + (Vector3)s.Cell * InteriorGeometry.CellSize;
+                var door = c + (Vector3)s.Direction * s.Depth;
+                if (Mathf.Abs(c.y - 2f - pad.y) < 2.5f)
+                    best = Mathf.Min(best, Flat2(door, pad));
+            }
+            return best;
+        }
+
+        /// <summary>판 테 (반지름 <see cref="PadRadius"/>)에서 몸 높이 (0.3 · 1.0 · 1.8 m) 충돌체까지 가장 짧은 평면 거리 (16방향, 판 안으로 들어오면 음수) — 시험도 씀.</summary>
+        public static float EdgeGap(Vector3 pad)
+        {
+            float gap = 99f;
+            foreach (float h in new[] { 0.3f, 1.0f, 1.8f })
+            {
+                for (int a = 0; a < 16; a++)
+                {
+                    var d = Quaternion.Euler(0f, a * 22.5f, 0f) * Vector3.forward;
+                    if (Physics.Raycast(pad + Vector3.up * h, d, out var hit, 8f, ~0, QueryTriggerInteraction.Ignore))
+                        gap = Mathf.Min(gap, hit.distance - PadRadius);
+                }
+            }
+            return gap;
+        }
+
+        /// <summary>판 가운데 허리 높이 (0.9 m)에서 마주 보는 두 면 사이 가장 좁은 폭 (8방향, 한쪽 8 m까지) — 판 1.5 m 옆으로 사람이 지나갈 폭인지.</summary>
+        public static float PassWidth(Vector3 pad)
+        {
+            var p = pad + Vector3.up * 0.9f;
+            float width = 99f;
+            for (int a = 0; a < 8; a++)
+            {
+                var d = Quaternion.Euler(0f, a * 22.5f, 0f) * Vector3.forward;
+                float d1 = Physics.Raycast(p, d, out var h1, 8f, ~0, QueryTriggerInteraction.Ignore) ? h1.distance : 8f;
+                float d2 = Physics.Raycast(p, -d, out var h2, 8f, ~0, QueryTriggerInteraction.Ignore) ? h2.distance : 8f;
+                width = Mathf.Min(width, d1 + d2);
+            }
+            return width;
+        }
 
         /// <summary>바닥 해치 틀 (네모 1.9 m × 배율)에서 p까지 평면 거리 (틀 안이면 0) — 시험도 씀.</summary>
         public static float FrameGap(Vector3 hatch, float scale, Vector3 p)
