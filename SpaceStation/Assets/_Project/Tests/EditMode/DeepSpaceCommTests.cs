@@ -234,7 +234,7 @@ namespace SpaceStation.Tests
             }
             try
             {
-                Assert.GreaterOrEqual(template.ResidentSpots.Count, 15);
+                Assert.GreaterOrEqual(template.ResidentSpots.Count, 12);   // 칸마다 다섯 − 승강판 착지 원판 옆 셋 (2026-11-17 — 주민이 덜 붐비게)
                 foreach (var spot in template.ResidentSpots)
                 {
                     var p = spot.Position;

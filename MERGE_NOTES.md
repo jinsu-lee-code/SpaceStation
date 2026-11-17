@@ -3347,3 +3347,19 @@
 **main에서 따로 할 것**
 
 - 없음. 통신기지 셋 · 정련 콤비나트 여섯 착지 자리는 tycoon TASKS에서 시안 대기
+
+## M-233. 진화 단계별 통로 ③ 3차 — 정련 콤비나트 · 심우주 통신기지 승강판 착지 원판 · 주민 자리 줄임 · 해치 틀 겹침 고침 (2026-11-18, `main`)
+
+
+
+**main에 넣은 것**
+
+- rf_builder (`LIFT_PADS` 여섯 — 갑판 착지 원판, 앞쪽 양옆 줄등 없앰, 왼쪽 주괴 더미 · 북쪽 벤치 둘 옮김) → `SM_Interior_EvoRefineryCombine.fbx`, ds4_builder (`LIFT_PADS` 셋 — 달 돌 원판 · 은빛 테 · 별 넷, 아기 사슴 · 토끼 · 등불 · 수정 옮김, 풀꽃 흩뿌림 그대로) → `SM_Interior_EvoDeepSpaceComm.fbx` · 잎 메시, 두 FBX 트림 UV 다시, `Interior_Evo.blend` · `Interior_Evo2.blend` 텍스트
+- 주민 자리: `ResidentSpotBaker` 정련 32 → 26 · 통신기지 15 → 12 (판에 밀려난 자리 뺌), `DeepSpaceComm` 아기 사슴 (왼쪽 앞 별 샘 옆) · 오른쪽 토끼 자리, 통신기지 프리팹 (동물)
+- `InteriorSkyLiftSpots`: `Targets` 아홉 자리 · `TryDesigned` (모델 원판 가운데 그대로), 해치 거리 = 틀 네모 가장자리에서 판 테까지 (`FrameGap` — 가운데 거리만 보던 때 판 열 곳이 틀에 걸쳤음)
+- `InteriorTemplateBuilder`: 정련 기념탑 앞 해치 0.3 m 오른쪽, 식량 공장 해치 둘을 뒤쪽 띠로 (z −1.7 → +1.7), 템플릿 여섯 (통신기지 · 정련 · 식량 공장 · 융합 플랜트 · 궤도 방어망 · 방사선 장벽) 문 자리
+- 시험 `DesignedPads_SitOnModelDiscs` · 해치 틀 겹침, `KnownGaps` 비움, 통신기지 주민 자리 ≥ 12, 문서 04 7-11 · 체크리스트 242 · 243
+
+**main에서 따로 할 것**
+
+- 없음. 다른 방 주민 자리 줄이기 (방마다 자리 골라 빼기)는 tycoon TASKS 다음 일

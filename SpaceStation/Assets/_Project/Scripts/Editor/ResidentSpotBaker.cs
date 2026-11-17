@@ -493,6 +493,7 @@ namespace SpaceStation.Editor
         /// <summary>
         /// 진화 4단계 심우주 통신기지 (ds4_builder SPOTS — 칸마다 다섯, 걸어서 닿는 풀밭 · 강 · 돔 · 접시를 봄): 앉는 자리 = 초승달 벤치 (강 · 돔을 봄),
         /// 서는 자리 = 다리 앞 · 옆 돔 문 앞 · 접시 조작반 옆 · 별자리 광장 곁 · 가운데 관측실 옆 · 뒤 강가 (해치 틀 · 문 앞 · 길 · 물가 비움).
+        /// 승강판 착지 원판 옆 셋은 뺌 (2026-11-17 — 주민이 덜 붐비게, 15 → 12, 빌더 DROP_SPOTS).
         /// </summary>
         private static List<ResidentSpot> EvoDeepSpaceCommSpots()
         {
@@ -502,17 +503,14 @@ namespace SpaceStation.Editor
                 (new Vector3(12.6f, -1.58f, -3.26f), 0.0f, ResidentPose.Sit),
                 (new Vector3(-0.95f, -2.079f, -0.75f), 140.4f, ResidentPose.Stand),
                 (new Vector3(2.0f, -2.076f, -2.95f), 297.7f, ResidentPose.Stand),
-                (new Vector3(2.6f, -2.08f, 0.55f), 283.0f, ResidentPose.Stand),
                 (new Vector3(1.633f, -2.081f, 2.325f), 234.3f, ResidentPose.Stand),
                 (new Vector3(4.0f, -2.054f, 1.35f), 325.5f, ResidentPose.Stand),
                 (new Vector3(5.45f, -2.078f, -0.55f), 205.3f, ResidentPose.Stand),
                 (new Vector3(10.35f, -2.08f, -0.35f), 271.2f, ResidentPose.Stand),
                 (new Vector3(6.0f, -2.078f, 2.95f), 114.2f, ResidentPose.Stand),
-                (new Vector3(10.0f, -2.078f, 2.95f), 245.8f, ResidentPose.Stand),
                 (new Vector3(11.975f, -2.076f, -1.567f), 160.2f, ResidentPose.Stand),
                 (new Vector3(6.3f, -2.079f, -1.95f), 116.6f, ResidentPose.Stand),
                 (new Vector3(17.075f, -2.081f, -0.533f), 218.2f, ResidentPose.Stand),
-                (new Vector3(13.4f, -2.096f, 0.55f), 77.0f, ResidentPose.Stand),
                 (new Vector3(11.75f, -2.085f, 1.7f), 47.2f, ResidentPose.Stand),
             })
                 list.Add(new ResidentSpot(at, yaw, pose));
@@ -638,7 +636,7 @@ namespace SpaceStation.Editor
 
         /// <summary>
         /// 진화 2단계 정련 콤비나트 (rf_builder SPOTS): 일하는 자리 = 격납고 제어대 앞 넷 (책상이 낮아 서서), 쉬는 자리 = 돔 안 갤러리 벤치 여덟 (해를 봄) · 북쪽 빈터 벤치 넷 (앉음)
-        /// + 서는 자리 (돔 갤러리 · 격납고 도크 = 실내, 산책로 · 갑판 = 우주복).
+        /// + 서는 자리 (돔 갤러리 · 격납고 도크 = 실내, 산책로 = 우주복). 갑판 서는 자리 여섯은 뺌 (2026-11-17 승강판 착지 자리 · 옮긴 북쪽 벤치 — 사용자 "주민들이 모듈에 너무 많아서 걸어다니기 조금 불편", 32 → 26).
         /// </summary>
         private static List<ResidentSpot> EvoRefineryCombineSpots()
         {
@@ -649,7 +647,7 @@ namespace SpaceStation.Editor
             {
                 (11.07f, 0.13f, 6.856f, -127.5f), (10.356f, 0.13f, 7.57f, -142.5f), (5.644f, 0.13f, 7.57f, 142.5f), (4.93f, 0.13f, 6.856f, 127.5f),
                 (4.93f, 0.13f, 2.144f, 52.5f), (5.644f, 0.13f, 1.43f, 37.5f), (10.356f, 0.13f, 1.43f, -37.5f), (11.07f, 0.13f, 2.144f, -52.5f),
-                (11.741f, -0.87f, 9.556f, 36.5f), (10.508f, -0.87f, 10.268f, 23.5f), (5.492f, -0.87f, 10.268f, -23.5f), (4.259f, -0.87f, 9.556f, -36.5f),
+                (12.783f, -0.87f, 8.585f, 49.5f), (11.741f, -0.87f, 9.556f, 36.5f), (4.259f, -0.87f, 9.556f, -36.5f), (3.217f, -0.87f, 8.585f, -49.5f),   // 북쪽 벤치 (az 47 · 133)
             })
                 list.Add(new ResidentSpot(new Vector3(x, y, z), yaw, ResidentPose.Sit));
             foreach (var (x, y, z, yaw) in new[]
@@ -658,7 +656,6 @@ namespace SpaceStation.Editor
                 (10.82f, -0.3f, 4.5f, -90f), (5.18f, -0.3f, 4.5f, 90f),                                                                       // 돔 갤러리
                 (-1.15f, Floor, 9.2f, 0f), (17.15f, Floor, 9.2f, 0f), (-0.8f, Floor, 1.25f, 0f), (16.8f, Floor, 1.25f, 0f),                   // 격납고 도크 (난간 안)
                 (2.74f, -0.3f, 2.585f, -110f), (13.26f, -0.3f, 2.585f, 110f), (13.26f, -0.3f, 6.415f, 70f), (2.74f, -0.3f, 6.415f, -70f),     // 산책로
-                (3.6f, Floor, -3.25f, 30f), (12.4f, Floor, -3.25f, -30f), (3f, Floor, 8.6f, 120f), (13f, Floor, 8.6f, -120f), (3.3f, Floor, 10.3f, 150f), (12.7f, Floor, 10.3f, -150f),   // 갑판
             })
                 list.Add(new ResidentSpot(new Vector3(x, y, z), yaw, ResidentPose.Stand));
             return list;

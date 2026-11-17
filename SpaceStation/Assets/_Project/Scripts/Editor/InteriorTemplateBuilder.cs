@@ -697,7 +697,7 @@ namespace SpaceStation.Editor
             }
             sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(1.25f, 0f, 1.3f)));    // 서쪽 격납고 통로 (문 북쪽)
             sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(1.25f, 0f, 0f)));
-            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -3.1f)));      // 견학 광장 (기념탑 앞)
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(0.3f, 0f, -3.1f)));    // 견학 광장 (기념탑 앞, 0.3 m 오른쪽 — 왼쪽 승강판 착지 원판과 틀 사이 5 cm)
             sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(0f, 0f, 3.05f)));      // 북쪽 길
             sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(-1.25f, 0f, 1.3f)));   // 동쪽 격납고 통로
             sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(-1.25f, 0f, 0f)));
@@ -836,9 +836,9 @@ namespace SpaceStation.Editor
                 sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), front, DeckEdge));
             }
             sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(-0.4f, 0f, 2.9f)));   // 뒤쪽 길 (바퀴 밑 비킴)
-            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(1.9f, 0f, -1.7f)));   // 바퀴와 공장 사이
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(1.9f, 0f, 1.7f)));    // 바퀴와 공장 사이 뒤쪽 (앞쪽 갑판 띠 = 빛 기둥 승강판 — 해치 틀에 판이 걸쳤음, 2026-11-18)
             sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, Vector3.zero));                   // 공장 가운데 통로
-            sockets.Add(new InteriorSocket(new Vector3Int(3, 0, 0), Vector3Int.down, -F, new Vector3(-1.9f, 0f, -1.7f)));
+            sockets.Add(new InteriorSocket(new Vector3Int(3, 0, 0), Vector3Int.down, -F, new Vector3(-1.9f, 0f, 1.7f)));
             sockets.Add(new InteriorSocket(new Vector3Int(4, 0, 0), Vector3Int.down, -F, new Vector3(0.4f, 0f, 2.9f)));
             sockets.Add(new InteriorSocket(new Vector3Int(2, 1, 0), Vector3Int.up, 1.45f, new Vector3(1.85f, 0f, 0f)));    // 2층 천장 (카운터와 배양액 관 사이 통로 위)
             var white = new Color(1f, 0.97f, 0.92f);
