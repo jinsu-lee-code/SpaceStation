@@ -13,6 +13,10 @@ namespace SpaceStation.Interior
         public bool Up => ToCell.y > FromCell.y;
         /// <summary>너머 방의 맞은편 해치 아래 바닥점 (월드). 없으면 너머 칸 바닥 가운데.</summary>
         public Vector3? Arrival { get; set; }
+        /// <summary>맞은편 해치 (양쪽 방이 다 지어졌을 때).</summary>
+        public InteriorHatch Partner { get; set; }
+        /// <summary>빛 기둥 승강판 (하늘이 트인 방의 위 연결점 — 해치 뚜껑 대신, 진화 단계별 통로 ③). 없으면 보통 해치.</summary>
+        public InteriorSkyLift SkyLift { get; set; }
     }
 
     /// <summary>
@@ -181,6 +185,7 @@ namespace SpaceStation.Interior
             _dimmed.Clear();
             _doors.Clear();
             _hatches.Clear();
+            _skyLifts.Clear();
             _open.Clear();
             _tubes.Clear();
             _rooms.Clear();
@@ -308,6 +313,8 @@ namespace SpaceStation.Interior
                     continue;
                 hatch.Arrival = ArrivalAt(other, hatch.ToCell);
                 other.Arrival = ArrivalAt(hatch, other.ToCell);
+                hatch.Partner = other;
+                other.Partner = hatch;
             }
 
             for (int i = doorStart; i < _doors.Count; i++)
@@ -344,6 +351,8 @@ namespace SpaceStation.Interior
 
         private Vector3 ArrivalAt(InteriorHatch other, Vector3Int toCell)
         {
+            if (other.SkyLift != null)
+                return other.SkyLift.PadTop; // 승강판 = 판 위 (모듈 바닥 높이가 아니라 판이 놓인 땅 · 마루)
             var p = other.transform.position;
             p.y = _root.position.y + InteriorGeometry.FloorY(toCell);
             return p;
@@ -536,7 +545,9 @@ namespace SpaceStation.Interior
                 bool open = _open.Contains((cell, dir));
                 if (dir.y != 0)
                 {
-                    if (open)
+                    if (open && socket.SkyLift)
+                        BuildSkyLift(module, parent, cell, CellCenter(cell) + rotation * socket.Offset, CellCenter(cell).y + socket.Depth);
+                    else if (open)
                         BuildHatch(module, parent, CellCenter(cell) + (Vector3)dir * socket.Depth + rotation * socket.Offset, dir.y < 0, cell, dir);
                     continue;
                 }
@@ -749,6 +760,69 @@ namespace SpaceStation.Interior
             h.FromCell = cell;
             h.ToCell = cell + dir;
             _hatches.Add(h);
+        }
+
+        private readonly List<InteriorHatch> _skyLifts = new List<InteriorHatch>();
+
+        /// <summary>
+        /// 빛 기둥 승강판 (진화 단계별 통로 ③): ground = 판이 놓일 땅 (템플릿 문 자리 오프셋 — 언덕이면 높은 쪽, 낮은 쪽은 판 치마가 묻힘), ringY = 하늘 고리 높이.
+        /// 판 · 고리 = 단계 키트 조각 (빛 테 = 방 강조색), 빛 기둥 = 방 강조색. 판 위 충돌 상자 = 밟고 서는 면 + 바라보기 대상.
+        /// </summary>
+        private void BuildSkyLift(ModuleInstance module, Transform parent, Vector3Int cell, Vector3 ground, float ringY)
+        {
+            const float PadTop = 0.05f;
+            var padPiece = _kit != null ? _kit.SkyLiftPadFor(module.Data) : null;
+            var ringPiece = _kit != null ? _kit.SkyLiftRingFor(module.Data) : null;
+            GameObject pad;
+            if (padPiece != null)
+                pad = KitPiece(padPiece, module, parent, ground, Quaternion.identity).Renderer.gameObject;
+            else
+                pad = Cube(parent, module, ground + Vector3.up * (PadTop * 0.5f), Quaternion.identity, new Vector3(1.5f, PadTop, 1.5f), HatchColor).Renderer.gameObject;
+            if (ringPiece != null)
+                KitPiece(ringPiece, module, parent, new Vector3(ground.x, ringY, ground.z), Quaternion.identity);
+            // 둥근 판 안에 드는 상자 (반 대각선 = 판 반지름) — 윗면 = 판 윗면
+            var box = pad.AddComponent<BoxCollider>();
+            float half = InteriorSkyLift.PadRadius * 0.7071f;
+            box.size = new Vector3(half * 2f, 0.2f, half * 2f);
+            box.center = new Vector3(0f, PadTop - 0.1f, 0f);
+            if (padPiece == null)
+            {
+                box.size = new Vector3(box.size.x / 1.5f, 0.2f / PadTop, box.size.z / 1.5f);
+                box.center = new Vector3(0f, 0.5f - 0.1f / PadTop, 0f);
+            }
+            var lift = pad.AddComponent<InteriorSkyLift>();
+            lift.Initialize(ground + Vector3.up * PadTop, ringY, _kit != null ? _kit.SkyLiftShaft : null, ShaftColor(module));
+            var h = pad.AddComponent<InteriorHatch>();
+            h.FromCell = cell;
+            h.ToCell = cell + Vector3Int.up;
+            h.SkyLift = lift;
+            _hatches.Add(h);
+            _skyLifts.Add(h);
+        }
+
+        /// <summary>빛 기둥 색 = 방 강조색 (강조 재질의 발광 색 — 없으면 바탕색).</summary>
+        private Color ShaftColor(ModuleInstance module)
+        {
+            var accent = _kit != null ? _kit.AccentFor(module.Data) : null;
+            if (accent != null && accent.HasProperty(EmissionColorId) && accent.GetColor(EmissionColorId).maxColorComponent > 0.05f)
+            {
+                var e = accent.GetColor(EmissionColorId);
+                return e / Mathf.Max(1f, e.maxColorComponent) * 1.5f;
+            }
+            if (accent != null && accent.HasProperty(BaseColorId))
+                return accent.GetColor(BaseColorId) * 1.5f;
+            return new Color(1.5f, 1.3f, 0.85f);
+        }
+
+        /// <summary>플레이어 발이 올라선 승강판 (켜진 방만) — 없으면 null.</summary>
+        public InteriorHatch SkyLiftUnder(Vector3 feet)
+        {
+            foreach (var h in _skyLifts)
+            {
+                if (h != null && h.isActiveAndEnabled && h.SkyLift.Contains(feet))
+                    return h;
+            }
+            return null;
         }
 
         // ---------------- 연결 튜브 ----------------

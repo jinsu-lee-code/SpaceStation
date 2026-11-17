@@ -175,6 +175,7 @@ namespace SpaceStation.Editor
         public const string SoftHaloPath = MaterialFolder + "/M_InteriorSoftHalo.mat";         // 프리즘 둘레 옅은 무지개 고리 (끝 없음)
         public const string Evo3BlossomPath = MaterialFolder + "/M_InteriorEvo3Blossom.mat"; // 열차 방석 (연분홍 천)     // 병풍 해 · 세 날개 표지 · 석등 불빛 (레몬빛)
         public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
+        public const string SkyLiftShaftPath = MaterialFolder + "/M_InteriorSkyLiftShaft.mat";   // 빛 기둥 승강판 (진화 단계별 통로 ③) — 색은 방 강조색 (InteriorSkyLift)
         public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
         public const string ResidentSuitModelPath = "Assets/_Project/Art/Models/Interior/SM_ResidentSuit.fbx";
         // 투명한 물 (2026-10-29 수소 플랜트 전기분해조 — 사용자 "위에 보이는 물 표면이 어색": 통 속을 물 덩어리로, 속 거품 · 전극이 비침)
@@ -439,6 +440,14 @@ namespace SpaceStation.Editor
                         tubes.ContainsKey("KIT_TubeShort" + n) ? Piece("KIT_TubeShort" + n, tubes) : null);
                 }
                 kit.EditorSetAirlock(Piece("KIT_AirlockFrame", tubes), Piece("KIT_AirlockLeaf", tubes));
+                // 빛 기둥 승강판 (진화 단계별 통로 ③): 2단계부터 바닥 판 · 하늘 고리, 빛 기둥 재질
+                foreach (var s in stages)
+                {
+                    string n = "_Evo" + s.Stage;
+                    s.EditorSetSkyLift(tubes.ContainsKey("KIT_SkyLiftPad" + n) ? Piece("KIT_SkyLiftPad" + n, tubes) : null,
+                        tubes.ContainsKey("KIT_SkyLiftRing" + n) ? Piece("KIT_SkyLiftRing" + n, tubes) : null);
+                }
+                kit.EditorSetSkyLiftShaft(AssetDatabase.LoadAssetAtPath<Material>(SkyLiftShaftPath));
             }
             kit.EditorSetStages(stages);
             EditorUtility.SetDirty(kit);
@@ -1060,6 +1069,21 @@ namespace SpaceStation.Editor
                 shaft.SetFloat("_MirrorGlow", 0.25f);
                 shaft.enableInstancing = true;
                 EditorUtility.SetDirty(shaft);
+            }
+            // 빛 기둥 승강판 (진화 단계별 통로 ③): 판에서 솟아 하늘 고리로 옅어지는 기둥 — 판 쪽 환하게 · 위로 흐르는 빛 결 · 고리 앞에서 스며듦 (없을 때만 값을 넣음)
+            if (AssetDatabase.LoadAssetAtPath<Material>(SkyLiftShaftPath) == null)
+            {
+                var lift = LoadOrCreate(SkyLiftShaftPath, Shader.Find("SpaceStation/LightShaft"));
+                lift.SetFloat("_Intensity", 0.16f);
+                lift.SetFloat("_Attenuation", 0.5f);
+                lift.SetFloat("_Glint", 1.6f);
+                lift.SetFloat("_MirrorGlow", 0f);
+                lift.SetFloat("_Softness", 1.6f);
+                lift.SetFloat("_Streak", 1.2f);
+                lift.SetFloat("_StreakStrength", 0.55f);
+                lift.SetFloat("_Speed", 0.45f);
+                lift.SetFloat("_EndFade", 0.35f);
+                EditorUtility.SetDirty(lift);
             }
             // 실드 돔: 바다 · 오로라 · 등대 빛 (없을 때만 값을 넣음, 슬라이더로 맞춘 값을 덮어쓰지 않게)
             EditorUtility.SetDirty(LoadOrCreate(Evo2StarSeaPath, Shader.Find("SpaceStation/StarSea")));

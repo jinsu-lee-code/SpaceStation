@@ -22,7 +22,7 @@ namespace SpaceStation.Tests
         [Test]
         public void Sockets_MatchExterior()
         {
-            // 외형 MD_Evo_DeepSpaceComm 연결점 (면 깊이 ≥ 0인 바깥 면): 칸마다 앞 · 뒤 · 아래 + 양 끝 + 위 셋 — 위는 비워 둠 (하늘이 트인 방, 사용자 2026-11-17 "단계별 연결통로 정리 때")
+            // 외형 MD_Evo_DeepSpaceComm 연결점 (면 깊이 ≥ 0인 바깥 면): 칸마다 앞 · 뒤 · 아래 + 양 끝 + 위 셋 — 위 = 빛 기둥 승강판 자리 (진화 단계별 통로 ③, 지금은 풀 · 동물 · 판석 길 문 곁이라 자리 못 정함 — InteriorSkyLiftTests.KnownGaps)
             var module = AssetDatabase.LoadAssetAtPath<SpaceStation.Data.ModuleData>("Assets/_Project/Data/Modules/Evolved/MD_Evo_DeepSpaceComm.asset");
             Assert.IsNotNull(module);
             var cells = new HashSet<Vector3Int>(module.CellOffsets);
@@ -37,7 +37,7 @@ namespace SpaceStation.Tests
                         else
                             expected.Add((c, d));
                     }
-            Assert.AreEqual(3, ups, "외형 위 연결점 (내부에는 해치 없음)");
+            Assert.AreEqual(3, ups, "외형 위 연결점 (내부 = 빛 기둥 승강판)");
             var actual = new HashSet<(Vector3Int, Vector3Int)>();
             foreach (var (cell, off, floorY) in DeepSpaceComm.Hatches)
             {
@@ -50,7 +50,18 @@ namespace SpaceStation.Tests
             Assert.IsTrue(expected.SetEquals(actual), $"외형 연결점 {expected.Count}곳 ↔ 내부 {actual.Count}곳");
             var template = AssetDatabase.LoadAssetAtPath<SpaceStation.Data.InteriorTemplate>(TemplatePath);
             if (template != null)
-                Assert.AreEqual(actual.Count, template.Sockets.Count, "템플릿 연결점 수");
+            {
+                int plain = 0, lifts = 0;
+                foreach (var s in template.Sockets)
+                {
+                    if (s.SkyLift)
+                        lifts++;
+                    else
+                        plain++;
+                }
+                Assert.AreEqual(actual.Count, plain, "템플릿 연결점 수 (승강판 빼고)");
+                Assert.LessOrEqual(lifts, ups, "승강판은 외형 위 연결점에만 (자리 못 정한 곳 = InteriorSkyLiftTests.KnownGaps)");
+            }
         }
 
         private static GameObject Spawn(out bool ok)

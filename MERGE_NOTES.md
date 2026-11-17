@@ -3316,3 +3316,18 @@
 **main에서 따로 할 것**
 
 - 없음 (`InteriorKit.asset`을 같이 넘김 — main에서 키트를 다시 만들면 메뉴 Rebuild Kit Asset)
+
+## M-231. 진화 단계별 통로 ③ 빛 기둥 승강판 — 트인 방 위로 떠오르는 길 (2026-11-17, `main`)
+
+
+
+**main에 넣은 것**
+
+- `connector_builder.py --export-kit`에 `KIT_SkyLiftPad_Evo2~4` · `KIT_SkyLiftRing_Evo2~4` → `SM_InteriorKit_Tubes.fbx`, 재질 `M_InteriorSkyLiftShaft` (LightShaft), `InteriorKitStage` 승강판 칸 · `InteriorKit.SkyLiftShaft` (+ `InteriorSetup.CreateKit` · 재질), `InteriorKit.asset`
+- `InteriorSocket.SkyLift` (템플릿 위 문 자리 = 판 자리 · 고리 깊이), 에디터 `InteriorSkyLiftSpots` + `InteriorWalkGraph` (메뉴 `SpaceStation/Interior/Set Sky Lift Spots`, Build Templates · Build Evolved Templates 끝에도) → 진화 템플릿 18종 문 자리 (승강판 30 · 천장 해치 4)
+- `InteriorSkyLift` (빛 기둥) · `InteriorBuilder.BuildSkyLift` · `InteriorHatch.Partner` · `SkyLift`, `InteriorMode` 오르기 · 내려오기 (`RideSkyLiftUp` · `RideSkyLiftDown`), `InteriorLift` 샤프트 값 읽기
+- 시험 `InteriorSkyLiftTests` 3 · `DeepSpaceCommTests` 연결점 수, 문서 04 7-11 · 체크리스트 240
+
+**main에서 따로 할 것**
+
+- 없음 (템플릿 · 키트 에셋을 같이 넘김). 못 정한 위 연결점 14곳 (심우주 통신기지 · 정제 복합단지 · 시민 회관 돔 · 토러스 시계탑 · 보안 본부 탑)은 tycoon TASKS에서 사용자 결정 대기

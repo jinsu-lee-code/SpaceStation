@@ -723,18 +723,26 @@ namespace SpaceStation.Interior
             }
             ResetHold();
             if (hatch == null)
+                hatch = _builder.SkyLiftUnder(_player.transform.position); // 빛 기둥 승강판 위에 섬 (발밑은 시선에 잘 안 잡힘)
+            if (hatch == null)
             {
                 _prompt.SetText(string.Empty);
                 return;
             }
             bool hasRoom = _layout.TryGetRoom(hatch.ToCell, out var room);
             string target = hasRoom && room.Module.Data != null ? room.Module.Data.DisplayName : "";
-            _prompt.SetText($"<b>{KeyBindings.Label(GameAction.Interact)}</b>  {(hatch.Up ? "위층으로" : "아래층으로")} <color={HudText.Muted}>{target}</color>");
+            string verb = hatch.SkyLift != null ? "빛 기둥 타고 위층으로" : hatch.Up ? "위층으로" : "아래층으로";
+            _prompt.SetText($"<b>{KeyBindings.Label(GameAction.Interact)}</b>  {verb} <color={HudText.Muted}>{target}</color>");
             if (KeyBindings.WasPressed(GameAction.Interact))
             {
                 if (hasRoom)
                     _builder.EnsureBuilt(room.Module); // 맞은편 해치(도착점)가 생기게
-                StartCoroutine(UseHatch(hatch.Arrival ?? _builder.FloorPoint(hatch.ToCell)));
+                if (hatch.SkyLift != null)
+                    StartCoroutine(RideSkyLiftUp(hatch));
+                else if (!hatch.Up && hatch.Partner != null && hatch.Partner.SkyLift != null)
+                    StartCoroutine(RideSkyLiftDown(hatch.Partner.SkyLift));
+                else
+                    StartCoroutine(UseHatch(hatch.Arrival ?? _builder.FloorPoint(hatch.ToCell)));
             }
         }
 
@@ -847,17 +855,92 @@ namespace SpaceStation.Interior
             _busy = true;
             _prompt.SetText(string.Empty);
             yield return Fade(0f, 1f, 0.15f);
-            // 해치 뚜껑(칸 가운데) 옆, 지금 바라보는 쪽으로 한 걸음
+            PlaceBeside(arrival);
+            yield return Fade(1f, 0f, 0.2f);
+            _busy = false;
+        }
+
+        /// <summary>해치 뚜껑(칸 가운데) 옆, 지금 바라보는 쪽으로 한 걸음 — 앞이 막혔으면 덜 감 (개방형 방에서 난간 너머 · 벤치 속으로 가지 않게).</summary>
+        private void PlaceBeside(Vector3 arrival)
+        {
             var forward = _player.transform.forward;
             forward.y = 0f;
             var direction = forward.sqrMagnitude > 0.01f ? forward.normalized : Vector3.forward;
             float step = 1.1f;
-            // 앞이 막혔으면 덜 감: 개방형 방에서 난간 너머 · 벤치 속으로 가지 않게
             if (Physics.CapsuleCast(arrival + Vector3.up * 0.45f, arrival + Vector3.up * 1.5f, 0.3f, direction, out var block, step, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
                 step = Mathf.Max(0f, block.distance - 0.1f);
             _player.Teleport(arrival + direction * step + Vector3.up * 0.05f, _player.transform.eulerAngles.y);
             UpdateNearbyRooms(RoomAtPlayer(), force: false);
-            yield return Fade(1f, 0f, 0.2f);
+        }
+
+        /// <summary>판에서 고리까지 떠오르는 시간 (모듈 높이마다 — 초속 약 2.8 m, 1.6 ~ 4.5초).</summary>
+        private static float SkyLiftSeconds(float rise) => Mathf.Clamp(rise / 2.8f, 1.6f, 4.5f);
+
+        /// <summary>떠오른 눈높이 = 하늘 고리 바로 밑.</summary>
+        private static float SkyLiftTop(InteriorSkyLift lift) => lift.RingY - FirstPersonController.EyeHeight - 0.4f;
+
+        /// <summary>
+        /// 빛 기둥 승강판 타고 위로 (진화 단계별 통로 ③, 사용자 2026-11-17 "바로 이동되는게 아니라, 모듈 자체의 높이가 각자 있잖아? 그거에 맞게 공중으로 떠오르다가 이동"):
+        /// 판 가운데로 모이며 기둥을 따라 하늘 고리 밑까지 떠오름 (천천히 떠서 · 빨라졌다 · 고리 앞에서 느려짐, 둘러보기는 됨) → 위 모듈 해치 옆으로.
+        /// </summary>
+        private IEnumerator RideSkyLiftUp(InteriorHatch hatch)
+        {
+            _busy = true;
+            _prompt.SetText(string.Empty);
+            var lift = hatch.SkyLift;
+            lift.SetRiding(true);
+            var carrier = new GameObject("SkyLiftCarrier").transform;
+            var start = _player.transform.position;
+            carrier.position = start;
+            _player.Ride(carrier);
+            var pad = lift.PadTop;
+            float top = SkyLiftTop(lift);
+            float duration = SkyLiftSeconds(top - start.y);
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                float k = t / duration;
+                float gather = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(k * 3f));   // 처음 3분의 1에 판 가운데로
+                var p = Vector3.Lerp(start, new Vector3(pad.x, start.y, pad.z), gather);
+                p.y = Mathf.Lerp(start.y, top, k * k * (3f - 2f * k));
+                carrier.position = p;
+                yield return null;
+            }
+            carrier.position = new Vector3(pad.x, top, pad.z);
+            yield return Fade(0f, 1f, 0.2f);
+            _player.Dismount();
+            Destroy(carrier.gameObject);
+            lift.SetRiding(false);
+            PlaceBeside(hatch.Arrival ?? _builder.FloorPoint(hatch.ToCell));
+            yield return Fade(1f, 0f, 0.25f);
+            _busy = false;
+        }
+
+        /// <summary>위 모듈 바닥 해치로 내려오면 아래 방 빛 기둥 꼭대기 (고리 밑)에서 판까지 내려앉음 (조금 아래를 보며).</summary>
+        private IEnumerator RideSkyLiftDown(InteriorSkyLift lift)
+        {
+            _busy = true;
+            _prompt.SetText(string.Empty);
+            yield return Fade(0f, 1f, 0.15f);
+            var pad = lift.PadTop;
+            float top = SkyLiftTop(lift);
+            _player.Teleport(new Vector3(pad.x, top, pad.z), _player.transform.eulerAngles.y, 25f);
+            var carrier = new GameObject("SkyLiftCarrier").transform;
+            carrier.position = _player.transform.position;
+            _player.Ride(carrier);
+            lift.SetRiding(true);
+            UpdateNearbyRooms(RoomAtPlayer(), force: false);
+            yield return Fade(1f, 0f, 0.25f);
+            float duration = SkyLiftSeconds(top - pad.y);
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                float k = t / duration;
+                carrier.position = new Vector3(pad.x, Mathf.Lerp(top, pad.y + 0.02f, k * k * (3f - 2f * k)), pad.z);
+                yield return null;
+            }
+            carrier.position = new Vector3(pad.x, pad.y + 0.02f, pad.z);
+            _player.Dismount();
+            Destroy(carrier.gameObject);
+            lift.SetRiding(false);
             _busy = false;
         }
 

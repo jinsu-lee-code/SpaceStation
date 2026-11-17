@@ -96,6 +96,21 @@ namespace SpaceStation.Data
             _tubeShort = shortTube;
         }
 
+        [Header("빛 기둥 승강판 (진화 단계별 통로 ③, 하늘이 트인 방의 위 연결점)")]
+        [Tooltip("바닥 판 (윗면 = 피벗 + 0.05, 옆 치마가 아래로 0.25 — 언덕에 묻힘), 빛 테 = 강조 슬롯")]
+        [SerializeField] private InteriorKitPiece _skyLiftPad;
+        [Tooltip("기둥 꼭대기 고리 (하늘 껍질 바로 아래, 피벗 = 고리 가운데)")]
+        [SerializeField] private InteriorKitPiece _skyLiftRing;
+
+        public InteriorKitPiece SkyLiftPad => _skyLiftPad != null && _skyLiftPad.IsValid ? _skyLiftPad : null;
+        public InteriorKitPiece SkyLiftRing => _skyLiftRing != null && _skyLiftRing.IsValid ? _skyLiftRing : null;
+
+        public void EditorSetSkyLift(InteriorKitPiece pad, InteriorKitPiece ring)
+        {
+            _skyLiftPad = pad;
+            _skyLiftRing = ring;
+        }
+
         public InteriorKitStage(int stage, List<ModuleData> modules, InteriorKitPiece wall, InteriorKitPiece wallDoor, InteriorKitPiece doorLeaf,
             InteriorKitPiece floor, InteriorKitPiece ceiling, InteriorKitPiece hatchFrame, InteriorKitPiece hatchLid, InteriorKitPiece sealedWall = null, InteriorKitPiece skyPatch = null)
         {
@@ -204,6 +219,13 @@ namespace SpaceStation.Data
         public InteriorKitPiece AirlockFrame => _airlockFrame != null && _airlockFrame.IsValid ? _airlockFrame : null;
         public InteriorKitPiece AirlockLeaf => _airlockLeaf != null && _airlockLeaf.IsValid ? _airlockLeaf : null;
 
+        [Tooltip("빛 기둥 승강판의 빛 기둥 재질 (SpaceStation/LightShaft — 색은 방 강조색으로 칠함)")]
+        [SerializeField] private Material _skyLiftShaft;
+
+        public Material SkyLiftShaft => _skyLiftShaft;
+        public InteriorKitPiece SkyLiftPadFor(ModuleData data) => StageOf(data)?.SkyLiftPad;
+        public InteriorKitPiece SkyLiftRingFor(ModuleData data) => StageOf(data)?.SkyLiftRing;
+
         /// <summary>모듈 방의 진화 단계 (단계 키트 묶음 — 기본 모듈 · 템플릿 없는 방 = 0).</summary>
         public int StageNumber(ModuleData data) => StageOf(data)?.Stage ?? 0;
 
@@ -226,6 +248,8 @@ namespace SpaceStation.Data
             _airlockFrame = frame;
             _airlockLeaf = leaf;
         }
+
+        public void EditorSetSkyLiftShaft(Material shaft) => _skyLiftShaft = shaft;
 #endif
 
         public InteriorKitStage StageOf(ModuleData data)

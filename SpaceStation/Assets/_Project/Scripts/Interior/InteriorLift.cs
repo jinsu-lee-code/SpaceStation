@@ -39,6 +39,10 @@ namespace SpaceStation.Interior
         public int Level => _level;
         public int StopCount => _stops != null ? _stops.Length : 0;
         public bool Moving => _target >= 0;
+        /// <summary>샤프트 가운데 (템플릿 기준, y = 1층 캡슐 바닥) · 층마다 높이 이동량 · 안쪽 반지름 — 걷기 격자가 층을 잇는 데 (빛 기둥 자리 찾기).</summary>
+        public Vector3 Center => _center;
+        public float StopOffset(int level) => _stops[level];
+        public float InnerRadius => _innerRadius;
 
         public void Configure(Transform car, float[] stops, Transform[] doorsLeft, Transform[] doorsRight, Vector3 center, Vector3 doorAxis, float innerRadius)
         {
