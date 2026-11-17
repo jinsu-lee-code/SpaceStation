@@ -121,6 +121,86 @@ namespace SpaceStation.Tests
             Assert.IsEmpty(problems.ToString(), "열린 문이 하늘 그림에 가려짐:\n" + problems);
         }
 
+        /// <summary>
+        /// 장식 · 구조물에 걸린 바닥 해치 중 사용자 결정을 기다리는 것 (템플릿, 칸) — 이유와 함께. 자리를 정해 옮기면 뺌.
+        /// </summary>
+        private static readonly Dictionary<(string, Vector3Int), string> PendingHatches = new Dictionary<(string, Vector3Int), string>
+        {
+            { ("IT_EvoOrbitalCity", new Vector3Int(0, 0, 1)), "꽃 화단 안내판 · 사슴이 뚜껑 위에 섬" },
+            { ("IT_EvoCivicHall", new Vector3Int(3, 0, 0)), "둥근 소파 고리 안 · 보라 구슬 밑 (칸 중심 그대로)" },
+        };
+
+        /// <summary>
+        /// 바닥 해치 뚜껑 가운데 (±0.45 m) 위 2 m에 충돌체가 없고 1.5 m 아래에 충돌체 없는 장식 (동물 · 구슬 등)이 없으며, 뚜껑 둘레 1.3 m 8방향 중 한 곳 이상에 사람이 설 수 있음 —
+        /// 융합 발전소 가운데 칸 해치가 칸 중심 = 융합로 받침 밑에 묻혀, 시선이 뚜껑에 닿지 않아 위에서 내려갈 수 없었음 (2026-11-18 플레이).
+        /// 머리 위 전구 줄 (창고 단지 1.65 m) · 연못 마루 (바이오스피어 — 한쪽으로만 들어감)는 괜찮음.
+        /// </summary>
+        [Test]
+        public void FloorHatchesAreOpen()
+        {
+            var away = new Vector3(30000f, -7000f, 30000f);
+            var problems = new StringBuilder();
+            int hatches = 0;
+            foreach (var guid in AssetDatabase.FindAssets("t:InteriorTemplate"))
+            {
+                var template = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
+                if (template == null || template.Prefab == null || !template.Sockets.Any(s => s.Direction.y < 0))
+                    continue;
+                var root = Object.Instantiate(template.Prefab);
+                root.transform.SetPositionAndRotation(away, Quaternion.identity);
+                Physics.SyncTransforms();
+                try
+                {
+                    var decor = new List<Vector3>();
+                    foreach (var f in root.GetComponentsInChildren<MeshFilter>(true))
+                    {
+                        if (f.sharedMesh != null && f.GetComponent<Collider>() == null && !f.name.EndsWith("_Sky"))
+                            decor.AddRange(f.sharedMesh.vertices.Select(v => f.transform.TransformPoint(v)));
+                    }
+                    foreach (var s in template.Sockets)
+                    {
+                        if (s.Direction.y >= 0 || PendingHatches.ContainsKey((template.name, s.Cell)))
+                            continue;
+                        hatches++;
+                        var hatch = away + (Vector3)s.Cell * CellSize + s.Offset + Vector3.down * s.Depth;
+                        float half = 0.45f * s.HatchScale;
+                        string at = $"{template.name} {s.Cell} 해치 ({s.Offset.x:F2}, {s.Offset.z:F2})";
+                        float covered = 0f;
+                        for (int i = 0; i < 5; i++)
+                        {
+                            for (int j = 0; j < 5; j++)
+                            {
+                                var top = hatch + new Vector3((i / 2f - 1f) * half, 2f, (j / 2f - 1f) * half);
+                                if (Physics.Raycast(top, Vector3.down, out var hit, 2.3f, ~0, QueryTriggerInteraction.Ignore))
+                                    covered = Mathf.Max(covered, hit.point.y - hatch.y);
+                            }
+                        }
+                        if (covered > 0.12f)
+                            problems.AppendLine($"{at}: 뚜껑 위에 물체 (바닥 + {covered:F2} m)");
+                        if (decor.Any(v => Mathf.Abs(v.x - hatch.x) < half && Mathf.Abs(v.z - hatch.z) < half && v.y > hatch.y + 0.15f && v.y < hatch.y + 1.5f))
+                            problems.AppendLine($"{at}: 뚜껑 위에 장식");
+                        int stand = 0;
+                        for (int a = 0; a < 8; a++)
+                        {
+                            var p = hatch + Quaternion.Euler(0f, a * 45f, 0f) * Vector3.forward * 1.3f;
+                            if (Physics.Raycast(p + Vector3.up * 0.4f, Vector3.down, out var ground, 0.8f, ~0, QueryTriggerInteraction.Ignore)
+                                && !Physics.CheckCapsule(ground.point + Vector3.up * 0.5f, ground.point + Vector3.up * 1.6f, 0.28f, ~0, QueryTriggerInteraction.Ignore))
+                                stand++;
+                        }
+                        if (stand < 1)
+                            problems.AppendLine($"{at}: 곁에 설 자리 없음");
+                    }
+                }
+                finally
+                {
+                    Object.DestroyImmediate(root);
+                    Physics.SyncTransforms();
+                }
+            }
+            Assert.Greater(hatches, 300, "바닥 해치가 있어야 함");
+            Assert.IsEmpty(problems.ToString(), "바닥 해치를 쓸 수 없음:\n" + problems);
+        }
+
         private static bool Hit(Vector3 origin, Vector3 dir, float length, Vector3 a, Vector3 b, Vector3 c)
         {
             var e1 = b - a;

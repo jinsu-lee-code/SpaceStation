@@ -1317,7 +1317,7 @@ namespace SpaceStation.Editor
 
         /// <summary>
         /// 진화 1단계 융합 발전소 (fs_builder): 연구원 — 제어대 의자 셋 (창 쪽 화면을 봄 — 앉아서 일함) · 냉각수 펌프 앞 둘 · 자석 전원 장 앞 둘 ·
-        /// 남는 물 탱크 앞 · 구체와 융합로 사이 가운데 둘 (융합로를 봄). 사용자 2026-10-29 "길을 지나다닐 수가 없네": 주민은 충돌체가 있어
+        /// 남는 물 탱크 앞 · 서쪽 구체와 융합로 사이 가운데 (융합로를 봄 — 동쪽 사이는 아래 해치, 2026-11-18). 사용자 2026-10-29 "길을 지나다닐 수가 없네": 주민은 충돌체가 있어
         /// 융합로 옆 길 (폭 1.3m) · 구체 옆 길에는 자리를 두지 않음. 모서리 정수 필터는 문 자리 사이라 자리 없음.
         /// </summary>
         private static List<ResidentSpot> EvoFusionSpots()
@@ -1331,7 +1331,6 @@ namespace SpaceStation.Editor
             list.Add(new ResidentSpot(new Vector3(11.8f, Floor, -2.05f), 180f, ResidentPose.Work, work: true));
             list.Add(new ResidentSpot(new Vector3(10.4f, Floor, 1.5f), 0f, ResidentPose.Work, work: true));
             list.Add(new ResidentSpot(new Vector3(5.15f, Floor, 0f), 90f, ResidentPose.Work, work: true));
-            list.Add(new ResidentSpot(new Vector3(10.85f, Floor, -0.45f), Mathf.Atan2(8f - 10.85f, 0.45f) * Mathf.Rad2Deg, ResidentPose.Work, work: true));   // 물 탱크 앞 사람과 1.4m 띄움
             return list;
         }
 
