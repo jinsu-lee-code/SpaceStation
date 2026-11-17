@@ -3331,3 +3331,19 @@
 **main에서 따로 할 것**
 
 - 없음 (템플릿 · 키트 에셋을 같이 넘김). 못 정한 위 연결점 14곳 (심우주 통신기지 · 정제 복합단지 · 시민 회관 돔 · 토러스 시계탑 · 보안 본부 탑)은 tycoon TASKS에서 사용자 결정 대기
+
+## M-232. 진화 단계별 통로 ③ 2차 — 시민 회관 의료동 · 두 탑 꼭대기 방 천장 해치 (2026-11-17, `main`)
+
+
+
+**main에 넣은 것**
+
+- `InteriorSocket.HatchScale` (좁은 탑 방 천장 해치 0.65배), `InteriorBuilder.BuildHatch` 배율 · `InteriorHatch.Landing` (해치 도착점 = 실제 바닥, 천장 해치는 방을 지을 때 광선)
+- `InteriorSkyLiftSpots`: 천장 해치 높이 2.0 ~ 4.0 · 틀 네 모서리 · 천장 장식 검사 · 엄한 → 느슨한 거리 규칙, 하늘 해치 판정 (위 천장 광선), 놓인 판 자리를 먼저 봄, `Targets` (모델 착지 자리 표, 아직 빔)
+- `InteriorTemplateBuilder`: 보안 본부 감시탑 전망실 · 대형 토러스 시계탑 방 천장 해치 (0.65배), 템플릿 18종 문 자리 (시민 회관 의료동 해치 셋 · 탑 해치 둘)
+- sh_builder · gt_builder 천장 빛 고리를 해치 자리에서 끊음 → `SM_Interior_EvoSecurityHQ.fbx` · `SM_Interior_EvoGrandTorus.fbx` (트림 UV 다시), `Interior_Evo.blend` · `Interior_Evo2.blend` 텍스트
+- 시험 `InteriorSkyLiftTests.TowerHatches_FitUnderCeiling`, 문서 04 7-11 · 체크리스트 241
+
+**main에서 따로 할 것**
+
+- 없음. 통신기지 셋 · 정련 콤비나트 여섯 착지 자리는 tycoon TASKS에서 시안 대기

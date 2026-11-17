@@ -20,6 +20,8 @@ namespace SpaceStation.Data
         [SerializeField] private bool _sealedWall;
         [Tooltip("위 문 자리만: 해치 대신 빛 기둥 승강판 (하늘이 트인 2단계+ 방, 진화 단계별 통로 ③). 오프셋 = 판 자리 (y = 칸 중심에서 판 바닥까지), 깊이 = 칸 중심에서 기둥 꼭대기 고리까지")]
         [SerializeField] private bool _skyLift;
+        [Tooltip("해치 크기 배율 (0 = 1). 좁은 탑 방 천장 해치 = 0.65 (틀 1.24 · 뚜껑 0.92 — 가운데 엘리베이터 샤프트와 벽 사이에 1.9 m 틀이 안 들어감)")]
+        [SerializeField] private float _hatchScale;
 
         public Vector3Int Cell => _cell;
         public Vector3Int Direction => _direction;
@@ -27,8 +29,9 @@ namespace SpaceStation.Data
         public Vector3 Offset => _offset;
         public bool SealedWall => _sealedWall;
         public bool SkyLift => _skyLift;
+        public float HatchScale => _hatchScale > 0f ? _hatchScale : 1f;
 
-        public InteriorSocket(Vector3Int cell, Vector3Int direction, float depth, Vector3 offset = default, bool sealedWall = false, bool skyLift = false)
+        public InteriorSocket(Vector3Int cell, Vector3Int direction, float depth, Vector3 offset = default, bool sealedWall = false, bool skyLift = false, float hatchScale = 0f)
         {
             _cell = cell;
             _direction = direction;
@@ -36,6 +39,7 @@ namespace SpaceStation.Data
             _offset = offset;
             _sealedWall = sealedWall;
             _skyLift = skyLift;
+            _hatchScale = hatchScale;
         }
     }
 
