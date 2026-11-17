@@ -1317,7 +1317,7 @@ namespace SpaceStation.Editor
                 new InteriorSocket(c30, Vector3Int.right, Wall, default, true),
                 new InteriorSocket(c20, Vector3Int.down, -F, Vector3.zero),
                 new InteriorSocket(c21, Vector3Int.down, -F, Vector3.zero),
-                new InteriorSocket(c30, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c30, Vector3Int.down, -F, new Vector3(-2.25f, 0f, 0f)),   // 라운지 들머리 (칸 중심 = C자 소파 고리 안 · 구슬 밑, 2026-11-18 바닥 해치 훑기)
                 new InteriorSocket(c21, Vector3Int.up, Ceil, new Vector3(0.3f, 0f, 0f)),   // 지붕 유리 띠를 비킴
                 new InteriorSocket(c30, Vector3Int.up, Ceil, Vector3.zero),
             };
