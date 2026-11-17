@@ -3257,3 +3257,16 @@
 **main에서 따로 할 것**
 
 - 없음 (`Main.unity` · 글꼴은 넘기지 않음 — 통신기지 내부는 템플릿 에셋만으로 동작)
+
+## M-227. 심우주 통신기지 고슴도치 하나 왼쪽 풀밭으로 (2026-11-17, `main`)
+
+
+
+**main에 넣은 것**
+
+- `DeepSpaceComm.Hedgehogs[1]` = 별자리 광장 왼쪽 앞 풀밭 (3.15, −2.65, 광장 앞을 봄 — 사용자 "고슴도치 하나는 왼쪽 풀밭으로"), `PF_Interior_EvoDeepSpaceComm`
+- `Interior_Evo2.blend` ds4_builder 텍스트 (CRITTERS 왼쪽 고슴도치 막음 0.3 — 빌드 결과 · 내부 FBX는 그대로), 06c
+
+**main에서 따로 할 것**
+
+- 없음
