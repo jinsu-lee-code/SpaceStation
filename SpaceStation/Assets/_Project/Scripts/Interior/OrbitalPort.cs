@@ -211,6 +211,48 @@ namespace SpaceStation.Interior
         public static readonly Vector3 BoatExit = new Vector3(24f, Floor + 0.06f, -1.6f);
         public static readonly Vector3 BoatSign = new Vector3(24f, Floor + 2.15f, -2.9f);
 
+        // ---------------- 해마 (critter_builder 귀여운 해마 Critter_Seahorse{모델} — 사용자 2026-11-17 "해마 유니티로 옮겨줘") ----------------
+        // 옛 해마 (op3_builder — 관 · 공을 이어 붙인 얼굴 없는 기둥, 사용자 "해마가 좀 못생긴 것 같아서")는 짓지 않고 내부 동물 모델을 놓음 (얼굴 = 동물 아틀라스).
+        // 자리 = 모델 원점 = 말린 꼬리 밑, op3_builder SH_BOAT · SH_CAR · SH_PAL · SEAHORSES와 같은 값.
+        /// <summary>배 해마 한 쌍 (모델, 옆 — 배 가운데에서 왼쪽이 + : op3_builder side = (−앞 z, 0, 앞 x) × 옆): 민트 = 오른쪽 · 분홍 = 왼쪽.</summary>
+        public static readonly (string Model, float Side)[] BoatSeahorses = { ("SeahorseMint", -1f), ("SeahorsePink", 1f) };
+        /// <summary>배 해마: 배 가운데에서 앞 · 옆 · 꼬리 밑 높이 (수면 기준 — 말린 꼬리만 물에) · 크기 (1.5배 = 키 0.93 m). 고삐 끝 = 꼬리 밑 + 0.66 (머리 속).</summary>
+        public const float BoatSeahorseAhead = 1.85f, BoatSeahorseSide = 0.32f, BoatSeahorseDrop = -0.15f, BoatSeahorseScale = 1.5f;
+
+        /// <summary>배 k 처음 자리의 앞쪽 (op3_builder boats — 배 길 점 n·k/4에서 다음 점으로, 배 메시를 구운 방향).</summary>
+        public static Vector2 BoatStartForward(int k)
+        {
+            float s = BoatStartS(k);
+            return (CoursePoint(s + 0.01f) - CoursePoint(s)).normalized;
+        }
+
+        /// <summary>배 k의 해마 (옆 side) 처음 자리 (꼬리 밑) · 바라보는 쪽 수학 각 — 배 피벗 아래로 옮겨 배와 함께 돎.</summary>
+        public static void BoatSeahorse(int k, float side, out Vector3 at, out float facing)
+        {
+            var c = CoursePoint(BoatStartS(k));
+            var d = BoatStartForward(k);
+            var p = c + d * BoatSeahorseAhead + new Vector2(-d.y, d.x) * (side * BoatSeahorseSide);
+            at = new Vector3(p.x, LagoonLevel + BoatSeahorseDrop, p.y);
+            facing = Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg;
+        }
+
+        /// <summary>
+        /// 회전목마 해마 넷 (회전목마 조각의 자식 — 함께 돎): 금빛 기둥 (반지름 1.8, 0 · 90 · 180 · 270°)이 몸 가운데를 지나 (모델 몸 가운데 = 원점 앞 1 cm × 크기),
+        /// 꼬리 밑 = 받침 윗면 + 0.55, 도는 쪽을 봄 · 1.75배 (키 1.09 m).
+        /// </summary>
+        public static readonly (string Model, Vector3 At, float Facing)[] CarouselSeahorses =
+        {
+            ("SeahorseMint", new Vector3(25.8f, Floor + 0.95f, 3.4825f), 90f), ("SeahorsePink", new Vector3(24.0175f, Floor + 0.95f, 5.3f), 180f),
+            ("SeahorseGold", new Vector3(22.2f, Floor + 0.95f, 3.5175f), 270f), ("SeahorsePearl", new Vector3(23.9825f, Floor + 0.95f, 1.7f), 0f),
+        };
+        public const float CarouselSeahorseScale = 1.75f;
+        /// <summary>궁전 왕좌 양옆 금빛 해마 상 (진주 받침 윗면 = 궁전 단 + 0.32, 문 (+x)을 봄) · 1.6배 (키 1 m).</summary>
+        public static readonly (string Model, Vector3 At, float Facing)[] PalaceSeahorses =
+        {
+            ("SeahorseGold", new Vector3(3.2845f, Floor + 0.92f, 5.835f), 0f), ("SeahorseGold", new Vector3(3.2845f, Floor + 0.92f, 4.085f), 0f),
+        };
+        public const float PalaceSeahorseScale = 1.6f;
+
         // ---------------- 바다 동물 (critter_builder 바다 동물 — 궤도 방어망과 같은 모델, 사용자 2026-11-16 "이제 동물 배치 진행해줘") ----------------
         // (모델, 자리 (모델 원점), 바라보는 쪽 수학 각). 땅 위 자리 = 몸 밑 닿는 점 (물범 = 원점 위 3.5 cm 안 배 · 지느러미 · 엉덩이 밑, 게 = 다리 끝)이 97 % 모래 1.5 cm 안 ·
         //  가장 큰 틈 3 cm 미만이 되게 템플릿 면을 광선으로 재서 찾은 높이 — OrbitalPortTests.Critters_OnTheirSpots가 지킴.

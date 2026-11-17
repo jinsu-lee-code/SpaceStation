@@ -7,6 +7,7 @@
 #   Critter_Seal · SealPup · Dolphin · Puffin · Turtle · Crab  궤도 방어망 바다 동물 (2026-11-13, 아래 "바다 동물" — `--sea` = 바다 동물만 미리보기)
 #   Critter_FlyingFish  궤도 항만 석호 날치 (2026-11-16, 아래 "날치" — `--fly` = 날치 모델 시트)
 #   Critter_Owl · Hedgehog  심우주 통신기지 부엉이 · 고슴도치 (2026-11-17, 아래 "부엉이 · 고슴도치" — `--owl` = 모델 시트)
+#   Critter_Seahorse{Mint · Pink · Gold · Pearl}  궤도 항만 배 끄는 해마 · 회전목마 · 궁전 상 (2026-11-17, 아래 "해마" — `--seahorse` = 시안 시트)
 # 좌표: 미터, 발 · 물높이 z = 0, 앞 = +x. 재질 슬롯 하나 (M_Critters — Unity가 ModuleFxMaterials "Critters"로 바꿈).
 # 사용: blender -b --factory-startup -P BlenderWork/InteriorProps/critter_builder.py -- [fbx 경로]
 import bpy, bmesh, sys, os, math
@@ -1232,7 +1233,9 @@ else:
             build_duck(), build_duckling(), build_bee(), build_bee_wings()]
     sea = [f() for f in SEA_BUILDERS]
     pond = [build_pond_turtle(), build_flying_fish(),          # 연못 거북 (수리 사령부) · 날치 (궤도 항만) · 부엉이 · 고슴도치 (심우주 통신기지)
-            build_owl(), build_hedgehog()]                     #  — 미리보기는 --pond · --fly · --owl 시트, 여기선 숨김
+            build_owl(), build_hedgehog(),                     #  · 해마 넷 (궤도 항만 배 · 회전목마 · 궁전 상 — 사용자 2026-11-17 "해마 유니티로 옮겨줘")
+            build_seahorse("Critter_SeahorseMint", "green"), build_seahorse("Critter_SeahorsePink", "pink"),
+            build_seahorse("Critter_SeahorseGold", "yellow"), build_seahorse("Critter_SeahorsePearl", "white")]   #  — 미리보기는 --pond · --fly · --owl · --seahorse 시트, 여기선 숨김
     for o_ in pond:
         o_.hide_render = True
 

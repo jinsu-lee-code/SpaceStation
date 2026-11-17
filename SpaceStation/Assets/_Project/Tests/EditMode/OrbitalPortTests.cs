@@ -291,6 +291,88 @@ namespace SpaceStation.Tests
             }
         }
 
+        /// <summary>
+        /// 해마 (critter_builder 귀여운 해마 — 사용자 2026-11-17 "해마 유니티로 옮겨줘"): 배마다 한 쌍이 배 피벗 아래 (함께 돎 · 말린 꼬리만 물에),
+        /// 회전목마 넷이 회전목마 조각 아래 (금빛 기둥이 몸 속을 지남), 궁전 금빛 상 둘이 진주 받침 위 (꼬리 밑 = 받침 윗면 ± 1.5 cm).
+        /// </summary>
+        [Test]
+        public void Seahorses_Placed()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                var fails = new List<string>();
+                var r = root.transform;
+                for (int k = 0; k < OrbitalPort.Boats.Length; k++)
+                {
+                    var pivot = r.Find($"Boat{k}_Pivot");
+                    foreach (var (model, side) in OrbitalPort.BoatSeahorses)
+                    {
+                        var t = pivot.Find("Critter_" + model);
+                        if (t == null)
+                        {
+                            fails.Add($"배 {k}: {model} 없음");
+                            continue;
+                        }
+                        OrbitalPort.BoatSeahorse(k, side, out var at, out _);
+                        if (Vector3.Distance(t.position, at) > 0.01f)
+                            fails.Add($"배 {k} {model}: {t.position} ≠ {at}");
+                        var b = t.GetComponent<Renderer>().bounds;
+                        if (b.min.y > OrbitalPort.LagoonLevel - 0.05f || b.max.y < OrbitalPort.LagoonLevel + 0.7f)
+                            fails.Add($"배 {k} {model}: 높이 {b.min.y:F2} ~ {b.max.y:F2} (꼬리만 물에 · 머리는 수면 위 0.7 m 넘게)");
+                    }
+                }
+                var carousel = r.Find(N + "Carousel");
+                foreach (var (model, at, facing) in OrbitalPort.CarouselSeahorses)
+                {
+                    var t = carousel.Find("Critter_" + model);
+                    if (t == null)
+                    {
+                        fails.Add($"회전목마: {model} 없음");
+                        continue;
+                    }
+                    if (Vector3.Distance(t.position, at) > 0.01f)
+                        fails.Add($"회전목마 {model}: {t.position} ≠ {at}");
+                    // 기둥 (받침 가운데에서 1.8 m) 높이마다 몸 속 (메시 경계 안)
+                    var c = OrbitalPort.Carousel;
+                    var pole = new Vector3(at.x, 0f, at.z) - new Vector3(c.x, 0f, c.z);
+                    pole = new Vector3(c.x, 0f, c.z) + pole.normalized * 1.8f;
+                    var mesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    foreach (float h in new[] { 0.3f, 0.6f, 0.9f })
+                    {
+                        var local = t.InverseTransformPoint(new Vector3(pole.x, at.y + h, pole.z));
+                        if (!mesh.bounds.Contains(local))
+                            fails.Add($"회전목마 {model}: 기둥이 몸 밖 (꼬리 밑 + {h} m)");
+                    }
+                }
+                foreach (var (model, at, facing) in OrbitalPort.PalaceSeahorses)
+                {
+                    Transform t = null;
+                    foreach (Transform c in r)
+                        if (c.name == "Critter_" + model && Vector3.Distance(c.position, at) < 0.01f)
+                            t = c;
+                    if (t == null)
+                    {
+                        fails.Add($"궁전 상 {at}: 없음");
+                        continue;
+                    }
+                    if (!Physics.Raycast(at + Vector3.up * 0.05f, Vector3.down, out var hit, 0.3f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                        fails.Add($"궁전 상 {at}: 받침 없음");
+                    else if (Mathf.Abs(hit.point.y - at.y) > 0.015f)
+                        fails.Add($"궁전 상 {at}: 받침 윗면 {hit.point.y:F3}");
+                    if (Mathf.Abs(t.GetComponent<Renderer>().bounds.min.y - at.y) > 0.015f)
+                        fails.Add($"궁전 상 {at}: 꼬리 밑 {t.GetComponent<Renderer>().bounds.min.y:F3}");
+                }
+                Assert.IsEmpty(fails, string.Join(" / ", fails));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
         /// <summary>큰 진주 조개가 물에 잠기지 않음 (사용자 2026-11-16 "조개가 물속에 파묻혀 있음"): 진주 밑 · 뚜껑 밑이 수면 위, 진주 꼭대기가 입술 (경첩 높이) 위.</summary>
         [Test]
         public void Clams_AboveWater()
