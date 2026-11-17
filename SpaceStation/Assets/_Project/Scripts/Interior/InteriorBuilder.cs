@@ -294,7 +294,7 @@ namespace SpaceStation.Interior
                     continue;
                 var other = OtherRoom(cell, dir);
                 var span = InteriorGeometry.Tube(cell, dir, DoorDepth(module, cell, dir), DoorDepth(other, cell + dir, -dir));
-                var tube = BuildTube(span, _tubeRoot);
+                var tube = BuildTube(span, _tubeRoot, module, other);
                 tube.SetActive(_shown.Contains(module) || _shown.Contains(other));
                 _tubes.Add((tube, module, other));
             }
@@ -679,15 +679,20 @@ namespace SpaceStation.Interior
                 ApplyStatus(wall, other);
             }
             // 방마다 문 한 쌍 (튜브 양 끝 = 에어록). 벽 두께 안에서 미끄러져 숨는다
-            BuildDoor(module, parent, center + up * (doorBottom + InteriorGeometry.DoorHeight * 0.5f) - panel.Normal * (t * 0.5f), rotation);
+            // 진화 단계별 통로 (2026-11-17): 3단계 이상 쪽 · 2 ↔ 2 = 문짝 없이 트임 (바닥이 이어짐), 3단계 이상과 붙은 낮은 쪽 · 현관의 정원 쪽 = 에어록 문짝
+            var kind = other != null ? ConnectorStyle.DoorAt(StageOf(module), StageOf(other)) : DoorKind.Normal;
+            if (kind == DoorKind.Open)
+                return;
+            BuildDoor(module, parent, center + up * (doorBottom + InteriorGeometry.DoorHeight * 0.5f) - panel.Normal * (t * 0.5f), rotation,
+                kind == DoorKind.Airlock ? _kit.AirlockLeaf : null);
         }
 
-        private void BuildDoor(ModuleInstance module, Transform parent, Vector3 position, Quaternion rotation)
+        private void BuildDoor(ModuleInstance module, Transform parent, Vector3 position, Quaternion rotation, InteriorKitPiece leafOverride = null)
         {
             var go = new GameObject("Door");
             go.transform.SetParent(parent, false);
             go.transform.SetPositionAndRotation(position, rotation);
-            var leaf = _kit.DoorLeafFor(module != null ? module.Data : null);
+            var leaf = leafOverride ?? _kit.DoorLeafFor(module != null ? module.Data : null);
             var right = KitPiece(leaf, module, go.transform, position, rotation).Renderer.transform;
             var left = KitPiece(leaf, module, go.transform, position, rotation * Quaternion.Euler(0f, 180f, 0f)).Renderer.transform;
             right.name = "LeafRight";
@@ -748,7 +753,67 @@ namespace SpaceStation.Interior
 
         // ---------------- 연결 튜브 ----------------
 
-        private GameObject BuildTube(TubeSpan span, Transform parent)
+        /// <summary>방의 진화 단계 (단계 키트 묶음, 기본 · 템플릿 없는 방 = 0).</summary>
+        private int StageOf(ModuleInstance module) => _kit != null && module != null ? _kit.StageNumber(module.Data) : 0;
+
+        /// <summary>
+        /// 진화 단계별 통로 (사용자 2026-11-17, <see cref="ConnectorStyle"/>): 두 방 중 높은 단계 한 벌 — 1 세라믹 튜브 · 2 우주복 현관 (낮은 쪽이 1단계 이하면 보관함 · 벤치 · 거울,
+        /// 2 ↔ 2는 트인 문간) · 3 · 4 다리 데크 + 하늘 껍질. 에어록 문인 끝에는 에어록 문틀. 충돌 (바닥 · 천장 · 양옆 벽)은 기본 튜브와 같음.
+        /// </summary>
+        private bool BuildStageTube(GameObject go, TubeSpan span, ModuleInstance a, ModuleInstance b, Vector3 start, Vector3 end, Vector3 mid, Quaternion rotation, float len)
+        {
+            int sA = StageOf(a), sB = StageOf(b);
+            var style = ConnectorStyle.ForInterior(sA, sB);
+            var set = _kit != null ? _kit.TubeStage(style.Stage) : null;
+            if (set == null)
+                return false;
+            var accent = sA >= sB ? a : b;                  // 강조색 = 높은 단계 방
+            var sink = span.Direction.normalized * CollarSink;
+            var flip = rotation * Quaternion.Euler(0f, 180f, 0f);
+            if (_kit.AirlockFrame != null && ConnectorStyle.DoorAt(sA, sB) == DoorKind.Airlock)
+                Tube(_kit.AirlockFrame, go.transform, start + sink, rotation, Vector3.one, a);
+            if (_kit.AirlockFrame != null && ConnectorStyle.DoorAt(sB, sA) == DoorKind.Airlock)
+                Tube(_kit.AirlockFrame, go.transform, end - sink, flip, Vector3.one, b);
+            // 트인 방 (문 깊이 3.9 ~ 3.95)끼리는 틈이 0.1 ~ 0.6 m — 끝 테 둘이 겹치므로 두 방 바닥을 잇는 문턱판만 (사용자 "짧은 문턱판으로")
+            if (len < ShortTubeLength && set.TubeShort != null)
+            {
+                Tube(set.TubeShort, go.transform, mid, rotation, new Vector3(1f, 1f, len), accent);
+                return true;
+            }
+            Tube(set.Tube, go.transform, mid, rotation, new Vector3(1f, 1f, len), accent);
+            Tube(set.TubeCollar, go.transform, start + sink, rotation, Vector3.one, accent);
+            Tube(set.TubeCollar, go.transform, end - sink, rotation, Vector3.one, accent);
+            if (set.TubeRing != null && set.TubeRing.IsValid && set.TubeRingStep > 0.1f)
+            {
+                float clear = style.Stage == 1 ? TubeRingClear : ThinCollarClear;
+                float free = len - 2f * clear;
+                int n = Mathf.FloorToInt(free / set.TubeRingStep);
+                for (int i = 0; i < n; i++)
+                    Tube(set.TubeRing, go.transform, start + span.Direction.normalized * (TubeRingClear + (i + 0.5f) * free / n), rotation, Vector3.one, accent);
+            }
+            if (style.IsVestibule && set.Vestibule != null && set.Vestibule.IsValid)
+            {
+                // 양옆 보관함 (얇은 현관) — 2단계가 A 쪽이면 뒤집어 우주복이 늘 같은 쪽 순서로
+                var turn = sA == 2 ? flip : rotation;
+                if (len >= VestibuleTwinLength)
+                {
+                    Tube(set.Vestibule, go.transform, mid - span.Direction.normalized * (len * 0.25f), turn, Vector3.one, accent);
+                    Tube(set.Vestibule, go.transform, mid + span.Direction.normalized * (len * 0.25f), turn, Vector3.one, accent);
+                }
+                else
+                {
+                    Tube(set.Vestibule, go.transform, mid, turn, Vector3.one, accent);
+                }
+            }
+            return true;
+        }
+
+        private const float TubeRingClear = 0.3f;        // 끝 고리 (두께 0.3) 안쪽부터 간격 조각
+        private const float ThinCollarClear = 0.12f;     // 2단계 이상 = 벽에 붙은 얇은 끝 테 (0.1)
+        private const float ShortTubeLength = 0.7f;      // 이보다 짧은 틈 = 문턱판만
+        private const float VestibuleTwinLength = 1.6f;  // 이보다 긴 현관 (2단계 문 깊이 2.9 방) = 보관함 두 벌
+
+        private GameObject BuildTube(TubeSpan span, Transform parent, ModuleInstance a = null, ModuleInstance b = null)
         {
             var start = _root.position + span.Start;
             var end = _root.position + span.End;
@@ -768,7 +833,10 @@ namespace SpaceStation.Interior
 
             var go = new GameObject("Tube");
             go.transform.SetParent(parent, false);
-            if (_kit != null && _kit.HasTube)
+            if (BuildStageTube(go, span, a, b, start, end, mid, rotation, len))
+            {
+            }
+            else if (_kit != null && _kit.HasTube)
             {
                 Tube(_kit.Tube, go.transform, mid, rotation, new Vector3(1f, 1f, len));
                 // 고리(두께 ±0.15, 바깥 반지름 1.87)를 벽면 중심에 두면 절반이 방 안으로 나와 문 패널(폭 ±1.6) 옆에 보였음 →
@@ -836,8 +904,8 @@ namespace SpaceStation.Interior
 
         private readonly List<(GameObject Go, ModuleInstance A, ModuleInstance B)> _tubes = new List<(GameObject, ModuleInstance, ModuleInstance)>();
 
-        /// <summary>튜브 조각 (방 소속 아님: 어둡게 하지 않음, 강조색은 기본색).</summary>
-        private void Tube(InteriorKitPiece kitPiece, Transform parent, Vector3 position, Quaternion rotation, Vector3 scale)
+        /// <summary>튜브 조각 (방 소속 아님: 어둡게 하지 않음, 강조색 = accent 모듈 · 없으면 기본색).</summary>
+        private void Tube(InteriorKitPiece kitPiece, Transform parent, Vector3 position, Quaternion rotation, Vector3 scale, ModuleInstance accent = null)
         {
             var go = new GameObject(kitPiece.Mesh.name);
             go.transform.SetParent(parent, false);
@@ -846,7 +914,7 @@ namespace SpaceStation.Interior
             go.AddComponent<MeshFilter>().sharedMesh = kitPiece.Mesh;
             var r = go.AddComponent<MeshRenderer>();
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            r.sharedMaterials = MaterialsFor(kitPiece, null);
+            r.sharedMaterials = MaterialsFor(kitPiece, accent);
         }
 
         // ---------------- 11-2b 발코니·나선 계단 (대체 방이 여러 층일 때) ----------------

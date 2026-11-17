@@ -64,6 +64,38 @@ namespace SpaceStation.Data
         public InteriorKitPiece SealedWall => _sealedWall;
         public InteriorKitPiece SkyPatch => _skyPatch;
 
+        [Header("진화 단계별 연결 통로 (2026-11-17, SM_InteriorKit_Tubes.fbx)")]
+        [Tooltip("통로 몸 (길이 Z 1 m — 늘려 씀, 바닥 y 0): 1 세라믹 튜브 · 2 현관 포드 · 3 · 4 다리 데크 + 하늘 껍질")]
+        [SerializeField] private InteriorKitPiece _tube;
+        [Tooltip("통로 끝 (벽 속으로 0.153 묻음): 테 · 문턱판")]
+        [SerializeField] private InteriorKitPiece _tubeCollar;
+        [Tooltip("간격마다 놓는 조각 (갈비 · 빛 아치 · 난간 기둥 + 정원등)")]
+        [SerializeField] private InteriorKitPiece _tubeRing;
+        [SerializeField] private float _tubeRingStep = 1.5f;
+        [Tooltip("2단계 얇은 우주복 현관 (양옆 보관함 + 우주복, 길이 0.64 m)")]
+        [SerializeField] private InteriorKitPiece _vestibule;
+        [Tooltip("짧은 틈 (0.7 m 아래 — 트인 방끼리) 문턱판만 (길이 Z 1 m — 늘려 씀)")]
+        [SerializeField] private InteriorKitPiece _tubeShort;
+
+        public InteriorKitPiece TubeShort => _tubeShort != null && _tubeShort.IsValid ? _tubeShort : null;
+
+        public InteriorKitPiece Tube => _tube;
+        public InteriorKitPiece TubeCollar => _tubeCollar;
+        public InteriorKitPiece TubeRing => _tubeRing;
+        public float TubeRingStep => _tubeRingStep;
+        public InteriorKitPiece Vestibule => _vestibule;
+        public bool HasTube => _tube != null && _tube.IsValid && _tubeCollar != null && _tubeCollar.IsValid;
+
+        public void EditorSetTubes(InteriorKitPiece tube, InteriorKitPiece collar, InteriorKitPiece ring, float ringStep, InteriorKitPiece vestibule, InteriorKitPiece shortTube)
+        {
+            _tube = tube;
+            _tubeCollar = collar;
+            _tubeRing = ring;
+            _tubeRingStep = ringStep;
+            _vestibule = vestibule;
+            _tubeShort = shortTube;
+        }
+
         public InteriorKitStage(int stage, List<ModuleData> modules, InteriorKitPiece wall, InteriorKitPiece wallDoor, InteriorKitPiece doorLeaf,
             InteriorKitPiece floor, InteriorKitPiece ceiling, InteriorKitPiece hatchFrame, InteriorKitPiece hatchLid, InteriorKitPiece sealedWall = null, InteriorKitPiece skyPatch = null)
         {
@@ -162,6 +194,39 @@ namespace SpaceStation.Data
         public InteriorKitPiece CeilingFor(ModuleData data) => Pick(StageOf(data)?.Ceiling, _ceiling);
         public InteriorKitPiece HatchFrameFor(ModuleData data) => Pick(StageOf(data)?.HatchFrame, _hatchFrame);
         public InteriorKitPiece HatchLidFor(ModuleData data) => Pick(StageOf(data)?.HatchLid, _hatchLid);
+
+        [Header("에어록 (진화 단계별 연결 통로)")]
+        [Tooltip("통로 끝 에어록 문틀 (문 구멍 둘레, 벽 속으로 0.153 묻음)")]
+        [SerializeField] private InteriorKitPiece _airlockFrame;
+        [Tooltip("에어록 문짝 (보통 문짝과 같은 0.72 × 2.4, 둥근 창 · 빛줄)")]
+        [SerializeField] private InteriorKitPiece _airlockLeaf;
+
+        public InteriorKitPiece AirlockFrame => _airlockFrame != null && _airlockFrame.IsValid ? _airlockFrame : null;
+        public InteriorKitPiece AirlockLeaf => _airlockLeaf != null && _airlockLeaf.IsValid ? _airlockLeaf : null;
+
+        /// <summary>모듈 방의 진화 단계 (단계 키트 묶음 — 기본 모듈 · 템플릿 없는 방 = 0).</summary>
+        public int StageNumber(ModuleData data) => StageOf(data)?.Stage ?? 0;
+
+        /// <summary>그 단계의 통로 한 벌 (없으면 null = 기본 튜브).</summary>
+        public InteriorKitStage TubeStage(int stage)
+        {
+            if (_stages == null || stage <= 0)
+                return null;
+            foreach (var s in _stages)
+            {
+                if (s != null && s.Stage == stage && s.HasTube)
+                    return s;
+            }
+            return null;
+        }
+
+#if UNITY_EDITOR
+        public void EditorSetAirlock(InteriorKitPiece frame, InteriorKitPiece leaf)
+        {
+            _airlockFrame = frame;
+            _airlockLeaf = leaf;
+        }
+#endif
 
         public InteriorKitStage StageOf(ModuleData data)
         {

@@ -32,6 +32,28 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void InteriorDoors_OpenAirlockNormal()
+        {
+            Assert.AreEqual(DoorKind.Open, ConnectorStyle.DoorAt(3, 4), "3단계 이상끼리 = 바닥이 이어짐");
+            Assert.AreEqual(DoorKind.Open, ConnectorStyle.DoorAt(3, 1), "다리 쪽 (3단계)은 트임");
+            Assert.AreEqual(DoorKind.Airlock, ConnectorStyle.DoorAt(1, 3), "낮은 쪽 = 에어록 문");
+            Assert.AreEqual(DoorKind.Airlock, ConnectorStyle.DoorAt(2, 4), "2단계도 3단계 다리와 붙으면 에어록");
+            Assert.AreEqual(DoorKind.Airlock, ConnectorStyle.DoorAt(2, 1), "현관의 정원 쪽 끝");
+            Assert.AreEqual(DoorKind.Normal, ConnectorStyle.DoorAt(1, 2), "현관의 닫힌 쪽 끝");
+            Assert.AreEqual(DoorKind.Open, ConnectorStyle.DoorAt(2, 2), "2 ↔ 2 = 트인 문간");
+            Assert.AreEqual(DoorKind.Normal, ConnectorStyle.DoorAt(0, 1));
+        }
+
+        [Test]
+        public void Vestibule_OnlyStageTwoWithLowerSide()
+        {
+            Assert.IsTrue(ConnectorStyle.ForInterior(2, 0).IsVestibule);
+            Assert.IsTrue(ConnectorStyle.ForInterior(1, 2).IsVestibule);
+            Assert.IsFalse(ConnectorStyle.ForInterior(2, 2).IsVestibule, "2 ↔ 2 = 보관함 없는 트인 문간");
+            Assert.IsFalse(ConnectorStyle.ForInterior(3, 1).IsVestibule, "3단계 = 다리");
+        }
+
+        [Test]
         public void BelowDeck_NoLock_VerticalNeverDeck()
         {
             var s = ConnectorStyle.For(2, 1, false);
