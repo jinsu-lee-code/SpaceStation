@@ -5648,6 +5648,13 @@ namespace SpaceStation.Editor
                     var sso = new SerializedObject(spinner);
                     sso.FindProperty("_speed").floatValue = 9f;
                     sso.ApplyModifiedPropertiesWithoutUndo();
+                    // 해마 (사용자 2026-11-17 "해마 유니티로 옮겨줘" — critter_builder 귀여운 해마, op3_builder는 옛 해마를 짓지 않음):
+                    //  회전목마 넷 = 회전목마 조각의 자식 (기둥이 몸을 지남) · 궁전 왕좌 양옆 금빛 상 둘 = 진주 받침 위 (배 한 쌍은 아래 배 피벗에)
+                    var critterSrc = InteriorCritterModels();
+                    foreach (var (model, at, facing) in OrbitalPort.CarouselSeahorses)
+                        CritterModel(r, critterSrc, model, at, facing, OrbitalPort.CarouselSeahorseScale)?.SetParent(carousel, true);
+                    foreach (var (model, at, facing) in OrbitalPort.PalaceSeahorses)
+                        CritterModel(r, critterSrc, model, at, facing, OrbitalPort.PalaceSeahorseScale);
                     // 해마 가리비 배 뱃놀이 (체험, 사용자 2026-11-16 "가리비 배 뱃놀이 체험 진행해줘"): 배 넷 (op3_builder Boat{k}, 처음 자리에 구운 메시 · 원점 = 배 가운데 수면)을
                     //  배 길 처음 자세의 피벗 (+z = 배 길 앞) 아래로 옮겨 피벗이 배 길을 돎, 피벗마다 앉음판 왼쪽 · 오른쪽 자리 (보고 F = 앉기)
                     var boatPivots = new Transform[OrbitalPort.Boats.Length];
@@ -5662,6 +5669,11 @@ namespace SpaceStation.Editor
                         pivot.localPosition = new Vector3(at.x, OrbitalPort.LagoonLevel, at.y);
                         pivot.localRotation = Quaternion.LookRotation(new Vector3(dir.x, 0f, dir.y));
                         Child(root, N + "Boat" + b).SetParent(pivot, true);
+                        foreach (var (model, side) in OrbitalPort.BoatSeahorses)                                       // 앞 해마 한 쌍 (고삐 끝이 머리 속 — 배와 함께 돎)
+                        {
+                            OrbitalPort.BoatSeahorse(b, side, out var sAt, out float sFacing);
+                            CritterModel(r, critterSrc, model, sAt, sFacing, OrbitalPort.BoatSeahorseScale)?.SetParent(pivot, true);
+                        }
                         for (int k = 0; k < 2; k++)
                         {
                             var seat = new GameObject(k == 0 ? "SeatL" : "SeatR").transform;
@@ -5678,7 +5690,6 @@ namespace SpaceStation.Editor
                     root.AddComponent<InteriorScallopRide>().Configure(boatPivots, boatSeats, boatStarts, rideFont);
                     // 바다 동물 (critter_builder — 궤도 방어망과 같은 모델): 물범 · 아기 물범 = 모래톱 물가에서 숨 쉬며 고개 듦, 게 = 물가 모래를 따라 옆걸음,
                     //  거북 = 석호 수면 고리 헤엄 (배는 배 길을 따라 돌므로 길 전체 + 회전목마 받침 · 산호초 · 조개 · 잔교 · 물가를 비킴)
-                    var critterSrc = InteriorCritterModels();
                     CritterGroup(r, critterSrc, "Critters_Seal", 8f, CritterSpots(OrbitalPort.Seals));
                     CritterGroup(r, critterSrc, "Critters_Crab", 14f, CritterSpots(OrbitalPort.Crabs));
                     var swim = SwimBlocker(root, new Vector3(26f, OrbitalPort.LagoonLevel, 4f), 30f, (OrbitalPort.LagoonLevel, 0f));
@@ -5947,6 +5958,29 @@ namespace SpaceStation.Editor
                     critterSrc[g.name] = g;
             }
             return critterSrc;
+        }
+
+        /// <summary>
+        /// 내부 동물 모델 하나 (움직임 없이 — 배 · 회전목마 · 궁전 상의 해마): parent 기준 at (모델 원점) · 바라보는 쪽 수학 각 · 크기 (미터 모델 배율).
+        /// 움직이는 조각에 붙일 땐 만든 뒤 SetParent(조각, true). 모델이 없으면 null.
+        /// </summary>
+        private static Transform CritterModel(Transform parent, Dictionary<string, GameObject> critterSrc, string src, Vector3 at, float facing, float scale)
+        {
+            if (!critterSrc.TryGetValue("Critter_" + src, out var g))
+            {
+                Debug.LogWarning("[InteriorTemplateBuilder] 내부 동물 없음: " + src);
+                return null;
+            }
+            var t = new GameObject("Critter_" + src).transform;
+            t.SetParent(parent, false);
+            t.localPosition = at;
+            t.localRotation = Quaternion.Euler(0f, 180f - facing, 0f) * g.transform.localRotation;
+            t.localScale = g.transform.localScale * scale;
+            t.gameObject.AddComponent<MeshFilter>().sharedMesh = g.GetComponent<MeshFilter>().sharedMesh;
+            var mr = t.gameObject.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = ModuleFxMaterials.Get("Critters");
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return t;
         }
 
         /// <summary>바라보는 쪽 (수학 각 — 0° = +x, 90° = +z) → 내부 동물 모델 yaw (모델 앞 = Blender +x = Unity −x).</summary>

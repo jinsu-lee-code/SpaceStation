@@ -3270,3 +3270,18 @@
 **main에서 따로 할 것**
 
 - 없음
+
+## M-228. 궤도 항만 해마 — 귀여운 해마 시안을 배 · 회전목마 · 궁전 상에 (2026-11-17, `main`)
+
+
+
+**main에 넣은 것**
+
+- `critter_builder.py` 해마 넷 (`Critter_SeahorseMint` · `Pink` · `Gold` · `Pearl`) → `SM_InteriorCritters.fbx`, `critters.blend`
+- `Interior_Evo2.blend` op3_builder 텍스트 (옛 해마를 짓지 않고 자리만 — SH_BOAT · SH_CAR · SH_PAL) · 물체, `SM_Interior_EvoOrbitalPort.fbx` (다시 내보냄 + 트림 UV), 생성 메시 `SM_Interior_EvoOrbitalPort_Leaves` · `_SkyDoors`
+- `OrbitalPort.BoatSeahorses` · `BoatSeahorse` · `BoatStartForward` · `CarouselSeahorses` · `PalaceSeahorses`, `InteriorTemplateBuilder.CritterModel`, `PF_Interior_EvoOrbitalPort`
+- 시험 `OrbitalPortTests.Seahorses_Placed`, 문서 06c 궤도 항만 · 체크리스트 236 · 237
+
+**main에서 따로 할 것**
+
+- 없음 (`Main.unity`는 넘기지 않음)
