@@ -187,12 +187,13 @@ namespace SpaceStation.Interior
         /// <summary>부엉이 크기 (모델 키 0.45 m → 0.4 m — 발코니 턱 폭에 맞춤).</summary>
         public const float OwlScale = 0.9f;
         /// <summary>
-        /// 고슴도치 둘 (critter_builder Critter_Hedgehog) = 오른쪽 옆 돔 너머 풀밭 · 오른쪽 접시 왼쪽 뒤 풀밭, 강 쪽을 봄. Blender crit_place.py가 고름 (발 넷 땅 높이 차 ≤ 1.2 cm):
-        /// 지금 풀 · 꽃 · 자갈에서 0.57 m 넘게 떨어진 자리라 빌더 CRITTERS에 막음 (0.45 m)을 더해도 풀꽃이 다시 섞이지 않음 (빌드 지문 같음 — 내부 FBX 그대로).
+        /// 고슴도치 둘 (critter_builder Critter_Hedgehog) = 오른쪽 옆 돔 너머 풀밭 (강 쪽을 봄) · 왼쪽 별자리 광장 왼쪽 앞 풀밭 (광장 앞을 봄 — 사용자 "고슴도치 하나는 왼쪽 풀밭으로",
+        /// 오른쪽 접시 뒤에서 옮김). Blender crit_place.py가 고름 (발 넷 땅 높이 차 ≤ 1.2 cm): 지금 풀 · 꽃 · 자갈에서 떨어진 자리 (오른쪽 0.57 m · 왼쪽 0.43 m —
+        /// 왼쪽은 여기뿐)라 빌더 CRITTERS에 막음 (0.45 · 0.3 m)을 더해도 풀꽃이 다시 섞이지 않음 (빌드 지문 같음 — 내부 FBX 그대로), 풀잎이 몸에 8 cm 안으로 오지 않음.
         /// </summary>
         public static readonly (string Kind, Vector3 At, float Facing)[] Hedgehogs =
         {
-            ("Hedgehog", new Vector3(18.65f, Floor + 0.0006f, 1.45f), 229.8f), ("Hedgehog", new Vector3(11.65f, Floor + 0.0029f, 3.45f), 229.2f),
+            ("Hedgehog", new Vector3(18.65f, Floor + 0.0006f, 1.45f), 229.8f), ("Hedgehog", new Vector3(3.15f, Floor - 0.0021f, -2.65f), 332.8f),
         };
 
         // ---------------- 연결점 ----------------
