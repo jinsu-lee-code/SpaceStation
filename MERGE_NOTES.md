@@ -3285,3 +3285,19 @@
 **main에서 따로 할 것**
 
 - 없음 (`Main.unity`는 넘기지 않음)
+
+## M-229. 진화 단계별 바깥 연결 통로 — 세라믹 캡슐 · 에어록 현관 포드 · 다리 데크 · 에어록 고리 (2026-11-17, `main`)
+
+
+
+**main에 넣은 것**
+
+- `BlenderWork/Connectors/connector_builder.py` (시안 `--sheet` · `--sheet2`, `--export`) · `stack_png.py` · 시안 시트 둘
+- `SM_ConnectorsEvo.fbx` · 색표 `Textures/ConnectorsEvo/T_ConnectorsEvo_*` · 재질 `M_ConnectorsEvo`
+- `Core/ConnectorStyle` (높은 단계 · 3단계부터 다리 데크 · 데크가 2단계 이하에 닿는 끝 = 에어록 고리 · 위아래는 기둥만) + 시험 `ConnectorStyleTests`
+- `StationConnectors` 단계 한 벌 (`_stages` · `_lockMesh` · `_evoMaterial`, 간격마다 고리), `ConnectorSetup.SetupEvo` + 메뉴 `SpaceStation/Art/Setup Evo Connectors`
+- 문서 04 7-11 · 체크리스트 238
+
+**main에서 따로 할 것**
+
+- `Main.unity`는 넘기지 않음 → main 장면을 열고 메뉴 **SpaceStation/Art/Setup Evo Connectors** 한 번 (StationConnectors에 단계 메시 · 재질 배선) 뒤 장면 저장. 안 하면 진화 통로가 기본 팔각 모양으로 그대로 (오류 없음).
