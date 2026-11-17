@@ -63,10 +63,11 @@ namespace SpaceStation.Interior
         /// <summary>
         /// 아래 해치 21 (바닥 칸, 네 귀퉁이 빼고 — 외형 아래 연결점): oc_export가 찾은 칸 가운데에서 가장 가까운 빈 바닥 (1.9 m 틀이 모두 바닥 높이 · 위가 빔).
         /// 안쪽 9칸 = 언덕 속 고리 길 · 뿌리 홀, 바깥 12칸 = 고리 길 · 잔디 (못 찾으면 레일 밑).
+        /// (0, 0, 1)은 (0, −2)에 사슴이 서 있어 북쪽 잔디 길가 (−1.6, 2.9)로 (2026-11-18 바닥 해치 훑기 — 이 표는 Unity가 기준, oc_export 다시 돌리면 이 칸 확인).
         /// </summary>
         public static readonly (Vector3Int Cell, Vector2 Offset)[] Hatches =
         {
-            (new Vector3Int(0, 0, 1), new Vector2(0f, -2f)), (new Vector3Int(0, 0, 2), new Vector2(0.8f, 0f)), (new Vector3Int(0, 0, 3), new Vector2(0f, 2f)),
+            (new Vector3Int(0, 0, 1), new Vector2(-1.6f, 2.9f)), (new Vector3Int(0, 0, 2), new Vector2(0.8f, 0f)), (new Vector3Int(0, 0, 3), new Vector2(0f, 2f)),
             (new Vector3Int(1, 0, 0), new Vector2(2.8f, -2f)), (new Vector3Int(1, 0, 1), new Vector2(2f, 2.2f)), (new Vector3Int(1, 0, 2), Vector2.zero),
             (new Vector3Int(1, 0, 3), new Vector2(2f, -2.2f)), (new Vector3Int(1, 0, 4), new Vector2(-2f, 0f)), (new Vector3Int(2, 0, 0), new Vector2(0f, 0.8f)),
             (new Vector3Int(2, 0, 1), new Vector2(0f, 1.6f)), (new Vector3Int(2, 0, 2), Vector2.zero), (new Vector3Int(2, 0, 3), Vector2.zero),

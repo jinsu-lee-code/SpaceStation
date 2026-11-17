@@ -124,11 +124,7 @@ namespace SpaceStation.Tests
         /// <summary>
         /// 장식 · 구조물에 걸린 바닥 해치 중 사용자 결정을 기다리는 것 (템플릿, 칸) — 이유와 함께. 자리를 정해 옮기면 뺌.
         /// </summary>
-        private static readonly Dictionary<(string, Vector3Int), string> PendingHatches = new Dictionary<(string, Vector3Int), string>
-        {
-            { ("IT_EvoOrbitalCity", new Vector3Int(0, 0, 1)), "꽃 화단 안내판 · 사슴이 뚜껑 위에 섬" },
-            { ("IT_EvoCivicHall", new Vector3Int(3, 0, 0)), "둥근 소파 고리 안 · 보라 구슬 밑 (칸 중심 그대로)" },
-        };
+        private static readonly Dictionary<(string, Vector3Int), string> PendingHatches = new Dictionary<(string, Vector3Int), string>();
 
         /// <summary>
         /// 바닥 해치 뚜껑 가운데 (±0.45 m) 위 2 m에 충돌체가 없고 1.5 m 아래에 충돌체 없는 장식 (동물 · 구슬 등)이 없으며, 뚜껑 둘레 1.3 m 8방향 중 한 곳 이상에 사람이 설 수 있음 —
@@ -199,6 +195,64 @@ namespace SpaceStation.Tests
             }
             Assert.Greater(hatches, 300, "바닥 해치가 있어야 함");
             Assert.IsEmpty(problems.ToString(), "바닥 해치를 쓸 수 없음:\n" + problems);
+        }
+
+        /// <summary>
+        /// 문 안쪽 바닥이 통로 · 다리 바닥 (칸 바닥 −1.3)보다 낮은데 층계참을 아직 못 정한 방 — 이유와 함께. 고치면 뺌.
+        /// </summary>
+        private static readonly Dictionary<string, string> PendingDoorSills = new Dictionary<string, string>
+        {
+            { "IT_EvoDeepSpaceComm", "언덕 바닥 −2.08 — 문 여덟 모두 0.78 m 턱 (2026-11-18 2번 슬롯 다리 확인)" },
+            { "IT_EvoOrbitalPort", "물가 갑판 쪽 문 넷 0.72 ~ 0.78 m 턱" },
+            { "IT_EvoAICore", "(3, 0, 0) +z 문 0.78 m 턱" },
+            { "IT_EvoRepairCommand", "(1, 1, 0) −z 문 0.78 m 턱" },
+        };
+
+        /// <summary>
+        /// 열린 문 자리 바로 안쪽 (문 깊이 − 0.3 · − 0.7 m) 바닥이 통로 · 다리 바닥 (칸 바닥 −1.3)과 0.3 m 안 — 사람이 넘는 턱은 0.36 m까지.
+        /// 심우주 통신기지 바닥이 0.78 m 낮아 다리에 오르지 못했고 (걸어 보니 문 앞에서 멈춤), 그 턱 아래로 하늘 껍질이 검게 보였음 (2026-11-18).
+        /// </summary>
+        [Test]
+        public void DoorSillsMatchTubeFloor()
+        {
+            var away = new Vector3(30000f, -7000f, 30000f);
+            var problems = new StringBuilder();
+            int doors = 0;
+            foreach (var guid in AssetDatabase.FindAssets("t:InteriorTemplate"))
+            {
+                var template = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
+                if (template == null || template.Prefab == null || PendingDoorSills.ContainsKey(template.name) || !template.Sockets.Any(s => s.Direction.y == 0 && !s.SealedWall))
+                    continue;
+                var root = Object.Instantiate(template.Prefab);
+                root.transform.SetPositionAndRotation(away, Quaternion.identity);
+                Physics.SyncTransforms();
+                try
+                {
+                    foreach (var s in template.Sockets)
+                    {
+                        if (s.Direction.y != 0 || s.SealedWall)
+                            continue;
+                        doors++;
+                        var c = away + (Vector3)s.Cell * CellSize;
+                        float sill = c.y - 1.3f;
+                        foreach (float back in new[] { 0.3f, 0.7f })
+                        {
+                            var p = c + (Vector3)s.Direction * (s.Depth - back);
+                            if (!Physics.Raycast(new Vector3(p.x, sill + 2f, p.z), Vector3.down, out var hit, 4f, ~0, QueryTriggerInteraction.Ignore))
+                                problems.AppendLine($"{template.name} {s.Cell} {s.Direction}: 문 안 {back} m 바닥 없음");
+                            else if (Mathf.Abs(hit.point.y - sill) > 0.3f)
+                                problems.AppendLine($"{template.name} {s.Cell} {s.Direction}: 문 안 {back} m 바닥이 문턱과 {hit.point.y - sill:+0.00;-0.00} m");
+                        }
+                    }
+                }
+                finally
+                {
+                    Object.DestroyImmediate(root);
+                    Physics.SyncTransforms();
+                }
+            }
+            Assert.Greater(doors, 400, "문 자리가 있어야 함");
+            Assert.IsEmpty(problems.ToString(), "문턱이 통로 바닥과 맞지 않음:\n" + problems);
         }
 
         private static bool Hit(Vector3 origin, Vector3 dir, float length, Vector3 a, Vector3 b, Vector3 c)

@@ -3413,3 +3413,16 @@
 **main에서 따로 할 것**
 
 - 없음
+
+## M-238. 걸린 해치 둘 옮김 · 통로 키트 트림 UV · 낮은 바닥 방 문턱 시험 (2026-11-18, `main`)
+
+**main에 넣은 것**
+
+- OrbitalCity.Hatches: 궤도 도시 (0,0,1) 아래 해치 (0, −2) → (−1.6, 2.9) (사슴이 뚜껑 위), InteriorTemplateBuilder: 시민 회관 라운지 (3,0,0) 아래 해치 칸 중심 → (−2.25, 0) (C자 소파 고리 안 · 구슬 밑), 템플릿 에셋 둘 같은 값
+- SM_InteriorKit_Tubes.fbx 트림 UV (`trim_uv_export.py --from-fbx --write`)
+- 시험 `InteriorTemplateBoundsTests`: `PendingHatches` 비움, `DoorSillsMatchTubeFloor` 더함 (열린 문 안 바닥이 통로 바닥 −1.3과 0.3 m 안) — 통신기지 · 궤도 항만 · AI 중추 · 수리 사령부는 `PendingDoorSills` (바닥 −2.08이라 문 앞 0.78 m 턱, 사용자 결정 대기)
+- 문서 체크리스트 247 · 06a
+
+**main에서 따로 할 것**
+
+- 없음
