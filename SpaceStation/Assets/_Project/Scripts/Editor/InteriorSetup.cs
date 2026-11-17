@@ -236,6 +236,13 @@ namespace SpaceStation.Editor
         public const string EvoKit3Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo3.fbx";
         public const string EvoKit4Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo4.fbx";
         private const string RecipeFolder = "Assets/_Project/Data/Recipes";
+        public const string TubeKitPath = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Tubes.fbx";
+        /// <summary>단계별 간격 조각 거리 (m): 1 흰 갈비 · 2 빛 아치 · 3 · 4 난간 기둥 + 정원등.</summary>
+        private static readonly float[] TubeRingSteps = { 1.5f, 1.2f, 1.0f, 1.0f };
+
+        /// <summary>키트 에셋만 다시 (장면 · 재질은 그대로) — 연결 통로 키트를 바꾼 뒤.</summary>
+        [MenuItem("SpaceStation/Interior/Rebuild Kit Asset")]
+        public static void RebuildKitAsset() => CreateKit();
 
         /// <summary>단계 키트 FBX의 조각 (없으면 빈 목록). 게임 중 InteriorSpots가 벽 패널 모양을 읽으므로 Read/Write를 켬 (기본 키트와 같음).</summary>
         private static System.Collections.Generic.Dictionary<string, GameObject> StageParts(string path)
@@ -417,6 +424,21 @@ namespace SpaceStation.Editor
                 stages.Add(new Data.InteriorKitStage(4, withInterior,
                     Piece("KIT_Wall_Evo4", evo4), Piece("KIT_WallDoor_Evo4", evo4), Piece("KIT_DoorLeaf_Evo4", evo4), Piece("KIT_Floor_Evo4", evo4),
                     Piece("KIT_Ceiling_Evo4", evo4), Piece("KIT_HatchFrame_Evo4", evo4), Piece("KIT_HatchLid_Evo4", evo4), Piece("KIT_WallSealed_Evo4", evo4), Piece("KIT_SkyPatch_Evo4", evo4)));
+            }
+            // 진화 단계별 연결 통로 (2026-11-17, BlenderWork/Connectors/connector_builder.py --export-kit): 단계마다 통로 몸 · 끝 · 간격 조각 (+ 2단계 현관 가구), 에어록 문틀 · 문짝
+            var tubes = StageParts(TubeKitPath);
+            if (tubes.Count > 0)
+            {
+                foreach (var s in stages)
+                {
+                    string n = "_Evo" + s.Stage;
+                    s.EditorSetTubes(Piece("KIT_Tube" + n, tubes), Piece("KIT_TubeCollar" + n, tubes),
+                        tubes.ContainsKey("KIT_TubeRing" + n) ? Piece("KIT_TubeRing" + n, tubes) : null,
+                        TubeRingSteps[Mathf.Clamp(s.Stage - 1, 0, TubeRingSteps.Length - 1)],
+                        tubes.ContainsKey("KIT_Vestibule" + n) ? Piece("KIT_Vestibule" + n, tubes) : null,
+                        tubes.ContainsKey("KIT_TubeShort" + n) ? Piece("KIT_TubeShort" + n, tubes) : null);
+                }
+                kit.EditorSetAirlock(Piece("KIT_AirlockFrame", tubes), Piece("KIT_AirlockLeaf", tubes));
             }
             kit.EditorSetStages(stages);
             EditorUtility.SetDirty(kit);

@@ -912,3 +912,259 @@ if SHEET2:
     sheet2()
 if EXPORT:
     export()
+
+
+# ---------------- 내부 통로 키트 (Unity SM_InteriorKit_Tubes.fbx) ----------------
+# 미터 · 로컬 (x 오른쪽 · y 위 · 바닥 y 0 · z 길이), 늘리는 조각 (Tube) = z −0.5 ~ 0.5 단면 일정, 끝 (Collar · Airlock) = z ±0.15 (벽 속으로 0.153 묻음),
+# 간격 조각 (Ring) · 가구 (Vestibule) = z 0 가운데. 재질 칸 이름 = Unity 프로젝트 재질 이름 (설정 메뉴가 이름으로 이음).
+# 걷는 틀 (InteriorGeometry 반폭 1.25 · 높이 2.8 · 충돌은 코드)을 모든 조각이 비움. 문 구멍 1.4 × 2.4 (바닥부터).
+#   Evo1 세라믹 튜브 · Evo2 우주복 현관 (보관함 · 벤치 · 거울은 Vestibule) · Evo3 · Evo4 다리 (데크 · 난간 · 하늘 껍질), Airlock 문틀 · 문짝.
+EXPORT_KIT = '--export-kit' in argv
+KIT_FBX = os.path.join(ROOT, 'SpaceStation', 'Assets', '_Project', 'Art', 'Models', 'Interior', 'SM_InteriorKit_Tubes.fbx')
+KMAT = {}
+
+
+def kmat(name, rgb, rough=0.5, metal=0.0, emit=None, alpha=1.0):
+    """미리보기 색만 (Unity는 이름으로 프로젝트 재질을 씀)."""
+    if name not in KMAT:
+        KMAT[name] = mat(name, hexrgb(rgb), rough, metal, emit=hexrgb(emit) if emit else None, emit_k=3.0 if emit else 0.0, alpha=alpha)
+    return KMAT[name]
+
+
+def orient(ob, inward, cx=0.0, cy=1.5):
+    """열린 껍질 면 방향: inward = 단면 가운데 (cx, cy) 쪽을 보게 (안에서 보는 튜브 · 하늘), 아니면 바깥."""
+    bm = bmesh.new(); bm.from_mesh(ob.data)
+    for f in bm.faces:
+        c = f.calc_center_median()
+        to_c = Vector((cx - c.x, cy - c.y, 0.0))
+        d = f.normal.dot(to_c)
+        if (d < 0) == inward:
+            f.normal_flip()
+    bm.to_mesh(ob.data); bm.free()
+    return ob
+
+
+def solid(ob):
+    bm = bmesh.new(); bm.from_mesh(ob.data)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(ob.data); bm.free()
+    return ob
+
+
+def kit_tube_evo1():
+    W = kmat('M_InteriorEvoWhite', '#EEF1F5', 0.3); F = kmat('M_InteriorEvoFloor', '#C9CED6'); Wn = kmat('M_InteriorWindow', '#0B1626', 0.05)
+    A = kmat('M_Accent_Core', '#7FE8FF', 0.3, emit='#7FE8FF'); Dk = kmat('M_InteriorEvoDark', '#2A3038', 0.4)
+    w, h, r = 3.0, 3.1, 0.6                                   # x 1.25 에서 천장 2.99 (걷는 틀 2.8 위)
+    tube = [orient(sweep('T1_Shell', rr_path(w, h, r, 0.0), W), True)]
+    for s in (1, -1):
+        tube.append(orient(sweep('T1_Win', [(s * (w / 2 - 0.004), 1.05), (s * (w / 2 - 0.004), 1.95)], Wn, closed=False), True))
+        tube.append(solid(sweep('T1_WinRim', [(s * (w / 2 - 0.006), 0.99), (s * (w / 2 - 0.006), 1.05), (s * (w / 2 - 0.03), 1.05), (s * (w / 2 - 0.03), 0.99)], A)))
+        tube.append(solid(sweep('T1_WinTop', [(s * (w / 2 - 0.006), 1.95), (s * (w / 2 - 0.006), 2.0), (s * (w / 2 - 0.03), 2.0), (s * (w / 2 - 0.03), 1.95)], Dk)))
+        tube.append(solid(sweep('T1_FloorLine', [(s * 1.08, 0.003), (s * 1.13, 0.003), (s * 1.13, 0.009), (s * 1.08, 0.009)], A)))
+    tube.append(solid(sweep('T1_Floor', [(-w / 2, -0.06), (w / 2, -0.06), (w / 2, 0.003), (-w / 2, 0.003)], F)))
+    # 끝 고리: 둥근 사각 테 (바깥 3.6 × 3.55, 안 = 껍질), 두께 ±0.15, 방 쪽 면에 모듈 색 이음 빛줄
+    outer = rr_path(3.6, 3.55, 0.85, -0.06); inner = rr_path(w - 0.01, h - 0.005, r, -0.06)
+    collar = [solid(open_band('T1_Collar', outer, inner, W, 0.0, 0.3)),
+              open_band('T1_CollarLine', rr_path(w + 0.12, h + 0.06, r + 0.06, 0.0), rr_path(w + 0.04, h + 0.02, r + 0.02, 0.0), A, -0.152, 0.004)]
+    ring = [solid(open_band('T1_Rib', rr_path(w - 0.01, h - 0.005, r, 0.06), rr_path(w - 0.16, h - 0.08, r - 0.08, 0.06), W, 0.0, 0.1))]
+    return tube, collar, ring, []
+
+
+def suit(objs, x, z, face):
+    """보관함 속 우주복 한 벌 (흰 몸 · 투구 · 금빛 창 · 팔 둘) — face = 방 쪽 (+1 / −1 x)."""
+    Wt = kmat('M_InteriorEvoWhite', '#EEF1F5', 0.3); Au = kmat('M_InteriorEvo2Gold', '#D9AE4E', 0.25, 1.0)
+    for nm, (rx, ry, rz), (cx, cy, cz), m in (('S_Body', (0.17, 0.42, 0.16), (0, 1.15, 0), Wt), ('S_Helmet', (0.15, 0.15, 0.15), (0, 1.78, 0), Wt),
+                                               ('S_Visor', (0.05, 0.08, 0.11), (0.1 * face, 1.79, 0), Au), ('S_Pack', (0.1, 0.25, 0.15), (-0.13 * face, 1.3, 0), Wt)):
+        bm = bmesh.new(); bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=10, radius=1.0)
+        for v in bm.verts:
+            v.co = Vector((v.co.x * rx + x + cx, v.co.y * rz + z + cz, v.co.z * ry + cy))
+        objs.append(new_obj(nm, bm, [m]))
+    for s in (1, -1):
+        bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=10, radius1=0.055, radius2=0.06, depth=0.62)
+        for v in bm.verts:
+            v.co = Vector((v.co.x + x, v.co.y + z + s * 0.2, v.co.z + 1.1))
+        objs.append(new_obj('S_Arm', bm, [Wt]))
+    for s in (1, -1):
+        bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=10, radius1=0.07, radius2=0.075, depth=0.72)
+        for v in bm.verts:
+            v.co = Vector((v.co.x + x, v.co.y + z + s * 0.09, v.co.z + 0.4))
+        objs.append(new_obj('S_Leg', bm, [Wt]))
+
+
+def kit_tube_evo2():
+    N = kmat('M_InteriorEvo2Wall', '#232A55', 0.45); D = kmat('M_InteriorEvo2Deck', '#171C3A'); T = kmat('M_InteriorEvo2Trim', '#A9B0E2', 0.3, 0.5)
+    Au = kmat('M_InteriorEvo2Gold', '#D9AE4E', 0.25, 1.0); Lt = kmat('M_InteriorLight', '#FFE2A8', 0.3, emit='#FFC46A'); A = kmat('M_Accent_Core', '#FFC46A', emit='#FFC46A')
+    Dk = kmat('M_InteriorEvoDark', '#2A3038', 0.1, 0.6)
+    w, h, r = 3.2, 3.2, 0.7
+    tube = [orient(sweep('T2_Shell', rr_path(w, h, r, 0.0), N), True)]
+    tube.append(solid(sweep('T2_Floor', [(-w / 2, -0.06), (w / 2, -0.06), (w / 2, 0.003), (-w / 2, 0.003)], D)))
+    tube.append(solid(sweep('T2_Runner', [(-0.05, 0.003), (0.05, 0.003), (0.05, 0.009), (-0.05, 0.009)], A)))
+    tube.append(solid(sweep('T2_Ceil', [(-0.55, h - 0.03), (0.55, h - 0.03), (0.55, h - 0.005), (-0.55, h - 0.005)], Lt)))
+    for s in (1, -1):
+        tube.append(solid(sweep('T2_Edge', [(s * 1.52, 0.003), (s * 1.58, 0.003), (s * 1.58, 0.07), (s * 1.52, 0.07)], T)))
+    # 끝 테: 얇게 벽에 붙임 (z −0.15 ~ −0.05 → 벽 속으로 0.153 묻으면 벽면 + 0.003 ~ 0.103) — 트인 방 사이 틈이 0.85 m뿐이라 두꺼운 테 둘이 겹침
+    outer = rr_path(3.8, 3.7, 0.95, -0.06); inner = rr_path(w - 0.01, h - 0.005, r, -0.06)
+    collar = [solid(open_band('T2_Collar', outer, inner, T, -0.1, 0.1)),
+              open_band('T2_CollarGold', rr_path(w + 0.14, h + 0.07, r + 0.07, 0.0), rr_path(w + 0.04, h + 0.02, r + 0.02, 0.0), Au, -0.048, 0.004)]
+    # 빛 아치 (간격): 연보라 테 + 안쪽 따뜻한 빛 띠
+    ring = [open_band('T2_Arch', rr_path(w - 0.01, h - 0.005, r, 0.0), rr_path(w - 0.12, h - 0.06, r - 0.06, 0.0), T, 0.0, 0.14),
+            open_band('T2_ArchL', rr_path(w - 0.12, h - 0.06, r - 0.06, 0.25), rr_path(w - 0.13, h - 0.065, r - 0.065, 0.25), Lt, 0.0, 0.05)]
+    # 얇은 현관 (사용자 2026-11-17 "얇은 현관" — 2단계 ↔ 1단계 이하 틈 0.85 m): 양옆 벽에 우주복 보관함 한 칸씩 (폭 0.6, 걷는 틀 밖 0.33 깊이), 벤치 · 거울 없음
+    ves = []
+    for side in (-1, 1):
+        x0 = side * (w / 2 - 0.02)                        # 벽 안쪽 면
+        inward = -side
+        ves.append(box('V_Back', (0.04, 0.6, 2.3), N, at=(x0 + inward * 0.02, 0, 1.2)))
+        for dz in (-0.3, 0.3):
+            ves.append(box('V_Side', (0.33, 0.04, 2.3), T, at=(x0 + inward * 0.165, dz, 1.2)))
+        for yy in (0.06, 2.33):
+            ves.append(box('V_Shelf', (0.33, 0.6, 0.04), T, at=(x0 + inward * 0.165, 0, yy)))
+        ves.append(box('V_Lamp', (0.03, 0.46, 0.03), Lt, at=(x0 + inward * 0.33, 0, 2.28)))
+        ves.append(box('V_Rim', (0.03, 0.64, 0.04), Au, at=(x0 + inward * 0.335, 0, 2.36)))
+        suit(ves, x0 + inward * 0.17, 0.0, inward)
+    for ob in ves:
+        if ob.name.startswith(('V_Back', 'V_Side', 'V_Shelf', 'V_Lamp', 'V_Rim', 'S_')):
+            # box()는 (x, y, z)=(가로, 깊이, 높이) 월드 → 키트 로컬 (x, 위, 길이)로: y ↔ z 바꿈
+            ob.data.transform(Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, 1, 0, 0), (0, 0, 0, 1))))
+    return tube, collar, ring, ves
+
+
+def kit_bridge(st):
+    if st == 3:
+        D = kmat('M_InteriorEvo3Pearl', '#F4EFE6', 0.3, 0.1); E = kmat('M_InteriorEvo3Gold', '#D9AE4E', 0.25, 1.0); P = D
+        Fl = kmat('M_InteriorEvo2Path', '#E8E0D0', 0.6)
+    else:
+        D = kmat('M_InteriorEvo4Wall', '#2E2766', 0.35, 0.2); E = kmat('M_InteriorEvo4Trim', '#CDD3DE', 0.2, 1.0); P = D
+        Fl = kmat('M_InteriorEvo4Deck', '#1B1740', 0.45)
+    Lt = kmat('M_InteriorLight', '#FFE2A8', 0.3, emit='#FFC46A'); Sky = kmat('M_InteriorEvo2Sky', '#101830', 0.5)
+    A = kmat('M_Accent_Core', '#FFE7B0', emit='#FFE7B0')
+    hw = 1.5
+    tube = [solid(sweep('B%d_Deck' % st, [(-hw, -0.28), (hw, -0.28), (hw, 0.003), (-hw, 0.003)], Fl)),
+            solid(sweep('B%d_Under' % st, [(-hw * 0.6, -0.5), (hw * 0.6, -0.5), (hw * 0.85, -0.28), (-hw * 0.85, -0.28)], D)),
+            solid(sweep('B%d_Glow' % st, [(-0.04, 0.003), (0.04, 0.003), (0.04, 0.008), (-0.04, 0.008)], A))]
+    for s in (1, -1):
+        tube.append(solid(sweep('B%d_Edge' % st, [(s * hw, -0.3), (s * (hw + 0.08), -0.3), (s * (hw + 0.08), 0.06), (s * hw, 0.06)], E)))
+        tube.append(solid(sweep('B%d_Rail' % st, circle(0.035, 10, cx=s * (hw - 0.02), cy=1.05), E)))
+        tube.append(solid(sweep('B%d_Rail2' % st, circle(0.022, 10, cx=s * (hw - 0.02), cy=0.55), E)))
+    # 하늘 껍질 (바깥 하늘 화면 — 트인 방 하늘과 같은 재질): 데크 둘레 원통 (반지름 3.4, 가운데 y 1.0)
+    tube.append(orient(sweep('B%d_Sky' % st, circle(3.4, 40, cx=0.0, cy=1.0), Sky), True, 0.0, 1.0))
+    # 끝 = 문턱판 (데크와 방 바닥 이음매를 덮음) + 양옆 낮은 기둥
+    collar = [solid(sweep('B%d_Sill' % st, [(-hw - 0.08, -0.3), (hw + 0.08, -0.3), (hw + 0.08, 0.012), (-hw - 0.08, 0.012)], E, -0.15, -0.05))]
+    for s in (1, -1):
+        bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=12, radius1=0.09, radius2=0.07, depth=1.2)
+        for v in bm.verts:
+            v.co = Vector((v.co.x + s * (hw - 0.02), v.co.z + 0.6, v.co.y - 0.1))
+        collar.append(new_obj('B%d_Pillar' % st, bm, [P]))
+    # 간격: 난간 기둥 둘 + 한쪽 정원등 (기둥 + 빛 구)
+    ring = []
+    for s in (1, -1):
+        bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=10, radius1=0.03, radius2=0.03, depth=1.05)
+        for v in bm.verts:
+            v.co = Vector((v.co.x + s * (hw - 0.02), v.co.z + 0.525, v.co.y))
+        ring.append(new_obj('B%d_Post' % st, bm, [E]))
+    bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=12, radius1=0.05, radius2=0.04, depth=1.7)
+    for v in bm.verts:
+        v.co = Vector((v.co.x + hw - 0.18, v.co.z + 0.85, v.co.y))
+    ring.append(new_obj('B%d_LampPost' % st, bm, [P]))
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=10, radius=0.14) if st == 3 else bmesh.ops.create_icosphere(bm, subdivisions=1, radius=0.15)
+    for v in bm.verts:
+        v.co += Vector((hw - 0.18, 1.82, 0))
+    ring.append(new_obj('B%d_Lamp' % st, bm, [Lt]))
+    return tube, collar, ring, []
+
+
+def kit_airlock():
+    """에어록 문틀 (튜브 끝, 문 구멍 1.4 × 2.4 둘레 둥근 사각 두꺼운 테 + 모듈 색 빛 테 + 위 상태 띠) · 문짝 (0.72 × 2.4 × 0.09, 둥근 창 · 빛줄)."""
+    W = kmat('M_InteriorEvoWhite', '#EEF1F5', 0.3); Dk = kmat('M_InteriorEvoDark', '#2A3038', 0.2, 0.4)
+    A = kmat('M_Accent_Core', '#7FE8FF', emit='#7FE8FF')
+    frame = [open_band('L_Frame', rr_path(2.5, 3.2, 0.6, -0.06), rr_path(1.46, 2.46, 0.3, -0.06), W, -0.09, 0.12),
+             open_band('L_Glow', rr_path(1.62, 2.56, 0.36, 0.0), rr_path(1.5, 2.49, 0.32, 0.0), A, -0.028, 0.004),
+             solid(box('L_Lamp', (0.9, 0.04, 0.08), A, at=(0, -0.02, 2.82)))]
+    frame[-1].data.transform(Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, 1, 0, 0), (0, 0, 0, 1))))
+    # 문짝 (가운데 원점): 흰 판 + 짙은 둥근 창 + 세로 빛줄 (맞닿는 쪽)
+    leaf = [solid(box('L_Leaf', (0.72, 2.4, 0.08), W)),
+            lathe('L_Port', [(0.0, 0.042), (0.15, 0.042)], Dk, 24),
+            lathe('L_PortRim', [(0.15, 0.04), (0.19, 0.04), (0.19, 0.046), (0.15, 0.046)], W, 24, closed=True),
+            lathe('L_PortB', [(0.15, -0.042), (0.0, -0.042)], Dk, 24),                       # 뒤쪽 창 (양면 문짝)
+            lathe('L_PortRimB', [(0.15, -0.046), (0.19, -0.046), (0.19, -0.04), (0.15, -0.04)], W, 24, closed=True),
+            solid(box('L_Stripe', (0.04, 2.0, 0.09), A, at=(-0.32, 0, 0)))]
+    for ob in leaf[1:5]:
+        ob.data.transform(Matrix.Translation((0.05, 0.45, 0)))
+    for ob in frame[:2]:
+        solid(ob)
+    return frame, leaf
+
+
+def bake_kit(name, objs):
+    """조각 여럿 → 메시 하나 (재질 칸 = 이름 합집합, Unity 축으로 돌림)."""
+    bm = bmesh.new(); names = []
+    for ob in objs:
+        me = ob.data.copy(); me.transform(ob.matrix_world)
+        for p in me.polygons:
+            mn = me.materials[p.material_index].name if me.materials else 'M_InteriorEvoWhite'
+            if mn not in names:
+                names.append(mn)
+            p.material_index = names.index(mn)
+        bm.from_mesh(me); bpy.data.meshes.remove(me)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
+    bmesh.ops.triangulate(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
+    me.transform(TO_BLENDER)
+    for mn in names:
+        short = SLOT_SHORT.get(mn, mn)                     # Unity InteriorSetup.CreateKit 슬롯 이름 (EvoWhite · Accent · Window …)
+        me.materials.append(bpy.data.materials.get(short) or bpy.data.materials.new(short))
+    for p in me.polygons:
+        p.use_smooth = False
+    ob = bpy.data.objects.new(name, me); SC.collection.objects.link(ob)
+    return ob
+
+
+SLOT_SHORT = {'M_InteriorEvoWhite': 'EvoWhite', 'M_InteriorEvoFloor': 'EvoFloor', 'M_InteriorEvoDark': 'EvoDark', 'M_InteriorWindow': 'Window',
+              'M_Accent_Core': 'Accent', 'M_InteriorLight': 'Light', 'M_InteriorEvo2Wall': 'Evo2Wall', 'M_InteriorEvo2Deck': 'Evo2Deck',
+              'M_InteriorEvo2Trim': 'Evo2Trim', 'M_InteriorEvo2Gold': 'Evo2Gold', 'M_InteriorEvo2Sky': 'Evo2Sky', 'M_InteriorEvo3Pearl': 'Evo3Pearl',
+              'M_InteriorEvo3Gold': 'Evo3Gold', 'M_InteriorEvo2Path': 'Evo3Path', 'M_InteriorEvo4Wall': 'Evo4Wall', 'M_InteriorEvo4Trim': 'Evo4Trim',
+              'M_InteriorEvo4Deck': 'Evo4Deck'}
+
+
+def kit_short(st):
+    """짧은 틈 (0.7 m 아래 — 트인 방끼리 · 2 ↔ 2 · 3단계 ↔ 2단계): 난간 · 하늘 껍질 · 끝 테 없이 두 방 바닥을 잇는 문턱판만 (늘려 씀)."""
+    if st == 2:
+        Fl = kmat('M_InteriorEvo2Deck', '#171C3A'); E = kmat('M_InteriorEvo2Gold', '#D9AE4E', 0.25, 1.0)
+    elif st == 3:
+        Fl = kmat('M_InteriorEvo2Path', '#E8E0D0', 0.6); E = kmat('M_InteriorEvo3Gold', '#D9AE4E', 0.25, 1.0)
+    else:
+        Fl = kmat('M_InteriorEvo4Deck', '#1B1740', 0.45); E = kmat('M_InteriorEvo4Trim', '#CDD3DE', 0.2, 1.0)
+    hw = 0.95                                                   # 문간 (3단계 0.95 · 문 구멍 1.4) 폭만큼
+    objs = [solid(sweep('S%d_Sill' % st, [(-hw, -0.12), (hw, -0.12), (hw, 0.004), (-hw, 0.004)], Fl))]
+    for s in (1, -1):
+        objs.append(solid(sweep('S%d_Edge' % st, [(s * hw, -0.12), (s * (hw + 0.06), -0.12), (s * (hw + 0.06), 0.03), (s * hw, 0.03)], E)))
+    return objs
+
+
+def export_kit():
+    out = []
+    for st, fn in ((1, kit_tube_evo1), (2, kit_tube_evo2), (3, lambda: kit_bridge(3)), (4, lambda: kit_bridge(4))):
+        tube, collar, ring, ves = fn()
+        out.append(bake_kit('KIT_Tube_Evo%d' % st, tube))
+        out.append(bake_kit('KIT_TubeCollar_Evo%d' % st, collar))
+        if ring:
+            out.append(bake_kit('KIT_TubeRing_Evo%d' % st, ring))
+        if ves:
+            out.append(bake_kit('KIT_Vestibule_Evo%d' % st, ves))
+        if st >= 2:
+            out.append(bake_kit('KIT_TubeShort_Evo%d' % st, kit_short(st)))
+    frame, leaf = kit_airlock()
+    out.append(bake_kit('KIT_AirlockFrame', frame))
+    out.append(bake_kit('KIT_AirlockLeaf', leaf))
+    for ob in list(SC.collection.objects):
+        ob.select_set(ob in out)
+    bpy.ops.export_scene.fbx(filepath=KIT_FBX, use_selection=True, object_types={'MESH'}, axis_forward='-Z', axis_up='Y',
+                             bake_space_transform=True, apply_scale_options='FBX_SCALE_ALL', mesh_smooth_type='FACE')
+    for ob in out:
+        print('KIT', ob.name, len(ob.data.polygons), [m.name for m in ob.data.materials], [round(v, 3) for v in ob.dimensions])
+    print('EXPORTED', KIT_FBX)
+
+
+if EXPORT_KIT:
+    export_kit()

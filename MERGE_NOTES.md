@@ -3301,3 +3301,18 @@
 **main에서 따로 할 것**
 
 - `Main.unity`는 넘기지 않음 → main 장면을 열고 메뉴 **SpaceStation/Art/Setup Evo Connectors** 한 번 (StationConnectors에 단계 메시 · 재질 배선) 뒤 장면 저장. 안 하면 진화 통로가 기본 팔각 모양으로 그대로 (오류 없음).
+
+## M-230. 진화 단계별 내부 통로 — 세라믹 튜브 · 얇은 우주복 현관 · 트인 문간 · 문턱판 · 다리 · 에어록 문 (2026-11-17, `main`)
+
+
+
+**main에 넣은 것**
+
+- `connector_builder.py --export-kit` → `SM_InteriorKit_Tubes.fbx` (단계마다 Tube · TubeCollar · TubeRing · TubeShort, Vestibule_Evo2, AirlockFrame · AirlockLeaf)
+- `InteriorKitStage` 통로 칸 · `InteriorKit` 에어록 칸 · `StageNumber` · `TubeStage`, `InteriorSetup` (CreateKit이 통로 키트도 넣음) + 메뉴 `SpaceStation/Interior/Rebuild Kit Asset`, `InteriorKit.asset`
+- `ConnectorStyle.DoorAt` · `ForInterior` · `IsVestibule` (+ 시험), `InteriorBuilder.BuildStageTube` · 문 종류 (트임 · 에어록 · 보통)
+- 문서 04 7-11 · 체크리스트 239
+
+**main에서 따로 할 것**
+
+- 없음 (`InteriorKit.asset`을 같이 넘김 — main에서 키트를 다시 만들면 메뉴 Rebuild Kit Asset)
