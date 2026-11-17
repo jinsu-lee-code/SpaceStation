@@ -139,7 +139,7 @@ namespace SpaceStation.Tests
         }
 
         /// <summary>
-        /// 모델에 낸 착지 원판 (<see cref="InteriorSkyLiftSpots.Targets"/> — 정련 콤비나트 여섯 · 심우주 통신기지 셋): 그 칸 승강판이 원판 가운데 그대로 (1 cm 안) —
+        /// 모델에 낸 착지 원판 (<see cref="InteriorSkyLiftSpots.Targets"/> — 정련 콤비나트 여섯 · 심우주 통신기지 셋 · 드론 정비창 옥상 둘 · 식량 공장 귀퉁이 둘 · 방사선 차폐벽 마당 하나): 그 칸 승강판이 원판 가운데 그대로 (1 cm 안) —
         /// 도구가 다른 곳을 고르면 판 둘레로 보여야 할 금빛 · 은빛 테가 어긋나 빈 원판만 남음.
         /// </summary>
         [Test]
@@ -169,7 +169,7 @@ namespace SpaceStation.Tests
                         problems.AppendLine($"{t.name} {cell}: 판 ({lift.Offset.x:F2}, {lift.Offset.z:F2}) ≠ 원판 ({xz.x:F2}, {xz.y:F2})");
                 }
             }
-            Assert.AreEqual(9, pads, problems.ToString());
+            Assert.AreEqual(14, pads, problems.ToString());
             Assert.IsEmpty(problems.ToString(), problems.ToString());
         }
 

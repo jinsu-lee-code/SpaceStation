@@ -343,7 +343,7 @@ namespace SpaceStation.Editor
             sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(-2.4f, 0f, -2.3f)));    // 병풍 앞 서쪽 (뚜껑 · 틀이 난간 · 벤치와 겹치지 않게)
             sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -2.2f)));       // 병풍 앞 가운데
             sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(2.4f, 0f, -2.3f)));     // 병풍 앞 동쪽
-            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(-1.3f, 0f, -3.2f)));    // 마당 서쪽
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(0.8f, 0f, -0.1f)));     // 찻집 서쪽 (동쪽과 대칭 — 마당 서쪽은 승강판 착지 원판, 2026-11-18)
             sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(-0.8f, 0f, -0.1f)));    // 찻집 동쪽
             var warm = new Color(1f, 0.86f, 0.6f);
             var white = new Color(1f, 0.97f, 0.9f);

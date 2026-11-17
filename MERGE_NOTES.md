@@ -3388,3 +3388,16 @@
 **main에서 따로 할 것**
 
 - 없음
+## M-236. 남은 좁은 자리 넷 착지 원판 — 드론 정비창 옥상 · 식량 공장 귀퉁이 · 방사선 차폐벽 마당 (2026-11-18, `main`)
+
+**main에 넣은 것**
+
+- dd_builder (`LIFT_PADS` · `FRONT_CUT` — 옥상 관람석 앞줄 양 끝 2.95 m 비우고 착지 원판 둘, 공용 함수는 .blend 글 `rw_builder`에서), ff_builder (`LIFT_PADS` · `FAC_R` — 공장 남쪽 모서리 반지름 1.6 · `rr` 모서리마다 반지름 · 칸 수, 남쪽 등불 · 카페 끝 벤치 옮김, 2층 바닥 띠 안쪽 5 mm), rw_builder (`LIFT_PADS` — 마당 서쪽 큰 둥근 디딤돌 원판) → FBX 셋 (트림 UV), `Interior_Evo.blend` 텍스트
+- InteriorTemplateBuilder: 방사선 차폐벽 (0,0,1) 아래 해치 → 찻집 서쪽 (0.8, −0.1)
+- InteriorSkyLiftSpots: `Targets` 다섯 자리 (드론 정비창 둘 · 식량 공장 둘 · 방사선 차폐벽 하나), `Avoid` 표 뺌
+- ResidentSpotBaker: 드론 정비창 관람석 앞줄 셋 뺌 · 옥상 서는 자리 하나 · 식량 공장 카페 끝 벤치 자리 넷 옮김
+- 템플릿 · 프리팹 · 생성 메시 셋, 시험 `DesignedPads_SitOnModelDiscs` 14, 문서 체크리스트 244 · 245 · 04 7-11
+
+**main에서 따로 할 것**
+
+- 없음
