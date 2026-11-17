@@ -6,6 +6,7 @@
 #   Critter_Swan   백조 (물에 뜬 몸 · 접은 날개 · S자 목 · 주황 부리, 원점 = 물높이)
 #   Critter_Seal · SealPup · Dolphin · Puffin · Turtle · Crab  궤도 방어망 바다 동물 (2026-11-13, 아래 "바다 동물" — `--sea` = 바다 동물만 미리보기)
 #   Critter_FlyingFish  궤도 항만 석호 날치 (2026-11-16, 아래 "날치" — `--fly` = 날치 모델 시트)
+#   Critter_Owl · Hedgehog  심우주 통신기지 부엉이 · 고슴도치 (2026-11-17, 아래 "부엉이 · 고슴도치" — `--owl` = 모델 시트)
 # 좌표: 미터, 발 · 물높이 z = 0, 앞 = +x. 재질 슬롯 하나 (M_Critters — Unity가 ModuleFxMaterials "Critters"로 바꿈).
 # 사용: blender -b --factory-startup -P BlenderWork/InteriorProps/critter_builder.py -- [fbx 경로]
 import bpy, bmesh, sys, os, math
@@ -19,6 +20,7 @@ SEA_ONLY = '--sea' in argv                     # 바다 동물만 짓고 미리�
 POND_ONLY = '--pond' in argv                   # 연못 거북 모델 시트만 (내보내지 않음)
 FLY_ONLY = '--fly' in argv                     # 날치 모델 시트만 (내보내지 않음)
 SEAHORSE_ONLY = "--seahorse" in argv           # 해마 시안 시트만 (내보내지 않음)
+OWL_ONLY = "--owl" in argv                     # 부엉이 · 고슴도치 모델 시트만 (내보내지 않음)
 argv = [a for a in argv if not a.startswith('--')]
 OUT = argv[0] if argv else None
 
@@ -906,6 +908,225 @@ def seahorse_preview():
         bpy.ops.wm.save_as_mainfile(filepath=OUT)
 
 
+# ---------------- 부엉이 · 고슴도치 (4단계 심우주 통신기지 — 사용자 2026-11-17 "부엉이 · 고슴도치 모델 시트 만들어줘") ----------------
+# 바깥 모듈 (evo_builder cr_owl · cr_hedgehog)의 색을 따르되 모양은 사진대로 (사용자 2026-11-17 "실제 동물 사진 참고해서 조금만 더 수정" —
+#   첫 시안 = 달걀 몸에 원뿔 뿔 · 작은 타원 날개 / 큰 원뿔 가시 · 다리 넷이 보이는 아기 돼지 몸이었음).
+# 사진 참고 (위키미디어 공용): 동부 소쩍새 · 유럽 소쩍새 = 머리가 몸만큼 넓고 목이 없음 · 귀깃은 머리 위 모서리가 그대로 솟은 납작한 깃 ·
+#   둥근 얼굴 원반 (테두리가 짙음) · 눈 사이에서 아래로 굽은 작은 부리 (깃에 반쯤 묻힘) · 접은 날개가 몸 옆을 거의 다 덮고 끝이 꽁지 위에서 모임 ·
+#   발가락은 배 깃 밑에서 조금만 / 네발가락고슴도치 · 유럽고슴도치 = 가시 지붕이 몸의 대부분 (엉덩이 · 옆 아래까지) · 가시가 이마까지 내려와
+#   모자 챙처럼 덮음 · 얼굴은 지붕 앞 아래로 나온 원뿔 (끝 = 까만 코) · 작은 둥근 귀가 지붕 가장자리 · 가는 가시가 뒤로 누워 지붕 결을 만듦 · 다리는 거의 안 보임.
+#   부엉이 = 원점 발 밑 (z 0 — 아치 꼭대기 · 난간 위에 앉힘), 키 약 0.45 m (귀깃 끝). 고슴도치 = 원점 발 밑, 길이 약 0.46 m.
+# 얼굴 = 아틀라스 크림 칸 (귀여운 2등신 큰 눈은 그대로). 고슴도치 가시는 지붕과 같은 색 · 줄 맞춰 (흩어진 작은 점 · 구멍 무늬 금지).
+
+def spine(base, d, r, L, color, sides=8):
+    """끝이 둥글게 좁아지는 짧은 원뿔 (밑 고리 · 가운데 고리 · 끝) — 고슴도치 가시 (관은 가시 하나에 100 삼각형이라 너무 많음)."""
+    bm = bmesh.new()
+    base, d = Vector(base), Vector(d).normalized()
+    a = d.orthogonal().normalized(); b = d.cross(a)
+
+    def ring(c, rr):
+        return [bm.verts.new(c + (a * math.cos(2 * math.pi * k / sides) + b * math.sin(2 * math.pi * k / sides)) * rr) for k in range(sides)]
+    r0, r1 = ring(base, r), ring(base + d * L * 0.6, r * 0.5)
+    tip = bm.verts.new(base + d * L)
+    for k in range(sides):
+        j = (k + 1) % sides
+        bm.faces.new((r0[k], r0[j], r1[j], r1[k]))
+        bm.faces.new((r1[k], r1[j], tip))
+    bm.faces.new(list(reversed(r0)))
+    uv0 = color_uv(color); _uv_all(bm, lambda co: uv0)
+    orient_outward(bm); PARTS.append(bm)
+    return bm
+
+
+def mflat(pts, rads, flat, label="base", n=10):
+    # 꺾인 선을 따라 앞뒤 (x)로 납작한 타원체를 촘촘히 (부엉이 귀깃 — 머리 메타볼에 녹아 모서리가 그대로 솟음)
+    pts = [Vector(p) for p in pts]
+    seg = list(zip(pts, pts[1:], rads, rads[1:]))
+    for i in range(n + 1):
+        t = i / n * len(seg)
+        k = min(int(t), len(seg) - 1); f = t - k
+        a, b, ra, rb = seg[k]
+        r = ra + (rb - ra) * f
+        mell(a + (b - a) * f, (r * flat, r, r), label)
+
+
+def wing(tree, guide, s, B, th, color, R=0.12, n=20, seg=16):
+    """접은 날개: 옆에서 본 2차 베지어 (x, z) 조절점 셋을 따라 몸 겉면에 붙인 한 덩어리 (몸 겉면 = tree에 옆에서 쏜 광선).
+    폭 B = 앞이 둥글고 끝으로 가늘어지는 물방울, 두께 th, 단면을 몸 둘레 (반지름 R)만큼 휘어 가장자리가 몸에서 뜨지 않게.
+    (곧은 길로 놓으면 몸이 가늘어지는 등 · 꽁지 쪽에서 날개 끝이 4 cm 떠 뒤에서 덜렁거리는 판처럼 보였음)"""
+    G = [Vector(g) for g in guide]
+    cs, ns = [], []
+    for i in range(n + 1):
+        t = i / n
+        g = G[0] * (1 - t) ** 2 + G[1] * 2 * t * (1 - t) + G[2] * t * t
+        hit = tree.ray_cast(Vector((g.x, s * 0.5, g.y)), Vector((0, -s, 0)))
+        if hit[0] is None:                                                           # 몸 뒤 밖 (날개 끝) = 가장 가까운 겉면
+            hit = tree.find_nearest(Vector((g.x, s * 0.02, g.y)))
+        cs.append(hit[0]); ns.append(hit[1].normalized())
+    for _ in range(4):                                                               # 몸 → 꽁지로 광선이 넘어가는 곳의 꺾임을 펴기 (꺾이면 날개 끝 고리가 접혔음)
+        cs = [cs[0]] + [(cs[i - 1] + cs[i] * 2 + cs[i + 1]) / 4 for i in range(1, n)] + [cs[-1]]
+        ns = [ns[0]] + [(ns[i - 1] + ns[i] * 2 + ns[i + 1]).normalized() for i in range(1, n)] + [ns[-1]]
+    bm = bmesh.new(); rings = []
+    for i in range(n + 1):
+        t = i / n
+        X = (cs[min(i + 1, n)] - cs[max(i - 1, 0)]).normalized()
+        Y = (ns[i] - X * X.dot(ns[i])).normalized()
+        Z = X.cross(Y)
+        hh = B * math.sin(math.pi / 2 * t / 0.3) ** 0.6 if t < 0.3 else B * (1 - 0.86 * (t - 0.3) / 0.7)
+        hw = th * (1 - 0.6 * t)
+        hh, hw = max(hh, 0.006), max(hw * (0.35 + 0.65 * min(1.0, t / 0.12)), 0.004)
+        c = cs[i] + Y * hw * 0.4                                                     # 두께 절반 남짓이 몸 밖
+        ring = []
+        for k in range(seg):
+            a = 2 * math.pi * k / seg
+            z = hh * math.sin(a)
+            ring.append(bm.verts.new(c + Y * (hw * math.cos(a) - z * z / (2 * R)) + Z * z))
+        rings.append(ring)
+    for a, b in zip(rings, rings[1:]):
+        for k in range(seg):
+            bm.faces.new((a[k], a[(k + 1) % seg], b[(k + 1) % seg], b[k]))
+    for rg, i0, i1 in ((rings[0], 0, 1), (rings[-1], n, n - 1)):
+        cv = bm.verts.new(sum((v.co for v in rg), Vector()) / seg + (cs[i0] - cs[i1]).normalized() * 0.004)
+        for k in range(seg):
+            bm.faces.new((rg[(k + 1) % seg], rg[k], cv) if i0 == 0 else (rg[k], rg[(k + 1) % seg], cv))
+    uv0 = color_uv(color); _uv_all(bm, lambda co: uv0)
+    orient_outward(bm); PARTS.append(bm)
+    return bm
+
+
+def build_owl():
+    HC, HR_ = (0.012, 0, 0.3), 0.14                                                  # 머리 가운데 · 얼굴 그림 크기 (넓은 얼굴에 큰 눈)
+    mell((-0.01, 0, 0.16), (0.105, 0.115, 0.135))                                    # 몸
+    mell((-0.012, 0, 0.215), (0.095, 0.127, 0.085))                                  # 넓은 어깨 (머리와 같은 너비 — 목이 없음)
+    mell((0.025, 0, 0.12), (0.085, 0.1, 0.1))                                        # 앞으로 불룩한 배
+    for s in (-1, 1):
+        mell((0.035, s * 0.042, 0.032), (0.035, 0.03, 0.03))                         # 깃털 덮인 다리 (배 밑에서 발가락 뿌리까지)
+    mell((-0.1, 0, 0.065), (0.06, 0.045, 0.02), rot_=rot(35))                       # 짧은 꽁지 (날개 끝 밑으로)
+    mell(HC, (0.098, 0.13, 0.095), "head")                                           # 큰 넓적한 머리 (얼굴이 납작 — 앞뒤로 얕음, 위가 조금 평평)
+    for s in (-1, 1):   # 귀깃 = 머리 위 모서리가 바깥 위로 솟은 가는 납작한 깃 (원뿔을 꽂으면 뿔, 굵게 곧추세우면 고양이 귀 같았음)
+        mflat([(HC[0] - 0.004, s * 0.088, HC[2] + 0.058), (HC[0] - 0.01, s * 0.114, HC[2] + 0.1), (HC[0] - 0.014, s * 0.13, HC[2] + 0.128)],
+              [0.026, 0.017, 0.011], 0.5)
+    meta_part(0.0108, head_c=HC, head_R=HR_, face="cream", base="brown")      # 해상도로 1.4만 삼각형 안 (줄이기는 얼굴 원반 · 배 경계를 들쭉날쭉하게 함 — 해마와 같음)
+    skin = PARTS[-1]
+    CHIN_Z = HC[2] - 0.07                                                            # 얼굴 원반 = 턱 위 · 머리 앞쪽만
+    CAP_P, CAP_N = (HC[0] + 0.045, 0, HC[2]), (1, 0, -0.3)                           #  (옆 경계를 아래로 갈수록 뒤로 — 곧게 세우면 옆에서 가면처럼 보였음)
+    BROW = (HC[0], 0, HC[2] + 0.02)                                                  # 눈 위 갈색 V자 이마 (가운데 꼭짓점 → 바깥 위로)
+    BP, BN, BELLY_TOP = (0.045, 0, 0.13), (1, 0, 0.15), CHIN_Z - 0.014               # 크림 배 (얼굴과 사이에 갈색 띠)
+    for co, no in ((CAP_P, CAP_N), ((0, 0, CHIN_Z), (0, 0, 1)), (BROW, (0, -0.889, 1)), (BROW, (0, 0.889, 1)),
+                   (BP, BN), ((0, 0, BELLY_TOP), (0, 0, 1))):
+        cut(skin, co, no)
+
+    def rule(p, tex):
+        if p.z > CHIN_Z:
+            if side(CAP_P, CAP_N, p) < 0:
+                return "brown"
+            s = 1 if p.y >= 0 else -1
+            if side(BROW, (0, -0.889 * s, 1), p) > 0:
+                return "brown"
+            return None if tex else "cream"                                          # 얼굴 그림 원 밖 (원반 아래 옆 모서리) = 크림 — 갈색이면 들쭉날쭉했음
+        return "cream" if p.z < BELLY_TOP and side(BP, BN, p) > 0 else "brown"
+    repaint(skin, rule)
+    limb([(HC[0] + 0.09, 0, HC[2] + 0.004), (HC[0] + 0.106, 0, HC[2] - 0.012), (HC[0] + 0.1, 0, HC[2] - 0.03)],
+         [0.013, 0.009, 0.003], "shell2", seg=10, cap=5, step=0.005)                 # 작은 갈고리 부리 (뿔빛 — 눈 사이에서 아래로 굽음)
+    tree = BVHTree.FromBMesh(skin)
+    for s in (-1, 1):
+        # 접은 날개: 머리 밑 어깨에서 몸 옆을 덮고 (앞 가장자리 = 크림 배 옆) 끝이 꽁지 옆에서 안쪽으로 모여 뾰족해짐
+        #  (작은 타원은 몸에 붙인 반점, 큰 타원은 옆에서 허벅지 · 닭다리처럼 보였음 → 앞이 둥글고 뒤 아래로 가늘어지는 물방울 날개)
+        wing(tree, ((0.04, 0.25), (-0.065, 0.15), (-0.14, 0.05)), s, 0.075, 0.016, "brown")
+        b0 = Vector((0.045, s * 0.042, 0.011))
+        for a in (-24, 0, 24):                                                       # 발가락 셋 (다리 깃 밑에서 앞으로 — 짧게, 끝은 짙은 발톱)
+            u = Vector((math.cos(math.radians(a)), math.sin(math.radians(a)), 0))
+            t = b0 + u * 0.034
+            limb([b0, t], [0.011, 0.008], "shell2", seg=8, cap=4, step=0.008)
+            ellipsoid(t + u * 0.006 + Vector((0, 0, -0.002)), (0.008, 0.005, 0.005), "dark", seg=10, rings=7)
+    return finish("Critter_Owl")
+
+
+def build_hedgehog():
+    HC = (0.105, 0, 0.09)
+    mell((-0.03, 0, 0.085), (0.14, 0.11, 0.075))                                     # 털 몸 (가시 지붕 밑 — 옆 아래 · 배)
+    mell(HC, (0.08, 0.075, 0.07), "head")                                            # 얼굴 (지붕 앞 아래로 나온 원뿔의 뿌리)
+    mchain([(0.155, 0, 0.07), (0.2, 0, 0.066), (0.235, 0, 0.064)], [0.032, 0.022, 0.014], "cream")   # 뾰족 주둥이 (눈 아래에서 앞으로 가늘게)
+    for s in (-1, 1):                                                                # 짧은 다리 넷 (몸에 녹여 붙임 — 발만 살짝 보임)
+        for x in (0.07, -0.1):
+            mchain([(x, s * 0.05, 0.05), (x + 0.01, s * 0.052, 0.016)], [0.02, 0.018])
+            mell((x + 0.016, s * 0.052, 0.012), (0.024, 0.017, 0.012))
+    meta_part(0.0105, head_c=HC, head_R=0.1, face="cream", base="cream", eye_back=18.0)   # 눈 = 원뿔 얼굴 옆 (고슴도치 눈은 옆을 봄)
+    skin = PARTS[-1]
+    FOOT_Z = 0.022
+    cut(skin, (0, 0, FOOT_Z), (0, 0, 1))
+    repaint(skin, lambda p, tex: "pink" if p.z < FOOT_Z and not tex else None)        # 분홍 발
+    ellipsoid((0.248, 0, 0.065), (0.013, 0.015, 0.012), "dark")                     # 까만 코
+    mell((-0.045, 0, 0.115), (0.155, 0.125, 0.095))                                  # 가시 지붕 (엉덩이 · 옆 아래까지)
+    mell((0.07, 0, 0.14), (0.07, 0.07, 0.042))                                       # 이마로 내려온 가시 모자 (챙 = 눈 위)
+    meta_part(0.016, base="brown")                                                   # 지붕은 거의 가시에 덮임 → 거칠게 (가시 · 몸이 1.4만 삼각형 안에 들게)
+    coat = PARTS[-1]
+    ears = [Vector((0.118, s * 0.062, 0.128)) for s in (-1, 1)]
+    for e, s in zip(ears, (-1, 1)):                                                  # 작은 둥근 귀 (지붕 가장자리 앞으로 나옴, 앞 바깥을 봄 — 지붕 속에 묻히면 안 보였음)
+        r_ = rot(z_deg=s * 35)
+        ellipsoid(e, (0.013, 0.024, 0.023), "shell2", rot=r_)
+        ellipsoid(e + r_ @ Vector((0.009, 0, 0)), (0.004, 0.016, 0.015), "pink", rot=r_)
+    # 가시: 지붕 둘레를 줄 맞춰 (앞 → 뒤, 줄마다 반 칸 어긋나게) · 몸 쪽으로 누워 뒤로 (기와처럼 겹쳐 지붕 결 — 세우면 바늘방석 · 솔방울 같았음)
+    tree_c, tree_b = BVHTree.FromBMesh(coat), BVHTree.FromBMesh(skin)
+    CC = Vector((-0.03, 0, 0.1))
+    n, i, al = 0, 0, 16.0
+    while al < 172.0:
+        a = math.radians(al)
+        span = math.radians(118)
+        m = max(1, int(round(2 * span * math.sin(a) * 0.115 / 0.026)))
+        for j in range(m + 1):
+            ph = -span + 2 * span * (j + (0.5 if i % 2 else 0.0)) / m
+            if abs(ph) > span + 1e-6:
+                continue
+            dv = Vector((math.cos(a), math.sin(a) * math.sin(ph), math.sin(a) * math.cos(ph)))
+            hit = tree_c.ray_cast(CC + dv * 0.6, -dv)
+            if hit[0] is None:
+                continue
+            p, no = hit[0], hit[1].normalized()
+            if p.z < 0.035 or no.x > 0.55 or any((p - e).length < 0.04 for e in ears):   # 앞을 보는 모자 챙 면 = 가시가 곧추섰음
+                continue
+            loc, bn, _, _ = tree_b.find_nearest(p)
+            if (p - loc).dot(bn) < 0.004:                                            # 털 몸 · 얼굴 속 (지붕이 안 보이는 곳)
+                continue
+            back = Vector((-1.0, 0, -0.2))
+            t = back - no * no.dot(back)
+            if t.length < 0.15:
+                t = Vector((0, 0, -1.0)) + no * no.z
+            d = (t.normalized() + no * 0.4).normalized()
+            spine(p - no * 0.006, d, 0.009, 0.036 if i < 2 else 0.05, "brown", sides=5)   # 이마 두 줄은 짧게
+            n += 1
+        al += math.degrees(0.026 / 0.13)
+        i += 1
+    print("HEDGEHOG spines", n)
+    return finish("Critter_Hedgehog")
+
+
+
+def owl_preview():
+    """부엉이 · 고슴도치 모델 시트: 크기 비교 (토끼 · 아기 사슴과 나란히) + 둘이 함께 + 동물마다 비스듬히 · 정면 · 옆 · 뒤 · 위 (풀밭 바닥)."""
+    others = [build_bunny(), build_deer("Critter_Fawn", 0.72, spots=True, head_k=1.15)]
+    ow = build_owl()
+    hh = build_hedgehog()
+    sc, cam, cd, g = setup_preview((0.35, 0.55, 0.3))
+    sc.render.resolution_x, sc.render.resolution_y = 1400, 900
+    for o_, x in zip(others + [ow, hh], (-1.0, 0.0, 0.95, 1.75)):
+        o_.location = (x, 0, 0)
+    shoot(sc, cam, cd, "owl_size", (0.4, -4.0, 0.55), (0.4, 0, 0.3), 32)
+    for o_ in others:
+        o_.hide_render = True
+    ow.location, hh.location = (-0.05, 0.28, 0), (0.3, -0.18, 0)
+    hh.rotation_euler = (0, 0, math.radians(-25))
+    shoot(sc, cam, cd, "owl_pair", (1.25, -1.0, 0.45), (0.12, 0.02, 0.17), 45)
+    hh.rotation_euler = (0, 0, 0)
+    for ob, c, k, tag in ((ow, Vector((0.0, 0, 0.22)), 0.62, "owl"), (hh, Vector((0.02, 0, 0.11)), 0.42, "hedgehog")):
+        ow.hide_render = ob is not ow
+        hh.hide_render = ob is not hh
+        ob.location = (0, 0, 0)
+        for t_, d in (("q", (1.25, -1.05, 0.45)), ("face", (1.6, -0.25, 0.22)), ("side", (0.05, -1.7, 0.22)),
+                      ("back", (-1.3, 0.9, 0.6)), ("top", (-0.8, -0.7, 1.2))):
+            shoot(sc, cam, cd, tag + "_" + t_, c + Vector(d) * k * 1.35, c)
+
+
 def pond_preview():
     """연못 거북 모델 시트: 크기 비교 (토끼 · 오리 · 새끼 오리 · 바다거북과 나란히 옆) + 거북 비스듬히 · 정면 · 옆 · 뒤 · 위 (풀밭 바닥)."""
     others = [build_bunny(), build_duck(), build_duckling(), build_turtle()]
@@ -998,6 +1219,8 @@ def fly_preview():
 
 if SEAHORSE_ONLY:
     seahorse_preview()
+elif OWL_ONLY:
+    owl_preview()
 elif FLY_ONLY:
     fly_preview()
 elif POND_ONLY:
@@ -1008,7 +1231,8 @@ else:
     objs = [build_bunny(), build_deer("Critter_Deer"), build_deer("Critter_Fawn", 0.72, spots=True, head_k=1.15), build_swan(),
             build_duck(), build_duckling(), build_bee(), build_bee_wings()]
     sea = [f() for f in SEA_BUILDERS]
-    pond = [build_pond_turtle(), build_flying_fish()]          # 연못 거북 (수리 사령부) · 날치 (궤도 항만) — 미리보기는 --pond · --fly 시트, 여기선 숨김
+    pond = [build_pond_turtle(), build_flying_fish(),          # 연못 거북 (수리 사령부) · 날치 (궤도 항만) · 부엉이 · 고슴도치 (심우주 통신기지)
+            build_owl(), build_hedgehog()]                     #  — 미리보기는 --pond · --fly · --owl 시트, 여기선 숨김
     for o_ in pond:
         o_.hide_render = True
 

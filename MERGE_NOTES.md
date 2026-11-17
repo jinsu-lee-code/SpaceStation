@@ -3242,3 +3242,18 @@
 **main에서 따로 할 것**
 
 - `Main.unity`는 넘기지 않음 — 통신기지 내부는 템플릿 · 키트 에셋만으로 동작 (씬 연결 없음). 위 해치 셋 (외형 위 연결점)은 비워 둠 — 하늘이 트인 방의 천장 해치는 단계별 연결통로 정리 때
+
+## M-226. 심우주 통신기지 부엉이 둘 · 고슴도치 둘 — 모델 시트 2 · 내부 배치 (2026-11-17, `main`)
+
+
+
+**main에 넣은 것**
+
+- `critter_builder.py` `--owl` (Critter_Owl · Critter_Hedgehog — 소쩍새 · 고슴도치 사진대로 다시 만든 시트 2) → `SM_InteriorCritters.fbx` (다른 동물 모델은 그대로), `critters.blend`, 시트 미리보기 `critter_owl_*` · `critter_hedgehog_*`
+- `DeepSpaceComm.Owls` · `OwlScale` · `Hedgehogs`, `BuildEvoDeepSpaceComm` 동물 묶음 둘 (부엉이 = 가운데 돔 발코니 턱 · Bask, 고슴도치 = 오른쪽 풀밭), `PF_Interior_EvoDeepSpaceComm`
+- `Interior_Evo2.blend` ds4_builder 텍스트 (CRITTERS에 고슴도치 둘 — 지금 풀꽃에서 떨어진 자리라 빌드 결과 · 내부 FBX는 그대로)
+- 시험 `DeepSpaceCommTests` (동물 발 넷에 부엉이 · 고슴도치, `Owls_ClearOfRailAndDome`), 문서 06c 통신기지 · 체크리스트 234 · 235
+
+**main에서 따로 할 것**
+
+- 없음 (`Main.unity` · 글꼴은 넘기지 않음 — 통신기지 내부는 템플릿 에셋만으로 동작)

@@ -357,7 +357,7 @@ namespace SpaceStation.Tests
             }
         }
 
-        /// <summary>동물 (아기 사슴 · 토끼 넷): 발 넷 (모델 발 자리를 바라보는 쪽으로 돌림)마다 발바닥이 땅 면에서 −1.5 ~ +1.2 cm (떠 있거나 깊이 묻히지 않음).</summary>
+        /// <summary>동물 (아기 사슴 · 토끼 넷 · 고슴도치 둘 · 발코니 부엉이 둘): 발 넷 (모델 발 자리를 바라보는 쪽으로 돌림)마다 발바닥이 땅 · 턱 면에서 −1.5 ~ +1.2 cm (떠 있거나 깊이 묻히지 않음).</summary>
         [Test]
         public void Critters_OnTheirSpots()
         {
@@ -368,10 +368,16 @@ namespace SpaceStation.Tests
             {
                 var fails = new List<string>();
                 // 모델 발 자리 (앞뒤 반 길이 · 옆 반 폭 · 발바닥 높이 — critter_builder 모델, 머리 = 모델 −x)
-                var feet = new Dictionary<string, (float Along, float Side, float Sole)> { { "Fawn", (0.19f, 0.08f, -0.005f) }, { "Bunny", (0.16f, 0.11f, -0.014f) } };
+                //  (부엉이 = 발가락이 다리 앞 0.04 ~ 0.08 m라 원점 둘레 ±0.04 — 평평한 턱이라 같음)
+                var feet = new Dictionary<string, (float Along, float Side, float Sole)>
+                {
+                    { "Fawn", (0.19f, 0.08f, -0.005f) }, { "Bunny", (0.16f, 0.11f, -0.014f) }, { "Hedgehog", (0.085f, 0.052f, 0f) }, { "Owl", (0.04f, 0.04f, 0f) },
+                };
                 var all = new List<(string Kind, Vector3 At, float Facing)>();
                 all.AddRange(DeepSpaceComm.Fawns);
                 all.AddRange(DeepSpaceComm.Bunnies);
+                all.AddRange(DeepSpaceComm.Hedgehogs);
+                all.AddRange(DeepSpaceComm.Owls);
                 foreach (var (kind, at, facing) in all)
                 {
                     var (along, side, sole) = feet[kind];
@@ -391,6 +397,35 @@ namespace SpaceStation.Tests
                             if (gap > 0.012f || gap < -0.015f)
                                 fails.Add($"{kind} {at}: 발 ({u}, {v}) 땅에서 {gap * 100f:F1} cm");
                         }
+                }
+                Assert.IsEmpty(fails, string.Join(" / ", fails));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>
+        /// 발코니 부엉이: 몸 (턱 위 0.11 ~ 0.3 m 축 · 반지름 0.1, 원점보다 2 cm 뒤)이 위 난간 · 기둥 · 돔 벽 충돌체에 닿지 않음 —
+        /// 고개 들기 (Bask 9° 뒤로) · 두리번 (±10°)에도 난간까지 1.5 cm 넘게 남는 자리 (Blender 시험 배치: 1.865 m · 1배는 가슴이 난간에 1.5 cm 묻혔음).
+        /// </summary>
+        [Test]
+        public void Owls_ClearOfRailAndDome()
+        {
+            var root = Spawn(out bool ok);
+            if (!ok)
+                Assert.Ignore("프리팹 없음 (Build Evolved Templates 먼저)");
+            try
+            {
+                var fails = new List<string>();
+                foreach (var (_, at, facing) in DeepSpaceComm.Owls)
+                {
+                    float a = facing * Mathf.Deg2Rad;
+                    var c = at - new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 0.02f;
+                    var hits = Physics.OverlapCapsule(c + Vector3.up * 0.11f, c + Vector3.up * 0.3f, 0.1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+                    foreach (var h in hits)
+                        fails.Add($"부엉이 {at}: 몸이 {h.name}에 닿음");
                 }
                 Assert.IsEmpty(fails, string.Join(" / ", fails));
             }
