@@ -10,5 +10,5 @@
 - [`05-interior-templates.md`](docs/modeling/05-interior-templates.md) — 7-8 새 기본 모듈 내부 템플릿 (배관 · 진열 · 과일 · 문 · 화면 빛 · 주민 길 · 벽 소품 자리 · 경첩 문 · 기울인 판)
 - [`06a-evo-interiors-common.md`](docs/modeling/06a-evo-interiors-common.md) — 7-11 진화 모듈 내부 템플릿 ① 공통 · 1단계 (단계 키트 · 창 · 여러 층 엘리베이터 · 식물 · 걷는 길 · 통 속 물 · 상태 화면 · 나르는 장치 · 유리 돔)
 - [`06b-evo-interiors-open.md`](docs/modeling/06b-evo-interiors-open.md) — 7-11 ② 2단계 개방형 방 공통 + 그리드 허브 · 융합 플랜트 · 아콜로지 · 대형 토러스 · 시민 회관 · 치안 본부 · 바이오돔 · 식량 공장
-- [`06c-evo-interiors-rides-stage3.md`](docs/modeling/06c-evo-interiors-rides-stage3.md) — 7-11 ③ 정련 콤비나트 · 실드 돔 · 요새 포대 · 차폐벽 · 드론 정비창 · 칸 경계 · 후룸 · 회전목마 · 미로 · 3단계 궤도 도시 · 정원 동물 · 바이오스피어
+- [`06c-evo-interiors-rides-stage3.md`](docs/modeling/06c-evo-interiors-rides-stage3.md) — 7-11 ③ 정련 콤비나트 · 실드 돔 · 요새 포대 · 차폐벽 · 드론 정비창 · 칸 경계 · 후룸 · 회전목마 · 미로 · 3단계 궤도 도시 · 정원 동물 · 바이오스피어 · 4단계 심우주 통신기지 (성운 키트 · UV 강)
 - [`08-verification.md`](docs/modeling/08-verification.md) — 8 검증 절차 (겹침 · 경계 · 문 자리 · 벽 뚫림 · Unity 뚫림 · 밀폐 · 떠 있는 조각 · 앉기 · 엘리베이터 · 칸 경계 · 걷기 지도)

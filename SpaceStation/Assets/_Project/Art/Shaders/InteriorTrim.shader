@@ -6,6 +6,7 @@
 //   면 폭 (UV2.z)이 0이면 UV1이 있어도 트림 아님 (Unity 기본 메시의 라이트맵 UV1).
 // _TrimKind: 0 금 띠 (모서리 빛 + 가로 결) · 1 금 상감 (테두리 안쪽 두 번째 선) · 2 진주 (보는 각에 따라 옅은 무지개 빛) · 3 흰 몸체 판 (1.2 m 이음선)
 //            4 금속 테 (테두리 따라 홈 둘) · 5 벽 판 (안쪽 테 어둡게) · 6 짙은 광택 (모서리 빛만, 세게)
+//            7 성운 몸체 (4단계, 2026-11-17 "옅은 별가루 무늬"): 벽 판 테 + 드문 작은 별빛 점 (물체 좌표 — 트림 UV 없는 메시도, 구멍 · 어두운 점 아님)
 //   면 폭 (마주 보는 테두리 사이, m) — 가는 면 (손잡이 · 가는 테)은 모서리 빛 폭 ≤ 면 폭의 30 % (면 전체가 빛나지 않게).
 // 멀리서는 가는 선을 흐리게 (화면 픽셀보다 가늘면 사라짐 — 깜빡임 방지). 조명 = URP PBR (InteriorTriplanar와 같음). 상태 표현 MPB (_BaseColor · _EmissionColor) 그대로. SRP Batcher 호환.
 Shader "SpaceStation/InteriorTrim"
@@ -22,6 +23,7 @@ Shader "SpaceStation/InteriorTrim"
         _Shadow ("Shadow Line", Range(0, 1)) = 0.4
         _Seam ("Panel Seam (m)", Float) = 1.2
         _Iridescence ("Iridescence", Range(0, 1)) = 0.25
+        [HDR] _StarDust ("Star Dust (kind 7)", Color) = (0.75, 0.72, 1.0, 1)
     }
 
     HLSLINCLUDE
@@ -38,6 +40,7 @@ Shader "SpaceStation/InteriorTrim"
         half _Shadow;
         float _Seam;
         half _Iridescence;
+        half4 _StarDust;
     CBUFFER_END
 
     struct Attributes
@@ -57,6 +60,7 @@ Shader "SpaceStation/InteriorTrim"
         float4 trim : TEXCOORD2;
         half fogFactor : TEXCOORD3;
         float width : TEXCOORD4;
+        float3 positionOS : TEXCOORD5;                 // 별가루 (kind 7) — 도는 접시에서도 점이 면에 붙어 있게
         UNITY_VERTEX_INPUT_INSTANCE_ID
         UNITY_VERTEX_OUTPUT_STEREO
     };
@@ -73,6 +77,7 @@ Shader "SpaceStation/InteriorTrim"
         o.normalWS = TransformObjectToWorldNormal(input.normalOS);
         o.trim = float4(input.trimA, input.trimB.xy);
         o.width = input.trimB.z;                       // 0 = 트림 값 없음 (UV1만 있는 메시 — Unity 기본 원기둥의 라이트맵 UV를 트림으로 읽어 막대 전체가 빛났음)
+        o.positionOS = input.positionOS.xyz;
         o.fogFactor = ComputeFogFactor(pos.positionCS.z);
         return o;
     }
@@ -90,6 +95,28 @@ Shader "SpaceStation/InteriorTrim"
         p *= p + 33.33;
         p *= p + p;
         return frac(p);
+    }
+
+    float Hash31(float3 p)
+    {
+        p = frac(p * 0.1031);
+        p += dot(p, p.zyx + 31.32);
+        return frac((p.x + p.y) * p.z);
+    }
+
+    // 성운 별가루: 물체 좌표 5 cm 칸마다 6 %에 작은 별빛 점 하나 (지름 7 mm, 저마다 천천히 반짝임) — 점이 화면 2 픽셀보다 작아지면 사라짐 (멀리서 지글거리지 않게)
+    half StarDust(float3 positionOS, float pixel)
+    {
+        float3 sp = positionOS / 0.05;
+        float3 cell = floor(sp);
+        float h = Hash31(cell);
+        if (h > 0.06)
+            return 0.0h;
+        float3 at = cell + 0.15 + 0.7 * float3(Hash31(cell + 3.1), Hash31(cell + 7.7), Hash31(cell + 13.3));
+        float d = length(sp - at) * 0.05;
+        half speck = 1.0h - smoothstep(0.0015, 0.0035, d);
+        half twinkle = 0.55h + 0.45h * sin(_Time.y * (0.8 + h * 25.0) + h * 300.0);
+        return speck * twinkle * saturate(0.0035 / max(pixel, 1e-5) - 0.5);
     }
     ENDHLSL
 
@@ -167,7 +194,7 @@ Shader "SpaceStation/InteriorTrim"
                         if (width > 0.11)
                             albedo *= (1.0h - 0.4h * Line(e, 0.03, 0.005, aa)) * (1.0h - 0.4h * Line(e, 0.05, 0.005, aa));
                     }
-                    else if (kind == 5)
+                    else if (kind == 5 || kind == 7)
                     {
                         if (width > 0.2)
                         {
@@ -183,6 +210,9 @@ Shader "SpaceStation/InteriorTrim"
                     half3 tint = 0.5h + 0.5h * cos(6.2831h * (f * 0.9h + half3(0.0h, 0.33h, 0.67h)));
                     albedo = lerp(albedo, albedo * (0.75h + 0.5h * tint), _Iridescence * (0.35h + 0.65h * f));
                 }
+                half3 dust = 0.0h;
+                if ((int)round(_TrimKind) == 7)
+                    dust = _StarDust.rgb * StarDust(i.positionOS, length(fwidth(i.positionWS)));
 
                 InputData inputData = (InputData)0;
                 inputData.positionWS = i.positionWS;
@@ -200,7 +230,7 @@ Shader "SpaceStation/InteriorTrim"
                 surface.metallic = _Metallic;
                 surface.smoothness = smooth;
                 surface.normalTS = half3(0, 0, 1);
-                surface.emission = _EmissionColor.rgb;
+                surface.emission = _EmissionColor.rgb + dust;
                 surface.occlusion = 1.0h;
                 surface.alpha = 1.0h;
                 half4 color = UniversalFragmentPBR(inputData, surface);

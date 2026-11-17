@@ -9,7 +9,7 @@ using UnityEngine.Rendering;
 namespace SpaceStation.Tests
 {
     /// <summary>
-    /// ⑤ 트림 (2026-11-16): 트림 재질 여덟 = 셰이더 InteriorTrim · 장식 종류, Blender 트림 내보내기로 다시 낸 방 (아콜로지 · AI 중추 …)은
+    /// ⑤ 트림 (2026-11-16): 트림 재질 열둘 (4단계 성운 넷 2026-11-17) = 셰이더 InteriorTrim · 장식 종류, Blender 트림 내보내기로 다시 낸 방 (아콜로지 · AI 중추 …)은
     /// 트림 재질 면의 꼭짓점마다 16비트 트림 값 (선 거리 + 1 ≥ 0.98, 면 폭 > 0)이 있음, 묶기 (InteriorTrimImporter.Pack)는 위치 · 법선 · 삼각형을 그대로 둠.
     /// </summary>
     public class InteriorTrimTests
@@ -20,6 +20,9 @@ namespace SpaceStation.Tests
             (InteriorSetup.Evo3PearlPath, InteriorSetup.TrimPearl), (InteriorSetup.Evo3NacrePath, InteriorSetup.TrimPearl),
             (InteriorSetup.EvoWhitePath, InteriorSetup.TrimPanel), (InteriorSetup.Evo2TrimPath, InteriorSetup.TrimMetal),
             (InteriorSetup.Evo2WallPath, InteriorSetup.TrimWall), (InteriorSetup.EvoDarkPath, InteriorSetup.TrimDarkGloss),
+            // 4단계 성운 (2026-11-17 심우주 통신기지 · SM_InteriorKit_Evo4)
+            (InteriorSetup.Evo4WallPath, InteriorSetup.TrimNebula), (InteriorSetup.Evo4DeckPath, InteriorSetup.TrimWall),
+            (InteriorSetup.Evo4TrimPath, InteriorSetup.TrimMetal), (InteriorSetup.Evo4LowPath, InteriorSetup.TrimDarkGloss),
         };
 
         /// <summary>

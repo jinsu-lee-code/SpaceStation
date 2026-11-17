@@ -3226,3 +3226,19 @@
 **main에 넣은 것**
 
 - Player Settings `Prebake Collision Meshes` 켬 (처음 들어가는 방마다 겉껍질 충돌 메시를 굽느라 멈칫 — 궤도 도시 117 ms), 시험 `InteriorColliderTests`, 문서 01 머리말 (간이 충돌 메시 시험 — 쓰지 않음) · 체크리스트 225
+
+## M-225. 진화 4단계 심우주 통신기지 내부 · 4단계 성운 키트 · 체험 둘 · 미니게임 둘 (2026-11-17, `main`)
+
+
+
+**main에 넣은 것**
+
+- Blender `Interior_Evo2.blend` (ds4_builder · evo4_kit_builder 텍스트 · 물체), `SM_Interior_EvoDeepSpaceComm.fbx` · `SM_InteriorKit_Evo4.fbx` (트림 UV), `trim_uv_export.py` TRIM에 4단계 재질 넷
+- 셰이더 `InteriorTrim` 종류 7 "성운" (벽 판 테 + 옅은 별가루 — 트림 재질 여덟에 `_StarDust` 값이 새로 붙음), `MilkyRiver` UV 강 (`_UseUV`) · 별빛 번짐
+- 재질 `M_InteriorEvo4*` 열셋 · `M_Accent/Paint_Evo_DeepSpaceComm`, 식물 아틀라스 색 칸 넷 (`T_PlantAtlas_A` · `_M` 다시 구움), `InteriorKit.asset` 4단계 묶음
+- `DeepSpaceComm` · `BuildEvoDeepSpaceComm` · `PF_Interior_EvoDeepSpaceComm` · `IT_EvoDeepSpaceComm`, 체험 `InteriorDishSignal` · `InteriorWishArch`, 미니게임 `InteriorSignalTune` · `SignalTuneGame` · `InteriorStarCatch` · `StarCatchGame`, 공용 `InteriorHintLine`, `InteriorSetup` · `ResidentSpotBaker` · `InteriorPlantSpots` · `PlantAtlas`
+- 시험 `DeepSpaceCommTests` · `DeepSpaceCommMinigameTests` · `InteriorTrimTests` (4단계 재질), 문서 06c 심우주 통신기지 · 체크리스트 226 ~ 233 · MODELING 목차
+
+**main에서 따로 할 것**
+
+- `Main.unity`는 넘기지 않음 — 통신기지 내부는 템플릿 · 키트 에셋만으로 동작 (씬 연결 없음). 위 해치 셋 (외형 위 연결점)은 비워 둠 — 하늘이 트인 방의 천장 해치는 단계별 연결통로 정리 때

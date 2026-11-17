@@ -57,6 +57,9 @@ namespace SpaceStation.Editor
             ("PlantLeafLight", OurSwatchFolder + "M_PlantLeafLight.mat"), ("PlantDry", OurSwatchFolder + "M_PlantDry.mat"), ("PlantDryDark", OurSwatchFolder + "M_PlantDryDark.mat"),
             ("PlantBark", OurSwatchFolder + "M_PlantBark.mat"), ("PlantNeedle", OurSwatchFolder + "M_PlantNeedle.mat"), ("PlantNeedleLight", OurSwatchFolder + "M_PlantNeedleLight.mat"),
             ("PlantBlossom", OurSwatchFolder + "M_PlantBlossom.mat"), ("PlantBlossomLight", OurSwatchFolder + "M_PlantBlossomLight.mat"), ("PlantPistil", OurSwatchFolder + "M_PlantPistil.mat"),
+            // 심우주 통신기지 (ds4_builder, 2026-11-17): 은빛 풀 · 달맞이꽃 · 줄기 · 꽃가루 (끝에 더함 — 앞 칸 번호 그대로)
+            ("Evo4SilverGrass", InteriorSetup.Evo4SilverGrassPath), ("Evo4Moonflower", InteriorSetup.Evo4MoonflowerPath), ("Evo4Stem", InteriorSetup.Evo4StemPath),
+            ("Evo4Pollen", InteriorSetup.Evo4PollenPath),
         };
 
         /// <summary>우리 식물 모델 FBX 폴더 (plant_builder 내보내기 — 화분 식물 · 나무 · 소나무 · 꽃나무와 시든 것).</summary>

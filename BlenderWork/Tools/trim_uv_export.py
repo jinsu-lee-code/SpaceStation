@@ -31,7 +31,8 @@ def fbx_path(name):
     return os.path.join(FOLDER, (name if name.startswith("SM_") else "SM_Interior_" + name) + ".fbx")
 
 # Blender 재질 이름 → 트림 (Unity 재질 표 InteriorTemplateBuilder: 이 이름들이 트림 재질 여덟로 감)
-TRIM = {"EvoWhite", "EvoDark", "Evo2Wall", "Evo2Trim", "Evo2Gold", "Evo3Gold", "Evo3GoldLeaf", "Evo3Pearl", "Evo3Nacre"}
+TRIM = {"EvoWhite", "EvoDark", "Evo2Wall", "Evo2Trim", "Evo2Gold", "Evo3Gold", "Evo3GoldLeaf", "Evo3Pearl", "Evo3Nacre",
+        "Evo4Wall", "Evo4Trim", "Evo4Deck", "Evo4Low"}   # 4단계 성운 (2026-11-17 심우주 통신기지 · SM_InteriorKit_Evo4): 남보라 몸체 · 은빛 테 · 갑판 · 짙은 받침
 EXPORT = dict(axis_forward='-Z', axis_up='Y', bake_space_transform=True, apply_scale_options='FBX_SCALE_ALL', mesh_smooth_type='FACE')
 SMOOTH_DOT = 0.69   # 46° 안 = 같은 묶음 (팔각 기둥 · 원기둥 · 굽은 띠)
 REACH = 0.1         # 테두리에서 이만큼 안까지만 선을 넣음 (모서리 빛 · 홈 · 안쪽 테 모두 7.5 cm 안) — 먼 면은 값 = 없음 → 꼭짓점이 덜 쪼개짐

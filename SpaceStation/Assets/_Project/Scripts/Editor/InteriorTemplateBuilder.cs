@@ -137,6 +137,7 @@ namespace SpaceStation.Editor
             BuildEvoRepairCommand();
             BuildEvoOrbitalPort();
             BuildEvoAICore();
+            BuildEvoDeepSpaceComm();
         }
 
         /// <summary>
@@ -5834,6 +5835,105 @@ namespace SpaceStation.Editor
             }
         }
 
+        /// <summary>
+        /// 진화 4단계 심우주 통신기지 "은하수 천문 언덕" (바닥 1 × 3칸 한 층 — ds4_builder, 사용자 2026-11-17 시안 1 "좋아 이대로 진행해줘"):
+        /// S자 은하수 강 · 은빛 아치 다리 둘 · 가운데 관측실 (들어감 — 망원경 · 신호 조종대) · 옆 중계소 둘 · 전파 접시 넷 (조작반 손바퀴 · 빛 케이블) · 별똥별 아치 ·
+        /// 별자리 광장 (북두칠성 빛 줄 · 천체 모형) · 초승달 벤치 · 삼각대 망원경. 움직이는 조각 (DishYaw{k} · DishTilt{k} · DishWheel{k} · Cable{k} · Orrery · StarFloat{k} · River)은
+        /// 원점 = 쓰는 자리 — 체험 둘 (<see cref="InteriorDishSignal"/> 접시 신호 모으기 · <see cref="InteriorWishArch"/> 별똥별 아치 소원) ·
+        /// 미니게임 둘 (<see cref="InteriorSignalTune"/> 신호 맞추기 · <see cref="InteriorStarCatch"/> 별똥별 잡기). 위 해치 없음 (하늘이 트인 방 — 단계별 연결통로 정리 때).
+        /// </summary>
+        private static void BuildEvoDeepSpaceComm()
+        {
+            const string N = "INT_EvoDeepSpaceComm_";
+            const float F = DeepSpaceComm.Floor;
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in DeepSpaceComm.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, DeepSpaceComm.DoorDepth));
+            foreach (var (cell, off, floorY) in DeepSpaceComm.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -floorY, new Vector3(off.x, 0f, off.y)));
+            var moon = new Color(0.82f, 0.88f, 1f);
+            var warm = new Color(1f, 0.9f, 0.74f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, y, z) in new[] { (0f, 3.0f, -2.0f), (8f, 3.4f, -2.4f), (16f, 3.0f, -2.0f), (4.4f, 3.0f, 1.2f), (11.6f, 3.0f, 1.2f), (-2.2f, 3.0f, 2.2f), (18.2f, 3.0f, 2.2f), (8f, 3.3f, 2.8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + y, z), 7f, 0.7f, moon));                                       // 달빛 (돔 · 접시 · 강 위, 돔 꼭대기에서 떨어져)
+            lights.Add(LightSpec.Point(new Vector3(7.55f, F + 1.6f, 0.05f), 2.8f, 0.65f, warm));                               // 가운데 관측실 안 (조종대 · 망원경)
+            EvoAccent("DeepSpaceComm", "#8FE6FF");
+            Build("EvoDeepSpaceComm", "Evolved/MD_Evo_DeepSpaceComm", sockets, DeepSpaceComm.Spawn, DeepSpaceComm.SpawnYaw, lights,
+                orbits: new List<OrbitSpec> { new OrbitSpec(N + "Orrery", DeepSpaceComm.Orrery, Vector3.up, 9f) },   // 천체 모형 (해 둘레 행성 셋이 천천히 돎)
+                configure: root =>
+                {
+                    var r = root.transform;
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    var glow = AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorLight.mat");
+                    var line = ModuleFxMaterials.Get("FireworkLine");
+                    var spark = ModuleFxMaterials.Get("FireworkSpark");
+                    Collider Sphere(string name, Vector3 at, float radius)
+                    {
+                        var go = new GameObject(name);
+                        go.transform.SetParent(r, false);
+                        go.transform.localPosition = at;
+                        var c = go.AddComponent<SphereCollider>();
+                        c.radius = radius;
+                        return c;
+                    }
+                    // 체험 ① 전파 접시 신호 모으기: 접시 넷 (받침 · 접시 · 손바퀴), 손바퀴 충돌체 (보고 F)
+                    int dishes = DeepSpaceComm.Dishes.Length;
+                    var yaws = new Transform[dishes];
+                    var tilts = new Transform[dishes];
+                    var wheels = new Transform[dishes];
+                    var wheelUses = new Collider[dishes];
+                    for (int k = 0; k < dishes; k++)
+                    {
+                        yaws[k] = Child(root, N + "DishYaw" + k);
+                        tilts[k] = Child(root, N + "DishTilt" + k);
+                        wheels[k] = Child(root, N + "DishWheel" + k);
+                        wheelUses[k] = Sphere("DishWheelUse" + k, DeepSpaceComm.DishWheels[k], DeepSpaceComm.WheelUseRadius);
+                    }
+                    root.AddComponent<InteriorDishSignal>().Configure(yaws, tilts, wheels, wheelUses, glow, line, spark, font);
+                    // 체험 ② 별똥별 아치 소원: 아치 꼭대기 별 (보고 F), 강 별빛 번짐 자리 = 강 메시 UV (강 따라 m)에서 별똥별이 닿는 굽이에 가장 가까운 점
+                    var river = Child(root, N + "River");
+                    float wishU = 0f, riverLength = 0f;
+                    if (river != null)
+                    {
+                        var mesh = river.GetComponent<MeshFilter>().sharedMesh;
+                        var verts = mesh.vertices;
+                        var uvs = mesh.uv;
+                        float best = float.MaxValue;
+                        for (int i = 0; i < verts.Length && i < uvs.Length; i++)
+                        {
+                            var p = river.localRotation * Vector3.Scale(verts[i], river.localScale) + river.localPosition;
+                            float d = new Vector2(p.x - DeepSpaceComm.WishRiverPoint.x, p.z - DeepSpaceComm.WishRiverPoint.y).sqrMagnitude;
+                            if (d < best)
+                            {
+                                best = d;
+                                wishU = uvs[i].x;
+                            }
+                            riverLength = Mathf.Max(riverLength, uvs[i].x);
+                        }
+                    }
+                    var floating = new Transform[DeepSpaceComm.FloatingStars.Length];
+                    for (int k = 0; k < floating.Length; k++)
+                        floating[k] = Child(root, N + "StarFloat" + k);
+                    root.AddComponent<InteriorWishArch>().Configure(Sphere("WishArchUse", DeepSpaceComm.ArchTop + Vector3.down * 0.08f, 0.4f),
+                        river != null ? river.GetComponent<Renderer>() : null, floating, line, spark, font, wishU, riverLength);
+                    // 미니게임 ① 신호 맞추기: 휜 책상 위 시작 상자 (보고 F)
+                    var deskUse = new GameObject("SignalTuneUse");
+                    deskUse.transform.SetParent(r, false);
+                    deskUse.transform.localPosition = DeepSpaceComm.ConsoleUse;
+                    deskUse.transform.localRotation = Quaternion.LookRotation(DeepSpaceComm.ConsoleUse - new Vector3(DeepSpaceComm.CenterDome.x, DeepSpaceComm.ConsoleUse.y, DeepSpaceComm.CenterDome.y), Vector3.up);
+                    var deskBox = deskUse.AddComponent<BoxCollider>();
+                    deskBox.size = new Vector3(1.1f, 0.35f, 0.5f);
+                    root.AddComponent<InteriorSignalTune>().Configure(deskBox, line, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenDarkPath), font);
+                    // 미니게임 ② 별똥별 잡기: 천체 모형 (보고 F) — 별 = 반짝이는 흰 빛, 쓰레기 = 짙은 받침 재질
+                    root.AddComponent<InteriorStarCatch>().Configure(Sphere("StarCatchUse", DeepSpaceComm.Orrery, 0.38f), line, spark,
+                        ModuleFxMaterials.Get("TwinkleWhite"), AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4LowPath), font);
+                    // 동물 (외형 사슴 · 아기 사슴 · 토끼 셋 · 부엉이 둘 · 고슴도치 둘 중 내부 모델이 있고 자리가 나는 것): 아기 사슴 · 토끼 넷 = 내부 전용 모델 (critter_builder, 미터)
+                    var critterSrc = InteriorCritterModels();
+                    CritterGroup(r, critterSrc, "Critters_Fawn", 13f, CritterSpots(DeepSpaceComm.Fawns));
+                    CritterGroup(r, critterSrc, "Critters_Bunny", 6f, CritterSpots(DeepSpaceComm.Bunnies));
+                });
+        }
+
         /// <summary>내부 전용 동물 모델 (critter_builder — SM_InteriorCritters, 미터): 이름 "Critter_종류" → 모델.</summary>
         private static Dictionary<string, GameObject> InteriorCritterModels()
         {
@@ -7296,6 +7396,7 @@ namespace SpaceStation.Editor
             { "EvoOrbitalDefense", InteriorAmbience.Life },   // 등대 곶 해안 (3단계)
             { "EvoRepairCommand", InteriorAmbience.Life },    // 반딧불 고목 치유소 (3단계)
             { "EvoOrbitalPort", InteriorAmbience.Life },      // 진주 조개 항구 (3단계)
+            { "EvoDeepSpaceComm", InteriorAmbience.Life },    // 은하수 천문 언덕 (4단계 — 밤 풀밭 · 강)
             { "EvoGrandTorus", InteriorAmbience.Life },       // 바퀴 마을
             { "EvoCivicHall", InteriorAmbience.Life },        // 회관 · 돌봄 · 교실
             { "EvoSecurityHQ", InteriorAmbience.Life },       // 파출소 광장 · 민원 창구
@@ -7556,6 +7657,22 @@ namespace SpaceStation.Editor
                 { "Evo3NeuronPurple", ModuleFxMaterials.Get("NeuralPurple") },
                 { "Evo3NeuronGold", ModuleFxMaterials.Get("NeuralGold") },
                 { "Evo3Synapse", ModuleFxMaterials.Get("TwinkleWhite") },
+                // 심우주 통신기지 (ds4_builder, 2026-11-17 — 4단계 성운): 몸체 · 갑판 · 은빛 테 · 짙은 받침 (트림), 판석 · 달 자갈 · 밤 잔디, 잎 칸 넷 (아틀라스), 은하수 강 (UV 강) · 빛 · 별 · 렌즈
+                { "Evo4Wall", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4WallPath) },
+                { "Evo4Deck", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4DeckPath) },
+                { "Evo4Trim", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4TrimPath) },
+                { "Evo4Low", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4LowPath) },
+                { "Evo4Stone", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4StonePath) },
+                { "Evo4MoonRock", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4MoonRockPath) },
+                { "Evo4Lawn", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4LawnPath) },
+                { "Evo4SilverGrass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4SilverGrassPath) },
+                { "Evo4Moonflower", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4MoonflowerPath) },
+                { "Evo4Stem", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4StemPath) },
+                { "Evo4Pollen", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4PollenPath) },
+                { "Evo4Galaxy", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4RiverPath) },
+                { "Evo4Cyan", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4CyanPath) },
+                { "Evo4Star", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2StarPath) },
+                { "Evo4Lens", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4LensPath) },
             };
             for (int i = 0; i < 7; i++)
                 materials["Evo3Rainbow" + i] = ModuleFxMaterials.Get("Rainbow" + i);   // 프리즘 무지개 고리 일곱 (바깥과 같은 빛 물결)
