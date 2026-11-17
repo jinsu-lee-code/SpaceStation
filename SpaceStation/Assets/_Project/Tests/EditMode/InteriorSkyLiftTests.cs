@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using SpaceStation.Data;
@@ -19,14 +20,12 @@ namespace SpaceStation.Tests
         private static readonly Vector3 Away = new Vector3(20000f, -6000f, 20000f);
 
         /// <summary>
-        /// 기둥도 천장 해치도 못 세우는 위 연결점 (사용자 결정 대기, 2026-11-17): 시민 회관 천구 돔 밑 셋 · 대형 토러스 시계탑 · 보안 본부 지휘탑 ·
-        /// 심우주 통신기지 셋 (트인 땅은 풀 · 동물, 판석 길은 문 · 해치 · 주민 곁) · 정제 복합단지 여섯 (유리 온실 사이 길이 판보다 좁음).
-        /// 모델에 착지 자리를 내거나 정하면 여기서 빼고 템플릿 · 도구를 고침.
+        /// 아직 위로 가는 길이 없는 위 연결점 (2026-11-17 사용자 "통신기지랑 정제 복합단지는 모델에 착지 자리 내는 걸로" — 착지 자리 시안 대기):
+        /// 심우주 통신기지 셋 (평평한 빈터가 칸마다 1 ~ 2 m — 아기 사슴 · 주민 자리 · 해치 · 문 앞 길) · 정련 콤비나트 여섯 (유리 볼트 격납고 · 돔 산책로 사이 길이 판보다 좁음).
+        /// 모델에 착지 자리를 내면 여기서 빼고 도구 (<see cref="InteriorSkyLiftSpots.Targets"/>)를 고침. 시민 회관 돔 칸 셋 = 의료동 천장 해치, 두 탑 = 0.65배 천장 해치 (사용자 "꼭대기방 천장해치로").
         /// </summary>
         private static readonly (string Template, Vector3Int Cell)[] KnownGaps =
         {
-            ("IT_EvoCivicHall", new Vector3Int(1, 0, 0)), ("IT_EvoCivicHall", new Vector3Int(2, 0, 0)), ("IT_EvoCivicHall", new Vector3Int(1, 0, 1)),
-            ("IT_EvoGrandTorus", new Vector3Int(2, 1, 2)), ("IT_EvoSecurityHQ", new Vector3Int(1, 0, 1)),
             ("IT_EvoDeepSpaceComm", new Vector3Int(0, 0, 0)), ("IT_EvoDeepSpaceComm", new Vector3Int(1, 0, 0)), ("IT_EvoDeepSpaceComm", new Vector3Int(2, 0, 0)),
             ("IT_EvoRefineryCombine", new Vector3Int(0, 0, 0)), ("IT_EvoRefineryCombine", new Vector3Int(1, 0, 0)), ("IT_EvoRefineryCombine", new Vector3Int(2, 0, 0)),
             ("IT_EvoRefineryCombine", new Vector3Int(0, 0, 1)), ("IT_EvoRefineryCombine", new Vector3Int(1, 0, 1)), ("IT_EvoRefineryCombine", new Vector3Int(2, 0, 1)),
@@ -129,6 +128,68 @@ namespace SpaceStation.Tests
                 }
             }
             Assert.GreaterOrEqual(checkedLifts, 30);
+            Assert.IsEmpty(problems.ToString(), problems.ToString());
+        }
+
+        /// <summary>
+        /// 좁은 탑 방 천장 해치 (0.65배 — 보안 본부 감시탑 전망실 · 대형 토러스 시계탑 방, 사용자 2026-11-17 "꼭대기방 천장해치로"):
+        /// 줄인 틀 (1.9 × 배율) 자리 천장이 평평 · 그 자리에 천장 빛 고리 · 등 (충돌체 없는 정점)이 없음 (빌더가 끊음) · 틀이 엘리베이터 샤프트 · 벽에 안 닿음 (위 광선이 같은 천장) ·
+        /// 밑 바닥이 걸어서 닿고 천장까지 2.0 ~ 4.0 m.
+        /// </summary>
+        [Test]
+        public void TowerHatches_FitUnderCeiling()
+        {
+            var problems = new StringBuilder();
+            int towers = 0;
+            foreach (var guid in AssetDatabase.FindAssets("t:InteriorTemplate", new[] { "Assets/_Project/Data/Interior" }))
+            {
+                var t = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
+                if (t == null || t.Prefab == null)
+                    continue;
+                var small = t.Sockets.Where(s => s.Direction == Vector3Int.up && !s.SkyLift && s.HatchScale < 0.99f).ToList();
+                if (small.Count == 0)
+                    continue;
+                var root = Object.Instantiate(t.Prefab);
+                root.transform.SetPositionAndRotation(Away, Quaternion.identity);
+                Physics.SyncTransforms();
+                try
+                {
+                    var graph = InteriorWalkGraph.ForTemplate(t, root.transform);
+                    var decor = new InteriorSkyLiftSpots.DecorGrid(root.transform);
+                    foreach (var s in small)
+                    {
+                        towers++;
+                        var hatch = Away + (Vector3)s.Cell * 8f + s.Offset + Vector3.up * s.Depth;
+                        float half = 0.95f * s.HatchScale;
+                        string at = $"{t.name} {s.Cell} 해치 {s.Offset} ×{s.HatchScale}";
+                        if (!Physics.Raycast(hatch + Vector3.down * 0.3f, Vector3.down, out var floor, 5f, ~0, QueryTriggerInteraction.Ignore) || floor.normal.y < 0.9f)
+                        {
+                            problems.AppendLine($"{at}: 밑에 바닥 없음");
+                            continue;
+                        }
+                        float h = hatch.y - floor.point.y;
+                        if (h < InteriorSkyLiftSpots.CeilingMin || h > InteriorSkyLiftSpots.CeilingMax)
+                            problems.AppendLine($"{at}: 천장 높이 {h:F2}");
+                        for (int a = 0; a < 9; a++)
+                        {
+                            var q = new Vector3(hatch.x + (a % 3 - 1) * (half - 0.02f), floor.point.y + 0.3f, hatch.z + (a / 3 - 1) * (half - 0.02f));
+                            if (!Physics.Raycast(q, Vector3.up, out var c, 5f, ~0, QueryTriggerInteraction.Ignore) || Mathf.Abs(c.point.y - hatch.y) > 0.02f || c.normal.y > -0.95f)
+                                problems.AppendLine($"{at}: 틀 자리 {a} 천장이 다름 (샤프트 · 벽 · 다른 높이)");
+                        }
+                        if (decor.AnyBox(hatch, half + 0.03f, hatch.y - 0.3f, hatch.y - 0.012f))
+                            problems.AppendLine($"{at}: 틀 자리에 천장 장식 (빛 고리 · 등)");
+                        int k = graph.Node(floor.point, 0.5f);
+                        if (k < 0 || !graph.Reached(k))
+                            problems.AppendLine($"{at}: 밑 바닥에 걸어서 못 감");
+                    }
+                }
+                finally
+                {
+                    Object.DestroyImmediate(root);
+                    Physics.SyncTransforms();
+                }
+            }
+            Assert.GreaterOrEqual(towers, 2, "탑 천장 해치 둘 (보안 본부 · 대형 토러스)");
             Assert.IsEmpty(problems.ToString(), problems.ToString());
         }
 

@@ -17,6 +17,11 @@ namespace SpaceStation.Interior
         public InteriorHatch Partner { get; set; }
         /// <summary>빛 기둥 승강판 (하늘이 트인 방의 위 연결점 — 해치 뚜껑 대신, 진화 단계별 통로 ③). 없으면 보통 해치.</summary>
         public InteriorSkyLift SkyLift { get; set; }
+        /// <summary>
+        /// 이 해치로 들어온 사람이 서는 바닥 (월드): 바닥 해치 = 그 바닥 면, 천장 해치 = 바로 밑 바닥 (방을 지을 때 광선으로 — 탑 꼭대기 방처럼 칸 바닥 높이가 아닌 곳).
+        /// 없으면 칸 바닥 높이 (FloorY).
+        /// </summary>
+        public Vector3? Landing { get; set; }
     }
 
     /// <summary>
@@ -305,6 +310,17 @@ namespace SpaceStation.Interior
             }
 
             // 해치 도착점 = 맞은편 해치 자리 (템플릿은 칸 중심에서 옮겨 둘 수 있음) — 맞은편 방이 먼저 지어졌으면 서로 잇는다
+            // 천장 해치 밑 바닥은 방이 켜진 지금 광선으로 (나중엔 꺼져 있을 수 있음)
+            Physics.SyncTransforms();
+            for (int i = hatchStart; i < _hatches.Count; i++)
+            {
+                var h = _hatches[i];
+                if (h.SkyLift != null || !h.Up || h.Landing.HasValue)
+                    continue;
+                var from = h.transform.position + Vector3.down * 0.15f;
+                if (Physics.Raycast(from, Vector3.down, out var floorHit, 7f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) && floorHit.normal.y > 0.7f)
+                    h.Landing = floorHit.point;
+            }
             for (int i = hatchStart; i < _hatches.Count; i++)
             {
                 var hatch = _hatches[i];
@@ -353,6 +369,8 @@ namespace SpaceStation.Interior
         {
             if (other.SkyLift != null)
                 return other.SkyLift.PadTop; // 승강판 = 판 위 (모듈 바닥 높이가 아니라 판이 놓인 땅 · 마루)
+            if (other.Landing.HasValue)
+                return other.Landing.Value;
             var p = other.transform.position;
             p.y = _root.position.y + InteriorGeometry.FloorY(toCell);
             return p;
@@ -548,7 +566,7 @@ namespace SpaceStation.Interior
                     if (open && socket.SkyLift)
                         BuildSkyLift(module, parent, cell, CellCenter(cell) + rotation * socket.Offset, CellCenter(cell).y + socket.Depth);
                     else if (open)
-                        BuildHatch(module, parent, CellCenter(cell) + (Vector3)dir * socket.Depth + rotation * socket.Offset, dir.y < 0, cell, dir);
+                        BuildHatch(module, parent, CellCenter(cell) + (Vector3)dir * socket.Depth + rotation * socket.Offset, dir.y < 0, cell, dir, socket.HatchScale);
                     continue;
                 }
                 var center = CellCenter(cell) + (Vector3)dir * socket.Depth;
@@ -737,28 +755,30 @@ namespace SpaceStation.Interior
             }
         }
 
-        /// <summary>해치 틀 + 뚜껑 (뚜껑에 상호작용 콜라이더). surface = 바닥 윗면 / 천장 아랫면.</summary>
-        private void BuildHatch(ModuleInstance module, Transform parent, Vector3 surface, bool floor, Vector3Int cell, Vector3Int dir)
+        /// <summary>해치 틀 + 뚜껑 (뚜껑에 상호작용 콜라이더). surface = 바닥 윗면 / 천장 아랫면, scale = 크기 배율 (좁은 탑 방 0.65).</summary>
+        private void BuildHatch(ModuleInstance module, Transform parent, Vector3 surface, bool floor, Vector3Int cell, Vector3Int dir, float scale = 1f)
         {
             var flip = floor ? Quaternion.identity : Quaternion.Euler(180f, 0f, 0f);
-            var lidCenter = surface + (floor ? Vector3.up : Vector3.down) * 0.04f;
+            var lidCenter = surface + (floor ? Vector3.up : Vector3.down) * (0.04f * scale);
             GameObject lid;
             if (_kit != null)
             {
-                KitPiece(_kit.HatchFrameFor(module.Data), module, parent, surface, flip);
-                lid = KitPiece(_kit.HatchLidFor(module.Data), module, parent, lidCenter, flip).Renderer.gameObject;
+                KitPiece(_kit.HatchFrameFor(module.Data), module, parent, surface, flip, Vector3.one * scale);
+                lid = KitPiece(_kit.HatchLidFor(module.Data), module, parent, lidCenter, flip, Vector3.one * scale).Renderer.gameObject;
                 var box = lid.AddComponent<BoxCollider>();
                 box.center = Vector3.zero;
-                box.size = new Vector3(InteriorGeometry.HatchSize, 0.08f, InteriorGeometry.HatchSize);
+                box.size = new Vector3(InteriorGeometry.HatchSize, 0.08f, InteriorGeometry.HatchSize);   // 뚜껑 배율을 따름
             }
             else
             {
-                lid = Cube(parent, module, lidCenter, Quaternion.identity, new Vector3(InteriorGeometry.HatchSize, 0.08f, InteriorGeometry.HatchSize), HatchColor, true)
+                lid = Cube(parent, module, lidCenter, Quaternion.identity, new Vector3(InteriorGeometry.HatchSize, 0.08f, InteriorGeometry.HatchSize) * scale, HatchColor, true)
                     .Renderer.gameObject;
             }
             var h = lid.AddComponent<InteriorHatch>();
             h.FromCell = cell;
             h.ToCell = cell + dir;
+            if (floor)
+                h.Landing = surface;   // 바닥 해치로 올라온 사람 = 그 바닥 (칸 바닥 높이 FloorY는 진화 방마다 다름)
             _hatches.Add(h);
         }
 

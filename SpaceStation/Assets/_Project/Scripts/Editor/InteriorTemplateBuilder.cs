@@ -1125,7 +1125,7 @@ namespace SpaceStation.Editor
         /// 외형 평면 그대로: 왼쪽 아래 칸 = 천장 없는 광장 (우주복, 돌바닥 · 벤치 · 가로등 · 머리 위 순찰 드론 고리 Orbit1 · 떠 있는 순찰차 Car1 · 2 · 번호표 발권기), ㄱ자 청사 = 나머지 세 칸 (유리 벽 + 박공 현관, 깎은 안쪽 모서리에 금빛 아치 + 압력 막 Curtain).
         /// 민원 창구 셋은 광장 쪽 벽 (바깥 턱 · 번호판, 유리 너머 직원) — 번호표 받은 광장 벤치 주민이 창구 앞으로 (<see cref="InteriorQueueBoard"/>, 틀 0° · 민원인 구역 = 광장),
         /// 청사 안 = 동쪽 전시장 (도는 판 위 순찰차 Show · 진열장 셋) · 북쪽 둥근 유리 상황실 (실제 운석 예보 <see cref="InteriorRadar"/> Sweep · Beacon) · 로비 (감시탑 몸통 · 안내 데스크 + 실제 정거장 지도 <see cref="InteriorStationMap"/>) · 지붕 착륙장 천창 + 드론 PadDrone1 · 2.
-        /// 문 자리 8 = 광장 둘 (깊이 3.95, 닫힘 = 난간) · 청사 여섯 (깊이 3.79, 닫힘 = 막힌 창 패널 <see cref="InteriorSocket.SealedWall"/>). 아래 해치 = 칸마다 넷, 위 해치 = (1, 0) · (0, 1) — 광장은 하늘, (1, 1)은 감시탑.
+        /// 문 자리 8 = 광장 둘 (깊이 3.95, 닫힘 = 난간) · 청사 여섯 (깊이 3.79, 닫힘 = 막힌 창 패널 <see cref="InteriorSocket.SealedWall"/>). 아래 해치 = 칸마다 넷, 위 해치 = (1, 0) · (0, 1) · (1, 1) 감시탑 전망실 천장 (0.65배 — 진화 단계별 통로 ③), 광장은 하늘.
         /// </summary>
         private static void BuildEvoSecurityHQ()
         {
@@ -1152,6 +1152,9 @@ namespace SpaceStation.Editor
                 new InteriorSocket(c11, Vector3Int.down, -F, new Vector3(-2.1f, 0f, 0.6f)),   // 감시탑 서쪽 로비
                 new InteriorSocket(c10, Vector3Int.up, Ceil, new Vector3(0.5f, 0f, 2.6f)),    // 천창 비킴
                 new InteriorSocket(c01, Vector3Int.up, Ceil, new Vector3(-2.1f, 0f, 0.6f)),
+                // 감시탑 전망실 천장 위 해치 (진화 단계별 통로 ③ 2026-11-17, 사용자 "꼭대기방 천장해치로"): 샤프트 (0.98)와 유리벽 (2.5) 사이라 0.65배 (틀 ±0.62),
+                // 엘리베이터 문 앞 (탑 축에서 −z 1.73, 문 기둥 · 인방과 6 cm), sh_builder가 천장 빛 고리를 이 자리에서 끊음
+                new InteriorSocket(c11, Vector3Int.up, TowerCeil, new Vector3(TX - 8f, 0f, TZ - 1.73f - 8f), hatchScale: 0.65f),
             };
             var hall = Color.white;   // 청사 = 맑은 흰빛 (누런 등이면 흰 벽이 갈색으로 보임)
             var cool = new Color(0.72f, 0.82f, 1f);
@@ -1414,7 +1417,7 @@ namespace SpaceStation.Editor
         /// 진화 2단계 대형 토러스 "은하철도 링" (5 × 5칸 바퀴 = 고리 + 가운데 십자 + 허브 위 한 칸, gt_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘, 의자 앉기도", 2026-11-03 플레이 의견으로 다시 짬): 직접 체험 = 밤 열차 타고 역 넷을 돎 (<see cref="InteriorTrain"/>).
         /// 외형 그대로 원형 고리 + 바큇살 넷 + 시계탑 허브: 고가 선로 · 역 넷 (승강장 · 스크린 도어 · 고리를 따라 휜 계단 · 유리 홀) · 동네 고리 (산책로 · 흰 집 · 잔디 · 나무, 유리 지붕) · 고가 아래 아치 회랑 · 고가 아래 아치 집 여덟 · 유리 통로 넷 · 돔 허브 · 엘리베이터 (<see cref="InteriorLift"/>) · 시계탑 (둥근 사각 몸통 · 바깥에서 흰 시계판 · 안에서 내다보는 시계 방 · 종루 · 첨탑 · 도는 톱니 GearA).
         /// 전부 유리 · 지붕 안이라 우주복 없음. 하늘 껍질 = 바퀴 전체를 감싼 큰 상자 (안쪽 빈 칸 넷을 벽으로 두르면 허브 · 건너편이 가려짐).
-        /// 문 자리 = 외형 면이 있는 바깥 칸 12 (가운데 칸은 고가 벽 바로 뒤 깊이 3.9, 양옆 칸은 고가가 비스듬히 지나 짧은 문간 깊이 2.9 — 표준 3.2면 문 패널이 고리 곡면에서 떠 보임, 연결 안 된 자리 = 막힌 아치 창 패널 <see cref="InteriorTemplate.SealedSockets"/>), 아래 해치 = 바닥 칸 17, 시계탑 칸 문 · 위 해치 없음 (네 면이 시계).
+        /// 문 자리 = 외형 면이 있는 바깥 칸 12 (가운데 칸은 고가 벽 바로 뒤 깊이 3.9, 양옆 칸은 고가가 비스듬히 지나 짧은 문간 깊이 2.9 — 표준 3.2면 문 패널이 고리 곡면에서 떠 보임, 연결 안 된 자리 = 막힌 아치 창 패널 <see cref="InteriorTemplate.SealedSockets"/>), 아래 해치 = 바닥 칸 17, 시계탑 칸 문 없음 (네 면이 시계), 위 해치 = 시계탑 방 천장 모서리 (0.65배 — 진화 단계별 통로 ③).
         /// </summary>
         private static void BuildEvoGrandTorus()
         {
@@ -1454,6 +1457,9 @@ namespace SpaceStation.Editor
                 new InteriorSocket(new Vector3Int(3, 0, 2), Vector3Int.down, -F, Vector3.zero),
                 new InteriorSocket(new Vector3Int(2, 0, 3), Vector3Int.down, -F, Vector3.zero),
                 new InteriorSocket(new Vector3Int(2, 0, 2), Vector3Int.down, -F, new Vector3(2.4f, 0f, 0f)),
+                // 시계탑 방 천장 위 해치 (진화 단계별 통로 ③ 2026-11-17, 사용자 "꼭대기방 천장해치로"): 엘리베이터 샤프트 (0.86)와 둥근 천장판 모서리 사이라 0.65배 (틀 ±0.62),
+                // 문 반대편 +x +z 모서리 · 천장판 밑 (YR1 − 0.02 = 9.33), gt_builder가 천장 빛 고리를 이 자리에서 끊음
+                new InteriorSocket(new Vector3Int(2, 1, 2), Vector3Int.up, 9.33f - 8f, new Vector3(1.265f, 0f, 1.265f), hatchScale: 0.65f),
             };
             var white = new Color(1f, 0.97f, 0.92f);
             var warm = new Color(1f, 0.86f, 0.55f);
