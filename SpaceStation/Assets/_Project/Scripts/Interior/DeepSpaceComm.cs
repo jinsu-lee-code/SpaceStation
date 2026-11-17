@@ -164,16 +164,18 @@ namespace SpaceStation.Interior
         /// (모델, 자리 (모델 원점), 바라보는 쪽 수학 각) — Blender ds_critters.py가 고름: 발 넷 (모델 발 자리를 바라보는 쪽으로 돌림) 땅 높이 차 ≤ 1.2 cm,
         /// 원점 = 가장 높은 발 땅 + 모델 발바닥 (발바닥 가장 낮은 점이 면 속 1 cm 안), 해치 틀 · 주민 자리 · 체험 자리 · 길 · 물가에서 떨어져, 풀 · 꽃 · 자갈은 비움 (빌더 CRITTERS).
         /// 외형 사슴은 몸 반경 0.45 m가 들어갈 자리가 없어 (접시 · 돔 · 강 · 주민 자리) 아기 사슴 하나 — 부엉이 · 고슴도치는 아래 (2026-11-17 내부 모델).
+        /// 승강판 착지 원판 (2026-11-17): 아기 사슴 = 왼쪽 옆 돔 옆 (칸 (0,0,0) 원판 자리)에서 왼쪽 앞 모서리 별 샘 옆으로 (샘을 봄 — 몸 + 풀잎 반지름이 드는 빈 풀밭이
+        /// 방 양 끝 앞 모서리뿐, 별자리 광장 북쪽은 뒷발이 광장 원판 가장자리에 올라갔음), 오른쪽 토끼 = 칸 (2,0,0) 원판 둘레에서 0.29 m 앞으로 (Blender ds_plan.py — 발 넷 높이 차 ≤ 1.2 cm).
         /// </summary>
         public static readonly (string Kind, Vector3 At, float Facing)[] Fawns =
         {
-            ("Fawn", new Vector3(2.5f, Floor - 0.0082f, 1.4f), 28.6f),
+            ("Fawn", new Vector3(-3.45f, Floor - 0.001f, -1.9f), 322.1f),
         };
         /// <summary>토끼 넷 = 뒤 강가 풀밭 · 가운데 돔 오른쪽 · 오른쪽 다리 건너 · 왼쪽 다리 건너.</summary>
         public static readonly (string Kind, Vector3 At, float Facing)[] Bunnies =
         {
             ("Bunny", new Vector3(5.241f, Floor + 0.0278f, 2.694f), 345.9f), ("Bunny", new Vector3(11.133f, Floor + 0.0176f, -1.053f), 134f),
-            ("Bunny", new Vector3(14.541f, Floor + 0.004f, -0.106f), 215.4f), ("Bunny", new Vector3(1.253f, Floor + 0.0082f, -0.209f), 332.8f),
+            ("Bunny", new Vector3(14.8f, Floor + 0.004f, -0.36f), 205f), ("Bunny", new Vector3(1.253f, Floor + 0.0082f, -0.209f), 332.8f),
         };
         /// <summary>
         /// 부엉이 둘 (critter_builder Critter_Owl — 사용자 2026-11-17 모델 시트 2 "좋아 이대로 통신기지 내부에 넣어줘") = 가운데 돔 발코니 턱 (외형 돔 둘레 발코니의 부엉이),

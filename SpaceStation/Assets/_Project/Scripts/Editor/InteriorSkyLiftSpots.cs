@@ -244,8 +244,13 @@ namespace SpaceStation.Editor
         /// <summary>천장 해치 (기둥을 못 세우는 지붕 밑): 바닥에서 천장까지 (눈 1.6 + 해치 광선이 닿는 높이 — 의료동 · 청사 천장 3.85 · 감시탑 전망실 2.13).</summary>
         public const float CeilingMin = 2.0f, CeilingMax = 4.0f;
         private const float EdgeMargin = 0.9f;
-        /// <summary>거리 규칙 (문 자리 · 아래 해치 · 주민 자리에서 판까지): 엄하게 → 느슨하게.</summary>
-        private static readonly (float Door, float Hatch, float Resident)[] Rules = { (1.8f, 1.6f, 0.6f), (1.5f, 1.4f, 0.25f) };
+        /// <summary>
+        /// 거리 규칙 (문 자리 · 아래 해치 · 주민 자리에서 판까지): 엄하게 → 느슨하게. Frame = 해치 틀 네모 가장자리에서 판 테까지 (가운데 거리만 보면 틀 옆면 쪽으로
+        /// 판이 틀에 걸쳤음 — 정련 콤비나트 · 식량 공장 · 융합 플랜트 · 궤도 방어망 · 방사선 장벽, 2026-11-18 플레이).
+        /// </summary>
+        private static readonly (float Door, float Hatch, float Frame, float Resident)[] Rules = { (1.8f, 1.6f, 0.25f, 0.6f), (1.5f, 1.4f, 0.1f, 0.25f) };
+        /// <summary>바닥 해치 틀 반 변 (키트 KIT_HatchFrame 1.9 m).</summary>
+        public const float HatchFrameHalf = 0.95f;
         private const float PadGap = 1.0f;
         private const string KitPath = "Assets/_Project/Data/Interior/InteriorKit.asset";
         private static readonly Vector3 Away = new Vector3(10000f, -5000f, 10000f);
@@ -254,10 +259,26 @@ namespace SpaceStation.Editor
         public static readonly string[] KeepHatch = { "IT_EvoBiosphere", "IT_EvoStellarGrid" };
 
         /// <summary>
-        /// 모델에 낸 승강판 착지 자리 (칸 가운데 기준 x · z, 사용자 2026-11-17 "모델에 착지 자리 내는 걸로") — 빌더 (ds4_builder · rf_builder LIFT_PADS)와 같은 값.
-        /// 도구는 이 자리에서 가장 가까운 알맞은 곳을 고름 (착지판 가운데).
+        /// 모델에 낸 승강판 착지 자리 (칸 가운데 기준 x · z, 사용자 2026-11-17 "모델에 착지 자리 내는 걸로" · 시안 2) — 빌더 (ds4_builder · rf_builder LIFT_PADS)와 같은 값.
+        /// 도구는 이 자리 그대로 판을 놓음 (착지 원판 가운데 — 걸어서 닿는 마디가 0.25 m 안 · 판 · 기둥 · 장식 조건, 거리 규칙은 느슨하게). 안 맞으면 경고 뒤 보통 찾기.
+        /// 정련 콤비나트 = 갑판 여섯 (앞 양옆 · 기념탑 왼쪽 · 북쪽 셋), 심우주 통신기지 = 왼쪽 옆 돔 옆 · 가운데 뒤 강가 · 오른쪽 옆 돔 옆.
         /// </summary>
-        public static readonly Dictionary<string, (Vector3Int Cell, Vector2 XZ)[]> Targets = new Dictionary<string, (Vector3Int, Vector2)[]>();
+        public static readonly Dictionary<string, (Vector3Int Cell, Vector2 XZ)[]> Targets = new Dictionary<string, (Vector3Int, Vector2)[]>
+        {
+            {
+                "IT_EvoRefineryCombine", new[]
+                {
+                    (new Vector3Int(0, 0, 0), new Vector2(3.0f, -2.7f)), (new Vector3Int(1, 0, 0), new Vector2(-1.6f, -2.25f)), (new Vector3Int(2, 0, 0), new Vector2(-3.0f, -2.7f)),
+                    (new Vector3Int(0, 0, 1), new Vector2(3.0f, 2.5f)), (new Vector3Int(1, 0, 1), new Vector2(2.4f, 2.85f)), (new Vector3Int(2, 0, 1), new Vector2(-3.0f, 2.5f)),
+                }
+            },
+            {
+                "IT_EvoDeepSpaceComm", new[]
+                {
+                    (new Vector3Int(0, 0, 0), new Vector2(2.32f, 0.6f)), (new Vector3Int(1, 0, 0), new Vector2(3.0f, 2.85f)), (new Vector3Int(2, 0, 0), new Vector2(-2.32f, 0.6f)),
+                }
+            },
+        };
 
         [MenuItem("SpaceStation/Interior/Set Sky Lift Spots")]
         public static void SetAll()
@@ -435,10 +456,14 @@ namespace SpaceStation.Editor
             {
                 var sockets = new List<InteriorSocket>();
                 var preferred = new Dictionary<Vector3Int, Vector2>();
+                var exact = new HashSet<Vector3Int>();
                 if (Targets.TryGetValue(t.name, out var designed))
                 {
                     foreach (var (c, xz) in designed)
+                    {
                         preferred[c] = xz;
+                        exact.Add(c);
+                    }
                 }
                 bool changed = false;
                 foreach (var s in t.Sockets)
@@ -484,7 +509,11 @@ namespace SpaceStation.Editor
                     var center = Away + (Vector3)cell * InteriorGeometry.CellSize;
                     var target = preferred.TryGetValue(cell, out var pre) ? pre : Vector2.zero;
                     var why = new Dictionary<string, int>();
-                    if (TryFindLift(t, graph, decor, cell, target, pads, why, out var pad))
+                    var pad = default(Vector3);
+                    bool atModel = exact.Contains(cell) && TryDesigned(t, graph, decor, cell, target, pads, out pad);
+                    if (exact.Contains(cell) && !atModel)
+                        Debug.LogWarning($"[InteriorSkyLiftSpots] {t.name} {cell}: 모델 착지 자리 ({target.x:F2}, {target.y:F2})에 판을 못 놓음 — 다른 곳을 찾음 (원판과 어긋남)");
+                    if (atModel || TryFindLift(t, graph, decor, cell, target, pads, why, out pad))
                     {
                         pads.Add(pad);
                         sockets.Add(new InteriorSocket(cell, Vector3Int.up, RingDepth, pad - center, skyLift: true));
@@ -614,6 +643,40 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>
+        /// 모델에 낸 착지 원판 가운데 그대로 (<see cref="Targets"/>): 0.25 m 안에 걸어서 닿는 마디 (그 높이) · 거리 규칙 (느슨하게) · 판 밑 땅 · 기둥 (가는 쪽까지) · 장식 조건.
+        /// 보통 찾기는 걸음 격자 (0.25 m)에 붙고 둘레가 좁으면 1.5 m까지 비켜 원판과 어긋남 — 원판이 판 테 밖으로 보여야 하므로 자리를 그대로 씀.
+        /// </summary>
+        private static bool TryDesigned(InteriorTemplate t, InteriorWalkGraph graph, DecorGrid decor, Vector3Int cell, Vector2 target, List<Vector3> pads, out Vector3 pad)
+        {
+            pad = default;
+            var center = Away + (Vector3)cell * InteriorGeometry.CellSize;
+            float ringY = center.y + RingDepth;
+            var p = new Vector3(center.x + target.x, 0f, center.z + target.y);
+            int near = -1;
+            float best = InteriorWalkGraph.Step;
+            foreach (int k in CellNodes(graph, center))
+            {
+                var q = graph[k];
+                float d = new Vector2(q.x - p.x, q.z - p.z).magnitude;
+                if (d < best && ringY - q.y >= MinRise)
+                {
+                    best = d;
+                    near = k;
+                }
+            }
+            if (near < 0)
+                return false;
+            p.y = graph[near].y;
+            if (Blocked(t, p, pads, Rules.Length - 1) != null || !PadSurface(p, out float top, out _))
+                return false;
+            var at = new Vector3(p.x, top, p.z);
+            if (!ColumnClear(at, ringY, ColumnRadii[ColumnRadii.Length - 1]) || !decor.Clear(at, ringY))
+                return false;
+            pad = at;
+            return true;
+        }
+
+        /// <summary>
         /// 지붕 · 건물 천장 밑 보통 위 해치: 걸어서 닿는 바닥 위 2.0 ~ 4.0 m (눈 1.6 + 해치 광선)의 아래를 보는 평평한 천장 —
         /// 틀 (1.9 m 네모) 네 모서리 · 변 가운데까지 같은 높이 (체크리스트 155), 틀이 칸 안, 천장에 붙은 등 · 빛 고리 · 장식 (충돌체 없는 정점)이 틀 자리에 없음,
         /// 그 위로 같은 기둥에 걸어서 닿는 마디가 없음 (맨 위 천장 — 2층 바닥 밑이 아님). 돌려주는 점 = 천장 면.
@@ -688,7 +751,7 @@ namespace SpaceStation.Editor
                 else if (s.Direction.y < 0)
                 {
                     var hatch = c + s.Offset + Vector3.down * s.Depth;
-                    if (Flat2(hatch, p) < Rules[rule].Hatch && Mathf.Abs(hatch.y - p.y) < 1.5f)
+                    if ((Flat2(hatch, p) < Rules[rule].Hatch || FrameGap(hatch, s.HatchScale, p) < Rules[rule].Frame + PadRadius) && Mathf.Abs(hatch.y - p.y) < 1.5f)
                         return "해치";
                 }
             }
@@ -715,5 +778,13 @@ namespace SpaceStation.Editor
         }
 
         private static float Flat2(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
+
+        /// <summary>바닥 해치 틀 (네모 1.9 m × 배율)에서 p까지 평면 거리 (틀 안이면 0) — 시험도 씀.</summary>
+        public static float FrameGap(Vector3 hatch, float scale, Vector3 p)
+        {
+            float half = HatchFrameHalf * scale;
+            float dx = Mathf.Max(0f, Mathf.Abs(p.x - hatch.x) - half), dz = Mathf.Max(0f, Mathf.Abs(p.z - hatch.z) - half);
+            return Mathf.Sqrt(dx * dx + dz * dz);
+        }
     }
 }

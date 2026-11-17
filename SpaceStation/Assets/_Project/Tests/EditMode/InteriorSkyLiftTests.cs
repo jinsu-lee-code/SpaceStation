@@ -20,16 +20,11 @@ namespace SpaceStation.Tests
         private static readonly Vector3 Away = new Vector3(20000f, -6000f, 20000f);
 
         /// <summary>
-        /// 아직 위로 가는 길이 없는 위 연결점 (2026-11-17 사용자 "통신기지랑 정제 복합단지는 모델에 착지 자리 내는 걸로" — 착지 자리 시안 대기):
-        /// 심우주 통신기지 셋 (평평한 빈터가 칸마다 1 ~ 2 m — 아기 사슴 · 주민 자리 · 해치 · 문 앞 길) · 정련 콤비나트 여섯 (유리 볼트 격납고 · 돔 산책로 사이 길이 판보다 좁음).
-        /// 모델에 착지 자리를 내면 여기서 빼고 도구 (<see cref="InteriorSkyLiftSpots.Targets"/>)를 고침. 시민 회관 돔 칸 셋 = 의료동 천장 해치, 두 탑 = 0.65배 천장 해치 (사용자 "꼭대기방 천장해치로").
+        /// 아직 위로 가는 길이 없는 위 연결점 — 지금은 없음. 심우주 통신기지 셋 · 정련 콤비나트 여섯은 모델에 착지 원판을 냄 (2026-11-17 사용자 "모델에 착지 자리 내는 걸로" · 시안 2,
+        /// <see cref="InteriorSkyLiftSpots.Targets"/>), 시민 회관 돔 칸 셋 = 의료동 천장 해치, 두 탑 = 0.65배 천장 해치 (사용자 "꼭대기방 천장해치로").
+        /// 새로 자리를 못 정한 곳이 생기면 여기에 적고 사용자 결정을 받음.
         /// </summary>
-        private static readonly (string Template, Vector3Int Cell)[] KnownGaps =
-        {
-            ("IT_EvoDeepSpaceComm", new Vector3Int(0, 0, 0)), ("IT_EvoDeepSpaceComm", new Vector3Int(1, 0, 0)), ("IT_EvoDeepSpaceComm", new Vector3Int(2, 0, 0)),
-            ("IT_EvoRefineryCombine", new Vector3Int(0, 0, 0)), ("IT_EvoRefineryCombine", new Vector3Int(1, 0, 0)), ("IT_EvoRefineryCombine", new Vector3Int(2, 0, 0)),
-            ("IT_EvoRefineryCombine", new Vector3Int(0, 0, 1)), ("IT_EvoRefineryCombine", new Vector3Int(1, 0, 1)), ("IT_EvoRefineryCombine", new Vector3Int(2, 0, 1)),
-        };
+        private static readonly (string Template, Vector3Int Cell)[] KnownGaps = { };
 
         private static List<InteriorTemplate> OpenTemplates()
         {
@@ -119,6 +114,15 @@ namespace SpaceStation.Tests
                         int k = graph.Node(pad, 0.4f);
                         if (k < 0 || !graph.Reached(k))
                             problems.AppendLine($"{at}: 들어오는 곳에서 걸어서 못 감");
+                        // 같은 바닥의 아래 해치 틀 (네모 1.9 m)에 판이 걸치지 않음 (가운데 거리만 보던 때 다섯 방에서 걸쳤음, 2026-11-18)
+                        foreach (var h in t.Sockets)
+                        {
+                            if (h.Direction != Vector3Int.down)
+                                continue;
+                            var hatch = Away + (Vector3)h.Cell * 8f + h.Offset + Vector3.down * h.Depth;
+                            if (Mathf.Abs(hatch.y - pad.y) < 1.5f && InteriorSkyLiftSpots.FrameGap(hatch, h.HatchScale, pad) < InteriorSkyLiftSpots.PadRadius + 0.05f)
+                                problems.AppendLine($"{at}: 아래 해치 {h.Cell} 틀에 걸침 ({InteriorSkyLiftSpots.FrameGap(hatch, h.HatchScale, pad):F2} m)");
+                        }
                     }
                 }
                 finally
@@ -128,6 +132,41 @@ namespace SpaceStation.Tests
                 }
             }
             Assert.GreaterOrEqual(checkedLifts, 30);
+            Assert.IsEmpty(problems.ToString(), problems.ToString());
+        }
+
+        /// <summary>
+        /// 모델에 낸 착지 원판 (<see cref="InteriorSkyLiftSpots.Targets"/> — 정련 콤비나트 여섯 · 심우주 통신기지 셋): 그 칸 승강판이 원판 가운데 그대로 (1 cm 안) —
+        /// 도구가 다른 곳을 고르면 판 둘레로 보여야 할 금빛 · 은빛 테가 어긋나 빈 원판만 남음.
+        /// </summary>
+        [Test]
+        public void DesignedPads_SitOnModelDiscs()
+        {
+            var problems = new StringBuilder();
+            int pads = 0;
+            foreach (var kv in InteriorSkyLiftSpots.Targets)
+            {
+                var guid = AssetDatabase.FindAssets(kv.Key + " t:InteriorTemplate", new[] { "Assets/_Project/Data/Interior" }).FirstOrDefault();
+                var t = guid != null ? AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid)) : null;
+                if (t == null || t.name != kv.Key)
+                {
+                    problems.AppendLine($"{kv.Key}: 템플릿 없음");
+                    continue;
+                }
+                foreach (var (cell, xz) in kv.Value)
+                {
+                    var lift = t.Sockets.FirstOrDefault(s => s.SkyLift && s.Cell == cell);
+                    if (lift == null)
+                    {
+                        problems.AppendLine($"{t.name} {cell}: 승강판 없음");
+                        continue;
+                    }
+                    pads++;
+                    if (new Vector2(lift.Offset.x - xz.x, lift.Offset.z - xz.y).magnitude > 0.01f)
+                        problems.AppendLine($"{t.name} {cell}: 판 ({lift.Offset.x:F2}, {lift.Offset.z:F2}) ≠ 원판 ({xz.x:F2}, {xz.y:F2})");
+                }
+            }
+            Assert.AreEqual(9, pads, problems.ToString());
             Assert.IsEmpty(problems.ToString(), problems.ToString());
         }
 

@@ -102,7 +102,7 @@ MonoBehaviour:
   - _cell: {x: 1, y: 0, z: 0}
     _direction: {x: 0, y: -1, z: 0}
     _depth: 1.3
-    _offset: {x: 0, y: 0, z: -3.1}
+    _offset: {x: 0.3, y: 0, z: -3.1}
     _sealedWall: 0
     _skyLift: 0
     _hatchScale: 0
@@ -126,6 +126,48 @@ MonoBehaviour:
     _offset: {x: -1.25, y: 0, z: 0}
     _sealedWall: 0
     _skyLift: 0
+    _hatchScale: 0
+  - _cell: {x: 0, y: 0, z: 0}
+    _direction: {x: 0, y: 1, z: 0}
+    _depth: 3.8
+    _offset: {x: 3, y: -1.2978516, z: -2.7001953}
+    _sealedWall: 0
+    _skyLift: 1
+    _hatchScale: 0
+  - _cell: {x: 1, y: 0, z: 0}
+    _direction: {x: 0, y: 1, z: 0}
+    _depth: 3.8
+    _offset: {x: -1.5996094, y: -1.2978516, z: -2.25}
+    _sealedWall: 0
+    _skyLift: 1
+    _hatchScale: 0
+  - _cell: {x: 2, y: 0, z: 0}
+    _direction: {x: 0, y: 1, z: 0}
+    _depth: 3.8
+    _offset: {x: -3, y: -1.2978516, z: -2.7001953}
+    _sealedWall: 0
+    _skyLift: 1
+    _hatchScale: 0
+  - _cell: {x: 0, y: 0, z: 1}
+    _direction: {x: 0, y: 1, z: 0}
+    _depth: 3.8
+    _offset: {x: 3, y: -1.2978516, z: 2.5}
+    _sealedWall: 0
+    _skyLift: 1
+    _hatchScale: 0
+  - _cell: {x: 1, y: 0, z: 1}
+    _direction: {x: 0, y: 1, z: 0}
+    _depth: 3.8
+    _offset: {x: 2.4003906, y: -1.2978516, z: 2.8496094}
+    _sealedWall: 0
+    _skyLift: 1
+    _hatchScale: 0
+  - _cell: {x: 2, y: 0, z: 1}
+    _direction: {x: 0, y: 1, z: 0}
+    _depth: 3.8
+    _offset: {x: -3, y: -1.2978516, z: 2.5}
+    _sealedWall: 0
+    _skyLift: 1
     _hatchScale: 0
   _spawn: {x: 10.8, y: -1.3, z: -3.1}
   _spawnYaw: -20
@@ -194,23 +236,23 @@ MonoBehaviour:
     _pose: 1
     _work: 0
     _lie: 0
+  - _position: {x: 12.783, y: -0.87, z: 8.585}
+    _yaw: 49.5
+    _pose: 1
+    _work: 0
+    _lie: 0
   - _position: {x: 11.741, y: -0.87, z: 9.556}
     _yaw: 36.5
     _pose: 1
     _work: 0
     _lie: 0
-  - _position: {x: 10.508, y: -0.87, z: 10.268}
-    _yaw: 23.5
-    _pose: 1
-    _work: 0
-    _lie: 0
-  - _position: {x: 5.492, y: -0.87, z: 10.268}
-    _yaw: -23.5
-    _pose: 1
-    _work: 0
-    _lie: 0
   - _position: {x: 4.259, y: -0.87, z: 9.556}
     _yaw: -36.5
+    _pose: 1
+    _work: 0
+    _lie: 0
+  - _position: {x: 3.217, y: -0.87, z: 8.585}
+    _yaw: -49.5
     _pose: 1
     _work: 0
     _lie: 0
@@ -261,36 +303,6 @@ MonoBehaviour:
     _lie: 0
   - _position: {x: 2.74, y: -0.3, z: 6.415}
     _yaw: -70
-    _pose: 0
-    _work: 0
-    _lie: 0
-  - _position: {x: 3.6, y: -1.3, z: -3.25}
-    _yaw: 30
-    _pose: 0
-    _work: 0
-    _lie: 0
-  - _position: {x: 12.4, y: -1.3, z: -3.25}
-    _yaw: -30
-    _pose: 0
-    _work: 0
-    _lie: 0
-  - _position: {x: 3, y: -1.3, z: 8.6}
-    _yaw: 120
-    _pose: 0
-    _work: 0
-    _lie: 0
-  - _position: {x: 13, y: -1.3, z: 8.6}
-    _yaw: -120
-    _pose: 0
-    _work: 0
-    _lie: 0
-  - _position: {x: 3.3, y: -1.3, z: 10.3}
-    _yaw: 150
-    _pose: 0
-    _work: 0
-    _lie: 0
-  - _position: {x: 12.7, y: -1.3, z: 10.3}
-    _yaw: -150
     _pose: 0
     _work: 0
     _lie: 0
