@@ -1142,6 +1142,42 @@ def kit_short(st):
     return objs
 
 
+UP_SWAP = Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, 1, 0, 0), (0, 0, 0, 1)))   # Blender z 위로 만든 것 → 키트 로컬 (x, 위 y, 길이 z)
+
+
+def upright(ob):
+    """z축으로 돌려 만든 조각을 키트 로컬 (y = 위)로 세우고 바깥 법선으로."""
+    ob.data.transform(UP_SWAP)
+    return solid(ob)
+
+
+def kit_skylift(st):
+    """빛 기둥 승강판 (진화 단계별 통로 ③, 사용자 2026-11-17 "A로 하는데, 색깔을 모듈의 색 테마에 맞춰서"):
+    바닥 판 = 반지름 0.75 · 윗면 y 0.05 · 옆 치마 y −0.25까지 (언덕 위 판은 치마가 땅에 묻혀 떠 보이지 않음) + 바깥 테 (단계 금속) + 빛 고리 · 가운데 빛 렌즈 (강조 슬롯 = 방 모듈 색).
+    하늘 고리 = 반지름 0.85 (하늘 껍질 바로 아래, 피벗 = 고리 가운데): 금속 고리 + 아래를 보는 빛 띠 + 단계 몸 색 바깥 테. 빛 기둥은 Unity가 그림 (SpaceStation/LightShaft).
+    큰 동심원만 (작은 구멍 · 점 무늬 없음)."""
+    if st == 2:
+        B = kmat('M_InteriorEvo2Deck', '#171C3A'); T = kmat('M_InteriorEvo2Trim', '#A9B0E2', 0.3, 0.5); G = kmat('M_InteriorEvo2Gold', '#D9AE4E', 0.25, 1.0)
+    elif st == 3:
+        B = kmat('M_InteriorEvo3Pearl', '#F4EFE6', 0.3, 0.1); G = kmat('M_InteriorEvo3Gold', '#D9AE4E', 0.25, 1.0); T = G
+    else:
+        B = kmat('M_InteriorEvo4Deck', '#1B1740', 0.45); G = kmat('M_InteriorEvo4Trim', '#CDD3DE', 0.2, 1.0); T = G
+    A = kmat('M_Accent_Core', '#7FE8FF', emit='#7FE8FF')
+    R = 0.75
+    pad = [upright(lathe('P_Body', [(0.0, 0.05), (R - 0.09, 0.05), (R - 0.09, 0.045), (R - 0.03, 0.03), (R - 0.03, -0.25), (0.0, -0.25)], B, 48)),
+           upright(lathe('P_Rim', [(R - 0.1, 0.045), (R, 0.045), (R, -0.25), (R - 0.03, -0.25), (R - 0.03, 0.02), (R - 0.1, 0.02)], T, 48, closed=True)),
+           upright(lathe('P_RimTop', [(R - 0.1, 0.045), (R - 0.1, 0.07), (R - 0.005, 0.07), (R, 0.045)], T, 48, closed=True)),
+           upright(lathe('P_Glow', [(0.46, 0.049), (0.56, 0.049), (0.56, 0.056), (0.46, 0.056)], A, 48, closed=True)),
+           upright(lathe('P_LensRim', [(0.17, 0.049), (0.24, 0.049), (0.24, 0.064), (0.17, 0.064)], T, 32, closed=True)),
+           upright(lathe('P_Lens', [(0.0, 0.058), (0.17, 0.058), (0.17, 0.049), (0.0, 0.049)], A, 32, closed=True))]
+    Rr = 0.85
+    ring = [upright(lathe('R_Metal', circle(0.05, 12, cx=Rr, cy=0.0), G, 48, closed=True)),
+            upright(lathe('R_Band', [(Rr + 0.05, 0.02), (Rr + 0.2, 0.02), (Rr + 0.2, -0.02), (Rr + 0.05, -0.02)], B, 48, closed=True)),
+            upright(lathe('R_Edge', [(Rr + 0.2, 0.025), (Rr + 0.24, 0.025), (Rr + 0.24, -0.025), (Rr + 0.2, -0.025)], T, 48, closed=True)),
+            upright(lathe('R_Glow', [(Rr - 0.12, -0.03), (Rr - 0.04, -0.03), (Rr - 0.04, -0.012), (Rr - 0.12, -0.012)], A, 48, closed=True))]
+    return pad, ring
+
+
 def export_kit():
     out = []
     for st, fn in ((1, kit_tube_evo1), (2, kit_tube_evo2), (3, lambda: kit_bridge(3)), (4, lambda: kit_bridge(4))):
@@ -1154,6 +1190,9 @@ def export_kit():
             out.append(bake_kit('KIT_Vestibule_Evo%d' % st, ves))
         if st >= 2:
             out.append(bake_kit('KIT_TubeShort_Evo%d' % st, kit_short(st)))
+            pad, ring = kit_skylift(st)
+            out.append(bake_kit('KIT_SkyLiftPad_Evo%d' % st, pad))
+            out.append(bake_kit('KIT_SkyLiftRing_Evo%d' % st, ring))
     frame, leaf = kit_airlock()
     out.append(bake_kit('KIT_AirlockFrame', frame))
     out.append(bake_kit('KIT_AirlockLeaf', leaf))

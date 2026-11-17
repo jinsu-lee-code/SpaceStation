@@ -18,20 +18,24 @@ namespace SpaceStation.Data
         [SerializeField] private Vector3 _offset;
         [Tooltip("수평 문 자리만: 닫혀 있을 때 난간 + 하늘 대신 막힌 창 패널 (지붕 안 구역의 문 자리 — 개방형 갑판과 실내가 함께 있는 2단계 방)")]
         [SerializeField] private bool _sealedWall;
+        [Tooltip("위 문 자리만: 해치 대신 빛 기둥 승강판 (하늘이 트인 2단계+ 방, 진화 단계별 통로 ③). 오프셋 = 판 자리 (y = 칸 중심에서 판 바닥까지), 깊이 = 칸 중심에서 기둥 꼭대기 고리까지")]
+        [SerializeField] private bool _skyLift;
 
         public Vector3Int Cell => _cell;
         public Vector3Int Direction => _direction;
         public float Depth => _depth;
         public Vector3 Offset => _offset;
         public bool SealedWall => _sealedWall;
+        public bool SkyLift => _skyLift;
 
-        public InteriorSocket(Vector3Int cell, Vector3Int direction, float depth, Vector3 offset = default, bool sealedWall = false)
+        public InteriorSocket(Vector3Int cell, Vector3Int direction, float depth, Vector3 offset = default, bool sealedWall = false, bool skyLift = false)
         {
             _cell = cell;
             _direction = direction;
             _depth = depth;
             _offset = offset;
             _sealedWall = sealedWall;
+            _skyLift = skyLift;
         }
     }
 
@@ -206,6 +210,9 @@ namespace SpaceStation.Data
             _spawn = spawn;
             _spawnYaw = spawnYaw;
         }
+
+        /// <summary>문 자리만 바꿈 (빛 기둥 승강판 자리 찾기 — InteriorSkyLiftSpots).</summary>
+        public void EditorSetSockets(List<InteriorSocket> sockets) => _sockets = sockets ?? new List<InteriorSocket>();
 
         public void EditorSetAmbience(InteriorAmbience ambience) => _ambience = ambience;
 
