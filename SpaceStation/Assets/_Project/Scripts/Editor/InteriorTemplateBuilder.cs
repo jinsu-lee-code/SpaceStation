@@ -5931,6 +5931,9 @@ namespace SpaceStation.Editor
                     var critterSrc = InteriorCritterModels();
                     CritterGroup(r, critterSrc, "Critters_Fawn", 13f, CritterSpots(DeepSpaceComm.Fawns));
                     CritterGroup(r, critterSrc, "Critters_Bunny", 6f, CritterSpots(DeepSpaceComm.Bunnies));
+                    // 부엉이 = 발코니 턱 (난간 · 돔 벽 사이가 좁아 휙 돌아보지 않고 숨 쉬며 가끔 고개 듦 — 좁은 턱의 퍼핀과 같음) · 고슴도치 = 풀밭에서 킁킁
+                    CritterGroup(r, critterSrc, "Critters_Owl", 2f, CritterSpots(DeepSpaceComm.Owls), kind: SpaceStation.Building.CritterFx.Kind.Bask, modelScale: DeepSpaceComm.OwlScale);
+                    CritterGroup(r, critterSrc, "Critters_Hedgehog", 6f, CritterSpots(DeepSpaceComm.Hedgehogs));
                 });
         }
 

@@ -163,7 +163,7 @@ namespace SpaceStation.Interior
         /// <summary>
         /// (모델, 자리 (모델 원점), 바라보는 쪽 수학 각) — Blender ds_critters.py가 고름: 발 넷 (모델 발 자리를 바라보는 쪽으로 돌림) 땅 높이 차 ≤ 1.2 cm,
         /// 원점 = 가장 높은 발 땅 + 모델 발바닥 (발바닥 가장 낮은 점이 면 속 1 cm 안), 해치 틀 · 주민 자리 · 체험 자리 · 길 · 물가에서 떨어져, 풀 · 꽃 · 자갈은 비움 (빌더 CRITTERS).
-        /// 외형 사슴은 몸 반경 0.45 m가 들어갈 자리가 없어 (접시 · 돔 · 강 · 주민 자리) 아기 사슴 하나 — 부엉이 · 고슴도치는 내부 모델이 생기면.
+        /// 외형 사슴은 몸 반경 0.45 m가 들어갈 자리가 없어 (접시 · 돔 · 강 · 주민 자리) 아기 사슴 하나 — 부엉이 · 고슴도치는 아래 (2026-11-17 내부 모델).
         /// </summary>
         public static readonly (string Kind, Vector3 At, float Facing)[] Fawns =
         {
@@ -174,6 +174,25 @@ namespace SpaceStation.Interior
         {
             ("Bunny", new Vector3(5.241f, Floor + 0.0278f, 2.694f), 345.9f), ("Bunny", new Vector3(11.133f, Floor + 0.0176f, -1.053f), 134f),
             ("Bunny", new Vector3(14.541f, Floor + 0.004f, -0.106f), 215.4f), ("Bunny", new Vector3(1.253f, Floor + 0.0082f, -0.209f), 332.8f),
+        };
+        /// <summary>
+        /// 부엉이 둘 (critter_builder Critter_Owl — 사용자 2026-11-17 모델 시트 2 "좋아 이대로 통신기지 내부에 넣어줘") = 가운데 돔 발코니 턱 (외형 돔 둘레 발코니의 부엉이),
+        /// 문 양옆 앞쪽 난간 기둥 사이 (기둥 = −60° + 12.5° 간격)에서 바깥을 봄. 돔 가운데에서 1.845 m · 크기 0.9배 = 꽁지 끝 · 등이 돔 벽 (1.7 m)에,
+        /// 가슴이 위 난간 (1.97 m, 턱 위 0.215 m)에 닿지 않음 (Blender 시험 배치 crit_place.py — 1.865 m · 1배는 가슴이 난간에 1.5 cm 묻혔음). 원점 = 발 = 턱 윗면.
+        /// </summary>
+        public static readonly (string Kind, Vector3 At, float Facing)[] Owls =
+        {
+            ("Owl", new Vector3(6.6129f, Floor + 1.795f, -1.5165f), 221.25f), ("Owl", new Vector3(9.3871f, Floor + 1.795f, -1.5165f), 318.75f),
+        };
+        /// <summary>부엉이 크기 (모델 키 0.45 m → 0.4 m — 발코니 턱 폭에 맞춤).</summary>
+        public const float OwlScale = 0.9f;
+        /// <summary>
+        /// 고슴도치 둘 (critter_builder Critter_Hedgehog) = 오른쪽 옆 돔 너머 풀밭 · 오른쪽 접시 왼쪽 뒤 풀밭, 강 쪽을 봄. Blender crit_place.py가 고름 (발 넷 땅 높이 차 ≤ 1.2 cm):
+        /// 지금 풀 · 꽃 · 자갈에서 0.57 m 넘게 떨어진 자리라 빌더 CRITTERS에 막음 (0.45 m)을 더해도 풀꽃이 다시 섞이지 않음 (빌드 지문 같음 — 내부 FBX 그대로).
+        /// </summary>
+        public static readonly (string Kind, Vector3 At, float Facing)[] Hedgehogs =
+        {
+            ("Hedgehog", new Vector3(18.65f, Floor + 0.0006f, 1.45f), 229.8f), ("Hedgehog", new Vector3(11.65f, Floor + 0.0029f, 3.45f), 229.2f),
         };
 
         // ---------------- 연결점 ----------------
