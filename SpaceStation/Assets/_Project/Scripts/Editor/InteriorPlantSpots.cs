@@ -168,6 +168,8 @@ namespace SpaceStation.Editor
             Set("IT_EvoOrbitalPort", new List<PlantSpot>());
             // AI 중추: 생울타리 미로 · 판석 마당 · 정자 · 드론 마당 (식물 = 생울타리 꽃 · 온실 · 꽃밭 — 잎 한 장씩 빌더 모델) — 나무 자리 없음 (해치 · 드론 길)
             Set("IT_EvoAICore", new List<PlantSpot>());
+            // 심우주 통신기지: 은하수 강 · 돔 · 접시 · 광장 (식물 = 은빛 풀 · 달맞이꽃 · 라일락 — 잎 한 장씩 빌더 모델) — 나무 자리 없음 (하늘을 가림 · 자리가 없음)
+            Set("IT_EvoDeepSpaceComm", new List<PlantSpot>());
             // 진화 2단계 연구원 (mz_builder PLANTS): 연구실 안 화분 하나 (유리 연구실 = 실내)
             Set("IT_EvoResearchInstitute", new List<PlantSpot>
             {

@@ -2,6 +2,8 @@
 // 진짜 은하수 = 따뜻한 별빛 핵 · 푸른 바깥 · 가운데를 가르는 어두운 먼지 띠 · 옅은 성운 · 빽빽한 작은 별과 드문 밝은 별, 이 전체가 물결에 일그러진 채 강을 따라 흐른다.
 // 물 표면: 물결의 기울기로 그림을 일그러뜨리고, 실제 하늘(환경 반사)을 되비추며, 비스듬히 볼수록 더 비침. 작은 별은 시점에 따라 어긋나 물속 깊이가 느껴짐.
 // UV가 없는 FX 메시라 물체 공간(모델 기준) 위치를 씀. 불투명 — 물속에 구워 둔 옛 빛 띠 · 별가루는 물 표면에 가려짐.
+// _UseUV = 1 (심우주 통신기지 S자 강, 2026-11-17): UV0 = (강 따라 m, 가로 m · 가운데 0) — 굽이는 메시가 가지므로 _Meander 0 · _RiverZ 0, 물가 = _BankFront · _BankBack.
+//   별빛 번짐 (_GlowAt · _GlowRadius · _GlowAmount, 강 따라 m): 별똥별 아치 소원 때 떨어진 자리에서 강을 따라 퍼짐 (MPB).
 // 조절은 재질 슬라이더로 (M_MilkyRiver). _BaseColor는 ModuleView가 비활성 · 파손 때 어둡게 한다.
 Shader "SpaceStation/MilkyRiver"
 {
@@ -32,6 +34,10 @@ Shader "SpaceStation/MilkyRiver"
         _BankFront ("물가 앞 끝", Float) = -0.058
         _BankAmp ("물가 지그재그 폭", Float) = 0.12
         _BankBack ("물가 뒤 끝", Float) = 0.2314
+        [ToggleUI] _UseUV ("UV 강 (u = 강 따라 m, v = 가로 m)", Float) = 0
+        _GlowAt ("별빛 번짐 자리 (UV 강 u, m)", Float) = 0
+        _GlowRadius ("별빛 번짐 반경 (m)", Float) = 1
+        _GlowAmount ("별빛 번짐 세기", Float) = 0
     }
     SubShader
     {
@@ -73,15 +79,20 @@ Shader "SpaceStation/MilkyRiver"
                 float _BankFront;
                 float _BankAmp;
                 float _BankBack;
+                float _UseUV;
+                float _GlowAt;
+                float _GlowRadius;
+                float _GlowAmount;
             CBUFFER_END
 
-            struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; UNITY_VERTEX_INPUT_INSTANCE_ID };
+            struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; float2 uv : TEXCOORD0; UNITY_VERTEX_INPUT_INSTANCE_ID };
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
                 float3 positionOS : TEXCOORD0;
                 float3 normalOS : TEXCOORD1;
                 float3 positionWS : TEXCOORD2;
+                float2 uv : TEXCOORD3;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -97,6 +108,7 @@ Shader "SpaceStation/MilkyRiver"
                 o.positionCS = TransformWorldToHClip(o.positionWS);
                 o.positionOS = p;
                 o.normalOS = input.normalOS;
+                o.uv = input.uv;
                 return o;
             }
 
@@ -126,7 +138,7 @@ Shader "SpaceStation/MilkyRiver"
                 float t = _Time.y;
                 if (abs(i.normalOS.y) < 0.5)   // 옆면 (테두리에 가려 거의 안 보임). 아랫면 = 내부 전시 회랑 천장 (강 아래에서 올려다봄)
                     return half4(_DeepColor.rgb * _BaseColor.rgb, 1);
-                float2 p = i.positionOS.xz * _CoordScale;
+                float2 p = (_UseUV > 0.5 ? i.uv : i.positionOS.xz) * _CoordScale;
                 float pixel = max(fwidth(p.x) + fwidth(p.y), 0.00001);
                 // 물결: 흐름과 함께 밀려가는 너울의 기울기 — 이것이 비친 은하수를 일그러뜨리고 하늘 · 햇빛 반사를 흔듦
                 float2 rp = p * float2(13.0, 30.0) - float2(t * _Flow * 13.0, t * 0.04);
@@ -161,6 +173,12 @@ Shader "SpaceStation/MilkyRiver"
                 stars += Stars(flowing - parallax * _Depth * 0.4, 0.016, 0.05 + 0.25 * wide, 0.22, 17.0, pixel) * 0.7;
                 stars += Stars(flowing, 0.05, 0.09, 0.09, 29.0, pixel) * 1.4;
                 color += _StarColor.rgb * stars * (1.0 - 0.7 * lane) * _StarAmount;
+                if (_UseUV > 0.5 && _GlowAmount > 0.0)
+                {
+                    float gd = (i.uv.x - _GlowAt) / max(_GlowRadius, 0.01);
+                    float glow = exp(-gd * gd) * _GlowAmount;
+                    color += (_CoreColor.rgb * (0.25 + 0.5 * band) + _StarColor.rgb * stars * 2.5) * glow;   // 은하수 핵빛이 번지고 별이 환해짐
+                }
                 // 흐름 결: 흐르는 쪽으로 길게 늘어난 옅은 물줄기 (그림보다 조금 빨리 흐름)
                 float current = StationNoise3(float3((q.x - t * _Flow * 1.7) * 7.0, q.y * 60.0, t * 0.08));
                 color += lerp(_ArmColor.rgb, 1.0, 0.4) * smoothstep(0.6, 0.85, current) * _Current;

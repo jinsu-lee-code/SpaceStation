@@ -65,7 +65,7 @@ namespace SpaceStation.Editor
         public const string ConcretePath = MaterialFolder + "/M_InteriorConcrete.mat";   // 12-5 방사선 차폐실 벽 · 원통 천장
         // ⑤ 트림 셰이더 (Art/Shaders/InteriorTrim.shader)와 장식 종류 (_TrimKind)
         public const string TrimShaderName = "SpaceStation/InteriorTrim";
-        public const int TrimGold = 0, TrimGoldInlay = 1, TrimPearl = 2, TrimPanel = 3, TrimMetal = 4, TrimWall = 5, TrimDarkGloss = 6;
+        public const int TrimGold = 0, TrimGoldInlay = 1, TrimPearl = 2, TrimPanel = 3, TrimMetal = 4, TrimWall = 5, TrimDarkGloss = 6, TrimNebula = 7;
         // 진화 모듈 내부 1단계 키트 (2026-10-29, Blender evo_kit): 흰 세라믹 몸체 · 밝은 회백 바닥 · 짙은 남색 홈 · 화면 테
         public const string EvoWhitePath = MaterialFolder + "/M_InteriorEvoWhite.mat";
         public const string EvoFloorPath = MaterialFolder + "/M_InteriorEvoFloor.mat";
@@ -152,6 +152,22 @@ namespace SpaceStation.Editor
         public const string Evo3BeachSandPath = MaterialFolder + "/M_InteriorEvo3BeachSand.mat";   // 모래 해변 (트라이플래너 바람 물결 · 잔 알갱이 + 물가선 아래 젖은 띠)
         // AI 중추 수정 뇌 미로 정원 (2026-11-16, ai3_builder): 다듬은 생울타리 = 트라이플래너 잎 텍스처 (작은 잎을 빽빽이 겹친 결 — 매끈한 초록 덩어리는 쿠션처럼 보였음)
         public const string Evo3HedgePath = MaterialFolder + "/M_InteriorEvo3Hedge.mat";
+        // 진화 4단계 심우주 통신기지 "은하수 천문 언덕" (2026-11-17, ds4_builder · 4단계 성운 키트 evo4_kit_builder): 밤하늘 남보라 몸체 (옅은 별가루 — 트림 성운 종류) · 갑판 · 은빛 테 · 짙은 받침,
+        //   달빛 판석 · 달 자갈 · 밤 잔디 (은빛 띤 풀 결), 잎 칸 = 은빛 풀 · 달맞이꽃 · 줄기 · 꽃가루 (식물 아틀라스 색 칸), 은하수 강 (MilkyRiver UV 강) · 망원경 렌즈
+        public const string Evo4WallPath = MaterialFolder + "/M_InteriorEvo4Wall.mat";
+        public const string Evo4DeckPath = MaterialFolder + "/M_InteriorEvo4Deck.mat";
+        public const string Evo4TrimPath = MaterialFolder + "/M_InteriorEvo4Trim.mat";
+        public const string Evo4LowPath = MaterialFolder + "/M_InteriorEvo4Low.mat";
+        public const string Evo4StonePath = MaterialFolder + "/M_InteriorEvo4Stone.mat";
+        public const string Evo4MoonRockPath = MaterialFolder + "/M_InteriorEvo4MoonRock.mat";
+        public const string Evo4LawnPath = MaterialFolder + "/M_InteriorEvo4Lawn.mat";
+        public const string Evo4SilverGrassPath = MaterialFolder + "/M_InteriorEvo4SilverGrass.mat";
+        public const string Evo4MoonflowerPath = MaterialFolder + "/M_InteriorEvo4Moonflower.mat";
+        public const string Evo4StemPath = MaterialFolder + "/M_InteriorEvo4Stem.mat";
+        public const string Evo4PollenPath = MaterialFolder + "/M_InteriorEvo4Pollen.mat";
+        public const string Evo4RiverPath = MaterialFolder + "/M_InteriorEvo4River.mat";
+        public const string Evo4CyanPath = MaterialFolder + "/M_InteriorEvo4Cyan.mat";
+        public const string Evo4LensPath = MaterialFolder + "/M_InteriorEvo4Lens.mat";
         public const string Evo3LinenBluePath = MaterialFolder + "/M_InteriorEvo3LinenBlue.mat";
         public const string Evo3LinenRosePath = MaterialFolder + "/M_InteriorEvo3LinenRose.mat";
         public const string Evo3LinenWhitePath = MaterialFolder + "/M_InteriorEvo3LinenWhite.mat";   // 궤도 방어망 등대 빛 (따뜻한 빛, 빛기둥 셰이더 — 실드 돔 찬 빛 0.16은 밤바다에서 안 보였음)
@@ -218,6 +234,7 @@ namespace SpaceStation.Editor
         public const string EvoKit1Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo1.fbx";
         public const string EvoKit2Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo2.fbx";
         public const string EvoKit3Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo3.fbx";
+        public const string EvoKit4Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo4.fbx";
         private const string RecipeFolder = "Assets/_Project/Data/Recipes";
 
         /// <summary>단계 키트 FBX의 조각 (없으면 빈 목록). 게임 중 InteriorSpots가 벽 패널 모양을 읽으므로 Read/Write를 켬 (기본 키트와 같음).</summary>
@@ -292,6 +309,10 @@ namespace SpaceStation.Editor
             var evo3Gold = AssetDatabase.LoadAssetAtPath<Material>(Evo3GoldPath);
             var evo2Path = AssetDatabase.LoadAssetAtPath<Material>(Evo2PathPath);
             var prism = ModuleFxMaterials.Get("Prism");
+            var evo4Wall = AssetDatabase.LoadAssetAtPath<Material>(Evo4WallPath);
+            var evo4Deck = AssetDatabase.LoadAssetAtPath<Material>(Evo4DeckPath);
+            var evo4Trim = AssetDatabase.LoadAssetAtPath<Material>(Evo4TrimPath);
+            var evo4Star = AssetDatabase.LoadAssetAtPath<Material>(Evo2StarPath);
 
             Data.InteriorKitPiece Piece(string name, System.Collections.Generic.Dictionary<string, GameObject> from = null)
             {
@@ -328,6 +349,10 @@ namespace SpaceStation.Editor
                         case "Evo3Gold": mats[i] = evo3Gold; break;
                         case "Evo3Path": mats[i] = evo2Path; break;
                         case "Evo3Prism": mats[i] = prism; break;
+                        case "Evo4Wall": mats[i] = evo4Wall; break;   // 진화 4단계 키트 (성운 남보라 · 은빛 테 · 별)
+                        case "Evo4Deck": mats[i] = evo4Deck; break;
+                        case "Evo4Trim": mats[i] = evo4Trim; break;
+                        case "Evo4Star": mats[i] = evo4Star; break;
                         default:
                             Debug.LogWarning($"[InteriorSetup] {name}: 모르는 재질 슬롯 '{slot}' → Hull");
                             mats[i] = hull;
@@ -384,6 +409,14 @@ namespace SpaceStation.Editor
                 stages.Add(new Data.InteriorKitStage(3, withInterior,
                     Piece("KIT_Wall_Evo3", evo3), Piece("KIT_WallDoor_Evo3", evo3), Piece("KIT_DoorLeaf_Evo3", evo3), Piece("KIT_Floor_Evo3", evo3),
                     Piece("KIT_Ceiling_Evo3", evo3), Piece("KIT_HatchFrame_Evo3", evo3), Piece("KIT_HatchLid_Evo3", evo3), Piece("KIT_WallSealed_Evo3", evo3), Piece("KIT_SkyPatch_Evo3", evo3)));
+            }
+            var evo4 = StageParts(EvoKit4Path);   // 4단계 = Interior_Evo2.blend evo4_kit_builder (3단계와 같은 모양 · 성운 남보라 · 은빛 테 · 문 위 별 셋)
+            if (evo4.Count > 0)
+            {
+                var withInterior = ModulesOfStage(4).FindAll(m => AssetDatabase.FindAssets("IT_" + m.name.Replace("MD_", "").Replace("_", "") + " t:InteriorTemplate").Length > 0);
+                stages.Add(new Data.InteriorKitStage(4, withInterior,
+                    Piece("KIT_Wall_Evo4", evo4), Piece("KIT_WallDoor_Evo4", evo4), Piece("KIT_DoorLeaf_Evo4", evo4), Piece("KIT_Floor_Evo4", evo4),
+                    Piece("KIT_Ceiling_Evo4", evo4), Piece("KIT_HatchFrame_Evo4", evo4), Piece("KIT_HatchLid_Evo4", evo4), Piece("KIT_WallSealed_Evo4", evo4), Piece("KIT_SkyPatch_Evo4", evo4)));
             }
             kit.EditorSetStages(stages);
             EditorUtility.SetDirty(kit);
@@ -654,6 +687,14 @@ namespace SpaceStation.Editor
             hedge.SetFloat("_GrimeStrength", 0.3f);
             hedge.enableInstancing = true;
             EditorUtility.SetDirty(hedge);
+            // 심우주 통신기지 밤 잔디 (2026-11-17): 바이오돔 잔디 결 (T_InteriorLawn, 위에서 내려다본 평면 3 m) + 달빛 은청 물들임 — 밤빛에서 검게 묻히지 않게 밝게
+            var nightLawn = LoadOrCreate(Evo4LawnPath, lit);
+            nightLawn.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.Folder + "T_InteriorLawn.png"));
+            nightLawn.SetColor("_BaseColor", new Color(0.62f, 0.78f, 0.86f));
+            nightLawn.SetFloat("_Metallic", 0f);
+            nightLawn.SetFloat("_Smoothness", 0.15f);
+            nightLawn.enableInstancing = true;
+            EditorUtility.SetDirty(nightLawn);
 
             // 진화 모듈 내부 1단계 키트 (2026-10-29): 외형 흰 패널 · 짙은 유리 띠와 같은 계열의 매끈한 재질 (패널 무늬 · 때 없음)
             //   (이름을 Plain으로 했다가 아래 소품 재질 함수 Plain(경로, 색, 금속도, 광택)을 가려 소품 22종의 금속도 · 광택이 뒤바뀐 적 있음 — 2026-10-29)
@@ -712,6 +753,20 @@ namespace SpaceStation.Editor
             EvoSurface(Evo3MintPath, new Color(0.55f, 0.9f, 0.78f), 0f, 0.4f);
             EvoSurface(Evo3LilacPath, new Color(0.8f, 0.73f, 0.97f), 0f, 0.35f);
             Emissive(Evo3HoneyPath, new Color(1f, 0.7f, 0.22f), new Color(1f, 0.58f, 0.12f) * 1.1f, 0.8f);   // 빛나는 꿀 (언덕 윗면 · 방울 · 저장 기둥 · 등불)
+            // 진화 4단계 성운 (2026-11-17 심우주 통신기지 · 4단계 키트): 밤하늘 남보라 몸체 = 성운 트림 (벽 판 테 + 옅은 별가루), 갑판 = 벽 판, 은빛 테 = 금속 테, 짙은 받침 = 짙은 광택.
+            //   외형 몸체 (짙은 남보라)보다 밝게 — 밤빛 방에서 묻히지 않게 (2단계 미드나잇과 같은 보정)
+            EvoSurface(Evo4WallPath, new Color(0.33f, 0.28f, 0.56f), 0.1f, 0.4f, TrimNebula);
+            EvoSurface(Evo4DeckPath, new Color(0.4f, 0.36f, 0.64f), 0.1f, 0.45f, TrimWall);
+            EvoSurface(Evo4TrimPath, new Color(0.84f, 0.87f, 0.94f), 0.55f, 0.72f, TrimMetal);
+            EvoSurface(Evo4LowPath, new Color(0.08f, 0.07f, 0.17f), 0.2f, 0.75f, TrimDarkGloss);
+            EvoSurface(Evo4StonePath, new Color(0.76f, 0.76f, 0.86f), 0f, 0.25f);      // 달빛 판석 · 별자리 광장
+            EvoSurface(Evo4MoonRockPath, new Color(0.55f, 0.56f, 0.64f), 0f, 0.15f);  // 달 자갈 · 운석 바위
+            EvoSurface(Evo4SilverGrassPath, new Color(0.66f, 0.8f, 0.86f), 0f, 0.35f);   // 은빛 풀 (밤빛에 은청으로 빛남 — 잎 칸)
+            EvoSurface(Evo4MoonflowerPath, new Color(0.93f, 0.95f, 1f), 0f, 0.35f);      // 달맞이꽃 (흰 꽃잎 — 잎 칸)
+            EvoSurface(Evo4StemPath, new Color(0.25f, 0.45f, 0.42f), 0f, 0.25f);         // 줄기 · 꽃 잎
+            EvoSurface(Evo4PollenPath, new Color(1f, 0.86f, 0.5f), 0f, 0.3f);            // 꽃가루 (꽃 가운데)
+            Emissive(Evo4CyanPath, new Color(0.45f, 0.9f, 1f), new Color(0.3f, 0.85f, 1f) * 1.6f, 0.6f);     // 별 등불 · 문 등 · 빛 케이블 · 바닥 빛 고리 (외형 신호 하늘빛)
+            Emissive(Evo4LensPath, new Color(0.3f, 0.45f, 0.85f), new Color(0.12f, 0.25f, 0.7f) * 0.8f, 0.92f); // 망원경 렌즈 (짙은 하늘빛 유리 · 옅게 빛남)
             // 바이오돔 잔디 · 흙 (사용자 2026-11-03 "나무와 풀 디테일"): 색 판이 아니라 풀잎 · 흙 무늬 텍스처
             void Ground(string path, string texture, float smoothness)
             {
@@ -1036,6 +1091,28 @@ namespace SpaceStation.Editor
                 river.SetFloat("_BankBack", 0.2375f);     // 강 뒤 끝 z = 1.9 ÷ 8
                 river.SetFloat("_StarSize", 0.38f);       // 가까이서 보므로 별을 작게 (바깥 크기면 눈송이처럼 보임)
                 river.SetFloat("_StarDensity", 0.6f);
+                river.enableInstancing = true;
+                EditorUtility.SetDirty(river);
+            }
+            // 심우주 통신기지 S자 은하수 강 (2026-11-17): 같은 셰이더의 UV 강 (u = 강 따라 m, v = 가로 m — 굽이는 메시가 가짐), 물가 = ± 0.64 m (ds4_builder SHORE)
+            if (AssetDatabase.LoadAssetAtPath<Material>(Evo4RiverPath) == null)
+            {
+                var from = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_MilkyRiver.mat");
+                var river = LoadOrCreate(Evo4RiverPath, from.shader);
+                river.CopyPropertiesFromMaterial(from);
+                river.SetFloat("_UseUV", 1f);
+                river.SetFloat("_CoordScale", 0.125f);
+                river.SetFloat("_RiverZ", 0f);
+                river.SetFloat("_Meander", 0f);
+                river.SetFloat("_RiverWidth", 0.03f);
+                river.SetFloat("_BankPeriod", 1f);
+                river.SetFloat("_BankAmp", 0f);
+                river.SetFloat("_BankOffset", 0f);
+                river.SetFloat("_BankFront", -0.08f);
+                river.SetFloat("_BankBack", 0.08f);
+                river.SetFloat("_StarSize", 0.38f);
+                river.SetFloat("_StarDensity", 0.6f);
+                river.SetFloat("_Depth", 0.015f);
                 river.enableInstancing = true;
                 EditorUtility.SetDirty(river);
             }
