@@ -255,11 +255,6 @@ namespace SpaceStation.Editor
         /// 판 테 3 ~ 10 cm에 수레 · 안내판 · 벽, 폭 1.6 ~ 2.3 m 골목 · 옆 통로를 판이 막고, 문 1.6 m 앞에 판이 있었음.
         /// </summary>
         private static readonly (float Gap, float Width, float Door)[] LiftRules = { (0.25f, 2.8f, 2.4f), (0.2f, 2.4f, 1.9f), (0f, 0f, 0f) };
-        /// <summary>
-        /// 도구가 못 알아보는 좁은 곳 (방 · 칸 · 칸 가운데 기준 x · z · 반지름) — 승강판을 놓지 않음. 드론 정비창 격납고 아치 문간 (폭 1.7 m): 폭 재기 광선이 문간 너머로 빠져
-        /// 넓다고 보고 아치 1 m 앞 통로에 판을 놓았음 (2026-11-18 눈높이 사진). 문간을 광선으로 찾게 하면 계단 입구 · 벤치 틈까지 걸려 멀쩡한 자리가 옮겨졌음.
-        /// </summary>
-        private static readonly (string Room, Vector3Int Cell, Vector2 Center, float Radius)[] Avoid = { ("IT_EvoDroneDepot", new Vector3Int(1, 1, 1), new Vector2(2.0f, 1.75f), 1.8f) };
         /// <summary>바닥 해치 틀 반 변 (키트 KIT_HatchFrame 1.9 m).</summary>
         public const float HatchFrameHalf = 0.95f;
         private const float PadGap = 1.0f;
@@ -270,9 +265,11 @@ namespace SpaceStation.Editor
         public static readonly string[] KeepHatch = { "IT_EvoBiosphere", "IT_EvoStellarGrid" };
 
         /// <summary>
-        /// 모델에 낸 승강판 착지 자리 (칸 가운데 기준 x · z, 사용자 2026-11-17 "모델에 착지 자리 내는 걸로" · 시안 2) — 빌더 (ds4_builder · rf_builder LIFT_PADS)와 같은 값.
+        /// 모델에 낸 승강판 착지 자리 (칸 가운데 기준 x · z, 사용자 2026-11-17 "모델에 착지 자리 내는 걸로" · 시안 2) — 빌더 (ds4_builder · rf_builder · dd · ff · rw_builder LIFT_PADS)와 같은 값.
         /// 도구는 이 자리 그대로 판을 놓음 (착지 원판 가운데 — 걸어서 닿는 마디가 0.25 m 안 · 판 · 기둥 · 장식 조건, 거리 규칙은 느슨하게). 안 맞으면 경고 뒤 보통 찾기.
         /// 정련 콤비나트 = 갑판 여섯 (앞 양옆 · 기념탑 왼쪽 · 북쪽 셋), 심우주 통신기지 = 왼쪽 옆 돔 옆 · 가운데 뒤 강가 · 오른쪽 옆 돔 옆.
+        /// 전체 검토에서 남은 좁은 자리 (2026-11-18 시안, 사용자 "B까지 포함해서 진행"): 드론 정비창 = 옥상 관람석 앞줄 양 끝 (예전 1층 뒤 골목 · 13 m),
+        /// 식량 공장 = 공장 남쪽 둥근 귀퉁이 옆 (문 2.4 m — 바퀴를 피하느라 남쪽 난간에 붙음은 그대로), 방사선 차폐벽 = 마당 서쪽 (예전 아래 해치 자리, 해치는 찻집 서쪽으로).
         /// </summary>
         public static readonly Dictionary<string, (Vector3Int Cell, Vector2 XZ)[]> Targets = new Dictionary<string, (Vector3Int, Vector2)[]>
         {
@@ -289,6 +286,9 @@ namespace SpaceStation.Editor
                     (new Vector3Int(0, 0, 0), new Vector2(2.32f, 0.6f)), (new Vector3Int(1, 0, 0), new Vector2(3.0f, 2.85f)), (new Vector3Int(2, 0, 0), new Vector2(-2.32f, 0.6f)),
                 }
             },
+            { "IT_EvoDroneDepot", new[] { (new Vector3Int(0, 1, 1), new Vector2(0.35f, -2.2f)), (new Vector3Int(1, 1, 1), new Vector2(2.15f, -2.2f)) } },
+            { "IT_EvoFoodFactory", new[] { (new Vector3Int(1, 1, 0), new Vector2(2.25f, -3.0f)), (new Vector3Int(3, 1, 0), new Vector2(-2.4f, -3.0f)) } },
+            { "IT_EvoRadiationWall", new[] { (new Vector3Int(0, 0, 1), new Vector2(-2.2f, -3.1f)) } },
         };
 
         [MenuItem("SpaceStation/Interior/Set Sky Lift Spots")]
@@ -608,11 +608,6 @@ namespace SpaceStation.Editor
                         Count(why, "낮음");
                         continue;
                     }
-                    if (Avoided(t, cell, new Vector2(p.x - center.x, p.z - center.z)))
-                    {
-                        Count(why, "피함");
-                        continue;
-                    }
                     string blocked = Blocked(t, p, pads, Mathf.Min(rule, Rules.Length - 1));
                     if (blocked != null)
                     {
@@ -818,17 +813,6 @@ namespace SpaceStation.Editor
             if (PassWidth(pad) < r.Width)
                 return "폭";
             return DoorDistance(t, pad) < r.Door ? "문앞" : null;
-        }
-
-        /// <summary>칸 가운데 기준 자리가 <see cref="Avoid"/> 안인지.</summary>
-        private static bool Avoided(InteriorTemplate t, Vector3Int cell, Vector2 local)
-        {
-            foreach (var a in Avoid)
-            {
-                if (a.Room == t.name && a.Cell == cell && (local - a.Center).magnitude < a.Radius)
-                    return true;
-            }
-            return false;
         }
 
         /// <summary>엄한 규칙 (<see cref="LiftRules"/> 첫 줄)에 모자란 만큼 (m, 판 테 여유는 4배 — 벽에 바짝 붙은 판이 가장 눈에 띔).</summary>
