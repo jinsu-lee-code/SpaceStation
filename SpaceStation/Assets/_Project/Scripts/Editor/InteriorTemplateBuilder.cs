@@ -3182,7 +3182,7 @@ namespace SpaceStation.Editor
         /// 유리 도넛 그릇 속에서 도는 플라스마 고리 (INT_EvoFusion_Plasma — 움직이는 메인 부품) · 파란 코일 열둘 · 솔레노이드 기둥 + 냉각수 머리 · 받침 테 위 유리 울타리,
         /// 냉각수 구체 둘 (x 2.4 · 13.6 — 관 둘씩이 천장 밑을 지나 융합로 머리로) + 구체와 융합로 사이 칸에 제어대 (−z) · 냉각수 펌프 (+z) · 자석 전원 (−z) ·
         /// 남는 물 탱크 (+z) · 양 끝 정수 필터 기둥 넷. 사용자 2026-10-29 "길을 지나다닐 수가 없네" → 홀을 따라 걷는 길 폭 1.3m 이상 (융합로 · 구체 옆은 비움).
-        /// 문 자리 = 끝 칸 바깥 면 + 칸마다 ±z, 바닥 해치 = 칸 중심, 위 해치 = 가운데 칸만 (돔을 비켜 (4.7, ·, −2.2)), 천장 F + 4.0.
+        /// 문 자리 = 끝 칸 바깥 면 + 칸마다 ±z, 바닥 해치 = 끝 칸 중심 · 가운데 칸은 동쪽 구체와 융합로 사이 (11.2, −0.3), 위 해치 = 가운데 칸만 (돔을 비켜 (4.7, ·, −2.2)), 천장 F + 4.0.
         /// </summary>
         private static void BuildEvoFusion()
         {
@@ -3197,7 +3197,8 @@ namespace SpaceStation.Editor
                     sockets.Add(new InteriorSocket(cell, Vector3Int.right, Socket));
                 sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
                 sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
-                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                // 가운데 칸 중심 = 융합로 받침 밑 (뚜껑이 묻혀 바라볼 수 없었음 — 위에서 내려갈 수 없었음, 2026-11-18 플레이) → 동쪽 구체와 융합로 사이 (11.2, −0.3)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, x == 1 ? new Vector3(3.2f, 0f, -0.3f) : Vector3.zero));
             }
             sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.up, ceiling, new Vector3(4.7f - 8f, 0f, -2.2f)));
             var white = new Color(1f, 0.97f, 0.92f);
