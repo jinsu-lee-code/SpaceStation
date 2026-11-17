@@ -84,3 +84,14 @@
 - **탈 수 있는 놀이기구 (사용자 2026-10-26, 화물 환적장 "은하수 후룸라이드")**: 내부 템플릿 때 **실제 화물 보트에 타서 후룸 코스를 간략하게 탄다** — 항구 못 출발 → 체인 리프트 언덕 → 산 뒤 능선 → 정상 터널 → 큰 낙하 → 물보라 못. 그래서 외형의 물길 · 리프트 · 터널 입구 · 낙하 · 물보라는 나중에 타는 코스의 뼈대 (물길 폭 · 터널 높이 · 낙하 각도를 탈것 기준으로 유지).
   - 저장 단지 "별빛 회전목마 창고" (사용자 2026-10-26): 내부 템플릿 때 **실제 회전목마에 탑승** — 저장 캡슐마다 좌석(안장 · 등받이 · 손잡이 · 발판)을 둠. 판 반지름 · 기둥 간격 · 캡슐 높이를 탈것 기준으로 유지.
 
+
+## 7-11. 진화 단계별 바깥 연결 통로 (2026-11-17, `BlenderWork/Connectors/connector_builder.py`, TASKS "진화 단계별 연결 통로")
+
+- 결정 (사용자): 두 모듈 중 **높은 단계 모양** — 기본 = 팔각 여압 통로 (SM_Connectors.fbx 그대로) · 1단계 = 흰 세라믹 캡슐 · 2단계 = 에어록 현관 포드 · 3 · 4단계 = 통로 없이 **받침을 잇는 다리 데크**. 데크가 2단계 이하 모듈에 닿는 끝 = 에어록 문 고리 (`CN_Lock`). 위아래 = 단계 기둥만 (데크 · 에어록 없음). 규칙 = `Core/ConnectorStyle`.
+- 시안: `--sheet` (바깥 다섯 단계 + 섞임), `--sheet2` (내부 · 위로 가는 길) → `preview/sheet_ext.png` · `sheet_int.png` (`stack_png.py`로 세로로 쌓음, `Tools/combine_png.py`로 가로).
+- 내보내기: `blender -b --factory-startup -P BlenderWork/Connectors/connector_builder.py -- --export` → `Art/Models/Modules/SM_ConnectorsEvo.fbx` (CN{단계}_Tube · Collar · Ring · Strip · Strut · Plate · VRing + CN_Lock) + 색표 `Textures/ConnectorsEvo/T_ConnectorsEvo_{BaseColor · MetallicGloss · Emission}.png` (칸 17 × 8 px, Unity 점 필터). Unity 메뉴 **SpaceStation/Art/Setup Evo Connectors** (재질 `M_ConnectorsEvo` · 메시 칸 배선, 기본 통로 · 표면 깊이는 그대로).
+- **늘리는 조각 (Tube · Strip · Strut)은 단면 일정** — 고리 · 둥근 창 · 난간 기둥 · 정원등은 `Ring` 한 벌을 `StationConnectors`가 단계 간격 (`RingSteps` 0.30 · 0.24 · 0.22 · 0.26 — 빌더 RING_STEP과 같게)으로 놓음 (칼라 안쪽 0.07부터).
+- 축: 부품 로컬 (x 오른쪽 · y 위 · z 길이) = Unity와 같은 뜻 → 내보낼 때 Blender (−x, z, −y)로 돌림 (`TO_BLENDER`, FBX −Z 앞 · Y 위). 가져온 뒤 Unity에서 칼라 중심 z > 0 (통로 쪽) · 띠 y > 0 · 데크 y ≈ −0.16 확인.
+- 재질 하나 + 색표 UV: 비활성 통로 = `StationConnectors.Apply`의 MPB (BaseColor × 0.35 · Emission 끔)가 그대로 먹음 (색약 — 밝기로 구분). 색을 칸마다 따로 재질로 만들면 MPB가 모든 색을 회색으로 덮음.
+- 데크 높이 = 칸 중심 −0.16 (내부 바닥 F = 중심 −1.3 m ÷ 8), 폭 0.36 (걷는 폭 ~2.9 m), 난간 0.13 (1.05 m).
+- **게임 조명 · 반사에서 흰색이 갈색으로 보임** (Blender 시안의 흰 #EEF1F5 · 매끈함 0.78 → 게임 안 탠 색): 진화 흰색처럼 푸른 흰 (#D3E1F8)에 거칠기 0.55. 남색 · 4단계 데크도 Blender보다 한 단계 밝게 (#2D3778 · #4B3FA0). 게임 안 확인 = 두 모듈만 남기고 숨긴 뒤 카메라를 손으로 붙여 찍음 (궤도 카메라는 최소 거리가 있어 통로가 점처럼 보임).

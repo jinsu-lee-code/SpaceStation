@@ -12,10 +12,29 @@ namespace SpaceStation.Building
     /// - 길이는 양쪽 모델 표면 깊이(ModuleData.FaceDepths)로 정해 표면끼리 정확히 잇는다 (ConnectorLayout)
     /// - 상태: 코어와 끊긴(비활성) 모듈에 닿은 통로는 어둡게, 활성 통로는 코어에서 바깥쪽으로 빛이 흐른다
     /// - 배치 미리보기: BuildController가 ShowPreview/HidePreview로 고스트 통로를 홀로그램으로 표시
-    /// 메시·재질은 StationArtBuilder(Connectors)가 배선한다.
+    /// - 진화 단계별 모양 (2026-11-17, <see cref="ConnectorStyle"/>): 두 모듈 중 높은 단계 — 1 세라믹 캡슐 · 2 에어록 현관 포드 · 3 · 4 받침을 잇는 다리 데크,
+    ///   데크가 2단계 이하 모듈에 닿는 끝 = 에어록 문 고리. 고리 · 난간 기둥 · 정원등은 늘리지 않는 따로 조각을 정해진 간격으로 놓음.
+    /// 메시·재질은 StationArtBuilder(Connectors)가 배선한다 (진화 = ConnectorSetup, SM_ConnectorsEvo.fbx).
     /// </summary>
     public sealed class StationConnectors : MonoBehaviour
     {
+        /// <summary>진화 단계 한 벌 (길이 방향 = Z, 통로 · 띠 · 기둥 = 단위 길이 1).</summary>
+        [System.Serializable]
+        private sealed class StageSet
+        {
+            public Mesh Tube;
+            public Mesh Collar;
+            [Tooltip("통로를 따라 정해진 간격마다 놓는 조각 (고리 · 둥근 창 · 난간 기둥 · 정원등)")]
+            public Mesh Ring;
+            public Mesh Strip;
+            public Mesh Strut;
+            public Mesh Plate;
+            [Tooltip("위아래 기둥 가운데 한 벌")]
+            public Mesh VRing;
+            public float RingStep = 0.25f;
+        }
+
+        private const float RingClear = 0.07f; // 칼라 · 착지판 안쪽부터 고리를 놓음
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
         private static readonly int LengthId = Shader.PropertyToID("_Length");
@@ -35,6 +54,13 @@ namespace SpaceStation.Building
         [SerializeField] private Material _hullMaterial;
         [SerializeField] private Material _flowMaterial;
         [SerializeField] private Material _ghostMaterial;
+
+        [Header("진화 단계 (1 ~ 4)")]
+        [SerializeField] private StageSet[] _stages = new StageSet[0];
+        [Tooltip("다리 데크가 2단계 이하 모듈에 닿는 면의 에어록 문 고리")]
+        [SerializeField] private Mesh _lockMesh;
+        [Tooltip("진화 통로 재질 (색표 텍스처 하나)")]
+        [SerializeField] private Material _evoMaterial;
 
         [Header("Look")]
         [Tooltip("불빛 띠 위치 (통로 중심에서 위쪽으로)")]
@@ -221,7 +247,51 @@ namespace SpaceStation.Building
             _stateDirty = true;
         }
 
-        private Connector Build(ConnectorSpec spec, Transform parent, bool ghost)
+        // ---------------- 진화 단계 ----------------
+
+        private Dictionary<ModuleData, int> _stageOf;
+
+        /// <summary>모듈의 진화 단계 (그 모듈을 만드는 레시피 단계, 기본 모듈 = 0).</summary>
+        private int StageOf(ModuleData data)
+        {
+            if (data == null)
+                return 0;
+            if (_stageOf == null)
+            {
+                _stageOf = new Dictionary<ModuleData, int>();
+                var recipes = _station != null && _station.Simulation != null && _station.Simulation.Synthesis != null ? _station.Simulation.Synthesis.Recipes : null;
+                if (recipes != null)
+                {
+                    foreach (var r in recipes)
+                    {
+                        if (r != null && r.Result != null && (!_stageOf.TryGetValue(r.Result, out int s) || r.Stage > s))
+                            _stageOf[r.Result] = r.Stage;
+                    }
+                }
+            }
+            return _stageOf.TryGetValue(data, out int stage) ? stage : 0;
+        }
+
+        /// <summary>칸의 모듈 단계 (배치 미리보기 = 아직 그리드에 없는 칸은 놓을 모듈).</summary>
+        private int StageAt(Vector3Int cell, ModuleData placing)
+        {
+            if (_station.Grid.TryGetModule(cell, out var m) && m != _ignorePreview)
+                return StageOf(m.Data);
+            return StageOf(placing);
+        }
+
+        private ModuleInstance _ignorePreview;
+
+        private StageSet SetFor(int stage)
+        {
+            int i = stage - 1;
+            if (i < 0 || i >= _stages.Length)
+                return null;
+            var s = _stages[i];
+            return s != null && s.Tube != null && s.Strut != null ? s : null;
+        }
+
+        private Connector Build(ConnectorSpec spec, Transform parent, bool ghost, ModuleData placing = null)
         {
             var c = new Connector { Spec = spec };
             c.Root = new GameObject(ghost ? "GhostConnector" : $"Connector {spec.CellA}->{spec.CellB}");
@@ -234,7 +304,13 @@ namespace SpaceStation.Building
 
             float length = spec.Length;
             float half = length * 0.5f;
-            if (!spec.IsVertical)
+            var style = ConnectorStyle.For(StageAt(spec.CellA, placing), StageAt(spec.CellB, placing), spec.IsVertical);
+            var set = SetFor(style.Stage);
+            if (set != null && _evoMaterial != null)
+            {
+                BuildEvo(c, set, style, ghost ? _ghostMaterial : _evoMaterial, stripMat, length, hull, strips);
+            }
+            else if (!spec.IsVertical)
             {
                 hull.Add(Part(c.Root.transform, "Tube", _tubeMesh, hullMat, Vector3.zero, new Vector3(1f, 1f, length)));
                 hull.Add(Part(c.Root.transform, "CollarA", _collarMesh, hullMat, new Vector3(0f, 0f, -half), Vector3.one));
@@ -259,6 +335,50 @@ namespace SpaceStation.Building
                     r.SetPropertyBlock(_block);
             }
             return c;
+        }
+
+        /// <summary>
+        /// 진화 단계 통로: 수평 = 통로 · 띠 (길이만큼 늘림) + 양끝 칼라 · 착지판 (B는 뒤집음) + 간격마다 고리 + 데크가 낮은 단계에 닿는 끝의 에어록 고리,
+        /// 수직 = 기둥 (늘림) + 양끝 받침판 + 가운데 고리.
+        /// </summary>
+        private void BuildEvo(Connector c, StageSet set, ConnectorStyle style, Material material, Material stripMaterial, float length, List<Renderer> hull, List<Renderer> strips)
+        {
+            var t = c.Root.transform;
+            float half = length * 0.5f;
+            var stretch = new Vector3(1f, 1f, Mathf.Max(0.001f, length));
+            if (!c.Spec.IsVertical)
+            {
+                hull.Add(Part(t, "Tube", set.Tube, material, Vector3.zero, stretch));
+                if (set.Collar != null)
+                {
+                    hull.Add(Part(t, "CollarA", set.Collar, material, new Vector3(0f, 0f, -half), Vector3.one));
+                    hull.Add(Part(t, "CollarB", set.Collar, material, new Vector3(0f, 0f, half), Vector3.one, 180f));
+                }
+                if (set.Strip != null)
+                    strips.Add(Part(t, "Strip", set.Strip, stripMaterial, Vector3.zero, stretch));
+                if (set.Ring != null && set.RingStep > 0.01f)
+                {
+                    float free = length - 2f * RingClear;
+                    int n = Mathf.FloorToInt(free / set.RingStep);
+                    for (int i = 0; i < n; i++)
+                        hull.Add(Part(t, "Ring", set.Ring, material, new Vector3(0f, 0f, -free * 0.5f + (i + 0.5f) * free / n), Vector3.one));
+                }
+                if (_lockMesh != null && style.LockAtA)
+                    hull.Add(Part(t, "LockA", _lockMesh, material, new Vector3(0f, 0f, -half), Vector3.one));
+                if (_lockMesh != null && style.LockAtB)
+                    hull.Add(Part(t, "LockB", _lockMesh, material, new Vector3(0f, 0f, half), Vector3.one, 180f));
+            }
+            else
+            {
+                hull.Add(Part(t, "Strut", set.Strut, material, Vector3.zero, stretch));
+                if (set.Plate != null)
+                {
+                    hull.Add(Part(t, "PlateA", set.Plate, material, new Vector3(0f, 0f, -half), Vector3.one));
+                    hull.Add(Part(t, "PlateB", set.Plate, material, new Vector3(0f, 0f, half), Vector3.one, 180f));
+                }
+                if (set.VRing != null)
+                    hull.Add(Part(t, "VRing", set.VRing, material, Vector3.zero, Vector3.one));
+            }
         }
 
         /// <summary>통로 루트: A·B 표면 사이 중앙, 로컬 Z = A→B 방향.</summary>
@@ -370,12 +490,15 @@ namespace SpaceStation.Building
             if (_station == null || _ghostRoot == null)
                 return;
             ConnectorLayout.ForPlacement(_station.Grid, data, origin, rotation, _specs, ignore);
-            // 개수가 바뀌면 다시 만들고, 같으면 위치만 갱신
-            if (_ghosts.Count != _specs.Count || NeedsRebuild())
+            // 개수가 바뀌면 다시 만들고, 같으면 위치만 갱신 (놓을 모듈이 바뀌면 단계 모양이 달라지므로 다시)
+            if (_ghosts.Count != _specs.Count || data != _ghostData || NeedsRebuild())
             {
                 HidePreview();
+                _ghostData = data;
+                _ignorePreview = ignore;
                 foreach (var spec in _specs)
-                    _ghosts.Add(Build(spec, _ghostRoot, true));
+                    _ghosts.Add(Build(spec, _ghostRoot, true, data));
+                _ignorePreview = null;
             }
             _block.Clear();
             _block.SetColor(BaseColorId, color);
@@ -401,11 +524,14 @@ namespace SpaceStation.Building
             return false;
         }
 
+        private ModuleData _ghostData;
+
         public void HidePreview()
         {
             foreach (var g in _ghosts)
                 Destroy(g.Root);
             _ghosts.Clear();
+            _ghostData = null;
             if (_ghostRoot != null)
                 _ghostRoot.gameObject.SetActive(false);
         }

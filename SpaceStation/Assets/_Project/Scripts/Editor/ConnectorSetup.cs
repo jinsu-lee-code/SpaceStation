@@ -66,10 +66,110 @@ namespace SpaceStation.Editor
             so.FindProperty("_flowMaterial").objectReferenceValue = flow;
             so.FindProperty("_ghostMaterial").objectReferenceValue = ghost;
             so.ApplyModifiedProperties();
+            SetupEvo(connectors, flow);
             EditorSceneManager.MarkSceneDirty(station.gameObject.scene);
 
             ConnectorDepthBaker.MeasureAll();
             Debug.Log($"[ConnectorSetup] meshes {string.Join(",", meshes.Select(m => m.name))} hull {hull?.name} flow {flow?.name} ghost {ghost?.name}");
+        }
+
+        // ---------------- 진화 단계별 통로 (2026-11-17) ----------------
+
+        private const string EvoModelPath = "Assets/_Project/Art/Models/Modules/SM_ConnectorsEvo.fbx";
+        private const string EvoTextureFolder = "Assets/_Project/Art/Models/Modules/Textures/ConnectorsEvo";
+        private const string EvoMaterialPath = "Assets/_Project/Art/Materials/M_ConnectorsEvo.mat";
+        /// <summary>단계별 고리 간격 (Blender connector_builder RING_STEP과 같게).</summary>
+        private static readonly float[] RingSteps = { 0.30f, 0.24f, 0.22f, 0.26f };
+
+        /// <summary>
+        /// SM_ConnectorsEvo.fbx (BlenderWork/Connectors/connector_builder.py --export): CN{단계}_Tube · Collar · Ring · Strip · Strut · Plate · VRing + CN_Lock.
+        /// 재질 = 색표 텍스처 한 장 (M_ConnectorsEvo — 비활성 어둡게 MPB가 그대로 먹음), 띠 = ConnectorFlow.
+        /// </summary>
+        /// <summary>진화 통로만 다시 배선 (기본 통로 · 표면 깊이는 그대로).</summary>
+        [MenuItem("SpaceStation/Art/Setup Evo Connectors")]
+        public static void SetupEvoMenu()
+        {
+            var station = Object.FindFirstObjectByType<StationController>();
+            var connectors = station != null ? station.GetComponent<StationConnectors>() : null;
+            if (connectors == null)
+            {
+                Debug.LogError("[ConnectorSetup] 씬에 StationConnectors 없음 — Setup Connectors 먼저");
+                return;
+            }
+            SetupEvo(connectors, ModuleFxMaterials.Get("ConnectorFlow"));
+            EditorSceneManager.MarkSceneDirty(station.gameObject.scene);
+        }
+
+        private static void SetupEvo(StationConnectors connectors, Material flow)
+        {
+            if (AssetImporter.GetAtPath(EvoModelPath) is not ModelImporter importer)
+            {
+                Debug.LogWarning($"[ConnectorSetup] {EvoModelPath} 없음 — 진화 통로는 기본 모양");
+                return;
+            }
+            var evo = EvoMaterial();
+            importer.importAnimation = false;
+            importer.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "M_ConnectorsEvo"), evo);
+            importer.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "Flow"), flow);
+            importer.SaveAndReimport();
+
+            var meshes = AssetDatabase.LoadAllAssetsAtPath(EvoModelPath).OfType<Mesh>().ToArray();
+            Mesh Find(string name) => meshes.FirstOrDefault(m => m.name == name);
+            var so = new SerializedObject(connectors);
+            var stages = so.FindProperty("_stages");
+            stages.arraySize = RingSteps.Length;
+            for (int i = 0; i < RingSteps.Length; i++)
+            {
+                var s = stages.GetArrayElementAtIndex(i);
+                string p = $"CN{i + 1}_";
+                foreach (var part in new[] { "Tube", "Collar", "Ring", "Strip", "Strut", "Plate", "VRing" })
+                    s.FindPropertyRelative(part).objectReferenceValue = Find(p + part);
+                s.FindPropertyRelative("RingStep").floatValue = RingSteps[i];
+            }
+            so.FindProperty("_lockMesh").objectReferenceValue = Find("CN_Lock");
+            so.FindProperty("_evoMaterial").objectReferenceValue = evo;
+            so.ApplyModifiedProperties();
+            Debug.Log($"[ConnectorSetup] 진화 통로 {meshes.Length}개 메시 · {evo.name}");
+        }
+
+        private static Material EvoMaterial()
+        {
+            Texture2D Tex(string name, bool srgb)
+            {
+                string path = $"{EvoTextureFolder}/{name}.png";
+                if (AssetImporter.GetAtPath(path) is TextureImporter ti)
+                {
+                    ti.sRGBTexture = srgb;
+                    ti.mipmapEnabled = false;
+                    ti.filterMode = FilterMode.Point;
+                    ti.wrapMode = TextureWrapMode.Clamp;
+                    ti.textureCompression = TextureImporterCompression.Uncompressed;
+                    ti.SaveAndReimport();
+                }
+                return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            }
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            var m = AssetDatabase.LoadAssetAtPath<Material>(EvoMaterialPath);
+            if (m == null)
+            {
+                m = new Material(shader);
+                AssetDatabase.CreateAsset(m, EvoMaterialPath);
+            }
+            m.shader = shader;
+            m.SetTexture("_BaseMap", Tex("T_ConnectorsEvo_BaseColor", true));
+            m.SetColor("_BaseColor", Color.white);
+            m.SetTexture("_MetallicGlossMap", Tex("T_ConnectorsEvo_MetallicGloss", false));
+            m.EnableKeyword("_METALLICSPECGLOSSMAP");
+            m.SetFloat("_Smoothness", 1f);
+            m.SetFloat("_SmoothnessTextureChannel", 0f);
+            m.SetTexture("_EmissionMap", Tex("T_ConnectorsEvo_Emission", true));
+            m.SetColor("_EmissionColor", Color.white * 2.2f);
+            m.EnableKeyword("_EMISSION");
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            m.enableInstancing = true;
+            EditorUtility.SetDirty(m);
+            AssetDatabase.SaveAssets();
+            return m;
         }
     }
 }
