@@ -72,7 +72,7 @@ namespace SpaceStation.Editor
                             continue;
                         InteriorSocket open;
                         why.Clear();
-                        float at = FindDepth(graph, decor, cell, dir, depth);
+                        float at = FindDepth(graph, decor, cell, dir, depth, why);
                         if (at >= 0f)
                         {
                             open = new InteriorSocket(cell, dir, at);
@@ -95,7 +95,7 @@ namespace SpaceStation.Editor
                         else
                         {
                             if (why.Count > 0)
-                                log?.Add($"{name ?? module.name} {cell} {dir} 문 계단 못 놓음: {string.Join(" · ", why)}");
+                                log?.Add($"{name ?? module.name} {cell} {dir} 못 엶: {string.Join(" · ", why)}");
                             continue;
                         }
                         if (i >= 0)
@@ -211,13 +211,27 @@ namespace SpaceStation.Editor
         /// 둥근 · 둥근 사각 평면이라 바닥이 칸 끝 조금 안에서 끝나는 트인 방 (그리드 허브 · 별빛 전력망 등)은 문을 바닥 끝에 세움 — 실내 통로 튜브는 양쪽 문 깊이를 따라 늘어남.
         /// 없으면 −1.
         /// </summary>
-        private static float FindDepth(InteriorWalkGraph graph, InteriorSkyLiftSpots.DecorGrid decor, Vector3Int cell, Vector3Int dir, float depth)
+        private static float FindDepth(InteriorWalkGraph graph, InteriorSkyLiftSpots.DecorGrid decor, Vector3Int cell, Vector3Int dir, float depth, List<string> why = null)
         {
+            string first = null;   // 문턱 높이 바닥이 있는 가장 바깥 깊이에서 막힌 까닭 (log)
             for (float d = depth; d >= MinDepth - 0.001f; d -= 0.05f)
             {
-                if (Clear(graph, cell, dir, d) && FloorAt(cell, dir, d - 0.02f) && Corridor(decor, cell, dir, d))
-                    return Mathf.Round(d * 100f) / 100f;
+                if (!FloorAt(cell, dir, d - 0.02f))
+                    continue;
+                if (!Clear(graph, cell, dir, d))
+                {
+                    first ??= $"깊이 {d:0.00} 문 안 걷기 자리 · 바닥 없음";
+                    continue;
+                }
+                if (!Corridor(decor, cell, dir, d, out string blocked))
+                {
+                    first ??= $"깊이 {d:0.00} {blocked}";
+                    continue;
+                }
+                return Mathf.Round(d * 100f) / 100f;
             }
+            if (first != null)
+                why?.Add(first);
             return -1f;
         }
 
@@ -525,8 +539,11 @@ namespace SpaceStation.Editor
         /// 문 벽 (두께 0.2)부터 칸 끝까지 문 구멍 폭 · 그 바깥 튜브 자리 (끝 고리 뒤, 폭 <see cref="InteriorGeometry.TubeHalfWidth"/> × 2)에 문턱 위 0.12 ~ 튜브 높이 충돌체가 없고,
         /// 문 평면 바깥에 충돌체 없는 장식 (난간 · 풀 · 덩굴 등) 정점도 없음 — 문 · 튜브가 모델을 뚫지 않게 (①에서 유리 난간 · 벽 · 물막이를 가로지른 문이 열렸었음).
         /// </summary>
-        private static bool Corridor(InteriorSkyLiftSpots.DecorGrid decor, Vector3Int cell, Vector3Int dir, float depth)
+        private static bool Corridor(InteriorSkyLiftSpots.DecorGrid decor, Vector3Int cell, Vector3Int dir, float depth) => Corridor(decor, cell, dir, depth, out _);
+
+        private static bool Corridor(InteriorSkyLiftSpots.DecorGrid decor, Vector3Int cell, Vector3Int dir, float depth, out string blocked)
         {
+            blocked = null;
             const float Edge = InteriorGeometry.CellSize * 0.5f + 0.05f;
             var center = TempOrigin + (Vector3)cell * InteriorGeometry.CellSize;
             float sill = TempOrigin.y + InteriorGeometry.FloorY(cell);
@@ -537,18 +554,27 @@ namespace SpaceStation.Editor
             const float Opening = InteriorGeometry.DoorWidth * 0.5f;
             var side = Vector3.Cross(Vector3.up, dir);
             if (Blocked(center, dir, side, depth - InteriorGeometry.Thickness, Edge, 0f, Opening, bottom, top))
+            {
+                blocked = "문 구멍 자리에 " + BlockerName(center, dir, side, depth - InteriorGeometry.Thickness, Edge, 0f, Opening, bottom, top);
                 return false;
+            }
             foreach (float s in new[] { -1f, 1f })
             {
                 if (Blocked(center, dir, side, depth + CollarCover, Edge, s * (Opening + InteriorGeometry.TubeHalfWidth) * 0.5f, (InteriorGeometry.TubeHalfWidth - Opening) * 0.5f, bottom, top))
+                {
+                    blocked = "튜브 옆 자리에 " + BlockerName(center, dir, side, depth + CollarCover, Edge, s * (Opening + InteriorGeometry.TubeHalfWidth) * 0.5f, (InteriorGeometry.TubeHalfWidth - Opening) * 0.5f, bottom, top);
                     return false;
+                }
             }
             for (float s = depth + 0.25f; s <= Edge + 0.001f; s += 0.2f)
             {
                 foreach (float x in new[] { -0.5f, 0f, 0.5f })
                 {
                     if (decor.Any(center + (Vector3)dir * s + side * x, 0.25f, ground + 0.15f, top))
+                    {
+                        blocked = $"문 앞 장식 (문 평면 밖 {s - depth:0.00})";
                         return false;
+                    }
                 }
             }
             for (float s = depth + CollarCover + 0.25f; s <= Edge + 0.001f; s += 0.2f)
@@ -556,7 +582,10 @@ namespace SpaceStation.Editor
                 foreach (float x in new[] { -1f, 1f })
                 {
                     if (decor.Any(center + (Vector3)dir * s + side * x, 0.25f, ground + 0.15f, top))
+                    {
+                        blocked = $"튜브 옆 장식 (문 평면 밖 {s - depth:0.00})";
                         return false;
+                    }
                 }
             }
             return true;
@@ -564,6 +593,15 @@ namespace SpaceStation.Editor
 
         /// <summary>튜브 끝 고리 두께 — 문 평면 바깥 이만큼은 문 구멍 폭 밖 (튜브 벽 쪽) 조각을 고리가 덮음 (생물권 · AI 중추 난간 끝이 문틀 옆에 닿음).</summary>
         private const float CollarCover = 0.3f;
+
+        /// <summary><see cref="Blocked"/> 상자 속 첫 충돌체 이름 (log).</summary>
+        private static string BlockerName(Vector3 center, Vector3Int dir, Vector3 side, float from, float to, float lateral, float halfWidth, float bottom, float top)
+        {
+            var mid = center + (Vector3)dir * ((from + to) * 0.5f) + side * lateral;
+            mid.y = (bottom + top) * 0.5f;
+            var hits = Physics.OverlapBox(mid, new Vector3(halfWidth, (top - bottom) * 0.5f, (to - from) * 0.5f), Quaternion.LookRotation(dir), Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            return hits.Length > 0 ? hits[0].name : "충돌체";
+        }
 
         /// <summary>문 방향 from ~ to · 옆 가운데 lateral ± halfWidth · 높이 bottom ~ top 상자에 충돌체가 있음.</summary>
         private static bool Blocked(Vector3 center, Vector3Int dir, Vector3 side, float from, float to, float lateral, float halfWidth, float bottom, float top)
