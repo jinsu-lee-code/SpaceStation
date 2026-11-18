@@ -177,7 +177,7 @@ namespace SpaceStation.Tests
                         $"해치 {cell} 뚜껑이 묻힘");
                 }
                 foreach (var (cell, dir) in RepairCommand.Doors)
-                    Reach(new Vector3(cell.x * 8f, F + cell.y * 8f, cell.z * 8f) + (Vector3)dir * (RepairCommand.DoorDepth - 0.5f), $"문 {cell} {dir}");
+                    Reach(new Vector3(cell.x * 8f, InteriorGeometry.FloorY(cell), cell.z * 8f) + (Vector3)dir * (RepairCommand.DoorDepth - 0.2f), $"문 {cell} {dir}");   // 문 앞 층계참 = 문턱 (2026-11-18)
                 foreach (var (cell, off) in RepairCommand.UpHatches)
                 {
                     float floorY = RepairCommand.DeckY;

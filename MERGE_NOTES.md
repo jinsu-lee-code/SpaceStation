@@ -3476,3 +3476,15 @@
 **main에서 따로 할 것**
 
 - 없음
+
+## M-243. 수리 사령부 위 옆문 앞 층계참 · 세 단 — 낮은 바닥 방 문턱 끝 (2026-11-18, `main`)
+
+**main에 넣은 것**
+
+- rc3_builder (`Interior_Evo2.blend`): 위 옆문 앞 마루 띠 가운데 층계참 0.25 m + 세 단 (디딤 0.24 · 폭 2.2 m) → SM_Interior_EvoRepairCommand.fbx (트림 UV) · PF · 생성 메시 둘
+- RepairCommand.Doors 설명, RepairCommandTests 걷기 문 자리 = 문턱 높이, InteriorTemplateBoundsTests.PendingDoorSills 비움
+- 문서 체크리스트 249
+
+**main에서 따로 할 것**
+
+- 없음
