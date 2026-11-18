@@ -18,6 +18,13 @@ namespace SpaceStation.Interior
         /// <summary>빛 기둥 승강판 (하늘이 트인 방의 위 연결점 — 해치 뚜껑 대신, 진화 단계별 통로 ③). 없으면 보통 해치.</summary>
         public InteriorSkyLift SkyLift { get; set; }
         /// <summary>
+        /// 문 승강판 (2층 높이 옆문 — 모든 면 연결 ②-4): 문 평면 가운데 문턱 (월드). 판에서 떠오르면 이 문으로 나가고, 문으로 들어오면 판까지 내려앉음.
+        /// 없으면 해치 · 위 승강판.
+        /// </summary>
+        public Vector3? DoorPoint { get; set; }
+        /// <summary>문 승강판의 문 바깥 방향 (월드).</summary>
+        public Vector3 DoorDirection { get; set; }
+        /// <summary>
         /// 이 해치로 들어온 사람이 서는 바닥 (월드): 바닥 해치 = 그 바닥 면, 천장 해치 = 바로 밑 바닥 (방을 지을 때 광선으로 — 탑 꼭대기 방처럼 칸 바닥 높이가 아닌 곳).
         /// 없으면 칸 바닥 높이 (FloorY).
         /// </summary>
@@ -191,6 +198,7 @@ namespace SpaceStation.Interior
             _doors.Clear();
             _hatches.Clear();
             _skyLifts.Clear();
+            _doorLifts.Clear();
             _open.Clear();
             _tubes.Clear();
             _rooms.Clear();
@@ -573,7 +581,9 @@ namespace SpaceStation.Interior
                 center.y = _root.position.y + InteriorGeometry.FloorY(cell) + InteriorGeometry.PanelCenterAboveFloor;
                 var skyPatch = CellCenter(cell) + (Vector3)dir * SkyPatchDepth;
                 skyPatch.y = center.y;
-                Panel(new WallPanel(center - _root.position, dir, InteriorGeometry.PanelWidth, open), module, parent, open ? OtherRoom(cell, dir) : null, socket.SealedWall, skyPatch);
+                Panel(new WallPanel(center - _root.position, dir, InteriorGeometry.PanelWidth, open), module, parent, open ? OtherRoom(cell, dir) : null, socket.SealedWall, skyPatch, skyOnly: socket.DoorLift && !open);
+                if (open && socket.DoorLift)
+                    BuildDoorLift(module, parent, cell, dir, CellCenter(cell) + rotation * socket.Offset, center + Vector3.down * InteriorGeometry.PanelCenterAboveFloor);
             }
             // 하늘 껍질이 있는 방 = 개방형 (아콜로지 · 대형 토러스는 우주복 없이도 하늘이 있음)
             foreach (Transform part in instance.transform)
@@ -660,7 +670,7 @@ namespace SpaceStation.Interior
         /// <summary>대체 방 (문 깊이가 템플릿과 다름): 패널 뒤 하늘 조각 거리 (표준 문 깊이 3.2 + 이 값 = 하늘 껍질).</summary>
         private const float SkyPatchBehindPanel = 0.7425f;
 
-        private void Panel(WallPanel panel, ModuleInstance module, Transform parent, ModuleInstance other, bool sealedWall = false, Vector3? skyPatch = null)
+        private void Panel(WallPanel panel, ModuleInstance module, Transform parent, ModuleInstance other, bool sealedWall = false, Vector3? skyPatch = null, bool skyOnly = false)
         {
             var rotation = Quaternion.LookRotation(panel.Normal, Vector3.up);
             var center = _root.position + panel.Center;
@@ -672,6 +682,12 @@ namespace SpaceStation.Interior
 
             if (!panel.Door)
             {
+                if (skyOnly)   // 닫힌 2층 높이 옆문 (문 승강판 자리, 이웃 없음): 공중에 난간 · 벽 조각을 두지 않고 뚫어 둔 하늘 구멍만 메움
+                {
+                    if (_kit != null && _kit.SkyPatchFor(module.Data) is { IsValid: true } sky)
+                        KitPiece(sky, module, parent, skyPatch ?? center + panel.Normal * SkyPatchBehindPanel, rotation);
+                    return;
+                }
                 Solid(solidCenter, rotation, new Vector3(panel.Width, h, t));
                 if (_kit != null)
                     KitPiece(sealedWall || TemplateFor(module)?.SealedSockets == true ? _kit.SealedWallFor(module.Data) : _kit.WallFor(module.Data), module, parent, center, rotation, new Vector3(panel.Width / InteriorGeometry.PanelWidth, 1f, 1f)); // 진화 모듈 = 단계 조각 (InteriorKitStage), 실내형 방 = 막힌 창 패널
@@ -783,6 +799,7 @@ namespace SpaceStation.Interior
         }
 
         private readonly List<InteriorHatch> _skyLifts = new List<InteriorHatch>();
+        private readonly List<InteriorHatch> _doorLifts = new List<InteriorHatch>();
 
         /// <summary>
         /// 빛 기둥 승강판 (진화 단계별 통로 ③): ground = 판이 놓일 땅 (템플릿 문 자리 오프셋 — 언덕이면 높은 쪽, 낮은 쪽은 판 치마가 묻힘), ringY = 하늘 고리 높이.
@@ -818,6 +835,73 @@ namespace SpaceStation.Interior
             h.SkyLift = lift;
             _hatches.Add(h);
             _skyLifts.Add(h);
+        }
+
+        /// <summary>
+        /// 문 승강판 (2층 높이 옆문 — 문 높이에 바닥이 없는 위 칸 옆면, 모든 면 연결 ②-4): 아래 바닥 판 · 판에서 문턱까지 빛 기둥 · 문턱 높이 고리 (위 승강판과 같은 단계 조각),
+        /// 떠오른 자리 ~ 문 사이 보이지 않는 받침 (문으로 들어온 사람이 내려앉기 시작하기 전에 떨어지지 않게). ground = 판 밑 땅, door = 문 평면 가운데 문턱 (월드).
+        /// </summary>
+        private void BuildDoorLift(ModuleInstance module, Transform parent, Vector3Int cell, Vector3Int dir, Vector3 ground, Vector3 door)
+        {
+            const float PadTop = 0.05f;
+            var padPiece = _kit != null ? _kit.SkyLiftPadFor(module.Data) : null;
+            var ringPiece = _kit != null ? _kit.SkyLiftRingFor(module.Data) : null;
+            GameObject pad;
+            if (padPiece != null)
+                pad = KitPiece(padPiece, module, parent, ground, Quaternion.identity).Renderer.gameObject;
+            else
+                pad = Cube(parent, module, ground + Vector3.up * (PadTop * 0.5f), Quaternion.identity, new Vector3(1.5f, PadTop, 1.5f), HatchColor).Renderer.gameObject;
+            if (ringPiece != null)
+                KitPiece(ringPiece, module, parent, new Vector3(ground.x, door.y - 0.04f, ground.z), Quaternion.identity);
+            var box = pad.AddComponent<BoxCollider>();
+            float half = InteriorSkyLift.PadRadius * 0.7071f;
+            box.size = new Vector3(half * 2f, 0.2f, half * 2f);
+            box.center = new Vector3(0f, PadTop - 0.1f, 0f);
+            if (padPiece == null)
+            {
+                box.size = new Vector3(box.size.x / 1.5f, 0.2f / PadTop, box.size.z / 1.5f);
+                box.center = new Vector3(0f, 0.5f - 0.1f / PadTop, 0f);
+            }
+            var lift = pad.AddComponent<InteriorSkyLift>();
+            lift.Initialize(ground + Vector3.up * PadTop, door.y, _kit != null ? _kit.SkyLiftShaft : null, ShaftColor(module));
+            // 받침: 기둥 꼭대기 (판 반지름까지) ~ 문 평면 + 0.1, 문 폭 + 여유, 윗면 = 문턱
+            var d = (Vector3)dir;
+            var top = new Vector3(ground.x, door.y, ground.z);
+            float back = InteriorSkyLift.PadRadius, length = Vector3.Dot(door - top, d) + back + 0.1f;
+            var landing = new GameObject("DoorLiftLanding") { layer = 2 };   // Ignore Raycast — 시선 · 상호작용 광선은 지나감
+            landing.transform.SetParent(parent, false);
+            landing.transform.SetPositionAndRotation(top + d * (length * 0.5f - back) + Vector3.down * 0.05f, Quaternion.LookRotation(d));
+            landing.AddComponent<BoxCollider>().size = new Vector3(InteriorGeometry.DoorWidth, 0.1f, length);
+            var h = pad.AddComponent<InteriorHatch>();
+            h.FromCell = cell;
+            h.ToCell = cell + dir;
+            h.SkyLift = lift;
+            h.DoorPoint = door;
+            h.DoorDirection = d;
+            _hatches.Add(h);
+            _skyLifts.Add(h);
+            _doorLifts.Add(h);
+        }
+
+        /// <summary>
+        /// 문으로 들어와 문 승강판 떠오른 자리 (문 평면 안쪽 ~ 판 가운데 + 판 반지름, 문 폭, 문턱 높이)에 선 발 — 내려앉기 시작 (<see cref="InteriorMode"/>). 없으면 null.
+        /// </summary>
+        public InteriorHatch DoorLiftAt(Vector3 feet)
+        {
+            foreach (var h in _doorLifts)
+            {
+                if (h == null || !h.isActiveAndEnabled || !h.DoorPoint.HasValue)
+                    continue;
+                var door = h.DoorPoint.Value;
+                var d = h.DoorDirection;
+                var rel = feet - door;
+                float inward = -Vector3.Dot(rel, d);
+                float reach = Vector3.Dot(door - h.SkyLift.PadTop, d) + InteriorSkyLift.PadRadius;
+                float lateral = Mathf.Abs(Vector3.Dot(rel, Vector3.Cross(Vector3.up, d)));
+                if (inward > 0.05f && inward < reach && lateral < InteriorGeometry.DoorWidth * 0.5f + 0.1f && rel.y > -0.6f && rel.y < 0.9f)
+                    return h;
+            }
+            return null;
         }
 
         /// <summary>빛 기둥 색 = 방 강조색 (강조 재질의 발광 색 — 없으면 바탕색).</summary>

@@ -139,6 +139,71 @@ namespace SpaceStation.Tests
         }
 
         /// <summary>
+        /// 문 승강판 (2층 높이 옆문 — 모든 면 연결 ②-4, <see cref="InteriorAutoDoors"/>): 판이 땅 위 · 판에서 문턱 + 2.3까지 기둥이 빔 · 걸어서 닿음 · 판 테가 벽에 안 겹침 ·
+        /// 문턱보다 1.2 m 넘게 낮음 · 판 ~ 문 떠오른 길 (문 폭, 문턱 −0.3 ~ +2.3)에 충돌체가 없음 · 문 앞 바닥이 없음 (있으면 승강판 말고 문).
+        /// </summary>
+        [Test]
+        public void DoorLifts_SitOnGround_PathClear_Reachable()
+        {
+            var problems = new StringBuilder();
+            int checkedLifts = 0;
+            foreach (var guid in AssetDatabase.FindAssets("t:InteriorTemplate", new[] { "Assets/_Project/Data/Interior" }))
+            {
+                var t = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
+                if (t == null || t.Prefab == null || !t.Sockets.Any(s => s.DoorLift))
+                    continue;
+                var root = Object.Instantiate(t.Prefab);
+                root.transform.SetPositionAndRotation(Away, Quaternion.identity);
+                Physics.SyncTransforms();
+                try
+                {
+                    var graph = InteriorWalkGraph.ForTemplate(t, root.transform);
+                    foreach (var s in t.Sockets)
+                    {
+                        if (!s.DoorLift)
+                            continue;
+                        checkedLifts++;
+                        var center = Away + (Vector3)s.Cell * 8f;
+                        float sill = center.y - 1.3f;
+                        var pad = center + s.Offset;
+                        var d = (Vector3)s.Direction;
+                        var door = center + d * s.Depth;
+                        door.y = sill;
+                        string at = $"{t.name} {s.Cell} {s.Direction} 판 {s.Offset}";
+                        if (s.Direction.y != 0)
+                            problems.AppendLine($"{at}: 문 승강판이 옆문이 아님");
+                        if (!InteriorSkyLiftSpots.PadSurface(pad, out float top, out _) || Mathf.Abs(top - pad.y) > 0.02f)
+                            problems.AppendLine($"{at}: 판 밑 땅이 고르지 않음 / 판이 떠 있음");
+                        if (!InteriorSkyLiftSpots.ColumnClear(pad, sill + 2.3f, InteriorSkyLiftSpots.ColumnRadii[InteriorSkyLiftSpots.ColumnRadii.Length - 1]))
+                            problems.AppendLine($"{at}: 판에서 문턱 위까지 기둥이 막힘");
+                        if (sill - pad.y < 1.2f)
+                            problems.AppendLine($"{at}: 문턱보다 {sill - pad.y:F2} m 아래 — 승강판 말고 계단 · 문간");
+                        if (InteriorSkyLiftSpots.EdgeGap(pad) < 0f)
+                            problems.AppendLine($"{at}: 판 테가 벽 · 물건에 겹침");
+                        int k = graph.Node(pad, 0.4f);
+                        if (k < 0 || !graph.Reached(k))
+                            problems.AppendLine($"{at}: 판에 걸어서 못 감");
+                        if (Physics.Raycast(door - d * 0.05f + Vector3.up * 1f, Vector3.down, 1.3f, ~0, QueryTriggerInteraction.Ignore))
+                            problems.AppendLine($"{at}: 문 앞에 바닥이 있음 (승강판 말고 문)");
+                        var top2 = new Vector3(pad.x, sill, pad.z);
+                        float len = Vector3.Dot(door - top2, d);
+                        var mid = top2 + d * (len * 0.5f) + Vector3.up * 1.0f;
+                        var rot = Quaternion.LookRotation(d);
+                        if (len > 0f && Physics.CheckBox(mid, new Vector3(0.6f, 1.2f, len * 0.5f), rot, ~0, QueryTriggerInteraction.Ignore))
+                            problems.AppendLine($"{at}: 떠오른 자리 ~ 문 사이가 막힘");
+                    }
+                }
+                finally
+                {
+                    Object.DestroyImmediate(root);
+                    Physics.SyncTransforms();
+                }
+            }
+            Assert.IsEmpty(problems.ToString(), problems.ToString());
+            Assert.GreaterOrEqual(checkedLifts, 0);
+        }
+
+        /// <summary>
         /// 모델에 낸 착지 원판 (<see cref="InteriorSkyLiftSpots.Targets"/> — 정련 콤비나트 여섯 · 심우주 통신기지 셋 · 드론 정비창 옥상 둘 · 식량 공장 귀퉁이 둘 · 방사선 차폐벽 마당 하나): 그 칸 승강판이 원판 가운데 그대로 (1 cm 안) —
         /// 도구가 다른 곳을 고르면 판 둘레로 보여야 할 금빛 · 은빛 테가 어긋나 빈 원판만 남음.
         /// </summary>
