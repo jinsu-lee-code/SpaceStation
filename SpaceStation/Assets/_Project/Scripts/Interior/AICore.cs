@@ -208,7 +208,7 @@ namespace SpaceStation.Interior
         public const float SpawnYaw = 270f;
         /// <summary>옆 문 깊이 (칸 중심 → 문 패널 바깥면, 하늘 면 바로 안).</summary>
         public const float DoorDepth = 3.9f;
-        /// <summary>옆 문 하나 = 외형 연결점: 드론 마당 칸 (3, 0, 0) 뒤 (+z).</summary>
+        /// <summary>옆 문 하나 = 외형 연결점: 드론 마당 칸 (3, 0, 0) 뒤 (+z). 문 앞 = 문턱 (−1.3) 높이 층계참 + 서쪽 세 단 (2026-11-18 — 바닥 F와 0.78 m 차이).</summary>
         public static readonly (Vector3Int Cell, Vector3Int Direction)[] Doors =
         {
             (new Vector3Int(3, 0, 0), new Vector3Int(0, 0, 1)),
