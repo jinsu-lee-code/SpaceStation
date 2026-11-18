@@ -3465,3 +3465,14 @@
 **main에서 따로 할 것**
 
 - 없음
+
+## M-242. 상점 가운데 화단 옆 산책길 열기 — 벤치는 동 · 서쪽 호만 · 입간판을 가게 반대쪽 끝으로 (2026-11-18, `main`)
+
+**main에 넣은 것**
+
+- cm_builder (`Interior_NewBasic.blend`): 둥근 벤치 동 · 서쪽 호 넷 · 입간판 x 2.1 · 5.9 → SM_Interior_Commerce.fbx, IT_Commerce 주민 자리 다시 구움
+- 문서 체크리스트 250
+
+**main에서 따로 할 것**
+
+- 없음
