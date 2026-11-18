@@ -226,7 +226,7 @@ namespace SpaceStation.Tests
                 {
                     foreach (var s in template.Sockets)
                     {
-                        if (s.Direction.y != 0 || s.SealedWall)
+                        if (s.Direction.y != 0 || s.SealedWall || s.DoorLift)   // 문 승강판 = 문 앞 바닥 없음 (판까지 내려앉음)
                             continue;
                         doors++;
                         var c = away + (Vector3)s.Cell * CellSize;

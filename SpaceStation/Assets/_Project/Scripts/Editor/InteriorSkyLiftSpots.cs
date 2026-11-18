@@ -182,7 +182,11 @@ namespace SpaceStation.Editor
             foreach (var s in template.Sockets)
             {
                 var center = o + (Vector3)s.Cell * InteriorGeometry.CellSize;
-                if (s.Direction.y == 0)
+                if (s.Direction.y == 0 && s.DoorLift)
+                {
+                    starts.Add(graph.Node(center + s.Offset, 0.8f));   // 2층 높이 옆문 = 문 승강판 판 (모든 면 연결 ②-4)
+                }
+                else if (s.Direction.y == 0)
                 {
                     // 문 자리 안쪽 0.7 m — 그 기둥의 마디 중 칸 가운데보다 아래에서 가장 높은 것 (문 바닥)
                     var p = center + (Vector3)s.Direction * (s.Depth - 0.7f);
@@ -514,6 +518,11 @@ namespace SpaceStation.Editor
                 var graph = InteriorWalkGraph.ForTemplate(t, root.transform);
                 var decor = new DecorGrid(root.transform);
                 var pads = new List<Vector3>();
+                foreach (var s in sockets)
+                {
+                    if (s.DoorLift)   // 2층 높이 옆문 승강판 (자동 문이 정함 — 그대로 두고 위 승강판이 비킴)
+                        pads.Add(Away + (Vector3)s.Cell * InteriorGeometry.CellSize + s.Offset);
+                }
                 log.Append(t.name).Append(':');
                 foreach (var cell in faces)
                 {

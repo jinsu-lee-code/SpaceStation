@@ -22,6 +22,9 @@ namespace SpaceStation.Data
         [SerializeField] private bool _skyLift;
         [Tooltip("해치 크기 배율 (0 = 1). 좁은 탑 방 천장 해치 = 0.65 (틀 1.24 · 뚜껑 0.92 — 가운데 엘리베이터 샤프트와 벽 사이에 1.9 m 틀이 안 들어감)")]
         [SerializeField] private float _hatchScale;
+        [Tooltip("수평 문 자리만: 문 높이에 바닥이 없는 2층 높이 옆문 (위 칸이 하늘 · 뚫린 홀) — 아래 바닥 빛 기둥 판에서 떠올라 문으로 나가고, 문으로 들어오면 판까지 내려앉음 " +
+                 "(모든 면 연결 ②-4, 2026-11-18). 오프셋 = 판 자리 (칸 중심 기준, y = 판 윗면)")]
+        [SerializeField] private bool _doorLift;
 
         public Vector3Int Cell => _cell;
         public Vector3Int Direction => _direction;
@@ -30,8 +33,9 @@ namespace SpaceStation.Data
         public bool SealedWall => _sealedWall;
         public bool SkyLift => _skyLift;
         public float HatchScale => _hatchScale > 0f ? _hatchScale : 1f;
+        public bool DoorLift => _doorLift;
 
-        public InteriorSocket(Vector3Int cell, Vector3Int direction, float depth, Vector3 offset = default, bool sealedWall = false, bool skyLift = false, float hatchScale = 0f)
+        public InteriorSocket(Vector3Int cell, Vector3Int direction, float depth, Vector3 offset = default, bool sealedWall = false, bool skyLift = false, float hatchScale = 0f, bool doorLift = false)
         {
             _cell = cell;
             _direction = direction;
@@ -40,6 +44,7 @@ namespace SpaceStation.Data
             _sealedWall = sealedWall;
             _skyLift = skyLift;
             _hatchScale = hatchScale;
+            _doorLift = doorLift;
         }
     }
 

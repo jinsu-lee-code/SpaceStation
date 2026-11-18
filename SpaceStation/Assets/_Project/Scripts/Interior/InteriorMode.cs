@@ -556,6 +556,13 @@ namespace SpaceStation.Interior
             UpdateRoomTitle();
             UpdateNearbyRooms(RoomAtPlayer(), force: _builder.NeedsReshow);
             PrefetchRoom();
+            // 2층 높이 옆문으로 들어옴 (문 승강판 떠오른 자리) — 판까지 내려앉음 (모든 면 연결 ②-4)
+            var doorLift = _builder.DoorLiftAt(_player.transform.position);
+            if (doorLift != null)
+            {
+                StartCoroutine(RideDoorLiftDown(doorLift));
+                return;
+            }
             UpdateInteraction();
             if (_atmosphere != null)
             {
@@ -731,13 +738,15 @@ namespace SpaceStation.Interior
             }
             bool hasRoom = _layout.TryGetRoom(hatch.ToCell, out var room);
             string target = hasRoom && room.Module.Data != null ? room.Module.Data.DisplayName : "";
-            string verb = hatch.SkyLift != null ? "빛 기둥 타고 위층으로" : hatch.Up ? "위층으로" : "아래층으로";
+            string verb = hatch.DoorPoint.HasValue ? "빛 기둥 타고 위 문으로" : hatch.SkyLift != null ? "빛 기둥 타고 위층으로" : hatch.Up ? "위층으로" : "아래층으로";
             _prompt.SetText($"<b>{KeyBindings.Label(GameAction.Interact)}</b>  {verb} <color={HudText.Muted}>{target}</color>");
             if (KeyBindings.WasPressed(GameAction.Interact))
             {
                 if (hasRoom)
                     _builder.EnsureBuilt(room.Module); // 맞은편 해치(도착점)가 생기게
-                if (hatch.SkyLift != null)
+                if (hatch.DoorPoint.HasValue)
+                    StartCoroutine(RideDoorLiftUp(hatch));
+                else if (hatch.SkyLift != null)
                     StartCoroutine(RideSkyLiftUp(hatch));
                 else if (!hatch.Up && hatch.Partner != null && hatch.Partner.SkyLift != null)
                     StartCoroutine(RideSkyLiftDown(hatch.Partner.SkyLift));
@@ -941,6 +950,86 @@ namespace SpaceStation.Interior
             _player.Dismount();
             Destroy(carrier.gameObject);
             lift.SetRiding(false);
+            _busy = false;
+        }
+
+        /// <summary>떠오른 자리 ~ 문 너머 (튜브 안) 미끄러지는 시간 (초속 약 1.6 m, 0.6 ~ 1.6초).</summary>
+        private static float DoorGlideSeconds(float distance) => Mathf.Clamp(distance / 1.6f, 0.6f, 1.6f);
+
+        /// <summary>
+        /// 문 승강판 타고 위 문으로 (2층 높이 옆문 — 모든 면 연결 ②-4): 판 가운데로 모이며 기둥을 따라 문턱 높이까지 떠오른 뒤 문을 지나 튜브 안 1.1 m까지 미끄러져 내려섬.
+        /// </summary>
+        private IEnumerator RideDoorLiftUp(InteriorHatch hatch)
+        {
+            _busy = true;
+            _prompt.SetText(string.Empty);
+            var lift = hatch.SkyLift;
+            lift.SetRiding(true);
+            var carrier = new GameObject("DoorLiftCarrier").transform;
+            var start = _player.transform.position;
+            carrier.position = start;
+            _player.Ride(carrier);
+            var pad = lift.PadTop;
+            var door = hatch.DoorPoint.Value;
+            float top = door.y + 0.03f;
+            float duration = SkyLiftSeconds(top - start.y);
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                float k = t / duration;
+                float gather = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(k * 3f));
+                var p = Vector3.Lerp(start, new Vector3(pad.x, start.y, pad.z), gather);
+                p.y = Mathf.Lerp(start.y, top, k * k * (3f - 2f * k));
+                carrier.position = p;
+                yield return null;
+            }
+            var from = new Vector3(pad.x, top, pad.z);
+            var to = door + hatch.DoorDirection * 1.1f;
+            to.y = top;
+            float glide = DoorGlideSeconds(Vector3.Distance(from, to));
+            for (float t = 0f; t < glide; t += Time.unscaledDeltaTime)
+            {
+                carrier.position = Vector3.Lerp(from, to, Mathf.SmoothStep(0f, 1f, t / glide));
+                yield return null;
+            }
+            carrier.position = to;
+            _player.Dismount();
+            Destroy(carrier.gameObject);
+            lift.SetRiding(false);
+            UpdateNearbyRooms(RoomAtPlayer(), force: false);
+            _busy = false;
+        }
+
+        /// <summary>2층 높이 옆문으로 들어오면 떠오른 자리 (기둥 꼭대기)까지 미끄러진 뒤 판까지 내려앉음.</summary>
+        private IEnumerator RideDoorLiftDown(InteriorHatch hatch)
+        {
+            _busy = true;
+            _prompt.SetText(string.Empty);
+            var lift = hatch.SkyLift;
+            lift.SetRiding(true);
+            var carrier = new GameObject("DoorLiftCarrier").transform;
+            var start = _player.transform.position;
+            carrier.position = start;
+            _player.Ride(carrier);
+            var pad = lift.PadTop;
+            var over = new Vector3(pad.x, start.y, pad.z);
+            float glide = DoorGlideSeconds(Vector3.Distance(start, over));
+            for (float t = 0f; t < glide; t += Time.unscaledDeltaTime)
+            {
+                carrier.position = Vector3.Lerp(start, over, Mathf.SmoothStep(0f, 1f, t / glide));
+                yield return null;
+            }
+            float duration = SkyLiftSeconds(over.y - pad.y);
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                float k = t / duration;
+                carrier.position = new Vector3(pad.x, Mathf.Lerp(over.y, pad.y + 0.02f, k * k * (3f - 2f * k)), pad.z);
+                yield return null;
+            }
+            carrier.position = new Vector3(pad.x, pad.y + 0.02f, pad.z);
+            _player.Dismount();
+            Destroy(carrier.gameObject);
+            lift.SetRiding(false);
+            UpdateNearbyRooms(RoomAtPlayer(), force: false);
             _busy = false;
         }
 

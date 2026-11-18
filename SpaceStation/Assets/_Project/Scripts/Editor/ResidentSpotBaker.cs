@@ -1738,6 +1738,8 @@ namespace SpaceStation.Editor
                     var dir = (Vector3)s.Direction;
                     list.Add((c + dir * (s.Depth - 0.4f), 1.1f));
                     list.Add((c + dir * (s.Depth - 1.4f), 0.9f));
+                    if (s.DoorLift)
+                        list.Add((c + s.Offset, 1.2f));   // 2층 높이 옆문 승강판 판
                 }
                 else
                     list.Add((c + s.Offset, 1.0f));
