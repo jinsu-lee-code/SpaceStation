@@ -9,7 +9,8 @@ namespace SpaceStation.Editor
 {
     /// <summary>
     /// 모든 면 연결 (2026-11-18, 사용자 "연결점이 모두 이어져서 어떤 방향으로든 이동이 가능하게"): 템플릿을 지을 때
-    /// 문 자리가 없는 (또는 닫힌) 둘레 옆면 중 문 안쪽 바닥이 문턱 높이 · 비어 있고 걸어서 닿는 면에 열린 문 자리를 더한다.
+    /// 문 자리가 없는 (또는 닫힌) 둘레 옆면 중 문 안쪽 바닥이 문턱 높이 · 비어 있고 걸어서 닿는 면에 열린 문 자리를 더한다
+    /// (문 깊이 = 그 방 문 깊이, 바닥이 칸 끝 조금 안에서 끝나면 바닥 끝 — 문에서 칸 끝까지 튜브 자리가 비어 있어야 함, <see cref="FindDepth"/>).
     /// 하늘 껍질 문 구멍보다 먼저 불러 새 문도 하늘이 비켜 줌 (InteriorTemplateBuilder.Build).
     /// 칸 끝까지 바닥이 없는 면은 모델에 길 · 문간을 낸 뒤 다시 지으면 저절로 열림 (빌더마다 문 목록을 손대지 않음).
     /// 바깥 통로는 Measure Connector Depths가 열린 문 자리를 따라 만듦 (<see cref="ConnectorDepthBaker"/>).
@@ -36,6 +37,7 @@ namespace SpaceStation.Editor
                 root.transform.position = TempOrigin;
                 Physics.SyncTransforms();
                 var graph = InteriorWalkGraph.ForTemplate(probe, root.transform);
+                var decor = new InteriorSkyLiftSpots.DecorGrid(root.transform);
                 var cells = new HashSet<Vector3Int>(module.CellOffsets);
                 float depth = DoorDepth(sockets);
                 foreach (var cell in module.CellOffsets)
@@ -44,18 +46,21 @@ namespace SpaceStation.Editor
                     {
                         if (dir.y != 0 || cells.Contains(cell + dir))
                             continue;
+                        if ((module.TerminalOnly && dir == module.DockFront) || module.IsClosedFace(cell, dir))
+                            continue;   // 도킹 접근로 쪽 (이웃이 못 붙음 — 물류 · 조선소 하역문) · 닫힌 면
                         int i = sockets.FindIndex(s => s.Cell == cell && s.Direction == dir);
                         if (i >= 0 && !sockets[i].SealedWall)
                             continue;
-                        if (!Clear(graph, cell, dir, depth))
+                        float at = FindDepth(graph, decor, cell, dir, depth);
+                        if (at < 0f)
                             continue;
-                        var open = new InteriorSocket(cell, dir, depth);
+                        var open = new InteriorSocket(cell, dir, at);
                         if (i >= 0)
                             sockets[i] = open;
                         else
                             sockets.Add(open);
                         opened++;
-                        log?.Add($"{name ?? module.name} {cell} {dir}");
+                        log?.Add($"{name ?? module.name} {cell} {dir} 깊이 {at:0.00}");
                     }
                 }
             }
@@ -157,6 +162,94 @@ namespace SpaceStation.Editor
                 }
             }
             return best;
+        }
+
+        /// <summary>
+        /// 문 깊이 찾기: 그 방 문 깊이에서 안쪽으로 (0.05 m씩, <see cref="MinDepth"/>까지) 바닥이 문턱 높이로 이어지고 문에서 칸 끝까지 통로 자리가 빈 첫 깊이.
+        /// 둥근 · 둥근 사각 평면이라 바닥이 칸 끝 조금 안에서 끝나는 트인 방 (그리드 허브 · 별빛 전력망 등)은 문을 바닥 끝에 세움 — 실내 통로 튜브는 양쪽 문 깊이를 따라 늘어남.
+        /// 없으면 −1.
+        /// </summary>
+        private static float FindDepth(InteriorWalkGraph graph, InteriorSkyLiftSpots.DecorGrid decor, Vector3Int cell, Vector3Int dir, float depth)
+        {
+            for (float d = depth; d >= MinDepth - 0.001f; d -= 0.05f)
+            {
+                if (Clear(graph, cell, dir, d) && FloorAt(cell, dir, d - 0.02f) && Corridor(decor, cell, dir, d))
+                    return Mathf.Round(d * 100f) / 100f;
+            }
+            return -1f;
+        }
+
+        /// <summary>문 평면 바로 안 (가운데 · 양옆)에 문턱 높이 바닥 — 갑판 끝보다 바깥에 문을 세우면 문턱 밑이 비었음 (그리드 허브 3.45, 갑판 끝 3.2).</summary>
+        private static bool FloorAt(Vector3Int cell, Vector3Int dir, float depth)
+        {
+            var center = TempOrigin + (Vector3)cell * InteriorGeometry.CellSize;
+            float sill = TempOrigin.y + InteriorGeometry.FloorY(cell);
+            var side = Vector3.Cross(Vector3.up, dir);
+            foreach (float s in new[] { 0f, -Side, Side })
+            {
+                var e = center + (Vector3)dir * depth + side * s;
+                if (!Physics.Raycast(new Vector3(e.x, sill + 1f, e.z), Vector3.down, out var hit, 1f + SillTolerance + 0.01f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)
+                    || Mathf.Abs(hit.point.y - sill) > SillTolerance || hit.normal.y < 0.7f)
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>문 깊이 하한 (칸 가운데에서 m) — 이보다 안쪽 문은 튜브가 방 안으로 깊이 들어옴.</summary>
+        private const float MinDepth = 2.4f;
+
+        /// <summary>
+        /// 문 벽 (두께 0.2)부터 칸 끝까지 문 구멍 폭 · 그 바깥 튜브 자리 (끝 고리 뒤, 폭 <see cref="InteriorGeometry.TubeHalfWidth"/> × 2)에 문턱 위 0.12 ~ 튜브 높이 충돌체가 없고,
+        /// 문 평면 바깥에 충돌체 없는 장식 (난간 · 풀 · 덩굴 등) 정점도 없음 — 문 · 튜브가 모델을 뚫지 않게 (①에서 유리 난간 · 벽 · 물막이를 가로지른 문이 열렸었음).
+        /// </summary>
+        private static bool Corridor(InteriorSkyLiftSpots.DecorGrid decor, Vector3Int cell, Vector3Int dir, float depth)
+        {
+            const float Edge = InteriorGeometry.CellSize * 0.5f + 0.05f;
+            var center = TempOrigin + (Vector3)cell * InteriorGeometry.CellSize;
+            float sill = TempOrigin.y + InteriorGeometry.FloorY(cell);
+            // 바닥 (잔디 · 마루가 문턱보다 조금 높을 수 있음) 위부터
+            var at = center + (Vector3)dir * (depth - 0.25f);
+            float ground = Physics.Raycast(new Vector3(at.x, sill + 1f, at.z), Vector3.down, out var hit, 1.31f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) ? Mathf.Max(sill, hit.point.y) : sill;
+            float bottom = ground + 0.12f, top = sill + InteriorGeometry.TubeHeight;
+            const float Opening = InteriorGeometry.DoorWidth * 0.5f;
+            var side = Vector3.Cross(Vector3.up, dir);
+            if (Blocked(center, dir, side, depth - InteriorGeometry.Thickness, Edge, 0f, Opening, bottom, top))
+                return false;
+            foreach (float s in new[] { -1f, 1f })
+            {
+                if (Blocked(center, dir, side, depth + CollarCover, Edge, s * (Opening + InteriorGeometry.TubeHalfWidth) * 0.5f, (InteriorGeometry.TubeHalfWidth - Opening) * 0.5f, bottom, top))
+                    return false;
+            }
+            for (float s = depth + 0.25f; s <= Edge + 0.001f; s += 0.2f)
+            {
+                foreach (float x in new[] { -0.5f, 0f, 0.5f })
+                {
+                    if (decor.Any(center + (Vector3)dir * s + side * x, 0.25f, ground + 0.15f, top))
+                        return false;
+                }
+            }
+            for (float s = depth + CollarCover + 0.25f; s <= Edge + 0.001f; s += 0.2f)
+            {
+                foreach (float x in new[] { -1f, 1f })
+                {
+                    if (decor.Any(center + (Vector3)dir * s + side * x, 0.25f, ground + 0.15f, top))
+                        return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>튜브 끝 고리 두께 — 문 평면 바깥 이만큼은 문 구멍 폭 밖 (튜브 벽 쪽) 조각을 고리가 덮음 (생물권 · AI 중추 난간 끝이 문틀 옆에 닿음).</summary>
+        private const float CollarCover = 0.3f;
+
+        /// <summary>문 방향 from ~ to · 옆 가운데 lateral ± halfWidth · 높이 bottom ~ top 상자에 충돌체가 있음.</summary>
+        private static bool Blocked(Vector3 center, Vector3Int dir, Vector3 side, float from, float to, float lateral, float halfWidth, float bottom, float top)
+        {
+            if (to <= from)
+                return false;
+            var mid = center + (Vector3)dir * ((from + to) * 0.5f) + side * lateral;
+            mid.y = (bottom + top) * 0.5f;
+            return Physics.CheckBox(mid, new Vector3(halfWidth, (top - bottom) * 0.5f, (to - from) * 0.5f), Quaternion.LookRotation(dir), Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
         }
 
         /// <summary>문 안쪽 가운데 · 양옆 세 자리: 문턱 높이 마디가 있고 걸어서 닿음 + 문턱 바로 안 (0.25 m)에도 문턱 높이 바닥.</summary>

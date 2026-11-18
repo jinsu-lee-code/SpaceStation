@@ -2611,6 +2611,9 @@ namespace SpaceStation.Editor
                 new InteriorSocket(c00, new Vector3Int(0, 0, -1), Socket),
                 new InteriorSocket(c10, Vector3Int.right, Socket),
                 new InteriorSocket(c01, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c10, new Vector3Int(0, 0, -1), Socket),   // 모든 면 연결 (2026-11-18, ec_builder DOORS 끝 셋)
+                new InteriorSocket(c01, Vector3Int.right, Socket),
+                new InteriorSocket(c01, Vector3Int.left, Socket),
                 new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(-1.9f, 0f, -2.0f)),    // 두 문 사이 바깥 모서리 (테이블 · 주민 비킴)
                 new InteriorSocket(c10, Vector3Int.down, -F, new Vector3(-0.8f, 0f, -1.8f)),    // 창 쪽 길 (7.2, −1.8)
                 new InteriorSocket(c01, Vector3Int.down, -F, new Vector3(2.3f, 0f, -3.7f)),     // 보수실 들머리 (2.3, 4.3)
@@ -2679,6 +2682,10 @@ namespace SpaceStation.Editor
                 new InteriorSocket(c21, Vector3Int.right, Socket),
                 new InteriorSocket(c10, new Vector3Int(0, 0, -1), Socket),
                 new InteriorSocket(c11, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c00, new Vector3Int(0, 0, -1), Socket),   // 모든 면 연결 (2026-11-18, mw_builder DOORS 둘째 줄)
+                new InteriorSocket(c20, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c01, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c21, new Vector3Int(0, 0, 1), Socket),
                 new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(-2.25f, 0f, 2.6f)),     // 패드 · 부품 선반 비킴 (창고 띠 쪽 끝)
                 new InteriorSocket(c10, Vector3Int.down, -F, new Vector3(-2.6f, 0f, 2.6f)),      // 건널목 (5.4, 2.6)
                 new InteriorSocket(c20, Vector3Int.down, -F, new Vector3(2.25f, 0f, 2.6f)),
@@ -2986,6 +2993,11 @@ namespace SpaceStation.Editor
             {
                 new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.left, Socket),
                 new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(0, 0, 0), new Vector3Int(0, 0, -1), Socket),   // 모든 면 연결 (2026-11-18, vf_builder DOORS ±z)
+                new InteriorSocket(new Vector3Int(0, 0, 0), new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 0), new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 0), new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(new Vector3Int(0, 1, 0), new Vector3Int(0, 0, 1), Socket),
                 new InteriorSocket(new Vector3Int(0, 1, 0), Vector3Int.left, Socket),
                 new InteriorSocket(new Vector3Int(0, 1, 0), new Vector3Int(0, 0, -1), Socket),
                 new InteriorSocket(new Vector3Int(1, 1, 0), Vector3Int.right, Socket),
@@ -7982,11 +7994,13 @@ namespace SpaceStation.Editor
                 }
             }
 
+            configure?.Invoke(root); // 12-5 실행 중 표시 컴포넌트 (허브 안내 · 레이더 · 컨베이어 · 서버 표시등)
+            // 모든 면 연결 (2026-11-18) — 문 안쪽 바닥이 비어 있는 둘레 옆면은 저절로 문. configure 뒤 (물막이 LakeHit 등 configure가 붙이는 충돌체도 보게 — 궤도 항만 물가 문이 열렸었음),
+            // 하늘 구멍보다 먼저 (새 문도 하늘이 비켜 줌)
             var designed = new List<InteriorSocket>(sockets);
-            int auto = InteriorAutoDoors.OpenOn(root, module, sockets, spawn, null, name);   // 모든 면 연결 — 문 안쪽 바닥이 비어 있는 둘레 옆면은 저절로 문 (하늘 구멍보다 먼저, 2026-11-18)
+            int auto = InteriorAutoDoors.OpenOn(root, module, sockets, spawn, null, name);
             PunchSkyDoors(root, name, sockets, materials["Evo2Sky"], module);
             auto -= InteriorAutoDoors.UndoSkyBlocked(root, sockets, designed);   // 구멍을 내도 하늘이 막는 새 문은 되돌림
-            configure?.Invoke(root); // 12-5 실행 중 표시 컴포넌트 (허브 안내 · 레이더 · 컨베이어 · 서버 표시등)
             AddStatusScreens(root, materials["ScreenDark"]);   // 빈 화면 = 공용 상태 화면 (사용자 2026-10-30 — 기본 · 모든 진화 단계, 전용 화면 자리는 뺌)
 
             System.IO.Directory.CreateDirectory(PrefabFolder);
