@@ -3453,3 +3453,15 @@
 **main에서 따로 할 것**
 
 - 없음
+
+## M-241. 궤도 항만 문턱 — 항구 바닥을 문 높이 (−1.3)로 올림 · 문 앞 물막이 비움 (2026-11-18, `main`)
+
+**main에 넣은 것**
+
+- op3_builder F −2.08 → −1.3 · door_clear (`Interior_Evo2.blend`) → SM_Interior_EvoOrbitalPort.fbx (트림 UV) · 생성 메시 셋 (잎 · 하늘 문 · KWS 물) · IT / PF_Interior_EvoOrbitalPort · M_InteriorEvo3BeachSand (젖은 모래 수위)
+- OrbitalPort.Floor · 고정 y 값 +0.78, ResidentSpotBaker 궤도 항만 자리 +0.78, PendingDoorSills에서 궤도 항만 뺌
+- 문서 체크리스트 249
+
+**main에서 따로 할 것**
+
+- 없음
