@@ -10,7 +10,7 @@ namespace SpaceStation.Interior
     /// </summary>
     public static partial class OrbitalPort
     {
-        public const float Floor = -2.08f;
+        public const float Floor = -1.3f;   // 2026-11-18 −2.08 → −1.3 (칸 바닥 = 문 · 통로 높이 — 문 넷 모두 0.72 ~ 0.78 m 턱이라 못 나갔음, 항구 전체를 올림)
         /// <summary>석호 수면 · 바닥, 섬 풀밭 윗면 (땅 위 1.8 cm), 궁전 길 · 분수 마당 돌판 윗면, 잔교 마루.</summary>
         public const float LagoonLevel = Floor - 0.1f, SeaBed = Floor - 1.15f, LawnTop = Floor + 0.018f, PaveTop = Floor + 0.03f, PierY = Floor + 0.06f;
         /// <summary>칸 천장 (하늘 면) — 한 층이라 모두 3.95.</summary>
@@ -23,7 +23,7 @@ namespace SpaceStation.Interior
         /// <summary>인어 꼬리 분수 (마당 가운데 · 물 반지름 · 수면) · 꼬리 끝 (물줄기가 솟는 자리 — 꼬리지느러미 사이).</summary>
         public static readonly Vector3 Fountain = new Vector3(9.8f, Floor + 0.38f, -0.5f);
         public const float FountainRadius = 1.9f;
-        public static readonly Vector3 FountainTip = new Vector3(9.624f, 0.42f, -0.5f);
+        public static readonly Vector3 FountainTip = new Vector3(9.624f, 1.2f, -0.5f);
 
         // ---------------- 석호 · 회전목마 · 배 ----------------
         /// <summary>해마 회전목마 (따로 조각 Carousel, 원점 = 받침 윗면 가운데 — 이 축으로 돎).</summary>
@@ -78,7 +78,7 @@ namespace SpaceStation.Interior
         /// </summary>
         public static readonly Vector3 TossStart = new Vector3(9.8f, Floor + 0.68f, -0.5f);
         public static readonly Vector3 TossStartSize = new Vector3(2.5f, 0.6f, 2.5f);
-        public static readonly Vector3 TossSign = new Vector3(9.7f, 1.3f, -0.5f);
+        public static readonly Vector3 TossSign = new Vector3(9.7f, 2.08f, -0.5f);
         public const float TossLeave = 8f;
         /// <summary>분수 물 반지름 (op3_builder OP_FountWater = FOUNT_R − 0.04) — 이 안에 떨어진 진주만 셈.</summary>
         public const float FountainWaterRadius = 1.86f;
@@ -262,7 +262,7 @@ namespace SpaceStation.Interior
         /// </summary>
         public static readonly (string Kind, Vector3 At, float Facing)[] Seals =
         {
-            ("Seal", new Vector3(40.5f, -2.109f, 2.6f), 100f), ("SealPup", new Vector3(39.6f, -2.101f, 2.3f), 75f),
+            ("Seal", new Vector3(40.5f, -1.329f, 2.6f), 100f), ("SealPup", new Vector3(39.6f, -1.321f, 2.3f), 75f),
         };
         /// <summary>
         /// 게 넷 = 물가선에서 0.55 m 안쪽 평평한 모래 (해변 둘 · 방파제 만 · 모래톱 동쪽 — 주민 자리 · 등에서 1.2 m 넘게): 물을 보고 물가를 따라 옆걸음.
@@ -270,8 +270,8 @@ namespace SpaceStation.Interior
         /// </summary>
         public static readonly (string Kind, Vector3 At, float Facing)[] Crabs =
         {
-            ("Crab", new Vector3(15.4f, -2.073f, -2.01f), 88f), ("Crab", new Vector3(30.5f, -2.073f, -1.95f), 98f),
-            ("Crab", new Vector3(16.2f, -2.073f, 10.47f), 268f), ("Crab", new Vector3(47.2f, -2.073f, 3.95f), 92f),
+            ("Crab", new Vector3(15.4f, -1.293f, -2.01f), 88f), ("Crab", new Vector3(30.5f, -1.293f, -1.95f), 98f),
+            ("Crab", new Vector3(16.2f, -1.293f, 10.47f), 268f), ("Crab", new Vector3(47.2f, -1.293f, 3.95f), 92f),
         };
         /// <summary>
         /// 바다거북 둘 = 석호 수면 (원점 = 등딱지 가장자리 = 수면): 배 길 안쪽 산호초 곁 · 동쪽 조개 앞 물 — 배는 배 길을 따라 돌므로 길 전체 (배 반폭 0.85 + 0.3)와

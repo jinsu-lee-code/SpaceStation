@@ -202,7 +202,6 @@ namespace SpaceStation.Tests
         /// </summary>
         private static readonly Dictionary<string, string> PendingDoorSills = new Dictionary<string, string>
         {
-            { "IT_EvoOrbitalPort", "물가 갑판 쪽 문 넷 0.72 ~ 0.78 m 턱" },
             { "IT_EvoRepairCommand", "(1, 1, 0) −z 문 0.78 m 턱" },
         };
 
