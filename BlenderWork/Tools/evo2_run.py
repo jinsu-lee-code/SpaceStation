@@ -1,5 +1,5 @@
 # Evo2 방 다시 짓기 (2026-11-18, lift_run 틀 + 원래 내보내기 dsu/ds_export.py와 같은 마무리: 몸체 밖 조각 clean · 꼭짓점 색 LINEAR): 방 하나를 다시 지어 검사 · 내보냄 — 그 방 빌더 텍스트만 바꾸고 공용 텍스트 (int_common · evo_kit · evo2_kit)는 .blend 것 그대로 (체크리스트 237).
-#   blender -b BlenderWork/Interior_Evo2.blend -P BlenderWork/Tools/evo2_run.py -- <빌더 키 (ds4 · ai3 · op3 · rc3)> <방 이름 (EvoAICore …)> <빌더 파일> [--export] [--save]   → 뒤에 trim_uv_export.py -- <방> --write
+#   blender -b BlenderWork/Interior_Evo2.blend -P BlenderWork/Tools/evo2_run.py -- <빌더 키 (ds4 · ai3 · op3 · rc3)> <방 이름 (EvoAICore …)> <빌더 파일> [--export] [--save] [--noclean]   → 뒤에 trim_uv_export.py -- <방> --write
 #   출력: TRIS · CHECKBAD (열린 · 비다양체 · 뒤집힌 덩어리) · SPOTS 줄 수 · 조각 이름 — 고치기 전 빌더 (--export 없이)와 견줌
 import bpy, io, contextlib, traceback, sys, hashlib
 
@@ -26,8 +26,8 @@ for l in lines:
     if l.startswith(("HATCH", "LIFT", "LAND", "WARN")):
         print(l)
 objs = sorted((o for o in bpy.data.objects if o.name.startswith(NAME)), key=lambda o: o.name)
-for o in objs:
-    if not o.name.endswith("_Shell"):
+for o in objs:   # --noclean = 빌더가 스스로 정리하는 방 (Interior_Evo.blend에서 처음 지은 2단계 방 — run()이 Shell · Glass만 clean, 하늘 · 빛 조각은 그대로)
+    if not o.name.endswith("_Shell") and "--noclean" not in args:
         g["clean"](o)
 print("OBJS", len(objs), [o.name[len(NAME):] for o in objs])
 tri = {o.name[len(NAME):]: sum(len(p.vertices) - 2 for p in o.data.polygons) for o in objs}
