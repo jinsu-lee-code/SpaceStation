@@ -164,7 +164,7 @@ namespace SpaceStation.Tests
                         fails.Add($"해치 {cell} 뚜껑이 묻힘");
                 }
                 foreach (var (cell, dir) in AICore.Doors)
-                    Reach(new Vector3(cell.x * 8f, F + cell.y * 8f, cell.z * 8f) + (Vector3)dir * (AICore.DoorDepth - 0.5f), $"문 {cell} {dir}");
+                    Reach(new Vector3(cell.x * 8f, InteriorGeometry.FloorY(cell), cell.z * 8f) + (Vector3)dir * (AICore.DoorDepth - 0.5f), $"문 {cell} {dir}");   // 문 앞 층계참 = 문턱 (2026-11-18)
                 Reach(new Vector3(AICore.Gate.x + 1.0f, AICore.PaveTop, AICore.Gate.z), "장미 아치 문 앞 (미로 출발)");
                 Reach(new Vector3(AICore.MazeBoard.x + 0.7f, AICore.PaveTop, AICore.MazeBoard.z), "미로 기록판 앞");
                 for (int k = 0; k < AICore.Orbs.Length; k++)

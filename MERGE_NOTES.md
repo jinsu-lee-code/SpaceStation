@@ -3440,3 +3440,16 @@
 **main에서 따로 할 것**
 
 - 없음
+
+## M-240. AI 중추 문 앞 층계참 · 세 단 · 통신기지 다시 내보내기 마무리 바로잡음 (2026-11-18, `main`)
+
+**main에 넣은 것**
+
+- ai3_builder (`Interior_Evo2.blend`): (3,0,0) +z 문 앞 문턱 높이 층계참 + 판석 길 쪽 세 단 · 층계참 둘레 난간, 판석 길 끝 = 첫 단 → SM_Interior_EvoAICore.fbx (트림 UV) · PF_Interior_EvoAICore · 생성 메시
+- SM_Interior_EvoDeepSpaceComm.fbx 다시 내보냄 (원래 마무리 — 몸체 밖 조각 clean · 꼭짓점 색 LINEAR, 잎 넓이 0 삼각형 뺌) · PF · 생성 메시
+- BlenderWork/Tools/evo2_run.py, AICore.Doors 설명, AICoreTests 걷기 문 자리 = 문턱 높이, InteriorTemplateBoundsTests.PendingDoorSills에서 AI 중추 뺌
+- 문서 체크리스트 248 · 249
+
+**main에서 따로 할 것**
+
+- 없음
