@@ -351,7 +351,7 @@ namespace SpaceStation.Tests
                     for (float u = 0.08f; u <= 0.92f; u += 0.04f)
                         Free(Vector3.Lerp(Vector3.Lerp(from, mid, u), Vector3.Lerp(mid, to, u), u), 0.05f, $"신호 빛줄 {d} ({u:F2})");
                 }
-                var ring = DeepSpaceComm.CenterDomeTop + Vector3.up * 1.7f;
+                var ring = DeepSpaceComm.CenterDomeTop + Vector3.up * InteriorDishSignal.RingRise;
                 for (int a = 0; a < 16; a++)
                     Free(ring + new Vector3(Mathf.Cos(a * Mathf.PI / 8f), 0f, Mathf.Sin(a * Mathf.PI / 8f)) * 2.6f, 0.05f, "신호 고리 (가장 넓을 때)");
                 for (float u = 0f; u <= 0.85f; u += 0.05f)

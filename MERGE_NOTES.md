@@ -3426,3 +3426,17 @@
 **main에서 따로 할 것**
 
 - 없음
+
+## M-239. 심우주 통신기지 문턱 — 언덕 바닥을 문 높이 (−1.3)로 올림 (2026-11-18, `main`)
+
+**main에 넣은 것**
+
+- ds4_builder F −2.08 → −1.3 (`Interior_Evo2.blend`) · SM_Interior_EvoDeepSpaceComm.fbx (트림 UV) · IT / PF_Interior_EvoDeepSpaceComm · 생성 메시 둘 — 문 여덟 모두 0.78 m 턱이던 것, 배치 그대로
+- DeepSpaceComm.Floor · 고정 y 값 +0.78, ResidentSpotBaker 통신기지 자리 +0.78, InteriorDishSignal.RingRise 1.25 (신호 고리가 하늘 면에 닿았음)
+- InteriorTemplateBuilder.BuildEvolvedRoom(이름) — 진화 방 하나만 다시 짓기
+- 시험 DoorSillsMatchTubeFloor 문 안 0.25 m 한 점 · 통신기지를 PendingDoorSills에서 뺌, DeepSpaceCommTests 신호 고리 높이
+- 문서 체크리스트 247 · 06a
+
+**main에서 따로 할 것**
+
+- 없음

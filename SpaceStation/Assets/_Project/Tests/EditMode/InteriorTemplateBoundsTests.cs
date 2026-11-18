@@ -202,14 +202,13 @@ namespace SpaceStation.Tests
         /// </summary>
         private static readonly Dictionary<string, string> PendingDoorSills = new Dictionary<string, string>
         {
-            { "IT_EvoDeepSpaceComm", "언덕 바닥 −2.08 — 문 여덟 모두 0.78 m 턱 (2026-11-18 2번 슬롯 다리 확인)" },
             { "IT_EvoOrbitalPort", "물가 갑판 쪽 문 넷 0.72 ~ 0.78 m 턱" },
             { "IT_EvoAICore", "(3, 0, 0) +z 문 0.78 m 턱" },
             { "IT_EvoRepairCommand", "(1, 1, 0) −z 문 0.78 m 턱" },
         };
 
         /// <summary>
-        /// 열린 문 자리 바로 안쪽 (문 깊이 − 0.3 · − 0.7 m) 바닥이 통로 · 다리 바닥 (칸 바닥 −1.3)과 0.3 m 안 — 사람이 넘는 턱은 0.36 m까지.
+        /// 열린 문 자리 바로 안쪽 (문 깊이 − 0.25 m) 바닥이 통로 · 다리 바닥 (칸 바닥 −1.3)과 0.3 m 안 — 사람이 넘는 턱은 0.3 m까지 (그 안쪽은 층계참 · 계단이어도 됨, 방마다 걷기 시험).
         /// 심우주 통신기지 바닥이 0.78 m 낮아 다리에 오르지 못했고 (걸어 보니 문 앞에서 멈춤), 그 턱 아래로 하늘 껍질이 검게 보였음 (2026-11-18).
         /// </summary>
         [Test]
@@ -235,7 +234,7 @@ namespace SpaceStation.Tests
                         doors++;
                         var c = away + (Vector3)s.Cell * CellSize;
                         float sill = c.y - 1.3f;
-                        foreach (float back in new[] { 0.3f, 0.7f })
+                        foreach (float back in new[] { 0.25f })
                         {
                             var p = c + (Vector3)s.Direction * (s.Depth - back);
                             if (!Physics.Raycast(new Vector3(p.x, sill + 2f, p.z), Vector3.down, out var hit, 4f, ~0, QueryTriggerInteraction.Ignore))

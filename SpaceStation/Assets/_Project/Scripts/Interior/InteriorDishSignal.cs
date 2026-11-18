@@ -17,6 +17,8 @@ namespace SpaceStation.Interior
         public const float TurnTime = 2.6f, CableTime = 1.7f, ArcTime = 2.2f, ShowSeconds = 13f, ReturnTime = 5f;
         private const int Rings = 6;
         private const float RingGap = 0.85f, RingLife = 3.4f;
+        /// <summary>신호 고리가 가운데 돔 꼭대기에서 오르는 높이 (가장 넓을 때) — 2026-11-18 바닥을 0.78 m 올려 1.7 → 1.25 (하늘 면 0.55 m 아래).</summary>
+        public const float RingRise = 1.25f;
         private static readonly Color SignalWhite = new Color(0.86f, 0.97f, 1f);
 
         [Tooltip("도는 받침 DishYaw{k} · 접시 DishTilt{k} · 손바퀴 DishWheel{k} (DeepSpaceComm 차례)")]
@@ -318,7 +320,7 @@ namespace SpaceStation.Interior
         private void DrawRing(LineRenderer line, float f)
         {
             float radius = Mathf.Lerp(0.35f, 2.6f, f);
-            var c = DeepSpaceComm.CenterDomeTop + Vector3.up * Mathf.Lerp(0.15f, 1.7f, Mathf.Sqrt(f));
+            var c = DeepSpaceComm.CenterDomeTop + Vector3.up * Mathf.Lerp(0.15f, RingRise, Mathf.Sqrt(f));
             int n = line.positionCount;
             for (int i = 0; i < n; i++)
             {

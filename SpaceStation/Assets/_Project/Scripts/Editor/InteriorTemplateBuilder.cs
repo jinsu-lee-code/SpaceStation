@@ -90,6 +90,31 @@ namespace SpaceStation.Editor
             ResidentSpotBaker.BakeTemplates("IT_Evo"); // 주민 자리 (진화 템플릿만)
         }
 
+        /// <summary>
+        /// 진화 방 하나만 다시 만들기 (2026-11-18 — 통째로 다시 지으면 다른 방 승강판 기억까지 지워짐, 체크리스트 245). name = "DeepSpaceComm"처럼 BuildEvo 뒤 이름.
+        /// 그 방 템플릿 · 프리팹 → 식물 · 승강판 자리 (다른 방은 기억대로 그대로) → 그 방 주민 자리.
+        /// </summary>
+        public static void BuildEvolvedRoom(string name)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogError("[InteriorTemplateBuilder] 플레이 모드를 끈 뒤 실행하세요.");
+                return;
+            }
+            var build = typeof(InteriorTemplateBuilder).GetMethod("BuildEvo" + name, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            if (build == null)
+            {
+                Debug.LogError($"[InteriorTemplateBuilder] BuildEvo{name} 없음");
+                return;
+            }
+            InteriorSetup.CreateMaterials();
+            build.Invoke(null, null);
+            InteriorPlantSpots.SetAll();
+            InteriorSkyLiftSpots.SetAll();
+            AssetDatabase.SaveAssets();
+            ResidentSpotBaker.BakeTemplates("IT_Evo" + name);
+        }
+
         private static void BuildEvolvedTemplates()
         {
             BuildEvoResearch();
