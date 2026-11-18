@@ -13,7 +13,7 @@ namespace SpaceStation.Interior
     /// </summary>
     public static class DeepSpaceComm
     {
-        public const float Floor = -2.08f;
+        public const float Floor = -1.3f;   // 2026-11-18 −2.08 → −1.3 (칸 바닥 = 문 · 통로 높이 — 0.78 m 턱이라 다리에 못 올랐음, 언덕 전체를 올림)
         /// <summary>판석 길 윗면 · 별자리 광장 윗면 · 은하수 강 수면.</summary>
         public const float PathTop = Floor + 0.025f, PlazaTop = Floor + 0.07f, WaterY = Floor - 0.07f;
         /// <summary>칸 천장 (하늘 면) — 한 층이라 모두 3.95.</summary>
@@ -36,17 +36,17 @@ namespace SpaceStation.Interior
         /// <summary>도는 받침 DishYaw{k} 원점 (기둥 위 — 세로축으로 돎).</summary>
         public static readonly Vector3[] DishYawPivots =
         {
-            new Vector3(-2.5f, -0.628f, 2.8f), new Vector3(2.9f, -0.633f, 2.95f), new Vector3(13.1f, -0.63f, 2.95f), new Vector3(18.5f, -0.628f, 2.8f),
+            new Vector3(-2.5f, 0.152f, 2.8f), new Vector3(2.9f, 0.147f, 2.95f), new Vector3(13.1f, 0.15f, 2.95f), new Vector3(18.5f, 0.152f, 2.8f),
         };
         /// <summary>접시 DishTilt{k} 원점 (굴대 — 받침 팔 사이, 높낮이로 돎).</summary>
         public static readonly Vector3[] DishTiltPivots =
         {
-            new Vector3(-2.5f, -0.158f, 2.8f), new Vector3(2.9f, -0.163f, 2.95f), new Vector3(13.1f, -0.16f, 2.95f), new Vector3(18.5f, -0.158f, 2.8f),
+            new Vector3(-2.5f, 0.622f, 2.8f), new Vector3(2.9f, 0.617f, 2.95f), new Vector3(13.1f, 0.62f, 2.95f), new Vector3(18.5f, 0.622f, 2.8f),
         };
         /// <summary>조작반 손바퀴 DishWheel{k} 원점 (바퀴 가운데 — 조작반 앞에서 접시 쪽 축으로 돎).</summary>
         public static readonly Vector3[] DishWheels =
         {
-            new Vector3(-1.788f, -1.399f, 1.59f), new Vector3(3.612f, -1.362f, 1.74f), new Vector3(12.388f, -1.365f, 1.74f), new Vector3(17.788f, -1.396f, 1.59f),
+            new Vector3(-1.788f, -0.619f, 1.59f), new Vector3(3.612f, -0.582f, 1.74f), new Vector3(12.388f, -0.585f, 1.74f), new Vector3(17.788f, -0.616f, 1.59f),
         };
         /// <summary>
         /// 조작반 앞 서는 자리 (접시를 봄): 가운데 둘 = 조작반 가운데에서 0.75 m 앞, 양 끝 둘 = 옆 돔 반대쪽 비스듬히 (조작반 앞은 옆 돔 받침에서 9 cm라 몸이 밀려났음).
@@ -140,7 +140,7 @@ namespace SpaceStation.Interior
         public static readonly Vector3 WishStand = new Vector3(8f, PathTop, -3.4f);
         public const float WishYaw = 0f, WishPitch = -38f;
         /// <summary>소원 별똥별 길 (하늘 면 아래 — 아치 너머 왼쪽 위에서 가운데 돔 지붕 위를 지나 돔 오른쪽 뒤 강 굽이로) · 빠르기.</summary>
-        public static readonly Vector3 WishStarFrom = new Vector3(5.4f, 3.6f, 0.1f), WishStarTo = new Vector3(11f, 1.3f, 0.6f);
+        public static readonly Vector3 WishStarFrom = new Vector3(5.4f, 3.6f, 0.1f), WishStarTo = new Vector3(11f, 2.08f, 0.6f);
         public const float WishStarSpeed = 3.6f;
         /// <summary>별빛이 번지기 시작하는 강 자리 (별똥별이 닿은 쪽 — 오른쪽 굽이).</summary>
         public static readonly Vector2 WishRiverPoint = new Vector2(11.1f, 0.55f);
@@ -149,9 +149,9 @@ namespace SpaceStation.Interior
         /// <summary>광장 가운데 · 반지름 · 천체 모형 Orrery (원점 = 축 위 해 — 천천히 돎).</summary>
         public static readonly Vector2 Plaza = new Vector2(4.55f, -2.45f);
         public const float PlazaRadius = 1.15f;
-        public static readonly Vector3 Orrery = new Vector3(4.55f, -1.08f, -2.45f);
+        public static readonly Vector3 Orrery = new Vector3(4.55f, -0.3f, -2.45f);
         /// <summary>광장 앞 서는 자리 · 보는 쪽 (광장 너머 강 · 하늘) · 처음 시선 (위로).</summary>
-        public static readonly Vector3 CatchStand = new Vector3(4.55f, -2.01f, -3.31f);
+        public static readonly Vector3 CatchStand = new Vector3(4.55f, -1.23f, -3.31f);
         public const float CatchYaw = 0f, CatchPitch = -16f;
         /// <summary>별똥별이 나타나는 하늘 상자 (x · z 범위 · 높이 — 선 자리 처음 화면 안, 가운데 돔 · 접시를 비킴) · 떨어지는 광장 (가운데 · 반지름 · 높이).</summary>
         public static readonly Vector2 CatchSpawnX = new Vector2(2.5f, 6f), CatchSpawnZ = new Vector2(-0.2f, 1.4f), CatchSpawnY = new Vector2(2.6f, 3.3f);

@@ -647,18 +647,18 @@ namespace SpaceStation.Editor
             var list = new List<ResidentSpot>();
             foreach (var (at, yaw, pose) in new[]
             {
-                (new Vector3(12.6f, -1.58f, -3.26f), 0.0f, ResidentPose.Sit),
-                (new Vector3(-0.95f, -2.079f, -0.75f), 140.4f, ResidentPose.Stand),
-                (new Vector3(2.0f, -2.076f, -2.95f), 297.7f, ResidentPose.Stand),
-                (new Vector3(1.633f, -2.081f, 2.325f), 234.3f, ResidentPose.Stand),
-                (new Vector3(4.0f, -2.054f, 1.35f), 325.5f, ResidentPose.Stand),
-                (new Vector3(5.45f, -2.078f, -0.55f), 205.3f, ResidentPose.Stand),
-                (new Vector3(10.35f, -2.08f, -0.35f), 271.2f, ResidentPose.Stand),
-                (new Vector3(6.0f, -2.078f, 2.95f), 114.2f, ResidentPose.Stand),
-                (new Vector3(11.975f, -2.076f, -1.567f), 160.2f, ResidentPose.Stand),
-                (new Vector3(6.3f, -2.079f, -1.95f), 116.6f, ResidentPose.Stand),
-                (new Vector3(17.075f, -2.081f, -0.533f), 218.2f, ResidentPose.Stand),
-                (new Vector3(11.75f, -2.085f, 1.7f), 47.2f, ResidentPose.Stand),
+                (new Vector3(12.6f, -0.8f, -3.26f), 0.0f, ResidentPose.Sit),
+                (new Vector3(-0.95f, -1.299f, -0.75f), 140.4f, ResidentPose.Stand),
+                (new Vector3(2.0f, -1.296f, -2.95f), 297.7f, ResidentPose.Stand),
+                (new Vector3(1.633f, -1.301f, 2.325f), 234.3f, ResidentPose.Stand),
+                (new Vector3(4.0f, -1.274f, 1.35f), 325.5f, ResidentPose.Stand),
+                (new Vector3(5.45f, -1.298f, -0.55f), 205.3f, ResidentPose.Stand),
+                (new Vector3(10.35f, -1.3f, -0.35f), 271.2f, ResidentPose.Stand),
+                (new Vector3(6.0f, -1.298f, 2.95f), 114.2f, ResidentPose.Stand),
+                (new Vector3(11.975f, -1.296f, -1.567f), 160.2f, ResidentPose.Stand),
+                (new Vector3(6.3f, -1.299f, -1.95f), 116.6f, ResidentPose.Stand),
+                (new Vector3(17.075f, -1.301f, -0.533f), 218.2f, ResidentPose.Stand),
+                (new Vector3(11.75f, -1.305f, 1.7f), 47.2f, ResidentPose.Stand),
             })
                 list.Add(new ResidentSpot(at, yaw, pose));
             return list;
