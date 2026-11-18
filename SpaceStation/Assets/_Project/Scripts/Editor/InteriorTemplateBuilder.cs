@@ -7488,7 +7488,7 @@ namespace SpaceStation.Editor
         /// 문이 열려도 하늘 그림(바깥 화면)이 문 안을 덮어 통로 대신 바깥이 보였음 (2단계 개방형 방 전부). 문 자리마다 그 자리(폭 ±0.81 · 바닥 −0.2 ~ +2.5 · 문 깊이 −0.1 ~ 칸 경계) 삼각형을 지운 메시를 따로 저장.
         /// 닫힌 자리는 지금처럼 빌더가 키트 하늘 조각(칸 가운데 + 3.98)으로 메움. 구멍 크기 = Blender 하늘 구멍 · 키트 하늘 조각과 같음.
         /// </summary>
-        private static void PunchSkyDoors(GameObject root, string name, List<InteriorSocket> sockets, Material skyMaterial)
+        private static void PunchSkyDoors(GameObject root, string name, List<InteriorSocket> sockets, Material skyMaterial, ModuleData module = null)
         {
             const float HalfWidth = 0.81f, Bottom = -0.21f, Top = 2.51f, Front = 0.1f, Edge = 4.05f;
             MeshFilter sky = null;
@@ -7517,6 +7517,8 @@ namespace SpaceStation.Editor
                 var dir = (Vector3)s.Direction;
                 boxes.Add(((Vector3)s.Cell * InteriorGeometry.CellSize, dir, new Vector3(dir.z, 0f, -dir.x), InteriorGeometry.FloorY(s.Cell), s.Depth));
             }
+            // 모든 면 연결 (2026-11-18): 큰 판 하늘 (빌더 sky()가 설계 문 자리에만 구멍을 냄)도 새 문 앞이 뚫리게 — 문 상자 경계로 삼각형을 먼저 자름
+            world = SplitSkyAtBoxes(mesh, toRoot, boxes, HalfWidth, Bottom, Top, Front, Edge, SkyCells(module));
             var hits = new int[boxes.Count];
             for (int sub = 0; sub < mesh.subMeshCount; sub++)
             {
@@ -7563,6 +7565,145 @@ namespace SpaceStation.Editor
                 AssetDatabase.CreateAsset(mesh, path);
             sky.sharedMesh = mesh;
             Debug.Log($"[InteriorTemplateBuilder] {name}: 하늘 껍질 문 구멍 {boxes.Count}곳, 지운 삼각형 {removed}" + (emptySockets > 0 ? $", 하늘이 없던 문 자리 {emptySockets}" : ""));
+        }
+
+        /// <summary>하늘을 잘라도 되는 범위 = 모듈 칸 + 비워 둘 칸 (없으면 null = 어디든).</summary>
+        private static List<Vector3Int> SkyCells(ModuleData module)
+        {
+            if (module == null)
+                return null;
+            var cells = new List<Vector3Int>(module.CellOffsets);
+            cells.AddRange(module.KeepClearCells);
+            return cells;
+        }
+
+        /// <summary>
+        /// 하늘 메시 삼각형 중 문 상자 (PunchSkyDoors와 같은 범위)에 걸치는 것을 상자 면 여섯으로 잘라, 상자 안 조각 · 밖 조각으로 나눔
+        /// (안 조각은 뒤의 무게중심 검사가 지움). 새 꼭짓점은 위치 · 법선 · UV0 · UV1을 선형 보간. 루트 좌표 꼭짓점을 돌려줌.
+        /// 자른 꼭짓점이 칸 밖에 생기는 삼각형 (큰 판이 칸 밖 허공을 가로지름)은 자르지 않음.
+        /// </summary>
+        private static Vector3[] SplitSkyAtBoxes(Mesh mesh, Matrix4x4 toRoot, List<(Vector3 center, Vector3 dir, Vector3 right, float floor, float depth)> boxes,
+            float halfWidth, float bottom, float top, float front, float edge, IReadOnlyList<Vector3Int> cells)
+        {
+            // InteriorTemplateBoundsTests.TemplatesStayInsideTheirCells와 같은 범위 (옆 · 아래 6 cm, 위 2 m)
+            bool InCells(Vector3 p)
+            {
+                if (cells == null)
+                    return true;
+                const float Half = InteriorGeometry.CellSize * 0.5f;
+                foreach (var c in cells)
+                {
+                    var d = p - (Vector3)c * InteriorGeometry.CellSize;
+                    if (Mathf.Abs(d.x) <= Half + 0.05f && Mathf.Abs(d.z) <= Half + 0.05f && d.y <= Half + 1.95f && d.y >= -Half - 0.05f)
+                        return true;
+                }
+                return false;
+            }
+            var pos = new List<Vector3>(mesh.vertices);
+            var nrm = new List<Vector3>(mesh.normals);
+            var uv0 = new List<Vector2>(); mesh.GetUVs(0, uv0);
+            var uv1 = new List<Vector2>(); mesh.GetUVs(1, uv1);
+            var world = new List<Vector3>(pos.Count);
+            foreach (var p in pos)
+                world.Add(toRoot.MultiplyPoint3x4(p));
+            var toLocal = toRoot.inverse;
+            int Lerp(int a, int b, float t)
+            {
+                world.Add(Vector3.Lerp(world[a], world[b], t));
+                pos.Add(toLocal.MultiplyPoint3x4(world[world.Count - 1]));
+                if (nrm.Count > 0) nrm.Add(Vector3.Lerp(nrm[a], nrm[b], t).normalized);
+                if (uv0.Count > 0) uv0.Add(Vector2.Lerp(uv0[a], uv0[b], t));
+                if (uv1.Count > 0) uv1.Add(Vector2.Lerp(uv1[a], uv1[b], t));
+                return pos.Count - 1;
+            }
+            // 다각형 (꼭짓점 번호)을 평면 n·x ≤ d 안 · 밖으로 나눔
+            void Split(List<int> poly, Vector3 n, float d, List<int> inside, List<int> outside)
+            {
+                for (int i = 0; i < poly.Count; i++)
+                {
+                    int a = poly[i], b = poly[(i + 1) % poly.Count];
+                    float da = Vector3.Dot(n, world[a]) - d, db = Vector3.Dot(n, world[b]) - d;
+                    if (da <= 0f) inside.Add(a);
+                    if (da >= 0f) outside.Add(a);
+                    if ((da < 0f && db > 0f) || (da > 0f && db < 0f))
+                    {
+                        int m = Lerp(a, b, da / (da - db));
+                        inside.Add(m);
+                        outside.Add(m);
+                    }
+                }
+            }
+            for (int sub = 0; sub < mesh.subMeshCount; sub++)
+            {
+                var tris = mesh.GetTriangles(sub);
+                var result = new List<int>(tris.Length);
+                for (int i = 0; i < tris.Length; i += 3)
+                {
+                    var pieces = new List<List<int>> { new List<int> { tris[i], tris[i + 1], tris[i + 2] } };
+                    int mark = pos.Count;
+                    foreach (var box in boxes)
+                    {
+                        var planes = new (Vector3 n, float d)[]
+                        {
+                            (-box.dir, -Vector3.Dot(box.dir, box.center) - (box.depth - front)), (box.dir, Vector3.Dot(box.dir, box.center) + edge),
+                            (box.right, Vector3.Dot(box.right, box.center) + halfWidth), (-box.right, -Vector3.Dot(box.right, box.center) + halfWidth),
+                            (Vector3.down, -(box.floor + bottom)), (Vector3.up, box.floor + top),
+                        };
+                        var next = new List<List<int>>();
+                        foreach (var piece in pieces)
+                        {
+                            bool overlaps = true;
+                            foreach (var (n, d) in planes)
+                            {
+                                float min = float.MaxValue;
+                                foreach (int v in piece) min = Mathf.Min(min, Vector3.Dot(n, world[v]));
+                                if (min >= d) { overlaps = false; break; }
+                            }
+                            if (!overlaps) { next.Add(piece); continue; }
+                            var rest = piece;
+                            foreach (var (n, d) in planes)
+                            {
+                                var inside = new List<int>();
+                                var outside = new List<int>();
+                                Split(rest, n, d, inside, outside);
+                                if (outside.Count >= 3) next.Add(outside);
+                                rest = inside;
+                                if (rest.Count < 3) break;
+                            }
+                            if (rest.Count >= 3) next.Add(rest);   // 상자 안 조각 (뒤에서 지움)
+                        }
+                        pieces = next;
+                    }
+                    bool outsideCells = false;   // 큰 판 삼각형이 모듈 칸 밖 허공을 가로지르면 자른 꼭짓점이 칸 밖에 생김 → 이 삼각형은 자르지 않음 (그 문은 UndoSkyBlocked가 되돌림)
+                    for (int v = mark; v < pos.Count && !outsideCells; v++)
+                        outsideCells = !InCells(world[v]);
+                    if (outsideCells)
+                    {
+                        pos.RemoveRange(mark, pos.Count - mark);
+                        world.RemoveRange(mark, world.Count - mark);
+                        if (nrm.Count > mark) nrm.RemoveRange(mark, nrm.Count - mark);
+                        if (uv0.Count > mark) uv0.RemoveRange(mark, uv0.Count - mark);
+                        if (uv1.Count > mark) uv1.RemoveRange(mark, uv1.Count - mark);
+                        pieces = new List<List<int>> { new List<int> { tris[i], tris[i + 1], tris[i + 2] } };
+                    }
+                    foreach (var piece in pieces)
+                    {
+                        for (int k = 1; k + 1 < piece.Count; k++)
+                        {
+                            result.Add(piece[0]);
+                            result.Add(piece[k]);
+                            result.Add(piece[k + 1]);
+                        }
+                    }
+                }
+                mesh.SetVertices(pos);
+                if (nrm.Count == pos.Count) mesh.SetNormals(nrm);
+                if (uv0.Count == pos.Count) mesh.SetUVs(0, uv0);
+                if (uv1.Count == pos.Count) mesh.SetUVs(1, uv1);
+                mesh.SetTriangles(result, sub);
+            }
+            mesh.RecalculateBounds();
+            return world.ToArray();
         }
 
         private const string SkyDoorsFolder = "Assets/_Project/Art/Models/Interior/Generated/";
@@ -7843,7 +7984,7 @@ namespace SpaceStation.Editor
 
             var designed = new List<InteriorSocket>(sockets);
             int auto = InteriorAutoDoors.OpenOn(root, module, sockets, spawn, null, name);   // 모든 면 연결 — 문 안쪽 바닥이 비어 있는 둘레 옆면은 저절로 문 (하늘 구멍보다 먼저, 2026-11-18)
-            PunchSkyDoors(root, name, sockets, materials["Evo2Sky"]);
+            PunchSkyDoors(root, name, sockets, materials["Evo2Sky"], module);
             auto -= InteriorAutoDoors.UndoSkyBlocked(root, sockets, designed);   // 구멍을 내도 하늘이 막는 새 문은 되돌림
             configure?.Invoke(root); // 12-5 실행 중 표시 컴포넌트 (허브 안내 · 레이더 · 컨베이어 · 서버 표시등)
             AddStatusScreens(root, materials["ScreenDark"]);   // 빈 화면 = 공용 상태 화면 (사용자 2026-10-30 — 기본 · 모든 진화 단계, 전용 화면 자리는 뺌)
