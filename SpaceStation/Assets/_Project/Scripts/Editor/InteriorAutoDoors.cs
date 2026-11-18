@@ -11,7 +11,8 @@ namespace SpaceStation.Editor
     /// 모든 면 연결 (2026-11-18, 사용자 "연결점이 모두 이어져서 어떤 방향으로든 이동이 가능하게"): 템플릿을 지을 때
     /// 문 자리가 없는 (또는 닫힌) 둘레 옆면 중 문 안쪽 바닥이 문턱 높이 · 비어 있고 걸어서 닿는 면에 열린 문 자리를 더한다
     /// (문 깊이 = 그 방 문 깊이, 바닥이 칸 끝 조금 안에서 끝나면 바닥 끝 — 문에서 칸 끝까지 튜브 자리가 비어 있어야 함, <see cref="FindDepth"/>).
-    /// 문 높이에 바닥이 없는 2층 높이 옆문은 아래 바닥에 빛 기둥 문 승강판 자리를 찾아 연다 (<see cref="TryDoorLift"/>, ②-4).
+    /// 문 높이에 바닥이 없는 2층 높이 옆문은 아래 바닥에 빛 기둥 문 승강판 자리를 찾아 연다 (<see cref="TryDoorLift"/>, ②-4),
+    /// 문 안 바닥이 문턱보다 0.5 ~ 1.05 m 낮은 옆문은 문 앞 층계참 + 세 단 자리를 찾아 연다 (<see cref="TryDoorSteps"/> — 계단은 문이 열릴 때만 Unity가 놓음).
     /// 하늘 껍질 문 구멍보다 먼저 불러 새 문도 하늘이 비켜 줌 (InteriorTemplateBuilder.Build).
     /// 칸 끝까지 바닥이 없는 면은 모델에 길 · 문간을 낸 뒤 다시 지으면 저절로 열림 (빌더마다 문 목록을 손대지 않음).
     /// 바깥 통로는 Measure Connector Depths가 열린 문 자리를 따라 만듦 (<see cref="ConnectorDepthBaker"/>).
@@ -25,7 +26,7 @@ namespace SpaceStation.Editor
         /// <summary>
         /// 짓는 중인 방 (root = 0번 칸 중심이 원점, 충돌체 붙음)에 문 자리 열기 — sockets에 바로 더함. 연 면 수.
         /// </summary>
-        public static int OpenOn(GameObject root, ModuleData module, List<InteriorSocket> sockets, Vector3 spawn, List<string> log = null, string name = null)
+        public static int OpenOn(GameObject root, ModuleData module, List<InteriorSocket> sockets, Vector3 spawn, List<string> log = null, string name = null, IEnumerable<Vector3> keepClear = null)
         {
             if (root == null || module == null)
                 return 0;
@@ -42,10 +43,21 @@ namespace SpaceStation.Editor
                 var cells = new HashSet<Vector3Int>(module.CellOffsets);
                 float depth = DoorDepth(sockets);
                 var pads = new List<Vector3>();   // 승강판 (위 · 문) — 서로 떨어지게
+                var steps = new List<Vector3>();  // 문 계단 자리 점 — 다른 문 계단 · 승강판이 비킴
                 foreach (var s in sockets)
                 {
+                    var c = TempOrigin + (Vector3)s.Cell * InteriorGeometry.CellSize;
                     if (s.SkyLift || s.DoorLift)
-                        pads.Add(TempOrigin + (Vector3)s.Cell * InteriorGeometry.CellSize + s.Offset);
+                        pads.Add(c + s.Offset);
+                    if (s.DoorSteps != 0)
+                        steps.AddRange(StepsFootprint(c + (Vector3)s.Direction * s.Depth, s.Direction, s.DoorSteps));
+                }
+                var why = new List<string>();     // 문 계단을 못 놓은 까닭 (log)
+                var spotsClear = new List<Vector3>();   // 비켜야 할 자리 (고정 주민 자리)
+                if (keepClear != null)
+                {
+                    foreach (var p in keepClear)
+                        spotsClear.Add(TempOrigin + p);
                 }
                 foreach (var cell in module.CellOffsets)
                 {
@@ -59,6 +71,7 @@ namespace SpaceStation.Editor
                         if (i >= 0 && !sockets[i].SealedWall)
                             continue;
                         InteriorSocket open;
+                        why.Clear();
                         float at = FindDepth(graph, decor, cell, dir, depth);
                         if (at >= 0f)
                         {
@@ -72,8 +85,19 @@ namespace SpaceStation.Editor
                             pads.Add(pad);
                             log?.Add($"{name ?? module.name} {cell} {dir} 문 승강판 ({pad.x - center.x:0.00}, {pad.y - center.y:0.00}, {pad.z - center.z:0.00})");
                         }
+                        else if (TryDoorSteps(graph, decor, sockets, pads, steps, spotsClear, cell, dir, depth, out int stepSide, out var foot, why))
+                        {
+                            var center = TempOrigin + (Vector3)cell * InteriorGeometry.CellSize;
+                            open = new InteriorSocket(cell, dir, depth, foot - center, doorSteps: stepSide);
+                            steps.AddRange(StepsFootprint(center + (Vector3)dir * depth, dir, stepSide));
+                            log?.Add($"{name ?? module.name} {cell} {dir} 문 계단 {(stepSide > 0 ? "오른쪽" : "왼쪽")} 높이 {center.y + InteriorGeometry.FloorOffset - foot.y:0.00}");
+                        }
                         else
+                        {
+                            if (why.Count > 0)
+                                log?.Add($"{name ?? module.name} {cell} {dir} 문 계단 못 놓음: {string.Join(" · ", why)}");
                             continue;
+                        }
                         if (i >= 0)
                             sockets[i] = open;
                         else
@@ -242,42 +266,65 @@ namespace SpaceStation.Editor
             var side = Vector3.Cross(Vector3.up, dir);
             if (FloorAt(cell, dir, depth - 0.02f) || !Corridor(decor, cell, dir, depth))
                 return false;
-            foreach (float back in LiftBack)
+            // 먼저 문 앞 (옆 비낌 ±0.5), 안 되면 문 옆으로 비켜 (±2.4 · ±3.0 — 아래층 문 계단이 문 앞 벽가를 차지한 수리 사령부, 2026-11-19) 대각선으로 떠오름
+            for (int pass = 0; pass < 2; pass++)
             {
-                // 떠오른 길 (문 평면 ~ 판 가운데 + 판 반지름)
-                if (Blocked(center, dir, side, depth - back - InteriorSkyLiftSpots.PadRadius, depth, 0f, 0.8f, sill - 0.3f, sill + LiftHead))
-                    break;
-                bool decorFree = true;
-                for (float s = depth - back; s <= depth + 0.001f && decorFree; s += 0.3f)
+                foreach (float back in LiftBack)
                 {
-                    foreach (float x in new[] { -0.45f, 0f, 0.45f })
-                        decorFree &= !decor.Any(center + (Vector3)dir * s + side * x, 0.35f, sill - 0.3f, sill + LiftHead);
-                }
-                if (!decorFree)
-                    break;
-                foreach (float lat in LiftSide)
-                {
-                    var p = center + (Vector3)dir * (depth - back) + side * lat;
-                    int best = -1;
-                    foreach (int k in graph.Column(p.x, p.z))
+                    bool anyPath = false;
+                    foreach (float lat in pass == 0 ? LiftSide : LiftSideWide)
                     {
-                        if (graph.Reached(k) && graph[k].y < sill - LiftMinRise && (best < 0 || graph[k].y > graph[best].y))
-                            best = k;
+                        // 떠오른 길 — 문 앞 판 (pass 0)은 길이 같아 처음 막히면 더 안쪽도 막힘
+                        if (!LiftPathClear(center, dir, side, decor, depth, back, pass == 0 ? 0f : lat, sill))
+                            continue;
+                        anyPath = true;
+                        var p = center + (Vector3)dir * (depth - back) + side * lat;
+                        int best = -1;
+                        foreach (int k in graph.Column(p.x, p.z))
+                        {
+                            if (graph.Reached(k) && graph[k].y < sill - LiftMinRise && (best < 0 || graph[k].y > graph[best].y))
+                                best = k;
+                        }
+                        if (best < 0)
+                            continue;
+                        var q = graph[best];
+                        if (!InteriorSkyLiftSpots.PadSurface(q, out float top, out _))
+                            continue;
+                        var at = new Vector3(q.x, top, q.z);
+                        if (!InteriorSkyLiftSpots.ColumnClear(at, sill + LiftHead, InteriorSkyLiftSpots.ColumnRadii[InteriorSkyLiftSpots.ColumnRadii.Length - 1])
+                            || !decor.Clear(at, sill + LiftHead) || InteriorSkyLiftSpots.EdgeGap(at) < 0.1f || NearOthers(sockets, pads, at))
+                            continue;
+                        pad = at;
+                        return true;
                     }
-                    if (best < 0)
-                        continue;
-                    var q = graph[best];
-                    if (!InteriorSkyLiftSpots.PadSurface(q, out float top, out _))
-                        continue;
-                    var at = new Vector3(q.x, top, q.z);
-                    if (!InteriorSkyLiftSpots.ColumnClear(at, sill + LiftHead, InteriorSkyLiftSpots.ColumnRadii[InteriorSkyLiftSpots.ColumnRadii.Length - 1])
-                        || !decor.Clear(at, sill + LiftHead) || InteriorSkyLiftSpots.EdgeGap(at) < 0.1f || NearOthers(sockets, pads, at))
-                        continue;
-                    pad = at;
-                    return true;
+                    if (!anyPath && pass == 0)
+                        break;
                 }
             }
             return false;
+        }
+
+        /// <summary>문 옆으로 비킨 판 자리 (문 앞 판이 막혔을 때).</summary>
+        private static readonly float[] LiftSideWide = { -2.4f, 2.4f, -3.0f, 3.0f };
+
+        /// <summary>
+        /// 떠오른 길 (문 평면 ~ 판 가운데 + 판 반지름 · 문 앞 ~ 판 옆 자리를 덮는 폭 + 0.8, 문턱 −0.3 ~ +2.3)에 충돌체 · 장식 정점이 없음.
+        /// lat = 0이면 문 앞 폭 ±0.8 · 장식 ±0.45 (②-4 처음 그대로).
+        /// </summary>
+        private static bool LiftPathClear(Vector3 center, Vector3Int dir, Vector3 side, InteriorSkyLiftSpots.DecorGrid decor, float depth, float back, float lat, float sill)
+        {
+            float lo = Mathf.Min(0f, lat), hi = Mathf.Max(0f, lat);
+            if (Blocked(center, dir, side, depth - back - InteriorSkyLiftSpots.PadRadius, depth, (lo + hi) * 0.5f, (hi - lo) * 0.5f + 0.8f, sill - 0.3f, sill + LiftHead))
+                return false;
+            for (float s = depth - back; s <= depth + 0.001f; s += 0.3f)
+            {
+                for (float x = lo - 0.45f; x <= hi + 0.451f; x += 0.45f)
+                {
+                    if (decor.Any(center + (Vector3)dir * s + side * x, 0.35f, sill - 0.3f, sill + LiftHead))
+                        return false;
+                }
+            }
+            return true;
         }
 
         /// <summary>다른 판 (반지름 둘 + 1 m) · 같은 바닥 아래 해치 틀 (판 반지름 + 0.25) · 같은 바닥 문 (1.8 m) 가까이.</summary>
@@ -297,6 +344,14 @@ namespace SpaceStation.Editor
                     if (Mathf.Abs(hatch.y - at.y) < 1.5f && InteriorSkyLiftSpots.FrameGap(hatch, s.HatchScale, at) < InteriorSkyLiftSpots.PadRadius + 0.25f)
                         return true;
                 }
+                else if (s.Direction.y == 0 && s.DoorSteps != 0)
+                {
+                    foreach (var p in StepsFootprint(c + (Vector3)s.Direction * s.Depth, s.Direction, s.DoorSteps))
+                    {
+                        if (Mathf.Abs(c.y + s.Offset.y - at.y) < 2f && Flat(p, at) < InteriorSkyLiftSpots.PadRadius + 0.5f)
+                            return true;
+                    }
+                }
                 else if (s.Direction.y == 0 && !s.SealedWall && !s.DoorLift)
                 {
                     var door = c + (Vector3)s.Direction * s.Depth;
@@ -306,6 +361,162 @@ namespace SpaceStation.Editor
             }
             return false;
         }
+
+        /// <summary>문 계단: 문턱보다 낮은 땅 높이 범위 (단 하나 = 높이 / 4 ≤ 0.26 — 플레이어 턱 0.3, 1.2 m 넘으면 문 승강판).</summary>
+        private const float StepsMinRise = 0.5f, StepsMaxRise = 1.05f;
+
+        /// <summary>
+        /// 문 안 바닥이 문턱보다 0.5 ~ 1.05 m 낮은 옆문 (AI 중추 · 수리 사령부 정원 0.78) = 문 계단 자리 (모든 면 연결 ②, 2026-11-19):
+        /// 문 · 튜브 자리가 비고 (<see cref="Corridor"/>), 문 앞 층계참 + 오른쪽 (안 되면 왼쪽)으로 세 단 + 내려선 자리가 고른 땅 위 · 충돌체 · 장식 없음 (<see cref="StepsProblem"/>),
+        /// 내려선 자리에 걸어서 닿고, 다른 문 계단 · 승강판 · 같은 바닥 문 · 아래 해치 · 고정 주민 자리와 떨어짐. foot = 내려선 자리 (땅 높이).
+        /// 계단은 문이 열릴 때만 Unity가 놓음 (InteriorBuilder.BuildDoorSteps) — 닫힌 면은 정원 그대로.
+        /// </summary>
+        private static bool TryDoorSteps(InteriorWalkGraph graph, InteriorSkyLiftSpots.DecorGrid decor, List<InteriorSocket> sockets, List<Vector3> pads, List<Vector3> steps, List<Vector3> keep,
+            Vector3Int cell, Vector3Int dir, float depth, out int stepSide, out Vector3 foot, List<string> why = null)
+        {
+            stepSide = 0;
+            foot = default;
+            var center = TempOrigin + (Vector3)cell * InteriorGeometry.CellSize;
+            float sill = TempOrigin.y + InteriorGeometry.FloorY(cell);
+            if (FloorAt(cell, dir, depth - 0.02f) || !Corridor(decor, cell, dir, depth))
+                return false;
+            var door = center + (Vector3)dir * depth;
+            door.y = sill;
+            foreach (int s in new[] { 1, -1 })
+            {
+                string side = s > 0 ? "오른쪽" : "왼쪽";
+                string problem = StepsProblem(door, dir, s, decor, out float ground);
+                if (problem != null)
+                {
+                    if (!problem.StartsWith("높이") && !problem.StartsWith("땅 없음"))
+                        why?.Add($"{side} {problem}");
+                    continue;
+                }
+                var f = StepsFoot(door, dir, s);
+                f.y = ground;
+                int k = graph.Node(f, 0.35f);
+                if (k < 0 || !graph.Reached(k) || Mathf.Abs(graph[k].y - ground) > 0.15f)
+                {
+                    why?.Add($"{side} 내려선 자리에 못 감");
+                    continue;
+                }
+                if (StepsCrowded(sockets, pads, steps, keep, StepsFootprint(door, dir, s), ground))
+                {
+                    why?.Add($"{side} 다른 문 · 판 · 주민 자리 가까이");
+                    continue;
+                }
+                stepSide = s;
+                foot = f;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>문 계단 내려선 자리 (마지막 단 앞 땅 가운데, y = 문턱) — door = 문 평면 · 문턱 가운데.</summary>
+        public static Vector3 StepsFoot(Vector3 door, Vector3Int dir, int side) =>
+            door + Vector3.Cross(Vector3.up, dir) * (side * InteriorGeometry.StepsFootLateral) - (Vector3)dir * (InteriorGeometry.StepsLandingDepth * 0.5f);
+
+        /// <summary>문 계단 자리 점 (층계참 · 세 단 · 내려선 자리, 0.3 m 간격, y = 문턱) — door = 문 평면 · 문턱 가운데.</summary>
+        public static List<Vector3> StepsFootprint(Vector3 door, Vector3Int dir, int side)
+        {
+            var list = new List<Vector3>();
+            var lat = Vector3.Cross(Vector3.up, dir) * side;
+            for (float x = -InteriorGeometry.StepsHalfWidth + 0.1f; x <= InteriorGeometry.StepsFootLateral + 0.001f; x += 0.3f)
+            {
+                for (float z = 0.1f; z <= InteriorGeometry.StepsLandingDepth - 0.1f + 0.001f; z += 0.3f)
+                    list.Add(door + lat * x - (Vector3)dir * z);
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// 문 계단 놓을 자리 검사 (자동 문 · 시험이 함께 씀): 층계참 · 세 단 · 내려선 자리 아래 땅이 고르고 (6 cm 안 · 평평) 문턱보다 0.5 ~ 1.05 m 낮으며,
+        /// 층계참 · 단 위 (땅 + 0.08 ~ 문턱 + 2.3) · 내려선 자리 위 (땅 + 0.12 ~ + 1.9)에 충돌체가 없고 장식 정점도 없음. 괜찮으면 null, ground = 땅 높이 (가장 낮은 곳).
+        /// </summary>
+        public static string StepsProblem(Vector3 door, Vector3Int dir, int side, InteriorSkyLiftSpots.DecorGrid decor, out float ground)
+        {
+            ground = float.MaxValue;
+            float high = float.MinValue;
+            var points = StepsFootprint(door, dir, side);
+            foreach (var p in points)
+            {
+                if (!Physics.Raycast(new Vector3(p.x, door.y + 0.5f, p.z), Vector3.down, out var hit, 0.5f + StepsMaxRise + 0.2f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                    return $"땅 없음 {p - door}";
+                if (hit.normal.y < 0.95f)
+                    return $"비탈 · 물건 위 {hit.collider.name}";
+                ground = Mathf.Min(ground, hit.point.y);
+                high = Mathf.Max(high, hit.point.y);
+            }
+            if (high - ground > 0.06f)
+                return $"땅이 고르지 않음 {high - ground:F2}";
+            float rise = door.y - ground;
+            if (rise < StepsMinRise || rise > StepsMaxRise)
+                return $"높이 {rise:F2}";
+            var rotation = Quaternion.LookRotation((Vector3)dir);
+            var lat = Vector3.Cross(Vector3.up, dir) * side;
+            float x0 = -InteriorGeometry.StepsHalfWidth, x1 = InteriorGeometry.StepsHalfWidth + InteriorGeometry.StepCount * InteriorGeometry.StepRun, x2 = InteriorGeometry.StepsFootLateral + 0.35f;
+            float z0 = 0.02f, z1 = InteriorGeometry.StepsLandingDepth;
+            if (CheckBox(door, dir, lat, x0, x1, z0, z1, ground + 0.08f, door.y + LiftHead, rotation))
+                return "층계참 · 단 자리에 물건";
+            if (CheckBox(door, dir, lat, x1, x2, z0, z1, ground + 0.12f, ground + 1.9f, rotation))
+                return "내려선 자리에 물건";
+            foreach (var p in points)
+            {
+                if (decor.Any(p, 0.2f, ground + 0.08f, door.y + LiftHead))
+                    return $"장식 {p - door}";
+            }
+            return null;
+        }
+
+        /// <summary>문 평면 · 문턱 가운데 door 기준 옆 x0 ~ x1 · 안쪽 z0 ~ z1 · 높이 bottom ~ top 상자에 충돌체.</summary>
+        private static bool CheckBox(Vector3 door, Vector3Int dir, Vector3 lat, float x0, float x1, float z0, float z1, float bottom, float top, Quaternion rotation)
+        {
+            var mid = door + lat * ((x0 + x1) * 0.5f) - (Vector3)dir * ((z0 + z1) * 0.5f);
+            mid.y = (bottom + top) * 0.5f;
+            return Physics.CheckBox(mid, new Vector3((x1 - x0) * 0.5f, (top - bottom) * 0.5f, (z1 - z0) * 0.5f), rotation, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        }
+
+        /// <summary>문 계단 자리가 다른 문 계단 (0.6 m) · 승강판 (판 반지름 + 0.5) · 같은 바닥 다른 문 (1.2 m — 그 문 앞 길) · 아래 해치 틀 (0.4) · 고정 주민 자리 (0.6) 가까이.</summary>
+        private static bool StepsCrowded(List<InteriorSocket> sockets, List<Vector3> pads, List<Vector3> steps, List<Vector3> keep, List<Vector3> mine, float ground)
+        {
+            foreach (var p in mine)
+            {
+                foreach (var q in steps)
+                {
+                    if (Flat(p, q) < 0.6f)
+                        return true;
+                }
+                foreach (var q in pads)
+                {
+                    if (Mathf.Abs(q.y - ground) < 2f && Flat(p, q) < InteriorSkyLiftSpots.PadRadius + 0.5f)
+                        return true;
+                }
+                foreach (var q in keep)
+                {
+                    if (Mathf.Abs(q.y - ground) < 1.5f && Flat(p, q) < 0.6f)
+                        return true;
+                }
+                foreach (var s in sockets)
+                {
+                    var c = TempOrigin + (Vector3)s.Cell * InteriorGeometry.CellSize;
+                    if (s.Direction == Vector3Int.down)
+                    {
+                        var hatch = c + s.Offset + Vector3.down * s.Depth;
+                        if (Mathf.Abs(hatch.y - ground) < 1.5f && InteriorSkyLiftSpots.FrameGap(hatch, s.HatchScale, new Vector3(p.x, hatch.y, p.z)) < 0.4f)
+                            return true;
+                    }
+                    else if (s.Direction.y == 0 && !s.SealedWall && !s.DoorLift && s.DoorSteps == 0)
+                    {
+                        var door = c + (Vector3)s.Direction * s.Depth;
+                        if (Mathf.Abs(TempOrigin.y + InteriorGeometry.FloorY(s.Cell) - ground) < 2f && Flat(p, door) < 1.2f)
+                            return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private static float Flat(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
 
         /// <summary>문 깊이 하한 (칸 가운데에서 m) — 이보다 안쪽 문은 튜브가 방 안으로 깊이 들어옴.</summary>
         private const float MinDepth = 2.4f;

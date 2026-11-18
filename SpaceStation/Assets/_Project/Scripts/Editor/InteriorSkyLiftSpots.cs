@@ -186,6 +186,10 @@ namespace SpaceStation.Editor
                 {
                     starts.Add(graph.Node(center + s.Offset, 0.8f));   // 2층 높이 옆문 = 문 승강판 판 (모든 면 연결 ②-4)
                 }
+                else if (s.Direction.y == 0 && s.DoorSteps != 0)
+                {
+                    starts.Add(graph.Node(center + s.Offset, 0.35f));   // 문 계단 내려선 자리 (계단은 문이 열릴 때만 놓임 — 모든 면 연결 ②)
+                }
                 else if (s.Direction.y == 0)
                 {
                     // 문 자리 안쪽 0.7 m — 그 기둥의 마디 중 칸 가운데보다 아래에서 가장 높은 것 (문 바닥)
@@ -522,6 +526,12 @@ namespace SpaceStation.Editor
                 {
                     if (s.DoorLift)   // 2층 높이 옆문 승강판 (자동 문이 정함 — 그대로 두고 위 승강판이 비킴)
                         pads.Add(Away + (Vector3)s.Cell * InteriorGeometry.CellSize + s.Offset);
+                    else if (s.DoorSteps != 0)   // 문 계단 자리 (층계참 · 단 · 내려선 자리 점마다)
+                    {
+                        var c = Away + (Vector3)s.Cell * InteriorGeometry.CellSize;
+                        foreach (var p in InteriorAutoDoors.StepsFootprint(c + (Vector3)s.Direction * s.Depth, s.Direction, s.DoorSteps))
+                            pads.Add(new Vector3(p.x, c.y + s.Offset.y, p.z));
+                    }
                 }
                 log.Append(t.name).Append(':');
                 foreach (var cell in faces)

@@ -1178,6 +1178,52 @@ def kit_skylift(st):
     return pad, ring
 
 
+DS_HALF, DS_LAND, DS_RUN, DS_RISE, DS_STEPS = 1.1, 1.0, 0.3, 0.78, 3   # Unity InteriorGeometry.Steps* 와 같음 (층계참 1.0 = 문 벽 0.2 + 난간 사이 0.72 — 0.85면 0.56이라 플레이어 (지름 0.6)가 옆으로 못 지나감)
+
+
+def kit_door_steps(st):
+    """문 계단 (모든 면 연결 ②, 2026-11-19 — 바닥이 문턱보다 0.78 m 낮은 정원 방 (AI 중추 · 수리 사령부)의 옆문 앞, 문이 열릴 때만 Unity가 놓음):
+    피벗 = 문 평면 · 문턱 가운데 (y 0 = 문턱, 방 쪽 = −z). 문턱 높이 층계참 (x ±1.1 · z −1.0 ~ 0) + +x 쪽으로 세 단 (너비 0.3 · 높이 0.195, 땅 = y −0.78).
+    단계 몸 색 받침 (땅 2 cm 밑부터) 위 판석 판 (5 cm, 받침보다 1 cm 넓게) · 내려가는 모서리 금속 테, 층계참 방 쪽 · 끝 (−x)을 따라 난간
+    (AI 중추 첫 층계참과 같은 꼴 — 세 단은 정원 계단처럼 난간 없이). 반대쪽은 Unity가 x −1로, 다른 높이는 y로 늘려 씀."""
+    if st == 2:
+        B = kmat('M_InteriorEvo2Wall', '#232A55', 0.45); Fl = kmat('M_InteriorEvo2Deck', '#171C3A'); E = kmat('M_InteriorEvo2Gold', '#D9AE4E', 0.25, 1.0)
+        R = kmat('M_InteriorEvo2Trim', '#A9B0E2', 0.3, 0.5)
+    elif st == 3:
+        B = kmat('M_InteriorEvo3Pearl', '#F4EFE6', 0.3, 0.1); Fl = kmat('M_InteriorEvo2Path', '#E8E0D0', 0.6); E = kmat('M_InteriorEvo3Gold', '#D9AE4E', 0.25, 1.0)
+        R = E
+    else:
+        B = kmat('M_InteriorEvo4Wall', '#2E2766', 0.35, 0.2); Fl = kmat('M_InteriorEvo4Deck', '#1B1740', 0.45); E = kmat('M_InteriorEvo4Trim', '#CDD3DE', 0.2, 1.0)
+        R = E
+    rise = DS_RISE / (DS_STEPS + 1)
+    z0, z1, ground = -DS_LAND, 0.0, -DS_RISE
+    rects = [(-DS_HALF, DS_HALF, 0.0)] + [(DS_HALF + (k - 1) * DS_RUN, DS_HALF + k * DS_RUN, -k * rise) for k in range(1, DS_STEPS + 1)]
+    objs = []
+    for (a0, a1, top) in rects:
+        cx, cz, sx, sz = (a0 + a1) / 2, (z0 + z1) / 2, a1 - a0, z1 - z0
+        objs.append(solid(box('DS_Body', (sx - 0.02, top - 0.05 - (ground - 0.02), sz - 0.02), B, at=(cx, (ground - 0.02 + top - 0.05) / 2, cz))))
+        objs.append(solid(box('DS_Tread', (sx, 0.05, sz), Fl, at=(cx, top - 0.025, cz))))
+        objs.append(solid(box('DS_Nose', (0.04, 0.015, sz - 0.04), E, at=(a1 - 0.022, top + 0.0045, cz))))
+    # 난간: 층계참 방 쪽 (z −0.8) · 끝 (x −1.05) — 손잡이 (1.05) · 가운데 줄 (0.5) · 기둥 셋 (몸 색 + 금속 깃)
+    xa, xb, za, zb, H = -DS_HALF + 0.05, DS_HALF - 0.05, z0 + 0.05, -0.06, 1.05
+    for (r, y) in ((0.032, H), (0.014, 0.5)):
+        run = sweep('DS_RailX', circle(r, 10, cx=0.0, cy=y), R, xa, xb)          # z 방향으로 민 뒤 y축으로 돌려 x 방향 (방 쪽)
+        run.data.transform(Matrix.Translation((0, 0, za)) @ Matrix.Rotation(math.pi / 2, 4, 'Y'))
+        objs.append(solid(run))
+        objs.append(solid(sweep('DS_RailZ', circle(r, 10, cx=xa, cy=y), R, za, zb)))
+    for (px, pz) in ((xa, za), (xb, za), (xa, zb)):
+        for (nm, r0, r1, y0, y1, m) in (('DS_Post', 0.03, 0.03, -0.02, H, B), ('DS_Collar', 0.052, 0.044, -0.02, 0.06, R)):
+            bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=10, radius1=r0, radius2=r1, depth=y1 - y0)
+            for v in bm.verts:
+                v.co = Vector((v.co.x + px, v.co.z + (y0 + y1) / 2, v.co.y + pz))
+            objs.append(solid(new_obj(nm, bm, [m])))
+        bm = bmesh.new(); bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=6, radius=0.045)
+        for v in bm.verts:
+            v.co += Vector((px, H, pz))
+        objs.append(new_obj('DS_Knob', bm, [R]))
+    return objs
+
+
 def export_kit():
     out = []
     for st, fn in ((1, kit_tube_evo1), (2, kit_tube_evo2), (3, lambda: kit_bridge(3)), (4, lambda: kit_bridge(4))):
@@ -1193,6 +1239,7 @@ def export_kit():
             pad, ring = kit_skylift(st)
             out.append(bake_kit('KIT_SkyLiftPad_Evo%d' % st, pad))
             out.append(bake_kit('KIT_SkyLiftRing_Evo%d' % st, ring))
+            out.append(bake_kit('KIT_DoorSteps_Evo%d' % st, kit_door_steps(st)))
     frame, leaf = kit_airlock()
     out.append(bake_kit('KIT_AirlockFrame', frame))
     out.append(bake_kit('KIT_AirlockLeaf', leaf))

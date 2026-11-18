@@ -446,6 +446,7 @@ namespace SpaceStation.Editor
                     string n = "_Evo" + s.Stage;
                     s.EditorSetSkyLift(tubes.ContainsKey("KIT_SkyLiftPad" + n) ? Piece("KIT_SkyLiftPad" + n, tubes) : null,
                         tubes.ContainsKey("KIT_SkyLiftRing" + n) ? Piece("KIT_SkyLiftRing" + n, tubes) : null);
+                    s.EditorSetDoorSteps(tubes.ContainsKey("KIT_DoorSteps" + n) ? Piece("KIT_DoorSteps" + n, tubes) : null);   // 문 계단 (모든 면 연결 ②, 2026-11-19)
                 }
                 kit.EditorSetSkyLiftShaft(AssetDatabase.LoadAssetAtPath<Material>(SkyLiftShaftPath));
             }

@@ -25,6 +25,9 @@ namespace SpaceStation.Data
         [Tooltip("수평 문 자리만: 문 높이에 바닥이 없는 2층 높이 옆문 (위 칸이 하늘 · 뚫린 홀) — 아래 바닥 빛 기둥 판에서 떠올라 문으로 나가고, 문으로 들어오면 판까지 내려앉음 " +
                  "(모든 면 연결 ②-4, 2026-11-18). 오프셋 = 판 자리 (칸 중심 기준, y = 판 윗면)")]
         [SerializeField] private bool _doorLift;
+        [Tooltip("수평 문 자리만: 문 안 바닥이 문턱보다 낮은 옆문 (AI 중추 · 수리 사령부 정원 0.78 m) — 문이 열리면 문 앞에 문턱 높이 층계참 + 세 단 (키트 문 계단)을 놓음 " +
+                 "(모든 면 연결 ②, 2026-11-19). 1 = 오른쪽 · -1 = 왼쪽 (문을 밖으로 볼 때 계단이 내려가는 쪽), 0 = 없음. 오프셋 = 마지막 단 앞 땅 (칸 중심 기준, y = 땅 높이)")]
+        [SerializeField] private int _doorSteps;
 
         public Vector3Int Cell => _cell;
         public Vector3Int Direction => _direction;
@@ -34,8 +37,9 @@ namespace SpaceStation.Data
         public bool SkyLift => _skyLift;
         public float HatchScale => _hatchScale > 0f ? _hatchScale : 1f;
         public bool DoorLift => _doorLift;
+        public int DoorSteps => _doorSteps;
 
-        public InteriorSocket(Vector3Int cell, Vector3Int direction, float depth, Vector3 offset = default, bool sealedWall = false, bool skyLift = false, float hatchScale = 0f, bool doorLift = false)
+        public InteriorSocket(Vector3Int cell, Vector3Int direction, float depth, Vector3 offset = default, bool sealedWall = false, bool skyLift = false, float hatchScale = 0f, bool doorLift = false, int doorSteps = 0)
         {
             _cell = cell;
             _direction = direction;
@@ -45,6 +49,7 @@ namespace SpaceStation.Data
             _skyLift = skyLift;
             _hatchScale = hatchScale;
             _doorLift = doorLift;
+            _doorSteps = doorSteps;
         }
     }
 
