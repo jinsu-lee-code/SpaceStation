@@ -261,9 +261,9 @@ namespace SpaceStation.Editor
                 }
             },
             {
-                "EvoRepairCommand", new[]   // 23 → 21
+                "EvoRepairCommand", new[]   // 23 → 20 (셋째 = 왼쪽 가운데 칸 옆문 바로 안 — 문 계단 자리, 2026-11-19)
                 {
-                    new Vector3(4.523f, -1.63f, 3.112f), new Vector3(10.303f, -1.63f, 1.831f)
+                    new Vector3(4.523f, -1.63f, 3.112f), new Vector3(10.303f, -1.63f, 1.831f), new Vector3(-2.8f, -2.08f, 8.4f)
                 }
             },
             {
@@ -1636,6 +1636,22 @@ namespace SpaceStation.Editor
             Debug.Log("[ResidentSpotBaker] " + string.Join(" · ", log));
         }
 
+        /// <summary>고정 자리 표가 있는 방의 주민 자리 (템플릿 로컬, 붐빔 줄여 뺀 자리 빼고) — 자동 문 계단이 비킴 (InteriorAutoDoors). 표가 없으면 빈 목록.</summary>
+        public static List<Vector3> FixedSpotPositions(string name)
+        {
+            var list = new List<Vector3>();
+            if (FixedSpots.TryGetValue(name, out var spots))
+            {
+                TrimmedSpots.TryGetValue(name, out var cut);
+                foreach (var s in spots())
+                {
+                    if (cut == null || System.Array.FindIndex(cut, c => (s.Position - c).sqrMagnitude < 0.03f * 0.03f) < 0)
+                        list.Add(s.Position);
+                }
+            }
+            return list;
+        }
+
         private static string Bake(InteriorTemplate template)
         {
             string name = template.name.Replace("IT_", "");
@@ -1740,6 +1756,11 @@ namespace SpaceStation.Editor
                     list.Add((c + dir * (s.Depth - 1.4f), 0.9f));
                     if (s.DoorLift)
                         list.Add((c + s.Offset, 1.2f));   // 2층 높이 옆문 승강판 판
+                    if (s.DoorSteps != 0)
+                    {
+                        foreach (var p in InteriorAutoDoors.StepsFootprint(c + dir * s.Depth, s.Direction, s.DoorSteps))
+                            list.Add((p, 0.5f));   // 문 계단 자리 (문이 열릴 때만 놓임)
+                    }
                 }
                 else
                     list.Add((c + s.Offset, 1.0f));

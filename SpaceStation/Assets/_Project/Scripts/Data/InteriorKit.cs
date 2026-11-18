@@ -111,6 +111,13 @@ namespace SpaceStation.Data
             _skyLiftRing = ring;
         }
 
+        [Tooltip("문 계단 (모든 면 연결 ②): 문 안 바닥이 낮은 옆문 앞 층계참 + 세 단 + 난간 (피벗 = 문 평면 · 문턱 가운데, 방 쪽 −z, 계단 +x, 높이 0.78)")]
+        [SerializeField] private InteriorKitPiece _doorSteps;
+
+        public InteriorKitPiece DoorSteps => _doorSteps != null && _doorSteps.IsValid ? _doorSteps : null;
+
+        public void EditorSetDoorSteps(InteriorKitPiece steps) => _doorSteps = steps;
+
         public InteriorKitStage(int stage, List<ModuleData> modules, InteriorKitPiece wall, InteriorKitPiece wallDoor, InteriorKitPiece doorLeaf,
             InteriorKitPiece floor, InteriorKitPiece ceiling, InteriorKitPiece hatchFrame, InteriorKitPiece hatchLid, InteriorKitPiece sealedWall = null, InteriorKitPiece skyPatch = null)
         {
@@ -225,6 +232,7 @@ namespace SpaceStation.Data
         public Material SkyLiftShaft => _skyLiftShaft;
         public InteriorKitPiece SkyLiftPadFor(ModuleData data) => StageOf(data)?.SkyLiftPad;
         public InteriorKitPiece SkyLiftRingFor(ModuleData data) => StageOf(data)?.SkyLiftRing;
+        public InteriorKitPiece DoorStepsFor(ModuleData data) => StageOf(data)?.DoorSteps;
 
         /// <summary>모듈 방의 진화 단계 (단계 키트 묶음 — 기본 모듈 · 템플릿 없는 방 = 0).</summary>
         public int StageNumber(ModuleData data) => StageOf(data)?.Stage ?? 0;

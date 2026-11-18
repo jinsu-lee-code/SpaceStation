@@ -581,9 +581,12 @@ namespace SpaceStation.Interior
                 center.y = _root.position.y + InteriorGeometry.FloorY(cell) + InteriorGeometry.PanelCenterAboveFloor;
                 var skyPatch = CellCenter(cell) + (Vector3)dir * SkyPatchDepth;
                 skyPatch.y = center.y;
-                Panel(new WallPanel(center - _root.position, dir, InteriorGeometry.PanelWidth, open), module, parent, open ? OtherRoom(cell, dir) : null, socket.SealedWall, skyPatch, skyOnly: socket.DoorLift && !open);
+                Panel(new WallPanel(center - _root.position, dir, InteriorGeometry.PanelWidth, open), module, parent, open ? OtherRoom(cell, dir) : null, socket.SealedWall, skyPatch,
+                    skyOnly: (socket.DoorLift || socket.DoorSteps != 0) && !open);
                 if (open && socket.DoorLift)
                     BuildDoorLift(module, parent, cell, dir, CellCenter(cell) + rotation * socket.Offset, center + Vector3.down * InteriorGeometry.PanelCenterAboveFloor);
+                if (open && socket.DoorSteps != 0)
+                    BuildDoorSteps(module, parent, dir, center + Vector3.down * InteriorGeometry.PanelCenterAboveFloor, socket.DoorSteps, (CellCenter(cell) + rotation * socket.Offset).y);
             }
             // 하늘 껍질이 있는 방 = 개방형 (아콜로지 · 대형 토러스는 우주복 없이도 하늘이 있음)
             foreach (Transform part in instance.transform)
@@ -682,7 +685,7 @@ namespace SpaceStation.Interior
 
             if (!panel.Door)
             {
-                if (skyOnly)   // 닫힌 2층 높이 옆문 (문 승강판 자리, 이웃 없음): 공중에 난간 · 벽 조각을 두지 않고 뚫어 둔 하늘 구멍만 메움
+                if (skyOnly)   // 닫힌 2층 높이 옆문 (문 승강판 자리) · 문 계단 자리 (이웃 없음): 공중에 난간 · 벽 조각을 두지 않고 뚫어 둔 하늘 구멍만 메움
                 {
                     if (_kit != null && _kit.SkyPatchFor(module.Data) is { IsValid: true } sky)
                         KitPiece(sky, module, parent, skyPatch ?? center + panel.Normal * SkyPatchBehindPanel, rotation);
@@ -864,14 +867,25 @@ namespace SpaceStation.Interior
             }
             var lift = pad.AddComponent<InteriorSkyLift>();
             lift.Initialize(ground + Vector3.up * PadTop, door.y, _kit != null ? _kit.SkyLiftShaft : null, ShaftColor(module));
-            // 받침: 기둥 꼭대기 (판 반지름까지) ~ 문 평면 + 0.1, 문 폭 + 여유, 윗면 = 문턱
+            // 받침: 기둥 꼭대기 (판 반지름까지) ~ 문 평면 + 0.1, 문 폭 + 여유, 윗면 = 문턱 — 문 옆으로 비킨 판 (2026-11-19)은 기둥 꼭대기 → 문 대각선으로
             var d = (Vector3)dir;
             var top = new Vector3(ground.x, door.y, ground.z);
-            float back = InteriorSkyLift.PadRadius, length = Vector3.Dot(door - top, d) + back + 0.1f;
+            var flat = door - top;
+            flat.y = 0f;
+            bool aside = Mathf.Abs(Vector3.Dot(flat, Vector3.Cross(Vector3.up, d))) > 0.6f;
+            var axis = aside ? flat.normalized : d;
+            float back = InteriorSkyLift.PadRadius, length = Vector3.Dot(flat, axis) + back + 0.1f;
             var landing = new GameObject("DoorLiftLanding") { layer = 2 };   // Ignore Raycast — 시선 · 상호작용 광선은 지나감
             landing.transform.SetParent(parent, false);
-            landing.transform.SetPositionAndRotation(top + d * (length * 0.5f - back) + Vector3.down * 0.05f, Quaternion.LookRotation(d));
+            landing.transform.SetPositionAndRotation(top + axis * (length * 0.5f - back) + Vector3.down * 0.05f, Quaternion.LookRotation(axis));
             landing.AddComponent<BoxCollider>().size = new Vector3(InteriorGeometry.DoorWidth, 0.1f, length);
+            if (aside)   // 문 바로 안 (문 폭 전체 · 0.8 m) — 대각선 받침이 문 평면에서 비스듬히 끝나 문 양끝이 비지 않게
+            {
+                var mouth = new GameObject("DoorLiftLanding") { layer = 2 };
+                mouth.transform.SetParent(parent, false);
+                mouth.transform.SetPositionAndRotation(new Vector3(door.x, door.y - 0.05f, door.z) - d * 0.35f, Quaternion.LookRotation(d));
+                mouth.AddComponent<BoxCollider>().size = new Vector3(InteriorGeometry.DoorWidth + 0.2f, 0.1f, 0.9f);
+            }
             var h = pad.AddComponent<InteriorHatch>();
             h.FromCell = cell;
             h.ToCell = cell + dir;
@@ -881,6 +895,51 @@ namespace SpaceStation.Interior
             _hatches.Add(h);
             _skyLifts.Add(h);
             _doorLifts.Add(h);
+        }
+
+        /// <summary>
+        /// 문 계단 (모든 면 연결 ②, 2026-11-19): 문 안 바닥이 문턱보다 낮은 옆문이 열리면 문 앞에 문턱 높이 층계참 + side 쪽으로 세 단 (키트 조각, 다른 쪽은 x 뒤집음 · 높이는 세로로 늘림).
+        /// 충돌 = 층계참 · 단마다 상자 (윗면 = 그 단, 땅 2 cm 밑부터). door = 문 평면 · 문턱 가운데, ground = 땅 높이.
+        /// </summary>
+        private void BuildDoorSteps(ModuleInstance module, Transform parent, Vector3Int dir, Vector3 door, int side, float ground)
+        {
+            float rise = door.y - ground;
+            var rotation = Quaternion.LookRotation(dir, Vector3.up);
+            var piece = _kit != null ? _kit.DoorStepsFor(module.Data) : null;
+            if (piece != null)
+                KitPiece(piece, module, parent, door, rotation, new Vector3(side, rise / InteriorGeometry.StepsKitRise, 1f));
+            var right = rotation * Vector3.right * side;
+            var inward = -(Vector3)dir;
+            float step = rise / (InteriorGeometry.StepCount + 1);
+            for (int k = 0; k <= InteriorGeometry.StepCount; k++)
+            {
+                float top = door.y - k * step;
+                float x0 = k == 0 ? -InteriorGeometry.StepsHalfWidth : InteriorGeometry.StepsHalfWidth + (k - 1) * InteriorGeometry.StepRun;
+                float x1 = k == 0 ? InteriorGeometry.StepsHalfWidth : InteriorGeometry.StepsHalfWidth + k * InteriorGeometry.StepRun;
+                var c = door + right * ((x0 + x1) * 0.5f) + inward * (InteriorGeometry.StepsLandingDepth * 0.5f);
+                c.y = (top + ground - 0.02f) * 0.5f;
+                var go = new GameObject("DoorStep");
+                go.transform.SetParent(parent, false);
+                go.transform.SetPositionAndRotation(c, rotation);
+                go.AddComponent<BoxCollider>().size = new Vector3(x1 - x0, top - ground + 0.02f, InteriorGeometry.StepsLandingDepth);
+                if (piece == null)
+                    Cube(parent, module, c, rotation, new Vector3(x1 - x0, top - ground + 0.02f, InteriorGeometry.StepsLandingDepth), DoorFrame);
+            }
+            // 난간 (층계참 방 쪽 · 끝): 문으로 들어와 곧장 걸으면 층계참 끝에서 0.78 m 떨어졌음 → 계단 쪽으로만 내려감
+            float railTop = door.y + 1.05f * rise / InteriorGeometry.StepsKitRise;
+            float half = InteriorGeometry.StepsHalfWidth, depth = InteriorGeometry.StepsLandingDepth;
+            RailCollider(parent, door + inward * (depth - 0.05f), rotation, new Vector3(half * 2f - 0.1f, 0f, 0.08f), door.y, railTop);
+            RailCollider(parent, door + right * (-half + 0.05f) + inward * (depth * 0.5f), rotation, new Vector3(0.08f, 0f, depth - 0.1f), door.y, railTop);
+        }
+
+        private static void RailCollider(Transform parent, Vector3 at, Quaternion rotation, Vector3 size, float bottom, float top)
+        {
+            var go = new GameObject("DoorStepRail");
+            go.transform.SetParent(parent, false);
+            at.y = (bottom + top) * 0.5f;
+            go.transform.SetPositionAndRotation(at, rotation);
+            size.y = top - bottom;
+            go.AddComponent<BoxCollider>().size = size;
         }
 
         /// <summary>

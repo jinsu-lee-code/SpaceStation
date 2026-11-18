@@ -204,6 +204,72 @@ namespace SpaceStation.Tests
         }
 
         /// <summary>
+        /// 문 계단 (문 안 바닥이 문턱보다 낮은 옆문 — 모든 면 연결 ②, <see cref="InteriorAutoDoors"/>): 층계참 · 세 단 · 내려선 자리 아래 땅이 고르고 문턱보다 0.5 ~ 1.05 m 낮음 ·
+        /// 그 위에 충돌체 · 장식이 없음 (<see cref="InteriorAutoDoors.StepsProblem"/>) · 내려선 자리가 땅 높이 (오프셋)이고 걸어서 닿음 · 문 앞 바닥이 없음 (있으면 계단 말고 문) ·
+        /// 고정 주민 자리가 계단 자리에 없음.
+        /// </summary>
+        [Test]
+        public void DoorSteps_GroundFlat_Clear_Reachable()
+        {
+            var problems = new StringBuilder();
+            foreach (var guid in AssetDatabase.FindAssets("t:InteriorTemplate", new[] { "Assets/_Project/Data/Interior" }))
+            {
+                var t = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
+                if (t == null || t.Prefab == null || !t.Sockets.Any(s => s.DoorSteps != 0))
+                    continue;
+                var root = Object.Instantiate(t.Prefab);
+                root.transform.SetPositionAndRotation(Away, Quaternion.identity);
+                Physics.SyncTransforms();
+                try
+                {
+                    var graph = InteriorWalkGraph.ForTemplate(t, root.transform);
+                    var decor = new InteriorSkyLiftSpots.DecorGrid(root.transform);
+                    foreach (var s in t.Sockets)
+                    {
+                        if (s.DoorSteps == 0)
+                            continue;
+                        var center = Away + (Vector3)s.Cell * 8f;
+                        var door = center + (Vector3)s.Direction * s.Depth;
+                        door.y = center.y - 1.3f;
+                        string at = $"{t.name} {s.Cell} {s.Direction} 계단 {s.DoorSteps}";
+                        if (s.Direction.y != 0 || s.DoorLift || s.SealedWall)
+                            problems.AppendLine($"{at}: 문 계단이 열린 옆문이 아님");
+                        string why = InteriorAutoDoors.StepsProblem(door, s.Direction, s.DoorSteps, decor, out float ground);
+                        if (why != null)
+                            problems.AppendLine($"{at}: {why}");
+                        var foot = center + s.Offset;
+                        var expect = InteriorAutoDoors.StepsFoot(door, s.Direction, s.DoorSteps);
+                        if (why == null && (Mathf.Abs(foot.y - ground) > 0.01f || new Vector2(foot.x - expect.x, foot.z - expect.z).magnitude > 0.01f))
+                            problems.AppendLine($"{at}: 내려선 자리 {s.Offset}가 계단 끝 · 땅과 다름");
+                        int k = graph.Node(foot, 0.35f);
+                        if (k < 0 || !graph.Reached(k))
+                            problems.AppendLine($"{at}: 내려선 자리에 걸어서 못 감");
+                        if (Physics.Raycast(door - (Vector3)s.Direction * 0.05f + Vector3.up * 1f, Vector3.down, 1.3f, ~0, QueryTriggerInteraction.Ignore))
+                            problems.AppendLine($"{at}: 문 앞에 바닥이 있음 (계단 말고 문)");
+                        foreach (var spot in t.ResidentSpots)
+                        {
+                            foreach (var p in InteriorAutoDoors.StepsFootprint(door, s.Direction, s.DoorSteps))
+                            {
+                                var w = Away + spot.Position;
+                                if (Mathf.Abs(w.y - ground) < 1.5f && new Vector2(w.x - p.x, w.z - p.z).magnitude < 0.5f)
+                                {
+                                    problems.AppendLine($"{at}: 주민 자리 {spot.Position}가 계단 자리에 있음");
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                finally
+                {
+                    Object.DestroyImmediate(root);
+                    Physics.SyncTransforms();
+                }
+            }
+            Assert.IsEmpty(problems.ToString(), problems.ToString());
+        }
+
+        /// <summary>
         /// 모델에 낸 착지 원판 (<see cref="InteriorSkyLiftSpots.Targets"/> — 정련 콤비나트 여섯 · 심우주 통신기지 셋 · 드론 정비창 옥상 둘 · 식량 공장 귀퉁이 둘 · 방사선 차폐벽 마당 하나): 그 칸 승강판이 원판 가운데 그대로 (1 cm 안) —
         /// 도구가 다른 곳을 고르면 판 둘레로 보여야 할 금빛 · 은빛 테가 어긋나 빈 원판만 남음.
         /// </summary>

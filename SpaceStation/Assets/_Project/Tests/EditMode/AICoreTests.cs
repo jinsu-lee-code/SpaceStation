@@ -39,6 +39,10 @@ namespace SpaceStation.Tests
             }
             foreach (var (cell, dir) in AICore.Doors)
                 Assert.IsTrue(actual.Add((cell, dir)));
+            var template = AssetDatabase.LoadAssetAtPath<SpaceStation.Data.InteriorTemplate>("Assets/_Project/Data/Interior/IT_EvoAICore.asset");
+            foreach (var s in template.Sockets)
+                if (!s.SealedWall)
+                    actual.Add((s.Cell, s.Direction));   // 모든 면 연결 — 저절로 연 문 계단 (InteriorAutoDoors, 2026-11-19)
             Assert.IsTrue(expected.SetEquals(actual), $"외형 연결점 {expected.Count}곳 ↔ 내부 {actual.Count}곳");
         }
 
