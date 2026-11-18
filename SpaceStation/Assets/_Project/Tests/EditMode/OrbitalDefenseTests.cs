@@ -42,6 +42,10 @@ namespace SpaceStation.Tests
                 Assert.Less(Mathf.Abs(off.x), 3.05f, $"{cell}");
                 Assert.Less(Mathf.Abs(off.y), 3.05f, $"{cell}");
             }
+            var template = AssetDatabase.LoadAssetAtPath<SpaceStation.Data.InteriorTemplate>("Assets/_Project/Data/Interior/IT_EvoOrbitalDefense.asset");
+            foreach (var s in template.Sockets)
+                if (!s.SealedWall)
+                    actual.Add((s.Cell, s.Direction));   // 모든 면 연결 (2026-11-18) — 비어 있는 둘레 면에 저절로 연 문 (InteriorAutoDoors)
             Assert.IsTrue(expected.SetEquals(actual), $"외형 연결점 {expected.Count}곳 ↔ 내부 {actual.Count}곳");
         }
 

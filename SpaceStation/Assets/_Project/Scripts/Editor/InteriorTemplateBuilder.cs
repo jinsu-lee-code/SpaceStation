@@ -7841,7 +7841,10 @@ namespace SpaceStation.Editor
                 }
             }
 
+            var designed = new List<InteriorSocket>(sockets);
+            int auto = InteriorAutoDoors.OpenOn(root, module, sockets, spawn, null, name);   // 모든 면 연결 — 문 안쪽 바닥이 비어 있는 둘레 옆면은 저절로 문 (하늘 구멍보다 먼저, 2026-11-18)
             PunchSkyDoors(root, name, sockets, materials["Evo2Sky"]);
+            auto -= InteriorAutoDoors.UndoSkyBlocked(root, sockets, designed);   // 구멍을 내도 하늘이 막는 새 문은 되돌림
             configure?.Invoke(root); // 12-5 실행 중 표시 컴포넌트 (허브 안내 · 레이더 · 컨베이어 · 서버 표시등)
             AddStatusScreens(root, materials["ScreenDark"]);   // 빈 화면 = 공용 상태 화면 (사용자 2026-10-30 — 기본 · 모든 진화 단계, 전용 화면 자리는 뺌)
 
@@ -7863,7 +7866,7 @@ namespace SpaceStation.Editor
             template.EditorSetShowOwnInterior(showOwnInterior);
             template.EditorSetSealedSockets(name == "EvoGrandTorus");   // 전부 지붕 · 유리 안 (우주복 없음): 닫힌 문 자리가 우주로 뚫리면 안 됨 (사용자 2026-11-03 "모델링에 구멍")
             EditorUtility.SetDirty(template);
-            Debug.Log($"[InteriorTemplateBuilder] {name}: 문 자리 {sockets.Count}곳, 조명 {lights.Count}개");
+            Debug.Log($"[InteriorTemplateBuilder] {name}: 문 자리 {sockets.Count}곳 (+ 저절로 연 문 {auto}), 조명 {lights.Count}개");
         }
     }
 }
