@@ -53,8 +53,8 @@ namespace SpaceStation.Editor
                     {
                         if (dir.y != 0 || cells.Contains(cell + dir))
                             continue;
-                        if ((module.TerminalOnly && dir == module.DockFront) || module.IsClosedFace(cell, dir))
-                            continue;   // 도킹 접근로 쪽 (이웃이 못 붙음 — 물류 · 조선소 하역문) · 닫힌 면
+                        if ((module.TerminalOnly && dir == module.DockFront) || module.IsClosedFace(cell, dir) || ContainsCell(module.KeepClearCells, cell + dir))
+                            continue;   // 도킹 접근로 쪽 (이웃이 못 붙음 — 물류 · 조선소 하역문) · 닫힌 면 · 비워 둘 칸 쪽 (대형 토러스 고리 안쪽)
                         int i = sockets.FindIndex(s => s.Cell == cell && s.Direction == dir);
                         if (i >= 0 && !sockets[i].SealedWall)
                             continue;
@@ -211,6 +211,16 @@ namespace SpaceStation.Editor
                     return false;
             }
             return true;
+        }
+
+        private static bool ContainsCell(IReadOnlyList<Vector3Int> cells, Vector3Int cell)
+        {
+            foreach (var c in cells)
+            {
+                if (c == cell)
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>문 승강판: 문에서 판 가운데까지 안쪽 거리 후보 (가까운 것 먼저) · 옆 비낌 · 판에서 문턱까지 최소 높이 · 문턱 위로 비울 높이.</summary>
