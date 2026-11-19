@@ -117,11 +117,41 @@ namespace SpaceStation.Editor
         /// <summary>시작 마디들에서 걸어서 (+ 엘리베이터) 닿는 마디를 모두 표시.</summary>
         public void Flood(IEnumerable<int> starts)
         {
-            _seen = new bool[_nodes.Count];
+            _starts = new List<int>(starts);
+            _seen = Spread(_starts, null);
+        }
+
+        private List<int> _starts;
+
+        /// <summary>
+        /// 지금 닿는 마디 중 평면 원 (center, radius, 높이 ±1.5)을 막고 다시 퍼뜨리면 못 닿게 되는 마디 수 — 위아래 이동 장치가 길을 끊는지 (사용자 2026-11-19 "길을 막지 않는지").
+        /// </summary>
+        public int LostWithout(Vector3 center, float radius)
+        {
+            if (_seen == null || _starts == null)
+                return 0;
+            bool Blocked(int k)
+            {
+                var p = _nodes[k];
+                return Mathf.Abs(p.y - center.y) < 1.5f && new Vector2(p.x - center.x, p.z - center.z).sqrMagnitude < radius * radius;
+            }
+            var seen = Spread(_starts, Blocked);
+            int lost = 0;
+            for (int k = 0; k < _nodes.Count; k++)
+            {
+                if (_seen[k] && !seen[k] && !Blocked(k))
+                    lost++;
+            }
+            return lost;
+        }
+
+        private bool[] Spread(List<int> starts, System.Func<int, bool> blocked)
+        {
+            var _seen = new bool[_nodes.Count];
             var q = new Queue<int>();
             foreach (int s in starts)
             {
-                if (s >= 0 && !_seen[s])
+                if (s >= 0 && !_seen[s] && (blocked == null || !blocked(s)))
                 {
                     _seen[s] = true;
                     q.Enqueue(s);
@@ -136,7 +166,7 @@ namespace SpaceStation.Editor
                 {
                     foreach (int m in _portalNodes[g])
                     {
-                        if (!_seen[m])
+                        if (!_seen[m] && (blocked == null || !blocked(m)))
                         {
                             _seen[m] = true;
                             q.Enqueue(m);
@@ -151,13 +181,14 @@ namespace SpaceStation.Editor
                         continue;
                     foreach (int m in _cols[a, b])
                     {
-                        if (_seen[m] || Mathf.Abs(_nodes[m].y - p.y) > StepUp)
+                        if (_seen[m] || Mathf.Abs(_nodes[m].y - p.y) > StepUp || (blocked != null && blocked(m)))
                             continue;
                         _seen[m] = true;
                         q.Enqueue(m);
                     }
                 }
             }
+            return _seen;
         }
 
         /// <summary>
@@ -444,7 +475,7 @@ namespace SpaceStation.Editor
             {
                 foreach (var f in root.GetComponentsInChildren<MeshFilter>(true))
                 {
-                    if (f.sharedMesh == null || f.name.EndsWith("_Sky"))
+                    if (f.sharedMesh == null || !f.sharedMesh.isReadable || f.name.EndsWith("_Sky"))   // 읽기 꺼진 메시 (기본 방 FBX)는 정점을 못 읽음 — 오류 없이 건너뜀
                         continue;
                     var m = f.transform.localToWorldMatrix;
                     foreach (var v in f.sharedMesh.vertices)
@@ -477,6 +508,28 @@ namespace SpaceStation.Editor
                     }
                 }
                 return false;
+            }
+
+            /// <summary>p 둘레 반지름 radius · 높이 yMin ~ yMax 원기둥 안의 정점 (위아래 이동 장치 자리 — 바닥 무늬 조각 찾기).</summary>
+            public List<Vector3> Near(Vector3 p, float radius, float yMin, float yMax)
+            {
+                var found = new List<Vector3>();
+                int x0 = Mathf.FloorToInt((p.x - radius) / Cell), x1 = Mathf.FloorToInt((p.x + radius) / Cell);
+                int z0 = Mathf.FloorToInt((p.z - radius) / Cell), z1 = Mathf.FloorToInt((p.z + radius) / Cell);
+                for (int i = x0; i <= x1; i++)
+                {
+                    for (int j = z0; j <= z1; j++)
+                    {
+                        if (!_cells.TryGetValue((i, j), out var list))
+                            continue;
+                        foreach (var v in list)
+                        {
+                            if (v.y > yMin && v.y < yMax && new Vector2(v.x - p.x, v.z - p.z).sqrMagnitude < radius * radius)
+                                found.Add(v);
+                        }
+                    }
+                }
+                return found;
             }
 
             /// <summary>p 둘레 네모 (반 변 half) · 높이 yMin ~ yMax 안에 정점이 있음 (천장 해치 틀 자리).</summary>
