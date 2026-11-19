@@ -23,14 +23,11 @@ namespace SpaceStation.Tests
         /// <summary>
         /// 아직 위로 가는 길이 없는 윗면. 심우주 통신기지 셋 · 정련 콤비나트 여섯은 모델에 착지 원판을 냄 (2026-11-17 사용자 "모델에 착지 자리 내는 걸로" · 시안 2,
         /// <see cref="InteriorSkyLiftSpots.Targets"/>), 시민 회관 돔 칸 셋 = 의료동 천장 해치, 두 탑 = 0.65배 천장 해치 (사용자 "꼭대기방 천장해치로").
-        /// 모든 면 연결 ③ (2026-11-19)에서 모델 손질이 필요한 칸만 남김 (대형 토러스 모서리 넷은 현관 정자로 풀림) — 대형 토러스 바큇살 넷 (지름 3 m 둥근 유리 굴, 평평한 천장 없음) · 모서리 넷 (바퀴가 칸 귀퉁이만 지남 — 주민 방 · 화분),
-        /// 아콜로지 꼭대기 넷 (돔 밑 맨 위층이 나무 · 주민으로 참), 화물 환적소 (2,0,1) (물길 · 아래 해치 사이 좁음). 고치면 여기서 뺌.
+        /// 모든 면 연결 ③ (2026-11-19) 마무리: 대형 토러스 모서리 넷 = 현관 정자, 바큇살 넷 = 굴 가운데 등탑 천장 해치, 화물 환적장 (2,0,1) = 능선 밑 작은 천장 해치 (아래 해치를 옮김),
+        /// 아콜로지 꼭대기 넷 = 닫힌 면 (알 꼭대기 바늘 첨탑 — 사용자 "윗면 닫기"). 새로 생기면 여기에 까닭과 함께.
         /// </summary>
         private static readonly (string Template, Vector3Int Cell)[] KnownUpGaps =
         {
-            ("IT_EvoGrandTorus", new Vector3Int(2, 0, 1)), ("IT_EvoGrandTorus", new Vector3Int(1, 0, 2)), ("IT_EvoGrandTorus", new Vector3Int(3, 0, 2)), ("IT_EvoGrandTorus", new Vector3Int(2, 0, 3)),
-            ("IT_EvoArcology", new Vector3Int(0, 3, 0)), ("IT_EvoArcology", new Vector3Int(1, 3, 0)), ("IT_EvoArcology", new Vector3Int(0, 3, 1)), ("IT_EvoArcology", new Vector3Int(1, 3, 1)),
-            ("IT_EvoCargoTransfer", new Vector3Int(2, 0, 1)),
         };
 
         /// <summary>아직 아래로 가는 길이 없는 아랫면. 고치면 여기서 뺌 (아콜로지 1층 넷은 2026-11-19 광장 귀퉁이 해치로 풀림).</summary>
