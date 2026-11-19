@@ -567,11 +567,17 @@ namespace SpaceStation.Editor
                 var graph = InteriorWalkGraph.ForTemplate(t, root.transform);
                 var decor = new DecorGrid(root.transform);
                 var pads = new List<Vector3>();
+                var bridgePads = new List<Vector3>();   // 빛 다리 판 (문턱 높이 문 승강판) — 그 칸 위 승강판이 먼저 그 판을 같이 씀
                 bool liftKit = kit.SkyLiftPadFor(t.Module) != null;
                 foreach (var s in sockets)
                 {
                     if (s.DoorLift)   // 2층 높이 옆문 승강판 (자동 문이 정함 — 그대로 두고 위 승강판이 비킴)
-                        pads.Add(Away + (Vector3)s.Cell * InteriorGeometry.CellSize + s.Offset);
+                    {
+                        var p = Away + (Vector3)s.Cell * InteriorGeometry.CellSize + s.Offset;
+                        pads.Add(p);
+                        if (InteriorGeometry.IsBridgeLift(p.y, Away.y + InteriorGeometry.FloorY(s.Cell)))
+                            bridgePads.Add(p);
+                    }
                     else if (s.DoorSteps != 0)   // 문 계단 자리 (층계참 · 단 · 내려선 자리 점마다)
                     {
                         var c = Away + (Vector3)s.Cell * InteriorGeometry.CellSize;
@@ -589,6 +595,22 @@ namespace SpaceStation.Editor
                     bool atModel = exact.Contains(cell) && TryDesigned(t, graph, decor, cell, target, pads, out pad);
                     if (exact.Contains(cell) && !atModel)
                         Debug.LogWarning($"[InteriorSkyLiftSpots] {t.name} {cell}: 모델 착지 자리 ({target.x:F2}, {target.y:F2})에 판을 못 놓음 — 다른 곳을 찾음 (원판과 어긋남)");
+                    // 빛 다리 판이 이 칸에 있으면 그 판을 같이 씀 (화물 환적장 — 자동 문이 예전 위 승강판 자리를 골랐으면 같은 자리, 거리 규칙은 셋째 줄)
+                    bool shared = false;
+                    if (!atModel && liftKit && openSky)
+                    {
+                        foreach (var bp in bridgePads)
+                        {
+                            if (Mathf.Abs(bp.x - center.x) >= InteriorGeometry.CellSize * 0.5f || Mathf.Abs(bp.z - center.z) >= InteriorGeometry.CellSize * 0.5f || bp.y > center.y)
+                                continue;
+                            var others = pads.FindAll(p => Flat2(p, bp) > 0.01f);
+                            if (TryDesigned(t, graph, decor, cell, new Vector2(bp.x - center.x, bp.z - center.z), others, out pad, 2))
+                            {
+                                atModel = shared = true;
+                                break;
+                            }
+                        }
+                    }
                     int usedRule = 0;
                     float ringDepth = RingDepth;
                     // 닫힌 방 (1 · 2단계 · 기본): 천장 해치 먼저, 천장이 높거나 기운 칸만 빛 기둥 승강판 (고리까지 떠오른 뒤 어두워지며 위 방으로 — 천장을 지나는 모습은 안 보임).
@@ -606,7 +628,7 @@ namespace SpaceStation.Editor
                         pads.Add(pad);
                         sockets.Add(new InteriorSocket(cell, Vector3Int.up, ringDepth, pad - center, skyLift: true));
                         lifts++;
-                        log.Append($" {cell}→판 ({pad.x - center.x:F2}, {pad.y - center.y:F2}, {pad.z - center.z:F2})" + (usedRule >= 2 ? " [좁은 자리]" : "")
+                        log.Append($" {cell}→판 ({pad.x - center.x:F2}, {pad.y - center.y:F2}, {pad.z - center.z:F2})" + (usedRule >= 2 ? " [좁은 자리]" : "") + (shared ? " (빛 다리 판 같이 씀)" : "")
                             + (ringDepth < RingDepth - 0.01f ? $" 천장 밑 고리 {ringDepth:F2}" : ""));
                     }
                     else if (TryFindCeilingHatch(t, graph, decor, cell, target, pads, out var hatch, out var under, out float scale, why))
@@ -828,7 +850,7 @@ namespace SpaceStation.Editor
         /// 모델에 낸 착지 원판 가운데 그대로 (<see cref="Targets"/>): 0.25 m 안에 걸어서 닿는 마디 (그 높이) · 거리 규칙 (느슨하게) · 판 밑 땅 · 기둥 (가는 쪽까지) · 장식 조건.
         /// 보통 찾기는 걸음 격자 (0.25 m)에 붙고 둘레가 좁으면 1.5 m까지 비켜 원판과 어긋남 — 원판이 판 테 밖으로 보여야 하므로 자리를 그대로 씀.
         /// </summary>
-        private static bool TryDesigned(InteriorTemplate t, InteriorWalkGraph graph, DecorGrid decor, Vector3Int cell, Vector2 target, List<Vector3> pads, out Vector3 pad)
+        private static bool TryDesigned(InteriorTemplate t, InteriorWalkGraph graph, DecorGrid decor, Vector3Int cell, Vector2 target, List<Vector3> pads, out Vector3 pad, int rule = 1)
         {
             pad = default;
             var center = Away + (Vector3)cell * InteriorGeometry.CellSize;
@@ -849,7 +871,7 @@ namespace SpaceStation.Editor
             if (near < 0)
                 return false;
             p.y = graph[near].y;
-            if (Blocked(t, p, pads, 1) != null || !PadSurface(p, out float top, out _))
+            if (Blocked(t, p, pads, rule) != null || !PadSurface(p, out float top, out _))
                 return false;
             var at = new Vector3(p.x, top, p.z);
             if (!ColumnClear(at, ringY, ColumnRadii[ColumnRadii.Length - 1]) || !decor.Clear(at, ringY))

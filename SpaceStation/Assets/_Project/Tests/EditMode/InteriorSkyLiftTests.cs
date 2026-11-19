@@ -4,6 +4,7 @@ using System.Text;
 using NUnit.Framework;
 using SpaceStation.Data;
 using SpaceStation.Editor;
+using SpaceStation.Interior;
 using UnityEditor;
 using UnityEngine;
 
@@ -208,15 +209,59 @@ namespace SpaceStation.Tests
                             problems.AppendLine($"{at}: 문 승강판이 옆문이 아님");
                         if (!InteriorSkyLiftSpots.PadSurface(pad, out float top, out _) || Mathf.Abs(top - pad.y) > 0.02f)
                             problems.AppendLine($"{at}: 판 밑 땅이 고르지 않음 / 판이 떠 있음");
-                        if (!InteriorSkyLiftSpots.ColumnClear(pad, sill + 2.3f, InteriorSkyLiftSpots.ColumnRadii[InteriorSkyLiftSpots.ColumnRadii.Length - 1]))
+                        bool bridge = InteriorGeometry.IsBridgeLift(pad.y, sill);   // 빛 다리 (문 앞 턱 너머 물길 — 화물 환적장, 2026-11-19)
+                        float head = bridge ? sill + InteriorGeometry.BridgeLiftRise + 1.9f : sill + 2.3f;
+                        if (!InteriorSkyLiftSpots.ColumnClear(pad, head, InteriorSkyLiftSpots.ColumnRadii[InteriorSkyLiftSpots.ColumnRadii.Length - 1]))
                             problems.AppendLine($"{at}: 판에서 문턱 위까지 기둥이 막힘");
-                        if (sill - pad.y < 1.2f)
+                        if (!bridge && sill - pad.y < 1.2f)
                             problems.AppendLine($"{at}: 문턱보다 {sill - pad.y:F2} m 아래 — 승강판 말고 계단 · 문간");
+                        if (bridge)
+                        {
+                            // 빛 다리: 문 앞 턱이 있고 건너는 길 (판 ~ 턱, 문턱 + 2.5 위)이 빔
+                            if (!Physics.Raycast(door - d * 0.12f + Vector3.up * 0.5f, Vector3.down, 0.8f, ~0, QueryTriggerInteraction.Ignore))
+                                problems.AppendLine($"{at}: 빛 다리 문 앞 턱이 없음");
+                            var over = door - d * InteriorGeometry.BridgeInset;   // 문틀 앞 오르내리는 자리
+                            var col = over + Vector3.up * ((InteriorGeometry.BridgeLowRise + 0.05f + InteriorGeometry.BridgeLiftRise + 1.9f) * 0.5f);
+                            if (Physics.CheckBox(col, new Vector3(0.45f, (InteriorGeometry.BridgeLiftRise + 1.85f - InteriorGeometry.BridgeLowRise) * 0.5f, 0.3f), Quaternion.LookRotation(d), ~0, QueryTriggerInteraction.Ignore))
+                                problems.AppendLine($"{at}: 빛 다리 문틀 앞 오르내리는 자리가 막힘");
+                            // 문틀 앞 → 문 밖 1.1 m 문턱까지 비스듬히 내려서는 길 (몸)
+                            for (float run = 0f; run <= InteriorGeometry.BridgeInset - InteriorGeometry.Thickness + 0.001f; run += 0.1f)
+                            {
+                                float feet = sill + InteriorGeometry.BridgeLowRise + (0.03f - InteriorGeometry.BridgeLowRise) * run / (InteriorGeometry.BridgeInset + 1.1f);
+                                var body = over + d * run;
+                                body.y = feet + 0.03f + 0.935f;
+                                if (Physics.CheckBox(body, new Vector3(0.45f, 0.935f, 0.05f), Quaternion.LookRotation(d), ~0, QueryTriggerInteraction.Ignore))
+                                {
+                                    problems.AppendLine($"{at}: 빛 다리 문으로 내려서는 길이 막힘 (문틀 앞에서 {run:F1} m)");
+                                    break;
+                                }
+                            }
+                            var fl = new Vector3(pad.x, 0f, pad.z);
+                            var axis = new Vector3(over.x, 0f, over.z) - fl;
+                            var m = fl + axis * 0.5f;
+                            m.y = sill + InteriorGeometry.BridgeLiftRise + 0.85f;
+                            if (axis.magnitude > 0.5f && Physics.CheckBox(m, new Vector3(0.45f, 1.05f, axis.magnitude * 0.5f), Quaternion.LookRotation(axis.normalized), ~0, QueryTriggerInteraction.Ignore))
+                                problems.AppendLine($"{at}: 빛 다리 건너는 길이 막힘");
+                            if (axis.magnitude > 12.1f)
+                                problems.AppendLine($"{at}: 빛 다리가 {axis.magnitude:F1} m — 판이 문에서 너무 멂");
+                            // 다른 판 (위 승강판 · 문 승강판)과는 같은 자리 (판을 같이 씀) 아니면 판 테끼리 0.4 m 넘게
+                            foreach (var o in t.Sockets)
+                            {
+                                if (ReferenceEquals(o, s) || !(o.SkyLift || o.DoorLift))
+                                    continue;
+                                var op = Away + (Vector3)o.Cell * 8f + o.Offset;
+                                float gap = new Vector2(op.x - pad.x, op.z - pad.z).magnitude;
+                                if (Mathf.Abs(op.y - pad.y) < 1.5f && gap > 0.05f && gap < InteriorSkyLiftSpots.PadRadius * 2f + 0.4f)
+                                    problems.AppendLine($"{at}: 다른 판 {o.Cell} {o.Direction}에 {gap:F2} m — 같은 자리도 아니고 너무 가까움");
+                            }
+                        }
                         if (InteriorSkyLiftSpots.EdgeGap(pad) < 0f)
                             problems.AppendLine($"{at}: 판 테가 벽 · 물건에 겹침");
                         int k = graph.Node(pad, 0.4f);
                         if (k < 0 || !graph.Reached(k))
                             problems.AppendLine($"{at}: 판에 걸어서 못 감");
+                        if (bridge)
+                            continue;
                         if (Physics.Raycast(door - d * 0.05f + Vector3.up * 1f, Vector3.down, 1.3f, ~0, QueryTriggerInteraction.Ignore))
                             problems.AppendLine($"{at}: 문 앞에 바닥이 있음 (승강판 말고 문)");
                         var top2 = new Vector3(pad.x, sill, pad.z);

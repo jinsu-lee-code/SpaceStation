@@ -736,9 +736,10 @@ namespace SpaceStation.Interior
                 _prompt.SetText(string.Empty);
                 return;
             }
+            hatch = InteriorBuilder.Facing(hatch, eye.forward);   // 판 하나를 같이 쓰는 위 승강판 · 빛 다리 (화물 환적장) — 바라보는 쪽
             bool hasRoom = _layout.TryGetRoom(hatch.ToCell, out var room);
             string target = hasRoom && room.Module.Data != null ? room.Module.Data.DisplayName : "";
-            string verb = hatch.DoorPoint.HasValue ? "빛 기둥 타고 위 문으로" : hatch.SkyLift != null ? "빛 기둥 타고 위층으로" : hatch.Up ? "위층으로" : "아래층으로";
+            string verb = hatch.Bridge ? "빛 다리 타고 문으로" : hatch.DoorPoint.HasValue ? "빛 기둥 타고 위 문으로" : hatch.SkyLift != null ? "빛 기둥 타고 위층으로" : hatch.Up ? "위층으로" : "아래층으로";
             _prompt.SetText($"<b>{KeyBindings.Label(GameAction.Interact)}</b>  {verb} <color={HudText.Muted}>{target}</color>");
             if (KeyBindings.WasPressed(GameAction.Interact))
             {
@@ -956,6 +957,9 @@ namespace SpaceStation.Interior
         /// <summary>떠오른 자리 ~ 문 너머 (튜브 안) 미끄러지는 시간 (초속 약 1.6 m, 0.6 ~ 1.6초).</summary>
         private static float DoorGlideSeconds(float distance) => Mathf.Clamp(distance / 1.6f, 0.6f, 1.6f);
 
+        /// <summary>빛 다리로 물길 위를 건너는 시간 (초속 약 1.6 m, 1.2 ~ 6초 — 같이 쓰는 위 승강판 판에서 문까지 12 m까지).</summary>
+        private static float BridgeGlideSeconds(float distance) => Mathf.Clamp(distance / 1.6f, 1.2f, 6f);
+
         /// <summary>
         /// 문 승강판 타고 위 문으로 (2층 높이 옆문 — 모든 면 연결 ②-4): 판 가운데로 모이며 기둥을 따라 문턱 높이까지 떠오른 뒤 문을 지나 튜브 안 1.1 m까지 미끄러져 내려섬.
         /// </summary>
@@ -971,7 +975,7 @@ namespace SpaceStation.Interior
             _player.Ride(carrier);
             var pad = lift.PadTop;
             var door = hatch.DoorPoint.Value;
-            float top = door.y + 0.03f;
+            float top = door.y + 0.03f + (hatch.Bridge ? InteriorGeometry.BridgeLiftRise : 0f);
             float duration = SkyLiftSeconds(top - start.y);
             for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
             {
@@ -983,6 +987,28 @@ namespace SpaceStation.Interior
                 yield return null;
             }
             var from = new Vector3(pad.x, top, pad.z);
+            if (hatch.Bridge)
+            {
+                // 빛 다리: 물길 위를 건너 문틀 앞 (문 평면 0.6 m 안) → 문턱 + 0.5까지 내려앉은 뒤 문을 지나 튜브로 비스듬히 내려섬
+                var over = door - hatch.DoorDirection * InteriorGeometry.BridgeInset;
+                over.y = top;
+                float cross = BridgeGlideSeconds(Vector3.Distance(from, over));
+                for (float t = 0f; t < cross; t += Time.unscaledDeltaTime)
+                {
+                    carrier.position = Vector3.Lerp(from, over, Mathf.SmoothStep(0f, 1f, t / cross));
+                    yield return null;
+                }
+                float low = door.y + InteriorGeometry.BridgeLowRise;
+                float down = SkyLiftSeconds(top - low);
+                for (float t = 0f; t < down; t += Time.unscaledDeltaTime)
+                {
+                    float k = t / down;
+                    carrier.position = new Vector3(over.x, Mathf.Lerp(top, low, k * k * (3f - 2f * k)), over.z);
+                    yield return null;
+                }
+                from = new Vector3(over.x, low, over.z);
+                top = door.y + 0.03f;
+            }
             var to = door + hatch.DoorDirection * 1.1f;
             to.y = top;
             float glide = DoorGlideSeconds(Vector3.Distance(from, to));
@@ -1011,8 +1037,29 @@ namespace SpaceStation.Interior
             carrier.position = start;
             _player.Ride(carrier);
             var pad = lift.PadTop;
+            if (hatch.Bridge)
+            {
+                // 빛 다리로 들어옴: 문틀 앞 (문 평면 0.6 m 안 · 문턱 + 0.5)으로 떠 들어간 뒤 떠올라 물길 위를 건넘 (뒤 내려앉기는 보통 문 승강판과 같음)
+                var door = hatch.DoorPoint.Value;
+                var low = door - hatch.DoorDirection * InteriorGeometry.BridgeInset + Vector3.up * InteriorGeometry.BridgeLowRise;
+                float drift = DoorGlideSeconds(Vector3.Distance(start, low));
+                for (float t = 0f; t < drift; t += Time.unscaledDeltaTime)
+                {
+                    carrier.position = Vector3.Lerp(start, low, Mathf.SmoothStep(0f, 1f, t / drift));
+                    yield return null;
+                }
+                var up = new Vector3(low.x, door.y + 0.03f + InteriorGeometry.BridgeLiftRise, low.z);
+                float rise = SkyLiftSeconds(up.y - low.y);
+                for (float t = 0f; t < rise; t += Time.unscaledDeltaTime)
+                {
+                    float k = t / rise;
+                    carrier.position = Vector3.Lerp(low, up, k * k * (3f - 2f * k));
+                    yield return null;
+                }
+                start = up;
+            }
             var over = new Vector3(pad.x, start.y, pad.z);
-            float glide = DoorGlideSeconds(Vector3.Distance(start, over));
+            float glide = hatch.Bridge ? BridgeGlideSeconds(Vector3.Distance(start, over)) : DoorGlideSeconds(Vector3.Distance(start, over));
             for (float t = 0f; t < glide; t += Time.unscaledDeltaTime)
             {
                 carrier.position = Vector3.Lerp(start, over, Mathf.SmoothStep(0f, 1f, t / glide));
