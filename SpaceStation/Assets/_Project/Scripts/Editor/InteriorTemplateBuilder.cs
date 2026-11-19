@@ -253,8 +253,13 @@ namespace SpaceStation.Editor
                     }
                     Fence(BX0 + FenceIn, BX1 - FenceIn, BZ0 + FenceIn, BZ0 + FenceIn);
                     Fence(BX0 + FenceIn, BX1 - FenceIn, BZ1 - FenceIn, BZ1 - FenceIn);
-                    Fence(BX0 + FenceIn, BX0 + FenceIn, BZ0 + FenceIn, BZ1 - FenceIn);
-                    Fence(BX1 - FenceIn, BX1 - FenceIn, BZ0 + FenceIn, BZ1 - FenceIn);
+                    // 동 · 서 끝 = 발코니 계단 꼭대기에서 옥상으로 들어오는 틈 (dd_builder ROOF_GAP z 3.35 ~ 4.65, 모든 면 연결 2026-11-19)
+                    const float GapZ0 = 3.35f, GapZ1 = 4.65f;
+                    foreach (float x in new[] { BX0 + FenceIn, BX1 - FenceIn })
+                    {
+                        Fence(x, x, BZ0 + FenceIn, GapZ0);
+                        Fence(x, x, GapZ1, BZ1 - FenceIn);
+                    }
                     // 유리 엘리베이터 (1층 · 2층 · 옥상, 문 = 남쪽, 문짝이 열리면 기둥 속으로)
                     var car = Child(root, "INT_EvoDroneDepot_LiftCar");
                     var carGlass = Child(root, "INT_EvoDroneDepot_LiftCarGlass");
