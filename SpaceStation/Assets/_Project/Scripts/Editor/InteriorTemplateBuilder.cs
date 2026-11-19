@@ -2614,6 +2614,7 @@ namespace SpaceStation.Editor
                 new InteriorSocket(c10, new Vector3Int(0, 0, -1), Socket),   // 모든 면 연결 (2026-11-18, ec_builder DOORS 끝 셋)
                 new InteriorSocket(c01, Vector3Int.right, Socket),
                 new InteriorSocket(c01, Vector3Int.left, Socket),
+                new InteriorSocket(c10, new Vector3Int(0, 0, 1), Socket),    // 출동실 뒤 (안쪽 모서리 면, 2026-11-19 — 소화약제 선반 · 발사 콘솔 B를 비킴)
                 new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(-1.9f, 0f, -2.0f)),    // 두 문 사이 바깥 모서리 (테이블 · 주민 비킴)
                 new InteriorSocket(c10, Vector3Int.down, -F, new Vector3(-0.8f, 0f, -1.8f)),    // 창 쪽 길 (7.2, −1.8)
                 new InteriorSocket(c01, Vector3Int.down, -F, new Vector3(2.3f, 0f, -3.7f)),     // 보수실 들머리 (2.3, 4.3)
@@ -3001,6 +3002,8 @@ namespace SpaceStation.Editor
                 new InteriorSocket(new Vector3Int(0, 1, 0), Vector3Int.left, Socket),
                 new InteriorSocket(new Vector3Int(0, 1, 0), new Vector3Int(0, 0, -1), Socket),
                 new InteriorSocket(new Vector3Int(1, 1, 0), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(1, 1, 0), new Vector3Int(0, 0, -1), Socket),   // 2026-11-19 (vf_builder 2층 모종 선반을 x 6.4까지로)
+                new InteriorSocket(new Vector3Int(1, 1, 0), new Vector3Int(0, 0, 1), Socket),
                 new InteriorSocket(new Vector3Int(0, 2, 0), Vector3Int.left, Socket),
                 new InteriorSocket(new Vector3Int(0, 2, 0), Vector3Int.right, Socket),
                 new InteriorSocket(new Vector3Int(0, 2, 0), new Vector3Int(0, 0, -1), Socket),
