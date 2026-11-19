@@ -215,8 +215,14 @@ namespace SpaceStation.Interior
         {
             (new Vector3Int(0, 0, 0), new Vector2(0.0f, 0.0f), -2.079f), (new Vector3Int(0, 0, 1), new Vector2(-1.3f, 0.0f), Floor), (new Vector3Int(0, 0, 2), new Vector2(-1.2f, 0.0f), Floor),
             (new Vector3Int(1, 0, 0), new Vector2(2.9f, -2.9f), -2.069f), (new Vector3Int(1, 0, 1), new Vector2(0.9f, 1.6f), HillTop), (new Vector3Int(1, 0, 2), new Vector2(-1.8f, 1.4f), Floor),
-            (new Vector3Int(2, 0, 0), new Vector2(0.0f, 0.0f), Floor), (new Vector3Int(2, 0, 1), new Vector2(2.1f, -0.5f), Floor), (new Vector3Int(2, 0, 2), new Vector2(1.0f, 0.0f), Floor),
+            (new Vector3Int(2, 0, 0), new Vector2(0.0f, 0.0f), Floor), (new Vector3Int(2, 0, 1), new Vector2(1.6f, 0.1f), Floor), (new Vector3Int(2, 0, 2), new Vector2(1.0f, 0.0f), Floor),
         };
+        /// <summary>
+        /// 작은 해치 (×0.65 — 틀 1.24) 칸: (2, 0, 1)은 +x 문 계단 자리 (벽에서 1 m · 옆 2.45 m, 해치 틀과 0.4 m)를 비키면 큰 해치 자리가 없음
+        /// (모든 면 연결 2026-11-19, rc3_builder SMALL_HATCHES — 예전 (2.1, −0.5)).
+        /// </summary>
+        public static readonly Vector3Int[] SmallHatches = { new Vector3Int(2, 0, 1) };
+        public static float HatchScale(Vector3Int cell) => System.Array.IndexOf(SmallHatches, cell) >= 0 ? 0.65f : 0f;
         /// <summary>위 해치 둘 (외형 위 연결점): 칸 (1, 1, 0) · (1, 1, 1) 천장 = 꼭대기 관측대 위 (계단 구멍 난간과 바깥 난간 사이, 축에서 3.2 m).</summary>
         public static readonly (Vector3Int Cell, Vector2 Offset)[] UpHatches =
         {

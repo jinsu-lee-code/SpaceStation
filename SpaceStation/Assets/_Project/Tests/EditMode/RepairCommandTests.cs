@@ -177,7 +177,8 @@ namespace SpaceStation.Tests
                 {
                     var h = new Vector3(cell.x * 8f + off.x, floorY, cell.z * 8f + off.y);
                     Reach(h, $"해치 {cell}");
-                    Assert.IsFalse(Physics.CheckBox(h + Vector3.up * 0.1f, new Vector3(0.7f, 0.04f, 0.7f), Quaternion.identity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore),
+                    float lid = 0.7f * (RepairCommand.HatchScale(cell) > 0f ? RepairCommand.HatchScale(cell) : 1f);   // 작은 해치 = 뚜껑도 ×0.65
+                    Assert.IsFalse(Physics.CheckBox(h + Vector3.up * 0.1f, new Vector3(lid, 0.04f, lid), Quaternion.identity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore),
                         $"해치 {cell} 뚜껑이 묻힘");
                 }
                 foreach (var (cell, dir) in RepairCommand.Doors)
