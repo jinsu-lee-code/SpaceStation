@@ -642,7 +642,7 @@ namespace SpaceStation.Interior
 
         private static bool Excluded(Collider c)
         {
-            if (c.GetComponentInParent<InteriorHatch>() != null || c.GetComponentInParent<ResidentFigure>() != null || c.GetComponentInParent<InteriorInteractable>() != null)
+            if (c.GetComponentInParent<InteriorHatch>() != null || c.GetComponentInParent<InteriorTransit>() != null || c.GetComponentInParent<ResidentFigure>() != null || c.GetComponentInParent<InteriorInteractable>() != null)
                 return true;
             string n = c.name;
             return n.IndexOf("Door", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("Glass", StringComparison.OrdinalIgnoreCase) >= 0

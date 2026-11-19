@@ -5,32 +5,23 @@ using UnityEngine;
 
 namespace SpaceStation.Interior
 {
-    /// <summary>해치 뚜껑: 바라보고 상호작용 키를 누르면 너머 칸으로 이동한다.</summary>
+    /// <summary>
+    /// 문 승강판 · 빛 다리 (1층 옆문 — 화물 환적장 물길): 판에서 떠올라 문으로 나감. 위아래 이동은 방마다 이동 장치 하나 (<see cref="InteriorTransit"/>, 2026-11-19 — 해치 · 빛 기둥 승강판 대신).
+    /// </summary>
     public sealed class InteriorHatch : MonoBehaviour
     {
         public Vector3Int FromCell { get; set; }
         public Vector3Int ToCell { get; set; }
-        public bool Up => ToCell.y > FromCell.y;
-        /// <summary>너머 방의 맞은편 해치 아래 바닥점 (월드). 없으면 너머 칸 바닥 가운데.</summary>
-        public Vector3? Arrival { get; set; }
-        /// <summary>맞은편 해치 (양쪽 방이 다 지어졌을 때).</summary>
-        public InteriorHatch Partner { get; set; }
-        /// <summary>빛 기둥 승강판 (하늘이 트인 방의 위 연결점 — 해치 뚜껑 대신, 진화 단계별 통로 ③). 없으면 보통 해치.</summary>
+        /// <summary>판 · 빛 기둥.</summary>
         public InteriorSkyLift SkyLift { get; set; }
         /// <summary>
-        /// 문 승강판 (2층 높이 옆문 — 모든 면 연결 ②-4): 문 평면 가운데 문턱 (월드). 판에서 떠오르면 이 문으로 나가고, 문으로 들어오면 판까지 내려앉음.
-        /// 없으면 해치 · 위 승강판.
+        /// 문 승강판 (옆문 — 모든 면 연결 ②-4): 문 평면 가운데 문턱 (월드). 판에서 떠오르면 이 문으로 나가고, 문으로 들어오면 판까지 내려앉음.
         /// </summary>
         public Vector3? DoorPoint { get; set; }
         /// <summary>문 승강판의 문 바깥 방향 (월드).</summary>
         public Vector3 DoorDirection { get; set; }
         /// <summary>빛 다리 승강판 (문 승강판 중 판이 문턱 높이 — <see cref="InteriorGeometry.IsBridgeLift"/>).</summary>
         public bool Bridge { get; set; }
-        /// <summary>
-        /// 이 해치로 들어온 사람이 서는 바닥 (월드): 바닥 해치 = 그 바닥 면, 천장 해치 = 바로 밑 바닥 (방을 지을 때 광선으로 — 탑 꼭대기 방처럼 칸 바닥 높이가 아닌 곳).
-        /// 없으면 칸 바닥 높이 (FloorY).
-        /// </summary>
-        public Vector3? Landing { get; set; }
     }
 
     /// <summary>
@@ -101,7 +92,6 @@ namespace SpaceStation.Interior
         private readonly Dictionary<ModuleInstance, List<Piece>> _statusByOther = new Dictionary<ModuleInstance, List<Piece>>();
         private readonly HashSet<ModuleInstance> _dimmed = new HashSet<ModuleInstance>();
         private readonly List<InteriorDoor> _doors = new List<InteriorDoor>();
-        private readonly List<InteriorHatch> _hatches = new List<InteriorHatch>();
         /// <summary>열린 통로 면 (칸, 방향) — 양쪽 모두 들어 있다.</summary>
         private readonly HashSet<(Vector3Int, Vector3Int)> _open = new HashSet<(Vector3Int, Vector3Int)>();
         private readonly List<WallPanel> _wallBuffer = new List<WallPanel>();
@@ -117,8 +107,9 @@ namespace SpaceStation.Interior
         private readonly Dictionary<ModuleInstance, List<(Vector3Int, Vector3Int)>> _openOf = new Dictionary<ModuleInstance, List<(Vector3Int, Vector3Int)>>();
         private readonly Dictionary<ModuleInstance, List<ModuleInstance>> _linksOf = new Dictionary<ModuleInstance, List<ModuleInstance>>();
         private readonly HashSet<(Vector3Int, Vector3Int)> _tubeKeys = new HashSet<(Vector3Int, Vector3Int)>();
-        /// <summary>지은 해치: (있는 칸, 방향) → 해치.</summary>
-        private readonly Dictionary<(Vector3Int, Vector3Int), InteriorHatch> _hatchAt = new Dictionary<(Vector3Int, Vector3Int), InteriorHatch>();
+        /// <summary>위아래 이동 장치 목적지 · 지은 장치 (방마다 하나, 2026-11-19).</summary>
+        private InteriorTransitRoutes _routes;
+        private readonly Dictionary<ModuleInstance, InteriorTransit> _transits = new Dictionary<ModuleInstance, InteriorTransit>();
         /// <summary>근처라 켜 둔 방 (마지막 ShowOnly) · 소품 자리 찾기로 잠시 켠 방.</summary>
         private readonly HashSet<ModuleInstance> _shown = new HashSet<ModuleInstance>();
         private readonly HashSet<ModuleInstance> _extraActive = new HashSet<ModuleInstance>();
@@ -198,7 +189,6 @@ namespace SpaceStation.Interior
             _templateRooms.Clear();
             _dimmed.Clear();
             _doors.Clear();
-            _hatches.Clear();
             _skyLifts.Clear();
             _doorLifts.Clear();
             _open.Clear();
@@ -208,7 +198,8 @@ namespace SpaceStation.Interior
             _openOf.Clear();
             _linksOf.Clear();
             _tubeKeys.Clear();
-            _hatchAt.Clear();
+            _transits.Clear();
+            _routes = null;
             _shown.Clear();
             _extraActive.Clear();
             _statusByOther.Clear();
@@ -223,6 +214,7 @@ namespace SpaceStation.Interior
         {
             Clear();
             _layout = layout;
+            _routes = new InteriorTransitRoutes(layout);
             _player = player;
             _colliders = new GameObject("Colliders").transform;
             _colliders.SetParent(_root, false);
@@ -296,7 +288,6 @@ namespace SpaceStation.Interior
             if (!wasActive)
                 parent.gameObject.SetActive(true); // 켜진 채로 지음 (자식 찾기 · 주민 생성이 꺼진 오브젝트를 건너뛰지 않게)
             int doorStart = _doors.Count;
-            int hatchStart = _hatches.Count;
             if (module.Data != null && _templates.TryGetValue(module.Data, out var template))
             {
                 BuildTemplateRoom(room, template, parent); // 조명은 템플릿 프리팹 것
@@ -319,29 +310,10 @@ namespace SpaceStation.Interior
                 _tubes.Add((tube, module, other));
             }
 
-            // 해치 도착점 = 맞은편 해치 자리 (템플릿은 칸 중심에서 옮겨 둘 수 있음) — 맞은편 방이 먼저 지어졌으면 서로 잇는다
-            // 천장 해치 밑 바닥은 방이 켜진 지금 광선으로 (나중엔 꺼져 있을 수 있음)
+            // 위아래 이동 장치 (위나 아래로 이어진 방만) — 옛 천장 문 자리 밑 바닥은 방이 켜진 지금 광선으로
             Physics.SyncTransforms();
-            for (int i = hatchStart; i < _hatches.Count; i++)
-            {
-                var h = _hatches[i];
-                if (h.SkyLift != null || !h.Up || h.Landing.HasValue)
-                    continue;
-                var from = h.transform.position + Vector3.down * 0.15f;
-                if (Physics.Raycast(from, Vector3.down, out var floorHit, 7f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) && floorHit.normal.y > 0.7f)
-                    h.Landing = floorHit.point;
-            }
-            for (int i = hatchStart; i < _hatches.Count; i++)
-            {
-                var hatch = _hatches[i];
-                _hatchAt[(hatch.FromCell, hatch.ToCell - hatch.FromCell)] = hatch;
-                if (!_hatchAt.TryGetValue((hatch.ToCell, hatch.FromCell - hatch.ToCell), out var other))
-                    continue;
-                hatch.Arrival = ArrivalAt(other, hatch.ToCell);
-                other.Arrival = ArrivalAt(hatch, other.ToCell);
-                hatch.Partner = other;
-                other.Partner = hatch;
-            }
+            if (_routes != null && _routes.HasAny(module))
+                BuildTransit(module, parent, TransitGround(module));
 
             for (int i = doorStart; i < _doors.Count; i++)
                 _doors[i].SetPlayer(_player);
@@ -375,21 +347,10 @@ namespace SpaceStation.Interior
         /// <summary>근처가 아닌 방을 소품 자리 찾기로 켜 둠 → 근처 방만 다시 켜야 함.</summary>
         public bool NeedsReshow => _extraActive.Count > 0;
 
-        private Vector3 ArrivalAt(InteriorHatch other, Vector3Int toCell)
-        {
-            if (other.SkyLift != null)
-                return other.SkyLift.PadTop; // 승강판 = 판 위 (모듈 바닥 높이가 아니라 판이 놓인 땅 · 마루)
-            if (other.Landing.HasValue)
-                return other.Landing.Value;
-            var p = other.transform.position;
-            p.y = _root.position.y + InteriorGeometry.FloorY(toCell);
-            return p;
-        }
-
         private bool Accepts(ModuleInstance module, Vector3Int cell, Vector3Int dir)
         {
-            if (module.Data == null || !_templates.TryGetValue(module.Data, out var t))
-                return true;
+            if (dir.y != 0 || module.Data == null || !_templates.TryGetValue(module.Data, out var t))
+                return true;   // 위아래 = 방마다 이동 장치 하나 (문 자리 없이 이어짐)
             return t.TryGetSocket(module.Origin, module.Rotation, cell, dir, out _);
         }
 
@@ -566,7 +527,7 @@ namespace SpaceStation.Interior
             foreach (var l in lights)
                 _lightBase[l] = l.intensity;
 
-            var lifts = new List<InteriorSkyLift>();   // 이 방 승강판 판 — 빛 다리가 같은 자리 판을 같이 씀
+            var lifts = new List<InteriorSkyLift>();   // 이 방 빛 다리 판 — 같은 자리 빛 다리끼리 판을 같이 씀
             var bridges = new List<(Vector3Int Cell, Vector3Int Dir, Vector3 Ground, Vector3 Door)>();
             foreach (var socket in template.Sockets)
             {
@@ -574,13 +535,7 @@ namespace SpaceStation.Interior
                 var dir = GridDirections.Rotate(socket.Direction, module.Rotation);
                 bool open = _open.Contains((cell, dir));
                 if (dir.y != 0)
-                {
-                    if (open && socket.SkyLift)
-                        lifts.Add(BuildSkyLift(module, parent, cell, CellCenter(cell) + rotation * socket.Offset, CellCenter(cell).y + socket.Depth));
-                    else if (open)
-                        BuildHatch(module, parent, CellCenter(cell) + (Vector3)dir * socket.Depth + rotation * socket.Offset, dir.y < 0, cell, dir, socket.HatchScale);
-                    continue;
-                }
+                    continue;   // 위아래 = 방마다 이동 장치 하나 (BuildTransit)
                 var center = CellCenter(cell) + (Vector3)dir * socket.Depth;
                 center.y = _root.position.y + InteriorGeometry.FloorY(cell) + InteriorGeometry.PanelCenterAboveFloor;
                 var skyPatch = CellCenter(cell) + (Vector3)dir * SkyPatchDepth;
@@ -779,61 +734,105 @@ namespace SpaceStation.Interior
                 KitPiece(rect.Ceiling ? _kit.CeilingFor(module.Data) : _kit.FloorFor(module.Data), module, parent, surface, Quaternion.identity, new Vector3(rect.Size.x / 4f, 1f, rect.Size.y / 4f));
             else
                 Cube(parent, module, slab, Quaternion.identity, size, rect.Ceiling ? _roomColors[module] : Multiply(_roomColors[module], FloorShade));
-            if (rect.Hatch)
-            {
-                var cellCenter = CellCenter(rect.Cell);
-                var hatchPoint = new Vector3(cellCenter.x, surface.y, cellCenter.z);
-                BuildHatch(module, parent, hatchPoint, !rect.Ceiling, rect.Cell, rect.Ceiling ? Vector3Int.up : Vector3Int.down);
-            }
-        }
-
-        /// <summary>해치 틀 + 뚜껑 (뚜껑에 상호작용 콜라이더). surface = 바닥 윗면 / 천장 아랫면, scale = 크기 배율 (좁은 탑 방 0.65).</summary>
-        private void BuildHatch(ModuleInstance module, Transform parent, Vector3 surface, bool floor, Vector3Int cell, Vector3Int dir, float scale = 1f)
-        {
-            var flip = floor ? Quaternion.identity : Quaternion.Euler(180f, 0f, 0f);
-            var lidCenter = surface + (floor ? Vector3.up : Vector3.down) * (0.04f * scale);
-            GameObject lid;
-            if (_kit != null)
-            {
-                KitPiece(_kit.HatchFrameFor(module.Data), module, parent, surface, flip, Vector3.one * scale);
-                lid = KitPiece(_kit.HatchLidFor(module.Data), module, parent, lidCenter, flip, Vector3.one * scale).Renderer.gameObject;
-                var box = lid.AddComponent<BoxCollider>();
-                box.center = Vector3.zero;
-                box.size = new Vector3(InteriorGeometry.HatchSize, 0.08f, InteriorGeometry.HatchSize);   // 뚜껑 배율을 따름
-            }
-            else
-            {
-                lid = Cube(parent, module, lidCenter, Quaternion.identity, new Vector3(InteriorGeometry.HatchSize, 0.08f, InteriorGeometry.HatchSize) * scale, HatchColor, true)
-                    .Renderer.gameObject;
-            }
-            var h = lid.AddComponent<InteriorHatch>();
-            h.FromCell = cell;
-            h.ToCell = cell + dir;
-            if (floor)
-                h.Landing = surface;   // 바닥 해치로 올라온 사람 = 그 바닥 (칸 바닥 높이 FloorY는 진화 방마다 다름)
-            _hatches.Add(h);
         }
 
         private readonly List<InteriorHatch> _skyLifts = new List<InteriorHatch>();
         private readonly List<InteriorHatch> _doorLifts = new List<InteriorHatch>();
 
-        /// <summary>
-        /// 빛 기둥 승강판 (진화 단계별 통로 ③): ground = 판이 놓일 땅 (템플릿 문 자리 오프셋 — 언덕이면 높은 쪽, 낮은 쪽은 판 치마가 묻힘), ringY = 하늘 고리 높이.
-        /// 판 · 고리 = 단계 키트 조각 (빛 테 = 방 강조색), 빛 기둥 = 방 강조색. 판 위 충돌 상자 = 밟고 서는 면 + 바라보기 대상.
-        /// </summary>
-        private InteriorSkyLift BuildSkyLift(ModuleInstance module, Transform parent, Vector3Int cell, Vector3 ground, float ringY)
+        // ---------------- 위아래 이동 장치 ----------------
+
+        /// <summary>위아래 목적지 (방 틀을 만든 뒤).</summary>
+        public InteriorTransitRoutes Routes => _routes;
+
+        /// <summary>그 방의 이동 장치 (지은 방만, 없으면 null).</summary>
+        public InteriorTransit TransitOf(ModuleInstance module) => module != null && _transits.TryGetValue(module, out var t) ? t : null;
+
+        /// <summary>플레이어 발이 올라선 이동 장치 발판 (켜진 방만) — 없으면 null.</summary>
+        public InteriorTransit TransitUnder(Vector3 feet)
         {
-            var lift = LiftPad(module, parent, ground, ringY, ringY);
-            var h = lift.gameObject.AddComponent<InteriorHatch>();
-            h.FromCell = cell;
-            h.ToCell = cell + Vector3Int.up;
-            h.SkyLift = lift;
-            _hatches.Add(h);
-            _skyLifts.Add(h);
-            return lift;
+            foreach (var t in _transits.Values)
+            {
+                if (t != null && t.isActiveAndEnabled && t.Contains(feet))
+                    return t;
+            }
+            return null;
         }
 
-        /// <summary>승강판 판 · 고리 (ringPieceY) · 판 위 충돌 상자 · 빛 기둥 (판 ~ ringY) — 위 승강판 · 문 승강판 · 빛 다리가 같이 씀.</summary>
+        /// <summary>시선이 닿은 이동 장치 (켜진 방만, reach 안에서 가장 가까운 것) — 없으면 null.</summary>
+        public InteriorTransit TransitLookedAt(Vector3 origin, Vector3 dir, float reach)
+        {
+            InteriorTransit best = null;
+            float bestDistance = reach;
+            foreach (var t in _transits.Values)
+            {
+                if (t == null || !t.isActiveAndEnabled)
+                    continue;
+                float d = t.LookDistance(origin, dir, bestDistance);
+                if (d >= 0f && d <= bestDistance)
+                {
+                    best = t;
+                    bestDistance = d;
+                }
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// 장치 자리 (발판 밑 땅, 월드): 템플릿이 정한 자리 (도구가 고름) → 없으면 옛 위아래 문 자리 중 이웃이 있는 쪽 (빛 기둥 판 땅 · 바닥 문 면 · 천장 문 밑 바닥)
+        /// → 들어오는 자리. 템플릿 없는 방 = 위아래 이웃이 있는 칸 바닥 가운데.
+        /// </summary>
+        private Vector3 TransitGround(ModuleInstance module)
+        {
+            if (module.Data != null && _templates.TryGetValue(module.Data, out var t))
+            {
+                var rotation = GridDirections.ToQuaternion(module.Rotation);
+                if (t.HasTransitSpot)
+                    return CellCenter(module.Origin) + rotation * t.TransitSpot;
+                Vector3? down = null, up = null;
+                foreach (var socket in t.Sockets)
+                {
+                    var cell = module.Origin + GridDirections.Rotate(socket.Cell, module.Rotation);
+                    var dir = GridDirections.Rotate(socket.Direction, module.Rotation);
+                    if (dir.y == 0 || !_layout.TryGetRoom(cell + dir, out var other) || other.Module == module)
+                        continue;
+                    if (socket.SkyLift)
+                        return CellCenter(cell) + rotation * socket.Offset;
+                    var surface = CellCenter(cell) + (Vector3)dir * socket.Depth + rotation * socket.Offset;
+                    if (dir.y < 0)
+                        down ??= surface;
+                    else if (up == null && Physics.Raycast(surface + Vector3.down * 0.3f, Vector3.down, out var hit, 7f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) && hit.normal.y > 0.7f)
+                        up = hit.point;
+                }
+                if (down.HasValue)
+                    return down.Value;
+                if (up.HasValue)
+                    return up.Value;
+                return SpawnPoint(module, out _);
+            }
+            foreach (var cell in module.Cells)
+            {
+                foreach (var dir in new[] { Vector3Int.up, Vector3Int.down })
+                {
+                    if (_layout.TryGetRoom(cell + dir, out var other) && other.Module != module)
+                        return FloorPoint(cell);
+                }
+            }
+            return FloorPoint(module.Origin);
+        }
+
+        /// <summary>
+        /// 위아래 이동 장치 (2026-11-19): 발판 + 꼭대기 고리 + 빛 기둥 (단계 승강판 조각 — 단계별 장치 모델 전까지) + 발판 위 충돌 상자 (밟고 서는 면 + 바라보기 대상).
+        /// </summary>
+        private void BuildTransit(ModuleInstance module, Transform parent, Vector3 ground)
+        {
+            float top = ground.y + InteriorTransit.Height;
+            var lift = LiftPad(module, parent, ground, top, top);
+            var transit = lift.gameObject.AddComponent<InteriorTransit>();
+            transit.Initialize(module, lift.PadTop, lift);
+            _transits[module] = transit;
+        }
+
+        /// <summary>승강판 판 · 고리 (ringPieceY) · 판 위 충돌 상자 · 빛 기둥 (판 ~ ringY) — 이동 장치 · 문 승강판 · 빛 다리가 같이 씀.</summary>
         private InteriorSkyLift LiftPad(ModuleInstance module, Transform parent, Vector3 ground, float ringY, float ringPieceY)
         {
             const float PadTop = 0.05f;
@@ -894,7 +893,6 @@ namespace SpaceStation.Interior
             h.SkyLift = lift;
             h.DoorPoint = door;
             h.DoorDirection = d;
-            _hatches.Add(h);
             _skyLifts.Add(h);
             _doorLifts.Add(h);
         }
@@ -920,7 +918,6 @@ namespace SpaceStation.Interior
             h.DoorPoint = door;
             h.DoorDirection = dir;
             h.Bridge = true;
-            _hatches.Add(h);
             _skyLifts.Add(h);
             _doorLifts.Add(h);
         }
