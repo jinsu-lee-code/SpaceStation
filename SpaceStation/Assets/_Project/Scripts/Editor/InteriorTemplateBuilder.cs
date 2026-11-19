@@ -5487,7 +5487,7 @@ namespace SpaceStation.Editor
             foreach (var (cell, dir) in RepairCommand.Doors)
                 sockets.Add(new InteriorSocket(cell, dir, RepairCommand.DoorDepth));
             foreach (var (cell, off, floorY) in RepairCommand.Hatches)
-                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -floorY, new Vector3(off.x, 0f, off.y)));
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -floorY, new Vector3(off.x, 0f, off.y), hatchScale: RepairCommand.HatchScale(cell)));
             foreach (var (cell, off) in RepairCommand.UpHatches)
                 sockets.Add(new InteriorSocket(cell, Vector3Int.up, RepairCommand.UpHatchDepth, new Vector3(off.x, 0f, off.y)));
             var white = new Color(1f, 0.97f, 0.92f);
