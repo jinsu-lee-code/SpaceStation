@@ -89,7 +89,7 @@ namespace SpaceStation.Interior
 
         // ---------------- 드론 둥지 · 정원 드론 (체험 — InteriorDroneRide) ----------------
         /// <summary>정원 드론 (따로 조각 Drone, 원점 = 둥지 탑 옥상 착륙장 가운데 = 바구니 밑) · 탑 가운데 · 옥상 높이.</summary>
-        public static readonly Vector3 DronePad = new Vector3(25.4f, Floor + 2.7f, -0.7f);
+        public static readonly Vector3 DronePad = new Vector3(24.85f, Floor + 2.7f, -0.7f);   // 25.4 → 24.85: 탑이 +x 문 계단 자리를 비킴 (모든 면 연결 2026-11-19)
         /// <summary>드론 몸 꼭대기 (원점 위 — 수정 꼭지까지) · 날개 테 끝 반지름 · 바구니 반지름 · 바구니 테 높이 · 서쪽 트임 반각.</summary>
         public const float DroneTop = 2.09f, DroneSpan = 1.47f, BasketRadius = 0.95f, BasketRim = 0.84f, BasketOpening = 45f;
         /// <summary>드론 기준 앉음판 왼쪽 · 오른쪽 (가운데 앉음판 둘 — 서쪽 = 트임 · 나는 앞을 봄, 윗면 바구니 바닥 + 0.47).</summary>
@@ -220,7 +220,7 @@ namespace SpaceStation.Interior
         public static readonly (Vector3Int Cell, Vector2 Offset, float FloorY)[] Hatches =
         {
             (new Vector3Int(0, 0, 0), new Vector2(-1.3f, 2.75f), PaveTop), (new Vector3Int(1, 0, 0), new Vector2(0f, 0.72f), PaveTop),
-            (new Vector3Int(2, 0, 0), new Vector2(1.3f, 2.75f), PaveTop), (new Vector3Int(3, 0, 0), new Vector2(-2.9f, 1.45f), Floor),
+            (new Vector3Int(2, 0, 0), new Vector2(1.3f, 2.75f), PaveTop), (new Vector3Int(3, 0, 0), new Vector2(-2.9f, 1.55f), Floor),
             (new Vector3Int(0, 0, 1), new Vector2(-1.3f, -2.75f), PaveTop), (new Vector3Int(1, 0, 1), new Vector2(0f, -0.72f), PaveTop),
             (new Vector3Int(2, 0, 1), new Vector2(1.3f, -2.75f), PaveTop),
         };
