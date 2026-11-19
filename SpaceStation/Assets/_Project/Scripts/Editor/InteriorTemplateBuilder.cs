@@ -894,8 +894,8 @@ namespace SpaceStation.Editor
                 LightSpec.Point(new Vector3(18.6f, L1 + 3.6f, 0f), 7f, 1.3f, white),
                 LightSpec.Point(new Vector3(16f, L1 + 2.4f, -1.4f), 4.5f, 0.8f, warm),
                 LightSpec.Point(new Vector3(16f, L1 + 2.4f, 1.4f), 4.5f, 0.8f, warm),
-                LightSpec.Point(new Vector3(-2.05f, F + 1.6f, 0f), 3.5f, 0.5f, new Color(0.8f, 0.5f, 1f)),   // 화단 (플라즈마 볼 꽃)
-                LightSpec.Point(new Vector3(34.05f, F + 1.6f, 0f), 3.5f, 0.5f, new Color(0.8f, 0.5f, 1f)),
+                LightSpec.Point(new Vector3(-1.6f, F + 1.6f, 0f), 3.5f, 0.5f, new Color(0.8f, 0.5f, 1f)),   // 화단 (플라즈마 볼 꽃) — 양 끝 문 길을 비켜 0.45 m 안쪽 (ff_builder PLANTER_X, 2026-11-19)
+                LightSpec.Point(new Vector3(33.6f, F + 1.6f, 0f), 3.5f, 0.5f, new Color(0.8f, 0.5f, 1f)),
             };
             foreach (var (x, z) in new[] { (11f, -3.1f), (21f, -3.1f), (11f, 3.1f), (21f, 3.1f), (1f, 3.1f), (31f, 3.1f) })
                 lights.Add(LightSpec.Point(new Vector3(x, F + 2.3f, z), 6f, 0.85f, warm));   // 갑판 가로등
