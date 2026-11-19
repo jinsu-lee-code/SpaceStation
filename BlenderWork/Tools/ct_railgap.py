@@ -90,6 +90,76 @@ for (c, d) in CELLS:
 for f in added:
     f.material_index = trim_idx
 bm.to_mesh(shell.data); bm.free()
+
+# 둥근 웅덩이 (못) 낮은 테 (두께 0.15 · 바닥 위 0.45 — 띠 · 테 머리)가 (1,0,0) −z 문 바로 안 (문 평면 0.2 m 안)을 지나 문 구멍 자리를 막음 →
+# 문 앞 x 8 ± CURB_HW만 바닥 위 1 cm에서 가로로 잘라 그 위 테를 지우고 잘린 윗면 · 양 끝을 막음 (바닥 · 물 · 테 아랫도리는 그대로)
+CURB_HW, CURB_CUT = 1.0, 0.01
+wall_idx = next((i for i, m in enumerate(shell.data.materials) if m and m.name == "Evo2Wall"), trim_idx)
+def curb_cut(obj):
+    bm = bmesh.new(); bm.from_mesh(obj.data)
+    def in_box(v, lo=-1e9, hi=1e9, floor=-1.0):
+        ux, uy, uz = unity(v.co)
+        return lo <= ux <= hi and -3.79 <= uz <= -2.9 and F + floor <= uy <= F + 0.5
+    before = [e for e in bm.edges if e.is_boundary and all(in_box(v, 8.0 - CURB_HW - 0.01, 8.0 + CURB_HW + 0.01, -0.5) for v in e.verts)]
+    print("CURB open boundary edges before", len(before))
+    region = lambda: [f for f in bm.faces if all(in_box(v, 8.0 - CURB_HW - 0.5, 8.0 + CURB_HW + 0.5) for v in f.verts)]
+    for sgn in (-1, 1):
+        faces = region()
+        geom = list({e for f in faces for e in f.edges} | set(faces) | {v for f in faces for v in f.verts})
+        bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-5, plane_co=Vector((-(8.0 + sgn * CURB_HW), 0, 0)), plane_no=Vector((1, 0, 0)))
+    faces = [f for f in bm.faces if all(in_box(v, 8.0 - CURB_HW - 1e-4, 8.0 + CURB_HW + 1e-4) for v in f.verts)]
+    geom = list({e for f in faces for e in f.edges} | set(faces) | {v for f in faces for v in f.verts})
+    bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-5, plane_co=Vector((0, 0, F + CURB_CUT)), plane_no=Vector((0, 0, 1)))
+    kill = [f for f in bm.faces if all(in_box(v, 8.0 - CURB_HW - 1e-4, 8.0 + CURB_HW + 1e-4, CURB_CUT - 1e-4) for v in f.verts)]
+    from collections import Counter, defaultdict
+    rng = defaultdict(lambda: [9, -9, 9, -9])
+    for f in kill:
+        r = rng[obj.data.materials[f.material_index].name]
+        for v in f.verts:
+            ux, uy, uz = unity(v.co)
+            r[0] = min(r[0], uz); r[1] = max(r[1], uz); r[2] = min(r[2], uy - F); r[3] = max(r[3], uy - F)
+    for k, r in rng.items():
+        print("CURB RANGE", k, [round(x, 3) for x in r])
+    bmesh.ops.delete(bm, geom=kill, context='FACES')
+    # 잘린 윗면 (바닥 + 1 cm 경계) · 양 끝 (x = 8 ± HW 평면 경계) 막기 — 테 머리 재질
+    capped = 0
+    top = [e for e in bm.edges if e.is_boundary and all(abs(unity(v.co)[1] - F - CURB_CUT) < 2e-4 and in_box(v, 8.0 - CURB_HW - 1e-3, 8.0 + CURB_HW + 1e-3) for v in e.verts)]
+    ends = [e for e in bm.edges if e.is_boundary and e not in top and all(abs(abs(unity(v.co)[0] - 8.0) - CURB_HW) < 2e-4 and unity(v.co)[1] >= F + CURB_CUT - 2e-4 and in_box(v) for v in e.verts)]
+    print("CURB EDGES top", len(top), "ends", len(ends))
+    if top or ends:
+        ret = bmesh.ops.holes_fill(bm, edges=top + ends, sides=0)
+        for f in ret["faces"]:
+            f.normal_update()
+            f.material_index = trim_idx if abs(f.normal.z) > 0.7 else wall_idx   # 윗면 = 테 머리, 끝 단면 = 테 몸 (Blender z = 위)
+            capped += 1
+        bmesh.ops.triangulate(bm, faces=[f for f in ret["faces"] if len(f.verts) > 4])
+    # 테 머리 띠는 밑이 트인 ㄷ자 — 잘린 끝 ㄷ자를 닫는 면 (끝 평면 위 남은 경계 사슬)
+    for sgn in (-1, 1):
+        lat = 8.0 + sgn * CURB_HW
+        chain = [e for e in bm.edges if e.is_boundary and all(abs(unity(v.co)[0] - lat) < 2e-4 and unity(v.co)[1] >= F + 0.3 and in_box(v) for v in e.verts)]
+        if len(chain) >= 2:
+            ret = bmesh.ops.contextual_create(bm, geom=chain)
+            for f in ret["faces"]:
+                f.material_index = trim_idx
+                capped += 1
+    open_left = [e for e in bm.edges if e.is_boundary and all(in_box(v, 8.0 - CURB_HW - 0.01, 8.0 + CURB_HW + 0.01, -0.5) for v in e.verts)]
+    print("CURB open boundary edges left", len(open_left), [tuple(round(c, 2) for c in unity((e.verts[0].co + e.verts[1].co) / 2)) for e in open_left][:8])
+    bm.to_mesh(obj.data); bm.free()
+    return len(kill), capped
+
+print("CURB", curb_cut(shell))
+# 잘린 테 양 끝 = 낮은 기둥 (테 몸 재질 · 머리 테 재질 원판) — 끝 단면을 덮음 (테 가운데 선: x 7 → z −3.64, x 9 → z −3.05)
+bm = bmesh.new(); bm.from_mesh(shell.data)
+for (bx, bz) in ((8.0 - CURB_HW, -3.64), (8.0 + CURB_HW, -3.05)):
+    body = bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=16, radius1=0.17, radius2=0.17, depth=0.48,
+                                 matrix=Matrix.Translation(B(bx, F + 0.24, bz)))
+    for f in {f for v in body["verts"] for f in v.link_faces}:
+        f.material_index = wall_idx
+    head = bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=16, radius1=0.19, radius2=0.19, depth=0.04,
+                                 matrix=Matrix.Translation(B(bx, F + 0.49, bz)))
+    for f in {f for v in head["verts"] for f in v.link_faces}:
+        f.material_index = trim_idx
+bm.to_mesh(shell.data); bm.free()
 for o in objs:
     g["trim_uv"](o)
 tri1 = {o.name: sum(len(p.vertices) - 2 for p in o.data.polygons) for o in (shell, glass)}
