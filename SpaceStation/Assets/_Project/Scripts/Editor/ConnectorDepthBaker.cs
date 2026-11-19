@@ -69,10 +69,14 @@ namespace SpaceStation.Editor
                         float depth;
                         if ((rotatingTop && dir == Vector3Int.up) || data.IsClosedFace(cell, dir))
                             depth = -1f;   // 12-5 닫힌 면 (단백질 배양실 뒤)
-                        else if (template != null)
+                        else if (template != null && HasOpenSocket(template, cell, dir))
                             // 모든 면 연결 (2026-11-18): 실내 템플릿에 열린 문 자리가 있는 면은 꼭 통로 — 가운데 광선이 낮은 받침 · 둥근 모델을
-                            //  빗나가도 여러 높이로 다시 잼 (그래도 없으면 기본 깊이). 문 자리 없는 면은 예전처럼 광선대로 (지금 있는 통로를 지우지 않음)
-                            depth = HasOpenSocket(template, cell, dir) ? ProbeOpen(colliders, TempOrigin + (Vector3)cell, dir) : Probe(colliders, TempOrigin + (Vector3)cell, dir);
+                            //  빗나가도 여러 높이로 다시 잼 (그래도 없으면 기본 깊이)
+                            depth = ProbeOpen(colliders, TempOrigin + (Vector3)cell, dir);
+                        else if (template != null && cell.y >= 1 && dir.y == 0)
+                            depth = -1f;   // 2층 이상 옆면은 실내 문이 있을 때만 통로 (사용자 2026-11-19 "수평 이동은 1층에서 꼭, 2층은 모델상 자연스러운 곳만")
+                        else if (template != null)
+                            depth = Probe(colliders, TempOrigin + (Vector3)cell, dir);   // 문 자리 없는 면은 예전처럼 광선대로 (지금 있는 통로를 지우지 않음)
                         else
                             depth = Probe(colliders, TempOrigin + (Vector3)cell, dir);
                         depths.Add(new FaceDepth(cell, dir, depth));

@@ -954,8 +954,8 @@ namespace SpaceStation.Interior
             _busy = false;
         }
 
-        /// <summary>떠오른 자리 ~ 문 너머 (튜브 안) 미끄러지는 시간 (초속 약 1.6 m, 0.6 ~ 4초).</summary>
-        private static float DoorGlideSeconds(float distance) => Mathf.Clamp(distance / 1.6f, 0.6f, 4f);   // 위 승강판 판을 같이 쓰는 문 승강판은 문까지 7 m까지 (그리드 허브)
+        /// <summary>떠오른 자리 ~ 문 너머 (튜브 안) 미끄러지는 시간 (초속 약 1.6 m, 0.6 ~ 1.6초).</summary>
+        private static float DoorGlideSeconds(float distance) => Mathf.Clamp(distance / 1.6f, 0.6f, 1.6f);
 
         /// <summary>빛 다리로 물길 위를 건너는 시간 (초속 약 1.6 m, 1.2 ~ 6초 — 같이 쓰는 위 승강판 판에서 문까지 12 m까지).</summary>
         private static float BridgeGlideSeconds(float distance) => Mathf.Clamp(distance / 1.6f, 1.2f, 6f);

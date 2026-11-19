@@ -591,8 +591,8 @@ namespace SpaceStation.Interior
                 {
                     var ground = CellCenter(cell) + rotation * socket.Offset;
                     var door = center + Vector3.down * InteriorGeometry.PanelCenterAboveFloor;
-                    if (InteriorGeometry.IsBridgeLift(ground.y, door.y) || socket.SharedPad)
-                        bridges.Add((cell, dir, ground, door));   // 위 승강판 판을 같이 씀 — 다 지은 뒤에
+                    if (InteriorGeometry.IsBridgeLift(ground.y, door.y))
+                        bridges.Add((cell, dir, ground, door));   // 빛 다리 = 위 승강판 판을 같이 쓸 수 있게 다 지은 뒤에
                     else
                         BuildDoorLift(module, parent, cell, dir, ground, door);
                 }
@@ -600,12 +600,7 @@ namespace SpaceStation.Interior
                     BuildDoorSteps(module, parent, dir, center + Vector3.down * InteriorGeometry.PanelCenterAboveFloor, socket.DoorSteps, (CellCenter(cell) + rotation * socket.Offset).y);
             }
             foreach (var b in bridges)
-            {
-                if (InteriorGeometry.IsBridgeLift(b.Ground.y, b.Door.y))
-                    BuildBridgeLift(module, parent, b.Cell, b.Dir, b.Ground, b.Door, lifts);
-                else
-                    BuildDoorLift(module, parent, b.Cell, b.Dir, b.Ground, b.Door, SharedLift(lifts, b.Ground));
-            }
+                BuildBridgeLift(module, parent, b.Cell, b.Dir, b.Ground, b.Door, lifts);
             // 하늘 껍질이 있는 방 = 개방형 (아콜로지 · 대형 토러스는 우주복 없이도 하늘이 있음)
             foreach (Transform part in instance.transform)
             {
@@ -870,9 +865,9 @@ namespace SpaceStation.Interior
         /// 문 승강판 (2층 높이 옆문 — 문 높이에 바닥이 없는 위 칸 옆면, 모든 면 연결 ②-4): 아래 바닥 판 · 판에서 문턱까지 빛 기둥 · 문턱 높이 고리 (위 승강판과 같은 단계 조각),
         /// 떠오른 자리 ~ 문 사이 보이지 않는 받침 (문으로 들어온 사람이 내려앉기 시작하기 전에 떨어지지 않게). ground = 판 밑 땅, door = 문 평면 가운데 문턱 (월드).
         /// </summary>
-        private void BuildDoorLift(ModuleInstance module, Transform parent, Vector3Int cell, Vector3Int dir, Vector3 ground, Vector3 door, InteriorSkyLift host = null)
+        private void BuildDoorLift(ModuleInstance module, Transform parent, Vector3Int cell, Vector3Int dir, Vector3 ground, Vector3 door)
         {
-            var lift = host != null ? host : LiftPad(module, parent, ground, door.y, door.y - 0.04f);   // 같이 쓰는 위 승강판 판 (그리드 허브 탑 위층) — 고리 · 기둥은 그 판 것
+            var lift = LiftPad(module, parent, ground, door.y, door.y - 0.04f);
             var pad = lift.gameObject;
             // 받침: 기둥 꼭대기 (판 반지름까지) ~ 문 평면 + 0.1, 문 폭 + 여유, 윗면 = 문턱 — 문 옆으로 비킨 판 (2026-11-19)은 기둥 꼭대기 → 문 대각선으로
             var d = (Vector3)dir;
