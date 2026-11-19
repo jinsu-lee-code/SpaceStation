@@ -1487,10 +1487,11 @@ namespace SpaceStation.Editor
                 new InteriorSocket(new Vector3Int(1, 0, 4), Vector3Int.down, -F, new Vector3(-0.16f, 0f, 0.31f)),
                 new InteriorSocket(new Vector3Int(2, 0, 4), Vector3Int.down, -F, Vector3.zero),
                 new InteriorSocket(new Vector3Int(3, 0, 4), Vector3Int.down, -F, new Vector3(0.16f, 0f, 0.31f)),
-                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, Vector3.zero),
-                new InteriorSocket(new Vector3Int(1, 0, 2), Vector3Int.down, -F, Vector3.zero),
-                new InteriorSocket(new Vector3Int(3, 0, 2), Vector3Int.down, -F, Vector3.zero),
-                new InteriorSocket(new Vector3Int(2, 0, 3), Vector3Int.down, -F, Vector3.zero),
+                // 바큇살 = 유리 통로: 아래 해치는 고리 쪽 2.4 m (칸 가운데 위 = 등탑 천장 해치, gt_builder spoke_lantern 2026-11-19)
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(0f, 0f, -2.4f)),
+                new InteriorSocket(new Vector3Int(1, 0, 2), Vector3Int.down, -F, new Vector3(-2.4f, 0f, 0f)),
+                new InteriorSocket(new Vector3Int(3, 0, 2), Vector3Int.down, -F, new Vector3(2.4f, 0f, 0f)),
+                new InteriorSocket(new Vector3Int(2, 0, 3), Vector3Int.down, -F, new Vector3(0f, 0f, 2.4f)),
                 new InteriorSocket(new Vector3Int(2, 0, 2), Vector3Int.down, -F, new Vector3(2.4f, 0f, 0f)),
                 // 시계탑 방 천장 위 해치 (진화 단계별 통로 ③ 2026-11-17, 사용자 "꼭대기방 천장해치로"): 엘리베이터 샤프트 (0.86)와 둥근 천장판 모서리 사이라 0.65배 (틀 ±0.62),
                 // 문 반대편 +x +z 모서리 · 천장판 밑 (YR1 − 0.02 = 9.33), gt_builder가 천장 빛 고리를 이 자리에서 끊음
@@ -1512,6 +1513,7 @@ namespace SpaceStation.Editor
                 float s = 270f - 90f * k;   // 남 · 서 · 북 · 동 (gt_builder rot_y 순서)
                 lights.Add(LightSpec.Point(Polar(14.4f, s, F + 2.3f), 6f, 0.85f, warm));                   // 통로 입구
                 lights.Add(LightSpec.Point(Polar(6.5f, s, F + 2.2f), 5f, 0.7f, cool));                     // 유리 통로
+                lights.Add(LightSpec.Point(Polar(7.6f, s, F + 3.1f), 3f, 0.6f, warm));                     // 바큇살 등탑 (천장 해치 위, gt_builder SPK_D)
                 foreach (float off in new[] { -15f, 15f })
                     lights.Add(LightSpec.Point(Polar(14.4f, s + off, F + 3f), 5f, 0.8f, white));           // 휜 계단
                 foreach (float off in new[] { -8f, 8f })
@@ -4217,7 +4219,8 @@ namespace SpaceStation.Editor
                 new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(-2.35f, 0f, 1.10f)),       // 동남 광장 동쪽
                 new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(1.20f, 0f, -1.15f)),       // 부두 만
                 new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(-3.42f, 0f, -3.42f)),      // 라운지
-                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(-1.98f, 0f, -1.42f)),      // 정차장 동쪽
+                // 능선 밑 동쪽 작은 해치 (2026-11-19 — 걸어 닿는 바닥이 모두 능선 밑 좁은 띠라, 예전 (−1.98, −1.42)가 위 천장 해치 자리를 막았음 → 위 = 능선 밑 작은 천장 해치 (−2.0, −1.25), 승강판 도구)
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(0f, 0f, -3.0f), hatchScale: 0.65f),
             };
             var warm = new Color(1f, 0.86f, 0.55f);
             var white = new Color(1f, 0.97f, 0.92f);
