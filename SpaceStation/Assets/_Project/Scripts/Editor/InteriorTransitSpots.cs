@@ -35,6 +35,14 @@ namespace SpaceStation.Editor
                 var t = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
                 if (t == null || t.Module == null || t.Prefab == null)
                     continue;
+                if (t.TransitHatch)
+                {
+                    t.EditorSetTransitSpot(false, Vector3.zero);
+                    EditorUtility.SetDirty(t);
+                    log.AppendLine($"{t.name}: 해치 방 (바닥 · 천장 해치, 사용자 2026-11-20)");
+                    found++;
+                    continue;
+                }
                 if (t.TransitManual)
                 {
                     log.AppendLine($"{t.name}: {t.TransitSpot.x:0.00}, {t.TransitSpot.y:0.00}, {t.TransitSpot.z:0.00} (손으로 고른 자리 — 그대로)");
