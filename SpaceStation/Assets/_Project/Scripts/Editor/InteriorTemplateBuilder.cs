@@ -8006,7 +8006,22 @@ namespace SpaceStation.Editor
             // 모든 면 연결 (2026-11-18) — 문 안쪽 바닥이 비어 있는 둘레 옆면은 저절로 문. configure 뒤 (물막이 LakeHit 등 configure가 붙이는 충돌체도 보게 — 궤도 항만 물가 문이 열렸었음),
             // 하늘 구멍보다 먼저 (새 문도 하늘이 비켜 줌)
             var designed = new List<InteriorSocket>(sockets);
-            int auto = InteriorAutoDoors.OpenOn(root, module, sockets, spawn, null, name, ResidentSpotBaker.FixedSpotPositions(name));
+            // 예전 위 승강판 자리 (다시 짓기 전 템플릿) — 빛 다리가 먼저 그 판을 같이 씀 (SetAll이 그 자리에 위 승강판을 다시 놓음, 화물 환적장 2026-11-19)
+            var oldLifts = new List<Vector3>();
+            var oldTemplate = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(DataFolder + "IT_" + name + ".asset");
+            if (oldTemplate != null)
+            {
+                foreach (var s in oldTemplate.Sockets)
+                {
+                    if (s.SkyLift)
+                        oldLifts.Add((Vector3)s.Cell * InteriorGeometry.CellSize + s.Offset);
+                }
+            }
+            var autoLog = new List<string>();
+            int auto = InteriorAutoDoors.OpenOn(root, module, sockets, spawn, autoLog, name, ResidentSpotBaker.FixedSpotPositions(name), oldLifts);
+            var bridgeLog = autoLog.FindAll(l => l.Contains("빛 다리"));
+            if (bridgeLog.Count > 0)
+                Debug.Log($"[InteriorTemplateBuilder] {name} 빛 다리: {string.Join(" / ", bridgeLog)}");
             PunchSkyDoors(root, name, sockets, materials["Evo2Sky"], module);
             auto -= InteriorAutoDoors.UndoSkyBlocked(root, sockets, designed);   // 구멍을 내도 하늘이 막는 새 문은 되돌림
             AddStatusScreens(root, materials["ScreenDark"]);   // 빈 화면 = 공용 상태 화면 (사용자 2026-10-30 — 기본 · 모든 진화 단계, 전용 화면 자리는 뺌)

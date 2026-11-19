@@ -24,6 +24,8 @@ namespace SpaceStation.Interior
         public Vector3? DoorPoint { get; set; }
         /// <summary>문 승강판의 문 바깥 방향 (월드).</summary>
         public Vector3 DoorDirection { get; set; }
+        /// <summary>빛 다리 승강판 (문 승강판 중 판이 문턱 높이 — <see cref="InteriorGeometry.IsBridgeLift"/>).</summary>
+        public bool Bridge { get; set; }
         /// <summary>
         /// 이 해치로 들어온 사람이 서는 바닥 (월드): 바닥 해치 = 그 바닥 면, 천장 해치 = 바로 밑 바닥 (방을 지을 때 광선으로 — 탑 꼭대기 방처럼 칸 바닥 높이가 아닌 곳).
         /// 없으면 칸 바닥 높이 (FloorY).
@@ -564,6 +566,8 @@ namespace SpaceStation.Interior
             foreach (var l in lights)
                 _lightBase[l] = l.intensity;
 
+            var lifts = new List<InteriorSkyLift>();   // 이 방 승강판 판 — 빛 다리가 같은 자리 판을 같이 씀
+            var bridges = new List<(Vector3Int Cell, Vector3Int Dir, Vector3 Ground, Vector3 Door)>();
             foreach (var socket in template.Sockets)
             {
                 var cell = module.Origin + GridDirections.Rotate(socket.Cell, module.Rotation);
@@ -572,7 +576,7 @@ namespace SpaceStation.Interior
                 if (dir.y != 0)
                 {
                     if (open && socket.SkyLift)
-                        BuildSkyLift(module, parent, cell, CellCenter(cell) + rotation * socket.Offset, CellCenter(cell).y + socket.Depth);
+                        lifts.Add(BuildSkyLift(module, parent, cell, CellCenter(cell) + rotation * socket.Offset, CellCenter(cell).y + socket.Depth));
                     else if (open)
                         BuildHatch(module, parent, CellCenter(cell) + (Vector3)dir * socket.Depth + rotation * socket.Offset, dir.y < 0, cell, dir, socket.HatchScale);
                     continue;
@@ -584,10 +588,19 @@ namespace SpaceStation.Interior
                 Panel(new WallPanel(center - _root.position, dir, InteriorGeometry.PanelWidth, open), module, parent, open ? OtherRoom(cell, dir) : null, socket.SealedWall, skyPatch,
                     skyOnly: (socket.DoorLift || socket.DoorSteps != 0) && !open);
                 if (open && socket.DoorLift)
-                    BuildDoorLift(module, parent, cell, dir, CellCenter(cell) + rotation * socket.Offset, center + Vector3.down * InteriorGeometry.PanelCenterAboveFloor);
+                {
+                    var ground = CellCenter(cell) + rotation * socket.Offset;
+                    var door = center + Vector3.down * InteriorGeometry.PanelCenterAboveFloor;
+                    if (InteriorGeometry.IsBridgeLift(ground.y, door.y))
+                        bridges.Add((cell, dir, ground, door));
+                    else
+                        BuildDoorLift(module, parent, cell, dir, ground, door);
+                }
                 if (open && socket.DoorSteps != 0)
                     BuildDoorSteps(module, parent, dir, center + Vector3.down * InteriorGeometry.PanelCenterAboveFloor, socket.DoorSteps, (CellCenter(cell) + rotation * socket.Offset).y);
             }
+            foreach (var b in bridges)
+                BuildBridgeLift(module, parent, b.Cell, b.Dir, b.Ground, b.Door, lifts);
             // 하늘 껍질이 있는 방 = 개방형 (아콜로지 · 대형 토러스는 우주복 없이도 하늘이 있음)
             foreach (Transform part in instance.transform)
             {
@@ -808,7 +821,20 @@ namespace SpaceStation.Interior
         /// 빛 기둥 승강판 (진화 단계별 통로 ③): ground = 판이 놓일 땅 (템플릿 문 자리 오프셋 — 언덕이면 높은 쪽, 낮은 쪽은 판 치마가 묻힘), ringY = 하늘 고리 높이.
         /// 판 · 고리 = 단계 키트 조각 (빛 테 = 방 강조색), 빛 기둥 = 방 강조색. 판 위 충돌 상자 = 밟고 서는 면 + 바라보기 대상.
         /// </summary>
-        private void BuildSkyLift(ModuleInstance module, Transform parent, Vector3Int cell, Vector3 ground, float ringY)
+        private InteriorSkyLift BuildSkyLift(ModuleInstance module, Transform parent, Vector3Int cell, Vector3 ground, float ringY)
+        {
+            var lift = LiftPad(module, parent, ground, ringY, ringY);
+            var h = lift.gameObject.AddComponent<InteriorHatch>();
+            h.FromCell = cell;
+            h.ToCell = cell + Vector3Int.up;
+            h.SkyLift = lift;
+            _hatches.Add(h);
+            _skyLifts.Add(h);
+            return lift;
+        }
+
+        /// <summary>승강판 판 · 고리 (ringPieceY) · 판 위 충돌 상자 · 빛 기둥 (판 ~ ringY) — 위 승강판 · 문 승강판 · 빛 다리가 같이 씀.</summary>
+        private InteriorSkyLift LiftPad(ModuleInstance module, Transform parent, Vector3 ground, float ringY, float ringPieceY)
         {
             const float PadTop = 0.05f;
             var padPiece = _kit != null ? _kit.SkyLiftPadFor(module.Data) : null;
@@ -819,7 +845,7 @@ namespace SpaceStation.Interior
             else
                 pad = Cube(parent, module, ground + Vector3.up * (PadTop * 0.5f), Quaternion.identity, new Vector3(1.5f, PadTop, 1.5f), HatchColor).Renderer.gameObject;
             if (ringPiece != null)
-                KitPiece(ringPiece, module, parent, new Vector3(ground.x, ringY, ground.z), Quaternion.identity);
+                KitPiece(ringPiece, module, parent, new Vector3(ground.x, ringPieceY, ground.z), Quaternion.identity);
             // 둥근 판 안에 드는 상자 (반 대각선 = 판 반지름) — 윗면 = 판 윗면
             var box = pad.AddComponent<BoxCollider>();
             float half = InteriorSkyLift.PadRadius * 0.7071f;
@@ -832,12 +858,7 @@ namespace SpaceStation.Interior
             }
             var lift = pad.AddComponent<InteriorSkyLift>();
             lift.Initialize(ground + Vector3.up * PadTop, ringY, _kit != null ? _kit.SkyLiftShaft : null, ShaftColor(module));
-            var h = pad.AddComponent<InteriorHatch>();
-            h.FromCell = cell;
-            h.ToCell = cell + Vector3Int.up;
-            h.SkyLift = lift;
-            _hatches.Add(h);
-            _skyLifts.Add(h);
+            return lift;
         }
 
         /// <summary>
@@ -846,27 +867,8 @@ namespace SpaceStation.Interior
         /// </summary>
         private void BuildDoorLift(ModuleInstance module, Transform parent, Vector3Int cell, Vector3Int dir, Vector3 ground, Vector3 door)
         {
-            const float PadTop = 0.05f;
-            var padPiece = _kit != null ? _kit.SkyLiftPadFor(module.Data) : null;
-            var ringPiece = _kit != null ? _kit.SkyLiftRingFor(module.Data) : null;
-            GameObject pad;
-            if (padPiece != null)
-                pad = KitPiece(padPiece, module, parent, ground, Quaternion.identity).Renderer.gameObject;
-            else
-                pad = Cube(parent, module, ground + Vector3.up * (PadTop * 0.5f), Quaternion.identity, new Vector3(1.5f, PadTop, 1.5f), HatchColor).Renderer.gameObject;
-            if (ringPiece != null)
-                KitPiece(ringPiece, module, parent, new Vector3(ground.x, door.y - 0.04f, ground.z), Quaternion.identity);
-            var box = pad.AddComponent<BoxCollider>();
-            float half = InteriorSkyLift.PadRadius * 0.7071f;
-            box.size = new Vector3(half * 2f, 0.2f, half * 2f);
-            box.center = new Vector3(0f, PadTop - 0.1f, 0f);
-            if (padPiece == null)
-            {
-                box.size = new Vector3(box.size.x / 1.5f, 0.2f / PadTop, box.size.z / 1.5f);
-                box.center = new Vector3(0f, 0.5f - 0.1f / PadTop, 0f);
-            }
-            var lift = pad.AddComponent<InteriorSkyLift>();
-            lift.Initialize(ground + Vector3.up * PadTop, door.y, _kit != null ? _kit.SkyLiftShaft : null, ShaftColor(module));
+            var lift = LiftPad(module, parent, ground, door.y, door.y - 0.04f);
+            var pad = lift.gameObject;
             // 받침: 기둥 꼭대기 (판 반지름까지) ~ 문 평면 + 0.1, 문 폭 + 여유, 윗면 = 문턱 — 문 옆으로 비킨 판 (2026-11-19)은 기둥 꼭대기 → 문 대각선으로
             var d = (Vector3)dir;
             var top = new Vector3(ground.x, door.y, ground.z);
@@ -895,6 +897,66 @@ namespace SpaceStation.Interior
             _hatches.Add(h);
             _skyLifts.Add(h);
             _doorLifts.Add(h);
+        }
+
+        /// <summary>
+        /// 빛 다리 승강판 (문 승강판 중 판이 문턱 높이 — 문 앞 좁은 턱 너머 물길, 화물 환적장 후룸, 모든 면 연결 2026-11-19): 판에서 문턱 + 2.5까지 떠올라 물길 위를 건넘.
+        /// 같은 자리에 위 승강판 · 다른 빛 다리 판이 있으면 그 판을 같이 씀 (붐비는 갑판 — 판 위에서 바라보는 쪽으로 감, <see cref="Facing"/>),
+        /// 없으면 판 · 기둥 · 문턱 + 2.5 고리를 새로. 받침 없음 (받침이 있으면 물길 위를 걸어감).
+        /// </summary>
+        private void BuildBridgeLift(ModuleInstance module, Transform parent, Vector3Int cell, Vector3Int dir, Vector3 ground, Vector3 door, List<InteriorSkyLift> lifts)
+        {
+            InteriorSkyLift lift = null;
+            foreach (var l in lifts)
+            {
+                if (new Vector2(l.PadTop.x - ground.x, l.PadTop.z - ground.z).magnitude < 0.05f && Mathf.Abs(l.PadTop.y - ground.y) < 0.3f)
+                    lift = l;
+            }
+            if (lift == null)
+            {
+                float ringY = door.y + InteriorGeometry.BridgeLiftRise;
+                lift = LiftPad(module, parent, ground, ringY, ringY - 0.04f);
+                lifts.Add(lift);
+            }
+            var h = lift.gameObject.AddComponent<InteriorHatch>();
+            h.FromCell = cell;
+            h.ToCell = cell + dir;
+            h.SkyLift = lift;
+            h.DoorPoint = door;
+            h.DoorDirection = dir;
+            h.Bridge = true;
+            _hatches.Add(h);
+            _skyLifts.Add(h);
+            _doorLifts.Add(h);
+        }
+
+        /// <summary>
+        /// 판 하나를 여럿이 같이 쓰면 (위 승강판 · 빛 다리 — 화물 환적장) 바라보는 쪽: 문 해치 = 수평 시선과 판 → 문 방향이 가까울수록, 위 승강판 = 위를 볼수록.
+        /// </summary>
+        public static InteriorHatch Facing(InteriorHatch hatch, Vector3 forward)
+        {
+            var all = hatch.GetComponents<InteriorHatch>();
+            if (all.Length < 2)
+                return hatch;
+            var flat = new Vector3(forward.x, 0f, forward.z);
+            InteriorHatch best = hatch;
+            float bestScore = float.MinValue;
+            foreach (var h in all)
+            {
+                float score = forward.y;
+                if (h.DoorPoint.HasValue)
+                {
+                    var to = h.DoorPoint.Value - h.SkyLift.PadTop;
+                    to.y = 0f;
+                    score = Vector3.Dot(flat, to.normalized);
+                }
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = h;
+                }
+            }
+            return best;
         }
 
         /// <summary>
@@ -955,7 +1017,7 @@ namespace SpaceStation.Interior
                 var d = h.DoorDirection;
                 var rel = feet - door;
                 float inward = -Vector3.Dot(rel, d);
-                float reach = Vector3.Dot(door - h.SkyLift.PadTop, d) + InteriorSkyLift.PadRadius;
+                float reach = h.Bridge ? 0.6f : Vector3.Dot(door - h.SkyLift.PadTop, d) + InteriorSkyLift.PadRadius;   // 빛 다리 = 문 앞 턱 (0.6 m)만 — 판은 같은 높이라 판에 선 사람이 내려앉기 시작하면 안 됨
                 float lateral = Mathf.Abs(Vector3.Dot(rel, Vector3.Cross(Vector3.up, d)));
                 if (inward > 0.05f && inward < reach && lateral < InteriorGeometry.DoorWidth * 0.5f + 0.1f && rel.y > -0.6f && rel.y < 0.9f)
                     return h;

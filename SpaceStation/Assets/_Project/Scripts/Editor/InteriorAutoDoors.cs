@@ -26,7 +26,8 @@ namespace SpaceStation.Editor
         /// <summary>
         /// 짓는 중인 방 (root = 0번 칸 중심이 원점, 충돌체 붙음)에 문 자리 열기 — sockets에 바로 더함. 연 면 수.
         /// </summary>
-        public static int OpenOn(GameObject root, ModuleData module, List<InteriorSocket> sockets, Vector3 spawn, List<string> log = null, string name = null, IEnumerable<Vector3> keepClear = null)
+        public static int OpenOn(GameObject root, ModuleData module, List<InteriorSocket> sockets, Vector3 spawn, List<string> log = null, string name = null, IEnumerable<Vector3> keepClear = null,
+            IEnumerable<Vector3> liftPads = null)
         {
             if (root == null || module == null)
                 return 0;
@@ -51,6 +52,12 @@ namespace SpaceStation.Editor
                         pads.Add(c + s.Offset);
                     if (s.DoorSteps != 0)
                         steps.AddRange(StepsFootprint(c + (Vector3)s.Direction * s.Depth, s.Direction, s.DoorSteps));
+                }
+                var oldLifts = new List<Vector3>();   // 예전 위 승강판 자리 (다시 지은 뒤 SetAll이 그 자리를 다시 씀) — 빛 다리가 먼저 같이 쓰고, 새 판은 비킴
+                if (liftPads != null)
+                {
+                    foreach (var p in liftPads)
+                        oldLifts.Add(TempOrigin + p);
                 }
                 var why = new List<string>();     // 문 계단을 못 놓은 까닭 (log)
                 var spotsClear = new List<Vector3>();   // 비켜야 할 자리 (고정 주민 자리)
@@ -84,6 +91,13 @@ namespace SpaceStation.Editor
                             open = new InteriorSocket(cell, dir, depth, pad - center, doorLift: true);
                             pads.Add(pad);
                             log?.Add($"{name ?? module.name} {cell} {dir} 문 승강판 ({pad.x - center.x:0.00}, {pad.y - center.y:0.00}, {pad.z - center.z:0.00})");
+                        }
+                        else if (TryDoorBridge(graph, decor, sockets, pads, spotsClear, oldLifts, cell, dir, depth, out var bridgePad, why))
+                        {
+                            var center = TempOrigin + (Vector3)cell * InteriorGeometry.CellSize;
+                            open = new InteriorSocket(cell, dir, depth, bridgePad - center, doorLift: true);
+                            pads.Add(bridgePad);
+                            log?.Add($"{name ?? module.name} {cell} {dir} 빛 다리 ({bridgePad.x - center.x:0.00}, {bridgePad.y - center.y:0.00}, {bridgePad.z - center.z:0.00})");
                         }
                         else if (TryDoorSteps(graph, decor, sockets, pads, steps, spotsClear, cell, dir, depth, out int stepSide, out var foot, why))
                         {
@@ -315,6 +329,176 @@ namespace SpaceStation.Editor
                         break;
                 }
             }
+            return false;
+        }
+
+        /// <summary>같이 쓰는 판 (위 승강판 · 앞서 놓은 빛 다리 판)에서 문 앞 턱까지 최대 거리 (화물 환적장 (2,0,1) 동쪽 문 = 미끄럼틀 관 옆 갑판에 판 자리가 없어 아래 칸 위 승강판에서 11.8 m).</summary>
+        private const float BridgeReach = 12f;
+
+        /// <summary>
+        /// 빛 다리 판을 새로 놓을 때 둘레 (붐비는 후룸 안쪽 — 위 승강판 셋째 규칙만큼 느슨히): 다른 판 1.9 m (판 테끼리 0.4) · 예전 위 승강판 자리 2.5 m (판 사이 규칙 — 그 자리가 그대로 남게) ·
+        /// 아래 해치 틀에서 판 테 0.1 · 같은 바닥 문 1.6 m · 고정 주민 자리 0.95 m 안이면 참.
+        /// </summary>
+        private static bool BridgeNear(List<InteriorSocket> sockets, List<Vector3> pads, List<Vector3> residents, List<Vector3> oldLifts, Vector3 at)
+        {
+            foreach (var other in pads)
+            {
+                if (Flat(other, at) < InteriorSkyLiftSpots.PadRadius * 2f + 0.4f)
+                    return true;
+            }
+            foreach (var p in oldLifts)
+            {
+                if (Mathf.Abs(p.y - at.y) < 1.5f && Flat(p, at) < InteriorSkyLiftSpots.PadRadius * 2f + 1f)
+                    return true;
+            }
+            foreach (var r in residents)
+            {
+                if (Mathf.Abs(r.y - at.y) < 1.5f && Flat(r, at) < InteriorSkyLiftSpots.PadRadius + 0.2f)
+                    return true;
+            }
+            foreach (var s in sockets)
+            {
+                var c = TempOrigin + (Vector3)s.Cell * InteriorGeometry.CellSize;
+                if (s.Direction == Vector3Int.down)
+                {
+                    var hatch = c + s.Offset + Vector3.down * s.Depth;
+                    if (Mathf.Abs(hatch.y - at.y) < 1.5f && InteriorSkyLiftSpots.FrameGap(hatch, s.HatchScale, at) < InteriorSkyLiftSpots.PadRadius + 0.1f)
+                        return true;
+                }
+                else if (s.Direction.y == 0 && !s.SealedWall && !s.DoorLift)
+                {
+                    var door = c + (Vector3)s.Direction * s.Depth;
+                    if (Mathf.Abs(TempOrigin.y + InteriorGeometry.FloorY(s.Cell) - at.y) < 1f && Flat(door, at) < 1.6f)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>판 기둥 (판 ~ 문턱 + 2.5 + 몸 1.9)이 비고, 떠오른 높이에서 문 앞 턱 위까지 건너는 길 (몸 둘레 폭 ±0.45 · 몸 높이)에 충돌체 · 장식 (0.4 m 안)이 없음.</summary>
+        private static bool BridgeClear(InteriorSkyLiftSpots.DecorGrid decor, Vector3 at, Vector3 over, float top)
+        {
+            if (!InteriorSkyLiftSpots.ColumnClear(at, top + 1.9f, InteriorSkyLiftSpots.ColumnRadii[InteriorSkyLiftSpots.ColumnRadii.Length - 1]) || !decor.Clear(at, top + 1.9f))
+                return false;
+            var a = new Vector3(at.x, 0f, at.z);
+            var b = new Vector3(over.x, 0f, over.z);
+            var axis = b - a;
+            float len = axis.magnitude;
+            if (len < 0.5f)
+                return false;
+            axis /= len;
+            var mid = (a + b) * 0.5f;
+            mid.y = top + 0.85f;
+            if (Physics.CheckBox(mid, new Vector3(0.45f, 1.05f, len * 0.5f), Quaternion.LookRotation(axis), Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                return false;
+            for (float s = 0f; s <= len; s += 0.3f)
+            {
+                if (decor.Any(a + axis * s, 0.4f, top - 0.2f, top + 1.9f))
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// 빛 다리 승강판 (화물 환적장 후룸 둘레, 모든 면 연결 2026-11-19 사용자 "빛 다리 승강판" — 문 ~ 물길 0.3 ~ 0.6 m라 계단 아치 다리를 못 놓음):
+        /// 문 바로 안에 문턱 높이 턱이 있지만 걸어서 못 닿는 옆문 (턱 너머 물길) — 문 · 튜브 자리가 비고, 문틀 앞 (문 평면 0.6 m 안) 오르내리는 기둥 · 거기서 문까지 내려서는 길이 빔.
+        /// 판 = 먼저 같이 쓸 판 (예전 위 승강판 자리 — SetAll이 그 자리에 다시 놓음 · 앞서 놓은 빛 다리 판, 같은 바닥, 문 앞 턱에서 12 m 안, 가까운 것 먼저 —
+        /// 갑판이 해치 · 위 승강판 · 주민 자리로 붐벼 판을 따로 놓을 자리가 거의 없음), 없으면 문 안 1.75 ~ 6.25 m · 옆 ±3에 걸어서 닿는 문턱 높이 (±0.3) 바닥에 새로.
+        /// 판 기둥 · 건너는 길이 비어야 함 (<see cref="BridgeClear"/>). 판은 문 승강판과 같은 자리 (<see cref="InteriorSocket.DoorLift"/>) — 문턱과 같은 높이라 Unity가 빛 다리로 지음
+        /// (<see cref="InteriorGeometry.IsBridgeLift"/>, 같은 자리 판은 같이 씀).
+        /// </summary>
+        private static bool TryDoorBridge(InteriorWalkGraph graph, InteriorSkyLiftSpots.DecorGrid decor, List<InteriorSocket> sockets, List<Vector3> pads, List<Vector3> residents, List<Vector3> oldLifts,
+            Vector3Int cell, Vector3Int dir, float depth, out Vector3 pad, List<string> why)
+        {
+            pad = default;
+            var center = TempOrigin + (Vector3)cell * InteriorGeometry.CellSize;
+            float sill = TempOrigin.y + InteriorGeometry.FloorY(cell);
+            var d = (Vector3)dir;
+            var side = Vector3.Cross(Vector3.up, d);
+            if (!FloorAt(cell, dir, depth - 0.12f) || !Corridor(decor, cell, dir, depth))
+                return false;
+            float top = sill + InteriorGeometry.BridgeLiftRise;
+            // 문틀 앞 (문 평면 0.6 m 안)에서 문턱 + 0.55 ~ 떠오른 몸 높이까지 오르내리는 기둥 · 거기서 문 밖 1.1 m 문턱까지 비스듬히 내려서는 길 (몸 둘레 ±0.45 —
+            // 물길 테가 문 안 3.35 · 3.5 m로 면마다 다름)
+            float inset = depth - InteriorGeometry.BridgeInset, low = sill + InteriorGeometry.BridgeLowRise;
+            bool shut = Blocked(center, dir, side, inset - 0.3f, inset + 0.3f, 0f, 0.45f, low + 0.05f, top + 1.9f);
+            for (float s = inset; s <= depth - InteriorGeometry.Thickness && !shut; s += 0.1f)
+            {
+                float h = low + (sill + 0.03f - low) * (s - inset) / (depth + 1.1f - inset);
+                shut = Blocked(center, dir, side, s - 0.05f, s + 0.05f, 0f, 0.45f, h + 0.03f, h + 1.9f);
+            }
+            if (shut)
+            {
+                why.Add("빛 다리 문 앞 오르내리는 자리 막힘");
+                return false;
+            }
+            var over = center + d * inset;
+            var hosts = new List<Vector3>();
+            foreach (var h in oldLifts)
+            {
+                if (Mathf.Abs(h.y - sill) < 0.3f && Flat(h, over) < BridgeReach)
+                    hosts.Add(h);
+            }
+            foreach (var h in pads)
+            {
+                if (Mathf.Abs(h.y - sill) < 0.3f && Flat(h, over) < BridgeReach)
+                    hosts.Add(h);
+            }
+            hosts.Sort((a, b) => Flat(a, over).CompareTo(Flat(b, over)));
+            foreach (var h in hosts)
+            {
+                if (BridgeClear(decor, h, over, top))
+                {
+                    pad = h;
+                    return true;
+                }
+            }
+            int noNode = 0, flat = 0, edge = 0, near = 0, path = 0;
+            // 새 판: 문 안 1.75 ~ 6.25 m (가까운 것 먼저) · 옆 0 → ±3 (걸음 격자 0.25 m — 붐비는 갑판은 성긴 격자로 놓치는 틈이 있음)
+            for (float back = 1.75f; back <= 6.26f; back += 0.25f)
+            {
+                for (int i = 0; i <= 24; i++)
+                {
+                    float lat = ((i & 1) == 0 ? 1f : -1f) * ((i + 1) / 2) * 0.25f;
+                    var p = center + d * (depth - back) + side * lat;
+                    int best = -1;
+                    foreach (int k in graph.Column(p.x, p.z))
+                    {
+                        if (graph.Reached(k) && Mathf.Abs(graph[k].y - sill) < 0.3f)
+                            best = k;
+                    }
+                    if (best < 0)
+                    {
+                        noNode++;
+                        continue;
+                    }
+                    var q = graph[best];
+                    if (!InteriorSkyLiftSpots.PadSurface(q, out float padTop, out _))
+                    {
+                        flat++;
+                        continue;
+                    }
+                    var at = new Vector3(q.x, padTop, q.z);
+                    if (InteriorSkyLiftSpots.EdgeGap(at) < 0.1f)
+                    {
+                        edge++;
+                        continue;
+                    }
+                    if (BridgeNear(sockets, pads, residents, oldLifts, at))
+                    {
+                        near++;
+                        continue;
+                    }
+                    if (!BridgeClear(decor, at, over, top))
+                    {
+                        path++;
+                        continue;
+                    }
+                    pad = at;
+                    return true;
+                }
+            }
+            why.Add($"빛 다리 [같이 쓸 판 {hosts.Count} · 마디X {noNode} 평평X {flat} 테 {edge} 둘레 {near} 기둥 · 건너는 길 {path}]");
             return false;
         }
 
