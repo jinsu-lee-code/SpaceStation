@@ -118,6 +118,13 @@ namespace SpaceStation.Data
 
         public void EditorSetDoorSteps(InteriorKitPiece steps) => _doorSteps = steps;
 
+        [Tooltip("위아래 이동 장치 (2026-11-19, 단계 테마 — 피벗 = 발판 밑 땅 가운데, 발판 윗면 y 0.14, 앞 = −z)")]
+        [SerializeField] private InteriorKitPiece _transit;
+
+        public InteriorKitPiece Transit => _transit != null && _transit.IsValid ? _transit : null;
+
+        public void EditorSetTransit(InteriorKitPiece transit) => _transit = transit;
+
         public InteriorKitStage(int stage, List<ModuleData> modules, InteriorKitPiece wall, InteriorKitPiece wallDoor, InteriorKitPiece doorLeaf,
             InteriorKitPiece floor, InteriorKitPiece ceiling, InteriorKitPiece hatchFrame, InteriorKitPiece hatchLid, InteriorKitPiece sealedWall = null, InteriorKitPiece skyPatch = null)
         {
@@ -229,7 +236,14 @@ namespace SpaceStation.Data
         [Tooltip("빛 기둥 승강판의 빛 기둥 재질 (SpaceStation/LightShaft — 색은 방 강조색으로 칠함)")]
         [SerializeField] private Material _skyLiftShaft;
 
+        [Tooltip("기본 방 위아래 이동 장치 (2026-11-19 화물 승강기 칸 — 단계 장치가 없는 방)")]
+        [SerializeField] private InteriorKitPiece _transitBasic;
+
         public Material SkyLiftShaft => _skyLiftShaft;
+        /// <summary>그 방의 위아래 이동 장치 (단계 장치 → 없으면 기본 화물 승강기 칸, 둘 다 없으면 null).</summary>
+        public InteriorKitPiece TransitFor(ModuleData data) => StageOf(data)?.Transit ?? (_transitBasic != null && _transitBasic.IsValid ? _transitBasic : null);
+        /// <summary>위아래 이동 장치의 단계 (단계 장치를 쓰면 그 단계, 기본 칸 = 0).</summary>
+        public int TransitStage(ModuleData data) => StageOf(data)?.Transit != null ? StageNumber(data) : 0;
         public InteriorKitPiece SkyLiftPadFor(ModuleData data) => StageOf(data)?.SkyLiftPad;
         public InteriorKitPiece SkyLiftRingFor(ModuleData data) => StageOf(data)?.SkyLiftRing;
         public InteriorKitPiece DoorStepsFor(ModuleData data) => StageOf(data)?.DoorSteps;
@@ -258,6 +272,8 @@ namespace SpaceStation.Data
         }
 
         public void EditorSetSkyLiftShaft(Material shaft) => _skyLiftShaft = shaft;
+
+        public void EditorSetTransitBasic(InteriorKitPiece transit) => _transitBasic = transit;
 #endif
 
         public InteriorKitStage StageOf(ModuleData data)

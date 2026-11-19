@@ -1124,7 +1124,8 @@ SLOT_SHORT = {'M_InteriorEvoWhite': 'EvoWhite', 'M_InteriorEvoFloor': 'EvoFloor'
               'M_Accent_Core': 'Accent', 'M_InteriorLight': 'Light', 'M_InteriorEvo2Wall': 'Evo2Wall', 'M_InteriorEvo2Deck': 'Evo2Deck',
               'M_InteriorEvo2Trim': 'Evo2Trim', 'M_InteriorEvo2Gold': 'Evo2Gold', 'M_InteriorEvo2Sky': 'Evo2Sky', 'M_InteriorEvo3Pearl': 'Evo3Pearl',
               'M_InteriorEvo3Gold': 'Evo3Gold', 'M_InteriorEvo2Path': 'Evo3Path', 'M_InteriorEvo4Wall': 'Evo4Wall', 'M_InteriorEvo4Trim': 'Evo4Trim',
-              'M_InteriorEvo4Deck': 'Evo4Deck'}
+              'M_InteriorEvo4Deck': 'Evo4Deck', 'M_InteriorHull': 'Hull', 'M_InteriorHullDark': 'HullDark', 'M_InteriorHazard': 'Hazard',
+              'M_InteriorEvoDark': 'EvoDark', 'M_InteriorEvo2Star': 'Evo4Star', 'M_InteriorEvo3Prism': 'Evo3Prism', 'M_InteriorLeaf': 'Leaf'}
 
 
 def kit_short(st):
@@ -1224,6 +1225,340 @@ def kit_door_steps(st):
     return objs
 
 
+# ---------------- 위아래 이동 장치 (2026-11-19) ----------------
+# 사용자 "단계별로 각 단계 테마에 맞는 상하이동장치" — 시안 (scratchpad up9/lift_concepts3.py) "이대로 진행".
+# Blender z 위로 짓고 UP_SWAP으로 키트 로컬 (y 위, 앞 = −z)로 세움. 피벗 = 발판 밑 땅 가운데, 발판 윗면 = TR_PAD (Unity InteriorTransit.PadHeight).
+# 빛 기둥은 Unity (InteriorSkyLift, 방 강조색)가 그림 — 1 ~ 4단계만. 모두 3.25 m 밑 (낮은 천장 방).
+TR_PAD = 0.14
+
+
+def _tr(ob):
+    ob.data.transform(UP_SWAP)
+    return solid(ob)
+
+
+def tr_cyl(name, x, y, r, z0, z1, m, segs=40, r1=None, caps=True):
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=caps, segments=segs, radius1=r, radius2=r if r1 is None else r1, depth=z1 - z0,
+                          matrix=Matrix.Translation((x, y, (z0 + z1) / 2)))
+    return _tr(new_obj(name, bm, [m]))
+
+
+def tr_box(name, x, y, z, sx, sy, sz, m, rz=0.0, rx=0.0):
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0, matrix=Matrix.Translation((x, y, z)) @ Matrix.Rotation(rz, 4, 'Z') @ Matrix.Rotation(rx, 4, 'X') @ Matrix.Diagonal((sx, sy, sz, 1)))
+    return _tr(new_obj(name, bm, [m]))
+
+
+def tr_torus(name, x, y, z, R, r, m, segs=48, tsegs=10, rx=0.0, ry=0.0, rz=0.0, arc=1.0, a0=0.0):
+    bm = bmesh.new()
+    n = segs if arc >= 1.0 else segs + 1
+    rows = []
+    for i in range(n):
+        a = a0 + 2 * math.pi * arc * i / segs
+        c = Vector((R * math.cos(a), R * math.sin(a), 0)); d = c.normalized()
+        rows.append([bm.verts.new(c + d * r * math.cos(2 * math.pi * j / tsegs) + Vector((0, 0, r * math.sin(2 * math.pi * j / tsegs)))) for j in range(tsegs)])
+    for i in range(n if arc >= 1.0 else n - 1):
+        A, B = rows[i], rows[(i + 1) % n]
+        for j in range(tsegs):
+            bm.faces.new((A[j], A[(j + 1) % tsegs], B[(j + 1) % tsegs], B[j]))
+    if arc < 1.0:
+        bm.faces.new(list(reversed(rows[0]))); bm.faces.new(rows[-1])
+    bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(rz, 3, 'Z') @ Matrix.Rotation(ry, 3, 'Y') @ Matrix.Rotation(rx, 3, 'X'))
+    bmesh.ops.translate(bm, vec=(x, y, z), verts=bm.verts)
+    return _tr(new_obj(name, bm, [m]))
+
+
+def tr_tube(name, pts, r, m, segs=10):
+    bm = bmesh.new()
+    P = [Vector(p) for p in pts]
+    rings = []
+    for i, c in enumerate(P):
+        t = (P[min(i + 1, len(P) - 1)] - P[max(i - 1, 0)]).normalized()
+        ref = Vector((0, 0, 1)) if abs(t.z) < 0.9 else Vector((1, 0, 0))
+        a1 = t.cross(ref).normalized(); a2 = t.cross(a1)
+        rings.append([bm.verts.new(c + (a1 * math.cos(2 * math.pi * j / segs) + a2 * math.sin(2 * math.pi * j / segs)) * r) for j in range(segs)])
+    for i in range(len(rings) - 1):
+        for j in range(segs):
+            bm.faces.new((rings[i][j], rings[i][(j + 1) % segs], rings[i + 1][(j + 1) % segs], rings[i + 1][j]))
+    bm.faces.new(list(reversed(rings[0]))); bm.faces.new(rings[-1])
+    return _tr(new_obj(name, bm, [m]))
+
+
+def tr_sphere(name, x, y, z, r, m, segs=16):
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=segs, v_segments=segs // 2, radius=r)
+    bmesh.ops.translate(bm, vec=(x, y, z), verts=bm.verts)
+    return _tr(new_obj(name, bm, [m]))
+
+
+def tr_star(name, x, y, z, ro, ri, n, t, m, rz=0.0, upright_star=False):
+    bm = bmesh.new()
+    pts = [((ro if k % 2 == 0 else ri) * math.cos(rz + math.pi * k / n + math.pi / 2), (ro if k % 2 == 0 else ri) * math.sin(rz + math.pi * k / n + math.pi / 2)) for k in range(2 * n)]
+    lo = [bm.verts.new((px, py, -t / 2)) for px, py in pts]
+    hi = [bm.verts.new((px, py, t / 2)) for px, py in pts]
+    bm.faces.new(lo[::-1]); bm.faces.new(hi)
+    for k in range(len(pts)):
+        j = (k + 1) % len(pts)
+        bm.faces.new((lo[k], lo[j], hi[j], hi[k]))
+    if upright_star:
+        bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(math.pi / 2, 3, 'X'))
+    bmesh.ops.translate(bm, vec=(x, y, z), verts=bm.verts)
+    return _tr(new_obj(name, bm, [m]))
+
+
+def tr_gem(name, x, y, z, r, up, dn, m, sides=6):
+    bm = bmesh.new()
+    top = bm.verts.new((x, y, z + up)); bot = bm.verts.new((x, y, z - dn))
+    rg = [bm.verts.new((x + r * math.cos(2 * math.pi * k / sides), y + r * math.sin(2 * math.pi * k / sides), z)) for k in range(sides)]
+    for k in range(sides):
+        j = (k + 1) % sides
+        bm.faces.new((top, rg[k], rg[j])); bm.faces.new((bot, rg[j], rg[k]))
+    return _tr(new_obj(name, bm, [m]))
+
+
+def tr_blade(name, base, d, length, width, lift, curl, m, thick=0.02, n=8):
+    """둥근 잎 · 꽃잎: base에서 d 방향, 위로 lift만큼 기울고 끝이 curl만큼 휨 (끝이 둥긂)."""
+    d = Vector(d).normalized(); s = Vector((-d.y, d.x, 0)).normalized() if abs(d.z) < 0.99 else Vector((1, 0, 0))
+    up = s.cross(d).normalized()
+    if up.z < 0:
+        up = -up
+    bm = bmesh.new()
+    top, bot = [], []
+    for i in range(n + 1):
+        t = i / n
+        w = width * 0.5 * (0.35 + 0.65 * math.sin(math.pi * min(t * 0.92 + 0.08, 1.0)) ** 0.5) * (1.0 if t < 0.85 else math.sqrt(max(0.0, 1 - ((t - 0.85) / 0.15) ** 2)))
+        c = Vector(base) + d * (length * t) + up * (lift * t + curl * t * t)
+        top.append((bm.verts.new(c + s * w), bm.verts.new(c - s * w)))
+        bot.append((bm.verts.new(c + s * w - up * thick), bm.verts.new(c - s * w - up * thick)))
+    for i in range(n):
+        bm.faces.new((top[i][0], top[i + 1][0], top[i + 1][1], top[i][1]))
+        bm.faces.new((bot[i][1], bot[i + 1][1], bot[i + 1][0], bot[i][0]))
+        bm.faces.new((top[i][0], bot[i][0], bot[i + 1][0], top[i + 1][0]))
+        bm.faces.new((top[i + 1][1], bot[i + 1][1], bot[i][1], top[i][1]))
+    bm.faces.new((top[0][1], bot[0][1], bot[0][0], top[0][0]))
+    bm.faces.new((top[n][0], bot[n][0], bot[n][1], top[n][1]))
+    return _tr(new_obj(name, bm, [m]))
+
+
+def tr_tri(name, pts, m, thick=0.01):
+    bm = bmesh.new()
+    lo = [bm.verts.new(p) for p in pts]
+    hi = [bm.verts.new((p[0], p[1] - thick, p[2])) for p in pts]
+    bm.faces.new(lo); bm.faces.new(hi[::-1])
+    for k in range(3):
+        j = (k + 1) % 3
+        bm.faces.new((lo[k], hi[k], hi[j], lo[j]))
+    return _tr(new_obj(name, bm, [m]))
+
+
+def transit_basic():
+    """기본 (생존 공업): 앞 (−y)이 트인 화물 승강기 칸 — 철판 바닥 · 홈 줄 · 문턱 경고 띠 · 네 모서리 기둥 · 옆 철망 + 노란 가로대 · 뒤판 · 뒤 안내 레일 둘
+    · 지붕 + 모터 상자 · 감는 북 · 지붕 앞 경고 띠 · 오르내림 화살표 등 (모양으로 구분) · 호출 단추 기둥 (오른쪽 앞)."""
+    S = kmat('M_InteriorHull', '#8A9099', 0.45, 0.7); D = kmat('M_InteriorHullDark', '#2B2F35', 0.55, 0.6)
+    Y = kmat('M_InteriorHazard', '#F2B81A', 0.45, 0.1); A = kmat('M_Accent_Core', '#7FE8FF', emit='#7FE8FF')
+    o = [tr_box('T_Base', 0, 0, TR_PAD / 2, 1.9, 1.9, TR_PAD, D),
+         tr_box('T_Floor', 0, 0, TR_PAD - 0.005, 1.72, 1.72, 0.012, S)]
+    for k in range(-5, 6):
+        o.append(tr_box('T_Tread', k * 0.15, 0.05, TR_PAD + 0.004, 0.025, 1.5, 0.01, D))
+    for i in range(10):
+        o.append(tr_box('T_Stripe', -0.855 + 0.19 * i + 0.095, -0.9, TR_PAD + 0.002, 0.19, 0.1, 0.012, Y if i % 2 == 0 else D))
+    for sx in (-0.9, 0.9):
+        for sy in (-0.9, 0.9):
+            o.append(tr_box('T_Post', sx, sy, (TR_PAD + 2.8) / 2, 0.1, 0.1, 2.8 - TR_PAD, D))
+        o.append(tr_box('T_SideMesh', sx, 0.05, 1.2, 0.02, 1.7, 1.6, D))
+        for z in (0.45, 1.25, 2.05):
+            o.append(tr_box('T_SideBar', sx, 0.0, z, 0.05, 1.8, 0.06, Y))
+    o += [tr_box('T_Back', 0, 0.9, 1.45, 1.7, 0.03, 2.5, S),
+          tr_box('T_Roof', 0, 0, 2.86, 2.0, 2.0, 0.12, D),
+          tr_box('T_Motor', 0, 0.25, 3.05, 1.0, 0.8, 0.28, S)]
+    for sx in (-0.5, 0.5):
+        o.append(tr_box('T_Rail', sx, 1.02, 1.6, 0.08, 0.1, 3.0, S))
+    drum = tr_cyl('T_Drum', 0, 0, 0.16, -0.45, 0.45, D, 16)
+    drum.data.transform(Matrix.Translation((0, 3.05, -0.32)) @ Matrix.Rotation(math.pi / 2, 4, 'Z'))
+    o.append(drum)
+    for i in range(10):
+        o.append(tr_box('T_RoofStripe', -0.95 + 0.19 * i + 0.095, -1.0, 2.86, 0.19, 0.02, 0.12, Y if i % 2 == 0 else D))
+    for sx, up in ((-0.35, True), (0.35, False)):
+        s = 1 if up else -1
+        o.append(tr_tri('T_Arrow', [(sx - 0.13, -1.015, 2.86 - 0.07 * s), (sx, -1.015, 2.86 + 0.08 * s), (sx + 0.13, -1.015, 2.86 - 0.07 * s)][::s], A))
+    o += [tr_box('T_CallPost', 1.25, -0.95, 0.6, 0.22, 0.18, 1.2, Y),
+          tr_box('T_CallPanel', 1.25, -1.045, 1.0, 0.16, 0.012, 0.36, D)]
+    for z in (1.1, 0.92):
+        b = tr_cyl('T_Button', 0, 0, 0.04, -0.012, 0.012, A, 12)
+        b.data.transform(Matrix.Translation((1.25, z, -1.055)) @ Matrix.Rotation(math.pi / 2, 4, 'X'))
+        o.append(b)
+    return o
+
+
+def transit_stage1():
+    """1단계 (발달한 미래 기술): 흰 세라믹 반중력 원판 — 판 안 빛 고리 둘 (강조색) · 휜 흰 기둥 셋 (기둥마다 빛 고리) · 위 후광 고리 + 아래 빛 띠 · 홀로그램 목적지 판 (오른쪽 앞)."""
+    W = kmat('M_InteriorEvoWhite', '#ECEFF3', 0.25); D = kmat('M_InteriorEvoFloor', '#9EA3AD', 0.4); A = kmat('M_Accent_Core', '#7FE8FF', emit='#7FE8FF')
+    o = [tr_cyl('T_Pad', 0, 0, 0.95, 0.0, TR_PAD, W, 48, r1=0.9),
+         tr_cyl('T_PadInner', 0, 0, 0.7, TR_PAD - 0.004, TR_PAD + 0.006, D, 48),
+         tr_torus('T_PadGlow', 0, 0, TR_PAD + 0.006, 0.74, 0.02, A),
+         tr_torus('T_PadGlow2', 0, 0, TR_PAD + 0.006, 0.45, 0.012, A, 40, 6)]
+    for k in range(3):
+        a = math.radians(90 + 120 * k)
+        pts = []
+        for t in range(11):
+            u = t / 10
+            rr = 0.9 - 0.16 * math.sin(math.pi * u)
+            pts.append((rr * math.cos(a), rr * math.sin(a), 0.1 + 2.8 * u))
+        o.append(tr_tube('T_Pylon', pts, 0.055, W, 12))
+        ring = tr_torus('T_PylonLight', 0, 0, 0, 0.065, 0.012, A, 16, 6, rx=math.pi / 2)
+        ring.data.transform(Matrix.Translation((0.745 * math.cos(a), 1.5, 0.745 * math.sin(a))) @ Matrix.Rotation(-a + math.pi / 2, 4, 'Y'))
+        o.append(ring)
+    o += [tr_torus('T_Halo', 0, 0, 2.95, 0.88, 0.075, W, 48, 12),
+          tr_torus('T_HaloGlow', 0, 0, 2.865, 0.82, 0.016, A),
+          tr_box('T_HoloBase', 1.25, -0.75, 0.04, 0.3, 0.3, 0.08, W),
+          tr_box('T_HoloStem', 1.25, -0.75, 0.55, 0.07, 0.07, 1.0, W),
+          tr_box('T_HoloPanel', 1.25, -0.75, 1.3, 0.46, 0.012, 0.3, A, rz=math.radians(30), rx=math.radians(-15))]
+    return o
+
+
+def transit_stage2():
+    """2단계 (여가 · 밤하늘 천문 기구): 혼천의 승강대 — 미드나잇 원판 · 금 테 · 별자리 상감 (별 여섯 + 금 선) · 판 둘레 금 별 넷 · 금 지지대 셋이 받친 혼천의 (금 고리 셋 + 별빛 구)
+    · 꼭대기 별 · 망원경 모양 안내 기둥 (오른쪽 앞)."""
+    M = kmat('M_InteriorEvo2Deck', '#171C3A'); G = kmat('M_InteriorEvo2Gold', '#D9AE4E', 0.25, 1.0); T = kmat('M_InteriorEvo2Trim', '#A9B0E2', 0.3, 0.5)
+    St = kmat('M_InteriorEvo2Star', '#DDF0FF', emit='#DDF0FF'); A = kmat('M_Accent_Core', '#7FE8FF', emit='#7FE8FF')
+    o = [tr_cyl('T_Pad', 0, 0, 0.98, 0.0, TR_PAD, M, 48, r1=0.92),
+         tr_torus('T_Rim', 0, 0, TR_PAD, 0.92, 0.035, G),
+         tr_torus('T_Inner', 0, 0, TR_PAD + 0.004, 0.62, 0.014, A, 40, 6)]
+    cons = [(0.2, 0.25), (0.42, 0.05), (0.3, -0.3), (-0.05, -0.45), (-0.38, -0.2), (-0.3, 0.3)]
+    for i, (cx, cy) in enumerate(cons):
+        o.append(tr_star('T_Star', cx, cy, TR_PAD + 0.006, 0.07 if i % 2 == 0 else 0.05, 0.025, 4, 0.01, St))
+    for i in range(len(cons) - 1):
+        (ax, ay), (bx, by) = cons[i], cons[i + 1]
+        o.append(tr_tube('T_Con', [(ax, ay, TR_PAD + 0.003), (bx, by, TR_PAD + 0.003)], 0.006, G, 6))
+    for k in range(4):
+        a = math.radians(45 + 90 * k)
+        o.append(tr_star('T_RimStar', 0.95 * math.cos(a), 0.95 * math.sin(a), TR_PAD + 0.01, 0.08, 0.03, 4, 0.02, G))
+    H = 2.55
+    for k in range(3):
+        a = math.radians(30 + 120 * k)
+        o.append(tr_tube('T_Strut', [(0.9 * math.cos(a), 0.9 * math.sin(a), TR_PAD), (0.84 * math.cos(a), 0.84 * math.sin(a), 1.5), (0.6 * math.cos(a), 0.6 * math.sin(a), H - 0.08)], 0.022, G, 8))
+    o += [tr_torus('T_ArmA', 0, 0, H, 0.55, 0.022, G, rx=math.radians(90)),
+          tr_torus('T_ArmB', 0, 0, H, 0.55, 0.022, G, rx=math.radians(90), rz=math.radians(90)),
+          tr_torus('T_ArmC', 0, 0, H, 0.62, 0.026, G, rx=math.radians(23)),
+          tr_torus('T_Band', 0, 0, H, 0.6, 0.012, T, rx=math.radians(-18), rz=math.radians(40)),
+          tr_sphere('T_Core', 0, 0, H, 0.11, St),
+          tr_star('T_TopStar', 0, 0, H + 0.68, 0.14, 0.055, 5, 0.05, St, upright_star=True),
+          tr_box('T_KioskBase', 1.3, -0.7, 0.05, 0.36, 0.36, 0.1, M),
+          tr_cyl('T_KioskStem', 1.3, -0.7, 0.06, 0.1, 1.0, G, 12)]
+    scope = tr_cyl('T_Scope', 0, 0, 0.1, -0.33, 0.33, M, 20, r1=0.07)
+    scope.data.transform(Matrix.Translation((1.3, 1.15, -0.7)) @ Matrix.Rotation(math.radians(30), 4, 'Y') @ Matrix.Rotation(math.radians(-35), 4, 'X'))
+    o += [scope, tr_box('T_Screen', 1.3, -0.81, 0.92, 0.32, 0.012, 0.2, A, rx=math.radians(-25))]
+    return o
+
+
+def transit_stage3():
+    """3단계 (행성 정원 + 빛과 수정): 수정 꽃 승강대 — 진주 원판 · 금 테 · 둥근 꽃잎 두 겹 (연꽃) · 금 덩굴 셋이 감아 오르며 위에 뜬 수정을 감쌈 (둥근 잎) · 수정 금 고리."""
+    P = kmat('M_InteriorEvo3Pearl', '#F4EFE6', 0.3, 0.1); G = kmat('M_InteriorEvo3Gold', '#D9AE4E', 0.25, 1.0)
+    C = kmat('M_InteriorEvo3Prism', '#CFF4FF', 0.05, 0.0, emit='#BFEFFF', alpha=0.6); L = kmat('M_InteriorLeaf', '#4E9A4A', 0.5)
+    A = kmat('M_Accent_Core', '#7FE8FF', emit='#7FE8FF')
+    o = [tr_cyl('T_Pad', 0, 0, 0.82, 0.0, TR_PAD, P, 48, r1=0.78),
+         tr_cyl('T_PadInner', 0, 0, 0.6, TR_PAD - 0.004, TR_PAD + 0.006, A, 40),
+         tr_torus('T_Rim', 0, 0, TR_PAD + 0.006, 0.62, 0.02, G)]
+    for k in range(12):
+        a = 2 * math.pi * (k + 0.5) / 12
+        o.append(tr_blade('T_PetalOut', (0.66 * math.cos(a), 0.66 * math.sin(a), 0.07), (math.cos(a), math.sin(a), 0), 0.4, 0.34, 0.1, 0.14, P, 0.025))
+    for k in range(12):
+        a = 2 * math.pi * k / 12
+        o.append(tr_blade('T_PetalIn', (0.6 * math.cos(a), 0.6 * math.sin(a), 0.12), (math.cos(a), math.sin(a), 0), 0.3, 0.27, 0.2, 0.16, P, 0.02))
+    HC = 2.75
+    for k in range(3):
+        a = math.radians(90 + 120 * k)
+        pts = []
+        for t in range(21):
+            u = t / 20
+            rr = 0.82 * (1 - u) ** 0.9 + 0.2 * u + 0.08 * math.sin(math.pi * u * 2)
+            aa = a + 0.6 * u
+            pts.append((rr * math.cos(aa), rr * math.sin(aa), 0.1 + (HC - 0.45) * (u ** 0.9)))
+        o.append(tr_tube('T_Vine', pts, 0.035, G, 8))
+        for t in (4, 8, 12, 15):
+            p = Vector(pts[t]); out = Vector((p.x, p.y, 0)).normalized()
+            o.append(tr_blade('T_Leaf', p, out + Vector((0, 0, 0.9)), 0.24, 0.17, 0.05, 0.03, L, 0.012, 6))
+    o += [tr_gem('T_Prism', 0, 0, HC, 0.24, 0.45, 0.4, C, 6),
+          tr_torus('T_PrismRing', 0, 0, HC - 0.05, 0.3, 0.018, G)]
+    return o
+
+
+def transit_stage4():
+    """4단계 (우주 · 별빛, 성운 남보라 · 은): 성운 승강대 — 은 원판 속 성운 판 · 둘레 네 별 · 위에 뜬 은 초승달 고리 둘이 엇갈림 (고리 위 별) · 가운데 별 · 별빛 안내 기둥 (오른쪽 앞)."""
+    D = kmat('M_InteriorEvo4Deck', '#1B1740', 0.45); S = kmat('M_InteriorEvo4Trim', '#CDD3DE', 0.2, 1.0); N = kmat('M_InteriorEvo4Wall', '#2E2766', 0.35, 0.2)
+    St = kmat('M_InteriorEvo2Star', '#DDF0FF', emit='#DDF0FF'); A = kmat('M_Accent_Core', '#7FE8FF', emit='#7FE8FF')
+    o = [tr_cyl('T_Pad', 0, 0, 0.96, 0.0, TR_PAD, S, 48, r1=0.9),
+         tr_cyl('T_Neb', 0, 0, 0.74, TR_PAD - 0.004, TR_PAD + 0.008, N, 48),
+         tr_torus('T_NebRim', 0, 0, TR_PAD + 0.008, 0.74, 0.015, S),
+         tr_torus('T_NebGlow', 0, 0, TR_PAD + 0.01, 0.4, 0.01, A, 40, 6)]
+    for k in range(4):
+        a = math.radians(45 + 90 * k)
+        o.append(tr_star('T_Star', 0.84 * math.cos(a), 0.84 * math.sin(a), TR_PAD + 0.012, 0.1, 0.03, 4, 0.025, St))
+    H = 2.9
+    o += [tr_torus('T_CrescentA', 0, 0, H, 0.8, 0.045, S, arc=0.62, a0=math.radians(10), rx=math.radians(12)),
+          tr_torus('T_CrescentB', 0, 0, H + 0.12, 0.7, 0.038, S, arc=0.62, a0=math.radians(200), rx=math.radians(-12))]
+    for k in range(5):
+        a = math.radians(10 + 0.62 * 360 * k / 4)
+        o.append(tr_star('T_CrStar', 0.8 * math.cos(a), 0.8 * math.sin(a), H + 0.8 * math.sin(a) * math.sin(math.radians(12)), 0.06, 0.02, 4, 0.02, St, upright_star=True))
+    o += [tr_star('T_TopStar', 0, 0, H + 0.12, 0.13, 0.04, 4, 0.04, St, upright_star=True),
+          tr_box('T_KioskBase', 1.3, -0.7, 0.05, 0.32, 0.32, 0.1, D),
+          tr_cyl('T_KioskStem', 1.3, -0.7, 0.05, 0.1, 1.05, S, 12),
+          tr_box('T_Screen', 1.3, -0.7, 1.22, 0.4, 0.012, 0.28, A, rz=math.radians(30), rx=math.radians(-15))]
+    return o
+
+
+TRANSITS = ((0, transit_basic), (1, transit_stage1), (2, transit_stage2), (3, transit_stage3), (4, transit_stage4))
+
+
+def transit_preview(out_dir):
+    """다섯 장치를 한 줄로 · 하나씩 근접 렌더 (사진 검토용, --transit-preview <폴더>) — 굽기 전 조각 (kmat 색) 그대로, z 위로 되돌려 놓음."""
+    for o in list(SC.collection.objects):
+        bpy.data.objects.remove(o, do_unlink=True)
+    xs = [0.0, 4.4, 8.8, 13.2, 17.6]
+    tris = {}
+    for (st, fn), x in zip(TRANSITS, xs):
+        n = 0
+        for ob in fn():
+            ob.data.transform(Matrix.Translation((x, 0, 0)) @ UP_SWAP)
+            solid(ob)
+            n += sum(len(p.vertices) - 2 for p in ob.data.polygons)
+        tris[st] = n
+    print('TRIS', tris)
+    box('Floor', (30, 10, 0.1), kmat('PreviewFloor', '#2A2D33', 0.8), at=(8.8, 0, -0.05))
+    box('Wall', (30, 0.1, 6), kmat('PreviewWall', '#14161C', 0.9), at=(8.8, 3.2, 3))
+    for x in xs:   # 사람 키 1.75 m 비교 기둥
+        b = bmesh.new(); bmesh.ops.create_cone(b, cap_ends=True, segments=16, radius1=0.2, radius2=0.16, depth=1.42, matrix=Matrix.Translation((x - 1.45, 0.35, 0.71)))
+        new_obj('Ref', b, [kmat('PreviewRef', '#80858F', 0.7)])
+        b = bmesh.new(); bmesh.ops.create_uvsphere(b, u_segments=16, v_segments=8, radius=0.15); bmesh.ops.translate(b, vec=(x - 1.45, 0.35, 1.58), verts=b.verts)
+        new_obj('RefHead', b, [kmat('PreviewRef', '#80858F', 0.7)])
+    world = bpy.data.worlds.new('W'); SC.world = world; world.use_nodes = True
+    bg = next(n for n in world.node_tree.nodes if n.type == 'BACKGROUND')
+    bg.inputs[0].default_value = (0.25, 0.27, 0.32, 1)
+    for (lx, ly, lz, e) in ((3, -7, 6, 700), (14, -6, 5, 600), (8.8, -3, 8, 300)):
+        ld = bpy.data.lights.new('L', 'AREA'); ld.energy = e; ld.size = 6
+        lo = bpy.data.objects.new('L', ld); SC.collection.objects.link(lo); lo.location = (lx, ly, lz)
+        lo.rotation_euler = (Vector((8.8, 0, 1.2)) - Vector((lx, ly, lz))).to_track_quat('-Z', 'Y').to_euler()
+    try:
+        SC.render.engine = 'BLENDER_EEVEE_NEXT'
+    except TypeError:
+        try:
+            SC.render.engine = 'BLENDER_EEVEE'
+        except TypeError:
+            pass
+    cam_d = bpy.data.cameras.new('C'); cam = bpy.data.objects.new('C', cam_d); SC.collection.objects.link(cam); SC.camera = cam
+    def shot(name, eye, at, lens, rx, ry):
+        SC.render.resolution_x, SC.render.resolution_y = rx, ry
+        cam_d.lens = lens; cam.location = eye
+        cam.rotation_euler = (Vector(at) - Vector(eye)).to_track_quat('-Z', 'Y').to_euler()
+        SC.render.filepath = os.path.join(out_dir, name + '.png')
+        bpy.ops.render.render(write_still=True)
+    shot('transit_all', (8.8, -19.0, 4.4), (8.8, 0, 1.55), 30, 2000, 760)
+    for i, x in enumerate(xs):
+        shot('transit_s%d' % i, (x + 2.0, -4.4, 2.3), (x + 0.15, 0, 1.55), 30, 900, 1000)
+    print('PREVIEW DONE')
+
+
 def export_kit():
     out = []
     for st, fn in ((1, kit_tube_evo1), (2, kit_tube_evo2), (3, lambda: kit_bridge(3)), (4, lambda: kit_bridge(4))):
@@ -1240,6 +1575,8 @@ def export_kit():
             out.append(bake_kit('KIT_SkyLiftPad_Evo%d' % st, pad))
             out.append(bake_kit('KIT_SkyLiftRing_Evo%d' % st, ring))
             out.append(bake_kit('KIT_DoorSteps_Evo%d' % st, kit_door_steps(st)))
+    for st, fn in TRANSITS:   # 위아래 이동 장치 (2026-11-19)
+        out.append(bake_kit('KIT_Transit_Evo%d' % st, fn()))
     frame, leaf = kit_airlock()
     out.append(bake_kit('KIT_AirlockFrame', frame))
     out.append(bake_kit('KIT_AirlockLeaf', leaf))
@@ -1254,3 +1591,5 @@ def export_kit():
 
 if EXPORT_KIT:
     export_kit()
+if '--transit-preview' in argv:
+    transit_preview(argv[argv.index('--transit-preview') + 1])

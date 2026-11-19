@@ -321,6 +321,8 @@ namespace SpaceStation.Editor
             var evo4Deck = AssetDatabase.LoadAssetAtPath<Material>(Evo4DeckPath);
             var evo4Trim = AssetDatabase.LoadAssetAtPath<Material>(Evo4TrimPath);
             var evo4Star = AssetDatabase.LoadAssetAtPath<Material>(Evo2StarPath);
+            var hazard = AssetDatabase.LoadAssetAtPath<Material>(HazardPath);
+            var leaf = AssetDatabase.LoadAssetAtPath<Material>(Evo3Leaf2Path);   // 3단계 장치 덩굴 잎 = 밝은 잎
 
             Data.InteriorKitPiece Piece(string name, System.Collections.Generic.Dictionary<string, GameObject> from = null)
             {
@@ -361,6 +363,8 @@ namespace SpaceStation.Editor
                         case "Evo4Deck": mats[i] = evo4Deck; break;
                         case "Evo4Trim": mats[i] = evo4Trim; break;
                         case "Evo4Star": mats[i] = evo4Star; break;
+                        case "Hazard": mats[i] = hazard; break;   // 위아래 이동 장치 (2026-11-19): 기본 칸 경고 노랑 (11-6 줄무늬와 같은 재질)
+                        case "Leaf": mats[i] = leaf; break;
                         default:
                             Debug.LogWarning($"[InteriorSetup] {name}: 모르는 재질 슬롯 '{slot}' → Hull");
                             mats[i] = hull;
@@ -447,8 +451,10 @@ namespace SpaceStation.Editor
                     s.EditorSetSkyLift(tubes.ContainsKey("KIT_SkyLiftPad" + n) ? Piece("KIT_SkyLiftPad" + n, tubes) : null,
                         tubes.ContainsKey("KIT_SkyLiftRing" + n) ? Piece("KIT_SkyLiftRing" + n, tubes) : null);
                     s.EditorSetDoorSteps(tubes.ContainsKey("KIT_DoorSteps" + n) ? Piece("KIT_DoorSteps" + n, tubes) : null);   // 문 계단 (모든 면 연결 ②, 2026-11-19)
+                    s.EditorSetTransit(tubes.ContainsKey("KIT_Transit" + n) ? Piece("KIT_Transit" + n, tubes) : null);   // 위아래 이동 장치 (2026-11-19)
                 }
                 kit.EditorSetSkyLiftShaft(AssetDatabase.LoadAssetAtPath<Material>(SkyLiftShaftPath));
+                kit.EditorSetTransitBasic(tubes.ContainsKey("KIT_Transit_Evo0") ? Piece("KIT_Transit_Evo0", tubes) : null);
             }
             kit.EditorSetStages(stages);
             EditorUtility.SetDirty(kit);

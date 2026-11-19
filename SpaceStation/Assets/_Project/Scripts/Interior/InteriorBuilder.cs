@@ -820,13 +820,47 @@ namespace SpaceStation.Interior
             return FloorPoint(module.Origin);
         }
 
+        /// <summary>단계별 장치의 빛 기둥 꼭대기 (땅에서, 0 = 기둥 없음): 기본 화물 칸 없음 · 1 후광 고리 밑 · 2 혼천의 밑 · 3 수정 밑 · 4 초승달 고리 밑.</summary>
+        private static readonly float[] TransitBeamTop = { 0f, 2.85f, 2.45f, 2.35f, 2.8f };
+
         /// <summary>
-        /// 위아래 이동 장치 (2026-11-19): 발판 + 꼭대기 고리 + 빛 기둥 (단계 승강판 조각 — 단계별 장치 모델 전까지) + 발판 위 충돌 상자 (밟고 서는 면 + 바라보기 대상).
+        /// 위아래 이동 장치 (2026-11-19): 단계 장치 조각 (기본 화물 승강기 칸 · 1 반중력 원판 · 2 혼천의 · 3 수정 꽃 · 4 성운, 앞 = 들어오는 자리 쪽) + 빛 기둥 (1 ~ 4단계, 방 강조색)
+        /// + 발판 충돌 상자 (밟고 서는 면 + 바라보기 대상) · 기본 칸은 옆 · 뒤 벽 충돌. 조각이 없으면 승강판 판 · 고리 · 빛 기둥.
         /// </summary>
         private void BuildTransit(ModuleInstance module, Transform parent, Vector3 ground)
         {
-            float top = ground.y + InteriorTransit.Height;
-            var lift = LiftPad(module, parent, ground, top, top);
+            var piece = _kit != null ? _kit.TransitFor(module.Data) : null;
+            InteriorSkyLift lift;
+            if (piece == null)
+            {
+                float top = ground.y + InteriorTransit.Height;
+                lift = LiftPad(module, parent, ground, top, top);
+            }
+            else
+            {
+                int stage = _kit.TransitStage(module.Data);
+                var toSpawn = SpawnPoint(module, out _) - ground;
+                toSpawn.y = 0f;
+                var rotation = toSpawn.sqrMagnitude > 0.25f ? Quaternion.LookRotation(-toSpawn) : GridDirections.ToQuaternion(module.Rotation);   // 앞 (로컬 −z) = 들어오는 자리 쪽
+                var go = KitPiece(piece, module, parent, ground, rotation).Renderer.gameObject;
+                var pad = go.AddComponent<BoxCollider>();
+                pad.center = new Vector3(0f, InteriorTransit.PadHeight - 0.1f, 0f);
+                pad.size = new Vector3(1.3f, 0.2f, 1.3f);
+                if (stage == 0)
+                {
+                    // 화물 칸 옆 철망 · 뒤판 (앞은 트임)
+                    foreach (var (center, size) in new[] { (new Vector3(-0.9f, 1.45f, 0f), new Vector3(0.12f, 2.7f, 1.9f)), (new Vector3(0.9f, 1.45f, 0f), new Vector3(0.12f, 2.7f, 1.9f)),
+                                 (new Vector3(0f, 1.45f, 0.92f), new Vector3(1.9f, 2.7f, 0.12f)) })
+                    {
+                        var wall = go.AddComponent<BoxCollider>();
+                        wall.center = center;
+                        wall.size = size;
+                    }
+                }
+                lift = go.AddComponent<InteriorSkyLift>();
+                float beam = TransitBeamTop[Mathf.Clamp(stage, 0, TransitBeamTop.Length - 1)];
+                lift.Initialize(ground + Vector3.up * InteriorTransit.PadHeight, ground.y + Mathf.Max(beam, InteriorTransit.Height), beam > 0f ? _kit.SkyLiftShaft : null, ShaftColor(module));
+            }
             var transit = lift.gameObject.AddComponent<InteriorTransit>();
             transit.Initialize(module, lift.PadTop, lift);
             _transits[module] = transit;
