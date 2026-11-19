@@ -64,7 +64,6 @@ namespace SpaceStation.Editor
             BuildNewBasicTemplates();
             BuildEvolvedTemplates();
             InteriorPlantSpots.SetAll();
-            InteriorSkyLiftSpots.SetAll(); // 진화 단계별 통로 ③ 빛 기둥 승강판 자리 (식물 자리 다음)
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
         }
@@ -84,7 +83,6 @@ namespace SpaceStation.Editor
             InteriorSetup.CreateMaterials();
             BuildEvolvedTemplates();
             InteriorPlantSpots.SetAll();
-            InteriorSkyLiftSpots.SetAll(); // 진화 단계별 통로 ③ 빛 기둥 승강판 자리 (식물 다음 · 주민 자리 앞 — 주민이 판을 비켜 섬)
             AssetDatabase.SaveAssets();
             InteriorSetup.Setup();
             ResidentSpotBaker.BakeTemplates("IT_Evo"); // 주민 자리 (진화 템플릿만)
@@ -110,7 +108,6 @@ namespace SpaceStation.Editor
             InteriorSetup.CreateMaterials();
             build.Invoke(null, null);
             InteriorPlantSpots.SetAll();
-            InteriorSkyLiftSpots.SetAll();
             AssetDatabase.SaveAssets();
             ResidentSpotBaker.BakeTemplates("IT_Evo" + name);
         }
