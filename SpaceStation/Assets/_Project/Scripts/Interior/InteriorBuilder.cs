@@ -829,8 +829,12 @@ namespace SpaceStation.Interior
         /// </summary>
         private void BuildTransit(ModuleInstance module, Transform parent, Vector3 ground)
         {
-            var piece = _kit != null ? _kit.TransitFor(module.Data) : null;
+            var tpl = TemplateFor(module);
+            bool chosen = tpl != null && tpl.HasTransitSpot;
+            bool wallMounted = chosen && tpl.TransitWall;   // 길을 막는 방 = 벽 장치 (사용자 2026-11-19 "길을 막는다면 벽면에")
+            var piece = _kit == null ? null : wallMounted ? _kit.TransitWallFor(module.Data) : _kit.TransitFor(module.Data);
             InteriorSkyLift lift;
+            Vector3 stand = ground;
             if (piece == null)
             {
                 float top = ground.y + InteriorTransit.Height;
@@ -839,17 +843,16 @@ namespace SpaceStation.Interior
             else
             {
                 int stage = _kit.TransitStage(module.Data);
-                // 앞 (로컬 −z, 안내 기둥 쪽) = 도구가 고른 쪽 (템플릿) · 없으면 들어오는 자리 쪽, 90° 단위
-                var tpl = TemplateFor(module);
+                // 앞 (로컬 −z, 안내 기둥 쪽 · 벽 장치는 방 안) = 도구가 고른 쪽 (템플릿) · 없으면 들어오는 자리 쪽, 90° 단위
                 var moduleRotation = GridDirections.ToQuaternion(module.Rotation);
-                var rotation = tpl != null && tpl.HasTransitSpot ? moduleRotation * Quaternion.Euler(0f, tpl.TransitYaw, 0f)
+                var rotation = chosen ? moduleRotation * Quaternion.Euler(0f, tpl.TransitYaw, 0f)
                     : InteriorTransit.Facing(SpawnPoint(module, out _) - ground, moduleRotation);
-                float s = tpl != null && tpl.HasTransitSpot ? tpl.TransitScale : 1f;   // 붐비는 방 = 85% (충돌 상자 · 빛 기둥도 이 배율을 따름)
+                float s = chosen ? tpl.TransitScale : 1f;   // 붐비는 방 = 85% (충돌 상자 · 빛 기둥도 이 배율을 따름)
                 var go = KitPiece(piece, module, parent, ground, rotation, Vector3.one * s).Renderer.gameObject;
                 var pad = go.AddComponent<BoxCollider>();
-                pad.center = new Vector3(0f, InteriorTransit.PadHeight - 0.1f, 0f);
-                pad.size = new Vector3(1.3f, 0.2f, 1.3f);
-                if (stage == 0)
+                pad.center = new Vector3(0f, InteriorTransit.PadHeight - 0.1f, wallMounted ? -InteriorTransit.WallStand : 0f);
+                pad.size = wallMounted ? new Vector3(1.3f, 0.2f, 0.9f) : new Vector3(1.3f, 0.2f, 1.3f);
+                if (stage == 0 && !wallMounted)
                 {
                     // 화물 칸 옆 철망 · 뒤판 (앞은 트임)
                     foreach (var (center, size) in new[] { (new Vector3(-0.9f, 1.45f, 0f), new Vector3(0.12f, 2.7f, 1.9f)), (new Vector3(0.9f, 1.45f, 0f), new Vector3(0.12f, 2.7f, 1.9f)),
@@ -860,11 +863,13 @@ namespace SpaceStation.Interior
                         wall.size = size;
                     }
                 }
-                lift = go.AddComponent<InteriorSkyLift>();
-                float beam = TransitBeamTop[Mathf.Clamp(stage, 0, TransitBeamTop.Length - 1)];
                 float padTop = InteriorTransit.PadHeight * s;
+                if (wallMounted)
+                    stand = ground + rotation * Vector3.back * (InteriorTransit.WallStand * s);   // 서는 자리 = 벽에서 0.5 m
+                lift = go.AddComponent<InteriorSkyLift>();
+                float beam = wallMounted ? 0f : TransitBeamTop[Mathf.Clamp(stage, 0, TransitBeamTop.Length - 1)];   // 벽 장치 = 빛 기둥 없음
                 // 빛 기둥은 오브젝트 배율로 줄어듦 → 고리 높이를 배율로 나눠 줌 (기둥 끝 = 장식 밑 beam × s)
-                lift.Initialize(ground + Vector3.up * padTop, ground.y + padTop + Mathf.Max(beam * s - padTop, 0.5f) / s, beam > 0f ? _kit.SkyLiftShaft : null, ShaftColor(module));
+                lift.Initialize(stand + Vector3.up * padTop, ground.y + padTop + Mathf.Max(beam * s - padTop, 0.5f) / s, beam > 0f ? _kit.SkyLiftShaft : null, ShaftColor(module));
             }
             var transit = lift.gameObject.AddComponent<InteriorTransit>();
             transit.Initialize(module, lift.PadTop, lift);

@@ -1559,6 +1559,156 @@ def transit_preview(out_dir):
     print('PREVIEW DONE')
 
 
+# ---------------- 벽 위아래 이동 장치 (2026-11-19, 사용자 "길을 막는다면 벽면에 배치" · 시안 "이대로 진행") ----------------
+# 피벗 = 벽 면 · 바닥 (키트 로컬 z 0 = 벽 면, 방 쪽 = −z), 발판 = 반원 (반지름 약 0.95, 윗면 TR_PAD) — 서는 자리 = z −0.5. 빛 기둥 없음.
+TRW_STAND = 0.5   # Unity InteriorTransit.WallStand 와 같음
+
+
+def tr_halfdisk(name, r, z0, z1, m, segs=40):
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=segs, radius1=r, radius2=r, depth=z1 - z0, matrix=Matrix.Translation((0, 0, (z0 + z1) / 2)))
+    bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, 0), plane_no=(0, 1, 0), clear_outer=True)
+    bmesh.ops.holes_fill(bm, edges=bm.edges[:], sides=0)
+    return _tr(new_obj(name, bm, [m]))
+
+
+def tr_arc(name, cx, cz, R, r, m, a0, a1, y=-0.06, segs=28):
+    return tr_tube(name, [(cx + R * math.cos(a0 + (a1 - a0) * i / segs), y, cz + R * math.sin(a0 + (a1 - a0) * i / segs)) for i in range(segs + 1)], r, m, 8)
+
+
+def wall_basic():
+    """기본: 벽에 붙은 납작한 화물 승강기 — 벽판 · 경고 띠 테 · 노란 안내 레일 둘 · 1.4 × 1.0 발판 (홈 · 앞 경고 띠) · 옆 손잡이 · 위 모터 · 경광등 · 옆 호출판 ▲▼."""
+    S = kmat('M_InteriorHull', '#8A9099', 0.45, 0.7); D = kmat('M_InteriorHullDark', '#2B2F35', 0.55, 0.6)
+    Y = kmat('M_InteriorHazard', '#F2B81A', 0.45, 0.1); A = kmat('M_Accent_Core', '#7FE8FF', emit='#7FE8FF')
+    o = [tr_box('W_Back', 0, -0.02, 1.55, 1.6, 0.04, 2.9, S)]
+    for i in range(15):
+        z = 0.12 + i * 0.19
+        for sx in (-0.86, 0.86):
+            o.append(tr_box('W_FrameV', sx, -0.03, z + 0.095, 0.08, 0.04, 0.19, Y if i % 2 == 0 else D))
+    for i in range(9):
+        o.append(tr_box('W_FrameT', -0.86 + i * 0.215 + 0.1, -0.03, 3.0, 0.215, 0.04, 0.08, Y if i % 2 == 0 else D))
+    for sx in (-0.62, 0.62):
+        o.append(tr_box('W_Rail', sx, -0.1, 1.5, 0.08, 0.1, 2.9, Y))
+        for z in (0.5, 1.5, 2.5):
+            o.append(tr_box('W_Bracket', sx, -0.05, z, 0.16, 0.06, 0.08, D))
+    o += [tr_box('W_Pad', 0, -0.55, TR_PAD / 2, 1.4, 1.0, TR_PAD, D), tr_box('W_PadTop', 0, -0.55, TR_PAD + 0.002, 1.3, 0.9, 0.006, S)]
+    for k in range(-4, 5):
+        o.append(tr_box('W_Tread', k * 0.14, -0.55, TR_PAD + 0.007, 0.022, 0.8, 0.008, D))
+    for i in range(7):
+        o.append(tr_box('W_Edge', -0.6 + i * 0.2 + 0.1, -1.03, TR_PAD + 0.003, 0.2, 0.06, 0.012, Y if i % 2 == 0 else D))
+    for sx in (-0.68, 0.68):
+        o.append(tr_tube('W_SideBar', [(sx, -0.12, 1.05), (sx, -0.95, 1.05), (sx, -0.95, TR_PAD)], 0.03, Y))
+        o.append(tr_tube('W_SideMid', [(sx, -0.12, 0.6), (sx, -0.95, 0.6)], 0.022, Y))
+    o += [tr_box('W_Motor', 0, -0.22, 2.95, 1.1, 0.4, 0.3, S), tr_box('W_MotorFace', 0, -0.43, 2.95, 0.9, 0.02, 0.18, D),
+          tr_box('W_Beacon', 0.45, -0.3, 3.15, 0.12, 0.12, 0.1, A),
+          tr_box('W_CallPlate', 1.15, -0.03, 1.15, 0.26, 0.04, 0.5, Y), tr_box('W_CallFace', 1.15, -0.055, 1.15, 0.18, 0.01, 0.38, D)]
+    for z, up in ((1.25, True), (1.05, False)):
+        s = 1 if up else -1
+        o.append(tr_tri('W_Arrow', [(1.15 - 0.06, -0.062, z - 0.04 * s), (1.15, -0.062, z + 0.05 * s), (1.15 + 0.06, -0.062, z - 0.04 * s)][::s], A))
+    return o
+
+
+def wall_stage1():
+    """1단계: 흰 세라믹 — 둥근 윗머리 벽판 · 빛 테 (강조색) · 흰 레일 · 반원 발판 + 빛 고리 · 홀로그램 판."""
+    W = kmat('M_InteriorEvoWhite', '#ECEFF3', 0.25); F = kmat('M_InteriorEvoFloor', '#9EA3AD', 0.4); A = kmat('M_Accent_Core', '#7FE8FF', emit='#7FE8FF')
+    o = [tr_box('W_Plate', 0, -0.02, 1.35, 1.5, 0.04, 2.7, W), tr_arc('W_PlateTop', 0, 2.7, 0.75, 0.06, W, 0, math.pi, y=-0.04)]
+    for sx in (-0.78, 0.78):
+        o += [tr_box('W_Glow', sx, -0.05, 1.35, 0.03, 0.02, 2.7, A), tr_box('W_Rail', sx * 0.82, -0.1, 1.45, 0.07, 0.08, 2.9, W)]
+    o += [tr_arc('W_GlowTop', 0, 2.7, 0.78, 0.015, A, 0, math.pi),
+          tr_halfdisk('W_Pad', 0.95, 0.0, TR_PAD, W), tr_halfdisk('W_PadIn', 0.7, TR_PAD - 0.004, TR_PAD + 0.006, F),
+          tr_arc('W_PadGlow', 0, 0, 0.74, 0.018, A, math.pi, 2 * math.pi, y=0)]
+    o[-1].data.transform(Matrix.Translation((0, TR_PAD + 0.008, 0)) @ Matrix.Rotation(math.pi / 2, 4, 'X'))
+    o.append(tr_box('W_Holo', 1.0, -0.06, 1.25, 0.32, 0.02, 0.24, A))
+    return o
+
+
+def wall_stage2():
+    """2단계: 미드나잇 · 금 — 금 테 벽판 · 별자리 · 반원 발판 + 금 테 · 위 혼천의 반쪽 + 별."""
+    M = kmat('M_InteriorEvo2Deck', '#171C3A'); G = kmat('M_InteriorEvo2Gold', '#D9AE4E', 0.25, 1.0); St = kmat('M_InteriorEvo2Star', '#DDF0FF', emit='#DDF0FF')
+    o = [tr_box('W_Plate', 0, -0.02, 1.45, 1.5, 0.04, 2.7, M), tr_arc('W_Arch', 0, 2.8, 0.75, 0.05, G, 0, math.pi)]
+    for sx in (-0.76, 0.76):
+        o.append(tr_box('W_Frame', sx, -0.05, 1.45, 0.05, 0.03, 2.7, G))
+    for (sx, sz) in ((-0.3, 2.3), (0.1, 2.5), (0.35, 2.1), (-0.15, 1.9), (0.25, 1.6)):
+        o.append(tr_star('W_Star', sx, -0.05, sz, 0.06, 0.022, 4, 0.01, St, upright_star=True))
+    o += [tr_halfdisk('W_Pad', 0.98, 0.0, TR_PAD, M), tr_arc('W_Rim', 0, 0, 0.92, 0.035, G, math.pi, 2 * math.pi, y=0)]
+    o[-1].data.transform(Matrix.Translation((0, TR_PAD, 0)) @ Matrix.Rotation(math.pi / 2, 4, 'X'))
+    for a in (0.0, 0.5):
+        o.append(tr_arc('W_Arm', 0, 3.05, 0.42, 0.02, G, a, math.pi - a, y=-0.1))
+    o.append(tr_star('W_TopStar', 0, -0.1, 3.55, 0.13, 0.05, 5, 0.04, St, upright_star=True))
+    return o
+
+
+def wall_stage3():
+    """3단계: 진주 · 금 · 수정 — 진주 아치 벽판 · 금 덩굴 테 + 잎 · 반원 연꽃 발판 · 위 수정."""
+    P = kmat('M_InteriorEvo3Pearl', '#F4EFE6', 0.3, 0.1); G = kmat('M_InteriorEvo3Gold', '#D9AE4E', 0.25, 1.0)
+    C = kmat('M_InteriorEvo3Prism', '#CFF4FF', 0.05, 0.0, emit='#BFEFFF', alpha=0.6); L = kmat('M_InteriorLeaf', '#4E9A4A', 0.5)
+    o = [tr_box('W_Plate', 0, -0.02, 1.35, 1.4, 0.04, 2.5, P), tr_arc('W_Arch', 0, 2.6, 0.7, 0.05, P, 0, math.pi, y=-0.04)]
+    for sx in (-1, 1):
+        pts = [(sx * (0.74 + 0.05 * math.sin(t * 0.9)), -0.07, 0.1 + t * 0.12) for t in range(22)]
+        o.append(tr_tube('W_Vine', pts, 0.03, G, 8))
+        for t in range(3, 21, 4):
+            p = Vector(pts[t])
+            o.append(tr_blade('W_Leaf', p, Vector((sx, -0.6, 0.5)), 0.22, 0.15, 0.04, 0.03, L, 0.012, 6))
+    o.append(tr_halfdisk('W_Pad', 0.85, 0.0, TR_PAD, P))
+    for k in range(7):
+        a = math.pi + math.pi * (k + 0.5) / 7
+        o.append(tr_blade('W_Petal', (0.62 * math.cos(a), 0.62 * math.sin(a), 0.07), (math.cos(a), math.sin(a), 0), 0.38, 0.32, 0.1, 0.14, P, 0.025))
+    o += [tr_gem('W_Crystal', 0, -0.2, 3.1, 0.18, 0.32, 0.3, C, 6), tr_arc('W_CrystalRing', 0, 0, 0.24, 0.015, G, 0, 2 * math.pi, y=0)]
+    o[-1].data.transform(Matrix.Translation((0, 3.05, -0.2)) @ Matrix.Rotation(math.pi / 2, 4, 'X'))
+    return o
+
+
+def wall_stage4():
+    """4단계: 성운 · 은 — 은 테 성운 벽판 · 별 · 반원 은 발판 + 성운 판 · 위 은 초승달 + 별."""
+    Sv = kmat('M_InteriorEvo4Trim', '#CDD3DE', 0.2, 1.0); N = kmat('M_InteriorEvo4Wall', '#2E2766', 0.35, 0.2); St = kmat('M_InteriorEvo2Star', '#DDF0FF', emit='#DDF0FF')
+    o = [tr_box('W_Plate', 0, -0.02, 1.45, 1.5, 0.04, 2.7, N), tr_box('W_FrameTop', 0, -0.05, 2.8, 1.58, 0.04, 0.06, Sv)]
+    for sx in (-0.76, 0.76):
+        o.append(tr_box('W_Frame', sx, -0.05, 1.45, 0.06, 0.04, 2.7, Sv))
+    for (sx, sz) in ((-0.35, 2.4), (0.3, 2.2), (0.0, 1.8), (-0.25, 1.4), (0.35, 1.2)):
+        o.append(tr_star('W_Star', sx, -0.05, sz, 0.07, 0.02, 4, 0.01, St, upright_star=True))
+    o += [tr_halfdisk('W_Pad', 0.96, 0.0, TR_PAD, Sv), tr_halfdisk('W_Neb', 0.74, TR_PAD - 0.004, TR_PAD + 0.008, N),
+          tr_arc('W_Crescent', 0, 3.05, 0.55, 0.04, Sv, 0.3, math.pi - 0.3, y=-0.1),
+          tr_star('W_TopStar', 0, -0.1, 3.3, 0.12, 0.035, 4, 0.03, St, upright_star=True)]
+    return o
+
+
+TRANSIT_WALLS = ((0, wall_basic), (1, wall_stage1), (2, wall_stage2), (3, wall_stage3), (4, wall_stage4))
+
+
+def wall_preview(out_dir):
+    """벽 장치 다섯 미리보기 (--wall-preview <폴더>)."""
+    for o in list(SC.collection.objects):
+        bpy.data.objects.remove(o, do_unlink=True)
+    xs = [0.0, 3.2, 6.4, 9.6, 12.8]
+    for (st, fn), x in zip(TRANSIT_WALLS, xs):
+        for ob in fn():
+            ob.data.transform(Matrix.Translation((x, 0, 0)) @ UP_SWAP)
+            solid(ob)
+    box('Wall', (17, 0.2, 3.6), kmat('PreviewWall', '#8C9096', 0.7), at=(6.4, 0.1, 1.8))
+    box('Floor', (17, 4.2, 0.1), kmat('PreviewFloor', '#6B6F76', 0.8), at=(6.4, -2, -0.05))
+    world = bpy.data.worlds.new('W'); SC.world = world; world.use_nodes = True
+    next(n for n in world.node_tree.nodes if n.type == 'BACKGROUND').inputs[0].default_value = (0.25, 0.27, 0.32, 1)
+    for (lx, ly, lz, e) in ((0, -6, 5, 700), (8, -6, 5, 700), (14, -5, 4, 500)):
+        ld = bpy.data.lights.new('L', 'AREA'); ld.energy = e; ld.size = 5
+        lo = bpy.data.objects.new('L', ld); SC.collection.objects.link(lo); lo.location = (lx, ly, lz)
+        lo.rotation_euler = (Vector((lx, 0, 1.4)) - Vector((lx, ly, lz))).to_track_quat('-Z', 'Y').to_euler()
+    try:
+        SC.render.engine = 'BLENDER_EEVEE_NEXT'
+    except TypeError:
+        try:
+            SC.render.engine = 'BLENDER_EEVEE'
+        except TypeError:
+            pass
+    cd = bpy.data.cameras.new('C'); cam = bpy.data.objects.new('C', cd); SC.collection.objects.link(cam); SC.camera = cam
+    SC.render.resolution_x, SC.render.resolution_y = 2000, 700
+    cd.lens = 30; eye = (6.4, -13.5, 2.6); cam.location = eye; cam.rotation_euler = (Vector((6.4, 0, 1.6)) - Vector(eye)).to_track_quat('-Z', 'Y').to_euler()
+    SC.render.filepath = os.path.join(out_dir, 'wallkit_all.png'); bpy.ops.render.render(write_still=True)
+    eye = (2.0, -6.5, 3.0); cam.location = eye; cam.rotation_euler = (Vector((3.2, 0, 1.2)) - Vector(eye)).to_track_quat('-Z', 'Y').to_euler()
+    SC.render.resolution_x, SC.render.resolution_y = 1400, 800
+    SC.render.filepath = os.path.join(out_dir, 'wallkit_side.png'); bpy.ops.render.render(write_still=True)
+    print('WALL PREVIEW DONE')
+
+
 def export_kit():
     out = []
     for st, fn in ((1, kit_tube_evo1), (2, kit_tube_evo2), (3, lambda: kit_bridge(3)), (4, lambda: kit_bridge(4))):
@@ -1577,6 +1727,8 @@ def export_kit():
             out.append(bake_kit('KIT_DoorSteps_Evo%d' % st, kit_door_steps(st)))
     for st, fn in TRANSITS:   # 위아래 이동 장치 (2026-11-19)
         out.append(bake_kit('KIT_Transit_Evo%d' % st, fn()))
+    for st, fn in TRANSIT_WALLS:   # 벽 위아래 이동 장치
+        out.append(bake_kit('KIT_TransitWall_Evo%d' % st, fn()))
     frame, leaf = kit_airlock()
     out.append(bake_kit('KIT_AirlockFrame', frame))
     out.append(bake_kit('KIT_AirlockLeaf', leaf))
@@ -1593,3 +1745,5 @@ if EXPORT_KIT:
     export_kit()
 if '--transit-preview' in argv:
     transit_preview(argv[argv.index('--transit-preview') + 1])
+if '--wall-preview' in argv:
+    wall_preview(argv[argv.index('--wall-preview') + 1])

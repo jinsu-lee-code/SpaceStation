@@ -33,9 +33,9 @@ namespace SpaceStation.Editor
                 var t = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
                 if (t == null || t.Module == null || t.Prefab == null)
                     continue;
-                if (TryFind(t, kit, out var spot, out float yaw, out float scale, out string why))
+                if (TryFind(t, kit, out var spot, out float yaw, out float scale, out bool wall, out string why))
                 {
-                    t.EditorSetTransitSpot(true, spot, yaw, scale);
+                    t.EditorSetTransitSpot(true, spot, yaw, scale, wall);
                     found++;
                     if (scale < 1f)
                         small++;
@@ -58,16 +58,25 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>제 크기로 찾고, 없으면 85%로 (붐비는 방).</summary>
-        public static bool TryFind(InteriorTemplate t, InteriorKit kit, out Vector3 local, out float yaw, out float scale, out string why)
+        public static bool TryFind(InteriorTemplate t, InteriorKit kit, out Vector3 local, out float yaw, out float scale, out bool wall, out string why)
         {
             scale = 1f;
+            wall = false;
             if (TryFind(t, kit, 1f, out local, out yaw, out why))
                 return true;
             string full = why;
             scale = SmallScale;
             if (TryFind(t, kit, SmallScale, out local, out yaw, out why))
                 return true;
-            why = full;
+            scale = 1f;
+            wall = true;   // 그래도 없으면 벽 장치
+            if (TryFindWall(t, kit, out local, out yaw, out string wallWhy))
+            {
+                why = wallWhy;
+                return true;
+            }
+            why = full + "/ 벽: " + wallWhy;
+            wall = false;
             return false;
         }
 
@@ -194,6 +203,151 @@ namespace SpaceStation.Editor
                     }
                     local = c.P - Away;
                     yaw = c.Yaw;
+                    why = c.Why;
+                    return true;
+                }
+                var sb = new System.Text.StringBuilder();
+                foreach (var kv in reasons)
+                    sb.Append($"{kv.Key} {kv.Value} ");
+                why = sb.ToString();
+                return false;
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>
+        /// 벽 장치 자리 (사용자 2026-11-19 "길을 막는다면 벽면에 배치하거나 하는 방식으로 우회설치"): 걸어 닿는 마디에서 네 방향 0.35 ~ 0.9 m 앞 벽 —
+        /// 벽이 1.7 m 폭 · 2.6 m 높이로 곧고 (창 · 문 틈 없음) · 발판 자리 (벽에서 1 m · 폭 1.3 m)가 평평한 한 가지 바닥이고 · 장치 몸 (높이 3.25, 단계 장치 3.7)에
+        /// 충돌체 · 장식이 없고 · 문 앞 길 · 주민 · 식물 · 위 물체가 없고 · 앞에 설 자리가 있고 · 발판을 막아도 걷는 곳이 끊기지 않는 곳. 피벗 = 벽 면 · 바닥, 보는 쪽 = 방 안.
+        /// </summary>
+        public static bool TryFindWall(InteriorTemplate t, InteriorKit kit, out Vector3 local, out float yaw, out string why)
+        {
+            local = Vector3.zero;
+            yaw = 0f;
+            float height = kit != null && kit.TransitStage(t.Module) > 0 ? 3.7f : 3.25f;
+            var root = Object.Instantiate(t.Prefab);
+            root.transform.SetPositionAndRotation(Away, Quaternion.identity);
+            Physics.SyncTransforms();
+            var reasons = new Dictionary<string, int>();
+            try
+            {
+                var graph = InteriorWalkGraph.ForTemplate(t, root.transform);
+                var decor = new InteriorSkyLiftSpots.DecorGrid(root.transform);
+                var spawn = Away + t.Spawn;
+                var candidates = new List<(float Score, Vector3 Pivot, Vector3 Stand, float Yaw, string Why)>();
+                var dirs = new[] { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
+                for (int k = 0; k < graph.Count; k++)
+                {
+                    if (!graph.Reached(k))
+                        continue;
+                    var p = graph[k];
+                    foreach (var d in dirs)
+                    {
+                        if (!Physics.Raycast(p + Vector3.up * 1.2f, d, out var wh, 0.9f, ~0, QueryTriggerInteraction.Ignore) || wh.distance < 0.35f || Vector3.Dot(wh.normal, -d) < 0.97f)
+                            continue;
+                        var pivot = p + d * wh.distance;
+                        var side = Vector3.Cross(Vector3.up, d);
+                        var stand = pivot - d * InteriorTransit.WallStand;
+                        float sd = Flat2(stand, spawn);
+                        if (sd < 2.0f || sd > 30f)
+                        {
+                            Count(reasons, "거리");
+                            continue;
+                        }
+                        // 벽이 곧음 (폭 ±0.85 · 높이 0.5 / 1.4 / 2.3 — 창 · 문 틈 · 기둥 없음)
+                        bool straight = true;
+                        foreach (float sx in new[] { -0.85f, 0f, 0.85f })
+                        {
+                            foreach (float h in new[] { 0.5f, 1.4f, 2.3f })
+                            {
+                                var from = pivot - d * 0.6f + side * sx + Vector3.up * h;
+                                if (!Physics.Raycast(from, d, out var hh, 1.0f, ~0, QueryTriggerInteraction.Ignore) || Mathf.Abs(hh.distance - 0.6f) > 0.15f)   // 벽판 테 · 걸레받이 깊이차 (≤ 15 cm)는 됨, 창 · 문 틈은 광선이 지나감
+                                    straight = false;
+                            }
+                        }
+                        if (!straight)
+                        {
+                            Count(reasons, "벽굽음");
+                            continue;
+                        }
+                        string blocked = Blocked(t, stand, 0.75f);
+                        if (blocked != null)
+                        {
+                            Count(reasons, blocked);
+                            continue;
+                        }
+                        // 발판 바닥 (벽에서 0.15 ~ 0.95 · 폭 ±0.65): 평평 · 한 가지 바닥 · 얹힌 조각 없음
+                        Material under = null;
+                        bool flat = true;
+                        foreach (float dz in new[] { 0.15f, 0.55f, 0.95f })
+                        {
+                            foreach (float sx in new[] { -0.65f, 0f, 0.65f })
+                            {
+                                var q = pivot - d * dz + side * sx;
+                                if (!Physics.Raycast(q + Vector3.up * 0.5f, Vector3.down, out var fh, 1.0f, ~0, QueryTriggerInteraction.Ignore) || fh.normal.y < 0.95f || Mathf.Abs(fh.point.y - p.y) > 0.06f)
+                                {
+                                    flat = false;
+                                    continue;
+                                }
+                                var m = MaterialAt(fh);
+                                if (under == null)
+                                    under = m;
+                                else if (m != under)
+                                    flat = false;
+                            }
+                        }
+                        if (!flat || !SameFloor(stand, 0.55f, decor, out _))
+                        {
+                            Count(reasons, "바닥");
+                            continue;
+                        }
+                        // 장치 몸 (벽에서 0.07 ~ 1.05 · 폭 ±0.9 · 0.2 ~ 높이) 충돌체 · 장식
+                        var rot = Quaternion.LookRotation(d);
+                        var bodyCenter = pivot - d * 0.56f + Vector3.up * (0.2f + (height - 0.2f) * 0.5f);
+                        if (Physics.CheckBox(bodyCenter, new Vector3(0.9f, (height - 0.2f) * 0.5f, 0.49f), rot, ~0, QueryTriggerInteraction.Ignore))
+                        {
+                            Count(reasons, "막힘");
+                            continue;
+                        }
+                        if (decor.Any(stand, 0.6f, p.y + 0.06f, p.y + height) || decor.Any(stand + side * 0.5f, 0.45f, p.y + 0.06f, p.y + height) || decor.Any(stand - side * 0.5f, 0.45f, p.y + 0.06f, p.y + height))
+                        {
+                            Count(reasons, "장식");
+                            continue;
+                        }
+                        if (!OverheadClear(stand, 0.7f, decor))
+                        {
+                            Count(reasons, "위물체");
+                            continue;
+                        }
+                        // 앞에 설 자리 (발판 앞 — 벽에서 1.6 m)
+                        var front = pivot - d * 1.6f;
+                        if (!Physics.Raycast(front + Vector3.up * 0.5f, Vector3.down, out var sh, 1.0f, ~0, QueryTriggerInteraction.Ignore) || Mathf.Abs(sh.point.y - p.y) > 0.3f
+                            || Physics.CheckCapsule(front + Vector3.up * 0.65f, front + Vector3.up * 1.6f, 0.3f, ~0, QueryTriggerInteraction.Ignore))
+                        {
+                            Count(reasons, "앞자리");
+                            continue;
+                        }
+                        float level = Mathf.Abs(p.y - spawn.y) > 0.6f ? 6f : 0f;
+                        float score = level + Mathf.Abs(sd - 5f) * 0.6f;
+                        candidates.Add((score, pivot, stand, rot.eulerAngles.y, $"벽 · 들어오는 자리 {sd:0.0} m" + (level > 0f ? " · 다른 층" : "")));
+                    }
+                }
+                candidates.Sort((a, b) => a.Score.CompareTo(b.Score));
+                int tried = 0;
+                foreach (var c in candidates)
+                {
+                    if (++tried > 400)
+                        break;
+                    if (graph.LostWithout(c.Stand, 0.95f) > 0)
+                    {
+                        Count(reasons, "길끊음");
+                        continue;
+                    }
+                    local = c.Pivot - Away;
+                    yaw = Mathf.Repeat(c.Yaw, 360f);
                     why = c.Why;
                     return true;
                 }
