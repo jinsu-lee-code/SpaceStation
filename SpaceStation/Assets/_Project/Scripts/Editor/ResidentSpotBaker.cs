@@ -627,9 +627,7 @@ namespace SpaceStation.Editor
                 (new Vector3(15.586f, -2.045f, 4.895f), 135.0f, ResidentPose.Stand, false),
                 (new Vector3(15.886f, -2.045f, 2.886f), 45.0f, ResidentPose.Stand, false),
                 (new Vector3(18.714f, -2.045f, 2.586f), 315.0f, ResidentPose.Stand, false),
-                (new Vector3(21.0f, -2.08f, -0.5f), 90.0f, ResidentPose.Stand, false),
-                (new Vector3(20.08f, -2.08f, -1.6f), 60.0f, ResidentPose.Stand, false),
-                (new Vector3(21.761f, -2.08f, 0.2f), 120.0f, ResidentPose.Stand, false),
+                (new Vector3(21.0f, -2.08f, 0.1f), 90.0f, ResidentPose.Stand, false),   // 둥지 구석 다시 짬 (모든 면 연결 2026-11-19 — 온실 · 탑 옮김, 20.08 · 21.761 자리 뺌)
                 (new Vector3(26.2f, -2.08f, 3.2f), 200.0f, ResidentPose.Stand, false),
                 (new Vector3(20.54f, -2.08f, 0.25f), 0.0f, ResidentPose.Stand, false),
             })

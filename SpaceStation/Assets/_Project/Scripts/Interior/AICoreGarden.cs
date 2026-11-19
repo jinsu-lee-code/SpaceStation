@@ -39,7 +39,6 @@ namespace SpaceStation.Interior
             new GardenPlant("LiriopeSmall_Mesh", 20.325f, -2.08f, -3.53f, 80f, 0.55f, 0.55f, 0.55f),
             new GardenPlant("JapaneseSpurgeSmall_Mesh", 19.13f, -2.08f, -1.47f, 10f, 0.6f, 0.6f, 0.6f),
             new GardenPlant("LiriopeSmall_Mesh", 20.18f, -2.08f, -0.47f, 220f, 0.5f, 0.5f, 0.5f),
-            new GardenPlant("JapaneseSpurgeSmall_Mesh", 27.587f, -2.08f, -2.165f, 120f, 0.6f, 0.6f, 0.6f),
             new GardenPlant("WisteriaVineWallBloom_Mesh", 1.593f, -0.052f, 2.594f, -48.1f, 0.646f, 0.646f, 0.272f),
             new GardenPlant("WisteriaVineWallBloom_Mesh", 5.092f, -0.078f, 0.074f, 38.1f, 0.694f, 0.694f, 0.291f),
             new GardenPlant("WisteriaVineWallBloom_Mesh", 6.261f, -0.064f, -0.233f, -175f, 0.58f, 0.58f, 0.244f),
