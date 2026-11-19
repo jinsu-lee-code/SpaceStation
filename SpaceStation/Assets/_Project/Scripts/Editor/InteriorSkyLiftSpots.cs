@@ -249,20 +249,38 @@ namespace SpaceStation.Editor
         public const float RingDepth = 3.8f;
         /// <summary>판에서 고리까지 최소 높이 (떠오르는 맛 — 이보다 낮은 마루 위는 고르지 않음).</summary>
         public const float MinRise = 2.6f;
-        /// <summary>천장 해치 (기둥을 못 세우는 지붕 밑): 바닥에서 천장까지 (눈 1.6 + 해치 광선이 닿는 높이 — 의료동 · 청사 천장 3.85 · 감시탑 전망실 2.13).</summary>
-        public const float CeilingMin = 2.0f, CeilingMax = 4.0f;
+        /// <summary>
+        /// 천장 해치 (기둥을 못 세우는 지붕 밑): 바닥에서 천장까지 (눈 1.6 + 해치 광선 4 m가 비스듬히 닿는 높이 — 의료동 · 청사 천장 3.85 · 감시탑 전망실 2.13 ·
+        /// 1단계 공방 · 중력 거주구 4.0, 모든 면 연결 ③ 2026-11-19에 4.0 → 4.6).
+        /// </summary>
+        public const float CeilingMin = 2.0f, CeilingMax = 4.6f;
+        /// <summary>천장 해치 가운데를 서는 자리에서 비키는 양 (걸음 격자 0.25 m 사이 · 칸 가장자리 띠까지).</summary>
+        private static readonly Vector2[] HatchShifts =
+        {
+            Vector2.zero, new Vector2(0.25f, 0f), new Vector2(-0.25f, 0f), new Vector2(0f, 0.25f), new Vector2(0f, -0.25f),
+            new Vector2(0.25f, 0.25f), new Vector2(-0.25f, 0.25f), new Vector2(0.25f, -0.25f), new Vector2(-0.25f, -0.25f),
+        };
+        /// <summary>천장 해치 틀 배율: 보통 → 작은 해치 (천장이 휘거나 좁은 복도 · 탑 꼭대기 방 — 중력 거주구 둥근 복도 · 대형 토러스 바큇살).</summary>
+        private static readonly float[] HatchScales = { 1f, 0.65f };
+        /// <summary>천장 밑 고리 (닫힌 방 · 유리 돔 밑 승강판): 고리 둘레 (반지름 1.1)에서 가장 낮은 천장보다 이만큼 아래.</summary>
+        private const float RingGap = 0.25f;
         private const float EdgeMargin = 0.9f;
         /// <summary>
         /// 거리 규칙 (문 자리 · 아래 해치 · 주민 자리에서 판까지): 엄하게 → 느슨하게. Frame = 해치 틀 네모 가장자리에서 판 테까지 (가운데 거리만 보면 틀 옆면 쪽으로
         /// 판이 틀에 걸쳤음 — 정련 콤비나트 · 식량 공장 · 융합 플랜트 · 궤도 방어망 · 방사선 장벽, 2026-11-18 플레이).
+        /// 셋째 줄 = 천장 · 바닥 해치와 마지막 승강판 찾기만 (머리 위 · 발밑 해치는 길을 막지 않음 — 닫힌 방 · 붐비는 갑판, 모든 면 연결 ③ 2026-11-19): 문 · 해치 1 m, 틀 겹침만 피함, 주민 0.2 m, 풀 0.8 m.
         /// </summary>
-        private static readonly (float Door, float Hatch, float Frame, float Resident)[] Rules = { (1.8f, 1.6f, 0.25f, 0.6f), (1.5f, 1.4f, 0.1f, 0.25f) };
+        private static readonly (float Door, float Hatch, float Frame, float Resident)[] Rules = { (1.8f, 1.6f, 0.25f, 0.6f), (1.5f, 1.4f, 0.1f, 0.25f), (1.0f, 1.0f, 0f, 0.2f) };
         /// <summary>
         /// 승강판만 (천장 해치 · 모델 착지 원판 말고): 판 테에서 몸 높이 (0.3 · 1.0 · 1.8 m) 물체까지 · 옆으로 지나갈 폭 (허리 높이 마주 보는 두 면 사이) · 문까지 —
         /// 엄하게 → 느슨하게 → 마지막 (판이 벽에 겹치지만 않게 — 그 칸에 다른 자리가 없을 때, 기록에 "좁은 자리"). 전체 검토 (사용자 2026-11-18 "추천대로 같이 고쳐줘")에서
         /// 판 테 3 ~ 10 cm에 수레 · 안내판 · 벽, 폭 1.6 ~ 2.3 m 골목 · 옆 통로를 판이 막고, 문 1.6 m 앞에 판이 있었음.
+        /// 넷째 = 셋째와 같고 거리 규칙만 <see cref="Rules"/> 셋째 줄 (붐비는 갑판 — 궤도 미러 · 화물 환적소, 모든 면 연결 ③ 2026-11-19 · 앞 세 줄로 찾던 자리는 그대로).
         /// </summary>
-        private static readonly (float Gap, float Width, float Door)[] LiftRules = { (0.25f, 2.8f, 2.4f), (0.2f, 2.4f, 1.9f), (0f, 0f, 0f) };
+        private static readonly (float Gap, float Width, float Door)[] LiftRules = { (0.25f, 2.8f, 2.4f), (0.2f, 2.4f, 1.9f), (0f, 0f, 0f), (0f, 0f, 0f) };
+
+        /// <summary>승강판 규칙 줄 → <see cref="Rules"/> 줄 (앞 세 줄 = 예전처럼 둘째까지).</summary>
+        private static int LiftBlockRule(int rule) => rule < 3 ? Mathf.Min(rule, 1) : 2;
         /// <summary>바닥 해치 틀 반 변 (키트 KIT_HatchFrame 1.9 m).</summary>
         public const float HatchFrameHalf = 0.95f;
         private const float PadGap = 1.0f;
@@ -308,9 +326,15 @@ namespace SpaceStation.Editor
             foreach (var guid in AssetDatabase.FindAssets("t:InteriorTemplate", new[] { "Assets/_Project/Data/Interior" }))
             {
                 var t = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
-                if (!IsOpenSky(t, kit))
+                if (t == null || t.Module == null || t.Prefab == null || kit == null)
                     continue;
-                Place(t, log, ref lifts, ref hatches, ref missing);
+                if (IsOpenSky(t, kit) || AllFaces(t.Module, kit))   // 닫힌 방 (1 · 2단계 · 기본) = 천장 해치 · 바닥 해치만
+                    Place(t, kit, log, ref lifts, ref hatches, ref missing);
+                if (ResidentsOnWays(t))
+                {
+                    ResidentSpotBaker.BakeOne(t);
+                    log.AppendLine($"{t.name}: 주민 자리 다시 구움 (해치 · 판을 비킴)");
+                }
             }
             AssetDatabase.SaveAssets();
             string text = $"[InteriorSkyLiftSpots] 승강판 {lifts}곳 · 천장 해치 {hatches}곳" + (missing > 0 ? $" · 자리 못 찾음 {missing}곳" : "") + $"\n{log}";
@@ -334,13 +358,29 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>외형 위 연결점 칸 (위 칸이 모듈 밖 · 면 깊이 있음 · 막히지 않은 면).</summary>
-        public static List<Vector3Int> UpFaces(ModuleData module)
+        public static List<Vector3Int> UpFaces(ModuleData module) => Faces(module, Vector3Int.up, false);
+
+        /// <summary>
+        /// 위 · 아래로 가는 길을 낼 칸: 1 · 2단계 · 기본 방 = 모든 윗면 · 아랫면 (모든 면 연결 ③, 사용자 2026-11-19 "1, 2단계 모듈 전부 칸별 연결, 상하연결이 완료될때까지"),
+        /// 3단계 이상 = 외형 위 연결점이 있는 윗면만 (3단계는 나중에 모아서) · 아랫면은 빌더가 정함.
+        /// </summary>
+        public static List<Vector3Int> UpFaces(ModuleData module, InteriorKit kit) => Faces(module, Vector3Int.up, AllFaces(module, kit));
+
+        public static List<Vector3Int> DownFaces(ModuleData module, InteriorKit kit) => AllFaces(module, kit) ? Faces(module, Vector3Int.down, true) : new List<Vector3Int>();
+
+        /// <summary>1 · 2단계 · 기본 방 (모든 윗면 · 아랫면을 잇는 방).</summary>
+        public static bool AllFaces(ModuleData module, InteriorKit kit) => module != null && kit != null && kit.StageNumber(module) < 3;
+
+        private static List<Vector3Int> Faces(ModuleData module, Vector3Int dir, bool all)
         {
+            // 태양을 따라 도는 패널이 있는 모듈 (태양광 · 1단계 태양광) = 윗면 연결점 없음 (ConnectorDepthBaker와 같음 — 위 모듈 · 통로가 패널을 뚫지 않게)
+            if (dir == Vector3Int.up && module.Prefab != null && module.Prefab.GetComponentInChildren<SpaceStation.Building.SunFacingPanel>(true) != null)
+                return new List<Vector3Int>();
             var cells = new HashSet<Vector3Int>(module.CellOffsets);
             var list = new List<Vector3Int>();
             foreach (var c in module.CellOffsets)
             {
-                if (!cells.Contains(c + Vector3Int.up) && module.TryGetFaceDepth(c, Vector3Int.up, out _) && !module.IsClosedFace(c, Vector3Int.up))
+                if (!cells.Contains(c + dir) && (all || module.TryGetFaceDepth(c, dir, out _)) && !module.IsClosedFace(c, dir))
                     list.Add(c);
             }
             return list;
@@ -465,9 +505,10 @@ namespace SpaceStation.Editor
             }
         }
 
-        private static void Place(InteriorTemplate t, System.Text.StringBuilder log, ref int lifts, ref int hatches, ref int missing)
+        private static void Place(InteriorTemplate t, InteriorKit kit, System.Text.StringBuilder log, ref int lifts, ref int hatches, ref int missing)
         {
-            bool keep = System.Array.IndexOf(KeepHatch, t.name) >= 0;
+            bool openSky = IsOpenSky(t, kit);
+            bool keep = !openSky || System.Array.IndexOf(KeepHatch, t.name) >= 0;   // 닫힌 방 = 있던 위 해치 그대로 (승강판으로 바꾸지 않음)
             var root = Object.Instantiate(t.Prefab);
             root.transform.SetPositionAndRotation(Away, Quaternion.identity);
             Physics.SyncTransforms();
@@ -504,13 +545,17 @@ namespace SpaceStation.Editor
                     sockets.Add(s);
                 }
                 var covered = new HashSet<Vector3Int>();
+                var coveredDown = new HashSet<Vector3Int>();
                 foreach (var s in sockets)
                 {
                     if (s.Direction == Vector3Int.up)
                         covered.Add(s.Cell);
+                    if (s.Direction == Vector3Int.down)
+                        coveredDown.Add(s.Cell);
                 }
-                var faces = UpFaces(t.Module).FindAll(c => !covered.Contains(c));
-                if (faces.Count == 0)
+                var faces = UpFaces(t.Module, kit).FindAll(c => !covered.Contains(c));
+                var downs = DownFaces(t.Module, kit).FindAll(c => !coveredDown.Contains(c));
+                if (faces.Count == 0 && downs.Count == 0)
                 {
                     if (changed)
                     {
@@ -522,6 +567,7 @@ namespace SpaceStation.Editor
                 var graph = InteriorWalkGraph.ForTemplate(t, root.transform);
                 var decor = new DecorGrid(root.transform);
                 var pads = new List<Vector3>();
+                bool liftKit = kit.SkyLiftPadFor(t.Module) != null;
                 foreach (var s in sockets)
                 {
                     if (s.DoorLift)   // 2층 높이 옆문 승강판 (자동 문이 정함 — 그대로 두고 위 승강판이 비킴)
@@ -544,24 +590,56 @@ namespace SpaceStation.Editor
                     if (exact.Contains(cell) && !atModel)
                         Debug.LogWarning($"[InteriorSkyLiftSpots] {t.name} {cell}: 모델 착지 자리 ({target.x:F2}, {target.y:F2})에 판을 못 놓음 — 다른 곳을 찾음 (원판과 어긋남)");
                     int usedRule = 0;
-                    if (atModel || TryFindLift(t, graph, decor, cell, target, pads, why, out pad, out usedRule))
+                    float ringDepth = RingDepth;
+                    // 닫힌 방 (1 · 2단계 · 기본): 천장 해치 먼저, 천장이 높거나 기운 칸만 빛 기둥 승강판 (고리까지 떠오른 뒤 어두워지며 위 방으로 — 천장을 지나는 모습은 안 보임).
+                    // 승강판 = 하늘 고리 (3.8) 먼저, 기둥이 막히면 천장 · 유리 돔 밑 고리 (닫힌 방 · 아콜로지 돔) — 단계 승강판 조각이 있는 방만 (기본 · 1단계는 해치만)
+                    if (!openSky && TryFindCeilingHatch(t, graph, decor, cell, target, pads, out var closedHatch, out var closedUnder, out float closedScale, why))
+                    {
+                        pads.Add(closedUnder);
+                        sockets.Add(new InteriorSocket(cell, Vector3Int.up, closedHatch.y - center.y, new Vector3(closedHatch.x - center.x, 0f, closedHatch.z - center.z), hatchScale: closedScale < 0.99f ? closedScale : 0f));
+                        hatches++;
+                        log.Append($" {cell}→천장 해치 ({closedHatch.x - center.x:F2}, {closedHatch.y - center.y:F2}, {closedHatch.z - center.z:F2})" + (closedScale < 0.99f ? $" ×{closedScale}" : ""));
+                    }
+                    else if (atModel || (liftKit && (TryFindLift(t, graph, decor, cell, target, pads, why, false, out pad, out usedRule, out ringDepth)
+                        || TryFindLift(t, graph, decor, cell, target, pads, why, true, out pad, out usedRule, out ringDepth))))
                     {
                         pads.Add(pad);
-                        sockets.Add(new InteriorSocket(cell, Vector3Int.up, RingDepth, pad - center, skyLift: true));
+                        sockets.Add(new InteriorSocket(cell, Vector3Int.up, ringDepth, pad - center, skyLift: true));
                         lifts++;
-                        log.Append($" {cell}→판 ({pad.x - center.x:F2}, {pad.y - center.y:F2}, {pad.z - center.z:F2})" + (usedRule == LiftRules.Length - 1 ? " [좁은 자리]" : ""));
+                        log.Append($" {cell}→판 ({pad.x - center.x:F2}, {pad.y - center.y:F2}, {pad.z - center.z:F2})" + (usedRule >= 2 ? " [좁은 자리]" : "")
+                            + (ringDepth < RingDepth - 0.01f ? $" 천장 밑 고리 {ringDepth:F2}" : ""));
                     }
-                    else if (TryFindCeilingHatch(t, graph, decor, cell, target, pads, out var hatch, out var under))
+                    else if (TryFindCeilingHatch(t, graph, decor, cell, target, pads, out var hatch, out var under, out float scale, why))
                     {
                         pads.Add(under);
-                        sockets.Add(new InteriorSocket(cell, Vector3Int.up, hatch.y - center.y, new Vector3(hatch.x - center.x, 0f, hatch.z - center.z)));
+                        sockets.Add(new InteriorSocket(cell, Vector3Int.up, hatch.y - center.y, new Vector3(hatch.x - center.x, 0f, hatch.z - center.z), hatchScale: scale < 0.99f ? scale : 0f));
                         hatches++;
-                        log.Append($" {cell}→천장 해치 ({hatch.x - center.x:F2}, {hatch.y - center.y:F2}, {hatch.z - center.z:F2})");
+                        log.Append($" {cell}→천장 해치 ({hatch.x - center.x:F2}, {hatch.y - center.y:F2}, {hatch.z - center.z:F2})" + (scale < 0.99f ? $" ×{scale}" : ""));
                     }
                     else
                     {
                         missing++;
                         log.Append($" {cell}→없음 [");
+                        foreach (var kv in why)
+                            log.Append($"{kv.Key} {kv.Value} ");
+                        log.Append(']');
+                    }
+                }
+                foreach (var cell in downs)
+                {
+                    var center = Away + (Vector3)cell * InteriorGeometry.CellSize;
+                    var why = new Dictionary<string, int>();
+                    if (TryFindFloorHatch(t, graph, decor, cell, pads, out var floor, out float scale, why))
+                    {
+                        pads.Add(floor);
+                        sockets.Add(new InteriorSocket(cell, Vector3Int.down, center.y - floor.y, new Vector3(floor.x - center.x, 0f, floor.z - center.z), hatchScale: scale < 0.99f ? scale : 0f));
+                        hatches++;
+                        log.Append($" {cell}→바닥 해치 ({floor.x - center.x:F2}, {floor.y - center.y:F2}, {floor.z - center.z:F2})" + (scale < 0.99f ? $" ×{scale}" : ""));
+                    }
+                    else
+                    {
+                        missing++;
+                        log.Append($" {cell}→아래 없음 [");
                         foreach (var kv in why)
                             log.Append($"{kv.Key} {kv.Value} ");
                         log.Append(']');
@@ -595,7 +673,22 @@ namespace SpaceStation.Editor
         /// <summary>칸 안의 걸어서 닿는 마디 (가장자리 0.9 m 안쪽).</summary>
         private static IEnumerable<int> CellNodes(InteriorWalkGraph graph, Vector3 center)
         {
-            float reach = InteriorGeometry.CellSize * 0.5f - EdgeMargin;
+            int found = 0;
+            foreach (int k in CellNodes(graph, center, InteriorGeometry.CellSize * 0.5f - EdgeMargin))
+            {
+                found++;
+                yield return k;
+            }
+            // 가장자리 안쪽에 없으면 (대형 토러스 모서리 칸 — 바퀴가 칸 귀퉁이만 지남, 모든 면 연결 ③) 칸 끝 0.3 m까지
+            if (found == 0)
+            {
+                foreach (int k in CellNodes(graph, center, InteriorGeometry.CellSize * 0.5f - 0.3f))
+                    yield return k;
+            }
+        }
+
+        private static IEnumerable<int> CellNodes(InteriorWalkGraph graph, Vector3 center, float reach)
+        {
             for (float x = -reach; x <= reach + 0.001f; x += InteriorWalkGraph.Step)
             {
                 for (float z = -reach; z <= reach + 0.001f; z += InteriorWalkGraph.Step)
@@ -609,10 +702,16 @@ namespace SpaceStation.Editor
             }
         }
 
-        private static bool TryFindLift(InteriorTemplate t, InteriorWalkGraph graph, DecorGrid decor, Vector3Int cell, Vector2 target, List<Vector3> pads, Dictionary<string, int> why, out Vector3 pad, out int usedRule)
+        /// <summary>
+        /// 빛 기둥 승강판 자리. underCeiling = 기둥이 천장 · 유리 돔에 막히는 칸 (닫힌 방 · 아콜로지 돔): 고리를 판 위 가장 낮은 천장 밑 (<see cref="RingGap"/>)에 —
+        /// 떠오를 높이 (<see cref="MinRise"/>)가 되는 자리만. ringDepth = 칸 중심 → 고리.
+        /// </summary>
+        private static bool TryFindLift(InteriorTemplate t, InteriorWalkGraph graph, DecorGrid decor, Vector3Int cell, Vector2 target, List<Vector3> pads, Dictionary<string, int> why,
+            bool underCeiling, out Vector3 pad, out int usedRule, out float ringDepth)
         {
             pad = default;
             usedRule = -1;
+            ringDepth = RingDepth;
             var center = Away + (Vector3)cell * InteriorGeometry.CellSize;
             float ringY = center.y + RingDepth;
             // 거리 규칙을 엄하게 먼저, 없으면 느슨하게 (언덕 · 붐비는 칸 — 심우주 통신기지), 마지막 = 판이 벽에 겹치지만 않게 (좁은 자리 — 기록에 표시)
@@ -627,7 +726,7 @@ namespace SpaceStation.Editor
                         Count(why, "낮음");
                         continue;
                     }
-                    string blocked = Blocked(t, p, pads, Mathf.Min(rule, Rules.Length - 1));
+                    string blocked = Blocked(t, p, pads, LiftBlockRule(rule));
                     if (blocked != null)
                     {
                         Count(why, blocked);
@@ -649,12 +748,36 @@ namespace SpaceStation.Editor
                             continue;
                         }
                         var q = new Vector3(p.x, top, p.z);
-                        if (!ColumnClear(q, ringY, radius))
+                        float ring = ringY;
+                        if (underCeiling)
+                        {
+                            if (!CeilingOver(q, ringY, out float ceiling))
+                                continue;   // 천장 없음 = 하늘 고리 찾기에서 이미 봄
+                            ring = ceiling - RingGap;
+                            if (ring - q.y < MinRise)
+                            {
+                                Count(why, "천장 밑 낮음");
+                                continue;
+                            }
+                            // 맨 위층만 (아콜로지 — 아래층 천장 밑 고리에서 꼭대기 위 방으로 가면 어색함)
+                            bool topmost = true;
+                            foreach (int m in graph.Column(q.x, q.z))
+                            {
+                                if (graph.Reached(m) && graph[m].y > ring)
+                                    topmost = false;
+                            }
+                            if (!topmost)
+                            {
+                                Count(why, "위층 있음");
+                                continue;
+                            }
+                        }
+                        if (!ColumnClear(q, ring, radius))
                         {
                             Count(why, $"기둥{radius}X");
                             continue;
                         }
-                        if (!decor.Clear(q, ringY))
+                        if (!decor.Clear(q, ring))
                         {
                             Count(why, "장식X");
                             continue;
@@ -674,6 +797,7 @@ namespace SpaceStation.Editor
                         {
                             best = s;
                             pad = q;
+                            ringDepth = underCeiling ? Mathf.Round((ring - center.y) * 100f) / 100f : RingDepth;   // 먼 자리 (Away) 좌표라 빼면 3.7998 — 하늘 고리는 그대로
                         }
                     }
                     if (best < float.MaxValue)
@@ -684,6 +808,20 @@ namespace SpaceStation.Editor
                 }
             }
             return false;
+        }
+
+        /// <summary>판 위 (고리 둘레 반지름 1.1 · 9곳) 가장 낮은 천장 · 돔 (maxY + 0.3까지) — 없으면 false.</summary>
+        private static bool CeilingOver(Vector3 pad, float maxY, out float ceiling)
+        {
+            ceiling = float.MaxValue;
+            for (int a = 0; a < 9; a++)
+            {
+                var d = a == 0 ? Vector3.zero : Quaternion.Euler(0f, a * 45f, 0f) * Vector3.forward * 1.1f;
+                var from = pad + d + Vector3.up * 0.3f;
+                if (Physics.Raycast(from, Vector3.up, out var hit, maxY + 0.3f - from.y, ~0, QueryTriggerInteraction.Ignore))
+                    ceiling = Mathf.Min(ceiling, hit.point.y);
+            }
+            return ceiling < float.MaxValue;
         }
 
         /// <summary>
@@ -711,7 +849,7 @@ namespace SpaceStation.Editor
             if (near < 0)
                 return false;
             p.y = graph[near].y;
-            if (Blocked(t, p, pads, Rules.Length - 1) != null || !PadSurface(p, out float top, out _))
+            if (Blocked(t, p, pads, 1) != null || !PadSurface(p, out float top, out _))
                 return false;
             var at = new Vector3(p.x, top, p.z);
             if (!ColumnClear(at, ringY, ColumnRadii[ColumnRadii.Length - 1]) || !decor.Clear(at, ringY))
@@ -725,52 +863,177 @@ namespace SpaceStation.Editor
         /// 틀 (1.9 m 네모) 네 모서리 · 변 가운데까지 같은 높이 (체크리스트 155), 틀이 칸 안, 천장에 붙은 등 · 빛 고리 · 장식 (충돌체 없는 정점)이 틀 자리에 없음,
         /// 그 위로 같은 기둥에 걸어서 닿는 마디가 없음 (맨 위 천장 — 2층 바닥 밑이 아님). 돌려주는 점 = 천장 면.
         /// </summary>
-        private static bool TryFindCeilingHatch(InteriorTemplate t, InteriorWalkGraph graph, DecorGrid decor, Vector3Int cell, Vector2 target, List<Vector3> pads, out Vector3 hatch, out Vector3 under)
+        private static bool TryFindCeilingHatch(InteriorTemplate t, InteriorWalkGraph graph, DecorGrid decor, Vector3Int cell, Vector2 target, List<Vector3> pads, out Vector3 hatch, out Vector3 under,
+            out float scale, Dictionary<string, int> why = null)
         {
             hatch = default;
             under = default;
+            scale = 1f;
             var center = Away + (Vector3)cell * InteriorGeometry.CellSize;
             float half = InteriorGeometry.CellSize * 0.5f;
-            const float Frame = 0.95f;
             float best = float.MaxValue;
-            // 거리 규칙: 엄하게 먼저, 없으면 느슨하게 (머리 위 해치는 문 앞 길을 막지 않음 — 시민 회관 의료동 복도)
-            for (int rule = 0; rule < Rules.Length && best == float.MaxValue; rule++)
+            // 보통 틀 먼저, 없으면 작은 틀 (휜 천장 · 좁은 복도). 거리 규칙: 엄하게 먼저, 없으면 느슨하게 (머리 위 해치는 문 앞 길을 막지 않음 — 시민 회관 의료동 복도)
+            foreach (float size in HatchScales)
             {
-                foreach (int k in CellNodes(graph, center))
+                float frame = HatchFrameHalf * size;
+                for (int rule = 0; rule < Rules.Length && best == float.MaxValue; rule++)
                 {
-                    var p = graph[k];
-                    float score = new Vector2(p.x - center.x - target.x, p.z - center.z - target.y).magnitude;
-                    if (score >= best || Mathf.Abs(p.x - center.x) > half - Frame - 0.05f || Mathf.Abs(p.z - center.z) > half - Frame - 0.05f)
-                        continue;
-                    if (Blocked(t, p, pads, rule) != null || !Flat(p))
-                        continue;
-                    if (!Physics.Raycast(p + Vector3.up * 0.3f, Vector3.up, out var hit, CeilingMax, ~0, QueryTriggerInteraction.Ignore))
-                        continue;
-                    float y = hit.point.y;
-                    if (y - p.y < CeilingMin || y - p.y > CeilingMax || hit.normal.y > -0.95f || y > center.y + half - 0.05f || y < center.y - half)
-                        continue;
-                    bool flat = true;
-                    for (int a = 0; a < 9 && flat; a++)
+                    foreach (int k in CellNodes(graph, center))
+                    foreach (var shift in HatchShifts)
                     {
-                        if (a == 4)
+                        var p = graph[k];
+                        // 해치 가운데 = 서는 자리 + shift (0.25 m까지 — 칸 가장자리 · 돔 옆 평평한 천장 띠에 맞춤, 농장)
+                        var c = new Vector3(p.x + shift.x, p.y, p.z + shift.y);
+                        float score = new Vector2(c.x - center.x - target.x, c.z - center.z - target.y).magnitude + shift.magnitude * 0.5f;
+                        if (score >= best || Mathf.Abs(c.x - center.x) > half - frame - 0.05f || Mathf.Abs(c.z - center.z) > half - frame - 0.05f)
                             continue;
-                        var q = new Vector3(p.x + (a % 3 - 1) * (Frame - 0.02f), p.y + 0.3f, p.z + (a / 3 - 1) * (Frame - 0.02f));
-                        flat = Physics.Raycast(q, Vector3.up, out var h2, CeilingMax + 0.2f, ~0, QueryTriggerInteraction.Ignore) && Mathf.Abs(h2.point.y - y) < 0.04f && h2.normal.y < -0.95f;
+                        if (Blocked(t, c, pads, rule, forHatch: true) is string b)
+                        {
+                            if (why != null) Count(why, "해치 " + b);
+                            continue;
+                        }
+                        if (rule < 2 ? !Flat(p) : !Standable(p))
+                        {
+                            if (why != null) Count(why, "해치 바닥X");
+                            continue;
+                        }
+                        if (!Physics.Raycast(c + Vector3.up * 0.3f, Vector3.up, out var hit, CeilingMax + 0.1f, ~0, QueryTriggerInteraction.Ignore))
+                        {
+                            if (why != null) Count(why, "천장 높이 안 없음");
+                            continue;
+                        }
+                        float y = hit.point.y;
+                        // 천장이 칸 밑면 아래여도 됨 — 그 칸에 바닥이 없고 아래 칸 방 천장이 맨 위일 때 (코어 2층 칸 = 1층 방 천장, 모든 면 연결 ③). 맨 위인지는 아래 topmost가 봄
+                        if (y - p.y < CeilingMin || y - p.y > CeilingMax || hit.normal.y > -0.95f || y > center.y + half - 0.05f)
+                        {
+                            if (why != null) Count(why, hit.normal.y > -0.95f ? "천장 기움" : "천장 높이");
+                            continue;
+                        }
+                        bool flat = true;
+                        for (int a = 0; a < 9 && flat; a++)
+                        {
+                            if (a == 4)
+                                continue;
+                            var q = new Vector3(c.x + (a % 3 - 1) * (frame - 0.02f), p.y + 0.3f, c.z + (a / 3 - 1) * (frame - 0.02f));
+                            flat = Physics.Raycast(q, Vector3.up, out var h2, CeilingMax + 0.3f, ~0, QueryTriggerInteraction.Ignore) && Mathf.Abs(h2.point.y - y) < 0.04f && h2.normal.y < -0.95f;
+                        }
+                        if (!flat || decor.AnyBox(new Vector3(c.x, y, c.z), frame + 0.03f, y - 0.3f, y - 0.012f))
+                        {
+                            if (why != null) Count(why, flat ? "천장 장식" : "천장 고르지 않음");
+                            continue;
+                        }
+                        bool topmost = true;
+                        foreach (int m in graph.Column(c.x, c.z))
+                        {
+                            if (graph.Reached(m) && graph[m].y > y)
+                                topmost = false;
+                        }
+                        if (!topmost)
+                        {
+                            if (why != null) Count(why, "위층 있음");
+                            continue;
+                        }
+                        best = score;
+                        hatch = new Vector3(c.x, y, c.z);
+                        under = p;
+                        scale = size;
                     }
-                    if (!flat || decor.AnyBox(new Vector3(p.x, y, p.z), Frame + 0.03f, y - 0.3f, y - 0.012f))
-                        continue;
-                    bool topmost = true;
-                    foreach (int m in graph.Column(p.x, p.z))
-                    {
-                        if (graph.Reached(m) && graph[m].y > y)
-                            topmost = false;
-                    }
-                    if (!topmost)
-                        continue;
-                    best = score;
-                    hatch = new Vector3(p.x, y, p.z);
-                    under = p;
                 }
+                if (best < float.MaxValue)
+                    break;
+            }
+            return best < float.MaxValue;
+        }
+
+        /// <summary>몸 하나 설 바닥 (가운데 + 0.35 m 네 곳이 ±0.1 · 거의 수평) — 천장 해치 밑 · 바닥 해치 셋째 규칙 (판 0.75 m 평평까지는 안 봄).</summary>
+        private static bool Standable(Vector3 p)
+        {
+            for (int a = 0; a < 5; a++)
+            {
+                var d = a == 0 ? Vector3.zero : Quaternion.Euler(0f, a * 90f, 0f) * Vector3.forward * 0.35f;
+                if (!Physics.Raycast(p + d + Vector3.up * 0.5f, Vector3.down, out var hit, 1.0f, ~0, QueryTriggerInteraction.Ignore) || hit.normal.y < 0.9f || Mathf.Abs(hit.point.y - p.y) > 0.1f)
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// 바닥 해치 (모든 면 연결 ③ 아랫면, 2026-11-19): 칸 안 걸어서 닿는 가장 낮은 바닥 (그 기둥에 더 낮은 마디 없음 · 칸 밑면 위) 중 칸 가운데에 가까운 자리 —
+        /// 틀 (1.9 m) 아래가 고르고 (9점 ±0.04) 틀 위 1.8 m에 충돌체 · 장식이 없고, 문 · 해치 · 주민 · 판에서 떨어짐 (천장 해치와 같은 거리 규칙). floor = 해치 윗면 가운데.
+        /// </summary>
+        private static bool TryFindFloorHatch(InteriorTemplate t, InteriorWalkGraph graph, DecorGrid decor, Vector3Int cell, List<Vector3> pads, out Vector3 floor, out float scale,
+            Dictionary<string, int> why)
+        {
+            floor = default;
+            scale = 1f;
+            var center = Away + (Vector3)cell * InteriorGeometry.CellSize;
+            float half = InteriorGeometry.CellSize * 0.5f;
+            float best = float.MaxValue;
+            // 그 칸 맨 아래층만 (걸어서 닿는 가장 낮은 마디 + 1.5 — 아콜로지 꼭대기 층 바닥에 아래 해치가 났었음, 시민 회관 낮은 마당 1.1 m는 같은 층)
+            float lowestFloor = float.MaxValue;
+            foreach (int k in CellNodes(graph, center))
+                lowestFloor = Mathf.Min(lowestFloor, graph[k].y);
+            // 보통 틀 먼저, 없으면 작은 틀 (좁은 복도 · 바큇살)
+            foreach (float size in HatchScales)
+            {
+                float frame = HatchFrameHalf * size;
+                for (int rule = 0; rule < Rules.Length && best == float.MaxValue; rule++)
+                {
+                    foreach (int k in CellNodes(graph, center))
+                    {
+                        var p = graph[k];
+                        float score = new Vector2(p.x - center.x, p.z - center.z).magnitude + Mathf.Max(0f, p.y - (center.y + InteriorGeometry.FloorOffset)) * 2f;
+                        if (score >= best || p.y < center.y - half || Mathf.Abs(p.x - center.x) > half - frame - 0.05f || Mathf.Abs(p.z - center.z) > half - frame - 0.05f)
+                            continue;
+                        bool lowest = p.y < lowestFloor + 1.5f;
+                        foreach (int m in graph.Column(p.x, p.z))
+                        {
+                            if (graph[m].y < p.y - 0.3f)
+                                lowest = false;
+                        }
+                        if (!lowest)
+                        {
+                            Count(why, "아래층 있음");
+                            continue;
+                        }
+                        if (Blocked(t, p, pads, rule, forHatch: true) is string b)
+                        {
+                            Count(why, b);
+                            continue;
+                        }
+                        if (rule < 2 ? !Flat(p) : !Standable(p))
+                        {
+                            Count(why, "바닥X");
+                            continue;
+                        }
+                        bool flat = true;
+                        for (int a = 0; a < 9 && flat; a++)
+                        {
+                            var q = new Vector3(p.x + (a % 3 - 1) * (frame - 0.02f), p.y + 0.3f, p.z + (a / 3 - 1) * (frame - 0.02f));
+                            flat = Physics.Raycast(q, Vector3.down, out var h2, 0.6f, ~0, QueryTriggerInteraction.Ignore) && Mathf.Abs(h2.point.y - p.y) < 0.04f && h2.normal.y > 0.95f;
+                        }
+                        if (!flat)
+                        {
+                            Count(why, "틀 고르지 않음");
+                            continue;
+                        }
+                        if (Physics.CheckBox(p + Vector3.up * 0.95f, new Vector3(frame, 0.85f, frame), Quaternion.identity, ~0, QueryTriggerInteraction.Ignore))
+                        {
+                            Count(why, "틀 위 막힘");
+                            continue;
+                        }
+                        if (decor.AnyBox(p, frame + 0.03f, p.y + 0.02f, p.y + 1.8f))
+                        {
+                            Count(why, "틀 위 장식");
+                            continue;
+                        }
+                        best = score;
+                        floor = p;
+                        scale = size;
+                    }
+                }
+                if (best < float.MaxValue)
+                    break;
             }
             return best < float.MaxValue;
         }
@@ -781,7 +1044,7 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>문 자리 · 아래 해치 · 나무 · 화분 · 주민 자리 · 다른 승강판 가까이면 그 이유 (아니면 null).</summary>
-        private static string Blocked(InteriorTemplate t, Vector3 p, List<Vector3> pads, int rule)
+        private static string Blocked(InteriorTemplate t, Vector3 p, List<Vector3> pads, int rule, bool forHatch = false)
         {
             foreach (var s in t.Sockets)
             {
@@ -802,26 +1065,59 @@ namespace SpaceStation.Editor
             foreach (var plant in t.PlantSpots)
             {
                 bool tree = plant.Kind == PlantKind.Tree || plant.Kind == PlantKind.Pine || plant.Kind == PlantKind.Blossom;
-                float clear = tree ? 1.3f * plant.Scale + PadRadius : 0.5f + PadRadius;
+                float clear = rule >= 2 ? (tree ? 1.3f * plant.Scale + 0.4f : 0.8f) : tree ? 1.3f * plant.Scale + PadRadius : 0.5f + PadRadius;
                 var q = Away + plant.Position;
                 if (Flat2(q, p) < clear && p.y < q.y + (tree ? 6f : 1.5f) && p.y > q.y - 3f)
                     return "식물";
             }
+            // 셋째 규칙 + 주민 자리를 굽는 방 (고정 자리 표 없음 — 기본 방): 주민 자리를 안 봄 → SetAll 끝에 그 방 주민을 다시 구움 (주민이 해치 · 판을 비켜 섬)
+            bool rebake = rule >= 2 && !HasFixedResidents(t);
             foreach (var r in t.ResidentSpots)
             {
                 var q = Away + r.Position;
-                if (Flat2(q, p) < Rules[rule].Resident + PadRadius && Mathf.Abs(q.y - p.y) < 1.5f)
+                if (!rebake && Flat2(q, p) < Rules[rule].Resident + PadRadius && Mathf.Abs(q.y - p.y) < 1.5f)
                     return "주민";
             }
+            // 해치 셋째 규칙: 서는 자리끼리 1.5 m (농장 가운데 통로 천장 — 칸마다 해치 둘이 나란히)
+            float gap = forHatch && rule >= 2 ? 1.5f : PadRadius * 2f + PadGap;
             foreach (var other in pads)
             {
-                if (Flat2(other, p) < PadRadius * 2f + PadGap)
+                if (Flat2(other, p) < gap)
                     return "다른판";
             }
             return null;
         }
 
         private static float Flat2(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
+
+        private static readonly Dictionary<string, bool> _fixedResidents = new Dictionary<string, bool>();
+
+        /// <summary>주민 자리가 고정 자리 표 (<see cref="ResidentSpotBaker"/>)에서 오는 방 — 진화 방 전부 · 행정실 등. 아니면 자리를 찾아 구움 (다시 구우면 해치를 비킴).</summary>
+        public static bool HasFixedResidents(InteriorTemplate t)
+        {
+            if (!_fixedResidents.TryGetValue(t.name, out bool f))
+                _fixedResidents[t.name] = f = ResidentSpotBaker.FixedSpotPositions(t.name.Replace("IT_", "")).Count > 0;
+            return f;
+        }
+
+        /// <summary>주민 자리가 위 · 아래 길 (해치 · 판) 1 m 안에 있는 자동 주민 방 — SetAll 끝에 다시 구움.</summary>
+        private static bool ResidentsOnWays(InteriorTemplate t)
+        {
+            if (HasFixedResidents(t))
+                return false;
+            foreach (var s in t.Sockets)
+            {
+                if (s.Direction.y == 0)
+                    continue;
+                var c = (Vector3)s.Cell * InteriorGeometry.CellSize + s.Offset;
+                foreach (var r in t.ResidentSpots)
+                {
+                    if (new Vector2(r.Position.x - c.x, r.Position.z - c.z).magnitude < 1.0f)
+                        return true;
+                }
+            }
+            return false;
+        }
 
         /// <summary>승강판 둘레가 좁으면 그 이유 (<see cref="LiftRules"/>) — 판 테 여유 · 옆으로 지나갈 폭 · 문 앞. 아니면 null.</summary>
         private static string Tight(InteriorTemplate t, Vector3 pad, int rule)

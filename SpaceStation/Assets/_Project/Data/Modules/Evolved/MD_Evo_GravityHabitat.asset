@@ -32,6 +32,7 @@ MonoBehaviour:
   _terminalOnly: 0
   _dockFront: {x: 0, y: 0, z: 1}
   _approachLaneLength: 2
+  _keepClearCells: []
   _upperSidesNeedSupport: 0
   _faceDepths:
   - Cell: {x: 0, y: 0, z: 0}
@@ -39,7 +40,7 @@ MonoBehaviour:
     Depth: -1
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 1, z: 0}
-    Depth: -1
+    Depth: 0.18972725
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: -1, z: 0}
     Depth: 0.4201953
@@ -60,7 +61,7 @@ MonoBehaviour:
     Depth: -1
   - Cell: {x: 2, y: 0, z: 0}
     Direction: {x: 0, y: 1, z: 0}
-    Depth: -1
+    Depth: 0.18972725
   - Cell: {x: 2, y: 0, z: 0}
     Direction: {x: 0, y: -1, z: 0}
     Depth: 0.42019534
@@ -96,7 +97,7 @@ MonoBehaviour:
     Depth: -1
   - Cell: {x: 0, y: 0, z: 2}
     Direction: {x: 0, y: 1, z: 0}
-    Depth: -1
+    Depth: 0.18972725
   - Cell: {x: 0, y: 0, z: 2}
     Direction: {x: 0, y: -1, z: 0}
     Depth: 0.4201953
@@ -114,7 +115,7 @@ MonoBehaviour:
     Depth: -1
   - Cell: {x: 2, y: 0, z: 2}
     Direction: {x: 0, y: 1, z: 0}
-    Depth: -1
+    Depth: 0.18972725
   - Cell: {x: 2, y: 0, z: 2}
     Direction: {x: 0, y: -1, z: 0}
     Depth: 0.4201953
