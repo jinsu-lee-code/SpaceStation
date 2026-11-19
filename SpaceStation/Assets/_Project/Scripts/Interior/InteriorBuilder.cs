@@ -875,6 +875,9 @@ namespace SpaceStation.Interior
                 float beam = wallMounted ? 0f : TransitBeamTop[Mathf.Clamp(stage, 0, TransitBeamTop.Length - 1)];   // 벽 장치 = 빛 기둥 없음
                 // 빛 기둥은 오브젝트 배율로 줄어듦 → 고리 높이를 배율로 나눠 줌 (기둥 끝 = 장식 밑 beam × s)
                 lift.Initialize(stand + Vector3.up * padTop, ground.y + padTop + Mathf.Max(beam * s - padTop, 0.5f) / s, beam > 0f ? _kit.SkyLiftShaft : null, ShaftColor(module));
+                // 연출 (사용자 2026-11-20 "밋밋 — 단계별 모듈에 맞게 이쁘게"): 단계 테마 파티클 (벽 장치 = 서는 자리에서 작게)
+                go.AddComponent<InteriorTransitFx>().Initialize(stage, stand + Vector3.up * padTop, (wallMounted ? 0.4f : 0.62f) * s,
+                    (wallMounted ? 2.0f : Mathf.Max(beam, 2.4f)) * s, wallMounted ? 0.7f * s : s, ShaftColor(module), _kit);
             }
             var transit = lift.gameObject.AddComponent<InteriorTransit>();
             transit.Initialize(module, lift.PadTop, lift);

@@ -247,7 +247,20 @@ namespace SpaceStation.Data
         [SerializeField] private InteriorKitPiece _transitBasic;
         [SerializeField] private InteriorKitPiece _transitWallBasic;
 
+        [Tooltip("위아래 이동 장치 연출 (2026-11-20 사용자 \"너무 밋밋해 보이는데 이펙트 넣어서 이쁘게\"): 피어오르는 빛 알갱이 (M_Spark — 부드러운 빛 점, 가산) · 발판 둘레로 퍼지는 빛 고리 (M_Ripple)")]
+        [SerializeField] private Material _transitMote;
+        [SerializeField] private Material _transitRipple;
+        [Tooltip("단계 테마 연출 (2026-11-20 사용자 \"못생겼는데 단계별 모듈에 맞게 이쁘게\"): 3단계 꽃잎 · 2 · 4단계 네 갈래 별빛 · 4단계 성운 안개")]
+        [SerializeField] private Material _transitPetal;
+        [SerializeField] private Material _transitStar;
+        [SerializeField] private Material _transitCloud;
+
         public Material SkyLiftShaft => _skyLiftShaft;
+        public Material TransitMote => _transitMote;
+        public Material TransitRipple => _transitRipple;
+        public Material TransitPetal => _transitPetal;
+        public Material TransitStar => _transitStar;
+        public Material TransitCloud => _transitCloud;
         /// <summary>그 방의 위아래 이동 장치 (단계 장치 → 없으면 기본 화물 승강기 칸, 둘 다 없으면 null).</summary>
         public InteriorKitPiece TransitFor(ModuleData data) => StageOf(data)?.Transit ?? (_transitBasic != null && _transitBasic.IsValid ? _transitBasic : null);
         /// <summary>위아래 이동 장치의 단계 (단계 장치를 쓰면 그 단계, 기본 칸 = 0).</summary>
@@ -282,6 +295,15 @@ namespace SpaceStation.Data
         }
 
         public void EditorSetSkyLiftShaft(Material shaft) => _skyLiftShaft = shaft;
+
+        public void EditorSetTransitFx(Material mote, Material ripple, Material petal, Material star, Material cloud)
+        {
+            _transitMote = mote;
+            _transitRipple = ripple;
+            _transitPetal = petal;
+            _transitStar = star;
+            _transitCloud = cloud;
+        }
 
         public void EditorSetTransitBasic(InteriorKitPiece transit) => _transitBasic = transit;
 
