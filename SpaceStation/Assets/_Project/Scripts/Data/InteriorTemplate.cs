@@ -192,6 +192,8 @@ namespace SpaceStation.Data
         [SerializeField] private bool _transitWall;
         [Tooltip("손으로 고른 자리 (큰 진화 방, 사용자 2026-11-19 \"내가 자리를 골라 사진으로\") — 도구가 다시 돌아도 그대로 둠")]
         [SerializeField] private bool _transitManual;
+        [Tooltip("해치 방 (사용자 2026-11-20 \"기본 모듈 중 지금의 상하이동 모델을 쓰기 힘든 모듈은 기존 해치를 상호작용하면 층이동 창이 뜨는 방식\"): 장치 대신 옛 아래 · 위 문 자리에 바닥 해치 + 천장 해치 하나씩")]
+        [SerializeField] private bool _transitHatch;
 
         public IReadOnlyList<PlantSpot> PlantSpots => _plantSpots;
         public bool HasTransitSpot => _hasTransitSpot;
@@ -200,6 +202,7 @@ namespace SpaceStation.Data
         public float TransitScale => _transitScale > 0f ? _transitScale : 1f;
         public bool TransitWall => _transitWall;
         public bool TransitManual => _transitManual;
+        public bool TransitHatch => _transitHatch;
 
         public ModuleData Module => _module;
         public IReadOnlyList<ResidentSpot> ResidentSpots => _residentSpots;
@@ -256,6 +259,8 @@ namespace SpaceStation.Data
         public void EditorSetSealedSockets(bool sealedSockets) => _sealedSockets = sealedSockets;
 
         public void EditorSetPlants(List<PlantSpot> spots) => _plantSpots = spots ?? new List<PlantSpot>();
+
+        public void EditorSetTransitHatch(bool hatch) => _transitHatch = hatch;
 
         public void EditorSetTransitSpot(bool has, Vector3 spot, float yaw = 0f, float scale = 1f, bool wall = false, bool manual = false)
         {

@@ -864,7 +864,7 @@ namespace SpaceStation.Interior
                 var start = _player.transform.position;
                 carrier.position = start;
                 _player.Ride(carrier);
-                var pad = from.PadTop;
+                var pad = from.Pad(stop.Up);   // 해치 방 = 위로는 천장 해치 밑에서, 아래로는 바닥 해치에서
                 float travel = stop.Up ? TransitRise : -TransitSink;
                 for (float t = 0f; t < TransitLeaveSeconds; t += Time.unscaledDeltaTime)
                 {
@@ -887,7 +887,7 @@ namespace SpaceStation.Interior
             _builder.EnsureBuilt(target);
             UpdateNearbyRooms(target, force: true);
             var to = _builder.TransitOf(target);
-            var arrive = to != null ? to.PadTop : _builder.SpawnPoint(target, out _);
+            var arrive = to != null ? to.Pad(!stop.Up) : _builder.SpawnPoint(target, out _);   // 위로 가면 밑에서 솟음 (바닥 해치), 아래로 가면 위에서 내려앉음 (천장 해치 밑)
             float yaw = _player.transform.eulerAngles.y, pitch = _player.Pitch;
             _currentModule = null; // 제목 · 환경음 다시
             if (ride && to != null)

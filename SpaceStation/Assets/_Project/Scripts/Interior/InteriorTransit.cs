@@ -25,6 +25,17 @@ namespace SpaceStation.Interior
         public Vector3 PadTop { get; private set; }
         /// <summary>빛 기둥 (타는 동안 밝아짐) — 없을 수 있음.</summary>
         public InteriorSkyLift Shaft { get; private set; }
+        /// <summary>바라보기 원기둥 높이 (발판 윗면에서) — 해치 방은 천장 해치까지.</summary>
+        public float Top { get; private set; } = Height;
+
+        /// <summary>위로 떠나고 위에서 내려앉는 자리 (해치 방 = 천장 해치 바로 밑 바닥 — 옛 설계에서 바닥 · 천장 해치 자리가 다른 방이 있음, 장치 = 발판).</summary>
+        public Vector3 UpPad { get; private set; }
+
+        /// <summary>해치 방의 뚜껑 (바닥 · 천장) — 타는 동안 숨김 (열린 것처럼).</summary>
+        private Renderer[] _lids;
+
+        /// <summary>떠나는 · 도착하는 자리: 위로 떠남 · 위에서 내려앉음 = <see cref="UpPad"/>, 아래로 가라앉음 · 밑에서 솟음 = <see cref="PadTop"/>.</summary>
+        public Vector3 Pad(bool up) => up ? UpPad : PadTop;
 
         /// <summary>
         /// 장치가 보는 쪽: 앞 (로컬 −z, 안내 기둥 쪽)이 들어오는 자리 쪽 — 방 벽에 맞춰 90° 단위로 (구석에 놓인 화물 칸이 비스듬히 벽을 뚫지 않게).
@@ -43,13 +54,28 @@ namespace SpaceStation.Interior
         {
             Module = module;
             PadTop = padTop;
+            UpPad = padTop;
             Shaft = shaft;
         }
 
-        /// <summary>발이 발판 위 (수평 반지름 안 · 높이 ±0.6).</summary>
-        public bool Contains(Vector3 feet)
+        /// <summary>
+        /// 해치 방 (사용자 2026-11-20 "기존의 해치를 상호작용하면 지금의 층이동 시스템창이 뜨는 방식 — 방에 해치 하나를 천장과 바닥 두 곳에"):
+        /// 발판 = 바닥 해치 뚜껑 윗면, 바라보기 = 바닥 ~ 천장 해치 원기둥, 타는 동안 뚜껑 둘을 숨김.
+        /// </summary>
+        public void InitializeHatch(ModuleInstance module, Vector3 floorLidTop, Vector3 underCeilingHatch, float top, Renderer[] lids)
         {
-            var d = feet - PadTop;
+            Initialize(module, floorLidTop, null);
+            UpPad = underCeilingHatch;
+            Top = top;
+            _lids = lids;
+        }
+
+        /// <summary>발이 발판 위 (수평 반지름 안 · 높이 ±0.6) — 해치 방은 천장 해치 밑도.</summary>
+        public bool Contains(Vector3 feet) => Inside(feet, PadTop) || Inside(feet, UpPad);
+
+        private static bool Inside(Vector3 feet, Vector3 pad)
+        {
+            var d = feet - pad;
             return Mathf.Abs(d.y) < 0.6f && new Vector2(d.x, d.z).sqrMagnitude < PadRadius * PadRadius;
         }
 
@@ -59,7 +85,16 @@ namespace SpaceStation.Interior
         /// </summary>
         public float LookDistance(Vector3 origin, Vector3 dir, float reach)
         {
-            var o = new Vector2(origin.x - PadTop.x, origin.z - PadTop.z);
+            float a = Column(origin, dir, reach, PadTop);
+            if (UpPad == PadTop)
+                return a;
+            float b = Column(origin, dir, reach, UpPad);   // 해치 방 = 천장 해치 밑 원기둥도
+            return a < 0f ? b : b < 0f ? a : Mathf.Min(a, b);
+        }
+
+        private float Column(Vector3 origin, Vector3 dir, float reach, Vector3 pad)
+        {
+            var o = new Vector2(origin.x - pad.x, origin.z - pad.z);
             var d = new Vector2(dir.x, dir.z);
             float dd = d.sqrMagnitude;
             float c = o.sqrMagnitude - PadRadius * PadRadius;
@@ -72,14 +107,22 @@ namespace SpaceStation.Interior
             float t = (-b - Mathf.Sqrt(disc)) / dd;
             if (t < 0f || t > reach)
                 return -1f;
-            float y = origin.y + dir.y * t - PadTop.y;
-            return y > -0.2f && y < Height + 0.2f ? t : -1f;
+            float y = origin.y + dir.y * t - pad.y;
+            return y > -0.2f && y < Top + 0.2f ? t : -1f;
         }
 
         public void SetRiding(bool riding)
         {
             if (Shaft != null)
                 Shaft.SetRiding(riding);
+            if (_lids != null)
+            {
+                foreach (var lid in _lids)
+                {
+                    if (lid != null)
+                        lid.enabled = !riding;
+                }
+            }
         }
     }
 }

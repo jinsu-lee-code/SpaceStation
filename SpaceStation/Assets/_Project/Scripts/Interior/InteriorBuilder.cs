@@ -830,6 +830,11 @@ namespace SpaceStation.Interior
         private void BuildTransit(ModuleInstance module, Transform parent, Vector3 ground)
         {
             var tpl = TemplateFor(module);
+            if (tpl != null && tpl.TransitHatch)
+            {
+                BuildTransitHatch(module, parent, tpl, ground);
+                return;
+            }
             bool chosen = tpl != null && tpl.HasTransitSpot;
             bool wallMounted = chosen && tpl.TransitWall;   // 길을 막는 방 = 벽 장치 (사용자 2026-11-19 "길을 막는다면 벽면에")
             var piece = _kit == null ? null : wallMounted ? _kit.TransitWallFor(module.Data) : _kit.TransitFor(module.Data);
@@ -873,6 +878,71 @@ namespace SpaceStation.Interior
             }
             var transit = lift.gameObject.AddComponent<InteriorTransit>();
             transit.Initialize(module, lift.PadTop, lift);
+            _transits[module] = transit;
+        }
+
+        /// <summary>
+        /// 해치 방 (사용자 2026-11-20 "기본 모듈 중 지금의 상하이동 모델을 쓰기 힘든 모듈은 기존 해치를 상호작용하면 층이동 창이 뜨는 방식 —
+        /// 칸별로 해치 한 개이던 걸 방에 해치 하나, 천장과 바닥 두 곳에 하나씩"): 옛 아래 · 위 문 자리 (같은 칸, 원점 칸 먼저)에 키트 해치 틀 + 뚜껑.
+        /// 바닥 해치 뚜껑 = 밟는 면 · 발판, 천장 해치까지가 바라보기 원기둥 — 둘 중 어느 쪽을 보거나 바닥 해치에 서서 F. 위 = 떠올라 천장 해치로, 아래 = 바닥 해치로 가라앉음.
+        /// 문 자리가 하나뿐이면 다른 쪽은 그 바로 위 · 아래 면 (광선).
+        /// </summary>
+        private void BuildTransitHatch(ModuleInstance module, Transform parent, InteriorTemplate tpl, Vector3 fallback)
+        {
+            var rotation = GridDirections.ToQuaternion(module.Rotation);
+            Vector3? floor = null, ceiling = null;
+            foreach (bool originFirst in new[] { true, false })
+            {
+                foreach (var socket in tpl.Sockets)
+                {
+                    if (socket.Direction.y == 0 || (originFirst && socket.Cell != Vector3Int.zero))
+                        continue;
+                    var cell = module.Origin + GridDirections.Rotate(socket.Cell, module.Rotation);
+                    var surface = CellCenter(cell) + Vector3.up * (socket.Direction.y * socket.Depth) + rotation * socket.Offset;
+                    if (socket.Direction.y < 0)
+                        floor ??= surface;
+                    else
+                        ceiling ??= surface;
+                }
+                if (floor.HasValue || ceiling.HasValue)
+                    break;
+            }
+            if (!floor.HasValue && ceiling.HasValue && Physics.Raycast(ceiling.Value + Vector3.down * 0.3f, Vector3.down, out var down, 7f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                floor = down.point;
+            var ground = floor ?? fallback;
+            if (!ceiling.HasValue && Physics.Raycast(ground + Vector3.up * 0.3f, Vector3.up, out var up, 7f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                ceiling = up.point;
+            var surfaces = ceiling.HasValue ? new[] { ground, ceiling.Value } : new[] { ground };
+            var lids = new List<Renderer>();
+            GameObject floorLid = null;
+            for (int i = 0; i < surfaces.Length; i++)
+            {
+                bool isFloor = i == 0;
+                var flip = isFloor ? Quaternion.identity : Quaternion.Euler(180f, 0f, 0f);
+                var lidCenter = surfaces[i] + (isFloor ? Vector3.up : Vector3.down) * 0.04f;
+                GameObject lid;
+                if (_kit != null)
+                {
+                    KitPiece(_kit.HatchFrameFor(module.Data), module, parent, surfaces[i], flip);
+                    lid = KitPiece(_kit.HatchLidFor(module.Data), module, parent, lidCenter, flip).Renderer.gameObject;
+                }
+                else
+                    lid = Cube(parent, module, lidCenter, Quaternion.identity, new Vector3(InteriorGeometry.HatchSize, 0.08f, InteriorGeometry.HatchSize), HatchColor, true).Renderer.gameObject;
+                if (isFloor)
+                {
+                    var box = lid.AddComponent<BoxCollider>();
+                    box.center = Vector3.zero;
+                    box.size = new Vector3(InteriorGeometry.HatchSize, 0.08f, InteriorGeometry.HatchSize);
+                    floorLid = lid;
+                }
+                lids.Add(lid.GetComponent<Renderer>());
+            }
+            var padTop = ground + Vector3.up * 0.08f;
+            var underCeiling = ceiling.HasValue && new Vector2(ceiling.Value.x - ground.x, ceiling.Value.z - ground.z).sqrMagnitude > 0.01f
+                ? new Vector3(ceiling.Value.x, ground.y + 0.02f, ceiling.Value.z)   // 옛 설계에서 천장 해치가 다른 자리 (산소 · 연구실 · 물 재활용 · 대피소) — 같은 바닥 높이
+                : padTop;
+            var transit = floorLid.AddComponent<InteriorTransit>();
+            transit.InitializeHatch(module, padTop, underCeiling, ceiling.HasValue ? ceiling.Value.y - padTop.y : InteriorTransit.Height, lids.ToArray());
             _transits[module] = transit;
         }
 
