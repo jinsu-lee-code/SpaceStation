@@ -108,8 +108,12 @@ namespace SpaceStation.Editor
         /// why = 고른 자리의 점수 설명 · 못 찾으면 걸린 까닭별 수.
         /// </summary>
         public static bool TryFind(InteriorTemplate t, InteriorKit kit, float scale, out Vector3 local, out float yaw, out string why, Vector3? near = null,
-            bool needBack = true, List<(Vector3 Local, float Yaw, string Why)> collect = null, int collectMax = 0)
+            bool needBack = true, List<(Vector3 Local, float Yaw, string Why)> collect = null, int collectMax = 0, List<(Vector3 Local, string Fails)> trace = null,
+            System.Action<Transform> prepare = null)
         {
+            // trace (진화 방 장식 빼기 — 2026-11-20): 마디마다 걸린 까닭을 모두 (첫 까닭에서 멈추지 않음) — 어떤 조각 · 주민 자리 하나만 걸린 곳 찾기
+            // prepare: 방을 놓은 뒤 검사 전에 손봄 (장식 조각 하나를 뺀 모습을 미리 시험)
+            var fails = trace != null ? new List<string>() : null;
             local = Vector3.zero;
             yaw = 0f;
             bool cage = kit != null && kit.TransitStage(t.Module) == 0;
@@ -118,6 +122,8 @@ namespace SpaceStation.Editor
             root.transform.SetPositionAndRotation(Away, Quaternion.identity);
             Physics.SyncTransforms();
             AddPanels(t, root.transform);
+            prepare?.Invoke(root.transform);
+            Physics.SyncTransforms();
             var reasons = new Dictionary<string, int>();
             try
             {
@@ -131,6 +137,7 @@ namespace SpaceStation.Editor
                     if (!graph.Reached(k))
                         continue;
                     var p = graph[k];
+                    fails?.Clear();
                     if (near.HasValue && Flat2(p, Away + near.Value) > 0.2f)   // 손으로 고른 자리 검사 (그 근처 마디만)
                         continue;
                     var toSpawn = spawn - p;
@@ -138,45 +145,45 @@ namespace SpaceStation.Editor
                     float d = toSpawn.magnitude;
                     if (d < 2.4f || d > 30f)   // 큰 방 (대형 토러스 32 m 고리)은 들어오는 자리에서 멀리까지 — 가까울수록 점수가 좋음
                     {
-                        Count(reasons, "거리");
-                        continue;
+                        if (Fail(reasons, fails, "거리"))
+                            continue;
                     }
                     string blocked = Blocked(t, p, LaneRadius * scale);
                     if (blocked != null)
                     {
-                        Count(reasons, blocked);
-                        continue;
+                        if (Fail(reasons, fails, blocked))
+                            continue;
                     }
                     if (!Flat(p, radius - 0.05f))
                     {
-                        Count(reasons, "평평");
-                        continue;
+                        if (Fail(reasons, fails, "평평"))
+                            continue;
                     }
                     if (!BodyClear(p, cage, scale))
                     {
-                        Count(reasons, "막힘");
-                        continue;
+                        if (Fail(reasons, fails, "막힘"))
+                            continue;
                     }
                     if (cage ? decor.AnyBox(p, CageHalf * scale, p.y + 0.06f, p.y + height) : decor.Any(p, radius, p.y + 0.06f, p.y + height))
                     {
-                        Count(reasons, "장식");
-                        continue;
+                        if (Fail(reasons, fails, "장식"))
+                            continue;
                     }
                     if (!SameFloor(p, radius, decor, out var under))
                     {
-                        Count(reasons, "바닥무늬");
-                        continue;
+                        if (Fail(reasons, fails, "바닥무늬"))
+                            continue;
                     }
                     if (!OverheadClear(p, radius, decor))
                     {
-                        Count(reasons, "위물체");
-                        continue;
+                        if (Fail(reasons, fails, "위물체"))
+                            continue;
                     }
                     float pass = AxisPass(p);
                     if (pass < MinPass * Mathf.Lerp(1f, scale, 0.5f))
                     {
-                        Count(reasons, "폭");
-                        continue;
+                        if (Fail(reasons, fails, "폭"))
+                            continue;
                     }
                     // 보는 쪽 (사용자 "크기 측정해서 길 막지 않는 위치로 — 막는다면 벽면에"): 뒤가 벽에 붙고 (몸 + 0.6 m 안) · 앞이 트이고 (몸 + 1.6 m) ·
                     // 안내 기둥 · 앞에 설 자리가 비는 쪽 중 들어오는 자리 쪽 (벌점 0) → 옆 (1.2) → 뒤 (3)
@@ -208,9 +215,15 @@ namespace SpaceStation.Editor
                     }
                     if (turn < -0.5f)
                     {
-                        Count(reasons, turnWhy);
+                        if (Fail(reasons, fails, turnWhy))
+                            continue;
+                    }
+                    if (fails != null && fails.Count > 0)
+                    {
+                        trace.Add((p - Away, string.Join(",", fails)));
                         continue;
                     }
+                    trace?.Add((p - Away, ""));
                     // 점수 (작을수록): 들어오는 자리와 같은 층 · 보통 바닥 · 5.5 m 근처 · 넓은 곳 · 들어오는 자리 쪽을 봄
                     float level = Mathf.Abs(p.y - spawn.y) > 0.6f ? 6f : 0f;
                     float score = level + (floor != null && under != floor ? 2f : 0f) + Mathf.Abs(d - 5.5f) * 0.6f + Mathf.Max(0f, back - (radius + 0.3f)) * 0.8f + Mathf.Max(0f, 5f - pass) * 0.3f + turnCost;
@@ -536,6 +549,16 @@ namespace SpaceStation.Editor
         }
 
         private static void Count(Dictionary<string, int> why, string reason) => why[reason] = why.TryGetValue(reason, out int n) ? n + 1 : 1;
+
+        /// <summary>까닭을 세고 멈출지 (trace가 없으면 첫 까닭에서 멈춤 · 있으면 모두 모음).</summary>
+        private static bool Fail(Dictionary<string, int> why, List<string> fails, string reason)
+        {
+            Count(why, reason);
+            if (fails == null)
+                return true;
+            fails.Add(reason);
+            return false;
+        }
 
         private static float Flat2(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
 
