@@ -1577,7 +1577,7 @@ def tr_arc(name, cx, cz, R, r, m, a0, a1, y=-0.06, segs=28):
 
 
 def wall_basic():
-    """기본: 벽에 붙은 납작한 화물 승강기 — 벽판 · 경고 띠 테 · 노란 안내 레일 둘 · 1.4 × 1.0 발판 (홈 · 앞 경고 띠) · 옆 손잡이 · 위 모터 · 경광등 · 옆 호출판 ▲▼."""
+    """기본: 벽에 붙은 납작한 화물 승강기 — 벽판 · 경고 띠 테 · 노란 안내 레일 둘 · 1.4 × 1.0 발판 (홈 · 앞 경고 띠) · 옆 손잡이 · 위 모터 · 경광등 · 레일 앞 호출판 ▲▼ (모두 테 폭 ±0.9 안)."""
     S = kmat('M_InteriorHull', '#8A9099', 0.45, 0.7); D = kmat('M_InteriorHullDark', '#2B2F35', 0.55, 0.6)
     Y = kmat('M_InteriorHazard', '#F2B81A', 0.45, 0.1); A = kmat('M_Accent_Core', '#7FE8FF', emit='#7FE8FF')
     o = [tr_box('W_Back', 0, -0.02, 1.55, 1.6, 0.04, 2.9, S)]
@@ -1586,7 +1586,7 @@ def wall_basic():
         for sx in (-0.86, 0.86):
             o.append(tr_box('W_FrameV', sx, -0.03, z + 0.095, 0.08, 0.04, 0.19, Y if i % 2 == 0 else D))
     for i in range(9):
-        o.append(tr_box('W_FrameT', -0.86 + i * 0.215 + 0.1, -0.03, 3.0, 0.215, 0.04, 0.08, Y if i % 2 == 0 else D))
+        o.append(tr_box('W_FrameT', -0.8 + i * 0.2, -0.03, 3.0, 0.2, 0.04, 0.08, Y if i % 2 == 0 else D))   # 9조각 = 테 바깥 ±0.9 (전엔 0.215씩이라 오른쪽으로 0.17 삐져나감)
     for sx in (-0.62, 0.62):
         o.append(tr_box('W_Rail', sx, -0.1, 1.5, 0.08, 0.1, 2.9, Y))
         for z in (0.5, 1.5, 2.5):
@@ -1601,10 +1601,11 @@ def wall_basic():
         o.append(tr_tube('W_SideMid', [(sx, -0.12, 0.6), (sx, -0.95, 0.6)], 0.022, Y))
     o += [tr_box('W_Motor', 0, -0.22, 2.95, 1.1, 0.4, 0.3, S), tr_box('W_MotorFace', 0, -0.43, 2.95, 0.9, 0.02, 0.18, D),
           tr_box('W_Beacon', 0.45, -0.3, 3.15, 0.12, 0.12, 0.1, A),
-          tr_box('W_CallPlate', 1.15, -0.03, 1.15, 0.26, 0.04, 0.5, Y), tr_box('W_CallFace', 1.15, -0.055, 1.15, 0.18, 0.01, 0.38, D)]
-    for z, up in ((1.25, True), (1.05, False)):
+          # 호출판 ▲▼ = 오른쪽 레일 앞 (2026-11-20: 테 밖 x 1.15에 두었더니 기본 방 구석 벽 1.6 m에 85%로 넣을 때 옆 벽 · 문 벽판에 박힘)
+          tr_box('W_CallPlate', 0.62, -0.17, 1.55, 0.2, 0.04, 0.44, Y), tr_box('W_CallFace', 0.62, -0.195, 1.55, 0.14, 0.01, 0.34, D)]
+    for z, up in ((1.65, True), (1.45, False)):
         s = 1 if up else -1
-        o.append(tr_tri('W_Arrow', [(1.15 - 0.06, -0.062, z - 0.04 * s), (1.15, -0.062, z + 0.05 * s), (1.15 + 0.06, -0.062, z - 0.04 * s)][::s], A))
+        o.append(tr_tri('W_Arrow', [(0.62 - 0.05, -0.202, z - 0.035 * s), (0.62, -0.202, z + 0.045 * s), (0.62 + 0.05, -0.202, z - 0.035 * s)][::s], A))
     return o
 
 
