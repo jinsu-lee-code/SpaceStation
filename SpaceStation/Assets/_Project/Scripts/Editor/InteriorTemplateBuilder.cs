@@ -1627,12 +1627,21 @@ namespace SpaceStation.Editor
         /// 진화 2단계 아콜로지 "유리 알 속 하늘 섬" (2 × 2칸 × 4층, ar_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘"): 알 전체가 실내 (살아 있는 잔디 · 나무, 우주복 없음), 유리 엘리베이터 탑 (<see cref="InteriorLift"/>)으로 네 층:
         /// 전망대 (유리 바닥 고리 · 탑을 두른 벤치 · 난간 곁 망원경 둘 <see cref="InteriorTelescope"/> — 머리 Scope1 · 2, F로 들여다봄) · 섬 도시 (돌 광장 · 잔디 띠의 타워 다섯 · 작은 집 · 나무 · 디딤돌 · 둘레 산책로 · 유리 난간) ·
         /// 뿌리 층 (고리 복도 둘레 집 여섯: 금빛 아치 문 · 침대 · 안락의자 · 창 · 화분, 아래턱 매달린 정원) · 결정실 (유리 바닥 아래 중력 결정 Crystal · 머리 위로 떠도는 돌 Stones · 벽 벤치).
-        /// 유리 알 밖 = 고정 적도 띠 + 도는 혼천의 고리 RingA · RingB · 받침 · 발톱 셋. 문 자리 · 해치 없음 (외형 모든 면 연결점 없음 — 바깥에서 바로 입장).
+        /// 유리 알 밖 = 고정 적도 띠 + 도는 혼천의 고리 RingA · RingB · 발톱 셋.
+        /// 1층 광장 (모든 면 연결 2026-11-19, 사용자 "받침을 넓힌 둥근 광장"): 받침을 2 × 2칸 둥근 사각 갑판 (바닥 F, 유리 난간)으로 넓힘 — 둘레 여덟 면 = 난간 틈 (자동 문, 갑판 끝 깊이),
+        /// 알 남서쪽 (225°, 알 살 사이)에 결정실로 들어가는 아치 현관 굴 + 알 밑을 감아 서쪽으로 내려오는 계단 (ar_builder porch · stair — 계단은 칸 가운데 높이 문 띠를 비킴, 바깥 통로 깊이 광선), 아래 해치 = 광장 네 귀퉁이.
         /// </summary>
         private static void BuildEvoArcology()
         {
             const float L0 = 2.35f, L1 = 6.55f, YI = 10.9f, L3 = 18.7f;
-            var sockets = new List<InteriorSocket>();
+            // 아래 해치 = 광장 네 귀퉁이 (칸 가운데에서 바깥 2.2 m — 문 앞 길 · 계단 · 발톱 · 벤치를 비킴)
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(-2.2f, 0f, -2.2f)),
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(2.2f, 0f, -2.2f)),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(-2.2f, 0f, 2.2f)),
+                new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(2.2f, 0f, 2.2f)),
+            };
             var white = new Color(1f, 0.97f, 0.92f);
             var warm = new Color(1f, 0.86f, 0.55f);
             var cool = new Color(0.72f, 0.82f, 1f);
@@ -1664,6 +1673,12 @@ namespace SpaceStation.Editor
                 float a = 60f * k * Mathf.Deg2Rad;
                 lights.Add(LightSpec.Point(new Vector3(4f + 3.85f * Mathf.Cos(a), L1 + 2.9f, 4f + 3.85f * Mathf.Sin(a)), 3.6f, 0.9f, warm));
             }
+            foreach (float az in new[] { 0f, 90f, 270f, 160f })   // 1층 광장 (벤치 둘 · 남쪽 등 사이 · 계단 발치)
+            {
+                float a = az * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(4f + 6.6f * Mathf.Cos(a), F + 2.6f, 4f + 6.6f * Mathf.Sin(a)), 6f, 0.8f, warm));
+            }
+            lights.Add(LightSpec.Point(new Vector3(4f - 4.6f * 0.7071f, L0 + 2.0f, 4f - 4.6f * 0.7071f), 3.2f, 0.7f, cool));   // 결정실 현관 굴 (ar_builder PORCH_AZ 225)
             var orbits = new List<OrbitSpec>
             {
                 new OrbitSpec("INT_EvoArcology_Crystal", new Vector3(4f, 0f, 4f), Vector3.up, 20f),                                 // 중력 결정 (유리 바닥 아래)
