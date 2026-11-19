@@ -18,6 +18,7 @@ namespace SpaceStation.Editor
         private static readonly Vector3 Away = new Vector3(10000f, -5000f, 10000f);
         private const float Radius = 1.05f, CageHalf = 1.02f, Height = 3.45f, SmallScale = 0.85f;
         private static readonly float[] WallHalf = { 0.9f, 1.16f, 1.0f, 1.0f, 1.0f };   // 벽 장치 반폭 (단계별): 기본 = 테 (호출판은 레일 위) · 1 = 옆 홀로그램 판 · 2 ~ 4 = 반원 발판
+        private static readonly float[] WallBodyHalf = { 0.72f, 1.16f, 1.0f, 1.0f, 1.0f };   // 벽에서 7 cm 앞부터의 반폭: 기본 = 손잡이 · 발판 (테 · 뒤판은 벽 평평 검사가 봄 — 옆 벽 포트에 걸렸음, 의무실)
         private const float LaneRadius = 1.0f, LaneHalf = 0.8f, LaneDepth = 1.8f, LaneGap = 0.05f, ResidentClear = 1.5f, LiftPadClear = 2.2f, MinPass = 3.1f;   // 문 앞 길 = 문 가운데 ±0.8 · 안으로 1.8 m
         private const float OverheadGap = 0.35f, OpenSkyCheck = 15f;   // 천장 (위로 쏜 광선이 닿는 가장 높은 면)보다 0.35 m 넘게 낮은 물체 = 위 물체
         private static readonly Vector3 KioskOffset = new Vector3(1.3f, 0f, -0.7f);   // 장치 로컬 (앞 = −z) — 기본 칸 호출 기둥 (1.25, −0.95)도 여기 안
@@ -240,7 +241,7 @@ namespace SpaceStation.Editor
             local = Vector3.zero;
             yaw = 0f;
             int stage = kit != null ? Mathf.Clamp(kit.TransitStage(t.Module), 0, WallHalf.Length - 1) : 0;
-            float height = (stage > 0 ? 3.7f : 3.25f) * scale, half = WallHalf[stage] * scale;
+            float height = (stage > 0 ? 3.7f : 3.25f) * scale, half = WallHalf[stage] * scale, bodyHalf = WallBodyHalf[stage] * scale;
             var root = Object.Instantiate(t.Prefab);
             root.transform.SetPositionAndRotation(Away, Quaternion.identity);
             Physics.SyncTransforms();
@@ -267,7 +268,7 @@ namespace SpaceStation.Editor
                             continue;
                         var pivot = p + d * wh.distance;
                         var side = Vector3.Cross(Vector3.up, d);
-                        // 평평한 벽 구간 (옆 ±1.8 m를 5 cm마다 · 높이 5곳 = 장치 꼭대기까지): 장치 폭 안의 벽 면이 3.5 cm 안으로 고르고 (뒤판 두께 — 표지판 · 빛 줄이 뒤판을 뚫고 나왔음)
+                        // 평평한 벽 구간 (옆 ±1.8 m를 5 cm마다 · 높이 5곳 = 장치 꼭대기까지): 장치 폭 안의 벽 면이 3.5 cm 안으로 고르고 (표지판 · 빛 줄이 뒤판을 뚫고 나왔음 — 장치는 가장 튀어나온 면에 붙음)
                         // 문 (미닫이) · 유리 · 화면 · 창이 아닌 곳 (사진 검토 2026-11-20: 대피소 방 안 문 앞을 막았음). 그 폭이 들어가는 가장 가까운 자리로 피벗을 옆으로 옮기고 벽 면 (가장 먼 면)에 붙임.
                         // 기본 방 구석 벽 1.6 m에 85% 장치 (1.53 m)가 맞는 범위는 7 cm라 마디 (0.25 m 간격) 자리 그대로는 늘 벽판 · 옆 벽에 걸렸음
                         const int Reach = 36;
@@ -317,21 +318,29 @@ namespace SpaceStation.Editor
                             continue;
                         }
                         pivot += side * (shift * 0.05f) + d * (wallAt - 0.6f);
-                        // 고른 자리만 촘촘히 (옆 10 cm × 높이 8 cm): 가는 가로 빛 줄 · 선반 턱은 높이 5곳 사이로 빠졌음 (연구원 사진 2026-11-20)
+                        // 고른 자리만 촘촘히 (옆 10 cm × 높이 8 cm): 가는 가로 빛 줄 · 선반 턱 · 띠는 높이 5곳 사이로 빠졌음 (연구원 사진 2026-11-20).
+                        // 벽 면이 3.5 cm 안으로 고르면 장치를 가장 튀어나온 면 (띠 · 테)에 붙임 — 벽 면에 붙이면 3 cm 띠가 뒤판 앞으로 비쳤음 (수경 농장 · 의무실 사진)
                         bool dense = true;
+                        float dMin = float.MaxValue, dMax = float.MinValue;
                         for (float lat = -(half - 0.02f); lat <= half - 0.02f + 0.001f && dense; lat += 0.1f)
                         {
                             for (float h = 0.1f; h <= height - 0.05f && dense; h += 0.08f)
                             {
                                 dense = Physics.Raycast(pivot - d * 0.3f + side * lat + Vector3.up * h, d, out var dh, 0.6f, ~0, QueryTriggerInteraction.Ignore)
-                                    && dh.distance > 0.3f - 0.035f && dh.distance < 0.3f + 0.03f && !NotWall(dh);
+                                    && dh.distance > 0.3f - 0.05f && dh.distance < 0.3f + 0.02f && !NotWall(dh);
+                                if (dense)
+                                {
+                                    dMin = Mathf.Min(dMin, dh.distance);
+                                    dMax = Mathf.Max(dMax, dh.distance);
+                                }
                             }
                         }
-                        if (!dense)
+                        if (!dense || dMax - dMin > 0.035f)
                         {
                             No("벽턱");
                             continue;
                         }
+                        pivot += d * (dMin - 0.3f - 0.003f);
                         var stand = pivot - d * (InteriorTransit.WallStand * scale);
                         float sd = Flat2(stand, spawn);
                         if (sd < 2.0f || sd > 30f)
@@ -370,10 +379,10 @@ namespace SpaceStation.Editor
                             No("바닥");
                             continue;
                         }
-                        // 장치 몸 (벽에서 0.07 ~ 1.05 · 폭 ±0.9 · 0.2 ~ 높이, × 배율) 충돌체 · 장식
+                        // 장치 몸 (벽에서 0.07 ~ 1.05 · 폭 ±WallBodyHalf · 0.2 ~ 높이, × 배율) 충돌체 · 장식
                         var rot = Quaternion.LookRotation(d);
                         var bodyCenter = pivot - d * (0.56f * scale) + Vector3.up * (0.2f + (height - 0.2f) * 0.5f);
-                        if (Physics.CheckBox(bodyCenter, new Vector3(half, (height - 0.2f) * 0.5f, 0.49f * scale), rot, ~0, QueryTriggerInteraction.Ignore))
+                        if (Physics.CheckBox(bodyCenter, new Vector3(bodyHalf, (height - 0.2f) * 0.5f, 0.49f * scale), rot, ~0, QueryTriggerInteraction.Ignore))
                         {
                             No("막힘");
                             continue;
@@ -696,11 +705,11 @@ namespace SpaceStation.Editor
             return true;
         }
 
-        /// <summary>벽 장치를 붙이면 안 되는 면: 미닫이문 · 유리 · 계기판 조각, 창 · 화면 · 유리 · 문 재질.</summary>
+        /// <summary>벽 장치를 붙이면 안 되는 면: 미닫이문 (INT_*_Door) · 유리 · 계기판 조각, 창 · 화면 · 유리 · 문 재질.</summary>
         private static bool NotWall(RaycastHit hit)
         {
             var go = hit.collider.gameObject;
-            if (go.GetComponentInParent<InteriorSlidingDoor>() != null || go.name.Contains("Glass") || go.name.Contains("Gauge") || go.name.EndsWith("_Door"))
+            if (go.name.Contains("Glass") || go.name.Contains("Gauge") || go.name.EndsWith("_Door"))   // 미닫이문 컴포넌트는 방 루트에 붙어 있어 (검역소) 조각 이름으로
                 return true;
             var m = MaterialAt(hit);
             return m != null && (m.name.Contains("Window") || m.name.Contains("Screen") || m.name.Contains("Glass") || m.name.Contains("Door"));
