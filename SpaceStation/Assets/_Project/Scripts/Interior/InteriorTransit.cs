@@ -15,6 +15,8 @@ namespace SpaceStation.Interior
         public const float PadRadius = 0.8f;
         /// <summary>장치 높이 (발판 윗면 ~ 꼭대기 고리).</summary>
         public const float Height = 2.9f;
+        /// <summary>단계 장치 조각의 발판 윗면 (땅에서, BlenderWork/Connectors/connector_builder.py TR_PAD).</summary>
+        public const float PadHeight = 0.14f;
 
         public ModuleInstance Module { get; private set; }
         /// <summary>발판 윗면 가운데 (월드) — 떠나고 도착하는 자리.</summary>
