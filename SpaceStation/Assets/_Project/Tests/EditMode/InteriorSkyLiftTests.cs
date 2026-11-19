@@ -33,10 +33,9 @@ namespace SpaceStation.Tests
             ("IT_EvoCargoTransfer", new Vector3Int(2, 0, 1)),
         };
 
-        /// <summary>아직 아래로 가는 길이 없는 아랫면 — 아콜로지 1층 넷 (1층이 칸 바닥보다 3.7 m 높은 받침 위 · 좁음). 고치면 여기서 뺌.</summary>
+        /// <summary>아직 아래로 가는 길이 없는 아랫면. 고치면 여기서 뺌 (아콜로지 1층 넷은 2026-11-19 광장 귀퉁이 해치로 풀림).</summary>
         private static readonly (string Template, Vector3Int Cell)[] KnownDownGaps =
         {
-            ("IT_EvoArcology", new Vector3Int(0, 0, 0)), ("IT_EvoArcology", new Vector3Int(1, 0, 0)), ("IT_EvoArcology", new Vector3Int(0, 0, 1)), ("IT_EvoArcology", new Vector3Int(1, 0, 1)),
         };
 
         private static List<InteriorTemplate> OpenTemplates()

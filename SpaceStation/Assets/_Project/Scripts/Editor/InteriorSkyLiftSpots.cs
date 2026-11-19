@@ -249,6 +249,8 @@ namespace SpaceStation.Editor
         public const float RingDepth = 3.8f;
         /// <summary>판에서 고리까지 최소 높이 (떠오르는 맛 — 이보다 낮은 마루 위는 고르지 않음).</summary>
         public const float MinRise = 2.6f;
+        /// <summary>판에서 하늘 고리까지 최대 높이 — 한 칸 아래 바닥 (−9.3 → 고리 3.8 = 13.1 m)까지. 아콜로지 1층 광장 (2026-11-19)이 꼭대기 칸 기둥 밑 26 m 아래 문 앞 길에 판을 받았음.</summary>
+        public const float MaxRise = 16f;
         /// <summary>
         /// 천장 해치 (기둥을 못 세우는 지붕 밑): 바닥에서 천장까지 (눈 1.6 + 해치 광선 4 m가 비스듬히 닿는 높이 — 의료동 · 청사 천장 3.85 · 감시탑 전망실 2.13 ·
         /// 1단계 공방 · 중력 거주구 4.0, 모든 면 연결 ③ 2026-11-19에 4.0 → 4.6).
@@ -748,6 +750,11 @@ namespace SpaceStation.Editor
                         Count(why, "낮음");
                         continue;
                     }
+                    if (!underCeiling && ringY - p.y > MaxRise)
+                    {
+                        Count(why, "너무 깊음");
+                        continue;
+                    }
                     string blocked = Blocked(t, p, pads, LiftBlockRule(rule));
                     if (blocked != null)
                     {
@@ -779,6 +786,11 @@ namespace SpaceStation.Editor
                             if (ring - q.y < MinRise)
                             {
                                 Count(why, "천장 밑 낮음");
+                                continue;
+                            }
+                            if (ringY - ring > MaxRise)   // 고리가 위 연결점보다 한참 아래 (아콜로지 1층 광장 알 밑 유리 — 꼭대기 칸 기둥)
+                            {
+                                Count(why, "너무 깊음");
                                 continue;
                             }
                             // 맨 위층만 (아콜로지 — 아래층 천장 밑 고리에서 꼭대기 위 방으로 가면 어색함)
