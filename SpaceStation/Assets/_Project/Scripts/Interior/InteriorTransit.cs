@@ -115,6 +115,8 @@ namespace SpaceStation.Interior
         {
             if (Shaft != null)
                 Shaft.SetRiding(riding);
+            if (TryGetComponent<InteriorTransitFx>(out var fx))
+                fx.SetRiding(riding);
             if (_lids != null)
             {
                 foreach (var lid in _lids)
