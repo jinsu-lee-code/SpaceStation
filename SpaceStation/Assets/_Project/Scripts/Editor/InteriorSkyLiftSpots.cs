@@ -350,7 +350,7 @@ namespace SpaceStation.Editor
             { "IT_EvoRadiationWall", new[] { (new Vector3Int(0, 0, 1), new Vector2(-2.2f, -3.1f)) } },
         };
 
-        [MenuItem("SpaceStation/Interior/Set Sky Lift Spots")]
+        /// <summary>더 쓰지 않음 (2026-11-20 위아래 이동 = 모듈마다 장치 하나 — <see cref="InteriorTransitSpots"/>): 메뉴 · 템플릿 빌드 호출을 뺌, 걷기 격자 · 장식 격자만 장치 자리 도구가 씀.</summary>
         public static void SetAll()
         {
             var kit = AssetDatabase.LoadAssetAtPath<InteriorKit>(KitPath);
