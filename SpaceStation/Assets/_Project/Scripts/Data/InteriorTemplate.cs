@@ -180,7 +180,14 @@ namespace SpaceStation.Data
         [Tooltip("따로 놓는 식물 자리 (메뉴 SpaceStation/Interior/Set Plant Spots)")]
         [SerializeField] private List<PlantSpot> _plantSpots = new List<PlantSpot>();
 
+        [Header("2026-11-19 위아래 이동 장치")]
+        [Tooltip("위아래 이동 장치 자리 (모듈 로컬, 발판 밑 땅) — 도구가 고름 (메뉴 SpaceStation/Interior/Set Transit Spots). 없으면 옛 위아래 문 자리 · 들어오는 자리")]
+        [SerializeField] private bool _hasTransitSpot;
+        [SerializeField] private Vector3 _transitSpot;
+
         public IReadOnlyList<PlantSpot> PlantSpots => _plantSpots;
+        public bool HasTransitSpot => _hasTransitSpot;
+        public Vector3 TransitSpot => _transitSpot;
 
         public ModuleData Module => _module;
         public IReadOnlyList<ResidentSpot> ResidentSpots => _residentSpots;
@@ -237,6 +244,12 @@ namespace SpaceStation.Data
         public void EditorSetSealedSockets(bool sealedSockets) => _sealedSockets = sealedSockets;
 
         public void EditorSetPlants(List<PlantSpot> spots) => _plantSpots = spots ?? new List<PlantSpot>();
+
+        public void EditorSetTransitSpot(bool has, Vector3 spot)
+        {
+            _hasTransitSpot = has;
+            _transitSpot = spot;
+        }
 
         public void EditorSetResidents(List<ResidentSpot> spots, List<ResidentTrait> workTraits, bool leisure)
         {

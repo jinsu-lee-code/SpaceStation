@@ -49,6 +49,7 @@ namespace SpaceStation.Settings
         private static bool _interiorPause; // 11-17: 기본 = 시간 흐름 (내부 현장 수리 · 사고가 긴장감을 가지게)
         private static bool _headBob = true;
         private static bool _padDirectZoom;
+        private static bool _transitRide = true;
 
         /// <summary>11-17에서 기본값을 '끔'으로 바꾸며 키 이름을 바꿈 — 옛 저장값(켜짐)은 한 번 버리고 새 기본값을 쓴다.</summary>
         private const string InteriorPauseKey = "interiorPause2";
@@ -85,6 +86,9 @@ namespace SpaceStation.Settings
 
         /// <summary>11-13: 휴대 패드를 들면 바로 확대(조작 화면) — 끄면 들기 → 배속 순환 키로 확대 (단계별, 기본).</summary>
         public static bool PadDirectZoom { get { Load(); return _padDirectZoom; } set => Set(ref _padDirectZoom, value, "padDirectZoom"); }
+
+        /// <summary>2026-11-19 위아래 이동 장치 연출 (떠오르기 · 가라앉기) — 끄면 고르는 즉시 화면이 어두워졌다가 도착.</summary>
+        public static bool TransitRide { get { Load(); return _transitRide; } set => Set(ref _transitRide, value, "transitRide"); }
 
         public static int FrameLimit => FrameLimits[FrameLimitIndex];
         public static int AutosaveMinutes => AutosaveChoices[AutosaveIndex];
@@ -135,6 +139,7 @@ namespace SpaceStation.Settings
             _interiorPause = false;
             _headBob = true;
             _padDirectZoom = false;
+            _transitRide = true;
             SaveAll();
             Changed?.Invoke();
         }
@@ -166,6 +171,7 @@ namespace SpaceStation.Settings
             _interiorPause = PlayerPrefs.GetInt(Prefix + InteriorPauseKey, _interiorPause ? 1 : 0) == 1;
             _headBob = PlayerPrefs.GetInt(Prefix + "headBob", _headBob ? 1 : 0) == 1;
             _padDirectZoom = PlayerPrefs.GetInt(Prefix + "padDirectZoom", _padDirectZoom ? 1 : 0) == 1;
+            _transitRide = PlayerPrefs.GetInt(Prefix + "transitRide", _transitRide ? 1 : 0) == 1;
         }
 
         private static void SaveAll()
@@ -190,6 +196,7 @@ namespace SpaceStation.Settings
             PlayerPrefs.SetInt(Prefix + InteriorPauseKey, _interiorPause ? 1 : 0);
             PlayerPrefs.SetInt(Prefix + "headBob", _headBob ? 1 : 0);
             PlayerPrefs.SetInt(Prefix + "padDirectZoom", _padDirectZoom ? 1 : 0);
+            PlayerPrefs.SetInt(Prefix + "transitRide", _transitRide ? 1 : 0);
             PlayerPrefs.Save();
         }
 
