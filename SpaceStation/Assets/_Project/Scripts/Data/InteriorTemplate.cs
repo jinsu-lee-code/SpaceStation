@@ -184,10 +184,16 @@ namespace SpaceStation.Data
         [Tooltip("위아래 이동 장치 자리 (모듈 로컬, 발판 밑 땅) — 도구가 고름 (메뉴 SpaceStation/Interior/Set Transit Spots). 없으면 옛 위아래 문 자리 · 들어오는 자리")]
         [SerializeField] private bool _hasTransitSpot;
         [SerializeField] private Vector3 _transitSpot;
+        [Tooltip("장치가 보는 쪽 (모듈 로컬 y 각도, 90° 단위 — 앞 = 로컬 −z 안내 기둥 쪽)")]
+        [SerializeField] private float _transitYaw;
+        [Tooltip("장치 크기 배율 (0 = 1 — 붐비는 방은 0.85, 사용자 2026-11-19)")]
+        [SerializeField] private float _transitScale;
 
         public IReadOnlyList<PlantSpot> PlantSpots => _plantSpots;
         public bool HasTransitSpot => _hasTransitSpot;
         public Vector3 TransitSpot => _transitSpot;
+        public float TransitYaw => _transitYaw;
+        public float TransitScale => _transitScale > 0f ? _transitScale : 1f;
 
         public ModuleData Module => _module;
         public IReadOnlyList<ResidentSpot> ResidentSpots => _residentSpots;
@@ -245,10 +251,12 @@ namespace SpaceStation.Data
 
         public void EditorSetPlants(List<PlantSpot> spots) => _plantSpots = spots ?? new List<PlantSpot>();
 
-        public void EditorSetTransitSpot(bool has, Vector3 spot)
+        public void EditorSetTransitSpot(bool has, Vector3 spot, float yaw = 0f, float scale = 1f)
         {
             _hasTransitSpot = has;
             _transitSpot = spot;
+            _transitYaw = yaw;
+            _transitScale = scale;
         }
 
         public void EditorSetResidents(List<ResidentSpot> spots, List<ResidentTrait> workTraits, bool leisure)

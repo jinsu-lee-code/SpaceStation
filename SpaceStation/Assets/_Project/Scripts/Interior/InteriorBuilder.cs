@@ -839,10 +839,13 @@ namespace SpaceStation.Interior
             else
             {
                 int stage = _kit.TransitStage(module.Data);
-                var toSpawn = SpawnPoint(module, out _) - ground;
-                toSpawn.y = 0f;
-                var rotation = toSpawn.sqrMagnitude > 0.25f ? Quaternion.LookRotation(-toSpawn) : GridDirections.ToQuaternion(module.Rotation);   // 앞 (로컬 −z) = 들어오는 자리 쪽
-                var go = KitPiece(piece, module, parent, ground, rotation).Renderer.gameObject;
+                // 앞 (로컬 −z, 안내 기둥 쪽) = 도구가 고른 쪽 (템플릿) · 없으면 들어오는 자리 쪽, 90° 단위
+                var tpl = TemplateFor(module);
+                var moduleRotation = GridDirections.ToQuaternion(module.Rotation);
+                var rotation = tpl != null && tpl.HasTransitSpot ? moduleRotation * Quaternion.Euler(0f, tpl.TransitYaw, 0f)
+                    : InteriorTransit.Facing(SpawnPoint(module, out _) - ground, moduleRotation);
+                float s = tpl != null && tpl.HasTransitSpot ? tpl.TransitScale : 1f;   // 붐비는 방 = 85% (충돌 상자 · 빛 기둥도 이 배율을 따름)
+                var go = KitPiece(piece, module, parent, ground, rotation, Vector3.one * s).Renderer.gameObject;
                 var pad = go.AddComponent<BoxCollider>();
                 pad.center = new Vector3(0f, InteriorTransit.PadHeight - 0.1f, 0f);
                 pad.size = new Vector3(1.3f, 0.2f, 1.3f);
@@ -859,7 +862,9 @@ namespace SpaceStation.Interior
                 }
                 lift = go.AddComponent<InteriorSkyLift>();
                 float beam = TransitBeamTop[Mathf.Clamp(stage, 0, TransitBeamTop.Length - 1)];
-                lift.Initialize(ground + Vector3.up * InteriorTransit.PadHeight, ground.y + Mathf.Max(beam, InteriorTransit.Height), beam > 0f ? _kit.SkyLiftShaft : null, ShaftColor(module));
+                float padTop = InteriorTransit.PadHeight * s;
+                // 빛 기둥은 오브젝트 배율로 줄어듦 → 고리 높이를 배율로 나눠 줌 (기둥 끝 = 장식 밑 beam × s)
+                lift.Initialize(ground + Vector3.up * padTop, ground.y + padTop + Mathf.Max(beam * s - padTop, 0.5f) / s, beam > 0f ? _kit.SkyLiftShaft : null, ShaftColor(module));
             }
             var transit = lift.gameObject.AddComponent<InteriorTransit>();
             transit.Initialize(module, lift.PadTop, lift);

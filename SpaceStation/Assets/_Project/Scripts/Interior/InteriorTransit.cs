@@ -24,6 +24,19 @@ namespace SpaceStation.Interior
         /// <summary>빛 기둥 (타는 동안 밝아짐) — 없을 수 있음.</summary>
         public InteriorSkyLift Shaft { get; private set; }
 
+        /// <summary>
+        /// 장치가 보는 쪽: 앞 (로컬 −z, 안내 기둥 쪽)이 들어오는 자리 쪽 — 방 벽에 맞춰 90° 단위로 (구석에 놓인 화물 칸이 비스듬히 벽을 뚫지 않게).
+        /// 자리 도구 (InteriorTransitSpots)와 방 짓기가 같이 씀.
+        /// </summary>
+        public static Quaternion Facing(Vector3 toSpawn, Quaternion fallback)
+        {
+            toSpawn.y = 0f;
+            if (toSpawn.sqrMagnitude < 0.25f)
+                return fallback;
+            float yaw = Quaternion.LookRotation(-toSpawn).eulerAngles.y;
+            return Quaternion.Euler(0f, Mathf.Round(yaw / 90f) * 90f, 0f);
+        }
+
         public void Initialize(ModuleInstance module, Vector3 padTop, InteriorSkyLift shaft)
         {
             Module = module;
