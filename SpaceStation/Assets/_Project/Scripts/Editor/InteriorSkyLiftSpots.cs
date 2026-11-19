@@ -567,7 +567,7 @@ namespace SpaceStation.Editor
                 var graph = InteriorWalkGraph.ForTemplate(t, root.transform);
                 var decor = new DecorGrid(root.transform);
                 var pads = new List<Vector3>();
-                var bridgePads = new List<Vector3>();   // 빛 다리 판 (문턱 높이 문 승강판) — 그 칸 위 승강판이 먼저 그 판을 같이 씀
+                var bridgePads = new List<Vector3>();   // 같이 쓰는 판 (빛 다리 · 판 같이 쓰는 문 승강판) — 그 칸 위 승강판이 먼저 그 판 자리에
                 bool liftKit = kit.SkyLiftPadFor(t.Module) != null;
                 foreach (var s in sockets)
                 {
@@ -575,7 +575,7 @@ namespace SpaceStation.Editor
                     {
                         var p = Away + (Vector3)s.Cell * InteriorGeometry.CellSize + s.Offset;
                         pads.Add(p);
-                        if (InteriorGeometry.IsBridgeLift(p.y, Away.y + InteriorGeometry.FloorY(s.Cell)))
+                        if (s.SharedPad || InteriorGeometry.IsBridgeLift(p.y, Away.y + InteriorGeometry.FloorY(s.Cell)))
                             bridgePads.Add(p);
                     }
                     else if (s.DoorSteps != 0)   // 문 계단 자리 (층계참 · 단 · 내려선 자리 점마다)
@@ -595,7 +595,7 @@ namespace SpaceStation.Editor
                     bool atModel = exact.Contains(cell) && TryDesigned(t, graph, decor, cell, target, pads, out pad);
                     if (exact.Contains(cell) && !atModel)
                         Debug.LogWarning($"[InteriorSkyLiftSpots] {t.name} {cell}: 모델 착지 자리 ({target.x:F2}, {target.y:F2})에 판을 못 놓음 — 다른 곳을 찾음 (원판과 어긋남)");
-                    // 빛 다리 판이 이 칸에 있으면 그 판을 같이 씀 (화물 환적장 — 자동 문이 예전 위 승강판 자리를 골랐으면 같은 자리, 거리 규칙은 셋째 줄)
+                    // 같이 쓰는 판 (빛 다리 · 판 같이 쓰는 문 승강판)이 이 칸에 있으면 그 판 자리에 (화물 환적장 · 그리드 허브 — 자동 문이 예전 위 승강판 자리를 골랐으면 같은 자리, 거리 규칙은 셋째 줄)
                     bool shared = false;
                     if (!atModel && liftKit && openSky)
                     {
@@ -604,7 +604,7 @@ namespace SpaceStation.Editor
                             if (Mathf.Abs(bp.x - center.x) >= InteriorGeometry.CellSize * 0.5f || Mathf.Abs(bp.z - center.z) >= InteriorGeometry.CellSize * 0.5f || bp.y > center.y)
                                 continue;
                             var others = pads.FindAll(p => Flat2(p, bp) > 0.01f);
-                            if (TryDesigned(t, graph, decor, cell, new Vector2(bp.x - center.x, bp.z - center.z), others, out pad, 2))
+                            if (TryDesigned(t, graph, decor, cell, new Vector2(bp.x - center.x, bp.z - center.z), others, out pad, 2) && Mathf.Abs(pad.y - bp.y) < 0.05f)
                             {
                                 atModel = shared = true;
                                 break;
@@ -628,7 +628,7 @@ namespace SpaceStation.Editor
                         pads.Add(pad);
                         sockets.Add(new InteriorSocket(cell, Vector3Int.up, ringDepth, pad - center, skyLift: true));
                         lifts++;
-                        log.Append($" {cell}→판 ({pad.x - center.x:F2}, {pad.y - center.y:F2}, {pad.z - center.z:F2})" + (usedRule >= 2 ? " [좁은 자리]" : "") + (shared ? " (빛 다리 판 같이 씀)" : "")
+                        log.Append($" {cell}→판 ({pad.x - center.x:F2}, {pad.y - center.y:F2}, {pad.z - center.z:F2})" + (usedRule >= 2 ? " [좁은 자리]" : "") + (shared ? " (판 같이 씀)" : "")
                             + (ringDepth < RingDepth - 0.01f ? $" 천장 밑 고리 {ringDepth:F2}" : ""));
                     }
                     else if (TryFindCeilingHatch(t, graph, decor, cell, target, pads, out var hatch, out var under, out float scale, why))
