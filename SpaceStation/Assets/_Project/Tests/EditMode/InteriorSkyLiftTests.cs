@@ -210,6 +210,8 @@ namespace SpaceStation.Tests
                         if (!InteriorSkyLiftSpots.PadSurface(pad, out float top, out _) || Mathf.Abs(top - pad.y) > 0.02f)
                             problems.AppendLine($"{at}: 판 밑 땅이 고르지 않음 / 판이 떠 있음");
                         bool bridge = InteriorGeometry.IsBridgeLift(pad.y, sill);   // 빛 다리 (문 앞 턱 너머 물길 — 화물 환적장, 2026-11-19)
+                        if (!bridge)
+                            problems.AppendLine($"{at}: 2층 이상 빛 기둥 문 승강판 — 쓰지 않음 (사용자 2026-11-19: 2층 이상 옆문은 모델에 그 높이 바닥 · 발코니가 있는 면만)");
                         float head = bridge ? sill + InteriorGeometry.BridgeLiftRise + 1.9f : sill + 2.3f;
                         if (!InteriorSkyLiftSpots.ColumnClear(pad, head, InteriorSkyLiftSpots.ColumnRadii[InteriorSkyLiftSpots.ColumnRadii.Length - 1]))
                             problems.AppendLine($"{at}: 판에서 문턱 위까지 기둥이 막힘");

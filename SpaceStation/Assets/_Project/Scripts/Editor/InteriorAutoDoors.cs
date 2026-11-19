@@ -11,7 +11,8 @@ namespace SpaceStation.Editor
     /// 모든 면 연결 (2026-11-18, 사용자 "연결점이 모두 이어져서 어떤 방향으로든 이동이 가능하게"): 템플릿을 지을 때
     /// 문 자리가 없는 (또는 닫힌) 둘레 옆면 중 문 안쪽 바닥이 문턱 높이 · 비어 있고 걸어서 닿는 면에 열린 문 자리를 더한다
     /// (문 깊이 = 그 방 문 깊이, 바닥이 칸 끝 조금 안에서 끝나면 바닥 끝 — 문에서 칸 끝까지 튜브 자리가 비어 있어야 함, <see cref="FindDepth"/>).
-    /// 문 높이에 바닥이 없는 2층 높이 옆문은 아래 바닥에 빛 기둥 문 승강판 자리를 찾아 연다 (<see cref="TryDoorLift"/>, ②-4),
+    /// 문 높이에 바닥이 없는 2층 이상 옆문은 열지 않음 (사용자 2026-11-19 "모델링을 기준점으로 — 빛 기둥 승강판이 필요한 문은 일괄 삭제, 2층에서 연결점이 자연스러운 곳만":
+    /// 수평 이동은 1층에서 꼭, 2층 이상은 모델에 그 높이 바닥 · 발코니가 있는 면만), 문 바로 안이 좁은 턱 + 물길인 1층 옆문은 빛 다리 (<see cref="TryDoorBridge"/>),
     /// 문 안 바닥이 문턱보다 0.5 ~ 1.05 m 낮은 옆문은 문 앞 층계참 + 세 단 자리를 찾아 연다 (<see cref="TryDoorSteps"/> — 계단은 문이 열릴 때만 Unity가 놓음).
     /// 하늘 껍질 문 구멍보다 먼저 불러 새 문도 하늘이 비켜 줌 (InteriorTemplateBuilder.Build).
     /// 칸 끝까지 바닥이 없는 면은 모델에 길 · 문간을 낸 뒤 다시 지으면 저절로 열림 (빌더마다 문 목록을 손대지 않음).
@@ -84,20 +85,6 @@ namespace SpaceStation.Editor
                         {
                             open = new InteriorSocket(cell, dir, at);
                             log?.Add($"{name ?? module.name} {cell} {dir} 깊이 {at:0.00}");
-                        }
-                        else if (TryDoorLift(graph, decor, sockets, pads, cell, dir, depth, out var pad))
-                        {
-                            var center = TempOrigin + (Vector3)cell * InteriorGeometry.CellSize;
-                            open = new InteriorSocket(cell, dir, depth, pad - center, doorLift: true);
-                            pads.Add(pad);
-                            log?.Add($"{name ?? module.name} {cell} {dir} 문 승강판 ({pad.x - center.x:0.00}, {pad.y - center.y:0.00}, {pad.z - center.z:0.00})");
-                        }
-                        else if (TryDoorLiftShared(decor, module, pads, oldLifts, cell, dir, depth, out var sharedPad, why))
-                        {
-                            var center = TempOrigin + (Vector3)cell * InteriorGeometry.CellSize;
-                            open = new InteriorSocket(cell, dir, depth, sharedPad - center, doorLift: true, sharedPad: true);
-                            pads.Add(sharedPad);
-                            log?.Add($"{name ?? module.name} {cell} {dir} 문 승강판 (판 같이 씀) ({sharedPad.x - center.x:0.00}, {sharedPad.y - center.y:0.00}, {sharedPad.z - center.z:0.00})");
                         }
                         else if (TryDoorBridge(graph, decor, sockets, pads, spotsClear, oldLifts, cell, dir, depth, out var bridgePad, why))
                         {
@@ -282,142 +269,8 @@ namespace SpaceStation.Editor
             return false;
         }
 
-        /// <summary>문 승강판: 문에서 판 가운데까지 안쪽 거리 후보 (가까운 것 먼저) · 옆 비낌 · 판에서 문턱까지 최소 높이 · 문턱 위로 비울 높이.</summary>
-        private static readonly float[] LiftBack = { 1.1f, 1.4f, 1.8f, 2.2f, 2.6f };
-        private static readonly float[] LiftSide = { 0f, -0.5f, 0.5f };
-        private const float LiftMinRise = 1.2f, LiftHead = 2.3f;
-
-        /// <summary>
-        /// 2층 높이 옆문 (문 높이에 바닥이 없음 — 위 칸이 하늘 · 뚫린 홀) = 빛 기둥 문 승강판 자리 (모든 면 연결 ②-4, 2026-11-18):
-        /// 문 · 튜브 자리가 비고 (<see cref="Corridor"/>), 문 안 떠오른 길 (문 평면 ~ 판, 문 폭, 문턱 −0.3 ~ +2.3)에 충돌체 · 장식이 없고,
-        /// 문 안쪽 1.1 ~ 2.6 m 아래 걸어서 닿는 바닥 (문턱보다 1.2 m 넘게 낮음)에 판이 놓임 — 판 둘레 평평 · 판에서 문턱 + 2.3까지 기둥 비움 · 판 테가 벽에 안 겹침 ·
-        /// 다른 판 · 아래 해치 틀 · 같은 바닥 문에서 떨어짐. pad = 판 윗면 가운데 (짓는 자리 좌표).
-        /// </summary>
-        private static bool TryDoorLift(InteriorWalkGraph graph, InteriorSkyLiftSpots.DecorGrid decor, List<InteriorSocket> sockets, List<Vector3> pads, Vector3Int cell, Vector3Int dir, float depth, out Vector3 pad)
-        {
-            pad = default;
-            var center = TempOrigin + (Vector3)cell * InteriorGeometry.CellSize;
-            float sill = TempOrigin.y + InteriorGeometry.FloorY(cell);
-            var side = Vector3.Cross(Vector3.up, dir);
-            if (FloorAt(cell, dir, depth - 0.02f) || !Corridor(decor, cell, dir, depth))
-                return false;
-            // 먼저 문 앞 (옆 비낌 ±0.5), 안 되면 문 옆으로 비켜 (±2.4 · ±3.0 — 아래층 문 계단이 문 앞 벽가를 차지한 수리 사령부, 2026-11-19 · 그다음 ±1.8 · ±1.5) 대각선으로 떠오름
-            for (int pass = 0; pass < 2; pass++)
-            {
-                foreach (float back in LiftBack)
-                {
-                    bool anyPath = false;
-                    foreach (float lat in pass == 0 ? LiftSide : LiftSideWide)
-                    {
-                        // 떠오른 길 — 문 앞 판 (pass 0)은 길이 같아 처음 막히면 더 안쪽도 막힘
-                        if (!LiftPathClear(center, dir, side, decor, depth, back, pass == 0 ? 0f : lat, sill))
-                            continue;
-                        anyPath = true;
-                        var p = center + (Vector3)dir * (depth - back) + side * lat;
-                        int best = -1;
-                        foreach (int k in graph.Column(p.x, p.z))
-                        {
-                            if (graph.Reached(k) && graph[k].y < sill - LiftMinRise && (best < 0 || graph[k].y > graph[best].y))
-                                best = k;
-                        }
-                        if (best < 0)
-                            continue;
-                        var q = graph[best];
-                        if (!InteriorSkyLiftSpots.PadSurface(q, out float top, out _))
-                            continue;
-                        var at = new Vector3(q.x, top, q.z);
-                        if (!InteriorSkyLiftSpots.ColumnClear(at, sill + LiftHead, InteriorSkyLiftSpots.ColumnRadii[InteriorSkyLiftSpots.ColumnRadii.Length - 1])
-                            || !decor.Clear(at, sill + LiftHead) || InteriorSkyLiftSpots.EdgeGap(at) < 0.1f || NearOthers(sockets, pads, at))
-                            continue;
-                        pad = at;
-                        return true;
-                    }
-                    if (!anyPath && pass == 0)
-                        break;
-                }
-            }
-            return false;
-        }
-
-        /// <summary>문 승강판이 같이 쓰는 판 (위 승강판 · 앞서 놓은 문 승강판 판)에서 문까지 최대 거리.</summary>
-        private const float SharedReach = 7f;
-
-        /// <summary>
-        /// 문 승강판 — 판을 같이 씀 (그리드 허브 탑 위층, 모든 면 연결 2026-11-19 사용자 "빛 기둥 + 소품 옮기기": 문 안 아래 갑판이 번개 나무 화단 · 길 아치 · 바닥 해치로 붐벼
-        /// 문 앞 · 옆에 판을 놓을 자리가 없음): 문 앞 바닥이 없고 문 · 튜브 자리가 비면, 그 방 예전 위 승강판 자리 · 앞서 놓은 문 승강판 판 (문턱보다 1.2 m 넘게 아래, 문에서 7 m 안,
-        /// 가까운 것 먼저) 중 문 안쪽이고 판 ~ 문턱 기둥이 이 모듈 칸 안 (옆 칸 위 = 이웃 모듈 자리를 지나지 않게)이며, 판 기둥 (문턱 + 2.3)이 비고
-        /// 판 꼭대기 ~ 문 미끄러지는 길 (몸 둘레 ±0.45 · 문턱 ~ 몸 높이)이 빈 것.
-        /// </summary>
-        private static bool TryDoorLiftShared(InteriorSkyLiftSpots.DecorGrid decor, ModuleData module, List<Vector3> pads, List<Vector3> oldLifts, Vector3Int cell, Vector3Int dir, float depth, out Vector3 pad,
-            List<string> why)
-        {
-            pad = default;
-            if (FloorAt(cell, dir, depth - 0.02f) || !Corridor(decor, cell, dir, depth))
-                return false;
-            var center = TempOrigin + (Vector3)cell * InteriorGeometry.CellSize;
-            float sill = TempOrigin.y + InteriorGeometry.FloorY(cell);
-            var door = center + (Vector3)dir * (depth - 0.05f);
-            var hosts = new List<Vector3>();
-            foreach (var h in oldLifts)
-            {
-                if (sill - h.y >= LiftMinRise && Flat(h, door) < SharedReach)
-                    hosts.Add(h);
-            }
-            foreach (var h in pads)
-            {
-                if (sill - h.y >= LiftMinRise && Flat(h, door) < SharedReach)
-                    hosts.Add(h);
-            }
-            hosts.Sort((a, b) => Flat(a, door).CompareTo(Flat(b, door)));
-            int outside = 0, column = 0, glide = 0;
-            foreach (var h in hosts)
-            {
-                if (Vector3.Dot(h - door, (Vector3)dir) > -0.5f || !InModule(module, h, cell.y))
-                {
-                    outside++;
-                    continue;
-                }
-                // 예전 위 승강판 자리는 SetAll이 판 · 기둥 (하늘 고리까지) · 장식을 이미 봄 (다시 놓을 때 TryDesigned가 또 봄) — 새 문 승강판 판만 여기서
-                if (!oldLifts.Contains(h) && (!InteriorSkyLiftSpots.ColumnClear(h, sill + LiftHead, InteriorSkyLiftSpots.ColumnRadii[InteriorSkyLiftSpots.ColumnRadii.Length - 1]) || !decor.Clear(h, sill + LiftHead)))
-                {
-                    column++;
-                    continue;
-                }
-                var a = new Vector3(h.x, sill, h.z);
-                var axis = new Vector3(door.x, sill, door.z) - a;
-                float len = axis.magnitude;
-                if (len < 0.5f)
-                    continue;
-                axis /= len;
-                var mid = a + axis * (len * 0.5f) + Vector3.up * 1.0f;
-                bool deco = Physics.CheckBox(mid, new Vector3(0.45f, 0.97f, len * 0.5f), Quaternion.LookRotation(axis), Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
-                for (float s = 0f; s <= len && !deco; s += 0.3f)
-                    deco = decor.Any(a + axis * s, 0.4f, sill + 0.05f, sill + 2.0f);
-                if (deco)
-                {
-                    glide++;
-                    continue;
-                }
-                pad = h;
-                return true;
-            }
-            if (hosts.Count > 0)
-                why.Add($"같이 쓸 판 {hosts.Count} [문 밖 · 이웃 칸 {outside} 기둥 {column} 미끄러지는 길 {glide}]");
-            return false;
-        }
-
-        /// <summary>판 자리 p (짓는 자리 좌표)의 칸 기둥이 판 높이 칸부터 topY 층까지 모두 이 모듈 칸.</summary>
-        private static bool InModule(ModuleData module, Vector3 p, int topY)
-        {
-            var rel = (p - TempOrigin) / InteriorGeometry.CellSize;
-            int cx = Mathf.RoundToInt(rel.x), cz = Mathf.RoundToInt(rel.z), cy = Mathf.RoundToInt(rel.y + 0.2f);
-            for (int y = cy; y <= topY; y++)
-            {
-                if (!ContainsCell(module.CellOffsets, new Vector3Int(cx, y, cz)))
-                    return false;
-            }
-            return true;
-        }
+        /// <summary>문턱 위로 비울 높이 (문 계단 층계참 위 몸).</summary>
+        private const float LiftHead = 2.3f;
 
         /// <summary>같이 쓰는 판 (위 승강판 · 앞서 놓은 빛 다리 판)에서 문 앞 턱까지 최대 거리 (화물 환적장 (2,0,1) 동쪽 문 = 미끄럼틀 관 옆 갑판에 판 자리가 없어 아래 칸 위 승강판에서 11.8 m).</summary>
         private const float BridgeReach = 12f;
@@ -586,64 +439,6 @@ namespace SpaceStation.Editor
                 }
             }
             why.Add($"빛 다리 [같이 쓸 판 {hosts.Count} · 마디X {noNode} 평평X {flat} 테 {edge} 둘레 {near} 기둥 · 건너는 길 {path}]");
-            return false;
-        }
-
-        /// <summary>문 옆으로 비킨 판 자리 (문 앞 판이 막혔을 때) — ±1.8 · ±1.5는 뒤에 (드론 정비창 북쪽 위층: 문 앞 = 아래층 문 · 2.4 밖 = 벤치, 2026-11-19 — 앞 자리로 찾던 방은 그대로).</summary>
-        private static readonly float[] LiftSideWide = { -2.4f, 2.4f, -3.0f, 3.0f, -1.8f, 1.8f, -1.5f, 1.5f };
-
-        /// <summary>
-        /// 떠오른 길 (문 평면 ~ 판 가운데 + 판 반지름 · 문 앞 ~ 판 옆 자리를 덮는 폭 + 0.8, 문턱 −0.3 ~ +2.3)에 충돌체 · 장식 정점이 없음.
-        /// lat = 0이면 문 앞 폭 ±0.8 · 장식 ±0.45 (②-4 처음 그대로).
-        /// </summary>
-        private static bool LiftPathClear(Vector3 center, Vector3Int dir, Vector3 side, InteriorSkyLiftSpots.DecorGrid decor, float depth, float back, float lat, float sill)
-        {
-            float lo = Mathf.Min(0f, lat), hi = Mathf.Max(0f, lat);
-            if (Blocked(center, dir, side, depth - back - InteriorSkyLiftSpots.PadRadius, depth, (lo + hi) * 0.5f, (hi - lo) * 0.5f + 0.8f, sill - 0.3f, sill + LiftHead))
-                return false;
-            for (float s = depth - back; s <= depth + 0.001f; s += 0.3f)
-            {
-                for (float x = lo - 0.45f; x <= hi + 0.451f; x += 0.45f)
-                {
-                    if (decor.Any(center + (Vector3)dir * s + side * x, 0.35f, sill - 0.3f, sill + LiftHead))
-                        return false;
-                }
-            }
-            return true;
-        }
-
-        /// <summary>다른 판 (반지름 둘 + 1 m) · 같은 바닥 아래 해치 틀 (판 반지름 + 0.25) · 같은 바닥 문 (1.8 m) 가까이.</summary>
-        private static bool NearOthers(List<InteriorSocket> sockets, List<Vector3> pads, Vector3 at)
-        {
-            foreach (var other in pads)
-            {
-                if (new Vector2(other.x - at.x, other.z - at.z).magnitude < InteriorSkyLiftSpots.PadRadius * 2f + 1f)
-                    return true;
-            }
-            foreach (var s in sockets)
-            {
-                var c = TempOrigin + (Vector3)s.Cell * InteriorGeometry.CellSize;
-                if (s.Direction == Vector3Int.down)
-                {
-                    var hatch = c + s.Offset + Vector3.down * s.Depth;
-                    if (Mathf.Abs(hatch.y - at.y) < 1.5f && InteriorSkyLiftSpots.FrameGap(hatch, s.HatchScale, at) < InteriorSkyLiftSpots.PadRadius + 0.25f)
-                        return true;
-                }
-                else if (s.Direction.y == 0 && s.DoorSteps != 0)
-                {
-                    foreach (var p in StepsFootprint(c + (Vector3)s.Direction * s.Depth, s.Direction, s.DoorSteps))
-                    {
-                        if (Mathf.Abs(c.y + s.Offset.y - at.y) < 2f && Flat(p, at) < InteriorSkyLiftSpots.PadRadius + 0.5f)
-                            return true;
-                    }
-                }
-                else if (s.Direction.y == 0 && !s.SealedWall && !s.DoorLift)
-                {
-                    var door = c + (Vector3)s.Direction * s.Depth;
-                    if (Mathf.Abs(TempOrigin.y + InteriorGeometry.FloorY(s.Cell) - at.y) < 1f && new Vector2(door.x - at.x, door.z - at.z).magnitude < 1.8f)
-                        return true;
-                }
-            }
             return false;
         }
 
