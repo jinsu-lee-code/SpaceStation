@@ -1469,6 +1469,11 @@ namespace SpaceStation.Editor
                 new InteriorSocket(new Vector3Int(1, 0, 4), front, Side),
                 new InteriorSocket(new Vector3Int(2, 0, 4), front, Rim),
                 new InteriorSocket(new Vector3Int(3, 0, 4), front, Side),
+                // 모서리 현관 정자 넷의 바깥 두 면 (gt_builder pavilions — 문간 깊이 3.0, 모든 면 연결 2026-11-19 사용자 "모서리 현관 정자 넷")
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.left, 3.0f), new InteriorSocket(new Vector3Int(0, 0, 0), back, 3.0f),
+                new InteriorSocket(new Vector3Int(4, 0, 0), Vector3Int.right, 3.0f), new InteriorSocket(new Vector3Int(4, 0, 0), back, 3.0f),
+                new InteriorSocket(new Vector3Int(0, 0, 4), Vector3Int.left, 3.0f), new InteriorSocket(new Vector3Int(0, 0, 4), front, 3.0f),
+                new InteriorSocket(new Vector3Int(4, 0, 4), Vector3Int.right, 3.0f), new InteriorSocket(new Vector3Int(4, 0, 4), front, 3.0f),
                 // 고리 칸 = 회랑 바닥 (칸 가운데가 안쪽 벽에 가까워 바깥으로 살짝), 역 칸 = 승강장 아래, 십자 칸 = 유리 통로, 허브 칸 = 엘리베이터를 비켜 동쪽
                 new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(-0.16f, 0f, -0.31f)),
                 new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, Vector3.zero),

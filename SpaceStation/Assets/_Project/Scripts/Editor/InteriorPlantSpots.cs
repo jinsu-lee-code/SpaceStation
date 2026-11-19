@@ -210,26 +210,30 @@ namespace SpaceStation.Editor
             // 진화 2단계 대형 토러스 (gt_builder PLANTS): 동네 나무 12 (집 사이 8 · 0.42배, 마당 4 · 0.5배) · 아치 집 화분 8 (0.42배). 유리 지붕 안이라 살아 있는 식물도 유리 덮개 없음
             Set("IT_EvoGrandTorus", new List<PlantSpot>
             {
-                new PlantSpot(new Vector3(30.611f, -0.99f, 27.864f), PlantKind.Pot, 0.42f, 0f),
-                new PlantSpot(new Vector3(27.864f, -0.99f, 30.611f), PlantKind.Pot, 0.42f, 47f),
-                new PlantSpot(new Vector3(4.136f, -0.99f, 30.611f), PlantKind.Pot, 0.42f, 94f),
-                new PlantSpot(new Vector3(1.389f, -0.99f, 27.864f), PlantKind.Pot, 0.42f, 141f),
-                new PlantSpot(new Vector3(1.389f, -0.99f, 4.136f), PlantKind.Pot, 0.42f, 188f),
-                new PlantSpot(new Vector3(4.136f, -0.99f, 1.389f), PlantKind.Pot, 0.42f, 235f),
-                new PlantSpot(new Vector3(27.864f, -0.99f, 1.389f), PlantKind.Pot, 0.42f, 282f),
-                new PlantSpot(new Vector3(30.611f, -0.99f, 4.136f), PlantKind.Pot, 0.42f, 329f),
+                new PlantSpot(new Vector3(0f, -0.97f, 0f), PlantKind.Pot, 0.5f, 0f),      // 모서리 현관 정자 넷 가운데 화단 (모든 면 연결 2026-11-19)
+                new PlantSpot(new Vector3(32f, -0.97f, 0f), PlantKind.Pot, 0.5f, 90f),
+                new PlantSpot(new Vector3(0f, -0.97f, 32f), PlantKind.Pot, 0.5f, 180f),
+                new PlantSpot(new Vector3(32f, -0.97f, 32f), PlantKind.Pot, 0.5f, 270f),
+                new PlantSpot(new Vector3(30.937f, -0.99f, 27.452f), PlantKind.Pot, 0.42f, 0f),
+                new PlantSpot(new Vector3(27.452f, -0.99f, 30.937f), PlantKind.Pot, 0.42f, 47f),
+                new PlantSpot(new Vector3(4.548f, -0.99f, 30.937f), PlantKind.Pot, 0.42f, 94f),
+                new PlantSpot(new Vector3(1.063f, -0.99f, 27.452f), PlantKind.Pot, 0.42f, 141f),
+                new PlantSpot(new Vector3(1.063f, -0.99f, 4.548f), PlantKind.Pot, 0.42f, 188f),
+                new PlantSpot(new Vector3(4.548f, -0.99f, 1.063f), PlantKind.Pot, 0.42f, 235f),
+                new PlantSpot(new Vector3(27.452f, -0.99f, 1.063f), PlantKind.Pot, 0.42f, 282f),
+                new PlantSpot(new Vector3(30.937f, -0.99f, 4.548f), PlantKind.Pot, 0.42f, 329f),
                 new PlantSpot(new Vector3(7.57f, -1.175f, 3.053f), PlantKind.Tree, 0.42f, 16f),
                 new PlantSpot(new Vector3(24.43f, -1.175f, 3.053f), PlantKind.Tree, 0.42f, 63f),
-                new PlantSpot(new Vector3(27.314f, -1.175f, 4.686f), PlantKind.Tree, 0.5f, 110f),
+                new PlantSpot(new Vector3(26.783f, -1.175f, 5.217f), PlantKind.Tree, 0.5f, 110f),
                 new PlantSpot(new Vector3(3.053f, -1.175f, 24.43f), PlantKind.Tree, 0.42f, 157f),
                 new PlantSpot(new Vector3(3.053f, -1.175f, 7.57f), PlantKind.Tree, 0.42f, 204f),
-                new PlantSpot(new Vector3(4.686f, -1.175f, 4.686f), PlantKind.Tree, 0.5f, 251f),
+                new PlantSpot(new Vector3(5.217f, -1.175f, 5.217f), PlantKind.Tree, 0.5f, 251f),
                 new PlantSpot(new Vector3(24.43f, -1.175f, 28.947f), PlantKind.Tree, 0.42f, 298f),
                 new PlantSpot(new Vector3(7.57f, -1.175f, 28.947f), PlantKind.Tree, 0.42f, 345f),
-                new PlantSpot(new Vector3(4.686f, -1.175f, 27.314f), PlantKind.Tree, 0.5f, 32f),
+                new PlantSpot(new Vector3(5.217f, -1.175f, 26.783f), PlantKind.Tree, 0.5f, 32f),
                 new PlantSpot(new Vector3(28.947f, -1.175f, 7.57f), PlantKind.Tree, 0.42f, 79f),
                 new PlantSpot(new Vector3(28.947f, -1.175f, 24.43f), PlantKind.Tree, 0.42f, 126f),
-                new PlantSpot(new Vector3(27.314f, -1.175f, 27.314f), PlantKind.Tree, 0.5f, 173f),
+                new PlantSpot(new Vector3(26.783f, -1.175f, 26.783f), PlantKind.Tree, 0.5f, 173f),
             });
             // 진화 2단계 아콜로지 (ar_builder PLANTS): 섬 도시 나무 다섯 (돌 테 안 반지름 0.42 — 0.62배), 뿌리 층 집 창 아래 화분 여섯 (0.42배). 알 속이라 살아 있는 식물도 유리 덮개 없음
             Set("IT_EvoArcology", new List<PlantSpot>
