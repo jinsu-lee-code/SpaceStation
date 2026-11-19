@@ -294,7 +294,7 @@ namespace SpaceStation.Editor
             var side = Vector3.Cross(Vector3.up, dir);
             if (FloorAt(cell, dir, depth - 0.02f) || !Corridor(decor, cell, dir, depth))
                 return false;
-            // 먼저 문 앞 (옆 비낌 ±0.5), 안 되면 문 옆으로 비켜 (±2.4 · ±3.0 — 아래층 문 계단이 문 앞 벽가를 차지한 수리 사령부, 2026-11-19) 대각선으로 떠오름
+            // 먼저 문 앞 (옆 비낌 ±0.5), 안 되면 문 옆으로 비켜 (±2.4 · ±3.0 — 아래층 문 계단이 문 앞 벽가를 차지한 수리 사령부, 2026-11-19 · 그다음 ±1.8 · ±1.5) 대각선으로 떠오름
             for (int pass = 0; pass < 2; pass++)
             {
                 foreach (float back in LiftBack)
@@ -502,8 +502,8 @@ namespace SpaceStation.Editor
             return false;
         }
 
-        /// <summary>문 옆으로 비킨 판 자리 (문 앞 판이 막혔을 때).</summary>
-        private static readonly float[] LiftSideWide = { -2.4f, 2.4f, -3.0f, 3.0f };
+        /// <summary>문 옆으로 비킨 판 자리 (문 앞 판이 막혔을 때) — ±1.8 · ±1.5는 뒤에 (드론 정비창 북쪽 위층: 문 앞 = 아래층 문 · 2.4 밖 = 벤치, 2026-11-19 — 앞 자리로 찾던 방은 그대로).</summary>
+        private static readonly float[] LiftSideWide = { -2.4f, 2.4f, -3.0f, 3.0f, -1.8f, 1.8f, -1.5f, 1.5f };
 
         /// <summary>
         /// 떠오른 길 (문 평면 ~ 판 가운데 + 판 반지름 · 문 앞 ~ 판 옆 자리를 덮는 폭 + 0.8, 문턱 −0.3 ~ +2.3)에 충돌체 · 장식 정점이 없음.
