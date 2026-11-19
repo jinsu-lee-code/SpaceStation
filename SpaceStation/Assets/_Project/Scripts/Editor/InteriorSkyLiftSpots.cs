@@ -471,14 +471,29 @@ namespace SpaceStation.Editor
             private const float Cell = 0.5f;
             private readonly Dictionary<(int, int), List<Vector3>> _cells = new Dictionary<(int, int), List<Vector3>>();
 
-            public DecorGrid(Transform root)
+            /// <param name="decorOnly">충돌체 없는 조각만 · 읽기 꺼진 메시도 (AcquireReadOnlyMeshData — 에디터에서는 읽힘). 벽 위아래 이동 장치 (2026-11-20): 연구원 벽 빛 줄 (_Low, 읽기 꺼짐)이
+            /// 안 보여 장치 뒤판 위로 보였음. 끄면 예전대로 (읽히는 메시 전부 — 이미 검토한 바닥 장치 · 빛 기둥 자리 결과를 그대로 두려고).</param>
+            public DecorGrid(Transform root, bool decorOnly = false)
             {
                 foreach (var f in root.GetComponentsInChildren<MeshFilter>(true))
                 {
-                    if (f.sharedMesh == null || !f.sharedMesh.isReadable || f.name.EndsWith("_Sky"))   // 읽기 꺼진 메시 (기본 방 FBX)는 정점을 못 읽음 — 오류 없이 건너뜀
+                    if (f.sharedMesh == null || f.name.EndsWith("_Sky") || (decorOnly ? f.GetComponent<Collider>() != null : !f.sharedMesh.isReadable))   // 읽기 꺼진 메시 (기본 방 FBX) — 예전 방식은 오류 없이 건너뜀
                         continue;
                     var m = f.transform.localToWorldMatrix;
-                    foreach (var v in f.sharedMesh.vertices)
+                    Vector3[] vertices;
+                    if (f.sharedMesh.isReadable)
+                        vertices = f.sharedMesh.vertices;
+                    else
+                    {
+                        using (var data = Mesh.AcquireReadOnlyMeshData(f.sharedMesh))
+                        {
+                            var native = new Unity.Collections.NativeArray<Vector3>(data[0].vertexCount, Unity.Collections.Allocator.Temp);
+                            data[0].GetVertices(native);
+                            vertices = native.ToArray();
+                            native.Dispose();
+                        }
+                    }
+                    foreach (var v in vertices)
                     {
                         var w = m.MultiplyPoint3x4(v);
                         var key = (Mathf.FloorToInt(w.x / Cell), Mathf.FloorToInt(w.z / Cell));
