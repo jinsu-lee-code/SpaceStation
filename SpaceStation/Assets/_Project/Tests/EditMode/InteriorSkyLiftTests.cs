@@ -11,8 +11,8 @@ namespace SpaceStation.Tests
 {
     /// <summary>
     /// 진화 단계별 통로 ③ 빛 기둥 승강판 (하늘이 트인 2단계+ 방의 위 연결점, <see cref="InteriorSkyLiftSpots"/>):
-    /// 외형 위 연결점마다 위로 가는 길 하나 (승강판 또는 지붕 밑 천장 해치) — 아직 자리를 못 정한 곳은 <see cref="KnownGaps"/>,
-    /// 승강판은 그 칸 안 · 판이 땅에 앉음 (높이차 0.15 이하 — 판 치마가 덮음) · 판에서 하늘 고리까지 기둥이 빔 (충돌체 · 충돌체 없는 장식 정점) · 들어오는 곳에서 걸어서 닿음 · 고리는 하늘 껍질 밑.
+    /// 외형 위 연결점마다 위로 가는 길 하나 (승강판 또는 지붕 밑 천장 해치), 1 · 2단계 · 기본 방은 모든 윗면 · 아랫면 (모든 면 연결 ③) — 아직 자리를 못 정한 곳은 <see cref="KnownUpGaps"/> · <see cref="KnownDownGaps"/>,
+    /// 승강판은 그 칸 안 · 판이 땅에 앉음 (높이차 0.15 이하 — 판 치마가 덮음) · 판에서 고리까지 기둥이 빔 (충돌체 · 충돌체 없는 장식 정점) · 들어오는 곳에서 걸어서 닿음 · 고리는 하늘 껍질 밑 (기둥이 막히는 방은 천장 · 유리 돔 밑).
     /// </summary>
     public class InteriorSkyLiftTests
     {
@@ -20,11 +20,25 @@ namespace SpaceStation.Tests
         private static readonly Vector3 Away = new Vector3(20000f, -6000f, 20000f);
 
         /// <summary>
-        /// 아직 위로 가는 길이 없는 위 연결점 — 지금은 없음. 심우주 통신기지 셋 · 정련 콤비나트 여섯은 모델에 착지 원판을 냄 (2026-11-17 사용자 "모델에 착지 자리 내는 걸로" · 시안 2,
+        /// 아직 위로 가는 길이 없는 윗면. 심우주 통신기지 셋 · 정련 콤비나트 여섯은 모델에 착지 원판을 냄 (2026-11-17 사용자 "모델에 착지 자리 내는 걸로" · 시안 2,
         /// <see cref="InteriorSkyLiftSpots.Targets"/>), 시민 회관 돔 칸 셋 = 의료동 천장 해치, 두 탑 = 0.65배 천장 해치 (사용자 "꼭대기방 천장해치로").
-        /// 새로 자리를 못 정한 곳이 생기면 여기에 적고 사용자 결정을 받음.
+        /// 모든 면 연결 ③ (2026-11-19)에서 모델 손질이 필요한 칸만 남김 — 대형 토러스 바큇살 넷 (지름 3 m 둥근 유리 굴, 평평한 천장 없음) · 모서리 넷 (바퀴가 칸 귀퉁이만 지남 — 주민 방 · 화분),
+        /// 아콜로지 꼭대기 넷 (돔 밑 맨 위층이 나무 · 주민으로 참), 화물 환적소 (2,0,1) (물길 · 아래 해치 사이 좁음). 고치면 여기서 뺌.
         /// </summary>
-        private static readonly (string Template, Vector3Int Cell)[] KnownGaps = { };
+        private static readonly (string Template, Vector3Int Cell)[] KnownUpGaps =
+        {
+            ("IT_EvoGrandTorus", new Vector3Int(2, 0, 1)), ("IT_EvoGrandTorus", new Vector3Int(1, 0, 2)), ("IT_EvoGrandTorus", new Vector3Int(3, 0, 2)), ("IT_EvoGrandTorus", new Vector3Int(2, 0, 3)),
+            ("IT_EvoGrandTorus", new Vector3Int(0, 0, 0)), ("IT_EvoGrandTorus", new Vector3Int(4, 0, 0)), ("IT_EvoGrandTorus", new Vector3Int(0, 0, 4)), ("IT_EvoGrandTorus", new Vector3Int(4, 0, 4)),
+            ("IT_EvoArcology", new Vector3Int(0, 3, 0)), ("IT_EvoArcology", new Vector3Int(1, 3, 0)), ("IT_EvoArcology", new Vector3Int(0, 3, 1)), ("IT_EvoArcology", new Vector3Int(1, 3, 1)),
+            ("IT_EvoCargoTransfer", new Vector3Int(2, 0, 1)),
+        };
+
+        /// <summary>아직 아래로 가는 길이 없는 아랫면 — 대형 토러스 모서리 넷, 아콜로지 1층 넷 (1층이 칸 바닥보다 3.7 m 높은 받침 위 · 좁음). 고치면 여기서 뺌.</summary>
+        private static readonly (string Template, Vector3Int Cell)[] KnownDownGaps =
+        {
+            ("IT_EvoGrandTorus", new Vector3Int(0, 0, 0)), ("IT_EvoGrandTorus", new Vector3Int(4, 0, 0)), ("IT_EvoGrandTorus", new Vector3Int(0, 0, 4)), ("IT_EvoGrandTorus", new Vector3Int(4, 0, 4)),
+            ("IT_EvoArcology", new Vector3Int(0, 0, 0)), ("IT_EvoArcology", new Vector3Int(1, 0, 0)), ("IT_EvoArcology", new Vector3Int(0, 0, 1)), ("IT_EvoArcology", new Vector3Int(1, 0, 1)),
+        };
 
         private static List<InteriorTemplate> OpenTemplates()
         {
@@ -44,9 +58,29 @@ namespace SpaceStation.Tests
         {
             var problems = new StringBuilder();
             int lifts = 0;
-            foreach (var t in OpenTemplates())
+            var kit = AssetDatabase.LoadAssetAtPath<InteriorKit>(KitPath);
+            var all = new List<InteriorTemplate>(OpenTemplates());
+            foreach (var guid in AssetDatabase.FindAssets("t:InteriorTemplate", new[] { "Assets/_Project/Data/Interior" }))
             {
-                foreach (var cell in InteriorSkyLiftSpots.UpFaces(t.Module))
+                var t = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
+                if (t != null && t.Prefab != null && !all.Contains(t) && InteriorSkyLiftSpots.AllFaces(t.Module, kit))
+                    all.Add(t);   // 닫힌 방 (1 · 2단계 · 기본) — 모든 윗면 · 아랫면 (모든 면 연결 ③, 2026-11-19)
+            }
+            foreach (var t in all)
+            {
+                foreach (var cell in InteriorSkyLiftSpots.DownFaces(t.Module, kit))
+                {
+                    int downs = 0;
+                    foreach (var s in t.Sockets)
+                    {
+                        if (s.Direction == Vector3Int.down && s.Cell == cell)
+                            downs++;
+                    }
+                    bool gap = System.Array.IndexOf(KnownDownGaps, (t.name, cell)) >= 0;
+                    if (gap ? downs != 0 : downs != 1)
+                        problems.AppendLine($"{t.name} {cell}: 아래로 가는 길 {downs}개" + (gap ? " (자리 못 정한 곳인데 생김 — KnownDownGaps에서 빼기)" : ""));
+                }
+                foreach (var cell in InteriorSkyLiftSpots.UpFaces(t.Module, kit))
                 {
                     int ways = 0;
                     foreach (var s in t.Sockets)
@@ -58,9 +92,9 @@ namespace SpaceStation.Tests
                                 lifts++;
                         }
                     }
-                    bool gap = System.Array.IndexOf(KnownGaps, (t.name, cell)) >= 0;
+                    bool gap = System.Array.IndexOf(KnownUpGaps, (t.name, cell)) >= 0;
                     if (gap ? ways != 0 : ways != 1)
-                        problems.AppendLine($"{t.name} {cell}: 위로 가는 길 {ways}개" + (gap ? " (자리 못 정한 곳인데 생김 — KnownGaps에서 빼기)" : ""));
+                        problems.AppendLine($"{t.name} {cell}: 위로 가는 길 {ways}개" + (gap ? " (자리 못 정한 곳인데 생김 — KnownUpGaps에서 빼기)" : ""));
                 }
                 foreach (var s in t.Sockets)
                 {
@@ -101,7 +135,7 @@ namespace SpaceStation.Tests
                         string at = $"{t.name} {s.Cell} 판 {s.Offset}";
                         if (Mathf.Abs(s.Offset.x) > 3.15f || Mathf.Abs(s.Offset.z) > 3.15f)
                             problems.AppendLine($"{at}: 칸 가장자리에 너무 가까움");
-                        if (Mathf.Abs(s.Depth - InteriorSkyLiftSpots.RingDepth) > 0.001f)
+                        if (s.Depth > InteriorSkyLiftSpots.RingDepth + 0.001f)   // 기둥이 천장 · 유리 돔에 막히는 칸은 그 밑 (모든 면 연결 ③)
                             problems.AppendLine($"{at}: 고리 깊이 {s.Depth}");
                         if (!InteriorSkyLiftSpots.PadSurface(pad, out float top, out float uneven) || Mathf.Abs(top - pad.y) > 0.02f)
                             problems.AppendLine($"{at}: 판 밑 땅이 고르지 않음 / 판이 떠 있음");

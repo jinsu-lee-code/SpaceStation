@@ -1636,6 +1636,14 @@ namespace SpaceStation.Editor
             Debug.Log("[ResidentSpotBaker] " + string.Join(" · ", log));
         }
 
+        /// <summary>템플릿 하나만 굽기 (위 · 아래 길이 주민 자리에 놓인 자동 주민 방 — InteriorSkyLiftSpots).</summary>
+        public static string BakeOne(InteriorTemplate template)
+        {
+            string log = Bake(template);
+            EditorUtility.SetDirty(template);
+            return log;
+        }
+
         /// <summary>고정 자리 표가 있는 방의 주민 자리 (템플릿 로컬, 붐빔 줄여 뺀 자리 빼고) — 자동 문 계단이 비킴 (InteriorAutoDoors). 표가 없으면 빈 목록.</summary>
         public static List<Vector3> FixedSpotPositions(string name)
         {
