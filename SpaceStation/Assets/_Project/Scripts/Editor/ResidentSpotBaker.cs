@@ -1129,7 +1129,7 @@ namespace SpaceStation.Editor
                 new ResidentSpot(new Vector3(-1.1f, Floor, 1.1f), 135f, ResidentPose.Work, work: true),
                 new ResidentSpot(new Vector3(1.1f, Floor, -1.1f), -45f, ResidentPose.Work, work: true),
                 new ResidentSpot(new Vector3(5.8f, Floor, 2.35f), 180f, ResidentPose.Work, work: true),
-                new ResidentSpot(new Vector3(8.6f, Floor, 2.35f), 180f, ResidentPose.Work, work: true),
+                new ResidentSpot(new Vector3(9.4f, Floor, 2.35f), 180f, ResidentPose.Work, work: true),   // 콘솔 B는 관에서 +0.8 (뒤 벽 옆문 앞 길, 2026-11-19)
                 new ResidentSpot(new Vector3(-2.05f, Floor, 7f), 90f, ResidentPose.Work, work: true),
                 new ResidentSpot(new Vector3(-2.2f, Floor, 4.5f), -90f, ResidentPose.Work, work: true),
             };
@@ -1241,7 +1241,7 @@ namespace SpaceStation.Editor
                 list.Add(new ResidentSpot(new Vector3(x, Floor, -1.25f), 0f, ResidentPose.Work, work: true));
                 list.Add(new ResidentSpot(new Vector3(x, Floor, 1.25f), 180f, ResidentPose.Work, work: true));
             }
-            foreach (float x in new[] { 4.2f, 7.4f })
+            foreach (float x in new[] { 3.9f, 5.5f })   // 모종 선반 x 3 ~ 6.4 (2026-11-19 — +x 칸 ±z 옆문 자리)
             {
                 list.Add(new ResidentSpot(new Vector3(x, 8f + Floor, -2.1f), 180f, ResidentPose.Work, work: true));
                 list.Add(new ResidentSpot(new Vector3(x, 8f + Floor, 2.1f), 0f, ResidentPose.Work, work: true));
