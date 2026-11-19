@@ -452,9 +452,11 @@ namespace SpaceStation.Editor
                         tubes.ContainsKey("KIT_SkyLiftRing" + n) ? Piece("KIT_SkyLiftRing" + n, tubes) : null);
                     s.EditorSetDoorSteps(tubes.ContainsKey("KIT_DoorSteps" + n) ? Piece("KIT_DoorSteps" + n, tubes) : null);   // 문 계단 (모든 면 연결 ②, 2026-11-19)
                     s.EditorSetTransit(tubes.ContainsKey("KIT_Transit" + n) ? Piece("KIT_Transit" + n, tubes) : null);   // 위아래 이동 장치 (2026-11-19)
+                    s.EditorSetTransitWall(tubes.ContainsKey("KIT_TransitWall" + n) ? Piece("KIT_TransitWall" + n, tubes) : null);
                 }
                 kit.EditorSetSkyLiftShaft(AssetDatabase.LoadAssetAtPath<Material>(SkyLiftShaftPath));
                 kit.EditorSetTransitBasic(tubes.ContainsKey("KIT_Transit_Evo0") ? Piece("KIT_Transit_Evo0", tubes) : null);
+                kit.EditorSetTransitWallBasic(tubes.ContainsKey("KIT_TransitWall_Evo0") ? Piece("KIT_TransitWall_Evo0", tubes) : null);
             }
             kit.EditorSetStages(stages);
             EditorUtility.SetDirty(kit);

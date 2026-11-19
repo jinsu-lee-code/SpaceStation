@@ -125,6 +125,13 @@ namespace SpaceStation.Data
 
         public void EditorSetTransit(InteriorKitPiece transit) => _transit = transit;
 
+        [Tooltip("벽 위아래 이동 장치 (2026-11-19 — 길을 막는 방: 피벗 = 벽 면 · 바닥, 방 쪽 −z, 서는 자리 z −0.5)")]
+        [SerializeField] private InteriorKitPiece _transitWall;
+
+        public InteriorKitPiece TransitWall => _transitWall != null && _transitWall.IsValid ? _transitWall : null;
+
+        public void EditorSetTransitWall(InteriorKitPiece transit) => _transitWall = transit;
+
         public InteriorKitStage(int stage, List<ModuleData> modules, InteriorKitPiece wall, InteriorKitPiece wallDoor, InteriorKitPiece doorLeaf,
             InteriorKitPiece floor, InteriorKitPiece ceiling, InteriorKitPiece hatchFrame, InteriorKitPiece hatchLid, InteriorKitPiece sealedWall = null, InteriorKitPiece skyPatch = null)
         {
@@ -238,12 +245,15 @@ namespace SpaceStation.Data
 
         [Tooltip("기본 방 위아래 이동 장치 (2026-11-19 화물 승강기 칸 — 단계 장치가 없는 방)")]
         [SerializeField] private InteriorKitPiece _transitBasic;
+        [SerializeField] private InteriorKitPiece _transitWallBasic;
 
         public Material SkyLiftShaft => _skyLiftShaft;
         /// <summary>그 방의 위아래 이동 장치 (단계 장치 → 없으면 기본 화물 승강기 칸, 둘 다 없으면 null).</summary>
         public InteriorKitPiece TransitFor(ModuleData data) => StageOf(data)?.Transit ?? (_transitBasic != null && _transitBasic.IsValid ? _transitBasic : null);
         /// <summary>위아래 이동 장치의 단계 (단계 장치를 쓰면 그 단계, 기본 칸 = 0).</summary>
         public int TransitStage(ModuleData data) => StageOf(data)?.Transit != null ? StageNumber(data) : 0;
+        /// <summary>그 방의 벽 위아래 이동 장치 (단계 → 기본 벽 화물 승강기).</summary>
+        public InteriorKitPiece TransitWallFor(ModuleData data) => StageOf(data)?.TransitWall ?? (_transitWallBasic != null && _transitWallBasic.IsValid ? _transitWallBasic : null);
         public InteriorKitPiece SkyLiftPadFor(ModuleData data) => StageOf(data)?.SkyLiftPad;
         public InteriorKitPiece SkyLiftRingFor(ModuleData data) => StageOf(data)?.SkyLiftRing;
         public InteriorKitPiece DoorStepsFor(ModuleData data) => StageOf(data)?.DoorSteps;
@@ -274,6 +284,8 @@ namespace SpaceStation.Data
         public void EditorSetSkyLiftShaft(Material shaft) => _skyLiftShaft = shaft;
 
         public void EditorSetTransitBasic(InteriorKitPiece transit) => _transitBasic = transit;
+
+        public void EditorSetTransitWallBasic(InteriorKitPiece transit) => _transitWallBasic = transit;
 #endif
 
         public InteriorKitStage StageOf(ModuleData data)
