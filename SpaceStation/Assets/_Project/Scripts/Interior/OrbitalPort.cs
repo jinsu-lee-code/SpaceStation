@@ -285,13 +285,14 @@ namespace SpaceStation.Interior
         public const float TurtleCourseClear = 1.15f;
         /// <summary>
         /// 날치 셋 (critter_builder Critter_FlyingFish — 사용자 2026-11-16 모델 시트 "좋아 유니티로 옮겨줘"): 처음 자리 = 활공 한가운데 (수면 + 0.15), 바라보는 쪽으로
-        /// 물에서 튀어나와 날개를 편 채 낮게 미끄러져 다시 물에 듦 (CritterFx Glide). 배 길 안쪽 오른편 · 왼편 산호초 곁 · 섬 뒤 북서쪽 물 —
+        /// 물에서 튀어나와 날개를 편 채 낮게 미끄러져 다시 물에 듦 (CritterFx Glide). 배 길 안쪽 오른편 · 왼편 산호초 곁 · 모래톱 앞 조개 쪽 물
+        /// (셋째는 섬 뒤 북서쪽 물이었는데 2026-11-19 모래 곶 (모든 면 연결)으로 물이 얕아져 옮김) —
         /// 활공 길 아래 물 깊이 0.5 m 넘게 · 배 길에서 1.3 m · 거북 자리에서 1.6 m · 길 둘레 0.45 m 안에 물 위 물체 없음 · 방 벽에서 0.6 m.
         /// </summary>
         public static readonly (string Kind, Vector3 At, float Facing)[] FlyingFish =
         {
             ("FlyingFish", new Vector3(29.0f, LagoonLevel + 0.15f, 5.5f), 180f), ("FlyingFish", new Vector3(20.5f, LagoonLevel + 0.15f, 4.5f), 60f),
-            ("FlyingFish", new Vector3(-1.9f, LagoonLevel + 0.15f, 11.1f), 0f),
+            ("FlyingFish", new Vector3(35.0f, LagoonLevel + 0.15f, 5.0f), 90f),
         };
         /// <summary>날치 묶음 배율 (CritterFx Glide 움직임 크기 — 활공 길이 0.18 × 15 = 2.7 m · 높이 0.025 × 15 = 0.375 m · 물속 0.04 × 15 = 0.6 m).</summary>
         public const float FlyingFishScale = 15f;
@@ -315,12 +316,12 @@ namespace SpaceStation.Interior
         /// </summary>
         public static readonly (Vector3Int Cell, Vector2 Offset, float FloorY)[] Hatches =
         {
-            (new Vector3Int(0, 0, 0), new Vector2(-0.4f, 2.8f), LawnTop), (new Vector3Int(0, 0, 1), new Vector2(0f, -0.2f), Floor),
+            (new Vector3Int(0, 0, 0), new Vector2(-0.8f, 2.0f), Floor), (new Vector3Int(0, 0, 1), new Vector2(0.4f, -1.6f), LawnTop),   // 섬 서 · 남 새 문 길 비킴 (2026-11-19)
             (new Vector3Int(1, 0, 0), new Vector2(-2.4f, 0.6f), LawnTop), (new Vector3Int(1, 0, 1), new Vector2(-1.0f, 2.0f), Floor),
             (new Vector3Int(2, 0, 0), new Vector2(-1.4f, -2.4f), Floor), (new Vector3Int(2, 0, 1), new Vector2(0.4f, 2.8f), Floor),
             (new Vector3Int(3, 0, 0), new Vector2(-2.2f, -2.8f), Floor), (new Vector3Int(3, 0, 1), new Vector2(0f, 2.4f), Floor),
             (new Vector3Int(4, 0, 0), new Vector2(0.8f, -1.4f), Floor), (new Vector3Int(4, 0, 1), new Vector2(0f, 2.4f), Floor),
-            (new Vector3Int(5, 0, 0), new Vector2(-0.2f, 0f), Floor), (new Vector3Int(5, 0, 1), new Vector2(3.0f, 1.2f), PierY),
+            (new Vector3Int(5, 0, 0), new Vector2(-0.6f, 1.2f), Floor), (new Vector3Int(5, 0, 1), new Vector2(3.0f, 1.2f), PierY),
             (new Vector3Int(6, 0, 0), new Vector2(0.8f, -2.2f), Floor), (new Vector3Int(6, 0, 1), new Vector2(-0.4f, 1.2f), PierY),
         };
         /// <summary>위 해치 셋 (외형 위 연결점): 섬 전망 첨탑 원판 (1, 0, 1) · 기중기 운전대 마루 (5, 0, 1) · 등대 전망대 원판 (6, 0, 0) — 마루 위 ± 0.5 m가 한 판, 난간 · 기둥과 0.4 m.</summary>
