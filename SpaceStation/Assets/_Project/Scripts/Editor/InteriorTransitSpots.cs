@@ -35,6 +35,12 @@ namespace SpaceStation.Editor
                 var t = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
                 if (t == null || t.Module == null || t.Prefab == null)
                     continue;
+                if (t.TransitManual)
+                {
+                    log.AppendLine($"{t.name}: {t.TransitSpot.x:0.00}, {t.TransitSpot.y:0.00}, {t.TransitSpot.z:0.00} (손으로 고른 자리 — 그대로)");
+                    found++;
+                    continue;
+                }
                 if (TryFind(t, kit, out var spot, out float yaw, out float scale, out bool wall, out string why))
                 {
                     t.EditorSetTransitSpot(true, spot, yaw, scale, wall);
@@ -93,7 +99,8 @@ namespace SpaceStation.Editor
         /// 템플릿 하나의 장치 자리 (모듈 로컬) · 보는 쪽 (y 각도, 90° 단위 — 들어오는 자리 쪽 먼저, 안내 기둥 · 앞자리가 막히면 옆 · 뒤).
         /// why = 고른 자리의 점수 설명 · 못 찾으면 걸린 까닭별 수.
         /// </summary>
-        public static bool TryFind(InteriorTemplate t, InteriorKit kit, float scale, out Vector3 local, out float yaw, out string why, Vector3? near = null)
+        public static bool TryFind(InteriorTemplate t, InteriorKit kit, float scale, out Vector3 local, out float yaw, out string why, Vector3? near = null,
+            bool needBack = true, List<(Vector3 Local, float Yaw, string Why)> collect = null, int collectMax = 0)
         {
             local = Vector3.zero;
             yaw = 0f;
@@ -173,7 +180,7 @@ namespace SpaceStation.Editor
                         var rotation = Quaternion.Euler(0f, facing + offset, 0f);
                         var fwd = rotation * Vector3.back;
                         float b = Physics.Raycast(p + Vector3.up * 1.2f, -fwd, out var bh, 8f, ~0, QueryTriggerInteraction.Ignore) ? bh.distance : 8f;
-                        if (b > radius + 0.6f)
+                        if (needBack && b > radius + 0.6f)   // 손으로 고를 큰 방 후보 (needBack = false)는 뒤 벽 없이도 — 점수에서 뒤로
                             continue;
                         float f = Physics.Raycast(p + Vector3.up * 1.0f, fwd, out var fh, 8f, ~0, QueryTriggerInteraction.Ignore) ? fh.distance : 8f;
                         if (f < radius + 1.6f)
@@ -213,9 +220,27 @@ namespace SpaceStation.Editor
                         Count(reasons, "길끊음");
                         continue;
                     }
+                    if (collect != null)   // 후보 여럿 (서로 2 m 넘게 떨어진 자리) — 손으로 고를 때 사진으로 비교
+                    {
+                        bool far = true;
+                        foreach (var k in collect)
+                            far &= Flat2(k.Local + Away, c.P) > 2f;
+                        if (far)
+                            collect.Add((c.P - Away, c.Yaw, c.Why));
+                        if (collect.Count >= collectMax)
+                            break;
+                        continue;
+                    }
                     local = c.P - Away;
                     yaw = c.Yaw;
                     why = c.Why;
+                    return true;
+                }
+                if (collect != null && collect.Count > 0)
+                {
+                    local = collect[0].Local;
+                    yaw = collect[0].Yaw;
+                    why = collect[0].Why;
                     return true;
                 }
                 var sb = new System.Text.StringBuilder();

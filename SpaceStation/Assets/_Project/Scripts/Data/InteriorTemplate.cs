@@ -190,6 +190,8 @@ namespace SpaceStation.Data
         [SerializeField] private float _transitScale;
         [Tooltip("벽 장치 (자리 = 벽 면 · 바닥, 보는 쪽 = 방 안)")]
         [SerializeField] private bool _transitWall;
+        [Tooltip("손으로 고른 자리 (큰 진화 방, 사용자 2026-11-19 \"내가 자리를 골라 사진으로\") — 도구가 다시 돌아도 그대로 둠")]
+        [SerializeField] private bool _transitManual;
 
         public IReadOnlyList<PlantSpot> PlantSpots => _plantSpots;
         public bool HasTransitSpot => _hasTransitSpot;
@@ -197,6 +199,7 @@ namespace SpaceStation.Data
         public float TransitYaw => _transitYaw;
         public float TransitScale => _transitScale > 0f ? _transitScale : 1f;
         public bool TransitWall => _transitWall;
+        public bool TransitManual => _transitManual;
 
         public ModuleData Module => _module;
         public IReadOnlyList<ResidentSpot> ResidentSpots => _residentSpots;
@@ -254,8 +257,9 @@ namespace SpaceStation.Data
 
         public void EditorSetPlants(List<PlantSpot> spots) => _plantSpots = spots ?? new List<PlantSpot>();
 
-        public void EditorSetTransitSpot(bool has, Vector3 spot, float yaw = 0f, float scale = 1f, bool wall = false)
+        public void EditorSetTransitSpot(bool has, Vector3 spot, float yaw = 0f, float scale = 1f, bool wall = false, bool manual = false)
         {
+            _transitManual = manual;
             _transitWall = wall;
             _hasTransitSpot = has;
             _transitSpot = spot;
