@@ -926,11 +926,10 @@ namespace SpaceStation.Editor
             glass.SetFloat("_Surface", 1f); // Transparent
             glass.SetFloat("_Blend", 0f);   // Alpha
             glass.SetFloat("_ZWrite", 0f);
-            glass.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            glass.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
             glass.SetOverrideTag("RenderType", "Transparent");
             glass.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             glass.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            BaseShaderGUI.SetupMaterialBlendMode(glass);   // 섞기 값은 URP와 같게 (반사광 보존 = 알파를 미리 곱함 · SrcBlend One) — 손으로 SrcAlpha를 쓰면 Unity가 재질을 검사할 때마다 1로 바꿔 놓아 커밋마다 바뀜 (2026-11-20)
             glass.SetColor("_BaseColor", new Color(0.55f, 0.75f, 0.9f, 0.12f));
             glass.SetFloat("_Smoothness", 0.95f);
             glass.SetFloat("_Metallic", 0f);
@@ -943,11 +942,10 @@ namespace SpaceStation.Editor
             waterClear.SetFloat("_Surface", 1f); // Transparent
             waterClear.SetFloat("_Blend", 0f);   // Alpha
             waterClear.SetFloat("_ZWrite", 0f);
-            waterClear.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            waterClear.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
             waterClear.SetOverrideTag("RenderType", "Transparent");
             waterClear.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             waterClear.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            BaseShaderGUI.SetupMaterialBlendMode(waterClear);
             waterClear.SetColor("_BaseColor", new Color(0.35f, 0.75f, 0.95f, 0.55f));
             waterClear.SetFloat("_Smoothness", 0.3f);
             waterClear.SetFloat("_Metallic", 0f);
@@ -982,11 +980,10 @@ namespace SpaceStation.Editor
                 m.SetFloat("_Surface", 1f);
                 m.SetFloat("_Blend", 0f);
                 m.SetFloat("_ZWrite", 0f);
-                m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
                 m.SetOverrideTag("RenderType", "Transparent");
                 m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
                 m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                BaseShaderGUI.SetupMaterialBlendMode(m);
                 m.SetColor("_BaseColor", color);
                 m.SetFloat("_Smoothness", smoothness);
                 m.SetFloat("_Metallic", 0f);
