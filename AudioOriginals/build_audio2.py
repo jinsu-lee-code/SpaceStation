@@ -144,20 +144,22 @@ D = "Interior/door/"
 # 음량 (2026-11-20 검수 녹음: 처음 −14 dB + 날 선 "쾅" = 방 바탕 위 약 8 dB로 튀어나옴 → −21 dB는 바탕 위 3 dB로 묻힘 → 쾅은 tame으로 눌러 두고 바탕 위 4 ~ 6 dB)
 OPEN, CLOSE, OPEN1, CLOSE1, LOCK = -17.0, -18.0, -18.0, -19.0, -15.0
 
-# 기본 문 열림 — 철컥 + 치익. 5 = 첫 0.6초에 둘 다 있음 / 2 = 앞 걸쇠 + 짧은 치익 + 2.7초의 멈춤 소리를 0.3초로 당김 / 3 = 첫 0.6초
+# 기본 문 열림 — 철컥 + 치익 (2026-11-20 아기자기 톤: 철컥을 6 dB 누르고 5 kHz 위를 반쯤 둥글게). 5 = 첫 0.6초에 둘 다 있음 / 2 = 앞 걸쇠 + 짧은 치익 + 2.7초의 멈춤 소리를 0.3초로 당김 / 3 = 첫 0.6초
 x = load(D + "basic_open_5.wav")
-save("Interior/door_open_01.wav", fade(highpass(soften(tame(trim_lead(x)[: int(0.8 * SR)], 4))), 0.003, 0.3), OPEN)
+save("Interior/door_open_01.wav", fade(highpass(soften(tame(trim_lead(x)[: int(0.8 * SR)], 6), 5000, 0.5)), 0.003, 0.3), OPEN)
 x = load(D + "basic_open_2.wav")
 head = fade(sl(x, 0.0, 0.5), 0.003, 0.2)
 stop = fade(sl(x, hit_time(x, after=2.0) - 0.01, hit_time(x, after=2.0) + 0.4), 0.005, 0.2) * 0.5
-save("Interior/door_open_02.wav", highpass(soften(tame(place(head, stop, 0.3), 4))), OPEN)
+save("Interior/door_open_02.wav", highpass(soften(tame(place(head, stop, 0.3), 6), 5000, 0.5)), OPEN)
 x = load(D + "basic_open_3.wav")
-save("Interior/door_open_03.wav", fade(highpass(soften(tame(trim_lead(x)[: int(0.7 * SR)], 4))), 0.003, 0.28), OPEN)
+save("Interior/door_open_03.wav", fade(highpass(soften(tame(trim_lead(x)[: int(0.7 * SR)], 6), 5000, 0.5)), 0.003, 0.28), OPEN)
 
-# 기본 문 닫힘 — 미끄러짐 → 쾅. 셋 다 쾅이 0.25초에 오게 앞을 자름. 쾅은 7 dB 누르고 날 끝(3 kHz 위)을 반쯤 깎아 "퍽"보다 "툭"으로
-for i, n in enumerate((3, 4, 5), 1):
-    x = load(D + f"basic_close_{n}.wav")
-    save(f"Interior/door_close_{i:02d}.wav", highpass(soften(tame(hit_at(x, hit_time(x), 0.25, 0.9, 0.3), 7), 3000, 0.5)), CLOSE)
+# 기본 문 닫힘 — 2026-11-20 사용자 "쾅 자체가 너무 강함 — 게임이 아기자기하니 부드럽게" → 묵직한 금속 쾅 후보(basic_close_3 · 4 · 5)를 버리고
+# VARCO "부드럽게 미끄러져 쿠션처럼 툭" · "작고 귀여운 문 톡" 후보 10개 중 셋: A5 = 미끄러짐 → 아주 약한 툭 (커지는 데 58 ms) · A2 = 긴 미끄러짐 → 툭 (순간 최고 7 dB)
+# · B3 = 작은 톡톡 두 번. 툭이 문 닫히는 0.25초에 오게 (B3은 둘째 톡을 0.45초에 — 첫 톡이 0.1초). 날 끝을 둥글게 (4 kHz 위 반쯤).
+for i, (n, at) in enumerate((("close_soft_A5", 0.18), ("close_soft_A2", 0.25), ("close_soft_B3", 0.45)), 1):
+    x = load(D + f"{n}.wav")
+    save(f"Interior/door_close_{i:02d}.wav", highpass(soften(tame(hit_at(x, hit_time(x), at, 0.9, 0.3), 4), 4000, 0.5)), CLOSE)
 
 # 1단계 문 열림 — 부드러운 한 덩어리 "스윽" (기본보다 작게)
 x = load(D + "s1_open_4.wav")
