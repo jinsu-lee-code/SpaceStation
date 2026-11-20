@@ -50,6 +50,8 @@ namespace SpaceStation.Settings
         private static bool _headBob = true;
         private static bool _padDirectZoom;
         private static bool _transitRide = true;
+        private static float _interiorLook = 1f;
+        private static float _interiorMoveSpeed = 1f;
 
         /// <summary>11-17에서 기본값을 '끔'으로 바꾸며 키 이름을 바꿈 — 옛 저장값(켜짐)은 한 번 버리고 새 기본값을 쓴다.</summary>
         private const string InteriorPauseKey = "interiorPause2";
@@ -89,6 +91,12 @@ namespace SpaceStation.Settings
 
         /// <summary>2026-11-19 위아래 이동 장치 연출 (떠오르기 · 가라앉기) — 끄면 고르는 즉시 화면이 어두워졌다가 도착.</summary>
         public static bool TransitRide { get { Load(); return _transitRide; } set => Set(ref _transitRide, value, "transitRide"); }
+
+        /// <summary>REVIEW_1115 1-8 (사용자 2026-11-20): 1인칭 시점 마우스 감도 (바깥 카메라 회전 감도와 따로, 망원경도 같이).</summary>
+        public static float InteriorLookSensitivity { get { Load(); return _interiorLook; } set => Set(ref _interiorLook, Mathf.Clamp(value, 0.25f, 3f), "interiorLook"); }
+
+        /// <summary>REVIEW_1115 1-8: 1인칭 걷기 · 달리기 속도 배율.</summary>
+        public static float InteriorMoveSpeed { get { Load(); return _interiorMoveSpeed; } set => Set(ref _interiorMoveSpeed, Mathf.Clamp(value, 0.6f, 1.5f), "interiorMove"); }
 
         public static int FrameLimit => FrameLimits[FrameLimitIndex];
         public static int AutosaveMinutes => AutosaveChoices[AutosaveIndex];
@@ -140,6 +148,8 @@ namespace SpaceStation.Settings
             _headBob = true;
             _padDirectZoom = false;
             _transitRide = true;
+            _interiorLook = 1f;
+            _interiorMoveSpeed = 1f;
             SaveAll();
             Changed?.Invoke();
         }
@@ -172,6 +182,8 @@ namespace SpaceStation.Settings
             _headBob = PlayerPrefs.GetInt(Prefix + "headBob", _headBob ? 1 : 0) == 1;
             _padDirectZoom = PlayerPrefs.GetInt(Prefix + "padDirectZoom", _padDirectZoom ? 1 : 0) == 1;
             _transitRide = PlayerPrefs.GetInt(Prefix + "transitRide", _transitRide ? 1 : 0) == 1;
+            _interiorLook = Mathf.Clamp(PlayerPrefs.GetFloat(Prefix + "interiorLook", _interiorLook), 0.25f, 3f);
+            _interiorMoveSpeed = Mathf.Clamp(PlayerPrefs.GetFloat(Prefix + "interiorMove", _interiorMoveSpeed), 0.6f, 1.5f);
         }
 
         private static void SaveAll()
@@ -197,6 +209,8 @@ namespace SpaceStation.Settings
             PlayerPrefs.SetInt(Prefix + "headBob", _headBob ? 1 : 0);
             PlayerPrefs.SetInt(Prefix + "padDirectZoom", _padDirectZoom ? 1 : 0);
             PlayerPrefs.SetInt(Prefix + "transitRide", _transitRide ? 1 : 0);
+            PlayerPrefs.SetFloat(Prefix + "interiorLook", _interiorLook);
+            PlayerPrefs.SetFloat(Prefix + "interiorMove", _interiorMoveSpeed);
             PlayerPrefs.Save();
         }
 
