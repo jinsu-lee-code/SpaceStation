@@ -330,6 +330,7 @@ namespace SpaceStation.Interior
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
             _currentModule = null;
+            _bannerRoom = null;
             InputGate.SpeedCycleTaken = true; // 배속 순환 키 = 패드 화면 확대
             _pad = InteriorPad.Create(transform, new InteriorPad.Context
             {
@@ -486,6 +487,7 @@ namespace SpaceStation.Interior
             _boarding = null;
             ResetHold();
             _transitPanel?.Close();
+            _roomBanner?.Hide();
             if (_player != null)
                 Destroy(_player.gameObject);
             _player = null;
@@ -522,6 +524,7 @@ namespace SpaceStation.Interior
 
         private void Update()
         {
+            _roomBanner?.Tick();
             if (!_inside || _busy)
                 return;
             // 방 밖 빈 공간으로 떨어짐 (가장 긴 층 사이 낙하도 2초 안쪽): 있던 방 입구로 되돌림 — 개방형 방은 둘레 벽이 막으므로 마지막 안전장치
@@ -613,6 +616,11 @@ namespace SpaceStation.Interior
             string state = !_station.Connectivity.IsActive(room.Module) ? $"  <color={HudText.Orange}>비활성</color>"
                 : _station.Simulation.Damage.TryGetInfo(room.Module, out _) ? $"  <color={HudText.Red}>파손</color>" : "";
             _title.SetText($"<b>{name}</b>{state}\n<size=75%><color={HudText.Muted}>방 {_layout.Rooms.Count}개 연결</color></size>");
+            if (room.Module != _bannerRoom)
+            {
+                _bannerRoom = room.Module;
+                _roomBanner?.Show(name);
+            }
         }
 
         /// <summary>
@@ -781,6 +789,9 @@ namespace SpaceStation.Interior
 
         private InteriorTransitPanel _transitPanel;
         private InteriorTransit _transitFrom;
+        /// <summary>방 입장 표시 (REVIEW_1115 1-9) · 마지막으로 띄운 방 (제목만 다시 그리는 경우엔 안 띄움).</summary>
+        private InteriorRoomBanner _roomBanner;
+        private ModuleInstance _bannerRoom;
 
         /// <summary>장치 앞 F: 목적지 판을 엶 (걷기 · 둘러보기 멈춤).</summary>
         private void OpenTransitPanel(InteriorTransit transit)
@@ -1427,6 +1438,9 @@ namespace SpaceStation.Interior
             nrt.anchorMin = nrt.anchorMax = new Vector2(0.5f, 0.5f);
             nrt.anchoredPosition = new Vector2(0f, 120f);
             nrt.sizeDelta = new Vector2(700f, 34f);
+
+            // REVIEW_1115 1-9 방 입장 표시 (조준점 위, 잠깐)
+            _roomBanner = new InteriorRoomBanner(ui, _fillSprite, _overlay);
 
             // 2026-11-19 위아래 이동 장치 목적지 판
             _transitPanel = new InteriorTransitPanel(ui, _fillSprite, _overlay);
