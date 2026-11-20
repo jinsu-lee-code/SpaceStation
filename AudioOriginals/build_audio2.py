@@ -131,6 +131,23 @@ def tame(x, reduce_db=6.0, attack=0.004, release=0.08):
     return x * g
 
 
+def notch(x, f, q=8.0, passes=2):
+    """좁은 울림 하나(f Hz)만 깎음 — 2026-11-20 사용자 "문 닫힐 때 찰랑거리는 소리가 어색" (A5의 2391 Hz 쇳소리 울림)."""
+    w0 = 2 * np.pi * f / SR
+    alpha = np.sin(w0) / (2 * q)
+    b = np.array([1.0, -2 * np.cos(w0), 1.0]) / (1 + alpha)
+    a = np.array([1.0, -2 * np.cos(w0) / (1 + alpha), (1 - alpha) / (1 + alpha)])
+    for _ in range(passes):
+        y = np.zeros_like(x)
+        x1 = x2 = y1 = y2 = 0.0
+        for i in range(len(x)):
+            v = b[0] * x[i] + b[1] * x1 + b[2] * x2 - a[1] * y1 - a[2] * y2
+            x2, x1, y2, y1 = x1, x[i], y1, v
+            y[i] = v
+        x = y
+    return x
+
+
 def circular(fn, x, pad=0.5):
     """루프용: 끝을 앞에 붙여 필터를 돌린 뒤 잘라 이음새가 그대로 이어지게."""
     n = int(pad * SR)
@@ -157,8 +174,11 @@ save("Interior/door_open_03.wav", fade(highpass(soften(tame(trim_lead(x)[: int(0
 # 기본 문 닫힘 — 2026-11-20 사용자 "쾅 자체가 너무 강함 — 게임이 아기자기하니 부드럽게" → 묵직한 금속 쾅 후보(basic_close_3 · 4 · 5)를 버리고
 # VARCO "부드럽게 미끄러져 쿠션처럼 툭" · "작고 귀여운 문 톡" 후보 10개 중 셋: A5 = 미끄러짐 → 아주 약한 툭 (커지는 데 58 ms) · A2 = 긴 미끄러짐 → 툭 (순간 최고 7 dB)
 # · B3 = 작은 톡톡 두 번. 툭이 문 닫히는 0.25초에 오게 (B3은 둘째 톡을 0.45초에 — 첫 톡이 0.1초). 날 끝을 둥글게 (4 kHz 위 반쯤).
-for i, (n, at) in enumerate((("close_soft_A5", 0.18), ("close_soft_A2", 0.25), ("close_soft_B3", 0.45)), 1):
+# 찰랑 깎기 (2026-11-20 사용자 "문 닫힐 때 찰랑거리는 소리가 어색"): A5 = 툭 뒤 0.2 ~ 0.5초 이어지는 2391 Hz 쇳소리 울림 · A2 = 시작 0.1초의 1535 Hz 휘파람
+for i, (n, at, rings) in enumerate((("close_soft_A5", 0.18, (2391, 4782)), ("close_soft_A2", 0.25, (1540,)), ("close_soft_B3", 0.45, ())), 1):
     x = load(D + f"{n}.wav")
+    for f in rings:
+        x = notch(x, f)
     save(f"Interior/door_close_{i:02d}.wav", highpass(soften(tame(hit_at(x, hit_time(x), at, 0.9, 0.3), 4), 4000, 0.5)), CLOSE)
 
 # 1단계 문 열림 — 부드러운 한 덩어리 "스윽" (기본보다 작게)
@@ -168,13 +188,12 @@ for i, n in ((2, 2), (3, 5)):
     x = load(D + f"s1_open_{n}.wav")
     save(f"Interior/door1_open_{i:02d}.wav", fade(highpass(trim_lead(x)[: int(1.0 * SR)]), 0.003, 0.4), OPEN1)
 
-# 1단계 문 닫힘 — 2 = "스윽 → 딸깍" (딸깍을 0.3초로) / 5 · 1 = 짧은 스윽
+# 1단계 문 닫힘 — 2 = "스윽 → 딸깍" (딸깍을 0.3초로) / 5 = 짧은 스윽
 x = load(D + "s1_close_2.wav")
 save("Interior/door1_close_01.wav", highpass(tame(hit_at(x, hit_time(x), 0.3, 0.9, 0.3), 5)), CLOSE1)
 x = load(D + "s1_close_5.wav")
 save("Interior/door1_close_02.wav", fade(highpass(trim_lead(x)[: int(1.0 * SR)]), 0.003, 0.4), CLOSE1)
-x = load(D + "s1_close_1.wav")
-save("Interior/door1_close_03.wav", fade(highpass(trim_lead(x), 80), 0.003, 0.25), CLOSE1)
+# s1_close_1 ("웅" 자석 소리 + 4.2 · 8 kHz 울림 — 검수 ring 28, 깎아도 8 = "찰랑") → 2026-11-20 뺌, 1단계 닫힘은 두 개로
 
 # 에어록 — 열림 = 압력이 확 빠지는 치익 (4) · 철컥 여러 번 + 치익 (2) / 닫힘 = 철컥 → 치익 (5) · 쿵 + 낮은 웅 (1). 기본 문보다 조금 크고 길게
 x = load(D + "airlock_open_4.wav")

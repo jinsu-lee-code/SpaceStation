@@ -1,5 +1,5 @@
 """
-사운드 검수 표 (작업 지침 7): 폴더 안 WAV 전부의 crest(50 ms 대비 순간 최고 — 14 dB 넘으면 치고 나옴 의심) · attack(ms) · crackle(고음 잡음 터짐) · tonal(좁은 울림 봉우리 — 4.5 넘으면 통통 · 웅 의심) · mid1-6k(발소리 닿는 소리)를 출력.
+사운드 검수 표 (작업 지침 7): 폴더 안 WAV 전부의 crest(50 ms 대비 순간 최고 — 14 dB 넘으면 치고 나옴 의심) · attack(ms) · crackle(고음 잡음 터짐) · tonal(좁은 울림 봉우리 — 4.5 넘으면 통통 · 웅 의심) · ring(0.8 ~ 12 kHz 좁은 울림이 이어진 구간 수 — 5 넘으면 "찰랑" 쇳소리 의심, 2026-11-20 문 닫힘) · mid1-6k(발소리 닿는 소리)를 출력.
 실행: PYTHONIOENCODING=utf-8 "<Blender>/5.2/python/bin/python.exe" -I AudioOriginals/tools/audit.py <Audio 폴더>
 """
 import sys, wave, glob, os, numpy as np
@@ -24,6 +24,14 @@ for f in sorted(glob.glob(sys.argv[1] + "/**/*.wav", recursive=True)):
     sm = np.convolve(S, np.ones(31) / 31, mode="same") + 1e-12
     tonal = np.percentile(S / sm, 99.8)
     P = S ** 2; mid = P[(fq > 1000) & (fq < 6000)].sum() / P.sum()
+    # 찰랑: 높은 음역 좁은 울림이 여러 구간 이어짐
+    fr2 = np.array([x[i:i + 4096] * np.hanning(4096) for i in range(0, max(1, min(len(x), sr * 4) - 4096), 1024)])
+    ring = 0
+    if len(fr2):
+        S2 = np.abs(np.fft.rfft(fr2, axis=1)); f2 = np.fft.rfftfreq(4096, 1 / sr); hb = (f2 > 800) & (f2 < 12000)
+        r2 = S2[:, hb] / (np.apply_along_axis(lambda r: np.convolve(r, np.ones(41) / 41, mode='same'), 1, S2[:, hb]) + 1e-9)
+        e2 = 20 * np.log10(np.sqrt((fr2 ** 2).mean(1)) + 1e-9)
+        ring = int(((r2.max(1) > 6) & (e2 > e2.max() - 30)).sum())
     flags = []
     loop = f.endswith("_loop.wav")
     if not loop and crest > 14: flags.append("치고나옴")
@@ -31,7 +39,8 @@ for f in sorted(glob.glob(sys.argv[1] + "/**/*.wav", recursive=True)):
     if crackle > 22 and loop: flags.append("지직")
     if tonal > 4.5: flags.append("울림봉우리")
     if "step" in f and mid < 0.05: flags.append("닿는소리없음")
-    rows.append((os.path.relpath(f, sys.argv[1]), crest, attack, crackle, tonal, mid, " ".join(flags)))
-print(f"{'file':42s} crest attack crackle tonal mid1-6k  flags")
+    if not loop and ring > 5: flags.append("찰랑")
+    rows.append((os.path.relpath(f, sys.argv[1]), crest, attack, crackle, tonal, mid, ring, " ".join(flags)))
+print(f"{'file':42s} crest attack crackle tonal mid1-6k ring  flags")
 for r in rows:
-    print(f"{r[0]:42s} {r[1]:5.1f} {r[2]:6.1f} {r[3]:7.1f} {r[4]:5.1f} {r[5]:6.2f}  {r[6]}")
+    print(f"{r[0]:42s} {r[1]:5.1f} {r[2]:6.1f} {r[3]:7.1f} {r[4]:5.1f} {r[5]:6.2f} {r[6]:4d}  {r[7]}")
