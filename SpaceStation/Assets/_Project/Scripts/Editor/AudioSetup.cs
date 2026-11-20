@@ -76,6 +76,13 @@ namespace SpaceStation.Editor
             { "RoomElectric", new[] { "amb_room_electric_loop" } },
             { "RoomHall", new[] { "amb_room_hall_loop" } },
             { "InteriorAlarm", new[] { "interior_alarm_loop" } },
+            // 사운드 개편 (2026-11-20, AudioOriginals/build_audio2.py)
+            { "DoorOpen", new[] { "door_open_" } },
+            { "DoorClose", new[] { "door_close_" } },
+            { "Door1Open", new[] { "door1_open_" } },
+            { "Door1Close", new[] { "door1_close_" } },
+            { "AirlockOpen", new[] { "airlock_open_" } },
+            { "AirlockClose", new[] { "airlock_close_" } },
             { "MusicDay", new[] { "amb_in_game_loop", "amb_space_loop" } },
             { "MusicNight", new[] { "amb_night_loop" } },
             { "MusicCrisis", new[] { "amb_crisis_loop" } },
