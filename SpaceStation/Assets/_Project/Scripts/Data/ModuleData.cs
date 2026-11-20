@@ -56,7 +56,7 @@ namespace SpaceStation.Data
         [Tooltip("전력 생산이 낮/밤 주기를 따름 (태양광)")]
         [SerializeField] private bool _solarPowered;
         [Tooltip("바깥 패널이 해를 따라 기욺 (SunFacingPanel — 기본 태양광 · 태양광 어레이) — 수평 통로는 패널 회전축과 나란한 옆면에만. " +
-                 "태양광으로 발전해도 패널이 기울지 않는 모듈 (궤도 미러 · 항성 발전망)은 끔 (2026-11-20: 항성 발전망 긴 면에 통로가 안 생겼음)")]
+                 "태양광으로 발전해도 패널이 기울지 않는 모듈 (궤도 미러 · 항성 발전망)은 끔 (2026-11-20: 항성 발전망 긴 면에 통로가 안 생겼음), 태양광 어레이도 끔 (사용자 \"앞뒤로도 생기게\")")]
         [SerializeField] private bool _tiltingPanels;
         [Tooltip("배터리 저장 용량 (전력×초)")]
         [SerializeField, Min(0f)] private float _batteryCapacity;
