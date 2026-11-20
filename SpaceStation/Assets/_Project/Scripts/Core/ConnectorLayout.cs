@@ -125,10 +125,10 @@ namespace SpaceStation.Core
             return true;
         }
 
-        /// <summary>태양광 모듈: 수평 통로는 패널 회전축과 나란한 면(옆면)만.</summary>
+        /// <summary>패널이 기우는 태양광 모듈 (<see cref="ModuleData.TiltingPanels"/>): 수평 통로는 패널 회전축과 나란한 면(옆면)만.</summary>
         private static bool SolarAllows(ModuleData data, Vector3Int worldDir)
         {
-            if (data == null || !data.SolarPowered || worldDir.y != 0)
+            if (data == null || !data.TiltingPanels || worldDir.y != 0)
                 return true;
             return worldDir == SolarSideAxis || worldDir == -SolarSideAxis;
         }
