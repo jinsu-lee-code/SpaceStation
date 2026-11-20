@@ -60,6 +60,8 @@ namespace SpaceStation.Interior
         private readonly Dictionary<ModuleInstance, InteriorRoom> _byModule = new Dictionary<ModuleInstance, InteriorRoom>();
         private readonly Dictionary<Vector3Int, InteriorRoom> _byCell = new Dictionary<Vector3Int, InteriorRoom>();
 
+        private static readonly Vector3Int[] Vertical = { Vector3Int.up, Vector3Int.down };
+
         public IReadOnlyList<InteriorRoom> Rooms => _rooms;
         public IReadOnlyList<InteriorFace> Faces => _faces;
         public InteriorRoom StartRoom { get; private set; }
@@ -104,6 +106,22 @@ namespace SpaceStation.Interior
                         continue;
                     layout.AddRoom(other);
                     queue.Enqueue(other);
+                }
+                // 위아래 = 방마다 이동 장치 하나 (2026-11-20 사용자 "위나 아래에 있는 모든 모듈로"): 바깥 통로 (외형 연결점 칸)와 상관없이
+                // 위아래로 맞닿은 모듈은 모두 이어짐 — 큰 2 · 3단계 모듈은 연결점 칸 위 모듈만 목적지에 떴음
+                foreach (var cell in current.Cells)
+                {
+                    foreach (var dir in Vertical)
+                    {
+                        var next = cell + dir;
+                        if (!grid.TryGetModule(next, out var other) || other == current)
+                            continue;
+                        passages.Add(ConnectorLayout.MakeKey(cell, next));
+                        if (!startActive || layout.Contains(other) || (isActive != null && !isActive(other)))
+                            continue;
+                        layout.AddRoom(other);
+                        queue.Enqueue(other);
+                    }
                 }
             }
 
