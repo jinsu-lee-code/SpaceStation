@@ -1,7 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using SpaceStation.Core;
+using SpaceStation.Data;
 using SpaceStation.Interior;
+using UnityEditor;
 using UnityEngine;
 
 namespace SpaceStation.Tests
@@ -69,6 +72,33 @@ namespace SpaceStation.Tests
             CollectionAssert.AreEquivalent(new[] { left, right }, stops.Select(s => s.Module).ToArray());
             // 위 칸 하나에서는 아래 넓은 방만 (옆 칸은 아래로 돌아가야 닿으므로 없음)
             CollectionAssert.AreEqual(new[] { wide }, routes.From(left).Select(s => s.Module).ToArray());
+        }
+
+        [Test]
+        public void TopWithoutConnectionPoint_StillListed()
+        {
+            // 큰 진화 모듈은 외형 연결점 칸에만 바깥 통로 — 연결점 없는 칸 위 모듈도 목적지 (2026-11-20 사용자 "2 · 3단계 일부는 표기 안 됨")
+            var data = ScriptableObject.CreateInstance<ModuleData>();
+            try
+            {
+                var so = new SerializedObject(data);
+                var list = so.FindProperty("_cellOffsets");
+                list.arraySize = 2;
+                list.GetArrayElementAtIndex(0).vector3IntValue = Vector3Int.zero;
+                list.GetArrayElementAtIndex(1).vector3IntValue = Vector3Int.right;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                data.SetFaceDepths(new List<FaceDepth> { new FaceDepth(Vector3Int.right, Vector3Int.up, -1f) });
+                Assert.IsTrue(_grid.TryPlace(data, Vector3Int.zero, 0, out var wide));
+                var onTop = Place(Single, Vector3Int.up + Vector3Int.right);
+                var routes = new InteriorTransitRoutes(InteriorLayout.Build(_grid, _ => true, wide));
+
+                CollectionAssert.AreEqual(new[] { onTop }, routes.From(wide).Select(s => s.Module).ToArray());
+                CollectionAssert.AreEqual(new[] { wide }, routes.From(onTop).Select(s => s.Module).ToArray());
+            }
+            finally
+            {
+                Object.DestroyImmediate(data);
+            }
         }
 
         [Test]
