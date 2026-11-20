@@ -110,18 +110,21 @@ namespace SpaceStation.Tests
         }
 
         /// <summary>
-        /// 통로를 옆면으로 제한하는 표시 (<see cref="ModuleData.TiltingPanels"/>) = 프리팹에 해를 따라 기우는 패널이 있는 모듈만 (2026-11-20:
-        /// 태양광으로 발전하는 항성 발전망 · 궤도 미러는 패널이 안 기우는데도 긴 면에 통로가 막혔음).
+        /// 통로를 옆면으로 제한하는 표시 (<see cref="ModuleData.TiltingPanels"/>) = 기본 태양광만 (2026-11-20: 태양광으로 발전하는 항성 발전망 · 궤도 미러는
+        /// 패널이 안 기우는데도 긴 면에 통로가 막혔음, 태양광 어레이는 사용자 "앞뒤로도 생기게"). 표시가 켜진 모듈은 프리팹에 기우는 패널이 있어야 함.
         /// </summary>
         [Test]
-        public void TiltingPanels_MatchesSunFacingPanelPrefabs()
+        public void TiltingPanels_OnlyBasicSolar()
         {
             var wrong = new List<string>();
             foreach (var guid in AssetDatabase.FindAssets("t:ModuleData", new[] { "Assets/_Project/Data" }))
             {
                 var data = AssetDatabase.LoadAssetAtPath<ModuleData>(AssetDatabase.GUIDToAssetPath(guid));
-                bool tilts = data != null && data.Prefab != null && data.Prefab.GetComponentInChildren<SpaceStation.Building.SunFacingPanel>(true) != null;
-                if (data != null && tilts != data.TiltingPanels)
+                if (data == null)
+                    continue;
+                bool tilts = data.Prefab != null && data.Prefab.GetComponentInChildren<SpaceStation.Building.SunFacingPanel>(true) != null;
+                bool expected = data.name == "MD_Solar";
+                if (data.TiltingPanels != expected || (data.TiltingPanels && !tilts))
                     wrong.Add($"{data.name} (패널 기욺 {tilts} · 표시 {data.TiltingPanels})");
             }
             Assert.IsEmpty(wrong, string.Join(", ", wrong));
