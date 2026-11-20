@@ -699,11 +699,13 @@ namespace SpaceStation.Interior
             var kind = other != null ? ConnectorStyle.DoorAt(StageOf(module), StageOf(other)) : DoorKind.Normal;
             if (kind == DoorKind.Open)
                 return;
+            var sound = kind == DoorKind.Airlock ? DoorSound.Airlock : StageOf(module) >= 1 ? DoorSound.Stage1 : DoorSound.Basic;
             BuildDoor(module, parent, center + up * (doorBottom + InteriorGeometry.DoorHeight * 0.5f) - panel.Normal * (t * 0.5f), rotation,
-                kind == DoorKind.Airlock ? _kit.AirlockLeaf : null);
+                kind == DoorKind.Airlock ? _kit.AirlockLeaf : null, sound);
         }
 
-        private void BuildDoor(ModuleInstance module, Transform parent, Vector3 position, Quaternion rotation, InteriorKitPiece leafOverride = null)
+        private void BuildDoor(ModuleInstance module, Transform parent, Vector3 position, Quaternion rotation, InteriorKitPiece leafOverride = null,
+            DoorSound sound = DoorSound.Basic)
         {
             var go = new GameObject("Door");
             go.transform.SetParent(parent, false);
@@ -720,6 +722,7 @@ namespace SpaceStation.Interior
             float travel = InteriorGeometry.PanelWidth * 0.5f - leafWidth - 0.04f;
             door.Initialize(left, right, leafWidth, travel,
                 new Vector3(InteriorGeometry.DoorWidth, InteriorGeometry.DoorHeight, 0.1f));
+            door.SetSound(sound);
             _doors.Add(door);
         }
 
