@@ -105,6 +105,23 @@ namespace SpaceStation.Audio
         /// <param name="delay">지연 (실시간 초)</param>
         /// <param name="pitch">추가 음높이 배율</param>
         public bool Play(SoundCue cue, float volume = 1f, float pan = 0f, float delay = 0f, float pitch = 1f)
+            => PlayVoice(cue, volume, pan, delay, pitch, null, 0f, 0f);
+
+        /// <summary>
+        /// 사운드 개편 D-4 (2026-11-20): 그 자리에서 3D로 — minDistance까지 그대로, maxDistance에서 들리지 않음 (직선 감쇠).
+        /// 리스너 = 메인 카메라 (내부 1인칭도 같은 카메라).
+        /// </summary>
+        public bool PlayAt(SoundCue cue, Vector3 position, float volume = 1f, float minDistance = 2f, float maxDistance = 15f)
+            => PlayVoice(cue, volume, 0f, 0f, 1f, position, minDistance, maxDistance);
+
+        public static void TryPlayAt(System.Func<SoundLibrary, SoundCue> pick, Vector3 position, float volume = 1f)
+        {
+            var s = Instance;
+            if (s != null && s._library != null)
+                s.PlayAt(pick(s._library), position, volume);
+        }
+
+        private bool PlayVoice(SoundCue cue, float volume, float pan, float delay, float pitch, Vector3? position, float minDistance, float maxDistance)
         {
             if (cue == null || !cue.HasClip)
                 return false;
@@ -126,6 +143,18 @@ namespace SpaceStation.Audio
             s.loop = false;
             s.pitch = p;
             s.panStereo = Mathf.Clamp(pan, -1f, 1f);
+            if (position.HasValue)
+            {
+                s.transform.position = position.Value;
+                s.spatialBlend = 1f;
+                s.rolloffMode = AudioRolloffMode.Linear;
+                s.minDistance = minDistance;
+                s.maxDistance = Mathf.Max(minDistance + 0.1f, maxDistance);
+            }
+            else
+            {
+                s.spatialBlend = 0f;
+            }
             s.volume = cue.Volume * volume * AudioVolumes.For(cue.Bus);
             voice.Cue = cue;
             voice.StartedAt = at;
