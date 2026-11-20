@@ -95,6 +95,7 @@ namespace SpaceStation.Tests
             var solar = Module(new[] { Vector3Int.zero });
             var so = new SerializedObject(solar);
             so.FindProperty("_solarPowered").boolValue = true;
+            so.FindProperty("_tiltingPanels").boolValue = true;
             so.ApplyModifiedPropertiesWithoutUndo();
             var block = Module(new[] { Vector3Int.zero });
             ConnectorLayout.SolarSideAxis = Vector3Int.right;
@@ -106,6 +107,24 @@ namespace SpaceStation.Tests
             Assert.AreEqual(0, _specs.Count, "앞뒤(패널이 기우는 쪽) = 통로 없음");
             ConnectorLayout.ForPlacement(_grid, block, Vector3Int.down, 0, _specs);
             Assert.AreEqual(1, _specs.Count, "아래 = 기둥 조인트");
+        }
+
+        /// <summary>
+        /// 통로를 옆면으로 제한하는 표시 (<see cref="ModuleData.TiltingPanels"/>) = 프리팹에 해를 따라 기우는 패널이 있는 모듈만 (2026-11-20:
+        /// 태양광으로 발전하는 항성 발전망 · 궤도 미러는 패널이 안 기우는데도 긴 면에 통로가 막혔음).
+        /// </summary>
+        [Test]
+        public void TiltingPanels_MatchesSunFacingPanelPrefabs()
+        {
+            var wrong = new List<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:ModuleData", new[] { "Assets/_Project/Data" }))
+            {
+                var data = AssetDatabase.LoadAssetAtPath<ModuleData>(AssetDatabase.GUIDToAssetPath(guid));
+                bool tilts = data != null && data.Prefab != null && data.Prefab.GetComponentInChildren<SpaceStation.Building.SunFacingPanel>(true) != null;
+                if (data != null && tilts != data.TiltingPanels)
+                    wrong.Add($"{data.name} (패널 기욺 {tilts} · 표시 {data.TiltingPanels})");
+            }
+            Assert.IsEmpty(wrong, string.Join(", ", wrong));
         }
 
         private ModuleData Module(Vector3Int[] offsets, params (Vector3Int cell, Vector3Int dir, float depth)[] depths)
