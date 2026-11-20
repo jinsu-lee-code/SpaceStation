@@ -165,7 +165,7 @@ namespace SpaceStation.Interior
             // 시점
             if (!Frozen)
             {
-                Vector2 look = mouse.delta.ReadValue() * (_lookDegreesPerPixel * Settings.GameSettings.OrbitSensitivity);
+                Vector2 look = mouse.delta.ReadValue() * (_lookDegreesPerPixel * Settings.GameSettings.InteriorLookSensitivity);
                 transform.Rotate(0f, look.x, 0f, Space.Self);
                 _pitch = Mathf.Clamp(_pitch - look.y, -85f, 85f);
                 _eye.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
@@ -185,7 +185,7 @@ namespace SpaceStation.Interior
             var move = transform.right * right + transform.forward * forward;
             if (move.sqrMagnitude > 1f)
                 move.Normalize();
-            move *= run ? _runSpeed : _walkSpeed;
+            move *= (run ? _runSpeed : _walkSpeed) * Settings.GameSettings.InteriorMoveSpeed;
 
             _fallSpeed = _body.isGrounded ? 1f : _fallSpeed + _gravity * dt; // 바닥에 붙어 있도록 살짝 누름
             move.y = -_fallSpeed;

@@ -172,7 +172,7 @@ namespace SpaceStation.Interior
             if (mouse == null)
                 return;
             // 확대할수록 천천히 (화면에서 같은 거리만큼 움직이게)
-            float k = 0.12f * Settings.GameSettings.OrbitSensitivity * (_fov / _baseFov);
+            float k = 0.12f * Settings.GameSettings.InteriorLookSensitivity * (_fov / _baseFov);
             var look = mouse.delta.ReadValue() * k;
             _yaw = Mathf.Clamp(_yaw + look.x, -_yawLimit, _yawLimit);
             _pitch = Mathf.Clamp(_pitch + look.y, _pitchRange.x, _pitchRange.y);
