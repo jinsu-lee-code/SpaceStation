@@ -31,7 +31,8 @@ namespace SpaceStation.Audio
         [Tooltip("음악 상태가 이 시간(초) 이상 유지되어야 곡을 바꾼다")]
         [SerializeField] private float _musicHold = 3f;
 
-        private enum MusicState { None, Day, Night, Crisis }
+        // Interior = 1인칭 내부: 바깥 음악을 끄고 내부 음악 층(InteriorAudio)에 넘김 (2026-11-23). 위기 음악은 안에서도 그대로.
+        private enum MusicState { None, Day, Night, Crisis, Interior }
 
         private AudioService _audio;
         private SoundLibrary _lib;
@@ -243,18 +244,20 @@ namespace SpaceStation.Audio
             if (_gameOver)
                 return;
             bool day = !_sim.DayNight.Enabled || _sim.DayNight.IsDay(_sim.ElapsedSeconds);
-            var wanted = crisis ? MusicState.Crisis : day ? MusicState.Day : MusicState.Night;
+            var wanted = crisis ? MusicState.Crisis : _inside ? MusicState.Interior : day ? MusicState.Day : MusicState.Night;
             if (wanted != _wantedState)
             {
                 _wantedState = wanted;
                 _wantedFor = 0f;
             }
             _wantedFor += Time.unscaledDeltaTime;
-            // 처음 한 번은 바로, 이후에는 잠깐 유지되어야 전환 (경계에서 왔다 갔다 방지)
-            if (wanted == _musicState || (_musicState != MusicState.None && _wantedFor < _musicHold))
+            // 처음 한 번은 바로, 이후에는 잠깐 유지되어야 전환 (경계에서 왔다 갔다 방지). 내부 들어가기 · 나오기는 바로
+            bool doorway = wanted == MusicState.Interior || _musicState == MusicState.Interior;
+            if (wanted == _musicState || (_musicState != MusicState.None && !doorway && _wantedFor < _musicHold))
                 return;
             _musicState = wanted;
-            _audio.PlayMusic(wanted == MusicState.Crisis ? _lib.MusicCrisis
+            _audio.PlayMusic(wanted == MusicState.Interior ? null
+                : wanted == MusicState.Crisis ? _lib.MusicCrisis
                 : wanted == MusicState.Night ? _lib.MusicNight : _lib.MusicDay);
         }
 

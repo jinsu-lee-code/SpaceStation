@@ -22,7 +22,8 @@
 
 - `varco_text_to_sound` 한 번에 후보 5개 (값 = 한 번 50 크레딧, 링크 1시간).
 - **프롬프트 = 무엇 + 느낌 + 빼고 싶은 것**: 예) `industrial sliding metal door closing, slightly heavy but soft muffled thud at the end, short air hiss, solid and weighty, no metallic ringing, no harsh clang, cozy game`. 아기자기 쪽은 soft · gentle · cute · cozy · rounded, 무게가 필요하면 weighty · muffled · solid. 쇳소리가 나기 쉬운 소리는 **no metallic ringing**, 세게 치는 소리는 **no harsh clang / no harsh impact**를 꼭 넣음.
-- 한 번에 원하는 후보가 없으면 느낌을 바꿔 한 번 더 (문 닫힘은 3번 만들었음: 묵직한 쾅 → 부드러운 툭 → 조금 묵직한 쿵).
+- **크레딧은 아끼지 않는다** (사용자 2026-11-23 "토큰 걱정 없이 팍팍 만들어서 그중 가장 좋은 후보로"): 처음부터 성격을 넓힌 프롬프트 여러 개를 함께 돌려 후보를 넉넉히 받고 그중 가장 좋은 것을 고름. 그래도 없으면 느낌을 바꿔 더 (문 닫힘은 3번 만들었음: 묵직한 쾅 → 부드러운 툭 → 조금 묵직한 쿵).
+- 음악 = `varco_music_generate` (한 번에 약 3분 두 곡, mp3). 이 PC엔 ffmpeg가 없으므로 `AudioOriginals/tools/decode.py`(Blender `-b`로 실행, aud 모듈)로 wav로 풀고 `music_check.py`로 판정 (빠르기 · 조 · 고름 · 루프 자리).
 - 받는 곳 = `AudioOriginals/_candidates/<묶음>/` (git 제외). 음악(mp3)은 효과음 다듬기 도구(`varco_variation` 등)에 넣지 않음.
 
 ## 3. 고르기 (그림 + 수치)
@@ -94,3 +95,5 @@
 - 2026-11-20 배경 "치지직" = 1차 합성 방 바탕에 일부러 넣은 지직 · 탁탁 (mute 녹음으로 찾음) → 고음 걸러 냄.
 - 2026-11-20 발소리 "통통" = 1차 합성의 낮은 울림 봉우리 (tonal 6 ~ 7.7) → VARCO 금속 바닥 부츠 9걸음.
 - 2026-11-20 음량을 너무 낮추면(−21 dB) 바탕 위 3 dB로 묻힘 → 녹음으로 4 ~ 6 dB 확인 후 정함.
+- 2026-11-23 음악: VARCO는 "D major"라고 써도 18곡 중 16곡이 D 단조 → 조는 요청이 아니라 **재서** 고름 (`music_check.py`). 처음 조 판정은 스펙트럼 전체를 세서 기계음 · 타악 때문에 모든 음이 비슷하게 나옴(흐릿) → 음 봉우리만 세게 고치니 또렷해짐 (기존 낮 곡 D 장조 0.91로 검증).
+- 2026-11-23 음악 후보 대부분이 중간에 통째로 비는 마디(브레이크)가 있음 → "no breaks, no drops, no intro, no ending"을 넣고 `끊김 마디` · `가장 긴 고른 구간`(32마디 넘게)으로 거름.
