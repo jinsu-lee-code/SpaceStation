@@ -4,7 +4,7 @@ using UnityEngine;
 namespace SpaceStation.Audio
 {
     /// <summary>
-    /// 5-8 소리 재생기. 2D AudioSource 풀로 한 번 울리는 소리를, 별도 소스로 반복음(루프)과 음악(교차 페이드)을 낸다.
+    /// 5-8 소리 재생기. 2D AudioSource 풀로 한 번 울리는 소리를, 별도 소스로 반복음(루프)과 음악(교차 페이드) · 음악 층(내부 4곡)을 낸다.
     /// 시간은 실시간(unscaled) 기준 — 일시정지 중에도 UI 소리는 난다.
     /// </summary>
     [DefaultExecutionOrder(-80)]
@@ -42,6 +42,22 @@ namespace SpaceStation.Audio
             public float Target;
         }
 
+        /// <summary>
+        /// 사운드 개편 (2026-11-23) 음악 층: 같은 길이 곡 여러 개를 같은 순간에 함께 돌리고 음량만 바꾼다 —
+        /// 층을 바꿔도 박 · 선율이 이어짐 (내부 음악 4곡). 바깥 음악(<see cref="PlayMusic"/>)이 나는 동안은 모두 내려감.
+        /// </summary>
+        public sealed class MusicLayers
+        {
+            internal AudioSource[] Sources;
+            internal SoundCue[] Cues;
+            internal float[] Levels;
+            internal bool Playing;
+            /// <summary>올릴 층 번호 (-1 = 모두 내림).</summary>
+            public int Active = -1;
+            /// <summary>초당 변화량 (0.4 = 2.5초에 0 → 1).</summary>
+            public float FadeSpeed = 0.4f;
+        }
+
         public static AudioService Instance { get; private set; }
         public SoundLibrary Library => _library;
 
@@ -55,6 +71,7 @@ namespace SpaceStation.Audio
 
         private readonly List<Voice> _voices = new List<Voice>();
         private readonly List<Loop> _loops = new List<Loop>();
+        private readonly List<MusicLayers> _layers = new List<MusicLayers>();
         private readonly MusicDeck[] _decks = new MusicDeck[2];
         private int _activeDeck;
         private SoundCue _music;
@@ -227,6 +244,21 @@ namespace SpaceStation.Audio
             StartTrack(cue.Pick());
         }
 
+        public MusicLayers CreateMusicLayers(params SoundCue[] cues)
+        {
+            var m = new MusicLayers { Cues = cues, Sources = new AudioSource[cues.Length], Levels = new float[cues.Length] };
+            for (int i = 0; i < cues.Length; i++)
+            {
+                var s = NewSource($"MusicLayer{i}");
+                s.loop = true;
+                s.clip = cues[i] != null ? cues[i].Pick() : null;
+                s.volume = 0f;
+                m.Sources[i] = s;
+            }
+            _layers.Add(m);
+            return m;
+        }
+
         /// <summary>음악을 잠시 낮춤 (1 = 원래, 0 = 무음).</summary>
         /// <param name="speed">초당 변화량</param>
         public void DuckMusic(float level, float speed = 0.8f)
@@ -281,6 +313,8 @@ namespace SpaceStation.Audio
                 if (d.Level <= 0f && d.Target <= 0f && d.Source.isPlaying)
                     d.Source.Stop();
             }
+            foreach (var m in _layers)
+                UpdateLayers(m, dt);
 
             // 곡이 끝나 가면 같은 묶음의 다음 곡으로 교차 페이드
             var active = _decks[_activeDeck];
@@ -291,6 +325,34 @@ namespace SpaceStation.Audio
                 if (left <= _musicCrossfade || (!active.Source.isPlaying && active.Level >= 1f))
                     StartTrack(_music.Pick());
             }
+        }
+
+        private void UpdateLayers(MusicLayers m, float dt)
+        {
+            bool any = false;
+            for (int i = 0; i < m.Sources.Length; i++)
+            {
+                float target = _music == null && i == m.Active ? 1f : 0f;
+                m.Levels[i] = Mathf.MoveTowards(m.Levels[i], target, m.FadeSpeed * dt);
+                any |= m.Levels[i] > 0f || target > 0f;
+            }
+            if (any && !m.Playing)
+            {
+                // 모든 층을 같은 dsp 순간에 시작 → 길이가 같으므로 계속 같은 자리를 돎
+                double at = AudioSettings.dspTime + 0.1;
+                foreach (var s in m.Sources)
+                    if (s.clip != null)
+                        s.PlayScheduled(at);
+                m.Playing = true;
+            }
+            else if (!any && m.Playing)
+            {
+                foreach (var s in m.Sources)
+                    s.Stop();
+                m.Playing = false;
+            }
+            for (int i = 0; i < m.Sources.Length; i++)
+                m.Sources[i].volume = m.Levels[i] * (m.Cues[i] != null ? m.Cues[i].Volume : 0f) * _musicDuck * AudioVolumes.Music;
         }
     }
 }

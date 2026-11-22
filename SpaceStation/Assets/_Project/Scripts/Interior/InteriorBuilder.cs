@@ -149,6 +149,9 @@ namespace SpaceStation.Interior
             return module != null && module.Data != null && _templates.TryGetValue(module.Data, out var t) ? t.Ambience : InteriorAmbience.Hall;
         }
 
+        /// <summary>모듈 진화 단계 (0 = 기본) — 내부 음악 층 고르기 (2026-11-23).</summary>
+        public int StageFor(ModuleInstance module) => StageOf(module);
+
         /// <summary>그 방 + 열린 통로(문·해치, 6방향)로 바로 이어진 방들의 모듈.</summary>
         public void CollectLinkedRooms(ModuleInstance module, HashSet<ModuleInstance> into)
         {

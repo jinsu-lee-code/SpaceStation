@@ -612,6 +612,7 @@ namespace SpaceStation.Interior
                 return;
             _currentModule = room.Module;
             _audio.SetRoom(_builder.AmbienceFor(room.Module));
+            _audio.SetMusicStage(_builder.StageFor(room.Module));
             string name =room.Module.Data != null ? room.Module.Data.DisplayName : room.Module.ToString();
             string state = !_station.Connectivity.IsActive(room.Module) ? $"  <color={HudText.Orange}>비활성</color>"
                 : _station.Simulation.Damage.TryGetInfo(room.Module, out _) ? $"  <color={HudText.Red}>파손</color>" : "";

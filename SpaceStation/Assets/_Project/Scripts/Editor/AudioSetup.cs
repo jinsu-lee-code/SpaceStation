@@ -87,6 +87,11 @@ namespace SpaceStation.Editor
             { "MusicNight", new[] { "amb_night_loop" } },
             { "MusicCrisis", new[] { "amb_crisis_loop" } },
             { "MusicMenu", new[] { "amb_mainmenu_loop" } },
+            // 내부 음악 4곡 (2026-11-23, AudioOriginals/build_music.py)
+            { "MusicInterior0", new[] { "music_interior_0" } },
+            { "MusicInterior1", new[] { "music_interior_1" } },
+            { "MusicInterior2", new[] { "music_interior_2" } },
+            { "MusicInterior3", new[] { "music_interior_3" } },
         };
 
         [MenuItem("SpaceStation/Audio/Setup")]
@@ -109,8 +114,10 @@ namespace SpaceStation.Editor
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 string name = Path.GetFileNameWithoutExtension(path);
                 var importer = (AudioImporter)AssetImporter.GetAtPath(path);
-                bool music = path.EndsWith(".mp3") || path.EndsWith(".ogg");
-                bool loop = name.EndsWith("_loop");
+                // 내부 음악 층은 여러 곡을 같은 dsp 순간에 함께 시작해야 해서 스트리밍 대신 압축 상태 메모리 (2026-11-23)
+                bool layer = name.StartsWith("music_interior_");
+                bool music = (path.EndsWith(".mp3") || path.EndsWith(".ogg")) && !layer;
+                bool loop = name.EndsWith("_loop") || layer;
                 bool snappy = path.Contains("/UI/") || path.Contains("/Build/");
 
                 var s = importer.defaultSampleSettings;
