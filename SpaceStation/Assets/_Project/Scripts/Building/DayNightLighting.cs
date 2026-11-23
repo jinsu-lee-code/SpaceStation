@@ -33,11 +33,20 @@ namespace SpaceStation.Building
         private static readonly int ExposureId = Shader.PropertyToID("_Exposure");
         private Light _light;
         private float _applied = -1f;
+        private Material _skyAsset; // 장면에 걸린 공유 하늘 재질 (에셋 — 바꾸지 않음)
+        private Material _sky;      // 실행 중 복사본 (노출은 이것만 바꿈)
 
         private void Awake()
         {
             _light = GetComponent<Light>();
             RenderSettings.ambientMode = AmbientMode.Flat;
+            // 공유 하늘 재질 에셋을 직접 바꾸면 에디터 플레이 중 에셋 저장 때 .mat 파일이 밤 노출로 남음 (2026-11-23) → 실행 중엔 복사본만
+            _skyAsset = RenderSettings.skybox;
+            if (_skyAsset != null && _skyAsset.HasProperty(ExposureId))
+            {
+                _sky = new Material(_skyAsset) { name = _skyAsset.name + " (낮밤)" };
+                RenderSettings.skybox = _sky;
+            }
         }
 
         private void LateUpdate()
@@ -59,17 +68,18 @@ namespace SpaceStation.Building
             _light.intensity = Mathf.Lerp(_nightIntensity, _dayIntensity, day);
             transform.rotation = Quaternion.Euler(Mathf.Lerp(_pitch.y, _pitch.x, day), _yaw, 0f);
             RenderSettings.ambientLight = Color.Lerp(_nightAmbient, _dayAmbient, day);
-            var sky = RenderSettings.skybox;
-            if (sky != null && sky.HasProperty(ExposureId))
-                sky.SetFloat(ExposureId, Mathf.Lerp(_skyExposure.y, _skyExposure.x, day));
+            if (_sky != null)
+                _sky.SetFloat(ExposureId, Mathf.Lerp(_skyExposure.y, _skyExposure.x, day));
         }
 
-        private void OnDisable()
+        private void OnDestroy()
         {
-            // 플레이 종료 후 공유 스카이박스 재질이 밤 노출로 남지 않도록
-            var sky = RenderSettings.skybox;
-            if (sky != null && sky.HasProperty(ExposureId))
-                sky.SetFloat(ExposureId, _skyExposure.x);
+            if (_sky == null)
+                return;
+            if (RenderSettings.skybox == _sky) // 다른 장면으로 넘어간 뒤면 그 장면 하늘은 건드리지 않음
+                RenderSettings.skybox = _skyAsset;
+            Destroy(_sky);
+            _sky = null;
         }
     }
 }
