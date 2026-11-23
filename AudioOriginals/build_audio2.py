@@ -438,4 +438,106 @@ for i, (semis, gain) in enumerate(((0, 0.9), (-3, 0.85), (2, 0.9), (5, 1.0))):
     motif = place(motif, pitch(bell, semis) * gain, i * BEAT)
 save("Interior/scape_city_motif.wav", fade(motif, 0.0, 1.0), -20)
 
+# ================= 3단계 소리 풍경 — 궤도 방어망 "등대 곶 해안" (SOUND_LIST_NEW D-7b) =================
+# 자리는 Interior/OrbitalDefense.cs 값 (왼쪽 곶 · 등대 렌즈 9.65 m · 앞 모래 해변 물가 z ≈ −1 · 바다 · 수정 부표 포대 · 방파제 끝 · 바다 동굴 입구 ·
+# 곶 뒤 폭포). VARCO 하나씩 순서대로 11번 (렌즈 · 바닷새는 2번씩). 곶 뒤 폭포 · 곶 윗면 개울 · 등대 꼭대기 바람은 궤도 도시 소리를 같이 씀.
+# 별똥별 반짝임 · 포대 수정 반짝임 · 밤 오로라 울림은 음악 조 (도 오음계)에 맞춰 합성.
+OD = "Interior/scape_defense/"
+
+# 바탕 — 잔잔한 만의 바닷바람 + 먼 잔물결 (2D). 후보 5 중 1 (9.6초 내내 고름) + 4 (조금 더 어두움)를 2초씩 겹쳐 14초.
+# 2 = 위쪽 가는 울림 줄 (울림 24), 3 = 7.7초에 끊김, 5 = 낮은 웅 줄.
+bed = chain_loop([sl(load(OD + "bed_a.wav"), 0.3, 9.3), sl(load(OD + "bed_b.wav"), 0.3, 6.8)], 2.0)
+save("Interior/scape_defense_bed_loop.wav", circular(lambda y: highpass(y, 40), bed), -24)
+
+# 앞 해변 물가 잔파도 (물가 넷, 3D) — 후보 5 중 1: 모래로 밀려왔다 자갈 사이로 빠지는 파도가 5.3초 간격으로 둘 →
+# 두 파도를 파도 시작에서 이어 8.1초 고리 (첫 파도 5.25초 · 둘째 2.85초 — 고르지 않은 게 자연스러움).
+# 2 · 3 = 큰 너울 하나뿐, 4 = 1.4초마다 찰랑 (너무 잦음), 5 = 5.9초 안에 둘 (짧음).
+shore = load(OD + "shore.wav")
+shore = chain_loop([sl(shore, 0.0, 6.25), sl(shore, 5.25, 9.05)], 1.0)
+save("Interior/scape_defense_shore_loop.wav", circular(lambda y: soften(highpass(y, 60), 7000, 0.3), shore), -24)
+
+# 곶 · 동굴 입구 · 방파제 끝 바위 파도 (3D 셋) — 후보 5 중 2: 4초 안팎으로 고르게 세 번 → 파도 시작 (1.0 · 8.9초) 사이 7.9초 고리.
+# 해변 잔파도와 갈리게 2.5 kHz 위를 눌러 둥글고 묵직하게. 1 = 더 어둡지만 간격이 들쭉날쭉, 3 = 바닥 잡음 −22.8 dB, 4 · 5 = 큰 파도 하나.
+rock = loop_exact(sl(load(OD + "rock.wav"), 0.95, 10.24), 7.9)
+save("Interior/scape_defense_rock_loop.wav", circular(lambda y: soften(soften(highpass(y, 40), 2500, 0.5), 6000, 0.4), rock), -23)
+
+# 등대 렌즈 돌아감 (렌즈 가운데 9.65 m, 3D) — 첫 5개 = 딸깍 · 밝음 (2.3 ~ 5.8 kHz, 1 · 2 = 쇳소리 울림 122 · 49),
+# "딸깍 없이 낮은 회전음"으로 다시 5개 중 3: 300 Hz 아래 79 % · 톱니 결이 일정 · 울림 6. 3.9초 → 결 주기를 재서 정수 번으로 고리.
+# 다시 만든 5 = 7.3초에 끊김 · 울림 17, 2 = 딸깍이 띄엄띄엄, 1 = 2.8초 험, 4 = 울림 48.
+lens = sl(load(OD + "lens.wav"), 0.15, 3.9)
+lp = period_of(lens, 0.2, 1.0)
+lens = loop_exact(lens, lp * int((len(lens) / SR - 0.85) / lp))
+save("Interior/scape_defense_lens_loop.wav", circular(lambda y: soften(highpass(y, 40), 4000, 0.4), lens), -24)
+report.append(f"  렌즈 결 주기 {lp:.2f}초 · 고리 {len(lens) / SR:.2f}초")
+
+# 바다 가운데 수정 부표 포대 (3D) — 몸통 = 후보 5 중 1 (3.4초 · 가장 고른 낮은 웅웅, 뚜렷한 음 없이 퍼짐 → 음악과 안 부딪힘)을
+# 앞뒤로 이어 늘림, 반짝임 = 합성 (도5 · 솔5 · 미6 — 도 오음계, 셋이 서로 다른 느린 숨으로). 다섯 모두 4 kHz 위가 없어 "수정"이 안 들렸음.
+hb = sl(load(OD + "battery_hum.wav"), 0.3, 3.2)
+body = chain_loop([hb, hb[::-1], hb, hb[::-1]], 0.8)
+LB = len(body) / SR
+tt = np.arange(len(body)) / SR
+shim = np.zeros_like(tt)
+for f0, amp, k in ((523.25, 1.0, 1), (783.99, 0.7, 2), (1318.51, 0.45, 3)):
+    for cents in (-4, 4):
+        f = round(f0 * 2 ** (cents / 1200) * LB) / LB
+        shim += amp / 2 * np.sin(2 * np.pi * f * tt + k) * (0.55 + 0.45 * np.sin(2 * np.pi * k * tt / LB + 1.3 * k))
+shim = circular(lambda y: onepole_lp(y, 3000), shim)
+s_rms, b_rms = np.sqrt((shim ** 2).mean()), np.sqrt((body ** 2).mean())
+save("Interior/scape_defense_battery_loop.wav", circular(lambda y: highpass(y, 35), 0.65 * body / b_rms + 0.35 * shim / s_rms), -24)
+report.append(f"  포대 고리 {LB:.2f}초")
+
+# 바닷새 (낮, 바다 위 여기저기 3D) — 첫 5개 = 바다 · 바람 잡음 띠에 새가 희미함 (바닥 −4 ~ −10 dB) → "배경 없는 가까운 녹음"으로
+# 다시 5개 중 2 (갈매기 "꺄옥" 넷이 깔끔히 떨어짐 · 바닥 −53 dB)의 앞 · 뒤 소절 + 3 (짧은 퍼핀 재잘, 바닥 −62 dB).
+# 다시 만든 1 = 울음이 뒤엉킴, 4 = 바닥 −41 dB, 5 = 일곱 번 같은 울음.
+g = load(OD + "gull.wav")
+ph = phrases(g, gap=0.12, pad=0.05)
+half = max(1, len(ph) // 2)
+for k, (a, b) in enumerate([(ph[0][0], ph[half - 1][1]), (ph[half][0], ph[-1][1])] if len(ph) > 1 else [ph[0]]):
+    save(f"Interior/scape_defense_gull_{k + 1:02d}.wav", fade(highpass(g[a:b], 300), 0.01, 0.08), -14)
+report.append(f"  갈매기 소절 {len(ph)}개")
+pf = load(OD + "puffin.wav")
+save("Interior/scape_defense_gull_03.wav", fade(highpass(trim_lead(pf, -45), 300), 0.01, 0.08), -14)
+
+# 물범 (낮, 방파제 끝 바위 3D) — 후보 5 모두 딸깍 · 지직이 섞임 (지직 44 ~ 57) → 3의 앞 두 번 "멍멍" (0.05 ~ 0.8초)만.
+seal = sl(load(OD + "seal.wav"), 0.05, 0.8)   # 0.8초 뒤 = 작은 딸깍 꼬리 (다듬은 뒤 그림으로 확인)
+save("Interior/scape_defense_seal_01.wav", fade(soften(highpass(seal, 100), 4500, 0.5), 0.01, 0.12), -14)
+
+# 등대 종 (가끔 등대에서 + 대표 선율) — 후보 5 중 3: 한 번 맑게 · 7.5초 긴 울림 · 도 (C4 −40 · C5 −15센트) → +0.28반음 올려 도에 맞춤.
+# 시작 1.2 ms → 15 ms로 둥글게 (−45 dB에서 자르면 앞 잡음 뒤에 그대로 쳐서 −30 dB에서 자름). 4 = 라 (A4, 좋지만 계획이 "낮은 으뜸음"), 1 = 시 (B4), 2 = 도6 높음, 5 = 미♭6 + 1.4초 뒤에 침.
+lbell = fade(soften(trim_lead(load(OD + "bell.wav"), -30)[: int(6.0 * SR)], 5000, 0.4), 0.015, 1.5)
+lbell = pitch(highpass(lbell, 80), 0.28)
+save("Interior/scape_defense_bell_01.wav", lbell, -14)
+# 대표 선율 = 등대 종 세 음 솔 · 라 · 도 (한 박 간격, 마지막 도는 한 옥타브 아래 도를 겹쳐 묵직하게 — "낮은 으뜸음")
+motif = np.zeros(int(8.0 * SR))
+for i, (semis, gain) in enumerate(((-5, 0.85), (-3, 0.85), (0, 1.0))):
+    motif = place(motif, pitch(lbell, semis) * gain, i * BEAT)
+motif = place(motif, pitch(lbell, -12) * 0.5, 2 * BEAT)
+save("Interior/scape_defense_motif.wav", fade(motif, 0.0, 1.2), -20)
+
+# 별똥별 (밤, 바다 위 하늘 3D · 음계) — 후보 5 중 3의 첫 "휙" (바닥 −66 dB · 가장 깨끗) + 끝에 합성 반짝임 (도7 · 솔6 · 미7 짧은 방울).
+# 다섯 모두 반짝임 없는 바람 소리뿐. 1 = 바닥 −41 dB, 2 = 5.8 kHz 쉿, 4 = 긴 꼬리, 5 = 바닥 −25 dB.
+star = fade(highpass(sl(load(OD + "star.wav"), 0.0, 1.0), 300), 0.02, 0.25)
+star = np.concatenate([star, np.zeros(int(0.6 * SR))])
+st = np.arange(int(0.45 * SR)) / SR
+for at, f0, amp in ((0.55, 2093.0, 0.5), (0.66, 1567.98, 0.4), (0.78, 2637.02, 0.35)):
+    tone = np.exp(-st / 0.12) * (np.sin(2 * np.pi * f0 * st) + 0.15 * np.sin(2 * np.pi * 2 * f0 * st))
+    star = place(star, tone * amp * np.abs(star).max(), at)
+save("Interior/scape_defense_star_01.wav", fade(soften(star, 7000, 0.4), 0.0, 0.2), -14)
+
+# 밤 오로라 울림 (밤에만, 2D) — 합성: 도4 · 솔4 · 레5 · 미5 (도 오음계)를 ±4센트로 겹쳐 서로 다른 느린 숨, 옅은 바람결 (1 ~ 4 kHz).
+# 16초 = 정확히 24박 (음악 96초의 1/6), 주파수는 1/16 Hz 단위라 고리에 딱 맞음.
+LA = 16.0
+ta = np.arange(int(LA * SR)) / SR
+aur = np.zeros_like(ta)
+for j, (f0, amp) in enumerate(((261.63, 1.0), (392.0, 0.8), (587.33, 0.55), (659.25, 0.45))):
+    for cents in (-4, 4):
+        f = round(f0 * 2 ** (cents / 1200) * LA) / LA
+        aur += amp / 2 * np.sin(2 * np.pi * f * ta + j) * (0.5 + 0.5 * np.sin(2 * np.pi * (j % 3 + 1) * ta / LA + 2.1 * j)) ** 2
+rng = np.random.default_rng(7)
+air = circular(lambda y: onepole_lp(highpass(y, 1000), 4000), rng.standard_normal(len(ta)))
+air *= 0.5 + 0.5 * np.sin(2 * np.pi * 2 * ta / LA)
+aur = circular(lambda y: onepole_lp(y, 2500), aur)
+a_rms, n_rms = np.sqrt((aur ** 2).mean()), np.sqrt((air ** 2).mean())
+save("Interior/scape_defense_aurora_loop.wav", 0.85 * aur / a_rms + 0.15 * air / n_rms, -26)
+
 print("\n".join(report))
