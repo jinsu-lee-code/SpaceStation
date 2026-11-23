@@ -1,7 +1,17 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceStation.Data
 {
+    /// <summary>14-4g 정책이 처음 발효될 때 한 판에 한 번 움직이는 코어 축 (사용자 결정 2026-11-24, CONNECT_1121 P5).</summary>
+    [Serializable]
+    public sealed class PolicyAxisShift
+    {
+        public PolicyData Policy;
+        public List<AxisShift> Shifts = new List<AxisShift>();
+    }
+
     /// <summary>
     /// 13-6a 서사판 사회 설정 (사용자 결정 2026-10-18, REDESIGN V2 · S3).
     /// - 종족 정책 반응: 반응 = 무리 비율로 섞은 종족 값(<see cref="SpeciesData.ControlReaction"/>, + 순응 · − 반발).
@@ -52,6 +62,25 @@ namespace SpaceStation.Data
         [SerializeField, Range(0f, 1f)] private float _securityGoalRatio = 0.8f;
         [Tooltip("사회 사건 설정 (없으면 사건이 오지 않음)")]
         [SerializeField] private SocialEventConfig _events;
+        [Tooltip("14-4g 정책이 처음 발효될 때 한 판에 한 번 움직이는 코어 축 (사면 = 자율 · 이주 지원 = 연민 — 추방이 통제 · 효율에만 쌓이지 않게)")]
+        [SerializeField] private List<PolicyAxisShift> _policyShifts = new List<PolicyAxisShift>();
+
+        public IReadOnlyList<PolicyAxisShift> PolicyShifts => _policyShifts;
+
+        /// <summary>이 정책의 축 (없으면 null).</summary>
+        public PolicyAxisShift ShiftsOf(PolicyData policy)
+        {
+            if (policy == null)
+                return null;
+            foreach (var s in _policyShifts)
+                if (s != null && s.Policy == policy)
+                    return s;
+            return null;
+        }
+
+#if UNITY_EDITOR
+        public void EditorSetPolicyShifts(List<PolicyAxisShift> shifts) => _policyShifts = shifts;
+#endif
 
         public float SecurityPerMinute => _securityPerMinute;
         public float SecurityGoalRatio => _securityGoalRatio;

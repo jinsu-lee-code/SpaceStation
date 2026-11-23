@@ -1117,6 +1117,13 @@ namespace SpaceStation.Editor
             var so = new SerializedObject(society);
             so.FindProperty("_events").objectReferenceValue = config;
             so.ApplyModifiedPropertiesWithoutUndo();
+            // 14-4g (사용자 결정 2026-11-24, CONNECT_1121 P5): 추방이 통제 · 효율에만 쌓이지 않게 — 정책이 처음 발효될 때 한 번
+            society.EditorSetPolicyShifts(new List<PolicyAxisShift>
+            {
+                new PolicyAxisShift { Policy = AssetDatabase.LoadAssetAtPath<PolicyData>(PolicyFolder + "PO_Amnesty.asset"), Shifts = new List<AxisShift> { Lean(CoreAxis.Control, CorePole.Second) } },
+                new PolicyAxisShift { Policy = AssetDatabase.LoadAssetAtPath<PolicyData>(PolicyFolder + "PO_ResettlementAid.asset"), Shifts = new List<AxisShift> { care } },
+            });
+            EditorUtility.SetDirty(society);
             NeighborResearch();
         }
 

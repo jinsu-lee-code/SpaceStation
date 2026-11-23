@@ -373,6 +373,49 @@ namespace SpaceStation.Tests
             StringAssert.Contains("(1명)", social.Pending.Body);
         }
 
+        [Test]
+        public void Policy_FirstActivation_ShiftsAxisOnce()
+        {
+            var amnesty = Create<PolicyData>();
+            amnesty.name = "PO_Amnesty";
+            amnesty.Set("사면", "", new PolicyModifier { Stat = PolicyStat.ExileBlocked, Value = 1f });
+            amnesty.SetStance(PolicyStance.Autonomy);
+            _policies.SetPolicies(new List<PolicyData> { amnesty });
+            _society.EditorSetPolicyShifts(new List<PolicyAxisShift>
+            {
+                new PolicyAxisShift { Policy = amnesty, Shifts = new List<AxisShift> { new AxisShift(CoreAxis.Control, CorePole.Second, ShiftSize.Small) } },
+            });
+            var config = Chapter(hold: true, rules: StationRule.Policies | StationRule.Exile);
+            var so = new SerializedObject(config.Chapters[0]);
+            so.FindProperty("_policySlots").intValue = 1;
+            so.FindProperty("_policyApplyDelay").floatValue = 0f;
+            so.FindProperty("_policySwapCooldown").floatValue = 0f;
+            var list = so.FindProperty("_policies");
+            list.arraySize = 1;
+            list.GetArrayElementAtIndex(0).objectReferenceValue = amnesty;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var sim = Sim(config);
+            var core = sim.GetSystem<CorePersonalitySystem>();
+            Assert.AreEqual(PolicySystem.AssignResult.Ok, sim.Policies.Assign(0, amnesty));
+            sim.Tick(1f);
+            float once = core.Value(CoreAxis.Control);
+            Assert.AreNotEqual(0f, once, "처음 발효 = 자율 쪽");
+            Assert.IsTrue(sim.Exile.Blocked, "사면 중에는 추방 못 함");
+            sim.Policies.Assign(0, null);
+            sim.Tick(1f);
+            Assert.AreEqual(PolicySystem.AssignResult.Ok, sim.Policies.Assign(0, amnesty));
+            sim.Tick(1f);
+            Assert.AreEqual(once, core.Value(CoreAxis.Control), Eps, "다시 걸어도 한 판에 한 번");
+
+            string state = sim.GetSystem<ChapterPolicySystem>().Capture(null);
+            var again = Sim(config);
+            again.GetSystem<ChapterPolicySystem>().Restore(state, null);
+            again.Policies.Assign(0, amnesty);
+            again.Tick(1f);
+            Assert.AreEqual(0f, again.GetSystem<CorePersonalitySystem>().Value(CoreAxis.Control), Eps, "불러온 판에서도 다시 안 더함");
+        }
+
         // ---------------- 도우미 ----------------
 
         private StationSimulation Sim(ChapterConfig chapters)

@@ -74,6 +74,48 @@ namespace SpaceStation.Simulation
                         Chapters.SetFlag(PolicyFlag);
                         break;
                     }
+            ApplyPolicyShifts(policies);
+        }
+
+        // ---------------- 14-4g 정책 → 코어 축 (사용자 결정 2026-11-24, CONNECT_1121 P5) ----------------
+
+        private readonly List<string> _shifted = new List<string>();
+
+        /// <summary>정책이 처음 발효되면 그 정책의 축을 한 판에 한 번 (다시 걸어도 더하지 않음).</summary>
+        private void ApplyPolicyShifts(PolicySystem policies)
+        {
+            if (_society == null || _society.PolicyShifts.Count == 0)
+                return;
+            foreach (var s in policies.Slots)
+            {
+                var p = s.Active;
+                if (p == null || _shifted.Contains(p.name))
+                    continue;
+                var entry = _society.ShiftsOf(p);
+                if (entry == null || entry.Shifts.Count == 0)
+                    continue;
+                _shifted.Add(p.name);
+                Sim.GetSystem<CorePersonalitySystem>()?.Apply(entry.Shifts, $"정책 시행: {p.DisplayName}");
+            }
+        }
+
+        [Serializable]
+        private sealed class State
+        {
+            public List<string> Shifted = new List<string>();
+        }
+
+        public override string Capture(Func<ModuleInstance, int> indexOf) =>
+            _shifted.Count > 0 ? JsonUtility.ToJson(new State { Shifted = new List<string>(_shifted) }) : null;
+
+        public override void Restore(string state, Func<int, ModuleInstance> moduleAt)
+        {
+            _shifted.Clear();
+            if (string.IsNullOrEmpty(state))
+                return;
+            var s = JsonUtility.FromJson<State>(state);
+            if (s?.Shifted != null)
+                _shifted.AddRange(s.Shifted);
         }
 
         /// <summary>지금 시행 중인 통제형 정책 수.</summary>
