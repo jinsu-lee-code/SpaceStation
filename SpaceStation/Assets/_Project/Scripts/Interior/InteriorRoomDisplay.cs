@@ -38,6 +38,7 @@ namespace SpaceStation.Interior
         /// <summary>
         /// 플레이어 눈 높이 칸이 그 모듈 칸 안인지 — 사운드 개편 5-2 (2026-11-23): 혼자 돌아가는 연출 (번개 · 용광로 · 순찰차 · 폭죽 …)의 소리는
         /// 지금 있는 방 것만 (옆 방도 함께 켜져 있어 벽 너머로 들리던 것을 막음, docs/sound/00-workflow.md 1-4).
+        /// 예외 자리 (예정, CONNECT_1121 5번 A8 · SOUND_LIST_NEW D-4): 이웃이 소음원 태그 (채굴 도킹 · 제련소 · 방어 포탑)면 그 소리를 벽 너머로 먹먹하게 — 인접 태그 틀 때 여기서 가름.
         /// </summary>
         public static bool PlayerIn(ModuleInstance module)
         {
