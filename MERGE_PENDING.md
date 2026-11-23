@@ -20,7 +20,7 @@
 
 | # | 커밋 | 내용 | 바뀐 공통 파일 | 새 고리 (SPLIT 6번 줄 초안) | 예상 충돌 · 해결 |
 |---|---|---|---|---|---|
-| (아직 없음) | | | | | |
+| 1 | `26f2af26` | **주민 추방 공통 고리** (REVIEW_1115 5번, 사용자 결정 11-15 · 11-24) — `ExileSystem`(대가 = 만족도 이유 없음 5 · 문제 주민 1 × 같은 종류 최대 ×2 × 정책, 고른 주민이 떠남, 떠난 주민 기록 · 세이브 키 `exile`) · 정책 효과 7종 · 정책 4종(추방령 · 사면 · 이주 지원 · 귀환 허가) · 명단 [내보내기] · 시험 `ExileTests` 12 | `Data/StationRule.cs` · `Data/PolicyData.cs` (enum 끝에 7개 · Count 20) · `Data/PolicyConfig.cs` · `Data/Policies/PolicyConfig.asset` · `PO_ExileDecree` · `PO_Amnesty` · `PO_ResettlementAid` · `PO_ReturnPermit` (+meta) · `Simulation/ExileSystem.cs` (새) · `ResidentRoster.cs` · `PopulationSimulation.cs` · `ImmigrationSystem.cs` · `StationSimulation.cs` · `UI/RosterView.cs` · `RosterPanel.cs` · `ResidentText.cs` · `Interior/InteriorPad.cs` · `Editor/GradeRulesSetup.cs` · `Tests/EditMode/ExileTests.cs` (새) | 규칙 `StationRule.Exile`(판이 연다, 규칙을 정하는 쪽이 없으면 늘 열림) · `ExileSystem.Exiled`(판이 긴장도 · 코어 축 등 대가를 더함) · `ExileSystem.PreviewSuffix`(미리보기 문구) · `ExileSystem.Returned` · `Departed`(추모 · 연대기) · `ResidentRoster.ArrivalTemplate` · `TraitWeightScale` | ① `StationSimulation.cs`: `narrative`는 위쪽에 13-1 장 틀(`Chapters`) 줄이 더 있음 — 이 커밋은 정책 블록(`if (settings.Policies != null)`) 안 두 줄 + 속성 한 줄만이라 위치만 맞추면 됨 ② **엔드리스 해금 선택 규칙**(`IStationRules`)이 `Exile`을 모르면 닫힘 → 엔드리스는 늘 열리게 `Allows(StationRule.Exile)` = true로 (REVIEW: 개별 추방은 늘 가능) ③ 엔드리스 정책 창에 정책이 12종으로 늘어남 (`PolicyConfig` 공용) ④ `PolicyConfig.asset`에 `_expansionSlots: 1`이 새로 적힘 (기본값이라 동작 같음) ⑤ 명단 칸 너비가 줄어듦 (특성 176 · 집 180 · 보정 48) |
 
 ## 옮김
 

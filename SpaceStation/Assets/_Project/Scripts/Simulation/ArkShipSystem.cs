@@ -223,6 +223,9 @@ namespace SpaceStation.Simulation
             }
             int span = chapter.ShipSizeMax - chapter.ShipSizeMin + 1;
             ship.Size = chapter.ShipSizeMin + Math.Min(span - 1, (int)(_random01() * span)) + Ports * _config.PortSizeBonus;
+            float scale = Sim.Effects.Policy(PolicyStat.ImmigrationSize); // 14-4g 정책 '귀환 허가' (공통 고리)
+            if (scale != 1f)
+                ship.Size = Math.Max(1, (int)Math.Round(ship.Size * scale));
             return ship;
         }
 

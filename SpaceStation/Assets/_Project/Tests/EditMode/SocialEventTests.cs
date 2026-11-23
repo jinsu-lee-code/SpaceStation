@@ -287,7 +287,8 @@ namespace SpaceStation.Tests
             Assert.AreEqual(ChapterClimaxKind.Inquiry, ch.Climax.Kind);
             Assert.AreEqual(6, ch.Recipes.Count);
             Assert.AreEqual(3, ch.PolicySlots);
-            Assert.AreEqual(4, ch.Policies.Count);
+            Assert.AreEqual(8, ch.Policies.Count, "남은 4종 + 14-4g 주민 관리 4종");
+            Assert.AreEqual(StationRule.Exile, ch.Rules & StationRule.Exile, "14-4g 6장부터 주민 추방");
             Assert.AreEqual("dog", ch.NewSpecies.Id);
             Assert.Contains(ResidentNeed.Security, new List<ResidentNeed>(ch.GradeUpNeeds));
             Assert.AreEqual(2, ch.Choices.Count);
@@ -309,6 +310,67 @@ namespace SpaceStation.Tests
                 Assert.IsTrue(efficient && preserve, e.Id + ": 효율 · 보존 쪽 답을 꼭 하나씩");
             }
             Assert.GreaterOrEqual(society.Events.Petitions.Count, 4);
+            Assert.AreEqual(6f, society.Events.ExileTension, Eps);
+            Assert.AreEqual(1f, society.Events.ExileProblemTension, Eps);
+            Assert.IsTrue(new List<SocialPetition>(society.Events.Petitions).Exists(p => p.Cause == PetitionCause.Exiled), "내보낸 주민 청원");
+        }
+
+        // ---------------- 14-4g 주민 추방 ----------------
+
+        [Test]
+        public void Exile_ClosedUntilChapterOpensIt()
+        {
+            var sim = Sim(Chapter(hold: true));
+            Assert.IsNotNull(sim.Exile);
+            Assert.IsFalse(sim.Exile.Unlocked, "장이 열기 전에는 닫힘");
+            var open = Sim(Chapter(hold: true, rules: StationRule.Exile));
+            Assert.IsTrue(open.Exile.Unlocked, "6장 규칙이 엶");
+        }
+
+        [Test]
+        public void Exile_NoReason_AddsTensionAxisAndLog()
+        {
+            var control = new AxisShift(CoreAxis.Control, CorePole.First, ShiftSize.Small);
+            var cold = new AxisShift(CoreAxis.Care, CorePole.First, ShiftSize.Small);
+            _events.EditorSetExile(6f, 1f, new List<AxisShift> { control, cold }, new List<AxisShift> { cold }, "적어 둔다. {name}.", "{name}. 맞지 않았다.", "돌아왔다. {name}.");
+            var sim = Sim(Chapter(hold: true, rules: StationRule.Exile));
+            var social = sim.GetSystem<SocialEventSystem>();
+            var tension = sim.GetSystem<TensionSystem>();
+            var core = sim.GetSystem<CorePersonalitySystem>();
+            var target = sim.Residents.Residents[0];
+            var preview = sim.Exile.Preview(target);
+            Assert.IsFalse(preview.IsProblem);
+            float expected = 6f * preview.Multiplier;
+            StringAssert.Contains($"긴장도 +{expected:0.#}", sim.Exile.PreviewSuffix(target, preview), "미리보기에 긴장도");
+            Assert.IsTrue(sim.Exile.Exile(target));
+            Assert.AreEqual(expected, tension.Value, Eps, "이유 없는 추방 = 긴장도 6 × 배율");
+            Assert.AreEqual(expected, tension.ChapterTotal(TensionSystem.Source.Exile), Eps, "원인 '주민 추방'");
+            Assert.AreNotEqual(0f, core.Value(CoreAxis.Control), "통제 쪽");
+            Assert.AreNotEqual(0f, core.Value(CoreAxis.Care), "효율 쪽");
+            Assert.AreEqual(expected, social.ExileTension(preview), Eps);
+        }
+
+        [Test]
+        public void ExiledPetition_NamesTheResident()
+        {
+            _events.EditorSet(new List<SocialEvent>(), null,
+                new List<SocialPetition>
+                {
+                    new SocialPetition("exiled", "rabbit", PetitionCause.Exiled, "{name} 씨는 어디로 갔나요? ({n}명)"),
+                    new SocialPetition("plain", "rabbit", PetitionCause.Always, "왜 정했나요"),
+                },
+                new List<SocialAnswer> { new SocialAnswer("들어준다", "", -8f, "", new AxisShift(CoreAxis.Care, CorePole.Second, ShiftSize.Small)) });
+            var sim = Sim(Chapter(hold: true, rules: StationRule.Exile));
+            var social = sim.GetSystem<SocialEventSystem>();
+            Assert.IsTrue(social.SendPetition("물음", 0, 2));
+            Assert.AreEqual("plain", social.Pending.Id, "내보낸 주민이 없으면 근거 없는 청원");
+            Assert.IsTrue(social.Answer(0));
+            string name = sim.Residents.Residents[1].Name;
+            Assert.IsTrue(sim.Exile.Exile(sim.Residents.Residents[1]));
+            Assert.IsTrue(social.SendPetition("물음", 1, 2));
+            Assert.AreEqual("exiled", social.Pending.Id, "내보낸 주민이 있으면 그 근거로");
+            StringAssert.Contains(name + " 씨는", social.Pending.Body, "내보낸 이름");
+            StringAssert.Contains("(1명)", social.Pending.Body);
         }
 
         // ---------------- 도우미 ----------------
@@ -336,12 +398,13 @@ namespace SpaceStation.Tests
             return sim;
         }
 
-        private ChapterConfig Chapter(bool hold, ChapterClimaxKind kind = ChapterClimaxKind.None, float warning = 1f, ResidentNeed[] needs = null)
+        private ChapterConfig Chapter(bool hold, ChapterClimaxKind kind = ChapterClimaxKind.None, float warning = 1f, ResidentNeed[] needs = null, StationRule rules = StationRule.None)
         {
             var c = Create<ChapterData>();
             c.name = "CH_Test";
             var so = new SerializedObject(c);
             so.FindProperty("_displayName").stringValue = "시험 장";
+            so.FindProperty("_rules").intValue = (int)rules;
             var goals = so.FindProperty("_goals");
             goals.arraySize = 1;
             var first = goals.GetArrayElementAtIndex(0);

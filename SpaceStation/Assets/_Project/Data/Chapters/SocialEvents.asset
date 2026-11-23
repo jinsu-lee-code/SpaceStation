@@ -40,8 +40,8 @@ MonoBehaviour:
       - Axis: 0
         Toward: 2
         Size: 0
-      _line: "{a} \uBB34\uB9AC\uC640 {b} \uBB34\uB9AC\uC5D0\uAC8C \uC790\uB9AC\uB97C \uB098\uB220 \uC92C\uB2E4.
-        \uAE08\uC18D\uC740 \uC904\uC5C8\uB2E4."
+      _line: "{a} \uBB34\uB9AC\uC640 {b} \uBB34\uB9AC\uC5D0\uAC8C \uC790\uB9AC\uB97C
+        \uB098\uB220 \uC92C\uB2E4. \uAE08\uC18D\uC740 \uC904\uC5C8\uB2E4."
     - _title: "\uC218\uAC00 \uB9CE\uC740 \uCABD \uC190\uC744 \uB4E0\uB2E4"
       _note: "\uBE60\uB974\uC9C0\uB9CC \uB2E4\uB978 \uCABD\uC774 \uC11C\uC6B4\uD574\uD569\uB2C8\uB2E4"
       _cost: []
@@ -218,7 +218,8 @@ MonoBehaviour:
     _id: riot
     _chapter: 6
     _title: "\uBCF5\uB3C4\uC758 \uC18C\uB780"
-    _body: "\uC313\uC778 \uBD88\uB9CC\uC774 \uD130\uC84C\uC2B5\uB2C8\uB2E4. \uC8FC\uBBFC\uB4E4\uC774 \uBCF5\uB3C4\uC5D0 \uBAA8\uC5EC \uCF54\uC5B4\uC758 \uB2F5\uC744 \uAE30\uB2E4\uB9BD\uB2C8\uB2E4."
+    _body: "\uC313\uC778 \uBD88\uB9CC\uC774 \uD130\uC84C\uC2B5\uB2C8\uB2E4. \uC8FC\uBBFC\uB4E4\uC774
+      \uBCF5\uB3C4\uC5D0 \uBAA8\uC5EC \uCF54\uC5B4\uC758 \uB2F5\uC744 \uAE30\uB2E4\uB9BD\uB2C8\uB2E4."
     _atSeconds: 0
     _subject: 0
     _answers:
@@ -284,6 +285,16 @@ MonoBehaviour:
     _cause: 1
     _body: "\uB3CC\uB824\uBCF4\uB0B8 \uBC30\uC5D0 {n}\uBA85\uC774 \uD0C0\uACE0 \uC788\uC5C8\uB300\uC694.
       \uADF8 \uBC30\uB4E4\uC740 \uC5B4\uB514\uB85C \uAC14\uB098\uC694?"
+  - _id: exiled
+    _speaker: rabbit
+    _cause: 7
+    _body: "{name} \uC528\uAC00 \uB0B4\uBCF4\uB0B4\uC84C\uB300\uC694. \uB2E4\uC74C\uC740
+      \uB204\uAD6C \uCC28\uB840\uC778\uAC00\uC694?"
+  - _id: exiled2
+    _speaker: bear
+    _cause: 7
+    _body: "{name}, \uC65C \uB0B4\uBCF4\uB0C8\uB098. \uC6B0\uB9AC\uB3C4 \uB0B4\uBCF4\uB0BC
+      \uAC74\uAC00."
   - _id: control
     _speaker: bear
     _cause: 2
@@ -402,3 +413,20 @@ MonoBehaviour:
   _sickShareMin: 0.02
   _leavingShare: 0.03
   _forgetLean: 15
+  _exileTension: 6
+  _exileProblemTension: 1
+  _exileShifts:
+  - Axis: 1
+    Toward: 1
+    Size: 0
+  - Axis: 0
+    Toward: 1
+    Size: 0
+  _exileProblemShifts:
+  - Axis: 0
+    Toward: 1
+    Size: 0
+  _exileLine: "\uB0B4\uBCF4\uB0B8 \uC774\uB984\uC744 \uC801\uC5B4 \uB454\uB2E4. {name}."
+  _exileProblemLine: "{name}. \uC5EC\uAE30\uC11C\uB294 \uB9DE\uC9C0 \uC54A\uB294\uB2E4\uACE0
+    \uBCF4\uACE0 \uB0B4\uBCF4\uB0C8\uB2E4."
+  _returnLine: "\uB3CC\uC544\uC628 \uC774\uB984\uC774 \uC788\uB2E4. {name}."

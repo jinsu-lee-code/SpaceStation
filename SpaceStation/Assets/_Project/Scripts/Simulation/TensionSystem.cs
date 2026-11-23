@@ -30,9 +30,11 @@ namespace SpaceStation.Simulation
             Security,
             /// <summary>14-4 사건 · 청원에 준 답.</summary>
             Decision,
+            /// <summary>14-4g 주민 추방.</summary>
+            Exile,
         }
 
-        private const int SourceCount = 7;
+        private const int SourceCount = 8;
 
         /// <summary>14-4 장 표시: 긴장도 '잔잔함'으로 버팀 · 치안을 기준까지 채움.</summary>
         public const string CalmGoalFlag = "tension.calm";
@@ -75,11 +77,11 @@ namespace SpaceStation.Simulation
         /// <summary>가라앉는 속도 (분당) — 강아지 달램 · 연계 연구 '이웃 모임' 반영.</summary>
         public float CalmPerMinute => _config.CalmPerMinute * Sim.Effects.TraitCalmMultiplier + Sim.Effects.TensionCalmBonus;
 
-        /// <summary>14-4 사건 · 청원의 답이 긴장도를 바꿈 (+ 오름 · − 내림).</summary>
-        public void Adjust(float amount)
+        /// <summary>14-4 사건 · 청원의 답이 긴장도를 바꿈 (+ 오름 · − 내림). 14-4g 추방은 원인을 따로.</summary>
+        public void Adjust(float amount, Source source = Source.Decision)
         {
             if (amount > 0f)
-                Add(Source.Decision, amount);
+                Add(source, amount);
             else
                 Value = Mathf.Max(0f, Value + amount);
         }
@@ -97,6 +99,7 @@ namespace SpaceStation.Simulation
                 case Source.Environment: return "환경 불만";
                 case Source.Security: return "치안 불안";
                 case Source.Decision: return "사건의 답";
+                case Source.Exile: return "주민 추방";
                 default: return "정책 반발";
             }
         }
@@ -112,6 +115,7 @@ namespace SpaceStation.Simulation
                 case Source.Environment: return "집의 열 · 방사선 낮추기";
                 case Source.Security: return "보안청 · 치안 본부 짓기";
                 case Source.Decision: return "대가를 치르는 답 고르기";
+                case Source.Exile: return "문제 주민만 내보내기";
                 default: return "통제형 정책 줄이기";
             }
         }

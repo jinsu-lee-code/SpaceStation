@@ -21,6 +21,8 @@ namespace SpaceStation.Simulation
         public int People;
         public int Level;
         public float Weight = 1f;
+        /// <summary>14-4g 청원 근거의 이름 ({name} — 내보낸 주민).</summary>
+        public string Name = "";
     }
 
     /// <summary>
@@ -78,6 +80,45 @@ namespace SpaceStation.Simulation
             Sim.Population.PopulationChanged += HandlePopulation;
             if (Sim.Chapters != null)
                 Sim.Chapters.ChapterStarted += HandleChapterStarted;
+            if (Sim.Exile != null) // 14-4g 공통 추방 고리 위에 서사판 대가 (긴장도 · 코어 축 · 기록)
+            {
+                Sim.Exile.Exiled += HandleExiled;
+                Sim.Exile.Returned += HandleReturned;
+                Sim.Exile.PreviewSuffix = (r, p) => Tension != null ? $"긴장도 +{ExileTension(p):0.#}" : null;
+            }
+        }
+
+        // ---------------- 14-4g 주민 추방 ----------------
+
+        /// <summary>추방으로 오르는 긴장도 (이유 없음 6 · 문제 주민 1 × 같은 종족 · 정책 배율).</summary>
+        public float ExileTension(ExilePreview p) => (p.IsProblem ? _config.ExileProblemTension : _config.ExileTension) * p.Multiplier;
+
+        private void HandleExiled(DepartedResident d, ExilePreview p)
+        {
+            Tension?.Adjust(ExileTension(p), TensionSystem.Source.Exile);
+            var core = Sim.GetSystem<CorePersonalitySystem>();
+            core?.Apply(p.IsProblem ? _config.ExileProblemShifts : _config.ExileShifts, $"주민 추방: {d.Name}");
+            string line = p.IsProblem ? _config.ExileProblemLine : _config.ExileLine;
+            if (!string.IsNullOrEmpty(line))
+                core?.Log(line.Replace("{name}", d.Name));
+        }
+
+        private void HandleReturned(DepartedResident d, Resident r)
+        {
+            if (!string.IsNullOrEmpty(_config.ReturnLine))
+                Sim.GetSystem<CorePersonalitySystem>()?.Log(_config.ReturnLine.Replace("{name}", r.Name));
+        }
+
+        /// <summary>가장 최근에 내보낸 주민 이름 (없으면 빈 글).</summary>
+        private string LastExiledName()
+        {
+            var list = Sim.Exile?.Departed;
+            if (list == null)
+                return "";
+            for (int i = list.Count - 1; i >= 0; i--)
+                if (list[i].Exiled)
+                    return list[i].Name;
+            return "";
         }
 
         private void HandlePopulation(int delta, PopulationChangeReason reason)
@@ -245,7 +286,7 @@ namespace SpaceStation.Simulation
 
         private static string Fill(string text, SocialPending p) => string.IsNullOrEmpty(text)
             ? ""
-            : text.Replace("{a}", p.SubjectA ?? "").Replace("{b}", p.SubjectB ?? "").Replace("{n}", p.People.ToString());
+            : text.Replace("{a}", p.SubjectA ?? "").Replace("{b}", p.SubjectB ?? "").Replace("{n}", p.People.ToString()).Replace("{name}", p.Name ?? "");
 
         // ---------------- 청원 ----------------
 
@@ -268,6 +309,7 @@ namespace SpaceStation.Simulation
                 People = n,
                 Level = level,
                 Weight = _config.Weight(level),
+                Name = pick.Cause == PetitionCause.Exiled ? LastExiledName() : "",
             };
             p.Body = Fill(pick.Body, p);
             Open(p);
@@ -324,6 +366,9 @@ namespace SpaceStation.Simulation
                 case PetitionCause.LostOutcome:
                     var last = Sim.Chapters?.LastRecord;
                     return last != null && last.Outcome != ChapterOutcome.Clean;
+                case PetitionCause.Exiled:
+                    n = Sim.Exile?.ExiledCount ?? 0;
+                    return n > 0 && LastExiledName().Length > 0;
                 default:
                     return true;
             }

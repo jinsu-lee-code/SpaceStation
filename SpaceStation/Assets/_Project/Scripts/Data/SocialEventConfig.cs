@@ -32,6 +32,8 @@ namespace SpaceStation.Data
         ForgotEarth,
         /// <summary>지난 위기를 깔끔히 넘기지 못함.</summary>
         LostOutcome,
+        /// <summary>14-4g 내보낸 주민이 있음 ({n}명 · {name} = 가장 최근).</summary>
+        Exiled,
     }
 
     /// <summary>14-4 사건 · 청원의 답 하나. 대가는 긴장도 단계 배율을 곱함 (긴장도를 낮추는 양에는 곱하지 않음).</summary>
@@ -223,6 +225,29 @@ namespace SpaceStation.Data
         [Tooltip("코어가 이만큼 망각 쪽이면 '잊었느냐' 청원")]
         [SerializeField, Min(0f)] private float _forgetLean = 15f;
 
+        [Header("주민 추방 (14-4g, 사용자 결정 2026-11-24 — 공통 고리 ExileSystem 위에)")]
+        [Tooltip("이유 없는 추방의 긴장도 (같은 종족 · 정책 배율을 곱함)")]
+        [SerializeField, Min(0f)] private float _exileTension = 6f;
+        [Tooltip("문제 주민 추방의 긴장도")]
+        [SerializeField, Min(0f)] private float _exileProblemTension = 1f;
+        [Tooltip("이유 없는 추방의 코어 축 (통제 작게 + 효율 작게)")]
+        [SerializeField] private List<AxisShift> _exileShifts = new List<AxisShift>();
+        [Tooltip("문제 주민 추방의 코어 축 (효율 작게)")]
+        [SerializeField] private List<AxisShift> _exileProblemShifts = new List<AxisShift>();
+        [Tooltip("코어 기록 한 줄 ({name}, 코어 혼잣말)")]
+        [SerializeField] private string _exileLine = "";
+        [SerializeField] private string _exileProblemLine = "";
+        [Tooltip("떠났던 주민이 돌아왔을 때 코어 기록 ({name})")]
+        [SerializeField] private string _returnLine = "";
+
+        public float ExileTension => _exileTension;
+        public float ExileProblemTension => _exileProblemTension;
+        public IReadOnlyList<AxisShift> ExileShifts => _exileShifts;
+        public IReadOnlyList<AxisShift> ExileProblemShifts => _exileProblemShifts;
+        public string ExileLine => _exileLine;
+        public string ExileProblemLine => _exileProblemLine;
+        public string ReturnLine => _returnLine;
+
         public IReadOnlyList<SocialEvent> Events => _events;
         public SocialEvent Riot => _riot;
         public IReadOnlyList<SocialPetition> Petitions => _petitions;
@@ -259,6 +284,17 @@ namespace SpaceStation.Data
             _riot = riot;
             _petitions = petitions;
             _petitionAnswers = petitionAnswers;
+        }
+
+        public void EditorSetExile(float tension, float problemTension, List<AxisShift> shifts, List<AxisShift> problemShifts, string line, string problemLine, string returnLine)
+        {
+            _exileTension = tension;
+            _exileProblemTension = problemTension;
+            _exileShifts = shifts;
+            _exileProblemShifts = problemShifts;
+            _exileLine = line;
+            _exileProblemLine = problemLine;
+            _returnLine = returnLine;
         }
 #endif
     }

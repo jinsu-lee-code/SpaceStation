@@ -975,7 +975,9 @@ namespace SpaceStation.Editor
             so.FindProperty("_gradeUpPolicySlots").intValue = 0;
             so.FindProperty("_policyApplyDelay").floatValue = 30f;
             so.FindProperty("_policySwapCooldown").floatValue = 180f;
-            var policyNames = new[] { "PO_Surveillance", "PO_EmergencyDrill", "PO_MandatoryUpkeep", "PO_ResearchFirst" };
+            // 14-4g 주민 추방 (REVIEW_1115 5번, 사용자 결정 2026-11-24): 6장부터 열림 + 주민 관리 정책 4종
+            so.FindProperty("_rules").intValue = (int)StationRule.Exile;
+            var policyNames = new[] { "PO_Surveillance", "PO_EmergencyDrill", "PO_MandatoryUpkeep", "PO_ResearchFirst", "PO_ExileDecree", "PO_Amnesty", "PO_ResettlementAid", "PO_ReturnPermit" };
             var policies = so.FindProperty("_policies");
             policies.arraySize = policyNames.Length;
             for (int i = 0; i < policyNames.Length; i++)
@@ -1082,6 +1084,8 @@ namespace SpaceStation.Editor
             var petitions = new List<SocialPetition>
             {
                 new SocialPetition("refused", "rabbit", PetitionCause.RefusedShips, "돌려보낸 배에 {n}명이 타고 있었대요. 그 배들은 어디로 갔나요?"),
+                new SocialPetition("exiled", "rabbit", PetitionCause.Exiled, "{name} 씨가 내보내졌대요. 다음은 누구 차례인가요?"), // 14-4g
+                new SocialPetition("exiled2", "bear", PetitionCause.Exiled, "{name}, 왜 내보냈나. 우리도 내보낼 건가."),
                 new SocialPetition("control", "bear", PetitionCause.ControlPolicy, "명령이 늘었다. 우리한테 묻지도 않았다. 왜 코어가 정하나."),
                 new SocialPetition("departed", "penguin", PetitionCause.Departed, "우리 곁을 떠난 이가 {n}명이지요. 다음은 누구인지, 우리는 알고 싶습니다."),
                 new SocialPetition("overwrote", "fox", PetitionCause.OverwroteRecord, "기록을 덮어썼다며? 뭘 지웠는지 말해 줄 수 있지?"),
@@ -1101,6 +1105,13 @@ namespace SpaceStation.Editor
             };
             var config = LoadOrCreate<SocialEventConfig>(SocialEventsPath);
             config.EditorSet(events, riot, petitions, answers);
+            // 14-4g 주민 추방 (사용자 결정 2026-11-24): 이유 없음 = 긴장도 6 · 통제 작게 + 효율 작게 / 문제 주민 = 긴장도 1 · 효율 작게
+            config.EditorSetExile(6f, 1f,
+                new List<AxisShift> { Lean(CoreAxis.Control, CorePole.First), efficient },
+                new List<AxisShift> { efficient },
+                "내보낸 이름을 적어 둔다. {name}.",
+                "{name}. 여기서는 맞지 않는다고 보고 내보냈다.",
+                "돌아온 이름이 있다. {name}.");
             EditorUtility.SetDirty(config);
             var society = LoadOrCreate<SocietyConfig>(SocietyPath);
             var so = new SerializedObject(society);
