@@ -72,7 +72,7 @@ namespace SpaceStation.UI
             {
                 Key = "probe", Order = HudLauncher.Order.EditionExtra, Name = "탐사",
                 IsOpen = () => _open, Click = Toggle,
-                Visible = () => _explore.ChapterHasSignals || _explore.Sites.Count > 0,
+                Visible = () => _explore.HasSignals || _explore.Sites.Count > 0,
                 Attention = HasChoice,
             });
             HudWindows.Opened += HandleWindowOpened;
@@ -89,7 +89,7 @@ namespace SpaceStation.UI
         /// <summary>신호가 잡혔는데 아직 탐사선을 안 보냄.</summary>
         private bool HasChoice()
         {
-            if (_explore.ProbeUsedThisChapter || _explore.ProbeInFlight)
+            if (_explore.ProbeUsedThisRound || _explore.ProbeInFlight)
                 return false;
             _explore.CurrentSites(_current);
             return _current.Count > 0;
@@ -233,14 +233,14 @@ namespace SpaceStation.UI
             var cfg = _explore.Config;
             _explore.CurrentSites(_current);
             _sb.Clear();
-            if (!_explore.ChapterHasSignals)
-                _sb.Append($"<color={Soft}>이번 장에는 새 신호가 없습니다</color>");
+            if (!_explore.HasSignals)
+                _sb.Append($"<color={Soft}>지금은 새 신호가 없습니다</color>");
             else if (_current.Count == 0)
                 _sb.Append(_explore.SensorActive ? "신호를 찾는 중..." : $"<color={HudText.Orange}>센서 어레이를 지어 가동하면 신호가 잡힙니다</color> <color={Soft}>(방어 탭)</color>");
             else if (_explore.ProbeInFlight)
                 _sb.Append($"탐사선 날아가는 중 · 도착까지 <b>{Clock(_explore.ProbeTimeLeft)}</b>");
-            else if (!_explore.ProbeUsedThisChapter)
-                _sb.Append($"신호 {_current.Count}개 · <b>한 장에 하나</b>만 탐사선으로 밝힐 수 있습니다 <color={Soft}>(금속 {cfg.ProbeMetal:0} · {cfg.ProbeSeconds:0}초)</color>");
+            else if (!_explore.ProbeUsedThisRound)
+                _sb.Append($"신호 {_current.Count}개 · <b>하나만</b> 탐사선으로 밝힐 수 있습니다 <color={Soft}>(금속 {cfg.ProbeMetal:0} · {cfg.ProbeSeconds:0}초)</color>");
             else
                 _sb.Append($"밝힌 지점 쪽으로 정거장을 뻗어 <b>{cfg.ReachRadius}칸 이내 도달 시 탐사 시작</b> <color={Soft}>(구조 프레임이 싸고 가벼움)</color>");
             if (_explore.Fragments > 0)
@@ -262,9 +262,10 @@ namespace SpaceStation.UI
             _sb.Clear();
             foreach (var s in _explore.Sites)
             {
-                if (s.Chapter == (_sim.Chapters != null ? _sim.Chapters.Index : 0) || !s.Reached)
+                if (s.Chapter == _explore.Round || !s.Reached)
                     continue;
-                _sb.Append($"· {ExplorationConfig.Name(s.Kind)} ({_sim.Chapters?.GetChapter(s.Chapter).DisplayName}) · {Ongoing(s)}\n");
+                string round = _explore.RoundName(s.Chapter);
+                _sb.Append($"· {ExplorationConfig.Name(s.Kind)}{(round.Length > 0 ? $" ({round})" : "")} · {Ongoing(s)}\n");
             }
             _past.SetText(_sb.Length > 0 ? $"<color={Soft}>지난 지점</color>\n{_sb}" : "");
         }

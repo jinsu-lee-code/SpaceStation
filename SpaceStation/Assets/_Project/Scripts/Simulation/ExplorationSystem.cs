@@ -6,15 +6,16 @@ using UnityEngine;
 
 namespace SpaceStation.Simulation
 {
-    /// <summary>탐사 지점 하나 (장마다 신호로 잡힘).</summary>
+    /// <summary>탐사 지점 하나 (신호 묶음마다 잡힘).</summary>
     [Serializable]
     public sealed class ExploreSite
     {
         public SiteKind Kind;
         /// <summary>지점 칸 (정거장 격자 좌표).</summary>
         public Vector3Int Cell;
-        /// <summary>정거장에서 본 지점 쪽 (가로 4방향).</summary>
+        /// <summary>정거장에서 본 지점 쪽.</summary>
         public Vector3Int Direction;
+        /// <summary>잡힌 신호 묶음 번호 (<see cref="IExploreSignals.Round"/> — 서사판 = 장 번호. 세이브 이름이라 그대로 둠).</summary>
         public int Chapter;
         public bool Revealed;
         public bool Reached;
@@ -22,21 +23,50 @@ namespace SpaceStation.Simulation
         public bool InReach;
         /// <summary>위험 지점: 다음 파편까지 (초).</summary>
         public float HazardTimer;
+        /// <summary>CONNECT_1121 M3 공통 고리: 남은 매장량 (음수 = 끝없음 — 서사판). 쓰는 쪽(엔드리스 광맥)이 줄임.</summary>
+        public float Reserve = -1f;
     }
 
     /// <summary>
-    /// 13-5a 서사판 탐사 (REDESIGN V5, 사용자 결정 2026-10-18 D-6):
-    /// - 장 데이터에 신호가 있고 센서 어레이가 가동 중이면 그 장의 신호(지점)를 만든다 — 정거장 끝에서 그 방향으로 6~10칸, 가로 4방향에 하나씩.
-    /// - 한 장에 하나만 탐사선으로 밝힘 (금속 · 도착 시간). 밝히기 전에는 흐릿한 힌트만.
-    /// - 밝힌 지점 근처(반경, 가로 · 세로 · 높이 각각)에 코어에 연결된 모듈이 들어가면 닿음 → 종류별 효과
-    ///   (소행성 · 얼음 = 닿아 있는 동안 금속 · 물 / 난파선 = 기록 조각 + 연구 포인트 + 기록 로그 / 파편 지대 = 금속 + 그 뒤 그 방향 파편).
-    /// - 장 목표 표시: 밝히면 'probe', 닿으면 'reach'. 지난 장 지점은 남아 효과를 이어감. 세이브.
+    /// CONNECT_1121 M8 공통 고리: 신호를 정하는 쪽 (서사판 = 장 데이터, 엔드리스 = 광맥 — 등급 · 다 캔 뒤 주기).
+    /// 묶음 번호가 바뀌고 종류가 있고 신호를 잡는 모듈이 가동 중이면 그 묶음의 지점을 만든다. 묶음마다 탐사선 하나.
+    /// </summary>
+    public interface IExploreSignals
+    {
+        /// <summary>신호 묶음 번호 (바뀌면 새 신호).</summary>
+        int Round { get; }
+        /// <summary>이번 묶음의 지점 종류 (비면 신호 없음).</summary>
+        IReadOnlyList<SiteKind> Kinds { get; }
+        /// <summary>정거장 끝에서 지점까지 칸 수 (최소 · 최대).</summary>
+        int DistanceMin { get; }
+        int DistanceMax { get; }
+        /// <summary>지점을 놓을 방향 (null = 가로 4방향 — 서사판).</summary>
+        IReadOnlyList<Vector3Int> Directions { get; }
+        /// <summary>묶음 이름 (화면, 서사판 = 장 이름).</summary>
+        string RoundName(int round);
+    }
+
+    /// <summary>
+    /// 13-5a 탐사 (REDESIGN V5, 사용자 결정 2026-10-18 D-6) → CONNECT_1121 M8 공통 틀:
+    /// - 신호를 정하는 쪽(<see cref="Signals"/>)에 신호가 있고 센서 어레이가 가동 중이면 그 묶음의 신호(지점)를 만든다 — 정거장 끝에서 그 방향으로 몇 칸, 방향마다 하나씩.
+    /// - 한 묶음에 하나만 탐사선으로 밝힘 (금속 · 도착 시간). 밝히기 전에는 흐릿한 힌트만.
+    /// - 밝힌 지점 근처(반경, 가로 · 세로 · 높이 각각 — 또는 <see cref="ReachRule"/>)에 코어에 연결된 모듈이 들어가면 닿음 → 종류별 효과
+    ///   (소행성 · 얼음 = 닿아 있는 동안 금속 · 물 / 난파선 = 조각 수 + 연구 포인트 / 파편 지대 = 금속 + 그 뒤 그 방향 파편).
+    ///   판의 보상(서사판 기록 조각 · 기록 로그 · 장 표시)은 <see cref="Revealed"/> · <see cref="Reached"/>를 받아 판이 더함.
+    /// - 지난 묶음 지점은 남아 효과를 이어감. 세이브.
     /// </summary>
     public sealed class ExplorationSystem : StationSystem
     {
         public const string SystemKey = "exploration";
+        /// <summary>판이 쓰는 표시 이름 (서사판 장 목표: 밝히면 'probe', 닿으면 'reach').</summary>
         public const string ProbeFlag = "probe";
         public const string ReachFlag = "reach";
+
+        /// <summary>신호를 정하는 쪽 (null = 신호 없음).</summary>
+        public IExploreSignals Signals { get; set; }
+
+        /// <summary>닿음 판정을 판이 바꿈 (null = 반경 안에 코어에 연결된 모듈 — 서사판). 엔드리스 광맥 = 채굴 모듈이 맞닿음 등.</summary>
+        public Func<ExploreSite, bool> ReachRule { get; set; }
 
         private static readonly Vector3Int[] Horizontal =
         {
@@ -76,17 +106,32 @@ namespace SpaceStation.Simulation
         public override string Key => SystemKey;
         public ExplorationConfig Config => _config;
         public IReadOnlyList<ExploreSite> Sites => _sites;
-        /// <summary>난파선에서 찾은 기록 조각 수 (쓰는 쪽은 13-5b <see cref="RecordArchiveSystem"/>).</summary>
+        /// <summary>난파선에서 찾은 조각 수 (서사판 = 기록 조각, 쓰는 쪽이 받아 씀).</summary>
         public int Fragments { get; private set; }
         public bool ProbeInFlight => _probeSite >= 0;
         public float ProbeTimeLeft => _probeTimer;
         public ExploreSite ProbeTarget => _probeSite >= 0 && _probeSite < _sites.Count ? _sites[_probeSite] : null;
 
-        private ChapterSystem Chapters => Sim.Chapters;
-        private int ChapterIndex => Chapters != null ? Chapters.Index : 0;
+        /// <summary>지금 신호 묶음 번호 (신호를 정하는 쪽이 없으면 0).</summary>
+        public int Round => Signals != null ? Signals.Round : 0;
+        private int ChapterIndex => Round;
 
-        /// <summary>이번 장에 탐사선을 이미 보냈는지 (한 장 하나).</summary>
-        public bool ProbeUsedThisChapter => _probedChapter == ChapterIndex;
+        /// <summary>이번 묶음에 탐사선을 이미 보냈는지 (한 묶음 하나).</summary>
+        public bool ProbeUsedThisRound => _probedChapter == ChapterIndex;
+
+        /// <summary>묶음 이름 (화면, 없으면 빈 글).</summary>
+        public string RoundName(int round) => Signals != null ? Signals.RoundName(round) ?? "" : "";
+
+        /// <summary>난파선 기록 로그를 차례로 하나 꺼냄 (없으면 null) — 판이 기록 창에 씀.</summary>
+        public string NextWreckLog()
+        {
+            var logs = _config.WreckLogs;
+            if (logs.Count == 0)
+                return null;
+            string text = logs[Math.Min(_wreckLogs, logs.Count - 1)];
+            _wreckLogs++;
+            return text;
+        }
 
         /// <summary>센서 어레이가 하나라도 가동 중.</summary>
         public bool SensorActive
@@ -102,10 +147,10 @@ namespace SpaceStation.Simulation
             }
         }
 
-        /// <summary>이 장에 신호가 있는지 (장 데이터).</summary>
-        public bool ChapterHasSignals => Chapters != null && Chapters.Current.Signals.Count > 0;
+        /// <summary>이번 묶음에 신호가 있는지.</summary>
+        public bool HasSignals => Signals != null && Signals.Kinds != null && Signals.Kinds.Count > 0;
 
-        /// <summary>이번 장 지점들.</summary>
+        /// <summary>이번 묶음 지점들.</summary>
         public void CurrentSites(List<ExploreSite> result)
         {
             result.Clear();
@@ -114,16 +159,16 @@ namespace SpaceStation.Simulation
                     result.Add(s);
         }
 
-        /// <summary>지난 장에 밝히지 못한 신호 (탐사선을 보낼 수 없으니 공간에 띄우지 않음).</summary>
+        /// <summary>지난 묶음에 밝히지 못한 신호 (탐사선을 보낼 수 없으니 공간에 띄우지 않음).</summary>
         public bool IsExpired(ExploreSite site) => site != null && !site.Revealed && site.Chapter != ChapterIndex;
 
         // ---------------- 진행 ----------------
 
         public override void Tick(float dt)
         {
-            if (Chapters == null || Sim.Session.IsGameOver)
+            if (Signals == null || Sim.Session.IsGameOver)
                 return;
-            if (_generatedChapter != ChapterIndex && ChapterHasSignals && SensorActive)
+            if (_generatedChapter != ChapterIndex && HasSignals && SensorActive)
                 Generate();
             if (dt <= 0f)
                 return;
@@ -145,18 +190,19 @@ namespace SpaceStation.Simulation
         private void Generate()
         {
             _generatedChapter = ChapterIndex;
-            var data = Chapters.Current;
-            var kinds = new List<SiteKind>(data.Signals);
+            var data = Signals;
+            var kinds = new List<SiteKind>(data.Kinds);
             Shuffle(kinds);
-            var dirs = new List<Vector3Int>(Horizontal);
+            var dirs = new List<Vector3Int>(data.Directions ?? Horizontal);
             Shuffle(dirs);
             var core = Sim.Core != null ? Sim.Core.Origin : Vector3Int.zero;
             for (int i = 0; i < kinds.Count; i++)
             {
                 var dir = dirs[i % dirs.Count];
                 int edge = Edge(dir, core);
-                int dist = data.SignalDistanceMin + Math.Min(data.SignalDistanceMax - data.SignalDistanceMin, (int)(_random01() * (data.SignalDistanceMax - data.SignalDistanceMin + 1)));
-                var side = new Vector3Int(Math.Abs(dir.z), 0, Math.Abs(dir.x)); // 옆으로 조금
+                int dist = data.DistanceMin + Math.Min(data.DistanceMax - data.DistanceMin, (int)(_random01() * (data.DistanceMax - data.DistanceMin + 1)));
+                // 옆으로 조금 (위아래 방향이면 가로 두 축 중 x)
+                var side = dir.y != 0 ? Vector3Int.right : new Vector3Int(Math.Abs(dir.z), 0, Math.Abs(dir.x));
                 int lateral = (int)(_random01() * 5f) - 2;
                 int height = (int)(_random01() * 3f) - 1;
                 var cell = core + dir * (edge + dist) + side * lateral + Vector3Int.up * height;
@@ -193,13 +239,13 @@ namespace SpaceStation.Simulation
         public string ProbeBlocked(ExploreSite site)
         {
             if (site == null || site.Chapter != ChapterIndex)
-                return "이번 장 신호가 아님";
+                return "지난 신호임";
             if (site.Revealed)
                 return "이미 밝힘";
             if (ProbeInFlight)
                 return "탐사선이 날아가는 중";
-            if (ProbeUsedThisChapter)
-                return "이번 장 탐사선은 이미 보냄";
+            if (ProbeUsedThisRound)
+                return "이번 신호의 탐사선은 이미 보냄";
             if (Sim.Resources.GetStock(ResourceType.Metal) < _config.ProbeMetal)
                 return $"금속 {_config.ProbeMetal:0} 필요";
             return null;
@@ -228,8 +274,7 @@ namespace SpaceStation.Simulation
                 return;
             site.Revealed = true;
             Sim.Report($"탐사선 도착: {ExplorationConfig.Name(site.Kind)} · {_config.Effect(site.Kind)} · {_config.ReachRadius}칸 이내 도달 시 탐사 시작", true);
-            Chapters?.SetFlag(ProbeFlag);
-            Revealed?.Invoke(site);
+            Revealed?.Invoke(site); // 서사판: 장 표시 'probe'
             Changed?.Invoke();
         }
 
@@ -252,7 +297,7 @@ namespace SpaceStation.Simulation
             return best;
         }
 
-        public bool IsWithinReach(ExploreSite site) => Distance(site) <= _config.ReachRadius;
+        public bool IsWithinReach(ExploreSite site) => ReachRule != null ? ReachRule(site) : Distance(site) <= _config.ReachRadius;
 
         private void CheckReach()
         {
@@ -276,8 +321,7 @@ namespace SpaceStation.Simulation
                 site.Reached = true;
                 site.HazardTimer = _config.DebrisInterval;
                 ApplyReach(site);
-                Chapters?.SetFlag(ReachFlag);
-                Reached?.Invoke(site);
+                Reached?.Invoke(site); // 서사판: 장 표시 'reach' · 난파선 기록 조각 · 기록 로그
                 Changed?.Invoke();
             }
         }
@@ -288,17 +332,9 @@ namespace SpaceStation.Simulation
             switch (site.Kind)
             {
                 case SiteKind.Wreck:
-                    Fragments += _config.WreckFragments;
-                    Sim.GetSystem<RecordArchiveSystem>()?.AddFragments(_config.WreckFragments); // 13-5b 봉인된 기록을 푸는 데 씀 (알림은 아래 한 줄)
+                    Fragments += _config.WreckFragments; // 판이 받아 씀 (서사판 = 봉인된 기록을 푸는 기록 조각, Reached에서)
                     Sim.Supply.SetCounts(Sim.Supply.ResearchPoints + _config.WreckResearchPoints, Sim.Supply.FreeRepairs);
                     Sim.Report($"{name} 탐사 시작 · 기록 조각 +{_config.WreckFragments} · 연구 포인트 +{_config.WreckResearchPoints}", true);
-                    var logs = _config.WreckLogs;
-                    if (logs.Count > 0)
-                    {
-                        string text = logs[Math.Min(_wreckLogs, logs.Count - 1)];
-                        _wreckLogs++;
-                        Sim.GetSystem<CorePersonalitySystem>()?.Log("기록 조각 · " + text);
-                    }
                     break;
                 case SiteKind.DebrisField:
                     Sim.Resources.AddStock(ResourceType.Metal, _config.DebrisMetal);
