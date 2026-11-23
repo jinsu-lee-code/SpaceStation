@@ -52,6 +52,19 @@ namespace SpaceStation.Data
         [Tooltip("침입 드론 제한 시간 (초)")]
         [SerializeField, Min(10f)] private float _droneSeconds = 150f;
 
+        [Header("비장의 카드 (X1b, 사용자 결정 2026-11-24 — 함대 습격이 열릴 때 하나를 골라 한 판에 한 번)")]
+        [Tooltip("방주 방패: 켜져 있는 동안 습격 포격을 모두 막음 (초)")]
+        [SerializeField, Min(1f)] private float _shieldSeconds = 45f;
+        [Tooltip("방패를 켜면 코어의 발생기로 들어오는 침입 드론 · 끄는 제한 시간 (못 끄면 방패가 바로 꺼짐)")]
+        [SerializeField, Min(1)] private int _shieldDrones = 3;
+        [SerializeField, Min(1f)] private float _shieldDroneSeconds = 20f;
+        [Tooltip("궤도 포격: 발사대 충전 (초) — 그동안 기함 포격이 발사대에 몰림, 발사대가 파손되면 실패")]
+        [SerializeField, Min(1f)] private float _strikeCharge = 60f;
+        [Tooltip("성공하면 기함 최대 체력의 이 비율만큼")]
+        [SerializeField, Range(0f, 1f)] private float _strikeDamage = 0.5f;
+        [Tooltip("충전 동안 포격 한 파 중 발사대로 가는 몫")]
+        [SerializeField, Range(0f, 1f)] private float _strikeFocus = 0.5f;
+
         [Header("규모 (CONNECT X1: 정거장 크기 · 노출 면)")]
         [Tooltip("바깥에 드러난 모듈이 이 수를 넘으면 커지기 시작")]
         [SerializeField, Min(1)] private int _exteriorReference = 40;
@@ -83,6 +96,12 @@ namespace SpaceStation.Data
         public int FlagshipDrones => _flagshipDrones;
         public float CounterDamage => _counterDamage;
         public float DroneSeconds => _droneSeconds;
+        public float ShieldSeconds => _shieldSeconds;
+        public int ShieldDrones => _shieldDrones;
+        public float ShieldDroneSeconds => _shieldDroneSeconds;
+        public float StrikeCharge => _strikeCharge;
+        public float StrikeDamage => _strikeDamage;
+        public float StrikeFocus => _strikeFocus;
         public int ExteriorReference => _exteriorReference;
         public float ExteriorStep => _exteriorStep;
         public float SizeScaleMax => _sizeScaleMax;

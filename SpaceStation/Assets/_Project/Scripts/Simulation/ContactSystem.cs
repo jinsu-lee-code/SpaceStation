@@ -555,6 +555,14 @@ namespace SpaceStation.Simulation
                 Changed?.Invoke();
                 return;
             }
+            if (!string.IsNullOrEmpty(BoardingTag)) // 특별한 침입: 주인이 결과를 정함 (파손 · 금속 손실 없음)
+            {
+                string tag = BoardingTag;
+                Sim.Report($"침입 드론을 막지 못했습니다: {ModuleName(BoardingTarget)}", false);
+                EndBoarding();
+                BoardingFinished?.Invoke(tag, false);
+                return;
+            }
             float metal = Math.Min(Sim.Resources.GetStock(ResourceType.Metal), _config.BoardingMetalLoss * _pendingScaleAtBoarding);
             Sim.Resources.TrySpend(new[] { new ResourceAmount(ResourceType.Metal, metal) });
             bool damaged = Sim.Damage.Damage(BoardingTarget);
@@ -573,7 +581,10 @@ namespace SpaceStation.Simulation
             if (DronesLeft <= 0)
             {
                 Sim.Report($"침입 드론을 모두 껐습니다 · {ModuleName(BoardingTarget)} 안전", true);
+                string tag = BoardingTag;
                 EndBoarding();
+                if (!string.IsNullOrEmpty(tag))
+                    BoardingFinished?.Invoke(tag, true);
             }
             else
                 Changed?.Invoke();
@@ -582,9 +593,34 @@ namespace SpaceStation.Simulation
         private void EndBoarding()
         {
             BoardingTarget = null;
+            BoardingTag = "";
             DronesLeft = DronesTotal = 0;
             BoardingTimeLeft = 0f;
             Changed?.Invoke();
+        }
+
+        /// <summary>REVIEW_1115 6번: 특별한 침입의 이름 (빈 글 = 보통 침입). 특별한 침입은 못 막아도 파손 · 금속 손실 없이 주인에게 알림.</summary>
+        public string BoardingTag { get; private set; } = "";
+
+        /// <summary>특별한 침입이 끝남 (이름, 모두 껐는지).</summary>
+        public event Action<string, bool> BoardingFinished;
+
+        /// <summary>
+        /// REVIEW_1115 6번 공통 고리: 정한 모듈에 특별한 침입 (비장의 카드 '방주 방패' = 코어의 발생기). 이미 침입 중이면 false.
+        /// 결과는 <see cref="BoardingFinished"/>로 (못 막아도 그 모듈은 파손되지 않음).
+        /// </summary>
+        public bool BeginBoardingAt(ModuleInstance target, int drones, float seconds, string source, string tag)
+        {
+            if (Boarding || target == null || drones <= 0 || string.IsNullOrEmpty(tag))
+                return false;
+            BoardingTarget = target;
+            BoardingTag = tag;
+            _pendingScaleAtBoarding = 1f;
+            DronesTotal = DronesLeft = drones;
+            BoardingTimeLeft = Math.Max(1f, seconds);
+            Sim.Report($"{source} 침입: 드론 {DronesTotal}기가 {ModuleName(target)}에 들어왔습니다 · {BoardingTimeLeft:0}초 안에 내부에서 꺼야 합니다 (V 들어가기)", false);
+            Changed?.Invoke();
+            return true;
         }
 
         private static string ModuleName(ModuleInstance m) => m != null && m.Data != null ? m.Data.DisplayName : "모듈";
@@ -623,6 +659,7 @@ namespace SpaceStation.Simulation
             public int DronesTotal;
             public float BoardingTime;
             public float BoardingScale;
+            public string BoardingTag = "";
         }
 
         public override string Capture(Func<ModuleInstance, int> indexOf)
@@ -638,7 +675,7 @@ namespace SpaceStation.Simulation
                 Decode = DecodeProgress, Reputation = (float[])_reputation.Clone(), Last = last,
                 PendingRaid = (int)_pendingRaid, PendingScale = _pendingScale, PendingRank = _pendingRank, PendingGuard = _pendingGuard, PendingSource = _pendingSource,
                 BoardingTarget = BoardingTarget != null ? indexOf(BoardingTarget) : -1, DronesLeft = DronesLeft, DronesTotal = DronesTotal,
-                BoardingTime = BoardingTimeLeft, BoardingScale = _pendingScaleAtBoarding,
+                BoardingTime = BoardingTimeLeft, BoardingScale = _pendingScaleAtBoarding, BoardingTag = BoardingTag,
             });
         }
 
@@ -667,7 +704,8 @@ namespace SpaceStation.Simulation
             _pendingRank = s.PendingRank;
             _pendingGuard = s.PendingGuard;
             _pendingSource = s.PendingSource;
-            BoardingTarget = s.BoardingTarget >= 0 ? moduleAt(s.BoardingTarget) : null;
+            BoardingTarget = s.BoardingTarget >= 0 || s.BoardingTarget == -2 ? moduleAt(s.BoardingTarget) : null; // -2 = 코어 (방주 방패 발생기)
+            BoardingTag = BoardingTarget != null ? s.BoardingTag ?? "" : "";
             DronesLeft = s.DronesLeft;
             DronesTotal = s.DronesTotal;
             BoardingTimeLeft = s.BoardingTime;

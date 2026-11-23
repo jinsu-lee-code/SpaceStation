@@ -286,8 +286,24 @@ namespace SpaceStation.Simulation
             Changed?.Invoke();
         }
 
+        /// <summary>REVIEW_1115 6번 공통 고리 (비장의 카드 '방주 방패'): 포격 한 파를 통째로 막는 쪽의 이름 (null = 막지 않음). 포격일 때만 봄.</summary>
+        public Func<string> RaidBlocker { get; set; }
+
+        /// <summary>REVIEW_1115 6번 공통 고리 (비장의 카드 '궤도 포격' 발사대): 포격 탄이 몰리는 모듈 (null = 없음) · 한 파 중 그 모듈로 가는 몫.</summary>
+        public Func<ModuleInstance> RaidFocus { get; set; }
+        public float RaidFocusShare { get; set; } = 0.5f;
+
         private void FireWave()
         {
+            if (IsRaid && RaidBlocker != null)
+            {
+                string blocker = RaidBlocker();
+                if (!string.IsNullOrEmpty(blocker))
+                {
+                    Sim.Report($"{Label} {WavesDone + 1}/{Waves}파: {blocker}{(HasFinalConsonant(blocker) ? "이" : "가")} 모두 막았습니다", true);
+                    return;
+                }
+            }
             RefreshFacing();
             _pool.Clear();
             foreach (var m in _facing)
@@ -316,6 +332,16 @@ namespace SpaceStation.Simulation
                 }
                 _targets.Add(_pool[pick]);
                 _pool.RemoveAt(pick);
+            }
+            var focus = IsRaid && RaidFocus != null ? RaidFocus() : null;
+            if (focus != null && !Sim.Damage.IsDamaged(focus))
+            {
+                // 몫만큼은 그 모듈로 (앞면이 아니어도) — 나머지는 앞면에서 뽑은 그대로
+                int n = Math.Max(1, (int)Math.Round(HitsPerWave * RaidFocusShare));
+                while (_targets.Count > 0 && _targets.Count > HitsPerWave - n)
+                    _targets.RemoveAt(_targets.Count - 1);
+                for (int i = 0; i < n; i++)
+                    _targets.Add(focus);
             }
             Sim.ShowerMeteors(_targets, _random01, Direction, $"{Label} {WavesDone + 1}/{Waves}파");
             _facingDirty = true; // 파괴로 모양이 바뀌었을 수 있음
