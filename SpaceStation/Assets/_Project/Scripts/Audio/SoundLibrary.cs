@@ -306,10 +306,10 @@ namespace SpaceStation.Audio
         public SoundCue DroneShowRise = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.34f, Pitch = Vector2.one, Cooldown = 1f, MaxVoices = 1 };
 
         [Header("체험 — 요새 포대 폭죽놀이 직관 (5-2, 2026-11-23)")]
-        [Tooltip("포구에서 쏨 \"쉬익\" (포구 자리 3D, 0.8초 뒤 하늘에서 터짐) — 합성 걸러진 바람이 높아지며 올라감")]
-        public SoundCue FireworkLaunch = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.35f, Pitch = new Vector2(0.94f, 1.06f), Cooldown = 0.1f, MaxVoices = 3 };
-        [Tooltip("하늘 화면에서 터짐 \"팡 + 지지직\" (2D, MeteorExplode 대신 — 재생 높이 ±10 %로 하나하나 다르게) — 합성 둥근 팡 + 잔 반짝 알갱이")]
-        public SoundCue FireworkBurst = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.65f, Pitch = new Vector2(0.9f, 1.1f), Cooldown = 0.1f, MaxVoices = 3 };
+        [Tooltip("포구에서 쏨 \"퉁\" (포구 자리 3D, 0.8초 뒤 하늘에서 터짐) — 실제 발사통 녹음 (CC0) + 짧고 옅은 쉬익 (2026-11-24 합성 쉬익만으론 잡음 · 파도처럼 들려 바꿈)")]
+        public SoundCue FireworkLaunch = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.7f, Pitch = new Vector2(0.94f, 1.06f), Cooldown = 0.1f, MaxVoices = 3 };
+        [Tooltip("하늘 화면에서 터짐 (2D, 넷 중 하나 · 재생 높이 ±10 %) — 실제 공중 폭죽 녹음 (CC0) + 하늘 울림 꼬리 (2026-11-24 합성 \"팡 + 지지직\"은 몸통이 비고 고음 · 지직만 많아 딱총처럼 들려 바꿈)")]
+        public SoundCue FireworkBurst = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Pitch = new Vector2(0.9f, 1.1f), Cooldown = 0.1f, MaxVoices = 3 };
         [Tooltip("쇼 레버 당김 (레버 자리 3D, UiOpen 대신) — 궤도 방어망 레버와 같은 나무 \"끼익 · 툭\" (레버가 0.2초에 끝까지)")]
         public SoundCue FireworkLever = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.8f, Pitch = new Vector2(0.98f, 1.02f), Cooldown = 0.5f, MaxVoices = 1 };
 

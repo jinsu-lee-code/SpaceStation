@@ -1680,26 +1680,52 @@ for k in range(7):
     at = rng.uniform(0.1, 0.65)
     g = onepole_lp(highpass(rng.standard_normal(int(0.004 * SR)), 1500), 5000) * np.exp(-np.arange(int(0.004 * SR)) / (0.001 * SR))
     launch = place(launch, g / np.abs(g).max() * 0.5 * np.abs(launch).max(), at)
-save("Ride/firework_launch.wav", fade(soften(launch, 5000, 0.4), 0.005, 0.05), -14)
+# → 2026-11-24 이 "쉬익"만으로는 잡음 · 파도처럼 들려 아래 (터짐 다음)에서 실제 발사통 "퉁" 위에 짧고 옅게 얹음
 
-# 터짐 "팡 + 지지직" (하늘 화면 불꽃 — 2D, 재생 높이 ±10 %로 하나하나 다르게) — 둥근 "팡" (300 ~ 1500 Hz 잡음 50 ms + 90 → 45 Hz 몸통 옅게, 시작 4 ms) +
-# 반짝 지지직 (2 ~ 6 kHz 잔 알갱이 70개가 0.15 ~ 1.5초에 흩어지며 잦아듦, 6 kHz 위를 눌러 날 서지 않게) + 옅은 "쉬이" (흩날림).
-t = np.arange(int(1.9 * SR)) / SR
-rng = np.random.default_rng(720)
-boom = onepole_lp(onepole_lp(highpass(rng.standard_normal(len(t)), 300), 1500), 1500) * np.exp(-t / 0.05)
-boom = boom / np.abs(boom).max() + 0.35 * np.sin(2 * np.pi * np.cumsum(45 + 45 * np.exp(-t / 0.05)) / SR) * np.exp(-t / 0.12)
-boom *= 1 - np.exp(-t / 0.004)
-cr_ = np.zeros_like(t)
-for k in range(70):
-    at = 0.15 + 1.35 * rng.random() ** 1.6
-    ng = int(rng.uniform(0.002, 0.005) * SR)
-    g = onepole_lp(highpass(rng.standard_normal(ng), 2000), 6000) * np.exp(-np.arange(ng) / (0.0012 * SR))
-    cr_ = place(cr_, g / (np.abs(g).max() + 1e-9) * rng.uniform(0.3, 1.0) * np.exp(-(at - 0.15) / 0.7), at)
-cr_ = cr_[: len(t)]
-spray = onepole_lp(highpass(rng.standard_normal(len(t)), 1500), 5000) * np.exp(-np.maximum(0, t - 0.1) / 0.5) * np.minimum(1, t / 0.1)
-burst = boom * 0.9 + cr_ * 1.1 + 0.2 * spray / np.abs(spray).max()
-# 첫 판 (−14 그대로)은 녹음 검수에서 음악보다 −3 ~ −4 (첫 50 ms "팡"이 저장 크기를 정해 지지직이 작음) → 센 곳을 6 dB 누르고 −12로
-save("Ride/firework_burst.wav", fade(tame(soften(burst, 6000, 0.4), 6.0), 0.0, 0.3), -12)
+# 터짐 (하늘 화면 불꽃 — 2D, 재생 높이 ±10 %, 넷 중 하나씩) — 2026-11-24 사용자 "효과음이 전반적으로 이상, 폭죽 소리가 대표" → 실제 녹음과 같은 눈금으로 재 보니
+# 첫 판 합성 "팡 + 지지직"은 125 ~ 500 Hz 몸통이 비고 (45 Hz 순음만) 4 ~ 16 kHz가 실제보다 10 ~ 25 dB 밝고 지지직이 초당 19개 (실제 2 ~ 8) · 꼬리 1.6초 (실제는 3초 넘게 하늘 울림).
+# → 실제 공중 폭죽 녹음 (archive.org "The Designer's Choice — FIREWORKS", CC0 — Ride/Fortress/SOURCE.txt) 3분 연발에서 자른 터짐 42개 중
+# 앞이 조용하고 (−22 ~ −29 dB) 6 kHz 위 바닥이 낮고 (−48 ~ −56 dB) 다음 큰 터짐과 1초 넘게 떨어진 넷. 다음 터짐 직전에 자르고 하늘 울림 꼬리를 이어 붙임,
+# 날 선 첫 순간만 4 dB 눌러 아기자기 톤으로 (몸통 · 울림은 그대로).
+FW = "Ride/Fortress/"
+
+
+def fft_conv(x, h):
+    n = len(x) + len(h) - 1
+    m = 1 << (n - 1).bit_length()
+    return np.fft.irfft(np.fft.rfft(x, m) * np.fft.rfft(h, m), m)[:n]
+
+
+for k, (name, end) in enumerate((("show_06", 2.6), ("show_09", 1.45), ("show_95", 1.5), ("show_02", 1.05))):
+    x = highpass(sl(load(FW + f"real_burst_{name}.wav"), 0.19, end), 40)   # 터짐 = 0.193초 (조각마다 같음)
+    x = fade(x, 0.007, min(0.35, len(x) / SR * 0.3))   # 시작 10 → 90 % 약 4 ms (실제 중앙값 — 바로 자르면 1.5 ms로 날 섬)
+    # 하늘 울림 — 잘라 낸 뒤를 이어 줌 (1.8초 지수 꼬리 잡음, 2.5 kHz 위 누름, 몸통 최대의 22 %)
+    rng = np.random.default_rng(730 + k)
+    tt = np.arange(int(1.8 * SR)) / SR
+    wet = fft_conv(x, onepole_lp(rng.standard_normal(len(tt)), 2500) * np.exp(-tt / 0.45))
+    wet *= 0.22 * np.abs(x).max() / (np.abs(wet).max() + 1e-12)
+    y = np.concatenate([x, np.zeros(len(wet) - len(x))]) + wet
+    y, note = match_tilt(np.pad(y, (0, int(0.5 * SR))))   # 한 번 소리도 루프와 같은 고음 상한
+    # 녹음 검수 (요새 안, 음악 대비 귀 감도): 넷 다 −12면 +4.6 · +4.9 · +1.0 · +4.6 → 셋째 (show_95)는 첫 순간만 뾰족해 최대 −1 dB에 막혀
+    # −10으로도 안 커짐 (crest 12.3, tame은 5 ms 단위라 첫 1 ms가 빠져나감) → 1 ms 앞을 내다보는 최대치 누르기 6 dB 뒤 −10으로
+    y = tame(trim_lead(y[: len(y) - int(0.5 * SR)]), 4.0)
+    if name == "show_95":
+        w = int(0.001 * SR)
+        pk = np.lib.stride_tricks.sliding_window_view(np.pad(np.abs(y), (w, w), mode="edge"), 2 * w + 1).max(1)
+        y = y * np.convolve(np.minimum(1.0, np.abs(y).max() * 10 ** (-6 / 20) / (pk + 1e-12)), np.ones(w) / w, mode="same")
+    save(f"Ride/firework_burst_{k + 1:02d}.wav", fade(y, 0.0, 0.4), -10 if name == "show_95" else -12)
+    report.append(f"  폭죽 터짐 {k + 1} = 실제 {name} {end - 0.19:.2f}초 + 울림{note}")
+
+# 쏨 (포구 자리 3D, 0.8초 뒤 터짐) — 2026-11-24 실제 녹음 · AI 청각 모델 (PANNs) 비교: 첫 판 0.8초 "쉬익"은 혼자서 잡음 · 쉭 · 파도 (폭죽 0)로 들리고,
+# 쇼처럼 10초 연발에 넣으면 폭죽 점수를 0.83 → 0.44 ~ 0.52로 깎음. 실제 공중 폭죽은 발사통 "퉁" (200 Hz 아래 36 ~ 53 %, 0.07초) 뒤 조용히 오름
+# → 같은 녹음의 앞이 조용한 (−42 dB) "퉁" + 첫 판 쉬익을 0.35초 · 2.5 kHz 위 누르고 퉁 최대의 12 %로. 둘째 후보 show_50은 200 Hz 아래만 있어
+# 녹음 검수에서 음악보다 −11.6 (첫째 +4.5) — 귀에 안 들려 뺌, 하나를 재생 높이 ±6 %로 돌려 씀.
+for k, name in enumerate(("show_47",)):
+    th = fade(highpass(sl(load(FW + f"real_launch_{name}.wav"), 0.17, 0.75), 35), 0.002, 0.25)
+    air = onepole_lp(launch[int(0.05 * SR):int(0.40 * SR)], 2500)
+    air = fade(air / (np.abs(air).max() + 1e-12), 0.06, 0.15) * 0.12 * np.abs(th).max()
+    # 녹음 검수: 퉁은 거의 200 Hz 아래라 귀 감도로 터짐보다 −21 dB (−14 · 음량 0.25) → 파일 −10 · 음량 0.7로 터짐보다 약 −8 (낮은 소리라 귀 감도보다 크게 느껴짐)
+    save(f"Ride/firework_launch_{k + 1:02d}.wav", place(th, air, 0.02), -10)
 
 # 쇼 레버 (레버 자리 3D — 레버는 0.2초에 끝까지 당겨짐) — 궤도 방어망 레버와 같은 나무 결: 선착장 삐걱 0.2초를 3반음 올려 작게 + 레버 "툭"을 0.2초에.
 crk = pitch(sl(load("Interior/scape_port/dock_creak.wav"), 7.25, 7.5), 3)
