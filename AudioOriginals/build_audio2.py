@@ -723,4 +723,52 @@ for i, semis in enumerate((-7, -3, 0, 2, 5)):
     motif = place(motif, flower_bell(C6 * 2 ** (semis / 12), 3.0 if i == 4 else 2.4, i) * (0.8 + 0.05 * i), i * BEAT / 2)
 save("Interior/scape_stellar_motif.wav", fade(motif, 0.0, 1.0), -20)
 
+# ================= 4단계 소리 풍경 — 심우주 통신기지 "은하수 천문 언덕" (SOUND_LIST_NEW D-7b) =================
+# 자리는 Interior/DeepSpaceComm.cs 값 + 템플릿 강 메시 (S자 은하수 강: 왼쪽 앞 별 샘 (−3.4, −2.3) → 뒤 가운데 (8, 2.0) → 오른쪽 앞 별 샘 (19.4, −2.4),
+# 돔 셋 (가운데 관측실 · 옆 중계소 둘) · 뒤 전파 접시 넷 · 앞 별똥별 아치 · 별자리 광장). 늘 밤. VARCO 1번 (바탕).
+# 은하수 강 = 궤도 도시 고리 강, 별 샘 = 바이오스피어 물길, 중계소 · 관측실 웅웅 = 궤도 방어망 수정 포대 (도 오음계 반짝임), 풀벌레 = 수리 사령부 바탕,
+# 부엉이 = 수리 사령부 부엉이 (같은 부엉이 모델), 별똥별 = 궤도 방어망 별똥별, 강 위 유리 별 = 항성 발전망 수정 꽃 종을 한 옥타브 위로.
+# 신호 "삐" · 은하수 깊은 울림 · 대표 선율 (신호 → 유리 별)은 음악 조 (F 장조)에 맞춰 합성.
+DS = "Interior/scape_deep/"
+
+# 바탕 — 별 아래 풀 언덕 밤바람 (2D). 후보 5 중 2 (고른 풀바람 · 지직 3.8) + 5 (비슷한 밝기 665 Hz)를 2초씩 겹쳐 고리.
+# 1 · 3 = 아주 어두움 (277 · 312 Hz, 300 Hz 아래 84 ~ 86 % — 귀 감도로 작음), 4 = 4.7초 · 5.4초에 작은 딸깍.
+bed = chain_loop([sl(load(DS + "bed_a.wav"), 0.3, 10.0), sl(load(DS + "bed_b.wav"), 0.3, 10.0)], 2.0)
+save("Interior/scape_deep_bed_loop.wav", circular(lambda y: soften(highpass(y, 60), 6000, 0.4), bed), -24)
+report.append(f"  통신기지 바탕 고리 {len(bed) / SR:.2f}초")
+
+# 은하수 깊은 울림 (2D, 은하수 아래 깊은 울림) — 합성: 파2 · 도3 · 파3 · 라3 · 도4 · 파4 · 라4 (F 장조 으뜸화음)를 ±3센트로 겹쳐 서로 다른 느린 숨 +
+# 옅은 별빛 라5 · 도6 (처음엔 도4까지만 — 300 Hz 아래 100 %라 귀 감도로 거의 안 들려 위 음을 더함). 16초 = 정확히 24박, 주파수는 1/16 Hz 단위라 고리에 딱 맞음 (궤도 방어망 오로라와 같은 방식, 더 낮고 깊게).
+LM = 16.0
+tm = np.arange(int(LM * SR)) / SR
+mw = np.zeros_like(tm)
+for j, (f0, amp) in enumerate(((87.31, 1.0), (130.81, 0.8), (174.61, 0.6), (220.0, 0.5), (261.63, 0.45), (349.23, 0.3), (440.0, 0.2), (880.0, 0.08), (1046.5, 0.06))):
+    for cents in (-3, 3):
+        f = round(f0 * 2 ** (cents / 1200) * LM) / LM
+        mw += amp / 2 * np.sin(2 * np.pi * f * tm + j) * (0.55 + 0.45 * np.sin(2 * np.pi * (j % 3 + 1) * tm / LM + 1.7 * j)) ** 2
+save("Interior/scape_deep_milkyway_loop.wav", circular(lambda y: onepole_lp(highpass(y, 40), 2500), mw), -26)
+
+
+def signal_beep(f, seed=0):
+    """전파 신호 "삐 · 빕" — 맑은 사인 (3배 옅게 — 무전기 결) 두 번 (0.13초 · 0.09초, 사이 0.07초), 부드러운 시작 · 끝 + 아주 옅은 무전 잡음."""
+    def tone(d):
+        t = np.arange(int(d * SR)) / SR
+        return (np.sin(2 * np.pi * f * t) + 0.12 * np.sin(2 * np.pi * 3 * f * t)) * np.minimum(1, t / 0.008) * np.minimum(1, (d - t) / 0.03)
+    out = place(place(np.zeros(int(0.6 * SR)), tone(0.13), 0.0), 0.8 * tone(0.09), 0.2)
+    rng = np.random.default_rng(seed)
+    hiss = onepole_lp(highpass(rng.standard_normal(len(out)), 1200), 4000)
+    hiss *= np.exp(-np.arange(len(out)) / SR / 0.25) * 0.06 / (np.abs(hiss).max() + 1e-9)   # 소리 최대의 6 % (−24 dB)
+    return fade(out + hiss * np.abs(out).max(), 0.0, 0.05)
+
+
+# 전파 접시 신호 "삐 · 빕" (뒤 능선 접시 넷 둘레, 가끔 3D · 음계 높이 · 다음 박) — 도6.
+save("Interior/scape_deep_signal_01.wav", signal_beep(C6), -14)
+# 대표 선율 = 신호 "삐 · 빕" 레6 두 번 → 유리 별이 반짝이며 파5 · 라5 · 도6 · 레6 · 파6 (반의 반 박씩, 마지막 길게) — "먼 별에서 온 신호"
+motif = np.zeros(int(6.0 * SR))
+for i in range(2):
+    motif = place(motif, signal_beep(C6 * 2 ** (2 / 12), 5 + i) * 0.7, i * BEAT / 2)
+for i, semis in enumerate((-7, -3, 0, 2, 5)):
+    motif = place(motif, flower_bell(C6 * 2 ** (semis / 12), 3.0 if i == 4 else 2.2, 7 + i) * (0.75 + 0.05 * i), BEAT + i * BEAT / 4)
+save("Interior/scape_deep_motif.wav", fade(motif, 0.0, 1.0), -20)
+
 print("\n".join(report))
