@@ -33,13 +33,29 @@ namespace SpaceStation.Data
         CrisisWarning,
         /// <summary>사회 위기가 시작되는 만족도 기준 + (더하기, 음수 = 덜 일어남).</summary>
         CrisisThreshold,
+        // ---- REVIEW_1115 5번 주민 관리 정책 (끝에 더함 — 에셋에 정수로 저장되므로) ----
+        /// <summary>추방 대가(만족도 · 판이 더하는 대가) 배율.</summary>
+        ExileCost,
+        /// <summary>0보다 크면 추방할 수 없음 (더하기, 사면).</summary>
+        ExileBlocked,
+        /// <summary>새 주민이 불평꾼 특성을 받을 가중치 배율.</summary>
+        ComplainerChance,
+        /// <summary>만족도 미달 · 수용 초과로 저절로 떠나는 간격 배율 (클수록 덜 떠남).</summary>
+        LeaveInterval,
+        /// <summary>떠나는 주민 1명당 들려 보내는 식량 · 금속 (더하기, 이주 지원).</summary>
+        SendOffSupplies,
+        /// <summary>이민선 규모 배율 (여객 도킹 포트 · 판의 이민선).</summary>
+        ImmigrationSize,
+        /// <summary>이민선으로 오는 주민 한 명이 떠났던 주민일 확률 (더하기 0~1, 귀환 허가).</summary>
+        ReturnChance,
     }
 
     public static class PolicyStats
     {
-        public const int Count = 13;
+        public const int Count = 20;
 
-        public static bool IsAdditive(PolicyStat stat) => stat == PolicyStat.SatisfactionCap || stat == PolicyStat.CrisisThreshold;
+        public static bool IsAdditive(PolicyStat stat) =>
+            stat == PolicyStat.SatisfactionCap || stat == PolicyStat.CrisisThreshold || stat == PolicyStat.ExileBlocked || stat == PolicyStat.SendOffSupplies || stat == PolicyStat.ReturnChance;
 
         public static float Neutral(PolicyStat stat) => IsAdditive(stat) ? 0f : 1f;
 
@@ -63,6 +79,13 @@ namespace SpaceStation.Data
                 case PolicyStat.DestroyTimer: good = value > 1f; return $"파괴까지 시간 {Pct()}";
                 case PolicyStat.CrisisWarning: good = value > 1f; return $"사회 위기 경고 시간 {Pct()}";
                 case PolicyStat.CrisisThreshold: good = value < 0f; return $"사회 위기 기준 만족도 {(value >= 0f ? "+" : "-")}{Mathf.Abs(value):0}";
+                case PolicyStat.ExileCost: good = value < 1f; return $"추방 대가 {Pct()}";
+                case PolicyStat.ExileBlocked: good = false; return "추방할 수 없음";
+                case PolicyStat.ComplainerChance: good = value < 1f; return $"불평꾼 주민 {Pct()}";
+                case PolicyStat.LeaveInterval: good = value > 1f; return $"저절로 떠나는 간격 {Pct()}";
+                case PolicyStat.SendOffSupplies: good = false; return $"떠나는 주민 1명당 식량 · 금속 {value:0}";
+                case PolicyStat.ImmigrationSize: good = value > 1f; return $"이민선 규모 {Pct()}";
+                case PolicyStat.ReturnChance: good = value > 0f; return $"떠난 주민이 돌아올 확률 {value * 100f:0}%";
                 default: good = true; return stat.ToString();
             }
         }
