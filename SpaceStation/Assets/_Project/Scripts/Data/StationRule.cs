@@ -32,6 +32,8 @@ namespace SpaceStation.Data
         Radiation = 512,
         /// <summary>REVIEW_1115 5번 주민 추방 (등급 조건 없음 — 규칙을 정하는 쪽이 없으면 늘 열림, 서사판은 6장부터).</summary>
         Exile = 1024,
+        /// <summary>REVIEW_1115 6번 외부 위협 1차 — 단계형 습격 (정찰 → 함대 → 기함). 규칙을 정하는 쪽이 열어야 동작 (없으면 기존 습격).</summary>
+        FleetRaid = 2048,
     }
 
     /// <summary>13-1: 규칙을 정하는 쪽. 시뮬레이션에 붙어 있으면 등급 조건 대신 이것이 시스템 개방을 정한다.</summary>
@@ -62,6 +64,7 @@ namespace SpaceStation.Data
                 case StationRule.PolicyExpansion: return "정책 슬롯 확장";
                 case StationRule.Radiation: return "칸 단위 방사선";
                 case StationRule.Exile: return "주민 추방";
+                case StationRule.FleetRaid: return "함대 습격";
                 default: return rule.ToString();
             }
         }

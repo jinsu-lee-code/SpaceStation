@@ -127,6 +127,12 @@ namespace SpaceStation.Data
         [Tooltip("침입을 못 막으면: 그 모듈 파손 + 금속 손실 (규모 배율)")]
         [SerializeField, Min(0f)] private float _boardingMetalLoss = 120f;
 
+        [Header("외부 위협 1차 (REVIEW_1115 6번) — 단계형 습격")]
+        [Tooltip("정찰 → 함대 → 기함 값 (null = 없음 · 규칙 '함대 습격'이 열려야 동작)")]
+        [SerializeField] private RaidFleetConfig _fleet;
+
+        public RaidFleetConfig Fleet => _fleet;
+
         public int MinGrade => _minGrade;
         public float IntervalMin => Mathf.Min(_interval.x, _interval.y);
         public float IntervalMax => Mathf.Max(_interval.x, _interval.y);
