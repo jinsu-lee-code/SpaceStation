@@ -399,4 +399,43 @@ for i, (semis, gain) in enumerate(((4, 0.85), (0, 0.9), (-3, 0.95), (-5, 1.0))):
     motif = place(motif, pitch(drop, semis) * gain, i * BEAT / 2)
 save("Interior/scape_bio_motif.wav", fade(motif, 0.0, 0.6), -20)
 
+# ================= 3단계 소리 풍경 — 궤도 도시 "알이 깨어난 정원 섬 도시" (SOUND_LIST_NEW D-7b) =================
+# 자리는 Interior/OrbitalCity.cs 값 (계단 폭포 셋 · 고리 강 · 언덕 마을 · 꼭대기 광장 · 옥상 전망대 38.7 m). VARCO 하나씩 순서대로 7번.
+# 궤도열차는 플레이어가 운전할 때만 달림 → 열차 소리는 체험 소리 때 (5-2).
+OC = "Interior/scape_city/"
+
+# 바탕 — 지붕 없는 섬 정원의 바람 (2D). 후보 5 중 3 (가장 매끈 — 날카로움 8.6 · 지직 3.7) + 2 (탁 트인 바람결)를 2초씩 겹쳐.
+# 4 · 5 = 날카로움 21 ~ 24 (거칢), 1 = 날카로움 15.6.
+bed = chain_loop([sl(load(OC + "bed_a.wav"), 0.3, 7.8), sl(load(OC + "bed_b.wav"), 0.3, 7.8)], 2.0)
+save("Interior/scape_city_bed_loop.wav", circular(lambda y: highpass(y, 40), bed), -24)
+
+# 언덕 계단 폭포 셋 (단마다 2.4 ~ 2.9 m → 돌 웅덩이, 3D — 높이별로 재생 높이 1.05 · 1.0 · 0.95) — 후보 5 중 1:
+# 가장 어둡고 (3.4 kHz) 가장 매끈 (날카로움 10.5 · 울림 0). 2 ~ 5 = 4 ~ 6 kHz로 밝고 날카로움 14 ~ 14.5.
+save("Interior/scape_city_cascade_loop.wav", circular(lambda y: soften(highpass(y, 60), 5000, 0.4), loop_exact(sl(load(OC + "cascade.wav"), 0.2, 7.3), 6.2)), -23)
+
+# 고리 강 (섬 둘레, 3D 여섯 곳) — 후보 5 중 2: 지직 10.9 (가장 낮음) · 날카로움 11.7. 3 · 5 = 날카로움 15 ~ 17.
+save("Interior/scape_city_river_loop.wav", circular(lambda y: highpass(y, 60), loop_exact(flatten(sl(load(OC + "river.wav"), 0.3, 10.24)), 9.0)), -25)
+
+# 언덕 마을 · 꼭대기 광장 웅성 (3D, 밤엔 15 %) — 후보 5 중 1: 울림 줄 3 (목소리가 하나하나 튀지 않고 흐릿하게 섞임).
+# 2 ~ 5 = 울림 10 ~ 44 (특정 목소리 높이가 도드라짐).
+save("Interior/scape_city_murmur_loop.wav", circular(lambda y: soften(highpass(y, 120), 5000, 0.4), loop_exact(flatten(sl(load(OC + "murmur.wav"), 0.3, 10.24)), 9.0)), -26)
+
+# 옥상 전망대 꼭대기 바람 (38.7 m, 3D) — 후보 5 중 1: 울림 0 · 날카로움 8.7 (가장 고름).
+save("Interior/scape_city_rooftop_loop.wav", circular(lambda y: highpass(y, 30), loop_exact(sl(load(OC + "rooftop.wav"), 0.3, 10.24), 9.0)), -24)
+
+# 밤 창 불빛 웅웅 (밤에만, 언덕 마을 3D) — 후보 5 중 4: 가장 낮고 둥긂 (165 Hz · 날카로움 7.7 · 울림 0). 다섯 모두 "윙" 험 음 높이 봉우리 없음.
+save("Interior/scape_city_night_loop.wav", circular(lambda y: highpass(y, 30), loop_exact(sl(load(OC + "night_glow.wav"), 0.3, 10.24), 9.0)), -26)
+
+# 종 (가끔 섬 위로 + 대표 선율) — 후보 5 중 5: 한 번만 맑게, G6 0센트. VARCO "마을 종"은 손종 높이 (3 kHz 대) →
+# 한 옥타브 내려 G5 (MIDI 79) 큰 종탑 종의 따뜻하고 긴 울림으로. 시작 1.6 ms → 8 ms로 둥글게.
+# 1 · 3 = 여러 번 침, 2 = A7 −44센트, 4 = F#7 +40센트 배음 (음악과 부딪힘).
+bell = fade(soften(trim_lead(load(OC + "bell.wav"), -45)[: int(3.2 * SR)], 5000, 0.4), 0.008, 1.2)
+bell = pitch(highpass(bell, 150), -12)
+save("Interior/scape_city_bell_01.wav", bell, -24)
+# 대표 선율 = 종탑 네 음 솔 · 미 · 라 · 도 (한 박 간격 — 종은 천천히)
+motif = np.zeros(int(6.5 * SR))
+for i, (semis, gain) in enumerate(((0, 0.9), (-3, 0.85), (2, 0.9), (5, 1.0))):
+    motif = place(motif, pitch(bell, semis) * gain, i * BEAT)
+save("Interior/scape_city_motif.wav", fade(motif, 0.0, 1.0), -20)
+
 print("\n".join(report))
