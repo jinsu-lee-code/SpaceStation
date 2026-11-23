@@ -147,6 +147,9 @@
 | `TutorialData.Free` · `TutorialGoal.OpenRecipes / PlaceSynthesis / StartSynthesis` (M-51) | 서사판 = 4장 합성 안내(장 안내, 막지 않음), 타이쿤판 = 안 씀(기존 튜토리얼은 막는 안내) | 둘 다 그대로 — 엔드리스에서 합성 안내가 필요하면 같은 단계로 |
 | `StationRule.Radiation` · `RadiationSystem.SpaceMultiplier` · `HeatSystem.OutputScale` · `RemovalScale` · `ResidentRoster.HomeStress` · `StressExempt` (M-120) | 서사판 = 5장이 규칙을 열고 종족 견딤 × 집 환경을 붙임, 항성 폭풍이 배율을 바꿈 / 타이쿤판 = 비움(방사선 닫힘, 차폐실 · 차폐벽 잠김) — 국가 단계에서 규칙을 열지 그때 정함 | 캠페인 = 장이 엶, 엔드리스 = 타이쿤판 해금 규칙을 따름. 힘든 주민 고리는 종족이 없으면 보통 주민 기준으로 붙이면 됨 |
 | `TutorialView._dockUnderResources` (게임 씬 값 하나) · `RecipePanel._windowOffset` (게임 씬 값, M-52) | 서사판 씬 = 끔(카드 왼쪽 위 — 오른쪽 자원 패널 아래는 장 목표 카드 자리) · (-50, 40), 타이쿤판 씬 = 켬(카드 자원 패널 아래 — 왼쪽 위는 [관리] 메뉴) · 기본 (-150, 40) | **모드별로 나눔**: 캠페인 = 끔 · (-50, 40), 엔드리스 = 켬 · (-150, 40). 아래 "합본 주의사항" 참고 |
+| `StationRule.Exile` · `ExileSystem.Exiled` · `PreviewSuffix` · `Returned` · `Departed` · `ResidentRoster.ArrivalTemplate` · `TraitWeightScale` (M-336) | 서사판 = 6장이 규칙을 엶 · 추방 대가에 긴장도 · 코어 축을 더함 (사면 · 이주 지원은 처음 발효될 때 코어 축), 타이쿤판 = 해금 선택 규칙이 모르면 닫힘 (늘 열기로 — MERGE_NOTES M-336) | 그대로 — 모드마다 대가 고리만 |
+| `ExplorationSystem.Signals` (`IExploreSignals`) · `ReachRule` · `Revealed` · `Reached` · `ExploreSite.Reserve` (M-337) | 서사판 = `ChapterExploration` (장 신호 · 장 이름 · 기록 조각 · 난파선 로그), 타이쿤판 = 아직 안 붙임 (광맥 예정 — 신호 · 매장량 · 채굴 태그 닿음) | 모드마다 신호를 정하는 쪽 하나 |
+| `StationRule.FleetRaid` · `ContactConfig._fleet` · `ContactSystem.RaidOverride` · `RaidFleetSystem.Start` · `DamageShip` · `DamageFlagship` · `SizeScale` · 비장의 카드 `ChooseTrump` (M-338 · M-339) | 서사판 = 7장이 규칙을 엶 (예정) · 위기에서 `Start`를 바로 부름, 타이쿤판 = 지구급에서 열지 정함 · 성장 비례 위협이 `SizeScale`을 바꿀 수 있음 | 그대로 — 모드마다 여는 때만 |
 
 - **합본 주의사항** (사용자 확인 2026-11-01: 합본 캠페인 모드에서 튜토리얼 카드와 장 목표 패널이 겹침)
   - 원인: 합본은 게임 씬을 타이쿤판으로 받으므로 `TutorialView._dockUnderResources` = 켬으로 남고, 캠페인에서는 튜토리얼 카드와 장 목표 카드(`ChapterView`)가 둘 다 자원 패널 바로 아래에 붙는다
