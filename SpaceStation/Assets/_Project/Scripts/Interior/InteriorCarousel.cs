@@ -59,6 +59,8 @@ namespace SpaceStation.Interior
         private int _standFrame = -1;
         private float _signTimer, _riderTimer;
         private Quaternion[] _clawRest;
+        private ObjectLoop _music;
+        private ModuleInstance _room;
         private Collider[] _seatColliders;
         private FirstPersonController _player;
         private TextMeshPro _signText, _signBack;
@@ -167,9 +169,26 @@ namespace SpaceStation.Interior
                     break;
             }
             Apply(dt);
+            UpdateMusic();
             CaptureRiders(dt);
             UpdateSign(dt);
             UpdateHint();
+        }
+
+        /// <summary>오르골 (판 가운데에 붙은 3D 루프): 도는 동안 크기 1 (가속 · 감속 앞뒤 절반에서 오르내림) · 서면 0, 내부 음악 박에 맞춰 시작.</summary>
+        private void UpdateMusic()
+        {
+            if (_music == null)
+            {
+                _music = AudioService.AttachLoop(l => l.CarouselMusicLoop, _disk, 6f, 24f);
+                if (_music == null)
+                    return;
+                _music.SyncBeat = 60.0 / 90.0;   // 내부 음악 빠르기
+                _music.Level = 0f;
+            }
+            float u = Mathf.Clamp01(_timer);
+            float speed = _phase != Phase.Running ? 0f : u < Ramp ? u / Ramp : u > 1f - Ramp ? (1f - u) / Ramp : 1f;
+            _music.Level = InPlayerRoom() ? Mathf.Clamp01(speed * 2f) : 0f;   // 옆 방에서는 안 들림 (지금 있는 방 것만)
         }
 
         /// <summary>0 ~ 1 → 0 ~ 1 (사다리꼴 속도: 처음 · 끝 Ramp 동안 고르게 빨라지고 느려짐).</summary>
@@ -194,7 +213,7 @@ namespace SpaceStation.Interior
                 _riding = true;
             }
             UpdateColliders();
-            PlayNear(l => l.RideBoard);
+            PlayNear(l => l.CarouselBell);   // 출발 종 "딩 딩 딩—"
         }
 
         private void Stop()
@@ -208,7 +227,7 @@ namespace SpaceStation.Interior
                 _riding = false;
             }
             UpdateColliders();
-            PlayNear(l => l.RideLeave);
+            PlayNear(l => l.CarouselBell, 0.5f);   // 멈춤 — 같은 종을 작게
         }
 
         private void Apply(float dt)
@@ -322,13 +341,20 @@ namespace SpaceStation.Interior
             _ridingCapsule = -1;
         }
 
-        private void PlayNear(System.Func<SoundLibrary, SoundCue> cue)
+        private void PlayNear(System.Func<SoundLibrary, SoundCue> cue, float volume = 1f)
         {
             if (_player == null)
                 return;
             var p = transform.InverseTransformPoint(_player.transform.position) - StorageCarousel.Center;
-            if (_riding || p.sqrMagnitude < 144f)
-                AudioService.TryPlay(cue);
+            if (_riding || (p.sqrMagnitude < 144f && InPlayerRoom()))
+                AudioService.TryPlay(cue, volume);
+        }
+
+        private bool InPlayerRoom()
+        {
+            if (_room == null)
+                _room = InteriorRoomDisplay.RoomOf(transform);
+            return _room == null || InteriorRoomDisplay.PlayerIn(_room);   // 방을 못 찾으면 (템플릿 밖) 그대로 울림
         }
 
         // ---------------- 탄 주민 ----------------

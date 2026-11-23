@@ -68,6 +68,12 @@ namespace SpaceStation.Building
         /// <summary>지금 치는 번개 중 가장 센 번쩍임 (0 = 없음) — 내부 조명이 맞춰 번쩍임.</summary>
         public float StrikeLevel { get; private set; }
 
+        /// <summary>번개가 막 칠 때 (닿는 곳 월드 자리 · 탑에서 오는 번개인지) — 내부 번개 정원 소리 (사운드 개편 5-2, 2026-11-23).</summary>
+        public event System.Action<Vector3, bool> Struck;
+
+        /// <summary>탑 꼭대기 에너지 구 가운데 (월드).</summary>
+        public Vector3 HubPosition => transform.TransformPoint(_hub);
+
         private void Start()
         {
             _view = GetComponentInParent<ModuleView>();
@@ -173,6 +179,7 @@ namespace SpaceStation.Building
                     applyShapeToPosition = false,
                 }, 1);
             }
+            Struck?.Invoke(wTo, a.From < 0);
         }
 
         private void Flash(Vector3 at, float size) =>

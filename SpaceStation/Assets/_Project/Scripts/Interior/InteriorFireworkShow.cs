@@ -172,7 +172,8 @@ namespace SpaceStation.Interior
                 _bursts.RemoveAt(i);
                 _flashLevel = 1f;
                 _flash.color = FlashColors[Random.Range(0, FlashColors.Length)];
-                AudioService.TryPlay(l => l.MeteorExplode, 0.4f);
+                if (PlayerInRoom)
+                    AudioService.TryPlay(l => l.FireworkBurst);   // 하늘 화면에서 "팡 + 지지직" (이 방에 있을 때만 — 옆 방에서는 안 들림)
             }
             if (_flashLevel > 0f)
             {
@@ -188,7 +189,7 @@ namespace SpaceStation.Interior
                 return;
             _showLeft = ShowSeconds;
             _gap = 0f;
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlayAt(l => l.FireworkLever, _lever != null ? _lever.position : transform.position);   // 나무 레버 "끼익 · 툭"
         }
 
         private void OnLaunched(int mortar)
@@ -200,7 +201,12 @@ namespace SpaceStation.Interior
             int tube = _nextTube[battery]++ % _tubesPerBattery;
             int index = battery * _tubesPerBattery + tube;
             if (index < _muzzles.Length)
-                InteriorFx.Spark(transform, transform.TransformPoint(_muzzles[index]), transform.up, _spark, 14, 24, 3.5f);
+            {
+                var muzzle = transform.TransformPoint(_muzzles[index]);
+                InteriorFx.Spark(transform, muzzle, transform.up, _spark, 14, 24, 3.5f);
+                if (PlayerInRoom)
+                    AudioService.TryPlayAt(l => l.FireworkLaunch, muzzle);   // 쏘아 올림 "쉬익" (0.8초 뒤 터짐)
+            }
         }
 
         // ---------------- 관람석 ----------------

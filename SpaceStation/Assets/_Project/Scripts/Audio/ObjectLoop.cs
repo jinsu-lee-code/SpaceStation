@@ -19,6 +19,13 @@ namespace SpaceStation.Audio
         public float Pitch { get; set; } = 1f;
         /// <summary>초당 크기 변화량 (2.5 = 0.4초에 0 → 1).</summary>
         public float FadeSpeed { get; set; } = 2.5f;
+        /// <summary>
+        /// 내부 음악 박 길이 (초, 0 = 끔) — 음이 있는 루프 (회전목마 오르골)를 켤 때 음악 박에 맞춰 시작: 다음 박에, 고리 안 자리도 음악과 같은 박으로
+        /// (고리 길이 = 박의 배수 · 음악 길이의 약수일 것). 음악이 없으면 바로 시작.
+        /// </summary>
+        public double SyncBeat { get; set; }
+
+        private double _scheduledUntil;
 
         internal void Init(SoundCue cue, float minDistance, float maxDistance)
         {
@@ -49,10 +56,33 @@ namespace SpaceStation.Audio
                     _source.Stop();
                 return;
             }
-            if (!_source.isPlaying && _source.clip != null)
-                _source.Play();
+            if (!_source.isPlaying && _source.clip != null && AudioSettings.dspTime >= _scheduledUntil)
+                Begin();
             _source.volume = _level * _cue.Volume * AudioVolumes.For(_cue.Bus);
             _source.pitch = Pitch;
+        }
+
+        private void OnDisable()
+        {
+            // 방을 나가며 꺼진 물체: 다시 켜질 때 0에서 부드럽게 (예전 크기로 잠깐 울리지 않게)
+            _level = 0f;
+            _scheduledUntil = 0;
+        }
+
+        private void Begin()
+        {
+            var svc = AudioService.Instance;
+            double length = _source.clip.length;
+            if (SyncBeat > 0 && svc != null && svc.TryNextMusicBeat(SyncBeat, out double beatAt) && svc.TryNextMusicBeat(length, out double loopAt))
+            {
+                // 다음 박 (beatAt)에 시작 — 그때 음악 격자에서 고리 처음 (loopAt)까지 남은 만큼 앞선 자리에서
+                double pos = length - (loopAt - beatAt);
+                _source.time = (float)(pos >= length - 0.001 || pos < 0 ? 0 : pos);
+                _source.PlayScheduled(beatAt);
+                _scheduledUntil = beatAt + 0.05;
+                return;
+            }
+            _source.Play();
         }
     }
 }

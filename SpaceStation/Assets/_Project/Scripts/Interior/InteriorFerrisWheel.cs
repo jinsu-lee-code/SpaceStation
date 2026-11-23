@@ -64,6 +64,8 @@ namespace SpaceStation.Interior
         private int _ridingPod = -1;
         private int _standFrame = -1;
         private float _signTimer, _riderTimer;
+        private float _creakSent;
+        private ModuleInstance _room;
         private Vector3 _hub;
         private Vector3[] _podRest, _doorBase;
         private Vector3 _bridgeBase, _gateLeftBase, _gateRightBase;
@@ -143,6 +145,9 @@ namespace SpaceStation.Interior
             }
             ReleasePlayer();
             ShowHint(null);
+            if (_creakSent > 0f)
+                AudioService.SetRideLoop(l => l.FerrisCreakLoop, 0f);
+            _creakSent = 0f;
         }
 
         private void OnDestroy()
@@ -167,7 +172,7 @@ namespace SpaceStation.Interior
                     if (_extend >= 1f)
                     {
                         _phase = Phase.Opening;
-                        PlayNear(l => l.RideLeave);
+                        PlayNear(l => l.FerrisDoor);   // 곤돌라 유리문 "스르륵 · 딸깍"
                     }
                     break;
                 case Phase.Opening:
@@ -194,7 +199,7 @@ namespace SpaceStation.Interior
                         else
                         {
                             _phase = Phase.Closing;
-                            PlayNear(l => l.RideBoard);
+                            PlayNear(l => l.FerrisDoor, 0.94f);   // 닫힘 — 같은 문 소리를 조금 낮게
                         }
                     }
                     break;
@@ -224,9 +229,21 @@ namespace SpaceStation.Interior
                     break;
             }
             Apply();
+            UpdateCreakSound();
             CaptureRiders(dt);
             UpdateSign(dt);
             UpdateHint();
+        }
+
+        /// <summary>삐걱 · 바람 (탄 곤돌라가 도는 동안 2D 루프): 바퀴 빠르기 (SmoothStep 기울기)만큼, 서면 끔. 바퀴가 둘이라 탄 바퀴만 보냄.</summary>
+        private void UpdateCreakSound()
+        {
+            float speed = _phase == Phase.Moving ? 6f * Mathf.Clamp01(_timer) * (1f - Mathf.Clamp01(_timer)) / 1.5f : 0f;
+            float level = _riding && speed > 0.02f ? 0.4f + 0.6f * speed : 0f;
+            if (level <= 0f && _creakSent <= 0f)
+                return;
+            _creakSent = level;
+            AudioService.SetRideLoop(l => l.FerrisCreakLoop, level, 0.9f + 0.1f * speed);
         }
 
         private void Depart()
@@ -346,13 +363,18 @@ namespace SpaceStation.Interior
             _ridingPod = -1;
         }
 
-        private void PlayNear(System.Func<SoundLibrary, SoundCue> cue)
+        private void PlayNear(System.Func<SoundLibrary, SoundCue> cue, float pitch = 1f)
         {
             if (_player == null)
                 return;
             var p = transform.InverseTransformPoint(_player.transform.position) - _hub;
-            if (_riding || p.sqrMagnitude < 144f)
-                AudioService.TryPlay(cue);
+            if (_room == null)
+                _room = InteriorRoomDisplay.RoomOf(transform);
+            if (!_riding && (p.sqrMagnitude >= 144f || (_room != null && !InteriorRoomDisplay.PlayerIn(_room))))
+                return;   // 옆 방에서는 안 들림
+            var s = AudioService.Instance;
+            if (s != null && s.Library != null)
+                s.Play(cue(s.Library), 1f, 0f, 0f, pitch);
         }
 
         // ---------------- 탄 주민 ----------------

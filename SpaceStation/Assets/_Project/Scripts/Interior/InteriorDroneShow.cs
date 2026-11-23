@@ -36,6 +36,7 @@ namespace SpaceStation.Interior
         private DroneShowFx _show;
         private TextMeshPro[] _titles, _bodies, _deskTexts;
         private float _showLeft;
+        private float _swarmSent;
         private float _buttonAt;
         private Vector3 _buttonBase;
 
@@ -73,6 +74,9 @@ namespace SpaceStation.Interior
             _showLeft = 0f;
             if (_show != null)
                 _show.Grand = false;
+            if (_swarmSent > 0f)
+                AudioService.SetRideLoop(l => l.DroneShowSwarmLoop, 0f);
+            _swarmSent = 0f;
         }
 
         private void Setup()
@@ -152,6 +156,11 @@ namespace SpaceStation.Interior
                 _buttonAt = Mathf.MoveTowards(_buttonAt, _showLeft > 0f ? ButtonDown : 0f, 0.2f * dt);
                 _button.localPosition = _buttonBase + Vector3.down * _buttonAt;
             }
+            // 쇼 동안 드론 떼 웅 (2D 루프)
+            float swarm = _showLeft > 0f && Active && PlayerInRoom ? 1f : 0f;
+            if (swarm > 0f || _swarmSent > 0f)
+                AudioService.SetRideLoop(l => l.DroneShowSwarmLoop, swarm);
+            _swarmSent = swarm;
         }
 
         private void StartShow()
@@ -159,7 +168,7 @@ namespace SpaceStation.Interior
             if (_show == null || !Active || _showLeft > 0f)
                 return;
             _showLeft = _show.BeginGrand();
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.DroneShowRise);   // 드론 떼가 반짝이며 떠오름
         }
     }
 }

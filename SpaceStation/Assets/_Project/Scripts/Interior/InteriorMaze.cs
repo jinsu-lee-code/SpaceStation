@@ -55,6 +55,7 @@ namespace SpaceStation.Interior
         private float _message;
         private string _messageText;
         private float _signTimer;
+        private float _humSent;
         private Transform[][] _pulses;
         private Material _pulseInstance;
         private float _pulseS;
@@ -126,6 +127,9 @@ namespace SpaceStation.Interior
                 _coreLight.enabled = false;
             ApplyDots(0f);
             ShowHint(null);
+            if (_humSent > 0f)
+                AudioService.SetRideLoop(l => l.MazeHumLoop, 0f);
+            _humSent = 0f;
         }
 
         private void OnDestroy()
@@ -165,6 +169,17 @@ namespace SpaceStation.Interior
             _message = Mathf.Max(0f, _message - dt);
             UpdateTexts(dt);
             UpdateHint();
+            UpdateHum();
+        }
+
+        /// <summary>미로 안 데이터 웅 (시간을 재는 동안 2D 루프) — 도착 · 취소 · 방을 나가면 끔.</summary>
+        private void UpdateHum()
+        {
+            float level = _running ? 1f : 0f;
+            if (level <= 0f && _humSent <= 0f)
+                return;
+            _humSent = level;
+            AudioService.SetRideLoop(l => l.MazeHumLoop, level);
         }
 
         // ---------------- 시간 재기 ----------------
@@ -207,7 +222,8 @@ namespace SpaceStation.Interior
                 _best = _elapsed;
             _celebrate = CelebrateSeconds;
             Flash(record ? $"도착!  {Clock(_elapsed)}  ·  새 최고 기록" : $"도착!  {Clock(_elapsed)}  ·  최고 {Clock(_best)}");
-            AudioService.TryPlay(l => record ? l.GameRecord : l.GameClear);
+            AudioService.TryPlay(l => l.MazeExit);   // "데이터 문이 열림" 유리 아르페지오 → 0.5초 뒤 결과음
+            AudioService.TryPlayNote(l => record ? l.GameRecord : l.GameClear, 0, 1f, 0.5f);
             _signTimer = 0f;
         }
 
