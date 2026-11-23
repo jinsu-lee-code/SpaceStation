@@ -7,7 +7,7 @@ VARCO 음악(mp3)을 Blender의 aud로 풀고, numpy로 마디에 딱 맞는 루
 루프 만들기:
   1. 박 길이를 긴 간격 자기상관(16 · 32 · 64 · 96박)으로 정밀하게 잼 (요청 90 BPM이어도 실제는 조금 다름)
   2. 시작 = 고른 마디 머리 (music_check.py의 loop 시작), 길이 = 마디 수 × 4박
-  3. 끝 자리를 ±20 ms 안에서 파형 상관으로 맞춤 (상관 0.5 넘을 때만) → 끝을 시작에 0.15초 겹쳐 이음 (같은 박 머리끼리 겹치므로 이음새가 안 들림)
+  3. 끝 자리를 ±20 ms 안에서 파형 상관으로 맞춤 (상관 0.5 넘을 때만) → 끝을 시작에 겹쳐 이음 (기본 0.15초 — 같은 박 머리끼리 겹치므로 이음새가 안 들림, 길게 끄는 패드 곡은 0.6초)
   4. 크기 = RMS −18 dBFS (내부 4곡이 같은 크기여야 방을 옮길 때 크기가 안 튐), 최고 −1 dB 넘지 않게
 """
 import os
@@ -18,7 +18,6 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(ROOT, "Music")
 DST = os.path.join(ROOT, "..", "SpaceStation", "Assets", "_Project", "Audio", "Music")
 SR = 48000
-XF = int(0.15 * SR)
 
 
 def load(name):
@@ -55,7 +54,7 @@ def exact_beat(mono, bpm):
     return float(np.median(est))
 
 
-def make_loop(x, start, bars, beat):
+def make_loop(x, start, bars, beat, xf=0.15):
     mono = x.mean(1)
     # 시작 = 고른 자리 ±50 ms 안의 가장 센 박 머리 (onset) 10 ms 앞
     f, fps = flux_of(mono)
@@ -73,6 +72,7 @@ def make_loop(x, start, bars, beat):
         best = (best[0], 0)
     L += best[1]
     out = x[s:s + L].copy()
+    XF = int(xf * SR)
     t = np.linspace(0, np.pi / 2, XF)[:, None]
     out[:XF] = x[s:s + XF] * np.sin(t) + x[s + L:s + L + XF] * np.cos(t)
     return out, L, best
@@ -136,10 +136,14 @@ def align(out, ref, bars):
     return np.roll(out, -shift, axis=0)
 
 
-def build(dst, src, start, bars, bpm, ref_len=None, ref=None):
+def build(dst, src, start, bars, bpm, ref_len=None, ref=None, xf=0.15):
     x = load(src)
     beat = exact_beat(x.mean(1), bpm)
-    out, L, corr = make_loop(x, start, bars, beat)
+    # 어택이 드문 차분한 곡은 박 재기가 흔들림 → 요청 빠르기 그대로 (VARCO "90 BPM" 곡은 실제 89.997 ~ 89.999)
+    if abs(60 / beat - bpm) > 0.05:
+        print(f"  {dst}: 잰 빠르기 {60 / beat:.3f}가 요청 {bpm}과 달라 요청 빠르기로")
+        beat = 60.0 / bpm
+    out, L, corr = make_loop(x, start, bars, beat, xf)
     if ref_len is not None and len(out) != ref_len:
         ratio = ref_len / len(out)
         assert abs(ratio - 1) < 0.005, f"{dst}: 기준 길이와 {abs(ratio - 1) * 100:.2f}% 차이 (0.5% 넘음 — 빠르기가 맞는 후보로)"
@@ -156,30 +160,29 @@ def build(dst, src, start, bars, bpm, ref_len=None, ref=None):
     return out
 
 
-# ---------------- 내부 음악 (단계별 4곡, 같은 조 · 빠르기 · 마디 수 — SOUND_LIST_NEW "내부 음악 이어 붙이기") ----------------
-# 기준 = 기본 모듈 곡: D 단조 · 90 BPM · 32마디 (85.3초). 나머지 셋은 이 조 · 빠르기 · 마디 수에 맞춰 고름.
-# 기본 (생존 공업 → 조금 묵직하지만 아늑하게) — 후보 18곡(프롬프트 9가지) 중 b1:
-#   요청 = 마림바 · 칼림바 반복 + 따뜻한 패드 + 작은 기계 딸깍 타악 + 둥근 베이스, "조금 묵직한 공업, 그래도 다정하게"
-#   고른 이유 = 빠르기 90.0 정확 · D 단조가 가장 또렷 (0.89) · 고른 구간 44마디 · 선율 몫 53% (90짜리 중 가장 낮음 — 배경에 깔림) · 이음새 0.444 (가장 매끈)
-#   뺀 것: c1 · d1 = 꼭대기까지 뻗는 잔 고음 타악이 빽빽 (딸깍 지직) · a1 · a2 · b2 · c2 · e · i = 빠르기 92 ~ 103 (기준 90에서 벗어남)
-#          f = A 장조 · h = 끊김 마디 6개 · g = 고른 구간 16 ~ 22마디 · VARCO는 "major"를 넣어도 18곡 중 16곡이 단조로 나옴
-REF = build("music_interior_0.ogg", "interior_0_basic.mp3", 70.41, 32, 90.0)
-_, rbar, _, rscore = grid_of(REF, 32)
-print(f"  기준 곡 마디 머리 박 {rbar} (점수 {np.round(rscore, 2).tolist()})")
-# 나머지 셋 = 4곡이 늘 같은 자리를 돌도록 기준 곡 샘플 수에 맞추고 (ref_len), 박 · 마디 머리를 기준 곡에 맞춰 돌림 (ref) —
-# 방을 옮겨 두 곡이 2.5초 겹칠 때 박이 엇갈리지 않게 (1단계 곡은 처음에 박 사이 한가운데서 잘렸었음 — 379 ms 어긋남).
-# 1단계 (미래 기술 — 매끈한 전자) — 후보 10곡(프롬프트 5가지) 중 c2:
-#   요청 = 부드러운 신스 아르페지오 + 전기 피아노 화음 + 매끈한 서브 베이스 + 옅은 전자 하이햇 ("calm synthwave-lite")
-#   고른 이유 = 10곡 중 유일하게 빠르기 90.0 · D 단조 0.85 · 고른 구간 33마디. 루프 끝이 프레이즈 끝(길게 끄는 화음)이라 처음으로 자연스럽게 돌아감
-#   뺀 것: 나머지 9곡 = 빠르기 90.5 ~ 93 (요청 90이어도 92 ~ 93이 많음)
-build("music_interior_1.ogg", "interior_1_tech.mp3", 31.41, 32, 90.0, len(REF), REF)
-# 2단계 (테마파크 — 밝음) — 후보 18곡(프롬프트 9가지) 중 f2:
-#   요청 = 토이 피아노 화음 + 우쿨렐레 + 둥근 베이스 + 옅은 탬버린, "carefree and warm" (F 장조 = D 단조와 같은 음)
-#   고른 이유 = 빠르기 90.0 · F 장조 0.86 / D 단조 0.82 (같은 음계) · 고른 구간 37마디 · 이음새 0.347 (가장 매끈)
-#   뺀 것: 90짜리 b1 · b2 · g1 = A 단조 · C 장조 (D 단조와 B음이 부딪힘) · F 장조 a1 · c1 · e1 · e2 = 빠르기 64 ~ 100
-build("music_interior_2.ogg", "interior_2_park.mp3", 32.76, 32, 90.0, len(REF), REF)
-# 3단계 이상 (동화) — 후보 18곡(프롬프트 9가지) 중 e1:
-#   요청 = 첼레스타 · 오르골 반복 + 따뜻한 현악 + 플루트 패드 + 피치카토 베이스 ("enchanted storybook orbital city")
-#   고른 이유 = 빠르기 90.0 · F 장조 0.89 (밝은 동화) · 고른 구간 38마디 · 끊김 2마디(루프 밖)
-#   뺀 것: c1 = D 단조 0.90이지만 고른 구간 31마디 · 어두움 · b · d = B 단조 · E 단조 (D 장조 · G 장조 음계) · i1 = 91.5 · a = C 장조
-build("music_interior_3.ogg", "interior_3_tale.mp3", 8.28, 32, 90.0, len(REF), REF)
+# ---------------- 내부 음악 (단계별 4곡 — SOUND_LIST_NEW "내부 음악 이어 붙이기") ----------------
+# 2026-11-23 둘째 판: 첫 판(마림바 · 신스 아르페지오 · 토이 피아노 · 오르골, 32마디)은 사용자 "바깥의 침착하고 차분한 음악에 비해
+# 너무 톡톡 튄다" → tools/calm_check.py로 바깥 곡과 나란히 재서 (바깥 = 어택 3.2 ~ 4.3/초 · 무게중심 160 ~ 224 Hz) 차분한 곡으로 바꿈.
+# 차분한 후보 46곡 (뜯는 악기 · 종 · 딸깍 빼고 패드 · 낮은 베이스 · 느린 화음) 중 고름. 조건 = 어택 · 무게중심이 바깥 곡 가까이,
+# 끊김 없음, F# · E♭이 약함 (네 곡이 A · C · D · E · F · G 중심이라 겹쳐도 안 부딪힘), 빠르기 90 또는 60.
+# 길이 = 96초 (90 BPM 36마디 = 60 BPM 24마디 — 두 빠르기 모두 마디에 딱 맞음). 패드 곡이라 이음새는 0.6초 겹침.
+# 기본 (생존 공업 → 조금 묵직하게) — music_calm_0 b1 "엔진실의 밤 드론":
+#   요청 = 낮은 패드 + 천천히 부푸는 서브 베이스 + 먹먹한 낮은 박동 ("warm quiet ambient drone for a space station engine room at night")
+#   고른 이유 = 무게중심 216 Hz · 300 Hz 아래 80 % (바깥 낮 곡 224 Hz · 75 %와 가장 닮음) · 끊김 0 · 빠르기 90.0
+#   뺀 것: c1 · d2 · f · e = 끊김 4 ~ 7마디 · a · b2 · c2 · f1 = A 장조 (F# 셈) · d1 · e2 · f2 = 빠르기 91 ~ 92.5
+REF = build("music_interior_0.ogg", "interior_0_calm.mp3", 39.84, 36, 90.0, xf=0.6)
+# 1단계 (미래 기술 — 매끈한 전자) — music_calm_1 a1 "매끈한 미래 패드":
+#   요청 = 유리 같은 신스 패드가 천천히 바뀜 + 따뜻한 서브 베이스 + 멀리 아주 옅은 박동
+#   고른 이유 = 어택 1.37/초 · 고음 어택 1.0 % (가장 차분) · 무게중심 299 Hz · 끊김 1 (루프 밖) · 60 BPM이라 24마디 = 96초
+#   뺀 것: b1 · c1 = 어택 4.9/초 · 끊김 4 ~ 5 · b2 · d · e = 빠르기 92 ~ 115 · a2 = A 장조 · 고음 어택 6.4 %
+build("music_interior_1.ogg", "interior_1_calm.mp3", 14.71, 24, 60.0, len(REF), xf=0.6)
+# 2단계 (테마파크 → 여가의 저녁) — music_calm_2 d1 "궤도 공원의 저녁":
+#   요청 = 따뜻한 현악 패드 + 부드러운 오르간 같은 긴 화음 + 낮은 베이스 ("relaxed calm evening ambient in a cozy orbital park")
+#   고른 이유 = F 장조 0.91 · 어택 0.34/초 · 고음 어택 0.1 % · 끊김 0 (180으로 잼 = 90의 두 배)
+#   뺀 것: b2 · e1 = 어택 4.1 ~ 5.3/초 · a · b1 = F# 셈 (A 장조 · E 장조) · c · d2 · e2 = E♭ 셈 (C 단조 · F 단조)
+build("music_interior_2.ogg", "interior_2_calm.mp3", 74.31, 36, 90.0, len(REF), REF, xf=0.6)
+# 3단계 이상 (동화) — music_calm_3 b2 "유리 정원":
+#   요청 = 따뜻한 현악 합주 + 플루트 같은 패드 + 길게 끄는 낮은 베이스 ("serene enchanted glass garden ambient in space")
+#   고른 이유 = 어택 0.57/초 · 고음 어택 0.2 % · 고른 구간 51마디 · 끊김 1 (루프 밖) · F# · E♭ 거의 없음
+#   뺀 것: b1 = F 장조 0.93이지만 300 Hz 아래 42 % (가벼움) · a · d · e · c = 빠르기 60 ~ 135 (90 · 60 아님) 또는 E♭ 셈
+build("music_interior_3.ogg", "interior_3_calm.mp3", 56.11, 36, 90.0, len(REF), REF, xf=0.6)
