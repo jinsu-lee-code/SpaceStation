@@ -234,7 +234,10 @@ namespace SpaceStation.Interior
             Sparkle(transform.TransformPoint(at), 18);
             if (!_held)
                 return;
-            AudioService.TryPlay(l => first ? l.UiOpen : l.UiTab);
+            if (first)
+                AudioService.TryPlayScore(_beam.FoundCount);   // 새로 답한 곳 = 이번에 찾은 수만큼 높게
+            else
+                AudioService.TryPlay(l => l.UiTab);
             if (first && !_beam.AllFound)
                 Notice($"{OrbitalDefense.BeamTargets[i].Name}{Josa(OrbitalDefense.BeamTargets[i].Name)} 빛으로 답해요  {_beam.FoundCount} / {_beam.TargetCount}", 2.4f);
         }
@@ -260,7 +263,7 @@ namespace SpaceStation.Interior
                 _t[i] = 0f;   // 다 같이 한 번 더 답함
                 Sparkle(transform.TransformPoint(OrbitalDefense.BeamTargets[i].At), 24);
             }
-            AudioService.TryPlay(l => l.GradeUp);
+            AudioService.TryPlay(l => record ? l.GameRecord : l.GameClear);
         }
 
         private static string Clock(float seconds)
@@ -285,7 +288,7 @@ namespace SpaceStation.Interior
             if (_handle != null)
                 _handle.enabled = false;
             Notice($"{KeyBindings.Label(GameAction.CameraLeft)} · {KeyBindings.Label(GameAction.CameraRight)}로 렌즈를 돌려 밤바다를 비춰요 · 빛을 잠깐 머물면 그곳이 답해요", 5f);
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.RideBoard);
         }
 
         private void Release()
@@ -293,7 +296,7 @@ namespace SpaceStation.Interior
             _releaseFrame = Time.frameCount;
             _beam.Release();
             ReleasePlayer();
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void ReleasePlayer()

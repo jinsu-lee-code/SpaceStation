@@ -49,6 +49,7 @@ namespace SpaceStation.Interior
         private float _twinkle;
         private float _resultTimer;
         private bool _record;
+        private int _streak;   // 연달아 진주를 잡은 수 (점수 "띵" 음높이) — 게 · 헛잡기 · 새 판 = 0
         private Transform _eye;
         private TextMeshPro _signText;
         private float _signTimer;
@@ -140,10 +141,11 @@ namespace SpaceStation.Interior
                 return;
             _game.Start();
             _resultTimer = 0f;
+            _streak = 0;
             if (_start != null)
                 _start.enabled = false;     // 시선이 조개에 닿게
             Notice("조개가 닫혀요… 열리는 조개를 가운데로 보고 F", PearlClamGame.CountdownTime);
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.GameStart);
         }
 
         private void Update()
@@ -187,7 +189,7 @@ namespace SpaceStation.Interior
             string extra = _game.Golds > 0 ? $" · 금빛 {_game.Golds}개" : "";
             Notice($"진주 {_game.Score}점!{extra}" + (_record ? "  ·  최고 기록!" : $"  ·  최고 {Mathf.Max(_best, 0)}점"), ResultSeconds);
             _resultTimer = ResultSeconds;
-            AudioService.TryPlay(l => _record ? l.GradeUp : l.UiClose);
+            AudioService.TryPlay(l => _record ? l.GameRecord : _game.Score > 0 ? l.GameClear : l.GameFail);
         }
 
         /// <summary>시선 가운데에 가장 가까운 조개 (13° 안 · 6 m 안) 속을 잡음.</summary>
@@ -220,15 +222,17 @@ namespace SpaceStation.Interior
                     _flyGold[pick] = gold;
                     Burst(_pearls[pick].position, gold ? 28 : 12, gold);
                     Notice(gold ? "+3  금빛 진주!" : "+1  진주", 1.1f);
-                    AudioService.TryPlay(l => gold ? l.GradeUp : l.UiOpen);
+                    AudioService.TryPlayScore(++_streak);
                     break;
                 case PearlClamGame.Catch.Crab:
                     _crabJump[pick] = 0f;
                     Notice("앗, 게가 꼬집었어요  -1", 1.4f);
-                    AudioService.TryPlay(l => l.UiError);
+                    _streak = 0;
+                    AudioService.TryPlay(l => l.GameMiss);
                     break;
                 default:
-                    AudioService.TryPlay(l => l.UiHover);
+                    _streak = 0;
+                    AudioService.TryPlay(l => l.GameMiss);
                     break;
             }
         }

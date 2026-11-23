@@ -245,7 +245,7 @@ namespace SpaceStation.Interior
             _domeFlash[dome] = 1f;
             InteriorFireflyShow.Burst(EnsureSparks(), transform.TransformPoint(DeepSpaceComm.SideDomeTop(dome) + Vector3.up * 0.1f), 22, 0.9f);
             _gathered++;
-            AudioService.TryPlay(l => _gathered >= _aligned.Length ? l.EventPositive : l.UiClick);
+            AudioService.TryPlayScore(_gathered);
             if (_gathered >= _aligned.Length)
                 BeginShow();
         }
@@ -273,7 +273,7 @@ namespace SpaceStation.Interior
             if (t >= ArcTime && t - dt < ArcTime)
             {
                 InteriorFireflyShow.Burst(EnsureSparks(), transform.TransformPoint(DeepSpaceComm.CenterDomeTop + Vector3.up * 0.15f), 40, 1.3f);
-                AudioService.TryPlay(l => l.GradeUp);
+                AudioService.TryPlay(l => l.GameClear);
             }
             // 돔 위 신호 고리: 차례로 위로 떠오르며 넓어지고 옅어짐
             for (int r = 0; r < _rings.Length; r++)

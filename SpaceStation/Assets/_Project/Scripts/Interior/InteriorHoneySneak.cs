@@ -58,6 +58,7 @@ namespace SpaceStation.Interior
         private Quaternion _potRot;
         private bool _needRelease;
         private bool _wasReady;
+        private int _streak;   // 들키지 않고 연달아 먹은 숟갈 (점수 "띵" 음높이) — 들킴 · 새 판 = 0
         private float _resultT;
         private float _eat, _innocent, _ouch;
         private TextMeshPro _mark, _bubble, _pop;
@@ -172,11 +173,12 @@ namespace SpaceStation.Interior
             _rules.Start(System.Environment.TickCount);
             _needRelease = true;
             _wasReady = true;
+            _streak = 0;
             _eat = _innocent = _ouch = 0f;
             _phase = Phase.Playing;
             EnsureMarks();
             Notice("준비…  꿀벌이 등을 돌렸을 때 F 꾹!", HoneySneak.ReadySeconds);
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.GameStart);
         }
 
         private void EndGame()
@@ -197,7 +199,7 @@ namespace SpaceStation.Interior
                 _bear.Motion.Celebrate();
             }
             UpdateBoards();
-            AudioService.TryPlay(l => record ? l.GradeUp : l.UiClose);
+            AudioService.TryPlay(l => record && _rules.Spoons > 0 ? l.GameRecord : _rules.Emptied ? l.GameClear : l.GameFail);
         }
 
         /// <summary>곰 · 꿀단지 · 경비 꿀벌 · 플레이어를 처음대로.</summary>
@@ -248,7 +250,7 @@ namespace SpaceStation.Interior
             {
                 InputGate.ConsumeEscape();   // 내부 나가기보다 먼저
                 Restore();
-                AudioService.TryPlay(l => l.UiClose);
+                AudioService.TryPlay(l => l.RideLeave);
                 ShowHint(null);
                 return;
             }
@@ -286,13 +288,14 @@ namespace SpaceStation.Interior
             switch (ev)
             {
                 case HoneySneak.Event.Spoon:
-                    AudioService.TryPlay(l => l.UiHover);
+                    AudioService.TryPlayScore(++_streak);
                     break;
                 case HoneySneak.Event.Caught:
                     _needRelease = true;   // 손을 뗐다 다시 눌러야 먹음 (누른 채면 쏘인 뒤 돌아서는 동안 또 들켜 목숨이 둘 줄었음)
                     Notice(_rules.LivesLeft > 0 ? $"콕! 들켰어요  ·  목숨 {_rules.LivesLeft}" : "콕! 또 들켰어요", 2f);
                     _popT = 0f;
-                    AudioService.TryPlay(l => l.UiError);
+                    _streak = 0;
+                    AudioService.TryPlay(l => l.GameMiss);
                     break;
                 case HoneySneak.Event.Finished:
                     EndGame();

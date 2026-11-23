@@ -122,7 +122,7 @@ namespace SpaceStation.Interior
                     {
                         _state = State.Lift;
                         _timer = 0f;
-                        AudioService.TryPlay(l => l.UiOpen);
+                        AudioService.TryPlay(l => l.RideBoard);
                     }
                     break;
                 case State.Lift:
@@ -204,7 +204,7 @@ namespace SpaceStation.Interior
             _state = State.Boarding;
             _timer = AICore.DroneBoardDelay;
             UpdateColliders();
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.RideBoard);
         }
 
         private void StandUp()
@@ -214,7 +214,7 @@ namespace SpaceStation.Interior
             _player.Dismount();
             _state = State.Docked;
             ClearRide();
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void ReleasePlayer()

@@ -63,6 +63,7 @@ namespace SpaceStation.Interior
         private int _sitFrame = -1, _standFrame = -1;
         private Vector3 _standPoint;
         private bool _recorded;
+        private int _streak;   // 연달아 맞힌 별똥별 (점수 "띵" 음높이) — 바다에 떨어뜨림 · 새 판 = 0
         private Canvas _canvas;
         private TextMeshProUGUI _hint;
         private RectTransform _cross;
@@ -155,7 +156,7 @@ namespace SpaceStation.Interior
             if (_seat != null)
                 _seat.enabled = false;
             StartRound();
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.GameStart);
         }
 
         private void Controls()
@@ -183,7 +184,7 @@ namespace SpaceStation.Interior
             ReleasePlayer();
             _game.Stop();
             ClearFlying();
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void ReleasePlayer()
@@ -210,6 +211,7 @@ namespace SpaceStation.Interior
             ClearFlying();
             _game.Begin();
             _recorded = false;
+            _streak = 0;
         }
 
         private void Record()
@@ -218,7 +220,7 @@ namespace SpaceStation.Interior
             bool record = _game.Hits > 0 && _game.Hits > _best;
             if (record)
                 _best = _game.Hits;
-            AudioService.TryPlay(l => record ? l.GradeUp : l.UiTab);
+            AudioService.TryPlay(l => record ? l.GameRecord : _game.Hits > 0 ? l.GameClear : l.GameFail);
         }
 
         // ---------------- 쏘기 ----------------
@@ -234,7 +236,7 @@ namespace SpaceStation.Interior
             if (_game.Current == StarfallGame.Phase.Done)
             {
                 StartRound();   // 끝난 뒤 클릭 = 새 판
-                AudioService.TryPlay(l => l.UiOpen);
+                AudioService.TryPlay(l => l.GameStart);
                 return;
             }
             if (!_game.TryFire())
@@ -252,6 +254,7 @@ namespace SpaceStation.Interior
                 _game.Hit();
                 Burst(to);
                 AudioService.TryPlay(l => l.MeteorExplode);
+                AudioService.TryPlayScore(++_streak);
             }
             else
             {
@@ -326,7 +329,10 @@ namespace SpaceStation.Interior
                     continue;
                 }
                 if (_game.Playing)
+                {
                     _game.Miss();
+                    _streak = 0;   // 바다에 떨어짐 = 놓침
+                }
                 Splash(s.To);
                 s.Destroy();
                 _stars.RemoveAt(i);

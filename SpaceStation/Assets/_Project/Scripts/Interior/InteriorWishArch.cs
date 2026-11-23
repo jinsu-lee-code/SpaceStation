@@ -169,7 +169,7 @@ namespace SpaceStation.Interior
         {
             _standFrame = Time.frameCount;
             Release();
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void Release()
