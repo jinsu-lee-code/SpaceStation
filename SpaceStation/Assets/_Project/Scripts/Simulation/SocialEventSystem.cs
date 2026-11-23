@@ -67,8 +67,11 @@ namespace SpaceStation.Simulation
         /// <summary>대가를 계산하는 긴장도 단계 (0 잔잔함 ~ 3 곧 터질 듯).</summary>
         public int EffectiveLevel => _society.Level(EffectiveTension);
 
-        /// <summary>다른 창이 먼저 답을 기다리는 중 (사건을 미룸).</summary>
-        public bool Busy => _pending != null || Ark?.Pending != null || Sim.GetSystem<RecordArchiveSystem>()?.Pending != null;
+        /// <summary>
+        /// 다른 답을 기다리는 중 (사건을 미룸): 자기 사건 · 이민선. 봉인 기록 선택은 막지 않음 — 화면이 없으면(봇 · 시험) 아무도 고르지 않아 사건 · 청원이 영영 안 와
+        /// 위기가 끝나지 않았음 (11-23 봇 측정). 창이 겹치는 것은 화면이 막음 (<c>ChapterView</c>는 다른 창이 닫힌 뒤 사건 창을 띄움).
+        /// </summary>
+        public bool Busy => _pending != null || Ark?.Pending != null;
 
         protected override void OnAttached()
         {

@@ -987,14 +987,14 @@ namespace SpaceStation.Simulation
             TickLeaving(dt);
             _left = Mathf.Max(0f, _left - dt);
             TickPetitions(dt);
-            if (_left <= 0f && _answered >= Petitions)
+            if (_left <= 0f && _sent <= _answered) // 시간이 다 되면 남은 청원은 보내지 않고, 답을 기다리는 청원이 없으면 판정 (청원이 막혀 위기가 끝나지 않던 것, 11-23)
                 Judge();
         }
 
         private void TickPetitions(float dt)
         {
             var social = Social;
-            if (social == null || _sent >= Petitions || _sent > _answered)
+            if (social == null || _left <= 0f || _sent >= Petitions || _sent > _answered)
                 return;
             _timer -= dt;
             if (_timer > 0f || social.Busy)

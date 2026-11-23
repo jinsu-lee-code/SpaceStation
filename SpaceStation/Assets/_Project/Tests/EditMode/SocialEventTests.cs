@@ -204,6 +204,22 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Inquiry_PetitionsBlocked_StillEndsOnTime()
+        {
+            var e = new SerializedObject(_events);
+            e.FindProperty("_autoResolveSeconds").floatValue = 100000f; // 답하지 않은 사건이 계속 남아 청원을 막음
+            e.ApplyModifiedPropertiesWithoutUndo();
+            var sim = Sim(Chapter(hold: false, kind: ChapterClimaxKind.Inquiry, warning: 300f));
+            var social = sim.GetSystem<SocialEventSystem>();
+            sim.Chapters.SetFlag("go");
+            Tick(sim, 6);
+            Assert.AreEqual("first", social.Pending?.Id, "예고 중 사건이 와서 답을 기다림");
+            Assert.IsTrue(sim.Chapters.StartClimaxNow());
+            Tick(sim, 14);
+            Assert.AreEqual(ChapterPhase.Transition, sim.Chapters.Phase, "청원을 못 보내도 위기 시간이 끝나면 판정 (봇 측정에서 위기가 끝나지 않았음)");
+        }
+
+        [Test]
         public void Inquiry_HighTension_ResidentsLeave_EndsLost()
         {
             var sim = Sim(Chapter(hold: false, kind: ChapterClimaxKind.Inquiry));
