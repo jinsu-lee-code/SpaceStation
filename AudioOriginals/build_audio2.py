@@ -619,4 +619,61 @@ for k, notes in enumerate(((G4, E4, C4), (A4, G4, E4), (E4, G4, A4))):
         ph = place(ph, harp(f, 3.0, 10 + 3 * k + i) * (0.9 if i < 2 else 1.0), i * BEAT)
     save(f"Interior/scape_port_song_{k + 1:02d}.wav", fade(distant(ph), 0.0, 1.0), -14)
 
+# ================= 3단계 소리 풍경 — 수리 사령부 "반딧불 고목 치유소" (SOUND_LIST_NEW D-7b) =================
+# 자리는 Interior/RepairCommand.cs 값 (뒤 이끼 언덕 위 진주 고목 · 가지 위 나무집 관제실 (지붕 금빛 경종) · 도르래 구조 바구니 · 나무 구멍 공방 둘 ·
+# 샘 → 물길 → 연못, 앞 이끼 숲 빈터 · 그루터기 앞 기억 등불 다섯). 늘 밤 숲이라 낮 · 밤 구분 없음. VARCO 하나씩 순서대로 5번 (고목 2번).
+# 샘 · 물길 = 바이오스피어 물길, 개구리 = 바이오스피어, 공방 드론 = AI 중추 드론 그르릉, 줄기 · 나무집 · 도르래 삐걱 = 궤도 항만 삐걱임,
+# 관측대 바람 = 궤도 도시 옥상 바람을 같이 씀. 반딧불 반짝임은 음악 조 (F 오음계 — D 단조 · F 장조 곡과 같은 음)에 맞춰 합성.
+RC = "Interior/scape_repair/"
+
+# 바탕 — 밤 숲 빈터 (2D). 후보 5 중 2: 끊겨 우는 풀벌레 (4.8 kHz · 초당 1.8번) + 옅은 숲 공기 · 바닥 −19 dB (가장 깨끗) → 4.5 kHz 위를 눌러 숲 너머로.
+# 1 = 한 높이로 끝없는 "삐—" 줄, 3 = 웅 (tonal 5.3), 4 = 6.3초로 짧음 · 낮은 웅, 5 = 바닥 −4.6 dB · 울림 6.
+save("Interior/scape_repair_bed_loop.wav", circular(lambda y: soften(soften(highpass(y, 150), 4500, 0.5), 8000, 0.4), loop_exact(sl(load(RC + "bed.wav"), 0.2, 10.24), 9.0)), -26)
+
+# 고목 잎 사각임 (잎 구름 아래, 3D) — 첫 5개 ("큰 고목 삐걱")는 모두 61 ~ 129 Hz 낮은 웅뿐 (300 Hz 아래 99 ~ 100 % · 잎 소리 없음, 귀 감도로 안 들림) →
+# "잎 구름 사각임 · 가끔 작은 나무 삐걱"으로 다시 5개 중 3 (가장 길고 고름) · 4 (일었다 잦아드는 바람, 바닥 −34 dB) · 5 (가장 어두움 5.6 kHz)를
+# 1.5초씩 겹쳐 고리. 원래 밝은 잎 소리 (6 kHz 대)라 4.5 kHz 위를 눌러 둥글게. 1 · 2 = 바닥 −21 ~ −27 dB. 줄기 삐걱은 궤도 항만 삐걱임을 낮춰 씀.
+leaves = chain_loop([sl(load(RC + "leaf_a.wav"), 0.8, 6.3), sl(load(RC + "leaf_c.wav"), 0.5, 5.9), sl(load(RC + "leaf_b.wav"), 0.6, 5.0)], 1.5)
+# 이은 그대로는 0.5초 크기가 −57 ~ −30 (27 dB — 잦아들 땐 사라지고 부풀면 튐) → 느린 크기 변화를 절반만 펴서 (13 dB 안팎) 일었다 잦아드는 결은 남김.
+le = circular(lambda y: np.sqrt(np.convolve(y ** 2, np.ones(int(1.0 * SR)) / int(1.0 * SR), "same")) + 1e-9, leaves)
+leaves = leaves * np.sqrt(np.median(le) / le)
+save("Interior/scape_repair_leaves_loop.wav", circular(lambda y: soften(soften(highpass(y, 200), 4500, 0.5), 8000, 0.4), leaves), -24)
+report.append(f"  고목 잎 고리 {len(leaves) / SR:.2f}초")
+
+# 부엉이 (가지 위 여기저기, 가끔 3D) — 후보 5 중 1: 맑은 "후—" 둘 · 배경 디지털 무음 · 700 Hz (F5 +3센트 — 음악 조 안).
+# 둘째 "후"를 1.1초 뒤로 당겨 "후, 후" 한 마디 + 둘째만 한 번. 3 · 4 = 재잘거림 (지직 49 ~ 61), 5 = 음이 흔들림, 2 = 0.6초 한 번.
+ow = load(RC + "owl.wav")
+h1, h2 = fade(sl(ow, 0.04, 0.98), 0.01, 0.15), fade(sl(ow, 2.70, 3.45), 0.01, 0.15)
+save("Interior/scape_repair_owl_01.wav", highpass(place(np.zeros(int(2.0 * SR)), h1, 0.0) + place(np.zeros(int(2.0 * SR)), h2, 1.1)[: int(2.0 * SR)], 200), -14)
+save("Interior/scape_repair_owl_02.wav", highpass(h2, 200), -14)
+
+# 금빛 경종 (대표 선율 · 체험 "경종 울리기"에 씀) — 후보 5 중 3: 한 번만 맑게 · 950 · 1900 Hz 옥타브 배음 (B♭5 +32센트).
+# VARCO "작은 금빛 종"은 손종 높이 → 17.3반음 내려 정확한 F4 (349.2 Hz, 2.7배 길게 — 나무집 종각의 큰 종).
+# 내리기 전에 6 kHz 위 치는 잡음을 걸러 (내리면 2 kHz 대 "칙"이 됨), 첫 울림을 눌러 긴 울림이 남게. 1 · 5 = 0.3초 뒤 한 번 더 침, 2 = 배음이 C# · A · D, 4 = 음 중심이 G와 G# 사이.
+gb = trim_lead(load(RC + "bell.wav"), -30)[: int(4.0 * SR)]
+gb = pitch(onepole_lp(onepole_lp(gb, 6000), 6000), 12 * np.log2(349.23 / 950.0))
+gb = fade(tame(highpass(gb, 80), 8.0), 0.015, 2.5)
+save("Interior/scape_repair_bell_01.wav", gb, -14)
+
+
+def twinkle(f, dur=0.9, seed=0):
+    """반딧불 반짝 — 맑은 사인 (기음 + 2배 · 3배 옅게) · 9 Hz 반짝 떨림 · 빨리 켜지고 천천히 꺼짐."""
+    t = np.arange(int(dur * SR)) / SR
+    env = (1 - np.exp(-t / 0.006)) * np.exp(-t / 0.28)
+    trem = 0.75 + 0.25 * np.sin(2 * np.pi * 9.0 * t + seed)
+    x = np.sin(2 * np.pi * f * t) + 0.22 * np.sin(2 * np.pi * 2 * f * t + 0.7) + 0.06 * np.sin(2 * np.pi * 3.01 * f * t + 1.9)
+    return fade(x * env * trem, 0.0, 0.1)
+
+
+C6 = 1046.5
+# 반딧불 반짝 (기억 등불 · 잎 구름 둘레, 가끔 3D · 음계 높이 · 다음 박) — 도6 하나 + 같은 음 두 번 (두 번째 옅게).
+save("Interior/scape_repair_firefly_01.wav", twinkle(C6), -14)
+save("Interior/scape_repair_firefly_02.wav", place(twinkle(C6, seed=1), twinkle(C6, seed=2) * 0.55, 0.16), -14)
+# 대표 선율 = 경종 F4 한 번 → 반딧불이 등불을 켜 올라감 라5 · 도6 · 레6 · 파6 (한 박 뒤부터 반 박씩) — "경종을 울리면 반딧불이 등불을 켬"
+motif = np.zeros(int(9.0 * SR))
+motif = place(motif, gb, 0.0)
+for i, semis in enumerate((-3, 0, 2, 5)):
+    motif = place(motif, twinkle(C6 * 2 ** (semis / 12), 1.2, 3 + i) * 0.45 * np.abs(gb).max(), BEAT + i * BEAT / 2)
+save("Interior/scape_repair_motif.wav", fade(motif, 0.0, 1.5), -20)
+
 print("\n".join(report))
