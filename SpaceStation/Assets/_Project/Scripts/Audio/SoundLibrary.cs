@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceStation.Audio
@@ -139,5 +140,19 @@ namespace SpaceStation.Audio
         public SoundCue MusicInterior1 = new SoundCue { Bus = AudioBus.Music, Volume = 0.6f, Pitch = Vector2.one };
         public SoundCue MusicInterior2 = new SoundCue { Bus = AudioBus.Music, Volume = 0.6f, Pitch = Vector2.one };
         public SoundCue MusicInterior3 = new SoundCue { Bus = AudioBus.Music, Volume = 0.6f, Pitch = Vector2.one };
+
+        [Header("모듈 소리 풍경 (사운드 개편 D-7 · D-7b, 2026-11-23)")]
+        [Tooltip("모듈마다 하나 (SS_*.asset) — 있는 방은 성격별 환경음 묶음 대신 이것이 울림 (지금 있는 방만)")]
+        public List<RoomSoundscape> Soundscapes = new List<RoomSoundscape>();
+
+        public RoomSoundscape SoundscapeFor(Data.ModuleData module)
+        {
+            if (module == null)
+                return null;
+            foreach (var s in Soundscapes)
+                if (s != null && s.Module == module)
+                    return s;
+            return null;
+        }
     }
 }

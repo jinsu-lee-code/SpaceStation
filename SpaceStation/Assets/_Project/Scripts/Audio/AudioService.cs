@@ -52,6 +52,7 @@ namespace SpaceStation.Audio
             internal SoundCue[] Cues;
             internal float[] Levels;
             internal bool Playing;
+            internal double StartDsp;
             /// <summary>올릴 층 번호 (-1 = 모두 내림).</summary>
             public int Active = -1;
             /// <summary>초당 변화량 (0.4 = 2.5초에 0 → 1).</summary>
@@ -130,6 +131,25 @@ namespace SpaceStation.Audio
         /// </summary>
         public bool PlayAt(SoundCue cue, Vector3 position, float volume = 1f, float minDistance = 2f, float maxDistance = 15f)
             => PlayVoice(cue, volume, 0f, 0f, 1f, position, minDistance, maxDistance);
+
+        /// <summary>그 자리 3D + 음높이 배율 · 지연(실시간 초) — 소리 풍경의 음 있는 가끔 소리를 음계 높이 · 다음 박에 (2026-11-23).</summary>
+        public bool PlayAt(SoundCue cue, Vector3 position, float volume, float minDistance, float maxDistance, float pitch, float delay)
+            => PlayVoice(cue, volume, 0f, delay, pitch, position, minDistance, maxDistance);
+
+        /// <summary>내부 음악 층이 돌고 있으면 그 박 격자(beat초)에서 지금 뒤 첫 박의 dsp 시각. 아니면 false (dsp = 곧바로).</summary>
+        public bool TryNextMusicBeat(double beat, out double dsp)
+        {
+            double now = AudioSettings.dspTime + 0.03;
+            foreach (var m in _layers)
+            {
+                if (!m.Playing || beat <= 0)
+                    continue;
+                dsp = m.StartDsp + System.Math.Ceiling((now - m.StartDsp) / beat) * beat;
+                return true;
+            }
+            dsp = now;
+            return false;
+        }
 
         public static void TryPlayAt(System.Func<SoundLibrary, SoundCue> pick, Vector3 position, float volume = 1f)
         {
@@ -344,6 +364,7 @@ namespace SpaceStation.Audio
                     if (s.clip != null)
                         s.PlayScheduled(at);
                 m.Playing = true;
+                m.StartDsp = at;
             }
             else if (!any && m.Playing)
             {
