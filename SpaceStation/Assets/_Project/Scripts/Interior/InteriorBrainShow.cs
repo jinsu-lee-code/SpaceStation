@@ -242,7 +242,7 @@ namespace SpaceStation.Interior
                 return;
             _wantOpen[k] = true;
             InteriorFireflyShow.Burst(EnsureSparks(), transform.TransformPoint(AICore.BookSpine(k)), 10, 0.6f);
-            AudioService.TryPlay(l => l.UiTab);
+            AudioService.TryPlayAt(l => l.AicoreBookOpen, transform.TransformPoint(AICore.BookSpine(k)));   // 책장 넘김 + 펼쳐져 닿는 "툭"
             if (OpenBooks == _wantOpen.Length)
                 _startTimer = StartDelay;
         }
@@ -271,7 +271,7 @@ namespace SpaceStation.Interior
             _showTime = 0f;
             _sparkTimer = 0f;
             InteriorFireflyShow.Burst(EnsureSparks(), transform.TransformPoint(AICore.Brain), 40, 1.6f);
-            AudioService.TryPlay(l => l.EventPositive);
+            AudioService.TryPlay(l => l.AicoreCrystalSwell);   // 수정 뇌가 깨어나 유리 화음이 차오름
         }
 
         private void EndShow()

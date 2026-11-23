@@ -214,7 +214,7 @@ namespace SpaceStation.Interior
                 to.y = OrbitalPort.PaveTop + 0.06f;       // 분수 밖 = 마당 돌판에 떨어짐
             _to[slot] = to;
             _t[slot] = 0f;
-            AudioService.TryPlay(l => l.UiClick);
+            AudioService.TryPlay(l => l.OportThrow);   // 진주가 손을 떠나는 "휙"
         }
 
         private void Land(FountainToss.Landing l)
@@ -226,6 +226,7 @@ namespace SpaceStation.Interior
                 Burst(at, 10 + 8 * l.Points, new Color(1f, 0.93f, 0.7f), 0.8f, 2f);
                 Spout(l.Points);
                 Notice(l.Points == 3 ? "+3  작은 고리!" : l.Points == 2 ? "+2  중간 고리" : "+1  큰 고리", 1.1f);
+                AudioService.TryPlayAt(lib => lib.OportPlop, at);   // 고리 안도 물 — 퐁당 + 분수 종 "띵"
                 AudioService.TryPlayScore(++_streak);
             }
             else if (l.Ring == FountainToss.Water)
@@ -233,7 +234,7 @@ namespace SpaceStation.Interior
                 Splash(at);
                 Notice("퐁당!", 0.8f);
                 _streak = 0;
-                AudioService.TryPlay(lib => lib.GameMiss);
+                AudioService.TryPlayAt(lib => lib.OportPlop, at);   // 물 = 퐁당만
             }
             else
             {

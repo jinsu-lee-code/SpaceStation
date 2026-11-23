@@ -33,6 +33,7 @@ namespace SpaceStation.Interior
         private int _ride = -1, _rideSeat;
         private int _sitFrame = -1;
         private float _noteTimer;
+        private float _paddleSent;   // 노 젓기 소리에 마지막으로 보낸 크기
         private Transform _anchor;
         private FirstPersonController _player;
         private TextMeshPro _signText;
@@ -95,6 +96,9 @@ namespace SpaceStation.Interior
         private void OnDisable()
         {
             ReleasePlayer();
+            if (_paddleSent > 0f)
+                AudioService.SetRideLoop(l => l.OportPaddleLoop, 0f);
+            _paddleSent = 0f;
             ShowHint(null);
         }
 
@@ -129,6 +133,7 @@ namespace SpaceStation.Interior
             Apply();
             if (_ride >= 0)
                 PlaceAnchor();
+            UpdatePaddleSound();
             UpdateSign(dt);
             UpdateHint(dt);
         }
@@ -181,8 +186,18 @@ namespace SpaceStation.Interior
         {
             _docked = b;
             _timer = OrbitalPort.BoatDwell;
-            PlayNear(l => l.SupplyArrive);
+            AudioService.TryPlayAt(l => l.OportBoatDock, _boats[b].position);   // 선착장 나무에 "툭"
             UpdateColliders();
+        }
+
+        /// <summary>노 젓기 소리 (탄 동안 2D 루프): 탄 배가 나아가는 빠르기만큼 크기 · 높이, 서면 끔.</summary>
+        private void UpdatePaddleSound()
+        {
+            float level = _ride >= 0 && _ride != _docked ? Mathf.Clamp01(_v[_ride] / OrbitalPort.BoatCruise) : 0f;
+            if (level <= 0f && _paddleSent <= 0f)
+                return;
+            _paddleSent = level;
+            AudioService.SetRideLoop(l => l.OportPaddleLoop, level, 0.9f + 0.1f * level);
         }
 
         private void Dock(float dt)

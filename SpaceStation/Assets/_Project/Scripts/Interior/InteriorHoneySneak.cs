@@ -59,6 +59,8 @@ namespace SpaceStation.Interior
         private bool _needRelease;
         private bool _wasReady;
         private int _streak;   // 들키지 않고 연달아 먹은 숟갈 (점수 "띵" 음높이) — 들킴 · 새 판 = 0
+        private ObjectLoop _buzz;   // 경비 꿀벌 윙윙 (경비 벌에 붙은 3D 루프 — 미니게임 동안만)
+        private float _buzzPitch = 1f;
         private float _resultT;
         private float _eat, _innocent, _ouch;
         private TextMeshPro _mark, _bubble, _pop;
@@ -160,7 +162,11 @@ namespace SpaceStation.Interior
             _pose = _bear.gameObject.AddComponent<InteriorHoneyBear>();
             _pose.Init(_pot, BearScale);
             if (_bees != null)
+            {
                 _bees.GuardHeld = true;
+                if (_buzz == null && _bees.Guard != null)
+                    _buzz = AudioService.AttachLoop(l => l.SgridBeeGuardLoop, _bees.Guard);
+            }
             // 화면 = 옆에서 본 무대 (마우스 둘러보기 · 걷기 멈춤)
             var eye = transform.TransformPoint(_camera);
             var look = transform.TransformPoint(_lookAt) - eye;
@@ -223,6 +229,8 @@ namespace SpaceStation.Interior
                 _bees.GuardHeld = false;
                 _bees.GuardBuzz = 1f;
             }
+            if (_buzz != null)
+                _buzz.Level = 0f;
             if (_start != null)
                 _start.enabled = true;
             foreach (var t in new[] { _mark, _bubble, _pop })
@@ -270,8 +278,40 @@ namespace SpaceStation.Interior
                 }
             }
             AnimateGuard(dt);
+            UpdateBuzz(dt);
             AnimateBear(dt);
             UpdateHint();
+        }
+
+        /// <summary>경비 꿀벌 윙윙: 등 돌림 = 작게 · 돌아봄 = 조금 크게 · 경고 (날갯짓 빨라짐) = 크고 한 음 높게 (솔3) · 쏘러 감 = 더 높게 (시♭3) — 음은 조 안.</summary>
+        private void UpdateBuzz(float dt)
+        {
+            if (_buzz == null)
+                return;
+            float level = 0.6f, pitch = 1f;
+            if (_phase == Phase.Playing && !_rules.Ready)
+            {
+                switch (_rules.State)
+                {
+                    case HoneySneak.Guard.Warn:
+                    case HoneySneak.Guard.Feint:
+                        level = 1f;
+                        pitch = 1.1225f;
+                        break;
+                    case HoneySneak.Guard.Sting:
+                        level = 1f;
+                        pitch = 1.3348f;
+                        break;
+                    case HoneySneak.Guard.Turn:
+                    case HoneySneak.Guard.Watch:
+                    case HoneySneak.Guard.TurnBack:
+                        level = 0.85f;
+                        break;
+                }
+            }
+            _buzzPitch = Mathf.MoveTowards(_buzzPitch, pitch, dt * 1.5f);
+            _buzz.Level = level;
+            _buzz.Pitch = _buzzPitch;
         }
 
         private void Play(float dt)
@@ -288,6 +328,7 @@ namespace SpaceStation.Interior
             switch (ev)
             {
                 case HoneySneak.Event.Spoon:
+                    AudioService.TryPlay(l => l.SgridHoneySlurp);   // 곰 "후룹 · 냠" + 점수 "띵"
                     AudioService.TryPlayScore(++_streak);
                     break;
                 case HoneySneak.Event.Caught:
@@ -295,7 +336,7 @@ namespace SpaceStation.Interior
                     Notice(_rules.LivesLeft > 0 ? $"콕! 들켰어요  ·  목숨 {_rules.LivesLeft}" : "콕! 또 들켰어요", 2f);
                     _popT = 0f;
                     _streak = 0;
-                    AudioService.TryPlay(l => l.GameMiss);
+                    AudioService.TryPlay(l => l.SgridCaught);   // 경비 벌 "윙!" + 곰 "이잇"
                     break;
                 case HoneySneak.Event.Finished:
                     EndGame();

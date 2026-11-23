@@ -44,6 +44,8 @@ namespace SpaceStation.Interior
         private float _phase;
         private bool _recorded;
         private int _streak;   // 연달아 또렷하게 (85점 이상) 맞춘 수 (점수 "띵" 음높이) — 85점 아래 · 시간 다 됨 · 새 판 = 0
+        private float _staticSent;   // 무전 잡음 소리에 마지막으로 보낸 크기
+        private int _tickLeft = -1;  // 남은 시간 째깍 — 마지막으로 본 남은 초
         private InteriorHintLine _hint;
 
         public SignalTuneGame Game => _game;
@@ -93,6 +95,9 @@ namespace SpaceStation.Interior
             Release();
             _game.Stop();
             ShowScreens(false);
+            if (_staticSent > 0f)
+                AudioService.SetRideLoop(l => l.DscStaticLoop, 0f);
+            _staticSent = 0f;
             _hint?.Show(null);
         }
 
@@ -116,6 +121,7 @@ namespace SpaceStation.Interior
             }
             if (_game.Current == SignalTuneGame.Phase.Done && !_recorded)
                 Record();
+            UpdateRadioSound();
             _phase += dt * 0.35f;
             DrawScreens();
             UpdateHint();
@@ -191,13 +197,32 @@ namespace SpaceStation.Interior
             if ((click || keyboard.spaceKey.wasPressedThisFrame) && _game.Lock())
             {
                 if (_game.LastScore >= 85)
-                    AudioService.TryPlayScore(++_streak);
+                    AudioService.TryPlayNote(l => l.DscTuneLock, 1 + Mathf.Min(++_streak, 4));   // 또렷함: 파 → 솔 → 라 → 위 도 (연달아 맞출수록 위)
                 else
                 {
                     _streak = 0;
-                    AudioService.TryPlay(l => l.UiClick);
+                    AudioService.TryPlayNote(l => l.DscTuneLock, 0, 0.55f);   // 덜 맞음: 작게 도
                 }
             }
+        }
+
+        /// <summary>
+        /// 무전 잡음 (조작대에 선 동안 2D 루프): 맞추는 중 크기 = 1 − 겹친 정도 (맞을수록 걷힘), 맞춘 뒤 · 끝 · 내림 = 0.
+        /// 남은 시간 째깍: 신호마다 5초부터 1초마다.
+        /// </summary>
+        private void UpdateRadioSound()
+        {
+            bool tuning = _standing && (_game.Current == SignalTuneGame.Phase.Ready || _game.Current == SignalTuneGame.Phase.Tune);
+            float level = tuning ? 1f - _game.Match : 0f;
+            if (level > 0f || _staticSent > 0f)
+            {
+                _staticSent = level;
+                AudioService.SetRideLoop(l => l.DscStaticLoop, level);
+            }
+            int left = _game.Current == SignalTuneGame.Phase.Tune ? Mathf.CeilToInt(_game.Remaining) : -1;
+            if (left != _tickLeft && left >= 1 && left <= 5)
+                AudioService.TryPlay(l => l.GameTick);
+            _tickLeft = left;
         }
 
         private void StepDown()

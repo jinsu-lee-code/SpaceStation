@@ -22,6 +22,8 @@ namespace SpaceStation.Interior
         private const float SeatTop = 0.035f;          // 자리 가운데 → 윗면
         private const float ViewTilt = 0.4f;           // 시선 기울기 = 그네 각 × 이만큼 (그대로 따르면 60°에서 천장만 보였음)
         private const float BellSwing = 16f, BellDecay = 2.6f, BellHz = 1.9f, GlowSeconds = 1.4f;
+        /// <summary>그네 "휘익"을 바닥 몇 초 앞에서 울림 (소리의 가장 큰 곳 = 가장 빠른 바닥) · 이 폭 (도) 아래면 조용.</summary>
+        private const float WhooshLead = 0.15f, WhooshMinAmplitude = 8f;
         private static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -47,6 +49,8 @@ namespace SpaceStation.Interior
         private float _rideTime;
         private bool _done;
         private int _streak;   // 연달아 박자 맞춘 수 (점수 "띵" 음높이) — 이르거나 늦음 · 새로 앉음 = 0
+        private float _lastAngle;
+        private bool _whooshed;   // 이번 흔들림 (바닥 ~ 바닥)에 휘익을 냄
         private Quaternion[] _bellRest;
         private float[] _bellT;
         private Renderer[] _bellRenderers;
@@ -138,6 +142,7 @@ namespace SpaceStation.Interior
             _swing.Step(dt, _rang);
             foreach (int i in _rang)
                 Ring(i);
+            Whoosh();
             if (_seated && !_done && _swing.AllRung)
                 Finish();
             if (_seat != null && !_seated)
@@ -283,9 +288,31 @@ namespace SpaceStation.Interior
                 return;
             _bellT[i] = 0f;
             Sparkle(i, 16);
-            AudioService.TryPlay(l => l.UiTab);
+            // 높은 종일수록 높은 음: 28° 앞 · 뒤 = 도 · 레, 44° = 파 · 솔, 60° = 라 · 위 도 (굴러 오르면 음계를 오름)
+            if (_bells[i] != null)
+                AudioService.TryPlayNoteAt(l => l.SgridFlowerBell, _bells[i].position, 2 * (i % 3) + (i < 3 ? 0 : 1));
             if (_seated && !_done)
                 Notice($"수정 종 {_swing.RungCount} / {FlowerSwing.BellCount} 딸랑!", 1.6f);
+        }
+
+        /// <summary>그네 "휘익": 바닥으로 내려가는 중 바닥까지 <see cref="WhooshLead"/>초 남으면 한 번 (흔들림 폭이 클수록 크게) — 탄 사람 2D · 보는 사람 그네 자리 3D.</summary>
+        private void Whoosh()
+        {
+            float angle = _swing.Angle, velocity = _swing.Velocity;
+            if (Mathf.Sign(angle) != Mathf.Sign(_lastAngle))
+                _whooshed = false;   // 바닥을 지남 = 새 흔들림
+            _lastAngle = angle;
+            if (_whooshed || angle * velocity >= 0f || Mathf.Abs(velocity) < 1f || Mathf.Abs(angle) > Mathf.Abs(velocity) * WhooshLead)
+                return;
+            _whooshed = true;
+            float amplitude = _swing.Amplitude;
+            if (amplitude < WhooshMinAmplitude)
+                return;
+            float volume = Mathf.Lerp(0.3f, 1f, Mathf.InverseLerp(WhooshMinAmplitude, FlowerSwing.MaxAngle - 6f, amplitude));
+            if (_seated)
+                AudioService.TryPlay(l => l.SgridSwingWhoosh, volume);
+            else
+                AudioService.TryPlayAt(l => l.SgridSwingWhoosh, _pivot.position - _pivot.up * StellarGrid.SwingLength, volume);
         }
 
         /// <summary>종: 매달린 꼭대기를 축으로 그네가 지나간 쪽으로 흔들렸다 잦아듦 + 반짝 (밝기 — 색 대신).</summary>

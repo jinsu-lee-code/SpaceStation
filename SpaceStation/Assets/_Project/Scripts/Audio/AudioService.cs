@@ -86,12 +86,13 @@ namespace SpaceStation.Audio
         /// <summary>
         /// 체험 · 미니게임 음 (5-2 — 등불 다섯 · 시냅스 일곱 · 꽃 그네 종처럼 자리마다 다른 음): step = 음계 칸 (0부터 도 · 레 · 파 · 솔 · 라 · 위 도 …, F 오음계),
         /// 그 큐의 기준 음 (소리 파일 높이)에서 올림. 큐의 음높이 흔들림은 Pitch (1, 1)로 꺼 둘 것 — 조가 깨짐.
+        /// delay (실시간 초) = 화음을 굴려 칠 때 (큐 쉬는 시간보다 길게 벌릴 것).
         /// </summary>
-        public static void TryPlayNote(System.Func<SoundLibrary, SoundCue> pick, int step, float volume = 1f)
+        public static void TryPlayNote(System.Func<SoundLibrary, SoundCue> pick, int step, float volume = 1f, float delay = 0f)
         {
             var s = Instance;
             if (s != null && s._library != null)
-                s.Play(pick(s._library), volume, 0f, 0f, NotePitch(step));
+                s.Play(pick(s._library), volume, 0f, delay, NotePitch(step));
         }
 
         /// <summary><see cref="TryPlayNote"/>을 그 자리 3D로 (2 m까지 그대로 → 15 m에서 0).</summary>
