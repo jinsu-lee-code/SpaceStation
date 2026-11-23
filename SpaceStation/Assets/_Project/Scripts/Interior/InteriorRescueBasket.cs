@@ -37,6 +37,7 @@ namespace SpaceStation.Interior
         private bool _riding;
         private bool _inside;
         private float _sway;
+        private float _ropeSent;    // 도르래 줄 소리에 마지막으로 보낸 크기
         private string _notice;
         private float _noticeTimer;
         private Canvas _canvas;
@@ -71,6 +72,9 @@ namespace SpaceStation.Interior
                 _ride.Park(_ride.Height > _ride.Top * 0.5f ? _ride.Top : 0f);
             Release();
             Apply(0f);
+            if (_ropeSent > 0f)
+                AudioService.SetRideLoop(l => l.RcmdRopeLoop, 0f);
+            _ropeSent = 0f;
             _noticeTimer = 0f;
             ShowHint(null);
         }
@@ -120,18 +124,29 @@ namespace SpaceStation.Interior
             {
                 if (_riding)
                     Notice($"나무집 관제실에 닿았어요  ·  줄을 {_ride.Strokes}번 당겼어요", 3.5f);
-                AudioService.TryPlay(l => l.SupplyArrive);
+                AudioService.TryPlayAt(l => l.RcmdBasketCreak, _basket.position);
             }
             else if (arrival == RescueBasketRide.Arrival.Bottom)
             {
                 if (_riding)
                     Notice("땅에 내려왔어요", 2.5f);
-                AudioService.TryPlay(l => l.BuildPlace);
+                AudioService.TryPlayAt(l => l.RcmdBasketCreak, _basket.position);
             }
+            UpdateRopeSound();
             if (_riding && !_ride.Moving && (_ride.AtTop || _ride.AtBottom))
                 Release();
             Apply(dt);
             UpdateHint();
+        }
+
+        /// <summary>도르래 줄 소리 (탄 동안 2D 루프): 오르내리는 빠르기만큼 크기 (당길 때마다 "스윽"), 멈추면 끔.</summary>
+        private void UpdateRopeSound()
+        {
+            float level = _riding ? Mathf.Clamp01(Mathf.Abs(_ride.Speed) / 1.0f) : 0f;
+            if (level <= 0f && _ropeSent <= 0f)
+                return;
+            _ropeSent = level;
+            AudioService.SetRideLoop(l => l.RcmdRopeLoop, level, _ride.Lowering ? 0.92f : 1f);
         }
 
         /// <summary>탄 사람: F = 줄 한 번 당김 (꾹 = 한 번 끝날 때마다 이어서), S 꾹 = 멈춤쇠를 풀고 내려감.</summary>
@@ -141,8 +156,7 @@ namespace SpaceStation.Interior
             _ride.Lower(down && !_ride.Pulling);
             if (!down && (KeyBindings.WasPressed(GameAction.Interact) || (KeyBindings.IsPressed(GameAction.Interact) && !_ride.Pulling)))
             {
-                if (_ride.Pull())
-                    AudioService.TryPlay(l => l.BuildRotate);   // 도르래 삐걱
+                _ride.Pull();   // 당기는 소리 = 도르래 줄 루프 (UpdateRopeSound)
             }
         }
 

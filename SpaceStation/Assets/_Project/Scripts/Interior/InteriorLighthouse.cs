@@ -54,6 +54,8 @@ namespace SpaceStation.Interior
         private float _holdTime;
         private bool _done;
         private float[] _t;
+        private int[] _noteOf;            // 곳마다 찾은 차례 (답하는 음 칸)
+        private float _crankSent;         // 손잡이 소리에 마지막으로 보낸 크기
         private Vector3[] _restPos;
         private Quaternion[] _restRot;
         private Renderer[][] _renderers;
@@ -93,6 +95,7 @@ namespace SpaceStation.Interior
             _beam = new LighthouseBeam(OrbitalDefense.LensHandleYaw, yaws, widths);
             _block = new MaterialPropertyBlock();
             _t = new float[n];
+            _noteOf = new int[n];
             _restPos = new Vector3[n];
             _restRot = new Quaternion[n];
             _renderers = new Renderer[n][];
@@ -154,6 +157,9 @@ namespace SpaceStation.Interior
                 _beam.Release();
             for (int i = 0; _t != null && i < _t.Length; i++)
                 _t[i] = 99f;
+            if (_crankSent > 0f)
+                AudioService.SetRideLoop(l => l.OdefCrankLoop, 0f);
+            _crankSent = 0f;
             ApplyAnswers();
             ShowHint(null);
         }
@@ -180,6 +186,13 @@ namespace SpaceStation.Interior
             _beam.Step(dt, _answered, _first);
             _lens.localRotation = Quaternion.Euler(0f, _beam.Yaw - OrbitalDefense.LensHandleYaw, 0f) * _lensRest;
             FitShafts();
+            // 손잡이 돌리는 소리 (잡은 동안 2D 루프) — 돌리는 빠르기만큼 크기
+            float crank = _held ? Mathf.Clamp01(Mathf.Abs(_beam.Speed) / LighthouseBeam.TurnSpeed) : 0f;
+            if (crank > 0f || _crankSent > 0f)
+            {
+                _crankSent = crank;
+                AudioService.SetRideLoop(l => l.OdefCrankLoop, crank, 0.9f + 0.2f * crank);
+            }
             foreach (int i in _answered)
                 Answered(i, _first.Contains(i));
             if (_held && !_done && _beam.AllFound)
@@ -235,9 +248,12 @@ namespace SpaceStation.Interior
             if (!_held)
                 return;
             if (first)
-                AudioService.TryPlayScore(_beam.FoundCount);   // 새로 답한 곳 = 이번에 찾은 수만큼 높게
+            {
+                _noteOf[i] = _beam.FoundCount - 1;
+                AudioService.TryPlayNote(l => l.OdefBeamReact, _noteOf[i]);   // 새로 답한 곳 = 찾은 차례대로 한 칸씩 높게
+            }
             else
-                AudioService.TryPlay(l => l.UiTab);
+                AudioService.TryPlayNote(l => l.OdefBeamReact, _noteOf[i], 0.45f);   // 이미 찾은 곳 = 그 곳의 음을 작게
             if (first && !_beam.AllFound)
                 Notice($"{OrbitalDefense.BeamTargets[i].Name}{Josa(OrbitalDefense.BeamTargets[i].Name)} 빛으로 답해요  {_beam.FoundCount} / {_beam.TargetCount}", 2.4f);
         }

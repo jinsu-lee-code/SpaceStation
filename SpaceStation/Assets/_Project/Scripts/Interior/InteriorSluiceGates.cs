@@ -46,6 +46,7 @@ namespace SpaceStation.Interior
         private readonly float[] _lift = new float[S];
         private readonly float[] _turn = new float[S];        // 남은 바퀴 돌림 (도)
         private readonly float[] _wheelAngle = new float[S];
+        private readonly bool[] _flowing = new bool[S];       // 물 앞이 물꼬 단까지 내려가는 중 (물소리는 시작하는 순간에 한 번)
         private float[] _wilt;                                 // 밭마다 0 = 핌 · 1 = 시듦
         private float[] _bloomedTimer;
         private Vector3[] _plateBase;
@@ -166,7 +167,15 @@ namespace SpaceStation.Interior
             _puzzle.Turn(stream);
             _turn[stream] = TurnDegrees;
             _front[stream] = Mathf.Min(_front[stream], _puzzle.Gate(stream));   // 위 단으로 바뀌면 아래는 바로 마름
-            AudioService.TryPlay(l => l.BuildRotate);
+            AudioService.TryPlayAt(l => l.BioSluiceWheel, _wheels[stream].position);
+        }
+
+        /// <summary>물길 s의 수문 자리 (물소리) — 문판, 없으면 바퀴.</summary>
+        private Vector3 GatePoint(int s)
+        {
+            if (_plates != null && s < _plates.Length && _plates[s] != null)
+                return _plates[s].position;
+            return _wheels != null && s < _wheels.Length && _wheels[s] != null ? _wheels[s].position : transform.position;
         }
 
         private static string LevelName(int gate) => gate == 0 ? "닫힘" : gate > L ? "호수까지" : $"{gate}단";
@@ -256,6 +265,11 @@ namespace SpaceStation.Interior
                 _front[s] = Mathf.MoveTowards(_front[s], gate, FlowSpeed * dt);
             else if (gate == 0)
                 _front[s] = 0f;
+            // 물이 흐르기 시작하는 순간 (문판이 반쯤 열리고 물 앞이 물꼬 단으로 내려가기 시작) — 그 물길 수문에서 물소리, 목마른 밭으로 가면 조금 크게
+            bool flowing = gate > 0 && _lift[s] > Biosphere.GateLift * 0.5f && _front[s] < gate - 0.01f;
+            if (flowing && !_flowing[s])
+                AudioService.TryPlayAt(l => l.BioWaterFlow, GatePoint(s), _puzzle.IsThirsty(s, gate) ? 1f : 0.8f);
+            _flowing[s] = flowing;
             // 바퀴
             if (_turn[s] > 0f)
             {

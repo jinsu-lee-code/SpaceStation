@@ -177,7 +177,7 @@ namespace SpaceStation.Interior
             if (_bellT < FireflyLanternShow.RingTime && _rings < 2 && _bellT >= _rings * 1.1f)
             {
                 _rings++;
-                AudioService.TryPlay(l => l.EventPositive);
+                AudioService.TryPlayAt(l => l.RcmdBellToll, _bell != null ? _bell.position : transform.TransformPoint(RepairCommand.Bell));
             }
             if (_show.Running)
             {
@@ -200,7 +200,7 @@ namespace SpaceStation.Interior
             switch (phase)
             {
                 case FireflyLanternShow.Phase.Rise:
-                    AudioService.TryPlay(l => l.SupplyArrive);
+                    AudioService.TryPlay(l => l.RcmdDronesRise);   // 드론 떼가 공방에서 날아오름
                     break;
                 case FireflyLanternShow.Phase.Finale:
                     foreach (var d in _drones)
@@ -209,7 +209,7 @@ namespace SpaceStation.Interior
                         Sparkle(d.Pos, 10, 0.9f);
                     }
                     Notice($"가지 등불 {_show.LitCount}개가 모두 켜졌어요!", 4f);
-                    AudioService.TryPlay(l => l.GradeUp);
+                    AudioService.TryPlay(l => l.RcmdShowFinale);
                     break;
                 case FireflyLanternShow.Phase.Return:
                     foreach (var d in _drones)
@@ -227,7 +227,7 @@ namespace SpaceStation.Interior
             if (_lanterns == null || k >= _lanterns.Length || _lanterns[k] == null)
                 return;
             Sparkle(_lanterns[k].position, 30, 1.1f);
-            AudioService.TryPlay(l => l.UiTab);
+            AudioService.TryPlayNoteAt(l => l.RcmdLanternShimmer, _lanterns[k].position, _show.LitCount - 1);   // 켠 차례대로 음계로 오름 (도5부터)
             Notice($"반딧불 드론이 가지 등불을 켰어요  {_show.LitCount} / {_show.LanternCount}", 1.6f);
         }
 

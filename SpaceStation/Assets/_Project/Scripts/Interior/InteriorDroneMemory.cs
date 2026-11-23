@@ -280,11 +280,11 @@ namespace SpaceStation.Interior
             switch (r)
             {
                 case DroneMemoryGame.Result.Correct:
-                    AudioService.TryPlayScore(_game.Entered);   // 이번 순서에서 맞힌 수 (틀리면 판이 끝나므로 따로 세지 않음)
+                    AudioService.TryPlayNote(l => l.RcmdLanternNote, lamp);   // 등불마다 제 음 (도 · 레 · 파 · 솔 · 라) — 보여 줄 때와 같은 음
                     break;
                 case DroneMemoryGame.Result.Cleared:
                     Notice($"맞았어요!  다음은 {_game.Length + 1}개", DroneMemoryGame.ClearedTime);
-                    AudioService.TryPlayScore(_game.Entered);
+                    AudioService.TryPlayNote(l => l.RcmdLanternNote, lamp);
                     break;
                 case DroneMemoryGame.Result.Wrong:
                     AudioService.TryPlay(l => l.GameMiss);
@@ -315,7 +315,7 @@ namespace SpaceStation.Interior
                 EnsureSparks();
                 if (_lamps[lit] != null)
                     InteriorFireflyShow.Burst(_sparks, _lamps[lit].position, 18, 0.9f);
-                AudioService.TryPlay(l => l.UiTab);
+                AudioService.TryPlayNote(l => l.RcmdLanternNote, lit);   // 등불 k = 도 · 레 · 파 · 솔 · 라
             }
             _shownLit = lit;
         }

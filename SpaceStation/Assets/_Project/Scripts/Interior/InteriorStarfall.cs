@@ -241,6 +241,7 @@ namespace SpaceStation.Interior
             }
             if (!_game.TryFire())
                 return;
+            AudioService.TryPlay(l => l.OdefCannonFire);
             var ray = AimRay();
             var muzzle = _turret != null ? _turret.TransformPoint(_tipLocal) : transform.TransformPoint(OrbitalDefense.TurretMuzzle);
             int pick = Pick(ray);
@@ -253,13 +254,11 @@ namespace SpaceStation.Interior
                 _stars.RemoveAt(pick);
                 _game.Hit();
                 Burst(to);
-                AudioService.TryPlay(l => l.MeteorExplode);
-                AudioService.TryPlayScore(++_streak);
+                AudioService.TryPlayNote(l => l.OdefStarBurst, Mathf.Min(++_streak, 8) - 1);   // 터짐 + 점수를 하나로 — 연달아 맞힐수록 음계로 (파6에서 멈춤)
             }
             else
             {
                 to = Physics.Raycast(ray, out var hit, AimReach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) ? hit.point : ray.GetPoint(AimReach * 0.5f);
-                AudioService.TryPlay(l => l.UiTab);
             }
             if (_beam != null)
                 _beams.Add(new Beam { Shot = _beam.Begin(muzzle, to) });
