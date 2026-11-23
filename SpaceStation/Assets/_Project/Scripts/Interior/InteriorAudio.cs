@@ -19,6 +19,7 @@ namespace SpaceStation.Interior
         private readonly Dictionary<InteriorAmbience, AudioService.Loop> _loops = new Dictionary<InteriorAmbience, AudioService.Loop>();
         private AudioService.Loop _alarm; // 11-10 파손 방 경보
         private AudioService.MusicLayers _music; // 2026-11-23 내부 음악 (모듈 단계별 4곡, 함께 돌며 음량만 바뀜)
+        private readonly InteriorSoundscape _scape = new InteriorSoundscape(); // 2026-11-23 모듈 소리 풍경 (D-7b, 지금 방만)
         private SoundCue[] _musicCues;
         private FirstPersonController _player;
 
@@ -37,14 +38,19 @@ namespace SpaceStation.Interior
             _player = null;
         }
 
-        /// <summary>이 묶음만 올리고 나머지는 내림.</summary>
-        public void SetRoom(InteriorAmbience ambience)
+        /// <summary>이 묶음만 올리고 나머지는 내림. 2026-11-23: 소리 풍경이 있는 방은 묶음 대신 그 방 소리 풍경 (room = 템플릿 인스턴스).</summary>
+        public void SetRoom(InteriorAmbience ambience, RoomSoundscape scape = null, Transform room = null)
         {
             if (!EnsureLoops())
                 return;
+            _scape.SetRoom(scape, room);
+            bool own = _scape.Active;
             foreach (var pair in _loops)
-                pair.Value.Target = pair.Key == ambience ? 1f : 0f;
+                pair.Value.Target = !own && pair.Key == ambience ? 1f : 0f;
         }
+
+        /// <summary>소리 풍경 페이드 · 가끔 소리 (나온 뒤에도 내려갈 때까지 불러야 함).</summary>
+        public void Tick(float dt, bool day) => _scape.Tick(dt, day);
 
         /// <summary>지금 방 모듈 단계의 음악 층을 올림 (3 = 3단계 이상). 그 단계 곡이 없으면 아래 단계 곡으로.</summary>
         public void SetMusicStage(int stage)
@@ -74,6 +80,7 @@ namespace SpaceStation.Interior
                 _alarm.Target = 0f;
             if (_music != null)
                 _music.Active = -1;
+            _scape.Stop();
             Detach();
         }
 

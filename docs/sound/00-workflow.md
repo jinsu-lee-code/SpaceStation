@@ -22,7 +22,7 @@
 
 - `varco_text_to_sound` 한 번에 후보 5개 (값 = 한 번 50 크레딧, 링크 1시간).
 - **프롬프트 = 무엇 + 느낌 + 빼고 싶은 것**: 예) `industrial sliding metal door closing, slightly heavy but soft muffled thud at the end, short air hiss, solid and weighty, no metallic ringing, no harsh clang, cozy game`. 아기자기 쪽은 soft · gentle · cute · cozy · rounded, 무게가 필요하면 weighty · muffled · solid. 쇳소리가 나기 쉬운 소리는 **no metallic ringing**, 세게 치는 소리는 **no harsh clang / no harsh impact**를 꼭 넣음.
-- **크레딧은 아끼지 않는다** (사용자 2026-11-23 "토큰 걱정 없이 팍팍 만들어서 그중 가장 좋은 후보로"): 처음부터 성격을 넓힌 프롬프트 여러 개를 함께 돌려 후보를 넉넉히 받고 그중 가장 좋은 것을 고름. 그래도 없으면 느낌을 바꿔 더 (문 닫힘은 3번 만들었음: 묵직한 쾅 → 부드러운 툭 → 조금 묵직한 쿵).
+- **순서대로 하나씩 만들어 비교한다** (사용자 2026-11-23 "한 번에 너무 많이 뽑는다고 연락을 받음 — 순차적으로 제작해서 비교"): 한 번에 생성 호출 **하나**(효과음 = 후보 5개, 음악 = 2곡)만 돌리고, 받아서 재고(그림 · 수치) 고를 게 있으면 멈춤. 없으면 무엇이 모자란지(날 섬 · 빠르기 · 조 · 끊김 등)를 프롬프트에 고쳐 넣고 다음 하나. 여러 프롬프트를 동시에 돌리지 않음. (문 닫힘은 3번: 묵직한 쾅 → 부드러운 툭 → 조금 묵직한 쿵. 11-23 내부 음악 때 한 번에 수십 곡을 돌렸다가 이 규칙이 생김.)
 - 음악 = `varco_music_generate` (한 번에 약 3분 두 곡, mp3). 이 PC엔 ffmpeg가 없으므로 `AudioOriginals/tools/decode.py`(Blender `-b`로 실행, aud 모듈)로 wav로 풀고 `music_check.py`로 판정 (빠르기 · 조 · 고름 · 루프 자리) + `calm_check.py`로 차분함 (어택/초 · 고음 어택 · 무게중심 · 300 Hz 아래 — 바깥 곡과 나란히 재서 비교).
 - 받는 곳 = `AudioOriginals/_candidates/<묶음>/` (git 제외). 음악(mp3)은 효과음 다듬기 도구(`varco_variation` 등)에 넣지 않음.
 
@@ -97,4 +97,5 @@
 - 2026-11-20 음량을 너무 낮추면(−21 dB) 바탕 위 3 dB로 묻힘 → 녹음으로 4 ~ 6 dB 확인 후 정함.
 - 2026-11-23 음악: VARCO는 "D major"라고 써도 18곡 중 16곡이 D 단조 → 조는 요청이 아니라 **재서** 고름 (`music_check.py`). 처음 조 판정은 스펙트럼 전체를 세서 기계음 · 타악 때문에 모든 음이 비슷하게 나옴(흐릿) → 음 봉우리만 세게 고치니 또렷해짐 (기존 낮 곡 D 장조 0.91로 검증).
 - 2026-11-23 내부 음악 첫 4곡 = 마림바 · 칼림바 · 오르골 · 토이 피아노 · 딸깍 타악으로 요청 → 사용자 "바깥의 침착하고 차분한 음악에 비해 너무 톡톡 튄다". `tools/calm_check.py`로 재니 바깥 곡 = 어택 3.2 ~ 4.3/초 · 무게중심 160 ~ 224 Hz · 300 Hz 아래 75 ~ 89 %, 내부 = 어택 최대 7.2/초 · 무게중심 446 ~ 769 Hz · 300 Hz 아래 40 ~ 65 %. **배경 음악은 바깥 곡 수치 안으로** (따뜻한 패드 · 낮은 베이스 · 느린 화음, 뜯는 악기 · 종 · 딸깍 빼고 "no plucked instruments, no mallets, no bells, no clicks"). 단계 성격은 리듬이 아니라 음색으로.
+- 2026-11-23 소리 풍경 (AI 중추): 계속 깔리는 소리를 그냥 요청하면 2 ~ 8초 한 번 부풀었다 사라지는 소리가 옴 → **"long continuous ambient loop, constant volume, no fade in, no fade out, 10 seconds"**를 넣어야 10초 고른 루프. 맑은 음이 든 소리는 음 높이를 재 볼 것 (수정 공명 = 600 Hz D+37센트 · 3800 Hz 삐 — 음악과 부딪힘) → 음이 음악에 맞아야 하는 층은 합성 (음악 음 · 1/길이 Hz 단위 주파수로 루프에 딱 맞게), 몸통 · 질감만 VARCO. 작은 드론은 "drone"이라 쓰면 7 ~ 16 kHz 쉿 → "low soft whirr, sleepy little fan, no high frequency hiss".
 - 2026-11-23 음악 후보 대부분이 중간에 통째로 비는 마디(브레이크)가 있음 → "no breaks, no drops, no intro, no ending"을 넣고 `끊김 마디` · `가장 긴 고른 구간`(32마디 넘게)으로 거름.

@@ -522,9 +522,16 @@ namespace SpaceStation.Interior
 
         private const float FallRescueSeconds = 3f;
 
+        private bool IsDay()
+        {
+            var sim = _station != null ? _station.Simulation : null;
+            return sim == null || !sim.DayNight.Enabled || sim.DayNight.IsDay(sim.ElapsedSeconds);
+        }
+
         private void Update()
         {
             _roomBanner?.Tick();
+            _audio.Tick(Time.unscaledDeltaTime, IsDay()); // 소리 풍경 — 나온 뒤에도 내려갈 때까지
             if (!_inside || _busy)
                 return;
             // 방 밖 빈 공간으로 떨어짐 (가장 긴 층 사이 낙하도 2초 안쪽): 있던 방 입구로 되돌림 — 개방형 방은 둘레 벽이 막으므로 마지막 안전장치
@@ -611,7 +618,9 @@ namespace SpaceStation.Interior
             if (!_layout.TryGetRoom(cell, out var room) || room.Module == _currentModule)
                 return;
             _currentModule = room.Module;
-            _audio.SetRoom(_builder.AmbienceFor(room.Module));
+            var lib = AudioService.Instance != null ? AudioService.Instance.Library : null;
+            _builder.TryGetTemplateRoom(room.Module, out _, out var roomRoot);
+            _audio.SetRoom(_builder.AmbienceFor(room.Module), lib != null ? lib.SoundscapeFor(room.Module.Data) : null, roomRoot);
             _audio.SetMusicStage(_builder.StageFor(room.Module));
             string name =room.Module.Data != null ? room.Module.Data.DisplayName : room.Module.ToString();
             string state = !_station.Connectivity.IsActive(room.Module) ? $"  <color={HudText.Orange}>비활성</color>"

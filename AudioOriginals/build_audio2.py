@@ -220,4 +220,110 @@ for k, (f, t) in enumerate(steps, 1):
     seg = trim_lead(sl(x, max(0.0, t - 0.03), t + 0.32), -30)[: int(0.3 * SR)]
     save(f"Interior/step_metal_{k:02d}.wav", fade(highpass(seg, 60), 0.002, 0.08), -17)
 
+# ================= 3단계 소리 풍경 — AI 중추 "수정 뇌 미로 정원" (SOUND_LIST_NEW D-7b) =================
+# 음악 = 내부 음악 3단계 (차분한 현악 · 플루트 패드, 90 BPM, A · C · D · E · F · G 중심 — B · F# · E♭ 약함).
+# 음이 있는 소리는 그 음들로만 (런타임에 음계 높이로 바꿔 다음 박에), 맥동하는 루프는 박 길이의 배수 (90 BPM 1박 = 0.6667초).
+# VARCO는 하나씩 순서대로 (2026-11-23 지침): 바탕 1번 · 수정 공명 2번 · 드론 2번 · 새 · 띵 · 책장 각 1번 = 8번.
+A = "Interior/scape_aicore/"
+BEAT = 60.0 / 90.0
+
+
+def chain_loop(parts, xf):
+    """조각들을 xf초씩 겹쳐 이어 한 바퀴 루프로 (마지막 → 처음도 같은 겹침, equal-power)."""
+    n = int(xf * SR)
+    t = np.linspace(0, np.pi / 2, n)
+    out = parts[0][n:].copy()
+    for p in parts[1:] + [parts[0]]:
+        out[-n:] = out[-n:] * np.cos(t) + p[:n] * np.sin(t)
+        out = np.concatenate([out, p[n:]])
+    return out[:-(len(parts[0]) - n)]
+
+
+def loop_exact(x, length):
+    """x의 앞 length초를 루프로 — 뒤에 남는 0.8초를 처음에 겹쳐 이음 (x는 length + 0.8초 넘게)."""
+    n, k = int(length * SR), int(0.8 * SR)
+    out = x[:n].copy()
+    t = np.linspace(0, np.pi / 2, k)
+    out[:k] = x[:k] * np.sin(t) + x[n:n + k] * np.cos(t)
+    return out
+
+
+def phrases(x, gap=0.4, pad=0.12, rise_db=18):
+    """조용한 바닥 위로 rise_db 넘게 솟는 구간들 (gap초 안 틈은 하나로) — 새 지저귐 소절 자르기."""
+    w = int(0.01 * SR)
+    env = 20 * np.log10(np.sqrt(np.convolve(x ** 2, np.ones(w) / w, "same")) + 1e-9)
+    on = env > np.percentile(env, 20) + rise_db
+    segs, i = [], 0
+    idx = np.where(on)[0]
+    for j in idx:
+        if segs and j - segs[-1][1] < gap * SR:
+            segs[-1][1] = j
+        else:
+            segs.append([j, j])
+    return [(max(0, a - int(pad * SR)), min(len(x), b + int(pad * SR))) for a, b in segs if b - a > 0.15 * SR]
+
+
+def pitch(x, semis):
+    """음높이 바꾸기 (재생 속도째 — 길이도 바뀜). 짧은 맑은 음에만."""
+    r = 2 ** (semis / 12)
+    pos = np.arange(0, len(x) - 1, r)
+    return np.interp(pos, np.arange(len(x)), x)
+
+
+# 바탕 — 정원 바람 · 잎 (2D, 방 전체). 후보 5 중 2 (가장 고름 · 지직 3.5 · 울림 1) + 5 (잎 사각임 · 울림 0)를 2초씩 겹쳐 19초 —
+# 10초 하나를 돌리면 반복이 들림. 3 = 밝고 (716 Hz) 지직 11.5 · 6.9초에 사건, 4 = 울림 5, 1 = 5.3초에 작은 사건.
+bed = chain_loop([sl(load(A + "bed_a.wav"), 0.3, 9.9), sl(load(A + "bed_b.wav"), 0.3, 9.9)], 2.0)
+save("Interior/scape_aicore_bed_loop.wav", circular(lambda y: highpass(y, 40), bed), -24)
+
+# 수정 뇌 공명 (뇌 자리 3D 루프) — VARCO 첫 5개 = 2 ~ 8초 한 번 부풀었다 사라짐 (루프 X), "긴 · 고른"으로 다시 5개 = 고르지만
+# 낮은 웅웅뿐이거나 맑은 음이 음악과 안 맞음 (2 = 600 Hz D+37센트 · 3800 Hz 삐). → 몸통 = 다시 만든 4 (울림 줄 6 — 가장 적음),
+# 유리 공명 = 합성 (라4 · 도5 · 미5 + 라3, 음악 4곡 어느 화음 위에서도 안 부딪힘), 2박(1.333초)마다 숨 쉬듯 맥동.
+# 길이 = 8초 = 정확히 12박 (96초 음악 루프의 1/12) — 음 · 맥동 주기가 8초에 딱 떨어지게 주파수를 1/8 Hz 단위로.
+L8 = 8.0
+tt = np.arange(int(L8 * SR)) / SR
+glass = np.zeros_like(tt)
+for f0, amp in ((220.0, 0.5), (440.0, 1.0), (523.25, 0.8), (659.25, 0.6)):
+    for cents in (-3, 0, 3):
+        f = round(f0 * 2 ** (cents / 1200) * L8) / L8
+        glass += amp / 3 * (np.sin(2 * np.pi * f * tt) + 0.22 * np.sin(2 * np.pi * 2 * f * tt + 0.7) + 0.08 * np.sin(2 * np.pi * 3 * f * tt + 1.9))
+pulse = 0.55 + 0.45 * (0.5 - 0.5 * np.cos(2 * np.pi * tt / (2 * BEAT))) ** 1.5
+glass = circular(lambda y: onepole_lp(y, 2500), glass * pulse)
+body = loop_exact(sl(load(A + "brain_body.wav"), 0.5, 10.0), L8)
+body = circular(lambda y: highpass(y, 35), body) * (0.8 + 0.2 * pulse)
+g_rms, b_rms = np.sqrt((glass ** 2).mean()), np.sqrt((body ** 2).mean())
+save("Interior/scape_aicore_brain_loop.wav", 0.55 * glass / g_rms + 0.45 * body / b_rms, -22)
+
+# 드론 둥지 탑 — 작은 드론이 깨어나 뜨는 "그르릉" (가끔, 탑 자리 3D). 첫 5개 = 소리 중심 7 ~ 16 kHz 높은 "위잉" 쉿,
+# "낮고 둥근 작은 로봇 숨소리"로 다시 5개 중 5 (155 Hz · 300 Hz 아래 99 % · 빠르게 떨리는 그르릉, 2.5초 한 번 부풂). 나머지 = 기계 삐 줄.
+save("Interior/scape_aicore_drone_01.wav", fade(highpass(trim_lead(load(A + "drone_purr.wav"), -45), 40), 0.05, 0.4), -24)
+
+# 새 (낮에만, 정원 여기저기 3D) — 5개 중 1의 두 소절 + 5의 한 소절 (바닥 잡음 −46 ~ −51 dB).
+# 3 = 열 번 넘게 연달아 (바쁨), 4 = 날카로움 11.6 · 바닥 −38 dB, 2 = 한 번 터진 뒤 잡음 꼬리.
+k = 0
+for f in ("bird_1.wav", "bird_5.wav"):
+    x = load(A + f)
+    for a, b in phrases(x):
+        k += 1
+        save(f"Interior/scape_aicore_bird_{k:02d}.wav", fade(highpass(x[a:b], 300), 0.02, 0.1), -24)
+
+# 시냅스 빛 "띵" (미로 길 따라 3D, 음계 높이 · 다음 박) — 5개 중 2: 한 번만 맑게 울리고 C7 +6센트 (거의 정확한 '도').
+# 1 = 여러 번 침, 3 = F#6 · 4 = D5 +35센트 · 5 = D#6 +33센트 (음악 음과 어긋남). 시작 2 ms로 조금 날카로움 → 8 ms로 둥글게 · 4.5 kHz 위 반쯤.
+ting = fade(soften(trim_lead(load(A + "crystal_ting.wav"), -40)[: int(1.8 * SR)], 4500, 0.5), 0.008, 0.8)
+ting = pitch(ting, -0.06)  # +6센트 → 정확히 C7 (런타임 음높이 계산의 기준 = MIDI 96)
+save("Interior/scape_aicore_ting_01.wav", ting, -24)
+
+# 대표 선율 (들어설 때 한 번, 2D) — 같은 띵을 미6 · 솔6 · 도7로, 8분음표 (반 박 = 0.333초) 간격, 마지막 음은 길게.
+motif = np.zeros(int(2.6 * SR))
+for i, (semis, gain) in enumerate(((-8, 0.8), (-5, 0.85), (0, 1.0))):
+    motif = place(motif, pitch(ting, semis) * gain, i * BEAT / 2)
+save("Interior/scape_aicore_motif.wav", fade(motif, 0.0, 0.6), -20)
+
+# 독서대 책장 넘김 (주민이 책 읽는 자리, 3D, 가끔) — 5개 중 3: 넘김이 하나씩 떨어져 있고 바닥 −49.6 dB (가장 깨끗).
+x = load(A + "page_3.wav")
+w = int(0.05 * SR)
+env = np.convolve(x ** 2, np.ones(w) / w, "same")
+i = int(np.argmax(env))
+seg = x[max(0, i - int(0.35 * SR)): i + int(0.45 * SR)]
+save("Interior/scape_aicore_page_01.wav", fade(highpass(seg, 120), 0.03, 0.15), -26)
+
 print("\n".join(report))
