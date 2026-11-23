@@ -291,7 +291,7 @@ namespace SpaceStation.Interior
                 if (before > 0.5f && _wilt[k] <= 0.5f && watered)
                 {
                     _bloomedTimer[k] = BloomedSeconds;
-                    AudioService.TryPlayScore(++_streak);
+                    AudioService.TryPlayNote(l => l.BioFieldBloom, Mathf.Min(++_streak, 8) - 1);   // 꽃이 피는 "사르륵 · 띠링" — 핀 차례대로 음계로 (파7에서 멈춤)
                 }
                 if (_bloomedTimer[k] > 0f)
                     _bloomedTimer[k] -= dt;

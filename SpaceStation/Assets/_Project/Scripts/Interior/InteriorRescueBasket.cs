@@ -38,6 +38,8 @@ namespace SpaceStation.Interior
         private bool _inside;
         private float _sway;
         private float _ropeSent;    // 도르래 줄 소리에 마지막으로 보낸 크기
+        private ObjectLoop _ropeAlone;   // 빈 바구니가 혼자 오르내릴 때 같은 줄 소리 (바구니에 붙은 3D)
+        private bool _ropeAloneTried;
         private string _notice;
         private float _noticeTimer;
         private Canvas _canvas;
@@ -142,11 +144,28 @@ namespace SpaceStation.Interior
         /// <summary>도르래 줄 소리 (탄 동안 2D 루프): 오르내리는 빠르기만큼 크기 (당길 때마다 "스윽"), 멈추면 끔.</summary>
         private void UpdateRopeSound()
         {
+            UpdateEmptyRopeSound();
             float level = _riding ? Mathf.Clamp01(Mathf.Abs(_ride.Speed) / 1.0f) : 0f;
             if (level <= 0f && _ropeSent <= 0f)
                 return;
             _ropeSent = level;
             AudioService.SetRideLoop(l => l.RcmdRopeLoop, level, _ride.Lowering ? 0.92f : 1f);
+        }
+
+        /// <summary>빈 바구니가 부름을 받아 혼자 오르내리는 동안: 같은 도르래 줄 소리를 바구니에 붙여 3D로 (탄 동안은 위의 2D 루프).</summary>
+        private void UpdateEmptyRopeSound()
+        {
+            if (_ropeAlone == null)
+            {
+                if (_ropeAloneTried || AudioService.Instance == null)
+                    return;
+                _ropeAloneTried = true;
+                _ropeAlone = AudioService.AttachLoop(l => l.RcmdRopeLoop, _basket, 2f, 18f);
+                if (_ropeAlone == null)
+                    return;
+            }
+            _ropeAlone.Level = !_riding && _ride.Moving ? Mathf.Clamp01(Mathf.Abs(_ride.Speed) / RescueBasketRide.CallSpeed) : 0f;
+            _ropeAlone.Pitch = _ride.Speed < 0f ? 0.92f : 1f;
         }
 
         /// <summary>탄 사람: F = 줄 한 번 당김 (꾹 = 한 번 끝날 때마다 이어서), S 꾹 = 멈춤쇠를 풀고 내려감.</summary>
@@ -172,13 +191,13 @@ namespace SpaceStation.Interior
             {
                 _ride.Call(false);
                 Notice("구조 바구니가 내려와요", 2.5f);
-                AudioService.TryPlay(l => l.UiOpen);
+                AudioService.TryPlayAt(l => l.RcmdBasketCall, _basket.position);   // 멈춤쇠 "딸깍" + 줄 "스윽" (그 뒤 줄 소리가 바구니를 따라옴)
             }
             else if (!_ride.AtTop && Mathf.Abs(p.y - gate.y) < 1.2f && Flat(p - gate) < RepairCommand.BasketCallReach)
             {
                 _ride.Call(true);
                 Notice("구조 바구니가 올라와요", 2.5f);
-                AudioService.TryPlay(l => l.UiOpen);
+                AudioService.TryPlayAt(l => l.RcmdBasketCall, _basket.position);
             }
         }
 

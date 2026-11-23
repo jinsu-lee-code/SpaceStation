@@ -1793,4 +1793,152 @@ report.append(f"  크레인 모터 고리 {len(crane) / SR:.2f}초 · 이음새 
 grab = pitch(fade(soften(highpass(sl(lt_, 2.62, 2.98), 80), 3000, 0.5), 0.004, 0.1), -4)
 save("Ride/refinery_crane_grab.wav", fade(grab, 0.0, 0.08), -14)
 
+# ================= 체험 — 1단계 공통 도구 (SOUND_LIST_NEW 5-2 넷째 묶음, 2026-11-23) =================
+# 1단계 톤 = 매끄러운 전자 · 발달한 미래 기술 (아기자기, 날 선 쇳소리 X). 1단계 방은 소리 풍경 없이 방 환경음 + 내부 음악 1단계 곡 (D 단조 · F 장조, 90 BPM).
+
+
+def vrate(x, rate):
+    """재생 빠르기 곡선 (샘플마다 배율)대로 다시 읽음 — 모터가 돌기 시작하면 높아지고 멈출 때 낮아짐 (길이 = len(rate))."""
+    pos = np.concatenate([[0.0], np.cumsum(rate)[:-1]])
+    return np.interp(np.minimum(pos, len(x) - 2), np.arange(len(x)), x)
+
+
+# ================= 체험 — 중력 거주구 "전망실 망원경" (SOUND_LIST_NEW 5-2 · 4-3, 2026-11-23) =================
+# InteriorTelescope (머리를 보고 F = 들여다봄 → 마우스로 둘러보기 · 휠로 배율 → F · ESC = 뗌). VARCO 1번 — 들여다봄 · 뗌 · 확대 모두 같은 렌즈 "위잉"을
+# 재생 빠르기 곡선으로 올리고 내려 만듦 (한 물건 = 소리 하나).
+GVR = "Ride/GravityHabitat/"
+# 렌즈 위잉 — "들여다볼 때 오르는 위잉 → 1초 뒤 내려가는 위잉"으로 불렀는데 다섯 모두 둘이 갈리지 않음 → 그중 4: 1.5 kHz 매끈한 전자 "위잉" · 4 kHz 위 1 % · 울림 0,
+# 봉우리 650 · 880 · 1050 Hz (미5 · 라5 · 도6 — 조 안). 0.8초부터 고른 1.25 ~ 3.35초를 몸통으로. 1 = 4.6 kHz 밝은 세 덩이 (지직 78), 2 = 바닥 −5 dB 웅 · 울림 9,
+# 3 = 0.45초 날 선 쉿 (9.9 kHz), 5 = 고르지만 울림 4 · 무게중심 4 kHz (밝음).
+tw = highpass(sl(load(GVR + "telescope_whirr.wav"), 1.25, 3.35), 150)
+tw = onepole_lp(onepole_lp(soften(tw, 5000, 0.4), 4500), 4500)   # VARCO 위잉에 붙은 고른 쉿 (6 ~ 16 kHz가 전체보다 −21 dB — 사용자 "배경에 쉬— 치찰")을 4.5 kHz 위 두 번 눌러 걷어 냄
+PAD = np.zeros(int(0.06 * SR))   # 한 번 소리 끝을 고요하게 (뒤 꼬리 바닥 −60 dBFS 아래)
+
+# 들여다봄 (눈을 댐 — 2D, 0.9초): 렌즈가 깨어나며 빠르기 0.55 → 1로 오르는 "위잉" + 옅은 "스르륵" (렌즈 경통이 미끄러지는 바람결, 0.18초에 가장 큼).
+t = np.arange(int(0.9 * SR)) / SR
+rin = 0.55 + 0.45 * (1 - np.exp(-t / 0.12))
+look_in = vrate(tw, rin) * (1 - np.exp(-t / 0.04)) * np.where(t < 0.42, 1.0, np.exp(-(t - 0.42) / 0.12))
+sw = onepole_lp(onepole_lp(whoosh(0.55, 0.18, 400, 1500, 3500, 830), 4000), 4000)   # 바람결의 6 kHz 위 쉿도 눌러 둠 (그대로면 6 ~ 16 kHz −21 dB)
+look_in = place(look_in, sw / rms(sw) * 0.45 * rms(look_in[: int(0.4 * SR)]), 0.0)[: len(t)]
+save("Ride/t1_telescope_in.wav", np.concatenate([fade(look_in, 0.0, 0.15), PAD]), -14)
+
+# 뗌 (그만 보기 — 2D, 0.75초): 같은 위잉이 빠르기 1 → 0.5로 내려가며 잦아듦 + 더 옅은 "스르륵".
+t = np.arange(int(0.75 * SR)) / SR
+rout = 0.5 + 0.5 * np.exp(-t / 0.22)
+look_out = vrate(tw, rout) * (1 - np.exp(-t / 0.015)) * np.exp(-t / 0.2)
+sw = onepole_lp(onepole_lp(whoosh(0.4, 0.08, 300, 1200, 3000, 831), 4000), 4000)
+look_out = place(look_out, sw / rms(sw) * 0.3 * rms(look_out[: int(0.3 * SR)]), 0.0)[: len(t)]
+save("Ride/t1_telescope_out.wav", np.concatenate([fade(look_out, 0.0, 0.15), PAD]), -14)
+
+# 배율 (휠 한 칸마다 2D, 0.3초): 짧게 빨라졌다 서는 "윙" — 당김 (확대) = 그대로 (미 · 라 · 도), 밂 (축소) = 재생 높이 0.891 (레 · 솔 · 시♭ — 둘 다 조 안).
+t = np.arange(int(0.3 * SR)) / SR
+rz = 0.8 + 0.25 * (1 - np.exp(-t / 0.05))
+zoom = vrate(tw[int(0.5 * SR):], rz) * np.sin(np.pi * t / 0.3) ** 1.5
+save("Ride/t1_telescope_zoom.wav", np.concatenate([fade(zoom, 0.005, 0.06), PAD]), -14)
+
+# ================= 체험 — 보안청 "천장 포탑 받침" (SOUND_LIST_NEW 5-2 · 4-4, 2026-11-23) =================
+# InteriorTurretAim (평소 = 몇 초마다 다른 쪽으로 천천히 돌아 경계 · 유성우 예보 = 오는 쪽으로 빠르게). VARCO 1번 (서보).
+# 서보 "위잉" (포탑 받침에 붙은 3D 루프 — 도는 빠르기만큼 크기 · 재생 높이) — "고른 서보 루프"로 불렀는데 다섯 모두 1.5 ~ 8초 한 번 돌고 서는 소리 · 4 kHz 위 24 ~ 91 % (밝은 이잉).
+# 그중 2 (돌기 시작 → 1.2 ~ 2초 고름 → 멈춤, 울림 1)의 고른 곳 기음 = 391.5 Hz (솔4 −2센트, 조 안)와 배음 크기를 재서 정확한 솔4로 다시 합성 —
+# 원본 배음은 높은 데까지 −20 dB로 남아 밝으니 일곱째부터 3 dB씩 더 줄이고, 한 옥타브 아래 솔3을 옅게 (천장 포탑의 무게).
+# 2초 = 솔4 784번 · 떨림 · 숨이 고리에 정수 번이라 이음새 없음. 1 = 9.7 kHz 쉿, 3 = 기음 730 Hz (파#5 — 조 밖) · 울림 85, 4 = 들쭉날쭉 · 울림 73, 5 = 1.6초뿐.
+SBR = "Ride/SecurityBureau/"
+LS_ = 2.0
+ts_ = np.arange(int(LS_ * SR)) / SR
+f0 = 392.0
+prof = (0, -9, -18, -19, -27, -26, -26, -29, -32, -35, -38, -41, -44, -47)   # 1 ~ 6 = 원본 그대로, 7 ~ = 3 dB씩 더 줄임
+rng = np.random.default_rng(810)
+ph = f0 * ts_
+for fm, a_, p0 in ((3 / LS_, 0.002, 1.0), (11 / LS_, 0.0012, 2.1), (23 / LS_, 0.0008, 0.4)):   # ±0.2 % 느린 떨림 + 잔 흔들림 (고리에 정수 번)
+    ph = ph + f0 * a_ / (2 * np.pi * fm) * (np.sin(2 * np.pi * fm * ts_ + p0) - np.sin(p0))
+servo = sum(10 ** (db / 20) * np.sin(2 * np.pi * k * ph + rng.uniform(0, 2 * np.pi)) for k, db in enumerate(prof, 1))
+servo = servo + 10 ** (-8 / 20) * np.sin(2 * np.pi * 0.5 * ph + 0.3)
+servo = servo * (1 + 0.06 * np.sin(2 * np.pi * 60 / LS_ * ts_) + 0.04 * np.sin(2 * np.pi * 3 / LS_ * ts_ + 0.5))   # 모터 결 30 Hz · 느린 숨
+air = circular(lambda y: onepole_lp(onepole_lp(highpass(y, 300), 2500), 2500), rng.standard_normal(len(ts_)))
+servo = servo / rms(servo) + 0.22 * air / rms(air)
+save("Ride/t1_turret_servo_loop.wav", servo, -20)   # 솔4 · 솔3이 대부분이라 귀 감도로 rms보다 4 dB 작음 → 다른 물체 루프 (−24)보다 4 dB 크게
+report.append(f"  포탑 서보 고리 {len(servo) / SR:.2f}초 · 이음새 {abs(servo[0] - servo[-1]):.4f}")
+
+# ================= 체험 — 정비 공창 "수리 패드 용접" · 조선소 "용접 갠트리" (SOUND_LIST_NEW 5-2 · 4-4, 2026-11-23) =================
+# InteriorWelder (회전판 위 용접 팔 토치 — 한 번에 하나씩 2 ~ 4초) · InteriorShipyard (갠트리가 판 이음선으로 옮겨 가 양옆 토치로 2 ~ 3초씩). VARCO 1번 (용접).
+# 조선소 갠트리 모터 = 정련 콤비나트 크레인 모터 (refinery_crane_move_loop) 그대로 (새 파일 없음).
+MWR = "Ride/MaintenanceWorks/"
+# 용접 "쉬이 · 치직" (용접하는 토치에 붙은 3D 루프) — "부드러운 용접 쉿 + 옅은 지글"로 불렀는데 다섯 모두 무게중심 13 ~ 15 kHz의 고른 쉿뿐 (지글 없음, 지직 6 ~ 16 · 울림 0) →
+# 가장 고른 3의 뒤 구간 (3.15 ~ 6.85초, 0.5초 크기 −21 ~ −23 dB)을 앞뒤로 이어 3 kHz 위를 네 번 걸러 부드러운 "쉬이"로 (두 번은 무게중심 6.5 kHz로 아직 밝았음) +
+# 아크 흔들림 (30 Hz 아래 느린 잡음으로 크기가 ±35 % 일렁임) + 둥근 "치직" 알갱이 (초당 약 14개 · 2 ~ 4 ms · 1 ~ 3.5 kHz · 0.4 ms에 켜짐 — 바로 켜면 판 꼭대기까지 세로줄)를 합성해 얹음.
+# 1 = 끝으로 갈수록 커졌다 작아짐, 2 · 5 = 바닥 −6 ~ −11 dB · 끝이 잦아듦, 4 = 0.5 ~ 1.5초마다 끊김.
+wd = flatten(highpass(sl(load(MWR + "weld_hiss.wav"), 3.15, 6.85), 300), 0.5)
+weld = chain_loop([wd, wd[::-1]], 0.5)
+lp6 = lambda y: onepole_lp(onepole_lp(onepole_lp(onepole_lp(onepole_lp(onepole_lp(y, 2500), 2500), 2500), 2500), 2500), 2500)
+weld = circular(lambda y: soften(lp6(y), 2000, 0.3), weld)   # 원본 쉿이 13 ~ 15 kHz라 3 kHz 네 번으로는 6 ~ 16 kHz가 전체보다 −15 dB (치찰로 들림) → 2.5 kHz 여섯 번
+n_ = len(weld)
+rng = np.random.default_rng(820)
+am = circular(lambda y: onepole_lp(onepole_lp(y, 30), 30), rng.standard_normal(n_))
+weld = weld * (1 + 0.35 * am / np.abs(am).max())
+crk = np.zeros(n_)
+for k in range(int(n_ / SR * 14)):
+    ng = int(rng.uniform(0.002, 0.004) * SR)
+    tg = np.arange(ng) / SR
+    g = onepole_lp(onepole_lp(onepole_lp(highpass(rng.standard_normal(ng), 1000), 3000), 3000), 3000) * (1 - np.exp(-tg / 0.0004)) * np.exp(-tg / 0.0012)
+    idx = (int(rng.uniform(0, n_)) + np.arange(ng)) % n_
+    np.add.at(crk, idx, g / np.abs(g).max() * rng.uniform(0.3, 1.0))
+weld = weld / rms(weld) + 0.35 * crk / rms(crk)
+save("Ride/t1_weld_loop.wav", weld, -24)
+report.append(f"  용접 고리 {len(weld) / SR:.2f}초 · 이음새 {abs(weld[0] - weld[-1]):.4f}")
+
+# ================= 남은 빌린 소리 정리 (SOUND_LIST_NEW 5-2 넷째 묶음 B, 2026-11-23) =================
+# 별똥별 다가옴 (궤도 방어망 오로라 보호막 · 별똥별 막기 — 바깥 운석 경보 MeteorIncoming 대신, 2D) — 소리 풍경 별똥별 원본 (후보 3)의 첫 "휙" (0.45초에 가장 큼, 2 kHz)을
+# 0.55초까지 더 커지게 (다가옴) · 빠르기 1.04 → 0.94로 살짝 내려가게 (지나감) · 5 kHz 위를 눌러 부드럽게. 반짝임은 맞음 · 터짐 소리에 있어 뺌.
+si = highpass(sl(load(OD + "star.wav"), 0.05, 1.05), 300)
+t = np.arange(int(0.85 * SR)) / SR
+inc = vrate(si, 1.04 - 0.1 * np.clip(t / 0.8, 0, 1))
+inc = inc * np.where(t < 0.55, (0.35 + 0.65 * t / 0.55) ** 1.5, np.exp(-(t - 0.55) / 0.12))
+save("Ride/odef_star_incoming.wav", fade(soften(soften(inc, 5000, 0.4), 8000, 0.4), 0.01, 0.08), -14)
+
+# 빈 구조 바구니 부르기 (UiOpen 대신 — 바구니 자리 3D): 멈춤쇠가 풀리는 "딸깍" (5-1 탑승 걸쇠 조각을 3반음 높여 가볍게) + 줄이 움직이기 시작하는 "스윽" (도르래 줄 원본 0.4초).
+# 그 뒤 바구니가 혼자 오르내리는 동안은 도르래 줄 루프를 바구니에 붙여 3D로 (코드).
+lt4 = load(RD + "latch.wav")
+clk = pitch(fade(soften(highpass(sl(lt4, 1.0, 1.32), 120), 4000, 0.5), 0.004, 0.08), 3)
+rp4 = fade(tame(soften(soften(highpass(sl(load(RCR + "rope_pulley.wav"), 1.45, 1.95), 70), 3500, 0.5), 3500, 0.5), 8.0, 0.002, 0.04), 0.12, 0.25)   # 줄 조각의 잔 튐을 눌러 (그대로면 지직 43)
+call = np.zeros(int(0.75 * SR))
+call = place(call, clk, 0.0)
+call = place(call, rp4 / pk50(rp4) * 0.9 * pk50(clk), 0.1)
+# 걸쇠 딸깍의 6 ~ 16 kHz (전체보다 −14.5 dB)를 눌러 먹먹하게 — 누른 만큼 귀 감도가 줄어 4 m에서 +5.1 → +0.4 ~ +1.8.
+# 딸깍 순간 피크가 피크 제한 (−1 dB)에 걸려 저장 크기를 올려도 안 커져서 줄 "스윽"을 0.55 → 0.9로 키우고 센 곳을 10 dB 눌러 −12로.
+save("Ride/rcmd_basket_call.wav", tame(fade(onepole_lp(onepole_lp(call, 5000), 5000), 0.0, 0.1), 10.0, 0.002, 0.04), -12)
+
+# 수정 뇌 쇼 끝 (빛이 잦아드는 3.5초 — UiClose 대신, 2D) — 쇼 시작 "차오름"과 같은 유리 화음 라3 · 라4 · 도5 · 미5 · 라5가 먹먹해지며 (로우패스 3 kHz → 400 Hz)
+# 잦아듦 + 소리 풍경 수정 뇌 루프 조각이 함께 + 반짝임이 라6 · 미6 · 도6 · 라5로 내려감.
+LF_ = 3.6
+tf = np.arange(int(LF_ * SR)) / SR
+chord = np.zeros_like(tf)
+for j, (f0_, amp) in enumerate(((220.0, 0.5), (440.0, 1.0), (523.25, 0.8), (659.25, 0.6), (880.0, 0.3))):
+    for c in (-3, 0, 3):
+        f = f0_ * 2 ** (c / 1200)
+        chord += amp / 3 * (np.sin(2 * np.pi * f * tf + j + c) + 0.2 * np.sin(4 * np.pi * f * tf + 0.7))
+env_f = np.minimum(1, tf / 0.12) * np.exp(-tf / 1.1)
+fcf = 3000 * (400 / 3000) ** np.clip(tf / 3.0, 0, 1)
+chord = varlp(varlp(chord * env_f, fcf), fcf)
+brain = sl(load("../SpaceStation/Assets/_Project/Audio/Interior/scape_aicore_brain_loop.wav"), 0.0, LF_)
+brain = varlp(brain / rms(brain) * env_f, fcf)
+fade_ = chord / rms(chord) + 0.5 * brain
+for i_, semis in enumerate((9, 4, 0, -3)):
+    fade_ = place(fade_, twinkle(C6 * 2 ** (semis / 12), 1.0, 840 + i_) * 0.45 * np.abs(fade_).max() * (0.9 - 0.15 * i_), 0.1 + i_ * 0.4)
+save("Ride/aicore_crystal_fade.wav", fade(fade_[: len(tf)], 0.03, 0.6), -14)
+
+# 바이오스피어 밭이 핌 (물이 닿아 목마른 밭이 피는 순간 — 공용 점수 "띵" 대신, 2D · 연달아 피면 음계로, 기준 = 도6) — 꽃잎이 펴지는 "사르륵" (수리 사령부 고목 잎 원본 0.3초) +
+# 부드럽게 켜지는 유리 종 도6 (20 ms) + 반짝 솔6 · 도7이 굴러 오름 (으뜸 · 5도 · 옥타브만 — 음계로 옮겨도 조가 안 깨짐).
+lf = load(RC + "leaf_a.wav")
+env_l = np.convolve(lf ** 2, np.ones(int(0.05 * SR)) / int(0.05 * SR), "same")
+i0 = int(np.argmax(env_l[int(1.0 * SR): int(5.5 * SR)])) + int(1.0 * SR)
+rustle = fade(onepole_lp(onepole_lp(highpass(lf[i0 - int(0.12 * SR): i0 + int(0.2 * SR)], 1500), 5000), 5000), 0.06, 0.15)   # 잎 원본의 6 kHz 위 사각임은 눌러 둥글게
+tb = np.arange(int(1.1 * SR)) / SR
+bell_b = flower_bell(C6, 1.1, 850) * (1 - np.exp(-tb / 0.02))
+bloom = np.zeros(int(1.3 * SR))
+bloom = place(bloom, rustle / pk50(rustle) * 0.35 * pk50(bell_b), 0.0)
+bloom = place(bloom, bell_b, 0.06)
+bloom = place(bloom, twinkle(1.5 * C6, 0.8, 851) * 0.35, 0.13)
+bloom = place(bloom, twinkle(2 * C6, 0.8, 852) * 0.25, 0.2)
+save("Ride/bio_field_bloom.wav", fade(onepole_lp(bloom, 7500), 0.0, 0.25), -14)
+
 print("\n".join(report))

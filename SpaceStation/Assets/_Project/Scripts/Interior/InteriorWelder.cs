@@ -1,3 +1,4 @@
+using SpaceStation.Audio;
 using UnityEngine;
 
 namespace SpaceStation.Interior
@@ -22,6 +23,8 @@ namespace SpaceStation.Interior
         private int _last = -1;
         private float _until;
         private float _nextSpark;
+        private ObjectLoop[] _arcs;
+        private bool _arcsTried;
 
         public void Configure(Transform[] torches, Vector3[] tips, Vector3[] normals, Material spark)
         {
@@ -49,6 +52,7 @@ namespace SpaceStation.Interior
             if (!Active || _spark == null)
             {
                 Stop();
+                UpdateArcs();
                 return;
             }
             float now = Time.unscaledTime;
@@ -68,6 +72,7 @@ namespace SpaceStation.Interior
                     _until = now + Random.Range(2f, 4f);
                 }
             }
+            UpdateArcs();
             if (_current < 0 || _torches[_current] == null)
                 return;
             var torch = _torches[_current];
@@ -86,6 +91,33 @@ namespace SpaceStation.Interior
             if (_current >= 0 && _torches[_current] != null)
                 _torches[_current].localPosition = _rest[_current];
             _current = -1;
+        }
+
+        /// <summary>용접 "쉬이 · 치직" (토치 끝마다 붙은 3D 루프): 지금 불꽃이 튀는 토치만 · 플레이어가 이 방에 있을 때만.</summary>
+        private void UpdateArcs()
+        {
+            if (_arcs == null)
+            {
+                if (_arcsTried || AudioService.Instance == null)
+                    return;
+                _arcsTried = true;
+                _arcs = new ObjectLoop[_torches.Length];
+                for (int i = 0; i < _torches.Length; i++)
+                {
+                    if (_torches[i] == null)
+                        continue;
+                    _arcs[i] = AudioService.AttachLoop(l => l.T1WeldLoop, _torches[i], 1.5f, 12f);
+                    if (_arcs[i] == null)
+                        continue;
+                    if (_tips != null && i < _tips.Length)
+                        _arcs[i].transform.localPosition = _tips[i];
+                    _arcs[i].FadeSpeed = 8f;   // 불꽃과 함께 바로 켜지고 꺼짐
+                }
+            }
+            bool here = _current >= 0 && PlayerInRoom;
+            for (int i = 0; i < _arcs.Length; i++)
+                if (_arcs[i] != null)
+                    _arcs[i].Level = here && i == _current ? 1f : 0f;
         }
     }
 }
