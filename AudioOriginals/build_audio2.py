@@ -431,7 +431,7 @@ save("Interior/scape_city_night_loop.wav", circular(lambda y: highpass(y, 30), l
 # 1 · 3 = 여러 번 침, 2 = A7 −44센트, 4 = F#7 +40센트 배음 (음악과 부딪힘).
 bell = fade(soften(trim_lead(load(OC + "bell.wav"), -45)[: int(3.2 * SR)], 5000, 0.4), 0.008, 1.2)
 bell = pitch(highpass(bell, 150), -12)
-save("Interior/scape_city_bell_01.wav", bell, -24)
+save("Interior/scape_city_bell_01.wav", bell, -14)   # 2026-11-23 −24 → −14: 광장에서 음악 + 바탕 (−27 dB)에 15 dB 묻혀 안 들렸음 (사용자 "꼭대기 광장에서 종소리가 안 들림")
 # 대표 선율 = 종탑 네 음 솔 · 미 · 라 · 도 (한 박 간격 — 종은 천천히)
 motif = np.zeros(int(6.5 * SR))
 for i, (semis, gain) in enumerate(((0, 0.9), (-3, 0.85), (2, 0.9), (5, 1.0))):
