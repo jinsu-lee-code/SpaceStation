@@ -128,7 +128,7 @@ namespace SpaceStation.Interior
             EnsureOverlay();
             _canvas.gameObject.SetActive(true);
             _hint.SetText($"마우스  둘러보기   ·   휠  확대   ·   {KeyBindings.Label(GameAction.Interact)} / ESC  그만 보기");
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.T1TelescopeIn);   // 렌즈가 깨어나는 "위잉"
         }
 
         private void Exit(bool silent = false)
@@ -144,7 +144,7 @@ namespace SpaceStation.Interior
             if (_canvas != null)
                 _canvas.gameObject.SetActive(false);
             if (!silent)
-                AudioService.TryPlay(l => l.UiClose);
+                AudioService.TryPlay(l => l.T1TelescopeOut);   // 렌즈가 잦아드는 "위잉"
         }
 
         private void Update()
@@ -178,7 +178,20 @@ namespace SpaceStation.Interior
             _pitch = Mathf.Clamp(_pitch + look.y, _pitchRange.x, _pitchRange.y);
             float scroll = mouse.scroll.ReadValue().y;
             if (Mathf.Abs(scroll) > 0.01f)
+            {
+                float before = _fov;
                 _fov = Mathf.Clamp(_fov * (scroll > 0f ? 0.8f : 1.25f), _fovRange.x, _fovRange.y);
+                if (!Mathf.Approximately(before, _fov))
+                    PlayZoom(scroll > 0f);
+            }
+        }
+
+        /// <summary>배율 한 칸 "윙" — 확대 = 그대로 (미 · 라 · 도), 축소 = 0.891 높이 (레 · 솔 · 시♭), 끝 칸에서는 안 남.</summary>
+        private static void PlayZoom(bool zoomIn)
+        {
+            var s = AudioService.Instance;
+            if (s != null && s.Library != null)
+                s.Play(s.Library.T1TelescopeZoom, 1f, 0f, 0f, zoomIn ? 1f : 0.891f);
         }
 
         private void LateUpdate()

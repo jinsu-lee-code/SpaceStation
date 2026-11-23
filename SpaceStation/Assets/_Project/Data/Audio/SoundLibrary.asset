@@ -353,7 +353,7 @@ MonoBehaviour:
     Clips:
     - {fileID: 8300000, guid: 265385975359cca41a1fa5473bcd0f79, type: 3}
     Bus: 2
-    Volume: 0.45
+    Volume: 0.54
     Pitch: {x: 1, y: 1}
     Cooldown: 0.05
     MaxVoices: 3
@@ -361,7 +361,7 @@ MonoBehaviour:
     Clips:
     - {fileID: 8300000, guid: ef1e52dab52d7d647bf42faf5893338a, type: 3}
     Bus: 2
-    Volume: 0.45
+    Volume: 0.76
     Pitch: {x: 1, y: 1}
     Cooldown: 0.05
     MaxVoices: 3
@@ -369,7 +369,7 @@ MonoBehaviour:
     Clips:
     - {fileID: 8300000, guid: 390bca086dc4c7a4a94d87dbb177ef68, type: 3}
     Bus: 2
-    Volume: 0.45
+    Volume: 0.29
     Pitch: {x: 1, y: 1}
     Cooldown: 0.05
     MaxVoices: 3
@@ -377,7 +377,7 @@ MonoBehaviour:
     Clips:
     - {fileID: 8300000, guid: 305bf8cf0c8374449bed80e6c4559838, type: 3}
     Bus: 2
-    Volume: 0.5
+    Volume: 0.28
     Pitch: {x: 1, y: 1}
     Cooldown: 0.05
     MaxVoices: 3
@@ -385,7 +385,7 @@ MonoBehaviour:
     Clips:
     - {fileID: 8300000, guid: 3d2fcbf08538de7499d23037d1da5bda, type: 3}
     Bus: 2
-    Volume: 0.45
+    Volume: 0.19
     Pitch: {x: 1, y: 1}
     Cooldown: 0.05
     MaxVoices: 3
@@ -393,7 +393,7 @@ MonoBehaviour:
     Clips:
     - {fileID: 8300000, guid: 270e85c3b345c59489a43b49c71c05ba, type: 3}
     Bus: 2
-    Volume: 0.45
+    Volume: 0.62
     Pitch: {x: 1, y: 1}
     Cooldown: 0.05
     MaxVoices: 3
@@ -578,6 +578,14 @@ MonoBehaviour:
     Pitch: {x: 1, y: 1}
     Cooldown: 0.05
     MaxVoices: 2
+  BioFieldBloom:
+    Clips:
+    - {fileID: 8300000, guid: 9df6ac452d615714ab9e6b1b93342b29, type: 3}
+    Bus: 1
+    Volume: 0.25
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0.03
+    MaxVoices: 3
   OdefLeverPull:
     Clips:
     - {fileID: 8300000, guid: 36935b71d9b06544cbb667fa801dfdff, type: 3}
@@ -634,6 +642,14 @@ MonoBehaviour:
     Pitch: {x: 1, y: 1}
     Cooldown: 0.05
     MaxVoices: 3
+  OdefStarIncoming:
+    Clips:
+    - {fileID: 8300000, guid: 48c18aa4a2b19644cb3f5ea443c665c0, type: 3}
+    Bus: 1
+    Volume: 0.32
+    Pitch: {x: 0.95, y: 1.05}
+    Cooldown: 0.2
+    MaxVoices: 2
   RcmdRopeLoop:
     Clips:
     - {fileID: 8300000, guid: 144db7f59ab1d0d43818ce4990ed660a, type: 3}
@@ -645,6 +661,14 @@ MonoBehaviour:
   RcmdBasketCreak:
     Clips:
     - {fileID: 8300000, guid: ac722a81560198348b618e91f1ae1a83, type: 3}
+    Bus: 1
+    Volume: 0.7
+    Pitch: {x: 0.97, y: 1.03}
+    Cooldown: 0.5
+    MaxVoices: 1
+  RcmdBasketCall:
+    Clips:
+    - {fileID: 8300000, guid: c674a1c4bd8b0cd4388ddcf7552343a4, type: 3}
     Bus: 1
     Volume: 0.7
     Pitch: {x: 0.97, y: 1.03}
@@ -759,6 +783,14 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 369ed1d2d82160e40a03e3da770851d3, type: 3}
     Bus: 1
     Volume: 0.45
+    Pitch: {x: 1, y: 1}
+    Cooldown: 1
+    MaxVoices: 1
+  AicoreCrystalFade:
+    Clips:
+    - {fileID: 8300000, guid: 0b873c110820b6a45b81713ced90aae0, type: 3}
+    Bus: 1
+    Volume: 0.38
     Pitch: {x: 1, y: 1}
     Cooldown: 1
     MaxVoices: 1
@@ -1028,17 +1060,20 @@ MonoBehaviour:
     MaxVoices: 1
   FireworkLaunch:
     Clips:
-    - {fileID: 8300000, guid: fd17bbcb133b43545a28c30f224a2fba, type: 3}
+    - {fileID: 8300000, guid: 7ed7558db93808b408b637a3c8cf8b2b, type: 3}
     Bus: 1
-    Volume: 0.35
+    Volume: 0.7
     Pitch: {x: 0.94, y: 1.06}
     Cooldown: 0.1
     MaxVoices: 3
   FireworkBurst:
     Clips:
-    - {fileID: 8300000, guid: d18be094848ee164994503a39a4621be, type: 3}
+    - {fileID: 8300000, guid: e2f5f5b66e426cf4b8ce997eb0f9ebe1, type: 3}
+    - {fileID: 8300000, guid: 07102a39295e23c46b5d3d8d0c02d12d, type: 3}
+    - {fileID: 8300000, guid: bd5d2b774089c834e93d859cfcb858f2, type: 3}
+    - {fileID: 8300000, guid: f535e4db7cc4f444fb8b206e1c70b67f, type: 3}
     Bus: 1
-    Volume: 0.65
+    Volume: 0.55
     Pitch: {x: 0.9, y: 1.1}
     Cooldown: 0.1
     MaxVoices: 3
@@ -1138,6 +1173,54 @@ MonoBehaviour:
     Pitch: {x: 0.95, y: 1.05}
     Cooldown: 0.2
     MaxVoices: 2
+  T1TelescopeIn:
+    Clips:
+    - {fileID: 8300000, guid: b86cd342b0f6e004298bd8346c60b3a8, type: 3}
+    Bus: 1
+    Volume: 0.28
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0.3
+    MaxVoices: 1
+  T1TelescopeOut:
+    Clips:
+    - {fileID: 8300000, guid: d3659295f2212df4ab20ddae2082eba4, type: 3}
+    Bus: 1
+    Volume: 0.35
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0.3
+    MaxVoices: 1
+  T1TelescopeZoom:
+    Clips:
+    - {fileID: 8300000, guid: a9f65266f6659a642a05384f5294403c, type: 3}
+    Bus: 1
+    Volume: 0.28
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0.06
+    MaxVoices: 2
+  T1TurretServoLoop:
+    Clips:
+    - {fileID: 8300000, guid: 54ea8d5117fa6b4449fe9ef1459e644a, type: 3}
+    Bus: 1
+    Volume: 0.55
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0
+    MaxVoices: 1
+  T1WeldLoop:
+    Clips:
+    - {fileID: 8300000, guid: 3aaa9af27a0b445428aa5d6ccc302075, type: 3}
+    Bus: 1
+    Volume: 0.65
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0
+    MaxVoices: 1
+  ShipyardGantryLoop:
+    Clips:
+    - {fileID: 8300000, guid: 140c5a7318372bc4997f737166138a3a, type: 3}
+    Bus: 1
+    Volume: 0.55
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0
+    MaxVoices: 1
   MusicDay:
     Clips:
     - {fileID: 8300000, guid: f6e4ec687cd59da4686852476af177a9, type: 3}

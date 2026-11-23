@@ -1,3 +1,4 @@
+using SpaceStation.Audio;
 using SpaceStation.Simulation;
 using UnityEngine;
 
@@ -33,6 +34,8 @@ namespace SpaceStation.Interior
         private bool _hasDir;
         private float _dirYaw;
         private bool _ready;
+        private ObjectLoop _servo;
+        private bool _servoTried;
 
         public void Configure(Transform turret, Transform[] breeches, float recoil)
         {
@@ -80,9 +83,15 @@ namespace SpaceStation.Interior
 
         private void Update()
         {
-            if (!_ready || !Active)
+            if (!_ready)
+                return;
+            if (!Active)
+            {
+                UpdateServo(0f, false);
                 return;   // 모듈이 멈추면 그 자리에 멈춤
+            }
             float dt = Mathf.Min(Time.unscaledDeltaTime, 0.1f);
+            float yawBefore = _yaw;
             float now = Time.unscaledTime;
             bool alert = _phase != MeteorShowerSystem.ShowerPhase.Idle;
             if (alert)
@@ -104,6 +113,27 @@ namespace SpaceStation.Interior
                 _nextShot = now + Random.Range(1.2f, 2.2f);
             }
             Apply(now);
+            UpdateServo(dt > 0f ? Mathf.Abs(Mathf.DeltaAngle(yawBefore, _yaw)) / dt : 0f, alert);
+        }
+
+        /// <summary>
+        /// 서보 "위잉" (포탑에 붙은 3D 루프): 도는 빠르기 (도/초)만큼 크기 · 높이 — 평소 경계 빠르기 = 미4 · 경보 때 가장 빠르면 솔4 (둘 다 조 안),
+        /// 가까워져 느려지면 같이 낮아지며 잦아듦. 멈춘 모듈 · 다른 방에 있을 때 = 끔.
+        /// </summary>
+        private void UpdateServo(float speed, bool alert)
+        {
+            if (_servo == null)
+            {
+                if (_servoTried || AudioService.Instance == null || _turret == null)
+                    return;
+                _servoTried = true;
+                _servo = AudioService.AttachLoop(l => l.T1TurretServoLoop, _turret, 2f, 14f);
+                if (_servo == null)
+                    return;
+                _servo.FadeSpeed = 4f;
+            }
+            _servo.Level = speed < 1.5f || !PlayerInRoom ? 0f : Mathf.Pow(Mathf.Clamp01((speed - 1.5f) / 12.5f), 0.7f) * (alert ? 1f : 0.75f);
+            _servo.Pitch = Mathf.Clamp(0.84f * Mathf.Pow(Mathf.Max(speed, 1f) / PatrolSpeed, 0.149f), 0.6f, 1f);
         }
 
         private void Apply(float now)

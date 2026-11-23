@@ -374,11 +374,19 @@ namespace SpaceStation.Interior
                 _voice.clip = DeepSpaceClip();
             }
             _voice.volume = 0.55f * AudioVolumes.Effects;
-            _voice.Play();
+            // 똑딱이 음악 박 격자 (반 박)에 떨어지게 다음 박에 시작 (사운드 개편 5-2 넷째 묶음 — 0.36초 간격은 음악 박 0.667초와 어긋났음)
+            var svc = AudioService.Instance;
+            if (svc != null && svc.TryNextMusicBeat(MusicBeat, out double at))
+                _voice.PlayScheduled(at);
+            else
+                _voice.Play();
         }
 
+        private const double MusicBeat = 60.0 / 90.0;   // 내부 음악 90 BPM 한 박
+        private const float TickGap = (float)(MusicBeat / 2.0);   // 똑딱 = 반 박 (0.333초)
+
         /// <summary>
-        /// 깊은 우주 신호 (9초): 낮은 울림 (55 · 82 Hz, 천천히 일렁임) + 맥동 별 박자 (0.36초마다 짧은 높은 똑딱 — 점점 또렷) + 옅은 잡음 쉬익 (처음엔 크고 점점 걷힘) — 끝 2초는 스러짐.
+        /// 깊은 우주 신호 (9초): 낮은 울림 (55 · 82 Hz, 천천히 일렁임) + 맥동 별 박자 (반 박 0.333초마다 짧은 높은 똑딱 E6 — 점점 또렷) + 옅은 잡음 쉬익 (처음엔 크고 점점 걷힘) — 끝 2초는 스러짐.
         /// </summary>
         public static AudioClip DeepSpaceClip()
         {
@@ -393,7 +401,7 @@ namespace SpaceStation.Interior
                 float t = i / (float)rate;
                 float env = Mathf.Clamp01(t / 1.2f) * Mathf.Clamp01((length - t) / 2f);
                 float drone = (0.55f * Mathf.Sin(2f * Mathf.PI * 55f * t) + 0.3f * Mathf.Sin(2f * Mathf.PI * 82.4f * t + 0.6f)) * (0.75f + 0.25f * Mathf.Sin(2f * Mathf.PI * 0.35f * t));
-                float beat = (t % 0.36f);
+                float beat = (t % TickGap);
                 float clear = Mathf.Clamp01((t - 1f) / 4f);
                 float tick = beat < 0.05f ? Mathf.Sin(2f * Mathf.PI * 1320f * t) * Mathf.Exp(-beat * 70f) * (0.15f + 0.45f * clear) : 0f;
                 noise = noise * 0.86f + ((float)rng.NextDouble() * 2f - 1f) * 0.14f;

@@ -1,4 +1,5 @@
 using System;
+using SpaceStation.Audio;
 using UnityEngine;
 
 namespace SpaceStation.Interior
@@ -36,6 +37,9 @@ namespace SpaceStation.Interior
         private Phase _phase;
         private int _station = -1, _torch = -1, _welds;
         private bool _ready;
+        private ObjectLoop _motor;
+        private ObjectLoop[] _arcs;
+        private bool _soundTried;
 
         public void Configure(Transform gantry, float restZ, float[] stations, Transform[] torches, Vector3[] tips, Vector3[] normals, Material spark)
         {
@@ -84,7 +88,9 @@ namespace SpaceStation.Interior
         {
             if (!_ready || _gantry == null)
                 return;
-            if (!Active || _spark == null)
+            bool running = Active && _spark != null;
+            UpdateSound(running);
+            if (!running)
                 return;   // 모듈이 멈추면 그 자리에 멈춤
             float dt = Mathf.Min(Time.unscaledDeltaTime, 0.1f);
             switch (_phase)
@@ -176,6 +182,45 @@ namespace SpaceStation.Interior
             var torch = _torches[_torch];
             var at = torch.TransformPoint(_tips[_torch]);
             InteriorFx.Spark(torch, at, torch.TransformDirection(_normals[_torch]) + Vector3.up * 0.3f, _spark, 4, 8, 0.8f);   // 현장 수리 용접과 같은 세기
+        }
+
+        /// <summary>
+        /// 소리 (플레이어가 이 방에 있을 때만): 갠트리 모터 "위잉" (갠트리에 붙은 3D 루프 — 레일을 따라 옮겨 갈 때 빠르기만큼, 토치를 대고 뗄 때 작고 높게) ·
+        /// 용접 "쉬이 · 치직" (토치 끝마다 붙은 3D 루프 — 지금 용접하는 토치만).
+        /// </summary>
+        private void UpdateSound(bool running)
+        {
+            if (_motor == null && _arcs == null)
+            {
+                if (_soundTried || AudioService.Instance == null)
+                    return;
+                _soundTried = true;
+                _motor = AudioService.AttachLoop(l => l.ShipyardGantryLoop, _gantry, 2f, 16f);
+                _arcs = new ObjectLoop[_torches.Length];
+                for (int i = 0; i < _torches.Length; i++)
+                {
+                    if (_torches[i] == null)
+                        continue;
+                    _arcs[i] = AudioService.AttachLoop(l => l.T1WeldLoop, _torches[i], 1.5f, 12f);
+                    if (_arcs[i] == null)
+                        continue;
+                    if (i < _tips.Length)
+                        _arcs[i].transform.localPosition = _tips[i];
+                    _arcs[i].FadeSpeed = 8f;   // 불꽃과 함께 바로 켜지고 꺼짐
+                }
+            }
+            bool here = running && PlayerInRoom;
+            if (_motor != null)
+            {
+                float travel = _phase == Phase.Travel ? Mathf.Clamp01(6f * _t * (1f - _t) / 1.5f * 1.4f) : 0f;   // Smooth의 빠르기 (가운데가 가장 빠름)
+                bool arm = _phase == Phase.Reach || _phase == Phase.Leave;
+                _motor.Level = !here ? 0f : _phase == Phase.Travel ? travel : arm ? 0.4f : 0f;
+                _motor.Pitch = arm ? 1.15f : 0.85f + 0.15f * travel;
+            }
+            if (_arcs != null)
+                for (int i = 0; i < _arcs.Length; i++)
+                    if (_arcs[i] != null)
+                        _arcs[i].Level = here && _phase == Phase.Weld && i == _torch ? 1f : 0f;
         }
 
         private void Apply()

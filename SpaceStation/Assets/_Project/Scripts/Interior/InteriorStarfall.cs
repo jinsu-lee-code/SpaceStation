@@ -64,6 +64,7 @@ namespace SpaceStation.Interior
         private Vector3 _standPoint;
         private bool _recorded;
         private int _streak;   // 연달아 맞힌 별똥별 (점수 "띵" 음높이) — 바다에 떨어뜨림 · 새 판 = 0
+        private int _tickLeft = -1;   // 남은 시간 째깍 — 마지막으로 본 남은 초
         private Canvas _canvas;
         private TextMeshProUGUI _hint;
         private RectTransform _cross;
@@ -134,6 +135,11 @@ namespace SpaceStation.Interior
                 Controls();
             if (_game.Step(dt))
                 Launch();
+            // 남은 시간 째깍: 5초부터 1초마다 (보이는 남은 초가 바뀌는 순간)
+            int left = _game.Current == StarfallGame.Phase.Play ? Mathf.CeilToInt(_game.Remaining) : -1;
+            if (left != _tickLeft && left >= 1 && left <= 5)
+                AudioService.TryPlay(l => l.GameTick);
+            _tickLeft = left;
             if (_game.Current == StarfallGame.Phase.Done && !_recorded)
                 Record();
             StepStars(dt);
@@ -309,7 +315,7 @@ namespace SpaceStation.Interior
                 if ((from - to).magnitude < 3f || !OrbitalDefense.StarfallPathVisible(from, to))
                     continue;   // 짧거나 출발 · 길 앞쪽이 앉은 처음 화면 밖이면 다시 고름
                 _stars.Add(new ShootingStar(transform, _streakMaterial, transform.TransformPoint(from), transform.TransformPoint(to), _game.Speed));
-                AudioService.TryPlay(l => l.MeteorIncoming);
+                AudioService.TryPlay(l => l.OdefStarIncoming);   // 부드러운 "휘이잉" 다가옴
                 return;
             }
         }

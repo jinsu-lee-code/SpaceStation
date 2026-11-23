@@ -195,6 +195,8 @@ namespace SpaceStation.Interior
             if (_showTime >= 0f)
             {
                 _showTime += dt;
+                if (_showTime >= ShowSeconds - FadeTime && _showTime - dt < ShowSeconds - FadeTime)
+                    AudioService.TryPlay(l => l.AicoreCrystalFade);   // 빛이 잦아드는 동안 유리 화음이 먹먹해지며 잦아듦
                 _sparkTimer -= dt;
                 if (_sparkTimer <= 0f && _showTime < ShowSeconds - FadeTime)
                 {
@@ -209,7 +211,10 @@ namespace SpaceStation.Interior
                 _closeTimer += dt;
                 for (int k = 0; k < _wantOpen.Length; k++)
                     if (_wantOpen[k] && _closeTimer >= k * CloseStagger)
+                    {
                         _wantOpen[k] = false;
+                        AudioService.TryPlayAt(l => l.AicoreBookOpen, transform.TransformPoint(AICore.BookSpine(k)), 0.6f);   // 덮일 때도 같은 책장 소리를 작게
+                    }
                 if (OpenBooks == 0)
                     _closeTimer = -1f;
             }
@@ -277,8 +282,7 @@ namespace SpaceStation.Interior
         private void EndShow()
         {
             _showTime = -1f;
-            _closeTimer = 0f;
-            AudioService.TryPlay(l => l.UiClose);
+            _closeTimer = 0f;   // 쇼 끝 소리 = 3.5초 앞 빛이 잦아들기 시작할 때 (AicoreCrystalFade) · 책 덮임 = 책마다
         }
 
         /// <summary>수정 뇌 속 빛 (책 펼친 수만큼 은은히 → 쇼 때 환히 맥박) · 크기 맥박.</summary>

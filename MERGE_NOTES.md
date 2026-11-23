@@ -3510,3 +3510,80 @@
 **main에서 따로 할 것**
 
 - 없음
+
+## M-336. 주민 추방 공통 고리 (2026-11-24, `main` — narrative 26f2af26 '공통 대기'에서 옮김, REVIEW_1115 5번)
+
+**main에 넣은 것**
+
+- `Simulation/ExileSystem.cs` (새, 세이브 키 `exile`): 미리보기 · 추방 · 떠난 주민 기록 (최대 300) · 귀환 고르기, 이벤트 `Exiled` · `Returned`, 미리보기 문구 고리 `PreviewSuffix`
+- 규칙 `StationRule.Exile = 1024` (규칙을 정하는 쪽이 없으면 늘 열림) · `PolicyData` enum 끝에 7개 (Count 20) · `PolicyConfig` 추방 값 4개 · 정책 4종 (추방령 · 사면 · 이주 지원 · 귀환 허가) · `PolicyConfig.asset` 정책 12종
+- `ResidentRoster`: `ProblemOf` (집 없음 · 불평꾼 · 힘든 집) · `TraitWeightScale` · `ArrivalTemplate` · `MarkLeaving` · `PopulationSimulation.LossIntervalMultiplier` · `ImmigrationSystem` 규모 × 정책
+- 명단 [내보내기] → 확인 (ESC 취소) · 이름 옆 '문제' 표시, 명단 칸 너비 (특성 176 · 집 180 · 보정 48)
+- 메뉴 SpaceStation/Grade Rules/Setup Exile Policies · 시험 `ExileTests` 12
+
+### `tycoon` 합칠 때
+- [ ] **해금 선택 규칙 (`IStationRules`)이 `Exile`을 모르면 닫힘** → 엔드리스는 늘 열리게 `Allows(StationRule.Exile)` = true (REVIEW: 개별 추방은 늘 가능)
+- [ ] 정책 창에 정책이 12종으로 늘어남 (`PolicyConfig` 공용) — 엔드리스 정책 칸 · 등급별 목록에 넣을지 정함
+- [ ] `PolicyConfig.asset`에 `_expansionSlots: 1`이 새로 적힘 (기본값이라 동작 같음)
+- [ ] 추방 대가에 판 값을 더할 때 `ExileSystem.Exiled` · `PreviewSuffix`에 붙임 (서사판 = 긴장도 · 코어 축)
+- [ ] EditMode 시험 · 봇 기준선 확인 (봇은 추방하지 않음 — 결과 같아야 함)
+
+### `narrative` 합칠 때
+- [ ] 같은 내용이 이미 있음 (26f2af26) — 충돌 없음 예상
+
+## M-337. 탐사 틀 공통 고리 (2026-11-24, `main` — narrative da1793a3 '공통 대기' 기준 파일째, CONNECT_1121 M8)
+
+**main에 넣은 것**
+
+- main에 탐사 파일이 없었음 → 스크립트 다섯 + 시험 하나를 .meta째 (GUID 유지): `Data/ExplorationConfig` · `Simulation/ExplorationSystem` · `UI/ExplorationPanel` · `UI/ExplorationView` · `UI/OreVeinMesh` · `Tests/EditMode/ExplorationFrameTests`
+- 신호를 정하는 쪽 `IExploreSignals` (묶음 번호 · 종류 · 거리 · 방향 · 이름) · 닿음 판정 `ReachRule` · 매장량 칸 `ExploreSite.Reserve` · 난파선 로그 `NextWreckLog()` — 장 틀 (Chapters · RecordArchive · CorePersonality) 참조 없음
+- 서사판 난파선 모델 · 재질 · `ExplorationConfig.asset` · `ExplorationTests`는 옮기지 않음 (서사판 것)
+
+### `tycoon` 합칠 때
+- [ ] **붙이는 곳이 없음** — 광맥에 쓰려면 `AddSystem(new ExplorationSystem(...))` + 신호를 정하는 쪽 (엔드리스 = 광맥) + `ExplorationConfig` 에셋을 따로
+- [ ] `ExplorationPanel` · `ExplorationView`는 게임 씬에 놓아야 보임 (서사판은 Main.unity에 있음)
+- [ ] 센서 = `ExplorationConfig.Sensor` 모듈 하나 (CONNECT R11 '감지 태그 모듈 전체'는 엔드리스가 고리를 넓힐 것), 닿음 = `ReachRule` (채굴 태그 모듈이 맞닿음)
+
+### `narrative` 합칠 때
+- [ ] 같은 내용이 이미 있음 (da1793a3) — 충돌 없음 예상
+
+## M-338. 외부 위협 1차 X1a — 단계형 습격 (2026-11-24, `main` — narrative 0952ee05에서 옮김, REVIEW_1115 6번 · CONNECT X1 · X4)
+
+**main에 넣은 것**
+
+- `Data/RaidFleetConfig.cs` · `Simulation/RaidFleetSystem.cs` (새, 세이브 포함): 정찰 → 함대 → 기함, 함선 체력, 포탑 격추 반격, 기함 꺾음 = 그 세력 습격 1200초 멈춤, 420초 안에 못 꺾으면 마지막 큰 포격, 규모 = 바깥 모듈 수 (`SizeScale`)
+- 규칙 `StationRule.FleetRaid = 2048` · `ContactConfig._fleet` · `ContactSystem.RaidOverride` · `BeginBoardingRaid` · `MeteorShowerSystem.EndRaid` · `BeginRaid(…, toward)`
+- 시험 `RaidFleetTests` 7 · 꺼져 있을 때 난수 순서 그대로
+
+### `tycoon` 합칠 때
+- [ ] `ContactConfig.asset`에 `_fleet`을 넣어야 시스템이 붙음 (아직 아무 판도 안 넣음)
+- [ ] 해금 선택 규칙이 `FleetRaid`를 모르면 닫힘 = 지금 습격 그대로 — 엔드리스가 지구급에서 열지 정함
+- [ ] `BeginRaid`에 인자 하나가 끝에 더해짐 (기본값이면 예전과 같은 난수)
+
+### `narrative` 합칠 때
+- [ ] 같은 내용이 이미 있음 (0952ee05) — 충돌 없음 예상
+
+## M-339. 외부 위협 1차 X1b — 비장의 카드 (2026-11-24, `main` — narrative 1eb15a99에서 옮김)
+
+**main에 넣은 것**
+
+- `RaidFleetSystem.TrumpCard` (방주 방패 · 궤도 포격) · `TrumpChoicePending` · `ChooseTrump` · `UseArkShield` · `UseOrbitalStrike(발사대)` · `CanUseTrump` · `CanLaunchFrom`
+- `ContactSystem.BeginBoardingAt` · `BoardingTag` · `BoardingFinished` (특별한 침입 = 못 막아도 파손 · 금속 손실 없음, 세이브에 태그 · 코어 -2 복원) · `MeteorShowerSystem.RaidBlocker` · `RaidFocus` · `RaidFocusShare`
+- 시험 5개 더 (`RaidFleetTests` 12)
+
+### `tycoon` 합칠 때
+- [ ] 고르기 창 · [비장의 카드] 버튼 · 발사대 고르기는 아직 없음 (X1c 화면 작업) — 함대 습격을 열면 `TrumpChoicePending`이 참으로 남음 (고르지 않아도 습격은 그대로)
+
+### `narrative` 합칠 때
+- [ ] 같은 내용이 이미 있음 (1eb15a99) — 충돌 없음 예상
+
+## M-340. 외부 위협 1차 X1c 습격 함대 모델 시안 (2026-11-24, `main` — narrative e9d78198에서 옮김)
+
+**main에 넣은 것**
+
+- `BlenderWork/RaidFleet/raidfleet_builder.py` · 시트 셋 (`preview/sheet_*.png`): 정찰선 · 호위함 · 기함 × 무법 선단 · 상인 연합 · 학술 함대 (세력마다 같은 틀 + 색 · 장식), 기함 14칸
+- 사용자 승인 전 시안 — FBX · Unity 연결 없음
+
+**main에서 따로 할 것**
+
+- 없음 (승인 뒤 FBX · 화면 연결을 새 M 번호로)

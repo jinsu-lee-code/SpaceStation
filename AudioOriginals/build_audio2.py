@@ -28,7 +28,12 @@ def load(rel):
 
 
 def save(rel, x, target_db=-14.0, peak_db=-1.0):
-    """짧은 구간(50 ms) 최대 RMS를 target_db로 맞추고, 피크는 peak_db를 넘지 않게 (1차와 같은 기준)."""
+    """짧은 구간(50 ms) 최대 RMS를 target_db로 맞추고, 피크는 peak_db를 넘지 않게 (1차와 같은 기준).
+    루프 (`_loop.wav`)는 먼저 고음 상한 검사 (`match_tilt`, 2026-11-23 배경 쉬— 정리 — 넘는 것만 낮춤, 예외는 `TILT`)."""
+    if rel.endswith("_loop.wav") and TILT.get(rel, {}) is not None:
+        x, note = match_tilt(x, **TILT.get(rel, {}))
+    else:
+        note = ""
     w = int(SR * 0.05)
     st = np.sqrt(np.convolve(x ** 2, np.ones(w) / w, mode="valid").max()) if len(x) > w else np.sqrt((x ** 2).mean())
     g = 10 ** (target_db / 20) / max(st, 1e-9)
@@ -43,7 +48,7 @@ def save(rel, x, target_db=-14.0, peak_db=-1.0):
         f.setsampwidth(2)
         f.setframerate(SR)
         f.writeframes((y * 32767).astype("<i2").tobytes())
-    report.append(f"{rel:36s} {len(y) / SR:5.2f}s  peak {20 * np.log10(max(np.abs(y).max(), 1e-9)):6.1f} dB")
+    report.append(f"{rel:36s} {len(y) / SR:5.2f}s  peak {20 * np.log10(max(np.abs(y).max(), 1e-9)):6.1f} dB{note}")
 
 
 # ---------------- 도구 ----------------
@@ -154,6 +159,34 @@ def circular(fn, x, pad=0.5):
     return fn(np.concatenate([x[-n:], x]))[n:]
 
 
+# 2026-11-23 사용자 "배경에 잡음 느낌의 소리가 섞인다 — 깔끔하게 어울리는 게 더 중요" → 내부 음악 4곡은 1 kHz 위로 급히 어두워지는데
+# (몸통 띠 기준 4k −30 · 8k −38 · 16k −38 dB) 물 · 비 · 바탕 루프 29개는 8 kHz까지 거의 평평 (−1 ~ −7) — 어두운 음악 위의 고른 쉬—가 잡음으로 들림.
+# soften (원본 65 % + 로우패스)은 고음을 3 dB 남짓밖에 못 줄였음. 상한 = 몸통 띠 (250 ~ 2k 중 가장 큰 옥타브) 기준 4k −10 · 8k −22 · 16k −34 dB.
+TILT_CEIL = ((4000, -10.0), (8000, -22.0), (16000, -34.0))
+TILT = {
+    "Interior/scape_bio_crickets_loop.wav": None,                                  # 4.8 kHz 풀벌레가 소리 자체
+    "Interior/scape_repair_bed_loop.wav": dict(ceil=TILT_CEIL[1:], start=5600.0),  # 풀벌레 4.8 kHz는 두고 그 위 숲 공기만
+    "Interior/scape_repair_leaves_loop.wav": dict(ceil=((4000, -6.0), (8000, -18.0), (16000, -30.0))),  # 잎 사각임 결은 남김
+    "Ride/dsc_static_loop.wav": dict(ceil=((4000, -6.0), (8000, -16.0), (16000, -28.0))),               # 신호 맞추기 잡음 = 놀이 단서
+    "Event/solar_storm_loop.wav": dict(ceil=((4000, -6.0), (8000, -16.0), (16000, -28.0))),             # 바깥 태양 폭풍 지직 (일부러)
+}
+
+
+def match_tilt(x, ceil=TILT_CEIL, start=2000.0):
+    """고음 옥타브 (4k · 8k · 16k)가 몸통 띠 + 상한을 넘는 만큼만 고정 EQ로 낮춤 — 루프 전체를 한 번에 (원형 FFT라 이음새 그대로).
+    낮추는 양은 start Hz = 0에서 log 주파수로 이어 높을수록 같거나 커지게 (부드러운 로우패스 모양). 넘는 띠가 없으면 그대로 돌려줌."""
+    X = np.fft.rfft(x)
+    f = np.fft.rfftfreq(len(x), 1 / SR)
+    P = np.abs(X) ** 2
+    band = lambda b: 10 * np.log10(P[(f >= b / np.sqrt(2)) & (f < min(b * np.sqrt(2), SR / 2))].sum() + 1e-20)
+    body = max(band(b) for b in (250, 500, 1000, 2000))
+    cut = list(np.maximum.accumulate([0.0] + [max(0.0, band(fc) - (body + c)) for fc, c in ceil]))
+    if max(cut) < 0.5:
+        return x, ""
+    a = np.interp(np.log2(np.maximum(f, 1.0)), np.log2([start] + [fc for fc, _ in ceil]), cut, left=0.0, right=cut[-1])
+    return np.fft.irfft(X * 10 ** (-a / 20), len(x)), f"  고음 상한 ({', '.join(f'{fc // 1000}k -{v:.0f}' for (fc, _), v in zip(ceil, cut[1:]))} dB)"
+
+
 # ================= 내부 문 (SOUND_LIST_NEW 4-1 · D-6) =================
 # 문은 0.25초 만에 열리고 닫힘 (InteriorDoor Speed 4) → 소리는 바로 시작, 1초 안팎. 문 자리에서 3D로 남 (방 울림은 게임이 따로 → 여기선 마른 소리).
 
@@ -201,11 +234,17 @@ save("Interior/airlock_close_02.wav", fade(highpass(tame(trim_lead(x)[: int(1.4 
 # 2026-11-20 사용자 "배경으로 깔리는 치지지지직" → 1차 합성 때 전기 방에 일부러 넣은 "지직"(2 ~ 8 kHz 잡음 터짐 9번/12초) + 3150 Hz 삐,
 # 고열 방의 "탁탁"(1.5 ~ 6 kHz 30번)이 원인. 1차 결과물을 Interior/legacy/에 보관해 두고 거기서 고음만 걸러 다시 만듦 (몇 번 돌려도 같은 결과).
 L = "Interior/legacy/"
+# → 2026-11-24 방 환경음 6 (amb_room_*)은 실제 녹음으로 다시 만듦 (맨 아래 "바탕 · 방 환경음 실제 녹음" 구역) — 아래 막은 줄은 기록 (1차 보관본 legacy/는 그대로 둠)
 lp2 = lambda fc: (lambda y: onepole_lp(onepole_lp(y, fc), fc))
-save("Interior/amb_room_electric_loop.wav", circular(lp2(1200), load(L + "amb_room_electric_loop.wav")), -24)
-save("Interior/amb_room_heat_loop.wav", circular(lp2(1200), load(L + "amb_room_heat_loop.wav")), -22)
+# save("Interior/amb_room_electric_loop.wav", circular(lp2(1200), load(L + "amb_room_electric_loop.wav")), -24)
+# save("Interior/amb_room_heat_loop.wav", circular(lp2(1200), load(L + "amb_room_heat_loop.wav")), -22)
 # 기계 방: 1.75초마다 같은 "칙·틱"이 또렷하게 반복 → 고음을 눌러 멀리서 나는 소리로
-save("Interior/amb_room_machine_loop.wav", circular(lp2(2000), load(L + "amb_room_machine_loop.wav")), -24)
+# save("Interior/amb_room_machine_loop.wav", circular(lp2(2000), load(L + "amb_room_machine_loop.wav")), -24)
+# 2026-11-23 배경 쉬— 정리: 생활 · 물 · 복도 방도 1차 그대로는 8 kHz −7 ~ −18 (1극 로우패스뿐) → 보관본에서 다시 만들며 save의 고음 상한을 거침.
+# 바깥 태양 폭풍 지직도 8 · 16 kHz가 몸통보다 +4 dB → 지직 결은 남기고 덜 낮춤 (TILT).
+# for name, db in (("amb_room_life_loop", -26), ("amb_room_water_loop", -24), ("amb_room_hall_loop", -26)):
+#     save(f"Interior/{name}.wav", load(L + f"{name}.wav"), db)
+save("Event/solar_storm_loop.wav", load("Event/legacy/solar_storm_loop.wav"), -14)
 
 
 # ================= 발소리 (SOUND_LIST_NEW 4-1 · D-2) =================
@@ -272,8 +311,9 @@ def pitch(x, semis):
 
 # 바탕 — 정원 바람 · 잎 (2D, 방 전체). 후보 5 중 2 (가장 고름 · 지직 3.5 · 울림 1) + 5 (잎 사각임 · 울림 0)를 2초씩 겹쳐 19초 —
 # 10초 하나를 돌리면 반복이 들림. 3 = 밝고 (716 Hz) 지직 11.5 · 6.9초에 사건, 4 = 울림 5, 1 = 5.3초에 작은 사건.
-bed = chain_loop([sl(load(A + "bed_a.wav"), 0.3, 9.9), sl(load(A + "bed_b.wav"), 0.3, 9.9)], 2.0)
-save("Interior/scape_aicore_bed_loop.wav", circular(lambda y: highpass(y, 40), bed), -24)
+# → 2026-11-24 실제 녹음으로 바꿈 (맨 아래 "바탕 · 방 환경음 실제 녹음" 구역) — 아래 줄은 기록 (VARCO 원본은 그대로 둠)
+# bed = chain_loop([sl(load(A + "bed_a.wav"), 0.3, 9.9), sl(load(A + "bed_b.wav"), 0.3, 9.9)], 2.0)
+# save("Interior/scape_aicore_bed_loop.wav", circular(lambda y: highpass(y, 40), bed), -24)
 
 # 수정 뇌 공명 (뇌 자리 3D 루프) — VARCO 첫 5개 = 2 ~ 8초 한 번 부풀었다 사라짐 (루프 X), "긴 · 고른"으로 다시 5개 = 고르지만
 # 낮은 웅웅뿐이거나 맑은 음이 음악과 안 맞음 (2 = 600 Hz D+37센트 · 3800 Hz 삐). → 몸통 = 다시 만든 4 (울림 줄 6 — 가장 적음),
@@ -343,8 +383,9 @@ def period_of(x, lo=0.5, hi=1.6):
 
 # 바탕 — 숲 잎 사각임 · 바람이 일었다 잦아듦 (2D). 후보 5 중 3 (잎 사각 · 가끔 바람) + 4 (낮고 고른 공기)를 2초씩 겹쳐 15초.
 # 1 · 2 = 2초짜리, 5 = 6 ~ 8 kHz 쉿 줄이 깔림.
-bed = chain_loop([sl(load(B + "bed_a.wav"), 0.3, 9.9), sl(load(B + "bed_b.wav"), 0.3, 9.9)], 2.0)
-save("Interior/scape_bio_bed_loop.wav", circular(lambda y: soften(highpass(y, 40), 6000, 0.4), bed), -24)
+# → 2026-11-24 실제 녹음으로 바꿈 (맨 아래 "바탕 · 방 환경음 실제 녹음" 구역) — 아래 줄은 기록 (VARCO 원본은 그대로 둠)
+# bed = chain_loop([sl(load(B + "bed_a.wav"), 0.3, 9.9), sl(load(B + "bed_b.wav"), 0.3, 9.9)], 2.0)
+# save("Interior/scape_bio_bed_loop.wav", circular(lambda y: soften(highpass(y, 40), 6000, 0.4), bed), -24)
 
 # 가운데 폭포 기둥 (하늘 호수 → 호수, 폭 1.2 m · 10 m, 3D) — 후보 5 중 4: 가장 매끈한 쏟아짐 (지직 4.8 · 날카로움 14.3).
 # 1 = 밝음 (4.7 kHz) · 날카로움 16.9, 2 · 5 = 비슷하지만 조금 더 거칢. 아늑하게 5 kHz 위 반쯤.
@@ -406,8 +447,9 @@ OC = "Interior/scape_city/"
 
 # 바탕 — 지붕 없는 섬 정원의 바람 (2D). 후보 5 중 3 (가장 매끈 — 날카로움 8.6 · 지직 3.7) + 2 (탁 트인 바람결)를 2초씩 겹쳐.
 # 4 · 5 = 날카로움 21 ~ 24 (거칢), 1 = 날카로움 15.6.
-bed = chain_loop([sl(load(OC + "bed_a.wav"), 0.3, 7.8), sl(load(OC + "bed_b.wav"), 0.3, 7.8)], 2.0)
-save("Interior/scape_city_bed_loop.wav", circular(lambda y: highpass(y, 40), bed), -24)
+# → 2026-11-24 실제 녹음으로 바꿈 (맨 아래 "바탕 · 방 환경음 실제 녹음" 구역) — 아래 줄은 기록 (VARCO 원본은 그대로 둠)
+# bed = chain_loop([sl(load(OC + "bed_a.wav"), 0.3, 7.8), sl(load(OC + "bed_b.wav"), 0.3, 7.8)], 2.0)
+# save("Interior/scape_city_bed_loop.wav", circular(lambda y: highpass(y, 40), bed), -24)
 
 # 언덕 계단 폭포 셋 (단마다 2.4 ~ 2.9 m → 돌 웅덩이, 3D — 높이별로 재생 높이 1.05 · 1.0 · 0.95) — 후보 5 중 1:
 # 가장 어둡고 (3.4 kHz) 가장 매끈 (날카로움 10.5 · 울림 0). 2 ~ 5 = 4 ~ 6 kHz로 밝고 날카로움 14 ~ 14.5.
@@ -424,7 +466,8 @@ save("Interior/scape_city_murmur_loop.wav", circular(lambda y: soften(highpass(y
 save("Interior/scape_city_rooftop_loop.wav", circular(lambda y: highpass(y, 30), loop_exact(sl(load(OC + "rooftop.wav"), 0.3, 10.24), 9.0)), -24)
 
 # 밤 창 불빛 웅웅 (밤에만, 언덕 마을 3D) — 후보 5 중 4: 가장 낮고 둥긂 (165 Hz · 날카로움 7.7 · 울림 0). 다섯 모두 "윙" 험 음 높이 봉우리 없음.
-save("Interior/scape_city_night_loop.wav", circular(lambda y: highpass(y, 30), loop_exact(sl(load(OC + "night_glow.wav"), 0.3, 10.24), 9.0)), -26)
+# → 2026-11-24 실제 녹음으로 바꿈 (맨 아래 "바탕 · 방 환경음 실제 녹음" 구역) — 아래 줄은 기록 (VARCO 원본은 그대로 둠)
+# save("Interior/scape_city_night_loop.wav", circular(lambda y: highpass(y, 30), loop_exact(sl(load(OC + "night_glow.wav"), 0.3, 10.24), 9.0)), -26)
 
 # 종 (가끔 섬 위로 + 대표 선율) — 후보 5 중 5: 한 번만 맑게, G6 0센트. VARCO "마을 종"은 손종 높이 (3 kHz 대) →
 # 한 옥타브 내려 G5 (MIDI 79) 큰 종탑 종의 따뜻하고 긴 울림으로. 시작 1.6 ms → 8 ms로 둥글게.
@@ -446,8 +489,9 @@ OD = "Interior/scape_defense/"
 
 # 바탕 — 잔잔한 만의 바닷바람 + 먼 잔물결 (2D). 후보 5 중 1 (9.6초 내내 고름) + 4 (조금 더 어두움)를 2초씩 겹쳐 14초.
 # 2 = 위쪽 가는 울림 줄 (울림 24), 3 = 7.7초에 끊김, 5 = 낮은 웅 줄.
-bed = chain_loop([sl(load(OD + "bed_a.wav"), 0.3, 9.3), sl(load(OD + "bed_b.wav"), 0.3, 6.8)], 2.0)
-save("Interior/scape_defense_bed_loop.wav", circular(lambda y: highpass(y, 40), bed), -24)
+# → 2026-11-24 실제 녹음으로 바꿈 (맨 아래 "바탕 · 방 환경음 실제 녹음" 구역) — 아래 줄은 기록 (VARCO 원본은 그대로 둠)
+# bed = chain_loop([sl(load(OD + "bed_a.wav"), 0.3, 9.3), sl(load(OD + "bed_b.wav"), 0.3, 6.8)], 2.0)
+# save("Interior/scape_defense_bed_loop.wav", circular(lambda y: highpass(y, 40), bed), -24)
 
 # 앞 해변 물가 잔파도 (물가 넷, 3D) — 후보 5 중 1: 모래로 밀려왔다 자갈 사이로 빠지는 파도가 5.3초 간격으로 둘 →
 # 두 파도를 파도 시작에서 이어 8.1초 고리 (첫 파도 5.25초 · 둘째 2.85초 — 고르지 않은 게 자연스러움).
@@ -548,13 +592,14 @@ OP = "Interior/scape_port/"
 
 # 바탕 — 잔잔한 석호 항구의 찰랑임 (2D). 후보 5 중 4 (가장 잔잔 — 날카로움 8.9 · 바닥 −37.8 dB) + 1 (조금 더 또렷한 찰랑)을 2초씩 겹쳐
 # + 궤도 방어망 바닷바람을 옅게 (25 %) — 다섯 모두 바람결 없이 물소리뿐. 2 = 울림 4.7 (웅), 3 = 큰 찰랑이 띄엄띄엄, 5 = 꼬리가 큼.
-lap = chain_loop([sl(load(OP + "bed_a.wav"), 0.3, 9.9), sl(load(OP + "bed_b.wav"), 0.3, 9.9)], 2.0)
-wind = load(OD + "bed_a.wav")
-wind = np.tile(wind, int(np.ceil(len(lap) / len(wind))) + 1)[: len(lap)]
-lap = circular(lambda y: soften(highpass(y, 50), 5000, 0.35), lap)
-wind = circular(lambda y: highpass(y, 40), wind)
-l_rms, w_rms = np.sqrt((lap ** 2).mean()), np.sqrt((wind ** 2).mean())
-save("Interior/scape_port_bed_loop.wav", 0.75 * lap / l_rms + 0.25 * wind / w_rms, -24)
+# → 2026-11-24 실제 녹음으로 바꿈 (맨 아래 "바탕 · 방 환경음 실제 녹음" 구역) — 아래 줄은 기록 (VARCO 원본은 그대로 둠)
+# lap = chain_loop([sl(load(OP + "bed_a.wav"), 0.3, 9.9), sl(load(OP + "bed_b.wav"), 0.3, 9.9)], 2.0)
+# wind = load(OD + "bed_a.wav")
+# wind = np.tile(wind, int(np.ceil(len(lap) / len(wind))) + 1)[: len(lap)]
+# lap = circular(lambda y: soften(highpass(y, 50), 5000, 0.35), lap)
+# wind = circular(lambda y: highpass(y, 40), wind)
+# l_rms, w_rms = np.sqrt((lap ** 2).mean()), np.sqrt((wind ** 2).mean())
+# save("Interior/scape_port_bed_loop.wav", 0.75 * lap / l_rms + 0.25 * wind / w_rms, -24)
 
 # 인어 꼬리 분수 (마당 가운데, 3D) — 후보 5 중 5: 5.2초 내내 보글보글 고르게 쏟아짐. 2 = 9.5 kHz 쉿, 1 · 3 · 4 = 중간에 끊김.
 save("Interior/scape_port_fountain_loop.wav", circular(lambda y: soften(highpass(y, 80), 5000, 0.45), loop_exact(sl(load(OP + "fountain.wav"), 0.1, 5.15), 4.2)), -24)
@@ -685,9 +730,10 @@ SG = "Interior/scape_stellar/"
 
 # 바탕 — 햇살 꽃밭 바람 (2D). 후보 5 중 5 (가장 어둡고 고름 · 지직 5.5) + 3 (키 큰 풀이 흔들리는 밝은 결 · 지직 6.8)을 2초씩 겹쳐 고리.
 # 2 · 4 = 6.1 · 3.7초로 짧음, 1 = 지직 9.6.
-bed = chain_loop([sl(load(SG + "bed_a.wav"), 0.3, 9.9), sl(load(SG + "bed_b.wav"), 0.3, 9.6)], 2.0)
-save("Interior/scape_stellar_bed_loop.wav", circular(lambda y: soften(highpass(y, 60), 6000, 0.4), bed), -24)
-report.append(f"  꽃밭 바탕 고리 {len(bed) / SR:.2f}초")
+# → 2026-11-24 실제 녹음으로 바꿈 (맨 아래 "바탕 · 방 환경음 실제 녹음" 구역) — 아래 줄은 기록 (VARCO 원본은 그대로 둠)
+# bed = chain_loop([sl(load(SG + "bed_a.wav"), 0.3, 9.9), sl(load(SG + "bed_b.wav"), 0.3, 9.6)], 2.0)
+# save("Interior/scape_stellar_bed_loop.wav", circular(lambda y: soften(highpass(y, 60), 6000, 0.4), bed), -24)
+# report.append(f"  꽃밭 바탕 고리 {len(bed) / SR:.2f}초")
 
 # 꿀벌 한 마리 지나감 (낮, 고리 길 · 꽃나무 숲 · 라벤더 둘레 가끔 3D) — "제자리에서 맴도는 벌" 루프를 불렀는데 다섯 모두 1.8 ~ 3.9초 "다가왔다 멀어지는" 소리 →
 # 그대로 지나가는 벌로. 1 (가장 매끈 · B♭2 +22센트 — 조 안, 그대로) + 5 (F3 −45센트 → +0.45반음 정확한 F3, 지직 12.7 최저).
@@ -733,9 +779,10 @@ DS = "Interior/scape_deep/"
 
 # 바탕 — 별 아래 풀 언덕 밤바람 (2D). 후보 5 중 2 (고른 풀바람 · 지직 3.8) + 5 (비슷한 밝기 665 Hz)를 2초씩 겹쳐 고리.
 # 1 · 3 = 아주 어두움 (277 · 312 Hz, 300 Hz 아래 84 ~ 86 % — 귀 감도로 작음), 4 = 4.7초 · 5.4초에 작은 딸깍.
-bed = chain_loop([sl(load(DS + "bed_a.wav"), 0.3, 10.0), sl(load(DS + "bed_b.wav"), 0.3, 10.0)], 2.0)
-save("Interior/scape_deep_bed_loop.wav", circular(lambda y: soften(highpass(y, 60), 6000, 0.4), bed), -24)
-report.append(f"  통신기지 바탕 고리 {len(bed) / SR:.2f}초")
+# → 2026-11-24 실제 녹음으로 바꿈 (맨 아래 "바탕 · 방 환경음 실제 녹음" 구역) — 아래 줄은 기록 (VARCO 원본은 그대로 둠)
+# bed = chain_loop([sl(load(DS + "bed_a.wav"), 0.3, 10.0), sl(load(DS + "bed_b.wav"), 0.3, 10.0)], 2.0)
+# save("Interior/scape_deep_bed_loop.wav", circular(lambda y: soften(highpass(y, 60), 6000, 0.4), bed), -24)
+# report.append(f"  통신기지 바탕 고리 {len(bed) / SR:.2f}초")
 
 # 은하수 깊은 울림 (2D, 은하수 아래 깊은 울림) — 합성: 파2 · 도3 · 파3 · 라3 · 도4 · 파4 · 라4 (F 장조 으뜸화음)를 ±3센트로 겹쳐 서로 다른 느린 숨 +
 # 옅은 별빛 라5 · 도6 (처음엔 도4까지만 — 300 Hz 아래 100 %라 귀 감도로 거의 안 들려 위 음을 더함). 16초 = 정확히 24박, 주파수는 1/16 Hz 단위라 고리에 딱 맞음 (궤도 방어망 오로라와 같은 방식, 더 낮고 깊게).
@@ -1642,26 +1689,52 @@ for k in range(7):
     at = rng.uniform(0.1, 0.65)
     g = onepole_lp(highpass(rng.standard_normal(int(0.004 * SR)), 1500), 5000) * np.exp(-np.arange(int(0.004 * SR)) / (0.001 * SR))
     launch = place(launch, g / np.abs(g).max() * 0.5 * np.abs(launch).max(), at)
-save("Ride/firework_launch.wav", fade(soften(launch, 5000, 0.4), 0.005, 0.05), -14)
+# → 2026-11-24 이 "쉬익"만으로는 잡음 · 파도처럼 들려 아래 (터짐 다음)에서 실제 발사통 "퉁" 위에 짧고 옅게 얹음
 
-# 터짐 "팡 + 지지직" (하늘 화면 불꽃 — 2D, 재생 높이 ±10 %로 하나하나 다르게) — 둥근 "팡" (300 ~ 1500 Hz 잡음 50 ms + 90 → 45 Hz 몸통 옅게, 시작 4 ms) +
-# 반짝 지지직 (2 ~ 6 kHz 잔 알갱이 70개가 0.15 ~ 1.5초에 흩어지며 잦아듦, 6 kHz 위를 눌러 날 서지 않게) + 옅은 "쉬이" (흩날림).
-t = np.arange(int(1.9 * SR)) / SR
-rng = np.random.default_rng(720)
-boom = onepole_lp(onepole_lp(highpass(rng.standard_normal(len(t)), 300), 1500), 1500) * np.exp(-t / 0.05)
-boom = boom / np.abs(boom).max() + 0.35 * np.sin(2 * np.pi * np.cumsum(45 + 45 * np.exp(-t / 0.05)) / SR) * np.exp(-t / 0.12)
-boom *= 1 - np.exp(-t / 0.004)
-cr_ = np.zeros_like(t)
-for k in range(70):
-    at = 0.15 + 1.35 * rng.random() ** 1.6
-    ng = int(rng.uniform(0.002, 0.005) * SR)
-    g = onepole_lp(highpass(rng.standard_normal(ng), 2000), 6000) * np.exp(-np.arange(ng) / (0.0012 * SR))
-    cr_ = place(cr_, g / (np.abs(g).max() + 1e-9) * rng.uniform(0.3, 1.0) * np.exp(-(at - 0.15) / 0.7), at)
-cr_ = cr_[: len(t)]
-spray = onepole_lp(highpass(rng.standard_normal(len(t)), 1500), 5000) * np.exp(-np.maximum(0, t - 0.1) / 0.5) * np.minimum(1, t / 0.1)
-burst = boom * 0.9 + cr_ * 1.1 + 0.2 * spray / np.abs(spray).max()
-# 첫 판 (−14 그대로)은 녹음 검수에서 음악보다 −3 ~ −4 (첫 50 ms "팡"이 저장 크기를 정해 지지직이 작음) → 센 곳을 6 dB 누르고 −12로
-save("Ride/firework_burst.wav", fade(tame(soften(burst, 6000, 0.4), 6.0), 0.0, 0.3), -12)
+# 터짐 (하늘 화면 불꽃 — 2D, 재생 높이 ±10 %, 넷 중 하나씩) — 2026-11-24 사용자 "효과음이 전반적으로 이상, 폭죽 소리가 대표" → 실제 녹음과 같은 눈금으로 재 보니
+# 첫 판 합성 "팡 + 지지직"은 125 ~ 500 Hz 몸통이 비고 (45 Hz 순음만) 4 ~ 16 kHz가 실제보다 10 ~ 25 dB 밝고 지지직이 초당 19개 (실제 2 ~ 8) · 꼬리 1.6초 (실제는 3초 넘게 하늘 울림).
+# → 실제 공중 폭죽 녹음 (archive.org "The Designer's Choice — FIREWORKS", CC0 — Ride/Fortress/SOURCE.txt) 3분 연발에서 자른 터짐 42개 중
+# 앞이 조용하고 (−22 ~ −29 dB) 6 kHz 위 바닥이 낮고 (−48 ~ −56 dB) 다음 큰 터짐과 1초 넘게 떨어진 넷. 다음 터짐 직전에 자르고 하늘 울림 꼬리를 이어 붙임,
+# 날 선 첫 순간만 4 dB 눌러 아기자기 톤으로 (몸통 · 울림은 그대로).
+FW = "Ride/Fortress/"
+
+
+def fft_conv(x, h):
+    n = len(x) + len(h) - 1
+    m = 1 << (n - 1).bit_length()
+    return np.fft.irfft(np.fft.rfft(x, m) * np.fft.rfft(h, m), m)[:n]
+
+
+for k, (name, end) in enumerate((("show_06", 2.6), ("show_09", 1.45), ("show_95", 1.5), ("show_02", 1.05))):
+    x = highpass(sl(load(FW + f"real_burst_{name}.wav"), 0.19, end), 40)   # 터짐 = 0.193초 (조각마다 같음)
+    x = fade(x, 0.007, min(0.35, len(x) / SR * 0.3))   # 시작 10 → 90 % 약 4 ms (실제 중앙값 — 바로 자르면 1.5 ms로 날 섬)
+    # 하늘 울림 — 잘라 낸 뒤를 이어 줌 (1.8초 지수 꼬리 잡음, 2.5 kHz 위 누름, 몸통 최대의 22 %)
+    rng = np.random.default_rng(730 + k)
+    tt = np.arange(int(1.8 * SR)) / SR
+    wet = fft_conv(x, onepole_lp(rng.standard_normal(len(tt)), 2500) * np.exp(-tt / 0.45))
+    wet *= 0.22 * np.abs(x).max() / (np.abs(wet).max() + 1e-12)
+    y = np.concatenate([x, np.zeros(len(wet) - len(x))]) + wet
+    y, note = match_tilt(np.pad(y, (0, int(0.5 * SR))))   # 한 번 소리도 루프와 같은 고음 상한
+    # 녹음 검수 (요새 안, 음악 대비 귀 감도): 넷 다 −12면 +4.6 · +4.9 · +1.0 · +4.6 → 셋째 (show_95)는 첫 순간만 뾰족해 최대 −1 dB에 막혀
+    # −10으로도 안 커짐 (crest 12.3, tame은 5 ms 단위라 첫 1 ms가 빠져나감) → 1 ms 앞을 내다보는 최대치 누르기 6 dB 뒤 −10으로
+    y = tame(trim_lead(y[: len(y) - int(0.5 * SR)]), 4.0)
+    if name == "show_95":
+        w = int(0.001 * SR)
+        pk = np.lib.stride_tricks.sliding_window_view(np.pad(np.abs(y), (w, w), mode="edge"), 2 * w + 1).max(1)
+        y = y * np.convolve(np.minimum(1.0, np.abs(y).max() * 10 ** (-6 / 20) / (pk + 1e-12)), np.ones(w) / w, mode="same")
+    save(f"Ride/firework_burst_{k + 1:02d}.wav", fade(y, 0.0, 0.4), -10 if name == "show_95" else -12)
+    report.append(f"  폭죽 터짐 {k + 1} = 실제 {name} {end - 0.19:.2f}초 + 울림{note}")
+
+# 쏨 (포구 자리 3D, 0.8초 뒤 터짐) — 2026-11-24 실제 녹음 · AI 청각 모델 (PANNs) 비교: 첫 판 0.8초 "쉬익"은 혼자서 잡음 · 쉭 · 파도 (폭죽 0)로 들리고,
+# 쇼처럼 10초 연발에 넣으면 폭죽 점수를 0.83 → 0.44 ~ 0.52로 깎음. 실제 공중 폭죽은 발사통 "퉁" (200 Hz 아래 36 ~ 53 %, 0.07초) 뒤 조용히 오름
+# → 같은 녹음의 앞이 조용한 (−42 dB) "퉁" + 첫 판 쉬익을 0.35초 · 2.5 kHz 위 누르고 퉁 최대의 12 %로. 둘째 후보 show_50은 200 Hz 아래만 있어
+# 녹음 검수에서 음악보다 −11.6 (첫째 +4.5) — 귀에 안 들려 뺌, 하나를 재생 높이 ±6 %로 돌려 씀.
+for k, name in enumerate(("show_47",)):
+    th = fade(highpass(sl(load(FW + f"real_launch_{name}.wav"), 0.17, 0.75), 35), 0.002, 0.25)
+    air = onepole_lp(launch[int(0.05 * SR):int(0.40 * SR)], 2500)
+    air = fade(air / (np.abs(air).max() + 1e-12), 0.06, 0.15) * 0.12 * np.abs(th).max()
+    # 녹음 검수: 퉁은 거의 200 Hz 아래라 귀 감도로 터짐보다 −21 dB (−14 · 음량 0.25) → 파일 −10 · 음량 0.7로 터짐보다 약 −8 (낮은 소리라 귀 감도보다 크게 느껴짐)
+    save(f"Ride/firework_launch_{k + 1:02d}.wav", place(th, air, 0.02), -10)
 
 # 쇼 레버 (레버 자리 3D — 레버는 0.2초에 끝까지 당겨짐) — 궤도 방어망 레버와 같은 나무 결: 선착장 삐걱 0.2초를 3반음 올려 작게 + 레버 "툭"을 0.2초에.
 crk = pitch(sl(load("Interior/scape_port/dock_creak.wav"), 7.25, 7.5), 3)
@@ -1792,5 +1865,348 @@ report.append(f"  크레인 모터 고리 {len(crane) / SR:.2f}초 · 이음새 
 # 집게가 광석을 쥠 "턱" (집게가 다 닫히는 순간 집게 자리 3D) — 5-1 탑승 걸쇠 원본의 다른 툭 (2.67초)을 4반음 내려 묵직하게 + 3 kHz 위를 눌러 둥글게.
 grab = pitch(fade(soften(highpass(sl(lt_, 2.62, 2.98), 80), 3000, 0.5), 0.004, 0.1), -4)
 save("Ride/refinery_crane_grab.wav", fade(grab, 0.0, 0.08), -14)
+
+# ================= 체험 — 1단계 공통 도구 (SOUND_LIST_NEW 5-2 넷째 묶음, 2026-11-23) =================
+# 1단계 톤 = 매끄러운 전자 · 발달한 미래 기술 (아기자기, 날 선 쇳소리 X). 1단계 방은 소리 풍경 없이 방 환경음 + 내부 음악 1단계 곡 (D 단조 · F 장조, 90 BPM).
+
+
+def vrate(x, rate):
+    """재생 빠르기 곡선 (샘플마다 배율)대로 다시 읽음 — 모터가 돌기 시작하면 높아지고 멈출 때 낮아짐 (길이 = len(rate))."""
+    pos = np.concatenate([[0.0], np.cumsum(rate)[:-1]])
+    return np.interp(np.minimum(pos, len(x) - 2), np.arange(len(x)), x)
+
+
+# ================= 체험 — 중력 거주구 "전망실 망원경" (SOUND_LIST_NEW 5-2 · 4-3, 2026-11-23) =================
+# InteriorTelescope (머리를 보고 F = 들여다봄 → 마우스로 둘러보기 · 휠로 배율 → F · ESC = 뗌). VARCO 1번 — 들여다봄 · 뗌 · 확대 모두 같은 렌즈 "위잉"을
+# 재생 빠르기 곡선으로 올리고 내려 만듦 (한 물건 = 소리 하나).
+GVR = "Ride/GravityHabitat/"
+# 렌즈 위잉 — "들여다볼 때 오르는 위잉 → 1초 뒤 내려가는 위잉"으로 불렀는데 다섯 모두 둘이 갈리지 않음 → 그중 4: 1.5 kHz 매끈한 전자 "위잉" · 4 kHz 위 1 % · 울림 0,
+# 봉우리 650 · 880 · 1050 Hz (미5 · 라5 · 도6 — 조 안). 0.8초부터 고른 1.25 ~ 3.35초를 몸통으로. 1 = 4.6 kHz 밝은 세 덩이 (지직 78), 2 = 바닥 −5 dB 웅 · 울림 9,
+# 3 = 0.45초 날 선 쉿 (9.9 kHz), 5 = 고르지만 울림 4 · 무게중심 4 kHz (밝음).
+tw = highpass(sl(load(GVR + "telescope_whirr.wav"), 1.25, 3.35), 150)
+tw = onepole_lp(onepole_lp(soften(tw, 5000, 0.4), 4500), 4500)   # VARCO 위잉에 붙은 고른 쉿 (6 ~ 16 kHz가 전체보다 −21 dB — 사용자 "배경에 쉬— 치찰")을 4.5 kHz 위 두 번 눌러 걷어 냄
+PAD = np.zeros(int(0.06 * SR))   # 한 번 소리 끝을 고요하게 (뒤 꼬리 바닥 −60 dBFS 아래)
+
+# 들여다봄 (눈을 댐 — 2D, 0.9초): 렌즈가 깨어나며 빠르기 0.55 → 1로 오르는 "위잉" + 옅은 "스르륵" (렌즈 경통이 미끄러지는 바람결, 0.18초에 가장 큼).
+t = np.arange(int(0.9 * SR)) / SR
+rin = 0.55 + 0.45 * (1 - np.exp(-t / 0.12))
+look_in = vrate(tw, rin) * (1 - np.exp(-t / 0.04)) * np.where(t < 0.42, 1.0, np.exp(-(t - 0.42) / 0.12))
+sw = onepole_lp(onepole_lp(whoosh(0.55, 0.18, 400, 1500, 3500, 830), 4000), 4000)   # 바람결의 6 kHz 위 쉿도 눌러 둠 (그대로면 6 ~ 16 kHz −21 dB)
+look_in = place(look_in, sw / rms(sw) * 0.45 * rms(look_in[: int(0.4 * SR)]), 0.0)[: len(t)]
+save("Ride/t1_telescope_in.wav", np.concatenate([fade(look_in, 0.0, 0.15), PAD]), -14)
+
+# 뗌 (그만 보기 — 2D, 0.75초): 같은 위잉이 빠르기 1 → 0.5로 내려가며 잦아듦 + 더 옅은 "스르륵".
+t = np.arange(int(0.75 * SR)) / SR
+rout = 0.5 + 0.5 * np.exp(-t / 0.22)
+look_out = vrate(tw, rout) * (1 - np.exp(-t / 0.015)) * np.exp(-t / 0.2)
+sw = onepole_lp(onepole_lp(whoosh(0.4, 0.08, 300, 1200, 3000, 831), 4000), 4000)
+look_out = place(look_out, sw / rms(sw) * 0.3 * rms(look_out[: int(0.3 * SR)]), 0.0)[: len(t)]
+save("Ride/t1_telescope_out.wav", np.concatenate([fade(look_out, 0.0, 0.15), PAD]), -14)
+
+# 배율 (휠 한 칸마다 2D, 0.3초): 짧게 빨라졌다 서는 "윙" — 당김 (확대) = 그대로 (미 · 라 · 도), 밂 (축소) = 재생 높이 0.891 (레 · 솔 · 시♭ — 둘 다 조 안).
+t = np.arange(int(0.3 * SR)) / SR
+rz = 0.8 + 0.25 * (1 - np.exp(-t / 0.05))
+zoom = vrate(tw[int(0.5 * SR):], rz) * np.sin(np.pi * t / 0.3) ** 1.5
+save("Ride/t1_telescope_zoom.wav", np.concatenate([fade(zoom, 0.005, 0.06), PAD]), -14)
+
+# ================= 체험 — 보안청 "천장 포탑 받침" (SOUND_LIST_NEW 5-2 · 4-4, 2026-11-23) =================
+# InteriorTurretAim (평소 = 몇 초마다 다른 쪽으로 천천히 돌아 경계 · 유성우 예보 = 오는 쪽으로 빠르게). VARCO 1번 (서보).
+# 서보 "위잉" (포탑 받침에 붙은 3D 루프 — 도는 빠르기만큼 크기 · 재생 높이) — "고른 서보 루프"로 불렀는데 다섯 모두 1.5 ~ 8초 한 번 돌고 서는 소리 · 4 kHz 위 24 ~ 91 % (밝은 이잉).
+# 그중 2 (돌기 시작 → 1.2 ~ 2초 고름 → 멈춤, 울림 1)의 고른 곳 기음 = 391.5 Hz (솔4 −2센트, 조 안)와 배음 크기를 재서 정확한 솔4로 다시 합성 —
+# 원본 배음은 높은 데까지 −20 dB로 남아 밝으니 일곱째부터 3 dB씩 더 줄이고, 한 옥타브 아래 솔3을 옅게 (천장 포탑의 무게).
+# 2초 = 솔4 784번 · 떨림 · 숨이 고리에 정수 번이라 이음새 없음. 1 = 9.7 kHz 쉿, 3 = 기음 730 Hz (파#5 — 조 밖) · 울림 85, 4 = 들쭉날쭉 · 울림 73, 5 = 1.6초뿐.
+SBR = "Ride/SecurityBureau/"
+LS_ = 2.0
+ts_ = np.arange(int(LS_ * SR)) / SR
+f0 = 392.0
+prof = (0, -9, -18, -19, -27, -26, -26, -29, -32, -35, -38, -41, -44, -47)   # 1 ~ 6 = 원본 그대로, 7 ~ = 3 dB씩 더 줄임
+rng = np.random.default_rng(810)
+ph = f0 * ts_
+for fm, a_, p0 in ((3 / LS_, 0.002, 1.0), (11 / LS_, 0.0012, 2.1), (23 / LS_, 0.0008, 0.4)):   # ±0.2 % 느린 떨림 + 잔 흔들림 (고리에 정수 번)
+    ph = ph + f0 * a_ / (2 * np.pi * fm) * (np.sin(2 * np.pi * fm * ts_ + p0) - np.sin(p0))
+servo = sum(10 ** (db / 20) * np.sin(2 * np.pi * k * ph + rng.uniform(0, 2 * np.pi)) for k, db in enumerate(prof, 1))
+servo = servo + 10 ** (-8 / 20) * np.sin(2 * np.pi * 0.5 * ph + 0.3)
+servo = servo * (1 + 0.06 * np.sin(2 * np.pi * 60 / LS_ * ts_) + 0.04 * np.sin(2 * np.pi * 3 / LS_ * ts_ + 0.5))   # 모터 결 30 Hz · 느린 숨
+air = circular(lambda y: onepole_lp(onepole_lp(highpass(y, 300), 2500), 2500), rng.standard_normal(len(ts_)))
+servo = servo / rms(servo) + 0.22 * air / rms(air)
+save("Ride/t1_turret_servo_loop.wav", servo, -20)   # 솔4 · 솔3이 대부분이라 귀 감도로 rms보다 4 dB 작음 → 다른 물체 루프 (−24)보다 4 dB 크게
+report.append(f"  포탑 서보 고리 {len(servo) / SR:.2f}초 · 이음새 {abs(servo[0] - servo[-1]):.4f}")
+
+# ================= 체험 — 정비 공창 "수리 패드 용접" · 조선소 "용접 갠트리" (SOUND_LIST_NEW 5-2 · 4-4, 2026-11-23) =================
+# InteriorWelder (회전판 위 용접 팔 토치 — 한 번에 하나씩 2 ~ 4초) · InteriorShipyard (갠트리가 판 이음선으로 옮겨 가 양옆 토치로 2 ~ 3초씩). VARCO 1번 (용접).
+# 조선소 갠트리 모터 = 정련 콤비나트 크레인 모터 (refinery_crane_move_loop) 그대로 (새 파일 없음).
+MWR = "Ride/MaintenanceWorks/"
+# 용접 "쉬이 · 치직" (용접하는 토치에 붙은 3D 루프) — "부드러운 용접 쉿 + 옅은 지글"로 불렀는데 다섯 모두 무게중심 13 ~ 15 kHz의 고른 쉿뿐 (지글 없음, 지직 6 ~ 16 · 울림 0) →
+# 가장 고른 3의 뒤 구간 (3.15 ~ 6.85초, 0.5초 크기 −21 ~ −23 dB)을 앞뒤로 이어 3 kHz 위를 네 번 걸러 부드러운 "쉬이"로 (두 번은 무게중심 6.5 kHz로 아직 밝았음) +
+# 아크 흔들림 (30 Hz 아래 느린 잡음으로 크기가 ±35 % 일렁임) + 둥근 "치직" 알갱이 (초당 약 14개 · 2 ~ 4 ms · 1 ~ 3.5 kHz · 0.4 ms에 켜짐 — 바로 켜면 판 꼭대기까지 세로줄)를 합성해 얹음.
+# 1 = 끝으로 갈수록 커졌다 작아짐, 2 · 5 = 바닥 −6 ~ −11 dB · 끝이 잦아듦, 4 = 0.5 ~ 1.5초마다 끊김.
+wd = flatten(highpass(sl(load(MWR + "weld_hiss.wav"), 3.15, 6.85), 300), 0.5)
+weld = chain_loop([wd, wd[::-1]], 0.5)
+lp6 = lambda y: onepole_lp(onepole_lp(onepole_lp(onepole_lp(onepole_lp(onepole_lp(y, 2500), 2500), 2500), 2500), 2500), 2500)
+weld = circular(lambda y: soften(lp6(y), 2000, 0.3), weld)   # 원본 쉿이 13 ~ 15 kHz라 3 kHz 네 번으로는 6 ~ 16 kHz가 전체보다 −15 dB (치찰로 들림) → 2.5 kHz 여섯 번
+n_ = len(weld)
+rng = np.random.default_rng(820)
+am = circular(lambda y: onepole_lp(onepole_lp(y, 30), 30), rng.standard_normal(n_))
+weld = weld * (1 + 0.35 * am / np.abs(am).max())
+crk = np.zeros(n_)
+for k in range(int(n_ / SR * 14)):
+    ng = int(rng.uniform(0.002, 0.004) * SR)
+    tg = np.arange(ng) / SR
+    g = onepole_lp(onepole_lp(onepole_lp(highpass(rng.standard_normal(ng), 1000), 3000), 3000), 3000) * (1 - np.exp(-tg / 0.0004)) * np.exp(-tg / 0.0012)
+    idx = (int(rng.uniform(0, n_)) + np.arange(ng)) % n_
+    np.add.at(crk, idx, g / np.abs(g).max() * rng.uniform(0.3, 1.0))
+weld = weld / rms(weld) + 0.35 * crk / rms(crk)
+save("Ride/t1_weld_loop.wav", weld, -24)
+report.append(f"  용접 고리 {len(weld) / SR:.2f}초 · 이음새 {abs(weld[0] - weld[-1]):.4f}")
+
+# ================= 남은 빌린 소리 정리 (SOUND_LIST_NEW 5-2 넷째 묶음 B, 2026-11-23) =================
+# 별똥별 다가옴 (궤도 방어망 오로라 보호막 · 별똥별 막기 — 바깥 운석 경보 MeteorIncoming 대신, 2D) — 소리 풍경 별똥별 원본 (후보 3)의 첫 "휙" (0.45초에 가장 큼, 2 kHz)을
+# 0.55초까지 더 커지게 (다가옴) · 빠르기 1.04 → 0.94로 살짝 내려가게 (지나감) · 5 kHz 위를 눌러 부드럽게. 반짝임은 맞음 · 터짐 소리에 있어 뺌.
+si = highpass(sl(load(OD + "star.wav"), 0.05, 1.05), 300)
+t = np.arange(int(0.85 * SR)) / SR
+inc = vrate(si, 1.04 - 0.1 * np.clip(t / 0.8, 0, 1))
+inc = inc * np.where(t < 0.55, (0.35 + 0.65 * t / 0.55) ** 1.5, np.exp(-(t - 0.55) / 0.12))
+save("Ride/odef_star_incoming.wav", fade(soften(soften(inc, 5000, 0.4), 8000, 0.4), 0.01, 0.08), -14)
+
+# 빈 구조 바구니 부르기 (UiOpen 대신 — 바구니 자리 3D): 멈춤쇠가 풀리는 "딸깍" (5-1 탑승 걸쇠 조각을 3반음 높여 가볍게) + 줄이 움직이기 시작하는 "스윽" (도르래 줄 원본 0.4초).
+# 그 뒤 바구니가 혼자 오르내리는 동안은 도르래 줄 루프를 바구니에 붙여 3D로 (코드).
+lt4 = load(RD + "latch.wav")
+clk = pitch(fade(soften(highpass(sl(lt4, 1.0, 1.32), 120), 4000, 0.5), 0.004, 0.08), 3)
+rp4 = fade(tame(soften(soften(highpass(sl(load(RCR + "rope_pulley.wav"), 1.45, 1.95), 70), 3500, 0.5), 3500, 0.5), 8.0, 0.002, 0.04), 0.12, 0.25)   # 줄 조각의 잔 튐을 눌러 (그대로면 지직 43)
+call = np.zeros(int(0.75 * SR))
+call = place(call, clk, 0.0)
+call = place(call, rp4 / pk50(rp4) * 0.9 * pk50(clk), 0.1)
+# 걸쇠 딸깍의 6 ~ 16 kHz (전체보다 −14.5 dB)를 눌러 먹먹하게 — 누른 만큼 귀 감도가 줄어 4 m에서 +5.1 → +0.4 ~ +1.8.
+# 딸깍 순간 피크가 피크 제한 (−1 dB)에 걸려 저장 크기를 올려도 안 커져서 줄 "스윽"을 0.55 → 0.9로 키우고 센 곳을 10 dB 눌러 −12로.
+save("Ride/rcmd_basket_call.wav", tame(fade(onepole_lp(onepole_lp(call, 5000), 5000), 0.0, 0.1), 10.0, 0.002, 0.04), -12)
+
+# 수정 뇌 쇼 끝 (빛이 잦아드는 3.5초 — UiClose 대신, 2D) — 쇼 시작 "차오름"과 같은 유리 화음 라3 · 라4 · 도5 · 미5 · 라5가 먹먹해지며 (로우패스 3 kHz → 400 Hz)
+# 잦아듦 + 소리 풍경 수정 뇌 루프 조각이 함께 + 반짝임이 라6 · 미6 · 도6 · 라5로 내려감.
+LF_ = 3.6
+tf = np.arange(int(LF_ * SR)) / SR
+chord = np.zeros_like(tf)
+for j, (f0_, amp) in enumerate(((220.0, 0.5), (440.0, 1.0), (523.25, 0.8), (659.25, 0.6), (880.0, 0.3))):
+    for c in (-3, 0, 3):
+        f = f0_ * 2 ** (c / 1200)
+        chord += amp / 3 * (np.sin(2 * np.pi * f * tf + j + c) + 0.2 * np.sin(4 * np.pi * f * tf + 0.7))
+env_f = np.minimum(1, tf / 0.12) * np.exp(-tf / 1.1)
+fcf = 3000 * (400 / 3000) ** np.clip(tf / 3.0, 0, 1)
+chord = varlp(varlp(chord * env_f, fcf), fcf)
+brain = sl(load("../SpaceStation/Assets/_Project/Audio/Interior/scape_aicore_brain_loop.wav"), 0.0, LF_)
+brain = varlp(brain / rms(brain) * env_f, fcf)
+fade_ = chord / rms(chord) + 0.5 * brain
+for i_, semis in enumerate((9, 4, 0, -3)):
+    fade_ = place(fade_, twinkle(C6 * 2 ** (semis / 12), 1.0, 840 + i_) * 0.45 * np.abs(fade_).max() * (0.9 - 0.15 * i_), 0.1 + i_ * 0.4)
+save("Ride/aicore_crystal_fade.wav", fade(fade_[: len(tf)], 0.03, 0.6), -14)
+
+# 바이오스피어 밭이 핌 (물이 닿아 목마른 밭이 피는 순간 — 공용 점수 "띵" 대신, 2D · 연달아 피면 음계로, 기준 = 도6) — 꽃잎이 펴지는 "사르륵" (수리 사령부 고목 잎 원본 0.3초) +
+# 부드럽게 켜지는 유리 종 도6 (20 ms) + 반짝 솔6 · 도7이 굴러 오름 (으뜸 · 5도 · 옥타브만 — 음계로 옮겨도 조가 안 깨짐).
+lf = load(RC + "leaf_a.wav")
+env_l = np.convolve(lf ** 2, np.ones(int(0.05 * SR)) / int(0.05 * SR), "same")
+i0 = int(np.argmax(env_l[int(1.0 * SR): int(5.5 * SR)])) + int(1.0 * SR)
+rustle = fade(onepole_lp(onepole_lp(highpass(lf[i0 - int(0.12 * SR): i0 + int(0.2 * SR)], 1500), 5000), 5000), 0.06, 0.15)   # 잎 원본의 6 kHz 위 사각임은 눌러 둥글게
+tb = np.arange(int(1.1 * SR)) / SR
+bell_b = flower_bell(C6, 1.1, 850) * (1 - np.exp(-tb / 0.02))
+bloom = np.zeros(int(1.3 * SR))
+bloom = place(bloom, rustle / pk50(rustle) * 0.35 * pk50(bell_b), 0.0)
+bloom = place(bloom, bell_b, 0.06)
+bloom = place(bloom, twinkle(1.5 * C6, 0.8, 851) * 0.35, 0.13)
+bloom = place(bloom, twinkle(2 * C6, 0.8, 852) * 0.25, 0.2)
+save("Ride/bio_field_bloom.wav", fade(onepole_lp(bloom, 7500), 0.0, 0.25), -14)
+
+# ================= 바탕 · 방 환경음 실제 녹음 (SOUND_LIST_NEW 10번 A, 2026-11-24) =================
+# 사용자 "배경에 잡음 느낌" → AI 청각 모델 (PANNs) 줄 세우기 (docs/sound/ai-rank-2026-11-24.tsv)에서 기본 · 1단계 방 환경음 6과 3단계 바탕이 "분홍 잡음 · 흰 잡음 · 사이렌"으로 들림
+# (생활 0.52 · 복도 0.59 · 물 0.45 · 기계 흰 잡음 0.22 · 전기 사이렌 0.43 · 항성 발전망 0.41 · 궤도 도시 0.19 + 0.12 · 심우주 0.13 + 0.11 · AI 중추 흰 잡음 0.15).
+# → 실제 녹음 (archive.org "The Designer's Choice UCS Collection", CC0 — 녹음마다 AudioOriginals/Ambience/<녹음>/SOURCE.txt)으로 다시 만듦. 파일 이름은 그대로 (칸 연결 그대로).
+# 후보 = 38개 (mp3 56 MB로 훑고 고른 13개만 flac 76 MB로) — 그 공간 소리로 들리는지 (AI 위 범주) · 분홍 · 흰 잡음 · 사이렌 · 말소리 < 0.1 · 0.5초 크기 폭 · 튐 · 음 봉우리가 음악 조 안인지로 고름.
+# 루프 = 같은 녹음의 고른 조각 둘 ~ 넷을 이어 (chain_loop, 조각마다 rms를 맞춤) 10 ~ 17초, 겹치는 층은 모두 같은 길이로 만들어 섞음 (짧은 층을 반복해 붙이면 이음새에서 그 층이 끊김).
+# 음 봉우리: 녹음 속 모터 · 날개 · 전기 웅은 재생 높이째 옮겨 음악 조 (D 단조 · F 장조) 안으로 (repitch_loop — 원형 보간이라 이음새 그대로), 안 맞는 좁은 줄은 notch_lines (원형 FFT).
+# 고음은 save의 자동 상한 (match_tilt)이 맡음. 음량 = 게임 안 바탕만 혼자 울린 귀 감도 크기를 고치기 전과 같게 (SoundLibrary Room* · SS_* Bed 음량).
+AMB = "Ambience/"
+
+
+def notch_lines(x, freqs, depth_db=18.0, bw=2.0):
+    """좁은 줄 여럿 (freqs Hz, 폭 bw Hz)만 깎음 — 루프 전체를 원형 FFT로 (이음새 그대로)."""
+    X = np.fft.rfft(x)
+    f = np.fft.rfftfreq(len(x), 1 / SR)
+    g = np.zeros_like(f)
+    for fk in freqs:
+        g = np.maximum(g, np.exp(-0.5 * ((f - fk) / bw) ** 2))
+    return np.fft.irfft(X * 10 ** (-depth_db * g / 20), len(x))
+
+
+def repitch_loop(x, cents):
+    """루프째 재생 높이 바꾸기 (길이도 바뀜) — 끝 → 처음을 이어 보간해 이음새 그대로."""
+    r = 2 ** (cents / 1200)
+    n = int(round(len(x) / r))
+    return np.interp(np.arange(n) * (len(x) / n), np.arange(len(x) + 1), np.concatenate([x, x[:1]]))
+
+
+def half_flat(x, win=1.0):
+    """느린 크기 변화를 절반만 펴서 (√(중앙/크기)) 바람 · 잎이 일었다 잦아드는 결은 남기고 튀지 않게 — 원형 이동 평균 (누적 합)."""
+    n = int(win * SR)
+    y = np.concatenate([x[-n:], x, x[:n]]) ** 2
+    c = np.concatenate([[0.0], np.cumsum(y)])
+    i = np.arange(len(x)) + n - n // 2
+    e = np.sqrt((c[i + n] - c[i]) / n) + 1e-9
+    return x * np.sqrt(np.median(e) / e)
+
+
+def low_shelf(x, db, lo=120.0, hi=320.0):
+    """lo Hz 아래를 db만큼 (lo ~ hi 사이는 log 주파수로 이어) — 원형 FFT. 모터 · 밤 공기 웅 (90 ~ 180 Hz)이 몸통보다 커서
+    귀 감도 (A)로 맞추면 낮은 웅만 커지는 것을 막음 (고치기 전 분홍 잡음은 A − rms −1 dB, 실제 녹음은 −8 ~ −10 dB)."""
+    X = np.fft.rfft(x)
+    f = np.fft.rfftfreq(len(x), 1 / SR)
+    g = np.interp(np.log2(np.maximum(f, 1.0)), [np.log2(lo), np.log2(hi)], [db, 0.0])
+    return np.fft.irfft(X * 10 ** (g / 20), len(x))
+
+
+def piece(folder, pre, start, length):
+    return load(f"{AMB}{folder}/{pre}_{start:06.2f}.wav")[: int(round(length * SR))]
+
+
+def rchain(folder, pre, starts, seg, xf):
+    """같은 녹음의 조각들 (시작초 · 길이 seg)을 rms를 맞춰 xf초씩 겹쳐 한 바퀴 루프로 — 길이 = 조각 수 × (seg − xf)."""
+    parts = [piece(folder, pre, s, seg) for s in starts]
+    parts = [p / rms(p) * rms(parts[0]) for p in parts]
+    return chain_loop(parts, xf)
+
+
+def layer(a, b, db):
+    """같은 길이의 두 루프를 rms 기준 b를 db만큼 작게 섞음."""
+    assert len(a) == len(b), (len(a), len(b))
+    return a / rms(a) + b / rms(b) * 10 ** (db / 20)
+
+
+def hpc(x, fc, times=1):
+    for _ in range(times):
+        x = circular(lambda y: highpass(y, fc), x)
+    return x
+
+
+lpc = lambda x, fc: circular(lambda y: onepole_lp(onepole_lp(y, fc), fc), x)
+BB = 116.54                                                                    # Bb2 — 안정기 웅을 옮긴 높이
+BB_OFF = [BB * h for h in (7, 11, 13, 14, 17, 19, 21, 22, 25, 26, 27, 28, 29, 31, 33, 34, 35)]   # Bb 배음 중 조 밖 (Ab · E−49 · F#+40 · B · C# · Eb …)
+
+
+def trees(starts, seg, xf):
+    """나무 사이 바람 · 잎 사각임 (trees_rustle) — 뒤에 깔린 먼 엔진 웅 (66 · 79 · 133 · 141 · 146 Hz 줄, 125 Hz 띠가 몸통보다 +10 dB)을 깎고 300 Hz 아래를 세 번 걸러 잎 · 바람만."""
+    x = notch_lines(rchain("trees_rustle", "trees", starts, seg, xf), [66, 79, 133, 141, 146, 266, 282], 24, 3.0)
+    return half_flat(hpc(x, 300, 3))
+
+
+def bush(starts, seg, xf):
+    """덤불 사각임 (bush_rustle) — 가까이서 흔든 잎 · 바람결. 94 Hz 배음 줄 (F#2+23 · F#3+16 · G4−50)을 깎고 150 Hz 아래 (손 · 바람 덜컹)를 두 번 거름."""
+    return half_flat(hpc(notch_lines(rchain("bush_rustle", "bush", starts, seg, xf), [94, 187, 281, 381], 20, 2.0), 150, 2))
+
+
+def river(starts, seg, xf, fc):
+    """작은 폭포 강 (river_falls)을 fc Hz 위를 눌러 멀리서 들리는 물로 — 펌프 줄 (80 Hz Eb2+45와 배음)은 깎음."""
+    return lpc(hpc(notch_lines(rchain("river_falls", "river", starts, seg, xf), [80, 159, 239, 318], 20, 2.0), 60), fc)
+
+
+def crickets(starts, seg, xf):
+    """밤 풀벌레 (night_crickets) — 전기 웅 줄 (60 · 120 · 180 · 240 Hz)과 72 · 226 · 452 Hz 줄을 깎고 100 Hz 아래 거름."""
+    return hpc(notch_lines(rchain("night_crickets", "crickets", starts, seg, xf), [60, 72, 120, 180, 226, 240, 452], 20, 2.0), 100)
+
+
+def air(starts, seg, xf):
+    """조용한 밤 바깥 공기 (night_air) — 전기 웅 60 · 120 Hz와 72 Hz 줄을 깎고 60 Hz 아래 거름."""
+    return hpc(notch_lines(rchain("night_air", "air", starts, seg, xf), [60, 72, 120], 20, 2.0), 60)
+
+
+# --- 기본 · 1단계 방 환경음 6 (2D, 늘 깔림 — 2단계 · 1단계 방도 이것) ---
+# 생활 (거주 · 의료 · 휴게) = 조용한 방 공기 + 먼 환풍기 (room_tone, 77초 중 0.5초 크기 폭 1.1 ~ 1.5 dB인 세 조각, 17초).
+# 날개 · 모터 줄이 조 밖 (G#3+45 · F#4−25 · B1−27 · C#4−20) → −50센트 옮기면 F2 · F4 · C4 +22 ~ +28 (조 안), 남는 G#3 · Bb1+31 줄만 깎음.
+# 후보 넷 중 하나: 큰 선풍기 (MCU_Large, 줄이 Bb · F로 조 안이지만 "선풍기"라 기계 방과 겹침) · 작은 냉장고 (Vehicle 0.39 · Boat) · 방 공기 + 냉장고 섞음 (Vehicle 0.33).
+# AI: 분홍 잡음 0.52 → 0.00 · 위 범주 Vehicle 0.24 · Microwave oven 0.18 · Air conditioning 0.14 · Mechanical fan 0.13 · Inside, small room 0.06.
+x = notch_lines(repitch_loop(rchain("room_tone", "tone", [16.0, 2.75, 43.0], 7.0, 1.5), -50), [207, 414, 59, 118], 20, 2.0)
+save("Interior/amb_room_life_loop.wav", hpc(x, 40), -26)
+
+# 물 (농장 · 물 재활용 · 산소) = 물이 흐르는 펌프 (water_motor — 모터 줄 F2 · D3 · F3 · Bb1, 처음부터 조 안) + 수영장 물 졸졸 (pool_trickle) −6 dB.
+# 펌프만으로는 Boat · Vehicle 0.18 · Stream 0.17 (물 반 · 배 반) → 졸졸을 얹어 Stream 0.29 · Pour 0.23 · Trickle 0.17 · Water 0.14.
+# 뺀 후보: 파충류 물그릇 자동 급수 (Water 0.64로 물은 또렷하지만 8 · 16 kHz가 몸통보다 +9 dB — 물방울 치찰, 0.5초 크기 폭 8.5 dB · 튐 42) ·
+# 거품 (7초 하나뿐, 반복) · 물받이 홈통 · 작은 폭포 강 (물 방에는 너무 바깥 소리). AI: 분홍 잡음 0.45 → 0.01.
+x = layer(rchain("water_motor", "flow", [22.0, 35.0, 11.0], 7.0, 1.5), rchain("pool_trickle", "trickle", [18.0, 25.25, 8.0], 7.0, 1.5), -6)
+save("Interior/amb_room_water_loop.wav", low_shelf(hpc(x, 40), -6), -21)   # 낮은 웅 −6 dB: A − rms −8.5 → −6.3 · 귀 감도로 맞추면 음량이 1을 넘어 (AudioSource는 1에서 잘림) 원본을 −21로
+
+# 기계 (창고 · 정비 · 화물 · 채굴 · 연구) = 쉬지 않고 도는 작은 펌프 (pump, 26초 중 0.5초 크기 폭 0.6 dB 두 조각 11초).
+# 배음 줄 F1−18 · F2−32 · C3−25 → +25센트 옮겨 F · C 거의 정확히, 남는 901 Hz (A5+41) 줄과 두 배를 깎음.
+# AI: 흰 잡음 0.22 → 0.02 · 위 범주 Vehicle 0.24 · Engine 0.15 · Pump (liquid) 0.10 · Power tool 0.09 · Tools · Idling.
+# 뺀 후보: 큰 선풍기 (Vehicle 0.36 · Microwave — 기계보다 공조) · 공업 선풍기 Manitowec (B2−6 · C#5 날개 줄 34 dB — 음이 또렷 · 조 밖, C로 옮기면 Mains hum 0.93) ·
+# 빨래 건조기 (Vehicle 0.73) · 에스컬레이터 (6초, Train 0.79) · 펌프 + 선풍기 섞음 (Vehicle 0.39 · Motorcycle).
+f0 = 901 * 2 ** (25 / 1200)
+x = notch_lines(repitch_loop(rchain("pump", "pump", [13.25, 2.0], 7.0, 1.5), 25), [f0, 2 * f0], 20, 2.0)
+save("Interior/amb_room_machine_loop.wav", hpc(x, 40), -24)
+
+# 고열 (제련 · 핵융합 · 연료전지) = 열풍기 (heater — 송풍 · 불 웅, 74초 중 0.5초 크기 폭 0.9 ~ 1.0 dB 세 조각).
+# 모터 줄 112.8 Hz (A2+43)와 배음 226 · 451 Hz, 45 Hz → −43센트 옮겨 A2 · A3 · A4 · F1 (조 안).
+# 게임 안 녹음 (slot3 제련소): 송풍 그대로 (1.2 kHz 위 살림)는 음악과 섞이면 Waves, surf 0.39 · Ocean 0.31 (넓은 쉬—로 들림) → 1.2 kHz 위를 눌러 먹먹한 화로 송풍으로
+# (같은 크기로 섞은 모의 녹음: Waves 0.49 → 없음, Music 0.85 · Vehicle 0.18 — 고치기 전과 같은 꼴). 파일 AI: 위 Vehicle 0.42 · Car · Aircraft 0.09 · Engine (지금 것도 Vehicle 0.48 —
+# AudioSet에 보일러 · 화로 범주가 없음), 흰 잡음 0.06 → 0.09.
+# 뺀 후보: 열풍기 + 가스 불꽃 (5초 하나뿐 · 흰 잡음 0.10) · 열풍기 + 솥 끓는 거품 (Pour · Water로 들려 물 방과 겹침 — 끓음은 D-5 과열 상태 층 몫) · 용암 거품 (만든 소리 · Music 0.39).
+x = repitch_loop(rchain("heater", "heater", [62.75, 55.0, 45.5], 7.0, 1.5), -43)
+save("Interior/amb_room_heat_loop.wav", lpc(low_shelf(hpc(x, 40), -6), 1200), -22)   # 낮은 웅 −6 dB (A − rms −7.5 → −5.5) · 1.2 kHz 위 누름
+
+# 전기 (배터리 · 태양광 · 실드 · 포탑) = 형광등 안정기 웅 (ballast_hum, 21초 중 0.5초 크기 폭 1.1 dB 두 조각) + 생활 방 공기 −12 dB.
+# 지금 것 = 사이렌 0.43 · 민방위 사이렌 0.40 (120 Hz 웅이 오르내림) → 오르내리지 않는 실제 웅. 120 Hz (Bb2와 B2 사이)를 −51센트 옮겨 Bb2 (D 단조 · F 장조 안,
+# 1 · 2 · 3 · 4 · 5 · 6 · 8 · 9 · 10 · 12배음 = Bb · F · D · C), 조 밖 배음 (7 · 11 · 13 · 14 · 17 …배)은 깎음. C3 (+149센트)로 옮긴 것은 Siren 0.09 · Speech 0.14로 더 나빠 뺌,
+# 1 kHz 아래만 남기면 Hum 0.17로 흐려져 웅을 다 남김. AI: 사이렌 0.43 → 0.01 · 위 범주 Mains hum 0.42 · Hum 0.41 · Vehicle 0.34, 흰 잡음 0.06.
+x = layer(hpc(rchain("ballast_hum", "hum", [6.0, 13.0], 7.0, 1.5), 40), hpc(rchain("room_tone", "tone", [16.0, 2.75], 7.0, 1.5), 120), -12)
+x = notch_lines(repitch_loop(x, -51), BB_OFF + [207, 414, 59, 118], 24, 2.0)
+save("Interior/amb_room_electric_loop.wav", x, -24)
+
+# 복도 · 홀 (코어 · 회전 링) = 조용한 밤 바깥 공기 (night_air — 5분 중 0.5초 크기 폭 1.5 ~ 2.2 dB 세 조각): 낮은 웅 + 먼 공기, 넓은 곳의 빈 공기.
+# AI: 분홍 잡음 0.59 → 0.01 · 위 범주 Vehicle 0.16 · White noise 0.07 · Eruption 0.05 (밤 공기의 낮은 웅). 뺀 후보: 큰 선풍기를 800 Hz 아래로 (Vehicle 0.42 · Microwave) · 밤 공기 + 선풍기 (Vehicle 0.59 · Aircraft).
+save("Interior/amb_room_hall_loop.wav", low_shelf(air([285.25, 43.0, 189.0], 7.0, 1.5), -6), -26)   # A − rms −9.3 → −6.4
+
+# --- 3단계 바탕 (RoomSoundscape Bed, 2D) — D-7b 바탕 설명대로, 실내 돔 정원이라 바람은 세지 않게 ---
+# 이 모음에는 바람 · 잎 녹음이 적어 (나무 사이 바람 35초 · 덤불 32초 · 밤 공기 5분 · 밤 풀벌레 · 작은 폭포 강) 정원 넷은 같은 녹음을 다른 조각 · 다른 섞음으로.
+# 나무 사이 바람만 쓰면 분홍 잡음 0.11 ~ 0.32 (높은 잎 소리만 남아 고른 쉬—) → 덤불 바람결 · 밤 공기를 섞어야 0.02 아래. AI는 잎 · 바람을 Waves · Ocean · Wind로 듣는 일이 많음.
+# 정원 바탕에 새 · 풀벌레가 또렷한 녹음 (교외 새 · 카디널 · 여름 낮 · 새 + 산들바람)은 10 ~ 17초 루프에서 같은 지저귐이 되풀이되고 밤에도 남아 뺌 (새는 가끔 소리가 따로 있음).
+# AI 중추 "정원 바람 · 잎" = 밤 공기 (몸통) + 덤불 바람결 −3 dB + 나무 잎 −8 dB, 16.5초. 흰 잡음 0.15 → 0.01 · 위 Waves 0.35 · Ocean 0.32 · Vehicle 0.31 · Wind 0.26.
+L3g = air([88.5, 20.0, 180.75], 7.0, 1.5)
+x = layer(layer(L3g, bush([0.75, 10.2], 9.45, 1.2), -3), trees([6.0, 26.75, 13.25], 6.7, 1.2), -8)
+save("Interior/scape_aicore_bed_loop.wav", x, -24)   # 낮은 웅 셸프 (−6 dB)를 걸면 Train 0.23 · Rail transport로 들려 그대로
+
+# 바이오스피어 "숲 잎 사각임 · 바람" (물의 순환 고리) = 덤불 바람결 + 먼 작은 폭포 강 (2.5 kHz 위 누름) −3 dB + 나무 잎 −8 dB, 11.4초.
+# 위 Vehicle 0.33 · Boat 0.31 · Waves 0.28 · Ocean 0.26 · Wind 0.23 (지금 것 Vehicle 0.27 · Eruption 0.13 · Train 0.12), 분홍 잡음 0.01.
+# 뺀 섞음: 강 + 나무 잎 + 밤 공기 (분홍 잡음 0.23), 나무 잎 + 덤불 흔들기 (16초 덤불 흔들기는 Rumble · Thunder).
+x = layer(layer(bush([0.75, 13.5, 8.5], 5.0, 1.2), river([21.5, 32.75, 13.0], 5.0, 1.2, 2500), -3), trees([0.75, 13.25, 21.0], 5.0, 1.2), -8)
+save("Interior/scape_bio_bed_loop.wav", x, -24)
+
+# 궤도 도시 "지붕 없는 섬 정원 바람" = 덤불 바람결 + 나무 잎 −4 dB + 밤 공기 −6 dB, 11.4초. 분홍 0.19 · 흰 0.12 → 0.02 · 0.01, 위 Waves 0.43 · Ocean 0.38 · Vehicle 0.26 · Wind 0.24.
+x = layer(layer(bush([0.75, 8.5, 13.5], 5.0, 1.2), trees([21.0, 6.0, 0.75], 5.0, 1.2), -4), air([88.5, 20.0, 180.75], 5.0, 1.2), -6)
+save("Interior/scape_city_bed_loop.wav", x, -24)
+
+# 항성 발전망 "햇살 꽃밭 바람" = 덤불 바람결 + 밤 공기 −4 + 나무 잎 −8 + 풀벌레 아주 옅게 −16 dB (여름 풀밭), 11.4초. 분홍 0.41 → 0.00, 위 Waves 0.45 · Ocean 0.42 · Boat 0.40 · Wind 0.35.
+# 뺀 섞음: 밤 공기 몸통 + 덤불 + 풀벌레 −12 (Vehicle 0.51), 나무 잎 + 밤 공기 + 풀벌레 (분홍 0.23).
+x = layer(layer(layer(bush([13.5, 8.5, 0.75], 5.0, 1.2), air([180.75, 88.5, 20.0], 5.0, 1.2), -4),
+                trees([13.25, 21.0, 26.75], 5.0, 1.2), -8), crickets([7.25, 110.5, 121.25], 5.0, 1.2), -16)
+save("Interior/scape_stellar_bed_loop.wav", x, -24)
+
+# 심우주 통신기지 "별 아래 풀 언덕 밤바람" (늘 밤) = 밤 바깥 공기 + 밤 풀벌레 −12 dB, 16.5초. 분홍 0.13 · 흰 0.11 → 0.00 · 0.01, 위 Vehicle 0.21 · Aircraft 0.09 · Outside, rural or natural 0.08.
+# 풀벌레는 따로 2D 층 (수리 사령부 바탕)도 있어 바탕에는 옅게. 뺀 섞음: 밤 공기 + 나무 잎 (Waves 0.28 · Aircraft), 셋 다 (Vehicle 0.53 · Aircraft 0.31).
+x = layer(air([6.0, 63.75, 159.75], 7.0, 1.5), crickets([7.25, 110.5, 121.25], 7.0, 1.5), -12)
+save("Interior/scape_deep_bed_loop.wav", low_shelf(x, -6), -24)   # A − rms −9.7 → −6.2
+
+# 궤도 방어망 "잔잔한 만의 바닷바람 + 먼 잔물결" = 나무 잎 + 덤불 바람결 (같은 크기) + 먼 작은 폭포 강 (1.5 kHz 위 누름) −6 dB, 11.4초.
+# AI가 이 섞음을 바다로 들음: 위 Waves, surf 0.46 · Ocean 0.40 · Vehicle 0.26 · Wind 0.21 (지금 것 Vehicle 0.16 · 흰 잡음 0.07), 분홍 0.04.
+# 15.2초로 늘이려고 덤불 8.8초 조각 둘을 쓰면 13.5 ~ 18.5초의 덤불 털림이 들어가 Vehicle 0.38 · Waves 0.13으로 흐려져 11.4초로. 갈매기 + 먼 파도 녹음은 갈매기가 끊이지 않아 (0.5초 크기 폭 11 ~ 15 dB) 뺌.
+sea = layer(layer(trees([6.0, 0.75, 26.75], 5.0, 1.2), bush([0.75, 8.5, 13.5], 5.0, 1.2), 0), river([13.0, 44.25, 21.5], 5.0, 1.2, 1500), -6)
+save("Interior/scape_defense_bed_loop.wav", sea, -24)
+
+# 궤도 항만 "석호 찰랑임" = 수영장 물 졸졸 + 통 속 물 휘돌림 (water_swirl) −3 dB, 전기 웅 줄을 깎고 + 궤도 방어망 바탕 (바로 위 sea) −9.5 dB (전처럼 바람결 25 %), 11.4초.
+# 위 Stream 0.32 · Boat 0.14 · Trickle 0.13 · Water 0.12 (지금 것 Vehicle 0.07 · Boat 0.07 · Stream 0.04). 뺀 후보: 작은 폭포 강 (Stream 0.32지만 Vehicle 0.27 — 흐르는 강물).
+lap = hpc(notch_lines(layer(rchain("pool_trickle", "trickle", [21.5, 4.0, 27.25], 5.0, 1.2), rchain("water_swirl", "swirl", [140.5, 173.25, 183.0], 5.0, 1.2), -3),
+                      [60, 120, 180, 240, 360, 480], 18, 1.5), 60)
+save("Interior/scape_port_bed_loop.wav", layer(lap, sea, -9.5), -24)
+
+# 궤도 도시 밤 창 불빛 웅웅 (밤에만, 언덕 마을 3D) = 안정기 웅 (2.5 kHz 아래 — 창 너머로 조금 먹먹하게) + 작은 냉장고 −3 dB → 전기 방과 같은 Bb2로.
+# 냉장고 줄 (E2 · E3−31 · E4−35 · 1611 · 2014 Hz)은 옮기기 전에 깎음. 흰 잡음 0.11 → 0.02 · 위 Hum 0.21 · Vehicle 0.19 · Mains hum 0.17.
+# 웅을 700 · 1200 Hz 아래로 더 먹먹하게 하면 Hum 0.07 ~ 0.08로 흐려져 (Vehicle만 남음) 2.5 kHz. 뺀 섞음: 웅 + 밤 공기 (Speech 0.12 · Gong), 냉장고만 (Vehicle 0.42 · Boat).
+x = layer(lpc(hpc(rchain("ballast_hum", "hum", [6.0, 13.0], 7.0, 1.5), 40), 2500),
+          hpc(notch_lines(rchain("mini_fridge", "fridge", [30.75, 20.5], 7.0, 1.5), [81, 162, 323, 1611, 2014], 18, 1.5), 60), -3)
+save("Interior/scape_city_night_loop.wav", notch_lines(repitch_loop(x, -51), BB_OFF, 24, 2.0), -26)
 
 print("\n".join(report))
