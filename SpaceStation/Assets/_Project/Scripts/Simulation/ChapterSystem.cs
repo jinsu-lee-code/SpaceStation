@@ -592,7 +592,7 @@ namespace SpaceStation.Simulation
                 Sim.RefreshModuleStats(); // 새 요구 · 규칙이 바로 반영되게
                 var sb = new System.Text.StringBuilder();
                 foreach (var m in Current.Unlocks)
-                    if (m != null)
+                    if (m != null && UnlockStage(m) == Index) // 14-4 앞 장에서 이미 연 모듈은 다시 알리지 않음
                         sb.Append($"  ·  {m.DisplayName} 해금");
                 if (Current.Recipes.Count > 0)
                     sb.Append($"  ·  합성 레시피 {Current.Recipes.Count}종 (합성 창 K)"); // 14-1c

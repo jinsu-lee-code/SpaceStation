@@ -629,7 +629,15 @@ namespace SpaceStation.Editor.Balance
         private bool WantsSynthesis(RecipeData recipe)
         {
             var syn = _sim.Synthesis;
-            if (syn == null || _sim.Session.Syntheses > 0 || syn.Jobs.Count > 0)
+            if (syn == null)
+                return false;
+            // 14-4 필수 목표가 진화 모듈이면 그 레시피만 (6장 보안청 — 위 '첫 진화 모듈만' 규칙과 별개)
+            var chapter = _chapters.Current;
+            if (chapter != null)
+                foreach (var g in chapter.Goals)
+                    if (!g.Optional && g.Kind == ChapterGoalKind.BuildModule && g.Module != null && syn.IsRecipeResult(g.Module))
+                        return recipe.Result == g.Module;
+            if (_sim.Session.Syntheses > 0 || syn.Jobs.Count > 0)
                 return false;
             foreach (var m in _sim.Grid.Modules)
                 if (m.Data != null && syn.IsRecipeResult(m.Data))
