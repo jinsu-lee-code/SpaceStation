@@ -37,6 +37,16 @@ namespace SpaceStation.Simulation
         Retreated,
     }
 
+    /// <summary>X1b 비장의 카드 (한 판에 한 번).</summary>
+    public enum TrumpCard
+    {
+        None,
+        /// <summary>방주 방패 — 한동안 습격 포격을 모두 막음, 코어의 발생기를 침입 드론에게서 지켜야 함.</summary>
+        ArkShield,
+        /// <summary>궤도 포격 — 기함에 큰 피해, 고른 발사대를 충전 동안 지켜야 함.</summary>
+        OrbitalStrike,
+    }
+
     [Serializable]
     public sealed class RaidShip
     {
@@ -144,7 +154,133 @@ namespace SpaceStation.Simulation
         {
             Sim.MeteorResolved += HandleResolved;
             if (Sim.Contact != null)
+            {
                 Sim.Contact.RaidOverride = HandleRequest;
+                Sim.Contact.BoardingFinished += HandleBoardingFinished;
+            }
+            if (Sim.MeteorShower != null)
+            {
+                Sim.MeteorShower.RaidBlocker = () => ShieldTimeLeft > 0f ? "방주 방패" : null;
+                Sim.MeteorShower.RaidFocus = () => StrikeCharging ? _launcher : null;
+                Sim.MeteorShower.RaidFocusShare = _config.StrikeFocus;
+            }
+        }
+
+        // ---------------- X1b 비장의 카드 ----------------
+
+        private const string ShieldTag = "arkShield";
+        private ModuleInstance _launcher;
+
+        /// <summary>고른 비장의 카드 (None = 아직 안 고름).</summary>
+        public TrumpCard Trump { get; private set; }
+        public bool TrumpUsed { get; private set; }
+        /// <summary>함대 습격이 열렸는데 아직 카드를 안 고름 (화면이 고르기 창을 띄움).</summary>
+        public bool TrumpChoicePending => Enabled && Trump == TrumpCard.None;
+        public float ShieldTimeLeft { get; private set; }
+        public float StrikeTimeLeft { get; private set; }
+        public bool StrikeCharging => StrikeTimeLeft > 0f && _launcher != null;
+        public ModuleInstance Launcher => _launcher;
+
+        /// <summary>비장의 카드를 고름 (한 번만).</summary>
+        public bool ChooseTrump(TrumpCard card)
+        {
+            if (card == TrumpCard.None || Trump != TrumpCard.None)
+                return false;
+            Trump = card;
+            Sim.Report($"비장의 카드: {TrumpName(card)} · 한 판에 한 번 쓸 수 있습니다", true);
+            Changed?.Invoke();
+            return true;
+        }
+
+        public static string TrumpName(TrumpCard card) => card == TrumpCard.ArkShield ? "방주 방패" : card == TrumpCard.OrbitalStrike ? "궤도 포격" : "-";
+
+        /// <summary>지금 쓸 수 있는지 (안 되면 까닭).</summary>
+        public bool CanUseTrump(out string reason)
+        {
+            reason = null;
+            if (Trump == TrumpCard.None)
+                reason = "아직 고르지 않았습니다";
+            else if (TrumpUsed)
+                reason = "이미 썼습니다";
+            else if (!Active)
+                reason = "습격 중에만";
+            else if (Trump == TrumpCard.OrbitalStrike && Stage != RaidStage.Flagship)
+                reason = "기함에게만";
+            return reason == null;
+        }
+
+        /// <summary>방주 방패를 켬: 한동안 포격을 모두 막고, 코어의 발생기로 침입 드론이 들어옴 (못 끄면 방패가 바로 꺼짐).</summary>
+        public bool UseArkShield()
+        {
+            if (Trump != TrumpCard.ArkShield || !CanUseTrump(out _))
+                return false;
+            TrumpUsed = true;
+            ShieldTimeLeft = _config.ShieldSeconds;
+            Sim.Report($"방주 방패를 펼쳤습니다 · {ShieldTimeLeft:0}초 동안 포격을 모두 막습니다 · 코어의 발생기로 침입 드론이 들어옵니다", true);
+            Sim.Contact?.BeginBoardingAt(Sim.Core, _config.ShieldDrones, _config.ShieldDroneSeconds, Source, ShieldTag);
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>궤도 포격 충전 시작: 바깥에 드러난 가동 중인 모듈 하나를 발사대로 (그동안 포격이 몰림 · 파손되면 실패).</summary>
+        public bool UseOrbitalStrike(ModuleInstance launcher)
+        {
+            if (Trump != TrumpCard.OrbitalStrike || !CanUseTrump(out _) || !CanLaunchFrom(launcher))
+                return false;
+            TrumpUsed = true;
+            _launcher = launcher;
+            StrikeTimeLeft = _config.StrikeCharge;
+            Sim.Report($"궤도 포격 충전 · {launcher.Data?.DisplayName ?? "모듈"} · {StrikeTimeLeft:0}초 동안 지키세요 (포격이 몰립니다)", true);
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>발사대가 될 수 있는 모듈 (코어가 아닌, 바깥에 드러난 가동 중인 모듈).</summary>
+        public bool CanLaunchFrom(ModuleInstance m) =>
+            m != null && m != Sim.Core && Sim.Connectivity.IsActive(m) && !Sim.Damage.IsDamaged(m) && DamageSystem.IsExterior(Sim.Grid, m);
+
+        private void HandleBoardingFinished(string tag, bool cleared)
+        {
+            if (tag != ShieldTag || ShieldTimeLeft <= 0f)
+                return;
+            if (cleared)
+                Sim.Report("발생기의 침입 드론을 모두 껐습니다 · 방주 방패가 그대로 이어집니다", true);
+            else
+            {
+                ShieldTimeLeft = 0f;
+                Sim.Report("발생기를 지키지 못해 방주 방패가 꺼졌습니다", false);
+            }
+            Changed?.Invoke();
+        }
+
+        private void TickTrump(float dt)
+        {
+            if (ShieldTimeLeft > 0f)
+            {
+                ShieldTimeLeft = Math.Max(0f, ShieldTimeLeft - dt);
+                if (ShieldTimeLeft <= 0f)
+                    Sim.Report("방주 방패가 꺼졌습니다", true);
+            }
+            if (StrikeTimeLeft <= 0f || _launcher == null)
+                return;
+            if (!Sim.Grid.TryGetModule(_launcher.Origin, out var still) || still != _launcher || Sim.Damage.IsDamaged(_launcher))
+            {
+                Sim.Report("발사대가 파손되어 궤도 포격이 실패했습니다", false);
+                StrikeTimeLeft = 0f;
+                _launcher = null;
+                Changed?.Invoke();
+                return;
+            }
+            StrikeTimeLeft -= dt;
+            if (StrikeTimeLeft > 0f)
+                return;
+            StrikeTimeLeft = 0f;
+            _launcher = null;
+            var f = Flagship;
+            if (f == null)
+                return;
+            Sim.Report($"궤도 포격 발사 · 기함 체력 -{f.MaxHp * _config.StrikeDamage:0}", true);
+            DamageFlagship(f.MaxHp * _config.StrikeDamage);
         }
 
         // ---------------- 요청 → 단계 ----------------
@@ -278,6 +414,8 @@ namespace SpaceStation.Simulation
         {
             if (Sim.Session.IsGameOver)
                 return;
+            if (dt > 0f)
+                TickTrump(dt);
             if (!Active)
             {
                 TryStartPending();
@@ -413,6 +551,11 @@ namespace SpaceStation.Simulation
             }
             if (outcome == RaidOutcome.Withdrew)
                 Sim.Report($"{Source} 함선 {AliveShips}척이 물러갔습니다", true);
+            if (StrikeCharging) // 쏠 기함이 없어짐 (카드는 쓴 것으로)
+            {
+                StrikeTimeLeft = 0f;
+                _launcher = null;
+            }
             Stage = RaidStage.None;
             _ships.Clear();
             TimeLeft = 0f;
@@ -443,11 +586,16 @@ namespace SpaceStation.Simulation
             public string PendingSource = "";
             public float PendingVisitScale = 1f;
             public float PendingDefense = 1f;
+            public int Trump;
+            public bool TrumpUsed;
+            public float Shield;
+            public float Strike;
+            public int Launcher = -1;
         }
 
         public override string Capture(Func<ModuleInstance, int> indexOf)
         {
-            bool any = Active || Pending;
+            bool any = Active || Pending || Trump != TrumpCard.None;
             for (int i = 0; i < FactionCount && !any; i++)
                 any = _fleetsHeld[i] > 0 || _pausedUntil[i] > 0f;
             if (!any)
@@ -459,6 +607,8 @@ namespace SpaceStation.Simulation
                 FleetsHeld = (int[])_fleetsHeld.Clone(), PausedUntil = (float[])_pausedUntil.Clone(),
                 PendingStage = (int)_pendingStage, PendingFaction = (int)_pendingFaction, PendingSource = _pendingSource,
                 PendingVisitScale = _pendingVisitScale, PendingDefense = _pendingDefense,
+                Trump = (int)Trump, TrumpUsed = TrumpUsed, Shield = ShieldTimeLeft, Strike = StrikeTimeLeft,
+                Launcher = _launcher != null ? indexOf(_launcher) : -1,
             });
         }
 
@@ -492,6 +642,11 @@ namespace SpaceStation.Simulation
             _pendingSource = s.PendingSource ?? "";
             _pendingVisitScale = s.PendingVisitScale > 0f ? s.PendingVisitScale : 1f;
             _pendingDefense = s.PendingDefense > 0f ? s.PendingDefense : 1f;
+            Trump = (TrumpCard)Mathf.Clamp(s.Trump, 0, 2);
+            TrumpUsed = s.TrumpUsed;
+            ShieldTimeLeft = Math.Max(0f, s.Shield);
+            _launcher = s.Launcher >= 0 ? moduleAt(s.Launcher) : null;
+            StrikeTimeLeft = _launcher != null ? Math.Max(0f, s.Strike) : 0f;
             Changed?.Invoke();
         }
     }

@@ -189,6 +189,102 @@ namespace SpaceStation.Tests
             Assert.AreEqual(raid.TimeLeft, loaded.RaidFleet.TimeLeft, 1e-3f);
         }
 
+        // ---------------- X1b 비장의 카드 ----------------
+
+        [Test]
+        public void Trump_ChosenOnce_UsedOnce()
+        {
+            var sim = Sim(StationRule.Contact | StationRule.FleetRaid);
+            var raid = sim.RaidFleet;
+            Assert.IsTrue(raid.TrumpChoicePending, "함대 습격이 열리면 고를 차례");
+            Assert.IsFalse(raid.CanUseTrump(out _));
+            Assert.IsTrue(raid.ChooseTrump(TrumpCard.ArkShield));
+            Assert.IsFalse(raid.ChooseTrump(TrumpCard.OrbitalStrike), "바꿀 수 없음");
+            Assert.IsFalse(raid.TrumpChoicePending);
+            Assert.IsFalse(raid.CanUseTrump(out string reason));
+            StringAssert.Contains("습격 중", reason);
+            raid.Start(RaidStage.Scout, ContactFaction.Outlaw, "무법 선단");
+            Assert.IsTrue(raid.UseArkShield());
+            Assert.IsFalse(raid.UseArkShield(), "한 판에 한 번");
+            Assert.IsTrue(raid.TrumpUsed);
+        }
+
+        [Test]
+        public void ArkShield_BlocksBombard_GeneratorDronesAtCore()
+        {
+            var sim = Sim(StationRule.Contact | StationRule.FleetRaid);
+            foreach (var d in new[] { Vector3Int.right, Vector3Int.left, new Vector3Int(0, 0, 1), new Vector3Int(0, 0, -1), Vector3Int.up, Vector3Int.down })
+                Assert.IsTrue(sim.Grid.TryPlace(_block, d, 0, out _));
+            var raid = sim.RaidFleet;
+            raid.ChooseTrump(TrumpCard.ArkShield);
+            raid.Start(RaidStage.Flagship, ContactFaction.Outlaw, "무법 선단");
+            Assert.IsTrue(raid.UseArkShield());
+            Assert.AreEqual(sim.Core, sim.Contact.BoardingTarget, "발생기 = 코어로 침입 드론");
+            Assert.IsNotEmpty(sim.Contact.BoardingTag);
+            for (int i = 0; i < 3; i++)
+                sim.Contact.DisableDrone();
+            Assert.IsFalse(sim.Contact.Boarding);
+            Assert.Greater(raid.ShieldTimeLeft, 0f, "드론을 다 끄면 방패가 이어짐");
+            int damaged = 0;
+            sim.Damage.Damaged += _ => damaged++;
+            for (int i = 0; i < 40; i++)
+                sim.Tick(1f);
+            Assert.AreEqual(0, damaged, "방패가 켜진 동안 포격이 모두 막힘 (예보 30초 뒤 첫 파)");
+        }
+
+        [Test]
+        public void ArkShield_GeneratorLost_ShieldDrops_CoreNotDamaged()
+        {
+            var sim = Sim(StationRule.Contact | StationRule.FleetRaid);
+            var raid = sim.RaidFleet;
+            raid.ChooseTrump(TrumpCard.ArkShield);
+            raid.Start(RaidStage.Flagship, ContactFaction.Outlaw, "무법 선단");
+            raid.UseArkShield();
+            for (int i = 0; i < 21; i++)
+                sim.Tick(1f);
+            Assert.AreEqual(0f, raid.ShieldTimeLeft, "드론을 못 끄면 방패가 바로 꺼짐");
+            Assert.IsFalse(sim.Damage.IsDamaged(sim.Core), "코어는 파손되지 않음");
+        }
+
+        [Test]
+        public void OrbitalStrike_LauncherHeld_HalvesFlagship()
+        {
+            var sim = Sim(StationRule.Contact | StationRule.FleetRaid);
+            Assert.IsTrue(sim.Grid.TryPlace(_turret, new Vector3Int(0, 0, 1), 0, out _));
+            Assert.IsTrue(sim.Grid.TryPlace(_block, Vector3Int.right, 0, out var launcher));
+            var raid = sim.RaidFleet;
+            raid.ChooseTrump(TrumpCard.OrbitalStrike);
+            raid.Start(RaidStage.Scout, ContactFaction.Outlaw, "무법 선단");
+            Assert.IsFalse(raid.UseOrbitalStrike(launcher), "기함에게만");
+            raid.DamageShip(0, 100f);
+            raid.DamageShip(1, 100f);
+            raid.Start(RaidStage.Flagship, ContactFaction.Outlaw, "무법 선단");
+            Assert.IsFalse(raid.UseOrbitalStrike(sim.Core), "코어는 발사대가 될 수 없음");
+            Assert.IsTrue(raid.UseOrbitalStrike(launcher));
+            Assert.IsTrue(raid.StrikeCharging);
+            for (int i = 0; i < 61 && raid.Active; i++)
+                sim.Tick(1f);
+            Assert.IsFalse(raid.StrikeCharging);
+            Assert.IsTrue(!raid.Active || raid.Flagship.Hp <= raid.Flagship.MaxHp * 0.5f, "포탑이 지키면 성공 → 기함 체력 절반");
+        }
+
+        [Test]
+        public void OrbitalStrike_LauncherDamaged_Fails()
+        {
+            var sim = Sim(StationRule.Contact | StationRule.FleetRaid);
+            Assert.IsTrue(sim.Grid.TryPlace(_block, Vector3Int.right, 0, out var launcher));
+            var raid = sim.RaidFleet;
+            raid.ChooseTrump(TrumpCard.OrbitalStrike);
+            raid.Start(RaidStage.Flagship, ContactFaction.Outlaw, "무법 선단");
+            Assert.IsTrue(raid.UseOrbitalStrike(launcher));
+            for (int i = 0; i < 61 && raid.StrikeCharging; i++)
+                sim.Tick(1f);
+            Assert.IsTrue(sim.Damage.IsDamaged(launcher), "포격이 발사대에 몰림");
+            Assert.IsFalse(raid.StrikeCharging);
+            Assert.AreEqual(raid.Flagship.MaxHp, raid.Flagship.Hp, 1e-3f, "실패하면 피해 없음");
+            Assert.IsTrue(raid.TrumpUsed);
+        }
+
         // ---------------- 도우미 ----------------
 
         private StationSimulation Sim(StationRule open)
