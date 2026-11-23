@@ -134,16 +134,17 @@ namespace SpaceStation.Building
         /// 꼭짓점 색 · 알파 (테스트에서 직접 호출). unit = 단위 구 꼭짓점, radius = 지금 크기, hitDir = 중심 → 닿은 자리, eye = 카메라 위치,
         /// spread 0 → 1 = 닿은 자리에서 반대편까지 퍼진 정도, flash = 닿은 자리 번쩍 세기.
         /// 앞면(카메라 쪽)만 보이고 윤곽이 밝음(기존 실드 막과 같은 테두리 빛), 아직 안 퍼진 자리는 투명.
+        /// fromInside = 카메라가 막 안 (내부 체험 오로라 보호막 — 안쪽 면이 앞면), bandLift = 오로라 띠를 위로 올림 (단위 구 y — 수면 위 반구 막은 띠가 위 절반에 오게).
         /// </summary>
         public static void Paint(Color[] colors, Vector3[] unit, Vector3 center, float radius, Vector3 hitDir, Vector3 eye,
-            float time, float spread, float flash)
+            float time, float spread, float flash, bool fromInside = false, float bandLift = 0f)
         {
             float frontFade = 1f - Smooth(0.85f, 1f, spread); // 다 퍼지면 앞 가장자리는 사라짐
             for (int q = 0; q < unit.Length; q++)
             {
                 Vector3 n = unit[q];
                 Vector3 toEye = (eye - (center + n * radius)).normalized;
-                float facing = Vector3.Dot(n, toEye);
+                float facing = Vector3.Dot(fromInside ? -n : n, toEye);
                 float front = Smooth(-0.12f, 0.05f, facing);                 // 뒷면은 감춤 (윤곽 근처만 이어짐)
                 float rim = Mathf.Pow(1f - Mathf.Clamp01(facing), 2.5f);     // 윤곽이 밝음 (기존 실드 파문처럼)
 
@@ -160,7 +161,7 @@ namespace SpaceStation.Building
                 float face = 0.15f + 0.85f * rim; // 가운데는 옅게 (정거장이 비쳐 보이게)
                 foreach (var b in Bands)
                 {
-                    float line = b.Offset + b.Amp * Mathf.Sin(lon * b.Waves + time * b.Speed + b.Phase);
+                    float line = b.Offset + bandLift + b.Amp * Mathf.Sin(lon * b.Waves + time * b.Speed + b.Phase);
                     float d = sy - line;
                     float k = d < 0f ? Mathf.Exp(-(d * d) / (b.Below * b.Below)) : Mathf.Exp(-(d * d) / (b.Above * b.Above));
                     if (d > 0f)

@@ -59,14 +59,26 @@ namespace SpaceStation.Editor
                 var offsets = new HashSet<Vector3Int>(data.CellOffsets);
                 var depths = new List<FaceDepth>();
                 var summary = new List<string>();
+                var template = TemplateFor(data);
                 foreach (var cell in data.CellOffsets)
                 {
                     foreach (var dir in GridDirections.Faces)
                     {
                         if (offsets.Contains(cell + dir))
                             continue;
-                        float depth = (rotatingTop && dir == Vector3Int.up) || data.IsClosedFace(cell, dir)
-                            ? -1f : Probe(colliders, TempOrigin + (Vector3)cell, dir);   // 12-5 닫힌 면 (단백질 배양실 뒤)
+                        float depth;
+                        if ((rotatingTop && dir == Vector3Int.up) || data.IsClosedFace(cell, dir))
+                            depth = -1f;   // 12-5 닫힌 면 (단백질 배양실 뒤)
+                        else if (template != null && HasOpenSocket(template, cell, dir))
+                            // 모든 면 연결 (2026-11-18): 실내 템플릿에 열린 문 자리가 있는 면은 꼭 통로 — 가운데 광선이 낮은 받침 · 둥근 모델을
+                            //  빗나가도 여러 높이로 다시 잼 (그래도 없으면 기본 깊이)
+                            depth = ProbeOpen(colliders, TempOrigin + (Vector3)cell, dir);
+                        else if (template != null && cell.y >= 1 && dir.y == 0)
+                            depth = -1f;   // 2층 이상 옆면은 실내 문이 있을 때만 통로 (사용자 2026-11-19 "수평 이동은 1층에서 꼭, 2층은 모델상 자연스러운 곳만")
+                        else if (template != null)
+                            depth = Probe(colliders, TempOrigin + (Vector3)cell, dir);   // 문 자리 없는 면은 예전처럼 광선대로 (지금 있는 통로를 지우지 않음)
+                        else
+                            depth = Probe(colliders, TempOrigin + (Vector3)cell, dir);
                         depths.Add(new FaceDepth(cell, dir, depth));
                         summary.Add($"{cell}{Short(dir)}={(depth < 0 ? "없음" : depth.ToString("0.00"))}");
                     }
@@ -80,6 +92,60 @@ namespace SpaceStation.Editor
             {
                 Object.DestroyImmediate(instance);
             }
+        }
+
+        private static Dictionary<ModuleData, InteriorTemplate> _templates;
+
+        /// <summary>모듈의 실내 템플릿 (없으면 null — 예전처럼 광선만으로 연결점을 정함).</summary>
+        private static InteriorTemplate TemplateFor(ModuleData data)
+        {
+            if (_templates == null)
+            {
+                _templates = new Dictionary<ModuleData, InteriorTemplate>();
+                foreach (var guid in AssetDatabase.FindAssets("t:InteriorTemplate", new[] { "Assets/_Project/Data/Interior" }))
+                {
+                    var t = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(AssetDatabase.GUIDToAssetPath(guid));
+                    if (t != null && t.Module != null)
+                        _templates[t.Module] = t;
+                }
+                EditorApplication.delayCall += () => _templates = null;
+            }
+            return _templates.TryGetValue(data, out var template) ? template : null;
+        }
+
+        private static bool HasOpenSocket(InteriorTemplate template, Vector3Int cell, Vector3Int dir)
+        {
+            foreach (var s in template.Sockets)
+            {
+                if (s.Cell == cell && s.Direction == dir && !s.SealedWall)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>열린 문 자리 면: 가운데 광선 → 면 안 여러 높이 · 옆 자리 광선 중 가장 바깥 표면 → 모두 빗나가면 기본 깊이.</summary>
+        private static float ProbeOpen(List<Collider> colliders, Vector3 center, Vector3Int dir)
+        {
+            float depth = Probe(colliders, center, dir);
+            if (depth >= 0f)
+                return depth;
+            Vector3 d = dir;
+            Vector3 u = Mathf.Abs(d.y) > 0.5f ? Vector3.right : Vector3.up;
+            Vector3 v = Vector3.Cross(d, u);
+            float best = -1f;
+            for (float a = -0.45f; a <= 0.451f; a += 0.05f)
+            {
+                for (float b = -0.3f; b <= 0.301f; b += 0.15f)
+                {
+                    var origin = center + d * RayStart + u * a + v * b;
+                    foreach (var hit in Physics.RaycastAll(origin, -d, RayStart, ~0, QueryTriggerInteraction.Ignore))
+                    {
+                        if (colliders.Contains(hit.collider))
+                            best = Mathf.Max(best, RayStart - hit.distance);
+                    }
+                }
+            }
+            return best >= 0f ? Mathf.Clamp(best, MinDepth, 0.5f) : ModuleData.DefaultFaceDepth;
         }
 
         private static float Probe(List<Collider> colliders, Vector3 center, Vector3Int dir)

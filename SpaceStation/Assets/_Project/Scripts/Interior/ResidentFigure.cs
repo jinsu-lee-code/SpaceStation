@@ -123,6 +123,10 @@ namespace SpaceStation.Interior
 
             // 지나갈 수 없게 + 바라보기 판정
             figure._capsule = root.AddComponent<CapsuleCollider>();
+            // 밟고 올라서지 못하게 머리 위까지 기둥 (사용자 2026-11-05 "앉은 주민을 비비면 바깥으로 나가서 떨어짐": 앉은 몸통 위 = 난간보다 높음). Ignore Raycast = 바라보기 · 상호작용 빛은 지금처럼 몸통에만
+            var noClimb = new GameObject("NoClimb") { layer = IgnoreRaycastLayer };
+            noClimb.transform.SetParent(root.transform, false);
+            figure._noClimb = noClimb.AddComponent<CapsuleCollider>();
             figure.SetColliderStanding(pose != ResidentPose.Sit);
             return figure;
         }
@@ -131,6 +135,9 @@ namespace SpaceStation.Interior
         private float _sitDrop;
         private float _tagTopStand;
         private CapsuleCollider _capsule;
+        private CapsuleCollider _noClimb;
+        private const int IgnoreRaycastLayer = 2;
+        private const float NoClimbHeight = 2.2f;
 
         /// <summary>11-16 ④ 앉은 주민이 일어서거나 다시 앉을 때 몸 충돌 모양을 바꿈.</summary>
         public void SetColliderStanding(bool standing)
@@ -142,6 +149,12 @@ namespace SpaceStation.Interior
             _capsule.radius = 0.24f * _scale;
             _capsule.height = Mathf.Max(height, _capsule.radius * 2f);
             _capsule.center = new Vector3(0f, sit ? _sitDrop + height * 0.4f : height * 0.5f, sit ? 0.05f : 0f);
+            if (_noClimb != null)
+            {
+                _noClimb.radius = _capsule.radius;
+                _noClimb.height = NoClimbHeight;
+                _noClimb.center = new Vector3(0f, NoClimbHeight * 0.5f, _capsule.center.z);
+            }
         }
 
         /// <param name="mood">11-16 기분 −1(나쁨) ~ +1(좋음) — 평소 동작 · 반응 (<see cref="ResidentMotion"/>)</param>

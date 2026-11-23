@@ -34,6 +34,16 @@ namespace SpaceStation.Building
         [SerializeField] private Vector2 _shelterCenter = new Vector2(1f, 1f);
         [SerializeField] private Vector3 _shelterAnglesDeg = new Vector3(30f, 150f, 270f);
         [SerializeField] private float _shelterHalfWidth = 0.06f;
+        [Header("크기 (기본값 = 바깥 모듈, 내부 템플릿은 미터 단위 값을 넣음)")]
+        [Tooltip("구름 고리 가운데 (구름 고리 부품 기준)")]
+        [SerializeField] private Vector3 _ringCenter = Vector3.zero;
+        [SerializeField] private Vector2 _dropSize = new Vector2(0.0035f, 0.0055f);
+        [SerializeField] private float _dropStretch = 0.035f;
+        [SerializeField] private float _sway = 0.03f;
+        [SerializeField] private Vector2 _mistSize = new Vector2(0.18f, 0.3f);
+        [SerializeField] private Vector2 _mistFall = new Vector2(0.16f, 0.26f);
+        [Tooltip("모듈 가동 여부와 상관없이 항상 내림 (바이오돔 내부)")]
+        [SerializeField] private bool _alwaysOn;
 
         private Material _drop;
         private Material _mist;
@@ -46,7 +56,7 @@ namespace SpaceStation.Building
         {
             _view = GetComponentInParent<ModuleView>();
             _live = _view != null && _view.Module != null;
-            if (_live)
+            if (_live || _alwaysOn)
                 Play();
         }
 
@@ -61,7 +71,7 @@ namespace SpaceStation.Building
             for (int i = 0; i < _cloudSpots.Length; i++)
             {
                 var spot = _cloudSpots[i];
-                var tangent = new Vector3(-spot.z, 0f, spot.x);
+                var tangent = new Vector3(-(spot.z - _ringCenter.z), 0f, spot.x - _ringCenter.x);
                 var holder = new GameObject("Rain_" + i).transform;
                 holder.SetParent(_clouds, false);
                 holder.localPosition = spot;
@@ -77,7 +87,7 @@ namespace SpaceStation.Building
         private Material Shelter(Material source)
         {
             var m = new Material(source) { name = source.name + " (Module)" };
-            m.SetFloat("_Shelter", 1f);
+            m.SetFloat("_Shelter", _shelterHalfWidth > 0f ? 1f : 0f);
             m.SetVector("_ShelterCenter", new Vector4(_shelterCenter.x, _shelterCenter.y, _shelterHalfWidth, 0f));
             m.SetVector("_ShelterAngles", new Vector4(_shelterAnglesDeg.x * Mathf.Deg2Rad, _shelterAnglesDeg.y * Mathf.Deg2Rad, _shelterAnglesDeg.z * Mathf.Deg2Rad, 0f));
             return m;
@@ -88,7 +98,7 @@ namespace SpaceStation.Building
             var ps = NewSystem(parent, "RainDrops", out var main, out var renderer);
             main.duration = 4f;
             main.startLifetime = new ParticleSystem.MinMaxCurve(life * 0.8f, life);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.0035f, 0.0055f);
+            main.startSize = new ParticleSystem.MinMaxCurve(_dropSize.x, _dropSize.y);
             main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.78f, 0.86f, 1f, 0.45f), new Color(0.92f, 0.96f, 1f, 0.7f));
             main.maxParticles = Mathf.CeilToInt(_rate * life * 1.3f);
             var emission = ps.emission;
@@ -96,12 +106,12 @@ namespace SpaceStation.Building
             var vel = ps.velocityOverLifetime;
             vel.enabled = true;
             vel.space = ParticleSystemSimulationSpace.World;
-            vel.x = new ParticleSystem.MinMaxCurve(-0.03f, 0.03f);   // 살짝 흔들리며
+            vel.x = new ParticleSystem.MinMaxCurve(-_sway, _sway);   // 살짝 흔들리며
             vel.y = new ParticleSystem.MinMaxCurve(-_fallSpeed * 1.12f, -_fallSpeed * 0.9f);
-            vel.z = new ParticleSystem.MinMaxCurve(-0.03f, 0.03f);
+            vel.z = new ParticleSystem.MinMaxCurve(-_sway, _sway);
             Fade(ps, 0.06f, 0.85f);
             renderer.renderMode = ParticleSystemRenderMode.Stretch; // 속도 방향으로 늘인 가는 빗줄
-            renderer.velocityScale = 0.035f;
+            renderer.velocityScale = _dropStretch;
             renderer.lengthScale = 1f;
             renderer.cameraVelocityScale = 0f;
             renderer.sharedMaterial = _drop;
@@ -114,7 +124,7 @@ namespace SpaceStation.Building
             var ps = NewSystem(parent, "RainMist", out var main, out var renderer);
             main.duration = 4f;
             main.startLifetime = new ParticleSystem.MinMaxCurve(2.2f, 3f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.3f);
+            main.startSize = new ParticleSystem.MinMaxCurve(_mistSize.x, _mistSize.y);
             main.startRotation = new ParticleSystem.MinMaxCurve(0f, 2f * Mathf.PI);
             main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.8f, 0.84f, 0.92f, 0.03f), new Color(0.88f, 0.92f, 0.97f, 0.055f)); // 진하면 연기 덩이처럼 보임
             main.maxParticles = 12;
@@ -123,9 +133,9 @@ namespace SpaceStation.Building
             var vel = ps.velocityOverLifetime;
             vel.enabled = true;
             vel.space = ParticleSystemSimulationSpace.World;
-            vel.x = new ParticleSystem.MinMaxCurve(-0.01f, 0.01f);
-            vel.y = new ParticleSystem.MinMaxCurve(-0.26f, -0.16f);
-            vel.z = new ParticleSystem.MinMaxCurve(-0.01f, 0.01f);
+            vel.x = new ParticleSystem.MinMaxCurve(-_sway / 3f, _sway / 3f);
+            vel.y = new ParticleSystem.MinMaxCurve(-_mistFall.y, -_mistFall.x);
+            vel.z = new ParticleSystem.MinMaxCurve(-_sway / 3f, _sway / 3f);
             var size = ps.sizeOverLifetime;
             size.enabled = true;
             size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0.7f, 1f, 1.4f));
@@ -177,7 +187,7 @@ namespace SpaceStation.Building
             var toModule = _module.worldToLocalMatrix;
             _drop.SetMatrix(WorldToModuleId, toModule);
             _mist.SetMatrix(WorldToModuleId, toModule);
-            bool raining = !_live || _view.Operational;
+            bool raining = _alwaysOn || !_live || _view.Operational;
             if (raining == _raining)
                 return;
             _raining = raining;

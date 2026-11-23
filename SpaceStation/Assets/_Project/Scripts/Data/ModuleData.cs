@@ -30,6 +30,8 @@ namespace SpaceStation.Data
         [SerializeField] private Vector3Int _dockFront = new Vector3Int(0, 0, 1);
         [Tooltip("앞쪽 접근로 길이 (칸). 이 칸들에는 아무것도 지을 수 없다")]
         [SerializeField, Min(1)] private int _approachLaneLength = 2;
+        [Tooltip("비워 둘 칸 (회전 0 기준 오프셋, 모듈 칸 밖): 모델이 지나가는 칸 (대형 토러스 고리 안쪽 대각선 4칸). 지을 · 합성할 때 비어 있어야 하고 이후에도 그 칸에는 아무것도 못 지음")]
+        [SerializeField] private List<Vector3Int> _keepClearCells = new List<Vector3Int>();
 
         [Tooltip("7-7 받침 규칙: 이 모듈 맨 위층의 옆면에 맞닿는 칸은 바로 아래에 모듈이 있어야 설치 가능 (코어 2층 = 연결점 없는 탑). 나머지 칸은 자유")]
         [SerializeField] private bool _upperSidesNeedSupport;
@@ -53,6 +55,9 @@ namespace SpaceStation.Data
         [Header("Power (BALANCE 14번)")]
         [Tooltip("전력 생산이 낮/밤 주기를 따름 (태양광)")]
         [SerializeField] private bool _solarPowered;
+        [Tooltip("바깥 패널이 해를 따라 기욺 (SunFacingPanel — 기본 태양광 · 태양광 어레이) — 수평 통로는 패널 회전축과 나란한 옆면에만. " +
+                 "태양광으로 발전해도 패널이 기울지 않는 모듈 (궤도 미러 · 항성 발전망)은 끔 (2026-11-20: 항성 발전망 긴 면에 통로가 안 생겼음), 태양광 어레이도 끔 (사용자 \"앞뒤로도 생기게\")")]
+        [SerializeField] private bool _tiltingPanels;
         [Tooltip("배터리 저장 용량 (전력×초)")]
         [SerializeField, Min(0f)] private float _batteryCapacity;
         [Tooltip("배터리 충·방전 최대 속도 (초당)")]
@@ -221,6 +226,7 @@ namespace SpaceStation.Data
         public bool TerminalOnly => _terminalOnly;
         public Vector3Int DockFront => _dockFront;
         public int ApproachLaneLength => Mathf.Max(1, _approachLaneLength);
+        public IReadOnlyList<Vector3Int> KeepClearCells => _keepClearCells;
         public bool UpperSidesNeedSupport => _upperSidesNeedSupport;
         public IReadOnlyList<FaceDepth> FaceDepths => _faceDepths;
 
@@ -269,6 +275,7 @@ namespace SpaceStation.Data
         public int HousingCapacity => _housingCapacity;
         public float StorageBonus => _storageBonus;
         public bool SolarPowered => _solarPowered;
+        public bool TiltingPanels => _tiltingPanels;
         public float BatteryCapacity => _batteryCapacity;
         public float BatteryRate => _batteryRate;
         public bool OnDemandPower => _onDemandPower;
@@ -309,6 +316,11 @@ namespace SpaceStation.Data
                 Debug.LogWarning($"{name}: 점유 셀 오프셋이 비어 있음", this);
             else if (!_cellOffsets.Contains(Vector3Int.zero))
                 Debug.LogWarning($"{name}: 오프셋에 원점(0,0,0)이 없음. 피벗 셀이 모듈 밖에 있게 됨", this);
+            foreach (var c in _keepClearCells)
+            {
+                if (_cellOffsets.Contains(c))
+                    Debug.LogWarning($"{name}: 비워 둘 칸 {c}이 모듈 칸과 겹침", this);
+            }
         }
     }
 }

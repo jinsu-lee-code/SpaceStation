@@ -830,8 +830,11 @@ namespace SpaceStation.Editor.Balance
 
         private System.Func<IReadOnlyList<Vector3Int>, float> _extraScore;
 
-        /// <summary>기존 모듈 주변 빈 셀 × 회전 중 유효한 자리. 맞닿는 면이 많을수록(조밀), 원점에 가까울수록 우선.</summary>
-        private bool TryFindPlacement(ModuleData data, out Vector3Int bestOrigin, out int bestRotation)
+        /// <summary>
+        /// 기존 모듈 주변 빈 셀 × 회전 중 유효한 자리. 맞닿는 면이 많을수록(조밀), 원점에 가까울수록 우선.
+        /// also = 자리마다 더 볼 조건 (합성 틀: 틀에만 있는 칸도 비어 있어야 함), null이면 없음.
+        /// </summary>
+        private bool TryFindPlacement(ModuleData data, out Vector3Int bestOrigin, out int bestRotation, System.Func<Vector3Int, int, bool> also = null)
         {
             bestOrigin = default;
             bestRotation = 0;
@@ -847,6 +850,8 @@ namespace SpaceStation.Editor.Balance
                 {
                     int rot = rotation.Rotation;
                     if (AnyOccupied(origin, rotation.Offsets) || !ZoneAllows(origin, rotation.Offsets) || PlacementRules.Evaluate(_sim.Grid, data, origin, rot) != PlacementResult.Valid)
+                        continue;
+                    if (also != null && !also(origin, rot))
                         continue;
                     // 조밀 배치(운석 노출 감소) 선호. 태양광은 그늘 때문에 접촉 가산을 줄임.
                     float contactWeight = data.SolarPowered ? 1f : 10f;

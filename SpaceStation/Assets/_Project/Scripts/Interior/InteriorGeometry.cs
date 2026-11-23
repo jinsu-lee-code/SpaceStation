@@ -82,6 +82,29 @@ namespace SpaceStation.Interior
         public const float HatchSize = 1.4f;
         public const float TubeHalfWidth = 1.25f;
         public const float TubeHeight = 2.8f;
+        /// <summary>
+        /// 빛 다리 승강판 (문 승강판인데 판이 문턱과 같은 높이 — 문 앞이 물길 · 좁은 턱이라 걸어 들어갈 수 없는 옆문, 화물 환적장 후룸, 모든 면 연결 2026-11-19):
+        /// 판에서 문턱 + 이만큼 떠올라 물길 위를 건넘 (보트 탄 머리 위 — 물 −1.33 · 앉은 머리 약 0.1, 미끄럼틀 물길 벽 끝 문턱 + 2.17 위).
+        /// </summary>
+        public const float BridgeLiftRise = 2.5f;
+
+        /// <summary>
+        /// 빛 다리가 문 앞에서 오르내리는 자리 = 문 평면 안쪽 이만큼 · 문턱 + BridgeLowRise (문틀 (두께 0.2) 위 벽 앞 — 문턱 바로 안에서 오르내리면 눈이 문틀 위 벽 속으로 들어감,
+        /// 물길 바깥 테 (문턱 + 0.46) 바로 위). 거기서 문을 지나 튜브로 비스듬히 내려섬.
+        /// </summary>
+        public const float BridgeInset = 0.6f, BridgeLowRise = 0.55f;
+
+        /// <summary>문 승강판 중 빛 다리 (판이 문턱보다 0.6 m 안 아래 — 보통 문 승강판은 1.2 m 넘게 아래).</summary>
+        public static bool IsBridgeLift(float padY, float sillY) => sillY - padY < 0.6f;
+
+        /// <summary>
+        /// 문 계단 (모든 면 연결 ②, 2026-11-19 — 문 안 바닥이 문턱보다 낮은 정원 방): 문 평면에서 안쪽으로 층계참 깊이 · 문 폭 방향 반폭,
+        /// 한쪽 옆으로 내려가는 단 수 · 단 너비, 키트 조각 높이 (다르면 세로로 늘림). 키트 = connector_builder.py kit_door_steps.
+        /// </summary>
+        public const float StepsLandingDepth = 1.0f, StepsHalfWidth = 1.1f, StepRun = 0.3f, StepsKitRise = 0.78f;   // 층계참 1.0 = 문 벽 (0.2) ~ 난간 사이 0.72 (0.85면 0.56 — 플레이어 지름 0.6이 옆으로 못 지나감)
+        public const int StepCount = 3;
+        /// <summary>문 계단 끝 (마지막 단 앞 땅 가운데) — 문 평면 가운데에서 옆 거리.</summary>
+        public const float StepsFootLateral = StepsHalfWidth + StepCount * StepRun + 0.35f;
 
         public static Vector3 CellCenter(Vector3Int cell) => new Vector3(cell.x, cell.y, cell.z) * CellSize;
         public static float FloorY(Vector3Int cell) => cell.y * CellSize + FloorOffset;

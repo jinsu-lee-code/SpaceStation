@@ -47,6 +47,10 @@ namespace SpaceStation.Data
         [SerializeField] private InteriorKitPiece _ceiling;
         [SerializeField] private InteriorKitPiece _hatchFrame;
         [SerializeField] private InteriorKitPiece _hatchLid;
+        [Tooltip("실내형 방의 닫힌 문 자리 (InteriorTemplate.SealedSockets): 비어 있으면 Wall")]
+        [SerializeField] private InteriorKitPiece _sealedWall;
+        [Tooltip("닫힌 문 자리 뒤 하늘 조각 (하늘 껍질의 문 구멍을 메움): 칸 경계에 놓음 — 패널 뒤에 붙이면 문 깊이에 따라 옆 칸으로 튀어나옴")]
+        [SerializeField] private InteriorKitPiece _skyPatch;
 
         public int Stage => _stage;
         public IReadOnlyList<ModuleData> Modules => _modules;
@@ -57,10 +61,82 @@ namespace SpaceStation.Data
         public InteriorKitPiece Ceiling => _ceiling;
         public InteriorKitPiece HatchFrame => _hatchFrame;
         public InteriorKitPiece HatchLid => _hatchLid;
+        public InteriorKitPiece SealedWall => _sealedWall;
+        public InteriorKitPiece SkyPatch => _skyPatch;
+
+        [Header("진화 단계별 연결 통로 (2026-11-17, SM_InteriorKit_Tubes.fbx)")]
+        [Tooltip("통로 몸 (길이 Z 1 m — 늘려 씀, 바닥 y 0): 1 세라믹 튜브 · 2 현관 포드 · 3 · 4 다리 데크 + 하늘 껍질")]
+        [SerializeField] private InteriorKitPiece _tube;
+        [Tooltip("통로 끝 (벽 속으로 0.153 묻음): 테 · 문턱판")]
+        [SerializeField] private InteriorKitPiece _tubeCollar;
+        [Tooltip("간격마다 놓는 조각 (갈비 · 빛 아치 · 난간 기둥 + 정원등)")]
+        [SerializeField] private InteriorKitPiece _tubeRing;
+        [SerializeField] private float _tubeRingStep = 1.5f;
+        [Tooltip("2단계 얇은 우주복 현관 (양옆 보관함 + 우주복, 길이 0.64 m)")]
+        [SerializeField] private InteriorKitPiece _vestibule;
+        [Tooltip("짧은 틈 (0.7 m 아래 — 트인 방끼리) 문턱판만 (길이 Z 1 m — 늘려 씀)")]
+        [SerializeField] private InteriorKitPiece _tubeShort;
+
+        public InteriorKitPiece TubeShort => _tubeShort != null && _tubeShort.IsValid ? _tubeShort : null;
+
+        public InteriorKitPiece Tube => _tube;
+        public InteriorKitPiece TubeCollar => _tubeCollar;
+        public InteriorKitPiece TubeRing => _tubeRing;
+        public float TubeRingStep => _tubeRingStep;
+        public InteriorKitPiece Vestibule => _vestibule;
+        public bool HasTube => _tube != null && _tube.IsValid && _tubeCollar != null && _tubeCollar.IsValid;
+
+        public void EditorSetTubes(InteriorKitPiece tube, InteriorKitPiece collar, InteriorKitPiece ring, float ringStep, InteriorKitPiece vestibule, InteriorKitPiece shortTube)
+        {
+            _tube = tube;
+            _tubeCollar = collar;
+            _tubeRing = ring;
+            _tubeRingStep = ringStep;
+            _vestibule = vestibule;
+            _tubeShort = shortTube;
+        }
+
+        [Header("빛 기둥 승강판 (진화 단계별 통로 ③, 하늘이 트인 방의 위 연결점)")]
+        [Tooltip("바닥 판 (윗면 = 피벗 + 0.05, 옆 치마가 아래로 0.25 — 언덕에 묻힘), 빛 테 = 강조 슬롯")]
+        [SerializeField] private InteriorKitPiece _skyLiftPad;
+        [Tooltip("기둥 꼭대기 고리 (하늘 껍질 바로 아래, 피벗 = 고리 가운데)")]
+        [SerializeField] private InteriorKitPiece _skyLiftRing;
+
+        public InteriorKitPiece SkyLiftPad => _skyLiftPad != null && _skyLiftPad.IsValid ? _skyLiftPad : null;
+        public InteriorKitPiece SkyLiftRing => _skyLiftRing != null && _skyLiftRing.IsValid ? _skyLiftRing : null;
+
+        public void EditorSetSkyLift(InteriorKitPiece pad, InteriorKitPiece ring)
+        {
+            _skyLiftPad = pad;
+            _skyLiftRing = ring;
+        }
+
+        [Tooltip("문 계단 (모든 면 연결 ②): 문 안 바닥이 낮은 옆문 앞 층계참 + 세 단 + 난간 (피벗 = 문 평면 · 문턱 가운데, 방 쪽 −z, 계단 +x, 높이 0.78)")]
+        [SerializeField] private InteriorKitPiece _doorSteps;
+
+        public InteriorKitPiece DoorSteps => _doorSteps != null && _doorSteps.IsValid ? _doorSteps : null;
+
+        public void EditorSetDoorSteps(InteriorKitPiece steps) => _doorSteps = steps;
+
+        [Tooltip("위아래 이동 장치 (2026-11-19, 단계 테마 — 피벗 = 발판 밑 땅 가운데, 발판 윗면 y 0.14, 앞 = −z)")]
+        [SerializeField] private InteriorKitPiece _transit;
+
+        public InteriorKitPiece Transit => _transit != null && _transit.IsValid ? _transit : null;
+
+        public void EditorSetTransit(InteriorKitPiece transit) => _transit = transit;
+
+        [Tooltip("벽 위아래 이동 장치 (2026-11-19 — 길을 막는 방: 피벗 = 벽 면 · 바닥, 방 쪽 −z, 서는 자리 z −0.5)")]
+        [SerializeField] private InteriorKitPiece _transitWall;
+
+        public InteriorKitPiece TransitWall => _transitWall != null && _transitWall.IsValid ? _transitWall : null;
+
+        public void EditorSetTransitWall(InteriorKitPiece transit) => _transitWall = transit;
 
         public InteriorKitStage(int stage, List<ModuleData> modules, InteriorKitPiece wall, InteriorKitPiece wallDoor, InteriorKitPiece doorLeaf,
-            InteriorKitPiece floor, InteriorKitPiece ceiling, InteriorKitPiece hatchFrame, InteriorKitPiece hatchLid)
+            InteriorKitPiece floor, InteriorKitPiece ceiling, InteriorKitPiece hatchFrame, InteriorKitPiece hatchLid, InteriorKitPiece sealedWall = null, InteriorKitPiece skyPatch = null)
         {
+            _sealedWall = sealedWall;
+            _skyPatch = skyPatch;
             _stage = stage;
             _modules = modules ?? new List<ModuleData>();
             _wall = wall;
@@ -146,12 +222,93 @@ namespace SpaceStation.Data
 
         // 모듈 방에 쓸 조각 — 진화 단계 묶음에 그 모듈이 있고 조각이 있으면 단계 조각, 아니면 기본 조각
         public InteriorKitPiece WallFor(ModuleData data) => Pick(StageOf(data)?.Wall, _wall);
+        public InteriorKitPiece SealedWallFor(ModuleData data) => Pick(StageOf(data)?.SealedWall, WallFor(data));
+        public InteriorKitPiece SkyPatchFor(ModuleData data) => Pick(StageOf(data)?.SkyPatch, null);
         public InteriorKitPiece WallDoorFor(ModuleData data) => Pick(StageOf(data)?.WallDoor, _wallDoor);
         public InteriorKitPiece DoorLeafFor(ModuleData data) => Pick(StageOf(data)?.DoorLeaf, _doorLeaf);
         public InteriorKitPiece FloorFor(ModuleData data) => Pick(StageOf(data)?.Floor, _floor);
         public InteriorKitPiece CeilingFor(ModuleData data) => Pick(StageOf(data)?.Ceiling, _ceiling);
         public InteriorKitPiece HatchFrameFor(ModuleData data) => Pick(StageOf(data)?.HatchFrame, _hatchFrame);
         public InteriorKitPiece HatchLidFor(ModuleData data) => Pick(StageOf(data)?.HatchLid, _hatchLid);
+
+        [Header("에어록 (진화 단계별 연결 통로)")]
+        [Tooltip("통로 끝 에어록 문틀 (문 구멍 둘레, 벽 속으로 0.153 묻음)")]
+        [SerializeField] private InteriorKitPiece _airlockFrame;
+        [Tooltip("에어록 문짝 (보통 문짝과 같은 0.72 × 2.4, 둥근 창 · 빛줄)")]
+        [SerializeField] private InteriorKitPiece _airlockLeaf;
+
+        public InteriorKitPiece AirlockFrame => _airlockFrame != null && _airlockFrame.IsValid ? _airlockFrame : null;
+        public InteriorKitPiece AirlockLeaf => _airlockLeaf != null && _airlockLeaf.IsValid ? _airlockLeaf : null;
+
+        [Tooltip("빛 기둥 승강판의 빛 기둥 재질 (SpaceStation/LightShaft — 색은 방 강조색으로 칠함)")]
+        [SerializeField] private Material _skyLiftShaft;
+
+        [Tooltip("기본 방 위아래 이동 장치 (2026-11-19 화물 승강기 칸 — 단계 장치가 없는 방)")]
+        [SerializeField] private InteriorKitPiece _transitBasic;
+        [SerializeField] private InteriorKitPiece _transitWallBasic;
+
+        [Tooltip("위아래 이동 장치 연출 (2026-11-20 사용자 \"너무 밋밋해 보이는데 이펙트 넣어서 이쁘게\"): 피어오르는 빛 알갱이 (M_Spark — 부드러운 빛 점, 가산) · 발판 둘레로 퍼지는 빛 고리 (M_Ripple)")]
+        [SerializeField] private Material _transitMote;
+        [SerializeField] private Material _transitRipple;
+        [Tooltip("단계 테마 연출 (2026-11-20 사용자 \"못생겼는데 단계별 모듈에 맞게 이쁘게\"): 3단계 꽃잎 · 2 · 4단계 네 갈래 별빛 · 4단계 성운 안개")]
+        [SerializeField] private Material _transitPetal;
+        [SerializeField] private Material _transitStar;
+        [SerializeField] private Material _transitCloud;
+
+        public Material SkyLiftShaft => _skyLiftShaft;
+        public Material TransitMote => _transitMote;
+        public Material TransitRipple => _transitRipple;
+        public Material TransitPetal => _transitPetal;
+        public Material TransitStar => _transitStar;
+        public Material TransitCloud => _transitCloud;
+        /// <summary>그 방의 위아래 이동 장치 (단계 장치 → 없으면 기본 화물 승강기 칸, 둘 다 없으면 null).</summary>
+        public InteriorKitPiece TransitFor(ModuleData data) => StageOf(data)?.Transit ?? (_transitBasic != null && _transitBasic.IsValid ? _transitBasic : null);
+        /// <summary>위아래 이동 장치의 단계 (단계 장치를 쓰면 그 단계, 기본 칸 = 0).</summary>
+        public int TransitStage(ModuleData data) => StageOf(data)?.Transit != null ? StageNumber(data) : 0;
+        /// <summary>그 방의 벽 위아래 이동 장치 (단계 → 기본 벽 화물 승강기).</summary>
+        public InteriorKitPiece TransitWallFor(ModuleData data) => StageOf(data)?.TransitWall ?? (_transitWallBasic != null && _transitWallBasic.IsValid ? _transitWallBasic : null);
+        public InteriorKitPiece SkyLiftPadFor(ModuleData data) => StageOf(data)?.SkyLiftPad;
+        public InteriorKitPiece SkyLiftRingFor(ModuleData data) => StageOf(data)?.SkyLiftRing;
+        public InteriorKitPiece DoorStepsFor(ModuleData data) => StageOf(data)?.DoorSteps;
+
+        /// <summary>모듈 방의 진화 단계 (단계 키트 묶음 — 기본 모듈 · 템플릿 없는 방 = 0).</summary>
+        public int StageNumber(ModuleData data) => StageOf(data)?.Stage ?? 0;
+
+        /// <summary>그 단계의 통로 한 벌 (없으면 null = 기본 튜브).</summary>
+        public InteriorKitStage TubeStage(int stage)
+        {
+            if (_stages == null || stage <= 0)
+                return null;
+            foreach (var s in _stages)
+            {
+                if (s != null && s.Stage == stage && s.HasTube)
+                    return s;
+            }
+            return null;
+        }
+
+#if UNITY_EDITOR
+        public void EditorSetAirlock(InteriorKitPiece frame, InteriorKitPiece leaf)
+        {
+            _airlockFrame = frame;
+            _airlockLeaf = leaf;
+        }
+
+        public void EditorSetSkyLiftShaft(Material shaft) => _skyLiftShaft = shaft;
+
+        public void EditorSetTransitFx(Material mote, Material ripple, Material petal, Material star, Material cloud)
+        {
+            _transitMote = mote;
+            _transitRipple = ripple;
+            _transitPetal = petal;
+            _transitStar = star;
+            _transitCloud = cloud;
+        }
+
+        public void EditorSetTransitBasic(InteriorKitPiece transit) => _transitBasic = transit;
+
+        public void EditorSetTransitWallBasic(InteriorKitPiece transit) => _transitWallBasic = transit;
+#endif
 
         public InteriorKitStage StageOf(ModuleData data)
         {

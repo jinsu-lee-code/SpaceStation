@@ -24,16 +24,17 @@ namespace SpaceStation.Editor
 
         /// <summary>
         /// 모델마다 다른 연출 재질 {모델 key: {FBX 슬롯: ModuleFxMaterials 이름}} (사용자 2026-10-27 플레이 점검):
-        /// 실드 돔 오로라 커튼 = 일렁이는 셰이더 (방사선 차폐벽 · 환적장 은하수 띠는 같은 FX_AuroraViolet이라도 그대로),
-        /// 융합 발전소 · 융합 플랜트 = 흐르는 플라즈마 (기본 핵융합로는 그대로), 궤도 미러 빛줄기 = 숨기고 LightBeamFx가 빛기둥으로 그림.
-        /// 궤도 방어망 오로라 보호막 커튼 셋 = 같은 셰이더의 UV 모드 (3 · 4단계 반영 ② 2026-10-29).
+        /// 실드 돔 · 궤도 방어망 오로라 = 구운 얇은 판 · 빛줄을 숨기고 AuroraFx가 부드러운 커튼으로 그림 (사용자 2026-11-02 "칼로 자른 것처럼 보임", 환적장 은하수 띠는 같은 FX_AuroraViolet이라도 그대로),
+        /// 방사선 차폐벽 물 = 은하수 강 셰이더 (사용자 2026-11-02 "보라색 선 — 오염된 물 같음", 속 보라 띠는 숨김),
+        /// 융합 발전소 · 융합 플랜트 = 흐르는 플라즈마, 궤도 미러 빛줄기 = 숨기고 LightBeamFx가 빛기둥으로 그림.
         /// 흐르는 빛 (④ 2026-10-29, PulseGlow): AI 중추 빛 신경 (보라 · 금이 뇌로 모여듦), 심우주 통신기지 신호 (하늘빛이 가운데 돔 위에서 퍼짐),
         /// 항성 발전망 꿀 빛, 궤도 항만 진주 빛 — 같은 형광 재질이라도 다른 모듈은 그대로.
         /// </summary>
         private static readonly Dictionary<string, Dictionary<string, string>> FxOverrides = new Dictionary<string, Dictionary<string, string>>
         {
-            { "Evo_ShieldDome", new Dictionary<string, string> { { "FX_AuroraGreen", "AuroraCurtainGreen" }, { "FX_AuroraViolet", "AuroraCurtainViolet" } } },
-            { "Evo_OrbitalDefense", new Dictionary<string, string> { { "FX_AuroraGreen", "AuroraCurtainGreenUV" }, { "FX_AuroraViolet", "AuroraCurtainVioletUV" } } },
+            { "Evo_ShieldDome", new Dictionary<string, string> { { "FX_AuroraGreen", "Hidden" }, { "FX_AuroraViolet", "Hidden" }, { "FX_FluorTeal", "Hidden" } } },
+            { "Evo_OrbitalDefense", new Dictionary<string, string> { { "FX_AuroraGreen", "Hidden" }, { "FX_AuroraViolet", "Hidden" } } },
+            { "Evo_RadiationWall", new Dictionary<string, string> { { "FX_GalaxyWater", "MilkyRiver" }, { "FX_AuroraViolet", "Hidden" } } },
             { "Evo_AICore", new Dictionary<string, string> { { "FX_FluorPurple", "NeuralPurple" }, { "FX_FluorGold", "NeuralGold" } } },
             { "Evo_DeepSpaceComm", new Dictionary<string, string> { { "FX_FluorCyan", "SignalCyan" } } },
             { "Evo_StellarGrid", new Dictionary<string, string> { { "FX_FluorGold", "HoneyGold" } } },
@@ -546,6 +547,7 @@ namespace SpaceStation.Editor
             // 진화 궤도 미러: 모델의 가는 빛줄기(FX_LightBeam — 슬롯은 FxOverrides로 비움)를 빛기둥으로 다시 그림 (LightBeamFx)
             if (model.name == "SM_Evo_OrbitalMirror")
                 WireLightShafts(instance);
+            WireAurora(instance, model.name);
             // 진화 대형 토러스 · 정련 콤비나트 · 드론 정비창 (사용자 2026-10-27): 모델에 구운 멈춘 입자(가져올 때 지움, EvoBakedFxStrip)를 움직이는 연출로
             //   열차 굴뚝 = Blender build_grand_torus 기관차 굴뚝 꼭대기 (열차 부품 기준 — 부품 원점 = 허브 축),
             //   배출구 = build_refinery_combine 꼭대기 열 배출구 위, 드론 쇼 = build_drone_depot 드론 무리 부품 원점 (옥상 위 가운데)
@@ -688,7 +690,7 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>동물 이름 끝 (Blender CritterSet 종류) → 움직임.</summary>
-        private static readonly Dictionary<string, SpaceStation.Building.CritterFx.Kind> CritterKinds = new Dictionary<string, SpaceStation.Building.CritterFx.Kind>
+        internal static readonly Dictionary<string, SpaceStation.Building.CritterFx.Kind> CritterKinds = new Dictionary<string, SpaceStation.Building.CritterFx.Kind>
         {
             { "Duck", SpaceStation.Building.CritterFx.Kind.Swim }, { "Swan", SpaceStation.Building.CritterFx.Kind.Swim },
             { "Duckling", SpaceStation.Building.CritterFx.Kind.Follow }, { "Turtle", SpaceStation.Building.CritterFx.Kind.Drift },
@@ -697,7 +699,8 @@ namespace SpaceStation.Editor
             { "Fawn", SpaceStation.Building.CritterFx.Kind.Graze }, { "Bunny", SpaceStation.Building.CritterFx.Kind.Hop },
             { "Seal", SpaceStation.Building.CritterFx.Kind.Bask }, { "SealPup", SpaceStation.Building.CritterFx.Kind.Bask },
             { "Crab", SpaceStation.Building.CritterFx.Kind.Scuttle }, { "Owl", SpaceStation.Building.CritterFx.Kind.Perch },
-            { "Hedgehog", SpaceStation.Building.CritterFx.Kind.Snuffle },
+            { "Hedgehog", SpaceStation.Building.CritterFx.Kind.Snuffle }, { "PondTurtle", SpaceStation.Building.CritterFx.Kind.Bask },   // 연못 거북 = 바위 위 볕 쬐기 (수리 사령부 내부)
+            { "Dolphin", SpaceStation.Building.CritterFx.Kind.Leap }, { "Puffin", SpaceStation.Building.CritterFx.Kind.Perch },   // 궤도 방어망 내부 바다 동물
         };
 
         // 항성 발전망 꿀벌 고리 길 = Blender build_stellar_grid loop(θ): 가운데 (3, 0.45) · 반지름 (EX − 3.06 = 1.42, 0.5),
@@ -1090,7 +1093,7 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>동물 앞쪽 (부모 기준 가로 단위 벡터) · 간격 반지름 — 메시 정점을 부모 축으로 돌려서 잼.</summary>
-        private static void CritterShape(Transform part, Transform wings, SpaceStation.Building.CritterFx.Kind kind, out Vector3 heading, out float radius)
+        internal static void CritterShape(Transform part, Transform wings, SpaceStation.Building.CritterFx.Kind kind, out Vector3 heading, out float radius)
         {
             var pts = new List<Vector3>();
             foreach (var p in part.GetComponent<MeshFilter>().sharedMesh.vertices)
@@ -1255,6 +1258,55 @@ namespace SpaceStation.Editor
         }
 
         /// <summary>
+        /// 오로라 커튼 (AuroraFx, 사용자 2026-11-02): 띠 자리 = Blender 원본의 띠 — 실드 돔 _aurora_ribbon 셋 (등대 둘레 호 + 주름), 궤도 방어망 CURTAINS 셋 (x, z 길 · 아래 높이 · 높이).
+        /// 프리팹을 다시 굽지 않고 고칠 때도 부를 수 있게 public.
+        /// </summary>
+        public static void WireAurora(GameObject instance, string modelName)
+        {
+            SpaceStation.Building.AuroraRibbon[] ribbons = null;
+            if (modelName == "SM_Evo_ShieldDome")
+            {
+                SpaceStation.Building.AuroraRibbon Arc(float radius, float from, float to, float y, float height, float folds, float phase)
+                {
+                    const int n = 48;
+                    var path = new Vector3[n + 1];
+                    for (int i = 0; i <= n; i++)
+                    {
+                        float s = i / (float)n;
+                        float a = Mathf.Deg2Rad * Mathf.Lerp(from, to, s);
+                        float r = radius + 0.04f * Mathf.Sin(2f * Mathf.PI * folds * s + phase);
+                        path[i] = new Vector3(0.4f + r * Mathf.Cos(a), y + 0.05f * Mathf.Sin(2f * Mathf.PI * 1.5f * s + phase), 0.6f + r * Mathf.Sin(a));
+                    }
+                    // 각이 늘어나는 호 = 면 수직이 등대 바깥 — 위로 갈수록 바깥으로 기움
+                    return new SpaceStation.Building.AuroraRibbon(path, height, 0.05f);
+                }
+                ribbons = new[] { Arc(0.55f, 5f, 150f, 0.38f, 0.36f, 3f, 0.7f), Arc(0.68f, 35f, 172f, 0.48f, 0.32f, 4f, 2.4f), Arc(0.68f, 182f, 238f, 0.42f, 0.28f, 2f, 4.1f) };
+            }
+            else if (modelName == "SM_Evo_OrbitalDefense")
+            {
+                SpaceStation.Building.AuroraRibbon Curtain(int n, System.Func<float, Vector2> at, float y, float height)
+                {
+                    var path = new Vector3[n + 1];
+                    for (int i = 0; i <= n; i++)
+                    {
+                        var p = at(i / (float)n);
+                        path[i] = new Vector3(p.x, y, p.y);
+                    }
+                    return new SpaceStation.Building.AuroraRibbon(path, height, 0.04f);
+                }
+                ribbons = new[]
+                {
+                    Curtain(30, t => new Vector2(1.3f + 2.75f * t, 1.02f - 0.3f * t + 0.12f * Mathf.Sin(5f * t)), 0.2f, 0.34f),
+                    Curtain(28, t => new Vector2(1.32f + 2.6f * t, 0.5f + 0.1f * Mathf.Sin(4f * t + 1f)), 0.25f, 0.26f),
+                    Curtain(18, t => new Vector2(-0.25f + 1.55f * t, 1.15f - 0.32f * Mathf.Sin(Mathf.PI * t)), 1.02f, 0.34f),
+                };
+            }
+            if (ribbons == null)
+                return;
+            instance.AddComponent<SpaceStation.Building.AuroraFx>().Configure(ModuleFxMaterials.Get("AuroraCurtain"), ribbons);
+        }
+
+        /// <summary>
         /// 궤도 미러 빛기둥 (사용자 2026-10-27 "선처럼 보임 → 진짜 빛줄기"): 모델 빛줄기 메시(가는 원기둥 여럿)를 이어진 덩어리로 나눠
         /// 덩어리마다 양끝을 찾고, 끝이 몰리는 쪽(집광 수신기)을 "to"로 LightBeamFx에 넘긴다. 위치는 모델 기준.
         /// </summary>
@@ -1284,14 +1336,57 @@ namespace SpaceStation.Editor
             so.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("LightShaft");
             var pf = so.FindProperty("_from");
             var pt = so.FindProperty("_to");
+            var pd = so.FindProperty("_mirrorDiameters");
             pf.arraySize = from.Count;
             pt.arraySize = to.Count;
+            pd.arraySize = from.Count;
+            var mirrors = MirrorPoints(instance);
             for (int i = 0; i < from.Count; i++)
             {
                 pf.GetArrayElementAtIndex(i).vector3Value = from[i];
                 pt.GetArrayElementAtIndex(i).vector3Value = to[i];
+                pd.GetArrayElementAtIndex(i).floatValue = MirrorDiameter(mirrors, from[i]);
             }
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>해바라기 거울(FX_Mirror → M_Mirror) 꼭짓점 전부 (모델 기준).</summary>
+        private static List<Vector3> MirrorPoints(GameObject instance)
+        {
+            var points = new List<Vector3>();
+            foreach (var r in instance.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                var mesh = r.GetComponent<MeshFilter>().sharedMesh;
+                var toModel = instance.transform.worldToLocalMatrix * r.transform.localToWorldMatrix;
+                for (int s = 0; s < mats.Length; s++)
+                {
+                    if (mats[s] == null || mats[s].name != "M_Mirror")   // 몸체 재질 이름 M_Evo_OrbitalMirror_Tex도 "Mirror"를 포함함
+                        continue;
+                    using (var md = Mesh.AcquireReadOnlyMeshData(mesh))
+                    {
+                        var data = md[0];
+                        var v = new Unity.Collections.NativeArray<Vector3>(data.vertexCount, Unity.Collections.Allocator.Temp);
+                        data.GetVertices(v);
+                        var idx = new Unity.Collections.NativeArray<int>(data.GetSubMesh(s).indexCount, Unity.Collections.Allocator.Temp);
+                        data.GetIndices(idx, s);
+                        foreach (int i in idx)
+                            points.Add(toModel.MultiplyPoint3x4(v[i]));
+                        idx.Dispose();
+                        v.Dispose();
+                    }
+                }
+            }
+            return points;
+        }
+
+        /// <summary>빛줄기 시작점(거울 가운데)에서 가장 가까운 거울 꼭짓점까지 = 반지름 (거울 원판은 가장자리에만 꼭짓점이 있음, 옆 해바라기 거울은 더 멀어서 세지 않음).</summary>
+        private static float MirrorDiameter(List<Vector3> mirrors, Vector3 center)
+        {
+            float radius = float.PositiveInfinity;
+            foreach (var p in mirrors)
+                radius = Mathf.Min(radius, Vector3.Distance(p, center));
+            return radius < 0.12f ? radius * 2f : 0.13f;
         }
 
         /// <summary>한 서브메시의 가는 원기둥들 → (거울 끝, 수신기 끝) 쌍. 수신기 = 덩어리 끝들이 가장 많이 몰린 점.</summary>

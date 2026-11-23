@@ -35,10 +35,29 @@ namespace SpaceStation.Simulation
             if (result == PlacementResult.Valid && !InZone(data, origin, rotation))
                 result = PlacementResult.OutsideZone;
             if (result == PlacementResult.Valid)
+                result = CheckPending(data, origin, rotation);
+            if (result == PlacementResult.Valid)
                 result = CheckBuildable(data);
             if (result == PlacementResult.Valid && !_sim.Resources.CanAfford(GetBuildCost(data)))
                 return PlacementResult.InsufficientResources;
             return result;
+        }
+
+        /// <summary>
+        /// 합성 중인 결과 자리에 지으려 하는지: 비워 둘 칸(대형 토러스 고리 안쪽 — 끝나면 고리가 그 모듈을 지나감) ·
+        /// 합성 틀의 채울 칸(끝나면 진화 모듈이 들어섬).
+        /// </summary>
+        private PlacementResult CheckPending(ModuleData data, UnityEngine.Vector3Int origin, int rotation)
+        {
+            var synthesis = _sim.Synthesis;
+            if (synthesis == null)
+                return PlacementResult.Valid;
+            var cells = StationGrid.ResolveCells(data.CellOffsets, origin, rotation);
+            if (synthesis.HitsPendingKeepClear(cells))
+                return PlacementResult.BlockedByKeepClear;
+            if (synthesis.HitsPendingFill(cells))
+                return PlacementResult.ReservedBySynthesis;
+            return PlacementResult.Valid;
         }
 
         public List<ResourceAmount> GetBuildCost(ModuleData data) => _sim.Effects.BuildCost(data);
@@ -151,6 +170,9 @@ namespace SpaceStation.Simulation
                 return result;
             if (!InZone(data, origin, rotation))
                 return PlacementResult.OutsideZone;
+            var pending = CheckPending(data, origin, rotation);
+            if (pending != PlacementResult.Valid)
+                return pending;
             if (!PlacementRules.TouchesOther(_sim.Grid, StationGrid.ResolveCells(data.CellOffsets, origin, rotation), module))
                 return PlacementResult.NeedsContact;
             if (!_sim.Resources.CanAfford(GetMoveCost(module)))

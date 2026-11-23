@@ -1,0 +1,303 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51d0696eedafc1c46b0d4d9cf26162e1, type: 3}
+  m_Name: IT_EvoAICore
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.InteriorTemplate
+  _module: {fileID: 11400000, guid: 63d9698a18f185a4d932133d1670f558, type: 2}
+  _prefab: {fileID: 3648382840938155423, guid: 69bf3b3c4405f5d4e9d33ffe96b819ba, type: 3}
+  _sockets:
+  - _cell: {x: 3, y: 0, z: 0}
+    _direction: {x: 0, y: 0, z: 1}
+    _depth: 3.9
+    _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
+  - _cell: {x: 0, y: 0, z: 0}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 2.0449998
+    _offset: {x: -1.3, y: 0, z: 2.75}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
+  - _cell: {x: 1, y: 0, z: 0}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 2.0449998
+    _offset: {x: 0, y: 0, z: 0.72}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
+  - _cell: {x: 2, y: 0, z: 0}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 2.0449998
+    _offset: {x: 1.3, y: 0, z: 2.75}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
+  - _cell: {x: 3, y: 0, z: 0}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 2.08
+    _offset: {x: -2.9, y: 0, z: 1.55}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
+  - _cell: {x: 0, y: 0, z: 1}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 2.0449998
+    _offset: {x: -1.3, y: 0, z: -2.75}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
+  - _cell: {x: 1, y: 0, z: 1}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 2.0449998
+    _offset: {x: 0, y: 0, z: -0.72}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
+  - _cell: {x: 2, y: 0, z: 1}
+    _direction: {x: 0, y: -1, z: 0}
+    _depth: 2.0449998
+    _offset: {x: 1.3, y: 0, z: -2.75}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
+  - _cell: {x: 0, y: 0, z: 0}
+    _direction: {x: -1, y: 0, z: 0}
+    _depth: 3.9
+    _offset: {x: -3.4, y: -2.080017, z: -2.35}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: -1
+  - _cell: {x: 0, y: 0, z: 0}
+    _direction: {x: 0, y: 0, z: -1}
+    _depth: 3.9
+    _offset: {x: -2.35, y: -2.080017, z: -3.4}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 1
+  - _cell: {x: 1, y: 0, z: 0}
+    _direction: {x: 0, y: 0, z: -1}
+    _depth: 3.9
+    _offset: {x: -2.35, y: -2.080017, z: -3.4}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 1
+  - _cell: {x: 0, y: 0, z: 1}
+    _direction: {x: -1, y: 0, z: 0}
+    _depth: 3.9
+    _offset: {x: -3.4, y: -2.080017, z: 2.3500004}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 1
+  - _cell: {x: 0, y: 0, z: 1}
+    _direction: {x: 0, y: 0, z: 1}
+    _depth: 3.9
+    _offset: {x: 2.35, y: -2.080017, z: 3.3999996}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 1
+  - _cell: {x: 1, y: 0, z: 1}
+    _direction: {x: 0, y: 0, z: 1}
+    _depth: 3.9
+    _offset: {x: 2.3500004, y: -2.080017, z: 3.3999996}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 1
+  - _cell: {x: 2, y: 0, z: 0}
+    _direction: {x: 0, y: 0, z: -1}
+    _depth: 3.9
+    _offset: {x: -2.3500004, y: -2.080017, z: -3.4}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 1
+  - _cell: {x: 3, y: 0, z: 0}
+    _direction: {x: 1, y: 0, z: 0}
+    _depth: 3.9
+    _offset: {x: 3.3999996, y: -2.080017, z: -2.35}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 1
+  - _cell: {x: 3, y: 0, z: 0}
+    _direction: {x: 0, y: 0, z: -1}
+    _depth: 3.9
+    _offset: {x: -2.3500004, y: -2.080017, z: -3.4}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 1
+  - _cell: {x: 2, y: 0, z: 1}
+    _direction: {x: 1, y: 0, z: 0}
+    _depth: 3.9
+    _offset: {x: 3.3999996, y: -2.080017, z: 2.3500004}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: -1
+  - _cell: {x: 2, y: 0, z: 1}
+    _direction: {x: 0, y: 0, z: 1}
+    _depth: 3.9
+    _offset: {x: 2.3500004, y: -2.080017, z: 3.3999996}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 1
+  _spawn: {x: 20.6, y: -2.0549998, z: 3.05}
+  _spawnYaw: 270
+  _ambience: 5
+  _showOwnExterior: 0
+  _showOwnInterior: 0
+  _sealedSockets: 0
+  _residentSpots:
+  - _position: {x: 4.147, y: -1.585, z: 5.402}
+    _yaw: 110
+    _pose: 1
+    _work: 0
+    _lie: 0
+  - _position: {x: 4.147, y: -1.585, z: 2.598}
+    _yaw: 70
+    _pose: 1
+    _work: 0
+    _lie: 0
+  - _position: {x: 6.451, y: -2.045, z: 6.914}
+    _yaw: 152
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 5.548, y: -2.045, z: 6.208}
+    _yaw: 132
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 5.548, y: -2.045, z: 1.792}
+    _yaw: 48
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 6.451, y: -2.045, z: 1.086}
+    _yaw: 28
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 9.549, y: -2.045, z: 6.914}
+    _yaw: 208
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 9.549, y: -2.045, z: 1.086}
+    _yaw: 332
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 0.114, y: -2.045, z: 5.114}
+    _yaw: 225
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: -2.714, y: -2.045, z: 5.414}
+    _yaw: 135
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: -2.714, y: -2.045, z: 2.586}
+    _yaw: 45
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 0.264, y: -2.045, z: 2.846}
+    _yaw: 315
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 18.714, y: -2.045, z: 5.414}
+    _yaw: 225
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 15.586, y: -2.045, z: 4.895}
+    _yaw: 135
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 15.886, y: -2.045, z: 2.886}
+    _yaw: 45
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 18.714, y: -2.045, z: 2.586}
+    _yaw: 315
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 21, y: -2.08, z: 0.1}
+    _yaw: 90
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 26.2, y: -2.08, z: 3.2}
+    _yaw: 200
+    _pose: 0
+    _work: 0
+    _lie: 0
+  - _position: {x: 20.54, y: -2.08, z: 0.25}
+    _yaw: 0
+    _pose: 0
+    _work: 0
+    _lie: 0
+  _workTraits: 
+  _leisure: 1
+  _openWork: 0
+  _visitStatus: "\uBBF8\uB85C \uC815\uC6D0 \uAD6C\uACBD \uC911"
+  _workStatus: 
+  _plantSpots: []
+  _hasTransitSpot: 1
+  _transitSpot: {x: 17.25, y: -2.0581055, z: 5.25}
+  _transitYaw: 0
+  _transitScale: 0.85
+  _transitWall: 0
+  _transitManual: 0
+  _transitHatch: 0

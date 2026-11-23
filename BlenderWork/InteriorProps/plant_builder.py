@@ -3,14 +3,23 @@
 #   잎 = 가운데 잎맥이 솟은 마름모 단면을 잎 길이 따라 쓸어 만든 닫힌 얇은 판 (폭은 밑 · 끝이 좁고 가운데가 넓음, 길이 따라 아래로 휨, 가장자리가 살짝 내려가 오목)
 #   SM_PlantPot / SM_PlantPotWilted : 화분 식물 (회전 링 · 휴게실 화분 흙 위) — 잎자루 + 큰 잎 14장 나선, 시든 것은 잎이 축 처지고 누렇게 + 흙 위 떨어진 잎
 #   SM_PlantTree / SM_PlantTreeWilted : 수경 농장 돔 아래 나무 — 휘어진 줄기 · 가지 4 · 가지 끝과 줄기 꼭대기 잎 뭉치(작은 잎 여러 장), 흙 위 작은 덤불
+#   SM_PlantPine / SM_PlantPineWilted : 3단계 바깥 정원 소나무 (2026-11-10) — 곧은 줄기 · 층층 가지 여섯 단 · 가지마다 바늘잎 (가는 잎) 묶음 · 꼭대기 잎
+#   SM_PlantBlossom / SM_PlantBlossomWilted : 3단계 꽃나무 (2026-11-10) — 넓게 퍼진 가지 · 가지 끝 꽃 뭉치 (다섯 꽃잎 꽃 + 작은 잎)
 # 원점 = 흙 윗면 가운데, 위 = +z (Unity +y). 상추(수경 선반)는 farm_builder 안에서 같은 잎 함수로 만든다.
-# 사용: blender -b --factory-startup -P BlenderWork/InteriorProps/plant_builder.py -- <fbx 출력 폴더>
+# 사용: blender -b --factory-startup -P BlenderWork/InteriorProps/plant_builder.py -- <fbx 출력 폴더> [--lod 1|2]
+# ⑤-4 거리별 단순화 (2026-11-16): --lod 1 · 2 = 같은 잎 · 꽃 · 가지 자리 (난수 순서 그대로)에 해상도만 낮춘 SM_<이름>Lod1 · Lod2
+#   (Unity 자동 Mesh LOD는 작은 잎 · 꽃 덩어리를 통째로 지워 꽃나무 1.77만 → 954 · 화분 LOD2 = 0이었음).
+#   식물 재질 M_Foliage가 양면이라 낮은 단계 잎 = 열린 띠 (LOD1 잎맥이 솟은 띠 · LOD2 평평한 띠), 꽃 = 윗면만 (LOD1 별 · LOD2 오각형), 관 둘레 분할 ↓.
+#   이름 = SM_<이름>LodN (밑줄 없이). .blend · 미리보기는 LOD0일 때만 저장 (LOD는 미리보기 plant_all_lodN.png만).
 import bpy, bmesh, sys, os, math, random
 from mathutils import Vector, Matrix
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
+LOD = int(argv[argv.index('--lod') + 1]) if '--lod' in argv else 0
+argv = [a for i, a in enumerate(argv) if a != '--lod' and (i == 0 or argv[i - 1] != '--lod')]
 OUT = argv[0] if argv else None
+SUFFIX = 'Lod%d' % LOD if LOD else ''   # 밑줄 없이 — Unity FBX 가져오기가 이름 끝 _LOD1을 LOD 그룹 규칙으로 보고 LOD0 없는 파일의 메시를 버렸음
 
 COLORS = {
     'Leaf': ((0.16, 0.42, 0.14), 0.3),
@@ -20,6 +29,11 @@ COLORS = {
     'Bark': ((0.3, 0.22, 0.15), 0.1),
     'Dry': ((0.55, 0.48, 0.18), 0.15),      # 시든 잎 (누런 갈색)
     'DryDark': ((0.4, 0.3, 0.13), 0.12),
+    'Needle': ((0.1, 0.32, 0.18), 0.3),       # 소나무 바늘잎
+    'NeedleLight': ((0.2, 0.45, 0.24), 0.3),
+    'Blossom': ((0.97, 0.66, 0.77), 0.25),    # 꽃나무 꽃잎
+    'BlossomLight': ((1.0, 0.86, 0.9), 0.25),
+    'Pistil': ((1.0, 0.84, 0.36), 0.3),       # 꽃 가운데
 }
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -45,6 +59,8 @@ def orient_outward(bm):
 def leaf(base, yaw, pitch, length, width, droop, mat, segs=7, cup=0.25, thick=0.006, twist=0.0):
     """잎 한 장. base = 잎 밑(Blender 좌표), yaw = 수평 방향(라디안), pitch = 처음 올라가는 각(라디안, 0 = 수평),
     droop = 끝까지 아래로 더 꺾이는 각(라디안). 단면 = 왼 가장자리 · 잎맥 위 · 오른 가장자리 · 잎맥 아래 (마름모) → 닫힌 판."""
+    if LOD:
+        return leaf_lod(base, yaw, pitch, length, width, droop, mat, segs, cup, thick, twist)
     bm = bmesh.new()
     fwd0 = Vector((math.cos(yaw), math.sin(yaw), 0))
     side = Vector((-math.sin(yaw), math.cos(yaw), 0))
@@ -85,8 +101,49 @@ def leaf(base, yaw, pitch, length, width, droop, mat, segs=7, cup=0.25, thick=0.
     return p  # 끝 위치
 
 
+def leaf_lod(base, yaw, pitch, length, width, droop, mat, segs, cup, thick, twist):
+    """⑤-4 낮은 단계 잎: LOD0 잎과 같은 곡선 · 폭 · 비틀림을 성기게 (LOD1 = 길이 절반 분할 · 왼 · 잎맥 위 · 오른 띠, LOD2 = 30 % 분할 · 평평한 띠)."""
+    # 분할은 둘 이상 — 첫 단면은 잎 밑 (폭 0)이라 하나면 폭 0 띠 (LOD2 소나무 바늘잎이 사라졌음)
+    segs = max(2, math.ceil(segs * 0.5)) if LOD == 1 else max(2, math.ceil(segs * 0.3))
+    bm = bmesh.new()
+    fwd0 = Vector((math.cos(yaw), math.sin(yaw), 0))
+    side = Vector((-math.sin(yaw), math.cos(yaw), 0))
+    p = Vector(base)
+    step = length / segs
+    rows = []
+    for i in range(segs):
+        u = i / segs
+        a = pitch - droop * u * u
+        d = fwd0 * math.cos(a) + Vector((0, 0, math.sin(a)))
+        up = d.cross(side).normalized() * -1 if d.cross(side).length > 1e-6 else Vector((0, 0, 1))
+        if up.z < 0: up = -up
+        w = width * (math.sin(math.pi * min(u * 1.05, 1.0)) ** 0.75) * (0.35 if u < 0.08 else 1.0)
+        rs = side * math.cos(twist * u) + up * math.sin(twist * u)
+        ru = up * math.cos(twist * u) - side * math.sin(twist * u)
+        L = p - rs * w * 0.5 - ru * cup * w * 0.5
+        R = p + rs * w * 0.5 - ru * cup * w * 0.5
+        T = p + ru * thick * (1.0 - 0.6 * u)
+        rows.append([bm.verts.new(L), bm.verts.new(T), bm.verts.new(R)] if LOD == 1 else [bm.verts.new(L), bm.verts.new(R)])
+        p = p + d * step
+    tip = bm.verts.new(p)
+    base_v = bm.verts.new(Vector(base) - fwd0 * 0.002)
+    n = len(rows[0])
+    for k in range(n - 1):
+        bm.faces.new((base_v, rows[0][k + 1], rows[0][k]))
+    for i in range(segs - 1):
+        a, b = rows[i], rows[i + 1]
+        for k in range(n - 1):
+            bm.faces.new((a[k], a[k + 1], b[k + 1], b[k]))
+    for k in range(n - 1):
+        bm.faces.new((rows[-1][k], rows[-1][k + 1], tip))
+    PARTS.append((bm, mat))
+    return p
+
+
 def tube(points, r0, r1, mat, seg=8):
     """폴리라인을 따라 굵기 r0 → r1로 가늘어지는 관 (양 끝 막음)."""
+    if LOD:
+        seg = max(4, seg // 2 + 1) if LOD == 1 else 3   # ⑤-4 둘레 분할 (10 → 6 · 4, 6 → 4 · 3)
     bm = bmesh.new()
     rings = []
     n = len(points)
@@ -197,6 +254,108 @@ def build_tree(wilted, seed=9):
             leaf(c, yaw, math.radians(35 + 10 * (j % 2)) - (0.4 if wilted else 0), 0.17, 0.08, 0.9, mat, segs=5, cup=0.3, thick=0.004)
 
 
+# ================= 3단계 소나무 · 꽃나무 (2026-11-10) =================
+def build_pine(wilted, seed=21):
+    rnd = random.Random(seed)
+    trunk = curve(Vector((0, 0, -0.03)), Vector((0.02, 0.01, 1)), 2.35, 0.0, 8)
+    tube(trunk, 0.085, 0.022, 'Bark', seg=10)
+    needle = ('Dry', 'DryDark') if wilted else ('Needle', 'NeedleLight')
+    levels = 7
+    for k in range(levels):
+        z = 0.45 + k * 0.27
+        Lb = 1.0 * (1 - k / 7.6) + 0.1
+        for b in range(6):
+            yaw = b * 2 * math.pi / 6 + k * 0.5 + rnd.uniform(-0.15, 0.15)
+            start = Vector((0.02 * z, 0.01 * z, z))
+            d0 = Vector((math.cos(yaw), math.sin(yaw), -0.1 - (0.25 if wilted else 0)))
+            pts = curve(start, d0, Lb, 0.2 if not wilted else -0.15, 4)
+            tube(pts, 0.022 - 0.002 * k, 0.007, 'Bark', seg=6)
+            for j in range(5):                                  # 가지를 따라 넓은 바늘잎 판 (양옆으로 겹쳐 가지 덮음)
+                t = 0.15 + 0.85 * j / 4
+                i0 = min(len(pts) - 2, int(t * (len(pts) - 1)))
+                base = pts[i0].lerp(pts[i0 + 1], t * (len(pts) - 1) - i0)
+                L = (0.3 - 0.1 * t) * (1.0 - 0.04 * k)
+                for e in (-1, 1):
+                    leaf(base, yaw + e * 0.75 + rnd.uniform(-0.1, 0.1), 0.18 - (0.45 if wilted else 0), L, 0.085, 0.42 + (0.5 if wilted else 0),
+                         needle[(j + (e > 0)) % 2], segs=3, cup=0.2, thick=0.004)
+    top = trunk[-1]
+    for j in range(8):                                          # 꼭대기 잎
+        leaf(top - Vector((0, 0, 0.05)), j * 2 * math.pi / 8, math.radians(58) - (0.6 if wilted else 0), 0.24, 0.06, 0.25, needle[j % 2], segs=3, cup=0.2, thick=0.004)
+
+
+def flower(c, n, R, rot, mat):
+    """다섯 꽃잎 꽃 한 송이 = 얇은 별꽃 판 (꽃잎 끝 R · 사이 0.5R, 가운데가 살짝 오목), n = 꽃이 보는 쪽."""
+    n = Vector(n).normalized()
+    u = n.cross(Vector((0, 0, 1)) if abs(n.z) < 0.9 else Vector((1, 0, 0))).normalized(); v = n.cross(u)
+    bm = bmesh.new()
+    if LOD:
+        # ⑤-4 윗면만 (양면 재질): LOD1 = 별 (꽃잎 끝 · 사이 10점), LOD2 = 꽃잎 끝 5점 오각형
+        ring = []
+        for i in range(0, 10, 1 if LOD == 1 else 2):
+            a = rot + math.pi * i / 5
+            r = R if i % 2 == 0 else R * 0.5
+            ring.append(bm.verts.new(c + (u * math.cos(a) + v * math.sin(a)) * r + n * (0.012 * (r / R) + 0.003)))
+        ct = bm.verts.new(c + n * 0.006)
+        for i in range(len(ring)):
+            bm.faces.new((ct, ring[i], ring[(i + 1) % len(ring)]))
+        PARTS.append((bm, mat))
+        return
+    top, bot = [], []
+    for i in range(10):
+        a = rot + math.pi * i / 5
+        r = R if i % 2 == 0 else R * 0.5
+        q = c + (u * math.cos(a) + v * math.sin(a)) * r + n * (0.012 * (r / R))
+        top.append(bm.verts.new(q + n * 0.003)); bot.append(bm.verts.new(q - n * 0.003))
+    ct = bm.verts.new(c + n * 0.006); cb = bm.verts.new(c - n * 0.002)
+    for i in range(10):
+        j = (i + 1) % 10
+        bm.faces.new((ct, top[i], top[j])); bm.faces.new((cb, bot[j], bot[i]))
+        bm.faces.new((top[i], bot[i], bot[j], top[j]))
+    orient_outward(bm)
+    PARTS.append((bm, mat))
+
+
+def blossom_cluster(center, size, nf, nl, rnd, wilted):
+    """꽃 뭉치: 다섯 꽃잎 꽃 nf송이 (밖을 봄, 연분홍 · 분홍 · 꽃술색 가운데 없이 판 둘 겹침) + 작은 잎 nl장."""
+    for f in range(nf if not wilted else nf // 3):
+        off = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-0.45, 0.75)))
+        c = center + off * size * 0.9
+        nrm = (off + Vector((0, 0, 0.6))).normalized()
+        R = rnd.uniform(0.055, 0.075)
+        mat = ('Dry' if f % 2 else 'DryDark') if wilted else ('BlossomLight' if f % 3 == 0 else 'Blossom')
+        flower(c, nrm, R, rnd.uniform(0, 2 * math.pi), mat)
+        if not wilted and f % 2 == 0:
+            flower(c + nrm * 0.008, nrm, R * 0.3, rnd.uniform(0, 2 * math.pi), 'Pistil')
+    for k in range(nl):
+        yaw = rnd.uniform(0, 2 * math.pi)
+        off = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-0.7, 0.3))) * size
+        leaf(center + off, yaw, rnd.uniform(-0.2, 0.6), size * 0.75, size * 0.32, 0.6 + (0.8 if wilted else 0),
+             ('Dry' if wilted else ('LeafLight', 'Leaf')[k % 2]), segs=4, cup=0.25, thick=0.004)
+
+
+def build_blossom(wilted, seed=33):
+    rnd = random.Random(seed)
+    trunk = curve(Vector((0, 0, -0.03)), Vector((0.08, 0.04, 1)), 1.25, 0.0, 7)
+    for i, p in enumerate(trunk):
+        p.x += 0.06 * math.sin(i * 0.8); p.y += 0.04 * math.cos(i * 0.6)
+    tube(trunk, 0.085, 0.04, 'Bark', seg=10)
+    clusters = [trunk[-1] + Vector((0, 0, 0.1))]
+    for b in range(7):
+        yaw = b * 2 * math.pi / 7 + 0.3 + rnd.uniform(-0.2, 0.2)
+        start = trunk[3 + b % 4]
+        d0 = Vector((math.cos(yaw), math.sin(yaw), 0.55 if not wilted else 0.25))
+        pts = curve(start, d0, 0.7 + rnd.uniform(-0.05, 0.12), 0.3 if not wilted else -0.2, 5)
+        tube(pts, 0.035, 0.012, 'Bark', seg=7)
+        clusters.append(pts[-1])
+        mid = pts[3]
+        side = Vector((math.cos(yaw - 1.1), math.sin(yaw - 1.1), 0.45))
+        twig = curve(mid, side, 0.28, 0.2, 3)
+        tube(twig, 0.014, 0.007, 'Bark', seg=6)
+        clusters.append(twig[-1])
+    for i, c in enumerate(clusters):
+        blossom_cluster(c, 0.3 if i == 0 else 0.26, 22 if i == 0 else 16, 4, rnd, wilted)
+
+
 def finish(name):
     me = bpy.data.meshes.new(name); ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
@@ -225,18 +384,24 @@ def finish(name):
 
 objs = []
 for name, fn in (('PlantPot', lambda: build_pot(False)), ('PlantPotWilted', lambda: build_pot(True)),
-                 ('PlantTree', lambda: build_tree(False)), ('PlantTreeWilted', lambda: build_tree(True))):
+                 ('PlantTree', lambda: build_tree(False)), ('PlantTreeWilted', lambda: build_tree(True)),
+                 ('PlantPine', lambda: build_pine(False)), ('PlantPineWilted', lambda: build_pine(True)),
+                 ('PlantBlossom', lambda: build_blossom(False)), ('PlantBlossomWilted', lambda: build_blossom(True))):
     fn()
-    objs.append(finish(name))
+    objs.append(finish(name + SUFFIX))
 for i, ob in enumerate(objs):
     ob.location.x = i * 1.8 - 2.7
-bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, 'plants.blend'))
+if not LOD:
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, 'plants.blend'))
 
 if OUT:
     os.makedirs(OUT, exist_ok=True)
+    bpy.context.view_layer.update()   # 새로 붙인 물체는 뷰 레이어가 한 번 갱신돼야 선택됨 — LOD 실행은 .blend를 저장하지 않아 첫 FBX가 비었음 (4 KB)
     for ob in objs:
         loc = ob.location.copy(); ob.location = (0, 0, 0)
         for x in bpy.context.view_layer.objects: x.select_set(x is ob)
+        if not ob.select_get():
+            raise RuntimeError('선택 안 됨: ' + ob.name)
         bpy.ops.export_scene.fbx(filepath=os.path.join(OUT, 'SM_%s.fbx' % ob.name), use_selection=True, object_types={'MESH'},
                                  axis_forward='-Z', axis_up='Y', bake_space_transform=True, apply_scale_options='FBX_SCALE_ALL',
                                  mesh_smooth_type='FACE')
@@ -265,7 +430,9 @@ lo = bpy.data.objects.new('Sun', ld); sc.collection.objects.link(lo); lo.rotatio
 cd = bpy.data.cameras.new('C'); cd.type = 'ORTHO'; cam = bpy.data.objects.new('C', cd); sc.collection.objects.link(cam); sc.camera = cam
 pv = os.path.join(HERE, 'preview'); os.makedirs(pv, exist_ok=True)
 for tag, d, scale, target in (('all', Vector((0.3, -1, 0.35)), 7.2, Vector((0, 0, 0.9))), ('pot', Vector((0.4, -1, 0.5)), 2.2, Vector((-1.8, 0, 0.35))),
-                              ('tree', Vector((0.3, -1, 0.3)), 3.2, Vector((1.8, 0, 1.0)))):
+                              ('tree', Vector((0.3, -1, 0.3)), 3.2, Vector((1.8, 0, 1.0))), ('s3', Vector((0.3, -1, 0.3)), 9.0, Vector((7.2, 0, 1.2)))):
+    if LOD and tag not in ('all', 's3'):
+        continue
     d = d.normalized(); cam.location = target + d * 6; cam.rotation_euler = (-d).to_track_quat('-Z', 'Y').to_euler()
     cd.ortho_scale = scale; sc.render.resolution_x = 900; sc.render.resolution_y = 520
-    sc.render.filepath = os.path.join(pv, 'plant_%s.png' % tag); bpy.ops.render.render(write_still=True)
+    sc.render.filepath = os.path.join(pv, 'plant_%s%s.png' % (tag, '_lod%d' % LOD if LOD else '')); bpy.ops.render.render(write_still=True)

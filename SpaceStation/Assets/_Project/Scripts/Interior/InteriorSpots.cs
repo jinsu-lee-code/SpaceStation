@@ -484,7 +484,7 @@ namespace SpaceStation.Interior
                     continue;
                 var mesh = r.TryGetComponent<MeshFilter>(out var mf) ? mf.sharedMesh : null;
                 // 읽을 수 없는 메시(가져오기 Read/Write 꺼짐)는 게임 중 꼭짓점을 못 읽음 — 예외 대신 문 패널처럼 뺌 (SM_InteriorKit.fbx는 Read/Write 켬)
-                if (mesh == null || !mesh.isReadable || r.name.StartsWith("KIT_WallDoor", StringComparison.Ordinal))
+                if (mesh == null || !mesh.isReadable || r.name.StartsWith("KIT_WallDoor", StringComparison.Ordinal) || r.name.StartsWith("KIT_WallSealed", StringComparison.Ordinal))   // 막힌 창 패널 = 창에 소품이 붙지 않게
                 {
                     _doorPanels.Add(r.bounds);   // 모양을 모르는 패널도 문 패널처럼 뺌
                     continue;
@@ -642,7 +642,7 @@ namespace SpaceStation.Interior
 
         private static bool Excluded(Collider c)
         {
-            if (c.GetComponentInParent<InteriorHatch>() != null || c.GetComponentInParent<ResidentFigure>() != null || c.GetComponentInParent<InteriorInteractable>() != null)
+            if (c.GetComponentInParent<InteriorHatch>() != null || c.GetComponentInParent<InteriorTransit>() != null || c.GetComponentInParent<ResidentFigure>() != null || c.GetComponentInParent<InteriorInteractable>() != null)
                 return true;
             string n = c.name;
             return n.IndexOf("Door", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("Glass", StringComparison.OrdinalIgnoreCase) >= 0

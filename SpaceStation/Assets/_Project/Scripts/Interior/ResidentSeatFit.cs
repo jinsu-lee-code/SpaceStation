@@ -5,10 +5,10 @@ namespace SpaceStation.Interior
 {
     /// <summary>
     /// 앉은 주민을 의자 모양에 맞춘다 (사용자 2026-10-29: 너무 깊이 앉아 다리가 의자 앞판 속으로 들어가거나 꼬리가 등받이 뒤로 뚫고 나옴 ·
-    /// 처진 꼬리 아랫부분이 앉는 판 속으로 들어감 · 든 꼬리가 뒤통수를 뚫음).
+    /// 처진 꼬리 아랫부분이 앉는 판 속으로 들어감 · 든 꼬리가 뒤통수를 뚫음. 2026-11-03: 여우 큰 꼬리를 90° 들고 옆으로 돌려 어깨로 뚫고 나옴 → 몸통 검사 · 안 맞으면 꼬리 줄임).
     /// 의자 = 방 충돌체를 광선으로 재서 앉는 판 앞 · 뒤 가장자리와 등받이까지 거리, 몸 = 자세 잡은 메시를 구워 앉는 면 아래로 늘어진 다리의 가장 뒤 ·
     /// 앉는 면 위 등의 가장 뒤. 꼬리는 드는 각마다 꼬리 본을 실제로 돌려 (실행 중 기분만큼 처지는 각 포함) 메시를 구워 잼 —
-    /// 앉는 판 위에서 앉는 면 아래로 내려가지 않고 머리(타원체)에 들어가지 않는 가장 작은 각 (<see cref="ResidentMotion.SeatTailLift"/>).
+    /// 앉는 판 위에서 앉는 면 아래로 내려가지 않고 머리(타원체) · 몸통에 들어가지 않는 가장 작은 각 (<see cref="ResidentMotion.SeatTailLift"/>). 어느 각도 안 맞는 큰 꼬리는 크기를 줄여 다시 잼 (<see cref="ResidentMotion.SeatTailSize"/>).
     /// 다리가 앞 가장자리 앞에 · 꼬리 · 등이 등받이 앞에 오도록 앞으로만 옮기며, 엉덩이는 앉는 판 위에 남김.
     /// 앉는 판을 못 찾으면 (충돌체 없는 소품) 그대로 둔다. 주민을 놓을 때 한 번만 (<see cref="InteriorResidents"/>).
     /// </summary>
@@ -24,6 +24,13 @@ namespace SpaceStation.Interior
         private const float LegBelow = 0.1f;      // 앉는 면에서 이만큼 아래부터 다리로 봄
         private const float TailMoved = 0.02f;    // 꼬리 시험 회전(30°)에 이만큼 넘게 움직인 꼭짓점만 드는 각 판단에 씀
         private const float BackrestBelow = 0.25f; // 앉는 면에서 이만큼 아래까지는 꼬리도 등받이 앞이어야 함
+        private const float TailRootSkip = 0.09f;  // 꼬리 뿌리에서 이만큼 안은 엉덩이에 묻혀 있어 몸통 검사에서 뺌
+        private const float SliceStep = 0.03f;     // 몸통 재는 높이 칸
+        private const int SliceCount = 64;
+        private static readonly float[] TailSizes = { 1f, 0.8f, 0.62f, 0.46f, 0.34f };
+        private static readonly float[] SliceSide = new float[SliceCount];
+        private static readonly float[] SliceRear = new float[SliceCount];
+        private static readonly float[] SliceFront = new float[SliceCount];
         private static readonly List<(float lift, float roll)> Candidates = MakeCandidates();
 
         /// <summary>꼬리 후보 (드는 각 0 ~ 90 · 10°마다 × 옆으로 기울임 0 · ±25 · ±45) — 덜 돌리는 것부터.</summary>
@@ -97,11 +104,24 @@ namespace SpaceStation.Interior
 
             // 다리 (앉는 면 아래로 늘어진 정강이 · 발 — 둥근 엉덩이가 방석 속으로 조금 내려간 곳은 뺌) · 등 (꼬리 뺀 몸)
             float legBack = float.MaxValue, bodyBack = float.MinValue;
+            for (int i = 0; i < SliceCount; i++)
+            {
+                SliceSide[i] = -1f;
+                SliceRear[i] = float.MaxValue;
+                SliceFront[i] = float.MinValue;
+            }
             for (int i = 0; i < Rest.Count; i++)
             {
                 if (isTail.Contains(i))
                     continue;
                 var p = Rest[i];
+                int slice = Slice(p.y, scale);
+                if (slice >= 0)
+                {
+                    SliceSide[slice] = Mathf.Max(SliceSide[slice], Mathf.Abs(p.x));
+                    SliceRear[slice] = Mathf.Min(SliceRear[slice], p.z);
+                    SliceFront[slice] = Mathf.Max(SliceFront[slice], p.z);
+                }
                 if (p.y < seatHeight - LegBelow)
                 {
                     if (p.z > -0.05f)
@@ -115,61 +135,81 @@ namespace SpaceStation.Interior
             if (back < float.MaxValue && bodyBack > float.MinValue)
                 baseShift = Mathf.Max(baseShift, bodyBack + TailClear - back);
 
-            float bestLift = 0f, bestRoll = 0f, bestShift = baseShift;
+            float bestLift = 0f, bestRoll = 0f, bestShift = baseShift, bestSize = 1f;
             if (tail != null && TailIdx.Count > 0)
             {
+                var tailRoot = root.InverseTransformPoint(tail.position);
+                var tailScale = tail.localScale;
                 // 머리 타원체 (뿌리 기준)
                 var headBone = FindBone(root, "Head");
                 Vector3 headC = headBone != null ? root.InverseTransformPoint(headBone.position) + Vector3.up * (HeadUp * scale) : new Vector3(0f, 0.71f * scale, 0f);
                 var headR = HeadRadius * scale;
                 // 후보 = 드는 각 × 옆으로 기울이는 각 (작게 돌리는 것부터). 맞는 첫 후보를 씀 — 판 위에서 앉는 면 아래로 안 내려가고 ·
-                //   머리에 안 들어가고 · 등받이 높이에서 등받이 앞 (옮김은 엉덩이 한도 안). 없으면 벌점이 가장 작은 후보 (머리 > 판 > 등받이 순으로 무겁게)
+                //   머리 · 몸통에 안 들어가고 · 등받이 높이에서 등받이 앞 (옮김은 엉덩이 한도 안). 없으면 꼬리를 줄여 다시, 그래도 없으면 벌점이 가장 작은 후보 (머리 · 몸통 > 판 > 등받이 순으로 무겁게)
                 float bestPenalty = float.MaxValue;
-                foreach (var (lift, roll) in Candidates)
+                bool found = false;
+                foreach (float size in TailSizes)
                 {
-                    tail.rotation = Quaternion.AngleAxis(roll, root.forward) * Quaternion.AngleAxis(lift - droop, root.right) * tailRest;
-                    Bake(root, Posed);
-                    float tailBack = float.MinValue;
-                    bool inHead = false;
-                    foreach (int i in TailIdx)
-                    {
-                        var p = Posed[i];
-                        if (p.y > seatHeight - BackrestBelow)   // 등받이 높이 (아래로 늘어진 꼬리도 등받이 아래를 지나 뒤로 가야 함)
-                            tailBack = Mathf.Max(tailBack, -p.z);
-                        var d = p - headC;
-                        if ((d.x * d.x) / (headR.x * headR.x) + (d.y * d.y) / (headR.y * headR.y) + (d.z * d.z) / (headR.z * headR.z) < 1f)
-                            inHead = true;
-                    }
-                    float shift = baseShift;
-                    if (back < float.MaxValue && tailBack > float.MinValue)
-                        shift = Mathf.Max(shift, tailBack + TailClear - back);
-                    // 옮긴 뒤 판 위에 있는 꼬리 꼭짓점이 앉는 면 아래로 내려간 깊이
-                    float over = rear + Mathf.Min(shift, maxShift);
-                    float dip = 0f;
-                    foreach (int i in TailIdx)
-                    {
-                        var p = Posed[i];
-                        if (-p.z < over)
-                            dip = Mathf.Max(dip, seatHeight + TailAbove - p.y);
-                    }
-                    float excess = Mathf.Max(0f, shift - maxShift);
-                    if (!inHead && dip <= 0f && excess <= 0f)
-                    {
-                        bestLift = lift;
-                        bestRoll = roll;
-                        bestShift = shift;
+                    if (found)
                         break;
-                    }
-                    float penalty = (inHead ? 10f : 0f) + dip * 20f + excess * 5f + (lift + Mathf.Abs(roll)) * 0.001f;
-                    if (penalty < bestPenalty)
+                    tail.localScale = tailScale * size;
+                    foreach (var (lift, roll) in Candidates)
                     {
-                        bestPenalty = penalty;
-                        bestLift = lift;
-                        bestRoll = roll;
-                        bestShift = shift;
+                        if (size < 1f && roll != 0f)
+                            continue;   // 줄인 꼬리는 몸 뒤에 똑바로
+                        tail.rotation = Quaternion.AngleAxis(roll, root.forward) * Quaternion.AngleAxis(lift - droop, root.right) * tailRest;
+                        Bake(root, Posed);
+                        float tailBack = float.MinValue;
+                        bool inHead = false, inBody = false;
+                        foreach (int i in TailIdx)
+                        {
+                            var p = Posed[i];
+                            if (p.y > seatHeight - BackrestBelow)   // 등받이 높이 (아래로 늘어진 꼬리도 등받이 아래를 지나 뒤로 가야 함)
+                                tailBack = Mathf.Max(tailBack, -p.z);
+                            var d = p - headC;
+                            if ((d.x * d.x) / (headR.x * headR.x) + (d.y * d.y) / (headR.y * headR.y) + (d.z * d.z) / (headR.z * headR.z) < 1f)
+                                inHead = true;
+                            if (!inBody && (p - tailRoot).sqrMagnitude > TailRootSkip * TailRootSkip * scale * scale)
+                            {
+                                int slice = Slice(p.y, scale);
+                                inBody = slice >= 0 && Mathf.Abs(p.x) < SliceSide[slice] && p.z > SliceRear[slice] + 0.01f * scale && p.z < SliceFront[slice];
+                            }
+                        }
+                        float shift = baseShift;
+                        if (back < float.MaxValue && tailBack > float.MinValue)
+                            shift = Mathf.Max(shift, tailBack + TailClear - back);
+                        // 옮긴 뒤 판 위에 있는 꼬리 꼭짓점이 앉는 면 아래로 내려간 깊이
+                        float over = rear + Mathf.Min(shift, maxShift);
+                        float dip = 0f;
+                        foreach (int i in TailIdx)
+                        {
+                            var p = Posed[i];
+                            if (-p.z < over)
+                                dip = Mathf.Max(dip, seatHeight + TailAbove - p.y);
+                        }
+                        float excess = Mathf.Max(0f, shift - maxShift);
+                        if (!inHead && !inBody && dip <= 0f && excess <= 0f)
+                        {
+                            bestLift = lift;
+                            bestRoll = roll;
+                            bestShift = shift;
+                            bestSize = size;
+                            found = true;
+                            break;
+                        }
+                        float penalty = (inHead || inBody ? 10f : 0f) + dip * 20f + excess * 5f + (lift + Mathf.Abs(roll)) * 0.001f;
+                        if (penalty < bestPenalty)
+                        {
+                            bestPenalty = penalty;
+                            bestLift = lift;
+                            bestRoll = roll;
+                            bestShift = shift;
+                            bestSize = size;
+                        }
                     }
                 }
                 tail.rotation = tailRest;
+                tail.localScale = tailScale;
             }
             float moved = Mathf.Clamp(bestShift, 0f, maxShift);
             if (moved > 0.001f)
@@ -178,8 +218,15 @@ namespace SpaceStation.Interior
             {
                 motion.SeatTailLift = bestLift;
                 motion.SeatTailRoll = bestRoll;
+                motion.SeatTailSize = bestSize;
             }
             return moved;
+        }
+
+        private static int Slice(float y, float scale)
+        {
+            int k = Mathf.FloorToInt(y / (SliceStep * scale));
+            return k >= 0 && k < SliceCount ? k : -1;
         }
 
         private static float Edge(Vector3 seat, Vector3 dir, Vector3 up)

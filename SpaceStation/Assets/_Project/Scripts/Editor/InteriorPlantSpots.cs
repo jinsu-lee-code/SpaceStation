@@ -65,6 +65,191 @@ namespace SpaceStation.Editor
             })
                 tower.Add(new PlantSpot(new Vector3(x, y, z), PlantKind.Pot, s, (n++) * 53f));
             Set("IT_EvoTower", tower);
+            // 진화 2단계 화물 환적장 (ct_builder PLANTS): 모두 유리 덮개 속 — 라운지 나무 · 화분, 서쪽 광장 화분
+            Set("IT_EvoCargoTransfer", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(3.05f, -0.92f, 5.0f), PlantKind.Tree, 0.55f, 0f),
+                new PlantSpot(new Vector3(6.4f, -0.92f, 4.55f), PlantKind.Pot, 0.4f, 0f),
+                new PlantSpot(new Vector3(5.05f, -0.92f, 1.3f), PlantKind.Pot, 0.4f, 53f),
+            });
+            // 진화 2단계 저장 단지 (sc_builder PLANTS): 창고 진열창 안 화분 둘 (실내라 유리 덮개 없음)
+            Set("IT_EvoStorageComplex", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-1.16f, -0.92f, -1.39f), PlantKind.Pot, 0.45f, 0f),
+                new PlantSpot(new Vector3(25.16f, -0.92f, -1.39f), PlantKind.Pot, 0.45f, 53f),
+            });
+            // 진화 3단계 궤도 도시 (oc_builder PLANTS, 사용자 2026-11-10 "나무가 뭉뚱그려져있네" → 잎 한 장씩 나무 모델): 뒤 왼쪽 숲 소나무 · 활엽수, 뒤 오른쪽 꽃 들판 꽃나무,
+            //  언덕 단 위 나무 · 꽃나무 (반쯤 묻힌 집 사이), 기둥 테라스 난간 밖 화단 (층마다 둘). 크기 = 바깥 나무 4 ~ 5 m (모델 높이 Tree 1.87 · Pine 2.47 · Blossom 1.67)
+            Set("IT_EvoOrbitalCity", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(34.688f, -1.3f, 30.082f), PlantKind.Blossom, 1.7f, 0f),
+                new PlantSpot(new Vector3(30.082f, -1.3f, 34.688f), PlantKind.Tree, 1.8f, 47f),
+                new PlantSpot(new Vector3(1.918f, -1.3f, 34.688f), PlantKind.Pine, 1.7f, 94f),
+                new PlantSpot(new Vector3(-2.688f, -1.3f, 30.082f), PlantKind.Tree, 1.8f, 141f),
+                new PlantSpot(new Vector3(-2.688f, -1.3f, 1.918f), PlantKind.Tree, 1.7f, 188f),
+                new PlantSpot(new Vector3(1.918f, -1.3f, -2.688f), PlantKind.Blossom, 1.8f, 235f),
+                new PlantSpot(new Vector3(30.082f, -1.3f, -2.688f), PlantKind.Pine, 1.7f, 282f),
+                new PlantSpot(new Vector3(34.688f, -1.3f, 1.918f), PlantKind.Pine, 1.8f, 329f),
+                new PlantSpot(new Vector3(2.199f, -1.3f, 33.253f), PlantKind.Tree, 1.81f, 16f),
+                new PlantSpot(new Vector3(5.933f, -1.3f, 33.716f), PlantKind.Pine, 1.68f, 63f),
+                new PlantSpot(new Vector3(6.517f, -1.3f, 33.045f), PlantKind.Tree, 2.02f, 110f),
+                new PlantSpot(new Vector3(2.339f, -1.3f, 30.851f), PlantKind.Pine, 1.46f, 157f),
+                new PlantSpot(new Vector3(2.449f, -1.3f, 30.902f), PlantKind.Tree, 2.2f, 204f),
+                new PlantSpot(new Vector3(3.331f, -1.3f, 34.069f), PlantKind.Pine, 1.72f, 251f),
+                new PlantSpot(new Vector3(6.23f, -1.3f, 33.862f), PlantKind.Pine, 1.83f, 298f),
+                new PlantSpot(new Vector3(5.287f, -1.3f, 33.017f), PlantKind.Tree, 1.79f, 345f),
+                new PlantSpot(new Vector3(-1.563f, -1.3f, 27.677f), PlantKind.Pine, 1.51f, 32f),
+                new PlantSpot(new Vector3(-0.722f, -1.3f, 30.031f), PlantKind.Tree, 1.94f, 79f),
+                new PlantSpot(new Vector3(6.207f, -1.3f, 33.48f), PlantKind.Pine, 1.45f, 126f),
+                new PlantSpot(new Vector3(-0.191f, -1.3f, 28.881f), PlantKind.Tree, 1.97f, 173f),
+                new PlantSpot(new Vector3(0.254f, -1.3f, 30.138f), PlantKind.Pine, 1.64f, 220f),
+                new PlantSpot(new Vector3(-0.682f, -1.3f, 27.424f), PlantKind.Tree, 2.13f, 267f),
+                new PlantSpot(new Vector3(-1.289f, -1.3f, 31.743f), PlantKind.Pine, 1.67f, 314f),
+                new PlantSpot(new Vector3(29.623f, -1.3f, 34.25f), PlantKind.Blossom, 1.97f, 1f),
+                new PlantSpot(new Vector3(33.982f, -1.3f, 26.912f), PlantKind.Blossom, 2.05f, 48f),
+                new PlantSpot(new Vector3(32.823f, -1.3f, 26.705f), PlantKind.Blossom, 2.09f, 95f),
+                new PlantSpot(new Vector3(29.739f, -1.3f, 33f), PlantKind.Blossom, 2.26f, 142f),
+                new PlantSpot(new Vector3(26.957f, -1.3f, 33.892f), PlantKind.Blossom, 1.99f, 189f),
+                new PlantSpot(new Vector3(30.412f, -1.3f, 32.231f), PlantKind.Blossom, 2.15f, 236f),
+                new PlantSpot(new Vector3(27.269f, -1.3f, 33.512f), PlantKind.Blossom, 2.37f, 283f),
+                new PlantSpot(new Vector3(30.087f, -1.3f, 33.34f), PlantKind.Blossom, 1.84f, 330f),
+                new PlantSpot(new Vector3(30.539f, -1.3f, 33.51f), PlantKind.Blossom, 2.4f, 17f),
+                new PlantSpot(new Vector3(33.432f, -1.3f, 29.254f), PlantKind.Blossom, 2.03f, 64f),
+                new PlantSpot(new Vector3(12.4f, 1.5f, 24.085f), PlantKind.Blossom, 1.2f, 111f),
+                new PlantSpot(new Vector3(9.221f, 1.5f, 21.689f), PlantKind.Tree, 1.15f, 158f),
+                new PlantSpot(new Vector3(7.15f, 1.5f, 16f), PlantKind.Blossom, 1.2f, 205f),
+                new PlantSpot(new Vector3(19.027f, 1.5f, 7.684f), PlantKind.Tree, 1.15f, 252f),
+                new PlantSpot(new Vector3(23.422f, 1.5f, 11.18f), PlantKind.Blossom, 1.2f, 299f),
+                new PlantSpot(new Vector3(21.406f, 3.9f, 19.786f), PlantKind.Blossom, 1.08f, 346f),
+                new PlantSpot(new Vector3(12.7f, 3.9f, 21.716f), PlantKind.Tree, 1.03f, 33f),
+                new PlantSpot(new Vector3(14.292f, 3.9f, 9.625f), PlantKind.Blossom, 1.08f, 80f),
+                new PlantSpot(new Vector3(19.3f, 3.9f, 10.284f), PlantKind.Tree, 1.03f, 127f),
+                new PlantSpot(new Vector3(18.864f, 39.2f, 18.864f), PlantKind.Blossom, 0.5f, 174f),
+                new PlantSpot(new Vector3(13.136f, 39.2f, 18.864f), PlantKind.Tree, 0.5f, 221f),
+                new PlantSpot(new Vector3(13.136f, 39.2f, 13.136f), PlantKind.Blossom, 0.5f, 268f),
+                new PlantSpot(new Vector3(18.864f, 39.2f, 13.136f), PlantKind.Tree, 0.5f, 315f),
+            });
+            // 진화 3단계 바이오스피어 (bio3_builder PLANTS, 2026-11-11): 숲 비탈 나무 · 꽃나무 · 소나무 (문 · 아치 · 샘 비킴), 네 모서리 (과수원 꽃나무 · 반딧불이 숲 · 연못가),
+            //  고리 산책길 모서리 끝 꽃나무 (모델 = 궤도 도시와 같은 잎 한 장씩 나무)
+            Set("IT_EvoBiosphere", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-1.393f, -1.3f, 1.9f), PlantKind.Tree, 1.07f, 0f),
+                new PlantSpot(new Vector3(1.9f, -1.3f, -1.393f), PlantKind.Tree, 1.07f, 47f),
+                new PlantSpot(new Vector3(14.1f, -1.3f, -1.393f), PlantKind.Tree, 1.07f, 94f),
+                new PlantSpot(new Vector3(17.393f, -1.3f, 1.9f), PlantKind.Tree, 1.07f, 141f),
+                new PlantSpot(new Vector3(17.286f, 0.042f, 10.229f), PlantKind.Blossom, 0.99f, 188f),
+                new PlantSpot(new Vector3(14.574f, 0.042f, 14.927f), PlantKind.Blossom, 1.04f, 235f),
+                new PlantSpot(new Vector3(12.99f, 0.042f, 16.143f), PlantKind.Blossom, 0.99f, 282f),
+                new PlantSpot(new Vector3(-1.286f, 0.042f, 10.229f), PlantKind.Blossom, 1.11f, 329f),
+                new PlantSpot(new Vector3(1.798f, 0.042f, 0.738f), PlantKind.Blossom, 0.99f, 16f),
+                new PlantSpot(new Vector3(14.202f, 0.042f, 0.738f), PlantKind.Blossom, 0.99f, 63f),
+            });
+            // 진화 3단계 항성 발전망 (sg3_builder PLANTS · GROVE, 2026-11-11): 왼쪽 끝 꽃나무 숲 열하나 (외형 왼쪽 끝 꽃나무 무리) — 하늘 면 · 바닥 칸 천장 · 정자 커튼 ·
+            //  해치 · 산책길 머리 높이 비킴, 큰 나무부터 · 잎 지붕이 겹치게. 크기 = Unity 배율 (빌더 크기 × 2.4 — 처음엔 빌더 크기 1을 그대로 넣어 1.7 m 나무 셋뿐이었음)
+            Set("IT_EvoStellarGrid", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-0.36f, -1.3f, 8.15f), PlantKind.Blossom, 2.76f, 0.0f),
+                new PlantSpot(new Vector3(-0.26f, -1.3f, 4.18f), PlantKind.Blossom, 2.76f, 47.0f),
+                new PlantSpot(new Vector3(0.01f, -1.3f, 0.91f), PlantKind.Blossom, 2.76f, 94.0f),
+                new PlantSpot(new Vector3(2.16f, -1.3f, 6.49f), PlantKind.Blossom, 2.4f, 141.0f),
+                new PlantSpot(new Vector3(2.8f, -1.3f, 1.58f), PlantKind.Blossom, 2.04f, 188.0f),
+                new PlantSpot(new Vector3(-1.37f, -1.3f, -1.75f), PlantKind.Blossom, 1.73f, 235.0f),
+                new PlantSpot(new Vector3(2.23f, -1.3f, 4.26f), PlantKind.Blossom, 1.44f, 282.0f),
+                new PlantSpot(new Vector3(-2.04f, -1.3f, 6.37f), PlantKind.Blossom, 1.44f, 329.0f),
+                new PlantSpot(new Vector3(-2.05f, -1.3f, 2.21f), PlantKind.Blossom, 1.44f, 16.0f),
+                new PlantSpot(new Vector3(-2.24f, -1.3f, 0.44f), PlantKind.Blossom, 1.2f, 63.0f),
+                new PlantSpot(new Vector3(-2.12f, -1.3f, 10.31f), PlantKind.Blossom, 1.2f, 110.0f),
+            });
+            // 궤도 방어망: 곶 윗면이 등대 · 나선 계단 · 오두막 · 판석 길 · 둘레 난간으로 차서 나무 자리 없음 (2026-11-12 — 가장자리 나무가 둘레 난간과 겹침)
+            Set("IT_EvoOrbitalDefense", new List<PlantSpot>());
+            // 수리 사령부: 고목 · 잎 구름 · 나무집이 위 칸을 채우고 앞 빈터는 오두막 · 연못 · 길 · 기억 등불 (식물 = 잎 한 장씩 빌더 모델) — 나무 자리 없음
+            Set("IT_EvoRepairCommand", new List<PlantSpot>());
+            // 궤도 항만: 산호 섬 · 해변 · 방파제 · 잔교 (식물 = 섬 꽃밭 · 산호초 — 잎 한 장씩 빌더 모델) — 나무 자리 없음 (바닷가 진주 항구)
+            Set("IT_EvoOrbitalPort", new List<PlantSpot>());
+            // AI 중추: 생울타리 미로 · 판석 마당 · 정자 · 드론 마당 (식물 = 생울타리 꽃 · 온실 · 꽃밭 — 잎 한 장씩 빌더 모델) — 나무 자리 없음 (해치 · 드론 길)
+            Set("IT_EvoAICore", new List<PlantSpot>());
+            // 심우주 통신기지: 은하수 강 · 돔 · 접시 · 광장 (식물 = 은빛 풀 · 달맞이꽃 · 라일락 — 잎 한 장씩 빌더 모델) — 나무 자리 없음 (하늘을 가림 · 자리가 없음)
+            Set("IT_EvoDeepSpaceComm", new List<PlantSpot>());
+            // 진화 2단계 연구원 (mz_builder PLANTS): 연구실 안 화분 하나 (유리 연구실 = 실내)
+            Set("IT_EvoResearchInstitute", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(2.883f, -0.94f, 5.117f), PlantKind.Pot, 0.42f, 0f),
+            });
+            // 진화 2단계 식량 공장 (ff_builder PLANTS): 2층 카페 화분 둘
+            Set("IT_EvoFoodFactory", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(13.75f, 4.81f, 2.1f), PlantKind.Pot, 0.62f, 0f),
+                new PlantSpot(new Vector3(20.2f, 4.81f, 2.1f), PlantKind.Pot, 0.62f, 53f),
+            });
+            // 진화 2단계 바이오돔 (bd_builder PLANTS): 큰 돔 잔디에 바로 심은 나무 아홉 (돔 안이라 유리 덮개 없음, 회전은 시안에서 유리까지 잰 그대로)
+            var biodome = new List<PlantSpot>();
+            for (int i = 0; i < InteriorTemplateBuilder.BiodomeTrees.Length; i++)
+            {
+                var (x, z, s) = InteriorTemplateBuilder.BiodomeTrees[i];
+                biodome.Add(new PlantSpot(new Vector3(x, -1.288f, z), PlantKind.Tree, s, -47f * i));
+            }
+            Set("IT_EvoBiodome", biodome);
+            // 진화 2단계 치안 본부 (sh_builder PLANTS): 청사 안 화단 나무 둘 (실내라 유리 덮개 없음)
+            Set("IT_EvoSecurityHQ", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(-2.2f, -0.99f, 10.2f), PlantKind.Tree, 0.62f, 0f),
+                new PlantSpot(new Vector3(2.3f, -0.99f, 10.6f), PlantKind.Tree, 0.55f, 47f),
+            });
+            // 진화 2단계 시민 회관 (civ_builder PLANTS): 의료동 화단 나무 넷 · 라운지 화분 넷 (실내라 유리 덮개 없음)
+            Set("IT_EvoCivicHall", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(10.35f, -0.99f, -2.73f), PlantKind.Tree, 0.62f, 0f),
+                new PlantSpot(new Vector3(13.65f, -0.99f, -2.73f), PlantKind.Tree, 0.62f, 47f),
+                new PlantSpot(new Vector3(11f, -0.99f, 10.83f), PlantKind.Tree, 0.62f, 94f),
+                new PlantSpot(new Vector3(13f, -0.99f, 10.83f), PlantKind.Tree, 0.62f, 141f),
+                new PlantSpot(new Vector3(26.298f, -0.92f, 2.298f), PlantKind.Pot, 0.7f, 188f),
+                new PlantSpot(new Vector3(21.702f, -0.92f, 2.298f), PlantKind.Pot, 0.7f, 235f),
+                new PlantSpot(new Vector3(21.702f, -0.92f, -2.298f), PlantKind.Pot, 0.7f, 282f),
+                new PlantSpot(new Vector3(26.298f, -0.92f, -2.298f), PlantKind.Pot, 0.7f, 329f),
+            });
+            // 진화 2단계 대형 토러스 (gt_builder PLANTS): 동네 나무 12 (집 사이 8 · 0.42배, 마당 4 · 0.5배) · 아치 집 화분 8 (0.42배). 유리 지붕 안이라 살아 있는 식물도 유리 덮개 없음
+            Set("IT_EvoGrandTorus", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(0f, -0.97f, 0f), PlantKind.Pot, 0.5f, 0f),      // 모서리 현관 정자 넷 가운데 화단 (모든 면 연결 2026-11-19)
+                new PlantSpot(new Vector3(32f, -0.97f, 0f), PlantKind.Pot, 0.5f, 90f),
+                new PlantSpot(new Vector3(0f, -0.97f, 32f), PlantKind.Pot, 0.5f, 180f),
+                new PlantSpot(new Vector3(32f, -0.97f, 32f), PlantKind.Pot, 0.5f, 270f),
+                new PlantSpot(new Vector3(30.937f, -0.99f, 27.452f), PlantKind.Pot, 0.42f, 0f),
+                new PlantSpot(new Vector3(27.452f, -0.99f, 30.937f), PlantKind.Pot, 0.42f, 47f),
+                new PlantSpot(new Vector3(4.548f, -0.99f, 30.937f), PlantKind.Pot, 0.42f, 94f),
+                new PlantSpot(new Vector3(1.063f, -0.99f, 27.452f), PlantKind.Pot, 0.42f, 141f),
+                new PlantSpot(new Vector3(1.063f, -0.99f, 4.548f), PlantKind.Pot, 0.42f, 188f),
+                new PlantSpot(new Vector3(4.548f, -0.99f, 1.063f), PlantKind.Pot, 0.42f, 235f),
+                new PlantSpot(new Vector3(27.452f, -0.99f, 1.063f), PlantKind.Pot, 0.42f, 282f),
+                new PlantSpot(new Vector3(30.937f, -0.99f, 4.548f), PlantKind.Pot, 0.42f, 329f),
+                new PlantSpot(new Vector3(7.57f, -1.175f, 3.053f), PlantKind.Tree, 0.42f, 16f),
+                new PlantSpot(new Vector3(24.43f, -1.175f, 3.053f), PlantKind.Tree, 0.42f, 63f),
+                new PlantSpot(new Vector3(26.783f, -1.175f, 5.217f), PlantKind.Tree, 0.5f, 110f),
+                new PlantSpot(new Vector3(3.053f, -1.175f, 24.43f), PlantKind.Tree, 0.42f, 157f),
+                new PlantSpot(new Vector3(3.053f, -1.175f, 7.57f), PlantKind.Tree, 0.42f, 204f),
+                new PlantSpot(new Vector3(5.217f, -1.175f, 5.217f), PlantKind.Tree, 0.5f, 251f),
+                new PlantSpot(new Vector3(24.43f, -1.175f, 28.947f), PlantKind.Tree, 0.42f, 298f),
+                new PlantSpot(new Vector3(7.57f, -1.175f, 28.947f), PlantKind.Tree, 0.42f, 345f),
+                new PlantSpot(new Vector3(5.217f, -1.175f, 26.783f), PlantKind.Tree, 0.5f, 32f),
+                new PlantSpot(new Vector3(28.947f, -1.175f, 7.57f), PlantKind.Tree, 0.42f, 79f),
+                new PlantSpot(new Vector3(28.947f, -1.175f, 24.43f), PlantKind.Tree, 0.42f, 126f),
+                new PlantSpot(new Vector3(26.783f, -1.175f, 26.783f), PlantKind.Tree, 0.5f, 173f),
+            });
+            // 진화 2단계 아콜로지 (ar_builder PLANTS): 섬 도시 나무 다섯 (돌 테 안 반지름 0.42 — 0.62배), 뿌리 층 집 창 아래 화분 여섯 (0.42배). 알 속이라 살아 있는 식물도 유리 덮개 없음
+            Set("IT_EvoArcology", new List<PlantSpot>
+            {
+                new PlantSpot(new Vector3(7.999f, 11.005f, 4.105f), PlantKind.Tree, 0.62f, 20f),
+                new PlantSpot(new Vector3(5.136f, 11.005f, 7.835f), PlantKind.Tree, 0.62f, 92f),
+                new PlantSpot(new Vector3(0.703f, 11.005f, 6.266f), PlantKind.Tree, 0.62f, 164f),
+                new PlantSpot(new Vector3(0.827f, 11.005f, 1.565f), PlantKind.Tree, 0.62f, 236f),
+                new PlantSpot(new Vector3(5.335f, 11.005f, 0.229f), PlantKind.Tree, 0.62f, 308f),
+                new PlantSpot(new Vector3(8.38f, 6.86f, 4f), PlantKind.Pot, 0.42f, 30f),
+                new PlantSpot(new Vector3(6.19f, 6.86f, 7.793f), PlantKind.Pot, 0.42f, 90f),
+                new PlantSpot(new Vector3(1.81f, 6.86f, 7.793f), PlantKind.Pot, 0.42f, 150f),
+                new PlantSpot(new Vector3(-0.38f, 6.86f, 4f), PlantKind.Pot, 0.42f, 210f),
+                new PlantSpot(new Vector3(1.81f, 6.86f, 0.207f), PlantKind.Pot, 0.42f, 270f),
+                new PlantSpot(new Vector3(6.19f, 6.86f, 0.207f), PlantKind.Pot, 0.42f, 330f),
+            });
             // 진화 1단계 생태 모듈 (eco_builder PLANTS — 사용자 2026-10-29 "온실 식물은 수경 농장 등에서 쓰던 식물로"):
             //   재배대 벽 쪽 줄 화분 식물 18 (흙 F + 0.665, z ±1.95 — 통로 쪽 줄은 템플릿에 구운 수경 농장 상추) + 이음 칸 나무 화분 2
             //   (흙 F + 0.502, 0.8배 — 나무 모델 흙 위 덤불이 화분 안 테 0.64 안에 들게, 플레이 확인 2026-10-29)
@@ -130,6 +315,7 @@ namespace SpaceStation.Editor
                 new PlantSpot(new Vector3(-1.9f, F + 0.415f, -2.25f), PlantKind.Pot, 0.7f, 150f),
                 new PlantSpot(new Vector3(-1.9f, 8f + F + 0.415f, 2.25f), PlantKind.Pot, 0.7f, 260f),
             });
+            InteriorPlantVariants.Assign();   // ③ 화분마다 테를 재서 우리 화분 식물 · 아틀라스 식물 섞기
             AssetDatabase.SaveAssets();
             Debug.Log("[InteriorPlantSpots] 식물 자리: 회전 링 8 · 휴게실 2 · 수경 농장 2 · 연결 허브 2 · 상업 구역 1 · 여객 도킹 포트 2 · 거주 타워 14 · 생태 모듈 20 · 복지 센터 3 · 문화 센터 2 · 태양광 어레이 6 · 수소 플랜트 2 · 중력 거주구 14 · 수직 농장 3");
         }

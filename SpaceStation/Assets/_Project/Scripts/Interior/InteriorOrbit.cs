@@ -20,6 +20,8 @@ namespace SpaceStation.Interior
 
         /// <summary>지금까지 돈 각 (0~360, 도). 12-5 센서 레이더가 빛줄 자리를 읽음.</summary>
         public float Angle => _angle;
+        /// <summary>도는 빠르기 배율 (1 = 처음 값, 0 = 멈춤) — 바이오스피어 물레방아는 물이 지나갈 때만 돎.</summary>
+        public float SpeedScale { get; set; } = 1f;
 
         public void Configure(Vector3 localCenter, Vector3 localAxis, float degreesPerSecond)
         {
@@ -36,7 +38,7 @@ namespace SpaceStation.Interior
 
         private void Update()
         {
-            _angle = Mathf.Repeat(_angle + _degreesPerSecond * Time.unscaledDeltaTime, 360f);
+            _angle = Mathf.Repeat(_angle + _degreesPerSecond * SpeedScale * Time.unscaledDeltaTime, 360f);
             var turn = Quaternion.AngleAxis(_angle, _localAxis);
             transform.localPosition = _localCenter + turn * (_startPosition - _localCenter);
             transform.localRotation = turn * _startRotation;

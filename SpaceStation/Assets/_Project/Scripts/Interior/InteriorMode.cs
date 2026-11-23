@@ -322,13 +322,15 @@ namespace SpaceStation.Interior
                 p => _layout != null && _layout.TryGetRoom(_builder.WorldToCell(p), out var r) ? r.Module : null,
                 _builder.CollectLinkedRooms,
                 m => _builder.TemplateFor(m) is { ShowOwnExterior: true },
-                _builder.RoomOf);
+                _builder.RoomOf,
+                m => _builder.TryGetTemplateRoom(m, out var t, out var room) && t.ShowOwnInterior ? room : null);
             _exteriorView.transform.SetParent(transform, false);
             _exteriorView.CollectWindows();
             HidePanels(true);
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
             _currentModule = null;
+            _bannerRoom = null;
             InputGate.SpeedCycleTaken = true; // 배속 순환 키 = 패드 화면 확대
             _pad = InteriorPad.Create(transform, new InteriorPad.Context
             {
@@ -484,6 +486,8 @@ namespace SpaceStation.Interior
                 Destroy(_boarding.gameObject);
             _boarding = null;
             ResetHold();
+            _transitPanel?.Close();
+            _roomBanner?.Hide();
             if (_player != null)
                 Destroy(_player.gameObject);
             _player = null;
@@ -516,10 +520,36 @@ namespace SpaceStation.Interior
             Settled?.Invoke();
         }
 
+        private const float FallRescueSeconds = 3f;
+
+        private bool IsDay()
+        {
+            var sim = _station != null ? _station.Simulation : null;
+            return sim == null || !sim.DayNight.Enabled || sim.DayNight.IsDay(sim.ElapsedSeconds);
+        }
+
         private void Update()
         {
+            _roomBanner?.Tick();
+            _audio.Tick(Time.unscaledDeltaTime, IsDay()); // 소리 풍경 — 나온 뒤에도 내려갈 때까지
             if (!_inside || _busy)
                 return;
+            // 방 밖 빈 공간으로 떨어짐 (가장 긴 층 사이 낙하도 2초 안쪽): 있던 방 입구로 되돌림 — 개방형 방은 둘레 벽이 막으므로 마지막 안전장치
+            if (_player.FallSeconds > FallRescueSeconds && _currentModule != null)
+            {
+                StartCoroutine(TravelRoutine(_currentModule));
+                return;
+            }
+            // 위아래 이동 장치 목적지 판 (열린 동안 다른 입력 · Esc 나가기 대신)
+            if (_transitPanel != null && _transitPanel.IsOpen)
+            {
+                if (!_rebuildPending)
+                {
+                    UpdateTransitPanel();
+                    return;
+                }
+                CloseTransitPanel();
+            }
             // 11-16 피드백: 가이드는 필요한 곳에만 — 패드를 들면 화면 아래 내부 이동 안내 대신 패드 안 안내만
             bool showWalkHint = _pad == null || !_pad.IsRaised;
             if (_hint != null && _hint.gameObject.activeSelf != showWalkHint)
@@ -547,6 +577,13 @@ namespace SpaceStation.Interior
             UpdateRoomTitle();
             UpdateNearbyRooms(RoomAtPlayer(), force: _builder.NeedsReshow);
             PrefetchRoom();
+            // 2층 높이 옆문으로 들어옴 (문 승강판 떠오른 자리) — 판까지 내려앉음 (모든 면 연결 ②-4)
+            var doorLift = _builder.DoorLiftAt(_player.transform.position);
+            if (doorLift != null)
+            {
+                StartCoroutine(RideDoorLiftDown(doorLift));
+                return;
+            }
             UpdateInteraction();
             if (_atmosphere != null)
             {
@@ -581,11 +618,20 @@ namespace SpaceStation.Interior
             if (!_layout.TryGetRoom(cell, out var room) || room.Module == _currentModule)
                 return;
             _currentModule = room.Module;
-            _audio.SetRoom(_builder.AmbienceFor(room.Module));
+            var lib = AudioService.Instance != null ? AudioService.Instance.Library : null;
+            _builder.TryGetTemplateRoom(room.Module, out var roomTemplate, out var roomRoot);
+            _audio.SetRoom(_builder.AmbienceFor(room.Module), lib != null ? lib.SoundscapeFor(room.Module.Data) : null, roomRoot,
+                roomTemplate != null && roomTemplate.Prefab != null ? roomTemplate.Prefab.transform : null);
+            _audio.SetMusicStage(_builder.StageFor(room.Module));
             string name =room.Module.Data != null ? room.Module.Data.DisplayName : room.Module.ToString();
             string state = !_station.Connectivity.IsActive(room.Module) ? $"  <color={HudText.Orange}>비활성</color>"
                 : _station.Simulation.Damage.TryGetInfo(room.Module, out _) ? $"  <color={HudText.Red}>파손</color>" : "";
             _title.SetText($"<b>{name}</b>{state}\n<size=75%><color={HudText.Muted}>방 {_layout.Rooms.Count}개 연결</color></size>");
+            if (room.Module != _bannerRoom)
+            {
+                _bannerRoom = room.Module;
+                _roomBanner?.Show(name);
+            }
         }
 
         /// <summary>
@@ -687,7 +733,7 @@ namespace SpaceStation.Interior
             InteriorLiftButton liftButton = null;
             // 해치는 더 멀리서도 (사용자 피드백 2026-10-14: 창고 · 융합로처럼 천장이 높은 방은 천장 해치가 눈에서 약 3.2m라 2.6m 광선이 닿지 않았음)
             float reach = Mathf.Max(_interactDistance, _hatchReach);
-            if (Physics.Raycast(eye.position, eye.forward, out var hit, reach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            if (LookHit(eye.position, eye.forward, reach, out var hit))
             {
                 hatch = hit.collider.GetComponent<InteriorHatch>();
                 if (hatch == null && hit.distance <= _interactDistance)
@@ -707,6 +753,20 @@ namespace SpaceStation.Interior
                     liftButton.Press(_player);
                 return;
             }
+            // 위아래 이동 장치: 발판 위에 섬 (어디를 보든) 또는 몸통을 바라봄 (시선이 먼저 닿은 물건보다 앞)
+            float hitDistance = hit.collider != null ? hit.distance : reach;
+            var transit = hatch == null ? _builder.TransitUnder(_player.transform.position) : null;
+            if (transit == null && hatch == null)
+                transit = _builder.TransitLookedAt(eye.position, eye.forward, Mathf.Min(reach, hitDistance + 0.3f));
+            if (transit != null)
+            {
+                ResetHold();
+                int count = _builder.Routes.From(transit.Module).Count;
+                _prompt.SetText($"<b>{KeyBindings.Label(GameAction.Interact)}</b>  위아래 이동 <color={HudText.Muted}>{count}곳</color>");
+                if (KeyBindings.WasPressed(GameAction.Interact))
+                    OpenTransitPanel(transit);
+                return;
+            }
             if (item != null)
             {
                 UpdateHold(item);
@@ -714,19 +774,193 @@ namespace SpaceStation.Interior
             }
             ResetHold();
             if (hatch == null)
+                hatch = _builder.SkyLiftUnder(_player.transform.position); // 빛 다리 판 위에 섬 (발밑은 시선에 잘 안 잡힘)
+            if (hatch == null || !hatch.DoorPoint.HasValue)
             {
                 _prompt.SetText(string.Empty);
                 return;
             }
+            hatch = InteriorBuilder.Facing(hatch, eye.forward);   // 판 하나를 같이 쓰는 빛 다리 (화물 환적장) — 바라보는 쪽
             bool hasRoom = _layout.TryGetRoom(hatch.ToCell, out var room);
             string target = hasRoom && room.Module.Data != null ? room.Module.Data.DisplayName : "";
-            _prompt.SetText($"<b>{KeyBindings.Label(GameAction.Interact)}</b>  {(hatch.Up ? "위층으로" : "아래층으로")} <color={HudText.Muted}>{target}</color>");
+            string verb = hatch.Bridge ? "빛 다리 타고 문으로" : "빛 기둥 타고 위 문으로";
+            _prompt.SetText($"<b>{KeyBindings.Label(GameAction.Interact)}</b>  {verb} <color={HudText.Muted}>{target}</color>");
             if (KeyBindings.WasPressed(GameAction.Interact))
             {
                 if (hasRoom)
-                    _builder.EnsureBuilt(room.Module); // 맞은편 해치(도착점)가 생기게
-                StartCoroutine(UseHatch(hatch.Arrival ?? _builder.FloorPoint(hatch.ToCell)));
+                    _builder.EnsureBuilt(room.Module);
+                StartCoroutine(RideDoorLiftUp(hatch));
             }
+        }
+
+        // ---------------- 위아래 이동 장치 (2026-11-19) ----------------
+
+        /// <summary>떠나는 연출 (떠오르기 · 가라앉기) · 도착 연출 시간 (초), 떠오르는 높이 · 가라앉는 깊이 (m).</summary>
+        private const float TransitLeaveSeconds = 1.3f, TransitArriveSeconds = 1.1f, TransitRise = 2.2f, TransitSink = 2.0f;
+
+        private InteriorTransitPanel _transitPanel;
+        private InteriorTransit _transitFrom;
+        /// <summary>방 입장 표시 (REVIEW_1115 1-9) · 마지막으로 띄운 방 (제목만 다시 그리는 경우엔 안 띄움).</summary>
+        private InteriorRoomBanner _roomBanner;
+        private ModuleInstance _bannerRoom;
+
+        /// <summary>장치 앞 F: 목적지 판을 엶 (걷기 · 둘러보기 멈춤).</summary>
+        private void OpenTransitPanel(InteriorTransit transit)
+        {
+            var stops = _builder.Routes.From(transit.Module);
+            if (stops.Count == 0)
+                return;
+            _transitFrom = transit;
+            _prompt.SetText(string.Empty);
+            _player.Frozen = true;
+            bool sameFloor = false;   // 같은 층에 둘 이상 = 좌우 안내도
+            for (int i = 1; i < stops.Count; i++)
+                sameFloor |= stops[i].Up == stops[i - 1].Up && stops[i].Floor == stops[i - 1].Floor;
+            string Key(GameAction a) => KeyBindings.Label(a);
+            string footer = $"{Key(GameAction.CameraForward)} · {Key(GameAction.CameraBack)} 층" +
+                            (sameFloor ? $"   {Key(GameAction.CameraLeft)} · {Key(GameAction.CameraRight)} 같은 층" : "") +
+                            $"   <b><color=#FFFFFF>{Key(GameAction.Interact)}</color></b> 출발   Esc 닫기";
+            string name = transit.Module.Data != null ? transit.Module.Data.DisplayName : transit.Module.ToString();
+            _transitPanel.Open(name, InteriorTransitRoutes.FloorOf(transit.Module), stops, footer);
+            AudioService.TryPlay(l => l.UiOpen, 0.5f);
+        }
+
+        private void CloseTransitPanel()
+        {
+            _transitPanel.Close();
+            if (_player != null)
+                _player.Frozen = false;
+        }
+
+        /// <summary>목적지 판이 열린 동안: 위아래 (W · S · 휠 · 화살표) · 같은 층 좌우 (A · D) · F 출발 · Esc 닫기.</summary>
+        private void UpdateTransitPanel()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame && !InputGate.EscapeConsumedThisFrame)
+            {
+                InputGate.ConsumeEscape();
+                CloseTransitPanel();
+                return;
+            }
+            int dRow = 0, dCol = 0;
+            if (KeyBindings.WasPressed(GameAction.CameraForward) || (keyboard != null && keyboard.upArrowKey.wasPressedThisFrame))
+                dRow = -1;
+            else if (KeyBindings.WasPressed(GameAction.CameraBack) || (keyboard != null && keyboard.downArrowKey.wasPressedThisFrame))
+                dRow = 1;
+            if (KeyBindings.WasPressed(GameAction.CameraLeft) || (keyboard != null && keyboard.leftArrowKey.wasPressedThisFrame))
+                dCol = -1;
+            else if (KeyBindings.WasPressed(GameAction.CameraRight) || (keyboard != null && keyboard.rightArrowKey.wasPressedThisFrame))
+                dCol = 1;
+            var mouse = Mouse.current;
+            if (mouse != null)
+            {
+                float scroll = mouse.scroll.ReadValue().y;
+                if (scroll > 0.1f)
+                    dRow = -1;
+                else if (scroll < -0.1f)
+                    dRow = 1;
+            }
+            if ((dRow != 0 || dCol != 0) && _transitPanel.Move(dRow, dCol))
+                AudioService.TryPlay(l => l.UiHover);
+            if (KeyBindings.WasPressed(GameAction.Interact) && _transitPanel.TryGetSelected(out var stop))
+            {
+                var from = _transitFrom;
+                CloseTransitPanel();
+                StartCoroutine(RideTransit(from, stop));
+            }
+        }
+
+        /// <summary>
+        /// 이동 장치 타기: 위로 = 발판 가운데로 모이며 떠오르다 어두워짐 → 고른 방 장치 발판 밑에서 솟아올라 섬, 아래로 = 가라앉다 어두워짐 → 위에서 내려앉음.
+        /// 설정 <see cref="GameSettings.TransitRide"/>를 끄면 바로 어두워졌다가 발판 위로.
+        /// </summary>
+        private IEnumerator RideTransit(InteriorTransit from, TransitStop stop)
+        {
+            _busy = true;
+            _prompt.SetText(string.Empty);
+            bool ride = GameSettings.TransitRide && from != null;
+            if (ride)
+            {
+                from.SetRiding(true);
+                var carrier = new GameObject("TransitCarrier").transform;
+                var start = _player.transform.position;
+                carrier.position = start;
+                _player.Ride(carrier);
+                var pad = from.Pad(stop.Up);   // 해치 방 = 위로는 천장 해치 밑에서, 아래로는 바닥 해치에서
+                float travel = stop.Up ? TransitRise : -TransitSink;
+                for (float t = 0f; t < TransitLeaveSeconds; t += Time.unscaledDeltaTime)
+                {
+                    float k = t / TransitLeaveSeconds;
+                    var p = Vector3.Lerp(start, new Vector3(pad.x, start.y, pad.z), Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(k * 2.5f)));
+                    p.y = start.y + travel * k * k;   // 천천히 떠서 빨라짐
+                    carrier.position = p;
+                    _fade.alpha = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(stop.Up ? 0.45f : 0.25f, stop.Up ? 0.95f : 0.85f, k));   // 가라앉을 땐 눈이 바닥에 닿기 전에 어둡게
+                    yield return null;
+                }
+                _fade.alpha = 1f;
+                _player.Dismount();
+                Destroy(carrier.gameObject);
+                from.SetRiding(false);
+            }
+            else
+                yield return Fade(0f, 1f, 0.15f);
+
+            var target = stop.Module;
+            _builder.EnsureBuilt(target);
+            UpdateNearbyRooms(target, force: true);
+            var to = _builder.TransitOf(target);
+            var arrive = to != null ? to.Pad(!stop.Up) : _builder.SpawnPoint(target, out _);   // 위로 가면 밑에서 솟음 (바닥 해치), 아래로 가면 위에서 내려앉음 (천장 해치 밑)
+            float yaw = _player.transform.eulerAngles.y, pitch = _player.Pitch;
+            _currentModule = null; // 제목 · 환경음 다시
+            if (ride && to != null)
+            {
+                float offset = stop.Up ? -TransitSink : TransitRise;   // 위로 가면 발판 밑에서 솟음, 아래로 가면 위에서 내려앉음
+                _player.Teleport(arrive + Vector3.up * offset, yaw, pitch);
+                var carrier = new GameObject("TransitCarrier").transform;
+                carrier.position = _player.transform.position;
+                _player.Ride(carrier);
+                to.SetRiding(true);
+                for (float t = 0f; t < TransitArriveSeconds; t += Time.unscaledDeltaTime)
+                {
+                    float k = t / TransitArriveSeconds;
+                    carrier.position = arrive + Vector3.up * (0.02f + offset * (1f - k) * (1f - k));   // 빠르게 와서 발판 앞에서 느려짐
+                    _fade.alpha = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.55f, k));
+                    yield return null;
+                }
+                _fade.alpha = 0f;
+                carrier.position = arrive + Vector3.up * 0.02f;
+                _player.Dismount();
+                Destroy(carrier.gameObject);
+                to.SetRiding(false);
+            }
+            else
+            {
+                _player.Teleport(arrive + Vector3.up * 0.05f, yaw, pitch);
+                yield return Fade(1f, 0f, 0.2f);
+            }
+            UpdateNearbyRooms(RoomAtPlayer(), force: false);
+            _busy = false;
+        }
+
+        private static readonly RaycastHit[] LookHits = new RaycastHit[16];
+
+        /// <summary>
+        /// 시선 광선이 처음 닿은 물체 — 물에 못 들어가게 막는 보이지 않는 벽 (`_LakeHit`)은 지나감: 물 위에 선 배 자리 (궤도 항만 뱃놀이) ·
+        /// 물속 물건을 보고 쓸 수 있게 (첫 물체만 보면 물가의 벽에 막혀 배 자리 안내가 뜨지 않았음, 사용자 2026-11-16 "탑승 기능 안 나오는데").
+        /// </summary>
+        public static bool LookHit(Vector3 from, Vector3 dir, float reach, out RaycastHit hit)
+        {
+            int n = Physics.RaycastNonAlloc(from, dir, LookHits, reach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            hit = default;
+            float best = float.MaxValue;
+            for (int i = 0; i < n; i++)
+            {
+                if (LookHits[i].distance >= best || LookHits[i].collider.name.EndsWith("_LakeHit"))
+                    continue;
+                best = LookHits[i].distance;
+                hit = LookHits[i];
+            }
+            return best < float.MaxValue;
         }
 
         private void UpdateHold(InteriorInteractable item)
@@ -811,19 +1045,132 @@ namespace SpaceStation.Interior
             _noticeUntil = Time.unscaledTime + 3.5f;
         }
 
-        /// <param name="arrival">맞은편 해치 아래 바닥점 (월드).</param>
-        private IEnumerator UseHatch(Vector3 arrival)
+        /// <summary>판에서 고리까지 떠오르는 시간 (초속 약 2.8 m, 1.6 ~ 4.5초) — 문 승강판 · 빛 다리.</summary>
+        private static float SkyLiftSeconds(float rise) => Mathf.Clamp(rise / 2.8f, 1.6f, 4.5f);
+
+        /// <summary>떠오른 자리 ~ 문 너머 (튜브 안) 미끄러지는 시간 (초속 약 1.6 m, 0.6 ~ 1.6초).</summary>
+        private static float DoorGlideSeconds(float distance) => Mathf.Clamp(distance / 1.6f, 0.6f, 1.6f);
+
+        /// <summary>빛 다리로 물길 위를 건너는 시간 (초속 약 1.6 m, 1.2 ~ 6초 — 같이 쓰는 위 승강판 판에서 문까지 12 m까지).</summary>
+        private static float BridgeGlideSeconds(float distance) => Mathf.Clamp(distance / 1.6f, 1.2f, 6f);
+
+        /// <summary>
+        /// 문 승강판 타고 위 문으로 (2층 높이 옆문 — 모든 면 연결 ②-4): 판 가운데로 모이며 기둥을 따라 문턱 높이까지 떠오른 뒤 문을 지나 튜브 안 1.1 m까지 미끄러져 내려섬.
+        /// </summary>
+        private IEnumerator RideDoorLiftUp(InteriorHatch hatch)
         {
             _busy = true;
             _prompt.SetText(string.Empty);
-            yield return Fade(0f, 1f, 0.15f);
-            // 해치 뚜껑(칸 가운데) 옆, 지금 바라보는 쪽으로 한 걸음
-            var forward = _player.transform.forward;
-            forward.y = 0f;
-            var offset = forward.sqrMagnitude > 0.01f ? forward.normalized * 1.1f : Vector3.forward * 1.1f;
-            _player.Teleport(arrival + offset + Vector3.up * 0.05f, _player.transform.eulerAngles.y);
+            var lift = hatch.SkyLift;
+            lift.SetRiding(true);
+            var carrier = new GameObject("DoorLiftCarrier").transform;
+            var start = _player.transform.position;
+            carrier.position = start;
+            _player.Ride(carrier);
+            var pad = lift.PadTop;
+            var door = hatch.DoorPoint.Value;
+            float top = door.y + 0.03f + (hatch.Bridge ? InteriorGeometry.BridgeLiftRise : 0f);
+            float duration = SkyLiftSeconds(top - start.y);
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                float k = t / duration;
+                float gather = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(k * 3f));
+                var p = Vector3.Lerp(start, new Vector3(pad.x, start.y, pad.z), gather);
+                p.y = Mathf.Lerp(start.y, top, k * k * (3f - 2f * k));
+                carrier.position = p;
+                yield return null;
+            }
+            var from = new Vector3(pad.x, top, pad.z);
+            if (hatch.Bridge)
+            {
+                // 빛 다리: 물길 위를 건너 문틀 앞 (문 평면 0.6 m 안) → 문턱 + 0.5까지 내려앉은 뒤 문을 지나 튜브로 비스듬히 내려섬
+                var over = door - hatch.DoorDirection * InteriorGeometry.BridgeInset;
+                over.y = top;
+                float cross = BridgeGlideSeconds(Vector3.Distance(from, over));
+                for (float t = 0f; t < cross; t += Time.unscaledDeltaTime)
+                {
+                    carrier.position = Vector3.Lerp(from, over, Mathf.SmoothStep(0f, 1f, t / cross));
+                    yield return null;
+                }
+                float low = door.y + InteriorGeometry.BridgeLowRise;
+                float down = SkyLiftSeconds(top - low);
+                for (float t = 0f; t < down; t += Time.unscaledDeltaTime)
+                {
+                    float k = t / down;
+                    carrier.position = new Vector3(over.x, Mathf.Lerp(top, low, k * k * (3f - 2f * k)), over.z);
+                    yield return null;
+                }
+                from = new Vector3(over.x, low, over.z);
+                top = door.y + 0.03f;
+            }
+            var to = door + hatch.DoorDirection * 1.1f;
+            to.y = top;
+            float glide = DoorGlideSeconds(Vector3.Distance(from, to));
+            for (float t = 0f; t < glide; t += Time.unscaledDeltaTime)
+            {
+                carrier.position = Vector3.Lerp(from, to, Mathf.SmoothStep(0f, 1f, t / glide));
+                yield return null;
+            }
+            carrier.position = to;
+            _player.Dismount();
+            Destroy(carrier.gameObject);
+            lift.SetRiding(false);
             UpdateNearbyRooms(RoomAtPlayer(), force: false);
-            yield return Fade(1f, 0f, 0.2f);
+            _busy = false;
+        }
+
+        /// <summary>2층 높이 옆문으로 들어오면 떠오른 자리 (기둥 꼭대기)까지 미끄러진 뒤 판까지 내려앉음.</summary>
+        private IEnumerator RideDoorLiftDown(InteriorHatch hatch)
+        {
+            _busy = true;
+            _prompt.SetText(string.Empty);
+            var lift = hatch.SkyLift;
+            lift.SetRiding(true);
+            var carrier = new GameObject("DoorLiftCarrier").transform;
+            var start = _player.transform.position;
+            carrier.position = start;
+            _player.Ride(carrier);
+            var pad = lift.PadTop;
+            if (hatch.Bridge)
+            {
+                // 빛 다리로 들어옴: 문틀 앞 (문 평면 0.6 m 안 · 문턱 + 0.5)으로 떠 들어간 뒤 떠올라 물길 위를 건넘 (뒤 내려앉기는 보통 문 승강판과 같음)
+                var door = hatch.DoorPoint.Value;
+                var low = door - hatch.DoorDirection * InteriorGeometry.BridgeInset + Vector3.up * InteriorGeometry.BridgeLowRise;
+                float drift = DoorGlideSeconds(Vector3.Distance(start, low));
+                for (float t = 0f; t < drift; t += Time.unscaledDeltaTime)
+                {
+                    carrier.position = Vector3.Lerp(start, low, Mathf.SmoothStep(0f, 1f, t / drift));
+                    yield return null;
+                }
+                var up = new Vector3(low.x, door.y + 0.03f + InteriorGeometry.BridgeLiftRise, low.z);
+                float rise = SkyLiftSeconds(up.y - low.y);
+                for (float t = 0f; t < rise; t += Time.unscaledDeltaTime)
+                {
+                    float k = t / rise;
+                    carrier.position = Vector3.Lerp(low, up, k * k * (3f - 2f * k));
+                    yield return null;
+                }
+                start = up;
+            }
+            var over = new Vector3(pad.x, start.y, pad.z);
+            float glide = hatch.Bridge ? BridgeGlideSeconds(Vector3.Distance(start, over)) : DoorGlideSeconds(Vector3.Distance(start, over));
+            for (float t = 0f; t < glide; t += Time.unscaledDeltaTime)
+            {
+                carrier.position = Vector3.Lerp(start, over, Mathf.SmoothStep(0f, 1f, t / glide));
+                yield return null;
+            }
+            float duration = SkyLiftSeconds(over.y - pad.y);
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                float k = t / duration;
+                carrier.position = new Vector3(pad.x, Mathf.Lerp(over.y, pad.y + 0.02f, k * k * (3f - 2f * k)), pad.z);
+                yield return null;
+            }
+            carrier.position = new Vector3(pad.x, pad.y + 0.02f, pad.z);
+            _player.Dismount();
+            Destroy(carrier.gameObject);
+            lift.SetRiding(false);
+            UpdateNearbyRooms(RoomAtPlayer(), force: false);
             _busy = false;
         }
 
@@ -1103,6 +1450,12 @@ namespace SpaceStation.Interior
             nrt.anchoredPosition = new Vector2(0f, 120f);
             nrt.sizeDelta = new Vector2(700f, 34f);
 
+            // REVIEW_1115 1-9 방 입장 표시 (조준점 위, 잠깐)
+            _roomBanner = new InteriorRoomBanner(ui, _fillSprite, _overlay);
+
+            // 2026-11-19 위아래 이동 장치 목적지 판
+            _transitPanel = new InteriorTransitPanel(ui, _fillSprite, _overlay);
+
             var hint = ui.Label(_overlay, "", 18f, TextAlignmentOptions.Bottom);
             var hrt = hint.rectTransform;
             hrt.anchorMin = new Vector2(0f, 0f);
@@ -1187,7 +1540,7 @@ namespace SpaceStation.Interior
             if (hint == null)
                 return;
             string move = $"{KeyBindings.Label(GameAction.CameraForward)}{KeyBindings.Label(GameAction.CameraLeft)}{KeyBindings.Label(GameAction.CameraBack)}{KeyBindings.Label(GameAction.CameraRight)}";
-            hint.SetText($"{move} 이동 · 마우스 둘러보기 · Shift 달리기 · {KeyBindings.Label(GameAction.Interact)} 해치 · 작업 · {KeyBindings.Label(GameAction.Pad)} 패드 · ESC 나가기");
+            hint.SetText($"{move} 이동 · 마우스 둘러보기 · Shift 달리기 · {KeyBindings.Label(GameAction.Interact)} 작업 · 위아래 이동 · {KeyBindings.Label(GameAction.Pad)} 패드 · ESC 나가기");
         }
 
         private IEnumerator Fade(float from, float to, float seconds)

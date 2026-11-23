@@ -1,0 +1,279 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f5ae7f3df2855f4ba91b4ac1a2467ba, type: 3}
+  m_Name: SS_EvoDeepSpaceComm
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Audio.RoomSoundscape
+  Module: {fileID: 11400000, guid: fcb0f343cf1f6644f89ed4b8ed712715, type: 2}
+  Bed:
+    Clips:
+    - {fileID: 8300000, guid: 921a9545a7670e34a9c7a7ba3280ad08, type: 3}
+    Bus: 2
+    Volume: 0.9
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0.05
+    MaxVoices: 3
+  BedNight: 1
+  Emitters:
+  - Name: "\uC740\uD558\uC218 \uAC15 \uC67C\uCABD \uAD7D\uC774"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 5bc6908f446c668468dd67f83cd97f27, type: 3}
+      Bus: 2
+      Volume: 0.35
+      Pitch: {x: 1.05, y: 1.05}
+      Cooldown: 0.05
+      MaxVoices: 3
+    Position: {x: 2, y: -1.32, z: -1.3}
+    MinDistance: 1.5
+    MaxDistance: 6
+    Day: 1
+    Night: 1
+    OnBeat: 0
+    Spatial: 1
+    Follow: 
+  - Name: "\uC740\uD558\uC218 \uAC15 \uB4A4 \uAC00\uC6B4\uB370"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 5bc6908f446c668468dd67f83cd97f27, type: 3}
+      Bus: 2
+      Volume: 0.35
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 3
+    Position: {x: 8, y: -1.32, z: 2}
+    MinDistance: 1.5
+    MaxDistance: 6
+    Day: 1
+    Night: 1
+    OnBeat: 0
+    Spatial: 1
+    Follow: 
+  - Name: "\uC740\uD558\uC218 \uAC15 \uC624\uB978\uCABD \uAD7D\uC774"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 5bc6908f446c668468dd67f83cd97f27, type: 3}
+      Bus: 2
+      Volume: 0.35
+      Pitch: {x: 0.95, y: 0.95}
+      Cooldown: 0.05
+      MaxVoices: 3
+    Position: {x: 14, y: -1.32, z: -1.3}
+    MinDistance: 1.5
+    MaxDistance: 6
+    Day: 1
+    Night: 1
+    OnBeat: 0
+    Spatial: 1
+    Follow: 
+  - Name: "\uC67C\uCABD \uBCC4 \uC0D8"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 3a6dd07909f3ca74bb2129aba31f128a, type: 3}
+      Bus: 2
+      Volume: 0.35
+      Pitch: {x: 1.15, y: 1.15}
+      Cooldown: 0.05
+      MaxVoices: 3
+    Position: {x: -3, y: -1.32, z: -2.4}
+    MinDistance: 1
+    MaxDistance: 5
+    Day: 1
+    Night: 1
+    OnBeat: 0
+    Spatial: 1
+    Follow: 
+  - Name: "\uC624\uB978\uCABD \uBCC4 \uC0D8"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 3a6dd07909f3ca74bb2129aba31f128a, type: 3}
+      Bus: 2
+      Volume: 0.35
+      Pitch: {x: 1.1, y: 1.1}
+      Cooldown: 0.05
+      MaxVoices: 3
+    Position: {x: 19, y: -1.32, z: -2.4}
+    MinDistance: 1
+    MaxDistance: 5
+    Day: 1
+    Night: 1
+    OnBeat: 0
+    Spatial: 1
+    Follow: 
+  - Name: "\uC67C\uCABD \uC911\uACC4\uC18C \uC6C5\uC6C5"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 94df1dabc79392247b9d36e4df3e7823, type: 3}
+      Bus: 2
+      Volume: 0.3
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 3
+    Position: {x: 0, y: 0.20000005, z: 1.15}
+    MinDistance: 1.5
+    MaxDistance: 5
+    Day: 1
+    Night: 1
+    OnBeat: 0
+    Spatial: 1
+    Follow: 
+  - Name: "\uC624\uB978\uCABD \uC911\uACC4\uC18C \uC6C5\uC6C5"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 94df1dabc79392247b9d36e4df3e7823, type: 3}
+      Bus: 2
+      Volume: 0.3
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 3
+    Position: {x: 16, y: 0.20000005, z: 1.15}
+    MinDistance: 1.5
+    MaxDistance: 5
+    Day: 1
+    Night: 1
+    OnBeat: 0
+    Spatial: 1
+    Follow: 
+  - Name: "\uAC00\uC6B4\uB370 \uAD00\uCE21\uC2E4 \uC548"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 94df1dabc79392247b9d36e4df3e7823, type: 3}
+      Bus: 2
+      Volume: 0.25
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 3
+    Position: {x: 8, y: -0.099999905, z: -0.3}
+    MinDistance: 1
+    MaxDistance: 3.5
+    Day: 1
+    Night: 1
+    OnBeat: 0
+    Spatial: 1
+    Follow: 
+  - Name: "\uC740\uD558\uC218 \uAE4A\uC740 \uC6B8\uB9BC (2D)"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: ac2039241a3deac4b95fe0bf1574cbda, type: 3}
+      Bus: 2
+      Volume: 0.4
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 3
+    Position: {x: 0, y: 0, z: 0}
+    MinDistance: 1.5
+    MaxDistance: 10
+    Day: 1
+    Night: 1
+    OnBeat: 0
+    Spatial: 0
+    Follow: 
+  - Name: "\uD480\uBC8C\uB808 (2D)"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 0da996f5b8be5384d85e2e551963c50c, type: 3}
+      Bus: 2
+      Volume: 0.3
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 3
+    Position: {x: 0, y: 0, z: 0}
+    MinDistance: 1.5
+    MaxDistance: 10
+    Day: 1
+    Night: 1
+    OnBeat: 0
+    Spatial: 0
+    Follow: 
+  Scatters:
+  - Name: "\uC804\uD30C \uC811\uC2DC \uC2E0\uD638 \uC090 \xB7 \uBE55 (\uC74C\uACC4
+      \xB7 \uBC15)"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 6a3cbb9ac7450ce46b4134afe552eaf0, type: 3}
+      Bus: 2
+      Volume: 0.15
+      Pitch: {x: 1, y: 1}
+      Cooldown: 1
+      MaxVoices: 2
+    Center: {x: 8, y: 1.3, z: 2.9}
+    Size: {x: 21, y: 0.4, z: 0.3}
+    Interval: {x: 8, y: 16}
+    When: 0
+    MinDistance: 1.5
+    MaxDistance: 12
+    Tonal: 1
+    BaseNote: 84
+    Notes: 51000000540000005600000059000000
+  - Name: "\uBCC4\uB625\uBCC4 (\uC74C\uACC4 \uBC18\uC9DD\uC784)"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 9137a175e10c88840823b3af7cc1209b, type: 3}
+      Bus: 2
+      Volume: 0.08
+      Pitch: {x: 1, y: 1}
+      Cooldown: 3
+      MaxVoices: 1
+    Center: {x: 8, y: 3.5, z: 0.5}
+    Size: {x: 20, y: 0.2, z: 4}
+    Interval: {x: 20, y: 40}
+    When: 0
+    MinDistance: 4
+    MaxDistance: 30
+    Tonal: 1
+    BaseNote: 96
+    Notes: 600000005b0000005d00000059000000
+  - Name: "\uBD80\uC5C9\uC774 (\uAC00\uC6B4\uB370 \uB3D4 \uBC1C\uCF54\uB2C8)"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 00cae7f0110697149b78f563e1662de3, type: 3}
+      - {fileID: 8300000, guid: c83cc32f17302ac4d9248141cc5a1ad2, type: 3}
+      Bus: 2
+      Volume: 0.1
+      Pitch: {x: 1, y: 1}
+      Cooldown: 3
+      MaxVoices: 1
+    Center: {x: 8, y: 0.70000005, z: -1.52}
+    Size: {x: 2.8, y: 0, z: 0}
+    Interval: {x: 30, y: 60}
+    When: 0
+    MinDistance: 2
+    MaxDistance: 20
+    Tonal: 0
+    BaseNote: 72
+    Notes: 
+  - Name: "\uAC15 \uC704 \uC720\uB9AC \uBCC4 \uBC18\uC9DD (\uC74C\uACC4 \xB7 \uBC15)"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: da512b69731f2874f9c2c04f9d7c0095, type: 3}
+      Bus: 2
+      Volume: 0.1
+      Pitch: {x: 1, y: 1}
+      Cooldown: 1
+      MaxVoices: 2
+    Center: {x: 8, y: -1.0699999, z: 0.4}
+    Size: {x: 10, y: 0.2, z: 3.5}
+    Interval: {x: 10, y: 20}
+    When: 0
+    MinDistance: 1.5
+    MaxDistance: 10
+    Tonal: 1
+    BaseNote: 84
+    Notes: 590000005b0000005d00000060000000
+  Motif:
+    Clips:
+    - {fileID: 8300000, guid: 571a870f7e179a448a76c5cd3875e8f6, type: 3}
+    Bus: 3
+    Volume: 0.45
+    Pitch: {x: 1, y: 1}
+    Cooldown: 1
+    MaxVoices: 1
+  MotifCooldown: 30

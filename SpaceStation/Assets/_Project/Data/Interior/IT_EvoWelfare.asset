@@ -19,127 +19,205 @@ MonoBehaviour:
     _direction: {x: 0, y: -1, z: 0}
     _depth: 1.3
     _offset: {x: 2.5, y: 0, z: 2.5}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
   - _cell: {x: 0, y: 0, z: 0}
     _direction: {x: 0, y: 1, z: 0}
     _depth: 2.7
     _offset: {x: 2.5, y: 0, z: 2.5}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
   - _cell: {x: 1, y: 0, z: 0}
     _direction: {x: 1, y: 0, z: 0}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
   - _cell: {x: 1, y: 0, z: 0}
     _direction: {x: 0, y: 0, z: 1}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
   - _cell: {x: 1, y: 0, z: 0}
     _direction: {x: 0, y: 0, z: -1}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
   - _cell: {x: 1, y: 0, z: 0}
     _direction: {x: 0, y: -1, z: 0}
     _depth: 1.3
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
   - _cell: {x: 1, y: 0, z: 0}
     _direction: {x: 0, y: 1, z: 0}
     _depth: 2.7
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
   - _cell: {x: 0, y: 0, z: 1}
     _direction: {x: 1, y: 0, z: 0}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
   - _cell: {x: 0, y: 0, z: 1}
     _direction: {x: -1, y: 0, z: 0}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
   - _cell: {x: 0, y: 0, z: 1}
     _direction: {x: 0, y: 0, z: 1}
     _depth: 3.2
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
   - _cell: {x: 0, y: 0, z: 1}
     _direction: {x: 0, y: -1, z: 0}
     _depth: 1.3
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
   - _cell: {x: 0, y: 0, z: 1}
     _direction: {x: 0, y: 1, z: 0}
     _depth: 2.7
     _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
+  - _cell: {x: 0, y: 0, z: 0}
+    _direction: {x: -1, y: 0, z: 0}
+    _depth: 3.2
+    _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
+  - _cell: {x: 0, y: 0, z: 0}
+    _direction: {x: 0, y: 0, z: -1}
+    _depth: 3.2
+    _offset: {x: 0, y: 0, z: 0}
+    _sealedWall: 0
+    _skyLift: 0
+    _hatchScale: 0
+    _doorLift: 0
+    _doorSteps: 0
   _spawn: {x: 6.7, y: -1.3, z: 0}
   _spawnYaw: -90
   _ambience: 0
   _showOwnExterior: 0
+  _showOwnInterior: 0
+  _sealedSockets: 0
   _residentSpots:
   - _position: {x: 4.5, y: -1.3, z: -0.95}
     _yaw: 180
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: 5.75, y: -1.3, z: -0.95}
     _yaw: 180
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: 4.5, y: -1.3, z: 0.95}
     _yaw: 0
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: 5.75, y: -1.3, z: 0.95}
     _yaw: 0
     _pose: 2
     _work: 1
+    _lie: 0
   - _position: {x: -1.1258329, y: -0.84999996, z: 0.65000004}
     _yaw: -59.999996
     _pose: 1
     _work: 0
+    _lie: 0
   - _position: {x: -1.2557036, y: -0.84999996, z: -0.3364648}
     _yaw: -105
     _pose: 1
     _work: 0
+    _lie: 0
   - _position: {x: -0.64999986, y: -0.84999996, z: -1.125833}
     _yaw: -150.00002
     _pose: 1
     _work: 0
+    _lie: 0
   - _position: {x: 0.3364647, y: -0.84999996, z: -1.2557036}
     _yaw: 165.00002
     _pose: 1
     _work: 0
+    _lie: 0
   - _position: {x: 1.1258329, y: -0.84999996, z: -0.6500002}
     _yaw: 120.000015
     _pose: 1
     _work: 0
-  - _position: {x: -2.05, y: -0.85999995, z: 5.05}
-    _yaw: -90
-    _pose: 1
-    _work: 0
+    _lie: 0
   - _position: {x: -2.05, y: -0.85999995, z: 5.85}
     _yaw: -90
     _pose: 1
     _work: 0
-  - _position: {x: 2.05, y: -0.85999995, z: 5.05}
-    _yaw: 90
-    _pose: 1
-    _work: 0
+    _lie: 0
   - _position: {x: 2.05, y: -0.85999995, z: 5.85}
     _yaw: 90
     _pose: 1
     _work: 0
+    _lie: 0
   - _position: {x: -1.9, y: -0.88, z: 10}
     _yaw: -45
     _pose: 1
     _work: 0
+    _lie: 0
   - _position: {x: 1.9, y: -0.88, z: 10}
     _yaw: 45
     _pose: 1
     _work: 0
-  - _position: {x: 0, y: -1.3, z: 4.35}
-    _yaw: 0
-    _pose: 0
-    _work: 0
-  - _position: {x: 0, y: -1.3, z: 6.05}
-    _yaw: 180
-    _pose: 0
-    _work: 0
+    _lie: 0
   - _position: {x: -0.85, y: -1.3, z: 5.2}
     _yaw: 90
     _pose: 0
     _work: 0
+    _lie: 0
   _workTraits: 01000000
   _leisure: 1
   _openWork: 0
@@ -151,10 +229,17 @@ MonoBehaviour:
     _scale: 1
     _yaw: 20
   - _position: {x: -2.55, y: -0.83799994, z: 3.85}
-    _kind: 0
+    _kind: 4
     _scale: 0.7
     _yaw: 70
   - _position: {x: 2.55, y: -0.83799994, z: 3.85}
-    _kind: 0
+    _kind: 4
     _scale: 0.7
     _yaw: 220
+  _hasTransitSpot: 1
+  _transitSpot: {x: 9.75, y: -1.2978516, z: 1.75}
+  _transitYaw: 90
+  _transitScale: 0.85
+  _transitWall: 0
+  _transitManual: 0
+  _transitHatch: 0

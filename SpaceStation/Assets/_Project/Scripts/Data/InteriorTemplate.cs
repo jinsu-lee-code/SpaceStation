@@ -16,18 +16,40 @@ namespace SpaceStation.Data
         [SerializeField] private float _depth = 3.2f;
         [Tooltip("수직 문 자리(해치)만: 칸 중심에서 수평으로 옮기는 거리 (모듈 로컬). 통로 쪽에 두려고")]
         [SerializeField] private Vector3 _offset;
+        [Tooltip("수평 문 자리만: 닫혀 있을 때 난간 + 하늘 대신 막힌 창 패널 (지붕 안 구역의 문 자리 — 개방형 갑판과 실내가 함께 있는 2단계 방)")]
+        [SerializeField] private bool _sealedWall;
+        [Tooltip("위 문 자리만: 해치 대신 빛 기둥 승강판 (하늘이 트인 2단계+ 방, 진화 단계별 통로 ③). 오프셋 = 판 자리 (y = 칸 중심에서 판 바닥까지), 깊이 = 칸 중심에서 기둥 꼭대기 고리까지")]
+        [SerializeField] private bool _skyLift;
+        [Tooltip("해치 크기 배율 (0 = 1). 좁은 탑 방 천장 해치 = 0.65 (틀 1.24 · 뚜껑 0.92 — 가운데 엘리베이터 샤프트와 벽 사이에 1.9 m 틀이 안 들어감)")]
+        [SerializeField] private float _hatchScale;
+        [Tooltip("수평 문 자리만: 문 높이에 바닥이 없는 2층 높이 옆문 (위 칸이 하늘 · 뚫린 홀) — 아래 바닥 빛 기둥 판에서 떠올라 문으로 나가고, 문으로 들어오면 판까지 내려앉음 " +
+                 "(모든 면 연결 ②-4, 2026-11-18). 오프셋 = 판 자리 (칸 중심 기준, y = 판 윗면)")]
+        [SerializeField] private bool _doorLift;
+        [Tooltip("수평 문 자리만: 문 안 바닥이 문턱보다 낮은 옆문 (AI 중추 · 수리 사령부 정원 0.78 m) — 문이 열리면 문 앞에 문턱 높이 층계참 + 세 단 (키트 문 계단)을 놓음 " +
+                 "(모든 면 연결 ②, 2026-11-19). 1 = 오른쪽 · -1 = 왼쪽 (문을 밖으로 볼 때 계단이 내려가는 쪽), 0 = 없음. 오프셋 = 마지막 단 앞 땅 (칸 중심 기준, y = 땅 높이)")]
+        [SerializeField] private int _doorSteps;
 
         public Vector3Int Cell => _cell;
         public Vector3Int Direction => _direction;
         public float Depth => _depth;
         public Vector3 Offset => _offset;
+        public bool SealedWall => _sealedWall;
+        public bool SkyLift => _skyLift;
+        public float HatchScale => _hatchScale > 0f ? _hatchScale : 1f;
+        public bool DoorLift => _doorLift;
+        public int DoorSteps => _doorSteps;
 
-        public InteriorSocket(Vector3Int cell, Vector3Int direction, float depth, Vector3 offset = default)
+        public InteriorSocket(Vector3Int cell, Vector3Int direction, float depth, Vector3 offset = default, bool sealedWall = false, bool skyLift = false, float hatchScale = 0f, bool doorLift = false, int doorSteps = 0)
         {
             _cell = cell;
             _direction = direction;
             _depth = depth;
             _offset = offset;
+            _sealedWall = sealedWall;
+            _skyLift = skyLift;
+            _hatchScale = hatchScale;
+            _doorLift = doorLift;
+            _doorSteps = doorSteps;
         }
     }
 
@@ -49,18 +71,22 @@ namespace SpaceStation.Data
         [SerializeField] private ResidentPose _pose;
         [Tooltip("일하는 사람 자리 (아니면 사는 사람 · 쉬러 온 사람 자리)")]
         [SerializeField] private bool _work;
+        [Tooltip("누운 자리 (선베드 · 앉는 자리만): 앉은 채 늘 눕고, 일어설 땐 옆으로 내려섬 — 앞 길을 막지 않게")]
+        [SerializeField] private bool _lie;
 
         public Vector3 Position => _position;
         public float Yaw => _yaw;
         public ResidentPose Pose => _pose;
         public bool Work => _work;
+        public bool Lie => _lie;
 
-        public ResidentSpot(Vector3 position, float yaw, ResidentPose pose, bool work = false)
+        public ResidentSpot(Vector3 position, float yaw, ResidentPose pose, bool work = false, bool lie = false)
         {
             _position = position;
             _yaw = yaw;
             _pose = pose;
             _work = work;
+            _lie = lie;
         }
     }
 
@@ -69,6 +95,12 @@ namespace SpaceStation.Data
     {
         Pot,    // 화분 식물 (회전 링 · 휴게실)
         Tree,   // 화단 나무 (수경 농장 돔 아래)
+        Pine,   // 소나무 (3단계 정원 숲 — 층층 가지 · 바늘잎, 2026-11-10)
+        Blossom, // 꽃나무 (3단계 정원 꽃 들판 — 가지 끝 다섯 꽃잎 꽃)
+        // 식물 아틀라스 화분 식물 (2026-11-16 ③ — 화분 자리를 화분마다 테 · 둘레를 재서 고름, InteriorPlantVariants)
+        Liriope,     // 맥문동 꽃대
+        Bamboo,      // 대나무 새싹
+        CherryShrub, // 작은 벚나무 덤불
     }
 
     /// <summary>11-17 템플릿의 식물 자리 (모듈 로컬, 흙 윗면 가운데). 템플릿 빌더(Blender)는 화분 · 화단만 만들고 식물은 실행 중에 놓는다 — 시들고 물을 줄 수 있게.</summary>
@@ -125,6 +157,10 @@ namespace SpaceStation.Data
         [SerializeField] private InteriorAmbience _ambience = InteriorAmbience.Hall;
         [Tooltip("12-5 바깥 창에 이 방 모듈의 바깥 모델도 비춤 (구조 프레임 = 트러스 속 · 센서 어레이 = 천창 위 접시). 끄면 다른 방처럼 자기 껍데기를 숨김")]
         [SerializeField] private bool _showOwnExterior;
+        [Tooltip("하늘 화면에 바깥 모델 대신 이 방 (내부 모델)의 윗부분을 1/8로 같은 자리에 비춤 — 위 칸이 일부 칸뿐이라 바닥 칸 천장이 옆 위 칸 건물 (정자 돔 · 언덕) 윗부분을 가리는 방 (항성 발전망)")]
+        [SerializeField] private bool _showOwnInterior;
+        [Tooltip("지붕 · 유리 안 실내형 방: 닫힌 문 자리에 난간 + 하늘 대신 막힌 창 패널 (InteriorKit.SealedWallFor). 개방형 갑판이 아닌 2단계 방에서 켬")]
+        [SerializeField] private bool _sealedSockets;
 
         [Header("11-11 주민")]
         [Tooltip("주민이 서거나 앉는 자리 (모듈 로컬)")]
@@ -144,7 +180,29 @@ namespace SpaceStation.Data
         [Tooltip("따로 놓는 식물 자리 (메뉴 SpaceStation/Interior/Set Plant Spots)")]
         [SerializeField] private List<PlantSpot> _plantSpots = new List<PlantSpot>();
 
+        [Header("2026-11-19 위아래 이동 장치")]
+        [Tooltip("위아래 이동 장치 자리 (모듈 로컬, 발판 밑 땅) — 도구가 고름 (메뉴 SpaceStation/Interior/Set Transit Spots). 없으면 옛 위아래 문 자리 · 들어오는 자리")]
+        [SerializeField] private bool _hasTransitSpot;
+        [SerializeField] private Vector3 _transitSpot;
+        [Tooltip("장치가 보는 쪽 (모듈 로컬 y 각도, 90° 단위 — 앞 = 로컬 −z 안내 기둥 쪽)")]
+        [SerializeField] private float _transitYaw;
+        [Tooltip("장치 크기 배율 (0 = 1 — 붐비는 방은 0.85, 사용자 2026-11-19)")]
+        [SerializeField] private float _transitScale;
+        [Tooltip("벽 장치 (자리 = 벽 면 · 바닥, 보는 쪽 = 방 안)")]
+        [SerializeField] private bool _transitWall;
+        [Tooltip("손으로 고른 자리 (큰 진화 방, 사용자 2026-11-19 \"내가 자리를 골라 사진으로\") — 도구가 다시 돌아도 그대로 둠")]
+        [SerializeField] private bool _transitManual;
+        [Tooltip("해치 방 (사용자 2026-11-20 \"기본 모듈 중 지금의 상하이동 모델을 쓰기 힘든 모듈은 기존 해치를 상호작용하면 층이동 창이 뜨는 방식\"): 장치 대신 옛 아래 · 위 문 자리에 바닥 해치 + 천장 해치 하나씩")]
+        [SerializeField] private bool _transitHatch;
+
         public IReadOnlyList<PlantSpot> PlantSpots => _plantSpots;
+        public bool HasTransitSpot => _hasTransitSpot;
+        public Vector3 TransitSpot => _transitSpot;
+        public float TransitYaw => _transitYaw;
+        public float TransitScale => _transitScale > 0f ? _transitScale : 1f;
+        public bool TransitWall => _transitWall;
+        public bool TransitManual => _transitManual;
+        public bool TransitHatch => _transitHatch;
 
         public ModuleData Module => _module;
         public IReadOnlyList<ResidentSpot> ResidentSpots => _residentSpots;
@@ -155,6 +213,8 @@ namespace SpaceStation.Data
         public string WorkStatus => _workStatus;
         public InteriorAmbience Ambience => _ambience;
         public bool ShowOwnExterior => _showOwnExterior;
+        public bool ShowOwnInterior => _showOwnInterior;
+        public bool SealedSockets => _sealedSockets;
         public GameObject Prefab => _prefab;
         public IReadOnlyList<InteriorSocket> Sockets => _sockets;
         public Vector3 Spawn => _spawn;
@@ -187,11 +247,30 @@ namespace SpaceStation.Data
             _spawnYaw = spawnYaw;
         }
 
+        /// <summary>문 자리만 바꿈 (빛 기둥 승강판 자리 찾기 — InteriorSkyLiftSpots).</summary>
+        public void EditorSetSockets(List<InteriorSocket> sockets) => _sockets = sockets ?? new List<InteriorSocket>();
+
         public void EditorSetAmbience(InteriorAmbience ambience) => _ambience = ambience;
 
         public void EditorSetShowOwnExterior(bool show) => _showOwnExterior = show;
 
+        public void EditorSetShowOwnInterior(bool show) => _showOwnInterior = show;
+
+        public void EditorSetSealedSockets(bool sealedSockets) => _sealedSockets = sealedSockets;
+
         public void EditorSetPlants(List<PlantSpot> spots) => _plantSpots = spots ?? new List<PlantSpot>();
+
+        public void EditorSetTransitHatch(bool hatch) => _transitHatch = hatch;
+
+        public void EditorSetTransitSpot(bool has, Vector3 spot, float yaw = 0f, float scale = 1f, bool wall = false, bool manual = false)
+        {
+            _transitManual = manual;
+            _transitWall = wall;
+            _hasTransitSpot = has;
+            _transitSpot = spot;
+            _transitYaw = yaw;
+            _transitScale = scale;
+        }
 
         public void EditorSetResidents(List<ResidentSpot> spots, List<ResidentTrait> workTraits, bool leisure)
         {

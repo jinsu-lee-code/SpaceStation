@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using SpaceStation.Data;
 using SpaceStation.Interior;
 using UnityEditor;
@@ -88,6 +88,30 @@ namespace SpaceStation.Editor
             ResidentSpotBaker.BakeTemplates("IT_Evo"); // 주민 자리 (진화 템플릿만)
         }
 
+        /// <summary>
+        /// 진화 방 하나만 다시 만들기 (2026-11-18 — 통째로 다시 지으면 다른 방 승강판 기억까지 지워짐, 체크리스트 245). name = "DeepSpaceComm"처럼 BuildEvo 뒤 이름.
+        /// 그 방 템플릿 · 프리팹 → 식물 · 승강판 자리 (다른 방은 기억대로 그대로) → 그 방 주민 자리.
+        /// </summary>
+        public static void BuildEvolvedRoom(string name)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogError("[InteriorTemplateBuilder] 플레이 모드를 끈 뒤 실행하세요.");
+                return;
+            }
+            var build = typeof(InteriorTemplateBuilder).GetMethod("BuildEvo" + name, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            if (build == null)
+            {
+                Debug.LogError($"[InteriorTemplateBuilder] BuildEvo{name} 없음");
+                return;
+            }
+            InteriorSetup.CreateMaterials();
+            build.Invoke(null, null);
+            InteriorPlantSpots.SetAll();
+            AssetDatabase.SaveAssets();
+            ResidentSpotBaker.BakeTemplates("IT_Evo" + name);
+        }
+
         private static void BuildEvolvedTemplates()
         {
             BuildEvoResearch();
@@ -113,6 +137,1903 @@ namespace SpaceStation.Editor
             BuildEvoShipyard();
             BuildEvoAutomation();
             BuildEvoSecurity();
+            BuildEvoGridHub();
+            BuildEvoOrbitalMirror();
+            BuildEvoFusionPlant();
+            BuildEvoArcology();
+            BuildEvoGrandTorus();
+            BuildEvoCivicHall();
+            BuildEvoSecurityHQ();
+            BuildEvoBiodome();
+            BuildEvoFoodFactory();
+            BuildEvoRefineryCombine();
+            BuildEvoShieldDome();
+            BuildEvoFortress();
+            BuildEvoRadiationWall();
+            BuildEvoDroneDepot();
+            BuildEvoCargoTransfer();
+            BuildEvoStorageComplex();
+            BuildEvoResearchInstitute();
+            BuildEvoOrbitalCity();
+            BuildEvoBiosphere();
+            BuildEvoStellarGrid();
+            BuildEvoOrbitalDefense();
+            BuildEvoRepairCommand();
+            BuildEvoOrbitalPort();
+            BuildEvoAICore();
+            BuildEvoDeepSpaceComm();
+        }
+
+        /// <summary>
+        /// 진화 2단계 드론 정비창 "드론 라이트쇼 격납고" (3 × 2칸 2층, dd_builder — 사용자 2026-11-05 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 옥상 드론 쇼 관람 (<see cref="InteriorDroneShow"/>).
+        /// 외형 × 8: 앞면 통유리 수리 칸 3 × 2층 (받침 위 드론 · 천장 로봇 팔 둘 · 환한 작업 벽 · 공구 선반) · 옥상 이착륙장 셋 · 유리 관제탑 (못 들어감) · 관람석 세 단, 앞마당 유도선 · 수레.
+        /// 동선: 갑판 (우주복) → 칸 사이 입구 아치 둘 · 뒤 입구 (압력 막) → 복도 → 수리 칸 안 / 2층 높이 뚫린 홀 (드론 모빌 SwarmA · B, 쇼 대형 그림) / 드론 비행장 (FlyA · B) → 유리 엘리베이터 (1층 · 2층 · 옥상, 문 = 남쪽) → 2층 전시 · 관제실 / 옥상 (우주복).
+        /// 문 자리 10 = 1층 갑판 둘레 (깊이 3.95, 닫힘 = 난간), 아래 해치 = 바닥 칸 여섯, 위 해치 없음 (하늘). 벤치 · 의자 · 관람석에 앉음 (<see cref="InteriorBenchSeats"/>). 드론은 하늘 화면 (바깥 모델 <see cref="SpaceStation.Building.DroneShowFx"/>)에 뜸.
+        /// </summary>
+        private static void BuildEvoDroneDepot()
+        {
+            const float DeckEdge = 3.95f, L1 = F + 4.94f, Roof = F + 9.67f, LX = 12.9f, LZ = 7.6f;
+            const float BX0 = -2.2f, BX1 = 18.2f, BZ0 = -1.7f, BZ1 = 9.7f, Wall = BZ1 - 0.25f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x <= 2; x++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), back, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 1), front, DeckEdge));
+            }
+            for (int z = 0; z <= 1; z++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(0, 0, z), Vector3Int.left, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(2, 0, z), Vector3Int.right, DeckEdge));
+            }
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -2.6f)));       // 앞 갑판 (틀 ±0.95가 열린 문 패널 · 걸레받이에 닿지 않게, 코드 검토 2026-11-06)
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -2.6f)));
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -2.6f)));
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(2f, 0f, -1f)));         // 1층 홀 (전시대와 원형 벤치 사이)
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(-0.8f, 0f, -1f)));      // 1층 홀 (원형 벤치와 전시대 사이)
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(0f, 0f, 2.65f)));       // 뒤 갑판 (1층 동쪽은 비행장)
+            var white = new Color(1f, 0.97f, 0.9f);
+            var warm = new Color(1f, 0.86f, 0.62f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (float cx in new[] { 0.6f, 8f, 15.4f })
+            {
+                lights.Add(LightSpec.Point(new Vector3(cx, F + 2.7f, 0.9f), 8.5f, 1.5f, white));      // 수리 칸
+                lights.Add(LightSpec.Point(new Vector3(cx, L1 + 2.7f, 0.9f), 8.5f, 1.5f, white));
+            }
+            foreach (float x in new[] { 4.03f, 11.97f })
+            {
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.1f, 0.9f), 5f, 0.7f, warm));          // 입구 통로
+                lights.Add(LightSpec.Point(new Vector3(x, L1 + 2.4f, 0.9f), 5f, 0.7f, warm));         // 2층 벽감
+            }
+            lights.Add(LightSpec.Point(new Vector3(-0.4f, F + 3.2f, 6.3f), 9.5f, 1.6f, warm));        // 1층 복도 · 홀
+            lights.Add(LightSpec.Point(new Vector3(9.5f, F + 3.2f, 6.2f), 9.5f, 1.6f, warm));
+            lights.Add(LightSpec.Point(new Vector3(15.9f, F + 3.9f, 4.6f), 8.5f, 1.3f, warm));
+            lights.Add(LightSpec.Point(new Vector3(-0.2f, L1 + 3.2f, 6.2f), 9.5f, 1.6f, warm));       // 2층 복도 · 전시
+            lights.Add(LightSpec.Point(new Vector3(10.1f, L1 + 3.2f, 6.2f), 9.5f, 1.6f, warm));
+            lights.Add(LightSpec.Point(new Vector3(16f, L1 + 3.2f, 6f), 8.5f, 1.3f, cool));           // 관제실
+            lights.Add(LightSpec.Point(new Vector3(7.2f, L1 + 1.6f, 6.5f), 11f, 1.8f, warm));         // 뚫린 홀 (모빌 드론이 도는 길 밖 — 길 위면 지나갈 때마다 번쩍임)
+            lights.Add(LightSpec.Point(new Vector3(15.9f, F + 2.9f, 7.35f), 5.5f, 0.9f, white));      // 비행장
+            lights.Add(LightSpec.Point(new Vector3(4f, F + 2.2f, -2.8f), 7f, 0.55f, cool));           // 갑판
+            lights.Add(LightSpec.Point(new Vector3(12f, F + 2.2f, -2.8f), 7f, 0.55f, cool));
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 2.2f, 10.8f), 8f, 0.55f, cool));
+            lights.Add(LightSpec.Point(new Vector3(-3.1f, F + 2.2f, 4f), 7f, 0.5f, cool));
+            lights.Add(LightSpec.Point(new Vector3(19.1f, F + 2.2f, 4f), 7f, 0.5f, cool));
+            lights.Add(LightSpec.Point(new Vector3(1.2f, Roof + 2.4f, 2f), 7f, 0.6f, cool));          // 옥상 이착륙장
+            lights.Add(LightSpec.Point(new Vector3(14.8f, Roof + 2.4f, 2f), 7f, 0.6f, cool));
+            lights.Add(LightSpec.Point(new Vector3(2f, Roof + 3f, 5f), 8f, 0.7f, warm));              // 관람석
+            lights.Add(LightSpec.Point(new Vector3(9f, Roof + 3f, 5f), 8f, 0.7f, warm));
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoDroneDepot_SwarmA", new Vector3(4.9f, 0f, 7.575f), Vector3.up, 14f),    // 드론 모빌 (dd_builder swarm)
+                new OrbitSpec("INT_EvoDroneDepot_SwarmB", new Vector3(4.9f, 0f, 7.575f), Vector3.up, -24f),
+                new OrbitSpec("INT_EvoDroneDepot_FlyA", new Vector3(15.9f, 0f, 7.35f), Vector3.up, 60f),      // 비행장: 고리 넷을 통과
+                new OrbitSpec("INT_EvoDroneDepot_FlyB", new Vector3(15.9f, 0f, 7.35f), Vector3.up, -90f),
+            };
+            EvoAccent("DroneDepot", "#FFD09F");
+            // 스폰 = 앞 갑판에서 입구 아치를 바라봄
+            Build("EvoDroneDepot", "Evolved/MD_Evo_DroneDepot", sockets, new Vector3(4.03f, F, -2.6f), 0f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, System.Array.Empty<Vector3>());
+                    root.GetComponent<InteriorOpenAir>().SetIndoorBox(new Rect(BX0, BZ0, BX1 - BX0, BZ1 - BZ0), Roof - 0.1f);
+                    // 옥상 난간 위 보이지 않는 벽 (난간은 허리 높이, 칸 경계 벽은 건물 바깥 갑판 끝이라 옥상에서 떨어지는 건 못 막음)
+                    var fence = new GameObject("RoofFence") { layer = 2 };   // Ignore Raycast
+                    fence.transform.SetParent(root.transform, false);
+                    const float FenceIn = 0.18f, FenceH = 4f;
+                    void Fence(float x0, float x1, float z0, float z1)
+                    {
+                        var box = fence.AddComponent<BoxCollider>();
+                        box.center = new Vector3((x0 + x1) * 0.5f, Roof + FenceH * 0.5f, (z0 + z1) * 0.5f);
+                        box.size = new Vector3(Mathf.Max(x1 - x0, 0.04f), FenceH, Mathf.Max(z1 - z0, 0.04f));
+                    }
+                    Fence(BX0 + FenceIn, BX1 - FenceIn, BZ0 + FenceIn, BZ0 + FenceIn);
+                    Fence(BX0 + FenceIn, BX1 - FenceIn, BZ1 - FenceIn, BZ1 - FenceIn);
+                    // 동 · 서 끝 = 발코니 계단 꼭대기에서 옥상으로 들어오는 틈 (dd_builder ROOF_GAP z 3.35 ~ 4.65, 모든 면 연결 2026-11-19)
+                    const float GapZ0 = 3.35f, GapZ1 = 4.65f;
+                    foreach (float x in new[] { BX0 + FenceIn, BX1 - FenceIn })
+                    {
+                        Fence(x, x, BZ0 + FenceIn, GapZ0);
+                        Fence(x, x, GapZ1, BZ1 - FenceIn);
+                    }
+                    // 유리 엘리베이터 (1층 · 2층 · 옥상, 문 = 남쪽, 문짝이 열리면 기둥 속으로)
+                    var car = Child(root, "INT_EvoDroneDepot_LiftCar");
+                    var carGlass = Child(root, "INT_EvoDroneDepot_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[3];
+                    var right = new Transform[3];
+                    for (int k = 0; k < 3; k++)
+                    {
+                        string levelName = k == 2 ? "옥상" : null;
+                        left[k] = Child(root, $"INT_EvoDroneDepot_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoDroneDepot_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoDroneDepot_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true, levelName);
+                        var button = Child(root, $"INT_EvoDroneDepot_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false, levelName);
+                    }
+                    lift.Configure(car, new[] { 0f, L1 - F, Roof - F }, left, right, new Vector3(LX, F + 0.085f, LZ), Vector3.right, 0.75f);
+                    var liftSo = new SerializedObject(lift);
+                    liftSo.FindProperty("_doorTravel").floatValue = 0.5f;
+                    liftSo.ApplyModifiedPropertiesWithoutUndo();
+                    // 벤치 · 의자 (dd_builder hall · front, 앉는 자리 = 쉬는 자리와 같음)
+                    var seats = new List<Vector4>();
+                    var boxes = new List<Bounds>();
+                    void Seat(float x0, float x1, float z0, float z1, float y0, float top, float z, float yaw, params float[] xs)
+                    {
+                        boxes.Add(new Bounds(new Vector3((x0 + x1) * 0.5f, (y0 + top + 0.01f) * 0.5f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, top + 0.01f - y0, z1 - z0)));
+                        foreach (var x in xs)
+                            seats.Add(new Vector4(x, top, z, yaw));
+                    }
+                    Seat(-1.7f, 0.9f, 8.85f, 9.35f, F, F + 0.44f, 9.05f, 180f, -1.3f, -0.4f, 0.5f);
+                    Seat(6.5f, 8.9f, 8.85f, 9.35f, F, F + 0.44f, 9.05f, 180f, 6.9f, 7.7f, 8.5f);
+                    Seat(-1.8f, 1.1f, 8.9f, 9.4f, L1, L1 + 0.44f, 9.1f, 180f, -1.35f, -0.35f, 0.65f);
+                    Seat(8.7f, 11.7f, 8.9f, 9.4f, L1, L1 + 0.44f, 9.1f, 180f, 9.2f, 10.2f, 11.2f);
+                    Seat(2.8f, 5.2f, 11.1f, 11.6f, F, F + 0.44f, 11.3f, 180f, 3.2f, 4f, 4.8f);
+                    Seat(11.1f, 13.5f, 11.1f, 11.6f, F, F + 0.44f, 11.3f, 180f, 11.5f, 12.3f, 13.1f);
+                    foreach (float x in new[] { 15.6f, 16.6f })
+                        Seat(x - 0.24f, x + 0.24f, 6.16f, 6.64f, L1, L1 + 0.44f, 6.4f, 0f, x);
+                    for (int k = 0; k < 8; k++)
+                    {
+                        float a = Mathf.Deg2Rad * (45f + 45f * k);
+                        float x = 4.9f + 0.8f * Mathf.Cos(a), z = 7.575f + 0.8f * Mathf.Sin(a);
+                        Seat(x - 0.2f, x + 0.2f, z - 0.2f, z + 0.2f, F, F + 0.47f, z, Mathf.Rad2Deg * Mathf.Atan2(Mathf.Cos(a), Mathf.Sin(a)), x);
+                    }
+                    root.AddComponent<InteriorBenchSeats>().Configure(seats.ToArray(), boxes.ToArray(), -6f);
+                    // 관람석 (dd_builder roof ROWS): 어느 자리든 앉으면 쇼 쪽 하늘을 올려다봄 (DroneShowFx 큰 쇼 가운데 x, z를 향해)
+                    const float ShowX = 5.25f, ShowZ = -4f;
+                    var standSeats = new List<Vector4>();
+                    var standBoxes = new List<Bounds>();
+                    foreach (var (z0, h) in new[] { (5.74f, 0.45f), (6.84f, 0.9f), (7.94f, 1.35f) })
+                    {
+                        foreach (var (a0, a1, xs) in new[] { (-1.2f, 4.6f, new[] { -0.7f, 0.25f, 1.2f, 2.15f, 3.1f, 4.05f }), (6f, 11.7f, new[] { 6.55f, 7.5f, 8.45f, 9.4f, 10.35f, 11.25f }) })
+                        {
+                            float top = Roof + h;
+                            standBoxes.Add(new Bounds(new Vector3((a0 + a1) * 0.5f, (Roof + top + 0.01f) * 0.5f, z0 + 0.275f), new Vector3(a1 - a0, top + 0.01f - Roof, 0.59f)));
+                            foreach (var x in xs)
+                                standSeats.Add(new Vector4(x, top, z0 + 0.3f, Mathf.Rad2Deg * Mathf.Atan2(ShowX - x, ShowZ - (z0 + 0.3f))));
+                        }
+                    }
+                    var stands = root.AddComponent<InteriorBenchSeats>();
+                    stands.Configure(standSeats.ToArray(), standBoxes.ToArray(), -42f);
+                    // 쇼: 버튼 · 로비 화면 · 관제실 화면 (dd_builder hall DD_Screen · DD_DeskScreen)
+                    var showButton = BoxOf(Child(root, "INT_EvoDroneDepot_ShowBtn"), 0.06f).transform;
+                    var boards = new[]
+                    {
+                        new InteriorDroneShow.Screen { Center = new Vector3(4.9f, F + 1.9f, Wall - 0.07f), Normal = new Vector3(0f, 0f, -1f), Width = 3.04f, Height = 1.54f },
+                        new InteriorDroneShow.Screen { Center = new Vector3(16.1f, L1 + 1.9f, Wall - 0.07f), Normal = new Vector3(0f, 0f, -1f), Width = 3.04f, Height = 1.54f },
+                    };
+                    var desks = new List<InteriorDroneShow.Screen>();
+                    foreach (float x in new[] { 15.2f, 16.1f, 17f })
+                        desks.Add(new InteriorDroneShow.Screen { Center = new Vector3(x, L1 + 1.02f, 7.46f), Normal = new Vector3(0f, 0f, -1f), Width = 0.68f, Height = 0.4f });
+                    root.AddComponent<InteriorDroneShow>().Configure(showButton, stands, boards, desks.ToArray());
+                    // 글자: 쇼 버튼 표지 · 쇼 대형 그림 이름 (dd_builder show_boards)
+                    InteriorSignLabels.Label Board(float x, string text) => new InteriorSignLabels.Label
+                    {
+                        Center = new Vector3(x, L1 + 0.6f, Wall - 0.047f), Normal = new Vector3(0f, 0f, -1f), Up = Vector3.up, Width = 0.9f, Height = 0.2f, Text = text,
+                    };
+                    root.AddComponent<InteriorSignLabels>().Configure(new[]
+                    {
+                        new InteriorSignLabels.Label { Center = new Vector3(6.9f, Roof + 0.7f, 4.9f), Normal = new Vector3(0f, 0f, -1f), Up = Vector3.up, Width = 0.46f, Height = 0.24f, Text = "<b>드론 쇼</b>\n<size=70%>위 버튼</size>" },
+                        Board(2.3f, "별"), Board(3.6f, "왕관"), Board(4.9f, "하트"), Board(6.2f, "소용돌이"), Board(7.5f, "물결"),
+                    });
+                });
+        }
+
+        /// <summary>
+        /// 진화 2단계 방사선 차폐벽 "별자리 병풍 정원" (ㄱ자 5칸, rw_builder — 사용자 2026-11-05 시안 1 "좋아 이대로 유니티로 옮겨줘"): 정원 · 전시관 구성 (직접 체험 모듈 아님).
+        /// 외형 × 8: 앞 3칸 = 차폐판 여덟 장 지그재그 병풍 (밤의 일월오봉도, 별 Stars는 저마다 반짝임) + 병풍에 붙은 은하수 차폐 몸통 (윗면 River · 안 천장 RiverUnder = MilkyRiver 셰이더 내부 크기) + 양 끝 세 날개 표지 기둥, 뒤 왼쪽 2칸 = 달문 피난처.
+        /// 동선: 갑판 (우주복) → 병풍 앞 산책길 · 벤치 / 마당 (디딤돌 · 석등 · 돌 정원) → 계단 → 강둑 회랑 → 네 단 → 강 위 전망 부두 / 뒷벽 아치 둘 (압력 막) → 강 아래 전시 회랑 (혼천의 Armillary · 천구의 Globe · 별자리 석판 · 차폐층 단면 · 방사선 경보판 <see cref="InteriorRadiationBoard"/>) / 달문 (압력 막) → 달맞이 찻집.
+        /// 문 자리 10 = 갑판 둘레 (깊이 3.95, 닫힘 = 난간, 오목한 자리 포함), 아래 해치 = 칸마다, 위 해치 없음 (하늘). 벤치 · 찻집 자리에 앉음 (<see cref="InteriorBenchSeats"/>).
+        /// </summary>
+        private static void BuildEvoRadiationWall()
+        {
+            const float DeckEdge = 3.95f, WalkY = F + 2.45f, RoofLight = F + 2.4f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x <= 2; x++)
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), back, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), front, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), front, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), front, DeckEdge));         // 오목한 자리 (동쪽 뒷길)
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.left, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.left, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.right, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.right, DeckEdge));
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(-2.4f, 0f, -2.3f)));    // 병풍 앞 서쪽 (뚜껑 · 틀이 난간 · 벤치와 겹치지 않게)
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -2.2f)));       // 병풍 앞 가운데
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(2.4f, 0f, -2.3f)));     // 병풍 앞 동쪽
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(0.8f, 0f, -0.1f)));     // 찻집 서쪽 (동쪽과 대칭 — 마당 서쪽은 승강판 착지 원판, 2026-11-18)
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(-0.8f, 0f, -0.1f)));    // 찻집 동쪽
+            var warm = new Color(1f, 0.86f, 0.6f);
+            var white = new Color(1f, 0.97f, 0.9f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lemon = new Color(1f, 0.88f, 0.5f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(0f, F + 1.5f, -1.7f), 6.5f, 1.1f, white),            // 병풍 앞
+                LightSpec.Point(new Vector3(5f, F + 1.5f, -1.7f), 6.5f, 1.1f, white),
+                LightSpec.Point(new Vector3(11f, F + 1.5f, -1.7f), 6.5f, 1.1f, white),
+                LightSpec.Point(new Vector3(16f, F + 1.5f, -1.7f), 6.5f, 1.1f, white),
+                LightSpec.Point(new Vector3(0.62f, F + 1.5f, 4.75f), 5f, 0.9f, lemon),           // 석등
+                LightSpec.Point(new Vector3(7.38f, F + 2.25f, 5.1f), 3.5f, 0.6f, lemon),
+                LightSpec.Point(new Vector3(4f, F + 1.9f, 4.4f), 5f, 0.7f, warm),                // 달문 앞
+                LightSpec.Point(new Vector3(2.8f, F + 1.8f, 2.8f), 4.5f, 0.55f, cool),             // 회랑 아래
+                LightSpec.Point(new Vector3(8f, F + 1.8f, 2.75f), 4.5f, 0.55f, cool),
+                LightSpec.Point(new Vector3(13.4f, F + 1.8f, 2.8f), 4.5f, 0.55f, cool),
+                LightSpec.Point(new Vector3(3f, WalkY + 2.1f, 2.7f), 7f, 0.65f, cool),           // 강둑 회랑
+                LightSpec.Point(new Vector3(13f, WalkY + 2.1f, 2.7f), 7f, 0.65f, cool),
+                LightSpec.Point(new Vector3(1.1f, RoofLight, 0.45f), 4f, 0.8f, white),           // 강 아래 전시 벽감
+                LightSpec.Point(new Vector3(5.7f, RoofLight, 0.45f), 4f, 0.8f, white),
+                LightSpec.Point(new Vector3(10.3f, RoofLight, 0.45f), 4f, 0.8f, white),
+                LightSpec.Point(new Vector3(14.9f, RoofLight, 0.45f), 4f, 0.8f, white),
+                LightSpec.Point(new Vector3(4f, F + 1.75f, 8f), 7.5f, 1.3f, warm),               // 찻집: 달 등 아래 (등에 너무 가까우면 아랫면이 번쩍임)
+                LightSpec.Point(new Vector3(-0.4f, F + 2.4f, 8f), 5.5f, 1f, warm),
+                LightSpec.Point(new Vector3(8.4f, F + 2.4f, 8f), 5.5f, 1f, warm),
+                LightSpec.Point(new Vector3(-3.1f, F + 2.2f, 8f), 7f, 0.5f, cool),               // 갑판
+                LightSpec.Point(new Vector3(19f, F + 2.2f, 1.8f), 7f, 0.55f, cool),
+                LightSpec.Point(new Vector3(4f, F + 2.2f, 11f), 7f, 0.5f, cool),
+                LightSpec.Point(new Vector3(11f, F + 2.2f, 6.5f), 6f, 0.5f, cool),
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoRadiationWall_Armillary", new Vector3(1.1f, 0f, 0f), Vector3.up, 20f),     // 혼천의 안쪽 고리
+                new OrbitSpec("INT_EvoRadiationWall_Globe", new Vector3(5.7f, 0f, 0f), Vector3.up, 12f),         // 천구의
+            };
+            EvoAccent("RadiationWall", "#C8D0A0");
+            // 스폰 = 병풍 앞 산책길에서 병풍을 바라봄
+            Build("EvoRadiationWall", "Evolved/MD_Evo_RadiationWall", sockets, new Vector3(4f, F, -2.2f), 0f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[]
+                    {
+                        // 찻집 (rw_builder SROOM) · 강 아래 회랑 (몸통 안)
+                        new Vector3(-0.1f, 8f, 2.05f), new Vector3(2.7f, 8f, 2.05f), new Vector3(5.3f, 8f, 2.05f), new Vector3(8.1f, 8f, 2.05f),
+                        new Vector3(0f, 0.65f, 1.3f), new Vector3(1.6f, 0.65f, 1.3f), new Vector3(3.2f, 0.65f, 1.3f), new Vector3(4.8f, 0.65f, 1.3f), new Vector3(6.4f, 0.65f, 1.3f), new Vector3(8f, 0.65f, 1.3f),
+                        new Vector3(9.6f, 0.65f, 1.3f), new Vector3(11.2f, 0.65f, 1.3f), new Vector3(12.8f, 0.65f, 1.3f), new Vector3(14.4f, 0.65f, 1.3f), new Vector3(16f, 0.65f, 1.3f),
+                    });
+                    // 방사선 경보판 (rw_builder RW_DoseScreen): 수용 = 주민 자리 수
+                    root.AddComponent<InteriorRadiationBoard>().Configure(new[]
+                    {
+                        new InteriorRadiationBoard.Panel { Center = new Vector3(16f, F + 1.45f, 1.73f), Normal = new Vector3(0f, 0f, -1f), Up = Vector3.up, Width = 1.28f, Height = 0.78f },
+                    }, 25);
+                    // 글자: 벽 설명판 (rw_builder INFO, 병풍과 같은 별자리) · 전시 안내판 · 달문 표지판
+                    InteriorSignLabels.Label Info(float x, float z, float nx, string text) => new InteriorSignLabels.Label
+                    {
+                        Center = new Vector3(x, -0.04f, z), Normal = new Vector3(nx, 0f, 0.921f), Up = Vector3.up, Width = 1.3f, Height = 0.15f, Text = text,
+                    };
+                    InteriorSignLabels.Label Plaque(float x, float z, string text) => new InteriorSignLabels.Label
+                    {
+                        Center = new Vector3(x, F + 0.957f, z + 0.0222f), Normal = new Vector3(0f, 0.5f, 0.866f), Up = new Vector3(0f, 0.866f, -0.5f), Width = 0.48f, Height = 0.22f, Text = text,
+                    };
+                    InteriorSignLabels.Label Sign(float x, string text) => new InteriorSignLabels.Label
+                    {
+                        Center = new Vector3(x, F + 1.2f, 5.74f), Normal = new Vector3(0f, 0f, -1f), Up = Vector3.up, Width = 0.72f, Height = 0.32f, Text = text,
+                    };
+                    root.AddComponent<InteriorSignLabels>().Configure(new[]
+                    {
+                        Info(0.082f, -0.087f, 0.389f, "카시오페이아"), Info(2.238f, -0.037f, -0.389f, "직녀"), Info(4.562f, -0.037f, 0.389f, "오리온"), Info(6.838f, -0.037f, -0.389f, "북두칠성"),
+                        Info(9.162f, -0.037f, 0.389f, "백조"), Info(11.438f, -0.037f, -0.389f, "사자"), Info(13.762f, -0.037f, 0.389f, "견우"), Info(15.918f, -0.087f, -0.389f, "전갈"),
+                        Plaque(1.72f, 0.12f, "<b>혼천의</b>\n<size=70%>하늘의 움직임을 재는 기구</size>"),
+                        Plaque(6.32f, 0.12f, "<b>천구의</b>\n<size=70%>별자리를 새긴 하늘 공</size>"),
+                        Plaque(11.28f, 0.12f, "<b>별자리 석판</b>\n<size=70%>돌에 새긴 별 지도</size>"),
+                        Plaque(13.98f, 0.14f, "<b>차폐층 단면</b>\n<size=70%>금속 · 흡수층 · 물 · 바깥판</size>"),
+                        Sign(1.5f, "<b>방사선\n피난처</b>"),
+                        Sign(6.5f, "<b>달맞이\n찻집</b>"),
+                    });
+                    // 벤치 (rw_builder front · yard · shelter, 앉는 자리 = 쉬는 자리와 같음)
+                    var seats = new List<Vector4>();
+                    var boxes = new List<Bounds>();
+                    void Bench(float x0, float x1, float z0, float z1, float top, float z, float yaw, params float[] xs)
+                    {
+                        boxes.Add(new Bounds(new Vector3((x0 + x1) * 0.5f, F + (top + 0.01f) * 0.5f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, top + 0.01f, z1 - z0)));
+                        foreach (var x in xs)
+                            seats.Add(new Vector4(x, F + top, z, yaw));
+                    }
+                    Bench(2.1f, 5.9f, -3.42f, -2.92f, 0.44f, -3.1f, 0f, 2.575f, 3.525f, 4.475f, 5.425f);
+                    Bench(10.1f, 13.9f, -3.42f, -2.92f, 0.44f, -3.1f, 0f, 10.575f, 11.525f, 12.475f, 13.425f);
+                    Bench(-0.75f, 2.55f, 2.07f, 2.52f, 0.44f, 2.3f, 0f, -0.3f, 0.9f, 2.1f);
+                    Bench(0.05f, 2.35f, 9.3f, 9.78f, 0.44f, 9.5f, 180f, 0.625f, 1.775f);
+                    Bench(5.65f, 7.95f, 9.3f, 9.78f, 0.44f, 9.5f, 180f, 6.225f, 7.375f);
+                    foreach (var (x, z, yaw) in new[] { (-1.278f, 7.04f, 67.5f), (-0.91f, 6.672f, 22.5f), (8.91f, 6.672f, -22.5f), (9.278f, 7.04f, -67.5f), (9.278f, 8.96f, -112.5f), (8.91f, 9.328f, -157.5f), (-0.91f, 9.328f, 157.5f), (-1.278f, 8.96f, 112.5f) })
+                        Bench(x - 0.26f, x + 0.26f, z - 0.26f, z + 0.26f, 0.43f, z, yaw, x);
+                    root.AddComponent<InteriorBenchSeats>().Configure(seats.ToArray(), boxes.ToArray(), -15f);   // 앉으면 병풍이 눈앞에 높이 서므로 조금 올려다봄
+                });
+        }
+
+        /// <summary>
+        /// 진화 2단계 요새 포대 "별 요새 불꽃놀이" (3 × 2칸, fo_builder — 사용자 2026-11-05 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 폭죽놀이 직관 (<see cref="InteriorFireworkShow"/>).
+        /// 외형 × 8 그대로: 별 모양 능보 성곽 (계단 비탈 · 산호 띠, 위 = 걷는 성벽 길) · 앞 반월보 · 연병장 + 십자 길 · 육각 본성 (망루 셋 · 뿔지붕 · 깃발 · 도는 거리 측정기 Range) · 앞 능보 쌍열 포탑 (실제 운석 방향, <see cref="InteriorTurretAim"/>) · 뒤 능보 박격포대 · 깃발 줄.
+        /// 동선: 갑판 → 서쪽 성벽 계단 → 성벽 위 길 → 북쪽 계단 둘 → 연병장 → 남쪽 관람석 · 쇼 레버 / 본성 (압력 막, 실제 운석 예보 <see cref="InteriorRadar"/> · 불꽃 별자리표).
+        /// 문 자리 10 = 갑판 둘레 (깊이 3.95, 닫힘 = 난간), 아래 해치 = 칸마다, 위 해치 없음 (하늘). 불꽃은 하늘 화면 (바깥 모델 <see cref="SpaceStation.Building.FireworkFx"/>)에 터짐.
+        /// </summary>
+        private static void BuildEvoFortress()
+        {
+            const float DeckEdge = 3.95f, Ramp = F + 1.8f, GunY = Ramp + 1.95f, KX = 8f, KZ = 4.2f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x <= 2; x++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), back, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 1), front, DeckEdge));
+            }
+            for (int z = 0; z <= 1; z++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(0, 0, z), Vector3Int.left, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(2, 0, z), Vector3Int.right, DeckEdge));
+            }
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(-3.1f, 0f, -1.5f)));   // 서쪽 갑판
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(-3f, 0f, 2.9f)));      // 연병장 남쪽
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(3.1f, 0f, -1.5f)));    // 동쪽 갑판
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(-3.1f, 0f, -1.6f)));
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(-2.8f, 0f, -2.8f)));   // 연병장 북쪽
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(3.1f, 0f, -1.6f)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(KX, F + 2.6f, KZ), 5f, 1.4f, white),               // 본성 안
+                LightSpec.Point(new Vector3(KX, F + 3.2f, 1f), 7f, 0.75f, warm),               // 본성 앞 · 관람석
+                LightSpec.Point(new Vector3(KX, F + 3.2f, 7f), 6f, 0.5f, warm),
+                LightSpec.Point(new Vector3(-0.3f, Ramp + 2.2f, 8.4f), 6f, 0.8f, warm),        // 뒤 능보
+                LightSpec.Point(new Vector3(16.3f, Ramp + 2.2f, 8.4f), 6f, 0.8f, warm),
+                LightSpec.Point(new Vector3(-0.25f, Ramp + 2.6f, -0.2f), 6f, 0.8f, cool),      // 앞 능보
+                LightSpec.Point(new Vector3(16.25f, Ramp + 2.6f, -0.2f), 6f, 0.8f, cool),
+                LightSpec.Point(new Vector3(-3.1f, F + 2.2f, 4f), 7f, 0.55f, cool),            // 갑판
+                LightSpec.Point(new Vector3(19.1f, F + 2.2f, 4f), 7f, 0.55f, cool),
+                LightSpec.Point(new Vector3(4f, F + 2.2f, -3.2f), 7f, 0.55f, cool),
+                LightSpec.Point(new Vector3(12f, F + 2.2f, -3.2f), 7f, 0.55f, cool),
+                LightSpec.Point(new Vector3(4f, F + 2.2f, 10.8f), 7f, 0.55f, cool),
+                LightSpec.Point(new Vector3(12f, F + 2.2f, 10.8f), 7f, 0.55f, cool),
+            };
+            foreach (var (x, z) in new[] { (3.5f, 5.2f), (12.5f, 5.2f), (3.5f, 2.5f), (12.5f, 2.5f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.3f, z), 6f, 0.85f, warm));     // 연병장 등
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoFortress_Range", new Vector3(KX, 0f, KZ), Vector3.up, 60f),         // 꼭대기 거리 측정기
+                new OrbitSpec("INT_EvoFortress_Sweep", new Vector3(8f, 0f, 4.85f), Vector3.up, 60f),      // 상황판 쓸기 빛
+            };
+            EvoAccent("Fortress", "#FF9F9F");
+            // 스폰 = 서쪽 성벽 위에서 연병장 · 본성을 바라봄
+            Build("EvoFortress", "Evolved/MD_Evo_Fortress", sockets, new Vector3(-0.3f, Ramp, 4f), 90f, lights, orbits,
+                configure: root =>
+                {
+                    const string N = "INT_EvoFortress_";
+                    AddOpenAir(root, new[] { new Vector3(KX, KZ, 1.85f), new Vector3(KX, 2.3f, 0.7f) });   // 본성 · 정문 굴
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    // 앞 능보 쌍열 포탑 (fo_builder GUN · 포신 x ±0.17): 받침 = 위 축, 포신 = 받침 자식 (−z로 밀림), 실제 운석 방향
+                    void Gun(string tag, float cx, float cz)
+                    {
+                        var turret = Pivot("TurretPivot" + tag, r, new Vector3(cx, GunY, cz), N + "Turret" + tag);
+                        var left = Pivot("BarrelPivot" + tag + "L", turret, new Vector3(cx - 0.17f, GunY, cz), N + "Barrel" + tag + "L");
+                        var right = Pivot("BarrelPivot" + tag + "R", turret, new Vector3(cx + 0.17f, GunY, cz), N + "Barrel" + tag + "R");
+                        root.AddComponent<InteriorTurretAim>().Configure(turret, new[] { left, right }, 0.14f);
+                    }
+                    Gun("A", -0.25f, -0.2f);
+                    Gun("B", 16.25f, -0.2f);
+                    // 본성 레이더 상황판 (fo_builder RADAR) = 실제 운석 예보, 예보 글 = 북서 면 화면 (중심에서 1.548m)
+                    root.AddComponent<InteriorRadar>().Configure(new Vector3(8f, F + 0.958f, 4.85f), 0.48f,
+                        Child(root, N + "Sweep").GetComponent<InteriorOrbit>(),
+                        Child(root, N + "Beacon").GetComponent<Renderer>(),
+                        new Vector3(7.226f, F + 1.6f, 5.541f), new Vector3(0.5f, 0f, -0.866f), Vector3.up, new Vector2(1.2f, 0.7f));
+                    // 불꽃놀이: 관람석 (fo_builder SEAT_ROWS · SEAT_BLOCKS, 줄마다 4자리, 뒤 능보 쪽을 봄) · 쇼 레버 · 박격포대 대롱 끝 (fo_builder mortar_pad)
+                    var rows = new[] { (1.25f, 1.7f, 0.42f), (0.87f, 1.25f, 0.82f), (0.5f, 0.87f, 1.22f) };
+                    var blocks = new[] { (2.85f, 5.7f, -25f), (10.3f, 13.15f, 25f) };
+                    var seats = new List<Vector4>();
+                    var boxes = new List<Bounds>();
+                    foreach (var (x0, x1, yaw) in blocks)
+                    {
+                        foreach (var (z0, z1, h) in rows)
+                        {
+                            boxes.Add(new Bounds(new Vector3((x0 + x1) * 0.5f, F + h * 0.5f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, h + 0.01f, z1 - z0)));
+                            for (int k = 0; k < 4; k++)
+                                seats.Add(new Vector4(x0 + (x1 - x0) * (k + 0.5f) / 4f, F + h, (z0 + z1) * 0.5f - 0.02f, yaw));
+                        }
+                    }
+                    var muzzles = new List<Vector3>();
+                    foreach (var (cx, cz) in new[] { (-0.35f, 8.4f), (16.35f, 8.4f) })
+                    {
+                        for (int k = 0; k < 4; k++)
+                        {
+                            float a = (45f + 90f * k) * Mathf.Deg2Rad;
+                            muzzles.Add(new Vector3(cx + 0.42f * Mathf.Cos(a), Ramp + 1.16f, cz + 0.42f * Mathf.Sin(a)));
+                        }
+                    }
+                    BoxOf(Child(root, N + "Lever"), 0.08f);
+                    var lever = Pivot("LeverPivot", r, new Vector3(6.25f, F + 1.02f, 1f), N + "Lever");
+                    root.AddComponent<InteriorFireworkShow>().Configure(seats.ToArray(), boxes.ToArray(), muzzles.ToArray(), 4, lever, new Vector3(KX, 8f, KZ),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath));
+                });
+        }
+
+        /// <summary>
+        /// 진화 2단계 실드 돔 "오로라 등대" (2 × 2칸, 2칸 높이, sd_builder — 사용자 2026-11-05 시안 1 "좋아 이대로 유니티로 옮겨줘"): 정원 · 전시관 구성 (직접 체험 모듈 아님).
+        /// 외형 그대로: 별빛 유리 바다 (걸어 다니는 바닥, StarSea 셰이더) · 바위섬 · 나선 줄무늬 등대 · 유리 등불 방의 도는 렌즈 드럼 Lens + 등대 빛 둘 (LightBeamFx, 렌즈와 함께 돎) · 꼭대기 레이더 Radar · 둘레 오로라 커튼 셋 (AuroraFx, 바깥과 같은 호) · 앞 오른쪽 등대지기 집 ↔ 유리 통로 ↔ 등대.
+        /// 동선: 갑판 (우주복) → 집 남쪽 압력 막 → 집 안 (실제 운석 예보 레이더 상황판 <see cref="InteriorRadar"/> · 탁자 · 긴 의자) → 유리 통로 → 등대 1층 → 나선 계단 (폭 1.3m, 층계참 끝 밑 머리 공간 때문에 한 바퀴 2.86m) → 꼭대기 층계참 → 압력 막 → 전망대 (우주복, 망원경 둘 <see cref="InteriorTelescope"/>).
+        /// 문 자리 8 = 갑판 둘레 (깊이 3.95, 닫힘 = 난간), 아래 해치 = 칸마다 넷, 위 해치 없음 (하늘).
+        /// </summary>
+        private static void BuildEvoShieldDome()
+        {
+            const float DeckEdge = 3.95f, CX = 3.2f, CZ = 4.8f, Balcony = F + 7.4f, LensY = Balcony + 2.55f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>();
+            for (int k = 0; k <= 1; k++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(k, 0, 0), back, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(k, 0, 1), front, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(0, 0, k), Vector3Int.left, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(1, 0, k), Vector3Int.right, DeckEdge));
+            }
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -1.5f)));      // 남쪽 갑판
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(2.9f, 0f, 0f)));       // 집 동쪽
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(-1.6f, 0f, 1.6f)));    // 북서쪽 갑판
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F));                                  // 북동쪽 갑판
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var white = new Color(1f, 0.97f, 0.92f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var beacon = new Color(0.62f, 0.92f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(CX, LensY, CZ), 8f, 2.2f, beacon),               // 렌즈 (등불 방 · 전망대)
+                LightSpec.Point(new Vector3(CX, F + 1.7f, CZ), 4.5f, 1.2f, white),           // 등대 1층
+                LightSpec.Point(new Vector3(CX, F + 4.4f, CZ), 4.5f, 1f, cool),              // 계단 가운데
+                LightSpec.Point(new Vector3(CX, Balcony - 0.6f, CZ), 4f, 0.9f, cool),        // 꼭대기 층계참
+                LightSpec.Point(new Vector3(7f, F + 2.45f, 0.2f), 5f, 1.1f, warm),           // 집 매단 등
+                LightSpec.Point(new Vector3(9f, F + 2.45f, 0.2f), 5f, 1.1f, warm),
+                LightSpec.Point(new Vector3(8.98f, F + 2.1f, -2.1f), 4.5f, 0.8f, warm),      // 집 문 위 등
+                LightSpec.Point(new Vector3(5.8f, F + 1.75f, 2.2f), 4f, 0.7f, cool),         // 유리 통로
+            };
+            foreach (var (x, z) in new[] { (-2.4f, -2.4f), (10.8f, 10.8f), (-2.4f, 10.8f), (4.4f, -3.4f), (10.85f, -3f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.3f, z), 6f, 0.85f, warm));   // 갑판 가로등
+            foreach (var az in new[] { 60f, 150f, 240f, 330f })
+            {
+                float a = az * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(CX + 4.8f * Mathf.Cos(a), F + 3.4f, CZ + 4.8f * Mathf.Sin(a)), 9f, 1f, cool));   // 밤하늘 찬 빛 (등대 몸통 · 바위)
+            }
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoShieldDome_Lens", new Vector3(CX, 0f, CZ), Vector3.up, 24f),         // 렌즈 드럼 + 등대 빛 (자식)
+                new OrbitSpec("INT_EvoShieldDome_Radar", new Vector3(CX, 0f, CZ), Vector3.up, 90f),        // 꼭대기 레이더
+                new OrbitSpec("INT_EvoShieldDome_Sweep", new Vector3(8.95f, 0f, 1.05f), Vector3.up, 60f),  // 상황판 쓸기 빛
+            };
+            EvoAccent("ShieldDome", "#A0C8FF");
+            // 스폰 = 남쪽 갑판에서 바위섬 · 등대를 바라봄
+            Build("EvoShieldDome", "Evolved/MD_Evo_ShieldDome", sockets, new Vector3(4.5f, F, -2.6f), -10f, lights, orbits,
+                configure: root =>
+                {
+                    const string N = "INT_EvoShieldDome_";
+                    AddOpenAir(root, new[]
+                    {
+                        new Vector3(CX, CZ, 1.6f),                                                                                                               // 등대 (전망대 = 밖)
+                        new Vector3(4.9f, 3.1f, 0.95f), new Vector3(5.46f, 2.54f, 0.95f), new Vector3(6.03f, 1.97f, 0.95f), new Vector3(6.45f, 1.55f, 0.95f),   // 유리 통로
+                        new Vector3(7.1f, -0.75f, 1.45f), new Vector3(8.9f, -0.75f, 1.45f), new Vector3(8.9f, 1f, 1.45f), new Vector3(7.4f, 0.8f, 1.2f),         // 집
+                    });
+                    // 등대 빛 둘: 렌즈 원판 (sd_builder lens, 방위 45 · 225)에서 시작해 렌즈와 함께 돎, 하늘 벽 앞에서 스며듦. 등대 재질은 내부 빛기둥과 따로
+                    var beamRoot = new GameObject("BeaconBeams");
+                    beamRoot.transform.SetParent(root.transform, false);
+                    beamRoot.transform.SetParent(Child(root, N + "Lens"), true);
+                    var from = new Vector3[2];
+                    var to = new Vector3[2];
+                    var normals = new Vector3[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        float a = (45f + 180f * k) * Mathf.Deg2Rad;
+                        normals[k] = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                        from[k] = new Vector3(CX, LensY, CZ) + normals[k] * 1f;
+                        to[k] = new Vector3(CX, LensY, CZ) + normals[k] * 6.9f;
+                    }
+                    AddLightShafts(beamRoot, from, to, new[] { 1.16f, 1.16f }, normals, 3.2f, InteriorSetup.Evo2BeaconBeamPath);
+                    // 오로라: 바깥 WireAurora와 같은 호를 등대 둘레에, 하늘 벽 안으로 (× 8이 아님). 아랫단이 전망대 눈높이 근처 — 더 낮으면 전망대에서 온 시야가 초록으로 덮임
+                    SpaceStation.Building.AuroraRibbon Arc(float radius, float az0, float az1, float y, float height, float folds, float phase)
+                    {
+                        const int count = 48;
+                        var path = new Vector3[count + 1];
+                        for (int i = 0; i <= count; i++)
+                        {
+                            float s = i / (float)count;
+                            float a = Mathf.Deg2Rad * Mathf.Lerp(az0, az1, s);
+                            float rr = radius + 0.32f * Mathf.Sin(2f * Mathf.PI * folds * s + phase);
+                            path[i] = new Vector3(CX + rr * Mathf.Cos(a), y + 0.4f * Mathf.Sin(2f * Mathf.PI * 1.5f * s + phase), CZ + rr * Mathf.Sin(a));
+                        }
+                        return new SpaceStation.Building.AuroraRibbon(path, height, 0.3f);
+                    }
+                    var aurora = new GameObject("Aurora");
+                    aurora.transform.SetParent(root.transform, false);
+                    aurora.AddComponent<SpaceStation.Building.AuroraFx>().Configure(AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2AuroraPath),
+                        new[] { Arc(4.8f, 5f, 150f, 6.8f, 3.9f, 3f, 0.7f), Arc(5.5f, 35f, 172f, 7.4f, 3.3f, 4f, 2.4f), Arc(5.5f, 182f, 238f, 7f, 3.4f, 2f, 4.1f) }, 8f);   // 가장 멀리 움직여도 하늘 벽 (등대에서 7.15m) 안: 떠돎 + 주름 + 기울기 + 뒤 겹 = 1.65m
+                    // 집 레이더 상황판 (sd_builder RADAR) = 실제 운석 예보, 예보 글 = 동쪽 벽 화면
+                    root.AddComponent<InteriorRadar>().Configure(new Vector3(8.95f, F + 0.958f, 1.05f), 0.56f,
+                        Child(root, N + "Sweep").GetComponent<InteriorOrbit>(),
+                        Child(root, N + "Beacon").GetComponent<Renderer>(),
+                        new Vector3(9.905f, F + 1.6f, 1.32f), Vector3.left, Vector3.up, new Vector2(0.8f, 0.6f));
+                    // 전망대 망원경 둘 (sd_builder SCOPE_AZ): 아콜로지 · 치안 본부와 같은 들여다보기, 바깥쪽을 쉴 때 방향으로 좌우 ±100°
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    var scopes = new[] { 150f, 340f };
+                    for (int k = 0; k < scopes.Length; k++)
+                    {
+                        var head = Child(root, $"{N}Scope{k + 1}");
+                        BoxOf(head, 0.06f);
+                        float a = scopes[k] * Mathf.Deg2Rad;
+                        root.AddComponent<InteriorTelescope>().Configure(head, new Vector3(CX + 2.75f * Mathf.Cos(a), Balcony + 1.3f, CZ + 2.75f * Mathf.Sin(a)), 18f, 0f, font, 90f - scopes[k], 100f, startPitch: -16f, startFov: 24f, minPitch: -60f);
+                    }
+                });
+        }
+
+        /// <summary>
+        /// 진화 2단계 정련 콤비나트 "작은 해 용광로 · 견학 제철소" (3 × 2칸, rf_builder — 사용자 2026-11-05 시안 1 "좋아 이대로 유니티로 옮겨줘"): 정원 · 전시관 구성 (직접 체험 모듈 아님).
+        /// 외형 그대로: 가운데 유리 돔 (높은 단, 남쪽 계단 둘) 속 떠 있는 작은 해 · 은빛 발톱 · 홍염 고리 · 도는 쇳물 국자 셋 (<see cref="InteriorSunForge"/>, 돔 안 갤러리에서 눈앞에 봄), 돔 둘레 산책로 (우주복),
+        /// 양옆 유리 볼트 격납고 둘 (실내, 관람 통로 · 채굴선 · 광석 통 · 집게 크레인 <see cref="InteriorOreCrane"/> · 북쪽 끝 에너지 막), 앞쪽 견학 광장 (황동 주괴 기념탑 · 금빛 해살).
+        /// 문 자리 10 = 갑판 둘레 (깊이 3.95, 닫힘 = 난간), 아래 해치 = 격납고 통로 넷 · 광장 · 북쪽 길, 위 해치 없음 (하늘).
+        /// </summary>
+        private static void BuildEvoRefineryCombine()
+        {
+            const float DeckEdge = 3.95f, L1 = F + 1f, CX = 8f, CZ = 4.5f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>();
+            for (int x = 0; x <= 2; x++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), back, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 1), front, DeckEdge));
+            }
+            for (int z = 0; z <= 1; z++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(0, 0, z), Vector3Int.left, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(2, 0, z), Vector3Int.right, DeckEdge));
+            }
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(1.25f, 0f, 1.3f)));    // 서쪽 격납고 통로 (문 북쪽)
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(1.25f, 0f, 0f)));
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(0.3f, 0f, -3.1f)));    // 견학 광장 (기념탑 앞, 0.3 m 오른쪽 — 왼쪽 승강판 착지 원판과 틀 사이 5 cm)
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(0f, 0f, 3.05f)));      // 북쪽 길
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(-1.25f, 0f, 1.3f)));   // 동쪽 격납고 통로
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(-1.25f, 0f, 0f)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var ember = new Color(1f, 0.58f, 0.24f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(CX, L1 + 1.85f, CZ), 9f, 2.6f, new Color(1f, 0.72f, 0.42f)),   // 작은 해
+                LightSpec.Point(new Vector3(CX, L1 + 0.5f, CZ), 4f, 1f, ember),                            // 주형 고리
+                LightSpec.Point(new Vector3(CX, F + 2.4f, -2.7f), 4.5f, 0.9f, warm),                       // 기념탑
+                LightSpec.Point(new Vector3(6.15f, F + 2.3f, -3.3f), 6f, 0.85f, warm),                     // 광장 등불
+                LightSpec.Point(new Vector3(9.85f, F + 2.3f, -3.3f), 6f, 0.85f, warm),
+                LightSpec.Point(new Vector3(CX, F + 2.4f, 11f), 6f, 0.6f, cool),                           // 북쪽 길
+                LightSpec.Point(new Vector3(3.6f, F + 2.2f, 9.3f), 5f, 0.6f, warm),                        // 북쪽 빈터
+                LightSpec.Point(new Vector3(12.4f, F + 2.2f, 9.3f), 5f, 0.6f, warm),
+                LightSpec.Point(new Vector3(-3.2f, F + 2f, 4f), 7f, 0.45f, cool),                          // 바깥 길
+                LightSpec.Point(new Vector3(19.2f, F + 2f, 4f), 7f, 0.45f, cool),
+                LightSpec.Point(new Vector3(CX, F + 0.5f, -1.7f), 3f, 0.6f, ember),                        // 단 통풍 홈
+                LightSpec.Point(new Vector3(2.8f, F + 0.5f, 1.6f), 3f, 0.6f, ember),
+                LightSpec.Point(new Vector3(13.2f, F + 0.5f, 1.6f), 3f, 0.6f, ember),
+                LightSpec.Point(new Vector3(2.8f, F + 0.5f, 7.4f), 3f, 0.6f, ember),
+                LightSpec.Point(new Vector3(13.2f, F + 0.5f, 7.4f), 3f, 0.6f, ember),
+            };
+            foreach (var az in new[] { 45f, 135f, 225f, 315f })
+            {
+                float a = az * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(CX + 5.7f * Mathf.Cos(a), L1 + 2.3f, CZ + 5.7f * Mathf.Sin(a)), 5.5f, 0.8f, warm));   // 산책로 등불
+            }
+            foreach (var hx in new[] { -0.2f, 16.2f })
+            {
+                foreach (var z in new[] { 0f, 4f, 8f })
+                    lights.Add(LightSpec.Point(new Vector3(hx, F + 2.6f, z), 6f, 1.25f, white));   // 격납고
+            }
+            EvoAccent("RefineryCombine", "#D0B090");
+            // 스폰 = 견학 광장 남쪽 길에서 기념탑 · 돔을 바라봄
+            Build("EvoRefineryCombine", "Evolved/MD_Evo_RefineryCombine", sockets, new Vector3(10.8f, F, -3.1f), -20f, lights,
+                configure: root =>
+                {
+                    const string N = "INT_EvoRefineryCombine_";
+                    AddOpenAir(root, new[]
+                    {
+                        new Vector3(CX, CZ, 4.42f),                                                                                                             // 돔
+                        new Vector3(-0.2f, -0.35f, 2.25f), new Vector3(-0.2f, 1.9f, 2.25f), new Vector3(-0.2f, 4.15f, 2.25f), new Vector3(-0.2f, 6.4f, 2.25f), new Vector3(-0.2f, 8.2f, 2.25f),   // 서쪽 격납고
+                        new Vector3(16.2f, -0.35f, 2.25f), new Vector3(16.2f, 1.9f, 2.25f), new Vector3(16.2f, 4.15f, 2.25f), new Vector3(16.2f, 6.4f, 2.25f), new Vector3(16.2f, 8.2f, 2.25f),   // 동쪽 격납고
+                    });
+                    var r = root.transform;
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation;
+                        var mesh = Child(root, part);
+                        if (mesh != null)
+                            mesh.SetParent(p, true);
+                        return p;
+                    }
+                    // 작은 해 용광로: 받침 팔 (돔 축) → 국자 (기울기 축) · 쇳물 줄기 (맨 위)
+                    const float LadleR = 2f, LadleY = L1 + 0.86f, StreamR = 2.38f, StreamTop = LadleY - 0.17f;
+                    var ladleAz = new[] { 270f, 30f, 150f };
+                    var carousel = Pivot("CarouselPivot", r, new Vector3(CX, L1 + 0.2f, CZ), N + "Carousel");
+                    var ladles = new Transform[3];
+                    var streams = new Transform[3];
+                    for (int k = 0; k < 3; k++)
+                    {
+                        float a = ladleAz[k] * Mathf.Deg2Rad;
+                        var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                        ladles[k] = Pivot("LadlePivot" + (k + 1), carousel, new Vector3(CX, LadleY, CZ) + dir * LadleR, N + "Ladle" + (k + 1));
+                        streams[k] = Pivot("StreamPivot" + (k + 1), carousel, new Vector3(CX, StreamTop, CZ) + dir * StreamR, N + "Stream" + (k + 1));
+                    }
+                    root.AddComponent<InteriorSunForge>().Configure(carousel, ladles, streams, ladleAz, new[] { 45f, 195f, 315f },
+                        StreamR, L1 + 0.11f, new Vector3(CX, L1 + 1.85f, CZ), 1.35f, new Vector3(CX, 3.78f, CZ),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SparkPath), ModuleFxMaterials.Get("FireworkSpark"), ModuleFxMaterials.Get("FireworkLine"),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SolarFlarePath));
+                    // 격납고 크레인: 들보 → 줄 위 끝 · 집게 경첩 → 손가락 경첩 넷 (광석 원형은 크레인 둘이 함께 씀)
+                    const float RailY = F + 2.1f, Hinge = F + 1.85f, CableTop = RailY - 0.1f, RestZ = 2.4f;
+                    var rock = Child(root, N + "OreRock");
+                    rock.gameObject.SetActive(false);
+                    void Crane(string tag, float gx, float startDelay)
+                    {
+                        var gantry = Pivot("GantryPivot" + tag, r, new Vector3(gx, 0f, RestZ), N + "Gantry" + tag);
+                        var cable = Pivot("CablePivot" + tag, gantry, new Vector3(gx, CableTop, RestZ), N + "Cable" + tag);
+                        var claw = Pivot("ClawPivot" + tag, gantry, new Vector3(gx, Hinge, RestZ), N + "Claw" + tag);
+                        var fingers = new Transform[4];
+                        var axes = new Vector3[4];
+                        for (int k = 0; k < 4; k++)
+                        {
+                            float a = Mathf.PI / 4f + Mathf.PI / 2f * k;
+                            var d = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                            fingers[k] = Pivot("FingerPivot" + tag + k, claw, new Vector3(gx, Hinge, RestZ) + d * 0.1f, N + "Finger" + tag + k);
+                            axes[k] = Vector3.Cross(d, Vector3.up);   // + = 손가락 끝이 바깥으로 (벌림)
+                        }
+                        root.AddComponent<InteriorOreCrane>().Configure(gantry, cable, claw, fingers, axes, rock, RestZ,
+                            new Vector3(gx, F + 1.34f, 5.1f), new Vector3(gx, F + 1.31f, -0.78f), F + 0.86f, Hinge, CableTop, startDelay);
+                    }
+                    Crane("A", -0.95f, 0f);
+                    Crane("B", 16.95f, 6f);
+                });
+        }
+
+        // 식량 공장 바퀴 (ff_builder 값): 축 높이 · 곤돌라 고리 반지름 · 핀 → 곤돌라 바닥
+        private const float FoodWheelY = F + 7.12f, FoodPodRadius = 2.85f, FoodPodHang = 2.25f;
+        private static readonly int[] FoodRiderPods = { 1, 2, 4 };
+
+        /// <summary>식량 공장 곤돌라 벤치의 탄 주민 자리 (쉬는 자세, 템플릿 기준) — <see cref="ResidentSpotBaker"/>와 <see cref="InteriorFerrisWheel"/>가 함께 씀.</summary>
+        public static Vector3[] FoodRiderSeats(float wheelX)
+        {
+            var seats = new Vector3[FoodRiderPods.Length];
+            for (int i = 0; i < seats.Length; i++)
+            {
+                float a = (270f + 72f * FoodRiderPods[i]) * Mathf.Deg2Rad;
+                seats[i] = new Vector3(wheelX + FoodPodRadius * Mathf.Cos(a) + 0.36f, FoodWheelY + FoodPodRadius * Mathf.Sin(a) - FoodPodHang + 0.43f, 0.6f);   // 방석 앞 끝(0.53) 바로 뒤: 무릎 · 발이 방석 앞으로 나옴
+            }
+            return seats;
+        }
+
+        public const float FoodWheelA = 4.96f, FoodWheelB = 27.04f;
+
+        /// <summary>
+        /// 진화 2단계 식량 공장 "유리 바퀴 관람차 공장" (5 × 1칸 + 위층, ff_builder — 사용자 2026-11-05 시안 1 "유니티로 옮겨줘"): 직접 체험 = 관람차 탑승 (<see cref="InteriorFerrisWheel"/>).
+        /// 외형 × 8 그대로: 왼쪽 프로틴 바 바퀴 · 가운데 2층 유리 공장 + 지붕 배양조 셋 · 오른쪽 수확 작물 바퀴. 바퀴 안에 수평을 유지하는 곤돌라 다섯 (탄 주민 있음), 앞쪽 양 끝 계단 → 층계참 → 승강장 문 · 다리.
+        /// 공장 1층 = 가공 라인 (<see cref="InteriorFoodLine"/> 벨트 물건 · 로봇 팔, 가운데 통로 = 남북 압력 막), 2층 = 시식 카페 (유리 엘리베이터 <see cref="InteriorLift"/>).
+        /// 문 자리 6 = 외형 면이 있는 칸 1 · 2 · 3의 남 · 북 (깊이 3.95, 닫힘 = 난간), 아래 해치 = 칸마다, 위 해치 = 공장 지붕 칸.
+        /// </summary>
+        private static void BuildEvoFoodFactory()
+        {
+            const float DeckEdge = 3.95f, L1 = F + 5.73f, Plat = FoodWheelY - FoodPodRadius - FoodPodHang, LX = 12.3f, LZ = 1.44f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>();
+            for (int x = 1; x <= 3; x++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), back, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), front, DeckEdge));
+            }
+            sockets.Add(new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(-0.4f, 0f, 2.9f)));   // 뒤쪽 길 (바퀴 밑 비킴)
+            sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(1.9f, 0f, 1.7f)));    // 바퀴와 공장 사이 뒤쪽 (앞쪽 갑판 띠 = 빛 기둥 승강판 — 해치 틀에 판이 걸쳤음, 2026-11-18)
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, Vector3.zero));                   // 공장 가운데 통로
+            sockets.Add(new InteriorSocket(new Vector3Int(3, 0, 0), Vector3Int.down, -F, new Vector3(-1.9f, 0f, 1.7f)));
+            sockets.Add(new InteriorSocket(new Vector3Int(4, 0, 0), Vector3Int.down, -F, new Vector3(0.4f, 0f, 2.9f)));
+            sockets.Add(new InteriorSocket(new Vector3Int(2, 1, 0), Vector3Int.up, 1.45f, new Vector3(1.85f, 0f, 0f)));    // 2층 천장 (카운터와 배양액 관 사이 통로 위)
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var fresh = new Color(0.78f, 0.92f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(FoodWheelA, FoodWheelY, 0f), 8.5f, 1.4f, warm),     // 바퀴 축 (배양액 · 신선 등)
+                LightSpec.Point(new Vector3(FoodWheelB, FoodWheelY, 0f), 8.5f, 1.4f, fresh),
+                LightSpec.Point(new Vector3(FoodWheelA, FoodWheelY - 3.6f, 0f), 6.5f, 1.1f, white),   // 아래쪽 칸 · 승강장
+                LightSpec.Point(new Vector3(FoodWheelB, FoodWheelY - 3.6f, 0f), 6.5f, 1.1f, white),
+                LightSpec.Point(new Vector3(FoodWheelA, FoodWheelY + 3.4f, 0f), 6.5f, 1f, white),     // 위쪽 칸
+                LightSpec.Point(new Vector3(FoodWheelB, FoodWheelY + 3.4f, 0f), 6.5f, 1f, white),
+                LightSpec.Point(new Vector3(FoodWheelA - 2.6f, F + 3.6f, -3.2f), 5.5f, 1f, warm),     // 계단
+                LightSpec.Point(new Vector3(FoodWheelB + 2.6f, F + 3.6f, -3.2f), 5.5f, 1f, warm),
+                LightSpec.Point(new Vector3(13f, F + 4.6f, -1.2f), 7f, 1.4f, white),                  // 공장 1층
+                LightSpec.Point(new Vector3(19f, F + 4.6f, -1.2f), 7f, 1.4f, white),
+                LightSpec.Point(new Vector3(13.6f, F + 4.6f, 1.3f), 7f, 1.2f, white),
+                LightSpec.Point(new Vector3(18.6f, F + 4.6f, 1.3f), 7f, 1.2f, white),
+                LightSpec.Point(new Vector3(16f, F + 2.8f, 0f), 5f, 0.9f, white),
+                LightSpec.Point(new Vector3(13.4f, L1 + 3.6f, 0f), 7f, 1.3f, white),                  // 카페
+                LightSpec.Point(new Vector3(18.6f, L1 + 3.6f, 0f), 7f, 1.3f, white),
+                LightSpec.Point(new Vector3(16f, L1 + 2.4f, -1.4f), 4.5f, 0.8f, warm),
+                LightSpec.Point(new Vector3(16f, L1 + 2.4f, 1.4f), 4.5f, 0.8f, warm),
+                LightSpec.Point(new Vector3(-1.6f, F + 1.6f, 0f), 3.5f, 0.5f, new Color(0.8f, 0.5f, 1f)),   // 화단 (플라즈마 볼 꽃) — 양 끝 문 길을 비켜 0.45 m 안쪽 (ff_builder PLANTER_X, 2026-11-19)
+                LightSpec.Point(new Vector3(33.6f, F + 1.6f, 0f), 3.5f, 0.5f, new Color(0.8f, 0.5f, 1f)),
+            };
+            foreach (var (x, z) in new[] { (11f, -3.1f), (21f, -3.1f), (11f, 3.1f), (21f, 3.1f), (1f, 3.1f), (31f, 3.1f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.3f, z), 6f, 0.85f, warm));   // 갑판 가로등
+            foreach (var x in new[] { -2.6f, 34.6f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.2f, 0f), 7f, 0.45f, cool));  // 양 끝 마당 (밤하늘 찬 빛)
+            EvoAccent("FoodFactory", "#A8E880");
+            // 스폰 = 공장과 왼쪽 바퀴 사이 앞쪽 길에서 바퀴 · 계단을 바라봄
+            Build("EvoFoodFactory", "Evolved/MD_Evo_FoodFactory", sockets, new Vector3(9.8f, F, -3.2f), -59f, lights,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[] { new Vector3(12.9f, 0f, 2.7f), new Vector3(16f, 0f, 2.75f), new Vector3(19.1f, 0f, 2.7f) });   // 공장
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    void Wheel(string tag, float cx, float startDelay, string title)
+                    {
+                        var hub = new GameObject($"Wheel{tag}_Pivot").transform;
+                        hub.SetParent(root.transform, false);
+                        hub.localPosition = new Vector3(cx, FoodWheelY, 0f);
+                        Child(root, $"INT_EvoFoodFactory_Wheel{tag}").SetParent(hub, true);
+                        Child(root, $"INT_EvoFoodFactory_Wheel{tag}Glass").SetParent(hub, true);
+                        var pods = new Transform[5];
+                        var doors = new Transform[5];
+                        var seats = new Transform[5];
+                        for (int k = 0; k < 5; k++)
+                        {
+                            float a = (270f + 72f * k) * Mathf.Deg2Rad;
+                            var pivot = new GameObject($"Pod{tag}{k + 1}_Pivot").transform;
+                            pivot.SetParent(root.transform, false);
+                            pivot.localPosition = new Vector3(cx + FoodPodRadius * Mathf.Cos(a), FoodWheelY + FoodPodRadius * Mathf.Sin(a), 0f);
+                            pods[k] = pivot;
+                            foreach (var suffix in new[] { "", "Glass" })
+                            {
+                                var part = Child(root, $"INT_EvoFoodFactory_Pod{tag}{k + 1}{suffix}");
+                                part.SetParent(pivot, true);
+                                part.gameObject.AddComponent<MeshCollider>().sharedMesh = part.GetComponent<MeshFilter>().sharedMesh;
+                            }
+                            doors[k] = Child(root, $"INT_EvoFoodFactory_Pod{tag}{k + 1}Door");
+                            doors[k].SetParent(pivot, true);
+                            BoxOf(doors[k], 0f);
+                            var seat = new GameObject("Seat").transform;
+                            seat.SetParent(pivot, false);
+                            seat.localPosition = new Vector3(0f, -FoodPodHang + 0.24f, 0.69f);
+                            seat.gameObject.AddComponent<BoxCollider>().size = new Vector3(1.44f, 0.5f, 0.34f);
+                            seats[k] = seat;
+                        }
+                        // 다리 (윗면만 밟음) · 승강장 문 · 다리 옆 보이지 않는 벽 · 바퀴 밑 받침 위 보이지 않는 벽 (도는 테는 충돌체 없음)
+                        var bridge = Child(root, $"INT_EvoFoodFactory_Bridge{tag}");
+                        var plate = bridge.gameObject.AddComponent<BoxCollider>();
+                        plate.center = new Vector3(cx, Plat - 0.0775f, -1.775f);
+                        plate.size = new Vector3(1.2f, 0.065f, 1.55f);
+                        var gateL = Child(root, $"INT_EvoFoodFactory_Gate{tag}L");
+                        var gateR = Child(root, $"INT_EvoFoodFactory_Gate{tag}R");
+                        BoxOf(gateL, 0f);
+                        BoxOf(gateR, 0f);
+                        var walls = new GameObject($"Wheel{tag}_Walls");
+                        walls.transform.SetParent(root.transform, false);
+                        foreach (var s in new[] { -1f, 1f })
+                        {
+                            var wall = walls.AddComponent<BoxCollider>();
+                            wall.center = new Vector3(cx + s * 0.64f, Plat + 1f, -1.76f);
+                            wall.size = new Vector3(0.04f, 2.2f, 1.52f);
+                        }
+                        var under = walls.AddComponent<BoxCollider>();
+                        under.center = new Vector3(cx, F + 0.95f, 0f);   // 윗면이 다리 판보다 낮게 (곤돌라로 들어가는 발 높이가 뜨지 않게)
+                        under.size = new Vector3(6.7f, 1.9f, 5.04f);
+                        root.AddComponent<InteriorFerrisWheel>().Configure(hub, pods, doors, seats, bridge, gateL, gateR, font, title,
+                            new Vector3(cx, Plat + 2.46f, -2.6f), FoodPodHang, startDelay, FoodRiderSeats(cx), FoodRiderPods);
+                    }
+                    Wheel("A", FoodWheelA, 0f, "프로틴 바 관람차");
+                    Wheel("B", FoodWheelB, 6f, "수확 관람차");
+                    // 가공 라인: 벨트 넷 (바깥 → 안 → 포장기) · 로봇 팔 (어깨 피벗)
+                    var arms = new Transform[4];
+                    var shoulders = new[] { new Vector2(11.95f, -0.78f), new Vector2(13.85f, -0.78f), new Vector2(18.15f, -0.78f), new Vector2(20.05f, -0.78f) };
+                    for (int i = 0; i < arms.Length; i++)
+                    {
+                        var pivot = new GameObject($"Arm{i + 1}_Pivot").transform;
+                        pivot.SetParent(root.transform, false);
+                        pivot.localPosition = new Vector3(shoulders[i].x, F + 0.78f, shoulders[i].y);
+                        Child(root, $"INT_EvoFoodFactory_Arm{i + 1}").SetParent(pivot, true);
+                        arms[i] = pivot;
+                    }
+                    const float OutY = F + 1.09f, InY = F + 0.88f;
+                    root.AddComponent<InteriorFoodLine>().Configure(
+                        new[] { Child(root, "INT_EvoFoodFactory_ItemBar"), Child(root, "INT_EvoFoodFactory_ItemCrate") },
+                        new[] { new Vector3(8.4f, OutY, 0f), new Vector3(11.3f, InY, 0f), new Vector3(23.6f, OutY, 0f), new Vector3(20.7f, InY, 0f) },
+                        new[] { new Vector3(11.2f, OutY, 0f), new Vector3(14.25f, InY, 0f), new Vector3(20.8f, OutY, 0f), new Vector3(17.75f, InY, 0f) },
+                        new[] { 0, 0, 1, 1 }, arms);
+                    // 유리 엘리베이터 (1층 ↔ 2층 카페, 문 = 동쪽)
+                    var car = Child(root, "INT_EvoFoodFactory_LiftCar");
+                    var carGlass = Child(root, "INT_EvoFoodFactory_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[2];
+                    var right = new Transform[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoFoodFactory_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoFoodFactory_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoFoodFactory_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoFoodFactory_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, L1 - F }, left, right, new Vector3(LX, F + 0.085f, LZ), Vector3.forward, 0.75f);
+                    var liftSo = new SerializedObject(lift);
+                    liftSo.FindProperty("_doorTravel").floatValue = 0.44f;   // 문짝이 공장 벽 · 벨트에 닿지 않게 (ff_builder)
+                    liftSo.ApplyModifiedPropertiesWithoutUndo();
+                });
+        }
+
+        /// <summary>
+        /// 진화 2단계 바이오돔 "비눗방울 돔 정원" (4 × 2칸, bd_builder — 사용자 2026-11-03 시안 1 "좋아 이대로 유니티로 옮겨줘"): 정원 · 전시관 구성 (직접 체험 모듈 아님).
+        /// 외형 평면 그대로: 미드나잇 갑판 (우주복, 기술 식물만) 위에 따로 선 지오데식 유리 돔 셋 + 유리 연결 통로 둘 (돔 안 = 실내, 살아 있는 식물).
+        /// 큰 돔 "구름 숲" = 바위 폭포 → 웅덩이 → 호수 · 디딤돌 · 나무 아홉 (<see cref="PlantKind.Tree"/>) · 도는 구름 고리 여섯 Clouds + 비 (<see cref="SpaceStation.Building.RainFx"/>, 바깥 모듈과 같은 효과),
+        /// 왼쪽 돔 "바퀴 텃밭" = 분수 · 크림색 고리 + 십자 길 · 여덟 칸 작물 · 매단 재배등 고리, 오른쪽 돔 "산소 습지" = 연못 · 갈대 · 수련 · 잉어 Fish · 전망 데크 · 산소 기둥 셋 (거품 Bubbles1 ~ 3).
+        /// 풀 = 잔디 무늬 텍스처 Lawn (충돌 없음, 발은 그 아래 갑판) + 풀잎 · 고사리 · 들꽃 한 장씩 Leaves. 호수 · 연못에 못 들어가는 벽 = LakeHit (렌더러 없음).
+        /// 문 자리 12 = 갑판 둘레 (깊이 3.95, 닫힘 = 난간), 아래 해치 = 칸마다 갑판으로, 위 해치 없음 (하늘).
+        /// </summary>
+        private static void BuildEvoBiodome()
+        {
+            const float DeckEdge = 3.95f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.left, DeckEdge),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.left, DeckEdge),
+                new InteriorSocket(new Vector3Int(3, 0, 0), Vector3Int.right, DeckEdge),
+                new InteriorSocket(new Vector3Int(3, 0, 1), Vector3Int.right, DeckEdge),
+            };
+            for (int x = 0; x < 4; x++)
+            {
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), back, DeckEdge));
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 1), front, DeckEdge));
+            }
+            for (int x = 0; x < 4; x++)
+            {
+                // 돔을 비켜 남 · 북 갑판으로 (양 끝 칸은 가로등도 비킴)
+                float side = x == 0 ? 2.2f : x == 1 ? -2.6f : x == 2 ? 2.6f : -2.2f;
+                float depth = x == 0 || x == 3 ? 2f : 2.4f;
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 0), Vector3Int.down, -F, new Vector3(side, 0f, -depth)));
+                sockets.Add(new InteriorSocket(new Vector3Int(x, 0, 1), Vector3Int.down, -F, new Vector3(side, 0f, depth)));
+            }
+            var sun = new Color(1f, 0.98f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var water = new Color(0.6f, 0.9f, 1f);
+            var plasma = new Color(0.8f, 0.5f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(12f, F + 4f, 4f), 10f, 2f, sun),             // 큰 돔 (구름 고리 가운데)
+                LightSpec.Point(new Vector3(9.2f, F + 3.2f, 3f), 7f, 1.3f, sun),         // 호수
+                LightSpec.Point(new Vector3(9.9f, F + 2.8f, 5.4f), 5f, 1f, sun),         // 폭포
+                LightSpec.Point(new Vector3(14.6f, F + 3f, 2.2f), 7f, 1.4f, sun),        // 동쪽 숲
+                LightSpec.Point(new Vector3(14.6f, F + 3f, 6f), 7f, 1.4f, sun),
+                LightSpec.Point(new Vector3(12f, F + 2.6f, -0.2f), 5f, 0.8f, sun),       // 남 · 북 입구 안쪽
+                LightSpec.Point(new Vector3(12f, F + 2.6f, 8.2f), 5f, 0.8f, sun),
+                LightSpec.Point(new Vector3(1.5f, F + 2.3f, 4f), 6.5f, 1.3f, sun),       // 텃밭 재배등 고리 아래
+                LightSpec.Point(new Vector3(-0.6f, F + 2.2f, 4f), 4.5f, 0.7f, warm),
+                LightSpec.Point(new Vector3(3.6f, F + 2.2f, 4f), 4.5f, 0.7f, warm),
+                LightSpec.Point(new Vector3(1.5f, F + 2.2f, 1.9f), 4.5f, 0.7f, warm),
+                LightSpec.Point(new Vector3(1.5f, F + 2.2f, 6.1f), 4.5f, 0.7f, warm),
+                LightSpec.Point(new Vector3(22.5f, F + 3f, 4f), 8f, 1.7f, sun),          // 습지
+                LightSpec.Point(new Vector3(24.6f, F + 2.2f, 2.6f), 4.5f, 0.7f, sun),
+                LightSpec.Point(new Vector3(24.6f, F + 2.2f, 5.6f), 4.5f, 0.7f, sun),
+                LightSpec.Point(new Vector3(23.5f, F + 1.8f, 4.2f), 3.5f, 0.5f, water),  // 연못
+                LightSpec.Point(new Vector3(20.3f, F + 1.2f, 5.95f), 3f, 0.5f, water),   // 산소 기둥
+                LightSpec.Point(new Vector3(20.2f, F + 1.2f, 2.5f), 3f, 0.5f, water),
+                LightSpec.Point(new Vector3(6f, F + 1.9f, 4f), 3.5f, 0.7f, sun),         // 연결 통로
+                LightSpec.Point(new Vector3(18f, F + 1.9f, 4f), 3.5f, 0.7f, sun),
+                LightSpec.Point(new Vector3(6.05f, F + 1.6f, 0f), 3.5f, 0.5f, plasma),   // 화단 (플라즈마 볼 꽃)
+                LightSpec.Point(new Vector3(17.95f, F + 1.6f, 0f), 3.5f, 0.5f, plasma),
+                LightSpec.Point(new Vector3(6.05f, F + 1.6f, 8f), 3.5f, 0.5f, plasma),
+                LightSpec.Point(new Vector3(17.95f, F + 1.6f, 8f), 3.5f, 0.5f, plasma),
+            };
+            foreach (var (x, z) in new[] { (3.6f, -3.1f), (12f, -3.1f), (20.4f, -3.1f), (3.6f, 11.1f), (12f, 11.1f), (20.4f, 11.1f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.3f, z), 6.5f, 0.85f, warm));   // 갑판 가로등
+            foreach (var (x, z) in new[] { (-2.6f, -1.2f), (26.6f, -1.2f), (-2.6f, 9.2f), (26.6f, 9.2f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.2f, z), 7f, 0.45f, cool));     // 빈 갑판 (밤하늘 찬 빛, 세면 윤나는 갑판에 하얗게 비침)
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoBiodome_Clouds", new Vector3(12f, 0f, 4f), Vector3.up, 6f),        // 구름 고리 (bd_builder clouds)
+                new OrbitSpec("INT_EvoBiodome_Fish", new Vector3(22.85f, 0f, 4.2f), Vector3.up, -18f),   // 잉어 (연못 가운데 축, bd_builder fish — 머리 쪽으로 헤엄침)
+                new OrbitSpec("INT_EvoBiodome_Bubbles1", new Vector3(20.95f, 0f, 6.55f), Vector3.up, 90f),   // 산소 기둥 거품 — 나선을 돌리면 오르는 것처럼 보임
+                new OrbitSpec("INT_EvoBiodome_Bubbles2", new Vector3(19.85f, 0f, 5.45f), Vector3.up, 90f),
+                new OrbitSpec("INT_EvoBiodome_Bubbles3", new Vector3(20.2f, 0f, 2.5f), Vector3.up, 90f),
+            };
+            EvoAccent("Biodome", "#5FE08A");
+            // 스폰 = 큰 돔 남쪽 입구 안에서 호수 · 바위 폭포를 바라봄
+            Build("EvoBiodome", "Evolved/MD_Evo_Biodome", sockets, new Vector3(12.1f, F, -0.2f), -20f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[]
+                    {
+                        new Vector3(1.5f, 4f, 3.88f), new Vector3(12f, 4f, 5.26f), new Vector3(22.5f, 4f, 3.88f),   // 돔 (bd_builder DL · DC · DR, 압력 막 반지름)
+                        new Vector3(6f, 4f, 1.25f), new Vector3(18f, 4f, 1.25f),                                    // 연결 통로
+                    });
+                    // 물에 못 들어가는 벽: 모양만 쓰고 보이지 않음
+                    var lakeHit = Child(root, "INT_EvoBiodome_LakeHit");
+                    var lakeMesh = lakeHit.GetComponent<MeshFilter>().sharedMesh;
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshRenderer>());
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshFilter>());
+                    lakeHit.gameObject.AddComponent<MeshCollider>().sharedMesh = lakeMesh;
+                    // 나무 줄기 충돌체 (PlantSpot 나무 모델에는 충돌체가 없음, 잔디밭 한가운데라 화분 턱도 없음 — InteriorPlantSpots와 같은 자리)
+                    foreach (var (x, z, s) in BiodomeTrees)
+                    {
+                        var trunk = new GameObject("TreeHit");
+                        trunk.transform.SetParent(root.transform, false);
+                        trunk.transform.localPosition = new Vector3(x, F + 1f, z);
+                        var capsule = trunk.AddComponent<CapsuleCollider>();
+                        capsule.radius = 0.1f * s;
+                        capsule.height = 2f;
+                    }
+                    // 비: 바깥 모듈과 같은 RainFx를 미터 단위로 (구름 고리와 함께 돌고, 비는 곧게 떨어짐)
+                    var clouds = Child(root, "INT_EvoBiodome_Clouds");
+                    var rain = root.AddComponent<SpaceStation.Building.RainFx>();
+                    var so = new SerializedObject(rain);
+                    so.FindProperty("_clouds").objectReferenceValue = clouds;
+                    so.FindProperty("_module").objectReferenceValue = root.transform;
+                    var spots = so.FindProperty("_cloudSpots");
+                    spots.arraySize = 6;
+                    for (int i = 0; i < 6; i++)
+                    {
+                        float a = i * 60f * Mathf.Deg2Rad;
+                        spots.GetArrayElementAtIndex(i).vector3Value = new Vector3(12f + 2.3f * Mathf.Cos(a), F + 3.17f, 4f + 2.3f * Mathf.Sin(a));
+                    }
+                    so.FindProperty("_ringCenter").vector3Value = new Vector3(12f, 0f, 4f);
+                    so.FindProperty("_area").vector2Value = new Vector2(1.3f, 0.7f);
+                    so.FindProperty("_dropMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_RainDrop.mat");
+                    so.FindProperty("_mistMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_RainMist.mat");
+                    so.FindProperty("_fallSpeed").floatValue = 5.5f;
+                    so.FindProperty("_groundY").floatValue = F - 0.07f;
+                    so.FindProperty("_rate").floatValue = 110f;
+                    so.FindProperty("_shelterHalfWidth").floatValue = 0f;   // 아치 없음
+                    so.FindProperty("_dropSize").vector2Value = new Vector2(0.005f, 0.008f);
+                    so.FindProperty("_dropStretch").floatValue = 0.05f;
+                    so.FindProperty("_sway").floatValue = 0.1f;
+                    so.FindProperty("_mistSize").vector2Value = new Vector2(1.2f, 1.9f);
+                    so.FindProperty("_mistFall").vector2Value = new Vector2(0.5f, 0.8f);
+                    so.FindProperty("_alwaysOn").boolValue = true;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                });
+        }
+
+        /// <summary>바이오돔 큰 돔 나무 (x, z, 크기) — bd_builder PLANTS. <see cref="InteriorPlantSpots"/>와 줄기 충돌체가 함께 씀.</summary>
+        public static readonly (float x, float z, float s)[] BiodomeTrees =
+        {
+            (14.05f, 6.75f, 1.5f), (15.1f, 5.45f, 1.45f), (13.95f, 5.25f, 1.3f), (15.25f, 2.75f, 1.5f), (14f, 2.45f, 1.6f),
+            (14.15f, 1f, 1.35f), (9.3f, 1.3f, 1.25f), (8.3f, 2.15f, 1.1f), (11.05f, 7.7f, 1.2f),
+        };
+
+        /// <summary>
+        /// 진화 2단계 치안 본부 "푸른 등 파출소 광장" (2 × 2칸, sh_builder — 사용자 2026-11-03 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 감시탑 전망실 (엘리베이터 + 망원경 둘, <see cref="InteriorLift"/> · <see cref="InteriorTelescope"/>) · 광장에서 출동하는 순찰차 (<see cref="InteriorPatrolCar"/>).
+        /// 외형 평면 그대로: 왼쪽 아래 칸 = 천장 없는 광장 (우주복, 돌바닥 · 벤치 · 가로등 · 머리 위 순찰 드론 고리 Orbit1 · 떠 있는 순찰차 Car1 · 2 · 번호표 발권기), ㄱ자 청사 = 나머지 세 칸 (유리 벽 + 박공 현관, 깎은 안쪽 모서리에 금빛 아치 + 압력 막 Curtain).
+        /// 민원 창구 셋은 광장 쪽 벽 (바깥 턱 · 번호판, 유리 너머 직원) — 번호표 받은 광장 벤치 주민이 창구 앞으로 (<see cref="InteriorQueueBoard"/>, 틀 0° · 민원인 구역 = 광장),
+        /// 청사 안 = 동쪽 전시장 (도는 판 위 순찰차 Show · 진열장 셋) · 북쪽 둥근 유리 상황실 (실제 운석 예보 <see cref="InteriorRadar"/> Sweep · Beacon) · 로비 (감시탑 몸통 · 안내 데스크 + 실제 정거장 지도 <see cref="InteriorStationMap"/>) · 지붕 착륙장 천창 + 드론 PadDrone1 · 2.
+        /// 문 자리 8 = 광장 둘 (깊이 3.95, 닫힘 = 난간) · 청사 여섯 (깊이 3.79, 닫힘 = 막힌 창 패널 <see cref="InteriorSocket.SealedWall"/>). 아래 해치 = 칸마다 넷, 위 해치 = (1, 0) · (0, 1) · (1, 1) 감시탑 전망실 천장 (0.65배 — 진화 단계별 통로 ③), 광장은 하늘.
+        /// </summary>
+        private static void BuildEvoSecurityHQ()
+        {
+            const float Ceil = F + 3.85f, DeckEdge = 3.95f, Wall = 3.79f, TowerFloor = F + 2.95f, TowerCeil = 3.78f, TX = 8.6f, TZ = 8.6f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var c00 = new Vector3Int(0, 0, 0);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var c11 = new Vector3Int(1, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, DeckEdge),
+                new InteriorSocket(c00, back, DeckEdge),
+                new InteriorSocket(c10, back, Wall, default, true),
+                new InteriorSocket(c10, Vector3Int.right, Wall, default, true),
+                new InteriorSocket(c01, Vector3Int.left, Wall, default, true),
+                new InteriorSocket(c01, front, Wall, default, true),
+                new InteriorSocket(c11, front, Wall, default, true),
+                new InteriorSocket(c11, Vector3Int.right, Wall, default, true),
+                new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(-1.9f, 0f, 2.0f)),   // 광장 휘장 · 드론 고리 아래 비킴
+                new InteriorSocket(c10, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c01, Vector3Int.down, -F, new Vector3(-2.1f, 0f, 0f)),     // 상황실 서쪽
+                new InteriorSocket(c11, Vector3Int.down, -F, new Vector3(-2.1f, 0f, 0.6f)),   // 감시탑 서쪽 로비
+                new InteriorSocket(c10, Vector3Int.up, Ceil, new Vector3(0.5f, 0f, 2.6f)),    // 천창 비킴
+                new InteriorSocket(c01, Vector3Int.up, Ceil, new Vector3(-2.1f, 0f, 0.6f)),
+                // 감시탑 전망실 천장 위 해치 (진화 단계별 통로 ③ 2026-11-17, 사용자 "꼭대기방 천장해치로"): 샤프트 (0.98)와 유리벽 (2.5) 사이라 0.65배 (틀 ±0.62),
+                // 엘리베이터 문 앞 (탑 축에서 −z 1.73, 문 기둥 · 인방과 6 cm), sh_builder가 천장 빛 고리를 이 자리에서 끊음
+                new InteriorSocket(c11, Vector3Int.up, TowerCeil, new Vector3(TX - 8f, 0f, TZ - 1.73f - 8f), hatchScale: 0.65f),
+            };
+            var hall = Color.white;   // 청사 = 맑은 흰빛 (누런 등이면 흰 벽이 갈색으로 보임)
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, z, range, power) in new[]
+            {
+                (7.6f, -1.8f, 7.5f, 1.7f), (10.2f, -1f, 7.5f, 1.6f), (7.8f, 2.9f, 7.5f, 1.6f), (10.3f, 3f, 7f, 1.5f),      // 동쪽 전시장
+                (5.4f, -0.9f, 5.5f, 1.2f), (5.4f, 1.4f, 5.5f, 1.2f),                                                     // 창구 직원 칸
+                (5.6f, 6.4f, 7f, 1.6f), (10.4f, 6.6f, 6f, 1.2f), (6.8f, 10f, 6f, 1.2f), (10.2f, 10.2f, 6f, 1.2f),         // 로비
+                (-2.2f, 6.6f, 6f, 1.5f), (1f, 5.7f, 6f, 1.4f), (3.6f, 8f, 6f, 1.5f), (-2.2f, 10f, 6f, 1.3f), (0.8f, 10.6f, 6f, 1.3f), (3.8f, 10.4f, 6f, 1.2f),   // 북쪽 칸 · 안내 데스크
+            })
+                lights.Add(LightSpec.Point(new Vector3(x, Ceil - 0.5f, z), range, power, hall));
+            lights.Add(LightSpec.Point(new Vector3(0.6f, F + 2.4f, 8.05f), 3f, 0.7f, cool));                   // 둥근 상황실
+            lights.Add(LightSpec.Point(new Vector3(TX, TowerCeil - 0.5f, TZ), 5.5f, 1.5f, hall));                // 전망실
+            foreach (var (x, z) in new[] { (-3.2f, 3.95f), (-3.45f, -1.75f), (4.2f, -3.35f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.35f, z), 5f, 0.85f, cool));                    // 광장 가로등
+            lights.Add(LightSpec.Point(new Vector3(-1.2f, F + 3f, 1.6f), 8f, 0.9f, hall));                     // 광장
+            lights.Add(LightSpec.Point(new Vector3(1.8f, F + 3f, -1.2f), 8f, 0.9f, hall));
+            lights.Add(LightSpec.Point(new Vector3(2.6f, F + 2.2f, 2.85f), 4f, 0.8f, new Color(0.5f, 0.65f, 1f)));   // 현관 푸른 등 밑
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoSecurityHQ_Orbit1", new Vector3(0.4f, 0f, 0.6f), Vector3.up, 18f),       // 광장 순찰 드론 고리
+                new OrbitSpec("INT_EvoSecurityHQ_PadDrone1", new Vector3(-0.4f, 0f, 8.6f), Vector3.up, 25f),   // 지붕 착륙장
+                new OrbitSpec("INT_EvoSecurityHQ_PadDrone2", new Vector3(8.6f, 0f, -0.25f), Vector3.up, -20f),
+                new OrbitSpec("INT_EvoSecurityHQ_Show", new Vector3(9.95f, 0f, -1.95f), Vector3.up, 12f),      // 전시대
+                new OrbitSpec("INT_EvoSecurityHQ_Cam", new Vector3(TX, 0f, TZ + 2f), Vector3.up, 30f),              // 감시탑 카메라
+                new OrbitSpec("INT_EvoSecurityHQ_Sweep", new Vector3(0.6f, 0f, 8.05f), Vector3.up, 60f),       // 상황판 쓸기 빛
+            };
+            EvoAccent("SecurityHQ", "#A0B8FF");
+            // 스폰 = 서쪽 문 안 광장에서 현관을 바라봄
+            Build("EvoSecurityHQ", "Evolved/MD_Evo_SecurityHQ", sockets, new Vector3(-2.6f, F, -0.1f), 56f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[]
+                    {
+                        new Vector3(7f, -1.8f, 2.35f), new Vector3(7f, 2f, 2.35f), new Vector3(9.8f, -1.5f, 2.6f), new Vector3(9.8f, 2.6f, 2.6f),   // 동쪽 칸
+                        new Vector3(6f, 4.5f, 1.4f),
+                        new Vector3(-1.6f, 7.4f, 2.5f), new Vector3(2f, 7.4f, 2.5f), new Vector3(-1.6f, 10f, 2.3f), new Vector3(2f, 10f, 2.3f),     // 북쪽 칸
+                        new Vector3(4.2f, 6.4f, 1.6f),
+                        new Vector3(6.9f, 7.1f, 2.2f), new Vector3(9.5f, 9.5f, 2.6f), new Vector3(6.5f, 10f, 2f), new Vector3(10f, 6.5f, 1.9f),     // 로비
+                    });
+                    // 전시대 유리 캐노피는 판과 함께 돎, 충돌체 = 판 전체 원기둥 (도는 차를 지나가지 못함)
+                    var showHit = new GameObject("ShowHit");
+                    showHit.transform.SetParent(root.transform, false);
+                    showHit.transform.localPosition = new Vector3(9.95f, F + 1f, -1.95f);
+                    var showCapsule = showHit.AddComponent<CapsuleCollider>();
+                    showCapsule.radius = 1.1f;
+                    showCapsule.height = 2f;
+                    Child(root, "INT_EvoSecurityHQ_ShowGlass").SetParent(Child(root, "INT_EvoSecurityHQ_Show"), true);
+                    // 떠 있는 순찰차 둘: 차 바닥 가운데 피벗 아래로 (앞 = +x), 평소 충돌체 = 차 경계 상자 (날 때는 꺼짐)
+                    var plume = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/Synthesis/M_Synth_Particle.mat");
+                    var thrusters = new[] { new Vector3(0.88f, 0.27f, 0.9f), new Vector3(0.88f, 0.27f, -0.9f), new Vector3(-0.88f, 0.27f, 0.9f), new Vector3(-0.88f, 0.27f, -0.9f) };
+                    foreach (var (part, at, heading, distance) in new[]
+                    {
+                        ("Car1", new Vector3(-1.85f, F + 0.36f, -2.25f), Vector3.left, 1.9f),
+                        ("Car2", new Vector3(2.1f, F + 0.36f, -2.35f), Vector3.back, 1.5f),
+                    })
+                    {
+                        var pivot = new GameObject(part + "Pivot").transform;
+                        pivot.SetParent(root.transform, false);
+                        pivot.localPosition = at;
+                        var body = Child(root, $"INT_EvoSecurityHQ_{part}");
+                        body.SetParent(pivot, true);
+                        Child(root, $"INT_EvoSecurityHQ_{part}Glass").SetParent(pivot, true);
+                        BoxOf(body, 0f);
+                        root.AddComponent<InteriorPatrolCar>().Configure(pivot, thrusters, new Vector3(-0.05f, 1.18f, -0.18f), new Vector3(-0.05f, 1.18f, 0.18f), new Vector3(0.2f, 0.14f, 0.34f), plume, heading, distance);
+                    }
+                    // 민원 창구 셋 (광장 쪽 벽 x 4.6, sh_builder WINS · counters_outside): 번호판 = 창 위, 직원 = 유리 안, 민원인 = 바깥 턱 앞에서 동쪽을 봄
+                    InteriorQueueBoard.Window Window(float z) => new InteriorQueueBoard.Window
+                    {
+                        Board = new InteriorQueueBoard.Panel { Center = new Vector3(4.579f, F + 3.14f, z), Normal = Vector3.left, Up = Vector3.up, Width = 0.7f, Height = 0.16f },
+                        StaffSeat = new Vector3(5.94f, F + 0.49f, z),
+                        Counter = new Vector4(3.85f, F, z, 90f),
+                    };
+                    var queue = root.AddComponent<InteriorQueueBoard>();
+                    queue.Configure(new[] { Window(-0.9f), Window(0.6f), Window(2.1f) },
+                        new InteriorQueueBoard.Panel { Center = new Vector3(1.1f, F + 1.19f, 4.281f), Normal = Vector3.back, Up = Vector3.up, Width = 0.32f, Height = 0.18f },
+                        new Vector4(1.1f, F, 3.82f, 0f), 2.9f, 3.7f, 3.4f, new Vector3(1.1f, F, 3.4f));
+                    queue.ConfigureLanes(new[]
+                    {
+                        new Vector4(-2.75f, 2.9f, 3.7f, 2.9f), new Vector4(-2.75f, 3.4f, 1.1f, 3.4f), new Vector4(1.1f, 3.4f, 1.1f, 3.82f),
+                        new Vector4(3.7f, 2.9f, 3.7f, -0.9f), new Vector4(-2.7f, 2.1f, -2.7f, 3.4f),
+                    }, 0.35f);
+                    queue.ConfigureVisitorArea(new Rect(-3.95f, -3.95f, 8.55f, 8.8f));   // 광장 벤치 주민만 민원인 — 청사 안 주민은 그대로 돌아다님
+                    // 둥근 상황실 레이더 (sh_builder RC) = 실제 운석 예보, 예보 글 = 뒤쪽 상황판 (앞면 z = RC + 1.405)
+                    root.AddComponent<InteriorRadar>().Configure(new Vector3(0.6f, F + 0.958f, 8.05f), 0.78f,
+                        Child(root, "INT_EvoSecurityHQ_Sweep").GetComponent<InteriorOrbit>(),
+                        Child(root, "INT_EvoSecurityHQ_Beacon").GetComponent<Renderer>(),
+                        new Vector3(0.6f, F + 1.55f, 9.454f), Vector3.back, Vector3.up, new Vector2(0.7f, 0.5f));
+                    // 안내 데스크 뒤 벽 실제 정거장 지도
+                    root.AddComponent<InteriorStationMap>().Configure(new Vector3(4f, F + 1.85f, 11.399f), Vector3.back, Vector3.up, new Vector2(2.24f, 1.14f),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenPath),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenGridPath));
+                    // 감시탑 엘리베이터 (로비 ↔ 전망실)
+                    var car = Child(root, "INT_EvoSecurityHQ_LiftCar");
+                    var carGlass = Child(root, "INT_EvoSecurityHQ_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[2];
+                    var right = new Transform[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoSecurityHQ_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoSecurityHQ_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoSecurityHQ_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoSecurityHQ_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, TowerFloor - F }, left, right, new Vector3(TX, F + 0.085f, TZ), Vector3.right, 0.75f);
+                    // 전망실 망원경 둘 (sh_builder scopes): 아콜로지 · 1단계와 같은 들여다보기, 바깥쪽을 쉴 때 방향으로 좌우 ±100°
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    var scopes = new[] { 190f, 350f };
+                    for (int k = 0; k < scopes.Length; k++)
+                    {
+                        var head = Child(root, $"INT_EvoSecurityHQ_Scope{k + 1}");
+                        BoxOf(head, 0.06f);
+                        float a = scopes[k] * Mathf.Deg2Rad;
+                        root.AddComponent<InteriorTelescope>().Configure(head, new Vector3(TX + 2.25f * Mathf.Cos(a), TowerFloor + 1.3f, TZ + 2.25f * Mathf.Sin(a)), 18f, 0f, font, 90f - scopes[k], 100f, startPitch: -16f, startFov: 24f, minPitch: -60f);
+                    }
+                });
+        }
+
+        /// <summary>
+        /// 진화 2단계 시민 회관 "스텔라돔" (7칸 = (0 ~ 3, 0) + (0 ~ 2, 1), civ_builder — 사용자 2026-11-03 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 객석에 앉아 보는 상영 (<see cref="InteriorStellaDome"/>).
+        /// 외형 평면 그대로: 2 × 2칸 유리 돔 (바닥이 칸 아래로 내려가는 그릇 — 입구 통로 · 객석 두 열 56석 (상영 때 등받이가 눕는 Back00 ~ 55) · 천구의 우물, 궤도 셋이 우물 걷는 머리 위로 돎 Orbit1 ~ 3) · 드럼의 하루 띠 DayBand ·
+        /// 돔 둘레 바깥 갑판 (서 · 남 · 북, 우주복, 압력 막 아치) · 의료동 (T자 지붕 유리 띠 아래 흰 아치 복도 · 돌봄 캡슐 셋 · 별빛 교실 · 복지 창구, 창 + 5칸마다 분홍 십자) · 둥근 유리 라운지 (C자 소파 · 떠 있는 구체 Orbs).
+        /// 문 자리 12 = 갑판 넷 (깊이 3.95, 닫힘 = 난간) · 의료동 다섯 · 라운지 셋 (깊이 3.79, 닫힘 = 막힌 창 패널 <see cref="InteriorSocket.SealedWall"/>). 돔 칸 넷은 해치 없음 (사용자 시안 결정: 돔 높이를 위해 바닥을 파냄), 아래 해치 = (2, 0) · (2, 1) · 라운지, 위 해치 = (2, 1) · 라운지.
+        /// </summary>
+        private static void BuildEvoCivicHall()
+        {
+            const float CX = 4f, CZ = 4f, RW = 6.35f, T1Y = F - 0.35f, T2Y = F - 0.7f, YP = F - 1.05f, Ceil = F + 3.85f;
+            const float DeckEdge = 3.95f, Wall = 3.79f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            var c00 = new Vector3Int(0, 0, 0);
+            var c01 = new Vector3Int(0, 0, 1);
+            var c10 = new Vector3Int(1, 0, 0);
+            var c11 = new Vector3Int(1, 0, 1);
+            var c20 = new Vector3Int(2, 0, 0);
+            var c21 = new Vector3Int(2, 0, 1);
+            var c30 = new Vector3Int(3, 0, 0);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c00, Vector3Int.left, DeckEdge),
+                new InteriorSocket(c01, Vector3Int.left, DeckEdge),
+                new InteriorSocket(c00, back, DeckEdge),
+                new InteriorSocket(c01, front, DeckEdge),
+                new InteriorSocket(c10, back, Wall, default, true),
+                new InteriorSocket(c20, back, Wall, default, true),
+                new InteriorSocket(c11, front, Wall, default, true),
+                new InteriorSocket(c21, front, Wall, default, true),
+                new InteriorSocket(c21, Vector3Int.right, Wall, default, true),
+                new InteriorSocket(c30, back, Wall, default, true),
+                new InteriorSocket(c30, front, Wall, default, true),
+                new InteriorSocket(c30, Vector3Int.right, Wall, default, true),
+                new InteriorSocket(c20, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c21, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c30, Vector3Int.down, -F, new Vector3(-2.25f, 0f, 0f)),   // 라운지 들머리 (칸 중심 = C자 소파 고리 안 · 구슬 밑, 2026-11-18 바닥 해치 훑기)
+                new InteriorSocket(c21, Vector3Int.up, Ceil, new Vector3(0.3f, 0f, 0f)),   // 지붕 유리 띠를 비킴
+                new InteriorSocket(c30, Vector3Int.up, Ceil, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            Vector3 Polar(float r, float az, float y)
+            {
+                float a = az * Mathf.Deg2Rad;
+                return new Vector3(CX + r * Mathf.Cos(a), y, CZ + r * Mathf.Sin(a));
+            }
+            var lights = new List<LightSpec>();
+            for (int k = 0; k < 8; k++)
+                lights.Add(LightSpec.Point(Polar(5.7f, 22.5f + 45f * k, F + 2.05f), 5.5f, 0.75f, white));          // 입구 통로
+            for (int k = 0; k < 4; k++)
+                lights.Add(LightSpec.Point(Polar(3.6f, 90f * k, F + 1.5f), 5f, 0.85f, warm));                      // 객석 (상영 땐 어두워짐 — InteriorStellaDome, 낮으면 팔걸이에 뜨거운 점)
+            for (int k = 0; k < 3; k++)
+                lights.Add(LightSpec.Point(Polar(1.7f, 60f + 120f * k, YP + 1.7f), 4f, 0.7f, white));              // 천구의 우물
+            lights.Add(LightSpec.Point(new Vector3(CX, 0.9f, CZ), 6f, 0.9f, warm));                                // 태양
+            foreach (float az in new[] { 211f, 239f, 121f, 149f })
+                lights.Add(LightSpec.Point(Polar(6.95f, az, F + 2.35f), 5f, 0.85f, cool));                         // 갑판 등불
+            lights.Add(LightSpec.Point(new Vector3(-2.6f, F + 2.2f, 4f), 4.5f, 0.45f, cool));
+            lights.Add(LightSpec.Point(new Vector3(3f, F + 2.2f, -3f), 4.5f, 0.45f, cool));
+            lights.Add(LightSpec.Point(new Vector3(3f, F + 2.2f, 11f), 4.5f, 0.45f, cool));
+            var hall = Color.white;   // 의료동 · 라운지 = 맑은 흰빛 (누런 등이면 흰 벽이 갈색으로 보임)
+            foreach (float x in new[] { 10.6f, 14.4f, 18.2f })
+                lights.Add(LightSpec.Point(new Vector3(x, Ceil - 0.5f, 0f), 7.5f, 1.9f, hall));                    // 동서 복도
+            foreach (float z in new[] { 4.2f, 8.2f })
+                lights.Add(LightSpec.Point(new Vector3(14.45f, Ceil - 0.5f, z), 7f, 1.7f, hall));                  // 남북 복도
+            foreach (float z in new[] { 3.5f, 10.4f })
+                lights.Add(LightSpec.Point(new Vector3(17.9f, Ceil - 0.6f, z), 6f, 1.6f, hall));                   // 돌봄실
+            lights.Add(LightSpec.Point(new Vector3(12f, Ceil - 0.6f, 5.3f), 6f, 1.7f, hall));                      // 교실
+            lights.Add(LightSpec.Point(new Vector3(8f, Ceil - 0.6f, 10.5f), 5.5f, 1.4f, hall));                    // 북쪽 끝
+            lights.Add(LightSpec.Point(new Vector3(8f, Ceil - 0.6f, -2.5f), 5.5f, 1.4f, hall));                    // 남쪽 끝
+            lights.Add(LightSpec.Point(new Vector3(12f, Ceil - 0.6f, -2.5f), 5.5f, 1.4f, hall));                   // 남쪽 쉼터
+            lights.Add(LightSpec.Point(new Vector3(17.9f, Ceil - 0.6f, -2.5f), 5.5f, 1.4f, hall));
+            lights.Add(LightSpec.Point(new Vector3(11.8f, Ceil - 0.6f, 10.4f), 5.5f, 1.4f, hall));                 // 북쪽 화단
+            for (int k = 0; k < 4; k++)
+            {
+                float a = (45f + 90f * k) * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(24f + 2.1f * Mathf.Cos(a), Ceil - 0.5f, 2.1f * Mathf.Sin(a)), 6f, 1.4f, hall));   // 라운지
+            }
+            lights.Add(LightSpec.Point(new Vector3(24f, Ceil - 0.5f, 0f), 3.5f, 0.5f, new Color(0.85f, 0.75f, 1f)));   // 떠 있는 구체 위
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoCivicHall_Orbit1", new Vector3(CX, 0f, CZ), Vector3.up, 24f),
+                new OrbitSpec("INT_EvoCivicHall_Orbit2", new Vector3(CX, 0f, CZ), Vector3.up, 13f),
+                new OrbitSpec("INT_EvoCivicHall_Orbit3", new Vector3(CX, 0f, CZ), Vector3.up, 7f),
+            };
+            EvoAccent("CivicHall", "#FFB4E0");
+            // 스폰 = 서남쪽 아치 안 입구 통로에서 천구의를 바라봄
+            float spawnA = 225f * Mathf.Deg2Rad;
+            Build("EvoCivicHall", "Evolved/MD_Evo_CivicHall", sockets, new Vector3(CX + 5.7f * Mathf.Cos(spawnA), F, CZ + 5.7f * Mathf.Sin(spawnA)), 45f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[]
+                    {
+                        new Vector3(CX, CZ, 6.5f),       // 돔
+                        new Vector3(10.6f, -1.2f, 4.5f), // 의료동 (갑판은 x 6.1 서쪽)
+                        new Vector3(10.6f, 9.2f, 4.5f),
+                        new Vector3(15.5f, 0f, 6.2f),
+                        new Vector3(15.5f, 8f, 6.2f),
+                        new Vector3(24f, 0f, 3.95f),     // 라운지
+                    });
+                    // 충돌체 = 세운 의자 전체 모양 (F로 앉기 · 주민 맞춤), 보이는 앉는 판 _Seats · 눕는 등받이 _Back00 ~ 55는 충돌체 없음
+                    var seats = Child(root, "INT_EvoCivicHall_SeatHit");
+                    seats.gameObject.AddComponent<MeshCollider>().sharedMesh = seats.GetComponent<MeshFilter>().sharedMesh;
+                    Object.DestroyImmediate(seats.GetComponent<MeshRenderer>());
+                    // 앉는 자리: 눈이 등받이 바로 앞에 오게 발을 자리 가운데에서 0.28m 뒤로, 경첩 = 자리 가운데에서 0.19m 뒤 · 0.44m 위 (civ_builder seating · HINGE와 같은 각 · 반지름)
+                    var spots = new List<Vector4>();
+                    var backs = new List<Transform>();
+                    var hinges = new List<Vector3>();
+                    foreach (float section in new[] { 0f, 90f, 180f, 270f })
+                    {
+                        const float span = 32f;
+                        foreach (var (radius, y, count) in new[] { (4.27f, T1Y, 8), (3.12f, T2Y, 6) })
+                        {
+                            for (int k = 0; k < count; k++)
+                            {
+                                float az = section - span + 2f * span * (k + 0.5f) / count;
+                                var p = Polar(radius + 0.28f, az, y);
+                                spots.Add(new Vector4(p.x, p.y, p.z, Mathf.Atan2(CX - p.x, CZ - p.z) * Mathf.Rad2Deg));
+                                hinges.Add(Polar(radius + 0.19f, az, y + 0.44f));
+                                backs.Add(Child(root, $"INT_EvoCivicHall_Back{backs.Count:00}"));
+                            }
+                        }
+                    }
+                    root.AddComponent<InteriorStellaDome>().Configure(
+                        Child(root, "INT_EvoCivicHall_StarDome").GetComponent<Renderer>(),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2StarLinesPath),
+                        new[] { Child(root, "INT_EvoCivicHall_DayBand").GetComponent<Renderer>(), Child(root, "INT_EvoCivicHall_DomeGlow").GetComponent<Renderer>() },
+                        seats, spots.ToArray(), backs.ToArray(), hinges.ToArray(), Child(root, "INT_EvoCivicHall_Orbs"), new Vector3(CX, CZ, RW), new Vector3(1.2f, 3.78f, 2.3f));
+                });
+        }
+
+        /// <summary>
+        /// 진화 2단계 대형 토러스 "은하철도 링" (5 × 5칸 바퀴 = 고리 + 가운데 십자 + 허브 위 한 칸, gt_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘, 의자 앉기도", 2026-11-03 플레이 의견으로 다시 짬): 직접 체험 = 밤 열차 타고 역 넷을 돎 (<see cref="InteriorTrain"/>).
+        /// 외형 그대로 원형 고리 + 바큇살 넷 + 시계탑 허브: 고가 선로 · 역 넷 (승강장 · 스크린 도어 · 고리를 따라 휜 계단 · 유리 홀) · 동네 고리 (산책로 · 흰 집 · 잔디 · 나무, 유리 지붕) · 고가 아래 아치 회랑 · 고가 아래 아치 집 여덟 · 유리 통로 넷 · 돔 허브 · 엘리베이터 (<see cref="InteriorLift"/>) · 시계탑 (둥근 사각 몸통 · 바깥에서 흰 시계판 · 안에서 내다보는 시계 방 · 종루 · 첨탑 · 도는 톱니 GearA).
+        /// 전부 유리 · 지붕 안이라 우주복 없음. 하늘 껍질 = 바퀴 전체를 감싼 큰 상자 (안쪽 빈 칸 넷을 벽으로 두르면 허브 · 건너편이 가려짐).
+        /// 문 자리 = 외형 면이 있는 바깥 칸 12 (가운데 칸은 고가 벽 바로 뒤 깊이 3.9, 양옆 칸은 고가가 비스듬히 지나 짧은 문간 깊이 2.9 — 표준 3.2면 문 패널이 고리 곡면에서 떠 보임, 연결 안 된 자리 = 막힌 아치 창 패널 <see cref="InteriorTemplate.SealedSockets"/>), 아래 해치 = 바닥 칸 17, 시계탑 칸 문 없음 (네 면이 시계), 위 해치 = 시계탑 방 천장 모서리 (0.65배 — 진화 단계별 통로 ③).
+        /// </summary>
+        private static void BuildEvoGrandTorus()
+        {
+            const float HX = 16f, HZ = 16f, YF = 1.5f, YR = 5.7f, YD0 = 1.12f, RTK = 18.18f;
+            var back = new Vector3Int(0, 0, -1);
+            var front = new Vector3Int(0, 0, 1);
+            const float Rim = 3.9f, Side = 2.9f;
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(1, 0, 0), back, Side),
+                new InteriorSocket(new Vector3Int(2, 0, 0), back, Rim),
+                new InteriorSocket(new Vector3Int(3, 0, 0), back, Side),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.left, Side),
+                new InteriorSocket(new Vector3Int(0, 0, 2), Vector3Int.left, Rim),
+                new InteriorSocket(new Vector3Int(0, 0, 3), Vector3Int.left, Side),
+                new InteriorSocket(new Vector3Int(4, 0, 1), Vector3Int.right, Side),
+                new InteriorSocket(new Vector3Int(4, 0, 2), Vector3Int.right, Rim),
+                new InteriorSocket(new Vector3Int(4, 0, 3), Vector3Int.right, Side),
+                new InteriorSocket(new Vector3Int(1, 0, 4), front, Side),
+                new InteriorSocket(new Vector3Int(2, 0, 4), front, Rim),
+                new InteriorSocket(new Vector3Int(3, 0, 4), front, Side),
+                // 모서리 현관 정자 넷의 바깥 두 면 (gt_builder pavilions — 문간 깊이 3.0, 모든 면 연결 2026-11-19 사용자 "모서리 현관 정자 넷")
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.left, 3.0f), new InteriorSocket(new Vector3Int(0, 0, 0), back, 3.0f),
+                new InteriorSocket(new Vector3Int(4, 0, 0), Vector3Int.right, 3.0f), new InteriorSocket(new Vector3Int(4, 0, 0), back, 3.0f),
+                new InteriorSocket(new Vector3Int(0, 0, 4), Vector3Int.left, 3.0f), new InteriorSocket(new Vector3Int(0, 0, 4), front, 3.0f),
+                new InteriorSocket(new Vector3Int(4, 0, 4), Vector3Int.right, 3.0f), new InteriorSocket(new Vector3Int(4, 0, 4), front, 3.0f),
+                // 고리 칸 = 회랑 바닥 (칸 가운데가 안쪽 벽에 가까워 바깥으로 살짝), 역 칸 = 승강장 아래, 십자 칸 = 유리 통로, 허브 칸 = 엘리베이터를 비켜 동쪽
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(-0.16f, 0f, -0.31f)),
+                new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(3, 0, 0), Vector3Int.down, -F, new Vector3(0.16f, 0f, -0.31f)),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(-0.31f, 0f, -0.16f)),
+                new InteriorSocket(new Vector3Int(0, 0, 2), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(0, 0, 3), Vector3Int.down, -F, new Vector3(-0.31f, 0f, 0.16f)),
+                new InteriorSocket(new Vector3Int(4, 0, 1), Vector3Int.down, -F, new Vector3(0.31f, 0f, -0.16f)),
+                new InteriorSocket(new Vector3Int(4, 0, 2), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(4, 0, 3), Vector3Int.down, -F, new Vector3(0.31f, 0f, 0.16f)),
+                new InteriorSocket(new Vector3Int(1, 0, 4), Vector3Int.down, -F, new Vector3(-0.16f, 0f, 0.31f)),
+                new InteriorSocket(new Vector3Int(2, 0, 4), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(3, 0, 4), Vector3Int.down, -F, new Vector3(0.16f, 0f, 0.31f)),
+                // 바큇살 = 유리 통로: 아래 해치는 고리 쪽 2.4 m (칸 가운데 위 = 등탑 천장 해치, gt_builder spoke_lantern 2026-11-19)
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(0f, 0f, -2.4f)),
+                new InteriorSocket(new Vector3Int(1, 0, 2), Vector3Int.down, -F, new Vector3(-2.4f, 0f, 0f)),
+                new InteriorSocket(new Vector3Int(3, 0, 2), Vector3Int.down, -F, new Vector3(2.4f, 0f, 0f)),
+                new InteriorSocket(new Vector3Int(2, 0, 3), Vector3Int.down, -F, new Vector3(0f, 0f, 2.4f)),
+                new InteriorSocket(new Vector3Int(2, 0, 2), Vector3Int.down, -F, new Vector3(2.4f, 0f, 0f)),
+                // 시계탑 방 천장 위 해치 (진화 단계별 통로 ③ 2026-11-17, 사용자 "꼭대기방 천장해치로"): 엘리베이터 샤프트 (0.86)와 둥근 천장판 모서리 사이라 0.65배 (틀 ±0.62),
+                // 문 반대편 +x +z 모서리 · 천장판 밑 (YR1 − 0.02 = 9.33), gt_builder가 천장 빛 고리를 이 자리에서 끊음
+                new InteriorSocket(new Vector3Int(2, 1, 2), Vector3Int.up, 9.33f - 8f, new Vector3(1.265f, 0f, 1.265f), hatchScale: 0.65f),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            Vector3 Polar(float r, float az, float y)
+            {
+                float a = az * Mathf.Deg2Rad;
+                return new Vector3(HX + r * Mathf.Cos(a), y, HZ + r * Mathf.Sin(a));
+            }
+            var lights = new List<LightSpec>();
+            for (int k = 0; k < 4; k++)
+            {
+                lights.Add(LightSpec.Point(Polar(2.4f, 45f + 90f * k, 1.7f), 6f, 0.85f, white));           // 허브
+                lights.Add(LightSpec.Point(Polar(1.7f, 45f + 90f * k, YR + 3f), 5f, 0.8f, cool));          // 시계탑 방
+                float s = 270f - 90f * k;   // 남 · 서 · 북 · 동 (gt_builder rot_y 순서)
+                lights.Add(LightSpec.Point(Polar(14.4f, s, F + 2.3f), 6f, 0.85f, warm));                   // 통로 입구
+                lights.Add(LightSpec.Point(Polar(6.5f, s, F + 2.2f), 5f, 0.7f, cool));                     // 유리 통로
+                lights.Add(LightSpec.Point(Polar(7.6f, s, F + 3.1f), 3f, 0.6f, warm));                     // 바큇살 등탑 (천장 해치 위, gt_builder SPK_D)
+                foreach (float off in new[] { -15f, 15f })
+                    lights.Add(LightSpec.Point(Polar(14.4f, s + off, F + 3f), 5f, 0.8f, white));           // 휜 계단
+                foreach (float off in new[] { -8f, 8f })
+                    lights.Add(LightSpec.Point(Polar(16f, s + off, YD0 - 0.3f), 5f, 0.7f, warm));          // 승강장 아래 길
+                foreach (float off in new[] { -9f, 9f })
+                    lights.Add(LightSpec.Point(Polar(16f, s + off, YF + 1.9f), 6f, 0.9f, white));          // 승강장
+                foreach (float off in new[] { -31f, 31f })
+                    lights.Add(LightSpec.Point(Polar(14.2f, s + off, F + 2.2f), 7f, 1.2f, white));         // 동네 (흰 집이 누렇게 보이지 않게, 금빛 지붕에 빛이 뭉치지 않게 산책로 안쪽)
+                lights.Add(LightSpec.Point(Polar(15.5f, s + 45f, F + 2.4f), 7f, 1.2f, white));             // 마당
+                foreach (float off in new[] { -24.35f, 0f, 24.35f })
+                    lights.Add(LightSpec.Point(Polar(18.4f, s + off, F + 2.2f), 3.5f, 0.7f, white));       // 문간 셋
+                foreach (float off in new[] { 39.84f, 50.16f })
+                    lights.Add(LightSpec.Point(Polar(18.2f, 90f * k + off, YD0 - 0.6f), 3.6f, 0.9f, warm)); // 아치 집
+            }
+            lights.Add(LightSpec.Point(new Vector3(HX, 9.95f, HZ), 3f, 0.8f, cool));                       // 종루
+            for (int k = 0; k < 4; k++)
+            {
+                foreach (float off in new[] { -30f, -11.25f, 11.25f, 30f })
+                    lights.Add(LightSpec.Point(Polar(18.2f, 270f - 90f * k + off, YD0 - 0.35f), 6f, 0.75f, warm)); // 고가 아래 회랑 (칸막이 바로 앞은 빛이 뭉쳐 비킴)
+            }
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoGrandTorus_GearA", new Vector3(HX, 0f, HZ), Vector3.up, 14f),         // 시계탑 천장 밑 톱니
+            };
+            EvoAccent("GrandTorus", "#B0E0FF");
+            // 스폰 = 남쪽 유리 통로 끝에서 역을 바라봄 (양옆이 휜 계단)
+            Build("EvoGrandTorus", "Evolved/MD_Evo_GrandTorus", sockets, new Vector3(HX, F, HZ - 13f), 180f, lights, orbits,
+                configure: root =>
+                {
+                    // 엘리베이터 (허브 ↔ 시계탑 방)
+                    var car = Child(root, "INT_EvoGrandTorus_LiftCar");
+                    var carGlass = Child(root, "INT_EvoGrandTorus_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[2];
+                    var right = new Transform[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoGrandTorus_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoGrandTorus_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoGrandTorus_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoGrandTorus_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, YR - F }, left, right, new Vector3(HX, F + 0.085f, HZ), Vector3.right, 0.62f);
+                    // 열차: 허브 축 피벗 아래 (쉬는 자세 = 남쪽 역). 문 · 스크린 도어는 움직이는 상자 충돌체
+                    var pivot = new GameObject("TrainPivot").transform;
+                    pivot.SetParent(root.transform, false);
+                    pivot.localPosition = new Vector3(HX, 0f, HZ);
+                    var seats = new Transform[2];
+                    foreach (var part in new[] { "Train", "TrainGlass", "TrainSeat1", "TrainSeat2" })
+                    {
+                        var t = Child(root, "INT_EvoGrandTorus_" + part);
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                        t.SetParent(pivot, true);
+                    }
+                    var doorsLeft = new Transform[2];
+                    var doorsRight = new Transform[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        seats[k] = pivot.Find($"INT_EvoGrandTorus_TrainSeat{k + 1}");
+                        doorsLeft[k] = Child(root, $"INT_EvoGrandTorus_TrainDoor{k + 1}L");
+                        doorsRight[k] = Child(root, $"INT_EvoGrandTorus_TrainDoor{k + 1}R");
+                        BoxOf(doorsLeft[k], 0f);
+                        BoxOf(doorsRight[k], 0f);
+                        doorsLeft[k].SetParent(pivot, true);
+                        doorsRight[k].SetParent(pivot, true);
+                    }
+                    var gatesLeft = new Transform[8];
+                    var gatesRight = new Transform[8];
+                    for (int q = 0; q < 4; q++)
+                    {
+                        for (int k = 0; k < 2; k++)
+                        {
+                            gatesLeft[q * 2 + k] = Child(root, $"INT_EvoGrandTorus_Gate{q}{k + 1}L");
+                            gatesRight[q * 2 + k] = Child(root, $"INT_EvoGrandTorus_Gate{q}{k + 1}R");
+                            BoxOf(gatesLeft[q * 2 + k], 0f);
+                            BoxOf(gatesRight[q * 2 + k], 0f);
+                        }
+                    }
+                    // 객차 등 (열차와 함께 돎) · 굴뚝 별빛 가루 자리 (gt_builder loco: 기관차 앞에서 30%, 꼭대기)
+                    const float doorAngle = 7.879f, carHalf = 7.406f;
+                    foreach (float off in new[] { -doorAngle, doorAngle })
+                    {
+                        var lamp = new GameObject("CarLight").transform;
+                        lamp.SetParent(pivot, false);
+                        float a = (270f + off) * Mathf.Deg2Rad;
+                        lamp.localPosition = new Vector3(18.5f * Mathf.Cos(a), YF + 1.8f, 18.5f * Mathf.Sin(a));   // 문 쪽 은빛 테가 하얗게 번지지 않게 바깥 벽 쪽으로
+                        var l = lamp.gameObject.AddComponent<Light>();
+                        l.type = LightType.Point;
+                        l.shadows = LightShadows.None;
+                        l.range = 4.5f;
+                        l.intensity = 0.7f;
+                        l.color = warm;
+                    }
+                    var stack = new GameObject("StackSmoke").transform;
+                    stack.SetParent(pivot, false);
+                    float sa = 241.86f * Mathf.Deg2Rad;
+                    stack.localPosition = new Vector3(RTK * Mathf.Cos(sa), 3.84f, RTK * Mathf.Sin(sa));
+                    stack.localScale = Vector3.one * 5f;
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    root.AddComponent<InteriorTrain>().Configure(pivot, doorsLeft, doorsRight, gatesLeft, gatesRight, seats, stack, ModuleFxMaterials.Get("FireworkSpark"), font,
+                        new[] { "새벽", "은하", "자정", "달빛" }, doorAngle, doorAngle + carHalf, carHalf - 0.9f, 17.12f, 19.24f, 18.95f, 18.3f, YF + 0.07f, new Vector2(16.865f, YF + 2.31f));
+                });
+        }
+
+        /// <summary>
+        /// 진화 2단계 아콜로지 "유리 알 속 하늘 섬" (2 × 2칸 × 4층, ar_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘"): 알 전체가 실내 (살아 있는 잔디 · 나무, 우주복 없음), 유리 엘리베이터 탑 (<see cref="InteriorLift"/>)으로 네 층:
+        /// 전망대 (유리 바닥 고리 · 탑을 두른 벤치 · 난간 곁 망원경 둘 <see cref="InteriorTelescope"/> — 머리 Scope1 · 2, F로 들여다봄) · 섬 도시 (돌 광장 · 잔디 띠의 타워 다섯 · 작은 집 · 나무 · 디딤돌 · 둘레 산책로 · 유리 난간) ·
+        /// 뿌리 층 (고리 복도 둘레 집 여섯: 금빛 아치 문 · 침대 · 안락의자 · 창 · 화분, 아래턱 매달린 정원) · 결정실 (유리 바닥 아래 중력 결정 Crystal · 머리 위로 떠도는 돌 Stones · 벽 벤치).
+        /// 유리 알 밖 = 고정 적도 띠 + 도는 혼천의 고리 RingA · RingB · 발톱 셋.
+        /// 1층 광장 (모든 면 연결 2026-11-19, 사용자 "받침을 넓힌 둥근 광장"): 받침을 2 × 2칸 둥근 사각 갑판 (바닥 F, 유리 난간)으로 넓힘 — 둘레 여덟 면 = 난간 틈 (자동 문, 갑판 끝 깊이),
+        /// 알 남서쪽 (225°, 알 살 사이)에 결정실로 들어가는 아치 현관 굴 + 알 밑을 감아 서쪽으로 내려오는 계단 (ar_builder porch · stair — 계단은 칸 가운데 높이 문 띠를 비킴, 바깥 통로 깊이 광선), 아래 해치 = 광장 네 귀퉁이.
+        /// </summary>
+        private static void BuildEvoArcology()
+        {
+            const float L0 = 2.35f, L1 = 6.55f, YI = 10.9f, L3 = 18.7f;
+            // 아래 해치 = 광장 네 귀퉁이 (칸 가운데에서 바깥 2.2 m — 문 앞 길 · 계단 · 발톱 · 벤치를 비킴)
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(-2.2f, 0f, -2.2f)),
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(2.2f, 0f, -2.2f)),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(-2.2f, 0f, 2.2f)),
+                new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(2.2f, 0f, 2.2f)),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(6.2f, YI + 3f, 4f), 6f, 0.8f, white),       // 광장 (탑 둘레)
+                LightSpec.Point(new Vector3(1.8f, YI + 3f, 4f), 6f, 0.8f, white),
+                LightSpec.Point(new Vector3(4f, YI + 3f, 6.2f), 6f, 0.8f, white),
+                LightSpec.Point(new Vector3(4f, YI + 3f, 1.8f), 6f, 0.8f, white),
+                LightSpec.Point(new Vector3(4f, L3 + 2.2f, 1.6f), 5f, 0.7f, cool),      // 전망대
+                LightSpec.Point(new Vector3(4f, L3 + 2.2f, 6.4f), 5f, 0.7f, cool),
+                LightSpec.Point(new Vector3(6f, L0 + 2.7f, 4f), 5f, 1.05f, cool),       // 결정실
+                LightSpec.Point(new Vector3(2f, L0 + 2.7f, 4f), 5f, 1.05f, cool),
+                LightSpec.Point(new Vector3(5.5f, L0 - 0.9f, 4f), 3.2f, 0.9f, cool),    // 유리 바닥 아래 결정
+                LightSpec.Point(new Vector3(2.5f, L0 - 0.9f, 4f), 3.2f, 0.9f, cool),
+            };
+            for (int k = 0; k < 5; k++)   // 둘레 산책로 · 잔디 띠 (타워 사이)
+            {
+                float a = (56f + 72f * k) * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(4f + 4.8f * Mathf.Cos(a), YI + 2.6f, 4f + 4.8f * Mathf.Sin(a)), 5.5f, 0.8f, warm));
+            }
+            for (int k = 0; k < 3; k++)   // 뿌리 층 복도
+            {
+                float a = (90f + 120f * k) * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(4f + 2f * Mathf.Cos(a), L1 + 2.9f, 4f + 2f * Mathf.Sin(a)), 4.5f, 0.8f, white));
+            }
+            for (int k = 0; k < 6; k++)   // 집 여섯
+            {
+                float a = 60f * k * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(4f + 3.85f * Mathf.Cos(a), L1 + 2.9f, 4f + 3.85f * Mathf.Sin(a)), 3.6f, 0.9f, warm));
+            }
+            foreach (float az in new[] { 0f, 90f, 270f, 160f })   // 1층 광장 (벤치 둘 · 남쪽 등 사이 · 계단 발치)
+            {
+                float a = az * Mathf.Deg2Rad;
+                lights.Add(LightSpec.Point(new Vector3(4f + 6.6f * Mathf.Cos(a), F + 2.6f, 4f + 6.6f * Mathf.Sin(a)), 6f, 0.8f, warm));
+            }
+            lights.Add(LightSpec.Point(new Vector3(4f - 4.6f * 0.7071f, L0 + 2.0f, 4f - 4.6f * 0.7071f), 3.2f, 0.7f, cool));   // 결정실 현관 굴 (ar_builder PORCH_AZ 225)
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoArcology_Crystal", new Vector3(4f, 0f, 4f), Vector3.up, 20f),                                 // 중력 결정 (유리 바닥 아래)
+                new OrbitSpec("INT_EvoArcology_Stones", new Vector3(4f, 0f, 4f), Vector3.up, 14f),                                  // 머리 위로 떠도는 돌
+                new OrbitSpec("INT_EvoArcology_RingA", new Vector3(4f, 15.6f, 4f), new Vector3(0f, 0.9272f, 0.3746f), 12f),         // 혼천의 고리 (ar_builder armillary_ring)
+                new OrbitSpec("INT_EvoArcology_RingB", new Vector3(4f, 8.4f, 4f), new Vector3(0f, 0.866f, -0.5f), -16f),
+            };
+            EvoAccent("Arcology", "#8FD0FF");
+            // 스폰 = 남쪽 산책로에서 유리 엘리베이터 탑을 바라봄 (디딤돌 길 끝)
+            Build("EvoArcology", "Evolved/MD_Evo_Arcology", sockets, new Vector3(4.18f, YI + 0.02f, -1.1f), -2f, lights, orbits,
+                configure: root =>
+                {
+                    var car = Child(root, "INT_EvoArcology_LiftCar");
+                    var carGlass = Child(root, "INT_EvoArcology_LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[4];
+                    var right = new Transform[4];
+                    for (int k = 0; k < 4; k++)
+                    {
+                        left[k] = Child(root, $"INT_EvoArcology_LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"INT_EvoArcology_LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"INT_EvoArcology_LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"INT_EvoArcology_LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, new[] { 0f, L1 - L0, YI - L0, L3 - L0 }, left, right, new Vector3(4f, L0 + 0.085f, 4f), Vector3.right, 0.85f);
+                    // 망원경 둘 (ar_builder SCOPE_AZ · SCOPE_R): 머리 경계 상자 (시선 광선) + 들여다보기, 바깥쪽을 쉴 때 방향으로 좌우 ±100° (둘이 거의 한 바퀴).
+                    // 처음 시선 = 넓게 · 아래로 (정거장 판을 봄 — 수평이면 놓인 자리에 따라 빈 하늘만 보임), 아래로 더 볼 수 있게 (알 꼭대기 근처라 옆 모듈이 발밑)
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    var scopes = new[] { 202.5f, 337.5f };
+                    for (int k = 0; k < scopes.Length; k++)
+                    {
+                        var head = Child(root, $"INT_EvoArcology_Scope{k + 1}");
+                        BoxOf(head, 0.06f);
+                        float a = scopes[k] * Mathf.Deg2Rad;
+                        root.AddComponent<InteriorTelescope>().Configure(head, new Vector3(4f + 2.7f * Mathf.Cos(a), L3 + 1.3f, 4f + 2.7f * Mathf.Sin(a)), 18f, 0f, font, 90f - scopes[k], 100f, startPitch: -16f, startFov: 24f, minPitch: -60f);
+                    }
+                });
+        }
+
+        /// <summary>
+        /// 진화 2단계 융합 플랜트 "별을 키우는 온실" (3 × 2칸, fp_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘"): 2단계 개방형 — 레시피 "융합로의 열로 물을 갈라 수소 · 산소까지"를 순서대로 걸으며 봄:
+        /// 유리 돔 (실내, 압력 막 아치 셋) 속 눈높이의 보라 코일 여덟 · 세 가닥으로 꼬인 플라즈마 (Plasma, 돎) · 받침 패널 넷 → 주황 열 관 둘 아래 전구 길 (퍼걸러 둘) →
+        /// 물 캡슐 (전극 둘 둘레 거품 BubblesA · B — 수소 쪽이 두 배) · 거품 기둥 넷 (Gas0 ~ 3, 수소 흰 기둥이 산소 기둥의 두 배 높이) · 열 교환 콘솔 둘,
+        /// 서쪽 모서리 물 달 둘 (유리 관이 돔으로) · 가운데 마당 둥근 화단 벤치 둘 (플라즈마 볼 꽃 = 기술 식물) · 별 관측경 · 수소 풍선 수레 (Balloons, 천천히 돎) · 귀퉁이 벤치.
+        /// 문 자리 = 외형 면이 있는 동쪽 칸 네 곳 (동 둘 · 남 · 북 — 닫힌 자리 = 난간 조각, 열린 자리 = 둥근 문, 키트), 아래 해치 = 바닥 칸 여섯 (돔 칸 넷은 돔을 비켜 남 · 북 갑판으로), 위 해치 없음 (하늘).
+        /// </summary>
+        private static void BuildEvoFusionPlant()
+        {
+            var c20 = new Vector3Int(2, 0, 0);
+            var c21 = new Vector3Int(2, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c20, Vector3Int.right, Socket),
+                new InteriorSocket(c20, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c21, Vector3Int.right, Socket),
+                new InteriorSocket(c21, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(0.2f, 0f, -2f)),   // 돔 칸 = 돔을 비켜 남 · 북 갑판으로
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(-0.2f, 0f, -2f)),
+                new InteriorSocket(c20, Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(0.2f, 0f, 2f)),
+                new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(-0.2f, 0f, 2f)),
+                new InteriorSocket(c21, Vector3Int.down, -F, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var plasma = new Color(0.8f, 0.5f, 1f);
+            var water = new Color(0.6f, 0.9f, 1f);
+            const float plasmaY = F + 1.57f;
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(4f, F + 3.1f, -0.4f), 6f, 0.75f, white),    // 돔 둘레 길
+                LightSpec.Point(new Vector3(4f, F + 3.1f, 8.4f), 6f, 0.75f, white),
+                LightSpec.Point(new Vector3(-0.4f, F + 3.1f, 4f), 6f, 0.75f, white),
+                LightSpec.Point(new Vector3(8.4f, F + 3.1f, 4f), 6f, 0.75f, white),
+                LightSpec.Point(new Vector3(1.65f, plasmaY, 4f), 4f, 0.8f, plasma),     // 플라즈마 빛 (그릇 속)
+                LightSpec.Point(new Vector3(6.35f, plasmaY, 4f), 4f, 0.8f, plasma),
+                LightSpec.Point(new Vector3(4f, plasmaY, 1.65f), 4f, 0.8f, plasma),
+                LightSpec.Point(new Vector3(4f, plasmaY, 6.35f), 4f, 0.8f, plasma),
+                LightSpec.Point(new Vector3(11.9f, F + 2.6f, 4f), 5.5f, 1.1f, warm),    // 전구 길
+                LightSpec.Point(new Vector3(16f, F + 3.2f, 4f), 6f, 0.9f, water),       // 물 캡슐 위
+                LightSpec.Point(new Vector3(14.2f, F + 2.2f, 1.25f), 3.5f, 0.7f, white),// 수소 기둥
+                LightSpec.Point(new Vector3(14.2f, F + 2.2f, 6.75f), 3.5f, 0.7f, white),
+                LightSpec.Point(new Vector3(14.2f, F + 1.3f, -0.55f), 3.5f, 0.6f, water),// 산소 기둥
+                LightSpec.Point(new Vector3(14.2f, F + 1.3f, 8.55f), 3.5f, 0.6f, water),
+                LightSpec.Point(new Vector3(-1.75f, F + 1.25f, -1.75f), 4f, 0.8f, water),   // 물 달
+                LightSpec.Point(new Vector3(-1.75f, F + 1.25f, 9.75f), 4f, 0.8f, water),
+                LightSpec.Point(new Vector3(10.9f, F + 2.3f, -0.4f), 4.5f, 0.7f, plasma),   // 화단 (플라즈마 볼 꽃)
+                LightSpec.Point(new Vector3(10.9f, F + 2.3f, 8.4f), 4.5f, 0.7f, plasma),
+                LightSpec.Point(new Vector3(4f, F + 2.8f, -2.4f), 6f, 0.6f, cool),      // 빈 갑판 (밤하늘 찬 빛)
+                LightSpec.Point(new Vector3(4f, F + 2.8f, 10.4f), 6f, 0.6f, cool),
+                LightSpec.Point(new Vector3(-2.4f, F + 2.8f, 4f), 6f, 0.6f, cool),
+                LightSpec.Point(new Vector3(17.6f, F + 2.8f, -0.6f), 7f, 0.7f, cool),   // 동쪽 마당
+                LightSpec.Point(new Vector3(17.6f, F + 2.8f, 8.6f), 7f, 0.7f, cool),
+            };
+            const float capsuleBubbles = 110f, gasBubbles = 90f;
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoFusionPlant_Plasma", new Vector3(4f, 0f, 4f), Vector3.up, 24f),          // 꼬인 플라즈마 (fp_builder plasma)
+                new OrbitSpec("INT_EvoFusionPlant_BubblesA", new Vector3(16f, 0f, 3f), Vector3.up, capsuleBubbles),   // 전극 둘레 거품 — 나선을 돌리면 오르는 것처럼 보임 (수소)
+                new OrbitSpec("INT_EvoFusionPlant_BubblesB", new Vector3(16f, 0f, 5f), Vector3.up, capsuleBubbles),   // 산소
+                new OrbitSpec("INT_EvoFusionPlant_Gas0", new Vector3(14.2f, 0f, 1.25f), Vector3.up, gasBubbles),      // 거품 기둥 (fp_builder GAS)
+                new OrbitSpec("INT_EvoFusionPlant_Gas1", new Vector3(14.2f, 0f, -0.55f), Vector3.up, gasBubbles),
+                new OrbitSpec("INT_EvoFusionPlant_Gas2", new Vector3(14.2f, 0f, 6.75f), Vector3.up, gasBubbles),
+                new OrbitSpec("INT_EvoFusionPlant_Gas3", new Vector3(14.2f, 0f, 8.55f), Vector3.up, gasBubbles),
+                new OrbitSpec("INT_EvoFusionPlant_Balloons", new Vector3(17.85f, 0f, 9.95f), Vector3.up, 7f),         // 풍선 (끈이 수레 기둥 끝 = 축에 모임)
+            };
+            EvoAccent("FusionPlant", "#FFB070");
+            // 스폰 = 전구 길에서 돔 아치 · 융합로를 바라봄
+            Build("EvoFusionPlant", "Evolved/MD_Evo_FusionPlant", sockets, new Vector3(12.2f, F, 4f), -90f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[] { new Vector3(4f, 4f, 5.4f) });   // 돔 (fp_builder CX · CZ, 압력 막 반지름 CURTAIN_R)
+                });
+        }
+
+        /// <summary>
+        /// 진화 2단계 궤도 미러 "해바라기 정원" (4 × 2칸 + 가운데 위 2 × 2, om_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘"): 2단계 개방형 —
+        /// 거울 해바라기 열여섯 (머리 Head00 ~ 15 = <see cref="InteriorHeliostat"/>가 실제 해를 따라 돌림) · 거울에서 집광탑 수신기로 모이는 빛기둥 (<see cref="SpaceStation.Building.LightBeamFx"/>, 바깥 모듈과 같은 효과) ·
+        /// 화단을 가르는 오솔길 (머리 아래를 걸음) · 거울 데이지 · 돌 마당 · 서 · 동 · 남 길 (아치 · 축제 전구) · 유리 덮개 속 진짜 해바라기 · 별 관측경 · 귀퉁이 · 길가 벤치,
+        /// 가운데 전시관 (압력 막 아치 셋, 천장 렌즈에서 내려온 빛기둥 · 해 우물 혼천의 작은 해 + 도는 고리 ArmA · ArmB · 해시계 바닥 · 북쪽 콘솔 둘 · 벤치), 위 집광탑 (금빛 해살 왕관 · 도는 거울 고리 Ring).
+        /// 문 자리 = 외형 면이 있는 네 곳 (0번 칸 서 · 남, 3번 칸 동 · 남 — 열린 갑판이라 닫힌 자리 = 난간 조각, 열린 자리 = 둥근 문, 키트), 아래 해치 = 바닥 칸 여덟 (양 끝 칸은 화단을 비킴), 위 해치 없음 (하늘).
+        /// </summary>
+        private static void BuildEvoOrbitalMirror()
+        {
+            var c0 = new Vector3Int(0, 0, 0);
+            var c3 = new Vector3Int(3, 0, 0);
+            var back = new Vector3Int(0, 0, -1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(c0, Vector3Int.left, Socket),
+                new InteriorSocket(c0, back, Socket),
+                new InteriorSocket(c3, Vector3Int.right, Socket),
+                new InteriorSocket(c3, back, Socket),
+                new InteriorSocket(c0, Vector3Int.down, -F, new Vector3(3.2f, 0f, -2f)),               // 양 끝 칸 = 화단을 비켜 바깥 갑판으로
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(c3, Vector3Int.down, -F, new Vector3(-3.2f, 0f, -2f)),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(3.2f, 0f, 2f)),
+                new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(3, 0, 1), Vector3Int.down, -F, new Vector3(-3.2f, 0f, 2f)),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            const float sunY = F + 1.42f;
+            var receiver = new Vector3(12f, F + 8.96f, 4f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(9.9f, F + 2.7f, 4f), 6f, 0.9f, white),      // 전시관
+                LightSpec.Point(new Vector3(14.1f, F + 2.7f, 4f), 6f, 0.9f, white),
+                LightSpec.Point(new Vector3(12f, sunY, 4f), 4.5f, 0.9f, warm),          // 해 우물 작은 해
+                LightSpec.Point(new Vector3(12f, F + 2.6f, -2f), 5.5f, 1.1f, warm),     // 남쪽 입구 전구
+                LightSpec.Point(new Vector3(5.5f, F + 2.6f, 4f), 5.5f, 1f, warm),       // 서 · 동 길
+                LightSpec.Point(new Vector3(18.5f, F + 2.6f, 4f), 5.5f, 1f, warm),
+                LightSpec.Point(new Vector3(0f, F + 2.8f, -1.2f), 7f, 0.7f, cool),      // 빈 갑판 (밤하늘 찬 빛)
+                LightSpec.Point(new Vector3(24f, F + 2.8f, -1.2f), 7f, 0.7f, cool),
+                LightSpec.Point(new Vector3(0f, F + 2.8f, 9.2f), 7f, 0.7f, cool),
+                LightSpec.Point(new Vector3(24f, F + 2.8f, 9.2f), 7f, 0.7f, cool),
+                LightSpec.Point(new Vector3(12f, F + 2.8f, 10f), 6f, 0.6f, cool),       // 북쪽 갑판 (유리 덮개 · 관측경)
+                LightSpec.Point(new Vector3(10.2f, receiver.y - 1f, 4f), 5.5f, 0.5f, warm),   // 탑 · 수신기 아래 (축 위에 두면 아랫면이 하얗게 번짐)
+                LightSpec.Point(new Vector3(13.8f, receiver.y - 1f, 4f), 5.5f, 0.5f, warm),
+                LightSpec.Point(new Vector3(2f, F + 2f, 0.85f), 5.5f, 0.7f, warm),      // 화단 (해바라기 머리 아래)
+                LightSpec.Point(new Vector3(2f, F + 2f, 7.15f), 5.5f, 0.7f, warm),
+                LightSpec.Point(new Vector3(22f, F + 2f, 0.85f), 5.5f, 0.7f, warm),
+                LightSpec.Point(new Vector3(22f, F + 2f, 7.15f), 5.5f, 0.7f, warm),
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoOrbitalMirror_ArmA", new Vector3(12f, sunY, 4f), new Vector3(0.4067f, 0.9135f, 0f), 28f),   // 혼천의 고리 (om_builder armillary)
+                new OrbitSpec("INT_EvoOrbitalMirror_ArmB", new Vector3(12f, sunY, 4f), new Vector3(0f, 0.342f, 0.9397f), -40f),
+                new OrbitSpec("INT_EvoOrbitalMirror_Ring", receiver, new Vector3(0.309f, 0.9511f, 0f), 30f),                     // 수신기 거울 고리 (tower_ring)
+            };
+            EvoAccent("OrbitalMirror", "#FFE89A");
+            // 스폰 = 남쪽 갑판에서 전시관 · 탑 · 동쪽 해바라기를 바라봄 (해치 · 등불 비킴)
+            Build("EvoOrbitalMirror", "Evolved/MD_Evo_OrbitalMirror", sockets, new Vector3(8.5f, F, -2.3f), 30f, lights, orbits,
+                configure: root =>
+                {
+                    // 머리 가운데 · 지름 = om_builder HEADS · FLOWERS (지름 = 거울 반지름 머리 × 0.78 × 2)
+                    Vector3[] centers =
+                    {
+                        new Vector3(0.057f, 1.59f, 0.403f), new Vector3(-0.072f, 1.29f, 1.618f), new Vector3(3.783f, 2.44f, 0.178f), new Vector3(4.472f, 1.89f, 1.378f),
+                        new Vector3(0.08f, 1.64f, 6.88f), new Vector3(3.441f, 2.54f, 7.852f), new Vector3(4.473f, 1.94f, 6.448f), new Vector3(-1.895f, 1.09f, 4.061f),
+                        new Vector3(23.968f, 1.59f, 0.673f), new Vector3(24.143f, 1.29f, 1.589f), new Vector3(20.425f, 2.44f, 0.079f), new Vector3(19.617f, 1.89f, 1.459f),
+                        new Vector3(23.828f, 1.64f, 6.869f), new Vector3(20.373f, 2.54f, 7.838f), new Vector3(19.706f, 1.94f, 6.486f), new Vector3(25.594f, 1.09f, 4.13f),
+                    };
+                    float[] heads = { 0.62f, 0.56f, 0.8f, 0.64f, 0.66f, 0.82f, 0.64f, 0.86f, 0.62f, 0.56f, 0.8f, 0.64f, 0.66f, 0.82f, 0.64f, 0.86f };
+                    const float mirrorLift = 0.032f;   // 머리 가운데 → 거울 면 (om_builder flower)
+                    var parts = new Transform[centers.Length];
+                    var from = new Vector3[centers.Length];
+                    var to = new Vector3[centers.Length];
+                    var diameters = new float[centers.Length];
+                    var normals = new Vector3[centers.Length];
+                    for (int i = 0; i < centers.Length; i++)
+                    {
+                        parts[i] = Child(root, $"INT_EvoOrbitalMirror_Head{i:00}");
+                        normals[i] = ((receiver - centers[i]).normalized + Vector3.up).normalized;
+                        from[i] = centers[i] + normals[i] * mirrorLift;
+                        to[i] = receiver;
+                        diameters[i] = heads[i] * 0.78f * 2f;
+                    }
+                    var beams = AddLightShafts(root, from, to, diameters, normals, 0.64f);
+                    root.AddComponent<InteriorHeliostat>().Configure(parts, centers, receiver, mirrorLift, beams);
+                    // 전시관: 천장 렌즈 → 해 우물 작은 해 (om_builder hall_inside)
+                    var well = new GameObject("WellShaft");
+                    well.transform.SetParent(root.transform, false);
+                    AddLightShafts(well, new[] { new Vector3(12f, F + 3.4f - 0.07f, 4f) }, new[] { new Vector3(12f, sunY + 0.1f, 4f) }, new[] { 1.05f }, new[] { Vector3.down }, 0.4f);
+                    AddOpenAir(root, new[] { new Vector3(12f, 4f, 3.85f) });   // 전시관 (om_builder CX · CZ, 벽 바깥 반지름)
+                });
+        }
+
+        private static SpaceStation.Building.LightBeamFx AddLightShafts(GameObject on, Vector3[] from, Vector3[] to, float[] diameters, Vector3[] normals, float receiverDiameter, string materialPath = InteriorSetup.LightShaftPath)
+        {
+            var fx = on.AddComponent<SpaceStation.Building.LightBeamFx>();
+            var so = new SerializedObject(fx);
+            so.FindProperty("_material").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            void Vectors(string property, Vector3[] values)
+            {
+                var p = so.FindProperty(property);
+                p.arraySize = values.Length;
+                for (int i = 0; i < values.Length; i++)
+                    p.GetArrayElementAtIndex(i).vector3Value = values[i];
+            }
+            Vectors("_from", from);
+            Vectors("_to", to);
+            Vectors("_mirrorNormals", normals);
+            var d = so.FindProperty("_mirrorDiameters");
+            d.arraySize = diameters.Length;
+            for (int i = 0; i < diameters.Length; i++)
+                d.GetArrayElementAtIndex(i).floatValue = diameters[i];
+            so.FindProperty("_receiverDiameter").floatValue = receiverDiameter;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return fx;
+        }
+
+        /// <summary>우주복: 실내 원 (프리팹 로컬 x, z, 반지름) 밖 주민 — 2단계 개방형 방 공통.</summary>
+        private static void AddOpenAir(GameObject root, Vector3[] indoor)
+        {
+            Mesh Suit(string part)
+            {
+                foreach (var o in AssetDatabase.LoadAllAssetsAtPath(InteriorSetup.ResidentSuitModelPath))
+                {
+                    if (o is Mesh m && m.name == part)
+                        return m;
+                }
+                Debug.LogError($"[InteriorTemplateBuilder] 우주복 조각 없음: {part}");
+                return null;
+            }
+            root.AddComponent<InteriorOpenAir>().Configure(indoor,
+                Suit("SUIT_Helmet"), Suit("SUIT_Rim"), Suit("SUIT_Pack"), Suit("SUIT_PackLight"),
+                AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SuitHelmetPath),
+                AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GoldPath),
+                AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2TrimPath),
+                AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2IcePath));
+        }
+
+        /// <summary>
+        /// 진화 2단계 그리드 허브 "번개 정원" (3 × 2칸 + 가운데 위 1 × 2, gd_builder — 사용자 2026-11-02 시안 1 "이대로 유니티로 옮겨줘"): 2단계 첫 개방형 —
+        /// 천장 없는 바깥 정원 (하늘 INT_EvoGridHub_Sky = 창과 같은 실제 바깥 화면) · 유리 난간 갑판 · 돌 마당 · 남북 돌길 (아치 · 축제 전구 · 송전 단자),
+        /// 가운데 전시관 (문 없이 지나가는 압력 막 아치 Curtain · 탑으로 오르는 유리 기둥 속 빛 나선 Flow · 배전 콘솔 둘 · 벤치), 위 테슬라 탑 (코일 · 토로이드 · 에너지 구 · 도는 고리 Ring),
+        /// 번개 나무 여섯 (축전지 유리 화분 · 코일 줄기 · 전구 꽃 · 코일 덤불), 번개 Bolt00 ~ 09 = <see cref="InteriorLightning"/> (번갈아 번쩍임),
+        /// 귀퉁이 벤치 · 별 관측경 · 갑판 별자리. 바깥 주민 = 유리 헬멧 · 등 팩 (<see cref="InteriorOpenAir"/>).
+        /// 문 자리 = 없음 (외형 옆면 연결점 없음), 아래 해치 = 바닥 칸 여섯 (가운데 줄은 전시관을 비켜 길 위로).
+        /// </summary>
+        private static void BuildEvoGridHub()
+        {
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(0f, 0f, -1.6f)),   // 남쪽 길 위
+                new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, Vector3.zero),
+                new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(0f, 0f, 1.6f)),    // 북쪽 길 위
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, Vector3.zero),
+            };
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(6.1f, F + 2.7f, 4f), 5.5f, 0.9f, white),   // 전시관 (유리 기둥 속 · 천장 가까이 두면 하얗게 번졌음, 플레이 확인 2026-11-02)
+                LightSpec.Point(new Vector3(9.9f, F + 2.7f, 4f), 5.5f, 0.9f, white),
+                LightSpec.Point(new Vector3(8f, F + 2.6f, -1.9f), 5.5f, 1.1f, warm),   // 남쪽 길 전구
+                LightSpec.Point(new Vector3(8f, F + 2.6f, 9.9f), 5.5f, 1.1f, warm),    // 북쪽 길 전구
+                LightSpec.Point(new Vector3(6.2f, F + 5.0f, 4f), 5.5f, 0.45f, warm),   // 코일 · 토로이드 아래 (축 위에 두면 아랫면이 하얗게 번졌음)
+                LightSpec.Point(new Vector3(9.8f, F + 5.0f, 4f), 5.5f, 0.45f, warm),
+                LightSpec.Point(new Vector3(0f, F + 2.8f, 0f), 7f, 0.7f, cool),        // 빈 갑판 (밤하늘 찬 빛)
+                LightSpec.Point(new Vector3(16f, F + 2.8f, 0f), 7f, 0.7f, cool),
+                LightSpec.Point(new Vector3(0f, F + 2.8f, 8f), 7f, 0.7f, cool),
+                LightSpec.Point(new Vector3(16f, F + 2.8f, 8f), 7f, 0.7f, cool),
+            };
+            foreach (var (x, z, top) in new[] { (1.04f, 4f, 4.3f), (4.48f, -1.28f, 3.6f), (11.52f, -1.28f, 4.3f), (14.96f, 4f, 3.6f), (11.52f, 9.28f, 4.3f), (4.48f, 9.28f, 3.6f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + top - 1.3f, z), 4.5f, 0.7f, warm));   // 나무 코일 · 화단 (gd_builder TREES, 꼭대기 판 바로 밑은 하얗게 번졌음)
+            const float sphereY = F + 7.75f;
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec("INT_EvoGridHub_Flow", new Vector3(8f, 0f, 4f), Vector3.up, 120f),
+                new OrbitSpec("INT_EvoGridHub_Ring", new Vector3(8f, sphereY, 4f), new Vector3(0.26f, 0.95f, 0.17f), 35f),   // 고리 자체 축 (gd_builder tower_ring)
+            };
+            EvoAccent("GridHub", "#FFE07A");
+            // 스폰 = 북동 갑판에서 정원 전체 · 전시관 · 탑을 바라봄 (해치 · 벤치 비킴)
+            Build("EvoGridHub", "Evolved/MD_Evo_GridHub", sockets, new Vector3(16.4f, F, 9.4f), -123f, lights, orbits,
+                configure: root =>
+                {
+                    // 번개 = 바깥 모듈과 같은 LightningFx (가는 흰 심 + 옅은 푸른 빛, 갈래가 계속 바뀜 — 사용자 2026-11-02 "심이 얇아야 번개 느낌"). 탑 → 안쪽 나무 넷 · 나무 ↔ 나무 (옆 칸 나무로 가는 번개는 나무끼리만 — 위 칸 하늘 안에 머무름, gd_builder)
+                    var fx = root.AddComponent<SpaceStation.Building.LightningFx>();
+                    var so = new SerializedObject(fx);
+                    so.FindProperty("_lineMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+                    so.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+                    so.FindProperty("_hub").vector3Value = new Vector3(8f, sphereY, 4f);
+                    so.FindProperty("_hubRadius").floatValue = 0.72f;
+                    so.FindProperty("_rimCenter").vector3Value = new Vector3(8f, F + 7.08f, 4f);   // 토로이드 테두리 (gd_builder GD_ToroidLine)
+                    so.FindProperty("_rimRadius").floatValue = 1.62f;
+                    so.FindProperty("_nodeRadius").floatValue = 0.25f;
+                    Vector3[] nodes =
+                    {
+                        new Vector3(1.04f, F + 4.64f, 4f), new Vector3(4.48f, F + 3.94f, -1.28f), new Vector3(11.52f, F + 4.64f, -1.28f),
+                        new Vector3(14.96f, F + 3.94f, 4f), new Vector3(11.52f, F + 4.64f, 9.28f), new Vector3(4.48f, F + 3.94f, 9.28f),
+                    };
+                    var pn = so.FindProperty("_nodes");
+                    pn.arraySize = nodes.Length;
+                    for (int i = 0; i < nodes.Length; i++)
+                        pn.GetArrayElementAtIndex(i).vector3Value = nodes[i];
+                    void Ints(string property, int[] values)
+                    {
+                        var p = so.FindProperty(property);
+                        p.arraySize = values.Length;
+                        for (int i = 0; i < values.Length; i++)
+                            p.GetArrayElementAtIndex(i).intValue = values[i];
+                    }
+                    Ints("_hubTargets", new[] { 1, 2, 4, 5 });
+                    Ints("_links", new[] { 0, 1, 0, 5, 3, 2, 3, 4, 1, 2, 5, 4 });
+                    so.FindProperty("_coreWidth").floatValue = 0.022f;
+                    so.FindProperty("_glowWidth").floatValue = 0.26f;
+                    so.FindProperty("_fxScale").floatValue = 8f;
+                    so.FindProperty("_roughness").floatValue = 0.14f;   // 양옆 칸 하늘 (y 3.95) 밖으로 크게 튀지 않게
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                    var flash = new GameObject("BoltFlash").AddComponent<Light>();
+                    flash.transform.SetParent(root.transform, false);
+                    flash.transform.localPosition = new Vector3(8f, F + 5.2f, 4f);
+                    flash.type = LightType.Point;
+                    flash.shadows = LightShadows.None;
+                    flash.range = 14f;
+                    flash.intensity = 0f;
+                    flash.color = new Color(0.75f, 0.88f, 1f);
+                    root.AddComponent<InteriorLightning>().Configure(fx, flash);
+                    AddOpenAir(root, new[] { new Vector3(8f, 4f, 3.45f) });   // 전시관 (gd_builder CX · CZ, 벽 바깥 반지름)
+                });
         }
 
         /// <summary>
@@ -714,6 +2635,10 @@ namespace SpaceStation.Editor
                 new InteriorSocket(c00, new Vector3Int(0, 0, -1), Socket),
                 new InteriorSocket(c10, Vector3Int.right, Socket),
                 new InteriorSocket(c01, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c10, new Vector3Int(0, 0, -1), Socket),   // 모든 면 연결 (2026-11-18, ec_builder DOORS 끝 셋)
+                new InteriorSocket(c01, Vector3Int.right, Socket),
+                new InteriorSocket(c01, Vector3Int.left, Socket),
+                new InteriorSocket(c10, new Vector3Int(0, 0, 1), Socket),    // 출동실 뒤 (안쪽 모서리 면, 2026-11-19 — 소화약제 선반 · 발사 콘솔 B를 비킴)
                 new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(-1.9f, 0f, -2.0f)),    // 두 문 사이 바깥 모서리 (테이블 · 주민 비킴)
                 new InteriorSocket(c10, Vector3Int.down, -F, new Vector3(-0.8f, 0f, -1.8f)),    // 창 쪽 길 (7.2, −1.8)
                 new InteriorSocket(c01, Vector3Int.down, -F, new Vector3(2.3f, 0f, -3.7f)),     // 보수실 들머리 (2.3, 4.3)
@@ -782,6 +2707,10 @@ namespace SpaceStation.Editor
                 new InteriorSocket(c21, Vector3Int.right, Socket),
                 new InteriorSocket(c10, new Vector3Int(0, 0, -1), Socket),
                 new InteriorSocket(c11, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c00, new Vector3Int(0, 0, -1), Socket),   // 모든 면 연결 (2026-11-18, mw_builder DOORS 둘째 줄)
+                new InteriorSocket(c20, new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(c01, new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(c21, new Vector3Int(0, 0, 1), Socket),
                 new InteriorSocket(c00, Vector3Int.down, -F, new Vector3(-2.25f, 0f, 2.6f)),     // 패드 · 부품 선반 비킴 (창고 띠 쪽 끝)
                 new InteriorSocket(c10, Vector3Int.down, -F, new Vector3(-2.6f, 0f, 2.6f)),      // 건널목 (5.4, 2.6)
                 new InteriorSocket(c20, Vector3Int.down, -F, new Vector3(2.25f, 0f, 2.6f)),
@@ -1089,9 +3018,16 @@ namespace SpaceStation.Editor
             {
                 new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.left, Socket),
                 new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(0, 0, 0), new Vector3Int(0, 0, -1), Socket),   // 모든 면 연결 (2026-11-18, vf_builder DOORS ±z)
+                new InteriorSocket(new Vector3Int(0, 0, 0), new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 0), new Vector3Int(0, 0, -1), Socket),
+                new InteriorSocket(new Vector3Int(1, 0, 0), new Vector3Int(0, 0, 1), Socket),
+                new InteriorSocket(new Vector3Int(0, 1, 0), new Vector3Int(0, 0, 1), Socket),
                 new InteriorSocket(new Vector3Int(0, 1, 0), Vector3Int.left, Socket),
                 new InteriorSocket(new Vector3Int(0, 1, 0), new Vector3Int(0, 0, -1), Socket),
                 new InteriorSocket(new Vector3Int(1, 1, 0), Vector3Int.right, Socket),
+                new InteriorSocket(new Vector3Int(1, 1, 0), new Vector3Int(0, 0, -1), Socket),   // 2026-11-19 (vf_builder 2층 모종 선반을 x 6.4까지로)
+                new InteriorSocket(new Vector3Int(1, 1, 0), new Vector3Int(0, 0, 1), Socket),
                 new InteriorSocket(new Vector3Int(0, 2, 0), Vector3Int.left, Socket),
                 new InteriorSocket(new Vector3Int(0, 2, 0), Vector3Int.right, Socket),
                 new InteriorSocket(new Vector3Int(0, 2, 0), new Vector3Int(0, 0, -1), Socket),
@@ -1310,7 +3246,7 @@ namespace SpaceStation.Editor
         /// 유리 도넛 그릇 속에서 도는 플라스마 고리 (INT_EvoFusion_Plasma — 움직이는 메인 부품) · 파란 코일 열둘 · 솔레노이드 기둥 + 냉각수 머리 · 받침 테 위 유리 울타리,
         /// 냉각수 구체 둘 (x 2.4 · 13.6 — 관 둘씩이 천장 밑을 지나 융합로 머리로) + 구체와 융합로 사이 칸에 제어대 (−z) · 냉각수 펌프 (+z) · 자석 전원 (−z) ·
         /// 남는 물 탱크 (+z) · 양 끝 정수 필터 기둥 넷. 사용자 2026-10-29 "길을 지나다닐 수가 없네" → 홀을 따라 걷는 길 폭 1.3m 이상 (융합로 · 구체 옆은 비움).
-        /// 문 자리 = 끝 칸 바깥 면 + 칸마다 ±z, 바닥 해치 = 칸 중심, 위 해치 = 가운데 칸만 (돔을 비켜 (4.7, ·, −2.2)), 천장 F + 4.0.
+        /// 문 자리 = 끝 칸 바깥 면 + 칸마다 ±z, 바닥 해치 = 끝 칸 중심 · 가운데 칸은 동쪽 구체와 융합로 사이 (11.2, −0.3), 위 해치 = 가운데 칸만 (돔을 비켜 (4.7, ·, −2.2)), 천장 F + 4.0.
         /// </summary>
         private static void BuildEvoFusion()
         {
@@ -1325,7 +3261,8 @@ namespace SpaceStation.Editor
                     sockets.Add(new InteriorSocket(cell, Vector3Int.right, Socket));
                 sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, 1), Socket));
                 sockets.Add(new InteriorSocket(cell, new Vector3Int(0, 0, -1), Socket));
-                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, Vector3.zero));
+                // 가운데 칸 중심 = 융합로 받침 밑 (뚜껑이 묻혀 바라볼 수 없었음 — 위에서 내려갈 수 없었음, 2026-11-18 플레이) → 동쪽 구체와 융합로 사이 (11.2, −0.3)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, x == 1 ? new Vector3(3.2f, 0f, -0.3f) : Vector3.zero));
             }
             sockets.Add(new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.up, ceiling, new Vector3(4.7f - 8f, 0f, -2.2f)));
             var white = new Color(1f, 0.97f, 0.92f);
@@ -1349,7 +3286,20 @@ namespace SpaceStation.Editor
             };
             EvoAccent("FusionStation", "#FF9F5A");
             // 스폰 = −x 끝 (바닥 해치 (0, 0)과 문 사이)에서 융합로 쪽을 바라봄
-            Build("EvoFusion", "Evolved/MD_Evo_FusionStation", sockets, new Vector3(-1.8f, F, 0f), 90f, lights, orbits);
+            Build("EvoFusion", "Evolved/MD_Evo_FusionStation", sockets, new Vector3(-1.8f, F, 0f), 90f, lights, orbits,
+                configure: root =>
+                {
+                    // 고리의 밝은 덩이 여섯: 흰 공이 잡음 플라즈마를 가려 → 같은 잡음의 더 뜨거운 플라즈마 (사용자 2026-11-02 "제대로 된 플라즈마")
+                    var plasma = Child(root, "INT_EvoFusion_Plasma").GetComponent<MeshRenderer>();
+                    var hot = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PlasmaHotPath);
+                    var mats = plasma.sharedMaterials;
+                    for (int i = 0; i < mats.Length; i++)
+                    {
+                        if (mats[i] != null && mats[i].name == "M_InteriorLight")
+                            mats[i] = hot;
+                    }
+                    plasma.sharedMaterials = mats;
+                });
         }
 
         /// <summary>
@@ -2224,6 +4174,2088 @@ namespace SpaceStation.Editor
                         new[] { n, Vector3Int.right, s, Vector3Int.left, Vector3Int.up, Vector3Int.down },
                         new[] { 0.11f, 0.04f, -0.03f, -0.10f, -0.17f, -0.225f });
                 });
+        }
+
+        /// <summary>화물 환적장 보트 처음 자리 (s, <see cref="CargoFlumeCourse"/>): 0 = 정차 · 대기 둘 (앞 보트 뒤 3.1씩).</summary>
+        public static readonly float[] CargoBoatStarts = { 0f, CargoFlumeCourse.Loop - 3.1f, CargoFlumeCourse.Loop - 6.2f };
+
+        /// <summary>화물 환적장 탄 주민 자리 (보트마다 뒷줄 둘, 처음 자세 · 엉덩이 = 방석 앞 끝 − 0.07) · 보트 번호.</summary>
+        public static Vector3[] CargoRiderSeats()
+        {
+            var seats = new Vector3[CargoBoatStarts.Length * 2];
+            for (int b = 0; b < CargoBoatStarts.Length; b++)
+            {
+                CargoFlumeCourse.Pose(CargoBoatStarts[b], out var p, out var r);
+                for (int k = 0; k < 2; k++)
+                {
+                    var local = new Vector3(k == 0 ? -0.25f : 0.25f, 0.46f, -0.33f);
+                    seats[b * 2 + k] = p + r * local;
+                }
+            }
+            return seats;
+        }
+
+        public static readonly int[] CargoRiderBoats = { 0, 0, 1, 1, 2, 2 };
+
+        /// <summary>
+        /// 진화 2단계 화물 환적장 "은하수 후룸 항구" (3 × 2칸, ct_builder — 사용자 2026-11-09 시안 1 "유니티로 옮겨줘"): 직접 체험 = 후룸 보트 탑승 (<see cref="InteriorFlumeRide"/>).
+        /// 외형 평면 × 8 그대로: 뒤쪽 은하수 항구 못 (화물선 둘 · 뒷벽 레일 크레인 둘 — B가 정차 보트 고물에 컨테이너를 싣고 내림) · 동쪽 부두 정차장 · 오른쪽 물길 · 회전 못 (등대) ·
+        /// 체인 리프트 2.7 m · 산 뒤 능선 · 정상 터널 · 42° 큰 낙하 · 물보라 못 (<see cref="InteriorFlumeSplash"/>) · 앞 · 왼쪽 물길. 산 = 봉우리 여섯 (눈 모자 · 별), 산 속 실내 홀 둘 (별 동굴 라운지 · 관제실).
+        /// 높이만 낮춤 (탄 사람 눈 · 터널 머리 공간이 3.95 아래). 문 자리 = (2,0,0) 뒷면 하나 (외형 연결점이 있으면 열림, 닫힘 = 난간), 아래 해치 6, 위 해치 없음 (하늘).
+        /// 벤치 · 관람석에 앉음 (<see cref="InteriorBenchSeats"/>). 바깥 주민 = 우주복 (<see cref="InteriorOpenAir"/>), 산 속 홀 = 실내 상자.
+        /// </summary>
+        private static void BuildEvoCargoTransfer()
+        {
+            const float DeckEdge = 3.95f;
+            const string N = "INT_EvoCargoTransfer_";
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(2, 0, 0), new Vector3Int(0, 0, -1), DeckEdge),                         // 뒷면 문 (남쪽 길)
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(1.40f, 0f, 0.40f)),        // 서쪽 광장
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(2.40f, 0f, 1.05f)),        // 동남 광장 서쪽
+                new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(-2.35f, 0f, 1.10f)),       // 동남 광장 동쪽
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(1.20f, 0f, -1.15f)),       // 부두 만
+                new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(-3.42f, 0f, -3.42f)),      // 라운지
+                // 능선 밑 동쪽 작은 해치 (2026-11-19 — 걸어 닿는 바닥이 모두 능선 밑 좁은 띠라, 예전 (−1.98, −1.42)가 위 천장 해치 자리를 막았음 → 위 = 능선 밑 작은 천장 해치 (−2.0, −1.25), 승강판 도구)
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(0f, 0f, -3.0f), hatchScale: 0.65f),
+            };
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var white = new Color(1f, 0.97f, 0.92f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(2.40f, 0.60f, 4.15f), 5f, 0.5f, warm),      // 라운지
+                LightSpec.Point(new Vector3(5.30f, 0.60f, 4.75f), 5f, 0.5f, warm),
+                LightSpec.Point(new Vector3(10.30f, 0.60f, 4.25f), 5f, 0.5f, white),    // 관제실
+                LightSpec.Point(new Vector3(12.60f, 0.70f, 4.10f), 5f, 0.5f, cool),
+                LightSpec.Point(new Vector3(4.00f, 0.55f, 2.70f), 3f, 0.35f, warm),     // 현관 굴
+                LightSpec.Point(new Vector3(12.00f, 0.55f, 2.75f), 3f, 0.35f, warm),
+                LightSpec.Point(new Vector3(0.40f, 0.75f, 1.60f), 7f, 0.5f, warm),      // 서쪽 광장
+                LightSpec.Point(new Vector3(4.70f, 0.75f, -1.00f), 7f, 0.5f, warm),
+                LightSpec.Point(new Vector3(7.40f, 2.00f, -1.30f), 7f, 0.6f, cool),     // 물보라 못
+                LightSpec.Point(new Vector3(14.70f, 0.75f, 2.55f), 6f, 0.5f, warm),     // 동남 등불 · 관람석 빛 대롱 · 남쪽 길
+                LightSpec.Point(new Vector3(14.85f, 0.70f, -1.20f), 7f, 0.5f, warm),
+                LightSpec.Point(new Vector3(12.00f, 0.70f, -2.55f), 6f, 0.45f, warm),
+                LightSpec.Point(new Vector3(11.20f, 0.55f, 5.62f), 6f, 0.5f, warm),     // 정차장 바위 벽 등
+                LightSpec.Point(new Vector3(13.70f, 0.55f, 5.52f), 6f, 0.5f, warm),
+                LightSpec.Point(new Vector3(8.80f, 0.40f, 7.05f), 4f, 0.35f, warm),     // 바위 회랑
+                LightSpec.Point(new Vector3(2.20f, 0.75f, 7.80f), 6f, 0.45f, warm),     // 서쪽 부두
+                LightSpec.Point(new Vector3(5.90f, 0.75f, 7.80f), 6f, 0.45f, warm),
+                LightSpec.Point(new Vector3(17.20f, 0.30f, -0.10f), 4f, 0.4f, cool),    // 회전 못 등대
+                LightSpec.Point(new Vector3(16.50f, 0.80f, 10.60f), 7f, 0.5f, cool),    // 야적장
+                LightSpec.Point(new Vector3(6.90f, 1.50f, 10.45f), 7f, 0.5f, cool),     // 화물선 사이
+            };
+            var orbits = new List<OrbitSpec>
+            {
+                new OrbitSpec(N + "Beacon", new Vector3(17.20f, 0f, -0.10f), Vector3.up, 60f),   // 등대 렌즈
+            };
+            EvoAccent("CargoTransfer", "#A0E8C0");
+            // 스폰 = 서쪽 광장에서 정상 문 · 협곡 · 물보라 못을 바라봄
+            Build("EvoCargoTransfer", "Evolved/MD_Evo_CargoTransfer", sockets, new Vector3(1.70f, F, -0.55f), 62f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, System.Array.Empty<Vector3>());
+                    root.GetComponent<InteriorOpenAir>().SetIndoorBox(new Rect(0.70f, 3.25f, 13.60f, 2.40f), 0.70f);   // 산 속 홀 둘 (낙하 · 터널을 지나는 주민 발은 그 위라 바깥)
+                    var r = root.transform;
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    Transform Pivot(string pivotName, Transform parent, Vector3 at, Quaternion rot, string part)
+                    {
+                        var p = new GameObject(pivotName).transform;
+                        p.SetParent(parent, false);
+                        p.position = r.TransformPoint(at);
+                        p.rotation = r.rotation * rot;
+                        if (part != null)
+                        {
+                            var mesh = Child(root, part);
+                            if (mesh != null)
+                                mesh.SetParent(p, true);
+                        }
+                        return p;
+                    }
+                    // 컨테이너: 모델 하나 (정차 보트 고물, 바닥 가운데) → 화물선 칸 · 보트 고물에 복제, 몸통 색만 바꿈
+                    var containerMesh = Child(root, N + "Container");
+                    var containerBottom = new Vector3(CargoFlumeCourse.StationX - 0.925f, CargoFlumeCourse.LowWater + 0.15f, CargoFlumeCourse.LaneZ);
+                    var violet = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2VioletPath);
+                    var bodies = new[]
+                    {
+                        AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Paint_Evo_CargoTransfer.mat"),
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoWhitePath),
+                        violet,
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GoldPath),
+                    };
+                    int crateCount = 0;
+                    Transform Crate(Vector3 bottom, int color)
+                    {
+                        var pivot = Pivot("Crate" + crateCount++, r, bottom, Quaternion.identity, null);
+                        var mesh = Object.Instantiate(containerMesh.gameObject, pivot).transform;
+                        mesh.name = "Container";
+                        mesh.localPosition = -containerBottom;
+                        mesh.localRotation = Quaternion.identity;
+                        var rend = mesh.GetComponent<MeshRenderer>();
+                        var mats = rend.sharedMaterials;
+                        for (int i = 0; i < mats.Length; i++)
+                        {
+                            if (mats[i] == violet && bodies[color % bodies.Length] != null)
+                                mats[i] = bodies[color % bodies.Length];
+                        }
+                        rend.sharedMaterials = mats;
+                        return pivot;
+                    }
+                    // 화물선 칸 8 (ct_builder freighter: x = 배 중심 + −0.6 · 0 · 0.6 · 1.2, z 9.99 · 10.89, 갑판 −0.87) — 앞 다섯 = 상자 든 칸
+                    const float DeckY = -0.87f;
+                    var order = new[] { (0, 0), (0, 1), (1, 1), (2, 1), (3, 0), (1, 0), (2, 0), (3, 1) };
+                    var colors = new[] { 0, 1, 3, 1, 2 };
+                    float[] dxs = { -0.6f, 0f, 0.6f, 1.2f };
+                    float[] zs = { 9.99f, 10.89f };
+                    Vector3[] ShipSlots(float cx)
+                    {
+                        var slots = new Vector3[order.Length];
+                        for (int i = 0; i < order.Length; i++)
+                            slots[i] = new Vector3(cx + dxs[order[i].Item1], DeckY, zs[order[i].Item2]);
+                        return slots;
+                    }
+                    InteriorStorageCrane.Rig Crane(string tag, float x, float minX, float maxX, float lift)
+                    {
+                        const float zr = 11.575f, tz = 10.44f;
+                        var bridge = Pivot("Crane" + tag + "BridgePivot", r, new Vector3(x, 1.7f, zr), Quaternion.identity, N + "Crane" + tag + "_Bridge");
+                        var trolley = Pivot("Crane" + tag + "TrolleyPivot", bridge, new Vector3(x, 1.58f, tz), Quaternion.identity, N + "Crane" + tag + "_Trolley");
+                        var cable = Pivot("Crane" + tag + "CablePivot", trolley, new Vector3(x, 1.53f, tz), Quaternion.identity, N + "Crane" + tag + "_Cable");
+                        var grip = Pivot("Crane" + tag + "GripPivot", trolley, new Vector3(x, 0f, tz), Quaternion.identity, N + "Crane" + tag + "_Grip");
+                        return new InteriorStorageCrane.Rig
+                        {
+                            Bridge = bridge, Trolley = trolley, Cable = cable, Grip = grip,
+                            RestX = x, RestZ = tz, MinX = minX, MaxX = maxX,
+                            GripRestY = 0f, GripFrameHeight = 0.06f, CableTopY = 1.53f, CableLength = 1f, CrateHeight = 0.40f, LiftSpeed = lift,
+                        };
+                    }
+                    var slotsA = ShipSlots(3.56f);
+                    var cratesA = new Transform[5];
+                    for (int i = 0; i < 5; i++)
+                        cratesA[i] = Crate(slotsA[i], colors[i]);
+                    root.AddComponent<InteriorStorageCrane>().Configure(Crane("A", 3.56f, 2.9f, 4.8f, 0.3f), cratesA, slotsA);
+                    // 보트 셋 (피벗 = 흘수선 가운데, +z = 앞): 0번 = 모델 (정차 자세), 1 · 2 = 복제. 객실 색 0 = Paint · 1 = Evo2Violet · 2 = EvoWhite, 고물 컨테이너 0 · 2 = 실음
+                    CargoFlumeCourse.Pose(0f, out var dockPos, out var dockRot);
+                    int n = CargoBoatStarts.Length;
+                    var boats = new Transform[n];
+                    var seats = new Transform[n * 2];
+                    var barsF = new Transform[n];
+                    var barsR = new Transform[n];
+                    var anchors = new Transform[n];
+                    var cargo = new Transform[n];
+                    var boat0 = Pivot("Boat0_Pivot", r, dockPos, dockRot, N + "Boat");
+                    Child(root, N + "BoatSoft").SetParent(boat0, true);
+                    var hingeF = new GameObject("BarF").transform;
+                    hingeF.SetParent(boat0, false);
+                    hingeF.localPosition = new Vector3(0f, 0.62f, 0.62f);
+                    Child(root, N + "BoatBarF").SetParent(hingeF, true);
+                    var hingeR = new GameObject("BarR").transform;
+                    hingeR.SetParent(boat0, false);
+                    hingeR.localPosition = new Vector3(0f, 0.62f, -0.20f);
+                    Child(root, N + "BoatBarR").SetParent(hingeR, true);
+                    for (int k = 0; k < 2; k++)
+                    {
+                        var seat = new GameObject(k == 0 ? "SeatL" : "SeatR").transform;
+                        seat.SetParent(boat0, false);
+                        seat.localPosition = new Vector3(k == 0 ? -0.25f : 0.25f, 0.53f, 0.38f);
+                        seat.gameObject.AddComponent<BoxCollider>().size = new Vector3(0.46f, 0.15f, 0.36f);
+                    }
+                    var anchor0 = new GameObject("CargoAnchor").transform;
+                    anchor0.SetParent(boat0, false);
+                    anchor0.localPosition = new Vector3(0f, 0.15f, -0.925f);
+                    anchor0.localRotation = Quaternion.Inverse(dockRot);   // 정차 자세에서 템플릿과 같은 방향 (컨테이너 긴 변 = 템플릿 z)
+                    var cabinMats = new[] { null, violet, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoWhitePath) };
+                    var paint = bodies[0];
+                    for (int b = 0; b < n; b++)
+                    {
+                        var boat = b == 0 ? boat0 : Object.Instantiate(boat0.gameObject, r).transform;
+                        boat.name = $"Boat{b}_Pivot";
+                        if (b > 0 && cabinMats[b] != null)
+                        {
+                            var rend = boat.Find(N + "Boat").GetComponent<MeshRenderer>();
+                            var mats = rend.sharedMaterials;
+                            for (int i = 0; i < mats.Length; i++)
+                            {
+                                if (mats[i] == paint)
+                                    mats[i] = cabinMats[b];
+                            }
+                            rend.sharedMaterials = mats;
+                        }
+                        boats[b] = boat;
+                        barsF[b] = boat.Find("BarF");
+                        barsR[b] = boat.Find("BarR");
+                        seats[b * 2] = boat.Find("SeatL");
+                        seats[b * 2 + 1] = boat.Find("SeatR");
+                        anchors[b] = boat.Find("CargoAnchor");
+                    }
+                    for (int b = 0; b < n; b++)
+                    {
+                        if (b == 1)
+                            continue;   // 컨테이너는 복제가 끝난 뒤 실음 (먼저 실으면 복제 보트에 크레인이 모르는 상자가 따라감)
+                        var crate = Crate(containerBottom, b == 0 ? 3 : 0);
+                        crate.SetParent(anchors[b], true);
+                        cargo[b] = crate;
+                    }
+                    containerMesh.gameObject.SetActive(false);   // 원본은 복제용
+                    // 크레인 B: 화물선 B 칸 다섯 + 보트 고물 상자 둘 (정차 일 — 빈 보트에 싣고 실린 보트에서 내림)
+                    var slotsB = ShipSlots(10.20f);
+                    var cratesB = new List<Transform>();
+                    var colorsB = new[] { 2, 0, 1, 3, 0 };
+                    for (int i = 0; i < 5; i++)
+                        cratesB.Add(Crate(slotsB[i], colorsB[i]));
+                    foreach (var c in cargo)
+                    {
+                        if (c != null)
+                            cratesB.Add(c);
+                    }
+                    var craneB = root.AddComponent<InteriorStorageCrane>();
+                    craneB.Configure(Crane("B", CargoFlumeCourse.StationX - 0.925f, 9.55f, 11.45f, 0.4f), cratesB.ToArray(), slotsB, 5);
+                    // 문짝 (정차장 못 벽 위, −x로 주머니 속)
+                    var gate = Child(root, N + "Gate");
+                    BoxOf(gate, 0f);
+                    // 체인 고리 17 (모델 = 리프트 시작 + 0.3 자세)
+                    const int Lugs = 17;
+                    var lugs = new Transform[Lugs];
+                    float lugS = CargoFlumeCourse.LiftStart + 0.3f;
+                    CargoFlumeCourse.Pose(lugS, out var lugPos, out var lugRot);
+                    lugPos.y = CargoFlumeCourse.Water(lugS);
+                    lugs[0] = Pivot("Lug0", r, lugPos, lugRot, N + "ChainLug");
+                    for (int k = 1; k < Lugs; k++)
+                    {
+                        lugs[k] = Object.Instantiate(lugs[0].gameObject, r).transform;
+                        lugs[k].name = "Lug" + k;
+                    }
+                    var splash = root.AddComponent<InteriorFlumeSplash>();
+                    splash.Configure(ModuleFxMaterials.Get("FireworkSpark"), ModuleFxMaterials.Get("Ripple"));
+                    var starts = (float[])CargoBoatStarts.Clone();
+                    root.AddComponent<InteriorFlumeRide>().Configure(boats, seats, barsF, barsR, anchors, cargo, starts, gate, lugs, craneB, splash, font,
+                        new Vector3(11.6f, F + 2.0f, 7.70f), CargoRiderSeats(), CargoRiderBoats);
+                    // 벤치 · 관람석 (ct_builder bleachers · plazas · hall_props, 엉덩이 = 앞 끝 − 0.07)
+                    var benchSeats = new List<Vector4>();
+                    var boxes = new List<Bounds>();
+                    void Seat(float x0, float x1, float z0, float z1, float y0, float top, float yaw, params Vector2[] at)
+                    {
+                        boxes.Add(new Bounds(new Vector3((x0 + x1) * 0.5f, (y0 + top + 0.01f) * 0.5f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, top + 0.01f - y0, z1 - z0)));
+                        foreach (var p in at)
+                            benchSeats.Add(new Vector4(p.x, top, p.y, yaw));
+                    }
+                    foreach (var (sa, top) in new[] { (11.70f, F + 0.42f), (12.80f, F + 0.66f), (13.90f, F + 0.90f) })
+                        Seat(sa, sa + 0.40f, -2.30f, -0.85f, top - 0.3f, top, -90f, new Vector2(sa + 0.07f, -2.125f), new Vector2(sa + 0.07f, -1.575f), new Vector2(sa + 0.07f, -1.025f));
+                    Seat(2.60f, 2.96f, -0.60f, 0.60f, F, F + 0.42f, 90f, new Vector2(2.89f, -0.30f), new Vector2(2.89f, 0.30f));
+                    Seat(-1.22f, -0.80f, -1.02f, -0.60f, F, F + 0.43f, 62.5f, new Vector2(-1.003f, -0.814f));
+                    Seat(-0.93f, -0.50f, -1.32f, -0.88f, F, F + 0.43f, 27.5f, new Vector2(-0.714f, -1.103f));
+                    Seat(1.42f, 1.78f, 3.75f, 4.45f, F, F + 0.42f, 90f, new Vector2(1.71f, 3.92f), new Vector2(1.71f, 4.28f));
+                    Seat(5.70f, 6.70f, 5.15f, 5.51f, F, F + 0.42f, 180f, new Vector2(5.95f, 5.22f), new Vector2(6.45f, 5.22f));
+                    root.AddComponent<InteriorBenchSeats>().Configure(benchSeats.ToArray(), boxes.ToArray(), -6f);
+                });
+        }
+
+        /// <summary>저장 단지 안 줄 캡슐에 탄 주민 (안 줄 0 · 3 · 6번) — <see cref="ResidentSpotBaker"/>와 <see cref="InteriorCarousel"/>가 함께 씀.</summary>
+        public static readonly int[] StorageRiderCapsules = { StorageCarousel.OuterCount, StorageCarousel.OuterCount + 3, StorageCarousel.OuterCount + 6 };
+
+        /// <summary>탄 주민 안장 자리 (판 0°, 템플릿 기준) · 바라보는 y각 (나아가는 쪽, 기둥이 앞).</summary>
+        public static Vector3[] StorageRiderSeats(out float[] yaws)
+        {
+            var seats = new Vector3[StorageRiderCapsules.Length];
+            yaws = new float[seats.Length];
+            for (int i = 0; i < seats.Length; i++)
+                seats[i] = StorageCarousel.RestSaddle(StorageRiderCapsules[i], out yaws[i]);
+            return seats;
+        }
+
+        /// <summary>
+        /// 진화 2단계 저장 단지 "별빛 회전목마 창고" (4 × 2칸, sc_builder — 사용자 2026-11-10 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 회전목마 탑승 (<see cref="InteriorCarousel"/>).
+        /// 외형 평면 × 8 그대로: 가운데 회전목마 (받침 · 반짝 울타리 트임 서 · 동 · 남, 도는 판 · 거울 기둥 · 캡슐 바깥 12 · 안 10 · 줄무늬 원뿔 지붕),
+        /// 양옆 실내 창고 둘 (앞 진열 유리창 · 회전목마 쪽 아치 출입구 셋 (압력 막) · 자동 선반 세 줄 · 캡슐 내리는 자리) + 창고 벽에서 뻗은 집게 팔 둘, 앞 매표소 · 가로등 광장.
+        /// 캡슐 높이만 낮춤 (안장에 앉은 머리 위 지붕까지 약 0.4 m 남음). 문 자리 10 = 외형 연결점이 있는 면 (깊이 3.95, 닫힘 = 난간), 아래 해치 8, 위 해치 없음 (하늘).
+        /// 벤치에 앉음 (<see cref="InteriorBenchSeats"/>). 바깥 주민 = 우주복 (<see cref="InteriorOpenAir"/>), 창고 둘 = 실내 상자.
+        /// </summary>
+        private static void BuildEvoStorageComplex()
+        {
+            const float DeckEdge = 3.95f;
+            const string N = "INT_EvoStorageComplex_";
+            var west = new Vector3Int(-1, 0, 0);
+            var east = new Vector3Int(1, 0, 0);
+            var south = new Vector3Int(0, 0, -1);
+            var north = new Vector3Int(0, 0, 1);
+            var sockets = new List<InteriorSocket>
+            {
+                new InteriorSocket(new Vector3Int(0, 0, 0), west, DeckEdge), new InteriorSocket(new Vector3Int(0, 0, 1), west, DeckEdge),
+                new InteriorSocket(new Vector3Int(3, 0, 0), east, DeckEdge), new InteriorSocket(new Vector3Int(3, 0, 1), east, DeckEdge),
+                new InteriorSocket(new Vector3Int(0, 0, 0), south, DeckEdge), new InteriorSocket(new Vector3Int(1, 0, 0), south, DeckEdge), new InteriorSocket(new Vector3Int(3, 0, 0), south, DeckEdge),
+                new InteriorSocket(new Vector3Int(0, 0, 1), north, DeckEdge), new InteriorSocket(new Vector3Int(1, 0, 1), north, DeckEdge), new InteriorSocket(new Vector3Int(3, 0, 1), north, DeckEdge),
+                new InteriorSocket(new Vector3Int(0, 0, 0), Vector3Int.down, -F, new Vector3(-0.6f, 0f, 0f)),      // 서쪽 창고 선반 앞 (화분 · 벤치 비킴)
+                new InteriorSocket(new Vector3Int(0, 0, 1), Vector3Int.down, -F, new Vector3(-0.6f, 0f, 0.1f)),    // 서쪽 창고 선반 뒤
+                new InteriorSocket(new Vector3Int(3, 0, 0), Vector3Int.down, -F, new Vector3(0.6f, 0f, 0f)),       // 동쪽 창고
+                new InteriorSocket(new Vector3Int(3, 0, 1), Vector3Int.down, -F, new Vector3(0.6f, 0f, 0.1f)),
+                new InteriorSocket(new Vector3Int(1, 0, 0), Vector3Int.down, -F, new Vector3(1.8f, 0f, -2.5f)),    // 앞 광장 (가로등 · 매표소 사이)
+                new InteriorSocket(new Vector3Int(2, 0, 0), Vector3Int.down, -F, new Vector3(-1.8f, 0f, -2.5f)),
+                new InteriorSocket(new Vector3Int(1, 0, 1), Vector3Int.down, -F, new Vector3(0.8f, 0f, 2.5f)),     // 뒤 갑판
+                new InteriorSocket(new Vector3Int(2, 0, 1), Vector3Int.down, -F, new Vector3(-0.8f, 0f, 2.5f)),
+            };
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var white = new Color(1f, 0.97f, 0.92f);
+            var cool = new Color(0.72f, 0.82f, 1f);
+            float roof = StorageCarousel.DiskTop + 2.2f;
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(12f, roof, 4f), 6.5f, 0.9f, white),         // 회전목마 지붕 밑 (거울 기둥 둘레, 흰 빛 = 캡슐 색 그대로 · 따뜻함은 전구가)
+                LightSpec.Point(new Vector3(12f, roof, 0.7f), 4.5f, 0.6f, white),
+                LightSpec.Point(new Vector3(12f, roof, 7.3f), 4.5f, 0.6f, white),
+                LightSpec.Point(new Vector3(8.7f, roof, 4f), 4.5f, 0.6f, white),
+                LightSpec.Point(new Vector3(15.3f, roof, 4f), 4.5f, 0.6f, white),
+                LightSpec.Point(new Vector3(7.6f, F + 2.3f, -2.4f), 6f, 0.6f, warm),    // 가로등
+                LightSpec.Point(new Vector3(16.4f, F + 2.3f, -2.4f), 6f, 0.6f, warm),
+                LightSpec.Point(new Vector3(12f, F + 1.2f, -3.1f), 3f, 0.4f, warm),     // 매표소
+                LightSpec.Point(new Vector3(12f, F + 2.4f, 10.8f), 7f, 0.45f, cool),    // 뒤 갑판
+                LightSpec.Point(new Vector3(6.9f, F + 2.1f, 4f), 4.5f, 0.45f, warm),    // 창고 출입구 등 · 집게 팔
+                LightSpec.Point(new Vector3(17.1f, F + 2.1f, 4f), 4.5f, 0.45f, warm),
+            };
+            foreach (var xm in new[] { 1.76f, 22.24f })
+            {
+                foreach (var z in new[] { -0.3f, 4f, 8.2f })
+                    lights.Add(LightSpec.Point(new Vector3(xm, F + 2.45f, z), 6f, 0.85f, white));   // 창고 천장 등
+            }
+            EvoAccent("StorageComplex", "#C0D0B0");
+            // 스폰 = 서쪽 광장에서 회전목마 · 매표소를 바라봄
+            Build("EvoStorageComplex", "Evolved/MD_Evo_StorageComplex", sockets, new Vector3(7.1f, F, -0.9f), 45f, lights,
+                configure: root =>
+                {
+                    AddOpenAir(root, System.Array.Empty<Vector3>());
+                    root.GetComponent<InteriorOpenAir>().SetIndoorBox(new Rect(-2.56f, -2.24f, 8.64f, 12.48f), F + 2.75f, new Rect(17.92f, -2.24f, 8.64f, 12.48f));   // 창고 둘
+                    var r = root.transform;
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    // 판 피벗 (판 윗면 가운데): 판 · 거울 기둥 · 기둥 · 지붕 한 조각 (도는 동안에도 밟고 부딪힘)
+                    var disk = new GameObject("Carousel_Pivot").transform;
+                    disk.SetParent(r, false);
+                    disk.position = r.TransformPoint(StorageCarousel.Center);
+                    var carousel = Child(root, N + "Carousel");
+                    carousel.SetParent(disk, true);
+                    carousel.gameObject.AddComponent<MeshCollider>().sharedMesh = carousel.GetComponent<MeshFilter>().sharedMesh;
+                    // 캡슐 22: 모델 하나 (바깥 0번 자리) → 피벗마다 복제, 몸통 색 셋 번갈아 (도장 · 흰 · 보라), 바깥 줄은 안장 (보고 F)
+                    var capsuleMesh = Child(root, N + "Capsule");
+                    var paint = AssetDatabase.LoadAssetAtPath<Material>(AccentFolder + "M_Paint_Evo_StorageComplex.mat");
+                    var bodies = new[] { paint, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoWhitePath), AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2VioletPath) };
+                    var capsules = new Transform[StorageCarousel.Count];
+                    var seats = new Transform[StorageCarousel.Count];
+                    var meshOffset = Vector3.zero;
+                    for (int i = 0; i < StorageCarousel.Count; i++)
+                    {
+                        var pivot = new GameObject($"Capsule{i}_Pivot").transform;
+                        pivot.SetParent(disk, false);
+                        pivot.localPosition = StorageCarousel.LocalPosition(i, 0f);
+                        pivot.localRotation = StorageCarousel.LocalRotation(i);
+                        capsules[i] = pivot;
+                        Transform mesh;
+                        if (i == 0)
+                        {
+                            capsuleMesh.SetParent(pivot, true);
+                            meshOffset = capsuleMesh.localPosition;
+                            mesh = capsuleMesh;
+                        }
+                        else
+                        {
+                            mesh = Object.Instantiate(capsuleMesh.gameObject, pivot).transform;
+                            mesh.name = capsuleMesh.name;
+                            mesh.localPosition = meshOffset;
+                            mesh.localRotation = Quaternion.identity;
+                        }
+                        int ring = StorageCarousel.Outer(i) ? 0 : 1;
+                        int q = ring == 0 ? i : i - StorageCarousel.OuterCount;
+                        var body = bodies[(q + ring) % bodies.Length];
+                        if (body != null && body != paint)
+                        {
+                            var rend = mesh.GetComponent<MeshRenderer>();
+                            var mats = rend.sharedMaterials;
+                            for (int m = 0; m < mats.Length; m++)
+                            {
+                                if (mats[m] == paint)
+                                    mats[m] = body;
+                            }
+                            rend.sharedMaterials = mats;
+                        }
+                        pivot.gameObject.AddComponent<BoxCollider>().size = new Vector3(0.46f, 0.5f, 1f);   // 몸통 (판 위를 걸을 때 부딪힘)
+                        if (ring == 0)
+                        {
+                            var seat = new GameObject("Seat").transform;
+                            seat.SetParent(pivot, false);
+                            seat.localPosition = new Vector3(0f, StorageCarousel.SaddleUp - 0.04f, StorageCarousel.SaddleBack);
+                            seat.gameObject.AddComponent<BoxCollider>().size = new Vector3(0.42f, 0.14f, 0.42f);
+                            seats[i] = seat;
+                        }
+                    }
+                    // 집게 팔 둘 (창고 벽 받침 피벗, 서 = +x로 뻗음 → z각 음수가 숙임)
+                    Transform Claw(string tag, Vector3 at)
+                    {
+                        var p = new GameObject("Claw" + tag + "_Pivot").transform;
+                        p.SetParent(r, false);
+                        p.position = r.TransformPoint(at);
+                        Child(root, N + "Claw" + tag).SetParent(p, true);
+                        return p;
+                    }
+                    var claws = new[] { Claw("W", new Vector3(6.13f, F + 2.35f, 4f)), Claw("E", new Vector3(17.87f, F + 2.35f, 4f)) };
+                    // 트임 막이 셋 (울타리 트임 양 끝을 잇는 줄, 도는 동안만 켬)
+                    var walls = new GameObject("CarouselGateWalls").transform;
+                    walls.SetParent(r, false);
+                    var gateWalls = new Collider[StorageCarousel.Gaps.Length];
+                    float chord = StorageCarousel.FenceRadius * Mathf.Cos(StorageCarousel.GapHalf * Mathf.Deg2Rad);
+                    float span = 2f * StorageCarousel.FenceRadius * Mathf.Sin(StorageCarousel.GapHalf * Mathf.Deg2Rad) + 0.3f;
+                    for (int k = 0; k < gateWalls.Length; k++)
+                    {
+                        float a = StorageCarousel.Gaps[k];
+                        var go = new GameObject("Gate" + k);
+                        go.transform.SetParent(walls, false);
+                        go.transform.localPosition = new Vector3(StorageCarousel.Center.x + chord * Mathf.Cos(a * Mathf.Deg2Rad), StorageCarousel.BaseTop + 0.7f,
+                            StorageCarousel.Center.z + chord * Mathf.Sin(a * Mathf.Deg2Rad));
+                        go.transform.localRotation = Quaternion.Euler(0f, -a, 0f);
+                        var box = go.AddComponent<BoxCollider>();
+                        box.size = new Vector3(0.1f, 1.4f, span);
+                        gateWalls[k] = box;
+                    }
+                    root.AddComponent<InteriorCarousel>().Configure(disk, capsules, seats, claws, new[] { -1f, 1f }, gateWalls, font,
+                        new Vector3(12f, F + 2.45f, -2.4f), StorageRiderSeats(out _), StorageRiderCapsules);
+                    // 벤치 (sc_builder warehouse · plaza, 엉덩이 = 앞 끝 − 0.07): 창고 진열창 앞 (밖을 봄) · 광장 (회전목마를 봄)
+                    var benchSeats = new List<Vector4>();
+                    var boxes = new List<Bounds>();
+                    void Seat(float x0, float x1, float z0, float z1, float top, float yaw, params Vector2[] at)
+                    {
+                        boxes.Add(new Bounds(new Vector3((x0 + x1) * 0.5f, (F + top + 0.01f) * 0.5f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, top + 0.01f - F, z1 - z0)));
+                        foreach (var p in at)
+                            benchSeats.Add(new Vector4(p.x, top, p.y, yaw));
+                    }
+                    foreach (var xm in new[] { 1.76f, 22.24f })
+                        Seat(xm - 0.8f, xm + 0.8f, -1.34f, -0.94f, F + 0.42f, 180f, new Vector2(xm - 0.4f, -1.27f), new Vector2(xm + 0.4f, -1.27f));
+                    foreach (var x in new[] { 9.2f, 14.8f })
+                        Seat(x - 0.7f, x + 0.7f, -0.8f, -0.4f, F + 0.42f, 0f, new Vector2(x - 0.35f, -0.47f), new Vector2(x + 0.35f, -0.47f));
+                    root.AddComponent<InteriorBenchSeats>().Configure(benchSeats.ToArray(), boxes.ToArray(), -6f);
+                });
+        }
+
+        /// <summary>연구원 연구실 쉬는 벤치 (남서 225°, 코어를 봄) 두 자리 각 — 엉덩이 = 방석 앞 끝 (r 1.45) + 0.07.</summary>
+        public static readonly float[] MazeBenchAngles = { 218f, 232f };
+
+        public static Vector4 MazeBenchSeat(float angle)
+        {
+            float a = angle * Mathf.Deg2Rad;
+            var c = ResearchMaze.Center;
+            return new Vector4(c.x + 1.52f * Mathf.Cos(a), F + 0.44f, c.z + 1.52f * Mathf.Sin(a), Mathf.Atan2(-Mathf.Cos(a), -Mathf.Sin(a)) * Mathf.Rad2Deg);
+        }
+
+        /// <summary>
+        /// 진화 2단계 연구원 "별빛 데이터 미로" (2 × 2칸, mz_builder — 사용자 2026-11-10 시안 1 "좋아 이대로 유니티로 옮겨줘"): 직접 체험 = 미로 (<see cref="InteriorMaze"/>).
+        /// 외형 평면 × 8 그대로: 서버 랙 벽 세 겹 네모 미로 (트임 = 바깥 앞 · 가운데 뒤 · 안 서쪽, 가로막 · 반쯤 막은 턱, 막다른 길 화면 셋), 네 모서리 냉각탑 (팬 돎),
+        /// 앞 입구 아치 · 간판 (최고 기록) · 길잡이 화면, 가운데 둥근 유리 연구실 (데이터 코어 · 위 빛 고리 · 연구 책상 셋 · 쉬는 벤치 · 화분, 서쪽 압력 막 문).
+        /// 벽 높이 2.6 (눈높이 위), 앞 바깥 길 가로막 = 턱 (동쪽 바깥 길 = 긴 막다른 길). 외형 옆면 연결점이 없어 문 자리 없음, 아래 해치 4 = 바깥 길 바닥.
+        /// 미로 · 갑판 주민 = 우주복 (<see cref="InteriorOpenAir"/>), 연구실 = 실내 원.
+        /// </summary>
+        private static void BuildEvoResearchInstitute()
+        {
+            const string N = "INT_EvoResearchInstitute_";
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, off) in ResearchMaze.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, new Vector3(off.x, 0f, off.y)));   // 바깥 길 가운데 (뚜껑 1.4 · 길 폭 1.52)
+            var c = ResearchMaze.Center;
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.55f);
+            var cool = new Color(0.8f, 0.86f, 1f);
+            var lavender = new Color(0.78f, 0.66f, 1f);
+            var lights = new List<LightSpec>
+            {
+                LightSpec.Point(new Vector3(c.x, F + 2.35f, c.z + 0.9f), 4.5f, 1.0f, white),     // 연구실 (코어 위 고리 비킴)
+                LightSpec.Point(new Vector3(c.x - 0.9f, F + 1.2f, c.z), 3f, 0.6f, lavender),     // 코어 빛
+                LightSpec.Point(new Vector3(c.x, F + 2.4f, c.z - 7.2f), 5f, 0.55f, warm),        // 입구 아치
+                LightSpec.Point(new Vector3(c.x - 7.25f, F + 2.2f, c.z), 6f, 0.35f, cool),       // 둘레 갑판
+                LightSpec.Point(new Vector3(c.x + 7.25f, F + 2.2f, c.z), 6f, 0.35f, cool),
+                LightSpec.Point(new Vector3(c.x, F + 2.2f, c.z + 7.25f), 6f, 0.35f, cool),
+                LightSpec.Point(new Vector3(c.x - 2.8f, F + 2.3f, c.z), 3f, 0.4f, cool),         // 안 고리 트임 · 연구실 문
+            };
+            foreach (var (dx, dz) in new[] { (-5.68f, -5.68f), (5.68f, -5.68f), (-5.68f, 5.68f), (5.68f, 5.68f), (0f, -5.68f), (-5.68f, 0f), (5.68f, 0f), (0f, 5.68f) })
+                lights.Add(LightSpec.Point(new Vector3(c.x + dx, F + 2.3f, c.z + dz), 4.5f, 0.5f, cool));   // 바깥 길 모서리 · 가운데
+            foreach (var (dx, dz) in new[] { (-4f, -4f), (4f, -4f), (-4f, 4f), (4f, 4f) })
+                lights.Add(LightSpec.Point(new Vector3(c.x + dx, F + 2.3f, c.z + dz), 4f, 0.45f, cool));    // 가운데 길 모서리
+            var orbits = new List<OrbitSpec>();
+            float h = ResearchMaze.Rings[0];
+            int fan = 0;
+            foreach (var (sx, sz) in new[] { (-h, -h), (h, -h), (-h, h), (h, h) })
+                orbits.Add(new OrbitSpec(N + "Fan" + fan++, new Vector3(c.x + sx, 0f, c.z + sz), Vector3.up, fan % 2 == 0 ? 120f : -120f));   // 냉각탑 팬
+            EvoAccent("ResearchInstitute", "#B79CFF");
+            // 스폰 = 입구 아치 앞 갑판에서 미로를 바라봄
+            Build("EvoResearchInstitute", "Evolved/MD_Evo_ResearchInstitute", sockets, new Vector3(c.x, F, ResearchMaze.ArchZ - 0.95f), 0f, lights, orbits,
+                configure: root =>
+                {
+                    AddOpenAir(root, new[] { new Vector3(c.x, c.z, ResearchMaze.LabRadius) });   // 연구실 안 = 실내
+                    var r = root.transform;
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    // 길잡이 점 구간 (길 순서) · 코어 위 빛 고리 피벗 · 길잡이 화면 누르는 자리
+                    var dots = new List<Renderer>();
+                    for (int i = 0; i < ResearchMaze.Route.Length - 1; i++)
+                    {
+                        var d = Child(root, $"{N}Dots{i:00}");
+                        if (d != null)
+                            dots.Add(d.GetComponent<Renderer>());
+                    }
+                    var ringPivot = new GameObject("CoreRing_Pivot").transform;
+                    ringPivot.SetParent(r, false);
+                    ringPivot.position = r.TransformPoint(new Vector3(c.x, F + 2.62f, c.z));
+                    Child(root, N + "CoreRing").SetParent(ringPivot, true);
+                    var hintGo = new GameObject("MazeHintUse");
+                    hintGo.transform.SetParent(r, false);
+                    hintGo.transform.localPosition = ResearchMaze.HintScreen + new Vector3(0f, 0f, -0.05f);
+                    var hintBox = hintGo.AddComponent<BoxCollider>();
+                    hintBox.size = new Vector3(0.8f, 0.62f, 0.1f);
+                    var pulse = AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorLight.mat");
+                    root.AddComponent<InteriorMaze>().Configure(dots.ToArray(), ringPivot, hintBox, pulse, font);
+                    // 연구실 쉬는 벤치 두 자리 (mz_builder lab bench, 남서 225° ± 16°)
+                    float ba = 225f * Mathf.Deg2Rad;
+                    var bc = new Vector3(c.x + 1.635f * Mathf.Cos(ba), (F + F + 0.45f) * 0.5f, c.z + 1.635f * Mathf.Sin(ba));
+                    var seats = new Vector4[MazeBenchAngles.Length];
+                    for (int i = 0; i < seats.Length; i++)
+                        seats[i] = MazeBenchSeat(MazeBenchAngles[i]);
+                    root.AddComponent<InteriorBenchSeats>().Configure(seats, new[] { new Bounds(bc, new Vector3(0.62f, 0.45f, 0.62f)) }, -6f);
+                });
+        }
+
+        /// <summary>
+        /// 진화 3단계 궤도 도시 "알이 깨어난 정원 섬 도시" (38칸: 바닥 5×5 + 2층 3×3 + 가운데 기둥 4칸, oc_builder — 사용자 2026-11-10 시안 1 "좋아 이대로 유니티로 옮겨줘"):
+        /// 3단계 = 맨몸 정원 (우주복 · 유리 덮개 없음 — <see cref="InteriorOpenAir"/>를 붙이지 않음). 외형 평면 × 8: 초타원 섬 · 고리 강 · 다리 넷 · 네 모서리
+        /// (앞 왼쪽 연꽃 호수 · 정자, 앞 오른쪽 역, 뒤 왼쪽 숲, 뒤 오른쪽 꽃 들판) · 둘레 높인 궤도열차 고리 (밑으로 걸어 지나감) ·
+        /// 가운데 언덕 마을 (평평한 단 셋 · 계단 · 반쯤 묻힌 하얀 집 · 폭포, 언덕 속 고리 길 · 뿌리 홀) · 수정 나무 기둥 (꼬인 진주 줄기 넷 · 유리 엘리베이터 다섯 층 ·
+        /// 층마다 나무 위 테라스 · 난간 밖 화단) · 맨 위 프리즘 (도는 무지개 고리). 나무 = 식물 자리 (Tree · Pine · Blossom, <see cref="InteriorPlantSpots"/>).
+        /// 직접 체험 = 궤도열차 운전 + 미니게임 "정지선에 맞춰 멈추기" (<see cref="InteriorOrbitTrain"/>). 동물 = 외형 손그림 사슴 · 토끼 · 백조 · 나비를 내부 크기로 (CritterFx).
+        /// 문 자리 = 기둥 테라스 15 (외형 옆 연결점), 해치 21 = 바닥 칸 (언덕 속 길 · 고리 길, <see cref="OrbitalCity.Hatches"/>).
+        /// </summary>
+        private static void BuildEvoOrbitalCity()
+        {
+            const string N = "INT_EvoOrbitalCity_";
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in OrbitalCity.TowerDoors)
+                sockets.Add(new InteriorSocket(cell, dir, OrbitalCity.TowerDoorDepth));   // 옥상 전망대 문 다리 끝 (3.93 바로 안)
+            foreach (var (cell, off) in OrbitalCity.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, new Vector3(off.x, 0f, off.y)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.88f, 0.66f);
+            var cool = new Color(0.82f, 0.9f, 1f);
+            Vector3 P(float r, float deg, float y) => OrbitalCity.Polar(r, deg, y);
+            var lights = new List<LightSpec>();
+            for (int k = 0; k < 12; k++)
+                lights.Add(LightSpec.Point(P(14.6f, 15f + 30f * k, F + 2.2f), 8f, 1.0f, warm));         // 강 바깥 고리 길 (레일 밑)
+            for (int k = 0; k < 8; k++)
+                lights.Add(LightSpec.Point(P(19.2f, 22.5f + 45f * k, F + 2.0f), 8f, 0.9f, white));      // 레일 밖 둘레 (호수 · 역 · 숲 · 들판)
+            for (int k = 0; k < 4; k++)
+            {
+                lights.Add(LightSpec.Point(P(9.3f, 90f * k, F + 4.8f), 8f, 0.9f, white));               // 아래 단 마을
+                lights.Add(LightSpec.Point(P(7.5f, 45f + 90f * k, F + 7.2f), 7f, 0.8f, white));         // 위 단
+                lights.Add(LightSpec.Point(P(6.4f, 45f + 90f * k, F + 2.1f), 4.5f, 0.7f, warm));        // 언덕 속 고리 길 모서리 (굴 반지름 5.2 ~ 7.6)
+                lights.Add(LightSpec.Point(P(6.4f, 90f * k, F + 2.1f), 4.5f, 0.7f, warm));              // 고리 길 가운데 (바깥 통로 쪽)
+            }
+            lights.Add(LightSpec.Point(new Vector3(16f, F + 2.5f, 16f), 4.5f, 0.8f, warm));             // 뿌리 홀
+            lights.Add(LightSpec.Point(new Vector3(16f, F + 10.6f, 12.4f), 6f, 0.9f, white));           // 꼭대기 광장 (엘리베이터 앞)
+            lights.Add(LightSpec.Point(new Vector3(16f, F + 10.6f, 19.6f), 6f, 0.7f, white));
+            foreach (float fl in OrbitalCity.LiftStops)
+            {
+                if (fl < 10f)
+                    continue;
+                lights.Add(LightSpec.Point(new Vector3(16f, fl + 2.6f, 13.1f), 5f, 0.8f, white));        // 옥상 전망대 (엘리베이터 앞 · 뒤)
+                lights.Add(LightSpec.Point(new Vector3(16f, fl + 2.6f, 18.9f), 5f, 0.6f, white));
+            }
+            lights.Add(LightSpec.Point(new Vector3(16f, OrbitalCity.LiftStops[OrbitalCity.LiftStops.Length - 1] + 3.6f, 16f), 4f, 0.9f, cool));   // 프리즘 속 빛
+            for (int k = -1; k <= 1; k++)
+                lights.Add(LightSpec.Point(P(OrbitalCity.TrackRadius + 1.9f, OrbitalCity.StationAngle + 11f * k, OrbitalCity.PlatformTop + 2.2f), 6f, 0.9f, warm));   // 역 지붕 밑
+            lights.Add(LightSpec.Point(P(19.55f, 237f, F + 2.0f), 4f, 0.8f, warm));                      // 호숫가 정자
+            var orbits = new List<OrbitSpec> { new OrbitSpec(N + "Halo", OrbitalCity.Hub, Vector3.up, 10f) };   // 프리즘 무지개 고리 (기운 채 돎)
+            EvoAccent("OrbitalCity", "#C8E8FF");
+            // 스폰 = 앞 (−z) 강 바깥 고리 길에서 언덕 폭포 · 기둥을 바라봄
+            // 자기 내부 하늘 복제: 바깥 고리 16칸은 하늘 천장이 F + 5.25라, 고리 길 · 승강장에서 올려다보면 언덕 꼭대기 · 기둥이 그 천장 너머 →
+            // 복제가 없으면 일정 높이 위가 별 하늘로 잘렸음 (사용자 2026-11-23, 항성 발전망과 같은 방식)
+            Build("EvoOrbitalCity", "Evolved/MD_Evo_OrbitalCity", sockets, new Vector3(16f, F, 1.4f), 0f, lights, orbits, showOwnInterior: true,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    // 엘리베이터 (언덕 꼭대기 광장 ↔ 옥상 전망대 직행, 문 = −z, gt_builder lift 틀)
+                    var stops = OrbitalCity.LiftStops;
+                    var car = Child(root, N + "LiftCar");
+                    var carGlass = Child(root, N + "LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[stops.Length];
+                    var right = new Transform[stops.Length];
+                    var offsets = new float[stops.Length];
+                    for (int k = 0; k < stops.Length; k++)
+                    {
+                        offsets[k] = stops[k] - stops[0];
+                        left[k] = Child(root, $"{N}LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"{N}LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"{N}LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"{N}LiftBtn{k + 1}");
+                        // 모델 버튼 (칸 바닥 + 0.85 · 1.02)이 칸 금빛 손잡이 (+ 0.92)에 반쯤 묻혀 있었음 (사용자 2026-11-23) → 손잡이 위 15 cm로.
+                        // FBX를 다시 내보내면 잎 법선이 바뀌어 (oc_railgap과 같은 까닭으로 빌더 텍스트도 못 씀) 여기서 올림
+                        button.localPosition += Vector3.up * 0.22f;
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    lift.Configure(car, offsets, left, right, new Vector3(16f, stops[0] + 0.085f, 16f), Vector3.right, OrbitalCity.CarRadius - 0.1f);
+                    // 옥상 망원경 (oc_builder ScopeHead — 관절 = 받침 위 1.14, 쉬는 기울기 18°, 사용자 2026-11-11 "정면 망원경에 상호작용 없음"):
+                    // 다른 전망대처럼 들여다보기, 앞 (−z · 폭포 · 섬 앞)을 쉴 때 방향으로 좌우 ±100°
+                    var scope = Child(root, N + "ScopeHead");
+                    BoxOf(scope, 0.06f);
+                    root.AddComponent<InteriorTelescope>().Configure(scope, P(3.1f, 270f, stops[stops.Length - 1] + 1.14f), 18f, 0f, font, 90f - 270f, 100f, startPitch: -16f, startFov: 24f, minPitch: -60f);
+                    // 궤도열차: 허브 축 피벗 아래 (쉬는 자세 = 역), 운전석 = 앞 차 방석 (보고 F)
+                    var pivot = new GameObject("TrainPivot").transform;
+                    pivot.SetParent(r, false);
+                    pivot.localPosition = OrbitalCity.Hub;
+                    var train = Child(root, N + "Train");
+                    train.gameObject.AddComponent<MeshCollider>().sharedMesh = train.GetComponent<MeshFilter>().sharedMesh;
+                    train.SetParent(pivot, true);
+                    var seatGo = new GameObject("DriverSeat");
+                    seatGo.transform.SetParent(pivot, false);
+                    seatGo.transform.localPosition = P(OrbitalCity.TrackRadius, OrbitalCity.FrontAngle, OrbitalCity.CarFloor + 0.4f) - OrbitalCity.Hub;
+                    seatGo.transform.localRotation = Quaternion.Euler(0f, OrbitalCity.ForwardYaw(OrbitalCity.FrontAngle), 0f);
+                    var seat = seatGo.AddComponent<BoxCollider>();
+                    seat.size = new Vector3(1.4f, 0.9f, 1.1f);
+                    root.AddComponent<InteriorOrbitTrain>().Configure(pivot, seat, font,
+                        P(OrbitalCity.TrackRadius + 2.45f, OrbitalCity.NoseAngle, OrbitalCity.PlatformTop + 1.95f), OrbitalCity.OutwardYaw(OrbitalCity.NoseAngle));
+                    // 승강장 보이지 않는 턱: 선로 쪽 (발목 높이 — 운전석을 보고 F는 됨) · 바깥 낭떠러지 · 끝 (계단 자리 빼고)
+                    void Guard(Vector3 p0, Vector3 p1, float h)
+                    {
+                        var go = new GameObject("PlatformGuard");
+                        go.transform.SetParent(r, false);
+                        go.transform.localPosition = (p0 + p1) * 0.5f + Vector3.up * (h * 0.5f);
+                        go.transform.localRotation = Quaternion.LookRotation(p1 - p0, Vector3.up);
+                        go.AddComponent<BoxCollider>().size = new Vector3(0.1f, h, (p1 - p0).magnitude + 0.02f);
+                    }
+                    float a0 = OrbitalCity.StationAngle - OrbitalCity.PlatformHalf, a1 = OrbitalCity.StationAngle + OrbitalCity.PlatformHalf, yp = OrbitalCity.PlatformTop;
+                    for (float a = a0; a < a1 - 0.01f; a += 2f)
+                    {
+                        float b = Mathf.Min(a + 2f, a1);
+                        Guard(P(OrbitalCity.PlatformInner + 0.06f, a, yp), P(OrbitalCity.PlatformInner + 0.06f, b, yp), 0.55f);
+                        Guard(P(OrbitalCity.PlatformOuter - 0.06f, a, yp), P(OrbitalCity.PlatformOuter - 0.06f, b, yp), 1.0f);
+                    }
+                    Guard(P(OrbitalCity.PlatformInner, a0 + 0.2f, yp), P(OrbitalCity.PlatformOuter, a0 + 0.2f, yp), 1.0f);
+                    Guard(P(OrbitalCity.TrackRadius + 2.5f, a1 - 0.2f, yp), P(OrbitalCity.PlatformOuter, a1 - 0.2f, yp), 1.0f);   // 계단 (반지름 17.75 ~ 19.25) 옆
+                    // 고리 강 둑 보이지 않는 턱 (다리 자리만 비움): 강바닥 (F − 0.6)에 내려가면 둑 (F + 0.16)으로 못 올라와 갇혔음
+                    foreach (float rb in new[] { OrbitalCity.RiverInner - 0.18f, OrbitalCity.RiverOuter + 0.18f })
+                    {
+                        float gap = Mathf.Asin(1.35f / rb) * Mathf.Rad2Deg;
+                        for (int q = 0; q < 4; q++)
+                        {
+                            float s0 = 45f + 90f * q + gap, s1 = 135f + 90f * q - gap;
+                            for (float a = s0; a < s1 - 0.01f; a += 5f)
+                                Guard(P(rb, a, F), P(rb, Mathf.Min(a + 5f, s1), F), 1.0f);
+                        }
+                    }
+                    // 동물: 사슴 · 아기 사슴 · 토끼 · 백조 = 내부 전용 모델 (SM_InteriorCritters, 미터 — critter_builder.py 메타볼 몸, 사용자 2026-11-10 · 11 사진 · 애니메이션 참고),
+                    // 나비 = 외형 손그림 동물 (SM_Evo_OrbitalCity Critter_*)을 키워서. 움직임 = 외형과 같은 CritterFx (제자리) — CritterFx 흔들림 폭이 외형 크기 기준이라
+                    // 묶음은 예전 배율 그대로 키우고 내부 모델은 그만큼 줄여 넣음 (실제 크기 = 미터)
+                    var critterSrc = new Dictionary<string, GameObject>();
+                    foreach (var path in new[] { "Assets/_Project/Art/Models/Modules/SM_Evo_OrbitalCity.fbx", "Assets/_Project/Art/Models/Interior/SM_InteriorCritters.fbx" })
+                    {
+                        foreach (var o in AssetDatabase.LoadAllAssetsAtPath(path))
+                        {
+                            if (o is GameObject g && g.name.StartsWith("Critter_") && g.GetComponent<MeshFilter>() != null)
+                                critterSrc[g.name] = g;
+                        }
+                    }
+                    var critterMat = ModuleFxMaterials.Get("Critters");
+                    void Critters(string holderName, float scale, (string src, Vector3 at, float yaw)[] list)
+                    {
+                        var holder = new GameObject(holderName).transform;
+                        holder.SetParent(r, false);
+                        holder.localScale = Vector3.one * scale;
+                        var parts = new List<Transform>();
+                        var kinds = new List<SpaceStation.Building.CritterFx.Kind>();
+                        foreach (var (src, at, yaw) in list)
+                        {
+                            bool interior = critterSrc.TryGetValue("Critter_" + src, out var g);   // 내부 모델 (미터)
+                            if (!interior && !critterSrc.TryGetValue("Critter_OrbitalCity_" + src, out g))
+                            {
+                                Debug.LogWarning("[InteriorTemplateBuilder] 궤도 도시 동물 없음: " + src);
+                                continue;
+                            }
+                            var t = new GameObject("Critter_" + src).transform;
+                            t.SetParent(holder, false);
+                            t.localPosition = at / scale;
+                            t.localRotation = Quaternion.Euler(0f, yaw, 0f) * g.transform.localRotation;
+                            t.localScale = interior ? g.transform.localScale / scale : g.transform.localScale;
+                            t.gameObject.AddComponent<MeshFilter>().sharedMesh = g.GetComponent<MeshFilter>().sharedMesh;
+                            var mr = t.gameObject.AddComponent<MeshRenderer>();
+                            mr.sharedMaterial = critterMat;
+                            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                            parts.Add(t);
+                            kinds.Add(StationArtBuilder.CritterKinds.TryGetValue(src.Substring(src.LastIndexOf('_') + 1), out var kind) ? kind : SpaceStation.Building.CritterFx.Kind.Swim);
+                        }
+                        var fx = holder.gameObject.AddComponent<SpaceStation.Building.CritterFx>();
+                        var so = new SerializedObject(fx);
+                        var arr = so.FindProperty("_critters");
+                        arr.arraySize = parts.Count;
+                        for (int i = 0; i < parts.Count; i++)
+                        {
+                            StationArtBuilder.CritterShape(parts[i], null, kinds[i], out var heading, out float radius);
+                            var e = arr.GetArrayElementAtIndex(i);
+                            e.FindPropertyRelative("Part").objectReferenceValue = parts[i];
+                            e.FindPropertyRelative("Kind").enumValueIndex = (int)kinds[i];
+                            e.FindPropertyRelative("Heading").vector3Value = heading;
+                            e.FindPropertyRelative("Radius").floatValue = radius;
+                            e.FindPropertyRelative("Leader").intValue = -1;
+                            e.FindPropertyRelative("Side").floatValue = 0f;
+                        }
+                        so.FindProperty("_autoPlay").boolValue = true;
+                        so.ApplyModifiedPropertiesWithoutUndo();
+                    }
+                    Critters("Critters_Deer", 13f, new[]
+                    {
+                        ("Deer", P(19.3f, 211.5f, F), 40f), ("Fawn", P(20.4f, 216.5f, F), -60f),   // 연꽃 호숫가 (어미 · 아기)
+                        ("Deer", P(18.3f, 166f, F), 150f), ("Deer", P(18.4f, 80f, F), -20f),        // 숲 · 들판 가장자리
+                    });
+                    Critters("Critters_Bunny", 6f, new[]
+                    {
+                        ("Bunny", P(15.8f, 105f, F), 30f), ("Bunny", P(15.8f, 165f, F), 200f), ("Bunny", P(15.8f, 285f, F), 120f),   // 고리 길 밖 잔디 (레일 기둥 사이)
+                    });
+                    float water = OrbitalCity.WaterLevels[0];   // 백조 원점 = 물높이
+                    Critters("Critters_Swan", 7f, new[]
+                    {
+                        ("Swan", P(12.8f, 200f, water), 90f), ("Swan", P(12.8f, 203.5f, water), 95f),    // 고리 강 (다리 비킴)
+                        ("Swan", P(12.8f, 338f, water), -80f), ("Swan", P(12.8f, 341.5f, water), -85f),
+                        ("Swan", P(19.0f, 228f, water), 20f),                                             // 연꽃 호수
+                    });
+                    // 물: 수면 높이마다 KWS 물 (꺼 둠 → InteriorKwsWater가 켬) + 패키지 없는 PC용 Blender 수면, 폭포 물보라 · 웅덩이 물결
+                    var kws = new List<GameObject>();
+                    var surfaces = new List<Renderer>();
+                    for (int k = 0; k < OrbitalCity.WaterLevels.Length; k++)
+                    {
+                        var surface = Child(root, N + "Water" + (k == 0 ? "" : k.ToString()));
+                        if (surface == null)
+                            continue;
+                        surfaces.Add(surface.GetComponent<Renderer>());
+                        kws.Add(KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), OrbitalCity.WaterLevels[k], k == 0 ? 0.6f : 0.35f, "OrbitalCity" + k, true));
+                    }
+                    var landings = new Vector3[OrbitalCity.Falls.Length];
+                    var widths = new float[OrbitalCity.Falls.Length];
+                    for (int i = 0; i < OrbitalCity.Falls.Length; i++)
+                    {
+                        landings[i] = OrbitalCity.Falls[i].Landing;
+                        widths[i] = OrbitalCity.Falls[i].Width;
+                        int lv = 0;   // 떨어지는 웅덩이 = 가장 가까운 수면
+                        for (int k = 1; k < OrbitalCity.WaterLevels.Length; k++)
+                        {
+                            if (Mathf.Abs(OrbitalCity.WaterLevels[k] - landings[i].y) < Mathf.Abs(OrbitalCity.WaterLevels[lv] - landings[i].y))
+                                lv = k;
+                        }
+                        if (lv < kws.Count && kws[lv] != null)
+                            KwsWaterBuilder.Ripple(kws[lv], landings[i], 0.45f, 0.35f);
+                    }
+                    kws.RemoveAll(x => x == null);
+                    root.AddComponent<InteriorKwsWater>().Configure(kws.ToArray(), surfaces.ToArray(), Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(16f, 4f, 16f));
+                    root.AddComponent<InteriorWaterfallFx>().Configure(landings, widths, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FallsMistPath));
+                    Critters("Critters_Butterfly", 4f, new[]
+                    {
+                        ("22_Butterfly", P(18.6f, 38f, F + 1.1f), 0f), ("23_Butterfly", P(19.2f, 47f, F + 0.8f), 60f), ("24_Butterfly", P(18.2f, 55f, F + 1.3f), 120f),
+                        ("25_Butterfly", P(19.4f, 30f, F + 0.9f), 200f), ("26_Butterfly", P(20.4f, 233f, F + 1.2f), 0f), ("27_Butterfly", P(18.2f, 229f, F + 0.9f), 90f),
+                        ("28_Butterfly", P(4.6f, 300f, F + 9.2f), 0f), ("29_Butterfly", P(4.4f, 120f, F + 9.4f), 180f),
+                    });
+                });
+        }
+
+        /// <summary>
+        /// 진화 3단계 바이오스피어 "물의 순환 고리" (3 × 3칸 2층, Blender bio3_builder — 사용자 2026-11-11 시안 1 "유니티로 옮겨줘, 내부에서 직접 돌아다녀볼게"). 맨몸 정원 (우주복 없음).
+        /// 외형 × 8: 가운데 연꽃 호수 · 물가 길 · 선착장 → 계단 밭 다섯 단 (밀 · 채소 · 라벤더 · 해바라기 · 튤립 조각보, 아치 방향 계단 셋) → 능선 산책길 → 숲 비탈 → 진주 옹벽 → 고리 산책길 · 네 모서리
+        /// (정자 · 연못 · 과수원 · 반딧불이 숲). 물길 셋 = 비탈 위 샘 → 수문 (금빛 바퀴) → 능선 길 밑 → 단마다 작은 폭포 · 물레방아 → 호수.
+        /// 진주 아치 셋이 하늘 호수 그릇을 받치고 (정문 아치 = 뿌리 두 갈래 사이 계단), 그릇 밑 폭포 기둥 · 무지개, 위 프리즘, 다리 아래 도는 구름 고리.
+        /// 문 자리 = 옆 넷 (깊이 3.9), 아래 해치 = 바닥 칸 아홉, 위 해치 = 하늘 정원 뒤 천장 (사다리). 승강기 = 뒤 왼쪽 아치 기둥 속 (능선 ↔ 하늘 정원).
+        /// 체험 (수문 · 반딧불이 잡기)은 다음 단계 — 이번엔 걸어 다니는 공간 · 물 · 승강기.
+        /// </summary>
+        private static void BuildEvoBiosphere()
+        {
+            const string N = "INT_EvoBiosphere_";
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in Biosphere.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, Biosphere.DoorDepth));
+            foreach (var (cell, off) in Biosphere.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, new Vector3(off.x, 0f, off.y)));
+            sockets.Add(new InteriorSocket(Biosphere.UpHatchCell, Vector3Int.up, Biosphere.UpHatchDepth, Biosphere.UpHatchOffset));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.88f, 0.66f);
+            var cool = new Color(0.82f, 0.9f, 1f);
+            Vector3 P(float r, float deg, float y) => Biosphere.Polar(r, deg, y);
+            var lights = new List<LightSpec>();
+            for (int k = 0; k < 8; k++)
+                lights.Add(LightSpec.Point(P(8.1f, 22.5f + 45f * k, Biosphere.RidgeTop + 2.4f), 7f, 1.0f, white));        // 능선 산책길
+            for (int k = 0; k < 6; k++)
+                lights.Add(LightSpec.Point(P(5.6f, 60f * k, F + 3.0f), 6f, 0.8f, warm));                              // 계단 밭
+            for (int k = 0; k < 4; k++)
+            {
+                lights.Add(LightSpec.Point(P(14.0f, 45f + 90f * k, F + 2.6f), 7f, 0.9f, white));                       // 네 모서리
+                lights.Add(LightSpec.Point(P(10.9f, 90f * k, F + 2.2f), 5f, 0.7f, warm));                             // 옆 문 계단 · 고리 산책길
+            }
+            lights.Add(LightSpec.Point(P(2.4f, 270f, F + 2.0f), 5f, 0.8f, cool));                                     // 호수 · 폭포 기둥
+            lights.Add(LightSpec.Point(P(2.4f, 90f, F + 2.0f), 5f, 0.6f, cool));
+            for (int k = 0; k < 3; k++)
+                lights.Add(LightSpec.Point(P(3.0f, Biosphere.Arches[k] + 60f, Biosphere.SkyTop + 2.2f), 5f, 0.8f, white));   // 하늘 정원
+            lights.Add(LightSpec.Point(new Vector3(8f, F + 12.05f, 8f), 4f, 0.9f, cool));                              // 프리즘 속 빛
+            var orbits = new List<OrbitSpec> { new OrbitSpec(N + "Halo", Biosphere.Hub, Vector3.up, 5f) };            // 구름 고리 · 새 (다리 아래)
+            for (int i = 0; i < 3; i++)
+                orbits.Add(new OrbitSpec(N + "Wheel" + i, Biosphere.WheelCenter(i), Biosphere.WheelAxis(i), -40f));   // 물레방아 (물이 떨어지는 쪽으로)
+            EvoAccent("Biosphere", "#7CD67C");
+            // 스폰 = 정문 (−z) 안: 아치 뿌리 두 갈래 사이 계단 · 무지개 · 폭포 기둥 · 하늘 호수를 바라봄
+            Build("EvoBiosphere", "Evolved/MD_Evo_Biosphere", sockets, new Vector3(8f, F, -3.0f), 0f, lights, orbits,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    // 승강기 (능선 ↔ 하늘 정원, 아치 기둥 속 — Blender에서 −z 문으로 지은 뒤 허브 쪽 (330°)으로 돌림 → 문 미닫이 축 = 60°)
+                    var stops = Biosphere.LiftStops;
+                    var car = Child(root, N + "LiftCar");
+                    var carGlass = Child(root, N + "LiftCarGlass");
+                    carGlass.SetParent(car, true);
+                    foreach (var t in new[] { car, carGlass })
+                        t.gameObject.AddComponent<MeshCollider>().sharedMesh = t.GetComponent<MeshFilter>().sharedMesh;
+                    var lift = root.AddComponent<InteriorLift>();
+                    var left = new Transform[stops.Length];
+                    var right = new Transform[stops.Length];
+                    var offsets = new float[stops.Length];
+                    for (int k = 0; k < stops.Length; k++)
+                    {
+                        offsets[k] = stops[k] - stops[0];
+                        left[k] = Child(root, $"{N}LiftDoor{k + 1}L");
+                        right[k] = Child(root, $"{N}LiftDoor{k + 1}R");
+                        BoxOf(left[k], 0f);
+                        BoxOf(right[k], 0f);
+                        BoxOf(Child(root, $"{N}LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
+                        var button = Child(root, $"{N}LiftBtn{k + 1}");
+                        button.SetParent(car, true);
+                        BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
+                    }
+                    float slide = (Biosphere.LiftAngle + 180f - 270f) * Mathf.Deg2Rad;   // 문 미닫이 축 = +x를 (문 각 − 270°)만큼
+                    var center = Biosphere.LiftCenter;
+                    center.y = stops[0] + 0.085f;
+                    lift.Configure(car, offsets, left, right, center, new Vector3(Mathf.Cos(slide), 0f, Mathf.Sin(slide)), Biosphere.CarRadius - 0.1f);
+                    // 물 · 나무 줄기에 못 들어가는 벽 (bio3_builder LakeHit — 호수 · 하늘 호수 · 연못 + 나무 줄기): 모양만 쓰고 보이지 않음
+                    //  (사용자 "중앙 호수 들어가면 나오지도 못함", 체크리스트 31 = 바이오돔과 같은 방식)
+                    var lakeHit = Child(root, N + "LakeHit");
+                    var lakeMesh = lakeHit.GetComponent<MeshFilter>().sharedMesh;
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshRenderer>());
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshFilter>());
+                    lakeHit.gameObject.AddComponent<MeshCollider>().sharedMesh = lakeMesh;
+                    // 비: 바깥 모듈과 같은 RainFx를 미터 단위로 (구름 고리와 함께 돌고, 비는 곧게 떨어짐 — 구운 빗줄 막대는 바깥 크기 값이라 점선처럼 멈춰 보였음)
+                    var rain = root.AddComponent<SpaceStation.Building.RainFx>();
+                    var rso = new SerializedObject(rain);
+                    rso.FindProperty("_clouds").objectReferenceValue = Child(root, N + "Halo");
+                    rso.FindProperty("_module").objectReferenceValue = r;
+                    var spots = rso.FindProperty("_cloudSpots");
+                    spots.arraySize = 5;
+                    for (int q = 0; q < 5; q++)
+                        spots.GetArrayElementAtIndex(q).vector3Value = P(5.9f, 72f * q + 18f, F + 8.1f);   // bio3_builder clouds() 구름 밑면 가운데
+                    rso.FindProperty("_ringCenter").vector3Value = Biosphere.Hub;
+                    rso.FindProperty("_area").vector2Value = new Vector2(1.5f, 0.6f);
+                    rso.FindProperty("_dropMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_RainDrop.mat");
+                    rso.FindProperty("_mistMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_RainMist.mat");
+                    rso.FindProperty("_fallSpeed").floatValue = 5.5f;
+                    rso.FindProperty("_groundY").floatValue = F - 0.07f;
+                    rso.FindProperty("_rate").floatValue = 90f;
+                    rso.FindProperty("_shelterHalfWidth").floatValue = 0f;   // 구름 아래엔 아치가 없음 (아치 다리는 구름 위)
+                    rso.FindProperty("_dropSize").vector2Value = new Vector2(0.005f, 0.008f);
+                    rso.FindProperty("_dropStretch").floatValue = 0.05f;
+                    rso.FindProperty("_sway").floatValue = 0.1f;
+                    rso.FindProperty("_mistSize").vector2Value = new Vector2(1.2f, 1.9f);
+                    rso.FindProperty("_mistFall").vector2Value = new Vector2(0.5f, 0.8f);
+                    rso.FindProperty("_alwaysOn").boolValue = true;
+                    rso.ApplyModifiedPropertiesWithoutUndo();
+                    // 동물: 사슴 · 아기 사슴 · 토끼 (Biosphere.Critters — 꽃 · 잎이 비킨 자리) · 오리 가족 (Biosphere.DuckSpots) = SM_InteriorCritters (미터)
+                    var critterSrc = InteriorCritterModels();
+                    float[] yaws = { 40f, -60f, 80f, 30f, 200f, -40f };
+                    var deer = new List<(string, Vector3, float)>();
+                    var bunnies = new List<(string, Vector3, float)>();
+                    for (int k = 0; k < Biosphere.Critters.Length; k++)
+                    {
+                        var (kind, cr, ca, slope) = Biosphere.Critters[k];
+                        var at = P(cr, ca, slope ? Biosphere.SlopeY(cr) : F);
+                        (kind == "Bunny" ? bunnies : deer).Add((kind, at, yaws[k]));
+                    }
+                    CritterGroup(r, critterSrc, "Critters_Deer", 13f, deer.ToArray());
+                    CritterGroup(r, critterSrc, "Critters_Bunny", 6f, bunnies.ToArray());
+                    // 오리 가족 (바깥 모듈과 같은 흰 어미 · 노란 새끼): 새끼는 어미가 지나간 자리를 줄지어 따라감, 헤엄 고리 = 연잎 · 갈대 · 바위 · 둑 · 선착장 · 폭포 기둥을 비키는 가장 큰 것
+                    CritterGroup(r, critterSrc, "Critters_Duck", 7f, Biosphere.DuckSpots(),
+                        SwimBlocker(root, Biosphere.Hub, Biosphere.ShoreRadius, (Biosphere.WaterLevels[0], Biosphere.FallsKeepOut), (Biosphere.WaterLevels[2], 0f)));
+                    // 물: 호수 · 연못 · 하늘 호수 = KWS 물 (꺼 둠 → InteriorKwsWater가 켬) + 패키지 없는 PC용 Blender 수면, 물길 · 샘 = 바깥 물결 재질 (늘 보임)
+                    var kws = new List<GameObject>();
+                    var surfaces = new List<Renderer>();
+                    float[] depth = { 0.65f, 0.4f, 0.4f };
+                    for (int k = 0; k < Biosphere.WaterLevels.Length; k++)
+                    {
+                        var surface = Child(root, N + "Water" + (k == 0 ? "" : k.ToString()));
+                        if (surface == null)
+                            continue;
+                        surfaces.Add(surface.GetComponent<Renderer>());
+                        kws.Add(KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), Biosphere.WaterLevels[k], depth[k], "Biosphere" + k, k != 1));
+                    }
+                    var small = Biosphere.SmallFallLandings();   // 단마다 작은 폭포 떨어지는 자리도 물보라 · 물결 (물이 흐르는 게 보이게)
+                    var landings = new Vector3[Biosphere.Falls.Length + small.Length];
+                    var widths = new float[landings.Length];
+                    for (int i = 0; i < Biosphere.Falls.Length; i++)
+                    {
+                        landings[i] = Biosphere.Falls[i].Landing;
+                        widths[i] = Biosphere.Falls[i].Width;
+                    }
+                    for (int i = 0; i < small.Length; i++)
+                    {
+                        landings[Biosphere.Falls.Length + i] = small[i];
+                        widths[Biosphere.Falls.Length + i] = 0.4f;
+                    }
+                    if (kws.Count > 0 && kws[0] != null)
+                        KwsWaterBuilder.Ripple(kws[0], landings[0], 1.0f, 0.5f);   // 폭포 기둥이 떨어지는 호수 가운데
+                    kws.RemoveAll(x => x == null);
+                    root.AddComponent<InteriorKwsWater>().Configure(kws.ToArray(), surfaces.ToArray(), Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(8f, 4f, 8f));
+                    var fallsFx = root.AddComponent<InteriorWaterfallFx>();
+                    fallsFx.Configure(landings, widths, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FallsMistPath));
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    // 체험 "물꼬 맞추기" (InteriorSluiceGates, 사용자 2026-11-11): 수문 바퀴 = 바퀴 가운데 피벗 (시선 공) · 문판 · 물길 물 / 폭포 조각 (물길 × 단) ·
+                    //  밭 (물길 × 단, 피벗 높이 = 단 윗면 — 세로로 줄이면 시듦) · 물레방아 (물이 지나갈 때만 돎)
+                    int streams = SluicePuzzle.StreamCount, levels = SluicePuzzle.Levels;
+                    var gateWheels = new Transform[streams];
+                    var plates = new Transform[streams];
+                    var chans = new Renderer[streams * (levels + 1)];
+                    var spills = new Renderer[streams * (levels + 1)];
+                    var crops = new Transform[streams * levels];
+                    var waterWheels = new InteriorOrbit[streams];
+                    for (int s = 0; s < streams; s++)
+                    {
+                        plates[s] = Child(root, N + "GatePlate" + s);
+                        var wheel = Child(root, N + "GateWheel" + s);
+                        var pivot = new GameObject("GateWheelPivot" + s).transform;
+                        pivot.SetParent(r, false);
+                        pivot.localPosition = Biosphere.GateWheelHub(s);
+                        if (wheel != null)
+                            wheel.SetParent(pivot, true);
+                        pivot.gameObject.AddComponent<SphereCollider>().radius = 0.32f;
+                        gateWheels[s] = pivot;
+                        var ww = Child(root, N + "Wheel" + s);
+                        waterWheels[s] = ww != null ? ww.GetComponent<InteriorOrbit>() : null;
+                        for (int n = 0; n <= levels; n++)
+                        {
+                            var c = Child(root, $"{N}Chan{s}_{n}");
+                            var f = Child(root, $"{N}Spill{s}_{n}");
+                            chans[s * (levels + 1) + n] = c != null ? c.GetComponent<Renderer>() : null;
+                            spills[s * (levels + 1) + n] = f != null ? f.GetComponent<Renderer>() : null;
+                        }
+                        for (int n = 1; n <= levels; n++)
+                        {
+                            var crop = Child(root, $"{N}Crop{s}_{n}");
+                            if (crop == null)
+                                continue;
+                            var cp = new GameObject($"CropPivot{s}_{n}").transform;
+                            cp.SetParent(r, false);
+                            cp.localPosition = new Vector3(0f, Biosphere.TerraceTop(Biosphere.TerraceOfLevel(n)), 0f);
+                            crop.SetParent(cp, true);
+                            crops[s * levels + n - 1] = cp;
+                        }
+                    }
+                    root.AddComponent<InteriorSluiceGates>().Configure(gateWheels, plates, chans, spills, crops, waterWheels, fallsFx, font);
+                    // 미니게임 "반딧불이 잡기" (InteriorFireflyCatch): 길가 유리병 선반 (보고 F) · 숲 모서리 · 하늘 호수로 풀어 줌 · 선반 위 안내판
+                    var rack = new GameObject("FireflyRack").transform;
+                    rack.SetParent(r, false);
+                    float rackYaw = Biosphere.OutwardYaw(Biosphere.FireflyAngle);
+                    rack.localPosition = Biosphere.FireflyRack + Vector3.up * 0.65f;
+                    rack.localRotation = Quaternion.Euler(0f, rackYaw, 0f);
+                    var rackBox = rack.gameObject.AddComponent<BoxCollider>();
+                    rackBox.size = new Vector3(1.2f, 1.3f, 0.4f);
+                    root.AddComponent<InteriorFireflyCatch>().Configure(rackBox, ModuleFxMaterials.Get("FireworkSpark"), font, Child(root, N + "Sky").GetComponent<Renderer>(),
+                        Biosphere.FireflyZone, Biosphere.FireflyZoneRadius, F, new Vector3(Biosphere.Hub.x, Biosphere.SkyTop + 0.6f, Biosphere.Hub.z),
+                        Biosphere.FireflyRack + Vector3.up * 1.75f, rackYaw, Child(root, N + "Fx").GetComponent<Renderer>());
+                });
+        }
+
+        /// <summary>
+        /// 진화 3단계 항성 발전망 "꿀벌 정원" (바닥 7 × 2칸 + 위 2 × 2 (x 1 ~ 2) · 1 × 2 (x 5), Blender sg3_builder — 사용자 2026-11-11 시안 1 "좋아 이대로 유니티로 옮겨줘"). 맨몸 정원.
+        /// 외형 × 8: 왼쪽 꽃나무 숲 → 등나무 꽃 정자 (진주 갈비대 여섯 · 금빛 띠 둘 · 진주 · 금 시렁 위 덩굴 · 잎 지붕 · 꽃송이, 금빛 처마 고리의 꽃송이 커튼, 안 = 꽃 고리 화단 · 진주 벤치 · 꿀 샘 · 떠 있는 수정 · 그네 틀)
+        /// → 징검돌 길 · 해바라기 무리 · 들꽃 초원 · 꿀벌 물터 연못 · 전망대 (위 해치) → 꿀 샘 (미니게임 무대) → 꿀 언덕 (육각 기둥, 속 = 벌집 홀 · 꿀 저장 기둥) → 라벤더 이랑.
+        /// 문 자리 = 꿀 언덕 칸 앞뒤 둘 (굴로 벌집 홀 · 언덕 앞뒤 산책길), 아래 해치 = 바닥 칸 열넷, 위 해치 = 전망대 위. 꿀벌 = 내부 전용 모델 (고리 길 · 맴돎 · 꽃 위 쉼).
+        /// 체험 = 정자 꽃 그네 (<see cref="InteriorFlowerSwing"/>), 미니게임 = 벌 몰래 꿀 먹기 (<see cref="InteriorHoneySneak"/>).
+        /// </summary>
+        private static void BuildEvoStellarGrid()
+        {
+            const string N = "INT_EvoStellarGrid_";
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in StellarGrid.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, StellarGrid.DoorDepth));
+            foreach (var (cell, off) in StellarGrid.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -F, new Vector3(off.x, 0f, off.y)));
+            sockets.Add(new InteriorSocket(StellarGrid.UpHatchCell, Vector3Int.up, StellarGrid.UpHatchDepth, StellarGrid.UpHatchOffset));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.62f);
+            var honey = new Color(1f, 0.74f, 0.4f);
+            var cool = new Color(0.82f, 0.9f, 1f);
+            var lights = new List<LightSpec>();
+            var pc = StellarGrid.PavilionCenter;
+            lights.Add(LightSpec.Point(new Vector3(pc.x, F + 3.4f, pc.z), 8f, 1.0f, warm));                                    // 정자 가운데
+            for (int k = 0; k < 6; k++)
+                lights.Add(LightSpec.Point(StellarGrid.Lantern(k) + Vector3.down * 0.5f, 4.5f, 0.55f, honey));               // 꿀빛 등불 여섯
+            foreach (float x in new[] { 4f, 20f, 28f, 35f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.8f, -2.6f), 7f, 0.8f, white));                               // 앞 산책길
+            foreach (float x in new[] { 4f, 20f, 28f, 36f, 44f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.8f, 10.6f), 7f, 0.8f, white));                               // 뒤 산책길
+            foreach (var (x, z) in new[] { (1.2f, 2.6f), (0.9f, 6.3f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 5.0f, z), 8.5f, 0.95f, new Color(1f, 0.9f, 0.95f)));          // 꽃나무 숲 (나무 사이 빈 곳 · 잎 지붕 위 (큰 나무 꼭대기 F + 4.6) — 잎 지붕 속이면 꽃잎 한 장만 하얗게 탐)
+            lights.Add(LightSpec.Point(new Vector3(24f, F + 3.2f, 3.5f), 8f, 0.9f, white));                                  // 초원 · 해바라기
+            lights.Add(LightSpec.Point(new Vector3(29f, F + 2.0f, 7.8f), 5f, 0.6f, cool));                                   // 연못
+            lights.Add(LightSpec.Point(StellarGrid.Lookout + Vector3.up * 1.9f, 5f, 0.7f, white));                           // 전망대
+            lights.Add(LightSpec.Point(StellarGrid.HoneySpring + new Vector3(0f, 2.4f, -0.6f), 5f, 0.8f, warm));             // 꿀 샘 (미니게임 무대)
+            var hall = StellarGrid.HallCenter;
+            lights.Add(LightSpec.Point(new Vector3(hall.x, F + 3.0f, hall.z), 6f, 1.1f, honey));                             // 벌집 홀 (꿀 저장 기둥)
+            lights.Add(LightSpec.Point(new Vector3(hall.x, F + 2.1f, -0.6f), 4f, 0.8f, honey));                              // 앞 굴
+            lights.Add(LightSpec.Point(new Vector3(hall.x, F + 2.1f, 9.6f), 4f, 0.8f, honey));                               // 뒤 굴
+            lights.Add(LightSpec.Point(new Vector3(37.8f, F + 2.0f, StellarGrid.Portal.z), 4f, 0.7f, honey));                // 벌집 입구 굴
+            lights.Add(LightSpec.Point(new Vector3(48f, F + 2.8f, 4f), 8f, 0.85f, white));                                   // 라벤더 이랑
+            foreach (float x in new[] { 8f, 16f, 24f, 31f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 4.2f, x < 20f ? -1.8f : 4.4f), 9f, 0.7f, white));                  // 초원 · 정자 앞 (어두운 우주 하늘 아래 잔디가 묻히지 않게)
+            lights.Add(LightSpec.Point(new Vector3(34.6f, F + 4.4f, 4.6f), 9f, 0.9f, white));                                // 꿀 언덕 정자 쪽 면
+            lights.Add(LightSpec.Point(new Vector3(45.4f, F + 4.4f, 4.4f), 8f, 0.8f, white));                                // 꿀 언덕 라벤더 쪽 면
+            EvoAccent("StellarGrid", "#FFF0A0");
+            // 스폰 = 앞 문 안 (꿀 언덕 앞 산책길): 앞 산책길 · 꿀 샘 · 해바라기 너머 등나무 꽃 정자를 바라봄.
+            // 자기 방을 하늘 화면에 보임: 위 칸 (정자 · 꿀 언덕)이 좁아, 초원에서 올려다보면 바닥 칸 천장 (3.95)이 정자 돔 · 언덕 꼭대기를 가렸음 —
+            //  천장 너머 이 내부 모델의 돔 · 언덕 윗부분이 같은 자리 (1/8 축척 화면)에 이어 보임. 처음엔 바깥 모델을 비췄는데 큰 잎 덩어리 · 마름모 꽃송이라
+            //  꼭대기만 거칠게 보였음 (사용자 2026-11-11 "꼭대기 내부 모델로 맞추고")
+            Build("EvoStellarGrid", "Evolved/MD_Evo_StellarGrid", sockets, new Vector3(38.4f, F, -2.8f), 270f, lights, showOwnInterior: true,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    // 연못 · 해바라기 · 쉬는 큰 꽃 줄기 · 나무 줄기에 못 들어가는 벽 (sg3_builder LakeHit): 모양만 쓰고 보이지 않음
+                    var lakeHit = Child(root, N + "LakeHit");
+                    var lakeMesh = lakeHit.GetComponent<MeshFilter>().sharedMesh;
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshRenderer>());
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshFilter>());
+                    lakeHit.gameObject.AddComponent<MeshCollider>().sharedMesh = lakeMesh;
+                    // 물: 꿀벌 물터 연못 = KWS 물 (꺼 둠 → InteriorKwsWater가 켬) + 패키지 없는 PC용 Blender 수면
+                    var surface = Child(root, N + "Water");
+                    var kws = KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), StellarGrid.PondLevel, 0.35f, "StellarGrid0", false);
+                    root.AddComponent<InteriorKwsWater>().Configure(kws != null ? new[] { kws } : new GameObject[0], new[] { surface.GetComponent<Renderer>() },
+                        Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(24f, 2f, 4f));
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    // 체험 "정자 꽃 그네" (InteriorFlowerSwing, 사용자 4안): 그네 조각 (원점 = 굴대, sg3_builder SW_PIV)을 굴대 피벗 아래로 · 자리 상자 (보고 F) ·
+                    //  수정 꽃송이 종 여섯 (앞 Bell0_k · 뒤 Bell1_k, 원점 = 매달린 꼭대기)
+                    var swingPivot = new GameObject("SwingPivot").transform;
+                    swingPivot.SetParent(r, false);
+                    swingPivot.localPosition = StellarGrid.SwingPivot;
+                    var swingMesh = Child(root, N + "Swing");
+                    if (swingMesh != null)
+                        swingMesh.SetParent(swingPivot, true);
+                    var seat = new GameObject("SwingSeat").transform;
+                    seat.SetParent(swingPivot, false);
+                    seat.localPosition = new Vector3(0f, -StellarGrid.SwingLength + 0.1f, 0f);
+                    var seatBox = seat.gameObject.AddComponent<BoxCollider>();
+                    seatBox.size = new Vector3(0.6f, 0.3f, 0.78f);
+                    var bells = new Transform[6];
+                    for (int k = 0; k < 3; k++)
+                    {
+                        bells[k] = Child(root, $"{N}Bell0_{k}");
+                        bells[3 + k] = Child(root, $"{N}Bell1_{k}");
+                    }
+                    root.AddComponent<InteriorFlowerSwing>().Configure(swingPivot, seatBox, bells, ModuleFxMaterials.Get("FireworkSpark"), font);
+                    // 꿀벌 (내부 전용 모델 SM_InteriorCritters — Critter_Bee + 날개 Critter_BeeWings, 미터): 고리 길 열둘 · 맴돎 다섯 + 경비 꿀벌 · 꽃 위 쉼 넷
+                    GameObject body = null, wings = null;
+                    foreach (var o in AssetDatabase.LoadAllAssetsAtPath("Assets/_Project/Art/Models/Interior/SM_InteriorCritters.fbx"))
+                    {
+                        if (o is GameObject g && g.GetComponent<MeshFilter>() != null)
+                        {
+                            if (g.name == "Critter_Bee") body = g;
+                            else if (g.name == "Critter_BeeWings") wings = g;
+                        }
+                    }
+                    if (body == null || wings == null)
+                    {
+                        Debug.LogWarning("[InteriorTemplateBuilder] 내부 꿀벌 모델 없음 (SM_InteriorCritters Critter_Bee · Critter_BeeWings)");
+                        return;
+                    }
+                    var holder = new GameObject("Bees").transform;
+                    holder.SetParent(r, false);
+                    var face = Quaternion.Euler(0f, 90f, 0f);   // 모델 앞 (로컬 −x) → +z
+                    Transform Bee(string name, Vector3 at, Vector3 dir, float scale)
+                    {
+                        var t = new GameObject(name).transform;
+                        t.SetParent(holder, false);
+                        t.localPosition = at;
+                        t.localRotation = Quaternion.LookRotation(dir, Vector3.up) * face * body.transform.localRotation;
+                        t.localScale = body.transform.localScale * scale;
+                        t.gameObject.AddComponent<MeshFilter>().sharedMesh = body.GetComponent<MeshFilter>().sharedMesh;
+                        var mr = t.gameObject.AddComponent<MeshRenderer>();
+                        mr.sharedMaterial = ModuleFxMaterials.Get("Critters");
+                        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                        var pivot = new GameObject("WingPivot").transform;   // 날개 뿌리 (등 위) — 여기서 폭 · 높이를 번갈아 바꿔 파닥임
+                        pivot.SetParent(t, false);
+                        pivot.localPosition = new Vector3(0f, 0.115f, 0f);
+                        var w = new GameObject("Wings").transform;
+                        w.SetParent(pivot, false);
+                        w.localPosition = new Vector3(0f, -0.115f, 0f);
+                        w.localRotation = Quaternion.Inverse(body.transform.localRotation) * wings.transform.localRotation;
+                        w.localScale = new Vector3(wings.transform.localScale.x / body.transform.localScale.x, wings.transform.localScale.y / body.transform.localScale.y,
+                            wings.transform.localScale.z / body.transform.localScale.z);
+                        w.gameObject.AddComponent<MeshFilter>().sharedMesh = wings.GetComponent<MeshFilter>().sharedMesh;
+                        var wr = w.gameObject.AddComponent<MeshRenderer>();
+                        wr.sharedMaterial = ModuleFxMaterials.Get("Prism");
+                        wr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                        return t;
+                    }
+                    var path = StellarGrid.BeePath;
+                    var flyers = new Transform[12];
+                    for (int i = 0; i < flyers.Length; i++)
+                    {
+                        float u = (float)i / flyers.Length;
+                        var p = StellarGrid.PathPoint(path, u);
+                        flyers[i] = Bee("Bee_Fly" + i, p, StellarGrid.PathPoint(path, u + 0.004f) - p, 1f);
+                    }
+                    var hovers = new Transform[StellarGrid.HoverBees.Length + 1];
+                    for (int i = 0; i < StellarGrid.HoverBees.Length; i++)
+                        hovers[i] = Bee("Bee_Hover" + i, StellarGrid.HoverBees[i], new Vector3(Mathf.Sin(i * 2.1f), 0f, Mathf.Cos(i * 2.1f)), 1f);
+                    hovers[hovers.Length - 1] = Bee("Bee_Guard", StellarGrid.GuardBee, Vector3.right, StellarGrid.GuardScale);   // 미니게임 경비 꿀벌 (평소 = 벌집 쪽)
+                    var resters = new Transform[StellarGrid.RestFlowers.Length];
+                    for (int i = 0; i < resters.Length; i++)
+                        resters[i] = Bee("Bee_Rest" + i, StellarGrid.RestFlowers[i] + Vector3.up * 0.1f, new Vector3(Mathf.Cos(i * 1.9f), 0f, Mathf.Sin(i * 1.9f)), 0.9f);
+                    var flight = holder.gameObject.AddComponent<InteriorBeeFlight>();
+                    flight.Configure(path, flyers, hovers, resters, 1.1f, body.transform.localRotation, hovers[hovers.Length - 1]);
+                    // 미니게임 "벌 몰래 꿀 먹기" (InteriorHoneySneak): 그루터기 위 꿀단지 (따로 물체, 원점 = 밑면) · 시작 상자 (그루터기 · 꿀단지를 보고 F) ·
+                    //  곰 = 동물 주민 모델 (곰) · 경비 꿀벌 = 위 맴도는 벌 마지막 · 옆에서 보는 카메라 · 안내판 글자
+                    var start = new GameObject("HoneySneakStart").transform;
+                    start.SetParent(r, false);
+                    start.localPosition = StellarGrid.StumpTop + Vector3.up * 0.05f;
+                    var startBox = start.gameObject.AddComponent<BoxCollider>();
+                    startBox.size = new Vector3(0.9f, 1.0f, 0.9f);
+                    root.AddComponent<InteriorHoneySneak>().Configure(Child(root, N + "HoneyPot"), startBox, flight,
+                        AssetDatabase.LoadAssetAtPath<SpaceStation.Data.AnimalModelSet>("Assets/_Project/Data/Residents/AnimalModelSet.asset"), font,
+                        StellarGrid.SneakCamera, StellarGrid.SneakLookAt, StellarGrid.StumpTop, 90f, StellarGrid.SignBoard, StellarGrid.SignYaw);
+                });
+        }
+
+        /// <summary>
+        /// 진화 3단계 궤도 방어망 "등대 곶 해안" (바닥 5 × 2칸 + 왼쪽 위 2 × 2, Blender od3_builder — 사용자 2026-11-12 시안 1 "유니티로 옮겨줘"). 맨몸 정원.
+        /// 외형 × 8: 왼쪽 층층 바위 곶 (지층 다섯 · 풀 턱 · 바닷새 둥지 · 앞면에 판 진주 계단 · 앞 오른쪽 큰 바다 동굴, 윗면 = 진주 등대 · 관리인 오두막 · 망원경 · 개울 → 폭포)
+        /// · 앞 모래 해변 (진주 잔교 · 매인 배 · 선베드) · 바다 (KWS 실사 물, 수정 부표 셋 — 가운데 = 잔교에서 건너가는 포대 자리) · 뒤 방파제 (걸어 다니는 둑 · 산호, 끝 등불대 · 레버)
+        /// · 오른쪽 끝 조수 웅덩이 · 물범 바위. 외형과 다른 곳: 등대 금빛 나선 띠 = 바깥 나선 계단 (곶 윗면 → 하늘 다리 6.7 → 꼭대기 발코니 8.6, 등실 안 렌즈 · 손잡이),
+        /// 위 문 둘 (곶 뒤 칸 왼쪽 · 오른쪽 면 = 외형 연결점)을 잇는 곶 뒤 하늘 다리, 큰 동굴 앞 모래 후미.
+        /// 문 자리 = 여덟 (곶 둘레 여섯 + 하늘 다리 양 끝), 아래 해치 = 바닥 칸 열, 위 해치 = 하늘 다리 위 둘 · 방파제 위 하나.
+        /// 체험 (다음 단계) = 등대 빛 돌리기 · 오로라 보호막 펼치기, 미니게임 = 별똥별 막기.
+        /// </summary>
+        private static void BuildEvoOrbitalDefense()
+        {
+            const string N = "INT_EvoOrbitalDefense_";
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in OrbitalDefense.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, OrbitalDefense.DoorDepth));
+            foreach (var (cell, off, floorY) in OrbitalDefense.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -floorY, new Vector3(off.x, 0f, off.y)));
+            foreach (var (cell, off) in OrbitalDefense.UpHatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, OrbitalDefense.UpHatchDepth, new Vector3(off.x, 0f, off.y)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.62f);
+            var cool = new Color(0.82f, 0.9f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (float x in new[] { 11f, 17f, 23f, 29f, 34f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, -2.2f), 8f, 0.85f, white));                              // 해변
+            foreach (float x in new[] { 14f, 22f, 29f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, x < 28f ? 9.8f : 7.6f), 8f, 0.8f, white));                // 방파제
+            foreach (float x in new[] { 15f, 21f, 27f, 33f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.4f, 4f), 9f, 0.7f, cool));                                    // 바다 (부표 · 포대)
+            lights.Add(LightSpec.Point(new Vector3(-2.6f, F + 2.8f, 4f), 7f, 0.75f, white));                                  // 곶 왼쪽 자갈 해안
+            foreach (float x in new[] { 1f, 8f })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 2.8f, 11f), 7f, 0.75f, white));                                 // 곶 뒤 자갈 해안
+            lights.Add(LightSpec.Point(new Vector3(3f, F + 2.8f, -2.8f), 7f, 0.8f, white));                                   // 곶 앞 해변 · 절벽 계단 아래
+            lights.Add(LightSpec.Point(new Vector3(2.4f, OrbitalDefense.CapeTop + 3.4f, 1.6f), 8f, 0.85f, warm));             // 곶 윗면 (오두막 · 계단 꼭대기)
+            lights.Add(LightSpec.Point(new Vector3(7.6f, OrbitalDefense.CapeTop + 3.4f, 7.2f), 8f, 0.8f, white));             // 곶 윗면 (개울 · 망원경)
+            lights.Add(LightSpec.Point(OrbitalDefense.LensCenter + Vector3.up * 0.7f, 6f, 0.9f, warm));                        // 등실
+            foreach (float x in new[] { -1f, 9f })
+                lights.Add(LightSpec.Point(new Vector3(x, OrbitalDefense.SkywalkY + 2.6f, 8.6f), 7f, 0.7f, white));            // 하늘 다리
+            var cave = OrbitalDefense.CavePath;
+            lights.Add(LightSpec.Point(new Vector3(cave[3].x, F + 1.6f, cave[3].y), 5f, 0.85f, warm));                          // 큰 바다 동굴 (빛 이끼 · 수정)
+            lights.Add(LightSpec.Point(new Vector3(33.6f, F + 2.8f, 0f), 7f, 0.75f, white));                                  // 조수 웅덩이
+            EvoAccent("OrbitalDefense", "#B8C8FF");
+            // 스폰 = 해변 잔교 옆: 바다 · 포대 부표 · 방파제 너머 왼쪽 곶 · 등대를 봄.
+            // 자기 방을 하늘 화면에 보임: 위 칸은 곶 (x ≤ 11.95)뿐이라, 바다 쪽에서 올려다보면 바닥 칸 천장 (3.95)이 등대 · 하늘 다리를 가림 (항성 발전망과 같음)
+            Build("EvoOrbitalDefense", "Evolved/MD_Evo_OrbitalDefense", sockets, OrbitalDefense.Spawn, OrbitalDefense.SpawnYaw, lights, showOwnInterior: true,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    // 바다 · 폭포 웅덩이 · 조수 웅덩이 · 나무 줄기에 못 들어가는 벽 (od3_builder LakeHit): 모양만 쓰고 보이지 않음
+                    var lakeHit = Child(root, N + "LakeHit");
+                    var lakeMesh = lakeHit.GetComponent<MeshFilter>().sharedMesh;
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshRenderer>());
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshFilter>());
+                    lakeHit.gameObject.AddComponent<MeshCollider>().sharedMesh = lakeMesh;
+                    // 물: 수면 높이마다 KWS 실사 물 (바다 = 물결 · 곶 개울 · 조수 웅덩이, 꺼 둠 → InteriorKwsWater가 켬) + 패키지 없는 PC용 Blender 수면
+                    var kws = new List<GameObject>();
+                    var surfaces = new List<Renderer>();
+                    var depth = new[] { 1.2f, 0.12f, 0.1f };
+                    for (int k = 0; k < OrbitalDefense.WaterLevels.Length; k++)
+                    {
+                        var surface = Child(root, N + "Water" + (k == 0 ? "" : k.ToString()));
+                        if (surface == null)
+                            continue;
+                        surfaces.Add(surface.GetComponent<Renderer>());
+                        kws.Add(KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), OrbitalDefense.WaterLevels[k], depth[k], "OrbitalDefense" + k, k == 0));
+                    }
+                    if (kws.Count > 0 && kws[0] != null)
+                        KwsWaterBuilder.Ripple(kws[0], OrbitalDefense.FallsLanding, 0.6f, 0.4f);   // 곶 폭포가 떨어지는 웅덩이
+                    kws.RemoveAll(x => x == null);
+                    root.AddComponent<InteriorKwsWater>().Configure(kws.ToArray(), surfaces.ToArray(), Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(16f, 2f, 4f));
+                    root.AddComponent<InteriorWaterfallFx>().Configure(new[] { OrbitalDefense.FallsLanding }, new[] { OrbitalDefense.FallsWidth },
+                        AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FallsMistPath));
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    // 곶 끝 망원경 (외형 "감지"): 머리 따로 (원점 = 받침 위), F로 들여다봄 — 앞 오른쪽 바다 쪽 ± 100°
+                    root.AddComponent<InteriorTelescope>().Configure(Child(root, N + "ScopeHead"), OrbitalDefense.ScopeHead, 18f, 0f, font, OrbitalDefense.ScopeYaw, 100f,
+                        startPitch: -12f, startFov: 24f, minPitch: -60f);
+                    // 체험 "등대 빛 돌리기" (InteriorLighthouse, 사용자 2026-11-13 "비추면 반응"): 렌즈 (원점 = 렌즈 가운데, 손잡이 포함)에
+                    //  앞뒤 빛 두 줄기 (LightBeamFx — 렌즈 수정 고리에서 아래로 BeamPitch, 거의 수평으로 등실 유리 · 회랑 위를 지나 스러짐) ·
+                    //  손잡이 구슬 충돌체 (보고 F) — 모두 렌즈 자식이라 같이 돎. 스포트라이트는 없음 (렌즈 앞 회랑 바닥을 하얗게 태웠음 — 빛이 닿은 곳은 반응으로 보임)
+                    var lens = Child(root, N + "Lens");
+                    var lc = OrbitalDefense.LensCenter;
+                    var beamRoot = new GameObject("LensBeams");
+                    beamRoot.transform.SetParent(r, false);
+                    var beamFrom = new Vector3[2];
+                    var beamTo = new Vector3[2];
+                    var beamNormals = new Vector3[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        float yaw = OrbitalDefense.LensHandleYaw + 180f * k;
+                        var dir = Quaternion.Euler(OrbitalDefense.BeamPitch, yaw, 0f) * Vector3.forward;
+                        beamFrom[k] = lc + dir * OrbitalDefense.BeamStart;
+                        beamTo[k] = lc + dir * OrbitalDefense.BeamReach(yaw);   // 벽 쪽이면 하늘 면 앞에서 끝 (돌 때는 InteriorLighthouse가 맞춤)
+                        beamNormals[k] = dir;
+                    }
+                    AddLightShafts(beamRoot, beamFrom, beamTo, new[] { OrbitalDefense.BeamStartDiameter, OrbitalDefense.BeamStartDiameter }, beamNormals,
+                        OrbitalDefense.BeamEndDiameter, InteriorSetup.Evo3LighthouseBeamPath);
+                    beamRoot.transform.SetParent(lens, true);
+                    var knob = new GameObject("LensHandle");
+                    knob.transform.SetParent(r, false);
+                    knob.transform.localPosition = lc + Quaternion.Euler(0f, OrbitalDefense.LensHandleYaw, 0f) * Vector3.forward * OrbitalDefense.HandleReach + Vector3.down * OrbitalDefense.HandleDrop;
+                    var knobCollider = knob.AddComponent<SphereCollider>();
+                    knobCollider.radius = 0.14f;
+                    knob.transform.SetParent(lens, true);
+                    var lightAnswers = new[]
+                    {
+                        InteriorLighthouse.Answer.Bob, InteriorLighthouse.Answer.Glow, InteriorLighthouse.Answer.Sway,
+                        InteriorLighthouse.Answer.Flash, InteriorLighthouse.Answer.Flash, InteriorLighthouse.Answer.Flash,
+                    };
+                    var lightTargets = new[] { Child(root, N + "Buoy1"), Child(root, N + "Turret"), Child(root, N + "Boat"), null, null, null };
+                    root.AddComponent<InteriorLighthouse>().Configure(lens, knobCollider, lightTargets, lightAnswers, ModuleFxMaterials.Get("FireworkSpark"), font);
+                    // 체험 "오로라 보호막 펼치기" (InteriorAuroraShield, 사용자 2026-11-13 "레버 → 보호막 쇼 관람"): 방파제 끝 레버 손잡이 충돌체 (레버 자식, 보고 F) ·
+                    //  선베드 셋 눕기 (InteriorBenchSeats — 주민 누운 자리와 같은 엉덩이 자리, 하늘을 올려다봄) · 닿은 자리 수정 결정 막 (바깥 3단계 실드와 같은 CrystalBarrierFx, 실제 시간)
+                    var leverT = Child(root, N + "AuroraLever");
+                    var grip = new GameObject("LeverGrip");
+                    grip.transform.SetParent(r, false);
+                    grip.transform.localPosition = OrbitalDefense.AuroraLever + new Vector3(0f, 0.3f, -0.12f);
+                    var gripBox = grip.AddComponent<BoxCollider>();
+                    gripBox.size = new Vector3(0.4f, 0.75f, 0.45f);
+                    grip.transform.SetParent(leverT, true);
+                    var loungerSeats = new Vector4[OrbitalDefense.Loungers.Length];
+                    var loungerBoxes = new Bounds[OrbitalDefense.Loungers.Length];
+                    for (int k = 0; k < loungerSeats.Length; k++)
+                    {
+                        float x = OrbitalDefense.Loungers[k];
+                        loungerSeats[k] = new Vector4(x, OrbitalDefense.LoungerSeatY, OrbitalDefense.LoungerZ - 0.3f, 0f);
+                        loungerBoxes[k] = new Bounds(new Vector3(x, OrbitalDefense.Floor + 0.45f, OrbitalDefense.LoungerZ - 0.45f), new Vector3(0.66f, 0.5f, 1.3f));
+                    }
+                    var loungers = root.AddComponent<InteriorBenchSeats>();
+                    loungers.Configure(loungerSeats, loungerBoxes, OrbitalDefense.LoungerPitch, OrbitalDefense.LoungerEye, "눕기");
+                    var crystalGo = new GameObject("AuroraShieldCrystal");
+                    crystalGo.transform.SetParent(r, false);
+                    var crystal = crystalGo.AddComponent<SpaceStation.Building.CrystalBarrierFx>();
+                    var cso = new SerializedObject(crystal);
+                    cso.FindProperty("_material").objectReferenceValue = ModuleFxMaterials.Get("CrystalShard");
+                    cso.FindProperty("_sparkMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkSpark");
+                    cso.FindProperty("_plateSize").floatValue = 0.45f;   // 바깥 0.3 (모듈 크기) → 내부 막 크기
+                    cso.FindProperty("_unscaled").boolValue = true;
+                    cso.ApplyModifiedPropertiesWithoutUndo();
+                    root.AddComponent<InteriorAuroraShield>().Configure(leverT, gripBox, ModuleFxMaterials.Get("AuroraBarrier"), ModuleFxMaterials.Get("FireworkLine"),
+                        ModuleFxMaterials.Get("FireworkSpark"), crystal, loungers, font);
+                    // 미니게임 "별똥별 막기" (InteriorStarfall, 사용자 2026-11-13 "포대에 앉아 조준 · 발사"): 포수 의자 충돌체 (보고 F) · 포대 수정 무리 (조준하는 쪽으로 기움) ·
+                    //  프리즘 광선 (바깥 포대와 같은 PrismBeamFx — 8배 방이라 굵기 2.5배, 실제 시간으로 InteriorStarfall이 돌림)
+                    var gunYaw = Quaternion.Euler(0f, OrbitalDefense.GunSeatYaw, 0f);
+                    var gun = new GameObject("GunSeatUse");
+                    gun.transform.SetParent(r, false);
+                    gun.transform.localPosition = OrbitalDefense.GunSeat + Vector3.up * 0.3f - gunYaw * Vector3.forward * 0.05f;
+                    gun.transform.localRotation = gunYaw;
+                    var gunBox = gun.AddComponent<BoxCollider>();
+                    gunBox.size = new Vector3(0.6f, 0.75f, 0.6f);
+                    var beamGo = new GameObject("StarfallBeam");
+                    beamGo.transform.SetParent(r, false);
+                    var prismBeam = beamGo.AddComponent<SpaceStation.Building.PrismBeamFx>();
+                    var pso = new SerializedObject(prismBeam);
+                    pso.FindProperty("_lineMaterial").objectReferenceValue = ModuleFxMaterials.Get("FireworkLine");
+                    pso.FindProperty("_width").floatValue = 2.5f;
+                    pso.FindProperty("_muzzles").arraySize = 0;
+                    pso.ApplyModifiedPropertiesWithoutUndo();
+                    root.AddComponent<InteriorStarfall>().Configure(Child(root, N + "Turret"), gunBox, prismBeam, ModuleFxMaterials.Get("FireworkLine"),
+                        ModuleFxMaterials.Get("FireworkSpark"), font);
+                    // 바다 동물 (critter_builder 바다 동물 — 귀여운 2등신, 얼굴 = 아틀라스): 묶음 배율 = CritterFx 움직임 크기 (게 옆걸음 0.31 m · 돌고래 2.4 m 뜀 · 흔들림 cm)
+                    //  물범 · 아기 물범 = 물범 바위에서 숨 쉬며 고개 듦, 게 = 물가 모래를 따라 옆걸음, 돌고래 = 깊은 바다에서 뛰어오름, 거북 = 얕은 바다 고리 헤엄
+                    //  (잔교 · 배 · 부표 · 물가 · 방파제를 비킴), 퍼핀 = 바다 · 조수 웅덩이 바위에서 휙 돌아봄 + 곶 풀 턱 둘은 숨만 쉼 (턱 폭 0.3 m)
+                    var critterSrc = InteriorCritterModels();
+                    CritterGroup(r, critterSrc, "Critters_Seal", 8f, CritterSpots(OrbitalDefense.Seals));
+                    CritterGroup(r, critterSrc, "Critters_Crab", 14f, CritterSpots(OrbitalDefense.Crabs));
+                    CritterGroup(r, critterSrc, "Critters_Dolphin", 34f, CritterSpots(OrbitalDefense.Dolphins));
+                    CritterGroup(r, critterSrc, "Critters_Turtle", 10f, CritterSpots(OrbitalDefense.Turtles),
+                        SwimBlocker(root, new Vector3(22f, OrbitalDefense.SeaLevel, 4f), 15f, (OrbitalDefense.SeaLevel, 0f)));
+                    CritterGroup(r, critterSrc, "Critters_Puffin", 2f, CritterSpots(OrbitalDefense.Puffins));   // 돌아볼 때 위아래 흔들림 = 0.0015 × 배율 (8이면 1.2 cm — 발이 들썩였음)
+                    CritterGroup(r, critterSrc, "Critters_LedgePuffin", 8f, CritterSpots(OrbitalDefense.LedgePuffins), kind: SpaceStation.Building.CritterFx.Kind.Bask);
+                });
+        }
+
+        /// <summary>
+        /// 진화 3단계 수리 사령부 "반딧불 고목 치유소" (바닥 3 × 3 + 뒤 두 줄 위 칸 — rc3_builder, 사용자 2026-11-13 시안 1 "유니티로 옮겨줘"):
+        /// 이끼 언덕 위 진주 고목 (줄기 속 나선 계단 → 나무집 관제실 · 꼭대기 관측대) · 도르래 구조 바구니 · 나무 구멍 공방 · 샘 → 물길 → 연못 · 앞 이끼 숲 빈터.
+        /// 움직이는 조각 (Basket · BasketRope · Bell · Lantern{k} · MemLamp{k})은 원점 = 쓰는 자리 — 체험 (구조 바구니 + 경종) · 미니게임 (드론 순서 기억하기)이 씀.
+        /// </summary>
+        private static void BuildEvoRepairCommand()
+        {
+            const string N = "INT_EvoRepairCommand_";
+            const float RF = RepairCommand.Floor, Hill = RepairCommand.HillTop;
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in RepairCommand.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, RepairCommand.DoorDepth));
+            foreach (var (cell, off, floorY) in RepairCommand.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -floorY, new Vector3(off.x, 0f, off.y), hatchScale: RepairCommand.HatchScale(cell)));
+            foreach (var (cell, off) in RepairCommand.UpHatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, RepairCommand.UpHatchDepth, new Vector3(off.x, 0f, off.y)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.62f);
+            var t = RepairCommand.TreeAxis;
+            var lights = new List<LightSpec>();
+            foreach (float x in new[] { 1.5f, 8f, 14.5f })
+                lights.Add(LightSpec.Point(new Vector3(x, RF + 3.0f, 16.4f), 8f, 0.8f, white));                               // 앞 빈터 (오두막 · 그루터기 · 연못)
+            foreach (var (x, z) in new[] { (0.6f, 6f), (15.4f, 6f), (1.6f, -1.8f), (14.4f, -1.8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, Hill + 3.2f, z), 8f, 0.75f, white));                              // 언덕 둘레 (뿌리 · 공방 · 샘 · 바구니 정류장)
+            lights.Add(LightSpec.Point(new Vector3(t.x + 1.1f, Hill + 2.4f, t.z + 0.3f), 5f, 0.8f, warm));                // 줄기 속 (계단 아래 · 가운데 기둥 속은 피함)
+            lights.Add(LightSpec.Point(new Vector3(t.x - 1.1f, RepairCommand.SkyFloor + 1.8f, t.z - 0.3f), 5f, 0.75f, warm)); // 줄기 속 나무집 층계참
+            foreach (float a in RepairCommand.WorkshopAngles)
+                lights.Add(LightSpec.Point(new Vector3(t.x + 3.6f * Mathf.Cos(a * Mathf.Deg2Rad), Hill + 2.0f, t.z + 3.6f * Mathf.Sin(a * Mathf.Deg2Rad)), 4f, 0.75f, warm));   // 나무 구멍 공방
+            var th = RepairCommand.Treehouse;
+            lights.Add(LightSpec.Point(th + Vector3.up * 1.9f, 4f, 0.8f, warm));                                            // 나무집 관제실 안
+            lights.Add(LightSpec.Point(th + new Vector3(0f, 2.6f, 2.4f), 6f, 0.7f, white));                                 // 나무집 마루 · 줄기 다리
+            foreach (float dx in new[] { -3.3f, 3.3f })
+                lights.Add(LightSpec.Point(new Vector3(t.x + dx, RepairCommand.DeckY + 1.8f, t.z), 7f, 0.75f, white));        // 꼭대기 관측대 (수정 등대 둘레)
+            foreach (var p in new[] { new Vector3(13f, 7.2f, 6f), new Vector3(3f, 7.2f, 4f) })
+                lights.Add(LightSpec.Point(p, 7f, 0.55f, warm));                                                              // 잎 구름 아래 (가지 등불)
+            // 빨래 = 줄 양쪽 1.3 m에 가까운 하얀 등 둘 (멀고 약한 등 하나는 천 그늘면 · 화면 공간 그늘 얼룩만 보여 빨지 않은 천처럼 어두웠음 — 2026-11-13 Unity 확인) + 약초 밭
+            lights.Add(LightSpec.Point(new Vector3(-1.7f, RF + 2.3f, 11.5f), 5f, 2.2f, white));
+            lights.Add(LightSpec.Point(new Vector3(-1.8f, RF + 2.3f, 14.2f), 5f, 2.0f, white));
+            lights.Add(LightSpec.Point(new Vector3(-1.3f, RF + 2.4f, 17.6f), 4f, 1.2f, white));
+            lights.Add(LightSpec.Point(new Vector3(16.2f, RF + 2.9f, 9.0f), 6f, 0.7f, white));                              // 길옆에 세운 수정 수레
+            EvoAccent("RepairCommand", "#FFE0B0");
+            // 스폰 = 앞 빈터 그루터기 뒤 (기억 등불 다섯 · 고목 · 관측대를 봄).
+            // 자기 방을 하늘 화면에 보임: 위 칸은 뒤 두 줄뿐이라, 앞 빈터에서 올려다보면 바닥 칸 천장 (3.95)이 관측대 · 잎 구름 윗부분을 가림 (궤도 방어망과 같음)
+            Build("EvoRepairCommand", "Evolved/MD_Evo_RepairCommand", sockets, RepairCommand.Spawn, RepairCommand.SpawnYaw, lights, showOwnInterior: true,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    // 연못 · 샘에 못 들어가는 벽 (rc3_builder LakeHit): 모양만 쓰고 보이지 않음
+                    var lakeHit = Child(root, N + "LakeHit");
+                    var lakeMesh = lakeHit.GetComponent<MeshFilter>().sharedMesh;
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshRenderer>());
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshFilter>());
+                    lakeHit.gameObject.AddComponent<MeshCollider>().sharedMesh = lakeMesh;
+                    // 물: 수면 높이마다 KWS 실사 물 (연못 · 샘, 꺼 둠 → InteriorKwsWater가 켬) + 패키지 없는 PC용 Blender 수면
+                    var kws = new List<GameObject>();
+                    var surfaces = new List<Renderer>();
+                    var depth = new[] { 0.75f, 0.32f };
+                    for (int k = 0; k < RepairCommand.WaterLevels.Length; k++)
+                    {
+                        var surface = Child(root, N + "Water" + (k == 0 ? "" : k.ToString()));
+                        if (surface == null)
+                            continue;
+                        surfaces.Add(surface.GetComponent<Renderer>());
+                        kws.Add(KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), RepairCommand.WaterLevels[k], depth[k], "RepairCommand" + k, false));
+                    }
+                    if (kws.Count > 0 && kws[0] != null)
+                        KwsWaterBuilder.Ripple(kws[0], RepairCommand.StreamMouth, 0.4f, 0.3f);   // 물길이 연못에 닿는 곳
+                    kws.RemoveAll(x => x == null);
+                    root.AddComponent<InteriorKwsWater>().Configure(kws.ToArray(), surfaces.ToArray(), Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(8f, 2f, 8f));
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    var gold = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3GoldPath);
+                    // 체험 ① 구조 바구니 (InteriorRescueBasket, 사용자 2026-11-15 "체험으로 넘어가자"): 바구니 바닥 판 · 엮은 벽 충돌 상자 (바구니 자식 — 정류장 · 마루에서 걸어 들어가고
+                    //  공중에서는 실려 감, 마루 쪽 트임 ±38°는 비움, 바닥 판은 마루 끝 (+0.74)까지) · 마루 바구니 문 보이지 않는 벽 + 금빛 막대 (경첩 = 문 −z 끝, 바구니가 마루에 서면 들림)
+                    var basket = Child(root, N + "Basket");
+                    var floorBox = new GameObject("BasketFloor").AddComponent<BoxCollider>();
+                    floorBox.transform.SetParent(basket, false);
+                    floorBox.center = new Vector3(0.04f, RepairCommand.BasketFloorTop - 0.03f, 0f);
+                    floorBox.size = new Vector3(1.4f, 0.06f, 1.32f);
+                    const int wallSegs = 10;
+                    float wallFrom = RepairCommand.BasketOpening, wallStep = (360f - 2f * RepairCommand.BasketOpening) / wallSegs;
+                    for (int k = 0; k < wallSegs; k++)
+                    {
+                        float a = (wallFrom + wallStep * (k + 0.5f)) * Mathf.Deg2Rad;
+                        var radial = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                        var wall = new GameObject("BasketWall" + k).AddComponent<BoxCollider>();
+                        wall.transform.SetParent(basket, false);
+                        wall.transform.localPosition = radial * RepairCommand.BasketRadius + Vector3.up * (RepairCommand.BasketWallHeight * 0.5f + 0.03f);
+                        wall.transform.localRotation = Quaternion.LookRotation(radial, Vector3.up);
+                        wall.size = new Vector3(2f * RepairCommand.BasketRadius * Mathf.Sin(wallStep * 0.5f * Mathf.Deg2Rad) + 0.04f, RepairCommand.BasketWallHeight, 0.08f);
+                    }
+                    var gateGo = new GameObject("BasketGate");
+                    gateGo.transform.SetParent(r, false);
+                    gateGo.transform.localPosition = RepairCommand.BasketGate + Vector3.up * 0.6f;
+                    var gateBox = gateGo.AddComponent<BoxCollider>();
+                    gateBox.size = new Vector3(0.1f, 1.2f, RepairCommand.BasketGateWidth);
+                    var gatePivot = new GameObject("BasketGateBar").transform;
+                    gatePivot.SetParent(r, false);
+                    gatePivot.localPosition = RepairCommand.BasketGate + new Vector3(0f, 1.0f, -0.64f);
+                    var bar = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    Object.DestroyImmediate(bar.GetComponent<Collider>());
+                    bar.name = "Bar";
+                    bar.transform.SetParent(gatePivot, false);
+                    bar.transform.localPosition = new Vector3(0f, 0f, 0.64f);
+                    bar.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                    bar.transform.localScale = new Vector3(0.06f, 0.64f, 0.06f);
+                    bar.GetComponent<MeshRenderer>().sharedMaterial = gold;
+                    root.AddComponent<InteriorRescueBasket>().Configure(basket, Child(root, N + "BasketRope"), gateBox, gatePivot, font);
+                    // 체험 ② 경종 → 반딧불 드론 등불 쇼 (InteriorFireflyShow): 종 줄 손잡이 고리 충돌체 (종 줄 자식 — 줄 자체는 충돌 없음, 보고 F) · 가지 등불 열셋 (밝기 = 재질 블록) ·
+                    //  드론 몸 = 진주 · 꼬리 빛 = 등불과 같은 발광 재질 · 반짝이 = 불꽃놀이 반짝이
+                    var bellRope = Child(root, N + "BellRope");
+                    var handle = new GameObject("BellHandle").AddComponent<SphereCollider>();
+                    handle.transform.SetParent(bellRope, false);
+                    handle.radius = 0.16f;
+                    var lanterns = new Transform[RepairCommand.Lanterns.Length];
+                    for (int k = 0; k < lanterns.Length; k++)
+                        lanterns[k] = Child(root, N + "Lantern" + k);
+                    var droneBody = AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3PearlPath);
+                    var droneGlow = AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorLight.mat");
+                    root.AddComponent<InteriorFireflyShow>().Configure(Child(root, N + "Bell"), bellRope, handle, lanterns, droneBody, droneGlow, ModuleFxMaterials.Get("FireworkSpark"), font);
+                    // 미니게임 "드론 순서 기억하기" (InteriorDroneMemory, 사용자 2026-11-15 "미니게임으로 넘어가자"): 그루터기 충돌 상자 (보고 F = 올라섬 — 그루터기 몸체 위 1 cm까지) ·
+                    //  기억 등불 다섯 (그루터기에서 왼쪽부터 별 · 달 · 하트 · 잎 · 물방울, 밝기 = 재질 칸 블록) · 반딧불 드론 한 마리 (쇼와 같은 모양)
+                    var stumpUse = new GameObject("MemoryStumpUse").AddComponent<BoxCollider>();
+                    stumpUse.transform.SetParent(r, false);
+                    float stumpH = RepairCommand.MemoryStumpTop - RepairCommand.Floor + 0.01f;
+                    stumpUse.transform.localPosition = new Vector3(RepairCommand.MemoryStump.x, RepairCommand.Floor + stumpH * 0.5f, RepairCommand.MemoryStump.z);
+                    stumpUse.size = new Vector3(1.0f, stumpH, 1.0f);
+                    var memLamps = new Transform[RepairCommand.MemoryLamps.Length];
+                    for (int k = 0; k < memLamps.Length; k++)
+                        memLamps[k] = Child(root, N + "MemLamp" + k);
+                    root.AddComponent<InteriorDroneMemory>().Configure(memLamps, stumpUse, droneBody, droneGlow, ModuleFxMaterials.Get("FireworkSpark"), font);
+                    // 동물 (외형 열아홉과 같은 수, 사용자 2026-11-15 "동물로 넘어가자"): 사슴 · 아기 사슴 · 토끼 · 오리 가족 = 내부 전용 모델 (critter_builder, 미터 — 궤도 도시 · 바이오스피어와 같은 모델),
+                    //  나비 = 외형 나비 (SM_Evo_RepairCommand Critter_*_Butterfly)를 궤도 도시와 같은 크기 (× 4)로. 묶음 배율 = CritterFx 움직임 크기 (궤도 도시 · 바이오스피어와 같음)
+                    var critterSrc = InteriorCritterModels();
+                    var extButterflies = new List<GameObject>();
+                    foreach (var o in AssetDatabase.LoadAllAssetsAtPath("Assets/_Project/Art/Models/Modules/SM_Evo_RepairCommand.fbx"))
+                    {
+                        if (o is GameObject g && g.name.StartsWith("Critter_") && g.name.EndsWith("_Butterfly") && g.GetComponent<MeshFilter>() != null)
+                            extButterflies.Add(g);
+                    }
+                    extButterflies.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+                    for (int k = 0; k < extButterflies.Count; k++)
+                        critterSrc["Critter_Butterfly" + k] = extButterflies[k];
+                    CritterGroup(r, critterSrc, "Critters_Deer", 13f, CritterSpots(RepairCommand.Deer));
+                    CritterGroup(r, critterSrc, "Critters_Bunny", 6f, CritterSpots(RepairCommand.Bunnies));
+                    CritterGroup(r, critterSrc, "Critters_Duck", 7f, CritterSpots(RepairCommand.Ducks),
+                        SwimBlocker(root, RepairCommand.Pond, 4f, (RepairCommand.Pond.y, 0f)));
+                    CritterGroup(r, critterSrc, "Critters_Turtle", 8f, CritterSpots(RepairCommand.Turtles));   // 연못 거북 = 돌 테 바위 위 볕 쬐기 (숨 · 고개 듦)
+                    CritterGroup(r, critterSrc, "Critters_Butterfly", 4f, CritterSpots(RepairCommand.Butterflies), kind: SpaceStation.Building.CritterFx.Kind.Flutter, modelScale: 4f);
+                });
+        }
+
+        /// <summary>
+        /// 진화 3단계 궤도 항만 "진주 조개 항구 · 인어 왕국의 항구" (바닥 7 × 2칸 한 층 — op3_builder, 사용자 2026-11-16 "배를 가리비 모양으로 고치고 유니티로 옮겨줘"):
+        /// 산호 섬 진주 조개 궁전 · 인어 꼬리 분수 · 석호 해마 회전목마 · 해마 가리비 배 넷 · 진주 모래 해변 선착장 · 산호 방파제 · 진주 잔교 · 산호 기중기 · 큰 진주 조개 셋 · 앵무조개 · 등대 전망대.
+        /// 움직이는 조각 (Carousel · Boat{k} · ClamLid{k} · ClamPearl{k})은 원점 = 쓰는 자리 (회전목마 축 · 배 가운데 수면 · 조개 경첩 · 진주 가운데) — 체험 (뱃놀이) · 미니게임 (진주 조개 잡기 ·
+        /// 분수 진주 던지기)이 쓸 자리. 이번 이식에서는 회전목마만 천천히 돎.
+        /// </summary>
+        private static void BuildEvoOrbitalPort()
+        {
+            const string N = "INT_EvoOrbitalPort_";
+            const float PF = OrbitalPort.Floor;
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in OrbitalPort.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, OrbitalPort.DoorDepth));
+            foreach (var (cell, off, floorY) in OrbitalPort.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -floorY, new Vector3(off.x, 0f, off.y)));
+            foreach (var (cell, off) in OrbitalPort.UpHatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.up, OrbitalPort.UpHatchDepth, new Vector3(off.x, 0f, off.y)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var warm = new Color(1f, 0.86f, 0.62f);
+            var cool = new Color(0.82f, 0.9f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (float x in new[] { 14f, 20f, 28f, 34f })
+                lights.Add(LightSpec.Point(new Vector3(x, PF + 3.0f, -2.4f), 8f, 0.85f, white));                              // 진주 모래 해변 · 선착장
+            foreach (float x in new[] { 13f, 20f, 28f })
+                lights.Add(LightSpec.Point(new Vector3(x, PF + 3.0f, 10.4f), 8f, 0.8f, white));                               // 산호 방파제 · 소라 문
+            foreach (var (x, z) in new[] { (18f, 4f), (30f, 4f), (24f, 0.4f) })
+                lights.Add(LightSpec.Point(new Vector3(x, PF + 3.4f, z), 9f, 0.7f, cool));                                    // 석호 (배 길 · 회전목마 둘레 — 도는 판 밖)
+            foreach (var (x, z) in new[] { (0f, 1.8f), (9.2f, 1.6f), (0.8f, 9.2f), (6.4f, 9.8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, PF + 3.2f, z), 8f, 0.8f, white));                                   // 산호 섬 (궁전 둘레 · 분수 마당 · 첨탑)
+            var pal = OrbitalPort.Palace;
+            lights.Add(LightSpec.Point(pal + new Vector3(-1.2f, 1.6f, 0f), 4.5f, 0.8f, warm));                               // 궁전 안 (샹들리에 바로 밑은 피함)
+            foreach (var (x, z) in new[] { (44f, 10f), (49.6f, 8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, PF + 3.0f, z), 8f, 0.8f, white));                                   // 진주 잔교 · 잔교 끝
+            var cd = OrbitalPort.CraneDeck;
+            lights.Add(LightSpec.Point(new Vector3((cd.x + cd.y) * 0.5f, OrbitalPort.CraneDeckY + 2.1f, (cd.z + cd.w) * 0.5f), 6f, 0.75f, white));   // 기중기 운전대
+            lights.Add(LightSpec.Point(new Vector3(OrbitalPort.ClamStage.x, PF + 3.0f, OrbitalPort.ClamStage.z - 0.6f), 8f, 0.85f, white));   // 진주 조개 잡기 단
+            foreach (var (x, z) in new[] { (40f, -1.6f), (44.6f, 4.4f) })
+                lights.Add(LightSpec.Point(new Vector3(x, PF + 3.2f, z), 8f, 0.8f, white));                                   // 앵무조개 창고 · 등대 전망대 둘레 모래톱
+            EvoAccent("OrbitalPort", "#B0F0D0");
+            // 스폰 = 선착장 뒤 해변 (선착장 · 배 · 회전목마 · 방파제 소라 문을 봄). 한 층이라 자기 방을 하늘 화면에 비출 것 없음
+            Build("EvoOrbitalPort", "Evolved/MD_Evo_OrbitalPort", sockets, OrbitalPort.Spawn, OrbitalPort.SpawnYaw, lights,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    // 석호에 못 들어가는 벽 (op3_builder LakeHit — 해변 · 섬 · 방파제 물가, 선착장 · 잔교 · 잡기 단은 비움): 모양만 쓰고 보이지 않음
+                    var lakeHit = Child(root, N + "LakeHit");
+                    var lakeMesh = lakeHit.GetComponent<MeshFilter>().sharedMesh;
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshRenderer>());
+                    Object.DestroyImmediate(lakeHit.GetComponent<MeshFilter>());
+                    lakeHit.gameObject.AddComponent<MeshCollider>().sharedMesh = lakeMesh;
+                    // 물: 수면 높이마다 KWS 실사 물 (석호 = 물결 · 분수, 꺼 둠 → InteriorKwsWater가 켬) + 패키지 없는 PC용 Blender 수면
+                    var kws = new List<GameObject>();
+                    var surfaces = new List<Renderer>();
+                    var depth = new[] { OrbitalPort.LagoonLevel - OrbitalPort.SeaBed, 0.4f };
+                    for (int k = 0; k < OrbitalPort.WaterLevels.Length; k++)
+                    {
+                        var surface = Child(root, N + "Water" + (k == 0 ? "" : k.ToString()));
+                        if (surface == null)
+                            continue;
+                        surfaces.Add(surface.GetComponent<Renderer>());
+                        kws.Add(k == 0
+                            ? KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), OrbitalPort.WaterLevels[k], depth[k], "OrbitalPort" + k, true, 2.4f, new Color(0.08f, 0.38f, 0.4f))   // 석호 = 맑은 청록 (물가 모래 턱 · 젖은 모래가 비침 — 사용자 2026-11-16 "해안선이 해안처럼 느껴지지 않음")
+                            : KwsWaterBuilder.Build(r, surface.GetComponent<MeshFilter>(), OrbitalPort.WaterLevels[k], depth[k], "OrbitalPort" + k, false));
+                    }
+                    var tip = OrbitalPort.FountainTip;
+                    if (kws.Count > 1 && kws[1] != null)
+                        KwsWaterBuilder.Ripple(kws[1], new Vector3(tip.x, OrbitalPort.Fountain.y, tip.z), 1.1f, 0.3f);   // 분수 물줄기가 떨어지는 고리
+                    kws.RemoveAll(x => x == null);
+                    root.AddComponent<InteriorKwsWater>().Configure(kws.ToArray(), surfaces.ToArray(), Child(root, N + "Sky").GetComponent<Renderer>(), new Vector3(24f, 2f, 4f));
+                    // 인어 꼬리 분수 물줄기 (꼬리지느러미 사이에서 사방으로 · 수면 고리에 거품 · 물안개)
+                    root.AddComponent<InteriorFountainFx>().Configure(tip, OrbitalPort.Fountain.y, 1.1f, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.FallsMistPath));
+                    // 해마 회전목마 = 받침 축으로 천천히 돎 (체험 전 — 원점 = 받침 윗면 가운데)
+                    var carousel = Child(root, N + "Carousel");
+                    var spinner = carousel.gameObject.AddComponent<SpaceStation.Building.ModuleSpinner>();
+                    var sso = new SerializedObject(spinner);
+                    sso.FindProperty("_speed").floatValue = 9f;
+                    sso.ApplyModifiedPropertiesWithoutUndo();
+                    // 해마 (사용자 2026-11-17 "해마 유니티로 옮겨줘" — critter_builder 귀여운 해마, op3_builder는 옛 해마를 짓지 않음):
+                    //  회전목마 넷 = 회전목마 조각의 자식 (기둥이 몸을 지남) · 궁전 왕좌 양옆 금빛 상 둘 = 진주 받침 위 (배 한 쌍은 아래 배 피벗에)
+                    var critterSrc = InteriorCritterModels();
+                    foreach (var (model, at, facing) in OrbitalPort.CarouselSeahorses)
+                        CritterModel(r, critterSrc, model, at, facing, OrbitalPort.CarouselSeahorseScale)?.SetParent(carousel, true);
+                    foreach (var (model, at, facing) in OrbitalPort.PalaceSeahorses)
+                        CritterModel(r, critterSrc, model, at, facing, OrbitalPort.PalaceSeahorseScale);
+                    // 해마 가리비 배 뱃놀이 (체험, 사용자 2026-11-16 "가리비 배 뱃놀이 체험 진행해줘"): 배 넷 (op3_builder Boat{k}, 처음 자리에 구운 메시 · 원점 = 배 가운데 수면)을
+                    //  배 길 처음 자세의 피벗 (+z = 배 길 앞) 아래로 옮겨 피벗이 배 길을 돎, 피벗마다 앉음판 왼쪽 · 오른쪽 자리 (보고 F = 앉기)
+                    var boatPivots = new Transform[OrbitalPort.Boats.Length];
+                    var boatSeats = new Transform[boatPivots.Length * 2];
+                    var boatStarts = new float[boatPivots.Length];
+                    for (int b = 0; b < boatPivots.Length; b++)
+                    {
+                        boatStarts[b] = OrbitalPort.BoatStartS(b);
+                        OrbitalPort.CoursePose(boatStarts[b], out var at, out var dir);
+                        var pivot = new GameObject($"Boat{b}_Pivot").transform;
+                        pivot.SetParent(r, false);
+                        pivot.localPosition = new Vector3(at.x, OrbitalPort.LagoonLevel, at.y);
+                        pivot.localRotation = Quaternion.LookRotation(new Vector3(dir.x, 0f, dir.y));
+                        Child(root, N + "Boat" + b).SetParent(pivot, true);
+                        foreach (var (model, side) in OrbitalPort.BoatSeahorses)                                       // 앞 해마 한 쌍 (고삐 끝이 머리 속 — 배와 함께 돎)
+                        {
+                            OrbitalPort.BoatSeahorse(b, side, out var sAt, out float sFacing);
+                            CritterModel(r, critterSrc, model, sAt, sFacing, OrbitalPort.BoatSeahorseScale)?.SetParent(pivot, true);
+                        }
+                        for (int k = 0; k < 2; k++)
+                        {
+                            var seat = new GameObject(k == 0 ? "SeatL" : "SeatR").transform;
+                            seat.SetParent(pivot, false);
+                            seat.localPosition = OrbitalPort.BoatSeat(k);
+                            var seatBox = seat.gameObject.AddComponent<BoxCollider>();   // 앉음판 + 앉은 몸 자리 (선착장에서 내려다보며 겨누기 쉽게 — 0.16 m 판만이면 찾기 어려웠음)
+                            seatBox.size = new Vector3(0.44f, 0.6f, 0.9f);
+                            seatBox.center = new Vector3(0f, 0.22f, 0.05f);
+                            boatSeats[b * 2 + k] = seat;
+                        }
+                        boatPivots[b] = pivot;
+                    }
+                    var rideFont = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    root.AddComponent<InteriorScallopRide>().Configure(boatPivots, boatSeats, boatStarts, rideFont);
+                    // 바다 동물 (critter_builder — 궤도 방어망과 같은 모델): 물범 · 아기 물범 = 모래톱 물가에서 숨 쉬며 고개 듦, 게 = 물가 모래를 따라 옆걸음,
+                    //  거북 = 석호 수면 고리 헤엄 (배는 배 길을 따라 돌므로 길 전체 + 회전목마 받침 · 산호초 · 조개 · 잔교 · 물가를 비킴)
+                    CritterGroup(r, critterSrc, "Critters_Seal", 8f, CritterSpots(OrbitalPort.Seals));
+                    CritterGroup(r, critterSrc, "Critters_Crab", 14f, CritterSpots(OrbitalPort.Crabs));
+                    var swim = SwimBlocker(root, new Vector3(26f, OrbitalPort.LagoonLevel, 4f), 30f, (OrbitalPort.LagoonLevel, 0f));
+                    CritterGroup(r, critterSrc, "Critters_Turtle", 10f, CritterSpots(OrbitalPort.Turtles),
+                        (p, radius) => swim(p, radius) || OrbitalPort.CourseDistance(new Vector2(p.x, p.z)) < OrbitalPort.TurtleCourseClear + radius);
+                    // 날치 = 석호 물에서 튀어나와 날개를 편 채 낮게 활공 (사용자 2026-11-16 모델 시트 "좋아 유니티로 옮겨줘")
+                    CritterGroup(r, critterSrc, "Critters_FlyingFish", OrbitalPort.FlyingFishScale, CritterSpots(OrbitalPort.FlyingFish));
+                    // 미니게임 둘 (사용자 2026-11-16 "미니게임 진행해줘"): 시작 상자 = 보이지 않는 상자 (보고 F — 판 중에는 꺼짐)
+                    BoxCollider StartBox(string name, Vector3 at, Vector3 size)
+                    {
+                        var go = new GameObject(name);
+                        go.transform.SetParent(r, false);
+                        go.transform.localPosition = at;
+                        go.AddComponent<BoxCollider>().size = size;
+                        return go.GetComponent<BoxCollider>();
+                    }
+                    var clamLids = new Transform[OrbitalPort.Clams.Length];
+                    var clamPearls = new Transform[clamLids.Length];
+                    for (int k = 0; k < clamLids.Length; k++)
+                    {
+                        clamLids[k] = Child(root, N + "ClamLid" + k);
+                        clamPearls[k] = Child(root, N + "ClamPearl" + k);
+                    }
+                    //  진주 조개 잡기: 잡기 단에서 조개 쪽 = 난간 밖 물 위 얇은 판, 게 = 내부 동물 게 모델
+                    critterSrc.TryGetValue("Critter_Crab", out var crabSrc);
+                    root.AddComponent<InteriorPearlClams>().Configure(clamLids, clamPearls, StartBox("PearlClamStart", OrbitalPort.ClamGameStart, OrbitalPort.ClamGameStartSize),
+                        crabSrc != null ? crabSrc.GetComponent<MeshFilter>().sharedMesh : null, ModuleFxMaterials.Get("Critters"), ModuleFxMaterials.Get("FireworkSpark"), rideFont);
+                    //  인어 분수 진주 던지기: 분수 물 위 상자, 던지는 진주 = 조개 진주 메시 · 재질
+                    var pearlSrc = clamPearls[0];
+                    root.AddComponent<InteriorFountainToss>().Configure(StartBox("FountainTossStart", OrbitalPort.TossStart, OrbitalPort.TossStartSize),
+                        pearlSrc.GetComponent<MeshFilter>().sharedMesh, pearlSrc.GetComponent<Renderer>().sharedMaterial,
+                        ModuleFxMaterials.Get("FireworkLine"), ModuleFxMaterials.Get("FireworkSpark"), rideFont);
+                    PlaceGarden(root, OrbitalPort.Lilies);   // 석호 수련 (식물 아틀라스 ④) — 헤엄 막힘을 잰 뒤라 거북 고리에 끼지 않음 (자리가 고리 · 배 길을 비킴)
+                });
+        }
+
+        /// <summary>
+        /// 진화 3단계 AI 중추 "수정 뇌 미로 정원" (바닥 L자 일곱 칸 한 층 — ai3_builder, 사용자 2026-11-16 시안 1-2 "좋아 이대로 Unity 작업 진행해줘"):
+        /// 뇌 두 반구 생울타리 미로 · 빈터 유리 돔 정자 (수정 뇌 · 책 받침 넷 · 시냅스 수정 여섯) · 장미 아치 문 앞마당 · 드론 마당 앞마당 · 드론 둥지 탑 · 유리 온실 · 꽃밭.
+        /// 움직이는 조각 (Brain · BookL{k} · BookR{k} · Synapse{k} · MazeBoard · Drone · VeinsFront · VeinsBack)은 원점 = 쓰는 자리 —
+        /// 체험 둘 (<see cref="InteriorDroneRide"/> 정원 드론 · <see cref="InteriorBrainShow"/> 수정 뇌 빛 쇼) · 미니게임 둘 (<see cref="InteriorMazeRun"/> 뇌 미로 · <see cref="InteriorSynapseMemory"/> 시냅스 따라 켜기).
+        /// </summary>
+        private static void BuildEvoAICore()
+        {
+            const string N = "INT_EvoAICore_";
+            const float F = AICore.Floor;
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in AICore.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, AICore.DoorDepth));
+            foreach (var (cell, off, floorY) in AICore.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -floorY, new Vector3(off.x, 0f, off.y)));
+            var white = new Color(1f, 0.97f, 0.92f);
+            var cool = new Color(0.9f, 0.88f, 1f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, z) in new[] { (4.6f, 4f), (11.4f, 4f), (8f, 0.3f), (8f, 7.7f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.1f, z), 7f, 0.8f, white));                                    // 빈터 둘레 (정자 돔 · 꼭대기 테에서 떨어져)
+            foreach (var l in AICore.Lobbies)
+                lights.Add(LightSpec.Point(new Vector3(l.x, F + 3.0f, l.y), 7f, 0.8f, white));                                // 앞마당 둘
+            foreach (var (x, z) in new[] { (1f, 0.2f), (15f, 0.2f), (1f, 7.8f), (15f, 7.8f), (8f, -1.6f), (8f, 9.6f), (4.5f, -1.3f), (11.5f, -1.3f), (4.5f, 9.3f), (11.5f, 9.3f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.2f, z), 7f, 0.85f, cool));                                    // 미로 (생울타리 위 — 드론 길 1.5 m 아래), 반구 가운데 넷 더함 · 0.7 → 0.85 (꽃송이 덩굴이 어두운 구석에서 묻혔음)
+            foreach (var (x, z) in new[] { (21.5f, 1.4f), (26.6f, 2.3f), (23.2f, -2.6f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + 3.0f, z), 7f, 0.75f, white));                                   // 드론 마당 (판석 길 · 작업대 · 꽃밭 · 온실)
+            EvoAccent("AICore", "#D8C0FF");
+            // 스폰 = 드론 마당 앞마당 옆 판석 길 (큰길 너머 정자 · 미로 입구 시냅스 기둥을 봄). 한 층이라 자기 방을 하늘 화면에 비출 것 없음
+            Build("EvoAICore", "Evolved/MD_Evo_AICore", sockets, AICore.Spawn, AICore.SpawnYaw, lights,
+                configure: root =>
+                {
+                    var r = root.transform;
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    var glow = AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorLight.mat");
+                    var spark = ModuleFxMaterials.Get("FireworkSpark");
+                    BoxCollider Box(string name, Transform parent, Vector3 at, Vector3 size, int layer = 0)
+                    {
+                        var go = new GameObject(name);
+                        go.layer = layer;
+                        go.transform.SetParent(parent, false);
+                        go.transform.localPosition = at;
+                        var box = go.AddComponent<BoxCollider>();
+                        box.size = size;
+                        return box;
+                    }
+                    // 체험 ① 정원 드론 (InteriorDroneRide): 앉음판 둘 (보고 F) · 바구니 엮은 벽 충돌 상자 (서쪽 트임 ±45°는 비움, 보는 광선은 지나감 = Ignore Raycast —
+                    //  착륙장에 선 드론 바구니로 걸어 들어가지 않게, 앉음판은 트임으로 겨눔)
+                    var drone = Child(root, N + "Drone");
+                    var seats = new Transform[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        var seat = Box(k == 0 ? "DroneSeatL" : "DroneSeatR", drone, AICore.DroneSeat(k), new Vector3(0.5f, 0.7f, 0.46f));
+                        seat.center = new Vector3(0f, 0.1f, 0f);
+                        seats[k] = seat.transform;
+                    }
+                    const int wallSegs = 9;
+                    float wallFrom = 180f + AICore.BasketOpening, wallStep = (360f - 2f * AICore.BasketOpening) / wallSegs;
+                    for (int k = 0; k < wallSegs; k++)
+                    {
+                        float a = (wallFrom + wallStep * (k + 0.5f)) * Mathf.Deg2Rad;
+                        var radial = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                        var wall = Box("BasketWall" + k, drone, radial * AICore.BasketRadius + Vector3.up * (AICore.BasketRim * 0.5f + 0.06f),
+                            new Vector3(2f * AICore.BasketRadius * Mathf.Sin(wallStep * 0.5f * Mathf.Deg2Rad) + 0.04f, AICore.BasketRim, 0.08f), 2);
+                        wall.transform.localRotation = Quaternion.LookRotation(radial, Vector3.up);
+                    }
+                    root.AddComponent<InteriorDroneRide>().Configure(drone, seats, font);
+                    // 미니게임 시냅스 따라 켜기 (InteriorSynapseMemory) · 체험 ② 수정 뇌 빛 쇼 (InteriorBrainShow) — 서로 막음
+                    var synapses = new Transform[AICore.Synapses.Length];
+                    for (int k = 0; k < synapses.Length; k++)
+                        synapses[k] = Child(root, N + "Synapse" + k);
+                    var books = new Transform[AICore.LecternAngles.Length];
+                    var lecterns = new Collider[books.Length];
+                    for (int k = 0; k < books.Length; k++)
+                    {
+                        books[k] = Child(root, N + "BookR" + k);
+                        var use = new GameObject("LecternUse" + k).AddComponent<SphereCollider>();   // 받침 판 · 책 (보고 F)
+                        use.transform.SetParent(r, false);
+                        use.transform.localPosition = AICore.LecternPlate(k);
+                        use.radius = 0.32f;
+                        lecterns[k] = use;
+                    }
+                    var veins = new[] { Child(root, N + "VeinsFront").GetComponent<Renderer>(), Child(root, N + "VeinsBack").GetComponent<Renderer>() };
+                    var show = root.AddComponent<InteriorBrainShow>();
+                    var memory = root.AddComponent<InteriorSynapseMemory>();
+                    memory.Configure(synapses, Box("SynapseStart", r, AICore.SynapseStart, AICore.SynapseStartSize), glow, spark, show, font);
+                    show.Configure(Child(root, N + "Brain"), books, lecterns, veins, spark, memory, font);
+                    // 미니게임 뇌 미로 빨리 빠져나가기 (InteriorMazeRun): 기록판 충돌 상자 (판 앞면 · 보고 F), 빛 구슬 = 빛 재질 + 작은 등
+                    var board = Child(root, N + "MazeBoard");
+                    var boardUse = Box("MazeBoardUse", board, new Vector3(-0.012f, 0f, 0f), new Vector3(0.05f, AICore.MazeBoardSize.y + 0.06f, AICore.MazeBoardSize.x + 0.06f));
+                    root.AddComponent<InteriorMazeRun>().Configure(board, boardUse, glow, spark, font);
+                    PlaceGarden(root, AICore.Garden);   // 생울타리 등나무 덩굴 · 꽃 등나무 · 풀밭 맥문동 · 수호초 · 벚나무 덤불 (식물 아틀라스)
+                });
+        }
+
+        /// <summary>
+        /// 정원 식물 (식물 아틀라스 메시 <c>Art/Plants/Meshes</c> — 재질 M_Foliage 하나 · 거리별 단순화 LODGroup 그대로): 모델 프리팹을 "Garden" 아래에 놓음.
+        /// 충돌체 없음 (잎은 지나감), 다른 내부 조각처럼 그림자 끔. 자리 · 크기는 Blender 빌더가 검사한 값 (<see cref="GardenPlant"/>).
+        /// </summary>
+        private static void PlaceGarden(GameObject root, IReadOnlyList<GardenPlant> plants)
+        {
+            var parent = new GameObject("Garden").transform;
+            parent.SetParent(root.transform, false);
+            foreach (var p in plants)
+            {
+                string path = PlantAtlas.MeshFolder + p.Mesh + ".fbx";
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (model == null)
+                {
+                    Debug.LogError($"[InteriorTemplateBuilder] 식물 모델 없음: {path}");
+                    continue;
+                }
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(model, parent);
+                go.transform.localPosition = p.Position;
+                go.transform.localRotation = Quaternion.Euler(0f, p.Yaw, 0f);
+                go.transform.localScale = p.Scale;
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                    r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+        }
+
+        /// <summary>
+        /// 진화 4단계 심우주 통신기지 "은하수 천문 언덕" (바닥 1 × 3칸 한 층 — ds4_builder, 사용자 2026-11-17 시안 1 "좋아 이대로 진행해줘"):
+        /// S자 은하수 강 · 은빛 아치 다리 둘 · 가운데 관측실 (들어감 — 망원경 · 신호 조종대) · 옆 중계소 둘 · 전파 접시 넷 (조작반 손바퀴 · 빛 케이블) · 별똥별 아치 ·
+        /// 별자리 광장 (북두칠성 빛 줄 · 천체 모형) · 초승달 벤치 · 삼각대 망원경. 움직이는 조각 (DishYaw{k} · DishTilt{k} · DishWheel{k} · Cable{k} · Orrery · StarFloat{k} · River)은
+        /// 원점 = 쓰는 자리 — 체험 둘 (<see cref="InteriorDishSignal"/> 접시 신호 모으기 · <see cref="InteriorWishArch"/> 별똥별 아치 소원) ·
+        /// 미니게임 둘 (<see cref="InteriorSignalTune"/> 신호 맞추기 · <see cref="InteriorStarCatch"/> 별똥별 잡기). 위 해치 없음 (하늘이 트인 방 — 단계별 연결통로 정리 때).
+        /// </summary>
+        private static void BuildEvoDeepSpaceComm()
+        {
+            const string N = "INT_EvoDeepSpaceComm_";
+            const float F = DeepSpaceComm.Floor;
+            var sockets = new List<InteriorSocket>();
+            foreach (var (cell, dir) in DeepSpaceComm.Doors)
+                sockets.Add(new InteriorSocket(cell, dir, DeepSpaceComm.DoorDepth));
+            foreach (var (cell, off, floorY) in DeepSpaceComm.Hatches)
+                sockets.Add(new InteriorSocket(cell, Vector3Int.down, -floorY, new Vector3(off.x, 0f, off.y)));
+            var moon = new Color(0.82f, 0.88f, 1f);
+            var warm = new Color(1f, 0.9f, 0.74f);
+            var lights = new List<LightSpec>();
+            foreach (var (x, y, z) in new[] { (0f, 3.0f, -2.0f), (8f, 3.4f, -2.4f), (16f, 3.0f, -2.0f), (4.4f, 3.0f, 1.2f), (11.6f, 3.0f, 1.2f), (-2.2f, 3.0f, 2.2f), (18.2f, 3.0f, 2.2f), (8f, 3.3f, 2.8f) })
+                lights.Add(LightSpec.Point(new Vector3(x, F + y, z), 7f, 0.7f, moon));                                       // 달빛 (돔 · 접시 · 강 위, 돔 꼭대기에서 떨어져)
+            lights.Add(LightSpec.Point(new Vector3(7.55f, F + 1.6f, 0.05f), 2.8f, 0.65f, warm));                               // 가운데 관측실 안 (조종대 · 망원경)
+            EvoAccent("DeepSpaceComm", "#8FE6FF");
+            Build("EvoDeepSpaceComm", "Evolved/MD_Evo_DeepSpaceComm", sockets, DeepSpaceComm.Spawn, DeepSpaceComm.SpawnYaw, lights,
+                orbits: new List<OrbitSpec> { new OrbitSpec(N + "Orrery", DeepSpaceComm.Orrery, Vector3.up, 9f) },   // 천체 모형 (해 둘레 행성 셋이 천천히 돎)
+                configure: root =>
+                {
+                    var r = root.transform;
+                    var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+                    var glow = AssetDatabase.LoadAssetAtPath<Material>(InteriorMaterials + "M_InteriorLight.mat");
+                    var line = ModuleFxMaterials.Get("FireworkLine");
+                    var spark = ModuleFxMaterials.Get("FireworkSpark");
+                    Collider Sphere(string name, Vector3 at, float radius)
+                    {
+                        var go = new GameObject(name);
+                        go.transform.SetParent(r, false);
+                        go.transform.localPosition = at;
+                        var c = go.AddComponent<SphereCollider>();
+                        c.radius = radius;
+                        return c;
+                    }
+                    // 체험 ① 전파 접시 신호 모으기: 접시 넷 (받침 · 접시 · 손바퀴), 손바퀴 충돌체 (보고 F)
+                    int dishes = DeepSpaceComm.Dishes.Length;
+                    var yaws = new Transform[dishes];
+                    var tilts = new Transform[dishes];
+                    var wheels = new Transform[dishes];
+                    var wheelUses = new Collider[dishes];
+                    for (int k = 0; k < dishes; k++)
+                    {
+                        yaws[k] = Child(root, N + "DishYaw" + k);
+                        tilts[k] = Child(root, N + "DishTilt" + k);
+                        wheels[k] = Child(root, N + "DishWheel" + k);
+                        wheelUses[k] = Sphere("DishWheelUse" + k, DeepSpaceComm.DishWheels[k], DeepSpaceComm.WheelUseRadius);
+                    }
+                    root.AddComponent<InteriorDishSignal>().Configure(yaws, tilts, wheels, wheelUses, glow, line, spark, font);
+                    // 체험 ② 별똥별 아치 소원: 아치 꼭대기 별 (보고 F), 강 별빛 번짐 자리 = 강 메시 UV (강 따라 m)에서 별똥별이 닿는 굽이에 가장 가까운 점
+                    var river = Child(root, N + "River");
+                    float wishU = 0f, riverLength = 0f;
+                    if (river != null)
+                    {
+                        var mesh = river.GetComponent<MeshFilter>().sharedMesh;
+                        var verts = mesh.vertices;
+                        var uvs = mesh.uv;
+                        float best = float.MaxValue;
+                        for (int i = 0; i < verts.Length && i < uvs.Length; i++)
+                        {
+                            var p = river.localRotation * Vector3.Scale(verts[i], river.localScale) + river.localPosition;
+                            float d = new Vector2(p.x - DeepSpaceComm.WishRiverPoint.x, p.z - DeepSpaceComm.WishRiverPoint.y).sqrMagnitude;
+                            if (d < best)
+                            {
+                                best = d;
+                                wishU = uvs[i].x;
+                            }
+                            riverLength = Mathf.Max(riverLength, uvs[i].x);
+                        }
+                    }
+                    var floating = new Transform[DeepSpaceComm.FloatingStars.Length];
+                    for (int k = 0; k < floating.Length; k++)
+                        floating[k] = Child(root, N + "StarFloat" + k);
+                    root.AddComponent<InteriorWishArch>().Configure(Sphere("WishArchUse", DeepSpaceComm.ArchTop + Vector3.down * 0.08f, 0.4f),
+                        river != null ? river.GetComponent<Renderer>() : null, floating, line, spark, font, wishU, riverLength);
+                    // 미니게임 ① 신호 맞추기: 휜 책상 위 시작 상자 (보고 F)
+                    var deskUse = new GameObject("SignalTuneUse");
+                    deskUse.transform.SetParent(r, false);
+                    deskUse.transform.localPosition = DeepSpaceComm.ConsoleUse;
+                    deskUse.transform.localRotation = Quaternion.LookRotation(DeepSpaceComm.ConsoleUse - new Vector3(DeepSpaceComm.CenterDome.x, DeepSpaceComm.ConsoleUse.y, DeepSpaceComm.CenterDome.y), Vector3.up);
+                    var deskBox = deskUse.AddComponent<BoxCollider>();
+                    deskBox.size = new Vector3(1.1f, 0.35f, 0.5f);
+                    root.AddComponent<InteriorSignalTune>().Configure(deskBox, line, AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ScreenDarkPath), font);
+                    // 미니게임 ② 별똥별 잡기: 천체 모형 (보고 F) — 별 = 반짝이는 흰 빛, 쓰레기 = 짙은 받침 재질
+                    root.AddComponent<InteriorStarCatch>().Configure(Sphere("StarCatchUse", DeepSpaceComm.Orrery, 0.38f), line, spark,
+                        ModuleFxMaterials.Get("TwinkleWhite"), AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4LowPath), font);
+                    // 동물 (외형 사슴 · 아기 사슴 · 토끼 셋 · 부엉이 둘 · 고슴도치 둘 중 내부 모델이 있고 자리가 나는 것): 아기 사슴 · 토끼 넷 = 내부 전용 모델 (critter_builder, 미터)
+                    var critterSrc = InteriorCritterModels();
+                    CritterGroup(r, critterSrc, "Critters_Fawn", 13f, CritterSpots(DeepSpaceComm.Fawns));
+                    CritterGroup(r, critterSrc, "Critters_Bunny", 6f, CritterSpots(DeepSpaceComm.Bunnies));
+                    // 부엉이 = 발코니 턱 (난간 · 돔 벽 사이가 좁아 휙 돌아보지 않고 숨 쉬며 가끔 고개 듦 — 좁은 턱의 퍼핀과 같음) · 고슴도치 = 풀밭에서 킁킁
+                    CritterGroup(r, critterSrc, "Critters_Owl", 2f, CritterSpots(DeepSpaceComm.Owls), kind: SpaceStation.Building.CritterFx.Kind.Bask, modelScale: DeepSpaceComm.OwlScale);
+                    CritterGroup(r, critterSrc, "Critters_Hedgehog", 6f, CritterSpots(DeepSpaceComm.Hedgehogs));
+                });
+        }
+
+        /// <summary>내부 전용 동물 모델 (critter_builder — SM_InteriorCritters, 미터): 이름 "Critter_종류" → 모델.</summary>
+        private static Dictionary<string, GameObject> InteriorCritterModels()
+        {
+            var critterSrc = new Dictionary<string, GameObject>();
+            foreach (var o in AssetDatabase.LoadAllAssetsAtPath("Assets/_Project/Art/Models/Interior/SM_InteriorCritters.fbx"))
+            {
+                if (o is GameObject g && g.name.StartsWith("Critter_") && g.GetComponent<MeshFilter>() != null)
+                    critterSrc[g.name] = g;
+            }
+            return critterSrc;
+        }
+
+        /// <summary>
+        /// 내부 동물 모델 하나 (움직임 없이 — 배 · 회전목마 · 궁전 상의 해마): parent 기준 at (모델 원점) · 바라보는 쪽 수학 각 · 크기 (미터 모델 배율).
+        /// 움직이는 조각에 붙일 땐 만든 뒤 SetParent(조각, true). 모델이 없으면 null.
+        /// </summary>
+        private static Transform CritterModel(Transform parent, Dictionary<string, GameObject> critterSrc, string src, Vector3 at, float facing, float scale)
+        {
+            if (!critterSrc.TryGetValue("Critter_" + src, out var g))
+            {
+                Debug.LogWarning("[InteriorTemplateBuilder] 내부 동물 없음: " + src);
+                return null;
+            }
+            var t = new GameObject("Critter_" + src).transform;
+            t.SetParent(parent, false);
+            t.localPosition = at;
+            t.localRotation = Quaternion.Euler(0f, 180f - facing, 0f) * g.transform.localRotation;
+            t.localScale = g.transform.localScale * scale;
+            t.gameObject.AddComponent<MeshFilter>().sharedMesh = g.GetComponent<MeshFilter>().sharedMesh;
+            var mr = t.gameObject.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = ModuleFxMaterials.Get("Critters");
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return t;
+        }
+
+        /// <summary>바라보는 쪽 (수학 각 — 0° = +x, 90° = +z) → 내부 동물 모델 yaw (모델 앞 = Blender +x = Unity −x).</summary>
+        private static (string, Vector3, float)[] CritterSpots((string Kind, Vector3 At, float Facing)[] spots)
+        {
+            var list = new (string, Vector3, float)[spots.Length];
+            for (int i = 0; i < spots.Length; i++)
+                list[i] = (spots[i].Kind, spots[i].At, 180f - spots[i].Facing);
+            return list;
+        }
+
+        /// <summary>내부 헤엄 고리 크기 (CritterFx.SwimSize 배율) — 큰 것부터 막히지 않는 것 (바깥 모듈 1 · 0.7 · 0.45보다 넓은 호수).</summary>
+        private static readonly float[] InteriorSwimScales = { 2.5f, 2f, 1.5f, 1.2f, 1f, 0.7f, 0.45f };
+        /// <summary>헤엄 막힘 몸 여유 = 간격 반지름 × 이만큼 (물높이 몸통 둘레 — 오리 가슴 끝 0.19 m · 간격 반지름 0.29 m).</summary>
+        private const float SwimBody = 0.75f;
+
+        /// <summary>
+        /// 내부 동물 묶음 (궤도 도시와 같은 틀): 묶음 = CritterFx 흔들림 폭에 맞춘 배율, 동물 = 내부 전용 모델 (미터)을 그만큼 줄여 넣음 (실제 크기 = 미터).
+        /// 새끼 오리 = 바로 앞 어미 (Swim)를 따라감 (StationArtBuilder.WireCritters와 같음). swimBlocked (템플릿 좌표 · 미터 반지름)가 있으면
+        /// 헤엄 동물 (오리 · 백조 · 거북)마다 고리 크기 · 도는 쪽을 골라 막히지 않게 (새끼 줄 길이 포함), 없으면 제자리에서 두리번. 게는 양쪽으로 옆걸음 (자리 고를 때 길 위 높이를 잼).
+        /// kind = 이 묶음 모두의 움직임 (없으면 이름으로 — 좁은 턱의 퍼핀은 돌아보지 않고 숨만 쉼). modelScale = 모델 크기 배율 (외형 모델을 키워 쓸 때 — 외형 나비 × 4).
+        /// </summary>
+        private static void CritterGroup(Transform parent, Dictionary<string, GameObject> critterSrc, string holderName, float scale, (string src, Vector3 at, float yaw)[] list,
+            System.Func<Vector3, float, bool> swimBlocked = null, SpaceStation.Building.CritterFx.Kind? kind = null, float modelScale = 1f)
+        {
+            var holder = new GameObject(holderName).transform;
+            holder.SetParent(parent, false);
+            holder.localScale = Vector3.one * scale;
+            var critterMat = ModuleFxMaterials.Get("Critters");
+            var parts = new List<Transform>();
+            var kinds = new List<SpaceStation.Building.CritterFx.Kind>();
+            foreach (var (src, at, yaw) in list)
+            {
+                if (!critterSrc.TryGetValue("Critter_" + src, out var g))
+                {
+                    Debug.LogWarning("[InteriorTemplateBuilder] 내부 동물 없음: " + src);
+                    continue;
+                }
+                var t = new GameObject("Critter_" + src).transform;
+                t.SetParent(holder, false);
+                t.localPosition = at / scale;
+                t.localRotation = Quaternion.Euler(0f, yaw, 0f) * g.transform.localRotation;
+                t.localScale = g.transform.localScale * (modelScale / scale);
+                t.gameObject.AddComponent<MeshFilter>().sharedMesh = g.GetComponent<MeshFilter>().sharedMesh;
+                var mr = t.gameObject.AddComponent<MeshRenderer>();
+                mr.sharedMaterial = critterMat;
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                parts.Add(t);
+                kinds.Add(kind ?? (StationArtBuilder.CritterKinds.TryGetValue(src, out var named) ? named : SpaceStation.Building.CritterFx.Kind.Swim));
+            }
+            var fx = holder.gameObject.AddComponent<SpaceStation.Building.CritterFx>();
+            var so = new SerializedObject(fx);
+            var arr = so.FindProperty("_critters");
+            arr.arraySize = parts.Count;
+            var leaders = new int[parts.Count];
+            var headings = new Vector3[parts.Count];
+            var radii = new float[parts.Count];
+            for (int i = 0; i < parts.Count; i++)
+            {
+                int leader = -1;
+                if (kinds[i] == SpaceStation.Building.CritterFx.Kind.Follow)
+                {
+                    for (int j = i - 1; j >= 0 && leader < 0; j--)
+                    {
+                        if (kinds[j] == SpaceStation.Building.CritterFx.Kind.Swim)
+                            leader = j;
+                        else if (kinds[j] != SpaceStation.Building.CritterFx.Kind.Follow)
+                            break;
+                    }
+                    if (leader < 0)
+                        kinds[i] = SpaceStation.Building.CritterFx.Kind.Swim;   // 따라갈 어미가 없으면 혼자 헤엄
+                }
+                leaders[i] = leader;
+                StationArtBuilder.CritterShape(parts[i], null, kinds[i], out headings[i], out radii[i]);
+                var e = arr.GetArrayElementAtIndex(i);
+                e.FindPropertyRelative("Part").objectReferenceValue = parts[i];
+                e.FindPropertyRelative("Kind").enumValueIndex = (int)kinds[i];
+                e.FindPropertyRelative("Heading").vector3Value = headings[i];
+                e.FindPropertyRelative("Radius").floatValue = radii[i];
+                e.FindPropertyRelative("Leader").intValue = leader;
+                e.FindPropertyRelative("Side").floatValue = kinds[i] == SpaceStation.Building.CritterFx.Kind.Scuttle ? 2f : 0f;   // 게 = 이쪽저쪽 번갈아 (0이면 제자리)
+            }
+            for (int i = 0; i < parts.Count && swimBlocked != null; i++)
+            {
+                bool turtle = kinds[i] == SpaceStation.Building.CritterFx.Kind.Drift;
+                if (kinds[i] != SpaceStation.Building.CritterFx.Kind.Swim && !turtle)
+                    continue;
+                // 새끼 줄 길이 (CritterFx.Play의 어미 길 자국과 같은 계산) · 새끼 처음 자리도 막히면 안 됨
+                var home = parts[i].localPosition;
+                float chain = 0f;
+                var prev = home;
+                for (int j = i + 1; j < parts.Count; j++)
+                {
+                    if (leaders[j] != i)
+                        continue;
+                    var p = parts[j].localPosition;
+                    chain += new Vector2(p.x - prev.x, p.z - prev.z).magnitude;
+                    prev = p;
+                    if (swimBlocked(p * scale, radii[j] * scale * SwimBody))
+                        Debug.LogWarning($"[InteriorTemplateBuilder] {holderName}: 새끼 {j} 처음 자리가 물 위 물체에 닿음 {p * scale}");
+                }
+                if (swimBlocked(home * scale, radii[i] * scale * SwimBody))
+                    Debug.LogWarning($"[InteriorTemplateBuilder] {holderName}: {parts[i].name} {i} 처음 자리가 물 위 물체에 닿음 {home * scale}");
+                float side = 0f;
+                foreach (float size in InteriorSwimScales)
+                {
+                    foreach (float s in new[] { 1f, -1f })
+                    {
+                        SpaceStation.Building.CritterFx.SwimSize(turtle, radii[i], chain, size, out float ra, out float rb);
+                        bool clear = true;
+                        for (int k = 1; k < 96 && clear; k++)
+                            clear = !swimBlocked((home + SpaceStation.Building.CritterFx.SwimOffset(headings[i], s, ra, rb, 2f * Mathf.PI * k / 96f)) * scale, radii[i] * scale * SwimBody);
+                        if (clear)
+                        {
+                            side = s * size;
+                            break;
+                        }
+                    }
+                    if (side != 0f)
+                        break;
+                }
+                if (side == 0f)
+                    Debug.LogWarning($"[InteriorTemplateBuilder] {holderName}: {parts[i].name} {i} 헤엄 고리가 다 막힘 → 제자리");
+                arr.GetArrayElementAtIndex(i).FindPropertyRelative("Side").floatValue = side;
+            }
+            so.FindProperty("_autoPlay").boolValue = true;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// 물 위 동물 헤엄 막힘 (CritterGroup): 수면 − 2 cm ~ + 1.5 m 몸체 면 (연잎 · 갈대 · 바위 · 둑 · 선착장 · 물 위 빛 구슬)이 가로 반지름 안에 있거나
+        /// 금지 원 안 (폭포 기둥 + 물보라)이면 막힘. 면은 10 cm 간격 점으로 — 꼭짓점만 보면 큰 상자 (선착장 마루 = 모서리 넷)를 못 잡아 마루 밑으로 헤엄칠 뻔했음.
+        /// 연잎은 수면 − 1 ~ + 0.5 cm라 수면 위만 보면 빠져 오리가 연잎 위에 앉았음 → 수면 물체 (`Water*`)만 빼고 수면에 걸친 것도 봄. 무지개 띠 (옅은 빛)만 지나가도 됨. 좌표 = 템플릿 (미터), lakes = (수면 높이, 가운데에서 금지 반지름).
+        /// </summary>
+        private static System.Func<Vector3, float, bool> SwimBlocker(GameObject root, Vector3 center, float reach, params (float water, float keepOut)[] lakes)
+        {
+            const float Cell = 0.25f;
+            var grid = new Dictionary<(int, int), List<Vector3>>();
+            var toLocal = root.transform.worldToLocalMatrix;
+            void Add(Vector3 p)
+            {
+                if (new Vector2(p.x - center.x, p.z - center.z).sqrMagnitude > reach * reach)
+                    return;
+                foreach (var (water, _) in lakes)
+                {
+                    if (p.y > water - 0.02f && p.y < water + 1.5f)
+                    {
+                        var key = (Mathf.FloorToInt(p.x / Cell), Mathf.FloorToInt(p.z / Cell));
+                        if (!grid.TryGetValue(key, out var cell))
+                            grid[key] = cell = new List<Vector3>();
+                        cell.Add(p);
+                        return;
+                    }
+                }
+            }
+            foreach (var mf in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh == null || mf.name.StartsWith("Critter_") || mf.name.EndsWith("Rainbow") || mf.name.Contains("_Water"))
+                    continue;
+                var m = toLocal * mf.transform.localToWorldMatrix;
+                var vs = mf.sharedMesh.vertices;
+                for (int i = 0; i < vs.Length; i++)
+                    vs[i] = m.MultiplyPoint3x4(vs[i]);
+                var tris = mf.sharedMesh.triangles;
+                for (int t = 0; t < tris.Length; t += 3)
+                {
+                    Vector3 a = vs[tris[t]], b = vs[tris[t + 1]], c = vs[tris[t + 2]];
+                    float lo = Mathf.Min(a.y, Mathf.Min(b.y, c.y)), hi = Mathf.Max(a.y, Mathf.Max(b.y, c.y));
+                    bool band = false;
+                    foreach (var (water, _) in lakes)
+                        band |= hi > water - 0.02f && lo < water + 1.5f;
+                    if (!band || Mathf.Max(a.x, Mathf.Max(b.x, c.x)) < center.x - reach || Mathf.Min(a.x, Mathf.Min(b.x, c.x)) > center.x + reach
+                        || Mathf.Max(a.z, Mathf.Max(b.z, c.z)) < center.z - reach || Mathf.Min(a.z, Mathf.Min(b.z, c.z)) > center.z + reach)
+                        continue;
+                    int n = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max((a - b).magnitude, Mathf.Max((b - c).magnitude, (c - a).magnitude)) / 0.1f), 1, 200);
+                    for (int u = 0; u <= n; u++)
+                        for (int v = 0; u + v <= n; v++)
+                            Add(a + (b - a) * ((float)u / n) + (c - a) * ((float)v / n));
+                }
+            }
+            return (p, radius) =>
+            {
+                foreach (var (water, keepOut) in lakes)
+                    if (Mathf.Abs(p.y - water) < 0.05f && new Vector2(p.x - center.x, p.z - center.z).sqrMagnitude < keepOut * keepOut)
+                        return true;
+                for (int x = Mathf.FloorToInt((p.x - radius) / Cell); x <= Mathf.FloorToInt((p.x + radius) / Cell); x++)
+                    for (int z = Mathf.FloorToInt((p.z - radius) / Cell); z <= Mathf.FloorToInt((p.z + radius) / Cell); z++)
+                    {
+                        if (!grid.TryGetValue((x, z), out var cell))
+                            continue;
+                        foreach (var q in cell)
+                            if (q.y > p.y - 0.02f && q.y < p.y + 1.5f && (q.x - p.x) * (q.x - p.x) + (q.z - p.z) * (q.z - p.z) < radius * radius)
+                                return true;
+                    }
+                return false;
+            };
         }
 
         private static Transform Child(GameObject root, string name) => root.transform.Find(name);
@@ -3471,11 +7503,259 @@ namespace SpaceStation.Editor
             { "EvoShipyard", InteriorAmbience.Machine },
             { "EvoAutomation", InteriorAmbience.Electric },   // 학습 코어 · 기록 서버
             { "EvoSecurity", InteriorAmbience.Life },         // 민원 홀 (행정 관제소와 같음)
+            { "EvoGridHub", InteriorAmbience.Electric },      // 테슬라 탑 · 번개
+            { "EvoFusionPlant", InteriorAmbience.Heat },      // 융합로 · 열 관
+            { "EvoArcology", InteriorAmbience.Life },         // 섬 도시
+            { "EvoOrbitalCity", InteriorAmbience.Life },      // 정원 섬 도시 (3단계)
+            { "EvoBiosphere", InteriorAmbience.Life },        // 물의 순환 고리 (3단계)
+            { "EvoStellarGrid", InteriorAmbience.Life },      // 꿀벌 정원 (3단계)
+            { "EvoOrbitalDefense", InteriorAmbience.Life },   // 등대 곶 해안 (3단계)
+            { "EvoRepairCommand", InteriorAmbience.Life },    // 반딧불 고목 치유소 (3단계)
+            { "EvoOrbitalPort", InteriorAmbience.Life },      // 진주 조개 항구 (3단계)
+            { "EvoDeepSpaceComm", InteriorAmbience.Life },    // 은하수 천문 언덕 (4단계 — 밤 풀밭 · 강)
+            { "EvoGrandTorus", InteriorAmbience.Life },       // 바퀴 마을
+            { "EvoCivicHall", InteriorAmbience.Life },        // 회관 · 돌봄 · 교실
+            { "EvoSecurityHQ", InteriorAmbience.Life },       // 파출소 광장 · 민원 창구
+            { "EvoBiodome", InteriorAmbience.Water },         // 호수 · 폭포 · 비
+            { "EvoFoodFactory", InteriorAmbience.Machine },   // 가공 라인 · 바퀴
+            { "EvoRefineryCombine", InteriorAmbience.Machine },   // 용광로 · 크레인
+            { "EvoShieldDome", InteriorAmbience.Electric },       // 렌즈 · 실드 장치
+            { "EvoFortress", InteriorAmbience.Life },             // 연병장 · 불꽃 구경
+            { "EvoRadiationWall", InteriorAmbience.Life },        // 병풍 정원 · 찻집
+            { "EvoDroneDepot", InteriorAmbience.Machine },        // 수리 칸 · 드론
+            { "EvoCargoTransfer", InteriorAmbience.Water },       // 은하수 후룸 · 항구 못
+            { "EvoStorageComplex", InteriorAmbience.Machine },    // 자동 선반 · 회전목마
+            { "EvoResearchInstitute", InteriorAmbience.Machine }, // 서버 랙 · 냉각탑
         };
+
+        /// <summary>
+        /// 하늘 껍질 문 자리에 진짜 구멍 (2026-11-06 코드 검토): Blender <c>evo2_sky</c>는 꽉 찬 상자에서 문 상자를 빼서 구멍 대신 2cm 홈만 남겼음 →
+        /// 문이 열려도 하늘 그림(바깥 화면)이 문 안을 덮어 통로 대신 바깥이 보였음 (2단계 개방형 방 전부). 문 자리마다 그 자리(폭 ±0.81 · 바닥 −0.2 ~ +2.5 · 문 깊이 −0.1 ~ 칸 경계) 삼각형을 지운 메시를 따로 저장.
+        /// 닫힌 자리는 지금처럼 빌더가 키트 하늘 조각(칸 가운데 + 3.98)으로 메움. 구멍 크기 = Blender 하늘 구멍 · 키트 하늘 조각과 같음.
+        /// </summary>
+        private static void PunchSkyDoors(GameObject root, string name, List<InteriorSocket> sockets, Material skyMaterial, ModuleData module = null)
+        {
+            const float HalfWidth = 0.81f, Bottom = -0.21f, Top = 2.51f, Front = 0.1f, Edge = 4.05f;
+            MeshFilter sky = null;
+            foreach (Transform part in root.transform)
+            {
+                var r = part.GetComponent<MeshRenderer>();
+                if (part.name.EndsWith("_Sky") && r != null && r.sharedMaterial == skyMaterial && skyMaterial != null)
+                    sky = part.GetComponent<MeshFilter>();
+            }
+            if (sky == null || sky.sharedMesh == null)
+                return;
+            var src = sky.sharedMesh;
+            var toRoot = sky.transform.localToWorldMatrix;   // 루트 = 원점 (Build가 새로 만든 물체)
+            var verts = src.vertices;
+            var world = new Vector3[verts.Length];
+            for (int i = 0; i < verts.Length; i++)
+                world[i] = toRoot.MultiplyPoint3x4(verts[i]);
+            var mesh = Object.Instantiate(src);
+            mesh.name = "SM_Interior_" + name + "_SkyDoors"; // 파일 이름과 같게 (다르면 다시 가져올 때마다 이름이 바뀌어 빌드마다 변경이 생김)
+            int removed = 0, emptySockets = 0;
+            var boxes = new List<(Vector3 center, Vector3 dir, Vector3 right, float floor, float depth)>();
+            foreach (var s in sockets)
+            {
+                if (s.Direction.y != 0)
+                    continue;
+                var dir = (Vector3)s.Direction;
+                boxes.Add(((Vector3)s.Cell * InteriorGeometry.CellSize, dir, new Vector3(dir.z, 0f, -dir.x), InteriorGeometry.FloorY(s.Cell), s.Depth));
+            }
+            // 모든 면 연결 (2026-11-18): 큰 판 하늘 (빌더 sky()가 설계 문 자리에만 구멍을 냄)도 새 문 앞이 뚫리게 — 문 상자 경계로 삼각형을 먼저 자름
+            world = SplitSkyAtBoxes(mesh, toRoot, boxes, HalfWidth, Bottom, Top, Front, Edge, SkyCells(module));
+            var hits = new int[boxes.Count];
+            for (int sub = 0; sub < mesh.subMeshCount; sub++)
+            {
+                var tris = mesh.GetTriangles(sub);
+                var keep = new List<int>(tris.Length);
+                for (int i = 0; i < tris.Length; i += 3)
+                {
+                    var c = (world[tris[i]] + world[tris[i + 1]] + world[tris[i + 2]]) / 3f;
+                    int inBox = -1;
+                    for (int b = 0; b < boxes.Count && inBox < 0; b++)
+                    {
+                        var d = c - boxes[b].center;
+                        float along = Vector3.Dot(d, boxes[b].dir), side = Vector3.Dot(d, boxes[b].right), up = c.y - boxes[b].floor;
+                        if (along >= boxes[b].depth - Front && along <= Edge && Mathf.Abs(side) <= HalfWidth && up >= Bottom && up <= Top)
+                            inBox = b;
+                    }
+                    if (inBox >= 0)
+                    {
+                        removed++;
+                        hits[inBox]++;
+                        continue;
+                    }
+                    keep.Add(tris[i]);
+                    keep.Add(tris[i + 1]);
+                    keep.Add(tris[i + 2]);
+                }
+                mesh.SetTriangles(keep, sub);
+            }
+            foreach (var h in hits)
+            {
+                if (h == 0)
+                    emptySockets++;
+            }
+            System.IO.Directory.CreateDirectory(SkyDoorsFolder);
+            string path = SkyDoorsFolder + "SM_Interior_" + name + "_SkyDoors.asset";
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing != null)
+            {
+                EditorUtility.CopySerialized(mesh, existing);
+                Object.DestroyImmediate(mesh);
+                mesh = existing;
+            }
+            else
+                AssetDatabase.CreateAsset(mesh, path);
+            sky.sharedMesh = mesh;
+            Debug.Log($"[InteriorTemplateBuilder] {name}: 하늘 껍질 문 구멍 {boxes.Count}곳, 지운 삼각형 {removed}" + (emptySockets > 0 ? $", 하늘이 없던 문 자리 {emptySockets}" : ""));
+        }
+
+        /// <summary>하늘을 잘라도 되는 범위 = 모듈 칸 + 비워 둘 칸 (없으면 null = 어디든).</summary>
+        private static List<Vector3Int> SkyCells(ModuleData module)
+        {
+            if (module == null)
+                return null;
+            var cells = new List<Vector3Int>(module.CellOffsets);
+            cells.AddRange(module.KeepClearCells);
+            return cells;
+        }
+
+        /// <summary>
+        /// 하늘 메시 삼각형 중 문 상자 (PunchSkyDoors와 같은 범위)에 걸치는 것을 상자 면 여섯으로 잘라, 상자 안 조각 · 밖 조각으로 나눔
+        /// (안 조각은 뒤의 무게중심 검사가 지움). 새 꼭짓점은 위치 · 법선 · UV0 · UV1을 선형 보간. 루트 좌표 꼭짓점을 돌려줌.
+        /// 자른 꼭짓점이 칸 밖에 생기는 삼각형 (큰 판이 칸 밖 허공을 가로지름)은 자르지 않음.
+        /// </summary>
+        private static Vector3[] SplitSkyAtBoxes(Mesh mesh, Matrix4x4 toRoot, List<(Vector3 center, Vector3 dir, Vector3 right, float floor, float depth)> boxes,
+            float halfWidth, float bottom, float top, float front, float edge, IReadOnlyList<Vector3Int> cells)
+        {
+            // InteriorTemplateBoundsTests.TemplatesStayInsideTheirCells와 같은 범위 (옆 · 아래 6 cm, 위 2 m)
+            bool InCells(Vector3 p)
+            {
+                if (cells == null)
+                    return true;
+                const float Half = InteriorGeometry.CellSize * 0.5f;
+                foreach (var c in cells)
+                {
+                    var d = p - (Vector3)c * InteriorGeometry.CellSize;
+                    if (Mathf.Abs(d.x) <= Half + 0.05f && Mathf.Abs(d.z) <= Half + 0.05f && d.y <= Half + 1.95f && d.y >= -Half - 0.05f)
+                        return true;
+                }
+                return false;
+            }
+            var pos = new List<Vector3>(mesh.vertices);
+            var nrm = new List<Vector3>(mesh.normals);
+            var uv0 = new List<Vector2>(); mesh.GetUVs(0, uv0);
+            var uv1 = new List<Vector2>(); mesh.GetUVs(1, uv1);
+            var world = new List<Vector3>(pos.Count);
+            foreach (var p in pos)
+                world.Add(toRoot.MultiplyPoint3x4(p));
+            var toLocal = toRoot.inverse;
+            int Lerp(int a, int b, float t)
+            {
+                world.Add(Vector3.Lerp(world[a], world[b], t));
+                pos.Add(toLocal.MultiplyPoint3x4(world[world.Count - 1]));
+                if (nrm.Count > 0) nrm.Add(Vector3.Lerp(nrm[a], nrm[b], t).normalized);
+                if (uv0.Count > 0) uv0.Add(Vector2.Lerp(uv0[a], uv0[b], t));
+                if (uv1.Count > 0) uv1.Add(Vector2.Lerp(uv1[a], uv1[b], t));
+                return pos.Count - 1;
+            }
+            // 다각형 (꼭짓점 번호)을 평면 n·x ≤ d 안 · 밖으로 나눔
+            void Split(List<int> poly, Vector3 n, float d, List<int> inside, List<int> outside)
+            {
+                for (int i = 0; i < poly.Count; i++)
+                {
+                    int a = poly[i], b = poly[(i + 1) % poly.Count];
+                    float da = Vector3.Dot(n, world[a]) - d, db = Vector3.Dot(n, world[b]) - d;
+                    if (da <= 0f) inside.Add(a);
+                    if (da >= 0f) outside.Add(a);
+                    if ((da < 0f && db > 0f) || (da > 0f && db < 0f))
+                    {
+                        int m = Lerp(a, b, da / (da - db));
+                        inside.Add(m);
+                        outside.Add(m);
+                    }
+                }
+            }
+            for (int sub = 0; sub < mesh.subMeshCount; sub++)
+            {
+                var tris = mesh.GetTriangles(sub);
+                var result = new List<int>(tris.Length);
+                for (int i = 0; i < tris.Length; i += 3)
+                {
+                    var pieces = new List<List<int>> { new List<int> { tris[i], tris[i + 1], tris[i + 2] } };
+                    int mark = pos.Count;
+                    foreach (var box in boxes)
+                    {
+                        var planes = new (Vector3 n, float d)[]
+                        {
+                            (-box.dir, -Vector3.Dot(box.dir, box.center) - (box.depth - front)), (box.dir, Vector3.Dot(box.dir, box.center) + edge),
+                            (box.right, Vector3.Dot(box.right, box.center) + halfWidth), (-box.right, -Vector3.Dot(box.right, box.center) + halfWidth),
+                            (Vector3.down, -(box.floor + bottom)), (Vector3.up, box.floor + top),
+                        };
+                        var next = new List<List<int>>();
+                        foreach (var piece in pieces)
+                        {
+                            bool overlaps = true;
+                            foreach (var (n, d) in planes)
+                            {
+                                float min = float.MaxValue;
+                                foreach (int v in piece) min = Mathf.Min(min, Vector3.Dot(n, world[v]));
+                                if (min >= d) { overlaps = false; break; }
+                            }
+                            if (!overlaps) { next.Add(piece); continue; }
+                            var rest = piece;
+                            foreach (var (n, d) in planes)
+                            {
+                                var inside = new List<int>();
+                                var outside = new List<int>();
+                                Split(rest, n, d, inside, outside);
+                                if (outside.Count >= 3) next.Add(outside);
+                                rest = inside;
+                                if (rest.Count < 3) break;
+                            }
+                            if (rest.Count >= 3) next.Add(rest);   // 상자 안 조각 (뒤에서 지움)
+                        }
+                        pieces = next;
+                    }
+                    bool outsideCells = false;   // 큰 판 삼각형이 모듈 칸 밖 허공을 가로지르면 자른 꼭짓점이 칸 밖에 생김 → 이 삼각형은 자르지 않음 (그 문은 UndoSkyBlocked가 되돌림)
+                    for (int v = mark; v < pos.Count && !outsideCells; v++)
+                        outsideCells = !InCells(world[v]);
+                    if (outsideCells)
+                    {
+                        pos.RemoveRange(mark, pos.Count - mark);
+                        world.RemoveRange(mark, world.Count - mark);
+                        if (nrm.Count > mark) nrm.RemoveRange(mark, nrm.Count - mark);
+                        if (uv0.Count > mark) uv0.RemoveRange(mark, uv0.Count - mark);
+                        if (uv1.Count > mark) uv1.RemoveRange(mark, uv1.Count - mark);
+                        pieces = new List<List<int>> { new List<int> { tris[i], tris[i + 1], tris[i + 2] } };
+                    }
+                    foreach (var piece in pieces)
+                    {
+                        for (int k = 1; k + 1 < piece.Count; k++)
+                        {
+                            result.Add(piece[0]);
+                            result.Add(piece[k]);
+                            result.Add(piece[k + 1]);
+                        }
+                    }
+                }
+                mesh.SetVertices(pos);
+                if (nrm.Count == pos.Count) mesh.SetNormals(nrm);
+                if (uv0.Count == pos.Count) mesh.SetUVs(0, uv0);
+                if (uv1.Count == pos.Count) mesh.SetUVs(1, uv1);
+                mesh.SetTriangles(result, sub);
+            }
+            mesh.RecalculateBounds();
+            return world.ToArray();
+        }
+
+        private const string SkyDoorsFolder = "Assets/_Project/Art/Models/Interior/Generated/";
 
         private static void Build(string name, string moduleName, List<InteriorSocket> sockets, Vector3 spawn, float spawnYaw,
             List<LightSpec> lights, List<OrbitSpec> orbits = null, Dictionary<string, Vector3> sunTilts = null, bool showOwnExterior = false,
-            System.Action<GameObject> configure = null)
+            System.Action<GameObject> configure = null, bool showOwnInterior = false)
         {
             string modelPath = ModelFolder + "SM_Interior_" + name + ".fbx";
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
@@ -3527,6 +7807,42 @@ namespace SpaceStation.Editor
                 { "EvoWhite", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoWhitePath) },
                 { "EvoFloor", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoFloorPath) },
                 { "EvoDark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.EvoDarkPath) },
+                // 진화 내부 2단계 키트 (2026-11-02, Blender evo2_kit)
+                { "Evo2Deck", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2DeckPath) },
+                { "Evo2Wall", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2WallPath) },
+                { "Evo2Trim", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2TrimPath) },
+                { "Evo2Gold", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GoldPath) },
+                { "Evo2Path", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PathPath) },
+                { "Evo2Bed", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2BedPath) },
+                { "Evo2Ice", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2IcePath) },
+                { "Evo2Glass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2GlassPath) },
+                { "Evo2EggGlass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2EggGlassPath) },
+                { "Evo2ClearGlass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2ClearGlassPath) },
+                { "Evo2Window", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2WindowPath) },
+                { "Evo2Curtain", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2CurtainPath) },
+                { "Evo2StarDome", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2StarDomePath) },
+                { "Evo2Sky", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SkyPath) },
+                { "Evo2Mirror", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MirrorPath) },
+                { "Evo2Violet", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2VioletPath) },
+                { "Evo2Heat", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2HeatPath) },
+                { "Evo2WaterGlow", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2WaterGlowPath) },
+                { "Evo2Lawn", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2LawnPath) },
+                { "Evo2Soil", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SoilPath) },
+                { "Evo2Rock", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2RockPath) },
+                { "Evo2Bar", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2BarPath) },
+                { "Evo2Sun", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SunPath) },
+                { "Evo2Membrane", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MembranePath) },
+                { "Evo2StarSea", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2StarSeaPath) },
+                { "Evo2BeaconCore", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2BeaconCorePath) },
+                { "Evo2River", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2RiverPath) },
+                { "Evo2Star", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2StarPath) },
+                { "Evo2Mount", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MountPath) },
+                { "Evo2Sand", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SandPath) },
+                { "Evo2Moon", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2MoonPath) },
+                { "Evo2Lemon", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2LemonPath) },
+                { "PureWater", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PondPath) },
+                { "Falls", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2FallsPath) },
+                { "Cloud", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.CloudPath) },
                 { "Paper", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PaperPath) },
                 { "PropBlue", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropBluePath) },
                 { "PropGreen", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PropGreenPath) },
@@ -3538,7 +7854,85 @@ namespace SpaceStation.Editor
                 { "Aqua", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.AquaPath) },
                 { "Concrete", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.ConcretePath) },   // 12-5 방사선 차폐실
                 { "WaterClear", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.WaterClearPath) }, // 투명한 물 (통 속 물 덩어리)
+                // 진화 내부 3단계 (2026-11-10, 궤도 도시부터 — 진주 · 금 + 2단계 정원 재질 · 바깥 수정 · 무지개)
+                { "Evo3Pearl", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3PearlPath) },
+                { "Evo3Gold", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3GoldPath) },
+                { "Evo3Blossom", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3BlossomPath) },
+                { "Evo3Lawn", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2LawnPath) },
+                { "Evo3Path", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PathPath) },
+                { "Evo3Rock", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2RockPath) },
+                { "Evo3Soil", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2SoilPath) },
+                { "Evo3Water", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3WaterPath) },   // KWS 패키지가 없는 PC에서 보이는 수면 (KWS 물은 KwsWaterBuilder)
+                { "Evo3Falls", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3FallsPath) },
+                { "Evo3Roof", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3RoofPath) },
+                { "Evo3Door", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3DoorPath) },
+                { "Evo3Leaf", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PlantPath) },
+                { "Evo3Prism", ModuleFxMaterials.Get("Prism") },
+                // 바이오스피어 (2026-11-11): 작물 · 들꽃 · 물길 (작은 물 = 바깥 물결 재질) · 비 (바깥 빗줄기)
+                { "Evo3Wheat", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3WheatPath) },
+                { "Evo3Lavender", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LavenderPath) },
+                { "Evo3Tulip", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3TulipPath) },
+                { "Evo3Field", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3FieldPath) },
+                { "Evo3Flower", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3FlowerPath) },
+                { "Evo3Leaf2", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3Leaf2Path) },
+                { "Evo3Bark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3BarkPath) },
+                { "Evo3Channel", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2PondPath) },
+                { "Evo3Rain", ModuleFxMaterials.Get("Rain") },
+                { "Evo3Spill", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3SpillPath) },             // 단 사이 작은 폭포 · 수문 폭포 (WaterFalls 맑은 변형)
+                { "Evo3FallsColumn", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3FallsColumnPath) },
+                { "Evo3SoftRainbow", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SoftRainbowPath) },
+                { "Evo3SoftHalo", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.SoftHaloPath) },
+                // 항성 발전망 꿀벌 정원 (2026-11-11): 꿀 언덕 밀랍 · 흰 밀랍 · 빛나는 꿀 · 등나무 꽃
+                { "Evo3Wax", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3WaxPath) },
+                { "Evo3Wax2", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3Wax2Path) },
+                { "Evo3Honey", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3HoneyPath) },
+                { "Evo3Wisteria", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3WisteriaPath) },
+                // 궤도 방어망 등대 곶 해안 (2026-11-12): 해변 모래 · 바다 바닥 · 곶 밝은 돌 지층 · 동굴 종유석 · 등실 유리
+                { "Evo3Sand", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3SandPath) },
+                { "Evo3SeaBed", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3SeaBedPath) },
+                { "Evo3Stone", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3StonePath) },
+                { "Evo3Cave", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3CavePath) },
+                { "Evo3LampGlass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2ClearGlassPath) },   // 등실 유리 = 맑은 유리 (청록 유리 두 겹이라 등실 안에서 바다가 온통 초록으로 보였음, 2026-11-13)
+                // 수리 사령부 (rc3_builder, 2026-11-13): 금빛 잎 = 금빛, 버섯 갓 = 복숭아빛 기와, 방석 · 빨래 = 크림빛 밀랍 뚜껑, 통나무 이끼 = 잎
+                { "Evo3GoldLeaf", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3GoldPath) },
+                { "Evo3MushCap", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3RoofPath) },
+                { "Evo3Cushion", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3Wax2Path) },
+                { "Evo3Moss", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.PlantPath) },
+                { "Evo3TreeBark", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3TreeBarkPath) },   // 고목 줄기 · 뿌리 · 가지 · 그루터기 (트라이플래너 껍질)
+                { "Evo3Wood", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3WoodPath) },
+                { "Evo3LinenBlue", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LinenBluePath) },
+                { "Evo3LinenRose", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LinenRosePath) },
+                { "Evo3LinenWhite", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LinenWhitePath) },
+                // 궤도 항만 (op3_builder, 2026-11-16): 산호 · 자개 · 민트 · 라일락
+                { "Evo3Coral", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3CoralPath) },
+                { "Evo3Nacre", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3NacrePath) },
+                { "Evo3Mint", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3MintPath) },
+                { "Evo3Lilac", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3LilacPath) },
+                { "Evo3BeachSand", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3BeachSandPath) },   // 궤도 항만 땅 (2026-11-16 — 모래 + 물가 젖은 띠)
+                // AI 중추 (ai3_builder, 2026-11-16): 다듬은 생울타리 (트라이플래너 잎) · 바닥 빛 신경 (외형과 같은 흐르는 빛 — 앞 보라 · 뒤 금, 물결 가운데는 빛 쇼가 칸 블록으로 정함) · 시냅스 점 (반짝임)
+                { "Evo3Hedge", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo3HedgePath) },
+                { "Evo3NeuronPurple", ModuleFxMaterials.Get("NeuralPurple") },
+                { "Evo3NeuronGold", ModuleFxMaterials.Get("NeuralGold") },
+                { "Evo3Synapse", ModuleFxMaterials.Get("TwinkleWhite") },
+                // 심우주 통신기지 (ds4_builder, 2026-11-17 — 4단계 성운): 몸체 · 갑판 · 은빛 테 · 짙은 받침 (트림), 판석 · 달 자갈 · 밤 잔디, 잎 칸 넷 (아틀라스), 은하수 강 (UV 강) · 빛 · 별 · 렌즈
+                { "Evo4Wall", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4WallPath) },
+                { "Evo4Deck", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4DeckPath) },
+                { "Evo4Trim", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4TrimPath) },
+                { "Evo4Low", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4LowPath) },
+                { "Evo4Stone", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4StonePath) },
+                { "Evo4MoonRock", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4MoonRockPath) },
+                { "Evo4Lawn", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4LawnPath) },
+                { "Evo4SilverGrass", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4SilverGrassPath) },
+                { "Evo4Moonflower", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4MoonflowerPath) },
+                { "Evo4Stem", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4StemPath) },
+                { "Evo4Pollen", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4PollenPath) },
+                { "Evo4Galaxy", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4RiverPath) },
+                { "Evo4Cyan", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4CyanPath) },
+                { "Evo4Star", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo2StarPath) },
+                { "Evo4Lens", AssetDatabase.LoadAssetAtPath<Material>(InteriorSetup.Evo4LensPath) },
             };
+            for (int i = 0; i < 7; i++)
+                materials["Evo3Rainbow" + i] = ModuleFxMaterials.Get("Rainbow" + i);   // 프리즘 무지개 고리 일곱 (바깥과 같은 빛 물결)
 
             var root = new GameObject("PF_Interior_" + name);
             // 오브젝트가 하나뿐인 FBX는 Unity가 그 메시를 루트에 바로 붙여 가져옴 (11-6 창고) → 루트를 조각 하나로, 이름은 메시 이름
@@ -3574,6 +7968,8 @@ namespace SpaceStation.Editor
                     }
                 }
                 r.sharedMaterials = mats;
+                if (name.StartsWith("Evo"))
+                    InteriorFoliage.Convert(name, go);   // ④ 잎 조각의 우리 색 잎 · 꽃잎 → 식물 아틀라스 색 칸 + M_FoliageStill 한 칸 (양면 · 빛 비침)
                 // 진화 템플릿의 _Soft = 의자 방석 · 소파 (플레이 확인 2026-10-29: 거주 타워 소파를 지나감) → 충돌체. 작물 · 잎은 _Leaves (충돌체 없음)
                 bool solid = partName.EndsWith("_Shell") || partName.EndsWith("_Glass") || partName.EndsWith("_Door")   // _Door = 움직이는 문 (InteriorSlidingDoor)
                     || (name.StartsWith("Evo") && partName.EndsWith("_Soft"));
@@ -3632,6 +8028,27 @@ namespace SpaceStation.Editor
             }
 
             configure?.Invoke(root); // 12-5 실행 중 표시 컴포넌트 (허브 안내 · 레이더 · 컨베이어 · 서버 표시등)
+            // 모든 면 연결 (2026-11-18) — 문 안쪽 바닥이 비어 있는 둘레 옆면은 저절로 문. configure 뒤 (물막이 LakeHit 등 configure가 붙이는 충돌체도 보게 — 궤도 항만 물가 문이 열렸었음),
+            // 하늘 구멍보다 먼저 (새 문도 하늘이 비켜 줌)
+            var designed = new List<InteriorSocket>(sockets);
+            // 예전 위 승강판 자리 (다시 짓기 전 템플릿) — 빛 다리가 먼저 그 판을 같이 씀 (SetAll이 그 자리에 위 승강판을 다시 놓음, 화물 환적장 2026-11-19)
+            var oldLifts = new List<Vector3>();
+            var oldTemplate = AssetDatabase.LoadAssetAtPath<InteriorTemplate>(DataFolder + "IT_" + name + ".asset");
+            if (oldTemplate != null)
+            {
+                foreach (var s in oldTemplate.Sockets)
+                {
+                    if (s.SkyLift)
+                        oldLifts.Add((Vector3)s.Cell * InteriorGeometry.CellSize + s.Offset);
+                }
+            }
+            var autoLog = new List<string>();
+            int auto = InteriorAutoDoors.OpenOn(root, module, sockets, spawn, autoLog, name, ResidentSpotBaker.FixedSpotPositions(name), oldLifts);
+            var bridgeLog = autoLog.FindAll(l => l.Contains("빛 다리"));
+            if (bridgeLog.Count > 0)
+                Debug.Log($"[InteriorTemplateBuilder] {name} 빛 다리: {string.Join(" / ", bridgeLog)}");
+            PunchSkyDoors(root, name, sockets, materials["Evo2Sky"], module);
+            auto -= InteriorAutoDoors.UndoSkyBlocked(root, sockets, designed);   // 구멍을 내도 하늘이 막는 새 문은 되돌림
             AddStatusScreens(root, materials["ScreenDark"]);   // 빈 화면 = 공용 상태 화면 (사용자 2026-10-30 — 기본 · 모든 진화 단계, 전용 화면 자리는 뺌)
 
             System.IO.Directory.CreateDirectory(PrefabFolder);
@@ -3649,8 +8066,10 @@ namespace SpaceStation.Editor
             template.EditorSet(module, prefab, sockets, spawn, spawnYaw);
             template.EditorSetAmbience(Ambiences.TryGetValue(name, out var ambience) ? ambience : InteriorAmbience.Hall);
             template.EditorSetShowOwnExterior(showOwnExterior);
+            template.EditorSetShowOwnInterior(showOwnInterior);
+            template.EditorSetSealedSockets(name == "EvoGrandTorus");   // 전부 지붕 · 유리 안 (우주복 없음): 닫힌 문 자리가 우주로 뚫리면 안 됨 (사용자 2026-11-03 "모델링에 구멍")
             EditorUtility.SetDirty(template);
-            Debug.Log($"[InteriorTemplateBuilder] {name}: 문 자리 {sockets.Count}곳, 조명 {lights.Count}개");
+            Debug.Log($"[InteriorTemplateBuilder] {name}: 문 자리 {sockets.Count}곳 (+ 저절로 연 문 {auto}), 조명 {lights.Count}개");
         }
     }
 }

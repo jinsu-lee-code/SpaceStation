@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using SpaceStation.Building;
 using UnityEngine;
@@ -25,6 +26,36 @@ namespace SpaceStation.Tests
                 prevStep = step;
                 prev = p;
             }
+        }
+
+        /// <summary>경광등: 끄면 어둡고, 켜면 파랑 · 빨강이 번갈아 켜지며 둘이 함께 켜지는 때가 없다 (사용자 2026-11-03 둥근 빛 · 비슷한 두 색 → 렌즈 모양 파랑 · 빨강).</summary>
+        [Test]
+        public void Siren_AlternatesBlueAndRedOnly()
+        {
+            var car = new GameObject("Car");
+            var material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            var siren = new PatrolSiren(car.transform, material, Vector3.left, Vector3.right, Vector3.one, 2f);
+            Assert.AreEqual(0, siren.Lit, "시작은 꺼짐");
+            siren.Tick(0.1f);
+            Assert.AreEqual(0, siren.Lit, "켜기 전엔 번쩍이지 않음");
+            siren.Start();
+            var order = new List<int>();
+            for (int i = 0; i < 200; i++)
+            {
+                siren.Tick(0.01f);
+                int lit = siren.Lit;
+                if (lit != 0 && (order.Count == 0 || order[order.Count - 1] != lit))
+                    order.Add(lit);
+            }
+            Assert.GreaterOrEqual(order.Count, 4, "2초 동안 여러 번 바뀜");
+            for (int i = 1; i < order.Count; i++)
+                Assert.AreNotEqual(order[i - 1], order[i], "번갈아");
+            Assert.Contains(1, order);
+            Assert.Contains(2, order);
+            siren.Stop();
+            Assert.AreEqual(0, siren.Lit, "끄면 어두움");
+            Object.DestroyImmediate(car);
+            Object.DestroyImmediate(material);
         }
     }
 }

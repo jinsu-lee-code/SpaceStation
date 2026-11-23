@@ -43,6 +43,7 @@ namespace SpaceStation.Editor
         public const string ScreenDarkPath = MaterialFolder + "/M_InteriorScreenDark.mat";
         public const string ScreenGridPath = MaterialFolder + "/M_InteriorScreenGrid.mat";
         public const string PlasmaPath = MaterialFolder + "/M_InteriorPlasma.mat";
+        public const string PlasmaHotPath = MaterialFolder + "/M_InteriorPlasmaHot.mat";
         public const string SolarCellPath = MaterialFolder + "/M_InteriorSolarCell.mat";
         public const string ShieldPath = MaterialFolder + "/M_InteriorShield.mat";
         public const string RedPath = MaterialFolder + "/M_InteriorRed.mat";
@@ -62,10 +63,121 @@ namespace SpaceStation.Editor
         public const string IcePath = MaterialFolder + "/M_InteriorIce.mat";
         public const string AquaPath = MaterialFolder + "/M_InteriorAqua.mat";
         public const string ConcretePath = MaterialFolder + "/M_InteriorConcrete.mat";   // 12-5 방사선 차폐실 벽 · 원통 천장
+        // ⑤ 트림 셰이더 (Art/Shaders/InteriorTrim.shader)와 장식 종류 (_TrimKind)
+        public const string TrimShaderName = "SpaceStation/InteriorTrim";
+        public const int TrimGold = 0, TrimGoldInlay = 1, TrimPearl = 2, TrimPanel = 3, TrimMetal = 4, TrimWall = 5, TrimDarkGloss = 6, TrimNebula = 7;
         // 진화 모듈 내부 1단계 키트 (2026-10-29, Blender evo_kit): 흰 세라믹 몸체 · 밝은 회백 바닥 · 짙은 남색 홈 · 화면 테
         public const string EvoWhitePath = MaterialFolder + "/M_InteriorEvoWhite.mat";
         public const string EvoFloorPath = MaterialFolder + "/M_InteriorEvoFloor.mat";
         public const string EvoDarkPath = MaterialFolder + "/M_InteriorEvoDark.mat";
+        // 진화 2단계 키트 (2026-11-02 그리드 허브 — 미드나잇 · 은빛 · 금빛, 바깥 정원: Blender evo2_kit)
+        public const string Evo2DeckPath = MaterialFolder + "/M_InteriorEvo2Deck.mat";
+        public const string Evo2WallPath = MaterialFolder + "/M_InteriorEvo2Wall.mat";
+        public const string Evo2TrimPath = MaterialFolder + "/M_InteriorEvo2Trim.mat";
+        public const string Evo2GoldPath = MaterialFolder + "/M_InteriorEvo2Gold.mat";
+        public const string Evo2PathPath = MaterialFolder + "/M_InteriorEvo2Path.mat";
+        public const string Evo2BedPath = MaterialFolder + "/M_InteriorEvo2Bed.mat";
+        public const string Evo2IcePath = MaterialFolder + "/M_InteriorEvo2Ice.mat";
+        public const string Evo2GlassPath = MaterialFolder + "/M_InteriorEvo2Glass.mat";
+        public const string Evo2EggGlassPath = MaterialFolder + "/M_InteriorEvo2EggGlass.mat";
+        public const string Evo2ClearGlassPath = MaterialFolder + "/M_InteriorEvo2ClearGlass.mat";
+        public const string Evo2WindowPath = MaterialFolder + "/M_InteriorEvo2Window.mat";
+        public const string Evo2StarDomePath = MaterialFolder + "/M_InteriorEvo2StarDome.mat";
+        public const string Evo2StarLinesPath = MaterialFolder + "/M_InteriorEvo2StarLines.mat";
+        public const string Evo2CurtainPath = MaterialFolder + "/M_InteriorEvo2Curtain.mat";
+        public const string Evo2SkyPath = MaterialFolder + "/M_InteriorEvo2Sky.mat";
+        public const string Evo2MirrorPath = MaterialFolder + "/M_InteriorEvo2Mirror.mat";
+        public const string Evo2VioletPath = MaterialFolder + "/M_InteriorEvo2Violet.mat";
+        public const string Evo2HeatPath = MaterialFolder + "/M_InteriorEvo2Heat.mat";
+        public const string Evo2WaterGlowPath = MaterialFolder + "/M_InteriorEvo2WaterGlow.mat";
+        public const string Evo2LawnPath = MaterialFolder + "/M_InteriorEvo2Lawn.mat";     // 바이오돔 잔디 판 (T_InteriorLawn, UV = 위에서 내려다본 평면 3m 한 장)
+        public const string Evo2SoilPath = MaterialFolder + "/M_InteriorEvo2Soil.mat";     // 바이오돔 텃밭 흙 (T_InteriorSoil)
+        public const string Evo2PondPath = MaterialFolder + "/M_InteriorEvo2Pond.mat";     // 호수 · 연못 (바깥 M_PureWater와 같은 셰이더, 잔물결 간격만 내부 크기로)
+        public const string Evo2FallsPath = MaterialFolder + "/M_InteriorEvo2Falls.mat";   // 폭포 · 분수 (바깥 M_Falls와 같은 셰이더, 물줄기 간격만 내부 크기로)
+        public const string Evo2RockPath = MaterialFolder + "/M_InteriorEvo2Rock.mat";     // 바이오돔 바위 · 물가 돌 (외형의 밝은 돌, M_InteriorRock은 거의 검게 보임)
+        public const string Evo2BarPath = MaterialFolder + "/M_InteriorEvo2Bar.mat";       // 식량 공장 프로틴 바 (외형의 산호빛)
+        public const string Evo2SunPath = MaterialFolder + "/M_InteriorEvo2Sun.mat";       // 정련 콤비나트 작은 해 (잡음 플라즈마, 주황)
+        public const string Evo2SolarFlarePath = MaterialFolder + "/M_InteriorEvo2SolarFlare.mat";   // 정련 콤비나트 홍염 빛 띠 (LineRenderer)
+        public const string Evo2MembranePath = MaterialFolder + "/M_InteriorEvo2Membrane.mat";   // 정련 콤비나트 격납고 입구 에너지 막 (압력 막 셰이더, 큰 아치 · 옅게)
+        public const string CloudPath = "Assets/_Project/Art/Materials/FX/M_Cloud.mat";    // 바깥 구름과 같은 재질
+        public const string Evo2StarSeaPath = MaterialFolder + "/M_InteriorEvo2StarSea.mat";     // 실드 돔 별빛 유리 바다
+        public const string Evo2AuroraPath = MaterialFolder + "/M_InteriorEvo2Aurora.mat";       // 실드 돔 내부 오로라 (바깥 M_AuroraCurtain을 베끼고 움직임만 내부 크기로)
+        public const string Evo2BeaconBeamPath = MaterialFolder + "/M_InteriorEvo2BeaconBeam.mat";   // 실드 돔 등대 빛 (찬 빛, 빛기둥 셰이더)
+        public const string Evo2BeaconCorePath = MaterialFolder + "/M_InteriorEvo2BeaconCore.mat";   // 실드 돔 렌즈 속 빛 (잡음 플라즈마, 하늘색)
+        public const string Evo2RiverPath = MaterialFolder + "/M_InteriorEvo2River.mat";     // 방사선 차폐벽 은하수 강 (바깥 M_MilkyRiver를 베끼고 좌표 · 물가만 내부 크기로)
+        public const string Evo2StarPath = MaterialFolder + "/M_InteriorEvo2Star.mat";       // 병풍 별 (별마다 다른 박자로 반짝임, 꼭짓점 색 R = 위상)
+        public const string Evo2MountPath = MaterialFolder + "/M_InteriorEvo2Mount.mat";     // 병풍 은빛 산
+        public const string Evo2SandPath = MaterialFolder + "/M_InteriorEvo2Sand.mat";       // 달빛 자갈 마당
+        public const string Evo2MoonPath = MaterialFolder + "/M_InteriorEvo2Moon.mat";       // 달 등 (은은한 흰빛)
+        public const string Evo2LemonPath = MaterialFolder + "/M_InteriorEvo2Lemon.mat";
+        // 진화 3단계 (진주 · 금 · 살아 있는 정원 + 빛과 수정, 궤도 도시부터 2026-11-10): 잔디 · 길 · 돌 · 흙 · 물 · 폭포는 2단계 재질, 수정 · 무지개는 바깥 FX 재질 (ModuleFxMaterials)
+        public const string Evo3PearlPath = MaterialFolder + "/M_InteriorEvo3Pearl.mat";     // 진주빛 몸체 (따뜻한 흰빛 · 은은한 윤기)
+        public const string Evo3GoldPath = MaterialFolder + "/M_InteriorEvo3Gold.mat";       // 금빛 테 · 난간 손잡이 (2단계 금보다 밝고 매끈)
+        // 3단계 물 · 폭포 (사용자 2026-11-11): 물 = KWS 실사 물 (KwsWaterBuilder · InteriorKwsWater), 아래 재질은 KWS 패키지가 없는 PC에서 보이는 수면 (만화풍 ToonWater)
+        public const string Evo3WaterPath = MaterialFolder + "/M_InteriorEvo3Water.mat";
+        public const string Evo3FallsPath = MaterialFolder + "/M_InteriorEvo3Falls.mat";     // 실사 물줄기 (WaterFalls: 맑은 턱 → 흰 물 · 굴절 · 찢긴 옆, UV u 가로 · v 아래로)
+        public const string FallsMaskPath = "Assets/_Project/Art/Textures/T_WaterFallsMask.png";   // R 물줄기 결 · G 거품 덩어리 · B 찢김 (sRGB 끔)
+        public const string FallsMistPath = MaterialFolder + "/M_InteriorFallsMist.mat";     // 폭포 물안개 · 물방울 · 수면 거품 입자 (부드러운 점, 반투명)
+        public const string Evo3RoofPath = MaterialFolder + "/M_InteriorEvo3Roof.mat";       // 마을 집 · 옹벽 집 처마 (복숭아빛 기와)
+        public const string Evo3DoorPath = MaterialFolder + "/M_InteriorEvo3Door.mat";       // 집 문짝 (하늘빛)
+        // 바이오스피어 계단 밭 작물 · 들꽃 (2026-11-11, Blender bio3_builder와 같은 색)
+        public const string Evo3WheatPath = MaterialFolder + "/M_InteriorEvo3Wheat.mat";
+        public const string Evo3LavenderPath = MaterialFolder + "/M_InteriorEvo3Lavender.mat";
+        public const string Evo3TulipPath = MaterialFolder + "/M_InteriorEvo3Tulip.mat";
+        public const string Evo3FieldPath = MaterialFolder + "/M_InteriorEvo3Field.mat";     // 밀밭 흙 (황토빛)
+        public const string Evo3FlowerPath = MaterialFolder + "/M_InteriorEvo3Flower.mat";   // 해바라기 꽃잎 · 노란 꽃
+        public const string Evo3Leaf2Path = MaterialFolder + "/M_InteriorEvo3Leaf2.mat";     // 양배추 · 밝은 잎
+        public const string Evo3BarkPath = MaterialFolder + "/M_InteriorEvo3Bark.mat";       // 통나무 · 바구니
+        // 항성 발전망 꿀벌 정원 (2026-11-11, Blender sg3_builder와 같은 색): 꿀 언덕 육각 기둥 옆면 (밀랍) · 흰 밀랍 뚜껑 · 빛나는 꿀 · 등나무 꽃 (연보라)
+        public const string Evo3WaxPath = MaterialFolder + "/M_InteriorEvo3Wax.mat";
+        public const string Evo3Wax2Path = MaterialFolder + "/M_InteriorEvo3Wax2.mat";
+        public const string Evo3HoneyPath = MaterialFolder + "/M_InteriorEvo3Honey.mat";
+        public const string Evo3WisteriaPath = MaterialFolder + "/M_InteriorEvo3Wisteria.mat";
+        // 궤도 방어망 등대 곶 해안 (2026-11-12, Blender od3_builder와 같은 색): 해변 모래 · 바다 바닥 · 곶 밝은 돌 지층 · 바다 동굴 벽
+        public const string Evo3SandPath = MaterialFolder + "/M_InteriorEvo3Sand.mat";
+        public const string Evo3SeaBedPath = MaterialFolder + "/M_InteriorEvo3SeaBed.mat";
+        public const string Evo3StonePath = MaterialFolder + "/M_InteriorEvo3Stone.mat";
+        public const string Evo3CavePath = MaterialFolder + "/M_InteriorEvo3Cave.mat";
+        public const string Evo3FallsColumnPath = MaterialFolder + "/M_InteriorEvo3FallsColumn.mat";   // 둥근 폭포 기둥 (WaterFalls, 옆 흐림 끔 — 원기둥 UV에서 한쪽이 지워졌음)
+        public const string Evo3SpillPath = MaterialFolder + "/M_InteriorEvo3Spill.mat";     // 단 사이 작은 폭포 (WaterFalls 맑은 변형 — 맑은 물 판이 파란 유리처럼 보였음)
+        public const string Evo3LighthouseBeamPath = MaterialFolder + "/M_InteriorEvo3LighthouseBeam.mat";
+        // 수리 사령부 고목 (2026-11-13, 사용자 "실제 자연의 나무처럼"): 껍질 = 트라이플래너 (세로로 긴 판 · 깊은 골 텍스처), 그루터기 잘린 면 나뭇결, 빨래 천 연하늘 · 연분홍
+        public const string Evo3TreeBarkPath = MaterialFolder + "/M_InteriorEvo3TreeBark.mat";
+        public const string Evo3WoodPath = MaterialFolder + "/M_InteriorEvo3Wood.mat";
+        // 궤도 항만 진주 조개 항구 (2026-11-16, op3_builder): 산호 (바위 · 첨탑 · 기중기 기둥) · 자개 (조개 · 가리비 배 · 돔) · 민트 · 라일락 (해마 · 산호초)
+        public const string Evo3CoralPath = MaterialFolder + "/M_InteriorEvo3Coral.mat";
+        public const string Evo3NacrePath = MaterialFolder + "/M_InteriorEvo3Nacre.mat";
+        public const string Evo3MintPath = MaterialFolder + "/M_InteriorEvo3Mint.mat";
+        public const string Evo3LilacPath = MaterialFolder + "/M_InteriorEvo3Lilac.mat";
+        public const string Evo3BeachSandPath = MaterialFolder + "/M_InteriorEvo3BeachSand.mat";   // 모래 해변 (트라이플래너 바람 물결 · 잔 알갱이 + 물가선 아래 젖은 띠)
+        // AI 중추 수정 뇌 미로 정원 (2026-11-16, ai3_builder): 다듬은 생울타리 = 트라이플래너 잎 텍스처 (작은 잎을 빽빽이 겹친 결 — 매끈한 초록 덩어리는 쿠션처럼 보였음)
+        public const string Evo3HedgePath = MaterialFolder + "/M_InteriorEvo3Hedge.mat";
+        // 진화 4단계 심우주 통신기지 "은하수 천문 언덕" (2026-11-17, ds4_builder · 4단계 성운 키트 evo4_kit_builder): 밤하늘 남보라 몸체 (옅은 별가루 — 트림 성운 종류) · 갑판 · 은빛 테 · 짙은 받침,
+        //   달빛 판석 · 달 자갈 · 밤 잔디 (은빛 띤 풀 결), 잎 칸 = 은빛 풀 · 달맞이꽃 · 줄기 · 꽃가루 (식물 아틀라스 색 칸), 은하수 강 (MilkyRiver UV 강) · 망원경 렌즈
+        public const string Evo4WallPath = MaterialFolder + "/M_InteriorEvo4Wall.mat";
+        public const string Evo4DeckPath = MaterialFolder + "/M_InteriorEvo4Deck.mat";
+        public const string Evo4TrimPath = MaterialFolder + "/M_InteriorEvo4Trim.mat";
+        public const string Evo4LowPath = MaterialFolder + "/M_InteriorEvo4Low.mat";
+        public const string Evo4StonePath = MaterialFolder + "/M_InteriorEvo4Stone.mat";
+        public const string Evo4MoonRockPath = MaterialFolder + "/M_InteriorEvo4MoonRock.mat";
+        public const string Evo4LawnPath = MaterialFolder + "/M_InteriorEvo4Lawn.mat";
+        public const string Evo4SilverGrassPath = MaterialFolder + "/M_InteriorEvo4SilverGrass.mat";
+        public const string Evo4MoonflowerPath = MaterialFolder + "/M_InteriorEvo4Moonflower.mat";
+        public const string Evo4StemPath = MaterialFolder + "/M_InteriorEvo4Stem.mat";
+        public const string Evo4PollenPath = MaterialFolder + "/M_InteriorEvo4Pollen.mat";
+        public const string Evo4RiverPath = MaterialFolder + "/M_InteriorEvo4River.mat";
+        public const string Evo4CyanPath = MaterialFolder + "/M_InteriorEvo4Cyan.mat";
+        public const string Evo4LensPath = MaterialFolder + "/M_InteriorEvo4Lens.mat";
+        public const string Evo3LinenBluePath = MaterialFolder + "/M_InteriorEvo3LinenBlue.mat";
+        public const string Evo3LinenRosePath = MaterialFolder + "/M_InteriorEvo3LinenRose.mat";
+        public const string Evo3LinenWhitePath = MaterialFolder + "/M_InteriorEvo3LinenWhite.mat";   // 궤도 방어망 등대 빛 (따뜻한 빛, 빛기둥 셰이더 — 실드 돔 찬 빛 0.16은 밤바다에서 안 보였음)
+        public const string SoftRainbowPath = MaterialFolder + "/M_InteriorSoftRainbow.mat";   // 오로라처럼 옅은 무지개 띠 (SoftRainbow, 발끝 흐림)
+        public const string SoftHaloPath = MaterialFolder + "/M_InteriorSoftHalo.mat";         // 프리즘 둘레 옅은 무지개 고리 (끝 없음)
+        public const string Evo3BlossomPath = MaterialFolder + "/M_InteriorEvo3Blossom.mat"; // 열차 방석 (연분홍 천)     // 병풍 해 · 세 날개 표지 · 석등 불빛 (레몬빛)
+        public const string LightShaftPath = MaterialFolder + "/M_InteriorLightShaft.mat";
+        public const string SkyLiftShaftPath = MaterialFolder + "/M_InteriorSkyLiftShaft.mat";   // 빛 기둥 승강판 (진화 단계별 통로 ③) — 색은 방 강조색 (InteriorSkyLift)
+        public const string SuitHelmetPath = MaterialFolder + "/M_InteriorSuitHelmet.mat";
+        public const string ResidentSuitModelPath = "Assets/_Project/Art/Models/Interior/SM_ResidentSuit.fbx";
         // 투명한 물 (2026-10-29 수소 플랜트 전기분해조 — 사용자 "위에 보이는 물 표면이 어색": 통 속을 물 덩어리로, 속 거품 · 전극이 비침)
         public const string WaterClearPath = MaterialFolder + "/M_InteriorWaterClear.mat";
         private const string SmokePath = MaterialFolder + "/M_InteriorSmoke.mat";
@@ -121,7 +233,17 @@ namespace SpaceStation.Editor
 
         /// <summary>진화 1단계 키트 조각 (Blender Interior_Evo.blend evo1_kit_builder — 기본 조각과 같은 규격, 이름 = 기본 이름 + _Evo1).</summary>
         public const string EvoKit1Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo1.fbx";
+        public const string EvoKit2Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo2.fbx";
+        public const string EvoKit3Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo3.fbx";
+        public const string EvoKit4Path = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Evo4.fbx";
         private const string RecipeFolder = "Assets/_Project/Data/Recipes";
+        public const string TubeKitPath = "Assets/_Project/Art/Models/Interior/SM_InteriorKit_Tubes.fbx";
+        /// <summary>단계별 간격 조각 거리 (m): 1 흰 갈비 · 2 빛 아치 · 3 · 4 난간 기둥 + 정원등.</summary>
+        private static readonly float[] TubeRingSteps = { 1.5f, 1.2f, 1.0f, 1.0f };
+
+        /// <summary>키트 에셋만 다시 (장면 · 재질은 그대로) — 연결 통로 키트를 바꾼 뒤.</summary>
+        [MenuItem("SpaceStation/Interior/Rebuild Kit Asset")]
+        public static void RebuildKitAsset() => CreateKit();
 
         /// <summary>단계 키트 FBX의 조각 (없으면 빈 목록). 게임 중 InteriorSpots가 벽 패널 모양을 읽으므로 Read/Write를 켬 (기본 키트와 같음).</summary>
         private static System.Collections.Generic.Dictionary<string, GameObject> StageParts(string path)
@@ -184,6 +306,23 @@ namespace SpaceStation.Editor
             var evoWhite = AssetDatabase.LoadAssetAtPath<Material>(EvoWhitePath);
             var evoFloor = AssetDatabase.LoadAssetAtPath<Material>(EvoFloorPath);
             var evoDark = AssetDatabase.LoadAssetAtPath<Material>(EvoDarkPath);
+            var evo2Deck = AssetDatabase.LoadAssetAtPath<Material>(Evo2DeckPath);
+            var evo2Wall = AssetDatabase.LoadAssetAtPath<Material>(Evo2WallPath);
+            var evo2Trim = AssetDatabase.LoadAssetAtPath<Material>(Evo2TrimPath);
+            var evo2Gold = AssetDatabase.LoadAssetAtPath<Material>(Evo2GoldPath);
+            var evo2Glass = AssetDatabase.LoadAssetAtPath<Material>(Evo2GlassPath);
+            var evo2Sky = AssetDatabase.LoadAssetAtPath<Material>(Evo2SkyPath);
+            var evo2ClearGlass = AssetDatabase.LoadAssetAtPath<Material>(Evo2ClearGlassPath);
+            var evo3Pearl = AssetDatabase.LoadAssetAtPath<Material>(Evo3PearlPath);
+            var evo3Gold = AssetDatabase.LoadAssetAtPath<Material>(Evo3GoldPath);
+            var evo2Path = AssetDatabase.LoadAssetAtPath<Material>(Evo2PathPath);
+            var prism = ModuleFxMaterials.Get("Prism");
+            var evo4Wall = AssetDatabase.LoadAssetAtPath<Material>(Evo4WallPath);
+            var evo4Deck = AssetDatabase.LoadAssetAtPath<Material>(Evo4DeckPath);
+            var evo4Trim = AssetDatabase.LoadAssetAtPath<Material>(Evo4TrimPath);
+            var evo4Star = AssetDatabase.LoadAssetAtPath<Material>(Evo2StarPath);
+            var hazard = AssetDatabase.LoadAssetAtPath<Material>(HazardPath);
+            var leaf = AssetDatabase.LoadAssetAtPath<Material>(Evo3Leaf2Path);   // 3단계 장치 덩굴 잎 = 밝은 잎
 
             Data.InteriorKitPiece Piece(string name, System.Collections.Generic.Dictionary<string, GameObject> from = null)
             {
@@ -209,6 +348,23 @@ namespace SpaceStation.Editor
                         case "EvoWhite": mats[i] = evoWhite; break; // 진화 1단계 키트 (매끈한 흰 세라믹)
                         case "EvoFloor": mats[i] = evoFloor; break;
                         case "EvoDark": mats[i] = evoDark; break;
+                        case "Evo2Deck": mats[i] = evo2Deck; break; // 진화 2단계 키트 (미드나잇)
+                        case "Evo2Wall": mats[i] = evo2Wall; break;
+                        case "Evo2Trim": mats[i] = evo2Trim; break;
+                        case "Evo2Gold": mats[i] = evo2Gold; break;
+                        case "Evo2Glass": mats[i] = evo2Glass; break;   // 닫힌 문 자리 = 유리 난간 + 하늘 조각 (열린 갑판)
+                        case "Evo2Sky": mats[i] = evo2Sky; break;
+                        case "Evo2ClearGlass": mats[i] = evo2ClearGlass; break;   // 실내형 방의 닫힌 문 자리 = 아치 창
+                        case "Evo3Pearl": mats[i] = evo3Pearl; break;   // 진화 3단계 키트 (진주 · 금 · 수정)
+                        case "Evo3Gold": mats[i] = evo3Gold; break;
+                        case "Evo3Path": mats[i] = evo2Path; break;
+                        case "Evo3Prism": mats[i] = prism; break;
+                        case "Evo4Wall": mats[i] = evo4Wall; break;   // 진화 4단계 키트 (성운 남보라 · 은빛 테 · 별)
+                        case "Evo4Deck": mats[i] = evo4Deck; break;
+                        case "Evo4Trim": mats[i] = evo4Trim; break;
+                        case "Evo4Star": mats[i] = evo4Star; break;
+                        case "Hazard": mats[i] = hazard; break;   // 위아래 이동 장치 (2026-11-19): 기본 칸 경고 노랑 (11-6 줄무늬와 같은 재질)
+                        case "Leaf": mats[i] = leaf; break;
                         default:
                             Debug.LogWarning($"[InteriorSetup] {name}: 모르는 재질 슬롯 '{slot}' → Hull");
                             mats[i] = hull;
@@ -249,6 +405,58 @@ namespace SpaceStation.Editor
                 stages.Add(new Data.InteriorKitStage(1, ModulesOfStage(1),
                     Piece("KIT_Wall_Evo1", evo1), Piece("KIT_WallDoor_Evo1", evo1), Piece("KIT_DoorLeaf_Evo1", evo1), Piece("KIT_Floor_Evo1", evo1),
                     Piece("KIT_Ceiling_Evo1", evo1), Piece("KIT_HatchFrame_Evo1", evo1), Piece("KIT_HatchLid_Evo1", evo1)));
+            }
+            var evo2 = StageParts(EvoKit2Path);   // 2단계 = Interior_Evo.blend evo2_kit_builder (미드나잇 · 은빛 테 · 금빛 문틀)
+            if (evo2.Count > 0)
+            {
+                stages.Add(new Data.InteriorKitStage(2, ModulesOfStage(2),
+                    Piece("KIT_Wall_Evo2", evo2), Piece("KIT_WallDoor_Evo2", evo2), Piece("KIT_DoorLeaf_Evo2", evo2), Piece("KIT_Floor_Evo2", evo2),
+                    Piece("KIT_Ceiling_Evo2", evo2), Piece("KIT_HatchFrame_Evo2", evo2), Piece("KIT_HatchLid_Evo2", evo2), Piece("KIT_WallSealed_Evo2", evo2), Piece("KIT_SkyPatch_Evo2", evo2)));
+            }
+            var evo3 = StageParts(EvoKit3Path);   // 3단계 = Interior_Evo.blend evo3_kit_builder (진주 · 금빛 테 · 수정 난간)
+            if (evo3.Count > 0)
+            {
+                // 내부 템플릿이 있는 3단계 모듈만 — 템플릿 없는 방의 대체 벽까지 난간 + 하늘 조각이 되면 우주로 뚫린 방이 됨 (템플릿을 만들 때마다 Setup으로 다시 넣음)
+                var withInterior = ModulesOfStage(3).FindAll(m => AssetDatabase.FindAssets("IT_" + m.name.Replace("MD_", "").Replace("_", "") + " t:InteriorTemplate").Length > 0);
+                stages.Add(new Data.InteriorKitStage(3, withInterior,
+                    Piece("KIT_Wall_Evo3", evo3), Piece("KIT_WallDoor_Evo3", evo3), Piece("KIT_DoorLeaf_Evo3", evo3), Piece("KIT_Floor_Evo3", evo3),
+                    Piece("KIT_Ceiling_Evo3", evo3), Piece("KIT_HatchFrame_Evo3", evo3), Piece("KIT_HatchLid_Evo3", evo3), Piece("KIT_WallSealed_Evo3", evo3), Piece("KIT_SkyPatch_Evo3", evo3)));
+            }
+            var evo4 = StageParts(EvoKit4Path);   // 4단계 = Interior_Evo2.blend evo4_kit_builder (3단계와 같은 모양 · 성운 남보라 · 은빛 테 · 문 위 별 셋)
+            if (evo4.Count > 0)
+            {
+                var withInterior = ModulesOfStage(4).FindAll(m => AssetDatabase.FindAssets("IT_" + m.name.Replace("MD_", "").Replace("_", "") + " t:InteriorTemplate").Length > 0);
+                stages.Add(new Data.InteriorKitStage(4, withInterior,
+                    Piece("KIT_Wall_Evo4", evo4), Piece("KIT_WallDoor_Evo4", evo4), Piece("KIT_DoorLeaf_Evo4", evo4), Piece("KIT_Floor_Evo4", evo4),
+                    Piece("KIT_Ceiling_Evo4", evo4), Piece("KIT_HatchFrame_Evo4", evo4), Piece("KIT_HatchLid_Evo4", evo4), Piece("KIT_WallSealed_Evo4", evo4), Piece("KIT_SkyPatch_Evo4", evo4)));
+            }
+            // 진화 단계별 연결 통로 (2026-11-17, BlenderWork/Connectors/connector_builder.py --export-kit): 단계마다 통로 몸 · 끝 · 간격 조각 (+ 2단계 현관 가구), 에어록 문틀 · 문짝
+            var tubes = StageParts(TubeKitPath);
+            if (tubes.Count > 0)
+            {
+                foreach (var s in stages)
+                {
+                    string n = "_Evo" + s.Stage;
+                    s.EditorSetTubes(Piece("KIT_Tube" + n, tubes), Piece("KIT_TubeCollar" + n, tubes),
+                        tubes.ContainsKey("KIT_TubeRing" + n) ? Piece("KIT_TubeRing" + n, tubes) : null,
+                        TubeRingSteps[Mathf.Clamp(s.Stage - 1, 0, TubeRingSteps.Length - 1)],
+                        tubes.ContainsKey("KIT_Vestibule" + n) ? Piece("KIT_Vestibule" + n, tubes) : null,
+                        tubes.ContainsKey("KIT_TubeShort" + n) ? Piece("KIT_TubeShort" + n, tubes) : null);
+                }
+                kit.EditorSetAirlock(Piece("KIT_AirlockFrame", tubes), Piece("KIT_AirlockLeaf", tubes));
+                // 빛 기둥 승강판 (진화 단계별 통로 ③): 2단계부터 바닥 판 · 하늘 고리, 빛 기둥 재질
+                foreach (var s in stages)
+                {
+                    string n = "_Evo" + s.Stage;
+                    s.EditorSetSkyLift(tubes.ContainsKey("KIT_SkyLiftPad" + n) ? Piece("KIT_SkyLiftPad" + n, tubes) : null,
+                        tubes.ContainsKey("KIT_SkyLiftRing" + n) ? Piece("KIT_SkyLiftRing" + n, tubes) : null);
+                    s.EditorSetDoorSteps(tubes.ContainsKey("KIT_DoorSteps" + n) ? Piece("KIT_DoorSteps" + n, tubes) : null);   // 문 계단 (모든 면 연결 ②, 2026-11-19)
+                    s.EditorSetTransit(tubes.ContainsKey("KIT_Transit" + n) ? Piece("KIT_Transit" + n, tubes) : null);   // 위아래 이동 장치 (2026-11-19)
+                    s.EditorSetTransitWall(tubes.ContainsKey("KIT_TransitWall" + n) ? Piece("KIT_TransitWall" + n, tubes) : null);
+                }
+                kit.EditorSetSkyLiftShaft(AssetDatabase.LoadAssetAtPath<Material>(SkyLiftShaftPath));
+                kit.EditorSetTransitBasic(tubes.ContainsKey("KIT_Transit_Evo0") ? Piece("KIT_Transit_Evo0", tubes) : null);
+                kit.EditorSetTransitWallBasic(tubes.ContainsKey("KIT_TransitWall_Evo0") ? Piece("KIT_TransitWall_Evo0", tubes) : null);
             }
             kit.EditorSetStages(stages);
             EditorUtility.SetDirty(kit);
@@ -297,6 +505,23 @@ namespace SpaceStation.Editor
             so.FindProperty("_smokeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(SmokePath);
             so.FindProperty("_sparkMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(SparkPath);
             so.FindProperty("_beaconMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(StatusPath);
+            // plant_builder 식물 여덟 (화분 · 나무 · 3단계 정원 소나무 · 꽃나무와 시든 것) = ⑤-4 LODGroup 프리팹 (PlantLods — LOD0 원래 FBX · LOD1 · LOD2 plant_builder --lod)
+            var plants = so.FindProperty("_plantSettings");
+            if (PlantLods.Prefab(PlantLods.Names[0]) == null)
+                PlantLods.Build();
+            foreach (var (field, name) in new[] { ("Pot", "PlantPot"), ("PotWilted", "PlantPotWilted"), ("Tree", "PlantTree"), ("TreeWilted", "PlantTreeWilted"),
+                         ("Pine", "PlantPine"), ("PineWilted", "PlantPineWilted"), ("Blossom", "PlantBlossom"), ("BlossomWilted", "PlantBlossomWilted") })
+                plants.FindPropertyRelative(field).objectReferenceValue = PlantLods.Prefab(name);
+            // 식물 아틀라스 화분 식물 (③ 2026-11-16 — 종류 · 모델 · 모델 배율은 InteriorPlantVariants.Pot)
+            var atlas = plants.FindPropertyRelative("Atlas");
+            atlas.arraySize = InteriorPlantVariants.Pot.Length;
+            for (int i = 0; i < InteriorPlantVariants.Pot.Length; i++)
+            {
+                var e = atlas.GetArrayElementAtIndex(i);
+                e.FindPropertyRelative("Kind").enumValueIndex = (int)InteriorPlantVariants.Pot[i].Kind;
+                e.FindPropertyRelative("Model").objectReferenceValue = InteriorPlantVariants.Model(InteriorPlantVariants.Pot[i].Mesh);
+                e.FindPropertyRelative("Scale").floatValue = InteriorPlantVariants.Pot[i].Scale;
+            }
             so.ApplyModifiedPropertiesWithoutUndo();
 
             BuildEnterRow(mode);
@@ -411,6 +636,16 @@ namespace SpaceStation.Editor
                 m.enableInstancing = true;
                 EditorUtility.SetDirty(m);
             }
+            // 갓 빤 빨래 (수리 사령부 빨랫줄): 천 결은 같게, 때 (Grime) 없이 · 그늘 약하게 — 공용 천 재질 그대로면 가운데가 얼룩져 빨지 않은 천처럼 보였음 (2026-11-13 Unity 확인)
+            void Linen(string path, Color color)
+            {
+                Fabric(path, color);
+                var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+                m.SetFloat("_NormalStrength", 0.6f);
+                m.SetFloat("_OcclusionStrength", 0.25f);
+                m.SetFloat("_GrimeStrength", 0f);
+                EditorUtility.SetDirty(m);
+            }
             // 12-5 콘크리트 (방사선 차폐실): 같은 트라이플래너 셰이더에 거푸집 · 폼타이 구멍 텍스처. 실내 조명이 따뜻해 살짝 푸른 회색이어야 회색으로 보임 (MODELING 7-7)
             if (!System.IO.File.Exists(InteriorTextureBaker.ConcreteNormalPath) || !System.IO.File.Exists(InteriorTextureBaker.ConcreteMaskPath))
                 InteriorTextureBaker.BakeConcrete();
@@ -427,25 +662,170 @@ namespace SpaceStation.Editor
             concrete.SetFloat("_GrimeStrength", 0.65f);
             concrete.enableInstancing = true;
             EditorUtility.SetDirty(concrete);
+            // 수리 사령부 고목 껍질: 같은 트라이플래너 셰이더에 세로로 긴 판 · 깊은 골 · 세로 결 텍스처 (한 장 1.6 m), 은은한 진주빛 회갈색 — 골은 마스크 R로 어둡게
+            if (!System.IO.File.Exists(InteriorTextureBaker.BarkNormalPath) || !System.IO.File.Exists(InteriorTextureBaker.BarkMaskPath))
+                InteriorTextureBaker.BakeBark();
+            var bark = LoadOrCreate(Evo3TreeBarkPath, tri);
+            bark.shader = tri;
+            bark.SetColor("_BaseColor", new Color(0.8f, 0.74f, 0.66f));
+            bark.SetFloat("_Smoothness", 0.1f);
+            bark.SetFloat("_Metallic", 0f);
+            bark.SetTexture("_DetailNormal", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.BarkNormalPath));
+            bark.SetTexture("_DetailMask", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.BarkMaskPath));
+            bark.SetFloat("_Tiling", 0.625f);
+            bark.SetFloat("_NormalStrength", 1.25f);
+            bark.SetFloat("_OcclusionStrength", 0.8f);
+            bark.SetFloat("_GrimeStrength", 0.45f);   // 밤빛에서 0.68 · 0.9 · 0.6은 짙은 초콜릿색 (2026-11-13 Unity 확인)
+            bark.enableInstancing = true;
+            EditorUtility.SetDirty(bark);
+            // 궤도 항만 모래 해변 (2026-11-16, 사용자 "해안선 · 바닥이 모래 느낌이 안 든다"): 같은 트라이플래너 셰이더에 바람 물결 · 잔 알갱이 (한 장 1 m),
+            //  마른 모래 = 밝은 진주빛 모래 (단색 황토는 밤빛에서 주황 흙처럼 보였음) · 젖은 모래 = 물가 띠, 어둡고 윤기
+            if (!System.IO.File.Exists(InteriorTextureBaker.SandNormalPath) || !System.IO.File.Exists(InteriorTextureBaker.SandMaskPath))
+                InteriorTextureBaker.BakeSand();
+            void Sand(string path, Color color, float smoothness, float grime, Color wet, float wetLevel)
+            {
+                var m = LoadOrCreate(path, tri);
+                m.shader = tri;
+                m.SetColor("_BaseColor", color);
+                m.SetFloat("_Smoothness", smoothness);
+                m.SetFloat("_Metallic", 0f);
+                m.SetTexture("_DetailNormal", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.SandNormalPath));
+                m.SetTexture("_DetailMask", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.SandMaskPath));
+                m.SetFloat("_Tiling", 0.8f);
+                m.SetFloat("_NormalStrength", 1.7f);
+                m.SetFloat("_OcclusionStrength", 0.8f);
+                m.SetFloat("_GrimeStrength", grime);
+                m.SetColor("_WetColor", wet);
+                m.SetFloat("_WetLevel", wetLevel);
+                m.SetFloat("_WetBand", 0.06f);
+                m.SetFloat("_WetSmoothness", 0.55f);
+                m.enableInstancing = true;
+                EditorUtility.SetDirty(m);
+            }
+            // 젖은 띠 = 땅 높이로 (템플릿 좌표 — 궤도 항만 석호 수면 F − 0.1 위 5 cm까지 젖음, 그 아래 물속 모래도 젖은 색)
+            Sand(Evo3BeachSandPath, new Color(0.97f, 0.93f, 0.84f), 0.08f, 0.45f, new Color(0.56f, 0.48f, 0.37f, 1f), SpaceStation.Interior.OrbitalPort.LagoonLevel + 0.05f);
+            // AI 중추 다듬은 생울타리 (2026-11-16): 같은 트라이플래너 셰이더 + 잎 색 텍스처 (_DETAIL_ALBEDO) — 잔가지째 겹친 7 ~ 10 cm 잎 · 새순 연두 · 큰 잎 덩이 (한 장 1.67 m),
+            //  처음 (한 색 + 2 ~ 3 cm 잎 노멀)은 몇 걸음만 떨어져도 매끈한 초록 벨벳 — 사용자 "풀 질감이 아쉽다" (같은 날 다시). 색은 텍스처가 맡고 _BaseColor = 흰색 (밝기만),
+            //  잎 윤기 (마스크 G = 잎마다 윤기 차이), 덩이 골 그늘 = 마스크 R. 구멍 · 점 무늬 없음 (환공포증).
+            if (!System.IO.File.Exists(InteriorTextureBaker.HedgeAlbedoPath) || !System.IO.File.Exists(InteriorTextureBaker.HedgeNormalPath) || !System.IO.File.Exists(InteriorTextureBaker.HedgeMaskPath))
+                InteriorTextureBaker.BakeHedge();
+            var hedge = LoadOrCreate(Evo3HedgePath, tri);
+            hedge.shader = tri;
+            hedge.SetColor("_BaseColor", Color.white);
+            hedge.SetFloat("_Smoothness", 0.32f);
+            hedge.SetFloat("_Metallic", 0f);
+            hedge.SetTexture("_DetailAlbedo", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.HedgeAlbedoPath));
+            hedge.SetFloat("_UseDetailAlbedo", 1f);
+            hedge.EnableKeyword("_DETAIL_ALBEDO");
+            hedge.SetFloat("_UseVertexAO", 1f);                    // 잎 덩이 골 그늘 = 꼭짓점 색 (Blender HedgeAO — 옆면 굴곡과 같은 자리, 2026-11-16 사용자 "옆면도 음영에 따라 굴곡지게")
+            hedge.EnableKeyword("_VERTEX_AO");
+            hedge.SetTexture("_DetailNormal", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.HedgeNormalPath));
+            hedge.SetTexture("_DetailMask", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.HedgeMaskPath));
+            hedge.SetFloat("_Tiling", 0.6f);
+            hedge.SetFloat("_NormalStrength", 1f);
+            hedge.SetFloat("_OcclusionStrength", 0.6f);
+            hedge.SetFloat("_GrimeStrength", 0.3f);
+            hedge.enableInstancing = true;
+            EditorUtility.SetDirty(hedge);
+            // 심우주 통신기지 밤 잔디 (2026-11-17): 바이오돔 잔디 결 (T_InteriorLawn, 위에서 내려다본 평면 3 m) + 달빛 은청 물들임 — 밤빛에서 검게 묻히지 않게 밝게
+            var nightLawn = LoadOrCreate(Evo4LawnPath, lit);
+            nightLawn.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.Folder + "T_InteriorLawn.png"));
+            nightLawn.SetColor("_BaseColor", new Color(0.62f, 0.78f, 0.86f));
+            nightLawn.SetFloat("_Metallic", 0f);
+            nightLawn.SetFloat("_Smoothness", 0.15f);
+            nightLawn.enableInstancing = true;
+            EditorUtility.SetDirty(nightLawn);
 
             // 진화 모듈 내부 1단계 키트 (2026-10-29): 외형 흰 패널 · 짙은 유리 띠와 같은 계열의 매끈한 재질 (패널 무늬 · 때 없음)
             //   (이름을 Plain으로 했다가 아래 소품 재질 함수 Plain(경로, 색, 금속도, 광택)을 가려 소품 22종의 금속도 · 광택이 뒤바뀐 적 있음 — 2026-10-29)
-            void EvoSurface(string path, Color color, float metallic, float smoothness)
+            // ⑤ 트림 (2026-11-16): 금 · 진주 · 흰 몸체 · 금속 테 · 벽 · 짙은 광택 = SpaceStation/InteriorTrim (trim = 장식 종류) —
+            //   트림 UV가 있는 메시 (BlenderWork/Tools/trim_uv_export.py로 내보낸 방)만 실제 크기 모서리 빛 · 이음선 · 홈, 없으면 Lit과 같은 모습
+            var trimShader = Shader.Find(TrimShaderName);
+            void EvoSurface(string path, Color color, float metallic, float smoothness, int trim = -1)
             {
                 var m = LoadOrCreate(path, lit);
-                m.shader = lit;
+                m.shader = trim >= 0 && trimShader != null ? trimShader : lit;
                 m.SetColor("_BaseColor", color);
                 m.SetFloat("_Metallic", metallic);
+                m.SetFloat("_Smoothness", smoothness);
+                if (trim >= 0)
+                    m.SetFloat("_TrimKind", trim);
+                m.enableInstancing = true;
+                EditorUtility.SetDirty(m);
+            }
+            EvoSurface(EvoWhitePath, new Color(0.9f, 0.92f, 0.95f), 0f, 0.6f, TrimPanel);
+            EvoSurface(EvoFloorPath, new Color(0.6f, 0.62f, 0.67f), 0.05f, 0.45f);
+            EvoSurface(EvoDarkPath, new Color(0.035f, 0.045f, 0.1f), 0.2f, 0.8f, TrimDarkGloss);
+            // 진화 2단계 (미드나잇 · 은빛 · 금빛): 짙은 몸체는 방 조명에서 묻히지 않게 외형보다 조금 밝게
+            EvoSurface(Evo2DeckPath, new Color(0.13f, 0.17f, 0.3f), 0.1f, 0.55f);
+            EvoSurface(Evo2WallPath, new Color(0.17f, 0.23f, 0.4f), 0.1f, 0.35f, TrimWall);   // 광택이 높으면 짙은 천장에 조명이 작은 해처럼 비침
+            EvoSurface(Evo2TrimPath, new Color(0.8f, 0.83f, 0.88f), 0.45f, 0.7f, TrimMetal);
+            EvoSurface(Evo2GoldPath, new Color(0.93f, 0.7f, 0.3f), 0.5f, 0.65f, TrimGold);
+            EvoSurface(Evo2VioletPath, new Color(0.66f, 0.42f, 0.95f), 0.1f, 0.55f);   // 융합 플랜트 코일 · 뚜껑 (바깥 모델 모듈 색 — 사용자 2026-10-23 보라. Blender 값 (0.5, 0.25, 0.9)은 선형이라 여기 값이 더 밝음)
+            EvoSurface(Evo2PathPath, new Color(0.78f, 0.69f, 0.58f), 0f, 0.35f);
+            EvoSurface(Evo2BedPath, new Color(0.26f, 0.19f, 0.15f), 0f, 0.2f);
+            EvoSurface(Evo2RockPath, new Color(0.72f, 0.67f, 0.6f), 0f, 0.12f);
+            EvoSurface(Evo2BarPath, new Color(0.93f, 0.56f, 0.46f), 0f, 0.35f);
+            EvoSurface(Evo2MountPath, new Color(0.55f, 0.62f, 0.76f), 0.25f, 0.45f);
+            EvoSurface(Evo2SandPath, new Color(0.3f, 0.35f, 0.46f), 0f, 0.2f);
+            EvoSurface(Evo3PearlPath, new Color(0.95f, 0.92f, 0.87f), 0.15f, 0.72f, TrimPearl);
+            EvoSurface(Evo3GoldPath, new Color(0.96f, 0.76f, 0.36f), 0.65f, 0.72f, TrimGoldInlay);
+            EvoSurface(Evo3BlossomPath, new Color(0.97f, 0.7f, 0.8f), 0f, 0.3f);
+            EvoSurface(Evo3RoofPath, new Color(0.93f, 0.6f, 0.5f), 0f, 0.35f);    // 시안 2 마을 집 (Blender Evo3Roof와 같은 색)
+            EvoSurface(Evo3DoorPath, new Color(0.45f, 0.68f, 0.78f), 0.1f, 0.5f);
+            EvoSurface(Evo3WheatPath, new Color(0.95f, 0.84f, 0.55f), 0f, 0.25f);   // 밝은 밀빛 (주황 원뿔처럼 보였음)
+            EvoSurface(Evo3LavenderPath, new Color(0.62f, 0.48f, 0.92f), 0f, 0.3f);
+            EvoSurface(Evo3TulipPath, new Color(0.95f, 0.3f, 0.35f), 0f, 0.35f);
+            EvoSurface(Evo3FieldPath, new Color(0.62f, 0.48f, 0.3f), 0f, 0.08f);
+            EvoSurface(Evo3FlowerPath, new Color(1f, 0.82f, 0.25f), 0f, 0.3f);
+            EvoSurface(Evo3Leaf2Path, new Color(0.45f, 0.68f, 0.3f), 0f, 0.25f);
+            EvoSurface(Evo3BarkPath, new Color(0.5f, 0.36f, 0.25f), 0f, 0.15f);
+            EvoSurface(Evo3WaxPath, new Color(0.98f, 0.87f, 0.66f), 0.05f, 0.5f);     // 꿀 언덕 밀랍 옆면 (밝은 크림빛 — 외형 "따뜻한 진주 옆면", 꿀빛으로 짙게 하니 우주 하늘 아래 갈색으로 보였음)
+            EvoSurface(Evo3Wax2Path, new Color(0.99f, 0.91f, 0.74f), 0f, 0.4f);       // 흰 밀랍 뚜껑 · 빈 칸 (밝게 — 어두운 구멍처럼 보이지 않게)
+            EvoSurface(Evo3WisteriaPath, new Color(0.82f, 0.74f, 0.98f), 0f, 0.3f);
+            EvoSurface(Evo3SandPath, new Color(0.93f, 0.84f, 0.64f), 0f, 0.12f);     // 해변 · 곶 둘레 자갈 해안
+            EvoSurface(Evo3SeaBedPath, new Color(0.6f, 0.55f, 0.43f), 0f, 0.2f);      // 바다 바닥 (물 밑 젖은 모래)
+            EvoSurface(Evo3StonePath, new Color(0.84f, 0.78f, 0.68f), 0f, 0.15f);     // 곶 밝은 돌 지층 · 절벽 계단 단
+            EvoSurface(Evo3CavePath, new Color(0.3f, 0.29f, 0.32f), 0f, 0.25f);       // 동굴 종유석
+            EvoSurface(Evo3WoodPath, new Color(0.88f, 0.76f, 0.57f), 0f, 0.2f);       // 그루터기 잘린 면 (밝은 나뭇결, 나이테 = 얕은 물결 메시)
+            EvoSurface(Evo3CoralPath, new Color(0.98f, 0.56f, 0.52f), 0f, 0.35f);     // 궤도 항만 산호 (Blender Evo3Coral과 같은 색)
+            EvoSurface(Evo3NacrePath, new Color(0.99f, 0.86f, 0.84f), 0.2f, 0.78f, TrimPearl);   // 자개 (분홍빛 흰색 · 진주보다 윤기)
+            EvoSurface(Evo3MintPath, new Color(0.55f, 0.9f, 0.78f), 0f, 0.4f);
+            EvoSurface(Evo3LilacPath, new Color(0.8f, 0.73f, 0.97f), 0f, 0.35f);
+            Emissive(Evo3HoneyPath, new Color(1f, 0.7f, 0.22f), new Color(1f, 0.58f, 0.12f) * 1.1f, 0.8f);   // 빛나는 꿀 (언덕 윗면 · 방울 · 저장 기둥 · 등불)
+            // 진화 4단계 성운 (2026-11-17 심우주 통신기지 · 4단계 키트): 밤하늘 남보라 몸체 = 성운 트림 (벽 판 테 + 옅은 별가루), 갑판 = 벽 판, 은빛 테 = 금속 테, 짙은 받침 = 짙은 광택.
+            //   외형 몸체 (짙은 남보라)보다 밝게 — 밤빛 방에서 묻히지 않게 (2단계 미드나잇과 같은 보정)
+            EvoSurface(Evo4WallPath, new Color(0.33f, 0.28f, 0.56f), 0.1f, 0.4f, TrimNebula);
+            EvoSurface(Evo4DeckPath, new Color(0.4f, 0.36f, 0.64f), 0.1f, 0.45f, TrimWall);
+            EvoSurface(Evo4TrimPath, new Color(0.84f, 0.87f, 0.94f), 0.55f, 0.72f, TrimMetal);
+            EvoSurface(Evo4LowPath, new Color(0.08f, 0.07f, 0.17f), 0.2f, 0.75f, TrimDarkGloss);
+            EvoSurface(Evo4StonePath, new Color(0.76f, 0.76f, 0.86f), 0f, 0.25f);      // 달빛 판석 · 별자리 광장
+            EvoSurface(Evo4MoonRockPath, new Color(0.55f, 0.56f, 0.64f), 0f, 0.15f);  // 달 자갈 · 운석 바위
+            EvoSurface(Evo4SilverGrassPath, new Color(0.66f, 0.8f, 0.86f), 0f, 0.35f);   // 은빛 풀 (밤빛에 은청으로 빛남 — 잎 칸)
+            EvoSurface(Evo4MoonflowerPath, new Color(0.93f, 0.95f, 1f), 0f, 0.35f);      // 달맞이꽃 (흰 꽃잎 — 잎 칸)
+            EvoSurface(Evo4StemPath, new Color(0.25f, 0.45f, 0.42f), 0f, 0.25f);         // 줄기 · 꽃 잎
+            EvoSurface(Evo4PollenPath, new Color(1f, 0.86f, 0.5f), 0f, 0.3f);            // 꽃가루 (꽃 가운데)
+            Emissive(Evo4CyanPath, new Color(0.45f, 0.9f, 1f), new Color(0.3f, 0.85f, 1f) * 1.6f, 0.6f);     // 별 등불 · 문 등 · 빛 케이블 · 바닥 빛 고리 (외형 신호 하늘빛)
+            Emissive(Evo4LensPath, new Color(0.3f, 0.45f, 0.85f), new Color(0.12f, 0.25f, 0.7f) * 0.8f, 0.92f); // 망원경 렌즈 (짙은 하늘빛 유리 · 옅게 빛남)
+            // 바이오돔 잔디 · 흙 (사용자 2026-11-03 "나무와 풀 디테일"): 색 판이 아니라 풀잎 · 흙 무늬 텍스처
+            void Ground(string path, string texture, float smoothness)
+            {
+                var m = LoadOrCreate(path, lit);
+                m.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(InteriorTextureBaker.Folder + texture));
+                m.SetColor("_BaseColor", Color.white);
+                m.SetFloat("_Metallic", 0f);
                 m.SetFloat("_Smoothness", smoothness);
                 m.enableInstancing = true;
                 EditorUtility.SetDirty(m);
             }
-            EvoSurface(EvoWhitePath, new Color(0.9f, 0.92f, 0.95f), 0f, 0.6f);
-            EvoSurface(EvoFloorPath, new Color(0.6f, 0.62f, 0.67f), 0.05f, 0.45f);
-            EvoSurface(EvoDarkPath, new Color(0.035f, 0.045f, 0.1f), 0.2f, 0.8f);
+            Ground(Evo2LawnPath, "T_InteriorLawn.png", 0.12f);
+            Ground(Evo2SoilPath, "T_InteriorSoil.png", 0.08f);
 
             Fabric(FabricPath, new Color(0.86f, 0.85f, 0.81f));
             Fabric(BlanketPath, new Color(0.56f, 0.42f, 0.27f)); // 차분한 황토색 (거주 강조색 노랑과 어울리게)
+            Linen(Evo3LinenWhitePath, new Color(0.97f, 0.97f, 0.95f));   // 수리 사령부 빨래 (흰 천)
+            Linen(Evo3LinenBluePath, new Color(0.72f, 0.85f, 0.96f));    // 수리 사령부 빨래 (깨끗한 연하늘 — 황토 담요는 빨지 않은 천처럼 어두웠음)
+            Linen(Evo3LinenRosePath, new Color(0.98f, 0.84f, 0.84f));    // 수리 사령부 빨래 (연분홍)
             Fabric(SofaPath, new Color(0.3f, 0.29f, 0.36f));     // 11-5 휴게실 소파 (보랏빛 회색)
             Fabric(RugPath, new Color(0.38f, 0.24f, 0.5f));      // 휴게실 러그·쿠션 (보라)
 
@@ -487,7 +867,33 @@ namespace SpaceStation.Editor
             Emissive(ScreenDarkPath, new Color(0.02f, 0.05f, 0.08f), new Color(0.015f, 0.07f, 0.11f), ScreenSmoothness);
             Emissive(ScreenGridPath, new Color(0.04f, 0.15f, 0.2f), new Color(0.04f, 0.2f, 0.26f) * 1.2f, ScreenSmoothness);
             // 11-6 핵융합로 플라스마 관찰창 (분홍 보랏빛 — 외부 M_FusionPlasma와 같은 계열)
-            Emissive(PlasmaPath, new Color(0.75f, 0.35f, 0.95f), new Color(0.8f, 0.3f, 1f) * 1.5f, 0.3f);
+            // 잡음 플라즈마 (사용자 2026-11-02 "내부에 노이즈 — 제대로 된 플라즈마"), 뒤가 비치면 안 되는 관찰창에도 쓰여 불투명. 내부는 미터 단위라 덩어리 값이 바깥(모델 기준 14)보다 작음.
+            // 처음 만들 때만 값을 넣음 (슬라이더로 맞춘 값을 덮어쓰지 않게)
+            void InteriorPlasma(string path, Color core, Color edge, float scale)
+            {
+                var shader = Shader.Find("SpaceStation/Plasma");
+                var old = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (old != null && old.shader == shader)
+                    return;
+                var m = LoadOrCreate(path, shader);
+                m.shader = shader;
+                m.shaderKeywords = new string[0];
+                m.SetColor("_BaseColor", Color.white);
+                m.SetColor("_CoreColor", core);
+                m.SetColor("_EdgeColor", edge);
+                m.SetFloat("_Scale", scale);
+                m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.Zero);
+                m.SetFloat("_ZWrite", 1f);
+                m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
+                m.enableInstancing = true;
+                EditorUtility.SetDirty(m);
+            }
+            InteriorPlasma(PlasmaPath, new Color(2f, 1.05f, 2.5f), new Color(0.85f, 0.22f, 1.4f), 2.4f);
+            InteriorPlasma(PlasmaHotPath, new Color(3.4f, 2f, 3.8f), new Color(1.7f, 0.7f, 2.5f), 3.2f);   // 융합 발전소 고리의 밝은 덩이
+            InteriorPlasma(Evo2SunPath, new Color(3f, 1.4f, 0.32f), new Color(1.75f, 0.5f, 0.06f), 1.8f);   // 정련 콤비나트 작은 해
+            InteriorPlasma(Evo2BeaconCorePath, new Color(2.2f, 2.8f, 3.2f), new Color(0.4f, 1.1f, 2.2f), 2.6f);   // 실드 돔 렌즈 속 빛
+            Emissive(Evo2MoonPath, new Color(1f, 0.96f, 0.82f), new Color(1f, 0.93f, 0.76f) * 0.72f, 0.12f);
+            Emissive(Evo2LemonPath, new Color(1f, 0.86f, 0.3f), new Color(1f, 0.76f, 0.16f) * 1.05f, 0.5f);
             // 11-7 실드 방출기 코어·에너지 빔 (밝은 하늘색)
             Emissive(ShieldPath, new Color(0.45f, 0.8f, 1f), new Color(0.3f, 0.7f, 1f) * 2.0f, 0.4f);
             // 12-5 단백질 배양실 배양액 (크림빛 호박색, 은은한 발광 — 탱크 유리 속 · 콘솔 수위 막대)
@@ -520,11 +926,10 @@ namespace SpaceStation.Editor
             glass.SetFloat("_Surface", 1f); // Transparent
             glass.SetFloat("_Blend", 0f);   // Alpha
             glass.SetFloat("_ZWrite", 0f);
-            glass.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            glass.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
             glass.SetOverrideTag("RenderType", "Transparent");
             glass.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             glass.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            BaseShaderGUI.SetupMaterialBlendMode(glass);   // 섞기 값은 URP와 같게 (반사광 보존 = 알파를 미리 곱함 · SrcBlend One) — 손으로 SrcAlpha를 쓰면 Unity가 재질을 검사할 때마다 1로 바꿔 놓아 커밋마다 바뀜 (2026-11-20)
             glass.SetColor("_BaseColor", new Color(0.55f, 0.75f, 0.9f, 0.12f));
             glass.SetFloat("_Smoothness", 0.95f);
             glass.SetFloat("_Metallic", 0f);
@@ -537,11 +942,10 @@ namespace SpaceStation.Editor
             waterClear.SetFloat("_Surface", 1f); // Transparent
             waterClear.SetFloat("_Blend", 0f);   // Alpha
             waterClear.SetFloat("_ZWrite", 0f);
-            waterClear.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            waterClear.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
             waterClear.SetOverrideTag("RenderType", "Transparent");
             waterClear.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             waterClear.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            BaseShaderGUI.SetupMaterialBlendMode(waterClear);
             waterClear.SetColor("_BaseColor", new Color(0.35f, 0.75f, 0.95f, 0.55f));
             waterClear.SetFloat("_Smoothness", 0.3f);
             waterClear.SetFloat("_Metallic", 0f);
@@ -561,6 +965,219 @@ namespace SpaceStation.Editor
             window.SetFloat("_RimPower", 4f);
             window.SetFloat("_Streak", 0.03f);
             EditorUtility.SetDirty(window);
+            // 2단계 바깥 하늘: 창과 같은 셰이더, 유리 느낌 없이 (껍데기 면이 보이지 않게 — InteriorExteriorView가 창처럼 그림)
+            var sky = LoadOrCreate(Evo2SkyPath, Shader.Find(Interior.InteriorExteriorView.WindowShaderName));
+            sky.SetColor("_Tint", Color.white);
+            sky.SetColor("_RimColor", Color.black);
+            sky.SetFloat("_RimPower", 8f);
+            sky.SetFloat("_Streak", 0f);
+            EditorUtility.SetDirty(sky);
+
+            // 2단계 유리 · 압력 막 · 우주복 헬멧 (M_InteriorGlass와 같은 반투명 꼴), 청백 빛줄
+            void Clear(string path, Color color, float smoothness, Color emission)
+            {
+                var m = LoadOrCreate(path, lit);
+                m.SetFloat("_Surface", 1f);
+                m.SetFloat("_Blend", 0f);
+                m.SetFloat("_ZWrite", 0f);
+                m.SetOverrideTag("RenderType", "Transparent");
+                m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                BaseShaderGUI.SetupMaterialBlendMode(m);
+                m.SetColor("_BaseColor", color);
+                m.SetFloat("_Smoothness", smoothness);
+                m.SetFloat("_Metallic", 0f);
+                if (emission != Color.black)
+                {
+                    m.EnableKeyword("_EMISSION");
+                    m.SetColor("_EmissionColor", emission);
+                    m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                }
+                EditorUtility.SetDirty(m);
+            }
+            Clear(Evo2GlassPath, new Color(0.5f, 0.85f, 0.85f, 0.2f), 0.95f, Color.black);
+            Clear(Evo2EggGlassPath, new Color(0.5f, 0.85f, 0.85f, 0.1f), 0.95f, Color.black);   // 아콜로지 유리 알: 두 겹이라 더 옅게, 큰 곡면에서 등불 하이라이트가 긴 띠로 번져 하이라이트 끔
+            var eggGlass = LoadOrCreate(Evo2EggGlassPath, lit);
+            eggGlass.SetFloat("_SpecularHighlights", 0f);
+            eggGlass.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+            EditorUtility.SetDirty(eggGlass);
+            // 대형 토러스 큰 유리 (창 · 지붕 · 벽, 여러 겹으로 겹침): 환경 반사 · 하이라이트를 끔 (겹치면 바깥이 초록으로 탁해지고 반사의 지평선이 비침), 어두운 색 (가까운 등불에 물들어 빛나지 않게)
+            Clear(Evo2ClearGlassPath, new Color(0.1f, 0.14f, 0.16f, 0.07f), 0.95f, Color.black);
+            var clearGlass = LoadOrCreate(Evo2ClearGlassPath, lit);
+            clearGlass.SetFloat("_SpecularHighlights", 0f);
+            clearGlass.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+            clearGlass.SetFloat("_EnvironmentReflections", 0f);
+            clearGlass.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+            EditorUtility.SetDirty(clearGlass);
+            EditorUtility.SetDirty(LoadOrCreate(Evo2StarDomePath, Shader.Find("SpaceStation/StellaDome")));     // 시민 회관 상영 하늘 (슬라이더 = 재질)
+            EditorUtility.SetDirty(LoadOrCreate(Evo2StarLinesPath, Shader.Find("SpaceStation/StellaLines")));   // 시민 회관 별자리
+            EditorUtility.SetDirty(LoadOrCreate(Evo2CurtainPath, Shader.Find("SpaceStation/PressureVeil")));   // 압력 막 (사용자 2026-11-02 "신비감", UV = 아치 기준 미터)
+            EditorUtility.SetDirty(LoadOrCreate(Evo2SolarFlarePath, Shader.Find("SpaceStation/SolarFlare")));
+            var membrane = LoadOrCreate(Evo2MembranePath, Shader.Find("SpaceStation/PressureVeil"));   // 격납고 입구: 아치 치수가 달라 따로 (기본 값이면 반폭 1m 밖이 전부 테두리로 빛남), 채굴선이 비쳐 보이게 옅게
+            membrane.SetVector("_Arch", new Vector4(2.2f, 0.93f, 0f, 0f));
+            membrane.SetFloat("_Veil", 0.22f);
+            membrane.SetFloat("_Glow", 0.38f);
+            EditorUtility.SetDirty(membrane);
+            Clear(SuitHelmetPath, new Color(0.8f, 0.92f, 1f, 0.14f), 0.97f, Color.black);
+            Clear(Evo2WaterGlowPath, new Color(0.45f, 0.85f, 1f, 0.5f), 0.55f, new Color(0.07f, 0.3f, 0.42f));   // 융합 플랜트 물 캡슐 · 물 달: 은은히 빛나는 물 (속 거품 · 전극이 비침)
+            // 바이오돔 물: 바깥 재질을 그대로 베끼고 간격만 8배 (바깥 1칸 = 1, 내부 1칸 = 8m — 셰이더가 월드 좌표로 무늬를 그림)
+            void Water8(string path, string source, string keyword, string toggle, string property, Vector4 value)
+            {
+                var from = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/" + source + ".mat");
+                var m = LoadOrCreate(path, from.shader);
+                m.CopyPropertiesFromMaterial(from);
+                m.renderQueue = from.renderQueue;
+                m.EnableKeyword(keyword);
+                m.SetFloat(toggle, 1f);
+                m.SetVector(property, value);
+                EditorUtility.SetDirty(m);
+            }
+            // 윤슬 세기 0: 눈앞에서는 규칙적인 흰 점 무늬로 보임. 물줄기: 가늘고 긴 결이 아래로 (칸이 넓으면 벽돌 무늬)
+            Water8(Evo2PondPath, "M_PureWater", "_FLOW_POOL", "_FlowPool", "_Ripple", new Vector4(8.75f, 1f, 0.1f, 0f));
+            Water8(Evo2FallsPath, "M_Falls", "_FLOW_FALL", "_FlowFall", "_Flow", new Vector4(0.9f, 1.8f, 0.045f, 0.45f));
+            ToonWaterMaterials();
+            var heat = LoadOrCreate(Evo2HeatPath, lit);   // 융합 플랜트 열 관 · 열 띠: 주황 빛 (모듈 색 Accent는 빛나면 희게 날아감)
+            heat.SetColor("_BaseColor", new Color(1f, 0.55f, 0.2f));
+            heat.EnableKeyword("_EMISSION");
+            heat.SetColor("_EmissionColor", new Color(1f, 0.36f, 0.05f) * 1.5f);
+            heat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            heat.enableInstancing = true;
+            EditorUtility.SetDirty(heat);
+            var houseWindow = LoadOrCreate(Evo2WindowPath, lit);   // 대형 토러스 집 창: 따뜻한 불빛 (Light는 하얗게 번져 창살이 묻힘)
+            houseWindow.SetColor("_BaseColor", new Color(1f, 0.86f, 0.62f));
+            houseWindow.EnableKeyword("_EMISSION");
+            houseWindow.SetColor("_EmissionColor", new Color(1f, 0.74f, 0.42f) * 1.05f);
+            houseWindow.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            houseWindow.enableInstancing = true;
+            EditorUtility.SetDirty(houseWindow);
+            var ice = LoadOrCreate(Evo2IcePath, lit);
+            ice.SetColor("_BaseColor", new Color(0.8f, 0.93f, 1f));
+            ice.EnableKeyword("_EMISSION");
+            ice.SetColor("_EmissionColor", new Color(0.75f, 0.92f, 1f) * 1.3f);
+            ice.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            ice.enableInstancing = true;
+            EditorUtility.SetDirty(ice);
+            // 거울 해바라기 거울 (바깥 M_Mirror와 같은 값)
+            var mirror = LoadOrCreate(Evo2MirrorPath, lit);
+            mirror.SetColor("_BaseColor", new Color(0.78f, 0.88f, 0.98f));
+            mirror.SetFloat("_Metallic", 0.9f);
+            mirror.SetFloat("_Smoothness", 0.9f);
+            mirror.EnableKeyword("_EMISSION");
+            mirror.SetColor("_EmissionColor", new Color(0.04f, 0.06f, 0.09f));
+            mirror.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            mirror.enableInstancing = true;
+            EditorUtility.SetDirty(mirror);
+            // 내부 빛기둥 (바깥 M_LightShaft와 따로 조절 — 안에서는 빛기둥이 눈앞 가까이 지나감): 없을 때만 값을 넣음, 사용자가 슬라이더로 맞춘 값을 덮어쓰지 않게
+            if (AssetDatabase.LoadAssetAtPath<Material>(LightShaftPath) == null)
+            {
+                var shaft = LoadOrCreate(LightShaftPath, Shader.Find("SpaceStation/LightShaft"));
+                shaft.SetFloat("_Intensity", 0.12f);
+                shaft.SetFloat("_MirrorGlow", 0.25f);
+                shaft.enableInstancing = true;
+                EditorUtility.SetDirty(shaft);
+            }
+            // 빛 기둥 승강판 (진화 단계별 통로 ③): 판에서 솟아 하늘 고리로 옅어지는 기둥 — 판 쪽 환하게 · 위로 흐르는 빛 결 · 고리 앞에서 스며듦 (없을 때만 값을 넣음)
+            if (AssetDatabase.LoadAssetAtPath<Material>(SkyLiftShaftPath) == null)
+            {
+                var lift = LoadOrCreate(SkyLiftShaftPath, Shader.Find("SpaceStation/LightShaft"));
+                lift.SetFloat("_Intensity", 0.16f);
+                lift.SetFloat("_Attenuation", 0.5f);
+                lift.SetFloat("_Glint", 1.6f);
+                lift.SetFloat("_MirrorGlow", 0f);
+                lift.SetFloat("_Softness", 1.6f);
+                lift.SetFloat("_Streak", 1.2f);
+                lift.SetFloat("_StreakStrength", 0.55f);
+                lift.SetFloat("_Speed", 0.45f);
+                lift.SetFloat("_EndFade", 0.35f);
+                EditorUtility.SetDirty(lift);
+            }
+            // 실드 돔: 바다 · 오로라 · 등대 빛 (없을 때만 값을 넣음, 슬라이더로 맞춘 값을 덮어쓰지 않게)
+            EditorUtility.SetDirty(LoadOrCreate(Evo2StarSeaPath, Shader.Find("SpaceStation/StarSea")));
+            if (AssetDatabase.LoadAssetAtPath<Material>(Evo2AuroraPath) == null)
+            {
+                var from = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_AuroraCurtain.mat");
+                var aurora = LoadOrCreate(Evo2AuroraPath, from.shader);
+                aurora.CopyPropertiesFromMaterial(from);
+                aurora.renderQueue = from.renderQueue;
+                aurora.SetFloat("_Intensity", 0.35f);
+                aurora.SetFloat("_Wander", 0.35f);
+                aurora.SetFloat("_Sway", 0.35f);
+                EditorUtility.SetDirty(aurora);
+            }
+            if (AssetDatabase.LoadAssetAtPath<Material>(Evo2BeaconBeamPath) == null)
+            {
+                var beacon = LoadOrCreate(Evo2BeaconBeamPath, Shader.Find("SpaceStation/LightShaft"));
+                beacon.SetColor("_BaseColor", new Color(0.6f, 1.25f, 1.35f));
+                beacon.SetFloat("_Intensity", 0.16f);
+                beacon.SetFloat("_Attenuation", 1.6f);
+                beacon.SetFloat("_Glint", 0.6f);
+                beacon.SetFloat("_MirrorGlow", 0.3f);
+                beacon.enableInstancing = true;
+                EditorUtility.SetDirty(beacon);
+            }
+            if (AssetDatabase.LoadAssetAtPath<Material>(Evo3LighthouseBeamPath) == null)
+            {
+                var lamp = LoadOrCreate(Evo3LighthouseBeamPath, Shader.Find("SpaceStation/LightShaft"));
+                lamp.SetColor("_BaseColor", new Color(1.45f, 1.18f, 0.72f));
+                lamp.SetFloat("_Intensity", 0.6f);
+                lamp.SetFloat("_Attenuation", 0.6f);
+                lamp.SetFloat("_Glint", 0.9f);
+                lamp.SetFloat("_MirrorGlow", 0.6f);
+                lamp.SetFloat("_Softness", 1.35f);   // 손잡이 자리 (빛줄기를 거의 뒤에서 봄)에서도 보이게 — 1.0은 옆에서 크림색 판처럼 단단했음
+                lamp.SetFloat("_EndFade", 0.55f);   // 공중에서 끝남 (바다 · 벽에 닿지 않음) — 끝이 뭉툭하지 않게 길게 스러짐
+                lamp.enableInstancing = true;
+                EditorUtility.SetDirty(lamp);
+            }
+
+            // 방사선 차폐벽: 은하수 강 · 병풍 별 (없을 때만 값을 넣음, 슬라이더로 맞춘 값을 덮어쓰지 않게)
+            if (AssetDatabase.LoadAssetAtPath<Material>(Evo2RiverPath) == null)
+            {
+                var from = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_MilkyRiver.mat");
+                var river = LoadOrCreate(Evo2RiverPath, from.shader);
+                river.CopyPropertiesFromMaterial(from);
+                river.SetFloat("_CoordScale", 0.125f);
+                river.SetFloat("_BankPeriod", 0.575f);    // rw_builder PDX 2.3 × 2 ÷ 8
+                river.SetFloat("_BankOffset", 0.1375f);   // 앞 꼭짓점 x = 1.1 ÷ 8
+                river.SetFloat("_BankFront", -0.0741f);   // 강 앞 끝 z = -0.593 ÷ 8
+                river.SetFloat("_BankAmp", 0.1212f);
+                river.SetFloat("_BankBack", 0.2375f);     // 강 뒤 끝 z = 1.9 ÷ 8
+                river.SetFloat("_StarSize", 0.38f);       // 가까이서 보므로 별을 작게 (바깥 크기면 눈송이처럼 보임)
+                river.SetFloat("_StarDensity", 0.6f);
+                river.enableInstancing = true;
+                EditorUtility.SetDirty(river);
+            }
+            // 심우주 통신기지 S자 은하수 강 (2026-11-17): 같은 셰이더의 UV 강 (u = 강 따라 m, v = 가로 m — 굽이는 메시가 가짐), 물가 = ± 0.64 m (ds4_builder SHORE)
+            if (AssetDatabase.LoadAssetAtPath<Material>(Evo4RiverPath) == null)
+            {
+                var from = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_MilkyRiver.mat");
+                var river = LoadOrCreate(Evo4RiverPath, from.shader);
+                river.CopyPropertiesFromMaterial(from);
+                river.SetFloat("_UseUV", 1f);
+                river.SetFloat("_CoordScale", 0.125f);
+                river.SetFloat("_RiverZ", 0f);
+                river.SetFloat("_Meander", 0f);
+                river.SetFloat("_RiverWidth", 0.03f);
+                river.SetFloat("_BankPeriod", 1f);
+                river.SetFloat("_BankAmp", 0f);
+                river.SetFloat("_BankOffset", 0f);
+                river.SetFloat("_BankFront", -0.08f);
+                river.SetFloat("_BankBack", 0.08f);
+                river.SetFloat("_StarSize", 0.38f);
+                river.SetFloat("_StarDensity", 0.6f);
+                river.SetFloat("_Depth", 0.015f);
+                river.enableInstancing = true;
+                EditorUtility.SetDirty(river);
+            }
+            if (AssetDatabase.LoadAssetAtPath<Material>(Evo2StarPath) == null)
+            {
+                var star = LoadOrCreate(Evo2StarPath, Shader.Find("SpaceStation/Twinkle"));
+                star.SetColor("_BaseColor", new Color(1.3f, 1.35f, 1.5f));
+                star.SetFloat("_Min", 0.35f);
+                star.SetFloat("_Peak", 1.7f);
+                star.SetFloat("_Speed", 1.2f);
+                star.enableInstancing = true;
+                EditorUtility.SetDirty(star);
+            }
 
             // 문 상태등: 색은 런타임 MaterialPropertyBlock (정상 청록 / 경고 빨강)
             var status = LoadOrCreate(StatusPath, lit);
@@ -617,6 +1234,65 @@ namespace SpaceStation.Editor
             m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive; // None이면 URP 재질 검사가 _EMISSION을 꺼 버림 (ModuleFxMaterials 2026-10-03)
             m.enableInstancing = true;
             EditorUtility.SetDirty(m);
+        }
+
+        // 3단계 물 · 폭포: 값은 셰이더 기본값 (ToonWater · WaterFalls 머리글 참고) — 셰이더를 바꾸면 기본값으로 되돌림, 폭포만 무늬 텍스처를 꽂음
+        public static void ToonWaterMaterials()
+        {
+            Material Fresh(string path, string shaderName)
+            {
+                var shader = Shader.Find(shaderName);
+                var m = LoadOrCreate(path, shader);
+                if (m.shader != shader)
+                {
+                    m.shader = shader;
+                    m.CopyPropertiesFromMaterial(new Material(shader));
+                }
+                return m;
+            }
+            var water = Fresh(Evo3WaterPath, "SpaceStation/ToonWater");
+            EditorUtility.SetDirty(water);
+            var falls = Fresh(Evo3FallsPath, "SpaceStation/WaterFalls");
+            falls.SetTexture("_MaskTex", AssetDatabase.LoadAssetAtPath<Texture2D>(FallsMaskPath));
+            falls.renderQueue = -1;
+            EditorUtility.SetDirty(falls);
+            var column = Fresh(Evo3FallsColumnPath, "SpaceStation/WaterFalls");   // 둥근 기둥: 옆 흐림 · 찢김 끔, 결은 둘레를 따라 촘촘히
+            column.SetTexture("_MaskTex", AssetDatabase.LoadAssetAtPath<Texture2D>(FallsMaskPath));
+            column.SetFloat("_EdgeSoft", 0.01f);
+            column.SetFloat("_EdgeBreak", 0f);
+            column.SetVector("_StreakScale", new Vector4(2.4f, 1.1f, 0f, 0f));
+            column.renderQueue = -1;
+            EditorUtility.SetDirty(column);
+            var spill = Fresh(Evo3SpillPath, "SpaceStation/WaterFalls");   // 0.3 m 안 짧은 폭포: 거의 맑게, 끝에서만 희게, 결은 성기게
+            spill.SetTexture("_MaskTex", AssetDatabase.LoadAssetAtPath<Texture2D>(FallsMaskPath));
+            spill.SetFloat("_ClearUntil", 0.55f);
+            spill.SetFloat("_WhiteFrom", 1f);
+            spill.SetFloat("_ClearAlpha", 0.45f);
+            spill.SetFloat("_EdgeSoft", 0.12f);
+            spill.SetVector("_StreakScale", new Vector4(1.4f, 0.45f, 0f, 0f));
+            spill.renderQueue = -1;
+            EditorUtility.SetDirty(spill);
+            var rainbow = Fresh(SoftRainbowPath, "SpaceStation/SoftRainbow");
+            rainbow.SetFloat("_Intensity", 0.32f);
+            rainbow.SetFloat("_EndFade", 0.25f);
+            EditorUtility.SetDirty(rainbow);
+            var halo = Fresh(SoftHaloPath, "SpaceStation/SoftRainbow");
+            halo.SetFloat("_Intensity", 0.26f);
+            halo.SetFloat("_EndFade", 0f);
+            EditorUtility.SetDirty(halo);
+            // 물안개 · 물방울 · 거품 입자: URP Particles/Unlit 반투명 섞기 + 부드러운 점 (T_SoftDot)
+            var mist = LoadOrCreate(FallsMistPath, Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            mist.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/_Project/Art/Materials/FX/T_SoftDot.png"));
+            mist.SetColor("_BaseColor", Color.white);
+            mist.SetFloat("_Surface", 1f);
+            mist.SetFloat("_Blend", 0f);   // Alpha
+            mist.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            mist.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mist.SetFloat("_ZWrite", 0f);
+            mist.SetKeyword(new UnityEngine.Rendering.LocalKeyword(mist.shader, "_SURFACE_TYPE_TRANSPARENT"), true);
+            mist.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent + 20;
+            mist.SetOverrideTag("RenderType", "Transparent");
+            EditorUtility.SetDirty(mist);
         }
 
         private static Material LoadOrCreate(string path, Shader shader)

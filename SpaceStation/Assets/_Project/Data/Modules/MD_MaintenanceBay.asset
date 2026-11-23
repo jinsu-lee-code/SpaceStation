@@ -23,6 +23,7 @@ MonoBehaviour:
   _terminalOnly: 0
   _dockFront: {x: 0, y: 0, z: 1}
   _approachLaneLength: 2
+  _keepClearCells: []
   _upperSidesNeedSupport: 0
   _faceDepths:
   - Cell: {x: 0, y: 0, z: 0}
@@ -36,7 +37,7 @@ MonoBehaviour:
     Depth: 0.31519532
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 0, z: 1}
-    Depth: -1
+    Depth: 0.4205
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 0, z: -1}
     Depth: 0.31519532
@@ -55,6 +56,7 @@ MonoBehaviour:
   - Cell: {x: 1, y: 0, z: 0}
     Direction: {x: 0, y: 0, z: -1}
     Depth: 0.3339953
+  _closedFaces: []
   _buildCost:
   - Type: 4
     Amount: 100
@@ -78,6 +80,7 @@ MonoBehaviour:
   _recipeSlots: 0
   _comingSoon: 0
   _comingSoonNote: 
+  _requiredRule: 0
   _adjacencyRelay: 0
   _warningBonus: 0
   _researchSpeedBonus: 0
@@ -88,6 +91,7 @@ MonoBehaviour:
   _armored: 0
   _countsTowardGrade: 1
   _gradeModuleCount: 1
+  _limitedModuleShare: 0
   _repairTimeMultiplier: 1
   _cargoInterval: 0
   _cargoFraction: 0
@@ -99,6 +103,7 @@ MonoBehaviour:
   _controlSpreadMultiplier: 1
   _controlDestroyMultiplier: 1
   _growthIntervalMultiplier: 1
+  _foodKinds: 0
   _serviceNeed: 0
   _serviceRadius: 0
   _serviceCapacity: 0

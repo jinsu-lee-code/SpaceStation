@@ -70,6 +70,8 @@ namespace SpaceStation.Interior
         [SerializeField] private float _laneHalfWidth = 0.35f;
         [Tooltip("창구 · 통로 값의 틀 (도, 프리팹 로컬 y축) — 틀 좌표 = 프리팹 로컬을 −이 각만큼 돌린 것. 번호판 · 발권기 글자 칸은 프리팹 로컬 그대로")]
         [SerializeField] private float _frameYaw;
+        [Tooltip("민원인 구역 (틀 좌표 x, z) — 비면 방 안 쉬는 주민 모두, 있으면 이 안 의자에 앉은 주민만 민원인 (넓은 방에서 다른 구역 주민은 그대로 돌아다님)")]
+        [SerializeField] private Rect _visitorArea;
 
         private sealed class Visitor
         {
@@ -90,6 +92,7 @@ namespace SpaceStation.Interior
         private float[] _windowSince;  // 지금 손님을 부른 때
         private float _machineSince;
         private float _laneBusyUntil;
+        private int _nextWindow;
         private readonly List<Visitor> _visitors = new List<Visitor>();
         private readonly List<ResidentFigure> _figures = new List<ResidentFigure>();
         private readonly List<Vector3> _route = new List<Vector3>();
@@ -120,6 +123,17 @@ namespace SpaceStation.Interior
 
         /// <summary>창구 · 통로 값의 틀 (도) — 창구 줄이 x축과 나란한 방 (진화 보안청 = 90°).</summary>
         public void ConfigureFrame(float yaw) => _frameYaw = yaw;
+
+        /// <summary>민원인 구역 (틀 좌표 x, z) — 이 안 의자에 앉은 주민만 민원인 (치안 본부 = 광장 벤치, 청사 안 주민은 그대로 돌아다님).</summary>
+        public void ConfigureVisitorArea(Rect area) => _visitorArea = area;
+
+        private bool InVisitorArea(ResidentWander w)
+        {
+            if (_visitorArea.width <= 0f)
+                return true;
+            var p = ToFrame(w.transform.position);
+            return w.Seated && _visitorArea.Contains(new Vector2(p.x, p.z));
+        }
 
         private Quaternion Frame => Quaternion.Euler(0f, _frameYaw, 0f);
 
@@ -218,7 +232,7 @@ namespace SpaceStation.Interior
             foreach (var f in _figures)
             {
                 var w = f != null ? f.GetComponent<ResidentWander>() : null;
-                if (w == null || _visitors.Exists(x => x.Wander == w))
+                if (w == null || _visitors.Exists(x => x.Wander == w) || !InVisitorArea(w))
                     continue;
                 w.Hold = true;
                 var v = new Visitor { Wander = w, NextTicket = now + Range(3f, _restSeconds.y * 0.5f) };
@@ -252,10 +266,16 @@ namespace SpaceStation.Interior
                 // 통로는 한 번에 한 명 (여럿이 같은 통로를 오가면 서로 겹쳐 지나갔음 — 2026-10-20 플레이 검수):
                 // 걷는 사람이 없을 때만 볼일 끝난 사람을 돌려보냄 → 창구가 부름 → 번호표 뽑으러 감 순서로 한 명씩
                 bool moving = Moving() || TryEndStay(now);
-                for (int i = 0; i < _windows.Length && !moving; i++)
+                // 창구를 돌아가며 부름 (앞에서부터 찾으면 통로가 한 명씩이라 늘 첫 창구만 번호가 바뀌었음 — 치안 본부 2026-11-03 관찰)
+                for (int k = 0; k < _windows.Length && !moving; k++)
                 {
+                    int i = (_nextWindow + k) % _windows.Length;
                     if (_open[i] && _atWindow[i] == null && now >= _windowFree[i])
+                    {
                         moving = TryCall(i, now);
+                        if (moving)
+                            _nextWindow = i + 1;
+                    }
                 }
                 if (!moving && anyOpen)
                     TryTakeTicket(now);

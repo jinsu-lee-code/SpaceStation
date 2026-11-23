@@ -22,6 +22,51 @@ namespace SpaceStation.Interior
         protected bool Active { get; private set; }
         protected bool Polled { get; private set; }
 
+        private static InteriorMode _mode;
+        private static FirstPersonController _player;
+
+        private static InteriorBuilder Builder
+        {
+            get
+            {
+                if (_mode == null)
+                    _mode = FindFirstObjectByType<InteriorMode>(FindObjectsInactive.Include);
+                return _mode != null ? _mode.Builder : null;
+            }
+        }
+
+        /// <summary>
+        /// 플레이어 눈 높이 칸이 그 모듈 칸 안인지 — 사운드 개편 5-2 (2026-11-23): 혼자 돌아가는 연출 (번개 · 용광로 · 순찰차 · 폭죽 …)의 소리는
+        /// 지금 있는 방 것만 (옆 방도 함께 켜져 있어 벽 너머로 들리던 것을 막음, docs/sound/00-workflow.md 1-4).
+        /// </summary>
+        public static bool PlayerIn(ModuleInstance module)
+        {
+            if (module == null)
+                return false;
+            var builder = Builder;
+            if (_player == null)
+                _player = FindFirstObjectByType<FirstPersonController>();
+            if (builder == null || _player == null)
+                return false;
+            var cell = builder.WorldToCell(_player.transform.position + Vector3.up * FirstPersonController.EyeHeight);
+            foreach (var c in module.Cells)
+            {
+                if (c == cell)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>그 물체가 놓인 방 모듈 (방 밖이면 null) — <see cref="InteriorRoomDisplay"/>가 아닌 연출이 <see cref="PlayerIn"/>을 쓸 때.</summary>
+        public static ModuleInstance RoomOf(Transform t)
+        {
+            var builder = Builder;
+            return builder != null ? builder.RoomOf(t) : null;
+        }
+
+        /// <summary>플레이어가 지금 이 방 안인지 (<see cref="PlayerIn"/>).</summary>
+        protected bool PlayerInRoom => PlayerIn(Module);
+
         public void Poll(StationController station, ModuleInstance module, bool active)
         {
             Station = station;

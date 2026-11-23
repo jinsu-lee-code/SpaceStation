@@ -59,13 +59,21 @@ namespace SpaceStation.Interior
 
         private Transform _carrier;
         private Vector3 _carrierOffset;
+        private float _carrierYaw;
+        private bool _carrierPitch;   // 탈것의 앞뒤 기울기를 시선에 더함 (후룸 보트 리프트 · 큰 낙하)
 
         /// <summary>탈것에 실려 가는 중 (진화 모듈 유리 엘리베이터 등).</summary>
         public bool Riding => _carrier != null;
 
+        /// <summary>지금 위아래 시선 (음수 = 위).</summary>
+        public float Pitch => _pitch;
+
+        /// <summary>이어서 떨어지는 중인 시간 (초). 바닥에 닿거나 탈것에 타면 0.</summary>
+        public float FallSeconds { get; private set; }
+
         /// <summary>
         /// 탈것에 실림 (사용자 결정 2026-10-29 "유리 엘리베이터 탑승"): 타는 동안 carrier를 따라 움직이고 걷기 · 중력은 멈춤, 둘러보기는 됨.
-        /// 따라가기는 LateUpdate (탈것이 Update에서 움직인 뒤).
+        /// 따라가기는 LateUpdate (탈것이 Update에서 움직인 뒤). 탈것이 돌면 시선도 같이 돎 (대형 토러스 열차).
         /// </summary>
         public void Ride(Transform carrier)
         {
@@ -73,7 +81,33 @@ namespace SpaceStation.Interior
                 return;
             _carrier = carrier;
             _carrierOffset = carrier.InverseTransformPoint(transform.position);
+            _carrierYaw = carrier.eulerAngles.y;
+            _carrierPitch = false;
             _body.enabled = false;
+        }
+
+        /// <summary>
+        /// 탈것의 정해진 자리에 실림 (열차 의자에 앉기 · 일어나기): 발 자리 · 눈높이를 정함, yaw를 주면 그쪽을, pitch를 주면 그 위아래를 봄 (음수 = 위).
+        /// followPitch = 탈것이 앞뒤로 기울면 시선도 그만큼 같이 기울임 (둘러보기는 그대로, 사용자 2026-11-09 후룸 큰 낙하 — 내부 걸음 흔들림을 끈 사람은 수평 유지).
+        /// </summary>
+        public void RideAt(Transform carrier, Vector3 feet, float eyeHeight, float? yaw = null, float? pitch = null, bool followPitch = false)
+        {
+            if (carrier == null)
+                return;
+            _body.enabled = false;
+            transform.position = feet;
+            if (yaw.HasValue)
+                transform.rotation = Quaternion.Euler(0f, yaw.Value, 0f);
+            _carrier = carrier;
+            _carrierOffset = carrier.InverseTransformPoint(feet);
+            _carrierYaw = carrier.eulerAngles.y;
+            _carrierPitch = followPitch;
+            _eye.localPosition = new Vector3(0f, eyeHeight, 0f);
+            if (pitch.HasValue)
+            {
+                _pitch = Mathf.Clamp(pitch.Value, -85f, 85f);
+                _eye.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
+            }
         }
 
         /// <summary>탈것에서 내림 (그 자리에서 다시 걷기 · 중력).</summary>
@@ -83,26 +117,42 @@ namespace SpaceStation.Interior
                 return;
             transform.position = _carrier.TransformPoint(_carrierOffset);
             _carrier = null;
+            _carrierPitch = false;
+            _eye.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
             _body.enabled = true;
             _fallSpeed = 0f;
+            _eye.localPosition = new Vector3(0f, EyeHeight, 0f);
         }
 
         private void LateUpdate()
         {
-            if (_carrier != null)
-                transform.position = _carrier.TransformPoint(_carrierOffset);
+            if (_carrier == null)
+                return;
+            transform.position = _carrier.TransformPoint(_carrierOffset);
+            float yaw = _carrier.eulerAngles.y;
+            transform.Rotate(0f, Mathf.DeltaAngle(_carrierYaw, yaw), 0f, Space.World);
+            _carrierYaw = yaw;
+            if (_carrierPitch && Settings.GameSettings.HeadBob)
+            {
+                // 탈것 앞 방향의 위아래 각 (내려가면 +) — Update가 둘러본 _pitch로 정한 시선 위에 더함
+                float tilt = -Mathf.Asin(Mathf.Clamp(_carrier.forward.y, -1f, 1f)) * Mathf.Rad2Deg;
+                _eye.localRotation = Quaternion.Euler(Mathf.Clamp(_pitch + tilt, -89f, 89f), 0f, 0f);
+            }
         }
 
         /// <summary>발 위치·바라보는 방향으로 순간 이동 (입장·해치).</summary>
         public void Teleport(Vector3 feet, float yaw, float pitch = 0f)
         {
             _carrier = null;
+            _carrierPitch = false;
             _body.enabled = false;
             transform.SetPositionAndRotation(feet, Quaternion.Euler(0f, yaw, 0f));
             _body.enabled = true;
             _pitch = Mathf.Clamp(pitch, -85f, 85f);
             _fallSpeed = 0f;
+            FallSeconds = 0f;
             _eye.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
+            _eye.localPosition = new Vector3(0f, EyeHeight, 0f);
         }
 
         private void Update()
@@ -115,14 +165,17 @@ namespace SpaceStation.Interior
             // 시점
             if (!Frozen)
             {
-                Vector2 look = mouse.delta.ReadValue() * (_lookDegreesPerPixel * Settings.GameSettings.OrbitSensitivity);
+                Vector2 look = mouse.delta.ReadValue() * (_lookDegreesPerPixel * Settings.GameSettings.InteriorLookSensitivity);
                 transform.Rotate(0f, look.x, 0f, Space.Self);
                 _pitch = Mathf.Clamp(_pitch - look.y, -85f, 85f);
                 _eye.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
             }
 
             if (_carrier != null)
+            {
+                FallSeconds = 0f;
                 return; // 탈것에 실려 가는 중: 걷기 · 중력 없음 (자리는 LateUpdate)
+            }
 
             // 이동
             float right = Frozen ? 0f : Axis(GameAction.CameraRight, GameAction.CameraLeft);
@@ -132,12 +185,13 @@ namespace SpaceStation.Interior
             var move = transform.right * right + transform.forward * forward;
             if (move.sqrMagnitude > 1f)
                 move.Normalize();
-            move *= run ? _runSpeed : _walkSpeed;
+            move *= (run ? _runSpeed : _walkSpeed) * Settings.GameSettings.InteriorMoveSpeed;
 
             _fallSpeed = _body.isGrounded ? 1f : _fallSpeed + _gravity * dt; // 바닥에 붙어 있도록 살짝 누름
             move.y = -_fallSpeed;
             var before = transform.position;
             _body.Move(move * dt);
+            FallSeconds = _body.isGrounded ? 0f : FallSeconds + dt;
             UpdateSteps(transform.position - before, run, dt);
         }
 

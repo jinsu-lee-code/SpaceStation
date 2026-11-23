@@ -24,7 +24,7 @@ namespace SpaceStation.Interior
         private float _stretchReady;
 
         private Transform _model;
-        private Transform _hips, _chest, _head;
+        private Transform _hips, _spine, _chest, _head;
         private Transform _lUpper, _lLower, _rUpper, _rLower;
         private Transform _lEar, _rEar, _tail;
         private readonly Transform[] _eyes = new Transform[2];
@@ -69,7 +69,15 @@ namespace SpaceStation.Interior
         /// <summary>플레이어에게 반응하는 중 (걷기를 잠깐 멈춤).</summary>
         public bool Reacting => _act == Act.Wave || _act == Act.HopWave || _act == Act.TurnAway;
 
-        private Transform _lThigh, _rThigh, _lShin, _rShin;
+        private Transform _lThigh, _rThigh, _lShin, _rShin, _lFoot, _rFoot;
+        private Vector3 _tailScale = Vector3.one;
+        private float _lie;         // 이번 프레임 눕는 정도 (일어서면 0)
+
+        // 앉은 채 눕기 (스텔라돔 객석, 사용자 2026-11-03): 엉덩이를 등받이 쪽으로 밀고 · 상체를 뒤로 · 다리를 앉는 판 위로 펴고 · 손을 배 위에 · 고개를 듦
+        private const float LieSlide = 0.12f;
+        private const float LieSpine = 38f;
+        private const float LieHead = -14f;
+        private const float LieTailSize = 0.45f;
         private float _walk;        // 걷기 섞는 정도 0~1
         private float _walkPhase;
 
@@ -114,6 +122,7 @@ namespace SpaceStation.Interior
             _id = id;
             _rng = new System.Random(id * 7919 + 17);
             _hips = bones(HumanBodyBones.Hips);
+            _spine = bones(HumanBodyBones.Spine);
             _chest = bones(HumanBodyBones.Chest);
             _head = bones(HumanBodyBones.Head);
             _lUpper = bones(HumanBodyBones.LeftUpperArm);
@@ -124,12 +133,16 @@ namespace SpaceStation.Interior
             _rThigh = bones(HumanBodyBones.RightUpperLeg);
             _lShin = bones(HumanBodyBones.LeftLowerLeg);
             _rShin = bones(HumanBodyBones.RightLowerLeg);
+            _lFoot = bones(HumanBodyBones.LeftFoot);
+            _rFoot = bones(HumanBodyBones.RightFoot);
             var extra = new Dictionary<string, Transform>();
             foreach (var t in model.GetComponentsInChildren<Transform>(true))
                 extra[t.name] = t;
             extra.TryGetValue("LeftEar", out _lEar);
             extra.TryGetValue("RightEar", out _rEar);
             extra.TryGetValue("Tail", out _tail);
+            if (_tail != null)
+                _tailScale = _tail.localScale;
             extra.TryGetValue("LeftEye", out _eyes[0]);
             extra.TryGetValue("RightEye", out _eyes[1]);
 
@@ -202,6 +215,12 @@ namespace SpaceStation.Interior
         public float SeatTailLift { get; set; }
         public float SeatTailRoll { get; set; }
 
+        /// <summary>앉아 있을 때 꼬리 크기 (1 = 그대로) — 큰 꼬리는 어느 각으로도 등받이와 몸 사이에 안 들어가 줄여서 몸 뒤에 둠 (<see cref="ResidentSeatFit"/>, 사용자 2026-11-03 "꼬리가 몸 뚫고 나온다"). 일어서면 서서히 1.</summary>
+        public float SeatTailSize { get; set; } = 1f;
+
+        /// <summary>앉은 채 눕는 정도 0 ~ 1 (<see cref="InteriorStellaDome"/>가 등받이와 함께 줌). 누운 동안 손 흔들기 · 기지개 · 플레이어 쳐다보기 없음, 숨 · 깜빡임 · 귀 · 꼬리만.</summary>
+        public float SeatRecline { get; set; }
+
         /// <summary>일어서기(true) · 앉기(false) 시작 — 약 0.5초에 걸쳐 자세가 바뀜.</summary>
         public void StandUp(bool up) => _standTarget = up && _canStand ? 1f : 0f;
 
@@ -238,12 +257,18 @@ namespace SpaceStation.Interior
                 bone.localRotation = sb <= 0f ? local : Quaternion.Slerp(local, stand, sb);
             var root = transform;
             bool standing = _pose == ResidentPose.Stand || _standBlend > 0.5f;
+            _lie = SeatRecline * (1f - sb);
 
             if (_hold < 0f)
             {
-                UpdateReaction(now);
-                if (_walk < 0.05f)
-                    UpdateIdle(now, standing);   // 걷는 중에는 기지개 · 폴짝 안 함
+                if (_lie > 0f)
+                    _act = Act.None;
+                else
+                {
+                    UpdateReaction(now);
+                    if (_walk < 0.05f)
+                        UpdateIdle(now, standing);   // 걷는 중에는 기지개 · 폴짝 안 함
+                }
             }
             float k = _hold >= 0f ? _hold : _act != Act.None ? Mathf.Clamp01((now - _actStart) / _actLength) : 0f;
             float env = Envelope(k);
@@ -271,13 +296,28 @@ namespace SpaceStation.Interior
                 }
             }
             if (_model != null)
-                _model.localPosition = Vector3.Lerp(_modelRest, _modelStand, sb) + Vector3.up * (lift * _scale);
+                _model.localPosition = Vector3.Lerp(_modelRest, _modelStand, sb) + Vector3.up * (lift * _scale) + Vector3.back * (LieSlide * _lie * _scale);
             if (_act == Act.Stretch)
                 Rotate(_chest, root.right, -8f * env);   // 가슴을 뒤로 젖힘
+            if (_lie > 0f)
+                Rotate(_spine, root.right, -LieSpine * _lie);
 
             UpdateHead(root, now, k, env);
             UpdateArms(root, k, env);
             UpdateLegs(root);
+            if (_lie > 0f)
+            {
+                // 다리를 앉는 판 위로 폄 (다리가 짧아 앉는 판 안에서 끝남 — 앞 열 등받이에 안 닿음)
+                Aim(root, _lThigh, _lShin, new Vector3(-0.1f, 0.06f, 1f), _lie);
+                Aim(root, _rThigh, _rShin, new Vector3(0.1f, 0.06f, 1f), _lie);
+                Aim(root, _lShin, _lFoot, new Vector3(-0.04f, 0.12f, 1f), _lie);
+                Aim(root, _rShin, _rFoot, new Vector3(0.04f, 0.12f, 1f), _lie);
+                // 팔을 내려 손이 배 위에
+                Aim(root, _lUpper, _lLower, new Vector3(-0.3f, -0.85f, 0.15f), _lie);
+                Aim(root, _rUpper, _rLower, new Vector3(0.3f, -0.85f, 0.15f), _lie);
+                Aim(root, _lLower, ChildOf(_lLower), new Vector3(0.25f, -0.3f, 0.9f), _lie);
+                Aim(root, _rLower, ChildOf(_rLower), new Vector3(-0.25f, -0.3f, 0.9f), _lie);
+            }
             UpdateEars(root, now);
             UpdateTail(root);
             UpdateEyes(now);
@@ -362,7 +402,12 @@ namespace SpaceStation.Interior
             float roll = Mathf.Sin(t * 0.31f) * 4f;
             if (_act == Act.LookAround)
                 yaw = Mathf.Sin(k * Mathf.PI * 2f) * 45f;
-            if (_watcher != null && _near)
+            if (_lie > 0f)
+            {
+                yaw *= Mathf.Lerp(1f, 0.3f, _lie);
+                pitch = Mathf.Lerp(pitch, LieHead, _lie);
+            }
+            else if (_watcher != null && _near)
             {
                 var to = _watcher.position - _head.position;
                 var local = root.InverseTransformDirection(to);
@@ -503,6 +548,10 @@ namespace SpaceStation.Interior
             if (_tail == null)
                 return;
             float wag = _style.TailWag * (_act == Act.HopWave ? 1.6f : _act == Act.TurnAway ? 0.2f : 1f);
+            float size = Mathf.Lerp(SeatTailSize, 1f, _standBlend);
+            if (_lie > 0f)
+                size = Mathf.Min(size, Mathf.Lerp(1f, LieTailSize, _lie));   // 누우면 엉덩이가 등받이 쪽으로 가서 틈이 더 좁음
+            _tail.localScale = _tailScale * size;
             // 꼬리 끝은 뒤(−z) → 인물 오른쪽 축으로 −면 아래로. 앉은 동안은 앉는 판 위로 듦
             Rotate(_tail, root.right, -_style.TailDroop + SeatTailLift * (1f - _standBlend));
             Rotate(_tail, root.forward, SeatTailRoll * (1f - _standBlend));

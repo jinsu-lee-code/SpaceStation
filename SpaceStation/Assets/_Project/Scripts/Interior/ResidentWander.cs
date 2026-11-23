@@ -206,14 +206,18 @@ namespace SpaceStation.Interior
             return d.magnitude;
         }
 
-        /// <summary>앉은 주민: 의자 앞 바닥이 비어 있으면 가끔 일어나 같은 방 안을 걷다가 돌아와 다시 앉음.</summary>
-        public void InitSeated(WanderRoom room, float mood, Transform watcher, float scale, int id)
+        /// <summary>
+        /// 앉은 주민: 의자 앞 바닥이 비어 있으면 가끔 일어나 같은 방 안을 걷다가 돌아와 다시 앉음.
+        /// <paramref name="lie"/> = 누운 자리 (선베드): 옆으로 먼저 일어섬 — 앞으로 일어서면 선베드 앞 길을 막았음 (사용자 2026-11-13).
+        /// </summary>
+        public void InitSeated(WanderRoom room, float mood, Transform watcher, float scale, int id, bool lie = false)
         {
             _room = room;
             _home = Seat;
             _at = Seat;
             _seatPos = transform.position;
             _seatYaw = transform.eulerAngles.y;
+            _sideStand = lie;
             Setup(mood, watcher, scale, id);
         }
 
@@ -323,6 +327,10 @@ namespace SpaceStation.Interior
         // 일어설 곳을 찾는 방향 (의자 기준 도 — 앞 먼저, 다음 옆 · 비스듬히 뒤 · 뒤) · 거리
         private static readonly float[] StandAngles = { 0f, 35f, -35f, 70f, -70f, 110f, -110f, 150f, -150f, 180f };
         private static readonly float[] StandDistances = { 0.5f, 0.7f, 0.9f };
+        // 누운 자리 (선베드): 옆 (모든 거리) 먼저, 다음 비스듬히 · 앞 · 뒤
+        private static readonly float[] SideAngles = { 90f, -90f, 75f, -75f, 105f, -105f };
+        private static readonly float[] SideFallback = { 50f, -50f, 130f, -130f, 0f, 180f };
+        private bool _sideStand;
 
         /// <summary>
         /// 앉아 있다가 일어설 수 있으면 일어서기 시작. 의자 주변(앞 먼저, 옆 · 뒤)에서 몸이 들어갈 빈 바닥을 찾는다
@@ -332,26 +340,35 @@ namespace SpaceStation.Interior
         {
             if (_motion == null || !_motion.CanStand)
                 return false;
-            foreach (float d in StandDistances)
+            foreach (var angles in _sideStand ? new[] { SideAngles, SideFallback } : new[] { StandAngles })
             {
-                foreach (float angle in StandAngles)
+                foreach (float d in StandDistances)
                 {
-                    var dir = Quaternion.Euler(0f, _seatYaw + angle, 0f) * Vector3.forward;
-                    var p = _seatPos + dir * (d * _scale);
-                    if (!Physics.Raycast(p + Vector3.up * 0.8f, Vector3.down, out var hit, 1.6f, ~0, QueryTriggerInteraction.Ignore))
-                        continue;
-                    p.y = hit.point.y;
-                    if (Mathf.Abs(p.y - _seatPos.y) > 0.25f || !FloorFree(p, p.y))
-                        continue;
-                    _seatFront = p;
-                    _motion.StandUp(true);
-                    _state = State.StandUp;
-                    LastDecision = $"일어남 ({angle:0}° · {d:0.0}m)";
-                    return true;
+                    foreach (float angle in angles)
+                    {
+                        if (TryStandAt(angle, d))
+                            return true;
+                    }
                 }
             }
             LastDecision = "의자 주변이 막혀 못 일어남";
             return false;
+        }
+
+        private bool TryStandAt(float angle, float d)
+        {
+            var dir = Quaternion.Euler(0f, _seatYaw + angle, 0f) * Vector3.forward;
+            var p = _seatPos + dir * (d * _scale);
+            if (!Physics.Raycast(p + Vector3.up * 0.8f, Vector3.down, out var hit, 1.6f, ~0, QueryTriggerInteraction.Ignore))
+                return false;
+            p.y = hit.point.y;
+            if (Mathf.Abs(p.y - _seatPos.y) > 0.25f || !FloorFree(p, p.y))
+                return false;
+            _seatFront = p;
+            _motion.StandUp(true);
+            _state = State.StandUp;
+            LastDecision = $"일어남 ({angle:0}° · {d:0.0}m)";
+            return true;
         }
 
         /// <summary>반응(손 흔들기 등) 중이거나 플레이어가 앞을 막음.</summary>
@@ -406,25 +423,40 @@ namespace SpaceStation.Interior
                     _state = State.SeatTurn;
                     return;
                 }
-                if (!PathClear(_seatFront))
+                if (PathClear(_seatFront))
+                {
+                    target = Seat;
+                    point = _seatFront;
+                }
+                else if (PickFloor(out point))
+                    target = -1; // 곧장 못 가면 (굽은 벤치 · 복도 모퉁이) 제자리에 굳지 않고 둘레를 돌다가 트이면 앉음
+                else
                 {
                     LastDecision = "의자로 가는 길이 막힘";
                     return;
                 }
-                target = Seat;
-                point = _seatFront;
             }
             else if (away)
             {
-                // 원래 자리로 (누가 차지했거나 길이 막혔으면 다음에)
-                if ((_room.Owner[_home] != null && _room.Owner[_home] != this) || !PathClear(_room.Points[_home]))
+                // 원래 자리로 (누가 차지했으면 다음에, 길이 막혔으면 둘레를 돌다가 트이면)
+                if (_room.Owner[_home] != null && _room.Owner[_home] != this)
                 {
                     LastDecision = "돌아갈 자리가 막힘";
                     return;
                 }
-                target = _home;
-                point = _room.Points[_home];
-                _excursions = 0;
+                if (PathClear(_room.Points[_home]))
+                {
+                    target = _home;
+                    point = _room.Points[_home];
+                    _excursions = 0;
+                }
+                else if (PickFloor(out point))
+                    target = -1;
+                else
+                {
+                    LastDecision = "돌아갈 자리가 막힘";
+                    return;
+                }
             }
             else
             {
@@ -452,7 +484,8 @@ namespace SpaceStation.Interior
             for (int i = 0; i < _room.Points.Count; i++)
             {
                 float d2 = (_room.Points[i] - transform.position).sqrMagnitude;
-                if (i != _at && _room.Owner[i] == null && d2 > 0.25f && d2 < 36f && PathClear(_room.Points[i]))
+                // 다른 높이의 자리는 뺌: 걷는 동안 높이를 유지해서, 난간에 붙은 자리에서는 (처음부터 닿은 난간은 길 검사에서 빠짐) 성벽 위 → 갑판으로 공중을 걸어감
+                if (i != _at && _room.Owner[i] == null && d2 > 0.25f && d2 < 36f && Mathf.Abs(_room.Points[i].y - transform.position.y) < 0.3f && PathClear(_room.Points[i]))
                     free.Add(i);
             }
             if (free.Count > 0)
@@ -464,6 +497,12 @@ namespace SpaceStation.Interior
                 return true;
             }
             target = -1;
+            return PickFloor(out point);
+        }
+
+        /// <summary>지금 자리 주변 바닥 중 비어 있고 가는 길이 트인 곳.</summary>
+        private bool PickFloor(out Vector3 point)
+        {
             var here = transform.position;
             for (int attempt = 0; attempt < 8; attempt++)
             {

@@ -20,6 +20,8 @@ namespace SpaceStation.Building
         [SerializeField] private float _splitAt = 0.3f;
         [Tooltip("일곱 빛깔이 가장 넓게 벌어진 폭 (빛줄기 길이 비율, 최대 0.6m)")]
         [SerializeField] private float _fan = 0.06f;
+        [Tooltip("빛줄 굵기 배율 (내부 체험 별똥별 막기 = 8배 방이라 굵게, 바깥 = 1)")]
+        [SerializeField] private float _width = 1f;
 
         private const int Points = 12;
         private static readonly Color Core = new Color(1f, 1f, 1f, 1f);
@@ -103,10 +105,10 @@ namespace SpaceStation.Building
             float width = Mathf.Clamp01(t / 0.04f) * (1f - k * k); // 켜지자마자 굵고 끝에 가늘어짐
             Vector3 split = Vector3.Lerp(shot.From, shot.To, _splitAt);
             float length = Vector3.Distance(shot.From, shot.To);
-            float fan = Mathf.Min(_fan * length, 0.6f);
+            float fan = Mathf.Min(_fan * length, 0.6f * _width);
             shot.CoreLine.SetPosition(0, shot.From);
             shot.CoreLine.SetPosition(1, split);
-            shot.CoreLine.widthMultiplier = 0.07f * width;
+            shot.CoreLine.widthMultiplier = 0.07f * _width * width;
             for (int i = 0; i < shot.Colors.Length; i++)
             {
                 var line = shot.Colors[i];
@@ -117,7 +119,7 @@ namespace SpaceStation.Building
                     float bulge = Mathf.Sin(s * Mathf.PI); // 갈라져 벌어졌다 운석에서 다시 모임
                     line.SetPosition(p, Vector3.Lerp(split, shot.To, s) + shot.Side * (lane * fan * bulge));
                 }
-                line.widthMultiplier = 0.035f * width;
+                line.widthMultiplier = 0.035f * _width * width;
             }
         }
 
