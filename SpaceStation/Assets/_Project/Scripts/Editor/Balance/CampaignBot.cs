@@ -218,6 +218,8 @@ namespace SpaceStation.Editor.Balance
                 sim.AddSystem(new CorePersonalitySystem(_a.Core), TickStepNames.Progression);
             _ark = _a.Ark != null && sim.Chapters != null ? sim.AddSystem(new ArkShipSystem(_a.Ark, () => (float)arkRng.NextDouble()), TickStepNames.Population) : null;
             _explore = _a.Exploration != null && sim.Chapters != null ? sim.AddSystem(new ExplorationSystem(_a.Exploration, () => (float)exploreRng.NextDouble()), TickStepNames.Population) : null;
+            if (_explore != null)
+                sim.AddSystem(new ChapterExploration(), _explore.Key); // CONNECT M8: 장 신호 · 표시 · 기록
             if (sim.Chapters != null)
                 sim.AddSystem(new ChapterShowerSystem(), TickStepNames.Events);
             if (_a.Records != null && sim.Chapters != null)
@@ -804,7 +806,7 @@ namespace SpaceStation.Editor.Balance
         /// <summary>2장 필수 '탐사선으로 신호 밝히기': 센서 어레이가 없으면 짓고, 신호가 뜨면 첫 지점으로 탐사선.</summary>
         private void Explore(BalanceBot bot)
         {
-            if (_explore == null || !_explore.ChapterHasSignals || _chapters.HasFlag(ExplorationSystem.ProbeFlag) || _explore.ProbeUsedThisChapter)
+            if (_explore == null || !_explore.HasSignals || _chapters.HasFlag(ExplorationSystem.ProbeFlag) || _explore.ProbeUsedThisRound)
                 return;
             if (!_explore.SensorActive)
             {

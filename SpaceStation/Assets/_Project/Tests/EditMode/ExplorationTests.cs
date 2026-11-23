@@ -123,7 +123,7 @@ namespace SpaceStation.Tests
             Assert.AreEqual(3, ex2.Sites.Count);
             Assert.AreEqual(1, ex2.Fragments);
             Assert.IsTrue(ex2.Sites.First(s => s.Kind == SiteKind.Wreck).Reached);
-            Assert.IsTrue(ex2.ProbeUsedThisChapter, "탐사선 기록도 저장");
+            Assert.IsTrue(ex2.ProbeUsedThisRound, "탐사선 기록도 저장");
         }
 
         [Test]
@@ -176,6 +176,7 @@ namespace SpaceStation.Tests
             });
             core = sim.AddSystem(new CorePersonalitySystem(_coreConfig), TickStepNames.Progression);
             ex = sim.AddSystem(new ExplorationSystem(_explore, () => 0.5f), TickStepNames.Population);
+            sim.AddSystem(new ChapterExploration(), ex.Key); // CONNECT M8: 장 신호 · 표시 · 기록
             return sim;
         }
 

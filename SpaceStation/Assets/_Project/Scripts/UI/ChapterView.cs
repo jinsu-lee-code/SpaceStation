@@ -456,7 +456,7 @@ namespace SpaceStation.UI
         private void RefreshExploreLine()
         {
             string text = "";
-            if (_explore != null && _explore.ChapterHasSignals)
+            if (_explore != null && _explore.HasSignals)
             {
                 _explore.CurrentSites(_sites);
                 ExploreSite revealed = null;
@@ -468,7 +468,7 @@ namespace SpaceStation.UI
                 else if (_explore.ProbeInFlight)
                     text = $"탐사 · 탐사선 도착까지 {Clock(_explore.ProbeTimeLeft)}";
                 else if (revealed == null)
-                    text = _explore.ProbeUsedThisChapter ? "" : $"{HudTheme.Icon("warning")} <color={Gold}>탐사 · 신호 {_sites.Count}개</color> <size=86%><color={Soft}>[관리] → 탐사에서 하나를 고르세요</color></size>";
+                    text = _explore.ProbeUsedThisRound ? "" : $"{HudTheme.Icon("warning")} <color={Gold}>탐사 · 신호 {_sites.Count}개</color> <size=86%><color={Soft}>[관리] → 탐사에서 하나를 고르세요</color></size>";
                 else if (!revealed.Reached)
                     text = $"탐사 · <b>{ExplorationConfig.Name(revealed.Kind)}</b> {MeteorShowerSystem.DirectionName(revealed.Direction)} · 지금 {_explore.Distance(revealed)}칸 <size=86%><color={Soft}>({_explore.Config.ReachRadius}칸 이내 도달 시 탐사 시작)</color></size>";
                 else

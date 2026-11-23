@@ -108,7 +108,10 @@ namespace SpaceStation.Simulation
                 Simulation.AddSystem(new ArkShipSystem(_arkShips), TickStepNames.Population);
             // 13-5a 서사판 탐사 (장 틀 위에서만)
             if (_exploration != null && Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
-                Simulation.AddSystem(new ExplorationSystem(_exploration), TickStepNames.Population);
+            {
+                var explore = Simulation.AddSystem(new ExplorationSystem(_exploration), TickStepNames.Population);
+                Simulation.AddSystem(new ChapterExploration(), explore.Key); // CONNECT M8: 공통 탐사 틀 위에 장 신호 · 표시 · 기록
+            }
             // 13-5c 서사판 장 유성우 규칙 (첫 유성우 앞당김 · '유성우 버티기' 표시, 장 틀 위에서만)
             if (Simulation.Chapters != null && gameObject.scene.name == SceneNames.Game)
                 Simulation.AddSystem(new ChapterShowerSystem(), TickStepNames.Events);
