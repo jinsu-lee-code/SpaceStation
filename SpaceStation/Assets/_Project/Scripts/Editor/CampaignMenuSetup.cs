@@ -15,7 +15,7 @@ namespace SpaceStation.Editor
     public static class CampaignMenuSetup
     {
         public const string ModePath = "Assets/_Project/Data/Modes/GM_Campaign.asset";
-        public const string VersionLabel = "v0.14 · 캠페인 1~5장";
+        public const string VersionLabel = "v0.14 · 캠페인 1~6장";
         private const string MenuScene = "Assets/_Project/Scenes/MainMenu.unity";
         private const string NormalPath = "Assets/_Project/Data/Difficulty/DIFF_Normal.asset";
 

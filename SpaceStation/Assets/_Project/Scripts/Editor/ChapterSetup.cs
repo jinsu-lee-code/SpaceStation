@@ -515,7 +515,7 @@ namespace SpaceStation.Editor
                 ("climax.warning.6", "우리도 묻고 싶은 것이 있지요. 차례를 기다립니다."),
                 ("chapter.start.7.Clean", "우리의 물음에 답을 들었지요. 그것으로 됐습니다."),
                 ("chapter.start.7.Hurt", "우리 마음에는 아직 물음이 남았지요. 천천히 풀어 가지요."),
-                ("chapter.start.7.Lost", "우리 곁이 많이 비었습니다. 남은 이들끼리 더 붙어 앉지요."),
+                ("chapter.start.7.Lost", "우리 곁이 많이 비었지요. 떠난 이들의 자리는 비워 두겠습니다."),
                 ("ship.new.dog", "강아지들이군요. 우리 곁에도 자리를 내주지요."),
                 ("ship.accept", "우리를 받아 주셨군요. 우리도 손을 보태지요."),
                 ("ship.partial", "일부만 오른다지요. 우리는 남은 이들을 기억합니다."),
@@ -1061,7 +1061,7 @@ namespace SpaceStation.Editor
             var events = new List<SocialEvent>
             {
                 new SocialEvent("quarrel", 6, "무리 간 다툼", "{a} 무리와 {b} 무리가 복도 자리를 두고 다툽니다. 서로 먼저 왔다고 합니다.", 300f, SocialEventSubject.BiggestTwo,
-                    new SocialAnswer("자리를 나눠 준다", "복도를 넓혀 양쪽에 내줍니다", -6f, "{a}와 {b}에게 자리를 나눠 줬다. 금속은 줄었다.", care).WithCost(new ResourceAmount(metal, 120f)),
+                    new SocialAnswer("자리를 나눠 준다", "복도를 넓혀 양쪽에 내줍니다", -6f, "{a} 무리와 {b} 무리에게 자리를 나눠 줬다. 금속은 줄었다.", care).WithCost(new ResourceAmount(metal, 120f)),
                     new SocialAnswer("수가 많은 쪽 손을 든다", "빠르지만 다른 쪽이 서운해합니다", 4f, "수가 많은 {a} 쪽 손을 들었다. 계산은 맞다.", efficient).WithSatisfaction(-3f).LockedFrom(3, noTrust),
                     new SocialAnswer("지금 자리를 그대로 둔다", "아무것도 바꾸지 않습니다", 2f, "자리는 그대로 뒀다. 다툼도 그대로다.", preserve)),
                 new SocialEvent("fever", 6, "열병", "복도를 따라 열병이 돕니다. 아픈 주민 {n}명 · 의료가 모자랄수록 많아집니다.", 660f, SocialEventSubject.Sick,
@@ -1074,7 +1074,7 @@ namespace SpaceStation.Editor
                     new SocialAnswer("필요한 손만 남긴다", "절반이 떠납니다", 4f, "손이 필요한 이들만 남겼다. 나머지는 떠났다.", efficient).WithLeave(0, 0.5f).LockedFrom(3, noTrust),
                     new SocialAnswer("배를 내주고 문을 닫는다", "모두 떠나지만 말썽은 줄어듭니다", -2f, "배를 내줬다. 남은 이들을 지키는 쪽을 골랐다.", preserve).WithLeave(0, 1f)),
             };
-            var riot = new SocialEvent("riot", 6, "복도의 소란", "쌓인 불만이 터졌습니다. 복도에 주민들이 모여 일손이 멈췄습니다.", 0f, SocialEventSubject.None,
+            var riot = new SocialEvent("riot", 6, "복도의 소란", "쌓인 불만이 터졌습니다. 주민들이 복도에 모여 코어의 답을 기다립니다.", 0f, SocialEventSubject.None,
                 new SocialAnswer("달랜다", "식량을 풀어 모두를 먹입니다", -10f, "먹을 것을 풀었다. 소란이 가라앉았다.", care).WithCost(new ResourceAmount(ResourceType.Food, 120f)),
                 new SocialAnswer("일을 먼저 돌린다", "1분 동안 생산이 15% 줄어듭니다", 3f, "일부터 돌리라고 했다. 불만은 그대로 남았다.", efficient)
                     .WithTemporary("복도의 소란", 60f, new PolicyModifier { Stat = PolicyStat.Production, Value = 0.85f }),
