@@ -151,6 +151,7 @@ namespace SpaceStation.Interior
             s.playOnAwake = false;
             s.loop = true;
             s.clip = clip;
+            s.pitch = Random.Range(cue.Pitch.x, cue.Pitch.y); // 같은 소리를 여러 자리에 둘 때 높이로 구분 (궤도 도시 계단 폭포 높이별 셋)
             s.dopplerLevel = 0f;
             s.volume = 0f;
             if (position.HasValue)
