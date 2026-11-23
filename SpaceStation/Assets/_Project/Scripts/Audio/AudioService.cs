@@ -83,6 +83,79 @@ namespace SpaceStation.Audio
             s.Play(s._library.GameScore, 1f, 0f, 0f, Mathf.Pow(2f, ScoreSteps[k] / 12f));
         }
 
+        /// <summary>
+        /// 체험 · 미니게임 음 (5-2 — 등불 다섯 · 시냅스 일곱 · 꽃 그네 종처럼 자리마다 다른 음): step = 음계 칸 (0부터 도 · 레 · 파 · 솔 · 라 · 위 도 …, F 오음계),
+        /// 그 큐의 기준 음 (소리 파일 높이)에서 올림. 큐의 음높이 흔들림은 Pitch (1, 1)로 꺼 둘 것 — 조가 깨짐.
+        /// </summary>
+        public static void TryPlayNote(System.Func<SoundLibrary, SoundCue> pick, int step, float volume = 1f)
+        {
+            var s = Instance;
+            if (s != null && s._library != null)
+                s.Play(pick(s._library), volume, 0f, 0f, NotePitch(step));
+        }
+
+        /// <summary><see cref="TryPlayNote"/>을 그 자리 3D로 (2 m까지 그대로 → 15 m에서 0).</summary>
+        public static void TryPlayNoteAt(System.Func<SoundLibrary, SoundCue> pick, Vector3 position, int step, float volume = 1f)
+        {
+            var s = Instance;
+            if (s != null && s._library != null)
+                s.PlayAt(pick(s._library), position, volume, 2f, 15f, NotePitch(step), 0f);
+        }
+
+        /// <summary>오음계 한 옥타브 (도 · 레 · 파 · 솔 · 라) — 칸 5마다 한 옥타브 위.</summary>
+        private static readonly int[] Pentatonic = { 0, 2, 5, 7, 9 };
+
+        private static float NotePitch(int step)
+        {
+            step = Mathf.Max(0, step);
+            return Mathf.Pow(2f, (Pentatonic[step % 5] + 12 * (step / 5)) / 12f);
+        }
+
+        /// <summary>
+        /// 물체에 붙는 3D 루프 (5-2 — 순찰차 · 용광로 · 번개 정원 · 크레인처럼 체험 물체가 계속 내는 소리): at의 자식으로 만들어 따라 움직임 ·
+        /// minDistance까지 그대로 → maxDistance에서 0. 돌려준 <see cref="ObjectLoop"/>의 Level · Pitch로 조절, 물체와 함께 지워짐. 서비스 · 클립이 없으면 null.
+        /// </summary>
+        public static ObjectLoop AttachLoop(System.Func<SoundLibrary, SoundCue> pick, Transform at, float minDistance = 2f, float maxDistance = 15f)
+        {
+            var s = Instance;
+            if (s == null || s._library == null || at == null)
+                return null;
+            var cue = pick(s._library);
+            if (cue == null || !cue.HasClip)
+                return null;
+            var go = new GameObject("ObjectLoop_" + (cue.Clips[0] != null ? cue.Clips[0].name : "loop"));
+            go.transform.SetParent(at, false);
+            var loop = go.AddComponent<ObjectLoop>();
+            loop.Init(cue, minDistance, maxDistance);
+            return loop;
+        }
+
+        private readonly Dictionary<SoundCue, Loop> _rideLoops = new Dictionary<SoundCue, Loop>();
+
+        /// <summary>
+        /// 체험 루프 (5-2 — 기차 달림 · 관람차 삐걱 · 노 젓기처럼 타고 있는 동안, 탄 사람 귀에 2D): level 0 = 끔 (0.4초에 내려감) · 1 = 큐 음량 그대로.
+        /// 큐마다 하나를 처음 켤 때 만들어 다시 씀. 체험을 나가거나 방을 떠날 때 (OnDisable 포함) 꼭 0으로.
+        /// </summary>
+        public static void SetRideLoop(System.Func<SoundLibrary, SoundCue> pick, float level, float pitch = 1f)
+        {
+            var s = Instance;
+            if (s == null || s._library == null)
+                return;
+            var cue = pick(s._library);
+            if (cue == null || !cue.HasClip)
+                return;
+            if (!s._rideLoops.TryGetValue(cue, out var loop))
+            {
+                if (level <= 0f)
+                    return;
+                loop = s.CreateLoop(cue);
+                loop.FadeSpeed = 2.5f;
+                s._rideLoops[cue] = loop;
+            }
+            loop.Target = level;
+            loop.Pitch = pitch;
+        }
+
         private readonly List<Voice> _voices = new List<Voice>();
         private readonly List<Loop> _loops = new List<Loop>();
         private readonly List<MusicLayers> _layers = new List<MusicLayers>();

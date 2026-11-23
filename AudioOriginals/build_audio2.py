@@ -845,4 +845,244 @@ for i, f in enumerate((F6, A6, C7)):
     rec = place(rec, twinkle(f, 1.0, 60 + i) * 0.25, BEAT + BEAT / 4 + i * BEAT / 4)
 save("Ride/game_record.wav", fade(rec, 0.0, 1.0), -14)
 
+# ================= 체험 — 궤도 도시 "금빛 궤도열차 · 정확히 멈추기" (SOUND_LIST_NEW 5-2, 2026-11-23) =================
+# InteriorOrbitTrain (W 가속 · S 브레이크 · 한 바퀴 돌아 정지선). 출발 · 탑승 · 내림 · 결과는 5-1 공용. VARCO 하나씩 2번 (달림 · 브레이크), 정확히 멈춤 = 합성.
+OCR = "Ride/OrbitalCity/"
+
+# 달림 (탄 동안 2D 루프, 빠르기에 따라 크기 · 재생 높이) — 후보 5 중 5: 1초 뒤부터 끝까지 0.5초 크기가 −18 ~ −19 dB로 고름 · 울림 0 · 지직 7.8 (가장 낮음) · 낮은 전기 "웅" (82 Hz 대, 또렷한 음 없음).
+# 1 = 지나가며 커졌다 작아짐 (−40 → −14 → −40, 루프 X) · 380 ~ 415 Hz 모터 "이잉" (G#4 — 조 밖), 2 · 3 = 울림 줄 23 · 33, 4 = 3초만 고름.
+# 다섯 모두 레일 이음 소리가 없음 → 합성 "다-닥" (먹먹한 나무 같은 두드림, 바퀴 둘 0.26초 간격)을 2.1초마다 옅게 얹음 (재생 높이를 올리면 같이 빨라짐).
+hum = highpass(sl(load(OCR + "tram_hum.wav"), 0.7, 5.74), 45)
+run = chain_loop([hum, hum[::-1]], 0.8)
+LR = len(run) / SR
+rng = np.random.default_rng(31)
+tk = np.arange(int(0.09 * SR)) / SR
+clack = onepole_lp(onepole_lp(rng.standard_normal(len(tk)), 1400), 2500) * np.exp(-tk / 0.010) * 0.6 + np.sin(2 * np.pi * 170 * tk) * np.exp(-tk / 0.028)
+clack = fade(clack, 0.001, 0.02)
+clack *= 1.8 * np.sqrt((run ** 2).mean()) / np.sqrt((clack[: int(0.05 * SR)] ** 2).mean())
+for k in range(4):
+    for j, g_ in ((0, 1.0), (1, 0.8)):
+        at = (0.5 + k * LR / 4 + j * 0.26) % LR
+        i = int(at * SR)
+        n = min(len(clack), len(run) - i)
+        run[i:i + n] += clack[:n] * g_ * (0.85 + 0.15 * ((k * 7) % 3) / 2)
+save("Ride/otrain_loop.wav", circular(lambda y: soften(y, 5000, 0.3), run), -18)   # −24 → −18: 낮은 "웅" (300 Hz 아래 85 %)이라 귀 감도로 rms보다 9 dB 작음 — 녹음 검수에서 음량 0.8에 음악보다 −12 (안 들림)
+report.append(f"  궤도열차 달림 고리 {LR:.2f}초")
+
+# 브레이크 (S를 누르는 순간, 빠를 때만) — 후보 5 중 2의 처음 1.1초: 둥근 시작 (44 ms) · 무게중심 4 kHz (가장 덜 밝음), "푸쉬" 부풀었다 잦아듦.
+# 1 = 날 선 시작 (판에 꼭대기까지 세로줄) · 긴 쉿 꼬리, 3 · 5 = 그냥 이어지는 쉿 (무게중심 7.8 ~ 9.4 kHz), 4 = 쉿 뒤에 "툭". 끽 소리는 다섯 모두 없음.
+br = sl(load(OCR + "air_brake.wav"), 0.0, 1.15)
+save("Ride/otrain_brake.wav", fade(soften(soften(highpass(br, 150), 5000, 0.45), 9000, 0.4), 0.02, 0.55), -14)
+
+# 정확히 멈춤 (판정 뒤 천천히 정지선에 맞춰 역에 섬 — 대표 순간) — 합성: 유리 종 (항성 발전망 꽃 종 틀) 파5 · 라5 · 도6 · 파6을 0.09초씩 굴려 친 화음 + 낮은 파4.
+# 결과음 (성공 · 새 기록, 하프 + 종)은 3.5초 전에 끝남 (판정 → 결과 3.5초 → 맞춰 섬) — 하프 없이 종만이라 결과음과 갈림.
+stop = np.zeros(int(3.2 * SR))
+stop = place(stop, flower_bell(349.23, 2.8, 70) * 0.35, 0.0)
+for i, f in enumerate((698.46, 880.0, 1046.5, 1396.91)):
+    stop = place(stop, flower_bell(f, 2.6, 71 + i) * (0.75 - 0.08 * i), 0.09 * i)
+save("Ride/otrain_stop_perfect.wav", fade(stop, 0.0, 0.8), -14)
+
+# ================= 체험 — 바이오스피어 "물꼬 맞추기 · 반딧불이 잡기" (SOUND_LIST_NEW 5-2, 2026-11-23) =================
+# InteriorSluiceGates (수문 바퀴 셋 · 물꼬가 한 단씩) · InteriorFireflyCatch (유리병으로 반딧불이). VARCO 1번 (수문 바퀴), 물 흐름 = 소리 풍경 수문 폭포 · 물길 원본, 반딧불이 = 합성.
+BIR = "Ride/Biosphere/"
+
+# 수문 바퀴 한 칸 (바퀴 앞 3D, 바퀴는 0.6초에 120° 돌고 멈춤) — 후보 5 중 1의 끝 1.05초: 나무 톱니 "드르륵" 0.47초 → 0.47 · 0.64초에 "툭 · 툭" (바퀴가 서는 순간),
+# 무게중심 1.7 kHz · 300 Hz 아래 44 % (따뜻한 나무) · 울림 0. 2 = 5초 내내 톱니만 (툭 없음), 3 · 4 = 불규칙한 삐걱 (4 = 울림 13), 5 = 울림 22.
+# 소리 풍경 물레방아 · 삐걱임 조각은 물 철썩 · 긴 "끼익"이라 "한 칸 돌림"이 안 됨.
+gw = sl(load(BIR + "gate_wheel.wav"), 1.80, 2.85)
+save("Ride/bio_sluice_wheel.wav", fade(soften(highpass(gw, 80), 6000, 0.3), 0.03, 0.25), -14)
+
+# 물 흐름 (물꼬가 열려 물이 흐르기 시작하는 순간, 그 물길 수문 3D) — 소리 풍경 수문 폭포 (sluice_fall, 첨벙임이 있는 따뜻한 물) 75 % + 물길 졸졸 (brook) 45 %를
+# 0.3초에 부풀었다 1.4초에 잦아들게 (1.6초). 새로 만들지 않음 — 같은 방의 물과 같은 결.
+fl = sl(load("Interior/scape_bio/sluice_fall.wav"), 3.0, 4.6)
+bk = sl(load("Interior/scape_bio/brook.wav"), 2.0, 3.6)[: len(fl)]
+water = highpass(0.75 * fl / np.sqrt((fl ** 2).mean()) + 0.45 * bk / np.sqrt((bk ** 2).mean()), 80)
+tw = np.arange(len(water)) / SR
+water *= (1 - np.exp(-tw / 0.18)) * np.exp(-np.maximum(0, tw - 0.45) / 0.38)
+save("Ride/bio_water_flow.wav", fade(soften(water, 5000, 0.4), 0.0, 0.3), -14)
+
+
+def pop_glide(f, dur=0.7):
+    """병 "퐁" — 7반음 아래에서 미끄러져 올라와 f에 닿는 둥근 음 (0.1초 안에) + 짧은 병 몸 "폭" (한 옥타브 아래)."""
+    t = np.arange(int(dur * SR)) / SR
+    ph = 2 * np.pi * np.cumsum(f * 2 ** (-7 * np.exp(-t / 0.035) / 12)) / SR
+    tone = (np.sin(ph) + 0.18 * np.sin(2 * ph)) * (1 - np.exp(-t / 0.004)) * np.exp(-t / 0.16)
+    body = np.sin(2 * np.pi * f / 2 * t) * np.exp(-t / 0.02) * 0.4
+    return tone + body
+
+
+# 반딧불이 잡기 (병에 담는 순간 2D · 연달아 잡으면 음계로 오름 — TryPlayNote, 기준 = 도6) — 합성: 병 "퐁" (솔5 → 도6으로 미끄러짐) + 반짝임 (도7 · 솔7).
+# 음계로 옮겨도 조가 안 깨지게 겹친 음은 으뜸 · 5도 · 옥타브만 (3도를 넣으면 레에서 파#이 됨).
+catch = np.zeros(int(1.0 * SR))
+catch = place(catch, pop_glide(C6), 0.0)
+catch = place(catch, twinkle(2 * C6, 0.8, 81) * 0.35, 0.05)
+catch = place(catch, twinkle(3 * C6, 0.8, 82) * 0.15, 0.09)
+save("Ride/bio_firefly_catch.wav", fade(onepole_lp(catch, 7000), 0.0, 0.15), -14)
+
+# ================= 체험 — 궤도 방어망 "오로라 보호막 · 등대 빛 돌리기 · 별똥별 막기" (SOUND_LIST_NEW 5-2, 2026-11-23) =================
+# InteriorAuroraShield (방파제 끝 레버 → 보호막 쇼) · InteriorLighthouse (등실 금빛 손잡이로 렌즈 돌리기) · InteriorStarfall (포대 자리에서 별똥별 쏘기).
+# VARCO 하나씩 3번 (레버 1 · 손잡이 2 — 첫 판은 다섯 모두 밝고 날 선 삐걱 · 딸깍). 레버 "끼익" = 궤도 항만 삐걱임 원본, 보호막 = 밤 오로라 울림 조각, 나머지 음은 합성.
+# 음계로 옮기는 소리 (보호막에 맞음 · 빛이 답함 · 별똥별 터짐)는 겹친 음을 으뜸 · 5도 · 옥타브만 (3도는 레 · 라에서 조 밖 음이 됨).
+ODR = "Ride/OrbitalDefense/"
+
+# 레버 당김 (방파제 끝 레버 자리 3D, 0.6초에 당겨짐) — 첫 5개 ("나무 레버 끼익 + 툭")는 모두 "툭 · 쿵" 두드림만 (삐걱 없음) →
+# "끼익" = 궤도 항만 선착장 삐걱임 원본 7.25 ~ 7.9초 (가로 배음 줄이 있는 나무 삐걱 0.5초, 같은 나무 잔교 결)를 3반음 올려 작게,
+# "툭" = 후보 4의 첫 두드림 (시작 10 ms · 무게중심 520 Hz · 울림 0)을 레버가 끝에 닿는 0.52초에. 1 = 낮은 "쿵" (72 % 300 Hz 아래), 2 · 5 = 여러 번 덜컥, 3 = 두드림 둘 + 1초 뒤 큰 "쿵".
+creak = pitch(sl(load("Interior/scape_port/dock_creak.wav"), 7.25, 7.9), 3)
+creak = fade(soften(highpass(creak, 150), 4000, 0.4), 0.01, 0.12)
+th = load(ODR + "lever_thunk.wav")
+h = hit_time(th)
+th = fade(highpass(sl(th, max(0.0, h - 0.012), h + 0.85), 60), 0.003, 0.35)
+pk = lambda y: np.sqrt(np.convolve(y ** 2, np.ones(int(0.05 * SR)) / int(0.05 * SR), "valid").max())
+lever = np.zeros(int(1.5 * SR))
+lever = place(lever, creak * 0.5 * pk(th) / pk(creak), 0.0)
+lever = place(lever, th, 0.52)
+save("Ride/odef_lever_pull.wav", fade(lever, 0.0, 0.2), -14)
+
+# 보호막 펼쳐짐 (레버 0.6초 뒤 막이 레버 자리에서 퍼져 덮음 — 큰 순간, 2D) — 밤 오로라 울림 (도4 · 솔4 · 레5 · 미5 합성 루프) 4초 조각을
+# 2.2초에 걸쳐 차올랐다가 잦아들게 + 반짝임이 도6 · 레6 · 미6 · 솔6 · 라6 · 도7로 올라감 (도 오음계 — 오로라와 같은 음) + 바람결 "후우" 부풂.
+aur = sl(load("../SpaceStation/Assets/_Project/Audio/Interior/scape_defense_aurora_loop.wav"), 3.0, 7.2)
+ta = np.arange(len(aur)) / SR
+swell = np.clip(ta / 2.2, 0, 1) ** 1.6 * np.exp(-np.maximum(0, ta - 2.2) / 1.1)
+aur = aur / np.sqrt((aur ** 2).mean()) * swell
+rng = np.random.default_rng(41)
+gust = onepole_lp(highpass(rng.standard_normal(len(ta)), 600), 2500) * swell ** 1.5
+aur += 0.25 * gust / np.sqrt((gust ** 2).mean() + 1e-12)
+for i, semis in enumerate((0, 2, 4, 7, 9, 12)):
+    aur = place(aur, twinkle(C6 * 2 ** (semis / 12), 1.2, 90 + i) * (0.35 + 0.08 * i) * np.abs(aur).max() * 0.5, 0.35 + i * 0.3)
+save("Ride/odef_shield_unfurl.wav", fade(onepole_lp(aur, 6000), 0.05, 0.8), -14)
+
+
+def glass_pong(f, dur=1.1, seed=0):
+    """둥근 유리 "퐁" — 살짝 위에서 내려와 f에 닿음 (25 ms), ±3센트 옅은 두 겹이 일렁임 (오로라 막 결 — 같은 크기 세 겹은 0.8초에 서로 지워짐), 2배음은 빨리 꺼짐."""
+    t = np.arange(int(dur * SR)) / SR
+    bend = 2 ** (0.8 * np.exp(-t / 0.025) / 12)
+    x = np.zeros_like(t)
+    for k, (c, a) in enumerate(((-3, 0.35), (0, 1.0), (3, 0.35))):
+        ph = 2 * np.pi * np.cumsum(f * 2 ** (c / 1200) * bend) / SR + k + seed
+        x += a * (np.sin(ph) + 0.3 * np.sin(2 * ph) * np.exp(-t / 0.25))
+    return x / 1.7 * (1 - np.exp(-t / 0.003)) * np.exp(-t / 0.35)
+
+
+# 별똥별이 보호막에 맞음 (2D, 맞을 때마다 음계로 한 칸씩 — 도 · 레 · 파 · 솔 · 라 되풀이, 기준 = 도5) — 둥근 유리 "퐁" + 반짝 (도7 · 솔7).
+hit = np.zeros(int(1.2 * SR))
+hit = place(hit, glass_pong(523.25, 1.1, 1), 0.0)
+hit = place(hit, twinkle(4 * 523.25, 0.8, 91) * 0.22, 0.03)
+hit = place(hit, twinkle(6 * 523.25, 0.6, 92) * 0.1, 0.06)
+save("Ride/odef_star_hit_shield.wav", fade(onepole_lp(hit, 7000), 0.0, 0.2), -14)
+
+# 손잡이 돌림 (손잡이를 잡은 동안 2D 루프, 돌리는 빠르기만큼 크기) — 몸통 = 두 번째 5개 ("나무 굴대가 천천히 도는 낮은 웅") 중 1:
+# 0.5 ~ 4초 고름 (−17 ~ −19 dB) · crest 6.4 · 지직 26 (가장 낮음) · 116 Hz 대 낮은 나무 "웅" (기어). 2 ~ 5 = 띄엄띄엄 끊김 (울림 6 ~ 28).
+# 삐걱 = 첫 5개 ("나무 손잡이 삐걱 · 기어") 중 2: 한 바퀴마다 삐걱 (0.5 ~ 0.7초 간격 — 돌리는 손 결). 다섯 모두 밝고 날 섬 (무게중심 4.4 ~ 8.4 kHz · 시작 1.2 ~ 1.8 ms ·
+# 지직 45 ~ 86 — 삐걱 자체가 잔 딸깍이라 2 kHz 위를 눌러도 지직 52) → 첫머리 0.90초 → 6.26초 (9번)를 고리로 잘라 한 옥타브 내려 낮은 나무 "끄응" (1.2초마다)으로,
+# 2 kHz 위를 두 번 누르고 센 곳을 8 dB 눌러 몸통에 옅게 (40 %) — 결과 지직 33 · 시작 10 ms. 몸통만이면 귀 감도로 rms보다 16 dB 작아 거의 안 들림.
+ax = sl(load(ODR + "crank_axle.wav"), 0.5, 3.98)
+body = circular(lambda y: highpass(y, 50), chain_loop([ax, ax[::-1], ax, ax[::-1]], 0.8))
+ck = loop_exact(sl(load(ODR + "crank_creak.wav"), 0.85, 7.1), 5.36)
+ck = pitch(np.concatenate([ck, ck[:200]]), -12)[: len(body)]
+ck = circular(lambda y: tame(soften(soften(highpass(y, 120), 1800, 0.7), 1800, 0.7), 8.0, 0.003, 0.05), ck)
+save("Ride/odef_crank_loop.wav", body / np.sqrt((body ** 2).mean()) + 0.4 * ck / np.sqrt((ck ** 2).mean()), -24)
+report.append(f"  등대 손잡이 고리 {len(body) / SR:.2f}초")
+
+
+def glow_bell(f, dur=1.6, seed=0):
+    """빛이 닿아 답하는 유리 종 — 꽃 종보다 부드럽게 켜지고 (20 ms) 한 옥타브 위가 천천히 차올라 남음 (빛 번짐)."""
+    t = np.arange(int(dur * SR)) / SR
+    glow = np.sin(2 * np.pi * 2 * f * t + seed) * (1 - np.exp(-t / 0.12)) * np.exp(-t / 0.5) * 0.25
+    return (flower_bell(f, dur, seed) + glow) * (1 - np.exp(-t / 0.02))
+
+
+# 빛이 닿아 답함 (2D — 새 곳 = 찾은 차례대로 도 · 레 · 파 · 솔 · 라 · 도, 이미 찾은 곳 = 그 곳의 음을 작게, 기준 = 도5) — 합성 "빛 유리 종".
+save("Ride/odef_beam_react.wav", fade(glow_bell(523.25, 1.6, 93), 0.0, 0.4), -14)
+
+# 포 쏨 (클릭마다, 0.22초마다 연타 가능 — 2D) — 합성: 공기 "퐁" (850 → 330 Hz로 20 ms 만에 내려감 + 2배음 옅게, 60 ms에 꺼짐) + 짧은 "쉿" (0.9 ~ 3.5 kHz, 50 ms).
+# 0.25초로 짧고 날 선 첫머리 없이 (시작 4 ms 위) — 연달아 눌러도 거슬리지 않게. 처음엔 380 → 160 Hz (300 Hz 아래 95 %)였는데 녹음 검수에서
+# 음량 0.35에 음악보다 −15 (첫 20 ms만 치고 사라져 묻힘) → 높이를 올려 귀 감도 +5 dB · 원본 −8.
+t = np.arange(int(0.25 * SR)) / SR
+ph = 2 * np.pi * np.cumsum(330 + 520 * np.exp(-t / 0.02)) / SR
+fire = (np.sin(ph) + 0.25 * np.sin(2 * ph)) * (1 - np.exp(-t / 0.002)) * np.exp(-t / 0.06)
+rng = np.random.default_rng(43)
+hs = onepole_lp(highpass(rng.standard_normal(len(t)), 900), 3500) * (1 - np.exp(-t / 0.004)) * np.exp(-t / 0.05)
+fire += 0.4 * hs / np.abs(hs).max()
+save("Ride/odef_cannon_fire.wav", fade(fire, 0.0, 0.05), -8)
+
+# 별똥별 터짐 (맞힌 순간 2D, 연달아 맞히면 음계로 — 공용 점수 "띵"과 하나로, 기준 = 도5) — 합성: 부드러운 "팟" (3 kHz 아래 잡음 30 ms) + 반짝임이 도5 · 도6 · 솔6 · 도7로 흩어짐.
+# 궤도 방어망 소리 풍경 별똥별 반짝임 (도7 · 솔6 · 미7)은 미 (3도)가 있어 음계로 옮기면 조가 깨져서 새로 만듦.
+t = np.arange(int(0.12 * SR)) / SR
+rng = np.random.default_rng(44)
+puff = onepole_lp(rng.standard_normal(len(t)), 3000) * (1 - np.exp(-t / 0.003)) * np.exp(-t / 0.03)
+burst = np.zeros(int(1.1 * SR))
+burst = place(burst, puff / np.abs(puff).max() * 0.35, 0.0)
+for i, (mul, at, g_) in enumerate(((1, 0.0, 0.6), (2, 0.03, 0.45), (3, 0.07, 0.3), (4, 0.12, 0.2), (3, 0.2, 0.12), (4, 0.27, 0.1))):
+    burst = place(burst, twinkle(523.25 * mul, 0.8, 95 + i) * g_, at)
+save("Ride/odef_star_burst.wav", fade(onepole_lp(burst, 7000), 0.0, 0.2), -14)
+
+# ================= 체험 — 수리 사령부 "구조 바구니 · 경종 등불 쇼 · 드론 순서 기억" (SOUND_LIST_NEW 5-2, 2026-11-23) =================
+# InteriorRescueBasket (F마다 도르래 줄을 당겨 나무집 마루로) · InteriorFireflyShow (경종 → 반딧불 드론이 가지 등불 열셋을 켬) · InteriorDroneMemory (등불 다섯 순서 기억).
+# VARCO 1번 (도르래 줄). 바구니 삐걱 = 궤도 항만 삐걱임 원본 + 궤도 방어망 레버 "툭", 경종 = 소리 풍경 scape_repair_bell_01 그대로 (새 파일 없음),
+# 반짝임 · 등불 음은 소리 풍경 반딧불 (twinkle)과 같은 결로 합성. 음계로 옮기는 소리는 겹친 음을 으뜸 · 5도 · 옥타브만.
+RCR = "Ride/RepairCommand/"
+
+# 도르래 줄 (탄 동안 2D 루프 — 줄을 당기는 동안 · 내려가는 동안 크기 1, 멈추면 0.4초에 꺼짐) — 후보 5 중 4: 5.5초 내내 이어지는 줄 · 도르래 결
+# (무게중심 606 Hz · 울림 2 · 지직 25). 1 · 2 · 3 · 5 = 1.5 ~ 2초 "쉬이익" 당김 덩어리 사이가 비어 루프 X (1 = 무게중심 4.4 kHz로 밝음).
+# 1.2 ~ 5.35초에서 튀는 곳 셋 (1.1 · 2.5 · 4.8초, 10 ms가 0.1초 중앙보다 +14 ~ +22 dB)을 10 dB 눌러 없애고 0.4초 크기 흔들림을 절반 펴 앞뒤로 이음.
+# 멈췄다 다시 당기면 루프가 처음부터 — 당길 때마다 같은 "스윽"으로 시작.
+rp = tame(highpass(sl(load(RCR + "rope_pulley.wav"), 1.2, 5.35), 70), 10.0, 0.002, 0.04)
+ev = np.sqrt(np.convolve(rp ** 2, np.ones(int(0.4 * SR)) / int(0.4 * SR), "same")) + 1e-9
+rp = rp * np.sqrt(np.median(ev) / ev)
+rope = chain_loop([rp, rp[::-1]], 0.6)
+save("Ride/rcmd_rope_loop.wav", circular(lambda y: soften(y, 5000, 0.4), rope), -24)
+report.append(f"  도르래 줄 고리 {len(rope) / SR:.2f}초")
+
+# 바구니가 정류장 · 마루에 닿음 (바구니 자리 3D) — "삐걱" = 궤도 항만 선착장 삐걱임 원본 1.9 ~ 2.6초 (엮은 바구니 · 줄이 당겨지는 짧은 삐걱 덩어리)를
+# 5반음 올려 작게 (소리 풍경 도르래 삐걱과 같은 나무 결), "툭" = 궤도 방어망 레버 "툭"을 5반음 올려 가볍게 0.3초에.
+bc = pitch(sl(load("Interior/scape_port/dock_creak.wav"), 1.9, 2.6), 5)
+bc = fade(soften(highpass(bc, 200), 4000, 0.4), 0.01, 0.1)
+bt = load("Ride/OrbitalDefense/lever_thunk.wav")
+h = hit_time(bt)
+bt = pitch(fade(highpass(sl(bt, max(0.0, h - 0.012), h + 0.7), 80), 0.003, 0.3), 5)
+pk = lambda y: np.sqrt(np.convolve(y ** 2, np.ones(int(0.05 * SR)) / int(0.05 * SR), "valid").max())
+basket = np.zeros(int(1.0 * SR))
+basket = place(basket, bc * 0.6 * pk(bt) / pk(bc), 0.0)
+basket = place(basket, soften(bt, 3000, 0.4), 0.3)
+save("Ride/rcmd_basket_creak.wav", fade(basket, 0.0, 0.15), -14)
+
+# 등불 켜짐 반짝 (드론이 가지 등불을 켤 때마다 그 등불 3D — 켠 차례대로 음계로 올라감, 기준 = 도5 · 열셋이면 도5 → 파7) —
+# 소리 풍경 반딧불 (도6 twinkle)과 같은 결을 한 옥타브 아래 몸으로 + 옥타브 · 12도 반짝임 (빛이 확 켜짐).
+sh = np.zeros(int(1.3 * SR))
+sh = place(sh, twinkle(523.25, 1.2, 100), 0.0)
+sh = place(sh, twinkle(1046.5, 1.0, 101) * 0.45, 0.02)
+sh = place(sh, twinkle(1569.75, 0.8, 102) * 0.2, 0.05)
+save("Ride/rcmd_lantern_shimmer.wav", fade(onepole_lp(sh, 7000), 0.0, 0.25), -14)
+
+# 드론 떼가 공방에서 날아오름 (등불 쇼 2단계 — 종이 멎고 떼가 고목 둘레로, 2D) — 합성: 작은 반짝임 열넷이 파5에서 파7까지 F 오음계로 흩어지며 올라감 + 옅은 바람 "후우".
+rise = np.zeros(int(2.6 * SR))
+rng = np.random.default_rng(51)
+fsc = [349.23 * 2 ** (s / 12) for s in (12, 14, 16, 19, 21, 24, 26, 28, 31, 33, 36)]   # 파5 · 솔5 · 라5 · 도6 · 레6 · 파6 …
+for i in range(14):
+    k = min(len(fsc) - 1, int(i * len(fsc) / 14 + rng.integers(0, 2)))
+    rise = place(rise, twinkle(fsc[k], 0.7, 110 + i) * (0.25 + 0.02 * i), 0.05 + i * 0.11 + rng.uniform(0, 0.04))
+tr = np.arange(len(rise)) / SR
+whoosh = onepole_lp(highpass(rng.standard_normal(len(tr)), 500), 2500) * np.sin(np.pi * np.clip(tr / 2.0, 0, 1)) ** 2
+rise += 0.12 * np.abs(rise).max() * whoosh / np.abs(whoosh).max()
+save("Ride/rcmd_drones_rise.wav", fade(onepole_lp(rise, 7000), 0.02, 0.5), -14)
+
+# 쇼 피날레 (가지 등불 열셋이 다 켜지고 떼가 환히 빛나며 퍼짐 — 큰 순간, 2D) — 합성: 꽃 종 파5 · 라5 · 도6 화음 + 반짝임이 파7 → 파6로 흩어져 내림 + 낮은 하프 파3 · 파4.
+# 대표 선율 (scape_repair_motif = 경종 + 반짝임 오름)은 경종이 다시 울리는 것처럼 들려 (종은 쇼 처음에만 흔들림) 쓰지 않음.
+fin = np.zeros(int(4.2 * SR))
+fin = place(fin, harp(174.61, 3.0, 120) * 0.35, 0.0)
+fin = place(fin, harp(349.23, 3.0, 121) * 0.3, 0.02)
+for i, f in enumerate((698.46, 880.0, 1046.5)):
+    fin = place(fin, flower_bell(f, 3.0, 122 + i) * 0.4, 0.04 + 0.05 * i)
+for i, s in enumerate((36, 33, 31, 28, 26, 24, 21, 19)):
+    fin = place(fin, twinkle(349.23 * 2 ** (s / 12), 1.0, 130 + i) * (0.3 - 0.02 * i), 0.15 + i * 0.12)
+save("Ride/rcmd_show_finale.wav", fade(onepole_lp(fin, 7000), 0.0, 1.0), -14)
+
+# 기억 등불 음 (드론 순서 기억 — 드론이 보여 줄 때 · 플레이어가 고를 때 둘 다, 2D, 등불 k = 도 · 레 · 파 · 솔 · 라, 기준 = 도5) —
+# 합성: 꽃 종 (맑은 한 음, 1.1초 — 보여 주는 빠르기 0.68 ~ 1.25초에 한 음씩) + 옥타브 반짝임 옅게. 등불마다 높이가 또렷해야 해서 반짝임은 작게.
+ln = np.zeros(int(1.3 * SR))
+ln = place(ln, flower_bell(523.25, 1.2, 140), 0.0)
+ln = place(ln, twinkle(1046.5, 0.8, 141) * 0.2, 0.01)
+save("Ride/rcmd_lantern_note.wav", fade(ln, 0.0, 0.3), -14)
+
 print("\n".join(report))

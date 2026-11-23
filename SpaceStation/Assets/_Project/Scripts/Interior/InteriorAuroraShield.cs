@@ -135,7 +135,7 @@ namespace SpaceStation.Interior
             _time = 0f;
             _hits.Clear();
             Notice("오로라 보호막이 펼쳐져요  ·  선베드에 누우면 하늘이 잘 보여요", 5f);
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlayAt(l => l.OdefLeverPull, _lever != null ? _lever.position : transform.TransformPoint(OrbitalDefense.AuroraLever));
         }
 
         private void Update()
@@ -149,6 +149,8 @@ namespace SpaceStation.Interior
                 _time += dt;
                 if (_show.Step(dt))
                     Launch();
+                if (before == AuroraShieldShow.Phase.Pull && _show.Current == AuroraShieldShow.Phase.Unfold)
+                    AudioService.TryPlay(l => l.OdefShieldUnfurl);   // 레버가 다 당겨지고 막이 펼쳐지기 시작
                 if (before == AuroraShieldShow.Phase.Hold && _show.Current == AuroraShieldShow.Phase.Fold)
                     Notice(_show.Blocked > 0 ? $"오로라 보호막이 별똥별 {_show.Blocked}개를 막았어요" : "오로라 보호막이 접혀요", 5f);
             }
@@ -322,7 +324,7 @@ namespace SpaceStation.Interior
                 var normal = transform.TransformDirection(OrbitalDefense.ShieldNormal(transform.InverseTransformPoint(to))).normalized;
                 _crystal.Play(to - normal * CrystalRadius, CrystalRadius, to);
             }
-            AudioService.TryPlay(l => l.ShieldDeflect);
+            AudioService.TryPlayNote(l => l.OdefStarHitShield, (_show.Blocked - 1) % 5);   // 맞을 때마다 도 · 레 · 파 · 솔 · 라 되풀이
         }
 
         // ---------------- 안내 ----------------

@@ -39,6 +39,8 @@ namespace SpaceStation.Interior
         private float _noticeTimer;
         private string _notice;
         private bool _seated;
+        private bool _braking;
+        private float _runSent;    // 달리는 소리에 마지막으로 보낸 크기 (0이면 다시 부르지 않음)
         private int _standFrame = -1;
         private FirstPersonController _player;
         private TextMeshPro[] _boards;
@@ -83,6 +85,10 @@ namespace SpaceStation.Interior
             _phase = Phase.Rest;
             _s = 0f;
             _v = 0f;
+            _braking = false;
+            if (_runSent > 0f)
+                AudioService.SetRideLoop(l => l.OrbitTrainLoop, 0f);
+            _runSent = 0f;
             ApplyPose();
             ShowHint(null);
         }
@@ -128,18 +134,34 @@ namespace SpaceStation.Interior
                     {
                         _s = 0f;
                         _phase = Phase.Rest;
-                        AudioService.TryPlay(l => l.SupplyArrive);
+                        AudioService.TryPlay(l => l.OrbitTrainStopPerfect);
                     }
                     break;
             }
             ApplyPose();
+            UpdateRunSound();
             UpdateHint();
+        }
+
+        /// <summary>달리는 소리 (탄 동안 2D 루프): 빠르기만큼 크기 · 재생 높이, 서 있으면 끔.</summary>
+        private void UpdateRunSound()
+        {
+            float speed = _phase == Phase.Driving ? _v : _phase == Phase.Align ? AlignSpeed : 0f;
+            float k = speed / MaxSpeed;
+            float level = speed > 0.01f ? Mathf.Clamp01(speed / 1.2f) * (0.45f + 0.55f * k) : 0f;
+            if (level <= 0f && _runSent <= 0f)
+                return;
+            _runSent = level;
+            AudioService.SetRideLoop(l => l.OrbitTrainLoop, level, 0.85f + 0.25f * k);
         }
 
         private void Drive(float dt)
         {
             bool gas = KeyBindings.IsPressed(GameAction.CameraForward);
             bool brake = KeyBindings.IsPressed(GameAction.CameraBack);
+            if (brake && !_braking && _v > 1.5f)
+                AudioService.TryPlay(l => l.OrbitTrainBrake, Mathf.Lerp(0.6f, 1f, _v / MaxSpeed));   // 브레이크를 거는 순간 (빠를수록 크게)
+            _braking = brake;
             if (brake)
                 _v = Mathf.Max(0f, _v - Brake * dt);
             else if (gas)

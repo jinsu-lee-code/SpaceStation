@@ -379,7 +379,7 @@ namespace SpaceStation.Interior
             c.CatchT = 0f;
             c.CatchFrom = c.Pos;
             _caught++;
-            AudioService.TryPlayScore(++_streak);
+            AudioService.TryPlayNote(l => l.BioFireflyCatch, Mathf.Min(++_streak, 8) - 1);   // 병 "퐁" — 연달아 잡을수록 음계로 (도6부터, 파7에서 멈춤)
         }
 
         // ---------------- 그리기 (입자 하나에 직접 자리 · 밝기) ----------------
