@@ -4789,6 +4789,9 @@ namespace SpaceStation.Editor
                         BoxOf(right[k], 0f);
                         BoxOf(Child(root, $"{N}LiftCall{k + 1}"), 0.06f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, true);
                         var button = Child(root, $"{N}LiftBtn{k + 1}");
+                        // 모델 버튼 (칸 바닥 + 0.85 · 1.02)이 칸 금빛 손잡이 (+ 0.92)에 반쯤 묻혀 있었음 (사용자 2026-11-23) → 손잡이 위 15 cm로.
+                        // FBX를 다시 내보내면 잎 법선이 바뀌어 (oc_railgap과 같은 까닭으로 빌더 텍스트도 못 씀) 여기서 올림
+                        button.localPosition += Vector3.up * 0.22f;
                         button.SetParent(car, true);
                         BoxOf(button, 0.03f).gameObject.AddComponent<InteriorLiftButton>().Configure(lift, k, false);
                     }
