@@ -52,6 +52,7 @@ namespace SpaceStation.Interior
         private int _aim = -1;
         private bool _recorded;
         private int _streak;   // 연달아 별을 잡은 수 (점수 "띵" 음높이) — 쓰레기 · 별 놓침 · 새 판 = 0
+        private int _tickLeft = -1;   // 남은 시간 째깍 — 마지막으로 본 남은 초
         private string _notice;
         private float _noticeTimer;
         private InteriorHintLine _hint;
@@ -105,6 +106,11 @@ namespace SpaceStation.Interior
             var kind = _game.Step(dt);
             if (kind.HasValue)
                 Spawn(kind.Value);
+            // 남은 시간 째깍: 5초부터 1초마다 (보이는 남은 초가 바뀌는 순간)
+            int left = _game.Playing ? Mathf.CeilToInt(_game.Remaining) : -1;
+            if (left != _tickLeft && left >= 1 && left <= 5)
+                AudioService.TryPlay(l => l.GameTick);
+            _tickLeft = left;
             MoveFalling(dt);
             _aim = _standing && _game.Playing ? Aimed() : -1;
             if (_standing)
@@ -301,7 +307,7 @@ namespace SpaceStation.Interior
                 bool big = item.Kind == StarCatchGame.Kind.BigStar;
                 InteriorFireflyShow.Burst(EnsureSparks(), item.Body.position, big ? 30 : 16, big ? 1.1f : 0.7f);
                 Notice(big ? "큰 별  +3" : "작은 별  +1", 0.8f);
-                AudioService.TryPlayScore(++_streak);
+                AudioService.TryPlayNote(l => l.DscStarCatch, Mathf.Min(++_streak, 8) - 1, big ? 1.3f : 1f);   // 연달아 잡을수록 음계로 (끝 칸에서 멈춤), 큰 별은 크게
             }
             Remove(_aim);
             _aim = -1;

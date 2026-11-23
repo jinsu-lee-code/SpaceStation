@@ -28,6 +28,7 @@ namespace SpaceStation.Interior
         private float _timer, _s, _v;
         private int _seat = -1, _sitFrame = -1;
         private float _noteTimer;
+        private float _windSent;   // 나는 바람 소리에 마지막으로 보낸 크기
         private Collider[] _seatColliders;
         private Transform _anchor;
         private FirstPersonController _player;
@@ -75,6 +76,9 @@ namespace SpaceStation.Interior
             _s = _v = 0f;
             if (_drone != null)
                 Place(AICore.DronePad, Quaternion.identity);
+            if (_windSent > 0f)
+                AudioService.SetRideLoop(l => l.AicoreDroneRideLoop, 0f);
+            _windSent = 0f;
             ShowHint(null);
         }
 
@@ -101,7 +105,45 @@ namespace SpaceStation.Interior
                     _noteTimer = 2f;
             }
             Fly(dt);
+            UpdateWindSound();
             UpdateHint(dt);
+        }
+
+        /// <summary>나는 바람 소리 (탄 동안 2D 루프): 떠오름 → 날기 (빠르기만큼) → 내려앉기, 착륙장에 서 있으면 끔.</summary>
+        private void UpdateWindSound()
+        {
+            float level = 0f, pitch = 1f;
+            if (_seat >= 0)
+            {
+                switch (_state)
+                {
+                    case State.Lift:
+                    {
+                        float k = Mathf.Clamp01(_timer / AICore.DroneLiftTime);
+                        level = 0.4f + 0.3f * k;
+                        pitch = 0.9f + 0.05f * k;
+                        break;
+                    }
+                    case State.Cruise:
+                    {
+                        float k = Mathf.Clamp01(_v / AICore.DroneCruise);
+                        level = 0.7f + 0.3f * k;
+                        pitch = 0.95f + 0.1f * k;
+                        break;
+                    }
+                    case State.Land:
+                    {
+                        float k = Mathf.Clamp01(_timer / AICore.DroneLandTime);
+                        level = 0.7f - 0.4f * k;
+                        pitch = 0.95f - 0.07f * k;
+                        break;
+                    }
+                }
+            }
+            if (level <= 0f && _windSent <= 0f)
+                return;
+            _windSent = level;
+            AudioService.SetRideLoop(l => l.AicoreDroneRideLoop, level, pitch);
         }
 
         // ---------------- 날기 ----------------
@@ -166,7 +208,7 @@ namespace SpaceStation.Interior
                         _state = State.Docked;
                         _yaw = Quaternion.identity;
                         UpdateColliders();
-                        AudioService.TryPlay(l => l.SupplyArrive);
+                        AudioService.TryPlayAt(l => l.AicoreDroneLand, _drone.position);   // 착륙장에 내려앉는 "툭" + 날개가 멎음
                     }
                     break;
                 }

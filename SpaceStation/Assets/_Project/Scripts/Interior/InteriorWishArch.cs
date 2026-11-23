@@ -149,7 +149,7 @@ namespace SpaceStation.Interior
             _time = 0f;
             _starDone = false;
             _wish = Random.Range(0, Wishes.Length);
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlayNote(l => l.DscWishBegin, 5);   // 유리 별 "띵" (수정 꽃 종을 한 옥타브 위로 — 강 위 유리 별과 같은 소리)
         }
 
         private void Controls()
@@ -199,7 +199,7 @@ namespace SpaceStation.Interior
             if (!_starDone && _star == null && _time >= StarDelay)
             {
                 _star = new ShootingStar(transform, _streakMaterial, transform.TransformPoint(DeepSpaceComm.WishStarFrom), transform.TransformPoint(DeepSpaceComm.WishStarTo), DeepSpaceComm.WishStarSpeed);
-                AudioService.TryPlay(l => l.UiTab);
+                AudioService.TryPlay(l => l.DscWishStar);   // 별똥별 "휙 — 반짝"
             }
             if (_star != null)
             {
@@ -214,7 +214,7 @@ namespace SpaceStation.Interior
                     _glow = 0f;
                     for (int k = 0; k < _starSpin.Length; k++)
                         _starSpin[k] = 1f;
-                    AudioService.TryPlay(l => l.EventPositive);
+                    AudioService.TryPlay(l => l.DscWishSparkle);   // 강에 별빛이 번짐 — 반짝임이 쏟아짐
                 }
             }
             if (_time < WishSeconds)

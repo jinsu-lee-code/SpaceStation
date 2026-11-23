@@ -157,7 +157,7 @@ namespace SpaceStation.Interior
                     var r = _game.Collect(i);
                     InteriorFireflyShow.Burst(EnsureSparks(), _orbs[i].position, 28, 1.3f);
                     _orbs[i].gameObject.SetActive(false);
-                    AudioService.TryPlayScore(_game.Collected);
+                    AudioService.TryPlayNote(l => l.AicoreOrbCollect, Mathf.Min(_game.Collected, 8) - 1);   // 모은 차례대로 음계 (끝 칸에서 멈춤)
                     if (r == MazeRunGame.Result.AllCollected)
                         Flash("빛 구슬을 다 모았어요!  가운데 정자로");
                 }

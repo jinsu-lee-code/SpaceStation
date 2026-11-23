@@ -50,6 +50,8 @@ namespace SpaceStation.Interior
         private float _resultTimer;
         private bool _record;
         private int _streak;   // 연달아 진주를 잡은 수 (점수 "띵" 음높이) — 게 · 헛잡기 · 새 판 = 0
+        private float[] _lidWas;   // 지난 프레임 뚜껑 (열림 "스르륵" · 닫힘 "탁"을 그 순간 한 번)
+        private int _tickLeft = -1;   // 남은 시간 째깍 — 마지막으로 본 남은 초
         private Transform _eye;
         private TextMeshPro _signText;
         private float _signTimer;
@@ -92,6 +94,7 @@ namespace SpaceStation.Interior
             _flyFrom = new Vector3[n];
             _flyGold = new bool[n];
             _crabJump = new float[n];
+            _lidWas = new float[n];
             _block = new MaterialPropertyBlock();
             for (int k = 0; k < n; k++)
             {
@@ -166,6 +169,11 @@ namespace SpaceStation.Interior
             }
             if (before != PearlClamGame.Phase.Done && _game.Current == PearlClamGame.Phase.Done)
                 EndGame();
+            // 남은 시간 째깍: 5초부터 1초마다 (보이는 남은 초가 바뀌는 순간)
+            int left = _game.Playing ? Mathf.CeilToInt(_game.Remaining) : -1;
+            if (left != _tickLeft && left >= 1 && left <= 5)
+                AudioService.TryPlay(l => l.GameTick);
+            _tickLeft = left;
             if (_game.Current == PearlClamGame.Phase.Done)
             {
                 _resultTimer -= dt;
@@ -222,7 +230,7 @@ namespace SpaceStation.Interior
                     _flyGold[pick] = gold;
                     Burst(_pearls[pick].position, gold ? 28 : 12, gold);
                     Notice(gold ? "+3  금빛 진주!" : "+1  진주", 1.1f);
-                    AudioService.TryPlayScore(++_streak);
+                    AudioService.TryPlayNote(l => l.OportPearlGet, Mathf.Min(++_streak, 8) - 1, gold ? 1.3f : 1f);   // 연달아 잡을수록 음계로 (끝 칸에서 멈춤)
                     break;
                 case PearlClamGame.Catch.Crab:
                     _crabJump[pick] = 0f;
@@ -258,8 +266,15 @@ namespace SpaceStation.Interior
             bool round = _game.Current == PearlClamGame.Phase.Countdown || _game.Playing;
             for (int k = 0; k < PearlClamGame.ClamCount; k++)
             {
-                float close = -OrbitalPort.ClamLidOpen * (1f - Smooth(_game.Lid(k)));
+                float lid = _game.Lid(k);
+                float close = -OrbitalPort.ClamLidOpen * (1f - Smooth(lid));
                 _lids[k].localRotation = Quaternion.AngleAxis(close, OrbitalPort.ClamHingeAxis(k)) * _lidBase[k];
+                // 판 중: 닫힌 조개가 열리기 시작 = "스르륵 · 딸깍", 다 닫힘 = "탁" (쉬는 동안 천천히 열릴 때는 조용히)
+                if (round && _lidWas[k] <= 0f && lid > 0f && _game.Playing)
+                    AudioService.TryPlayAt(l => l.OportClamOpen, _pearls[k].position);
+                else if (round && _lidWas[k] > 0f && lid <= 0f)
+                    AudioService.TryPlayAt(l => l.OportClamSnap, _pearls[k].position);
+                _lidWas[k] = lid;
                 var content = round ? _game.ContentOf(k) : PearlClamGame.Content.Pearl;
                 bool show = _game.ShowsContent(k);
                 bool pearl = show && content != PearlClamGame.Content.Crab;

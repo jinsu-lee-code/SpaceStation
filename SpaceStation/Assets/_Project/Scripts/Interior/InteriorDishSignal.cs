@@ -20,6 +20,8 @@ namespace SpaceStation.Interior
         /// <summary>신호 고리가 가운데 돔 꼭대기에서 오르는 높이 (가장 넓을 때) — 2026-11-18 바닥을 0.78 m 올려 1.7 → 1.25 (하늘 면 0.55 m 아래).</summary>
         public const float RingRise = 1.25f;
         private static readonly Color SignalWhite = new Color(0.86f, 0.97f, 1f);
+        /// <summary>신호를 잡은 차례대로의 음 (TryPlayNote 칸 — 파 · 라 · 도 · 위 파): 모일수록 F 장조 화음이 됨.</summary>
+        private static readonly int[] ChordSteps = { 2, 4, 5, 7 };
 
         [Tooltip("도는 받침 DishYaw{k} · 접시 DishTilt{k} · 손바퀴 DishWheel{k} (DeepSpaceComm 차례)")]
         [SerializeField] private Transform[] _yaws;
@@ -46,6 +48,7 @@ namespace SpaceStation.Interior
         private Light[] _domeLights;
         private float[] _domeFlash = new float[2];
         private int _gathered;
+        private int _locked;            // 신호를 잡은 접시 수 (잡은 차례 = 음)
         private float _showTime = -1f, _returnTime = -1f;
         private Transform _star;
         private Light _starLight;
@@ -143,7 +146,8 @@ namespace SpaceStation.Interior
                 return;
             _aligned[k] = true;
             _wheelSpin[k] = TurnTime;
-            AudioService.TryPlay(l => l.RepairStart);
+            if (_yaws[k] != null)
+                AudioService.TryPlayAt(l => l.DscDishMotor, _yaws[k].position);   // 접시가 돌아서는 2.6초 동안 모터 "위잉"
         }
 
         private void Update()
@@ -221,7 +225,9 @@ namespace SpaceStation.Interior
             _bead[k] = 0f;
             _beads[k].gameObject.SetActive(true);
             InteriorFireflyShow.Burst(EnsureSparks(), transform.TransformPoint(_cablePath[k][0]), 12, 0.6f);
-            AudioService.TryPlay(l => l.UiTab);
+            // 접시가 신호를 잡음: 그 접시에서 신호 "삐 · 빕" — 잡은 차례대로 파 · 라 · 도 · 위 파
+            AudioService.TryPlayNoteAt(l => l.DscSignalLock, _tilts[k] != null ? _tilts[k].position : transform.TransformPoint(_cablePath[k][0]), ChordSteps[Mathf.Min(_locked, ChordSteps.Length - 1)]);
+            _locked++;
         }
 
         private void MoveBead(int k, float dt)
@@ -245,7 +251,9 @@ namespace SpaceStation.Interior
             _domeFlash[dome] = 1f;
             InteriorFireflyShow.Burst(EnsureSparks(), transform.TransformPoint(DeepSpaceComm.SideDomeTop(dome) + Vector3.up * 0.1f), 22, 0.9f);
             _gathered++;
-            AudioService.TryPlayScore(_gathered);
+            // 빛 알이 돔에 닿음: 지금까지 모은 신호 음을 굴려 침 (모일수록 화음 — 넷이면 파 · 라 · 도 · 위 파)
+            for (int j = 0; j < _gathered && j < ChordSteps.Length; j++)
+                AudioService.TryPlayNote(l => l.DscSignalLock, ChordSteps[j], j == _gathered - 1 ? 0.8f : 0.55f, 0.09f * j);   // 2D라 접시 자리 (3D 4 m)보다 작게
             if (_gathered >= _aligned.Length)
                 BeginShow();
         }
@@ -273,7 +281,7 @@ namespace SpaceStation.Interior
             if (t >= ArcTime && t - dt < ArcTime)
             {
                 InteriorFireflyShow.Burst(EnsureSparks(), transform.TransformPoint(DeepSpaceComm.CenterDomeTop + Vector3.up * 0.15f), 40, 1.3f);
-                AudioService.TryPlay(l => l.GameClear);
+                AudioService.TryPlay(l => l.DscSignalMotif);   // 대표 선율 "먼 별에서 온 신호" (신호 삐 · 빕 → 유리 별)
             }
             // 돔 위 신호 고리: 차례로 위로 떠오르며 넓어지고 옅어짐
             for (int r = 0; r < _rings.Length; r++)
@@ -295,6 +303,7 @@ namespace SpaceStation.Interior
             for (int k = 0; k < _aligned.Length; k++)
                 _aligned[k] = false;
             _gathered = 0;
+            _locked = 0;
             _returnTime = 0f;
         }
 

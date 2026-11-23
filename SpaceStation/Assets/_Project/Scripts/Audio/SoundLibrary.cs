@@ -193,6 +193,68 @@ namespace SpaceStation.Audio
         [Tooltip("드론 순서 기억 등불 다섯 (2D, 보여 줄 때 · 고를 때) — 합성 유리 종 한 음, 등불 k = 도 · 레 · 파 · 솔 · 라 (기준 = 도5)")]
         public SoundCue RcmdLanternNote = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.37f, Pitch = Vector2.one, Cooldown = 0.03f, MaxVoices = 3 };
 
+        [Header("체험 — 궤도 항만 가리비 배 뱃놀이 · 진주 조개 잡기 · 인어 분수 진주 던지기 (5-2, 2026-11-23)")]
+        [Tooltip("배가 나아가는 동안 (탄 사람 귀에 2D 루프, 빠르기만큼 크기) — VARCO 부드러운 노 첨벙을 2박 (1.33초)마다 + 작은 노걸이 \"끽\" (선착장 삐걱임 원본)")]
+        public SoundCue OportPaddleLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.6f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("배가 선착장에 닿음 (배 자리 3D) — 선착장 삐걱임 원본 + 나무 \"툭\" (구조 바구니 닿음과 같은 조각, 더 낮고 큼)")]
+        public SoundCue OportBoatDock = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.7f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.5f, MaxVoices = 2 };
+        [Tooltip("진주 조개가 열림 (그 조개 자리 3D) — VARCO 껍데기 \"스르륵\" + 다 열린 0.2초에 작은 \"딸깍\"")]
+        public SoundCue OportClamOpen = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.48f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.03f, MaxVoices = 3 };
+        [Tooltip("진주 조개가 닫힘 (다 닫히는 순간 그 조개 자리 3D) — VARCO 둥근 \"탁\" (밝은 딸깍 · 날 선 후보는 뺌)")]
+        public SoundCue OportClamSnap = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.03f, MaxVoices = 3 };
+        [Tooltip("진주를 잡음 (2D, 공용 점수 대신 — 연달아 잡으면 TryPlayNote로 음계, 금빛 진주는 1.3배) — 합성 둥근 유리 \"또롱\" + 반짝임 (기준 = 도6)")]
+        public SoundCue OportPearlGet = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.3f, Pitch = Vector2.one, Cooldown = 0.03f, MaxVoices = 3 };
+        [Tooltip("진주를 던짐 (F마다 2D) — 합성 가벼운 \"휙\" (UiClick 대신)")]
+        public SoundCue OportThrow = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Pitch = new Vector2(0.94f, 1.06f), Cooldown = 0.1f, MaxVoices = 2 };
+        [Tooltip("진주가 분수 물에 떨어짐 (떨어진 자리 3D — 고리에 들면 공용 점수 \"띵\"과 같이) — 소리 풍경 물고기 퐁당 (scape_port_fish_02) 그대로")]
+        public SoundCue OportPlop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.7f, Pitch = new Vector2(1.05f, 1.2f), Cooldown = 0.05f, MaxVoices = 3 };
+
+        [Header("체험 — AI 중추 수정 뇌 깨우기 · 정원 드론 날기 · 뇌 미로 빛 구슬 · 시냅스 따라 켜기 (5-2, 2026-11-23)")]
+        [Tooltip("책을 펼침 (그 책 받침 자리 3D) — 소리 풍경 독서대 책장 원본 + 펼쳐진 책장이 닿는 작은 \"툭\" (UiTab 대신)")]
+        public SoundCue AicoreBookOpen = new SoundCue { Bus = AudioBus.Sfx, Volume = 1f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.2f, MaxVoices = 2 };
+        [Tooltip("수정 뇌가 깨어나 차오름 (쇼 시작 2D 큰 순간, EventPositive 대신) — 합성 유리 화음 라 · 도 · 미가 부풂 + 소리 풍경 수정 뇌 공명 + 반짝임 오름")]
+        public SoundCue AicoreCrystalSwell = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Pitch = Vector2.one, Cooldown = 1f, MaxVoices = 1 };
+        [Tooltip("드론을 타고 나는 동안 (2D 루프, 빠르기만큼) — 궤도 도시 옥상 바람 원본 + 작은 날개 \"그르릉\" 합성 (소리 풍경 드론과 같은 결)")]
+        public SoundCue AicoreDroneRideLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.75f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("드론이 착륙장에 내려앉음 (드론 자리 3D, SupplyArrive 대신) — 부드러운 \"툭\" + 날개 그르릉이 멎음")]
+        public SoundCue AicoreDroneLand = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.7f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("빛 구슬 주움 (2D, 공용 점수 대신 — 모은 차례대로 음계) — 합성 \"띠리링\" 도 · 솔 · 위 도 (기준 = 도6)")]
+        public SoundCue AicoreOrbCollect = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.25f, Pitch = Vector2.one, Cooldown = 0.03f, MaxVoices = 2 };
+        [Tooltip("시냅스 여섯 (2D, 보여 줄 때 · 고를 때) — 소리 풍경 수정 띵을 한 옥타브 내려 (도6), 시냅스 k = 도 · 레 · 파 · 솔 · 라 · 위 도")]
+        public SoundCue AicoreSynapseNote = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Pitch = Vector2.one, Cooldown = 0.03f, MaxVoices = 3 };
+
+        [Header("체험 — 항성 발전망 정자 꽃 그네 · 벌 몰래 꿀 먹기 (5-2, 2026-11-23)")]
+        [Tooltip("그네가 가장 낮은 점을 지날 때마다 \"휘익\" (빠를수록 크게, 탄 사람 2D · 보는 사람 3D) — 합성 걸러진 바람")]
+        public SoundCue SgridSwingWhoosh = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.95f, 1.05f), Cooldown = 0.3f, MaxVoices = 2 };
+        [Tooltip("그네가 수정 꽃송이 종에 닿음 (그 종 자리 3D, UiTab 대신) — 소리 풍경 수정 꽃 종 (도6) 그대로, 높은 종일수록 높은 음 (도 · 레 · 파 · 솔 · 라 · 위 도)")]
+        public SoundCue SgridFlowerBell = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.33f, Pitch = Vector2.one, Cooldown = 0.03f, MaxVoices = 4 };
+        [Tooltip("경비 꿀벌 윙윙 (미니게임 동안 경비 벌에 붙은 3D 루프, 경고 · 쏘러 갈 때 높고 크게) — 소리 풍경 벌 원본의 배음으로 다시 합성 (F3)")]
+        public SoundCue SgridBeeGuardLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.8f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("꿀 한 숟갈 (2D, 공용 점수 \"띵\"과 겹쳐) — VARCO 곰 \"후룹 · 냠\" 0.55초")]
+        public SoundCue SgridHoneySlurp = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.64f, Pitch = new Vector2(0.95f, 1.05f), Cooldown = 0.2f, MaxVoices = 1 };
+        [Tooltip("들킴 (2D, 공용 틀림 대신) — 경비 벌이 \"윙!\" 치솟음 (같은 벌 합성) + 곰 \"이잇\" (VARCO, 라5)")]
+        public SoundCue SgridCaught = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+
+        [Header("체험 — 심우주 통신기지 전파 접시 · 별똥별 아치 소원 · 신호 맞추기 · 별똥별 잡기 (5-2, 2026-11-23)")]
+        [Tooltip("손바퀴를 돌린 접시가 돌아섬 (접시 자리 3D, 2.6초 — RepairStart 대신) — VARCO 부드러운 모터 \"위잉\"을 접시 빠르기대로 느리게 → 빠르게 → 느리게")]
+        public SoundCue DscDishMotor = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.37f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.1f, MaxVoices = 2 };
+        [Tooltip("접시가 신호를 잡음 (그 접시 3D) · 빛 알이 돔에 닿음 (모은 신호 화음 2D) — 소리 풍경 접시 신호 \"삐 · 빕\" (도6) 그대로, 파 · 라 · 도 · 위 파 (모일수록 화음)")]
+        public SoundCue DscSignalLock = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.48f, Pitch = Vector2.one, Cooldown = 0.03f, MaxVoices = 5 };
+        [Tooltip("신호 넷이 가운데 관측실에 모임 (2D, GameClear 대신) — 소리 풍경 대표 선율 (신호 \"삐 · 빕\" → 유리 별) 그대로")]
+        public SoundCue DscSignalMotif = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.68f, Pitch = Vector2.one, Cooldown = 1f, MaxVoices = 1 };
+        [Tooltip("아치 소원 시작 (2D, UiOpen 대신) — 항성 발전망 수정 꽃 종을 한 옥타브 위로 (이 방 \"강 위 유리 별\"과 같은 소리, TryPlayNote 칸 5)")]
+        public SoundCue DscWishBegin = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.3f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("별똥별이 하늘을 가로지름 (2D, UiTab 대신) — 궤도 방어망 별똥별 (scape_defense_star_01) 그대로")]
+        public SoundCue DscWishStar = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.36f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("별똥별이 강에 닿아 별빛이 번짐 (2D 큰 순간, EventPositive 대신) — 합성 반짝임이 F 오음계로 쏟아져 내림 + 유리 종 화음")]
+        public SoundCue DscWishSparkle = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.38f, Pitch = Vector2.one, Cooldown = 1f, MaxVoices = 1 };
+        [Tooltip("신호 맞추기 무전 잡음 (조작대에 선 동안 2D 루프, 크기 = 1 − 맞은 정도) — 합성 걸러진 잡음 + 아주 옅은 지직")]
+        public SoundCue DscStaticLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.47f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("신호를 맞춤 (2D, 공용 점수 · UiClick 대신 — 85점 이상 = 크게 · 연달아 위 음, 아래 = 작게 도) — 합성 신호 \"삐 · 빕\" + 유리 종 (기준 = 도6)")]
+        public SoundCue DscTuneLock = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.35f, Pitch = Vector2.one, Cooldown = 0.1f, MaxVoices = 2 };
+        [Tooltip("별똥별 잡음 (2D, 공용 점수 대신 — 연달아 잡으면 음계, 큰 별은 1.3배) — 합성 \"슉\" + 반짝임 도 · 솔 · 위 도 (기준 = 도6)")]
+        public SoundCue DscStarCatch = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.31f, Pitch = Vector2.one, Cooldown = 0.03f, MaxVoices = 3 };
+
         [Header("음악 (상태별, 여러 곡이면 차례로)")]
         public SoundCue MusicDay = new SoundCue { Bus = AudioBus.Music, Volume = 0.5f, Pitch = Vector2.one };
         public SoundCue MusicNight = new SoundCue { Bus = AudioBus.Music, Volume = 0.5f, Pitch = Vector2.one };

@@ -1085,4 +1085,331 @@ ln = place(ln, flower_bell(523.25, 1.2, 140), 0.0)
 ln = place(ln, twinkle(1046.5, 0.8, 141) * 0.2, 0.01)
 save("Ride/rcmd_lantern_note.wav", fade(ln, 0.0, 0.3), -14)
 
+
+def whoosh(dur, peak, lo, mid, hi, seed=0):
+    """바람 "휙" — 잡음 두 띠 (lo ~ mid · mid ~ hi)를 시간에 따라 낮은 띠 → 높은 띠 → 낮은 띠로 넘김 (지나가며 높아졌다 낮아짐), peak초에 가장 큼."""
+    rng = np.random.default_rng(seed)
+    t = np.arange(int(dur * SR)) / SR
+    n = rng.standard_normal(len(t))
+    low = onepole_lp(onepole_lp(highpass(n, lo), mid), mid)
+    high = onepole_lp(onepole_lp(highpass(n, mid), hi), hi)
+    low, high = low / np.sqrt((low ** 2).mean()), high / np.sqrt((high ** 2).mean())
+    k = np.exp(-((t - peak) / (0.45 * peak + 0.02)) ** 2)   # 가장 빠를 때 높은 띠
+    env = np.where(t < peak, np.sin(0.5 * np.pi * t / peak) ** 2, np.exp(-(t - peak) / (0.3 * (dur - peak))))
+    return fade((low * (1 - 0.6 * k) + high * 0.6 * k) * env, 0.0, 0.03)
+
+
+def bee_buzz(f0, dur, prof, jit=0.008, seed=0, glide=None):
+    """꿀벌 날갯소리 — 원본 벌 (scape_stellar/bee_b)의 배음 크기 (prof dB)로 다시 합성 · 기음이 느리게 흔들림 (jit) · 날개 바람 쉿 옅게.
+    떨림 주기는 dur초에 정수 번 (루프 이음새 없게), 위상은 적분식으로 정확히. glide = (끝 배율, 초) — 그 시간 동안 높이가 오름 (놀란 "윙!")."""
+    t = np.arange(int(dur * SR)) / SR
+    rng = np.random.default_rng(seed)
+    mods = [(2 / dur, jit), (7 / dur, 0.6 * jit), (13 / dur, 0.5 * jit)]
+    ph = f0 * t
+    for fm, a in mods:
+        p0 = rng.uniform(0, 2 * np.pi)
+        ph = ph + f0 * a / (2 * np.pi * fm) * (np.sin(2 * np.pi * fm * t + p0) - np.sin(p0))
+    if glide is not None:
+        g, gt = glide
+        u = np.clip(t / gt, 0, 1)
+        ph = ph + f0 * (g - 1) * np.where(t < gt, gt * (u ** 3 - 0.5 * u ** 4), t - gt + 0.5 * gt)   # 높이 배율 1 + (g−1)(3u² − 2u³)를 적분
+    ph *= 2 * np.pi
+    x = np.zeros_like(t)
+    for k, db in enumerate(prof, 1):
+        if k * f0 * (glide[0] if glide else 1.0) > 9000:
+            break
+        x += 10 ** (db / 20) * np.sin(k * ph + rng.uniform(0, 2 * np.pi))
+    am = 1 + 0.12 * np.sin(2 * np.pi * round(6 * dur) / dur * t)   # 날개 결 (6 Hz 안팎)
+    hiss = onepole_lp(highpass(rng.standard_normal(len(t)), 2000), 6000)
+    hiss *= 0.04 * np.abs(x).max() / (np.abs(hiss).max() + 1e-9)
+    return (x + hiss * (1 + np.sin(ph) * 0.5)) * am
+
+
+# ================= 체험 — 궤도 항만 "가리비 배 뱃놀이 · 진주 조개 잡기 · 인어 분수 진주 던지기" (SOUND_LIST_NEW 5-2, 2026-11-23) =================
+# InteriorScallopRide (해마 가리비 배 — 석호 한 바퀴) · InteriorPearlClams (큰 조개 셋이 번갈아 열림) · InteriorFountainToss (분수 빛 고리에 진주 던지기).
+# VARCO 하나씩 2번 (노 젓기 · 조개). 배 닿음 = 소리 풍경 선착장 삐걱임 원본 + 궤도 방어망 레버 "툭", 퐁당 = 소리 풍경 물고기 퐁당 (scape_port_fish_02) 그대로 (새 파일 없음),
+# 진주 · 던지기는 합성. 음계로 옮기는 진주 잡기는 겹친 음을 으뜸 · 5도 · 옥타브만.
+OPR = "Ride/OrbitalPort/"
+
+# 노 젓기 (배가 나아가는 동안 2D 루프, 빠르기만큼 크기) — 후보 5 중 2 + 3의 첨벙 셋: "약 1초마다 첨벙"으로 불렀는데 다섯 모두 2 ~ 4초에 한 번 크게 첨벙
+# (첨벙마다 1.5 ~ 2초 꼬리) → 고른 첨벙을 2박 (1.33초)마다 차례로 놓아 고리 (5.33초 = 4번). 2 = 첨벙 사이 디지털 무음 · 지직 15.9 (가장 깨끗),
+# 3 = 물결 결이 있는 첨벙 둘 (지직 18 ~ 24). 1 = 지직 29 ~ 34, 4 = 첨벙 하나뿐 · 바닥 −23 dB, 5 = 지직 40.
+# 젓는 손 결 = 소리 풍경 선착장 삐걱임 원본 조각 둘을 7반음 올려 (작은 노걸이 "끽") 첨벙마다 옅게.
+pa, pb = load(OPR + "paddle_a.wav"), load(OPR + "paddle_b.wav")
+dock = load("Interior/scape_port/dock_creak.wav")
+
+
+def stroke(x, a, b):
+    s = trim_lead(sl(x, a, b), -32)[: int(2.4 * SR)]
+    return fade(highpass(s, 80), 0.01, 0.45)
+
+
+strokes = [stroke(pa, 0.3, 2.6), stroke(pb, 0.05, 2.4), stroke(pa, 4.95, 6.73), stroke(pb, 5.7, 8.05)]
+creaks = [fade(soften(highpass(pitch(sl(dock, a, a + 0.42), 7), 300), 4000, 0.4), 0.01, 0.12) for a in (7.25, 1.95)]
+PP = 2 * BEAT
+paddle = np.zeros(int(4 * PP * SR))
+pk = lambda y: np.sqrt(np.convolve(y ** 2, np.ones(int(0.05 * SR)) / int(0.05 * SR), "valid").max())
+for i, (s, g_) in enumerate(zip(strokes, (1.0, 0.85, 0.92, 0.88))):
+    one = np.zeros(int(2.6 * SR))
+    one = place(one, s / pk(s) * g_, 0.0)
+    c = creaks[i % 2]
+    one = place(one, c / pk(c) * 0.22 * g_, 0.12)
+    idx = (int(i * PP * SR) + np.arange(len(one))) % len(paddle)   # 끝을 넘는 꼬리는 처음으로 (고리)
+    np.add.at(paddle, idx, one)
+# 첨벙만 이으면 셋째 첨벙 (후보 2의 짧은 둘째) 꼬리 뒤 3.9초에 0.1초 빈 곳 → 배 옆 잔물결 (소리 풍경 배 물살 고리 4.6초를 5.33초로 늘여 — 2.6반음 낮아짐)을
+# 첨벙 크기의 25 %로 밑에 깖.
+wk = load("../SpaceStation/Assets/_Project/Audio/Interior/scape_port_wake_loop.wav")
+wk = np.interp(np.arange(len(paddle)) * len(wk) / len(paddle), np.arange(len(wk) + 1), np.concatenate([wk, wk[:1]]))
+paddle = paddle + 0.25 * np.sqrt((paddle ** 2).mean()) * wk / np.sqrt((wk ** 2).mean())
+paddle = circular(lambda y: soften(y, 5000, 0.4), paddle)
+save("Ride/oport_paddle_loop.wav", paddle, -24)
+report.append(f"  노 젓기 고리 {len(paddle) / SR:.2f}초 · 이음새 {abs(paddle[0] - paddle[-1]):.4f}")
+
+# 배가 선착장에 닿음 (배 자리 3D) — 소리 풍경 선착장 삐걱임 원본 1.9 ~ 2.6초 (바구니 삐걱과 같은 조각)를 2반음만 올려 (배 = 바구니보다 큼),
+# "툭" = 궤도 방어망 레버 "툭" 그대로 높이 (바구니는 5반음 올림) 0.25초에.
+bc = fade(soften(highpass(pitch(sl(dock, 1.9, 2.6), 2), 150), 4000, 0.4), 0.01, 0.12)
+bt = load("Ride/OrbitalDefense/lever_thunk.wav")
+h = hit_time(bt)
+bt = fade(highpass(sl(bt, max(0.0, h - 0.012), h + 0.8), 60), 0.003, 0.35)
+bump = np.zeros(int(1.2 * SR))
+bump = place(bump, bc * 0.55 * pk(bt) / pk(bc), 0.0)
+bump = place(bump, soften(bt, 3500, 0.4), 0.25)
+save("Ride/oport_boat_dock.wav", fade(bump, 0.0, 0.2), -14)
+
+# 조개 열림 (그 조개 자리 3D — 뚜껑이 0.22초에 열림) — 후보 5 중 4의 첫 "스르륵" (위로 미끄러지는 결 · crest 11.6 가장 둥긂 · 시작 10 ms) +
+# 2의 둘째 "딸깍" (시작 3.8 ms)을 4 kHz 위를 눌러 다 열린 0.2초에 옅게. 1 = 3.3 kHz로 밝고 4초 뒤 또 침, 3 = 5 kHz · crest 22.9 (날 섬), 5 = 둘째 소리가 날 섬 (crest 23.9).
+cs = load(OPR + "clam_slide.wav")
+slide = fade(highpass(trim_lead(sl(cs, 0.0, 0.6), -35), 120), 0.005, 0.15)[: int(0.45 * SR)]
+cc = load(OPR + "clam_clap.wav")
+click = sl(cc, 0.55, 1.1)
+h = hit_time(click)
+click = fade(soften(soften(highpass(sl(click, max(0.0, h - 0.006), h + 0.25), 200), 4000, 0.5), 4000, 0.5), 0.002, 0.1)
+opn = np.zeros(int(0.7 * SR))
+opn = place(opn, slide, 0.0)
+opn = place(opn, click * 0.45 * pk(slide) / pk(click), 0.2)
+save("Ride/oport_clam_open.wav", fade(opn, 0.0, 0.15), -14)
+
+# 조개 닫힘 "탁" (뚜껑이 다 닫히는 순간 그 조개 자리 3D) — 후보 2의 첫 소리: 둥근 "툭" 하나 (834 Hz · 300 Hz 아래 32 % · 시작 8 ms · 울림 0).
+# 다른 후보의 닫힘 = 1 · 4 = 밝은 딸깍 (2.4 ~ 2.7 kHz), 5 = 날 섬. 부딪힘이 파일 처음에 오게 잘라 닫히는 순간 바로 울림.
+# 그 "툭"은 20 ms뿐이라 녹음 검수에서 음악보다 −22 dB (귀 감도 0.25초로는 거의 안 들림) → 속 빈 껍데기가 울리는 몸통을 합성해 밑에 깖
+# (라4 440 Hz 0.12초 + 1.18 kHz 0.06초 + 2.65 kHz 옅게 — 목탁 같은 "톡"), VARCO 부딪힘은 센 곳을 10 dB 눌러 40 %로 얹음 (피크 제한에 안 걸리게).
+# 30 ~ 50 ms 몸통은 +11 dB에 그쳐 (−11 예상) 0.12초로 늘이고 −9로 저장.
+snap = sl(cc, 0.0, 0.55)
+h = hit_time(snap)
+snap = fade(soften(highpass(sl(snap, max(0.0, h - 0.008), h + 0.4), 80), 5000, 0.4), 0.003, 0.2)
+snap = tame(snap, 10.0, 0.001, 0.03)
+tk = np.arange(int(0.4 * SR)) / SR
+knock = (np.sin(2 * np.pi * 440 * tk) * np.exp(-tk / 0.12) + 0.5 * np.sin(2 * np.pi * 1180 * tk) * np.exp(-tk / 0.06)
+         + 0.25 * np.sin(2 * np.pi * 2650 * tk) * np.exp(-tk / 0.012)) * (1 - np.exp(-tk / 0.0015))
+snap = place(knock / np.abs(knock).max(), snap / np.abs(snap).max() * 0.4, 0.006)
+save("Ride/oport_clam_snap.wav", fade(snap, 0.0, 0.1), -9)
+
+# 진주를 잡음 (2D, 연달아 잡으면 음계로 — 공용 점수 "띵" 대신, 기준 = 도6, 금빛 진주는 1.3배) — 합성: 둥근 유리 "또롱" (궤도 방어망 glass_pong) 도6 +
+# 반짝임 도7 · 솔7 (으뜸 · 5도만 — 음계로 옮겨도 조가 안 깨짐).
+pg = np.zeros(int(1.2 * SR))
+pg = place(pg, glass_pong(C6, 1.1, 150), 0.0)
+pg = place(pg, twinkle(2 * C6, 0.8, 151) * 0.25, 0.04)
+pg = place(pg, twinkle(3 * C6, 0.6, 152) * 0.12, 0.08)
+save("Ride/oport_pearl_get.wav", fade(onepole_lp(pg, 7000), 0.0, 0.25), -14)
+
+# 진주 던짐 (F마다 2D) — 합성 가벼운 "휙" (0.3초, 0.5 ~ 1.4 kHz → 1.4 ~ 3.5 kHz로 넘어갔다 돌아옴, 0.08초에 가장 큼).
+save("Ride/oport_throw.wav", whoosh(0.32, 0.08, 500, 1400, 3500, 153), -14)
+
+# ================= 체험 — AI 중추 "수정 뇌 깨우기 · 정원 드론 날기 · 뇌 미로 빛 구슬 · 시냅스 따라 켜기" (SOUND_LIST_NEW 5-2, 2026-11-23) =================
+# InteriorBrainShow (책 넷을 펼쳐 수정 뇌를 깨움) · InteriorDroneRide (정원 드론 바구니) · InteriorMazeRun (미로 빛 구슬) · InteriorSynapseMemory (시냅스 여섯 순서 기억).
+# VARCO 0번 — 책장 = 소리 풍경 독서대 책장 원본, 수정 공명 = 소리 풍경 수정 뇌 루프 조각, 드론 바람 = 궤도 도시 옥상 바람 원본, 시냅스 = 소리 풍경 수정 띵 원본을
+# 한 옥타브 내려 (도6), 나머지 음은 합성. 음계로 옮기는 소리 (빛 구슬 · 시냅스)는 겹친 음을 으뜸 · 5도 · 옥타브만.
+
+# 책 펼침 (그 책 받침 자리 3D — 책장이 0.7초에 펼쳐짐) — 소리 풍경 독서대 책장 원본 (page_3, 넘김 한 번)의 같은 조각 + 펼쳐진 책장이 닿는 "툭"
+# (궤도 방어망 레버 "툭"을 7반음 올려 작게) 0.62초에.
+x = load(A + "page_3.wav")
+env = np.convolve(x ** 2, np.ones(int(0.05 * SR)) / int(0.05 * SR), "same")
+i = int(np.argmax(env))
+page = fade(highpass(x[max(0, i - int(0.35 * SR)): i + int(0.45 * SR)], 120), 0.03, 0.15)
+lt = load("Ride/OrbitalDefense/lever_thunk.wav")
+h = hit_time(lt)
+tap = fade(soften(highpass(pitch(sl(lt, max(0.0, h - 0.01), h + 0.6), 7), 150), 3000, 0.5), 0.003, 0.25)
+book = np.zeros(int(1.3 * SR))
+book = place(book, page, 0.0)
+book = place(book, onepole_lp(tap, 2500) * 0.3 * pk(page) / pk(tap), 0.62)   # 0.6은 "툭"이 책장보다 커서 (피크 제한) 반으로 · 더 둥글게
+save("Ride/aicore_book_open.wav", tame(fade(book, 0.0, 0.2), 6.0), -14)   # 책장 넘김의 날 선 첫머리 (crest 22)에 피크 제한이 걸려 음악보다 −0.3 → 센 곳만 6 dB 눌러 같은 −14로
+
+# 수정 뇌가 깨어나 차오름 (책 넷을 다 펼친 0.8초 뒤 쇼 시작, 2D 큰 순간) — 합성 유리 화음 라3 · 라4 · 도5 · 미5 · 라5 (소리 풍경 수정 뇌 공명과 같은 음)가
+# 2.2초에 걸쳐 부풀고 (±3센트 겹침 — 일렁임) 소리 풍경 수정 뇌 루프 조각이 함께 차오름 + 반짝임이 라5 · 도6 · 미6 · 라6으로 올라감. 4초.
+LS = 4.2
+ts = np.arange(int(LS * SR)) / SR
+sw = np.clip(ts / 2.2, 0, 1) ** 1.5 * np.exp(-np.maximum(0, ts - 2.4) / 0.9)
+chord = np.zeros_like(ts)
+for j, (f0, amp) in enumerate(((220.0, 0.5), (440.0, 1.0), (523.25, 0.8), (659.25, 0.6), (880.0, 0.3))):
+    for c in (-3, 0, 3):
+        f = f0 * 2 ** (c / 1200)
+        chord += amp / 3 * (np.sin(2 * np.pi * f * ts + j + c) + 0.2 * np.sin(4 * np.pi * f * ts + 0.7))
+chord = onepole_lp(chord * sw, 3000)
+brain = sl(load("../SpaceStation/Assets/_Project/Audio/Interior/scape_aicore_brain_loop.wav"), 0.0, LS)
+brain = brain / np.sqrt((brain ** 2).mean()) * sw
+swell = chord / np.sqrt((chord ** 2).mean()) + 0.5 * brain
+for i_, semis in enumerate((-3, 0, 4, 9)):
+    swell = place(swell, twinkle(C6 * 2 ** (semis / 12), 1.2, 160 + i_) * 0.6 * np.abs(swell).max() * (0.6 + 0.1 * i_), 0.5 + i_ * 0.42)
+save("Ride/aicore_crystal_swell.wav", fade(swell, 0.05, 0.8), -14)
+
+
+def purr(f0, dur, flutter=24.0, seed=0):
+    """작은 드론 날개 "그르릉" — 기음 + 배음 옅게, flutter Hz로 빠르게 떨림 (소리 풍경 드론 그르릉 결). 주파수 · 떨림은 dur초에 정수 번 (루프용)."""
+    t = np.arange(int(dur * SR)) / SR
+    f0 = round(f0 * dur) / dur
+    fl = round(flutter * dur) / dur
+    x = sum(a * np.sin(2 * np.pi * k * f0 * t + k) for k, a in ((1, 1.0), (2, 0.55), (3, 0.3), (4, 0.18), (5, 0.1), (6, 0.06)))
+    return x * (0.6 + 0.4 * np.sin(2 * np.pi * fl * t) ** 2)
+
+
+# 드론을 타고 나는 동안 (2D 루프, 떠오름 · 날기 · 내려앉기 빠르기만큼) — 궤도 도시 옥상 바람 원본 (rooftop, 9초 고리 — 높은 곳 바람결) +
+# 작은 날개 "그르릉" 합성 (소리 풍경 드론 그르릉 155 Hz 결에 맞춰 레3 · 24 Hz 떨림, 옅게). 새로 VARCO를 부르지 않음 — 같은 방 드론 · 같은 바람.
+wind = loop_exact(sl(load(OC + "rooftop.wav"), 0.3, 10.24), 9.0)
+wind = circular(lambda y: soften(highpass(y, 60), 5000, 0.4), wind)
+pr = circular(lambda y: highpass(onepole_lp(y, 1500), 60), purr(146.83, 9.0))
+ride = wind / np.sqrt((wind ** 2).mean()) + 0.35 * pr / np.sqrt((pr ** 2).mean())
+save("Ride/aicore_droneride_loop.wav", ride, -20)   # −24는 음악보다 −7.3 (바람이 낮아 귀 감도로 작음) → +4 dB
+report.append(f"  드론 바람 고리 {len(ride) / SR:.2f}초 · 이음새 {abs(ride[0] - ride[-1]):.4f}")
+
+# 드론이 착륙장에 내려앉음 (드론 자리 3D) — 궤도 방어망 레버 "툭"을 3반음 올려 둥글게 + 날개 "그르릉"이 0.7초에 걸쳐 낮아지며 멎음.
+h = hit_time(lt)
+lt3 = fade(soften(highpass(pitch(sl(lt, max(0.0, h - 0.01), h + 0.7), 3), 80), 3000, 0.4), 0.003, 0.3)
+td = np.arange(int(0.9 * SR)) / SR
+down = sum(a * np.sin(2 * np.pi * k * np.cumsum(146.83 * (1 - 0.4 * np.minimum(1, td / 0.7))) / SR) for k, a in ((1, 1.0), (2, 0.5), (3, 0.25)))
+down = fade(down * (0.6 + 0.4 * np.sin(2 * np.pi * 24 * td) ** 2) * np.exp(-td / 0.3), 0.01, 0.2)
+land = np.zeros(int(1.1 * SR))
+land = place(land, onepole_lp(down, 1500) * 0.5 * pk(lt3) / pk(down), 0.0)
+land = place(land, lt3, 0.05)
+save("Ride/aicore_drone_land.wav", fade(land, 0.0, 0.2), -11)   # −14는 음악보다 +0.3 (300 Hz 아래 68 %) → +3 dB
+
+# 빛 구슬 주움 (2D, 모은 차례대로 음계 — 공용 점수 대신, 기준 = 도6) — 합성 "띠리링": 유리 종 도6 → 반짝임 솔6 → 도7 (으뜸 · 5도 · 옥타브만, 0.07초씩).
+orb = np.zeros(int(1.3 * SR))
+orb = place(orb, flower_bell(C6, 1.2, 170) * 0.8, 0.0)
+orb = place(orb, twinkle(1.5 * C6, 0.9, 171) * 0.45, 0.07)
+orb = place(orb, twinkle(2 * C6, 0.9, 172) * 0.35, 0.14)
+save("Ride/aicore_orb_collect.wav", fade(onepole_lp(orb, 7000), 0.0, 0.3), -14)
+
+# 시냅스 음 (시냅스 여섯 — 빛 알이 보여 줄 때 · 플레이어가 고를 때 둘 다, 2D, 시냅스 k = 도 · 레 · 파 · 솔 · 라 · 위 도) — 소리 풍경 수정 띵 원본 (C7 +6센트)을
+# 한 옥타브 내려 정확한 도6 (그대로 도7이면 위 도 = 도8 4.2 kHz로 날카로움). 내리면 2배 길어져 1.6초에서 자름.
+st = fade(soften(trim_lead(load(A + "crystal_ting.wav"), -40)[: int(1.8 * SR)], 4500, 0.5), 0.008, 0.8)
+st = pitch(st, -12.06)[: int(1.6 * SR)]
+save("Ride/aicore_synapse_note.wav", fade(st, 0.0, 0.5), -14)
+
+# ================= 체험 — 항성 발전망 "정자 꽃 그네 · 벌 몰래 꿀 먹기" (SOUND_LIST_NEW 5-2, 2026-11-23) =================
+# InteriorFlowerSwing (F 박자로 굴러 수정 꽃송이 종 여섯) · InteriorHoneySneak (곰이 되어 경비 꿀벌 몰래 꿀). VARCO 하나씩 2번 (꿀 후루룩 · 곰 "앗").
+# 꽃 종 = 소리 풍경 수정 꽃 종 (scape_stellar_flowerbell_01, 도6) 그대로 (새 파일 없음), 경비 벌 윙윙 · 놀란 "윙!" = 소리 풍경 벌 원본의 배음으로 다시 합성, 그네 휘익 = 합성.
+SGR = "Ride/StellarGrid/"
+
+# 그네 "휘익" (흔들림마다 가장 낮은 점을 지나는 순간 — 0.15초 앞에서 울려 가장 큰 곳이 바닥에 옴, 빠를수록 크게) — 합성: 걸러진 바람 잡음
+# 0.25 ~ 0.9 kHz → 0.9 ~ 2.2 kHz로 넘어갔다 돌아옴 (지나가며 높아졌다 낮아짐), 0.5초.
+save("Ride/sgrid_swing_whoosh.wav", onepole_lp(whoosh(0.5, 0.15, 250, 900, 2200, 180), 3000), -14)
+
+# 경비 꿀벌 윙윙 (미니게임 동안 경비 벌에 붙은 3D 루프, 경고 · 쏘러 갈 때 높고 크게) — "제자리에서 맴도는 벌" 루프는 VARCO가 다섯 모두 지나가는 소리로 줌
+# (소리 풍경 때 겪음) → 소리 풍경 벌 원본 (bee_b, F3 170 Hz)의 가장 큰 0.3초 배음 크기를 재서 F3 (174.5 Hz — 4초에 698번, 고리에 딱 맞음)로 다시 합성,
+# 기음이 느리게 흔들리고 (±0.8 %) 날개 결 6 Hz · 날개 바람 쉿 옅게. 소리 풍경 벌처럼 150 Hz 아래를 걸러 날개 결 (배음)이 들리게.
+BEE = tuple(-18.0 * np.log10(k) for k in range(1, 52))
+# (bee_b 실제 배음 = 0 · −23 · −29 · −32 · −31 · −34 · −33 · −38 …: 그대로면 귀 감도로 거의 안 들리는 낮은 "웅" (300 Hz 아래 90 %) →
+#  배음이 옥타브마다 5.4 dB씩만 줄게 (톱니 결 — 윙윙거리는 날개) 다시 맞춤. 2 ~ 12배음을 10 dB 올린 첫 판도 300 Hz 아래 90 %였음.)
+gb = bee_buzz(174.5, 4.0, BEE, 0.008, 181)
+gb = circular(lambda y: soften(highpass(highpass(y, 150), 150), 5000, 0.3), gb)
+save("Ride/sgrid_bee_guard_loop.wav", gb, -21)   # −24는 4 m에서 음악보다 −5.3 → +3 dB (경고 때 또렷하게)
+report.append(f"  경비 벌 고리 {len(gb) / SR:.2f}초 · 이음새 {abs(gb[0] - gb[-1]):.4f}")
+
+# 꿀 한 숟갈 (2D, 숟갈마다 0.6초 — 공용 점수 "띵"과 겹쳐 울림) — 후보 5 중 3의 "후룹" (빨아들이는 한 결, crest 9.9 가장 둥긂)을 어둡게 (6.7 kHz → 3 kHz 아래로) +
+# 2의 "냠" (입 다무는 작은 소리, 790 Hz) 0.28초에, 둘 다 2반음 올려 작고 귀엽게 · 0.55초 (다음 숟갈 전에 끝남).
+# 다섯 모두 끈적한 입 딸깍이 이어진 소리 (지직 35 ~ 44) — 1 = 날 섬 (crest 20), 4 = 4 kHz 위 딸깍, 5 = 울림 9.
+su = load(SGR + "slurp_suck.wav")
+suck = fade(onepole_lp(onepole_lp(highpass(sl(su, 5.02, 5.45), 200), 3000), 3000), 0.04, 0.12)
+sm = load(SGR + "slurp_smack.wav")
+smack = sl(sm, 1.95, 2.6)
+h = hit_time(smack)
+smack = fade(soften(highpass(sl(smack, max(0.0, h - 0.01), h + 0.22), 150), 4000, 0.4), 0.003, 0.08)
+slurp = np.zeros(int(0.6 * SR))
+slurp = place(slurp, pitch(suck, 2) * 0.8 * pk(smack) / pk(suck), 0.0)
+slurp = place(slurp, pitch(smack, 2), 0.28)
+save("Ride/sgrid_honey_slurp.wav", fade(slurp[: int(0.56 * SR)], 0.0, 0.05), -14)
+
+# 들킴 (2D — 공용 틀림 대신) — 경비 벌이 "윙!" (같은 벌 합성이 0.25초에 F3 → B♭3으로 치솟으며 부풂, 곰 코로 날아감) + 곰 "앗"
+# (VARCO 5개 중 5의 첫 "이잇" — 라5 −2센트로 조 안 · 0.4초 가장 짧음 · 배경 디지털 무음, 코를 쏘는 0.4초에). 1 = 레6 0.6초 길게, 2 · 4 = 라#5 ~ 시5 (조 밖), 3 = 솔6 −26센트.
+zip_ = bee_buzz(174.5, 0.5, BEE, 0.004, 182, glide=(1.335, 0.25))
+tz = np.arange(len(zip_)) / SR
+zip_ = soften(highpass(highpass(zip_, 150), 150), 5000, 0.3) * np.minimum(1, tz / 0.06) * np.exp(-np.maximum(0, tz - 0.28) / 0.08)
+yl = load(SGR + "yelp.wav")
+yelp = fade(highpass(trim_lead(sl(yl, 0.0, 0.5), -35), 200), 0.01, 0.12)[: int(0.4 * SR)]
+caught = np.zeros(int(0.95 * SR))
+caught = place(caught, fade(zip_, 0.0, 0.05) / pk(zip_), 0.0)
+caught = place(caught, yelp / pk(yelp) * 0.9, 0.4)
+save("Ride/sgrid_caught.wav", fade(caught, 0.0, 0.1), -14)
+
+# ================= 체험 — 심우주 통신기지 "전파 접시 · 별똥별 아치 소원 · 신호 맞추기 · 별똥별 잡기" (SOUND_LIST_NEW 5-2, 2026-11-23) =================
+# InteriorDishSignal (손바퀴로 접시 넷을 맞춰 신호를 모음) · InteriorWishArch (아치 앞 별똥별 소원) · InteriorSignalTune (무전 파형 맞추기) · InteriorStarCatch (별똥별 잡기).
+# VARCO 1번 (접시 모터). 신호 = 소리 풍경 접시 신호 (scape_deep_signal_01, 도6) · 대표 선율 (scape_deep_motif), 소원 별똥별 = 궤도 방어망 별똥별 (scape_defense_star_01),
+# 소원 시작 = 항성 발전망 수정 꽃 종을 한 옥타브 위로 (이 방 "강 위 유리 별"과 같은 소리) — 모두 새 파일 없음. 나머지는 합성.
+DSR = "Ride/DeepSpaceComm/"
+
+# 접시가 도는 모터 (손바퀴를 돌린 접시 자리 3D, 접시가 2.6초에 천천히 돌아섬 — 느리게 시작해 가운데가 가장 빠르고 천천히 섬) — 후보 5 중 4:
+# 4.4초 내내 고름 · 울림 0 · 지직 9.3 (가장 낮음) · 1.1 ~ 1.2 kHz 부드러운 "위잉" 결. 접시 빠르기 곡선 (6t(1−t))대로 재생 빠르기 0.55 → 1 → 0.55 · 크기를 바꿔 2.9초 한 번 소리로.
+# 1 = 바닥 −10 dB (잡음) · 울림 22, 2 = 118 Hz 낮은 웅 (울림 154), 3 = 울림 19 (톱니 떨림), 5 = 파#4 (조 밖) · 울림 107.
+mo = highpass(sl(load(DSR + "dish_motor.wav"), 0.25, 4.3), 80)
+TT = 2.6
+n = int((TT + 0.3) * SR)
+tm = np.arange(n) / SR
+u = np.clip(tm / TT, 0, 1)
+spd = np.where(tm < TT, 6 * u * (1 - u) / 1.5, 0.0)            # 0 ~ 1 (가운데 1)
+rate = 0.55 + 0.45 * spd
+pos = np.cumsum(rate)
+pos = pos / pos[-1] * min(len(mo) - 2, pos[-1])
+motor = np.interp(pos, np.arange(len(mo)), mo)
+amp = (0.3 + 0.7 * spd ** 0.7) * np.minimum(1, tm / 0.12) * np.where(tm < TT, 1.0, np.exp(-(tm - TT) / 0.08))
+motor = soften(soften(motor * amp, 4000, 0.5), 7000, 0.4)
+save("Ride/dsc_dish_motor.wav", fade(motor, 0.0, 0.1), -14)
+
+# 아치 소원 — 별똥별이 강에 닿아 별빛이 번짐 (2D 큰 순간) — 합성: 반짝임 스물넷이 F 오음계 파7 → 파5로 쏟아져 내림 (2.6초, 처음 빽빽 → 띄엄띄엄) +
+# 유리 종 파5 · 라5 · 도6 화음이 부풀었다 잦아듦 + 옅은 "샤라락" (2 ~ 6 kHz 잡음이 반짝임을 따라 잦아듦).
+fsc = [349.23 * 2 ** (s / 12) for s in (12, 14, 16, 19, 21, 24, 26, 28, 31, 33, 36)]   # 파5 · 솔5 · 라5 · 도6 · 레6 · 파6 · 솔6 · 라6 · 도7 · 레7 · 파7
+wish = np.zeros(int(3.6 * SR))
+rng = np.random.default_rng(190)
+for i_ in range(24):
+    at = 2.6 * (i_ / 24) ** 1.4
+    k = int(round((1 - i_ / 23) * (len(fsc) - 1) + rng.integers(-1, 2)))
+    k = int(np.clip(k, 0, len(fsc) - 1))
+    wish = place(wish, twinkle(fsc[k], 0.9, 191 + i_) * (0.35 - 0.006 * i_), at)
+for i_, f in enumerate((698.46, 880.0, 1046.5)):
+    wish = place(wish, flower_bell(f, 3.0, 220 + i_) * 0.3, 0.05 + 0.04 * i_)
+tw = np.arange(len(wish)) / SR
+shh = onepole_lp(highpass(rng.standard_normal(len(tw)), 2000), 6000) * np.exp(-tw / 0.9) * np.minimum(1, tw / 0.05)
+wish += 0.05 * np.abs(wish).max() * shh / np.abs(shh).max()
+save("Ride/dsc_wish_sparkle.wav", fade(onepole_lp(wish, 8000), 0.0, 0.8), -14)
+
+# 신호 맞추기 무전 잡음 (조작대에 선 동안 2D 루프 — 크기 = 1 − 맞은 정도: 맞을수록 잡음이 걷힘) — 합성: 0.4 ~ 3.2 kHz로 걸러진 잡음이 느리게 일렁임 (0.5 · 1.25 Hz) +
+# 아주 옅은 "지직" 열 개 (4초 고리에, 3 ms 짧은 톡 · 2.5 kHz 아래로 둥글게 — 잡음 최대의 15 %). 4초 = 흔들림 주기가 정수 번이라 고리에 딱 맞음.
+LT = 4.0
+tt = np.arange(int(LT * SR)) / SR
+rng = np.random.default_rng(200)
+nz = circular(lambda y: onepole_lp(onepole_lp(highpass(highpass(y, 400), 400), 3200), 3200), rng.standard_normal(len(tt)))
+nz = nz / np.abs(nz).max() * (0.75 + 0.15 * np.sin(2 * np.pi * 0.5 * tt) + 0.1 * np.sin(2 * np.pi * 1.25 * tt + 1.0))
+for i_ in range(10):
+    at = (i_ + rng.uniform(0.1, 0.9)) * LT / 10
+    tk = onepole_lp(rng.standard_normal(int(0.004 * SR)), 2500) * np.exp(-np.arange(int(0.004 * SR)) / (0.0012 * SR))
+    tk = tk / np.abs(tk).max() * 0.15
+    i0 = int(at * SR)
+    nz[i0:i0 + len(tk)] += tk[: len(nz) - i0]
+save("Ride/dsc_static_loop.wav", nz, -24)
+report.append(f"  무전 잡음 고리 {len(nz) / SR:.2f}초 · 이음새 {abs(nz[0] - nz[-1]):.4f}")
+
+# 또렷하게 맞춤 (2D — 85점 이상 = 크게 · 연달아 맞출수록 위 음, 아래 = 작게 도 — 공용 점수 · UiClick 대신, 기준 = 도6) — 합성: 신호 "삐 · 빕" (소리 풍경 접시 신호 틀) 도6 +
+# 유리 종 도6 · 반짝임 도7 (으뜸 · 옥타브만 — 음계로 옮겨도 조가 안 깨짐). 잡음 루프가 걷힌 뒤 맑은 신호가 남는 느낌.
+lock = np.zeros(int(1.4 * SR))
+lock = place(lock, signal_beep(C6, 201) * 0.7, 0.0)
+lock = place(lock, flower_bell(C6, 1.2, 202) * 0.8, 0.02)
+lock = place(lock, twinkle(2 * C6, 0.8, 203) * 0.2, 0.05)
+save("Ride/dsc_tune_lock.wav", fade(lock, 0.0, 0.3), -14)
+
+# 별똥별 잡음 (2D, 연달아 잡으면 음계로 — 공용 점수 대신, 기준 = 도6, 큰 별은 1.3배) — 합성: 짧은 "슉" (잡아챔, 1 ~ 4 kHz 40 ms) + 반짝임 도6 · 솔6 · 도7 · 솔7이 한꺼번에 "챵".
+sc = np.zeros(int(1.0 * SR))
+sc = place(sc, whoosh(0.08, 0.03, 1000, 2500, 4500, 210) * 0.12, 0.0)
+for i_, (mul, g_, at) in enumerate(((1, 0.7, 0.02), (1.5, 0.35, 0.03), (2, 0.3, 0.04), (3, 0.12, 0.06))):
+    sc = place(sc, twinkle(C6 * mul, 0.85, 211 + i_) * g_, at)
+save("Ride/dsc_star_catch.wav", fade(onepole_lp(sc, 7500), 0.0, 0.25), -14)
+
 print("\n".join(report))
