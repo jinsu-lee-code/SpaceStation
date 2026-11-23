@@ -64,6 +64,7 @@ namespace SpaceStation.Interior
         private float _timeLeft;
         private int _caught;
         private int _streak;   // 연달아 잡은 수 (점수 "띵" 음높이) — 헛잡기 · 새 판 = 0
+        private int _tickLeft = -1;   // 남은 시간 째깍 — 마지막으로 본 남은 초
         private bool _record;
         private readonly Fly[] _flies = new Fly[Count];
         private Vector3[] _release;
@@ -152,6 +153,7 @@ namespace SpaceStation.Interior
                 Spawn(ref _flies[i], true);
             _caught = 0;
             _streak = 0;
+            _tickLeft = -1;
             _timeLeft = GameSeconds;
             SetPhase(Phase.Dusk);
             Notice("해가 져요… 빛나는 반딧불이를 가운데로 보고 F", DuskSeconds + 3f);
@@ -178,6 +180,11 @@ namespace SpaceStation.Interior
                     break;
                 case Phase.Playing:
                     _timeLeft -= dt;
+                    // 남은 시간 째깍: 5초부터 1초마다 (보이는 남은 초가 바뀌는 순간)
+                    int left = Mathf.CeilToInt(_timeLeft);
+                    if (left != _tickLeft && left >= 1 && left <= 5)
+                        AudioService.TryPlay(l => l.GameTick);
+                    _tickLeft = left;
                     MoveFlies(dt);
                     if (KeyBindings.WasPressed(GameAction.Interact))
                         TryCatch();

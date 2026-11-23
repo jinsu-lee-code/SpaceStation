@@ -290,7 +290,7 @@ namespace SpaceStation.Interior
                     continue;
                 var star = new ShootingStar(transform, _streakMaterial, transform.TransformPoint(from), transform.TransformPoint(to), MeteorSpeed);
                 _meteors.Add(new Meteor { Star = star, Unit = unit });
-                AudioService.TryPlay(l => l.MeteorIncoming);
+                AudioService.TryPlay(l => l.OdefStarIncoming);   // 부드러운 "휘이잉" 다가옴
                 return;
             }
         }

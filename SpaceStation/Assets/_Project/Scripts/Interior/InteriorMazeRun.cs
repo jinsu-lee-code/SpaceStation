@@ -130,7 +130,7 @@ namespace SpaceStation.Interior
         {
             if (phase == MazeRunGame.Phase.Run)
             {
-                AudioService.TryPlay(l => l.UiOpen);
+                AudioService.TryPlay(l => l.GameScore);   // 3초 세기 뒤 "출발" — 점수 "띵" 도6 한 음 (시작음은 Begin에서 이미, 점수 연속과는 따로)
                 for (int i = 0; i < _game.Needed; i++)
                     InteriorFireflyShow.Burst(EnsureSparks(), _orbs[i].position, 18, 0.9f);
             }
