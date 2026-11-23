@@ -1,3 +1,4 @@
+using SpaceStation.Audio;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -49,6 +50,8 @@ namespace SpaceStation.Interior
         private System.Random _rng;
         private ParticleSystem _fountain;
         private bool _emitting = true;
+        private ObjectLoop _hum;
+        private bool _humTried;
 
         /// <summary>홍염 고리 하나: 표면 방향 Mid에서 Axis 축으로 ±Spread (라디안) 벌어진 두 발 사이로 Lift만큼 솟음.</summary>
         private sealed class Flare
@@ -112,6 +115,7 @@ namespace SpaceStation.Interior
                 var emission = _fountain.emission;
                 emission.enabled = running;
             }
+            UpdateHum(running);
             if (!running)
                 return;
             float dt = Time.deltaTime;
@@ -120,6 +124,27 @@ namespace SpaceStation.Interior
             for (int k = 0; k < _ladles.Length; k++)
                 UpdateLadle(k, dt);
             UpdateFlares(dt);
+        }
+
+        /// <summary>작은 해 웅 · 부글 (해 가운데에 붙은 3D 루프) — 가동 중에만.</summary>
+        private void UpdateHum(bool running)
+        {
+            if (_hum == null)
+            {
+                if (AudioService.Instance == null || _humTried)
+                    return;
+                _humTried = true;
+                var anchor = new GameObject("SunHum").transform;
+                anchor.SetParent(transform, false);
+                anchor.localPosition = _center;
+                _hum = AudioService.AttachLoop(l => l.RefineryFurnaceLoop, anchor, _sunRadius + 1.5f, 22f);
+                if (_hum == null)
+                {
+                    Destroy(anchor.gameObject);
+                    return;
+                }
+            }
+            _hum.Level = running && PlayerInRoom ? 1f : 0f;
         }
 
         // ---------------- 홍염 ----------------
@@ -245,7 +270,15 @@ namespace SpaceStation.Interior
             float flow = Mathf.Clamp01((tilt - 0.72f) / 0.18f);
             bool pouring = flow > 0f;
             if (_streams[k].gameObject.activeSelf != pouring)
+            {
                 _streams[k].gameObject.SetActive(pouring);
+                if (pouring && PlayerInRoom)
+                {
+                    // 줄기가 나오는 순간 그 주형에서 "주르륵 · 치익"
+                    float pa = az * Mathf.Deg2Rad;
+                    AudioService.TryPlayAt(l => l.RefineryLadlePour, transform.TransformPoint(new Vector3(_center.x + _moldRadius * Mathf.Cos(pa), _moldY, _center.z + _moldRadius * Mathf.Sin(pa))));
+                }
+            }
             if (pouring)
                 _streams[k].localScale = new Vector3(1f, flow, 1f);
             if (flow < 1f)

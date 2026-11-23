@@ -66,6 +66,8 @@ namespace SpaceStation.Interior
         private bool _seated;
         private int _standFrame = -1;
         private float _signTimer;
+        private float _runSent;
+        private ModuleInstance _room;
         private Vector3 _hub;
         private Vector3[] _doorLeftBase, _doorRightBase, _gateLeftBase, _gateRightBase;
         private Vector3[] _doorAxis, _gateAxis;
@@ -166,6 +168,9 @@ namespace SpaceStation.Interior
             }
             ReleasePlayer();
             ShowHint(null);
+            if (_runSent > 0f)
+                AudioService.SetRideLoop(l => l.TorusRunLoop, 0f);
+            _runSent = 0f;
         }
 
         private void OnDestroy()
@@ -210,7 +215,7 @@ namespace SpaceStation.Interior
                         else
                         {
                             _phase = Phase.Closing;
-                            PlayNear(l => l.RideBoard);
+                            PlayNear(l => l.TorusWhistle);   // 출발 기적 "뽀 뽀오—"
                         }
                     }
                     break;
@@ -232,6 +237,7 @@ namespace SpaceStation.Interior
                         Arrive();
                     break;
             }
+            UpdateRunSound();
             ApplyDoors();
             UpdateSigns(dt);
             UpdateHint();
@@ -262,7 +268,18 @@ namespace SpaceStation.Interior
                 _player.Dismount();
                 _riding = false;
             }
-            PlayNear(l => l.SupplyArrive);
+            PlayNear(l => l.TorusBrake);   // 서면서 증기 "쉬익"
+        }
+
+        /// <summary>칙칙폭폭 (탄 동안 2D 루프): 달리는 빠르기 (SmoothStep 기울기 0 ~ 1)만큼 크기 · 재생 높이, 역에 서 있으면 끔.</summary>
+        private void UpdateRunSound()
+        {
+            float speed = _phase == Phase.Moving ? 6f * Mathf.Clamp01(_timer) * (1f - Mathf.Clamp01(_timer)) / 1.5f : 0f;
+            float level = _riding && speed > 0.02f ? 0.35f + 0.65f * speed : 0f;
+            if (level <= 0f && _runSent <= 0f)
+                return;
+            _runSent = level;
+            AudioService.SetRideLoop(l => l.TorusRunLoop, level, 0.8f + 0.25f * speed);
         }
 
         private int StationCount => _stationNames != null && _stationNames.Length > 0 ? _stationNames.Length : 4;
@@ -396,7 +413,9 @@ namespace SpaceStation.Interior
                 return;
             var local = transform.InverseTransformPoint(_player.transform.position) - _hub;
             var stop = Quaternion.Euler(0f, _station * 90f, 0f) * new Vector3(0f, 0f, -_sign.x);
-            if (_riding || (new Vector2(local.x - stop.x, local.z - stop.z).magnitude < 9f && Mathf.Abs(local.y - _floorY) < 4f))
+            if (_room == null)
+                _room = InteriorRoomDisplay.RoomOf(transform);
+            if (_riding || (new Vector2(local.x - stop.x, local.z - stop.z).magnitude < 9f && Mathf.Abs(local.y - _floorY) < 4f && (_room == null || InteriorRoomDisplay.PlayerIn(_room))))
                 AudioService.TryPlay(cue);
         }
 

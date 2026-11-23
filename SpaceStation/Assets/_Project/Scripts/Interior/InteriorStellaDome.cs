@@ -123,6 +123,8 @@ namespace SpaceStation.Interior
 
         private Phase _phase = Phase.Idle;
         private float _timer;
+        private float _showSent;
+        private bool _brightened;
         private float _house = 1f;
         private bool _seated;
         private int _standFrame = -1;
@@ -213,6 +215,9 @@ namespace SpaceStation.Interior
             // 내부에서 나가거나 방이 꺼지면 처음으로
             ReleasePlayer();
             ShowHint(null);
+            if (_showSent > 0f)
+                AudioService.SetRideLoop(l => l.DomeShowLoop, 0f);
+            _showSent = 0f;
             if (_sky == null)
                 return;
             ResetShow();
@@ -321,6 +326,12 @@ namespace SpaceStation.Interior
                 case Phase.Dawn:
                 {
                     float p = Advance(dt, _dawnSeconds, Phase.Idle);
+                    if (!_brightened && p >= 0.4f && _phase == Phase.Dawn)
+                    {
+                        _brightened = true;
+                        if (InDome())
+                            AudioService.TryPlay(l => l.DomeBrighten);   // 객석 불이 다시 오름 — 꺼짐을 거꾸로
+                    }
                     dawn = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(p * 1.6f));
                     stars = milky = 1f - Mathf.SmoothStep(0f, 1f, p);
                     fade = 0.28f * (1f - Mathf.Clamp01(p * 2f));
@@ -337,6 +348,7 @@ namespace SpaceStation.Interior
             }
             UpdateRecline(dt);
             UpdateLooking(dt);
+            UpdateShowSound(milky);
             ApplySky(show, stars, milky, aurora, meteor, dawn, fade);
             UpdateLabels(fade, dt);
             ApplyHouse(house);
@@ -356,8 +368,19 @@ namespace SpaceStation.Interior
         {
             _phase = phase;
             _timer = phase == Phase.Idle ? _idleSeconds : 0f;
+            _brightened = false;
             if (phase == Phase.Dim && InDome())
-                AudioService.TryPlay(l => l.UiOpen);
+                AudioService.TryPlay(l => l.DomeDim);   // 불이 꺼지며 "슈우웅"
+        }
+
+        /// <summary>상영 동안 별 하늘 울림 (돔 안 2D 루프) — 은하수 밝기만큼, 돔 밖 · 쉬는 동안은 끔.</summary>
+        private void UpdateShowSound(float milky)
+        {
+            float level = InDome() ? milky : 0f;
+            if (level <= 0.001f && _showSent <= 0f)
+                return;
+            _showSent = level > 0.001f ? level : 0f;
+            AudioService.SetRideLoop(l => l.DomeShowLoop, _showSent);
         }
 
         private void ApplySky(float show, float stars, float milky, float aurora, float meteor, float dawn, float fade)

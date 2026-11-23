@@ -57,6 +57,7 @@ namespace SpaceStation.Interior
         private int _ride = -1, _rideSeat;
         private int _sitFrame = -1;
         private float _bobTimer, _noteTimer;
+        private float _chainSent, _rushSent;
         private Transform _anchor;
         private FirstPersonController _player;
         private TextMeshPro _signText;
@@ -138,6 +139,33 @@ namespace SpaceStation.Interior
         {
             ReleasePlayer();
             ShowHint(null);
+            if (_chainSent > 0f)
+                AudioService.SetRideLoop(l => l.FlumeChainLoop, 0f);
+            if (_rushSent > 0f)
+                AudioService.SetRideLoop(l => l.FlumeRushLoop, 0f);
+            _chainSent = _rushSent = 0f;
+        }
+
+        /// <summary>
+        /// 탄 동안 2D 루프 둘: 체인 리프트 위 = 래칫 "딸깍" (체인은 늘 같은 빠르기), 그 밖 물길 = 물살 (빠르기만큼 크기 · 높이 — 큰 낙하에서 가장 큼). 정차장 · 내리면 끔.
+        /// </summary>
+        private void UpdateRideSound()
+        {
+            float chain = 0f, rush = 0f, v = 0f;
+            if (_ride >= 0 && _ride != _docked)
+            {
+                v = _v[_ride];
+                if (CargoFlumeCourse.OnChain(_s[_ride]))
+                    chain = v > 0.05f ? 1f : 0f;
+                else
+                    rush = Mathf.Clamp01(v / 2.2f);
+            }
+            if (chain > 0f || _chainSent > 0f)
+                AudioService.SetRideLoop(l => l.FlumeChainLoop, chain);
+            if (rush > 0f || _rushSent > 0f)
+                AudioService.SetRideLoop(l => l.FlumeRushLoop, rush, 0.9f + 0.25f * Mathf.Clamp01((v - 1f) / 3f));
+            _chainSent = chain;
+            _rushSent = rush;
         }
 
         private void OnDestroy()
@@ -171,6 +199,7 @@ namespace SpaceStation.Interior
             _lugPhase = Mathf.Repeat(_lugPhase + dt * CargoFlumeCourse.LiftChainSpeed, 1000f);
             Apply();
             UpdateAnchor(dt);
+            UpdateRideSound();
             CaptureRiders(dt);
             UpdateSign(dt);
             UpdateHint(dt);
@@ -225,7 +254,7 @@ namespace SpaceStation.Interior
             _docked = b;
             _phase = Phase.Opening;
             _craneAsked = false;
-            PlayNear(l => l.SupplyArrive);
+            PlayNear(l => l.FlumeDock);   // 물에 배가 닿는 "철썩 · 툭"
             PlayNear(l => l.RideLeave);
             UpdateColliders();
         }
@@ -335,6 +364,11 @@ namespace SpaceStation.Interior
             float s = CargoFlumeCourse.SplashS;
             var at = CargoFlumeCourse.Point(s);
             _splash.Splash(at, CargoFlumeCourse.Point(s + 0.5f) - CargoFlumeCourse.Point(s - 0.5f));
+            // 큰 물보라 "촤악": 탄 보트는 귀에 2D, 다른 보트는 물보라 자리 (관람석에서 들림)
+            if (_ride == b)
+                AudioService.TryPlay(l => l.FlumeBigSplash);
+            else if (PlayerInRoom)
+                AudioService.TryPlayAt(l => l.FlumeBigSplash, transform.TransformPoint(at));
             if (_ride == b && _player != null)
             {
                 var eye = _player.Eye;
@@ -476,7 +510,7 @@ namespace SpaceStation.Interior
             if (_player == null)
                 return;
             var p = transform.InverseTransformPoint(_player.transform.position) - new Vector3(CargoFlumeCourse.StationX, -1.3f, CargoFlumeCourse.LaneZ);
-            if (_ride >= 0 || p.sqrMagnitude < 144f)
+            if (_ride >= 0 || (p.sqrMagnitude < 144f && PlayerInRoom))
                 AudioService.TryPlay(cue);
         }
 

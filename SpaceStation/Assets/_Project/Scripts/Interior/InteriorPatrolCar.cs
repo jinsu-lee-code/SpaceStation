@@ -1,3 +1,4 @@
+using SpaceStation.Audio;
 using SpaceStation.Building;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -46,6 +47,7 @@ namespace SpaceStation.Interior
         private Collider[] _colliders;
         private float _thrust = -2f;
         private bool _built;
+        private ObjectLoop _hum;
 
         public bool Flying => _phase != Phase.Parked;
         public string PhaseName => _phase.ToString();
@@ -217,6 +219,21 @@ namespace SpaceStation.Interior
                     break;
                 }
             }
+            UpdateHum();
+        }
+
+        /// <summary>떠 있는 웅 (차에 붙은 3D 루프): 추진 세기만큼 크기 · 높이, 멀어져 작아지는 만큼 작게 (멀리 가 있는 동안 = 끔).</summary>
+        private void UpdateHum()
+        {
+            if (_hum == null)
+            {
+                _hum = AudioService.AttachLoop(l => l.PatrolHoverLoop, _car, 2f, 14f);
+                if (_hum == null)
+                    return;
+            }
+            float thrust = Mathf.Max(_thrust, -1f);
+            _hum.Level = thrust < 0f || !PlayerInRoom ? 0f : (0.6f + 0.4f * thrust) * _car.localScale.x;
+            _hum.Pitch = 0.95f + 0.12f * Mathf.Max(0f, thrust);
         }
 
         /// <summary>날아가는 길: k = 0 떠오른 자리 ~ 1 멀리 (가속, k² 거리) · 멀수록 작아짐.</summary>
@@ -239,7 +256,11 @@ namespace SpaceStation.Interior
         private void SetSiren(bool on)
         {
             if (on)
+            {
                 _siren.Start();
+                if (PlayerInRoom)
+                    AudioService.TryPlayAt(l => l.PatrolSiren, _car.position, Mathf.Max(0.3f, _car.localScale.x));   // 경광등이 켜지며 작은 "삐용"
+            }
             else
                 _siren.Stop();
         }

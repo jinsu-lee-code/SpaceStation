@@ -1,3 +1,4 @@
+using SpaceStation.Audio;
 using UnityEngine;
 
 namespace SpaceStation.Interior
@@ -48,6 +49,7 @@ namespace SpaceStation.Interior
         private float _t, _duration, _pause;
         private Vector3 _gantryRest, _clawRest;
         private Transform _pool;
+        private ObjectLoop _motor;
 
         public void Configure(Transform gantry, Transform cable, Transform claw, Transform[] fingers, Vector3[] fingerAxes, Transform rock,
             float restZ, Vector3 pick, Vector3 drop, float pileY, float hingeModel, float cableTop, float startDelay)
@@ -86,12 +88,34 @@ namespace SpaceStation.Interior
 
         private void Update()
         {
-            if (_gantry == null || (Polled && !Active))
+            if (_gantry == null)
+                return;
+            bool running = !(Polled && !Active);
+            UpdateMotor(running);
+            if (!running)
                 return;
             float dt = Mathf.Min(Time.deltaTime, 0.1f);
             UpdateRocks(dt);
             UpdateCrane(dt);
             Apply();
+        }
+
+        /// <summary>
+        /// 모터 "위잉" (집게에 붙은 3D 루프): 움직이는 동안만 — 들보 = 1, 줄 오르내림 = 조금 낮게, 손가락만 = 작고 높게. 쉬는 틈 · 멈춘 모듈 = 끔.
+        /// </summary>
+        private void UpdateMotor(bool running)
+        {
+            if (_motor == null)
+            {
+                _motor = AudioService.AttachLoop(l => l.RefineryCraneMoveLoop, _claw, 2f, 16f);
+                if (_motor == null)
+                    return;
+            }
+            bool moving = running && _pause <= 0f && _step != Step.Wait && _t < 1f && PlayerInRoom;
+            bool gantry = Mathf.Abs(_toZ - _fromZ) > 0.01f;
+            bool hoist = Mathf.Abs(_toHinge - _fromHinge) > 0.01f;
+            _motor.Level = !moving ? 0f : gantry || hoist ? 1f : 0.5f;
+            _motor.Pitch = gantry ? 1f : hoist ? 0.88f : 1.12f;
         }
 
         private void UpdateRocks(float dt)
@@ -163,6 +187,8 @@ namespace SpaceStation.Interior
                     Begin(Step.Grip);
                     break;
                 case Step.Grip:
+                    if (PlayerInRoom)
+                        AudioService.TryPlayAt(l => l.RefineryCraneGrab, _claw.position);   // 집게가 광석을 쥠 "턱"
                     _held = _spawned;
                     _spawned = null;
                     if (_held != null)
