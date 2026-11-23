@@ -295,7 +295,7 @@ save("Interior/scape_aicore_brain_loop.wav", 0.55 * glass / g_rms + 0.45 * body 
 
 # 드론 둥지 탑 — 작은 드론이 깨어나 뜨는 "그르릉" (가끔, 탑 자리 3D). 첫 5개 = 소리 중심 7 ~ 16 kHz 높은 "위잉" 쉿,
 # "낮고 둥근 작은 로봇 숨소리"로 다시 5개 중 5 (155 Hz · 300 Hz 아래 99 % · 빠르게 떨리는 그르릉, 2.5초 한 번 부풂). 나머지 = 기계 삐 줄.
-save("Interior/scape_aicore_drone_01.wav", fade(highpass(trim_lead(load(A + "drone_purr.wav"), -45), 40), 0.05, 0.4), -24)
+save("Interior/scape_aicore_drone_01.wav", fade(highpass(trim_lead(load(A + "drone_purr.wav"), -45), 40), 0.05, 0.4), -14)   # 2026-11-23 −24 → −14: 음악까지 켠 소리에서 귀 감도 −23 dB로 안 들렸음
 
 # 새 (낮에만, 정원 여기저기 3D) — 5개 중 1의 두 소절 + 5의 한 소절 (바닥 잡음 −46 ~ −51 dB).
 # 3 = 열 번 넘게 연달아 (바쁨), 4 = 날카로움 11.6 · 바닥 −38 dB, 2 = 한 번 터진 뒤 잡음 꼬리.
@@ -310,7 +310,7 @@ for f in ("bird_1.wav", "bird_5.wav"):
 # 1 = 여러 번 침, 3 = F#6 · 4 = D5 +35센트 · 5 = D#6 +33센트 (음악 음과 어긋남). 시작 2 ms로 조금 날카로움 → 8 ms로 둥글게 · 4.5 kHz 위 반쯤.
 ting = fade(soften(trim_lead(load(A + "crystal_ting.wav"), -40)[: int(1.8 * SR)], 4500, 0.5), 0.008, 0.8)
 ting = pitch(ting, -0.06)  # +6센트 → 정확히 C7 (런타임 음높이 계산의 기준 = MIDI 96)
-save("Interior/scape_aicore_ting_01.wav", ting, -24)
+save("Interior/scape_aicore_ting_01.wav", ting, -14)   # 2026-11-23 −24 → −14: 음악까지 켠 소리에서 귀 감도 −25 dB로 안 들렸음 (바이오스피어 반딧불도 이 소리 — 음량을 그만큼 낮춤)
 
 # 대표 선율 (들어설 때 한 번, 2D) — 같은 띵을 미6 · 솔6 · 도7로, 8분음표 (반 박 = 0.333초) 간격, 마지막 음은 길게.
 motif = np.zeros(int(2.6 * SR))
