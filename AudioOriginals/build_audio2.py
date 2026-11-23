@@ -540,4 +540,83 @@ aur = circular(lambda y: onepole_lp(y, 2500), aur)
 a_rms, n_rms = np.sqrt((aur ** 2).mean()), np.sqrt((air ** 2).mean())
 save("Interior/scape_defense_aurora_loop.wav", 0.85 * aur / a_rms + 0.15 * air / n_rms, -26)
 
+# ================= 3단계 소리 풍경 — 궤도 항만 "진주 조개 항구 · 인어 왕국" (SOUND_LIST_NEW D-7b) =================
+# 자리는 Interior/OrbitalPort.cs 값 (왼쪽 산호 섬 궁전 · 인어 꼬리 분수, 가운데 석호 · 해마 가리비 배 넷 · 해마 회전목마 · 선착장, 뒤 산호 방파제,
+# 오른쪽 진주 잔교 · 큰 진주 조개). VARCO 하나씩 순서대로 7번 (선착장 2번). 바닷새 · 방파제 바깥 파도 = 궤도 방어망 소리, 회전목마 = 등대 렌즈 회전음을 같이 씀.
+# 대표 선율 · 밤 "먼 노래 조각" = 하프 (Karplus-Strong 합성, 도 오음계 — VARCO 하프는 음이 음악과 안 맞음).
+OP = "Interior/scape_port/"
+
+# 바탕 — 잔잔한 석호 항구의 찰랑임 (2D). 후보 5 중 4 (가장 잔잔 — 날카로움 8.9 · 바닥 −37.8 dB) + 1 (조금 더 또렷한 찰랑)을 2초씩 겹쳐
+# + 궤도 방어망 바닷바람을 옅게 (25 %) — 다섯 모두 바람결 없이 물소리뿐. 2 = 울림 4.7 (웅), 3 = 큰 찰랑이 띄엄띄엄, 5 = 꼬리가 큼.
+lap = chain_loop([sl(load(OP + "bed_a.wav"), 0.3, 9.9), sl(load(OP + "bed_b.wav"), 0.3, 9.9)], 2.0)
+wind = load(OD + "bed_a.wav")
+wind = np.tile(wind, int(np.ceil(len(lap) / len(wind))) + 1)[: len(lap)]
+lap = circular(lambda y: soften(highpass(y, 50), 5000, 0.35), lap)
+wind = circular(lambda y: highpass(y, 40), wind)
+l_rms, w_rms = np.sqrt((lap ** 2).mean()), np.sqrt((wind ** 2).mean())
+save("Interior/scape_port_bed_loop.wav", 0.75 * lap / l_rms + 0.25 * wind / w_rms, -24)
+
+# 인어 꼬리 분수 (마당 가운데, 3D) — 후보 5 중 5: 5.2초 내내 보글보글 고르게 쏟아짐. 2 = 9.5 kHz 쉿, 1 · 3 · 4 = 중간에 끊김.
+save("Interior/scape_port_fountain_loop.wav", circular(lambda y: soften(highpass(y, 80), 5000, 0.45), loop_exact(sl(load(OP + "fountain.wav"), 0.1, 5.15), 4.2)), -24)
+
+# 선착장 · 진주 잔교 나무 · 밧줄 삐걱임 (3D 둘) — 첫 5개 = 낮은 웅 띠 위에 삐걱임이 희미함 → "배경 없는 가까운 녹음"으로 다시 5개 중 5:
+# 바닥 −48 dB · 울림 0, 삐걱임이 9초 동안 띄엄띄엄. 2 · 3 = 6초로 짧음, 1 = 바닥 −41, 4 = 바닥 −33.
+# 그대로는 115 Hz 봉우리 · 80 ~ 320 Hz가 대부분이라 귀 감도로 rms보다 20 dB 작음 (녹음 검수에서 음악 −51, 거의 안 들림) → 5반음 올려 (6.1초 루프)
+# 작은 나무 삐걱 결로 · 150 Hz 아래를 걸러 · 원본을 −18로 (다른 루프와 같은 음량 범위에서 쓰게).
+save("Interior/scape_port_dock_loop.wav", circular(lambda y: soften(highpass(highpass(y, 150), 150), 4000, 0.4), pitch(loop_exact(sl(load(OP + "dock_creak.wav"), 0.0, 9.1), 8.2), 5)), -18)
+
+# 해마 가리비 배 물살 (배 넷을 따라 돎, 3D) — 후보 5 중 4: 5.8초 내내 가장 고름 · 울림 0. 5 = 가운데 한 번 크게 부풂, 3 = 2.2초에 낮은 음 줄, 1 = 밝고 튐.
+save("Interior/scape_port_wake_loop.wav", circular(lambda y: soften(highpass(y, 60), 5000, 0.4), loop_exact(flatten(sl(load(OP + "wake.wav"), 0.2, 5.7)), 4.6)), -24)
+
+# 석호 수련 사이 물방울 "퐁" (가끔, 3D) — 후보 5 중 3의 네 방울 (배경 디지털 무음 · 위로 미끄러지는 귀여운 퐁).
+# 1 = 쇳소리 울림 72, 4 = 날카로운 딸깍 (5.2 kHz), 2 · 5 = 어수선. 석호에 깔리는 물소리는 바탕 · 배 물살 · 방파제 파도로.
+pk = load(OP + "plink.wav")
+pp = phrases(pk, gap=0.08, pad=0.03, rise_db=20)
+for k, (a, b) in enumerate(pp[:4]):
+    save(f"Interior/scape_port_plink_{k + 1:02d}.wav", fade(highpass(pk[a:b], 200), 0.005, 0.06), -14)
+report.append(f"  수련 물방울 {len(pp)}개")
+
+# 물고기 퐁당 (가끔, 석호 3D) — 후보 5 중 3 (둥글게 한 번 퐁당 · 1.5 kHz · 날카로움 9.4) + 4의 앞 퐁당. 1 · 2 · 5 = 밝고 튐 (2.9 ~ 4.2 kHz · 날카로움 15 ~ 19).
+save("Interior/scape_port_fish_01.wav", fade(highpass(trim_lead(load(OP + "fish_a.wav"), -45), 120), 0.01, 0.3), -14)
+save("Interior/scape_port_fish_02.wav", fade(highpass(sl(trim_lead(load(OP + "fish_b.wav"), -45), 0.0, 0.85), 120), 0.01, 0.25), -14)
+
+
+def harp(f, dur=3.0, seed=0):
+    """하프 한 음 (Karplus-Strong — 정수 지연으로 만든 뒤 재생 속도로 정확한 높이에 맞춤, 손끝으로 뜯은 듯 부드러운 첫 결)."""
+    rng = np.random.default_rng(seed)
+    n = int(SR / f)
+    buf = onepole_lp(rng.standard_normal(n), 2500) * 0.8
+    out = np.zeros(int(dur * SR * 1.05))
+    for i in range(len(out)):
+        j = i % n
+        out[i] = buf[j]
+        buf[j] = 0.4985 * (buf[j] + buf[(j + 1) % n])
+    out = onepole_lp(out, 4000)
+    out = pitch(out, 12 * np.log2(f / (SR / n)))[: int(dur * SR)]
+    return fade(out, 0.004, 0.6)
+
+
+def distant(x, mix=0.35, seed=3):
+    """멀리서 들리게 — 짧은 잔향 (0.9초 지수 꼬리 잡음) + 3 kHz 위를 누름."""
+    rng = np.random.default_rng(seed)
+    t = np.arange(int(0.9 * SR)) / SR
+    ir = rng.standard_normal(len(t)) * np.exp(-t / 0.25)
+    wet = np.convolve(x, ir)[: len(x)]
+    wet *= np.sqrt((x ** 2).mean()) / (np.sqrt((wet ** 2).mean()) + 1e-12)
+    return onepole_lp((1 - mix) * x + mix * wet, 3000)
+
+
+C4, E4, G4, A4, C5, E5 = 261.63, 329.63, 392.0, 440.0, 523.25, 659.25
+# 대표 선율 = 하프로 도 · 미 · 솔 · 라 · 도 · 미 (반의 반 박씩 — 손가락으로 쓸어 올리는 물결)
+motif = np.zeros(int(5.5 * SR))
+for i, f in enumerate((C4, E4, G4, A4, C5, E5)):
+    motif = place(motif, harp(f, 3.5, i) * (0.8 + 0.04 * i), i * BEAT / 4)
+save("Interior/scape_port_motif.wav", fade(motif, 0.0, 1.0), -20)
+# 밤 "먼 노래 조각" (궁전 쪽, 가끔 3D · 박에 맞춤) — 하프 세 음 소절 셋 (솔 · 미 · 도 / 라 · 솔 · 미 / 미 · 솔 · 라), 한 박 간격, 멀리서 들리게.
+for k, notes in enumerate(((G4, E4, C4), (A4, G4, E4), (E4, G4, A4))):
+    ph = np.zeros(int(4.5 * SR))
+    for i, f in enumerate(notes):
+        ph = place(ph, harp(f, 3.0, 10 + 3 * k + i) * (0.9 if i < 2 else 1.0), i * BEAT)
+    save(f"Interior/scape_port_song_{k + 1:02d}.wav", fade(distant(ph), 0.0, 1.0), -14)
+
 print("\n".join(report))
