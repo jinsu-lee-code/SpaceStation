@@ -4764,7 +4764,9 @@ namespace SpaceStation.Editor
             var orbits = new List<OrbitSpec> { new OrbitSpec(N + "Halo", OrbitalCity.Hub, Vector3.up, 10f) };   // 프리즘 무지개 고리 (기운 채 돎)
             EvoAccent("OrbitalCity", "#C8E8FF");
             // 스폰 = 앞 (−z) 강 바깥 고리 길에서 언덕 폭포 · 기둥을 바라봄
-            Build("EvoOrbitalCity", "Evolved/MD_Evo_OrbitalCity", sockets, new Vector3(16f, F, 1.4f), 0f, lights, orbits,
+            // 자기 내부 하늘 복제: 바깥 고리 16칸은 하늘 천장이 F + 5.25라, 고리 길 · 승강장에서 올려다보면 언덕 꼭대기 · 기둥이 그 천장 너머 →
+            // 복제가 없으면 일정 높이 위가 별 하늘로 잘렸음 (사용자 2026-11-23, 항성 발전망과 같은 방식)
+            Build("EvoOrbitalCity", "Evolved/MD_Evo_OrbitalCity", sockets, new Vector3(16f, F, 1.4f), 0f, lights, orbits, showOwnInterior: true,
                 configure: root =>
                 {
                     var r = root.transform;
