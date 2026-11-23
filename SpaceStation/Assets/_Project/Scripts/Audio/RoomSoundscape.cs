@@ -24,10 +24,15 @@ namespace SpaceStation.Audio
             public Vector3 Position;
             [Min(0.1f)] public float MinDistance = 1.5f;
             [Min(0.5f)] public float MaxDistance = 10f;
-            [Tooltip("밤 음량 배율")]
+            [Tooltip("낮 · 밤 음량 배율 (밤에만 나는 풀벌레 = 낮 0)")]
+            [Range(0f, 1f)] public float Day = 1f;
             [Range(0f, 1f)] public float Night = 1f;
             [Tooltip("음악 박에 맞춰 시작 (맥동 루프 — 길이가 박 길이의 배수)")]
             public bool OnBeat;
+            [Tooltip("끄면 자리 없는 2D 층 (방 전체)")]
+            public bool Spatial = true;
+            [Tooltip("이 이름의 방 안 물체에 붙어 함께 움직임 (예: 도는 구름 고리) — 비우면 제자리")]
+            public string Follow;
         }
 
         [Serializable]

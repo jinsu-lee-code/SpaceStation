@@ -39,11 +39,11 @@ namespace SpaceStation.Interior
         }
 
         /// <summary>이 묶음만 올리고 나머지는 내림. 2026-11-23: 소리 풍경이 있는 방은 묶음 대신 그 방 소리 풍경 (room = 템플릿 인스턴스).</summary>
-        public void SetRoom(InteriorAmbience ambience, RoomSoundscape scape = null, Transform room = null)
+        public void SetRoom(InteriorAmbience ambience, RoomSoundscape scape = null, Transform room = null, Transform prefab = null)
         {
             if (!EnsureLoops())
                 return;
-            _scape.SetRoom(scape, room);
+            _scape.SetRoom(scape, room, prefab);
             bool own = _scape.Active;
             foreach (var pair in _loops)
                 pair.Value.Target = !own && pair.Key == ambience ? 1f : 0f;

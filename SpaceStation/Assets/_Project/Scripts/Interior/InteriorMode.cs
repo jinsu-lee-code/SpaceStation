@@ -619,8 +619,9 @@ namespace SpaceStation.Interior
                 return;
             _currentModule = room.Module;
             var lib = AudioService.Instance != null ? AudioService.Instance.Library : null;
-            _builder.TryGetTemplateRoom(room.Module, out _, out var roomRoot);
-            _audio.SetRoom(_builder.AmbienceFor(room.Module), lib != null ? lib.SoundscapeFor(room.Module.Data) : null, roomRoot);
+            _builder.TryGetTemplateRoom(room.Module, out var roomTemplate, out var roomRoot);
+            _audio.SetRoom(_builder.AmbienceFor(room.Module), lib != null ? lib.SoundscapeFor(room.Module.Data) : null, roomRoot,
+                roomTemplate != null && roomTemplate.Prefab != null ? roomTemplate.Prefab.transform : null);
             _audio.SetMusicStage(_builder.StageFor(room.Module));
             string name =room.Module.Data != null ? room.Module.Data.DisplayName : room.Module.ToString();
             string state = !_station.Connectivity.IsActive(room.Module) ? $"  <color={HudText.Orange}>비활성</color>"

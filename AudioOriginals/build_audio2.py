@@ -326,4 +326,77 @@ i = int(np.argmax(env))
 seg = x[max(0, i - int(0.35 * SR)): i + int(0.45 * SR)]
 save("Interior/scape_aicore_page_01.wav", fade(highpass(seg, 120), 0.03, 0.15), -26)
 
+# ================= 3단계 소리 풍경 — 바이오스피어 "물의 순환 고리" (SOUND_LIST_NEW D-7b) =================
+# 자리는 Interior/Biosphere.cs 값 (폭포 기둥 · 수문 폭포 셋 · 물길 셋 · 물레방아 셋 · 도는 구름 고리 다섯 · 반딧불 숲). VARCO 하나씩 순서대로 10번.
+B = "Interior/scape_bio/"
+
+
+def period_of(x, lo=0.5, hi=1.6):
+    """반복 주기 (초) — 크기 곡선의 자기상관 봉우리 (물레방아 한 바퀴)."""
+    w = int(0.01 * SR)
+    env = np.sqrt(np.convolve(x ** 2, np.ones(w) / w, "same"))[::w]
+    env = env - env.mean()
+    ac = np.correlate(env, env, "full")[len(env) - 1:]
+    a, b = int(lo / 0.01), int(hi / 0.01)
+    return (a + int(np.argmax(ac[a:b]))) * 0.01
+
+
+# 바탕 — 숲 잎 사각임 · 바람이 일었다 잦아듦 (2D). 후보 5 중 3 (잎 사각 · 가끔 바람) + 4 (낮고 고른 공기)를 2초씩 겹쳐 15초.
+# 1 · 2 = 2초짜리, 5 = 6 ~ 8 kHz 쉿 줄이 깔림.
+bed = chain_loop([sl(load(B + "bed_a.wav"), 0.3, 9.9), sl(load(B + "bed_b.wav"), 0.3, 9.9)], 2.0)
+save("Interior/scape_bio_bed_loop.wav", circular(lambda y: soften(highpass(y, 40), 6000, 0.4), bed), -24)
+
+# 가운데 폭포 기둥 (하늘 호수 → 호수, 폭 1.2 m · 10 m, 3D) — 후보 5 중 4: 가장 매끈한 쏟아짐 (지직 4.8 · 날카로움 14.3).
+# 1 = 밝음 (4.7 kHz) · 날카로움 16.9, 2 · 5 = 비슷하지만 조금 더 거칢. 아늑하게 5 kHz 위 반쯤.
+save("Interior/scape_bio_waterfall_loop.wav", circular(lambda y: soften(highpass(y, 50), 5000, 0.5), loop_exact(sl(load(B + "waterfall.wav"), 0.2, 10.24), 9.0)), -22)
+
+# 능선 수문 작은 폭포 셋 (폭 0.6 m, 3D) — 같은 후보 묶음 중 3: 가장 따뜻하고 첨벙임이 있음 (1.45 kHz · 4 kHz 위 4 %).
+save("Interior/scape_bio_sluice_loop.wav", circular(lambda y: highpass(y, 60), loop_exact(sl(load(B + "sluice_fall.wav"), 0.2, 10.24), 9.0)), -24)
+
+# 물길 졸졸 (단마다 작은 폭포, 3D) — 후보 5 중 3: 날카로움 12.1 · 지직 12.1 (가장 낮음) · 바닥 −15.5 dB. 처음 · 끝 페이드는 잘라 냄.
+# 5 = 울림 12, 1 · 4 = 날카로움 · 지직 조금 더 높음.
+save("Interior/scape_bio_brook_loop.wav", circular(lambda y: highpass(y, 80), loop_exact(sl(load(B + "brook.wav"), 0.6, 9.4), 8.0)), -24)
+
+# 구름 아래 비 (구름 고리 다섯을 따라 돎, 3D) — 후보 5 중 3: 가장 어두움 (6.9 kHz) · 바닥 −17.4 dB. 빗방울은 원래 높은 소리 →
+# 4.5 kHz 위를 눌러 "잎 너머로 듣는" 부드러운 비. 1 · 2 · 4 · 5 = 7.5 ~ 9.9 kHz로 더 밝음.
+def flatten(x, win=1.5):
+    """느린 크기 변화(끝으로 갈수록 잦아듦)를 펴서 고르게 — 루프 이음새에서 크기가 안 튀게."""
+    w = int(win * SR)
+    env = np.sqrt(np.convolve(x ** 2, np.ones(w) / w, "same")) + 1e-9
+    return x * (np.median(env) / env)
+
+
+rain = flatten(sl(load(B + "rain.wav"), 0.3, 7.6))
+save("Interior/scape_bio_rain_loop.wav", circular(lambda y: soften(soften(highpass(y, 120), 4500, 0.5), 8000, 0.4), loop_exact(rain, 6.4)), -26)
+
+# 물레방아 셋 (작은 나무 바퀴, 3D) — 첫 5개 = 그냥 고른 물소리 (바퀴 리듬 없음, 5 = 울림 167), "약 1초마다 물받이 철썩 + 삐걱"으로 다시 5개 중 4:
+# 같은 무늬가 일정 간격으로 반복 · 날카로움 11.7 (가장 둥긂). 한 바퀴 주기를 재서 정수 바퀴로 루프.
+x = load(B + "wheel.wav")
+p = period_of(sl(x, 0.5, 6.5))
+n = int(5.5 // p)
+save("Interior/scape_bio_wheel_loop.wav", circular(lambda y: highpass(y, 80), loop_exact(sl(x, 0.6, 7.3), n * p - 0.0)), -26)
+report.append(f"  물레방아 한 바퀴 {p:.2f}초 × {n}")
+
+# 개구리 (물가 · 숲 길, 3D) — 후보 5 중 2: 짧은 "개굴" 묶음이 간격을 두고 (바닥 −57 dB). 1 · 3 · 4 = 길게 끄는 음 (신스 같음), 5 = 빠른 떨림.
+x = load(B + "frog.wav")
+for k, (a, b) in enumerate(phrases(x, gap=0.3)[:4], 1):
+    save(f"Interior/scape_bio_frog_{k:02d}.wav", fade(highpass(x[a:b], 150), 0.01, 0.08), -24)
+
+# 밤 풀벌레 (밤에만, 2D 층) — 후보 5 중 1: 쉬엄쉬엄 끊겨 우는 귀뚜라미. 3 · 4 · 5 = 한 높이로 끝없이 이어지는 "삐—" 줄, 2 = 바닥 −6.5 dB.
+save("Interior/scape_bio_crickets_loop.wav", circular(lambda y: soften(highpass(y, 300), 8000, 0.4), loop_exact(sl(load(B + "crickets.wav"), 0.2, 10.24), 9.0)), -30)
+
+# 먼 천둥 (밤에 아주 가끔, 돔 위 멀리) — 후보 5 중 2: 울림 줄 4 (나머지 14 ~ 51 = 낮은 "웅") · 바닥 −42.8 dB.
+save("Interior/scape_bio_thunder_01.wav", fade(highpass(trim_lead(load(B + "thunder.wav"), -45), 30), 0.2, 1.5), -22)
+
+# 물방울 (호수 · 물길 둘레, 음계 높이 · 다음 박) + 대표 선율 — 후보 5 중 2: 한 번 "똑", 날카로움 6.0 (가장 둥긂), C6 −33센트 → 정확한 C6 (MIDI 84).
+# 1 = E7 (밝음) · 3 · 4 · 5 = 여러 번 침 · G#5 · F#7 (음계 밖).
+drop = fade(trim_lead(load(B + "drop.wav"), -40)[: int(1.2 * SR)], 0.004, 0.5)
+drop = pitch(highpass(drop, 200), 0.33)
+save("Interior/scape_bio_drop_01.wav", drop, -24)
+# 대표 선율 = 물이 아래로 떨어지듯 미6 · 도6 · 라5 · 솔5 (8분음표, 마지막 길게)
+motif = np.zeros(int(2.8 * SR))
+for i, (semis, gain) in enumerate(((4, 0.85), (0, 0.9), (-3, 0.95), (-5, 1.0))):
+    motif = place(motif, pitch(drop, semis) * gain, i * BEAT / 2)
+save("Interior/scape_bio_motif.wav", fade(motif, 0.0, 0.6), -20)
+
 print("\n".join(report))
