@@ -28,7 +28,12 @@ def load(rel):
 
 
 def save(rel, x, target_db=-14.0, peak_db=-1.0):
-    """짧은 구간(50 ms) 최대 RMS를 target_db로 맞추고, 피크는 peak_db를 넘지 않게 (1차와 같은 기준)."""
+    """짧은 구간(50 ms) 최대 RMS를 target_db로 맞추고, 피크는 peak_db를 넘지 않게 (1차와 같은 기준).
+    루프 (`_loop.wav`)는 먼저 고음 상한 검사 (`match_tilt`, 2026-11-23 배경 쉬— 정리 — 넘는 것만 낮춤, 예외는 `TILT`)."""
+    if rel.endswith("_loop.wav") and TILT.get(rel, {}) is not None:
+        x, note = match_tilt(x, **TILT.get(rel, {}))
+    else:
+        note = ""
     w = int(SR * 0.05)
     st = np.sqrt(np.convolve(x ** 2, np.ones(w) / w, mode="valid").max()) if len(x) > w else np.sqrt((x ** 2).mean())
     g = 10 ** (target_db / 20) / max(st, 1e-9)
@@ -43,7 +48,7 @@ def save(rel, x, target_db=-14.0, peak_db=-1.0):
         f.setsampwidth(2)
         f.setframerate(SR)
         f.writeframes((y * 32767).astype("<i2").tobytes())
-    report.append(f"{rel:36s} {len(y) / SR:5.2f}s  peak {20 * np.log10(max(np.abs(y).max(), 1e-9)):6.1f} dB")
+    report.append(f"{rel:36s} {len(y) / SR:5.2f}s  peak {20 * np.log10(max(np.abs(y).max(), 1e-9)):6.1f} dB{note}")
 
 
 # ---------------- 도구 ----------------
@@ -154,6 +159,34 @@ def circular(fn, x, pad=0.5):
     return fn(np.concatenate([x[-n:], x]))[n:]
 
 
+# 2026-11-23 사용자 "배경에 잡음 느낌의 소리가 섞인다 — 깔끔하게 어울리는 게 더 중요" → 내부 음악 4곡은 1 kHz 위로 급히 어두워지는데
+# (몸통 띠 기준 4k −30 · 8k −38 · 16k −38 dB) 물 · 비 · 바탕 루프 29개는 8 kHz까지 거의 평평 (−1 ~ −7) — 어두운 음악 위의 고른 쉬—가 잡음으로 들림.
+# soften (원본 65 % + 로우패스)은 고음을 3 dB 남짓밖에 못 줄였음. 상한 = 몸통 띠 (250 ~ 2k 중 가장 큰 옥타브) 기준 4k −10 · 8k −22 · 16k −34 dB.
+TILT_CEIL = ((4000, -10.0), (8000, -22.0), (16000, -34.0))
+TILT = {
+    "Interior/scape_bio_crickets_loop.wav": None,                                  # 4.8 kHz 풀벌레가 소리 자체
+    "Interior/scape_repair_bed_loop.wav": dict(ceil=TILT_CEIL[1:], start=5600.0),  # 풀벌레 4.8 kHz는 두고 그 위 숲 공기만
+    "Interior/scape_repair_leaves_loop.wav": dict(ceil=((4000, -6.0), (8000, -18.0), (16000, -30.0))),  # 잎 사각임 결은 남김
+    "Ride/dsc_static_loop.wav": dict(ceil=((4000, -6.0), (8000, -16.0), (16000, -28.0))),               # 신호 맞추기 잡음 = 놀이 단서
+    "Event/solar_storm_loop.wav": dict(ceil=((4000, -6.0), (8000, -16.0), (16000, -28.0))),             # 바깥 태양 폭풍 지직 (일부러)
+}
+
+
+def match_tilt(x, ceil=TILT_CEIL, start=2000.0):
+    """고음 옥타브 (4k · 8k · 16k)가 몸통 띠 + 상한을 넘는 만큼만 고정 EQ로 낮춤 — 루프 전체를 한 번에 (원형 FFT라 이음새 그대로).
+    낮추는 양은 start Hz = 0에서 log 주파수로 이어 높을수록 같거나 커지게 (부드러운 로우패스 모양). 넘는 띠가 없으면 그대로 돌려줌."""
+    X = np.fft.rfft(x)
+    f = np.fft.rfftfreq(len(x), 1 / SR)
+    P = np.abs(X) ** 2
+    band = lambda b: 10 * np.log10(P[(f >= b / np.sqrt(2)) & (f < min(b * np.sqrt(2), SR / 2))].sum() + 1e-20)
+    body = max(band(b) for b in (250, 500, 1000, 2000))
+    cut = list(np.maximum.accumulate([0.0] + [max(0.0, band(fc) - (body + c)) for fc, c in ceil]))
+    if max(cut) < 0.5:
+        return x, ""
+    a = np.interp(np.log2(np.maximum(f, 1.0)), np.log2([start] + [fc for fc, _ in ceil]), cut, left=0.0, right=cut[-1])
+    return np.fft.irfft(X * 10 ** (-a / 20), len(x)), f"  고음 상한 ({', '.join(f'{fc // 1000}k -{v:.0f}' for (fc, _), v in zip(ceil, cut[1:]))} dB)"
+
+
 # ================= 내부 문 (SOUND_LIST_NEW 4-1 · D-6) =================
 # 문은 0.25초 만에 열리고 닫힘 (InteriorDoor Speed 4) → 소리는 바로 시작, 1초 안팎. 문 자리에서 3D로 남 (방 울림은 게임이 따로 → 여기선 마른 소리).
 
@@ -206,6 +239,11 @@ save("Interior/amb_room_electric_loop.wav", circular(lp2(1200), load(L + "amb_ro
 save("Interior/amb_room_heat_loop.wav", circular(lp2(1200), load(L + "amb_room_heat_loop.wav")), -22)
 # 기계 방: 1.75초마다 같은 "칙·틱"이 또렷하게 반복 → 고음을 눌러 멀리서 나는 소리로
 save("Interior/amb_room_machine_loop.wav", circular(lp2(2000), load(L + "amb_room_machine_loop.wav")), -24)
+# 2026-11-23 배경 쉬— 정리: 생활 · 물 · 복도 방도 1차 그대로는 8 kHz −7 ~ −18 (1극 로우패스뿐) → 보관본에서 다시 만들며 save의 고음 상한을 거침.
+# 바깥 태양 폭풍 지직도 8 · 16 kHz가 몸통보다 +4 dB → 지직 결은 남기고 덜 낮춤 (TILT).
+for name, db in (("amb_room_life_loop", -26), ("amb_room_water_loop", -24), ("amb_room_hall_loop", -26)):
+    save(f"Interior/{name}.wav", load(L + f"{name}.wav"), db)
+save("Event/solar_storm_loop.wav", load("Event/legacy/solar_storm_loop.wav"), -14)
 
 
 # ================= 발소리 (SOUND_LIST_NEW 4-1 · D-2) =================
