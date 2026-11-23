@@ -107,13 +107,15 @@ namespace SpaceStation.Audio
 
         [Header("내부 방문 (11-9)")]
         public SoundCue Footstep = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.93f, 1.07f), Cooldown = 0.12f, MaxVoices = 2 };
-        [Tooltip("방 환경음 6묶음 (루프): 생활 / 물·식물 / 기계 / 고열 / 전기·방어 / 넓은 공간 — 방 템플릿의 Ambience로 고름")]
-        public SoundCue RoomLife = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.45f, Pitch = Vector2.one };
-        public SoundCue RoomWater = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.45f, Pitch = Vector2.one };
-        public SoundCue RoomMachine = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.45f, Pitch = Vector2.one };
-        public SoundCue RoomHeat = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.5f, Pitch = Vector2.one };
-        public SoundCue RoomElectric = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.45f, Pitch = Vector2.one };
-        public SoundCue RoomHall = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.45f, Pitch = Vector2.one };
+        [Tooltip("방 환경음 6묶음 (루프): 생활 / 물·식물 / 기계 / 고열 / 전기·방어 / 넓은 공간 — 방 템플릿의 Ambience로 고름. " +
+                 "2026-11-24 분홍 잡음 · 사이렌 같던 합성음을 실제 녹음 (CC0)으로 — 방 공기 + 환풍기 / 펌프 물 + 졸졸 / 작은 펌프 / 열풍기 / 안정기 웅 (Bb2) / 밤 바깥 공기, " +
+                 "음량은 바탕만 울린 귀 감도 크기를 고치기 전과 같게 (SOUND_LIST_NEW 10번 A)")]
+        public SoundCue RoomLife = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.54f, Pitch = Vector2.one };
+        public SoundCue RoomWater = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.76f, Pitch = Vector2.one };
+        public SoundCue RoomMachine = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.29f, Pitch = Vector2.one };
+        public SoundCue RoomHeat = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.28f, Pitch = Vector2.one };
+        public SoundCue RoomElectric = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.19f, Pitch = Vector2.one };
+        public SoundCue RoomHall = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.62f, Pitch = Vector2.one };
         [Tooltip("11-10 파손된 방 안에 있을 때 울리는 경보 (루프)")]
         public SoundCue InteriorAlarm = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.3f, Pitch = Vector2.one };
 
