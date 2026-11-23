@@ -162,7 +162,7 @@ namespace SpaceStation.Interior
                 _stump.enabled = false;
             _lampsTouched = true;
             Begin();
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.GameStart);
         }
 
         private void Begin()
@@ -199,7 +199,7 @@ namespace SpaceStation.Interior
                 if (_game.Current == DroneMemoryGame.Phase.Done)
                 {
                     Begin();
-                    AudioService.TryPlay(l => l.UiOpen);
+                    AudioService.TryPlay(l => l.GameStart);
                     return;
                 }
                 pick = _aim;
@@ -222,7 +222,7 @@ namespace SpaceStation.Interior
             Release();
             _game.Stop();
             _drone.gameObject.SetActive(false);
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void Release()
@@ -280,14 +280,14 @@ namespace SpaceStation.Interior
             switch (r)
             {
                 case DroneMemoryGame.Result.Correct:
-                    AudioService.TryPlay(l => l.UiClick);
+                    AudioService.TryPlayScore(_game.Entered);   // 이번 순서에서 맞힌 수 (틀리면 판이 끝나므로 따로 세지 않음)
                     break;
                 case DroneMemoryGame.Result.Cleared:
                     Notice($"맞았어요!  다음은 {_game.Length + 1}개", DroneMemoryGame.ClearedTime);
-                    AudioService.TryPlay(l => l.EventPositive);
+                    AudioService.TryPlayScore(_game.Entered);
                     break;
                 case DroneMemoryGame.Result.Wrong:
-                    AudioService.TryPlay(l => l.UiError);
+                    AudioService.TryPlay(l => l.GameMiss);
                     break;
             }
         }
@@ -326,7 +326,7 @@ namespace SpaceStation.Interior
             bool record = _game.Score > 0 && _game.Score > _best;
             if (record)
                 _best = _game.Score;
-            AudioService.TryPlay(l => record ? l.GradeUp : l.UiTab);
+            AudioService.TryPlay(l => record ? l.GameRecord : _game.Score > 0 ? l.GameClear : l.GameFail);
         }
 
         // ---------------- 드론 ----------------

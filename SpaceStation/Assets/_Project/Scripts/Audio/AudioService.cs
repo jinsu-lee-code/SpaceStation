@@ -70,6 +70,19 @@ namespace SpaceStation.Audio
                 s.Play(pick(s._library), volume);
         }
 
+        /// <summary>점수 "띵"이 연달아 오를 음 (반음, 기준 = 도6): 도 · 레 · 파 · 솔 · 라 · 도 · 레 · 파 — F 오음계라 내부 음악과 안 부딪힘.</summary>
+        private static readonly int[] ScoreSteps = { 0, 2, 5, 7, 9, 12, 14, 17 };
+
+        /// <summary>미니게임 점수 "띵" (5-1) — streak = 연달아 맞힌 수 (1부터), 맞힐수록 한 칸씩 높게 (끝 칸에서 멈춤).</summary>
+        public static void TryPlayScore(int streak)
+        {
+            var s = Instance;
+            if (s == null || s._library == null)
+                return;
+            int k = Mathf.Clamp(streak - 1, 0, ScoreSteps.Length - 1);
+            s.Play(s._library.GameScore, 1f, 0f, 0f, Mathf.Pow(2f, ScoreSteps[k] / 12f));
+        }
+
         private readonly List<Voice> _voices = new List<Voice>();
         private readonly List<Loop> _loops = new List<Loop>();
         private readonly List<MusicLayers> _layers = new List<MusicLayers>();

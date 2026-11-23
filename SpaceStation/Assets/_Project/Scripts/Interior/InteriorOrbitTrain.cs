@@ -110,7 +110,7 @@ namespace SpaceStation.Interior
                     if (_seated && KeyBindings.IsPressed(GameAction.CameraForward))
                     {
                         _phase = Phase.Driving;
-                        AudioService.TryPlay(l => l.UiOpen);
+                        AudioService.TryPlay(l => l.GameStart);
                     }
                     break;
                 case Phase.Driving:
@@ -174,7 +174,7 @@ namespace SpaceStation.Interior
             _phase = Phase.Result;
             _resultTimer = ResultSeconds;
             UpdateBoards();
-            AudioService.TryPlay(l => record ? l.UiOpen : l.UiClose);
+            AudioService.TryPlay(l => record ? l.GameRecord : l.GameClear);
         }
 
         private void Notice(string text, float seconds = 3f)
@@ -215,14 +215,14 @@ namespace SpaceStation.Interior
             if (_seat != null)
                 _seat.enabled = false;
             Notice("W 출발 · S 브레이크 · 한 바퀴 돌아 앞 차 코를 금빛 정지선에 맞춰 세워요", 5f);
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.RideBoard);
         }
 
         private void StandUp()
         {
             _standFrame = Time.frameCount;
             ReleasePlayer();
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void ReleasePlayer()

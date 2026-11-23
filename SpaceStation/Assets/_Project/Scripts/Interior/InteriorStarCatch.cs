@@ -51,6 +51,7 @@ namespace SpaceStation.Interior
         private ParticleSystem _sparks;
         private int _aim = -1;
         private bool _recorded;
+        private int _streak;   // 연달아 별을 잡은 수 (점수 "띵" 음높이) — 쓰레기 · 별 놓침 · 새 판 = 0
         private string _notice;
         private float _noticeTimer;
         private InteriorHintLine _hint;
@@ -132,7 +133,7 @@ namespace SpaceStation.Interior
             if (_start != null)
                 _start.enabled = false;
             Begin();
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.GameStart);
         }
 
         private void Begin()
@@ -140,6 +141,7 @@ namespace SpaceStation.Interior
             ClearFalling();
             _game.Begin();
             _recorded = false;
+            _streak = 0;
         }
 
         private void Controls()
@@ -163,7 +165,7 @@ namespace SpaceStation.Interior
             if (_game.Current == StarCatchGame.Phase.Done && click)
             {
                 Begin();
-                AudioService.TryPlay(l => l.UiOpen);
+                AudioService.TryPlay(l => l.GameStart);
                 return;
             }
             if (f)
@@ -176,7 +178,7 @@ namespace SpaceStation.Interior
             Release();
             _game.Stop();
             ClearFalling();
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void Release()
@@ -204,7 +206,7 @@ namespace SpaceStation.Interior
             bool record = _game.Score > 0 && _game.Score > _best;
             if (record)
                 _best = _game.Score;
-            AudioService.TryPlay(l => record ? l.GradeUp : l.UiTab);
+            AudioService.TryPlay(l => record ? l.GameRecord : _game.Score > 0 ? l.GameClear : l.GameFail);
         }
 
         // ---------------- 떨어지는 것 ----------------
@@ -251,6 +253,8 @@ namespace SpaceStation.Interior
                 if (u < 1f)
                     continue;
                 _game.Land(item.Kind);
+                if (item.Kind != StarCatchGame.Kind.Junk)
+                    _streak = 0;   // 별이 광장에 닿음 = 놓침
                 InteriorFireflyShow.Burst(EnsureSparks(), item.Body.position, item.Kind == StarCatchGame.Kind.Junk ? 4 : 8, 0.4f);
                 Remove(i);
             }
@@ -289,14 +293,15 @@ namespace SpaceStation.Interior
             {
                 InteriorFireflyShow.Burst(EnsureSparks(), item.Body.position, 6, 0.3f);
                 Notice("우주 쓰레기  -1", 0.9f);
-                AudioService.TryPlay(l => l.UiError);
+                _streak = 0;
+                AudioService.TryPlay(l => l.GameMiss);
             }
             else
             {
                 bool big = item.Kind == StarCatchGame.Kind.BigStar;
                 InteriorFireflyShow.Burst(EnsureSparks(), item.Body.position, big ? 30 : 16, big ? 1.1f : 0.7f);
                 Notice(big ? "큰 별  +3" : "작은 별  +1", 0.8f);
-                AudioService.TryPlay(l => big ? l.EventPositive : l.UiClick);
+                AudioService.TryPlayScore(++_streak);
             }
             Remove(_aim);
             _aim = -1;

@@ -123,7 +123,7 @@ namespace SpaceStation.Interior
                 if (on)
                     _orbs[i].localPosition = OrbPosition(i);
             }
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.GameStart);
         }
 
         private void Entered(MazeRunGame.Phase phase)
@@ -157,7 +157,7 @@ namespace SpaceStation.Interior
                     var r = _game.Collect(i);
                     InteriorFireflyShow.Burst(EnsureSparks(), _orbs[i].position, 28, 1.3f);
                     _orbs[i].gameObject.SetActive(false);
-                    AudioService.TryPlay(l => r == MazeRunGame.Result.AllCollected ? l.EventPositive : l.UiClick);
+                    AudioService.TryPlayScore(_game.Collected);
                     if (r == MazeRunGame.Result.AllCollected)
                         Flash("빛 구슬을 다 모았어요!  가운데 정자로");
                 }
@@ -172,7 +172,7 @@ namespace SpaceStation.Interior
                 {
                     _needMoreTimer = NeedMoreEvery;
                     Flash($"빛 구슬 {_game.Collected} / {_game.Needed}  ·  남은 구슬은 미로 막다른 길에 있어요");
-                    AudioService.TryPlay(l => l.UiError);
+                    AudioService.TryPlay(l => l.GameMiss);
                 }
             }
         }
@@ -184,7 +184,7 @@ namespace SpaceStation.Interior
                 _best = _game.Score;
             Flash(record ? $"도착!  {Clock(_game.Score)}  ·  새 최고 기록" : $"도착!  {Clock(_game.Score)}  ·  최고 {Clock(_best)}");
             InteriorFireflyShow.Burst(EnsureSparks(), transform.TransformPoint(AICore.Brain), 40, 1.6f);
-            AudioService.TryPlay(l => record ? l.GradeUp : l.EventPositive);
+            AudioService.TryPlay(l => record ? l.GameRecord : l.GameClear);
             _signTimer = 0f;
         }
 

@@ -210,7 +210,7 @@ namespace SpaceStation.Interior
                         else
                         {
                             _phase = Phase.Closing;
-                            PlayNear(l => l.UiClose);
+                            PlayNear(l => l.RideBoard);
                         }
                     }
                     break;
@@ -341,7 +341,7 @@ namespace SpaceStation.Interior
             _riding = true;
             _seated = true;
             SetSeatColliders(false);
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.RideBoard);
         }
 
         private void StandUp()
@@ -356,7 +356,7 @@ namespace SpaceStation.Interior
                 _player.Dismount();
                 _riding = false;
             }
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void ReleasePlayer()

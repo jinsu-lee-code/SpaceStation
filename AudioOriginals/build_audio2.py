@@ -771,4 +771,78 @@ for i, semis in enumerate((-7, -3, 0, 2, 5)):
     motif = place(motif, flower_bell(C6 * 2 ** (semis / 12), 3.0 if i == 4 else 2.2, 7 + i) * (0.75 + 0.05 * i), BEAT + i * BEAT / 4)
 save("Interior/scape_deep_motif.wav", fade(motif, 0.0, 1.0), -20)
 
+# ================= 체험 · 미니게임 공용 꾸러미 (SOUND_LIST_NEW 5-1 — 창 열기 · 닫기 · 등급 상승을 빌려 쓰던 자리) =================
+# Audio/Ride/. 탑승 · 내림 = VARCO 걸쇠 (2번), 나머지는 음악 조 (F 장조 · D 단조 — F 오음계)에 맞춰 합성: 하프 (궤도 항만) · 유리 종 (항성 발전망) · 반짝임 (수리 사령부).
+RD = "Ride/"
+
+# 탑승 (자리에 앉고 안전바가 "툭") — 첫 5개 ("푹신한 안전바가 잠김")는 모두 밝고 날 선 딸깍 (무게중심 5 ~ 10 kHz · crest 17 ~ 20, 여러 번 침) →
+# "먹먹한 플라스틱 걸쇠 + 쿠션 툭"으로 다시 5개 중 4: 무게중심 2.7 kHz (가장 낮음) · crest 12.4 · 시작 19 ms (부드러움). 그 안 툭 여섯 중 가장 크고 긴 1.03초 것.
+# 다시 만든 1 · 3 · 5 = 6 ~ 8 kHz로 밝음, 2 = 지직 224.
+lt = load(RD + "latch.wav")
+board = fade(soften(highpass(sl(lt, 1.0, 1.32), 80), 4000, 0.5), 0.004, 0.08)
+save("Ride/ride_board.wav", board, -14)
+# 내림 (안전바가 풀리고 일어남) — 바람 빠지는 "슉" (합성, 0.25초 부풀었다 잦아듦 · 0.8 ~ 3 kHz) 뒤에 같은 걸쇠의 다른 툭 (2.7초)을 2반음 높여 가볍게.
+rng = np.random.default_rng(11)
+t = np.arange(int(0.32 * SR)) / SR
+puff = onepole_lp(highpass(rng.standard_normal(len(t)), 800), 3000) * np.sin(np.pi * np.minimum(1, t / 0.32)) ** 2
+puff *= 0.35 * np.abs(board).max() / (np.abs(puff).max() + 1e-9)
+leave = place(puff, pitch(soften(highpass(sl(lt, 2.67, 2.95), 80), 4000, 0.5), 2), 0.2)
+save("Ride/ride_leave.wav", fade(leave, 0.01, 0.08), -14)
+
+
+def wood_tick(f=698.46, dur=0.12):
+    """작은 나무 "톡" — 짧은 울림 (기음 + 2.6배 옅게, 25 ms 만에 꺼짐) + 아주 짧은 두드림 잡음."""
+    t = np.arange(int(dur * SR)) / SR
+    x = np.sin(2 * np.pi * f * t) * np.exp(-t / 0.025) + 0.3 * np.sin(2 * np.pi * 2.6 * f * t) * np.exp(-t / 0.012)
+    rng = np.random.default_rng(5)
+    x += 0.25 * onepole_lp(rng.standard_normal(len(t)), 3000) * np.exp(-t / 0.004)
+    return fade(x * (1 - np.exp(-t / 0.0015)), 0.0, 0.03)
+
+
+# 남은 시간 째깍 — 작은 나무 "톡" (파5 — 조 안).
+save("Ride/game_tick.wav", wood_tick(), -8)   # −18은 녹음 검수에서 음악보다 −24 (0.12초 짧은 소리라 묻힘)
+
+# 점수 "띵" — 맑은 유리 종 도6 (짧게 0.7초). 연달아 맞히면 AudioService.TryPlayScore가 F 오음계로 한 칸씩 높임.
+save("Ride/game_score.wav", fade(flower_bell(C6, 0.7, 3), 0.0, 0.25), -14)
+
+# 틀림 · 놓침 "뿌" — 부드럽게 내려가는 둥근 음 (라4 → 파4, 0.28초 · 배음 옅게 · 3 kHz 위 없음). 거절음 (UiError)보다 가볍게.
+t = np.arange(int(0.34 * SR)) / SR
+fr = 440.0 * (349.23 / 440.0) ** np.minimum(1, t / 0.22)
+ph = 2 * np.pi * np.cumsum(fr) / SR
+boop = (np.sin(ph) + 0.3 * np.sin(2 * ph) + 0.08 * np.sin(3 * ph)) * np.minimum(1, t / 0.012) * np.exp(-np.maximum(0, t - 0.12) / 0.08)
+save("Ride/game_miss.wav", fade(onepole_lp(boop, 3000), 0.0, 0.05), -14)
+
+F4, A4_, C5_, D5, F5, A5, C6_, D6, F6, A6, C7 = 349.23, 440.0, 523.25, 587.33, 698.46, 880.0, 1046.5, 1174.66, 1396.91, 1760.0, 2093.0
+# 시작 — 하프 "도 · 파" 두 음 (준비) + 유리 종 파 · 라 · 도 화음 (출발). 1.6초.
+start = np.zeros(int(2.4 * SR))
+start = place(start, harp(C5_, 1.5, 21) * 0.8, 0.0)
+start = place(start, harp(F5, 1.5, 22) * 0.85, BEAT / 2)
+for i, f in enumerate((F5, A5, C6_)):
+    start = place(start, flower_bell(f, 1.6, 20 + i) * 0.45, BEAT)
+save("Ride/game_start.wav", fade(start, 0.0, 0.5), -14)
+
+# 성공 — 하프가 파 · 라 · 도 · 파로 올라가고 (반의 반 박씩) 유리 종 파 · 라 화음.
+clear = np.zeros(int(3.0 * SR))
+for i, f in enumerate((F4, A4_, C5_, F5)):
+    clear = place(clear, harp(f, 2.2, 30 + i) * (0.75 + 0.05 * i), i * BEAT / 4)
+for i, f in enumerate((F5, A5)):
+    clear = place(clear, flower_bell(f, 2.0, 30 + i) * 0.4, BEAT)
+save("Ride/game_clear.wav", fade(clear, 0.0, 0.8), -14)
+
+# 아쉬움 — 하프가 라 · 파 · 레로 천천히 내려감 (반 박씩, 부드럽게).
+fail = np.zeros(int(3.0 * SR))
+for i, f in enumerate((A4_, F4, 293.66)):
+    fail = place(fail, harp(f, 2.2, 40 + i) * (0.8 - 0.08 * i), i * BEAT / 2)
+save("Ride/game_fail.wav", fade(onepole_lp(fail, 2500), 0.0, 0.8), -14)
+
+# 새 기록 — 하프 여섯 음 파4 ~ 도6 빠르게 (1/6 박씩) → 유리 종 파 · 라 · 도 화음 + 반짝임 파6 · 라6 · 도7.
+rec = np.zeros(int(4.0 * SR))
+for i, f in enumerate((F4, A4_, C5_, F5, A5, C6_)):
+    rec = place(rec, harp(f, 2.4, 50 + i) * (0.7 + 0.04 * i), i * BEAT / 6)
+for i, f in enumerate((F5, A5, C6_)):
+    rec = place(rec, flower_bell(f, 2.6, 50 + i) * 0.45, BEAT)
+for i, f in enumerate((F6, A6, C7)):
+    rec = place(rec, twinkle(f, 1.0, 60 + i) * 0.25, BEAT + BEAT / 4 + i * BEAT / 4)
+save("Ride/game_record.wav", fade(rec, 0.0, 1.0), -14)
+
 print("\n".join(report))

@@ -255,14 +255,14 @@ namespace SpaceStation.Interior
             _seated = true;
             _seatRoot.SetActive(false);
             ShowHint(true);
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.RideBoard);
         }
 
         private void StandUp()
         {
             _standFrame = Time.frameCount;
             ReleasePlayer();
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void ReleasePlayer()

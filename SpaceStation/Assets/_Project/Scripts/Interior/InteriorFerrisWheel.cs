@@ -167,7 +167,7 @@ namespace SpaceStation.Interior
                     if (_extend >= 1f)
                     {
                         _phase = Phase.Opening;
-                        PlayNear(l => l.UiOpen);
+                        PlayNear(l => l.RideLeave);
                     }
                     break;
                 case Phase.Opening:
@@ -194,7 +194,7 @@ namespace SpaceStation.Interior
                         else
                         {
                             _phase = Phase.Closing;
-                            PlayNear(l => l.UiClose);
+                            PlayNear(l => l.RideBoard);
                         }
                     }
                     break;
@@ -314,7 +314,7 @@ namespace SpaceStation.Interior
             _seated = true;
             _ridingPod = pod;
             UpdateColliders();
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.RideBoard);
         }
 
         private void StandUp()
@@ -329,7 +329,7 @@ namespace SpaceStation.Interior
                 _ridingPod = -1;
             }
             UpdateColliders();
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void ReleasePlayer()

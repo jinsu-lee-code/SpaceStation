@@ -194,7 +194,7 @@ namespace SpaceStation.Interior
                 _riding = true;
             }
             UpdateColliders();
-            PlayNear(l => l.UiClose);
+            PlayNear(l => l.RideBoard);
         }
 
         private void Stop()
@@ -208,7 +208,7 @@ namespace SpaceStation.Interior
                 _riding = false;
             }
             UpdateColliders();
-            PlayNear(l => l.UiOpen);
+            PlayNear(l => l.RideLeave);
         }
 
         private void Apply(float dt)
@@ -291,7 +291,7 @@ namespace SpaceStation.Interior
             _seated = true;
             _ridingCapsule = capsule;
             UpdateColliders();
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.RideBoard);
         }
 
         private void StandUp()
@@ -305,7 +305,7 @@ namespace SpaceStation.Interior
             _riding = false;
             _ridingCapsule = -1;
             UpdateColliders();
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void ReleasePlayer()

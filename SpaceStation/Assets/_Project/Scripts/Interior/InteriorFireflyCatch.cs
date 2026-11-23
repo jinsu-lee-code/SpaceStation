@@ -63,6 +63,7 @@ namespace SpaceStation.Interior
         private float _phaseT;
         private float _timeLeft;
         private int _caught;
+        private int _streak;   // 연달아 잡은 수 (점수 "띵" 음높이) — 헛잡기 · 새 판 = 0
         private bool _record;
         private readonly Fly[] _flies = new Fly[Count];
         private Vector3[] _release;
@@ -150,10 +151,11 @@ namespace SpaceStation.Interior
             for (int i = 0; i < Count; i++)
                 Spawn(ref _flies[i], true);
             _caught = 0;
+            _streak = 0;
             _timeLeft = GameSeconds;
             SetPhase(Phase.Dusk);
             Notice("해가 져요… 빛나는 반딧불이를 가운데로 보고 F", DuskSeconds + 3f);
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.GameStart);
         }
 
         private void Update()
@@ -236,7 +238,7 @@ namespace SpaceStation.Interior
                 _flies[i].Alive = false;   // 남은 반딧불이는 숲으로 꺼져 감 (아래 Light가 줄어듦)
             SetPhase(Phase.Release);
             UpdateBoards();
-            AudioService.TryPlay(l => _record ? l.UiOpen : l.UiClose);
+            AudioService.TryPlay(l => _caught == 0 ? l.GameFail : _record ? l.GameRecord : l.GameClear);
         }
 
         // ---------------- 반딧불이 ----------------
@@ -368,7 +370,8 @@ namespace SpaceStation.Interior
             }
             if (best < 0)
             {
-                AudioService.TryPlay(l => l.UiHover);
+                _streak = 0;
+                AudioService.TryPlay(l => l.GameMiss);
                 return;
             }
             ref var c = ref _flies[best];
@@ -376,7 +379,7 @@ namespace SpaceStation.Interior
             c.CatchT = 0f;
             c.CatchFrom = c.Pos;
             _caught++;
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlayScore(++_streak);
         }
 
         // ---------------- 그리기 (입자 하나에 직접 자리 · 밝기) ----------------

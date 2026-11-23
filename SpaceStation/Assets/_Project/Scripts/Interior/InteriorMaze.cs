@@ -182,7 +182,7 @@ namespace SpaceStation.Interior
                 {
                     _running = true;
                     _elapsed = 0f;
-                    AudioService.TryPlay(l => l.UiOpen);
+                    AudioService.TryPlay(l => l.GameStart);
                 }
                 else if (_running && _prevZ >= archZ - 0.2f && p.z < archZ - 0.2f)
                 {
@@ -207,7 +207,7 @@ namespace SpaceStation.Interior
                 _best = _elapsed;
             _celebrate = CelebrateSeconds;
             Flash(record ? $"도착!  {Clock(_elapsed)}  ·  새 최고 기록" : $"도착!  {Clock(_elapsed)}  ·  최고 {Clock(_best)}");
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => record ? l.GameRecord : l.GameClear);
             _signTimer = 0f;
         }
 

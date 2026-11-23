@@ -196,7 +196,7 @@ namespace SpaceStation.Interior
                 return;
             _v[_docked] = 0f;
             _docked = -1;
-            PlayNear(l => l.UiClose);
+            PlayNear(l => l.RideBoard);
             UpdateColliders();
         }
 
@@ -249,7 +249,7 @@ namespace SpaceStation.Interior
             PlaceAnchor();
             _player.RideAt(_anchor, _anchor.position, OrbitalPort.BoatSeatedEye, _anchor.eulerAngles.y, 0f);
             UpdateColliders();
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.RideBoard);
         }
 
         private void StandUp()
@@ -258,7 +258,7 @@ namespace SpaceStation.Interior
             _player.RideAt(transform, transform.TransformPoint(OrbitalPort.BoatExit), FirstPersonController.EyeHeight, yaw);
             _player.Dismount();
             ClearRide();
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void ReleasePlayer()

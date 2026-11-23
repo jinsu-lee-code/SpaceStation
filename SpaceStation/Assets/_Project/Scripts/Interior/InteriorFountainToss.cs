@@ -44,6 +44,7 @@ namespace SpaceStation.Interior
         private float _resultTimer;
         private float _show;           // 고리 보임 0 ~ 1
         private bool _record;
+        private int _streak;           // 연달아 고리에 넣은 수 (점수 "띵" 음높이) — 물 · 밖 · 새 판 = 0
         private Transform _eye;
         private TextMeshPro _signText;
         private float _signTimer;
@@ -121,10 +122,11 @@ namespace SpaceStation.Interior
                 return;
             _game.Start();
             _resultTimer = 0f;
+            _streak = 0;
             if (_start != null)
                 _start.enabled = false;     // 시선이 물 위 고리에 닿게
             Notice("빛 고리를 보고 F · 진주가 보는 자리로 날아가요", 2.5f);
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.GameStart);
         }
 
         private void Update()
@@ -175,7 +177,7 @@ namespace SpaceStation.Interior
             string grade = _game.Score >= 14 ? "인어가 아주 기뻐해요!" : _game.Score >= 7 ? "인어가 기뻐해요" : "인어가 웃어요";
             Notice($"{_game.Score}점 ({_game.Hits}개 고리에)  ·  {grade}" + (_record ? "  ·  최고 기록!" : $"  ·  최고 {Mathf.Max(_best, 0)}점"), ResultSeconds);
             _resultTimer = ResultSeconds;
-            AudioService.TryPlay(l => _record ? l.GradeUp : l.UiClose);
+            AudioService.TryPlay(l => _record ? l.GameRecord : _game.Score > 0 ? l.GameClear : l.GameFail);
         }
 
         /// <summary>보는 자리 = 시선이 분수 수면에 닿는 점 (수면 위를 보면 그 방향으로 가장 멀리 6 m).</summary>
@@ -224,18 +226,20 @@ namespace SpaceStation.Interior
                 Burst(at, 10 + 8 * l.Points, new Color(1f, 0.93f, 0.7f), 0.8f, 2f);
                 Spout(l.Points);
                 Notice(l.Points == 3 ? "+3  작은 고리!" : l.Points == 2 ? "+2  중간 고리" : "+1  큰 고리", 1.1f);
-                AudioService.TryPlay(lib => l.Points == 3 ? lib.GradeUp : lib.UiOpen);
+                AudioService.TryPlayScore(++_streak);
             }
             else if (l.Ring == FountainToss.Water)
             {
                 Splash(at);
                 Notice("퐁당!", 0.8f);
-                AudioService.TryPlay(lib => lib.UiHover);
+                _streak = 0;
+                AudioService.TryPlay(lib => lib.GameMiss);
             }
             else
             {
                 Notice("분수 밖으로 빗나갔어요", 1f);
-                AudioService.TryPlay(lib => lib.UiError);
+                _streak = 0;
+                AudioService.TryPlay(lib => lib.GameMiss);
             }
         }
 

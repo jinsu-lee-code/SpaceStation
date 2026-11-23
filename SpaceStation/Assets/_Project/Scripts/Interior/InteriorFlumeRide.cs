@@ -226,7 +226,7 @@ namespace SpaceStation.Interior
             _phase = Phase.Opening;
             _craneAsked = false;
             PlayNear(l => l.SupplyArrive);
-            PlayNear(l => l.UiOpen);
+            PlayNear(l => l.RideLeave);
             UpdateColliders();
         }
 
@@ -273,7 +273,7 @@ namespace SpaceStation.Interior
                     }
                     FinishCrane(b);
                     _phase = Phase.Closing;
-                    PlayNear(l => l.UiClose);
+                    PlayNear(l => l.RideBoard);
                     UpdateColliders();
                     break;
                 case Phase.Closing:
@@ -406,7 +406,7 @@ namespace SpaceStation.Interior
             PlaceAnchor(0f);
             _player.RideAt(_anchor, _anchor.position, SeatedEye, _boats[b].eulerAngles.y, 0f, followPitch: true);
             UpdateColliders();
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.RideBoard);
         }
 
         private void StandUp()
@@ -419,7 +419,7 @@ namespace SpaceStation.Interior
             _player.RideAt(transform, transform.TransformPoint(exit), FirstPersonController.EyeHeight, yaw);
             _player.Dismount();
             ClearRide();
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void ReleasePlayer()

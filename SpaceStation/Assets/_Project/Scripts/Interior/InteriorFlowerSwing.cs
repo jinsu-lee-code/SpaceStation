@@ -46,6 +46,7 @@ namespace SpaceStation.Interior
         private float _getOffYaw;
         private float _rideTime;
         private bool _done;
+        private int _streak;   // 연달아 박자 맞춘 수 (점수 "띵" 음높이) — 이르거나 늦음 · 새로 앉음 = 0
         private Quaternion[] _bellRest;
         private float[] _bellT;
         private Renderer[] _bellRenderers;
@@ -175,23 +176,25 @@ namespace SpaceStation.Interior
             {
                 case FlowerSwing.Kick.Start:
                     Notice("출발! 그네가 앞뒤 끝에 닿을 때마다 F", 3f);
-                    AudioService.TryPlay(l => l.UiOpen);
+                    AudioService.TryPlay(l => l.GameStart);
                     break;
                 case FlowerSwing.Kick.Perfect:
                     Notice($"박자 딱!  높이 +{FlowerSwing.PerfectGain:F0}°", 1.4f);
-                    AudioService.TryPlay(l => l.UiOpen);
+                    AudioService.TryPlayScore(++_streak);
                     break;
                 case FlowerSwing.Kick.Good:
                     Notice($"좋아요  높이 +{FlowerSwing.GoodGain:F0}°", 1.4f);
-                    AudioService.TryPlay(l => l.UiTab);
+                    AudioService.TryPlayScore(++_streak);
                     break;
                 case FlowerSwing.Kick.Early:
                     Notice("조금 일러요 · 끝까지 올라간 뒤에", 1.6f);
-                    AudioService.TryPlay(l => l.UiHover);
+                    _streak = 0;
+                    AudioService.TryPlay(l => l.GameMiss);
                     break;
                 case FlowerSwing.Kick.Late:
                     Notice("조금 늦어요 · 끝에 닿을 때", 1.6f);
-                    AudioService.TryPlay(l => l.UiHover);
+                    _streak = 0;
+                    AudioService.TryPlay(l => l.GameMiss);
                     break;
                 case FlowerSwing.Kick.Again:
                     Notice("이번 흔들림엔 벌써 굴렀어요", 1.2f);
@@ -211,7 +214,7 @@ namespace SpaceStation.Interior
                 _bellT[i] = 0f;   // 다 같이 한 번 더 울림
                 Sparkle(i, 26);
             }
-            AudioService.TryPlay(l => l.GradeUp);
+            AudioService.TryPlay(l => record ? l.GameRecord : l.GameClear);
         }
 
         private static string Clock(float seconds)
@@ -231,20 +234,21 @@ namespace SpaceStation.Interior
             _swing.Begin();
             _rideTime = 0f;
             _done = false;
+            _streak = 0;
             // 처음 시선 = 앞 (+x)에서 앞 종 쪽 (+z)으로 12° — 바로 앞은 정자 갈비대 (30°)가 화면 한가운데를 가렸음
             _player.RideAt(_rider, _rider.position, 0f, transform.eulerAngles.y + 90f - 12f, 0f, followPitch: true);
             _seated = true;
             if (_seat != null)
                 _seat.enabled = false;
             Notice("F = 출발 · 그네가 앞뒤 끝에 닿을 때 F로 굴러 수정 종 여섯 개를 울려요", 5f);
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.RideBoard);
         }
 
         private void StandUp()
         {
             _standFrame = Time.frameCount;
             ReleasePlayer();
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void ReleasePlayer()

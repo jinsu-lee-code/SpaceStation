@@ -863,7 +863,7 @@ namespace SpaceStation.Interior
                 _seatCollider.enabled = false;
             if (_phase == Phase.Idle && _timer > _seatedWait)
                 _timer = _seatedWait;
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.RideBoard);
         }
 
         private void StandUp()
@@ -876,7 +876,7 @@ namespace SpaceStation.Interior
                 _seatCollider.enabled = true;
             _player.RideAt(transform, _standPoint, FirstPersonController.EyeHeight, null, 0f);
             _player.Dismount();
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void ReleasePlayer()

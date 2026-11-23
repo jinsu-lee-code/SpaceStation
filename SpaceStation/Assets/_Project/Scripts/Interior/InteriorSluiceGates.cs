@@ -56,6 +56,7 @@ namespace SpaceStation.Interior
         private TextMeshPro[] _boards;
         private float _time;
         private float _pause;                                  // 판 사이 · 결과 보여 주는 시간
+        private int _streak;                                   // 이번 체험에서 물이 닿아 핀 밭 수 (점수 "띵" 음높이) — 시작 = 0
         private bool _showingResult;
         private string _notice;
         private float _noticeTimer;
@@ -154,11 +155,12 @@ namespace SpaceStation.Interior
             {
                 _puzzle.Start(System.Environment.TickCount);
                 _time = 0f;
+                _streak = 0;
                 _showingResult = false;
                 for (int i = 0; i < S; i++)
                     _front[i] = 0f;   // 물꼬를 모두 닫음 → 물길이 마름
                 Notice("1판: 목마른 밭에 물을 대요. 바퀴를 돌릴 때마다 물꼬가 한 단씩 내려가요", 5f);
-                AudioService.TryPlay(l => l.UiOpen);
+                AudioService.TryPlay(l => l.GameStart);
                 return;
             }
             _puzzle.Turn(stream);
@@ -195,7 +197,7 @@ namespace SpaceStation.Interior
                 {
                     Notice($"{done}판 성공! 다음 판은 목마른 밭이 {done + 1}곳", RoundPause + 2.5f);
                     _pause = RoundPause;
-                    AudioService.TryPlay(l => l.RepairDone);
+                    AudioService.TryPlay(l => l.GameClear);
                 }
             }
             for (int i = 0; i < S; i++)
@@ -239,7 +241,7 @@ namespace SpaceStation.Interior
             Notice($"다 피었어요!  걸린 시간 {Clock(_time)}" + (record ? "  ·  최고 기록!" : $"  ·  최고 {Clock(_best)}"), ResultSeconds);
             _showingResult = true;
             _pause = ResultSeconds;
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => record ? l.GameRecord : l.GameClear);
         }
 
         private static string Clock(float t) => $"{(int)(t / 60f)}:{(int)(t % 60f):00}";
@@ -275,7 +277,7 @@ namespace SpaceStation.Interior
                 if (before > 0.5f && _wilt[k] <= 0.5f && watered)
                 {
                     _bloomedTimer[k] = BloomedSeconds;
-                    AudioService.TryPlay(l => l.SupplyArrive);
+                    AudioService.TryPlayScore(++_streak);
                 }
                 if (_bloomedTimer[k] > 0f)
                     _bloomedTimer[k] -= dt;

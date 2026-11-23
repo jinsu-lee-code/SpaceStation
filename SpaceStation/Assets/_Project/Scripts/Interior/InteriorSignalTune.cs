@@ -43,6 +43,7 @@ namespace SpaceStation.Interior
         private TextMeshPro _meterText, _scoreText;
         private float _phase;
         private bool _recorded;
+        private int _streak;   // 연달아 또렷하게 (85점 이상) 맞춘 수 (점수 "띵" 음높이) — 85점 아래 · 시간 다 됨 · 새 판 = 0
         private InteriorHintLine _hint;
 
         public SignalTuneGame Game => _game;
@@ -109,7 +110,10 @@ namespace SpaceStation.Interior
             var before = _game.Current;
             _game.Step(dt);
             if (before == SignalTuneGame.Phase.Tune && _game.Current == SignalTuneGame.Phase.Locked)
-                AudioService.TryPlay(l => l.UiClick);   // 시간이 다 되어 저절로 맞춤
+            {
+                _streak = 0;
+                AudioService.TryPlay(l => l.GameMiss);   // 시간이 다 되어 저절로 맞춤
+            }
             if (_game.Current == SignalTuneGame.Phase.Done && !_recorded)
                 Record();
             _phase += dt * 0.35f;
@@ -130,13 +134,14 @@ namespace SpaceStation.Interior
             if (_start != null)
                 _start.enabled = false;
             Begin();
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.GameStart);
         }
 
         private void Begin()
         {
             _game.Begin();
             _recorded = false;
+            _streak = 0;
             ShowScreens(true);
         }
 
@@ -161,7 +166,7 @@ namespace SpaceStation.Interior
                 if (click)
                 {
                     Begin();
-                    AudioService.TryPlay(l => l.UiOpen);
+                    AudioService.TryPlay(l => l.GameStart);
                 }
                 return;
             }
@@ -184,7 +189,15 @@ namespace SpaceStation.Interior
             }
             _game.Adjust(df, da);
             if ((click || keyboard.spaceKey.wasPressedThisFrame) && _game.Lock())
-                AudioService.TryPlay(l => _game.LastScore >= 85 ? l.EventPositive : l.UiClick);
+            {
+                if (_game.LastScore >= 85)
+                    AudioService.TryPlayScore(++_streak);
+                else
+                {
+                    _streak = 0;
+                    AudioService.TryPlay(l => l.UiClick);
+                }
+            }
         }
 
         private void StepDown()
@@ -193,7 +206,7 @@ namespace SpaceStation.Interior
             Release();
             _game.Stop();
             ShowScreens(false);
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.RideLeave);
         }
 
         private void Release()
@@ -223,7 +236,7 @@ namespace SpaceStation.Interior
             bool record = _game.Total > 0 && _game.Total > _best;
             if (record)
                 _best = _game.Total;
-            AudioService.TryPlay(l => record ? l.GradeUp : l.UiTab);
+            AudioService.TryPlay(l => record ? l.GameRecord : _game.Total > 0 ? l.GameClear : l.GameFail);
         }
 
         // ---------------- 화면 ----------------
