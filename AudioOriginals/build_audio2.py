@@ -676,4 +676,51 @@ for i, semis in enumerate((-3, 0, 2, 5)):
     motif = place(motif, twinkle(C6 * 2 ** (semis / 12), 1.2, 3 + i) * 0.45 * np.abs(gb).max(), BEAT + i * BEAT / 2)
 save("Interior/scape_repair_motif.wav", fade(motif, 0.0, 1.5), -20)
 
+# ================= 3단계 소리 풍경 — 항성 발전망 "꿀벌 정원" (SOUND_LIST_NEW D-7b) =================
+# 자리는 Interior/StellarGrid.cs 값 (왼쪽 꽃나무 숲 · 등나무 꽃 정자 (그네 · 수정 꽃송이 종) · 해바라기 · 꿀벌 물터 연못 · 전망대 · 꿀 샘 그루터기 (곰) ·
+# 꿀 언덕 속 벌집 홀 · 라벤더 이랑, 꿀벌 = 고리 길을 나는 벌 12 · 맴도는 벌 5). VARCO 하나씩 순서대로 4번.
+# 정자 등나무 · 꽃나무 숲 잎 = 수리 사령부 잎, 밤 풀벌레 = 수리 사령부 바탕, 연못 물방울 = 궤도 항만 수련 물방울을 같이 씀.
+# 꿀벌 · 벌집 · 곰 소리는 음이 있어 음악 조 (D 단조 · F 장조) 안의 음으로 맞추고, 수정 꽃 종은 F 오음계로 합성.
+SG = "Interior/scape_stellar/"
+
+# 바탕 — 햇살 꽃밭 바람 (2D). 후보 5 중 5 (가장 어둡고 고름 · 지직 5.5) + 3 (키 큰 풀이 흔들리는 밝은 결 · 지직 6.8)을 2초씩 겹쳐 고리.
+# 2 · 4 = 6.1 · 3.7초로 짧음, 1 = 지직 9.6.
+bed = chain_loop([sl(load(SG + "bed_a.wav"), 0.3, 9.9), sl(load(SG + "bed_b.wav"), 0.3, 9.6)], 2.0)
+save("Interior/scape_stellar_bed_loop.wav", circular(lambda y: soften(highpass(y, 60), 6000, 0.4), bed), -24)
+report.append(f"  꽃밭 바탕 고리 {len(bed) / SR:.2f}초")
+
+# 꿀벌 한 마리 지나감 (낮, 고리 길 · 꽃나무 숲 · 라벤더 둘레 가끔 3D) — "제자리에서 맴도는 벌" 루프를 불렀는데 다섯 모두 1.8 ~ 3.9초 "다가왔다 멀어지는" 소리 →
+# 그대로 지나가는 벌로. 1 (가장 매끈 · B♭2 +22센트 — 조 안, 그대로) + 5 (F3 −45센트 → +0.45반음 정확한 F3, 지직 12.7 최저).
+# 기음이 낮아 (115 ~ 175 Hz) 귀 감도로 작음 → 150 Hz 아래를 눌러 날개 결 (배음)이 들리게. 2 = 쉿 (4 kHz 위 31 %), 3 = 1.8초, 4 = 지직 21.7.
+save("Interior/scape_stellar_bee_01.wav", fade(highpass(highpass(trim_lead(load(SG + "bee_a.wav"), -45), 150), 150), 0.05, 0.3), -14)
+save("Interior/scape_stellar_bee_02.wav", fade(highpass(highpass(pitch(trim_lead(load(SG + "bee_b.wav"), -45), 0.45), 150), 150), 0.05, 0.3), -14)
+
+# 벌집 홀 웅웅 (꿀 언덕 속 · 둥근 벌집 입구, 3D) — 후보 5 중 3: 가장 고르게 이어짐 (지직 9.5 최저) · 벌 떼 화음 가운데 403 Hz (G4와 G#4 사이) → −0.5반음 G4.
+# 1 · 2 · 5 = 크게 부풀었다 가라앉음, 4 = 무늬가 일정하지 않음.
+hive = loop_exact(pitch(sl(load(SG + "hive.wav"), 0.3, 8.56), -0.5), 7.0)
+save("Interior/scape_stellar_hive_loop.wav", circular(lambda y: soften(highpass(y, 120), 5000, 0.4), hive), -24)
+
+# 곰 주민 "음~" (낮, 꿀 샘 그루터기 가끔 3D) — 후보 5 중 1: 배경 −50 dB · 2초 매끈한 "음~" (꿀맛) + 뒤에 짧은 "음음".
+# 긴 "음~" = F#4 −15센트 → −0.85반음 F4, 뒤 "음음" = G4 +4센트 (그대로). 3 = 씹는 소리, 4 = 딸깍 (지직 59), 2 = 날 선 시작 (2.9 ms), 5 = 지직 28.
+br = load(SG + "bear.wav")
+save("Interior/scape_stellar_bear_01.wav", fade(highpass(pitch(sl(br, 0.05, 2.3), -0.85), 120), 0.02, 0.25), -14)
+save("Interior/scape_stellar_bear_02.wav", fade(highpass(sl(br, 3.92, 5.3), 120), 0.02, 0.15), -14)
+
+
+def flower_bell(f, dur=2.4, seed=0):
+    """수정 꽃송이 종 — 맑은 유리 종 (기음 + 2배 · 2.76배 · 5.4배 옅게, 높은 배음부터 꺼짐) · 부드럽게 치고 길게 남음."""
+    t = np.arange(int(dur * SR)) / SR
+    x = (np.sin(2 * np.pi * f * t) * np.exp(-t / 0.9) + 0.25 * np.sin(2 * np.pi * 2 * f * t + 0.4 + seed) * np.exp(-t / 0.6)
+         + 0.3 * np.sin(2 * np.pi * 2.76 * f * t + 1.1 + seed) * np.exp(-t / 0.35) + 0.1 * np.sin(2 * np.pi * 5.4 * f * t + 2.3) * np.exp(-t / 0.15))
+    return fade(onepole_lp(x * (1 - np.exp(-t / 0.003)), 6000), 0.0, 0.4)
+
+
+# 수정 꽃 종 (정자 꽃송이, 가끔 3D · 음계 높이 · 다음 박 — 밤에도) — 도6 하나.
+save("Interior/scape_stellar_flowerbell_01.wav", flower_bell(C6), -14)
+# 대표 선율 = 꽃 그네가 굴러 오르듯 파5 · 라5 · 도6 · 레6 · 파6 (반 박씩, 마지막 길게)
+motif = np.zeros(int(5.5 * SR))
+for i, semis in enumerate((-7, -3, 0, 2, 5)):
+    motif = place(motif, flower_bell(C6 * 2 ** (semis / 12), 3.0 if i == 4 else 2.4, i) * (0.8 + 0.05 * i), i * BEAT / 2)
+save("Interior/scape_stellar_motif.wav", fade(motif, 0.0, 1.0), -20)
+
 print("\n".join(report))
