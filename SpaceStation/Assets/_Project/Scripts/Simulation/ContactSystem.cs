@@ -434,8 +434,27 @@ namespace SpaceStation.Simulation
 
         // ---------------- 습격 ----------------
 
+        /// <summary>REVIEW_1115 6번 공통 고리: 습격 요청 (어느 세력 · 평판 단계 · 계급 · 규모 · 경계 태세).</summary>
+        public struct RaidRequest
+        {
+            public ContactFaction Faction;
+            public ReputationTier Tier;
+            public int Rank;
+            public float Scale;
+            public bool Guard;
+            public string Source;
+        }
+
+        /// <summary>습격을 넘겨받는 쪽 (단계형 습격 <see cref="RaidFleetSystem"/>). true면 넘겨받음 — 기존 포격 · 침입은 일어나지 않음. null = 기존 그대로.</summary>
+        public Func<RaidRequest, bool> RaidOverride { get; set; }
+
         private void QueueRaid(string source, bool guard)
         {
+            if (RaidOverride != null && RaidOverride(new RaidRequest
+                {
+                    Faction = Faction, Tier = Tier(Faction), Rank = Rank, Scale = Scale, Guard = guard, Source = source,
+                }))
+                return;
             _pendingRaid = _random01() < 0.5f ? RaidKind.Bombard : RaidKind.Boarding;
             _pendingScale = Scale;
             _pendingRank = Rank;
@@ -474,6 +493,31 @@ namespace SpaceStation.Simulation
         }
 
         private readonly List<ModuleInstance> _candidates = new List<ModuleInstance>();
+
+        /// <summary>
+        /// REVIEW_1115 6번 공통 고리: 단계형 습격이 침입 드론을 보냄 (기존 침입과 같은 판정 · 화면). 이미 침입 중이면 false.
+        /// </summary>
+        public bool BeginBoardingRaid(int drones, float seconds, float scale, string source)
+        {
+            if (Boarding || drones <= 0)
+                return false;
+            _candidates.Clear();
+            foreach (var m in Sim.Grid.Modules)
+            {
+                if (m == Sim.Core || !Sim.Connectivity.IsActive(m) || Sim.Damage.IsDamaged(m) || !DamageSystem.IsExterior(Sim.Grid, m))
+                    continue;
+                _candidates.Add(m);
+            }
+            if (_candidates.Count == 0)
+                return false;
+            BoardingTarget = _candidates[Math.Min(_candidates.Count - 1, (int)(_random01() * _candidates.Count))];
+            _pendingScaleAtBoarding = Math.Max(0.1f, scale);
+            DronesTotal = DronesLeft = drones;
+            BoardingTimeLeft = Math.Max(1f, seconds);
+            Sim.Report($"{source} 침입: 드론 {DronesTotal}기가 {ModuleName(BoardingTarget)}에 들어왔습니다 · {BoardingTimeLeft:0}초 안에 내부에서 꺼야 합니다 (V 들어가기)", false);
+            Changed?.Invoke();
+            return true;
+        }
 
         private bool BeginBoarding(float defense)
         {

@@ -177,7 +177,7 @@ namespace SpaceStation.Simulation
         /// 유성우가 진행 중이면 시작하지 않음 (false — 동시에 일어나지 않게 부르는 쪽이 다시 시도).
         /// M-20: <paramref name="label"/> = 화면 이름(서사판 절정 "큰 유성우" 등), <paramref name="avoid"/> = 이 방향은 고르지 않음 (0이면 아무 방향).
         /// </summary>
-        public bool BeginRaid(float warningSeconds, int waves, int hitsPerWave, string source, string label = "포격", Vector3Int avoid = default)
+        public bool BeginRaid(float warningSeconds, int waves, int hitsPerWave, string source, string label = "포격", Vector3Int avoid = default, Vector3Int toward = default)
         {
             if (Active)
                 return false;
@@ -186,7 +186,7 @@ namespace SpaceStation.Simulation
             IsRaid = true;
             _raidLabel = string.IsNullOrEmpty(label) ? "포격" : label;
             _raidWaves = Math.Max(1, waves);
-            Direction = PickDirection(avoid);
+            Direction = toward != default ? toward : PickDirection(avoid); // REVIEW_1115 6번: 같은 함대는 같은 쪽에서 (0이면 예전과 같은 난수)
             HitsPerWave = Math.Max(1, hitsPerWave);
             WavesDone = 0;
             Phase = ShowerPhase.Warning;
@@ -221,6 +221,21 @@ namespace SpaceStation.Simulation
             Phase = ShowerPhase.Idle;
             _currentWaves = 0;
             _timer = NextInterval();
+            _facingDirty = true;
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>
+        /// REVIEW_1115 6번 공통 고리: 진행 중인 포격(<see cref="BeginRaid"/>)을 남은 파 없이 끝냄 (쏘던 함선이 꺾이거나 물러감). 유성우 시계는 포격 전 그대로. 포격이 아니면 false.
+        /// </summary>
+        public bool EndRaid()
+        {
+            if (!IsRaid || Phase == ShowerPhase.Idle)
+                return false;
+            Phase = ShowerPhase.Idle;
+            IsRaid = false;
+            _timer = _resumeTimer;
             _facingDirty = true;
             Changed?.Invoke();
             return true;

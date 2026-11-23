@@ -188,6 +188,8 @@ namespace SpaceStation.Simulation
         public ExileSystem Exile { get; }
         /// <summary>12-3c 지구급 방문 세력 + 평판 (설정에 없으면 null).</summary>
         public ContactSystem Contact { get; }
+        /// <summary>REVIEW_1115 6번 단계형 습격 (방문 세력 설정에 함대 값이 없으면 null).</summary>
+        public RaidFleetSystem RaidFleet { get; }
         /// <summary>12-5 여객 도킹 포트 이민선.</summary>
         public ImmigrationSystem Immigration { get; }
         /// <summary>도착 안내판이 보는 이민선 일정 — 기본 = <see cref="Immigration"/>, 이민선을 따로 정하는 쪽(서사판)이 바꿈.</summary>
@@ -319,6 +321,8 @@ namespace SpaceStation.Simulation
                 ResearchExpansion = AddSystem(new ResearchExpansionSystem(settings.ResearchExpansion), TickStepNames.Research); // 레벨 연구 바로 뒤
             if (settings.Contact != null)
                 Contact = AddSystem(new ContactSystem(settings.Contact, settings.HazardRandom01), HeatSystem.SystemKey); // 지구급 전에는 아무것도 안 함
+            if (Contact != null && settings.Contact.Fleet != null) // REVIEW_1115 6번 단계형 습격 (규칙 '함대 습격'이 열려야 넘겨받음)
+                RaidFleet = AddSystem(new RaidFleetSystem(settings.Contact.Fleet, settings.HazardRandom01), ContactSystem.SystemKey);
             EvaluateProgression();
         }
 
