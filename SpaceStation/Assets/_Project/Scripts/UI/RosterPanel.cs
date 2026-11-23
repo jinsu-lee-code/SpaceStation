@@ -163,7 +163,7 @@ namespace SpaceStation.UI
             // 내용 (패드 주민 탭과 같은 구성, 배율만 크게) — 높이를 알아야 창 크기가 정해지므로 먼저 만든다
             var content = HoloUi.Rect("Content", _window);
             content.localScale = new Vector3(ContentScale, ContentScale, 1f);
-            _view = new RosterView(_ui, content, ContentWidth, _roster, top: 0f, rowsPerPage: Mathf.Max(1, _pageRows));
+            _view = new RosterView(_ui, content, ContentWidth, _roster, top: 0f, rowsPerPage: Mathf.Max(1, _pageRows), exile: _station.Simulation.Exile);
             const float head = 96f, foot = 30f, side = 33f;
             _window.sizeDelta = new Vector2(ContentWidth * ContentScale + side * 2f, head + _view.Height * ContentScale + foot);
             HoloUi.Place(content, new Vector2(side, -head), new Vector2(ContentWidth, _view.Height));

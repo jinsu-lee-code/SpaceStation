@@ -72,6 +72,7 @@ namespace SpaceStation.Editor
                 Policy("PO_EmergencyDrill", "비상 대비", "상시 비상 훈련을 합니다", PolicyStance.Control,
                     M(PolicyStat.RepairSpeed, 1.25f), M(PolicyStat.DestroyTimer, 1.3f), M(PolicyStat.Production, 0.9f)),
             };
+            policies.AddRange(ExilePolicies());
             string configPath = $"{PolicyDir}/PolicyConfig.asset";
             var config = AssetDatabase.LoadAssetAtPath<PolicyConfig>(configPath);
             if (config == null)
@@ -116,6 +117,47 @@ namespace SpaceStation.Editor
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("[GradeRulesSetup] 정책 8개 · 설정 · 정책 창 연결 완료");
+        }
+
+        /// <summary>
+        /// REVIEW_1115 5번 주민 관리 정책 4종 (사용자 결정 2026-11-24): 추방령(통제형) · 사면(자율형) · 이주 지원(중립) · 귀환 허가(자율형).
+        /// </summary>
+        private static System.Collections.Generic.List<PolicyData> ExilePolicies()
+        {
+            PolicyModifier M(PolicyStat s, float v) => new PolicyModifier { Stat = s, Value = v };
+            return new System.Collections.Generic.List<PolicyData>
+            {
+                Policy("PO_ExileDecree", "추방령", "말썽을 부리는 주민을 바로 내보낼 수 있게 합니다", PolicyStance.Control,
+                    M(PolicyStat.ExileCost, 0.5f), M(PolicyStat.ComplainerChance, 0.5f), M(PolicyStat.SatisfactionCap, -5f)),
+                Policy("PO_Amnesty", "사면", "누구도 내보내지 않겠다고 약속합니다", PolicyStance.Autonomy,
+                    M(PolicyStat.ExileBlocked, 1f), M(PolicyStat.SatisfactionCap, 5f), M(PolicyStat.LeaveInterval, 1.5f), M(PolicyStat.Production, 0.95f)),
+                Policy("PO_ResettlementAid", "이주 지원", "떠나는 주민에게 짐을 챙겨 보냅니다", PolicyStance.Neutral,
+                    M(PolicyStat.SendOffSupplies, 10f), M(PolicyStat.ExileCost, 0.5f)),
+                Policy("PO_ReturnPermit", "귀환 허가", "떠난 주민이 돌아올 길을 열어 둡니다", PolicyStance.Autonomy,
+                    M(PolicyStat.ReturnChance, 0.25f), M(PolicyStat.ImmigrationSize, 0.9f)),
+            };
+        }
+
+        /// <summary>REVIEW_1115 5번: 주민 관리 정책 4종만 만들고 정책 설정 목록 끝에 더함 (씬은 건드리지 않음).</summary>
+        [MenuItem("SpaceStation/Grade Rules/Setup Exile Policies")]
+        public static void SetupExilePolicies()
+        {
+            if (!AssetDatabase.IsValidFolder(PolicyDir))
+                AssetDatabase.CreateFolder("Assets/_Project/Data", "Policies");
+            var config = AssetDatabase.LoadAssetAtPath<PolicyConfig>($"{PolicyDir}/PolicyConfig.asset");
+            if (config == null)
+            {
+                Debug.LogError("[GradeRulesSetup] PolicyConfig 없음 — Setup Policies를 먼저");
+                return;
+            }
+            var list = new System.Collections.Generic.List<PolicyData>(config.Policies);
+            foreach (var p in ExilePolicies())
+                if (!list.Contains(p))
+                    list.Add(p);
+            config.SetPolicies(list);
+            EditorUtility.SetDirty(config);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[GradeRulesSetup] 주민 관리 정책 4종 · 정책 {list.Count}종");
         }
 
         private static PolicyData Policy(string file, string name, string description, PolicyStance stance, params PolicyModifier[] modifiers)
