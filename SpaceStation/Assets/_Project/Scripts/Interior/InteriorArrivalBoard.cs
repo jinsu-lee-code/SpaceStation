@@ -92,6 +92,10 @@ namespace SpaceStation.Interior
         {
             _flash = text;
             _flashUntil = now + FlashSeconds;
+            // 도착 안내 "띵동" (안내판 자리 3D, 이민선 도착 소리 1.2초 뒤 — 4-4, 2026-11-26)
+            var svc = SpaceStation.Audio.AudioService.Instance;
+            if (svc != null && svc.Library != null && _panels.Length > 0 && PlayerInRoom)
+                svc.PlayAt(svc.Library.ObjQueueChime, transform.TransformPoint(_panels[0].Center), 1f, 2f, 15f, 1f, 1.2f);
         }
 
         private void Show(string title, Color titleColor, string body, Color bodyColor)

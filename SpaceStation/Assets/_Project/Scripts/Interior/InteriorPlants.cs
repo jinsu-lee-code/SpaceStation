@@ -121,6 +121,45 @@ namespace SpaceStation.Interior
                 _builder.RoomBuilt -= AddRoom;
         }
 
+        // 사운드 개편 4-4 · D-8 (2026-11-26): 걷다가 식물 곁을 스치면 "스윽" (그 식물 자리 3D — InteriorObjectSound.Brushes, 0.1초마다 · 식물마다 1.5초에 한 번)
+        private FirstPersonController _player;
+        private Vector3 _playerLast;
+        private float _brushAt;
+        private readonly Dictionary<Plant, float> _brushed = new Dictionary<Plant, float>();
+
+        private void Update()
+        {
+            float now = Time.unscaledTime;
+            float span = now - _brushAt;
+            if (span < 0.1f || _plants.Count == 0)
+                return;
+            _brushAt = now;
+            if (_player == null)
+            {
+                _player = FindFirstObjectByType<FirstPersonController>();
+                if (_player != null)
+                    _playerLast = _player.transform.position;
+                return;
+            }
+            var pos = _player.transform.position;
+            float speed = new Vector2(pos.x - _playerLast.x, pos.z - _playerLast.z).magnitude / span;
+            _playerLast = pos;
+            if (speed > 12f)
+                return;   // 순간 이동 (패드 · 엘리베이터)
+            foreach (var p in _plants)
+            {
+                if (p.Root == null || Mathf.Abs(p.Root.position.y - pos.y) > 2.5f)
+                    continue;
+                var r = p.Root.position;
+                float d = new Vector2(r.x - pos.x, r.z - pos.z).magnitude;
+                _brushed.TryGetValue(p, out float last);
+                if (!InteriorObjectSound.Brushes(d, speed, now - last))
+                    continue;
+                _brushed[p] = now;
+                SpaceStation.Audio.AudioService.TryPlayAt(l => l.ObjPlantRustle, r + Vector3.up * 0.5f);
+            }
+        }
+
         private readonly HashSet<ModuleInstance> _rooms = new HashSet<ModuleInstance>();
 
         /// <summary>내부를 (다시) 만든 직후 — 식물은 템플릿 방 아래라 이미 지워졌음. 12-3c-opt: 방을 지을 때 그 방 식물을 놓음.</summary>

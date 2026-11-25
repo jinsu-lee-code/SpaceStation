@@ -142,7 +142,7 @@ namespace SpaceStation.UI
 
         private void HandleCompleted(ResearchCategoryData category, int level)
         {
-            AudioService.TryPlay(l => l.EventPositive, 0.8f);
+            // 연구 완료 소리는 GameAudio (NoticeWatch → research_done, 2026-11-26 바깥 알림) — 예전엔 여기서 좋은 소식 소리를 빌려 씀
             Refresh();
         }
 

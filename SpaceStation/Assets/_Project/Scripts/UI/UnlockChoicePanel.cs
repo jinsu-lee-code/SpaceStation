@@ -120,7 +120,11 @@ namespace SpaceStation.UI
             _tween.Play();
             _fx?.Replay();
             Refresh();
-            AudioService.TryPlay(l => l.UiOpen);
+            // 2026-11-26 바깥 알림: 고를 후보 카드가 있으면 카드 펼침 (unlock_reveal), 없으면 (열린 시스템 목록만) 창 열기
+            if (_choices.Pending)
+                AudioService.TryPlay(l => l.UnlockReveal);
+            else
+                AudioService.TryPlay(l => l.UiOpen);
         }
 
         private void HandleWindowOpened(object window)

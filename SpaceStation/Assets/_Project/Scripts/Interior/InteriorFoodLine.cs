@@ -66,6 +66,41 @@ namespace SpaceStation.Interior
 
         protected override void Refresh()
         {
+            UpdateSound();
+        }
+
+        private SpaceStation.Audio.ObjectLoop _beltSound;
+        private float _clunkAt;
+
+        /// <summary>
+        /// 사운드 개편 4-4 · D-8 (2026-11-26, SOUND_LIST_NEW conveyor_loop): 가공 라인 벨트 "스르르 달각" (벨트들 가운데 3D 루프 — 라인이 돌고 (게임 시간) 이 방에 있을 때) +
+        /// 가끔 (8 ~ 18초) 아무 벨트 끝 (물건이 기계로 들어가는 곳)에서 "덜컹" — 물건마다 소리 X (D-2). 로봇 팔 까딱임은 벨트 소리에 맡김.
+        /// </summary>
+        private void UpdateSound()
+        {
+            if (_from == null || _to == null || _from.Length == 0 || _to.Length < _from.Length)
+                return;
+            if (_beltSound == null)
+            {
+                var mid = Vector3.zero;
+                for (int b = 0; b < _from.Length; b++)
+                    mid += (_from[b] + _to[b]) * 0.5f;
+                _beltSound = InteriorMotionSound.LoopAt(transform, mid / _from.Length, l => l.ObjConveyorLoop, 2f, 14f);
+                if (_beltSound == null)
+                    return;
+            }
+            bool on = _items != null && Active && Time.timeScale > 0f && PlayerInRoom;
+            _beltSound.Level = on ? 1f : 0f;
+            float now = Time.unscaledTime;
+            if (!on || _clunkAt <= 0f)
+            {
+                _clunkAt = now + Random.Range(3f, 8f);
+                return;
+            }
+            if (now < _clunkAt)
+                return;
+            _clunkAt = now + Random.Range(8f, 18f);
+            SpaceStation.Audio.AudioService.TryPlayAt(l => l.ObjConveyorClunk, transform.TransformPoint(_to[Random.Range(0, _from.Length)]), 0.8f);
         }
 
         private void Update()

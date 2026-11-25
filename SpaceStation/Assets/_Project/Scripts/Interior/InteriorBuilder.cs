@@ -276,6 +276,13 @@ namespace SpaceStation.Interior
             return module != null && module.Data != null && _templates.TryGetValue(module.Data, out var t) ? t : null;
         }
 
+        /// <summary>방사선 경보판 (<see cref="InteriorRadiationBoard"/>)이 있는 방 = 차폐실 — 그 방 쪽 일반 문은 금고문 소리 (사운드 개편 4-1, 2026-11-26).</summary>
+        private bool IsShielded(ModuleInstance module)
+        {
+            var t = TemplateFor(module);
+            return t != null && t.Prefab != null && t.Prefab.GetComponent<InteriorRadiationBoard>() != null;
+        }
+
         /// <summary>
         /// 방 안을 아직 안 지었으면 지금 짓는다 (+ 이 방에 닿은 통로 튜브, 맞은편이 지어져 있으면 해치 도착점).
         /// 지은 뒤 <see cref="RoomBuilt"/>로 알려 연출(주민 · 조명 · 식물 · 창 등)이 그 방을 채우게 한다. 방 오브젝트의 켜짐 상태는 그대로.
@@ -702,7 +709,8 @@ namespace SpaceStation.Interior
             var kind = other != null ? ConnectorStyle.DoorAt(StageOf(module), StageOf(other)) : DoorKind.Normal;
             if (kind == DoorKind.Open)
                 return;
-            var sound = kind == DoorKind.Airlock ? DoorSound.Airlock : StageOf(module) >= 1 ? DoorSound.Stage1 : DoorSound.Basic;
+            // 2026-11-26 사운드 개편 4-1: 방사선 차폐실 (경보판이 있는 방) 쪽 일반 문 = 금고문 소리
+            var sound = InteriorDeviceSound.DoorFor(kind, StageOf(module), IsShielded(module)) ?? DoorSound.Basic;
             BuildDoor(module, parent, center + up * (doorBottom + InteriorGeometry.DoorHeight * 0.5f) - panel.Normal * (t * 0.5f), rotation,
                 kind == DoorKind.Airlock ? _kit.AirlockLeaf : null, sound);
         }

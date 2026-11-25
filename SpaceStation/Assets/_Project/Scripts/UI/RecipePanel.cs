@@ -61,6 +61,7 @@ namespace SpaceStation.UI
         private TMP_Text _researchStatus, _slots;
         private float _listTop, _listX;
         private RectTransform _listContent;   // 진화 모듈 48종: 목록이 본문 높이를 넘으면 휠 · 끌기로 스크롤
+        private SpaceStation.Interior.InteriorMode _interior;   // 합성 완료 소리 겹침 막기 (HandleCompleted)
 
         public bool IsOpen => _open;
 
@@ -78,6 +79,7 @@ namespace SpaceStation.UI
             BuildWindow();
             HudWindows.Opened += HandleWindowOpened;
             _syn.Completed += HandleCompleted;
+            _interior = FindFirstObjectByType<SpaceStation.Interior.InteriorMode>();
             Select(_syn.Recipes[0]);
             Refresh();
         }
@@ -158,7 +160,10 @@ namespace SpaceStation.UI
 
         private void HandleCompleted(SynthesisJob job, ModuleInstance result)
         {
-            AudioService.TryPlay(l => l.EventPositive, 0.8f);
+            // 합성 완료 (2026-11-26 바깥 알림에서 찾음): 바깥에선 GameAudio가 합성 완료 소리 (synth_done_1 ~ 3)를 내므로 좋은 소식 소리를 겹치지 않음 —
+            // 1인칭 내부에서만 (그땐 합성 완료 소리가 안 울림) 예전처럼 좋은 소식 0.8. 레시피 (그림자) 연구 완료는 NoticeWatch → research_done
+            if (_interior != null && _interior.IsInside)
+                AudioService.TryPlay(l => l.EventPositive, 0.8f);
             Refresh();
         }
 

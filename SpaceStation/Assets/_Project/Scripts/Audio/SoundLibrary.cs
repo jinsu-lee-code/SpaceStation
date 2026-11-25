@@ -100,7 +100,15 @@ namespace SpaceStation.Audio
         public SoundCue BuildConnect = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.3f };
         public SoundCue RepairStart = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Cooldown = 0.2f };
         public SoundCue RepairDone = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.5f, Cooldown = 0.2f };
-        public SoundCue Maintain = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f };
+        [Tooltip("정비 (2026-11-26 사운드 개편 1-1, 1차 합성 임시음을 바꿈): 실제 녹음 래칫 렌치로 볼트 조이기 \"드륵 드륵 드륵\" (0.4초 간격 세 번, 1초). " +
+                 "바깥 정비 · 일괄 정비 한 번 · 1인칭 현장 수리 지점 마무리. 자동 정비는 무음 (D-2 · M-49, GameAudio). 음악 + 바탕 대비 귀 감도 약 +4.5 (0.37에서 +3.0을 잼)")]
+        public SoundCue Maintain = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.44f };
+        [Header("모듈 옮기기 (사운드 개편 2026-11-26, SOUND_LIST_NEW 2번 · 12-3b, 바깥 2D · 화면 좌우)")]
+        [Tooltip("옮기기 시작 = 집어 올림 (BuildController.BeginMove): 걸쇠 풀림 \"딸깍\" 옅게 + 반중력 바람결이 솟음 (실제 녹음 큰 휙, 0.85초). " +
+                 "크기 3갈래는 재생 높이 · 크기로 (BuildSound.MoveTone: 1칸 2반음 위 · 진화 3반음 아래). 약 +2.6 · +3.5 · +4.8 (0.3에서 +1.5 · +2.4 · +3.7을 잼)")]
+        public SoundCue ModuleMovePick = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.34f, Cooldown = 0.15f, MaxVoices = 1 };
+        [Tooltip("옮기기 확정 = 내려놓음 (BuildController.Moved): 내려오는 바람결 + 0.38초 \"툭\" (건조기 문) + 잠금 \"철컥\" 옅게 (1초). 배치보다 가볍게 (쿵 · 칙 없음). 크기 3갈래는 MoveTone. 약 +3.5 · +4.5 · +5.6 (0.65에서 +2.0 · +3.0 · +4.1을 잼)")]
+        public SoundCue ModuleMoveDrop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.77f, Cooldown = 0.15f, MaxVoices = 1 };
 
         [Header("이벤트·경보")]
         public SoundCue EventPositive = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.6f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
@@ -136,16 +144,64 @@ namespace SpaceStation.Audio
                  "같은 순간 운석 쪽 몸통은 MeteorImpactShieldL/S. 음 = 바깥 · 위기 · 내부 음악 모두의 조 안 (음높이 흔들기 끔), 안내 경보 (라5)와 다른 음. " +
                  "+3.0 (예전 합성 Ding · Clang +9.4). 실드 단계별 3갈래는 B 묶음")]
         public SoundCue ShieldDeflect = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.39f, Cooldown = 0.12f, MaxVoices = 2, Pitch = Vector2.one };
+
+        [Header("습격 포격 · 방어 단계 · 바깥 진화 연출 · 오가는 것 (사운드 개편 2026-11-26, SOUND_LIST_NEW 2번 · 3번 · D-12, 작업자 P4)")]
+        [Tooltip("습격 포격탄 접근 (2D, 운석 \"휙\" 대신: 유성우 틀이 포격 중이고 이름이 \"포격\"일 때, DefenseSound): 실제 녹음 만화 폭탄의 떨어지는 휘파람 끝 1.6초, 끝 음 라6 (조 안), " +
+                 "도착 순간에 끝남 (RaidPeak 1.55초). 변형 2, 음높이 흔들기 끔. 1인칭 내부에서는 안 울림")]
+        public SoundCue RaidIncoming = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.32f, Cooldown = 0.25f, MaxVoices = 2, Pitch = Vector2.one };
+        [Tooltip("습격 포격탄 터짐 (모듈에 맞음 = 그대로 · 몰리면 작게, 포탑이 공중에서 맞힘 = 0.6배): 실제 녹음 박격포 \"쿠르릉\" + 불 \"훅\", 1.3초, 변형 3. 운석 금속 \"퉁\"과 다른 결")]
+        public SoundCue RaidImpact = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.5f, Cooldown = 0.08f, MaxVoices = 3, Pitch = new Vector2(0.96f, 1.04f) };
+        [Tooltip("실드 1단계 (실드 매트릭스, 육각 무늬): 기본 \"우웅-팅\" + 팅 뒤 작은 유리 \"치리리\" 여섯 (라6 · 레7 · 미7), 0.8초, 변형 3. 단계마다 조금씩 세게 (기본 +3.0, 이것 +3.5)")]
+        public SoundCue ShieldDeflectHex = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.41f, Cooldown = 0.12f, MaxVoices = 2, Pitch = Vector2.one };
+        [Tooltip("실드 2단계 (실드 돔, 오로라 파문): 기본 \"우웅-팅\" + 오로라 막이 일렁이는 \"쉬르르\" + 옅은 레5 · 라5 · 미6 울림, 1.1초, 변형 3 (약 +4)")]
+        public SoundCue ShieldDeflectAurora = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.44f, Cooldown = 0.12f, MaxVoices = 2, Pitch = Vector2.one };
+        [Tooltip("실드 3단계 (궤도 방어망, 수정 결정 막): 낮은 레2를 더한 우웅 + 수정 \"칭칭\" (라6 · 레7 · 미7) + 오로라 일렁임, 1.4초, 변형 3 (약 +4.5)")]
+        public SoundCue ShieldDeflectCrystal = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.46f, Cooldown = 0.12f, MaxVoices = 2, Pitch = Vector2.one };
+        [Tooltip("포탑 1 ~ 2단계 레이저 (보안청 · 방어 포대 · 요새 포대 · 치안 본부): 기본과 같은 자석 \"징\"을 7반음 낮춰 굵게 + 유리 \"퓨\" 키움 + 낮은 \"둥\", 0.42초, 변형 3, 음높이 흔들기 끔")]
+        public SoundCue TurretLaser1 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.25f, Cooldown = 0.05f, MaxVoices = 3, Pitch = Vector2.one };
+        [Tooltip("포탑 3단계 프리즘 광선 (궤도 방어망 수정 부표): 1단계 레이저 + 수정 \"치리링\" (레6 · 라6 · 레7 오름), 0.65초, 변형 3, 음높이 흔들기 끔")]
+        public SoundCue PrismBeam = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.33f, Cooldown = 0.05f, MaxVoices = 3, Pitch = Vector2.one };
+        [Tooltip("바깥 오로라 (실드 돔 · 궤도 방어망 AuroraFx, ExteriorFxAudio: 가까이 · 화면 가운데만 · 먹먹하게, 밤 1 · 낮 0.7): 궤도 방어망 밤 오로라 울림과 같은 합성을 바깥 음 레4 · 라4 · 레5 · 미5로, 16초 = 24박")]
+        public SoundCue FxAuroraLoop = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.95f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("바깥 빛기둥 (궤도 미러 LightBeamFx): 낮은 빛 울림 (레3 · 라3 · 레4 + 데워진 빛 결 잡음), 12초 = 18박")]
+        public SoundCue FxLightBeamLoop = new SoundCue { Bus = AudioBus.Ambient, Volume = 1.05f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("바깥 번개 (그리드 허브 LightningFx 탑에서 치는 번개, 몇 초에 한 번): 1인칭 번개와 같은 찌직 원본 + 옅은 퐁 (레5 · 라5 · 미6) + 먼 천둥 녹음 한 토막, 변형 3")]
+        public SoundCue FxLightning = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.28f, Pitch = Vector2.one, Cooldown = 3.5f, MaxVoices = 2 };
+        [Tooltip("바깥 요새 포대 박격포대 불꽃 쏨 (FireworkFx.Launched): 1인칭 폭죽놀이와 같은 파일 (Ride/firework_launch_)")]
+        public SoundCue FxFireworkLaunch = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.94f, 1.06f), Cooldown = 0.3f, MaxVoices = 2 };
+        [Tooltip("바깥 불꽃 터짐 (쏨 0.8초 뒤 · 요새 포대 · 궤도 방어망이 운석을 맞혀 별자리 불꽃): 1인칭 폭죽놀이와 같은 실제 녹음 (Ride/firework_burst_)")]
+        public SoundCue FxFireworkBurst = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.32f, Pitch = new Vector2(0.9f, 1.1f), Cooldown = 0.3f, MaxVoices = 2 };
+        [Tooltip("바깥 드론 쇼 (드론 정비창 DroneShowFx, 큰 쇼 1 · 평소 0.75): 1인칭 쇼와 같은 드론 떼 (Ride/droneshow_swarm_loop)")]
+        public SoundCue FxDroneShowLoop = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.71f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("바깥 은하수 후룸 물길 (화물 환적장 FlumeRideFx): 1인칭 후룸 물살과 같은 파일 (scape_bio_sluice_loop)")]
+        public SoundCue FxFlumeLoop = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.47f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("바깥 후룸 큰 낙하 물보라 (FlumeRideFx.Splashed): 1인칭과 같은 파일 (Ride/flume_big_splash)")]
+        public SoundCue FxFlumeSplash = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.28f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 1f, MaxVoices = 2 };
+        [Tooltip("바깥 가리비 배 (궤도 항만 BoatShuttleFx): 소리 풍경 배 물살과 같은 파일 (scape_port_wake_loop)")]
+        public SoundCue FxBoatLoop = new SoundCue { Bus = AudioBus.Ambient, Volume = 1.2f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("바깥 순찰차 부양 (치안 본부 PatrolCarFx, 날면 1 · 서 있으면 0.6): 1인칭 순찰차와 같은 파일 (Ride/patrol_hover_loop)")]
+        public SoundCue FxPatrolHoverLoop = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.32f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("바깥 순찰차 출동 · 돌아옴 경광음: 1인칭과 같은 \"삐용\" 레6에서 라5 (Ride/patrol_siren)")]
+        public SoundCue FxSiren = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.15f, Pitch = Vector2.one, Cooldown = 1f, MaxVoices = 2 };
+        [Tooltip("바깥 바이오스피어 구름 비 (RainFx): 소리 풍경 구름 비와 같은 파일 (scape_bio_rain_loop)")]
+        public SoundCue FxRainLoop = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.9f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("바깥 오가는 배 엔진 (화물선 · 채굴선 · 보급선 · 지나가는 배, 같은 배 모형 AmbientSpace): 실제 녹음 먼 제트기의 고른 구간 고리, 배를 따라 크기 · 좌우 · 높이 (빠를수록 크게, 작은 배 높게)")]
+        public SoundCue ExtShipEngine = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.34f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("실드에 튕겨 우주로 멀어지는 운석 \"휘우우\" (MeteorFx.PassedAway, 0.2초 늦게): 운석 접근과 같은 녹음을 거꾸로 된 모양으로 (낮고 어두워지며 잦아듦), 변형 2")]
+        public SoundCue ExtMeteorPass = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.25f, Pitch = new Vector2(0.95f, 1.05f), Cooldown = 0.3f, MaxVoices = 2 };
         [Tooltip("모듈 파손 금속 균열 (2026-11-25, 알림은 위험 경보 alert_danger): 실제 녹음 얼음 갈라짐 9반음 아래 + 캔 찌그러짐 10반음 아래 = \"쩌억 찌그럭\" 0.7초, 3 kHz 아래. " +
                  "번진 파손 등 운석 밖의 파손, 운석에는 파손된 장갑에만 (선체 충돌에는 찢김이 들어 있음). +4.3 (예전 합성 +4.5)")]
         public SoundCue ModuleDamaged = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.39f, Cooldown = 0.2f, MaxVoices = 2 };
         public SoundCue ModuleDestroyed = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.75f, Cooldown = 0.3f, MaxVoices = 2 };
-        public SoundCue StormSpark = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.22f, Cooldown = 0.12f, MaxVoices = 2, Pitch = new Vector2(0.85f, 1.2f) };
+        [Tooltip("짧은 전기 \"파직\" (2026-11-26 사운드 개편 1-1, 1차 합성 셋을 바꿈): 실제 녹음 전기 아크의 다른 순간 여섯 (0.12 ~ 0.28초, 변형끼리 같은 크기). " +
+                 "바깥 태양 폭풍 태양광 판 (내부에 있으면 안 울림) · 내부 파손 방 · 현장 수리 지점 · 사고 차단기 · 드론 끄기가 함께 씀 (D-2 초 단위로 몰림)")]
+        public SoundCue StormSpark = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.16f, Cooldown = 0.12f, MaxVoices = 2, Pitch = new Vector2(0.85f, 1.2f) };
         [Tooltip("산소 누출 사건 (나쁜 사건 알림 0.6초 뒤 2D) — 실제 녹음 스팀 김 \"쉬익\" 큰 크기 (2026-11-25, 정전기 · 흰 잡음으로 들리던 것을 바꿈). 작은 크기 oxygen_leak_small은 파일만 — 예정 (이웃에 따라 규모)")]
         public SoundCue OxygenLeak = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.32f, Cooldown = 1f, MaxVoices = 1 };
         public SoundCue SupplyArrive = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Cooldown = 1f, MaxVoices = 2, Pitch = Vector2.one };
         public SoundCue GradeUp = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.6f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
-        public SoundCue Victory = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.7f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("대형 등급 첫 도달 (2026-11-26 바깥 알림: 1차 합성 4.4초를 바꿈, 그 순간 등급 상승 소리는 안 울림): 밝은 성취 음악 3.4초, 유리 결 오름 셋 + Dsus2 Asus4 패드 + 둥 + 반짝 (레 미 솔 라만). 게임 안 +8.5 = 위험 경보와 같게 (치명 아래, 예전 1차 합성은 약 +17)")]
+        public SoundCue Victory = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.36f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
         public SoundCue GameOver = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.8f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
 
         [Header("경보 위계 4단계 (사운드 개편 2026-11-25, SOUND_LIST_NEW D-3 · AlertSound)")]
@@ -157,6 +213,40 @@ namespace SpaceStation.Audio
         public SoundCue AlertDanger = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.54f, Cooldown = 3f, MaxVoices = 1, Pitch = Vector2.one };
         [Tooltip("치명: 세 음 내림을 빠르게 두 번 + 낮은 울림 (레2) · 모듈 파괴 (실패 조건 경보 고리 AlarmLoop도 같은 가족). +9.5")]
         public SoundCue AlertCritical = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.7f, Cooldown = 3f, MaxVoices = 1, Pitch = Vector2.one };
+
+        [Header("바깥 알림 (사운드 개편 2026-11-26, SOUND_LIST_NEW 2번 · NoticeSound · AlertSound.TryPlayAs)")]
+        [Tooltip("연구 완료 · 레시피 (그림자) 연구 완료 · 연계 연구 완료 (예전 좋은 소식 EventPositive 0.8을 빌림): 데이터 착착착착 (레6 미6 솔6 라6) + 차임 레5 라5, 레6. 위계 밖 좋은 소식, 여러 개가 한꺼번에 끝나도 1초에 한 번. 게임 안 +5.4 (같은 판 주의 경보 +7.1)")]
+        public SoundCue ResearchDone = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.29f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("해금 선택 창을 고를 후보가 있을 때 열면 (창 열기 대신): 실제 녹음 카드 세 장 슥 슥 슥 + 내려앉는 탁 + 반짝 미6 라6 옅게. 게임 안 약 +4.6 (창 열기 수준)")]
+        public SoundCue UnlockReveal = new SoundCue { Bus = AudioBus.Ui, Volume = 0.31f, Cooldown = 0.3f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("정책을 슬롯에 예약 (결재, 정책 줄 버튼은 클릭음 없이 이것 하나): 실제 녹음 카드 뭉치 툭 (도장) + 둥근 몸통 + 전자음 삐빅 (레6 라6) 옅게. 게임 안 +4.7")]
+        public SoundCue PolicyEnact = new SoundCue { Bus = AudioBus.Ui, Volume = 0.6f, Cooldown = 0.15f, MaxVoices = 2, Pitch = Vector2.one };
+        [Tooltip("사회 위기 선택지 (파업 조짐): 주의 자리를 대신 맡는 뜻 소리 = 주의 음형 (라5 미5) + 긴장 스팅 (낮은 레 라 빈 5도가 떨며 부풂 + 둥). 파업 발생은 위험 경보 그대로. 게임 안 +6.9 (주의 경보와 같게)")]
+        public SoundCue SocialCrisis = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.48f, Cooldown = 1.5f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("역병 발생: 위험 자리를 대신 맡는 뜻 소리 = 위험 음형 (라5 솔5 레5 + 둥) + 낮은 불길음 (레2 맥놀이 + 어두운 숨). 역병 징후는 주의 경보 그대로. 게임 안 +8.6 (위험 경보 +8.5)")]
+        public SoundCue PlagueOutbreak = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.56f, Cooldown = 3f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("역병을 막음 (방역 물자 · 격리 · 캠페인) 또는 역병이 끝남: 따뜻한 회복음 (레 라 패드 + 미5, 라5). 위계 밖 좋은 소식, 위험 이상 경보가 막 울렸으면 생략. 게임 안 약 +4.4")]
+        public SoundCue PlagueCured = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.28f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("외부 접촉 상인 연합 도착 (해독된 함선만, 정체 불명은 주의 경보 그대로라 소리로 정체가 새지 않음): 주의 자리 = 무전 치직 + 레5, 라5 (오름) + 칙. 게임 안 +7.0")]
+        public SoundCue ContactArrive1 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.39f, Cooldown = 1.5f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("외부 접촉 학술 함대 도착: 무전 치직 + 라5, 미6 + 라6 레7 짧게 (데이터). 게임 안 +7.0")]
+        public SoundCue ContactArrive2 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.34f, Cooldown = 1.5f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("외부 접촉 무법 선단 도착: 무전 치직 크게 + 라4, 레4 (내림 5도) + 낮은 레3 둥. 게임 안 +7.2")]
+        public SoundCue ContactArrive3 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.7f, Cooldown = 1.5f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("외부 접촉 결과 (교역 · 협상 · 경계 · 응답 없이 떠남, 대응 버튼은 클릭음 없이 이것 하나): 무전 닫힘 칙 + 솔5, 레6. 게임 안 약 +3.6 (확인음 수준)")]
+        public SoundCue ContactResult = new SoundCue { Bus = AudioBus.Ui, Volume = 0.24f, Cooldown = 0.3f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("유성우 방향 예보: 주의 자리 = 주의 음형 + 레이더 핑 (라6) + 다가오는 낮은 바람, 화면 좌우 = 오는 방향. 습격 포격 예보는 위험 경보 그대로. 게임 안 +7.0")]
+        public SoundCue MeteorShowerWarn = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.43f, Cooldown = 1.5f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("열 과열 (모듈이 위험 열에 들어 60초 뒤 파손, 8번 overheat 같은 파일): 주의 자리 = 주의 음형 + 실제 녹음 가마솥 거품 + 김 지글. 30초에 한 번까지. 게임 안 +6.8")]
+        public SoundCue HeatWarning = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.43f, Cooldown = 1.5f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("낮이 됨 (바깥에서만): 아주 작은 전환음, 느린 패드 레4 라4 미5 + 반짝 옅게. 게임 안 약 0 (음악 + 바탕과 비슷하게)")]
+        public SoundCue Dawn = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.21f, Cooldown = 5f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("밤이 됨 (바깥에서만): 아주 작은 전환음, 낮은 패드 라3 레4 미4 (1.8 kHz 아래). 게임 안 약 0")]
+        public SoundCue Dusk = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.34f, Cooldown = 5f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("연결이 끊겨 끝쪽 모듈이 꺼짐 (CONNECT M9, 한 프레임에 여러 개 = 한 번, 철거 소리 0.35초 뒤): 실제 녹음 청소기 스위치 딸깍 + 서는 모터 우웅 (5반음 아래). 위험 이상 경보가 막 울렸으면 생략. 게임 안 약 +4.6")]
+        public SoundCue ModuleDisconnect = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.33f, Cooldown = 0.5f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("끊겼던 모듈이 다시 이어짐 (배치 소리 0.55초 뒤): 도는 모터 우웅 + 레5, 라5 옅게. 게임 안 약 +3.5")]
+        public SoundCue ModuleReconnect = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.27f, Cooldown = 0.5f, MaxVoices = 1, Pitch = Vector2.one };
 
         [Header("반복 (루프)")]
         [Tooltip("실패 조건 경보 (치명 가족 고리, 2026-11-25): 치명 소리를 2초마다, 남은 10초부터 GameAudio가 5도 위로. 귀 감도 평균 +3 · 최대 +7 (옛 사인 사이렌 +1.2)")]
@@ -226,6 +316,12 @@ namespace SpaceStation.Audio
         public SoundCue SynthDone3 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.48f, Pitch = Vector2.one, Cooldown = 0.3f, MaxVoices = 2 };
         [Tooltip("이민선 도착 (여객 도킹 포트 쪽, 내부에선 그 포트 방에 있을 때만) — 실제 녹음: 화물기 접근 (낮춰 먹먹하게) → 자동 잠금 \"철컥\" + 냉동고 문 \"쿵\" → 공중전화 부스 유압 \"치익\" (6.6초)")]
         public SoundCue ShipImmigrantArrive = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.85f, Cooldown = 2f, MaxVoices = 1 };
+        [Tooltip("화물 터미널 화물선 도킹 (2026-11-26, CargoSystem.Delivered 1.5초 뒤: 배가 4.5초에 입구 앞에 섬): 실제 녹음 디젤 트럭 접근 (낮춰 먹먹하게) → 3.0초 트레일러 걸쇠 \"쿵 · 철컹\" → 공기 \"퍽\" (4.2초). " +
+                 "이민선과 같은 꼴 (다가옴 · 집게 · 공기)이되 무겁고 짧게, 터미널이 여럿이면 몰려서 8초에 한 번까지. 내부에선 그 터미널 방에 있을 때만. 약 +3.7 (이민선 +5.0 아래, 0.7에서 +6.3을 잼)")]
+        public SoundCue ShipCargoDock = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.52f, Cooldown = 8f, MaxVoices = 1 };
+        [Tooltip("보급 상자 생김 (2026-11-26, SupplyCrateSystem.Spawn: 보급선 도착): 작은 상자가 내려앉는 \"툭\" + 속 물건 \"달그락\" (실제 녹음, 변형 3). " +
+                 "바깥 = 배가 머무는 5.6초 뒤 2D 한두 번 (개수만큼 조금 두껍게), 안 = 상자가 놓인 방에 있으면 상자 자리 3D (InteriorSupply). 바깥 약 +2.5 · 안 방 바탕 위 +5.2")]
+        public SoundCue CrateAppear = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.35f, Cooldown = 0.1f, MaxVoices = 3 };
 
         [Header("위아래 이동 장치 · 유리 엘리베이터 · 방 드나들기 (사운드 개편 2026-11-25, SOUND_LIST_NEW 4-1 · D-6)")]
         [Tooltip("이동 장치 목적지 판이 열림 = 장치 켜짐 (2D, 창 열기 0.5 대신) — 낮은 웅 F2 · F3 · C4 + 서보 \"윙\" + 유리 도6 → 파6")]
@@ -260,6 +356,50 @@ namespace SpaceStation.Audio
         public SoundCue InteriorExit = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
         [Tooltip("패드 빠른 이동 · 떨어짐 구조 (2D, 창 열기 0.5 대신, 2026-11-25) — 큰 휙을 짧고 가볍게 (실제 녹음, 2반음 올림) + 유리 두 음 라5 (어두워짐) → 도6 (밝아짐)")]
         public SoundCue PadTravel = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.35f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+
+        [Header("내부 장치 (사운드 개편 2026-11-26, SOUND_LIST_NEW 4-1 · 4-2 · 4-3: 금고문 · 빛 다리 · 우주복 · 패드 · 레이더 · 신호판 · 부탁 · 보급품 · 침입 드론)")]
+        [Tooltip("방사선 차폐실 금고문 열림 (차폐실 방 쪽 문짝 자리 3D, InteriorDeviceSound.DoorFor): 실제 녹음 축음기 손잡이 돌림 \"드르륵\" (바퀴) + 업소용 냉동고 손잡이 풀림 + 끝 \"툭\"")]
+        public SoundCue DoorVaultOpen = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.57f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.03f, MaxVoices = 3 };
+        [Tooltip("금고문 닫힘: 냉동고 문 먹먹한 \"쿵\" (0.25초) → 바퀴로 잠금 \"드르륵\" → 공구함 걸쇠 \"철컥\"")]
+        public SoundCue DoorVaultClose = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.49f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.03f, MaxVoices = 3 };
+        [Tooltip("빛 다리 · 문 승강판을 타는 동안 (2D 루프, InteriorMode): 호버 공 팬 웅 (실제 녹음) + 빛 판 \"웅웅\" 1.5 Hz 맥동 + 유리 결 파5 · 도6 · 파6 아주 옅게")]
+        public SoundCue LightBridgeLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.27f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("2단계 개방형 정원 우주복 신발 (헬멧 밖에서 걸을 때 바닥 발소리 위에 겹침 2D): 천 \"슥\" + 두툼한 \"푹\" (실제 녹음 옷 휘두름), 변형 6")]
+        public SoundCue StepSuit = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.65f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.12f, MaxVoices = 2 };
+        [Tooltip("우주복 헬멧 잠김 (실내 구역 밖으로 나설 때 2D, InteriorDeviceSound.SuitOn): 과자통 뚜껑 \"딸깍\" + 짧은 김 \"칙\" + 유리 파6 아주 옅게")]
+        public SoundCue SuitHelmet = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Pitch = Vector2.one, Cooldown = 1f, MaxVoices = 1 };
+        [Tooltip("헬멧 안 숨 (헬멧 밖에 있는 동안 2D 루프, 아주 작게): 방독면 너머 숨쉬기 (실제 녹음) 1.4 kHz 아래, 숨 넷 10.25초")]
+        public SoundCue SuitBreathLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.14f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("휴대 패드 꺼내기 (2D, 창 열기 0.6을 빌려 쓰던 자리): 오르는 바람결 + 유리 도5 · 파5 · 도6 + 낮은 웅 파3 (UI 한 벌과 같은 결)")]
+        public SoundCue PadRaise = new SoundCue { Bus = AudioBus.Ui, Volume = 0.16f, Pitch = Vector2.one, Cooldown = 0.1f, MaxVoices = 1 };
+        [Tooltip("패드 넣기 (창 닫기 0.6 대신): 도6 · 파5 · 도5 + 잦아드는 웅")]
+        public SoundCue PadLower = new SoundCue { Bus = AudioBus.Ui, Volume = 0.31f, Pitch = Vector2.one, Cooldown = 0.1f, MaxVoices = 1 };
+        [Tooltip("패드 홀로그램 모형 (확대해 모형이 보이는 동안 2D 루프): 형광등 안정기 웅 (실제 녹음, 시b2) + 유리 파5 · 도6 깜빡임 아주 옅게")]
+        public SoundCue PadHoloLoop = new SoundCue { Bus = AudioBus.Ui, Volume = 0.37f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("센서 어레이 레이더 화면 (표시대 3D 루프, 빛줄 한 바퀴 6초에 핑 하나): 유리 꽃병 \"딩\" 도6 (실제 녹음) + 메아리 + 옅은 PC 팬 웅. 예보 · 낙하 중이면 크게 (InteriorDeviceSound.RadarLevel)")]
+        public SoundCue RadarPingLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.17f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("해독실 통신 신호판 먼 무전 잡음 (신호판 3D 루프): 김 \"쉬\" + 전기 아크 \"지직\" (실제 녹음) 400 Hz ~ 2.8 kHz. 크기 = 신호판 파형과 같은 갈래 (InteriorDeviceSound.SignalNoise)")]
+        public SoundCue SignalNoiseLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.17f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("신호가 잡힘 (해독 끝, 신호판 3D): 잡음 \"치\"가 잦아들며 유리 파6 · 도7")]
+        public SoundCue SignalLock = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.47f, Pitch = Vector2.one, Cooldown = 1f, MaxVoices = 1 };
+        [Tooltip("주민 부탁 말풍선 (2D 알림, 창 열기 0.8을 빌려 쓰던 자리): 입으로 내는 \"뽁\" (실제 녹음, 레6로 맞춤) + 같은 높이 유리 결 옅게")]
+        public SoundCue RequestPop = new SoundCue { Bus = AudioBus.Sfx, Volume = 1f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("주민 부탁 완료 (2D, 좋은 소식 0.7 대신. 같은 프레임의 F 길게 누르기 완료 화음은 멈춤): 꽃 종 \"띵 동\" 도6 → 파6")]
+        public SoundCue RequestDone = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.62f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("시든 화분 물 주기 (F 누르는 1.2초, 화분 3D, 누르기 시작부터 · 떼면 꺼짐): 컵에 물 붓는 졸졸 + 끝 물방울 (실제 녹음)")]
+        public SoundCue WaterPour = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.49f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("덜컹거리는 환풍구 조이기 (F 누르는 1.5초, 환풍구 3D): 덮개 \"덜컥\" → 나사 \"끼릭\" 셋 → 1.45초 \"톡\" → 조용 (실제 녹음)")]
+        public SoundCue VentFix = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.49f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("환풍구 덮개가 덜컹거림 (환풍구 3D, 1.5 ~ 4초마다, BuildRotate를 빌려 쓰던 자리): 문고리 흔들림 \"덜컥\" (실제 녹음) 변형 3")]
+        public SoundCue VentRattle = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.35f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.3f, MaxVoices = 1 };
+        [Tooltip("보급 상자 줍기 (상자 자리 3D, 보급선 도착 소리를 빌려 쓰던 자리. 같은 프레임의 F 길게 누르기 완료 화음은 멈춤): 통 손잡이 \"덜컥\" + 상자 \"스윽\" (실제 녹음)")]
+        public SoundCue CratePickup = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.49f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.2f, MaxVoices = 1 };
+        [Tooltip("침입 드론이 선체를 뚫고 들어옴 (새 습격, 대상 방 자리 3D 25 m까지): 아크 \"지직\" → 판이 휘는 \"찌그럭 툭\" + 김 \"슉\" → 날개가 켜짐 (실제 녹음)")]
+        public SoundCue DroneBreach = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.6f, Pitch = Vector2.one, Cooldown = 1f, MaxVoices = 1 };
+        [Tooltip("침입 드론 떠 있음 (드론마다 3D 루프, 지금 있는 방일 때만): RC 헬기 날개 웅 (실제 녹음, 날개 줄을 파 음으로) 5 kHz 아래")]
+        public SoundCue DroneHoverLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.5f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("침입 드론을 끔 (드론 자리 3D, 스파크를 빌려 쓰던 자리): 날개가 잦아듦 + 작은 \"지직\" + 바닥에 \"툭\" (실제 녹음)")]
+        public SoundCue DroneDown = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.49f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.1f, MaxVoices = 2 };
 
         [Header("1인칭 할 일 (사운드 개편 2026-11-25, SOUND_LIST_NEW 4-3 — 현장 수리 · 내부 사고 4종 · F 길게 누르기)")]
         [Tooltip("F 길게 누르기 (0.5초 넘는 것만, 2D 루프) — 유리 결 파5 \"차오르는 음\", 코드가 누른 만큼 재생 높이를 파5 → 도6으로 올림 (UI 한 벌과 같은 F 장조 합성)")]
@@ -567,6 +707,32 @@ namespace SpaceStation.Audio
         public SoundCue StateFanStop = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.3f, Pitch = Vector2.one, Cooldown = 5f, MaxVoices = 1 };
         [Tooltip("상태 층 · 과열 (대륙급 열): 끓는 거품 (2D 루프)")]
         public SoundCue StateBoilLoop = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.8f, Pitch = Vector2.one };
+
+        [Header("방 장치 소리 · 바깥 일이 안에서 (사운드 개편 2026-11-26, SOUND_LIST_NEW 4-4 obj_* · D-8 · D-10 — 지금 있는 방의 부품 자리 3D)")]
+        [Tooltip("컨베이어 벨트 \"스르르 달각\" (단백질 배양실 · 식량 공장 · 자재 재생 벨트 · 조선소 롤러, 그 자리 3D 루프 · 라인이 돌고 이 방에 있을 때): 실제 녹음 러닝머신 벨트 + 에스컬레이터 발판")]
+        public SoundCue ObjConveyorLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.68f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("라인 끝 \"덜컹\" (상자 뚜껑이 닫힘 · 식량 공장 라인 끝 가끔 · 물류 스태커가 상자를 칸에 넣음, 그 자리 3D): 실제 녹음 수납장 문 \"툭\" 하나 + 음높이 흔들기")]
+        public SoundCue ObjConveyorClunk = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.13f, Pitch = new Vector2(0.95f, 1.05f), Cooldown = 0.4f, MaxVoices = 2 };
+        [Tooltip("서버 랙 팬 (데이터 센터 표시등 묶음 자리 3D 루프, 모듈이 켜져 있을 때 · 연구 중이면 크게): 실제 녹음 컴퓨터 본체 팬 (조 밖 줄 깎음)")]
+        public SoundCue ObjServerFanLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.26f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("화면 · 홀로그램 작은 전자 웅 (상태 화면 · 홀로그램 · 플라즈마 · 학습 코어 고리 자리 3D 루프, 4 m 안에서만): 형광등 안정기 웅을 Bb2로 (F 장조 안)")]
+        public SoundCue ObjScreenHumLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.24f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("물 추출기 얼음 \"딸그락\" (낙하관 아래 드럼 자리 3D, 얼음 조각이 드럼에 닿을 때 몇 초에 한 번): 실제 녹음 금속 국자로 얼음 퍼기 (CC0), 변형 3")]
+        public SoundCue ObjIceClatter = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.15f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.8f, MaxVoices = 1 };
+        [Tooltip("식물 곁을 지나감 \"스윽\" (화분 식물 · 나무 자리 3D, 걷다가 0.85 m 안을 스칠 때): 실제 녹음 덤불 흔들림, 변형 3")]
+        public SoundCue ObjPlantRustle = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.09f, Pitch = new Vector2(0.95f, 1.05f), Cooldown = 0.25f, MaxVoices = 2 };
+        [Tooltip("번호 부름 · 도착 안내 \"띵동\" (행정 · 보안청 민원 창구 번호가 바뀜 · 여객 포트 이민선 도착 안내판, 그 판 자리 3D): 1단계 생활 방 가끔 소리 \"띵동\" (파5 → 도6) 그대로")]
+        public SoundCue ObjQueueChime = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.13f, Pitch = Vector2.one, Cooldown = 0.6f, MaxVoices = 1 };
+        [Tooltip("D-10 운석이 모듈을 맞힘 (1인칭 내부, 맞은 모듈 칸 자리 3D 8 m까지 그대로 → 60 m에서 0): 선체 너머 먹먹한 \"쿵\" (실외기 \"퉁\" · 둔탁한 금속을 낮춰 700 Hz 아래) + 안의 물건 \"달그락\", 변형 4")]
+        public SoundCue HullThud = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.5f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.12f, MaxVoices = 3 };
+        [Tooltip("D-10 가까운 큰 충돌 · 유성우 몰아침 (1인칭 내부, 4초에 한 번까지): 먼 천둥 1.1 kHz 아래 = 선체 낮은 울림")]
+        public SoundCue HullRumble = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.25f, Pitch = Vector2.one, Cooldown = 3f, MaxVoices = 1 };
+        [Tooltip("D-10 태양 폭풍, 방 불빛이 번쩍이는 순간 조명 \"지직\" (2D, 몇 초에 한 번까지): 아크 지직이 대여섯 번 끊김 + 안정기 웅 옅게, 변형 2")]
+        public SoundCue LightFlicker = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.5f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 1.5f, MaxVoices = 1 };
+        [Tooltip("D-10 태양 폭풍 동안 가끔 방 스피커 무전 잡음 (2D, 14 ~ 30초마다): 실제 녹음 AM 라디오 튜닝 잡음 (말소리 없는 구간, CC0) 300 Hz ~ 3.5 kHz")]
+        public SoundCue RadioStatic = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.28f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 5f, MaxVoices = 1 };
+        [Tooltip("D-10 화물선 · 보급선 · 이민선이 다른 방 쪽에 붙음 · 합성 완료 (1인칭 내부, 그 모듈 칸 자리 3D): 트럭 문 \"쿵\" + 자물쇠 \"철컥\"을 낮춰 1.2 kHz 아래 = 선체로 전해지는 \"철컹\"")]
+        public SoundCue DockClank = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.35f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 1f, MaxVoices = 2 };
 
         /// <summary>2026-11-25 ⑥ 성격별 1단계 판 바탕.</summary>
         public SoundCue Room1For(Data.InteriorAmbience ambience)

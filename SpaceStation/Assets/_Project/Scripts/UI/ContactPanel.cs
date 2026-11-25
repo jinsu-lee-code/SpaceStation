@@ -266,7 +266,7 @@ namespace SpaceStation.UI
             for (int i = 0; i < kinds.Length; i++)
             {
                 var c = kinds[i];
-                var b = _ui.TechButton(_visitBox, "", 20f, () => Choose(c));
+                var b = _ui.TechButton(_visitBox, "", 20f, () => Choose(c), clickSound: false); // 결과 소리 (접촉 결과 확인음) 하나만
                 HoloUi.Place((RectTransform)b.transform, new Vector2(18f + i * 302f, -104f), new Vector2(290f, 80f));
                 var label = b.GetComponentInChildren<TMP_Text>();
                 label.enableWordWrapping = true;
@@ -298,7 +298,11 @@ namespace SpaceStation.UI
         private void Choose(ContactChoice choice)
         {
             if (_contact.Choose(choice))
-                AudioService.TryPlay(l => l.UiClick);
+            {
+                // 2026-11-26 바깥 알림: 접촉 결과 확인음 (AlertWatch → contact_result)이 울렸으면 그것 하나만
+                if (!AlertSound.PlayedThisFrame(l => l.ContactResult))
+                    AudioService.TryPlay(l => l.UiClick);
+            }
             else
                 AudioService.TryPlay(l => l.UiError);
             Refresh();

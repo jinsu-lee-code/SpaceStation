@@ -42,6 +42,62 @@ namespace SpaceStation.Interior
             var turn = Quaternion.AngleAxis(_angle, _localAxis);
             transform.localPosition = _localCenter + turn * (_startPosition - _localCenter);
             transform.localRotation = turn * _startRotation;
+            UpdateSound();
+        }
+
+        // 사운드 개편 4-4 · D-8 (2026-11-26): 부품 이름으로 고른 물체 소리 (InteriorObjectSound.ForOrbitPart — 템플릿을 다시 지어도 따라감) ·
+        // 지금 있는 방일 때만 · 멈추면 (SpeedScale 0) 끔. 날아다니는 드론 = 날개 웅 (침입 드론과 같은 녹음, 작게) · 홀로그램 · 플라즈마 = 작은 전자 웅 · 롤러 = 벨트 · 회전 선반 = 모터 낮게.
+        private bool _soundChecked;
+        private InteriorObjectSound.OrbitSound _sound;
+        private SpaceStation.Audio.ObjectLoop _loop;
+        private float _loopGain;
+        private SpaceStation.Core.ModuleInstance _room;
+        private float _roomAt = -99f, _hereAt = -99f;
+        private bool _here;
+
+        private void UpdateSound()
+        {
+            if (!_soundChecked)
+            {
+                _sound = InteriorObjectSound.ForOrbitPart(name);
+                _soundChecked = true;
+            }
+            if (_sound == InteriorObjectSound.OrbitSound.None)
+                return;
+            if (_loop == null)
+            {
+                if (SpaceStation.Audio.AudioService.Instance == null)
+                    return;
+                var at = InteriorMotionSound.LocalCenter(transform);
+                switch (_sound)
+                {
+                    case InteriorObjectSound.OrbitSound.Drone:
+                        _loop = InteriorMotionSound.LoopAt(transform, at, l => l.DroneHoverLoop, 1.5f, 10f);
+                        _loopGain = 0.45f;
+                        break;
+                    case InteriorObjectSound.OrbitSound.Hologram:
+                        _loop = InteriorMotionSound.LoopAt(transform, at, l => l.ObjScreenHumLoop, 1f, 5f);
+                        _loopGain = 1f;
+                        break;
+                    case InteriorObjectSound.OrbitSound.Roller:
+                        _loop = InteriorMotionSound.LoopAt(transform, at, l => l.ObjConveyorLoop, 1.5f, 10f);
+                        _loopGain = 0.6f;
+                        break;
+                    default:
+                        _loop = InteriorMotionSound.LoopAt(transform, at, l => l.RefineryCraneMoveLoop, 2f, 12f);
+                        _loopGain = 0.35f;
+                        if (_loop != null)
+                            _loop.Pitch = 0.8f;
+                        break;
+                }
+                if (_loop == null)
+                {
+                    _sound = InteriorObjectSound.OrbitSound.None;   // 클립이 없음 — 다시 찾지 않음
+                    return;
+                }
+            }
+            bool here = InteriorMotionSound.PlayerInRoomOf(transform, ref _room, ref _roomAt, ref _hereAt, ref _here);
+            _loop.Level = here && SpeedScale > 0.05f ? _loopGain : 0f;
         }
     }
 }

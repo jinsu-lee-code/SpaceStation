@@ -130,6 +130,26 @@ namespace SpaceStation.Interior
         protected override void Refresh()
         {
             Setup();
+            UpdateSound();
+        }
+
+        private bool _soundTried;
+        private SpaceStation.Audio.ObjectLoop _beltSound;
+
+        /// <summary>
+        /// 사운드 개편 4-4 · D-8 (2026-11-26, SOUND_LIST_NEW crane_move · crane_grab · conveyor_loop): 크레인 모터 "위잉" (집게에 붙은 3D 루프 — 붐 · 트롤리 · 줄이
+        /// 실제로 움직인 만큼, 정련 콤비나트 크레인과 같은 모터) · 덩이를 쥠 "턱" (같은 걸쇠) · 쇳물에 떨어짐 "치익" (국자 붓기를 작게) · 남 컨베이어 벨트 루프 — 이 방에 있을 때만.
+        /// </summary>
+        private void UpdateSound()
+        {
+            if (!_soundTried && _ready && SpaceStation.Audio.AudioService.Instance != null)
+            {
+                _soundTried = true;
+                InteriorMotionSound.Attach(_claw, l => l.RefineryCraneMoveLoop, TrolleySpeed, SwingSpeed, 1f, 0.9f, 1.05f, 2f, 16f);
+                _beltSound = InteriorMotionSound.LoopAt(_bale.parent != null ? _bale.parent : transform, (_beltFrom + _beltTo) * 0.5f, l => l.ObjConveyorLoop, 1.5f, 12f);
+            }
+            if (_beltSound != null)
+                _beltSound.Level = Active && PlayerInRoom ? 0.7f : 0f;
         }
 
         private float BeltLength => Vector3.Distance(_beltFrom, _beltTo);
@@ -194,6 +214,8 @@ namespace SpaceStation.Interior
                         b.Sink = 0f;
                         var parent = b.T.parent;
                         InteriorFx.Spark(parent, parent.TransformPoint(new Vector3(p.x, _melt.y + 0.02f, p.z)), parent.TransformDirection(Vector3.up), _spark, 10, 18, 2f);
+                        if (PlayerInRoom)   // 쇳물에 빠짐 "꿀렁 치익" (4-4, 2026-11-26 — 국자 붓기를 작게)
+                            SpaceStation.Audio.AudioService.TryPlayAt(l => l.RefineryLadlePour, parent.TransformPoint(new Vector3(p.x, _melt.y, p.z)), 0.45f);
                     }
                     b.T.localPosition = p;
                     continue;
@@ -248,6 +270,8 @@ namespace SpaceStation.Interior
                 case Step.OutPick: Begin(Step.LowerPick); break;
                 case Step.LowerPick: Begin(Step.Grip); break;
                 case Step.Grip:
+                    if (PlayerInRoom)   // 집게가 덩이를 쥠 "턱" (4-4 crane_grab, 2026-11-26 — 정련 콤비나트 집게와 같은 소리)
+                        SpaceStation.Audio.AudioService.TryPlayAt(l => l.RefineryCraneGrab, _claw.position);
                     if (_belt.Count > 0)
                     {
                         _held = _belt[0];

@@ -92,9 +92,11 @@ namespace SpaceStation.Interior
                 _phase = MeteorShowerSystem.ShowerPhase.Idle;
                 _count = 0;
                 SetText(_text, Active ? "예보 없음" : "센서 꺼짐", ScreenDim);
+                SetPing(false);
                 return;
             }
             _phase = shower.Phase;
+            SetPing(_phase != MeteorShowerSystem.ShowerPhase.Idle);
             _timeLeft = shower.TimeLeft;
             _localDir = Module != null ? WorldToLocalDir(Module, shower.Direction) : shower.Direction;
             _vertical = _localDir.y != 0;
@@ -164,6 +166,27 @@ namespace SpaceStation.Interior
                 SetGlow(_centerBlip, Mathf.Lerp(0.4f, 1.6f, pulse));
             }
         }
+
+        /// <summary>
+        /// 사운드 개편 4-2 (2026-11-26, SOUND_LIST_NEW radar_ping_loop): 레이더 표시대 3D 루프 — 빛줄 한 바퀴 (6초)에 유리 "딩" 하나 + 옅은 팬 웅.
+        /// 지금 있는 방일 때만 (D-4), 예보 · 낙하 중이면 크게 (<see cref="InteriorDeviceSound.RadarLevel"/>). 0.25초마다 (Refresh).
+        /// </summary>
+        private void SetPing(bool alert)
+        {
+            if (_ping == null && !_pingTried)
+            {
+                _pingTried = true;
+                var at = new GameObject("RadarPing").transform;
+                at.SetParent(transform, false);
+                at.localPosition = _center;
+                _ping = SpaceStation.Audio.AudioService.AttachLoop(l => l.RadarPingLoop, at);
+            }
+            if (_ping != null)
+                _ping.Level = PlayerInRoom ? InteriorDeviceSound.RadarLevel(Active, alert) : 0f;
+        }
+
+        private SpaceStation.Audio.ObjectLoop _ping;
+        private bool _pingTried;
 
         private void SetGlow(Renderer r, float level)
         {

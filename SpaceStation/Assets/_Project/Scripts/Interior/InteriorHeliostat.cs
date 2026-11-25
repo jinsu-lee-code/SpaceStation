@@ -44,8 +44,23 @@ namespace SpaceStation.Interior
                 _rest[i] = _normal[i] = ((_receiver - _centers[i]).normalized + Vector3.up).normalized;
         }
 
+        private bool _soundTried;
+
+        /// <summary>
+        /// 사운드 개편 4-4 · D-8 (2026-11-26): 거울 머리가 해를 따라 돌 때만 모터 "위잉" (첫 머리에 붙은 3D 루프 하나 — 머리들이 함께 돌므로 소리는 하나, D-2) ·
+        /// 아주 천천히 따라갈 땐 무음 · 이 방에 있을 때만.
+        /// </summary>
+        private void AttachSound()
+        {
+            if (_soundTried || _heads == null || _heads.Length == 0 || _heads[0] == null || SpaceStation.Audio.AudioService.Instance == null)
+                return;
+            _soundTried = true;
+            InteriorMotionSound.Attach(_heads[0], l => l.RefineryCraneMoveLoop, 0f, _degreesPerSecond, 0.6f, 1.05f, 1.15f, 2f, 14f);
+        }
+
         private void LateUpdate()
         {
+            AttachSound();
             var sun = FindSun();
             if (sun == null)
                 return;

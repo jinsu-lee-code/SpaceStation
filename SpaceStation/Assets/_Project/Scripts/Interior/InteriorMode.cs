@@ -1129,6 +1129,7 @@ namespace SpaceStation.Interior
             _prompt.SetText(string.Empty);
             var lift = hatch.SkyLift;
             lift.SetRiding(true);
+            AudioService.SetRideLoop(l => l.LightBridgeLoop, 1f);   // 2026-11-26 빛 판 "웅웅" (타는 동안 2D, SOUND_LIST_NEW 4-1)
             var carrier = new GameObject("DoorLiftCarrier").transform;
             var start = _player.transform.position;
             carrier.position = start;
@@ -1181,6 +1182,7 @@ namespace SpaceStation.Interior
             _player.Dismount();
             Destroy(carrier.gameObject);
             lift.SetRiding(false);
+            AudioService.SetRideLoop(l => l.LightBridgeLoop, 0f);
             UpdateNearbyRooms(RoomAtPlayer(), force: false);
             _busy = false;
         }
@@ -1192,6 +1194,7 @@ namespace SpaceStation.Interior
             _prompt.SetText(string.Empty);
             var lift = hatch.SkyLift;
             lift.SetRiding(true);
+            AudioService.SetRideLoop(l => l.LightBridgeLoop, 1f);   // 2026-11-26 빛 판 "웅웅" (타는 동안 2D, SOUND_LIST_NEW 4-1)
             var carrier = new GameObject("DoorLiftCarrier").transform;
             var start = _player.transform.position;
             carrier.position = start;
@@ -1236,6 +1239,7 @@ namespace SpaceStation.Interior
             _player.Dismount();
             Destroy(carrier.gameObject);
             lift.SetRiding(false);
+            AudioService.SetRideLoop(l => l.LightBridgeLoop, 0f);
             UpdateNearbyRooms(RoomAtPlayer(), force: false);
             _busy = false;
         }

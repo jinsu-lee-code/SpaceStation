@@ -26,7 +26,12 @@ namespace SpaceStation.Interior
             public Renderer Eye;
             public Vector3 Home;
             public float Phase;
+            public ObjectLoop Hover;   // 2026-11-26 날개 웅 (드론 3D, 지금 있는 방일 때만)
         }
+
+        // 2026-11-26 사운드 개편 4-3: 들어오기 전부터 있던 습격 대상 (그 습격은 "뚫음" 소리 없이 — 새 습격만)
+        private ModuleInstance _known;
+        private float _nextHoverCheck;
 
         private StationController _station;
         private InteriorBuilder _builder;
@@ -51,6 +56,7 @@ namespace SpaceStation.Interior
             b._block = new MaterialPropertyBlock();
             var contact = b.Contact;
             b._holdSeconds = contact != null ? contact.Config.DroneHoldSeconds : 1.5f;
+            b._known = contact != null && contact.Boarding ? contact.BoardingTarget : null;
             builder.RoomBuilt += b.HandleRoomBuilt;
             return b;
         }
@@ -81,6 +87,17 @@ namespace SpaceStation.Interior
         {
             Sync();
             float t = Time.unscaledTime;
+            if (t >= _nextHoverCheck)
+            {
+                // 날개 웅은 지금 있는 방일 때만 (D-4 — 옆 방도 켜져 있어 벽 너머로 들리지 않게), 0.25초마다
+                _nextHoverCheck = t + 0.25f;
+                bool here = InteriorRoomDisplay.PlayerIn(_room);
+                foreach (var d in _drones)
+                {
+                    if (d.Hover != null)
+                        d.Hover.Level = here ? 1f : 0f;
+                }
+            }
             foreach (var d in _drones)
             {
                 if (d.Root == null)
@@ -108,6 +125,16 @@ namespace SpaceStation.Interior
             {
                 Clear();
                 _room = target;
+                // 2026-11-26 새 습격 = 선체를 뚫고 들어오는 소리 (대상 방 자리 3D, 25 m까지 — 다른 방이면 방향만, 알림은 경보 위계 위험이 맡음)
+                if (target == null)
+                    _known = null;   // 습격이 끝남 — 같은 방에 다음 습격이 와도 새 습격
+                else if (InteriorDeviceSound.BreachIsNew(_known, target))
+                {
+                    _known = target;
+                    var svc = AudioService.Instance;
+                    if (svc != null && svc.Library != null && target.Cells.Count > 0)
+                        svc.PlayAt(svc.Library.DroneBreach, _builder.FloorPoint(target.Cells[0]) + Vector3.up * 1.6f, 1f, 3f, 25f);
+                }
             }
             if (_room == null || !_builder.IsBuilt(_room))
                 return;
@@ -162,6 +189,9 @@ namespace SpaceStation.Interior
             var col = root.gameObject.AddComponent<SphereCollider>();
             col.radius = 0.38f;
             var drone = new Drone { Root = root, Eye = eye, Home = position, Phase = phase };
+            drone.Hover = AudioService.AttachLoop(l => l.DroneHoverLoop, root);
+            if (drone.Hover != null)
+                drone.Hover.Level = 0f;   // 지금 있는 방이면 다음 확인 (0.25초)에서 켬
             var use = root.gameObject.AddComponent<InteriorInteractable>();
             use.HoldSeconds = _holdSeconds;
             use.Prompt = () =>
@@ -172,8 +202,9 @@ namespace SpaceStation.Interior
             use.Completed = () =>
             {
                 _drones.Remove(drone);
+                var at = root.position;
                 Destroy(root.gameObject);
-                AudioService.TryPlay(l => l.StormSpark);
+                AudioService.TryPlayAt(l => l.DroneDown, at);   // 2026-11-26 날개가 잦아듦 + 지직 + 툭 (드론 자리 3D, 스파크를 빌려 쓰던 자리)
                 Contact?.DisableDrone();
             };
             return drone;

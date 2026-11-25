@@ -1825,7 +1825,8 @@ Claude Code에게는 "TASKS.md의 [현재 항목]을 진행해줘" 식으로 요
   - [x] A 뒤 고칠 것 셋 (2026-11-25): 주민 부탁 완료 = 소리 하나 (완료 화음 · 수리음 겹침 뺌) · 패드 빠른 이동 전용 소리 `pad_travel` (`PadTravel`) · "방호벽 위로 타면 떨어짐"은 버그 아님 (내부 방이 약 400 m 아래에 지어져 −393 = 위층 발판, 다시 타 보고 확인)
   - [ ] 바깥 음악 5곡 교체: 후보 (VARCO 9곡, 지금 곡과 같은 크기 — `AudioOriginals/_candidates/music_pick/`) 사용자가 헤드셋으로 듣고 자리마다 고른 뒤 `build_music.py`로 루프 · Ogg · 연결 — 고르기 = `docs/sound/decisions.md` S-1 (사운드 작업 마지막 질문 때)
   - [x] 1-1 바깥 기본 효과음 교체 (2026-11-25, 작업자 둘): 건설 = 배치 · 철거 크기 3갈래 (1칸 · 여러 칸 · 진화, `BuildSound`) · 통로 이어짐 · 0.15초 안 여러 번 = 한 번 / 운석 · 방어 = 접근 · 충돌 (맞은 곳 선체 · 장갑 · 실드 × 큰 · 작은, `MeteorSound`) · 공중 폭발 · 포탑 레이저 · 실드 튕김 · 파손 균열 — CC0 실제 녹음 17 + 합성 (실드 "우웅-팅"), 사용자가 들어 볼 것 = decisions L-12 · L-13 · S-11
-  - [ ] 그다음: SOUND_LIST_NEW 11번 "이미 돌아가는데 비어 있는 것" (CONNECT 대조 2026-11-25) → B 묶음 (SOUND_LIST_NEW 우선순위 B)
+  - [x] 밤 작업 1차 (2026-11-26 02 ~ 05시, 작업자 다섯 P1 ~ P5 · 사용자 예약 요청): P1 바깥 알림 17 (연구 완료 · 해금 카드 · 정책 · 사회 위기 · 역병 · 접촉 · 유성우 예보 · 과열 · 낮밤 · 연결 끊김/이어짐 · 승리, `NoticeSound` · `AlertSound.TryPlayAs`) · P2 바깥 물건 (정비 · 스파크 6 · 보급 상자 · 화물선 · 모듈 옮기기) · P3 내부 장치 28 (금고문 · 빛 다리 · 우주복 · 패드 · 레이더 · 신호판 · 부탁 · 물 주기 · 환풍구 · 보급품 · 침입 드론, `InteriorDeviceSound`) · P4 습격 포격 · 실드 / 포탑 단계 · 바깥 진화 연출 · 오가는 배 (`DefenseSound` · `ExteriorFxAudio`) · P5 방 장치 · 바깥 일이 안에서 (`InteriorObjectSound` · `InteriorMotionSound` · `InteriorOutsideSound` · `ExteriorZoomBed`) — 사용자가 들어 볼 것 · 정할 것 = decisions S-12 ~ S-24 · L-14 ~ L-18
+  - [ ] 밤 작업 2차 (07시 뒤): P6 주민 목소리 · 웅성 · 활동 / P7 · P8 2단계 17곳 소리 풍경 + 밤 층 / P9 음악 B — 계획 = 스크래치 night/plan.md
   - [ ] 사운드 작업 마지막: `docs/sound/decisions.md`의 정할 것을 사용자에게 하나씩 질문 → 반영 (사용자 2026-11-25 — 그때그때 묻지 않고 모아 둠)
 
 ## 업데이트 예정 목록 (2026-10-07 작성)

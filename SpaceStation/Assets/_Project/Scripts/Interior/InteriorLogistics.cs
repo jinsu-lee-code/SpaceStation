@@ -123,6 +123,25 @@ namespace SpaceStation.Interior
         protected override void Refresh()
         {
             Setup();
+            AttachSounds();
+        }
+
+        private bool _soundTried;
+        private float _clunkAt;
+
+        /// <summary>
+        /// 사운드 개편 4-4 · D-8 (2026-11-26, SOUND_LIST_NEW crane_move): 스태커 짐판 · 머리 위 셔틀이 움직이는 동안 모터 "위잉" (그 부품에 붙은 3D 루프 — 실제로 움직인 만큼,
+        /// 정련 콤비나트 크레인과 같은 책상 리프트 모터, 셔틀은 작고 높게) + 상자가 칸 · 짐판에 닿는 순간 "덜컹" (<see cref="UpdateStacker"/>) — 이 방에 있을 때만.
+        /// </summary>
+        private void AttachSounds()
+        {
+            if (_soundTried || SpaceStation.Audio.AudioService.Instance == null)
+                return;
+            _soundTried = true;
+            foreach (var d in _stackers)
+                InteriorMotionSound.Attach(d.Car, l => l.RefineryCraneMoveLoop, MastSpeed, 0f, 0.8f, 0.85f, 1f, 2f, 14f);
+            foreach (var d in _pods)
+                InteriorMotionSound.Attach(d.Body, l => l.RefineryCraneMoveLoop, PodSpeed, 0f, 0.5f, 1.1f, 1.2f, 2f, 12f);
         }
 
         private void Update()
@@ -175,6 +194,13 @@ namespace SpaceStation.Interior
                 if (st.T >= 1f)
                 {
                     st.Sliding = false;
+                    // 상자를 칸에 밀어 넣음 "덜컹" (4-4, 2026-11-26) — 스태커 둘이 2 ~ 3초마다 넣고 빼서 매번 내면 잦음 (시험: 1.5초마다) → 넣을 때만 · 8 ~ 16초에 한 번까지 (D-2 가끔)
+                    float clunkNow = Time.unscaledTime;
+                    if (st.Pushing && PlayerInRoom && clunkNow >= _clunkAt)
+                    {
+                        _clunkAt = clunkNow + UnityEngine.Random.Range(8f, 16f);
+                        SpaceStation.Audio.AudioService.TryPlayAt(l => l.ObjConveyorClunk, crate.position, 0.7f);
+                    }
                     if (st.Pushing)
                     {
                         st.SlotCrate[st.Target] = st.SlideCrate;

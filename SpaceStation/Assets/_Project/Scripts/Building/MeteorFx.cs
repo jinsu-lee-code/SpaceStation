@@ -53,6 +53,15 @@ namespace SpaceStation.Building
         public event System.Action<Vector3> Exploded;
         /// <summary>모듈에 충돌 (파손된 모듈, 없으면 null).</summary>
         public event System.Action<Vector3, ModuleInstance> Impacted;
+        /// <summary>2026-11-26 소리 (SOUND_LIST_NEW D-12 ext_meteor_pass): 실드에 튕겨 우주로 멀어지기 시작 (튕긴 자리).</summary>
+        public event System.Action<Vector3> PassedAway;
+
+        /// <summary>
+        /// 2026-11-26 소리 (SOUND_LIST_NEW 2번 습격 · 방어 단계): 위 알림을 부르는 동안 그 한 발의 정보 — 습격 포격탄이면 판정 순간 유성우 틀의 이름 ("포격", 아니면 null),
+        /// 막은 실드 (Deflected) · 쏜 포탑 (LaserFired · Exploded — 없으면 null). 알림 밖에서는 의미 없음.
+        /// </summary>
+        public string ShotRaidLabel { get; private set; }
+        public ModuleInstance ShotDefender { get; private set; }
 
         public float FlightTime => _flightTime;
 
@@ -84,7 +93,13 @@ namespace SpaceStation.Building
         /// <summary>판정 없이 연출만 재생 (확인·디버그용). 피해 표시는 건드리지 않는다.</summary>
         public void Preview(MeteorFlight flight)
         {
-            StartCoroutine(Play(flight, 0f));
+            StartCoroutine(Play(flight, 0f, null));
+        }
+
+        /// <summary>판정 없이 연출만 — 습격 포격탄처럼 (raidLabel = 유성우 틀 이름, 소리 확인용).</summary>
+        public void Preview(MeteorFlight flight, string raidLabel)
+        {
+            StartCoroutine(Play(flight, 0f, raidLabel));
         }
 
         private void HandleMeteor(MeteorFlight flight)
@@ -96,14 +111,26 @@ namespace SpaceStation.Building
                 float legs = _flightTime + (flight.Deflected ? _ricochetTime : 0f);
                 _station.HoldDamageVisual(flight.Hit, delay + legs + 0.5f);
             }
-            StartCoroutine(Play(flight, delay));
+            // 습격 포격은 마지막 파를 쏜 뒤 바로 IsRaid가 꺼지므로 판정 순간에 기억 (유성우 틀의 운석만 — 방향이 있음)
+            var shower = _station.Simulation.MeteorShower;
+            string raid = shower != null && shower.IsRaid && flight.Incoming != Vector3Int.zero ? shower.Label : null;
+            StartCoroutine(Play(flight, delay, raid));
+        }
+
+        private void Notify(System.Action call, string raid, ModuleInstance defender = null)
+        {
+            ShotRaidLabel = raid;
+            ShotDefender = defender;
+            call();
+            ShotRaidLabel = null;
+            ShotDefender = null;
         }
 
         private void LateUpdate() => _pending = 0; // 같은 프레임에 온 운석끼리만 간격을 둔다
 
         // ---------------- 경로 ----------------
 
-        private IEnumerator Play(MeteorFlight flight, float delay)
+        private IEnumerator Play(MeteorFlight flight, float delay, string raid)
         {
             if (delay > 0f)
                 yield return new WaitForSeconds(delay);
@@ -124,7 +151,7 @@ namespace SpaceStation.Building
                 float radius = flight.DeflectedBy.Data != null ? _station.Simulation.Effects.ShieldRadius(flight.DeflectedBy.Data) + 0.6f : 2.5f;
                 Vector3 contact = SphereEntry(start, target, center, radius, out Vector3 normal);
                 float toContact = _flightTime * Vector3.Distance(start, contact) / Vector3.Distance(start, target);
-                Launched?.Invoke(contact, toContact);
+                Notify(() => Launched?.Invoke(contact, toContact), raid);
                 yield return Fly(meteor, start, contact, toContact, null);
                 bool hasView = _station.TryGetView(flight.DeflectedBy, out var shieldView);
                 // 실드 계열 단계별 (사용자 2026-10-29): 3단계 궤도 방어망 = 수정 결정 막 + 오로라 파문 (CrystalBarrierFx가 오로라도 부름),
@@ -145,7 +172,7 @@ namespace SpaceStation.Building
                     if (hex != null)
                         hex.Play(center, radius, contact);
                 }
-                Deflected?.Invoke(contact);
+                Notify(() => Deflected?.Invoke(contact), raid, flight.DeflectedBy);
                 if (hasView)
                     shieldView.PlayImpulse();
 
@@ -156,18 +183,19 @@ namespace SpaceStation.Building
                     if (turret != null)
                     {
                         yield return Fly(meteor, contact, next, _ricochetTime, (_, p) => p >= _interceptAt);
-                        yield return Intercept(meteor, turret);
+                        yield return Intercept(meteor, turret, raid);
                         yield break;
                     }
                     Vector3 surface = Surface(next, (next - contact).normalized);
                     yield return Fly(meteor, contact, surface, _ricochetTime, null);
-                    Impact(meteor, surface, flight.Hit);
+                    Impact(meteor, surface, flight.Hit, raid);
                 }
                 else
                 {
                     // 반사되어 우주로
                     Vector3 incoming = (contact - start).normalized;
                     Vector3 away = Vector3.Reflect(incoming, normal);
+                    Notify(() => PassedAway?.Invoke(contact), raid);
                     yield return Fly(meteor, contact, contact + away * _startDistance, _flightTime, null, fade: true);
                     Destroy(meteor.Root);
                 }
@@ -177,23 +205,24 @@ namespace SpaceStation.Building
             if (flight.Intercepted)
             {
                 var turret = FindTurret(flight.InterceptedAt);
-                Launched?.Invoke(Vector3.Lerp(start, target, _interceptAt), _flightTime * _interceptAt);
+                Notify(() => Launched?.Invoke(Vector3.Lerp(start, target, _interceptAt), _flightTime * _interceptAt), raid);
                 yield return Fly(meteor, start, target, _flightTime, (_, p) => p >= _interceptAt);
                 if (turret != null)
-                    yield return Intercept(meteor, turret);
+                    yield return Intercept(meteor, turret, raid);
                 else
                 {
                     Explode(meteor.Root.transform.position, 0.6f);
-                    Exploded?.Invoke(meteor.Root.transform.position);
+                    var at = meteor.Root.transform.position;
+                    Notify(() => Exploded?.Invoke(at), raid);
                     Destroy(meteor.Root);
                 }
                 yield break;
             }
 
             Vector3 hitPoint = Surface(target, -dir);
-            Launched?.Invoke(hitPoint, _flightTime);
+            Notify(() => Launched?.Invoke(hitPoint, _flightTime), raid);
             yield return Fly(meteor, start, hitPoint, _flightTime, null);
-            Impact(meteor, hitPoint, flight.Hit);
+            Impact(meteor, hitPoint, flight.Hit, raid);
         }
 
         private sealed class Meteor
@@ -243,7 +272,7 @@ namespace SpaceStation.Building
             }
         }
 
-        private IEnumerator Intercept(Meteor m, ModuleInstance turret)
+        private IEnumerator Intercept(Meteor m, ModuleInstance turret, string raid)
         {
             Vector3 hitAt = m.Root.transform.position;
             Vector3 muzzle = ModuleCenter(turret) + Vector3.up * 0.3f;
@@ -276,8 +305,11 @@ namespace SpaceStation.Building
                 fireworks.Burst(hitAt);
             else
                 Explode(hitAt, 0.6f);
-            LaserFired?.Invoke(muzzle, hitAt);
-            Exploded?.Invoke(hitAt);
+            Notify(() =>
+            {
+                LaserFired?.Invoke(muzzle, hitAt);
+                Exploded?.Invoke(hitAt);
+            }, raid, turret);
             Destroy(m.Root);
             if (prism != null)
                 yield break;
@@ -299,13 +331,13 @@ namespace SpaceStation.Building
             Destroy(laser.gameObject);
         }
 
-        private void Impact(Meteor m, Vector3 point, ModuleInstance hit)
+        private void Impact(Meteor m, Vector3 point, ModuleInstance hit, string raid)
         {
             Destroy(m.Root);
             Explode(point, 1f);
             if (hit != null)
                 _station.ReleaseDamageVisual(hit);
-            Impacted?.Invoke(point, hit);
+            Notify(() => Impacted?.Invoke(point, hit), raid);
         }
 
         // ---------------- 효과 ----------------

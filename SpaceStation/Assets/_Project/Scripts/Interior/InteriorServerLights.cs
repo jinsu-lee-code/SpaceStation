@@ -60,6 +60,30 @@ namespace SpaceStation.Interior
                 TextAlignmentOptions.Center);
         }
 
+        private SpaceStation.Audio.ObjectLoop[] _fans;
+
+        /// <summary>사운드 개편 4-4 · D-8 (2026-11-26): 랙 표시등 묶음마다 서버 팬 (묶음 가운데 3D 루프, 이 방에 있을 때) — 연구 중 = 1 · 대기 = 0.7 · 꺼짐 = 0.</summary>
+        private void UpdateFans()
+        {
+            if (_fans == null)
+            {
+                if (SpaceStation.Audio.AudioService.Instance == null)
+                    return;
+                _fans = new SpaceStation.Audio.ObjectLoop[_groups.Length];
+                for (int i = 0; i < _groups.Length; i++)
+                {
+                    if (_groups[i] != null)
+                        _fans[i] = InteriorMotionSound.LoopAt(transform, transform.InverseTransformPoint(_groups[i].bounds.center), l => l.ObjServerFanLoop, 1.5f, 10f);
+                }
+            }
+            float level = !PlayerInRoom ? 0f : _state == State.Busy ? 1f : _state == State.Idle ? 0.7f : 0f;
+            foreach (var f in _fans)
+            {
+                if (f != null)
+                    f.Level = level;
+            }
+        }
+
         protected override void Refresh()
         {
             Setup();
@@ -74,6 +98,7 @@ namespace SpaceStation.Interior
                 }
             }
             _state = !Active ? State.Off : running > 0 ? State.Busy : State.Idle;
+            UpdateFans();
             float bonus = Module != null && Module.Data != null ? Module.Data.ResearchSpeedBonus : 0f;
             string bonusText = bonus > 0f ? $"연구 속도 +{Mathf.RoundToInt(bonus * 100f)}%" : "";
             switch (_state)

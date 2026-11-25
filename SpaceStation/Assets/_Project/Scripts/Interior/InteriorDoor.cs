@@ -3,12 +3,14 @@ using UnityEngine;
 
 namespace SpaceStation.Interior
 {
-    /// <summary>문 소리 종류 (사운드 개편 D-6): 일반 문은 방 단계로 톤만 다름, 에어록은 따로. 트인 문간은 문이 없어 소리도 없음.</summary>
+    /// <summary>문 소리 종류 (사운드 개편 D-6): 일반 문은 방 단계로 톤만 다름, 에어록은 따로. 트인 문간은 문이 없어 소리도 없음.
+    /// 2026-11-26 금고문 = 방사선 차폐실 쪽 문짝 (고르는 규칙 = <see cref="InteriorDeviceSound.DoorFor"/>).</summary>
     public enum DoorSound
     {
         Basic,
         Stage1,
         Airlock,
+        Vault,
     }
 
     /// <summary>
@@ -89,6 +91,9 @@ namespace SpaceStation.Interior
                     break;
                 case DoorSound.Airlock:
                     AudioService.TryPlayAt(l => opening ? l.AirlockOpen : l.AirlockClose, at);
+                    break;
+                case DoorSound.Vault:
+                    AudioService.TryPlayAt(l => opening ? l.DoorVaultOpen : l.DoorVaultClose, at);
                     break;
                 default:
                     AudioService.TryPlayAt(l => opening ? l.DoorOpen : l.DoorClose, at);

@@ -59,8 +59,23 @@ namespace SpaceStation.Interior
             }
         }
 
+        private bool _soundTried;
+
+        /// <summary>
+        /// 사운드 개편 4-4 · D-8 (2026-11-26): 가대가 해를 따라 돌 때만 모터 "위잉" (기둥 머리에 붙은 3D 루프 — 실제로 돈 만큼, 정련 콤비나트 크레인과 같은 모터를 작고 높게) ·
+        /// 아주 천천히 따라갈 땐 무음 (<see cref="InteriorObjectSound.MotionLevel"/>) · 이 방에 있을 때만.
+        /// </summary>
+        private void AttachSound()
+        {
+            if (_soundTried || _mast == null || SpaceStation.Audio.AudioService.Instance == null)
+                return;
+            _soundTried = true;
+            InteriorMotionSound.Attach(_mast, l => l.RefineryCraneMoveLoop, 0f, _degreesPerSecond, 0.6f, 1.05f, 1.15f, 2f, 14f);
+        }
+
         private void LateUpdate()
         {
+            AttachSound();
             var sun = FindSun();
             if (sun == null)
                 return;

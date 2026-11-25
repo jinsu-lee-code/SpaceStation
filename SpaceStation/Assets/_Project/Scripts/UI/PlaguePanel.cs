@@ -87,7 +87,7 @@ namespace SpaceStation.UI
             for (int i = 0; i < kinds.Length; i++)
             {
                 var c = kinds[i];
-                var b = _ui.TechButton(_box, "", 20f, () => Choose(c));
+                var b = _ui.TechButton(_box, "", 20f, () => Choose(c), clickSound: false); // 결과 소리 (막음 = 회복음 · 무시 = 역병 발생) 하나만
                 HoloUi.Place((RectTransform)b.transform, new Vector2(18f + i * 226f, -102f), new Vector2(214f, 72f));
                 var label = b.GetComponentInChildren<TMP_Text>();
                 label.enableWordWrapping = true;
@@ -99,7 +99,11 @@ namespace SpaceStation.UI
         private void Choose(PlagueSystem.Choice choice)
         {
             if (_plague.Choose(choice))
-                AudioService.TryPlay(l => l.UiClick);
+            {
+                // 2026-11-26 바깥 알림: 고른 결과 소리 (AlertWatch — 막음 = 회복음 plague_cured · 무시 = 역병 발생)가 울렸으면 그것 하나만
+                if (!AlertSound.PlayedThisFrame(l => l.PlagueCured) && !AlertSound.PlayedThisFrame(l => l.PlagueOutbreak))
+                    AudioService.TryPlay(l => l.UiClick);
+            }
             else
                 AudioService.TryPlay(l => l.UiError);
             Refresh();

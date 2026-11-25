@@ -116,6 +116,27 @@ namespace SpaceStation.Interior
         protected override void Refresh()
         {
             Setup();
+            AttachSounds();
+        }
+
+        private bool _soundTried;
+
+        /// <summary>
+        /// 사운드 개편 4-4 · D-8 (2026-11-26, SOUND_LIST_NEW crane_move · crane_grab): 다리 · 트롤리 · 집게가 움직이는 동안 모터 "위잉" (집게 틀에 붙은 3D 루프 —
+        /// 실제로 움직인 만큼, 정련 콤비나트 크레인과 같은 모터) · 상자를 집거나 놓을 때 "턱" (<see cref="Grab"/> · <see cref="DockGrab"/>) — 이 방에 있을 때만.
+        /// </summary>
+        private void AttachSounds()
+        {
+            if (_soundTried || _rig.Grip == null || SpaceStation.Audio.AudioService.Instance == null)
+                return;
+            _soundTried = true;
+            InteriorMotionSound.Attach(_rig.Grip, l => l.RefineryCraneMoveLoop, BridgeSpeed, 0f, 1f, 0.9f, 1.05f, 2f, 16f);
+        }
+
+        private void GrabSound()
+        {
+            if (PlayerInRoom && _rig.Grip != null)
+                SpaceStation.Audio.AudioService.TryPlayAt(l => l.RefineryCraneGrab, _rig.Grip.position);
         }
 
         private void Update()
@@ -214,6 +235,7 @@ namespace SpaceStation.Interior
         /// <summary>보트 고물에서: 들었으면 고물 상자 자리에 내려놓고, 비었으면 실린 상자를 집음.</summary>
         private void DockGrab()
         {
+            GrabSound();   // 4-4 (2026-11-26)
             if (_held >= 0)
             {
                 var crate = _crates[_held];
@@ -290,6 +312,7 @@ namespace SpaceStation.Interior
         /// <summary>집게가 상자 윗면에 닿음: 비었으면 상자를 집고, 들었으면 칸에 내려놓음.</summary>
         private void Grab()
         {
+            GrabSound();   // 4-4 (2026-11-26)
             if (_held < 0)
             {
                 int c = _slotCrate[_target];
