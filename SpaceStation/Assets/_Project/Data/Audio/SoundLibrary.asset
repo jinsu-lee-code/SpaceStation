@@ -145,7 +145,23 @@ MonoBehaviour:
     Clips:
     - {fileID: 8300000, guid: 67235ee7eac2b974fa8ac72c12371491, type: 3}
     Bus: 1
-    Volume: 0.75
+    Volume: 0.42
+    Pitch: {x: 0.97, y: 1.03}
+    Cooldown: 0.05
+    MaxVoices: 3
+  BuildPlaceM:
+    Clips:
+    - {fileID: 8300000, guid: 61b102ebec8712e44a0b8956cb8a370a, type: 3}
+    Bus: 1
+    Volume: 0.59
+    Pitch: {x: 0.97, y: 1.03}
+    Cooldown: 0.05
+    MaxVoices: 3
+  BuildPlaceEvo:
+    Clips:
+    - {fileID: 8300000, guid: 29053b53e9f9a484ca96c70409bee41a, type: 3}
+    Bus: 1
+    Volume: 0.68
     Pitch: {x: 0.97, y: 1.03}
     Cooldown: 0.05
     MaxVoices: 3
@@ -153,7 +169,23 @@ MonoBehaviour:
     Clips:
     - {fileID: 8300000, guid: 1263457ed5e2d5547948ac2e3ae7a623, type: 3}
     Bus: 1
-    Volume: 0.7
+    Volume: 0.35
+    Pitch: {x: 0.97, y: 1.03}
+    Cooldown: 0.05
+    MaxVoices: 3
+  BuildRemoveM:
+    Clips:
+    - {fileID: 8300000, guid: 9ac0a74af3e23fd42855524834283278, type: 3}
+    Bus: 1
+    Volume: 0.36
+    Pitch: {x: 0.97, y: 1.03}
+    Cooldown: 0.05
+    MaxVoices: 3
+  BuildRemoveEvo:
+    Clips:
+    - {fileID: 8300000, guid: 03819080776691c4a80d795bd35c9468, type: 3}
+    Bus: 1
+    Volume: 0.48
     Pitch: {x: 0.97, y: 1.03}
     Cooldown: 0.05
     MaxVoices: 3
@@ -161,7 +193,7 @@ MonoBehaviour:
     Clips:
     - {fileID: 8300000, guid: f19ad55e4bf95cc439e60b88c6a25a7b, type: 3}
     Bus: 1
-    Volume: 0.35
+    Volume: 0.3
     Pitch: {x: 0.97, y: 1.03}
     Cooldown: 0.05
     MaxVoices: 3
@@ -200,9 +232,10 @@ MonoBehaviour:
   MeteorIncoming:
     Clips:
     - {fileID: 8300000, guid: dd866337be5a47c4aa91bb54b9a8f70f, type: 3}
+    - {fileID: 8300000, guid: fee1ac39db2704141a9b2cb8e1adda98, type: 3}
     Bus: 1
-    Volume: 0.45
-    Pitch: {x: 0.92, y: 1.08}
+    Volume: 0.33
+    Pitch: {x: 0.94, y: 1.06}
     Cooldown: 0.25
     MaxVoices: 2
   MeteorImpact:
@@ -213,35 +246,95 @@ MonoBehaviour:
     Pitch: {x: 0.9, y: 1.08}
     Cooldown: 0.08
     MaxVoices: 3
+  MeteorImpactHullL:
+    Clips:
+    - {fileID: 8300000, guid: 929311127b250ce44910aa8f11861a31, type: 3}
+    - {fileID: 8300000, guid: f0b51fab31d2a884f9b958691b265395, type: 3}
+    Bus: 1
+    Volume: 0.55
+    Pitch: {x: 0.95, y: 1.05}
+    Cooldown: 0.3
+    MaxVoices: 2
+  MeteorImpactHullS:
+    Clips:
+    - {fileID: 8300000, guid: 60533aec62b1fb74cb122f211180ba3f, type: 3}
+    - {fileID: 8300000, guid: 0712e0a906bbd4a498965ecd14cb9f29, type: 3}
+    Bus: 1
+    Volume: 0.28
+    Pitch: {x: 0.93, y: 1.07}
+    Cooldown: 0.06
+    MaxVoices: 2
+  MeteorImpactArmorL:
+    Clips:
+    - {fileID: 8300000, guid: ac781dee55334dd49bb6515a5c57f399, type: 3}
+    - {fileID: 8300000, guid: d203d03f16bdd1d41a51223d728c1892, type: 3}
+    Bus: 1
+    Volume: 0.47
+    Pitch: {x: 0.95, y: 1.05}
+    Cooldown: 0.3
+    MaxVoices: 2
+  MeteorImpactArmorS:
+    Clips:
+    - {fileID: 8300000, guid: 48b8c24378f84f549834f32ec82e0f06, type: 3}
+    - {fileID: 8300000, guid: c4a818a6d69b7e94f9be6277ba880c5c, type: 3}
+    Bus: 1
+    Volume: 0.28
+    Pitch: {x: 0.93, y: 1.07}
+    Cooldown: 0.06
+    MaxVoices: 2
+  MeteorImpactShieldL:
+    Clips:
+    - {fileID: 8300000, guid: 94f85dbb4e0dfe043b1a155ac8213e02, type: 3}
+    - {fileID: 8300000, guid: b5dfc9631739e474ca8f6e79ab8e4755, type: 3}
+    Bus: 1
+    Volume: 0.34
+    Pitch: {x: 0.95, y: 1.05}
+    Cooldown: 0.3
+    MaxVoices: 2
+  MeteorImpactShieldS:
+    Clips:
+    - {fileID: 8300000, guid: 161127805fe46cd42a896c01dc03576a, type: 3}
+    - {fileID: 8300000, guid: 0d2ff50bba79edb41aa4a80db8084806, type: 3}
+    Bus: 1
+    Volume: 0.26
+    Pitch: {x: 0.93, y: 1.07}
+    Cooldown: 0.06
+    MaxVoices: 2
   MeteorExplode:
     Clips:
     - {fileID: 8300000, guid: d20ea718731c19342b0a42c2b6941c66, type: 3}
+    - {fileID: 8300000, guid: bbd93ac0156f3e4449b3d2f4fd91cb43, type: 3}
+    - {fileID: 8300000, guid: 89127fcb549bf644c8a508bf042c3da4, type: 3}
     Bus: 1
-    Volume: 0.55
-    Pitch: {x: 0.9, y: 1.12}
+    Volume: 0.42
+    Pitch: {x: 0.92, y: 1.08}
     Cooldown: 0.06
     MaxVoices: 3
   TurretLaser:
     Clips:
     - {fileID: 8300000, guid: c7c44c20338c79d4280e7587cf73bb3e, type: 3}
+    - {fileID: 8300000, guid: aa6f7d3042b3f2b4791b5890674129a6, type: 3}
+    - {fileID: 8300000, guid: abf8e3104e17f8e41afad17bd4093f10, type: 3}
     Bus: 1
-    Volume: 0.45
-    Pitch: {x: 0.94, y: 1.08}
+    Volume: 0.23
+    Pitch: {x: 1, y: 1}
     Cooldown: 0.05
     MaxVoices: 3
   ShieldDeflect:
     Clips:
     - {fileID: 8300000, guid: 413444f1b6a50074f815c05765c304ae, type: 3}
+    - {fileID: 8300000, guid: a44231864b4b37b48a3bfd6ea67fbca7, type: 3}
+    - {fileID: 8300000, guid: 6608515c030c4644b895442d06b66118, type: 3}
     Bus: 1
-    Volume: 0.55
-    Pitch: {x: 0.95, y: 1.06}
-    Cooldown: 0.08
+    Volume: 0.39
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0.12
     MaxVoices: 2
   ModuleDamaged:
     Clips:
     - {fileID: 8300000, guid: 5887574915427bf429425779a7686eeb, type: 3}
     Bus: 1
-    Volume: 0.55
+    Volume: 0.39
     Pitch: {x: 0.97, y: 1.03}
     Cooldown: 0.2
     MaxVoices: 2

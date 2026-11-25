@@ -82,21 +82,63 @@ namespace SpaceStation.Audio
         [Header("건설·수리")]
         public SoundCue BuildSelect = new SoundCue { Bus = AudioBus.Ui, Volume = 0.45f };
         public SoundCue BuildRotate = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.4f, Pitch = new Vector2(0.95f, 1.08f) };
-        public SoundCue BuildPlace = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.75f };
-        public SoundCue BuildRemove = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.7f };
-        public SoundCue BuildConnect = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.35f };
+        [Tooltip("모듈 배치 1칸 (2026-11-25 사운드 개편 1-1, D-6 크기 3갈래 = BuildSound.SizeOf): 실제 녹음: 문 자물쇠 걸림 \"철컥\" + 트럭 문 닫힘 \"쿵\" (3반음 위) + 공압 못총 \"칙\". " +
+                 "도킹 \"철컹\" + 압력 \"칙\"을 크기마다 무게로 (1칸 가볍게). 0.15초 안 여러 번 = 한 번 (D-2, BuildSound.Admit). " +
+                 "음악 + 바탕 대비 귀 감도 +5 (예전 합성음 약 +10: UI +3 · 위험 경보 +8 사이로)")]
+        public SoundCue BuildPlace = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f };
+        [Tooltip("모듈 배치 여러 칸: 트럭 문 닫힘 \"쿵\" 그대로 + 건조기 문 \"툭\" 몸통 + 걸림 \"철컥\" + \"칙\" (1칸보다 묵직하게), +6")]
+        public SoundCue BuildPlaceM = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.59f };
+        [Tooltip("진화 모듈 배치 (합성 결과 모듈: 재건축 · 내부 패드 건설): 트럭 문 3반음 아래 + 건조기 문 \"툭\" + 낮춘 \"철컥\" + 김 \"쉬익\" 옅게 (더 크고 둥글게, 1.6초), +7")]
+        public SoundCue BuildPlaceEvo = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.68f };
+        [Tooltip("모듈 철거 1칸: 실제 녹음: 문 자물쇠 풀림 \"철컥\" + 짧은 감압 \"쉬익\" 0.3초 (클수록 길게), +4.5 (예전 약 +12)")]
+        public SoundCue BuildRemove = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.35f };
+        [Tooltip("모듈 철거 여러 칸: 풀림 \"철컥\" + 3반음 낮은 \"철컥\" 한 번 더 + 감압 0.6초, +5.5")]
+        public SoundCue BuildRemoveM = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.36f };
+        [Tooltip("진화 모듈 철거: 4반음 낮춘 \"철컥\" + 건조기 문 \"툭\" 옅게 + 감압 1.1초, +6.5")]
+        public SoundCue BuildRemoveEvo = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.48f };
+        [Tooltip("통로가 이어짐 (배치 0.28초 뒤, 크기와 상관없이 하나): 실제 녹음: 공압 자동문 \"치익-툭\" 한 번 그대로 (에어록이 잠김), +2.5 (예전 약 -2: 거의 안 들렸음)")]
+        public SoundCue BuildConnect = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.3f };
         public SoundCue RepairStart = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Cooldown = 0.2f };
         public SoundCue RepairDone = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.5f, Cooldown = 0.2f };
         public SoundCue Maintain = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f };
 
         [Header("이벤트·경보")]
         public SoundCue EventPositive = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.6f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
-        public SoundCue MeteorIncoming = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Cooldown = 0.25f, MaxVoices = 2, Pitch = new Vector2(0.92f, 1.08f) };
+        [Tooltip("운석 접근 (2026-11-25 사운드 개편 1-1, 2D, 도착 순간에 가장 센 곳 = GameAudio _incomingPeak 1.28초): 실제 녹음 큰 바람결 \"휙\" (거꾸로 · 앞으로 두 변형) + 가스 버너 불 웅 (다가올수록 높고 밝게), " +
+                 "최대 뒤 0.35초 잦아듦. 1인칭 내부에서는 안 울림. 음악 + 바탕 대비 귀 감도 +1.5 (게임 안 녹음, 예전 합성 +3.4). AI Whoosh 0.59 ~ 0.67")]
+        public SoundCue MeteorIncoming = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.33f, Cooldown = 0.25f, MaxVoices = 2, Pitch = new Vector2(0.94f, 1.06f) };
+        [Tooltip("옛 운석 충돌 한 칸 (1차 합성 meteor_impact). 2026-11-25부터 GameAudio는 아래 갈래 칸 (맞은 곳 3 x 크기 2)을 씀: 다른 곳 연결이 안 깨지게 두고, 갈래 칸에 클립이 없을 때만 대신 울림")]
         public SoundCue MeteorImpact = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.8f, Cooldown = 0.08f, MaxVoices = 3, Pitch = new Vector2(0.9f, 1.08f) };
-        public SoundCue MeteorExplode = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Cooldown = 0.06f, MaxVoices = 3, Pitch = new Vector2(0.9f, 1.12f) };
-        public SoundCue TurretLaser = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Cooldown = 0.05f, MaxVoices = 3, Pitch = new Vector2(0.94f, 1.08f) };
-        public SoundCue ShieldDeflect = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Cooldown = 0.08f, MaxVoices = 2, Pitch = new Vector2(0.95f, 1.06f) };
-        public SoundCue ModuleDamaged = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Cooldown = 0.2f, MaxVoices = 2 };
+
+        [Header("운석 충돌 갈래 (사운드 개편 2026-11-25, SOUND_LIST_NEW 1-1 · D-6 맞은 곳 3 x 크기 2 · D-2)")]
+        [Tooltip("선체 큰 충돌 (보통 모듈이 파손됨, 큰 = 1초에 한 번까지: MeteorSound): 실제 녹음 속 빈 금속 \"퉁\" (에어컨 실외기) + 불 \"훅\" + 캔 찌그러짐 셋을 낮춰 \"쿵 찌그럭\" (금속 찢김), 변형 2. " +
+                 "+6.4 (게임 안, 예전 한 칸 +5.9). 찢김이 들어 있어 균열 (ModuleDamaged)은 덧대지 않음 (위험 경보만)")]
+        public SoundCue MeteorImpactHullL = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Cooldown = 0.3f, MaxVoices = 2, Pitch = new Vector2(0.95f, 1.05f) };
+        [Tooltip("선체 작은 충돌 (큰 충돌 뒤 1초 안: 유성우 · 한 사건의 여러 발): 퉁 + 찌그럭 한 덩이 0.5초, 변형 2. +3.5 (음량 0.24에서 +2.2를 잼. 짧은 부딪힘은 파일 눈금보다 게임 안에서 4 ~ 5 dB 크게 잡혀 음량은 녹음으로 맞춤)")]
+        public SoundCue MeteorImpactHullS = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.28f, Cooldown = 0.06f, MaxVoices = 2, Pitch = new Vector2(0.93f, 1.07f) };
+        [Tooltip("장갑 큰 충돌 (장갑 격벽 계열, 또는 방어 연구로 파손을 면한 충돌): 실제 녹음 둔탁한 금속 \"쿵\" 4 ~ 5반음 아래 + 불 \"훅\" + 상자 \"툭\", 1.2 ~ 1.5 kHz 아래 (먹먹하게, 찌그럭 없음), 변형 2. +5.1. " +
+                 "장갑이 파손되면 균열 (ModuleDamaged)을 0.12초 뒤에 덧댐")]
+        public SoundCue MeteorImpactArmorL = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.47f, Cooldown = 0.3f, MaxVoices = 2, Pitch = new Vector2(0.95f, 1.05f) };
+        [Tooltip("장갑 작은 충돌: 상자 \"툭\" + 쿵 옅게, 1.8 kHz 아래 0.45초, 변형 2. +2.6")]
+        public SoundCue MeteorImpactArmorS = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.28f, Cooldown = 0.06f, MaxVoices = 2, Pitch = new Vector2(0.93f, 1.07f) };
+        [Tooltip("실드 큰 충돌 (운석이 실드 구면에 닿음: 운석 쪽 몸통, 실드 쪽 \"우웅-팅\" ShieldDeflect와 함께): 실제 녹음 둥근 \"퍽\" + 낮은 \"붕\" (150에서 70 Hz로 내려앉는 사인) + 테슬라 코일 \"지직\", 변형 2. " +
+                 "+3.8 (튕김과 합쳐 약 +5.5). 튕긴 운석이 다른 실드에 또 막혀 부딪힌 모듈이 없을 때도 이 칸")]
+        public SoundCue MeteorImpactShieldL = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.34f, Cooldown = 0.3f, MaxVoices = 2, Pitch = new Vector2(0.95f, 1.05f) };
+        [Tooltip("실드 작은 충돌: 퍽 + 높은 붕 (240에서 130 Hz) + 지직 0.45초, 변형 2. +2.6")]
+        public SoundCue MeteorImpactShieldS = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.26f, Cooldown = 0.06f, MaxVoices = 2, Pitch = new Vector2(0.93f, 1.07f) };
+
+        [Tooltip("격추된 운석 공중 폭발 (2026-11-25): 실제 녹음 상용 불꽃 터짐 셋을 2.2 ~ 2.6 kHz 아래로 = 가벼운 \"퍽\" + 0.6초 잦아듦 (탁탁 · 쉬 없이). +3.6 (예전 합성 +4.5, AI Bang). AI Fireworks · Firecracker")]
+        public SoundCue MeteorExplode = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Cooldown = 0.06f, MaxVoices = 3, Pitch = new Vector2(0.92f, 1.08f) };
+        [Tooltip("포탑 레이저 (2026-11-25): 레이저 흉내 녹음 (자석 장난감 \"징\") 5반음 아래 + 유리 결 라5에서 레5로 내려앉는 \"퓨\" 옅게, 0.32초, 변형 3. " +
+                 "음 있는 밑층이 있어 음높이 흔들기 끔 (조 안). 1인칭 내부에서는 안 울림. +2.1 (예전 합성 +4.2)")]
+        public SoundCue TurretLaser = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.23f, Cooldown = 0.05f, MaxVoices = 3, Pitch = Vector2.one };
+        [Tooltip("실드가 튕겨냄 = 실드 쪽 소리 (2026-11-25, 합성: 실제 녹음 없음): 에너지 장막 \"우웅\" (레3 · 라3 · 레4 일렁임 + 바람결) 뒤 0.09초 \"팅\" (미6 · 레6 · 솔6 변형 3, 유리 결). " +
+                 "같은 순간 운석 쪽 몸통은 MeteorImpactShieldL/S. 음 = 바깥 · 위기 · 내부 음악 모두의 조 안 (음높이 흔들기 끔), 안내 경보 (라5)와 다른 음. " +
+                 "+3.0 (예전 합성 Ding · Clang +9.4). 실드 단계별 3갈래는 B 묶음")]
+        public SoundCue ShieldDeflect = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.39f, Cooldown = 0.12f, MaxVoices = 2, Pitch = Vector2.one };
+        [Tooltip("모듈 파손 금속 균열 (2026-11-25, 알림은 위험 경보 alert_danger): 실제 녹음 얼음 갈라짐 9반음 아래 + 캔 찌그러짐 10반음 아래 = \"쩌억 찌그럭\" 0.7초, 3 kHz 아래. " +
+                 "번진 파손 등 운석 밖의 파손, 운석에는 파손된 장갑에만 (선체 충돌에는 찢김이 들어 있음). +4.3 (예전 합성 +4.5)")]
+        public SoundCue ModuleDamaged = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.39f, Cooldown = 0.2f, MaxVoices = 2 };
         public SoundCue ModuleDestroyed = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.75f, Cooldown = 0.3f, MaxVoices = 2 };
         public SoundCue StormSpark = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.22f, Cooldown = 0.12f, MaxVoices = 2, Pitch = new Vector2(0.85f, 1.2f) };
         [Tooltip("산소 누출 사건 (나쁜 사건 알림 0.6초 뒤 2D) — 실제 녹음 스팀 김 \"쉬익\" 큰 크기 (2026-11-25, 정전기 · 흰 잡음으로 들리던 것을 바꿈). 작은 크기 oxygen_leak_small은 파일만 — 예정 (이웃에 따라 규모)")]

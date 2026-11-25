@@ -3680,4 +3680,308 @@ save_spot(ST_ + "state_fan_stop.wav", shot(rpc("fan_large", "fan", 119.0), hp=50
 # 과열 = 끓는 거품 루프 (커피 퍼컬레이터가 끓는 4.4초 조각 셋을 이음 — AI Water 0.29 · Liquid · Boiling 0.16, 큰 솥 녹음은 Water · 수도꼭지 쪽이라 뺌)
 save(ST_ + "state_boil_loop.wav", lpc(hpc(notch_lines(rrc("percolator", "perc", [1.0, 10.0, 18.0], 4.4, 1.0), [53, 67, 106], 20, 2.0), 80), 4000), -24)
 
+# ================= 모듈 배치 · 철거 (크기 3갈래) · 통로 이어짐 (SOUND_LIST_NEW 1-1 A · D-2 · D-6, 2026-11-25) =================
+# 1차 합성 임시음 (build_place · build_remove · build_connect 하나씩 — 가벼운 합성)을 실제 녹음 (archive.org "The Designer's Choice UCS Collection", CC0 —
+# 녹음마다 AudioOriginals/Build2/<녹음>/SOURCE.txt)으로. D-6 크기 3갈래 = 1칸 (_s) · 여러 칸 (_m) · 진화 모듈 (_evo) — 고르는 규칙은 코드 BuildSound.SizeOf (칸 수 · 합성 결과인지).
+# 배치 = 도킹 "철컹" + 압력 "칙": 트럭 문 닫힘 "쿵" (녹음 AI Door 0.70) + 문 자물쇠 걸림 "철컥" (Door 0.82) + 공압 못총 "칙" (5 kHz 아래) — 클수록 트럭 문을 낮추고
+#   (1칸 +3 · 여러 칸 0 · 진화 −3반음) 건조기 문 "툭" (Door 0.72)을 몸통으로 더해 묵직 · 둥글게, 진화는 김 "쉬익"을 0.9초 옅게 얹음.
+#   300 Hz 아래 37 · 55 · 62 % · 무게중심 763 · 557 · 491 Hz · 꼬리 (−40 dB) 0.41 · 0.47 · 0.82초 · 길이 0.9 · 1.2 · 1.6초.
+# 철거 = 분리 "철컥" + 짧은 감압: 자물쇠 풀림 "철컥" + 김 "쉬익" 0.3 · 0.6 · 1.1초 (클수록 길게), 여러 칸은 3반음 낮은 "철컥"을 0.08초 뒤 한 번 더,
+#   진화는 "철컥"을 4반음 낮추고 건조기 "툭"을 옅게 — 길이 0.8 · 1.1 · 1.5초 · 꼬리 0.36 · 0.64 · 1.10초.
+# 통로 이어짐 = 공압 자동문 "치익-툭" 한 번 그대로 (Door 0.79 · Sliding door 0.29) — 배치 0.28초 뒤 (GameAudio).
+# 모두 4 ~ 6 kHz 아래 · 센 곳 3 ~ 4 dB 누름 (아기자기 — 날 선 쾅 · 쇳소리 없이, ring 0 ~ 5 · crest 10 ~ 12.6), 배치는 80 ~ 160 Hz 아래 −4 ~ −6 dB 셸프
+#   (귀 감도로 안 들리는 낮은 웅이 50 ms 크기를 차지하지 않게 — 큰 냉동고 문을 몸통으로 썼던 시안은 A − rms −9 dB로 진화가 가장 작게 들렸음).
+# AI (2.5초마다 네 번 10초): 배치 여러 칸 Door 0.35 · 철거 진화 Door 0.42 · Knock 0.22 · 통로 Door 0.79, 1칸 · 진화 배치 · 철거 1칸 · 여러 칸은 1초 안팎이라 성겨
+#   Silence · Door · Whack로 흩어짐 (판단은 수치 · 판으로) — Music 0.11 · Speech 0.05 아래, Drum · Gong 없음.
+# 뺀 후보: 세탁기 문 쾅 · 큰 냄비 뚜껑 (Drum 0.35 ~ 0.45 · Music — 북으로 들림) · 큰 냉동고 문 (무게중심 100 Hz — 귀 감도로 안 들리고 Music 0.15) · 자동차 문 (95 Hz · Silence)
+#   · 트레일러 걸쇠 (잡음 바닥 −10 ~ −30 dB, 끽 ring 15 ~ 26) · 트렁크 자동 닫힘 (모터 위잉 ring 44) · 엘리베이터 문 (ring 41) · 소다 병 "칙" (10.5 kHz — 날 섬) · 에어로졸 (ring 18)
+#   · 식기세척기 걸쇠 (2 kHz "틱") · 김 + 건조기 "툭"으로 만든 통로 (Music 0.07 — 자동문 녹음 그대로가 더 또렷).
+BD = "Build2/"
+
+
+def bd_piece(folder, pre, start, a, b):
+    """Build2/<녹음>/<앞>_<조각 시작초>.wav에서 원본 시각 a ~ b초."""
+    x = load(f"{BD}{folder}/{pre}_{start:06.2f}.wav")
+    i = int(round((a - start) * SR))
+    return x[i:i + int(round((b - a) * SR))].copy()
+
+
+def bd_ev(folder, pre, start, t, after, before=0.008, fout=0.08):
+    """사건 하나 (t초 = 오름 시작) 앞 before ~ 뒤 after초."""
+    return fade(bd_piece(folder, pre, start, t - before, t + after), 0.002, fout)
+
+
+def bd_hiss(a, n, att, lp, pts=None):
+    """김 "쉬익" (steam_release 원본 a초부터 n초) — att초에 차오르고 끝까지 잦아듦, lp Hz 아래."""
+    x = lp2d(bd_piece("steam_release", "steam", 0.9, a, a + n), lp)
+    return x * sx_env(len(x), pts or [(0, 0.0), (att, 1.0), (n * 0.45, 0.45), (n, 0.0)])
+
+
+def bd_chik(semis, n, lp=5000):
+    """압력 "칙" = 공압 못총 한 번 — semis 반음, n초로 잦아듦."""
+    x = lp2d(pitch(bd_ev("nail_gun", "nail", 0.0, 0.02, 0.6, fout=0.2), semis), lp)[: int(n * SR)]
+    return x * sx_env(len(x), [(0, 1.0), (n * 0.3, 0.6), (n, 0.0)])
+
+
+bd_lockP = tame(lp2d(bd_ev("door_lock", "lock", 3.40, 3.52, 0.55), 5000), 4)     # 걸림 "철컥"
+bd_lockR = tame(lp2d(bd_ev("door_lock", "lock", 6.80, 6.90, 0.55), 5000), 4)     # 풀림 "철컥"
+bd_doorC = bd_ev("truck_door", "truck", 1.90, 1.96, 0.8, fout=0.3)                # 트럭 문 닫힘 "쿵"
+bd_dry = bd_ev("dryer_door", "dryer", 14.91, 15.11, 0.6, fout=0.3)                # 건조기 문 닫힘 "툭"
+
+x = tput(0.9, [(lp2d(pitch(bd_doorC, 3), 6000), 0.0, 0.6), (bd_lockP, 0.0, 0.9), (bd_chik(-2, 0.3), 0.05, 0.35)])
+save("Build/build_place_s.wav", fade(low_shelf(x, -4, 80, 160), 0.0, 0.25), -14)
+x = tput(1.2, [(tame(lp2d(bd_doorC, 4500), 3), 0.0, 1.0), (bd_lockP, 0.0, 0.5), (bd_chik(-4, 0.45), 0.07, 0.4), (lp2d(bd_dry, 3000), 0.01, 0.55)])
+save("Build/build_place_m.wav", fade(low_shelf(x, -6, 80, 160), 0.0, 0.3), -14)
+x = tput(1.6, [(tame(lp2d(pitch(bd_doorC, -3), 4000), 3), 0.0, 1.0), (lp2d(pitch(bd_dry, -2), 2500), 0.0, 0.7), (lp2d(pitch(bd_lockP, -4), 4000), 0.0, 0.4),
+               (bd_hiss(1.0, 0.9, 0.06, 3000), 0.1, 0.3)])
+save("Build/build_place_evo.wav", fade(low_shelf(x, -6, 80, 160), 0.0, 0.35), -12)   # 낮은 몸통이라 귀 감도로 작음 → 2 dB 크게 저장
+
+x = tput(0.8, [(bd_lockR, 0.0, 1.0), (bd_hiss(1.0, 0.3, 0.01, 5000), 0.05, 0.45)])
+save("Build/build_remove_s.wav", fade(x, 0.0, 0.2), -14)
+x = tput(1.1, [(bd_lockR, 0.0, 1.0), (lp2d(pitch(bd_lockR, -3), 3500), 0.08, 0.6), (bd_hiss(1.5, 0.6, 0.015, 4500), 0.1, 0.5)])
+save("Build/build_remove_m.wav", fade(x, 0.0, 0.25), -14)
+x = tput(1.5, [(lp2d(pitch(bd_lockR, -4), 3500), 0.0, 1.0), (lp2d(pitch(bd_dry, -3), 2500), 0.03, 0.4), (bd_hiss(2.5, 1.1, 0.02, 3000), 0.1, 0.5)])
+save("Build/build_remove_evo.wav", fade(x, 0.0, 0.3), -14)
+
+x = tame(lp2d(bd_piece("auto_door", "door", 0.0, 0.03, 0.9), 5000), 3)
+save("Build/build_connect.wav", fade(x, 0.01, 0.25), -14)
+
+# ================= 운석 · 방어 · 파손 (SOUND_LIST_NEW 1-1 운석 줄 · D-6 맞은 곳 3 × 크기 2 · D-2, 2026-11-25) =================
+# 1차 build_audio.py 합성 임시음 6개 (운석 접근 · 충돌 · 폭발 · 레이저 · 실드 · 파손 균열)를 실제 녹음 (archive.org "The Designer's Choice UCS Collection", CC0 —
+# 녹음마다 AudioOriginals/Meteor2/<녹음>/SOURCE.txt) + 실드 "우웅-팅"만 합성으로 다시 만듦. 같은 이름은 덮어써 칸 연결 유지, 변형 · 갈래는 새 이름.
+# 옛 것 AI (10초판): 충돌 Music 0.35 · Clang (종처럼) · 실드 Ding 0.81 · Clang 0.54 (쇳소리) · 파손 Clang · Ding · 레이저 Music · 폭발 Bang 0.24.
+# 후보 = 18 범주 (Swooshes · Designed · Fire · Magic · Explosions · Fireworks · Objects · Cartoon · Metal · Destruction · Laser · Electricity · Ice …)에서 42개 (mp3 20 MB로 훑고
+# 고른 11개만 flac 20 MB → 조각 4.8 MB). 고른 기준 = 판 (스펙트로그램) · audit (crest · ring) · AI (PANNs — 짧은 소리는 유성우처럼 0.8초마다 12번 이은 10초판으로; 4번 반복은 Silence).
+# 크기 = 귀 감도 (0.25초 Hanning A 최대) 14로 같게 저장 (mx_save — 한 묶음의 변형끼리 같게). 칸 음량은 게임 안 녹음으로 맞춤 (slot3 바깥, 혼자 울림 세 번 평균 − 음악 + 바탕,
+# 위험 경보 +8.1을 기준점으로 같이 잼 — SoundLibrary Tooltip): 길거나 차오르는 소리 (접근 · 선체 큰 · 장갑 큰 · 튕김 · 폭발)는 이 값 + 20 log10(음량) − 2.8대로 맞았고,
+# 0.5초 안 짧은 부딪힘 (선체 · 장갑 · 실드 작은 · 실드 큰 · 레이저 · 균열)은 게임 안에서 2 ~ 5 dB 크게 잡혀 (파일 맨 앞 부딪힘이 이 눈금의 첫 창 가장자리라 덜 잼) 음량을 0.6 ~ 0.85배로 내림.
+# 뺀 후보: 바람결 휙 (Swooshes 짧은 휘두름 0.15초 · 느린 낮은 휙 = 이동 장치가 이미 씀 · 줄 울림), 버너 불만 (Whoosh 0.10 · Vehicle), 폭발 녹음 (큰 쾅 · 3.8초 웅),
+# 종이 봉투 · 코르크 펑 (앞에 부풀리는 쉬— · 끽끽), 차 충돌 (유리 · 파편 소리), 냄비 · 들통 · 철판 땡 (ring — 쇳소리 울림, 종 Clang), 캔 찌그러짐만 (밝은 잔 딸깍),
+# 레이저 합성 (Anime zap — 길게 미끄러지는 음), 전자 boing (음 미끄럼), 얼음 갈라짐 · 삐걱 (밝은 잔 딱딱).
+M2 = "Meteor2/"
+
+
+def m2(folder, pre, a, b):
+    """Meteor2/<녹음>/<앞>_<조각 시작초>.wav 중 원본 시각 a ~ b초를 품은 조각에서 그 구간 (샘플 수 = 반올림)."""
+    for name in sorted(os.listdir(os.path.join(HERE, M2, folder))):
+        if not (name.startswith(pre + "_") and name.endswith(".wav")):
+            continue
+        start = float(name[len(pre) + 1:-4])
+        x = load(f"{M2}{folder}/{name}")
+        if start <= a + 1e-6 and b <= start + len(x) / SR + 1e-6:
+            i = int(round((a - start) * SR))
+            return x[i:i + int(round((b - a) * SR))].copy()
+    raise ValueError(f"{folder}: {a} ~ {b}초를 품은 조각 없음")
+
+
+def mx_mix(n, parts):
+    """(소리, 시각, dB)들을 n초 판에 — 소리마다 50 ms 최대 크기를 1로 맞춘 뒤 dB."""
+    y = np.zeros(int(round(n * SR)))
+    for x, at, db in parts:
+        y = place(y, x / (pk50(x) + 1e-12) * 10 ** (db / 20), at)
+    return y[: int(round(n * SR))]
+
+
+def mx_bwomp(f0, f1, dur, tau, glide=0.08):
+    """에너지 장막이 눌렸다 튕기는 낮은 "붕" — f0 → f1 Hz로 glide초에 내려앉는 사인 (짧아서 음으로 안 들림), tau초 감쇠."""
+    t = np.arange(int(dur * SR)) / SR
+    f = f1 + (f0 - f1) * np.exp(-t / (glide / 3))
+    x = np.sin(2 * np.pi * np.cumsum(f) / SR) + 0.25 * np.sin(4 * np.pi * np.cumsum(f) / SR + 0.5)
+    return x * np.minimum(1, t / 0.004) * np.exp(-t / tau)
+
+
+def mx_ping(f, dur=0.5, tau=0.09, seed=0):
+    """튕겨 나가는 "팅" — 0.025초에 f의 94 %에서 f로 올라앉는 유리 결 (UI · 경보와 같은 집안이지만 짧고 위로 튐)."""
+    t = np.arange(int(dur * SR)) / SR
+    fr = f * (1 - 0.06 * np.exp(-t / 0.008))
+    ph = 2 * np.pi * np.cumsum(fr) / SR
+    x = (np.sin(ph) * np.exp(-t / tau) + 0.22 * np.sin(2 * ph + 0.3 + seed) * np.exp(-t / (tau * 0.6))
+         + 0.12 * np.sin(2.76 * ph + 0.7 + seed) * np.exp(-t / (tau * 0.4)))
+    return x * np.minimum(1, t / 0.003)
+
+
+def mx_apeak(x):
+    """귀 감도 크기 — 작업자들이 게임 안 크기를 미리 보는 눈금 (0.25초 Hanning 창 A 파워 최대, 1/5 창씩 밀며): 게임 안 (음악 + 바탕 대비) ≈ 이 값 + 20 log10(음량) − 2.8.
+    앞을 채우지 않아 맨 앞에 부딪힘이 있는 짧은 소리는 덜 잼 (게임 안에서 2 ~ 5 dB 크게) — 그런 소리는 음량을 녹음으로 맞출 것."""
+    n = int(0.25 * SR)
+    f = np.maximum(np.fft.rfftfreq(n, 1 / SR), 1.0)
+    f2 = f * f
+    w = ((12194.0 ** 2 * f2 * f2) / ((f2 + 20.6 ** 2) * np.sqrt((f2 + 107.7 ** 2) * (f2 + 737.9 ** 2)) * (f2 + 12194.0 ** 2)) / 0.7943) ** 2
+    x = np.concatenate([x, np.zeros(max(0, n - len(x)))])
+    win = np.hanning(n)
+    return max(10 * np.log10((np.abs(np.fft.rfft(x[i:i + n] * win)) ** 2 * w).sum() / n + 1e-12) for i in range(0, len(x) - n + 1, n // 5))
+
+
+def mx_save(rel, x, ap=14.0):
+    """귀 감도 크기를 ap로 맞춰 저장 (한 묶음의 변형끼리 게임 안 크기가 같게 — 음량은 칸 하나로). 최대가 −1 dB를 넘으면 센 순간을 먼저 누름 (8 dB까지)."""
+    g = 10 ** ((ap - mx_apeak(x)) / 20)
+    over = 20 * np.log10(np.abs(x).max() * g + 1e-12) + 1.0
+    if over > 0.3:
+        x = peak_soft(x, min(8.0, over + 0.5))
+    w50 = 20 * np.log10(win_max(x, 0.05) + 1e-12)
+    save(rel, x, w50 + (ap - mx_apeak(x)))
+    with wave.open(os.path.join(DST, rel)) as f:
+        y = np.frombuffer(f.readframes(f.getnframes()), dtype="<i2").astype(np.float64) / 32768
+    report[-1] += f"  귀 감도 {mx_apeak(y):.1f}"
+
+
+MX_D3, MX_A3, MX_D4, MX_D6, MX_E6, MX_G6 = 146.83, 220.0, 293.66, 1174.66, 1318.51, 1567.98
+
+# --- 운석 접근 (meteor_incoming · _02) — 불타며 다가오는 "쉬이익" (2D, 도착 순간에 가장 센 곳 — GameAudio가 비행 시간 − _incomingPeak만큼 늦춰 울림) ---
+# 바람결 = 이동 장치 · 드나들기가 쓰는 "큰 휙" 녹음 (Systems/whoosh_huge)을 거꾸로 (1) · 0.7초 밀어 (2) — 같은 녹음이지만 불 웅을 얹고 다가올수록 높고 밝게 해 결이 다름.
+# 귀 감도 최대 = 1.30초 (0.05초 창) · 1.28초 (0.1초 창), 두 변형 같은 자리 → _incomingPeak 1.28 그대로 (옛 합성음 1.32 / 1.30).
+# AI (10초판): Whoosh 0.59 / 0.67 (꼬리 없이 최대에서 자르면 0.19 — 0.35초 잦아듦을 남김), Fire는 0 (버너는 AI에 불로 안 들림 — 웅은 결만), Siren 0.
+MX_PEAK = 1.30
+
+
+def mx_incoming(burn_a, rise, rev, shift):
+    """불 웅 (가스 버너 — 다가올수록 높고 밝게) + 큰 바람결 (rev = 거꾸로 돌려 차오르게 / 아니면 앞으로 0.7초 밀어 같은 자리에 최대).
+    최대 뒤 0.35초 잦아드는 꼬리 (지나감) — 꼬리를 0.07초로 자르면 AI Whoosh 0.19, 0.2초 0.53, 0.4초 0.68 ~ 0.77 (부딪힘 소리가 바로 덮음)."""
+    n = int(2.2 * SR)
+    t = np.arange(n) / SR
+    k = np.clip(t / MX_PEAK, 0, 1)
+    roar = m2("gas_burner", "burner", burn_a, burn_a + 2.6)
+    roar = vrate(highpass(roar, 60), (1 - rise) + 2 * rise * k ** 2)[:n]          # 다가올수록 높아짐 (±rise)
+    roar = varlp(roar, 700 + 4300 * k ** 2)                                         # 다가올수록 밝아짐
+    wh = load("Systems/whoosh_huge/whoosh_000.00.wav")[:int(2.44 * SR)]                                # 원래 0.6초 최대
+    wh = wh[::-1][int(0.54 * SR):] if rev else np.concatenate([np.zeros(int(0.7 * SR)), wh])
+    wh = np.pad(highpass(wh, 80), (0, n))[:n]
+    env = np.where(t < MX_PEAK, k ** 2.2, np.exp(-(t - MX_PEAK) / 0.35))
+    x = (0.4 * roar / (pk50(roar) + 1e-12) + wh / (pk50(wh) + 1e-12)) * env
+    x = fade(lp2d(x, 4000), 0.0, 0.25)
+    k = int(abs(shift) * SR)                                                         # 귀 감도 최대를 두 변형 모두 같은 자리에 (shift초 밀거나 당김)
+    return np.concatenate([np.zeros(k), x[:-k]]) if shift > 0 else np.concatenate([x[k:], np.zeros(k)])
+
+
+mx_save("Event/meteor_incoming.wav", mx_incoming(0.4, 0.14, True, 0.06))
+mx_save("Event/meteor_incoming_02.wav", mx_incoming(2.6, 0.10, False, -0.05))
+
+# --- 충돌 — 선체 (금속 찢김) · 장갑 (둔탁한 쿵) · 실드 (에너지 튕김) × 작은 · 큰, 각 변형 2 (고르는 규칙 = Audio/MeteorSound.cs) ---
+# 크기 = 소리 쪽에서 정함 (시뮬레이션엔 운석 크기 · 피해량 차이가 없음 — 모든 운석 = 파손 1 + 같은 내구도): 큰 = 1초에 한 번까지, 그 사이 = 작은 (유성우 몰림 — D-2).
+# 선체 큰 = 속 빈 금속 "퉁" (에어컨 실외기 침, 3 · 4반음 아래) −6 dB + 불 "훅" 몸통 −6 + 캔 찌그러짐 세 덩이 (3 · 5 · 6반음 아래, 0 · 0.06 · 0.14초) = "쿵-찌그럭".
+#   AI (0.8초마다 12번): Thunk 0.42 / 0.71 · Door 0.05 / 0.03 — 찌그럭을 0.12 ~ 0.2초로 줄이면 Door 0.20 ~ 0.31 · Tick-tock, 퉁만 앞세우면 Door 0.41 ~ 0.45 · Knock.
+# 선체 작은 = 퉁 (1반음 위 · 그대로) −4 + 찌그럭 한 덩이 (2반음 아래, 0.15초): Thunk 0.21 ~ 0.23 · Whack.
+# 장갑 = 둔탁한 금속 "쿵" (Bang, 4 · 5반음 아래) + 불 "훅" + 상자 "툭", 1.2 ~ 1.8 kHz 아래 (먹먹하게 — 300 Hz 아래 61 ~ 95 %, crest 4 ~ 6): 큰 Knock 0.53 ~ 0.62 · 작은 Door 0.14 · Whack.
+#   (선체 퉁 · 찌그럭과 같이 쓰면 장갑인지 안 갈림 — 찌그럭 없이 낮게만.)
+# 실드 = "퍽" (Cartoon Thump — 손바닥으로 병 입구를 친 듯한 둥근 소리) + 낮은 "붕" (150 → 70 Hz로 0.08초에 내려앉는 사인, 0.35초) + 테슬라 코일 "지직" −8 (5 kHz 아래).
+#   AI는 Music 0.10 ~ 0.14 · Silence (짧아서 판정 못 함 — Siren · Speech 0). 지직을 앞세우면 Groan · Grunt · Animal (뺌).
+# 모두 ring 0 ~ 3 (옛 충돌 24), 켜짐 6 ms · 1 ms 최대치 누름 6 dB (날 선 시작 X — 선체 찌그럭 안쪽 딸깍만 2 ms).
+mx_ac = m2("ac_hit", "ac", 0.0, 0.92)              # 에어컨 실외기 한 대 침 — 속 빈 금속 "퉁"
+mx_bang = m2("metal_bang", "bang", 0.0, 0.66)      # 둔탁한 금속 "쿵"
+mx_box = m2("box_drop", "box", 0.0, 0.5)           # 상자 떨어짐 "툭"
+mx_poof = m2("fire_poof", "poof", 0.1, 0.7)        # 불 "훅" (낮은 몸통, 0.16초 최대)
+
+
+def mx_crunch(a, semis, lp=4000, length=0.45):
+    """캔 찌그러짐 한 덩이 (a초부터)를 낮춰 판이 찢기는 "찌그럭"으로 — 앞 빈 곳을 잘라 부딪힘 순간에 바로 오게 (안 자르면 낮춘 만큼 늦게 와 두 번 친 소리)."""
+    c = trim_lead(highpass(m2("can_crush", "can", a, a + length), 150), -14)
+    return fade(lp2d(pitch(c, semis), lp), 0.002, 0.08)
+
+
+def mx_thump(a, semis=0.0, length=0.3):
+    return fade(pitch(m2("thumps", "thump", a - 0.01, a + length), semis), 0.002, 0.08)
+
+
+def mx_fizz(a, length, lp=4500):
+    """테슬라 코일 튀김 한 토막 — 실드 장막의 에너지 "지직"."""
+    z = m2("tesla_bursts", "tesla", a, a + length)
+    return fade(lp2d(highpass(z, 700), lp), 0.004, length * 0.6)
+
+
+def mx_hit(x, lp, tame_db, n, fout, soft=4.0):
+    """한 판으로 섞은 충돌 다듬기: 낮은 쪽 정리 · 고음 누름 · 센 곳 누름 (tame + 1 ms 최대치) · 켜짐 3 ms (날 선 시작 X) · 끝 페이드."""
+    x = peak_soft(tame(lp2d(highpass(x, 45), lp), tame_db), soft)[:int(n * SR)]
+    return fade(x, 0.006, fout)
+
+
+EV_ = "Event/"
+for k, (a1, a2, a3) in enumerate(((7.86, 8.96, 4.27), (1.07, 1.68, 11.115))):
+    mx_save(EV_ + f"meteor_impact_hull_l_{k + 1:02d}.wav", mx_hit(mx_mix(1.0, [
+        (pitch(mx_ac, -3 - k), 0.0, -6), (mx_poof, 0.0, -6), (mx_crunch(a1, -3), 0.0, 0), (mx_crunch(a2, -5), 0.06, -3),
+        (mx_crunch(a3, -6), 0.14, -6)]), 4500, 4, 1.0, 0.35, 6.0))
+for k, a1 in enumerate((8.96, 4.9)):
+    mx_save(EV_ + f"meteor_impact_hull_s_{k + 1:02d}.wav", mx_hit(mx_mix(0.5, [(pitch(mx_ac, 1 - k), 0.0, -4), (mx_crunch(a1, -2, 4500, 0.15), 0.0, 0)]), 5000, 4, 0.5, 0.2, 6.0))
+
+mx_save(EV_ + "meteor_impact_armor_l_01.wav", mx_hit(mx_mix(0.9, [(pitch(mx_bang, -5), 0.0, -2), (mx_poof, 0.0, 0)]), 1200, 3, 0.9, 0.3))
+mx_save(EV_ + "meteor_impact_armor_l_02.wav", mx_hit(mx_mix(0.9, [(pitch(mx_bang, -4), 0.0, 0), (mx_poof, 0.0, -2), (mx_box, 0.0, -8)]), 1500, 4, 0.9, 0.3))
+mx_save(EV_ + "meteor_impact_armor_s_01.wav", mx_hit(mx_mix(0.45, [(mx_box, 0.0, 0), (pitch(mx_bang, 0), 0.0, -4)]), 1800, 3, 0.45, 0.15))
+mx_save(EV_ + "meteor_impact_armor_s_02.wav", mx_hit(mx_mix(0.45, [(mx_box, 0.0, 0), (pitch(mx_bang, 1.5), 0.0, -4), (mx_thump(10.91, -7), 0.0, -8)]), 1800, 3, 0.45, 0.15))
+
+
+def mx_bw(f0, f1, dur, tau):
+    return fade(mx_bwomp(f0, f1, dur, tau), 0.0, dur * 0.4)
+
+
+mx_save(EV_ + "meteor_impact_shield_l_01.wav", mx_hit(mx_mix(0.7, [(mx_thump(14.815, -3), 0.0, 0), (mx_bw(150, 70, 0.35, 0.09), 0.0, -3), (mx_fizz(0.12, 0.35), 0.01, -8)]), 5000, 3, 0.7, 0.25))
+mx_save(EV_ + "meteor_impact_shield_l_02.wav", mx_hit(mx_mix(0.7, [(mx_thump(36.4, -3), 0.0, 0), (mx_bw(140, 66, 0.35, 0.09), 0.0, -3), (mx_fizz(4.545, 0.35), 0.01, -8)]), 5000, 3, 0.7, 0.25))
+mx_save(EV_ + "meteor_impact_shield_s_01.wav", mx_hit(mx_mix(0.45, [(mx_thump(12.83, 0), 0.0, 0), (mx_bw(240, 130, 0.25, 0.06), 0.0, -5), (mx_fizz(2.46, 0.2), 0.005, -6)]), 5500, 3, 0.45, 0.15))
+mx_save(EV_ + "meteor_impact_shield_s_02.wav", mx_hit(mx_mix(0.45, [(mx_thump(30.845, 0), 0.0, 0), (mx_bw(230, 120, 0.25, 0.06), 0.0, -5), (mx_fizz(6.115, 0.2), 0.005, -6)]), 5500, 3, 0.45, 0.15))
+
+
+# --- 실드가 튕겨냄 (shield_deflect · _02 · _03) — 에너지 장막 "우웅-팅" (합성 — 실제 녹음 없음), 팅 = 미6 · 레6 · 솔6 ---
+# 실드 충돌 (위, 운석 쪽 몸통 — 크기 2갈래)과 같은 순간에 겹쳐 울리는 실드 쪽 소리 (장막의 울림 — 크기와 상관없이 하나, B의 실드 단계별 3갈래가 이 칸을 갈라 씀).
+# 우웅 = 레3 · 라3 · 레4 둥근 사인 (16 Hz 일렁임) + 장막이 쓸리는 바람결, 팅 = 0.09초 뒤 UI 유리 결 (기음 + 2배 · 2.76배)이 94 %에서 올라앉음 (튕김).
+# 음 = 레 · 미 · 솔 · 라 (바깥 D 장조 · 위기 D 단조 · 내부 F 장조에 모두 있음 — 경보 위계와 같은 규칙), 안내 경보 (라5)와 헷갈리지 않게 팅은 미6 · 레6 · 솔6 (짧게 0.1초 감쇠).
+# 옛 합성 (Ding 0.81 · Clang 0.54 · ring 62 · 음악 대비 +9.4로 큼) → Music 0.19 ~ 0.29 · Bang · Boing · Ding 0.05 ~ 0.07 · ring 21 (음 있는 소리 — 경보 26 ~ 36).
+def mx_deflect(f, seed):
+    n = int(0.7 * SR)
+    t = np.arange(n) / SR
+    hum = al_low([MX_D3, MX_A3, MX_D4], [1.0, 0.45, 0.2], 0.7, att=0.03, tau=0.16, hold=0.04)
+    hum = hum * (1 + 0.3 * np.sin(2 * np.pi * 16 * t))
+    rng = np.random.default_rng(seed)
+    air = rng.standard_normal(n)
+    air = lp2d(air - lp2d(air, 600), 3000) * np.minimum(1, t / 0.04) * np.exp(-t / 0.12)   # 장막이 쓸리는 바람결
+    return fade(lp2d(mx_mix(0.7, [(hum, 0.0, 0), (air, 0.0, -8), (mx_ping(f, 0.55, 0.1, seed), 0.09, -3)]), 6000), 0.0, 0.15)
+
+
+mx_save(EV_ + "shield_deflect.wav", mx_deflect(MX_E6, 0))
+mx_save(EV_ + "shield_deflect_02.wav", mx_deflect(MX_D6, 1))
+mx_save(EV_ + "shield_deflect_03.wav", mx_deflect(MX_G6, 2))
+
+
+# --- 격추된 운석 공중 폭발 (meteor_explode · _02 · _03) — 가벼운 "퍽" ---
+# 상용 불꽃 터짐 넷 중 셋 (0 · 3.865 · 5.525초 — 1.74초는 낮은 퉁뿐)을 2.6 kHz (셋째 2.2 kHz) 아래로 = 탁탁 · 쉬— 없이 둥근 "퍽" + 0.6초 잦아듦.
+# AI (0.8초마다): Fireworks 0.13 · 0.09 · Firecracker · Thump · Slam (옛 Bang 0.24 · 6 ~ 16 kHz −10 dB → −29 ~ −31 dB). 요새 포대 폭죽놀이 (Ride/Fortress)와 다른 녹음.
+def mx_explode(a, lp=2600):
+    x = m2("fireworks_x4", "fw", max(0.0, a - 0.005), a + 0.9)
+    return fade(peak_soft(lp2d(highpass(x, 70), lp), 6), 0.006, 0.4)
+
+
+mx_save(EV_ + "meteor_explode.wav", mx_explode(0.0))
+mx_save(EV_ + "meteor_explode_02.wav", mx_explode(3.865))
+mx_save(EV_ + "meteor_explode_03.wav", mx_explode(5.525, 2200))
+
+
+# --- 포탑 레이저 (turret_laser · _02 · _03) — 짧은 "퓨웅" ---
+# 몸통 = 레이저 소리 흉내 녹음 (자석 장난감이 부딪혀 우는 "징" — 7 ~ 8 kHz 대라 5반음 낮추고 3.2 kHz 아래, 0.07초 뒤 0.06초 감쇠) +
+# 밑층 = 유리 결이 라5 → 레5 (조 안)로 0.12초에 내려앉는 "퓨" −8 dB (방향만). 음 있는 밑층이 있어 큐 음높이 흔들기 끔 (Pitch 1 · 1), 반복감은 변형 셋으로.
+# AI는 짧아서 판정 못 함 (Music 0.14 · Siren 0). 뺀 것: 자석 7반음 낮춤 (윙윙 버저 — 0.4초 이어짐), 유리 미끄럼만 (ring 6 ~ 7 찰랑 · 만든 소리).
+def mx_pew(f0, f1, dur, glide, tau, seed):
+    """유리 결이 f0에서 f1 (조 안 음)로 glide초에 내려앉음 — 방향만 주는 밑층."""
+    t = np.arange(int(dur * SR)) / SR
+    ph = 2 * np.pi * np.cumsum(f1 + (f0 - f1) * np.exp(-t / (glide / 3))) / SR
+    x = np.sin(ph) + 0.22 * np.sin(2 * ph + 0.3 + seed) + 0.12 * np.sin(2.76 * ph + 0.7 + seed)
+    return x * np.minimum(1, t / 0.003) * np.exp(-t / tau)
+
+
+def mx_laser(a, f1, seed):
+    z = pitch(m2("laser_magnets", "mag", a - 0.005, a + 0.32), -5)
+    z = tband(z, lo=300, hi=3200, khi=4)
+    t = np.arange(int(0.32 * SR)) / SR
+    x = mx_mix(0.32, [(z, 0.0, 0), (mx_pew(f1 * 3, f1, 0.32, 0.12, 0.08, seed), 0.0, -8)]) * np.exp(-np.maximum(0, t - 0.07) / 0.06)
+    return fade(peak_soft(tband(x, hi=4000, khi=4), 3), 0.004, 0.12)
+
+
+mx_save(EV_ + "turret_laser.wav", mx_laser(12.93, 587.33, 0))
+mx_save(EV_ + "turret_laser_02.wav", mx_laser(26.25, 587.33, 1))
+mx_save(EV_ + "turret_laser_03.wav", mx_laser(65.085, 587.33, 2))
+
+# --- 모듈 파손 (module_damaged) — 금속 균열 ---
+# 경보 위계 구역이 1차 균열 (Alerts/legacy, 삐빅 잘라 냄)로 만든 같은 파일을 이 구역이 덮어씀 (빌드 순서상 뒤). 알림은 위험 경보 (alert_danger)가 맡음.
+# 얼음 갈라짐 "쩌억" 9반음 아래 (3 kHz 아래) + 캔 찌그러짐 10반음 아래 −3 = 판이 갈라지는 "쩌-억 찌그럭". AI (0.8초마다): Slam 0.21 · Door 0.18 · Knock · Whack
+# (3 kHz로 누르기 전 Whack 0.16 · Door 0.11이었으나 6 ~ 16 kHz −17 dB로 밝아 누름 → −41 dB). 뺀 시안: 찌그러짐 + 불 훅 (Door 0.58 · Sliding door 0.38).
+# 운석에 맞아 파손될 때는 선체 충돌 소리에 찢김이 들어 있어 이 균열은 장갑 파손에만 덧댐 (GameAudio — 번진 파손 등 그 밖의 파손은 그대로 이 소리).
+_mc = mx_mix(0.7, [(tband(trim_lead(pitch(m2("ice_break", "ice", 0.03, 0.4), -9), -14), hi=3000, khi=4), 0.0, 0), (mx_crunch(7.86, -10, 3500), 0.0, -3)])
+mx_save(EV_ + "module_damaged.wav", mx_hit(_mc, 3500, 4, 0.7, 0.25, 6.0))
+
 print("\n".join(report))

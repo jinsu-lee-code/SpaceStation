@@ -402,10 +402,13 @@ namespace SpaceStation.Audio
         private void HandleCategory(ModuleCategory _) => _audio.Play(_lib.UiTab);
         private void HandleRotated() => _audio.Play(_lib.BuildRotate);
 
+        // 2026-11-25 사운드 개편 1-1: 배치 · 철거 = 모듈 크기 3갈래 (D-6 — 1칸 · 여러 칸 · 진화), 0.15초 안 여러 번 = 한 번 (D-2, BuildSound)
         private void HandlePlaced(ModuleInstance module)
         {
+            if (!BuildSound.AdmitPlace(Time.unscaledTime))
+                return;
             float pan = Pan(module);
-            _audio.Play(_lib.BuildPlace, pan: pan);
+            _audio.Play(BuildSound.PlaceCue(_lib, BuildSound.SizeOf(module, _sim.Synthesis)), pan: pan);
             _audio.Play(_lib.BuildConnect, pan: pan, delay: 0.28f); // 통로가 이어지는 소리
         }
 
@@ -417,15 +420,23 @@ namespace SpaceStation.Audio
                 _audio.Play(_lib.UiOpen, 0.7f);
         }
 
-        private void HandleRemoved(ModuleInstance module) => _audio.Play(_lib.BuildRemove, pan: Pan(module));
+        private void HandleRemoved(ModuleInstance module)
+        {
+            if (BuildSound.AdmitRemove(Time.unscaledTime))
+                _audio.Play(BuildSound.RemoveCue(_lib, BuildSound.SizeOf(module, _sim.Synthesis)), pan: Pan(module));
+        }
         private void HandleRemoveRejected(ModuleInstance _) => _audio.Play(_lib.UiError);
         private void HandleActionFailed(string _) => _audio.Play(_lib.UiError);
 
         private void HandleRebuilt(ModuleInstance module)
         {
             float pan = Pan(module);
-            _audio.Play(_lib.BuildRemove, 0.8f, pan);
-            _audio.Play(_lib.BuildPlace, pan: pan, delay: 0.35f);
+            var size = BuildSound.SizeOf(module, _sim.Synthesis);   // 재건축은 같은 모듈 — 철거 · 배치 같은 크기
+            float now = Time.unscaledTime;
+            if (BuildSound.AdmitRemove(now))
+                _audio.Play(BuildSound.RemoveCue(_lib, size), 0.8f, pan);
+            if (BuildSound.AdmitPlace(now))
+                _audio.Play(BuildSound.PlaceCue(_lib, size), pan: pan, delay: 0.35f);
         }
 
         // ---------------- 수리·파손 ----------------
@@ -454,24 +465,65 @@ namespace SpaceStation.Audio
 
         // ---------------- 운석·방어·폭풍 ----------------
 
-        private void HandleMeteorLaunched(Vector3 arrival, float seconds)
+        // 2026-11-25 사운드 개편 1-1 (운석 · 방어 · 파손): 충돌 = 맞은 곳 3 (선체 · 장갑 · 실드) x 크기 2 (큰 = 1초에 한 번까지, 그 사이 = 작은 — MeteorSound),
+        // 화면 가운데서 멀수록 작게 (가장자리 · 밖 0.6배, D-2). 1인칭 내부에서는 바깥이 안 보이므로 접근 "휙" · 레이저는 안 울리고 나머지는 절반 · 가운데 (D-10 먹먹한 쿵은 B 묶음)
+        private const float InsideMeteor = 0.5f;
+        private float _lastLargeImpactAt = -99f;
+
+        private float MeteorGain(Vector3 world)
         {
-            _audio.Play(_lib.MeteorIncoming, pan: Pan(arrival), delay: Mathf.Max(0f, seconds - _incomingPeak));
+            if (_inside)
+                return InsideMeteor;
+            return _camera != null ? MeteorSound.CenterGain(_camera.WorldToViewportPoint(world)) : 1f;
         }
 
-        private void HandleDeflected(Vector3 at) => _audio.Play(_lib.ShieldDeflect, pan: Pan(at));
-        private void HandleLaser(Vector3 muzzle, Vector3 _) => _audio.Play(_lib.TurretLaser, pan: Pan(muzzle));
-        private void HandleExploded(Vector3 at) => _audio.Play(_lib.MeteorExplode, pan: Pan(at), delay: 0.03f);
+        private float MeteorPan(Vector3 world) => _inside ? 0f : Pan(world);
+
+        private bool NextImpactLarge()
+        {
+            float now = Time.unscaledTime;
+            if (!MeteorSound.IsLarge(now, _lastLargeImpactAt))
+                return false;
+            _lastLargeImpactAt = now;
+            return true;
+        }
+
+        private void HandleMeteorLaunched(Vector3 arrival, float seconds)
+        {
+            if (_inside)
+                return;
+            // 새 소리 (2026-11-25)의 가장 센 곳 = 1.28초 (0.1초 창 귀 감도) · 1.30초 (0.05초 창), 두 변형 같은 자리 — _incomingPeak 1.28 그대로
+            _audio.Play(_lib.MeteorIncoming, MeteorGain(arrival), Pan(arrival), Mathf.Max(0f, seconds - _incomingPeak));
+        }
+
+        /// <summary>실드 구면에 닿음 = 운석 쪽 몸통 (실드 충돌 크기 2갈래) + 실드 쪽 "우웅-팅" (ShieldDeflect) 함께.</summary>
+        private void HandleDeflected(Vector3 at)
+        {
+            float gain = MeteorGain(at), pan = MeteorPan(at);
+            _audio.Play(MeteorSound.ImpactCue(_lib, MeteorSurface.Shield, NextImpactLarge()), gain, pan);
+            _audio.Play(_lib.ShieldDeflect, gain, pan);
+        }
+
+        private void HandleLaser(Vector3 muzzle, Vector3 _)
+        {
+            if (!_inside)
+                _audio.Play(_lib.TurretLaser, MeteorGain(muzzle), Pan(muzzle));
+        }
+
+        private void HandleExploded(Vector3 at) => _audio.Play(_lib.MeteorExplode, MeteorGain(at), MeteorPan(at), 0.03f);
 
         private void HandleImpacted(Vector3 at, ModuleInstance hit)
         {
-            float pan = Pan(at);
-            _audio.Play(_lib.MeteorImpact, pan: pan);
-            if (hit != null)
-            {
-                _audio.Play(_lib.ModuleDamaged, 0.8f, pan, 0.15f);
-                AlertSound.TryPlay(AlertLevel.Danger); // 경보 위계: 모듈 파손 = 위험 (유성우에 몰려도 큐 쉬는 시간 3초)
-            }
+            float gain = MeteorGain(at), pan = MeteorPan(at);
+            // 파손은 판정 순간 (연출보다 1.6초 앞)에 이미 적용됨 — 지금 파손이 아니면 방어 연구로 면한 충돌 (예전엔 면해도 균열 · 위험 경보가 울렸음)
+            bool damaged = hit != null && _sim.Damage.IsDamaged(hit);
+            var surface = MeteorSound.Surface(hit != null, hit != null && hit.Data != null && hit.Data.Armored, damaged);
+            _audio.Play(MeteorSound.ImpactCue(_lib, surface, NextImpactLarge()), gain, pan);
+            if (!damaged)
+                return;
+            if (MeteorSound.CrackOnImpact(surface, damaged))
+                _audio.Play(_lib.ModuleDamaged, 0.8f * gain, pan, 0.12f);
+            AlertSound.TryPlay(AlertLevel.Danger); // 경보 위계: 모듈 파손 = 위험 (유성우에 몰려도 큐 쉬는 시간 3초)
         }
 
         private void HandleSpark(Vector3 at) => _audio.Play(_lib.StormSpark, Random.Range(0.6f, 1f), Pan(at));

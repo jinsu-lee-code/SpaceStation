@@ -387,8 +387,12 @@ namespace SpaceStation.Interior
             }
             if (_station.TryPlace(_selected, _target, _rotation, out var placed))
             {
-                AudioService.TryPlay(l => l.BuildPlace);
-                AudioService.TryPlay(l => l.BuildConnect, 1f);
+                if (BuildSound.AdmitPlace(Time.unscaledTime))   // 2026-11-25 사운드 개편 1-1: 모듈 크기 3갈래 · 0.15초 안 여러 번 = 한 번
+                {
+                    var size = BuildSound.SizeOf(placed, _station.Simulation != null ? _station.Simulation.Synthesis : null);
+                    AudioService.TryPlay(l => BuildSound.PlaceCue(l, size));
+                    AudioService.TryPlay(l => l.BuildConnect, 1f);
+                }
                 _message($"{_selected.DisplayName} 건설 · {HudText.Cost(_station.Simulation.GetBuildCost(_selected))}", false); // "—"은 글꼴에 없음
                 _dirty = true;
                 _hasTarget = false;
