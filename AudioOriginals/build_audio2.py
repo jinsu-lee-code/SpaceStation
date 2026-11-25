@@ -421,13 +421,16 @@ report.append(f"  물레방아 한 바퀴 {p:.2f}초 × {n}")
 # 개구리 (물가 · 숲 길, 3D) — 후보 5 중 2: 짧은 "개굴" 묶음이 간격을 두고 (바닥 −57 dB). 1 · 3 · 4 = 길게 끄는 음 (신스 같음), 5 = 빠른 떨림.
 x = load(B + "frog.wav")
 for k, (a, b) in enumerate(phrases(x, gap=0.3)[:4], 1):
+    if k in (2, 3):   # → 2026-11-25 소절 묶음으로 바꿈 (맨 아래 "실제 녹음 C — 생물 · 날씨" 구역 — 소절 하나씩은 짧아 Fowl 0.14 · Crow 0.20으로 들림)
+        continue
     save(f"Interior/scape_bio_frog_{k:02d}.wav", fade(highpass(x[a:b], 150), 0.01, 0.08), -24)
 
 # 밤 풀벌레 (밤에만, 2D 층) — 후보 5 중 1: 쉬엄쉬엄 끊겨 우는 귀뚜라미. 3 · 4 · 5 = 한 높이로 끝없이 이어지는 "삐—" 줄, 2 = 바닥 −6.5 dB.
 save("Interior/scape_bio_crickets_loop.wav", circular(lambda y: soften(highpass(y, 300), 8000, 0.4), loop_exact(sl(load(B + "crickets.wav"), 0.2, 10.24), 9.0)), -30)
 
 # 먼 천둥 (밤에 아주 가끔, 돔 위 멀리) — 후보 5 중 2: 울림 줄 4 (나머지 14 ~ 51 = 낮은 "웅") · 바닥 −42.8 dB.
-save("Interior/scape_bio_thunder_01.wav", fade(highpass(trim_lead(load(B + "thunder.wav"), -45), 30), 0.2, 1.5), -22)
+# → 2026-11-25 실제 녹음 (멀리서 굴러가는 천둥)으로 바꿈 (맨 아래 "실제 녹음 C — 생물 · 날씨" 구역 — 이것은 Heart murmur 0.17로 들림) — 아래 줄은 기록
+# save("Interior/scape_bio_thunder_01.wav", fade(highpass(trim_lead(load(B + "thunder.wav"), -45), 30), 0.2, 1.5), -22)
 
 # 물방울 (호수 · 물길 둘레, 음계 높이 · 다음 박) + 대표 선율 — 후보 5 중 2: 한 번 "똑", 날카로움 6.0 (가장 둥긂), C6 −33센트 → 정확한 C6 (MIDI 84).
 # 1 = E7 (밝음) · 3 · 4 · 5 = 여러 번 침 · G#5 · F#7 (음계 밖).
@@ -533,18 +536,20 @@ report.append(f"  포대 고리 {LB:.2f}초")
 # 바닷새 (낮, 바다 위 여기저기 3D) — 첫 5개 = 바다 · 바람 잡음 띠에 새가 희미함 (바닥 −4 ~ −10 dB) → "배경 없는 가까운 녹음"으로
 # 다시 5개 중 2 (갈매기 "꺄옥" 넷이 깔끔히 떨어짐 · 바닥 −53 dB)의 앞 · 뒤 소절 + 3 (짧은 퍼핀 재잘, 바닥 −62 dB).
 # 다시 만든 1 = 울음이 뒤엉킴, 4 = 바닥 −41 dB, 5 = 일곱 번 같은 울음.
-g = load(OD + "gull.wav")
-ph = phrases(g, gap=0.12, pad=0.05)
-half = max(1, len(ph) // 2)
-for k, (a, b) in enumerate([(ph[0][0], ph[half - 1][1]), (ph[half][0], ph[-1][1])] if len(ph) > 1 else [ph[0]]):
-    save(f"Interior/scape_defense_gull_{k + 1:02d}.wav", fade(highpass(g[a:b], 300), 0.01, 0.08), -14)
-report.append(f"  갈매기 소절 {len(ph)}개")
-pf = load(OD + "puffin.wav")
-save("Interior/scape_defense_gull_03.wav", fade(highpass(trim_lead(pf, -45), 300), 0.01, 0.08), -14)
+# → 2026-11-25 실제 녹음 (갈매기 무리)으로 바꿈 (맨 아래 "실제 녹음 C — 생물 · 날씨" 구역 — 이 셋은 Owl 0.21 · 애완동물 0.48 · 거위 Honk 0.32로 들림) — 아래 줄은 기록
+# g = load(OD + "gull.wav")
+# ph = phrases(g, gap=0.12, pad=0.05)
+# half = max(1, len(ph) // 2)
+# for k, (a, b) in enumerate([(ph[0][0], ph[half - 1][1]), (ph[half][0], ph[-1][1])] if len(ph) > 1 else [ph[0]]):
+#     save(f"Interior/scape_defense_gull_{k + 1:02d}.wav", fade(highpass(g[a:b], 300), 0.01, 0.08), -14)
+# report.append(f"  갈매기 소절 {len(ph)}개")
+# pf = load(OD + "puffin.wav")
+# save("Interior/scape_defense_gull_03.wav", fade(highpass(trim_lead(pf, -45), 300), 0.01, 0.08), -14)
 
 # 물범 (낮, 방파제 끝 바위 3D) — 후보 5 모두 딸깍 · 지직이 섞임 (지직 44 ~ 57) → 3의 앞 두 번 "멍멍" (0.05 ~ 0.8초)만.
-seal = sl(load(OD + "seal.wav"), 0.05, 0.8)   # 0.8초 뒤 = 작은 딸깍 꼬리 (다듬은 뒤 그림으로 확인)
-save("Interior/scape_defense_seal_01.wav", fade(soften(highpass(seal, 100), 4500, 0.5), 0.01, 0.12), -14)
+# → 2026-11-25 실제 녹음 바탕으로 바꿈 (맨 아래 "실제 녹음 C — 생물 · 날씨" 구역 — 이것은 Oink 0.06 · Music 0.06, 무엇인지 안 들림) — 아래 줄은 기록
+# seal = sl(load(OD + "seal.wav"), 0.05, 0.8)   # 0.8초 뒤 = 작은 딸깍 꼬리 (다듬은 뒤 그림으로 확인)
+# save("Interior/scape_defense_seal_01.wav", fade(soften(highpass(seal, 100), 4500, 0.5), 0.01, 0.12), -14)
 
 # 등대 종 (가끔 등대에서 + 대표 선율) — 후보 5 중 3: 한 번 맑게 · 7.5초 긴 울림 · 도 (C4 −40 · C5 −15센트) → +0.28반음 올려 도에 맞춤.
 # 시작 1.2 ms → 15 ms로 둥글게 (−45 dB에서 자르면 앞 잡음 뒤에 그대로 쳐서 −30 dB에서 자름). 4 = 라 (A4, 좋지만 계획이 "낮은 으뜸음"), 1 = 시 (B4), 2 = 도6 높음, 5 = 미♭6 + 1.4초 뒤에 침.
@@ -738,7 +743,8 @@ SG = "Interior/scape_stellar/"
 # 꿀벌 한 마리 지나감 (낮, 고리 길 · 꽃나무 숲 · 라벤더 둘레 가끔 3D) — "제자리에서 맴도는 벌" 루프를 불렀는데 다섯 모두 1.8 ~ 3.9초 "다가왔다 멀어지는" 소리 →
 # 그대로 지나가는 벌로. 1 (가장 매끈 · B♭2 +22센트 — 조 안, 그대로) + 5 (F3 −45센트 → +0.45반음 정확한 F3, 지직 12.7 최저).
 # 기음이 낮아 (115 ~ 175 Hz) 귀 감도로 작음 → 150 Hz 아래를 눌러 날개 결 (배음)이 들리게. 2 = 쉿 (4 kHz 위 31 %), 3 = 1.8초, 4 = 지직 21.7.
-save("Interior/scape_stellar_bee_01.wav", fade(highpass(highpass(trim_lead(load(SG + "bee_a.wav"), -45), 150), 150), 0.05, 0.3), -14)
+# → 2026-11-25 1은 실제 녹음 (꿀벌)으로 바꿈 (맨 아래 "실제 녹음 C — 생물 · 날씨" 구역 — 1은 Music 0.50 · Didgeridoo로 들림, 2는 Insect 0.90 그대로) — 아래 줄은 기록
+# save("Interior/scape_stellar_bee_01.wav", fade(highpass(highpass(trim_lead(load(SG + "bee_a.wav"), -45), 150), 150), 0.05, 0.3), -14)
 save("Interior/scape_stellar_bee_02.wav", fade(highpass(highpass(pitch(trim_lead(load(SG + "bee_b.wav"), -45), 0.45), 150), 150), 0.05, 0.3), -14)
 
 # 벌집 홀 웅웅 (꿀 언덕 속 · 둥근 벌집 입구, 3D) — 후보 5 중 3: 가장 고르게 이어짐 (지직 9.5 최저) · 벌 떼 화음 가운데 403 Hz (G4와 G#4 사이) → −0.5반음 G4.
@@ -1040,7 +1046,8 @@ def glow_bell(f, dur=1.6, seed=0):
 
 
 # 빛이 닿아 답함 (2D — 새 곳 = 찾은 차례대로 도 · 레 · 파 · 솔 · 라 · 도, 이미 찾은 곳 = 그 곳의 음을 작게, 기준 = 도5) — 합성 "빛 유리 종".
-save("Ride/odef_beam_react.wav", fade(glow_bell(523.25, 1.6, 93), 0.0, 0.4), -14)
+# → 2026-11-25 실제 녹음 (유리 꽃병 딩, 도6)으로 바꿈 (맨 아래 "실제 녹음 B — 기계음" 구역) — 아래 줄은 기록
+# save("Ride/odef_beam_react.wav", fade(glow_bell(523.25, 1.6, 93), 0.0, 0.4), -14)
 
 # 포 쏨 (클릭마다, 0.22초마다 연타 가능 — 2D) — 합성: 공기 "퐁" (850 → 330 Hz로 20 ms 만에 내려감 + 2배음 옅게, 60 ms에 꺼짐) + 짧은 "쉿" (0.9 ~ 3.5 kHz, 50 ms).
 # 0.25초로 짧고 날 선 첫머리 없이 (시작 4 ms 위) — 연달아 눌러도 거슬리지 않게. 처음엔 380 → 160 Hz (300 Hz 아래 95 %)였는데 녹음 검수에서
@@ -1409,7 +1416,8 @@ pos = pos / pos[-1] * min(len(mo) - 2, pos[-1])
 motor = np.interp(pos, np.arange(len(mo)), mo)
 amp = (0.3 + 0.7 * spd ** 0.7) * np.minimum(1, tm / 0.12) * np.where(tm < TT, 1.0, np.exp(-(tm - TT) / 0.08))
 motor = soften(soften(motor * amp, 4000, 0.5), 7000, 0.4)
-save("Ride/dsc_dish_motor.wav", fade(motor, 0.0, 0.1), -14)
+# → 2026-11-25 실제 녹음 (차 선루프 모터)으로 바꿈 (맨 아래 "실제 녹음 B — 기계음" 구역 — 빠르기 곡선 0.55 → 1 → 0.55가 사이렌 0.42로 들림) — 아래 줄은 기록
+# save("Ride/dsc_dish_motor.wav", fade(motor, 0.0, 0.1), -14)
 
 # 아치 소원 — 별똥별이 강에 닿아 별빛이 번짐 (2D 큰 순간) — 합성: 반짝임 스물넷이 F 오음계 파7 → 파5로 쏟아져 내림 (2.6초, 처음 빽빽 → 띄엄띄엄) +
 # 유리 종 파5 · 라5 · 도6 화음이 부풀었다 잦아듦 + 옅은 "샤라락" (2 ~ 6 kHz 잡음이 반짝임을 따라 잦아듦).
@@ -1670,8 +1678,9 @@ for j, (f0, amp) in enumerate(((174.61, 0.7), (220.0, 0.8), (261.63, 1.0), (349.
 air = circular(lambda y: onepole_lp(highpass(y, 800), 3000), rng.standard_normal(len(td)))
 swarm = circular(lambda y: highpass(onepole_lp(y, 2500), 80), swarm)
 swarm = swarm / rms(swarm) + 0.12 * air / rms(air)
-save("Ride/droneshow_swarm_loop.wav", swarm, -24)
-report.append(f"  드론 떼 고리 {len(swarm) / SR:.2f}초 · 이음새 {abs(swarm[0] - swarm[-1]):.4f}")
+# → 2026-11-25 실제 녹음 (RC 헬기 여섯 겹)으로 바꿈 (맨 아래 "실제 녹음 B — 기계음" 구역 — 합성 떼는 Music 0.79 · Piano로 들림) — 아래 줄은 기록
+# save("Ride/droneshow_swarm_loop.wav", swarm, -24)
+# report.append(f"  드론 떼 고리 {len(swarm) / SR:.2f}초 · 이음새 {abs(swarm[0] - swarm[-1]):.4f}")
 
 # ================= 체험 — 요새 포대 "폭죽놀이 직관" (SOUND_LIST_NEW 5-2, 2026-11-23) =================
 # InteriorFireworkShow (쇼 레버 → 24초 동안 0.5 ~ 1초마다 쏨, 포구에서 0.8초 뒤 하늘 화면에 터짐 · 평소에도 가끔). VARCO 0번 — 모두 합성 (레버 = 궤도 방어망 레버 조각).
@@ -1776,8 +1785,9 @@ ck_ = chain_loop([ck_, ck_[::-1]], 0.5)
 ck_ = np.interp(np.arange(len(tl)) * len(ck_) / len(tl), np.arange(len(ck_) + 1), np.concatenate([ck_, ck_[:1]]))
 ck_ = circular(lambda y: soften(soften(highpass(y, 300), 2500, 0.8), 2500, 0.8), ck_)
 tesla = circular(lambda y: highpass(y, 40), 0.75 * hum_ / rms(hum_) + 0.25 * ck_ / rms(ck_))
-save("Ride/lightning_hum_loop.wav", tesla, -19)   # −24는 4 m에서 음악보다 −7.8 (낮은 웅이라 귀 감도로 작음) → +5 dB
-report.append(f"  번개 탑 웅 고리 {len(tesla) / SR:.2f}초 · 이음새 {abs(tesla[0] - tesla[-1]):.4f}")
+# → 2026-11-25 실제 녹음 (테슬라 코일 + 아크 지직)으로 바꿈 (맨 아래 "실제 녹음 B — 기계음" 구역) — 아래 줄은 기록
+# save("Ride/lightning_hum_loop.wav", tesla, -19)   # −24는 4 m에서 음악보다 −7.8 (낮은 웅이라 귀 감도로 작음) → +5 dB
+# report.append(f"  번개 탑 웅 고리 {len(tesla) / SR:.2f}초 · 이음새 {abs(tesla[0] - tesla[-1]):.4f}")
 
 # ================= 체험 — 치안 본부 "떠 있는 순찰차" (SOUND_LIST_NEW 5-2, 2026-11-23) =================
 # InteriorPatrolCar (차 둘 — 광장 위에 살짝 떠서 출렁이다 가끔 출동: 경광등 → 떠오름 → 돌아섬 → 날아가며 작아짐 → 돌아와 내려앉음). VARCO 1번 (떠 있는 웅).
@@ -1860,8 +1870,9 @@ pour = place(pour, sz / pk50(sz) * 0.55, 0.9)
 mo2 = highpass(sl(load("Ride/DeepSpaceComm/dish_motor.wav"), 0.25, 4.3), 80)
 crane = chain_loop([mo2, mo2[::-1]], 0.6)
 crane = circular(lambda y: soften(soften(y, 4000, 0.5), 7000, 0.4), crane)
-save("Ride/refinery_crane_move_loop.wav", crane, -24)
-report.append(f"  크레인 모터 고리 {len(crane) / SR:.2f}초 · 이음새 {abs(crane[0] - crane[-1]):.4f}")
+# → 2026-11-25 실제 녹음 (책상 리프트 기어 모터)으로 바꿈 (맨 아래 "실제 녹음 B — 기계음" 구역) — 아래 줄은 기록
+# save("Ride/refinery_crane_move_loop.wav", crane, -24)
+# report.append(f"  크레인 모터 고리 {len(crane) / SR:.2f}초 · 이음새 {abs(crane[0] - crane[-1]):.4f}")
 
 # 집게가 광석을 쥠 "턱" (집게가 다 닫히는 순간 집게 자리 3D) — 5-1 탑승 걸쇠 원본의 다른 툭 (2.67초)을 4반음 내려 묵직하게 + 3 kHz 위를 눌러 둥글게.
 grab = pitch(fade(soften(highpass(sl(lt_, 2.62, 2.98), 80), 3000, 0.5), 0.004, 0.1), -4)
@@ -1930,8 +1941,9 @@ servo = servo + 10 ** (-8 / 20) * np.sin(2 * np.pi * 0.5 * ph + 0.3)
 servo = servo * (1 + 0.06 * np.sin(2 * np.pi * 60 / LS_ * ts_) + 0.04 * np.sin(2 * np.pi * 3 / LS_ * ts_ + 0.5))   # 모터 결 30 Hz · 느린 숨
 air = circular(lambda y: onepole_lp(onepole_lp(highpass(y, 300), 2500), 2500), rng.standard_normal(len(ts_)))
 servo = servo / rms(servo) + 0.22 * air / rms(air)
-save("Ride/t1_turret_servo_loop.wav", servo, -20)   # 솔4 · 솔3이 대부분이라 귀 감도로 rms보다 4 dB 작음 → 다른 물체 루프 (−24)보다 4 dB 크게
-report.append(f"  포탑 서보 고리 {len(servo) / SR:.2f}초 · 이음새 {abs(servo[0] - servo[-1]):.4f}")
+# → 2026-11-25 실제 녹음 (차 전동 창문 모터)으로 바꿈 (맨 아래 "실제 녹음 B — 기계음" 구역) — 아래 줄은 기록
+# save("Ride/t1_turret_servo_loop.wav", servo, -20)   # 솔4 · 솔3이 대부분이라 귀 감도로 rms보다 4 dB 작음 → 다른 물체 루프 (−24)보다 4 dB 크게
+# report.append(f"  포탑 서보 고리 {len(servo) / SR:.2f}초 · 이음새 {abs(servo[0] - servo[-1]):.4f}")
 
 # ================= 체험 — 정비 공창 "수리 패드 용접" · 조선소 "용접 갠트리" (SOUND_LIST_NEW 5-2 · 4-4, 2026-11-23) =================
 # InteriorWelder (회전판 위 용접 팔 토치 — 한 번에 하나씩 2 ~ 4초) · InteriorShipyard (갠트리가 판 이음선으로 옮겨 가 양옆 토치로 2 ~ 3초씩). VARCO 1번 (용접).
@@ -2291,7 +2303,7 @@ report.append(f"  용접 고리 (실제 녹음) {len(d_weld) / SR:.2f}초 · 이
 # AI 청각 모델 줄 세우기 (docs/sound/ai-rank-2026-11-24.tsv)에서 기계가 순음 · 사이렌 · 신시사이저로 들린 것 (포탑 서보 · 번개 탑 웅 · 빛 반응 = Sine wave,
 # 접시 모터 = Siren, 크레인 = Synthesizer · Noise, 바깥 정거장 웅 = Silence · Sine wave, 드론 떼 = Music · Piano)
 # → 실제 녹음 (archive.org "The Designer's Choice UCS Collection", CC0 — 녹음마다 AudioOriginals/Machines/<녹음>/SOURCE.txt)으로 다시 만듦. 파일 이름 · 칸 그대로.
-# 후보 37개 (mp3 27 MB로 훑고 고른 10개만 flac 34 MB) — 10초판 (루프 = 이어 붙임 · 한 번 소리 = 2.5초마다 4번)의 AI 위 범주 · Siren · Sine wave · Music · Synthesizer,
+# 후보 38개 (mp3 27 MB로 훑고 고른 10개만 flac 34 MB) — 10초판 (루프 = 이어 붙임 · 한 번 소리 = 2.5초마다 4번)의 AI 위 범주 · Siren · Sine wave · Music · Synthesizer,
 # 소음원 (포탑 · 크레인 — 나중에 옆방으로 먹먹하게 새어 들 자리, SOUND_LIST D-4)은 2 kHz 로우패스판도 무엇인지 남는지, 음 봉우리가 음악 조 (D 단조 · F 장조) 안인지로 고름
 # (빠르기로 Pitch가 바뀌는 루프는 Pitch 1에서). AudioSet은 고른 모터 웅을 대개 Vehicle · Engine으로 들음 (서보 · 크레인 · 테슬라 범주는 없음).
 # 음량 = 게임 안 4 m 앞 혼자 울림 귀 감도를 고치기 전과 같게 (루프 = 0.25초 창 평균, 한 번 소리 = 최대) — 칸 음량은 그대로 두고 원본 저장 크기로 맞춤.
@@ -2439,5 +2451,119 @@ for fdB, prB, stB, cB, ntB, gB in (("rc_heli_hover", "hover", 5.75, 77, (86,), 1
     swarmB += gB * yB / rms(yB)
 save("Ride/droneshow_swarm_loop.wav", swarmB, -24.9)
 report.append(f"  드론 떼 (RC 헬기 여섯 겹) 고리 {len(swarmB) / SR:.2f}초 · 이음새 {abs(swarmB[0] - swarmB[-1]):.4f}")
+
+# ================= 실제 녹음 C — 생물 · 날씨 (SOUND_LIST_NEW 10번 C, 2026-11-25) =================
+# AI 청각 모델 줄 세우기 (docs/sound/ai-rank-2026-11-24.tsv)에서 생물 · 날씨 가끔 소리가 다른 것으로 들림 — 갈매기 셋 (부엉이 Owl 0.21 · 애완동물 0.48 ·
+# 거위 Honk 0.32) · 개구리 2 · 3 (닭 Fowl 0.14 · 까마귀 Crow 0.20) · 물범 (돼지 Oink 0.06 — 무엇인지 모름) · 먼 천둥 (심장 박동 Heart murmur 0.17), 확인 중 찾은 꿀벌 지나감 1 (Music 0.50).
+# → archive.org "The Designer's Choice UCS Collection" (CC0) 실제 녹음으로 (녹음마다 AudioOriginals/Creatures/<녹음>/SOURCE.txt). 파일 이름 · 칸 그대로.
+# AI 재기 = ai_rank 방식 (한 번 소리를 2.5초마다 네 번 놓은 10초). AudioSet 527 범주에는 갈매기 · 물범이 없음 → 갈매기 = Squawk · Bird (실제 갈매기 녹음 10초도 Bird · Squawk ·
+# Goose · Fowl), 물범 = Whale vocalization · Animal을 맞는 범주로, 엉뚱한 범주 (Dog · Pig · Cat · Owl · Chicken · Honk · Music · Heart · 경적 · Speech) < 0.1.
+# 음량 = 파일 귀 감도 (A 특성 0.25초 최대)를 고치기 전 파일과 같게 저장 크기로 맞춤 (가끔 소리 칸 음량 그대로 — SS_Evo* 안 바꿈) → 게임 안 혼자 울림 (4 m)으로 확인.
+CR = "Creatures/"
+
+
+def fft_band(x, lo=None, hi=None, klo=2, khi=2, pad=0.3):
+    """영위상 (FFT) 1극 겹 고역 · 저역 — lo Hz 아래를 (1 + (lo/f)²)^(−klo/2), hi Hz 위를 (1 + (f/hi)²)^(−khi/2)로 (k = 8 ≈ 4차 버터워스 앞뒤로 두 번).
+    한 번 소리는 앞뒤 pad초 0을 붙여 돌려 꼬리가 앞으로 넘어오지 않게."""
+    n = int(pad * SR)
+    y = np.concatenate([np.zeros(n), x, np.zeros(n)])
+    f = np.maximum(np.fft.rfftfreq(len(y), 1 / SR), 1e-3)
+    g = np.ones_like(f)
+    if lo:
+        g *= (1 + (lo / f) ** 2) ** (-klo / 2)
+    if hi:
+        g *= (1 + (f / hi) ** 2) ** (-khi / 2)
+    return np.fft.irfft(np.fft.rfft(y) * g, len(y))[n:n + len(x)]
+
+
+GAP = np.zeros(int(0.06 * SR))   # 한 번 소리 끝을 고요하게 (뒤 꼬리 바닥 −60 dBFS 아래)
+
+
+def stft_gate(x, alpha=2.5, floor_db=-30.0, n=2048, hop=256):
+    """깔린 고른 바닥 (바다 쉬— · 먼 파도)을 걷어냄 — 칸 (주파수)마다 녹음 전체에서 20 % 크기를 바닥으로 보고 alpha배를 뺀 부드러운 마스크
+    (√(1 − (alpha · 바닥 / 크기)²), floor_db 아래로는 안 내림, 3 칸 × 5 틀 평균으로 지직 줄임)."""
+    w = 0.5 - 0.5 * np.cos(2 * np.pi * np.arange(n) / n)
+    xp = np.pad(x, (n // 2, n // 2))
+    fr = np.lib.stride_tricks.sliding_window_view(xp, n)[::hop] * w
+    Z = np.fft.rfft(fr, axis=1)
+    M = np.abs(Z)
+    noise = np.percentile(M, 20, axis=0)
+    g = np.sqrt(np.clip(1 - (alpha * noise / (M + 1e-12)) ** 2, 10 ** (floor_db / 10), 1))
+    for ax, k in ((0, 5), (1, 3)):                                              # 상자 평균 (끝은 거울로)
+        p = [(0, 0), (0, 0)]
+        p[ax] = (k // 2, k // 2)
+        c = np.cumsum(np.pad(g, p, mode="symmetric"), ax)
+        c = np.concatenate([np.zeros_like(np.take(c, [0], ax)), c], ax)
+        g = (np.take(c, np.arange(k, c.shape[ax]), ax) - np.take(c, np.arange(c.shape[ax] - k), ax)) / k
+    y = np.fft.irfft(Z * g, n, axis=1) * w
+    out = np.zeros(len(xp)); ws = np.zeros(len(xp))
+    for i in range(y.shape[0]):
+        out[i * hop:i * hop + n] += y[i]
+        ws[i * hop:i * hop + n] += w ** 2
+    return (out / np.maximum(ws, 1e-8))[n // 2:n // 2 + len(x)]
+
+
+def expander(x, below_db=22.0, ratio=3.0, att=0.003, rel=0.08, floor_db=-45.0):
+    """가장 큰 곳보다 below_db 넘게 작은 곳 (울음 사이 먼 무리 · 남은 바닥)만 ratio로 더 내림 — 10 ms 크기, 열 때 att · 닫을 때 rel초."""
+    w = int(0.01 * SR)
+    e = 20 * np.log10(np.sqrt(np.convolve(x ** 2, np.ones(w) / w, "same")) + 1e-9)
+    thr = e.max() - below_db
+    g = 10 ** (np.where(e < thr, np.maximum((e - thr) * (ratio - 1), floor_db), 0.0) / 20)
+    ka, kr = np.exp(-1 / (att * SR)), np.exp(-1 / (rel * SR))
+    s, out = 1.0, np.empty_like(g)
+    for i in range(len(g)):
+        k = kr if g[i] < s else ka
+        s = k * s + (1 - k) * g[i]
+        out[i] = s
+    return x * out
+
+
+# 갈매기 셋 (궤도 방어망 바다 위 · 궤도 항만 석호 위, 낮 3D) = 바닷새 무리 녹음 (seagulls, 40초 — 갈매기 무리 + 먼 파도 쉬— 가 바닥 −25 dB로 내내 깔림).
+# 600 Hz 아래 (파도)를 걷고 녹음 전체 바닥을 뺀 뒤 (stft_gate), 서로 다른 자리의 소절 셋 — 1.0 · 1.4 · 1.8초 창을 0.1초씩 밀며 1100개를 AI로 재서
+# Squawk · Bird가 높고 엉뚱한 범주가 낮은 곳을 찾고, 끝은 울음 사이 조용한 틈 (−35 ~ −50 dB)에 맞춤:
+# 1 = 16.10 ~ 17.58초 (Squawk 0.91 · Bird 0.36) · 2 = 9.20 ~ 11.92초 (울음이 이어진 무리, Squawk 0.94 · Bird 0.24) · 3 = 18.95 ~ 21.15초 (Squawk 0.71 · Bird 0.39 · Music 0.09, 사이가 붐벼 덜 누름 — 21.05초에서 끊으면 Music 0.10).
+# 지금 것 (VARCO) = 부엉이 0.21 · 애완동물 · 고양이 0.48 · 거위 Honk 0.32. 저장 크기 = 귀 감도를 지금 셋의 평균과 같게 (−13.4 · −14.5 · −14.4).
+# 울음 하나만 자른 1초 안팎 조각은 Cat · Chicken · Goose로 들림 (실제 갈매기 "꺄옥" 하나도 AI는 고양이 · 닭으로 들음) → 울음 두셋이 이어진 소절로.
+# 울음 사이 먼 무리는 expander로 더 내리고, "멀리서 부드럽게" 6 kHz 위를 누름 (무게중심 3.7 → 3.3 kHz, Squawk 그대로).
+# 뺀 자리: 3.6 ~ 5.6초 (맑게 끄는 울음이 Music 0.15 ~ 0.28), 7.0 ~ 8.8초 (Music 0.16 ~ 0.30), 12.3 ~ 14.6초 (Owl 0.11), 8.9 ~ 10.5 · 24.5 · 30.8초 (Chicken · Goose · Honk).
+gs = stft_gate(fft_band(load(CR + "seagulls/gulls_000.00.wav"), lo=600, klo=8))
+for k, (a, b, below, fin, fout) in enumerate(((16.10, 17.58, 22, 0.03, 0.2), (9.20, 11.92, 22, 0.15, 0.3), (18.95, 21.15, 16, 0.1, 0.25)), 1):
+    y = fft_band(fade(expander(sl(gs, a, b), below), fin, fout), hi=6000)
+    save(f"Interior/scape_defense_gull_{k:02d}.wav", np.concatenate([y, GAP]), (-13.4, -14.5, -14.4)[k - 1])
+
+# 개구리 2 · 3 (바이오스피어 물가 · 수리 사령부 연못) — 이 모음의 개구리 녹음 = 황소개구리 "퉁" 울음 (ANIMALS/AMPHIBIAN, 16초)은 AI가 Speech 0.51 · Arrow로 듣고,
+# 울음을 0 ~ 19반음 올리고 · 두세 번 잇고 · 800 ~ 3200 Hz로 좁혀도 (frog_01 · 04 결) Frog 0.17 아래 · Crow 0.68 · Quack · Fowl (24가지 시험) → 실제 녹음으로는 안 됨.
+# → frog_01 · 04와 같은 VARCO 원본 (scape_bio/frog.wav)의 다른 소절 묶음으로: 2 = 소절 2 + 3을 이어진 그대로 (1.7초, Frog 0.71 · Croak 0.23),
+# 3 = 소절 6 + 5 (1.46초, Frog 0.83 · Croak 0.50). 소절 하나씩 (지금 2 · 3)은 짧아 Fowl 0.14 · Crow 0.20, 5 + 6 순서는 Crow 0.13, 2 + 6은 소절 2가 겹침.
+# (저장 뒤 2 = Frog 0.60 · Croak 0.13 · Fowl 0.08.) 저장 크기 = 귀 감도를 지금 2 · 3과 같게.
+fx = load("Interior/scape_bio/frog.wav")
+fp = phrases(fx, gap=0.3)
+save("Interior/scape_bio_frog_02.wav", fade(highpass(fx[fp[1][0]:fp[2][1]], 150), 0.01, 0.08), -24.1)
+save("Interior/scape_bio_frog_03.wav", np.concatenate([fade(highpass(fx[a:b], 150), 0.01, 0.08) for a, b in (fp[5], fp[4])]), -23.5)
+
+# 물범 (궤도 방어망 방파제 끝 바위, 낮 3D) — 이 모음에 물범 · 바다사자가 없음. 비슷한 소리를 다듬어 AI로 잼 (지침 "한계를 적기 전에 넘을 수 있는지"):
+# 강아지 깽깽 (낮추면 Throat clearing · Burping · Dog) · 강아지 낑낑 (Baby cry · Speech · Dog) · 새끼 고양이 (Cat 0.6 넘게) · 큰 개 · 황소 (짧으면 Silence · Music) ·
+# 혹등고래 (+7반음 2.4초 Whale vocalization 0.28 — 길고 느림) · 당나귀 울음 첫머리 "우-와" (1.39초, Whale vocalization 0.31 · Animal · Howl).
+# 당나귀 첫머리를 2반음 올린 것 (1.24초)이 가장 바다 짐승 쪽: Whale vocalization 0.39 · Animal 0.17 · Howl 0.15, Dog 0.06 · 애완동물 0.07 (−2반음은 애완동물 0.10, +3 · +4반음은 Whale 0.12 ~ 0.18).
+# 앞 "우" (0.25 · 0.4초부터)를 자르면 Howl · Dog 0.16 · Shofar로 바뀌어 그대로 둠. 0.8초 아래 짧은 소리는 10초 안에서 성겨 AI가 Silence · Music으로만 들음.
+# (저장 뒤 Whale vocalization 0.32 · Animal 0.17 · Howl 0.14, Dog 0.08.) 낮은 웅이 커서 (A − rms −3 dB) 귀 감도를 지금 것과 같게 −12.2로.
+sb = fft_band(sl(load(CR + "donkey_bray/bray_000.00.wav"), 0.0, 1.39), lo=60, klo=4)
+save("Interior/scape_defense_seal_01.wav", np.concatenate([fade(pitch(sb, 2.0), 0.03, 0.12), GAP]), -12.2)
+
+# 먼 천둥 (바이오스피어 밤, 돔 위 멀리 2D 쪽) = 멀리서 굴러가는 천둥 (distant_thunder, 11.6초 — 2초에 걸쳐 커졌다가 10초까지 구르며 잦아듦, 높은 쪽 바닥 −42 dB).
+# 천둥 후보 17 중: Distant_Rolling = 하나 "둥"이 아니라 굴러가는 꼬리가 녹음에 그대로 (끝 페이드 2초만), 8 kHz 위만 살짝 눌러 옅은 비 쉬— 를 걷음 (6 ~ 16 kHz −44 dB)
+# → Thunder 0.74 · Thunderstorm 0.53 · Rain 0.34 (지금 것 Heart murmur 0.17 · Thunder 0.07). 3.5 kHz 위까지 누르면 Thunder 0.33으로 흐려짐 (낮은 웅만 남아).
+# 뺀 것: 비가 세게 깔림 (Rolls, Rumbles — Rain 0.67 · Short Distant Boom — 높은 쪽 바닥 −20 dB) · 집 안에서 들은 천둥 (Heart murmur 0.41 — 지금 것과 같은 탈) ·
+# 옛 녹음 우르릉 (첫머리 "딱"이 Explosion · Fireworks) · 짙은 천둥 Muffled LFE · Booms, Rumbles (Thunder 0.66 · 0.75지만 12초 내내 크고 끝을 페이드로 만들어야 함).
+th = sl(load(CR + "distant_thunder/thunder_000.00.wav"), 0.0, 11.5)
+save("Interior/scape_bio_thunder_01.wav", fade(fft_band(th, lo=30, hi=8000, klo=4, khi=2), 0.15, 2.0), -15.3)   # 98 %가 300 Hz 아래라 (A − rms −15 dB) 귀 감도를 지금 것과 같게 −22 → −15.3
+
+# 꿀벌 지나감 1 (항성 발전망 고리 길, 낮 3D) — 지금 것 (VARCO bee_a, Bb2 115 Hz 배음 줄)은 Music 0.50 · Didgeridoo로 들림 (2는 Insect 0.90 · Bee).
+# → 실제 꿀벌 녹음 (bee_buzz, 17.8초 — 마이크 곁을 맴돌다 멀어짐)의 끝 3.7초 (13.9 ~ 17.6초: 맴돌다 자연스럽게 멀어짐) + 앞 1.2초 페이드로 다가옴.
+# 날개 높이 175.8 Hz = F3 +12센트 (2 = F3 −0센트)라 높이는 그대로. AI: Insect 0.95 · Fly 0.93 · Bee 0.79 · Mosquito 0.70.
+# 지금 것보다 밝아 (A − rms −13 → −5 dB) 귀 감도를 지금 것과 같게 −14 → −22.5.
+# 뺀 곳: 첫머리 다가옴 (1.0 ~ 4.7초 — 마이크를 툭툭 치는 세로줄) · 다가옴 + 멀어짐 이어 붙임 (이은 자리 크기가 끊김).
+bz = fft_band(load(CR + "bee_buzz/bee_013.90.wav"), lo=120, klo=4)
+save("Interior/scape_stellar_bee_01.wav", fade(bz, 1.2, 0.1), -22.5)
 
 print("\n".join(report))
