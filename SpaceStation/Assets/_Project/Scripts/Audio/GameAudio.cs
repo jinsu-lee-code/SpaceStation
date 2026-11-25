@@ -31,6 +31,14 @@ namespace SpaceStation.Audio
         [Tooltip("음악 상태가 이 시간(초) 이상 유지되어야 곡을 바꾼다")]
         [SerializeField] private float _musicHold = 3f;
 
+        [Header("바깥 정거장 험 3단계 (2026-11-25, SOUND_LIST_NEW 4-4)")]
+        [Tooltip("두께 1 · 2 · 3단계에 닿는 등급 번호 (StationGrades 순서: 1 소형 · 3 대형 · 5 국가급). 모듈 수 기준도 그 등급의 모듈 수 조건을 씀")]
+        [SerializeField] private int[] _humTierGrades = { 1, 3, 5 };
+        [Tooltip("두께가 바뀌는 빠르기 (단계 / 실시간 초). 모듈 하나를 지을 때 툭 바뀌지 않게 천천히 (0.05 = 20초에 한 단계)")]
+        [SerializeField] private float _humTierSpeed = 0.05f;
+        [Tooltip("들어 보기용: 0 ~ 3이면 두께를 이 값으로 고정 (플레이 중 끌어 단계 1 · 2 · 3을 들어 봄). 평소 -1 = 정거장 크기대로")]
+        [SerializeField, Range(-1f, 3f)] private float _humThicknessPreview = -1f;
+
         // Interior = 1인칭 내부: 바깥 음악을 끄고 내부 음악 층(InteriorAudio)에 넘김 (2026-11-23). 위기 음악은 안에서도 그대로.
         private enum MusicState { None, Day, Night, Crisis, Interior }
 
@@ -48,6 +56,21 @@ namespace SpaceStation.Audio
         private Interior.InteriorMode _interior;
         private bool _inside;
         private const float InsideHum = 0.25f;
+        // 바깥 정거장 험 3단계: StationHum 위에 정거장 크기 (모듈 수 · 등급)로 이웃 단계끼리 교차하는 층 (ExteriorHum)
+        private AudioService.Loop[] _humTiers;
+        private int[] _humTierModules;
+        private float _humThickness = -1f;
+        // 경보 위계 (2026-11-25, SOUND_LIST_NEW D-3): 소리가 없던 경고 (역병 · 파업 · 외부 접촉 · 침입 드론)의 단계 변화 · 자원 바닥 반복 막기
+        private AlertWatch _alertWatch;
+        private readonly System.Collections.Generic.Dictionary<ResourceType, float> _depletedAlertAt = new System.Collections.Generic.Dictionary<ResourceType, float>();
+        private const float DepletedRepeat = 20f;
+        private const float AlarmUrgentSeconds = 10f;
+        // 합성 · 이민선 (2026-11-25, SOUND_LIST_NEW 2번): 진행 중 합성 루프 하나 (가장 가까운 합성) · 이민선 방문 수 변화 · 나온 순간 (선택 소리 겹침 막기)
+        private AudioService.Loop _synthLoop;
+        private readonly System.Collections.Generic.Dictionary<SynthesisJob, Vector3> _synthCenters = new System.Collections.Generic.Dictionary<SynthesisJob, Vector3>();
+        private int _immigrationVisits = -1;
+        private float _exitedAt = -9f;
+        private const float SynthNear = 10f, SynthFar = 45f;   // 카메라 ~ 합성 거리: 이 안 = 그대로, 밖 = 들리지 않음
 
         // 같은 프레임에 몰리는 알림을 하나로 (일시정지+배속, 등급 상승+완성)
         private int _pendingClock; // 0 없음, 1 일시정지, 2 재개, 3 배속
@@ -70,10 +93,22 @@ namespace SpaceStation.Audio
             _hum = _audio.CreateLoop(_lib.StationHum);
             _hum.FadeSpeed = 0.3f;
             _hum.Target = 1f;
+            _humTiers = new[] { _audio.CreateLoop(_lib.ExtHum1), _audio.CreateLoop(_lib.ExtHum2), _audio.CreateLoop(_lib.ExtHum3) };
+            foreach (var tier in _humTiers)
+                tier.FadeSpeed = 0.3f;
+            var grades = _sim.Progression;
+            _humTierModules = new int[ExteriorHum.Tiers];
+            for (int k = 0; k < ExteriorHum.Tiers; k++)
+            {
+                int g = k < _humTierGrades.Length ? _humTierGrades[k] : grades.GradeCount - 1;
+                _humTierModules[k] = grades.GetGrade(Mathf.Clamp(g, 0, grades.GradeCount - 1)).MinModules;
+            }
             _stormLoop = _audio.CreateLoop(_lib.StormLoop);
             _stormLoop.FadeSpeed = 0.5f;
             _alarm = _audio.CreateLoop(_lib.AlarmLoop);
             _alarm.FadeSpeed = 2f;
+            _synthLoop = _audio.CreateLoop(_lib.SynthLoop);
+            _synthLoop.FadeSpeed = 1.2f;
             _lastSpeed = _clock != null ? _clock.Clock.Speed : 1f;
 
             // 11-9: 내부 방문 중에는 바깥 정거장 험을 낮춤 (방 환경음이 들리게)
@@ -82,14 +117,22 @@ namespace SpaceStation.Audio
                 _interior.InsideChanged += HandleInsideChanged;
 
             Subscribe(true);
+            _alertWatch = new AlertWatch(_sim);
+            _alertWatch.Bind(true);
         }
 
-        private void HandleInsideChanged(bool inside) => _inside = inside;
+        private void HandleInsideChanged(bool inside)
+        {
+            _inside = inside;
+            if (!inside)
+                _exitedAt = Time.unscaledTime;   // 나오며 마지막 방을 고르는 선택 소리가 나가기 소리와 겹치지 않게 (HandleModuleSelection)
+        }
 
         private void OnDestroy()
         {
             if (_lib != null)
                 Subscribe(false);
+            _alertWatch?.Bind(false);
             if (_interior != null)
                 _interior.InsideChanged -= HandleInsideChanged;
         }
@@ -113,6 +156,9 @@ namespace SpaceStation.Audio
                     _sim.Progression.VictoryReached += HandleVictory;
                     _sim.Session.GameOver += HandleGameOver;
                     _sim.Resources.DepletionChanged += HandleDepletion;
+                    _sim.Synthesis.Started += HandleSynthStarted;
+                    _sim.Synthesis.Completed += HandleSynthCompleted;
+                    _sim.Synthesis.Cancelled += HandleSynthCancelled;
                 }
                 else
                 {
@@ -129,6 +175,9 @@ namespace SpaceStation.Audio
                     _sim.Progression.VictoryReached -= HandleVictory;
                     _sim.Session.GameOver -= HandleGameOver;
                     _sim.Resources.DepletionChanged -= HandleDepletion;
+                    _sim.Synthesis.Started -= HandleSynthStarted;
+                    _sim.Synthesis.Completed -= HandleSynthCompleted;
+                    _sim.Synthesis.Cancelled -= HandleSynthCancelled;
                 }
             }
             if (_build != null)
@@ -226,10 +275,15 @@ namespace SpaceStation.Audio
             float remaining = CrisisRemaining();
             bool crisis = remaining >= 0f && !_gameOver;
             _alarm.Target = crisis ? 1f : 0f;
-            // 남은 시간 30초 이하부터 경보가 조금씩 높고 빨라짐
-            _alarm.Pitch = crisis ? 1f + 0.12f * Mathf.Clamp01(1f - remaining / 30f) : 1f;
+            // 남은 시간 10초부터 경보가 높고 빨라짐 — 2026-11-25 경보 위계: 고리 음 (라 · 솔 · 레)이 조 안에 남게 5도 위 한 계단 (미 · 레 · 라, 1.5배 빠름).
+            // 예전 1 → 1.12배 연속은 반음 사이 음이 되어 위기 음악 (D 단조)과 어긋났음
+            _alarm.Pitch = crisis && remaining <= AlarmUrgentSeconds ? Mathf.Pow(2f, 7f / 12f) : 1f;
             _stormLoop.Target = !_gameOver && StormActive() ? 1f : 0f;
-            _hum.Target = (_gameOver ? 0.35f : 1f) * (_inside ? InsideHum : 1f);
+            float hum = (_gameOver ? 0.35f : 1f) * (_inside ? InsideHum : 1f);
+            _hum.Target = hum;
+            UpdateHumTiers(hum);
+            UpdateSynthLoop();
+            UpdateImmigration();
 
             if (_restoreMusicAt > 0f && Time.unscaledTime >= _restoreMusicAt)
             {
@@ -305,6 +359,18 @@ namespace SpaceStation.Audio
             return false;
         }
 
+        /// <summary>바깥 정거장 험 3단계: 두께 (모듈 수 · 등급)를 천천히 따라가며 이웃 단계끼리 같은 힘으로 교차 — 바탕 험과 같은 배율 (내부 · 게임 오버).</summary>
+        private void UpdateHumTiers(float level)
+        {
+            float size = ExteriorHum.Thickness(_sim.Grid.ModuleCount, _sim.Progression.GradeIndex, _humTierModules, _humTierGrades);
+            if (_humThicknessPreview >= 0f)
+                _humThickness = _humThicknessPreview;
+            else
+                _humThickness = _humThickness < 0f ? size : Mathf.MoveTowards(_humThickness, size, _humTierSpeed * Time.unscaledDeltaTime);
+            for (int k = 0; k < _humTiers.Length; k++)
+                _humTiers[k].Target = ExteriorHum.TierWeight(_humThickness, k) * level;
+        }
+
         // ---------------- 위치 ----------------
 
         private float Pan(Vector3 world)
@@ -351,7 +417,7 @@ namespace SpaceStation.Audio
 
         private void HandleModuleSelection(ModuleInstance module)
         {
-            if (module != null)
+            if (module != null && Time.unscaledTime - _exitedAt > 0.2f)   // 내부에서 나오며 고른 마지막 방은 소리 없이 (나가기 "우웅"과 겹침)
                 _audio.Play(_lib.UiOpen, 0.7f);
         }
 
@@ -372,12 +438,22 @@ namespace SpaceStation.Audio
         {
             if (_station.IsDamageHeld(info.Module))
                 return; // 운석 충돌 순간에 소리 (HandleImpacted)
-            _audio.Play(_lib.ModuleDamaged, pan: Pan(info.Module));
+            _audio.Play(_lib.ModuleDamaged, pan: Pan(info.Module)); // 2026-11-25 균열만 (앞 "삐빅"은 위험 경보로)
+            AlertSound.TryPlay(AlertLevel.Danger);
         }
 
         private void HandleRepairStarted(DamageInfo info) => _audio.Play(_lib.RepairStart, pan: Pan(info.Module));
-        private void HandleRepaired(ModuleInstance module) => _audio.Play(_lib.RepairDone, pan: Pan(module));
-        private void HandleDestroyed(ModuleInstance module) => _audio.Play(_lib.ModuleDestroyed, pan: Pan(module));
+        private void HandleRepaired(ModuleInstance module)
+        {
+            // 2026-11-25: 1인칭 현장 수리를 F 길게 누르기로 끝낸 순간이면 그 완료 화음 (hold_done) 하나만 — 수리 완료음과 겹치지 않게
+            if (!AlertSound.PlayedThisFrame(l => l.HoldDone))
+                _audio.Play(_lib.RepairDone, pan: Pan(module));
+        }
+        private void HandleDestroyed(ModuleInstance module)
+        {
+            _audio.Play(_lib.ModuleDestroyed, pan: Pan(module));
+            AlertSound.TryPlay(AlertLevel.Critical); // 경보 위계: 모듈 파괴 = 치명
+        }
         private void HandleMaintained(DurabilityInfo info)
         {
             if (_sim.Automation.Executing)
@@ -408,7 +484,10 @@ namespace SpaceStation.Audio
             float pan = Pan(at);
             _audio.Play(_lib.MeteorImpact, pan: pan);
             if (hit != null)
+            {
                 _audio.Play(_lib.ModuleDamaged, 0.8f, pan, 0.15f);
+                AlertSound.TryPlay(AlertLevel.Danger); // 경보 위계: 모듈 파손 = 위험 (유성우에 몰려도 큐 쉬는 시간 3초)
+            }
         }
 
         private void HandleSpark(Vector3 at) => _audio.Play(_lib.StormSpark, Random.Range(0.6f, 1f), Pan(at));
@@ -417,7 +496,11 @@ namespace SpaceStation.Audio
 
         private void HandleEventStarted(GameEventData data)
         {
-            _audio.Play(data.IsPositive ? _lib.EventPositive : _lib.EventNegative);
+            // 경보 위계 (2026-11-25, D-3): 나쁜 사건 (운석 · 태양 폭풍 · 산소 누출) = 위험, 좋은 사건 (보급선)은 위계 밖 그대로
+            if (data.IsPositive)
+                _audio.Play(_lib.EventPositive);
+            else
+                AlertSound.TryPlay(AlertLevel.Danger);
             if (data is OxygenLeakEventData)
                 _audio.Play(_lib.OxygenLeak, delay: 0.6f);
             else if (data is SupplyShipEventData)
@@ -427,7 +510,7 @@ namespace SpaceStation.Audio
             }
         }
 
-        private void HandleEventEnded(ActiveEvent _) => _audio.Play(_lib.EventEnd);
+        private void HandleEventEnded(ActiveEvent _) => AlertSound.TryPlay(AlertLevel.Info); // 경보 위계: 사건 끝남 = 안내 (예전 EventEnd 6.9 kHz "칭")
 
         private void HandleGradeChanged(int previous, int current)
         {
@@ -440,7 +523,7 @@ namespace SpaceStation.Audio
             }
             else
             {
-                _audio.Play(_lib.GradeDown);
+                AlertSound.TryPlay(AlertLevel.Caution); // 경보 위계: 등급 하락 = 주의 (예전 GradeDown 사이렌)
             }
         }
 
@@ -460,8 +543,126 @@ namespace SpaceStation.Audio
 
         private void HandleDepletion(ResourceType type, bool depleted)
         {
-            if (depleted && type != ResourceType.Metal)
-                _audio.Play(_lib.ResourceDepleted);
+            if (!depleted || type == ResourceType.Metal)
+                return;
+            // 경보 위계: 자원 바닥 = 위험. 0 근처에서 오르내리면 매 틱 바뀌므로 같은 자원은 20초 안에 다시 울리지 않음 (D-2 반복 막기)
+            float now = Time.unscaledTime;
+            if (_depletedAlertAt.TryGetValue(type, out float at) && now - at < DepletedRepeat)
+                return;
+            _depletedAlertAt[type] = now;
+            AlertSound.TryPlay(AlertLevel.Danger);
+        }
+
+        // ---------------- 합성 · 이민선 (사운드 개편 2026-11-25, SOUND_LIST_NEW 2번 — 바깥 2D · 화면 좌우, 내부에선 안 울림) ----------------
+
+        private Vector3 SynthCenter(SynthesisJob job)
+        {
+            if (_synthCenters.TryGetValue(job, out var c))
+                return c;
+            var cells = StationGrid.ResolveCells(job.Recipe.Result.CellOffsets, job.Origin, job.Rotation);
+            Vector3 sum = Vector3.zero;
+            foreach (var cell in cells)
+                sum += GridConfig.CellToWorld(cell);
+            c = sum / Mathf.Max(1, cells.Length);
+            _synthCenters[job] = c;
+            return c;
+        }
+
+        /// <summary>합성 시작 = 비행 고리가 솟아 앉음 (SynthesisFx 시작 연출 1.4초와 같은 순간).</summary>
+        private void HandleSynthStarted(SynthesisJob job)
+        {
+            if (_inside || _gameOver || job?.Recipe?.Result == null)
+                return;
+            _audio.Play(_lib.SynthStart, pan: Pan(SynthCenter(job)));
+        }
+
+        /// <summary>합성 완료 = 섬광 · 불꽃 터짐 · 고리가 날아오름 — 레시피 단계가 오를수록 화려하게 (4단계 = 3).</summary>
+        private void HandleSynthCompleted(SynthesisJob job, ModuleInstance result)
+        {
+            float pan = job?.Recipe?.Result != null ? Pan(SynthCenter(job)) : Pan(result);
+            _synthCenters.Remove(job);
+            if (_inside || _gameOver || job?.Recipe == null)
+                return;
+            int stage = job.Recipe.Stage;
+            _audio.Play(stage >= 3 ? _lib.SynthDone3 : stage == 2 ? _lib.SynthDone2 : _lib.SynthDone1, pan: pan);
+        }
+
+        private void HandleSynthCancelled(SynthesisJob job) => _synthCenters.Remove(job);
+
+        /// <summary>진행 중 합성 루프 (용접 · 조립): 카메라에 가장 가까운 합성 하나 — 거리로 크기 · 화면 좌우, 파손 재료로 멈춤 · 게임 일시정지면 작게 (팔 · 불꽃이 멈춤).</summary>
+        private void UpdateSynthLoop()
+        {
+            float level = 0f, pan = 0f;
+            var jobs = _sim.Synthesis.Jobs;
+            if (!_inside && !_gameOver && jobs.Count > 0 && _camera != null)
+            {
+                float best = float.MaxValue;
+                SynthesisJob near = null;
+                Vector3 at = Vector3.zero;
+                foreach (var job in jobs)
+                {
+                    if (job?.Recipe?.Result == null)
+                        continue;
+                    var c = SynthCenter(job);
+                    float d = Vector3.Distance(_camera.transform.position, c);
+                    if (d < best)
+                    {
+                        best = d;
+                        near = job;
+                        at = c;
+                    }
+                }
+                if (near != null)
+                {
+                    level = 1f - Mathf.Clamp01((best - SynthNear) / (SynthFar - SynthNear));
+                    if (near.Paused || (_clock != null && _clock.Clock.IsPaused))
+                        level *= 0.3f;
+                    pan = Pan(at);
+                }
+            }
+            _synthLoop.Target = level;
+            if (_synthLoop.Source != null)
+                _synthLoop.Source.panStereo = pan;
+        }
+
+        /// <summary>
+        /// 이민선 도착 (이민 시계가 배를 부른 순간 — 주민이 내렸든 아니든): 가동 중인 여객 도킹 포트 쪽 좌우.
+        /// 내부에선 그 포트 방에 있을 때만 (지금 있는 방 소리만 — 도킹이 바로 벽 너머).
+        /// </summary>
+        private void UpdateImmigration()
+        {
+            var im = _sim.Immigration;
+            if (im == null)
+                return;
+            int visits = im.Visits;
+            if (_immigrationVisits < 0 || visits < _immigrationVisits)
+            {
+                _immigrationVisits = visits;
+                return;
+            }
+            if (visits == _immigrationVisits)
+                return;
+            _immigrationVisits = visits;
+            if (_gameOver)
+                return;
+            ModuleInstance port = null;
+            foreach (var m in _sim.Grid.Modules)
+            {
+                if (m.Data == null || !m.Data.ImmigrationPort || !_station.Connectivity.IsActive(m))
+                    continue;
+                if (!_inside || Interior.InteriorRoomDisplay.PlayerIn(m))
+                {
+                    port = m;
+                    break;
+                }
+            }
+            if (_inside)
+            {
+                if (port != null)
+                    _audio.Play(_lib.ShipImmigrantArrive, 0.7f);
+                return;
+            }
+            _audio.Play(_lib.ShipImmigrantArrive, pan: Pan(port));
         }
 
         // ---------------- 시간 조절 ----------------

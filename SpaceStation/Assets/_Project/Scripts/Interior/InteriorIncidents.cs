@@ -67,6 +67,10 @@ namespace SpaceStation.Interior
             /// <summary>11-18 튜토리얼 사고: 제한 시간 없음 · 나가도 손해 없음.</summary>
             public bool Tutorial;
             public readonly List<GameObject> Extra = new List<GameObject>();
+            // 사운드 개편 4-3 (2026-11-25): 계속 나는 소리 (누출 쉬익 · 불 타닥 — 지금 방일 때만) · F를 누르는 동안 손 동작과 맞춘 소리 (밸브 · 분사 · 필터)
+            public ObjectLoop Loop;
+            public HeldSound Held;
+            public bool WasHolding;
             // 누출
             public Transform Wheel;
             public Quaternion WheelRest;
@@ -315,7 +319,7 @@ namespace SpaceStation.Interior
                 a.Bubble.Set(BubbleText(a, a.ShownSeconds), Warn);
                 string where = room == CurrentRoom ? "이 방" : RoomName(room);
                 Message?.Invoke($"사고 · {where}: {InteriorIncidentRules.Title(kind)} · {InteriorIncidentRules.Hint(kind)}", true);
-                AudioService.TryPlay(l => l.EarlyWarning);
+                AlertSound.TryPlay(AlertLevel.Danger); // 경보 위계 (2026-11-25, D-3): 내부 사고 생김 = 위험 (예전 조기 경보 빌림)
                 return true;
             }
             return false;
@@ -368,6 +372,14 @@ namespace SpaceStation.Interior
             // 새는 이음 (가운데 왼쪽 — Unity는 가로가 뒤집혀 +x) 앞에서 김이 뿜어 나옴
             var leak = t.TransformPoint(new Vector3(0.055f, 0f, 0.13f));
             a.Plume = InteriorFx.Plume(t, leak, t.forward + Vector3.up * 0.3f, _smoke, new Color(0.82f, 0.86f, 0.9f, 0.8f), 30f, 0.1f, 1.6f); // 가늘고 빠른 분사 (크고 느리면 네모 입자가 판처럼 보였음)
+            // 소리: 새는 이음에서 김 "쉬이익" (작은 누출) · 밸브 바퀴를 돌리는 "드르륵 → 툭" (누르는 2초에 맞춤)
+            a.Loop = AudioService.AttachLoop(l => l.PipeBurstLoop, t);
+            if (a.Loop != null)
+            {
+                a.Loop.transform.localPosition = new Vector3(0.055f, 0f, 0.13f);
+                a.Loop.Level = 0f;
+            }
+            a.Held = AudioService.AttachHeld(l => l.ValveTurn, a.Wheel != null ? a.Wheel : t);
             var col = a.Prop.AddComponent<BoxCollider>();
             col.center = new Vector3(0f, 0.02f, 0.13f);
             col.size = new Vector3(0.7f, 0.3f, 0.26f);
@@ -405,7 +417,7 @@ namespace SpaceStation.Interior
                     a.DoorTarget = 1f;
                     Destroy(du);
                     Destroy(dc);
-                    AudioService.TryPlay(l => l.UiOpen);
+                    AudioService.TryPlayAt(l => l.BreakerDoor, a.Door.position);
                 };
             }
             a.Pattern = InteriorIncidentRules.TripPattern(_rng);
@@ -439,7 +451,8 @@ namespace SpaceStation.Interior
                         a.RoomLights.Add((l, l.intensity));
                 }
             }
-            AudioService.TryPlay(l => l.StormSpark);
+            // 차단기 내려감 = 차단기 함 자리 스파크 (3D, 2026-11-25) — 알림은 사고 생김 위험 경보 하나 (예전 2D 스파크는 다른 방에서도 경보와 겹쳐 들렸음)
+            AudioService.TryPlayAt(l => l.StormSpark, a.Prop.transform.position);
             return true;
         }
 
@@ -465,13 +478,18 @@ namespace SpaceStation.Interior
                 if (lever != null)
                     InteriorFx.Spark(transform, lever.position, a.Prop.transform.forward, _spark, 10, 18, 1.0f);
                 AudioService.TryPlay(l => l.UiError);
-                AudioService.TryPlay(l => l.StormSpark);
+                AudioService.TryPlayAt(l => l.StormSpark, lever != null ? lever.position : a.Prop.transform.position);
                 Message?.Invoke("틀렸어요! 스파크 · 처음 상태로 돌아갔어요 (경고등 켜진 것만)", true);
                 Array.Copy(a.Pattern, a.Lit, a.Lit.Length);
                 ShowSwitches(a);
                 return;
             }
-            AudioService.TryPlay(l => l.BuildRotate, 0.6f);
+            // 사운드 개편 4-3: 스위치마다 큰 "딸깍" (BuildRotate 대신), 마지막 = 같은 딸깍 + 전기 방 웅이 돌아옴
+            var at = a.Levers[index] != null ? a.Levers[index].position : a.Prop.transform.position;
+            if (result == SwitchPress.AllDone)
+                AudioService.TryPlayAt(l => l.BreakerFlip, at);
+            else
+                AudioService.TryPlayAt(l => l.BreakerSwitch, at);
             ShowSwitches(a);
             if (result == SwitchPress.AllDone)
             {
@@ -502,6 +520,14 @@ namespace SpaceStation.Interior
             a.Glow.color = new Color(1f, 0.55f, 0.25f);
             a.Glow.range = 2.6f;
             a.Glow.intensity = 0.35f; // 11-17 ① 피드백: 은은하게
+            // 소리: 불꽃 자리에서 작은 불 "타닥" (지금 방일 때만) · 소화기 분사 "쉬익"은 들고 있는 소화기 = 눈 앞 (누르는 2초에 맞춤)
+            a.Loop = AudioService.AttachLoop(l => l.FireLoop, t);
+            if (a.Loop != null)
+            {
+                a.Loop.transform.localPosition = new Vector3(0f, 0.125f, 0.07f);
+                a.Loop.Level = 0f;
+            }
+            a.Held = AudioService.AttachHeld(l => l.Extinguish, _eye);
             var col = a.Prop.AddComponent<BoxCollider>();
             col.center = new Vector3(0f, 0.05f, 0.08f);
             col.size = new Vector3(0.4f, 0.5f, 0.2f);
@@ -534,9 +560,9 @@ namespace SpaceStation.Interior
             bu.Completed = () =>
             {
                 a.Carrying = true;
+                AudioService.TryPlayAt(l => l.ExtinguisherPickup, a.Bottle.transform.position);
                 a.Bottle.SetActive(false);
                 Message?.Invoke("소화기를 들었어요 · 불에 대고 F를 길게 누르세요", false);
-                AudioService.TryPlay(l => l.BuildSelect);
             };
             return true;
         }
@@ -556,6 +582,7 @@ namespace SpaceStation.Interior
             a.FilterLed = led != null ? led.GetComponent<Renderer>() : null;
             Tint(a.Prop, "M_IncFilter", FilterDirty);
             a.Plume = InteriorFx.Plume(t, t.TransformPoint(new Vector3(0f, 0.12f, 0.16f)), t.forward, _smoke, new Color(0.5f, 0.46f, 0.38f, 0.6f), 8f, 0.12f, 0.35f);
+            a.Held = AudioService.AttachHeld(l => l.FilterSwap, a.Cartridge != null ? a.Cartridge : t); // 걸쇠 · 미끄러짐 · 딸깍 (누르는 1.8초에 맞춤)
             var col = a.Prop.AddComponent<BoxCollider>();
             col.center = new Vector3(0f, 0f, 0.08f);
             col.size = new Vector3(0.62f, 0.52f, 0.16f);
@@ -578,6 +605,17 @@ namespace SpaceStation.Interior
             float now = Time.unscaledTime;
             bool holding = a.Holding;
             a.Holding = false;
+            // 소리 (사운드 개편 4-3): 손 동작 소리는 누르기 시작할 때 처음부터 · 다 누르기 전에 떼면 꺼짐, 계속 나는 소리는 지금 방 (또는 손이 닿는 곳)일 때만 · 누르는 만큼 줄어듦
+            if (a.Held != null)
+            {
+                if (holding && !a.WasHolding)
+                    a.Held.Begin();
+                else if (!holding && a.WasHolding)
+                    a.Held.Release();
+            }
+            a.WasHolding = holding;
+            if (a.Loop != null)
+                a.Loop.Level = holding || InteriorRoomDisplay.PlayerIn(a.Room) ? (holding ? 1f - 0.7f * a.HoldProgress : 1f) : 0f;
             switch (a.Kind)
             {
                 case IncidentKind.Leak:
@@ -642,6 +680,8 @@ namespace SpaceStation.Interior
                 return;
             a.Done = true;
             a.DoneAge = a.Age;
+            if (a.Loop != null)
+                a.Loop.Level = 0f; // 김 · 불이 멎음 (손 동작 소리는 끝 "툭" · "딸깍"까지 그대로)
             string reward = Sim.ResolveIncident();
             switch (a.Kind)
             {
@@ -677,7 +717,9 @@ namespace SpaceStation.Interior
             if (a.Bubble != null)
                 a.Bubble.Set($"<b>해결!</b>\n<size=80%>{InteriorIncidentRules.Title(a.Kind)}</size>", new Color(0.35f, 0.8f, 0.45f));
             Message?.Invoke($"{InteriorIncidentRules.Title(a.Kind)} 해결 · {reward}", false);
-            AudioService.TryPlay(l => l.RepairDone);
+            // 해결 = 좋은 소식 (위계 밖). F 길게 누르기로 끝냈으면 (밸브 · 소화기 · 필터) 그 완료 화음 하나만 — 해결음과 겹치지 않게 (2026-11-25)
+            if (!AlertSound.PlayedThisFrame(l => l.HoldDone))
+                AudioService.TryPlay(l => l.RepairDone);
             Resolved?.Invoke();
         }
 
@@ -688,7 +730,7 @@ namespace SpaceStation.Interior
             string text = $"{InteriorIncidentRules.Title(a.Kind)} · {why} 정비 인력이 처리했어요 · {loss}";
             if (!left)
                 Message?.Invoke(text, true);
-            AudioService.TryPlay(l => l.EventNegative, 0.6f);
+            AlertSound.TryPlay(AlertLevel.Caution); // 경보 위계 (2026-11-25): 사고 놓침 = 주의 (손실은 상한 있게 끝남 · 예전 나쁜 사건 소리 0.6)
             return text;
         }
 
@@ -699,6 +741,9 @@ namespace SpaceStation.Interior
             if (a.Bubble != null)
                 Destroy(a.Bubble.gameObject);
             a.Bubble = null;
+            if (a.Held != null && (a.Prop == null || !a.Held.transform.IsChildOf(a.Prop.transform)))
+                Destroy(a.Held.gameObject); // 눈에 붙인 소화기 분사 (소품 밖) — 소품 아래 소리는 소품과 함께 지워짐
+            a.Held = null;
             if (rebuilt)
                 return; // 방 오브젝트 아래 소품은 이미 지워짐
             if (!a.Done)

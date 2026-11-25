@@ -40,6 +40,9 @@ namespace SpaceStation.Interior
         {
             if (_lift == null)
                 return;
+            // 2026-11-25 버튼 딸깍 + 단계별 유리 음 (버튼 자리 3D) — 버튼 물체의 원점은 방 원점이라 (템플릿 빌더) 충돌체 가운데에서
+            var hit = GetComponent<Collider>();
+            _lift.PlayButton(hit != null ? hit.bounds.center : transform.position);
             if (_call)
                 _lift.Call(_level);
             else

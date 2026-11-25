@@ -33,18 +33,22 @@ namespace SpaceStation.Interior
         private RoomSoundscape _scape;
         private Transform _room;
         private float[] _timers = System.Array.Empty<float>();
+        // 2026-11-25 ⑥ 여러 방이 같이 쓰는 가끔 소리 꾸러미 (기본 · 1단계 방, SOUND_LIST_NEW 4-4): 그 방 칸마다 바닥 자리 — 가끔 소리 자리 = 아무 칸 + Center ± Size/2
+        private IReadOnlyList<Vector3> _anchors;
 
         public bool Active => _scape != null;
 
-        /// <summary>지금 방의 소리 풍경 (없으면 null — 그 방은 기존 환경음 묶음). prefab = 그 방 템플릿 프리팹 (따라 붙는 물체의 처음 자세).</summary>
-        public void SetRoom(RoomSoundscape scape, Transform room, Transform prefab = null)
+        /// <summary>지금 방의 소리 풍경 (없으면 null — 그 방은 기존 환경음 묶음). prefab = 그 방 템플릿 프리팹 (따라 붙는 물체의 처음 자세).
+        /// anchors (2026-11-25): 템플릿 좌표 대신 칸 바닥 자리를 쓰는 꾸러미 (room 없이도 됨).</summary>
+        public void SetRoom(RoomSoundscape scape, Transform room, Transform prefab = null, IReadOnlyList<Vector3> anchors = null)
         {
-            if (scape == _scape && room == _room)
+            if (scape == _scape && room == _room && anchors == _anchors)
                 return;
             foreach (var t in _tracks)
                 t.Target = 0f;
-            _scape = room != null ? scape : null;
+            _scape = room != null || (anchors != null && anchors.Count > 0) ? scape : null;
             _room = room;
+            _anchors = anchors;
             _timers = System.Array.Empty<float>();
             if (_scape == null)
                 return;
@@ -53,7 +57,7 @@ namespace SpaceStation.Interior
             AddTrack(scape.Bed, null, null, 0f, 0f, 1f, scape.BedNight, false);
             foreach (var e in scape.Emitters)
             {
-                Vector3? at = e.Spatial ? room.TransformPoint(e.Position) : (Vector3?)null;
+                Vector3? at = e.Spatial && room != null ? room.TransformPoint(e.Position) : (Vector3?)null;
                 Transform follow = null;
                 if (at.HasValue && !string.IsNullOrEmpty(e.Follow) && (follow = FindChild(room, e.Follow)) != null)
                 {
@@ -102,7 +106,7 @@ namespace SpaceStation.Interior
                 t.Source.volume = t.Level * t.Cue.Volume * Mathf.Lerp(t.Night, t.Day, _dayLevel) * AudioVolumes.For(t.Cue.Bus);
             }
             var svc = AudioService.Instance;
-            if (_scape == null || _room == null || svc == null)
+            if (_scape == null || (_room == null && _anchors == null) || svc == null)
                 return;
             for (int i = 0; i < _timers.Length; i++)
             {
@@ -113,7 +117,7 @@ namespace SpaceStation.Interior
                 if (s.Cue == null || !s.Cue.HasClip || (s.When == RoomSoundscape.DayPart.Day && !day) || (s.When == RoomSoundscape.DayPart.Night && day))
                     continue;
                 var local = s.Center + Vector3.Scale(s.Size, new Vector3(Random.value - 0.5f, Random.value - 0.5f, Random.value - 0.5f));
-                var pos = _room.TransformPoint(local);
+                var pos = _anchors != null && _anchors.Count > 0 ? _anchors[Random.Range(0, _anchors.Count)] + local : _room.TransformPoint(local);
                 if (s.Tonal && s.Notes != null && s.Notes.Length > 0)
                 {
                     int note = s.Notes[Random.Range(0, s.Notes.Length)];

@@ -137,6 +137,10 @@ namespace SpaceStation.Interior
         private bool _holdNeedsRelease;
         private RectTransform _holdBar;
         private Image _holdFill;
+        // 사운드 개편 4-3 (2026-11-25): F 길게 누르기 공용 소리 — 이 시간 넘게 누르는 것만 (차단기 스위치 0.15 · 함 문 0.3 · 소화기 들기 0.4초는 자기 소리만)
+        private const float HoldSoundMin = 0.5f;
+        private AudioService.Loop _holdLoop;
+        private int _holdToneFrame = -10;
         private TMP_Text _notice;
         private float _noticeUntil;
         private readonly InteriorAudio _audio = new InteriorAudio(); // 11-9 방 환경음·발소리
@@ -239,7 +243,7 @@ namespace SpaceStation.Interior
         {
             _busy = true;
             InputGate.Blocked = true; // 페이드 중에도 조작 막음
-            AudioService.TryPlay(l => l.UiOpen);
+            AudioService.TryPlay(l => l.InteriorEnter);   // 2026-11-25 들어가기 "우웅" + 해치 (창 열기를 빌려 쓰던 자리, SOUND_LIST_NEW 4-1)
             // 들어가기 화면: 바깥 → 검정(0.25초) → 화면 내용이 서서히(0.25초) → 짓기 → 최소 0.8초 보인 뒤 "해치 여는 중" → 내용 사라짐 → 내부가 밝아짐
             if (_enterScreen != null)
                 _enterScreen.Show(module.Data != null ? module.Data.DisplayName : module.ToString(), EnterState(module));
@@ -431,7 +435,7 @@ namespace SpaceStation.Interior
         private IEnumerator ExitRoutine(string notice)
         {
             _busy = true;
-            AudioService.TryPlay(l => l.UiClose);
+            AudioService.TryPlay(l => l.InteriorExit);   // 2026-11-25 나가기 "우웅" (창 닫기를 빌려 쓰던 자리)
             yield return Fade(0f, 1f, 0.15f);
 
             var lastModule = _currentModule;
@@ -532,6 +536,7 @@ namespace SpaceStation.Interior
         {
             _roomBanner?.Tick();
             _audio.Tick(Time.unscaledDeltaTime, IsDay()); // 소리 풍경 — 나온 뒤에도 내려갈 때까지
+            HoldToneDecay();
             if (!_inside || _busy)
                 return;
             // 방 밖 빈 공간으로 떨어짐 (가장 긴 층 사이 낙하도 2초 안쪽): 있던 방 입구로 되돌림 — 개방형 방은 둘레 벽이 막으므로 마지막 안전장치
@@ -589,6 +594,7 @@ namespace SpaceStation.Interior
             {
                 _atmosphere.CurrentRoom = _currentModule;
                 _audio.SetAlarm(_atmosphere.IsAlarm(_currentModule));
+                _audio.SetRoomState(_station, _currentModule); // ⑥ 상태 층 (2026-11-25)
             }
             if (_fieldRepair != null)
                 _fieldRepair.CurrentRoom = _currentModule;
@@ -621,7 +627,8 @@ namespace SpaceStation.Interior
             var lib = AudioService.Instance != null ? AudioService.Instance.Library : null;
             _builder.TryGetTemplateRoom(room.Module, out var roomTemplate, out var roomRoot);
             _audio.SetRoom(_builder.AmbienceFor(room.Module), lib != null ? lib.SoundscapeFor(room.Module.Data) : null, roomRoot,
-                roomTemplate != null && roomTemplate.Prefab != null ? roomTemplate.Prefab.transform : null);
+                roomTemplate != null && roomTemplate.Prefab != null ? roomTemplate.Prefab.transform : null,
+                _builder.StageFor(room.Module), RoomAnchors(room.Module)); // ⑥ 1단계 판 바탕 · 가끔 소리 자리 (2026-11-25)
             _audio.SetMusicStage(_builder.StageFor(room.Module));
             string name =room.Module.Data != null ? room.Module.Data.DisplayName : room.Module.ToString();
             string state = !_station.Connectivity.IsActive(room.Module) ? $"  <color={HudText.Orange}>비활성</color>"
@@ -632,6 +639,15 @@ namespace SpaceStation.Interior
                 _bannerRoom = room.Module;
                 _roomBanner?.Show(name);
             }
+        }
+
+        /// <summary>⑥ 2026-11-25 가끔 소리 꾸러미 · 상태 층 삐걱 자리 — 그 방 칸마다 바닥 가운데 (SOUND_LIST_NEW 4-4).</summary>
+        private List<Vector3> RoomAnchors(ModuleInstance module)
+        {
+            var list = new List<Vector3>(module.Cells.Count);
+            foreach (var c in module.Cells)
+                list.Add(_builder.FloorPoint(c));
+            return list;
         }
 
         /// <summary>
@@ -822,7 +838,20 @@ namespace SpaceStation.Interior
                             $"   <b><color=#FFFFFF>{Key(GameAction.Interact)}</color></b> 출발   Esc 닫기";
             string name = transit.Module.Data != null ? transit.Module.Data.DisplayName : transit.Module.ToString();
             _transitPanel.Open(name, InteriorTransitRoutes.FloorOf(transit.Module), stops, footer);
-            AudioService.TryPlay(l => l.UiOpen, 0.5f);
+            AudioService.TryPlay(l => l.TransitOpen);   // 2026-11-25 장치 켜짐 (창 열기 0.5를 빌려 쓰던 자리)
+        }
+
+        /// <summary>떠나는 장치 단계의 타기 소리 (0 기본 화물 승강기 · 1 반중력 원판 · 2 혼천의 · 3 수정 꽃 · 4 성운).</summary>
+        private static SoundCue TransitRideCue(SoundLibrary l, int stage)
+        {
+            switch (stage)
+            {
+                case 1: return l.TransitRide1;
+                case 2: return l.TransitRide2;
+                case 3: return l.TransitRide3;
+                case 4: return l.TransitRide4;
+                default: return l.TransitRide0;
+            }
         }
 
         private void CloseTransitPanel()
@@ -879,6 +908,8 @@ namespace SpaceStation.Interior
             _busy = true;
             _prompt.SetText(string.Empty);
             bool ride = GameSettings.TransitRide && from != null;
+            if (ride)
+                AudioService.TryPlay(l => TransitRideCue(l, from.Stage));   // 2026-11-25 떠오르기 · 가라앉기 → 도착까지 한 소리 (2.7초)
             if (ride)
             {
                 from.SetRiding(true);
@@ -938,6 +969,7 @@ namespace SpaceStation.Interior
                 _player.Teleport(arrive + Vector3.up * 0.05f, yaw, pitch);
                 yield return Fade(1f, 0f, 0.2f);
             }
+            AudioService.TryPlay(l => l.TransitArrive);   // 2026-11-25 발판에 내려앉음 (연출을 끈 설정에서도)
             UpdateNearbyRooms(RoomAtPlayer(), force: false);
             _busy = false;
         }
@@ -1003,11 +1035,16 @@ namespace SpaceStation.Interior
                 {
                     _holdTime += Time.unscaledDeltaTime;
                     float progress = Mathf.Clamp01(_holdTime / Mathf.Max(0.05f, item.HoldSeconds));
+                    bool sound = item.HoldSeconds >= HoldSoundMin;
+                    if (sound && progress < 1f)
+                        HoldTone(progress);
                     item.Holding?.Invoke(progress);
                     if (progress >= 1f)
                     {
                         _holdTime = 0f;
                         _holdNeedsRelease = true;
+                        if (sound)
+                            AudioService.TryPlay(l => l.HoldDone);
                         item.Completed?.Invoke();
                     }
                 }
@@ -1022,6 +1059,35 @@ namespace SpaceStation.Interior
             _holdTarget = null;
             _holdTime = 0f;
             SetHoldBar(-1f);
+            if (_holdLoop != null)
+                _holdLoop.Target = 0f;
+        }
+
+        /// <summary>
+        /// 사운드 개편 4-3 (2026-11-25): F 길게 누르기 "차오르는 음" (2D 루프) — 누른 만큼 재생 높이를 파5 → 도6 (1 → 2^(7/12))으로.
+        /// 이 프레임에 다시 부르지 않으면 (손을 뗌 · 시선이 벗어남 · 다른 판이 열림) 다음 프레임에 내려감 (<see cref="HoldToneDecay"/>).
+        /// </summary>
+        private void HoldTone(float progress)
+        {
+            var s = AudioService.Instance;
+            if (s == null || s.Library == null)
+                return;
+            if (_holdLoop == null)
+            {
+                if (!s.Library.HoldLoop.HasClip)
+                    return;
+                _holdLoop = s.CreateLoop(s.Library.HoldLoop);
+                _holdLoop.FadeSpeed = 14f; // 0.07초에 켜지고 꺼짐
+            }
+            _holdLoop.Target = 1f;
+            _holdLoop.Pitch = Mathf.Pow(2f, 7f / 12f * Mathf.Clamp01(progress));
+            _holdToneFrame = Time.frameCount;
+        }
+
+        private void HoldToneDecay()
+        {
+            if (_holdLoop != null && _holdLoop.Target > 0f && _holdToneFrame < Time.frameCount - 1)
+                _holdLoop.Target = 0f;
         }
 
         /// <summary>진행 막대 (음수 = 숨김).</summary>

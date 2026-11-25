@@ -131,6 +131,25 @@ namespace SpaceStation.Audio
             return loop;
         }
 
+        /// <summary>
+        /// 사운드 개편 4-3 (2026-11-25): F를 누르는 동안 손 동작과 맞춰 한 번 울리는 3D 소리 (밸브 · 소화기 분사 · 필터) — at의 자식으로 만들어 따라 움직임.
+        /// 돌려준 <see cref="HeldSound"/>의 Begin (누르기 시작) · Release (다 누르기 전에 뗌)로 조절, 물체와 함께 지워짐. 서비스 · 클립이 없으면 null.
+        /// </summary>
+        public static HeldSound AttachHeld(System.Func<SoundLibrary, SoundCue> pick, Transform at, float minDistance = 2f, float maxDistance = 15f)
+        {
+            var s = Instance;
+            if (s == null || s._library == null || at == null)
+                return null;
+            var cue = pick(s._library);
+            if (cue == null || !cue.HasClip)
+                return null;
+            var go = new GameObject("HeldSound_" + (cue.Clips[0] != null ? cue.Clips[0].name : "held"));
+            go.transform.SetParent(at, false);
+            var held = go.AddComponent<HeldSound>();
+            held.Init(cue, minDistance, maxDistance);
+            return held;
+        }
+
         private readonly Dictionary<SoundCue, Loop> _rideLoops = new Dictionary<SoundCue, Loop>();
 
         /// <summary>

@@ -31,6 +31,9 @@ namespace SpaceStation.Interior
         /// <summary>위로 떠나고 위에서 내려앉는 자리 (해치 방 = 천장 해치 바로 밑 바닥 — 옛 설계에서 바닥 · 천장 해치 자리가 다른 방이 있음, 장치 = 발판).</summary>
         public Vector3 UpPad { get; private set; }
 
+        /// <summary>장치 단계 (연출과 같은 값 — 해치 방 · 조각 없는 승강판 = 0) — 타는 소리를 고름 (2026-11-25 사운드, SOUND_LIST_NEW 4-1).</summary>
+        public int Stage => TryGetComponent<InteriorTransitFx>(out var fx) ? fx.Stage : 0;
+
         /// <summary>해치 방의 뚜껑 (바닥 · 천장) — 타는 동안 숨김 (열린 것처럼).</summary>
         private Renderer[] _lids;
 

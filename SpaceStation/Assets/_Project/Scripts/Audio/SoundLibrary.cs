@@ -90,10 +90,7 @@ namespace SpaceStation.Audio
         public SoundCue Maintain = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f };
 
         [Header("이벤트·경보")]
-        public SoundCue EventNegative = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.6f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
         public SoundCue EventPositive = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.6f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
-        public SoundCue EventEnd = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Cooldown = 0.5f, MaxVoices = 1, Pitch = Vector2.one };
-        public SoundCue EarlyWarning = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
         public SoundCue MeteorIncoming = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Cooldown = 0.25f, MaxVoices = 2, Pitch = new Vector2(0.92f, 1.08f) };
         public SoundCue MeteorImpact = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.8f, Cooldown = 0.08f, MaxVoices = 3, Pitch = new Vector2(0.9f, 1.08f) };
         public SoundCue MeteorExplode = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Cooldown = 0.06f, MaxVoices = 3, Pitch = new Vector2(0.9f, 1.12f) };
@@ -105,19 +102,52 @@ namespace SpaceStation.Audio
         [Tooltip("산소 누출 사건 (나쁜 사건 알림 0.6초 뒤 2D) — 실제 녹음 스팀 김 \"쉬익\" 큰 크기 (2026-11-25, 정전기 · 흰 잡음으로 들리던 것을 바꿈). 작은 크기 oxygen_leak_small은 파일만 — 예정 (이웃에 따라 규모)")]
         public SoundCue OxygenLeak = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.32f, Cooldown = 1f, MaxVoices = 1 };
         public SoundCue SupplyArrive = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Cooldown = 1f, MaxVoices = 2, Pitch = Vector2.one };
-        public SoundCue ResourceDepleted = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.5f, Cooldown = 3f, MaxVoices = 1, Pitch = Vector2.one };
         public SoundCue GradeUp = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.6f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
-        public SoundCue GradeDown = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
         public SoundCue Victory = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.7f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
         public SoundCue GameOver = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.8f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
 
+        [Header("경보 위계 4단계 (사운드 개편 2026-11-25, SOUND_LIST_NEW D-3 · AlertSound)")]
+        [Tooltip("안내: 밝은 한 음 (라5, UI와 같은 유리 결) · 사건 끝남 · 함선 접근. 음악 대비 귀 감도 +5")]
+        public SoundCue AlertInfo = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.33f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("주의: 두 음 (라5 미5) · 조기 경보 · 유성우 예보 · 역병 · 파업 조짐 · 함선 도착 · 등급 하락 · 사고 놓침. +6.5")]
+        public SoundCue AlertCaution = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.44f, Cooldown = 1.5f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("위험: 세 음 내림 (라5 솔5 레5) + 낮은 둥 · 나쁜 사건 · 모듈 파손 · 자원 바닥 · 내부 사고 · 습격 · 침입 드론 · 역병 · 파업. +8")]
+        public SoundCue AlertDanger = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.54f, Cooldown = 3f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("치명: 세 음 내림을 빠르게 두 번 + 낮은 울림 (레2) · 모듈 파괴 (실패 조건 경보 고리 AlarmLoop도 같은 가족). +9.5")]
+        public SoundCue AlertCritical = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.7f, Cooldown = 3f, MaxVoices = 1, Pitch = Vector2.one };
+
         [Header("반복 (루프)")]
-        public SoundCue AlarmLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.22f, Pitch = Vector2.one };
+        [Tooltip("실패 조건 경보 (치명 가족 고리, 2026-11-25): 치명 소리를 2초마다, 남은 10초부터 GameAudio가 5도 위로. 귀 감도 평균 +3 · 최대 +7 (옛 사인 사이렌 +1.2)")]
+        public SoundCue AlarmLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.51f, Pitch = Vector2.one };
         public SoundCue StormLoop = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.35f, Pitch = Vector2.one };
         public SoundCue StationHum = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.22f, Pitch = Vector2.one };
+        [Tooltip("바깥 정거장 험 3단계 (2026-11-25, SOUND_LIST_NEW 4-4): StationHum 위에 겹치는 층, 정거장 크기 (모듈 수 · 등급)로 이웃 단계끼리 교차 (GameAudio · ExteriorHum). 실제 녹음 팬 · 공기 · 펌프 · 깊은 웅, 음은 E · A만. 음량 = 바탕 혼자보다 귀 감도 +2 · +4 · +6 dB")]
+        public SoundCue ExtHum1 = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.07f, Pitch = Vector2.one };
+        public SoundCue ExtHum2 = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.12f, Pitch = Vector2.one };
+        public SoundCue ExtHum3 = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.24f, Pitch = Vector2.one };
 
         [Header("내부 방문 (11-9)")]
         public SoundCue Footstep = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.93f, 1.07f), Cooldown = 0.12f, MaxVoices = 2 };
+        [Tooltip("바닥별 발소리 (2026-11-25, SOUND_LIST_NEW 4-1): 금속 판 달리기 = 걷기와 같은 VARCO 부츠 원본을 짧고 세게. 바닥은 FootstepSurface가 발밑 재질 이름으로 고름, 칸이 비면 금속 판")]
+        public SoundCue FootstepRun = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.12f, MaxVoices = 2 };
+        [Tooltip("금속 격자 (HullDark 바닥) = 큰 금속 들통 쿵 + 철망 우리 문 떨림, 실제 녹음 (CC0)")]
+        public SoundCue StepGrate = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.12f, MaxVoices = 2 };
+        public SoundCue StepGrateRun = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.12f, MaxVoices = 2 };
+        [Tooltip("유리 (유리 · 창 · 얼음 바닥) = 부츠 쿵 + 유리 톡 (솔6로 옮겨 짧게), 실제 녹음 (CC0)")]
+        public SoundCue StepGlass = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.98f, 1.02f), Cooldown = 0.12f, MaxVoices = 2 };
+        public SoundCue StepGlassRun = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.98f, 1.02f), Cooldown = 0.12f, MaxVoices = 2 };
+        [Tooltip("잔디 (잔디 · 흙 · 화단 · 모래) = 부츠 쿵 + 덤불 잎 사각, 실제 녹음 (CC0)")]
+        public SoundCue StepGrass = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.12f, MaxVoices = 2 };
+        public SoundCue StepGrassRun = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.12f, MaxVoices = 2 };
+        [Tooltip("나무 (나무 · 그루터기 · 밀랍 · 깔개) = 판자 바닥 탁 + 나무 문 쿵, 실제 녹음 (CC0)")]
+        public SoundCue StepWood = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.12f, MaxVoices = 2 };
+        public SoundCue StepWoodRun = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.12f, MaxVoices = 2 };
+        [Tooltip("돌 (진주 몸체 · 길 · 바위 · 콘크리트) = 부츠 쿵 + 벽돌 턱 + 잔돌 알갱이, 실제 녹음 (CC0)")]
+        public SoundCue StepStone = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.12f, MaxVoices = 2 };
+        public SoundCue StepStoneRun = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.12f, MaxVoices = 2 };
+        [Tooltip("얕은 물 (평평한 물 면 아래 2 ~ 45 cm, 흙 · 돌 위) = 부츠 쿵 + 물 첨벙 첫 순간, 실제 녹음 (CC0)")]
+        public SoundCue StepWater = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.12f, MaxVoices = 2 };
+        public SoundCue StepWaterRun = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.42f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.12f, MaxVoices = 2 };
         [Tooltip("방 환경음 6묶음 (루프): 생활 / 물·식물 / 기계 / 고열 / 전기·방어 / 넓은 공간 — 방 템플릿의 Ambience로 고름. " +
                  "2026-11-24 분홍 잡음 · 사이렌 같던 합성음을 실제 녹음 (CC0)으로: 방 공기 + 환풍기 / 펌프 물 + 졸졸 / 작은 펌프 / 열풍기 / 안정기 웅 (Bb2) / 밤 바깥 공기, " +
                  "음량은 바탕만 울린 귀 감도 크기를 고치기 전과 같게 (SOUND_LIST_NEW 10번 A)")]
@@ -127,7 +157,7 @@ namespace SpaceStation.Audio
         public SoundCue RoomHeat = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.28f, Pitch = Vector2.one };
         public SoundCue RoomElectric = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.19f, Pitch = Vector2.one };
         public SoundCue RoomHall = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.62f, Pitch = Vector2.one };
-        [Tooltip("11-10 파손된 방 안에 있을 때 울리는 경보 (루프)")]
+        [Tooltip("11-10 파손된 방 안에 있을 때 울리는 경보 (루프). 2026-11-25 치명 가족 세 음을 2.4초마다 (옛 사이렌 -18 dB), 귀 감도 최대 +3")]
         public SoundCue InteriorAlarm = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.3f, Pitch = Vector2.one };
 
         [Header("내부 문 (사운드 개편 2026-11-20, SOUND_LIST_NEW 4-1 · D-6 — 문 자리에서 3D)")]
@@ -140,6 +170,78 @@ namespace SpaceStation.Audio
         [Tooltip("에어록 — 우주복 정원 현관 · 3단계와 붙은 낮은 단계 쪽")]
         public SoundCue AirlockOpen = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.6f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.03f, MaxVoices = 3 };
         public SoundCue AirlockClose = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.03f, MaxVoices = 3 };
+
+        [Header("합성 · 이민선 (사운드 개편 2026-11-25, SOUND_LIST_NEW 2번 — 바깥 2D · 화면 좌우, 내부에선 안 울림)")]
+        [Tooltip("합성 시작 — 비행 고리가 규격 밑에서 솟아 앉음 (1.4초). 실제 녹음: 헤어드라이어가 켜지는 추진 \"슈우\" + 1.25초 자동 잠금 \"철컥\" + 로봇 서보 공구 \"위잉\"")]
+        public SoundCue SynthStart = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.63f, Cooldown = 0.2f, MaxVoices = 2 };
+        [Tooltip("합성 진행 중 (2D 루프, 카메라에 가장 가까운 합성 하나 · 거리 · 좌우 · 일시정지로 크기) — 실제 녹음: 호버 공 팬 웅 (C3) + 로봇 서보 위잉 + 용접 지글, 11.5초 고리")]
+        public SoundCue SynthLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.5f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("합성 완료 1단계 레시피 — 큰 휙 (실제 녹음) + 매끈한 유리 아르페지오 파5 · 라5 · 도6 · 파6 + 사인 패드 (F 장조 합성)")]
+        public SoundCue SynthDone1 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Pitch = Vector2.one, Cooldown = 0.3f, MaxVoices = 2 };
+        [Tooltip("합성 완료 2단계 레시피 — 큰 휙 + 밝은 꽃 종 굴림 파5 ~ 도7 + 끝 화음 · 반짝임")]
+        public SoundCue SynthDone2 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.4f, Pitch = Vector2.one, Cooldown = 0.3f, MaxVoices = 2 };
+        [Tooltip("합성 완료 3단계 이상 레시피 — 큰 휙 + 낮은 유리 종 화음 + 풍경 같은 유리 퐁 + 잎 사각임 (실제 녹음)")]
+        public SoundCue SynthDone3 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.48f, Pitch = Vector2.one, Cooldown = 0.3f, MaxVoices = 2 };
+        [Tooltip("이민선 도착 (여객 도킹 포트 쪽, 내부에선 그 포트 방에 있을 때만) — 실제 녹음: 화물기 접근 (낮춰 먹먹하게) → 자동 잠금 \"철컥\" + 냉동고 문 \"쿵\" → 공중전화 부스 유압 \"치익\" (6.6초)")]
+        public SoundCue ShipImmigrantArrive = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.85f, Cooldown = 2f, MaxVoices = 1 };
+
+        [Header("위아래 이동 장치 · 유리 엘리베이터 · 방 드나들기 (사운드 개편 2026-11-25, SOUND_LIST_NEW 4-1 · D-6)")]
+        [Tooltip("이동 장치 목적지 판이 열림 = 장치 켜짐 (2D, 창 열기 0.5 대신) — 낮은 웅 F2 · F3 · C4 + 서보 \"윙\" + 유리 도6 → 파6")]
+        public SoundCue TransitOpen = new SoundCue { Bus = AudioBus.Ui, Volume = 0.3f, Pitch = Vector2.one, Cooldown = 0.2f, MaxVoices = 1 };
+        [Tooltip("이동 장치 타기 (2D, 떠나는 장치 단계) 0 = 기본 화물 승강기 칸: 차고 문 체인 모터 (Bb2로 옮김) + 출발 · 도착 유압 \"치익\" (실제 녹음)")]
+        public SoundCue TransitRide0 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.65f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("1 = 흰 세라믹 반중력 원판: 낮은 휙 바람결 (실제 녹음) + 아주 옅은 웅 파3 · 도4 · 파4")]
+        public SoundCue TransitRide1 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.26f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("2 = 혼천의: 도는 휙 (큰 휙을 초당 3번 일렁이게, 실제 녹음) + 오르골 도6 · 파6 한 음씩")]
+        public SoundCue TransitRide2 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.27f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("3 = 수정 꽃 연꽃: 덤불 바람결 + 큰 휙 돌풍 (실제 녹음) + 유리 반짝임 아주 옅게")]
+        public SoundCue TransitRide3 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.33f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("4 = 성운 은 원판: 큰 휙을 낮춰 먹먹하게 (실제 녹음) + 반짝이는 패드 · 별 아주 옅게")]
+        public SoundCue TransitRide4 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.36f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("이동 장치 도착 (2D, 연출을 끈 설정에서도) — 냉동고 문 \"쿵\"을 아주 먹먹하게 + 짧은 유압 숨 (실제 녹음)")]
+        public SoundCue TransitArrive = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.77f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("유리 엘리베이터 버튼 (버튼 자리 3D) — 1단계 방: 사각 버튼 딸깍 (실제 녹음) + 유리 \"삑\" 도6")]
+        public SoundCue LiftButton1 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.75f, Pitch = Vector2.one, Cooldown = 0.1f, MaxVoices = 2 };
+        [Tooltip("2단계 이상 방: 같은 딸깍 + 밝은 두 음 라5 → 도6")]
+        public SoundCue LiftButton2 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.41f, Pitch = Vector2.one, Cooldown = 0.1f, MaxVoices = 2 };
+        [Tooltip("유리 엘리베이터가 움직이는 동안 (캡슐에 붙은 3D 루프, 빠르기만큼 크기) — 1단계: 러닝머신 모터 (실제 녹음) + 자기 부상 웅 파3 · 도4 아주 옅게")]
+        public SoundCue LiftMove1Loop = new SoundCue { Bus = AudioBus.Sfx, Volume = 1f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("2단계 이상: 같은 모터 + 웅 + 유리 반짝임 파6 · 도6 · 라6 · 레6 옅게")]
+        public SoundCue LiftMove2Loop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.95f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("유리 엘리베이터 도착 (캡슐 자리 3D) — 1단계: 꽃 종 \"띵\" 도6 + 문 \"스르륵\" (자판기 미닫이 실제 녹음)")]
+        public SoundCue LiftArrive1 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.31f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("2단계 이상: \"띵 동\" 라6 → 파6 + 반짝 + 문 \"스르륵\"")]
+        public SoundCue LiftArrive2 = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.28f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("내부 들어가기 (2D, 창 열기 대신) — 큰 휙 \"우웅\" (실제 녹음, 3반음 낮춤) + 0.7초 해치 유압 \"치익\"")]
+        public SoundCue InteriorEnter = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.43f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("내부 나가기 (2D, 창 닫기 대신) — 큰 휙이 잦아드는 \"우웅\" (5반음 낮춤) + 해치 닫힘 \"쿵\" 옅게")]
+        public SoundCue InteriorExit = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+
+        [Header("1인칭 할 일 (사운드 개편 2026-11-25, SOUND_LIST_NEW 4-3 — 현장 수리 · 내부 사고 4종 · F 길게 누르기)")]
+        [Tooltip("F 길게 누르기 (0.5초 넘는 것만, 2D 루프) — 유리 결 파5 \"차오르는 음\", 코드가 누른 만큼 재생 높이를 파5 → 도6으로 올림 (UI 한 벌과 같은 F 장조 합성)")]
+        public SoundCue HoldLoop = new SoundCue { Bus = AudioBus.Ui, Volume = 0.3f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("F 길게 누르기를 다 누름 (2D) — 파5 · 라5 · 도6 + 위 파6 짧은 화음 (차오르던 도6에서 풀림)")]
+        public SoundCue HoldDone = new SoundCue { Bus = AudioBus.Ui, Volume = 0.45f, Pitch = Vector2.one, Cooldown = 0.1f, MaxVoices = 1 };
+        [Tooltip("현장 긴급 수리 — 손상 지점을 누르는 동안 그 지점 3D 루프 (예전 0.12초마다 스파크 \"지직\") — 실제 녹음: 래칫 렌치 조임 · 전동 드라이버 · 부드러운 용접을 이은 5.6초 고리")]
+        public SoundCue FieldRepairLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("배관 누출 — 새는 이음에 붙은 3D 루프 (지금 방에 있을 때만, 밸브를 돌리는 만큼 줄어듦) — 실제 녹음: 스팀 청소기 김 + 스프레이 캔 쉬익, 작은 크기 (큰 = pipe_burst_big_loop 파일만, 예정: 이웃에 따라 규모)")]
+        public SoundCue PipeBurstLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.35f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("누출 밸브를 F로 돌리는 2.0초 (바퀴 3D, 누르기 시작부터 · 떼면 꺼짐) — 실제 녹음: 다이얼 \"드르륵\" + 2.0초에 금속 \"툭\"")]
+        public SoundCue ValveTurn = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.6f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 2 };
+        [Tooltip("차단기 함 문 열기 (함 문 3D, UiOpen 대신) — 실제 녹음: 금속 우편함 열림 \"철컥\"")]
+        public SoundCue BreakerDoor = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.7f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.2f, MaxVoices = 1 };
+        [Tooltip("차단기 경고등 켜진 스위치를 올림 (스위치 3D, BuildRotate 대신) — 실제 녹음: 토글 스위치 + 벽 스위치 + 금속 함 \"툭\"을 겹친 큰 \"철컥\"")]
+        public SoundCue BreakerSwitch = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.5f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.05f, MaxVoices = 2 };
+        [Tooltip("마지막 스위치 = 전기 돌아옴 (스위치 3D) — 같은 \"딸깍\" + 전기 방 바탕과 같은 안정기 웅 (Bb2)이 차올랐다 잦아듦")]
+        public SoundCue BreakerFlip = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.5f, Pitch = Vector2.one, Cooldown = 0.2f, MaxVoices = 1 };
+        [Tooltip("작은 화재 — 배전함 위 불꽃에 붙은 3D 루프 (지금 방에 있을 때만, 분사하는 만큼 줄어듦) — 실제 녹음: 벽난로 가까이 타닥, 작은 크기 (큰 = fire_big_loop 파일만, 예정: 이웃에 따라 규모)")]
+        public SoundCue FireLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 1f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("벽의 소화기를 듦 (거치대 3D, BuildSelect 대신) — 실제 녹음: 금속 통을 집어 드는 짧은 \"철컥\"")]
+        public SoundCue ExtinguisherPickup = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.65f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.2f, MaxVoices = 1 };
+        [Tooltip("불에 대고 F를 누르는 2.0초 소화기 분사 (들고 있는 소화기 = 눈 앞, 누르기 시작부터 · 떼면 꺼짐) — 실제 녹음: 길게 뿌리는 \"쉬익\"")]
+        public SoundCue Extinguish = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.3f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("환기 경보 필터 교체 1.8초 (필터함 3D, 누르기 시작부터 · 떼면 꺼짐) — 실제 녹음: 걸쇠 풀림 · 카트리지가 미끄러져 나왔다 들어감 · 걸쇠 \"딸깍\"")]
+        public SoundCue FilterSwap = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.65f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
 
         [Header("체험 · 미니게임 공용 (사운드 개편 2026-11-23, SOUND_LIST_NEW 5-1 — 창 열기 · 닫기 같은 UI 소리를 빌려 쓰던 자리)")]
         [Tooltip("미니게임 시작 — 맑은 음 셋 (3 · 2 · 1) + 출발 화음, 음악 조 (F 장조)에 맞춰 합성")]
@@ -399,6 +501,48 @@ namespace SpaceStation.Audio
                 if (s != null && s.Module == module)
                     return s;
             return null;
+        }
+
+        [Header("방 환경음 1단계 · 가끔 소리 · 상태 층 (사운드 개편 2026-11-25, SOUND_LIST_NEW 4-4 · D-5)")]
+        [Tooltip("1단계 판 방 환경음 6 (루프): 1단계 이상 방 (소리 풍경이 없는 2단계 방도) — 같은 성격을 더 매끈 · 조용하게, 실제 녹음 (CC0): 욕실 환풍기 / 실내 분수 / PC 팬 / 열풍 팬 / 냉장고 압축기 + 안정기 웅 / 밤 공기, 게임 안 크기는 기본 판보다 1.5 dB 작게")]
+        public SoundCue Room1Life = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.49f, Pitch = Vector2.one };
+        public SoundCue Room1Water = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.65f, Pitch = Vector2.one };
+        public SoundCue Room1Machine = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.37f, Pitch = Vector2.one };
+        public SoundCue Room1Heat = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.58f, Pitch = Vector2.one };
+        public SoundCue Room1Electric = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.24f, Pitch = Vector2.one };
+        public SoundCue Room1Hall = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.7f, Pitch = Vector2.one };
+        [Tooltip("가끔 소리 꾸러미 12 (SS_Spot_*.asset, 번호 = 성격 순서 x 2 + 단계 (0 기본 · 1 = 1단계 이상)): 지금 있는 방에서만, 무리마다 25 ~ 70초에 하나씩 방 아무 칸에서 3D (꾸러미 전체로 8 ~ 30초에 하나 꼴) — 소리 풍경이 있는 방은 그쪽")]
+        public List<RoomSoundscape> RoomSpots = new List<RoomSoundscape>();
+        [Tooltip("상태 층 · 파손: 전선 지직 (2D 루프)")]
+        public SoundCue StateSparkLoop = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.65f, Pitch = Vector2.one };
+        [Tooltip("상태 층 · 파손: 선체 삐걱 넷 (방 아무 칸 3D, 6 ~ 14초마다)")]
+        public SoundCue StateCreak = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.18f, Pitch = new Vector2(0.94f, 1.06f), Cooldown = 2f, MaxVoices = 1 };
+        [Tooltip("상태 층 · 전력 부족 / 비활성: 웅이 낮아지며 꺼짐 (2D 한 번 — 그 상태인 방에 들어설 때 · 30 ~ 50초마다), 방 환경음은 효율만큼 작아짐")]
+        public SoundCue StatePowerDown = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.3f, Pitch = Vector2.one, Cooldown = 5f, MaxVoices = 1 };
+        [Tooltip("상태 층 · 산소 바닥: 환기 팬 멈춤 (2D 한 번 — 그 상태인 방에 들어설 때), 방 환경음 0.6배")]
+        public SoundCue StateFanStop = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.3f, Pitch = Vector2.one, Cooldown = 5f, MaxVoices = 1 };
+        [Tooltip("상태 층 · 과열 (대륙급 열): 끓는 거품 (2D 루프)")]
+        public SoundCue StateBoilLoop = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.8f, Pitch = Vector2.one };
+
+        /// <summary>2026-11-25 ⑥ 성격별 1단계 판 바탕.</summary>
+        public SoundCue Room1For(Data.InteriorAmbience ambience)
+        {
+            switch (ambience)
+            {
+                case Data.InteriorAmbience.Life: return Room1Life;
+                case Data.InteriorAmbience.Water: return Room1Water;
+                case Data.InteriorAmbience.Machine: return Room1Machine;
+                case Data.InteriorAmbience.Heat: return Room1Heat;
+                case Data.InteriorAmbience.Electric: return Room1Electric;
+                default: return Room1Hall;
+            }
+        }
+
+        /// <summary>2026-11-25 ⑥ 성격 · 단계 (0 기본, 1 이상 = 1단계 판) 가끔 소리 꾸러미 — 없으면 null.</summary>
+        public RoomSoundscape SpotsFor(Data.InteriorAmbience ambience, int stage)
+        {
+            int i = (int)ambience * 2 + (stage >= 1 ? 1 : 0);
+            return RoomSpots != null && i < RoomSpots.Count ? RoomSpots[i] : null;
         }
     }
 }

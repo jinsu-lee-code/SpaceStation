@@ -1,0 +1,5 @@
+경보 위계 4단계 (SOUND_LIST_NEW D-3 · 2번 표, 2026-11-25) — 원본 녹음 없음, 모두 build_audio2.py "경보 위계 4단계" 구역에서 합성
+(alert_info · alert_caution · alert_danger · alert_critical · alarm_loop · interior_alarm_loop).
+
+legacy/module_damaged.wav = 1차 build_audio.py 합성 결과 (커밋 8b137b5a "10.01/5-8/SoundSetting"의 Audio/Event/module_damaged.wav 그대로).
+앞 0.2초 "삐빅" (1250 → 1000 Hz)을 잘라 금속 균열만 쓰려고 보관 (알림 역할은 alert_danger로 옮김).

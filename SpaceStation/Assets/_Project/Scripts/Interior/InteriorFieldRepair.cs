@@ -49,6 +49,9 @@ namespace SpaceStation.Interior
             public float NextSpark;
             public float NextWeld;
             public bool Fixed;
+            /// <summary>사운드 개편 4-3: 누르는 동안 그 지점 공구 소리 (3D 루프) · 마지막으로 누른 시각.</summary>
+            public ObjectLoop Tool;
+            public float LastHold = -1f;
         }
 
         private sealed class Site
@@ -300,15 +303,29 @@ namespace SpaceStation.Interior
             return Sim.Resources.CanAfford(cost) ? null : $"자원 부족  {HudText.Cost(cost)}";
         }
 
-        /// <summary>누르는 동안: 지점에서 작은 용접 불꽃 (0.12초마다).</summary>
+        /// <summary>
+        /// 누르는 동안: 지점에서 작은 용접 불꽃 (0.12초마다) + 공구 소리 (래칫 렌치 · 전동 드라이버 · 부드러운 용접 고리, 그 지점 3D — 손을 떼면 0.12초에 꺼짐).
+        /// 사운드 개편 4-3 (2026-11-25): 예전엔 불꽃마다 스파크 "지직" (StormSpark, 2D)이 거의 이어 울렸음.
+        /// </summary>
         private void Weld(Point p)
         {
-            if (p.Prop == null || Time.unscaledTime < p.NextWeld)
+            if (p.Prop == null)
+                return;
+            p.LastHold = Time.unscaledTime;
+            if (p.Tool == null)
+            {
+                p.Tool = AudioService.AttachLoop(l => l.FieldRepairLoop, p.Prop.transform);
+                if (p.Tool != null)
+                {
+                    p.Tool.transform.localPosition = FxPoint(p.Kind);
+                    p.Tool.FadeSpeed = 8f;
+                }
+            }
+            if (Time.unscaledTime < p.NextWeld)
                 return;
             p.NextWeld = Time.unscaledTime + 0.12f;
             var at = p.Prop.transform.TransformPoint(FxPoint(p.Kind)) + UnityEngine.Random.insideUnitSphere * 0.04f;
             InteriorFx.Spark(p.Prop.transform, at, p.Normal + Vector3.up * 0.3f, _spark, 4, 8, 0.8f);
-            AudioService.TryPlay(l => l.StormSpark, 0.35f);
         }
 
         private void Complete(Site site, Point p)
@@ -333,7 +350,8 @@ namespace SpaceStation.Interior
             Fix(site, p, quiet: false);
             if (Sim.Damage.TryGetInfo(site.Module, out var info))
                 info.FieldFixedMask |= 1 << p.Index;
-            AudioService.TryPlay(l => l.Maintain);
+            if (!AlertSound.PlayedThisFrame(l => l.HoldDone)) // 2026-11-25: F 길게 누르기 완료 화음이 울렸으면 그것 하나만 (정비 소리와 겹치지 않게)
+                AudioService.TryPlay(l => l.Maintain);
         }
 
         private void Fix(Site site, Point p, bool quiet)
@@ -372,6 +390,8 @@ namespace SpaceStation.Interior
                 {
                     if (p.Fixed || p.Prop == null)
                         continue;
+                    if (p.Tool != null)
+                        p.Tool.Level = now - p.LastHold < 0.1f ? 1f : 0f;
                     if (p.Glow != null)
                     {
                         // 잔잔한 출렁임 + 가끔 살짝 어두워짐 (꺼졌다 켜지는 큰 깜박임은 눈이 피로했음)
@@ -382,9 +402,10 @@ namespace SpaceStation.Interior
                     if (p.Kind == Kind.Pipe || now < p.NextSpark)
                         continue;
                     p.NextSpark = now + UnityEngine.Random.Range(1.6f, 4f);
-                    InteriorFx.Spark(p.Prop.transform, p.Prop.transform.TransformPoint(FxPoint(p.Kind)), p.Normal + Vector3.down * 0.2f, _spark, 10, 18, 1.2f);
+                    var sparkAt = p.Prop.transform.TransformPoint(FxPoint(p.Kind));
+                    InteriorFx.Spark(p.Prop.transform, sparkAt, p.Normal + Vector3.down * 0.2f, _spark, 10, 18, 1.2f);
                     if (site.Module == CurrentRoom)
-                        AudioService.TryPlay(l => l.StormSpark, 0.4f);
+                        AudioService.TryPlayAt(l => l.StormSpark, sparkAt, 0.4f); // 사운드 개편 4-3: 그 지점 3D (예전 2D)
                 }
             }
         }
