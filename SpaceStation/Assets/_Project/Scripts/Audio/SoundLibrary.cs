@@ -92,7 +92,8 @@ namespace SpaceStation.Audio
         public SoundCue ModuleDamaged = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Cooldown = 0.2f, MaxVoices = 2 };
         public SoundCue ModuleDestroyed = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.75f, Cooldown = 0.3f, MaxVoices = 2 };
         public SoundCue StormSpark = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.22f, Cooldown = 0.12f, MaxVoices = 2, Pitch = new Vector2(0.85f, 1.2f) };
-        public SoundCue OxygenLeak = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.4f, Cooldown = 1f, MaxVoices = 1 };
+        [Tooltip("산소 누출 사건 (나쁜 사건 알림 0.6초 뒤 2D) — 실제 녹음 스팀 김 \"쉬익\" 큰 크기 (2026-11-25, 정전기 · 흰 잡음으로 들리던 것을 바꿈). 작은 크기 oxygen_leak_small은 파일만 — 예정 (이웃에 따라 규모)")]
+        public SoundCue OxygenLeak = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.32f, Cooldown = 1f, MaxVoices = 1 };
         public SoundCue SupplyArrive = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Cooldown = 1f, MaxVoices = 2, Pitch = Vector2.one };
         public SoundCue ResourceDepleted = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.5f, Cooldown = 3f, MaxVoices = 1, Pitch = Vector2.one };
         public SoundCue GradeUp = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.6f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
@@ -338,8 +339,8 @@ namespace SpaceStation.Audio
         [Header("체험 — 정련 콤비나트 작은 해 용광로 · 집게 크레인 (5-2, 2026-11-23)")]
         [Tooltip("작은 해 용광로 (해 가운데에 붙은 3D 루프, 가동 중) — VARCO 따뜻한 불 \"웅\" (5개 중 가장 고르고 잔 탁탁 없음)")]
         public SoundCue RefineryFurnaceLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.75f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
-        [Tooltip("국자가 주형에 쇳물을 부음 (그 주형 자리 3D) — VARCO 걸쭉한 붓기 \"주르륵\" + 식으며 \"치익\"")]
-        public SoundCue RefineryLadlePour = new SoundCue { Bus = AudioBus.Sfx, Volume = 1f, Pitch = new Vector2(0.95f, 1.05f), Cooldown = 0.2f, MaxVoices = 3 };
+        [Tooltip("국자가 주형에 쇳물을 부음 (그 주형 자리 3D) — 실제 녹음: 용암 꿀렁 + 불 탁탁 + 식으며 지글 \"치익\" (2026-11-25, 물 · 변기 물 내림으로 들리던 VARCO를 바꿈)")]
+        public SoundCue RefineryLadlePour = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.71f, Pitch = new Vector2(0.95f, 1.05f), Cooldown = 0.2f, MaxVoices = 3 };
         [Tooltip("크레인 들보 · 집게가 움직이는 동안 (들보에 붙은 3D 루프) — 심우주 통신기지 접시 모터 원본 \"위잉\"")]
         public SoundCue RefineryCraneMoveLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
         [Tooltip("집게가 광석을 쥠 \"턱\" (집게 자리 3D) — 5-1 걸쇠 원본을 낮춰 묵직하게")]
@@ -358,8 +359,8 @@ namespace SpaceStation.Audio
         public SoundCue T1TurretServoLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
 
         [Header("체험 — 정비 공창 수리 패드 용접 · 조선소 용접 갠트리 (5-2, 2026-11-23)")]
-        [Tooltip("용접하는 동안 \"쉬이 · 치직\" (그 토치 끝에 붙은 3D 루프 — 불꽃이 튀는 토치만) — VARCO 용접 쉿을 3 kHz 위 걸러 부드럽게 + 둥근 치직 알갱이 합성")]
-        public SoundCue T1WeldLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.65f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("용접하는 동안 \"지글 · 탁탁\" (그 토치 끝에 붙은 3D 루프 — 불꽃이 튀는 토치만) — 실제 녹음: 스팀이 바닥에 닿는 지글 + 전기 아크 탁탁, 4 kHz 위 눌러 부드럽게 (2026-11-25, 폭죽 · 천둥으로 들리던 합성을 바꿈)")]
+        public SoundCue T1WeldLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.76f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
         [Tooltip("조선소 갠트리가 레일을 따라 옮겨 감 · 토치를 대고 뗌 (갠트리에 붙은 3D 루프) — 정련 콤비나트 크레인 모터 (refinery_crane_move_loop) 그대로")]
         public SoundCue ShipyardGantryLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
 

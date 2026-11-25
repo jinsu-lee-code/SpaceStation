@@ -1853,7 +1853,8 @@ sz = soften(soften(highpass(sz, 300), 5000, 0.5), 5000, 0.5) * np.minimum(1, tz 
 pour = np.zeros(int(2.8 * SR))
 pour = place(pour, po / pk50(po), 0.0)
 pour = place(pour, sz / pk50(sz) * 0.55, 0.9)
-save("Ride/refinery_ladle_pour.wav", fade(pour, 0.0, 0.3), -14)
+# → 2026-11-25 실제 녹음으로 바꿈 (맨 아래 "실제 녹음 D" 구역 — AI Water · 변기 물 내림으로 들렸음) — 아래 줄은 기록 (VARCO 원본은 그대로 둠)
+# save("Ride/refinery_ladle_pour.wav", fade(pour, 0.0, 0.3), -14)
 
 # 크레인 움직임 (들보 · 집게에 붙은 3D 루프, 움직이는 동안만 — 들보 = 1, 줄 오르내림 = 0.9 높이) — 심우주 통신기지 접시 모터 원본 (부드러운 "위잉", 울림 0 · 지직 9.3)을 앞뒤로 이음.
 mo2 = highpass(sl(load("Ride/DeepSpaceComm/dish_motor.wav"), 0.25, 4.3), 80)
@@ -1956,7 +1957,8 @@ for k in range(int(n_ / SR * 14)):
     idx = (int(rng.uniform(0, n_)) + np.arange(ng)) % n_
     np.add.at(crk, idx, g / np.abs(g).max() * rng.uniform(0.3, 1.0))
 weld = weld / rms(weld) + 0.35 * crk / rms(crk)
-save("Ride/t1_weld_loop.wav", weld, -24)
+# → 2026-11-25 실제 녹음으로 바꿈 (맨 아래 "실제 녹음 D" 구역 — AI Fireworks · Thunder로 들렸음) — 아래 줄은 기록 (VARCO 원본은 그대로 둠)
+# save("Ride/t1_weld_loop.wav", weld, -24)
 report.append(f"  용접 고리 {len(weld) / SR:.2f}초 · 이음새 {abs(weld[0] - weld[-1]):.4f}")
 
 # ================= 남은 빌린 소리 정리 (SOUND_LIST_NEW 5-2 넷째 묶음 B, 2026-11-23) =================
@@ -2208,5 +2210,234 @@ save("Interior/scape_port_bed_loop.wav", layer(lap, sea, -9.5), -24)
 x = layer(lpc(hpc(rchain("ballast_hum", "hum", [6.0, 13.0], 7.0, 1.5), 40), 2500),
           hpc(notch_lines(rchain("mini_fridge", "fridge", [30.75, 20.5], 7.0, 1.5), [81, 162, 323, 1611, 2014], 18, 1.5), 60), -3)
 save("Interior/scape_city_night_loop.wav", notch_lines(repitch_loop(x, -51), BB_OFF, 24, 2.0), -26)
+
+# ================= 실제 녹음 D — 쇳물 붓기 · 산소 누출 (작은 / 큰) · 용접 (SOUND_LIST_NEW 10번 D, 2026-11-25) =================
+# AI 청각 모델 (PANNs) 줄 세우기에서 국자 쇳물 붓기 = Water 0.28 · 변기 물 내림 0.19, 산소 누출 = Static 0.33 · Noise 0.21 · White noise 0.20,
+# 용접 = Fireworks 0.19 · Thunder 0.12 · Rain 0.10 → 실제 녹음 (archive.org "The Designer's Choice UCS Collection", CC0 — 녹음마다 AudioOriginals/Misc/<녹음>/SOURCE.txt)으로.
+# 파일 이름 · 길이 · 쓰는 곳은 그대로 (칸 연결 그대로), 결만 바꿈. 후보 = 25개 (mp3 16 MB로 훑고 고른 4개만 flac 17.5 MB) — 범주 FIRE · GEOTHERMAL · AIR · ELECTRICITY ·
+# WATER · MACHINES · OBJECTS · ICE. 이 모음엔 용접 · 쇳물 · 튀김 녹음이 없어서, 스팀 청소기가 바닥에 닿는 "지글" 구간 (10초 창 AI Sizzle 0.29 ~ 0.34 · Frying 0.24 ~ 0.33)을 찾아 바탕으로 씀.
+# AI 점수는 ai_rank.py와 같은 꼴 (한 번 소리 = 4번 반복 10초, 루프 = 10초로 이어 붙임).
+MSC = "Misc/"
+
+
+def misc_piece(folder, pre, start, a, b):
+    """Misc/<녹음>/<앞>_<조각 시작초>.wav에서 원본 시각 a ~ b초 (샘플 수 = 반올림 — 층 길이가 1 샘플도 안 어긋나게)."""
+    x = load(f"{MSC}{folder}/{pre}_{start:06.2f}.wav")
+    i = int(round((a - start) * SR))
+    return x[i:i + int(round((b - a) * SR))].copy()
+
+
+def misc_seg(folder, pre, start, a, b, fc):
+    return highpass(highpass(misc_piece(folder, pre, start, a, b), fc), fc)
+
+
+def d_swell(n, att, hold, tau):
+    """att초에 차올라 hold초까지 버티고 tau초로 잦아드는 크기 곡선."""
+    t = np.arange(n) / SR
+    return np.minimum(1, t / att) * np.where(t < hold, 1.0, np.exp(-(t - hold) / tau))
+
+
+lp2d = lambda x, fc: onepole_lp(onepole_lp(x, fc), fc)
+
+# --- 국자 쇳물 붓기 (정련 콤비나트 — 국자가 기울어 1.2초 줄기가 나오는 순간 그 주형 3D, 2.8초 그대로) ---
+# 걸쭉한 흐름 = 용암 거품 녹음 (GEOLava, 80 ~ 82.8초)의 낮은 "꿀렁" (700 Hz 아래, 0 ~ 1초 버팀) + 불 탁탁 = 모닥불 녹음 (7 ~ 9.8초, 1.5 kHz 위 — 뒤에 깔린 말소리 · 동물은 걸러짐)
+# + 식으며 치익 = 스팀 청소기가 바닥에 닿는 지글 (17 ~ 19.8초, 0.3초에 차올라 1.4초부터 잦아듦) → 8 kHz 위를 두 번 누름.
+# AI: Water 0.28 · Toilet flush 0.19 · Liquid 0.11 → Sizzle 0.39 · Frying (food) 0.36 · Stir 0.28, Water 0.02 · Toilet flush 0.00.
+# 뺀 것: 용암 거품만 (Toilet flush 0.23 · Music — 만든 소리) · 솥 거품 셋 (Water 0.11 ~ 0.16) · 콘크리트에 쏟은 물 (Drip · Water) · 가스 불꽃 (Vehicle · Jet engine) ·
+# 지글만 (Sizzle 0.18 · Vehicle 0.16 — 꿀렁 · 탁탁이 없으면 흐르는 느낌이 없음) · 지글을 6 kHz 위까지 누름 (Sizzle 0.06 — 지글 결이 사라짐) · 탁탁을 얼음 갈라짐으로 (Sizzle 0.23).
+# 용암 꿀렁의 60 · 154 Hz 줄 (전기 웅 · Eb3 — 조 밖)은 깎음.
+NPD = int(2.8 * SR)
+d_rum = notch_lines(lp2d(highpass(misc_piece("lava_bubbles", "lava", 79.5, 80.0, 82.8), 40), 700), [60, 154], 18, 2.0)
+d_siz = highpass(misc_piece("steam_cleaner", "steam", 16.8, 17.0, 19.8), 150)
+d_crk = highpass(misc_piece("campfire", "fire", 6.5, 7.0, 9.8), 1500)
+d_pour = np.zeros(NPD)
+for part, gain, env in ((d_rum, 0.8, d_swell(NPD, 0.08, 1.0, 0.35)), (d_siz, 1.0, d_swell(NPD, 0.3, 1.4, 0.6)), (d_crk, 0.5, d_swell(NPD, 0.05, 1.1, 0.4))):
+    d_pour += np.pad(part, (0, max(0, NPD - len(part))))[:NPD] / rms(part) * gain * env
+save("Ride/refinery_ladle_pour.wav", fade(lp2d(d_pour, 8000), 0.0, 0.3), -14)
+
+# --- 산소 누출 (바깥 사건 OxygenLeakEventData — 나쁜 사건 알림 0.6초 뒤 2D) — 작은 / 큰 두 크기 (사용자 2026-11-24 "추천대로", CONNECT_1121 A5 이웃에 따라 규모) ---
+# 같은 녹음 · 같은 구간 = 한 가족: 스팀 청소기를 켠 첫 "쉬익" (0.3 ~ 3.3초 — 0.1초 크기 −29 ~ −34 dB로 고름, 바닥을 문지르는 "탁"이 없음).
+# 큰 = 지금 칸 (2.6초, 지금 2.56초와 같은 길이): 2반음 내려 굵게, 12 ms에 바로 터져 1.4초 버티고 0.45초로 잦아듦.
+# 작은 = 파일만 (1.4초, 예정 — 좋은 이웃 옆 작은 누출): 1반음 올려 가늘게, 0.45초 버티고 잦아듦.
+# 9 kHz 위를 두 번 누름 (지금 것 무게중심 11 kHz · 6 ~ 16 kHz −2 dB → 4.2 kHz · −5.5 dB, 6 kHz까지 누르면 Hiss · Steam이 0.1 아래로 떨어져 Vehicle만 남음).
+# 김 속 1230 Hz 삐 (Eb6 — 조 밖)와 60 · 67 Hz 웅은 깎음.
+# AI: 큰 = Static 0.33 · Noise 0.21 · White noise 0.20 → Steam 0.43 · Hiss 0.43 · Vehicle 0.38, Static 0.00 · White noise 0.02 /
+#     작은 = Hiss 0.23 · Steam 0.12 · Vehicle 0.12 · Door 0.08 (1.4초 한 번 소리는 AI가 미닫이문 "칙"으로도 들음 — 문지르는 "탁"이 든 3.2초 뒤 구간은 Door 0.2 ~ 0.6), Static 0.02.
+# 뺀 후보: 김 빼기 밸브 (Acme Windmaster — Vehicle 0.12 · 흰 잡음 0.06) · 스프레이 캔 (Spray 0.51 · Hiss 0.32이나 무게중심 10 kHz — 6 kHz로 누르면 Breathing · Sigh) ·
+# 스팀 청소기 김만 (Steam 0.24 — 다른 녹음, 더 밝음) · 타이어 바람 넣기 (Vehicle 0.35 — 낮은 웅) · 휘핑크림 (Vehicle 0.42) · 혈압계 바람 빼기 (반복 펌프) · 에어로졸 (1.4초뿐).
+d_lk = notch_lines(highpass(misc_piece("steam_cleaner", "steam", 0.0, 0.3, 3.3), 120), [60, 67, 1230], 18, 3.0)
+d_big = lp2d(pitch(d_lk, -2), 9000)[: int(2.6 * SR)]
+save("Event/oxygen_leak.wav", fade(d_big * d_swell(len(d_big), 0.012, 1.4, 0.45), 0.0, 0.25), -14)
+d_small = lp2d(pitch(d_lk, 1), 9000)[: int(1.4 * SR)]
+save("Event/oxygen_leak_small.wav", fade(d_small * d_swell(len(d_small), 0.008, 0.45, 0.45), 0.0, 0.3), -14)
+
+# --- 용접 루프 (정비 공창 수리 패드 용접 팔 · 조선소 갠트리 토치 — 불꽃이 튀는 토치에 붙은 3D 루프, 코드 그대로) ---
+# 지글 = 스팀 청소기가 바닥에 닿는 지글 세 조각 (17 ~ 19.9 · 4.95 ~ 6.1 · 6.85 ~ 8초 — 6.2 · 6.7초의 "탁"은 피함, 300 Hz 아래 청소기 모터 웅을 거름) +
+# 아크 탁탁 = 전기 아크 · 불꽃 녹음 (1 ~ 3.55 · 53 ~ 55.55초 — 고르게 튀는 구간, 1.5 kHz 위)를 같은 크기로, 두 층 모두 4.3초 (이음새에서 한 층만 끊기지 않게).
+# 4 kHz 위를 두 번 눌러 부드럽게 (날 선 지직 X — 6 ~ 16 kHz 전체 대비 −25 dB) + save 자동 고음 상한. 0.5초 크기 폭 3.5 dB · 음 봉우리 없음.
+# AI: Fireworks 0.19 · Thunder 0.12 · Rain 0.10 → Sizzle 0.23 · Stir 0.20 · Vehicle 0.19 · Frying (food) 0.16, Fireworks · Thunder 0.00 · Rain 0.01.
+# 뺀 것: 지글만 (자동 고음 상한 뒤 Vehicle 0.22 — 탁탁이 있어야 지글로 들림) · 테슬라 코일 둘 (Mechanisms · Ratchet / Jackhammer — 날 선 붕붕 줄) ·
+# 이발기 · 면도기 (Vehicle · Engine — 음이 또렷) · 가스 불꽃 (Vehicle 0.51) · 모닥불 탁탁 (Vehicle 0.30 — 불로 들려 용접과 멂) · 고르지 않은 아크 구간 (40 ~ 42.7초 — 0.1초 크기 −64 ~ −31 dB).
+d_wz = [misc_seg("steam_cleaner", "steam", 16.8, 17.0, 19.9, 300), misc_seg("steam_cleaner", "steam", 0.0, 4.95, 6.1, 300), misc_seg("steam_cleaner", "steam", 0.0, 6.85, 8.0, 300)]
+d_wz = chain_loop([p / rms(p) * rms(d_wz[0]) for p in d_wz], 0.3)
+d_wa = [misc_seg("electric_arcs", "arcs", 0.5, 1.0, 3.55, 1500), misc_seg("electric_arcs", "arcs", 52.5, 53.0, 55.55, 1500)]
+d_wa = chain_loop([p / rms(p) * rms(d_wa[0]) for p in d_wa], 0.4)
+assert len(d_wz) == len(d_wa), (len(d_wz), len(d_wa))
+d_weld = circular(lambda y: lp2d(y, 4000), d_wz / rms(d_wz) + d_wa / rms(d_wa))
+save("Ride/t1_weld_loop.wav", d_weld, -24)
+report.append(f"  용접 고리 (실제 녹음) {len(d_weld) / SR:.2f}초 · 이음새 차 / 이웃 샘플 차 중앙값 {abs(d_weld[0] - d_weld[-1]) / np.median(np.abs(np.diff(d_weld))):.1f}")
+
+# ================= 실제 녹음 B — 기계음 (SOUND_LIST_NEW 10번 B, 2026-11-25) =================
+# AI 청각 모델 줄 세우기 (docs/sound/ai-rank-2026-11-24.tsv)에서 기계가 순음 · 사이렌 · 신시사이저로 들린 것 (포탑 서보 · 번개 탑 웅 · 빛 반응 = Sine wave,
+# 접시 모터 = Siren, 크레인 = Synthesizer · Noise, 바깥 정거장 웅 = Silence · Sine wave, 드론 떼 = Music · Piano)
+# → 실제 녹음 (archive.org "The Designer's Choice UCS Collection", CC0 — 녹음마다 AudioOriginals/Machines/<녹음>/SOURCE.txt)으로 다시 만듦. 파일 이름 · 칸 그대로.
+# 후보 37개 (mp3 27 MB로 훑고 고른 10개만 flac 34 MB) — 10초판 (루프 = 이어 붙임 · 한 번 소리 = 2.5초마다 4번)의 AI 위 범주 · Siren · Sine wave · Music · Synthesizer,
+# 소음원 (포탑 · 크레인 — 나중에 옆방으로 먹먹하게 새어 들 자리, SOUND_LIST D-4)은 2 kHz 로우패스판도 무엇인지 남는지, 음 봉우리가 음악 조 (D 단조 · F 장조) 안인지로 고름
+# (빠르기로 Pitch가 바뀌는 루프는 Pitch 1에서). AudioSet은 고른 모터 웅을 대개 Vehicle · Engine으로 들음 (서보 · 크레인 · 테슬라 범주는 없음).
+# 음량 = 게임 안 4 m 앞 혼자 울림 귀 감도를 고치기 전과 같게 (루프 = 0.25초 창 평균, 한 번 소리 = 최대) — 칸 음량은 그대로 두고 원본 저장 크기로 맞춤.
+# 옛 합성 · VARCO 저장 줄 (각 체험 구역)은 주석 기록으로 둠.
+MCH = "Machines/"
+
+
+def mpiece(folder, pre, start, length):
+    return load(f"{MCH}{folder}/{pre}_{start:06.2f}.wav")[: int(round(length * SR))]
+
+
+def mrchain(folder, pre, starts, seg, xf):
+    """같은 녹음의 조각들 (시작초 · 길이 seg)을 rms를 맞춰 xf초씩 겹쳐 한 바퀴 루프로 (A의 rchain과 같음 — 폴더만 Machines)."""
+    parts = [mpiece(folder, pre, s, seg) for s in starts]
+    parts = [p / rms(p) * rms(parts[0]) for p in parts]
+    return chain_loop(parts, xf)
+
+
+def cents_b(f_from, f_to):
+    return 1200 * np.log2(f_to / f_from)
+
+
+def f0_track(x, lo, hi, ks=range(3, 9), win=0.1, hop=0.02):
+    """모터 기음 따라가기: 창마다 lo ~ hi Hz 후보 중 ks배음 크기 합이 가장 큰 것, 5칸 중앙값으로 튀는 값 정리. 돌려줌 = (창 가운데 초, Hz)."""
+    N, H, M = int(win * SR), int(hop * SR), 1 << 16
+    f = np.fft.rfftfreq(M, 1 / SR)
+    cand = np.arange(lo, hi, 0.05)
+    t, f0 = [], []
+    for i in range(0, len(x) - N, H):
+        X = np.abs(np.fft.rfft(x[i:i + N] * np.hanning(N), M))
+        t.append((i + N / 2) / SR)
+        f0.append(cand[int(np.argmax(sum(np.interp(k * cand, f, X) for k in ks)))])
+    f0 = np.array(f0)
+    return np.array(t), np.array([np.median(f0[max(0, j - 2):j + 3]) for j in range(len(f0))])
+
+
+def flat_pitch(x, t, f0, target):
+    """기음이 target Hz (수 하나 또는 창마다)가 되게 재생 빠르기를 샘플마다 바꿔 다시 읽음 (길이도 그만큼 바뀜)."""
+    tau = np.arange(len(x)) / SR
+    T = np.cumsum(np.interp(tau, t, f0) / np.interp(tau, t, np.broadcast_to(target, f0.shape))) / SR
+    pos = np.interp(np.arange(0, T[-1], 1 / SR), T, tau) * SR
+    return np.interp(pos, np.arange(len(x)), x)
+
+
+# 보안청 천장 포탑 서보 (포탑 받침 3D 루프, 도는 빠르기만큼 크기 · Pitch 0.84 ~ 1) = 차 전동 창문 올림 (window_motor — 창 모터 = 작은 기어 모터, 서보와 같은 결).
+# 창이 오르며 짐이 바뀌어 모터 기음이 91 ~ 99 Hz (±70센트)로 오르내림 — 그대로 이으면 느린 높이 흔들림 → 배음 합으로 기음을 따라가 재생 빠르기를 바꿔
+# 가장 오래 머문 91.7 Hz를 정확히 F2 (87.31 Hz — 배음 F · C · A, 경계 빠르기 Pitch 0.84면 D · A)로, 흔들림은 35 %만 남김 (±25센트 — 모터 결).
+# 다 펴면 (0 %) 배음이 너무 고르게 남아 2 kHz 로우패스판이 Gong 0.45 · Music 0.23, 조 밖 배음 (7배 Eb−31 …)까지 깎으면 더 화음처럼 (Gong · Music) — 둘 다 뺌.
+# 뒤 2.4 ~ 2.7초는 짐이 흐트러져 따라가기가 틀려 원본 0.6 ~ 2.35초만 쓰고, 앞뒤로 이어 느린 크기 변화를 절반 폄.
+# AI: Siren 0.11 · Sine wave 0.04 → 0.00 · 0.00, 위 Vehicle 0.82 · Aircraft · Propeller (고른 모터 웅), 2 kHz 로우패스판도 Vehicle 0.23 (Music 0.13 — 벽 너머로도 모터).
+# 뺀 후보: 로봇 서보 모터 (진짜 서보지만 4 ~ 8 kHz 밝은 "지잉" 1 ~ 2초 덩어리 — Dental drill 0.72, 로우패스판 Screaming) · RC 차 모터 (Engine 0.38이지만 로우패스판 Noise) ·
+# 책상 리프트 (로우패스판 Gong — 크레인에 씀) · 침대 리프트 (Siren 0.40 — 높이가 오르내림) · 미세 공구 (로우패스판 Gong 0.84) · 무선 드릴 (Speech 0.23 · 끽).
+wmB = hpc(mpiece("window_motor", "window", 0.40, 3.0)[int(0.2 * SR):int(1.95 * SR)], 60)
+tB, fB = f0_track(wmB, 84.0, 102.0)
+fmB = np.bincount(np.round(fB).astype(int)).argmax()
+fmB = fB[np.abs(fB - fmB) < 1].mean()
+wmB = flat_pitch(wmB, tB, fB, 87.31 * (fB / fmB) ** 0.35)
+servoB = half_flat(chain_loop([wmB, wmB[::-1]], 0.4), 0.8)
+save("Ride/t1_turret_servo_loop.wav", servoB, -15.6)
+report.append(f"  포탑 서보 (창 모터) 고리 {len(servoB) / SR:.2f}초 · 이음새 {abs(servoB[0] - servoB[-1]):.4f} · 머문 기음 {fmB:.1f} Hz → F2")
+
+# 그리드 허브 번개 정원 테슬라 탑 웅 (탑 꼭대기 3D 루프, 가동 중) = 실제 테슬라 코일 (tesla_coil — 24.8 Hz 펄스의 촘촘한 배음 "부르르") + 전기 아크의 고른 지직 (arc_sizzle) 15 %.
+# 방 바탕이 이미 전기 방 (형광등 안정기 웅 Bb2)이라 안정기 웅을 또 섞지 않고 코일 결로 (섞어 보면 로우패스판 Synthesizer 0.78 ~ 0.87).
+# 펄스를 F0 (21.83 Hz, −221센트)로 옮겨 배음 F · C · A, 조 밖 배음 (7 · 11 · 13 · 14 · 17 …배 — 가장 또렷하던 240 Hz B−49 등)은 깎고 1.8 kHz 위를 눌러 둥글게 (날 선 버즈 X),
+# 지직은 아크 녹음의 1 ~ 8초 고른 "치지직"만 (뒤는 덩어리로 튐) 3 kHz 위를 눌러 아주 옅게.
+# AI: Music 0.18 · Sine wave 0.06 → 0.02 · 0.00, 위 Engine 0.27 · Idling (AudioSet에 테슬라 · 변압기 범주가 없어 낮은 펄스 웅을 엔진으로 들음 — 원본도 Jackhammer · Sewing machine),
+# 2 kHz 로우패스판 Engine 0.20 (조 밖 배음을 깎기 전 Synthesizer 0.21). 뺀 후보: 테슬라 코일 방전 터짐 (1 ~ 2초마다 끊김) · 장난감 팽이 웅 (Music 0.39 · Synthesizer).
+# 옛 웅은 지직 덩어리가 순간 최대를 만들어 (0.25초 최대가 평균보다 6.4 dB 큼) 평균으로 맞춤 — 새 것은 고름 (최대 − 평균 2 dB).
+tslB = repitch_loop(hpc(mrchain("tesla_coil", "tesla", [8.0, 22.0, 41.0], 5.0, 0.8), 60), cents_b(24.8, 21.83))
+tslB = lpc(notch_lines(tslB, [21.83 * k for k in (7, 11, 13, 14, 17, 19, 22, 23, 25, 26, 28, 29, 31, 33, 34, 35)], 20, 3.0), 1800)
+szB = lpc(repitch_loop(hpc(mrchain("arc_sizzle", "arc", [1.0, 2.0, 3.2], 5.0, 0.8), 400), cents_b(24.8, 21.83)), 3000)
+teslaB = tslB / rms(tslB) + 0.15 * szB / rms(szB)
+save("Ride/lightning_hum_loop.wav", teslaB, -20.8)
+report.append(f"  번개 탑 웅 (테슬라 코일) 고리 {len(teslaB) / SR:.2f}초 · 이음새 {abs(teslaB[0] - teslaB[-1]):.4f}")
+
+# 궤도 방어망 등대 빛이 닿아 답함 (2D, TryPlayNote — 찾은 차례대로 도 · 레 · 파 · 솔 · 라 · 도) = 실제 유리 꽃병 "딩" (glass_vase — 60번 친 녹음 중 36.07초):
+# 기음 1530.8 Hz를 정확한 도6 (−658.4센트)으로 — 기준 음이 도5 → 도6 (유리 결이 삶, 도5까지 내리면 쇠 Clang 0.7 쪽). 조 밖 1.38배 · 2배 봉우리 −40 dB, 앞 바닥 −61 dB.
+# AI (2.5초마다 4번): Sine wave 0.19 · Dial tone 0.08 → 0.00, 위 Ding 0.69 · Clang 0.18 · Chink, clink. 뺀 후보: 같은 꽃병의 다른 딩 (1.38배 봉우리 −7 ~ −35 dB · 꼬리 짧음 ·
+# Clang 0.5 ~ 0.7) · 명상 차임 (쇠 막대, 2.7배 봉우리 −5 dB) · 소리굽쇠 · 유리 두드림 (바닥 −20 ~ −35 dB) · 도자기 종 · 유리 종 (흔들어 계속 울림).
+vaseB = pitch(mpiece("glass_vase", "vase", 36.07, 1.62), -6.584)
+save("Ride/odef_beam_react.wav", fade(highpass(trim_lead(vaseB, -40), 150), 0.002, 0.45)[: int(2.0 * SR)], -13.2)
+
+# 심우주 통신기지 전파 접시 모터 (손바퀴를 돌린 접시 자리 3D, 2.6초에 돌아섬) = 실제 차 선루프 열림 (sunroof_motor) — 모터가 "툭" 걸려 도는 첫 3.45초에서
+# 1.65 ~ 1.95초 딸깍을 건너뛰어 잇고 (0.15초 겹침) 위잉 557 Hz (C#5)를 D5로 (+92센트). 빠르기 곡선으로 높이를 오르내리지 않음 (지금 것 = 재생 빠르기 0.55 → 1 → 0.55 = 사이렌).
+# 몸통의 60 ~ 85 %가 200 Hz 아래 차체 울림이라 100 Hz 아래를 두 번 거르고, 1 ms 뾰족함 (시작 딸깍)만 12 dB 눌러 (폭죽 터짐과 같은 식) 피크 제한 안에서 크게.
+# "툭"을 더 누르거나 250 Hz까지 거르면 위잉은 커지지만 Power windows 0.82 → 0.02 (걸리는 "툭"이 전동 모터라는 단서) — 최대는 옛 것과 같게, 몸통 평균 −2 dB로 타협.
+# AI (4번): Siren 0.42 → 0.00, 위 Vehicle 0.58 · Power windows, electric windows 0.35 · Car. 뺀 후보: 선루프 닫힘 (끝 닫힘 "쿵"이 커야 Power windows) · 창문 올림 (포탑에 씀) ·
+# 창문 내림 (로우패스판 Siren 0.16) · 책상 리프트.
+saB = hpc(mpiece("sunroof_motor", "sunroof", 0.00, 1.65), 60)
+sbB = hpc(mpiece("sunroof_motor", "sunroof", 1.95, 1.5), 60)
+kB = int(0.15 * SR)
+txB = np.linspace(0, np.pi / 2, kB)
+dishB = np.concatenate([saB[:-kB], saB[-kB:] * np.cos(txB) + sbB[:kB] * np.sin(txB), sbB[kB:]])
+dishB = tame(highpass(highpass(pitch(dishB, 0.92), 100), 100), 4.0, 0.002, 0.05)
+w1B = int(0.001 * SR)
+pkB = np.lib.stride_tricks.sliding_window_view(np.pad(np.abs(dishB), (w1B, w1B), mode="edge"), 2 * w1B + 1).max(1)
+dishB = dishB * np.convolve(np.minimum(1.0, np.abs(dishB).max() * 10 ** (-12 / 20) / (pkB + 1e-12)), np.ones(w1B) / w1B, mode="same")
+save("Ride/dsc_dish_motor.wav", fade(dishB, 0.005, 0.35), -4.8)   # 피크 −1 dB 바로 아래 (더 키우면 피크 제한에 걸림)
+
+# 정련 콤비나트 크레인 (들보 · 집게 3D 루프, Pitch 0.88 ~ 1.12) · 조선소 갠트리 (ShipyardGantryLoop — 같은 파일, Pitch 0.85 ~ 1.15) = 실제 책상 리프트 올림 (desk_lift —
+# 전동 리프트 기어 모터, 호이스트와 같은 결) 3 ~ 12초. 60 Hz 웅 (B1−48)을 Bb1로 (−51센트 — 위잉 719 Hz도 F5로), 조 밖 줄 (40 · 48 · 80 · 139 Hz와 옮긴 뒤 조 밖으로 간
+# 105 · 141 · 252 Hz)은 깎고 남은 웅 줄 (60 · 100 · 120 · 239 Hz)도 16 dB 눌러 모터 결만, 낮은 쪽 −6 dB 셸프 (300 Hz 아래 93 % — 귀 감도로 작음).
+# AI: Music 0.28 · Synthesizer 0.21 · Noise 0.23 → 0.01 · 0.00 · 0.00, 위 Vehicle 0.67 · Train · Aircraft, 2 kHz 로우패스판도 Vehicle 0.53 (벽 너머로도 모터).
+# 뺀 후보: 세차장 기계 (Vehicle이지만 물 · 솔 소리) · 에스컬레이터 (Train 0.77 — 칙칙) · 엘리베이터 (문 소리 · Music 0.47) · 책상 리프트 내림 (로우패스판 Gong 0.43 · Vehicle 0.15).
+rlB = 2 ** (-51 / 1200)
+liftB = repitch_loop(hpc(mrchain("desk_lift", "lift", [3.0, 7.5], 4.5, 0.5), 40), -51)
+liftB = notch_lines(notch_lines(liftB, [f * rlB for f in (40, 48, 80, 139, 1081)], 20, 2.0), [f * rlB for f in (60, 100, 120, 239)], 16, 3.0)
+craneB = low_shelf(notch_lines(liftB, [51, 105, 141, 252], 15, 2.5), -6, 150, 400)
+save("Ride/refinery_crane_move_loop.wav", craneB, -17.6)
+report.append(f"  크레인 모터 (책상 리프트) 고리 {len(craneB) / SR:.2f}초 · 이음새 {abs(craneB[0] - craneB[-1]):.4f}")
+
+# 바깥 정거장 웅 (바깥 화면 2D 루프 — 메뉴 0.5배 · 내부 0.25배로도 깔림) = 실제 건조기 드럼 웅 (dryer, 600 Hz 아래) + 큰 환기 팬 (big_fan) 40 %.
+# 바깥 음악은 낮 D 장조 · 메뉴 C# 단조 · 밤 흐릿 · 내부 D 단조 — 넷 모두에 맞는 음은 E · A뿐 → 건조기의 줄 (120 · 360 Hz …)은 모두 깎아 음 없는 웅으로,
+# 팬 줄 (Bb1 · Bb2 · F3 · F4)은 −100센트 옮겨 A · E로, 남은 흐릿한 줄 (75 · 108 · 151 Hz)도 12 dB 누름.
+# AI: Silence 0.15 · Sine wave 0.12 → 0.00 · 0.00, 위 Vehicle 0.41 · Field recording · Aircraft, 분홍 · 흰 잡음 0.00 · 0.04.
+# 뺀 후보: 팬만 (2 kHz 로우패스판 Gong 0.91 — 음이 또렷) · PC 팬 (Gong 0.90) · 세차장 (Eruption · Explosion) · 펌프 (박동 · Synthesizer) · 방 공기 팬 (Music 0.21).
+drB = hpc(mrchain("dryer", "dryer", [2.0, 9.0], 7.0, 1.2), 30)
+drB = notch_lines(drB, [50, 62, 100, 120, 129, 240, 246, 332, 360, 389, 480, 573, 639, 732], 20, 2.5)
+fnB = np.tile(repitch_loop(hpc(mrchain("big_fan", "fan", [20.0, 45.0, 80.0], 7.0, 1.2), 30), -100), 2)
+nB, kB = len(drB), int(0.8 * SR)   # 팬 층을 건조기 층과 같은 길이의 고리로 (loop_exact와 같은 식 — 길이를 샘플로 정확히)
+txB = np.linspace(0, np.pi / 2, kB)
+fnB_ = fnB[:nB].copy()
+fnB_[:kB] = fnB[:kB] * np.sin(txB) + fnB[nB:nB + kB] * np.cos(txB)
+stationB = lpc(notch_lines(drB / rms(drB) + 0.4 * fnB_ / rms(fnB_), [75, 108, 151], 12, 2.5), 600)
+save("Ambient/amb_station_loop.wav", stationB, -25.6)
+report.append(f"  바깥 정거장 웅 (건조기 + 팬) 고리 {len(stationB) / SR:.2f}초 · 이음새 {abs(stationB[0] - stationB[-1]):.4f}")
+
+# 드론 정비창 라이트 쇼 드론 떼 (쇼 동안 2D 루프, 16초 = 24박) = 실제 RC 헬기 떠 있음 (rc_heli_hover) 셋 · 날기 (rc_heli_fly) 셋을 저마다 다른 자리 · 높이로 여섯 겹.
+# 떠 있는 날개 음 E3+23 → F3 근처 (+62 ~ +92센트 — 한 음이 아니라 떼 결), 날기 D4−26 → D4 근처 (+12 ~ +40센트), 86 Hz 꼬리 날개 줄 (옮기면 F#2 — 조 밖)은 깎음.
+# 겹마다 16초 고리로 (loop_exact) 만들어 더함. AI: Music 0.79 · Piano 0.31 · Synthesizer 0.14 → 0.01 · 0.00 · 0.00, 위 Vehicle 0.69 · Aircraft. 음 봉우리 F3 · D5 (조 안).
+# 뺀 후보: 작은 드론 날기 (Music 0.56 — 높은 날개 음이 선율처럼). AI 중추 둥지 드론 깨어남 · 착륙 (scape_aicore_drone_01 · aicore_drone_land)은
+# 실제 RC 헬기 시작 · 멈춤이 Drill · Power tool (드릴)로 들려 지금 것 (artificial 0.13)을 그대로 둠.
+rngB = np.random.default_rng(910)
+swarmB = np.zeros(int(16.0 * SR))
+for fdB, prB, stB, cB, ntB, gB in (("rc_heli_hover", "hover", 5.75, 77, (86,), 1.0), ("rc_heli_hover", "hover", 10.0, 62, (86,), 0.8), ("rc_heli_hover", "hover", 5.75, 92, (86,), 0.6),
+                                   ("rc_heli_fly", "fly", 30.25, 26, (), 0.9), ("rc_heli_fly", "fly", 19.5, 12, (), 0.7), ("rc_heli_fly", "fly", 6.25, 40, (), 0.6)):
+    pB = hpc(mpiece(fdB, prB, stB, 4.0), 80)
+    yB = chain_loop([pB, pB[::-1]], 0.5)
+    if ntB:
+        yB = notch_lines(yB, list(ntB), 18, 3.0)
+    yB = repitch_loop(yB, cB)
+    yB = np.tile(yB, int(np.ceil((len(swarmB) + SR) / len(yB))) + 1)
+    offB = int(rngB.uniform(0, len(yB) - len(swarmB) - SR))
+    yB = loop_exact(yB[offB:], 16.0)
+    swarmB += gB * yB / rms(yB)
+save("Ride/droneshow_swarm_loop.wav", swarmB, -24.9)
+report.append(f"  드론 떼 (RC 헬기 여섯 겹) 고리 {len(swarmB) / SR:.2f}초 · 이음새 {abs(swarmB[0] - swarmB[-1]):.4f}")
 
 print("\n".join(report))
