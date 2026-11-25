@@ -454,7 +454,9 @@ namespace SpaceStation.Audio
 
         private void HandleSpeed(float speed)
         {
-            _pendingSpeedPitch = speed > _lastSpeed ? Mathf.Lerp(1f, 1.15f, Mathf.InverseLerp(1f, 4f, speed)) : 0.85f;
+            // 2026-11-25 UI 한 벌: 배속 소리 (도6으로 오르는 유리음)는 F 장조 음이라 음높이도 음계로 — 빨라짐 = 도6 (2배) · 레6 (4배), 느려짐 = 라5
+            // (전엔 1.05 · 1.15 · 0.85배로 반음 사이 음이 되어 음악과 어긋났음)
+            _pendingSpeedPitch = speed > _lastSpeed ? (speed >= 4f ? Mathf.Pow(2f, 2f / 12f) : 1f) : Mathf.Pow(2f, -3f / 12f);
             _lastSpeed = speed;
             if (_pendingClock == 0)
                 _pendingClock = 3; // 재개와 함께 오면 재개 소리만

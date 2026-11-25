@@ -156,7 +156,8 @@ namespace SpaceStation.UI
             for (int i = 0; i < 4; i++)
                 _rows.Add(BuildRow(new Vector2(44f, -122f - i * (RowHeight + 12f))));
 
-            var close = _ui.Button(_window, "닫기 (ESC)", 19f, Close, clickSound: false);
+            // 2026-11-25 UI 한 벌: 다른 창의 닫기 버튼처럼 취소음 (같은 클릭의 창 닫힘 소리는 UiSound가 멈춤 — 전엔 클릭 + 닫힘이 겹쳐 꺼 뒀음)
+            var close = _ui.Button(_window, "닫기 (ESC)", 19f, Close);
             var crt = (RectTransform)close.transform;
             crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(1f, 0f);
             crt.anchoredPosition = new Vector2(-44f, 26f);

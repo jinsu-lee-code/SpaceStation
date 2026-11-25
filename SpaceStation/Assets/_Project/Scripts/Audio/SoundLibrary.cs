@@ -59,15 +59,25 @@ namespace SpaceStation.Audio
     public sealed class SoundLibrary : ScriptableObject
     {
         [Header("UI")]
-        public SoundCue UiClick = new SoundCue { Bus = AudioBus.Ui, Volume = 0.45f };
-        public SoundCue UiHover = new SoundCue { Bus = AudioBus.Ui, Volume = 0.18f, Cooldown = 0.04f, MaxVoices = 2 };
-        public SoundCue UiTab = new SoundCue { Bus = AudioBus.Ui, Volume = 0.45f };
-        public SoundCue UiOpen = new SoundCue { Bus = AudioBus.Ui, Volume = 0.3f };
-        public SoundCue UiClose = new SoundCue { Bus = AudioBus.Ui, Volume = 0.3f };
-        public SoundCue UiError = new SoundCue { Bus = AudioBus.Ui, Volume = 0.5f, Cooldown = 0.15f, MaxVoices = 1 };
-        public SoundCue UiSpeedUp = new SoundCue { Bus = AudioBus.Ui, Volume = 0.4f };
-        public SoundCue UiPause = new SoundCue { Bus = AudioBus.Ui, Volume = 0.4f };
-        public SoundCue UiResume = new SoundCue { Bus = AudioBus.Ui, Volume = 0.4f };
+        [Tooltip("확인 (버튼 클릭) — 2026-11-25 홀로그램 UI 한 벌: 유리 결 파5 → 도6, 변형 4 (같은 음 · 배음 위상 · 간격만 다름). UI 소리는 모두 F 장조 음이라 음높이 흔들기를 끔 (Pitch 1 · 1)")]
+        public SoundCue UiClick = new SoundCue { Bus = AudioBus.Ui, Volume = 0.25f, Pitch = Vector2.one };
+        [Tooltip("마우스 올림 — 유리 도7 아주 짧게 (0.05초), 변형 4, 목록을 훑을 때 몰리므로 쉬는 시간 0.04초 · 동시 2 (D-2)")]
+        public SoundCue UiHover = new SoundCue { Bus = AudioBus.Ui, Volume = 0.11f, Cooldown = 0.04f, MaxVoices = 2, Pitch = Vector2.one };
+        public SoundCue UiTab = new SoundCue { Bus = AudioBus.Ui, Volume = 0.29f, Pitch = Vector2.one };
+        public SoundCue UiOpen = new SoundCue { Bus = AudioBus.Ui, Volume = 0.26f, Pitch = Vector2.one };
+        public SoundCue UiClose = new SoundCue { Bus = AudioBus.Ui, Volume = 0.25f, Pitch = Vector2.one };
+        public SoundCue UiError = new SoundCue { Bus = AudioBus.Ui, Volume = 0.63f, Cooldown = 0.15f, MaxVoices = 1, Pitch = Vector2.one };
+        public SoundCue UiSpeedUp = new SoundCue { Bus = AudioBus.Ui, Volume = 0.24f, Pitch = Vector2.one };
+        public SoundCue UiPause = new SoundCue { Bus = AudioBus.Ui, Volume = 0.31f, Pitch = Vector2.one };
+        public SoundCue UiResume = new SoundCue { Bus = AudioBus.Ui, Volume = 0.27f, Pitch = Vector2.one };
+        [Tooltip("취소 · 닫기 · 뒤로 버튼 (UiSound가 버튼 이름 · 글로 저절로 고름) — 확인의 반대 도6 → 파5, 같은 클릭으로 창이 닫히면 창 닫힘 소리 대신 이것 하나")]
+        public SoundCue UiCancel = new SoundCue { Bus = AudioBus.Ui, Volume = 0.26f, Pitch = Vector2.one };
+        [Tooltip("켜기 (Toggle이 켜짐 · 설정 창 켬 / 끔 줄) — 레6 → 라6")]
+        public SoundCue UiToggleOn = new SoundCue { Bus = AudioBus.Ui, Volume = 0.23f, Pitch = Vector2.one };
+        [Tooltip("끄기 — 라6 → 레6 (4.5 kHz 로우패스)")]
+        public SoundCue UiToggleOff = new SoundCue { Bus = AudioBus.Ui, Volume = 0.25f, Pitch = Vector2.one };
+        [Tooltip("슬라이더 — 값이 8칸 중 한 칸 바뀔 때 나무 톡 (TryPlayNote로 오음계 오름, 파일 높이 = 도5), 쉬는 시간 0.05초")]
+        public SoundCue UiSlider = new SoundCue { Bus = AudioBus.Ui, Volume = 0.22f, Cooldown = 0.05f, MaxVoices = 2, Pitch = Vector2.one };
 
         [Header("건설·수리")]
         public SoundCue BuildSelect = new SoundCue { Bus = AudioBus.Ui, Volume = 0.45f };

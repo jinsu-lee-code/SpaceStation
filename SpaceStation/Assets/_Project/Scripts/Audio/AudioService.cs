@@ -238,6 +238,24 @@ namespace SpaceStation.Audio
             return false;
         }
 
+        /// <summary>
+        /// 이번 프레임에 막 울린 그 큐의 소리를 멈춤 (아직 귀에 닿지 않은 순간) — 한 클릭에 소리 둘이 겹칠 때 하나만 남김
+        /// (2026-11-25 UI 한 벌: 취소 · 닫기 버튼이 창을 닫으면 창 닫힘 소리 대신 취소음 하나).
+        /// </summary>
+        public void StopStartedThisFrame(SoundCue cue)
+        {
+            if (cue == null)
+                return;
+            float now = Time.unscaledTime;
+            foreach (var v in _voices)
+            {
+                if (v.Cue != cue || v.StartedAt != now || v.BusyUntil <= now)
+                    continue;
+                v.Source.Stop();
+                v.BusyUntil = 0f;
+            }
+        }
+
         public static void TryPlayAt(System.Func<SoundLibrary, SoundCue> pick, Vector3 position, float volume = 1f)
         {
             var s = Instance;
