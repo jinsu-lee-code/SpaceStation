@@ -532,7 +532,7 @@ namespace SpaceStation.Interior
             use.Holding = _ => r.Holding = true;
             use.Completed = () =>
             {
-                FixVent(r, quiet: false);
+                FixVent(r);
                 Complete(r);
             };
             r.Vent = go;
@@ -567,7 +567,8 @@ namespace SpaceStation.Interior
             r.Cover.localRotation = Quaternion.AngleAxis(tilt, Vector3.forward) * r.CoverRest;
         }
 
-        private void FixVent(Request r, bool quiet)
+        /// <summary>환풍구를 조여 둠 (소리 없음 — 들어준 순간은 <see cref="Complete"/>의 부탁 완료음 하나, 2026-11-25).</summary>
+        private void FixVent(Request r)
         {
             if (r.Vent == null)
                 return;
@@ -580,8 +581,6 @@ namespace SpaceStation.Interior
             if (use != null)
                 Destroy(use);
             r.Cover = null;
-            if (!quiet)
-                AudioService.TryPlay(l => l.RepairDone);
         }
 
         // ---------------- 주민 ----------------
@@ -642,6 +641,11 @@ namespace SpaceStation.Interior
                 figure.Motion.Celebrate();
             string head = r.Kind == RequestKind.Talk ? $"{r.Name}{ResidentRequestRules.Particle(r.Name, "과", "와")} 이야기했어요" : $"{r.Name}의 부탁을 들어줬어요";
             Message?.Invoke(reward != null ? $"{head} · {reward}" : head, false);
+            // 2026-11-25 한 동작 = 소리 하나 (D-2): 부탁 넷 모두 F 길게 누르기로 끝나 완료 화음 (hold_done)이 같은 프레임에 막 울림 → 그것을 멈추고 부탁 완료음 하나만
+            // (전엔 완료 화음 + 이 소리, 환풍구는 수리 완료음까지 셋이 겹쳤음)
+            var audio = AudioService.Instance;
+            if (audio != null && audio.Library != null)
+                audio.StopStartedThisFrame(audio.Library.HoldDone);
             AudioService.TryPlay(l => l.EventPositive, 0.7f);
             Completed?.Invoke();
         }
@@ -661,7 +665,7 @@ namespace SpaceStation.Interior
             if (r.ItemObject != null)
                 Destroy(r.ItemObject);
             r.ItemObject = null;
-            FixVent(r, quiet: true);
+            FixVent(r);
         }
 
         // ---------------- 표시 ----------------

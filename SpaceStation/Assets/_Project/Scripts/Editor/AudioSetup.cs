@@ -152,6 +152,7 @@ namespace SpaceStation.Editor
             { "LiftArrive2", new[] { "lift_arrive_2" } },
             { "InteriorEnter", new[] { "interior_enter" } },
             { "InteriorExit", new[] { "interior_exit" } },
+            { "PadTravel", new[] { "pad_travel" } },
             // 체험 · 미니게임 공용 (2026-11-23, Audio/Ride — SOUND_LIST_NEW 5-1)
             { "GameStart", new[] { "game_start" } },
             { "GameTick", new[] { "game_tick" } },

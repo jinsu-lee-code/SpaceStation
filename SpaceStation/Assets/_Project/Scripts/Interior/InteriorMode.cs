@@ -1263,7 +1263,7 @@ namespace SpaceStation.Interior
         {
             _busy = true;
             _prompt.SetText(string.Empty);
-            AudioService.TryPlay(l => l.UiOpen, 0.5f);
+            AudioService.TryPlay(l => l.PadTravel);   // 2026-11-25 전용 소리 (창 열기 0.5를 빌려 쓰던 자리)
             yield return Fade(0f, 1f, 0.2f);
             UpdateNearbyRooms(module, force: true); // 먼 방은 아직 안 지었을 수 있음 → 도착 전에 지음
             var spawn = _builder.SpawnPoint(module, out float yaw);

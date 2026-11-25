@@ -3400,6 +3400,13 @@ sx_xw = lp2d(pitch(fade(sx_wh[int(0.45 * SR):], 0.03, 0.3), -5), 3000)
 sx_xt = lp2d(fade(sx_piece("phone_booth", "booth", 0.0, 1.25, 1.7), 0.01, 0.2), 2500)
 save("Interior/interior_exit.wav", fade(tput(2.0, [(sx_xw, 0.0, 1.0), (sx_xt, 1.0, 0.25)]), 0.0, 0.3), -14)
 
+# --- 패드 빠른 이동 · 떨어짐 구조 (2D — 페이드 0.2초 → 방을 짓고 옮김 → 0.25초에 밝아짐, 창 열기 0.5 대신, 2026-11-25) ---
+# 같은 큰 휙의 0.30 ~ 1.45초 (차오르는 끝 ~ 잦아듦)를 2반음 올려 짧고 가볍게 (드나들기보다 가벼운 이동 — 300 Hz 아래 15 %, 들어가기 34 %)
+# + 유리 두 음 라5 (어두워질 때) → 도6 (0.3초, 밝아질 때), 1.1초. AI Whoosh 0.73 · Whip 0.56 · Music 0.03 (음 층은 아주 옅게 — 들어가기 Music 0.23).
+pt_w = lp2d(pitch(fade(sx_wh[int(0.30 * SR): int(1.45 * SR)], 0.06, 0.45), +2), 5000)
+pt_g = place(ui_glass(sx_hz(81), 0.5, 0.13, 3, 0.6), ui_glass(sx_hz(84), 0.7, 0.18, 4, 0.6), 0.30)
+save("Interior/pad_travel.wav", fade(tput(1.1, [(pt_w, 0.0, 1.0), (pt_g, 0.02, 0.35)]), 0.0, 0.25), -14)
+
 # ================= 실제 녹음 ⑥ — 방 환경음 1단계 판 · 가끔 소리 꾸러미 · 상태 층 (SOUND_LIST_NEW 4-4 · D-5, 2026-11-25) =================
 # 원본 = archive.org "The Designer's Choice UCS Collection" (CC0) 조각 — AudioOriginals/RoomAmb/<녹음>/ (SOURCE.txt). 후보는 mp3로 훑고 고른 것만 flac.
 RA = "RoomAmb/"

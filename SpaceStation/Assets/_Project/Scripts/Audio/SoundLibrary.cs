@@ -216,6 +216,8 @@ namespace SpaceStation.Audio
         public SoundCue InteriorEnter = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.43f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
         [Tooltip("내부 나가기 (2D, 창 닫기 대신) — 큰 휙이 잦아드는 \"우웅\" (5반음 낮춤) + 해치 닫힘 \"쿵\" 옅게")]
         public SoundCue InteriorExit = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.55f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
+        [Tooltip("패드 빠른 이동 · 떨어짐 구조 (2D, 창 열기 0.5 대신, 2026-11-25) — 큰 휙을 짧고 가볍게 (실제 녹음, 2반음 올림) + 유리 두 음 라5 (어두워짐) → 도6 (밝아짐)")]
+        public SoundCue PadTravel = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.35f, Pitch = Vector2.one, Cooldown = 0.5f, MaxVoices = 1 };
 
         [Header("1인칭 할 일 (사운드 개편 2026-11-25, SOUND_LIST_NEW 4-3 — 현장 수리 · 내부 사고 4종 · F 길게 누르기)")]
         [Tooltip("F 길게 누르기 (0.5초 넘는 것만, 2D 루프) — 유리 결 파5 \"차오르는 음\", 코드가 누른 만큼 재생 높이를 파5 → 도6으로 올림 (UI 한 벌과 같은 F 장조 합성)")]
