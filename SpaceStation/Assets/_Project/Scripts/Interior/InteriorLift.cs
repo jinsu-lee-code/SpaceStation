@@ -1,3 +1,4 @@
+using SpaceStation.Audio;
 using UnityEngine;
 
 namespace SpaceStation.Interior
@@ -35,6 +36,31 @@ namespace SpaceStation.Interior
         private int _target = -1;
         private float _from, _travel, _t;
         private FirstPersonController _rider;
+        // 2026-11-25 사운드 (SOUND_LIST_NEW 4-1 · D-6): 1단계 방 = 깨끗한 자기 부상 · 2단계 이상 = 밝은 종 · 유리 울림, 모두 3D
+        private ObjectLoop _moveLoop;
+        private int _stage = -1;
+
+        /// <summary>이 엘리베이터가 놓인 방 모듈이 2단계 이상인지 (처음 쓸 때 한 번 읽음, 방을 못 찾으면 1단계 소리).</summary>
+        private bool Bright
+        {
+            get
+            {
+                if (_stage < 0)
+                {
+                    var room = InteriorRoomDisplay.RoomOf(transform);
+                    var mode = room != null ? FindFirstObjectByType<InteriorMode>() : null;
+                    if (mode != null && mode.Builder != null)
+                        _stage = mode.Builder.StageFor(room);
+                }
+                return _stage >= 2;
+            }
+        }
+
+        /// <summary>캡슐 안 사람 귀 높이 (샤프트 가운데, 월드) — 캡슐 물체의 원점은 방 원점이라 (템플릿 빌더) 소리 자리는 이것으로.</summary>
+        private Vector3 CarPoint => transform.TransformPoint(_center + Vector3.up * (_y + 1.2f));
+
+        /// <summary>버튼을 누름 (<see cref="InteriorLiftButton.Press"/>) — 그 버튼 자리 3D.</summary>
+        public void PlayButton(Vector3 at) => AudioService.TryPlayAt(l => Bright ? l.LiftButton2 : l.LiftButton1, at);
 
         public int Level => _level;
         public int StopCount => _stops != null ? _stops.Length : 0;
@@ -95,7 +121,7 @@ namespace SpaceStation.Interior
         {
             // 내부에서 나가거나 방이 꺼지면 실려 가던 플레이어를 내려놓고 캡슐은 목표 층에 바로 세움
             if (_target >= 0)
-                Arrive();
+                Arrive(false);
         }
 
         /// <summary>플레이어 발이 캡슐 안 (캡슐 바닥 높이 근처 · 안쪽 반지름 안)인지.</summary>
@@ -129,6 +155,16 @@ namespace SpaceStation.Interior
             _rider = rider;
             if (_rider != null)
                 _rider.Ride(_car);
+            if (_moveLoop == null && _car != null)
+            {
+                // 움직이는 동안 캡슐에 붙은 3D 루프 (문이 다 닫힌 뒤 · 빠르기만큼 — Update)
+                _moveLoop = AudioService.AttachLoop(l => Bright ? l.LiftMove2Loop : l.LiftMove1Loop, _car);
+                if (_moveLoop != null)
+                {
+                    _moveLoop.Level = 0f;
+                    _moveLoop.transform.position = CarPoint;   // 캡슐의 자식이라 이 자리째 오르내림
+                }
+            }
         }
 
         private void Update()
@@ -152,7 +188,11 @@ namespace SpaceStation.Interior
                     allClosed = false;
             }
             if (!Moving)
+            {
+                if (_moveLoop != null)
+                    _moveLoop.Level = 0f;
                 return;
+            }
             if (_t < 0f)
             {
                 if (!allClosed)
@@ -163,11 +203,17 @@ namespace SpaceStation.Interior
             float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_t));
             _y = Mathf.Lerp(_from, _stops[_target], k);
             _car.localPosition = _carBase + Vector3.up * _y;
+            if (_moveLoop != null)
+            {
+                float u = Mathf.Clamp01(_t);
+                _moveLoop.Level = 0.35f + 0.65f * Mathf.Clamp01(4f * u * (1f - u));   // 가운데 (가장 빠를 때) 가장 큼
+            }
             if (_t >= 1f)
                 Arrive();
         }
 
-        private void Arrive()
+        /// <param name="sound">도착 "띵" + 문 열림 (내부를 나가거나 방이 꺼져 바로 세울 땐 끔)</param>
+        private void Arrive(bool sound = true)
         {
             _y = _stops[_target];
             if (_car != null)
@@ -177,6 +223,10 @@ namespace SpaceStation.Interior
             if (_rider != null)
                 _rider.Dismount();
             _rider = null;
+            if (_moveLoop != null)
+                _moveLoop.Level = 0f;
+            if (sound && _car != null)
+                AudioService.TryPlayAt(l => Bright ? l.LiftArrive2 : l.LiftArrive1, CarPoint);
         }
     }
 }

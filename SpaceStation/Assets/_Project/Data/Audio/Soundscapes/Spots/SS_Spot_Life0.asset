@@ -1,0 +1,90 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f5ae7f3df2855f4ba91b4ac1a2467ba, type: 3}
+  m_Name: SS_Spot_Life0
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Audio.RoomSoundscape
+  Module: {fileID: 0}
+  Bed:
+    Clips: []
+    Bus: 2
+    Volume: 1
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0.05
+    MaxVoices: 3
+  BedNight: 0.6
+  Emitters: []
+  Scatters:
+  - Name: "\uADF8\uB987 \uB0B4\uB824\uB193\uC74C"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 1fbfcbaa66f01044fa6df422fbc7fafa, type: 3}
+      - {fileID: 8300000, guid: 564668d87686e0149ae55dc6fe3661de, type: 3}
+      Bus: 2
+      Volume: 0.26
+      Pitch: {x: 0.95, y: 1.05}
+      Cooldown: 1
+      MaxVoices: 2
+    Center: {x: 0, y: 1.4, z: 0}
+    Size: {x: 5, y: 1.4, z: 5}
+    Interval: {x: 25, y: 70}
+    When: 0
+    MinDistance: 2
+    MaxDistance: 15
+    Tonal: 0
+    BaseNote: 72
+    Notes: 
+  - Name: "\uC11C\uB78D \xB7 \uC218\uB0A9\uC7A5 \uB2EB\uD798"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 5f521a75fae10fc4f8c3dbc52bfe32dd, type: 3}
+      - {fileID: 8300000, guid: 89ddefe65204bdc418894fdfde6476ae, type: 3}
+      Bus: 2
+      Volume: 0.197
+      Pitch: {x: 0.95, y: 1.05}
+      Cooldown: 1
+      MaxVoices: 2
+    Center: {x: 0, y: 1.4, z: 0}
+    Size: {x: 5, y: 1.4, z: 5}
+    Interval: {x: 25, y: 70}
+    When: 0
+    MinDistance: 2
+    MaxDistance: 15
+    Tonal: 0
+    BaseNote: 72
+    Notes: 
+  - Name: "\uCCA0\uC81C \uC11C\uB78D \xB7 \uBA3C \uBBF8\uB2EB\uC774\uBB38"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: a69e6a1e9d6a0c448bccb3d98abfb498, type: 3}
+      - {fileID: 8300000, guid: b8f1b4a397f1c614da361e7ee6b30d6f, type: 3}
+      Bus: 2
+      Volume: 0.169
+      Pitch: {x: 0.95, y: 1.05}
+      Cooldown: 1
+      MaxVoices: 2
+    Center: {x: 0, y: 1.4, z: 0}
+    Size: {x: 5, y: 1.4, z: 5}
+    Interval: {x: 25, y: 70}
+    When: 0
+    MinDistance: 2
+    MaxDistance: 15
+    Tonal: 0
+    BaseNote: 72
+    Notes: 
+  Motif:
+    Clips: []
+    Bus: 3
+    Volume: 1
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0.05
+    MaxVoices: 3
+  MotifCooldown: 30

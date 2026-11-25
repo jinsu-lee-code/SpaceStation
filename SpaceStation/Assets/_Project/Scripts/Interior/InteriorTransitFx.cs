@@ -25,9 +25,13 @@ namespace SpaceStation.Interior
         private readonly List<Part> _parts = new List<Part>();
         private Transform _root;
 
+        /// <summary>장치 단계 (0 = 기본 화물 승강기 · 1 반중력 원판 · 2 혼천의 · 3 수정 꽃 · 4 성운) — 타는 소리도 이 단계로 고름 (2026-11-25 사운드).</summary>
+        public int Stage { get; private set; }
+
         /// <summary>stage = 키트 단계 (0 = 기본), padTop = 발판 윗면 가운데 (월드), radius = 발판 반지름 · height = 빛 기둥 높이 · s = 장치 배율, accent = 방 강조색.</summary>
         public void Initialize(int stage, Vector3 padTop, float radius, float height, float s, Color accent, InteriorKit kit)
         {
+            Stage = Mathf.Clamp(stage, 0, 4);
             if (kit == null)
                 return;
             _root = transform.parent != null ? transform.parent : transform;

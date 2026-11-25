@@ -136,7 +136,7 @@ namespace SpaceStation.UI
             if (!_showerTween.Visible)
             {
                 _showerTween.Play(restart: true);
-                AudioService.TryPlay(l => l.EarlyWarning);
+                AlertSound.TryPlay(_shower.IsRaid ? AlertLevel.Danger : AlertLevel.Caution); // 경보 위계 (2026-11-25): 유성우 예보 = 주의 · 습격 포격 예보 = 위험
             }
             int seconds = Mathf.Max(0, Mathf.CeilToInt(_shower.TimeLeft));
             string dir = MeteorShowerSystem.DirectionName(_shower.Direction);
@@ -163,7 +163,7 @@ namespace SpaceStation.UI
                 return;
             }
             _tween.Play(restart: !_tween.Visible);
-            AudioService.TryPlay(l => l.EarlyWarning);
+            AlertSound.TryPlay(AlertLevel.Caution); // 경보 위계 (2026-11-25): 운석 · 태양 폭풍 접근 예보 = 주의
             Refresh();
         }
 
