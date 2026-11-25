@@ -2541,14 +2541,15 @@ fp = phrases(fx, gap=0.3)
 save("Interior/scape_bio_frog_02.wav", fade(highpass(fx[fp[1][0]:fp[2][1]], 150), 0.01, 0.08), -24.1)
 save("Interior/scape_bio_frog_03.wav", np.concatenate([fade(highpass(fx[a:b], 150), 0.01, 0.08) for a, b in (fp[5], fp[4])]), -23.5)
 
-# 물범 (궤도 방어망 방파제 끝 바위, 낮 3D) — 이 모음에 물범 · 바다사자가 없음. 비슷한 소리를 다듬어 AI로 잼 (지침 "한계를 적기 전에 넘을 수 있는지"):
-# 강아지 깽깽 (낮추면 Throat clearing · Burping · Dog) · 강아지 낑낑 (Baby cry · Speech · Dog) · 새끼 고양이 (Cat 0.6 넘게) · 큰 개 · 황소 (짧으면 Silence · Music) ·
-# 혹등고래 (+7반음 2.4초 Whale vocalization 0.28 — 길고 느림) · 당나귀 울음 첫머리 "우-와" (1.39초, Whale vocalization 0.31 · Animal · Howl).
-# 당나귀 첫머리를 2반음 올린 것 (1.24초)이 가장 바다 짐승 쪽: Whale vocalization 0.39 · Animal 0.17 · Howl 0.15, Dog 0.06 · 애완동물 0.07 (−2반음은 애완동물 0.10, +3 · +4반음은 Whale 0.12 ~ 0.18).
-# 앞 "우" (0.25 · 0.4초부터)를 자르면 Howl · Dog 0.16 · Shofar로 바뀌어 그대로 둠. 0.8초 아래 짧은 소리는 10초 안에서 성겨 AI가 Silence · Music으로만 들음.
-# (저장 뒤 Whale vocalization 0.32 · Animal 0.17 · Howl 0.14, Dog 0.08.) 낮은 웅이 커서 (A − rms −3 dB) 귀 감도를 지금 것과 같게 −12.2로.
-sb = fft_band(sl(load(CR + "donkey_bray/bray_000.00.wav"), 0.0, 1.39), lo=60, klo=4)
-save("Interior/scape_defense_seal_01.wav", np.concatenate([fade(pitch(sb, 2.0), 0.03, 0.12), GAP]), -12.2)
+# 물범 (궤도 방어망 방파제 끝 바위, 낮 3D) — 2026-11-25 사용자가 헤드셋으로 들으며 고름 (`System.Media.SoundPlayer`로 재생).
+# 탈락 순서 (사용자 말): 당나귀 다듬음 (C 묶음 첫 판) → VARCO 새끼 물범 1.26 kHz "꺙 끄앙" → 낮은 "음마아" "마인크래프트 가스트" → 바다사자 짖음 "개 짖는 소리" →
+# "오어엉" 낮춤 "공포 게임 괴수 비명" → 음성 합성 (포먼트 덧셈): "아우" 사람 발음 → 콧소리 "엉" → 실제 북방물개 (NOAA, 비교 기준만) 결을 옮김 "너무 실제 같다" →
+# 맑게 "휴대폰 진동음" → 물개 대역에 맞춤 "귀여움 부족" → 몸집 작게 (공명 × 1.25 ~ 1.4) "급브레이크 소리" → 게임 캐릭터 울음 VARCO "원숭이 · 고릴라" →
+# **"귀엽고 아기자기하게" + "not a monkey, not an ape"를 넣은 VARCO 5개 중 4번의 짧게 내려가는 울음 (357 Hz, 0.3초)** — 사용자 "4번으로".
+# 배음을 직접 쌓은 합성은 물개 대역 · 공명을 맞춰도 기계음 (진동 · 급브레이크)으로 들림 → 생물 소리는 VARCO에 "cute and adorable … kawaii"와 빼고 싶은 동물을 함께.
+# 저장 크기 = 귀 감도를 앞 판과 같게 하려면 +3.1 dB인데 최대 −1 dB에 막혀 약 −1.2 dB (작은 아기 물개라 그대로).
+seal = highpass(sl(load(CR + "seal_varco/baby_seal_cry.wav"), 1.48, 1.78), 90)
+save("Interior/scape_defense_seal_01.wav", np.concatenate([fade(seal, 0.006, 0.06), GAP]), -10.1)
 
 # 먼 천둥 (바이오스피어 밤, 돔 위 멀리 2D 쪽) = 멀리서 굴러가는 천둥 (distant_thunder, 11.6초 — 2초에 걸쳐 커졌다가 10초까지 구르며 잦아듦, 높은 쪽 바닥 −42 dB).
 # 천둥 후보 17 중: Distant_Rolling = 하나 "둥"이 아니라 굴러가는 꼬리가 녹음에 그대로 (끝 페이드 2초만), 8 kHz 위만 살짝 눌러 옅은 비 쉬— 를 걷음 (6 ~ 16 kHz −44 dB)
