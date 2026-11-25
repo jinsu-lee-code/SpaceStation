@@ -225,6 +225,7 @@ namespace SpaceStation.UI
             var reset = MakeButton(_window, "기본값 복원", 19f, ResetCurrentTab);
             Place((RectTransform)reset.transform, new Vector2(44f, -(WindowHeight - 30f - 50f)), new Vector2(220f, 50f));
             var close = MakeButton(_window, "닫기 (ESC)", 19f, Close);
+            close.GetComponent<UiSound>().Mode = UiSound.ClickMode.Cancel; // 창 닫힘 소리 대신 취소음 하나 (UiSound.PlayCancel)
             var crt = (RectTransform)close.transform;
             crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(1f, 0f);
             crt.anchoredPosition = new Vector2(-44f, 30f);
@@ -591,6 +592,7 @@ namespace SpaceStation.UI
             var keep = MakeButton(box, "유지", 20f, KeepScreen);
             Place((RectTransform)keep.transform, new Vector2(70f, -134f), new Vector2(200f, 50f));
             var revert = MakeButton(box, "되돌리기", 20f, RevertScreen);
+            revert.GetComponent<UiSound>().Mode = UiSound.ClickMode.Cancel;
             Place((RectTransform)revert.transform, new Vector2(290f, -134f), new Vector2(200f, 50f));
             _confirm = box.gameObject;
             _confirm.SetActive(false);
@@ -639,8 +641,9 @@ namespace SpaceStation.UI
         }
 
         /// <summary>&lt; 값 &gt; 순환 선택. display가 null이 아닌 문자열을 주면 값 대신 그 문구를 보여 준다.</summary>
+        /// <param name="clickSound">false = &lt; &gt; 버튼 확인음 없음 (켬 / 끔 줄은 바뀐 값으로 켜짐 · 꺼짐 소리)</param>
         private void ChoiceRow(RectTransform page, string label, Func<int> count, Func<int, string> name, Func<int> get, Action<int> set,
-            Func<string> display = null)
+            Func<string> display = null, bool clickSound = true)
         {
             Row(page, label, out var control);
             var value = Label(control, "", 19f, TextAlignmentOptions.Center);
@@ -659,14 +662,14 @@ namespace SpaceStation.UI
                 set((current + dir + n) % n);
                 RefreshAll();
             }
-            var left = MakeButton(control, "<", 20f, () => Step(-1));
+            var left = MakeButton(control, "<", 20f, () => Step(-1), clickSound);
             var lrt = (RectTransform)left.transform;
             lrt.anchorMin = new Vector2(0f, 0.5f);
             lrt.anchorMax = new Vector2(0f, 0.5f);
             lrt.pivot = new Vector2(0f, 0.5f);
             lrt.anchoredPosition = Vector2.zero;
             lrt.sizeDelta = new Vector2(44f, 34f);
-            var right = MakeButton(control, ">", 20f, () => Step(1));
+            var right = MakeButton(control, ">", 20f, () => Step(1), clickSound);
             var rrt = (RectTransform)right.transform;
             rrt.anchorMin = new Vector2(1f, 0.5f);
             rrt.anchorMax = new Vector2(1f, 0.5f);
@@ -685,9 +688,14 @@ namespace SpaceStation.UI
             });
         }
 
+        /// <summary>켬 / 끔 줄 — &lt; &gt;를 누르면 확인음 대신 바뀐 값으로 켜짐 · 꺼짐 소리 (2026-11-25 UI 한 벌, 이 창엔 Toggle 컴포넌트가 없음).</summary>
         private void ToggleRow(RectTransform page, string label, Func<bool> get, Action<bool> set)
         {
-            ChoiceRow(page, label, () => 2, i => i == 1 ? "켬" : "끔", () => get() ? 1 : 0, i => set(i == 1));
+            ChoiceRow(page, label, () => 2, i => i == 1 ? "켬" : "끔", () => get() ? 1 : 0, i =>
+            {
+                set(i == 1);
+                AudioService.TryPlay(l => i == 1 ? l.UiToggleOn : l.UiToggleOff);
+            }, clickSound: false);
         }
 
         private void SliderRow(RectTransform page, string label, float min, float max, float step, Func<float> get, Action<float> set, Func<float, string> format)
@@ -880,6 +888,7 @@ namespace SpaceStation.UI
             slider.handleRect = handle;
             slider.targetGraphic = handleImg;
             slider.direction = Slider.Direction.LeftToRight;
+            root.gameObject.AddComponent<UiSound>(); // 호버 · 한 칸마다 톡 (2026-11-25 UI 한 벌 — 이전엔 슬라이더에 소리가 없었음)
             return slider;
         }
     }

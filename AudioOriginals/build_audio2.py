@@ -2567,4 +2567,83 @@ save("Interior/scape_bio_thunder_01.wav", fade(fft_band(th, lo=30, hi=8000, klo=
 bz = fft_band(load(CR + "bee_buzz/bee_013.90.wav"), lo=120, klo=4)
 save("Interior/scape_stellar_bee_01.wav", fade(bz, 1.2, 0.1), -22.5)
 
+# ================= UI 한 벌 (홀로그램) (SOUND_LIST_NEW 1-2 · D-6 동작 9, 2026-11-25) =================
+# 사용자가 시안 (스크래치 ui_try/ui_set.py — 호버 · 확인 · 취소 · 탭 · 켜기 · 끄기 · 슬라이더 · 열기 · 닫기 · 배속 · 일시정지 · 재개 · 거절 순서로 이은 들어보기 파일)을
+# 헤드셋으로 듣고 "괜찮네 진행해줘" → 소리 식은 시안 그대로 옮김 (도우미 이름만 ui_). 시안과 견줘 상관 0.998 ~ 1.000 (끝 페이드만 다름).
+# 유리 결 짧은 음 (기음 + 2배 · 2.76배 옅게, 2 ms 켜짐) · F 장조 (내부 음악 D 단조 · F 장조와 같은 음) · 아기자기 · 날 서지 않게:
+# 확인 = 파5 → 도6 · 취소 = 도6 → 파5 (4 kHz 로우패스) · 탭 = 라5 + 나무 톡 · 켜기 = 레6 → 라6 · 끄기 = 반대 (4.5 kHz) · 슬라이더 = 나무 톡 하나 ·
+# 열기 = 오르는 바람결 + 파 · 라 · 도 · 파 펼침 · 닫기 = 반대 (5 kHz) · 배속 = 620 Hz → 도6 미끄럼 + 도6 · 일시정지 = 라5 → 레5 (3.5 kHz) · 재개 = 반대 ·
+# 거절 = 낮은 레4 "부-웅" 두 번 (2 kHz). 1차 build_audio.py의 UI 13파일 (받은 클릭 · 열고 닫기 · 배속 녹음을 자르고 196 · 165 Hz 합성 거절음)을
+# 같은 이름으로 덮어씀 (칸 연결 유지) — 1차는 다시 돌리지 않음 (지침 4번).
+# 확인 · 호버는 몰려서 나므로 변형 4 (D-2): 넷은 같은 음, 배음 위상 (seed) · 두 음 간격 ±2 ~ 3 ms만 달리 — 반복감은 변형으로만 (음높이 흔들기는 큐에서 끔, 조가 깨짐).
+# 슬라이더 = 시안 다섯 톡 중 첫 톡 (파5)을 도5 높이로 늘여 저장 — TryPlayNote 기준 음이 도 (도 · 레 · 파 · 솔 · 라)라서, UiSound가 칸 + 2로 부르면
+# 칸 0 = 시안 첫 톡 그대로 · 칸 1 ~ 4 = 솔5 · 라5 · 도6 · 레6 (시안 다섯 톡) · 칸 5 ~ 7 = 파6 · 솔6 · 라6.
+UF5, UG5, UA5, UC6, UD6, UF6, UA6, UC7, UD5, UD4, UC5 = 698.46, 783.99, 880.0, 1046.5, 1174.66, 1396.91, 1760.0, 2093.0, 587.33, 293.66, 523.25
+
+
+def ui_glass(f, dur=0.12, tau=0.05, seed=0, bright=1.0):
+    t = np.arange(int(dur * SR)) / SR
+    x = (np.sin(2 * np.pi * f * t) * np.exp(-t / tau)
+         + 0.22 * bright * np.sin(2 * np.pi * 2 * f * t + 0.3 + seed) * np.exp(-t / (tau * 0.6))
+         + 0.12 * bright * np.sin(2 * np.pi * 2.76 * f * t + 0.7 + seed) * np.exp(-t / (tau * 0.4)))
+    a = int(0.002 * SR)
+    x[:a] *= np.linspace(0, 1, a)
+    return x
+
+
+def ui_air(dur, up=True, seed=0):
+    rng = np.random.default_rng(seed)
+    n = int(dur * SR)
+    t = np.arange(n) / n
+    z = rng.standard_normal(n)
+    z = z - onepole_lp(z, 2500)
+    z = onepole_lp(z, 7000)
+    env = (t if up else 1 - t) ** 1.5 * np.sin(np.pi * np.clip(t, 0, 1)) ** 0.5
+    return z * env * 0.08
+
+
+def ui_wood(f, dur=0.06):
+    t = np.arange(int(dur * SR)) / SR
+    return np.sin(2 * np.pi * f * t) * np.exp(-t / 0.012) + 0.25 * np.sin(2 * np.pi * 2.6 * f * t) * np.exp(-t / 0.006)
+
+
+def ui_boo(f, d):
+    t = np.arange(int(d * SR)) / SR
+    x = np.sin(2 * np.pi * f * t) + 0.3 * np.sin(2 * np.pi * 2 * f * t) + 0.12 * np.sin(2 * np.pi * 3 * f * t)
+    e = np.minimum(1, t / 0.012) * np.exp(-np.maximum(0, t - 0.03) / 0.05)
+    return onepole_lp(x * e, 2000)
+
+
+def ui_save(rel, x, fout=0.02):
+    """시안은 소리 끝을 그냥 잘라 끝 크기 -25 ~ -43 dBFS에서 "틱" (지침: 한 번 소리 꼬리 -60 dBFS 아래) -> 끝 fout초만 페이드 (귀 감도 크기 그대로)."""
+    save(rel, fade(x, 0.0, fout))
+
+
+for k, gap in enumerate((0.055, 0.0525, 0.0575, 0.053)):
+    ui_save(f"UI/ui_click_{k + 1:02d}.wav", place(ui_glass(UF5, 0.16, 0.05, seed=k), ui_glass(UC6, 0.2, 0.07, seed=k), gap))
+for k in range(4):
+    ui_save(f"UI/ui_hover_{k + 1:02d}.wav", ui_glass(UC7, 0.05, 0.012, seed=k, bright=0.6) * 0.35, 0.015)
+ui_save("UI/ui_cancel.wav", onepole_lp(place(ui_glass(UC6, 0.16, 0.05) * 0.8, ui_glass(UF5, 0.2, 0.07) * 0.8, 0.055), 4000))
+ui_save("UI/ui_tab.wav", place(ui_glass(UA5, 0.09, 0.025, bright=0.5) * 0.8, ui_wood(UA5) * 0.4, 0.0))
+ui_save("UI/ui_toggle_on.wav", place(ui_glass(UD6, 0.08, 0.025), ui_glass(UA6, 0.12, 0.035), 0.04))
+ui_save("UI/ui_toggle_off.wav", onepole_lp(place(ui_glass(UA6, 0.08, 0.025), ui_glass(UD6, 0.12, 0.035), 0.04), 4500))
+_tok = ui_wood(UF5, 0.045) * 0.5
+_r = UF5 / UC5
+ui_save("UI/ui_slider.wav", np.interp(np.arange(int(len(_tok) * _r)) / _r, np.arange(len(_tok)), _tok, right=0.0), 0.015)
+_op = ui_air(0.22, True, 1)
+for i, f in enumerate((UF5, UA5, UC6, UF6)):
+    _op = place(_op, ui_glass(f, 0.18, 0.05) * (0.55 + 0.1 * i), 0.03 + i * 0.035)
+ui_save("UI/ui_open.wav", _op)
+_cl = ui_air(0.22, False, 2)
+for i, f in enumerate((UF6, UC6, UA5, UF5)):
+    _cl = place(_cl, ui_glass(f, 0.18, 0.05) * (0.85 - 0.1 * i), i * 0.035)
+ui_save("UI/ui_close.wav", onepole_lp(_cl, 5000))
+_t = np.arange(int(0.11 * SR)) / SR
+_fz = 620 * (UC6 / 620) ** (_t / 0.11)
+_sp = np.sin(2 * np.pi * np.cumsum(_fz) / SR) * np.sin(np.pi * _t / 0.11) ** 0.7 * 0.6
+ui_save("UI/ui_speed_up.wav", place(_sp, ui_glass(UC6, 0.16, 0.05) * 0.7, 0.09))
+ui_save("UI/ui_pause.wav", onepole_lp(place(ui_glass(UA5, 0.14, 0.05), ui_glass(UD5, 0.2, 0.08), 0.07), 3500))
+ui_save("UI/ui_resume.wav", place(ui_glass(UD5, 0.14, 0.05), ui_glass(UA5, 0.2, 0.08), 0.07))
+ui_save("UI/ui_error.wav", place(ui_boo(UD4, 0.11), ui_boo(UD4, 0.12), 0.13))
+
 print("\n".join(report))

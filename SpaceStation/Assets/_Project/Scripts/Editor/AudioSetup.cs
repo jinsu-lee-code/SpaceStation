@@ -38,6 +38,11 @@ namespace SpaceStation.Editor
             { "UiSpeedUp", new[] { "ui_speed_up" } },
             { "UiPause", new[] { "ui_pause" } },
             { "UiResume", new[] { "ui_resume" } },
+            // UI 한 벌 홀로그램 (2026-11-25, build_audio2.py — D-6 동작 9)
+            { "UiCancel", new[] { "ui_cancel" } },
+            { "UiToggleOn", new[] { "ui_toggle_on" } },
+            { "UiToggleOff", new[] { "ui_toggle_off" } },
+            { "UiSlider", new[] { "ui_slider" } },
             { "BuildSelect", new[] { "build_select" } },
             { "BuildRotate", new[] { "build_rotate_" } },
             { "BuildPlace", new[] { "build_place" } },

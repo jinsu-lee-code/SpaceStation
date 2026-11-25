@@ -305,8 +305,8 @@
 | A | `alarm_loop` | 실패 조건 경고 | 사이렌 (지금 −10.6 dB로 작음) |
 | B | `grade_down` | 등급 하락 | 하강하는 아쉬운 음 |
 | B | `victory` | 대형 등급 첫 도달 | 밝은 성취 음악 짧게 |
-| A | `ui_error` | 거절 (23곳에서 씀) | 낮은 "부-웅" 두 번 (지금 −12 dB로 작음) |
-| B | `ui_pause` · `ui_resume` | 일시정지 · 재개 | 테이프 멈춤 · 재생 (지금 배속 소리를 잘라 씀) |
+| A | `ui_error` | 거절 (23곳에서 씀) | 낮은 "부-웅" 두 번 (지금 −12 dB로 작음) — [x] 2026-11-25 1-2 UI 한 벌로 (레4 "부-웅" 두 번, 음악 대비 +4) |
+| B | `ui_pause` · `ui_resume` | 일시정지 · 재개 | 테이프 멈춤 · 재생 (지금 배속 소리를 잘라 씀) — [x] 2026-11-25 1-2 UI 한 벌로 (라5 → 레5 · 레5 → 라5) |
 | A | `step_metal_01~06` | 1인칭 발소리 | 금속 판 바닥 (→ 4-1 바닥 7종 · 걷기 / 달리기와 함께) |
 | A | `amb_room_life/water/machine/heat/electric/hall_loop` | 방 환경음 6묶음 | 12초 합성 루프 → D-5 닫힌 방 바탕 12종 (성격 6 × 기본 · 1단계)으로 다시, 30~90초 |
 | A | `interior_alarm_loop` | 파손된 방 경보 | 내부 경보 (지금 −18 dB) |
@@ -316,7 +316,7 @@
 | 우선 | 파일 | 판단 |
 |---|---|---|
 | A | 음악 5곡 (`amb_mainmenu · in_game · space · night · crisis`) | 처음 넣은 그대로 · 가장 오래 들림 → 새로 만들어 교체 (7번) |
-| A | `ui_confirm` · `ui_cancel` · `ui_tab` · `ui_toggle` · `ui_slider` · `ui_hover` · `ui_open` · `ui_close` · `ui_speed_up` (자주 쓰는 것은 변형 4) | **다시 만듦 (사용자 2026-11-20)**: 홀로그램 UI 톤으로 한 벌, D-6 동작 9갈래 (지금은 클릭 하나가 확인 · 취소를 다 함). 1-1의 `ui_error` · `ui_pause` · `ui_resume`과 같은 때 같은 톤으로. 체험이 빌려 쓰던 자리는 전용 소리(5번)로 옮기므로 UI 소리는 UI에만 씀 |
+| A | `ui_confirm` · `ui_cancel` · `ui_tab` · `ui_toggle` · `ui_slider` · `ui_hover` · `ui_open` · `ui_close` · `ui_speed_up` (자주 쓰는 것은 변형 4) | **다시 만듦 (사용자 2026-11-20)**: 홀로그램 UI 톤으로 한 벌, D-6 동작 9갈래 (지금은 클릭 하나가 확인 · 취소를 다 함). 1-1의 `ui_error` · `ui_pause` · `ui_resume`과 같은 때 같은 톤으로. 체험이 빌려 쓰던 자리는 전용 소리(5번)로 옮기므로 UI 소리는 UI에만 씀. **[x] 만듦 (2026-11-25, 사용자가 시안을 헤드셋으로 듣고 "괜찮네 진행해줘")**: 유리 결 짧은 음 (기음 + 2배 · 2.76배 옅게) · F 장조 · 날 서지 않게, `build_audio2.py` "UI 한 벌 (홀로그램)" 구역 = 시안 `ui_set.py` 식 그대로 (끝 15 ~ 20 ms 페이드만 — 그냥 자른 끝이 −25 ~ −43 dBFS "틱"). 파일 (`Audio/UI/`, 1차 이름 그대로 덮어써 칸 연결 유지): 확인 `ui_click_01~04` (파5 → 도6, 넷 = 배음 위상 · 두 음 간격 ±2 ~ 3 ms만 다름) · 호버 `ui_hover_01~04` (도7 0.05초) · 취소 `ui_cancel` (도6 → 파5) · 탭 `ui_tab` (라5 + 나무 톡) · 켜기 `ui_toggle_on` (레6 → 라6) · 끄기 `ui_toggle_off` · 슬라이더 `ui_slider` (나무 톡 — 도5 높이로 저장, 칸 0 ~ 7 = 파5 · 솔5 · 라5 · 도6 · 레6 · 파6 · 솔6 · 라6) · 열기 `ui_open` (바람결 + 파 · 라 · 도 · 파) · 닫기 `ui_close` · 배속 `ui_speed_up` · 일시정지 `ui_pause` · 재개 `ui_resume` · 거절 `ui_error` (새 파일 = 취소 · 켜기 · 끄기 · 슬라이더 · 호버 03 · 04). 칸 = `UiCancel` · `UiToggleOn` · `UiToggleOff` · `UiSlider` (쉬는 시간 0.05초 · 동시 2) 새로, UI 칸 13개 모두 음높이 흔들기 끔 (Pitch 1 · 1 — 반음 사이 음이 됨). 코드 = `UiSound`: 취소 버튼 저절로 (누를 때 버튼 글 · 이름이 닫기 · 취소 · 뒤로 · 아니오 · × · X · Close · Cancel · Back으로 시작) + 같은 클릭의 창 닫힘 소리는 멈춰 취소음 하나 (`AudioService.StopStartedThisFrame`) · Toggle = 켜짐 / 꺼짐 · Slider = 8칸 중 한 칸 바뀔 때 `TryPlayNote` (마우스로 바꿀 때만) · 거절음은 누른 순간 상태로 (전엔 닫기 버튼마다 거절음이 같이 났음), 설정 창 = 켬 / 끔 줄의 < > 가 켜기 · 끄기 · 슬라이더에 UiSound · 닫기 · 되돌리기 = 취소, 저장 창 닫기도 취소음, 배속 음높이 = 도6 (2배) · 레6 (4배) · 라5 (느려짐). 크기 (음악 대비 귀 감도, 코어 방 2D, 세 번씩): 열기 +4.2 · 닫기 +3.9 · 확인 +3.1 · 취소 +2.6 · 켜기 +3.1 · 끄기 +3.1 · 배속 +3.2 · 일시정지 +2.9 · 재개 +3.1 · 거절 +4.0 · 탭 약 +2.5 · 호버 약 −4 · 슬라이더 −2 ~ −3.5 (높은 칸이 작음) — 음량 확인 0.25 · 취소 0.26 · 탭 0.29 · 켜기 0.23 · 끄기 0.25 · 슬라이더 0.22 · 호버 0.11 · 열기 0.26 · 닫기 0.25 · 배속 0.24 · 일시정지 0.31 · 재개 0.27 · 거절 0.63 |
 | C | `event_positive · event_negative · event_end · early_warning · game_over · grade_up · module_destroyed · oxygen_leak · resource_depleted · solar_storm_loop · supply_arrive` | 두기. 새 소리와 나란히 들어 보고 어색하면 교체 |
 | — | `amb_station_loop` · `build_select` · `build_rotate_01~04` · `repair_start` · `repair_done` | 두기 |
 
