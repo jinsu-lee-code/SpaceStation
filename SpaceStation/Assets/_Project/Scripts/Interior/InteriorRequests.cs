@@ -75,6 +75,9 @@ namespace SpaceStation.Interior
             public Quaternion CoverRest;
             public float NextRattle, RattleUntil;
             public bool Holding;
+            // 2026-11-26 손 동작 소리 (물 붓기 · 환풍구 조이기 — 누르기 시작에 처음부터 · 다 누르기 전에 떼면 꺼짐, SOUND_LIST_NEW 4-3)
+            public HeldSound Held;
+            public bool HeldNow, HeldWas;
         }
 
         private static readonly Color WaterColor = new Color(0.3f, 0.62f, 0.95f);
@@ -253,6 +256,7 @@ namespace SpaceStation.Interior
             }
             else if (r.Age > expire && !r.Tutorial)
                 return false;
+            UpdateHeld(r);
             UpdateVent(r, dt);
             if (r.Bubble != null)
             {
@@ -338,7 +342,7 @@ namespace SpaceStation.Interior
             _requests.Add(r);
             string where = room == CurrentRoom ? "" : $" <color=#AFC4D8>({RoomName(room)})</color>";
             Message?.Invoke($"{r.Name}의 부탁{where} · {ResidentRequestRules.Title(r.Kind)}", false);
-            AudioService.TryPlay(l => l.UiOpen, 0.8f);
+            AudioService.TryPlay(l => l.RequestPop);   // 2026-11-26 말풍선 "뽁" (창 열기 0.8을 빌려 쓰던 자리, SOUND_LIST_NEW 4-3)
             return true;
         }
 
@@ -416,6 +420,9 @@ namespace SpaceStation.Interior
             r.PlantUse = root.gameObject.AddComponent<InteriorInteractable>();
             r.PlantUse.HoldSeconds = _s.WaterHold;
             r.PlantUse.Prompt = () => $"시든 화분에 물 주기  <color=#AFC4D8>{r.Name}의 부탁</color>";
+            r.PlantUse.Holding = _ => r.HeldNow = true;
+            if (r.Held == null)
+                r.Held = AudioService.AttachHeld(l => l.WaterPour, root);   // 2026-11-26 물 붓기 (화분 3D)
             r.PlantUse.Completed = () =>
             {
                 ClearPlant(r, wilt: false);
@@ -529,12 +536,17 @@ namespace SpaceStation.Interior
             var use = go.AddComponent<InteriorInteractable>();
             use.HoldSeconds = _s.FixHold;
             use.Prompt = () => $"덜컹거리는 환풍구 조이기  <color=#AFC4D8>{r.Name}의 부탁</color>";
-            use.Holding = _ => r.Holding = true;
+            use.Holding = _ =>
+            {
+                r.Holding = true;
+                r.HeldNow = true;
+            };
             use.Completed = () =>
             {
                 FixVent(r);
                 Complete(r);
             };
+            r.Held = AudioService.AttachHeld(l => l.VentFix, go.transform);   // 2026-11-26 덜컥 → 끼릭 → 톡 (환풍구 3D)
             r.Vent = go;
             r.NextRattle = r.Age + 0.5f;
             _vents[r.Room] = go;
@@ -559,12 +571,30 @@ namespace SpaceStation.Interior
                     r.RattleUntil = r.Age + 0.45f;
                     r.NextRattle = r.Age + 1.5f + (float)_rng.NextDouble() * 2.5f;
                     if (r.Vent != null && (r.Vent.transform.position - _eye.position).sqrMagnitude < 7f * 7f)
-                        AudioService.TryPlay(l => l.BuildRotate, 0.35f);
+                        AudioService.TryPlayAt(l => l.VentRattle, r.Vent.transform.position);   // 2026-11-26 덮개 "덜컥" (환풍구 3D, BuildRotate 0.35를 빌려 쓰던 자리)
                 }
                 if (r.Age < r.RattleUntil)
                     tilt += Mathf.Sin(r.Age * 60f) * 2.5f * (r.RattleUntil - r.Age) / 0.45f;
             }
             r.Cover.localRotation = Quaternion.AngleAxis(tilt, Vector3.forward) * r.CoverRest;
+        }
+
+        /// <summary>
+        /// 손 동작 소리 (2026-11-26, SOUND_LIST_NEW 4-3 water_pour · vent_fix): 누르기 시작하면 처음부터, 다 누르기 전에 떼면 줄여 끔 (사고 밸브 · 필터와 같은 틀).
+        /// 다 누르면 (Done) 끝까지 울림 — 소리 속 "톡" · 물방울이 누르는 시간 끝에 옴. F 길게 누르기 차오르는 음 (hold_loop)은 그대로 함께, 완료 화음은 부탁 완료음이 대신.
+        /// </summary>
+        private static void UpdateHeld(Request r)
+        {
+            bool now = r.HeldNow && !r.Done;
+            r.HeldNow = false;
+            if (r.Held != null && !r.Done)
+            {
+                if (now && !r.HeldWas)
+                    r.Held.Begin();
+                else if (!now && r.HeldWas)
+                    r.Held.Release();
+            }
+            r.HeldWas = now;
         }
 
         /// <summary>환풍구를 조여 둠 (소리 없음 — 들어준 순간은 <see cref="Complete"/>의 부탁 완료음 하나, 2026-11-25).</summary>
@@ -646,7 +676,7 @@ namespace SpaceStation.Interior
             var audio = AudioService.Instance;
             if (audio != null && audio.Library != null)
                 audio.StopStartedThisFrame(audio.Library.HoldDone);
-            AudioService.TryPlay(l => l.EventPositive, 0.7f);
+            AudioService.TryPlay(l => l.RequestDone);   // 2026-11-26 전용 "띵 동" (좋은 소식 0.7을 빌려 쓰던 자리)
             Completed?.Invoke();
         }
 
@@ -659,6 +689,9 @@ namespace SpaceStation.Interior
             if (r.ResidentUse != null)
                 Destroy(r.ResidentUse);
             r.ResidentUse = null;
+            if (r.Held != null)
+                Destroy(r.Held.gameObject);   // 화분에 붙인 물 붓기 소리 (화분은 남음 — 다음 부탁이 새로 붙임)
+            r.Held = null;
             if (rebuilt)
                 return; // 방 오브젝트 아래 소품 · 식물 · 인물은 이미 지워짐
             ClearPlant(r, wilt: false);

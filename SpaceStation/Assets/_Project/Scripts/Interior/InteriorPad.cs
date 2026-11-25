@@ -316,6 +316,7 @@ namespace SpaceStation.Interior
                 _pad.gameObject.SetActive(false);
                 if (_holo != null)
                     _holo.gameObject.SetActive(false);
+                SpaceStation.Audio.AudioService.SetRideLoop(l => l.PadHoloLoop, 0f);
             }
             if (!_pad.gameObject.activeSelf)
                 return;
@@ -351,7 +352,11 @@ namespace SpaceStation.Interior
             var current = _c.CurrentRoom();
             _c.Selection.Select(current); // 처음엔 지금 있는 방
             _dirty = true;
-            SpaceStation.Audio.AudioService.TryPlay(l => l.UiOpen, 0.6f);
+            // 2026-11-26 홀로그램 패드 켜짐 (창 열기 0.6을 빌려 쓰던 자리, SOUND_LIST_NEW 4-2) — 한 동작 = 소리 하나: 위 Select가 부른 모듈 고르기 소리 (창 열기 0.7, GameAudio)는 멈춤
+            var audio = SpaceStation.Audio.AudioService.Instance;
+            if (audio != null && audio.Library != null)
+                audio.StopStartedThisFrame(audio.Library.UiOpen);
+            SpaceStation.Audio.AudioService.TryPlay(l => l.PadRaise);
         }
 
         public void Lower()
@@ -361,7 +366,7 @@ namespace SpaceStation.Interior
             SetZoom(false);
             _wantRaise = false;
             _c.Selection.Select(null);
-            SpaceStation.Audio.AudioService.TryPlay(l => l.UiClose, 0.6f);
+            SpaceStation.Audio.AudioService.TryPlay(l => l.PadLower);   // 2026-11-26 꺼짐 (창 닫기 0.6 대신)
         }
 
         /// <summary>화면 확대 / 축소 (든 상태에서만).</summary>
@@ -560,7 +565,11 @@ namespace SpaceStation.Interior
             RefreshHint();
         }
 
-        private void OnDisable() => KeyBindings.Changed -= RefreshHint;
+        private void OnDisable()
+        {
+            KeyBindings.Changed -= RefreshHint;
+            SpaceStation.Audio.AudioService.SetRideLoop(l => l.PadHoloLoop, 0f);   // 내부를 나가며 꺼짐 (모형 웅)
+        }
 
         private void RefreshHint()
         {
@@ -762,6 +771,8 @@ namespace SpaceStation.Interior
             bool show = _zoom > 0.001f;
             if (_holo.gameObject.activeSelf != show)
                 _holo.gameObject.SetActive(show);
+            // 2026-11-26 모형이 펼쳐진 만큼 작은 전자 웅 (2D, SOUND_LIST_NEW 4-2 pad_holo_loop)
+            SpaceStation.Audio.AudioService.SetRideLoop(l => l.PadHoloLoop, show ? Smooth(_zoom) : 0f);
             if (!show)
                 return;
             _holo.SetPresentation(Smooth(_zoom));

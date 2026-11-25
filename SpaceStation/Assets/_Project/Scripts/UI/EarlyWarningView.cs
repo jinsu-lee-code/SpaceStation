@@ -136,7 +136,13 @@ namespace SpaceStation.UI
             if (!_showerTween.Visible)
             {
                 _showerTween.Play(restart: true);
-                AlertSound.TryPlay(_shower.IsRaid ? AlertLevel.Danger : AlertLevel.Caution); // 경보 위계 (2026-11-25): 유성우 예보 = 주의 · 습격 포격 예보 = 위험
+                // 경보 위계 (2026-11-25): 유성우 예보 = 주의 · 습격 포격 예보 = 위험. 2026-11-26 바깥 알림: 유성우는 주의 자리에 뜻 소리 (주의 음형 + 레이더 핑 + 다가오는 바람),
+                // 화면 좌우 = 오는 방향 — 습격 포격은 위험 경보 그대로 (포격 소리 raid_*는 따로)
+                if (_shower.IsRaid)
+                    AlertSound.TryPlay(AlertLevel.Danger);
+                else if (AudioService.Instance != null && AudioService.Instance.Library != null)
+                    AlertSound.TryPlayAs(AlertLevel.Caution, AudioService.Instance.Library.MeteorShowerWarn,
+                        pan: _camera != null ? NoticeSound.DirectionPan(_shower.Direction, _camera.transform.right) : 0f);
             }
             int seconds = Mathf.Max(0, Mathf.CeilToInt(_shower.TimeLeft));
             string dir = MeteorShowerSystem.DirectionName(_shower.Direction);

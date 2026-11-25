@@ -53,6 +53,24 @@ namespace SpaceStation.Audio
         }
 
         /// <summary>
+        /// 2026-11-26 모듈 옮기기 (12-3b, ModuleMovePick · ModuleMoveDrop): 소리 파일은 하나씩, 크기 3갈래는 재생 높이 · 크기로
+        /// (배치가 트럭 문 "쿵"을 1칸 +3 · 진화 −3반음으로 나눈 것과 같은 방향 — 1칸 2반음 위 · 조금 작게, 진화 3반음 아래 · 조금 크게: 낮을수록 귀 감도로 작게 들려 채움).
+        /// 소리에 음이 없어 (바람결 · 툭 · 철컥) 반음 단위여도 조와 상관없음.
+        /// </summary>
+        public static (float pitch, float volume) MoveTone(BuildSize size)
+        {
+            switch (size)
+            {
+                case BuildSize.Small: return (SmallMovePitch, 0.85f);
+                case BuildSize.Evolved: return (EvolvedMovePitch, 1.25f);
+                default: return (1f, 1f);
+            }
+        }
+
+        private const float SmallMovePitch = 1.122462f;   // 2^(2/12)
+        private const float EvolvedMovePitch = 0.840896f; // 2^(-3/12)
+
+        /// <summary>
         /// D-2 반복 막기: 마지막으로 울린 때 (last)에서 window 안이면 false (묶음 — 첫 소리 하나만), 아니면 last = now로 두고 true.
         /// now가 last보다 작으면 (플레이를 다시 켜 시계가 처음부터) 새로 울림.
         /// </summary>

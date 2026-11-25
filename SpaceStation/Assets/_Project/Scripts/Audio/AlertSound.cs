@@ -28,6 +28,8 @@ namespace SpaceStation.Audio
         public const float HigherHold = 1.2f;
 
         private static readonly float[] LastAt = { -999f, -999f, -999f, -999f };
+        // 단계마다 마지막에 울린 큐 (뜻 소리가 그 단계 자리를 맡았을 수 있음 — 같은 프레임 낮은 단계 멈추기에 씀)
+        private static readonly SoundCue[] LastCue = new SoundCue[4];
 
         public static SoundCue CueOf(SoundLibrary lib, AlertLevel level)
         {
@@ -46,24 +48,51 @@ namespace SpaceStation.Audio
             var s = AudioService.Instance;
             if (s == null || s.Library == null)
                 return false;
+            return TryPlayAs(level, CueOf(s.Library, level), volume);
+        }
+
+        /// <summary>
+        /// 뜻 소리를 그 단계 자리에 (2026-11-26 바깥 알림 — 위계 소리와 뜻 소리가 같은 순간 둘 다 울리지 않게 하나로): 뜻 소리 파일은 그 단계 음형 위에
+        /// "무엇인지" 층을 얹어 만듦 (사회 위기 = 주의 음형 + 긴장 스팅 · 역병 발생 = 위험 음형 + 불길음 · 접촉 도착 · 유성우 예보 · 과열). 위계 규칙 (높은 단계 우선 · 같은 프레임
+        /// 낮은 것 멈춤)은 TryPlay와 같고, 그 단계가 울린 것으로 적힘. 큐에 클립이 없으면 그 단계 기본 소리.
+        /// </summary>
+        public static bool TryPlayAs(AlertLevel level, SoundCue cue, float volume = 1f, float pan = 0f)
+        {
+            var s = AudioService.Instance;
+            if (s == null || s.Library == null)
+                return false;
+            if (cue == null || !cue.HasClip)
+                cue = CueOf(s.Library, level);
             float now = Time.unscaledTime;
             int k = (int)level;
-            for (int i = k + 1; i < LastAt.Length; i++)
-            {
-                float since = now - LastAt[i]; // 플레이를 다시 켜면 시계가 0부터라 음수 = 지난 판 기록 (무시)
-                if (since >= 0f && since < HigherHold)
-                    return false;
-            }
-            if (!s.Play(CueOf(s.Library, level), volume))
+            if (HeldByHigher(k, now, LastAt))
+                return false;
+            if (!s.Play(cue, volume, pan))
                 return false;
             for (int i = 0; i < k; i++)
             {
                 if (LastAt[i] == now)
-                    s.StopStartedThisFrame(CueOf(s.Library, (AlertLevel)i));
+                    s.StopStartedThisFrame(LastCue[i] ?? CueOf(s.Library, (AlertLevel)i));
             }
             LastAt[k] = now;
+            LastCue[k] = cue;
             return true;
         }
+
+        /// <summary>k 단계보다 높은 단계가 HigherHold초 안에 울렸는지 (lastAt = 단계별 마지막 시각). 플레이를 다시 켜면 시계가 0부터라 음수 = 지난 판 기록 (무시).</summary>
+        public static bool HeldByHigher(int k, float now, float[] lastAt)
+        {
+            for (int i = k + 1; i < lastAt.Length; i++)
+            {
+                float since = now - lastAt[i];
+                if (since >= 0f && since < HigherHold)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>그 단계 이상이 HigherHold초 안에 울렸는지 — 위계 밖 소리 (좋은 소식 · 연결 끊김)가 큰 경보에 바로 겹치지 않게 (2026-11-26).</summary>
+        public static bool RecentAtLeast(AlertLevel level) => HeldByHigher((int)level - 1, Time.unscaledTime, LastAt);
 
         /// <summary>
         /// 그 큐가 이 프레임에 막 울렸는지 — 한 동작에 "완료" 소리가 둘 겹칠 때 하나만 남기기 (2026-11-25: F 길게 누르기 완료 화음 hold_done이
@@ -128,14 +157,15 @@ namespace SpaceStation.Audio
         }
 
         private bool Quieted => Time.unscaledTime - _bornAt < Quiet || _sim.Session.IsGameOver;
+        private static SoundLibrary Lib => AudioService.Instance != null ? AudioService.Instance.Library : null;
 
         private void HandleCrisis()
         {
             var p = _sim.Crisis.Phase;
-            if (p != _crisisPhase && !Quieted)
+            if (p != _crisisPhase && !Quieted && Lib != null)
             {
                 if (p == SocialCrisisSystem.CrisisPhase.Warning)
-                    AlertSound.TryPlay(AlertLevel.Caution); // 파업 조짐
+                    AlertSound.TryPlayAs(AlertLevel.Caution, Lib.SocialCrisis); // 파업 조짐 (선택지) = 주의 음형 + 긴장 스팅 (2026-11-26)
                 else if (p == SocialCrisisSystem.CrisisPhase.Striking)
                     AlertSound.TryPlay(AlertLevel.Danger); // 파업 발생
             }
@@ -146,7 +176,7 @@ namespace SpaceStation.Audio
         {
             var c = _sim.Contact;
             bool boarding = c.Boarding;
-            if (!Quieted)
+            if (!Quieted && Lib != null)
             {
                 if (boarding && !_boarding)
                     AlertSound.TryPlay(AlertLevel.Danger); // 침입 드론
@@ -155,7 +185,9 @@ namespace SpaceStation.Audio
                     if (c.Phase == ContactSystem.ContactPhase.Approaching)
                         AlertSound.TryPlay(AlertLevel.Info); // 미확인 함선 접근
                     else if (c.Phase == ContactSystem.ContactPhase.Waiting)
-                        AlertSound.TryPlay(AlertLevel.Caution); // 함선 도착 · 대응 시간
+                        AlertSound.TryPlayAs(AlertLevel.Caution, NoticeSound.ContactArriveCue(Lib, c.Faction, c.Decoded)); // 함선 도착 · 대응 시간 — 해독됐으면 세력 신호 (2026-11-26)
+                    else if (c.Phase == ContactSystem.ContactPhase.Idle && _contactPhase == ContactSystem.ContactPhase.Waiting)
+                        NoticeSound.Play(Lib.ContactResult); // 교역 · 협상 · 경계 · 응답 없이 떠남 (대응 버튼은 클릭음 없이 이것 하나 — 누른 답이라 큰 경보 뒤에도 울림)
                 }
             }
             _contactPhase = c.Phase;

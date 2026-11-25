@@ -33,6 +33,20 @@ namespace SpaceStation.Interior
         {
         }
 
+        private float _clatterAt;
+
+        /// <summary>
+        /// 사운드 개편 4-4 · D-8 (2026-11-26): 얼음 조각이 낙하관 아래 드럼에 닿음 — 이 방에 있을 때 "딸그락" (드럼 자리 3D), 조각마다 X · 2.5 ~ 6초에 한 번까지 (D-2).
+        /// </summary>
+        private void Landed(Transform parent, Vector3 local)
+        {
+            float now = Time.unscaledTime;
+            if (now < _clatterAt || !PlayerInRoom)
+                return;
+            _clatterAt = now + UnityEngine.Random.Range(2.5f, 6f);
+            SpaceStation.Audio.AudioService.TryPlayAt(l => l.ObjIceClatter, (parent != null ? parent : transform).TransformPoint(local));
+        }
+
         private void Update()
         {
             if (_pieces.Length == 0 || _top <= _bottom)
@@ -61,6 +75,8 @@ namespace SpaceStation.Interior
                     continue;
                 var pos = _home[i];
                 pos.y = _top - Mathf.Repeat(_phase[i] + _fallen, span);
+                if (Mathf.Floor((_phase[i] + _fallen) / span) != Mathf.Floor((_phase[i] + _fallen - dt * _speed) / span))
+                    Landed(p.parent, new Vector3(pos.x, _bottom, pos.z));   // 아래 끝 (드럼 속)에 닿음
                 p.localPosition = pos;
                 p.Rotate(Vector3.up, (i % 2 == 0 ? 1f : -1f) * _spin * dt, Space.Self);
             }

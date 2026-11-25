@@ -78,7 +78,34 @@ namespace SpaceStation.Interior
             _layout = layout;
             _spawned.Clear();
             _used.Clear();
+            _announcedId = NewestCrateId();   // 다시 만들 때 놓는 상자는 원래 있던 것 — 소리 없이
             Sync();
+        }
+
+        // 사운드 개편 2026-11-26 (SOUND_LIST_NEW 2번 crate_appear): 보급선이 새 상자를 놓으면 지금 그 방에 있을 때 상자 자리에서 "툭" (3D, 여럿이면 0.18초씩 늦게)
+        private int _announcedId = -1;
+
+        private int NewestCrateId()
+        {
+            int id = _announcedId;
+            foreach (var crate in Sim.Supply.Crates)
+                id = Mathf.Max(id, crate.Id);
+            return id;
+        }
+
+        private void AnnounceNew()
+        {
+            int k = 0;
+            var audio = AudioService.Instance;
+            foreach (var crate in Sim.Supply.Crates)
+            {
+                if (crate.Id <= _announcedId || audio == null || audio.Library == null || !_spawned.TryGetValue(crate.Id, out var go) || go == null
+                    || !InteriorRoomDisplay.PlayerIn(crate.Module))
+                    continue;
+                audio.PlayAt(audio.Library.CrateAppear, go.transform.position + Vector3.up * 0.15f, 1f, 2f, 15f, 1f, 0.18f * k);
+                k++;
+            }
+            _announcedId = NewestCrateId();
         }
 
         private void Update()
@@ -111,6 +138,7 @@ namespace SpaceStation.Interior
                 if (!_spawned.ContainsKey(crate.Id) && _layout.Contains(crate.Module) && _builder.IsBuilt(crate.Module))
                     Spawn(crate);
             }
+            AnnounceNew();
         }
 
         private void Spawn(SupplyCrate crate)
@@ -229,9 +257,18 @@ namespace SpaceStation.Interior
 
         private void Pickup(int id)
         {
+            Vector3? at = _spawned.TryGetValue(id, out var go) && go != null ? go.transform.position : (Vector3?)null;
             if (!Sim.TryPickupCrate(id, out var text))
                 return;
-            AudioService.TryPlay(l => l.SupplyArrive);
+            // 2026-11-26 상자 들어 올림 (상자 자리 3D, 보급선 도착 소리를 빌려 쓰던 자리, SOUND_LIST_NEW 4-3) — 한 동작 = 소리 하나:
+            // 같은 프레임에 막 울린 F 길게 누르기 완료 화음은 멈춤 (전엔 완료 화음 + 보급선 소리 둘)
+            var audio = AudioService.Instance;
+            if (audio != null && audio.Library != null)
+                audio.StopStartedThisFrame(audio.Library.HoldDone);
+            if (at.HasValue)
+                AudioService.TryPlayAt(l => l.CratePickup, at.Value);
+            else
+                AudioService.TryPlay(l => l.CratePickup);
             Message?.Invoke(text, false);
         }
 

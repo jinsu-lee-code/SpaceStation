@@ -13,6 +13,14 @@ namespace SpaceStation.Building
     /// - 소행성: 먼 거리의 저폴리 바위들이 천천히 자전·공전
     /// - 우주선: 가끔 먼 배경을 가로질러 감 / 보급선 이벤트 때는 정거장 옆으로 날아와 잠시 머물다 떠남
     /// </summary>
+    /// <summary>2026-11-26 소리 (D-12): 오가는 배 종류 — 화물선 · 채굴선 (작은 배) · 보급선 (큰 배) · 먼 배경을 지나가는 배 (같은 배 모형).</summary>
+    public enum AmbientShipKind
+    {
+        Passing,
+        Supply,
+        Dock,
+    }
+
     public sealed class AmbientSpace : MonoBehaviour
     {
         [SerializeField] private StationController _station;
@@ -124,6 +132,9 @@ namespace SpaceStation.Building
         /// <summary>지금까지 띄운 화물선·채굴선 수 (확인용).</summary>
         public int DockShipsLaunched { get; private set; }
 
+        /// <summary>2026-11-26 소리 (SOUND_LIST_NEW D-12): 배가 날아오기 시작함 (배 · 종류) — 엔진 소리가 배를 따라감 (Audio.ExteriorFxAudio).</summary>
+        public event System.Action<Transform, AmbientShipKind> ShipLaunched;
+
         /// <summary>8-5 화물선·채굴선: 도킹 앞 접근로를 따라 들어와 입구 앞에 잠시 머물렀다가 같은 길로 나간다 (모듈 크기에 맞춘 작은 배).</summary>
         private IEnumerator DockShip(ModuleInstance terminal)
         {
@@ -142,6 +153,8 @@ namespace SpaceStation.Building
             var ship = SpawnShip(scale);
             ship.name = "DockShip";
             DockShipsLaunched++;
+            ship.transform.position = far;
+            ShipLaunched?.Invoke(ship.transform, AmbientShipKind.Dock);
             yield return Move(ship.transform, far, hold, 4.5f, ease: true);
             ship.transform.rotation = Quaternion.LookRotation(-front); // 입구를 바라봄
             float wait = 0f;
@@ -291,6 +304,7 @@ namespace SpaceStation.Building
             Vector3 to = center + side * offset + across * 60f + Vector3.up * (height + Random.Range(-3f, 3f));
             var ship = SpawnShip(_shipScale);
             ship.transform.SetPositionAndRotation(from, Quaternion.LookRotation(to - from));
+            ShipLaunched?.Invoke(ship.transform, AmbientShipKind.Passing);
             float t = 0f;
             while (t < 1f)
             {
@@ -319,6 +333,8 @@ namespace SpaceStation.Building
             Vector3 hold = center + dir * radius + Vector3.up * 2.2f;
             Vector3 far = hold + (dir * 40f + Vector3.up * 8f);
             var ship = SpawnShip(_shipScale * 1.3f);
+            ship.transform.position = far;
+            ShipLaunched?.Invoke(ship.transform, AmbientShipKind.Supply);
             yield return Move(ship.transform, far, hold, 5f, ease: true);
             float wait = 0f;
             while (wait < 3.5f)

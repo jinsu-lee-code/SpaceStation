@@ -62,6 +62,10 @@ namespace SpaceStation.Audio
         private float _humThickness = -1f;
         // 경보 위계 (2026-11-25, SOUND_LIST_NEW D-3): 소리가 없던 경고 (역병 · 파업 · 외부 접촉 · 침입 드론)의 단계 변화 · 자원 바닥 반복 막기
         private AlertWatch _alertWatch;
+        // 바깥 알림 (2026-11-26, SOUND_LIST_NEW 2번 · NoticeSound): 연구 완료 · 연결 끊김 · 과열 · 낮밤
+        private NoticeWatch _noticeWatch;
+        // 방 장치 · 바깥 일 (2026-11-26 작업자 P5, SOUND_LIST_NEW 4-4 · D-10 · D-4): 1인칭 내부에서 바깥 일이 선체 너머로 (InteriorOutsideSound) · 바깥에서 모듈 가까이 줌 = 그 방 바탕 (ExteriorZoomBed)
+        private ExteriorZoomBed _zoomBed;
         private readonly System.Collections.Generic.Dictionary<ResourceType, float> _depletedAlertAt = new System.Collections.Generic.Dictionary<ResourceType, float>();
         private const float DepletedRepeat = 20f;
         private const float AlarmUrgentSeconds = 10f;
@@ -119,6 +123,13 @@ namespace SpaceStation.Audio
             Subscribe(true);
             _alertWatch = new AlertWatch(_sim);
             _alertWatch.Bind(true);
+            _noticeWatch = new NoticeWatch(_sim);
+            _noticeWatch.Bind(true);
+            // 바깥 진화 연출 · 오가는 배 (2026-11-26 작업자 P4, SOUND_LIST_NEW 3번 · D-4 · D-12): 가까이 · 화면 가운데만 · 먹먹하게
+            gameObject.AddComponent<ExteriorFxAudio>().Init(_station, _camera, _interior);
+            // 바깥 일이 안에서 · 줌 바탕 (2026-11-26 작업자 P5, SOUND_LIST_NEW 4-4 · D-10 · D-4)
+            gameObject.AddComponent<Interior.InteriorOutsideSound>().Bind(_station, _meteors, _storm, _interior);
+            _zoomBed = new ExteriorZoomBed(transform, _camera, _sim, _interior, _lib);
         }
 
         private void HandleInsideChanged(bool inside)
@@ -133,6 +144,7 @@ namespace SpaceStation.Audio
             if (_lib != null)
                 Subscribe(false);
             _alertWatch?.Bind(false);
+            _noticeWatch?.Bind(false);
             if (_interior != null)
                 _interior.InsideChanged -= HandleInsideChanged;
         }
@@ -159,6 +171,10 @@ namespace SpaceStation.Audio
                     _sim.Synthesis.Started += HandleSynthStarted;
                     _sim.Synthesis.Completed += HandleSynthCompleted;
                     _sim.Synthesis.Cancelled += HandleSynthCancelled;
+                    _sim.Cargo.Delivered += HandleCargoDelivered;
+                    _sim.Supply.Changed += HandleSupplyChanged;
+                    foreach (var crate in _sim.Supply.Crates)
+                        _lastCrateId = Mathf.Max(_lastCrateId, crate.Id);
                 }
                 else
                 {
@@ -178,6 +194,8 @@ namespace SpaceStation.Audio
                     _sim.Synthesis.Started -= HandleSynthStarted;
                     _sim.Synthesis.Completed -= HandleSynthCompleted;
                     _sim.Synthesis.Cancelled -= HandleSynthCancelled;
+                    _sim.Cargo.Delivered -= HandleCargoDelivered;
+                    _sim.Supply.Changed -= HandleSupplyChanged;
                 }
             }
             if (_build != null)
@@ -189,6 +207,7 @@ namespace SpaceStation.Audio
                     _build.Rotated += HandleRotated;
                     _build.Placed += HandlePlaced;
                     _build.PlaceRejected += HandlePlaceRejected;
+                    _build.Moved += HandleMoved;
                 }
                 else
                 {
@@ -197,6 +216,7 @@ namespace SpaceStation.Audio
                     _build.Rotated -= HandleRotated;
                     _build.Placed -= HandlePlaced;
                     _build.PlaceRejected -= HandlePlaceRejected;
+                    _build.Moved -= HandleMoved;
                 }
             }
             if (_selection != null)
@@ -249,6 +269,7 @@ namespace SpaceStation.Audio
                     _meteors.LaserFired += HandleLaser;
                     _meteors.Exploded += HandleExploded;
                     _meteors.Impacted += HandleImpacted;
+                    _meteors.PassedAway += HandlePassedAway;
                 }
                 else
                 {
@@ -257,6 +278,7 @@ namespace SpaceStation.Audio
                     _meteors.LaserFired -= HandleLaser;
                     _meteors.Exploded -= HandleExploded;
                     _meteors.Impacted -= HandleImpacted;
+                    _meteors.PassedAway -= HandlePassedAway;
                 }
             }
             if (_storm != null)
@@ -284,6 +306,8 @@ namespace SpaceStation.Audio
             UpdateHumTiers(hum);
             UpdateSynthLoop();
             UpdateImmigration();
+            _noticeWatch.Tick(_inside, _gameOver);
+            _zoomBed.Tick(_inside, _gameOver);   // D-4 바깥 줌 = 그 방 바탕 (P5)
 
             if (_restoreMusicAt > 0f && Time.unscaledTime >= _restoreMusicAt)
             {
@@ -397,10 +421,31 @@ namespace SpaceStation.Audio
 
         private void HandleBuildSelection(ModuleData data)
         {
-            if (data != null)
+            if (data != null && _build.Moving != null)
+                PlayMove(_lib.ModuleMovePick, _build.Moving);   // 2026-11-26 옮기기 시작 (BeginMove가 모듈을 들고 고스트로) = 집어 올림
+            else if (data != null)
                 _audio.Play(_lib.BuildSelect);
             else
                 _audio.Play(_lib.UiClose, 0.6f);
+        }
+
+        // ---------------- 모듈 옮기기 (사운드 개편 2026-11-26, SOUND_LIST_NEW 2번 · 12-3b — 바깥 2D · 화면 좌우, 크기 3갈래 = BuildSound.MoveTone) ----------------
+
+        private int _movedFrame = -1;
+
+        private void PlayMove(SoundCue cue, ModuleInstance module)
+        {
+            var (pitch, volume) = BuildSound.MoveTone(BuildSound.SizeOf(module, _sim.Synthesis));
+            _audio.Play(cue, volume, Pan(module), pitch: pitch);
+        }
+
+        /// <summary>옮기기 확정 = 내려놓음. 같은 클릭의 이동 모드 끝 (창 닫힘 0.6) · 옮긴 모듈 다시 선택 (창 열기 0.7)은 멈추거나 건너뜀 — 소리 하나.</summary>
+        private void HandleMoved(ModuleInstance module)
+        {
+            _movedFrame = Time.frameCount;
+            _audio.StopStartedThisFrame(_lib.UiClose);
+            _audio.StopStartedThisFrame(_lib.UiOpen);
+            PlayMove(_lib.ModuleMoveDrop, module);
         }
 
         private void HandleCategory(ModuleCategory _) => _audio.Play(_lib.UiTab);
@@ -420,7 +465,7 @@ namespace SpaceStation.Audio
 
         private void HandleModuleSelection(ModuleInstance module)
         {
-            if (module != null && Time.unscaledTime - _exitedAt > 0.2f)   // 내부에서 나오며 고른 마지막 방은 소리 없이 (나가기 "우웅"과 겹침)
+            if (module != null && Time.unscaledTime - _exitedAt > 0.2f && _movedFrame != Time.frameCount)   // 내부에서 나오며 고른 마지막 방 · 옮기기 확정으로 다시 고른 모듈은 소리 없이
                 _audio.Play(_lib.UiOpen, 0.7f);
         }
 
@@ -504,29 +549,65 @@ namespace SpaceStation.Audio
             return true;
         }
 
+        // 2026-11-26 작업자 P4 (SOUND_LIST_NEW 2번 B): 습격 포격탄 = 휘파람 + "쿠르릉 펑" (운석과 같은 바위 연출이라 소리로 갈림), 실드 · 포탑 = 막은 · 쏜 모듈의 레시피 단계 (DefenseSound),
+        // 실드에 튕겨 멀어지는 운석 = "휘우우" (D-12). 한 발의 정보는 MeteorFx가 알림을 부르는 동안만 (ShotRaidLabel · ShotDefender).
+        private bool ShotIsRaid => _meteors != null && DefenseSound.IsRaidShell(_meteors.ShotRaidLabel != null, _meteors.ShotRaidLabel);
+
+        private int DefenderTier()
+        {
+            var m = _meteors != null ? _meteors.ShotDefender : null;
+            var recipe = m != null && m.Data != null ? _sim.Synthesis.RecipeFor(m.Data) : null;
+            return DefenseSound.Tier(recipe != null ? recipe.Stage : 0);
+        }
+
         private void HandleMeteorLaunched(Vector3 arrival, float seconds)
         {
             if (_inside)
                 return;
             // 새 소리 (2026-11-25)의 가장 센 곳 = 1.28초 (0.1초 창 귀 감도) · 1.30초 (0.05초 창), 두 변형 같은 자리 — _incomingPeak 1.28 그대로
-            _audio.Play(_lib.MeteorIncoming, MeteorGain(arrival), Pan(arrival), Mathf.Max(0f, seconds - _incomingPeak));
+            bool raid = ShotIsRaid;
+            float peak = raid ? DefenseSound.RaidPeak : _incomingPeak;
+            _audio.Play(DefenseSound.IncomingCue(_lib, raid), MeteorGain(arrival), Pan(arrival), Mathf.Max(0f, seconds - peak));
         }
 
-        /// <summary>실드 구면에 닿음 = 운석 쪽 몸통 (실드 충돌 크기 2갈래) + 실드 쪽 "우웅-팅" (ShieldDeflect) 함께.</summary>
+        /// <summary>실드 구면에 닿음 = 운석 쪽 몸통 (실드 충돌 크기 2갈래) + 실드 쪽 "우웅-팅" (단계마다 한 겹씩 더 — ShieldDeflect · Hex · Aurora · Crystal) 함께.</summary>
         private void HandleDeflected(Vector3 at)
         {
             float gain = MeteorGain(at), pan = MeteorPan(at);
             _audio.Play(MeteorSound.ImpactCue(_lib, MeteorSurface.Shield, NextImpactLarge()), gain, pan);
-            _audio.Play(_lib.ShieldDeflect, gain, pan);
+            _audio.Play(DefenseSound.ShieldCue(_lib, DefenderTier()), gain, pan);
         }
 
         private void HandleLaser(Vector3 muzzle, Vector3 _)
         {
             if (!_inside)
-                _audio.Play(_lib.TurretLaser, MeteorGain(muzzle), Pan(muzzle));
+                _audio.Play(DefenseSound.LaserCue(_lib, DefenderTier()), MeteorGain(muzzle), Pan(muzzle));
         }
 
-        private void HandleExploded(Vector3 at) => _audio.Play(_lib.MeteorExplode, MeteorGain(at), MeteorPan(at), 0.03f);
+        /// <summary>공중 폭발: 포격탄 = "쿠르릉 펑" 작게 · 요새 포대 · 궤도 방어망 (별자리 · 수정 불꽃이 보임) = 불꽃 터짐 · 그 밖 = 운석 "퍽".</summary>
+        private void HandleExploded(Vector3 at)
+        {
+            float gain = MeteorGain(at), pan = MeteorPan(at);
+            if (ShotIsRaid && _lib.RaidImpact.HasClip)
+                _audio.Play(_lib.RaidImpact, DefenseSound.RaidAirburstGain * gain, pan, 0.03f);
+            else if (DefenderShowsFireworks() && _lib.FxFireworkBurst.HasClip)
+                _audio.Play(_lib.FxFireworkBurst, gain, pan, 0.03f);
+            else
+                _audio.Play(_lib.MeteorExplode, gain, pan, 0.03f);
+        }
+
+        private bool DefenderShowsFireworks()
+        {
+            var m = _meteors != null ? _meteors.ShotDefender : null;
+            return m != null && _station.TryGetView(m, out var view) && view.GetComponentInChildren<FireworkFx>() != null;
+        }
+
+        /// <summary>실드에 튕겨 우주로 멀어짐 (바깥만, 실드 소리 뒤 0.2초 — 접근 "휙" 꼬리 위에 잦아드는 쪽만).</summary>
+        private void HandlePassedAway(Vector3 from)
+        {
+            if (!_inside)
+                _audio.Play(_lib.ExtMeteorPass, MeteorGain(from), Pan(from), 0.2f);
+        }
 
         private void HandleImpacted(Vector3 at, ModuleInstance hit)
         {
@@ -534,7 +615,10 @@ namespace SpaceStation.Audio
             // 파손은 판정 순간 (연출보다 1.6초 앞)에 이미 적용됨 — 지금 파손이 아니면 방어 연구로 면한 충돌 (예전엔 면해도 균열 · 위험 경보가 울렸음)
             bool damaged = hit != null && _sim.Damage.IsDamaged(hit);
             var surface = MeteorSound.Surface(hit != null, hit != null && hit.Data != null && hit.Data.Armored, damaged);
-            _audio.Play(MeteorSound.ImpactCue(_lib, surface, NextImpactLarge()), gain, pan);
+            bool large = NextImpactLarge();
+            bool raid = ShotIsRaid;
+            // 포격탄 = 한 갈래 "쿠르릉 펑" (몰리면 작게 0.7 — 운석 큰 · 작은 갈래와 같은 1초 규칙)
+            _audio.Play(DefenseSound.ImpactCue(_lib, raid, surface, large), raid && !large ? 0.7f * gain : gain, pan);
             if (!damaged)
                 return;
             if (MeteorSound.CrackOnImpact(surface, damaged))
@@ -542,7 +626,59 @@ namespace SpaceStation.Audio
             AlertSound.TryPlay(AlertLevel.Danger); // 경보 위계: 모듈 파손 = 위험 (유성우에 몰려도 큐 쉬는 시간 3초)
         }
 
-        private void HandleSpark(Vector3 at) => _audio.Play(_lib.StormSpark, Random.Range(0.6f, 1f), Pan(at));
+        // 2026-11-26: 바깥 태양광 판 스파크는 1인칭 내부에선 안 울림 (판이 안 보임 — 운석 레이저 · 접근 "휙"과 같은 규칙, 내부 스파크는 방 상태 층 · 사고가 따로)
+        private void HandleSpark(Vector3 at)
+        {
+            if (!_inside)
+                _audio.Play(_lib.StormSpark, Random.Range(0.6f, 1f), Pan(at));
+        }
+
+        // ---------------- 화물선 · 보급 상자 (사운드 개편 2026-11-26, SOUND_LIST_NEW 2번 — 바깥 2D · 화면 좌우) ----------------
+
+        private const float CargoDockDelay = 1.5f;   // 화물선이 4.5초에 입구 앞에 섬 (AmbientSpace.DockShip) · 소리 3.0초 = 멈춤 "쿵"
+        private const float CrateLandDelay = 5.6f;   // 보급선이 5초에 정거장 옆에 머묾 (AmbientSpace.SupplyShip) → 짐을 내림
+        private int _lastCrateId = -1;
+
+        /// <summary>화물 터미널 화물선 도킹: 바깥 = 터미널 쪽 좌우, 내부에선 그 터미널 방에 있을 때만 (도킹이 바로 벽 너머 — 이민선과 같은 규칙).</summary>
+        private void HandleCargoDelivered(ModuleInstance terminal, ResourceType _, float __)
+        {
+            if (_gameOver || terminal == null)
+                return;
+            if (_inside)
+            {
+                if (Interior.InteriorRoomDisplay.PlayerIn(terminal))
+                    _audio.Play(_lib.ShipCargoDock, 0.7f, delay: CargoDockDelay);
+                return;
+            }
+            _audio.Play(_lib.ShipCargoDock, pan: Pan(terminal), delay: CargoDockDelay);
+        }
+
+        /// <summary>
+        /// 보급 상자 생김 (보급선 도착 = SupplyCrateSystem.Spawn): 새 상자 (지난번보다 큰 번호)가 생긴 때만 — 줍기 · 회수 · 불러오기는 무음.
+        /// 바깥 = 배가 머무는 순간 2D 한 번 (둘 넘으면 0.22초 뒤 한 번 더 — 개수만큼 조금 두껍게, D-2), 안 = InteriorSupply가 그 방 상자 자리에서 3D.
+        /// </summary>
+        private void HandleSupplyChanged()
+        {
+            int newest = 0, count = 0;
+            ModuleInstance room = null;
+            foreach (var crate in _sim.Supply.Crates)
+            {
+                if (crate.Id > _lastCrateId)
+                {
+                    count++;
+                    room ??= crate.Module;
+                }
+                newest = Mathf.Max(newest, crate.Id);
+            }
+            _lastCrateId = Mathf.Max(_lastCrateId, newest);
+            // 불러오기 직후 (Restore가 상자를 새 번호로 다시 놓음)는 무음
+            if (count == 0 || _inside || _gameOver || Time.timeSinceLevelLoad < 3f)
+                return;
+            float pan = Pan(room);
+            _audio.Play(_lib.CrateAppear, pan: pan, delay: CrateLandDelay);
+            if (count > 1)
+                _audio.Play(_lib.CrateAppear, 0.8f, pan, CrateLandDelay + 0.22f, 0.94f);
+        }
 
         // ---------------- 이벤트·진행 ----------------
 
@@ -581,9 +717,9 @@ namespace SpaceStation.Audio
 
         private void HandleVictory()
         {
-            _audio.Play(_lib.Victory);
+            _audio.Play(_lib.Victory);   // 2026-11-26 바깥 알림: 밝은 성취 음악 3.4초 (예전 1차 합성 4.4초), 등급 상승 소리는 이 순간 안 울림 (HandleGradeChanged)
             _audio.DuckMusic(0.35f);
-            _restoreMusicAt = Time.unscaledTime + 5f;
+            _restoreMusicAt = Time.unscaledTime + 4f;
         }
 
         private void HandleGameOver()

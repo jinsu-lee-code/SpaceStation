@@ -181,12 +181,16 @@ namespace SpaceStation.Building
                 fwd = Vector3.right;
         }
 
+        /// <summary>2026-11-26 소리 (SOUND_LIST_NEW 3번 fx_flume_splash): 큰 낙하 물보라가 일어남 (월드 자리) — 바깥 소리 Audio.ExteriorFxAudio.</summary>
+        public event System.Action<Vector3> Splashed;
+
         /// <summary>큰 낙하 물보라 (모델 기준 at, 보트가 가던 방향 dir): 앞 · 양옆 부채꼴로 솟았다 떨어지는 물안개 · 물방울 · 보라 반짝이 + 물결 고리 셋.</summary>
         public void Splash(Vector3 at, Vector3 dir)
         {
             if (_mist == null || !isActiveAndEnabled)
                 return;
             var world = transform.TransformPoint(at);
+            Splashed?.Invoke(world);
             dir.y = 0f;
             var fwd = transform.TransformDirection(dir.sqrMagnitude > 1e-6f ? dir.normalized : Vector3.back);
             var side = Vector3.Cross(Vector3.up, fwd);

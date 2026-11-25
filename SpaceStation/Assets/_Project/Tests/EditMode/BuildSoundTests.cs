@@ -49,5 +49,19 @@ namespace SpaceStation.Tests
             Assert.IsTrue(BuildSound.Admit(ref last, 0.5f));        // 플레이를 다시 켜 시계가 처음부터면 새로
             Assert.AreEqual(0.5f, last, 1e-6f);
         }
+
+        [Test]
+        public void MoveTone_SmallHigherEvolvedLowerAndLouder()
+        {
+            // 2026-11-26 모듈 옮기기: 파일 하나씩, 크기 3갈래는 재생 높이 (반음 단위) · 크기 — 1칸 2반음 위 · 여러 칸 그대로 · 진화 3반음 아래
+            var (ps, vs) = BuildSound.MoveTone(BuildSize.Small);
+            var (pm, vm) = BuildSound.MoveTone(BuildSize.Multi);
+            var (pe, ve) = BuildSound.MoveTone(BuildSize.Evolved);
+            Assert.AreEqual(Mathf.Pow(2f, 2f / 12f), ps, 1e-4f);
+            Assert.AreEqual(1f, pm, 1e-6f);
+            Assert.AreEqual(Mathf.Pow(2f, -3f / 12f), pe, 1e-4f);
+            Assert.Less(vs, vm);
+            Assert.Less(vm, ve);
+        }
     }
 }

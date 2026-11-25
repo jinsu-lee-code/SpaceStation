@@ -69,6 +69,36 @@ namespace SpaceStation.Interior
         protected override void Refresh()
         {
             Setup();
+            UpdateSound();
+        }
+
+        private SpaceStation.Audio.ObjectLoop _servo, _arc;
+        private bool _soundTried;
+
+        /// <summary>
+        /// 사운드 개편 4-4 · D-8 (2026-11-26, SOUND_LIST_NEW servo_arm · weld_loop): 실습 팔이 들고 · 돌고 · 내리는 동안 서보 "위잉" (기둥에 붙은 3D 루프 — 보안청 포탑 받침과 같은
+        /// 창문 모터, 들고 내릴 때 = 미4 · 돌 때 = 솔4로 조 안) · 용접하는 동안 "지글 · 탁탁" (토치 끝 3D 루프 — 정비 공창 용접과 같은 소리, 불꽃이 보일 때만) — 이 방에 있을 때만.
+        /// 홀로 팔은 소리 없음 (같은 동작을 비추는 화면). 0.25초마다 (Refresh, 멈춘 모듈 포함) + 매 프레임 (Update — 용접 시작 · 끝을 불꽃과 맞춤).
+        /// </summary>
+        private void UpdateSound()
+        {
+            if (!_soundTried && _ready && SpaceStation.Audio.AudioService.Instance != null)
+            {
+                _soundTried = true;
+                _servo = InteriorMotionSound.LoopAt(_turret, InteriorMotionSound.LocalCenter(_turret), l => l.T1TurretServoLoop, 2f, 14f);
+                _arc = InteriorMotionSound.LoopAt(_fore, _tip, l => l.T1WeldLoop, 1.5f, 12f);
+                if (_arc != null)
+                    _arc.FadeSpeed = 8f;   // 불꽃과 함께 바로 켜지고 꺼짐
+            }
+            bool here = Active && PlayerInRoom;
+            bool moving = _phase == Phase.Lift || _phase == Phase.Swing || _phase == Phase.Lower;
+            if (_servo != null)
+            {
+                _servo.Level = here && moving ? (_phase == Phase.Swing ? 0.8f : 0.55f) : 0f;
+                _servo.Pitch = _phase == Phase.Swing ? 1f : 0.84f;
+            }
+            if (_arc != null)
+                _arc.Level = here && _phase == Phase.Weld ? 0.8f : 0f;
         }
 
         private void Update()
@@ -127,6 +157,7 @@ namespace SpaceStation.Interior
                     break;
             }
             Apply();
+            UpdateSound();
         }
 
         private void Sparks()

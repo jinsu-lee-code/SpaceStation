@@ -215,6 +215,30 @@ namespace SpaceStation.Interior
             }
         }
 
+        private SpaceStation.Audio.ObjectLoop[] _hums;
+
+        /// <summary>
+        /// 사운드 개편 4-4 · D-8 (2026-11-26): 화면마다 아주 작은 전자 "웅" (화면 가운데 3D 루프 — 4 m 안에서만 들림, 이 방에 있을 때) · 멈춤 · 파손 = 작게.
+        /// 화면이 많은 방 (실드 방 등)은 앞 8개만 (같은 소리가 겹쳐 커지지 않게 — 화면끼리 4 m 넘게 떨어진 경우가 드묾).
+        /// </summary>
+        private void UpdateHum()
+        {
+            if (_hums == null)
+            {
+                if (SpaceStation.Audio.AudioService.Instance == null)
+                    return;
+                _hums = new SpaceStation.Audio.ObjectLoop[Mathf.Min(_panels.Length, 8)];
+                for (int i = 0; i < _hums.Length; i++)
+                    _hums[i] = InteriorMotionSound.LoopAt(transform, _panels[i].Center, l => l.ObjScreenHumLoop, 0.8f, 4f);
+            }
+            float level = !PlayerInRoom ? 0f : _warn ? 0.4f : 1f;
+            foreach (var h in _hums)
+            {
+                if (h != null)
+                    h.Level = level;
+            }
+        }
+
         protected override void Refresh()
         {
             Build();
@@ -224,6 +248,7 @@ namespace SpaceStation.Interior
             _warn = damaged || !Active;
             _statusText = damaged ? "파손 · 수리 필요" : Active ? "가동 중" : "멈춤";
             _bodyColor = Active && !damaged ? ScreenText : ScreenDim;
+            UpdateHum();
             _lines.Clear();
             if (data != null)
                 AppendLines(_lines, data, sim != null ? sim.Effects : null);

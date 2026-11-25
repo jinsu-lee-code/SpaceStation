@@ -71,6 +71,9 @@ namespace SpaceStation.Interior
         /// <summary>플레이어가 있는 방 (스파크 소리는 이 방에서만).</summary>
         public ModuleInstance CurrentRoom { get; set; }
 
+        /// <summary>사운드 개편 D-10 (2026-11-26): 태양 폭풍 중 지금 방 (<see cref="CurrentRoom"/>) 불빛이 번쩍인 순간 — 조명 "지직" 소리 (<see cref="InteriorOutsideSound"/>).</summary>
+        public event System.Action StormFlashed;
+
         /// <summary>
         /// 11-17: 이 방에 현장 수리 손상 지점이 있는지 — 있으면 방 가운데 연기 · 아무 벽 스파크 대신 지점에서만 나옴
         /// (<see cref="InteriorFieldRepair"/>). 경광등 · 붉은 조명은 그대로.
@@ -280,6 +283,8 @@ namespace SpaceStation.Interior
                 {
                     room.SpikeUntil = now + Random.Range(0.04f, 0.09f);
                     room.NextSpike = now + Interval(_tuning.StormSpikeRate);
+                    if (room.Module == CurrentRoom)
+                        StormFlashed?.Invoke();   // 사운드 개편 D-10 (2026-11-26): 조명 "지직"
                 }
                 if (now < room.SpikeUntil)
                 {

@@ -89,6 +89,21 @@ namespace SpaceStation.Interior
         protected override void Refresh()
         {
             Setup();
+            UpdateSound();
+        }
+
+        private SpaceStation.Audio.ObjectLoop _beltSound;
+
+        /// <summary>
+        /// 사운드 개편 4-4 · D-8 (2026-11-26, SOUND_LIST_NEW conveyor_loop): 벨트 "스르르 달각" (벨트 가운데 3D 루프 — 라인이 돌고 이 방에 있을 때, 0.25초마다) ·
+        /// 상자가 다 차서 뚜껑이 닫히는 순간 "덜컹" (<see cref="Update"/>). 바마다 · 압인마다 소리 X (D-2 — 루프 + 가끔 덜컹).
+        /// </summary>
+        private void UpdateSound()
+        {
+            if (_beltSound == null && _ready)
+                _beltSound = InteriorMotionSound.LoopAt(_bar.parent != null ? _bar.parent : transform, (_beltStart + _beltEnd) * 0.5f, l => l.ObjConveyorLoop, 1.5f, 12f);
+            if (_beltSound != null)
+                _beltSound.Level = Active && PlayerInRoom ? 1f : 0f;
         }
 
         private void Update()
@@ -103,7 +118,11 @@ namespace SpaceStation.Interior
                 _lidT += dt;
                 float total = LidTime * 2f + HoldTime;
                 if (_lidT >= LidTime && _filled > 0)
+                {
+                    if (PlayerInRoom)   // 뚜껑이 다 닫힘 "덜컹" (4-4, 2026-11-26)
+                        SpaceStation.Audio.AudioService.TryPlayAt(l => l.ObjConveyorClunk, (_lid != null && _lid.parent != null ? _lid.parent : transform).TransformPoint(_lidPivot));
                     ClearPile();
+                }
                 float a = _lidT < LidTime ? Smooth(_lidT / LidTime)
                     : _lidT < LidTime + HoldTime ? 1f
                     : 1f - Smooth((_lidT - LidTime - HoldTime) / LidTime);

@@ -34,6 +34,11 @@ namespace SpaceStation.Interior
         private IReadOnlyList<Vector3> _anchors;   // 지금 방 칸마다 바닥 가운데 (삐걱 자리)
         private float _bedMul = 1f, _stateNext, _creakAt, _powerAt, _powerLast = -99f, _fanLast = -99f;
         private bool _wasPowerLow, _wasOxygenLow;
+        // 4-1 우주복 (2026-11-26): 2단계 개방형 방의 실내 구역 밖 = 헬멧 잠김 · 헬멧 안 숨 · 신발 층 (판정 = 주민 우주복과 같은 InteriorOpenAir)
+        private InteriorOpenAir _openAir;
+        private AudioService.Loop _breath;
+        private bool _suit;
+        private float _suitChanged = -99f;
 
         public void Attach(FirstPersonController player)
         {
@@ -56,6 +61,7 @@ namespace SpaceStation.Interior
             int stage = 0, IReadOnlyList<Vector3> anchors = null)
         {
             FootstepSurface.CollectWater(room, _water);
+            _openAir = room != null ? room.GetComponentInChildren<InteriorOpenAir>(true) : null;
             if (!EnsureLoops())
                 return;
             _scape.SetRoom(scape, room, prefab);
@@ -94,6 +100,7 @@ namespace SpaceStation.Interior
             if (_loops.Count == 0 || station == null || station.Simulation == null || module == null || now < _stateNext)
                 return;
             _stateNext = now + 0.25f;
+            UpdateSuit(now);
             var sim = station.Simulation;
             bool damaged = sim.Damage.TryGetInfo(module, out _);
             float power = station.Connectivity.IsActive(module) ? sim.Resources.PowerEfficiency : 0f;
@@ -135,6 +142,25 @@ namespace SpaceStation.Interior
             }
         }
 
+        /// <summary>
+        /// 4-1 우주복 (2026-11-26, SOUND_LIST_NEW 4-1 · D-4): 2단계 개방형 방에서 실내 구역 밖으로 나서면 헬멧 잠김 "딸깍 칙" (2D) · 헬멧 안 숨 루프 (아주 작게) ·
+        /// 걸음마다 신발 층 (<see cref="HandleFootstep"/>). 막 경계를 오갈 때 1.5초 안에는 그대로 (<see cref="InteriorDeviceSound.SuitOn"/>), 벗을 때는 소리 없이 숨만 잦아듦.
+        /// </summary>
+        private void UpdateSuit(float now)
+        {
+            bool outdoors = _openAir != null && _player != null && _openAir.OutdoorsAt(_player.transform.position);
+            bool on = InteriorDeviceSound.SuitOn(_openAir != null, outdoors, _suit, now, _suitChanged);
+            if (on != _suit)
+            {
+                _suit = on;
+                _suitChanged = now;
+                if (on)
+                    AudioService.TryPlay(l => l.SuitHelmet);
+            }
+            if (_breath != null)
+                _breath.Target = _suit ? 1f : 0f;
+        }
+
         /// <summary>지금 방 모듈 단계의 음악 층을 올림 (3 = 3단계 이상). 그 단계 곡이 없으면 아래 단계 곡으로.</summary>
         public void SetMusicStage(int stage)
         {
@@ -172,6 +198,12 @@ namespace SpaceStation.Interior
                 _boil.Target = 0f;
             _spots.Stop();
             _bed = null;
+            // 4-1 · 4-2 (2026-11-26): 우주복 숨 · 빛 다리 루프 (탄 채 나가는 경우까지)
+            if (_breath != null)
+                _breath.Target = 0f;
+            _suit = false;
+            _openAir = null;
+            AudioService.SetRideLoop(l => l.LightBridgeLoop, 0f);
             Detach();
         }
 
@@ -208,6 +240,7 @@ namespace SpaceStation.Interior
             }
             _spark = StateLoop(service, lib.StateSparkLoop);
             _boil = StateLoop(service, lib.StateBoilLoop);
+            _breath = StateLoop(service, lib.SuitBreathLoop);   // 4-1 헬멧 안 숨 (2026-11-26)
             _musicCues = new[] { lib.MusicInterior0, lib.MusicInterior1, lib.MusicInterior2, lib.MusicInterior3 };
             _music = service.CreateMusicLayers(_musicCues);
             return true;
@@ -238,6 +271,8 @@ namespace SpaceStation.Interior
                 _floor = FootstepSurface.At(_player.transform.position, _water, _floor);
             var floor = _floor;
             AudioService.TryPlay(l => StepCue(l, floor, run), run ? 1f : WalkVolume);
+            if (_suit)
+                AudioService.TryPlay(l => l.StepSuit, run ? 1f : WalkVolume);   // 4-1 우주복 신발 층 (천 "슥" + 두툼한 "푹", 2026-11-26)
         }
 
         private static SoundCue StepCue(SoundLibrary l, StepFloor floor, bool run)

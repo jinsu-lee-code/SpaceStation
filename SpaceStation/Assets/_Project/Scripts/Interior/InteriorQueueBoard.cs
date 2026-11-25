@@ -385,6 +385,8 @@ namespace SpaceStation.Interior
             }
             _serving[window] = next.Ticket;
             _flash[window] = now + FlashSeconds;
+            if (PlayerInRoom)   // 번호 부름 "띵동" (그 창구 번호판 자리 3D — 4-4, 2026-11-26)
+                SpaceStation.Audio.AudioService.TryPlayAt(l => l.ObjQueueChime, transform.TransformPoint(_windows[window].Board.Center));
             next.Ticket = 0;
             next.Busy = true;
             _atWindow[window] = next;

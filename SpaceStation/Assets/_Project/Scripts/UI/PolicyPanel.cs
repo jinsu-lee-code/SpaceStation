@@ -165,7 +165,11 @@ namespace SpaceStation.UI
             {
                 case PolicySystem.AssignResult.Ok:
                     _notice = policy != null ? $"'{policy.DisplayName}' 예약 · {_policies.ApplyDelay:0}초 뒤 시행" : "슬롯 비우기 예약";
-                    AudioService.TryPlay(l => l.UiClick);
+                    // 2026-11-26 바깥 알림: 정책 예약 = 결재 도장 (policy_enact — 정책 줄 버튼은 클릭음 없이 이것 하나), 비우기는 확인음 그대로
+                    if (policy != null)
+                        AudioService.TryPlay(l => l.PolicyEnact);
+                    else
+                        AudioService.TryPlay(l => l.UiClick);
                     break;
                 case PolicySystem.AssignResult.NotOffered: _notice = $"<color={Bad}>지금은 고를 수 없는 정책</color>"; break;
                 case PolicySystem.AssignResult.NoSlot: _notice = $"<color={Bad}>열리지 않은 슬롯</color>"; break;
@@ -173,6 +177,8 @@ namespace SpaceStation.UI
                 case PolicySystem.AssignResult.Duplicate: _notice = $"<color={Bad}>이미 다른 슬롯에 있는 정책</color>"; break;
                 case PolicySystem.AssignResult.Same: _notice = $"<color={HudText.Muted}>이미 이 슬롯의 정책</color>"; break;
             }
+            if (result != PolicySystem.AssignResult.Ok && policy != null)
+                AudioService.TryPlay(l => l.UiError); // 정책 줄은 클릭음이 없어 못 고를 때 거절음 (전엔 확인음이 났음)
             Refresh();
         }
 
@@ -235,7 +241,7 @@ namespace SpaceStation.UI
                 var p = _policies.Policies[i];
                 if (p == null)
                     continue;
-                var b = _ui.TechButton(_window, "", 19f, () => AssignToSelected(p));
+                var b = _ui.TechButton(_window, "", 19f, () => AssignToSelected(p), clickSound: false); // 결과 소리 (결재 도장 · 거절) 하나만
                 PlaceRow(b, i);
                 var label = b.GetComponentInChildren<TMP_Text>();
                 label.alignment = TextAlignmentOptions.TopLeft;

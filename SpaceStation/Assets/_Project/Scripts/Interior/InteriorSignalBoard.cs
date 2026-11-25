@@ -147,6 +147,7 @@ namespace SpaceStation.Interior
                 SetProgress(-1f);
                 SetText(_repTitle, "<b>세력 평판</b>", ScreenDim);
                 ShowReputation(null, ScreenDim);
+                SetSound(null);
                 return;
             }
             int power = contact != null ? contact.RelayPower : 0;
@@ -205,6 +206,35 @@ namespace SpaceStation.Interior
             SetText(_footer, footer, footerColor);
             SetText(_repTitle, "<b>세력 평판</b>", ScreenText);
             ShowReputation(contact != null && contact.Unlocked ? contact : null, ScreenText);
+            SetSound(contact);
+        }
+
+        private SpaceStation.Audio.ObjectLoop _noise;
+        private bool _noiseTried, _soundInit, _decodedWas;
+
+        /// <summary>
+        /// 사운드 개편 4-2 (2026-11-26, SOUND_LIST_NEW signal_noise_loop · signal_lock): 신호판 3D — 먼 무전 잡음 크기는 화면 파형과 같은 갈래
+        /// (<see cref="InteriorDeviceSound.SignalNoise"/>), 해독이 끝나는 순간 짧은 "삐" 둘. 지금 있는 방일 때만 (D-4). 0.25초마다 (Refresh).
+        /// </summary>
+        private void SetSound(ContactSystem contact)
+        {
+            if (_noise == null && !_noiseTried)
+            {
+                _noiseTried = true;
+                var at = new GameObject("SignalNoise").transform;
+                at.SetParent(transform, false);
+                at.localPosition = _signal.Center;
+                _noise = SpaceStation.Audio.AudioService.AttachLoop(l => l.SignalNoiseLoop, at);
+            }
+            bool visiting = Active && contact != null && contact.Unlocked && contact.Visiting;
+            bool decoded = visiting && contact.Decoded;
+            bool here = PlayerInRoom;
+            if (_noise != null)
+                _noise.Level = here ? InteriorDeviceSound.SignalNoise(Active, visiting, decoded, visiting && contact.CanDecode, visiting ? contact.DecodeProgress : 0f) : 0f;
+            if (_soundInit && decoded && !_decodedWas && here)
+                SpaceStation.Audio.AudioService.TryPlayAt(l => l.SignalLock, transform.TransformPoint(_signal.Center));
+            _decodedWas = decoded;
+            _soundInit = true;
         }
 
         private void ShowReputation(ContactSystem contact, Color color)

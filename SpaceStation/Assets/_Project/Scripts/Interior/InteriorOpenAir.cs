@@ -139,6 +139,9 @@ namespace SpaceStation.Interior
             return false;
         }
 
+        /// <summary>사운드 개편 4-1 (2026-11-26): 이 월드 자리 (발)가 실내 구역 밖인지 — 플레이어 우주복 (헬멧 · 숨 · 신발 층, <see cref="InteriorAudio"/>)도 주민과 같은 판정.</summary>
+        public bool OutdoorsAt(Vector3 world) => !Indoors(transform.InverseTransformPoint(world));
+
         protected override void Refresh()
         {
             var room = transform.parent != null ? transform.parent : transform;
