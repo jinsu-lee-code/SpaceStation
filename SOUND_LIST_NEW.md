@@ -2,6 +2,7 @@
 
 > REVIEW_1115 2번 "사운드 전면 개편" 결정 (11-15): **VARCO Sound 커넥터로 만들기 → `AudioOriginals/build_audio.py`(Blender 파이썬)로 다듬기 → `SoundLibrary.asset`에 연결 → 플레이 확인.**
 > 이 문서 = 순서 ② "소리 목록 새로 만들기": (a) 소리가 없는 시스템 · (b) 기존 교체 후보 · (c) 음량 균형.
+> 사용자가 정할 것 = `docs/sound/decisions.md` (모아 두었다가 사운드 작업 끝에 하나씩 질문, 2026-11-25).
 > 조사 범위 (11-20): 스크립트 전체 (`Scripts/` 바깥 · 내부 · UI) + 서사판 `narrative` 브랜치 + REVIEW_1115 · TASKS의 앞으로 할 일. 1차 목록(10/01)은 `SOUND_LIST.md` 그대로 (기록).
 
 ## 한눈에
@@ -362,7 +363,7 @@
 | B | `ship_cargo_dock` | 화물 터미널 화물선 | 무거운 화물선 도킹 |
 | B | `crate_appear` | 보급 상자 생김 | 작은 낙하 · 착지 |
 | B | `meteor_shower_warn` | 유성우 방향 예보 (지금 조기 경보 재사용) | 레이더 경고 + 다가오는 느낌 |
-| B | `heat_warning` | 열 과열 (대륙급) | 끓는 듯한 경고 |
+| B | `heat_warning` | 열 과열 (대륙급) | 끓는 듯한 경고 — 2026-11-25: 8번 `overheat` (CONNECT A10 온기 구간)와 같은 과열 경고 → **파일 하나** (이 줄에서 만들고 8번은 이것을 씀), 지금 바깥 과열은 무음 |
 | B | `plague_outbreak` · `plague_cured` | 역병 | 낮은 불길음 · 회복음 |
 | B | `social_crisis` | 사회 위기 선택지 | 긴장 스팅 |
 | B | `policy_enact` | 정책 시행 | 결재 도장 + 전자음 |
@@ -374,6 +375,7 @@
 | B | `shield_deflect_hex` · `_aurora` · `_crystal` | 실드 1 · 2 · 3단계 (매트릭스 · 오로라 등대 · 궤도 방어망) | 단계마다 조금씩 세게, 각 변형 3 (유성우 때 몰림) |
 | B | `turret_laser_1` · `prism_beam` | 포탑 1단계 (보안청) · 3단계 궤도 방어망 격추 광선 | 기본 `turret_laser`와 같은 가족으로 점점 굵게, 각 변형 3 |
 | B | `dawn` · `dusk` | 낮 · 밤 바뀜 | 아주 작은 전환음 |
+| B | `module_disconnect` · `module_reconnect` | 연결이 끊겨 끝쪽 모듈이 꺼짐 · 다시 이어짐 (CONNECT M9 — 지금 있는 기능인데 무음, 2026-11-25 CONNECT 대조로 더함) | 전원이 내려가는 "우웅↘" · 다시 켜짐 (끊김 = 경보 위계 주의 쓸 수 있음) |
 | C | `grade_step` | 13-7 등급 중간 단계 | 작은 상승 |
 | C | `auto_maintain` | 정비 자동화가 처리함 | 작은 기계음 |
 
@@ -432,7 +434,8 @@
 | B | `pad_holo_loop` | 패드 홀로그램 모형 | 작은 웅 |
 | C | `board_chime` | 여객 도착 안내판 · 화물선 안내판 | 안내 "딩동" |
 | C | `queue_ding` | 행정 관제소 번호 대기 | 번호 바뀔 때 "띵동" |
-| C | `radar_ping_loop` | 센서 어레이 레이더 | 작은 핑 |
+| C | `radar_ping_loop` | 센서 어레이 레이더 | 작은 핑 — 레이더 화면 (`InteriorRadar`)은 지금 있는데 무음, CONNECT A8 ④에서 실제 예보와 이어질 예정 |
+| C | `signal_noise_loop` · `signal_lock` | 해독실 통신 신호판 (`InteriorSignalBoard` — 지금 있는 기능인데 무음, CONNECT A8 ④ 방향 · 잡음, 2026-11-25 CONNECT 대조로 더함) | 먼 무전 잡음 · 신호가 잡힐 때 짧은 "삐" |
 | C | `radiation_tick` | 방사선 차폐실 경보판 | 가이거 틱 |
 
 ### 4-3. 1인칭 할 일 (수리 · 사고 · 요청 · 보급)
@@ -623,10 +626,22 @@
 | 예정 | `vein_signal` · `vein_depleted` | CONNECT 1번 광맥 — 새 신호가 잡힘 · 광맥을 다 캠 (도킹 생산이 바닥값으로) | 먼 신호 핑 · 잦아드는 채굴 |
 | 예정 | (상황 변형) | CONNECT 5번 A5 — 기본 상황 4종의 좋은 · 나쁜 이웃 변형 · 원인 · 결과 한 줄 (이웃 도움 · 번짐) | 같은 상황 소리의 작은 / 큰 변형 |
 | 예정 | (단계별 상황) | CONNECT 5번 A6 — 진화 단계마다 상황 2 ~ 3개 | 단계 톤 따라 |
-| 예정 | `warmth_ok` · `overheat` | CONNECT 5번 A10 — 온기 구간 · 과열 | 따뜻한 웅 · 과열 경고 (경보 위계 D-3 안) |
-| 예정 | `breaker_trip` | CONNECT 5번 A11 — 과부하 차단기 (배전 범위) | 스위치 "탁" + 전원 꺼짐 |
+| 예정 | `warmth_ok` · `overheat` | CONNECT 5번 A10 — 온기 구간 · 과열 | 따뜻한 웅 · 과열 경고 (경보 위계 D-3 안) — 과열은 2번 `heat_warning`과 같은 파일 |
+| 예정 | `breaker_trip` | CONNECT 5번 A11 — 과부하 차단기 (배전 범위) | 스위치 "탁" + 전원 꺼짐 — 2026-11-25: 4-3 차단기 사고 소리 (`breaker_flip` · `breaker_switch`, 지금 있음)를 **다시 씀**, 새 파일은 과부하가 달리 들려야 할 때만 |
 | 예정 | `station_event` | CONNECT 3번 R14 — 정거장 행사 (드론 쇼 · 폭죽을 바깥에서) | 체험 소리 다시 씀 + 바깥 함성 |
 | 예정 | `research_node_on` · `research_bridge` | CONNECT 3번 R10 · R9 — 연구 화면 아이콘에 불이 들어옴 · 통합 연구 열림 | 아이콘 켜짐 · 다리 이어짐 (UI 전반 점검 때 — 사용자 2026-11-24) |
+| 예정 | `vein_touch` | CONNECT 1번 M1 · M3 — 채굴 모듈이 광맥에 닿아 풍부 생산 시작 (위 `vein_*`은 신호 · 고갈만) — 2026-11-25 CONNECT 대조로 더함 | 맞물리는 "끼익-툭" + 채굴 웅이 차오름 |
+| 예정 | `group_pick` · `group_drop` | CONNECT 1번 M7 · R10 — 모듈 묶음 고르기 · 통째 옮기기 (하나 옮기기 = 2번 `module_move_*`, 지금 무음) — 2026-11-25 CONNECT 대조로 더함 | 여러 개가 "착착" 집힘 · 내려놓기는 하나보다 묵직하게 |
+| 예정 | `emergency_link_low` | CONNECT 3번 R13 비상 연결 — 끊긴 쪽을 잠시 돌리는 시간이 끝나 감 — 2026-11-25 CONNECT 대조로 더함 | 경보 위계 주의 (`alert_caution`) 쓸 수 있음 |
+| 예정 | `research_rotate` | CONNECT 3번 R9 — 정팔면체 통합 연구 화면 면 돌리기 — 2026-11-25 CONNECT 대조로 더함 | 유리 결 "스르륵" (UI 한 벌 톤) |
+| 예정 | `remote_repair_start` · `remote_repair_done` | CONNECT 3번 R13 현장 교범 — 원격 현장 수리 — 2026-11-25 CONNECT 대조로 더함 | 1-1 `repair_start` · `repair_done` 다시 쓸 수 있음 |
+| 예정 | `station_event_end` | CONNECT 3번 R14 — 정거장 행사 끝 · 모듈 쉼 (시작 = 위 `station_event`, 바탕 = 3번 `fx_firework_*` · `fx_droneshow_loop` — 지금 무음이라 먼저) — 2026-11-25 CONNECT 대조로 더함 | 함성이 잦아듦 · 짧은 마침 |
+| 예정 | `radiation_alarm` | CONNECT 5번 A8 — 방사선 경보 (환기 경보 변형) — 2026-11-25 CONNECT 대조로 더함 | 가이거 틱 + 경보 위계 소리 |
+| 예정 | `resident_greet` | CONNECT 5번 A8 — 새 주민을 이웃 주민이 마중 — 2026-11-25 CONNECT 대조로 더함 | 4-3 주민 목소리 (`voice_*`)로 대신 가능 |
+| 예정 | `raid_ship_hit` · `scout_down` · `escort_down` | CONNECT 6번 X1 — 습격 함선 피격 · 정찰선 · 호위함 격침 (기함 = 위 `flagship_down`), main · 서사판에 `RaidFleetSystem` 있음 (꺼짐 · 화면 없음) — 2026-11-25 CONNECT 대조로 더함 | 맞음 "퍽" · 작은 폭발 둘 (운석 · 습격 포격과 구별) |
+| 예정 | `gunseat_fire_0` | CONNECT 6번 X4 1차 — 포수 의자 기본 사격 (갈래 전, 갈래별 = 위 `gunseat_fire_1~3`) — 2026-11-25 CONNECT 대조로 더함 | 같은 가족의 기본 사격 |
+| C | `exile_return` | CONNECT 10번 1 추방 — 내보낸 주민 귀환 (main · 서사판에 `ExileSystem` 있음, 타이쿤판 없음) — 2026-11-25 CONNECT 대조로 더함 | 작은 배 도착 + 따뜻한 차임 |
+| 정할 것 | (필요한지) | CONNECT 3번 R3 지름길로 연구가 바로 열림 · R13 명소 등록 · R13 대피 훈련 — 2026-11-25 CONNECT 대조로 더함 | 새 소리가 필요한지 — `docs/sound/decisions.md`에 모음 |
 
 - 위 "예정" 줄 = CONNECT_1121.md에서 새로 정한 기능 (아직 없음) — **소리는 만들지 않고 자리만** (사용자 2026-11-24 "추천대로"). 습격 단계 (정찰 · 함대 · 기함)는 위 REVIEW 6 줄과 같음, 소음 민원은 REVIEW 3 줄과 같음.
 
@@ -684,6 +699,29 @@
     - **작은 / 큰 변형**: 산소 누출 큰 = `Event/oxygen_leak.wav` (지금 칸 OxygenLeak — 바깥 정거장 사건, 지금과 같은 2.6초) · 작은 = `Event/oxygen_leak_small.wav` (같은 김 1.4초 · 1반음 높게 — Hiss 0.23 · Steam 0.12, **파일만 — 예정 (이웃에 따라 규모)**: 내부 배관 누출에 소리가 생길 때 좋은 이웃 = 작은 · 나쁜 이웃 = 큰, 가져오기 설정은 큰 것과 같음).
       화재 · 차단기 소리는 **지금 없음** (내부 사고 4종 = `InteriorIncidents`가 빌린 소리만: 생김 EarlyWarning · 차단기 함 열기 UiOpen · 내려감 / 틀린 스위치 StormSpark · UiError · 스위치 올림 BuildRotate · 소화기 들기 BuildSelect · 해결 RepairDone · 놓침 EventNegative, 화재 타닥 · 소화기 분사 · 배관 쉬익 · 밸브는 무음) → 4-3 `fire_loop` · `extinguish` · `breaker_flip` · `pipe_burst_loop` · `valve_turn`을 만들 때 같은 방식 (실제 녹음 + 두 크기) — **2026-11-25 4-3에서 만듦** (불 · 누출은 작은 = 칸 · 큰 = 파일만 `Task/fire_big_loop` · `Task/pipe_burst_big_loop`, 결과는 4-3 표 아래)
 
+## 11. CONNECT 대조 (2026-11-25, 사용자 "connect 문서도 체크해 봐야 하지 않나")
+
+`CONNECT_1121.md` (main 루트)의 기능을 코드 · 커밋과 맞대 봄 (타이쿤판 작업 트리 · origin/main).
+- **타이쿤판에는 CONNECT 새 기능이 아직 하나도 없음** (소리 자리 8번 "예정" · 소음원 주석만). main · 서사판에는 추방 `ExileSystem` (M-336) · 탐사 틀 `ExplorationSystem` (M-337) · 단계형 습격 `RaidFleetSystem` (M-338, 꺼짐 · 화면 없음) · 비장의 카드 (M-339, 로직만).
+- **이미 돌아가는데 소리가 비거나 빌려 쓰는 것** (기능은 있으니 "나중"이 아님 — 순서 제안 2번):
+
+| 어디 | 기능 | 지금 소리 | 줄 |
+|---|---|---|---|
+| 타이쿤판 · main | 연구 · 레시피 연구 완료 | 좋은 소식 (`EventPositive` 0.8)을 빌림 | 2번 `research_done` |
+| 타이쿤판 · main | 모듈 옮기기 (12-3b) | 무음 (`BuildController.Moved`를 아무도 안 들음) | 2번 `module_move_*` |
+| 타이쿤판 · main | 연결 끊김 · 비활성 | 무음 | 2번 `module_disconnect` (새 줄) |
+| 타이쿤판 · main | 바깥 과열 | 무음 | 2번 `heat_warning` |
+| 타이쿤판 · main | 바깥 드론 쇼 · 폭죽 (정거장 행사의 바탕) | 무음 | 3번 `fx_firework_*` · `fx_droneshow_loop` |
+| 타이쿤판 · main | 침입 드론 (내부) | 스파크 (`StormSpark`)를 빌림 | 4-3 `drone_*` |
+| 타이쿤판 · main | 센서 레이더 화면 · 해독실 신호판 | 무음 | 4-2 `radar_ping_loop` · `signal_*` (새 줄) |
+| main · 서사판 | 추방 내보내기 · 귀환 | 내보내기 = 모듈 고르기 (`BuildSelect`)를 빌림, 귀환 없음 | 8번 `exile_send` · `exile_return` — **main에서 직접** (타이쿤판에 기능 없음) |
+| 서사판 | 탐사 | 창 소리만 | 6번 `probe_*` · `discovery` |
+| 서사판 | 코어 성격 축 이동 | 무음 | 6번 `core_shift` |
+
+- 빠진 것 15 = 위 줄들에 더함 (2번 연결 끊김 · 4-2 신호판 · 8번 열두 줄 — "2026-11-25 CONNECT 대조로 더함"), 필요한지부터 정할 셋 (지름길 · 명소 · 대피 훈련)은 `docs/sound/decisions.md`.
+- 두 줄로 나뉘었던 것: 과열 (2번 `heat_warning` = 8번 `overheat` → 파일 하나) · 과부하 차단기 (8번 `breaker_trip` → 4-3 차단기 소리 다시 씀).
+- 기능은 아니어서 소리 없음: 매장량 · 위험 표시 · 태그 틀 · 미리보기 · 우선순위 넷 (UI 한 벌로 충분) · 플레이 기록 · 화물선 금속 상한 · 두 번째 압력 (넣지 않기로).
+
 ## 내부 음악 이어 붙이기 (사용자 2026-11-20 "어느 방으로 이동하든 자연스럽게 서로 이어지게")
 
 - **한 곡의 네 가지 편곡처럼 만든다**: 4곡 모두 같은 조 · 같은 빠르기(BPM) · 같은 박자 · 같은 코드 진행 · 같은 길이(마디 수). 공통 뼈대(예: 같은 패드 화음 + 같은 짧은 선율)를 두고 단계마다 악기 · 장식만 바꿈 (기본 = 낮은 금속 타악 · 기계 맥박 → 1단계 = 신스 아르페지오 → 2단계 = 오르골 · 종 · 밝은 리듬 → 3단계 = 하프 · 유리 종 · 현악).
@@ -712,6 +750,8 @@
 1. **A 먼저** — (코드) 3D 소리 길 · 반복 막기 규칙 · 경보 위계 표 → (소리) 단계 음악 기준 곡 → 3단계 8곳 소리 풍경 (D-7b, 엔드리스의 얼굴) · 합성 임시음 교체 · UI 소리 한 벌 · 문 · 엘리베이터 · 이동 장치 · 합성 · 바닥별 발소리 · 미니게임 공용 꾸러미 · 서사판 장 기본 · 음악 5곡.
 2. **B** — 체험 · 미니게임 대표 소리 · 바깥 진화 연출 · 방 환경음 추가 · 주민 목소리 · 내부 단계별 음악 4곡 (이어지게).
 3. **C** — 기능 만들 때 같이.
+
+**2026-11-25 남은 순서 (A 묶음 나머지 · CONNECT 대조 뒤 추천)**: ① 1-1 바깥 기본 효과음 합성 임시음 교체 (배치 · 철거 · 연결 · 운석 · 포탑 · 실드 · 파손 균열) → ② 11번 "이미 돌아가는데 비어 있는 것" → ③ 나머지 B → ④ 마지막: `docs/sound/decisions.md` 정할 것을 하나씩 질문 (바깥 음악 5곡 고르기 포함) → 반영 / C · 예정은 기능 만들 때. 사용자가 정할 것은 그때그때 묻지 않고 그 문서에 모음.
 
 매 묶음 = 만들기 (후보 여러 개) → 사용자가 골라 듣기 → 다듬기 → 연결 → 플레이 확인.
 
