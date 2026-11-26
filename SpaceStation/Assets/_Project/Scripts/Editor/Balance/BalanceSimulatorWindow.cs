@@ -312,6 +312,21 @@ namespace SpaceStation.Editor.Balance
             return BalanceJob.Start(s, $"긴 세션 (최대 {maxMinutes:0}분 × {runs}판)");
         }
 
+        /// <summary>
+        /// 제자리 봇 (CONNECT_1121 0번 기준선, 사용자 결정 2026-11-26, 백그라운드): 등급마다 <paramref name="seedsPerGrade"/>판씩 처음부터 플레이하다
+        /// 그 등급에 오르면 칸 수를 고정하고 <paramref name="holdMinutes"/>분 — "넓히지 않아도 사는가". 기본 = 소형 · 중형 · 대형 · 도시급 × 3판.
+        /// 봇 성향은 끔 (판 차이 = 사건만). <paramref name="reachCapMinutes"/> = 그 등급에 오르기까지의 상한.
+        /// </summary>
+        public static BalanceJob StartHold(int[] grades = null, int seedsPerGrade = 3, float holdMinutes = 120f, float reachCapMinutes = 180f, int baseSeed = 1)
+        {
+            var s = DefaultSettings(reachCapMinutes, seedsPerGrade, baseSeed);
+            s.HoldGrades = grades ?? new[] { 1, 2, 3, 4 };
+            s.HoldSeconds = holdMinutes * 60f;
+            s.NeutralPersona = true;
+            s.SampleInterval = 60f;
+            return BalanceJob.Start(s, $"제자리 봇 ({s.HoldGrades.Length}등급 × {seedsPerGrade}판, 멈춘 뒤 {holdMinutes:0}분)");
+        }
+
         /// <summary>일반 측정을 백그라운드로 (창의 "백그라운드로 실행").</summary>
         public static BalanceJob StartDefault(float minutes = 30f, int runs = 20, int baseSeed = 1)
         {

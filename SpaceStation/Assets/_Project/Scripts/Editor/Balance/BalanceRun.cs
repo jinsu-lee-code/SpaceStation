@@ -38,6 +38,18 @@ namespace SpaceStation.Editor.Balance
         private int _moodTicks;
         private float _nextSample;
         private int _damaged;
+        // 제자리 봇 (CONNECT_1121 0번, 2026-11-26)
+        private readonly int _holdGrade;
+        private float _holdStart = float.NaN;
+        private float _holdReach = float.NaN;
+        private float _stableSince = float.NaN;
+        private const float HoldStableSeconds = 60f;
+        private const float HoldSettleMaxSeconds = 600f;
+        private int _holdTicks;
+        private float _holdIncomeSum, _holdNetSum;
+        private int _holdDamaged0, _holdDestroyed0;
+        private float _holdRepair0, _holdUpkeep0;
+        public bool Holding => !float.IsNaN(_holdStart);
 
         public BalanceRunResult Result { get; }
         public bool Done { get; private set; }
@@ -48,8 +60,11 @@ namespace SpaceStation.Editor.Balance
         /// <summary>시작 상태를 복원할 때 찾지 못해 건너뛴 항목 수 (데이터가 바뀌었다는 신호).</summary>
         public int RestoreMissing { get; }
         public float Elapsed => _sim.ElapsedSeconds - _t0 + _lost;
+        /// <summary>진단용 (봇 선택 추적 — 한 판을 직접 돌리며 <see cref="BalanceBot.LastNeed"/> · 지은 모듈을 볼 때).</summary>
+        public BalanceBot Bot => _bot;
+        public StationSimulation Simulation => _sim;
 
-        public BalanceRun(BalanceRunSettings s, int seed, StringBuilder series, BalanceStartState start = null)
+        public BalanceRun(BalanceRunSettings s, int seed, StringBuilder series, BalanceStartState start = null, int holdGrade = -1)
         {
             _s = s;
             _series = series;
@@ -62,7 +77,7 @@ namespace SpaceStation.Editor.Balance
                 RestoreMissing = StationStateSerializer.Restore(_sim, start.Station);
                 StartGrade = start.Grade;
             }
-            var persona = BalanceBot.Persona ? BalanceBotPersona.FromSeed(seed) : BalanceBotPersona.Neutral; // 13-7 시드에 묶인 봇 성향
+            var persona = BalanceBot.Persona && !s.NeutralPersona ? BalanceBotPersona.FromSeed(seed) : BalanceBotPersona.Neutral; // 13-7 시드에 묶인 봇 성향
             _persona = persona;
             _bot = new BalanceBot(_sim, s.Buildable, persona);
             _milestones = new BalanceMilestones(_sim, s.Buildable, seed); // 13-7 새 일 간격 · 위기 빈도 · 여유 자원
@@ -70,6 +85,7 @@ namespace SpaceStation.Editor.Balance
             _nextSample = _t0;
             // 구간 측정: 다음 등급에서 멈춤. 그 밖에는 설정값 (-1 = 시간 끝까지)
             _stopAtGrade = start != null ? start.Grade + 1 : s.StopAtGrade;
+            _holdGrade = holdGrade; // 제자리 봇 (CONNECT_1121 0번): 이 등급에 오르면 확장을 멈추고 HoldSeconds 동안
 
             Result = new BalanceRunResult
             {
@@ -78,6 +94,7 @@ namespace SpaceStation.Editor.Balance
                 Persona = BalanceBot.Persona ? persona.Describe() : "",
                 PersonaGrowth = persona.Growth,
                 PersonaSaving = persona.Saving,
+                HoldGrade = holdGrade,
             };
             int reached = _sim.Progression.GradeIndex;
             for (int i = 1; i < Result.GradeReachSeconds.Length; i++)
@@ -172,7 +189,8 @@ namespace SpaceStation.Editor.Balance
         {
             for (int n = 0; n < maxTicks && !Done; n++)
             {
-                if (Elapsed >= _s.DurationSeconds - 1e-4f)
+                // 제자리 봇: 멈춘 뒤에는 멈춘 때부터 HoldSeconds까지 (전체 상한 대신), 멈추기 전에는 전체 상한 = 그 등급에 못 감
+                if (Holding ? _sim.ElapsedSeconds - _holdStart >= _s.HoldSeconds - 1e-4f : Elapsed >= _s.DurationSeconds - 1e-4f)
                 {
                     Finish();
                     return;
@@ -250,8 +268,90 @@ namespace SpaceStation.Editor.Balance
                 return;
             }
             CaptureReachedGrades();
+            TickHold();
             if (_stopAtGrade >= 0 && sim.Progression.HighestGradeIndex >= _stopAtGrade)
                 Finish();
+        }
+
+        /// <summary>제자리 봇: 멈출 등급에 처음 오른 틱에 칸 수 상한을 걸고, 그 뒤 지표를 모은다.</summary>
+        private void TickHold()
+        {
+            if (_holdGrade < 0)
+                return;
+            var sim = _sim;
+            var result = Result;
+            var r = sim.Resources;
+            if (!Holding)
+            {
+                if (sim.Progression.HighestGradeIndex < _holdGrade)
+                    return;
+                // 사용자 결정 2026-11-26 "안정된 뒤 고정": 오른 뒤 생존 자원 · 밤 전력이 1분 이어서 안정되면 고정 (최대 10분 — 그때는 그대로 고정)
+                // 첫 측정: 오른 순간 인구가 막 늘어 밤 전력이 모자란 채로 고정되면 몇 분 만에 무너짐 (중형 시드 2)
+                if (float.IsNaN(_holdReach))
+                {
+                    _holdReach = sim.ElapsedSeconds;
+                    result.HoldReachSeconds = Elapsed;
+                }
+                if (_bot.HoldStable())
+                {
+                    if (float.IsNaN(_stableSince))
+                        _stableSince = sim.ElapsedSeconds;
+                }
+                else
+                {
+                    _stableSince = float.NaN;
+                }
+                bool settled = !float.IsNaN(_stableSince) && sim.ElapsedSeconds - _stableSince >= HoldStableSeconds;
+                if (!settled && sim.ElapsedSeconds - _holdReach < HoldSettleMaxSeconds)
+                    return;
+                result.HoldSettled = settled;
+                _holdStart = sim.ElapsedSeconds;
+                _bot.StartHold();
+                result.HoldStartSeconds = Elapsed;
+                result.HoldCells = _bot.HoldCellCap;
+                result.HoldStartPopulation = r.Population;
+                result.HoldStartHousing = r.HousingCapacity;
+                result.HoldStartModules = sim.Grid.ModuleCount;
+                result.HoldMinPopulation = r.Population;
+                result.HoldMinGrade = sim.Progression.GradeIndex;
+                _holdDamaged0 = _damaged;
+                _holdDestroyed0 = sim.Session.ModulesDestroyed;
+                _holdRepair0 = _bot.MetalSpentOnRepairs;
+                _holdUpkeep0 = _bot.MetalSpentOnUpkeep;
+                return;
+            }
+            _holdTicks++;
+            if (_bot.LastNeed.StartsWith("hold")) // 지을 것이 있는데 칸 수 상한에 막힌 틱
+                result.HoldBlockedSeconds += _s.TickInterval;
+            _holdIncomeSum += r.GetProduction(ResourceType.Metal);
+            _holdNetSum += r.GetNetRate(ResourceType.Metal);
+            if (r.GetStock(ResourceType.Metal) < BalanceRunResult.HoldLowMetal)
+                result.HoldLowMetalSeconds += _s.TickInterval;
+            result.HoldMinPopulation = Math.Min(result.HoldMinPopulation, r.Population);
+            result.HoldMinGrade = Math.Min(result.HoldMinGrade, sim.Progression.GradeIndex);
+        }
+
+        private void FinishHold()
+        {
+            var result = Result;
+            if (!Holding)
+                return;
+            float minutes = Math.Max(1e-3f, (_sim.ElapsedSeconds - _holdStart) / 60f);
+            result.HoldSeconds = _sim.ElapsedSeconds - _holdStart;
+            result.HoldEndCells = _bot.OccupiedCells();
+            result.HoldDemolished = _bot.HoldDemolished;
+            result.HoldBlocked = _bot.HoldBlocked;
+            result.HoldCrisisDemolished = _bot.HoldCrisisDemolished;
+            result.HoldHousingTrimmed = _bot.HoldHousingTrimmed;
+            result.HoldEvents.AddRange(_bot.HoldEvents);
+            foreach (var kv in _bot.HoldDemolishedKinds)
+                result.HoldDemolishedKinds[kv.Key] = kv.Value;
+            result.HoldMetalIncome = _holdTicks > 0 ? _holdIncomeSum / _holdTicks : 0f;
+            result.HoldMetalNet = _holdTicks > 0 ? _holdNetSum / _holdTicks : 0f;
+            result.HoldRepairMetalPerMin = (_bot.MetalSpentOnRepairs - _holdRepair0) / minutes;
+            result.HoldUpkeepMetalPerMin = (_bot.MetalSpentOnUpkeep - _holdUpkeep0) / minutes;
+            result.HoldDamaged = _damaged - _holdDamaged0;
+            result.HoldDestroyed = _sim.Session.ModulesDestroyed - _holdDestroyed0;
         }
 
         /// <summary>12-2: 캡처할 등급에 처음 도달한 틱 직후의 상태를 저장 (한 번에 여러 등급을 넘으면 같은 상태를 각 등급으로).</summary>
@@ -291,6 +391,7 @@ namespace SpaceStation.Editor.Balance
             var result = Result;
             var bot = _bot;
             result.EndSeconds = Elapsed;
+            FinishHold();
             result.FinalGrade = sim.Progression.GradeIndex;
             result.FinalPopulation = sim.Resources.Population;
             result.MaxPopulation = sim.Session.MaxPopulation;

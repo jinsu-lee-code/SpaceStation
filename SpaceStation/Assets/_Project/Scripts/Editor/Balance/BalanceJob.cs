@@ -157,9 +157,23 @@ namespace SpaceStation.Editor.Balance
             string header = $"duration={settings.DurationSeconds / 60f:0.#}min runs={BalanceReport.RunCount(settings)} {seeds}";
             if (settings.StopAtGrade >= 0)
                 header += $" stop_at={report.GradeNames[settings.StopAtGrade]}";
+            if (settings.HoldGrades != null)
+                header += $" hold={settings.HoldSeconds / 60f:0}min neutral_persona={settings.NeutralPersona}";
             string summary = (string.IsNullOrEmpty(title) ? "" : title + "\n") + header
+                             + (settings.HoldGrades != null && report.Results.Count > 0 ? "\n" + BalanceRunner.BuildHoldText(report, settings.HoldSeconds) : "")
                              + (report.Results.Count > 0 ? "\n" + BalanceRunner.BuildSummaryText(report) : "");
             File.WriteAllText(Path.Combine(folder, "summary.txt"), summary, utf8Bom);
+            if (settings.HoldGrades != null) // 제자리 봇: 판마다 철거 기록
+            {
+                var events = new StringBuilder();
+                foreach (var r in report.Results)
+                {
+                    events.AppendLine($"## {report.GradeNames[Math.Max(0, r.HoldGrade)]} 시드 {r.Seed} ({r.HoldEvents.Count}줄)");
+                    foreach (var e in r.HoldEvents)
+                        events.AppendLine(e);
+                }
+                File.WriteAllText(Path.Combine(folder, "hold_events.txt"), events.ToString(), utf8Bom);
+            }
             if (BalanceMilestones.Runs.Count > 0)
                 BalanceMilestones.WriteReport(folder); // 13-7 milestones.csv · milestones.txt
             return summary;
