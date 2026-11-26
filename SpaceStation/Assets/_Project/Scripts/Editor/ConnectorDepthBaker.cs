@@ -36,6 +36,7 @@ namespace SpaceStation.Editor
         {
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(data.Prefab);
             var colliders = new List<Collider>();
+            var solid = new List<Collider>();   // ⑪ 기둥 · 데크용: 빛 · 도는 부품을 뺀 몸체
             try
             {
                 instance.transform.SetPositionAndRotation(TempOrigin, Quaternion.identity);
@@ -51,6 +52,8 @@ namespace SpaceStation.Editor
                     var mc = filter.gameObject.AddComponent<MeshCollider>();
                     mc.sharedMesh = filter.sharedMesh;
                     colliders.Add(mc);
+                    if (IsSolid(filter.name))
+                        solid.Add(mc);
                 }
                 Physics.SyncTransforms();
 
@@ -60,6 +63,7 @@ namespace SpaceStation.Editor
                 var depths = new List<FaceDepth>();
                 var summary = new List<string>();
                 var template = TemplateFor(data);
+                int stage = StageOf(data);
                 foreach (var cell in data.CellOffsets)
                 {
                     foreach (var dir in GridDirections.Faces)
@@ -79,8 +83,36 @@ namespace SpaceStation.Editor
                             depth = Probe(colliders, TempOrigin + (Vector3)cell, dir);   // 문 자리 없는 면은 예전처럼 광선대로 (지금 있는 통로를 지우지 않음)
                         else
                             depth = Probe(colliders, TempOrigin + (Vector3)cell, dir);
-                        depths.Add(new FaceDepth(cell, dir, depth));
-                        summary.Add($"{cell}{Short(dir)}={(depth < 0 ? "없음" : depth.ToString("0.00"))}");
+                        if (depth < 0f)
+                        {
+                            depths.Add(new FaceDepth(cell, dir, -1f));
+                            summary.Add($"{cell}{Short(dir)}=없음");
+                            continue;
+                        }
+                        // ⑪ 바깥 통로 끝 맞닿음 (2026-11-26): 연결점이 있는지 · 옆 통로 깊이는 위 그대로,
+                        //  위아래 기둥 = 기둥 바로 밑 (받침판 자리) 표면까지 (칸 어딘가의 가장 높은 물체 · 기본 깊이에서 허공에 끝나지 않게),
+                        //  옆면 = 다리 데크 높이의 섬 · 받침 가장자리 깊이를 따로 (3 · 4단계 데크가 잔디 위를 가로지르지 않게)
+                        var center = TempOrigin + (Vector3)cell;
+                        if (dir.y != 0)
+                        {
+                            float strut = ProbeStrut(solid, center, dir);
+                            if (strut > NoSurface)
+                                depth = strut;
+                            depths.Add(FaceDepth.Link(cell, dir, depth, 0f));
+                            summary.Add($"{cell}{Short(dir)}={depth:0.00}");
+                            continue;
+                        }
+                        float deck = ProbeDeck(solid, center, dir);
+                        //  1 · 2단계 얇은 받침 위에 뜬 옆 통로 끝 = 받침 위에 내려앉힐 높이 · 깊이 (사용자 2026-11-26 "대각선으로" — 기본 모듈 · 두꺼운 몸체는 그대로)
+                        if ((stage == 1 || stage == 2)
+                            && ProbeLanding(solid, center, dir, stage == 2 ? 0.105f : 0.095f, out float land, out float landDepth, out float landMin))
+                        {
+                            depths.Add(FaceDepth.Link(cell, dir, depth, deck, land, landDepth, landMin));
+                            summary.Add($"{cell}{Short(dir)}={depth:0.00}/받침{land:0.00}@{landDepth:0.00}");
+                            continue;
+                        }
+                        depths.Add(FaceDepth.Link(cell, dir, depth, deck));
+                        summary.Add($"{cell}{Short(dir)}={depth:0.00}{(deck > 0f ? $"/데크{deck:0.00}" : "")}");
                     }
                 }
                 Undo.RecordObject(data, "Measure Connector Depths");
@@ -170,6 +202,184 @@ namespace SpaceStation.Editor
                     return Mathf.Clamp(best, MinDepth, 0.5f);
             }
             return -1f;
+        }
+
+        // ---------------- ⑪ 위아래 기둥 · 다리 데크 ----------------
+
+        private const float NoSurface = -90f;
+        private const float StrutReach = 8f;      // 기둥은 모듈 아래 칸까지 내려갈 수 있음 (코어 위층 = 빈 칸 → 아래층 지붕)
+        private const float DeckMaxDepth = 0.47f;
+
+        /// <summary>기둥 · 데크가 닿을 몸체: 빛 (Fx) · 도는 부품 (Spin) · 칸 선택 상자는 뺌 — 닿으면 빛 속에서 끝나거나 돌면서 떨어짐.</summary>
+        private static bool IsSolid(string name)
+        {
+            return !name.Contains("Fx") && !name.StartsWith("Spin") && name != "Visual" && name != "Pick";
+        }
+
+        /// <summary>면 밖에서 면 안쪽으로 쏜 광선이 처음 닿는 표면 깊이 (칸 중심 기준 바깥 +). 없으면 NoSurface.</summary>
+        private static float Outermost(List<Collider> colliders, Vector3 origin, Vector3 d, float reach)
+        {
+            float best = NoSurface;
+            foreach (var hit in Physics.RaycastAll(origin, -d, RayStart + reach, ~0, QueryTriggerInteraction.Ignore))
+            {
+                if (colliders.Contains(hit.collider))
+                    best = Mathf.Max(best, RayStart - hit.distance);
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// 위아래 기둥 깊이: 기둥 축 · 받침판 자리 (가운데 + 0.06)에서 바로 밑 (위) 표면 중 가장 가까운 것 — 칸 가운데보다 낮아도 됨 (받침 윗면 −0.26 등).
+        /// 받침판 자리에 아무것도 없으면 둘레를 넓혀 (0.15 · 0.25 · 0.35) 찾음.
+        /// </summary>
+        private static float ProbeStrut(List<Collider> colliders, Vector3 center, Vector3Int dir)
+        {
+            Vector3 d = dir;
+            Vector3 u = Vector3.right;
+            Vector3 v = Vector3.Cross(d, u);
+            float best = NoSurface;
+            foreach (var p in new[] { Vector3.zero, u * 0.06f, -u * 0.06f, v * 0.06f, -v * 0.06f })
+                best = Mathf.Max(best, Outermost(colliders, center + d * RayStart + p, d, StrutReach));
+            for (int ring = 0; ring < 3 && best <= NoSurface; ring++)
+            {
+                float r = 0.15f + 0.1f * ring;
+                for (int i = 0; i < 8; i++)
+                {
+                    float a = i * Mathf.PI * 0.25f;
+                    var p = (u * Mathf.Cos(a) + v * Mathf.Sin(a)) * r;
+                    best = Mathf.Max(best, Outermost(colliders, center + d * RayStart + p, d, StrutReach));
+                }
+            }
+            return best > NoSurface ? Mathf.Min(best, 0.5f) : NoSurface;
+        }
+
+        /// <summary>
+        /// 다리 데크 깊이 (3 · 4단계 데크 = 칸 가운데 −0.21 ~ −0.03, 폭 ±0.25): 데크 높이 띠에서 가장 바깥 표면,
+        /// 또는 바깥에서 안으로 훑어 데크 바닥 근처 높이 (−0.40 ~ −0.10)에 윗면이 처음 나오는 곳 (섬 · 받침 가장자리) 중 바깥쪽.
+        /// 둘 다 없으면 0 (= 통로 깊이를 그대로 씀).
+        /// </summary>
+        private static float ProbeDeck(List<Collider> colliders, Vector3 center, Vector3Int dir)
+        {
+            Vector3 d = dir;
+            Vector3 side = Vector3.Cross(d, Vector3.up);
+            float best = NoSurface;
+            foreach (float x in new[] { -0.18f, -0.09f, 0f, 0.09f, 0.18f })
+                foreach (float y in new[] { -0.20f, -0.12f, -0.04f })
+                    best = Mathf.Max(best, Outermost(colliders, center + d * RayStart + side * x + Vector3.up * y, d, 0.5f));
+            for (float t = 0.48f; t > -0.45f && t > best; t -= 0.01f)
+            {
+                bool found = false;
+                foreach (float x in new[] { -0.06f, 0f, 0.06f })
+                {
+                    var origin = center + d * t + side * x + Vector3.up * -0.10f;
+                    foreach (var hit in Physics.RaycastAll(origin, Vector3.down, 0.30f, ~0, QueryTriggerInteraction.Ignore))
+                    {
+                        if (colliders.Contains(hit.collider))
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found)
+                        break;
+                }
+                if (found)
+                {
+                    best = Mathf.Max(best, t);
+                    break;
+                }
+            }
+            return best > NoSurface ? Mathf.Clamp(best, MinDepth, DeckMaxDepth) : 0f;
+        }
+
+        /// <summary>p (칸 가운데 높이) 위 from에서 아래로 to까지: 처음 닿는 윗면 높이 (칸 가운데 기준). 없으면 NoSurface.</summary>
+        private static float TopBelow(List<Collider> colliders, Vector3 p, float from, float to)
+        {
+            float best = NoSurface;
+            foreach (var hit in Physics.RaycastAll(p + Vector3.up * from, Vector3.down, from - to, ~0, QueryTriggerInteraction.Ignore))
+            {
+                if (colliders.Contains(hit.collider))
+                    best = Mathf.Max(best, hit.point.y - p.y);
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// ⑪ 1 · 2단계 얇은 받침 위에 뜬 옆 통로 끝: 바깥에서 안으로 훑어 통로 밑 (가운데 높이 − 반지름) 아래 첫 윗면을 찾음.
+        /// 칸 가운데 높이에서 이미 가장자리 근처 벽에 닿거나 (지금 모습이 자연스러움) 그 아래가 두꺼운 몸체면 (옆면에 꽂으면 가파르게 꺾임) false.
+        /// height = 받침 윗면 + 반지름 (통로가 받침 위에 얹힘), depth = 그 높이의 표면 (없으면 받침 가장자리 바로 안),
+        /// minDepth = 경사가 가파를 때 받침 위로 밀어 넣을 수 있는 가장 안쪽 (그 높이의 물건 앞까지 · 벽이 있으면 밀지 않음).
+        /// </summary>
+        private static bool ProbeLanding(List<Collider> colliders, Vector3 center, Vector3Int dir, float radius, out float height, out float depth, out float minDepth)
+        {
+            height = depth = minDepth = 0f;
+            Vector3 d = dir;
+            Vector3 side = Vector3.Cross(d, Vector3.up);
+            float wall = NoSurface;
+            foreach (var o in new[] { Vector3.zero, Vector3.up * 0.05f, Vector3.up * -0.05f, side * 0.05f, side * -0.05f })
+                wall = Mathf.Max(wall, Outermost(colliders, center + d * RayStart + o, d, 0.5f));
+            for (float t = 0.48f; t > 0.05f; t -= 0.01f)
+            {
+                float top = NoSurface;
+                foreach (float x in new[] { -0.06f, 0f, 0.06f })
+                    top = Mathf.Max(top, TopBelow(colliders, center + d * t + side * x, -radius + 0.02f, -0.40f));
+                if (top <= NoSurface)
+                    continue;
+                if (wall >= t - 0.06f)
+                    return false;
+                float sideLo = top;
+                for (float y = top - 0.02f; y > -0.48f; y -= 0.02f)
+                {
+                    if (Outermost(colliders, center + d * RayStart + Vector3.up * y, d, 0.5f) < t - 0.06f)
+                        break;
+                    sideLo = y;
+                }
+                if (top - sideLo >= 2f * radius + 0.02f)
+                    return false;
+                height = top + radius + 0.005f;
+                float at = NoSurface;
+                foreach (var o in new[] { Vector3.zero, Vector3.up * 0.05f, side * 0.05f, side * -0.05f })
+                    at = Mathf.Max(at, Outermost(colliders, center + d * RayStart + Vector3.up * height + o, d, 0.5f));
+                if (at > NoSurface)
+                {
+                    depth = Mathf.Clamp(at, MinDepth, DeckMaxDepth);
+                    minDepth = depth;
+                }
+                else
+                {
+                    depth = Mathf.Clamp(t - 0.01f, MinDepth, DeckMaxDepth);
+                    float limit = MinDepth;
+                    foreach (float y in new[] { height, height + radius * 0.8f })
+                        foreach (float x in new[] { -radius * 0.8f, 0f, radius * 0.8f })
+                        {
+                            float dep = Outermost(colliders, center + d * RayStart + Vector3.up * y + side * x, d, 0.5f);
+                            if (dep > NoSurface && dep < depth - 0.01f)
+                                limit = Mathf.Max(limit, dep + 0.02f);
+                        }
+                    minDepth = Mathf.Min(limit, depth);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private static Dictionary<ModuleData, int> _stages;
+
+        /// <summary>모듈의 진화 단계 (그 모듈을 만드는 레시피 단계, 기본 모듈 = 0 — StationConnectors와 같은 기준).</summary>
+        private static int StageOf(ModuleData data)
+        {
+            if (_stages == null)
+            {
+                _stages = new Dictionary<ModuleData, int>();
+                foreach (var guid in AssetDatabase.FindAssets("t:RecipeData"))
+                {
+                    var r = AssetDatabase.LoadAssetAtPath<RecipeData>(AssetDatabase.GUIDToAssetPath(guid));
+                    if (r != null && r.Result != null && (!_stages.TryGetValue(r.Result, out int s) || r.Stage > s))
+                        _stages[r.Result] = r.Stage;
+                }
+                EditorApplication.delayCall += () => _stages = null;
+            }
+            return _stages.TryGetValue(data, out int stage) ? stage : 0;
         }
 
         private static string Short(Vector3Int d)
