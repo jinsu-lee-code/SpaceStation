@@ -26,6 +26,7 @@ namespace SpaceStation.Interior
         private FirstPersonController _player;
         private readonly List<FootstepSurface.WaterLevel> _water = new List<FootstepSurface.WaterLevel>(); // ⑤ 지금 방의 물 면 (높이 폭 1.2 m 안의 물 메시 — 얕은 물 발소리)
         private StepFloor _floor = StepFloor.Metal;
+        private float _stepGain = 1f;   // 지금 방 단계의 발소리 배율 (FootstepSurface.StageGain, 2026-11-26 S-6)
         // ⑥ 2026-11-25 (SOUND_LIST_NEW 4-4 · D-5): 1단계 판 방 환경음 · 가끔 소리 꾸러미 · 상태 층
         private readonly Dictionary<InteriorAmbience, AudioService.Loop> _loops1 = new Dictionary<InteriorAmbience, AudioService.Loop>(); // 1단계 이상 방 (소리 풍경이 없는 방)
         private readonly InteriorSoundscape _spots = new InteriorSoundscape(); // 가끔 소리 꾸러미 (기본 · 1단계 방 — 방 아무 칸 3D)
@@ -67,6 +68,7 @@ namespace SpaceStation.Interior
             int stage = 0, IReadOnlyList<Vector3> anchors = null)
         {
             FootstepSurface.CollectWater(room, _water);
+            _stepGain = FootstepSurface.StageGain(stage);   // 2026-11-26 S-6: 높은 단계 방은 발소리를 키움
             _openAir = room != null ? room.GetComponentInChildren<InteriorOpenAir>(true) : null;
             if (!EnsureLoops())
                 return;
@@ -314,9 +316,10 @@ namespace SpaceStation.Interior
             if (_player != null)
                 _floor = FootstepSurface.At(_player.transform.position, _water, _floor);
             var floor = _floor;
-            AudioService.TryPlay(l => StepCue(l, floor, run), run ? 1f : WalkVolume);
+            float volume = (run ? 1f : WalkVolume) * _stepGain;   // 방 단계별 키움 (S-6 — 신발 층도 같은 배율로 발소리와 짝을 맞춤)
+            AudioService.TryPlay(l => StepCue(l, floor, run), volume);
             if (_suit)
-                AudioService.TryPlay(l => l.StepSuit, run ? 1f : WalkVolume);   // 4-1 우주복 신발 층 (천 "슥" + 두툼한 "푹", 2026-11-26)
+                AudioService.TryPlay(l => l.StepSuit, volume);   // 4-1 우주복 신발 층 (천 "슥" + 두툼한 "푹", 2026-11-26)
         }
 
         private static SoundCue StepCue(SoundLibrary l, StepFloor floor, bool run)

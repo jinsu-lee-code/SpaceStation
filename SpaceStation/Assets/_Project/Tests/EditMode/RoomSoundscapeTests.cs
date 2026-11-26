@@ -36,6 +36,17 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void MotionSpeed_VerticalCountsOnlyUpDown()
+        {
+            // 2026-11-26 S-31 하역 체인: 크레인 집게가 옆으로 갈 땐 0, 오르내릴 때만
+            var a = new Vector3(0f, 1f, 0f);
+            Assert.AreEqual(0f, RoomSoundscape.MotionSpeed(a, a + new Vector3(0.6f, 0f, 0f), 1f, true), 1e-5f, "옆으로만 = 0");
+            Assert.AreEqual(0.3f, RoomSoundscape.MotionSpeed(a, a + new Vector3(0.6f, -0.3f, 0f), 1f, true), 1e-5f, "위아래만 셈");
+            Assert.AreEqual(0.5f, RoomSoundscape.MotionSpeed(a, a + new Vector3(0.3f, 0.4f, 0f), 1f, false), 1e-5f, "기본 = 모든 방향");
+            Assert.AreEqual(0f, RoomSoundscape.MotionSpeed(a, a + Vector3.up, 0f, false), 1e-5f, "dt 0");
+        }
+
+        [Test]
         public void RegisteredSoundscapes_AreFilled()
         {
             var lib = AssetDatabase.LoadAssetAtPath<SoundLibrary>("Assets/_Project/Data/Audio/SoundLibrary.asset");

@@ -111,7 +111,8 @@ namespace SpaceStation.Audio
         public SoundCue ModuleMoveDrop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.77f, Cooldown = 0.15f, MaxVoices = 1 };
 
         [Header("이벤트·경보")]
-        public SoundCue EventPositive = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.6f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("좋은 소식 (보급선 등 좋은 사건): 2026-11-26 정한 것 S-8로 치명 경보 (+9.7) 아래 게임 안 +8 (음악 + 바탕 대비, 0.6에서 +14.6이었음)")]
+        public SoundCue EventPositive = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.28f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
         [Tooltip("운석 접근 (2026-11-25 사운드 개편 1-1, 2D, 도착 순간에 가장 센 곳 = GameAudio _incomingPeak 1.28초): 실제 녹음 큰 바람결 \"휙\" (거꾸로 · 앞으로 두 변형) + 가스 버너 불 웅 (다가올수록 높고 밝게), " +
                  "최대 뒤 0.35초 잦아듦. 1인칭 내부에서는 안 울림. 음악 + 바탕 대비 귀 감도 +1.5 (게임 안 녹음, 예전 합성 +3.4). AI Whoosh 0.59 ~ 0.67")]
         public SoundCue MeteorIncoming = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.33f, Cooldown = 0.25f, MaxVoices = 2, Pitch = new Vector2(0.94f, 1.06f) };
@@ -198,8 +199,10 @@ namespace SpaceStation.Audio
         public SoundCue StormSpark = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.16f, Cooldown = 0.12f, MaxVoices = 2, Pitch = new Vector2(0.85f, 1.2f) };
         [Tooltip("산소 누출 사건 (나쁜 사건 알림 0.6초 뒤 2D) — 실제 녹음 스팀 김 \"쉬익\" 큰 크기 (2026-11-25, 정전기 · 흰 잡음으로 들리던 것을 바꿈). 작은 크기 oxygen_leak_small은 파일만 — 예정 (이웃에 따라 규모)")]
         public SoundCue OxygenLeak = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.32f, Cooldown = 1f, MaxVoices = 1 };
-        public SoundCue SupplyArrive = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.45f, Cooldown = 1f, MaxVoices = 2, Pitch = Vector2.one };
-        public SoundCue GradeUp = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.6f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
+        [Tooltip("보급선 도착 (좋은 사건 보급선): 2026-11-26 정한 것 S-8로 치명 경보 아래 게임 안 약 +8 (0.45에서 +11.6이었음)")]
+        public SoundCue SupplyArrive = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.3f, Cooldown = 1f, MaxVoices = 2, Pitch = Vector2.one };
+        [Tooltip("등급 상승: 2026-11-26 정한 것 S-8로 치명 경보 (+9.7) 아래 게임 안 +8 (0.6에서 +14.2였음)")]
+        public SoundCue GradeUp = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.29f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
         [Tooltip("대형 등급 첫 도달 (2026-11-26 바깥 알림: 1차 합성 4.4초를 바꿈, 그 순간 등급 상승 소리는 안 울림): 밝은 성취 음악 3.4초, 유리 결 오름 셋 + Dsus2 Asus4 패드 + 둥 + 반짝 (레 미 솔 라만). 게임 안 +8.5 = 위험 경보와 같게 (치명 아래, 예전 1차 합성은 약 +17)")]
         public SoundCue Victory = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.36f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
         public SoundCue GameOver = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.8f, Cooldown = 1f, MaxVoices = 1, Pitch = Vector2.one };
@@ -239,9 +242,9 @@ namespace SpaceStation.Audio
         public SoundCue MeteorShowerWarn = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.43f, Cooldown = 1.5f, MaxVoices = 1, Pitch = Vector2.one };
         [Tooltip("열 과열 (모듈이 위험 열에 들어 60초 뒤 파손, 8번 overheat 같은 파일): 주의 자리 = 주의 음형 + 실제 녹음 가마솥 거품 + 김 지글. 30초에 한 번까지. 게임 안 +6.8")]
         public SoundCue HeatWarning = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.43f, Cooldown = 1.5f, MaxVoices = 1, Pitch = Vector2.one };
-        [Tooltip("낮이 됨 (바깥에서만): 아주 작은 전환음, 느린 패드 레4 라4 미5 + 반짝 옅게. 게임 안 약 0 (음악 + 바탕과 비슷하게)")]
+        [Tooltip("낮이 됨: 아주 작은 전환음, 느린 패드 레4 라4 미5 + 반짝 옅게. 게임 안 바깥 약 0 (음악 + 바탕과 비슷하게) · 1인칭 내부는 0.5배로 약 -6 (2026-11-26 정한 것 S-16, NoticeSound.DayChangeVolume)")]
         public SoundCue Dawn = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.21f, Cooldown = 5f, MaxVoices = 1, Pitch = Vector2.one };
-        [Tooltip("밤이 됨 (바깥에서만): 아주 작은 전환음, 낮은 패드 라3 레4 미4 (1.8 kHz 아래). 게임 안 약 0")]
+        [Tooltip("밤이 됨: 아주 작은 전환음, 낮은 패드 라3 레4 미4 (1.8 kHz 아래). 게임 안 바깥 약 0 · 1인칭 내부 약 -6 (S-16)")]
         public SoundCue Dusk = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.34f, Cooldown = 5f, MaxVoices = 1, Pitch = Vector2.one };
         [Tooltip("연결이 끊겨 끝쪽 모듈이 꺼짐 (CONNECT M9, 한 프레임에 여러 개 = 한 번, 철거 소리 0.35초 뒤): 실제 녹음 청소기 스위치 딸깍 + 서는 모터 우웅 (5반음 아래). 위험 이상 경보가 막 울렸으면 생략. 게임 안 약 +4.6")]
         public SoundCue ModuleDisconnect = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.33f, Cooldown = 0.5f, MaxVoices = 1, Pitch = Vector2.one };
@@ -662,6 +665,7 @@ namespace SpaceStation.Audio
 
         [Header("음악 (상태별, 여러 곡이면 차례로)")]
         public SoundCue MusicDay = new SoundCue { Bus = AudioBus.Music, Volume = 0.5f, Pitch = Vector2.one };
+        [Tooltip("바깥 밤 곡: 2026-11-26 정한 것 S-1 = VARCO 후보 night_a1의 16마디 루프 (music_night.ogg 33.4초, D 단조 115 BPM, 지금까지의 밤 곡과 같은 귀 크기, AudioOriginals/build_music.py)")]
         public SoundCue MusicNight = new SoundCue { Bus = AudioBus.Music, Volume = 0.5f, Pitch = Vector2.one };
         public SoundCue MusicCrisis = new SoundCue { Bus = AudioBus.Music, Volume = 0.5f, Pitch = Vector2.one };
         public SoundCue MusicMenu = new SoundCue { Bus = AudioBus.Music, Volume = 0.5f, Pitch = Vector2.one };
@@ -721,8 +725,8 @@ namespace SpaceStation.Audio
         public SoundCue ObjConveyorClunk = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.13f, Pitch = new Vector2(0.95f, 1.05f), Cooldown = 0.4f, MaxVoices = 2 };
         [Tooltip("서버 랙 팬 (데이터 센터 표시등 묶음 자리 3D 루프, 모듈이 켜져 있을 때 · 연구 중이면 크게): 실제 녹음 컴퓨터 본체 팬 (조 밖 줄 깎음)")]
         public SoundCue ObjServerFanLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.26f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
-        [Tooltip("화면 · 홀로그램 작은 전자 웅 (상태 화면 · 홀로그램 · 플라즈마 · 학습 코어 고리 자리 3D 루프, 4 m 안에서만): 형광등 안정기 웅을 Bb2로 (F 장조 안)")]
-        public SoundCue ObjScreenHumLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.24f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
+        [Tooltip("화면 · 홀로그램 작은 전자 웅 (상태 화면 · 홀로그램 · 플라즈마 · 학습 코어 고리 자리 3D 루프, 4 m 안에서만): 형광등 안정기 웅을 Bb2로 (F 장조 안). 2026-11-26 정한 것 S-24 \"더 작게\" = 0.24에서 4 dB 낮춤 (1.5 m 약 -16)")]
+        public SoundCue ObjScreenHumLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.15f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
         [Tooltip("물 추출기 얼음 \"딸그락\" (낙하관 아래 드럼 자리 3D, 얼음 조각이 드럼에 닿을 때 몇 초에 한 번): 실제 녹음 금속 국자로 얼음 퍼기 (CC0), 변형 3")]
         public SoundCue ObjIceClatter = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.15f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.8f, MaxVoices = 1 };
         [Tooltip("식물 곁을 지나감 \"스윽\" (화분 식물 · 나무 자리 3D, 걷다가 0.85 m 안을 스칠 때): 실제 녹음 덤불 흔들림, 변형 3")]
@@ -757,12 +761,7 @@ namespace SpaceStation.Audio
         public ResidentVoiceSet VoiceKoala = new ResidentVoiceSet();
         [Tooltip("펭귄 목소리: 오리 피리 꽥 (장난감 · 만화 범주 CC0) · 음 없음")]
         public ResidentVoiceSet VoicePenguin = new ResidentVoiceSet();
-        [Tooltip("웅성 1단계 (2D 루프, 그 방에 깨어 있는 주민 셋 안팎): 식당 웅성 실제 녹음 (CC0)을 성기게 · 850 Hz 아래 (낱말은 안 들림), 32초")]
-        public SoundCue CrowdLoop1 = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.79f, Pitch = Vector2.one };
-        [Tooltip("웅성 2단계 (여덟 안팎): 웅성 둘을 겹침 + 1단계 · 1 kHz 아래")]
-        public SoundCue CrowdLoop2 = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.79f, Pitch = Vector2.one };
-        [Tooltip("웅성 3단계 (열여섯 넘게, 붐비는 식당): 웅성 셋을 겹침 + 2단계 · 1.1 kHz 아래")]
-        public SoundCue CrowdLoop3 = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.6f, Pitch = Vector2.one };
+        // 웅성 1 ~ 3단계 (CrowdLoop1 ~ 3, 식당 웅성 루프)는 2026-11-26 정한 것 S-29 "웅성 없이"로 칸 · 파일을 뺌 (목소리 · 활동만)
         [Tooltip("걷는 작은 발 톡 (걷는 주민 발밑 3D, 가까운 둘만 · 7 m까지): 바닥 발소리와 같은 권투 장갑 녹음을 6반음 올림, 변형 6")]
         public SoundCue ActWalkSmall = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.14f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.06f, MaxVoices = 2 };
         [Tooltip("앉고 일어섬 방석 푹 (의자 · 소파 자리 3D): 실제 녹음 소파 앉음 · 일어남 (CC0)을 4 ~ 6반음 올려 가볍게, 변형 3")]

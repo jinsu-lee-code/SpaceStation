@@ -57,5 +57,18 @@ namespace SpaceStation.Tests
             Assert.IsFalse(FootstepSurface.IsWadeable(StepFloor.Wood));
             Assert.IsFalse(FootstepSurface.IsWadeable(StepFloor.Glass));
         }
+
+        [Test]
+        public void StageGain_LouderInHigherStageRooms()
+        {
+            // 2026-11-26 정한 것 S-6: 기본 · 1단계 그대로 · 2단계 +2 dB · 3단계 이상 +4 dB
+            Assert.AreEqual(0f, FootstepSurface.StageGainDb(0));
+            Assert.AreEqual(0f, FootstepSurface.StageGainDb(1));
+            Assert.AreEqual(2f, FootstepSurface.StageGainDb(2));
+            Assert.AreEqual(4f, FootstepSurface.StageGainDb(3));
+            Assert.AreEqual(4f, FootstepSurface.StageGainDb(4));
+            Assert.AreEqual(1f, FootstepSurface.StageGain(1), 1e-6f);
+            Assert.AreEqual(1.585f, FootstepSurface.StageGain(3), 1e-3f);
+        }
     }
 }

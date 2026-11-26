@@ -54,6 +54,15 @@ namespace SpaceStation.Audio
             return day ? 1 : -1;
         }
 
+        /// <summary>
+        /// 1인칭 내부에서 낮밤 전환음 크기 (dB, 2026-11-26 정한 것 S-16 "내부에서도 더 작게"): 내부는 단계 음악 · 소리 풍경 밤 층이 따로 있어 바깥보다 낮게.
+        /// 게임 안에서 재서 정함 (SOUND_LIST_NEW 2번 dawn · dusk 줄).
+        /// </summary>
+        public const float InsideDayChangeDb = -6f;
+
+        /// <summary>낮밤 전환음 음량 배율 — 바깥 1, 1인칭 내부 <see cref="InsideDayChangeDb"/>.</summary>
+        public static float DayChangeVolume(bool inside) => inside ? Mathf.Pow(10f, InsideDayChangeDb / 20f) : 1f;
+
         /// <summary>외부 접촉 도착: 해독된 함선만 세력 신호 (상인 · 학술 · 무법), 정체 불명이면 주의 경보 그대로 — 소리로 정체가 새지 않게.</summary>
         public static SoundCue ContactArriveCue(SoundLibrary lib, ContactFaction faction, bool decoded)
         {
@@ -221,7 +230,7 @@ namespace SpaceStation.Audio
 
         // ---------------- 매 프레임 (GameAudio.Update) ----------------
 
-        /// <param name="inside">1인칭 내부 — 낮밤 전환음은 바깥에서만</param>
+        /// <param name="inside">1인칭 내부 — 낮밤 전환음을 더 작게 (S-16, 전엔 바깥에서만)</param>
         /// <param name="gameOver">결과 화면 — 모두 조용</param>
         public void Tick(bool inside, bool gameOver)
         {
@@ -247,8 +256,8 @@ namespace SpaceStation.Audio
                 bool day = dayNight.IsDay(_sim.ElapsedSeconds);
                 int change = NoticeSound.DayChange(_day, day);
                 _day = day ? 1 : 0;
-                if (change != 0 && !Quieted && !inside && !gameOver)
-                    NoticeSound.Play(change > 0 ? lib.Dawn : lib.Dusk);
+                if (change != 0 && !Quieted && !gameOver)
+                    NoticeSound.Play(change > 0 ? lib.Dawn : lib.Dusk, NoticeSound.DayChangeVolume(inside));   // 2026-11-26 S-16: 내부에서도 더 작게
             }
 
             if (Time.unscaledTime >= _pruneAt)

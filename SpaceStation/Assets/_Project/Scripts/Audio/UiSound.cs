@@ -120,10 +120,20 @@ namespace SpaceStation.Audio
             if (_slider != null)
                 return; // 슬라이더는 칸 소리만
             var mode = _click == ClickMode.Click && LooksLikeCancel() ? ClickMode.Cancel : _click;
-            if (mode == ClickMode.Click)
+            if (mode == ClickMode.Click && !OpenedWindowThisFrame())
                 AudioService.TryPlay(l => l.UiClick);
             else if (mode == ClickMode.Cancel)
                 PlayCancel();
+        }
+
+        /// <summary>
+        /// 같은 클릭으로 창이 열려 창 열기 소리가 막 울렸는지 (2026-11-26 정한 것 S-2 "창 열기 소리 하나만"): Button의 onClick이 UiSound보다 먼저 돌아
+        /// 연구 · 정책 · 설정 등 창을 여는 버튼은 이 프레임에 이미 창 열기 소리가 났음 → 확인음을 겹치지 않음.
+        /// </summary>
+        private static bool OpenedWindowThisFrame()
+        {
+            var s = AudioService.Instance;
+            return s != null && s.Library != null && s.StartedThisFrame(s.Library.UiOpen);
         }
 
         /// <summary>취소음. 같은 클릭으로 창이 닫혀 창 닫힘 소리가 막 울렸으면 그것을 멈추고 취소음 하나만 (두 내림 음이 겹쳐 흐려지지 않게).</summary>

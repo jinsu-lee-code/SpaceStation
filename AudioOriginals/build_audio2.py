@@ -5142,16 +5142,17 @@ for sp, moods in P6_MOODS.items():
 # 목소리가 많아지게 하고 0.85 ~ 1.1 kHz 아래로 — 위 단계가 아래 단계를 품게 (ext_hum과 같은 생각 — 섞이는 동안 결이 안 바뀜):
 # 1 = 셋째 자리를 expander로 성기게 (두세 명이 조용히) · 2 = 둘째 + 셋째 (7초 밀어) + 1 (−4 dB) · 3 = 셋 모두 (11 · 21초 밀어) + 2 (−2 dB) — 모두 32초 고리 (D-2 30초 넘게).
 # 뺀 후보: 볼링장 웅성 (공 · 핀 부딪힘 최대 − 중앙 6 ~ 16 dB) · 축제 웅성 (회전목마 음악 Music 0.57).
-P6_W = [loop_exact(highpass(p6_src("restaurant_walla", s, s + 33.5), 90), 32.0) for s in (10.0, 50.0, 95.0)]
-P6_roll = lambda x, sec: np.roll(x, int(sec * SR))
-p6_c1 = lpc(expander(P6_W[2], 9.0, 2.5, 0.01, 0.25, -30.0), 850)
-p6_c2 = layer(lpc(P6_W[1] / rms(P6_W[1]) + P6_roll(P6_W[2], 7.0) / rms(P6_W[2]), 1000), p6_c1, -4)
-p6_c3 = layer(lpc(P6_W[0] / rms(P6_W[0]) + P6_roll(P6_W[1], 11.0) / rms(P6_W[1]) + P6_roll(P6_W[2], 21.0) / rms(P6_W[2]), 1100), p6_c2, -2)
-save(P6V + "crowd_1_loop.wav", p6_c1, -26)
-# 게임 안 (slot3): 1단계 (휴게실 · 상업 · 거주 3 ~ 6명) 음악 + 바탕보다 평균 −10 · 3단계 (궤도 도시 22명) −11.5 → 여덟 넘게 모이는 방은 2단계 이상 큰 방 (바탕 · 소리 풍경이
-# 기본 방보다 약 6 dB 큼)이라 2단계 +2 · 3단계 +5 dB.
-save(P6V + "crowd_2_loop.wav", p6_c2, -21)
-save(P6V + "crowd_3_loop.wav", p6_c3, -15)
+# 2026-11-26 정한 것 S-29 "웅성 없이" (사용자): 웅성 루프 셋을 게임에서 뺌 (InteriorResidentSound · SoundLibrary 칸 · Audio 파일 지움) → 만드는 줄도 막음 (전체 빌드가 지운 파일을 다시 만들지 않게). 되살리려면 아래 주석을 풀고 칸 · 연결을 다시.
+# P6_W = [loop_exact(highpass(p6_src("restaurant_walla", s, s + 33.5), 90), 32.0) for s in (10.0, 50.0, 95.0)]
+# P6_roll = lambda x, sec: np.roll(x, int(sec * SR))
+# p6_c1 = lpc(expander(P6_W[2], 9.0, 2.5, 0.01, 0.25, -30.0), 850)
+# p6_c2 = layer(lpc(P6_W[1] / rms(P6_W[1]) + P6_roll(P6_W[2], 7.0) / rms(P6_W[2]), 1000), p6_c1, -4)
+# p6_c3 = layer(lpc(P6_W[0] / rms(P6_W[0]) + P6_roll(P6_W[1], 11.0) / rms(P6_W[1]) + P6_roll(P6_W[2], 21.0) / rms(P6_W[2]), 1100), p6_c2, -2)
+# save(P6V + "crowd_1_loop.wav", p6_c1, -26)
+# # 게임 안 (slot3): 1단계 (휴게실 · 상업 · 거주 3 ~ 6명) 음악 + 바탕보다 평균 −10 · 3단계 (궤도 도시 22명) −11.5 → 여덟 넘게 모이는 방은 2단계 이상 큰 방 (바탕 · 소리 풍경이
+# # 기본 방보다 약 6 dB 큼)이라 2단계 +2 · 3단계 +5 dB.
+# save(P6V + "crowd_2_loop.wav", p6_c2, -21)
+# save(P6V + "crowd_3_loop.wav", p6_c3, -15)
 
 # --- 활동 (act_* — D-11, 그 주민 자리 3D · 아주 작게 · 지금 있는 방만) ---
 # 걷기 = 작은 발 "톡" 여섯 (초 단위로 몰려 D-2 변형 6): 바닥별 발소리와 같은 권투 장갑 부딪힘 녹음 (Steps/boxing_glove)의 다른 순간을 6반음 올려 짧고 가볍게.
@@ -5379,5 +5380,26 @@ def p7_build():
 
 
 p7_build()
+
+
+# ================= S-31 하역 체인 — 화물 환적장 레일 크레인 (decisions S-31 다시 시도, 2026-11-26 정한 것 반영 작업자) =================
+# 사용자 답 (2026-11-26): "하역 체인 · 아콜로지 엘리베이터만 다시 — VARCO 없이 다른 CC0 녹음 · 합성으로, 안 되면 나중 컨텐츠 때".
+# 원본 = archive.org Designer's Choice "Chains" (CC0) "Chains, Rustling, On Wood" — Scape2/chain_wood/ (조각 넷, SOURCE.txt).
+# 후보 8개를 mp3로 훑음 (2초 창 · 1초 보폭, 사이 옅은 분홍 잡음 10초판 PANNs): 체인 집어 들기 · 떨어뜨림 31초 = Pulleys 0.85 · Mechanisms 0.83 (그러나 0.6초 덩어리 · 사이가 빔),
+#   체인 나무 위 스침 22초 = Ratchet 0.92 · Mechanisms 0.91 · Pulleys 0.55 (끊김 없이 이어지는 "차르르" — 하역 줄이 풀려 나가는 꼴에 맞음).
+# 뺀 후보: 체인 덜그럭 (P7 — Scissors) · 그릇에서 튀어나오는 체인 (Tambourine 0.4 ~ 0.7 · Music) · 감는 윈치 (Typing · Keyboard — 딸깍만) · 자동차 잭 (Keys jangling · Vehicle) ·
+#   전등 당김 줄 (Typing · Inside small room) · 장난감 윈치 1.5초 (Jackhammer 0.96).
+# 다듬기 = 조각 넷을 0.3초씩 겹쳐 고리 (10.8초) → 3반음 내림 (무거운 체인 · 덜 쨍) · 150 Hz 아래 정리 · 3 ~ 7 kHz 위 −9 dB 셸프 · 뾰족한 딸깍만 rms + 12 dB로 누름 + 루프 고음 상한.
+#   그대로 둔 판 (v0)은 ring 8 (찰랑) → 1. AI Ratchet 0.89 · Mechanisms 0.88 · Gears 0.75 · Scissors · Music 0.01 아래. 4 · 5반음 + 3 ~ 4 kHz 로우패스판도 비슷 (0.81 ~ 0.85) — 덜 먹먹한 3반음.
+# 쓰는 곳 = SS_EvoCargoTransfer 자리 루프 둘 (크레인 A · B 집게 Follow, MotionMeters 0.3 · MotionVertical — 집게가 오르내리는 동안만, 옆으로 갈 땐 기존 모터 위잉만).
+S31_CW = "Scape2/chain_wood/"
+s31_pcs = [load(S31_CW + f"chain_{s:06.2f}.wav") for s in (7.4, 22.0, 2.0, 37.2)]
+s31_raw = chain_loop([p / rms(p) for p in s31_pcs], 0.3)
+s31_chain = pop_limit(high_shelf(hpc(repitch_loop(s31_raw, -300), 150), -9, 3000, 7000), 12)
+save("Interior/scape_cargo_chain_loop.wav", s31_chain, -24)
+# (안 넣음) 아콜로지 엘리베이터 — 실제 엘리베이터 녹음 (Machines "Elevator, Doors Closing, Operating, Opening" 15초)의 운행 구간은 모터 음 = Music 0.12 ~ 0.61 · Gong 0.25 ~ 0.54
+#   (11-25 ④ 때와 같음), 문 닫힘 첫 2초만 Sliding door 0.23. 그리고 아콜로지 유리 엘리베이터 (InteriorLift)는 플레이어가 부를 때만 움직이고 그때 이미
+#   lift_button_2 · lift_move_2_loop · lift_arrive_2가 남 → 가끔 소리로 "띵" · 운행 소리를 내면 캡슐이 서 있는데 소리만 남 (보이는 움직임과 어긋남).
+#   주민이 엘리베이터를 타는 연출이 생기면 그 움직임에 같은 lift_*_2를 붙이는 것으로 (decisions "미룸").
 
 print("\n".join(report))

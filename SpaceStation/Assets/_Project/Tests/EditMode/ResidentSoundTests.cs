@@ -5,7 +5,7 @@ using SpaceStation.Interior;
 
 namespace SpaceStation.Tests
 {
-    /// <summary>주민 소리 (2026-11-26 사운드 개편 4-3 · 4-4 · D-2 · D-5 ④ · D-11): 종족 칸 · 반응 → 기분 · 웅성 단계 · 활동 갈래 · 목소리 반복 막기.</summary>
+    /// <summary>주민 소리 (2026-11-26 사운드 개편 4-3 · 4-4 · D-2 · D-5 ④ · D-11): 종족 칸 · 반응 → 기분 · 활동 갈래 (웅성은 2026-11-26 S-29로 뺌) · 목소리 반복 막기.</summary>
     public class ResidentSoundTests
     {
         [Test]
@@ -32,41 +32,6 @@ namespace SpaceStation.Tests
             Assert.IsNull(ResidentSound.MoodForReaction(ResidentReaction.Look, false));   // 바라보기만 = 소리 없음
             Assert.AreEqual(ResidentVoiceMood.Ask, ResidentSound.MoodForReaction(ResidentReaction.TurnAway, true));
             Assert.IsNull(ResidentSound.MoodForReaction(ResidentReaction.Look, true));
-        }
-
-        [Test]
-        public void CrowdLevel_RisesWithAwakeResidents()
-        {
-            Assert.AreEqual(0f, ResidentSound.CrowdLevel(0), 1e-6f);
-            Assert.AreEqual(0f, ResidentSound.CrowdLevel(1), 1e-6f);
-            Assert.AreEqual(1f, ResidentSound.CrowdLevel(3), 1e-6f);
-            Assert.AreEqual(2f, ResidentSound.CrowdLevel(8), 1e-6f);
-            Assert.AreEqual(3f, ResidentSound.CrowdLevel(16), 1e-6f);
-            Assert.AreEqual(3f, ResidentSound.CrowdLevel(40), 1e-6f);
-            for (int n = 1; n < 20; n++)
-                Assert.GreaterOrEqual(ResidentSound.CrowdLevel(n + 1), ResidentSound.CrowdLevel(n));
-        }
-
-        [Test]
-        public void CrowdMix_EqualPowerBetweenNeighbours()
-        {
-            var w = new float[3];
-            ResidentSound.CrowdMix(0f, w);
-            Assert.AreEqual(0f, w[0] + w[1] + w[2], 1e-6f);
-            ResidentSound.CrowdMix(1f, w);
-            Assert.AreEqual(1f, w[0], 1e-5f);
-            Assert.AreEqual(0f, w[1], 1e-5f);
-            ResidentSound.CrowdMix(2f, w);
-            Assert.AreEqual(1f, w[1], 1e-5f);
-            Assert.AreEqual(0f, w[0], 1e-5f);
-            ResidentSound.CrowdMix(3f, w);
-            Assert.AreEqual(1f, w[2], 1e-5f);
-            for (float l = 1.05f; l < 3f; l += 0.1f)
-            {
-                ResidentSound.CrowdMix(l, w);
-                Assert.AreEqual(1f, w[0] * w[0] + w[1] * w[1] + w[2] * w[2], 1e-4f, $"level {l}");   // 같은 힘
-                Assert.IsTrue(w[0] == 0f || w[2] == 0f, $"level {l}: 이웃 단계 둘만");
-            }
         }
 
         [Test]

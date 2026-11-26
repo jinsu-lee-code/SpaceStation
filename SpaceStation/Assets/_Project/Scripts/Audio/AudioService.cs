@@ -275,6 +275,22 @@ namespace SpaceStation.Audio
             }
         }
 
+        /// <summary>
+        /// 그 큐의 소리가 이번 프레임에 막 울렸는지 (2026-11-26 정한 것 S-2: 창을 여는 버튼은 확인음 없이 창 열기 소리 하나만 — <see cref="UiSound"/>가 봄).
+        /// </summary>
+        public bool StartedThisFrame(SoundCue cue)
+        {
+            if (cue == null)
+                return false;
+            float now = Time.unscaledTime;
+            foreach (var v in _voices)
+            {
+                if (v.Cue == cue && v.StartedAt == now && v.BusyUntil > now)
+                    return true;
+            }
+            return false;
+        }
+
         public static void TryPlayAt(System.Func<SoundLibrary, SoundCue> pick, Vector3 position, float volume = 1f)
         {
             var s = Instance;

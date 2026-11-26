@@ -69,11 +69,12 @@ namespace SpaceStation.UI
                 _rows.Add(BuildRow(ui, list, new Vector2(10f, -44f - i * 40f), listW - 20f));
 
             float pagerY = listTop - listH - 4f;
-            var prev = ui.TechButton(root, "<", 18f, () => { _page--; Refresh(); });
+            // 2026-11-26 정한 것 S-3: "< >" 넘기기 = 탭 "톡" (확인음 대신)
+            var prev = ui.TechButton(root, "<", 18f, () => { _page--; Refresh(); AudioService.TryPlay(l => l.UiTab); }, false);
             HoloUi.Place((RectTransform)prev.transform, new Vector2(16f, pagerY), new Vector2(44f, 34f));
             _pageLabel = ui.Label(root, "", 15f, TextAlignmentOptions.Center);
             HoloUi.Place(_pageLabel.rectTransform, new Vector2(64f, pagerY), new Vector2(80f, 34f));
-            var next = ui.TechButton(root, ">", 18f, () => { _page++; Refresh(); });
+            var next = ui.TechButton(root, ">", 18f, () => { _page++; Refresh(); AudioService.TryPlay(l => l.UiTab); }, false);
             HoloUi.Place((RectTransform)next.transform, new Vector2(148f, pagerY), new Vector2(44f, 34f));
             Height = -(pagerY - 34f) - top;
             root.gameObject.SetActive(false);

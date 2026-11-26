@@ -45,6 +45,10 @@ namespace SpaceStation.Tests
             Assert.AreEqual(0, NoticeSound.DayChange(1, true));
             Assert.AreEqual(1, NoticeSound.DayChange(0, true), "새벽");
             Assert.AreEqual(-1, NoticeSound.DayChange(1, false), "해 질 녘");
+            // 2026-11-26 정한 것 S-16: 1인칭 내부에서도 울리되 바깥보다 작게
+            Assert.AreEqual(1f, NoticeSound.DayChangeVolume(false), 1e-6f);
+            Assert.Less(NoticeSound.DayChangeVolume(true), 0.75f, "내부 = 바깥보다 작게");
+            Assert.Greater(NoticeSound.DayChangeVolume(true), 0f, "내부도 울림");
         }
 
         [Test]
