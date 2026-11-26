@@ -159,6 +159,9 @@ namespace SpaceStation.Interior
 
         public bool IsInside => _inside;
 
+        /// <summary>마지막으로 들어간 방 (바깥 모듈). 나온 뒤에도 남음 — 플레이 기록(CONNECT_1121 V3)이 들어간 방 이름을 적을 때.</summary>
+        public ModuleInstance EnteredModule { get; private set; }
+
         /// <summary>내부 방 빌더 (확인용 — 소품 자리 검사 등. 들어가기 전엔 null일 수 있음).</summary>
         public InteriorBuilder Builder => _builder;
 
@@ -254,6 +257,7 @@ namespace SpaceStation.Interior
             yield return null; // 화면이 그려진 뒤 내부 짓기
 
             _inside = true;
+            EnteredModule = module;
             _selection.Select(null);
             if (GameSettings.InteriorPause)
             {

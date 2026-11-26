@@ -132,6 +132,8 @@ namespace SpaceStation.Interior
         public bool TutorialHold { get; set; }
         /// <summary>11-18: 사고 하나를 해결함 (튜토리얼 진행용).</summary>
         public event Action Resolved;
+        /// <summary>사고가 끝남 (제목, 해결했는지 — 놓치면 false). 플레이 기록(CONNECT_1121 V3 ③)이 센다.</summary>
+        public static event Action<string, bool> IncidentFinished;
 
         private StationSimulation Sim => _station.Simulation;
 
@@ -721,6 +723,7 @@ namespace SpaceStation.Interior
             if (!AlertSound.PlayedThisFrame(l => l.HoldDone))
                 AudioService.TryPlay(l => l.RepairDone);
             Resolved?.Invoke();
+            IncidentFinished?.Invoke(InteriorIncidentRules.Title(a.Kind), true);
         }
 
         private string Miss(Incident a, bool left)
@@ -731,6 +734,7 @@ namespace SpaceStation.Interior
             if (!left)
                 Message?.Invoke(text, true);
             AlertSound.TryPlay(AlertLevel.Caution); // 경보 위계 (2026-11-25): 사고 놓침 = 주의 (손실은 상한 있게 끝남 · 예전 나쁜 사건 소리 0.6)
+            IncidentFinished?.Invoke(InteriorIncidentRules.Title(a.Kind), false);
             return text;
         }
 
