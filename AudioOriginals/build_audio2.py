@@ -4768,4 +4768,616 @@ x = mx_mix(1.6, [(p5_lo(pitch(bd_ev("truck_door", "truck", 1.90, 1.96, 0.8, fout
                  (th_tail, 0.03, -12.0)])
 mx_save(OU + "dock_clank.wav", fade(low_shelf(x, -6, 90, 180), 0.003, 0.5), 13.0)
 
+# ================= 2단계 소리 풍경 ② — 그리드 허브 · 궤도 미러 · 방사선 차폐벽 · 정련 콤비나트 · 연구원 · 치안 본부 · 실드 돔 · 저장 단지 + 닫힌 방 밤 층 (SOUND_LIST_NEW D-7 · 4-4 ③, 2026-11-26 작업자 P8) =================
+# 소리 풍경 = Data/Audio/Soundscapes/SS_Evo<모듈>.asset (3단계 8곳 틀 그대로 — 바탕 2D + 구역 3D 루프 + 가끔 소리, 대표 선율은 2단계라 없음 (D-7 "음악 + 바탕 + 디테일 몇 개")).
+# 원본 = 이미 고른 CC0 실제 녹음 조각 (Ambience · RoomAmb · Creatures · Steps · Devices · ExtObjects · Build2 · RoomObj)을 다른 조각 · 다른 섞음으로 + 새로 받은 CC0 셋
+# (AudioOriginals/Scape2B/ — 큰 오음계 풍경 · 먼 망치질 · 장난감 피리 (호루라기), SOURCE.txt). VARCO는 이 PC IP가 막혀 못 씀 (2026-11-26).
+# 이미 있는 소리는 다시 씀 (한 물건 = 소리 하나): 송전 단자 = 번개 탑 웅 · 물확 = 바이오스피어 물길 · 은하수 회랑 = 심우주 은하수 울림 · 렌즈 드럼 = 궤도 방어망 등대 렌즈 ·
+# 오로라 = 바깥 실드 돔 오로라 (fx_aurora_loop, 레 · 라 · 미 — F 장조 안) · 빛 우물 = 바깥 궤도 미러 빛기둥 (fx_lightbeam_loop) · 실내 쪽 = 1단계 방 바탕 · 냉각탑 = 서버 팬 ·
+# 작은 지직 · 불꽃 탁 · 김 · 발권기 · 디스크 · 자동문 · 공기 휙 · 상자 툭 · 서보 · 물방울 · 그릇 · 식물 = 닫힌 방 가끔 소리 꾸러미 (spot_*) · 방 장치 (obj_*).
+# 바탕은 모두 16.5초 (층마다 같은 길이), 고음은 save의 자동 상한. 음 있는 가끔 소리 = F 오음계 (파 · 솔 · 라 · 도 · 레), 겹친 음은 으뜸 · 5도 · 옥타브만 (Tonal — 다음 박).
+# 가끔 소리 파일 크기 = 귀 감도 (A 0.25초 최대) −20 dBFS (save_spot) — 큐 음량은 게임 안 혼자 울림 녹음으로.
+P8_S = "Interior/"
+P8_O = "Scape2B/"
+P8_N = 16.5
+P8_F2 = 87.307                                          # 파2 — 내부 음악 으뜸음
+P8_OFF = (7, 11, 13, 14, 17, 19, 22, 25, 26, 28, 29, 31)   # 파 배음 중 조 밖 (미♭ · 시−49 · 레♭+41 · 파# · 솔# · …)
+P8_C6, P8_F6 = 1046.5, 1396.91
+
+
+def p8_fit(x, sec=P8_N):
+    """한 바퀴 루프를 정확히 sec초로 (원형 보간 — 바뀌는 높이는 1센트 안팎)."""
+    n = int(round(sec * SR))
+    return np.interp(np.arange(n) * (len(x) / n), np.arange(len(x) + 1), np.concatenate([x, x[:1]]))
+
+
+def p8_hum_f(starts=(6.0, 13.0, 6.0)):
+    """형광등 안정기 웅 (120 Hz)을 파2로 (−551센트, 12초 → 16.5초) + 조 밖 배음 깎음 — 그리드 허브 · 치안 본부 · 연구원 바탕의 옅은 전기 기운."""
+    x = repitch_loop(hpc(rchain("ballast_hum", "hum", list(starts), 5.5, 1.5), 40), 1200 * np.log2(P8_F2 / 120.0))
+    return notch_lines(p8_fit(x), [P8_F2 * h for h in P8_OFF], 24, 2.0)
+
+
+def p8_piece(rel, a=0.0, b=None):
+    x = load(rel)
+    return x[int(a * SR): None if b is None else int(b * SR)].copy()
+
+
+# --- 바탕 8 (2D, 16.5초) — 2단계 개방형 방 = 우주복을 입고 걷는 지붕 없는 갑판 · 정원. 밤 공기 · 덤불 · 나무 잎 조각을 방마다 다른 조각 · 다른 섞음으로 + 방 성격 층 하나 ---
+# 그리드 허브 "번개 정원" = 바람 (밤 공기 + 덤불 −4) + 파2 전기 웅 −14 dB (2.5 kHz 아래) — 번개 탑 웅 (3D)이 가까이서 받쳐 줌.
+save(P8_S + "scape_grid_bed_loop.wav", low_shelf(layer(layer(air([43.0, 159.75, 285.25], 7.0, 1.5), bush([9.55, 0.75, 10.2], 7.0, 1.5), -4), lpc(p8_hum_f(), 2500), -14), -6), -24)
+# 궤도 미러 "거울 해바라기" = 고요한 정원 (밤 공기 + 덤불 −5 + 나무 잎 −12) — "고요한 빛 울림"은 바깥 빛기둥 소리 (fx_lightbeam_loop)를 낮에만 2D 층 · 빛 우물 3D로 (밤 = 거울 접힘 · 조용).
+# 첫 판 (밤 공기 + 나무 잎 −7)은 AI Pink noise 0.23 (높은 잎 사각임만 — 겪은 일 11-24 ②) → 덤불 바람결을 섞고 잎을 낮춤.
+save(P8_S + "scape_mirror_bed_loop.wav", low_shelf(layer(layer(air([63.75, 189.0, 20.0], 7.0, 1.5), bush([10.2, 9.55, 0.75], 7.0, 1.5), -5), trees([13.25, 26.75, 6.0], 6.5, 1.0), -12), -6), -24)
+# 방사선 차폐벽 "별자리 병풍 정원" = 고요한 정원 (밤 공기 + 나무 잎 −5 + 덤불 −10) — 풍경 소리는 가끔 소리 (바탕은 음 없이).
+save(P8_S + "scape_radwall_bed_loop.wav", low_shelf(layer(layer(air([6.0, 88.5, 285.25], 7.0, 1.5), trees([26.75, 6.0, 13.25], 6.5, 1.0), -5), bush([10.2, 9.55, 0.75], 7.0, 1.5), -10), -6), -24)
+# 정련 콤비나트 "작은 해 용광로" = 바람 + 먼 용광로 숨 (열풍기 −43센트 A2 · 900 Hz 아래 −4 dB) — 가까운 해 웅 · 국자 · 크레인은 이미 3D (5-2), 바탕은 "굉음" 대신 먼 따뜻한 숨.
+p8_heat = repitch_loop(hpc(rchain("heater", "heater", [55.0, 62.75, 45.5], 6.865, 1.5), 40), -43)
+save(P8_S + "scape_refine_bed_loop.wav", low_shelf(layer(air([159.75, 20.0, 43.0], 7.0, 1.5), lpc(p8_fit(p8_heat), 900), -4), -6), -24)
+# 연구원 "별빛 데이터 미로" = 바람 (밤 공기 + 덤불 −8) + 파2 전기 웅 −12 dB (1.5 kHz 아래 — 랙 벽 너머 데이터 웅) — 랙 팬은 1단계 기계 방 바탕 (서버 팬)을 미로 고리에 3D로.
+save(P8_S + "scape_rinst_bed_loop.wav", low_shelf(layer(layer(air([189.0, 6.0, 63.75], 7.0, 1.5), bush([0.75, 10.2, 9.55], 7.0, 1.5), -8), lpc(p8_hum_f((13.0, 6.0, 13.0)), 1500), -12), -6), -24)
+# 치안 본부 (광장) = 광장 밤 공기 + 덤불 −6 + 가로등 · 청사 웅 (파2) −20 dB. 광장 웅성 (사람 층)은 주민 수에 따라 주민 쪽 (P6 crowd) 몫이라 바탕에 넣지 않음.
+save(P8_S + "scape_shq_bed_loop.wav", low_shelf(layer(layer(air([180.75, 285.25, 63.75], 7.0, 1.5), bush([10.2, 0.75, 9.55], 7.0, 1.5), -6), lpc(p8_hum_f((6.0, 13.0, 13.0)), 2000), -20), -6), -24)
+# 실드 돔 "오로라 등대" = 별빛 유리 바다 위 바람 (덤불 + 밤 공기 −3 + 나무 잎 −6 — 여덟 중 가장 바람결이 많음). 오로라 울림은 구역 2D 층 (밤에 세짐).
+save(P8_S + "scape_sdome_bed_loop.wav", low_shelf(layer(layer(bush([0.75, 9.55, 10.2], 7.0, 1.5), air([20.0, 43.0, 189.0], 7.0, 1.5), -3), trees([6.0, 13.25, 26.75], 6.5, 1.0), -6), -6), -24)
+# 저장 단지 "별빛 회전목마 창고" = 광장 밤 공기 + 창고 안 방 공기 (방 공기 −50센트 · 조 밖 줄 깎음 · 800 Hz 아래) −10 dB. 오르골은 회전목마가 돌 때만 (5-2 carousel_music_loop) — 바탕엔 음 없음.
+p8_room = notch_lines(repitch_loop(rchain("room_tone", "tone", [43.0, 16.0, 2.75], 6.843, 1.5), -50), [207, 414, 59, 118], 20, 2.0)
+save(P8_S + "scape_storc_bed_loop.wav", low_shelf(layer(air([285.25, 159.75, 88.5], 7.0, 1.5), lpc(hpc(p8_fit(p8_room), 40), 800), -10), -6), -24)
+
+# --- 그리드 허브 가끔 소리 ---
+# 짧은 천둥 둘 (탑 위 하늘, 2D처럼 멀리) = 바이오스피어와 같은 먼 천둥 녹음의 다른 순간 — 첫 굴림 (0 ~ 4초) · 뒤 작은 굴림 (4.6 ~ 9초), 1.5 kHz 아래 (번개 정원 하늘 저편).
+p8_th = load("Creatures/distant_thunder/thunder_000.00.wav")
+save_spot(P8_S + "scape_grid_thunder_01.wav", fade(lpc(hpc(sl(p8_th, 0.0, 4.0), 40), 1500), 0.05, 1.4))
+save_spot(P8_S + "scape_grid_thunder_02.wav", fade(lpc(hpc(sl(p8_th, 4.6, 9.0), 40), 1500), 0.3, 1.6))
+# 전구 꽃 "띵" (번개 나무 전구 꽃이 깜빡일 때, 음계 — 기준 도6) = 유리 결 도6 + 5도 옅게.
+save_spot(P8_S + "scape_grid_bulb_01.wav", fade(tones(1.2, [(0.0, p4_glass(P8_C6, 1.2, 0.22, 1)), (0.0, 0.3 * p4_glass(P8_C6 * 1.5, 1.0, 0.12, 2))]), 0.0, 0.3), -22)
+# 에너지 구 맥동 "우웅~" (탑 위 에너지 구, 음계 — 기준 파3) = 파3 · 도4 · 파4 부드러운 패드가 0.9초에 차올라 잦아듦 + 테슬라 코일 "부르르" 옅게.
+p8_sw = sx_pad([53, 60, 65], 3.2, 0.9, 0.7, 4.0, 3, 0.2)
+p8_tz = load("Machines/tesla_coil/tesla_022.00.wav")[: len(p8_sw)]
+p8_sw = p8_sw / rms(p8_sw) + 0.25 * lpc(p8_tz, 1800) / rms(p8_tz) * np.minimum(1, np.arange(len(p8_sw)) / (0.9 * SR)) * np.exp(-np.maximum(0, np.arange(len(p8_sw)) / SR - 0.9) / 0.7)
+save_spot(P8_S + "scape_grid_swell_01.wav", fade(p8_sw, 0.0, 0.6), -22)
+
+# --- 궤도 미러 가끔 소리 ---
+# 빛 울림 화음 (빛기둥이 모이는 해 우물 · 집광탑 둘레, 낮, 음계 — 기준 파5) = 유리 결 파5 → 도6 → 파6 굴림 (반의 반 박 0.17초씩, 으뜸 · 5도 · 옥타브).
+save_spot(P8_S + "scape_mirror_chord_01.wav", fade(tones(2.6, [(0.0, p4_glass(698.46, 2.2, 0.6, 1)), (0.17, 0.7 * p4_glass(P8_C6, 2.0, 0.5, 2)), (0.34, 0.5 * p4_glass(P8_F6, 1.8, 0.45, 3))]), 0.0, 0.8), -22)
+# 유리 꽃잎 사르륵 둘 (거울 데이지 · 해바라기 화단, 낮 / 실드 돔 별빛 유리 바다도 같이) = 아주 짧은 유리 결 서넛 (파7 · 도8 · 라7 / 도8 · 파7 · 솔7 · 파7) + 짧은 잔향.
+# 뺀 시안: 실제 유리 두드림 조각 (Steps/glass_taps) 이음 — 높이가 제각각이라 조 밖 짤랑 · 시작 1.7 ms 날 섬 (audit 찰랑 29 ~ 32).
+P8_P = [2793.83, 4186.01, 3520.0, 3135.96]   # 파7 · 도8 · 라7 · 솔7
+p8_pg = lambda f, p8_s: p4_glass(f, 0.3, 0.05, p8_s) * np.minimum(1, np.arange(int(0.3 * SR)) / (0.004 * SR))
+save_spot(P8_S + "scape_mirror_petal_01.wav", fade(distant(tones(0.9, [(0.0, p8_pg(P8_P[0], 1)), (0.12, 0.7 * p8_pg(P8_P[1], 2)), (0.27, 0.5 * p8_pg(P8_P[2], 3))]), 0.45, 41), 0.002, 0.3), -22)
+save_spot(P8_S + "scape_mirror_petal_02.wav", fade(distant(tones(0.9, [(0.0, 0.8 * p8_pg(P8_P[1], 4)), (0.09, p8_pg(P8_P[0], 5)), (0.22, 0.6 * p8_pg(P8_P[3], 6)), (0.38, 0.35 * p8_pg(P8_P[0], 7))]), 0.45, 42), 0.002, 0.3), -22)
+# 혼천의 고리 "스르륵" (해 우물 혼천의 · 방사선 차폐벽 전시 회랑 혼천의 · 천구의, 도는 고리) = 낮은 공기 휙 (닫힌 방 넓은 공간 꾸러미와 같은 녹음)을 3반음 낮춰 1.5 kHz 아래 +
+# 고리가 도는 결 (1.6 Hz로 크기 ±25 %), 녹음 속 줄 (507 · 838 · 1014 · 1983 Hz → 낮춘 자리)은 깎음.
+# 뺀 시안: 차 선루프 모터 위잉 5반음 내림 (G4+28 · F#3 줄 — 조 밖 위잉, ring 52).
+p8_arm = pitch(rpc("low_whoosh", "whoosh", 0.0), -3)
+p8_arm = p8_arm * (1 + 0.25 * np.sin(2 * np.pi * 1.6 * np.arange(len(p8_arm)) / SR))
+save_spot(P8_S + "scape_mirror_armillary_01.wav", shot(p8_arm, hp=80, lp=1500, fin=0.2, fout=0.8, lead=False, lines=tuple(f * 2 ** (-3 / 12) for f in (507, 838, 1014, 1983))))
+# (뺀 것) 별 관측경 돌림 "끼릭" — 크랭크 녹음이 바닥 −18 dB · 끽 1218 Hz (Eb6−37, 조 밖) → 밤은 "거울 접힘 · 조용"대로 바람만.
+
+# --- 방사선 차폐벽 가끔 소리 ---
+# 풍경 셋 (석등 · 처마 · 달문 앞, 낮밤 — 밤엔 드물게) = 큰 오음계 풍경 (A 장조 오음계 라 · 시 · 도# · 미 · 파#)을 4반음 내려 F 오음계 (파 · 솔 · 라 · 도 · 레)로 —
+# 녹음이 계속 울려 (바닥 −21 dB) 한 줄기 바람 = 5.5 ~ 6.5초 조각 + 앞 0.3초 · 뒤 2.5초 페이드, 3.5 kHz 아래 (높은 배음 C#8 4.5 kHz 누름). 박만 맞춤 (Tonal, Notes = 기준음 하나).
+# 뺀 후보: 도자기 풍경 (A6 · Bb6 · 5 ~ 9 kHz 밝은 짤랑 — 조 밖), 대나무 풍경 (서로 부딪는 나무 "톡톡"이 끊이지 않음), 작은 풍경 (밝고 촘촘한 짤랑).
+for p8_k, p8_st in enumerate(("000.00", "044.50", "080.50")):
+    p8_ch = pitch(load(f"{P8_O}chimes/chime_{p8_st}.wav"), -4)
+    save_spot(P8_S + f"scape_radwall_chime_0{p8_k + 1}.wav", fade(lpc(hpc(p8_ch, 200), 3500), 0.3, 2.5 if p8_k < 2 else 1.2))
+# 찻잔 (달맞이 찻집) = 닫힌 방 생활 꾸러미의 그릇 내려놓음 (spot_life_0_01 · 02) 그대로 — 받은 도자기 짤랑 (876 Hz 라5 + 2173 Hz C#7−35 조 밖 · 지직 59 · ring 13)은 뺌.
+# 병풍 별 반짝 (병풍 별 Stars가 반짝일 때, 음계 — 기준 파6) = 반딧불 결 반짝 파6 + 옅게 한 번 더.
+save_spot(P8_S + "scape_radwall_star_01.wav", place(twinkle(P8_F6, 0.9, 11), twinkle(P8_F6, 0.9, 12) * 0.45, 0.17), -22)
+
+# --- 정련 콤비나트 가끔 소리 ---
+# 먼 망치 "똑" (격납고 정비대 저편, 박에 맞춤 — Notes = 기준음 하나) = 먼 망치질 녹음에서 한 줄 끝 한 번 (다음 내려침 없이 꼬리 0.56초, 234 · 256 Hz 나무 결) · 2.5 kHz 아래 · 짧은 잔향.
+# 반복감은 큐 음높이로. 뺀 조각: 3.10초 (판에 가로줄 — 못이 울리는 결, ring 24).
+save_spot(P8_S + "scape_refine_hammer_01.wav", shot(distant(load(f"{P8_O}hammer/hammer_011.80.wav"), 0.35, 52), hp=90, lp=2500, tame_db=3, fout=0.25))
+# 광석 통 덜그럭 (격납고 광석 통) = 상자 흔들림 "달그락" + 작은 돌 구름 셋 (3 kHz 아래 · 날 끝 누름 — 처음 판 시작 1.6 ms 날 섬).
+p8_st0 = [load(f"Steps/small_stones/stones_{p8_s}.wav") for p8_s in ("00.295", "02.710", "07.210")]
+p8_ore = tones(0.9, [(0.0, load("ExtObjects/box_rattle/rattle_012.10.wav")), (0.08, 0.5 * p8_st0[0]), (0.21, 0.4 * p8_st0[1]), (0.33, 0.3 * p8_st0[2])])
+save_spot(P8_S + "scape_refine_ore_01.wav", shot(peak_soft(p8_ore, 8), hp=90, soft=3000, lp=3000, tame_db=4, fin=0.012, fout=0.3, lead=False))
+# 주괴 기념탑 금빛 반짝 (견학 광장, 음계 — 기준 도6) = 유리 결 도6 → 솔6 (5도) 반짝.
+save_spot(P8_S + "scape_refine_ingot_01.wav", place(twinkle(P8_C6, 1.0, 21), twinkle(P8_C6 * 1.5, 0.9, 22) * 0.55, 0.12), -22)
+
+# --- 연구원 가끔 소리 ---
+# 데이터 반짝 둘 (미로 바닥 길잡이 점을 따라 빛 알갱이가 지날 때, 음계 — 기준 도6) = 유리 결 도6 → 솔6 · 도6 → 도7 빠른 두 음 (0.07초).
+save_spot(P8_S + "scape_rinst_data_01.wav", fade(tones(0.9, [(0.0, 0.8 * p4_glass(P8_C6, 0.6, 0.12, 4)), (0.07, p4_glass(P8_C6 * 1.5, 0.8, 0.2, 5))]), 0.0, 0.25), -22)
+save_spot(P8_S + "scape_rinst_data_02.wav", fade(tones(0.9, [(0.0, 0.8 * p4_glass(P8_C6, 0.6, 0.12, 6)), (0.07, 0.9 * p4_glass(P8_C6 * 2, 0.8, 0.18, 7))]), 0.0, 0.25), -22)
+
+# --- 치안 본부 가끔 소리 ---
+# 호루라기 "삐익" (광장 순찰 대원, 음계 박만 — 기준 파6) = 장난감 피리 (Eb6+41센트 1274 Hz)를 +1.59반음 정확한 파6으로, 4.5 kHz 아래 · 짧은 잔향 (광장 저편).
+save_spot(P8_S + "scape_shq_whistle_01.wav", shot(distant(pitch(load(f"{P8_O}whistle/whistle_000.00.wav"), 12 * np.log2(P8_F6 / 1274.0)), 0.3, 61), hp=300, lp=4500, fout=0.25))
+# 무전 "치익 — 삐" 둘 (청사 현관 · 순찰차 둘레, 음계 — 기준 도6) = AM 무전 잡음 0.3초 (400 Hz ~ 2.8 kHz, 말소리 없는 구간) + 신호 삐 도6 · 레6.
+p8_am = load("RoomObj/am_tuning/am_015.50.wav")
+for p8_k, p8_a in enumerate((0.4, 1.3)):
+    p8_s = lp2d(highpass(highpass(sl(p8_am, p8_a, p8_a + 0.32), 400), 400), 2800)
+    p8_s = fade(p8_s / rms(p8_s), 0.01, 0.08)
+    p8_x = tones(0.75, [(0.0, 0.5 * p8_s), (0.30, 1.1 * signal_beep(P8_C6, 70 + p8_k)[: int(0.3 * SR)])])
+    save_spot(P8_S + f"scape_shq_radio_0{p8_k + 1}.wav", fade(p8_x, 0.002, 0.12))
+
+# --- 실드 돔 가끔 소리 ---
+# 실드 일렁 "우웅~" 둘 (돔 껍질 쪽 · 등대 둘레, 음계 박만 — 기준 레4) = 레4 · 라4 · 레5 (바깥 오로라와 같은 음) 막 울림이 1.2초에 차올라 잦아듦 + 7 Hz "쉬르르" 결 (P4 실드 단계 결).
+for p8_k in range(2):
+    p8_t = np.arange(int(3.6 * SR)) / SR
+    p8_sh = p4_swell([(293.66, 1.0), (440.0, 0.6), (587.33, 0.35)], 3.6, 1.2, 0.9, 6.0, 81 + p8_k)
+    p8_rng = np.random.default_rng(83 + p8_k)
+    p8_nz = lpc(hpc(p8_rng.standard_normal(len(p8_t)), 600), 2200) * (0.6 + 0.4 * np.sin(2 * np.pi * 7.0 * p8_t)) * np.minimum(1, p8_t / 1.2) * np.exp(-np.maximum(0, p8_t - 1.2) / 0.9)
+    save_spot(P8_S + f"scape_sdome_shimmer_0{p8_k + 1}.wav", fade(p8_sh / rms(p8_sh) + 0.35 * p8_nz / rms(p8_nz), 0.0, 0.8), -22)
+# 오로라 반짝 (밤, 오로라 커튼 아래, 음계 — 기준 파6) = 반짝 파6 → 도7 (5도) → 파7 (옥타브) 흩어짐.
+save_spot(P8_S + "scape_sdome_aurora_01.wav", tones(1.6, [(0.0, twinkle(P8_F6, 0.9, 31)), (0.16, 0.6 * twinkle(P8_F6 * 1.5, 0.9, 32)), (0.36, 0.35 * twinkle(P8_F6 * 2, 0.9, 33))]), -22)
+
+# --- 저장 단지 가끔 소리 ---
+# 자동 선반 레일 "스르륵" (창고 둘 안) = 철제 서랍 미끄러짐 (닫힌 방 생활 꾸러미와 같은 녹음 · 앞 0.9초만 — 닫히는 "툭" 전) 2.5 kHz 아래.
+save_spot(P8_S + "scape_storc_shelf_01.wav", shot(sl(load("RoomAmb/file_cabinet/file_034.05.wav"), 0.0, 0.9), hp=80, lp=2500, fin=0.05, fout=0.35, lead=False))
+# 캡슐 내리는 자리 공기 "치익" (창고 출입구 · 집게 팔 아래) = 김 빼는 소리 (Build2/steam_release) 1.1초, 3 kHz 아래.
+save_spot(P8_S + "scape_storc_capsule_01.wav", shot(sl(load("Build2/steam_release/steam_000.90.wav"), 0.0, 1.1), hp=150, lp=3000, fin=0.02, fout=0.4, lead=False))
+# 매표소 작은 종 "딸랑" (매표소, 음계 — 기준 파6) = 수정 꽃 종 결 파6 두 번 (0.12초, 두 번째 옅게).
+save_spot(P8_S + "scape_storc_bell_01.wav", fade(tones(1.8, [(0.0, flower_bell(P8_F6, 1.6, 91)), (0.12, 0.55 * flower_bell(P8_F6, 1.6, 92))]), 0.0, 0.5), -22)
+
+# --- 닫힌 방 밤 층 (기본 · 1단계 방 바탕 12종, SOUND_LIST_NEW 4-4 ③ — 규칙 = Interior/InteriorNightLayer) ---
+# 새 루프는 두 성격만: 생활 = 불 끈 숙소 (방 공기를 600 Hz 아래로 + 먼 안정기 웅 Bb2 −14 dB — 공조만 낮게 도는 밤 방, 낮 바탕과 교차),
+# 물 · 식물 = 수경 재배실 밤 풀벌레 아주 옅게 (낮 바탕 위에 겹침 — 바이오스피어 · 수리 사령부와 같은 녹음의 다른 조각 섞음, 4.5 kHz 아래).
+# 나머지 (기계 · 고열 · 전기 · 넓은 공간)는 바탕을 낮추고 가끔 소리를 드물게 (규칙만 — 같은 방 소리가 조용해지는 쪽이 자연스러움).
+p8_ntone = notch_lines(repitch_loop(rchain("room_tone", "tone", [2.75, 43.0, 16.0], 6.843, 1.5), -50), [207, 414, 59, 118], 20, 2.0)
+p8_nhum = notch_lines(repitch_loop(hpc(rchain("ballast_hum", "hum", [13.0, 6.0, 13.0], 6.84, 1.5), 40), -51), BB_OFF, 24, 2.0)
+save("Interior/night_life_loop.wav", low_shelf(layer(lpc(hpc(p8_fit(p8_ntone), 40), 600), lpc(p8_fit(p8_nhum), 1500), -14), -6), -28)
+save("Interior/night_water_loop.wav", lpc(crickets([121.25, 7.25, 110.5], 7.0, 1.5), 4500), -30)
+
+# ================= 주민 소리 — 종족 목소리 · 웅성 · 활동 (SOUND_LIST_NEW 4-3 voice_* · crowd_* / 4-4 act_* · D-2 · D-5 ④ · D-11, 2026-11-26 작업자 P6) =================
+# 동물 주민 8종 (AnimalModelSet: rabbit · cat · dog · bear · fox · panda · koala · penguin) × 기분 4 (happy · upset · ask · surprise) × 2 = 64 + 웅성 3 + 활동 21.
+# 원본 = CC0 실제 녹음 (AudioOriginals/Residents/<녹음>/, SOURCE.txt) — VARCO는 이 밤 IP 막힘 ("IP address not allowed")으로 못 씀, 합성은 쓰지 않음.
+# 종족마다 녹음 하나 (한 종족 = 목소리 하나, 기분은 같은 목소리의 다른 울음 · 높이 · 높이 곡선으로) — 실제 동물 녹음은 고양이 (새끼 고양이)만 귀엽게 맞고
+# 나머지는 사운드 디자이너의 동물 흉내 · 장난감 (Designer's Choice 만화 · 장난감 범주, 모두 CC0)이 실제 녹음보다 귀여움:
+#   고양이 = 새끼 고양이 야옹 (Cat 0.78 ~ 0.80 — D6 1200 Hz는 날카로워 5반음 내림) · 강아지 = 강아지 짖음 · 낑 흉내 (Dog 0.46 ~ 0.63) ·
+#   여우 = 강아지 낑낑 흉내 (D5, 짧게 내려가는 "켕") · 판다 · 곰 = 아기 염소 매애 흉내 (Bleat · Goat — 판다 새끼도 매애 하고 욺, 곰은 6반음 낮고 둥글게) ·
+#   코알라 = 같은 염소 흉내를 Bb4 · 콧소리 띠 (아기 양 흉내는 짧게 쓰면 Speech 0.9 — 말소리) · 펭귄 = 오리 피리 (장난감 꽥) · 토끼 = 고무 장난감 삑 한 덩이 (AI Animal 0.70 · Dog 0.53 — 작은 동물 "깽"으로 들림).
+# 뺀 후보: 실제 강아지 낑낑 (Owl · Humming · Baby cry로 들리는 울음이 많음) · 실제 슬픈 야옹 (G#4 — 새끼 고양이와 다른 고양이) · 생쥐 찍찍 흉내 (A6 ~ B6 잡음 —
+# 한 옥타브 내리면 Owl 0.5 ~ 0.7) · 병아리 · 고슴도치 · 새끼 고양이 흉내 (Speech 0.3 ~ 0.8 — 사람 말소리로 들림) · 아기 양을 6 ~ 8반음 내림 (Speech 0.17 ~ 0.65) ·
+# 강아지 낑낑을 7 ~ 9반음 내린 곰 (Humming · Female singing) · 돼지 꿀꿀 흉내 (Burping) · 장난감 고무 오리 (Honk · Goose).
+# 음이 있는 울음은 내부 F 장조 안으로: 울음마다 f0 (에너지 가중 중앙, MIDI — p6w/tools/vtable.py로 잼)를 재서 목표 음 (아래 표의 마지막 수, MIDI)까지 재생 높이째 옮김
+# (길이 · 결이 함께 바뀜 — 작은 동물일수록 짧고 가볍게). 음이 없는 울음 (짖음 · 꽥 · 삑)은 반음 수 그대로 (표의 "s" = 반음).
+# 종족 기본 높이: 곰 C4 · 판다 E4 · 코알라 Bb4 · 펭귄 (음 없음) · 강아지 C5 · 여우 D5 · 고양이 A5 · 토끼 (음 없음, 가장 작음) — decisions.md S-27.
+# 기분 = 같은 목소리의 모양: happy = 짧은 둘 (두 번째가 2도 위 "뀨뀨") · ask = 끝이 올라감 (원래 오르는 울음 또는 끝 45 %부터 +2 ~ +4반음) ·
+# upset = 2 ~ 3음 낮고 끝이 내려감 · 더 어둡게 · surprise = 짧고 2 ~ 3음 높게 (켜짐 4 ms 넘게 — 날 선 딸깍 X).
+P6R = "Residents/"
+P6V = "Interior/Residents/"
+P6_CACHE = {}
+
+
+def p6_src(folder, a, b):
+    """AudioOriginals/Residents/<폴더>/의 조각 (이름 끝 = 원본 시작초) 중 a ~ b초를 담은 것에서 그 구간."""
+    if folder not in P6_CACHE:
+        d = os.path.join(HERE, P6R + folder)
+        P6_CACHE[folder] = [(float(n.rsplit("_", 1)[1][:-4]), load(f"{P6R}{folder}/{n}")) for n in sorted(os.listdir(d)) if n.endswith(".wav")]
+    for s, x in P6_CACHE[folder]:
+        if s - 1e-6 <= a and s + len(x) / SR + 0.03 >= b:   # 한 번 소리 파일 통째 조각은 메타 길이보다 몇 ms 짧음
+            i = int(round((a - s) * SR))
+            return x[i:i + int(round((b - a) * SR))].copy()
+    raise ValueError(f"{folder}: {a} ~ {b} 조각 없음")
+
+
+def p6_lp(x, fc, times=2):
+    for _ in range(times):
+        x = onepole_lp(x, fc)
+    return x
+
+
+def p6_glide(x, st, at=0.45):
+    """끝 쪽 (at 비율부터) 높이를 st 반음까지 부드럽게 미끄러뜨림 — 원본 자리에 따라 재생 빠르기를 바꿔 다시 읽음 (오르면 짧아짐)."""
+    n = len(x)
+    out, p = [], 0.0
+    while p < n - 2:
+        out.append(p)
+        k = min(1.0, max(0.0, (p / n - at) / (1 - at)))
+        p += 2 ** (st * k * k * (3 - 2 * k) / 12)
+    return np.interp(out, np.arange(n), x)
+
+
+def p6_call(folder, a, b, f0, target, glide=0.0, at=0.45, head=None, skip=0.0):
+    """울음 하나: a ~ b초 중 skip초 뒤부터 (head = 그 뒤 몇 초만) → f0 (MIDI, None = 음 없음이면 target이 반음 수)에서 target (MIDI)으로 옮김 → 끝 glide 반음.
+    skip = 앞머리 건너뜀 — 염소 매애 흉내의 앞 0.1 ~ 0.15초 (자음 같은 시작)를 짧게 쓰면 AI가 말소리로 들음 (Speech 0.45 ~ 0.91 → 가운데부터 0.02 ~ 0.09)."""
+    x = p6_src(folder, a + skip, b)
+    if head:
+        x = x[:int(head * SR)]
+    if not skip:
+        x = trim_lead(x, -36)
+    x = fade(x, 0.012 if skip else 0.005, min(0.06, len(x) / SR * 0.35))
+    x = pitch(x, target if f0 is None else target - f0)
+    if glide:
+        x = p6_glide(x, glide, at)
+    return x
+
+
+def p6_join(parts, gap=0.05):
+    """짧은 울음들을 gap초 사이로 이음 (happy "뀨뀨")."""
+    out = []
+    for i, p in enumerate(parts):
+        if i:
+            out.append(np.zeros(int(gap * SR)))
+        out.append(p)
+    return np.concatenate(out)
+
+
+def p6_ear(x, mean=False):
+    """게임 안 녹음 검수와 같은 눈금: 0.25초 Hanning 창 귀 감도 (A) 파워 — 앞뒤에 고요를 둬 짧은 소리도 창 가운데로 (apk.apeak는 앞을 채우지 않아
+    0.2초 울음이 3 ~ 7 dB 작게 잡힘 — 겪은 일 2026-11-25 ④). mean = 창 평균 (루프)."""
+    N = int(0.25 * SR)
+    f = np.maximum(np.fft.rfftfreq(N, 1 / SR), 1.0)
+    f2 = f * f
+    W = ((12194.0 ** 2 * f2 * f2) / ((f2 + 20.6 ** 2) * np.sqrt((f2 + 107.7 ** 2) * (f2 + 737.9 ** 2)) * (f2 + 12194.0 ** 2)) / 0.7943) ** 2
+    y = x if mean else np.concatenate([np.zeros(N // 2), x, np.zeros(N // 2)])
+    win = np.hanning(N)
+    v = [(np.abs(np.fft.rfft(y[i:i + N] * win)) ** 2 * W).sum() / N for i in range(0, len(y) - N + 1, N // 10)]
+    return 10 * np.log10((np.mean(v) if mean else max(v)) + 1e-12)
+
+
+def p6_save_ear(rel, x, target):
+    """한 번 소리 저장 — 게임 안 눈금 (p6_ear)이 target이 되게 (게임 안 크기 ≈ target + 20 log10(음량) − 2.8). 피크 −1 dB를 넘으면 센 순간을 먼저 누름 (12 dB까지)."""
+    g = 10 ** ((target - p6_ear(x)) / 20)
+    over = 20 * np.log10(np.abs(x).max() * g + 1e-12) + 1.0
+    if over > 0.3:
+        x = peak_soft(x, min(12.0, over + 0.5))
+        g = 10 ** ((target - p6_ear(x)) / 20)
+    save(rel, x, 20 * np.log10(win_max(x, 0.05) + 1e-12) + 20 * np.log10(g))
+    report[-1] += f"  ear {p6_ear(np.clip(x * g, -0.891, 0.891)):.1f}"
+
+
+def p6_voice(name, x, hp, lp, dark=False):
+    """다듬어 저장: 낮은 쪽 정리 · 고음 둥글게 (upset는 더 어둡게) · 끝 페이드 · 게임 안 눈금 18로 같게 — 종족 높이 · 길이가 달라도 같은 크기로 들림 (곰 C4 · 0.2초 놀람도)."""
+    x = highpass(x, hp)
+    x = p6_lp(x, lp * (0.7 if dark else 1.0))
+    x = tame(x, 2.0, 0.004, 0.05)
+    x = np.concatenate([fade(x, 0.004, min(0.08, len(x) / SR * 0.3)), np.zeros(int(0.05 * SR))])
+    p6_save_ear(P6V + name + ".wav", x, 18.0)
+
+
+# 표: 종족 → (폴더, 높이 낮은 쪽 · 높은 쪽 거름 Hz, {울음 이름: (시작, 끝, f0 MIDI 또는 None)})
+P6_GOAT = {"g1": (1.01, 1.75, 66.07), "g2": (4.49, 5.30, 66.12), "g3": (5.72, 6.40, 66.58), "g4": (6.88, 7.78, 67.21), "g5": (9.30, 10.06, 66.66)}
+P6_SRC = {
+    "cat": ("kitten", 160, 4500, {
+        "k1": (3.56, 4.07, 87.74), "k2": (5.12, 5.79, 86.48), "k3": (6.71, 7.18, 86.59), "k5": (16.21, 16.78, 86.97), "k7": (21.52, 21.86, 86.65),
+        "k8": (24.27, 24.66, 86.70), "k9": (25.09, 26.28, 85.12), "k10": (27.25, 27.88, 86.31)}),
+    "dog": ("puppy_imitation", 180, 4500, {
+        "y1": (0.01, 0.16, None), "y2": (5.68, 5.82, 68.27), "y3": (6.38, 6.50, None), "y4": (13.37, 13.51, 69.73), "y5": (14.09, 14.23, 70.35),
+        "r3": (20.76, 20.90, 83.15), "f1": (17.41, 17.82, 79.42), "f3": (27.16, 27.78, 78.68), "h1": (9.30, 9.44, 82.31), "h2": (23.66, 23.80, 81.04)}),
+    "fox": ("dog_whine_imitation", 300, 4500, {
+        "w1": (0.00, 0.24, 74.60), "w3": (0.67, 0.93, 74.64), "w4": (1.07, 1.47, 73.59), "w5": (2.40, 2.58, 74.25), "w6": (3.62, 3.81, 74.16),
+        "w8": (7.17, 7.34, 74.12), "w9": (9.12, 9.28, 74.12), "w10": (13.59, 13.86, 74.07), "w11": (18.24, 18.46, 75.80), "w12": (13.17, 13.54, 69.25)}),
+    "bear": ("goat_kid_imitation", 90, 1600, P6_GOAT),
+    "panda": ("goat_kid_imitation", 120, 3000, P6_GOAT),
+    "koala": ("goat_kid_imitation", 300, 2200, P6_GOAT),
+    "penguin": ("duck_whistle", 200, 3500, {
+        "q1": (0.01, 0.27, None), "q2": (0.28, 0.48, None), "q3": (1.98, 2.13, None), "q4": (2.16, 2.33, None), "q5": (2.37, 2.54, None),
+        "q6": (2.58, 2.76, None), "q7": (2.79, 2.97, None)}),
+    "rabbit": ("squeeze_toy", 300, 4000, {
+        "s1": (0.02, 0.17, None), "s2": (0.37, 0.52, None), "s3": (0.70, 0.84, None), "s4": (1.05, 1.18, None), "s5": (1.66, 1.80, None),
+        "s7": (2.25, 2.42, None), "s8": (3.62, 3.82, None), "s9": (3.98, 4.18, None), "s10": (4.48, 4.62, None)}),
+}
+P6_PEN = {"sq1": ("duck_whistle_single1", 0.0, 0.42), "sq2": ("duck_whistle_single2", 0.0, 0.36), "sq3": ("duck_whistle_squawk", 0.0, 0.98)}
+
+# 잘라 쓴 조각 (앞머리 건너뜀 · 앞 몇 초만)은 통울음과 높이가 달라 (염소 가운데 = 0.3 ~ 1.5반음 높음) 그 조각을 다시 잰 값 (p6w/tools/f0fix.py) — (종족, 울음, 몇 초만, 건너뜀): MIDI
+P6_F0FIX = {
+    ('bear', 'g2', 0.26, 0.12): 66.52,
+    ('bear', 'g3', 0.2, 0.15): 67.13,
+    ('bear', 'g3', 0.24, 0.15): 67.36,
+    ('cat', 'k10', 0.3, 0): 85.71,
+    ('cat', 'k9', 0.75, 0): 85.62,
+    ('koala', 'g2', 0.24, 0.12): 66.51,
+    ('koala', 'g2', 0.5, 0.08): 66.45,
+    ('koala', 'g3', 0.22, 0.15): 67.36,
+    ('koala', 'g3', 0.45, 0.05): 67.0,
+    ('koala', 'g4', 0.18, 0.1): 69.12,
+    ('koala', 'g4', 0.45, 0.05): 67.67,
+    ('panda', 'g2', 0.18, 0.12): 66.45,
+    ('panda', 'g3', 0.2, 0.15): 67.13,
+    ('panda', 'g3', 0.45, 0.05): 67.0,
+    ('panda', 'g4', 0.2, 0.1): 68.5,
+    ('panda', 'g4', 0.5, 0.05): 67.67,
+}
+
+
+def p6_c(sp, key, target, glide=0.0, head=None, skip=0.0):
+    folder, _, _, calls = P6_SRC[sp]
+    if key in P6_PEN:
+        f, a, b = P6_PEN[key]
+        return p6_call(f, a, b, None, target, glide, 0.45, head, skip)
+    a, b, f0 = calls[key]
+    f0 = P6_F0FIX.get((sp, key, head, skip), f0)
+    return p6_call(folder, a, b, f0, target, glide, 0.45, head, skip)
+
+
+# 기분마다 (울음 이름, 목표 MIDI 또는 음 없는 울음의 반음, 끝 미끄럼 반음, 몇 초만, 앞머리 건너뜀) — 한 줄 = 파일 하나. happy는 둘 (토끼는 둘 · 셋)을 이음.
+# 고친 것 (AI 첫 판): 염소 짧은 머리 (곰 · 판다 happy · surprise) Speech 0.33 ~ 0.91 → 가운데 조각 · 아기 양 흉내 (코알라 첫 판) Speech 0.29 ~ 0.93 → 염소 (가운데) ·
+# 강아지 낑을 6 ~ 7반음 내린 upset Owl 0.40 → 2 ~ 3반음만 · 여우 낑에 +3 ~ +4 미끄럼 (ask) Animal 0.04 ~ 0.08 → 원래 오르는 낑 + 1 ~ 2 ·
+# 새끼 고양이 머리 (surprise_02) Owl 0.83 → 다른 울음 · 고무 삑 4반음 내림 (토끼 upset) Owl → 2반음 · 고무 삑 s2 ~ s4 · s10 Goose · Honk → s8 · s9.
+P6_MOODS = {
+    # 고양이 A5 (81): 새끼 고양이 D6 근처 → 3 ~ 8반음 내림 (날 선 1.2 kHz를 부드럽게). upset = 내려가는 야옹 G5 · F5 (더 낮고 길게).
+    "cat": {"happy": [[("k7", 81, 0, 0.26, 0), ("k8", 84, 0, 0.24, 0)], [("k10", 81, 0, 0.30, 0), ("k8", 84, 0, 0.24, 0)]],
+            "ask": [[("k10", 81, 2.0, None, 0)], [("k7", 81, 3.0, None, 0)]],
+            "upset": [[("k2", 79, -1.5, None, 0)], [("k9", 77, -1.0, 0.75, 0)]],
+            "surprise": [[("k8", 86, 0, 0.22, 0)], [("k7", 86, 0, 0.22, 0)]]},
+    # 강아지 C5 (72): 짧은 "왕" (음 없는 짖음은 반음 그대로 · A4 · Bb4 짖음은 C5 · D5로), 낑 (높은 흉내 G5 ~ B5)은 2 ~ 5반음 내림.
+    "dog": {"happy": [[("y1", 0, 0, None, 0), ("y3", 2, 0, None, 0)], [("y2", 72, 0, None, 0), ("y1", 2, 0, None, 0)]],
+            "ask": [[("r3", 76, 1.5, None, 0)], [("h1", 77, 3.0, None, 0)]],
+            "upset": [[("f3", 77, -1.0, None, 0)], [("f1", 76, -1.0, None, 0)]],
+            "surprise": [[("h2", 79, 0, None, 0)], [("y1", 4, 0, None, 0)]]},
+    # 여우 D5 (74): 낑낑 흉내 그대로의 높이 — 짧게 내려가는 "켕", 얇게 (300 Hz 아래 정리).
+    "fox": {"happy": [[("w3", 74, 0, None, 0), ("w6", 77, 0, None, 0)], [("w8", 76, 0, None, 0), ("w5", 79, 0, None, 0)]],
+            "ask": [[("w12", 74, 1.0, None, 0)], [("w10", 74, 2.0, None, 0)]],
+            "upset": [[("w4", 72, -1.5, None, 0)], [("w3", 72, -1.5, None, 0)]],
+            "surprise": [[("w11", 79, 0, 0.2, 0)], [("w1", 77, 0, 0.2, 0)]]},
+    # 곰 C4 (60): 아기 염소 F#4를 6반음 내림 · 1.6 kHz 아래로 둥글게 "음~" (낮고 길게 끌면 무서워져서 0.24 ~ 0.6초로 자름).
+    "bear": {"happy": [[("g1", 60, 0, 0.26, 0.10), ("g2", 64, 0, 0.26, 0.12)], [("g3", 62, 0, 0.24, 0.15), ("g5", 65, 0, 0.24, 0.15)]],
+             "ask": [[("g5", 62, 2.0, 0.5, 0.05)], [("g1", 60, 3.0, 0.45, 0.05)]],
+             "upset": [[("g4", 58, -2.0, 0.6, 0.05)], [("g2", 57, -2.0, 0.55, 0.08)]],
+             "surprise": [[("g3", 67, 0, 0.2, 0.15)], [("g2", 65, 0, 0.2, 0.12)]]},
+    # 판다 E4 (64): 같은 아기 염소 (판다 · 곰 = 같은 곰과) 2반음만 내림 · 3 kHz 아래 — 곰보다 4반음 높고 짧고 밝게 "매".
+    "panda": {"happy": [[("g2", 64, 0, 0.22, 0.12), ("g4", 67, 0, 0.2, 0.10)], [("g5", 65, 0, 0.22, 0.15), ("g3", 69, 0, 0.2, 0.15)]],
+              "ask": [[("g5", 64, 3.0, 0.45, 0.05)], [("g3", 65, 2.0, 0.45, 0.05)]],
+              "upset": [[("g4", 60, -2.0, 0.5, 0.05)], [("g1", 62, -3.0, 0.5, 0.05)]],
+              "surprise": [[("g2", 69, 0, 0.18, 0.12)], [("g5", 72, 0, 0.18, 0.15)]]},
+    # 코알라 Bb4 (70): 같은 아기 염소를 3 ~ 4반음 올리고 300 Hz ~ 2.2 kHz 콧소리 띠 ("코알라 곰" — 곰 · 판다와 한 가족 결, 높이 · 띠로 가름).
+    "koala": {"happy": [[("g1", 70, 0, 0.24, 0.10), ("g3", 72, 0, 0.22, 0.15)], [("g2", 69, 0, 0.24, 0.12), ("g5", 72, 0, 0.22, 0.15)]],
+              "ask": [[("g3", 69, 3.0, 0.45, 0.05)], [("g4", 70, 2.0, 0.45, 0.05)]],
+              "upset": [[("g5", 67, -2.0, 0.5, 0.05)], [("g2", 65, -2.0, 0.5, 0.08)]],
+              "surprise": [[("g4", 74, 0, 0.18, 0.10)], [("g1", 76, 0, 0.18, 0.10)]]},
+    # 펭귄 (음 없음): 오리 피리 꽥 — 반음 수 그대로 (upset = 3반음 낮고 어둡게, surprise = 꽉 앞머리 2반음 위).
+    "penguin": {"happy": [[("q3", 0, 0, None, 0), ("q4", 2, 0, None, 0)], [("q6", 0, 0, None, 0), ("q7", 2, 0, None, 0)]],
+                "ask": [[("sq1", 0, 3.0, None, 0)], [("q1", 0, 4.0, None, 0)]],
+                "upset": [[("q6", -3, -2.0, None, 0)], [("q2", -3, -2.0, None, 0)]],
+                "surprise": [[("sq3", 2, 0, 0.25, 0)], [("q5", 3, 0, None, 0)]]},
+    # 토끼 (음 없음, 가장 작음): 고무 삑 한 덩이 — happy는 둘 · 셋 "뀨뀨(뀨)", upset은 2반음 낮게 내려감.
+    "rabbit": {"happy": [[("s8", -2, 0, None, 0), ("s9", 0, 0, None, 0)], [("s8", -2, 0, None, 0), ("s9", -1, 0, None, 0), ("s8", 0, 0, None, 0)]],
+               "ask": [[("s8", -1, 4.0, None, 0)], [("s9", -1, 3.0, None, 0)]],
+               "upset": [[("s7", -2, -3.0, None, 0)], [("s5", -2, -2.0, None, 0)]],
+               "surprise": [[("s1", 2, 0, None, 0)], [("s9", 2, 0, 0.15, 0)]]},
+}
+for sp, moods in P6_MOODS.items():
+    _, hp_, lp_, _ = P6_SRC[sp]
+    for mood, rows in moods.items():
+        for i, parts in enumerate(rows, 1):
+            xs = [p6_c(sp, k, t, g, h, sk) for k, t, g, h, sk in parts]
+            x = p6_join(xs, 0.05 if sp != "rabbit" else 0.035) if len(xs) > 1 else xs[0]
+            p6_voice(f"voice_{sp}_{mood}_{i:02d}", x, hp_, lp_, dark=(mood == "upset"))
+
+# --- 웅성 (crowd_1 ~ 3_loop — D-5 ④ 사람 층, 그 방에 깨어 있는 주민 수로 0 ~ 3단계 교차, 2D · 바탕 위에 작게) ---
+# 식당 · 바 웅성 실제 녹음 (154초, 스마트폰 — 크기 흔들림 3 ~ 9 dB로 고름)의 다른 세 자리 (10 · 50 · 95초부터 34초).
+# 말이 안 들리게: 한 자리만 거르면 1 kHz 아래로도 AI Speech 0.78 ~ 0.86 (말 흐름이 남음) → 세 자리를 서로 다른 때로 돌려 (고리째 밀어 이음새 그대로) 겹쳐
+# 목소리가 많아지게 하고 0.85 ~ 1.1 kHz 아래로 — 위 단계가 아래 단계를 품게 (ext_hum과 같은 생각 — 섞이는 동안 결이 안 바뀜):
+# 1 = 셋째 자리를 expander로 성기게 (두세 명이 조용히) · 2 = 둘째 + 셋째 (7초 밀어) + 1 (−4 dB) · 3 = 셋 모두 (11 · 21초 밀어) + 2 (−2 dB) — 모두 32초 고리 (D-2 30초 넘게).
+# 뺀 후보: 볼링장 웅성 (공 · 핀 부딪힘 최대 − 중앙 6 ~ 16 dB) · 축제 웅성 (회전목마 음악 Music 0.57).
+P6_W = [loop_exact(highpass(p6_src("restaurant_walla", s, s + 33.5), 90), 32.0) for s in (10.0, 50.0, 95.0)]
+P6_roll = lambda x, sec: np.roll(x, int(sec * SR))
+p6_c1 = lpc(expander(P6_W[2], 9.0, 2.5, 0.01, 0.25, -30.0), 850)
+p6_c2 = layer(lpc(P6_W[1] / rms(P6_W[1]) + P6_roll(P6_W[2], 7.0) / rms(P6_W[2]), 1000), p6_c1, -4)
+p6_c3 = layer(lpc(P6_W[0] / rms(P6_W[0]) + P6_roll(P6_W[1], 11.0) / rms(P6_W[1]) + P6_roll(P6_W[2], 21.0) / rms(P6_W[2]), 1100), p6_c2, -2)
+save(P6V + "crowd_1_loop.wav", p6_c1, -26)
+# 게임 안 (slot3): 1단계 (휴게실 · 상업 · 거주 3 ~ 6명) 음악 + 바탕보다 평균 −10 · 3단계 (궤도 도시 22명) −11.5 → 여덟 넘게 모이는 방은 2단계 이상 큰 방 (바탕 · 소리 풍경이
+# 기본 방보다 약 6 dB 큼)이라 2단계 +2 · 3단계 +5 dB.
+save(P6V + "crowd_2_loop.wav", p6_c2, -21)
+save(P6V + "crowd_3_loop.wav", p6_c3, -15)
+
+# --- 활동 (act_* — D-11, 그 주민 자리 3D · 아주 작게 · 지금 있는 방만) ---
+# 걷기 = 작은 발 "톡" 여섯 (초 단위로 몰려 D-2 변형 6): 바닥별 발소리와 같은 권투 장갑 부딪힘 녹음 (Steps/boxing_glove)의 다른 순간을 6반음 올려 짧고 가볍게.
+for i, t in enumerate(("00.175", "01.223", "04.791", "06.572", "07.994", "23.856"), 1):
+    x = pitch(load(f"Steps/boxing_glove/glove_{t}.wav"), 6.0)
+    x = fade(peak_soft(p6_lp(highpass(x, 160), 2800), 5.0), 0.003, 0.04)   # 켜짐 1.7 ms (audit 날카로움) → 1 ms 앞을 보는 최대치 5 dB
+    p6_save_ear(P6V + f"act_walk_small_{i:02d}.wav", np.concatenate([x, np.zeros(int(0.03 * SR))]), 6.0)
+# 앉기 · 일어서기 = 소파 방석 "푹" (실제 녹음 — 앉음 0.6초 · 일어남): 동물 몸이라 4 ~ 6반음 올려 가볍게, 120 Hz 아래 정리 (원래 162 Hz 무게중심 — 낮은 "쿵"이 되지 않게).
+x = p6_src("couch_sit", 0.0, 0.75)
+p6_save_ear(P6V + "act_sit_01.wav", fade(p6_lp(low_shelf(highpass(pitch(x, 4.0), 120), -6, 160, 320), 3500), 0.004, 0.2), 10.0)
+p6_save_ear(P6V + "act_sit_02.wav", fade(p6_lp(low_shelf(highpass(pitch(x, 6.0), 120), -6, 160, 320), 3500), 0.004, 0.2), 10.0)
+x = p6_src("couch_getoff", 0.0, 1.0)
+p6_save_ear(P6V + "act_sit_03.wav", fade(p6_lp(low_shelf(highpass(pitch(x, 4.0), 120), -6, 160, 320), 3500), 0.004, 0.25), 10.0)
+# 먹기 = 그릇 · 접시 "달그락" (실제 녹음 접시 쌓기의 작은 부딪힘 셋) — 5 kHz 아래 · 센 곳 4 dB 눌러 찰랑 없이.
+for i, (a, b) in enumerate(((4.98, 5.32), (8.98, 9.32), (19.04, 19.48)), 1):
+    x = p6_src("plate_stack", a, b)
+    p6_save_ear(P6V + f"act_eat_{i:02d}.wav", fade(p6_lp(tame(highpass(x, 200), 4.0), 5000), 0.003, 0.12), 16.0)
+# 일하기 = 키보드 톡톡 (실제 녹음 0.9 ~ 1.1초 셋) · 공구 = 현장 수리와 같은 래칫 렌치 (한 물건 = 소리 하나)의 다른 순간 "딸깍딸깍" 0.45초.
+for i, (a, b) in enumerate(((0.80, 1.80), (2.70, 3.70), (5.15, 6.25)), 1):
+    x = p6_src("typing", a, b)
+    p6_save_ear(P6V + f"act_work_{i:02d}.wav", fade(peak_soft(p6_lp(highpass(x, 250), 6000), 5.0), 0.01, 0.15), 12.0)
+# 래칫은 0.5초 창으로 AI를 밀어 Mechanisms 0.72 ~ 0.76 · Ratchet 0.57 ~ 0.66인 1.00 ~ 1.20초 (첫 판 0.3 · 72.8 + 0.5초는 Scissors · Frog 0.46 · Burping).
+for i, a in enumerate((1.00, 1.10, 1.20), 1):
+    x = load("Tasks/ratchet_wrench/wrench_004.80.wav")[int(a * SR):int((a + 0.5) * SR)]
+    p6_save_ear(P6V + f"act_work_tool_{i:02d}.wav", fade(peak_soft(high_shelf(highpass(x, 150), -4, 6000, 12000), 5.0), 0.01, 0.12), 12.0)   # 딸깍 고음 = 렌치의 얼굴 — 로우패스 (4.5 kHz)면 Burping 0.12
+# 잠 = 작은 숨 "쌔근" (실제 녹음 깊은 숨 들이쉬고 내쉼 하나) — 몸 크기별 셋: 01 = 곰 · 판다 · 코알라 (+3반음) · 02 = 강아지 · 여우 · 펭귄 (+5) · 03 = 고양이 · 토끼 (+6 — +7은 Gasp 0.53 "헉"),
+# 2.5 kHz 아래 · 150 Hz 위 (콧바람 "킁"이 날 서지 않게), 같은 사람의 한 숨이라 반복감은 큐 쉬는 시간 · 음높이 ±3 %로.
+x = p6_src("breath", 0.0, 2.95)
+for i, st in enumerate((3.0, 5.0, 6.0), 1):
+    p6_save_ear(P6V + f"act_sleep_{i:02d}.wav", fade(p6_lp(highpass(pitch(x, st), 150), 2500), 0.45, 0.5), 18.0)   # 들숨을 0.45초에 걸쳐 열어 "헉" (Gasp 0.68) 없이
+# 놀기 = 오락실 놀이 도구 (실제 녹음 체스 말 · 카드 섞기 · 주사위) — 웃음은 그 방 주민의 happy 목소리가 맡음 (놀이 방에서 가끔).
+# 체스 앞 0.85초는 말이 구르는 "드르르"가 AI Cat 0.32 ~ 0.63 · Purr (고양이 가르랑으로 들림) → 0.85초 뒤 "딱 · 딱"만.
+x = p6_src("chess_pieces", 0.0, 1.5)
+p6_save_ear(P6V + "act_play_01.wav", fade(p6_lp(tame(highpass(x[int(0.85 * SR):int(1.45 * SR)], 200), 3.0), 5000), 0.003, 0.15), 15.0)
+x = p6_src("card_shuffle", 0.0, 1.4)
+p6_save_ear(P6V + "act_play_02.wav", fade(p6_lp(highpass(x[:int(0.75 * SR)], 250), 5000), 0.003, 0.2), 15.0)
+x = p6_src("dice_roll", 0.0, 1.5)
+p6_save_ear(P6V + "act_play_03.wav", fade(peak_soft(p6_lp(tame(highpass(x, 200), 4.0), 5000), 5.0), 0.003, 0.2), 15.0)
+
+# ================= 2단계 소리 풍경 ① — 아콜로지 · 바이오돔 · 화물 환적장 · 시민 회관 · 드론 정비창 · 식량 공장 · 요새 포대 · 융합 플랜트 · 대형 토러스 (SOUND_LIST_NEW D-7 · 4-4, 2026-11-26 작업자 P7) =================
+# 방마다 RoomSoundscape SS_Evo<모듈>.asset 한 벌 (3단계 8곳 틀 그대로) — 바탕 루프 (2D) + 자리 루프 (3D) + 가끔 소리. 자리 · 음량 · 밤 · 쇼는 SS 에셋 쪽.
+# 원본 = archive.org "The Designer's Choice UCS Collection" (CC0) 조각 — AudioOriginals/Scape2/<녹음>/SOURCE.txt (새로 받은 13개) · Ambience/ (10번 A 바탕 조각을 다른 섞음으로) ·
+# Machines/ (10번 B RC 헬기). 후보 39개는 mp3로 훑고 (2초 창 PANNs) 고른 것만 flac. VARCO는 쓰지 않음.
+# 음 있는 소리 = F 장조 (내부 음악 D 단조 · F 장조) — 합성 유리 결 · 실제 녹음은 높이를 재서 조 안으로 (SS 에셋 Tonal = 다음 박 · 오음계 칸).
+# 다른 방 소리를 다시 쓴 것 (SS 에셋만): 궤도 도시 옥상 바람 · 창 불빛 웅웅 · 수리 사령부 잎 · 반딧불 · 부엉이 · 바이오스피어 풀벌레 · 폭포 · 비 · 개구리 · 궤도 항만 석호 · 물고기 ·
+# 궤도 방어망 등대 렌즈 · AI 중추 책장 · 1단계 가끔 소리 꾸러미 (서랍 · 그릇 · 물방울 · 분무 · 김 · 지직 · 금속 툭 · 데이터 삐빅) · 체험 소리 (관람차 삐걱 · 은하철도 칙칙폭폭 — 3D로).
+# 뺀 후보: 식당 웅성 (900 Hz로 걸러도 Speech 0.6 ~ 0.9 · 배경 음악 Music 0.1 ~ 0.35 — 사람 웅성은 사람 층 crowd 몫) · RC 드론 (Music 0.69 · 치과 드릴) · 카니발 (Music · Speech) ·
+# 환기 휘파람 · 바람 기계 (Vehicle · Snort — 바람으로 안 들림) · 흉내지빠귀 (Animal · Pour) · 체인 (Scissors) · 비눗방울 기계 (모터 Vehicle · Power tool) · 큰 깃발 펄럭 (Flap 0.01 — 아래) ·
+# 큰 종 Big Ben · 교회 종 (부분음 A3+44 · C5−34 · Ab4 / D5+20 · C#6 · B5−34 — 조 밖) · 장난감 배 클랙슨 (Eb · Ab) · 욕조 거품 (Toilet flush) · 그릇 · 양동이 물방울 (Glass · Clock · Music) ·
+# 여름 낮 · 저녁 풀벌레 (Vehicle · Writing — 이미 쓰는 밤 풀벌레가 나음) · 동전 분수 (Speech 0.45) · 비둘기 날갯짓 (흉내 낸 녹음, Machine gun 0.23 ~ 0.32).
+# 전역 이름이 다른 구역과 섞이지 않게 만드는 줄은 p7_build() 안 (겪은 일 11-26 P4 ⑧).
+P7 = "Scape2/"
+P7I = "Interior/"
+P7F5, P7A5, P7C6, P7F6 = 698.46, 880.0, 1046.5, 1396.91
+
+
+def p7p(folder, pre, start, a=None, b=None):
+    x = load(f"{P7}{folder}/{pre}_{start:06.2f}.wav")
+    return x if a is None else sl(x, a, b)
+
+
+def p7air(starts, seg=7.0, xf=1.5):
+    """밤 바깥 공기 (10번 A night_air 조각) — 넓은 곳 바람 몸통 (조각 여섯 = 33초)."""
+    return air(starts, seg, xf)
+
+
+def p7fit(x, ref):
+    return ext_fit(x, len(ref))
+
+
+def p7loop_int(x, length):
+    """앞 length초 + 0.8초 겹침 고리 (loop_exact)."""
+    return loop_exact(x, length)
+
+
+def p7_flock(order, gap, seed):
+    """새 떼 지나감 — 되새 울음을 gap초씩 엇갈려 겹치고 (떼) 1.3초에 차올랐다 잦아듦 (지나감)."""
+    y = np.zeros(int(2.6 * SR))
+    for k, s in enumerate(order):
+        y = place(y, highpass(p7p("finch", "finch", s), 1000) * (0.55 + 0.15 * ((k + seed) % 3)), 0.1 + k * gap)
+    y = y[: int(2.6 * SR)]
+    return y * np.interp(np.arange(len(y)) / SR, [0, 0.5, 1.3, 2.6], [0.4, 1.0, 1.0, 0.0])
+
+
+def p7_pop(f, dur=0.22, seed=0):
+    """비눗방울 "퐁" — 위에서 살짝 내려앉는 사인 (12 ms) + 2배음 옅게, 0.05초에 꺼짐."""
+    t = np.arange(int(dur * SR)) / SR
+    bend = 2 ** (1.2 * np.exp(-t / 0.012) / 12)
+    ph = 2 * np.pi * np.cumsum(f * bend) / SR + seed
+    return (np.sin(ph) + 0.18 * np.sin(2 * ph) * np.exp(-t / 0.04)) * (1 - np.exp(-t / 0.0015)) * np.exp(-t / 0.05)
+
+
+def p7_build():
+    """2단계 소리 풍경 ① 파일 40개."""
+    # ---------- 바탕 루프 9 (2D, 33초 = 밤 공기 조각 여섯 × 5.5초 — 겹치는 층은 모두 같은 길이로, 겪은 일 11-24 ③) ----------
+    # 아콜로지 "높은 곳 바람 · 먼 도시 공기" (유리 알 안) = 밤 공기 (먼 웅 · 공기) + 나무 잎 −10 dB, 2.5 kHz 위 누름 (유리 너머) · 낮은 웅 −6 dB 셸프. AI Wind · Waves 0.13 ~ 0.14, 분홍 잡음 0.06.
+    P7_air_a = p7air([6.0, 20.0, 43.0, 63.75, 88.5, 159.75])
+    x = layer(P7_air_a, p7fit(trees([13.25, 21.0, 0.75], 5.0, 1.2), P7_air_a), -10)
+    save(P7I + "scape_arco_bed_loop.wav", low_shelf(lpc(x, 2500), -6), -24)
+    # 바이오돔 "잔잔한 바람 · 잎" = 덤불 바람결 + 밤 공기 −2 + 나무 잎 −6 (정원이라 잎이 앞으로). AI Waves 0.39 · Wind 0.25, 분홍 0.01.
+    P7_air_b = p7air([189.0, 285.25, 180.75, 20.0, 6.0, 63.75])
+    x = layer(layer(p7fit(bush([8.5, 0.75, 13.5, 10.2], 5.0, 1.2), P7_air_b), P7_air_b, -2), p7fit(trees([26.75, 6.0, 13.25, 0.75], 5.0, 1.2), P7_air_b), -6)
+    save(P7I + "scape_bdome_bed_loop.wav", x, -24)
+    # 화물 환적장 "물살 · 항구" = 수영장 물 졸졸 + 통 속 물 휘돌림 −4 + 항구 바람 (밤 공기) −6, 전기 웅 줄 깎음. AI Stream 0.19 · Pour · Water · Trickle.
+    P7_air_c = p7air([88.5, 159.75, 6.0, 285.25, 43.0, 189.0])
+    wat = layer(rchain("pool_trickle", "trickle", [8.0, 18.0, 25.25, 4.0, 21.5, 27.25], 5.0, 1.2), p7fit(rchain("water_swirl", "swirl", [173.25, 140.5, 183.0], 5.0, 1.2), np.zeros(int(22.8 * SR))), -4)
+    x = layer(p7fit(wat, P7_air_c), P7_air_c, -6)
+    save(P7I + "scape_cargo_bed_loop.wav", hpc(notch_lines(x, [60, 120, 180, 240, 360, 480], 18, 1.5), 60), -24)
+    # 시민 회관 "넓은 홀 공기" = 조용한 방 공기 + 먼 환풍기 (room_tone — 생활 방 바탕과 같은 녹음의 다른 다섯 순간, 같은 −50센트 · 줄 깎기로 조 안), 32.5초.
+    # AI Microwave oven 0.21 · Mechanical fan · Air conditioning. 사람 웅성은 사람 층 (crowd) 몫 — 상영 중 조용해짐은 SS 에셋 (BedShow · ShowGain).
+    x = notch_lines(repitch_loop(chain_loop([p7p("room_tone2", "tone", s, 0.0, 8.0) for s in (32.5, 59.5, 24.0, 51.0, 68.0)], 1.5), -50), [207, 414, 59, 118], 20, 2.0)
+    save(P7I + "scape_civic_bed_loop.wav", low_shelf(hpc(x, 40), -6), -26)
+    # 드론 정비창 "격납고 공기 · 먼 드론 날개" = 방 공기 (같은 녹음 다른 셋) + 먼 드론 웅 (RC 헬기 떠 있음 조각을 800 Hz 아래로) −12 + 밤 공기 −8. AI Vehicle 0.21 · Air conditioning 0.16.
+    P7_air_d = p7air([43.0, 189.0, 285.25, 88.5, 20.0, 159.75])
+    tone = p7fit(notch_lines(repitch_loop(chain_loop([p7p("room_tone2", "tone", s, 0.0, 8.0) for s in (24.0, 68.0, 51.0)], 1.5), -50), [207, 414, 59, 118], 20, 2.0), P7_air_d)
+    hov = p7fit(lpc(hpc(mrchain("rc_heli_hover", "hover", [5.75, 10.0], 4.0, 1.0), 80), 800), P7_air_d)
+    x = layer(layer(tone, hov, -12), P7_air_d, -8)
+    save(P7I + "scape_ddepot_bed_loop.wav", low_shelf(hpc(x, 40), -6), -25)
+    # 식량 공장 "갑판 바람 · 유리 공장 공기" = 밤 공기 + 덤불 바람결 −6 + 방 공기 (유리 너머 공장, 드론 정비창과 같은 층) −8. AI Vehicle 0.40 · Train 0.15 (먼 공장 웅).
+    P7_air_e = p7air([20.0, 63.75, 159.75, 88.5, 285.25, 6.0])
+    x = layer(layer(P7_air_e, p7fit(bush([13.5, 10.2, 0.75], 5.0, 1.2), P7_air_e), -6), tone, -8)
+    save(P7I + "scape_food_bed_loop.wav", low_shelf(x, -4), -24)
+    # 요새 포대 "성벽 바람 · 먼 축제 웅성" = 밤 공기 + 덤불 바람결 −5 + 나무 잎 −8 + 먼 박수 · 환호 (500 Hz 아래 + 멀리) −18. AI Waves 0.32 · Wind 0.26, 분홍 0.02.
+    # 나무 잎 −3 · 박수 −12인 첫 판은 Pink noise 0.16 ~ 0.18 (높은 잎 쉬— · 500 Hz 아래 고른 박수) → 덤불 바람결로.
+    P7_air_f = p7air([285.25, 6.0, 88.5, 43.0, 180.75, 63.75])
+    fest = p7fit(distant(lpc(chain_loop([p7p("applause", "appl", 2.0), p7p("applause", "appl", 30.0)], 1.5), 500), 0.5, 7), P7_air_f)
+    x = layer(layer(layer(P7_air_f, p7fit(bush([0.75, 13.5, 8.5], 5.0, 1.2), P7_air_f), -5), p7fit(trees([6.0, 26.75, 21.0, 13.25], 5.0, 1.2), P7_air_f), -8), fest, -18)
+    save(P7I + "scape_fort_bed_loop.wav", x, -24)
+    # 융합 플랜트 "따뜻한 플라스마 험 · 온실 공기" = 온실 공기 (밤 공기) + 안정기 웅을 F2로 (120 Hz → 87.3 Hz, −551센트 — 배음 1 · 2 · 3 · 4 · 5 · 6 · 8 · 9 · 10 · 12 · 15 = F · C · A · G · E,
+    # 조 밖 7 · 11 · 13 · 14 · 17 …배는 깎음) 800 Hz 아래 −6 dB. 웅 몸통 + 공기 −4 + 물 졸졸 −14인 첫 판은 Pour 0.33 · Singing bowl 0.28 → 웅을 밑으로 · 졸졸 뺌 (Vehicle 0.23 · Gong 0.08).
+    P7_air_g = p7air([159.75, 43.0, 6.0, 189.0, 63.75, 20.0])
+    F2 = 87.307
+    hum = repitch_loop(hpc(rchain("ballast_hum", "hum", [6.0, 13.0], 7.0, 1.5), 40), 1200 * np.log2(F2 / 120.0))
+    hum = notch_lines(hum, [F2 * k for k in (7, 11, 13, 14, 17, 19, 21, 22, 23)], 24, 2.0)
+    x = layer(P7_air_g, p7fit(lpc(hum, 800), P7_air_g), -6)
+    save(P7I + "scape_fplant_bed_loop.wav", x, -21)   # −26이면 게임 안 루프 − 음악 −14.4 dB (다른 방 −6 ~ −9) → 원본을 키움 (음량이 1에 닿지 않게)
+    # 대형 토러스 "밤 역 · 유리 지붕 아래" (늘 밤) = 밤 공기 + 잔디 풀벌레 −14 (동네 고리), 3 kHz 위 누름 (유리 지붕 안). AI Vehicle 0.17 · Outside, rural 0.09.
+    P7_air_h = p7air([180.75, 63.75, 285.25, 20.0, 159.75, 88.5])
+    x = layer(P7_air_h, p7fit(crickets([7.25, 121.25, 110.5], 7.0, 1.5), P7_air_h), -14)
+    save(P7I + "scape_torus_bed_loop.wav", low_shelf(lpc(x, 3000), -6), -24)
+
+    # ---------- 자리 루프 (3D) ----------
+    # 거품 기둥 (바이오돔 산소 기둥 셋 · 융합 플랜트 물 캡슐 둘 · 거품 기둥 둘) = 가는 거품 고리 녹음 (Bubbles, Water, Thin) + 꾸르륵 거품 −6, 6.5초. AI Pour 0.45 · Water 0.37.
+    # 같은 물건 (거품 기둥)이라 두 방이 같은 소리 — 자리마다 재생 높이로 구분 (SS 에셋 Pitch).
+    b1 = p7loop_int(hpc(p7p("bubbles_thin", "bub", 0.0), 150), 6.5)
+    b2 = p7fit(hpc(p7p("bubbles_gurgle", "gurg", 0.0, 0.5, 13.5), 150), b1)
+    save(P7I + "scape_s2_bubbles_loop.wav", layer(b1, b2, -6), -22)
+    # 화물 환적장 회전 못 휘돌이 (등대 아래) = 통 속 물 휘돌림 (10번 A water_swirl 다른 순서) 11.4초, 전기 웅 줄 깎음. AI Water 0.18 · Trickle (Vehicle 0.23).
+    # 동전 분수 (Coin Fountain, Looped)를 3 kHz 아래로 한 첫 판은 Speech 0.45 (꿀렁임이 말소리로).
+    save(P7I + "scape_cargo_swirl_loop.wav", hpc(notch_lines(rchain("water_swirl", "swirl", [183.0, 140.5, 173.25], 5.0, 1.2), [60, 120, 180, 240, 360, 480], 18, 1.5), 60), -24)
+    # 대형 토러스 시계탑 째깍 (시계 방) = 벽시계 (MCU_Wall) 1초마다 째깍 · 딱 — 8초 = 째깍 8번 (이음새에서 박 그대로). AI Tick-tock 0.64 · Tick 0.52.
+    tk = p7p("wall_clock", "tick", 11.0)
+    save(P7I + "scape_torus_tick_loop.wav", lpc(hpc(p7loop_int(tk, 8.0), 200), 5000), -24)
+    # (뺀 것) 아콜로지 결정실 중력 결정 "웅" — F2 · C3 · F3 사인 겹침 + 공기 결은 사인을 50 → 18 %로 줄여도 Gong 0.83 → 0.68 (징이 계속 울리는 소리) → 결정실은 반짝 · 유리 알 울림 가끔 소리로.
+    # (뺀 것) 요새 포대 깃발 펄럭 — 큰 깃발 녹음 (AI Flap 0.01, 범주를 못 가림)을 4 kHz 아래로 = Vehicle · Skateboard · Walk, footsteps 0.20, 2.5 kHz 아래 · 바람 밑 −8 dB =
+    # Eruption 0.20 · Explosion · Artillery fire (펄럭 덩어리가 먼 쿵으로), 센 펄럭 한 번 = Sliding door 0.24 · Door → 성벽 바람 (바탕 + 능보 바람 자리 루프)으로만.
+
+    # ---------- 가끔 소리 (모노 3D, 귀 감도 A 0.25초 최대 −20 dBFS로 저장 — 1단계 꾸러미와 같은 눈금, 음 있는 소리는 −22) ----------
+    # 아콜로지 섬 나무 새 = 되새 (House Finch) 지저귐 둘 — 녹음 속 손 · 바람 "쿵" (50 ~ 160 Hz)이 많아 1 kHz 아래 두 번 거름. AI Chirp, tweet 0.63 · 0.72.
+    save_spot(P7I + "scape_arco_bird_01.wav", shot(p7p("finch", "finch", 7.6), hp=1000, soft=7000, fout=0.2))
+    save_spot(P7I + "scape_arco_bird_02.wav", shot(p7p("finch", "finch", 14.6), hp=1000, soft=7000, fout=0.25))
+    # 아콜로지 새 떼 지나감 = 되새 울음 넷 · 다섯을 0.24 · 0.28초씩 엇갈려 겹침. AI Chirp 0.33 · 0.52 · Bird 0.32 · 0.51. 비둘기 날갯짓 (흉내 낸 녹음)을 얹은 첫 판은 Machine gun 0.23 ~ 0.32 · Gunshot.
+    save_spot(P7I + "scape_arco_flock_01.wav", shot(p7_flock((41.5, 48.9, 7.6, 37.9), 0.24, 0), hp=1000, soft=7000, fout=0.5, lead=True))
+    save_spot(P7I + "scape_arco_flock_02.wav", shot(p7_flock((37.9, 7.6, 48.9, 41.5, 14.6), 0.28, 1), hp=1000, soft=7000, fout=0.5, lead=True))
+    # 아콜로지 유리 알 울림 (음계) = 유리 종 한 번 침 (2.89초, 기음 2465 Hz = Eb7 −16센트) → 9.83반음 내려 F6 (1396.9 Hz) — 길게 남는 큰 유리 울림. BaseNote 89. AI Bell 0.57 · Glass 0.49.
+    g = p7p("glass_bell", "glass", 0.0, 2.85, 4.35)
+    save_spot(P7I + "scape_arco_glass_01.wav", shot(pitch(lpc(g, 9000), 12 * np.log2(1396.91 / 2465.5)), hp=200, fout=0.6), -22)
+    # 바이오돔 큰 돔 숲 새 = 굴뚝새 (Carolina Wren) "찌르 찌르" 소절 셋 (바닥 −43 dB로 깨끗) — 1.5 kHz 아래 거름. AI Bird 0.42 ~ 0.47.
+    for k, s in enumerate((4.5, 9.2, 36.45)):
+        save_spot(P7I + f"scape_bdome_bird_{k + 1:02d}.wav", shot(p7p("wren", "wren", s), hp=1500, soft=7000, fout=0.25))
+    # 바이오돔 비눗방울 "퐁" (음계) = 아주 작은 유리 "퐁" 파6 (p7_pop 0.22초) + 가는 거품 녹음 결 −18 dB. BaseNote 89. (0.2초 소리라 AI는 판정 못 함 — Silence · Music 0.14)
+    bub = p7_pop(1396.91, 0.22, 1)
+    bub = bub + 0.12 * highpass(p7p("bubbles_thin", "bub", 0.0, 2.0, 2.22), 800) * np.exp(-np.arange(len(bub)) / SR / 0.05)
+    save_spot(P7I + "scape_bdome_bubble_01.wav", fade(bub, 0.001, 0.08), -22)
+    # 화물 환적장 뱃고동 (음계 박) = 장난감 배 고동 (G4 · B4 · D5 = G 장조 화음) → 2.18반음 내려 F4 · A4 · C5 (F 장조 으뜸화음) + 멀리 (잔향) · 2 kHz 아래.
+    # AI Music 0.62 · Organ 0.07 (화음이라 음으로 들림 — 음악에 맞추는 디테일 "뱃고동 = 으뜸음"). 한 옥타브 더 내린 판은 Music 0.75 · Guitar · Distortion (더 나쁨).
+    hn = p7p("toy_boat_horn", "horn", 0.0)
+    save_spot(P7I + "scape_cargo_horn_01.wav", shot(distant(pitch(hn, 12 * np.log2(349.23 / 394.1)), 0.45, 5), hp=120, lp=2000, fout=0.5))
+    # 화물 환적장 부두 물 철썩 = 작은 물 튐 (0.9초, 무게중심 8.4 kHz로 밝음) → 3 · 6반음 내리고 3 · 2.5 kHz 위 누름. AI Water 0.24 · Liquid.
+    save_spot(P7I + "scape_cargo_slap_01.wav", shot(pitch(p7p("splash_small", "splash", 0.0), -3), hp=100, lp=3000, fout=0.3))
+    save_spot(P7I + "scape_cargo_slap_02.wav", shot(pitch(p7p("splash_small", "splash", 0.0), -6), hp=100, lp=2500, fout=0.3))
+    # 시민 회관 객석 좌석 "끄응" = 나무 문 긴 삐걱 둘 (Two, Long)의 앞 0.6초씩 → 3반음 내려 1.2 kHz 아래 나무 결 (0.7초). 3반음 올려 3 kHz 아래로 한 첫 판은
+    # Music 0.50 · Animal · Cat (삐걱 끝 맑은 삐—가 울음으로). 지금 판 AI Music 0.13 ~ 0.25 (짧아 판정 약함 — 판으로 삐— 줄 없음 확인).
+    cr = p7p("door_creak", "creak", 0.0)
+    save_spot(P7I + "scape_civic_seat_01.wav", shot(pitch(sl(cr, 0.0, 0.6), -3), hp=120, lp=1200, fout=0.25))
+    save_spot(P7I + "scape_civic_seat_02.wav", shot(pitch(sl(cr, 3.0, 3.6), -3), hp=120, lp=1200, fout=0.25))
+    # 시민 회관 의료동 돌봄 캡슐 "삐 · 빕" (음계) = 유리 결 두 음 (라5 → 도6, 부드럽게 0.6초) — 1단계 데이터 삐빅보다 느리고 둥글게. BaseNote 81.
+    save_spot(P7I + "scape_civic_care_01.wav", fade(tones(0.7, [(0.0, al_glass(P7A5, 0.35, 0.09, 1, 0.5, 0.008)), (0.16, 0.8 * al_glass(P7C6, 0.45, 0.12, 1, 0.5, 0.008))]), 0.002, 0.2), -22)
+    # 드론 정비창 드론 이륙 · 착륙 = RC 헬기 비행 조각 (10번 B rc_heli_fly)을 재생 빠르기로 — 이륙 = 0.8 → 1.02 · 차올랐다 멀어짐, 착륙 = 1 → 0.5 · 잦아듦. AI Vehicle 0.47 · 0.51.
+    # 이륙을 0.6 → 1.1로 넓게 한 첫 판은 Music 0.32 (미끄러지는 날개 음).
+    fly = mpiece("rc_heli_fly", "fly", 6.25, 4.0)
+    n = int(3.2 * SR)
+    up = vrate(np.tile(fly, 2), np.interp(np.arange(n) / SR, [0, 1.2, 3.2], [0.8, 1.0, 1.02]))
+    up *= np.interp(np.arange(n) / SR, [0, 0.6, 1.6, 3.2], [0.0, 1.0, 0.8, 0.0])
+    save_spot(P7I + "scape_ddepot_takeoff_01.wav", fade(lpc(hpc(up, 120), 2500), 0.01, 0.3))
+    n = int(2.8 * SR)
+    dn = vrate(np.tile(fly, 2), np.interp(np.arange(n) / SR, [0, 1.6, 2.8], [1.0, 0.75, 0.5]))
+    dn *= np.interp(np.arange(n) / SR, [0, 0.5, 1.8, 2.8], [0.0, 0.9, 0.7, 0.0])
+    save_spot(P7I + "scape_ddepot_land_01.wav", fade(lpc(hpc(dn, 120), 4000), 0.05, 0.4))
+    # 드론 정비창 충전 "삐" (음계) = 유리 결 두 음 올라감 (도6 → 파6, 4도) + 옅은 충전 웅 (C4 0.4초 차오름) — 4도 음형이라 오음계 칸으로 옮겨도 조 안. BaseNote 84. AI Chirp tone 0.23 · Music 0.30.
+    cw = np.sin(2 * np.pi * 261.63 * np.arange(int(0.5 * SR)) / SR) * np.interp(np.arange(int(0.5 * SR)) / SR, [0, 0.35, 0.5], [0, 0.25, 0])
+    save_spot(P7I + "scape_ddepot_charge_01.wav", fade(tones(0.9, [(0.0, cw), (0.34, al_glass(P7C6, 0.3, 0.07, 2, 0.6)), (0.48, al_glass(P7F6, 0.4, 0.1, 2, 0.6))]), 0.004, 0.2), -22)
+    # 드론 정비창 전동 드라이버 = 짧게 조이는 두 번 (0.94 · 0.74초), 5 kHz 위 누름. AI Drill 0.77 · 0.45 · Power tool.
+    sc = p7p("screwdriver", "screw", 26.0)
+    save_spot(P7I + "scape_ddepot_screw_01.wav", shot(sl(sc, 3.84, 4.9), hp=150, lp=5000, fout=0.12))
+    save_spot(P7I + "scape_ddepot_screw_02.wav", shot(sl(sc, 6.80, 7.65), hp=150, lp=5000, fout=0.12))
+    # 식량 공장 관람차 종 (음계) = 작은 유리 종 라6 (꽃 종 결 1.4초). BaseNote 93. AI Ding 0.69. 유리 종 녹음 다른 한 번 (6.40초)을 내린 첫 판은 Speech 0.81 (흔들린 종 떨림이 말소리로).
+    save_spot(P7I + "scape_food_bell_01.wav", fade(flower_bell(1760.0, 1.4, 5), 0.002, 0.4), -22)
+    # (뺀 것) 식량 공장 먼 놀이공원 환호 — 카니발 녹음 (아이들 환호)은 1.2 kHz 아래로 걸러도 Music 0.32 ~ 0.38 · Train (회전목마 선율), 박수 · 환호를 멀리 · 1 ~ 1.8 kHz 아래로 =
+    # Vehicle · Train (먼 차 소리로) → 뺌 (D-7 가끔 소리 = 관람차 삐걱 · 종 · 벨트 덜컹, 덜컹은 P5 방 장치).
+    # 요새 포대 함성 (쇼 동안) = 박수 · 환호가 차오르는 세 조각 (57.5 · 99.5 · 127.5초 — 잦아든 틈에서 다시 커짐), 0.4초 차오름 · 1초 잦아듦 + 멀리 · 3.5 kHz 아래. AI Applause 0.68 ~ 0.78 (Speech 0.19 ~ 0.39 = 외침).
+    for k, s in enumerate((57.5, 99.5, 127.5)):
+        c = p7p("applause", "appl", s)
+        c = c * np.interp(np.arange(len(c)) / SR, [0, 0.4, len(c) / SR - 1.0, len(c) / SR], [0.2, 1.0, 1.0, 0.0])
+        save_spot(P7I + f"scape_fort_cheer_{k + 1:02d}.wav", shot(distant(c, 0.4, 3 + k), hp=150, lp=3500, fin=0.05, fout=0.9, lead=False))
+    # 융합 플랜트 작은 별 화음 (음계) = 반딧불 결 셋 (으뜸 · 5도 · 옥타브 — 오음계 칸 어디로 옮겨도 조 안) 0.07초씩 엇갈려 + 옅은 패드 차오름. BaseNote 77. AI Ding 0.53 · Music 0.43.
+    pp = sx_pad([77, 84, 89], 1.6, 0.5, 0.6, 2.0, 1, 0.1) * 0.35
+    save_spot(P7I + "scape_fplant_star_01.wav", fade(tones(1.8, [(0.0, pp), (0.15, twinkle(P7F5, 1.2, 1)), (0.22, 0.7 * twinkle(P7C6, 1.1, 2)), (0.29, 0.5 * twinkle(P7F6, 1.0, 3))]), 0.01, 0.4), -22)
+    # 융합 플랜트 수소 풍선 끽 (풍선 수레) = 고무 문지름 짧은 둘 (0.42 · 0.47초, 원 녹음 Squeak 0.7) — 4 kHz 위 누름.
+    save_spot(P7I + "scape_fplant_balloon_01.wav", shot(p7p("rubber_squeak", "rub", 16.5, 0.0, 0.42), hp=300, lp=4000, fout=0.12))
+    save_spot(P7I + "scape_fplant_balloon_02.wav", shot(p7p("rubber_squeak", "rub", 5.5, 2.08, 2.55), hp=300, lp=4000, fout=0.12))
+    # 대형 토러스 역 안내 종 "딩 동 댕" (음계 박) = 유리 결 셋 내림 (도6 · 라5 · 파5, 0.42초 간격) — 1단계 먼 안내 종과 다른 세 음 음형. BaseNote 84. AI Music 0.67 · Doorbell 0.16.
+    save_spot(P7I + "scape_torus_chime_01.wav", fade(tones(2.4, [(0.0, al_glass(P7C6, 1.2, 0.35, 4, 0.6, 0.008)), (0.42, al_glass(P7A5, 1.2, 0.35, 4, 0.6, 0.008)), (0.84, al_glass(P7F5, 1.5, 0.45, 4, 0.6, 0.008))]), 0.002, 0.4), -22)
+    # (뺀 것) 대형 토러스 시계탑 종 — D-7 표에 없고, 합성 큰 종 (꽃 종 결 · 종 부분음 레 · 파 · 라)은 Singing bowl 0.50 · Sine wave 0.29 · Chirp tone, 실제 큰 종 녹음 둘은 부분음이 조 밖 → 째깍 루프로만.
+
+
+p7_build()
+
 print("\n".join(report))

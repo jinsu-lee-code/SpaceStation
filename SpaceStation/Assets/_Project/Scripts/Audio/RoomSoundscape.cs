@@ -33,7 +33,16 @@ namespace SpaceStation.Audio
             public bool Spatial = true;
             [Tooltip("이 이름의 방 안 물체에 붙어 함께 움직임 (예: 도는 구름 고리) — 비우면 제자리")]
             public string Follow;
+            // 2026-11-26 2단계 소리 풍경 (SOUND_LIST_NEW D-7, 작업자 P7): 쇼 · 탈것 · 움직임에 따라 크기
+            [Tooltip("그 방 쇼 (시민 회관 상영 · 드론 쇼 · 폭죽 쇼)가 도는 동안 음량 배율 (홀 웅성 = 0, 2초에 걸쳐 넘어감)")]
+            [Range(0f, 1f)] public float ShowGain = 1f;
+            [Tooltip("플레이어가 탈것에 탄 동안 음량 배율 (탄 쪽 2D 루프가 따로 있는 물체 = 0)")]
+            [Range(0f, 1f)] public float RideGain = 1f;
+            [Tooltip("0보다 크면 소리 자리가 움직인 빠르기 (m/s)만큼 크기 — 이 빠르기에서 1, 서 있으면 0 (Follow로 붙인 열차 · 곤돌라)")]
+            [Min(0f)] public float MotionMeters;
         }
+
+        public enum ShowPart { Any, During, NotDuring }
 
         [Serializable]
         public sealed class Scatter
@@ -52,6 +61,8 @@ namespace SpaceStation.Audio
             public bool Tonal;
             public int BaseNote = 72;
             public int[] Notes = Array.Empty<int>();
+            [Tooltip("그 방 쇼가 도는 동안만 (관객 감탄 · 함성) / 쇼가 없을 때만 / 늘 (2026-11-26 P7)")]
+            public ShowPart Show = ShowPart.Any;
         }
 
         public ModuleData Module;
@@ -59,12 +70,23 @@ namespace SpaceStation.Audio
         [Header("바탕 (방 전체, 2D 루프)")]
         public SoundCue Bed = new SoundCue { Bus = AudioBus.Ambient, Pitch = Vector2.one };
         [Range(0f, 1f)] public float BedNight = 0.6f;
+        [Tooltip("그 방 쇼 (시민 회관 상영 등)가 도는 동안 바탕 음량 배율 (2026-11-26 P7, 1 = 그대로)")]
+        [Range(0f, 1f)] public float BedShow = 1f;
 
         [Header("구역 물체 소리 (그 자리 3D 루프)")]
         public List<Emitter> Emitters = new List<Emitter>();
 
         [Header("가끔 소리")]
         public List<Scatter> Scatters = new List<Scatter>();
+
+        /// <summary>가끔 소리가 지금 나도 되는지 — 낮 · 밤 (When) · 쇼 (Show) 둘 다 맞아야 (2026-11-26 P7, EditMode RoomSoundscapeTests).</summary>
+        public static bool ScatterAllowed(DayPart when, ShowPart show, bool day, bool showing)
+            => !(when == DayPart.Day && !day) && !(when == DayPart.Night && day)
+               && !(show == ShowPart.During && !showing) && !(show == ShowPart.NotDuring && showing);
+
+        /// <summary>쇼 · 탈것 음량 배율 — showLevel · rideLevel (0 ~ 1, 넘어가는 정도)만큼 ShowGain · RideGain 쪽으로, 둘이 겹치면 곱.</summary>
+        public static float StateGain(float showGain, float rideGain, float showLevel, float rideLevel)
+            => Mathf.Lerp(1f, showGain, showLevel) * Mathf.Lerp(1f, rideGain, rideLevel);
 
         [Header("대표 선율 (들어설 때 한 번, 다음 박에)")]
         public SoundCue Motif = new SoundCue { Bus = AudioBus.Music, Pitch = Vector2.one };

@@ -2406,6 +2406,23 @@ MonoBehaviour:
   - {fileID: 11400000, guid: dfd12866aea30c24f956b4a3b290c2eb, type: 2}
   - {fileID: 11400000, guid: d6e5efa3cdddd4d4e8ea1377f2ea26cf, type: 2}
   - {fileID: 11400000, guid: 9664af49a683d61419472180b2347472, type: 2}
+  - {fileID: 11400000, guid: cfa69cec14076464499dd0bf5f3d0154, type: 2}
+  - {fileID: 11400000, guid: 71aac5fd0a7822a40a4f3a9f7e3bdf2a, type: 2}
+  - {fileID: 11400000, guid: c0fb23722cd3782479ed2be6cf1d867a, type: 2}
+  - {fileID: 11400000, guid: ed637fbd2a0fe15409a09bf1842a4bc9, type: 2}
+  - {fileID: 11400000, guid: eebb3610649144342a97a7bb2a60047d, type: 2}
+  - {fileID: 11400000, guid: 9f5249852a646484296c61979e2ba2d4, type: 2}
+  - {fileID: 11400000, guid: 80ff8ef6dae85724d902ca800f7f71e0, type: 2}
+  - {fileID: 11400000, guid: 090a688aaf4599745a320d036d83539a, type: 2}
+  - {fileID: 11400000, guid: 3877bcade4a68674cb95b3acd344a0d2, type: 2}
+  - {fileID: 11400000, guid: 72db8c4455292fe45bc3ce9e85bebdff, type: 2}
+  - {fileID: 11400000, guid: 318a9d84a712fcf40bb7dbc6499ba3cd, type: 2}
+  - {fileID: 11400000, guid: 3ac0eb0fce6962b46839a72a24ec2bb6, type: 2}
+  - {fileID: 11400000, guid: 22b238563485fe54aaaf4aa5c42c1c7e, type: 2}
+  - {fileID: 11400000, guid: b6f53e81583b8274ba73276d82ec0c7e, type: 2}
+  - {fileID: 11400000, guid: 45b4e20b817d6b04ca580a2beed2be41, type: 2}
+  - {fileID: 11400000, guid: 7a98ffbcf89de2c4b91f57c4517041a0, type: 2}
+  - {fileID: 11400000, guid: 1ac853cd0d17b1348ade1d50cd796624, type: 2}
   Room1Life:
     Clips:
     - {fileID: 8300000, guid: 7751dcf7f8eae4449b58b067c2ce5b49, type: 3}
@@ -2507,6 +2524,22 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 198b8047dc13b9443bca37a0b36d1e21, type: 3}
     Bus: 2
     Volume: 0.8
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0.05
+    MaxVoices: 3
+  NightLife:
+    Clips:
+    - {fileID: 8300000, guid: ce2659350ad8c2e47b3f43a6655a9f98, type: 3}
+    Bus: 2
+    Volume: 0.5
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0.05
+    MaxVoices: 3
+  NightWater:
+    Clips:
+    - {fileID: 8300000, guid: 6d4923295b3e6e14387170c0ab076590, type: 3}
+    Bus: 2
+    Volume: 0.3
     Pitch: {x: 1, y: 1}
     Cooldown: 0.05
     MaxVoices: 3
@@ -2613,4 +2646,411 @@ MonoBehaviour:
     Volume: 0.35
     Pitch: {x: 0.97, y: 1.03}
     Cooldown: 1
+    MaxVoices: 2
+  VoiceRabbit:
+    Happy:
+      Clips:
+      - {fileID: 8300000, guid: df87e6ced41f03b49939dd6f9def72f4, type: 3}
+      - {fileID: 8300000, guid: 2db559ae5bded264cbeed98089f1732f, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Upset:
+      Clips:
+      - {fileID: 8300000, guid: d7cdc8c058816a740bedded33829dc62, type: 3}
+      - {fileID: 8300000, guid: 0bf945dc0b6cf9440b5476a93cbc13e1, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Ask:
+      Clips:
+      - {fileID: 8300000, guid: 0a001131d3be61543a7790c16110e8bc, type: 3}
+      - {fileID: 8300000, guid: 0036217401fefd5428585f53d88134e7, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Surprise:
+      Clips:
+      - {fileID: 8300000, guid: 150b13f785fe5674a876a2b3aa075c4f, type: 3}
+      - {fileID: 8300000, guid: e9ec370f195884943b188aa6dc635d40, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+  VoiceCat:
+    Happy:
+      Clips:
+      - {fileID: 8300000, guid: 0a2ab90266ec2fc4fbc2fe8361f1c3ca, type: 3}
+      - {fileID: 8300000, guid: e803cf4a43a3c9749b4cd3472773a0c6, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Upset:
+      Clips:
+      - {fileID: 8300000, guid: 3b83c6183bf5c3546a74ba387e1f8304, type: 3}
+      - {fileID: 8300000, guid: c0e499324a8db1a4c903b83578000efc, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Ask:
+      Clips:
+      - {fileID: 8300000, guid: c24e6ec005ff74e4ca3a89aac1e8efc2, type: 3}
+      - {fileID: 8300000, guid: 06b9ad392fa4ce24a9122d7e33941033, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Surprise:
+      Clips:
+      - {fileID: 8300000, guid: dd86451eb9e88f74bbc738a26638c9b9, type: 3}
+      - {fileID: 8300000, guid: 1eabfbb8f6f38d743ab9270cb939747b, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+  VoiceDog:
+    Happy:
+      Clips:
+      - {fileID: 8300000, guid: b71440174bc799347b8ab15c73a5f589, type: 3}
+      - {fileID: 8300000, guid: 090159e4e4bd1fa478b7b5cccf7ab837, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Upset:
+      Clips:
+      - {fileID: 8300000, guid: 2174a63fc44bc6c4fb2f3cb0dcbe3146, type: 3}
+      - {fileID: 8300000, guid: 39fc30fa770c015468a786a1aa58ba0c, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Ask:
+      Clips:
+      - {fileID: 8300000, guid: 9c77fb5450dca394a84a7149a59d718e, type: 3}
+      - {fileID: 8300000, guid: 16bb3e4addb27f94b82b326a2da20d56, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Surprise:
+      Clips:
+      - {fileID: 8300000, guid: 30d194433ad0d6d47bc5c6fe7cd59d5d, type: 3}
+      - {fileID: 8300000, guid: 06f1a857fb3c3ae4d9444cff26c3211a, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+  VoiceBear:
+    Happy:
+      Clips:
+      - {fileID: 8300000, guid: d0e2d23fefece984188bb93a0ee54c3e, type: 3}
+      - {fileID: 8300000, guid: a3b148993e2e78e4cbe897af7095e372, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Upset:
+      Clips:
+      - {fileID: 8300000, guid: 90a9c52805b2a594e8e309b588f4d2da, type: 3}
+      - {fileID: 8300000, guid: 61b46954aff6f0e479708e17e442f720, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Ask:
+      Clips:
+      - {fileID: 8300000, guid: 4954329a52f235a4a8683e8ab88b8d78, type: 3}
+      - {fileID: 8300000, guid: 8ac3ca2457a5ce44ab67673a5edbc8da, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Surprise:
+      Clips:
+      - {fileID: 8300000, guid: 6f00d06cef5f7d74f939226233f8e0e9, type: 3}
+      - {fileID: 8300000, guid: b2e3bb6e177f8a746b7dacc55cbb3e2b, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+  VoiceFox:
+    Happy:
+      Clips:
+      - {fileID: 8300000, guid: fabe09242ae910547832b46b9ae7fe50, type: 3}
+      - {fileID: 8300000, guid: 30c9895151649214eb70f0e5fa5d1635, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Upset:
+      Clips:
+      - {fileID: 8300000, guid: 44d69dabf4abc994296c0be304b98c64, type: 3}
+      - {fileID: 8300000, guid: 0c7eced74c567ff43806f6f6c0a2a405, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Ask:
+      Clips:
+      - {fileID: 8300000, guid: fc31be75b746ce94f8f7ff4902a48832, type: 3}
+      - {fileID: 8300000, guid: 8a8ba969c9ed6c24cb395ce653ead2c9, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Surprise:
+      Clips:
+      - {fileID: 8300000, guid: 2da4e1a916014634683b9571bb98b750, type: 3}
+      - {fileID: 8300000, guid: 66c5b43ed50d861459a5253100a5fe33, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+  VoicePanda:
+    Happy:
+      Clips:
+      - {fileID: 8300000, guid: 5cc1e9815e93fa94799ba4a9bf933b70, type: 3}
+      - {fileID: 8300000, guid: d361854c674dbea42b8ffde805616693, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Upset:
+      Clips:
+      - {fileID: 8300000, guid: da940d2c7105e974ebc3efae39e78435, type: 3}
+      - {fileID: 8300000, guid: 35d3b3317fe964444afa6f8875bf52ef, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Ask:
+      Clips:
+      - {fileID: 8300000, guid: 0b89267cd58de2c4b8d195563d3ac3a5, type: 3}
+      - {fileID: 8300000, guid: cf6c886e9b5d2ee4491f0539b1decaa7, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Surprise:
+      Clips:
+      - {fileID: 8300000, guid: ca1aecac7075fbd459d6e1380724209a, type: 3}
+      - {fileID: 8300000, guid: 099207e9a8d18dd4c9b72e7f4119c0c6, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+  VoiceKoala:
+    Happy:
+      Clips:
+      - {fileID: 8300000, guid: d6cfe0fc8dd966a4cac7da5584c09e9d, type: 3}
+      - {fileID: 8300000, guid: 0ab879cac9a1d4b42ae8e3e976f6d308, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Upset:
+      Clips:
+      - {fileID: 8300000, guid: 545b8f8811afcfa49878a60b161b2492, type: 3}
+      - {fileID: 8300000, guid: 020e5c316c150c140a67aa39fe736e36, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Ask:
+      Clips:
+      - {fileID: 8300000, guid: a8a79c78353e74f45a332ab39f2f75ed, type: 3}
+      - {fileID: 8300000, guid: f14b7e81ca3bbf441a13ffc5529e0e55, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Surprise:
+      Clips:
+      - {fileID: 8300000, guid: f23040724ed7d3d409268cc368011bda, type: 3}
+      - {fileID: 8300000, guid: 146a83e7b4c4c5f488053acc9fb81637, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+  VoicePenguin:
+    Happy:
+      Clips:
+      - {fileID: 8300000, guid: 74d4861acc3733c48be78febe2298afb, type: 3}
+      - {fileID: 8300000, guid: 6b20c6fc0deafcf45b503177257fb4d9, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Upset:
+      Clips:
+      - {fileID: 8300000, guid: 2adde615fee54d145a0ce0cc1b24df5b, type: 3}
+      - {fileID: 8300000, guid: c1c61520ad70ac547a36d7c52b66fc31, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Ask:
+      Clips:
+      - {fileID: 8300000, guid: 4f8cc9a0267956541acd3cd563b75be6, type: 3}
+      - {fileID: 8300000, guid: a0c22c8e8529f5e488f72bbf33c93f01, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+    Surprise:
+      Clips:
+      - {fileID: 8300000, guid: 72b5c8dac0458f8488d0fec0183a6ce6, type: 3}
+      - {fileID: 8300000, guid: 6070cf67fd127fe4f87eb852eea40545, type: 3}
+      Bus: 1
+      Volume: 0.2
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 2
+  CrowdLoop1:
+    Clips:
+    - {fileID: 8300000, guid: c513c6b062493fc4c8740035c3c06c2d, type: 3}
+    Bus: 2
+    Volume: 0.79
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0.05
+    MaxVoices: 3
+  CrowdLoop2:
+    Clips:
+    - {fileID: 8300000, guid: 53d22f0027c22c24cbd09b4f06b9eda8, type: 3}
+    Bus: 2
+    Volume: 0.79
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0.05
+    MaxVoices: 3
+  CrowdLoop3:
+    Clips:
+    - {fileID: 8300000, guid: f1db94d4c822ed444822aa2755e15d89, type: 3}
+    Bus: 2
+    Volume: 0.6
+    Pitch: {x: 1, y: 1}
+    Cooldown: 0.05
+    MaxVoices: 3
+  ActWalkSmall:
+    Clips:
+    - {fileID: 8300000, guid: c25ae11b04b8b464888e2f1669382aa0, type: 3}
+    - {fileID: 8300000, guid: 9a0953229c787004cbfceacccd098308, type: 3}
+    - {fileID: 8300000, guid: ef04b5ae322db9e469a9451da8880ab2, type: 3}
+    - {fileID: 8300000, guid: ecd471182750e164aac3a86527ad6a32, type: 3}
+    - {fileID: 8300000, guid: fcc32569c06d1614a9ab7ed5e639f7f6, type: 3}
+    - {fileID: 8300000, guid: 9bcc973d3649da2419d9b2f3b3a8634c, type: 3}
+    Bus: 1
+    Volume: 0.14
+    Pitch: {x: 0.96, y: 1.04}
+    Cooldown: 0.06
+    MaxVoices: 2
+  ActSit:
+    Clips:
+    - {fileID: 8300000, guid: 6a1c3e287c7f68b4b81194c0876eae3d, type: 3}
+    - {fileID: 8300000, guid: 0abfddac9dd75b747afd89afeed1a8cd, type: 3}
+    - {fileID: 8300000, guid: b3b38fc6d0cea624e8dbe5c9ecd659b1, type: 3}
+    Bus: 1
+    Volume: 0.14
+    Pitch: {x: 0.95, y: 1.05}
+    Cooldown: 0.2
+    MaxVoices: 2
+  ActEat:
+    Clips:
+    - {fileID: 8300000, guid: e243e43dce6f8e64bb71bb8a12b4e212, type: 3}
+    - {fileID: 8300000, guid: 187ad821ca73c1d4ca8ae148f998e332, type: 3}
+    - {fileID: 8300000, guid: c87a074c598649d4e9faeba301670650, type: 3}
+    Bus: 1
+    Volume: 0.077
+    Pitch: {x: 0.95, y: 1.05}
+    Cooldown: 0.3
+    MaxVoices: 2
+  ActWork:
+    Clips:
+    - {fileID: 8300000, guid: c1eb4351cd40bf44bb27ceb22cd2012e, type: 3}
+    - {fileID: 8300000, guid: d2fce4695990df241954da28fc2e7259, type: 3}
+    - {fileID: 8300000, guid: 0789324354ca1084fb1fbb3afc5ee694, type: 3}
+    Bus: 1
+    Volume: 0.11
+    Pitch: {x: 0.96, y: 1.04}
+    Cooldown: 0.3
+    MaxVoices: 2
+  ActWorkTool:
+    Clips:
+    - {fileID: 8300000, guid: 3859a3ba53870de41bd50e955cc28cc1, type: 3}
+    - {fileID: 8300000, guid: 6d2fed11b9c1d5844b0d5eee4cdb5b33, type: 3}
+    - {fileID: 8300000, guid: de9a004533d98c3439f3037b85f0ee3a, type: 3}
+    Bus: 1
+    Volume: 0.11
+    Pitch: {x: 0.96, y: 1.04}
+    Cooldown: 0.3
+    MaxVoices: 2
+  ActSleepBig:
+    Clips:
+    - {fileID: 8300000, guid: 5d80da22758a04f47bdc9251c9f635f6, type: 3}
+    Bus: 1
+    Volume: 0.045
+    Pitch: {x: 0.97, y: 1.03}
+    Cooldown: 0.5
+    MaxVoices: 2
+  ActSleepMid:
+    Clips:
+    - {fileID: 8300000, guid: a1c57e1e16630024b81d97191921e7ef, type: 3}
+    Bus: 1
+    Volume: 0.045
+    Pitch: {x: 0.97, y: 1.03}
+    Cooldown: 0.5
+    MaxVoices: 2
+  ActSleepSmall:
+    Clips:
+    - {fileID: 8300000, guid: e4a4fb2edc13a69428c8bf2a11e478a3, type: 3}
+    Bus: 1
+    Volume: 0.045
+    Pitch: {x: 0.97, y: 1.03}
+    Cooldown: 0.5
+    MaxVoices: 2
+  ActPlay:
+    Clips:
+    - {fileID: 8300000, guid: 9a8292e4c4027c5498ce15c5c0b06ea6, type: 3}
+    - {fileID: 8300000, guid: 686ed05174c6ada4ca5661949f10111c, type: 3}
+    - {fileID: 8300000, guid: b0c4bffbfd8a47f478f6817e85b4c6c9, type: 3}
+    Bus: 1
+    Volume: 0.086
+    Pitch: {x: 0.96, y: 1.04}
+    Cooldown: 0.3
     MaxVoices: 2

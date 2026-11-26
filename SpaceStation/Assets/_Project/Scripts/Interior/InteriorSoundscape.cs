@@ -4,6 +4,12 @@ using UnityEngine;
 
 namespace SpaceStation.Interior
 {
+    /// <summary>방 안 쇼 (시민 회관 상영 · 드론 쇼 · 폭죽 쇼 레버) — 소리 풍경이 쇼 동안 크기를 바꿈 (2026-11-26 2단계 소리 풍경, 작업자 P7).</summary>
+    public interface IInteriorShow
+    {
+        bool ShowRunning { get; }
+    }
+
     /// <summary>
     /// 사운드 개편 D-7b (2026-11-23): 지금 있는 방의 소리 풍경(<see cref="RoomSoundscape"/>) 재생 — 다른 방은 울리지 않음 (D-4).
     /// 방이 바뀌면 이전 방 소리는 0.7초에 걸쳐 내리고 새 방 것을 올림. 가끔 소리는 AudioService 목소리 풀로 그 자리 3D,
@@ -22,10 +28,21 @@ namespace SpaceStation.Interior
             public float Target;
             public float Day;
             public float Night;
+            // 2026-11-26 P7: 쇼 · 탈것 배율 · 움직인 만큼 (RoomSoundscape.Emitter ShowGain · RideGain · MotionMeters)
+            public float ShowGain = 1f, RideGain = 1f, MotionMeters, Motion;
+            public Vector3 LastPos;
+            public bool HasLast;
         }
 
         private const float DayFade = 0.2f;     // 낮 ↔ 밤 넘어가기 (5초)
+        private const float ShowFade = 0.5f;    // 쇼 · 탈것 넘어가기 (2초)
         private float _dayLevel = 1f;           // 1 = 낮, 0 = 밤 (부드럽게)
+        private float _showLevel, _rideLevel;   // 1 = 쇼 중 · 탄 중 (부드럽게)
+        private IInteriorShow _show;
+        private FirstPersonController _player;
+
+        /// <summary>지금 방의 쇼가 도는 중인지 (사람 층 웅성 등 다른 소리도 쇼 동안 낮출 때 씀).</summary>
+        public bool ShowRunning => _show != null && (_show as Object) != null && _show.ShowRunning;
 
         private GameObject _root;
         private readonly List<Track> _tracks = new List<Track>(); // 지금 방 + 내려가는 중인 이전 방의 바탕 · 구역 루프
@@ -50,11 +67,18 @@ namespace SpaceStation.Interior
             _room = room;
             _anchors = anchors;
             _timers = System.Array.Empty<float>();
+            _show = null;
             if (_scape == null)
                 return;
             if (_root == null)
                 _root = new GameObject("InteriorSoundscape");
-            AddTrack(scape.Bed, null, null, 0f, 0f, 1f, scape.BedNight, false);
+            if (room != null)
+                _show = room.GetComponentInChildren<IInteriorShow>(true);
+            if (_player == null)
+                _player = Object.FindFirstObjectByType<FirstPersonController>();
+            var bed = AddTrack(scape.Bed, null, null, 0f, 0f, 1f, scape.BedNight, false);
+            if (bed != null)
+                bed.ShowGain = scape.BedShow;
             foreach (var e in scape.Emitters)
             {
                 Vector3? at = e.Spatial && room != null ? room.TransformPoint(e.Position) : (Vector3?)null;
@@ -66,7 +90,13 @@ namespace SpaceStation.Interior
                     if (start != null)
                         at = follow.TransformPoint((prefab.worldToLocalMatrix * start.localToWorldMatrix).inverse.MultiplyPoint3x4(e.Position));
                 }
-                AddTrack(e.Cue, at, follow, e.MinDistance, e.MaxDistance, e.Day, e.Night, e.OnBeat);
+                var track = AddTrack(e.Cue, at, follow, e.MinDistance, e.MaxDistance, e.Day, e.Night, e.OnBeat);
+                if (track != null)
+                {
+                    track.ShowGain = e.ShowGain;
+                    track.RideGain = e.RideGain;
+                    track.MotionMeters = at.HasValue ? e.MotionMeters : 0f;
+                }
             }
             _timers = new float[scape.Scatters.Count];
             for (int i = 0; i < _timers.Length; i++)
@@ -87,6 +117,9 @@ namespace SpaceStation.Interior
         public void Tick(float dt, bool day)
         {
             _dayLevel = Mathf.MoveTowards(_dayLevel, day ? 1f : 0f, DayFade * dt);
+            bool showing = ShowRunning;
+            _showLevel = Mathf.MoveTowards(_showLevel, showing ? 1f : 0f, ShowFade * dt);
+            _rideLevel = Mathf.MoveTowards(_rideLevel, _player != null && _player.Riding ? 1f : 0f, ShowFade * dt);
             for (int i = _tracks.Count - 1; i >= 0; i--)
             {
                 var t = _tracks[i];
@@ -103,7 +136,18 @@ namespace SpaceStation.Interior
                     _tracks.RemoveAt(i);
                     continue;
                 }
-                t.Source.volume = t.Level * t.Cue.Volume * Mathf.Lerp(t.Night, t.Day, _dayLevel) * AudioVolumes.For(t.Cue.Bus);
+                float mul = RoomSoundscape.StateGain(t.ShowGain, t.RideGain, _showLevel, _rideLevel);
+                if (t.MotionMeters > 0f)
+                {
+                    // 소리 자리 (Follow 물체에 붙음)가 움직인 빠르기만큼 — 역에 선 열차 · 멈춘 곤돌라는 조용 (InteriorMotionSound와 같은 눈금)
+                    var p = t.Source.transform.position;
+                    float v = t.HasLast && dt > 1e-4f ? Vector3.Distance(p, t.LastPos) / dt : 0f;
+                    t.LastPos = p;
+                    t.HasLast = true;
+                    t.Motion = Mathf.Lerp(t.Motion, InteriorObjectSound.MotionLevel(v, 0f, t.MotionMeters, 0f), Mathf.Clamp01(6f * dt));
+                    mul *= t.Motion;
+                }
+                t.Source.volume = t.Level * t.Cue.Volume * Mathf.Lerp(t.Night, t.Day, _dayLevel) * mul * AudioVolumes.For(t.Cue.Bus);
             }
             var svc = AudioService.Instance;
             if (_scape == null || (_room == null && _anchors == null) || svc == null)
@@ -114,7 +158,7 @@ namespace SpaceStation.Interior
                     continue;
                 var s = _scape.Scatters[i];
                 _timers[i] = Random.Range(s.Interval.x, Mathf.Max(s.Interval.x, s.Interval.y));
-                if (s.Cue == null || !s.Cue.HasClip || (s.When == RoomSoundscape.DayPart.Day && !day) || (s.When == RoomSoundscape.DayPart.Night && day))
+                if (s.Cue == null || !s.Cue.HasClip || !RoomSoundscape.ScatterAllowed(s.When, s.Show, day, showing))
                     continue;
                 var local = s.Center + Vector3.Scale(s.Size, new Vector3(Random.value - 0.5f, Random.value - 0.5f, Random.value - 0.5f));
                 var pos = _anchors != null && _anchors.Count > 0 ? _anchors[Random.Range(0, _anchors.Count)] + local : _room.TransformPoint(local);
@@ -144,10 +188,10 @@ namespace SpaceStation.Interior
             return null;
         }
 
-        private void AddTrack(SoundCue cue, Vector3? position, Transform follow, float minDistance, float maxDistance, float day, float night, bool onBeat)
+        private Track AddTrack(SoundCue cue, Vector3? position, Transform follow, float minDistance, float maxDistance, float day, float night, bool onBeat)
         {
             if (cue == null || !cue.HasClip)
-                return;
+                return null;
             var clip = cue.Pick();
             var go = new GameObject(clip.name);
             go.transform.SetParent(follow != null && position.HasValue ? follow : _root.transform, true);
@@ -181,7 +225,9 @@ namespace SpaceStation.Interior
                 s.time = Random.Range(0f, clip.length * 0.9f);
                 s.Play();
             }
-            _tracks.Add(new Track { Source = s, Cue = cue, Target = 1f, Day = day, Night = night });
+            var track = new Track { Source = s, Cue = cue, Target = 1f, Day = day, Night = night };
+            _tracks.Add(track);
+            return track;
         }
     }
 }

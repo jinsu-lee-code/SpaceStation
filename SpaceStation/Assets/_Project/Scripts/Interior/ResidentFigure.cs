@@ -30,6 +30,9 @@ namespace SpaceStation.Interior
         /// <summary>11-17 ③ 이 인물의 주민 번호 · 있는 방 (주민 요청).</summary>
         public int ResidentId { get; set; }
         public Core.ModuleInstance Room { get; set; }
+        /// <summary>2026-11-26 주민 소리: 종족 Id (AnimalModelSet — 목소리 칸) · 집에 있는지 (밤 = 잠 숨, 웅성에서 뺌). InteriorResidents가 세울 때 정함.</summary>
+        public string SpeciesId { get; set; }
+        public bool AtHome { get; set; }
         /// <summary>이름표를 띄울 곳 (머리 위).</summary>
         public Vector3 TagPoint => new Vector3(_head != null ? _head.position.x : transform.position.x,
             transform.position.y + (_tagTop > 0f ? Mathf.Lerp(_tagTop, _tagTopStand, Motion != null ? Motion.StandBlend : 0f) : 1f) + 0.1f,
