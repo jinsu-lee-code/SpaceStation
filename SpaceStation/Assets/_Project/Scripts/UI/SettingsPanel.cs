@@ -349,7 +349,7 @@ namespace SpaceStation.UI
             caption.color = HudTheme.Accent;
             caption.fontStyle = FontStyles.Bold;
             Place(caption.rectTransform, new Vector2(6f, 0f), new Vector2(360f, 26f));
-            var hint = Label(root, "게임 화면과 같은 픽셀 크기 · 바꾸면 바로 적용", 15f, TextAlignmentOptions.MidlineRight);
+            var hint = Label(root, "게임 화면과 같은 크기 · UI 크기에 맞춰 커짐 · 바꾸면 바로 적용", 15f, TextAlignmentOptions.MidlineRight);
             hint.color = MutedColor;
             Place(hint.rectTransform, new Vector2(width - 480f, 0f), new Vector2(474f, 26f));
             const float gap = 16f;
