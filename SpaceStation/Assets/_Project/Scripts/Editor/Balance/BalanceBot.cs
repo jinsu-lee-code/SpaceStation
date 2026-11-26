@@ -171,6 +171,7 @@ namespace SpaceStation.Editor.Balance
 
         public void Decide()
         {
+            TrackLifeNet(); // 제자리 봇: 남는 생산 판단용 (낮밤 한 바퀴의 가장 낮은 순수지)
             if (PlayerHabits)
             {
                 BlockShower();
@@ -185,6 +186,11 @@ namespace SpaceStation.Editor.Balance
                 return; // 정비비를 못 냈으면 새 건설 대신 저축
             }
             TryResearch();
+            if (!HoldWithinCap()) // 제자리 봇 (CONNECT_1121 0번): 합성으로 칸이 늘어 상한을 넘었으면 되돌릴 때까지 새로 짓지 않음
+            {
+                LastNeed = "hold-over";
+                return;
+            }
             DecideExpansion(); // 12-4 도시급부터: 보급 상자 · 레시피 해금 연구 · 연계 연구 · 합성
 
             var need = PickNeed();
@@ -205,13 +211,33 @@ namespace SpaceStation.Editor.Balance
             LastNeed = need.name;
             if (!_sim.CanAfford(need) || _sim.CheckBuildable(need) != PlacementResult.Valid)
                 return; // 저축
-            if (TryFindPlacement(need, out var origin, out int rotation) && _sim.TryPlace(need, origin, rotation, out _))
+            // 사람처럼 거주 늘리기: 짓고도 거주 하나 값이 남을 만큼 금속이 모일 때까지 저축 (BalanceBotHousing)
+            if ((need == _housing || need == _ring) && _sim.Resources.GetStock(ResourceType.Metal) < _housingMetalNeed)
+            {
+                LastNeed = "save:" + need.name;
+                return;
+            }
+            if (!TryFindPlacement(need, out var origin, out int rotation))
+                return;
+            if (Holding) // 제자리 봇: 칸 수 상한 안에서만 — 모자라면 남는 모듈을 철거하고 바꿔 짓기
+            {
+                int demolished = HoldDemolished;
+                if (!HoldMakeRoomFor(need))
+                {
+                    LastNeed = "hold:" + need.name;
+                    return;
+                }
+                if (HoldDemolished != demolished && !TryFindPlacement(need, out origin, out rotation))
+                    return;
+            }
+            if (_sim.TryPlace(need, origin, rotation, out _))
                 ModulesBuilt++;
         }
 
         private ModuleData PickNeed()
         {
             var r = _sim.Resources;
+            _housingMetalNeed = 0f;
             if (_power != null && PowerSurplus() < PowerHeadroom)
                 return _power;
             // 13-7 플레이어처럼 (2026-10-17): 다음 등급 조건 중 인구만 모자라고 수용이 꽉 찼으면, 생존 자원이 안정적이고 금속 수입이 있을 때는
@@ -220,7 +246,11 @@ namespace SpaceStation.Editor.Balance
             // 밤을 배터리로 못 버티면 거주보다 아래 발전 · 배터리가 먼저 (측정: 배터리까지 건너뛰어 12판 중 3판이 밤 정전 → 산소 고갈로 게임 오버)
             if (PlayerHabits && _housing != null && r.Population >= r.HousingCapacity - _persona.HousingAhead && OnlyPopulationShort(r) && LifeSupportStable(r)
                 && !NightUncovered(r) && (!CanBuildMetal() || r.GetProduction(ResourceType.Metal) > 0f))
-                return PickHousing(r);
+            {
+                var h = HousingStep(r);
+                if (h != null)
+                    return h;
+            }
             // 8-1: 밤 부족이 크면 핵융합로 (금속을 모아서 산다 — 저장 한도가 모자라면 창고부터)
             if (_fusion != null && _nightDeficit >= _persona.FusionNightDeficit && _sim.CheckBuildable(_fusion) == PlacementResult.Valid
                 && LifeSupportStable(r)) // 생존 자원이 줄고 있으면 큰 구매(저축)보다 그쪽이 먼저
@@ -245,10 +275,18 @@ namespace SpaceStation.Editor.Balance
             // 13-7 플레이어처럼: 다음 등급 조건 중 인구만 모자라고 수용이 꽉 찼으면 거주가 먼저 (방어 · 창고 · 채굴보다 앞)
             // 측정: 중형에서 모듈은 대형 조건을 넘었는데 수리 · 정비에 금속을 쓰느라 거주를 미뤄 인구가 30분 넘게 멈췄음
             if (PlayerHabits && _housing != null && r.Population >= r.HousingCapacity - _persona.HousingAhead && OnlyPopulationShort(r))
-                return PickHousing(r);
+            {
+                var h = HousingStep(r);
+                if (h != null)
+                    return h;
+            }
             // 13-7 플레이어처럼: 파손을 겪었는데 방어 모듈이 하나도 없으면 첫 방어를 금속 여유와 무관하게 먼저 (저축해서 산다)
             // 측정: 시드 1 · 7 · 10이 초반 수리비로 금속 여유를 끝내 못 채워 방어 0개(격추 0) → 파손 누적 · 정체 · 게임 오버
-            if (PlayerHabits && _wasHit && CountDefense() == 0)
+            // 사람처럼 거주 늘리기와 함께 (2026-11-26): 지금 맞고 있는데(파손 있음) 방어가 모듈 수 기준보다 모자라도 같다 — 계속 맞으면 포탑부터 세운다
+            // 측정: 거주를 '수리 먼저'로 미루는 동안 금속을 서비스 · 채굴 등에 써, 시드 1 · 7이 실드 하나 뒤 포탑을 끝내 못 지음
+            // (방어 규칙의 '값 + 거주 여유'를 수리비가 늘 먹음 → 격추 0 · 파괴 24 / 54, 예전 봇은 같은 시드에서 격추 307 / 345)
+            // 처음엔 거주 규칙 안에서 방어를 돌려줬더니 맨 위 거주 규칙 자리(핵융합로 · 배터리보다 앞)라 밤 전력보다 먼저가 되어 시드 4 · 12가 밤 정전 → 산소 게임 오버
+            if (PlayerHabits && (_wasHit && CountDefense() == 0 || HousingAfterResources && _sim.Damage.DamagedCount > 0))
             {
                 var first = PickDefense();
                 if (first != null)
@@ -293,19 +331,36 @@ namespace SpaceStation.Editor.Balance
             if (defense != null && (DefenseFirst || r.GetStock(ResourceType.Metal) >= Cost(defense) + (_housing != null ? Cost(_housing) * _persona.SafetySpareScale : 0f)))
                 return defense;
             if (_housing != null && r.Population >= r.HousingCapacity - _persona.HousingAhead)
-                return PickHousing(r);
+            {
+                var h = HousingStep(r);
+                if (h != null)
+                    return h;
+            }
             // 금속이 차 있어도, 저장 한도가 해금된 가장 비싼 모듈을 살 만큼 되면 창고는 그만 (8-6: 90분에 창고 167개 → 한도만큼만)
             if (_storage != null && _sim.CheckBuildable(_storage) == PlacementResult.Valid
                 && r.GetStock(ResourceType.Metal) >= r.GetCapacity(ResourceType.Metal) * 0.95f
                 && r.GetCapacity(ResourceType.Metal) < MaxUnlockedCost() + _persona.FusionMetalReserve)
                 return _storage;
-            // 금속이 넘치는데 할 일이 없으면 수용을 늘려 인구 성장 (넘치는 금속을 버리지 않게)
+            // 금속이 넘치는데 할 일이 없으면 수용을 늘려 인구 성장 (넘치는 금속을 버리지 않게) — 단 빈 거주가 넉넉하면 더 짓지 않고,
+            // 늘어날 주민까지 자원이 버티지 못하면 그 자원부터 (HousingStep, 사용자 2026-11-26)
             if (_housing != null && r.GetStock(ResourceType.Metal) >= r.GetCapacity(ResourceType.Metal) * 0.95f)
-                return PickHousing(r);
-            // 다음 등급 모듈 수가 모자라면 수용 인구도 늘리는 거주 모듈로 채움
+            {
+                var h = HousingStep(r);
+                if (h != null)
+                    return h;
+            }
+            // 다음 등급 모듈 수가 모자라면: 거주를 지어도 될 때는 거주, 아니면 모자란 자원 · 발전으로 채움 (전에는 늘 거주 — 도시급에서 수용이 인구의 7배)
             var next = _sim.Progression.Next;
             if (next != null && StationProgression.CountGradeModules(_sim.Grid) < next.MinModules)
-                return _housing;
+            {
+                var h = HousingStep(r);
+                if (h != null)
+                    return h;
+                if (!HousingAfterResources)
+                    return _housing;
+                if (_power != null && _sim.CheckBuildable(_power) == PlacementResult.Valid)
+                    return _power;
+            }
             return null;
         }
 
@@ -625,6 +680,8 @@ namespace SpaceStation.Editor.Balance
             }
             if (_blocksThisWarning >= ShowerBlocksPerWarning || _sim.CheckBuildable(_armor) != PlacementResult.Valid
                 || _sim.Resources.GetStock(ResourceType.Metal) < Cost(_armor) + BlockMetalReserve)
+                return;
+            if (Holding && !HoldMakeRoomFor(_armor)) // 제자리 봇: 칸 수 상한 안에서만
                 return;
             var dir = shower.Direction;
             _facing.Clear();

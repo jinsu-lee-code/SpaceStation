@@ -44,6 +44,7 @@ namespace SpaceStation.Editor.Balance
         }
 
         private SynthesisPlan _plan;
+        private bool _holdPlanBlocked;
         private readonly HashSet<RecipeData> _failedRecipes = new HashSet<RecipeData>();
         private int _failedAtModules = -1;
 
@@ -158,8 +159,13 @@ namespace SpaceStation.Editor.Balance
                     continue;
                 }
                 _plan = plan;
+                _holdPlanBlocked = false;
                 if (!ContinuePlan())
+                {
                     _plan = null;
+                    if (_holdPlanBlocked)
+                        _failedRecipes.Add(recipe); // 제자리 봇: 모듈 수가 바뀔 때까지 이 레시피는 다시 찾지 않음
+                }
                 return;
             }
         }
@@ -219,6 +225,11 @@ namespace SpaceStation.Editor.Balance
                 remaining = true;
                 if (_sim.Resources.GetStock(ResourceType.Metal) < _sim.Resources.GetCapacity(ResourceType.Metal) * PieceMetalRatio || !_sim.CanAfford(piece.Data))
                     return true; // 저축
+                if (Holding && !HoldMakeRoomFor(piece.Data))
+                {
+                    _holdPlanBlocked = true; // 제자리 봇: 칸 수 상한 안에서 재료 자리를 못 마련 → 계획을 버림
+                    return false;
+                }
                 if (_sim.TryPlace(piece.Data, piece.Origin, piece.Rotation, out _))
                 {
                     ModulesBuilt++;

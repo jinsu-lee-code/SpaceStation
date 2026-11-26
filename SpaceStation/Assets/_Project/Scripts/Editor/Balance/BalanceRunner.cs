@@ -45,6 +45,14 @@ namespace SpaceStation.Editor.Balance
         /// <summary>12-2 구간 측정: 시드마다 이 상태에서 시작해 다음 등급까지 (null = 새 판, BaseSeed부터 Runs개).
         /// DurationSeconds는 시작 시점부터의 상한.</summary>
         public IReadOnlyList<BalanceStartState> Starts;
+        /// <summary>
+        /// 제자리 봇 (CONNECT_1121 0번, 사용자 결정 2026-11-26): 등급마다 <see cref="Runs"/>판씩, 처음부터 플레이하다 그 등급에 오르면
+        /// 확장을 멈추고(칸 수 상한) <see cref="HoldSeconds"/> 동안 버티는지 본다 (null = 안 함). DurationSeconds = 그 등급에 오르기까지의 상한.
+        /// </summary>
+        public int[] HoldGrades;
+        public float HoldSeconds = 7200f;
+        /// <summary>시드에 묶인 봇 성향을 끄고 중립으로 (제자리 봇 측정 — 판 차이를 사건으로만).</summary>
+        public bool NeutralPersona;
     }
 
     /// <summary>한 판(시드 1개)의 결과 지표.</summary>
@@ -99,6 +107,32 @@ namespace SpaceStation.Editor.Balance
         public Dictionary<string, int> FinalModuleCounts = new Dictionary<string, int>();
         /// <summary>13-1 타이쿤판: 고른 해금 순서 ("등급:키").</summary>
         public List<string> Choices = new List<string>();
+
+        // ---- 제자리 봇 (CONNECT_1121 0번, 2026-11-26) — HoldGrade < 0이면 해당 없음 ----
+        public const float HoldLowMetal = 30f;
+        public int HoldGrade = -1;
+        /// <summary>그 등급에 올라 멈춘 시각(초, 판 시작부터). 못 오르면 NaN.</summary>
+        public float HoldStartSeconds = float.NaN;
+        /// <summary>멈춘 뒤 실제로 버틴 시간(초) — 게임 오버면 HoldSeconds보다 짧음.</summary>
+        public float HoldSeconds;
+        public int HoldCells, HoldEndCells;
+        public int HoldStartPopulation, HoldStartHousing, HoldStartModules, HoldMinPopulation;
+        public int HoldMinGrade;
+        public int HoldDemolished, HoldBlocked, HoldCrisisDemolished, HoldHousingTrimmed;
+        /// <summary>그 등급에 처음 오른 시각(초) · 고정 전에 1분 안정을 이뤘는지 (못 이루면 10분 뒤 그대로 고정).</summary>
+        public float HoldReachSeconds = float.NaN;
+        public bool HoldSettled;
+        /// <summary>지을 것이 있는데 칸 수 상한에 막혀 못 지은 시간(초).</summary>
+        public float HoldBlockedSeconds;
+        public Dictionary<string, int> HoldDemolishedKinds = new Dictionary<string, int>();
+        /// <summary>철거 기록 (봇 <see cref="BalanceBot.HoldEvents"/>).</summary>
+        public List<string> HoldEvents = new List<string>();
+        /// <summary>멈춘 뒤 금속 생산 평균 · 순수지 평균 (초당), 금속이 HoldLowMetal 미만이던 시간(초).</summary>
+        public float HoldMetalIncome, HoldMetalNet, HoldLowMetalSeconds;
+        /// <summary>멈춘 뒤 수리 · 정비(재건축 포함)에 쓴 금속 (분당).</summary>
+        public float HoldRepairMetalPerMin, HoldUpkeepMetalPerMin;
+        public int HoldDamaged, HoldDestroyed;
+        public bool HoldReached => !float.IsNaN(HoldStartSeconds);
     }
 
     public sealed class BalanceReport
@@ -128,13 +162,15 @@ namespace SpaceStation.Editor.Balance
         }
 
         /// <summary>이 설정으로 돌릴 판 수.</summary>
-        public static int RunCount(BalanceRunSettings s) => s.Starts != null ? s.Starts.Count : s.Runs;
+        public static int RunCount(BalanceRunSettings s) => s.Starts != null ? s.Starts.Count : s.HoldGrades != null ? s.HoldGrades.Length * s.Runs : s.Runs;
 
         /// <summary>i번째 판 만들기 (구간 측정이면 i번째 시작 상태에서).</summary>
         public static BalanceRun CreateRun(BalanceRunSettings s, int i, StringBuilder series)
         {
             if (s.Starts != null)
                 return new BalanceRun(s, s.Starts[i].Seed, series, s.Starts[i]);
+            if (s.HoldGrades != null) // 제자리 봇: 등급마다 Runs판 (시드는 등급마다 같은 BaseSeed부터)
+                return new BalanceRun(s, s.BaseSeed + i % s.Runs, series, null, s.HoldGrades[i / s.Runs]);
             return new BalanceRun(s, s.BaseSeed + i, series);
         }
 
@@ -181,7 +217,9 @@ namespace SpaceStation.Editor.Balance
             sb.AppendLine(",final_grade,max_grade,final_pop,max_pop,final_modules,modules_built,events,damaged,destroyed,spreads,intercepted,shield_deflected,ricochets,repairs,repair_metal," +
                           "maintenances,rebuilds,upkeep_metal," +
                           "min_oxygen,min_water,min_food,min_metal,oxygen_depleted_s,water_depleted_s,food_depleted_s,depletion_events," +
-                          "low_power_s,avg_efficiency,final_satisfaction,min_satisfaction,persona_growth,persona_saving");
+                          "low_power_s,avg_efficiency,final_satisfaction,min_satisfaction,persona_growth,persona_saving"
+                          + (HasHold(report) ? ",hold_grade,hold_reach_s,hold_settled,hold_start_s,hold_s,hold_cells,hold_end_cells,hold_start_pop,hold_start_housing,hold_min_pop,hold_min_grade," +
+                                               "hold_demolished,hold_crisis_demolished,hold_blocked_s,hold_metal_income,hold_metal_net,hold_low_metal_s,hold_repair_metal_per_min,hold_upkeep_metal_per_min,hold_damaged,hold_destroyed" : ""));
 
             foreach (var r in report.Results)
             {
@@ -199,7 +237,79 @@ namespace SpaceStation.Editor.Balance
                 sb.Append(',').Append(r.DepletionEvents);
                 sb.Append(',').Append(F(r.LowPowerSeconds)).Append(',').Append(F(r.AverageEfficiency))
                   .Append(',').Append(F(r.FinalSatisfaction)).Append(',').Append(F(r.MinSatisfaction))
-                  .Append(',').Append(F(r.PersonaGrowth)).Append(',').Append(F(r.PersonaSaving)).AppendLine();
+                  .Append(',').Append(F(r.PersonaGrowth)).Append(',').Append(F(r.PersonaSaving));
+                if (HasHold(report))
+                    sb.Append(',').Append(r.HoldGrade).Append(',').Append(float.IsNaN(r.HoldReachSeconds) ? "" : F(r.HoldReachSeconds)).Append(',').Append(r.HoldSettled ? 1 : 0).Append(',').Append(r.HoldReached ? F(r.HoldStartSeconds) : "").Append(',').Append(F(r.HoldSeconds))
+                      .Append(',').Append(r.HoldCells).Append(',').Append(r.HoldEndCells)
+                      .Append(',').Append(r.HoldStartPopulation).Append(',').Append(r.HoldStartHousing).Append(',').Append(r.HoldMinPopulation).Append(',').Append(r.HoldMinGrade)
+                      .Append(',').Append(r.HoldDemolished).Append(',').Append(r.HoldCrisisDemolished).Append(',').Append(F(r.HoldBlockedSeconds))
+                      .Append(',').Append(F(r.HoldMetalIncome)).Append(',').Append(F(r.HoldMetalNet)).Append(',').Append(F(r.HoldLowMetalSeconds))
+                      .Append(',').Append(F(r.HoldRepairMetalPerMin)).Append(',').Append(F(r.HoldUpkeepMetalPerMin))
+                      .Append(',').Append(r.HoldDamaged).Append(',').Append(r.HoldDestroyed);
+                sb.AppendLine();
+            }
+            return sb.ToString();
+        }
+
+        private static bool HasHold(BalanceReport report)
+        {
+            foreach (var r in report.Results)
+                if (r.HoldGrade >= 0)
+                    return true;
+            return false;
+        }
+
+        /// <summary>
+        /// 제자리 봇 요약 (CONNECT_1121 0번): 멈춘 등급마다 버틴 판 · 인구 · 칸 · 금속 수입 대 유지비 · 철거, 그리고 판마다 한 줄.
+        /// "넓히지 않아도 사는가" — 버티면 넓힐 압력이 없다는 뜻, 무너지면 무엇이 무너뜨렸는지가 놓친 압력.
+        /// </summary>
+        public static string BuildHoldText(BalanceReport report, float holdSeconds)
+        {
+            var sb = new StringBuilder();
+            var grades = new List<int>();
+            foreach (var r in report.Results)
+                if (r.HoldGrade >= 0 && !grades.Contains(r.HoldGrade))
+                    grades.Add(r.HoldGrade);
+            grades.Sort();
+            sb.AppendLine($"제자리 봇: 등급에 오르면 칸 수를 고정하고 {holdSeconds / 60f:0}분 (금속 부족 = {BalanceRunResult.HoldLowMetal:0} 미만)");
+            foreach (int g in grades)
+            {
+                var list = report.Results.FindAll(r => r.HoldGrade == g);
+                var reached = list.FindAll(r => r.HoldReached);
+                int overs = reached.FindAll(r => r.GameOver).Count;
+                int full = reached.FindAll(r => !r.GameOver && r.HoldSeconds >= holdSeconds - 1f).Count;
+                sb.Append($"- {report.GradeNames[g]}: 도달 {reached.Count}/{list.Count} · 끝까지 버팀 {full} · 게임 오버 {overs}");
+                if (reached.Count > 0)
+                {
+                    sb.Append($" · 오름 {Avg(reached, r => r.HoldReachSeconds) / 60f:0.0}분 → 고정 {Avg(reached, r => r.HoldStartSeconds) / 60f:0.0}분 (1분 안정 {reached.FindAll(r => r.HoldSettled).Count}/{reached.Count}) · 칸 {Avg(reached, r => r.HoldCells):0}")
+                      .Append($" · 인구 {Avg(reached, r => r.HoldStartPopulation):0} → 끝 {Avg(reached, r => r.FinalPopulation):0} (최저 {Avg(reached, r => r.HoldMinPopulation):0})")
+                      .Append($" · 금속 수입 {Avg(reached, r => r.HoldMetalIncome) * 60f:0}/분")
+                      .Append($" · 수리 {Avg(reached, r => r.HoldRepairMetalPerMin):0} + 정비 {Avg(reached, r => r.HoldUpkeepMetalPerMin):0}/분")
+                      .Append($" · 금속 부족 {Avg(reached, r => r.HoldLowMetalSeconds) / Math.Max(1f, Avg(reached, r => r.HoldSeconds)) * 100f:0}%")
+                      .Append($" · 바꿔 짓기 철거 {Avg(reached, r => r.HoldDemolished):0.0} (위기 {Avg(reached, r => r.HoldCrisisDemolished):0.0} · 인구 묶기 {Avg(reached, r => r.HoldHousingTrimmed):0.0}) · 칸에 막힌 시간 {Avg(reached, r => r.HoldBlockedSeconds) / Math.Max(1f, Avg(reached, r => r.HoldSeconds)) * 100f:0}%");
+                }
+                sb.AppendLine();
+            }
+            sb.AppendLine("판마다:");
+            foreach (var r in report.Results)
+            {
+                if (r.HoldGrade < 0)
+                    continue;
+                if (!r.HoldReached)
+                {
+                    string why = !float.IsNaN(r.HoldReachSeconds) ? $"{r.HoldReachSeconds / 60f:0.0}분에 올랐지만 고정 전에" : $"못 오름 (최고 {report.GradeNames[r.MaxGrade]})";
+                    sb.AppendLine($"  {report.GradeNames[r.HoldGrade]} 시드 {r.Seed}: {why}" + (r.GameOver ? $" 게임 오버 {r.Reason} {r.EndSeconds / 60f:0.0}분" : ""));
+                    continue;
+                }
+                string end = r.GameOver ? $"게임 오버 {r.Reason} (멈춘 뒤 {r.HoldSeconds / 60f:0.0}분)" : $"버팀 {r.HoldSeconds / 60f:0}분";
+                var kinds = new List<string>();
+                foreach (var kv in r.HoldDemolishedKinds)
+                    kinds.Add($"{kv.Key} {kv.Value}");
+                sb.AppendLine($"  {report.GradeNames[r.HoldGrade]} 시드 {r.Seed}: {end} · {r.HoldReachSeconds / 60f:0.0}분에 오름 → {r.HoldStartSeconds / 60f:0.0}분에 고정 ({(r.HoldSettled ? "1분 안정" : "10분 지나 그대로")}) · 칸 {r.HoldCells} → {r.HoldEndCells}"
+                              + $" · 인구 {r.HoldStartPopulation}/{r.HoldStartHousing} → {r.FinalPopulation} (최저 {r.HoldMinPopulation}) · 등급 {report.GradeNames[r.FinalGrade]} (최저 {report.GradeNames[r.HoldMinGrade]})"
+                              + $" · 금속 수입 {r.HoldMetalIncome * 60f:0}/분 · 수리 {r.HoldRepairMetalPerMin:0} + 정비 {r.HoldUpkeepMetalPerMin:0}/분"
+                              + $" · 금속 부족 {r.HoldLowMetalSeconds / Math.Max(1f, r.HoldSeconds) * 100f:0}% · 파손 {r.HoldDamaged} · 파괴 {r.HoldDestroyed}"
+                              + $" · 철거 {r.HoldDemolished} (위기 {r.HoldCrisisDemolished} · 인구 묶기 {r.HoldHousingTrimmed})" + (kinds.Count > 0 ? $" ({string.Join(", ", kinds)})" : "") + $" · 칸에 막힌 시간 {r.HoldBlockedSeconds / Math.Max(1f, r.HoldSeconds) * 100f:0}%");
             }
             return sb.ToString();
         }
