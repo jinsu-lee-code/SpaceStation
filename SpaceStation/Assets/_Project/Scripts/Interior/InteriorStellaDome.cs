@@ -16,7 +16,7 @@ namespace SpaceStation.Interior
     /// 위치는 모두 템플릿 루트(이 물체) 기준. 템플릿 빌더가 configure에서 붙임. 라운지 구체가 천천히 오르내리는 것도 여기서.
     /// </summary>
     [DefaultExecutionOrder(-320)] // InteriorMode(-300)보다 먼저: 앉은 채 누른 F를 여기서 먼저 씀
-    public sealed class InteriorStellaDome : InteriorRoomDisplay
+    public sealed class InteriorStellaDome : InteriorRoomDisplay, IInteriorShow   // 소리 풍경: 상영 중 홀 웅성 꺼짐 (2026-11-26 P7)
     {
         private enum Phase { Idle, Dim, Stars, Constellations, Finale, Dawn }
 

@@ -12,7 +12,7 @@ namespace SpaceStation.Interior
     /// 쇼 버튼을 누르거나 관람석에 앉으면 시작: 드론이 높이 올라가 크게 벌어져 대형 다섯을 차례로 이룸. 앉아 있는 동안은 다시 처음부터 이어 감.
     /// 관제실 · 로비 화면 = 지금 대형 · 남은 시간. 모듈이 꺼지면 시작 못 함 (쇼 중이면 그쳐서 내려옴). 실제 시간 (unscaled).
     /// </summary>
-    public sealed class InteriorDroneShow : InteriorRoomDisplay
+    public sealed class InteriorDroneShow : InteriorRoomDisplay, IInteriorShow   // 소리 풍경: 쇼 동안 정비 소리 낮춤 (2026-11-26 P7)
     {
         private const float ButtonDown = 0.03f;
 
@@ -36,6 +36,7 @@ namespace SpaceStation.Interior
         private DroneShowFx _show;
         private TextMeshPro[] _titles, _bodies, _deskTexts;
         private float _showLeft;
+        public bool ShowRunning => _showLeft > 0f;
         private float _swarmSent;
         private float _buttonAt;
         private Vector3 _buttonBase;

@@ -66,6 +66,13 @@ namespace SpaceStation.Interior
         /// <summary>지금 하는 동작 (확인용).</summary>
         public string Current => _act.ToString();
 
+        /// <summary>2026-11-26 주민 소리: 플레이어를 만나 반응을 고른 순간 (바라보기만 = Look 포함) — InteriorResidentSound가 목소리로 (동작은 그대로).</summary>
+        public static event Action<ResidentMotion, ResidentReaction> Reacted;
+        /// <summary>2026-11-26 주민 소리: 처음 자세 · 걷기 위상 (한 걸음 = π) · 걷기 섞는 정도 0 ~ 1 (발소리 · 활동 소리가 읽음).</summary>
+        public ResidentPose Pose => _pose;
+        public float WalkPhase => _walkPhase;
+        public float WalkBlend => _walk;
+
         /// <summary>플레이어에게 반응하는 중 (걷기를 잠깐 멈춤).</summary>
         public bool Reacting => _act == Act.Wave || _act == Act.HopWave || _act == Act.TurnAway;
 
@@ -338,6 +345,7 @@ namespace SpaceStation.Interior
                 {
                     _reactReady = now + ReactCooldown;
                     var r = ResidentMood.Reaction(_mood, _id, _meet++);
+                    Reacted?.Invoke(this, r);   // 2026-11-26 주민 소리
                     if (r == ResidentReaction.HopWave)
                         BeginAct(_pose == ResidentPose.Stand || _standBlend >= 1f ? Act.HopWave : Act.Wave, now, 1.8f);
                     else if (r == ResidentReaction.Wave)

@@ -210,6 +210,7 @@ namespace SpaceStation.Interior
                 var figure = Spawn(resident, spot, instance, _builder.RoomParent(module), Status(resident, module, p, _day, template.VisitStatus, template.WorkStatus), roster.Config,
                     out float mood);
                 figure.Room = module;
+                figure.AtHome = module == resident.Home;   // 2026-11-26 주민 소리 (밤 = 잠 숨)
                 // 11-16 ③ 서 있는 쉬는 주민은 같은 방의 서기 자리 사이를 가끔 걸어 다님, ④ 앉은 주민은 일어나 걷다가 돌아와 앉음
                 if (_tuning.Wander && !spot.Work)
                 {
@@ -291,6 +292,7 @@ namespace SpaceStation.Interior
                 _tuning.AnimalScale, _tuning.SitDrop, id);
             figure.name = "Resident_" + id;
             figure.ResidentId = id;
+            figure.SpeciesId = species.Id;   // 2026-11-26 주민 소리 (종족 목소리)
             // 11-16 기분 = 본인 보정(특성) + 정거장 만족도 + 집 없음 → 평소 동작 · 반응 (+ 11-17 ③ 요청을 들어준 보너스)
             mood = MoodOf(resident);
             figure.Configure(Label(resident, species.DisplayName, status, config), mood, _eye, _tuning.WatchRange);

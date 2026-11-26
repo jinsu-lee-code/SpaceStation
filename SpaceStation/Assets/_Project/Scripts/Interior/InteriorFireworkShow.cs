@@ -16,7 +16,7 @@ namespace SpaceStation.Interior
     /// 모듈이 꺼지면 쏘지 않음 (평소 불꽃도 <see cref="FireworkFx"/>가 멈춤). 실제 시간 (unscaled).
     /// </summary>
     [DefaultExecutionOrder(-320)] // InteriorMode(-300)보다 먼저: 앉은 채 누른 F를 여기서 먼저 씀 (늦게 돌면 앉자마자 같은 프레임에 일어남)
-    public sealed class InteriorFireworkShow : InteriorRoomDisplay
+    public sealed class InteriorFireworkShow : InteriorRoomDisplay, IInteriorShow   // 소리 풍경: 쇼 동안 함성 (2026-11-26 P7)
     {
         private const float ShowSeconds = 24f;
         private const float ShowGap = 0.75f;
@@ -50,6 +50,7 @@ namespace SpaceStation.Interior
         private readonly Collider[] _overlap = new Collider[8];
         private int[] _nextTube;
         private float _showLeft, _gap, _flashLevel;
+        public bool ShowRunning => _showLeft > 0f;
         private float _leverAngle;
         private bool _seated;
         private int _standFrame = -1, _aimFrame = -1, _aimSeat = -1;

@@ -708,6 +708,12 @@ namespace SpaceStation.Audio
         [Tooltip("상태 층 · 과열 (대륙급 열): 끓는 거품 (2D 루프)")]
         public SoundCue StateBoilLoop = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.8f, Pitch = Vector2.one };
 
+        [Header("닫힌 방 밤 층 (사운드 개편 2026-11-26, SOUND_LIST_NEW 4-4 ③ — 규칙 = InteriorNightLayer)")]
+        [Tooltip("생활 방 밤 (거주 · 의료 · 휴게, 기본 · 1단계): 불 끈 숙소 = 방 공기 600 Hz 아래 + 먼 안정기 웅 (2D 루프, 밤에 낮 바탕과 바뀜). 실제 녹음 (CC0)")]
+        public SoundCue NightLife = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.5f, Pitch = Vector2.one };
+        [Tooltip("물 · 식물 방 밤 (농장 · 물 · 산소): 수경 재배실 밤 풀벌레 아주 옅게 (2D 루프, 낮 바탕 위에 겹침). 실제 녹음 (CC0)")]
+        public SoundCue NightWater = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.3f, Pitch = Vector2.one };
+
         [Header("방 장치 소리 · 바깥 일이 안에서 (사운드 개편 2026-11-26, SOUND_LIST_NEW 4-4 obj_* · D-8 · D-10 — 지금 있는 방의 부품 자리 3D)")]
         [Tooltip("컨베이어 벨트 \"스르르 달각\" (단백질 배양실 · 식량 공장 · 자재 재생 벨트 · 조선소 롤러, 그 자리 3D 루프 · 라인이 돌고 이 방에 있을 때): 실제 녹음 러닝머신 벨트 + 에스컬레이터 발판")]
         public SoundCue ObjConveyorLoop = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.68f, Pitch = Vector2.one, Cooldown = 0f, MaxVoices = 1 };
@@ -734,6 +740,67 @@ namespace SpaceStation.Audio
         [Tooltip("D-10 화물선 · 보급선 · 이민선이 다른 방 쪽에 붙음 · 합성 완료 (1인칭 내부, 그 모듈 칸 자리 3D): 트럭 문 \"쿵\" + 자물쇠 \"철컥\"을 낮춰 1.2 kHz 아래 = 선체로 전해지는 \"철컹\"")]
         public SoundCue DockClank = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.35f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 1f, MaxVoices = 2 };
 
+        [Header("주민 소리 (사운드 개편 2026-11-26, SOUND_LIST_NEW 4-3 voice_* · crowd_* / 4-4 act_* · D-2 · D-5 ④ · D-11 - 규칙 = ResidentSound · InteriorResidentSound)")]
+        [Tooltip("토끼 목소리 (기분 4 × 2, 그 주민 머리 3D): 고무 장난감 삑 한 덩이 (실제 녹음 CC0, AI Animal 0.6 · 작은 동물 깽으로 들림) · 음 없음 · 가장 작고 가벼움")]
+        public ResidentVoiceSet VoiceRabbit = new ResidentVoiceSet();
+        [Tooltip("고양이 목소리: 새끼 고양이 야옹 (실제 녹음 CC0, Cat 0.4 ~ 0.8) · 날 선 1.2 kHz를 3 ~ 8반음 내려 A5 근처")]
+        public ResidentVoiceSet VoiceCat = new ResidentVoiceSet();
+        [Tooltip("강아지 목소리: 강아지 짖음 · 낑 흉내 (만화 범주 CC0, Dog 0.1 ~ 0.5) · C5 근처")]
+        public ResidentVoiceSet VoiceDog = new ResidentVoiceSet();
+        [Tooltip("곰 목소리: 아기 염소 매애 흉내 (만화 범주 CC0) 가운데 조각을 6반음 내려 C4 · 1.6 kHz 아래로 둥글게")]
+        public ResidentVoiceSet VoiceBear = new ResidentVoiceSet();
+        [Tooltip("여우 목소리: 강아지 낑낑 흉내 (만화 범주 CC0) D5 · 짧게 내려가는 켕 · 얇게")]
+        public ResidentVoiceSet VoiceFox = new ResidentVoiceSet();
+        [Tooltip("판다 목소리: 곰과 같은 아기 염소 흉내 (판다 새끼도 매애 하고 욺) E4 · 3 kHz 아래 · 곰보다 짧고 밝게")]
+        public ResidentVoiceSet VoicePanda = new ResidentVoiceSet();
+        [Tooltip("코알라 목소리: 같은 아기 염소 흉내를 Bb4로 · 300 Hz ~ 2.2 kHz 콧소리 띠 (곰 · 판다와 한 가족 결)")]
+        public ResidentVoiceSet VoiceKoala = new ResidentVoiceSet();
+        [Tooltip("펭귄 목소리: 오리 피리 꽥 (장난감 · 만화 범주 CC0) · 음 없음")]
+        public ResidentVoiceSet VoicePenguin = new ResidentVoiceSet();
+        [Tooltip("웅성 1단계 (2D 루프, 그 방에 깨어 있는 주민 셋 안팎): 식당 웅성 실제 녹음 (CC0)을 성기게 · 850 Hz 아래 (낱말은 안 들림), 32초")]
+        public SoundCue CrowdLoop1 = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.79f, Pitch = Vector2.one };
+        [Tooltip("웅성 2단계 (여덟 안팎): 웅성 둘을 겹침 + 1단계 · 1 kHz 아래")]
+        public SoundCue CrowdLoop2 = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.79f, Pitch = Vector2.one };
+        [Tooltip("웅성 3단계 (열여섯 넘게, 붐비는 식당): 웅성 셋을 겹침 + 2단계 · 1.1 kHz 아래")]
+        public SoundCue CrowdLoop3 = new SoundCue { Bus = AudioBus.Ambient, Volume = 0.6f, Pitch = Vector2.one };
+        [Tooltip("걷는 작은 발 톡 (걷는 주민 발밑 3D, 가까운 둘만 · 7 m까지): 바닥 발소리와 같은 권투 장갑 녹음을 6반음 올림, 변형 6")]
+        public SoundCue ActWalkSmall = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.14f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.06f, MaxVoices = 2 };
+        [Tooltip("앉고 일어섬 방석 푹 (의자 · 소파 자리 3D): 실제 녹음 소파 앉음 · 일어남 (CC0)을 4 ~ 6반음 올려 가볍게, 변형 3")]
+        public SoundCue ActSit = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.14f, Pitch = new Vector2(0.95f, 1.05f), Cooldown = 0.2f, MaxVoices = 2 };
+        [Tooltip("먹기 그릇 달그락 (상업 구역 · 집 · 복지 센터에 앉은 주민, 낮): 실제 녹음 접시 쌓기의 작은 부딪힘 (CC0), 변형 3")]
+        public SoundCue ActEat = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.077f, Pitch = new Vector2(0.95f, 1.05f), Cooldown = 0.3f, MaxVoices = 2 };
+        [Tooltip("일하기 키보드 톡톡 (일하는 자리): 실제 녹음 타자 (CC0, AI Computer keyboard 0.9), 변형 3")]
+        public SoundCue ActWork = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.11f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.3f, MaxVoices = 2 };
+        [Tooltip("일하기 공구 딸깍딸깍 (기계 · 고열 · 물 방의 일하는 자리): 현장 수리와 같은 래칫 렌치 녹음의 다른 순간 (한 물건 = 소리 하나), 변형 3")]
+        public SoundCue ActWorkTool = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.11f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.3f, MaxVoices = 2 };
+        [Tooltip("잠 작은 숨 (밤 · 집에 앉은 주민, 큰 몸 곰 · 판다 · 코알라): 실제 녹음 깊은 숨 하나를 3반음 올림 · 2.5 kHz 아래")]
+        public SoundCue ActSleepBig = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.045f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.5f, MaxVoices = 2 };
+        [Tooltip("잠 작은 숨 (강아지 · 여우 · 펭귄): 같은 숨 5반음 올림")]
+        public SoundCue ActSleepMid = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.045f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.5f, MaxVoices = 2 };
+        [Tooltip("잠 작은 숨 (고양이 · 토끼): 같은 숨 6반음 올림")]
+        public SoundCue ActSleepSmall = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.045f, Pitch = new Vector2(0.97f, 1.03f), Cooldown = 0.5f, MaxVoices = 2 };
+        [Tooltip("놀기 (휴게실 오락실 · 문화 센터): 실제 녹음 체스 말 · 카드 섞기 · 주사위 (CC0), 변형 3 · 웃음은 그 방 주민의 기쁨 목소리가 가끔")]
+        public SoundCue ActPlay = new SoundCue { Bus = AudioBus.Sfx, Volume = 0.086f, Pitch = new Vector2(0.96f, 1.04f), Cooldown = 0.3f, MaxVoices = 2 };
+
+        /// <summary>2026-11-26 주민 목소리: 종족 번호 (<see cref="ResidentSound.Species"/> 순서) · 기분 → 칸 (모르는 종족이면 null).</summary>
+        public SoundCue VoiceFor(int species, ResidentVoiceMood mood)
+        {
+            ResidentVoiceSet set;
+            switch (species)
+            {
+                case 0: set = VoiceRabbit; break;
+                case 1: set = VoiceCat; break;
+                case 2: set = VoiceDog; break;
+                case 3: set = VoiceBear; break;
+                case 4: set = VoiceFox; break;
+                case 5: set = VoicePanda; break;
+                case 6: set = VoiceKoala; break;
+                case 7: set = VoicePenguin; break;
+                default: return null;
+            }
+            return set != null ? set.For(mood) : null;
+        }
+
         /// <summary>2026-11-25 ⑥ 성격별 1단계 판 바탕.</summary>
         public SoundCue Room1For(Data.InteriorAmbience ambience)
         {
@@ -753,6 +820,17 @@ namespace SpaceStation.Audio
         {
             int i = (int)ambience * 2 + (stage >= 1 ? 1 : 0);
             return RoomSpots != null && i < RoomSpots.Count ? RoomSpots[i] : null;
+        }
+
+        /// <summary>2026-11-26 닫힌 방 밤 루프 (생활 · 물만, 나머지 성격은 null — 바탕 배율 · 가끔 소리 빠르기만).</summary>
+        public SoundCue NightFor(Data.InteriorAmbience ambience)
+        {
+            switch (ambience)
+            {
+                case Data.InteriorAmbience.Life: return NightLife;
+                case Data.InteriorAmbience.Water: return NightWater;
+                default: return null;
+            }
         }
     }
 }

@@ -163,6 +163,9 @@ namespace SpaceStation.Editor
             { "StatePowerDown", new[] { "state_powerdown" } },
             { "StateFanStop", new[] { "state_fan_stop" } },
             { "StateBoilLoop", new[] { "state_boil_loop" } },
+            // 닫힌 방 밤 층 (2026-11-26, Audio/Interior — SOUND_LIST_NEW 4-4 ③, build_audio2.py "2단계 소리 풍경 ②" 구역). 2단계 소리 풍경 8곳은 SS_Evo*.asset (Soundscapes)
+            { "NightLife", new[] { "night_life_loop" } },
+            { "NightWater", new[] { "night_water_loop" } },
             // 사운드 개편 (2026-11-20, AudioOriginals/build_audio2.py)
             { "DoorOpen", new[] { "door_open_" } },
             { "DoorClose", new[] { "door_close_" } },
@@ -243,6 +246,27 @@ namespace SpaceStation.Editor
             { "LightFlicker", new[] { "light_flicker_" } },
             { "RadioStatic", new[] { "radio_static" } },
             { "DockClank", new[] { "dock_clank" } },
+            // 주민 소리 (2026-11-26 작업자 P6, Audio/Interior/Residents — SOUND_LIST_NEW 4-3 voice_* · crowd_* / 4-4 act_*): 종족 8 × 기분 4 (VoiceXxx.Happy 등 = ResidentVoiceSet 칸)
+            { "VoiceRabbit.Happy", new[] { "voice_rabbit_happy_" } }, { "VoiceRabbit.Upset", new[] { "voice_rabbit_upset_" } }, { "VoiceRabbit.Ask", new[] { "voice_rabbit_ask_" } }, { "VoiceRabbit.Surprise", new[] { "voice_rabbit_surprise_" } },
+            { "VoiceCat.Happy", new[] { "voice_cat_happy_" } }, { "VoiceCat.Upset", new[] { "voice_cat_upset_" } }, { "VoiceCat.Ask", new[] { "voice_cat_ask_" } }, { "VoiceCat.Surprise", new[] { "voice_cat_surprise_" } },
+            { "VoiceDog.Happy", new[] { "voice_dog_happy_" } }, { "VoiceDog.Upset", new[] { "voice_dog_upset_" } }, { "VoiceDog.Ask", new[] { "voice_dog_ask_" } }, { "VoiceDog.Surprise", new[] { "voice_dog_surprise_" } },
+            { "VoiceBear.Happy", new[] { "voice_bear_happy_" } }, { "VoiceBear.Upset", new[] { "voice_bear_upset_" } }, { "VoiceBear.Ask", new[] { "voice_bear_ask_" } }, { "VoiceBear.Surprise", new[] { "voice_bear_surprise_" } },
+            { "VoiceFox.Happy", new[] { "voice_fox_happy_" } }, { "VoiceFox.Upset", new[] { "voice_fox_upset_" } }, { "VoiceFox.Ask", new[] { "voice_fox_ask_" } }, { "VoiceFox.Surprise", new[] { "voice_fox_surprise_" } },
+            { "VoicePanda.Happy", new[] { "voice_panda_happy_" } }, { "VoicePanda.Upset", new[] { "voice_panda_upset_" } }, { "VoicePanda.Ask", new[] { "voice_panda_ask_" } }, { "VoicePanda.Surprise", new[] { "voice_panda_surprise_" } },
+            { "VoiceKoala.Happy", new[] { "voice_koala_happy_" } }, { "VoiceKoala.Upset", new[] { "voice_koala_upset_" } }, { "VoiceKoala.Ask", new[] { "voice_koala_ask_" } }, { "VoiceKoala.Surprise", new[] { "voice_koala_surprise_" } },
+            { "VoicePenguin.Happy", new[] { "voice_penguin_happy_" } }, { "VoicePenguin.Upset", new[] { "voice_penguin_upset_" } }, { "VoicePenguin.Ask", new[] { "voice_penguin_ask_" } }, { "VoicePenguin.Surprise", new[] { "voice_penguin_surprise_" } },
+            { "CrowdLoop1", new[] { "crowd_1_loop" } },
+            { "CrowdLoop2", new[] { "crowd_2_loop" } },
+            { "CrowdLoop3", new[] { "crowd_3_loop" } },
+            { "ActWalkSmall", new[] { "act_walk_small_" } },
+            { "ActSit", new[] { "act_sit_" } },
+            { "ActEat", new[] { "act_eat_" } },
+            { "ActWork", new[] { "act_work_01", "act_work_02", "act_work_03" } },   // act_work_tool_은 따로 (접두어로 묶이지 않게)
+            { "ActWorkTool", new[] { "act_work_tool_" } },
+            { "ActSleepBig", new[] { "act_sleep_01" } },
+            { "ActSleepMid", new[] { "act_sleep_02" } },
+            { "ActSleepSmall", new[] { "act_sleep_03" } },
+            { "ActPlay", new[] { "act_play_" } },
             // 체험 · 미니게임 공용 (2026-11-23, Audio/Ride — SOUND_LIST_NEW 5-1)
             { "GameStart", new[] { "game_start" } },
             { "GameTick", new[] { "game_tick" } },

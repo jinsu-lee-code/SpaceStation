@@ -129,6 +129,8 @@ namespace SpaceStation.Audio
             gameObject.AddComponent<ExteriorFxAudio>().Init(_station, _camera, _interior);
             // 바깥 일이 안에서 · 줌 바탕 (2026-11-26 작업자 P5, SOUND_LIST_NEW 4-4 · D-10 · D-4)
             gameObject.AddComponent<Interior.InteriorOutsideSound>().Bind(_station, _meteors, _storm, _interior);
+            // 주민 소리 (2026-11-26 작업자 P6, SOUND_LIST_NEW 4-3 · 4-4 · D-2 · D-5 ④ · D-11): 목소리 · 웅성 · 활동 — 1인칭 내부 지금 방만
+            gameObject.AddComponent<Interior.InteriorResidentSound>().Bind(_station, _meteors, _interior);
             _zoomBed = new ExteriorZoomBed(transform, _camera, _sim, _interior, _lib);
         }
 

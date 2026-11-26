@@ -39,6 +39,12 @@ namespace SpaceStation.Interior
         private AudioService.Loop _breath;
         private bool _suit;
         private float _suitChanged = -99f;
+        // 닫힌 방 밤 층 (2026-11-26, SOUND_LIST_NEW 4-4 ③ — 규칙 = InteriorNightLayer): 소리 풍경이 없는 방만, 밤에 바탕 배율 · 가끔 소리 빠르기 · 밤 루프 (생활 · 물)
+        private readonly Dictionary<InteriorAmbience, AudioService.Loop> _nightLoops = new Dictionary<InteriorAmbience, AudioService.Loop>();
+        private AudioService.Loop _nightLoop;      // 지금 방 성격의 밤 루프 (없으면 null)
+        private InteriorAmbience _ambience;
+        private bool _closedRoom;                  // 지금 방 = 소리 풍경 없는 닫힌 방 (밤 층을 받음)
+        private float _night;                      // 0 = 낮 ~ 1 = 밤 (5초에 넘어감)
 
         public void Attach(FirstPersonController player)
         {
@@ -73,6 +79,16 @@ namespace SpaceStation.Interior
                 pair.Value.Target = pair.Value == _bed ? _bedMul : 0f;
             foreach (var pair in _loops1)
                 pair.Value.Target = pair.Value == _bed ? _bedMul : 0f;
+            // 밤 층 (2026-11-26): 소리 풍경이 없는 방만 — 크기는 Tick이 밤 정도로 매 프레임
+            _ambience = ambience;
+            _closedRoom = !own && _bed != null;
+            _nightLoop = null;
+            if (_closedRoom)
+                _nightLoops.TryGetValue(ambience, out _nightLoop);
+            foreach (var pair in _nightLoops)
+                pair.Value.Target = 0f;
+            if (_bed != null)
+                _bed.Target = BedTarget();
             // 지금 있는 방 소리만 (D-4). 예외 자리 (예정, CONNECT_1121 A8): 옆방이 소음원 태그면 그 방 성격 바탕을 여기서 낮은 Target + 로우패스로 (지금은 안 함)
             _anchors = anchors;
             var lib = AudioService.Instance.Library;
@@ -86,8 +102,21 @@ namespace SpaceStation.Interior
         public void Tick(float dt, bool day)
         {
             _scape.Tick(dt, day);
-            _spots.Tick(dt, day);
+            // 닫힌 방 밤 층 (2026-11-26): 바탕을 밤 배율로 · 밤 루프를 밤 정도만큼 · 가끔 소리 타이머를 밤 빠르기로 (드물게)
+            _night = InteriorNightLayer.Step(_night, day, dt);
+            float spotRate = 1f;
+            if (_closedRoom && _bed != null)
+            {
+                _bed.Target = BedTarget();
+                if (_nightLoop != null)
+                    _nightLoop.Target = _bedMul * _night;
+                spotRate = InteriorNightLayer.Mix(1f, InteriorNightLayer.For(_ambience).SpotRate, _night);
+            }
+            _spots.Tick(dt * spotRate, day);
         }
+
+        /// <summary>지금 방 바탕 크기 = 상태 층 배율 (전력 · 산소) × 밤 배율 (닫힌 방만).</summary>
+        private float BedTarget() => _closedRoom ? _bedMul * InteriorNightLayer.Mix(1f, InteriorNightLayer.For(_ambience).Bed, _night) : _bedMul;
 
         /// <summary>
         /// ⑥ 상태 층 (2026-11-25, SOUND_LIST_NEW 4-4 · D-5 ③): 지금 있는 방 상태를 0.25초마다 읽어 겹침 — 파손 = 전선 지직 루프 + 선체 삐걱 (6 ~ 14초, 방 아무 칸 3D) ·
@@ -109,7 +138,7 @@ namespace SpaceStation.Interior
             bool hot = sim.Heat != null && sim.Heat.IsOverheated(module);
             _bedMul = Mathf.Lerp(0.3f, 1f, Mathf.InverseLerp(0.25f, 1f, power)) * (oxygenLow ? 0.6f : 1f);
             if (_bed != null)
-                _bed.Target = _bedMul;
+                _bed.Target = BedTarget();
             if (_spark != null)
                 _spark.Target = damaged ? 1f : 0f;
             if (_boil != null)
@@ -198,6 +227,10 @@ namespace SpaceStation.Interior
                 _boil.Target = 0f;
             _spots.Stop();
             _bed = null;
+            foreach (var loop in _nightLoops.Values)   // 밤 층 (2026-11-26)
+                loop.Target = 0f;
+            _nightLoop = null;
+            _closedRoom = false;
             // 4-1 · 4-2 (2026-11-26): 우주복 숨 · 빛 다리 루프 (탄 채 나가는 경우까지)
             if (_breath != null)
                 _breath.Target = 0f;
@@ -237,6 +270,17 @@ namespace SpaceStation.Interior
                 loop.FadeSpeed = FadeSpeed;
                 loop.Target = 0f;
                 _loops1[kind] = loop;
+            }
+            // 닫힌 방 밤 루프 (2026-11-26, 파일이 있는 성격만 — 생활 · 물)
+            foreach (InteriorAmbience kind in System.Enum.GetValues(typeof(InteriorAmbience)))
+            {
+                var cue = lib.NightFor(kind);
+                if (cue == null || !cue.HasClip)
+                    continue;
+                var loop = service.CreateLoop(cue);
+                loop.FadeSpeed = FadeSpeed;
+                loop.Target = 0f;
+                _nightLoops[kind] = loop;
             }
             _spark = StateLoop(service, lib.StateSparkLoop);
             _boil = StateLoop(service, lib.StateBoilLoop);
