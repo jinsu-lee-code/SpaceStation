@@ -737,6 +737,10 @@ namespace SpaceStation.Interior
         /// </summary>
         private void UpdateInteraction()
         {
+            // 손을 떼면 어디를 보고 있든 "다시 눌러야 함"을 푼다 (2026-11-26: 다 찬 대상이 사라진 뒤 허공을 보며 손을 떼면
+            // 이 표시가 남아, 다음 물건에서 처음 누른 F가 먹지 않았음 — UpdateHold는 물건을 볼 때만 불림)
+            if (!KeyBindings.IsPressed(GameAction.Interact))
+                _holdNeedsRelease = false;
             if (_pad != null && _pad.IsZoomed)
             {
                 _prompt.SetText(string.Empty);
