@@ -509,9 +509,14 @@ namespace SpaceStation.Interior
         {
             if (_player == null)
                 return;
-            var p = transform.InverseTransformPoint(_player.transform.position) - new Vector3(CargoFlumeCourse.StationX, -1.3f, CargoFlumeCourse.LaneZ);
-            if (_ride >= 0 || (p.sqrMagnitude < 144f && PlayerInRoom))
+            var station = new Vector3(CargoFlumeCourse.StationX, -1.3f, CargoFlumeCourse.LaneZ);
+            var p = transform.InverseTransformPoint(_player.transform.position) - station;
+            // 탄 사람은 2D, 근처 (빛 다리 · 승강장 둘레)는 승강장 자리 3D — 전엔 12m 안이면 2D로 울려 빛 다리를 지나는데
+            // 주민 보트의 안전바 "철컥"이 귀 바로 옆에서 난 듯 들렸음 (2026-11-26, 작업자 P3가 찾은 "빛 다리 위 탑승 소리")
+            if (_ride >= 0)
                 AudioService.TryPlay(cue);
+            else if (p.sqrMagnitude < 144f && PlayerInRoom)
+                AudioService.TryPlayAt(cue, transform.TransformPoint(station));
         }
 
         // ---------------- 탄 주민 ----------------

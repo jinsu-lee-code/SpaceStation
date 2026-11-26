@@ -552,7 +552,7 @@ namespace SpaceStation.Interior
             InteriorFx.Spark(room.Alarm.transform, hit.point + hit.normal * 0.04f, hit.normal, _sparkMaterial);
 
             if (room.Module == CurrentRoom)
-                AudioService.TryPlay(l => l.StormSpark, 0.4f);
+                AudioService.TryPlayAt(l => l.StormSpark, hit.point, 0.4f);   // 2026-11-26 불꽃 자리 3D (전엔 2D — 방 어디서든 귀 옆에서 들렸음)
         }
     }
 }

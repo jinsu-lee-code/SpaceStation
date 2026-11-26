@@ -306,8 +306,11 @@ namespace SpaceStation.Interior
             if (_player == null)
                 return;
             var p = transform.InverseTransformPoint(_player.transform.position) - OrbitalPort.Stop;
-            if (_ride >= 0 || p.sqrMagnitude < 144f)
+            // 탄 사람은 2D, 근처는 선착장 자리 3D (2026-11-26 후룸과 같이 — 12m 안 2D는 지나가기만 해도 귀 옆에서 들렸음)
+            if (_ride >= 0)
                 AudioService.TryPlay(cue);
+            else if (p.sqrMagnitude < 144f)
+                AudioService.TryPlayAt(cue, transform.TransformPoint(OrbitalPort.Stop));
         }
 
         // ---------------- 안내판 · 안내 줄 (색 대신 글 · 깜빡임) ----------------

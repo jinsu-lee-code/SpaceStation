@@ -158,9 +158,11 @@ namespace SpaceStation.Interior
         /// 바닥 자리: 방 칸 가운데에서 <paramref name="minRadius"/>~<paramref name="maxRadius"/>m 떨어진 곳 — 평평하고(아래 광선이 같은 높이 바닥),
         /// <paramref name="halfExtents"/>(바닥 위 상자 반 크기)만큼 비었고, <paramref name="used"/>와 <paramref name="spacing"/>m 이상.
         /// <paramref name="ignoreResidents"/>: 지금 서 있거나 걷는 주민 몸은 빈 자리 판단에서 뺌 — 주민 위치에 따라 자리가 바뀌지 않게 (대신 부르는 쪽이 주민 자리를 <paramref name="used"/>로 넘김).
+        /// <paramref name="sightHeight"/>: 플레이어 눈에서 보여야 하는 높이 (바닥에서, 0 = 상자 반 높이) — 떠 있는 물건 (침입 드론 1.3m)은 그 높이로 봐야
+        /// 유리 탱크 · 칸막이 너머 자리가 걸러짐 (2026-11-26: 물 추출기 유리 안쪽에 드론이 놓여 시선이 막혔음).
         /// </summary>
         public static bool Floor(InteriorBuilder builder, ModuleInstance module, System.Random rng, Vector3 halfExtents, IReadOnlyList<Vector3> used, float spacing,
-            out Vector3 spot, float minRadius = 1f, float maxRadius = 2.6f, bool ignoreResidents = false)
+            out Vector3 spot, float minRadius = 1f, float maxRadius = 2.6f, bool ignoreResidents = false, float sightHeight = 0f)
         {
             spot = default;
             builder.EnsureActive(module);
@@ -198,7 +200,7 @@ namespace SpaceStation.Interior
                 }
                 if (!far)
                     continue;
-                if (walk != null && !CanReachFloor(walk, cell.y, p, halfExtents))
+                if (walk != null && !CanReachFloor(walk, cell.y, p, halfExtents, sightHeight))
                     continue;   // 둘레에 플레이어가 설 바닥이 없음 (가구 사이 · 창구 뒤 등)
                 if (lanes != null && lanes.Blocks(p, Mathf.Max(halfExtents.x, halfExtents.z)))
                     continue;   // 주민이 오가는 통로 (민원인이 상자를 뚫고 지나가지 않게)
@@ -379,11 +381,11 @@ namespace SpaceStation.Interior
         }
 
         /// <summary>바닥 물건 둘레(물건 가장자리에서 0.3 ~ 1.0m)에 갈 수 있는 바닥이 있고, 그 눈높이에서 물건이 보이는지.</summary>
-        private static bool CanReachFloor(Reach r, int level, Vector3 p, Vector3 halfExtents)
+        private static bool CanReachFloor(Reach r, int level, Vector3 p, Vector3 halfExtents, float sightHeight = 0f)
         {
             float inner = Mathf.Max(halfExtents.x, halfExtents.z) + PlayerRadius;
             float outer = inner + 0.7f;
-            var target = p + Vector3.up * Mathf.Max(0.1f, halfExtents.y);
+            var target = p + Vector3.up * (sightHeight > 0f ? sightHeight : Mathf.Max(0.1f, halfExtents.y));
             int span = Mathf.CeilToInt(outer / ReachStep);
             var k = KeyOf(r, p, level);
             for (int dx = -span; dx <= span; dx++)

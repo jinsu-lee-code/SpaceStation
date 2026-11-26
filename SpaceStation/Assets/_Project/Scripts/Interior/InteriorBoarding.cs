@@ -19,6 +19,8 @@ namespace SpaceStation.Interior
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
         private static readonly Color EyeColor = new Color(1f, 0.32f, 0.2f);
+        /// <summary>드론이 떠 있는 높이 (바닥에서) — 자리 고를 때 이 높이가 플레이어 눈에서 보여야 함.</summary>
+        private const float HoverHeight = 1.3f;
 
         private sealed class Drone
         {
@@ -170,10 +172,11 @@ namespace SpaceStation.Interior
             var rng = new System.Random(_room.Origin.x * 73856093 ^ _room.Origin.z * 83492791 ^ 0xD20);
             for (int i = 0; i < count; i++)
             {
-                if (!InteriorSpots.Floor(_builder, _room, rng, new Vector3(0.3f, 0.6f, 0.3f), _used, 1.4f, out var spot, 0.8f, 2.8f))
+                // 상자 = 떠 있는 몸 (1.3m ± 0.38, 테 반지름 0.35)까지 바닥에서 1.76m, 시선 = 몸 가운데 1.3m (2026-11-26: 0.6m 상자 · 0.6m 시선이라 물 추출기 유리 탱크 안쪽에 놓였음)
+                if (!InteriorSpots.Floor(_builder, _room, rng, new Vector3(0.4f, 0.86f, 0.4f), _used, 1.4f, out var spot, 0.8f, 2.8f, sightHeight: HoverHeight))
                     spot = _builder.FloorPoint(_room.Cells[i % _room.Cells.Count]) + new Vector3(0.6f * i, 0f, 0f);
                 _used.Add(spot);
-                _drones.Add(Build(parent, spot + Vector3.up * 1.3f, i * 1.7f));
+                _drones.Add(Build(parent, spot + Vector3.up * HoverHeight, i * 1.7f));
                 _shown++;
             }
         }
