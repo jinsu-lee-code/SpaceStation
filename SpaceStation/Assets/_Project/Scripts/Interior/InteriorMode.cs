@@ -1465,13 +1465,8 @@ namespace SpaceStation.Interior
             if (result != null)
                 _overlay.SetSiblingIndex(result.GetSiblingIndex());
 
-            var dot = HoloUi.Rect("Crosshair", _overlay);
-            dot.anchorMin = dot.anchorMax = new Vector2(0.5f, 0.5f);
-            dot.sizeDelta = new Vector2(6f, 6f);
-            var dotImg = dot.gameObject.AddComponent<Image>();
-            dotImg.sprite = _fillSprite;
-            dotImg.color = new Color(1f, 1f, 1f, 0.8f);
-            dotImg.raycastTarget = false;
+            // REVIEW_1115 1-8 조준점 꾸미기: 설정 [조준점] 탭 값을 따라 그림 (끄면 안 보이되 F 안내 · 길게 누르기 막대는 그대로)
+            CrosshairView.Create(_overlay, "Crosshair");
 
             // 13-4 (사용자 피드백 2026-10-18): 방 이름 · 사고/부탁 줄을 상단 중앙으로 (왼쪽 위는 [관리] 메뉴와 겹쳤음).
             // 사건 배너(같은 상단 중앙)가 떠 있는 동안은 그 아래로 비켜 섬 (PlaceTop). 밝은 벽 · 조명 위에서도 읽히게 글자 뒤 반투명 바탕
