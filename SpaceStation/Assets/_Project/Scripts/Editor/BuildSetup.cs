@@ -103,5 +103,50 @@ namespace SpaceStation.Editor
                 Debug.LogError(summary);
             return summary;
         }
+
+        /// <summary>
+        /// 검증용 빌드 (CONNECT_1121 V4, 2026-11-26): 제품 이름만 <see cref="PlayCheck.PlayCheckLog.ProductName"/>로 바꿔 빌드하고 되돌린다 —
+        /// 세이브 · PlayerPrefs · 플레이 기록 폴더가 실제 판과 섞이지 않고(LocalLow/{제작사}/{제품}), 이 이름일 때만 플레이 기록 · 끝 질문이 켜진다.
+        /// 출력 = Builds/PlayCheck/AnotherEarthPlayCheck.exe (Assets 밖). 플레이 세션 폴더로는 이 폴더째 복사해 쓴다.
+        /// </summary>
+        [MenuItem("SpaceStation/Build/Build PlayCheck (검증용)")]
+        public static void BuildPlayCheckMenu() => BuildPlayCheck();
+
+        public static string BuildPlayCheck()
+        {
+            ApplyPlayerSettings();
+            ApplyMenuVersionLabel();
+            string root = Directory.GetParent(Application.dataPath).FullName;
+            string folder = Path.Combine(root, "Builds/PlayCheck");
+            Directory.CreateDirectory(folder);
+            var scenes = new System.Collections.Generic.List<string>();
+            foreach (var s in EditorBuildSettings.scenes)
+                if (s.enabled)
+                    scenes.Add(s.path);
+            var options = new BuildPlayerOptions
+            {
+                scenes = scenes.ToArray(),
+                locationPathName = Path.Combine(folder, "AnotherEarthPlayCheck.exe"),
+                target = BuildTarget.StandaloneWindows64,
+                options = BuildOptions.None,
+            };
+            PlayerSettings.productName = PlayCheck.PlayCheckLog.ProductName;
+            try
+            {
+                var report = BuildPipeline.BuildPlayer(options);
+                var s2 = report.summary;
+                string summary = $"[BuildSetup] 검증용 {s2.result} · {s2.totalSize / (1024f * 1024f):0.0} MB · {s2.totalTime.TotalSeconds:0}초 · 오류 {s2.totalErrors} · 경고 {s2.totalWarnings} → {options.locationPathName}";
+                if (s2.result == BuildResult.Succeeded)
+                    Debug.Log(summary);
+                else
+                    Debug.LogError(summary);
+                return summary;
+            }
+            finally
+            {
+                PlayerSettings.productName = ProductName; // 실제 판 이름으로 되돌림
+                AssetDatabase.SaveAssets();
+            }
+        }
     }
 }
