@@ -14,6 +14,8 @@ namespace SpaceStation.Building
     /// - 배치 미리보기: BuildController가 ShowPreview/HidePreview로 고스트 통로를 홀로그램으로 표시
     /// - 진화 단계별 모양 (2026-11-17, <see cref="ConnectorStyle"/>): 두 모듈 중 높은 단계 — 1 세라믹 캡슐 · 2 에어록 현관 포드 · 3 · 4 받침을 잇는 다리 데크,
     ///   데크가 2단계 이하 모듈에 닿는 끝 = 에어록 문 고리. 고리 · 난간 기둥 · 정원등은 늘리지 않는 따로 조각을 정해진 간격으로 놓음.
+    /// - ⑪ 바깥 통로 끝 맞닿음 (2026-11-26): 위아래 기둥은 기둥 바로 밑 표면 (받침 윗면 등)까지, 3 · 4단계 데크는 데크 높이의 섬 · 받침 가장자리까지,
+    ///   1 · 2단계 얇은 받침 위에 뜬 옆 통로 끝은 받침 위에 내려앉혀 비스듬히 잇고 (가파르면 경사로처럼 받침 위로 밀어 넣음) 칼라는 벽에 맞춰 세움.
     /// 메시·재질은 StationArtBuilder(Connectors)가 배선한다 (진화 = ConnectorSetup, SM_ConnectorsEvo.fbx).
     /// </summary>
     public sealed class StationConnectors : MonoBehaviour
@@ -71,6 +73,8 @@ namespace SpaceStation.Building
         {
             public GameObject Root;
             public ConnectorSpec Spec;
+            /// <summary>실제로 지은 길이 (다리 데크 = 데크 높이 깊이로 잰 길이).</summary>
+            public float Length;
             public Renderer[] Hull;
             public Renderer[] Strips;
             public bool? Active;
@@ -300,12 +304,15 @@ namespace SpaceStation.Building
             var strips = new List<Renderer>();
             Material hullMat = ghost ? _ghostMaterial : _hullMaterial;
             Material stripMat = ghost ? _ghostMaterial : _flowMaterial;
-            Place(c.Root.transform, spec);
-
-            float length = spec.Length;
-            float half = length * 0.5f;
             var style = ConnectorStyle.For(StageAt(spec.CellA, placing), StageAt(spec.CellB, placing), spec.IsVertical);
             var set = SetFor(style.Stage);
+            // ⑪ 다리 데크는 데크 높이 (칸 가운데 −0.12)에서 잰 섬 · 받침 가장자리끼리 (칸 가운데 높이 건물 · 나무까지 잔디 위를 가로지르지 않게)
+            bool deck = style.IsDeck && !spec.IsVertical && set != null && _evoMaterial != null;
+            // ⑪ 1 · 2단계 받침 위에 내려앉은 끝이 있으면 두 끝을 비스듬히 (칼라는 벽에 맞춰 세움)
+            bool sloped = !deck && !spec.IsVertical && spec.IsSloped;
+            float length = Place(c.Root.transform, spec, deck, sloped);
+            c.Length = length;
+            float half = length * 0.5f;
             if (set != null && _evoMaterial != null)
             {
                 BuildEvo(c, set, style, ghost ? _ghostMaterial : _evoMaterial, stripMat, length, hull, strips);
@@ -325,6 +332,8 @@ namespace SpaceStation.Building
                 for (int s = -1; s <= 1; s += 2)
                     strips.Add(Part(c.Root.transform, "Strip", _stripMesh, stripMat, new Vector3(s * 0.081f, 0f, 0f), new Vector3(0.008f, 0.03f, length)));
             }
+            if (sloped)
+                KeepCollarsUpright(c.Root.transform, spec.Direction);
             c.Hull = hull.ToArray();
             c.Strips = strips.ToArray();
             foreach (var r in c.Strips)
@@ -381,13 +390,36 @@ namespace SpaceStation.Building
             }
         }
 
-        /// <summary>통로 루트: A·B 표면 사이 중앙, 로컬 Z = A→B 방향.</summary>
-        private static void Place(Transform t, ConnectorSpec spec)
+        /// <summary>통로 루트: A·B 표면 사이 중앙, 로컬 Z = A→B 방향. 돌려주는 값 = 통로 길이.</summary>
+        private static float Place(Transform t, ConnectorSpec spec, bool deck, bool sloped)
         {
             Vector3 dir = spec.Direction;
-            Vector3 position = GridConfig.CellToWorld(spec.CellA) + dir * spec.CenterOffset;
+            if (sloped)
+            {
+                // ⑪ 끝마다 제 높이 · 깊이 (받침 위에 내려앉은 끝 = 음수 높이), 두 끝 사이를 비스듬히
+                Vector3 a = GridConfig.CellToWorld(spec.CellA) + dir * spec.EndDepthA + Vector3.up * spec.HeightA;
+                Vector3 b = GridConfig.CellToWorld(spec.CellB) - dir * spec.EndDepthB + Vector3.up * spec.HeightB;
+                Vector3 axis = b - a;
+                t.SetPositionAndRotation((a + b) * 0.5f, Quaternion.LookRotation(axis.normalized, Vector3.up));
+                return axis.magnitude;
+            }
+            Vector3 position = GridConfig.CellToWorld(spec.CellA) + dir * spec.CenterOffsetFor(deck);
             Vector3 up = spec.IsVertical ? Vector3.forward : Vector3.up;
             t.SetPositionAndRotation(position, Quaternion.LookRotation(dir, up));
+            return spec.LengthFor(deck);
+        }
+
+        /// <summary>⑪ 비스듬한 통로의 끝 칼라는 기울이지 않고 모듈 벽에 맞춰 세움 (A = 면 방향, B = 반대).</summary>
+        private static void KeepCollarsUpright(Transform root, Vector3Int direction)
+        {
+            Vector3 dir = direction;
+            foreach (Transform child in root)
+            {
+                if (child.name == "CollarA")
+                    child.rotation = Quaternion.LookRotation(dir, Vector3.up);
+                else if (child.name == "CollarB")
+                    child.rotation = Quaternion.LookRotation(-dir, Vector3.up);
+            }
         }
 
         private static Renderer Part(Transform parent, string name, Mesh mesh, Material material, Vector3 localPosition, Vector3 localScale, float yaw = 0f)
@@ -433,7 +465,7 @@ namespace SpaceStation.Building
             foreach (var r in c.Strips)
             {
                 r.GetPropertyBlock(_block);
-                _block.SetFloat(LengthId, Mathf.Max(0.01f, c.Spec.Length));
+                _block.SetFloat(LengthId, Mathf.Max(0.01f, c.Length));
                 _block.SetFloat(FlowId, c.Flow);
                 _block.SetFloat(EnergyId, active ? 1f : 0f);
                 r.SetPropertyBlock(_block);
@@ -518,7 +550,9 @@ namespace SpaceStation.Building
             {
                 var a = _ghosts[i].Spec;
                 var b = _specs[i];
-                if (a.CellA != b.CellA || a.Direction != b.Direction || !Mathf.Approximately(a.Length, b.Length))
+                if (a.CellA != b.CellA || a.Direction != b.Direction || !Mathf.Approximately(a.Length, b.Length) || !Mathf.Approximately(a.DeckLength, b.DeckLength)
+                    || !Mathf.Approximately(a.HeightA, b.HeightA) || !Mathf.Approximately(a.HeightB, b.HeightB)
+                    || !Mathf.Approximately(a.EndDepthA, b.EndDepthA) || !Mathf.Approximately(a.EndDepthB, b.EndDepthB))
                     return true;
             }
             return false;

@@ -130,6 +130,136 @@ namespace SpaceStation.Tests
             Assert.IsEmpty(wrong, string.Join(", ", wrong));
         }
 
+        [Test]
+        public void LinkedNegativeDepth_StrutReachesLowPlatform()
+        {
+            // ⑪ 받침 모듈: 윗면 연결점은 있고 표면 (받침 윗면)이 칸 가운데보다 0.26 아래
+            var platform = Module(new[] { Vector3Int.zero });
+            platform.SetFaceDepths(new List<FaceDepth> { FaceDepth.Link(Vector3Int.zero, Vector3Int.up, -0.26f, 0f) });
+            var block = Module(new[] { Vector3Int.zero });
+            Assert.IsTrue(platform.TryGetFaceDepth(Vector3Int.zero, Vector3Int.up, out float d), "연결점 있음 (깊이가 음수여도)");
+            Assert.AreEqual(-0.26f, d, 1e-4f);
+            _grid.TryPlace(platform, Vector3Int.zero, 0, out _);
+            _grid.TryPlace(block, Vector3Int.up, 0, out var top);
+
+            ConnectorLayout.ForModule(_grid, top, _specs);
+            Assert.AreEqual(1, _specs.Count);
+            var s = _specs[0];
+            Assert.IsTrue(s.IsVertical);
+            Assert.AreEqual(1f + 0.26f - ModuleData.DefaultFaceDepth, s.Length, 1e-4f, "기둥이 받침 윗면까지 내려감");
+            Assert.AreEqual(-0.26f + s.Length * 0.5f, s.CenterOffset, 1e-4f);
+        }
+
+        [Test]
+        public void OldNegativeDepth_StillMeansNoConnectionPoint()
+        {
+            var hollow = Module(new[] { Vector3Int.zero }, (Vector3Int.zero, Vector3Int.up, -1f));
+            Assert.IsFalse(hollow.TryGetFaceDepth(Vector3Int.zero, Vector3Int.up, out _));
+        }
+
+        [Test]
+        public void DeckDepth_SeparateFromTubeDepth()
+        {
+            // ⑪ 3단계 섬: 칸 가운데 높이는 깊은 곳 건물 (0.05), 데크 높이는 섬 가장자리 (0.42)
+            var island = Module(new[] { Vector3Int.zero });
+            island.SetFaceDepths(new List<FaceDepth> { FaceDepth.Link(Vector3Int.zero, Vector3Int.right, 0.05f, 0.42f) });
+            var block = Module(new[] { Vector3Int.zero });
+            _grid.TryPlace(island, Vector3Int.zero, 0, out _);
+            _grid.TryPlace(block, Vector3Int.right, 0, out var b);
+
+            ConnectorLayout.ForModule(_grid, b, _specs);
+            var s = _specs[0];
+            Assert.AreEqual(0.05f, s.DepthA, 1e-4f);
+            Assert.AreEqual(0.42f, s.DeckDepthA, 1e-4f);
+            Assert.AreEqual(ModuleData.DefaultFaceDepth, s.DeckDepthB, 1e-4f, "데크 깊이를 따로 안 잰 쪽 = 통로 깊이");
+            Assert.AreEqual(1f - 0.05f - 0.46f, s.LengthFor(false), 1e-4f);
+            Assert.AreEqual(1f - 0.42f - 0.46f, s.LengthFor(true), 1e-4f);
+            Assert.AreEqual(0.42f + s.DeckLength * 0.5f, s.CenterOffsetFor(true), 1e-4f);
+        }
+
+        [Test]
+        public void Landing_SlopedTube_KeepsOtherEndAtCenterHeight()
+        {
+            // ⑪ 받침 모듈 +X 면: 끝을 받침 위 (−0.18)에 내려앉힘, 깊이 0.20 (받침 위 건물까지) → 이웃 기본 깊이 0.46과 길이 0.34 → 기울기 28° (35° 안)
+            var platform = Module(new[] { Vector3Int.zero });
+            platform.SetFaceDepths(new List<FaceDepth> { FaceDepth.Link(Vector3Int.zero, Vector3Int.right, 0.42f, 0f, -0.18f, 0.20f, 0.20f) });
+            var block = Module(new[] { Vector3Int.zero });
+            _grid.TryPlace(platform, Vector3Int.zero, 0, out _);
+            _grid.TryPlace(block, Vector3Int.right, 0, out var b);
+
+            ConnectorLayout.ForModule(_grid, b, _specs);
+            var s = _specs[0];
+            Assert.IsTrue(s.IsSloped);
+            Assert.AreEqual(-0.18f, s.HeightA, 1e-4f);
+            Assert.AreEqual(0.20f, s.EndDepthA, 1e-4f);
+            Assert.AreEqual(0f, s.HeightB, 1e-4f, "이웃 끝은 칸 가운데 높이");
+            Assert.AreEqual(ModuleData.DefaultFaceDepth, s.EndDepthB, 1e-4f);
+            Assert.AreEqual(0.42f, s.DepthA, 1e-4f, "수평 통로 깊이 (데크 · 예전 값)는 그대로");
+        }
+
+        [Test]
+        public void Landing_TooSteep_SlidesInwardAsRamp()
+        {
+            // 받침 가장자리 (0.42)에 내려앉으면 길이 0.12 · 높이 차 0.20 → 59° → 받침 위로 밀어 35°
+            var a = new ConnectorLayout.TubeEnd(-0.20f, 0.42f, 0.05f);
+            var b = new ConnectorLayout.TubeEnd(0.46f);
+            ConnectorLayout.ResolveTube(ref a, ref b, 0.42f, 0.46f);
+            float span = 1f - a.Depth - b.Depth;
+            Assert.AreEqual(-0.20f, a.Height, 1e-4f);
+            Assert.AreEqual(ConnectorLayout.RampMaxDegrees, Mathf.Atan2(0.20f, span) * Mathf.Rad2Deg, 0.1f);
+            Assert.Less(a.Depth, 0.42f, "받침 안쪽으로 밀림");
+            Assert.AreEqual(0.46f, b.Depth, 1e-4f, "칸 가운데 높이 끝은 그대로");
+        }
+
+        [Test]
+        public void Landing_BlockedAndStillTooSteep_FallsBackToStraight()
+        {
+            // 받침 위 물건 때문에 0.40까지만 밀 수 있음 → 길이 0.14 · 높이 차 0.20 → 55° (50° 넘음) → 예전처럼 수평
+            var a = new ConnectorLayout.TubeEnd(-0.20f, 0.42f, 0.40f);
+            var b = new ConnectorLayout.TubeEnd(0.46f);
+            ConnectorLayout.ResolveTube(ref a, ref b, 0.30f, 0.46f);
+            Assert.IsFalse(a.Lands);
+            Assert.AreEqual(0f, a.Height, 1e-4f);
+            Assert.AreEqual(0.30f, a.Depth, 1e-4f, "수평 통로 깊이로 돌아감");
+        }
+
+        [Test]
+        public void Landing_BothOnPlatforms_StaysLevel()
+        {
+            var a = new ConnectorLayout.TubeEnd(-0.18f, 0.42f, 0.05f);
+            var b = new ConnectorLayout.TubeEnd(-0.18f, 0.41f, 0.05f);
+            ConnectorLayout.ResolveTube(ref a, ref b, 0.42f, 0.42f);
+            Assert.AreEqual(0.42f, a.Depth, 1e-4f, "높이가 같으면 밀지 않음");
+            Assert.AreEqual(0.41f, b.Depth, 1e-4f);
+            Assert.AreEqual(a.Height, b.Height, 1e-4f);
+        }
+
+        /// <summary>⑪ 모든 모듈 데이터가 새 측정으로 구워졌는지 · 기둥 · 데크 깊이가 범위 안인지.</summary>
+        [Test]
+        public void AllModules_FaceDepthsRebaked_InRange()
+        {
+            var wrong = new List<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:ModuleData", new[] { "Assets/_Project/Data/Modules" }))
+            {
+                var data = AssetDatabase.LoadAssetAtPath<ModuleData>(AssetDatabase.GUIDToAssetPath(guid));
+                if (data == null || data.Prefab == null)
+                    continue;
+                foreach (var f in data.FaceDepths)
+                {
+                    bool vertical = f.Direction.y != 0;
+                    if (!f.Linked && f.Depth >= 0f)
+                        wrong.Add($"{data.name} {f.Cell}{f.Direction} 옛 측정");
+                    else if (f.Linked && (f.Depth > 0.5f || f.Depth < (vertical ? -8f : 0.04f)))
+                        wrong.Add($"{data.name} {f.Cell}{f.Direction} 깊이 {f.Depth}");
+                    else if (f.Deck != 0f && (vertical || f.Deck < 0.04f || f.Deck > 0.48f))
+                        wrong.Add($"{data.name} {f.Cell}{f.Direction} 데크 {f.Deck}");
+                    else if (f.Lands && (vertical || f.Land < -0.45f || f.LandDepth < 0.04f || f.LandDepth > 0.48f || f.LandMin > f.LandDepth + 1e-4f))
+                        wrong.Add($"{data.name} {f.Cell}{f.Direction} 받침 {f.Land}@{f.LandDepth}~{f.LandMin}");
+                }
+            }
+            Assert.IsEmpty(wrong, string.Join(", ", wrong));
+        }
+
         private ModuleData Module(Vector3Int[] offsets, params (Vector3Int cell, Vector3Int dir, float depth)[] depths)
         {
             var data = ScriptableObject.CreateInstance<ModuleData>();

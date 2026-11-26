@@ -24,50 +24,121 @@ MonoBehaviour:
   _terminalOnly: 0
   _dockFront: {x: 0, y: 0, z: 1}
   _approachLaneLength: 2
+  _keepClearCells: []
   _upperSidesNeedSupport: 0
   _faceDepths:
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: -1, y: 0, z: 0}
     Depth: 0.36019534
+    Linked: 1
+    Deck: 0.42000005
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 1, z: 0}
     Depth: 0.13019535
+    Linked: 1
+    Deck: 0
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: -1, z: 0}
     Depth: 0.42019528
+    Linked: 1
+    Deck: 0
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 0, z: -1}
     Depth: 0.2451953
+    Linked: 1
+    Deck: 0.42000005
+    Land: -0.1998047
+    LandDepth: 0.31704068
+    LandMin: 0.31704068
   - Cell: {x: 1, y: 0, z: 0}
     Direction: {x: 1, y: 0, z: 0}
     Depth: 0.36019534
+    Linked: 1
+    Deck: 0.42000005
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
   - Cell: {x: 1, y: 0, z: 0}
     Direction: {x: 0, y: 1, z: 0}
     Depth: 0.13019532
+    Linked: 1
+    Deck: 0
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
   - Cell: {x: 1, y: 0, z: 0}
     Direction: {x: 0, y: -1, z: 0}
     Depth: 0.42019534
+    Linked: 1
+    Deck: 0
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
   - Cell: {x: 1, y: 0, z: 0}
     Direction: {x: 0, y: 0, z: 1}
     Depth: 0.30019534
+    Linked: 1
+    Deck: 0.42000005
+    Land: -0.1998047
+    LandDepth: 0.30019534
+    LandMin: 0.30019534
   - Cell: {x: 1, y: 0, z: 0}
     Direction: {x: 0, y: 0, z: -1}
     Depth: 0.2451953
+    Linked: 1
+    Deck: 0.43000004
+    Land: -0.20615235
+    LandDepth: 0.31704074
+    LandMin: 0.31704074
   - Cell: {x: 0, y: 0, z: 1}
     Direction: {x: 1, y: 0, z: 0}
     Depth: 0.17019534
+    Linked: 1
+    Deck: 0.42000005
+    Land: -0.1998047
+    LandDepth: 0.1987249
+    LandMin: 0.1987249
   - Cell: {x: 0, y: 0, z: 1}
     Direction: {x: -1, y: 0, z: 0}
     Depth: 0.17019534
+    Linked: 1
+    Deck: 0.43000004
+    Land: -0.20615235
+    LandDepth: 0.26625
+    LandMin: 0.26625
   - Cell: {x: 0, y: 0, z: 1}
     Direction: {x: 0, y: 1, z: 0}
-    Depth: 0.4203043
+    Depth: 0.4228434
+    Linked: 1
+    Deck: 0
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
   - Cell: {x: 0, y: 0, z: 1}
     Direction: {x: 0, y: -1, z: 0}
     Depth: 0.42019534
+    Linked: 1
+    Deck: 0
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
   - Cell: {x: 0, y: 0, z: 1}
     Direction: {x: 0, y: 0, z: 1}
     Depth: 0.17019537
+    Linked: 1
+    Deck: 0.42000005
+    Land: -0.1998047
+    LandDepth: 0.19872499
+    LandMin: 0.19872499
   _closedFaces: []
   _buildCost:
   - Type: 4
@@ -79,6 +150,7 @@ MonoBehaviour:
   _housingCapacity: 0
   _storageBonus: 0
   _solarPowered: 0
+  _tiltingPanels: 0
   _batteryCapacity: 0
   _batteryRate: 0
   _onDemandPower: 0

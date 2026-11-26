@@ -22,26 +22,58 @@ MonoBehaviour:
   _terminalOnly: 0
   _dockFront: {x: 0, y: 0, z: 1}
   _approachLaneLength: 2
+  _keepClearCells: []
   _upperSidesNeedSupport: 0
   _faceDepths:
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 1, y: 0, z: 0}
     Depth: 0.44019532
+    Linked: 1
+    Deck: 0.44019532
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: -1, y: 0, z: 0}
     Depth: 0.44019532
+    Linked: 1
+    Deck: 0.44019532
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 1, z: 0}
     Depth: 0.3951953
+    Linked: 1
+    Deck: 0
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: -1, z: 0}
     Depth: 0.41019532
+    Linked: 1
+    Deck: 0
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 0, z: 1}
     Depth: 0.44019532
+    Linked: 1
+    Deck: 0.44019532
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
   - Cell: {x: 0, y: 0, z: 0}
     Direction: {x: 0, y: 0, z: -1}
     Depth: 0.44019532
+    Linked: 1
+    Deck: 0.44019532
+    Land: 0
+    LandDepth: 0
+    LandMin: 0
+  _closedFaces: []
   _buildCost:
   - Type: 4
     Amount: 25
@@ -50,6 +82,7 @@ MonoBehaviour:
   _housingCapacity: 0
   _storageBonus: 0
   _solarPowered: 0
+  _tiltingPanels: 0
   _batteryCapacity: 0
   _batteryRate: 0
   _onDemandPower: 0
@@ -63,6 +96,7 @@ MonoBehaviour:
   _recipeSlots: 0
   _comingSoon: 0
   _comingSoonNote: 
+  _requiredRule: 0
   _adjacencyRelay: 0
   _warningBonus: 0
   _researchSpeedBonus: 0
@@ -73,6 +107,7 @@ MonoBehaviour:
   _armored: 1
   _countsTowardGrade: 0
   _gradeModuleCount: 1
+  _limitedModuleShare: 0
   _repairTimeMultiplier: 0.5
   _cargoInterval: 0
   _cargoFraction: 0
@@ -84,6 +119,7 @@ MonoBehaviour:
   _controlSpreadMultiplier: 1
   _controlDestroyMultiplier: 1
   _growthIntervalMultiplier: 1
+  _foodKinds: 0
   _serviceNeed: 0
   _serviceRadius: 0
   _serviceCapacity: 0

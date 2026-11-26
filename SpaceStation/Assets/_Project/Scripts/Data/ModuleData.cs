@@ -232,11 +232,47 @@ namespace SpaceStation.Data
                 if (_faceDepths[i].Cell == localCell && _faceDepths[i].Direction == localDir)
                 {
                     depth = _faceDepths[i].Depth;
-                    return depth >= 0f;
+                    return _faceDepths[i].HasLink;
                 }
             }
             depth = DefaultFaceDepth;
             return true;
+        }
+
+        /// <summary>
+        /// ⑪ 3 · 4단계 다리 데크 높이에서 잰 깊이 (섬 · 받침 가장자리). 따로 잰 값이 없으면 <see cref="TryGetFaceDepth"/>의 깊이.
+        /// </summary>
+        public float DeckDepth(Vector3Int localCell, Vector3Int localDir, float fallback)
+        {
+            for (int i = 0; i < _faceDepths.Count; i++)
+            {
+                if (_faceDepths[i].Cell == localCell && _faceDepths[i].Direction == localDir)
+                    return _faceDepths[i].Deck > 0f ? _faceDepths[i].Deck : fallback;
+            }
+            return fallback;
+        }
+
+        /// <summary>
+        /// ⑪ 1 · 2단계 얇은 받침 위에 옆 통로 끝을 내려앉히는 면이면 true (height = 칸 가운데 기준 음수 높이, depth = 그 높이의 끝 깊이,
+        /// minDepth = 경사가 가파를 때 받침 위로 밀어 넣을 수 있는 가장 안쪽 깊이).
+        /// </summary>
+        public bool TryGetLanding(Vector3Int localCell, Vector3Int localDir, out float height, out float depth, out float minDepth)
+        {
+            for (int i = 0; i < _faceDepths.Count; i++)
+            {
+                var f = _faceDepths[i];
+                if (f.Cell == localCell && f.Direction == localDir && f.Lands)
+                {
+                    height = f.Land;
+                    depth = f.LandDepth;
+                    minDepth = f.LandMin;
+                    return true;
+                }
+            }
+            height = 0f;
+            depth = 0f;
+            minDepth = 0f;
+            return false;
         }
 
         /// <summary>12-5 연결점을 두지 않는 면인지 (회전 0 기준).</summary>
