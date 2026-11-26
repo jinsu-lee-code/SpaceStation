@@ -11,7 +11,8 @@ using UnityEngine.UI;
 namespace SpaceStation.UI
 {
     /// <summary>
-    /// 5-10 설정창 (메인 메뉴·ESC 메뉴 공용). 탭 4개(사운드 / 화면 / 게임 / 조작), 바꾸면 바로 적용·저장.
+    /// 5-10 설정창 (메인 메뉴·ESC 메뉴 공용). 탭 5개(사운드 / 화면 / 게임 / 조작 / 조준점), 바꾸면 바로 적용·저장.
+    /// 조준점 탭(REVIEW_1115 1-8): 위에 고정된 실제 크기 미리보기 (밝은 · 어두운 바탕) + 프로필 · 색 · 외곽선 · 가운데 점 · 안쪽 / 바깥 선 줄.
     /// 조작 탭(7-5): 동작별 키 버튼 → 다음에 누른 키로 변경(KeyBindings), 아래에 마우스·고정 키 안내.
     /// 해상도·화면 모드만 바꾼 뒤 "유지할까요?"를 묻고 10초 안에 답이 없으면 되돌린다.
     /// 화면 탭: 품질 프리셋(낮음/중간/높음) 아래에 세부 항목 — 세부 항목을 바꾸면 프리셋이 "사용자 지정".
@@ -31,8 +32,13 @@ namespace SpaceStation.UI
 
         private static readonly Color TextColor = new Color(0.91f, 0.96f, 1f, 1f);
         private static readonly Color MutedColor = new Color(0.68f, 0.76f, 0.85f, 1f);
-        private static readonly string[] TabNames = { "사운드", "화면", "게임", "조작" };
+        private static readonly string[] TabNames = { "사운드", "화면", "게임", "조작", "조준점" };
+        private const int CrosshairTab = 4;
         private const float WindowHeight = 900f;
+        private const float WindowWidth = 920f;
+        private const float ViewportTop = 156f;
+        /// <summary>조준점 탭: 미리보기가 스크롤 영역 위에 고정 (아래 줄을 바꾸는 동안에도 보이게).</summary>
+        private const float CrosshairPreviewHeight = 174f;
 
         private static int _escapeConsumedFrame = -1;
         /// <summary>이번 프레임 ESC를 설정창이 썼는지.</summary>
@@ -62,7 +68,14 @@ namespace SpaceStation.UI
         private Image _popupFrame;
         private float _popupUntil = -1f;
         private ScrollRect _scroll;
+        private RectTransform _viewport;
         private readonly List<Action> _refreshers = new List<Action>();
+
+        // REVIEW_1115 1-8 조준점 탭
+        private GameObject _crosshairPreview;
+        private TMP_InputField _hexInput;
+        /// <summary>프로필 고르기 줄이 가리키는 칸 (기본 모양 0 ~ 3 · 내 프로필 4 ~ 6), -1 = 다음 새로 고침에 지금 조준점과 같은 칸을 찾음.</summary>
+        private int _profileCursor = -1;
 
         // 해상도
         private readonly List<Vector2Int> _resolutions = new List<Vector2Int>();
@@ -76,6 +89,12 @@ namespace SpaceStation.UI
 
         public bool IsOpen => _open;
         public event Action Closed;
+
+        private void OnDestroy()
+        {
+            if (_built)
+                CrosshairSettings.Changed -= RefreshCrosshair;
+        }
 
         private void Awake()
         {
@@ -98,6 +117,7 @@ namespace SpaceStation.UI
             _windowTween.Play();
             _fx?.Replay();
             SelectTab(_tab);
+            _profileCursor = -1;
             RefreshAll();
             SettingsApplier.Refresh();
             AudioService.TryPlay(l => l.UiOpen);
@@ -144,6 +164,8 @@ namespace SpaceStation.UI
             if (!_open || keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
                 return;
             _escapeConsumedFrame = Time.frameCount;
+            if (_hexInput != null && _hexInput.isFocused)
+                return; // 색 코드 입력 중 ESC = 입력만 취소 (입력 칸이 원래 글로 되돌림), 창은 그대로
             if (_confirmUntil > 0f)
                 RevertScreen();
             else
@@ -170,7 +192,7 @@ namespace SpaceStation.UI
 
             _window = Rect("Window", root);
             _window.anchorMin = _window.anchorMax = _window.pivot = new Vector2(0.5f, 0.5f);
-            _window.sizeDelta = new Vector2(920f, WindowHeight);
+            _window.sizeDelta = new Vector2(WindowWidth, WindowHeight);
             if (_holo != null)
                 _fx = _holo.Window(_window.gameObject, new Color(0.03f, 0.07f, 0.11f, 0.97f), "SETTINGS");
             else
@@ -180,11 +202,13 @@ namespace SpaceStation.UI
             title.fontStyle = FontStyles.Bold;
             Place(title.rectTransform, new Vector2(44f, -28f), new Vector2(400f, 48f));
 
+            const float tabGap = 12f;
+            float tabWidth = Mathf.Floor((WindowWidth - 88f - tabGap * (TabNames.Length - 1)) / TabNames.Length);
             for (int i = 0; i < TabNames.Length; i++)
             {
                 int index = i;
                 var b = MakeButton(_window, TabNames[i], 20f, () => { SelectTab(index); AudioService.TryPlay(l => l.UiTab); }, click: false);
-                Place((RectTransform)b.transform, new Vector2(44f + i * 192f, -92f), new Vector2(180f, 44f));
+                Place((RectTransform)b.transform, new Vector2(44f + i * (tabWidth + tabGap), -92f), new Vector2(tabWidth, 44f));
                 _tabButtons[i] = b;
             }
 
@@ -193,8 +217,9 @@ namespace SpaceStation.UI
             viewport.anchorMin = new Vector2(0f, 0f);
             viewport.anchorMax = new Vector2(1f, 1f);
             viewport.offsetMin = new Vector2(44f, 96f);
-            viewport.offsetMax = new Vector2(-44f, -156f);
+            viewport.offsetMax = new Vector2(-44f, -ViewportTop);
             viewport.gameObject.AddComponent<RectMask2D>();
+            _viewport = viewport;
             _scroll = _window.gameObject.AddComponent<ScrollRect>();
             _scroll.viewport = viewport;
             _scroll.horizontal = false;
@@ -221,6 +246,9 @@ namespace SpaceStation.UI
             BuildDisplayPage(_pages[1]);
             BuildGamePage(_pages[2]);
             BuildControlsPage(_pages[3]);
+            BuildCrosshairPreview();
+            BuildCrosshairPage(_pages[CrosshairTab]);
+            CrosshairSettings.Changed += RefreshCrosshair;
 
             var reset = MakeButton(_window, "기본값 복원", 19f, ResetCurrentTab);
             Place((RectTransform)reset.transform, new Vector2(44f, -(WindowHeight - 30f - 50f)), new Vector2(220f, 50f));
@@ -300,6 +328,344 @@ namespace SpaceStation.UI
             ChoiceRow(page, "휴대 패드 열기", () => 2, i => new[] { "단계별 (들기 → 확대)", "바로 확대" }[i],
                 () => GameSettings.PadDirectZoom ? 1 : 0, i => GameSettings.PadDirectZoom = i == 1);
             ToggleRow(page, "다음 새 게임에서 튜토리얼", () => GameSettings.TutorialPending, v => GameSettings.TutorialPending = v);
+        }
+
+        // ---------------- REVIEW_1115 1-8 조준점 탭 ----------------
+
+        private static readonly Color PreviewBright = new Color(0.86f, 0.88f, 0.9f, 1f);
+        private static readonly Color PreviewDark = new Color(0.02f, 0.035f, 0.05f, 1f);
+        /// <summary>견본 칸 둘레 (고르지 않은 칸) — 흰 · 검정 견본이 모두 보이는 중간 회색. 고른 칸은 둘레가 흰색 (색이 아니라 밝기로 구분, 사용자 색약).</summary>
+        private static readonly Color SwatchFrame = new Color(0.3f, 0.34f, 0.38f, 1f);
+
+        private delegate void CrosshairField(ref CrosshairStyle style, int value);
+
+        /// <summary>창 위쪽 (탭 아래)에 고정: 밝은 · 어두운 바탕 두 칸, 가운데에 지금 조준점 (게임과 같은 화면 픽셀 크기).</summary>
+        private void BuildCrosshairPreview()
+        {
+            float width = WindowWidth - 88f;
+            var root = Rect("CrosshairPreview", _window);
+            Place(root, new Vector2(44f, -(ViewportTop - 8f)), new Vector2(width, CrosshairPreviewHeight - 10f));
+            var caption = Label(root, "실제 크기 미리보기", 17f, TextAlignmentOptions.MidlineLeft);
+            caption.color = HudTheme.Accent;
+            caption.fontStyle = FontStyles.Bold;
+            Place(caption.rectTransform, new Vector2(6f, 0f), new Vector2(360f, 26f));
+            var hint = Label(root, "게임 화면과 같은 픽셀 크기 · 바꾸면 바로 적용", 15f, TextAlignmentOptions.MidlineRight);
+            hint.color = MutedColor;
+            Place(hint.rectTransform, new Vector2(width - 480f, 0f), new Vector2(474f, 26f));
+            const float gap = 16f;
+            float boxWidth = Mathf.Floor((width - gap) / 2f);
+            PreviewBox(root, "밝은 바탕", PreviewBright, new Color(0.12f, 0.16f, 0.2f, 1f), new Vector2(0f, -32f), new Vector2(boxWidth, 130f));
+            PreviewBox(root, "어두운 바탕", PreviewDark, MutedColor, new Vector2(boxWidth + gap, -32f), new Vector2(boxWidth, 130f));
+            _crosshairPreview = root.gameObject;
+            _crosshairPreview.SetActive(false);
+        }
+
+        private void PreviewBox(RectTransform parent, string name, Color back, Color text, Vector2 topLeft, Vector2 size)
+        {
+            var frame = Rect(name, parent);
+            Place(frame, topLeft, size);
+            var frameImg = frame.gameObject.AddComponent<Image>();
+            frameImg.color = HudTheme.HoloLow;
+            frameImg.raycastTarget = false;
+            var box = Rect("Back", frame);
+            box.anchorMin = Vector2.zero;
+            box.anchorMax = Vector2.one;
+            box.offsetMin = new Vector2(1f, 1f);
+            box.offsetMax = new Vector2(-1f, -1f);
+            var img = box.gameObject.AddComponent<Image>();
+            img.color = back;
+            img.raycastTarget = false;
+            var label = Label(box, name, 15f, TextAlignmentOptions.TopLeft);
+            label.color = text;
+            Place(label.rectTransform, new Vector2(10f, -6f), new Vector2(200f, 22f));
+            var off = Label(box, "조준점 꺼짐", 19f, TextAlignmentOptions.Center);
+            off.color = text;
+            var ort = off.rectTransform;
+            ort.anchorMin = Vector2.zero;
+            ort.anchorMax = Vector2.one;
+            ort.offsetMin = Vector2.zero;
+            ort.offsetMax = Vector2.zero;
+            CrosshairView.Create(box, "Crosshair");
+            _refreshers.Add(() => off.gameObject.SetActive(!CrosshairSettings.Current.Visible));
+        }
+
+        private void BuildCrosshairPage(RectTransform page)
+        {
+            ToggleRow(page, "조준점 표시", () => CrosshairSettings.Current.Visible,
+                v => CrosshairSettings.Modify((ref CrosshairStyle s) => s.Visible = v));
+
+            Header(page, "프로필");
+            ChoiceRow(page, "불러오기", () => CrosshairProfiles.Count,
+                i => CrosshairProfiles.Name(i, CrosshairSettings.Slots),
+                () => { SyncProfileCursor(); return _profileCursor; },
+                i => { _profileCursor = i; CrosshairSettings.LoadProfile(i); },
+                display: ProfileDisplay);
+            CrosshairSaveRow(page);
+
+            Header(page, "색");
+            CrosshairColorRow(page);
+            CrosshairHexRow(page);
+
+            Header(page, "외곽선");
+            ToggleRow(page, "외곽선", () => CrosshairSettings.Current.OutlineOn,
+                v => CrosshairSettings.Modify((ref CrosshairStyle s) => s.OutlineOn = v));
+            CrosshairSlider(page, "외곽선 두께", CrosshairStyle.OutlineMin, CrosshairStyle.OutlineMax, 1,
+                s => s.OutlineThickness, (ref CrosshairStyle s, int v) => s.OutlineThickness = v, false);
+            CrosshairSlider(page, "외곽선 불투명도", 0, CrosshairStyle.OpacityMax, 5,
+                s => s.OutlineOpacity, (ref CrosshairStyle s, int v) => s.OutlineOpacity = v, true);
+
+            Header(page, "가운데 점");
+            ToggleRow(page, "가운데 점", () => CrosshairSettings.Current.DotOn,
+                v => CrosshairSettings.Modify((ref CrosshairStyle s) => s.DotOn = v));
+            CrosshairSlider(page, "점 크기", CrosshairStyle.DotMin, CrosshairStyle.DotMax, 1,
+                s => s.DotSize, (ref CrosshairStyle s, int v) => s.DotSize = v, false);
+            CrosshairSlider(page, "점 불투명도", 0, CrosshairStyle.OpacityMax, 5,
+                s => s.DotOpacity, (ref CrosshairStyle s, int v) => s.DotOpacity = v, true);
+
+            Header(page, "안쪽 선");
+            ToggleRow(page, "안쪽 선", () => CrosshairSettings.Current.Inner.On,
+                v => CrosshairSettings.Modify((ref CrosshairStyle s) => s.Inner.On = v));
+            CrosshairSlider(page, "안쪽 선 길이", CrosshairStyle.LengthMin, CrosshairStyle.LengthMax, 1,
+                s => s.Inner.Length, (ref CrosshairStyle s, int v) => s.Inner.Length = v, false);
+            CrosshairSlider(page, "안쪽 선 두께", CrosshairStyle.ThicknessMin, CrosshairStyle.ThicknessMax, 1,
+                s => s.Inner.Thickness, (ref CrosshairStyle s, int v) => s.Inner.Thickness = v, false);
+            CrosshairSlider(page, "안쪽 선 간격", 0, CrosshairStyle.InnerGapMax, 1,
+                s => s.Inner.Gap, (ref CrosshairStyle s, int v) => s.Inner.Gap = v, false);
+            CrosshairSlider(page, "안쪽 선 불투명도", 0, CrosshairStyle.OpacityMax, 5,
+                s => s.Inner.Opacity, (ref CrosshairStyle s, int v) => s.Inner.Opacity = v, true);
+
+            Header(page, "바깥 선");
+            ToggleRow(page, "바깥 선", () => CrosshairSettings.Current.Outer.On,
+                v => CrosshairSettings.Modify((ref CrosshairStyle s) => s.Outer.On = v));
+            CrosshairSlider(page, "바깥 선 길이", CrosshairStyle.LengthMin, CrosshairStyle.LengthMax, 1,
+                s => s.Outer.Length, (ref CrosshairStyle s, int v) => s.Outer.Length = v, false);
+            CrosshairSlider(page, "바깥 선 두께", CrosshairStyle.ThicknessMin, CrosshairStyle.ThicknessMax, 1,
+                s => s.Outer.Thickness, (ref CrosshairStyle s, int v) => s.Outer.Thickness = v, false);
+            CrosshairSlider(page, "바깥 선 간격", 0, CrosshairStyle.OuterGapMax, 1,
+                s => s.Outer.Gap, (ref CrosshairStyle s, int v) => s.Outer.Gap = v, false);
+            CrosshairSlider(page, "바깥 선 불투명도", 0, CrosshairStyle.OpacityMax, 5,
+                s => s.Outer.Opacity, (ref CrosshairStyle s, int v) => s.Outer.Opacity = v, true);
+        }
+
+        private void CrosshairSlider(RectTransform page, string label, int min, int max, int step,
+            Func<CrosshairStyle, int> get, CrosshairField set, bool percent)
+        {
+            SliderRow(page, label, min, max, step, () => get(CrosshairSettings.Current), v =>
+            {
+                int value = Mathf.RoundToInt(v);
+                CrosshairSettings.Modify((ref CrosshairStyle s) => set(ref s, value));
+            }, v => percent ? $"{v:0}%" : $"{v:0} px");
+        }
+
+        /// <summary>CrosshairSettings.Changed (슬라이더를 끄는 동안 등): 프로필 줄 "사용자 지정" · 저장 버튼 · 색 줄까지 다시.</summary>
+        private void RefreshCrosshair()
+        {
+            if (_open)
+                RefreshAll();
+        }
+
+        /// <summary>고르기 줄이 지금 조준점과 같은 칸을 가리키게. 빈 내 프로필 칸을 골라 둔 동안은 그대로 둠.</summary>
+        private void SyncProfileCursor()
+        {
+            var slots = CrosshairSettings.Slots;
+            if (_profileCursor >= 0 && !CrosshairProfiles.Get(_profileCursor, slots).HasValue)
+                return;
+            int match = CrosshairProfiles.Match(CrosshairSettings.Current, slots, _profileCursor);
+            if (match >= 0)
+                _profileCursor = match;
+            else if (_profileCursor < 0)
+                _profileCursor = 0;
+        }
+
+        /// <summary>빈 칸 = "내 프로필 n (비어 있음)" 흐린 글, 고른 뒤 값을 바꿨으면 "사용자 지정", 같으면 null (이름 그대로).</summary>
+        private string ProfileDisplay()
+        {
+            SyncProfileCursor();
+            var slots = CrosshairSettings.Slots;
+            var profile = CrosshairProfiles.Get(_profileCursor, slots);
+            if (!profile.HasValue)
+                return CrosshairProfiles.Name(_profileCursor, slots);
+            return profile.Value.SameShape(CrosshairSettings.Current) ? null : "사용자 지정";
+        }
+
+        /// <summary>[내 프로필 1 · 2 · 3에 저장] — 줄 너비 전체를 셋으로 (버튼 아래 줄 = 빈 칸 · 같음 · 저장됨).</summary>
+        private void CrosshairSaveRow(RectTransform page)
+        {
+            var row = Rect("ProfileSave", page);
+            row.gameObject.AddComponent<LayoutElement>().preferredHeight = 60f;
+            const float gap = 12f;
+            int count = CrosshairProfiles.UserSlots;
+            for (int i = 0; i < count; i++)
+            {
+                int slot = i;
+                var button = MakeButton(row, "", 18f, () => SaveCrosshairSlot(slot));
+                button.gameObject.name = "SaveProfile" + (slot + 1);
+                var brt = (RectTransform)button.transform;
+                brt.anchorMin = new Vector2((float)i / count, 0f);
+                brt.anchorMax = new Vector2((float)(i + 1) / count, 1f);
+                brt.offsetMin = new Vector2(i == 0 ? 0f : gap * 0.5f, 4f);
+                brt.offsetMax = new Vector2(i == count - 1 ? 0f : -gap * 0.5f, -4f);
+                var text = button.GetComponentInChildren<TMP_Text>();
+                text.lineSpacing = -8f;
+                _refreshers.Add(() =>
+                {
+                    var saved = CrosshairSettings.Slots[slot];
+                    string state = !saved.HasValue ? "(비어 있음)"
+                        : saved.Value.SameShape(CrosshairSettings.Current) ? "(지금 조준점과 같음)" : "(저장됨)";
+                    text.SetText($"내 프로필 {slot + 1}에 저장\n<size=80%><color=#AFC4D8>{state}</color></size>");
+                });
+            }
+        }
+
+        private void SaveCrosshairSlot(int slot)
+        {
+            CrosshairSettings.SaveToSlot(slot);
+            _profileCursor = CrosshairStyle.BuiltInCount + slot;
+            ShowPopup($"지금 조준점을 내 프로필 {slot + 1}에 저장했습니다", HudTheme.Accent);
+            RefreshAll();
+        }
+
+        /// <summary>견본 8칸: 누르면 그 색 (탭 "톡"), 고른 칸은 둘레가 흰색 — 이름은 아래 줄 글로도.</summary>
+        private void CrosshairColorRow(RectTransform page)
+        {
+            Row(page, "견본", out var control);
+            const float size = 38f;
+            const float step = 48f;
+            for (int i = 0; i < CrosshairStyle.Swatches.Length; i++)
+            {
+                int rgb = CrosshairStyle.Swatches[i];
+                var ring = Rect(CrosshairStyle.SwatchNames[i], control);
+                ring.anchorMin = ring.anchorMax = ring.pivot = new Vector2(0f, 0.5f);
+                ring.anchoredPosition = new Vector2(4f + i * step, 0f);
+                ring.sizeDelta = new Vector2(size, size);
+                var ringImg = ring.gameObject.AddComponent<Image>();
+                ringImg.color = SwatchFrame;
+                var inner = Rect("Gap", ring);
+                inner.anchorMin = Vector2.zero;
+                inner.anchorMax = Vector2.one;
+                inner.offsetMin = new Vector2(3f, 3f);
+                inner.offsetMax = new Vector2(-3f, -3f);
+                var innerImg = inner.gameObject.AddComponent<Image>();
+                innerImg.color = SwatchFrame;
+                innerImg.raycastTarget = false;
+                var chip = Rect("Color", inner);
+                chip.anchorMin = Vector2.zero;
+                chip.anchorMax = Vector2.one;
+                chip.offsetMin = new Vector2(2f, 2f);
+                chip.offsetMax = new Vector2(-2f, -2f);
+                var chipImg = chip.gameObject.AddComponent<Image>();
+                chipImg.color = CrosshairView.ToColor(rgb);
+                chipImg.raycastTarget = false;
+                var button = ring.gameObject.AddComponent<Button>();
+                button.targetGraphic = ringImg;
+                button.onClick.AddListener(() =>
+                {
+                    PickCrosshairColor(rgb);
+                    EventSystem.current?.SetSelectedGameObject(null);
+                });
+                ring.gameObject.AddComponent<UiSound>().Mode = UiSound.ClickMode.Silent; // 호버만, 값이 바뀌면 탭 톡 (PickCrosshairColor)
+                _refreshers.Add(() => ringImg.color = (CrosshairSettings.Current.Color & 0xFFFFFF) == rgb ? Color.white : SwatchFrame);
+            }
+        }
+
+        /// <summary>직접 입력 (#RRGGBB): Enter · 다른 곳 클릭으로 적용, 잘못된 값은 받지 않고 원래 색으로 되돌림.</summary>
+        private void CrosshairHexRow(RectTransform page)
+        {
+            Row(page, "색 (직접 입력 HEX)", out var control);
+            _hexInput = MakeHexInput(control);
+            var irt = (RectTransform)_hexInput.transform;
+            irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0f, 0.5f);
+            irt.anchoredPosition = new Vector2(4f, 0f);
+            irt.sizeDelta = new Vector2(150f, 34f);
+            _hexInput.onEndEdit.AddListener(OnHexEndEdit);
+            var name = Label(control, "", 18f, TextAlignmentOptions.MidlineLeft);
+            var nrt = name.rectTransform;
+            nrt.anchorMin = Vector2.zero;
+            nrt.anchorMax = Vector2.one;
+            nrt.offsetMin = new Vector2(172f, 0f);
+            nrt.offsetMax = Vector2.zero;
+            _refreshers.Add(() =>
+            {
+                int rgb = CrosshairSettings.Current.Color;
+                if (!_hexInput.isFocused)
+                    _hexInput.SetTextWithoutNotify(CrosshairStyle.ToHex(rgb));
+                int k = CrosshairStyle.SwatchIndex(rgb);
+                name.SetText($"<color=#AFC4D8>지금 색</color>  {(k >= 0 ? CrosshairStyle.SwatchNames[k] : "직접 입력한 색")}");
+            });
+        }
+
+        private TMP_InputField MakeHexInput(Transform parent)
+        {
+            var rt = Rect("HexInput", parent);
+            rt.gameObject.SetActive(false); // 부품을 다 이은 뒤 켬 (입력 칸이 빈 글 부품으로 켜지지 않게)
+            var back = rt.gameObject.AddComponent<Image>();
+            back.sprite = _buttonSprite;
+            back.type = Image.Type.Sliced;
+            back.color = new Color(0.08f, 0.16f, 0.22f, 1f);
+            var area = Rect("Text Area", rt);
+            area.anchorMin = Vector2.zero;
+            area.anchorMax = Vector2.one;
+            area.offsetMin = new Vector2(12f, 2f);
+            area.offsetMax = new Vector2(-12f, -2f);
+            area.gameObject.AddComponent<RectMask2D>();
+            var placeholder = Label(area, "#RRGGBB", 19f, TextAlignmentOptions.MidlineLeft);
+            placeholder.color = new Color(MutedColor.r, MutedColor.g, MutedColor.b, 0.5f);
+            var text = Label(area, "", 19f, TextAlignmentOptions.MidlineLeft);
+            text.richText = false;
+            foreach (var t in new[] { placeholder, text })
+            {
+                var trt = t.rectTransform;
+                trt.anchorMin = Vector2.zero;
+                trt.anchorMax = Vector2.one;
+                trt.offsetMin = Vector2.zero;
+                trt.offsetMax = Vector2.zero;
+            }
+            var input = rt.gameObject.AddComponent<TMP_InputField>();
+            input.textViewport = area;
+            input.textComponent = text;
+            input.placeholder = placeholder;
+            input.targetGraphic = back;
+            input.lineType = TMP_InputField.LineType.SingleLine;
+            input.characterLimit = 7;
+            input.richText = false;
+            input.customCaretColor = true;
+            input.caretColor = HudTheme.Accent;
+            input.selectionColor = new Color(0.31f, 0.85f, 1f, 0.35f);
+            input.onValidateInput = (s, index, c) => c == '#' || CrosshairStyle.IsHexDigit(c) ? char.ToUpperInvariant(c) : '\0';
+            if (_font != null)
+                input.fontAsset = _font;
+            input.pointSize = 19f;
+            rt.gameObject.SetActive(true);
+            rt.gameObject.AddComponent<UiSound>().Mode = UiSound.ClickMode.Silent; // 호버만 (입력 칸을 누르는 건 값 바꿈이 아님)
+            return input;
+        }
+
+        private void OnHexEndEdit(string text)
+        {
+            int current = CrosshairSettings.Current.Color & 0xFFFFFF;
+            if (CrosshairStyle.TryParseHex(text, out int rgb))
+            {
+                if (rgb != current)
+                    PickCrosshairColor(rgb);
+                else
+                    _hexInput.SetTextWithoutNotify(CrosshairStyle.ToHex(current)); // "ff9900" → "#FF9900"
+                return;
+            }
+            _hexInput.SetTextWithoutNotify(CrosshairStyle.ToHex(current));
+            if (_open && !string.IsNullOrWhiteSpace(text))
+            {
+                ShowPopup("색 코드는 #RRGGBB 여섯 자리 (0 ~ 9 · A ~ F)입니다\n<size=75%><color=#AFC4D8>원래 색을 그대로 둡니다</color></size>", HudTheme.ButtonWarning);
+                AudioService.TryPlay(l => l.UiError);
+            }
+        }
+
+        private void PickCrosshairColor(int rgb)
+        {
+            if ((CrosshairSettings.Current.Color & 0xFFFFFF) == (rgb & 0xFFFFFF))
+                return;
+            CrosshairSettings.Modify((ref CrosshairStyle s) => s.Color = rgb);
+            RefreshAll();
+            AudioService.TryPlay(l => l.UiTab); // 값을 고르는 동작 = 탭 "톡" (고르기 줄과 같게, S-3)
         }
 
         // ---------------- 7-5 조작 탭 ----------------
@@ -489,6 +855,10 @@ namespace SpaceStation.UI
                 if (_tabButtons[i].targetGraphic != null)
                     _tabButtons[i].targetGraphic.color = i == tab ? HudTheme.ButtonSelected : HudTheme.ButtonNormal;
             }
+            bool crosshair = tab == CrosshairTab;
+            if (_crosshairPreview != null)
+                _crosshairPreview.SetActive(crosshair);
+            _viewport.offsetMax = new Vector2(-44f, -(ViewportTop + (crosshair ? CrosshairPreviewHeight : 0f)));
             _scroll.content = _pages[tab];
             _scroll.verticalNormalizedPosition = 1f;
         }
@@ -508,6 +878,11 @@ namespace SpaceStation.UI
                     break;
                 case 2:
                     GameSettings.ResetGame();
+                    break;
+                case CrosshairTab:
+                    CrosshairSettings.ResetToDefault(); // 내 프로필 3칸은 그대로
+                    _profileCursor = 0;
+                    ShowPopup($"조준점을 기본값 ({CrosshairStyle.BuiltInNames[0]})으로 되돌렸습니다\n<size=75%><color=#AFC4D8>내 프로필 1 · 2 · 3은 그대로</color></size>", HudTheme.Accent);
                     break;
                 default:
                     _capturing = null;
