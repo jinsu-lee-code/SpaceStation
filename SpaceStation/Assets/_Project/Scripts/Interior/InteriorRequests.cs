@@ -343,7 +343,7 @@ namespace SpaceStation.Interior
             string where = room == CurrentRoom ? "" : $" <color=#AFC4D8>({RoomName(room)})</color>";
             Message?.Invoke($"{r.Name}의 부탁{where} · {ResidentRequestRules.Title(r.Kind)}", false);
             AudioService.TryPlay(l => l.RequestPop);   // 2026-11-26 말풍선 "뽁" (창 열기 0.8을 빌려 쓰던 자리, SOUND_LIST_NEW 4-3)
-            InteriorResidentSound.Say(figure, ResidentVoiceMood.Ask, 0.3f, true);   // 2026-11-26 P6: 뽁 뒤 그 주민의 부탁 울음 (같은 방일 때만)
+            // 2026-11-26 정한 것 S-28 "알림만": 뽁 뒤 주민의 부탁 울음은 뺌 (목소리는 다가갈 때 반응에만 — InteriorResidentSound)
             return true;
         }
 
@@ -689,8 +689,7 @@ namespace SpaceStation.Interior
             if (audio != null && audio.Library != null)
                 audio.StopStartedThisFrame(audio.Library.HoldDone);
             AudioService.TryPlay(l => l.RequestDone);   // 2026-11-26 전용 "띵 동" (좋은 소식 0.7을 빌려 쓰던 자리)
-            if (figure != null)
-                InteriorResidentSound.Say(figure, ResidentVoiceMood.Happy, 0.6f, true);   // 2026-11-26 P6: 띵 동이 잦아든 뒤 그 주민의 기쁨 울음
+            // 2026-11-26 정한 것 S-28 "알림만": 띵 동 뒤 주민의 기쁨 울음은 뺌 (목소리는 다가갈 때 반응에만)
             Completed?.Invoke();
         }
 

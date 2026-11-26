@@ -10,9 +10,10 @@ namespace SpaceStation.Interior
     /// <summary>
     /// 사운드 개편 4-3 · 4-4 주민 소리 (2026-11-26, SOUND_LIST_NEW voice_* · crowd_* · act_* · D-2 · D-4 · D-5 ④ · D-11) — 1인칭 내부에 있는 동안, 지금 있는 방의 주민만.
     /// - 목소리 (그 주민 머리 자리 3D, 1.5 m까지 그대로 → 14 m에서 0): 플레이어가 다가와 반응할 때 (<see cref="ResidentMotion.Reacted"/> — 폴짝 · 손 흔들기 = 기쁨,
-    ///   팔짱 = 불만, 부탁이 걸린 주민 = 부탁) · 부탁 말풍선 · 부탁을 들어줌 (<see cref="InteriorRequests"/>가 <see cref="Say"/>) · 그 방에 사고가 생김 · 운석이 이 방이나 옆방을 맞힘 (놀람) ·
+    ///   팔짱 = 불만, 부탁이 걸린 주민 = 부탁) · 그 방에 사고가 생김 · 운석이 이 방이나 옆방을 맞힘 (놀람) ·
     ///   오락실 · 2단계 이상 여가 방에서 가끔 웃음. 반복 막기 = <see cref="ResidentVoiceGate"/> (주민마다 20초 · 방 동시 2).
-    /// - 웅성 (2D 루프 셋): 그 방에 깨어 있는 주민 수 → <see cref="ResidentSound.CrowdLevel"/> → 이웃 단계끼리 교차.
+    ///   부탁 말풍선 · 부탁을 들어줌에는 목소리 없음 (2026-11-26 정한 것 S-28 "알림만" — 뽁 · 띵 동만).
+    /// - 웅성 없음 (2026-11-26 정한 것 S-29 "웅성 없이" — 사람 식당 웅성 루프 셋 crowd_1 ~ 3을 뺌, 목소리 · 활동만).
     /// - 활동 (그 주민 자리 3D, 1 m까지 그대로 → 7 m에서 0, 아주 작게): 걷는 발 (가까운 둘) · 앉고 일어섬 · 그릇 · 키보드 · 공구 · 잠 숨 · 놀이 도구.
     /// GameAudio가 붙이고 묶음 (시뮬레이션 · 주민 동작은 그대로 — 동작 쪽은 읽기만).
     /// </summary>
@@ -46,9 +47,7 @@ namespace SpaceStation.Interior
         private readonly List<ResidentFigure> _walkers = new List<ResidentFigure>();
         private readonly List<float> _actEnds = new List<float>();
         private readonly List<ModuleInstance> _neighbors = new List<ModuleInstance>();
-        private AudioService.Loop[] _crowd;
-        private readonly float[] _mix = new float[3];
-        private float _crowdLevel, _crowdTarget, _tick;
+        private float _tick;
         private float _lastActStart = -99f, _lastPeriodic = -99f, _cheerReadyAt;
         private ModuleInstance _room;
         private string _roomName;
@@ -161,7 +160,6 @@ namespace SpaceStation.Interior
             var lib = Lib;
             if (!Inside || lib == null)
             {
-                SetCrowd(0f, true);
                 if (_tracks.Count > 0)
                     _tracks.Clear();
                 _room = null;
@@ -176,10 +174,7 @@ namespace SpaceStation.Interior
                 if (_incidents == null) _incidents = FindFirstObjectByType<InteriorIncidents>();
             }
             if (_residents == null || _requests == null)
-            {
-                SetCrowd(0f, false);
                 return;
-            }
             if (_requests.CurrentRoom != _room)
                 ChangeRoom(_requests.CurrentRoom);
             if (now >= _tick)
@@ -187,8 +182,6 @@ namespace SpaceStation.Interior
                 _tick = now + 0.25f;
                 Tick();
             }
-            _crowdLevel = Mathf.MoveTowards(_crowdLevel, _crowdTarget, 0.5f * Time.unscaledDeltaTime);
-            SetCrowd(_crowdLevel, false);
             UpdateActivity(now, lib);
         }
 
@@ -206,22 +199,18 @@ namespace SpaceStation.Interior
             _roomCheer = ResidentSound.IsPlayRoom(_roomName) || (template != null && template.Leisure && builder.StageFor(room) >= 2);
         }
 
-        /// <summary>0.25초마다: 이 방 주민 목록 · 깨어 있는 수 → 웅성 단계 · 사고가 이 방에 막 생겼는지.</summary>
+        /// <summary>0.25초마다: 이 방 주민 목록 · 사고가 이 방에 막 생겼는지 (웅성 단계는 2026-11-26 S-29로 뺌).</summary>
         private void Tick()
         {
             var sim = _station.Simulation;
             _night = !sim.DayNight.IsDay(sim.ElapsedSeconds);
             _here.Clear();
-            int awake = 0;
             foreach (var f in _residents.Figures)
             {
                 if (f == null || f.Room != _room)
                     continue;
                 _here.Add(f);
-                if (!(_night && f.AtHome))
-                    awake++;
             }
-            _crowdTarget = ResidentSound.CrowdLevel(awake);
 
             if (_incidents != null)
             {
@@ -231,25 +220,6 @@ namespace SpaceStation.Interior
                 _incidentWas = active;
                 _incidentRoom = active ? room : null;
             }
-        }
-
-        private void SetCrowd(float level, bool off)
-        {
-            var lib = Lib;
-            if (_crowd == null)
-            {
-                if (off || lib == null || AudioService.Instance == null)
-                    return;
-                _crowd = new[] { AudioService.Instance.CreateLoop(lib.CrowdLoop1), AudioService.Instance.CreateLoop(lib.CrowdLoop2), AudioService.Instance.CreateLoop(lib.CrowdLoop3) };
-                foreach (var l in _crowd)
-                    l.FadeSpeed = 0.6f;
-            }
-            if (off)
-                _mix[0] = _mix[1] = _mix[2] = 0f;
-            else
-                ResidentSound.CrowdMix(level, _mix);
-            for (int i = 0; i < 3; i++)
-                _crowd[i].Target = _mix[i];
         }
 
         private Vector3 Listener()

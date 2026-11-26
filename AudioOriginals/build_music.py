@@ -136,7 +136,8 @@ def align(out, ref, bars):
     return np.roll(out, -shift, axis=0)
 
 
-def build(dst, src, start, bars, bpm, ref_len=None, ref=None, xf=0.15):
+def build(dst, src, start, bars, bpm, ref_len=None, ref=None, xf=0.15, rms_db=-18.0):
+    """rms_db = 저장 크기 (기본 −18 — 내부 4곡). 바깥 곡을 바꿀 땐 지금 곡과 같은 귀 크기 (A 특성)가 되게 따로 줌 (2026-11-26 밤 곡)."""
     x = load(src)
     beat = exact_beat(x.mean(1), bpm)
     # 어택이 드문 차분한 곡은 박 재기가 흔들림 → 요청 빠르기 그대로 (VARCO "90 BPM" 곡은 실제 89.997 ~ 89.999)
@@ -151,7 +152,7 @@ def build(dst, src, start, bars, bpm, ref_len=None, ref=None, xf=0.15):
         print(f"  {dst}: 기준 길이에 맞춤 {L} → {ref_len} 샘플 ({1200 * np.log2(1 / ratio):+.1f}센트)")
     if ref is not None:
         out = align(out, ref, bars)
-    out = level(out)
+    out = level(out, rms_db)
     p = save(dst, out)
     # 확인: 두 번 이어 붙였을 때 이음새 앞뒤 50 ms 크기 차
     y = np.concatenate([out, out]).mean(1); j = len(out)
@@ -186,3 +187,14 @@ build("music_interior_2.ogg", "interior_2_calm.mp3", 74.31, 36, 90.0, len(REF), 
 #   고른 이유 = 어택 0.57/초 · 고음 어택 0.2 % · 고른 구간 51마디 · 끊김 1 (루프 밖) · F# · E♭ 거의 없음
 #   뺀 것: b1 = F 장조 0.93이지만 300 Hz 아래 42 % (가벼움) · a · d · e · c = 빠르기 60 ~ 135 (90 · 60 아님) 또는 E♭ 셈
 build("music_interior_3.ogg", "interior_3_calm.mp3", 56.11, 36, 90.0, len(REF), REF, xf=0.6)
+
+# ---------------- 바깥 밤 곡 (2026-11-26 정한 것 S-1 — 사용자가 헤드셋으로 두 번 듣고 고름) ----------------
+# 바깥 5자리 후보 (SOUND_LIST_NEW 7번 "바깥 5곡 후보", 2026-11-25 ⑦) 중 밤만 바꿈 (메뉴 · 낮 1 · 낮 2 · 위기 = 지금 곡 그대로 — Audio/Ambient/*.mp3).
+# 원곡 = VARCO night_a 둘 중 첫째 (night_a1, fileId f489e1d9-c112-4438-ae62-b32bd2f34d0e) = Music/ext_night_a1.mp3, 197.7초 · 115 BPM · D 단조 0.89.
+# 지금 밤 곡 (amb_night_loop.mp3)은 조가 흐려 (C 장조 0.35 — 떠도는 곡) 내부 음악 · UI (D 단조 · F 장조)와 같은 D 단조로.
+# 루프 = 사용자가 들은 창 (원곡 50 ~ 80초) 그대로 16마디 = 50.32 ~ 83.71초 (33.4초, 이음새 거리 0.76 · 마디 크기 흔들림 1.1 dB · 끊김 0).
+#   뺀 길이: 32마디 (16.9 ~ 83.7초, 이음새 0.39로 가장 매끈)는 앞 절반 17 ~ 50초가 더 바쁨 (어택 5.1 ~ 5.7/초 — 들은 창 3.4, 바깥 곡 3.2 ~ 4.3) ·
+#   24마디 (31.5 ~ 81.6초)는 31 ~ 50초 어택 4.7/초 · 20마디 이상으로 뒤로 늘리면 84 ~ 88초에 −7 dB로 꺼지는 두 마디가 듦.
+# 크기 = 지금 밤 곡과 같은 귀 크기 (A 특성 0.25초 평균): 지금 곡 (곡 전체, RMS −13.3)과 같은 A 값이 되는 저장 크기 (아래)
+#   (후보가 더 밝아 같은 RMS면 귀로 +3 dB — 들을거리도 같은 RMS로 맞춰 들려 드렸음, 저장 RMS는 두 채널 합이라 한 채널 평균보다 0.7 dB 큼 → −16.1). 칸 음량은 다른 바깥 곡과 같은 0.5 그대로.
+build("music_night.ogg", "ext_night_a1.mp3", 50.32, 16, 115.0, rms_db=-16.1)

@@ -641,7 +641,7 @@ namespace SpaceStation.UI
         }
 
         /// <summary>&lt; 값 &gt; 순환 선택. display가 null이 아닌 문자열을 주면 값 대신 그 문구를 보여 준다.</summary>
-        /// <param name="clickSound">false = &lt; &gt; 버튼 확인음 없음 (켬 / 끔 줄은 바뀐 값으로 켜짐 · 꺼짐 소리)</param>
+        /// <param name="clickSound">true = 값이 넘어갈 때 탭 "톡" (2026-11-26 S-3 — 전엔 확인음), false = 소리 없음 (켬 / 끔 줄은 바뀐 값으로 켜짐 · 꺼짐 소리)</param>
         private void ChoiceRow(RectTransform page, string label, Func<int> count, Func<int, string> name, Func<int> get, Action<int> set,
             Func<string> display = null, bool clickSound = true)
         {
@@ -661,15 +661,17 @@ namespace SpaceStation.UI
                 int current = Mathf.Clamp(get(), 0, n - 1);
                 set((current + dir + n) % n);
                 RefreshAll();
+                if (clickSound)
+                    AudioService.TryPlay(l => l.UiTab);   // 2026-11-26 정한 것 S-3: 값을 넘기는 동작 = 탭 "톡" (확인음 대신)
             }
-            var left = MakeButton(control, "<", 20f, () => Step(-1), clickSound);
+            var left = MakeButton(control, "<", 20f, () => Step(-1), false);
             var lrt = (RectTransform)left.transform;
             lrt.anchorMin = new Vector2(0f, 0.5f);
             lrt.anchorMax = new Vector2(0f, 0.5f);
             lrt.pivot = new Vector2(0f, 0.5f);
             lrt.anchoredPosition = Vector2.zero;
             lrt.sizeDelta = new Vector2(44f, 34f);
-            var right = MakeButton(control, ">", 20f, () => Step(1), clickSound);
+            var right = MakeButton(control, ">", 20f, () => Step(1), false);
             var rrt = (RectTransform)right.transform;
             rrt.anchorMin = new Vector2(1f, 0.5f);
             rrt.anchorMax = new Vector2(1f, 0.5f);

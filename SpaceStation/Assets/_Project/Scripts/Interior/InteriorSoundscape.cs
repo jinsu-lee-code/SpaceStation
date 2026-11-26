@@ -30,6 +30,7 @@ namespace SpaceStation.Interior
             public float Night;
             // 2026-11-26 P7: 쇼 · 탈것 배율 · 움직인 만큼 (RoomSoundscape.Emitter ShowGain · RideGain · MotionMeters)
             public float ShowGain = 1f, RideGain = 1f, MotionMeters, Motion;
+            public bool MotionVertical;   // 2026-11-26 S-31: 위아래 움직임만 (크레인 집게 하역 체인)
             public Vector3 LastPos;
             public bool HasLast;
         }
@@ -96,6 +97,7 @@ namespace SpaceStation.Interior
                     track.ShowGain = e.ShowGain;
                     track.RideGain = e.RideGain;
                     track.MotionMeters = at.HasValue ? e.MotionMeters : 0f;
+                    track.MotionVertical = e.MotionVertical;
                 }
             }
             _timers = new float[scape.Scatters.Count];
@@ -141,7 +143,7 @@ namespace SpaceStation.Interior
                 {
                     // 소리 자리 (Follow 물체에 붙음)가 움직인 빠르기만큼 — 역에 선 열차 · 멈춘 곤돌라는 조용 (InteriorMotionSound와 같은 눈금)
                     var p = t.Source.transform.position;
-                    float v = t.HasLast && dt > 1e-4f ? Vector3.Distance(p, t.LastPos) / dt : 0f;
+                    float v = t.HasLast ? RoomSoundscape.MotionSpeed(t.LastPos, p, dt, t.MotionVertical) : 0f;
                     t.LastPos = p;
                     t.HasLast = true;
                     t.Motion = Mathf.Lerp(t.Motion, InteriorObjectSound.MotionLevel(v, 0f, t.MotionMeters, 0f), Mathf.Clamp01(6f * dt));

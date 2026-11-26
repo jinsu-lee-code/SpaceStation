@@ -40,6 +40,8 @@ namespace SpaceStation.Audio
             [Range(0f, 1f)] public float RideGain = 1f;
             [Tooltip("0보다 크면 소리 자리가 움직인 빠르기 (m/s)만큼 크기 — 이 빠르기에서 1, 서 있으면 0 (Follow로 붙인 열차 · 곤돌라)")]
             [Min(0f)] public float MotionMeters;
+            [Tooltip("켜면 MotionMeters가 위아래로 움직인 빠르기만 셈 (2026-11-26 S-31 하역 체인 = 크레인 집게가 오르내릴 때만, 옆으로 갈 땐 모터 소리만)")]
+            public bool MotionVertical;
         }
 
         public enum ShowPart { Any, During, NotDuring }
@@ -87,6 +89,14 @@ namespace SpaceStation.Audio
         /// <summary>쇼 · 탈것 음량 배율 — showLevel · rideLevel (0 ~ 1, 넘어가는 정도)만큼 ShowGain · RideGain 쪽으로, 둘이 겹치면 곱.</summary>
         public static float StateGain(float showGain, float rideGain, float showLevel, float rideLevel)
             => Mathf.Lerp(1f, showGain, showLevel) * Mathf.Lerp(1f, rideGain, rideLevel);
+
+        /// <summary>소리 자리가 움직인 빠르기 (m/s) — vertical = 위아래만 (Emitter.MotionVertical, 2026-11-26 S-31). dt가 0이면 0.</summary>
+        public static float MotionSpeed(Vector3 from, Vector3 to, float dt, bool vertical)
+        {
+            if (dt <= 1e-4f)
+                return 0f;
+            return (vertical ? Mathf.Abs(to.y - from.y) : Vector3.Distance(from, to)) / dt;
+        }
 
         [Header("대표 선율 (들어설 때 한 번, 다음 박에)")]
         public SoundCue Motif = new SoundCue { Bus = AudioBus.Music, Pitch = Vector2.one };

@@ -79,6 +79,15 @@ namespace SpaceStation.Interior
             return StepFloor.Metal;
         }
 
+        /// <summary>
+        /// 방 단계별 발소리 키움 (dB, 2026-11-26 정한 것 S-6): 2단계 이상 방은 음악 · 소리 풍경이 커서 발소리가 묻힘 (3단계 약 0 dB, 기본 방 +4 ~ 5)
+        /// → 2단계 +2 · 3단계 이상 +4. 기본 · 1단계는 그대로.
+        /// </summary>
+        public static float StageGainDb(int stage) => stage >= 3 ? 4f : stage == 2 ? 2f : 0f;
+
+        /// <summary><see cref="StageGainDb"/>의 음량 배율.</summary>
+        public static float StageGain(int stage) => Mathf.Pow(10f, StageGainDb(stage) / 20f);
+
         /// <summary>물이 차는 바닥인지 (흙 · 모래 · 돌 · 해저 — 갑판 · 유리 · 나무 다리는 물 위로 걸음).</summary>
         public static bool IsWadeable(StepFloor floor) => floor == StepFloor.Grass || floor == StepFloor.Stone;
 

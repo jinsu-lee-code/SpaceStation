@@ -255,9 +255,7 @@ namespace SpaceStation.Editor
             { "VoicePanda.Happy", new[] { "voice_panda_happy_" } }, { "VoicePanda.Upset", new[] { "voice_panda_upset_" } }, { "VoicePanda.Ask", new[] { "voice_panda_ask_" } }, { "VoicePanda.Surprise", new[] { "voice_panda_surprise_" } },
             { "VoiceKoala.Happy", new[] { "voice_koala_happy_" } }, { "VoiceKoala.Upset", new[] { "voice_koala_upset_" } }, { "VoiceKoala.Ask", new[] { "voice_koala_ask_" } }, { "VoiceKoala.Surprise", new[] { "voice_koala_surprise_" } },
             { "VoicePenguin.Happy", new[] { "voice_penguin_happy_" } }, { "VoicePenguin.Upset", new[] { "voice_penguin_upset_" } }, { "VoicePenguin.Ask", new[] { "voice_penguin_ask_" } }, { "VoicePenguin.Surprise", new[] { "voice_penguin_surprise_" } },
-            { "CrowdLoop1", new[] { "crowd_1_loop" } },
-            { "CrowdLoop2", new[] { "crowd_2_loop" } },
-            { "CrowdLoop3", new[] { "crowd_3_loop" } },
+            // 웅성 crowd_1 ~ 3_loop는 2026-11-26 S-29 "웅성 없이"로 뺌
             { "ActWalkSmall", new[] { "act_walk_small_" } },
             { "ActSit", new[] { "act_sit_" } },
             { "ActEat", new[] { "act_eat_" } },
@@ -367,7 +365,7 @@ namespace SpaceStation.Editor
             { "AicoreCrystalFade", new[] { "aicore_crystal_fade" } },
             { "BioFieldBloom", new[] { "bio_field_bloom" } },
             { "MusicDay", new[] { "amb_in_game_loop", "amb_space_loop" } },
-            { "MusicNight", new[] { "amb_night_loop" } },
+            { "MusicNight", new[] { "music_night" } },   // 2026-11-26 S-1: 밤 곡 = VARCO 후보 night_a1 마디 루프 (AudioOriginals/build_music.py, 전엔 amb_night_loop.mp3)
             { "MusicCrisis", new[] { "amb_crisis_loop" } },
             { "MusicMenu", new[] { "amb_mainmenu_loop" } },
             // 내부 음악 4곡 (2026-11-23, AudioOriginals/build_music.py)

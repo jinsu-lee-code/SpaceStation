@@ -27,7 +27,7 @@ namespace SpaceStation.Audio
     /// 사운드 개편 4-3 · 4-4 주민 소리 고르는 규칙 (2026-11-26, SOUND_LIST_NEW voice_* · crowd_* · act_* · D-2 · D-5 ④ · D-11) — 순수 계산, EditMode 시험 대상.
     /// - 종족 8 (AnimalModelSet Id) → 목소리 칸 번호, 플레이어를 만난 반응 · 부탁 · 놀람 → 기분.
     /// - 반복 막기 (D-2 "주민 목소리 = 주민마다 20초 · 방 전체 동시 2 · 멀면 작게"): <see cref="ResidentVoiceGate"/>.
-    /// - 사람 층 (D-5 ④): 그 방에 깨어 있는 주민 수 → 웅성 0 ~ 3단계 (소수 = 이웃 단계 사이) → 세 루프 크기 (같은 힘 교차).
+    /// - 사람 층 (D-5 ④ 웅성)은 2026-11-26 정한 것 S-29 "웅성 없이"로 뺌 (주민 수 → 웅성 단계 · 세 루프 교차 규칙 · crowd_1 ~ 3 파일 모두).
     /// - 활동 (D-11): 일하는 자리 · 앉은 자리 · 집 · 밤 · 방 종류 → 그릇 · 키보드 · 공구 · 숨 · 놀이 도구.
     /// </summary>
     public static class ResidentSound
@@ -57,41 +57,6 @@ namespace SpaceStation.Audio
                 default:
                     return 1;
             }
-        }
-
-        // ---------------- 웅성 (D-5 ④) ----------------
-
-        /// <summary>깨어 있는 주민 수 → 웅성 단계 0 ~ 3 (점 (1, 0) · (3, 1) · (8, 2) · (16, 3) 사이 직선): 둘 = 작은 웅성 반 · 셋 = 1 · 여덟 = 2 · 열여섯 넘게 = 붐비는 식당.</summary>
-        public static float CrowdLevel(int awake)
-        {
-            if (awake <= 1)
-                return 0f;
-            if (awake <= 3)
-                return (awake - 1) / 2f;
-            if (awake <= 8)
-                return 1f + (awake - 3) / 5f;
-            if (awake <= 16)
-                return 2f + (awake - 8) / 8f;
-            return 3f;
-        }
-
-        /// <summary>
-        /// 단계 (0 ~ 3 소수) → 웅성 루프 1 · 2 · 3의 크기 (0 ~ 1). 이웃 단계끼리 같은 힘 교차 (cos · sin) — 0 ~ 1 사이는 1단계만 켜지며 올라옴.
-        /// 루프가 아래 단계를 품게 만들어 (crowd_3 = 3 + 2, crowd_2 = 2 + 1) 섞이는 동안 결이 안 바뀜.
-        /// </summary>
-        public static void CrowdMix(float level, float[] weights)
-        {
-            weights[0] = weights[1] = weights[2] = 0f;
-            level = Math.Max(0f, Math.Min(3f, level));
-            if (level <= 1f)
-            {
-                weights[0] = (float)Math.Sin(level * Math.PI / 2);
-                return;
-            }
-            int lo = level >= 3f ? 1 : (int)Math.Floor(level) - 1;   // 1 ~ 2 → (0, 1), 2 ~ 3 → (1, 2)
-            float t = level - (lo + 1);
-            weights[lo] = (float)Math.Cos(t * Math.PI / 2);
-            weights[lo + 1] = (float)Math.Sin(t * Math.PI / 2);
         }
 
         // ---------------- 기분 ----------------

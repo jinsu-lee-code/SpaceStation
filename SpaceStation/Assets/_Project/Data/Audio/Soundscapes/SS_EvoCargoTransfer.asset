@@ -44,6 +44,7 @@ MonoBehaviour:
     ShowGain: 1
     RideGain: 1
     MotionMeters: 0
+    MotionVertical: 0
   - Name: "\uD56D\uAD6C \uBABB \uC794\uBB3C\uACB0 (\uB3D9)"
     Cue:
       Clips:
@@ -64,6 +65,7 @@ MonoBehaviour:
     ShowGain: 1
     RideGain: 1
     MotionMeters: 0
+    MotionVertical: 0
   - Name: "\uD68C\uC804 \uBABB \uD718\uB3CC\uC774"
     Cue:
       Clips:
@@ -84,6 +86,7 @@ MonoBehaviour:
     ShowGain: 1
     RideGain: 1
     MotionMeters: 0
+    MotionVertical: 0
   - Name: "\uB4F1\uB300 \uB80C\uC988 \uC6C5"
     Cue:
       Clips:
@@ -104,6 +107,7 @@ MonoBehaviour:
     ShowGain: 1
     RideGain: 1
     MotionMeters: 0
+    MotionVertical: 0
   - Name: "\uBB3C\uBCF4\uB77C \uBABB \uBB3C\uC0B4"
     Cue:
       Clips:
@@ -124,6 +128,51 @@ MonoBehaviour:
     ShowGain: 1
     RideGain: 1
     MotionMeters: 0
+    MotionVertical: 0
+  - Name: "\uD558\uC5ED \uCCB4\uC778 (\uD06C\uB808\uC778 A \uC9D1\uAC8C, \uC624\uB974\uB0B4\uB9B4
+      \uB54C\uB9CC)"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 19f82179d0fe6f543a0d3b1698e97674, type: 3}
+      Bus: 2
+      Volume: 0.6
+      Pitch: {x: 1, y: 1}
+      Cooldown: 0.05
+      MaxVoices: 3
+    Position: {x: 3.56, y: 0.1, z: 10.44}
+    MinDistance: 1.5
+    MaxDistance: 9
+    Day: 1
+    Night: 1
+    OnBeat: 0
+    Spatial: 1
+    Follow: CraneAGripPivot
+    ShowGain: 1
+    RideGain: 1
+    MotionMeters: 0.3
+    MotionVertical: 1
+  - Name: "\uD558\uC5ED \uCCB4\uC778 (\uD06C\uB808\uC778 B \uC9D1\uAC8C, \uC624\uB974\uB0B4\uB9B4
+      \uB54C\uB9CC)"
+    Cue:
+      Clips:
+      - {fileID: 8300000, guid: 19f82179d0fe6f543a0d3b1698e97674, type: 3}
+      Bus: 2
+      Volume: 0.6
+      Pitch: {x: 0.94, y: 0.94}
+      Cooldown: 0.05
+      MaxVoices: 3
+    Position: {x: 10.675, y: 0.1, z: 10.44}
+    MinDistance: 1.5
+    MaxDistance: 9
+    Day: 1
+    Night: 1
+    OnBeat: 0
+    Spatial: 1
+    Follow: CraneBGripPivot
+    ShowGain: 1
+    RideGain: 1
+    MotionMeters: 0.3
+    MotionVertical: 1
   Scatters:
   - Name: "\uBC43\uACE0\uB3D9 (\uC74C\uACC4 \uBC15, \uD654\uBB3C\uC120)"
     Cue:
