@@ -3723,3 +3723,22 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 
 ### `narrative` 합칠 때
 - [ ] 서사판 씬도 같은 메뉴로 다섯 소품 연결
+
+## M-371. 단계별 내부 상황 U4 1단계 (CONNECT_1121 A6, 2026-11-28, `main` — tycoon과 같은 코드)
+
+결정 (사용자 2026-11-28, 셋 다 추천안): 홀로 패널 = 칸 6개 2 × 3 · 냉각 코어 = F 길게 한 번 · 정비 로봇 = 바닥 받침 로봇 팔. 이것으로 1 ~ 4단계 48곳 모두 그 단계 상황 (② 단계별 상황 끝).
+
+**main에 넣은 것**
+
+- `InteriorIncidents.Tech.cs`: 1단계 홀로 패널 오류 (벽 홀로 판 6칸 중 2 ~ 3칸 경고 = 밝은 주황 깜빡 + 어두운 '!' → 경고 칸만 F, 틀리면 투사 막대 스파크 · 칸 번쩍 · 처음으로 — 차단기 규칙 그대로) · 냉각 코어 과열 (유리 카트리지 주황 맥동 · 김 · 온도 막대 · 경고등 → F 길게 한 번, 필터 시간) · 정비 로봇 멈춤 (바닥에서 올라온 로봇 팔이 축 늘어짐 · 머리 등 깜빡 · 팔꿈치 스파크 → F 길게 2초 → 일어나 일하고 접혀 내려감)
+- 발광 칸: 모델 재질 `M_IncGlow`를 `Art/Materials/FX/M_IncGlow.mat` (반투명 · 발광 URP Lit, 메뉴가 만듦)으로 바꿔 끼우고 블록으로 물들임
+- 로봇 팔 = 관절 계층 FBX (Blender bake 끔 + Unity `bakeAxisConversion` — 메뉴 `StageIncidentSetup.FixJointedImport`가 켬): 뿌리가 90° 돌아 있어 빈 받침 아래에 넣고, 관절 축은 놓을 때 월드 위 · 오른쪽을 관절 로컬로 바꿔 둠
+- `Settings` 일곱 칸 (`HoloPanel` · `CoolantCore` · `RobotArm` · `Glow` · `BotHold` · `HoloHeight` · `CoolantHeight`) · 메뉴 Setup Stage Incidents 세 줄 + 발광 재질 · 씬 연결 (같은 GUID라 글로) · 모델 셋 (stage_incident_builder.py — IncHoloPanel · IncCoolantCore · IncRobotArm)
+- 소리는 빌린 자리 (홀로 웅 · 승강기 버튼 · 끓음 · 필터 교체 · 지직 · 수리 시작 · 서보) — 새 소리는 사운드 작업 때
+
+**main에서 따로 할 것**
+
+- 없음 (tycoon에서 1단계 방 23곳 × 셋 = 69번 놓임 · 모두 바라보고 F로 해결 · EditMode 726, main은 csc 컴파일 검사)
+
+### `narrative` 합칠 때
+- [ ] 서사판 씬도 같은 메뉴로 세 소품 · 발광 재질 연결 (로봇 팔 FBX의 `bakeAxisConversion`은 메타 파일에 들어 있음)

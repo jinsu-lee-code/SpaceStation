@@ -50,6 +50,19 @@ namespace SpaceStation.Interior
             public GameObject Vines;
             [Tooltip("CONNECT A6 4단계 신호 흐트러짐: 다이얼 조작반 (자식 IncSignalConsole · Screen · Dial0~1 · Tick00~14)")]
             public GameObject SignalConsole;
+            [Tooltip("CONNECT A6 1단계 홀로 패널 오류: 벽 홀로 판 (자식 IncHoloPanel · Cell0~5 · Warn0~5, 칸 = 스위치 누르는 시간)")]
+            public GameObject HoloPanel;
+            [Tooltip("CONNECT A6 1단계 냉각 코어 과열: 벽 냉각 장치 (자식 IncCoolantCore · Cartridge · GaugeFill · CoolLed, 갈기 = 필터 시간)")]
+            public GameObject CoolantCore;
+            [Tooltip("CONNECT A6 1단계 정비 로봇 멈춤: 바닥 로봇 팔 (관절 계층 IncRobotArm > ArmTurret > ArmUpper > ArmFore > ArmHead)")]
+            public GameObject RobotArm;
+            [Tooltip("CONNECT A6 1단계 소품의 발광 유리 (M_IncGlow 칸을 이것으로 바꿔 끼워 물들임 — 반투명 · 발광 URP Lit)")]
+            public Material Glow;
+            [Tooltip("정비 로봇 다시 켜는 시간(초)")]
+            public float BotHold = 2f;
+            [Tooltip("1단계 벽 소품 가운데 높이 (바닥에서, m): 홀로 패널 · 냉각 코어")]
+            public float HoloHeight = 1.45f;
+            public float CoolantHeight = 1.35f;
             [Tooltip("경고 말풍선 재질 (주민 요청과 같은 것)")]
             public Material Bubble;
             [Tooltip("F 누르는 시간(초): 밸브 · 불 끄기 · 필터 · 소화기 들기 · 함 문 · 스위치")]

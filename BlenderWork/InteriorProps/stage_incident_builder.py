@@ -30,6 +30,11 @@ COLORS = {
     'Brass': ((0.80, 0.62, 0.26), 0.6),
     'Navy': ((0.11, 0.13, 0.27), 0.45),
     'Violet': ((0.46, 0.32, 0.72), 0.45),
+    # 1단계 (미래 기술): 흰 매끈 몸 · 어두운 홈 띠 · 청록 포인트 · 발광 유리 (M_IncGlow — Unity가 발광 반투명 재질 M_IncGlow.mat으로 바꿔 끼우고 물들임)
+    'EvoWhite': ((0.93, 0.94, 0.96), 0.55),
+    'EvoDark': ((0.12, 0.14, 0.17), 0.45),
+    'Cyan': ((0.16, 0.66, 0.78), 0.5),
+    'Glow': ((0.62, 0.9, 1.0), 0.7),
 }
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -422,6 +427,115 @@ def build_signal_console():
     return out
 
 
+# ================= 1단계 (미래 기술 · 닫힌 방) =================
+# 벽 소품 (홀로 패널 · 냉각 코어): 벽면 = y 0, 방 쪽 = −y, 원점 = 벽면 위 소품 가운데 (incident_builder.py 벽 소품과 같음),
+#   벽 자리 검사 (가로 ±0.36 · 세로 ±0.34 · 앞 0.4) 안
+HOLO_CELL, HOLO_GAP = 0.165, 0.035
+HOLO_Z0 = 0.045          # 칸 격자 가운데 높이
+HOLO_Y = -0.05           # 칸 판 가운데 (어두운 뒤판 앞 1.1 cm — 아래 막대가 쏘아 올린 빛판)
+
+
+def holo_cell_xz(i):
+    col, row = i % 3, i // 3
+    return ((col - 1) * (HOLO_CELL + HOLO_GAP), HOLO_Z0 + (0.5 - row) * (HOLO_CELL + HOLO_GAP))
+
+
+def build_holo_panel():
+    """① 홀로 패널: 흰 판 · 어두운 뒤판 · 아래 투사 막대 (윗면 발광 줄) · 청록 포인트 / Cell0~5 (발광 빛판, 2 × 3) / Warn0~5 (어두운 '!' — 경고 칸만 보임)."""
+    out = []
+    prism(rrect(0, 0, 0.68, 0.6, 0.06), 0.0, -0.03, 'EvoWhite', axis='y', bevel=0.008)
+    prism(rrect(0, 0.045, 0.62, 0.44, 0.04), -0.026, -0.036, 'EvoDark', axis='y')                 # 뒤판 (흰 판 속 4 mm)
+    prism(rrect(0, -0.235, 0.6, 0.07, 0.025), -0.025, -0.11, 'EvoWhite', axis='y', bevel=0.006)   # 투사 막대 (판 속 5 mm)
+    prism(rrect(0, -0.07, 0.54, 0.03, 0.01), -0.203, -0.194, 'Glow')                               # 막대 윗면 발광 줄 (막대 속 3 mm)
+    prism(rrect(0.2, 0.272, 0.16, 0.014, 0.006), -0.027, -0.034, 'Cyan', axis='y')                 # 청록 포인트 (위 가장자리)
+    prism(rrect(-0.29, -0.235, 0.012, 0.04, 0.005), -0.105, -0.114, 'Cyan', axis='y')              # 막대 끝 표시
+    out.append(('IncHoloPanel', take(), Vector((0, 0, 0))))
+    for i in range(6):
+        x, z = holo_cell_xz(i)
+        prism(rrect(x, z, HOLO_CELL, HOLO_CELL, 0.022), HOLO_Y + 0.003, HOLO_Y - 0.003, 'Glow', axis='y')
+        out.append(('Cell%d' % i, take(), Vector((x, HOLO_Y, z))))
+    for i in range(6):
+        x, z = holo_cell_xz(i)
+        prism(rrect(x, z + 0.022, 0.024, 0.078, 0.01), HOLO_Y - 0.002, HOLO_Y - 0.008, 'EvoDark', axis='y')      # '!' 막대 (빛판 속 1 mm)
+        prism([(x + p[0], z - 0.05 + p[1]) for p in circle(0, 0, 0.014, 16)], HOLO_Y - 0.002, HOLO_Y - 0.008, 'EvoDark', axis='y')   # '!' 점
+        out.append(('Warn%d' % i, take(), Vector((x, HOLO_Y, z))))
+    return out
+
+
+COOL_Y, COOL_R = -0.128, 0.068     # 카트리지 축 (벽에서 12.8 cm) · 유리 반지름
+GAUGE_X = -0.185
+
+
+def build_coolant_core():
+    """② 냉각 코어: 흰 뒤판 · 어두운 홈 · 위아래 반쪽 고정쇠 · 냉각관 · 오른쪽 방열판 셋 · 왼쪽 온도 막대 홈 · 눈금 /
+    Cartridge (발광 유리 관 · 속 금속 심 · 흰 끝 뚜껑 · 가운데 어두운 띠 · 당김 손잡이, 원점 = 가운데, −y로 뽑힘) / GaugeFill (발광, 원점 = 아래 끝) / CoolLed."""
+    out = []
+    prism(rrect(0, 0, 0.5, 0.64, 0.06), 0.0, -0.03, 'EvoWhite', axis='y', bevel=0.008)
+    prism(rrect(0, 0, 0.19, 0.56, 0.04), -0.026, -0.035, 'EvoDark', axis='y')                         # 카트리지 뒤 홈
+    for z0, z1 in ((0.205, 0.285), (-0.285, -0.205)):                                                    # 반쪽 고정쇠 (뒤 절반만 — 앞으로 뽑힘)
+        prism(rrect(0, (COOL_Y - 0.025) / 2 + 0.0, 0.2, -(COOL_Y + 0.025) + 0.0, 0.02), z0, z1, 'EvoDark', bevel=0.006)
+    for sx in (-1, 1):                                                                                   # 냉각관 (위 고정쇠 → 뒤판)
+        tube([Vector((sx * 0.06, -0.09, 0.27)), Vector((sx * 0.06, -0.09, 0.292)), Vector((sx * 0.06, -0.055, 0.3)), Vector((sx * 0.06, -0.015, 0.3))],
+             0.012, 'Metal', seg=12, up=Vector((1, 0, 0)))
+    for k in range(3):                                                                                   # 방열판 (큰 판 셋 — 촘촘한 무늬 아님)
+        x = 0.15 + k * 0.034
+        prism(rrect(-0.06, 0, 0.07, 0.46, 0.015), x - 0.006, x + 0.006, 'EvoWhite', axis='x', bevel=0.002)
+    prism(rrect(GAUGE_X, 0, 0.05, 0.44, 0.02), -0.027, -0.037, 'EvoDark', axis='y')                    # 온도 막대 홈
+    for z in (-0.2, 0.0, 0.2):
+        prism(rrect(GAUGE_X - 0.04, z, 0.018, 0.008, 0.003), -0.027, -0.034, 'Cyan', axis='y')          # 눈금
+    out.append(('IncCoolantCore', take(), Vector((0, 0, 0))))
+    prism(circle(0, COOL_Y, COOL_R, 28), -0.2, 0.2, 'Glow')                                               # 유리 관
+    prism(circle(0, COOL_Y, 0.024, 16), -0.198, 0.198, 'Metal')                                           # 속 금속 심 (유리 너머로)
+    for z0, z1 in ((0.195, 0.24), (-0.24, -0.195)):
+        prism(circle(0, COOL_Y, 0.075, 28), z0, z1, 'EvoWhite', bevel=0.006)                              # 끝 뚜껑 (유리 속 5 mm)
+    annulus(0, COOL_Y, 0.073, 0.064, -0.016, 0.016, 'EvoDark', 28)                                        # 가운데 띠
+    prism(rrect(0, 0.08, 0.05, 0.11, 0.012), COOL_Y - 0.06, COOL_Y - 0.086, 'Cyan', axis='y', bevel=0.003)   # 당김 손잡이 (띠 위, 유리 속 3 mm)
+    out.append(('Cartridge', take(), Vector((0, COOL_Y, 0))))
+    prism(rrect(GAUGE_X, -0.01, 0.032, 0.4, 0.01), -0.035, -0.041, 'Glow', axis='y')                    # 막대 (홈 속 2 mm)
+    out.append(('GaugeFill', take(), Vector((GAUGE_X, -0.038, -0.21))))
+    dome((GAUGE_X, -0.034, 0.26), 0.015, 'Led', sz=0.6, u=14, v=8)
+    out.append(('CoolLed', take(), Vector((GAUGE_X, -0.034, 0.26))))
+    return out
+
+
+# 바닥 소품 (정비 로봇 팔): 바닥 = z 0, 앞 = −y, 원점 = 받침 바닥 가운데. 관절 계층 — 원점 = 관절 축, 쉬는 자세 = 곧게 위로
+ARM_PIVOT = {'IncRobotArm': 0.0, 'ArmTurret': 0.12, 'ArmUpper': 0.33, 'ArmFore': 0.78, 'ArmHead': 1.12}
+ARM_PARENT = {'ArmTurret': 'IncRobotArm', 'ArmUpper': 'ArmTurret', 'ArmFore': 'ArmUpper', 'ArmHead': 'ArmFore'}
+
+
+def build_robot_arm():
+    """③ 정비 로봇 팔: 받침 (흰 원반 · 어두운 띠 · 청록 포인트) > ArmTurret (회전대 · 어깨 받침 판 · 어깨 축) > ArmUpper (윗팔 · 유압 피스톤 · 팔꿈치 축)
+    > ArmFore (아랫팔 · 손목 띠 · 손목 구) > ArmHead (머리 · 앞 발광 창 · 집게 둘). 관절 원통이 팔 끝을 덮음 (굽혀도 틈 없음)."""
+    out = []
+    prism(circle(0, 0, 0.28, 40), 0.0, 0.1, 'EvoWhite', bevel=0.012)
+    annulus(0, 0, 0.284, 0.262, 0.036, 0.056, 'EvoDark', 40)                                              # 둘레 띠 (몸 속 1.8 cm)
+    prism(circle(0, 0, 0.2, 36), 0.095, 0.125, 'EvoDark', bevel=0.006)                                    # 회전대 자리
+    prism(rrect(0, -0.232, 0.11, 0.028, 0.012), 0.092, 0.104, 'Cyan')                                     # 앞 청록 포인트 (윗면 속)
+    out.append(('IncRobotArm', take(), Vector((0, 0, 0))))
+    prism(circle(0, 0, 0.16, 36), 0.115, 0.25, 'EvoWhite', bevel=0.01)                                    # 회전대 (자리 속 1 cm)
+    for sx in (-1, 1):
+        prism(rrect(0, 0.305, 0.14, 0.17, 0.045), sx * 0.085 - 0.02, sx * 0.085 + 0.02, 'EvoWhite', axis='x', bevel=0.006)   # 어깨 받침 판
+    tube([Vector((-0.118, 0, 0.33)), Vector((0.118, 0, 0.33))], 0.068, 'EvoDark', seg=24, up=Vector((0, 0, 1)))            # 어깨 축
+    out.append(('ArmTurret', take(), Vector((0, 0, ARM_PIVOT['ArmTurret']))))
+    prism(rrect(0, 0.555, 0.13, 0.45, 0.04), -0.055, 0.055, 'EvoWhite', axis='x', bevel=0.008)            # 윗팔 (z 0.33 ~ 0.78)
+    prism(rrect(0.078, 0.425, 0.05, 0.034, 0.01), -0.022, 0.022, 'EvoDark', axis='x')                     # 피스톤 아래 받침 (팔 속)
+    prism(rrect(0.078, 0.722, 0.05, 0.034, 0.01), -0.02, 0.02, 'EvoDark', axis='x')                       # 피스톤 위 받침
+    tube([Vector((0, 0.092, 0.43)), Vector((0, 0.092, 0.6))], 0.021, 'EvoDark', seg=14)                   # 피스톤 통 (받침 속)
+    tube([Vector((0, 0.092, 0.59)), Vector((0, 0.092, 0.72))], 0.011, 'Metal', seg=10)                    # 피스톤 막대
+    tube([Vector((-0.078, 0, 0.78)), Vector((0.078, 0, 0.78))], 0.066, 'EvoDark', seg=24, up=Vector((0, 0, 1)))            # 팔꿈치 축
+    out.append(('ArmUpper', take(), Vector((0, 0, ARM_PIVOT['ArmUpper']))))
+    prism(rrect(0, 0.95, 0.105, 0.34, 0.035), -0.045, 0.045, 'EvoWhite', axis='x', bevel=0.007)           # 아랫팔 (z 0.78 ~ 1.12)
+    prism(rrect(0, 1.07, 0.115, 0.03, 0.01), -0.05, 0.05, 'EvoDark', axis='x')                            # 손목 띠
+    dome((0, 0, 1.12), 0.056, 'EvoDark', u=20, v=10)                                                       # 손목 구
+    out.append(('ArmFore', take(), Vector((0, 0, ARM_PIVOT['ArmFore']))))
+    prism(rrect(0, 1.2, 0.15, 0.13, 0.04), -0.07, 0.07, 'EvoWhite', axis='x', bevel=0.008)                # 머리 (z 1.135 ~ 1.265)
+    prism(rrect(0, 1.205, 0.11, 0.05, 0.02), -0.07, -0.083, 'Glow', axis='y')                             # 앞 발광 창 (머리 속 5 mm)
+    for sx in (-1, 1):
+        prism(rrect(sx * 0.035, 1.3, 0.022, 0.09, 0.008), -0.02, 0.02, 'Metal', axis='y', bevel=0.002)    # 집게 (머리 속 1 cm)
+    out.append(('ArmHead', take(), Vector((0, 0, ARM_PIVOT['ArmHead']))))
+    return out
+
+
 def finish(name, parts, origin=None):
     me = bpy.data.meshes.new(name); ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
@@ -472,16 +586,24 @@ def finish(name, parts, origin=None):
 
 groups = {}
 for name, fn in (('IncDecoBox', build_decobox), ('IncRideConsole', build_rideconsole), ('IncToys', build_toys), ('IncSluice', build_sluice),
-                 ('IncLantern', build_lantern), ('IncStarLantern', build_star_lantern), ('IncVines', build_vines), ('IncSignalConsole', build_signal_console)):
+                 ('IncLantern', build_lantern), ('IncStarLantern', build_star_lantern), ('IncVines', build_vines), ('IncSignalConsole', build_signal_console),
+                 ('IncHoloPanel', build_holo_panel), ('IncCoolantCore', build_coolant_core), ('IncRobotArm', build_robot_arm)):
     groups[name] = [finish(n, parts, origin) for n, parts, origin in fn()]
+# 로봇 팔 관절 계층: 자식 위치 = 부모 축 기준 (parent inverse 없이 — arm_builder.py와 같은 방식)
+ARM_OBS = {o.name: o for o in groups['IncRobotArm']}
+for n, par in ARM_PARENT.items():
+    ARM_OBS[n].parent = ARM_OBS[par]
+    ARM_OBS[n].location = Vector((0, 0, ARM_PIVOT[n] - ARM_PIVOT[par]))
+bpy.context.view_layer.update()
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, 'stage_incident.blend'))
 
 if OUT:
     os.makedirs(OUT, exist_ok=True)
     for name, obs in groups.items():
         for x in bpy.context.view_layer.objects: x.select_set(x in obs)
+        # 관절 계층(로봇 팔)은 bake 끔 + Unity bakeAxisConversion (StageIncidentSetup) — 켜면 자식 관절 회전이 엉킴 (체크리스트 55)
         bpy.ops.export_scene.fbx(filepath=os.path.join(OUT, 'SM_%s.fbx' % name), use_selection=True, object_types={'MESH'},
-                                 axis_forward='-Z', axis_up='Y', bake_space_transform=True, apply_scale_options='FBX_SCALE_ALL',
+                                 axis_forward='-Z', axis_up='Y', bake_space_transform=name != 'IncRobotArm', apply_scale_options='FBX_SCALE_ALL',
                                  mesh_smooth_type='FACE')
 
 # 미리보기: 바닥판 위, 램프 빨강 (고장 모습)
@@ -506,10 +628,16 @@ cd = bpy.data.cameras.new('C'); cd.type = 'ORTHO'; cam = bpy.data.objects.new('C
 pv = os.path.join(HERE, 'preview'); os.makedirs(pv, exist_ok=True)
 for gname, prefix, center, scale in (('IncDecoBox', 'stage_decobox', 0.55, 1.45), ('IncRideConsole', 'stage_console', 0.7, 1.7), ('IncToys', 'stage_toys', 0.25, 1.6),
                                      ('IncSluice', 'stage_sluice', 0.65, 1.6), ('IncLantern', 'stage_lantern', 0.55, 1.3), ('IncStarLantern', 'stage_starlantern', 0.65, 1.4),
-                                     ('IncVines', 'stage_vines', 0.3, 1.3), ('IncSignalConsole', 'stage_signal', 0.75, 1.7)):
+                                     ('IncVines', 'stage_vines', 0.3, 1.3), ('IncSignalConsole', 'stage_signal', 0.75, 1.7),
+                                     ('IncHoloPanel', 'stage_holo', 0.0, 0.85), ('IncCoolantCore', 'stage_coolant', 0.0, 0.85),
+                                     ('IncRobotArm', 'stage_robotarm', 0.65, 1.6), ('IncRobotArm', 'stage_robotarm_stall', 0.45, 1.3)):
     for other, obs in groups.items():
         for x in obs:
             x.hide_render = other != gname
+    stall = prefix == 'stage_robotarm_stall'   # 미리보기만: 멈춘 자세 (Unity InteriorIncidents.Tech.cs BotStall과 같은 각도)
+    for n, deg in (('ArmTurret', 20.0), ('ArmUpper', 40.0), ('ArmFore', 80.0), ('ArmHead', 35.0)):
+        ARM_OBS[n].rotation_euler = (math.radians(deg if stall else 0.0), 0, 0) if n != 'ArmTurret' else (0, 0, math.radians(deg if stall else 0.0))
+    fo.hide_render = gname in ('IncHoloPanel', 'IncCoolantCore')   # 벽 소품은 바닥판 없이 (원점 = 소품 가운데)
     if gname == 'IncToys':   # 미리보기만: 바구니 옆에 소품을 늘어놓음 (내보낸 뒤라 FBX와 무관)
         for x in groups[gname]:
             x.location = {'ToyBall': Vector((0.55, -0.1, 0)), 'ToyStar': Vector((-0.6, -0.1, 0)), 'ToyRing': Vector((0.05, -0.55, 0))}.get(x.name, x.location)
