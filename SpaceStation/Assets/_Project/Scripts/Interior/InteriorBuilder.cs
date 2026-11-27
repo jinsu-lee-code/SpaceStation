@@ -166,6 +166,74 @@ namespace SpaceStation.Interior
             }
         }
 
+        private readonly Dictionary<ModuleInstance, ModuleInstance> _wayPrev = new Dictionary<ModuleInstance, ModuleInstance>();
+        private readonly Queue<ModuleInstance> _wayQueue = new Queue<ModuleInstance>();
+
+        /// <summary>
+        /// CONNECT_1121 3번 ③ 위치 표시 (2026-11-28): from 방에서 to 방으로 가는 첫걸음 자리 (월드) — 열린 통로로 이어진 방을 넓이 우선으로 찾아
+        /// 다음 방으로 가는 옆문 가운데 (near에 가장 가까운 것, 문 높이), 위아래로만 이어졌으면 이 방 위아래 이동 장치. 길이 없으면 false.
+        /// </summary>
+        public bool TryGetWayPoint(ModuleInstance from, ModuleInstance to, Vector3 near, out Vector3 point, out ModuleInstance next, out bool lift)
+        {
+            point = default;
+            next = null;
+            lift = false;
+            if (from == null || to == null || from == to || _layout == null || !_linksOf.ContainsKey(from))
+                return false;
+            _wayPrev.Clear();
+            _wayQueue.Clear();
+            _wayPrev[from] = null;
+            _wayQueue.Enqueue(from);
+            while (_wayQueue.Count > 0 && !_wayPrev.ContainsKey(to))
+            {
+                var m = _wayQueue.Dequeue();
+                if (!_linksOf.TryGetValue(m, out var links))
+                    continue;
+                foreach (var o in links)
+                {
+                    if (_wayPrev.ContainsKey(o))
+                        continue;
+                    _wayPrev[o] = m;
+                    _wayQueue.Enqueue(o);
+                }
+            }
+            if (!_wayPrev.ContainsKey(to))
+                return false;
+            next = to;
+            while (_wayPrev[next] != from)
+                next = _wayPrev[next];
+            float best = float.MaxValue;
+            bool vertical = false;
+            if (_openOf.TryGetValue(from, out var faces))
+            {
+                foreach (var (cell, dir) in faces)
+                {
+                    if (!_layout.TryGetRoom(cell + dir, out var other) || other.Module != next)
+                        continue;
+                    if (dir.y != 0)
+                    {
+                        vertical = true;
+                        continue;
+                    }
+                    var p = CellCenter(cell) + (Vector3)dir * (InteriorGeometry.CellSize * 0.5f);
+                    p.y = _root.position.y + InteriorGeometry.FloorY(cell) + 1.1f;
+                    float d = (p - near).sqrMagnitude;
+                    if (d < best)
+                    {
+                        best = d;
+                        point = p;
+                    }
+                }
+            }
+            if (best < float.MaxValue)
+                return true;
+            if (!vertical)
+                return false;
+            point = TransitGround(from) + Vector3.up * 1.1f;   // 위아래 = 방마다 이동 장치 하나
+            lift = true;
+            return true;
+        }
+
         /// <summary>들어갈 때 서는 곳 (템플릿 지정 또는 원점 칸 바닥 가운데).</summary>
         public Vector3 SpawnPoint(ModuleInstance module, out float yaw)
         {

@@ -76,3 +76,4 @@
 
 - **CONNECT_1121 3번 ② U3 3 · 4단계 상황 (2026-11-27)** — 공통 바닥이라 main(M-370)과 같은 코드 · 모델: `InteriorIncidents.Garden.cs` (물꼬 판 · 등불 순서 · 덩굴 · 신호 다이얼 · 별빛 등불) · 폭포 · 분수 멈춤 API · `RaisedFloor`가 낮춘 층도
 - **CONNECT_1121 3번 ② U4 1단계 상황 (2026-11-28)** — 공통 바닥이라 main(M-371)과 같은 코드 · 모델: `InteriorIncidents.Tech.cs` (홀로 패널 · 냉각 코어 · 정비 로봇 팔) · `Settings` 일곱 칸 · 발광 재질 `M_IncGlow.mat` · 로봇 팔 FBX `bakeAxisConversion` (메뉴가 켬)
+- **CONNECT_1121 3번 ③ 위치 표시 (2026-11-28)** — 공통 바닥이라 main(M-372)과 같은 코드: `InteriorFocusMarker` (새 파일) · `InteriorIncidents.Focus.cs` (새 파일) · `InteriorRequests.TryGetFocus` · `InteriorBuilder.TryGetWayPoint` · `InteriorMode` (`_focus` · `LateUpdate` · `UpdateFocusMarker`)
