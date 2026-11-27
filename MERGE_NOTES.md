@@ -3590,3 +3590,28 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 **main에서 따로 할 것**
 
 - 없음 (승인 뒤 FBX · 화면 연결을 새 M 번호로)
+
+## M-364. 묶음 선택 · 옮기기 (CONNECT_1121 M7, 2026-11-27, `main` — tycoon과 같은 코드)
+
+결정 (사용자 2026-11-27): Shift+클릭 + 가지 통째로 / 모양 그대로 한 덩어리 / 묶음 밖 모듈이 끊기면 경고만, 놓기는 허용.
+
+**main에 넣은 것**
+
+- `StationGrid.TryMoveGroup` (모두 옮긴 뒤 모듈마다 `ModuleMoved`) · `PeekGroupMove` (판정용으로 잠깐 옮기고 되돌림, 알림 · `Version` 그대로) · `GroupMove` (대표 중심 회전 · 면에 붙이기)
+- `StationConnectivity.CollectReachable` · `CollectBranch` (가지 = 빼면 코어에서 끊기는 쪽) · `PlacementRules.SupportsOthers(grid, module, group)` · `PlacementResult.BreaksSupport` (enum 끝에 더함)
+- `StationSimulation.CheckGroupMovable` · `GetGroupMoveCost` · `EvaluateGroupMove(out cut)` · `TryMoveGroup` · `CollectBranch` — 판정에 칸 제한(`InZone`)도
+- `StationConnectors.MoveFor`: 옛 칸에 들어온 다른 묶음 모듈의 통로도 다시 이음
+- `ModuleSelectionController`: `Group` · `IsGroup` · `GroupChanged` · `GroupNotice` · `ToggleInGroup`(Shift+클릭) · `SelectBranch`(G) · `SetGroup`, 묶음이면 철거 키 막음
+- `BuildController.BeginGroupMove` · `MovingGroup` · `GroupCut` · `GroupCost` · `GroupMoveEnded` (고스트 여럿 · 묶음 속 도킹 접근로)
+- `SelectionActionsPanel` 묶음 모드 (`_branchButton` · `_branchLabel`, 없으면 G 키만) · `StatusBar` 묶음 안내 · 끊김 경고 · `HudText` · `GameAction.SelectBranch` (G, 끝에 더함) · 고정 안내 "Shift + 왼쪽 클릭"
+- 메뉴 SpaceStation/Move/Setup Branch Button · 시험 `GroupMoveTests` 6
+
+**main에서 따로 할 것**
+
+- [ ] main 장면(`Main.unity`)에 메뉴 SpaceStation/Move/Setup Branch Button 한 번 (정보 창 넷째 줄 [가지 선택]) — 이 PC에선 main을 Unity로 열지 않아 csc 컴파일 검사만 함
+
+### `narrative` 합칠 때
+- [ ] 같은 메뉴를 서사판 장면에서 한 번 · 서사판에서 `BuildZone`이 켜진 장(4장 위기)에서 묶음 옮기기가 칸 제한을 지키는지 확인
+
+### `tycoon` 합칠 때
+- [x] 같은 코드 (tycoon에서 만들어 에디터 플레이 · EditMode로 확인), 타이쿤 장면엔 버튼 있음

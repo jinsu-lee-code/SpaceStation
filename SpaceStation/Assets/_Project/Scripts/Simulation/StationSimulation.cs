@@ -589,6 +589,23 @@ namespace SpaceStation.Simulation
         /// <summary>12-3b 비용을 내고 즉시 옮김 (같은 모듈 — 내구도 · 주민 · 상자 그대로).</summary>
         public bool TryMove(ModuleInstance module, UnityEngine.Vector3Int origin, int rotation) => _construction.TryMove(module, origin, rotation);
 
+        /// <summary>CONNECT M7 묶음째 옮길 수 있는지 (모듈마다 한 개 옮기기 조건 · 받침은 묶음 밖 모듈만). blocker = 막는 모듈.</summary>
+        public MoveBlock CheckGroupMovable(IReadOnlyList<ModuleInstance> group, out ModuleInstance blocker) => _construction.CheckGroupMovable(group, out blocker);
+
+        /// <summary>CONNECT M7 묶음 이동 비용 = 모듈마다 이동 비용의 합.</summary>
+        public List<ResourceAmount> GetGroupMoveCost(IReadOnlyList<ModuleInstance> group) => _construction.GetGroupMoveCost(group);
+
+        /// <summary>CONNECT M7 묶음 옮길 자리 판정 (모양 그대로 한 덩어리). cut = 옮기면 코어에서 끊기는 모듈 수 (경고만).</summary>
+        public PlacementResult EvaluateGroupMove(IReadOnlyList<ModuleInstance> group, IReadOnlyList<UnityEngine.Vector3Int> origins, IReadOnlyList<int> rotations, out int cut)
+            => _construction.EvaluateGroupMove(group, origins, rotations, out cut);
+
+        /// <summary>CONNECT M7 비용을 내고 묶음을 즉시 옮김.</summary>
+        public bool TryMoveGroup(IReadOnlyList<ModuleInstance> group, IReadOnlyList<UnityEngine.Vector3Int> origins, IReadOnlyList<int> rotations)
+            => _construction.TryMoveGroup(group, origins, rotations);
+
+        /// <summary>CONNECT M7 가지 선택: 이 모듈을 빼면 코어에서 끊기는 쪽 (이 모듈 포함, 맨 앞).</summary>
+        public void CollectBranch(ModuleInstance module, List<ModuleInstance> into) => Connectivity.CollectBranch(module, into);
+
         /// <summary>파괴 (방치 등): 환급 없음. 코어는 파괴되지 않는다.</summary>
         public bool DestroyModule(ModuleInstance module) => _construction.DestroyModule(module);
 

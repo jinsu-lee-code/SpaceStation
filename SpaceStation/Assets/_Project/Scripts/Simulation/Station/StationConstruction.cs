@@ -190,6 +190,151 @@ namespace SpaceStation.Simulation
             return _sim.Grid.TryMove(module, origin, rotation);
         }
 
+        // ---------------- 묶음 이동 (CONNECT M7) ----------------
+
+        /// <summary>
+        /// 묶음째 옮길 수 있는지 (자리와 무관): 모듈마다 한 개 옮기기와 같은 조건, 단 받침은 묶음 밖 모듈을 받칠 때만 막음.
+        /// blocker = 막는 모듈 (없으면 null).
+        /// </summary>
+        public MoveBlock CheckGroupMovable(IReadOnlyList<ModuleInstance> group, out ModuleInstance blocker)
+        {
+            blocker = null;
+            if (group == null || group.Count == 0)
+                return MoveBlock.NotMovable;
+            foreach (var m in group)
+            {
+                blocker = m;
+                if (!IsRemovableKind(m) || m.Data == null)
+                    return MoveBlock.NotMovable;
+                if (_sim.IsHalted(m))
+                    return MoveBlock.Synthesizing;
+                if (_sim.Damage.TryGetInfo(m, out _))
+                    return MoveBlock.Damaged;
+            }
+            var set = new HashSet<ModuleInstance>(group);
+            foreach (var m in group)
+            {
+                blocker = m;
+                if (PlacementRules.SupportsOthers(_sim.Grid, m, set))
+                    return MoveBlock.Supporting;
+            }
+            blocker = null;
+            return MoveBlock.None;
+        }
+
+        /// <summary>묶음 이동 비용 = 모듈마다 이동 비용(건설비 × 20%)의 합 (사용자 결정 2026-11-27 — 이동 규칙 그대로).</summary>
+        public List<ResourceAmount> GetGroupMoveCost(IReadOnlyList<ModuleInstance> group)
+        {
+            var sum = new List<ResourceAmount>();
+            if (group == null)
+                return sum;
+            foreach (var m in group)
+            {
+                foreach (var a in GetMoveCost(m))
+                {
+                    int i = sum.FindIndex(x => x.Type == a.Type);
+                    if (i < 0)
+                        sum.Add(a);
+                    else
+                        sum[i] = new ResourceAmount(a.Type, sum[i].Amount + a.Amount);
+                }
+            }
+            return sum;
+        }
+
+        /// <summary>
+        /// 묶음 옮길 자리 판정: 묶음을 새 자리에 잠깐 옮겨 둔 채 모듈마다 공간 규칙(한 개 옮기기와 같음) → 묶음 밖 모듈과 면 접촉 →
+        /// 묶음 밖 모듈의 받침 → 비용. cut = 옮기면 코어에서 끊기는 (지금 활성인) 모듈 수 — 경고만, 놓기는 허용 (사용자 결정 2026-11-27).
+        /// </summary>
+        public PlacementResult EvaluateGroupMove(IReadOnlyList<ModuleInstance> group, IReadOnlyList<UnityEngine.Vector3Int> origins, IReadOnlyList<int> rotations, out int cut)
+        {
+            cut = 0;
+            if (CheckGroupMovable(group, out _) != MoveBlock.None)
+                return PlacementResult.InvalidDefinition;
+            if (origins == null || rotations == null || origins.Count != group.Count || rotations.Count != group.Count)
+                return PlacementResult.InvalidDefinition;
+            if (GroupMove.IsUnchanged(group, origins, rotations))
+                return PlacementResult.NoChange;
+
+            var grid = _sim.Grid;
+            var set = new HashSet<ModuleInstance>(group);
+            // 묶음 밖 이웃 중 지금 받침 조건을 채우는 모듈 (옮긴 뒤에도 채워야 함 — 예전 규칙 세이브의 기존 배치는 막지 않음)
+            var supported = new List<ModuleInstance>();
+            foreach (var m in group)
+            {
+                foreach (var cell in m.Cells)
+                {
+                    foreach (var dir in GridDirections.Faces)
+                    {
+                        if (dir == UnityEngine.Vector3Int.down || !grid.TryGetModule(cell + dir, out var other) || set.Contains(other) || supported.Contains(other))
+                            continue;
+                        if (PlacementRules.CheckSupport(grid, other.Cells, null) == PlacementResult.Valid)
+                            supported.Add(other);
+                    }
+                }
+            }
+
+            int cutCount = 0;
+            var result = grid.PeekGroupMove(group, origins, rotations, () =>
+            {
+                bool contact = false;
+                foreach (var m in group)
+                {
+                    var r = PlacementRules.Evaluate(grid, m.Data, m.Origin, m.Rotation, m);
+                    if (r == PlacementResult.Valid && !InZone(m.Data, m.Origin, m.Rotation))
+                        r = PlacementResult.OutsideZone; // 한 개 옮기기와 같은 칸 제한 (서사판 4장 위기 등)
+                    if (r == PlacementResult.Valid)
+                        r = CheckPending(m.Data, m.Origin, m.Rotation);
+                    if (r != PlacementResult.Valid)
+                        return r;
+                    if (!contact)
+                        contact = TouchesOutside(grid, m, set);
+                }
+                if (!contact)
+                    return PlacementResult.NeedsContact;
+                foreach (var other in supported)
+                {
+                    if (PlacementRules.CheckSupport(grid, other.Cells, null) != PlacementResult.Valid)
+                        return PlacementResult.BreaksSupport;
+                }
+                var reach = new HashSet<ModuleInstance>();
+                _sim.Connectivity.CollectReachable(reach);
+                foreach (var m in grid.Modules)
+                {
+                    if (_sim.Connectivity.IsActive(m) && !reach.Contains(m))
+                        cutCount++;
+                }
+                return PlacementResult.Valid;
+            });
+            cut = cutCount;
+            if (result == PlacementResult.Valid && !_sim.Resources.CanAfford(GetGroupMoveCost(group)))
+                return PlacementResult.InsufficientResources;
+            return result;
+        }
+
+        private static bool TouchesOutside(StationGrid grid, ModuleInstance module, HashSet<ModuleInstance> group)
+        {
+            foreach (var cell in module.Cells)
+            {
+                foreach (var dir in GridDirections.Faces)
+                {
+                    if (grid.TryGetModule(cell + dir, out var other) && !group.Contains(other))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>비용을 내고 묶음을 즉시 옮김 (같은 모듈들 — 내구도 · 노후 · 주민 · 상자 그대로).</summary>
+        public bool TryMoveGroup(IReadOnlyList<ModuleInstance> group, IReadOnlyList<UnityEngine.Vector3Int> origins, IReadOnlyList<int> rotations)
+        {
+            if (EvaluateGroupMove(group, origins, rotations, out _) != PlacementResult.Valid)
+                return false;
+            if (!_sim.Resources.TrySpend(GetGroupMoveCost(group)))
+                return false;
+            return _sim.Grid.TryMoveGroup(group, origins, rotations);
+        }
+
         // ---------------- 정비 / 재건축 (4-3) ----------------
 
         public MaintainResult TryMaintain(ModuleInstance module)

@@ -44,6 +44,8 @@ namespace SpaceStation.UI
         private int _shownDamageState;
         private Vector3Int _shownTargetCell;
         private int _shownRotation;
+        private int _shownGroupCount; // CONNECT M7 묶음 수 · 끊김 경고
+        private int _shownGroupCut;
         private bool _hintInitialized;
         private Settings.HintMode _shownHints;
         private readonly System.Collections.Generic.List<AppliedAdjacency> _previewSelf = new System.Collections.Generic.List<AppliedAdjacency>();
@@ -265,13 +267,18 @@ namespace SpaceStation.UI
 
             var targetCell = hasTarget ? _build.TargetCell : Vector3Int.zero;
             int rotation = build != null ? _build.Rotation : 0;
+            var movingGroup = build != null ? _build.MovingGroup : null;
+            int groupCount = movingGroup != null ? movingGroup.Count : selected != null ? _selection.Group.Count : 0;
+            int groupCut = movingGroup != null && hasTarget ? _build.GroupCut : 0;
 
             if (_hintInitialized && build == _shownBuild && selected == _shownSelection && selectedActive == _shownSelectionActive
                 && hasTarget == _shownHasTarget && result == _shownResult && damageState == _shownDamageState
-                && targetCell == _shownTargetCell && rotation == _shownRotation)
+                && targetCell == _shownTargetCell && rotation == _shownRotation && groupCount == _shownGroupCount && groupCut == _shownGroupCut)
                 return;
             _shownTargetCell = targetCell;
             _shownRotation = rotation;
+            _shownGroupCount = groupCount;
+            _shownGroupCut = groupCut;
 
             _hintInitialized = true;
             _shownBuild = build;
@@ -284,11 +291,19 @@ namespace SpaceStation.UI
             if (build != null)
             {
                 var moving = _build.Moving; // 12-3b 이동 모드
-                string text = moving != null
+                string text = movingGroup != null // CONNECT M7 묶음째
+                    ? $"<b>묶음 {movingGroup.Count}개</b> 옮기기 ({HudText.Cost(_build.GroupCost)})  ·  좌클릭: 새 자리 확정  ·  {K(GameAction.Rotate)}: 회전 ({build.DisplayName} 중심)  ·  우클릭/ESC: 취소"
+                    : moving != null
                     ? $"<b>{build.DisplayName}</b> 옮기기 ({HudText.Cost(_station.Simulation.GetMoveCost(moving))})  ·  좌클릭: 새 자리 확정  ·  {K(GameAction.Rotate)}: 회전  ·  우클릭/ESC: 취소"
                     : $"<b>{build.DisplayName}</b> 배치  ·  좌클릭: 배치  ·  {K(GameAction.Rotate)}: 회전  ·  우클릭/ESC: 취소";
                 if (hasTarget && result != PlacementResult.Valid)
                     text += $"\n<color={HudText.Red}>{(moving != null ? "옮기기" : "배치")} 불가: {HudText.PlacementReason(result, _station.Simulation.BuildZone)}</color>";
+                else if (hasTarget && movingGroup != null)
+                {
+                    // 끊김은 경고만 · 놓기는 허용 (사용자 결정 2026-11-27)
+                    if (groupCut > 0)
+                        text += $"\n<color={HudText.Orange}>주의: 여기에 놓으면 코어에서 끊기는 모듈 {groupCut}개 (비활성)</color>";
+                }
                 else if (hasTarget)
                 {
                     text += AdjacencyPreviewLine(build, targetCell, rotation);
@@ -319,7 +334,10 @@ namespace SpaceStation.UI
                 string repair = damageState == 1 ? $"  ·  <color={HudText.Red}>{K(GameAction.Repair)}: 수리</color>"
                     : damageState == 3 ? $"  ·  <color={HudText.Yellow}>{K(GameAction.Repair)}: 우선 수리  ·  {K(GameAction.CancelRepair)}: 대기 취소</color>" : string.Empty;
                 string lab = selected.Data != null && selected.Data.ResearchSlots > 0 ? $"  ·  <color=#B79CFF>{K(GameAction.Research)}: 연구 창</color>" : string.Empty;
-                _hintText.SetText($"선택: <b>{name}</b>{state}{repair}{lab}  ·  {action}  ·  ESC: 선택 해제");
+                if (groupCount > 1) // CONNECT M7 묶음
+                    _hintText.SetText($"묶음: <b>{groupCount}개</b> (대표 {name})  ·  {K(GameAction.Move)}: 묶음 옮기기  ·  {K(GameAction.SelectBranch)}: 가지 선택  ·  Shift+클릭: 더하기 · 빼기  ·  ESC: 선택 해제");
+                else
+                    _hintText.SetText($"선택: <b>{name}</b>{state}{repair}{lab}  ·  {action}  ·  Shift+클릭: 묶음  ·  ESC: 선택 해제");
             }
             else
             {

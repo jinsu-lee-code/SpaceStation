@@ -44,6 +44,7 @@ namespace SpaceStation.UI
                 case PlacementResult.InvalidDefinition: return "잘못된 모듈 정의";
                 case PlacementResult.NoChange: return "지금 자리 그대로";
                 case PlacementResult.NeedsContact: return "다른 모듈과 면이 닿는 자리로 옮겨야 함";
+                case PlacementResult.BreaksSupport: return "옮기면 묶음 밖 모듈의 받침이 빠짐 (받치는 모듈도 함께 고르기)";
                 case PlacementResult.OutsideZone: return "지금은 새 칸에 지을 수 없음 (모듈이 있던 칸에만)";
                 default: return string.Empty;
             }
