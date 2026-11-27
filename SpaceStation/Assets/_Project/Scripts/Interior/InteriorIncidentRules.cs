@@ -116,6 +116,67 @@ namespace SpaceStation.Interior
             return SwitchPress.AllDone;
         }
 
+        // ---------------- CONNECT A6 3 · 4단계 (사용자 결정 2026-11-27) ----------------
+
+        /// <summary>3단계 ① 물꼬 판: 바퀴 셋 · 단 1 ~ 5 (바이오스피어 물꼬 맞추기와 같은 단 — <see cref="SluicePuzzle"/>). 4단계 ① 신호 다이얼도 같은 칸 수.</summary>
+        public const int SluiceWheels = 3, Notches = 5, SignalDials = 2;
+
+        /// <summary>목표 칸 (1 ~ <see cref="Notches"/>)과 처음 칸 — 처음은 목표와 다름 (이미 맞아 있으면 할 일이 없음).</summary>
+        public static int[] NotchTargets(Random rng, int count, out int[] start)
+        {
+            var target = new int[count];
+            start = new int[count];
+            for (int i = 0; i < count; i++)
+            {
+                target[i] = 1 + rng.Next(Notches);
+                start[i] = 1 + (target[i] - 1 + 1 + rng.Next(Notches - 1)) % Notches;   // 목표가 아닌 칸 하나
+            }
+            return target;
+        }
+
+        /// <summary>F 한 번 = 한 칸 (마지막 다음은 첫 칸 — 물꼬는 한 단 내림, 다이얼은 한 칸 돌림).</summary>
+        public static int TurnNotch(int level) => level % Notches + 1;
+
+        public static bool NotchesSolved(int[] levels, int[] targets)
+        {
+            for (int i = 0; i < levels.Length; i++)
+            {
+                if (levels[i] != targets[i])
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>3단계 ② 등불 순서 · 4단계 ② 별빛 등불: 등불 넷 · 순서 길이 3 ~ 4, 같은 등불이 바로 이어 나오지 않음 (드론 순서 기억하기의 작은 판 — <see cref="DroneMemoryGame"/>).</summary>
+        public const int Lamps = 4, LampOrderMin = 3, LampOrderMax = 4;
+
+        public static int[] LampOrder(Random rng)
+        {
+            int n = LampOrderMin + rng.Next(LampOrderMax - LampOrderMin + 1);
+            var order = new int[n];
+            for (int i = 0; i < n; i++)
+            {
+                int k;
+                do
+                    k = rng.Next(Lamps);
+                while (i > 0 && k == order[i - 1]);
+                order[i] = k;
+            }
+            return order;
+        }
+
+        /// <summary>순서 따라 하기 한 번: 맞으면 다음 (끝까지면 해결), 틀리면 처음부터 (부르는 쪽이 순서를 다시 보여 줌).</summary>
+        public static SwitchPress PressLamp(int[] order, ref int entered, int lamp)
+        {
+            if (entered < 0 || entered >= order.Length || order[entered] != lamp)
+            {
+                entered = 0;
+                return SwitchPress.Wrong;
+            }
+            entered++;
+            return entered >= order.Length ? SwitchPress.AllDone : SwitchPress.Fixed;
+        }
+
         public static string Title(IncidentKind kind)
         {
             switch (kind)
@@ -154,10 +215,10 @@ namespace SpaceStation.Interior
                 case IncidentKind.RideStop: return "조작반의 경고등 켜진 레버만 올리세요";
                 case IncidentKind.DecoLights: return "조명 분전함을 찾아 고쳐 주세요";
                 case IncidentKind.ScatteredToys: return "흩어진 소품을 바구니에 모아 주세요";
-                case IncidentKind.WaterChannel: return "물꼬를 맞춰 물길을 열어 주세요";
+                case IncidentKind.WaterChannel: return "물꼬 판 바퀴를 돌려 깜빡이는 눈금에 맞춰 주세요";
                 case IncidentKind.Lanterns: return "깜빡인 순서대로 등불을 켜 주세요";
                 case IncidentKind.Vines: return "길을 막은 덩굴을 쳐내 주세요";
-                case IncidentKind.SignalDrift: return "신호를 다시 맞춰 주세요";
+                case IncidentKind.SignalDrift: return "다이얼을 돌려 깜빡이는 칸에 맞춰 주세요";
                 case IncidentKind.StarLanterns: return "깜빡인 순서대로 별빛 등불을 켜 주세요";
                 default: return "";
             }

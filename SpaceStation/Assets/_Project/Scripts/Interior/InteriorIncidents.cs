@@ -40,6 +40,16 @@ namespace SpaceStation.Interior
             public GameObject RideConsole;
             [Tooltip("CONNECT A6 2단계 놀이 소품 흩어짐: 바구니 · 소품 한 벌 (자식 ToyBasket · ToyBall · ToyStar · ToyRing, 줍기 · 넣기 = 소화기 들기 시간)")]
             public GameObject Toys;
+            [Tooltip("CONNECT A6 3단계 물길 막힘: 물가 물꼬 판 (자식 IncSluice · Wheel0~2 · Gate0~2 · Notch00~24, 바퀴 = 스위치 누르는 시간)")]
+            public GameObject Sluice;
+            [Tooltip("CONNECT A6 3단계 등불 순서: 정원 등불 (자식 IncLantern · LampGlass)")]
+            public GameObject Lantern;
+            [Tooltip("CONNECT A6 4단계 별빛 등불: 별빛 등불 (자식 IncStarLantern · StarGlass)")]
+            public GameObject StarLantern;
+            [Tooltip("CONNECT A6 3단계 덩굴 웃자람: 덩굴 덤불 (자식 IncVines, 쳐내기 = 불 끄기 시간)")]
+            public GameObject Vines;
+            [Tooltip("CONNECT A6 4단계 신호 흐트러짐: 다이얼 조작반 (자식 IncSignalConsole · Screen · Dial0~1 · Tick00~14)")]
+            public GameObject SignalConsole;
             [Tooltip("경고 말풍선 재질 (주민 요청과 같은 것)")]
             public Material Bubble;
             [Tooltip("F 누르는 시간(초): 밸브 · 불 끄기 · 필터 · 소화기 들기 · 함 문 · 스위치")]

@@ -68,6 +68,9 @@ namespace SpaceStation.Interior
 
         public bool LandingOn(int index) => _on == null || index < 0 || index >= _on.Length || _on[index];
 
+        /// <summary>떨어지는 자리 수 (CONNECT A6 물길 막힘 — 상황 동안 모두 끔).</summary>
+        public int LandingCount => _landings != null ? _landings.Length : 0;
+
         private static void Stop(ParticleSystem[] systems)
         {
             foreach (var ps in systems)

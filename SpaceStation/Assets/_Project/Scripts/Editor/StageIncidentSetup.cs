@@ -21,6 +21,11 @@ namespace SpaceStation.Editor
             ("DecoBox", "SM_IncDecoBox.fbx"),   // 2단계 ② 장식 조명 꺼짐 — 조명 분전함
             ("RideConsole", "SM_IncRideConsole.fbx"),   // 2단계 ① 놀이기구 · 쇼 멈춤 — 운행 조작반
             ("Toys", "SM_IncToys.fbx"),   // 2단계 ③ 놀이 소품 흩어짐 — 바구니 · 소품
+            ("Sluice", "SM_IncSluice.fbx"),   // 3단계 ① 물길 막힘 — 물가 물꼬 판
+            ("Lantern", "SM_IncLantern.fbx"),   // 3단계 ② 등불 순서 — 정원 등불
+            ("StarLantern", "SM_IncStarLantern.fbx"),   // 4단계 ② 별빛 등불
+            ("Vines", "SM_IncVines.fbx"),   // 3단계 ③ 덩굴 웃자람
+            ("SignalConsole", "SM_IncSignalConsole.fbx"),   // 4단계 ① 신호 흐트러짐 — 다이얼 조작반
         };
 
         [MenuItem("SpaceStation/Interior/Setup Stage Incidents (CONNECT A6)")]

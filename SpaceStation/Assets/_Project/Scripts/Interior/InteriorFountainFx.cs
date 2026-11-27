@@ -23,6 +23,28 @@ namespace SpaceStation.Interior
             _material = material;
         }
 
+        private readonly System.Collections.Generic.List<ParticleSystem> _systems = new System.Collections.Generic.List<ParticleSystem>();
+        private bool _flowing = true;
+
+        /// <summary>
+        /// 물줄기를 멈추고 다시 뿜음 (CONNECT A6 물길 막힘, 2026-11-27). 멈출 때는 새로 뿜지 않고 남은 입자는 사라질 때까지 둠.
+        /// </summary>
+        public void SetFlowing(bool on)
+        {
+            if (_flowing == on)
+                return;
+            _flowing = on;
+            foreach (var ps in _systems)
+            {
+                if (ps == null)
+                    continue;
+                if (on)
+                    ps.Play();
+                else
+                    ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            }
+        }
+
         private void Start()
         {
             if (_material == null)
@@ -30,6 +52,11 @@ namespace SpaceStation.Interior
             Jet();
             Foam();
             Mist();
+            if (!_flowing)
+            {
+                foreach (var ps in _systems)
+                    ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);   // 만들기 전에 멈춰 둔 물줄기
+            }
         }
 
         private ParticleSystem Make(string name, Vector3 local, Vector3 euler)
@@ -39,6 +66,7 @@ namespace SpaceStation.Interior
             go.transform.localPosition = local;
             go.transform.localRotation = Quaternion.Euler(euler);
             var ps = go.AddComponent<ParticleSystem>();
+            _systems.Add(ps);
             ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = ps.main;
             main.loop = true;
