@@ -21,6 +21,7 @@ COLORS = {
     'Teal': ((0.08, 0.5, 0.55), 0.4),
     'Hazard': ((0.95, 0.72, 0.08), 0.35),
     'Led': ((0.92, 0.92, 0.92), 0.5),      # Unity: 빨강 · 초록 + 발광
+    'Wicker': ((0.72, 0.52, 0.30), 0.3),
 }
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -83,14 +84,14 @@ def prism(pts, a0, a1, mat, axis='z', bevel=0.0, seg=2):
     return bm
 
 
-def tube(points, r, mat, seg=12):
+def tube(points, r, mat, seg=12, up=None):
     bm = bmesh.new()
     rings = []
     n = len(points)
     for k, p in enumerate(points):
         t = (points[min(k + 1, n - 1)] - points[max(k - 1, 0)]).normalized()
-        up = Vector((0, 0, 1)) if abs(t.z) < 0.9 else Vector((1, 0, 0))
-        u = t.cross(up).normalized(); v = t.cross(u).normalized()
+        ref = up if up is not None else (Vector((0, 0, 1)) if abs(t.z) < 0.9 else Vector((1, 0, 0)))   # 평면 곡선은 고정 (뒤틀림 방지)
+        u = t.cross(ref).normalized(); v = t.cross(u).normalized()
         rings.append([bm.verts.new(p + (u * math.cos(2 * math.pi * i / seg) + v * math.sin(2 * math.pi * i / seg)) * r) for i in range(seg)])
     for k in range(n - 1):
         a, b = rings[k], rings[k + 1]
@@ -186,6 +187,82 @@ def build_rideconsole():
     return out
 
 
+# ================= 2단계 ③ 놀이 소품 흩어짐 =================
+# ToyBasket (등나무색 둥근 바구니 · 빨간 띠 · 크림 손잡이) + ToyBall (빨간 공 · 크림 띠) · ToyStar (노란 별 쿠션) · ToyRing (청록 고리)
+# 원점 = 바닥에 닿는 가운데 (Unity가 바닥 자리에 바로 놓음). 바구니 속은 비어 있음 (소품이 들어감) — 구멍 무늬 없음 (짠 결은 띠 두 줄로만)
+BASKET_R, BASKET_IN, BASKET_H = 0.30, 0.27, 0.30
+
+
+def annulus(cx, cy, r_out, r_in, z0, z1, mat, seg=32):
+    """속이 빈 원통 벽 (닫힌 고체: 바깥 · 안 · 위 · 아래 고리)."""
+    bm = bmesh.new()
+    rings = []
+    for r, z in ((r_out, z0), (r_out, z1), (r_in, z1), (r_in, z0)):
+        rings.append([bm.verts.new((cx + r * math.cos(2 * math.pi * i / seg), cy + r * math.sin(2 * math.pi * i / seg), z)) for i in range(seg)])
+    for k in range(4):
+        a, b = rings[k], rings[(k + 1) % 4]
+        for i in range(seg):
+            j = (i + 1) % seg
+            bm.faces.new((a[i], a[j], b[j], b[i]))
+    orient_outward(bm)
+    PARTS.append((bm, mat))
+    return bm
+
+
+def torus(c, R, r, mat, seg=28, sides=10, axis='z'):
+    bm = bmesh.new()
+    rings = []
+    for i in range(seg):
+        a = 2 * math.pi * i / seg
+        ring = []
+        for k in range(sides):
+            b = 2 * math.pi * k / sides
+            d = R + r * math.cos(b)
+            if axis == 'z':
+                p = (c[0] + d * math.cos(a), c[1] + d * math.sin(a), c[2] + r * math.sin(b))
+            else:   # 세로 고리 (x-z 평면)
+                p = (c[0] + d * math.cos(a), c[1] + r * math.sin(b), c[2] + d * math.sin(a))
+            ring.append(bm.verts.new(p))
+        rings.append(ring)
+    for i in range(seg):
+        a, b = rings[i], rings[(i + 1) % seg]
+        for k in range(sides):
+            l = (k + 1) % sides
+            bm.faces.new((a[k], a[l], b[l], b[k]))
+    orient_outward(bm)
+    PARTS.append((bm, mat))
+    return bm
+
+
+def star(cx, cy, r_out, r_in, n=5):
+    return [(cx + (r_out if i % 2 == 0 else r_in) * math.cos(math.pi / 2 + math.pi * i / n),
+             cy + (r_out if i % 2 == 0 else r_in) * math.sin(math.pi / 2 + math.pi * i / n)) for i in range(2 * n)]
+
+
+def build_toys():
+    out = []
+    # 바구니: 바닥판 (벽 속 5 mm) · 벽 · 띠 두 줄 (벽 밖에 3 mm 묻음) · 테두리 고리 · 손잡이 (테두리 속까지)
+    prism(circle(0, 0, BASKET_IN + 0.005, 32), 0.0, 0.03, 'Wicker')
+    annulus(0, 0, BASKET_R, BASKET_IN, 0.0, BASKET_H, 'Wicker')
+    for z in (0.08, 0.20):
+        annulus(0, 0, BASKET_R + 0.012, BASKET_R - 0.003, z, z + 0.035, 'Red')
+    torus((0, 0, BASKET_H), (BASKET_R + BASKET_IN) / 2, 0.022, 'Wicker', seg=36, sides=10)
+    arc = [Vector((math.cos(math.pi * t / 12) * (BASKET_R - 0.015), 0, BASKET_H - 0.01 + math.sin(math.pi * t / 12) * 0.26)) for t in range(13)]
+    tube(arc, 0.016, 'Cream', up=Vector((0, 1, 0)))
+    out.append(('ToyBasket', take(), Vector((0, 0, 0))))
+    # 공 (지름 26 cm) · 띠 (공에 반쯤 묻음)
+    dome((0, 0, 0.13), 0.13, 'Red', u=24, v=12)
+    torus((0, 0, 0.13), 0.128, 0.012, 'Cream', seg=32, sides=8)
+    out.append(('ToyBall', take(), Vector((0, 0, 0))))
+    # 별 쿠션
+    prism(star(0, 0, 0.17, 0.08), 0.0, 0.08, 'Hazard', bevel=0.02, seg=3)
+    out.append(('ToyStar', take(), Vector((0, 0, 0))))
+    # 고리 (바닥에 누움)
+    torus((0, 0, 0.03), 0.11, 0.03, 'Teal', seg=32, sides=12)
+    out.append(('ToyRing', take(), Vector((0, 0, 0))))
+    return out
+
+
 def finish(name, parts, origin=None):
     me = bpy.data.meshes.new(name); ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
@@ -235,7 +312,7 @@ def finish(name, parts, origin=None):
 
 
 groups = {}
-for name, fn in (('IncDecoBox', build_decobox), ('IncRideConsole', build_rideconsole)):
+for name, fn in (('IncDecoBox', build_decobox), ('IncRideConsole', build_rideconsole), ('IncToys', build_toys)):
     groups[name] = [finish(n, parts, origin) for n, parts, origin in fn()]
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, 'stage_incident.blend'))
 
@@ -267,10 +344,13 @@ ld = bpy.data.lights.new('Sun', 'SUN'); ld.energy = 3.0
 lo = bpy.data.objects.new('Sun', ld); sc.collection.objects.link(lo); lo.rotation_euler = (math.radians(55), 0, math.radians(-30))
 cd = bpy.data.cameras.new('C'); cd.type = 'ORTHO'; cam = bpy.data.objects.new('C', cd); sc.collection.objects.link(cam); sc.camera = cam
 pv = os.path.join(HERE, 'preview'); os.makedirs(pv, exist_ok=True)
-for gname, prefix, center, scale in (('IncDecoBox', 'stage_decobox', 0.55, 1.45), ('IncRideConsole', 'stage_console', 0.7, 1.7)):
+for gname, prefix, center, scale in (('IncDecoBox', 'stage_decobox', 0.55, 1.45), ('IncRideConsole', 'stage_console', 0.7, 1.7), ('IncToys', 'stage_toys', 0.25, 1.6)):
     for other, obs in groups.items():
         for x in obs:
             x.hide_render = other != gname
+    if gname == 'IncToys':   # 미리보기만: 바구니 옆에 소품을 늘어놓음 (내보낸 뒤라 FBX와 무관)
+        for x in groups[gname]:
+            x.location = {'ToyBall': Vector((0.55, -0.1, 0)), 'ToyStar': Vector((-0.6, -0.1, 0)), 'ToyRing': Vector((0.05, -0.55, 0))}.get(x.name, x.location)
     for tag, d in (('front', Vector((0.0, -1.0, 0.25))), ('q', Vector((0.6, -0.8, 0.45))), ('back', Vector((-0.5, 0.85, 0.3)))):
         d = d.normalized(); cam.location = Vector((0, 0, center)) + d * 4; cam.rotation_euler = (-d).to_track_quat('-Z', 'Y').to_euler()
         cd.ortho_scale = scale; sc.render.resolution_x = 600; sc.render.resolution_y = 700

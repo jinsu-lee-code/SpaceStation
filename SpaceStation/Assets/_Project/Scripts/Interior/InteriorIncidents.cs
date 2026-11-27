@@ -38,6 +38,8 @@ namespace SpaceStation.Interior
             public GameObject DecoBox;
             [Tooltip("CONNECT A6 2단계 놀이기구 멈춤: 바닥에 세우는 운행 조작반 (자식 IncRideConsole · Switch0~5 · Led0~5, 레버 = 스위치 누르는 시간)")]
             public GameObject RideConsole;
+            [Tooltip("CONNECT A6 2단계 놀이 소품 흩어짐: 바구니 · 소품 한 벌 (자식 ToyBasket · ToyBall · ToyStar · ToyRing, 줍기 · 넣기 = 소화기 들기 시간)")]
+            public GameObject Toys;
             [Tooltip("경고 말풍선 재질 (주민 요청과 같은 것)")]
             public Material Bubble;
             [Tooltip("F 누르는 시간(초): 밸브 · 불 끄기 · 필터 · 소화기 들기 · 함 문 · 스위치")]

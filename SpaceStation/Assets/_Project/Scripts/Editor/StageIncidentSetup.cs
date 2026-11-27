@@ -20,6 +20,7 @@ namespace SpaceStation.Editor
         {
             ("DecoBox", "SM_IncDecoBox.fbx"),   // 2단계 ② 장식 조명 꺼짐 — 조명 분전함
             ("RideConsole", "SM_IncRideConsole.fbx"),   // 2단계 ① 놀이기구 · 쇼 멈춤 — 운행 조작반
+            ("Toys", "SM_IncToys.fbx"),   // 2단계 ③ 놀이 소품 흩어짐 — 바구니 · 소품
         };
 
         [MenuItem("SpaceStation/Interior/Setup Stage Incidents (CONNECT A6)")]

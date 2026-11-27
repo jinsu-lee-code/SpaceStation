@@ -56,7 +56,7 @@ namespace SpaceStation.Interior
         }
 
         /// <summary>놓는 코드가 있는 단계 상황 (U2 ~ U4에서 하나씩).</summary>
-        private static bool StageImplemented(IncidentKind kind) => kind == IncidentKind.DecoLights || kind == IncidentKind.RideStop;
+        private static bool StageImplemented(IncidentKind kind) => kind == IncidentKind.DecoLights || kind == IncidentKind.RideStop || kind == IncidentKind.ScatteredToys;
 
         private bool PlaceStage(Incident a)
         {
@@ -64,6 +64,7 @@ namespace SpaceStation.Interior
             {
                 case IncidentKind.DecoLights: return PlaceDecoLights(a);
                 case IncidentKind.RideStop: return PlaceRideStop(a);
+                case IncidentKind.ScatteredToys: return PlaceScatteredToys(a);
                 default: return false;
             }
         }
@@ -77,6 +78,9 @@ namespace SpaceStation.Interior
                     break;
                 case IncidentKind.RideStop:
                     AnimateRideStop(a, now);
+                    break;
+                case IncidentKind.ScatteredToys:
+                    AnimateToys(a, now);
                     break;
             }
         }
@@ -99,6 +103,9 @@ namespace SpaceStation.Interior
                 case IncidentKind.RideStop:
                     AnimateRideDone(a, dt);
                     break;
+                case IncidentKind.ScatteredToys:
+                    AnimateToysDone(a, dt);
+                    break;
             }
         }
 
@@ -112,6 +119,9 @@ namespace SpaceStation.Interior
                     break;
                 case IncidentKind.RideStop:
                     RestoreRides(a);
+                    break;
+                case IncidentKind.ScatteredToys:
+                    RestoreToys(a);
                     break;
             }
         }

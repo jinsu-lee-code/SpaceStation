@@ -71,3 +71,5 @@
 - **CONNECT_1121 3번 ② U2 ② 장식 조명 꺼짐 (2026-11-27)** — 공통 바닥이라 main(M-367)과 같은 코드 · 모델: 2단계 방 장식 발광 끔 + 바닥 조명 분전함 2 ~ 3개 · `InteriorAtmosphere.SetIncidentDim` · `InteriorSpots.NearDoor` · `IgnoredForSpots` · 바닥을 높여 지은 방(요새) 바닥 자리 고침 · 씬 연결 메뉴 Setup Stage Incidents
 
 - **CONNECT_1121 3번 ② U2 ① 놀이기구 · 쇼 멈춤 (2026-11-27)** — 공통 바닥이라 main(M-368)과 같은 코드 · 모델: `InteriorIncidents.Ride.cs` (기구 16종 꺼 둠 · 사람 손 장식 천천히 멈춤 · 좌석 막음 · 운행 조작반 레버 = 차단기 규칙) · `SM_IncRideConsole` · `TrySpawn`이 못 놓으면 같은 방 다른 상황부터 · 말풍선 자리 `BubbleAt`
+
+- **CONNECT_1121 3번 ② U2 ③ 놀이 소품 흩어짐 (2026-11-27)** — 공통 바닥이라 main(M-369)과 같은 코드 · 모델: `InteriorIncidents.Toys.cs` (소품 2 ~ 3개 줍기 → 바구니에 넣기 · 한 번에 하나 · 소품 빛) · `SM_IncToys` — U2 2단계 셋 끝
