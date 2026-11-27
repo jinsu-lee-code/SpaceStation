@@ -51,16 +51,19 @@ namespace SpaceStation.Interior
             public DecoBox HoldingBox;
             public float DecoLevel;
             public float DecoShown = -1f;
+            /// <summary>말풍선 자리 (없으면 소품 자리) — 바닥에 세운 소품의 위쪽 빈 곳.</summary>
+            public Transform BubbleAt;
         }
 
         /// <summary>놓는 코드가 있는 단계 상황 (U2 ~ U4에서 하나씩).</summary>
-        private static bool StageImplemented(IncidentKind kind) => kind == IncidentKind.DecoLights;
+        private static bool StageImplemented(IncidentKind kind) => kind == IncidentKind.DecoLights || kind == IncidentKind.RideStop;
 
         private bool PlaceStage(Incident a)
         {
             switch (a.Kind)
             {
                 case IncidentKind.DecoLights: return PlaceDecoLights(a);
+                case IncidentKind.RideStop: return PlaceRideStop(a);
                 default: return false;
             }
         }
@@ -72,14 +75,49 @@ namespace SpaceStation.Interior
                 case IncidentKind.DecoLights:
                     AnimateDecoLights(a, now, holding);
                     break;
+                case IncidentKind.RideStop:
+                    AnimateRideStop(a, now);
+                    break;
             }
         }
 
-        /// <summary>해결한 뒤 말풍선이 사라질 때까지 (2.5초): 밝기를 끝까지 올리고 분전함을 바닥으로 내림.</summary>
+        /// <summary>해결한 순간 (말풍선 "해결!" 전): 멈춘 기구를 바로 다시 움직임 등.</summary>
+        private void ResolveStage(Incident a)
+        {
+            if (a.Kind == IncidentKind.RideStop)
+                RestartRides(a);
+        }
+
+        /// <summary>해결한 뒤 말풍선이 사라질 때까지 (2.5초): 밝기 · 회전을 끝까지 되돌리고 바닥 소품을 내림.</summary>
         private void AnimateStageDone(Incident a, float dt)
         {
-            if (a.Kind != IncidentKind.DecoLights)
-                return;
+            switch (a.Kind)
+            {
+                case IncidentKind.DecoLights:
+                    AnimateDecoDone(a, dt);
+                    break;
+                case IncidentKind.RideStop:
+                    AnimateRideDone(a, dt);
+                    break;
+            }
+        }
+
+        /// <summary>정리 (놓침 · 다시 만듦 · 해결 모두): 상황이 바꿔 둔 방을 원래대로.</summary>
+        private void RestoreStage(Incident a)
+        {
+            switch (a.Kind)
+            {
+                case IncidentKind.DecoLights:
+                    RestoreDeco(a);
+                    break;
+                case IncidentKind.RideStop:
+                    RestoreRides(a);
+                    break;
+            }
+        }
+
+        private void AnimateDecoDone(Incident a, float dt)
+        {
             a.DecoLevel = Mathf.MoveTowards(a.DecoLevel, 1f, dt / 0.8f);
             ApplyDecoLevel(a, a.DecoLevel);
             if (a.Age - a.DoneAge > 0.9f)
@@ -93,11 +131,9 @@ namespace SpaceStation.Interior
             }
         }
 
-        /// <summary>정리 (놓침 · 다시 만듦 · 해결 모두): 꺼 둔 장식 · 방 조명을 원래대로. 해결했으면 내려간 분전함 · 말풍선 자리도 지움 (방에 쌓이지 않게).</summary>
-        private void RestoreStage(Incident a)
+        /// <summary>꺼 둔 장식 · 방 조명을 원래대로. 해결했으면 내려간 분전함 · 말풍선 자리도 지움 (방에 쌓이지 않게).</summary>
+        private void RestoreDeco(Incident a)
         {
-            if (a.Kind != IncidentKind.DecoLights)
-                return;
             if (a.Done)
             {
                 foreach (var b in a.Boxes)
@@ -145,7 +181,9 @@ namespace SpaceStation.Interior
         private const float DecoFrontClear = 1.5f;
         private static readonly float[] DecoFrontFloor = { 0.9f, 1.5f };
         private const float DecoOpenClear = 2f;
-        private const float DecoSideGap = 1.2f;
+        /// <summary>바닥 소품 옆으로 지나갈 틈 (소품 반 폭에 더함) · 분전함 반 폭.</summary>
+        private const float PassWidth = 0.95f;
+        private const float DecoHalfWidth = 0.25f;
         private const float DecoDoorMargin = 1.6f;
         private static readonly float[] DecoFrontHeights = { 0.3f, 1.0f };
         /// <summary>꼭대기 램프 빛 (분전함 기준 자리 · 닿는 거리 · 세기: 깜빡 켜짐 / 꺼짐 / 고친 뒤).</summary>
@@ -199,7 +237,7 @@ namespace SpaceStation.Interior
                     nearDoor++;
                     continue;
                 }
-                if (!DecoSpotFace(spot, out var face))
+                if (!PropFace(spot, DecoHalfWidth, out var face))
                 {
                     badSpot++;   // 좁은 길 한가운데 · 문 앞에 설 바닥 없음 (2026-11-27 플레이: 선반 사이 길을 막음 · 문이 방 가장자리를 봄)
                     continue;
@@ -303,7 +341,7 @@ namespace SpaceStation.Interior
         /// 어느 쪽이든 문 앞에 플레이어가 설 바닥이 있어야 함 (<see cref="FrontOpen"/> — 방 가장자리 · 물길 · 유리 너머를 보면 안 됨).
         /// <paramref name="face"/> = 문이 볼 쪽.
         /// </summary>
-        private bool DecoSpotFace(Vector3 spot, out Vector3 face)
+        private bool PropFace(Vector3 spot, float halfWidth, out Vector3 face)
         {
             face = Vector3.zero;
             var o = spot + Vector3.up * 0.5f;
@@ -323,7 +361,7 @@ namespace SpaceStation.Interior
             }
             if (best <= DecoBackReach && backed.sqrMagnitude > 0.5f)
             {
-                if (!FrontOpen(spot, backed) || !SideGap(spot, backed))
+                if (!FrontOpen(spot, backed) || !SideGap(spot, backed, halfWidth + PassWidth))
                     return false;
                 face = backed;
                 return true;
@@ -349,16 +387,16 @@ namespace SpaceStation.Interior
         }
 
         /// <summary>
-        /// 옆으로 지나갈 틈: 분전함 왼쪽 · 오른쪽 가운데 한쪽은 1.2m(분전함 반 폭 + 0.95m) 넘게 빔 — 난간 사이 좁은 다리 · 통로를 막지 않게
+        /// 옆으로 지나갈 틈: 소품 왼쪽 · 오른쪽 가운데 한쪽은 <paramref name="need"/>m(소품 반 폭 + 0.95m) 넘게 빔 — 난간 사이 좁은 다리 · 통로를 막지 않게
         /// (2026-11-27 플레이: 요새 성벽 위 다리 한가운데에 섰음).
         /// </summary>
-        private static bool SideGap(Vector3 spot, Vector3 face)
+        private static bool SideGap(Vector3 spot, Vector3 face, float need)
         {
             var o = spot + Vector3.up * 0.5f;
             var side = Vector3.Cross(Vector3.up, face).normalized;
-            float left = Physics.Raycast(o, -side, out var l, DecoSideGap, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) ? l.distance : DecoSideGap;
-            float right = Physics.Raycast(o, side, out var r, DecoSideGap, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) ? r.distance : DecoSideGap;
-            return Mathf.Max(left, right) >= DecoSideGap;
+            float left = Physics.Raycast(o, -side, out var l, need, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) ? l.distance : need;
+            float right = Physics.Raycast(o, side, out var r, need, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore) ? r.distance : need;
+            return Mathf.Max(left, right) >= need;
         }
 
         /// <summary>문 앞 1.5m: 막는 것 없음 (유리 · 난간 포함) + 0.9 · 1.5m 앞에 같은 높이의 평평한 바닥 (플레이어가 서서 F를 누를 자리).</summary>

@@ -36,6 +36,8 @@ namespace SpaceStation.Interior
             public GameObject Filter;
             [Tooltip("CONNECT A6 2단계 장식 조명 꺼짐: 바닥에 세우는 조명 분전함 (자식 IncDecoBox · DecoLed)")]
             public GameObject DecoBox;
+            [Tooltip("CONNECT A6 2단계 놀이기구 멈춤: 바닥에 세우는 운행 조작반 (자식 IncRideConsole · Switch0~5 · Led0~5, 레버 = 스위치 누르는 시간)")]
+            public GameObject RideConsole;
             [Tooltip("경고 말풍선 재질 (주민 요청과 같은 것)")]
             public Material Bubble;
             [Tooltip("F 누르는 시간(초): 밸브 · 불 끄기 · 필터 · 소화기 들기 · 함 문 · 스위치")]
@@ -327,14 +329,39 @@ namespace SpaceStation.Interior
                         continue;
                     kind = picked.Value;
                 }
-                if (kind == IncidentKind.Breaker && !canTrip)
-                    continue;
-                var a = new Incident { Kind = kind, Room = room, Resource = InteriorIncidentRules.LeakResource(room.Data), Tutorial = tutorial };
-                if (!Place(a))
+                // 뽑힌 상황을 이 방에 못 놓으면 (자리 · 멈출 기구 없음) 같은 방의 다른 상황부터 — CONNECT A6 (2026-11-27)
+                _tryKinds.Clear();
+                _tryKinds.Add(kind);
+                if (forced == null)
                 {
-                    End(a, rebuilt: false);
-                    continue;
+                    int first = _tryKinds.Count;
+                    foreach (var k in kinds)
+                    {
+                        if (k != kind)
+                            _tryKinds.Add(k);
+                    }
+                    for (int i = _tryKinds.Count - 1; i > first; i--)
+                    {
+                        int j = first + _rng.Next(i - first + 1);
+                        (_tryKinds[i], _tryKinds[j]) = (_tryKinds[j], _tryKinds[i]);
+                    }
                 }
+                Incident a = null;
+                foreach (var k in _tryKinds)
+                {
+                    if (k == IncidentKind.Breaker && !canTrip)
+                        continue;
+                    var tryA = new Incident { Kind = k, Room = room, Resource = InteriorIncidentRules.LeakResource(room.Data), Tutorial = tutorial };
+                    if (Place(tryA))
+                    {
+                        a = tryA;
+                        break;
+                    }
+                    End(tryA, rebuilt: false);
+                }
+                if (a == null)
+                    continue;
+                kind = a.Kind;
                 _active = a;
                 _last = kind;
                 a.Bubble = SpeechBubble.Create(transform, _font, _s.Bubble);
@@ -349,6 +376,7 @@ namespace SpaceStation.Interior
         }
 
         private readonly List<IncidentKind> _ready = new List<IncidentKind>();
+        private readonly List<IncidentKind> _tryKinds = new List<IncidentKind>();
 
         /// <summary>
         /// CONNECT A6: 이 방에서 지금 낼 수 있는 상황 = 그 단계 표 가운데 만든 것 (<see cref="Implemented"/>).
@@ -771,6 +799,9 @@ namespace SpaceStation.Interior
                     if (a.FilterLed != null)
                         TintRenderer(a.FilterLed, "M_IncLed", LedGreen);
                     break;
+                default:
+                    ResolveStage(a); // CONNECT A6 단계 상황 (기구 다시 움직임 등)
+                    break;
             }
             foreach (var use in a.Prop.GetComponentsInChildren<InteriorInteractable>())
                 Destroy(use);
@@ -842,7 +873,7 @@ namespace SpaceStation.Interior
         {
             if (a.Bubble == null || a.Prop == null)
                 return;
-            var t = a.Prop.transform;
+            var t = a.BubbleAt != null ? a.BubbleAt : a.Prop.transform; // 바닥에 세운 소품은 위쪽 빈 자리 (CONNECT A6)
             var tip = t.position + Vector3.up * 0.5f + t.forward * 0.2f;
             bool show = (tip - _eye.position).sqrMagnitude < _s.BubbleRange * _s.BubbleRange;
             if (a.Bubble.gameObject.activeSelf != show)

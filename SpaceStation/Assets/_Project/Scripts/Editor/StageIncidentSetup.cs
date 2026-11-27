@@ -19,6 +19,7 @@ namespace SpaceStation.Editor
         private static readonly (string Field, string File)[] Props =
         {
             ("DecoBox", "SM_IncDecoBox.fbx"),   // 2단계 ② 장식 조명 꺼짐 — 조명 분전함
+            ("RideConsole", "SM_IncRideConsole.fbx"),   // 2단계 ① 놀이기구 · 쇼 멈춤 — 운행 조작반
         };
 
         [MenuItem("SpaceStation/Interior/Setup Stage Incidents (CONNECT A6)")]
