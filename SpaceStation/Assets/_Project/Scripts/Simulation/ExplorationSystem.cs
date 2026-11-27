@@ -68,6 +68,14 @@ namespace SpaceStation.Simulation
         /// <summary>닿음 판정을 판이 바꿈 (null = 반경 안에 코어에 연결된 모듈 — 서사판). 엔드리스 광맥 = 채굴 모듈이 맞닿음 등.</summary>
         public Func<ExploreSite, bool> ReachRule { get; set; }
 
+        /// <summary>CONNECT_1121 M6 공통 고리: 지점을 만들자마자 밝힘 (탐사선 없음 — 엔드리스 광맥 "위치는 바로 보임"). 기본 꺼짐 = 서사판 그대로.</summary>
+        public bool AutoReveal { get; set; }
+
+        /// <summary>닿으면 무엇을 주는지 한 줄을 판이 바꿈 (null = 설정 문구 — 서사판). 엔드리스 광맥 = 도킹 생산 배율 · 매장량.</summary>
+        public Func<ExploreSite, string> EffectText { get; set; }
+
+        public string EffectOf(ExploreSite site) => EffectText != null ? EffectText(site) : _config.Effect(site.Kind);
+
         private static readonly Vector3Int[] Horizontal =
         {
             Vector3Int.right, Vector3Int.left, new Vector3Int(0, 0, 1), new Vector3Int(0, 0, -1),
@@ -206,9 +214,10 @@ namespace SpaceStation.Simulation
                 int lateral = (int)(_random01() * 5f) - 2;
                 int height = (int)(_random01() * 3f) - 1;
                 var cell = core + dir * (edge + dist) + side * lateral + Vector3Int.up * height;
-                _sites.Add(new ExploreSite { Kind = kinds[i], Cell = cell, Direction = dir, Chapter = ChapterIndex });
+                _sites.Add(new ExploreSite { Kind = kinds[i], Cell = cell, Direction = dir, Chapter = ChapterIndex, Revealed = AutoReveal });
             }
-            Sim.Report($"센서 어레이: 신호 {kinds.Count}개 · [관리] → 탐사에서 탐사선을 보낼 곳을 고르세요", true);
+            if (!AutoReveal) // 바로 밝히는 판은 신호를 정하는 쪽이 알림을 씀
+                Sim.Report($"센서 어레이: 신호 {kinds.Count}개 · [관리] → 탐사에서 탐사선을 보낼 곳을 고르세요", true);
             Changed?.Invoke();
         }
 
@@ -273,7 +282,7 @@ namespace SpaceStation.Simulation
             if (site == null)
                 return;
             site.Revealed = true;
-            Sim.Report($"탐사선 도착: {ExplorationConfig.Name(site.Kind)} · {_config.Effect(site.Kind)} · {_config.ReachRadius}칸 이내 도달 시 탐사 시작", true);
+            Sim.Report($"탐사선 도착: {ExplorationConfig.Name(site.Kind)} · {EffectOf(site)} · {_config.ReachRadius}칸 이내 도달 시 탐사 시작", true);
             Revealed?.Invoke(site); // 서사판: 장 표시 'probe'
             Changed?.Invoke();
         }
@@ -341,7 +350,7 @@ namespace SpaceStation.Simulation
                     Sim.Report($"{name} 탐사 시작 · 금속 +{_config.DebrisMetal:0} · 이제 {MeteorShowerSystem.DirectionName(site.Direction)}에서 파편이 날아옵니다", false);
                     break;
                 default:
-                    Sim.Report($"{name} 탐사 시작 · {_config.Effect(site.Kind)}", true);
+                    Sim.Report($"{name} 탐사 시작 · {EffectOf(site)}", true);
                     break;
             }
         }

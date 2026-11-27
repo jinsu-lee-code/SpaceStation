@@ -276,7 +276,7 @@ namespace SpaceStation.UI
             {
                 case SiteKind.Asteroid:
                 case SiteKind.IceRock:
-                    return s.InReach ? $"<color={HudTheme.GreenHex}>{_explore.Config.Effect(s.Kind)}</color>" : $"<color={HudText.Orange}>연결이 끊김 · 다시 이어야 함</color>";
+                    return s.InReach ? $"<color={HudTheme.GreenHex}>{_explore.EffectOf(s)}</color>" : $"<color={HudText.Orange}>연결이 끊김 · 다시 이어야 함</color>";
                 case SiteKind.DebrisField:
                     return $"<color={HudText.Orange}>파편까지 {Clock(s.HazardTimer)}</color>";
                 default:

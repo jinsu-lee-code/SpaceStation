@@ -112,7 +112,8 @@ namespace SpaceStation.Simulation
                     power = _sim.Resources.PowerEfficiency;
             }
             return power * _sim.Damage.GetProductionMultiplier(module) * _sim.Durability.GetEfficiency(module) * _sim.Incidents.ProductionMultiplier(module)
-                   * _sim.Adjacency.GetProductionMultiplier(module) * _sim.Effects.ProductionMultiplier(module.Data) * _sim.HeatMultiplier(module);
+                   * _sim.Adjacency.GetProductionMultiplier(module) * _sim.Effects.ProductionMultiplier(module.Data) * _sim.HeatMultiplier(module)
+                   * _sim.ProductionScaleOf(module); // CONNECT_1121 M3 판이 정하는 배율 (엔드리스 광맥)
         }
 
         public void RefreshCapacities()
@@ -144,7 +145,8 @@ namespace SpaceStation.Simulation
                 // 파손 배율 × 내구도 효율 × 인접 효과 × 생산 연구 (BALANCE 1번: 곱셈)
                 _productionMultipliers.Add(halted ? 0f : _sim.Damage.GetProductionMultiplier(module) * _sim.Durability.GetEfficiency(module) * _sim.Incidents.ProductionMultiplier(module)
                                            * _sim.Adjacency.GetProductionMultiplier(module) * _sim.Effects.ProductionMultiplier(module.Data)
-                                           * _sim.HeatMultiplier(module)); // 12-3c 과열
+                                           * _sim.HeatMultiplier(module) // 12-3c 과열
+                                           * _sim.ProductionScaleOf(module)); // CONNECT_1121 M3 판이 정하는 배율 (엔드리스 광맥)
                 if (module.Data.ResearchSlots > 0 && !_sim.Damage.IsDamaged(module) && !halted)
                     labSlots += module.Data.ResearchSlots; // 연결되고 파손되지 않은 연구소만
                 if (!_sim.Damage.IsDamaged(module) && !halted)
