@@ -11,6 +11,8 @@ namespace SpaceStation.Simulation
     public struct AppliedAdjacency
     {
         public AdjacencyRule Rule;
+        /// <summary>규칙이 걸린 모듈 종류 (CONNECT A2 — 태그로 정한 규칙은 <see cref="AdjacencyRule.Target"/>이 비어 있음).</summary>
+        public ModuleData Target;
         /// <summary>실제 적용된 중첩 수 (면제·최대 반영).</summary>
         public int Stacks;
         /// <summary>연구로 더해진 이웃당 값 (좋은 효과 쪽 부호, Phase 6).</summary>
@@ -59,16 +61,29 @@ namespace SpaceStation.Simulation
 
         /// <summary>
         /// 대상 모듈의 생산을 늘려 주는 이웃 모듈 (생산 + 규칙의 첫 이웃, 예: 채굴 도킹 → 제련소). 없으면 null.
+        /// 이웃을 태그로만 정한 규칙은 candidates 가운데 그 태그를 가진 첫 모듈 (candidates가 없으면 건너뜀).
         /// </summary>
-        public ModuleData FindProductionBooster(ModuleData target)
+        public ModuleData FindProductionBooster(ModuleData target, IReadOnlyList<ModuleData> candidates = null)
         {
             if (!HasRules || target == null)
                 return null;
             foreach (var rule in _rules.Rules)
             {
-                if (rule.Target == target && rule.Neighbor != null && rule.Neighbor != target
-                    && rule.Effect == AdjacencyEffect.Production && rule.ValuePerNeighbor > 0f)
-                    return rule.Neighbor;
+                if (!rule.AppliesTo(target) || rule.AnyNeighbor || rule.Effect != AdjacencyEffect.Production || rule.ValuePerNeighbor <= 0f)
+                    continue;
+                if (rule.Neighbor != null)
+                {
+                    if (rule.Neighbor != target && rule.Matches(target, rule.Neighbor))
+                        return rule.Neighbor;
+                    continue;
+                }
+                if (candidates == null)
+                    continue;
+                foreach (var c in candidates)
+                {
+                    if (c != null && c != target && rule.Matches(target, c))
+                        return c;
+                }
             }
             return null;
         }
@@ -144,17 +159,17 @@ namespace SpaceStation.Simulation
                 return;
             foreach (var rule in _rules.Rules)
             {
-                if (rule.Target != target)
+                if (!rule.AppliesTo(target))
                     continue;
                 int count = 0;
                 foreach (var n in neighbors)
                 {
-                    if (n != null && rule.Matches(n))
+                    if (n != null && rule.Matches(target, n))
                         count++;
                 }
                 int stacks = Math.Min(rule.MaxStacks, Math.Max(0, count - rule.FreeNeighbors));
                 if (stacks > 0)
-                    results.Add(new AppliedAdjacency { Rule = rule, Stacks = stacks, Boost = BoostFor(rule) });
+                    results.Add(new AppliedAdjacency { Rule = rule, Target = target, Stacks = stacks, Boost = BoostFor(rule) });
             }
         }
 
@@ -180,7 +195,7 @@ namespace SpaceStation.Simulation
             Preview(grid, data, origin, rotation, self, _previewScratch);
             neighborLines.Clear();
             foreach (var p in _previewScratch)
-                neighborLines.Add($"{p.Module.Data.DisplayName} {Describe(p.Rule, p.AddedStacks, p.Boost)}");
+                neighborLines.Add($"{p.Module.Data.DisplayName} {Describe(p.Rule, p.Module.Data, p.AddedStacks, p.Boost)}");
         }
 
         private readonly List<NeighborAdjacencyPreview> _previewScratch = new List<NeighborAdjacencyPreview>();
@@ -220,7 +235,7 @@ namespace SpaceStation.Simulation
                     continue;
                 foreach (var rule in _rules.Rules)
                 {
-                    if (rule.Target != neighbor.Data || !rule.Matches(data))
+                    if (!rule.AppliesTo(neighbor.Data) || !rule.Matches(neighbor.Data, data))
                         continue;
                     int current = 0;
                     foreach (var a in GetApplied(neighbor))
@@ -232,7 +247,7 @@ namespace SpaceStation.Simulation
                     int matching = 0;
                     foreach (var n in _scratchNeighbors)
                     {
-                        if (n.Data != null && rule.Matches(n.Data))
+                        if (n.Data != null && rule.Matches(neighbor.Data, n.Data))
                             matching++;
                     }
                     int after = Math.Min(rule.MaxStacks, Math.Max(0, matching + 1 - rule.FreeNeighbors));
@@ -248,17 +263,21 @@ namespace SpaceStation.Simulation
         private readonly List<ModuleInstance> _scratchNeighbors = new List<ModuleInstance>();
 
         /// <summary>적용 중인 효과 설명 (연구 보정 포함).</summary>
-        public static string Describe(AppliedAdjacency applied) => Describe(applied.Rule, applied.Stacks, applied.Boost);
+        public static string Describe(AppliedAdjacency applied) => Describe(applied.Rule, applied.Target ?? applied.Rule.Target, applied.Stacks, applied.Boost);
 
-        /// <summary>"물 소비 -25%" 같은 짧은 설명. boost = 연구로 더해진 이웃당 값.</summary>
-        public static string Describe(AdjacencyRule rule, int stacks, float boost = 0f)
+        /// <summary>"물 소비 -25%" 같은 짧은 설명 (대상 = 규칙의 대상 모듈). boost = 연구로 더해진 이웃당 값.</summary>
+        public static string Describe(AdjacencyRule rule, int stacks, float boost = 0f) => Describe(rule, rule.Target, stacks, boost);
+
+        /// <summary>"물 소비 -25%" 같은 짧은 설명. target = 효과를 받는 모듈 종류 (태그로 정한 규칙 — 자원 이름을 여기서 고름).</summary>
+        public static string Describe(AdjacencyRule rule, ModuleData target, int stacks, float boost = 0f)
         {
             float total = (rule.ValuePerNeighbor + boost) * stacks;
+            target = target ?? rule.Target;
             string what;
             switch (rule.Effect)
             {
-                case AdjacencyEffect.Production: what = ProductionName(rule.Target); break;
-                case AdjacencyEffect.Consumption: what = ConsumptionName(rule.Target); break;
+                case AdjacencyEffect.Production: what = ProductionName(target); break;
+                case AdjacencyEffect.Consumption: what = ConsumptionName(target); break;
                 default: what = "수용 인구"; break;
             }
             string amount = rule.Effect == AdjacencyEffect.Housing
@@ -276,16 +295,16 @@ namespace SpaceStation.Simulation
                 return;
             foreach (var rule in _rules.Rules)
             {
-                if (rule.Target == data)
+                if (rule.AppliesTo(data))
                 {
-                    string who = rule.Neighbor != null ? rule.Neighbor.DisplayName
+                    string who = !rule.AnyNeighbor ? rule.NeighborName
                         : rule.ExcludeSameType ? $"{data.DisplayName} 외 모든 모듈" : "모든 모듈";
                     string free = rule.FreeNeighbors > 0 ? $", {rule.FreeNeighbors}개 면제" : "";
-                    lines.Add($"{who} 옆: {Describe(rule, 1, BoostFor(rule))} / 개 (최대 {rule.MaxStacks}회{free})");
+                    lines.Add($"{who} 옆: {Describe(rule, data, 1, BoostFor(rule))} / 개 (최대 {rule.MaxStacks}회{free})");
                 }
-                else if (rule.Neighbor == data && rule.Target != null)
+                else if (!rule.AnyNeighbor && rule.CouldNeighbor(data) && (rule.Target != null || rule.TargetTag != null))
                 {
-                    lines.Add($"{rule.Target.DisplayName} 옆에 두면 그 모듈 {Describe(rule, 1, BoostFor(rule))}");
+                    lines.Add($"{rule.TargetName} 옆에 두면 그 모듈 {Describe(rule, rule.Target, 1, BoostFor(rule))}");
                 }
             }
         }
@@ -299,11 +318,12 @@ namespace SpaceStation.Simulation
             => rule.Effect == AdjacencyEffect.Housing ? total.ToString("+0;-0") : (total * 100f).ToString("+0;-0") + "%";
 
         /// <summary>효과가 걸리는 자원 (아이콘 선택용). 수용 인구면 null.</summary>
-        public static ResourceType? EffectResource(AdjacencyRule rule)
+        public static ResourceType? EffectResource(AdjacencyRule rule, ModuleData target = null)
         {
-            if (rule.Target == null || rule.Effect == AdjacencyEffect.Housing)
+            target = target ?? rule.Target;
+            if (target == null || rule.Effect == AdjacencyEffect.Housing)
                 return null;
-            var list = rule.Effect == AdjacencyEffect.Production ? rule.Target.Production : rule.Target.Consumption;
+            var list = rule.Effect == AdjacencyEffect.Production ? target.Production : target.Consumption;
             foreach (var a in list)
             {
                 if (a.Amount > 0f && (rule.Effect == AdjacencyEffect.Production || a.Type != ResourceType.Power))

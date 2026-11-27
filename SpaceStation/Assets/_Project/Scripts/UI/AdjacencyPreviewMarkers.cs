@@ -94,7 +94,7 @@ namespace SpaceStation.UI
             {
                 var sb = new StringBuilder();
                 foreach (var a in _self)
-                    Append(sb, a.Rule, a.Total);
+                    Append(sb, a.Rule, a.Target, a.Total);
                 Show(sb.ToString(), Anchor(StationGrid.ResolveCells(data.CellOffsets, cell, rotation)));
             }
 
@@ -102,7 +102,7 @@ namespace SpaceStation.UI
             {
                 if (!_byModule.TryGetValue(n.Module, out var sb))
                     _byModule[n.Module] = sb = new StringBuilder();
-                Append(sb, n.Rule, n.Total);
+                Append(sb, n.Rule, n.Module.Data, n.Total);
             }
             foreach (var pair in _byModule)
             {
@@ -112,11 +112,11 @@ namespace SpaceStation.UI
             _byModule.Clear(); // 철거된 모듈을 붙잡지 않게 매번 비움 (이웃은 최대 수십 개라 다시 만드는 비용이 작음)
         }
 
-        private static void Append(StringBuilder sb, AdjacencyRule rule, float total)
+        private static void Append(StringBuilder sb, AdjacencyRule rule, SpaceStation.Data.ModuleData target, float total)
         {
             if (sb.Length > 0)
                 sb.Append("  ");
-            var resource = AdjacencySystem.EffectResource(rule);
+            var resource = AdjacencySystem.EffectResource(rule, target);
             sb.Append(resource.HasValue ? HudTheme.Icon(resource.Value) : HudTheme.Icon("population"));
             sb.Append(" <color=").Append(AdjacencySystem.IsBeneficial(rule, total) ? GoodHex : HudText.Orange).Append('>')
               .Append(AdjacencySystem.ShortValue(rule, total)).Append("</color>");

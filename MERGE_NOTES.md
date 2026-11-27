@@ -3615,3 +3615,22 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 
 ### `tycoon` 합칠 때
 - [x] 같은 코드 (tycoon에서 만들어 에디터 플레이 · EditMode로 확인), 타이쿤 장면엔 버튼 있음
+
+## M-365. 인접 태그 틀 + 기존 규칙 재현 (CONNECT_1121 3번 ① · A2 · A4 · A8, 2026-11-27, `main` — tycoon과 같은 코드)
+
+**main에 넣은 것**
+
+- `AdjacencyTag` (태그 에셋 39개 `Data/Adjacency/Tags/AT_*`, A8 ① ~ ④) · `ModuleData._adjacencyTags` (기본 36종 모두) · `AdjacencyRule._targetTag` · `_neighborTag` (`AppliesTo` · `Matches(target, neighbor)` · `CouldNeighbor` · `TargetName` · `NeighborName` · `TagRelation`)
+- `AdjacencySystem`: 태그로 대상 · 이웃 판정, `AppliedAdjacency.Target` (태그 규칙의 설명 · 아이콘), `FindProductionBooster(target, candidates)`, `Describe(rule, target, …)` · `EffectResource(rule, target)`
+- 지금 12개 + 서사판 거주 타워 2개 규칙에 태그 관계 (모듈 칸 그대로 → 수치 · 결과 같음). 거주 타워 쪽은 태그 없음 (진화 모듈 태그 상속은 3번 ⑥)
+- 메뉴 SpaceStation/Adjacency/Setup Tags (CONNECT A8) · 시험 `AdjacencyTagTests` 5
+
+**main에서 따로 할 것**
+
+- 없음 (데이터는 tycoon에서 만든 에셋을 같은 GUID로 옮김. main에서만 다른 모듈 다섯 — 손상 통제실 · 의료실 · 휴게실 · 회전 링 · 실드 — 은 태그 줄을 파일 끝에 붙임, Unity가 다음 저장 때 순서를 맞춤)
+
+### `narrative` 합칠 때
+- [ ] `AdjacencyRules.asset`은 서사판 쪽 규칙이 더 있으면 메뉴 Setup Tags를 한 번 (태그는 그 쪽 모듈이 가질 때만 닮)
+
+### `tycoon` 합칠 때
+- [x] 같은 코드 · 데이터 (tycoon에서 만들어 봇 60분 × 3판 결과가 바꾸기 전과 같음을 확인 · EditMode)
