@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using SpaceStation.Core;
 using SpaceStation.Data;
@@ -56,8 +57,21 @@ namespace SpaceStation.UI
                 case PopulationChangeReason.Overcrowded: return "수용 인구 초과";
                 case PopulationChangeReason.Crisis: return "사회 위기";
                 case PopulationChangeReason.Growth: return "새로 도착";
+                case PopulationChangeReason.Exiled: return "내보냄";
                 default: return null;
             }
+        }
+
+        /// <summary>REVIEW_1115 5번: 문제 주민 이유 (예: "불평꾼 · 집 없음"), 없으면 빈 글.</summary>
+        public static string Problem(ResidentProblem p)
+        {
+            if (p == ResidentProblem.None)
+                return "";
+            var parts = new List<string>(3);
+            if ((p & ResidentProblem.Homeless) != 0) parts.Add("집 없음");
+            if ((p & ResidentProblem.Complainer) != 0) parts.Add("불평꾼");
+            if ((p & ResidentProblem.HardHome) != 0) parts.Add("집이 힘듦");
+            return string.Join(" · ", parts);
         }
 
         /// <summary>집 이름: "거주 모듈 #3" (번호 = 명단의 집 순서), 없으면 "집 없음".</summary>

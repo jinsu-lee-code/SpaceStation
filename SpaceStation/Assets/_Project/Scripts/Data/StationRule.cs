@@ -28,6 +28,9 @@ namespace SpaceStation.Data
         SynthesisStage3 = 128,
         /// <summary>정책 슬롯 확장 (<see cref="PolicyConfig.ExpansionSlots"/>만큼 추가).</summary>
         PolicyExpansion = 256,
+        // 512 = main의 Radiation (M-120 칸 단위 방사선) — 타이쿤에는 아직 없음, 값은 main과 맞춰 비워 둠
+        /// <summary>REVIEW_1115 5번 주민 추방 (등급 조건 없음 — 규칙을 정하는 쪽이 없으면 늘 열림, 서사판은 6장부터, 타이쿤은 소형 자동 규칙).</summary>
+        Exile = 1024,
     }
 
     /// <summary>13-1: 규칙을 정하는 쪽. 시뮬레이션에 붙어 있으면 등급 조건 대신 이것이 시스템 개방을 정한다.</summary>
@@ -56,6 +59,7 @@ namespace SpaceStation.Data
                 case StationRule.SynthesisStage2: return "합성 2단계";
                 case StationRule.SynthesisStage3: return "합성 3단계";
                 case StationRule.PolicyExpansion: return "정책 슬롯 확장";
+                case StationRule.Exile: return "주민 추방";
                 default: return rule.ToString();
             }
         }

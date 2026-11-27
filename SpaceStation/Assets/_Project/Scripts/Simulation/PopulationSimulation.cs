@@ -14,6 +14,10 @@ namespace SpaceStation.Simulation
         Crisis,
         /// <summary>12-5 여객 도킹 포트 이민선.</summary>
         Immigration,
+        /// <summary>M-122 폭풍 때 집의 열 · 방사선을 못 견딤 (main 값 — 타이쿤에는 이 시스템이 아직 없음, 번호를 main과 맞춤).</summary>
+        Environment,
+        /// <summary>REVIEW_1115 5번 플레이어가 명단에서 내보냄 (<see cref="ExileSystem"/>).</summary>
+        Exiled,
     }
 
     /// <summary>
@@ -116,6 +120,9 @@ namespace SpaceStation.Simulation
         /// <summary>8-4 회전 링: 인구 증가 간격 배율 (1 = 기본, 0.8 = 20% 빨리). 소유자가 매 틱 갱신.</summary>
         public float GrowthIntervalMultiplier { get; set; } = 1f;
 
+        /// <summary>REVIEW_1115 5번 정책(사면): 만족도 미달 · 수용 초과로 저절로 떠나는 간격 배율 (1 = 기본, 클수록 덜 떠남). 소유자가 매 틱 갱신.</summary>
+        public float LossIntervalMultiplier { get; set; } = 1f;
+
         public void Tick(float deltaSeconds)
         {
             UpdateSatisfaction(deltaSeconds);
@@ -170,9 +177,10 @@ namespace SpaceStation.Simulation
 
             if (Advance(IsLosingFromOxygen, ref _oxygenLossTimer, _config.OxygenDepletedLossInterval, dt))
                 Change(-1, PopulationChangeReason.OxygenDepleted);
-            if (Advance(IsLosingFromLowSatisfaction, ref _lowSatisfactionLossTimer, _config.LowSatisfactionLossInterval, dt))
+            float loss = Mathf.Max(0.01f, LossIntervalMultiplier);
+            if (Advance(IsLosingFromLowSatisfaction, ref _lowSatisfactionLossTimer, _config.LowSatisfactionLossInterval * loss, dt))
                 Change(-1, PopulationChangeReason.LowSatisfaction);
-            if (Advance(IsOvercrowded, ref _overcrowdedLossTimer, _config.OvercrowdedLossInterval, dt))
+            if (Advance(IsOvercrowded, ref _overcrowdedLossTimer, _config.OvercrowdedLossInterval * loss, dt))
                 Change(-1, PopulationChangeReason.Overcrowded);
         }
 

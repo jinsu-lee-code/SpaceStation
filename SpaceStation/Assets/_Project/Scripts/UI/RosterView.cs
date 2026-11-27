@@ -15,19 +15,22 @@ namespace SpaceStation.UI
     /// 주민 명단 화면 구성 (11-13 패드 주민 탭 → 11-15 ② 바깥 주민 창과 공용): 위 = 인원 · 집 없음 · 만족도 보정 + 특성별 효과 요약,
     /// 가운데 = 한 쪽 N명 명단(이름 · 특성 · 집 · 본인 보정 · [이사], 불만이 큰 주민이 위), 아래 = 쪽 넘김.
     /// 이사 = 빈자리가 있는 집 목록(그 주민에게 맞는 순)에서 골라 옮김. 옮긴 주민은 집이 없어지기 전까지 고정 (이름 옆 "고정").
+    /// REVIEW_1115 5번 [내보내기]: 한 번 누르면 위 줄에 대가 미리보기 → 같은 줄 [확인]으로 내보냄 (ESC 취소). 문제 주민은 이름 옆 "문제".
     /// </summary>
     public sealed class RosterView
     {
         private sealed class Row
         {
             public RectTransform Root;
-            public TMP_Text Name, Traits, Home, Mood, ActionLabel;
-            public Button Action;
+            public TMP_Text Name, Traits, Home, Mood, ActionLabel, ExileLabel;
+            public Button Action, Exile;
             public Resident Resident;
             public ModuleInstance Target;
         }
 
         private readonly ResidentRoster _roster;
+        private readonly ExileSystem _exile;
+        private Resident _exiling;
         private readonly RectTransform _root;
         private readonly int _rowsPerPage;
         private readonly TMP_Text _subtitle, _summary, _listHeader, _pageLabel;
@@ -42,10 +45,12 @@ namespace SpaceStation.UI
         public float Height { get; }
 
         /// <param name="top">맨 위 줄의 y (패드는 탭 줄 아래 72)</param>
-        public RosterView(HoloUi ui, RectTransform root, float width, ResidentRoster roster, float top = 72f, int rowsPerPage = 6)
+        /// <param name="exile">REVIEW_1115 5번 주민 추방 (null = 버튼 없음)</param>
+        public RosterView(HoloUi ui, RectTransform root, float width, ResidentRoster roster, float top = 72f, int rowsPerPage = 6, ExileSystem exile = null)
         {
             _root = root;
             _roster = roster;
+            _exile = exile;
             _rowsPerPage = rowsPerPage;
             _subtitle = ui.Label(root, "", 15f, TextAlignmentOptions.MidlineLeft);
             HoloUi.Place(_subtitle.rectTransform, new Vector2(18f, -top), new Vector2(width - 36f, 24f));
@@ -61,10 +66,11 @@ namespace SpaceStation.UI
             _listHeader.overflowMode = TextOverflowModes.Ellipsis;
             _columns = HoloUi.Rect("Columns", list);
             HoloUi.Place(_columns, new Vector2(10f, -20f), new Vector2(listW - 20f, 22f));
+            // REVIEW_1115 5번: [내보내기] 자리만큼 특성 · 집 · 보정 칸을 줄임
             Column(ui, "이름", 8f, 170f);
-            Column(ui, "특성", 186f, 200f);
-            Column(ui, "집 · 주변", 394f, 220f);
-            Column(ui, "보정", 622f, 56f);
+            Column(ui, "특성", 186f, 176f);
+            Column(ui, "집 · 주변", 368f, 180f);
+            Column(ui, "보정", 552f, 48f);
             for (int i = 0; i < rowsPerPage; i++)
                 _rows.Add(BuildRow(ui, list, new Vector2(10f, -44f - i * 40f), listW - 20f));
 
@@ -87,16 +93,25 @@ namespace SpaceStation.UI
         {
             _root.gameObject.SetActive(on);
             if (!on)
+            {
                 _moving = null;
+                _exiling = null;
+            }
             else
                 Refresh();
         }
 
-        /// <summary>ESC: 이사할 집 고르기 취소. 취소했으면 true.</summary>
+        /// <summary>ESC: 이사할 집 고르기 · 내보내기 확인 취소. 취소했으면 true.</summary>
         public bool Cancel()
         {
-            if (!Active || _moving == null)
+            if (!Active || (_moving == null && _exiling == null))
                 return false;
+            if (_exiling != null)
+            {
+                _exiling = null; // 쪽은 그대로
+                Refresh();
+                return true;
+            }
             _moving = null;
             _page = 0;
             Refresh();
@@ -117,13 +132,52 @@ namespace SpaceStation.UI
             bg.color = new Color(0.06f, 0.14f, 0.2f, 0.6f);
             bg.raycastTarget = false;
             row.Name = Cell(ui, row.Root, 8f, 170f, 15f);
-            row.Traits = Cell(ui, row.Root, 186f, 200f, 13f);
-            row.Home = Cell(ui, row.Root, 394f, 220f, 13f);
-            row.Mood = Cell(ui, row.Root, 622f, 56f, 14f);
+            row.Traits = Cell(ui, row.Root, 186f, 176f, 13f);
+            row.Home = Cell(ui, row.Root, 368f, 180f, 13f);
+            row.Mood = Cell(ui, row.Root, 552f, 48f, 14f);
             row.Action = ui.TechButton(row.Root, "이사", 13f, () => HandleRowAction(row));
-            HoloUi.Place((RectTransform)row.Action.transform, new Vector2(w - 104f, -3f), new Vector2(98f, 30f));
+            HoloUi.Place((RectTransform)row.Action.transform, new Vector2(w - 100f, -3f), new Vector2(94f, 30f));
             row.ActionLabel = row.Action.GetComponentInChildren<TMP_Text>();
+            row.Exile = ui.TechButton(row.Root, "내보내기", 13f, () => HandleExile(row));
+            HoloUi.Place((RectTransform)row.Exile.transform, new Vector2(w - 198f, -3f), new Vector2(94f, 30f));
+            row.ExileLabel = row.Exile.GetComponentInChildren<TMP_Text>();
+            row.Exile.gameObject.SetActive(false);
             return row;
+        }
+
+        private bool ExileOpen => _exile != null && _exile.Unlocked;
+
+        /// <summary>REVIEW_1115 5번: 첫 클릭 = 대가 미리보기 · 둘째 클릭(같은 주민) = 내보냄.</summary>
+        private void HandleExile(Row row)
+        {
+            var r = row.Resident;
+            if (r == null || !ExileOpen)
+                return;
+            if (_exiling != r)
+            {
+                _exiling = r;
+                AudioService.TryPlay(l => l.BuildSelect);
+            }
+            else
+            {
+                if (_exile.Exile(r))
+                    AudioService.TryPlay(l => l.BuildSelect);
+                else
+                    AudioService.TryPlay(l => l.UiError);
+                _exiling = null;
+            }
+            Refresh();
+        }
+
+        /// <summary>내보내기 대가 미리보기 줄.</summary>
+        private string ExileHeader(Resident r)
+        {
+            var p = _exile.Preview(r);
+            string why = p.IsProblem ? $"문제 주민 ({ResidentText.Problem(p.Problem)})" : $"<color={ResidentText.Bad}>이유 없는 추방</color>";
+            string suffix = _exile.PreviewSuffix != null ? _exile.PreviewSuffix(r, p) : null;
+            string kind = p.KindMultiplier > 1.001f ? $" · 같은 종족 반응 ×{p.KindMultiplier:0.0}" : "";
+            string cost = $"만족도 -{p.Satisfaction:0.#}" + (string.IsNullOrEmpty(suffix) ? "" : " · " + suffix);
+            return $"<color={HudTheme.AccentHex}><b>{ResidentText.FullName(_roster.Config, r)}</b></color> 내보내기 · {why} · <color={ResidentText.Bad}>{cost}</color>{kind}  <color={HudText.Muted}>[확인] · ESC 취소</color>";
         }
 
         private static TMP_Text Cell(HoloUi ui, RectTransform parent, float x, float w, float size)
@@ -136,6 +190,7 @@ namespace SpaceStation.UI
 
         private void HandleRowAction(Row row)
         {
+            _exiling = null; // 이사를 누르면 내보내기 확인은 접음
             if (_moving == null)
             {
                 if (row.Resident == null)
@@ -168,6 +223,8 @@ namespace SpaceStation.UI
                 return;
             if (_moving != null && !_roster.Residents.Contains(_moving))
                 _moving = null; // 고르는 중에 떠남
+            if (_exiling != null && (!_roster.Residents.Contains(_exiling) || !ExileOpen))
+                _exiling = null;
             RefreshHeader();
             if (_moving == null)
                 RefreshList();
@@ -213,8 +270,10 @@ namespace SpaceStation.UI
             int pages = Mathf.Max(1, Mathf.CeilToInt(_sorted.Count / (float)_rowsPerPage));
             _page = Mathf.Clamp(_page, 0, pages - 1);
             _pageLabel.SetText($"{_page + 1} / {pages}");
-            _listHeader.SetText("");
-            _columns.gameObject.SetActive(true);
+            bool exileOpen = ExileOpen;
+            bool blocked = exileOpen && _exile.Blocked;
+            _listHeader.SetText(_exiling != null ? ExileHeader(_exiling) : "");
+            _columns.gameObject.SetActive(_exiling == null);
             for (int i = 0; i < _rows.Count; i++)
             {
                 int index = _page * _rowsPerPage + i;
@@ -230,7 +289,17 @@ namespace SpaceStation.UI
                 row.Resident = r;
                 row.Root.gameObject.SetActive(true);
                 string full = ResidentText.FullName(_roster.Config, r);
-                row.Name.SetText(r.Pinned ? $"{full} <size=75%><color={HudText.Muted}>고정</color></size>" : full);
+                if (r.Pinned)
+                    full += $" <size=75%><color={HudText.Muted}>고정</color></size>";
+                if (exileOpen && _roster.ProblemOf(r) != ResidentProblem.None)
+                    full += $" <size=75%><color={ResidentText.Bad}>문제</color></size>";
+                row.Name.SetText(full);
+                row.Exile.gameObject.SetActive(exileOpen);
+                if (exileOpen)
+                {
+                    row.ExileLabel.SetText(_exiling == r ? "확인" : blocked ? "사면 중" : "내보내기");
+                    row.Exile.interactable = !blocked && (_exiling == null || _exiling == r);
+                }
                 row.Traits.SetText(ResidentText.Traits(_roster.Config, r));
                 string env = ResidentText.Environment(_roster.GetEnvironment(r.Home), r);
                 row.Home.SetText(ResidentText.HomeName(_roster, r.Home) + (env.Length > 0 ? "  " + env : ""));
@@ -262,6 +331,7 @@ namespace SpaceStation.UI
                 int index = _page * _rowsPerPage + i;
                 var row = _rows[i];
                 row.Resident = null;
+                row.Exile.gameObject.SetActive(false);
                 if (index >= _targets.Count)
                 {
                     row.Target = null;

@@ -179,6 +179,8 @@ namespace SpaceStation.Simulation
         public PolicySystem Policies { get; }
         /// <summary>12-3c 사회 위기 선택지 (설정에 없으면 null).</summary>
         public SocialCrisisSystem Crisis { get; }
+        /// <summary>REVIEW_1115 5번 주민 추방 · 떠난 주민 기록 (정책 설정 · 명단이 없으면 null).</summary>
+        public ExileSystem Exile { get; }
         /// <summary>12-3c 지구급 방문 세력 + 평판 (설정에 없으면 null).</summary>
         public ContactSystem Contact { get; }
         /// <summary>12-5 여객 도킹 포트 이민선.</summary>
@@ -292,6 +294,8 @@ namespace SpaceStation.Simulation
             {
                 Policies = AddSystem(new PolicySystem(settings.Policies), MeteorShowerSystem.SystemKey);
                 Crisis = AddSystem(new SocialCrisisSystem(settings.Policies), PolicySystem.SystemKey);
+                if (Residents != null) // REVIEW_1115 5번 주민 추방 (명단이 있을 때만, 정책 고리 = 정책 설정과 같은 자리)
+                    Exile = AddSystem(new ExileSystem(settings.Policies, settings.ResidentRandom01 ?? _random01), TickStepNames.Needs);
             }
             Immigration = AddSystem(new ImmigrationSystem(), TickStepNames.Population); // 12-5 여객 도킹 포트 (포트가 없으면 아무것도 안 함)
             if (settings.ResearchExpansion != null)

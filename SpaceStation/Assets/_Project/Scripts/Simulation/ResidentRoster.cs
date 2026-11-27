@@ -34,6 +34,27 @@ namespace SpaceStation.Simulation
         public bool Has(ResidentTrait trait) => _traits.Contains(trait);
     }
 
+    /// <summary>REVIEW_1115 5번: 추방 대가가 작은 '문제 주민'의 이유 (불만 점수와 같은 재료).</summary>
+    [Flags]
+    public enum ResidentProblem
+    {
+        None = 0,
+        /// <summary>집 없음.</summary>
+        Homeless = 1,
+        /// <summary>불평꾼 특성.</summary>
+        Complainer = 2,
+        /// <summary>집이 힘듦 (열 · 방사선 — 집 환경 고리, 방사선 민감 주민의 핵융합로 옆 집).</summary>
+        HardHome = 4,
+    }
+
+    /// <summary>REVIEW_1115 5번: 새로 도착하는 주민 대신 들어올 주민 (떠났던 주민의 귀환).</summary>
+    public sealed class ResidentTemplate
+    {
+        public string Name;
+        public string Kind = "";
+        public List<ResidentTrait> Traits = new List<ResidentTrait>();
+    }
+
     /// <summary>집 주변 환경 (특성 조건).</summary>
     [Flags]
     public enum HomeEnvironment
@@ -229,6 +250,45 @@ namespace SpaceStation.Simulation
             return sum / _residents.Count;
         }
 
+        /// <summary>REVIEW_1115 5번: 문제 주민의 이유 (없으면 None — 이유 없는 추방).</summary>
+        public ResidentProblem ProblemOf(Resident r)
+        {
+            if (r == null)
+                return ResidentProblem.None;
+            var p = ResidentProblem.None;
+            if (r.Home == null)
+                p |= ResidentProblem.Homeless;
+            if (r.Has(ResidentTrait.Complainer))
+                p |= ResidentProblem.Complainer;
+            // 타이쿤: main의 집 스트레스(M-122 HomeStress — 폭풍 때 열 · 방사선)가 아직 없어 그 항(StressAt)은 뺌 — 정하는 쪽이 없으면 main에서도 0
+            if (r.Home != null && r.Has(ResidentTrait.RadiationSensitive) && (GetEnvironment(r.Home) & HomeEnvironment.Radiation) != 0)
+                p |= ResidentProblem.HardHome;
+            return p;
+        }
+
+        /// <summary>이 이름의 주민이 지금 명단에 있는지 (귀환 주민의 이름이 겹치지 않게).</summary>
+        public bool NameInUse(string name) => !string.IsNullOrEmpty(name) && _usedNames.Contains(name);
+
+        /// <summary>REVIEW_1115 5번 정책(추방령): 새 주민이 특성을 받을 가중치 배율 (null = 그대로).</summary>
+        public Func<ResidentTrait, float> TraitWeightScale { get; set; }
+
+        /// <summary>REVIEW_1115 5번 정책(귀환 허가): 새 주민 대신 들어올 주민 (사유를 받아, null = 새 주민). 이름은 명단에 없는 것만.</summary>
+        public Func<PopulationChangeReason?, ResidentTemplate> ArrivalTemplate { get; set; }
+
+        private Resident _forcedLeaving;
+
+        /// <summary>REVIEW_1115 5번 추방: 다음 인원 줄이기에서 이 주민이 먼저 떠남 (명단에 없으면 false).</summary>
+        internal bool MarkLeaving(Resident r)
+        {
+            if (r == null || !_residents.Contains(r))
+                return false;
+            _forcedLeaving = r;
+            return true;
+        }
+
+        /// <summary>표시해 둔 추방 주민을 지움 (인원이 줄지 않았을 때).</summary>
+        internal void ClearLeaving() => _forcedLeaving = null;
+
         /// <summary>이탈 순서 점수 (높을수록 먼저 떠남).</summary>
         public float Discontent(Resident r)
         {
@@ -290,8 +350,12 @@ namespace SpaceStation.Simulation
             changed |= ValidateHomes();
             while (_residents.Count < population)
             {
-                var r = CreateResident();
-                r.Kind = _pendingKinds.Count > 0 ? _pendingKinds.Dequeue() : KindPicker?.Invoke() ?? "";
+                var template = ArrivalTemplate?.Invoke(reason);
+                if (template != null && (string.IsNullOrEmpty(template.Name) || _usedNames.Contains(template.Name)))
+                    template = null;
+                var r = template != null ? FromTemplate(template) : CreateResident();
+                string queued = _pendingKinds.Count > 0 ? _pendingKinds.Dequeue() : null; // 귀환 주민도 이민선 한 자리를 씀
+                r.Kind = template != null ? template.Kind ?? "" : queued ?? KindPicker?.Invoke() ?? "";
                 r.JoinedAt = Now?.Invoke() ?? 0f;
                 _residents.Add(r);
                 AssignHome(r);
@@ -580,6 +644,13 @@ namespace SpaceStation.Simulation
 
         private Resident PickLeaving()
         {
+            if (_forcedLeaving != null)
+            {
+                var forced = _forcedLeaving;
+                _forcedLeaving = null;
+                if (_residents.Contains(forced))
+                    return forced;
+            }
             Resident pick = null;
             float best = float.NegativeInfinity;
             foreach (var r in _residents) // 같은 점수면 뒤(최근)가 이김
@@ -643,27 +714,43 @@ namespace SpaceStation.Simulation
             return new Resident(_nextId++, PickName(), traits);
         }
 
+        private Resident FromTemplate(ResidentTemplate t)
+        {
+            _usedNames.Add(t.Name);
+            return new Resident(_nextId++, t.Name, t.Traits ?? new List<ResidentTrait>());
+        }
+
         private TraitDefinition PickTrait(List<ResidentTrait> already)
         {
             _pool.Clear();
             float total = 0f;
             foreach (var t in _config.Traits)
             {
-                if (t == null || t.Weight <= 0f || already.Contains(t.Trait) || Conflicts(t, already))
+                if (t == null || WeightOf(t) <= 0f || already.Contains(t.Trait) || Conflicts(t, already))
                     continue;
                 _pool.Add(t);
-                total += t.Weight;
+                total += WeightOf(t);
             }
             if (_pool.Count == 0)
                 return null;
             float roll = _random01() * total;
             foreach (var t in _pool)
             {
-                if (roll < t.Weight)
+                float w = WeightOf(t);
+                if (roll < w)
                     return t;
-                roll -= t.Weight;
+                roll -= w;
             }
             return _pool[_pool.Count - 1];
+        }
+
+        /// <summary>특성 가중치 × 정책 배율 (배율이 없거나 1이면 원래 값 — 기존 결과 그대로).</summary>
+        private float WeightOf(TraitDefinition t)
+        {
+            if (TraitWeightScale == null)
+                return t.Weight;
+            float scale = TraitWeightScale(t.Trait);
+            return scale == 1f ? t.Weight : t.Weight * Math.Max(0f, scale);
         }
 
         private bool Conflicts(TraitDefinition t, List<ResidentTrait> already)

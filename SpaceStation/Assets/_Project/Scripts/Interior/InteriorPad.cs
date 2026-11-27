@@ -221,7 +221,7 @@ namespace SpaceStation.Interior
             else
                 _tabResearch.gameObject.SetActive(false);
             if (sim.Residents != null)
-                _roster = new RosterView(_ui, _rosterRoot, CanvasWidth, sim.Residents);
+                _roster = new RosterView(_ui, _rosterRoot, CanvasWidth, sim.Residents, exile: sim.Exile);
             else
                 _tabRoster.gameObject.SetActive(false);
             SetTab(PadTab.Manage);

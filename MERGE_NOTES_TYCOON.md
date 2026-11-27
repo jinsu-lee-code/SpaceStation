@@ -45,3 +45,10 @@
   - 측정 도구: `BalanceRunSettings.BaseGrades`(난이도 측정 때 `RunWithDifficulty`가 채움) · `MidGrade`, 창 `_midGrade`
   - `SimulationHost`: `_midGrade` 필드 + 있으면 `MidGradeSystem.AttachTo` (main 고리 M-12 `StationProgression.ExtraUnlock`에 값을 정함)
   - 데이터(에셋): 해금 선택 열 ↔ 유성우 교환 (중형 = 합성 1단계 · 열, 대형 = 유성우) · `MidGradeConfig` 중형 확장
+
+- **main M-336 주민 추방 공통 고리 받음 (2026-11-27, CONNECT_1121 1번의 엔드리스 몫)** — main을 통째로 합치지 않고 그 커밋만 3-way로 적용
+  - `StationRule`: `Exile = 1024`만 (main의 `Radiation = 512`는 타이쿤에 시스템이 없어 값만 비워 둠)
+  - `PopulationChangeReason`: `Environment`(main M-122) · `Exiled`를 main과 같은 순서로 (타이쿤에서 `Environment`는 쓰이지 않음 — 번호를 맞추려고)
+  - `ResidentRoster.ProblemOf`: main의 `StressAt`(집 스트레스 M-122) 항을 뺌 — 타이쿤엔 그 고리가 없음 (main에서도 정하는 쪽이 없으면 0)
+  - 데이터: `PolicyConfig`에 정책 4종 · 추방 값 (슬롯 표 · 확장 2는 타이쿤 그대로), 해금 선택 소형 자동 규칙 = 정책 + 추방 (`UnlockChoiceConfig` · `TycoonSetup`)
+  - 두 모드를 합칠 때: main 쪽 파일 그대로 가져가면 됨 (위 셋은 main이 이미 가진 것의 부분집합)

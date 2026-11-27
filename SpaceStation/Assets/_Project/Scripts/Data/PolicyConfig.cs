@@ -49,6 +49,16 @@ namespace SpaceStation.Data
         [SerializeField] private float _wageSatisfactionCap = 15f;
         [SerializeField, Range(0f, 2f)] private float _wageProduction = 0.85f;
 
+        [Header("주민 추방 (REVIEW_1115 5번, 사용자 결정 2026-11-24)")]
+        [Tooltip("문제 주민이 아닌 주민을 내보낼 때 만족도 감소")]
+        [SerializeField, Min(0f)] private float _exileSatisfaction = 5f;
+        [Tooltip("문제 주민(집 없음 · 불평꾼 · 힘든 집)을 내보낼 때 만족도 감소")]
+        [SerializeField, Min(0f)] private float _exileProblemSatisfaction = 1f;
+        [Tooltip("같은 종류(종족) 주민이 정거장에 많을수록 대가 배율 — 모두 같은 종류면 이 값 (종류가 없으면 1)")]
+        [SerializeField, Min(1f)] private float _exileKindMax = 2f;
+        [Tooltip("떠난 주민 기록 최대 (추모 · 연대기 · 귀환, 넘으면 오래된 것부터 지움)")]
+        [SerializeField, Min(0)] private int _departedMemory = 300;
+
         public IReadOnlyList<PolicyData> Policies => _policies;
         public float ApplyDelay => _applyDelay;
         public float SwapCooldown => _swapCooldown;
@@ -68,6 +78,10 @@ namespace SpaceStation.Data
         public float WageSeconds => _wageSeconds;
         public float WageSatisfactionCap => _wageSatisfactionCap;
         public float WageProduction => _wageProduction;
+        public float ExileSatisfaction => _exileSatisfaction;
+        public float ExileProblemSatisfaction => _exileProblemSatisfaction;
+        public float ExileKindMax => _exileKindMax;
+        public int DepartedMemory => _departedMemory;
 
         public int SlotsAt(int grade)
         {

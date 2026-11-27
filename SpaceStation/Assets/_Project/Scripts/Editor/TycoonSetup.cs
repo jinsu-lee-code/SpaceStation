@@ -299,7 +299,8 @@ namespace SpaceStation.Editor
             }
             config.SetGrades(new List<UnlockGradeEntry>
             {
-                new UnlockGradeEntry(1, StationRule.Policies),
+                // 주민 추방 (main M-336, 사용자 결정 2026-11-27): 엔드리스는 처음부터 — 정책과 함께 소형에서 (REVIEW_1115 "개별 추방은 늘 가능")
+                new UnlockGradeEntry(1, StationRule.Policies | StationRule.Exile),
                 new UnlockGradeEntry(2, StationRule.None,
                     new UnlockOption("synthesis1", "합성 1단계",
                         "모듈을 규격 모양으로 빈틈없이 채워 더 강한 진화 모듈로 합칩니다.\n열림: 1단계 레시피 · 합성 창",
