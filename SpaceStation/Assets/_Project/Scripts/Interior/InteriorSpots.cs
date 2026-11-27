@@ -80,6 +80,10 @@ namespace SpaceStation.Interior
         public static void Walls(InteriorBuilder builder, ModuleInstance module, System.Random rng, float height, List<(Vector3 Position, Vector3 Normal)> result)
         {
             result.Clear();
+            // CONNECT A6 (사용자 결정 2026-11-27): 2단계 이상 트인 방엔 벽 자리가 없음 — 건물 외벽 · 바위처럼 세로로 평평한 면이
+            // 벽으로 잡혀 사고 · 현장 수리 · 환풍구 부탁이 붙었음 (REVIEW_1115 3번 "벽 없는 곳에도 벽면 상황"). 그 방 상황은 단계별 상황이 맡음
+            if (IsOpenStage(builder, module))
+                return;
             builder.EnsureActive(module); // 12-3c-opt: 아직 안 지었거나 꺼 둔 방은 광선에 안 맞음
             CollectPanels(builder.RoomParent(module));
             var walk = ReachOf(builder, module);
@@ -122,6 +126,9 @@ namespace SpaceStation.Interior
 
         private static readonly HashSet<Vector3Int> _taken = new HashSet<Vector3Int>();   // 받은 자리 (SpotBucket 칸)
         private static readonly HashSet<Vector3Int> _tried = new HashSet<Vector3Int>();   // 이미 잰 점 (0.1m 칸 — 떨어진 점 옆의 붙일 수 있는 점은 다시 봄)
+
+        /// <summary>CONNECT A6: 2단계 이상 진화 모듈 방 (트인 방 — 벽 상황 대신 단계별 상황).</summary>
+        public static bool IsOpenStage(InteriorBuilder builder, ModuleInstance module) => builder != null && module != null && builder.StageFor(module) >= 2;
 
         /// <summary>광선 하나가 맞은 곳을 벽 자리로 쓸 수 있으면 넣음 (같은 자리는 한 번).</summary>
         private static void TryWall(Reach walk, int level, Vector3 origin, Vector3 dir, float reach, float minDistance, List<(Vector3 Position, Vector3 Normal)> result)

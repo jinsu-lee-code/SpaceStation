@@ -65,3 +65,5 @@
 - **CONNECT_1121 3번 ① 인접 태그 틀 (2026-11-27)** — 공통 바닥이라 main(M-365)과 같은 코드 · 데이터: `AdjacencyTag` 39개 · `ModuleData.AdjacencyTags` · 규칙의 대상 태그 · 이웃 태그 · `AppliedAdjacency.Target` · 메뉴 Setup Tags
   - 기존 12개 규칙은 태그를 달고 모듈 칸을 그대로 → 봇 결과 바이트까지 같음 (`BalanceReports/20261127_190308` ↔ `190821`)
   - main판만 다른 곳: 서사판 거주 타워 규칙 2개 (타이쿤엔 없음)
+
+- **CONNECT_1121 3번 ② 단계별 내부 상황 U1 (2026-11-27)** — 공통 바닥이라 main(M-366)과 같은 코드: `IncidentCatalog` · `IncidentLoss` · 방 단계 상황만 · 2단계 이상 벽 자리 없음

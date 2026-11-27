@@ -95,26 +95,52 @@ namespace SpaceStation.Simulation
             if (k <= 0f)
                 return "손실 없음";
             float satisfaction = b.IncidentMissSatisfaction * k;
-            switch (kind)
+            // CONNECT A6 단계별 상황: 새 상황은 지금 넷의 손실을 다시 씀 (IncidentCatalog.LossOf)
+            var loss = IncidentCatalog.LossOf(kind);
+            if (loss == IncidentLoss.Production && kind != IncidentKind.Breaker && !MakesOrUsesPower(module))
+                loss = IncidentLoss.Mood; // 만들거나 전력을 쓰지 않는 방 (차단기는 그런 방에 안 생김)
+            switch (loss)
             {
-                case IncidentKind.Leak:
+                case IncidentLoss.Drain:
                     _sim.Incidents.AddDrain(leakResource, b.IncidentLeakLoss * k, seconds);
                     return $"{leakResource.DisplayName()} -{b.IncidentLeakLoss * k:0} (2분 동안)";
-                case IncidentKind.Breaker:
+                case IncidentLoss.Production:
                     float multiplier = Math.Max(0f, 1f - (1f - b.IncidentBreakerMultiplier) * k);
                     _sim.Incidents.Trip(module, multiplier, seconds);
                     return $"생산 {Math.Round(multiplier * 100f)}% (2분 동안)";
-                case IncidentKind.Fire:
+                case IncidentLoss.Damage:
                     float durability = b.IncidentFireDurability * k;
                     if (module != null && _sim.Durability.TryGetInfo(module, out var info))
                         _sim.Durability.ApplyImpact(module, Math.Min(durability, Math.Max(0f, info.Current - 5f)));
                     LoseSatisfaction(satisfaction);
                     return $"내구도 -{durability:0} · 만족도 -{satisfaction:0.#}";
+                case IncidentLoss.Mood:
+                    LoseSatisfaction(satisfaction);
+                    return $"만족도 -{satisfaction:0.#}";
                 default:
                     _sim.Incidents.AddDrain(ResourceType.Oxygen, b.IncidentFilterOxygenLoss * k, seconds);
                     LoseSatisfaction(satisfaction);
                     return $"산소 -{b.IncidentFilterOxygenLoss * k:0} (2분 동안) · 만족도 -{satisfaction:0.#}";
             }
+        }
+
+        /// <summary>무언가를 만들거나 전력을 쓰는 방인지 (생산 배율 손실이 의미 있는 방 — 내부 차단기 규칙과 같은 기준).</summary>
+        private static bool MakesOrUsesPower(ModuleInstance module)
+        {
+            var data = module?.Data;
+            if (data == null)
+                return false;
+            foreach (var p in data.Production)
+            {
+                if (p.Amount > 0f)
+                    return true;
+            }
+            foreach (var c in data.Consumption)
+            {
+                if (c.Type == ResourceType.Power && c.Amount > 0f)
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>

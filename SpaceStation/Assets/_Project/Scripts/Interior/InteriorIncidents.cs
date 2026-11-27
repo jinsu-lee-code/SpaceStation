@@ -305,8 +305,24 @@ namespace SpaceStation.Interior
                 rooms.Add(CurrentRoom);
             foreach (var room in rooms)
             {
-                var kind = forced ?? InteriorIncidentRules.Pick(InteriorIncidentRules.CanTrip(room.Data), _last, _rng.NextDouble());
-                if (forced == IncidentKind.Breaker && !InteriorIncidentRules.CanTrip(room.Data))
+                // CONNECT A6 단계별 상황: 방의 진화 단계에 맞는 상황만 (트인 방에 벽 상황이 붙지 않게)
+                var kinds = KindsFor(room);
+                bool canTrip = InteriorIncidentRules.CanTrip(room.Data);
+                IncidentKind kind;
+                if (forced != null)
+                {
+                    if (!Contains(kinds, forced.Value))
+                        continue;
+                    kind = forced.Value;
+                }
+                else
+                {
+                    var picked = InteriorIncidentRules.Pick(kinds, canTrip, _last, _rng.NextDouble());
+                    if (picked == null)
+                        continue;
+                    kind = picked.Value;
+                }
+                if (kind == IncidentKind.Breaker && !canTrip)
                     continue;
                 var a = new Incident { Kind = kind, Room = room, Resource = InteriorIncidentRules.LeakResource(room.Data), Tutorial = tutorial };
                 if (!Place(a))
@@ -327,6 +343,39 @@ namespace SpaceStation.Interior
             return false;
         }
 
+        private readonly List<IncidentKind> _ready = new List<IncidentKind>();
+
+        /// <summary>
+        /// CONNECT A6: 이 방에서 지금 낼 수 있는 상황 = 그 단계 표 가운데 만든 것 (<see cref="Implemented"/>).
+        /// 1단계(닫힌 방)는 그 단계 상황을 만들기 전까지 기본 넷, 2단계 이상(트인 방)은 만든 것만 — 없으면 상황 없음.
+        /// </summary>
+        private IReadOnlyList<IncidentKind> KindsFor(ModuleInstance room)
+        {
+            int stage = _builder.StageFor(room);
+            _ready.Clear();
+            foreach (var k in IncidentCatalog.KindsForStage(stage))
+            {
+                if (Implemented(k))
+                    _ready.Add(k);
+            }
+            if (_ready.Count == 0 && stage <= 1)
+                return IncidentCatalog.KindsForStage(0);
+            return _ready;
+        }
+
+        /// <summary>놓는 코드가 있는 상황 (단계 상황은 U2 ~ U4에서 하나씩 더함).</summary>
+        private static bool Implemented(IncidentKind kind) => IncidentCatalog.StageOf(kind) == 0;
+
+        private static bool Contains(IReadOnlyList<IncidentKind> kinds, IncidentKind kind)
+        {
+            for (int i = 0; i < kinds.Count; i++)
+            {
+                if (kinds[i] == kind)
+                    return true;
+            }
+            return false;
+        }
+
         private bool Place(Incident a)
         {
             switch (a.Kind)
@@ -334,7 +383,8 @@ namespace SpaceStation.Interior
                 case IncidentKind.Leak: return PlaceLeak(a);
                 case IncidentKind.Breaker: return PlaceBreaker(a);
                 case IncidentKind.Fire: return PlaceFire(a);
-                default: return PlaceFilter(a);
+                case IncidentKind.Filter: return PlaceFilter(a);
+                default: return false; // 단계 상황 (U2 ~ U4)
             }
         }
 

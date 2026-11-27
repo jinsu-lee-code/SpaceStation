@@ -449,6 +449,30 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void Incident_StageKinds_ReuseLosses_MoodOnlyForDecor()
+        {
+            // CONNECT A6 단계별 상황 (2026-11-27): 새 상황은 지금 손실을 다시 씀 · 장식 · 소품 · 등불 = 만족도만
+            var sim = Sim();
+            Assert.IsTrue(sim.TryPlace(_solar, Vector3Int.right, 0, out var solar));
+            Assert.IsTrue(sim.Grid.TryPlace(_storage, Vector3Int.left, 0, out var storage), "등급 해금과 무관하게 칸에 둠 (만들지 않는 방)");
+            sim.Tick(1f);
+            sim.Population.SetSatisfaction(60f);
+            float before = sim.GetModuleEfficiency(solar);
+
+            StringAssert.StartsWith("만족도 -", sim.MissIncident(IncidentKind.DecoLights, sim.Core));
+            Assert.Less(sim.Population.Satisfaction, 60f);
+            Assert.AreEqual(0, sim.Incidents.ActiveCount, "자원이 새지 않음");
+
+            sim.MissIncident(IncidentKind.RideStop, solar);
+            Assert.AreEqual(before * 0.7f, sim.GetModuleEfficiency(solar), Eps, "놀이기구 멈춤 = 차단기 손실");
+            StringAssert.StartsWith("만족도 -", sim.MissIncident(IncidentKind.SignalDrift, storage), "만들거나 전력을 쓰지 않는 방이면 만족도만");
+
+            int active = sim.Incidents.ActiveCount; // 위 놀이기구 멈춤의 생산 배율이 하나 있음
+            sim.MissIncident(IncidentKind.WaterChannel, sim.Core, ResourceType.Water);
+            Assert.AreEqual(active + 1, sim.Incidents.ActiveCount, "물길 막힘 = 물이 샘 (누출 손실)");
+        }
+
+        [Test]
         public void Incident_MissScale_ZeroMeansNoLoss_HalfScalesLoss()
         {
             // 13-6 고리: 타이쿤판은 놓쳐도 손실 없음 (0), 배율은 손실 크기에 곱함

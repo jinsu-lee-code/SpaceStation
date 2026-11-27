@@ -25,21 +25,27 @@ namespace SpaceStation.Interior
     {
         public const int Switches = 6;
 
-        /// <summary>종류 고르기: 할 수 있는 것 중 직전과 다른 것 (하나뿐이면 그것).</summary>
+        /// <summary>종류 고르기 (기본 방): 할 수 있는 것 중 직전과 다른 것 (하나뿐이면 그것).</summary>
         /// <param name="r">0~1 난수</param>
         public static IncidentKind Pick(bool breakerOk, IncidentKind? last, double r)
+            => Pick(IncidentCatalog.KindsForStage(0), breakerOk, last, r) ?? IncidentKind.Leak;
+
+        /// <summary>
+        /// CONNECT A6 단계별 상황: kinds(그 단계 방의 상황) 가운데 직전과 다른 것. 차단기는 breakerOk일 때만. 고를 것이 없으면 null.
+        /// </summary>
+        public static IncidentKind? Pick(IReadOnlyList<IncidentKind> kinds, bool breakerOk, IncidentKind? last, double r)
         {
             var pool = new List<IncidentKind>(4);
-            foreach (IncidentKind k in Enum.GetValues(typeof(IncidentKind)))
+            foreach (var k in kinds)
             {
                 if (k == IncidentKind.Breaker && !breakerOk)
                     continue;
-                if (last.HasValue && k == last.Value)
+                if (last.HasValue && k == last.Value && kinds.Count > 1)
                     continue;
                 pool.Add(k);
             }
             if (pool.Count == 0)
-                return IncidentKind.Leak;
+                return null;
             return pool[Math.Min(pool.Count - 1, (int)(Math.Max(0.0, r) * pool.Count))];
         }
 
@@ -117,7 +123,20 @@ namespace SpaceStation.Interior
                 case IncidentKind.Leak: return "배관 누출";
                 case IncidentKind.Breaker: return "차단기 내려감";
                 case IncidentKind.Fire: return "작은 화재";
-                default: return "환기 경보";
+                case IncidentKind.Filter: return "환기 경보";
+                // CONNECT A6 단계별 상황
+                case IncidentKind.HoloPanel: return "홀로 패널 오류";
+                case IncidentKind.CoolantCore: return "냉각 코어 과열";
+                case IncidentKind.MaintBot: return "정비 로봇 멈춤";
+                case IncidentKind.RideStop: return "놀이기구 멈춤";
+                case IncidentKind.DecoLights: return "장식 조명 꺼짐";
+                case IncidentKind.ScatteredToys: return "놀이 소품 흩어짐";
+                case IncidentKind.WaterChannel: return "물길 막힘";
+                case IncidentKind.Lanterns: return "등불 꺼짐";
+                case IncidentKind.Vines: return "덩굴 웃자람";
+                case IncidentKind.SignalDrift: return "신호 흐트러짐";
+                case IncidentKind.StarLanterns: return "별빛 등불 꺼짐";
+                default: return "상황";
             }
         }
 
@@ -128,7 +147,19 @@ namespace SpaceStation.Interior
                 case IncidentKind.Leak: return "밸브를 잠그세요";
                 case IncidentKind.Breaker: return "경고등 켜진 스위치만 올리세요";
                 case IncidentKind.Fire: return "벽의 소화기로 끄세요";
-                default: return "필터를 갈아 주세요";
+                case IncidentKind.Filter: return "필터를 갈아 주세요";
+                case IncidentKind.HoloPanel: return "경고 켜진 칸만 눌러 주세요";
+                case IncidentKind.CoolantCore: return "냉각 카트리지를 갈아 주세요";
+                case IncidentKind.MaintBot: return "로봇을 다시 켜 주세요";
+                case IncidentKind.RideStop: return "조작반의 경고등 켜진 레버만 올리세요";
+                case IncidentKind.DecoLights: return "꺼진 장식을 찾아 고쳐 주세요";
+                case IncidentKind.ScatteredToys: return "흩어진 소품을 바구니에 모아 주세요";
+                case IncidentKind.WaterChannel: return "물꼬를 맞춰 물길을 열어 주세요";
+                case IncidentKind.Lanterns: return "깜빡인 순서대로 등불을 켜 주세요";
+                case IncidentKind.Vines: return "길을 막은 덩굴을 쳐내 주세요";
+                case IncidentKind.SignalDrift: return "신호를 다시 맞춰 주세요";
+                case IncidentKind.StarLanterns: return "깜빡인 순서대로 별빛 등불을 켜 주세요";
+                default: return "";
             }
         }
     }
