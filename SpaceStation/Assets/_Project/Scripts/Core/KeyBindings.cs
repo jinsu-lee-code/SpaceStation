@@ -40,6 +40,7 @@ namespace SpaceStation.Core
         Policies, // 12-3c 국가급 정책 창
         HeatMap, // 12-3c 대륙급 열 지도
         Contacts, // 12-3c 지구급 외부 접촉 창
+        SelectBranch, // CONNECT M7 가지 선택 (선택한 모듈 너머 전부를 묶음으로)
     }
 
     /// <summary>키가 쓰이는 상황. 건설 중과 선택 중은 동시에 일어나지 않으므로 같은 키를 써도 된다.</summary>
@@ -93,7 +94,8 @@ namespace SpaceStation.Core
             new Info { Action = GameAction.Demolish, Group = "선택한 모듈", Label = "철거", Default = Key.X, Context = ActionContext.Selection },
             new Info { Action = GameAction.DemolishAlt, Group = "선택한 모듈", Label = "철거 (보조 키)", Default = Key.Delete, Context = ActionContext.Selection },
             new Info { Action = GameAction.EnterInterior, Group = "선택한 모듈", Label = "내부 들어가기", Default = Key.V, Context = ActionContext.Selection },
-            new Info { Action = GameAction.Move, Group = "선택한 모듈", Label = "옮기기", Default = Key.M, Context = ActionContext.Selection },
+            new Info { Action = GameAction.Move, Group = "선택한 모듈", Label = "옮기기 (묶음이면 묶음째)", Default = Key.M, Context = ActionContext.Selection },
+            new Info { Action = GameAction.SelectBranch, Group = "선택한 모듈", Label = "가지 선택 (이 모듈 너머 전부를 묶음으로)", Default = Key.G, Context = ActionContext.Selection },
             new Info { Action = GameAction.Interact, Group = "내부 방문", Label = "작업 · 위아래 이동", Default = Key.F, Context = ActionContext.Interior },
             new Info { Action = GameAction.Pad, Group = "내부 방문", Label = "휴대 패드 들기 / 내리기 (든 채 배속 순환 키 = 화면 확대)", Default = Key.G, Context = ActionContext.Interior },
             new Info { Action = GameAction.Pause, Group = "시간", Label = "일시정지 / 재개", Default = Key.Space, Context = ActionContext.Always },
@@ -117,6 +119,7 @@ namespace SpaceStation.Core
             ("카메라 화면 이동", "Shift + 휠 버튼 드래그"),
             ("확대 / 축소", "마우스 휠"),
             ("모듈 선택 · 배치", "왼쪽 클릭"),
+            ("묶음에 더하기 · 빼기", "Shift + 왼쪽 클릭"),
             ("건설 메뉴 모듈 고르기", "숫자 1~9"),
             ("배치 취소", "오른쪽 클릭 / ESC"),
             ("선택 해제 · 창 닫기 · 메뉴", "ESC"),

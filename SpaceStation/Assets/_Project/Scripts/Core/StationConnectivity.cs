@@ -34,6 +34,59 @@ namespace SpaceStation.Core
             return module != null && _active.Contains(module);
         }
 
+        /// <summary>
+        /// CONNECT M7: 지금 격자에서 코어에 닿는 모듈을 모은다 (exclude는 없다고 봄). 활성 상태 · 알림은 바꾸지 않는다
+        /// (묶음 옮기기 판정 — 옮긴 뒤 끊기는 모듈 세기).
+        /// </summary>
+        public void CollectReachable(HashSet<ModuleInstance> into, ModuleInstance exclude = null)
+        {
+            into.Clear();
+            if (Root == null || Root == exclude || !_grid.TryGetModule(Root.Origin, out var root) || root != Root)
+                return;
+            var queue = new Queue<ModuleInstance>();
+            var neighbors = new List<ModuleInstance>();
+            into.Add(Root);
+            queue.Enqueue(Root);
+            while (queue.Count > 0)
+            {
+                _rule.GetConnectedModules(_grid, queue.Dequeue(), neighbors);
+                foreach (var next in neighbors)
+                {
+                    if (next != exclude && into.Add(next))
+                        queue.Enqueue(next);
+                }
+            }
+        }
+
+        /// <summary>
+        /// CONNECT M7 가지 선택 (사용자 결정 2026-11-27): module을 빼면 코어에서 끊기는 쪽 가운데 module에 이어진 모듈 (module 포함, module이 맨 앞).
+        /// 고리처럼 다른 길이 있으면 module 하나뿐. 이미 끊긴 섬의 모듈이면 그 섬 전체.
+        /// </summary>
+        public void CollectBranch(ModuleInstance module, List<ModuleInstance> into)
+        {
+            into.Clear();
+            if (module == null)
+                return;
+            var reach = new HashSet<ModuleInstance>();
+            CollectReachable(reach, module);
+            var seen = new HashSet<ModuleInstance> { module };
+            var queue = new Queue<ModuleInstance>();
+            var neighbors = new List<ModuleInstance>();
+            into.Add(module);
+            queue.Enqueue(module);
+            while (queue.Count > 0)
+            {
+                _rule.GetConnectedModules(_grid, queue.Dequeue(), neighbors);
+                foreach (var next in neighbors)
+                {
+                    if (next == Root || reach.Contains(next) || !seen.Add(next))
+                        continue;
+                    into.Add(next);
+                    queue.Enqueue(next);
+                }
+            }
+        }
+
         public void Recalculate()
         {
             _active.Clear();

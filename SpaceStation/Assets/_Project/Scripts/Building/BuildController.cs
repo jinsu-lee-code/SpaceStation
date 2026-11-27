@@ -14,6 +14,8 @@ namespace SpaceStation.Building
     /// 회전(기본 R) / 우클릭·ESC: 선택 취소. 키는 KeyBindings(7-5)에서 바꿀 수 있다
     /// 12-3b 이동 모드(<see cref="BeginMove"/>): 같은 고스트로 옮길 자리를 고르고 좌클릭 = 이동 확정(모드 끝, 옮긴 모듈 다시 선택).
     /// 옮기는 모듈의 콜라이더는 모드 동안 꺼서 그 모듈 면이 아니라 주변 모듈 면을 가리키게 한다.
+    /// CONNECT M7 묶음 옮기기(<see cref="BeginGroupMove"/>): 묶음 모양 그대로 고스트 여럿 · 회전 키 = 대표 모듈 중심으로 묶음째 90도 ·
+    /// 가리킨 면에 묶음의 가장 안쪽 층이 붙음 · 옮기면 끊기는 모듈은 경고만 (<see cref="GroupCut"/>).
     /// </summary>
     public sealed class BuildController : MonoBehaviour
     {
@@ -47,8 +49,19 @@ namespace SpaceStation.Building
         [SerializeField] private float _maxRayDistance = 500f;
 
         private ModuleData _selected;
-        private ModuleInstance _moving; // 12-3b 이동 모드 (null = 건설)
+        private ModuleInstance _moving; // 12-3b 이동 모드 (null = 건설) · 묶음이면 대표 모듈
         private readonly List<Collider> _movingColliders = new List<Collider>();
+        // CONNECT M7 묶음 옮기기 (null = 한 개)
+        private List<ModuleInstance> _movingGroup;
+        private readonly List<Vector3Int> _groupOrigins = new List<Vector3Int>();
+        private readonly List<int> _groupRotations = new List<int>();
+        private readonly List<Transform> _groupGhostParts = new List<Transform>();
+        private List<SpaceStation.Data.ResourceAmount> _groupCost;
+        private int _groupCut;
+        private PlacementResult _groupSpatial;
+        private Vector3Int _groupKeyCell;
+        private int _groupKeyRotation = -1;
+        private int _groupKeyVersion = -1;
         private int _rotation;
         private GameObject _ghost;
         private Renderer[] _ghostRenderers;
@@ -84,10 +97,18 @@ namespace SpaceStation.Building
         public event Action<ModuleInstance> Moved;
         /// <summary>12-3b 이동 모드 취소 (옮기려던 모듈).</summary>
         public event Action<ModuleInstance> MoveCancelled;
+        /// <summary>CONNECT M7 묶음 옮기기 끝 · 취소 (묶음, 대표) — <see cref="Moved"/> · <see cref="MoveCancelled"/> 다음에 옴.</summary>
+        public event Action<IReadOnlyList<ModuleInstance>, ModuleInstance> GroupMoveEnded;
 
         public ModuleData Selected => _selected;
-        /// <summary>12-3b 옮기는 중인 모듈 (건설 중이면 null).</summary>
+        /// <summary>12-3b 옮기는 중인 모듈 (건설 중이면 null). 묶음이면 대표 모듈.</summary>
         public ModuleInstance Moving => _moving;
+        /// <summary>CONNECT M7 묶음째 옮기는 중이면 그 묶음 (아니면 null).</summary>
+        public IReadOnlyList<ModuleInstance> MovingGroup => _movingGroup;
+        /// <summary>CONNECT M7 지금 자리로 옮기면 코어에서 끊기는 모듈 수 (묶음 · 대상이 있을 때만 의미).</summary>
+        public int GroupCut => _groupCut;
+        /// <summary>CONNECT M7 묶음 이동 비용 (묶음 옮기는 중일 때만).</summary>
+        public IReadOnlyList<SpaceStation.Data.ResourceAmount> GroupCost => _groupCost;
         public StationController Station => _station;
         public IReadOnlyList<ModuleData> BuildableModules => _buildableModules;
         /// <summary>모듈이 있는 탭만 (방어 탭은 모듈이 생기면 나타남).</summary>
@@ -199,11 +220,14 @@ namespace SpaceStation.Building
             if ((keyboard.escapeKey.wasPressedThisFrame && !InputGate.EscapeConsumedThisFrame) || mouse.rightButton.wasPressedThisFrame)
             {
                 var cancelled = _moving;
+                var cancelledGroup = _movingGroup;
                 Select(null);
                 if (cancelled != null)
                 {
                     InputGate.ConsumeEscape(); // 다시 선택한 모듈을 같은 ESC로 풀지 않게 (일시정지 메뉴도 안 열림)
                     MoveCancelled?.Invoke(cancelled);
+                    if (cancelledGroup != null)
+                        GroupMoveEnded?.Invoke(cancelledGroup, cancelled);
                 }
                 return;
             }
@@ -225,6 +249,18 @@ namespace SpaceStation.Building
             {
                 if (!_targetValid)
                     PlaceRejected?.Invoke(_targetResult);
+                else if (_movingGroup != null)
+                {
+                    var pivot = _moving;
+                    var group = _movingGroup;
+                    if (_station.Simulation.TryMoveGroup(group, _groupOrigins, _groupRotations))
+                    {
+                        InputGate.ConsumeClick();
+                        Select(null);
+                        Moved?.Invoke(pivot);
+                        GroupMoveEnded?.Invoke(group, pivot);
+                    }
+                }
                 else if (_moving != null)
                 {
                     var module = _moving;
@@ -271,6 +307,55 @@ namespace SpaceStation.Building
             return true;
         }
 
+        /// <summary>
+        /// CONNECT M7: 묶음째 옮기는 모드 시작 (pivot = 대표 모듈 — 회전 중심 · 고스트 이름). 묶음이 하나뿐이면 한 개 옮기기와 같음.
+        /// 옮길 수 없는 묶음이면 false (사유는 <see cref="StationSimulation.CheckGroupMovable"/>).
+        /// </summary>
+        public bool BeginGroupMove(IReadOnlyList<ModuleInstance> group, ModuleInstance pivot)
+        {
+            if (group == null || group.Count == 0 || pivot == null || !Contains(group, pivot))
+                return false;
+            if (group.Count == 1)
+                return BeginMove(pivot);
+            if (_station.Simulation.CheckGroupMovable(group, out _) != SpaceStation.Simulation.MoveBlock.None)
+                return false;
+            Select(null);
+            _moving = pivot;
+            _movingGroup = new List<ModuleInstance>(group);
+            _groupCost = _station.Simulation.GetGroupMoveCost(_movingGroup);
+            _groupKeyVersion = -1;
+            foreach (var m in _movingGroup)
+            {
+                if (!_station.TryGetView(m, out var view))
+                    continue;
+                foreach (var c in view.GetComponentsInChildren<Collider>())
+                {
+                    if (!c.enabled)
+                        continue;
+                    c.enabled = false;
+                    _movingColliders.Add(c);
+                }
+            }
+            _selected = pivot.Data;
+            _rotation = pivot.Rotation;
+            _hasTarget = false;
+            _existingLanesDirty = true;
+            RebuildGhost();
+            UpdateLanes();
+            SelectionChanged?.Invoke(_selected);
+            return true;
+        }
+
+        private static bool Contains(IReadOnlyList<ModuleInstance> list, ModuleInstance module)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] == module)
+                    return true;
+            }
+            return false;
+        }
+
         private void EndMove()
         {
             foreach (var c in _movingColliders)
@@ -280,6 +365,9 @@ namespace SpaceStation.Building
             }
             _movingColliders.Clear();
             _moving = null;
+            _movingGroup = null;
+            _groupCost = null;
+            _groupCut = 0;
             _existingLanesDirty = true;
         }
 
@@ -336,6 +424,11 @@ namespace SpaceStation.Building
 
             _targetCell = GridConfig.GetAdjacentCell(hit.point, hit.normal);
             var outward = _targetCell - hitCell;
+            if (_movingGroup != null)
+            {
+                UpdateGroupTarget(outward);
+                return;
+            }
             if (_selected.TerminalOnly)
                 AutoOrientDock(outward);
             // 8-4: 면 안쪽으로 뻗는 셀이 있는 모듈(가운데 원점인 회전 링 등)은 그만큼 바깥으로 띄워 면에 붙인다
@@ -343,6 +436,32 @@ namespace SpaceStation.Building
             _targetResult = _moving != null
                 ? _station.Simulation.EvaluateMove(_moving, _targetCell, _rotation)
                 : _station.EvaluatePlacement(_selected, _targetCell, _rotation);
+            _targetValid = _targetResult == PlacementResult.Valid;
+            _hasTarget = true;
+        }
+
+        /// <summary>
+        /// CONNECT M7: 묶음 자리 = 가리킨 면에 묶음의 가장 안쪽 층이 붙게 · 대표 모듈 중심 회전. 공간 판정은 자리 · 회전 · 격자가 바뀔 때만
+        /// (묶음을 잠깐 옮겨 보고 코어에서 닿는 모듈을 세므로), 비용은 매 프레임.
+        /// </summary>
+        private void UpdateGroupTarget(Vector3Int outward)
+        {
+            int delta = GridDirections.NormalizeRotation(_rotation - _moving.Rotation);
+            _targetCell = GroupMove.AnchorOnFace(_movingGroup, _moving, _targetCell, outward, delta);
+            var grid = _station.Grid;
+            if (_targetCell != _groupKeyCell || _rotation != _groupKeyRotation || grid.Version != _groupKeyVersion)
+            {
+                _groupKeyCell = _targetCell;
+                _groupKeyRotation = _rotation;
+                _groupKeyVersion = grid.Version;
+                GroupMove.Resolve(_movingGroup, _moving, _targetCell, delta, _groupOrigins, _groupRotations);
+                _groupSpatial = _station.Simulation.EvaluateGroupMove(_movingGroup, _groupOrigins, _groupRotations, out _groupCut);
+                if (_groupSpatial == PlacementResult.InsufficientResources)
+                    _groupSpatial = PlacementResult.Valid; // 비용은 아래에서 매 프레임
+            }
+            _targetResult = _groupSpatial == PlacementResult.Valid && !_station.Simulation.Resources.CanAfford(_groupCost)
+                ? PlacementResult.InsufficientResources
+                : _groupSpatial;
             _targetValid = _targetResult == PlacementResult.Valid;
             _hasTarget = true;
         }
@@ -375,7 +494,25 @@ namespace SpaceStation.Building
                     RebuildExistingLanes();
                 foreach (var cell in _existingLanes)
                     AddLane(cell, _existingLaneColor);
-                if (_hasTarget && (_selected.TerminalOnly || _selected.KeepClearCells.Count > 0))
+                if (_hasTarget && _movingGroup != null)
+                {
+                    // CONNECT M7: 묶음 속 도킹 · 고리의 새 접근로
+                    var c = _ghostColor;
+                    c.a *= _ghostLaneAlpha;
+                    for (int i = 0; i < _movingGroup.Count && i < _groupOrigins.Count; i++)
+                    {
+                        var data = _movingGroup[i].Data;
+                        if (data == null || (!data.TerminalOnly && data.KeepClearCells.Count == 0))
+                            continue;
+                        PlacementRules.GetDockLane(data, _groupOrigins[i], _groupRotations[i], _laneScratch);
+                        foreach (var cell in _laneScratch)
+                            AddLane(cell, c);
+                        PlacementRules.GetKeepClearCells(data, _groupOrigins[i], _groupRotations[i], _laneScratch);
+                        foreach (var cell in _laneScratch)
+                            AddLane(cell, c);
+                    }
+                }
+                else if (_hasTarget && (_selected.TerminalOnly || _selected.KeepClearCells.Count > 0))
                 {
                     var c = _ghostColor;
                     c.a *= _ghostLaneAlpha;
@@ -400,7 +537,7 @@ namespace SpaceStation.Building
             _existingLanes.Clear();
             foreach (var m in _station.Grid.Modules)
             {
-                if (m.Data == null || m == _moving)
+                if (m.Data == null || m == _moving || (_movingGroup != null && _movingGroup.Contains(m)))
                     continue;
                 if (m.Data.TerminalOnly)
                     PlacementRules.GetDockLane(m.Data, m.Origin, m.Rotation, _laneScratch);
@@ -455,9 +592,19 @@ namespace SpaceStation.Building
                 return;
             }
 
-            _ghost.transform.SetPositionAndRotation(
-                GridConfig.CellToWorld(_targetCell),
-                GridDirections.ToQuaternion(_rotation));
+            if (_movingGroup != null)
+            {
+                // CONNECT M7: 부모는 그대로 두고 모듈마다 새 자리 (고스트 순서 = 묶음 순서)
+                for (int i = 0; i < _groupGhostParts.Count && i < _groupOrigins.Count; i++)
+                {
+                    if (_groupGhostParts[i] != null)
+                        _groupGhostParts[i].SetPositionAndRotation(GridConfig.CellToWorld(_groupOrigins[i]), GridDirections.ToQuaternion(_groupRotations[i]));
+                }
+            }
+            else
+                _ghost.transform.SetPositionAndRotation(
+                    GridConfig.CellToWorld(_targetCell),
+                    GridDirections.ToQuaternion(_rotation));
 
             // 5-4: 초록 ↔ 빨강을 부드럽게 전환 (홀로그램 셰이더의 _BaseColor)
             var target = _targetValid ? _validColor : _invalidColor;
@@ -474,7 +621,12 @@ namespace SpaceStation.Building
                     r.SetPropertyBlock(_propertyBlock);
             }
             if (_connectors != null)
-                _connectors.ShowPreview(_selected, _targetCell, _rotation, _ghostColor, _moving);
+            {
+                if (_movingGroup != null)
+                    _connectors.HidePreview(); // 묶음은 통로 미리보기 없음 (놓으면 새로 이어짐)
+                else
+                    _connectors.ShowPreview(_selected, _targetCell, _rotation, _ghostColor, _moving);
+            }
         }
 
         private void RebuildGhost()
@@ -488,11 +640,31 @@ namespace SpaceStation.Building
             if (_connectors != null)
                 _connectors.HidePreview();
 
-            if (_selected == null || _selected.Prefab == null)
-                return;
-
-            _ghost = Instantiate(_selected.Prefab, transform);
-            _ghost.name = "Ghost_" + _selected.name;
+            _groupGhostParts.Clear();
+            if (_movingGroup != null)
+            {
+                // CONNECT M7: 묶음 고스트 = 빈 부모 아래 모듈마다 하나 (프리팹 없는 모듈은 자리만 비워 둠)
+                _ghost = new GameObject("Ghost_Group");
+                _ghost.transform.SetParent(transform, false);
+                foreach (var m in _movingGroup)
+                {
+                    if (m.Data == null || m.Data.Prefab == null)
+                    {
+                        _groupGhostParts.Add(null);
+                        continue;
+                    }
+                    var part = Instantiate(m.Data.Prefab, _ghost.transform);
+                    part.name = "Ghost_" + m.Data.name;
+                    _groupGhostParts.Add(part.transform);
+                }
+            }
+            else
+            {
+                if (_selected == null || _selected.Prefab == null)
+                    return;
+                _ghost = Instantiate(_selected.Prefab, transform);
+                _ghost.name = "Ghost_" + _selected.name;
+            }
             foreach (var c in _ghost.GetComponentsInChildren<Collider>())
             {
                 c.enabled = false; // 같은 프레임 레이캐스트에 걸리지 않도록 즉시 끔

@@ -56,3 +56,8 @@
 - **CONNECT_1121 1번 광맥 (2026-11-27)** — main M-337 탐사 틀을 커밋째 받음 (새 파일만, 충돌 없음) + 공통 고리 셋을 더해 main으로도 옮김 (M-362): `StationSimulation.ModuleProductionScale` · `StationModuleStats` 두 곳에 곱함 · `ExplorationSystem.AutoReveal` · `EffectText` · `EffectOf` (`ExplorationPanel`도 이것을 씀)
   - 타이쿤 전용: `OreVeinSystem` · `OreVeinConfig` · `Data/Tycoon/OreVeinConfig.asset` · `ExplorationConfig_Endless.asset` · `SimulationHost._oreVeins` · 메뉴 Setup Ore Veins · 측정 도구 (`BalanceRunSettings.OreVeins` · `BalanceBotVeins` · 결과 광맥 열)
   - 두 모드를 합칠 때: 서사판은 `AutoReveal` 꺼짐 · `EffectText` 없음이라 동작 그대로
+  - 화면 (2026-11-27, main M-363): `StationSimulation.ModuleInfoText` · `ExplorationSystem.NameText`/`NameOf` · 탐사 표시 판 라벨 — 서사판은 둘 다 null이라 그대로. 타이쿤 장면에 `ExplorationView` (Setup Ore Veins가 놓음)
+
+- **CONNECT_1121 2번 묶음 선택 조작 M7 (2026-11-27)** — 공통 바닥이라 main(M-364)과 같은 코드: `StationGrid.TryMoveGroup` · `PeekGroupMove` · `GroupMove` · `StationConnectivity.CollectReachable`/`CollectBranch` · `PlacementRules.SupportsOthers(group)` · `PlacementResult.BreaksSupport` · `StationSimulation` 묶음 함수 다섯 · `StationConnectors.MoveFor` · `ModuleSelectionController` 묶음 · `BuildController.BeginGroupMove` · 정보 창 · 상태줄 · `GameAction.SelectBranch`(G, 끝에 더함) · 메뉴 Setup Branch Button
+  - main판만 다른 곳: `StationConstruction` 묶음 판정에 `InZone` (main의 칸 제한 `IBuildZone`) · `StatusBar`의 `PlacementReason(result, zone)` — 타이쿤엔 칸 제한이 없음
+  - 장면: 타이쿤 `Main.unity`엔 [가지 선택] 버튼을 놓음. main · 서사판 장면은 메뉴 SpaceStation/Move/Setup Branch Button을 그 쪽 Unity에서 한 번 (없으면 G 키만)

@@ -37,6 +37,8 @@ namespace SpaceStation.Core
         BlockedByKeepClear,
         /// <summary>합성 중인 진화 모듈이 완성 때 들어설 칸 (합성 틀의 채울 칸, StationSimulation이 판정).</summary>
         ReservedBySynthesis,
+        /// <summary>CONNECT M7 묶음 이동: 옮기면 묶음 밖 모듈이 받침 조건을 잃음.</summary>
+        BreaksSupport,
     }
 
     /// <summary>
@@ -310,7 +312,10 @@ namespace SpaceStation.Core
         /// 이 모듈이 없어지면 받침 조건을 잃는 모듈이 있는지 (철거 불가 판정).
         /// 바로 위 칸(코어 2층 옆 받침)과 수평 이웃(코어 윗면 위 모듈의 옆 연결)만 영향받는다.
         /// </summary>
-        public static bool SupportsOthers(StationGrid grid, ModuleInstance module)
+        public static bool SupportsOthers(StationGrid grid, ModuleInstance module) => SupportsOthers(grid, module, null);
+
+        /// <summary>CONNECT M7 묶음: group 안 모듈은 함께 옮기므로 셈하지 않음 (옮긴 자리의 받침은 자리 판정에서 따로 봄).</summary>
+        public static bool SupportsOthers(StationGrid grid, ModuleInstance module, ICollection<ModuleInstance> group)
         {
             if (module == null)
                 return false;
@@ -320,7 +325,7 @@ namespace SpaceStation.Core
                 {
                     if (dir == Vector3Int.down)
                         continue;
-                    if (!grid.TryGetModule(cell + dir, out var other) || other == module)
+                    if (!grid.TryGetModule(cell + dir, out var other) || other == module || (group != null && group.Contains(other)))
                         continue;
                     // 지금은 조건을 채우는데 이 모듈이 없으면 못 채우는 경우만 (예전 규칙 세이브의 기존 배치는 막지 않음)
                     if (CheckSupport(grid, other.Cells, module) != PlacementResult.Valid

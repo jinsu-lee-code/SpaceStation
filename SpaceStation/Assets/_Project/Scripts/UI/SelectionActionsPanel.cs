@@ -41,6 +41,10 @@ namespace SpaceStation.UI
         [SerializeField] private SpaceStation.Interior.InteriorMode _interior;
         [SerializeField] private Button _enterButton;
         [SerializeField] private TMP_Text _enterLabel;
+        [Header("CONNECT M7 묶음 (없으면 가지 선택 키만)")]
+        [SerializeField] private Button _branchButton;
+        [SerializeField] private TMP_Text _branchLabel;
+        private readonly List<ModuleInstance> _branch = new List<ModuleInstance>();
 
         private bool _dirty = true;
         private bool _blinking;
@@ -80,12 +84,16 @@ namespace SpaceStation.UI
                 _enterButton.onClick.AddListener(EnterSelected);
             if (_moveButton != null)
                 _moveButton.onClick.AddListener(MoveSelected);
+            if (_branchButton != null)
+                _branchButton.onClick.AddListener(_selection.SelectBranch);
             if (_interior != null)
             {
                 _interior.Notice += HandleInteriorNotice;
                 _interior.Settled += MarkDirty; // 11-18: 나오는 페이드 중에 그린 [들어가기]가 꺼진 채 남았음
             }
             _selection.SelectionChanged += HandleSelectionChanged;
+            _selection.GroupChanged += MarkDirty;
+            _selection.GroupNotice += HandleGroupNotice;
             _resources.Simulation.Changed += MarkDirty;
             _resources.Damage.Changed += MarkDirty;
             _station.Connectivity.ActiveStateChanged += HandleActiveStateChanged;
@@ -96,7 +104,11 @@ namespace SpaceStation.UI
         private void OnDestroy()
         {
             if (_selection != null)
+            {
                 _selection.SelectionChanged -= HandleSelectionChanged;
+                _selection.GroupChanged -= MarkDirty;
+                _selection.GroupNotice -= HandleGroupNotice;
+            }
             if (_resources != null && _resources.Simulation != null)
             {
                 _resources.Simulation.Changed -= MarkDirty;
@@ -114,6 +126,16 @@ namespace SpaceStation.UI
 
         private void HandleInteriorNotice(string message) => ActionFailed?.Invoke(message);
 
+        private void HandleGroupNotice(string message, bool failed)
+        {
+            if (failed)
+                ActionFailed?.Invoke(message);
+            else
+                ActionDone?.Invoke(message);
+        }
+
+        private const string OneOnly = "묶음을 고른 동안에는 모듈 하나만 하는 일을 할 수 없습니다 (Shift+클릭으로 빼거나 하나만 고르기)";
+
         public void EnterSelected()
         {
             if (_interior != null && _selection.Selected != null && TutorialGate.Check(TutorialAction.EnterInterior))
@@ -127,6 +149,16 @@ namespace SpaceStation.UI
             var keyboard = Keyboard.current;
             if (keyboard == null || InputGate.Blocked || _build.Selected != null || _selection.Selected == null)
                 return;
+            if (_selection.IsGroup)
+            {
+                // CONNECT M7 묶음: 옮기기만 (수리 · 정비 · 재건축 · 들어가기는 모듈 하나만)
+                if (KeyBindings.WasPressed(GameAction.Move))
+                    MoveSelected();
+                else if (KeyBindings.WasPressed(GameAction.Repair) || KeyBindings.WasPressed(GameAction.Maintain) || KeyBindings.WasPressed(GameAction.Rebuild)
+                         || KeyBindings.WasPressed(GameAction.CancelRepair) || KeyBindings.WasPressed(GameAction.EnterInterior))
+                    ActionFailed?.Invoke(OneOnly);
+                return;
+            }
             if (KeyBindings.WasPressed(GameAction.Repair))
                 RepairSelected();
             else if (KeyBindings.WasPressed(GameAction.Maintain))
@@ -147,6 +179,21 @@ namespace SpaceStation.UI
             var module = _selection.Selected;
             if (module == null || !TutorialGate.Check(TutorialAction.Move))
                 return;
+            if (_selection.IsGroup)
+            {
+                // CONNECT M7 묶음째 (모양 그대로 · 대표 모듈 중심 회전)
+                var group = _selection.Group;
+                var groupBlock = _station.Simulation.CheckGroupMovable(group, out var blocker);
+                if (groupBlock != MoveBlock.None)
+                {
+                    ActionFailed?.Invoke($"묶음을 옮길 수 없습니다: {MoveBlockText(groupBlock)} ({(blocker != null ? Name(blocker) : "-")})");
+                    return;
+                }
+                int count = group.Count;
+                if (_build.BeginGroupMove(group, module))
+                    ActionDone?.Invoke($"묶음 {count}개 옮기기 · 새 자리를 클릭 (비용 {HudText.Cost(_build.GroupCost)}, {K(GameAction.Rotate)} 회전 · {Name(module)} 중심, 오른쪽 클릭 · ESC 취소)");
+                return;
+            }
             var block = _station.Simulation.CheckMovable(module);
             if (block != MoveBlock.None)
             {
@@ -206,6 +253,11 @@ namespace SpaceStation.UI
         /// <summary>철거 (11-18 튜토리얼 중엔 막음).</summary>
         public void DemolishSelected()
         {
+            if (_selection.IsGroup)
+            {
+                ActionFailed?.Invoke(OneOnly);
+                return;
+            }
             if (TutorialGate.Check(TutorialAction.Demolish))
                 _selection.RemoveSelected();
         }
@@ -515,6 +567,11 @@ namespace SpaceStation.UI
             _blinking = false;
             if (!visible)
                 return;
+            if (_selection.IsGroup)
+            {
+                RefreshGroup(module);
+                return;
+            }
 
             var view = Describe(module);
             _blinkOn = EfficiencyBands.BlinkOn(Time.time);
@@ -560,6 +617,101 @@ namespace SpaceStation.UI
                 _enterButton.interactable = _interior != null && _interior.CheckEnter(module) == null && TutorialGate.IsAllowed(TutorialAction.EnterInterior);
                 _enterLabel.SetText($"들어가기 ({K(GameAction.EnterInterior)})\n<size=80%>1인칭 내부 둘러보기</size>");
             }
+            RefreshBranchButton(module);
+        }
+
+        // ---------------- CONNECT M7 묶음 ----------------
+
+        /// <summary>묶음을 고른 동안: 종류별 개수 · [묶음 옮기기] (모듈 하나만 하는 일은 꺼 둠).</summary>
+        private void RefreshGroup(ModuleInstance primary)
+        {
+            var group = _selection.Group;
+            var sim = _station.Simulation;
+            _title.SetText(GroupInfo(group, primary));
+            SetOneOnly(_repairButton, _repairLabel, "수리");
+            SetOneOnly(_maintainButton, _maintainLabel, "정비");
+            SetOneOnly(_rebuildButton, _rebuildLabel, "재건축");
+            SetOneOnly(_demolishButton, _demolishLabel, "철거");
+            if (_cancelRepairButton != null && _cancelRepairButton.gameObject.activeSelf)
+                _cancelRepairButton.gameObject.SetActive(false);
+            if (_enterButton != null)
+                SetOneOnly(_enterButton, _enterLabel, "들어가기");
+            if (_moveButton != null)
+            {
+                var block = sim.CheckGroupMovable(group, out var blocker);
+                var cost = sim.GetGroupMoveCost(group);
+                bool movable = block == MoveBlock.None;
+                _moveButton.interactable = movable && sim.Resources.CanAfford(cost) && TutorialGate.IsAllowed(TutorialAction.Move);
+                _moveLabel.SetText(movable
+                    ? $"묶음 옮기기 ({K(GameAction.Move)})\n<size=80%>{HudText.Cost(cost)}</size>"
+                    : $"옮기기 불가\n<size=80%>{MoveBlockText(block)}{(blocker != null ? $" · {Name(blocker)}" : "")}</size>");
+            }
+            RefreshBranchButton(primary);
+        }
+
+        private static void SetOneOnly(Button button, TMP_Text label, string name)
+        {
+            button.interactable = false;
+            label.SetText($"{name}\n<size=80%>모듈 하나만</size>");
+        }
+
+        /// <summary>"묶음 N개 · 대표" + 종류별 개수 (많은 순, 한 줄에 둘 · 두 줄까지 — 정보 창 너비) + 비활성 수 + 조작 안내.</summary>
+        private string GroupInfo(IReadOnlyList<ModuleInstance> group, ModuleInstance primary)
+        {
+            var counts = new Dictionary<string, int>();
+            var order = new List<string>();
+            int inactive = 0;
+            foreach (var m in group)
+            {
+                string name = Name(m);
+                if (!counts.ContainsKey(name))
+                {
+                    counts[name] = 0;
+                    order.Add(name);
+                }
+                counts[name]++;
+                if (!_station.Connectivity.IsActive(m))
+                    inactive++;
+            }
+            order.Sort((a, b) => counts[b].CompareTo(counts[a]));
+            var sb = new System.Text.StringBuilder($"<b>묶음 {group.Count}개</b>  <size=85%><color={HudText.Muted}>대표 {Name(primary)}</color></size>");
+            int shown = Mathf.Min(order.Count, 4);
+            for (int i = 0; i < shown; i++)
+            {
+                sb.Append(i % 2 == 0 ? "\n<size=85%>" : " · ");
+                sb.Append(order[i]).Append(' ').Append(counts[order[i]]);
+                if (i % 2 == 1 || i == shown - 1)
+                    sb.Append("</size>");
+            }
+            if (order.Count > shown)
+                sb.Append($"\n<size=85%><color={HudText.Muted}>외 {order.Count - shown}종</color></size>");
+            if (inactive > 0)
+                sb.Append($"\n<size=85%><color={HudText.Orange}>비활성 {inactive}개 (코어와 분리됨)</color></size>");
+            sb.Append($"\n<size=85%><color={HudText.Muted}>Shift+클릭: 더하기 · 빼기</color></size>");
+            return sb.ToString();
+        }
+
+        /// <summary>[가지 선택]: 대표 모듈을 빼면 끊기는 쪽 수 (이미 다 골랐으면 꺼 둠).</summary>
+        private void RefreshBranchButton(ModuleInstance primary)
+        {
+            if (_branchButton == null || _branchLabel == null)
+                return;
+            _station.Simulation.CollectBranch(primary, _branch);
+            int beyond = _branch.Count - 1;
+            int missing = 0;
+            var group = _selection.Group;
+            foreach (var m in _branch)
+            {
+                bool inGroup = false;
+                for (int i = 0; i < group.Count && !inGroup; i++)
+                    inGroup = group[i] == m;
+                if (!inGroup)
+                    missing++;
+            }
+            _branchButton.interactable = beyond > 0 && missing > 0;
+            _branchLabel.SetText(beyond <= 0 ? $"가지 선택 ({K(GameAction.SelectBranch)})\n<size=80%>너머 없음</size>"
+                : missing == 0 ? $"가지 선택 ({K(GameAction.SelectBranch)})\n<size=80%>너머 {beyond}개 · 다 고름</size>"
+                : $"가지 선택 ({K(GameAction.SelectBranch)})\n<size=80%>이 너머 {beyond}개</size>");
         }
     }
 }

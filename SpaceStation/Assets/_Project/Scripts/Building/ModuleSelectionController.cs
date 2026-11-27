@@ -8,6 +8,9 @@ namespace SpaceStation.Building
     /// <summary>
     /// 배치 모드가 아닐 때 모듈 선택/철거.
     /// 좌클릭: 선택 (빈 곳 클릭 시 해제) / Delete·X: 철거 / ESC: 선택 해제
+    /// CONNECT M7 묶음 선택 (사용자 결정 2026-11-27): Shift+좌클릭 = 묶음에 더하기 · 빼기, 가지 선택 키(기본 G) = 선택한 모듈 너머 전부.
+    /// <see cref="Selected"/>는 대표 모듈(처음 고른 것 — 정보 창 · 다른 화면은 그대로 이 하나를 봄), <see cref="Group"/>은 대표 포함 전부.
+    /// 묶음이 둘 이상이면 철거 키는 막음 (옮기기만).
     /// </summary>
     public sealed class ModuleSelectionController : MonoBehaviour
     {
@@ -22,9 +25,20 @@ namespace SpaceStation.Building
         [SerializeField] private float _maxRayDistance = 500f;
 
         private ModuleInstance _selected;
+        private readonly System.Collections.Generic.List<ModuleInstance> _group = new System.Collections.Generic.List<ModuleInstance>();
+        private readonly System.Collections.Generic.List<ModuleInstance> _branch = new System.Collections.Generic.List<ModuleInstance>();
 
         /// <summary>선택 모듈이 바뀔 때 (null = 해제).</summary>
         public event Action<ModuleInstance> SelectionChanged;
+        /// <summary>CONNECT M7: 묶음(대표 포함)이 바뀔 때.</summary>
+        public event Action GroupChanged;
+        /// <summary>CONNECT M7: 묶음 조작 안내 · 거절 (상태 표시줄 알림용 — 글, 거절인지).</summary>
+        public event Action<string, bool> GroupNotice;
+
+        /// <summary>CONNECT M7: 묶음 (대표 포함, 대표가 맨 앞). 하나만 골랐으면 그 하나, 선택이 없으면 비어 있음.</summary>
+        public System.Collections.Generic.IReadOnlyList<ModuleInstance> Group => _group;
+        /// <summary>CONNECT M7: 모듈을 둘 이상 고름.</summary>
+        public bool IsGroup => _group.Count > 1;
         /// <summary>철거를 시도했으나 불가 (코어 등).</summary>
         public event Action<ModuleInstance> RemoveRejected;
         /// <summary>철거 성공.</summary>
@@ -51,6 +65,7 @@ namespace SpaceStation.Building
             {
                 _build.Moved += HandleMoved;
                 _build.MoveCancelled += HandleMoved;
+                _build.GroupMoveEnded += SetGroup;
             }
         }
 
@@ -67,6 +82,7 @@ namespace SpaceStation.Building
             {
                 _build.Moved -= HandleMoved;
                 _build.MoveCancelled -= HandleMoved;
+                _build.GroupMoveEnded -= SetGroup;
             }
         }
 
@@ -92,7 +108,13 @@ namespace SpaceStation.Building
             }
 
             if (mouse.leftButton.wasPressedThisFrame && !UiPointer.IsOverUi() && !InputGate.ClickConsumedThisFrame)
-                Select(PickModule(mouse.position.ReadValue()));
+            {
+                var picked = PickModule(mouse.position.ReadValue());
+                if (keyboard.shiftKey.isPressed)
+                    ToggleInGroup(picked); // CONNECT M7: 빈 곳 Shift+클릭은 묶음 그대로
+                else
+                    Select(picked);
+            }
 
             if (_selected == null)
                 return;
@@ -103,8 +125,94 @@ namespace SpaceStation.Building
                 return;
             }
 
+            if (KeyBindings.WasPressed(GameAction.SelectBranch))
+                SelectBranch();
+
             if ((KeyBindings.WasPressed(GameAction.Demolish) || KeyBindings.WasPressed(GameAction.DemolishAlt)) && TutorialGate.Check(TutorialAction.Demolish))
-                RemoveSelected();
+            {
+                if (IsGroup)
+                    GroupNotice?.Invoke("묶음을 고른 동안에는 철거할 수 없습니다 (모듈 하나만 고르기)", true);
+                else
+                    RemoveSelected();
+            }
+        }
+
+        /// <summary>CONNECT M7 Shift+클릭: 묶음에 없으면 더하고 있으면 뺌 (대표를 빼면 다음 모듈이 대표). 선택이 없으면 그냥 선택.</summary>
+        public void ToggleInGroup(ModuleInstance module)
+        {
+            if (module == null)
+                return;
+            if (_selected == null)
+            {
+                Select(module);
+                return;
+            }
+            int index = _group.IndexOf(module);
+            if (index < 0)
+            {
+                _group.Add(module);
+                SetHighlight(module, true);
+                GroupChanged?.Invoke();
+                return;
+            }
+            _group.RemoveAt(index);
+            SetHighlight(module, false);
+            if (module == _selected)
+            {
+                _selected = _group.Count > 0 ? _group[0] : null;
+                if (_selected != null)
+                    SetHighlight(_selected, true);
+                SelectionChanged?.Invoke(_selected);
+            }
+            GroupChanged?.Invoke();
+        }
+
+        /// <summary>CONNECT M7 가지 선택: 대표 모듈을 빼면 코어에서 끊기는 쪽 전부를 묶음에 더함 (이미 고른 모듈은 그대로).</summary>
+        public void SelectBranch()
+        {
+            if (_selected == null)
+                return;
+            _station.Simulation.CollectBranch(_selected, _branch);
+            int added = 0;
+            foreach (var m in _branch)
+            {
+                if (_group.Contains(m))
+                    continue;
+                _group.Add(m);
+                SetHighlight(m, true);
+                added++;
+            }
+            if (added > 0)
+                GroupChanged?.Invoke();
+            if (_branch.Count <= 1)
+                GroupNotice?.Invoke("이 모듈 너머로 끊기는 모듈이 없습니다 (다른 길로도 코어에 이어짐)", true);
+            else
+                GroupNotice?.Invoke($"가지 선택 · 모듈 {_branch.Count}개 (묶음 {_group.Count}개)", false);
+        }
+
+        /// <summary>CONNECT M7: 묶음째 옮기기가 끝나거나 취소되면 같은 묶음을 다시 고름 (pivot = 대표).</summary>
+        public void SetGroup(System.Collections.Generic.IReadOnlyList<ModuleInstance> modules, ModuleInstance pivot)
+        {
+            Select(pivot);
+            if (pivot == null || modules == null)
+                return;
+            bool changed = false;
+            foreach (var m in modules)
+            {
+                if (m == null || _group.Contains(m) || !_station.Grid.TryGetModule(m.Origin, out var at) || at != m)
+                    continue;
+                _group.Add(m);
+                SetHighlight(m, true);
+                changed = true;
+            }
+            if (changed)
+                GroupChanged?.Invoke();
+        }
+
+        private void SetHighlight(ModuleInstance module, bool on)
+        {
+            if (module != null && _station.TryGetView(module, out var view))
+                view.SetHighlighted(on);
         }
 
         /// <summary>7-1: 선택 모듈의 효율 구간을 테두리 색에 반영 (값 조회만, 구간이 바뀔 때만 뷰 갱신).</summary>
@@ -116,18 +224,31 @@ namespace SpaceStation.Building
 
         public void Select(ModuleInstance module)
         {
-            if (module == _selected)
+            if (module == _selected && _group.Count <= 1)
                 return;
 
-            if (_selected != null && _station.TryGetView(_selected, out var previous))
-                previous.SetHighlighted(false);
-            _selected = module;
-            if (_selected != null && _station.TryGetView(_selected, out var view))
+            bool hadGroup = _group.Count > 1;
+            foreach (var m in _group)
             {
-                view.SetEfficiencyBand(EfficiencyBands.Classify(_station.Simulation.GetModuleEfficiency(_selected)));
-                view.SetHighlighted(true);
+                if (m != module)
+                    SetHighlight(m, false);
             }
-            SelectionChanged?.Invoke(_selected);
+            _group.Clear();
+            bool changed = module != _selected;
+            _selected = module;
+            if (_selected != null)
+            {
+                _group.Add(_selected);
+                if (_station.TryGetView(_selected, out var view))
+                {
+                    view.SetEfficiencyBand(EfficiencyBands.Classify(_station.Simulation.GetModuleEfficiency(_selected)));
+                    view.SetHighlighted(true);
+                }
+            }
+            if (changed)
+                SelectionChanged?.Invoke(_selected);
+            if (changed || hadGroup)
+                GroupChanged?.Invoke();
         }
 
         public void RemoveSelected()
@@ -157,11 +278,19 @@ namespace SpaceStation.Building
 
         private void HandleModuleRemoved(ModuleInstance module)
         {
-            if (module != _selected)
+            if (!_group.Remove(module))
                 return;
+            if (module != _selected)
+            {
+                GroupChanged?.Invoke(); // 묶음의 다른 모듈이 파괴 · 철거됨
+                return;
+            }
             _removedSelection = module; // 자동 재건축이면 곧 새 모듈로 다시 선택
-            _selected = null; // 뷰는 곧 파괴되므로 강조 해제 불필요
-            SelectionChanged?.Invoke(null);
+            _selected = _group.Count > 0 ? _group[0] : null; // 뷰는 곧 파괴되므로 강조 해제 불필요
+            if (_selected != null)
+                SetHighlight(_selected, true);
+            SelectionChanged?.Invoke(_selected);
+            GroupChanged?.Invoke();
         }
     }
 }

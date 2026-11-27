@@ -227,12 +227,25 @@ namespace SpaceStation.Building
 
         private void RemoveFor(ModuleInstance module) => RemoveTouching(module.Cells);
 
-        /// <summary>12-3b: 옛 칸에 닿던 통로를 걷고 새 자리에서 다시 잇는다.</summary>
+        /// <summary>
+        /// 12-3b: 옛 칸에 닿던 통로를 걷고 새 자리에서 다시 잇는다.
+        /// CONNECT M7 묶음 옮기기: 옛 칸에 이미 다른 묶음 모듈이 들어와 있으면 그 모듈 통로도 다시 이음 (걷은 통로 중 그 모듈 몫).
+        /// </summary>
         private void MoveFor(ModuleInstance module, IReadOnlyList<Vector3Int> oldCells)
         {
             RemoveTouching(oldCells);
             AddFor(module);
+            _refill.Clear();
+            foreach (var cell in oldCells)
+            {
+                if (_station.Grid.TryGetModule(cell, out var now) && now != module && !_refill.Contains(now))
+                    _refill.Add(now);
+            }
+            foreach (var other in _refill)
+                AddFor(other);
         }
+
+        private readonly List<ModuleInstance> _refill = new List<ModuleInstance>();
 
         private void RemoveTouching(IReadOnlyList<Vector3Int> touched)
         {
