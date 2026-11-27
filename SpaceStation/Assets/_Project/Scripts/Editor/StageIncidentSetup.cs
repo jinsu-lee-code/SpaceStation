@@ -26,7 +26,16 @@ namespace SpaceStation.Editor
             ("StarLantern", "SM_IncStarLantern.fbx"),   // 4단계 ② 별빛 등불
             ("Vines", "SM_IncVines.fbx"),   // 3단계 ③ 덩굴 웃자람
             ("SignalConsole", "SM_IncSignalConsole.fbx"),   // 4단계 ① 신호 흐트러짐 — 다이얼 조작반
+            ("HoloPanel", "SM_IncHoloPanel.fbx"),   // 1단계 ① 홀로 패널 오류 — 벽 홀로 판
+            ("CoolantCore", "SM_IncCoolantCore.fbx"),   // 1단계 ② 냉각 코어 과열 — 벽 냉각 장치
+            ("RobotArm", "SM_IncRobotArm.fbx"),   // 1단계 ③ 정비 로봇 멈춤 — 바닥 로봇 팔 (관절 계층)
         };
+
+        /// <summary>관절 계층 모델 (Blender bake 끔 → Unity가 축을 굽힘 — 체크리스트 55).</summary>
+        private const string JointedModel = "SM_IncRobotArm.fbx";
+
+        /// <summary>1단계 소품 발광 유리 (M_IncGlow 칸을 바꿔 끼움): 반투명 · 발광 URP Lit — 색은 InteriorIncidents가 블록으로 물들임.</summary>
+        private const string GlowPath = "Assets/_Project/Art/Materials/FX/M_IncGlow.mat";
 
         [MenuItem("SpaceStation/Interior/Setup Stage Incidents (CONNECT A6)")]
         public static void Setup()
@@ -40,8 +49,15 @@ namespace SpaceStation.Editor
                 Debug.LogError("[StageIncidentSetup] InteriorMode 없음");
                 return;
             }
+            FixJointedImport();
             var so = new SerializedObject(mode);
             int linked = 0;
+            var glow = so.FindProperty("_incidentSettings.Glow");
+            if (glow != null && glow.objectReferenceValue == null)
+            {
+                glow.objectReferenceValue = GlowMaterial();
+                linked++;
+            }
             foreach (var (field, file) in Props)
             {
                 var p = so.FindProperty("_incidentSettings." + field);
@@ -70,6 +86,41 @@ namespace SpaceStation.Editor
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log($"[StageIncidentSetup] 단계 상황 소품 {linked}개 연결 · 씬 저장");
+        }
+
+        private static void FixJointedImport()
+        {
+            var importer = AssetImporter.GetAtPath(ModelFolder + JointedModel) as ModelImporter;
+            if (importer == null || importer.bakeAxisConversion)
+                return;
+            importer.bakeAxisConversion = true;
+            importer.SaveAndReimport();
+            Debug.Log($"[StageIncidentSetup] {JointedModel}: bakeAxisConversion 켬");
+        }
+
+        private static Material GlowMaterial()
+        {
+            var m = AssetDatabase.LoadAssetAtPath<Material>(GlowPath);
+            if (m != null)
+                return m;
+            m = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "M_IncGlow" };
+            m.SetFloat("_Surface", 1f);   // Transparent
+            m.SetFloat("_Blend", 0f);     // Alpha
+            m.SetFloat("_ZWrite", 0f);
+            m.SetOverrideTag("RenderType", "Transparent");
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            BaseShaderGUI.SetupMaterialBlendMode(m);   // 섞기 값은 URP와 같게 (InteriorSetup 유리와 같음)
+            m.SetColor("_BaseColor", new Color(0.62f, 0.9f, 1f, 0.55f));
+            m.SetFloat("_Smoothness", 0.85f);
+            m.SetFloat("_Metallic", 0f);
+            m.EnableKeyword("_EMISSION");
+            m.SetColor("_EmissionColor", new Color(0.62f, 0.9f, 1f));
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            AssetDatabase.CreateAsset(m, GlowPath);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[StageIncidentSetup] 발광 유리 재질 만듦: " + GlowPath);
+            return m;
         }
     }
 }
