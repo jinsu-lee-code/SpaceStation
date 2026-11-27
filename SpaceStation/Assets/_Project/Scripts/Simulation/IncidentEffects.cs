@@ -16,6 +16,110 @@ namespace SpaceStation.Simulation
         Fire,
         /// <summary>환기 경보 — 필터 교체 (놓치면 산소가 조금 샘 · 만족도 조금).</summary>
         Filter,
+
+        // CONNECT_1121 A6 단계별 상황 (사용자 결정 2026-11-27) — 끝에 더함 (번호 유지). 단계 · 놓침 손실은 IncidentCatalog
+        /// <summary>1단계 홀로 패널 오류 — 경고 켜진 칸만 누르기.</summary>
+        HoloPanel,
+        /// <summary>1단계 냉각 코어 과열 — 냉각 카트리지 뽑아 끼우기.</summary>
+        CoolantCore,
+        /// <summary>1단계 정비 로봇 멈춤 — F 길게 재가동.</summary>
+        MaintBot,
+        /// <summary>2단계 놀이기구 · 쇼 멈춤 — 조작반의 경고등 켜진 레버만 올리기.</summary>
+        RideStop,
+        /// <summary>2단계 장식 조명 꺼짐 — 꺼진 장식을 찾아 F 길게.</summary>
+        DecoLights,
+        /// <summary>2단계 놀이 소품 흩어짐 — 바구니로 옮기기.</summary>
+        ScatteredToys,
+        /// <summary>3단계 물길 막힘 — 물꼬 맞추기.</summary>
+        WaterChannel,
+        /// <summary>3단계 등불 · 반딧불 꺼짐 — 깜빡인 순서대로 켜기.</summary>
+        Lanterns,
+        /// <summary>3단계 덩굴 웃자람 — F 길게로 쳐냄.</summary>
+        Vines,
+        /// <summary>4단계 신호 흐트러짐 — 신호 맞추기.</summary>
+        SignalDrift,
+        /// <summary>4단계 별빛 등불 순서 — 깜빡인 순서대로 켜기.</summary>
+        StarLanterns,
+    }
+
+    /// <summary>놓친 상황의 손실 종류 (BALANCE 31번 값 그대로 — 새 상황은 지금 넷 중 하나 또는 만족도만).</summary>
+    public enum IncidentLoss
+    {
+        /// <summary>자원이 샘 (누출 — 물 · 산소).</summary>
+        Drain,
+        /// <summary>그 방 생산 배율 (차단기). 만들거나 전력을 쓰는 방이 아니면 만족도만.</summary>
+        Production,
+        /// <summary>그 방 내구도 + 만족도 (화재).</summary>
+        Damage,
+        /// <summary>산소 + 만족도 (환기).</summary>
+        Air,
+        /// <summary>만족도만 (장식 · 소품 · 등불 — 분위기 문제).</summary>
+        Mood,
+    }
+
+    /// <summary>
+    /// CONNECT_1121 A6 단계별 상황 표 (사용자 결정 2026-11-27): 진화 단계마다 그 테마의 상황 (기본 = 지금 넷).
+    /// 0 = 기본 · 1 = 미래 기술 · 2 = 테마파크 · 3 = 동화 · 정원 · 4 = 성운. 손실은 지금 사고 값을 다시 씀.
+    /// </summary>
+    public static class IncidentCatalog
+    {
+        private static readonly IncidentKind[] Basic = { IncidentKind.Leak, IncidentKind.Breaker, IncidentKind.Fire, IncidentKind.Filter };
+        private static readonly IncidentKind[] Stage1 = { IncidentKind.HoloPanel, IncidentKind.CoolantCore, IncidentKind.MaintBot };
+        private static readonly IncidentKind[] Stage2 = { IncidentKind.RideStop, IncidentKind.DecoLights, IncidentKind.ScatteredToys };
+        private static readonly IncidentKind[] Stage3 = { IncidentKind.WaterChannel, IncidentKind.Lanterns, IncidentKind.Vines };
+        private static readonly IncidentKind[] Stage4 = { IncidentKind.SignalDrift, IncidentKind.StarLanterns };
+
+        /// <summary>그 단계 방의 상황 종류 (4단계 위는 4단계 것).</summary>
+        public static IReadOnlyList<IncidentKind> KindsForStage(int stage)
+        {
+            switch (stage)
+            {
+                case 0: return Basic;
+                case 1: return Stage1;
+                case 2: return Stage2;
+                case 3: return Stage3;
+                default: return stage < 0 ? Basic : Stage4;
+            }
+        }
+
+        /// <summary>상황이 속한 단계.</summary>
+        public static int StageOf(IncidentKind kind)
+        {
+            for (int s = 0; s <= 4; s++)
+            {
+                foreach (var k in KindsForStage(s))
+                {
+                    if (k == kind)
+                        return s;
+                }
+            }
+            return 0;
+        }
+
+        /// <summary>놓쳤을 때 손실 종류.</summary>
+        public static IncidentLoss LossOf(IncidentKind kind)
+        {
+            switch (kind)
+            {
+                case IncidentKind.Leak:
+                case IncidentKind.WaterChannel:
+                    return IncidentLoss.Drain;
+                case IncidentKind.Breaker:
+                case IncidentKind.HoloPanel:
+                case IncidentKind.MaintBot:
+                case IncidentKind.RideStop:
+                case IncidentKind.SignalDrift:
+                    return IncidentLoss.Production;
+                case IncidentKind.Fire:
+                case IncidentKind.CoolantCore:
+                case IncidentKind.Vines:
+                    return IncidentLoss.Damage;
+                case IncidentKind.Filter:
+                    return IncidentLoss.Air;
+                default:
+                    return IncidentLoss.Mood;
+            }
+        }
     }
 
     /// <summary>

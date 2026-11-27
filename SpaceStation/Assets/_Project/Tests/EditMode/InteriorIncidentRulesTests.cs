@@ -23,6 +23,33 @@ namespace SpaceStation.Tests
         }
 
         [Test]
+        public void StageCatalog_KindsPerStage_PickStaysInStage()
+        {
+            // CONNECT A6 단계별 상황 표 (사용자 결정 2026-11-27)
+            Assert.AreEqual(4, IncidentCatalog.KindsForStage(0).Count, "기본 = 지금 넷");
+            Assert.AreEqual(3, IncidentCatalog.KindsForStage(1).Count);
+            Assert.AreEqual(3, IncidentCatalog.KindsForStage(2).Count);
+            Assert.AreEqual(3, IncidentCatalog.KindsForStage(3).Count);
+            Assert.AreEqual(2, IncidentCatalog.KindsForStage(4).Count);
+            Assert.AreEqual(2, IncidentCatalog.StageOf(IncidentKind.RideStop));
+            Assert.AreEqual(0, IncidentCatalog.StageOf(IncidentKind.Filter));
+            Assert.AreEqual(IncidentLoss.Drain, IncidentCatalog.LossOf(IncidentKind.WaterChannel));
+            Assert.AreEqual(IncidentLoss.Mood, IncidentCatalog.LossOf(IncidentKind.Lanterns));
+            Assert.AreEqual(IncidentLoss.Air, IncidentCatalog.LossOf(IncidentKind.Filter), "지금 넷은 손실 그대로");
+
+            var stage3 = IncidentCatalog.KindsForStage(3);
+            for (int i = 0; i < 20; i++)
+            {
+                var k = InteriorIncidentRules.Pick(stage3, true, IncidentKind.Lanterns, i / 20.0);
+                Assert.IsTrue(k.HasValue);
+                Assert.AreEqual(3, IncidentCatalog.StageOf(k.Value), "그 단계 상황만");
+                Assert.AreNotEqual(IncidentKind.Lanterns, k.Value, "직전과 같은 종류 안 나옴");
+            }
+            Assert.IsNull(InteriorIncidentRules.Pick(new IncidentKind[0], true, null, 0.5), "고를 것이 없으면 상황 없음 (트인 방)");
+            Assert.AreEqual(IncidentKind.Lanterns, InteriorIncidentRules.Pick(new[] { IncidentKind.Lanterns }, true, IncidentKind.Lanterns, 0.5), "하나뿐이면 직전과 같아도");
+        }
+
+        [Test]
         public void Breaker_LitOnly_WrongResets_AllDone()
         {
             var lit = InteriorIncidentRules.TripPattern(new System.Random(3));

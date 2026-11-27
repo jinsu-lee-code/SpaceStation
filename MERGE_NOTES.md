@@ -3634,3 +3634,22 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 
 ### `tycoon` 합칠 때
 - [x] 같은 코드 · 데이터 (tycoon에서 만들어 봇 60분 × 3판 결과가 바꾸기 전과 같음을 확인 · EditMode)
+
+## M-366. 단계별 내부 상황 틀 U1 (CONNECT_1121 A6, 2026-11-27, `main` — tycoon과 같은 코드)
+
+결정 (사용자 2026-11-27): 단계별 상황을 먼저 — 트인 방 버그(벽 없는 곳 벽 상황)는 따로 안 고치고 단계별 상황으로 사라지게, 1 ~ 4단계 한 번에. 원형 표 = CONNECT_1121 A6.
+
+**main에 넣은 것**
+
+- `IncidentKind` 11개 (끝에 더함) · `IncidentCatalog` (`KindsForStage` · `StageOf` · `LossOf`) · `IncidentLoss` (Drain · Production · Damage · Air · Mood)
+- `StationInteriorOutcomes.MissIncident`: 손실 종류로 나눔 (지금 넷은 그대로, 새 상황은 다시 씀 · 만들거나 전력을 쓰지 않는 방의 생산 손실 = 만족도만)
+- `InteriorIncidentRules.Pick(kinds, …)` (기존 `Pick(bool, …)`은 기본 넷에서 — 결과 같음) · `Title` · `Hint` 새 상황
+- `InteriorIncidents.KindsFor` (방 단계 상황 가운데 만든 것만, 1단계는 그 전까지 기본 넷) · `InteriorSpots.Walls`: 2단계 이상 방은 벽 자리 없음
+- 시험 2
+
+**main에서 따로 할 것**
+
+- 없음. U2 ~ U4 전까지 2단계 이상 방은 사고 · 환풍구 부탁이 없음 (현장 수리는 예전 연출)
+
+### `narrative` 합칠 때
+- [ ] 서사판에 진화 모듈 방이 있는 장이면 같은 동작 (트인 방 조용함 → U2 ~ U4로 채움)
