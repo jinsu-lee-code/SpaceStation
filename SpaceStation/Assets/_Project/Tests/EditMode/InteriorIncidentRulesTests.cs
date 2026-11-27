@@ -69,5 +69,59 @@ namespace SpaceStation.Tests
             Assert.AreEqual(SwitchPress.AllDone, last);
             Assert.AreEqual(SwitchPress.Wrong, InteriorIncidentRules.Press(lit, 0), "다 올린 뒤에는 누를 게 없음");
         }
+
+        [Test]
+        public void Notches_StartDiffersFromTarget_TurnWraps_SolvedWhenAllMatch()
+        {
+            // CONNECT A6 3단계 ① 물꼬 판 · 4단계 ① 신호 다이얼 (사용자 결정 2026-11-27)
+            var rng = new System.Random(7);
+            for (int round = 0; round < 50; round++)
+            {
+                var target = InteriorIncidentRules.NotchTargets(rng, InteriorIncidentRules.SluiceWheels, out var start);
+                for (int i = 0; i < target.Length; i++)
+                {
+                    Assert.That(target[i], Is.InRange(1, InteriorIncidentRules.Notches));
+                    Assert.That(start[i], Is.InRange(1, InteriorIncidentRules.Notches));
+                    Assert.AreNotEqual(target[i], start[i], "처음부터 맞아 있으면 할 일이 없음");
+                }
+                Assert.IsFalse(InteriorIncidentRules.NotchesSolved(start, target));
+                // 바퀴마다 목표까지 돌리면 해결 (5칸 안에)
+                var levels = (int[])start.Clone();
+                for (int i = 0; i < levels.Length; i++)
+                {
+                    int turns = 0;
+                    while (levels[i] != target[i])
+                    {
+                        levels[i] = InteriorIncidentRules.TurnNotch(levels[i]);
+                        turns++;
+                    }
+                    Assert.That(turns, Is.InRange(1, InteriorIncidentRules.Notches - 1));
+                }
+                Assert.IsTrue(InteriorIncidentRules.NotchesSolved(levels, target));
+            }
+            Assert.AreEqual(1, InteriorIncidentRules.TurnNotch(InteriorIncidentRules.Notches), "마지막 칸 다음은 첫 칸");
+        }
+
+        [Test]
+        public void LampOrder_NoImmediateRepeat_WrongRestarts()
+        {
+            // CONNECT A6 3단계 ② 등불 순서 · 4단계 ② 별빛 등불
+            var rng = new System.Random(3);
+            for (int round = 0; round < 50; round++)
+            {
+                var order = InteriorIncidentRules.LampOrder(rng);
+                Assert.That(order.Length, Is.InRange(InteriorIncidentRules.LampOrderMin, InteriorIncidentRules.LampOrderMax));
+                for (int i = 1; i < order.Length; i++)
+                    Assert.AreNotEqual(order[i - 1], order[i], "같은 등불이 바로 이어 나오지 않음");
+            }
+            var o = new[] { 2, 0, 3 };
+            int entered = 0;
+            Assert.AreEqual(SwitchPress.Fixed, InteriorIncidentRules.PressLamp(o, ref entered, 2));
+            Assert.AreEqual(SwitchPress.Wrong, InteriorIncidentRules.PressLamp(o, ref entered, 1));
+            Assert.AreEqual(0, entered, "틀리면 처음부터");
+            InteriorIncidentRules.PressLamp(o, ref entered, 2);
+            InteriorIncidentRules.PressLamp(o, ref entered, 0);
+            Assert.AreEqual(SwitchPress.AllDone, InteriorIncidentRules.PressLamp(o, ref entered, 3));
+        }
     }
 }

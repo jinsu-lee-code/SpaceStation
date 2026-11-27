@@ -18,7 +18,7 @@ namespace SpaceStation.Interior
     {
         private const float ReachStep = 0.25f;     // 바닥 격자 간격
         private const float ReachSpan = 4f;        // 칸 가운데에서 훑는 범위 (칸 크기 8의 반 → 이웃 칸과 이어짐)
-        private const float RaisedFloorMin = 0.5f;  // 시작 자리가 칸 바닥보다 이만큼 넘게 높으면 바닥을 높여 지은 층 (RaisedFloor)
+        private const float RaisedFloorMin = 0.5f;  // 시작 자리가 칸 바닥에서 이만큼 넘게 위 · 아래면 바닥 높이를 옮겨 지은 층 (RaisedFloor)
         private const float RaisedFloorMax = 3f;
         private const float PlayerRadius = 0.3f;   // FirstPersonController
         private const float PlayerHeight = 1.75f;
@@ -342,8 +342,9 @@ namespace SpaceStation.Interior
         }
 
         /// <summary>
-        /// 바닥을 높여 지은 층: 템플릿 시작 자리가 그 층 칸 바닥보다 0.5 ~ 3m 높으면 그 층의 걷는 바닥 = 시작 자리 높이.
-        /// 요새(성벽 위 길 1.85m)만 해당 (템플릿 84개 중, 2026-11-27) — 칸 바닥 기준이라 바닥 자리가 하나도 안 잡혔음 (주민 부탁 물건 · 상황 소품).
+        /// 바닥 높이를 옮겨 지은 층: 템플릿 시작 자리가 가장 가까운 층 칸 바닥에서 0.5 ~ 3m 위 · 아래면 그 층의 걷는 바닥 = 시작 자리 높이.
+        /// 템플릿 84개 중 요새(성벽 위 길 +1.85m) · AI 중추(−0.75m) · 수리 사령부(−0.78m)만 해당 (2026-11-27) —
+        /// 칸 바닥 기준이라 바닥 자리가 하나도 안 잡혔음 (주민 부탁 물건 · 상황 소품). 아콜로지(위층 시작 −3.8m)는 범위 밖이라 그대로.
         /// </summary>
         private static void RaisedFloor(InteriorBuilder builder, ModuleInstance module, out int level, out float raise)
         {
@@ -356,13 +357,14 @@ namespace SpaceStation.Interior
             foreach (var cell in module.Cells)
             {
                 float d = spawn.y - builder.FloorPoint(cell).y;
-                if (d >= -0.3f && d < best)
+                if (Mathf.Abs(d) < Mathf.Abs(best))
                 {
                     best = d;
                     level = cell.y;
                 }
             }
-            if (best > RaisedFloorMin && best < RaisedFloorMax)
+            float off = Mathf.Abs(best);
+            if (off > RaisedFloorMin && off < RaisedFloorMax)
                 raise = best;
             else
                 level = int.MinValue;

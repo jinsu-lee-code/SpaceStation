@@ -22,6 +22,14 @@ COLORS = {
     'Hazard': ((0.95, 0.72, 0.08), 0.35),
     'Led': ((0.92, 0.92, 0.92), 0.5),      # Unity: 빨강 · 초록 + 발광
     'Wicker': ((0.72, 0.52, 0.30), 0.3),
+    # 3단계 (동화 · 정원) · 4단계 (성운)
+    'Wood': ((0.52, 0.35, 0.21), 0.3),
+    'Stone': ((0.64, 0.63, 0.58), 0.2),
+    'Moss': ((0.30, 0.52, 0.27), 0.25),
+    'Leaf': ((0.45, 0.70, 0.33), 0.3),
+    'Brass': ((0.80, 0.62, 0.26), 0.6),
+    'Navy': ((0.11, 0.13, 0.27), 0.45),
+    'Violet': ((0.46, 0.32, 0.72), 0.45),
 }
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -263,6 +271,157 @@ def build_toys():
     return out
 
 
+# ================= 3단계 ① 물길 막힘 — 물가 물꼬 판 =================
+# 돌 받침 · 나무 판 · 판자 지붕, 물길 셋: 홈(어두움) 안의 놋쇠 수문판 Gate0~2 (원점 = 1단 자리, Unity가 단마다 아래로 내림) ·
+# 홈 왼쪽 눈금 등 Notch{물길}{단} (0 = 1단 = 맨 위, Unity가 목표 단 = 깜빡 · 맞으면 초록으로 물들임) · 아래 바퀴 Wheel0~2 (원점 = 굴대, 앞 축으로 돎)
+SLUICE_X = (-0.34, 0.0, 0.34)
+SLUICE_FRONT = -0.06
+SLUICE_TOP = 1.08
+SLUICE_STEP = 0.11
+SLUICE_WHEEL_Z = 0.36
+
+
+def build_sluice():
+    out = []
+    prism(rrect(0, 0, 1.22, 0.42, 0.06), 0.0, 0.18, 'Stone', bevel=0.02, seg=3)
+    prism(rrect(0, 0.72, 1.10, 1.10, 0.05), 0.06, SLUICE_FRONT, 'Wood', axis='y', bevel=0.008)
+    prism(rrect(0, 0, 1.22, 0.24, 0.05), 1.26, 1.33, 'Wood', bevel=0.012)
+    for x in SLUICE_X:
+        prism(rrect(x, SLUICE_TOP - 2 * SLUICE_STEP, 0.12, 0.60, 0.03), SLUICE_FRONT + 0.005, SLUICE_FRONT - 0.010, 'Housing', axis='y', bevel=0.003)
+        # 바퀴 굴대 받침 (판에 묻음)
+        prism([(x + p[0], SLUICE_WHEEL_Z + p[1]) for p in circle(0, 0, 0.045, 16)], SLUICE_FRONT + 0.005, SLUICE_FRONT - 0.03, 'Stone', axis='y')
+    out.append(('IncSluice', take(), Vector((0, 0, 0))))
+    for i, x in enumerate(SLUICE_X):
+        prism(rrect(0, 0, 0.10, 0.06, 0.012), SLUICE_FRONT - 0.008, SLUICE_FRONT - 0.026, 'Brass', axis='y', bevel=0.003)
+        PARTS[-1] = (PARTS[-1][0], 'Brass')
+        bm = PARTS[-1][0]
+        for v in bm.verts:
+            v.co.x += x; v.co.z += SLUICE_TOP
+        out.append(('Gate%d' % i, take(), Vector((x, SLUICE_FRONT - 0.017, SLUICE_TOP))))
+    for i, x in enumerate(SLUICE_X):
+        for n in range(5):
+            dome((x - 0.11, SLUICE_FRONT + 0.006, SLUICE_TOP - n * SLUICE_STEP), 0.02, 'Led', u=14, v=7)   # 판에 반쯤 묻음
+            out.append(('Notch%d%d' % (i, n), take(), Vector((x - 0.11, SLUICE_FRONT + 0.006, SLUICE_TOP - n * SLUICE_STEP))))
+    for i, x in enumerate(SLUICE_X):
+        c = Vector((x, SLUICE_FRONT - 0.06, SLUICE_WHEEL_Z))
+        torus((c.x, c.y, c.z), 0.12, 0.018, 'Wood', seg=28, sides=8, axis='y')
+        prism([(x + p[0], SLUICE_WHEEL_Z + p[1]) for p in circle(0, 0, 0.034, 16)], SLUICE_FRONT - 0.025, SLUICE_FRONT - 0.085, 'Brass', axis='y')
+        for k in range(4):
+            a = math.pi / 4 + k * math.pi / 2
+            tube([c + Vector((math.cos(a) * 0.025, 0, math.sin(a) * 0.025)), c + Vector((math.cos(a) * 0.125, 0, math.sin(a) * 0.125))], 0.011, 'Wood', up=Vector((0, 1, 0)))
+        dome((c.x + 0.12, c.y - 0.03, c.z), 0.022, 'Brass', u=12, v=6)   # 손잡이 (돌리는 게 보이게)
+        tube([c + Vector((0.12, 0.005, 0)), c + Vector((0.12, -0.03, 0))], 0.009, 'Brass')
+        out.append(('Wheel%d' % i, take(), c))
+    return out
+
+
+# ================= 3단계 ② 등불 순서 — 정원 등불 / 4단계 ② 별빛 등불 =================
+# 원점 = 바닥 가운데. 빛나는 유리 = LampGlass (M_IncLed — Unity가 꺼짐 = 어둡게 · 켜짐 = 환하게 물들임 + 작은 빛)
+def build_lantern():
+    prism(circle(0, 0, 0.17, 20), 0.0, 0.08, 'Stone', bevel=0.015)
+    prism(circle(0, 0, 0.055, 16), 0.075, 0.64, 'Stone')
+    prism(rrect(0, 0, 0.30, 0.30, 0.04), 0.63, 0.67, 'Wood', bevel=0.006)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            prism(rrect(sx * 0.12, sy * 0.12, 0.035, 0.035, 0.008), 0.665, 0.90, 'Wood')
+    dome((0, 0, 0.96), 0.21, 'Moss', sz=0.45, u=20, v=10)   # 지붕 = 납작한 공 (유리 위 1 cm · 기둥 끝을 덮음)
+    dome((0, 0, 1.05), 0.035, 'Moss', u=12, v=6)
+    body = take()
+    prism(rrect(0, 0, 0.20, 0.20, 0.05), 0.665, 0.875, 'Led', bevel=0.01)
+    glass = take()
+    return [('IncLantern', body, Vector((0, 0, 0))), ('LampGlass', glass, Vector((0, 0, 0.77)))]
+
+
+def build_star_lantern():
+    prism(circle(0, 0, 0.16, 20), 0.0, 0.06, 'Navy', bevel=0.012)
+    prism(circle(0, 0, 0.03, 12), 0.055, 0.86, 'Metal')
+    torus((0, 0, 1.06), 0.19, 0.014, 'Violet', seg=28, sides=8, axis='y')   # 별을 두르는 고리 (기둥 끝에 걸림)
+    tube([Vector((0, 0, 0.85)), Vector((0, 0, 0.995))], 0.03, 'Metal')   # 별 아래 홈까지 (별이 떠 있지 않게)
+    body = take()
+    prism(star(0, 1.06, 0.17, 0.075), 0.035, -0.035, 'Led', axis='y', bevel=0.012, seg=2)
+    glass = take()
+    return [('IncStarLantern', body, Vector((0, 0, 0))), ('StarGlass', glass, Vector((0, 0, 1.06)))]
+
+
+# ================= 3단계 ③ 덩굴 웃자람 — 길을 막은 덩굴 덤불 =================
+def leaf(c, length, width, yaw, pitch, mat):
+    """뾰족한 잎 (납작한 길쭉 타원체) — 잎자루 쪽이 c, 잎끝이 yaw · pitch 방향."""
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=6, radius=1.0)
+    rot = Matrix.Rotation(yaw, 4, 'Z') @ Matrix.Rotation(-pitch, 4, 'Y')
+    for v in bm.verts:
+        x = v.co.x * length * 0.5
+        y = v.co.y * width * 0.5 * (1.0 - 0.55 * abs(v.co.x))   # 끝으로 갈수록 좁게 (뾰족)
+        z = v.co.z * 0.012
+        q = rot @ Vector((x + length * 0.5, y, z))
+        v.co = Vector(c) + q
+    orient_outward(bm)
+    PARTS.append((bm, mat))
+    return bm
+
+
+def build_vines():
+    import random
+    rnd = random.Random(1127)
+    tops = []
+    for k in range(7):
+        a0 = k * 2 * math.pi / 7 + rnd.uniform(-0.25, 0.25)
+        sweep = rnd.uniform(0.9, 1.6) * (1 if k % 2 == 0 else -1)
+        r1 = rnd.uniform(0.34, 0.48)
+        h = rnd.uniform(0.38, 0.6)
+        pts = []
+        n = 15
+        for t in range(n):
+            u = t / (n - 1)
+            rr = 0.06 + (r1 - 0.06) * u
+            aa = a0 + sweep * u
+            wob = 0.03 * math.sin(u * math.pi * 3 + k)
+            pts.append(Vector((math.cos(aa) * (rr + wob), math.sin(aa) * (rr + wob), -0.02 + h * math.sin(u * math.pi) * (1.0 - 0.25 * u))))
+        tube(pts, 0.022, 'Moss', seg=10)
+        tops.append(pts[6])
+        for t in (3, 6, 9, 12):
+            p0, p1 = pts[t], pts[t + 1]
+            d = p1 - p0
+            side = Vector((-d.y, d.x, 0)).normalized() * (1 if t % 2 else -1)
+            yaw = math.atan2(side.y, side.x) + rnd.uniform(-0.4, 0.4)
+            leaf(p0 + side * 0.012, 0.13, 0.07, yaw, rnd.uniform(0.1, 0.5), 'Leaf')
+    for k in (0, 3, 5):   # 작은 꽃 = 덩굴 위에 붙음 (떠 있지 않게)
+        p = tops[k]
+        dome((p.x, p.y, p.z + 0.028), 0.04, 'Hazard', u=12, v=6)
+    prism(circle(0, 0, 0.16, 16), -0.02, 0.04, 'Moss', bevel=0.015)
+    return [('IncVines', take(), Vector((0, 0, 0)))]
+
+
+# ================= 4단계 ① 신호 흐트러짐 — 다이얼 조작반 =================
+# 남빛 받침 · 보라 화면 틀 · 화면 Screen (Unity가 선 두 개로 파형을 그림) · 다이얼 Dial0 (빈도) · Dial1 (세기) (원점 = 축, 앞 축으로 돎) ·
+# 다이얼 위 눈금 등 Tick{다이얼}{칸} (물꼬 판 Notch와 이름이 겹치지 않게) (Unity가 목표 칸 깜빡 · 맞으면 초록)
+SIG_FRONT = -0.22
+SIG_DIAL_Z = 0.62
+SIG_DIAL_X = (-0.18, 0.18)
+
+
+def build_signal_console():
+    out = []
+    prism(rrect(0, 0, 0.86, 0.50, 0.06), 0.0, 0.06, 'Housing', bevel=0.008)
+    prism(rrect(0, 0, 0.78, 0.44, 0.08), 0.055, 0.90, 'Navy', bevel=0.012)
+    prism(rrect(0, 1.14, 0.80, 0.50, 0.05), 0.08, -0.04, 'Violet', axis='y', bevel=0.008)   # 받침 위 1 cm 겹침
+    for x in SIG_DIAL_X:
+        prism([(x + p[0], SIG_DIAL_Z + p[1]) for p in circle(0, 0, 0.085, 24)], SIG_FRONT + 0.005, SIG_FRONT - 0.008, 'Violet', axis='y')
+    out.append(('IncSignalConsole', take(), Vector((0, 0, 0))))
+    prism(rrect(0, 1.14, 0.68, 0.36, 0.03), -0.035, -0.05, 'Housing', axis='y')
+    out.append(('Screen', take(), Vector((0, -0.05, 1.14))))
+    for d, x in enumerate(SIG_DIAL_X):
+        prism([(x + p[0], SIG_DIAL_Z + p[1]) for p in circle(0, 0, 0.065, 24)], SIG_FRONT - 0.006, SIG_FRONT - 0.05, 'Metal', axis='y', bevel=0.008)
+        prism(rrect(x, SIG_DIAL_Z + 0.04, 0.016, 0.05, 0.006), SIG_FRONT - 0.048, SIG_FRONT - 0.058, 'Hazard', axis='y')   # 가리키는 금
+        out.append(('Dial%d' % d, take(), Vector((x, SIG_FRONT - 0.03, SIG_DIAL_Z))))
+    for d, x in enumerate(SIG_DIAL_X):
+        for n in range(5):
+            nx = x - 0.1 + n * 0.05
+            dome((nx, SIG_FRONT - 0.002, SIG_DIAL_Z + 0.135), 0.016, 'Led', u=12, v=6)
+            out.append(('Tick%d%d' % (d, n), take(), Vector((nx, SIG_FRONT - 0.002, SIG_DIAL_Z + 0.135))))
+    return out
+
+
 def finish(name, parts, origin=None):
     me = bpy.data.meshes.new(name); ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
@@ -312,7 +471,8 @@ def finish(name, parts, origin=None):
 
 
 groups = {}
-for name, fn in (('IncDecoBox', build_decobox), ('IncRideConsole', build_rideconsole), ('IncToys', build_toys)):
+for name, fn in (('IncDecoBox', build_decobox), ('IncRideConsole', build_rideconsole), ('IncToys', build_toys), ('IncSluice', build_sluice),
+                 ('IncLantern', build_lantern), ('IncStarLantern', build_star_lantern), ('IncVines', build_vines), ('IncSignalConsole', build_signal_console)):
     groups[name] = [finish(n, parts, origin) for n, parts, origin in fn()]
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, 'stage_incident.blend'))
 
@@ -344,7 +504,9 @@ ld = bpy.data.lights.new('Sun', 'SUN'); ld.energy = 3.0
 lo = bpy.data.objects.new('Sun', ld); sc.collection.objects.link(lo); lo.rotation_euler = (math.radians(55), 0, math.radians(-30))
 cd = bpy.data.cameras.new('C'); cd.type = 'ORTHO'; cam = bpy.data.objects.new('C', cd); sc.collection.objects.link(cam); sc.camera = cam
 pv = os.path.join(HERE, 'preview'); os.makedirs(pv, exist_ok=True)
-for gname, prefix, center, scale in (('IncDecoBox', 'stage_decobox', 0.55, 1.45), ('IncRideConsole', 'stage_console', 0.7, 1.7), ('IncToys', 'stage_toys', 0.25, 1.6)):
+for gname, prefix, center, scale in (('IncDecoBox', 'stage_decobox', 0.55, 1.45), ('IncRideConsole', 'stage_console', 0.7, 1.7), ('IncToys', 'stage_toys', 0.25, 1.6),
+                                     ('IncSluice', 'stage_sluice', 0.65, 1.6), ('IncLantern', 'stage_lantern', 0.55, 1.3), ('IncStarLantern', 'stage_starlantern', 0.65, 1.4),
+                                     ('IncVines', 'stage_vines', 0.3, 1.3), ('IncSignalConsole', 'stage_signal', 0.75, 1.7)):
     for other, obs in groups.items():
         for x in obs:
             x.hide_render = other != gname

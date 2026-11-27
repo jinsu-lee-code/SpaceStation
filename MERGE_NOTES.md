@@ -3705,3 +3705,21 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 
 ### `narrative` 합칠 때
 - [ ] 서사판 씬도 같은 메뉴 (Setup Stage Incidents)로 바구니 · 소품 연결
+
+## M-370. 단계별 내부 상황 U3 3 · 4단계 (CONNECT_1121 A6, 2026-11-27, `main` — tycoon과 같은 코드)
+
+결정 (사용자 2026-11-27, 셋 다 추천안): 물길 막힘 = 물가 물꼬 판 · 등불 순서 = 새 바닥 등불 4개 길이 고정 · 신호 흐트러짐 = 다이얼 2개 칸 맞추기.
+
+**main에 넣은 것**
+
+- `InteriorIncidents.Garden.cs`: 3단계 물길 막힘 (물 있는 방 — 물가 물꼬 판, 바퀴 셋 · 눈금 다섯, 상황 동안 폭포 메시 · 물보라 · 분수가 멈춤) · 등불 순서 · 4단계 별빛 등불 (등불 넷이 한 줄 · 안 되면 모아 놓고 순서대로 깜빡 → 같은 순서로 F, 틀리면 다시 보여 줌) · 덩굴 웃자람 (2 ~ 3곳 F 길게) · 신호 흐트러짐 (다이얼 둘 · 화면 목표 · 지금 파형)
+- 규칙 `InteriorIncidentRules.NotchTargets` · `TurnNotch` · `NotchesSolved` · `LampOrder` · `PressLamp` + 시험 2 · `InteriorWaterfallFx.LandingCount` · `InteriorFountainFx.SetFlowing`
+- `InteriorSpots.RaisedFloor`: 바닥을 낮춰 지은 층도 (AI 중추 −0.75m · 수리 사령부 −0.78m — 바닥 자리가 0이었음, 요새 +1.85m와 함께)
+- `Settings` 다섯 칸 · 메뉴 Setup Stage Incidents 다섯 줄 · 씬 연결 (같은 GUID라 글로) · 모델 다섯 (stage_incident_builder.py — `leaf` 잎 도우미 더함)
+
+**main에서 따로 할 것**
+
+- 없음
+
+### `narrative` 합칠 때
+- [ ] 서사판 씬도 같은 메뉴로 다섯 소품 연결

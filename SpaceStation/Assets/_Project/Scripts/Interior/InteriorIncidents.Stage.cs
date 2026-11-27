@@ -56,7 +56,8 @@ namespace SpaceStation.Interior
         }
 
         /// <summary>놓는 코드가 있는 단계 상황 (U2 ~ U4에서 하나씩).</summary>
-        private static bool StageImplemented(IncidentKind kind) => kind == IncidentKind.DecoLights || kind == IncidentKind.RideStop || kind == IncidentKind.ScatteredToys;
+        private static bool StageImplemented(IncidentKind kind) =>
+            kind == IncidentKind.DecoLights || kind == IncidentKind.RideStop || kind == IncidentKind.ScatteredToys || IsGarden(kind);
 
         private bool PlaceStage(Incident a)
         {
@@ -65,7 +66,7 @@ namespace SpaceStation.Interior
                 case IncidentKind.DecoLights: return PlaceDecoLights(a);
                 case IncidentKind.RideStop: return PlaceRideStop(a);
                 case IncidentKind.ScatteredToys: return PlaceScatteredToys(a);
-                default: return false;
+                default: return IsGarden(a.Kind) && PlaceGarden(a);   // 3 · 4단계 (InteriorIncidents.Garden.cs)
             }
         }
 
@@ -82,6 +83,10 @@ namespace SpaceStation.Interior
                 case IncidentKind.ScatteredToys:
                     AnimateToys(a, now);
                     break;
+                default:
+                    if (IsGarden(a.Kind))
+                        AnimateGarden(a, now, holding, false);
+                    break;
             }
         }
 
@@ -90,6 +95,8 @@ namespace SpaceStation.Interior
         {
             if (a.Kind == IncidentKind.RideStop)
                 RestartRides(a);
+            else if (IsGarden(a.Kind))
+                ResolveGarden(a);
         }
 
         /// <summary>해결한 뒤 말풍선이 사라질 때까지 (2.5초): 밝기 · 회전을 끝까지 되돌리고 바닥 소품을 내림.</summary>
@@ -105,6 +112,10 @@ namespace SpaceStation.Interior
                     break;
                 case IncidentKind.ScatteredToys:
                     AnimateToysDone(a, dt);
+                    break;
+                default:
+                    if (IsGarden(a.Kind))
+                        AnimateGarden(a, Time.unscaledTime, false, true);
                     break;
             }
         }
@@ -122,6 +133,10 @@ namespace SpaceStation.Interior
                     break;
                 case IncidentKind.ScatteredToys:
                     RestoreToys(a);
+                    break;
+                default:
+                    if (IsGarden(a.Kind))
+                        RestoreGarden(a);
                     break;
             }
         }
