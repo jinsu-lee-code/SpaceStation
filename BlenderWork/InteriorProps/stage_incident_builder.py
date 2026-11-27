@@ -148,6 +148,44 @@ def build_decobox():
     return [('IncDecoBox', body, Vector((0, 0, 0))), ('DecoLed', led, Vector((0, 0, LAMP_Z)))]
 
 
+# ================= 2단계 ① 놀이기구 운행 조작반 =================
+# 크림 몸 · 빨간 지붕 · 청록 판에 레버 6개 (Switch0~5, 원점 = 축) · 경고등 6개 (Led0~5) — 차단기와 같은 이름 (코드가 같은 규칙으로 씀)
+# 레버는 앞(−y)으로 나온 막대 + 노란 손잡이 (경고등 빨강 · 초록과 헷갈리지 않게), Unity가 X축으로 ±28° 돌려 내림(경고) · 올림(정상)
+CONSOLE_FRONT = -0.18       # 몸 앞면 y
+BOARD_FRONT = -0.06         # 판 앞면 y
+LEVER_Z = 1.02
+LED_Z = 1.21
+
+
+def lever_x(i):
+    return -0.325 + 0.13 * i
+
+
+def build_rideconsole():
+    out = []
+    prism(rrect(0, 0, 0.98, 0.46, 0.06), 0.0, 0.06, 'Housing', bevel=0.008)
+    prism(rrect(0, 0, 0.88, 0.36, 0.06), 0.055, 0.86, 'Cream', bevel=0.01)
+    prism(rrect(0, 0, 0.94, 0.42, 0.06), 0.855, 0.90, 'Red', bevel=0.01)
+    # 아래 띠 (몸 앞면에 2 mm 묻음)
+    prism(rrect(0, 0.15, 0.80, 0.05, 0.02), CONSOLE_FRONT + 0.002, CONSOLE_FRONT - 0.008, 'Hazard', axis='y', bevel=0.003)
+    # 레버 판 (윗띠 위 1 cm 겹침) · 레버 홈 (판에 5 mm 묻음)
+    prism(rrect(0, 1.10, 0.86, 0.42, 0.04), 0.10, BOARD_FRONT, 'Teal', axis='y', bevel=0.006)
+    for i in range(6):
+        prism(rrect(lever_x(i), LEVER_Z, 0.05, 0.15, 0.02), BOARD_FRONT + 0.005, BOARD_FRONT - 0.008, 'Housing', axis='y', bevel=0.002)
+    # 지붕 (판 위 5 mm 겹침, 앞으로 조금 나옴)
+    prism(rrect(0, 0.02, 1.00, 0.38, 0.07), 1.305, 1.36, 'Red', bevel=0.012)
+    out.append(('IncRideConsole', take(), Vector((0, 0, 0))))
+    for i in range(6):
+        x = lever_x(i)
+        tube([Vector((x, BOARD_FRONT + 0.004, LEVER_Z)), Vector((x, BOARD_FRONT - 0.10, LEVER_Z))], 0.011, 'Metal')
+        dome((x, BOARD_FRONT - 0.115, LEVER_Z), 0.024, 'Hazard', u=16, v=8)
+        out.append(('Switch%d' % i, take(), Vector((x, BOARD_FRONT - 0.004, LEVER_Z))))
+    for i in range(6):
+        dome((lever_x(i), BOARD_FRONT - 0.006, LED_Z), 0.022, 'Led', u=16, v=8)   # 반쯤 판에 묻음
+        out.append(('Led%d' % i, take(), Vector((lever_x(i), BOARD_FRONT - 0.006, LED_Z))))
+    return out
+
+
 def finish(name, parts, origin=None):
     me = bpy.data.meshes.new(name); ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
@@ -197,7 +235,7 @@ def finish(name, parts, origin=None):
 
 
 groups = {}
-for name, fn in (('IncDecoBox', build_decobox),):
+for name, fn in (('IncDecoBox', build_decobox), ('IncRideConsole', build_rideconsole)):
     groups[name] = [finish(n, parts, origin) for n, parts, origin in fn()]
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, 'stage_incident.blend'))
 
@@ -229,7 +267,11 @@ ld = bpy.data.lights.new('Sun', 'SUN'); ld.energy = 3.0
 lo = bpy.data.objects.new('Sun', ld); sc.collection.objects.link(lo); lo.rotation_euler = (math.radians(55), 0, math.radians(-30))
 cd = bpy.data.cameras.new('C'); cd.type = 'ORTHO'; cam = bpy.data.objects.new('C', cd); sc.collection.objects.link(cam); sc.camera = cam
 pv = os.path.join(HERE, 'preview'); os.makedirs(pv, exist_ok=True)
-for tag, d in (('front', Vector((0.0, -1.0, 0.25))), ('q', Vector((0.6, -0.8, 0.45))), ('back', Vector((-0.5, 0.85, 0.3)))):
-    d = d.normalized(); cam.location = Vector((0, 0, 0.55)) + d * 4; cam.rotation_euler = (-d).to_track_quat('-Z', 'Y').to_euler()
-    cd.ortho_scale = 1.45; sc.render.resolution_x = 600; sc.render.resolution_y = 700
-    sc.render.filepath = os.path.join(pv, 'stage_decobox_%s.png' % tag); bpy.ops.render.render(write_still=True)
+for gname, prefix, center, scale in (('IncDecoBox', 'stage_decobox', 0.55, 1.45), ('IncRideConsole', 'stage_console', 0.7, 1.7)):
+    for other, obs in groups.items():
+        for x in obs:
+            x.hide_render = other != gname
+    for tag, d in (('front', Vector((0.0, -1.0, 0.25))), ('q', Vector((0.6, -0.8, 0.45))), ('back', Vector((-0.5, 0.85, 0.3)))):
+        d = d.normalized(); cam.location = Vector((0, 0, center)) + d * 4; cam.rotation_euler = (-d).to_track_quat('-Z', 'Y').to_euler()
+        cd.ortho_scale = scale; sc.render.resolution_x = 600; sc.render.resolution_y = 700
+        sc.render.filepath = os.path.join(pv, '%s_%s.png' % (prefix, tag)); bpy.ops.render.render(write_still=True)

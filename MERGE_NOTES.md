@@ -3673,3 +3673,19 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 
 ### `narrative` 합칠 때
 - [ ] 서사판 씬도 같은 메뉴 (Setup Stage Incidents)로 분전함 연결
+
+## M-368. 단계별 내부 상황 U2 ① 놀이기구 · 쇼 멈춤 (CONNECT_1121 A6, 2026-11-27, `main` — tycoon과 같은 코드)
+
+**main에 넣은 것**
+
+- `InteriorIncidents.Ride.cs`: 2단계 방의 탈것 · 쇼 · 대표 장치 16종을 꺼 둠 (각 기구의 OnDisable이 제자리에 세우고 타던 사람을 내려 줌 — 방을 나갈 때와 같은 길) · 사람 손 장식은 `InteriorOrbit.SpeedScale`로 천천히 멈춤 (물고기 · 구름 · 거품 · 플라스마 · 기체 · 흐름 · 돌은 그대로) · 그 기구가 만든 좌석 · 버튼은 `InteriorInteractable.Blocked` = "운행 정지" · 바닥 운행 조작반 (레버 6 · 경고등 6, 차단기 규칙 `TripPattern` · `Press` 그대로) → 다 올리면 바로 다시 움직임
+- `InteriorIncidents.Settings.RideConsole` · 메뉴 Setup Stage Incidents에 한 줄 · 씬 `Main.unity` 연결 (같은 GUID라 글로 넣음)
+- `TrySpawn`: 뽑힌 상황을 그 방에 못 놓으면 같은 방의 다른 상황부터 (기본 방도 — 벽 자리가 없어 누출을 못 놓으면 다른 사고) · 말풍선 자리 `BubbleAt` (바닥 소품 위)
+- 모델 `SM_IncRideConsole.fbx` (stage_incident_builder.py)
+
+**main에서 따로 할 것**
+
+- 없음
+
+### `narrative` 합칠 때
+- [ ] 서사판 씬도 같은 메뉴 (Setup Stage Incidents)로 조작반 연결
