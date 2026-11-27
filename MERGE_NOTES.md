@@ -3653,3 +3653,23 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 
 ### `narrative` 합칠 때
 - [ ] 서사판에 진화 모듈 방이 있는 장이면 같은 동작 (트인 방 조용함 → U2 ~ U4로 채움)
+
+## M-367. 단계별 내부 상황 U2 ② 장식 조명 꺼짐 (CONNECT_1121 A6, 2026-11-27, `main` — tycoon과 같은 코드)
+
+결정 (사용자 2026-11-27): 2단계 셋 = 기구 멈춤 · 조명 · 소품, 조명은 "전체가 꺼지고 분전함 2 ~ 3곳".
+
+**main에 넣은 것**
+
+- `InteriorIncidents.Stage.cs` (단계 상황 놓기 · 움직임 · 정리 틀 + 장식 조명 꺼짐) · `InteriorIncidents.Settings.DecoBox` · `DecoHold`
+- 방 장식 발광(모듈 포인트 빛 · 전구 · 얼음빛, 하늘 껍질 뺌) 6% · 방 조명 · 조명 판 40% (`InteriorAtmosphere.SetIncidentDim`, `InteriorMode`가 이어 줌) → 분전함을 하나 고칠 때마다 그만큼 밝아짐, 다 고치면 해결 · 분전함은 내려가 사라짐
+- 분전함 자리: 벽 · 난간에 등을 대고 문 앞에 설 바닥 · 옆 틈 · 문길 밖 (`InteriorSpots.NearDoor` · `IgnoredForSpots`)
+- `InteriorSpots`: 바닥을 높여 지은 방 (시작 자리가 칸 바닥보다 0.5 ~ 3m 높음 = 요새 하나)은 그 높이를 걷는 바닥으로 — 요새에 바닥 자리가 하나도 안 잡히던 문제 (주민 부탁 물건 · 상자도)
+- 모델 `BlenderWork/InteriorProps/stage_incident_builder.py` → `Art/Models/Interior/Incident/SM_IncDecoBox.fbx` · 메뉴 SpaceStation/Interior/Setup Stage Incidents (CONNECT A6) · 씬 `Main.unity` 사고 설정에 `DecoBox` 연결 (같은 GUID라 글로 넣음)
+- 안내 글: 장식 조명 꺼짐 = "조명 분전함을 찾아 고쳐 주세요"
+
+**main에서 따로 할 것**
+
+- 없음 (씬 연결까지 넣음 — main Unity에서 열어 분전함이 비어 있으면 위 메뉴 한 번)
+
+### `narrative` 합칠 때
+- [ ] 서사판 씬도 같은 메뉴 (Setup Stage Incidents)로 분전함 연결

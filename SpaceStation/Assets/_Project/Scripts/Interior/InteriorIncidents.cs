@@ -19,7 +19,7 @@ namespace SpaceStation.Interior
     /// - 표시: 소품 위 경고 말풍선(남은 시간) · 알림 · 경고음 · 패드 홀로그램 빨간 표시(<see cref="CountIn"/>). 사고 중에는 새 주민 요청이 쉼.
     /// 모델: BlenderWork/InteriorProps/incident_builder.py. 내부를 다시 만들면 진행 중 사고는 손실 없이 사라짐.
     /// </summary>
-    public sealed class InteriorIncidents : MonoBehaviour
+    public sealed partial class InteriorIncidents : MonoBehaviour
     {
         [Serializable]
         public sealed class Settings
@@ -34,6 +34,8 @@ namespace SpaceStation.Interior
             public GameObject Extinguisher;
             [Tooltip("공기 정화 필터함 (자식 FilterUnit · FilterLed · Cartridge)")]
             public GameObject Filter;
+            [Tooltip("CONNECT A6 2단계 장식 조명 꺼짐: 바닥에 세우는 조명 분전함 (자식 IncDecoBox · DecoLed)")]
+            public GameObject DecoBox;
             [Tooltip("경고 말풍선 재질 (주민 요청과 같은 것)")]
             public Material Bubble;
             [Tooltip("F 누르는 시간(초): 밸브 · 불 끄기 · 필터 · 소화기 들기 · 함 문 · 스위치")]
@@ -43,6 +45,8 @@ namespace SpaceStation.Interior
             public float PickupHold = 0.4f;
             public float DoorHold = 0.3f;
             public float SwitchHold = 0.15f;
+            [Tooltip("분전함 하나 고치는 시간(초)")]
+            public float DecoHold = 1.5f;
             [Tooltip("소품 가운데 높이 (바닥에서, m): 누출 · 차단기 · 화재 · 필터 · 소화기")]
             public float LeakHeight = 1.2f;
             public float BreakerHeight = 1.4f;
@@ -53,7 +57,7 @@ namespace SpaceStation.Interior
             public float BubbleRange = 25f;
         }
 
-        private sealed class Incident
+        private sealed partial class Incident
         {
             public IncidentKind Kind;
             public ModuleInstance Room;
@@ -253,6 +257,7 @@ namespace SpaceStation.Interior
                 {
                     PlaceBubble(a);
                     AnimateDoor(a, dt);
+                    AnimateStageDone(a, dt); // CONNECT A6 (분전함 내려감 등)
                 }
                 return;
             }
@@ -364,7 +369,7 @@ namespace SpaceStation.Interior
         }
 
         /// <summary>놓는 코드가 있는 상황 (단계 상황은 U2 ~ U4에서 하나씩 더함).</summary>
-        private static bool Implemented(IncidentKind kind) => IncidentCatalog.StageOf(kind) == 0;
+        private static bool Implemented(IncidentKind kind) => IncidentCatalog.StageOf(kind) == 0 || StageImplemented(kind);
 
         private static bool Contains(IReadOnlyList<IncidentKind> kinds, IncidentKind kind)
         {
@@ -384,7 +389,7 @@ namespace SpaceStation.Interior
                 case IncidentKind.Breaker: return PlaceBreaker(a);
                 case IncidentKind.Fire: return PlaceFire(a);
                 case IncidentKind.Filter: return PlaceFilter(a);
-                default: return false; // 단계 상황 (U2 ~ U4)
+                default: return PlaceStage(a); // CONNECT A6 단계 상황 (InteriorIncidents.Stage.cs)
             }
         }
 
@@ -700,7 +705,7 @@ namespace SpaceStation.Interior
                     else
                         SetRate(a.Flames, 60f);
                     break;
-                default:
+                case IncidentKind.Filter:
                     if (a.FilterLed != null)
                         TintRenderer(a.FilterLed, "M_IncLed", Mathf.Repeat(now, 0.8f) < 0.4f ? LedRed : new Color(0.25f, 0.05f, 0.04f));
                     if (a.Cartridge != null)
@@ -712,6 +717,9 @@ namespace SpaceStation.Interior
                         else if (!holding)
                             Tint(a.Prop, "M_IncFilter", FilterDirty);
                     }
+                    break;
+                default:
+                    AnimateStage(a, now, holding); // CONNECT A6 단계 상황
                     break;
             }
             AnimateDoor(a, dt);
@@ -755,7 +763,7 @@ namespace SpaceStation.Interior
                     if (a.Bottle != null)
                         a.Bottle.SetActive(true); // 다 쓴 소화기는 제자리에
                     break;
-                default:
+                case IncidentKind.Filter:
                     StopFx(a.Plume);
                     if (a.Cartridge != null)
                         a.Cartridge.localPosition = a.CartridgeRest;
@@ -792,6 +800,8 @@ namespace SpaceStation.Interior
         private void End(Incident a, bool rebuilt)
         {
             RestoreLights(a);
+            RestoreStage(a); // CONNECT A6: 꺼 둔 장식 등
+
             if (a.Bubble != null)
                 Destroy(a.Bubble.gameObject);
             a.Bubble = null;
