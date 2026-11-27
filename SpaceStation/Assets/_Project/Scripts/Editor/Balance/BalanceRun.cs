@@ -96,6 +96,11 @@ namespace SpaceStation.Editor.Balance
                 InteriorBonusSystem.AttachTo(_sim, s.InteriorBonus); // 13-6
             if (s.MidGrade != null)
                 MidGradeSystem.AttachTo(_sim, s.MidGrade); // 13-7
+            if (s.OreVeins != null)
+            {
+                var veinRng = new Random(seed * 7349 + 11); // CONNECT 1번 광맥 난수 분리 (시드별 고정 — 다른 난수 순서를 건드리지 않게)
+                OreVeinSystem.AttachTo(_sim, s.OreVeins, () => (float)veinRng.NextDouble());
+            }
             StartGrade = -1;
             if (start != null)
             {
@@ -365,6 +370,17 @@ namespace SpaceStation.Editor.Balance
             result.MetalSpentOnRepairs = bot.MetalSpentOnRepairs;
             result.Maintenances = bot.Maintenances;
             result.Rebuilds = bot.Rebuilds;
+            var veins = sim.GetSystem<OreVeinSystem>(); // CONNECT_1121 1번 광맥
+            if (veins != null)
+            {
+                result.VeinRounds = veins.Round;
+                result.VeinsExhausted = veins.ExhaustedCount;
+                result.VeinFrames = bot.VeinFrames;
+                result.VeinDocksBuilt = bot.VeinDocksBuilt;
+                result.VeinDocksMoved = bot.VeinDocksMoved;
+                result.VeinReconnects = bot.VeinReconnects;
+                veins.DockSummary(out result.VeinDocksFinal, out result.InPlaceScaleFinal);
+            }
             result.ResearchStarted = bot.ResearchStarted;
             foreach (var c in sim.Research.Categories)
                 result.ResearchLevels[(int)c.Category] = sim.Research.GetLevel(c);

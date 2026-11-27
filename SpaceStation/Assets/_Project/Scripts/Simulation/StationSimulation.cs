@@ -175,6 +175,14 @@ namespace SpaceStation.Simulation
         /// <summary>12-3c 과열 생산 배율 (열 관리 전 · 한도 이하면 1).</summary>
         public float HeatMultiplier(ModuleInstance module) => Heat != null ? Heat.ProductionMultiplier(module) : 1f;
 
+        /// <summary>
+        /// CONNECT_1121 M3 공통 고리: 판이 정하는 모듈별 생산 배율 (null = 1). 엔드리스 광맥 = 채굴 도킹의 제자리 고갈 · 광맥 2배.
+        /// 자원 틱 · 모듈 효율(선택 테두리 · 정보 창)에 곱해짐.
+        /// </summary>
+        public Func<ModuleInstance, float> ModuleProductionScale { get; set; }
+
+        public float ProductionScaleOf(ModuleInstance module) => ModuleProductionScale != null ? ModuleProductionScale(module) : 1f;
+
         /// <summary>12-3c 국가급 상시 정책 (설정에 없으면 null).</summary>
         public PolicySystem Policies { get; }
         /// <summary>12-3c 사회 위기 선택지 (설정에 없으면 null).</summary>

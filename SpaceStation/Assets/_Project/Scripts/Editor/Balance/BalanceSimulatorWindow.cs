@@ -36,6 +36,8 @@ namespace SpaceStation.Editor.Balance
         [SerializeField] private InteriorBonusConfig _interiorBonus;
         [Tooltip("13-7 타이쿤판 등급 중간 단계 (비우면 없음)")]
         [SerializeField] private MidGradeConfig _midGrade;
+        [Tooltip("CONNECT_1121 1번 타이쿤판 광맥 (비우면 없음)")]
+        [SerializeField] private OreVeinConfig _oreVeins;
         [SerializeField] private float _durationMinutes = 30f;
 
         /// <summary>Phase 10 비교 측정용: true면 기본 에셋 실행에서도 주민 특성을 끈다.</summary>
@@ -238,6 +240,7 @@ namespace SpaceStation.Editor.Balance
                 GrowthThreat = _growthThreat,
                 InteriorBonus = _interiorBonus,
                 MidGrade = _midGrade,
+                OreVeins = _oreVeins,
                 Residents = DisableResidents ? null : _residents,
                 DurationSeconds = _durationMinutes * 60f,
                 Runs = Mathf.Max(1, _runs),
@@ -390,6 +393,8 @@ namespace SpaceStation.Editor.Balance
                 _interiorBonus = AssetDatabase.LoadAssetAtPath<InteriorBonusConfig>($"{DataRoot}/Tycoon/InteriorBonusConfig.asset"); // 13-6 (없으면 null)
             if (overwrite || _midGrade == null)
                 _midGrade = AssetDatabase.LoadAssetAtPath<MidGradeConfig>($"{DataRoot}/Tycoon/MidGradeConfig.asset"); // 13-7 (없으면 null)
+            if (overwrite || _oreVeins == null)
+                _oreVeins = AssetDatabase.LoadAssetAtPath<OreVeinConfig>($"{DataRoot}/Tycoon/OreVeinConfig.asset"); // CONNECT 1번 광맥 (없으면 null)
             if (overwrite || _buildable.Count == 0)
             {
                 _buildable.Clear();

@@ -52,3 +52,7 @@
   - `ResidentRoster.ProblemOf`: main의 `StressAt`(집 스트레스 M-122) 항을 뺌 — 타이쿤엔 그 고리가 없음 (main에서도 정하는 쪽이 없으면 0)
   - 데이터: `PolicyConfig`에 정책 4종 · 추방 값 (슬롯 표 · 확장 2는 타이쿤 그대로), 해금 선택 소형 자동 규칙 = 정책 + 추방 (`UnlockChoiceConfig` · `TycoonSetup`)
   - 두 모드를 합칠 때: main 쪽 파일 그대로 가져가면 됨 (위 셋은 main이 이미 가진 것의 부분집합)
+
+- **CONNECT_1121 1번 광맥 (2026-11-27)** — main M-337 탐사 틀을 커밋째 받음 (새 파일만, 충돌 없음) + 공통 고리 셋을 더해 main으로도 옮김 (M-362): `StationSimulation.ModuleProductionScale` · `StationModuleStats` 두 곳에 곱함 · `ExplorationSystem.AutoReveal` · `EffectText` · `EffectOf` (`ExplorationPanel`도 이것을 씀)
+  - 타이쿤 전용: `OreVeinSystem` · `OreVeinConfig` · `Data/Tycoon/OreVeinConfig.asset` · `ExplorationConfig_Endless.asset` · `SimulationHost._oreVeins` · 메뉴 Setup Ore Veins · 측정 도구 (`BalanceRunSettings.OreVeins` · `BalanceBotVeins` · 결과 광맥 열)
+  - 두 모드를 합칠 때: 서사판은 `AutoReveal` 꺼짐 · `EffectText` 없음이라 동작 그대로

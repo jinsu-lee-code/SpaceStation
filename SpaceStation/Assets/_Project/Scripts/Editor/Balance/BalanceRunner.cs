@@ -25,6 +25,8 @@ namespace SpaceStation.Editor.Balance
         public UnlockChoiceConfig UnlockChoices;
         /// <summary>13-2 타이쿤판 성장 비례 위협 (null이면 등급 표).</summary>
         public GrowthThreatConfig GrowthThreat;
+        /// <summary>CONNECT_1121 1번 타이쿤판 광맥 (null이면 없음 — 제자리 도킹이 끝없이 냄).</summary>
+        public OreVeinConfig OreVeins;
         /// <summary>13-7 난이도를 적용하기 전 등급표 (난이도 측정에서 성장 곡선에 간격 배율을 곱할 때, null이면 곱하지 않음).</summary>
         public StationGradeConfig BaseGrades;
         /// <summary>13-6 타이쿤판 1인칭 가볍게 (null이면 없음) — 봇은 상자를 직접 줍지만 등급 보상 포인트 · 자동 회수가 붙음.</summary>
@@ -88,6 +90,9 @@ namespace SpaceStation.Editor.Balance
         /// <summary>Phase 6: 카테고리별 최종 연구 레벨 (ResearchCategory 순서), 시작한 연구 수.</summary>
         public int[] ResearchLevels = new int[Enum.GetValues(typeof(ResearchCategory)).Length];
         public int ResearchStarted;
+        /// <summary>CONNECT_1121 1번 광맥: 잡힌 신호 묶음 · 다 캔 광맥 · 봇이 깐 길 프레임 · 광맥에 지은 · 옮긴 도킹 · 끝 제자리 생산 평균 (광맥이 없으면 0).</summary>
+        public int VeinRounds, VeinsExhausted, VeinFrames, VeinDocksBuilt, VeinDocksMoved, VeinDocksFinal, VeinReconnects;
+        public float InPlaceScaleFinal = 1f;
         public float MetalSpentOnUpkeep;
         /// <summary>산소·물·식량·금속 최저 재고 (첫 등급 이후 전체 구간).</summary>
         public float[] MinStock = new float[4];
@@ -352,6 +357,8 @@ namespace SpaceStation.Editor.Balance
             sb.AppendLine($"최종 인구 평균 {Avg(results, r => r.FinalPopulation):0.0}, 최대 인구 평균 {Avg(results, r => r.MaxPopulation):0.0}, 최종 모듈 평균 {Avg(results, r => r.FinalModules):0.0}");
             sb.AppendLine($"이벤트 평균 {Avg(results, r => r.Events):0.0}, 파손 {Avg(results, r => r.ModulesDamaged):0.0}, 파괴 {Avg(results, r => r.ModulesDestroyed):0.00}, 확산 {Avg(results, r => r.DamageSpreads):0.00}, 격추 {Avg(results, r => r.MeteorsIntercepted):0.00}, 실드 빗겨냄 {Avg(results, r => r.MeteorsBlocked):0.00} (튕겨 명중 {Avg(results, r => r.Ricochets):0.00})");
             sb.AppendLine($"수리 금속 평균 {Avg(results, r => r.MetalSpentOnRepairs):0}, 정비 {Avg(results, r => r.Maintenances):0.0}회, 재건축 {Avg(results, r => r.Rebuilds):0.0}회, 유지비 금속 {Avg(results, r => r.MetalSpentOnUpkeep):0}");
+            if (Avg(results, r => r.VeinRounds) > 0f)
+                sb.AppendLine($"광맥 평균: 신호 {Avg(results, r => r.VeinRounds):0.0}번 · 다 캔 광맥 {Avg(results, r => r.VeinsExhausted):0.0} · 길 프레임 {Avg(results, r => r.VeinFrames):0.0} · 광맥 도킹 지음 {Avg(results, r => r.VeinDocksBuilt):0.0} · 옮김 {Avg(results, r => r.VeinDocksMoved):0.0} · 다시 이음 {Avg(results, r => r.VeinReconnects):0.0} · 끝에 광맥 도킹 {Avg(results, r => r.VeinDocksFinal):0.0} · 끝 제자리 생산 {Avg(results, r => r.InPlaceScaleFinal) * 100f:0}%");
             sb.AppendLine($"최저 재고 평균  산소 {Avg(results, r => r.MinStock[0]):0}  물 {Avg(results, r => r.MinStock[1]):0}  식량 {Avg(results, r => r.MinStock[2]):0}  금속 {Avg(results, r => r.MinStock[3]):0}");
             sb.AppendLine($"고갈 시간 평균(초)  산소 {Avg(results, r => r.DepletedSeconds[0]):0}  물 {Avg(results, r => r.DepletedSeconds[1]):0}  식량 {Avg(results, r => r.DepletedSeconds[2]):0}  · 고갈 횟수 {Avg(results, r => r.DepletionEvents):0.0}회");
             sb.AppendLine($"전력 효율<100% 시간 평균 {Avg(results, r => r.LowPowerSeconds):0}초, 평균 효율 {Avg(results, r => r.AverageEfficiency) * 100f:0.0}%");

@@ -181,6 +181,52 @@ namespace SpaceStation.Editor
             Debug.Log($"[TycoonSetup] 등급 중간 단계: 중형 확장 (모듈 {modules.Count}개) · 씬 연결 완료");
         }
 
+        private const string OreVeinPath = "Assets/_Project/Data/Tycoon/OreVeinConfig.asset";
+        private const string EndlessExplorationPath = "Assets/_Project/Data/Tycoon/ExplorationConfig_Endless.asset";
+
+        /// <summary>
+        /// CONNECT_1121 1번 광맥 (사용자 결정 2026-11-21 · 11-27, BALANCE 50번): 엔드리스용 탐사 설정 (신호 센서 없음 — 위치는 바로 보임 ·
+        /// 소행성 고정 금속 0 — 생산은 도킹 배율로) + 광맥 설정 (도킹 = 채굴 도킹 · 매장량 감지 = 센서 어레이) + 씬 SimulationHost 연결.
+        /// 값은 <see cref="OreVeinConfig"/> 기본값 (가안, 봇 측정으로 조정).
+        /// </summary>
+        [MenuItem("SpaceStation/Tycoon/Setup Ore Veins")]
+        public static void SetupOreVeins()
+        {
+            EnsureFolder();
+            var explore = AssetDatabase.LoadAssetAtPath<ExplorationConfig>(EndlessExplorationPath);
+            if (explore == null)
+            {
+                explore = ScriptableObject.CreateInstance<ExplorationConfig>();
+                AssetDatabase.CreateAsset(explore, EndlessExplorationPath);
+            }
+            var eso = new SerializedObject(explore);
+            eso.FindProperty("_sensor").objectReferenceValue = null;      // 신호는 공짜 (매장량 숫자만 센서 — 광맥 설정 쪽)
+            eso.FindProperty("_asteroidMetalPerSecond").floatValue = 0f; // 금속은 맞닿은 도킹이 냄
+            eso.FindProperty("_reachRadius").intValue = 1;               // 쓰지 않음 (닿음 = 도킹이 맞닿음)
+            eso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(explore);
+
+            var config = AssetDatabase.LoadAssetAtPath<OreVeinConfig>(OreVeinPath);
+            if (config == null)
+            {
+                config = ScriptableObject.CreateInstance<OreVeinConfig>();
+                AssetDatabase.CreateAsset(config, OreVeinPath);
+            }
+            config.EditorSet(explore, Module("MD_MiningDock"), Module("MD_SensorArray"));
+            EditorUtility.SetDirty(config);
+            AssetDatabase.SaveAssets();
+
+            var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
+            var host = Object.FindFirstObjectByType<SpaceStation.Simulation.SimulationHost>();
+            var hso = new SerializedObject(host);
+            hso.FindProperty("_oreVeins").objectReferenceValue = AssetDatabase.LoadAssetAtPath<OreVeinConfig>(OreVeinPath);
+            hso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(host);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log($"[TycoonSetup] 광맥: 도킹 {config.Dock?.name} · 센서 {config.Sensor?.name} · 씬 연결 완료");
+        }
+
         private const string MidGradePath = "Assets/_Project/Data/Tycoon/MidGradeConfig.asset";
         private const string InteriorBonusPath = "Assets/_Project/Data/Tycoon/InteriorBonusConfig.asset";
         private const string GrowthPath = "Assets/_Project/Data/Tycoon/GrowthThreatConfig.asset";

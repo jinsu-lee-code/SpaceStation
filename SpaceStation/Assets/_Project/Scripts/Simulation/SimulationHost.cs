@@ -56,6 +56,8 @@ namespace SpaceStation.Simulation
         [SerializeField] private InteriorBonusConfig _interiorBonus;
         [Tooltip("타이쿤판 등급 중간 단계 — 중형 안에서 대형 모듈 일부를 먼저 엶 (메뉴 SpaceStation/Tycoon/Setup Mid Grade가 채움). 비면 없음")]
         [SerializeField] private MidGradeConfig _midGrade;
+        [Tooltip("타이쿤판 광맥 — 중형부터 제자리 채굴 도킹 고갈 · 광맥 2배 (메뉴 SpaceStation/Tycoon/Setup Ore Veins가 채움, CONNECT_1121 1번). 비면 없음")]
+        [SerializeField] private OreVeinConfig _oreVeins;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -106,6 +108,8 @@ namespace SpaceStation.Simulation
                 InteriorBonusSystem.AttachTo(Simulation, _interiorBonus); // 13-6 타이쿤판
             if (_midGrade != null)
                 MidGradeSystem.AttachTo(Simulation, _midGrade); // 13-7 타이쿤판
+            if (_oreVeins != null)
+                OreVeinSystem.AttachTo(Simulation, _oreVeins, () => Random.value * 0.99999f); // CONNECT_1121 1번 타이쿤판 광맥 (세이브 복원 전에)
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
             {

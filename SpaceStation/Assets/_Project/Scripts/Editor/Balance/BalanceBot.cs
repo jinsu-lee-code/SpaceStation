@@ -180,6 +180,10 @@ namespace SpaceStation.Editor.Balance
             RepairDamaged();
             bool upkeepPending = MaintainWorn();
             UpdatePowerModel();
+            // CONNECT_1121 1번 광맥: 길 프레임 · 광맥 도킹 · 고갈된 도킹 옮기기 (BalanceBotVeins) — 정비비 저축보다 먼저 (사람처럼 금속이 모자랄수록 수입부터,
+            // 시험 판: 저축 뒤에 두었더니 고갈로 정비비를 못 내 광맥 7곳 · 매장량 9,964를 두고 정비비만 모음)
+            if (VeinStep())
+                return;
             if (upkeepPending)
             {
                 LastNeed = "upkeep";
