@@ -274,13 +274,16 @@ namespace SpaceStation.UI
         private static void PlaceRow(Button button, int index) =>
             HoloUi.Place((RectTransform)button.transform, new Vector2(40f + (index % 2) * (RowW + 20f), ListTop - (index / 2) * (RowH + RowGap)), new Vector2(RowW, RowH));
 
-        /// <summary>M-22: 고를 수 있는 정책 줄 수만큼 창 높이를 맞춤 (판이 정책을 줄이면 빈 자리가 남지 않게).</summary>
+        /// <summary>
+        /// M-22: 고를 수 있는 정책 줄 수만큼 창 높이를 맞춤 (판이 정책을 줄이면 빈 자리가 남지 않게).
+        /// 4줄보다 많으면 그만큼 늘림 (2026-11-27: 주민 추방 정책 4종이 더해져 12종 = 6줄 — 전에는 4줄 높이 그대로라 5 · 6번째 줄이 아래 버튼과 겹치고 창 밖으로 나갔음).
+        /// </summary>
         private void FitRows(int rows)
         {
             if (rows == _shownRows)
                 return;
             _shownRows = rows;
-            float height = WindowHeight - Mathf.Max(0, FullRows - Mathf.Max(1, rows)) * (RowH + RowGap);
+            float height = WindowHeight + (Mathf.Max(1, rows) - FullRows) * (RowH + RowGap);
             _window.sizeDelta = new Vector2(WindowWidth, height);
             HoloUi.RefitDecor(_window);
         }
