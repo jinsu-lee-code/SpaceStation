@@ -150,6 +150,9 @@ namespace SpaceStation.Interior
         private RectTransform _overlay;
         private TMP_Text _title;
         private TMP_Text _tracker;
+        /// <summary>CONNECT_1121 3번 ③ 위치 표시: 지금 손댈 것 둘레 테두리 · 화면 끝 화살표 (상황 → 부탁 순).</summary>
+        private InteriorFocusMarker _focus;
+        private static readonly Color IncidentFocusColor = new Color(1f, 0.63f, 0.25f);
         private float _trackerNext;
         private float _tutorialRetry;
         private TMP_Text _prompt;
@@ -658,6 +661,51 @@ namespace SpaceStation.Interior
                 list.Add(_builder.FloorPoint(c));
             return list;
         }
+
+        private void LateUpdate()
+        {
+            UpdateFocusMarker();   // 카메라가 움직인 뒤 (화면 자리 = 이번 프레임 시선)
+        }
+
+        /// <summary>
+        /// CONNECT_1121 3번 ③ 위치 표시 (사용자 결정 2026-11-28 — 테두리 + 화면 끝 화살표 · 상황 동안 늘 · 상황 + 주민 부탁):
+        /// 상황이 있으면 상황, 없으면 첫 부탁의 지금 손댈 것 (<see cref="InteriorIncidents.TryGetFocus"/> · <see cref="InteriorRequests.TryGetFocus"/>).
+        /// 그 방이 지금 방이 아니면 그 방으로 가는 첫 문 (위아래로만 이어졌으면 이동 장치)을 가리키고 글로 어디로 가는지.
+        /// 패드를 들었을 때 · 이동 장치 목적지 판 · 들어가고 나오는 중에는 숨김.
+        /// </summary>
+        private void UpdateFocusMarker()
+        {
+            if (_focus == null)
+                return;
+            if (!_inside || _busy || _camera == null || (_pad != null && _pad.IsRaised) || (_transitPanel != null && _transitPanel.IsOpen))
+            {
+                _focus.Hide();
+                return;
+            }
+            Bounds bounds;
+            ModuleInstance room;
+            Color color;
+            if (_incidents != null && _incidents.TryGetFocus(out bounds, out room))
+                color = IncidentFocusColor;
+            else if (_requests != null && _requests.TryGetFocus(out bounds, out room))
+                color = HudTheme.Accent;
+            else
+            {
+                _focus.Hide();
+                return;
+            }
+            string label = null;
+            if (room != null && _currentModule != null && room != _currentModule
+                && _builder.TryGetWayPoint(_currentModule, room, _player.transform.position, out var way, out var next, out bool lift))
+            {
+                bounds = new Bounds(way, lift ? new Vector3(1.4f, 2.2f, 1.4f) : new Vector3(1.6f, 2.2f, 1.6f));
+                string target = RoomLabel(room);
+                label = lift ? $"{target} · 위아래 이동 장치" : next == room ? $"{target} 쪽 문" : $"{RoomLabel(next)} 지나 {target}";
+            }
+            _focus.Show(_camera, bounds, color, label);
+        }
+
+        private static string RoomLabel(ModuleInstance m) => m != null && m.Data != null ? m.Data.DisplayName : "옆방";
 
         /// <summary>
         /// 11-18: 진행 중인 사고 · 부탁을 방 이름 아래에 계속 표시 (알림은 3.5초만 떠서, 그 방에 가거나 패드를 열기 전엔 화면에 안 남았음).
@@ -1476,6 +1524,8 @@ namespace SpaceStation.Interior
 
             // REVIEW_1115 1-8 조준점 꾸미기: 설정 [조준점] 탭 값을 따라 그림 (끄면 안 보이되 F 안내 · 길게 누르기 막대는 그대로)
             CrosshairView.Create(_overlay, "Crosshair");
+            // CONNECT_1121 3번 ③ 위치 표시 (2026-11-28): 맨 아래 층 — 조준점 · 안내 글 · 길게 누르기 막대가 위에 그려짐
+            _focus = InteriorFocusMarker.Create(_overlay, _fillSprite, ui);
 
             // 13-4 (사용자 피드백 2026-10-18): 방 이름 · 사고/부탁 줄을 상단 중앙으로 (왼쪽 위는 [관리] 메뉴와 겹쳤음).
             // 사건 배너(같은 상단 중앙)가 떠 있는 동안은 그 아래로 비켜 섬 (PlaceTop). 밝은 벽 · 조명 위에서도 읽히게 글자 뒤 반투명 바탕

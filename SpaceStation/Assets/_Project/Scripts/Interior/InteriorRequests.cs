@@ -203,6 +203,59 @@ namespace SpaceStation.Interior
             return false;
         }
 
+        /// <summary>
+        /// CONNECT_1121 3번 ③ 위치 표시 (사용자 결정 2026-11-28): 아직 안 들어준 첫 요청에서 지금 손댈 것의 범위와 그 방 —
+        /// 물 주기 = 시든 화분, 환풍구 = 환풍구, 가져다주기 = 안 들었으면 물건 (물건이 있는 방) · 들었으면 부탁한 주민, 말동무 = 주민.
+        /// </summary>
+        public bool TryGetFocus(out Bounds bounds, out ModuleInstance room)
+        {
+            bounds = default;
+            room = null;
+            foreach (var r in _requests)
+            {
+                if (r.Done)
+                    continue;
+                room = r.Room;
+                GameObject target = null;
+                switch (r.Kind)
+                {
+                    case RequestKind.Water:
+                        target = r.PlantCollider != null ? r.PlantCollider.gameObject : null;
+                        break;
+                    case RequestKind.Fix:
+                        target = r.Vent;
+                        break;
+                    case RequestKind.Fetch:
+                        if (!r.Carrying && r.ItemRoom != null)
+                        {
+                            room = r.ItemRoom;
+                            if (r.ItemObject == null)
+                            {
+                                // 물건 방을 아직 안 지음 — 방만 알려 줌 (문 쪽을 가리킴)
+                                bounds = new Bounds(_builder.CellCenter(r.ItemRoom.Origin), Vector3.one);
+                                return true;
+                            }
+                            target = r.ItemObject;
+                        }
+                        break;
+                }
+                if (target == null)
+                {
+                    var figure = _residents != null ? _residents.Find(r.ResidentId) : null;
+                    target = figure != null ? figure.gameObject : null;
+                }
+                if (target == null)
+                    return false;
+                if (r.Kind == RequestKind.Water && r.PlantCollider != null)
+                {
+                    bounds = r.PlantCollider.bounds;   // 화분 충돌 상자 (잎까지)
+                    return true;
+                }
+                return InteriorIncidents.BoundsOf(target, out bounds);
+            }
+            return false;
+        }
+
         public int ActiveCount
         {
             get
