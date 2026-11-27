@@ -67,3 +67,5 @@
   - main판만 다른 곳: 서사판 거주 타워 규칙 2개 (타이쿤엔 없음)
 
 - **CONNECT_1121 3번 ② 단계별 내부 상황 U1 (2026-11-27)** — 공통 바닥이라 main(M-366)과 같은 코드: `IncidentCatalog` · `IncidentLoss` · 방 단계 상황만 · 2단계 이상 벽 자리 없음
+
+- **CONNECT_1121 3번 ② U2 ② 장식 조명 꺼짐 (2026-11-27)** — 공통 바닥이라 main(M-367)과 같은 코드 · 모델: 2단계 방 장식 발광 끔 + 바닥 조명 분전함 2 ~ 3개 · `InteriorAtmosphere.SetIncidentDim` · `InteriorSpots.NearDoor` · `IgnoredForSpots` · 바닥을 높여 지은 방(요새) 바닥 자리 고침 · 씬 연결 메뉴 Setup Stage Incidents

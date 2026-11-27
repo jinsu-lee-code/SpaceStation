@@ -18,6 +18,8 @@ namespace SpaceStation.Interior
     {
         private const float ReachStep = 0.25f;     // 바닥 격자 간격
         private const float ReachSpan = 4f;        // 칸 가운데에서 훑는 범위 (칸 크기 8의 반 → 이웃 칸과 이어짐)
+        private const float RaisedFloorMin = 0.5f;  // 시작 자리가 칸 바닥보다 이만큼 넘게 높으면 바닥을 높여 지은 층 (RaisedFloor)
+        private const float RaisedFloorMax = 3f;
         private const float PlayerRadius = 0.3f;   // FirstPersonController
         private const float PlayerHeight = 1.75f;
         private const float PlayerEye = 1.6f;
@@ -130,6 +132,16 @@ namespace SpaceStation.Interior
         /// <summary>CONNECT A6: 2단계 이상 진화 모듈 방 (트인 방 — 벽 상황 대신 단계별 상황).</summary>
         public static bool IsOpenStage(InteriorBuilder builder, ModuleInstance module) => builder != null && module != null && builder.StageFor(module) >= 2;
 
+        /// <summary>CONNECT A6: 문 패널(문 · 통로 입구) 둘레 <paramref name="margin"/>m 안 — 바닥에 세우는 상황 소품이 문길을 막지 않게.</summary>
+        public static bool NearDoor(InteriorBuilder builder, ModuleInstance module, Vector3 p, float margin)
+        {
+            CollectPanels(builder.RoomParent(module));
+            return InDoorPanel(p, margin);
+        }
+
+        /// <summary>CONNECT A6: 소품 자리를 잴 때 빼는 것 (해치 · 이동 장치 · 주민 · 상호작용 물건 · 문 · 유리 · 창) — 벽 자리와 같은 기준.</summary>
+        public static bool IgnoredForSpots(Collider c) => c is CharacterController || Excluded(c);
+
         /// <summary>광선 하나가 맞은 곳을 벽 자리로 쓸 수 있으면 넣음 (같은 자리는 한 번).</summary>
         private static void TryWall(Reach walk, int level, Vector3 origin, Vector3 dir, float reach, float minDistance, List<(Vector3 Position, Vector3 Normal)> result)
         {
@@ -183,6 +195,8 @@ namespace SpaceStation.Interior
             {
                 var cell = cells[rng.Next(cells.Count)];
                 var floor = builder.FloorPoint(cell);
+                if (walk != null && walk.Levels.TryGetValue(cell.y, out float walkY))
+                    floor.y = walkY;   // 바닥을 높여 지은 층 (요새) — 보통은 칸 바닥 그대로
                 float a = (float)rng.NextDouble() * Mathf.PI * 2f;
                 float r = minRadius + (float)rng.NextDouble() * (maxRadius - minRadius);
                 var p = floor + new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
@@ -234,10 +248,13 @@ namespace SpaceStation.Interior
             _reach[module] = r;
             Physics.SyncTransforms();
             CollectPanels(parent);
+            RaisedFloor(builder, module, out int raisedLevel, out float raise);
             // 몸이 서는 칸 (층마다). 문 패널 안은 뺌 — 문이 열려 있으면 이어진 통로까지 퍼져 통로 벽이 자리로 잡혔음 (행정 관제소)
             foreach (var cell in module.Cells)
             {
                 var floor = builder.FloorPoint(cell);
+                if (cell.y == raisedLevel)
+                    floor.y += raise;
                 r.Levels[cell.y] = floor.y;
                 for (float x = -ReachSpan; x <= ReachSpan + 0.001f; x += ReachStep)
                 {
@@ -285,7 +302,11 @@ namespace SpaceStation.Interior
                 Seed(spawn, level);
             }
             foreach (var cell in module.Cells)
-                Seed(builder.FloorPoint(cell), cell.y);
+            {
+                var floor = builder.FloorPoint(cell);
+                floor.y = r.Levels[cell.y];
+                Seed(floor, cell.y);
+            }
             while (queue.Count > 0)
             {
                 var c = queue.Dequeue();
@@ -318,6 +339,33 @@ namespace SpaceStation.Interior
                     r.Edge.Add((c, dirs));
             }
             return r;
+        }
+
+        /// <summary>
+        /// 바닥을 높여 지은 층: 템플릿 시작 자리가 그 층 칸 바닥보다 0.5 ~ 3m 높으면 그 층의 걷는 바닥 = 시작 자리 높이.
+        /// 요새(성벽 위 길 1.85m)만 해당 (템플릿 84개 중, 2026-11-27) — 칸 바닥 기준이라 바닥 자리가 하나도 안 잡혔음 (주민 부탁 물건 · 상황 소품).
+        /// </summary>
+        private static void RaisedFloor(InteriorBuilder builder, ModuleInstance module, out int level, out float raise)
+        {
+            level = int.MinValue;
+            raise = 0f;
+            if (!builder.TryGetTemplateRoom(module, out var template, out var instance))
+                return;
+            var spawn = instance.TransformPoint(template.Spawn);
+            float best = float.MaxValue;
+            foreach (var cell in module.Cells)
+            {
+                float d = spawn.y - builder.FloorPoint(cell).y;
+                if (d >= -0.3f && d < best)
+                {
+                    best = d;
+                    level = cell.y;
+                }
+            }
+            if (best > RaisedFloorMin && best < RaisedFloorMax)
+                raise = best;
+            else
+                level = int.MinValue;
         }
 
         private static Vector3Int KeyOf(Reach r, Vector3 world, int level)

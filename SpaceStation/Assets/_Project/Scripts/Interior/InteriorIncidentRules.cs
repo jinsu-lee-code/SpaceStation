@@ -152,7 +152,7 @@ namespace SpaceStation.Interior
                 case IncidentKind.CoolantCore: return "냉각 카트리지를 갈아 주세요";
                 case IncidentKind.MaintBot: return "로봇을 다시 켜 주세요";
                 case IncidentKind.RideStop: return "조작반의 경고등 켜진 레버만 올리세요";
-                case IncidentKind.DecoLights: return "꺼진 장식을 찾아 고쳐 주세요";
+                case IncidentKind.DecoLights: return "조명 분전함을 찾아 고쳐 주세요";
                 case IncidentKind.ScatteredToys: return "흩어진 소품을 바구니에 모아 주세요";
                 case IncidentKind.WaterChannel: return "물꼬를 맞춰 물길을 열어 주세요";
                 case IncidentKind.Lanterns: return "깜빡인 순서대로 등불을 켜 주세요";

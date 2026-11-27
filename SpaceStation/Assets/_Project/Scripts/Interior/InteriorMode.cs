@@ -296,6 +296,11 @@ namespace SpaceStation.Interior
             _incidents = InteriorIncidents.Create(transform, _station, _builder, _incidentSettings, _font, _player.Eye, _smokeMaterial, _sparkMaterial);
             _incidents.Message += ShowNotice;
             _incidents.Resolved += HandleIncidentResolved;
+            _incidents.DimRoom = (m, f) =>
+            {
+                if (_atmosphere != null)
+                    _atmosphere.SetIncidentDim(m, f);   // CONNECT A6 장식 조명 꺼짐 = 방 조명도 같은 길로
+            };
             _incidents.Rebuild(_layout);
             _boarding = InteriorBoarding.Create(transform, _station, _builder, _beaconMaterial); // 12-3c 지구급 침입 드론
             _boarding.Rebuild();

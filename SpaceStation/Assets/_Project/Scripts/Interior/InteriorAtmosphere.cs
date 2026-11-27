@@ -64,6 +64,7 @@ namespace SpaceStation.Interior
         private Material _beaconMaterial;
         private readonly List<Room> _rooms = new List<Room>();
         private readonly Dictionary<ModuleInstance, Room> _byModule = new Dictionary<ModuleInstance, Room>();
+        private readonly Dictionary<ModuleInstance, float> _incidentDim = new Dictionary<ModuleInstance, float>();
         private MaterialPropertyBlock _block;
         private MaterialPropertyBlock _empty;
         private float _nextPoll;
@@ -139,6 +140,20 @@ namespace SpaceStation.Interior
                 ReadGlobals(out bool storm, out float power, out float charge);
                 PollRoom(room, storm, power, charge);
             }
+        }
+
+        /// <summary>
+        /// CONNECT A6 2단계 장식 조명 꺼짐: 방 조명 · 조명 판 발광에 곱하는 값 (1 = 그대로 — 사고가 끝나면 1로).
+        /// 전력 · 폭풍 깜빡임과 같은 길로 칠해 서로 덮어쓰지 않음.
+        /// </summary>
+        public void SetIncidentDim(ModuleInstance module, float factor)
+        {
+            if (module == null)
+                return;
+            if (factor >= 0.999f)
+                _incidentDim.Remove(module);
+            else
+                _incidentDim[module] = Mathf.Max(0f, factor);
         }
 
         public bool IsAlarm(ModuleInstance module)
@@ -292,6 +307,8 @@ namespace SpaceStation.Interior
                     tint *= _tuning.StormSpikeTint;
                 }
             }
+            if (_incidentDim.TryGetValue(room.Module, out float dim))
+                f *= dim;   // CONNECT A6 2단계 장식 조명 꺼짐 (내부 사고가 정함)
             return Mathf.Max(0f, f);
         }
 
