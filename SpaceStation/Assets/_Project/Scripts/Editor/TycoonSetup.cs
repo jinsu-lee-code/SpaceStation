@@ -222,9 +222,23 @@ namespace SpaceStation.Editor
             hso.FindProperty("_oreVeins").objectReferenceValue = AssetDatabase.LoadAssetAtPath<OreVeinConfig>(OreVeinPath);
             hso.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(host);
+            // 광맥 모습 (공통 탐사 표시 — 소행성 = 바위 + 주황 광맥 줄 + 라벨). 얼음 · 난파선 재질은 엔드리스에 없음 (금속 광맥만)
+            var view = Object.FindFirstObjectByType<SpaceStation.UI.ExplorationView>(FindObjectsInactive.Include);
+            if (view == null)
+                view = new GameObject("ExplorationView").AddComponent<SpaceStation.UI.ExplorationView>();
+            var hud = GameObject.Find("HUD");
+            var vso = new SerializedObject(view);
+            vso.FindProperty("_station").objectReferenceValue = Object.FindFirstObjectByType<StationController>();
+            vso.FindProperty("_material").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/M_DefenseRange.mat");
+            vso.FindProperty("_font").objectReferenceValue = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/_Project/Art/Fonts/Maplestory SDF.asset");
+            vso.FindProperty("_labelRoot").objectReferenceValue = hud != null ? hud.transform as RectTransform : null;
+            vso.FindProperty("_rockMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/FX/M_Rock.mat");
+            vso.FindProperty("_glowMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Art/Materials/Explore/M_ExploreGlow.mat");
+            vso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(view);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
-            Debug.Log($"[TycoonSetup] 광맥: 도킹 {config.Dock?.name} · 센서 {config.Sensor?.name} · 씬 연결 완료");
+            Debug.Log($"[TycoonSetup] 광맥: 도킹 {config.Dock?.name} · 센서 {config.Sensor?.name} · 씬 연결 완료 (탐사 표시 라벨 자리 = {(hud != null ? hud.name : "없음")})");
         }
 
         private const string MidGradePath = "Assets/_Project/Data/Tycoon/MidGradeConfig.asset";

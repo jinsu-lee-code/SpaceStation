@@ -1467,7 +1467,7 @@ Lv.5~8 효과 (기존 효과 줄 이어서, 값은 그 레벨의 최종값):
 
 - 공통 고리 (`main` M-362): `StationSimulation.ModuleProductionScale` (판이 정하는 모듈별 생산 배율 — 자원 틱 · 모듈 효율), `ExplorationSystem.AutoReveal` (지점을 만들자마자 밝힘) · `EffectText` (닿으면 주는 것 한 줄). 탐사 틀 자체는 M-337을 받음.
 - 엔드리스용 탐사 설정 `ExplorationConfig_Endless`: 신호 센서 없음 (위치는 공짜) · 소행성 고정 금속 0 (생산은 도킹 배율로).
-- **화면 표시는 아직** — 광맥 모습(탐사 표시) · 도킹 정보 줄(`OreVeinSystem.DockInfo`)은 다음 단계. 지금 빌드에서는 광맥이 보이지 않는데 고갈은 걸림.
+- 화면 (2026-11-27 더함): 광맥 = 공통 탐사 표시(`ExplorationView`)의 소행성 모습 + 닿는 범위 상자, 라벨 "광맥 / 지금 N칸 · 맞닿은 채굴 도킹 생산 200%" (센서 어레이가 가동 중이면 매장량도) · 다 캔 광맥은 숨김. 채굴 도킹을 고르면 정보 창에 "광맥 채굴 · 생산 200%" 또는 "제자리 채굴 · 생산 N% (바닥 40%)" 두 줄. 공통 고리 `StationSimulation.ModuleInfoText` · `ExplorationSystem.NameText` (`main` M-363).
 
 봇 (`BalanceBotVeins`): 사람처럼 "가까운 광맥에 구조 프레임으로 길을 내고 끝에 채굴 도킹".
 - 길 = 정거장 옆 빈 칸에서 광맥 옆 도킹 자리의 뒷칸까지 너비 우선 탐색 (위아래 포함, 기존 도킹 접근로 · 광맥 칸은 피함, 프레임 14개까지).

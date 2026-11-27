@@ -5770,6 +5770,60 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 972990902}
   m_CullTransparentMesh: 1
+--- !u!1 &1026183767
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1026183769}
+  - component: {fileID: 1026183768}
+  m_Layer: 0
+  m_Name: ExplorationView
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1026183768
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1026183767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d443007d5e5a84dbccb6dd84588918, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.ExplorationView
+  _station: {fileID: 968511355}
+  _material: {fileID: 2100000, guid: fc8ab5cfc83d5b34581eb2274a4f6582, type: 2}
+  _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
+  _labelRoot: {fileID: 577544477}
+  _beamHeight: 7
+  _rockMaterial: {fileID: 2100000, guid: db3404358e08eb6488e26aa4cb226597, type: 2}
+  _iceMaterial: {fileID: 0}
+  _hullMaterial: {fileID: 0}
+  _glowMaterial: {fileID: 2100000, guid: fb7c39585c27b7a45b9bcfcc3c4cd54b, type: 2}
+  _wreckModel: {fileID: 0}
+--- !u!4 &1026183769
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1026183767}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1034185534
 GameObject:
   m_ObjectHideFlags: 0
@@ -13986,3 +14040,4 @@ SceneRoots:
   - {fileID: 148834059}
   - {fileID: 793670217}
   - {fileID: 93540760}
+  - {fileID: 1026183769}

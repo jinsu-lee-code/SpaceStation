@@ -64,6 +64,8 @@ namespace SpaceStation.Simulation
             explore.AutoReveal = true;
             explore.ReachRule = system.Touches;
             explore.EffectText = system.Describe;
+            explore.NameText = _ => "광맥";
+            sim.ModuleInfoText = system.DockInfo;
             sim.ModuleProductionScale = system.Scale;
             return system;
         }
@@ -140,14 +142,15 @@ namespace SpaceStation.Simulation
         {
             if (module == null || module.Data != _config.Dock)
                 return null;
+            // 정보 창 글 상자 너비가 고정 (줄바꿈 없음) → 한 줄 24자 안쪽으로 두 줄
             if (!Active)
-                return $"제자리 채굴 · 중형부터 캔 양이 쌓이면 생산이 줄어듦 (바닥 {_config.Floor * 100f:0}%)";
+                return $"제자리 채굴 · 중형부터 생산이 줄어듦\n캔 양이 쌓일수록 · 바닥 {_config.Floor * 100f:0}%";
             var vein = VeinOf(module);
             if (vein != null)
                 return SensorActive
-                    ? $"광맥 채굴 · 생산 {_config.VeinMultiplier * 100f:0}% · 남은 매장량 {vein.Reserve:N0}"
-                    : $"광맥 채굴 · 생산 {_config.VeinMultiplier * 100f:0}% · 남은 매장량은 센서 어레이가 있어야 보임";
-            return $"제자리 채굴 · 생산 {InPlaceScale(module) * 100f:0}% (캔 양이 쌓일수록 줄어 바닥 {_config.Floor * 100f:0}%) · 광맥에 맞닿게 옮기면 {_config.VeinMultiplier * 100f:0}%";
+                    ? $"광맥 채굴 · 생산 {_config.VeinMultiplier * 100f:0}%\n남은 매장량 {vein.Reserve:N0}"
+                    : $"광맥 채굴 · 생산 {_config.VeinMultiplier * 100f:0}%\n매장량은 센서 어레이가 있어야 보임";
+            return $"제자리 채굴 · 생산 {InPlaceScale(module) * 100f:0}% (바닥 {_config.Floor * 100f:0}%)\n광맥에 맞닿게 옮기면 {_config.VeinMultiplier * 100f:0}%";
         }
 
         /// <summary>측정용: 지금 광맥을 캐는 도킹 수 · 제자리 도킹 생산 비율 평균 (제자리 도킹이 없으면 1).</summary>
