@@ -3689,3 +3689,19 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 
 ### `narrative` 합칠 때
 - [ ] 서사판 씬도 같은 메뉴 (Setup Stage Incidents)로 조작반 연결
+
+## M-369. 단계별 내부 상황 U2 ③ 놀이 소품 흩어짐 (CONNECT_1121 A6, 2026-11-27, `main` — tycoon과 같은 코드)
+
+**main에 넣은 것**
+
+- `InteriorIncidents.Toys.cs`: 2단계 방 바닥 2 ~ 3곳에 놀이 소품 (공 · 별 쿠션 · 고리) + 바구니 하나 → 주워(F) 바구니에 넣기(F), 한 번에 하나만 (`InteriorInteractable.Blocked`로 까닭 표시) → 다 담으면 해결 · 바구니는 담긴 채 작아지며 사라짐 · 소품마다 작은 빛 (어두운 방에서 찾게)
+- `InteriorIncidents.Settings.Toys` · 메뉴 Setup Stage Incidents에 한 줄 · 씬 `Main.unity` 연결 (같은 GUID라 글로 넣음) · 모델 `SM_IncToys.fbx` (stage_incident_builder.py — `tube`에 고정 기준 방향 `up` 더함, 다른 소품 모양은 그대로)
+- 소리는 예정 자리 (줍기 = `CratePickup`, 넣기 = `OportPlop`)
+- U2 2단계 셋 끝 (M-367 · M-368 · M-369)
+
+**main에서 따로 할 것**
+
+- 없음
+
+### `narrative` 합칠 때
+- [ ] 서사판 씬도 같은 메뉴 (Setup Stage Incidents)로 바구니 · 소품 연결
