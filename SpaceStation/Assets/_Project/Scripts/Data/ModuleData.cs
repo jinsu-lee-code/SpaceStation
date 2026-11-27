@@ -162,6 +162,10 @@ namespace SpaceStation.Data
         [Tooltip("12-3 종합 복지: 같은 반경 · 담당 인원으로 함께 맡는 요구 (요구마다 담당 인원을 따로 씀)")]
         [SerializeField] private List<ResidentNeed> _extraServiceNeeds = new List<ResidentNeed>();
 
+        [Header("Adjacency Tags (CONNECT A2 · A8)")]
+        [Tooltip("인접 태그 (성질, 모듈마다 1~2개 — 예: 수원 · 녹지 · 소음원). 규칙이 태그 쌍으로 걸림. 표 = CONNECT_1121 A8")]
+        [SerializeField] private List<AdjacencyTag> _adjacencyTags = new List<AdjacencyTag>();
+
         public ResidentNeed ServiceNeed => _serviceCapacity > 0 ? _serviceNeed : ResidentNeed.None;
 
         /// <summary>이 요구를 맡는 서비스 모듈인지 (주 요구 + 12-3 추가 요구).</summary>
@@ -312,6 +316,9 @@ namespace SpaceStation.Data
         public string ComingSoonNote => _comingSoonNote;
         public StationRule RequiredRule => _requiredRule;
         public bool AdjacencyRelay => _adjacencyRelay;
+        /// <summary>CONNECT A2 인접 태그 (성질).</summary>
+        public IReadOnlyList<AdjacencyTag> AdjacencyTags => _adjacencyTags;
+        public bool HasAdjacencyTag(AdjacencyTag tag) => tag != null && _adjacencyTags != null && _adjacencyTags.Contains(tag);
         public float WarningBonus => _warningBonus;
         public float ResearchSpeedBonus => _researchSpeedBonus;
         public bool ImmigrationPort => _immigrationPort;

@@ -61,3 +61,7 @@
 - **CONNECT_1121 2번 묶음 선택 조작 M7 (2026-11-27)** — 공통 바닥이라 main(M-364)과 같은 코드: `StationGrid.TryMoveGroup` · `PeekGroupMove` · `GroupMove` · `StationConnectivity.CollectReachable`/`CollectBranch` · `PlacementRules.SupportsOthers(group)` · `PlacementResult.BreaksSupport` · `StationSimulation` 묶음 함수 다섯 · `StationConnectors.MoveFor` · `ModuleSelectionController` 묶음 · `BuildController.BeginGroupMove` · 정보 창 · 상태줄 · `GameAction.SelectBranch`(G, 끝에 더함) · 메뉴 Setup Branch Button
   - main판만 다른 곳: `StationConstruction` 묶음 판정에 `InZone` (main의 칸 제한 `IBuildZone`) · `StatusBar`의 `PlacementReason(result, zone)` — 타이쿤엔 칸 제한이 없음
   - 장면: 타이쿤 `Main.unity`엔 [가지 선택] 버튼을 놓음. main · 서사판 장면은 메뉴 SpaceStation/Move/Setup Branch Button을 그 쪽 Unity에서 한 번 (없으면 G 키만)
+
+- **CONNECT_1121 3번 ① 인접 태그 틀 (2026-11-27)** — 공통 바닥이라 main(M-365)과 같은 코드 · 데이터: `AdjacencyTag` 39개 · `ModuleData.AdjacencyTags` · 규칙의 대상 태그 · 이웃 태그 · `AppliedAdjacency.Target` · 메뉴 Setup Tags
+  - 기존 12개 규칙은 태그를 달고 모듈 칸을 그대로 → 봇 결과 바이트까지 같음 (`BalanceReports/20261127_190308` ↔ `190821`)
+  - main판만 다른 곳: 서사판 거주 타워 규칙 2개 (타이쿤엔 없음)

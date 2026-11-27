@@ -349,7 +349,7 @@ namespace SpaceStation.Interior
             {
                 sb.Append($"<color={HudText.Muted}>이 모듈</color>  ");
                 foreach (var a in _self)
-                    Effect(sb, a.Rule, a.Total);
+                    Effect(sb, a.Rule, a.Target, a.Total);
                 sb.Append('\n');
             }
             if (_neighbors.Count > 0)
@@ -358,7 +358,7 @@ namespace SpaceStation.Interior
                 foreach (var n in _neighbors)
                 {
                     sb.Append(n.Module.Data != null ? n.Module.Data.DisplayName : "").Append(' ');
-                    Effect(sb, n.Rule, n.Total);
+                    Effect(sb, n.Rule, n.Module.Data, n.Total);
                     bool good = AdjacencySystem.IsBeneficial(n.Rule, n.Total);
                     // 좋은 효과와 나쁜 효과가 겹치면 나쁜 쪽(주황)을 보임
                     if (!_holo.Highlight.TryGetValue(n.Module, out var shown) || shown != Bad)
@@ -368,9 +368,9 @@ namespace SpaceStation.Interior
             _adjacencyText = sb.ToString();
         }
 
-        private static void Effect(StringBuilder sb, AdjacencyRule rule, float total)
+        private static void Effect(StringBuilder sb, AdjacencyRule rule, SpaceStation.Data.ModuleData target, float total)
         {
-            var resource = AdjacencySystem.EffectResource(rule);
+            var resource = AdjacencySystem.EffectResource(rule, target);
             bool good = AdjacencySystem.IsBeneficial(rule, total);
             sb.Append("<color=").Append(good ? HudTheme.GreenHex : HudText.Orange).Append('>')
               .Append(resource.HasValue ? resource.Value.DisplayName() : "주민").Append(' ')
