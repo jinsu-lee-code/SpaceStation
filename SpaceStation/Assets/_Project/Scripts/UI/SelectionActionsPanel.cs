@@ -467,7 +467,9 @@ namespace SpaceStation.UI
             var applied = _resources.Adjacency.GetApplied(module);
             if (applied.Count > 0)
                 adjacencyLine = $"\n<size=85%><color={HudText.Muted}>인접</color> {AdjacencySystem.DescribeAll(applied)}</size>";
-            view.Info = $"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{DefenseLine(module)}{NeedsLine(module)}{HomeEnvironmentLine(module)}{ResidentsLine(module)}";
+            string modeText = _station.Simulation.ModuleInfoText?.Invoke(module); // 판이 더하는 한 줄 (엔드리스 광맥 = 채굴 도킹 생산 비율)
+            string modeLine = string.IsNullOrEmpty(modeText) ? string.Empty : $"\n<size=85%>{modeText}</size>";
+            view.Info = $"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{modeLine}{DefenseLine(module)}{NeedsLine(module)}{HomeEnvironmentLine(module)}{ResidentsLine(module)}";
 
             var sim = _resources.Simulation;
 

@@ -76,6 +76,11 @@ namespace SpaceStation.Simulation
 
         public string EffectOf(ExploreSite site) => EffectText != null ? EffectText(site) : _config.Effect(site.Kind);
 
+        /// <summary>지점 이름을 판이 바꿈 (null = 설정 이름 — 서사판 "소행성" 등). 엔드리스 = "광맥".</summary>
+        public Func<ExploreSite, string> NameText { get; set; }
+
+        public string NameOf(ExploreSite site) => NameText != null ? NameText(site) : ExplorationConfig.Name(site.Kind);
+
         private static readonly Vector3Int[] Horizontal =
         {
             Vector3Int.right, Vector3Int.left, new Vector3Int(0, 0, 1), new Vector3Int(0, 0, -1),
@@ -282,7 +287,7 @@ namespace SpaceStation.Simulation
             if (site == null)
                 return;
             site.Revealed = true;
-            Sim.Report($"탐사선 도착: {ExplorationConfig.Name(site.Kind)} · {EffectOf(site)} · {_config.ReachRadius}칸 이내 도달 시 탐사 시작", true);
+            Sim.Report($"탐사선 도착: {NameOf(site)} · {EffectOf(site)} · {_config.ReachRadius}칸 이내 도달 시 탐사 시작", true);
             Revealed?.Invoke(site); // 서사판: 장 표시 'probe'
             Changed?.Invoke();
         }
@@ -321,7 +326,7 @@ namespace SpaceStation.Simulation
                     {
                         site.InReach = near;
                         if (site.Reached)
-                            Sim.Report(near ? $"{ExplorationConfig.Name(site.Kind)} 탐사를 다시 시작합니다" : $"{ExplorationConfig.Name(site.Kind)} 연결이 끊겨 탐사가 멈췄습니다", near);
+                            Sim.Report(near ? $"{NameOf(site)} 탐사를 다시 시작합니다" : $"{NameOf(site)} 연결이 끊겨 탐사가 멈췄습니다", near);
                         Changed?.Invoke();
                     }
                 }
@@ -337,7 +342,7 @@ namespace SpaceStation.Simulation
 
         private void ApplyReach(ExploreSite site)
         {
-            string name = ExplorationConfig.Name(site.Kind);
+            string name = NameOf(site);
             switch (site.Kind)
             {
                 case SiteKind.Wreck:

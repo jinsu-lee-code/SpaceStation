@@ -440,7 +440,7 @@ namespace SpaceStation.UI
             {
                 if (m.Site == null)
                     continue;
-                if (_explore.IsExpired(m.Site)) // 지난 장 신호: 라벨까지 숨김
+                if (_explore.IsExpired(m.Site) || m.Site.Reserve == 0f) // 지난 장 신호 · 다 캔 광맥(엔드리스): 라벨까지 숨김
                 {
                     if (m.Root.activeSelf)
                         m.Root.SetActive(false);
@@ -524,7 +524,9 @@ namespace SpaceStation.UI
 
         private void PlaceLabel(Marker m, bool inside, bool refreshText)
         {
-            var world = m.Root.transform.position + Vector3.up * (_beamHeight + 0.3f);
+            // 엔드리스 광맥(판이 효과 문구를 정함)은 바위 바로 위 — 빛기둥 꼭대기(7칸 위)는 타이쿤 기본 카메라 거리에서 화면 위로 벗어남 (에디터 확인 2026-11-27)
+            float lift = _explore.EffectText != null ? 1.6f : _beamHeight + 0.3f;
+            var world = m.Root.transform.position + Vector3.up * lift;
             var screen = _camera != null ? _camera.WorldToScreenPoint(world) : Vector3.back;
             bool show = !inside && screen.z > 0f;
             if (m.Label.gameObject.activeSelf != show)
@@ -538,6 +540,13 @@ namespace SpaceStation.UI
                 return;
             var s = m.Site;
             string distance = $"{_explore.Distance(s)}칸";
+            if (_explore.EffectText != null) // 판이 효과를 정함 (엔드리스 광맥 — 바로 보임 · 맞닿은 채굴 도킹)
+            {
+                m.Label.SetText(s.InReach
+                    ? $"<color=#7CFF9A>{_explore.NameOf(s)} · 채굴 중</color>\n<size=85%>{_explore.EffectOf(s)}</size>"
+                    : $"<b>{_explore.NameOf(s)}</b>\n<size=85%>지금 {distance} · {_explore.EffectOf(s)}</size>");
+                return;
+            }
             m.Label.SetText(s.Reached ? $"<color=#7CFF9A>{ExplorationConfig.Name(s.Kind)} · 탐사 중</color>"
                 : s.Revealed ? $"<b>{ExplorationConfig.Name(s.Kind)}</b>\n<size=85%>지금 {distance} · {_explore.Config.ReachRadius}칸 이내 도달 시 탐사 시작</size>"
                 : _explore.ProbeTarget == s ? $"<color=#FFD36A>탐사선 비행 중</color>\n<size=85%>{distance}</size>"
