@@ -381,6 +381,10 @@ namespace SpaceStation.Editor.Balance
                 result.VeinDocksBuilt = bot.VeinDocksBuilt;
                 result.VeinDocksMoved = bot.VeinDocksMoved;
                 result.VeinReconnects = bot.VeinReconnects;
+                result.VeinFramesFolded = bot.VeinFramesFolded;
+                foreach (var m in sim.Grid.Modules)
+                    if (m.Data != null && m.Data.name == "MD_StructureFrame")
+                        result.VeinFramesFinal++;
                 veins.DockSummary(out result.VeinDocksFinal, out result.InPlaceScaleFinal);
             }
             var heat = sim.Heat;

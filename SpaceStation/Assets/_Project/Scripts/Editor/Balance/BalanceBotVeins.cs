@@ -16,6 +16,12 @@ namespace SpaceStation.Editor.Balance
     {
         /// <summary>비교 측정용 스위치 (끄면 광맥이 있어도 제자리 도킹만).</summary>
         public static bool ReachVeins = true;
+        /// <summary>
+        /// 다 캔 광맥 가지 접기 (사용자 결정 2026-11-28): 봇이 광맥 길로 깐 프레임 가운데 끝에 매달려 아무것도 잇지 않는 것을 한 걸음에 하나씩 철거
+        /// (도킹을 다른 광맥으로 옮긴 뒤 남는 길 — 프레임 평균 222가 정비비를 먹던 것). 매장량이 남은 광맥 3칸 안 · 지금 까는 길은 두고, 도킹은 철거하지 않음.
+        /// </summary>
+        public static bool FoldVeins = true;
+        private const int LiveVeinKeep = 3;
 
         private const int MaxVeinPath = 14;          // 프레임 이보다 많이 깔아야 하면 안 감
         private const int DocksPerVein = 2;          // 광맥 하나에 붙일 도킹 수
@@ -36,12 +42,17 @@ namespace SpaceStation.Editor.Balance
         private int _veinRotation;
         private float _veinRetryAt;
         private bool _reconnecting;
+        private readonly HashSet<Vector3Int> _veinFrameCells = new HashSet<Vector3Int>();
+        private readonly List<Vector3Int> _staleFrames = new List<Vector3Int>();
+        private readonly List<ModuleInstance> _foldNeighbors = new List<ModuleInstance>();
 
         public int VeinFrames { get; private set; }
         public int VeinDocksBuilt { get; private set; }
         public int VeinDocksMoved { get; private set; }
         /// <summary>끊긴 가지를 다시 이은 횟수.</summary>
         public int VeinReconnects { get; private set; }
+        /// <summary>다 캔 가지에서 철거한 길 프레임 수.</summary>
+        public int VeinFramesFolded { get; private set; }
 
         /// <summary>광맥 쪽으로 한 걸음 (프레임 하나 · 도킹 · 옮기기). 무언가 했으면 true (이번 결정 끝).</summary>
         private bool VeinStep()
@@ -60,6 +71,8 @@ namespace SpaceStation.Editor.Balance
                 ClearVeinPlan();
             if (_veinTarget == null && !_reconnecting)
             {
+                if (FoldDeadFrame(veins))
+                    return true;
                 if (_sim.ElapsedSeconds < _veinRetryAt)
                     return false;
                 // 끊긴 가지부터 다시 잇기 (운석이 길 프레임을 부수면 끝쪽 도킹이 멈춤 — 시험 판: 광맥 매장량 3,582를 두고 도킹 0)
@@ -83,6 +96,7 @@ namespace SpaceStation.Editor.Balance
                 }
                 _veinStep++;
                 VeinFrames++;
+                _veinFrameCells.Add(cell);
                 ModulesBuilt++;
                 LastNeed = "vein-frame";
                 return true;
@@ -149,6 +163,55 @@ namespace SpaceStation.Editor.Balance
                 return true;
             }
             RetryVeinLater();
+            return false;
+        }
+
+        /// <summary>
+        /// 봇이 깐 길 프레임 가운데 끝(맞닿은 모듈이 하나 이하)이고 매장량이 남은 광맥 근처가 아닌 것 하나를 철거 (철거해도 끊기는 것이 없음).
+        /// </summary>
+        private bool FoldDeadFrame(OreVeinSystem veins)
+        {
+            if (!FoldVeins || _veinFrameCells.Count == 0 || _frame == null)
+                return false;
+            ModuleInstance pick = null;
+            _staleFrames.Clear();
+            foreach (var cell in _veinFrameCells)
+            {
+                if (!_sim.Grid.TryGetModule(cell, out var m) || m.Data != _frame)
+                {
+                    _staleFrames.Add(cell); // 부서져 사라졌거나 다른 것이 들어섬
+                    continue;
+                }
+                _sim.Grid.GetNeighborModules(m, _foldNeighbors);
+                int others = 0;
+                foreach (var n in _foldNeighbors)
+                    if (n != m)
+                        others++;
+                if (others > 1 || NearLiveVein(veins, cell))
+                    continue;
+                pick = m;
+                break;
+            }
+            foreach (var c in _staleFrames)
+                _veinFrameCells.Remove(c);
+            if (pick == null || !_sim.TryRemove(pick))
+                return false;
+            _veinFrameCells.Remove(pick.Origin);
+            VeinFramesFolded++;
+            LastNeed = "vein-fold";
+            return true;
+        }
+
+        private static bool NearLiveVein(OreVeinSystem veins, Vector3Int cell)
+        {
+            foreach (var s in veins.Exploration.Sites)
+            {
+                if (s.Reserve <= 0f)
+                    continue;
+                var d = s.Cell - cell;
+                if (Mathf.Max(Mathf.Abs(d.x), Mathf.Max(Mathf.Abs(d.y), Mathf.Abs(d.z))) <= LiveVeinKeep)
+                    return true;
+            }
             return false;
         }
 

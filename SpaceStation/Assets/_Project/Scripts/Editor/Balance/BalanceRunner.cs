@@ -95,7 +95,7 @@ namespace SpaceStation.Editor.Balance
         public int[] ResearchLevels = new int[Enum.GetValues(typeof(ResearchCategory)).Length];
         public int ResearchStarted;
         /// <summary>CONNECT_1121 1번 광맥: 잡힌 신호 묶음 · 다 캔 광맥 · 봇이 깐 길 프레임 · 광맥에 지은 · 옮긴 도킹 · 끝 제자리 생산 평균 (광맥이 없으면 0).</summary>
-        public int VeinRounds, VeinsExhausted, VeinFrames, VeinDocksBuilt, VeinDocksMoved, VeinDocksFinal, VeinReconnects;
+        public int VeinRounds, VeinsExhausted, VeinFrames, VeinDocksBuilt, VeinDocksMoved, VeinDocksFinal, VeinReconnects, VeinFramesFolded, VeinFramesFinal;
         public float InPlaceScaleFinal = 1f;
         /// <summary>CONNECT ⑤ 끝 상태: 따뜻함 모듈 · 그중 온기 구간 · 과열 모듈 · 배전 범위 밖 대전력 (설정이 없으면 0).</summary>
         public int WarmModules, WarmInBand, Overheated, Overloaded;
@@ -364,7 +364,7 @@ namespace SpaceStation.Editor.Balance
             sb.AppendLine($"이벤트 평균 {Avg(results, r => r.Events):0.0}, 파손 {Avg(results, r => r.ModulesDamaged):0.0}, 파괴 {Avg(results, r => r.ModulesDestroyed):0.00}, 확산 {Avg(results, r => r.DamageSpreads):0.00}, 격추 {Avg(results, r => r.MeteorsIntercepted):0.00}, 실드 빗겨냄 {Avg(results, r => r.MeteorsBlocked):0.00} (튕겨 명중 {Avg(results, r => r.Ricochets):0.00})");
             sb.AppendLine($"수리 금속 평균 {Avg(results, r => r.MetalSpentOnRepairs):0}, 정비 {Avg(results, r => r.Maintenances):0.0}회, 재건축 {Avg(results, r => r.Rebuilds):0.0}회, 유지비 금속 {Avg(results, r => r.MetalSpentOnUpkeep):0}");
             if (Avg(results, r => r.VeinRounds) > 0f)
-                sb.AppendLine($"광맥 평균: 신호 {Avg(results, r => r.VeinRounds):0.0}번 · 다 캔 광맥 {Avg(results, r => r.VeinsExhausted):0.0} · 길 프레임 {Avg(results, r => r.VeinFrames):0.0} · 광맥 도킹 지음 {Avg(results, r => r.VeinDocksBuilt):0.0} · 옮김 {Avg(results, r => r.VeinDocksMoved):0.0} · 다시 이음 {Avg(results, r => r.VeinReconnects):0.0} · 끝에 광맥 도킹 {Avg(results, r => r.VeinDocksFinal):0.0} · 끝 제자리 생산 {Avg(results, r => r.InPlaceScaleFinal) * 100f:0}%");
+                sb.AppendLine($"광맥 평균: 신호 {Avg(results, r => r.VeinRounds):0.0}번 · 다 캔 광맥 {Avg(results, r => r.VeinsExhausted):0.0} · 길 프레임 {Avg(results, r => r.VeinFrames):0.0} · 광맥 도킹 지음 {Avg(results, r => r.VeinDocksBuilt):0.0} · 옮김 {Avg(results, r => r.VeinDocksMoved):0.0} · 다시 이음 {Avg(results, r => r.VeinReconnects):0.0} · 끝에 광맥 도킹 {Avg(results, r => r.VeinDocksFinal):0.0} · 끝 제자리 생산 {Avg(results, r => r.InPlaceScaleFinal) * 100f:0}% · 접은 길 프레임 {Avg(results, r => r.VeinFramesFolded):0.0} · 끝 구조 프레임 {Avg(results, r => r.VeinFramesFinal):0.0}");
             if (Avg(results, r => r.WarmModules) > 0f)
                 sb.AppendLine($"열 · 배전 (끝): 따뜻함 모듈 {Avg(results, r => r.WarmModules):0.0} 중 온기 {Avg(results, r => r.WarmInBand):0.0} · 과열 {Avg(results, r => r.Overheated):0.0} · 배전 범위 밖 대전력 {Avg(results, r => r.Overloaded):0.0}");
             sb.AppendLine($"최저 재고 평균  산소 {Avg(results, r => r.MinStock[0]):0}  물 {Avg(results, r => r.MinStock[1]):0}  식량 {Avg(results, r => r.MinStock[2]):0}  금속 {Avg(results, r => r.MinStock[3]):0}");
