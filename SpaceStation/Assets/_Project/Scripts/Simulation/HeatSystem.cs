@@ -13,7 +13,7 @@ namespace SpaceStation.Simulation
     /// 열이 한도를 넘으면 과열 = 생산 효율이 넘은 만큼 줄고(위험 배율에서 최대 -50%), 위험 상태가 60초 이어지면 파손.
     /// 대륙급 전에는 열이 모두 0 (기존 결과 그대로).
     /// </summary>
-    public sealed class HeatSystem : StationSystem
+    public sealed partial class HeatSystem : StationSystem
     {
         public const string SystemKey = "heat";
 

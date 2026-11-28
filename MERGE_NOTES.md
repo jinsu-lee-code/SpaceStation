@@ -3839,3 +3839,17 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 - 봇 `ThermalScore` (관계를 보는 봇만, 설정이 없으면 0) · 시험 `HeatTests` +4
 
 **main에서 확인**: csc 컴파일 — 플레이 · 봇 측정은 tycoon에서 (EditMode 739). main에는 설정 에셋 · 씬 연결이 없어 열은 예전 그대로 (캠페인 5장 열은 통합 밸런싱 때). 데이터 센터 발열도 tycoon 데이터만.
+
+## M-378. 열 온기 · 과부하 ⑤ W2 — 방의 온도 · 배전 범위 (CONNECT_1121 3번, 2026-11-28, `main` — tycoon과 같은 코드, 값은 tycoon만) — ⑤ 끝
+
+결정 (사용자 2026-11-28, 추천안): 배전 범위 = 발전 모듈 · 배터리에서 3칸 · 대전력 = 전력 5 이상 (A11 안쪽만).
+
+**main에 넣은 것 (코드만)**
+
+- `HeatSystem.Rooms` (새 파일, `HeatSystem`은 partial): `IsCoolRoom` (방열판이 맞닿은 방) · `IsHeavyBasic` (전력 ≥ 기준 · 발열원 · 레시피 결과 제외) · `IsPowerSource` · `InReach` · `IsOverloaded` · 글 `OverloadText` · `OverloadPreviewText` · 상태 화면 `AppendRoomLines`
+- 사고: `KindWeight` · `Biased(…, room)` (환기 ×2 · 과열 방 화재 ×2 · 배전 범위 밖 차단기 ×2 · 서늘한 방 차단기 ×0.5, 환기만이면 예전 목록 그대로) · 과열 방 = 불길 두 곳 · 배전 범위 밖 = 스위치 +1 · 원인 · 해결 한 줄
+- 부탁 `Request.Warm`: 따뜻한 방 = F 시간 배율 · 보상 배율 ("♨ 따뜻한 방이라 보상 ↑")
+- 상태 화면 맨 앞에 방의 온도 · 배전 줄 · 정보 창 배전 줄 · 배치 안내 배전 줄
+- 시험 `HeatTests` +3
+
+**main에서 확인**: csc 컴파일 — 플레이는 tycoon에서 (EditMode 742). 설정(`Comfort`)이 없으면 모두 꺼짐 — main 캠페인은 그대로. 봇 보고서 "열 · 배전 (끝)" 줄은 tycoon만 (main 봇엔 열 설정 연결 · 광맥 줄이 없음).

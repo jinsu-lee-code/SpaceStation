@@ -84,6 +84,8 @@ namespace SpaceStation.Interior
             public readonly List<InnerHit> Hits = new List<InnerHit>();
             /// <summary>소음 민원: 흡음 덮개를 달 시끄러운 이웃 방.</summary>
             public ModuleInstance NoiseRoom;
+            /// <summary>CONNECT A10 따뜻한 방 (온기 구간의 따뜻함 모듈) — 가볍게 · 보상 ↑ (주민 기분).</summary>
+            public bool Warm;
         }
 
         private static readonly Color WaterColor = new Color(0.3f, 0.62f, 0.95f);
@@ -404,7 +406,8 @@ namespace SpaceStation.Interior
             var kind = forced ?? ResidentRequestRules.Pick(plant != null, fetch, fix, noise, active, _rng.NextDouble());
             if (kind == null)
                 return false;
-            var r = new Request { Kind = kind.Value, ResidentId = resident.Id, Name = resident.Name, Room = room, Inner = anywhere ? InnerFace.None : inner };
+            var r = new Request { Kind = kind.Value, ResidentId = resident.Id, Name = resident.Name, Room = room, Inner = anywhere ? InnerFace.None : inner,
+                                  Warm = !anywhere && Sim.Heat != null && Sim.Heat.IsWarm(room) };
             if (!anywhere)
                 r.Hits.AddRange(_hits);
             bool placed;
@@ -736,18 +739,32 @@ namespace SpaceStation.Interior
             }
         }
 
-        /// <summary>CONNECT A8 부탁이 가벼움 (여가 ← 녹지 · 상업) = F 짧게.</summary>
-        private static float Light(Request r) => (r.Inner & InnerFace.RequestLight) != 0 ? LightHold : 1f;
+        /// <summary>CONNECT A8 부탁이 가벼움 (여가 ← 녹지 · 상업) = F 짧게 · A10 따뜻한 방도 (둘이면 더 짧은 쪽).</summary>
+        private float Light(Request r)
+        {
+            float k = (r.Inner & InnerFace.RequestLight) != 0 ? LightHold : 1f;
+            var comfort = Sim.Heat != null ? Sim.Heat.Comfort : null;
+            if (r.Warm && comfort != null)
+                k = Mathf.Min(k, comfort.WarmRequestHold);
+            return k;
+        }
 
-        /// <summary>CONNECT A8 보상 배율: 말동무 ← 옆집 · 부탁 보상 ↑ = 1.5, 소음 · 북적임 옆 = 0.5 (둘 다면 1).</summary>
-        private static float RewardScale(Request r, out string why)
+        /// <summary>CONNECT A8 보상 배율: 말동무 ← 옆집 · 부탁 보상 ↑ · A10 따뜻한 방 = 1.5, 소음 · 북적임 옆 = 0.5 (둘 다면 1).</summary>
+        private float RewardScale(Request r, out string why)
         {
             why = null;
             bool up = (r.Inner & (InnerFace.RequestBonus | InnerFace.RequestLight)) != 0
-                      || (r.Kind == RequestKind.Talk && (r.Inner & InnerFace.TalkBonus) != 0);
+                      || (r.Kind == RequestKind.Talk && (r.Inner & InnerFace.TalkBonus) != 0)
+                      || r.Warm;
             bool down = (r.Inner & InnerFace.RequestPenalty) != 0;
             if (up == down)
                 return 1f;
+            if (up && r.Warm && (r.Inner & (InnerFace.RequestBonus | InnerFace.RequestLight | InnerFace.TalkBonus)) == 0)
+            {
+                why = "♨ 따뜻한 방이라 보상 ↑";
+                var comfort = Sim.Heat != null ? Sim.Heat.Comfort : null;
+                return comfort != null ? comfort.WarmRequestReward : BonusScale;
+            }
             foreach (var h in r.Hits)
             {
                 var face = up ? (InnerFace.RequestBonus | InnerFace.RequestLight | InnerFace.TalkBonus) : InnerFace.RequestPenalty;

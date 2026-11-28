@@ -307,9 +307,13 @@ namespace SpaceStation.UI
                 else if (hasTarget)
                 {
                     text += AdjacencyPreviewLine(build, targetCell, rotation);
-                    string heat = _station.Simulation.Heat?.PreviewText(build, StationGrid.ResolveCells(build.CellOffsets, targetCell, rotation), moving); // CONNECT A10 그 자리의 열 · 온기
+                    var heatCells = StationGrid.ResolveCells(build.CellOffsets, targetCell, rotation);
+                    string heat = _station.Simulation.Heat?.PreviewText(build, heatCells, moving); // CONNECT A10 그 자리의 열 · 온기
                     if (!string.IsNullOrEmpty(heat))
                         text += $"\n<size=90%>{heat}</size>"; // "열 1.0 · ♨ 온기" · "이웃 ♨ 온기 +1"
+                    string grid = _station.Simulation.Heat?.OverloadPreviewText(build, heatCells, moving); // CONNECT A11 배전 범위
+                    if (!string.IsNullOrEmpty(grid))
+                        text += $"\n<size=90%>{grid}</size>"; // "배전 범위 밖 · …" · "배전 범위에 넣음 n곳"
                     if (build.IsDefense) // 4-8: 범위 안에 들어올 모듈 수
                     {
                         var cells = StationGrid.ResolveCells(build.CellOffsets, targetCell, rotation);
