@@ -57,6 +57,13 @@ namespace SpaceStation.Editor.Balance
 
         /// <summary>13-7 봇 성향 (사용자 결정 2026-10-19, 기본 켬 · 끄면 중립 = 이전 봇): 시드마다 성장 ↔ 안전 · 저축 · 연구 순서가 다름 (<see cref="BalanceBotPersona"/>).</summary>
         public static bool Persona = true;
+
+        /// <summary>
+        /// CONNECT_1121 3번 ④ V1 비교 측정 (사용자 결정 2026-11-28 — 잘 짓기와 막 짓기 차이를 뚜렷하게): 켜면 인접 관계를 보지 않고 짓는 봇
+        /// (자리 점수에서 인접 효과를 뺌 — 맞닿는 면 · 방어 · 서비스 범위 · 제련소를 채굴 도킹 옆에 붙이는 것은 그대로:
+        /// 제련소는 그것 말고 하는 일이 없어 관계를 안 보는 사람도 붙여 짓는다. 2026-11-28 측정 — 이것까지 빼면 차이가 제련소 하나로 정해졌음).
+        /// </summary>
+        public bool IgnoreAdjacency { get; set; }
         private readonly BalanceBotPersona _persona;
         /// <summary>이 봇이 쓰는 성향 (요약 기록용).</summary>
         public BalanceBotPersona PersonaInUse => _persona;
@@ -116,7 +123,7 @@ namespace SpaceStation.Editor.Balance
             if (_fusion == _power)
                 _fusion = null;
             // 8-2 채굴 도킹을 늘려 주는 모듈 (인접 규칙에서 찾음, 건설 목록에 있을 때만)
-            var booster = sim.Adjacency.FindProductionBooster(_metal);
+            var booster = sim.Adjacency.FindProductionBooster(_metal, buildable); // CONNECT A8: 제련 가공 = 이웃 태그(가공)로 — 건설 목록에서 찾음
             foreach (var m in buildable)
                 if (m != null && m == booster)
                     _refinery = m;
@@ -914,7 +921,7 @@ namespace SpaceStation.Editor.Balance
                     float contactWeight = data.SolarPowered ? 1f : 10f;
                     float score = Contacts(data, origin, rot) * contactWeight - origin.sqrMagnitude * 0.01f
                                   + AdjacencyScore(data, origin, rot) + DefenseScore(data, origin, rot) + ServiceScore(data, origin, rot);
-                    if (data == _refinery)
+                    if (data == _refinery) // 관계를 안 보는 봇도 그대로 — 제련소는 채굴 도킹 옆이 아니면 하는 일이 없어 누구나 붙여 짓는다
                         score += FreshDocksAt(origin, rot) * 40f;
                     if (data == _armor) // 미끼는 바깥으로 튀어나올수록 (조밀 가산을 뒤집음)
                         score -= Contacts(data, origin, rot) * contactWeight * 2f;
@@ -1031,6 +1038,8 @@ namespace SpaceStation.Editor.Balance
         /// </summary>
         private float AdjacencyScore(ModuleData data, Vector3Int origin, int rotation)
         {
+            if (IgnoreAdjacency)
+                return 0f;
             _sim.PreviewAdjacency(data, origin, rotation, _previewSelf, _previewNeighbors);
             float score = 0f;
             foreach (var a in _previewSelf)
@@ -1047,6 +1056,21 @@ namespace SpaceStation.Editor.Balance
                 case AdjacencyEffect.Production: return total * 30f;
                 case AdjacencyEffect.Consumption: return -total * 15f;
                 case AdjacencyEffect.Housing: return total * 3f;
+                // CONNECT A14-2 새 효과 (2026-11-28): 대략 같은 값어치로 — 생산 +15% ≈ 4.5점, 주민 1명 = 3점
+                case AdjacencyEffect.ChargeRate: return total * 4f;
+                case AdjacencyEffect.SpreadTime: return total * 4f;
+                case AdjacencyEffect.ServiceCapacity: return total * 10f;
+                case AdjacencyEffect.Passengers: return total * 3f;
+                case AdjacencyEffect.PlagueChance: return -total * 6f;
+                case AdjacencyEffect.RepairTime: return -total * 8f;
+                case AdjacencyEffect.CargoAmount: return total * 8f;
+                case AdjacencyEffect.ResearchSpeed: return total * 40f;
+                case AdjacencyEffect.PolicyDelay: return -total * 3f;
+                case AdjacencyEffect.InterceptChance: return total * 8f;
+                case AdjacencyEffect.HitWeight: return -total * 6f;
+                case AdjacencyEffect.RicochetChance: return -total * 4f;
+                case AdjacencyEffect.RelayPower: return total * 4f;
+                case AdjacencyEffect.DecodeSpeed: return total * 3f;
                 default: return 0f;
             }
         }

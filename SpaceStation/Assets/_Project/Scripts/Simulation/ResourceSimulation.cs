@@ -237,6 +237,9 @@ namespace SpaceStation.Simulation
             Changed?.Invoke();
         }
 
+        /// <summary>CONNECT A8 축전 ← 발전: 인접으로 늘어난 충방전 속도 합 (StationModuleStats가 활성 모듈을 모을 때 정함).</summary>
+        public float ExtraBatteryRate { get; set; }
+
         /// <summary>저장 한도와 수용 인구만 다시 계산한다 (틱 사이 건설 직후 조회용).</summary>
         public void RefreshCapacities(IReadOnlyList<ModuleData> activeModules)
         {
@@ -261,7 +264,7 @@ namespace SpaceStation.Simulation
             }
             HousingCapacity = Math.Max(0, housing + ExtraHousing);
             BatteryCapacity = batteryCapacity;
-            BatteryRate = batteryRate;
+            BatteryRate = batteryRate + ExtraBatteryRate; // CONNECT A8 축전 ← 발전 (직결 충전)
             if (BatteryCharge > BatteryCapacity)
                 BatteryCharge = BatteryCapacity; // 배터리 철거·분리 시 초과분 손실
             Changed?.Invoke();

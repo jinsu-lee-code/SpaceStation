@@ -53,7 +53,10 @@ namespace SpaceStation.Simulation
         public float RepairDuration => Math.Max(0.1f, Get(ResearchStat.RepairDuration, _config.RepairDuration) * TraitRepairMultiplier / Math.Max(0.01f, Policy(PolicyStat.RepairSpeed)));
         public float DecayMultiplier => Get(ResearchStat.DecayMultiplier, 1f) * TraitDecayMultiplier * Policy(PolicyStat.Decay);
         /// <summary>연구 진행 배율 (과학자 × 정책).</summary>
-        public float ResearchSpeedMultiplier => TraitResearchSpeedMultiplier * Policy(PolicyStat.ResearchSpeed) * (1f + DataCenterResearchBonus);
+        public float ResearchSpeedMultiplier => TraitResearchSpeedMultiplier * Policy(PolicyStat.ResearchSpeed) * (1f + DataCenterResearchBonus + AdjacencyResearchBonus);
+
+        /// <summary>CONNECT A8 연구 ← 연산 · 정숙 ← 소음원 · 정숙 ← 녹지: 가동 중인 모듈의 인접 연구 속도 합 (StationModuleStats가 매 틱 갱신).</summary>
+        public float AdjacencyResearchBonus { get; set; }
         /// <summary>M-50 합성 진행 배율 (손재주 — 1.2면 합성 시간이 1/1.2).</summary>
         public float SynthesisSpeedMultiplier => Math.Max(0.01f, TraitSynthesisSpeedMultiplier);
         /// <summary>M-120 방열판 효율 배율 (방열 — 1.1이면 방열량 +10%).</summary>

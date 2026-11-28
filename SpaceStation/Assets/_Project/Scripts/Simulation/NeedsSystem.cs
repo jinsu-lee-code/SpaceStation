@@ -29,6 +29,11 @@ namespace SpaceStation.Simulation
         private readonly BalanceConfig _config;
         private readonly Func<ModuleInstance, float> _strength;
         private readonly Func<ModuleInstance, float> _housing;
+
+        /// <summary>CONNECT_1121 A14-2 인접 효과 조회 (모듈, 효과) → 값 (배율형은 1 + 합, 더하는 효과는 합). null이면 효과 없음.</summary>
+        public Func<ModuleInstance, AdjacencyEffect, float> AdjacencyLookup { get; set; }
+
+        private float Adj(ModuleInstance module, AdjacencyEffect effect) => AdjacencyLookup != null ? AdjacencyLookup(module, effect) : 1f;
         private readonly List<NeedStatus> _statuses = new List<NeedStatus>();
         private readonly List<ModuleInstance> _habitats = new List<ModuleInstance>();
         private readonly List<CellBox> _habitatBoxes = new List<CellBox>(); // 12-2b: 먼 거주 모듈은 칸 비교 생략
@@ -126,7 +131,7 @@ namespace SpaceStation.Simulation
                     var data = s.Data;
                     if (data == null || !data.Serves(need)) // 12-3: 여러 요구를 맡는 모듈(복지 센터)은 요구마다 담당 인원을 따로
                         continue;
-                    float capacity = data.ServiceCapacity * GetStrength(s);
+                    float capacity = data.ServiceCapacity * GetStrength(s) * Adj(s, AdjacencyEffect.ServiceCapacity); // CONNECT A8 서비스 정원
                     float used = 0f;
                     var serviceBox = new CellBox(s.Cells);
                     int radius = Effects.ServiceRadius(data);

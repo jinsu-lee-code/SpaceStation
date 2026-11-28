@@ -101,16 +101,16 @@ namespace SpaceStation.Simulation
         {
             get
             {
-                int sum = 0;
+                float sum = 0f;
                 foreach (var m in Sim.Grid.Modules)
                 {
                     if (m.Data == null || m.Data.RelayPower <= 0)
                         continue;
                     if (!Sim.Connectivity.IsActive(m) || Sim.Damage.IsDamaged(m) || Sim.IsHalted(m))
                         continue;
-                    sum += m.Data.RelayPower;
+                    sum += m.Data.RelayPower * Sim.Adjacency.Multiplier(m, AdjacencyEffect.RelayPower); // CONNECT A8 통신 ← 보호막 (전파 차폐)
                 }
-                return sum + Sim.Effects.RelayPowerBonus; // 12-4 연계 연구 '심우주 청취'
+                return (int)Math.Floor(sum + 1e-4f) + Sim.Effects.RelayPowerBonus; // 12-4 연계 연구 '심우주 청취'
             }
         }
 
@@ -203,7 +203,7 @@ namespace SpaceStation.Simulation
             int need = _config.RankPower(Rank);
             if (power < need)
                 return;
-            float speed = 1f + _config.DecodeSpeedPerExtra * (power - need);
+            float speed = (1f + _config.DecodeSpeedPerExtra * (power - need)) * Sim.DecodeSpeedScale; // CONNECT A8 통신 ← 감지
             DecodeProgress = Math.Min(1f, DecodeProgress + dt * speed / Math.Max(1f, _config.DecodeSeconds));
             if (Decoded)
                 Sim.Report($"신호 해독: {VisitorName} 함선 · 평판 {ContactConfig.TierName(Tier(Faction))}", true);

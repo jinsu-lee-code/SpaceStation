@@ -45,6 +45,8 @@ namespace SpaceStation.Editor.Balance
         public float HoldSeconds = 7200f;
         /// <summary>시드에 묶인 봇 성향을 끄고 중립으로 (제자리 봇 측정 — 판 차이를 사건으로만).</summary>
         public bool NeutralPersona;
+        /// <summary>CONNECT_1121 3번 ④ 비교: 인접 관계를 보지 않고 짓는 봇 (<see cref="BalanceBot.IgnoreAdjacency"/>).</summary>
+        public bool IgnoreAdjacency;
     }
 
     /// <summary>한 판(시드 1개)의 결과 지표.</summary>

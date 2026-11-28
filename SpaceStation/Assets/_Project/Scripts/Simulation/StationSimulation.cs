@@ -255,6 +255,12 @@ namespace SpaceStation.Simulation
             Damage.Effects = Effects;
             Durability.Effects = Effects;
             Adjacency.Effects = Effects;
+            // CONNECT_1121 A14-2 인접 효과 14종 (2026-11-28): 모듈마다 읽는 시스템에 조회를 건넴 (규칙이 없으면 늘 1 → 예전 결과 그대로)
+            Func<ModuleInstance, AdjacencyEffect, float> adjacency = (m, e) => Adjacency.Value(m, e);
+            Damage.AdjacencyLookup = adjacency;
+            Defense.AdjacencyLookup = adjacency;
+            Needs.AdjacencyLookup = adjacency;
+            Cargo.AdjacencyLookup = adjacency;
             Defense.Effects = Effects;
             Needs.Effects = Effects;
             Research = new ResearchSystem(settings.ResearchCategories, settings.ResearchCaps, Effects);
@@ -640,6 +646,20 @@ namespace SpaceStation.Simulation
         public float SensorWarningBonus => _stats.SensorWarningBonus;
         /// <summary>12-5 가동 중인 여객 도킹 포트 수 (이민선).</summary>
         public int ImmigrationPorts => _stats.ImmigrationPorts;
+
+        /// <summary>CONNECT A8 유입 ← 주거: visit번째 이민선이 들른 포트의 인접 승객 + (가동 중인 포트를 차례로, 없으면 0).</summary>
+        public float ImmigrationPassengerBonus(int visit)
+        {
+            var list = _stats.PortPassengerBonus;
+            return list.Count > 0 ? list[(visit % list.Count + list.Count) % list.Count] : 0f;
+        }
+
+        /// <summary>CONNECT A8 검역 ← 유입: 역병 유입 확률 배율 (가장 센 검역 모듈 하나, 없으면 1).</summary>
+        public float PlagueChanceScale => _stats.PlagueChanceScale;
+        /// <summary>CONNECT A8 행정 ← 중심: 정책 시행 대기 배율 (없으면 1).</summary>
+        public float PolicyDelayScale => _stats.PolicyDelayScale;
+        /// <summary>CONNECT A8 통신 ← 감지: 신호 해독 속도 배율 (없으면 1).</summary>
+        public float DecodeSpeedScale => _stats.DecodeSpeedScale;
 
         /// <summary>가중치 랜덤 이벤트 즉시 발생 (디버그 F5).</summary>
         public GameEventData TriggerRandomEvent() => Events.TriggerRandom(_eventPool);

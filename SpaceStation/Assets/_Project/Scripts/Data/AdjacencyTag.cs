@@ -18,6 +18,18 @@ namespace SpaceStation.Data
         public string DisplayName => string.IsNullOrEmpty(_displayName) ? name : _displayName;
         public string Description => _description;
 
+        /// <summary>설명 끝 괄호 속 모듈 이름 ("시끄러운 모듈 (채굴 도킹 · 제련소 · 방어 포탑)" → "채굴 도킹 · 제련소 · 방어 포탑"), 없으면 빈 글.</summary>
+        public string Members
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_description) || !_description.EndsWith(")"))
+                    return string.Empty;
+                int open = _description.LastIndexOf('(');
+                return open < 0 ? string.Empty : _description.Substring(open + 1, _description.Length - open - 2).Trim();
+            }
+        }
+
         public void EditorSet(string displayName, string description)
         {
             _displayName = displayName;

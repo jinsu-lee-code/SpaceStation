@@ -3761,3 +3761,21 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 
 ### `narrative` 합칠 때
 - [ ] 서사판 내부에도 같은 코드라 그대로 (침입 드론은 지금 대상 아님 — 사용자 결정)
+
+## M-373. 새 관계 ④ V1 — 효과 종류 14 + 관계 틀 (CONNECT_1121 3번, 2026-11-28, `main` — tycoon과 같은 코드, 데이터는 tycoon만)
+
+결정 (사용자 2026-11-28): 바깥 먼저 4단위 · 잘 짓기와 막 짓기 차이 10 ~ 20% · 놓친 사고는 나쁜 이웃 옆에서만 한 번 번짐 · 곁가지 안쪽 얼굴은 셋만.
+
+**main에 넣은 것 (코드만)**
+
+- `AdjacencyEffect` 끝에 14 (충방전 속도 · 번지기까지 시간 · 서비스 정원 · 이민선 승객 · 역병 유입 · 수리 시간 · 화물 양 · 연구 속도 · 정책 대기 · 격추 · 피격 · 튕김 · 통신 세기 · 해독 속도) — 번호 유지
+- `AdjacencyEffects` (새 파일): 더하는 값 · 낮을수록 좋음 · 이름 · 아이콘 모양 · 그 모듈에 뜻이 있는지 (`Relevant` — 기존 셋은 늘 참)
+- `AdjacencyRule`: `_anyTarget` ("아무 방 ← …") · `Create` · `AdjacencyRuleSet.EditorSetRules` · `AdjacencyTag.Members` (설명 괄호 속 모듈)
+- `AdjacencySystem`: 종류별 합 (`Multiplier` · `Addend` · `Value`), 설명 (태그 뒤 모듈 이름 · 모든 모듈 관계는 "옆 모듈마다")
+- 시스템 연결 (`AdjacencyLookup` 또는 `Sim.Adjacency`): 파손 (번짐 · 수리 시간 · 피격) · 방어 (격추 · 손상 통제실 둘레) · 서비스 정원 · 화물 · 유성우 피격 · 튕김 · 이민선 승객 · 정책 대기 · 통신 세기 · 해독 · 배터리 충방전 · 연구 속도 — **규칙이 없으면 × 1 · + 0이라 결과 그대로** (tycoon 봇 재확인 바이트까지 같음)
+- main에 없는 것: 역병 유입 (`PlagueSystem`이 main에 없음 — `StationSimulation.PlagueChanceScale`만 있고 쓰는 곳 없음)
+- `AdjacencyRelationSetup` (새 메뉴 Setup Relations): 엔드리스 관계 37개 표 — **캠페인 규칙 묶음(거주 타워 규칙이 있으면) 멈춤**. main 데이터는 그대로 (A4 — 통합 밸런싱 때)
+- 봇: `BalanceBot.IgnoreAdjacency` (비교용) · 새 효과 자리 점수 · 제련 가공 짝을 건설 목록에서 태그로 · `BalanceRunSettings.IgnoreAdjacency`
+- 시험 `AdjacencyRelationTests` 6 (실제 관계 표는 태그 · 모듈 파일만 봄 — main에서도 통과)
+
+**main에서 확인**: csc 컴파일 (런타임 · 에디터 · EditMode 시험) — 플레이 · 봇은 tycoon에서 (EditMode 732).

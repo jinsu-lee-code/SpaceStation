@@ -348,7 +348,8 @@ namespace SpaceStation.Simulation
         }
 
         private float Weight(ModuleInstance m)
-            => (_facingCells.TryGetValue(m, out int n) ? n : 1) * (m.Data != null ? m.Data.MeteorWeightMultiplier : 1f);
+            => (_facingCells.TryGetValue(m, out int n) ? n : 1) * (m.Data != null ? m.Data.MeteorWeightMultiplier : 1f)
+               * Sim.Adjacency.Multiplier(m, AdjacencyEffect.HitWeight); // CONNECT A8 요격 ← 장갑
 
         private float NextInterval()
             => Sim.Balance.ShowerIntervalMin + _random01() * (Sim.Balance.ShowerIntervalMax - Sim.Balance.ShowerIntervalMin);

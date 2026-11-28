@@ -27,6 +27,11 @@ namespace SpaceStation.Simulation
         private readonly BalanceConfig _config;
         private readonly Func<ModuleInstance, float> _strength;
 
+        /// <summary>CONNECT_1121 A14-2 인접 효과 조회 (모듈, 효과) → 값 (배율형은 1 + 합, 더하는 효과는 합). null이면 효과 없음.</summary>
+        public Func<ModuleInstance, AdjacencyEffect, float> AdjacencyLookup { get; set; }
+
+        private float Adj(ModuleInstance module, AdjacencyEffect effect) => AdjacencyLookup != null ? AdjacencyLookup(module, effect) : 1f;
+
         public DefenseSystem(BalanceConfig config, Func<ModuleInstance, float> strength)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -76,7 +81,7 @@ namespace SpaceStation.Simulation
                 var data = d.Data;
                 if (data == null || !data.IsTurret || !InRange(d.Cells, target.Cells, Effects.TurretRadius(data)))
                     continue;
-                sum += data.TurretInterceptChance * Effects.TurretInterceptMultiplier * GetStrength(d);
+                sum += data.TurretInterceptChance * Effects.TurretInterceptMultiplier * GetStrength(d) * Adj(d, AdjacencyEffect.InterceptChance); // CONNECT A8 요격 ← 감지
             }
             return Mathf.Min(sum, Effects.TurretMaxIntercept);
         }
@@ -153,7 +158,7 @@ namespace SpaceStation.Simulation
                 float s = GetStrength(d);
                 if (s <= 0f)
                     continue;
-                float spread = 1f + (data.ControlSpreadMultiplier - 1f) * s;
+                float spread = 1f + (data.ControlSpreadMultiplier * Adj(d, AdjacencyEffect.SpreadTime) - 1f) * s; // CONNECT A8 통제 ← 정비
                 float destroy = 1f + (data.ControlDestroyMultiplier - 1f) * s;
                 if (spread > best.SpreadMultiplier) best.SpreadMultiplier = spread;
                 if (destroy > best.DestroyMultiplier) best.DestroyMultiplier = destroy;

@@ -117,7 +117,7 @@ namespace SpaceStation.UI
             if (sb.Length > 0)
                 sb.Append("  ");
             var resource = AdjacencySystem.EffectResource(rule, target);
-            sb.Append(resource.HasValue ? HudTheme.Icon(resource.Value) : HudTheme.Icon("population"));
+            sb.Append(resource.HasValue ? HudTheme.Icon(resource.Value) : HudTheme.Icon(SpaceStation.Data.AdjacencyEffects.IconName(rule.Effect))); // CONNECT A14-2 새 효과 = 효과 모양
             sb.Append(" <color=").Append(AdjacencySystem.IsBeneficial(rule, total) ? GoodHex : HudText.Orange).Append('>')
               .Append(AdjacencySystem.ShortValue(rule, total)).Append("</color>");
         }

@@ -15,6 +15,11 @@ namespace SpaceStation.Simulation
         private readonly Dictionary<ModuleInstance, float> _progress = new Dictionary<ModuleInstance, float>();
         private readonly List<ModuleInstance> _terminals = new List<ModuleInstance>();
 
+        /// <summary>CONNECT_1121 A14-2 인접 효과 조회 (모듈, 효과) → 값 (배율형은 1 + 합, 더하는 효과는 합). null이면 효과 없음.</summary>
+        public Func<ModuleInstance, AdjacencyEffect, float> AdjacencyLookup { get; set; }
+
+        private float Adj(ModuleInstance module, AdjacencyEffect effect) => AdjacencyLookup != null ? AdjacencyLookup(module, effect) : 1f;
+
         /// <summary>(터미널, 자원, 실제로 들어온 양 — 한도 초과분 제외).</summary>
         public event Action<ModuleInstance, ResourceType, float> Delivered;
 
@@ -41,7 +46,7 @@ namespace SpaceStation.Simulation
                 {
                     p = Math.Max(0f, p - 1f);
                     var type = PickNeediest(resources);
-                    float added = resources.AddStock(type, resources.GetCapacity(type) * m.Data.CargoFraction);
+                    float added = resources.AddStock(type, resources.GetCapacity(type) * m.Data.CargoFraction * Adj(m, AdjacencyEffect.CargoAmount)); // CONNECT A8 하역 ← 보관
                     Delivered?.Invoke(m, type, added);
                 }
                 _progress[m] = p;
