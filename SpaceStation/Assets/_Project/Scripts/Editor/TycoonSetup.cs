@@ -312,6 +312,59 @@ namespace SpaceStation.Editor
             Debug.Log("[TycoonSetup] 비리: 설정 에셋 · 씬 연결 (호스트 · 비리 경고 창) 완료");
         }
 
+        private const string SupplyChainPath = "Assets/_Project/Data/Tycoon/SupplyChainConfig.asset";
+
+        /// <summary>
+        /// CONNECT_1121 7번 ③ 대륙급 공급 사슬 — 사용자 결정 2026-11-28 (추천안): 대륙급 고급 모듈(3단계 진화 7종 + 치안 본부)이 금속 · 식량 · 물을 계속 먹어야 제 성능,
+        /// 끊기면 효율만 떨어짐 (공급 비율만큼, 바닥 25%). 공급량은 가안 — 계통 당위성: 냉각수 (발전 · 연산) · 부품 · 탄약 (방어 · 수리 · 항만) · 생활 물자 (도시 · 치안).
+        /// 설정 에셋 + 씬 SimulationHost 연결.
+        /// </summary>
+        [MenuItem("SpaceStation/Tycoon/Setup Supply Chain")]
+        public static void SetupSupplyChain()
+        {
+            EnsureFolder();
+            var config = AssetDatabase.LoadAssetAtPath<SupplyChainConfig>(SupplyChainPath);
+            if (config == null)
+            {
+                config = ScriptableObject.CreateInstance<SupplyChainConfig>();
+                AssetDatabase.CreateAsset(config, SupplyChainPath);
+            }
+            ResourceAmount R(ResourceType t, float a) => new ResourceAmount(t, a);
+            var table = new (string Module, ResourceAmount[] Supply)[]
+            {
+                ("MD_Evo_StellarGrid", new[] { R(ResourceType.Water, 2f) }),                               // 항성 발전망: 냉각수
+                ("MD_Evo_OrbitalCity", new[] { R(ResourceType.Food, 3f), R(ResourceType.Water, 2f) }),     // 궤도 도시: 생활 물자
+                ("MD_Evo_Biosphere", new[] { R(ResourceType.Metal, 1f) }),                                 // 바이오스피어: 설비 교체
+                ("MD_Evo_OrbitalDefense", new[] { R(ResourceType.Metal, 3f) }),                            // 궤도 방어망: 탄약 · 장갑
+                ("MD_Evo_RepairCommand", new[] { R(ResourceType.Metal, 3f) }),                             // 수리 사령부: 부품
+                ("MD_Evo_OrbitalPort", new[] { R(ResourceType.Metal, 2f) }),                               // 궤도 항만: 하역 설비
+                ("MD_Evo_AICore", new[] { R(ResourceType.Metal, 1f), R(ResourceType.Water, 2f) }),         // AI 중추: 부품 · 냉각수
+                ("MD_Evo_SecurityHQ", new[] { R(ResourceType.Food, 1f) }),                                 // 치안 본부: 대원 생활 물자
+            };
+            var entries = new List<(ModuleData, ResourceAmount[])>();
+            foreach (var (name, supply) in table)
+            {
+                var data = Module(name);
+                if (data != null)
+                    entries.Add((data, supply));
+                else
+                    Debug.LogWarning($"[TycoonSetup] 공급 사슬: {name} 없음");
+            }
+            config.EditorSet(entries);
+            EditorUtility.SetDirty(config);
+            AssetDatabase.SaveAssets();
+
+            var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
+            var host = Object.FindFirstObjectByType<SpaceStation.Simulation.SimulationHost>();
+            var hso = new SerializedObject(host);
+            hso.FindProperty("_supplyChain").objectReferenceValue = AssetDatabase.LoadAssetAtPath<SupplyChainConfig>(SupplyChainPath); // 씬을 열면(Single) 앞서 불러 둔 에셋 참조가 내려감 — 다시 불러옴
+            hso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(host);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log($"[TycoonSetup] 공급 사슬: 고급 모듈 {entries.Count}종 · 씬 연결 완료");
+        }
+
         private const string MidGradePath = "Assets/_Project/Data/Tycoon/MidGradeConfig.asset";
         private const string InteriorBonusPath = "Assets/_Project/Data/Tycoon/InteriorBonusConfig.asset";
         private const string GrowthPath = "Assets/_Project/Data/Tycoon/GrowthThreatConfig.asset";

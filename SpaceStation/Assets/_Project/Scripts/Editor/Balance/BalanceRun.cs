@@ -33,6 +33,8 @@ namespace SpaceStation.Editor.Balance
         private int _damaged;
         private readonly UnlockChoiceSystem _choices;
         private readonly Func<int, int> _pickChoice;
+        private readonly SupplyChainSystem _supply; // CONNECT 7번 ③
+        private float _supplyShortSeconds;
         // 제자리 봇 (CONNECT_1121 0번, 2026-11-26)
         private readonly int _holdGrade;
         private float _holdStart = float.NaN;
@@ -107,6 +109,8 @@ namespace SpaceStation.Editor.Balance
                 EndlessHomeComfort.AttachTo(_sim, s.HeatPower); // CONNECT 7번 ① 방사선 힘든 주민
             if (s.Corruption != null)
                 CorruptionSystem.AttachTo(_sim, s.Corruption, () => 1f); // CONNECT 7번 ② 파업 연결만 (난수 1 = 비리는 안 일어남)
+            if (s.SupplyChain != null)
+                _supply = SupplyChainSystem.AttachTo(_sim, s.SupplyChain); // CONNECT 7번 ③ 공급 사슬 (광맥 뒤)
             StartGrade = -1;
             if (start != null)
             {
@@ -192,6 +196,8 @@ namespace SpaceStation.Editor.Balance
 
             var r = sim.Resources;
             _effSum += r.PowerEfficiency;
+            if (_supply != null)
+                _supplyShortSeconds += _supply.ShortCount * s.TickInterval; // CONNECT 7번 ③ 공급이 모자란 모듈 · 초
             if (r.PowerEfficiency < 1f - 1e-4f)
                 result.LowPowerSeconds += s.TickInterval;
             for (int i = 0; i < 4; i++)
@@ -390,6 +396,15 @@ namespace SpaceStation.Editor.Balance
                     if (m.Data != null && m.Data.name == "MD_StructureFrame")
                         result.VeinFramesFinal++;
                 veins.DockSummary(out result.VeinDocksFinal, out result.InPlaceScaleFinal);
+            }
+            if (_supply != null) // CONNECT 7번 ③ 끝 상태
+            {
+                result.SupplyModules = _supply.SuppliedCount;
+                result.SupplyShort = _supply.ShortCount;
+                result.SupplyMetal = _supply.DemandOf(ResourceType.Metal);
+                result.SupplyFood = _supply.DemandOf(ResourceType.Food);
+                result.SupplyWater = _supply.DemandOf(ResourceType.Water);
+                result.SupplyShortModuleSeconds = _supplyShortSeconds;
             }
             var heat = sim.Heat;
             if (heat != null && heat.Comfort != null) // CONNECT ⑤ 끝 상태

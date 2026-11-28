@@ -42,6 +42,8 @@ namespace SpaceStation.Editor.Balance
         [SerializeField] private HeatPowerConfig _heatPower;
         [Tooltip("CONNECT_1121 7번 ② 비리 · 파업 연결 (비우면 없음 — 봇 판은 파업 연결만)")]
         [SerializeField] private CorruptionConfig _corruption;
+        [Tooltip("CONNECT_1121 7번 ③ 대륙급 공급 사슬 (비우면 없음)")]
+        [SerializeField] private SupplyChainConfig _supplyChain;
         [SerializeField] private float _durationMinutes = 30f;
 
         /// <summary>Phase 10 비교 측정용: true면 기본 에셋 실행에서도 주민 특성을 끈다.</summary>
@@ -247,6 +249,7 @@ namespace SpaceStation.Editor.Balance
                 OreVeins = _oreVeins,
                 HeatPower = _heatPower,
                 Corruption = _corruption,
+                SupplyChain = _supplyChain,
                 Residents = DisableResidents ? null : _residents,
                 DurationSeconds = _durationMinutes * 60f,
                 Runs = Mathf.Max(1, _runs),
@@ -405,6 +408,8 @@ namespace SpaceStation.Editor.Balance
                 _heatPower = AssetDatabase.LoadAssetAtPath<HeatPowerConfig>($"{DataRoot}/Tycoon/HeatPowerConfig.asset"); // CONNECT A10 · A11 (없으면 null)
             if (overwrite || _corruption == null)
                 _corruption = AssetDatabase.LoadAssetAtPath<CorruptionConfig>($"{DataRoot}/Tycoon/CorruptionConfig.asset"); // CONNECT 7번 ② (없으면 null)
+            if (overwrite || _supplyChain == null)
+                _supplyChain = AssetDatabase.LoadAssetAtPath<SupplyChainConfig>($"{DataRoot}/Tycoon/SupplyChainConfig.asset"); // CONNECT 7번 ③ (없으면 null)
             if (overwrite || _buildable.Count == 0)
             {
                 _buildable.Clear();

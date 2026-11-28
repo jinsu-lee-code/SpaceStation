@@ -91,7 +91,7 @@ namespace SpaceStation.Simulation
                 if (c.Type == ResourceType.Power && c.Amount > 0f)
                     power = _sim.Resources.PowerEfficiency;
             }
-            return power * _sim.Durability.GetEfficiency(defender);
+            return power * _sim.Durability.GetEfficiency(defender) * _sim.StrengthScaleOf(defender); // CONNECT_1121 7번 ③ 판이 정하는 가동률 (엔드리스 공급 사슬)
         }
 
         /// <summary>
@@ -170,7 +170,7 @@ namespace SpaceStation.Simulation
                 if (!_sim.Damage.IsDamaged(module) && !halted)
                 {
                     sensor += module.Data.WarningBonus;            // 12-5 센서 어레이
-                    dataCenter += module.Data.ResearchSpeedBonus;  // 12-5 데이터 센터
+                    dataCenter += module.Data.ResearchSpeedBonus * _sim.StrengthScaleOf(module);  // 12-5 데이터 센터 (7번 ③ 공급 사슬 가동률)
                     if (module.Data.ImmigrationPort)
                     {
                         ports++;                                    // 12-5 여객 도킹 포트
@@ -213,7 +213,7 @@ namespace SpaceStation.Simulation
                 if (module.Data == null || module.Data.RepairSlots <= 0)
                     continue;
                 if (_sim.Connectivity.IsActive(module) && !_sim.Damage.IsDamaged(module) && !_sim.IsHalted(module))
-                    slots += module.Data.RepairSlots;
+                    slots += (int)Math.Floor(module.Data.RepairSlots * _sim.StrengthScaleOf(module) + 1e-4f); // 7번 ③ 공급 사슬 가동률 (판이 안 정하면 1)
             }
             return slots;
         }
