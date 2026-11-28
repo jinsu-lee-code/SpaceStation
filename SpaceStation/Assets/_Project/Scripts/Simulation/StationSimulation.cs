@@ -793,8 +793,8 @@ namespace SpaceStation.Simulation
         /// 11-17 ③ 주민 요청을 들어줌 (BALANCE 30번): 정거장 만족도 + 그 주민 기분 보너스, 가끔 연구 포인트.
         /// roll01 = 연구 포인트 판정 난수 (없으면 상자 난수). text = 받은 것 (알림용).
         /// </summary>
-        public bool CompleteResidentRequest(Resident resident, out string text, float? roll01 = null)
-            => _interior.CompleteResidentRequest(resident, out text, roll01);
+        public bool CompleteResidentRequest(Resident resident, out string text, float? roll01 = null, float scale = 1f)
+            => _interior.CompleteResidentRequest(resident, out text, roll01, scale); // scale = CONNECT A8 이웃 보상 배율
 
         /// <summary>11-17 ④ 내부 사고를 처리함 (BALANCE 31번): 주민들이 안심 → 만족도 조금. text = 알림용.</summary>
         public string ResolveIncident() => _interior.ResolveIncident();

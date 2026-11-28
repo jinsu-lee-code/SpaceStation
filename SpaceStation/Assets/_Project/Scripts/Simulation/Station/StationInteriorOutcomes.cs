@@ -55,7 +55,7 @@ namespace SpaceStation.Simulation
             return true;
         }
 
-        public bool CompleteResidentRequest(Resident resident, out string text, float? roll01)
+        public bool CompleteResidentRequest(Resident resident, out string text, float? roll01, float scale = 1f)
         {
             text = null;
             var roster = _sim.Residents;
@@ -67,11 +67,11 @@ namespace SpaceStation.Simulation
             if (!listed)
                 return false;
             float before = Population.Satisfaction;
-            Population.SetSatisfaction(Math.Min(PopulationSimulation.MaxSatisfaction, before + Balance.RequestSatisfaction));
+            Population.SetSatisfaction(Math.Min(PopulationSimulation.MaxSatisfaction, before + Balance.RequestSatisfaction * Math.Max(0f, scale))); // CONNECT A8 부탁 보상 ↑ ↓ (이웃)
             _cheerUntil[resident.Id] = _sim.ElapsedSeconds + Balance.RequestCheerSeconds;
             text = $"만족도 +{Population.Satisfaction - before:0.#}";
             float roll = roll01 ?? (float)_crateRandom.NextDouble();
-            if (roll < Balance.RequestResearchPointChance)
+            if (roll < Balance.RequestResearchPointChance * Math.Max(0f, scale))
             {
                 var supply = _sim.Supply;
                 supply.SetCounts(supply.ResearchPoints + 1, supply.FreeRepairs);

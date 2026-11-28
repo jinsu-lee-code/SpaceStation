@@ -3,6 +3,7 @@ using NUnit.Framework;
 using SpaceStation.Core;
 using SpaceStation.Data;
 using SpaceStation.Editor;
+using SpaceStation.Interior;
 using SpaceStation.Simulation;
 using UnityEditor;
 using UnityEngine;
@@ -248,6 +249,24 @@ namespace SpaceStation.Tests
             Assert.AreEqual(50f, sim.Population.Satisfaction, Eps, "의료 이웃 = 만족도 지킴");
             sim.MissIncident(IncidentKind.DecoLights, sim.Core, ResourceType.Oxygen, IncidentMiss.Half);
             Assert.AreEqual(50f - config.IncidentMissSatisfaction * 0.5f, sim.Population.Satisfaction, Eps, "손상 통제실 ← 정비 = 절반");
+        }
+
+        [Test]
+        public void NoiseComplaint_OnlyWithNoisyNeighbor_AndReadsTheRoom()
+        {
+            // CONNECT A8 소음 민원 (3번 ④ V3, 사용자 결정 2026-11-28): 옆에 소음원 · 활기 방이 있을 때만 고를 수 있음
+            bool saw = false;
+            for (int i = 0; i < 60; i++)
+            {
+                saw |= ResidentRequestRules.Pick(false, false, false, true, null, i / 60.0) == RequestKind.Noise;
+                Assert.AreNotEqual(RequestKind.Noise, ResidentRequestRules.Pick(true, true, true, false, null, i / 60.0), "소음원이 없으면 안 나옴");
+                Assert.AreNotEqual(RequestKind.Noise, ResidentRequestRules.Pick(true, true, true, null, i / 60.0), "예전 호출도 그대로");
+            }
+            Assert.IsTrue(saw);
+            StringAssert.Contains("제련소", ResidentRequestRules.Ask(RequestKind.Noise, FetchItem.Toolbox, "제련소"));
+            Assert.AreEqual("소음 민원", ResidentRequestRules.Title(RequestKind.Noise));
+            Assert.IsTrue((AdjacencyEffects.BadInner & InnerFace.NoiseComplaint) != 0, "나쁜 이웃의 안쪽 얼굴");
+            StringAssert.Contains("소음 민원", AdjacencyEffects.InnerText(InnerFace.RequestPenalty | InnerFace.NoiseComplaint));
         }
 
         // ---------------- 도우미 ----------------
