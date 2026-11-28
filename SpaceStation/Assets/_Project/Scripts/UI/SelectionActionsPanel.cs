@@ -67,6 +67,9 @@ namespace SpaceStation.UI
             _group != null && _group.alpha > 0.5f && _enterButton != null && _enterButton.gameObject.activeInHierarchy && _enterButton.interactable
                 ? (RectTransform)_enterButton.transform : null;
 
+        /// <summary>패널이 보이면 패널 사각형, 아니면 null (2026-11-28 — 왼쪽 아래 열 상태 줄이 패널 위로 비켜 가게).</summary>
+        public RectTransform PanelIfShown => _group != null && _group.alpha > 0.5f ? (RectTransform)_group.transform : null;
+
         /// <summary>11-18 튜토리얼 정비 단계 강조: 패널이 보이고 정비 버튼이 켜져 있을 때만.</summary>
         public RectTransform MaintainButtonIfShown =>
             _group != null && _group.alpha > 0.5f && _maintainButton.gameObject.activeInHierarchy && _maintainButton.interactable
