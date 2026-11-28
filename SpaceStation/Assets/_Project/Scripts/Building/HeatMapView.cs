@@ -148,8 +148,43 @@ namespace SpaceStation.Building
             _hud.alignment = TextAlignmentOptions.BottomLeft;
             var rt = (RectTransform)go.transform;
             rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 0f);
-            rt.anchoredPosition = new Vector2(24f, 300f); // 아래 조작 안내 줄과 겹치지 않게
+            rt.anchoredPosition = new Vector2(24f, HudBaseY); // 아래 조작 안내 줄과 겹치지 않게
             rt.sizeDelta = new Vector2(1100f, 70f);
+            _hudCanvas = canvas;
+        }
+
+        private const float HudBaseY = 300f;
+        private Canvas _hudCanvas;
+        private SelectionActionsPanel _panel;
+        private bool _panelSearched;
+        private readonly Vector3[] _corners = new Vector3[4];
+
+        /// <summary>
+        /// 모듈 정보 창(왼쪽 아래)이 떠 있으면 열 상태 줄을 그 위로 올림 (2026-11-28 플레이 확인: 정보 창과 겹쳐 둘 다 안 읽힘 — 10-14부터 같은 자리).
+        /// </summary>
+        private void PlaceHud()
+        {
+            if (_hud == null)
+                return;
+            if (!_panelSearched)
+            {
+                _panelSearched = true;
+                _panel = FindFirstObjectByType<SelectionActionsPanel>(FindObjectsInactive.Include);
+            }
+            float y = HudBaseY;
+            var rect = _panel != null ? _panel.PanelIfShown : null;
+            if (rect != null && _hudCanvas != null && _hudCanvas.scaleFactor > 0f)
+            {
+                rect.GetWorldCorners(_corners);
+                var parent = rect.GetComponentInParent<Canvas>();
+                var root = parent != null ? parent.rootCanvas : null;
+                var cam = root != null && root.renderMode != RenderMode.ScreenSpaceOverlay ? root.worldCamera : null;
+                float top = RectTransformUtility.WorldToScreenPoint(cam, _corners[1]).y;
+                y = Mathf.Max(y, top / _hudCanvas.scaleFactor + 10f);
+            }
+            var rt = (RectTransform)_hud.transform;
+            if (Mathf.Abs(rt.anchoredPosition.y - y) > 0.5f)
+                rt.anchoredPosition = new Vector2(24f, y);
         }
 
         private void Update()
@@ -194,6 +229,7 @@ namespace SpaceStation.Building
                 _nextVisibility = Time.unscaledTime + VisibilityInterval;
                 UpdateVisibility();
             }
+            PlaceHud();
             _pulse = 0.55f + 0.45f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4f));
             for (int i = 0; i < _used; i++)
             {
