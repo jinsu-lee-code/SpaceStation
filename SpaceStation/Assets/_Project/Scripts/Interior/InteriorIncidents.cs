@@ -410,7 +410,8 @@ namespace SpaceStation.Interior
             a.ShownSeconds = Mathf.CeilToInt(a.Window);
             a.Bubble.Set(BubbleText(a, a.ShownSeconds), Warn);
             string where = a.Room == CurrentRoom ? "이 방" : RoomName(a.Room);
-            string extra = (note != null ? " · " + note : "") + (a.Cause != null ? " · " + a.Cause : "");
+            string extra = (note != null ? " · " + note : "") + (a.Cause != null ? " · " + a.Cause : "")
+                           + (!a.Tutorial && InteriorEmergencyKit.AvailableNear(Sim.Grid, a.Room, _neighbors) ? " · 옆 통로에 비상 공구함" : ""); // CONNECT A8 완충
             Message?.Invoke($"사고 · {where}: {Title(a)} · {InteriorIncidentRules.Hint(a.Kind)}{extra}", true);
             AlertSound.TryPlay(AlertLevel.Danger); // 경보 위계 (2026-11-25, D-3): 내부 사고 생김 = 위험 (예전 조기 경보 빌림)
         }
@@ -510,6 +511,7 @@ namespace SpaceStation.Interior
             col.size = new Vector3(0.7f, 0.3f, 0.26f);
             var use = a.Prop.AddComponent<InteriorInteractable>();
             use.HoldSeconds = _s.ValveHold;
+            use.Work = true;
             use.Prompt = () => $"밸브 잠그기  <color=#FF8A5C>{Title(a)}</color>";
             use.Holding = p =>
             {
@@ -667,6 +669,7 @@ namespace SpaceStation.Interior
             col.size = new Vector3(0.4f, 0.5f, 0.2f);
             var use = a.Prop.AddComponent<InteriorInteractable>();
             use.HoldSeconds = _s.FireHold;
+            use.Work = true;
             use.Prompt = () => $"소화기로 불 끄기  <color=#FF8A5C>{(a.Fire2 != null ? "불길 두 곳" : Title(a))}</color>";
             use.Blocked = () => a.Carrying ? null : "벽에 걸린 소화기를 먼저 드세요";
             use.Holding = p =>
@@ -724,6 +727,7 @@ namespace SpaceStation.Interior
             col.size = new Vector3(0.62f, 0.52f, 0.16f);
             var use = a.Prop.AddComponent<InteriorInteractable>();
             use.HoldSeconds = _s.FilterHold * (a.VentOnly ? EasyFilterHold : 1f); // CONNECT A5 녹지 옆 = 환기구만 (짧게)
+            use.Work = true;
             use.Prompt = () => a.VentOnly ? $"환기구 청소 (필터 그대로)  <color=#FF8A5C>{Title(a)}</color>"
                 : a.FiltersLeft > 1 ? $"필터 교체 (두 장 중 첫 장)  <color=#FF8A5C>{Title(a)}</color>"
                 : $"필터 교체  <color=#FF8A5C>{Title(a)}</color>";

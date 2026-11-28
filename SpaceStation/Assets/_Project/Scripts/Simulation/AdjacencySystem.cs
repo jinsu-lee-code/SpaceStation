@@ -69,6 +69,26 @@ namespace SpaceStation.Simulation
 
         public bool HasRules => _rules != null && _rules.Rules.Count > 0;
 
+        /// <summary>안쪽 얼굴이 있는 규칙 묶음인지 (CONNECT A5 — 엔드리스 관계 표. 캠페인 묶음은 아직 없음 → 비상 공구함 등 곁가지도 끔).</summary>
+        public bool HasInnerFaces
+        {
+            get
+            {
+                if (_hasInner == null)
+                {
+                    _hasInner = false;
+                    if (HasRules)
+                    {
+                        foreach (var r in _rules.Rules)
+                            _hasInner |= r.Inner != InnerFace.None;
+                    }
+                }
+                return _hasInner.Value;
+            }
+        }
+
+        private bool? _hasInner;
+
         /// <summary>
         /// 대상 모듈의 생산을 늘려 주는 이웃 모듈 (생산 + 규칙의 첫 이웃, 예: 채굴 도킹 → 제련소). 없으면 null.
         /// 이웃을 태그로만 정한 규칙은 candidates 가운데 그 태그를 가진 첫 모듈 (candidates가 없으면 건너뜀).

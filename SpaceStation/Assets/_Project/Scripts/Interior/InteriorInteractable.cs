@@ -21,5 +21,7 @@ namespace SpaceStation.Interior
         public Action<float> Holding;
         /// <summary>다 눌렀을 때. null이면 안내 글만 보여 주는 물건 (누를 수 없음 — 예: 물 주기를 부탁한 주민).</summary>
         public Action Completed;
+        /// <summary>CONNECT A8 비상 공구함이 빨리 해 주는 일 (사고 · 현장 수리 — <see cref="InteriorEmergencyKit"/>).</summary>
+        public bool Work;
     }
 }

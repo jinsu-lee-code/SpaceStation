@@ -87,6 +87,23 @@ namespace SpaceStation.Interior
             SetText(_relayHead, "허브가 이어 주는 인접 효과", ScreenText);
         }
 
+        private static readonly Color AlertColor = new Color(1f, 0.72f, 0.35f);
+
+        /// <summary>이 문 너머(그 방이거나 그쪽으로 가야 함)에 사고 · 부탁이 있으면 짧은 말, 없으면 null.</summary>
+        private string Alert(ModuleInstance doorRoom)
+        {
+            string Hit(ModuleInstance target, string title, string kind)
+            {
+                if (target == null || target == Module)
+                    return null;
+                if (target == doorRoom || InteriorSituations.NextStep(Module, target) == doorRoom)
+                    return $"{kind} · {title}";
+                return null;
+            }
+            return Hit(InteriorSituations.IncidentRoom, InteriorSituations.IncidentTitle, "사고")
+                   ?? Hit(InteriorSituations.RequestRoom, InteriorSituations.RequestTitle, "부탁");
+        }
+
         protected override void Refresh()
         {
             EnsureTexts();
@@ -94,7 +111,11 @@ namespace SpaceStation.Interior
             for (int i = 0; i < _signs.Length; i++)
             {
                 var other = Neighbor(grid, _signs[i].Direction);
-                SetText(_signTexts[i], other != null ? other.Data.DisplayName : "연결 없음", other != null ? ScreenText : ScreenDim);
+                // CONNECT A8 중계 (3번 ④ V4): 그 문 너머로 가야 하는 사고 · 부탁이 있으면 표지판 둘째 줄에 깜빡임 (색만이 아니라 밝기 · 글로)
+                string alert = other != null ? Alert(other) : null;
+                bool blink = alert != null && Mathf.Repeat(Time.unscaledTime, 1f) < 0.5f;
+                SetText(_signTexts[i], other == null ? "연결 없음" : alert != null ? $"{other.Data.DisplayName}\n<size=70%>! {alert}</size>" : other.Data.DisplayName,
+                    other == null ? ScreenDim : blink ? AlertColor : ScreenText);
                 if (_signs[i].Arrow != null)
                 {
                     foreach (var r in _signs[i].Arrow)

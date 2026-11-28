@@ -258,6 +258,7 @@ namespace SpaceStation.Interior
             }
             var it = p.Prop.AddComponent<InteriorInteractable>();
             it.HoldSeconds = Sim.Balance.FieldRepairHoldSeconds * (site.Quick ? QuickHold : 1f); // CONNECT A8 정비 베이 옆
+            it.Work = true; // 비상 공구함 (CONNECT A8 완충)
             it.Prompt = () => PromptFor(site, p);
             it.Blocked = () => BlockedFor(site, p);
             it.Holding = progress => Weld(p);
