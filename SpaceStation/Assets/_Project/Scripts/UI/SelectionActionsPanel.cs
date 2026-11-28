@@ -396,12 +396,14 @@ namespace SpaceStation.UI
             if (sim.Radiation.Active)
             {
                 float rad = sim.Radiation.LevelOf(module);
-                sb.Append($" 방사선 <color={(rad > sim.Radiation.Comfort ? HudText.Orange : "#7CFF9A")}>{rad:0.#}</color>");
+                bool over = rad > sim.Radiation.Comfort;
+                sb.Append($" 방사선 <color={(over ? HudText.Orange : "#7CFF9A")}>{rad:0.#}{(over ? " 넘음" : "")}</color>"); // 색만이 아니라 글자로 (사용자 색약)
             }
             if (sim.Heat.Active)
             {
                 float heat = sim.Heat.HeatOf(module);
-                sb.Append($" 열 <color={(heat > sim.Balance.HomeHeatComfort ? HudText.Orange : "#7CFF9A")}>{heat:0.#}</color>");
+                bool hot = heat > sim.Balance.HomeHeatComfort;
+                sb.Append($" 열 <color={(hot ? HudText.Orange : "#7CFF9A")}>{heat:0.#}{(hot ? " 넘음" : "")}</color>");
             }
             return sb.Append("</size>").ToString();
         }
