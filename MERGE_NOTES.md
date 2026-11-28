@@ -3880,3 +3880,17 @@ tycoon 대륙급 공급 사슬 (사용자 결정 2026-11-28: 고급 모듈이 �
 
 ### `tycoon` 합칠 때
 - [x] 2026-11-28 같은 코드 (tycoon 7번 ③ 커밋).
+
+## M-381. 판이 더하는 만족도 상한 · 방문 간격 · 습격 · 평판 고리 (CONNECT_1121 7번 ④, 2026-11-28, `main` — tycoon과 같은 코드, 쓰는 쪽은 tycoon만)
+
+tycoon 지구급 상징 모듈 '항성 프리즘' (사용자 결정 2026-11-28: 1종 · 3단계 진화 넷 합성 · 가동 중 전체 보너스 + 엔드리스 시작 · 그레이박스 먼저)이 쓰는 공통 고리. 상징 모듈 정의 · 에셋은 tycoon만 (main 레시피 목록에는 없음).
+
+**main에 넣은 것 (코드만)**
+
+- `StationSimulation.SatisfactionCapBonus` (`Func<float>`, null = 0) → `StationModuleStats.RefreshNeeds`의 정책 상한에 더함
+- `ContactSystem.IntervalScale` (`Func<float>`, null = 1 — 다음 방문까지 시간에 곱함, 바닥 0.05) · `RaidChanceBonus` (`Func<float>`, null = 0 — 무법 선단을 경계할 때 습격 확률에 더함) · `AdjustReputation(faction, delta)` (경쟁 세력은 그대로)
+
+**main에서 확인**: csc 컴파일 — main 캠페인은 고리를 쓰지 않음 (null = 예전 그대로). 플레이 · 시험은 tycoon (`SymbolTests` · EditMode 776).
+
+### `tycoon` 합칠 때
+- [x] 2026-11-28 같은 코드 (tycoon 7번 ④ 커밋). tycoon `RecipeSetup`에는 4단계 상징 정의 `StellarPrism` · `SymbolId` · `SetupSymbolOnly` · 칸 목록 두 줄이 더 있음 (main에서 RecipeSetup을 고치면 합칠 때 그 줄들을 살릴 것).

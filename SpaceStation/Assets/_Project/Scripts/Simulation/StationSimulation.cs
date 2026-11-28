@@ -199,6 +199,9 @@ namespace SpaceStation.Simulation
 
         public float StrengthScaleOf(ModuleInstance module) => ModuleStrengthScale != null ? ModuleStrengthScale(module) : 1f;
 
+        /// <summary>CONNECT_1121 7번 ④ 공통 고리: 판이 더하는 만족도 상한 (null = 0). 엔드리스 상징 모듈 = 가동 중 +5.</summary>
+        public Func<float> SatisfactionCapBonus { get; set; }
+
         /// <summary>12-3c 국가급 상시 정책 (설정에 없으면 null).</summary>
         public PolicySystem Policies { get; }
         /// <summary>12-3c 사회 위기 선택지 (설정에 없으면 null).</summary>
