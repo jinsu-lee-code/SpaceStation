@@ -14,7 +14,7 @@ namespace SpaceStation.Simulation
         Crisis,
         /// <summary>12-5 여객 도킹 포트 이민선.</summary>
         Immigration,
-        /// <summary>M-122 폭풍 때 집의 열 · 방사선을 못 견딤 (main 값 — 타이쿤에는 이 시스템이 아직 없음, 번호를 main과 맞춤).</summary>
+        /// <summary>M-122 폭풍 때 집의 열 · 방사선을 못 견딤.</summary>
         Environment,
         /// <summary>REVIEW_1115 5번 플레이어가 명단에서 내보냄 (<see cref="ExileSystem"/>).</summary>
         Exiled,

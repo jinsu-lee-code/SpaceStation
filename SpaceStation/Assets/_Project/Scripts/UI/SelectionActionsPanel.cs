@@ -386,6 +386,28 @@ namespace SpaceStation.UI
             return sb.Append("</size>").ToString();
         }
 
+        /// <summary>M-120 거주 모듈이면 집 환경 (열 · 방사선, 규칙이 열렸을 때만).</summary>
+        private string HomeEnvironmentLine(ModuleInstance module)
+        {
+            var sim = _station.Simulation;
+            if (module.Data == null || module.Data.HousingCapacity <= 0 || !(sim.Radiation.Active || sim.Heat.Active))
+                return string.Empty;
+            var sb = new System.Text.StringBuilder($"\n<size=85%><color={HudText.Muted}>집 환경</color>");
+            if (sim.Radiation.Active)
+            {
+                float rad = sim.Radiation.LevelOf(module);
+                bool over = rad > sim.Radiation.Comfort;
+                sb.Append($" 방사선 <color={(over ? HudText.Orange : "#7CFF9A")}>{rad:0.#}{(over ? " 넘음" : "")}</color>"); // 색만이 아니라 글자로 (사용자 색약)
+            }
+            if (sim.Heat.Active)
+            {
+                float heat = sim.Heat.HeatOf(module);
+                bool hot = heat > sim.Balance.HomeHeatComfort;
+                sb.Append($" 열 <color={(hot ? HudText.Orange : "#7CFF9A")}>{heat:0.#}{(hot ? " 넘음" : "")}</color>");
+            }
+            return sb.Append("</size>").ToString();
+        }
+
         private readonly List<Resident> _occupants = new List<Resident>();
 
         /// <summary>Phase 10: 거주 모듈이면 입주 인원·환경·주민 이름 (3명까지 + 외 N명).</summary>
@@ -509,7 +531,7 @@ namespace SpaceStation.UI
             string overload = _station.Simulation.Heat?.OverloadText(module); // CONNECT A11 배전 범위 밖 (안쪽만, 글이 "배전 범위 밖"으로 시작)
             if (!string.IsNullOrEmpty(overload))
                 heatLine += $"\n<size=85%>{overload}</size>";
-            view.Info = $"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{heatLine}{modeLine}{DefenseLine(module)}{NeedsLine(module)}{ResidentsLine(module)}";
+            view.Info = $"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{heatLine}{modeLine}{DefenseLine(module)}{NeedsLine(module)}{HomeEnvironmentLine(module)}{ResidentsLine(module)}";
 
             var sim = _resources.Simulation;
 

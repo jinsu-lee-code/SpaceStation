@@ -34,6 +34,10 @@ namespace SpaceStation.Simulation
         /// <summary>보통 한도 (온도 무관 · 따뜻함 모듈). 서늘함 모듈은 <see cref="LimitOf"/>.</summary>
         public float Limit => Sim.Balance.HeatLimit;
         public float DangerLevel => Sim.Balance.HeatLimit * Sim.Balance.HeatDangerRatio;
+        /// <summary>M-120 발열 배율 (위기 등, 1 = 그대로). 저장은 바꾸는 쪽이.</summary>
+        public float OutputScale { get; set; } = 1f;
+        /// <summary>M-120 방열판 효율 배율 (위기 등, 1 = 그대로). 저장은 바꾸는 쪽이.</summary>
+        public float RemovalScale { get; set; } = 1f;
         /// <summary>열이 있는 모듈 (0 초과).</summary>
         public IReadOnlyDictionary<ModuleInstance, float> HeatMap => _heat;
 
@@ -165,7 +169,7 @@ namespace SpaceStation.Simulation
                                     _near[m] = d;
                             }
                         }
-                        float output = s.Data.HeatOutput;
+                        float output = s.Data.HeatOutput * OutputScale;
                         foreach (var kv in _near)
                         {
                             float k = kv.Value == 0 ? 1f : kv.Value == 1 ? f1 : f2;
@@ -174,6 +178,7 @@ namespace SpaceStation.Simulation
                         }
                     }
                     // 방열판: 가동 중 + 바깥으로 노출된 면 → 맞닿은 모듈마다 뺌
+                    float removalScale = RemovalScale * Sim.Effects.HeatRemovalMultiplier; // M-120 위기 × 방열 (펭귄)
                     foreach (var r in grid.Modules)
                     {
                         if (r.Data == null || r.Data.HeatRemoval <= 0f || !Running(r) || !DamageSystem.IsExterior(grid, r))
@@ -184,7 +189,7 @@ namespace SpaceStation.Simulation
                         {
                             if (_heat.TryGetValue(n, out var h))
                             {
-                                h -= r.Data.HeatRemoval;
+                                h -= r.Data.HeatRemoval * removalScale;
                                 if (h <= 1e-4f)
                                     _heat.Remove(n);
                                 else

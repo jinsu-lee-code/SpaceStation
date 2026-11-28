@@ -79,6 +79,8 @@ namespace SpaceStation.Building
             var sim = _station != null ? _station.Simulation : null;
             if (sim == null)
                 return false;
+            if (sim.Radiation != null && sim.Radiation.StormActive)
+                return true; // M-122 방사선 폭풍도 같은 연출
             foreach (var a in sim.Events.ActiveEvents)
             {
                 if (a.Data is SolarStormEventData)

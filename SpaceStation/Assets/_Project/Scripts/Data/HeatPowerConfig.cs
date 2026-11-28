@@ -47,6 +47,14 @@ namespace SpaceStation.Data
         [Tooltip("서늘한 방(가동 중인 방열판이 맞닿은 방)에서 차단기가 뽑힐 무게 배율")]
         [SerializeField, Range(0f, 1f)] private float _coolBreakerWeight = 0.5f;
 
+        [Header("7번 ① 집 환경 — 방사선 (보통 한도 = BalanceConfig 방사선 편한 한도)")]
+        [Tooltip("방사선 민감 주민의 견딤 (한도 = 보통 × (1 + 견딤), −0.5 = 절반 — 서사판 약한 종족과 같음)")]
+        [SerializeField, Range(-0.9f, 0f)] private float _sensitiveTolerance = -0.5f;
+        [Tooltip("방사선 내성 주민의 견딤 (+0.5 = 1.5배 — 서사판 강한 종족과 같음)")]
+        [SerializeField, Range(0f, 3f)] private float _tolerantTolerance = 0.5f;
+        [Tooltip("힘든 주민 때문에 깎이는 만족도 상한 최대 (힘든 주민 비율만큼 — 서사판과 같음)")]
+        [SerializeField, Min(0f)] private float _stressMoodMax = 20f;
+
         [Header("A11 과부하 — 배전 범위 (안쪽만)")]
         [Tooltip("발전 모듈 · 배터리에서 이 칸 수(체비셰프, 칸끼리 가장 가까운 거리) 안이면 배전 범위 안")]
         [SerializeField, Min(1)] private int _gridRange = 3;
@@ -66,6 +74,9 @@ namespace SpaceStation.Data
         public float WarmRequestReward => _warmRequestReward;
         public float HotFireWeight => _hotFireWeight;
         public float CoolBreakerWeight => _coolBreakerWeight;
+        public float SensitiveTolerance => _sensitiveTolerance;
+        public float TolerantTolerance => _tolerantTolerance;
+        public float StressMoodMax => _stressMoodMax;
         public int GridRange => _gridRange;
         public float HeavyPower => _heavyPower;
         public float OverloadBreakerWeight => _overloadBreakerWeight;

@@ -8,7 +8,7 @@ namespace SpaceStation.Interior
     /// <summary>
     /// 12-5 방사선 차폐실 경보판 (금고문 통로 위 칸막이 양면) — 사용자 결정 2026-10-21 "방사선 경보판".
     /// 외부 방사선 상태 + 대피 수용 (지금 이 방에 들어와 있는 주민 / 정원 = 침상 + 벤치 자리).
-    /// 방사선 폭풍은 아직 없어 늘 "정상" — 폭풍이 생기면(12-8) 여기서 경보 글 · 경광등으로 잇는다.
+    /// M-122 폭풍(<see cref="SpaceStation.Simulation.RadiationSystem.StormActive"/>) 동안 "매우 높음 · 대피", 그 밖에는 "정상".
     /// 모듈이 꺼지면 "전원 꺼짐"(어둡게 — 색이 아니라 밝기로 구분, 색약).
     /// </summary>
     public sealed class InteriorRadiationBoard : InteriorRoomDisplay
@@ -74,7 +74,9 @@ namespace SpaceStation.Interior
                 room.GetComponentsInChildren(_figures);   // 숨긴 주민은 세지 않음
                 _inside = _figures.Count;
             }
-            Show("<b>방사선 경보</b>", ScreenText, $"외부 방사선  <b>정상</b>\n<size=80%>대피 수용  {_inside} / {_capacity}명</size>", ScreenText);
+            bool storm = Station != null && Station.Simulation != null && Station.Simulation.Radiation.StormActive; // M-122 (색이 아니라 글자로 구분, 색약)
+            Show(storm ? "<b>방사선 폭풍</b>" : "<b>방사선 경보</b>", ScreenText,
+                $"외부 방사선  <b>{(storm ? "매우 높음 · 대피" : "정상")}</b>\n<size=80%>대피 수용  {_inside} / {_capacity}명</size>", ScreenText);
         }
 
         private void Show(string title, Color titleColor, string body, Color bodyColor)

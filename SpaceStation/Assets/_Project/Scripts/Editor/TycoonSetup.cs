@@ -430,7 +430,12 @@ namespace SpaceStation.Editor
                 new UnlockGradeEntry(5, StationRule.None,
                     new UnlockOption("policy-expansion", "정책 슬롯 확장",
                         "정책 슬롯이 늘어납니다.\n상시 정책을 더 많이 동시에 걸 수 있어요.",
-                        StationRule.PolicyExpansion)),
+                        StationRule.PolicyExpansion),
+                    // CONNECT_1121 7번 ① (사용자 결정 2026-11-28): 국가급 해금 선택 "방사선 차폐 vs 정책 슬롯 확장" — main M-120 칸 단위 방사선,
+                    // 열리면 방사선 차폐실 · 차폐벽 잠금이 풀림 (_requiredRule = Radiation, 메뉴 Grade Rules/Setup Radiation)
+                    new UnlockOption("radiation", "방사선 차폐",
+                        "위기: 우주 방사선 · 핵융합로 방출 → 한도를 넘는 집의 주민이 힘듦 (만족도 상한 ↓ · 먼저 떠남)\n대응: 방사선 차폐실 · 장갑 격벽(두께) · 안쪽에 집 · 열 · 방사선 지도\n방사선 민감 주민은 안쪽에, 내성 주민은 핵융합로 옆도 괜찮아요.",
+                        StationRule.Radiation)),
                 new UnlockGradeEntry(6, StationRule.None,
                     new UnlockOption("synthesis3", "합성 3단계",
                         "가장 큰 진화 모듈을 만드는 3단계 이상 레시피가 열립니다.\n열림: 3단계 이상 레시피 (심우주 통신기지 등)",

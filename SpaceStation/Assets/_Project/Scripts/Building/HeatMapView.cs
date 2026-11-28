@@ -40,6 +40,7 @@ namespace SpaceStation.Building
             Danger,
             Radiator,
             Spot,
+            Radiated,
             Warm,
         }
 
@@ -69,10 +70,13 @@ namespace SpaceStation.Building
         private static readonly Color OverAccent = new Color(1f, 0.85f, 0.2f, 0.9f);
         private static readonly Color DangerAccent = new Color(1f, 1f, 1f, 0.95f);
         private static readonly Color RadiatorAccent = new Color(0.65f, 0.7f, 0.75f, 0.9f);
+        private static readonly Color RadiatedColor = new Color(0.75f, 0.45f, 1f, 0.32f);
+        private static readonly Color RadiatedAccent = new Color(0.85f, 0.72f, 1f, 0.9f);
         private const int MaxSpots = 16; // 가려진 칸은 숨기므로 넉넉히
         private const float VisibilityInterval = 0.2f;
 
         private HeatSystem _heat;
+        private RadiationSystem _radiation; // M-120 같은 지도에 방사선 높은 집
         private MaterialPropertyBlock _block;
         private readonly List<Box> _boxes = new List<Box>();
         private int _used;
@@ -91,8 +95,11 @@ namespace SpaceStation.Building
         private readonly List<(Vector3Int cell, int helps, float relief)> _spots = new List<(Vector3Int, int, float)>();
         private readonly Dictionary<Vector3Int, (int helps, float relief)> _spotScore = new Dictionary<Vector3Int, (int, float)>();
 
-        /// <summary>열 지도 켜짐 = J로 켰거나 건설 메뉴에서 방열판을 고름.</summary>
+        /// <summary>열 지도 켜짐 = J로 켰거나 건설 메뉴에서 방열판 · 차폐 모듈을 고름.</summary>
         private bool MapOn => _mapOn || _forced;
+
+        private bool RadiationOn => _radiation != null && _radiation.Active;
+        private bool AnyActive => _heat.Active || RadiationOn;
 
         private void Start()
         {
@@ -107,6 +114,9 @@ namespace SpaceStation.Building
             _block = new MaterialPropertyBlock();
             _cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
             _heat.Changed += MarkDirty;
+            _radiation = _station.Simulation.Radiation;
+            if (_radiation != null)
+                _radiation.Changed += MarkDirty;
             _build = FindFirstObjectByType<BuildController>();
             _interior = FindFirstObjectByType<SpaceStation.Interior.InteriorMode>();
             BuildHud();
@@ -116,6 +126,8 @@ namespace SpaceStation.Building
         {
             if (_heat != null)
                 _heat.Changed -= MarkDirty;
+            if (_radiation != null)
+                _radiation.Changed -= MarkDirty;
         }
 
         private void MarkDirty() => _dirty = true;
@@ -189,13 +201,14 @@ namespace SpaceStation.Building
 
         private void Update()
         {
-            if (!InputGate.Blocked && KeyBindings.WasPressed(GameAction.HeatMap) && _heat.Active)
+            if (!InputGate.Blocked && KeyBindings.WasPressed(GameAction.HeatMap) && AnyActive)
             {
                 _mapOn = !_mapOn;
                 _dirty = true;
             }
-            // 방열판을 고르면 열 지도가 저절로 켜져 추천 칸이 바로 보임 (배치를 끝내거나 다른 모듈을 고르면 원래대로)
-            bool forced = _heat.Active && _build != null && _build.Selected != null && _build.Selected.HeatRemoval > 0f;
+            // 방열판 · 차폐 모듈을 고르면 지도가 저절로 켜져 추천 칸 · 방사선 높은 집이 바로 보임 (배치를 끝내거나 다른 모듈을 고르면 원래대로)
+            var selected = _build != null ? _build.Selected : null;
+            bool forced = selected != null && ((_heat.Active && selected.HeatRemoval > 0f) || (RadiationOn && selected.RadiationRemoval > 0f));
             if (forced != _forced)
             {
                 _forced = forced;
@@ -205,7 +218,7 @@ namespace SpaceStation.Building
 
         private void LateUpdate()
         {
-            bool active = _heat.Active && !_station.Simulation.Session.IsGameOver && (_interior == null || !_interior.IsInside); // 내부 방문 중에는 숨김
+            bool active = AnyActive && !_station.Simulation.Session.IsGameOver && (_interior == null || !_interior.IsInside); // 내부 방문 중에는 숨김
             if (!active)
             {
                 if (_used > 0 || !string.IsNullOrEmpty(_hud.text))
@@ -250,21 +263,39 @@ namespace SpaceStation.Building
         private void DrawLabels()
         {
             _layer.Begin();
-            for (int i = 0; i < _used; i++)
+            // M-122 큰 정거장에서 라벨이 100개 넘게 떠 읽을 수 없었음 → 상한 (상자는 그대로, 수는 왼쪽 아래 줄). 위험 → 방사선 → 나머지 순, 가려진 것은 위험만 몇 개
+            int left = MaxLabels, faintLeft = MaxFaintLabels;
+            DrawLabels(b => b.Kind == Kind.Danger, ref left, ref faintLeft);
+            DrawLabels(b => b.Kind == Kind.Radiated, ref left, ref faintLeft);
+            DrawLabels(b => b.Kind != Kind.Danger && b.Kind != Kind.Radiated, ref left, ref faintLeft);
+            _layer.End();
+        }
+
+        private const int MaxLabels = 24;
+        private const int MaxFaintLabels = 8;
+
+        private void DrawLabels(System.Predicate<Box> which, ref int left, ref int faintLeft)
+        {
+            for (int i = 0; i < _used && left > 0; i++)
             {
                 var b = _boxes[i];
-                if (b.Label == null)
+                if (b.Label == null || !which(b))
                     continue;
                 bool hidden = !b.Visible;
-                if (hidden && b.Kind != Kind.Over && b.Kind != Kind.Danger)
-                    continue; // 가려진 방열판 · 빈 칸 · 온기는 표시 안 함
-                // 가려진 과열 모듈: 흐린 작은 라벨, 화면 밖이면 생략 (보이는 것만 가장자리 화살표)
+                if (hidden && b.Kind != Kind.Danger)
+                    continue; // 가려진 방열판 · 빈 칸 · 과열 · 방사선은 표시 안 함 (수는 왼쪽 아래 줄)
+                if (hidden && faintLeft <= 0)
+                    continue;
+                // 가려진 과열 위험 모듈: 흐린 작은 라벨, 화면 밖이면 생략 (보이는 것만 가장자리 화살표)
                 var m = _layer.Show(b, b.Anchor, faint: hidden, edgeArrow: !hidden && b.Kind == Kind.Danger);
-                string text = hidden ? (b.Kind == Kind.Danger ? "안쪽 과열 위험" : "안쪽 과열") : b.Label;
+                string text = hidden ? "안쪽 과열 위험" : b.Label;
                 string arrow = m.Arrow.Length > 0 ? m.Arrow : "";
-                _layer.Set(m, (int)b.Kind * 2 + (hidden ? 1 : 0), arrow + text, b.Kind == Kind.Danger ? DangerAccent : b.Kind == Kind.Over ? OverAccent : b.Kind == Kind.Warm ? WarmAccent : RadiatorAccent);
+                _layer.Set(m, (int)b.Kind * 2 + (hidden ? 1 : 0), arrow + text,
+                    b.Kind == Kind.Danger ? DangerAccent : b.Kind == Kind.Over ? OverAccent : b.Kind == Kind.Radiated ? RadiatedAccent : b.Kind == Kind.Warm ? WarmAccent : RadiatorAccent);
+                left--;
+                if (hidden)
+                    faintLeft--;
             }
-            _layer.End();
         }
 
         /// <summary>
@@ -436,7 +467,7 @@ namespace SpaceStation.Building
                 PlaceModule(m, isDanger ? Kind.Danger : Kind.Over, isDanger ? DangerColor : OverColor, isDanger, label);
             }
             int spots = 0;
-            if (MapOn)
+            if (MapOn && _heat.Active)
             {
                 foreach (var m in _station.Grid.Modules)
                 {
@@ -448,15 +479,36 @@ namespace SpaceStation.Building
                 }
                 spots = PlaceSpots();
             }
+            int radiated = PlaceRadiated();
             HideFrom(_used);
             string key = KeyBindings.Label(GameAction.HeatMap);
             string tail = MapOn
                 ? (spots > 0 ? "\n<color=#7FE0FF>깜빡이는 하늘색 칸 = 방열판 추천 자리</color>  <color=#C8D2DE>흐린 라벨 = 안쪽에 가려진 과열 · 라벨을 누르면 그 모듈로</color>" : "")
-                : $"  <color=#C8D2DE>{key}: 열 지도 · 방열판 추천 자리 보기</color>";
-            var comfort = _heat.Comfort;
+                : $"  <color=#C8D2DE>{key}: 지도 보기</color>";
+            var comfort = _heat.Comfort; // CONNECT A10 온기 (설정이 있는 판만)
             string warmText = comfort != null ? $" · ♨ 온기 {warm}" : "";
             string coolText = comfort != null ? $" · 서늘함 한도 {limit * comfort.CoolLimitRatio:0.#}" : "";
-            _hud.SetText($"<b>열 관리</b>  과열 {over} · 위험 {danger}{warmText}  <color=#C8D2DE>(한도 {limit:0}{coolText} · 위험 {_heat.DangerLevel:0.#})</color>{tail}");
+            string heatLine = _heat.Active ? $"<b>열 관리</b>  과열 {over} · 위험 {danger}{warmText}  <color=#C8D2DE>(한도 {limit:0}{coolText} · 위험 {_heat.DangerLevel:0.#})</color>" : "";
+            string radLine = RadiationOn ? $"<b>방사선</b>  높은 집 {radiated}  <color=#C8D2DE>(한도 {_radiation.Comfort:0.#} · 위 · 아래 · 옆 중 가장 얇은 쪽으로 정해짐 · 장갑 격벽 2겹 · 차폐실로 낮춤)</color>" : "";
+            _hud.SetText(string.IsNullOrEmpty(heatLine) || string.IsNullOrEmpty(radLine) ? heatLine + radLine + tail : heatLine + "\n" + radLine + tail);
+        }
+
+        /// <summary>M-120 방사선이 한도를 넘는 집: 지도를 켰을 때 보라 상자 + 값 라벨 (색은 보조 — 라벨 글자가 상태). 높은 집 수를 돌려줌.</summary>
+        private int PlaceRadiated()
+        {
+            if (!RadiationOn)
+                return 0;
+            int high = 0;
+            float comfort = _radiation.Comfort;
+            foreach (var kv in _radiation.HomeLevels)
+            {
+                if (kv.Value <= comfort + 1e-4f)
+                    continue;
+                high++;
+                if (MapOn)
+                    PlaceModule(kv.Key, Kind.Radiated, RadiatedColor, false, $"방사선 {kv.Value:0.#}");
+            }
+            return high;
         }
 
         /// <summary>

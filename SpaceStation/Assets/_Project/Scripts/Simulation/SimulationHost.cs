@@ -114,6 +114,8 @@ namespace SpaceStation.Simulation
                 OreVeinSystem.AttachTo(Simulation, _oreVeins, () => Random.value * 0.99999f); // CONNECT_1121 1번 타이쿤판 광맥 (세이브 복원 전에)
             if (_heatPower != null && Simulation.Heat != null)
                 Simulation.Heat.Comfort = _heatPower; // CONNECT_1121 A10 온기 · A11 과부하 (타이쿤판)
+            if (_heatPower != null)
+                EndlessHomeComfort.AttachTo(Simulation, _heatPower); // CONNECT_1121 7번 ① 방사선 힘든 주민 (보통 한도 + 특성)
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
             {

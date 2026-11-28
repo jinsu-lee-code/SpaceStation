@@ -103,6 +103,8 @@ namespace SpaceStation.Editor.Balance
             }
             if (s.HeatPower != null && _sim.Heat != null)
                 _sim.Heat.Comfort = s.HeatPower; // CONNECT A10 온기 · A11 과부하
+            if (s.HeatPower != null)
+                EndlessHomeComfort.AttachTo(_sim, s.HeatPower); // CONNECT 7번 ① 방사선 힘든 주민
             StartGrade = -1;
             if (start != null)
             {
