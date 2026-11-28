@@ -501,7 +501,9 @@ namespace SpaceStation.UI
                 adjacencyLine = $"\n<size=85%><color={HudText.Muted}>인접</color> {AdjacencySystem.DescribeAll(applied)}</size>";
             string modeText = _station.Simulation.ModuleInfoText?.Invoke(module); // 판이 더하는 한 줄 (엔드리스 광맥 = 채굴 도킹 생산 비율)
             string modeLine = string.IsNullOrEmpty(modeText) ? string.Empty : $"\n<size=85%>{modeText}</size>";
-            view.Info = $"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{modeLine}{DefenseLine(module)}{NeedsLine(module)}{ResidentsLine(module)}";
+            string heatText = _station.Simulation.Heat?.StateText(module); // CONNECT A10 열 · 온기 · 과열
+            string heatLine = string.IsNullOrEmpty(heatText) ? string.Empty : $"\n<size=85%>{heatText}</size>"; // 글이 "열 …"로 시작
+            view.Info = $"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{heatLine}{modeLine}{DefenseLine(module)}{NeedsLine(module)}{ResidentsLine(module)}";
 
             var sim = _resources.Simulation;
 

@@ -38,6 +38,8 @@ namespace SpaceStation.Editor.Balance
         [SerializeField] private MidGradeConfig _midGrade;
         [Tooltip("CONNECT_1121 1번 타이쿤판 광맥 (비우면 없음)")]
         [SerializeField] private OreVeinConfig _oreVeins;
+        [Tooltip("CONNECT_1121 A10 · A11 타이쿤판 열 온기 · 과부하 (비우면 예전 열)")]
+        [SerializeField] private HeatPowerConfig _heatPower;
         [SerializeField] private float _durationMinutes = 30f;
 
         /// <summary>Phase 10 비교 측정용: true면 기본 에셋 실행에서도 주민 특성을 끈다.</summary>
@@ -241,6 +243,7 @@ namespace SpaceStation.Editor.Balance
                 InteriorBonus = _interiorBonus,
                 MidGrade = _midGrade,
                 OreVeins = _oreVeins,
+                HeatPower = _heatPower,
                 Residents = DisableResidents ? null : _residents,
                 DurationSeconds = _durationMinutes * 60f,
                 Runs = Mathf.Max(1, _runs),
@@ -395,6 +398,8 @@ namespace SpaceStation.Editor.Balance
                 _midGrade = AssetDatabase.LoadAssetAtPath<MidGradeConfig>($"{DataRoot}/Tycoon/MidGradeConfig.asset"); // 13-7 (없으면 null)
             if (overwrite || _oreVeins == null)
                 _oreVeins = AssetDatabase.LoadAssetAtPath<OreVeinConfig>($"{DataRoot}/Tycoon/OreVeinConfig.asset"); // CONNECT 1번 광맥 (없으면 null)
+            if (overwrite || _heatPower == null)
+                _heatPower = AssetDatabase.LoadAssetAtPath<HeatPowerConfig>($"{DataRoot}/Tycoon/HeatPowerConfig.asset"); // CONNECT A10 · A11 (없으면 null)
             if (overwrite || _buildable.Count == 0)
             {
                 _buildable.Clear();

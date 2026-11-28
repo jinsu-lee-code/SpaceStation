@@ -27,6 +27,8 @@ namespace SpaceStation.Editor.Balance
         public GrowthThreatConfig GrowthThreat;
         /// <summary>CONNECT_1121 1번 타이쿤판 광맥 (null이면 없음 — 제자리 도킹이 끝없이 냄).</summary>
         public OreVeinConfig OreVeins;
+        /// <summary>CONNECT_1121 A10 · A11 타이쿤판 열 온기 · 과부하 (null이면 예전 열).</summary>
+        public HeatPowerConfig HeatPower;
         /// <summary>13-7 난이도를 적용하기 전 등급표 (난이도 측정에서 성장 곡선에 간격 배율을 곱할 때, null이면 곱하지 않음).</summary>
         public StationGradeConfig BaseGrades;
         /// <summary>13-6 타이쿤판 1인칭 가볍게 (null이면 없음) — 봇은 상자를 직접 줍지만 등급 보상 포인트 · 자동 회수가 붙음.</summary>

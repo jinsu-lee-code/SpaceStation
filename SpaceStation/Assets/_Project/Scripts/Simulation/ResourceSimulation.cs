@@ -285,6 +285,13 @@ namespace SpaceStation.Simulation
         public void Tick(IReadOnlyList<ModuleData> activeModules, IReadOnlyList<float> productionMultipliers,
             IReadOnlyList<float> consumptionMultipliers, float deltaSeconds)
         {
+            Tick(activeModules, productionMultipliers, consumptionMultipliers, null, deltaSeconds);
+        }
+
+        /// <param name="powerMultipliers">모듈별 전력 소비 배율 (CONNECT A10 온기 = 난방 전력 ↓). null이면 모두 1.</param>
+        public void Tick(IReadOnlyList<ModuleData> activeModules, IReadOnlyList<float> productionMultipliers,
+            IReadOnlyList<float> consumptionMultipliers, IReadOnlyList<float> powerMultipliers, float deltaSeconds)
+        {
             RefreshCapacities(activeModules);
 
             // 입력 자원(전력 제외)이 이전 틱 재고 기준 0이면 정지. 정지한 모듈은 전력도 쓰지 않는다.
@@ -301,7 +308,7 @@ namespace SpaceStation.Simulation
                     stoppedCount++;
                     continue;
                 }
-                demand += Sum(m.Consumption, ResourceType.Power);
+                demand += Sum(m.Consumption, ResourceType.Power) * Multiplier(powerMultipliers, k);
                 if (m.OnDemandPower) // 8-5 보조 발전: 최대 출력만 모아 두고 부족분이 있을 때만 쓴다
                 {
                     onDemandMax += Sum(m.Production, ResourceType.Power) * Multiplier(productionMultipliers, k);

@@ -241,6 +241,51 @@ namespace SpaceStation.Editor
             Debug.Log($"[TycoonSetup] 광맥: 도킹 {config.Dock?.name} · 센서 {config.Sensor?.name} · 씬 연결 완료 (탐사 표시 라벨 자리 = {(hud != null ? hud.name : "없음")})");
         }
 
+        private const string HeatPowerPath = "Assets/_Project/Data/Tycoon/HeatPowerConfig.asset";
+
+        /// <summary>
+        /// CONNECT_1121 3번 ⑤ 열 온기 (A10) · 과부하 (A11) — 사용자 결정 2026-11-28 (추천안): 온기 구간 열 0.5 ~ 4 · 전력 −20% · 생산 +15% ·
+        /// 칸 단위 열이 열릴 때 함께 · 서늘함 한도 = 보통의 절반 · 데이터 센터 발열 1 · 배전 범위 = 발전 · 배터리에서 3칸 · 대전력 = 전력 5 이상.
+        /// 설정 에셋(값은 <see cref="HeatPowerConfig"/> 기본값) + 데이터 센터 발열 + 씬 SimulationHost 연결 + 해금 선택 글.
+        /// </summary>
+        [MenuItem("SpaceStation/Tycoon/Setup Heat Comfort")]
+        public static void SetupHeatComfort()
+        {
+            EnsureFolder();
+            var config = AssetDatabase.LoadAssetAtPath<HeatPowerConfig>(HeatPowerPath);
+            if (config == null)
+            {
+                config = ScriptableObject.CreateInstance<HeatPowerConfig>();
+                AssetDatabase.CreateAsset(config, HeatPowerPath);
+            }
+            config.EditorSet(
+                new[] { Module("MD_Habitat"), Module("MD_Farm"), Module("MD_ProteinVat"), Module("MD_Recreation"), Module("MD_WaterExtractor"), Module("MD_WaterRecycler") },
+                new[] { Module("MD_DataCenter"), Module("MD_ResearchLab"), Module("MD_Storage") });
+            EditorUtility.SetDirty(config);
+
+            // 데이터 센터 = 새 발열원 (BALANCE 36번에 예정돼 있던 것) — 엔드리스 값 (캠페인 main은 그대로)
+            var dc = Module("MD_DataCenter");
+            if (dc != null)
+            {
+                var dso = new SerializedObject(dc);
+                dso.FindProperty("_heatOutput").floatValue = 1f;
+                dso.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(dc);
+            }
+            BuildConfig(); // 해금 선택 "칸 단위 열" 설명에 온기 · 데이터 센터
+            AssetDatabase.SaveAssets();
+
+            var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
+            var host = Object.FindFirstObjectByType<SpaceStation.Simulation.SimulationHost>();
+            var hso = new SerializedObject(host);
+            hso.FindProperty("_heatPower").objectReferenceValue = AssetDatabase.LoadAssetAtPath<HeatPowerConfig>(HeatPowerPath);
+            hso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(host);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log($"[TycoonSetup] 열 온기 · 과부하: 따뜻함 {config.WarmModules.Count} · 서늘함 {config.CoolModules.Count} · 데이터 센터 발열 {(dc != null ? dc.HeatOutput : 0f):0.#} · 씬 연결 완료");
+        }
+
         private const string MidGradePath = "Assets/_Project/Data/Tycoon/MidGradeConfig.asset";
         private const string InteriorBonusPath = "Assets/_Project/Data/Tycoon/InteriorBonusConfig.asset";
         private const string GrowthPath = "Assets/_Project/Data/Tycoon/GrowthThreatConfig.asset";
@@ -367,8 +412,9 @@ namespace SpaceStation.Editor
                         StationRule.Synthesis),
                     // 13-7 (사용자 결정 2026-10-16): 열 ↔ 유성우 교환 — 핵융합로 · 제련소 · 방열판이 중형에 열리므로 열이 중형과 짝,
                     // 중형 유성우는 봇 7판 중 3판이 쓰러지는 불리한 선택이었음
+                    // CONNECT A10 온기 (사용자 결정 2026-11-28): 열이 열리면 과열 위험과 온기 보너스가 같이 — 위기만이 아니라 득실이 있는 선택
                     new UnlockOption("heat", "칸 단위 열",
-                        "위기: 발열 모듈(핵융합로 · 제련소 · 연료전지) 주변 과열 → 효율 저하 · 파손\n대응: 방열판 건설 · 열 지도\n열을 다스리면 발열 모듈을 촘촘히 지을 수 있어요.",
+                        "위기: 발열 모듈(핵융합로 · 제련소 · 연료전지 · 데이터 센터) 주변 과열 → 효율 저하 · 파손\n대응: 방열판 건설 · 열 지도\n온기: 거주 · 농장 · 물 설비는 발열 모듈 가까이에서 전력 -20% · 생산 +15%",
                         StationRule.Heat)),
                 new UnlockGradeEntry(3, StationRule.None,
                     new UnlockOption("meteor-shower", "유성우 방향 예보",

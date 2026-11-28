@@ -206,6 +206,9 @@ namespace SpaceStation.UI
             _station.Simulation.Adjacency.DescribeRulesFor(data, _ruleLines);
             if (_ruleLines.Count > 0)
                 text += $"\n<color={HudText.Muted}>인접 효과</color>\n" + string.Join("\n", _ruleLines);
+            string heat = _station.Simulation.Heat?.PreferenceText(data); // CONNECT A10 좋아하는 온도
+            if (!string.IsNullOrEmpty(heat))
+                text += $"\n<color={HudText.Muted}>열</color> {heat}";
             var buildable = _station.CheckBuildable(data);
             if (buildable != PlacementResult.Valid)
                 text += $"\n<color={HudText.Red}>{BlockedDetail(data, buildable)}</color>";

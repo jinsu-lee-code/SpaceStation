@@ -101,6 +101,8 @@ namespace SpaceStation.Editor.Balance
                 var veinRng = new Random(seed * 7349 + 11); // CONNECT 1번 광맥 난수 분리 (시드별 고정 — 다른 난수 순서를 건드리지 않게)
                 OreVeinSystem.AttachTo(_sim, s.OreVeins, () => (float)veinRng.NextDouble());
             }
+            if (s.HeatPower != null && _sim.Heat != null)
+                _sim.Heat.Comfort = s.HeatPower; // CONNECT A10 온기 · A11 과부하
             StartGrade = -1;
             if (start != null)
             {

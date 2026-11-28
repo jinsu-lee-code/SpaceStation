@@ -305,6 +305,9 @@ namespace SpaceStation.UI
                 else if (hasTarget)
                 {
                     text += AdjacencyPreviewLine(build, targetCell, rotation);
+                    string heat = _station.Simulation.Heat?.PreviewText(build, StationGrid.ResolveCells(build.CellOffsets, targetCell, rotation), moving); // CONNECT A10 그 자리의 열 · 온기
+                    if (!string.IsNullOrEmpty(heat))
+                        text += $"\n<size=90%>{heat}</size>"; // "열 1.0 · ♨ 온기" · "이웃 ♨ 온기 +1"
                     if (build.IsDefense) // 4-8: 범위 안에 들어올 모듈 수
                     {
                         var cells = StationGrid.ResolveCells(build.CellOffsets, targetCell, rotation);

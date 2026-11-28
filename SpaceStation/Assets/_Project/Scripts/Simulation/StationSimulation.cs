@@ -425,7 +425,7 @@ namespace SpaceStation.Simulation
                 Resources.SolarMultiplier = DayNight.SolarMultiplier(ElapsedSeconds); // 이번 틱 시작 시점의 낮/밤
                 Resources.ExtraPowerDemand = Research.RunningPowerDemand // 진행 중인 연구 (Phase 6)
                     + (ResearchExpansion != null ? ResearchExpansion.RunningPowerDemand : 0f); // 12-4 레시피 · 연계 연구
-                Resources.Tick(_stats.ActiveModules, _stats.ProductionMultipliers, _stats.ConsumptionMultipliers, dt);
+                Resources.Tick(_stats.ActiveModules, _stats.ProductionMultipliers, _stats.ConsumptionMultipliers, _stats.PowerMultipliers, dt);
             });
             Add(TickStepNames.Incidents, dt => Incidents.Tick(dt, Resources)); // 11-17 ④ 놓친 사고의 누출
             Add(TickStepNames.Research, dt => Research.Tick(dt, Resources.PowerEfficiency * Effects.ResearchSpeedMultiplier)); // 전력 효율 × 과학자 × 정책

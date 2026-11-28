@@ -15,6 +15,7 @@ namespace SpaceStation.Simulation
         private readonly List<ModuleData> _activeModules = new List<ModuleData>();
         private readonly List<float> _productionMultipliers = new List<float>();
         private readonly List<float> _consumptionMultipliers = new List<float>();
+        private readonly List<float> _powerMultipliers = new List<float>();
         private readonly List<ResidentNeed> _activeNeeds = new List<ResidentNeed>();
 
         public StationModuleStats(StationSimulation sim) => _sim = sim;
@@ -22,6 +23,8 @@ namespace SpaceStation.Simulation
         public IReadOnlyList<ModuleData> ActiveModules => _activeModules;
         public IReadOnlyList<float> ProductionMultipliers => _productionMultipliers;
         public IReadOnlyList<float> ConsumptionMultipliers => _consumptionMultipliers;
+        /// <summary>CONNECT A10 모듈별 전력 소비 배율 (온기 = 난방 전력 ↓).</summary>
+        public IReadOnlyList<float> PowerMultipliers => _powerMultipliers;
         public IReadOnlyList<ResidentNeed> ActiveNeeds => _activeNeeds;
 
         /// <summary>활성 모듈의 실제 수용 인구 (인접 가감 포함, 비활성 0). 4-9 주민 배분용.</summary>
@@ -142,6 +145,7 @@ namespace SpaceStation.Simulation
             _activeModules.Clear();
             _productionMultipliers.Clear();
             _consumptionMultipliers.Clear();
+            _powerMultipliers.Clear();
             int extraHousing = 0;
             int labSlots = 0;
             float sensor = 0f, dataCenter = 0f;
@@ -183,6 +187,7 @@ namespace SpaceStation.Simulation
                 if (module.Data.BatteryRate > 0f)
                     extraBattery += module.Data.BatteryRate * (adjacency.Multiplier(module, AdjacencyEffect.ChargeRate) - 1f);
                 _consumptionMultipliers.Add(_sim.Adjacency.GetConsumptionMultiplier(module));
+                _powerMultipliers.Add(_sim.Heat != null ? _sim.Heat.PowerDemandMultiplier(module) : 1f); // CONNECT A10 온기
                 // 인접 수용 인구 가감 (모듈 자체 수용 인구 아래로는 내려가지 않음)
                 extraHousing += Math.Max(-module.Data.HousingCapacity, _sim.Adjacency.GetHousingBonus(module));
             }

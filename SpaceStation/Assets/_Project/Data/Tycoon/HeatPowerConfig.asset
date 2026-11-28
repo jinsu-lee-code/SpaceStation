@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0497342c4985dec40ad27a5f092d2713, type: 3}
+  m_Name: HeatPowerConfig
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.HeatPowerConfig
+  _warm:
+  - {fileID: 11400000, guid: 71046e0678fea324aac0dc3c263a698c, type: 2}
+  - {fileID: 11400000, guid: 650c0912820571249b07312aa1677c0d, type: 2}
+  - {fileID: 11400000, guid: 04bcc3e5dfbd18443a0236485713e72e, type: 2}
+  - {fileID: 11400000, guid: 10878b207703a5f4ba93a15b9ce5120f, type: 2}
+  - {fileID: 11400000, guid: 0b91b20790256d449bd6c500187e4c80, type: 2}
+  - {fileID: 11400000, guid: c63f0c523b6d5fd47881a68cd635fbf2, type: 2}
+  _cool:
+  - {fileID: 11400000, guid: 19f5e13d96963bc4cbd0bceaba860cab, type: 2}
+  - {fileID: 11400000, guid: e535e9aa2bfade046a856410ed9f1f42, type: 2}
+  - {fileID: 11400000, guid: 373f8d20bbedd74469e7875858728843, type: 2}
+  _warmMin: 0.5
+  _warmMax: 4
+  _warmPowerMultiplier: 0.8
+  _warmProductionMultiplier: 1.15
+  _coolLimitRatio: 0.5
+  _warmRequestHold: 0.6
+  _warmRequestReward: 1.5
+  _hotFireWeight: 2
+  _coolBreakerWeight: 0.5
+  _gridRange: 3
+  _heavyPower: 5
+  _overloadBreakerWeight: 2
+  _overloadExtraSwitches: 1

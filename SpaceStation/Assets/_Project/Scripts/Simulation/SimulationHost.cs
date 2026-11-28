@@ -58,6 +58,8 @@ namespace SpaceStation.Simulation
         [SerializeField] private MidGradeConfig _midGrade;
         [Tooltip("타이쿤판 광맥 — 중형부터 제자리 채굴 도킹 고갈 · 광맥 2배 (메뉴 SpaceStation/Tycoon/Setup Ore Veins가 채움, CONNECT_1121 1번). 비면 없음")]
         [SerializeField] private OreVeinConfig _oreVeins;
+        [Tooltip("타이쿤판 열 온기 · 과부하 — 모듈마다 알맞은 온도 · 배전 범위 (메뉴 SpaceStation/Tycoon/Setup Heat Comfort가 채움, CONNECT_1121 A10 · A11). 비면 예전 열")]
+        [SerializeField] private HeatPowerConfig _heatPower;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -110,6 +112,8 @@ namespace SpaceStation.Simulation
                 MidGradeSystem.AttachTo(Simulation, _midGrade); // 13-7 타이쿤판
             if (_oreVeins != null)
                 OreVeinSystem.AttachTo(Simulation, _oreVeins, () => Random.value * 0.99999f); // CONNECT_1121 1번 타이쿤판 광맥 (세이브 복원 전에)
+            if (_heatPower != null && Simulation.Heat != null)
+                Simulation.Heat.Comfort = _heatPower; // CONNECT_1121 A10 온기 · A11 과부하 (타이쿤판)
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
             {

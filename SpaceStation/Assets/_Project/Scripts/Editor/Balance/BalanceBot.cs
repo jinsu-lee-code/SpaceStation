@@ -881,7 +881,7 @@ namespace SpaceStation.Editor.Balance
                     // 조밀 배치(운석 노출 감소) 선호. 태양광은 그늘 때문에 접촉 가산을 줄임.
                     float contactWeight = data.SolarPowered ? 1f : 10f;
                     float score = Contacts(data, origin, rot) * contactWeight - origin.sqrMagnitude * 0.01f
-                                  + AdjacencyScore(data, origin, rot) + DefenseScore(data, origin, rot) + ServiceScore(data, origin, rot);
+                                  + AdjacencyScore(data, origin, rot) + ThermalScore(data, origin, rot) + DefenseScore(data, origin, rot) + ServiceScore(data, origin, rot);
                     if (data == _refinery) // 관계를 안 보는 봇도 그대로 — 제련소는 채굴 도킹 옆이 아니면 하는 일이 없어 누구나 붙여 짓는다
                         score += FreshDocksAt(origin, rot) * 40f;
                     if (data == _armor) // 미끼는 바깥으로 튀어나올수록 (조밀 가산을 뒤집음)
@@ -994,6 +994,45 @@ namespace SpaceStation.Editor.Balance
             foreach (var n in _previewNeighbors)
                 score += EffectScore(n.Rule.Effect, n.Total);
             return score;
+        }
+
+        /// <summary>
+        /// CONNECT A10 온기 (관계를 보는 봇만 — 2026-11-28): 따뜻함 모듈 = 온기 구간 자리 + (전력 −20% ≈ 3점, 생산 모듈은 +15% ≈ 4.5점 더),
+        /// 따뜻함 · 서늘함 모듈 = 과열될 자리 −10, 발열원 = 이웃에 새로 생기는 온기마다 +6 · 잃는 온기 −6 · 새 과열 −10.
+        /// </summary>
+        private float ThermalScore(ModuleData data, Vector3Int origin, int rotation)
+        {
+            var heat = _sim.Heat;
+            if (IgnoreAdjacency || heat == null || heat.Comfort == null || !heat.Active)
+                return 0f;
+            var pref = heat.PreferenceOf(data);
+            bool source = data.HeatOutput > 0f;
+            if (pref == HeatPreference.None && !source)
+                return 0f;
+            var cells = StationGrid.ResolveCells(data.CellOffsets, origin, rotation);
+            float score = 0f;
+            if (pref != HeatPreference.None)
+            {
+                float h = heat.PreviewHeatAt(cells);
+                if (h > heat.LimitOf(data) + 1e-4f)
+                    score -= 10f;
+                else if (pref == HeatPreference.Warm && heat.Comfort.InWarmBand(h))
+                    score += Produces(data) ? 7.5f : 3f;
+            }
+            if (source)
+            {
+                heat.PreviewSource(data, cells, null, out int warmed, out int lost, out int over);
+                score += (warmed - lost) * 6f - over * 10f;
+            }
+            return score;
+        }
+
+        private static bool Produces(ModuleData data)
+        {
+            foreach (var p in data.Production)
+                if (p.Amount > 0f)
+                    return true;
+            return false;
         }
 
         private static float EffectScore(AdjacencyEffect effect, float total)

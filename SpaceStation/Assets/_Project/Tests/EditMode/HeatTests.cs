@@ -147,6 +147,126 @@ namespace SpaceStation.Tests
             Assert.AreEqual(1f, sim.HeatMultiplier(hot));
         }
 
+        // ---------------- CONNECT A10 온기 (2026-11-28) ----------------
+
+        [Test]
+        public void Warmth_InBand_LowersPower_RaisesProduction_OnlyWithConfig()
+        {
+            var warm = Consumer("MD_TestWarm", 5f, ResourceType.Food, 2f);
+            var sim = Sim();
+            Place(sim, _hot, 1, 0, 0);
+            var inBand = Place(sim, warm, 2, 0, 0);   // 1칸 = 2 (0.5 ~ 4)
+            Place(sim, _plain, 3, 0, 0);              // 이음 (코어에 연결되게)
+            var cold = Place(sim, warm, 4, 0, 0);     // 3칸 = 0
+            sim.Tick(1f);
+            Assert.IsFalse(sim.Heat.IsWarm(inBand), "설정이 없으면(캠페인) 온기 없음");
+            Assert.AreEqual(1f, sim.Heat.PowerDemandMultiplier(inBand));
+            Assert.AreEqual(1f, sim.HeatMultiplier(inBand));
+            Assert.AreEqual(10f, sim.Resources.PowerDemand, 1e-3f, "예전 그대로");
+
+            sim.Heat.Comfort = Comfort(new[] { warm }, new ModuleData[0]);
+            sim.Tick(1f);
+            sim.Tick(1f);
+            Assert.IsTrue(sim.Heat.IsWarm(inBand), "열 2 = 온기");
+            Assert.IsFalse(sim.Heat.IsWarm(cold), "열 0 = 온기 아님");
+            Assert.AreEqual(0.8f, sim.Heat.PowerDemandMultiplier(inBand), 1e-4f);
+            Assert.AreEqual(1.15f, sim.HeatMultiplier(inBand), 1e-4f, "생산 +15%");
+            Assert.AreEqual(1f, sim.HeatMultiplier(cold));
+            Assert.AreEqual(5f * 0.8f + 5f, sim.Resources.PowerDemand, 1e-3f, "온기 방만 전력 -20%");
+            StringAssert.Contains("♨ 온기", sim.Heat.StateText(inBand));
+            StringAssert.Contains("온기 아님", sim.Heat.StateText(cold));
+        }
+
+        [Test]
+        public void Warmth_AboveBand_NoBonus()
+        {
+            var warm = Consumer("MD_TestWarm", 5f, ResourceType.Food, 2f);
+            var sim = Sim();
+            sim.Heat.Comfort = Comfort(new[] { warm }, new ModuleData[0]);
+            Place(sim, _hot, 1, 0, 0);
+            Place(sim, _hot, 3, 0, 0);
+            var between = Place(sim, warm, 2, 0, 0); // 2 + 2 = 4 (구간 끝 — 포함)
+            var hotter = Place(sim, warm, 2, 0, 1);  // 두 발열원 모두 1칸(대각) = 4 → 같은 값
+            Place(sim, _hot, 2, 0, 2);               // hotter만 1칸 더 = 6 (> 4, ≤ 한도 6)
+            sim.Tick(1f);
+            Assert.AreEqual(5f, sim.Heat.HeatOf(between), 1e-4f, "2 + 2 + 2칸 1");
+            Assert.IsFalse(sim.Heat.IsWarm(between), "4 넘음 = 온기보다 더움");
+            Assert.IsFalse(sim.Heat.IsWarm(hotter));
+            Assert.AreEqual(1f, sim.HeatMultiplier(between), "더움 = 보너스 없음, 벌칙도 없음");
+            StringAssert.Contains("온기보다 더움", sim.Heat.StateText(between));
+        }
+
+        [Test]
+        public void CoolModule_OverheatsAtHalfLimit()
+        {
+            var cool = Consumer("MD_TestCool", 8f, ResourceType.Food, 0f);
+            var sim = Sim();
+            sim.Heat.Comfort = Comfort(new ModuleData[0], new[] { cool });
+            Place(sim, _hot, 1, 0, 0);
+            Place(sim, _hot, 3, 0, 0);
+            var c = Place(sim, cool, 2, 0, 0);    // 2 + 2 = 4
+            var p = Place(sim, _plain, 2, 0, 1);  // 같은 4
+            sim.Tick(1f);
+            Assert.AreEqual(3f, sim.Heat.LimitOf(c), 1e-4f, "보통 6의 절반");
+            Assert.AreEqual(6f, sim.Heat.LimitOf(p), 1e-4f);
+            Assert.IsTrue(sim.Heat.IsOverheated(c), "서늘함 = 4 > 3 과열");
+            Assert.IsFalse(sim.Heat.IsOverheated(p), "보통 = 4 ≤ 6");
+            Assert.IsFalse(sim.Heat.IsDanger(c), "위험 = 3 × 1.5 = 4.5");
+            Assert.Less(sim.HeatMultiplier(c), 1f);
+        }
+
+        [Test]
+        public void Preview_MatchesHeatAfterPlacing_AndCountsWarmedNeighbors()
+        {
+            var warm = Consumer("MD_TestWarm", 5f, ResourceType.Food, 2f);
+            var sim = Sim();
+            sim.Heat.Comfort = Comfort(new[] { warm }, new ModuleData[0]);
+            Place(sim, _hot, 1, 0, 0);
+            Place(sim, _radiator, 1, 0, 1); // 동작 중 (바깥 노출)
+            sim.Tick(1f);
+            var cells = new[] { new Vector3Int(2, 0, 1) };
+            float preview = sim.Heat.PreviewHeatAt(cells);
+            var placed = Place(sim, warm, 2, 0, 1);
+            sim.Tick(1f);
+            Assert.AreEqual(sim.Heat.HeatOf(placed), preview, 1e-4f, "미리보기 = 실제 (대각 1칸 2 − 맞닿은 방열판 4 → 0)");
+
+            // 발열원 미리보기: 3칸 떨어진 따뜻함 모듈 옆에 새 발열원 → 온기 +1
+            var far = Place(sim, warm, 5, 0, 0);
+            sim.Tick(1f);
+            Assert.IsFalse(sim.Heat.IsWarm(far));
+            sim.Heat.PreviewSource(_hot, new[] { new Vector3Int(6, 0, 0) }, null, out int warmed, out int lost, out int over);
+            Assert.AreEqual(1, warmed, "옆 1칸 = 2 → 온기");
+            Assert.AreEqual(0, lost);
+            Assert.AreEqual(0, over);
+            StringAssert.Contains("이웃 ♨ 온기 +1", sim.Heat.PreviewText(_hot, new[] { new Vector3Int(6, 0, 0) }, null));
+        }
+
+        private HeatPowerConfig Comfort(IEnumerable<ModuleData> warm, IEnumerable<ModuleData> cool)
+        {
+            var c = HeatPowerConfig.CreateForTest(warm, cool);
+            _created.Add(c);
+            return c;
+        }
+
+        private ModuleData Consumer(string name, float power, ResourceType produces, float amount)
+        {
+            var m = Module(name, 0f, 0f);
+            var so = new SerializedObject(m);
+            var cons = so.FindProperty("_consumption");
+            cons.arraySize = 1;
+            cons.GetArrayElementAtIndex(0).FindPropertyRelative("Type").enumValueIndex = (int)ResourceType.Power;
+            cons.GetArrayElementAtIndex(0).FindPropertyRelative("Amount").floatValue = power;
+            if (amount > 0f)
+            {
+                var prod = so.FindProperty("_production");
+                prod.arraySize = 1;
+                prod.GetArrayElementAtIndex(0).FindPropertyRelative("Type").enumValueIndex = (int)produces;
+                prod.GetArrayElementAtIndex(0).FindPropertyRelative("Amount").floatValue = amount;
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return m;
+        }
+
         // ---------------- 도우미 ----------------
 
         private StationSimulation Sim() => new StationSimulation(new StationSimulationSettings
