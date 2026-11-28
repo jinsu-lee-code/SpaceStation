@@ -3312,6 +3312,7 @@ RectTransform:
   - {fileID: 2003118859}
   - {fileID: 1708113628}
   - {fileID: 2067204172}
+  - {fileID: 1368914450}
   - {fileID: 2068987521}
   - {fileID: 1276975064}
   - {fileID: 17064193}
@@ -8972,6 +8973,61 @@ MonoBehaviour:
   Line: {r: 0, g: 0, b: 0, a: 0}
   Scan: 0
   Connector: 0
+--- !u!1 &1368914449
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1368914450}
+  - component: {fileID: 1368914451}
+  m_Layer: 0
+  m_Name: CorruptionPanel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1368914450
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1368914449}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 577544477}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1368914451
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1368914449}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 011751cfd9f0f6d47b02d342458b9270, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.UI.CorruptionPanel
+  _station: {fileID: 968511355}
+  _font: {fileID: 11400000, guid: d497591f4002cc34f9019d54428103ec, type: 2}
+  _fillSprite: {fileID: 21300000, guid: 19fe706f4f92f5242a7eab594368b1b1, type: 3}
+  _frameSprite: {fileID: 21300000, guid: e23184708b077294eb5afa4327916b93, type: 3}
+  _buttonSprite: {fileID: 21300000, guid: e0017af049024f34380fef95be5047f9, type: 3}
+  _holoArt: {fileID: 11400000, guid: 8df8c9f63569ca94cbc0dfaed24de6e2, type: 2}
+  _refreshSeconds: 0.25
 --- !u!1 &1371735860
 GameObject:
   m_ObjectHideFlags: 0
@@ -10818,6 +10874,7 @@ MonoBehaviour:
   _midGrade: {fileID: 11400000, guid: a5bfeb1d21fee6742a31a313b1608615, type: 2}
   _oreVeins: {fileID: 11400000, guid: 430ed004c7da5f24ca5e19ad87be4dd4, type: 2}
   _heatPower: {fileID: 11400000, guid: 2b2c98268545e1148a104999ac00e3f2, type: 2}
+  _corruption: {fileID: 11400000, guid: 83373a0cc5a18634b8aae6cb2a87f05b, type: 2}
 --- !u!1 &1601193810
 GameObject:
   m_ObjectHideFlags: 0

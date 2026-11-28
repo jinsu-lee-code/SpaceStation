@@ -121,6 +121,8 @@ namespace SpaceStation.Audio
         private readonly float _bornAt;
         private PlagueSystem _plague;
         private PlagueSystem.PlaguePhase _plaguePhase;
+        private CorruptionSystem _corruption;
+        private CorruptionSystem.CorruptionPhase _corruptionPhase;
         private SocialCrisisSystem.CrisisPhase _crisisPhase;
         private ContactSystem.ContactPhase _contactPhase;
         private bool _boarding;
@@ -138,12 +140,18 @@ namespace SpaceStation.Audio
             if (on)
             {
                 _plague = _sim.GetSystem<PlagueSystem>();
+                _corruption = _sim.GetSystem<CorruptionSystem>();
                 Sync();
             }
             if (_plague != null)
             {
                 if (on) _plague.Changed += HandlePlague;
                 else _plague.Changed -= HandlePlague;
+            }
+            if (_corruption != null)
+            {
+                if (on) _corruption.Changed += HandleCorruption;
+                else _corruption.Changed -= HandleCorruption;
             }
             if (_sim.Crisis != null)
             {
@@ -160,6 +168,7 @@ namespace SpaceStation.Audio
         private void Sync()
         {
             if (_plague != null) _plaguePhase = _plague.Phase;
+            if (_corruption != null) _corruptionPhase = _corruption.Phase;
             if (_sim.Crisis != null) _crisisPhase = _sim.Crisis.Phase;
             if (_sim.Contact != null)
             {
@@ -185,6 +194,22 @@ namespace SpaceStation.Audio
                     NoticeSound.PlayGood(Lib.PlagueCured); // 막음 (방역 물자 · 격리 · 캠페인) · 끝남 = 회복음 (선택 버튼은 클릭음 없이 이것 하나)
             }
             _plaguePhase = p;
+        }
+
+        /// <summary>CONNECT_1121 7번 ② 비리 — 전용 소리는 예정 자리만 (CONNECT_1121 결정): 징후 = 주의 · 횡령 = 위험 · 막음 = 확인음 (선택 버튼은 클릭음 없이 이것 하나).</summary>
+        private void HandleCorruption()
+        {
+            var p = _corruption.Phase;
+            if (p != _corruptionPhase && !Quieted && Lib != null)
+            {
+                if (p == CorruptionSystem.CorruptionPhase.Warning)
+                    AlertSound.TryPlay(AlertLevel.Caution);
+                else if (p == CorruptionSystem.CorruptionPhase.Embezzling)
+                    AlertSound.TryPlay(AlertLevel.Danger);
+                else if (p == CorruptionSystem.CorruptionPhase.Calm && _corruptionPhase == CorruptionSystem.CorruptionPhase.Warning)
+                    NoticeSound.Play(Lib.ContactResult);
+            }
+            _corruptionPhase = p;
         }
 
         private void HandleCrisis()

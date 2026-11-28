@@ -286,6 +286,32 @@ namespace SpaceStation.Editor
             Debug.Log($"[TycoonSetup] 열 온기 · 과부하: 따뜻함 {config.WarmModules.Count} · 서늘함 {config.CoolModules.Count} · 데이터 센터 발열 {(dc != null ? dc.HeatOutput : 0f):0.#} · 씬 연결 완료");
         }
 
+        private const string CorruptionPath = "Assets/_Project/Data/Tycoon/CorruptionConfig.asset";
+
+        /// <summary>
+        /// CONNECT_1121 7번 ② 국가급 사회 사건 '비리' · 파업 연결 — 사용자 결정 2026-11-28 (추천안): 행정 부족 → 금속 횡령 · 소비 부족만큼 파업 기준 ↑ (최대 +20) ·
+        /// 방치하면 다음 파업 기준 +10 · 국가급 + '사회 사건' 규칙이 열린 뒤. 설정 에셋(값은 <see cref="CorruptionConfig"/> 기본값) + 씬 연결(호스트 · 비리 경고 창).
+        /// </summary>
+        [MenuItem("SpaceStation/Tycoon/Setup Corruption")]
+        public static void SetupCorruption()
+        {
+            EnsureFolder();
+            if (AssetDatabase.LoadAssetAtPath<CorruptionConfig>(CorruptionPath) == null)
+                AssetDatabase.CreateAsset(ScriptableObject.CreateInstance<CorruptionConfig>(), CorruptionPath);
+            AssetDatabase.SaveAssets();
+
+            var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
+            var host = Object.FindFirstObjectByType<SpaceStation.Simulation.SimulationHost>();
+            var hso = new SerializedObject(host);
+            hso.FindProperty("_corruption").objectReferenceValue = AssetDatabase.LoadAssetAtPath<CorruptionConfig>(CorruptionPath);
+            hso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(host);
+            AddPanel<SpaceStation.UI.CorruptionPanel>("CorruptionPanel");
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log("[TycoonSetup] 비리: 설정 에셋 · 씬 연결 (호스트 · 비리 경고 창) 완료");
+        }
+
         private const string MidGradePath = "Assets/_Project/Data/Tycoon/MidGradeConfig.asset";
         private const string InteriorBonusPath = "Assets/_Project/Data/Tycoon/InteriorBonusConfig.asset";
         private const string GrowthPath = "Assets/_Project/Data/Tycoon/GrowthThreatConfig.asset";

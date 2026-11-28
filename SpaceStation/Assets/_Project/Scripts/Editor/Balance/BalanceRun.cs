@@ -105,6 +105,8 @@ namespace SpaceStation.Editor.Balance
                 _sim.Heat.Comfort = s.HeatPower; // CONNECT A10 온기 · A11 과부하
             if (s.HeatPower != null)
                 EndlessHomeComfort.AttachTo(_sim, s.HeatPower); // CONNECT 7번 ① 방사선 힘든 주민
+            if (s.Corruption != null)
+                CorruptionSystem.AttachTo(_sim, s.Corruption, () => 1f); // CONNECT 7번 ② 파업 연결만 (난수 1 = 비리는 안 일어남)
             StartGrade = -1;
             if (start != null)
             {

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce08ad87edb2fa44bbb7c285cea09f42, type: 3}
+  m_Name: CorruptionConfig
+  m_EditorClassIdentifier: SpaceStation::SpaceStation.Data.CorruptionConfig
+  _minGrade: 5
+  _rollInterval: 60
+  _baseChance: 0.02
+  _shortageChance: 0.25
+  _cooldown: 300
+  _warningSeconds: 90
+  _embezzleSeconds: 90
+  _embezzleMetal: 0.5
+  _embezzleStoredLoss: 0.1
+  _auditCost:
+  - Type: 4
+    Amount: 100
+  _purgeSatisfaction: -10
+  _purgeLeave: 2
+  _transparencySeconds: 180
+  _transparencyResearch: 0.8
+  _commerceStrikeMax: 20
+  _ignoredStrikeBonus: 10

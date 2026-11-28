@@ -40,6 +40,8 @@ namespace SpaceStation.Editor.Balance
         [SerializeField] private OreVeinConfig _oreVeins;
         [Tooltip("CONNECT_1121 A10 · A11 타이쿤판 열 온기 · 과부하 (비우면 예전 열)")]
         [SerializeField] private HeatPowerConfig _heatPower;
+        [Tooltip("CONNECT_1121 7번 ② 비리 · 파업 연결 (비우면 없음 — 봇 판은 파업 연결만)")]
+        [SerializeField] private CorruptionConfig _corruption;
         [SerializeField] private float _durationMinutes = 30f;
 
         /// <summary>Phase 10 비교 측정용: true면 기본 에셋 실행에서도 주민 특성을 끈다.</summary>
@@ -244,6 +246,7 @@ namespace SpaceStation.Editor.Balance
                 MidGrade = _midGrade,
                 OreVeins = _oreVeins,
                 HeatPower = _heatPower,
+                Corruption = _corruption,
                 Residents = DisableResidents ? null : _residents,
                 DurationSeconds = _durationMinutes * 60f,
                 Runs = Mathf.Max(1, _runs),
@@ -400,6 +403,8 @@ namespace SpaceStation.Editor.Balance
                 _oreVeins = AssetDatabase.LoadAssetAtPath<OreVeinConfig>($"{DataRoot}/Tycoon/OreVeinConfig.asset"); // CONNECT 1번 광맥 (없으면 null)
             if (overwrite || _heatPower == null)
                 _heatPower = AssetDatabase.LoadAssetAtPath<HeatPowerConfig>($"{DataRoot}/Tycoon/HeatPowerConfig.asset"); // CONNECT A10 · A11 (없으면 null)
+            if (overwrite || _corruption == null)
+                _corruption = AssetDatabase.LoadAssetAtPath<CorruptionConfig>($"{DataRoot}/Tycoon/CorruptionConfig.asset"); // CONNECT 7번 ② (없으면 null)
             if (overwrite || _buildable.Count == 0)
             {
                 _buildable.Clear();

@@ -60,6 +60,8 @@ namespace SpaceStation.Simulation
         [SerializeField] private OreVeinConfig _oreVeins;
         [Tooltip("타이쿤판 열 온기 · 과부하 — 모듈마다 알맞은 온도 · 배전 범위 (메뉴 SpaceStation/Tycoon/Setup Heat Comfort가 채움, CONNECT_1121 A10 · A11). 비면 예전 열")]
         [SerializeField] private HeatPowerConfig _heatPower;
+        [Tooltip("타이쿤판 국가급 사회 사건 '비리' (메뉴 SpaceStation/Tycoon/Setup Corruption이 채움, CONNECT_1121 7번 ②). 비면 없음")]
+        [SerializeField] private CorruptionConfig _corruption;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -116,6 +118,8 @@ namespace SpaceStation.Simulation
                 Simulation.Heat.Comfort = _heatPower; // CONNECT_1121 A10 온기 · A11 과부하 (타이쿤판)
             if (_heatPower != null)
                 EndlessHomeComfort.AttachTo(Simulation, _heatPower); // CONNECT_1121 7번 ① 방사선 힘든 주민 (보통 한도 + 특성)
+            if (_corruption != null)
+                CorruptionSystem.AttachTo(Simulation, _corruption, () => Random.value * 0.99999f); // CONNECT_1121 7번 ② 비리 · 파업 연결 (성장 위협 뒤 — 파업 기준 고리를 감쌈)
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
             {

@@ -29,6 +29,8 @@ namespace SpaceStation.Editor.Balance
         public OreVeinConfig OreVeins;
         /// <summary>CONNECT_1121 A10 · A11 타이쿤판 열 온기 · 과부하 (null이면 예전 열).</summary>
         public HeatPowerConfig HeatPower;
+        /// <summary>CONNECT_1121 7번 ② 비리 (null이면 없음) — 봇 판은 파업 연결(소비 부족 → 파업 기준)만, 비리 사건은 굴리지 않음 (역병처럼 선택지 사건은 봇 밖).</summary>
+        public CorruptionConfig Corruption;
         /// <summary>13-7 난이도를 적용하기 전 등급표 (난이도 측정에서 성장 곡선에 간격 배율을 곱할 때, null이면 곱하지 않음).</summary>
         public StationGradeConfig BaseGrades;
         /// <summary>13-6 타이쿤판 1인칭 가볍게 (null이면 없음) — 봇은 상자를 직접 줍지만 등급 보상 포인트 · 자동 회수가 붙음.</summary>
