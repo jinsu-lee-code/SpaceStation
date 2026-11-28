@@ -15,9 +15,10 @@ MonoBehaviour:
   _minMultiplier: 0
   _maxMultiplier: 2
   _rules:
-  - _target: {fileID: 11400000, guid: 650c0912820571249b07312aa1677c0d, type: 2}
+  - _anyTarget: 0
+    _target: {fileID: 11400000, guid: 650c0912820571249b07312aa1677c0d, type: 2}
     _targetTag: {fileID: 11400000, guid: 40fedfb5fe7e00e4ebf6939c43f0af8f, type: 2}
-    _neighbor: {fileID: 11400000, guid: c63f0c523b6d5fd47881a68cd635fbf2, type: 2}
+    _neighbor: {fileID: 0}
     _neighborTag: {fileID: 11400000, guid: a46e553fb9956fc4bb15f69c74dc6426, type: 2}
     _excludeSameType: 0
     _effect: 1
@@ -25,9 +26,54 @@ MonoBehaviour:
     _freeNeighbors: 0
     _maxStacks: 3
     _label: "\uC218\uB85C \uACF5\uC720"
-  - _target: {fileID: 11400000, guid: c7e25e386c31fb54c84913570c72a259, type: 2}
+  - _anyTarget: 0
+    _target: {fileID: 11400000, guid: 0af3291fd0d56e040b442377ae1bc48c, type: 2}
+    _targetTag: {fileID: 11400000, guid: 40fedfb5fe7e00e4ebf6939c43f0af8f, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: a46e553fb9956fc4bb15f69c74dc6426, type: 2}
+    _excludeSameType: 0
+    _effect: 1
+    _valuePerNeighbor: -0.25
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uB0C9\uAC01\uC218 \uACF5\uC720"
+  - _anyTarget: 0
+    _target: {fileID: 11400000, guid: c7e25e386c31fb54c84913570c72a259, type: 2}
+    _targetTag: {fileID: 11400000, guid: 40fedfb5fe7e00e4ebf6939c43f0af8f, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: a46e553fb9956fc4bb15f69c74dc6426, type: 2}
+    _excludeSameType: 0
+    _effect: 1
+    _valuePerNeighbor: -0.2
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uC804\uAE30\uBD84\uD574 \uBCF4\uC870"
+  - _anyTarget: 0
+    _target: {fileID: 11400000, guid: 1b33e37775068cf4fa46c16ee0e45c2b, type: 2}
+    _targetTag: {fileID: 11400000, guid: 40fedfb5fe7e00e4ebf6939c43f0af8f, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: a46e553fb9956fc4bb15f69c74dc6426, type: 2}
+    _excludeSameType: 0
+    _effect: 1
+    _valuePerNeighbor: -0.25
+    _freeNeighbors: 0
+    _maxStacks: 1
+    _label: "\uC5F0\uB8CC \uACF5\uAE09"
+  - _anyTarget: 0
+    _target: {fileID: 11400000, guid: 04bcc3e5dfbd18443a0236485713e72e, type: 2}
+    _targetTag: {fileID: 11400000, guid: 40fedfb5fe7e00e4ebf6939c43f0af8f, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: a46e553fb9956fc4bb15f69c74dc6426, type: 2}
+    _excludeSameType: 0
+    _effect: 1
+    _valuePerNeighbor: -0.25
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uBC30\uC591\uC218 \uACF5\uC720"
+  - _anyTarget: 0
+    _target: {fileID: 11400000, guid: c7e25e386c31fb54c84913570c72a259, type: 2}
     _targetTag: {fileID: 11400000, guid: f294922c12f04074fa573ee064f5b79b, type: 2}
-    _neighbor: {fileID: 11400000, guid: 650c0912820571249b07312aa1677c0d, type: 2}
+    _neighbor: {fileID: 0}
     _neighborTag: {fileID: 11400000, guid: 2fbd28f2e1f1bf2498da82fff3981b5a, type: 2}
     _excludeSameType: 0
     _effect: 0
@@ -35,7 +81,8 @@ MonoBehaviour:
     _freeNeighbors: 0
     _maxStacks: 3
     _label: "\uAD11\uD569\uC131 \uBCF4\uC870"
-  - _target: {fileID: 11400000, guid: 0cfe3d85b68f446419d9c2c70715d7d2, type: 2}
+  - _anyTarget: 0
+    _target: {fileID: 0}
     _targetTag: {fileID: 11400000, guid: 0e483152aa7b86d448850d78ac6c0f97, type: 2}
     _neighbor: {fileID: 0}
     _neighborTag: {fileID: 0}
@@ -45,19 +92,43 @@ MonoBehaviour:
     _freeNeighbors: 1
     _maxStacks: 3
     _label: "\uADF8\uB298"
-  - _target: {fileID: 11400000, guid: 71046e0678fea324aac0dc3c263a698c, type: 2}
-    _targetTag: {fileID: 11400000, guid: b80dbecce4bf18f4da1d5ea4259e0375, type: 2}
-    _neighbor: {fileID: 11400000, guid: fb65ff1f6a335b84cb001bc80e2bb704, type: 2}
-    _neighborTag: {fileID: 11400000, guid: 5e3f620bca6a63a499a35d538e36b66c, type: 2}
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: ddc7320bb9e65af47a06f10accd50da1, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: f2b4dedc93c536149b0f014f6d7e3958, type: 2}
     _excludeSameType: 0
-    _effect: 2
-    _valuePerNeighbor: -2
+    _effect: 3
+    _valuePerNeighbor: 0.25
     _freeNeighbors: 0
-    _maxStacks: 3
-    _label: "\uC18C\uC74C"
-  - _target: {fileID: 11400000, guid: 71046e0678fea324aac0dc3c263a698c, type: 2}
+    _maxStacks: 2
+    _label: "\uC9C1\uACB0 \uCDA9\uC804"
+  - _anyTarget: 0
+    _target: {fileID: 11400000, guid: 04bcc3e5dfbd18443a0236485713e72e, type: 2}
+    _targetTag: {fileID: 11400000, guid: 5c548f3a7b99fdc4ebd007914c1e8272, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 2fbd28f2e1f1bf2498da82fff3981b5a, type: 2}
+    _excludeSameType: 0
+    _effect: 0
+    _valuePerNeighbor: 0.1
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uC0AC\uB8CC \uC21C\uD658"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: f294922c12f04074fa573ee064f5b79b, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 4fd5988d4daecba40b32f281d1d6843e, type: 2}
+    _excludeSameType: 0
+    _effect: 4
+    _valuePerNeighbor: -0.3
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uC778\uD654 \uC704\uD5D8"
+  - _anyTarget: 0
+    _target: {fileID: 0}
     _targetTag: {fileID: 11400000, guid: b80dbecce4bf18f4da1d5ea4259e0375, type: 2}
-    _neighbor: {fileID: 11400000, guid: 71046e0678fea324aac0dc3c263a698c, type: 2}
+    _neighbor: {fileID: 0}
     _neighborTag: {fileID: 11400000, guid: b80dbecce4bf18f4da1d5ea4259e0375, type: 2}
     _excludeSameType: 0
     _effect: 2
@@ -65,69 +136,10 @@ MonoBehaviour:
     _freeNeighbors: 0
     _maxStacks: 3
     _label: "\uC8FC\uAC70 \uB2E8\uC9C0"
-  - _target: {fileID: 11400000, guid: fb65ff1f6a335b84cb001bc80e2bb704, type: 2}
-    _targetTag: {fileID: 11400000, guid: 2b5b8b14925d74341bcc63aa0f48efba, type: 2}
-    _neighbor: {fileID: 11400000, guid: 585783da322cda94eb46e8b23b149a25, type: 2}
-    _neighborTag: {fileID: 11400000, guid: b22c9aa21d17ea741b9461899f4cdbc6, type: 2}
-    _excludeSameType: 0
-    _effect: 0
-    _valuePerNeighbor: 0.5
-    _freeNeighbors: 0
-    _maxStacks: 1
-    _label: "\uC81C\uB828 \uAC00\uACF5"
-  - _target: {fileID: 11400000, guid: 71046e0678fea324aac0dc3c263a698c, type: 2}
+  - _anyTarget: 0
+    _target: {fileID: 0}
     _targetTag: {fileID: 11400000, guid: b80dbecce4bf18f4da1d5ea4259e0375, type: 2}
-    _neighbor: {fileID: 11400000, guid: 0af3291fd0d56e040b442377ae1bc48c, type: 2}
-    _neighborTag: {fileID: 11400000, guid: aeb4da984b4035d419960db550c5ec51, type: 2}
-    _excludeSameType: 0
-    _effect: 2
-    _valuePerNeighbor: -2
-    _freeNeighbors: 0
-    _maxStacks: 2
-    _label: "\uBC29\uC0AC\uC120"
-  - _target: {fileID: 11400000, guid: 0af3291fd0d56e040b442377ae1bc48c, type: 2}
-    _targetTag: {fileID: 11400000, guid: 40fedfb5fe7e00e4ebf6939c43f0af8f, type: 2}
-    _neighbor: {fileID: 11400000, guid: c63f0c523b6d5fd47881a68cd635fbf2, type: 2}
-    _neighborTag: {fileID: 11400000, guid: a46e553fb9956fc4bb15f69c74dc6426, type: 2}
-    _excludeSameType: 0
-    _effect: 1
-    _valuePerNeighbor: -0.25
-    _freeNeighbors: 0
-    _maxStacks: 2
-    _label: "\uB0C9\uAC01\uC218 \uACF5\uC720"
-  - _target: {fileID: 11400000, guid: c7e25e386c31fb54c84913570c72a259, type: 2}
-    _targetTag: {fileID: 11400000, guid: 40fedfb5fe7e00e4ebf6939c43f0af8f, type: 2}
-    _neighbor: {fileID: 11400000, guid: c63f0c523b6d5fd47881a68cd635fbf2, type: 2}
-    _neighborTag: {fileID: 11400000, guid: a46e553fb9956fc4bb15f69c74dc6426, type: 2}
-    _excludeSameType: 0
-    _effect: 1
-    _valuePerNeighbor: -0.2
-    _freeNeighbors: 0
-    _maxStacks: 2
-    _label: "\uC804\uAE30\uBD84\uD574 \uBCF4\uC870"
-  - _target: {fileID: 11400000, guid: 1b33e37775068cf4fa46c16ee0e45c2b, type: 2}
-    _targetTag: {fileID: 11400000, guid: 40fedfb5fe7e00e4ebf6939c43f0af8f, type: 2}
-    _neighbor: {fileID: 11400000, guid: c63f0c523b6d5fd47881a68cd635fbf2, type: 2}
-    _neighborTag: {fileID: 11400000, guid: a46e553fb9956fc4bb15f69c74dc6426, type: 2}
-    _excludeSameType: 0
-    _effect: 1
-    _valuePerNeighbor: -0.25
-    _freeNeighbors: 0
-    _maxStacks: 1
-    _label: "\uC5F0\uB8CC \uACF5\uAE09"
-  - _target: {fileID: 11400000, guid: 71046e0678fea324aac0dc3c263a698c, type: 2}
-    _targetTag: {fileID: 11400000, guid: b80dbecce4bf18f4da1d5ea4259e0375, type: 2}
-    _neighbor: {fileID: 11400000, guid: 585783da322cda94eb46e8b23b149a25, type: 2}
-    _neighborTag: {fileID: 11400000, guid: 5e3f620bca6a63a499a35d538e36b66c, type: 2}
-    _excludeSameType: 0
-    _effect: 2
-    _valuePerNeighbor: -2
-    _freeNeighbors: 0
-    _maxStacks: 3
-    _label: "\uACF5\uC7A5 \uC18C\uC74C"
-  - _target: {fileID: 11400000, guid: 71046e0678fea324aac0dc3c263a698c, type: 2}
-    _targetTag: {fileID: 11400000, guid: b80dbecce4bf18f4da1d5ea4259e0375, type: 2}
-    _neighbor: {fileID: 11400000, guid: 650c0912820571249b07312aa1677c0d, type: 2}
+    _neighbor: {fileID: 0}
     _neighborTag: {fileID: 11400000, guid: 2fbd28f2e1f1bf2498da82fff3981b5a, type: 2}
     _excludeSameType: 0
     _effect: 2
@@ -135,3 +147,278 @@ MonoBehaviour:
     _freeNeighbors: 0
     _maxStacks: 2
     _label: "\uB179\uC9C0"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: b80dbecce4bf18f4da1d5ea4259e0375, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 5e3f620bca6a63a499a35d538e36b66c, type: 2}
+    _excludeSameType: 0
+    _effect: 2
+    _valuePerNeighbor: -1
+    _freeNeighbors: 0
+    _maxStacks: 3
+    _label: "\uC18C\uC74C"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: b80dbecce4bf18f4da1d5ea4259e0375, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: aeb4da984b4035d419960db550c5ec51, type: 2}
+    _excludeSameType: 0
+    _effect: 2
+    _valuePerNeighbor: -2
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uBC29\uC0AC\uC120"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: b80dbecce4bf18f4da1d5ea4259e0375, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 5c548f3a7b99fdc4ebd007914c1e8272, type: 2}
+    _excludeSameType: 0
+    _effect: 2
+    _valuePerNeighbor: -1
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uB0C4\uC0C8"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: facc122755e6fa64aabdc55063134e6e, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 5e3f620bca6a63a499a35d538e36b66c, type: 2}
+    _excludeSameType: 0
+    _effect: 5
+    _valuePerNeighbor: -0.2
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uC18C\uB780"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: facc122755e6fa64aabdc55063134e6e, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 0e64ab72238e11741a6a4c51387b69c1, type: 2}
+    _excludeSameType: 0
+    _effect: 5
+    _valuePerNeighbor: -0.2
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uBD81\uC801\uC784"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: 8e0f781beed5f9343b433df2d3a98735, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 9a149414d4787324180a9ef5102cd4f7, type: 2}
+    _excludeSameType: 0
+    _effect: 5
+    _valuePerNeighbor: 0.25
+    _freeNeighbors: 0
+    _maxStacks: 1
+    _label: "\uC5F0\uACC4 \uC9C4\uB8CC"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: 9a149414d4787324180a9ef5102cd4f7, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 02bfea8edb0de4244b105d0724f668af, type: 2}
+    _excludeSameType: 0
+    _effect: 7
+    _valuePerNeighbor: -0.5
+    _freeNeighbors: 0
+    _maxStacks: 1
+    _label: "\uC785\uD56D \uAC80\uC5ED"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: 441302b8e3f67ec4da6d20a6b682677a, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 02bfea8edb0de4244b105d0724f668af, type: 2}
+    _excludeSameType: 0
+    _effect: 5
+    _valuePerNeighbor: 0.25
+    _freeNeighbors: 0
+    _maxStacks: 1
+    _label: "\uC720\uB3D9 \uC778\uAD6C"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: 7d51430109a8b194fa7984d747350efd, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 2fbd28f2e1f1bf2498da82fff3981b5a, type: 2}
+    _excludeSameType: 0
+    _effect: 5
+    _valuePerNeighbor: 0.15
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uACF5\uC6D0 \uC0B0\uCC45"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: 7d51430109a8b194fa7984d747350efd, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 441302b8e3f67ec4da6d20a6b682677a, type: 2}
+    _excludeSameType: 0
+    _effect: 5
+    _valuePerNeighbor: 0.15
+    _freeNeighbors: 0
+    _maxStacks: 1
+    _label: "\uC0C1\uAD8C \uB098\uB4E4\uC774"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: 02bfea8edb0de4244b105d0724f668af, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: b80dbecce4bf18f4da1d5ea4259e0375, type: 2}
+    _excludeSameType: 0
+    _effect: 6
+    _valuePerNeighbor: 1
+    _freeNeighbors: 0
+    _maxStacks: 1
+    _label: "\uB9C8\uC911"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: 7e95d0c6a4df48840be8e8ada3b88b16, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: bc52ee9f730147544a7785e5a63d225c, type: 2}
+    _excludeSameType: 0
+    _effect: 5
+    _valuePerNeighbor: 0.2
+    _freeNeighbors: 0
+    _maxStacks: 1
+    _label: "\uD604\uC7A5 \uD559\uC2B5"
+  - _anyTarget: 0
+    _target: {fileID: 11400000, guid: fb65ff1f6a335b84cb001bc80e2bb704, type: 2}
+    _targetTag: {fileID: 11400000, guid: 2b5b8b14925d74341bcc63aa0f48efba, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: b22c9aa21d17ea741b9461899f4cdbc6, type: 2}
+    _excludeSameType: 0
+    _effect: 0
+    _valuePerNeighbor: 0.5
+    _freeNeighbors: 0
+    _maxStacks: 1
+    _label: "\uC81C\uB828 \uAC00\uACF5"
+  - _anyTarget: 1
+    _target: {fileID: 0}
+    _targetTag: {fileID: 0}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 9eb2be65aaea8f249b9aa4186dd0eb94, type: 2}
+    _excludeSameType: 0
+    _effect: 8
+    _valuePerNeighbor: -0.2
+    _freeNeighbors: 0
+    _maxStacks: 1
+    _label: "\uC815\uBE44 \uC9C0\uC6D0"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: 2e048e79ec7b86841a646c94a321d3dd, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 23821cb9b133e7a46991dab8f15ab584, type: 2}
+    _excludeSameType: 0
+    _effect: 9
+    _valuePerNeighbor: 0.2
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uBC14\uB85C \uD558\uC5ED"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: bc52ee9f730147544a7785e5a63d225c, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 5ecb5c9f4167b894dba726bc6ddc206b, type: 2}
+    _excludeSameType: 0
+    _effect: 10
+    _valuePerNeighbor: 0.05
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uC5F0\uC0B0 \uC9C0\uC6D0"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: facc122755e6fa64aabdc55063134e6e, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 5e3f620bca6a63a499a35d538e36b66c, type: 2}
+    _excludeSameType: 0
+    _effect: 10
+    _valuePerNeighbor: -0.05
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uC18C\uC74C \uBC29\uD574"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: facc122755e6fa64aabdc55063134e6e, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 2fbd28f2e1f1bf2498da82fff3981b5a, type: 2}
+    _excludeSameType: 0
+    _effect: 10
+    _valuePerNeighbor: -0.03
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uC2B5\uAE30"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: a4b61ed524ee40a498a5fa54f4ac9de5, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: ff05f39e720ec414da2c38b3af184a3a, type: 2}
+    _excludeSameType: 0
+    _effect: 11
+    _valuePerNeighbor: -0.3
+    _freeNeighbors: 0
+    _maxStacks: 1
+    _label: "\uD589\uC815 \uC9C1\uACB0"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: bbda96ff1d342c1489aa6ba32689d120, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 2b1dd670b48104840860bddd99e105af, type: 2}
+    _excludeSameType: 0
+    _effect: 12
+    _valuePerNeighbor: 0.25
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uD45C\uC801 \uC720\uB3C4"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: bbda96ff1d342c1489aa6ba32689d120, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: d2a3bcd9580c00f41804d408914b42dc, type: 2}
+    _excludeSameType: 0
+    _effect: 13
+    _valuePerNeighbor: -0.3
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uC5C4\uD3D0"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: 43d0b7cc392263e478cef843f4200e21, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 43d0b7cc392263e478cef843f4200e21, type: 2}
+    _excludeSameType: 0
+    _effect: 14
+    _valuePerNeighbor: -0.3
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uC2E4\uB4DC \uC5F0\uB3D9"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: b895025e3326d04499efb34a43d391b7, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 9eb2be65aaea8f249b9aa4186dd0eb94, type: 2}
+    _excludeSameType: 0
+    _effect: 4
+    _valuePerNeighbor: 0.25
+    _freeNeighbors: 0
+    _maxStacks: 1
+    _label: "\uD1B5\uC81C \uC9C0\uC6D0"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: e0595301704f99849ba604f031faaf30, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 2b1dd670b48104840860bddd99e105af, type: 2}
+    _excludeSameType: 0
+    _effect: 16
+    _valuePerNeighbor: 0.25
+    _freeNeighbors: 0
+    _maxStacks: 2
+    _label: "\uC2E0\uD638 \uBCF4\uC815"
+  - _anyTarget: 0
+    _target: {fileID: 0}
+    _targetTag: {fileID: 11400000, guid: e0595301704f99849ba604f031faaf30, type: 2}
+    _neighbor: {fileID: 0}
+    _neighborTag: {fileID: 11400000, guid: 43d0b7cc392263e478cef843f4200e21, type: 2}
+    _excludeSameType: 0
+    _effect: 15
+    _valuePerNeighbor: -0.5
+    _freeNeighbors: 0
+    _maxStacks: 1
+    _label: "\uC804\uD30C \uCC28\uD3D0"

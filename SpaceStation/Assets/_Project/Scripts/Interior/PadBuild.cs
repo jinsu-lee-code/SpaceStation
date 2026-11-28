@@ -373,7 +373,7 @@ namespace SpaceStation.Interior
             var resource = AdjacencySystem.EffectResource(rule, target);
             bool good = AdjacencySystem.IsBeneficial(rule, total);
             sb.Append("<color=").Append(good ? HudTheme.GreenHex : HudText.Orange).Append('>')
-              .Append(resource.HasValue ? resource.Value.DisplayName() : "주민").Append(' ')
+              .Append(resource.HasValue ? resource.Value.DisplayName() : rule.Effect == SpaceStation.Data.AdjacencyEffect.Housing ? "주민" : SpaceStation.Data.AdjacencyEffects.Name(rule.Effect)).Append(' ')
               .Append(AdjacencySystem.ShortValue(rule, total)).Append("</color>  ");
         }
 

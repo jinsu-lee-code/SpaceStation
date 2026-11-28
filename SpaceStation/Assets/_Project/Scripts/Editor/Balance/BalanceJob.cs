@@ -159,6 +159,8 @@ namespace SpaceStation.Editor.Balance
                 header += $" stop_at={report.GradeNames[settings.StopAtGrade]}";
             if (settings.HoldGrades != null)
                 header += $" hold={settings.HoldSeconds / 60f:0}min neutral_persona={settings.NeutralPersona}";
+            if (settings.IgnoreAdjacency)
+                header += " ignore_adjacency=True";
             string summary = (string.IsNullOrEmpty(title) ? "" : title + "\n") + header
                              + (settings.HoldGrades != null && report.Results.Count > 0 ? "\n" + BalanceRunner.BuildHoldText(report, settings.HoldSeconds) : "")
                              + (report.Results.Count > 0 ? "\n" + BalanceRunner.BuildSummaryText(report) : "");

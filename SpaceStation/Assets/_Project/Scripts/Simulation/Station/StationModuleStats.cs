@@ -127,6 +127,16 @@ namespace SpaceStation.Simulation
         /// <summary>12-5 가동 중인 여객 도킹 포트 수.</summary>
         public int ImmigrationPorts { get; private set; }
 
+        /// <summary>CONNECT A8 유입 ← 주거: 가동 중인 여객 포트마다 인접 승객 + (그리드 순서 — 이민선이 차례로 들름).</summary>
+        public IReadOnlyList<float> PortPassengerBonus => _portBonus;
+        private readonly List<float> _portBonus = new List<float>();
+        /// <summary>CONNECT A8 검역 ← 유입: 가동 중인 검역 모듈 가운데 가장 센 역병 유입 배율 (없으면 1).</summary>
+        public float PlagueChanceScale { get; private set; } = 1f;
+        /// <summary>CONNECT A8 행정 ← 중심: 가동 중인 행정 모듈 가운데 가장 센 정책 대기 배율 (없으면 1).</summary>
+        public float PolicyDelayScale { get; private set; } = 1f;
+        /// <summary>CONNECT A8 통신 ← 감지: 가동 중인 통신 모듈 가운데 가장 센 해독 속도 배율 (없으면 1).</summary>
+        public float DecodeSpeedScale { get; private set; } = 1f;
+
         public void CollectActiveModules()
         {
             _activeModules.Clear();
@@ -136,6 +146,10 @@ namespace SpaceStation.Simulation
             int labSlots = 0;
             float sensor = 0f, dataCenter = 0f;
             int ports = 0;
+            // CONNECT A14-2 정거장 전체로 모으는 인접 효과
+            var adjacency = _sim.Adjacency;
+            float extraBattery = 0f, adjacencyResearch = 0f, plague = 1f, policy = 1f, decode = 1f;
+            _portBonus.Clear();
             foreach (var module in _sim.Grid.Modules)
             {
                 if (module.Data == null || !_sim.Connectivity.IsActive(module))
@@ -154,13 +168,30 @@ namespace SpaceStation.Simulation
                     sensor += module.Data.WarningBonus;            // 12-5 센서 어레이
                     dataCenter += module.Data.ResearchSpeedBonus;  // 12-5 데이터 센터
                     if (module.Data.ImmigrationPort)
+                    {
                         ports++;                                    // 12-5 여객 도킹 포트
+                        _portBonus.Add(adjacency.Addend(module, AdjacencyEffect.Passengers));
+                    }
+                    adjacencyResearch += adjacency.Addend(module, AdjacencyEffect.ResearchSpeed);
+                    if (module.Data.Serves(ResidentNeed.Quarantine))
+                        plague = Math.Min(plague, adjacency.Multiplier(module, AdjacencyEffect.PlagueChance));
+                    if (module.Data.Serves(ResidentNeed.Administration))
+                        policy = Math.Min(policy, adjacency.Multiplier(module, AdjacencyEffect.PolicyDelay));
+                    if (module.Data.RelayPower > 0)
+                        decode = Math.Max(decode, adjacency.Multiplier(module, AdjacencyEffect.DecodeSpeed));
                 }
+                if (module.Data.BatteryRate > 0f)
+                    extraBattery += module.Data.BatteryRate * (adjacency.Multiplier(module, AdjacencyEffect.ChargeRate) - 1f);
                 _consumptionMultipliers.Add(_sim.Adjacency.GetConsumptionMultiplier(module));
                 // 인접 수용 인구 가감 (모듈 자체 수용 인구 아래로는 내려가지 않음)
                 extraHousing += Math.Max(-module.Data.HousingCapacity, _sim.Adjacency.GetHousingBonus(module));
             }
             _sim.Resources.ExtraHousing = extraHousing;
+            _sim.Resources.ExtraBatteryRate = extraBattery;
+            _sim.Effects.AdjacencyResearchBonus = adjacencyResearch;
+            PlagueChanceScale = plague;
+            PolicyDelayScale = policy;
+            DecodeSpeedScale = decode;
             _sim.Research.LabSlots = labSlots;
             SensorWarningBonus = Math.Min(sensor, _sim.Balance.SensorWarningCap);
             _sim.Effects.DataCenterResearchBonus = dataCenter;

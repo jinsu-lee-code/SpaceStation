@@ -249,7 +249,7 @@ namespace SpaceStation.Simulation
             ShieldDeflected?.Invoke(shieldModule);
             if (flight.DeflectedBy == null)
                 flight.DeflectedBy = shieldModule;
-            if (!canRicochet || random01() >= _sim.Effects.RicochetChance)
+            if (!canRicochet || random01() >= _sim.Effects.RicochetChance * _sim.Adjacency.Multiplier(shieldModule, AdjacencyEffect.RicochetChance)) // CONNECT A8 보호막 ← 보호막 (주사위는 그대로 한 번)
                 return null; // 우주로
 
             _sim.Damage.FindMeteorCandidates(grid, _sim.Core, _ricochetCandidates);

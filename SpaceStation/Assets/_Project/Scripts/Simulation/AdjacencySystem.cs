@@ -40,9 +40,8 @@ namespace SpaceStation.Simulation
     {
         private sealed class Cached
         {
-            public float Production;
-            public float Consumption;
-            public float Housing;
+            /// <summary>효과 종류별 합 (CONNECT A14-2 — 생산 · 소비 · 수용 + 14).</summary>
+            public readonly float[] Sum = new float[AdjacencyEffects.Count];
             public readonly List<AppliedAdjacency> Applied = new List<AppliedAdjacency>();
         }
 
@@ -173,15 +172,24 @@ namespace SpaceStation.Simulation
             }
         }
 
-        public float GetProductionMultiplier(ModuleInstance module)
-            => _cache.TryGetValue(module, out var c) ? ClampMultiplier(1f + c.Production) : 1f;
+        public float GetProductionMultiplier(ModuleInstance module) => Multiplier(module, AdjacencyEffect.Production);
 
-        public float GetConsumptionMultiplier(ModuleInstance module)
-            => _cache.TryGetValue(module, out var c) ? ClampMultiplier(1f + c.Consumption) : 1f;
+        public float GetConsumptionMultiplier(ModuleInstance module) => Multiplier(module, AdjacencyEffect.Consumption);
 
         /// <summary>수용 인구 가감 (정수로 반올림, 모듈 기본 수용 인구 아래로는 내려가지 않게 호출자가 처리).</summary>
-        public int GetHousingBonus(ModuleInstance module)
-            => _cache.TryGetValue(module, out var c) ? Mathf.RoundToInt(c.Housing) : 0;
+        public int GetHousingBonus(ModuleInstance module) => Mathf.RoundToInt(Addend(module, AdjacencyEffect.Housing));
+
+        /// <summary>CONNECT A14-2: 배율형 효과 (1 + 합, 규칙 묶음의 범위로 자름). 효과가 없으면 1.</summary>
+        public float Multiplier(ModuleInstance module, AdjacencyEffect effect)
+            => module != null && _cache.TryGetValue(module, out var c) ? ClampMultiplier(1f + c.Sum[(int)effect]) : 1f;
+
+        /// <summary>CONNECT A14-2: 더하는 효과의 합 (수용 · 승객 · 연구 속도). 효과가 없으면 0.</summary>
+        public float Addend(ModuleInstance module, AdjacencyEffect effect)
+            => module != null && _cache.TryGetValue(module, out var c) ? c.Sum[(int)effect] : 0f;
+
+        /// <summary>그 효과의 값 — 더하는 효과는 합, 나머지는 배율 (시스템 조회용).</summary>
+        public float Value(ModuleInstance module, AdjacencyEffect effect)
+            => AdjacencyEffects.IsAdditive(effect) ? Addend(module, effect) : Multiplier(module, effect);
 
         public IReadOnlyList<AppliedAdjacency> GetApplied(ModuleInstance module)
             => _cache.TryGetValue(module, out var c) ? c.Applied : (IReadOnlyList<AppliedAdjacency>)Array.Empty<AppliedAdjacency>();
@@ -278,11 +286,9 @@ namespace SpaceStation.Simulation
             {
                 case AdjacencyEffect.Production: what = ProductionName(target); break;
                 case AdjacencyEffect.Consumption: what = ConsumptionName(target); break;
-                default: what = "수용 인구"; break;
+                default: what = AdjacencyEffects.Name(rule.Effect); break;
             }
-            string amount = rule.Effect == AdjacencyEffect.Housing
-                ? total.ToString("+0;-0")
-                : (total * 100f).ToString("+0;-0") + "%";
+            string amount = ShortValue(rule, total);
             string label = string.IsNullOrEmpty(rule.Label) ? "" : $" ({rule.Label})";
             return $"{what} {amount}{label}";
         }
@@ -295,34 +301,45 @@ namespace SpaceStation.Simulation
                 return;
             foreach (var rule in _rules.Rules)
             {
-                if (rule.AppliesTo(data))
+                if (rule.AppliesTo(data) && !rule.AnyTarget) // 모든 모듈 규칙은 이웃 쪽 줄로만 (모든 모듈 설명에 같은 줄이 붙지 않게)
                 {
-                    string who = !rule.AnyNeighbor ? rule.NeighborName
+                    string who = !rule.AnyNeighbor ? (rule.Neighbor == null ? Tagged(rule.NeighborTag) : rule.NeighborName)
                         : rule.ExcludeSameType ? $"{data.DisplayName} 외 모든 모듈" : "모든 모듈";
                     string free = rule.FreeNeighbors > 0 ? $", {rule.FreeNeighbors}개 면제" : "";
                     lines.Add($"{who} 옆: {Describe(rule, data, 1, BoostFor(rule))} / 개 (최대 {rule.MaxStacks}회{free})");
                 }
-                else if (!rule.AnyNeighbor && rule.CouldNeighbor(data) && (rule.Target != null || rule.TargetTag != null))
+                else if (!rule.AnyNeighbor && rule.CouldNeighbor(data) && (rule.Target != null || rule.TargetTag != null || rule.AnyTarget))
                 {
-                    lines.Add($"{rule.TargetName} 옆에 두면 그 모듈 {Describe(rule, rule.Target, 1, BoostFor(rule))}");
+                    lines.Add(rule.AnyTarget
+                        ? $"옆 모듈마다 {Describe(rule, rule.Target, 1, BoostFor(rule))}"
+                        : $"{(rule.Target == null ? Tagged(rule.TargetTag) : rule.TargetName)} 옆에 두면 그 모듈 {Describe(rule, rule.Target, 1, BoostFor(rule))}");
                 }
             }
         }
 
-        /// <summary>좋은 효과인지 (생산 +, 소비 −, 수용 인구 +). 색 구분용.</summary>
+        /// <summary>태그 이름 + 해당 모듈 ("소음원(채굴 도킹 · 제련소 · 방어 포탑)") — 태그만으로는 어떤 모듈인지 모름 (CONNECT A14-8 읽히게).</summary>
+        private static string Tagged(AdjacencyTag tag)
+        {
+            if (tag == null)
+                return "-";
+            string members = tag.Members;
+            return string.IsNullOrEmpty(members) ? tag.DisplayName : $"{tag.DisplayName}({members})";
+        }
+
+        /// <summary>좋은 효과인지 (생산 +, 소비 −, 수용 인구 + … 작을수록 좋은 효과는 −). 색 구분용.</summary>
         public static bool IsBeneficial(AdjacencyRule rule, float total)
-            => rule.Effect == AdjacencyEffect.Consumption ? total < 0f : total >= 0f;
+            => AdjacencyEffects.LowerIsBetter(rule.Effect) ? total < 0f : total >= 0f;
 
         /// <summary>"+15%" / "-2" 같은 수치만 (7-3 아이콘 옆).</summary>
         public static string ShortValue(AdjacencyRule rule, float total)
-            => rule.Effect == AdjacencyEffect.Housing ? total.ToString("+0;-0") : (total * 100f).ToString("+0;-0") + "%";
+            => AdjacencyEffects.IsPercent(rule.Effect) ? (total * 100f).ToString("+0;-0") + "%" : total.ToString("+0;-0");
 
         /// <summary>효과가 걸리는 자원 (아이콘 선택용). 수용 인구면 null.</summary>
         public static ResourceType? EffectResource(AdjacencyRule rule, ModuleData target = null)
         {
             target = target ?? rule.Target;
-            if (target == null || rule.Effect == AdjacencyEffect.Housing)
-                return null;
+            if (target == null || (rule.Effect != AdjacencyEffect.Production && rule.Effect != AdjacencyEffect.Consumption))
+                return null; // 수용 · CONNECT A14-2 새 효과는 자원 아이콘이 아니라 효과 모양 (AdjacencyEffects.IconName)
             var list = rule.Effect == AdjacencyEffect.Production ? target.Production : target.Consumption;
             foreach (var a in list)
             {
@@ -351,12 +368,9 @@ namespace SpaceStation.Simulation
 
         private static void Accumulate(Cached cached, AppliedAdjacency a)
         {
-            switch (a.Rule.Effect)
-            {
-                case AdjacencyEffect.Production: cached.Production += a.Total; break;
-                case AdjacencyEffect.Consumption: cached.Consumption += a.Total; break;
-                case AdjacencyEffect.Housing: cached.Housing += a.Total; break;
-            }
+            int i = (int)a.Rule.Effect;
+            if (i >= 0 && i < cached.Sum.Length)
+                cached.Sum[i] += a.Total;
         }
 
         private static string ProductionName(ModuleData target)

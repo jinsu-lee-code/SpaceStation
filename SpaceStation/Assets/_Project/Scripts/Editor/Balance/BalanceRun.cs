@@ -108,7 +108,7 @@ namespace SpaceStation.Editor.Balance
                 StartGrade = start.Grade;
             }
             var persona = BalanceBot.Persona && !s.NeutralPersona ? BalanceBotPersona.FromSeed(seed) : BalanceBotPersona.Neutral; // 13-7 시드에 묶인 봇 성향
-            _bot = new BalanceBot(_sim, s.Buildable, persona);
+            _bot = new BalanceBot(_sim, s.Buildable, persona) { IgnoreAdjacency = s.IgnoreAdjacency };
             _milestones = new BalanceMilestones(_sim, s.Buildable, seed); // 13-7 새 일 간격 · 위기 빈도 · 여유 자원
             _t0 = _sim.ElapsedSeconds;
             _nextSample = _t0;

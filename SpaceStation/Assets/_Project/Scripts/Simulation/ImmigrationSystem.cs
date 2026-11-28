@@ -54,7 +54,8 @@ namespace SpaceStation.Simulation
                 Sim.Report($"이민선이 왔지만 만족도가 낮아(기준 {Sim.Balance.ImmigrationMinSatisfaction:0}) 아무도 내리지 않았습니다", false);
                 return;
             }
-            int n = Math.Min(room, Math.Max(1, Mathf.RoundToInt(Sim.Balance.ImmigrationSize * Sim.Effects.Policy(SpaceStation.Data.PolicyStat.ImmigrationSize)))); // REVIEW_1115 5번 정책 (귀환 허가)
+            int n = Math.Min(room, Math.Max(1, Mathf.RoundToInt(Sim.Balance.ImmigrationSize * Sim.Effects.Policy(SpaceStation.Data.PolicyStat.ImmigrationSize)
+                                                             + Sim.ImmigrationPassengerBonus(Visits - 1)))); // REVIEW_1115 5번 정책 (귀환 허가) · CONNECT A8 유입 ← 주거 (마중 — 포트를 차례로)
             Sim.Population.Add(n, PopulationChangeReason.Immigration);
             Arrived += n;
             Sim.Report($"이민선 도착: 주민 {n}명이 들어왔습니다", true);

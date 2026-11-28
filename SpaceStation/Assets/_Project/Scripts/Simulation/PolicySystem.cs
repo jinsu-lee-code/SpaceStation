@@ -106,7 +106,7 @@ namespace SpaceStation.Simulation
         public bool Offers(PolicyData policy) => policy != null && (_gate == null || _gate.Offers(policy));
 
         /// <summary>새 정책이 효과를 내기까지 (초, M-22 판 고리가 바꿀 수 있음).</summary>
-        public float ApplyDelay => _gate != null ? Math.Max(0f, _gate.ApplyDelay(_config.ApplyDelay)) : _config.ApplyDelay;
+        public float ApplyDelay => (_gate != null ? Math.Max(0f, _gate.ApplyDelay(_config.ApplyDelay)) : _config.ApplyDelay) * Sim.PolicyDelayScale; // CONNECT A8 행정 ← 중심
 
         /// <summary>한 슬롯을 바꾼 뒤 다시 바꿀 수 있기까지 (초, M-22 판 고리가 바꿀 수 있음).</summary>
         public float SwapCooldown => _gate != null ? Math.Max(0f, _gate.SwapCooldown(_config.SwapCooldown)) : _config.SwapCooldown;

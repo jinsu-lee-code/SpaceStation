@@ -104,7 +104,7 @@ namespace SpaceStation.Simulation
         {
             if (reason != PopulationChangeReason.Immigration || delta <= 0 || Phase != PlaguePhase.Calm || _cooldown > 0f || !Open)
                 return;
-            if (_random01() < Mathf.Clamp01(_config.ImmigrationChance + Shortage * _config.ShortageChance))
+            if (_random01() < Mathf.Clamp01((_config.ImmigrationChance + Shortage * _config.ShortageChance) * Sim.PlagueChanceScale)) // CONNECT A8 검역 ← 유입
                 BeginWarning("이민선과 함께 ");
         }
 

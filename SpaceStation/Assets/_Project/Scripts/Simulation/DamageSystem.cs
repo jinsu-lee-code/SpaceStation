@@ -140,6 +140,11 @@ namespace SpaceStation.Simulation
         /// </summary>
         public Func<ModuleInstance, DamageControlEffect> ControlLookup { get; set; }
 
+        /// <summary>CONNECT_1121 A14-2 인접 효과 조회 (모듈, 효과) → 값 (배율형은 1 + 합, 더하는 효과는 합). null이면 효과 없음.</summary>
+        public Func<ModuleInstance, AdjacencyEffect, float> AdjacencyLookup { get; set; }
+
+        private float Adj(ModuleInstance module, AdjacencyEffect effect) => AdjacencyLookup != null ? AdjacencyLookup(module, effect) : 1f;
+
         public bool IsDamaged(ModuleInstance module) => module != null && _damaged.ContainsKey(module);
 
         public bool TryGetInfo(ModuleInstance module, out DamageInfo info)
@@ -188,7 +193,8 @@ namespace SpaceStation.Simulation
             if (module == null || _damaged.ContainsKey(module))
                 return false;
             // 8-1: 모듈별 확산 시간 배율 (핵융합로 0.5 = 2배 빠름)
-            float spreadAfter = _config.SpreadAfterSeconds * (module.Data != null ? module.Data.SpreadTimeMultiplier : 1f);
+            float spreadAfter = _config.SpreadAfterSeconds * (module.Data != null ? module.Data.SpreadTimeMultiplier : 1f)
+                                * Adj(module, AdjacencyEffect.SpreadTime); // CONNECT A8 인화 위험 (산소원 ← 발열원)
             float destroyAfter = _config.DestroyAfterSeconds * (Effects != null ? Effects.Policy(PolicyStat.DestroyTimer) : 1f); // 12-3c 정책 (비상 대비)
             if (module.Data != null && module.Data.Armored) // 8-5 장갑 격벽: 확산·파괴 없음 (누출은 OxygenLeakPerSecond에서 제외)
             {
@@ -305,7 +311,8 @@ namespace SpaceStation.Simulation
         {
             info.IsQueued = false;
             info.IsRepairing = true;
-            info.RepairRemaining = Effects.RepairDuration * (info.Module.Data != null ? info.Module.Data.RepairTimeMultiplier : 1f); // 8-5 장갑 격벽 절반
+            info.RepairRemaining = Effects.RepairDuration * (info.Module.Data != null ? info.Module.Data.RepairTimeMultiplier : 1f) // 8-5 장갑 격벽 절반
+                                   * Adj(info.Module, AdjacencyEffect.RepairTime); // CONNECT A8 아무 방 ← 정비
             RepairStarted?.Invoke(info);
         }
 
@@ -488,7 +495,8 @@ namespace SpaceStation.Simulation
 
         /// <summary>모듈 피격 가중치 = 노출 면 가중치 × 모듈 배율 (8-5 장갑 격벽 ×3 = 미끼).</summary>
         public float ModuleMeteorWeight(StationGrid grid, ModuleInstance module)
-            => GetMeteorWeight(CountExposedFaces(grid, module)) * (module.Data != null ? module.Data.MeteorWeightMultiplier : 1f);
+            => GetMeteorWeight(CountExposedFaces(grid, module)) * (module.Data != null ? module.Data.MeteorWeightMultiplier : 1f)
+               * Adj(module, AdjacencyEffect.HitWeight); // CONNECT A8 요격 ← 장갑 (엄폐)
 
         /// <summary>피격 가중치 = 기울기 × (노출 면 − 1) + 1 (BALANCE 13번). 노출 1면 = 1.</summary>
         public float GetMeteorWeight(int exposedFaces)
