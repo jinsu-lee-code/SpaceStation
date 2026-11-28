@@ -356,7 +356,7 @@ namespace SpaceStation.Interior
                 }
                 else
                 {
-                    var picked = InteriorIncidentRules.Pick(Biased(kinds, _hitScratch), canTrip, _last, _rng.NextDouble()); // 환기 경보가 잦은 방 = 그 종류 확률 2배
+                    var picked = InteriorIncidentRules.Pick(Biased(kinds, _hitScratch, room), canTrip, _last, _rng.NextDouble()); // 환기 경보가 잦은 방 = 환기 2배 · 과열 방 = 화재 2배 · 서늘한 방 = 차단기 절반 · 배전 범위 밖 = 차단기 2배
                     if (picked == null)
                         continue;
                     kind = picked.Value;
@@ -550,7 +550,10 @@ namespace SpaceStation.Interior
                     AudioService.TryPlayAt(l => l.BreakerDoor, a.Door.position);
                 };
             }
-            a.Pattern = Is(a, InnerFace.BreakerOneSwitch) ? InteriorIncidentRules.TripPattern(_rng, 1) : InteriorIncidentRules.TripPattern(_rng); // CONNECT A5 배터리 옆 = 하나만
+            int extra = a.Overload && Sim.Heat != null && Sim.Heat.Comfort != null ? Sim.Heat.Comfort.OverloadExtraSwitches : 0; // CONNECT A11 배전 범위 밖 = 하나 더
+            a.Pattern = Is(a, InnerFace.BreakerOneSwitch) ? InteriorIncidentRules.TripPattern(_rng, 1) // CONNECT A5 배터리 옆 = 하나만
+                : extra > 0 ? InteriorIncidentRules.TripPattern(_rng, 2 + _rng.Next(2) + extra)
+                : InteriorIncidentRules.TripPattern(_rng);
             a.Lit = (bool[])a.Pattern.Clone();
             for (int i = 0; i < InteriorIncidentRules.Switches; i++)
             {

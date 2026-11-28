@@ -503,6 +503,9 @@ namespace SpaceStation.UI
             string modeLine = string.IsNullOrEmpty(modeText) ? string.Empty : $"\n<size=85%>{modeText}</size>";
             string heatText = _station.Simulation.Heat?.StateText(module); // CONNECT A10 열 · 온기 · 과열
             string heatLine = string.IsNullOrEmpty(heatText) ? string.Empty : $"\n<size=85%>{heatText}</size>"; // 글이 "열 …"로 시작
+            string overload = _station.Simulation.Heat?.OverloadText(module); // CONNECT A11 배전 범위 밖 (안쪽만, 글이 "배전 범위 밖"으로 시작)
+            if (!string.IsNullOrEmpty(overload))
+                heatLine += $"\n<size=85%>{overload}</size>";
             view.Info = $"<b>{Name(module)}</b>  <size=85%>{efficiencyText}</size>\n<size=85%>{state}</size>{durabilityLine}{adjacencyLine}{heatLine}{modeLine}{DefenseLine(module)}{NeedsLine(module)}{ResidentsLine(module)}";
 
             var sim = _resources.Simulation;

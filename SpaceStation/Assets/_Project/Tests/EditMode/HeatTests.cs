@@ -241,6 +241,83 @@ namespace SpaceStation.Tests
             StringAssert.Contains("이웃 ♨ 온기 +1", sim.Heat.PreviewText(_hot, new[] { new Vector3Int(6, 0, 0) }, null));
         }
 
+        // ---------------- CONNECT ⑤ 방의 온도 · 과부하 (2026-11-28) ----------------
+
+        [Test]
+        public void CoolRoom_TouchesWorkingRadiator_OnlyWithConfig()
+        {
+            var sim = Sim();
+            Place(sim, _hot, 1, 0, 0);
+            var room = Place(sim, _plain, 2, 0, 0);
+            Place(sim, _radiator, 3, 0, 0);
+            var far = Place(sim, _plain, 1, 0, 1);
+            sim.Tick(1f);
+            Assert.IsFalse(sim.Heat.IsCoolRoom(room), "설정이 없으면 없음");
+            sim.Heat.Comfort = Comfort(new ModuleData[0], new ModuleData[0]);
+            sim.Tick(1f);
+            Assert.IsTrue(sim.Heat.IsCoolRoom(room), "동작 중인 방열판과 맞닿음");
+            Assert.IsFalse(sim.Heat.IsCoolRoom(far));
+            var lines = new List<string>();
+            sim.Heat.AppendRoomLines(lines, room);
+            Assert.That(lines, Has.Some.Contains("서늘한 방"));
+        }
+
+        [Test]
+        public void Overload_HeavyBasicOutsideReach_ClearsWithBattery()
+        {
+            var heavy = Consumer("MD_TestHeavy", 6f, ResourceType.Food, 0f);
+            var light = Consumer("MD_TestLight", 2f, ResourceType.Food, 0f);
+            var battery = Module("MD_TestBattery", 0f, 0f);
+            var bso = new SerializedObject(battery);
+            bso.FindProperty("_batteryCapacity").floatValue = 50f;
+            bso.ApplyModifiedPropertiesWithoutUndo();
+            var sim = Sim();
+            sim.Heat.Comfort = Comfort(new ModuleData[0], new ModuleData[0]);
+            Place(sim, battery, 1, 0, 0);                 // 배전 기준점 (코어는 시험용이라 전력을 안 냄)
+            for (int x = 2; x <= 4; x++)
+                Place(sim, _plain, x, 0, 0);
+            var near = Place(sim, heavy, 4, 0, 1);       // 배터리에서 3칸 = 범위 안
+            var farHeavy = Place(sim, heavy, 5, 0, 0);   // 4칸 = 범위 밖
+            var farLight = Place(sim, light, 5, 0, 1);   // 4칸이지만 전력 2 = 대전력 아님
+            sim.Tick(1f);
+            Assert.IsFalse(sim.Heat.IsOverloaded(near));
+            Assert.IsTrue(sim.Heat.IsOverloaded(farHeavy));
+            Assert.IsFalse(sim.Heat.IsOverloaded(farLight));
+            Assert.IsFalse(sim.Heat.IsHeavyBasic(_hot), "발열원은 제외");
+            StringAssert.Contains("배전 범위 밖", sim.Heat.OverloadText(farHeavy));
+            StringAssert.Contains("배전 범위에 넣음 1곳", sim.Heat.OverloadPreviewText(battery, new[] { new Vector3Int(6, 0, 0) }, null));
+            StringAssert.Contains("배전 범위 밖", sim.Heat.OverloadPreviewText(heavy, new[] { new Vector3Int(6, 0, 1) }, null));
+
+            Place(sim, battery, 6, 0, 0);
+            sim.Tick(1f);
+            Assert.IsFalse(sim.Heat.IsOverloaded(farHeavy), "범위 안에 배터리 = 풀림");
+            Assert.IsNull(sim.Heat.OverloadText(farHeavy));
+
+            sim.Heat.Comfort = null;
+            Assert.IsFalse(sim.Heat.IsOverloaded(farHeavy), "설정이 없으면(캠페인) 과부하 없음");
+        }
+
+        [Test]
+        public void RoomLines_WarmAndOverheated()
+        {
+            var warm = Consumer("MD_TestWarm", 5f, ResourceType.Food, 2f);
+            var sim = Sim();
+            sim.Heat.Comfort = Comfort(new[] { warm }, new ModuleData[0]);
+            Place(sim, _hot, 1, 0, 0);
+            var w = Place(sim, warm, 2, 0, 0);
+            Place(sim, _hot, 3, 0, 1);
+            Place(sim, _hot, 3, 0, -1);
+            Place(sim, _hot, 4, 0, 0);
+            var hot = Place(sim, _plain, 3, 0, 0); // 맞닿은 발열원 셋 2 + 2 + 2 + 2칸 1 = 7 > 한도 6
+            sim.Tick(1f);
+            var lines = new List<string>();
+            sim.Heat.AppendRoomLines(lines, hot);
+            Assert.Greater(sim.Heat.HeatOf(hot), 6f);
+            Assert.That(lines, Has.Some.Contains("과열"));
+            lines.Clear();
+            Assert.IsFalse(sim.Heat.IsWarm(w), "옆에 발열원 셋 = 더움");
+        }
+
         private HeatPowerConfig Comfort(IEnumerable<ModuleData> warm, IEnumerable<ModuleData> cool)
         {
             var c = HeatPowerConfig.CreateForTest(warm, cool);

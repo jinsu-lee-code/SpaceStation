@@ -383,6 +383,21 @@ namespace SpaceStation.Editor.Balance
                 result.VeinReconnects = bot.VeinReconnects;
                 veins.DockSummary(out result.VeinDocksFinal, out result.InPlaceScaleFinal);
             }
+            var heat = sim.Heat;
+            if (heat != null && heat.Comfort != null) // CONNECT ⑤ 끝 상태
+            {
+                foreach (var m in sim.Grid.Modules)
+                {
+                    if (heat.PreferenceOf(m) == HeatPreference.Warm)
+                        result.WarmModules++;
+                    if (heat.IsWarm(m))
+                        result.WarmInBand++;
+                    if (heat.IsOverheated(m))
+                        result.Overheated++;
+                    if (heat.IsOverloaded(m))
+                        result.Overloaded++;
+                }
+            }
             result.ResearchStarted = bot.ResearchStarted;
             foreach (var c in sim.Research.Categories)
                 result.ResearchLevels[(int)c.Category] = sim.Research.GetLevel(c);

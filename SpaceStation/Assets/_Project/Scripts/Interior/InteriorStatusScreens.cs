@@ -278,7 +278,9 @@ namespace SpaceStation.Interior
         {
             if (sim.Adjacency == null)
                 return;
-            int added = 0;
+            int before = lines.Count;
+            sim.Heat?.AppendRoomLines(lines, module); // CONNECT ⑤ 따뜻한 방 · 과열 · 서늘한 방 · 배전 범위 밖
+            int added = lines.Count - before;
             foreach (var a in sim.Adjacency.GetApplied(module))
             {
                 if (added++ >= MaxNeighborLines)

@@ -48,6 +48,8 @@ namespace SpaceStation.Interior
             // 환기: 환기구만 · 필터 두 장
             public bool VentOnly;
             public int FiltersLeft = 1;
+            // CONNECT ⑤ 방의 온도 (A10) · 과부하 (A11): 과열 방 = 불길 두 곳 · 배전 범위 밖 = 스위치 하나 더
+            public bool HotRoom, Overload;
         }
 
         private sealed class FireSpot
@@ -83,16 +85,58 @@ namespace SpaceStation.Interior
             return false;
         }
 
-        /// <summary>환기 경보가 잦은 방이면 종류 목록에 환기 경보를 한 번 더 (뽑힐 확률 2배).</summary>
-        private IReadOnlyList<IncidentKind> Biased(IReadOnlyList<IncidentKind> kinds, List<InnerHit> hits)
+        /// <summary>
+        /// 그 방에서 사고 종류가 뽑힐 무게: 환기 경보가 잦은 방 = 환기 ×2 (CONNECT A5), 과열 방 = 화재 ×2 · 서늘한 방(방열판 옆) = 차단기 ×0.5 (A10),
+        /// 배전 범위 밖 대전력 방 = 차단기 ×2 (A11). 전체 빈도는 그대로 (그 방 안에서 무엇이 뽑히는지만).
+        /// </summary>
+        private float KindWeight(IncidentKind kind, List<InnerHit> hits, ModuleInstance room)
         {
-            if (!Has(hits, InnerFace.FilterFrequent) || !Contains(kinds, IncidentKind.Filter))
-                return kinds;
-            _biased.Clear();
+            float w = 1f;
+            if (kind == IncidentKind.Filter && Has(hits, InnerFace.FilterFrequent))
+                w *= 2f;
+            var heat = Sim.Heat;
+            var comfort = heat != null ? heat.Comfort : null;
+            if (comfort != null && room != null)
+            {
+                if (kind == IncidentKind.Fire && heat.Active && heat.IsOverheated(room))
+                    w *= comfort.HotFireWeight;
+                if (kind == IncidentKind.Breaker)
+                {
+                    if (heat.IsOverloaded(room))
+                        w *= comfort.OverloadBreakerWeight;
+                    if (heat.IsCoolRoom(room))
+                        w *= comfort.CoolBreakerWeight;
+                }
+            }
+            return w;
+        }
+
+        /// <summary>무게대로 종류를 여러 번 넣은 목록 (무게가 모두 1이면 그대로). 0.5 단위 — 같은 종류는 뒤에 이어 붙임 (환기 ×2만이면 예전 목록과 같음).</summary>
+        private IReadOnlyList<IncidentKind> Biased(IReadOnlyList<IncidentKind> kinds, List<InnerHit> hits, ModuleInstance room)
+        {
+            bool any = false, half = false;
             for (int i = 0; i < kinds.Count; i++)
-                _biased.Add(kinds[i]);
-            _biased.Add(IncidentKind.Filter);
-            return _biased;
+            {
+                float w = KindWeight(kinds[i], hits, room);
+                any |= Mathf.Abs(w - 1f) > 1e-3f;
+                half |= Mathf.Abs(w - Mathf.Round(w)) > 1e-3f;
+            }
+            if (!any)
+                return kinds;
+            float scale = half ? 2f : 1f;
+            _biased.Clear();
+            int most = 0;
+            for (int i = 0; i < kinds.Count; i++)
+                most = Mathf.Max(most, Mathf.RoundToInt(KindWeight(kinds[i], hits, room) * scale));
+            for (int rep = 0; rep < most; rep++)
+            {
+                for (int i = 0; i < kinds.Count; i++)
+                {
+                    if (rep < Mathf.RoundToInt(KindWeight(kinds[i], hits, room) * scale))
+                        _biased.Add(kinds[i]);
+                }
+            }
+            return _biased.Count > 0 ? _biased : kinds;
         }
 
         /// <summary>그 사고 종류에 해당하는 안쪽 얼굴만.</summary>
@@ -124,7 +168,15 @@ namespace SpaceStation.Interior
                 }
                 if ((a.Inner & InnerFace.FilterEasy) != 0 && (a.Inner & InnerFace.FilterTwo) != 0)
                     a.Inner &= ~InnerFace.FilterEasy; // 쉬움 · 어려움이 겹치면 어려운 쪽 (A5 폭 3단계 — 보통으로 상쇄하지 않고 나쁜 이웃을 읽히게)
+                // CONNECT ⑤ 방의 온도 · 배전 (사용자 결정 2026-11-28): 과열 방 화재 = 불길 두 곳, 배전 범위 밖 차단기 = 스위치 하나 더
+                var heat = Sim.Heat;
+                a.HotRoom = heat != null && heat.Comfort != null && heat.Active && heat.IsOverheated(a.Room);
+                a.Overload = heat != null && heat.IsOverloaded(a.Room);
+                if (a.Kind == IncidentKind.Fire && a.HotRoom)
+                    a.Inner |= InnerFace.FireTwoFlames;
             }
+            else
+                a.HotRoom = a.Overload = false;
             a.Window = Sim.Balance.IncidentWindow * (Is(a, InnerFace.FireTwoFlames) ? TwoFlamesWindow : 1f);
             a.FiltersLeft = Is(a, InnerFace.FilterTwo) ? 2 : 1;
             a.VentOnly = Is(a, InnerFace.FilterEasy);
@@ -168,7 +220,14 @@ namespace SpaceStation.Interior
             }
             string N(InnerFace f) => RoomName(NeighborWith(a, f));
             if (Is(a, InnerFace.FireTwoFlames))
-                Set($"옆방 {N(InnerFace.FireTwoFlames)}의 열로 불길이 두 곳 · 시간이 짧아요", "옆방 열 · 불길 두 곳");
+            {
+                if (NeighborWith(a, InnerFace.FireTwoFlames) == null && a.HotRoom)
+                    Set("과열된 방이라 불길이 두 곳 · 시간이 짧아요", "과열 · 불길 두 곳"); // CONNECT A10
+                else
+                    Set($"옆방 {N(InnerFace.FireTwoFlames)}의 열로 불길이 두 곳 · 시간이 짧아요", "옆방 열 · 불길 두 곳");
+            }
+            if (a.Kind == IncidentKind.Breaker && a.Overload && !Is(a, InnerFace.BreakerOneSwitch))
+                Set($"배전 범위 밖이라 스위치가 하나 더 내려갔어요 (발전 · 배터리에서 {Sim.Heat.Comfort.GridRange}칸 넘음)", "배전 범위 밖 · 스위치 +1"); // CONNECT A11
             if (Is(a, InnerFace.FilterRadiation))
                 Set($"옆 {N(InnerFace.FilterRadiation)}의 방사선 경보", "옆방 방사선");
             if (Is(a, InnerFace.FilterTwo))
@@ -202,6 +261,10 @@ namespace SpaceStation.Interior
         {
             if (a.Tutorial || Sim.Adjacency == null || a.Room?.Data == null)
                 return null;
+            if (a.Kind == IncidentKind.Breaker && a.Overload) // CONNECT A11 — 이웃보다 먼저 (풀 수 있는 원인)
+                return $"{Sim.Heat.Comfort.GridRange}칸 안에 배터리를 두면 차단기가 덜 잦고 스위치도 덜 내려가요 (배전 범위)";
+            if (a.Kind == IncidentKind.Fire && a.HotRoom && NeighborWith(a, InnerFace.FireTwoFlames) == null) // CONNECT A10
+                return "방열판을 붙여 열을 내리면 불길이 한 곳으로 줄어요";
             InnerFace want;
             string then;
             switch (a.Kind)
