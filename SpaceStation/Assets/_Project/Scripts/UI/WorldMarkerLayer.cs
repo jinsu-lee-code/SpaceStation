@@ -69,6 +69,7 @@ namespace SpaceStation.UI
         {
             _container = container;
             _canvas = container.GetComponentInParent<Canvas>();
+            UiOccluders.Ignore(container); // 라벨 자신은 가리개가 아님
             _camera = camera;
             _ui = ui;
             _font = font;
@@ -244,6 +245,13 @@ namespace SpaceStation.UI
 
         private void Apply(Marker m)
         {
+            // 떠 있는 창 · HUD 패널과 겹치면 숨김 — 반투명 창 뒤로 비쳐 글이 겹쳐 읽혔음 (SIMU_FIX U1, 2026-11-28)
+            var pivot = m.Rect.pivot;
+            if (UiOccluders.Covers(new Rect(m.Position - Vector2.Scale(pivot, m.Size), m.Size)))
+            {
+                Hide(m);
+                return;
+            }
             if (!m.Rect.gameObject.activeSelf)
                 m.Rect.gameObject.SetActive(true);
             m.Rect.position = new Vector3(m.Position.x, m.Position.y, 0f);

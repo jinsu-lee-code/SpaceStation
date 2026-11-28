@@ -106,6 +106,7 @@ namespace SpaceStation.UI
             _labels.anchorMax = Vector2.one;
             _labels.offsetMin = _labels.offsetMax = Vector2.zero;
             _labels.SetAsFirstSibling();
+            UiOccluders.Ignore(_labels);
             _interior = FindFirstObjectByType<Interior.InteriorMode>(FindObjectsInactive.Include);
             _explore.Changed += Rebuild;
             _initial = true;
@@ -536,6 +537,7 @@ namespace SpaceStation.UI
             var parent = (RectTransform)m.Label.rectTransform.parent;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, screen, null, out var local);
             m.Label.rectTransform.anchoredPosition = local + parent.rect.size * parent.pivot; // 왼쪽 아래 기준
+            m.Label.enabled = !UiOccluders.Covers(m.Label.rectTransform); // 정거장 창 등 반투명 창 뒤로 비쳐 겹쳐 읽혔음 (SIMU_FIX U4, 2026-11-28)
             if (!refreshText)
                 return;
             var s = m.Site;
