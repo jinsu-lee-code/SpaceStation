@@ -365,6 +365,44 @@ namespace SpaceStation.Editor
             Debug.Log($"[TycoonSetup] 공급 사슬: 고급 모듈 {entries.Count}종 · 씬 연결 완료");
         }
 
+        private const string SymbolPath = "Assets/_Project/Data/Tycoon/SymbolConfig.asset";
+
+        /// <summary>
+        /// CONNECT_1121 7번 ④ 지구급 상징 모듈 '항성 프리즘' — 사용자 결정 2026-11-28 (추천안): 1종 · 3단계 넷 합성 · 가동 중 전체 생산 · 만족도 상한 ↑ + 엔드리스 시작 · 그레이박스 먼저.
+        /// 모듈 · 레시피 · 그레이박스 프리팹 (RecipeSetup tycoon 정의, 상징만) + 설정 에셋 + 씬 SimulationHost 연결.
+        /// </summary>
+        [MenuItem("SpaceStation/Tycoon/Setup Symbol")]
+        public static void SetupSymbol()
+        {
+            EnsureFolder();
+            var recipe = RecipeSetup.SetupSymbolOnly(); // 상징 모듈 · 레시피 · 그레이박스 프리팹 (다른 진화 모듈은 그대로)
+            var symbol = recipe != null ? recipe.Result : null;
+            if (symbol == null)
+            {
+                Debug.LogError("[TycoonSetup] 상징 모듈을 만들지 못함 (재료 진화 모듈 확인)");
+                return;
+            }
+            var config = AssetDatabase.LoadAssetAtPath<SymbolConfig>(SymbolPath);
+            if (config == null)
+            {
+                config = ScriptableObject.CreateInstance<SymbolConfig>();
+                AssetDatabase.CreateAsset(config, SymbolPath);
+            }
+            config.EditorSetSymbol(symbol);
+            EditorUtility.SetDirty(config);
+            AssetDatabase.SaveAssets();
+
+            var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
+            var host = Object.FindFirstObjectByType<SpaceStation.Simulation.SimulationHost>();
+            var hso = new SerializedObject(host);
+            hso.FindProperty("_symbol").objectReferenceValue = AssetDatabase.LoadAssetAtPath<SymbolConfig>(SymbolPath); // 씬을 열면(Single) 앞서 불러 둔 에셋 참조가 내려감 — 다시 불러옴
+            hso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(host);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log($"[TycoonSetup] 상징 모듈: {symbol.DisplayName} · 씬 연결 완료");
+        }
+
         private const string MidGradePath = "Assets/_Project/Data/Tycoon/MidGradeConfig.asset";
         private const string InteriorBonusPath = "Assets/_Project/Data/Tycoon/InteriorBonusConfig.asset";
         private const string GrowthPath = "Assets/_Project/Data/Tycoon/GrowthThreatConfig.asset";

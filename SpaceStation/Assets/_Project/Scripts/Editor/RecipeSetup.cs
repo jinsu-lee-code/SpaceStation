@@ -103,6 +103,10 @@ namespace SpaceStation.Editor
         private static readonly Vector3Int[] GravityCells = Join(Box(3, 3), new[] { V(1, 0, 3), V(1, 0, 4) });
         private static readonly Vector3Int[] TorusCells = Join(Ring(5), new[] { V(2, 0, 1), V(1, 0, 2), V(2, 0, 2), V(3, 0, 2), V(2, 0, 3), V(2, 1, 2) });
 
+        // 상징 모듈 합성 틀이 쓰는 재료 모양 (정적 필드는 선언 순서대로 초기화 — Defs보다 앞에)
+        private static readonly Vector3Int[] StellarGridCells = Join(Box(7, 2), new[] { V(1, 1, 0), V(2, 1, 0), V(1, 1, 1), V(2, 1, 1), V(5, 1, 0), V(5, 1, 1) });
+        private static readonly Vector3Int[] AICoreCells = Join(Box(2, 2), new[] { V(2, 0, 0), V(3, 0, 0), V(2, 0, 1) });
+
         private static readonly Def[] Defs =
         {
             new Def
@@ -811,6 +815,24 @@ namespace SpaceStation.Editor
                     Amounts(so.FindProperty("_consumption"), (ResourceType.Power, 20f));
                 },
             },
+
+            // ---- 지구급 상징 모듈 (tycoon만 — CONNECT_1121 7번 ④, 사용자 결정 2026-11-28: 1종 · 3단계 넷 합성 · 그레이박스 먼저) ----
+            new Def
+            {
+                Id = "StellarPrism", Name = "항성 프리즘", RecipeName = "항성 프리즘", Category = ModuleCategory.Power, Color = "#FFE6B0", Stage = 4, UnlockGrade = 7, AutoUnlock = true,
+                // 계단 피라미드 7×7 + 5×5 + 3×3 = 83칸 (재료 칸 합 = 항성 발전망 20 + 궤도 도시 38 + 바이오스피어 18 + AI 중추 7)
+                Cells = Join(Box(7, 7), Shift(Box(5, 5), V(1, 1, 1)), Shift(Box(3, 3), V(2, 2, 2))),
+                // 합성 틀: 앞줄 항성 발전망 · 뒤 왼쪽 궤도 도시 · 뒤 오른쪽 바이오스피어 · 그 뒤 AI 중추 — 완성 때 틀 밖 칸이 비고 피라미드 위층이 채워짐
+                Template = Join(StellarGridCells, Shift(Join(Box(5, 5), CityTerrace()), V(0, 0, 2)), Shift(Box(3, 3, 2), V(5, 0, 2)), Shift(AICoreCells, V(5, 0, 5))),
+                Ingredients = new[] { ("Evolved/MD_Evo_StellarGrid", 1), ("Evolved/MD_Evo_OrbitalCity", 1), ("Evolved/MD_Evo_Biosphere", 1), ("Evolved/MD_Evo_AICore", 1) },
+                SynthesisMetal = 4600f, Duration = 180f, Research = ResearchCategory.Energy, // 재료 건설비 합 9040의 절반 이상 (A8)
+                Rationale = "별빛을 모으는 프리즘 아래 발전 · 도시 · 생태 · 지성을 하나로 · 정거장 전체가 한 단계 빛난다 (상징)",
+                Stats = so =>
+                {
+                    so.FindProperty("_solarPowered").boolValue = true;
+                    Amounts(so.FindProperty("_production"), (ResourceType.Power, 120f));
+                },
+            },
         };
 
         /// <summary>궤도 도시 위층: 5×5 바닥 판 위 가운데 3×3 (2층) + 가운데 첨탑 4칸 (3 ~ 6층).</summary>
@@ -867,6 +889,71 @@ namespace SpaceStation.Editor
             AssetDatabase.SaveAssets();
             WireScene(recipePaths);
             Debug.Log($"[Recipes] 레시피 {recipePaths.Count}개 · 진화 모듈 생성, 게임 씬 연결 완료");
+        }
+
+        /// <summary>
+        /// CONNECT_1121 7번 ④ (tycoon): 상징 모듈 정의 하나만 만들고 씬 레시피 목록 끝에 더함 — 다른 진화 모듈 (같은 4단계 심우주 통신기지 포함) 에셋 · 프리팹 · 레시피 창은 다시 만들지 않음 (Setup과 같은 순서).
+        /// </summary>
+        public const string SymbolId = "StellarPrism";
+
+        public static RecipeData SetupSymbolOnly()
+        {
+            Directory.CreateDirectory(ModuleDir);
+            Directory.CreateDirectory(RecipeDir);
+            Directory.CreateDirectory(PrefabDir);
+            Directory.CreateDirectory(MaterialDir);
+            AssetDatabase.Refresh();
+            var grades = AssetDatabase.LoadAssetAtPath<StationGradeConfig>($"{DataRoot}/StationGrades.asset");
+            var limited = grades != null ? grades.LimitedModule : null;
+            RecipeData made = null;
+            foreach (var def in Defs)
+            {
+                if (def.Id != SymbolId)
+                    continue;
+                var ingredients = new List<(ModuleData module, int count)>();
+                float materialCost = 0f;
+                int gradeCount = 0;
+                int limitedShare = 0;
+                foreach (var (name, count) in def.Ingredients)
+                {
+                    var m = AssetDatabase.LoadAssetAtPath<ModuleData>($"{DataRoot}/Modules/{name}.asset");
+                    if (m == null)
+                    {
+                        Debug.LogError($"[Recipes] 재료 모듈 없음: {name}");
+                        return null;
+                    }
+                    ingredients.Add((m, count));
+                    materialCost += Metal(m) * count;
+                    gradeCount += (m.CountsTowardGrade ? m.GradeModuleCount : 0) * count;
+                    limitedShare += (m == limited ? 1 : m.LimitedModuleShare) * count;
+                }
+                var material = MakeMaterial(def);
+                var prefab = MakePrefab(def, material);
+                var module = MakeModule(def, prefab, materialCost + def.SynthesisMetal, gradeCount, limitedShare);
+                made = MakeRecipe(def, module, ingredients);
+            }
+            AssetDatabase.SaveAssets();
+            if (made == null)
+                return null;
+            string madePath = AssetDatabase.GetAssetPath(made);
+            var scene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
+            made = AssetDatabase.LoadAssetAtPath<RecipeData>(madePath); // 씬을 열면(Single) 앞서 불러 둔 에셋 참조가 내려감 — 다시 불러옴
+            var host = Object.FindFirstObjectByType<SimulationHost>();
+            var hso = new SerializedObject(host);
+            var list = hso.FindProperty("_recipes");
+            bool has = false;
+            for (int i = 0; i < list.arraySize; i++)
+                has |= list.GetArrayElementAtIndex(i).objectReferenceValue == made;
+            if (!has)
+            {
+                list.arraySize++;
+                list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = made;
+            }
+            hso.ApplyModifiedPropertiesWithoutUndo();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log($"[Recipes] 상징 레시피 {made.DisplayName} · 씬 레시피 {list.arraySize}개");
+            return made;
         }
 
         private static float Metal(ModuleData m)

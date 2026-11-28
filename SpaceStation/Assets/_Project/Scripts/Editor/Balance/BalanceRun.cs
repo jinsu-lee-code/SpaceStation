@@ -35,6 +35,7 @@ namespace SpaceStation.Editor.Balance
         private readonly Func<int, int> _pickChoice;
         private readonly SupplyChainSystem _supply; // CONNECT 7번 ③
         private float _supplyShortSeconds;
+        private readonly SymbolSystem _symbol; // CONNECT 7번 ④
         // 제자리 봇 (CONNECT_1121 0번, 2026-11-26)
         private readonly int _holdGrade;
         private float _holdStart = float.NaN;
@@ -111,6 +112,8 @@ namespace SpaceStation.Editor.Balance
                 CorruptionSystem.AttachTo(_sim, s.Corruption, () => 1f); // CONNECT 7번 ② 파업 연결만 (난수 1 = 비리는 안 일어남)
             if (s.SupplyChain != null)
                 _supply = SupplyChainSystem.AttachTo(_sim, s.SupplyChain); // CONNECT 7번 ③ 공급 사슬 (광맥 뒤)
+            if (s.Symbol != null)
+                _symbol = SymbolSystem.AttachTo(_sim, s.Symbol); // CONNECT 7번 ④ 상징 모듈 (공급 사슬 뒤)
             StartGrade = -1;
             if (start != null)
             {
@@ -198,6 +201,8 @@ namespace SpaceStation.Editor.Balance
             _effSum += r.PowerEfficiency;
             if (_supply != null)
                 _supplyShortSeconds += _supply.ShortCount * s.TickInterval; // CONNECT 7번 ③ 공급이 모자란 모듈 · 초
+            if (_symbol != null && _symbol.Started && float.IsNaN(result.SymbolAt))
+                result.SymbolAt = Elapsed; // CONNECT 7번 ④
             if (r.PowerEfficiency < 1f - 1e-4f)
                 result.LowPowerSeconds += s.TickInterval;
             for (int i = 0; i < 4; i++)
@@ -397,6 +402,8 @@ namespace SpaceStation.Editor.Balance
                         result.VeinFramesFinal++;
                 veins.DockSummary(out result.VeinDocksFinal, out result.InPlaceScaleFinal);
             }
+            if (_symbol != null)
+                result.EndlessLevel = _symbol.Level; // CONNECT 7번 ④ 끝 상태
             if (_supply != null) // CONNECT 7번 ③ 끝 상태
             {
                 result.SupplyModules = _supply.SuppliedCount;

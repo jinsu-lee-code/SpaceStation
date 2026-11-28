@@ -51,7 +51,8 @@ namespace SpaceStation.Simulation
             _sim.Needs.Evaluate(_sim.Grid, _sim.Resources.Population, _activeNeeds);
             // Phase 10: 주민 특성 보정은 요구·연구를 반영한 상한에 더함 (0~100)
             float mood = _sim.Residents != null ? _sim.Residents.MoodTotal : 0f;
-            float policy = _sim.Effects.Policy(PolicyStat.SatisfactionCap); // 12-3c 정책 · 사회 위기
+            float policy = _sim.Effects.Policy(PolicyStat.SatisfactionCap) // 12-3c 정책 · 사회 위기
+                           + (_sim.SatisfactionCapBonus != null ? _sim.SatisfactionCapBonus() : 0f); // CONNECT_1121 7번 ④ 판이 더하는 상한 (엔드리스 상징 모듈)
             _sim.Population.SatisfactionCap = Math.Max(0f, Math.Min(PopulationSimulation.MaxSatisfaction, _sim.Needs.SatisfactionCap + mood + policy));
             _sim.Population.GrowthIntervalMultiplier = GrowthIntervalMultiplier() * _sim.Effects.Policy(PolicyStat.GrowthInterval) * _sim.GrowthIntervalScale;
         }

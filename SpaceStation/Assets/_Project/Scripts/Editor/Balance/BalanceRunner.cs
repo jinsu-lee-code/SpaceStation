@@ -33,6 +33,8 @@ namespace SpaceStation.Editor.Balance
         public CorruptionConfig Corruption;
         /// <summary>CONNECT_1121 7번 ③ 대륙급 공급 사슬 (null이면 없음).</summary>
         public SupplyChainConfig SupplyChain;
+        /// <summary>CONNECT_1121 7번 ④ 지구급 상징 모듈 (null이면 없음).</summary>
+        public SymbolConfig Symbol;
         /// <summary>13-7 난이도를 적용하기 전 등급표 (난이도 측정에서 성장 곡선에 간격 배율을 곱할 때, null이면 곱하지 않음).</summary>
         public StationGradeConfig BaseGrades;
         /// <summary>13-6 타이쿤판 1인칭 가볍게 (null이면 없음) — 봇은 상자를 직접 줍지만 등급 보상 포인트 · 자동 회수가 붙음.</summary>
@@ -106,6 +108,9 @@ namespace SpaceStation.Editor.Balance
         /// <summary>CONNECT 7번 ③ 끝 상태: 공급받는 고급 모듈 · 그중 모자란 모듈 · 초당 공급 금속 · 식량 · 물, 공급이 모자란 모듈 · 초 누적.</summary>
         public int SupplyModules, SupplyShort;
         public float SupplyMetal, SupplyFood, SupplyWater, SupplyShortModuleSeconds;
+        /// <summary>CONNECT 7번 ④ 상징 모듈 완성 시각 (초, 없으면 NaN) · 끝 엔드리스 단계.</summary>
+        public float SymbolAt = float.NaN;
+        public int EndlessLevel;
         public float MetalSpentOnUpkeep;
         /// <summary>산소·물·식량·금속 최저 재고 (첫 등급 이후 전체 구간).</summary>
         public float[] MinStock = new float[4];
@@ -374,6 +379,12 @@ namespace SpaceStation.Editor.Balance
                 sb.AppendLine($"광맥 평균: 신호 {Avg(results, r => r.VeinRounds):0.0}번 · 다 캔 광맥 {Avg(results, r => r.VeinsExhausted):0.0} · 길 프레임 {Avg(results, r => r.VeinFrames):0.0} · 광맥 도킹 지음 {Avg(results, r => r.VeinDocksBuilt):0.0} · 옮김 {Avg(results, r => r.VeinDocksMoved):0.0} · 다시 이음 {Avg(results, r => r.VeinReconnects):0.0} · 끝에 광맥 도킹 {Avg(results, r => r.VeinDocksFinal):0.0} · 끝 제자리 생산 {Avg(results, r => r.InPlaceScaleFinal) * 100f:0}% · 접은 길 프레임 {Avg(results, r => r.VeinFramesFolded):0.0} · 끝 구조 프레임 {Avg(results, r => r.VeinFramesFinal):0.0}");
             if (Avg(results, r => r.SupplyModules) > 0f || Avg(results, r => r.SupplyShortModuleSeconds) > 0f)
                 sb.AppendLine($"공급 사슬 (끝): 고급 모듈 {Avg(results, r => r.SupplyModules):0.0} 중 모자람 {Avg(results, r => r.SupplyShort):0.0} · 공급 금속 {Avg(results, r => r.SupplyMetal):0.0} · 식량 {Avg(results, r => r.SupplyFood):0.0} · 물 {Avg(results, r => r.SupplyWater):0.0}/초 · 모자란 모듈 · 초 누적 {Avg(results, r => r.SupplyShortModuleSeconds):0}");
+            int symbols = 0;
+            foreach (var r in results)
+                if (!float.IsNaN(r.SymbolAt))
+                    symbols++;
+            if (symbols > 0)
+                sb.AppendLine($"상징 모듈: {symbols}/{results.Count}판 완성 · 평균 {Avg(results, r => float.IsNaN(r.SymbolAt) ? 0f : r.SymbolAt) * results.Count / symbols / 60f:0.0}분 · 끝 엔드리스 단계 {Avg(results, r => r.EndlessLevel):0.0}");
             if (Avg(results, r => r.WarmModules) > 0f)
                 sb.AppendLine($"열 · 배전 (끝): 따뜻함 모듈 {Avg(results, r => r.WarmModules):0.0} 중 온기 {Avg(results, r => r.WarmInBand):0.0} · 과열 {Avg(results, r => r.Overheated):0.0} · 배전 범위 밖 대전력 {Avg(results, r => r.Overloaded):0.0}");
             sb.AppendLine($"최저 재고 평균  산소 {Avg(results, r => r.MinStock[0]):0}  물 {Avg(results, r => r.MinStock[1]):0}  식량 {Avg(results, r => r.MinStock[2]):0}  금속 {Avg(results, r => r.MinStock[3]):0}");

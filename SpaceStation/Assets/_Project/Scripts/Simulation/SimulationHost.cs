@@ -64,6 +64,8 @@ namespace SpaceStation.Simulation
         [SerializeField] private CorruptionConfig _corruption;
         [Tooltip("타이쿤판 대륙급 공급 사슬 — 고급 모듈이 금속 · 식량 · 물을 먹어야 제 성능 (메뉴 SpaceStation/Tycoon/Setup Supply Chain이 채움, CONNECT_1121 7번 ③). 비면 없음")]
         [SerializeField] private SupplyChainConfig _supplyChain;
+        [Tooltip("타이쿤판 지구급 상징 모듈 · 엔드리스 시작 (메뉴 SpaceStation/Tycoon/Setup Symbol이 채움, CONNECT_1121 7번 ④). 비면 없음")]
+        [SerializeField] private SymbolConfig _symbol;
 
         public StationSimulation Simulation { get; private set; }
         public SimulationClock Clock => _clock;
@@ -124,6 +126,8 @@ namespace SpaceStation.Simulation
                 CorruptionSystem.AttachTo(Simulation, _corruption, () => Random.value * 0.99999f); // CONNECT_1121 7번 ② 비리 · 파업 연결 (성장 위협 뒤 — 파업 기준 고리를 감쌈)
             if (_supplyChain != null)
                 SupplyChainSystem.AttachTo(Simulation, _supplyChain); // CONNECT_1121 7번 ③ 공급 사슬 (광맥 뒤 — 생산 · 정보 창 고리를 감쌈)
+            if (_symbol != null)
+                SymbolSystem.AttachTo(Simulation, _symbol); // CONNECT_1121 7번 ④ 상징 모듈 · 엔드리스 (공급 사슬 뒤)
             // Phase 9: 새 게임은 설정 값, 불러온 판은 저장에 진행 중 튜토리얼이 있을 때만 (게임 씬에서만)
             if (_tutorial != null && gameObject.scene.name == SceneNames.Game)
             {

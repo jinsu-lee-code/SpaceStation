@@ -93,6 +93,20 @@ namespace SpaceStation.Simulation
         public RaidKind PendingRaid => _pendingRaid;
 
         public float Reputation(ContactFaction f) => _reputation[(int)f];
+
+        /// <summary>CONNECT_1121 7번 ④ 공통 고리: 판이 정하는 방문 간격 배율 (null = 1). 엔드리스 상징 모듈 = 단계마다 짧아짐.</summary>
+        public Func<float> IntervalScale { get; set; }
+
+        /// <summary>CONNECT_1121 7번 ④ 공통 고리: 무법 선단을 경계할 때 습격 확률에 더함 (null = 0). 엔드리스 상징 모듈 = 단계마다 커짐.</summary>
+        public Func<float> RaidChanceBonus { get; set; }
+
+        /// <summary>CONNECT_1121 7번 ④ 판이 바꾸는 평판 (경쟁 세력은 그대로). 엔드리스 상징 모듈 = 명성 (상인 · 학술 +).</summary>
+        public void AdjustReputation(ContactFaction f, float delta)
+        {
+            if (delta == 0f)
+                return;
+            AddRep(f, delta, rivals: false); // 틱마다 조금씩 — 창은 스스로 다시 읽음 (Changed를 틱마다 울리지 않음)
+        }
         public ReputationTier Tier(ContactFaction f) => _config.TierOf(_reputation[(int)f]);
         public ContactChoice LastChoice(ContactFaction f) => _last[(int)f];
 
@@ -379,7 +393,8 @@ namespace SpaceStation.Simulation
                     AddRep(Faction, Faction == ContactFaction.Outlaw ? _config.OutlawGuardRep : _config.GuardRep, rivals: false);
                     float chance = 0f;
                     if (Faction == ContactFaction.Outlaw)
-                        chance = _config.OutlawGuardRaidChance + (_last[(int)Faction] == ContactChoice.Guard ? _config.AfterGuardRaid : 0f);
+                        chance = _config.OutlawGuardRaidChance + (_last[(int)Faction] == ContactChoice.Guard ? _config.AfterGuardRaid : 0f)
+                                 + (RaidChanceBonus != null ? RaidChanceBonus() : 0f); // 7번 ④ 엔드리스 단계
                     raid = hostile || _random01() < chance;
                     Sim.Report($"경계 · {name}: 평판 {ContactConfig.TierName(Tier(Faction))} ({Reputation(Faction):+0;-0})" + (raid ? " · 함선이 적의를 드러냅니다" : " · 함선이 떠납니다"), !raid);
                     break;
@@ -430,7 +445,8 @@ namespace SpaceStation.Simulation
             }
         }
 
-        private float NextInterval() => _config.IntervalMin + _random01() * (_config.IntervalMax - _config.IntervalMin);
+        private float NextInterval() => (_config.IntervalMin + _random01() * (_config.IntervalMax - _config.IntervalMin))
+                                        * (IntervalScale != null ? Mathf.Max(0.05f, IntervalScale()) : 1f); // 7번 ④ 엔드리스 단계
 
         // ---------------- 습격 ----------------
 
