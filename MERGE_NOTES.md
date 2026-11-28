@@ -3809,3 +3809,19 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 - 시험 `AdjacencyRelationTests` +1
 
 **main에서 확인**: csc 컴파일 — 플레이는 tycoon에서 (주민 14명 꾸민 시험 정거장, EditMode 735). main 데이터 = 캠페인 규칙 그대로라 안쪽 얼굴이 없음.
+
+## M-376. 새 관계 ④ V4 — 상태 화면 · 곁가지 셋 (CONNECT_1121 3번, 2026-11-28, `main` — tycoon과 같은 코드, 데이터는 tycoon만) — ④ 끝
+
+결정 (사용자 2026-11-28, 추천안): 구조 프레임 통로 비상 공구함 = 들면 다음 일 하나 빨리 · 관제소 지도 = 코어 옆일 때만.
+
+**main에 넣은 것 (코드만)**
+
+- `InteriorSituations` (새 파일): 지금 사고 · 첫 부탁 요약 · `NextStep` · `HasInner` — `InteriorMode.LateUpdate`가 채움
+- `InteriorEmergencyKit` (새 파일): 구조 프레임(완충 태그) 방 바닥에 비상 공구함 · 들면 `InteriorInteractable.Work` 일 하나를 F 50%
+- `InteriorMode.UpdateHold`: 공구함 배율 · 안내 · 다 쓰면 알림
+- `InteriorWayfinding`: 표지판 둘째 줄 "! 사고 · …" / "! 부탁 · …" 깜빡임
+- `InteriorStatusScreens.AppendNeighborLines`: 이웃 · 도움 · 위험 줄 (최대 6)
+- `InteriorStationMap`: `InnerFace.MapAlerts`면 사고 방 '!' · 부탁 방 '?'
+- 사고 · 현장 수리 상호작용에 `Work`, 사고 알림 "옆 통로에 비상 공구함", 조사 고침 ("수원이")
+
+**main에서 확인**: csc 컴파일 — 플레이는 tycoon에서 (EditMode 735). main 데이터 = 캠페인 규칙 그대로 (관제소 지도 표시 · 안쪽 얼굴 없음). 비상 공구함은 안쪽 얼굴이 있는 관계 표에서만 (`AdjacencySystem.HasInnerFaces` — main 캠페인엔 안 나옴), 허브 표지판 상황 표시는 표시만이라 main에도.

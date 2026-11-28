@@ -59,6 +59,10 @@ namespace SpaceStation.Data
         RequestPenalty = 1 << 21,
         /// <summary>소음 민원 (나쁜 이웃 — 옆 소음원 방에 흡음 덮개 달기, 사용자 결정 2026-11-28).</summary>
         NoiseComplaint = 1 << 22,
+
+        // V4 (2026-11-28): 곁가지
+        /// <summary>관제소 지도 벽에 사고 · 부탁 방 표시 (행정 ← 중심, 사용자 결정 2026-11-28 — 코어 옆 관제소일 때만).</summary>
+        MapAlerts = 1 << 23,
     }
 
     /// <summary>
@@ -111,6 +115,7 @@ namespace SpaceStation.Data
             Add(InnerFace.RequestBonus, "부탁 보상 ↑");
             Add(InnerFace.RequestPenalty, "부탁 보상 ↓");
             Add(InnerFace.NoiseComplaint, "소음 민원");
+            Add(InnerFace.MapAlerts, "관제소 지도에 사고 · 부탁 방 표시");
             return sb.ToString();
         }
 

@@ -123,6 +123,7 @@ namespace SpaceStation.Interior
         private InteriorPlants _plants;
         private InteriorRequests _requests;
         private InteriorIncidents _incidents;
+        private InteriorEmergencyKit _emergencyKit;   // CONNECT A8 완충: 구조 프레임 통로 비상 공구함 (3번 ④ V4)
         private InteriorBoarding _boarding;
 
         /// <summary>패드 지도 표시용: 이 방에 남은 침입 드론 수.</summary>
@@ -305,6 +306,9 @@ namespace SpaceStation.Interior
                     _atmosphere.SetIncidentDim(m, f);   // CONNECT A6 장식 조명 꺼짐 = 방 조명도 같은 길로
             };
             _incidents.Rebuild(_layout);
+            _emergencyKit = InteriorEmergencyKit.Create(transform, _station, _builder, _requestSettings.Toolbox);
+            _emergencyKit.Message += ShowNotice;
+            _emergencyKit.Rebuild(_layout);
             _boarding = InteriorBoarding.Create(transform, _station, _builder, _beaconMaterial); // 12-3c 지구급 침입 드론
             _boarding.Rebuild();
             _requests.TutorialHold = _incidents.TutorialHold = Tutorial != null;
@@ -498,6 +502,13 @@ namespace SpaceStation.Interior
             if (_incidents != null)
                 Destroy(_incidents.gameObject);
             _incidents = null;
+            if (_emergencyKit != null)
+            {
+                _emergencyKit.Rebuild(null); // 든 공구함 내려놓음
+                Destroy(_emergencyKit.gameObject);
+            }
+            _emergencyKit = null;
+            InteriorSituations.Clear();
             if (_boarding != null)
                 Destroy(_boarding.gameObject);
             _boarding = null;
@@ -665,6 +676,27 @@ namespace SpaceStation.Interior
         private void LateUpdate()
         {
             UpdateFocusMarker();   // 카메라가 움직인 뒤 (화면 자리 = 이번 프레임 시선)
+            UpdateSituations();
+        }
+
+        /// <summary>CONNECT A8 (3번 ④ V4): 방 안 화면(허브 표지판 · 관제소 지도)이 읽는 지금 상황 · 부탁.</summary>
+        private void UpdateSituations()
+        {
+            if (!_inside)
+                return;
+            ModuleInstance incidentRoom = null, requestRoom = null;
+            string incident = null, request = null;
+            if (_incidents != null && _incidents.TryGetActive(out var t, out var r, out _))
+            {
+                incident = t;
+                incidentRoom = r;
+            }
+            if (_requests != null && _requests.TryGetPending(out var rt, out var rr))
+            {
+                request = rt;
+                requestRoom = rr;
+            }
+            InteriorSituations.Set(_builder, _station.Simulation, incidentRoom, incident, requestRoom, request);
         }
 
         /// <summary>
@@ -1091,11 +1123,15 @@ namespace SpaceStation.Interior
             }
             else
             {
-                _prompt.SetText($"<b>{key}</b> <size=80%><color={HudText.Muted}>길게</color></size>  {text}");
+                // CONNECT A8 완충 (3번 ④ V4): 비상 공구함을 들었으면 일(사고 · 현장 수리) 하나를 절반 시간에
+                bool kit = item.Work && InteriorEmergencyKit.Carrying;
+                float holdSeconds = item.HoldSeconds * (kit ? InteriorEmergencyKit.HoldScale : 1f);
+                _prompt.SetText($"<b>{key}</b> <size=80%><color={HudText.Muted}>길게</color></size>  {text}"
+                                + (kit ? $"  <size=80%><color={HudText.Yellow}>비상 공구함으로 빨리</color></size>" : ""));
                 if (pressed && !_holdNeedsRelease)
                 {
                     _holdTime += Time.unscaledDeltaTime;
-                    float progress = Mathf.Clamp01(_holdTime / Mathf.Max(0.05f, item.HoldSeconds));
+                    float progress = Mathf.Clamp01(_holdTime / Mathf.Max(0.05f, holdSeconds));
                     bool sound = item.HoldSeconds >= HoldSoundMin;
                     if (sound && progress < 1f)
                         HoldTone(progress);
@@ -1106,13 +1142,16 @@ namespace SpaceStation.Interior
                         _holdNeedsRelease = true;
                         if (sound)
                             AudioService.TryPlay(l => l.HoldDone);
+                        if (kit && InteriorEmergencyKit.Use())
+                            ShowNotice("비상 공구함을 썼어요", false);
                         item.Completed?.Invoke();
                     }
                 }
                 else
                     _holdTime = 0f;
             }
-            SetHoldBar(_holdTime > 0f ? Mathf.Clamp01(_holdTime / Mathf.Max(0.05f, item.HoldSeconds)) : -1f);
+            float barSeconds = item.HoldSeconds * (item.Work && InteriorEmergencyKit.Carrying ? InteriorEmergencyKit.HoldScale : 1f);
+            SetHoldBar(_holdTime > 0f ? Mathf.Clamp01(_holdTime / Mathf.Max(0.05f, barSeconds)) : -1f);
         }
 
         private void ResetHold()
@@ -1364,6 +1403,8 @@ namespace SpaceStation.Interior
                 _requests.Rebuild(_layout);
             if (_incidents != null)
                 _incidents.Rebuild(_layout);
+            if (_emergencyKit != null)
+                _emergencyKit.Rebuild(_layout);
             if (_boarding != null)
                 _boarding.Rebuild();
             ResetHold();

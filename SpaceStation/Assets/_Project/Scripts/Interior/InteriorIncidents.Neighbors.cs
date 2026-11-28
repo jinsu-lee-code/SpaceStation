@@ -218,7 +218,8 @@ namespace SpaceStation.Interior
             if (rule == null)
                 return null;
             string who = AdjacencySystem.NeighborLabel(rule);
-            return $"옆에 {who}{Josa(who, "이", "가")} 있었다면 {then}";
+            string head = who.Split('(')[0]; // "수원(물 재활용기 · 물 추출기)" → 조사는 "수원"에 (플레이 확인: "…)가"로 붙었음)
+            return $"옆에 {who}{Josa(head, "이", "가")} 있었다면 {then}";
         }
 
         /// <summary>놓쳤을 때 이웃이 바꾸는 손실.</summary>
@@ -392,6 +393,7 @@ namespace SpaceStation.Interior
             col.size = new Vector3(0.7f, 0.3f, 0.26f);
             var use = valve.AddComponent<InteriorInteractable>();
             use.HoldSeconds = _s.ValveHold;
+            use.Work = true;
             use.Prompt = () => $"차단 밸브 잠그기  <color=#FF8A5C>옆방 {RoomName(a.Room)} 누출</color>";
             use.Holding = p =>
             {
@@ -503,6 +505,7 @@ namespace SpaceStation.Interior
             col.size = new Vector3(0.4f, 0.5f, 0.2f);
             var use = box.AddComponent<InteriorInteractable>();
             use.HoldSeconds = _s.FireHold;
+            use.Work = true;
             use.Prompt = () => $"소화기로 불 끄기  <color=#FF8A5C>불길 두 곳</color>";
             use.Blocked = () => a.Carrying ? null : "벽에 걸린 소화기를 먼저 드세요";
             use.Holding = p =>

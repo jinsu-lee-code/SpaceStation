@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using SpaceStation.Audio;
 using SpaceStation.Core;
+using SpaceStation.Data;
 using TMPro;
 using UnityEngine;
 
@@ -208,6 +209,58 @@ namespace SpaceStation.Interior
         private static Color EmissionOf(Material m, Color fallback) => m != null && m.HasProperty(EmissionColorId) ? m.GetColor(EmissionColorId) : fallback;
 
         private Vector3 At(float u, float v) => _center + _right * u + _up * v;
+
+        // CONNECT A8 행정 ← 중심 (3번 ④ V4, 사용자 결정 2026-11-28 — 코어 옆 관제소일 때만): 지도에 사고 방 '!' · 부탁 방 '?' 깜빡임
+        // (색만이 아니라 모양 · 깜빡임으로 — 색약)
+        private readonly TextMeshPro[] _alerts = new TextMeshPro[2];
+        private float _mapCell;
+        private Vector2 _mapMid;
+        private float _mapV;
+        private static readonly Color IncidentMark = new Color(1f, 0.6f, 0.25f);
+        private static readonly Color RequestMark = new Color(0.45f, 0.85f, 1f);
+
+        private void UpdateAlerts()
+        {
+            bool on = Active && Module != null && _built && InteriorSituations.HasInner(Module, InnerFace.MapAlerts);
+            PlaceAlert(0, on ? InteriorSituations.IncidentRoom : null, "!", IncidentMark);
+            PlaceAlert(1, on ? InteriorSituations.RequestRoom : null, "?", RequestMark);
+        }
+
+        private void PlaceAlert(int i, ModuleInstance room, string mark, Color color)
+        {
+            var t = _alerts[i];
+            Vector2 sum = Vector2.zero;
+            int n = 0;
+            if (room != null)
+            {
+                foreach (var c in room.Cells)
+                {
+                    if (c.y != _viewFloor)
+                        continue;
+                    sum += ToMap(c);
+                    n++;
+                }
+            }
+            if (n == 0)
+            {
+                if (t != null && t.gameObject.activeSelf)
+                    t.gameObject.SetActive(false);
+                return;
+            }
+            var p = sum / n;
+            var at = At((p.x - _mapMid.x) * _mapCell, _mapV + (p.y - _mapMid.y) * _mapCell);
+            float size = Mathf.Max(0.08f, _mapCell * 1.4f);
+            if (t == null)
+                _alerts[i] = t = CreateText("MapAlert" + i, at, _normal, _up, size, size, 3f, TextAlignmentOptions.Center);
+            if (!t.gameObject.activeSelf)
+                t.gameObject.SetActive(true);
+            t.transform.localPosition = at + _normal.normalized * 0.012f; // 칸 위로 (메시보다 앞)
+            t.rectTransform.sizeDelta = new Vector2(size, size);
+            bool bright = Mathf.Repeat(Time.unscaledTime, 0.8f) < 0.45f;
+            var c2 = color;
+            c2.a = bright ? 1f : 0.35f;
+            SetText(t, $"<b>{mark}</b>", c2);
+        }
         private float LegendU(int i) => -_size.x / 2f + Margin + 0.06f + i * 0.55f;
         private float LegendV() => _size.y / 2f - TitleBand - LegendRow / 2f;
 
@@ -218,6 +271,7 @@ namespace SpaceStation.Interior
             if (!Active || grid == null || Module == null)
             {
                 Show(false);
+                UpdateAlerts(); // 꺼짐 = 숨김
                 SetText(_title, Active ? "<b>정거장 모듈 지도</b>" : "<b>전원 꺼짐</b>", ScreenDim);
                 SetText(_summary, "", ScreenDim);
                 _version = -1;   // 다시 켜지면 제목 · 요약까지 새로
@@ -270,6 +324,7 @@ namespace SpaceStation.Interior
             }
             Show(true);
             RefreshButtons();
+            UpdateAlerts();
         }
 
         private void RefreshButtons()
@@ -367,6 +422,9 @@ namespace SpaceStation.Interior
             if (any)
                 cs = Mathf.Min(MaxCell, areaW / (max.x - min.x + 1), areaH / (max.y - min.y + 1));
             var mid = any ? new Vector2((min.x + max.x) / 2f, (min.y + max.y) / 2f) : Vector2.zero;
+            _mapCell = cs;
+            _mapMid = mid;
+            _mapV = areaV;
             for (int k = 0; k < StateCount; k++)
             {
                 _verts.Clear();

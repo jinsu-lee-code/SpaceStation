@@ -75,7 +75,7 @@ namespace SpaceStation.Editor
             R("연산 지원", AdjacencyEffect.ResearchSpeed, 0.05f, 2, "Research", "Computing"),
             R("소음 방해", AdjacencyEffect.ResearchSpeed, -0.05f, 2, "Quiet", "NoiseSource", inner: InnerFace.RequestPenalty | InnerFace.NoiseComplaint),
             R("습기", AdjacencyEffect.ResearchSpeed, -0.03f, 2, "Quiet", "Greenery"),
-            R("행정 직결", AdjacencyEffect.PolicyDelay, -0.3f, 1, "Administration", "Center"),
+            R("행정 직결", AdjacencyEffect.PolicyDelay, -0.3f, 1, "Administration", "Center", inner: InnerFace.MapAlerts),
             // ④ 방어
             R("표적 유도", AdjacencyEffect.InterceptChance, 0.25f, 2, "Intercept", "Sensing"),
             R("엄폐", AdjacencyEffect.HitWeight, -0.3f, 2, "Intercept", "Armor", inner: InnerFace.RepairFewer),

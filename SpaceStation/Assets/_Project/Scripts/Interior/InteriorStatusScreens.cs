@@ -252,6 +252,8 @@ namespace SpaceStation.Interior
             _lines.Clear();
             if (data != null)
                 AppendLines(_lines, data, sim != null ? sim.Effects : null);
+            if (sim != null && Module != null)
+                AppendNeighborLines(_lines, sim, Module); // CONNECT A5 이웃 효과 · 위험 요인 상시 표시 (3번 ④ V4)
             int pages = Mathf.Max(1, (_lines.Count + LinesPerPage - 1) / LinesPerPage);
             if (_pages.Length != pages)
                 _pages = new string[pages];
@@ -263,6 +265,36 @@ namespace SpaceStation.Interior
             string title = data != null ? $"<b>{data.DisplayName}</b>" : "";
             foreach (var v in _views)
                 SetText(v.Title, title, ScreenText);
+        }
+
+        private static readonly List<SpaceStation.Simulation.InnerHit> NeighborHits = new List<SpaceStation.Simulation.InnerHit>();
+        private const int MaxNeighborLines = 6;
+
+        /// <summary>
+        /// CONNECT A5 (3번 ④ V4): 방 안 상태 화면에 이웃 효과(바깥 수치)와 안쪽 얼굴 — "이웃 · 물 소비 -25% (수로 공유)" · "도움 · 옆 정비 베이: 현장 수리 빨리" ·
+        /// "위험 · 옆 연료전지: 화재 때 불길 두 곳" (나쁜 이웃은 "위험"으로 — 색이 아니라 글로).
+        /// </summary>
+        public static void AppendNeighborLines(List<string> lines, SpaceStation.Simulation.StationSimulation sim, SpaceStation.Core.ModuleInstance module)
+        {
+            if (sim.Adjacency == null)
+                return;
+            int added = 0;
+            foreach (var a in sim.Adjacency.GetApplied(module))
+            {
+                if (added++ >= MaxNeighborLines)
+                    return;
+                lines.Add("이웃 · " + SpaceStation.Simulation.AdjacencySystem.Describe(a));
+            }
+            sim.Adjacency.InnerFor(sim.Grid, module, NeighborHits);
+            foreach (var h in NeighborHits)
+            {
+                if (h.Face == SpaceStation.Data.InnerFace.None || h.Neighbor?.Data == null)
+                    continue;
+                if (added++ >= MaxNeighborLines)
+                    return;
+                bool bad = (h.Face & SpaceStation.Data.AdjacencyEffects.BadInner) != 0;
+                lines.Add($"{(bad ? "위험" : "도움")} · 옆 {h.Neighbor.Data.DisplayName}: {SpaceStation.Data.AdjacencyEffects.InnerText(h.Face)}");
+            }
         }
 
         /// <summary>
