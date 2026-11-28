@@ -42,6 +42,8 @@ namespace SpaceStation.Data
         RelayPower,
         /// <summary>신호 해독 속도 × (1 + 합) — 가동 중인 통신 모듈 가운데 가장 센 하나.</summary>
         DecodeSpeed,
+        /// <summary>CONNECT A8 "안쪽만" 관계 (아무 방 ← 의료 · 중심 · 통제 · 연구): 바깥 수치 없음, 안쪽 얼굴(<see cref="AdjacencyRule.Inner"/>)만.</summary>
+        InnerOnly,
     }
 
     /// <summary>
@@ -73,6 +75,8 @@ namespace SpaceStation.Data
         [SerializeField, Min(1)] private int _maxStacks = 3;
         [Tooltip("UI 표시용 짧은 설명 (예: 수로 공유)")]
         [SerializeField] private string _label;
+        [Tooltip("CONNECT A5 안쪽 얼굴: 이 관계의 대상 방에서 생긴 사고가 어떻게 달라지는지 (원인 · 과정 · 결과)")]
+        [SerializeField] private InnerFace _inner;
 
         /// <summary>대상 모듈 (태그만으로 정한 규칙이면 null — 적용된 모듈은 <c>AppliedAdjacency.Target</c>).</summary>
         public ModuleData Target => _target;
@@ -85,6 +89,8 @@ namespace SpaceStation.Data
         public int FreeNeighbors => _freeNeighbors;
         public int MaxStacks => Mathf.Max(1, _maxStacks);
         public string Label => _label;
+        /// <summary>CONNECT A5 안쪽 얼굴 (없으면 None).</summary>
+        public InnerFace Inner => _inner;
 
         public bool ExcludeSameType => _excludeSameType;
 
@@ -145,12 +151,12 @@ namespace SpaceStation.Data
         /// <summary>편집기 메뉴 · 시험용으로 규칙 하나를 만듦 (CONNECT A8 ④ 관계 설정 · EditMode 시험).</summary>
         public static AdjacencyRule Create(AdjacencyEffect effect, float valuePerNeighbor, int maxStacks, string label,
             ModuleData target = null, AdjacencyTag targetTag = null, ModuleData neighbor = null, AdjacencyTag neighborTag = null,
-            bool anyTarget = false, bool excludeSameType = false, int freeNeighbors = 0)
+            bool anyTarget = false, bool excludeSameType = false, int freeNeighbors = 0, InnerFace inner = InnerFace.None)
             => new AdjacencyRule
             {
                 _effect = effect, _valuePerNeighbor = valuePerNeighbor, _maxStacks = maxStacks, _label = label,
                 _target = target, _targetTag = targetTag, _neighbor = neighbor, _neighborTag = neighborTag,
-                _anyTarget = anyTarget, _excludeSameType = excludeSameType, _freeNeighbors = freeNeighbors,
+                _anyTarget = anyTarget, _excludeSameType = excludeSameType, _freeNeighbors = freeNeighbors, _inner = inner,
             };
     }
 

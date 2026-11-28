@@ -21,6 +21,17 @@ namespace SpaceStation.Simulation
         public float Total => PerNeighbor * Stacks;
     }
 
+    /// <summary>CONNECT A5 안쪽 얼굴 하나: 이 방(대상)과 이웃 방 사이의 관계 (사고가 생길 때 변형 · 원인 한 줄 · 번짐).</summary>
+    public struct InnerHit
+    {
+        public AdjacencyRule Rule;
+        public ModuleInstance Neighbor;
+        /// <summary>그 관계의 안쪽 얼굴 (없을 수 있음 — 벌칙 관계는 <see cref="Bad"/>만).</summary>
+        public InnerFace Face;
+        /// <summary>벌칙 관계 (바깥 효과가 나쁨) — 놓친 사고가 이 이웃 방으로 번짐 (사용자 결정 2026-11-28).</summary>
+        public bool Bad;
+    }
+
     /// <summary>배치 미리보기: 새 모듈 때문에 이웃 모듈 하나에 새로 생길 효과 (7-3 화면 표시용).</summary>
     public struct NeighborAdjacencyPreview
     {
@@ -158,8 +169,8 @@ namespace SpaceStation.Simulation
                 return;
             foreach (var rule in _rules.Rules)
             {
-                if (!rule.AppliesTo(target))
-                    continue;
+                if (rule.Effect == AdjacencyEffect.InnerOnly || !rule.AppliesTo(target))
+                    continue; // 안쪽만 관계는 바깥 효과 없음 (InnerFor)
                 int count = 0;
                 foreach (var n in neighbors)
                 {
@@ -243,7 +254,7 @@ namespace SpaceStation.Simulation
                     continue;
                 foreach (var rule in _rules.Rules)
                 {
-                    if (!rule.AppliesTo(neighbor.Data) || !rule.Matches(neighbor.Data, data))
+                    if (rule.Effect == AdjacencyEffect.InnerOnly || !rule.AppliesTo(neighbor.Data) || !rule.Matches(neighbor.Data, data))
                         continue;
                     int current = 0;
                     foreach (var a in GetApplied(neighbor))
@@ -269,6 +280,50 @@ namespace SpaceStation.Simulation
         }
 
         private readonly List<ModuleInstance> _scratchNeighbors = new List<ModuleInstance>();
+        private readonly List<ModuleInstance> _innerNeighbors = new List<ModuleInstance>();
+
+        /// <summary>
+        /// CONNECT A5 안쪽 얼굴 (3번 ④ V2): module 방의 이웃(허브 건너편 포함)과 맺은 관계 가운데 안쪽 얼굴이 있거나 벌칙인 것 — 이웃 방마다 하나씩.
+        /// 그늘처럼 이웃을 가리지 않는 관계는 뺌 (사고와 무관).
+        /// </summary>
+        public void InnerFor(StationGrid grid, ModuleInstance module, List<InnerHit> hits)
+        {
+            hits.Clear();
+            if (!HasRules || grid == null || module?.Data == null)
+                return;
+            grid.GetNeighborModules(module, _innerNeighbors);
+            AddRelayed(grid, module, _innerNeighbors);
+            foreach (var rule in _rules.Rules)
+            {
+                if (rule.AnyNeighbor || !rule.AppliesTo(module.Data))
+                    continue;
+                bool bad = rule.Effect != AdjacencyEffect.InnerOnly && !IsBeneficial(rule, rule.ValuePerNeighbor);
+                if (rule.Inner == InnerFace.None && !bad)
+                    continue;
+                foreach (var n in _innerNeighbors)
+                {
+                    if (n.Data != null && rule.Matches(module.Data, n.Data))
+                        hits.Add(new InnerHit { Rule = rule, Neighbor = n, Face = rule.Inner, Bad = bad });
+                }
+            }
+        }
+
+        /// <summary>이 모듈이 받을 수 있는 그 안쪽 얼굴의 관계 (없으면 null) — "옆에 ○○가 있었다면" 한 줄.</summary>
+        public AdjacencyRule FindInnerRule(ModuleData target, InnerFace face)
+        {
+            if (!HasRules || target == null || face == InnerFace.None)
+                return null;
+            foreach (var rule in _rules.Rules)
+            {
+                if ((rule.Inner & face) != 0 && !rule.AnyNeighbor && rule.AppliesTo(target))
+                    return rule;
+            }
+            return null;
+        }
+
+        /// <summary>그 관계의 이웃을 사람이 읽는 이름으로 ("정비(정비 베이)", 모듈이면 모듈 이름).</summary>
+        public static string NeighborLabel(AdjacencyRule rule)
+            => rule == null ? "-" : rule.Neighbor != null ? rule.NeighborName : Tagged(rule.NeighborTag);
 
         /// <summary>적용 중인 효과 설명 (연구 보정 포함).</summary>
         public static string Describe(AppliedAdjacency applied) => Describe(applied.Rule, applied.Target ?? applied.Rule.Target, applied.Stacks, applied.Boost);
@@ -306,19 +361,24 @@ namespace SpaceStation.Simulation
                     string who = !rule.AnyNeighbor ? (rule.Neighbor == null ? Tagged(rule.NeighborTag) : rule.NeighborName)
                         : rule.ExcludeSameType ? $"{data.DisplayName} 외 모든 모듈" : "모든 모듈";
                     string free = rule.FreeNeighbors > 0 ? $", {rule.FreeNeighbors}개 면제" : "";
-                    lines.Add($"{who} 옆: {Describe(rule, data, 1, BoostFor(rule))} / 개 (최대 {rule.MaxStacks}회{free})");
+                    string inner = rule.Inner != InnerFace.None ? $" · 안: {AdjacencyEffects.InnerText(rule.Inner)}" : "";
+                    lines.Add(rule.Effect == AdjacencyEffect.InnerOnly
+                        ? $"{who} 옆: 안: {AdjacencyEffects.InnerText(rule.Inner)}"
+                        : $"{who} 옆: {Describe(rule, data, 1, BoostFor(rule))} / 개 (최대 {rule.MaxStacks}회{free}){inner}");
                 }
                 else if (!rule.AnyNeighbor && rule.CouldNeighbor(data) && (rule.Target != null || rule.TargetTag != null || rule.AnyTarget))
                 {
+                    string what = rule.Effect == AdjacencyEffect.InnerOnly ? "" : Describe(rule, rule.Target, 1, BoostFor(rule));
+                    string inner = rule.Inner != InnerFace.None ? $"{(what.Length > 0 ? " · " : "")}안: {AdjacencyEffects.InnerText(rule.Inner)}" : "";
                     lines.Add(rule.AnyTarget
-                        ? $"옆 모듈마다 {Describe(rule, rule.Target, 1, BoostFor(rule))}"
-                        : $"{(rule.Target == null ? Tagged(rule.TargetTag) : rule.TargetName)} 옆에 두면 그 모듈 {Describe(rule, rule.Target, 1, BoostFor(rule))}");
+                        ? $"옆 모듈마다 {what}{inner}"
+                        : $"{(rule.Target == null ? Tagged(rule.TargetTag) : rule.TargetName)} 옆에 두면 그 모듈 {what}{inner}");
                 }
             }
         }
 
         /// <summary>태그 이름 + 해당 모듈 ("소음원(채굴 도킹 · 제련소 · 방어 포탑)") — 태그만으로는 어떤 모듈인지 모름 (CONNECT A14-8 읽히게).</summary>
-        private static string Tagged(AdjacencyTag tag)
+        public static string Tagged(AdjacencyTag tag)
         {
             if (tag == null)
                 return "-";

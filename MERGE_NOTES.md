@@ -3779,3 +3779,18 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 - 시험 `AdjacencyRelationTests` 6 (실제 관계 표는 태그 · 모듈 파일만 봄 — main에서도 통과)
 
 **main에서 확인**: csc 컴파일 (런타임 · 에디터 · EditMode 시험) — 플레이 · 봇은 tycoon에서 (EditMode 732).
+
+## M-374. 새 관계 ④ V2 — 기본 사고 넷의 안쪽 얼굴 (CONNECT_1121 3번, 2026-11-28, `main` — tycoon과 같은 코드, 데이터는 tycoon만)
+
+결정 (사용자 2026-11-28, 넷 다 추천안): 누출 좋은 이웃 = 옆방 문가 차단 밸브 · 연구소 옆 = 틀려도 그대로 · 환기 경보 잦음 = 그 방 확률 2배 · 원인 · 결과 한 줄 = 알림 줄 + 말풍선 둘째 줄. 놓친 사고는 나쁜 이웃 옆에서만 그 방으로 한 번 번짐 (V1 때 결정).
+
+**main에 넣은 것 (코드만)**
+
+- `InnerFace` (안쪽 얼굴 14 — 비트) · `AdjacencyEffect.InnerOnly` (바깥 수치 없는 "안쪽만" 관계) · `AdjacencyRule._inner` · `AdjacencySystem.InnerFor` · `FindInnerRule` · 건설 메뉴 설명 "안: …"
+- `IncidentMiss` + `StationSimulation.MissIncident(…, mods)` (손실 없음 · 절반 · 만족도 지킴 · 물 회수) — 규칙이 없으면 예전 그대로
+- `InteriorIncidents.Neighbors.cs` (새 파일): 이웃 판정 · 사고 변형 (옆방 차단 밸브 · 문 옆 소화기 · 불길 두 곳 · 스위치 하나 · 틀려도 그대로 · 실드가 받쳐 줌 · 환기구만 · 필터 두 장 · 방사선 경보 · 잦음) · 원인/결과 한 줄 · 번짐 · 좁은 방 자리 고르기 (`MountPick`)
+- `InteriorIncidents.cs`: 사고마다 처리 시간 (`Window`), `Activate` (원인 한 줄), 번짐 (놓침 뒤 그 방에 같은 사고), 말풍선 둘째 줄, 해결 · 놓침 한 줄 · `InteriorIncidents.Focus.cs` (가까운 쪽 밸브 · 소화기 · 불길, 옆방이면 그 방)
+- `InteriorIncidentRules.TripPattern(rng, count)`
+- 시험 `AdjacencyRelationTests` +2
+
+**main에서 확인**: csc 컴파일 (런타임 · 에디터 · EditMode 시험) — 플레이는 tycoon에서 (꾸민 시험 정거장, EditMode 734). main 데이터 = 캠페인 규칙 그대로라 안쪽 얼굴이 없음 (통합 밸런싱 때).

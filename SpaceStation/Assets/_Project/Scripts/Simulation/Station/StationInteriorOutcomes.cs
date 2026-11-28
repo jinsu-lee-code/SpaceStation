@@ -87,14 +87,18 @@ namespace SpaceStation.Simulation
             return $"만족도 +{Population.Satisfaction - before:0.#}";
         }
 
-        public string MissIncident(IncidentKind kind, ModuleInstance module, ResourceType leakResource)
+        public string MissIncident(IncidentKind kind, ModuleInstance module, ResourceType leakResource, IncidentMiss mods = IncidentMiss.None)
         {
             var b = Balance;
             float seconds = b.IncidentPenaltySeconds;
             float k = Math.Max(0f, _sim.Incidents.MissScale); // 13-6 고리
-            if (k <= 0f)
+            if (k <= 0f || (mods & IncidentMiss.NoLoss) != 0)
                 return "손실 없음";
-            float satisfaction = b.IncidentMissSatisfaction * k;
+            if ((mods & IncidentMiss.Half) != 0)
+                k *= 0.5f; // CONNECT A8 통제 ← 정비
+            bool noMood = (mods & IncidentMiss.NoMood) != 0; // CONNECT A8 아무 방 ← 의료
+            float satisfaction = noMood ? 0f : b.IncidentMissSatisfaction * k;
+            string mood = noMood ? " · 만족도 지킴" : $" · 만족도 -{satisfaction:0.#}";
             // CONNECT A6 단계별 상황: 새 상황은 지금 넷의 손실을 다시 씀 (IncidentCatalog.LossOf)
             var loss = IncidentCatalog.LossOf(kind);
             if (loss == IncidentLoss.Production && kind != IncidentKind.Breaker && !MakesOrUsesPower(module))
@@ -102,6 +106,8 @@ namespace SpaceStation.Simulation
             switch (loss)
             {
                 case IncidentLoss.Drain:
+                    if ((mods & IncidentMiss.Recovered) != 0 && leakResource == ResourceType.Water)
+                        return "물 손실 없음 (회수)"; // CONNECT A8 물 사용 ← 수원
                     _sim.Incidents.AddDrain(leakResource, b.IncidentLeakLoss * k, seconds);
                     return $"{leakResource.DisplayName()} -{b.IncidentLeakLoss * k:0} (2분 동안)";
                 case IncidentLoss.Production:
@@ -112,15 +118,19 @@ namespace SpaceStation.Simulation
                     float durability = b.IncidentFireDurability * k;
                     if (module != null && _sim.Durability.TryGetInfo(module, out var info))
                         _sim.Durability.ApplyImpact(module, Math.Min(durability, Math.Max(0f, info.Current - 5f)));
-                    LoseSatisfaction(satisfaction);
-                    return $"내구도 -{durability:0} · 만족도 -{satisfaction:0.#}";
+                    if (!noMood)
+                        LoseSatisfaction(satisfaction);
+                    return $"내구도 -{durability:0}{mood}";
                 case IncidentLoss.Mood:
+                    if (noMood)
+                        return "손실 없음 (만족도 지킴)";
                     LoseSatisfaction(satisfaction);
                     return $"만족도 -{satisfaction:0.#}";
                 default:
                     _sim.Incidents.AddDrain(ResourceType.Oxygen, b.IncidentFilterOxygenLoss * k, seconds);
-                    LoseSatisfaction(satisfaction);
-                    return $"산소 -{b.IncidentFilterOxygenLoss * k:0} (2분 동안) · 만족도 -{satisfaction:0.#}";
+                    if (!noMood)
+                        LoseSatisfaction(satisfaction);
+                    return $"산소 -{b.IncidentFilterOxygenLoss * k:0} (2분 동안){mood}";
             }
         }
 

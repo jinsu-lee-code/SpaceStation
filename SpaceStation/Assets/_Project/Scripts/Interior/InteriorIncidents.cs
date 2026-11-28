@@ -249,9 +249,9 @@ namespace SpaceStation.Interior
                 secondsLeft = 0;
                 return false;
             }
-            title = InteriorIncidentRules.Title(_active.Kind);
+            title = Title(_active);
             room = _active.Room;
-            secondsLeft = _active.Tutorial ? -1 : Mathf.Max(0, Mathf.CeilToInt(Sim.Balance.IncidentWindow - _active.Age));
+            secondsLeft = _active.Tutorial ? -1 : Mathf.Max(0, Mathf.CeilToInt(_active.Window - _active.Age));
             return true;
         }
 
@@ -294,15 +294,21 @@ namespace SpaceStation.Interior
                 Animate(a, dt);
                 return;
             }
-            if (a.Age > b.IncidentWindow)
+            if (a.Age > a.Window)
             {
-                Miss(a, left: false);
+                // CONNECT A5 결과 단계 (사용자 결정 2026-11-28): 나쁜 이웃 옆에서만 그 이웃 방으로 한 번 번짐 (손상 통제실이 옆이면 안 번짐)
+                var spreadTo = SpreadTarget(a, out bool blocked, out _);
+                Miss(a, left: false, spreadTo, blocked);
+                var kind = a.Kind;
+                string from = RoomName(a.Room);
                 End(a, rebuilt: false);
                 _active = null;
                 _timer = ResidentRequestRules.NextDelay(b.IncidentIntervalMin, b.IncidentIntervalMax, _rng.NextDouble());
+                if (spreadTo != null)
+                    SpawnSpread(kind, spreadTo, from);
                 return;
             }
-            int left = Mathf.CeilToInt(b.IncidentWindow - a.Age);
+            int left = Mathf.CeilToInt(a.Window - a.Age);
             if (left != a.ShownSeconds && a.Bubble != null)
             {
                 a.ShownSeconds = left;
@@ -339,6 +345,7 @@ namespace SpaceStation.Interior
             {
                 // CONNECT A6 단계별 상황: 방의 진화 단계에 맞는 상황만 (트인 방에 벽 상황이 붙지 않게)
                 var kinds = KindsFor(room);
+                HitsFor(room, _hitScratch); // CONNECT A5 이웃 관계 (안쪽 얼굴)
                 bool canTrip = InteriorIncidentRules.CanTrip(room.Data);
                 IncidentKind kind;
                 if (forced != null)
@@ -349,7 +356,7 @@ namespace SpaceStation.Interior
                 }
                 else
                 {
-                    var picked = InteriorIncidentRules.Pick(kinds, canTrip, _last, _rng.NextDouble());
+                    var picked = InteriorIncidentRules.Pick(Biased(kinds, _hitScratch), canTrip, _last, _rng.NextDouble()); // 환기 경보가 잦은 방 = 그 종류 확률 2배
                     if (picked == null)
                         continue;
                     kind = picked.Value;
@@ -377,6 +384,7 @@ namespace SpaceStation.Interior
                     if (k == IncidentKind.Breaker && !canTrip)
                         continue;
                     var tryA = new Incident { Kind = k, Room = room, Resource = InteriorIncidentRules.LeakResource(room.Data), Tutorial = tutorial };
+                    Prepare(tryA, _hitScratch);
                     if (Place(tryA))
                     {
                         a = tryA;
@@ -386,18 +394,25 @@ namespace SpaceStation.Interior
                 }
                 if (a == null)
                     continue;
-                kind = a.Kind;
-                _active = a;
-                _last = kind;
-                a.Bubble = SpeechBubble.Create(transform, _font, _s.Bubble);
-                a.ShownSeconds = Mathf.CeilToInt(Sim.Balance.IncidentWindow);
-                a.Bubble.Set(BubbleText(a, a.ShownSeconds), Warn);
-                string where = room == CurrentRoom ? "이 방" : RoomName(room);
-                Message?.Invoke($"사고 · {where}: {InteriorIncidentRules.Title(kind)} · {InteriorIncidentRules.Hint(kind)}", true);
-                AlertSound.TryPlay(AlertLevel.Danger); // 경보 위계 (2026-11-25, D-3): 내부 사고 생김 = 위험 (예전 조기 경보 빌림)
+                Activate(a, null);
                 return true;
             }
             return false;
+        }
+
+        /// <summary>놓은 사고를 진행 중으로: 원인 한 줄 · 말풍선 · 알림 · 경보 (note = 번져 왔을 때 등 앞에 붙일 말).</summary>
+        private void Activate(Incident a, string note)
+        {
+            _active = a;
+            _last = a.Kind;
+            WriteCause(a); // CONNECT A5 원인 한 줄 (이웃이 중립이면 없음)
+            a.Bubble = SpeechBubble.Create(transform, _font, _s.Bubble);
+            a.ShownSeconds = Mathf.CeilToInt(a.Window);
+            a.Bubble.Set(BubbleText(a, a.ShownSeconds), Warn);
+            string where = a.Room == CurrentRoom ? "이 방" : RoomName(a.Room);
+            string extra = (note != null ? " · " + note : "") + (a.Cause != null ? " · " + a.Cause : "");
+            Message?.Invoke($"사고 · {where}: {Title(a)} · {InteriorIncidentRules.Hint(a.Kind)}{extra}", true);
+            AlertSound.TryPlay(AlertLevel.Danger); // 경보 위계 (2026-11-25, D-3): 내부 사고 생김 = 위험 (예전 조기 경보 빌림)
         }
 
         private readonly List<IncidentKind> _ready = new List<IncidentKind>();
@@ -495,13 +510,16 @@ namespace SpaceStation.Interior
             col.size = new Vector3(0.7f, 0.3f, 0.26f);
             var use = a.Prop.AddComponent<InteriorInteractable>();
             use.HoldSeconds = _s.ValveHold;
-            use.Prompt = () => $"밸브 잠그기  <color=#FF8A5C>{InteriorIncidentRules.Title(a.Kind)}</color>";
+            use.Prompt = () => $"밸브 잠그기  <color=#FF8A5C>{Title(a)}</color>";
             use.Holding = p =>
             {
                 a.Holding = true;
                 a.HoldProgress = p;
+                a.HoldWheel = a.Wheel;
             };
             use.Completed = () => Resolve(a);
+            if (Is(a, InnerFace.LeakNeighborValve))
+                PlaceNeighborValve(a); // CONNECT A5 좋은 이웃: 옆 수원 방 문가에 차단 밸브
             return true;
         }
 
@@ -521,7 +539,7 @@ namespace SpaceStation.Interior
                 FitCollider(dc, a.Door.gameObject);
                 var du = a.Door.gameObject.AddComponent<InteriorInteractable>();
                 du.HoldSeconds = _s.DoorHold;
-                du.Prompt = () => $"차단기 함 열기  <color=#FF8A5C>{InteriorIncidentRules.Title(a.Kind)}</color>";
+                du.Prompt = () => $"차단기 함 열기  <color=#FF8A5C>{Title(a)}</color>";
                 du.Completed = () =>
                 {
                     a.DoorTarget = 1f;
@@ -530,7 +548,7 @@ namespace SpaceStation.Interior
                     AudioService.TryPlayAt(l => l.BreakerDoor, a.Door.position);
                 };
             }
-            a.Pattern = InteriorIncidentRules.TripPattern(_rng);
+            a.Pattern = Is(a, InnerFace.BreakerOneSwitch) ? InteriorIncidentRules.TripPattern(_rng, 1) : InteriorIncidentRules.TripPattern(_rng); // CONNECT A5 배터리 옆 = 하나만
             a.Lit = (bool[])a.Pattern.Clone();
             for (int i = 0; i < InteriorIncidentRules.Switches; i++)
             {
@@ -589,6 +607,12 @@ namespace SpaceStation.Interior
                     InteriorFx.Spark(transform, lever.position, a.Prop.transform.forward, _spark, 10, 18, 1.0f);
                 AudioService.TryPlay(l => l.UiError);
                 AudioService.TryPlayAt(l => l.StormSpark, lever != null ? lever.position : a.Prop.transform.position);
+                if (Is(a, InnerFace.BreakerForgiving)) // CONNECT A5 연구소 옆 = 틀려도 처음으로 안 돌아감 (사용자 결정 2026-11-28)
+                {
+                    Message?.Invoke($"정상 스위치예요 · 옆 {RoomName(NeighborWith(a, InnerFace.BreakerForgiving))} 덕에 진행은 그대로 (경고등 켜진 것만)", true);
+                    ShowSwitches(a);
+                    return;
+                }
                 Message?.Invoke("틀렸어요! 스파크 · 처음 상태로 돌아갔어요 (경고등 켜진 것만)", true);
                 Array.Copy(a.Pattern, a.Lit, a.Lit.Length);
                 ShowSwitches(a);
@@ -643,37 +667,38 @@ namespace SpaceStation.Interior
             col.size = new Vector3(0.4f, 0.5f, 0.2f);
             var use = a.Prop.AddComponent<InteriorInteractable>();
             use.HoldSeconds = _s.FireHold;
-            use.Prompt = () => $"소화기로 불 끄기  <color=#FF8A5C>{InteriorIncidentRules.Title(a.Kind)}</color>";
+            use.Prompt = () => $"소화기로 불 끄기  <color=#FF8A5C>{(a.Fire2 != null ? "불길 두 곳" : Title(a))}</color>";
             use.Blocked = () => a.Carrying ? null : "벽에 걸린 소화기를 먼저 드세요";
             use.Holding = p =>
             {
                 a.Holding = true;
                 a.HoldProgress = p;
+                a.SprayAt = t;
             };
-            use.Completed = () => Resolve(a);
+            use.Completed = () => PutOut(a, main: true);
 
             // 소화기: 같은 방 다른 벽 (불에서 1.4m 이상) — 자리가 없으면 들고 있는 것으로
-            var ext = Mount(_s.Extinguisher, a.Room, _s.ExtinguisherHeight, "IncidentExtinguisher", a.Prop.transform.position);
-            if (ext == null)
+            if (Is(a, InnerFace.FireTwoFlames))
             {
-                a.Carrying = true;
-                return true;
+                PlaceSecondFire(a); // CONNECT A5 나쁜 이웃 (인화 위험): 불길 두 곳 — 소화기보다 먼저 (좁은 방에서 자리를 뺏기지 않게)
+                if (a.Fire2 == null) // 자리가 없으면 한 곳 · 보통 시간 (알림도 안 함)
+                {
+                    a.Inner &= ~InnerFace.FireTwoFlames;
+                    a.Window = Sim.Balance.IncidentWindow;
+                }
             }
-            a.Extra.Add(ext);
-            var bottle = ext.transform.Find("ExtBottle");
-            a.Bottle = bottle != null ? bottle.gameObject : ext;
-            var bc = a.Bottle.AddComponent<BoxCollider>();
-            FitCollider(bc, a.Bottle);
-            var bu = a.Bottle.AddComponent<InteriorInteractable>();
-            bu.HoldSeconds = _s.PickupHold;
-            bu.Prompt = () => "소화기 들기";
-            bu.Completed = () =>
-            {
+            var ext = a.Inner == InnerFace.None
+                ? Mount(_s.Extinguisher, a.Room, _s.ExtinguisherHeight, "IncidentExtinguisher", a.Prop.transform.position)
+                : MountExtinguisherTight(a); // CONNECT A5: 이웃 변형이 있으면 불길 둘을 다 피하고, 좁은 방에서도 (예전 방은 그대로)
+            if (ext == null)
                 a.Carrying = true;
-                AudioService.TryPlayAt(l => l.ExtinguisherPickup, a.Bottle.transform.position);
-                a.Bottle.SetActive(false);
-                Message?.Invoke("소화기를 들었어요 · 불에 대고 F를 길게 누르세요", false);
-            };
+            else
+            {
+                a.Extra.Add(ext);
+                AddBottle(a, ext);
+            }
+            if (!a.Carrying && Is(a, InnerFace.FireDoorExtinguisher))
+                PlaceDoorExtinguisher(a); // CONNECT A5 좋은 이웃: 정비 베이 쪽 문 옆에 하나 더 (둘째 불길 다음 — 좁은 방은 불이 먼저)
             return true;
         }
 
@@ -690,23 +715,39 @@ namespace SpaceStation.Interior
                 a.CartridgeRest = a.Cartridge.localPosition;
             var led = t.Find("FilterLed");
             a.FilterLed = led != null ? led.GetComponent<Renderer>() : null;
-            Tint(a.Prop, "M_IncFilter", FilterDirty);
-            a.Plume = InteriorFx.Plume(t, t.TransformPoint(new Vector3(0f, 0.12f, 0.16f)), t.forward, _smoke, new Color(0.5f, 0.46f, 0.38f, 0.6f), 8f, 0.12f, 0.35f);
+            Tint(a.Prop, "M_IncFilter", DirtyColor(a));
+            a.Plume = InteriorFx.Plume(t, t.TransformPoint(new Vector3(0f, 0.12f, 0.16f)), t.forward, _smoke,
+                Is(a, InnerFace.FilterRadiation) ? new Color(0.78f, 0.74f, 0.32f, 0.6f) : new Color(0.5f, 0.46f, 0.38f, 0.6f), 8f, 0.12f, 0.35f); // 방사선 경보 = 노란 먼지
             a.Held = AudioService.AttachHeld(l => l.FilterSwap, a.Cartridge != null ? a.Cartridge : t); // 걸쇠 · 미끄러짐 · 딸깍 (누르는 1.8초에 맞춤)
             var col = a.Prop.AddComponent<BoxCollider>();
             col.center = new Vector3(0f, 0f, 0.08f);
             col.size = new Vector3(0.62f, 0.52f, 0.16f);
             var use = a.Prop.AddComponent<InteriorInteractable>();
-            use.HoldSeconds = _s.FilterHold;
-            use.Prompt = () => $"필터 교체  <color=#FF8A5C>{InteriorIncidentRules.Title(a.Kind)}</color>";
+            use.HoldSeconds = _s.FilterHold * (a.VentOnly ? EasyFilterHold : 1f); // CONNECT A5 녹지 옆 = 환기구만 (짧게)
+            use.Prompt = () => a.VentOnly ? $"환기구 청소 (필터 그대로)  <color=#FF8A5C>{Title(a)}</color>"
+                : a.FiltersLeft > 1 ? $"필터 교체 (두 장 중 첫 장)  <color=#FF8A5C>{Title(a)}</color>"
+                : $"필터 교체  <color=#FF8A5C>{Title(a)}</color>";
             use.Holding = p =>
             {
                 a.Holding = true;
                 a.HoldProgress = p;
             };
-            use.Completed = () => Resolve(a);
+            use.Completed = () =>
+            {
+                if (a.FiltersLeft > 1) // CONNECT A5 소음원 옆 = 필터 두 장
+                {
+                    a.FiltersLeft--;
+                    Tint(a.Prop, "M_IncFilter", DirtyColor(a));
+                    AudioService.TryPlayAt(l => l.BreakerSwitch, t.position);
+                    Message?.Invoke("필터 한 장을 갈았어요 · 한 장 더 (F를 다시 길게)", false);
+                    return;
+                }
+                Resolve(a);
+            };
             return true;
         }
+
+        private static Color DirtyColor(Incident a) => (a.Inner & InnerFace.FilterRadiation) != 0 ? new Color(0.86f, 0.74f, 0.18f) : FilterDirty;
 
         // ---------------- 진행 · 연출 ----------------
 
@@ -724,13 +765,13 @@ namespace SpaceStation.Interior
                     a.Held.Release();
             }
             a.WasHolding = holding;
-            if (a.Loop != null)
+            if (a.Loop != null && !a.MainOut) // 불길 두 곳: 먼저 끈 불은 조용히 (CONNECT A5)
                 a.Loop.Level = holding || InteriorRoomDisplay.PlayerIn(a.Room) ? (holding ? 1f - 0.7f * a.HoldProgress : 1f) : 0f;
             switch (a.Kind)
             {
                 case IncidentKind.Leak:
-                    if (a.Wheel != null && holding)
-                        a.Wheel.localRotation = Quaternion.AngleAxis(-a.HoldProgress * 540f, Vector3.forward) * a.WheelRest;
+                    if (holding && a.HoldWheel != null) // 이 방 밸브 또는 옆방 차단 밸브 (CONNECT A5)
+                        a.HoldWheel.localRotation = Quaternion.AngleAxis(-a.HoldProgress * 540f, Vector3.forward) * (a.HoldWheel == a.Wheel2 ? a.Wheel2Rest : a.WheelRest);
                     SetRate(a.Plume, 30f * (holding ? 1f - a.HoldProgress : 1f));
                     break;
                 case IncidentKind.Breaker:
@@ -743,32 +784,51 @@ namespace SpaceStation.Interior
                     }
                     break;
                 case IncidentKind.Fire:
+                {
+                    float glow = 0.3f + 0.08f * Mathf.Sin(now * 9f) + 0.05f * Mathf.Sin(now * 23f);
                     if (a.Glow != null)
-                        a.Glow.intensity = 0.3f + 0.08f * Mathf.Sin(now * 9f) + 0.05f * Mathf.Sin(now * 23f);
-                    if (holding)
+                        a.Glow.intensity = glow;
+                    var f2 = a.Fire2; // CONNECT A5 불길 두 곳
+                    if (f2 != null && !f2.Out)
                     {
-                        SetRate(a.Flames, 60f * (1f - a.HoldProgress));
+                        if (f2.Glow != null)
+                            f2.Glow.intensity = glow;
+                        if (f2.Loop != null)
+                            f2.Loop.Level = InteriorRoomDisplay.PlayerIn(a.Room) ? 1f : 0f;
+                    }
+                    bool onSecond = f2 != null && a.SprayAt != null && f2.Prop != null && a.SprayAt == f2.Prop.transform;
+                    if (holding && a.SprayAt != null)
+                    {
+                        SetRate(onSecond ? f2.Flames : a.Flames, 60f * (1f - a.HoldProgress));
                         if (now >= a.NextSpray)
                         {
                             a.NextSpray = now + 0.12f;
                             var from = _eye.position + _eye.right * 0.18f - _eye.up * 0.3f + _eye.forward * 0.3f;
-                            InteriorFx.Spray(transform, from, a.Prop.transform.TransformPoint(new Vector3(0f, 0.12f, 0.1f)), _smoke);
+                            InteriorFx.Spray(transform, from, a.SprayAt.TransformPoint(new Vector3(0f, 0.12f, 0.1f)), _smoke);
                         }
                     }
                     else
-                        SetRate(a.Flames, 60f);
+                    {
+                        if (!a.MainOut)
+                            SetRate(a.Flames, 60f);
+                        if (f2 != null && !f2.Out)
+                            SetRate(f2.Flames, 60f);
+                    }
+                    if (!holding)
+                        a.SprayAt = null;
                     break;
+                }
                 case IncidentKind.Filter:
                     if (a.FilterLed != null)
                         TintRenderer(a.FilterLed, "M_IncLed", Mathf.Repeat(now, 0.8f) < 0.4f ? LedRed : new Color(0.25f, 0.05f, 0.04f));
-                    if (a.Cartridge != null)
+                    if (a.Cartridge != null && !a.VentOnly) // 환기구만 = 필터를 뽑지 않음
                     {
                         float p = holding ? a.HoldProgress : 0f;
                         a.Cartridge.localPosition = a.CartridgeRest + Vector3.forward * (0.17f * Mathf.Sin(p * Mathf.PI));
                         if (holding && p > 0.5f)
                             Tint(a.Prop, "M_IncFilter", FilterClean);
                         else if (!holding)
-                            Tint(a.Prop, "M_IncFilter", FilterDirty);
+                            Tint(a.Prop, "M_IncFilter", DirtyColor(a));
                     }
                     break;
                 default:
@@ -801,6 +861,8 @@ namespace SpaceStation.Interior
                 case IncidentKind.Leak:
                     if (a.Wheel != null)
                         a.Wheel.localRotation = Quaternion.AngleAxis(-540f, Vector3.forward) * a.WheelRest;
+                    if (a.Wheel2 != null)
+                        a.Wheel2.localRotation = Quaternion.AngleAxis(-540f, Vector3.forward) * a.Wheel2Rest;
                     StopFx(a.Plume);
                     break;
                 case IncidentKind.Breaker:
@@ -813,8 +875,9 @@ namespace SpaceStation.Interior
                         Destroy(a.Glow.gameObject);
                     if (a.Soot != null)
                         a.Soot.SetActive(true);
-                    if (a.Bottle != null)
-                        a.Bottle.SetActive(true); // 다 쓴 소화기는 제자리에
+                    Douse(a.Fire2);
+                    if (a.TakenBottle != null)
+                        a.TakenBottle.SetActive(true); // 다 쓴 소화기는 제자리에 (든 것만)
                     break;
                 case IncidentKind.Filter:
                     StopFx(a.Plume);
@@ -830,9 +893,17 @@ namespace SpaceStation.Interior
             }
             foreach (var use in a.Prop.GetComponentsInChildren<InteriorInteractable>())
                 Destroy(use);
+            foreach (var x in a.Extra) // 옆방 차단 밸브 · 문 옆 소화기 · 둘째 불길 (CONNECT A5)
+            {
+                if (x == null)
+                    continue;
+                foreach (var use in x.GetComponentsInChildren<InteriorInteractable>(true))
+                    Destroy(use);
+            }
             if (a.Bubble != null)
-                a.Bubble.Set($"<b>해결!</b>\n<size=80%>{InteriorIncidentRules.Title(a.Kind)}</size>", new Color(0.35f, 0.8f, 0.45f));
-            Message?.Invoke($"{InteriorIncidentRules.Title(a.Kind)} 해결 · {reward}", false);
+                a.Bubble.Set($"<b>해결!</b>\n<size=80%>{Title(a)}</size>", new Color(0.35f, 0.8f, 0.45f));
+            string line = ResolveLine(a); // CONNECT A5 결과 한 줄 (도와준 이웃 · "옆에 ○○가 있었다면")
+            Message?.Invoke($"{Title(a)} 해결 · {reward}{(line != null ? " · " + line : "")}", false);
             // 해결 = 좋은 소식 (위계 밖). F 길게 누르기로 끝냈으면 (밸브 · 소화기 · 필터) 그 완료 화음 하나만 — 해결음과 겹치지 않게 (2026-11-25)
             if (!AlertSound.PlayedThisFrame(l => l.HoldDone))
                 AudioService.TryPlay(l => l.RepairDone);
@@ -840,11 +911,20 @@ namespace SpaceStation.Interior
             IncidentFinished?.Invoke(InteriorIncidentRules.Title(a.Kind), true);
         }
 
-        private string Miss(Incident a, bool left)
+        /// <summary>놓침: 이웃이 바꾼 손실 (CONNECT A5 결과 단계) · 번짐 한 줄.</summary>
+        private string Miss(Incident a, bool left, ModuleInstance spreadTo = null, bool spreadBlocked = false)
         {
-            string loss = Sim.MissIncident(a.Kind, a.Room, a.Resource);
+            string help = null;
+            var mods = a.Tutorial ? IncidentMiss.None : MissMods(a, out help);
+            string loss = Sim.MissIncident(a.Kind, a.Room, a.Resource, mods);
+            if (a.Tutorial)
+                help = null;
             string why = left ? "밖으로 나가는 동안" : "시간 안에 못 막아";
-            string text = $"{InteriorIncidentRules.Title(a.Kind)} · {why} 정비 인력이 처리했어요 · {loss}";
+            string text = $"{Title(a)} · {why} 정비 인력이 처리했어요 · {loss}{(help != null ? " · " + help : "")}";
+            if (spreadTo != null)
+                text += $" · 옆방 {RoomName(spreadTo)}{Josa(RoomName(spreadTo), "으로", "로")} 번졌어요";
+            else if (spreadBlocked)
+                text += $" · 옆 {RoomName(NeighborWith(a, InnerFace.NoSpread))} 덕에 번지지 않았어요";
             if (!left)
                 Message?.Invoke(text, true);
             AlertSound.TryPlay(AlertLevel.Caution); // 경보 위계 (2026-11-25): 사고 놓침 = 주의 (손실은 상한 있게 끝남 · 예전 나쁜 사건 소리 0.6)
@@ -907,8 +987,9 @@ namespace SpaceStation.Interior
                 a.Bubble.Place(tip, _eye, 0.4f); // 소품 앞에서 조작할 때 화면을 가리지 않게
         }
 
-        private static string BubbleText(Incident a, int secondsLeft) =>
-            $"<color=#C8401A><b>{InteriorIncidentRules.Title(a.Kind)}!</b></color>\n{InteriorIncidentRules.Hint(a.Kind)}" +
+        private string BubbleText(Incident a, int secondsLeft) =>
+            $"<color=#C8401A><b>{Title(a)}!</b></color>\n{InteriorIncidentRules.Hint(a.Kind)}" +
+            (a.CauseShort != null ? $"\n<size=75%><color=#3A5A78>{a.CauseShort}</color></size>" : "") + // CONNECT A5 원인 (말풍선 둘째 줄)
             (a.Tutorial ? "" : $"\n<size=75%><color=#7A6A60>남은 시간 {secondsLeft}초</color></size>");
 
         // ---------------- 도우미 ----------------

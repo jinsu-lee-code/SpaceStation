@@ -42,6 +42,21 @@ namespace SpaceStation.Simulation
         StarLanterns,
     }
 
+    /// <summary>CONNECT A5 결과 단계 (3번 ④ V2): 이웃이 놓친 사고의 손실을 바꿈.</summary>
+    [Flags]
+    public enum IncidentMiss
+    {
+        None = 0,
+        /// <summary>손실 없음 (코어가 처리 · 이웃 실드가 받쳐 줌).</summary>
+        NoLoss = 1,
+        /// <summary>손실 절반 (손상 통제실 ← 정비).</summary>
+        Half = 2,
+        /// <summary>만족도 손실 없음 (의료).</summary>
+        NoMood = 4,
+        /// <summary>샌 물을 회수 (수원 이웃) — 물 누출만.</summary>
+        Recovered = 8,
+    }
+
     /// <summary>놓친 상황의 손실 종류 (BALANCE 31번 값 그대로 — 새 상황은 지금 넷 중 하나 또는 만족도만).</summary>
     public enum IncidentLoss
     {
