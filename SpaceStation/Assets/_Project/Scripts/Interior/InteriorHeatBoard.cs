@@ -119,12 +119,12 @@ namespace SpaceStation.Interior
                     continue;
                 }
                 float h = heat.HeatOf(m);
-                float limit = Mathf.Max(0.01f, heat.Limit);
+                float limit = Mathf.Max(0.01f, heat.LimitOf(m)); // CONNECT A10 모듈마다 한도 (서늘함 = 낮음)
                 bool danger = heat.IsDanger(m);
                 bool over = heat.IsOverheated(m);
-                string state = danger ? "<b>위험</b>" : over ? "<b>과열</b>" : "정상";
+                string state = danger ? "<b>위험</b>" : over ? "<b>과열</b>" : heat.IsWarm(m) ? "♨ 온기" : "정상";
                 SetText(_names[i], m.Data != null ? m.Data.DisplayName : "모듈", ScreenText);
-                SetText(_values[i], $"{h:0.0} / {limit:0}  {state}", danger && !blink ? ScreenDim : ScreenText);
+                SetText(_values[i], $"{h:0.0} / {limit:0.#}  {state}", danger && !blink ? ScreenDim : ScreenText);
                 float t = Mathf.Clamp01(h / limit);
                 _bars[i].localScale = new Vector3(Mathf.Max(0.001f, _barWidth * t), _bars[i].localScale.y, 1f);
                 _bars[i].localPosition = _rows[i] + _right * (_barX + _barWidth * t * 0.5f) + _normal.normalized * 0.003f;

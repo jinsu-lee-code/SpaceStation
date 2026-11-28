@@ -3825,3 +3825,17 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 - 사고 · 현장 수리 상호작용에 `Work`, 사고 알림 "옆 통로에 비상 공구함", 조사 고침 ("수원이")
 
 **main에서 확인**: csc 컴파일 — 플레이는 tycoon에서 (EditMode 735). main 데이터 = 캠페인 규칙 그대로 (관제소 지도 표시 · 안쪽 얼굴 없음). 비상 공구함은 안쪽 얼굴이 있는 관계 표에서만 (`AdjacencySystem.HasInnerFaces` — main 캠페인엔 안 나옴), 허브 표지판 상황 표시는 표시만이라 main에도.
+
+## M-377. 열 온기 ⑤ W1 — 모듈마다 알맞은 온도 (CONNECT_1121 3번, 2026-11-28, `main` — tycoon과 같은 코드, 값은 tycoon만)
+
+결정 (사용자 2026-11-28, 추천안): 온기 구간 열 0.5 ~ 4 · 전력 -20% · 생산 +15% · 칸 단위 열이 열릴 때 함께 · 서늘함 한도 = 보통의 절반 · 데이터 센터 발열 1.
+
+**main에 넣은 것 (코드만)**
+
+- `HeatPowerConfig` (새 파일 — 따뜻함 · 서늘함 모듈 목록 · 온기 구간 · 효과 · 안쪽 얼굴 · 배전 범위 값)
+- `HeatSystem.Comfort` (null = 예전 그대로): 모듈마다 한도 `LimitOf` (서늘함 = 절반) · `IsWarm` · `PowerDemandMultiplier` · 생산 배율에 온기 +15% · 배치 미리보기 `PreviewHeatAt` · `PreviewSource` · 글 `PreferenceText` · `StateText` · `PreviewText`
+- `ResourceSimulation.Tick(…, powerMultipliers, …)` (모듈별 전력 소비 배율, null = 1) · `StationModuleStats.PowerMultipliers`
+- 표시: `HeatMapView` 온기 상자 · "♨ 온기" 라벨 · 상태 줄 (main의 방사선 줄과 합침) · 과열은 모듈 한도로 · `InteriorHeatBoard` · 정보 창 · 건설 메뉴 · 배치 안내 한 줄
+- 봇 `ThermalScore` (관계를 보는 봇만, 설정이 없으면 0) · 시험 `HeatTests` +4
+
+**main에서 확인**: csc 컴파일 — 플레이 · 봇 측정은 tycoon에서 (EditMode 739). main에는 설정 에셋 · 씬 연결이 없어 열은 예전 그대로 (캠페인 5장 열은 통합 밸런싱 때). 데이터 센터 발열도 tycoon 데이터만.

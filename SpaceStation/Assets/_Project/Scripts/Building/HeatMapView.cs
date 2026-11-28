@@ -17,6 +17,8 @@ namespace SpaceStation.Building
     /// - 라벨을 누르면 그 모듈로 카메라 이동 + 선택
     /// - 늘: 과열 상자, 위험 라벨. 열 지도(J, 또는 건설 메뉴에서 방열판을 고르면 저절로): 과열 라벨, 방열판 추천 자리(깜빡이는 하늘색 칸), 막히거나 멈춘 방열판
     /// - 화면 왼쪽 아래 상태 줄: 과열 · 위험 수와 안내 (대륙급부터)
+    /// - CONNECT A10 온기 (엔드리스, 2026-11-28): 열 지도에서 온기 구간의 따뜻함 모듈 = 흐린 흰 상자(깜빡임 없음) + 라벨 "♨ 온기" — 모양(♨) · 밝기로 (색약).
+    ///   과열 판정은 모듈마다 한도 (서늘함 모듈 = 낮음)
     /// </summary>
     public sealed class HeatMapView : MonoBehaviour
     {
@@ -39,6 +41,7 @@ namespace SpaceStation.Building
             Radiator,
             Spot,
             Radiated,
+            Warm,
         }
 
         private sealed class Box
@@ -62,6 +65,8 @@ namespace SpaceStation.Building
         private static readonly Color SpotColor = new Color(0.2f, 0.8f, 1f, 0.45f);
         private static readonly Color RadiatorColor = new Color(0.2f, 0.8f, 1f, 0.22f);
         private static readonly Color DeadRadiatorColor = new Color(0.55f, 0.55f, 0.6f, 0.3f);
+        private static readonly Color WarmColor = new Color(1f, 0.97f, 0.9f, 0.14f);   // CONNECT A10 — 흐림 · 깜빡임 없음 (과열보다 어둡게)
+        private static readonly Color WarmAccent = new Color(0.96f, 0.93f, 0.86f, 0.9f);
         private static readonly Color OverAccent = new Color(1f, 0.85f, 0.2f, 0.9f);
         private static readonly Color DangerAccent = new Color(1f, 1f, 1f, 0.95f);
         private static readonly Color RadiatorAccent = new Color(0.65f, 0.7f, 0.75f, 0.9f);
@@ -252,7 +257,7 @@ namespace SpaceStation.Building
                 string text = hidden ? "안쪽 과열 위험" : b.Label;
                 string arrow = m.Arrow.Length > 0 ? m.Arrow : "";
                 _layer.Set(m, (int)b.Kind * 2 + (hidden ? 1 : 0), arrow + text,
-                    b.Kind == Kind.Danger ? DangerAccent : b.Kind == Kind.Over ? OverAccent : b.Kind == Kind.Radiated ? RadiatedAccent : RadiatorAccent);
+                    b.Kind == Kind.Danger ? DangerAccent : b.Kind == Kind.Over ? OverAccent : b.Kind == Kind.Radiated ? RadiatedAccent : b.Kind == Kind.Warm ? WarmAccent : RadiatorAccent);
                 left--;
                 if (hidden)
                     faintLeft--;
@@ -403,14 +408,22 @@ namespace SpaceStation.Building
         private void Rebuild()
         {
             _used = 0;
-            int over = 0, danger = 0;
+            int over = 0, danger = 0, warm = 0;
             float limit = _heat.Limit;
             foreach (var kv in _heat.HeatMap)
             {
                 var m = kv.Key;
-                bool isOver = kv.Value > limit + 1e-4f;
+                bool isOver = _heat.IsOverheated(m); // 모듈마다 한도 (CONNECT A10 서늘함 = 낮음)
                 if (!isOver)
-                    continue; // 한도 이하는 칠하지 않음 (정거장 전체가 물들어 어디가 문제인지 안 보였음)
+                {
+                    if (_heat.IsWarm(m))
+                    {
+                        warm++;
+                        if (MapOn)
+                            PlaceModule(m, Kind.Warm, WarmColor, false, "♨ 온기"); // CONNECT A10
+                    }
+                    continue; // 한도 이하는 칠하지 않음 (정거장 전체가 물들어 어디가 문제인지 안 보였음) — 온기만 흐리게
+                }
                 bool isDanger = _heat.IsDanger(m);
                 over++;
                 if (isDanger)
@@ -438,7 +451,10 @@ namespace SpaceStation.Building
             string tail = MapOn
                 ? (spots > 0 ? "\n<color=#7FE0FF>깜빡이는 하늘색 칸 = 방열판 추천 자리</color>  <color=#C8D2DE>흐린 라벨 = 안쪽에 가려진 과열 · 라벨을 누르면 그 모듈로</color>" : "")
                 : $"  <color=#C8D2DE>{key}: 지도 보기</color>";
-            string heatLine = _heat.Active ? $"<b>열 관리</b>  과열 {over} · 위험 {danger}  <color=#C8D2DE>(한도 {limit:0} · 위험 {_heat.DangerLevel:0.#})</color>" : "";
+            var comfort = _heat.Comfort; // CONNECT A10 온기 (설정이 있는 판만)
+            string warmText = comfort != null ? $" · ♨ 온기 {warm}" : "";
+            string coolText = comfort != null ? $" · 서늘함 한도 {limit * comfort.CoolLimitRatio:0.#}" : "";
+            string heatLine = _heat.Active ? $"<b>열 관리</b>  과열 {over} · 위험 {danger}{warmText}  <color=#C8D2DE>(한도 {limit:0}{coolText} · 위험 {_heat.DangerLevel:0.#})</color>" : "";
             string radLine = RadiationOn ? $"<b>방사선</b>  높은 집 {radiated}  <color=#C8D2DE>(한도 {_radiation.Comfort:0.#} · 위 · 아래 · 옆 중 가장 얇은 쪽으로 정해짐 · 장갑 격벽 2겹 · 차폐실로 낮춤)</color>" : "";
             _hud.SetText(string.IsNullOrEmpty(heatLine) || string.IsNullOrEmpty(radLine) ? heatLine + radLine + tail : heatLine + "\n" + radLine + tail);
         }
@@ -472,12 +488,11 @@ namespace SpaceStation.Building
                 return 0;
             var grid = _station.Grid;
             var sim = _station.Simulation;
-            float limit = _heat.Limit;
             float removal = _radiator.HeatRemoval;
             _spotScore.Clear();
             foreach (var kv in _heat.HeatMap)
             {
-                if (kv.Value <= limit + 1e-4f)
+                if (!_heat.IsOverheated(kv.Key))
                     continue;
                 float relief = Mathf.Min(removal, kv.Value);
                 foreach (var c in kv.Key.Cells)
