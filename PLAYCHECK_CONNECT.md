@@ -121,7 +121,7 @@
 
 - 폴더 (Unity 폴더 트리 밖, 위에 CLAUDE.md 없음): `C:\Users\mbc\PlayCheckRuns`
   - `builds\baseline1127` = 11-27 01:40 검증용 빌드 (1 ~ 3번 작업 전 — 추방 · 광맥 · 인접 태그 · 상황 개편 없음). 저장소 쪽 원본 = `SpaceStation/Builds/PlayCheck_Baseline1127`
-  - `builds\current` = 2026-11-28 15:35 검증용 빌드 (3번 ⑤ 열 온기 · 과부하 + 열 상태 줄 수정까지, tycoon `0b433548`)
+  - `builds\current` = 2026-11-28 15:45 검증용 빌드 (3번 ⑤ 열 온기 · 과부하 + 열 상태 줄 수정 + 창 뒤 라벨 숨김 SIMU_FIX U1 · U4까지, tycoon `0f584b10`)
   - `tools\gamekeys.ps1` · 판마다 빈 폴더 `run0_baseline_na` · `run1_ga` · `run2_na` · `run3_da` (플레이 세션은 이 폴더에서 시작 — 기록 `play_log.md` · `after.md`가 여기에 남음)
 - 두 빌드는 제품 이름이 같아 세이브 · 기록 폴더(`LocalLow/BinaryCompany/Another Earth PlayCheck`)를 같이 씀 → **판마다 시작 전에** ① 앞 판 기록 파일(`PlayCheck/playcheck_*.txt`)을 그 판 폴더로 옮기고 ② 그 폴더와 레지스트리 `HKCU\Software\BinaryCompany\Another Earth PlayCheck`를 비움 (작업 세션이 함)
 - 순서: 판 0 (기준선) → 1 → 2 → 3. 한 번에 한 판 (화면 하나). 판마다 새 세션 · 앞 판 기억 없음
