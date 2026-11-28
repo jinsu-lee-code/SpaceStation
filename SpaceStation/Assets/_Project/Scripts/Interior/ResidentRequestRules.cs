@@ -15,6 +15,8 @@ namespace SpaceStation.Interior
         Fix,
         /// <summary>말동무 (언제나 가능).</summary>
         Talk,
+        /// <summary>CONNECT A8 소음 민원 (사용자 결정 2026-11-28): 옆 소음원 방에 흡음 덮개 달기 — 소음원 · 활기 옆 주거 · 정숙 방 주민만.</summary>
+        Noise,
     }
 
     /// <summary>11-17 ③ 가져다줄 물건.</summary>
@@ -36,6 +38,7 @@ namespace SpaceStation.Interior
         public const float FetchWeight = 1f;
         public const float FixWeight = 0.8f;
         public const float TalkWeight = 0.6f;
+        public const float NoiseWeight = 1f;
 
         /// <param name="r">0~1 난수</param>
         public static float NextDelay(float min, float max, double r) => min + (Math.Max(min, max) - min) * (float)Math.Max(0.0, Math.Min(1.0, r));
@@ -48,6 +51,10 @@ namespace SpaceStation.Interior
         /// </summary>
         /// <param name="r">0~1 난수</param>
         public static RequestKind? Pick(bool water, bool fetch, bool fix, ICollection<RequestKind> active, double r)
+            => Pick(water, fetch, fix, false, active, r);
+
+        /// <summary>종류 고르기 (CONNECT A8 소음 민원 포함 — noise = 옆에 소음원 · 활기 방이 있음).</summary>
+        public static RequestKind? Pick(bool water, bool fetch, bool fix, bool noise, ICollection<RequestKind> active, double r)
         {
             var pool = new List<(RequestKind Kind, float Weight)>(4);
             for (int pass = 0; pass < 2 && pool.Count == 0; pass++)
@@ -61,6 +68,7 @@ namespace SpaceStation.Interior
                 Add(RequestKind.Water, water, WaterWeight);
                 Add(RequestKind.Fetch, fetch, FetchWeight);
                 Add(RequestKind.Fix, fix, FixWeight);
+                Add(RequestKind.Noise, noise, NoiseWeight);
                 Add(RequestKind.Talk, true, TalkWeight);
             }
             float total = 0f;
@@ -108,6 +116,7 @@ namespace SpaceStation.Interior
                 case RequestKind.Water: return "화분이 시들었어요\n물 좀 줄래요?";
                 case RequestKind.Fetch: return $"{ItemName(item)}{Josa(ItemName(item))} {place}에 두고 왔어요\n가져다줄래요?";
                 case RequestKind.Fix: return "환풍구가 덜컹거려요\n좀 봐줄래요?";
+                case RequestKind.Noise: return $"옆방 {place} 소리가 너무 커요\n흡음 덮개 좀 달아 줄래요?";
                 default: return "심심해요...\n얘기 좀 해요";
             }
         }
@@ -120,6 +129,7 @@ namespace SpaceStation.Interior
                 case RequestKind.Water: return "화분 물 주기";
                 case RequestKind.Fetch: return "물건 가져다주기";
                 case RequestKind.Fix: return "소품 손보기";
+                case RequestKind.Noise: return "소음 민원";
                 default: return "말동무";
             }
         }
@@ -188,6 +198,7 @@ namespace SpaceStation.Interior
                 case RequestKind.Water: return "고마워요! 잎이 금방 살아나겠어요";
                 case RequestKind.Fetch: return "찾던 거예요! 고마워요";
                 case RequestKind.Fix: return "이제 조용하네요. 고마워요!";
+                case RequestKind.Noise: return "훨씬 조용해졌어요. 고마워요!";
                 default: return "얘기 들어줘서 고마워요";
             }
         }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using SpaceStation.Audio;
 using SpaceStation.Building;
 using SpaceStation.Core;
+using SpaceStation.Data;
 using SpaceStation.Simulation;
 using SpaceStation.UI;
 using UnityEngine;
@@ -60,7 +61,16 @@ namespace SpaceStation.Interior
             public Transform Parent;
             public readonly List<Point> Points = new List<Point>();
             public bool Done; // 수리 끝 (남은 덧댄 판만)
+            // CONNECT A8 안쪽 얼굴 (3번 ④ V3)
+            public bool Fewer, Quick;
+            public string Help;
         }
+
+        /// <summary>CONNECT A8 정비 베이 옆 = 현장 수리 F 시간 배율.</summary>
+        private const float QuickHold = 0.6f;
+        private readonly List<InnerHit> _hits = new List<InnerHit>();
+
+        private static string AppendHelp(string help, string line) => help == null ? line : help + " · " + line;
 
         private static readonly Color SmokeColor = new Color(0.22f, 0.21f, 0.2f, 1f);
         private static readonly Color SteamColor = new Color(0.5f, 0.53f, 0.56f, 0.7f); // 밝으면 지점 불빛 · Bloom에 하얗게 탔음
@@ -163,6 +173,26 @@ namespace SpaceStation.Interior
             var rng = new System.Random(seed);
             InteriorSpots.Walls(_builder, module, rng, _s.Height, _candidates);
             int want = Sim.Balance.FieldRepairPoints(module.Cells.Count);
+            // CONNECT A8 안쪽 얼굴 (3번 ④ V3): 창고 공구 · 장갑 옆 = 손상 지점 하나 적게 (여럿이어도 하나, 최소 1), 정비 베이 옆 = F 짧게
+            if (Sim.Adjacency != null)
+            {
+                Sim.Adjacency.InnerFor(Sim.Grid, module, _hits);
+                foreach (var h in _hits)
+                {
+                    if ((h.Face & InnerFace.RepairFewer) != 0 && !site.Fewer && h.Neighbor?.Data != null)
+                    {
+                        site.Fewer = true;
+                        site.Help = AppendHelp(site.Help, $"옆 {h.Neighbor.Data.DisplayName} 덕에 지점 하나 적게");
+                    }
+                    if ((h.Face & InnerFace.RepairQuick) != 0 && !site.Quick && h.Neighbor?.Data != null)
+                    {
+                        site.Quick = true;
+                        site.Help = AppendHelp(site.Help, $"옆 {h.Neighbor.Data.DisplayName} 덕에 빨리");
+                    }
+                }
+            }
+            if (site.Fewer)
+                want = Mathf.Max(1, want - 1);
             var chosen = new List<(Vector3 Position, Vector3 Normal)>();
             foreach (var c in _candidates)
             {
@@ -227,7 +257,7 @@ namespace SpaceStation.Interior
                 col.size = Vector3.Max(b.size, new Vector3(0.3f, 0.3f, 0.12f));
             }
             var it = p.Prop.AddComponent<InteriorInteractable>();
-            it.HoldSeconds = Sim.Balance.FieldRepairHoldSeconds;
+            it.HoldSeconds = Sim.Balance.FieldRepairHoldSeconds * (site.Quick ? QuickHold : 1f); // CONNECT A8 정비 베이 옆
             it.Prompt = () => PromptFor(site, p);
             it.Blocked = () => BlockedFor(site, p);
             it.Holding = progress => Weld(p);
@@ -287,12 +317,13 @@ namespace SpaceStation.Interior
         {
             int total = site.Points.Count;
             int done = total - Remaining(site);
+            string help = site.Help != null ? $"  <color={HudText.Muted}>{site.Help}</color>" : ""; // CONNECT A5 이웃 한 줄
             if (Remaining(site) > 1)
-                return $"현장 수리  <color={HudText.Muted}>손상 {done + 1}/{total}</color>";
+                return $"현장 수리  <color={HudText.Muted}>손상 {done + 1}/{total}</color>{help}";
             var cost = Sim.GetFieldRepairCost(site.Module);
             string price = Sim.FieldRepairUsesFreeRepair(site.Module) ? $"<color={HudText.Yellow}>무료 수리권 사용</color>"
                 : cost.Count > 0 ? HudText.Cost(cost) : $"<color={HudText.Muted}>수리비 이미 냄</color>";
-            return $"현장 수리 마무리  {price}";
+            return $"현장 수리 마무리  {price}{help}";
         }
 
         private string BlockedFor(Site site, Point p)

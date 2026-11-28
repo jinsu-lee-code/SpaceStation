@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using SpaceStation.Audio;
 using SpaceStation.Building;
 using SpaceStation.Core;
+using SpaceStation.Data;
 using SpaceStation.Simulation;
 using TMPro;
 using UnityEngine;
@@ -78,12 +79,22 @@ namespace SpaceStation.Interior
             // 2026-11-26 손 동작 소리 (물 붓기 · 환풍구 조이기 — 누르기 시작에 처음부터 · 다 누르기 전에 떼면 꺼짐, SOUND_LIST_NEW 4-3)
             public HeldSound Held;
             public bool HeldNow, HeldWas;
+            // CONNECT A8 안쪽 얼굴 (3번 ④ V3, 2026-11-28)
+            public InnerFace Inner;
+            public readonly List<InnerHit> Hits = new List<InnerHit>();
+            /// <summary>소음 민원: 흡음 덮개를 달 시끄러운 이웃 방.</summary>
+            public ModuleInstance NoiseRoom;
         }
 
         private static readonly Color WaterColor = new Color(0.3f, 0.62f, 0.95f);
         private static readonly Color FetchColor = new Color(0.95f, 0.62f, 0.2f);
         private static readonly Color FixColor = new Color(0.45f, 0.75f, 0.35f);
         private static readonly Color TalkColor = new Color(0.92f, 0.45f, 0.65f);
+        private static readonly Color NoiseColor = new Color(0.62f, 0.52f, 0.92f);
+        /// <summary>흡음 덮개 색 (환풍구 모델을 다시 씀 — 연보라 펠트, 플레이 확인: 짙은 보라는 어두운 방에서 검게 보였음).</summary>
+        private static readonly Color FeltColor = new Color(0.72f, 0.64f, 0.92f);
+        /// <summary>CONNECT A8 부탁이 가벼움 = F 누르는 시간 배율 · 보상 ↑ · ↓ 배율.</summary>
+        private const float LightHold = 0.6f, BonusScale = 1.5f, PenaltyScale = 0.5f;
         private const float LooseTilt = 9f;
 
         private StationController _station;
@@ -103,6 +114,8 @@ namespace SpaceStation.Interior
         private readonly List<(Vector3 Position, Vector3 Normal)> _walls = new List<(Vector3, Vector3)>();
         private readonly List<Vector3> _usedFloor = new List<Vector3>();
         private readonly Dictionary<ModuleInstance, GameObject> _vents = new Dictionary<ModuleInstance, GameObject>();
+        private readonly List<InnerHit> _hits = new List<InnerHit>();
+        private MaterialPropertyBlock _block;
 
         /// <summary>플레이어가 있는 방 (요청은 이 방 · 옆방에서만 생김).</summary>
         public ModuleInstance CurrentRoom { get; set; }
@@ -162,6 +175,8 @@ namespace SpaceStation.Interior
                 if (r.Room == module)
                     n++;
                 else if (r.Kind == RequestKind.Fetch && !r.Carrying && r.ItemRoom == module)
+                    n++;
+                else if (r.Kind == RequestKind.Noise && r.NoiseRoom == module)
                     n++;
             }
             return n;
@@ -224,6 +239,11 @@ namespace SpaceStation.Interior
                         break;
                     case RequestKind.Fix:
                         target = r.Vent;
+                        break;
+                    case RequestKind.Noise: // CONNECT A8 소음 민원: 옆 소음원 방 흡음 덮개
+                        target = r.Vent;
+                        if (r.NoiseRoom != null)
+                            room = r.NoiseRoom;
                         break;
                     case RequestKind.Fetch:
                         if (!r.Carrying && r.ItemRoom != null)
@@ -364,22 +384,36 @@ namespace SpaceStation.Interior
             var plant = FindPlant(room);
             bool fetch = _layout.Rooms.Count > 1;
             bool fix = !_vents.ContainsKey(room) && FindVentSpot(room, out _, out _);
+            // CONNECT A8 안쪽 얼굴 (3번 ④ V3): 이 주민 방의 이웃 관계 — 소음 민원 · 옆방 물건 · 보상 ↑ ↓ · 가벼움
+            var inner = InnerFace.None;
+            if (Sim.Adjacency != null)
+            {
+                Sim.Adjacency.InnerFor(Sim.Grid, room, _hits);
+                foreach (var h in _hits)
+                    inner |= h.Face;
+            }
+            else
+                _hits.Clear();
+            bool noise = (inner & InnerFace.NoiseComplaint) != 0 && NoisyRoom(room, _hits) != null;
             var active = new List<RequestKind>();
             foreach (var q in _requests)
             {
                 if (!q.Done)
                     active.Add(q.Kind);
             }
-            var kind = forced ?? ResidentRequestRules.Pick(plant != null, fetch, fix, active, _rng.NextDouble());
+            var kind = forced ?? ResidentRequestRules.Pick(plant != null, fetch, fix, noise, active, _rng.NextDouble());
             if (kind == null)
                 return false;
-            var r = new Request { Kind = kind.Value, ResidentId = resident.Id, Name = resident.Name, Room = room };
+            var r = new Request { Kind = kind.Value, ResidentId = resident.Id, Name = resident.Name, Room = room, Inner = anywhere ? InnerFace.None : inner };
+            if (!anywhere)
+                r.Hits.AddRange(_hits);
             bool placed;
             switch (r.Kind)
             {
                 case RequestKind.Water: placed = plant != null && PlaceWater(r, plant); break;
                 case RequestKind.Fetch: placed = fetch && PlaceFetch(r); break;
                 case RequestKind.Fix: placed = PlaceVent(r); break;
+                case RequestKind.Noise: placed = noise && PlaceNoise(r); break;
                 default: placed = true; break;
             }
             if (!placed)
@@ -394,7 +428,8 @@ namespace SpaceStation.Interior
             r.Bubble.Set(BubbleText(r), Accent(r.Kind));
             _requests.Add(r);
             string where = room == CurrentRoom ? "" : $" <color=#AFC4D8>({RoomName(room)})</color>";
-            Message?.Invoke($"{r.Name}의 부탁{where} · {ResidentRequestRules.Title(r.Kind)}", false);
+            string why = r.Kind == RequestKind.Noise ? $" · 옆방 {RoomName(r.NoiseRoom)} 소음" : ""; // CONNECT A5 원인 한 줄
+            Message?.Invoke($"{r.Name}의 부탁{where} · {ResidentRequestRules.Title(r.Kind)}{why}", false);
             AudioService.TryPlay(l => l.RequestPop);   // 2026-11-26 말풍선 "뽁" (창 열기 0.8을 빌려 쓰던 자리, SOUND_LIST_NEW 4-3)
             // 2026-11-26 정한 것 S-28 "알림만": 뽁 뒤 주민의 부탁 울음은 뺌 (목소리는 다가갈 때 반응에만 — InteriorResidentSound)
             return true;
@@ -483,7 +518,7 @@ namespace SpaceStation.Interior
             r.PlantCollider.center = root.InverseTransformPoint(bounds.center);
             r.PlantCollider.size = bounds.size / scale;
             r.PlantUse = root.gameObject.AddComponent<InteriorInteractable>();
-            r.PlantUse.HoldSeconds = _s.WaterHold;
+            r.PlantUse.HoldSeconds = _s.WaterHold * Light(r);
             r.PlantUse.Prompt = () => $"시든 화분에 물 주기  <color=#AFC4D8>{r.Name}의 부탁</color>";
             r.PlantUse.Holding = _ => r.HeldNow = true;
             if (r.Held == null)
@@ -534,6 +569,14 @@ namespace SpaceStation.Interior
                 int j = _rng.Next(i + 1);
                 (rooms[i], rooms[j]) = (rooms[j], rooms[i]);
             }
+            // CONNECT A8 안쪽 얼굴: 상점 = 이 방에서 바로, 옆집 · 옆방 이웃 = 그 방 먼저
+            foreach (var h in r.Hits)
+            {
+                if ((h.Face & InnerFace.FetchNearby) != 0 && h.Neighbor != null && rooms.Remove(h.Neighbor))
+                    rooms.Insert(0, h.Neighbor);
+            }
+            if ((r.Inner & InnerFace.FetchHere) != 0)
+                rooms.Insert(0, r.Room);
             foreach (var room in rooms)
             {
                 var parent = _builder.RoomParent(room);
@@ -547,7 +590,7 @@ namespace SpaceStation.Interior
                 go.transform.SetPositionAndRotation(spot, Quaternion.Euler(0f, (float)_rng.NextDouble() * 360f, 0f));
                 AddBoxCollider(go);
                 var use = go.AddComponent<InteriorInteractable>();
-                use.HoldSeconds = _s.PickupHold;
+                use.HoldSeconds = _s.PickupHold * Light(r);
                 use.Prompt = () => $"{ResidentRequestRules.ItemName(r.Item)} 줍기  <color=#AFC4D8>{r.Name}의 부탁</color>";
                 use.Completed = () => Pickup(r);
                 r.ItemObject = go;
@@ -578,11 +621,17 @@ namespace SpaceStation.Interior
         {
             if (_s.Vent == null || _vents.ContainsKey(r.Room) || !FindVentSpot(r.Room, out var position, out var normal))
                 return false;
-            var parent = _builder.RoomParent(r.Room);
+            return PlaceVentAt(r, r.Room, position, normal, noise: false);
+        }
+
+        /// <summary>환풍구 (또는 CONNECT A8 소음 민원의 흡음 덮개 — 같은 모델을 펠트 색으로) 하나를 그 방 벽 자리에.</summary>
+        private bool PlaceVentAt(Request r, ModuleInstance ventRoom, Vector3 position, Vector3 normal, bool noise)
+        {
+            var parent = _builder.RoomParent(ventRoom);
             if (parent == null)
                 return false;
             var go = Instantiate(_s.Vent, parent);
-            go.name = "RequestVent";
+            go.name = noise ? "RequestNoiseCover" : "RequestVent";
             go.transform.SetPositionAndRotation(position, Quaternion.LookRotation(normal, Vector3.up));
             foreach (var x in go.GetComponentsInChildren<Renderer>())
                 x.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; // 벽에 붙은 얇은 소품
@@ -599,8 +648,9 @@ namespace SpaceStation.Interior
             col.center = new Vector3(0f, 0f, 0.03f);
             col.size = new Vector3(0.52f, 0.4f, 0.08f);
             var use = go.AddComponent<InteriorInteractable>();
-            use.HoldSeconds = _s.FixHold;
-            use.Prompt = () => $"덜컹거리는 환풍구 조이기  <color=#AFC4D8>{r.Name}의 부탁</color>";
+            use.HoldSeconds = _s.FixHold * Light(r);
+            use.Prompt = () => noise ? $"흡음 덮개 달기  <color=#AFC4D8>{r.Name}의 소음 민원 ({RoomName(r.Room)})</color>"
+                : $"덜컹거리는 환풍구 조이기  <color=#AFC4D8>{r.Name}의 부탁</color>";
             use.Holding = _ =>
             {
                 r.Holding = true;
@@ -614,8 +664,100 @@ namespace SpaceStation.Interior
             r.Held = AudioService.AttachHeld(l => l.VentFix, go.transform);   // 2026-11-26 덜컥 → 끼릭 → 톡 (환풍구 3D)
             r.Vent = go;
             r.NextRattle = r.Age + 0.5f;
-            _vents[r.Room] = go;
+            _vents[ventRoom] = go;
+            if (noise)
+                TintAll(go, FeltColor);
             return true;
+        }
+
+        // ---------------- CONNECT A8 소음 민원 (3번 ④ V3, 사용자 결정 2026-11-28) ----------------
+
+        /// <summary>흡음 덮개를 달 시끄러운 이웃 방 (소음원 · 활기 — 지은 방, 덮개 · 환풍구가 아직 없는 것). 없으면 null.</summary>
+        private ModuleInstance NoisyRoom(ModuleInstance room, List<InnerHit> hits)
+        {
+            foreach (var h in hits)
+            {
+                if ((h.Face & InnerFace.NoiseComplaint) == 0 || h.Neighbor == null || h.Neighbor == room)
+                    continue;
+                if (_layout == null || !_layout.Contains(h.Neighbor) || _builder.RoomParent(h.Neighbor) == null || _vents.ContainsKey(h.Neighbor))
+                    continue;
+                return h.Neighbor;
+            }
+            return null;
+        }
+
+        /// <summary>소음 민원: 시끄러운 이웃 방의 이 방 쪽 문가 벽에 흡음 덮개 (문을 막지 않게 0.9m 이상, 없으면 그 방 아무 벽).</summary>
+        private bool PlaceNoise(Request r)
+        {
+            if (_s.Vent == null)
+                return false;
+            var noisy = NoisyRoom(r.Room, r.Hits);
+            if (noisy == null)
+                return false;
+            Vector3? door = null;
+            var parent = _builder.RoomParent(noisy);
+            if (parent != null && _builder.TryGetWayPoint(noisy, r.Room, parent.position, out var point, out _, out bool lift) && !lift)
+                door = point;
+            Vector3 position = default, normal = default;
+            bool found = false;
+            if (door.HasValue)
+            {
+                InteriorSpots.Walls(_builder, noisy, _rng, _s.VentHeight, _walls);
+                float best = float.MaxValue;
+                foreach (var (p, n) in _walls)
+                {
+                    float d = new Vector2(p.x - door.Value.x, p.z - door.Value.z).magnitude;
+                    if (d < 0.9f || d >= best)
+                        continue;
+                    best = d;
+                    position = p;
+                    normal = n;
+                    found = true;
+                }
+            }
+            if (!found && !FindVentSpot(noisy, out position, out normal))
+                return false;
+            r.NoiseRoom = noisy;
+            return PlaceVentAt(r, noisy, position, normal, noise: true);
+        }
+
+        private void TintAll(GameObject go, Color color)
+        {
+            if (_block == null)
+                _block = new MaterialPropertyBlock();
+            foreach (var rend in go.GetComponentsInChildren<Renderer>())
+            {
+                for (int i = 0; i < rend.sharedMaterials.Length; i++)
+                {
+                    _block.Clear();
+                    _block.SetColor("_BaseColor", color);
+                    rend.SetPropertyBlock(_block, i);
+                }
+            }
+        }
+
+        /// <summary>CONNECT A8 부탁이 가벼움 (여가 ← 녹지 · 상업) = F 짧게.</summary>
+        private static float Light(Request r) => (r.Inner & InnerFace.RequestLight) != 0 ? LightHold : 1f;
+
+        /// <summary>CONNECT A8 보상 배율: 말동무 ← 옆집 · 부탁 보상 ↑ = 1.5, 소음 · 북적임 옆 = 0.5 (둘 다면 1).</summary>
+        private static float RewardScale(Request r, out string why)
+        {
+            why = null;
+            bool up = (r.Inner & (InnerFace.RequestBonus | InnerFace.RequestLight)) != 0
+                      || (r.Kind == RequestKind.Talk && (r.Inner & InnerFace.TalkBonus) != 0);
+            bool down = (r.Inner & InnerFace.RequestPenalty) != 0;
+            if (up == down)
+                return 1f;
+            foreach (var h in r.Hits)
+            {
+                var face = up ? (InnerFace.RequestBonus | InnerFace.RequestLight | InnerFace.TalkBonus) : InnerFace.RequestPenalty;
+                if ((h.Face & face) != 0 && h.Neighbor != null)
+                {
+                    why = up ? $"옆 {RoomName(h.Neighbor)} 덕에 보상 ↑" : $"옆 {RoomName(h.Neighbor)} 소음에 보상 ↓";
+                    break;
+                }
+            }
+            return up ? BonusScale : PenaltyScale;
         }
 
         /// <summary>덜컹거림: 왼쪽 위 나사에 매달려 9° 기운 덮개가 가끔 짧게 떨림 (가까우면 덜컥 소리). F를 누르는 동안은 조여지며 바로 섬.</summary>
@@ -685,7 +827,7 @@ namespace SpaceStation.Interior
             var use = figure.gameObject.GetComponent<InteriorInteractable>();
             if (use == null)
                 use = figure.gameObject.AddComponent<InteriorInteractable>();
-            use.HoldSeconds = _s.HandHold;
+            use.HoldSeconds = _s.HandHold * Light(r);
             use.Blocked = null;
             use.Holding = null;
             use.Prompt = () => ResidentPrompt(r);
@@ -706,6 +848,8 @@ namespace SpaceStation.Interior
                         : $"{r.Name}의 부탁  {muted}{item}{ResidentRequestRules.Particle(item, "은", "는")} {RoomName(r.ItemRoom)}에 있어요</color>";
                 case RequestKind.Water:
                     return $"{r.Name}의 부탁  {muted}시든 화분에 물을 주세요</color>";
+                case RequestKind.Noise:
+                    return $"{r.Name}의 소음 민원  {muted}옆방 {RoomName(r.NoiseRoom)}에 흡음 덮개를 달아 주세요</color>";
                 default:
                     return $"{r.Name}의 부탁  {muted}덜컹거리는 환풍구를 조여 주세요</color>";
             }
@@ -719,8 +863,11 @@ namespace SpaceStation.Interior
                 return;
             var resident = ResidentOf(r.ResidentId);
             string reward = null;
+            float scale = RewardScale(r, out string why); // CONNECT A8 이웃 보상 ↑ ↓
             if (resident != null)
-                Sim.CompleteResidentRequest(resident, out reward);
+                Sim.CompleteResidentRequest(resident, out reward, null, scale);
+            if (why != null)
+                reward = reward != null ? $"{reward} · {why}" : why;
             r.Done = true;
             r.DoneAge = r.Age;
             r.Reply = r.Kind == RequestKind.Talk ? ResidentRequestRules.TalkLine(resident != null ? resident.Traits : null, _rng.NextDouble())
@@ -773,7 +920,7 @@ namespace SpaceStation.Interior
         {
             string ask = r.Kind == RequestKind.Fetch && r.Carrying
                 ? $"{ResidentRequestRules.ItemName(r.Item)}! 여기요, 여기!"
-                : ResidentRequestRules.Ask(r.Kind, r.Item, RoomName(r.ItemRoom));
+                : ResidentRequestRules.Ask(r.Kind, r.Item, RoomName(r.Kind == RequestKind.Noise ? r.NoiseRoom : r.ItemRoom));
             return $"<size=78%><color=#{ColorUtility.ToHtmlStringRGB(Accent(r.Kind) * 0.8f)}><b>{ResidentRequestRules.Title(r.Kind)}</b></color></size>\n{ask}";
         }
 
@@ -784,6 +931,7 @@ namespace SpaceStation.Interior
                 case RequestKind.Water: return WaterColor;
                 case RequestKind.Fetch: return FetchColor;
                 case RequestKind.Fix: return FixColor;
+                case RequestKind.Noise: return NoiseColor;
                 default: return TalkColor;
             }
         }

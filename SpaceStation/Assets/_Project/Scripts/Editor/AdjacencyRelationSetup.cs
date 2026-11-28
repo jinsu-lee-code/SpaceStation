@@ -51,34 +51,34 @@ namespace SpaceStation.Editor
             R("광합성 보조", AdjacencyEffect.Production, 0.15f, 3, "OxygenSource", "Greenery", "MD_Oxygen", InnerFace.FilterEasy), // 생산 관계는 대상 모듈도 (설명에 "산소 생산" — 태그만이면 "생산"), ⑥ 진화 태그 때 넓힘
             new Relation { Label = "그늘", Effect = AdjacencyEffect.Production, Value = -0.1f, Max = 3, TargetTag = "SolarCollector", Target = "", Neighbor = "", NeighborTag = "", ExcludeSame = true, Free = 1 },
             R("직결 충전", AdjacencyEffect.ChargeRate, 0.25f, 2, "PowerStorage", "Generator"), // 안쪽 얼굴(스위치 하나만)은 "아무 방 ← 축전"으로 — 배터리 방엔 차단기가 안 생김 (만들지도 쓰지도 않음)
-            R("사료 순환", AdjacencyEffect.Production, 0.1f, 2, "Culture", "Greenery", "MD_ProteinVat"),
+            R("사료 순환", AdjacencyEffect.Production, 0.1f, 2, "Culture", "Greenery", "MD_ProteinVat", inner: InnerFace.FetchNearby),
             R("인화 위험", AdjacencyEffect.SpreadTime, -0.3f, 2, "OxygenSource", "HeatSource", inner: InnerFace.FireTwoFlames),
             // ② 거주
-            R("주거 단지", AdjacencyEffect.Housing, 1f, 3, "Residence", "Residence"),
-            R("녹지", AdjacencyEffect.Housing, 1f, 2, "Residence", "Greenery", inner: InnerFace.FilterEasy),
-            R("소음", AdjacencyEffect.Housing, -1f, 3, "Residence", "NoiseSource", inner: InnerFace.FilterTwo), // 가안 −2 → −1 (봇 측정 2026-11-28: −2면 막 짓기와 차이 29% — 사용자 기준 10 ~ 20%, −1 = 13.7%)
+            R("주거 단지", AdjacencyEffect.Housing, 1f, 3, "Residence", "Residence", inner: InnerFace.FetchNearby | InnerFace.TalkBonus),
+            R("녹지", AdjacencyEffect.Housing, 1f, 2, "Residence", "Greenery", inner: InnerFace.FilterEasy | InnerFace.RequestBonus),
+            R("소음", AdjacencyEffect.Housing, -1f, 3, "Residence", "NoiseSource", inner: InnerFace.FilterTwo | InnerFace.RequestPenalty | InnerFace.NoiseComplaint), // 가안 −2 → −1 (봇 측정 2026-11-28: −2면 막 짓기와 차이 29% — 사용자 기준 10 ~ 20%, −1 = 13.7%)
             R("방사선", AdjacencyEffect.Housing, -2f, 2, "Residence", "RadiationSource", inner: InnerFace.FilterFrequent | InnerFace.FilterRadiation),
             R("냄새", AdjacencyEffect.Housing, -1f, 2, "Residence", "Culture", inner: InnerFace.FilterFrequent),
-            R("소란", AdjacencyEffect.ServiceCapacity, -0.2f, 2, "Quiet", "NoiseSource"),
-            R("북적임", AdjacencyEffect.ServiceCapacity, -0.2f, 2, "Quiet", "Bustle"),
-            R("연계 진료", AdjacencyEffect.ServiceCapacity, 0.25f, 1, "Medical", "Quarantine"),
+            R("소란", AdjacencyEffect.ServiceCapacity, -0.2f, 2, "Quiet", "NoiseSource", inner: InnerFace.RequestPenalty | InnerFace.NoiseComplaint),
+            R("북적임", AdjacencyEffect.ServiceCapacity, -0.2f, 2, "Quiet", "Bustle", inner: InnerFace.RequestPenalty | InnerFace.NoiseComplaint),
+            R("연계 진료", AdjacencyEffect.ServiceCapacity, 0.25f, 1, "Medical", "Quarantine", inner: InnerFace.FetchNearby),
             R("입항 검역", AdjacencyEffect.PlagueChance, -0.5f, 1, "Quarantine", "Arrival"),
-            R("유동 인구", AdjacencyEffect.ServiceCapacity, 0.25f, 1, "Commerce", "Arrival"),
-            R("공원 산책", AdjacencyEffect.ServiceCapacity, 0.15f, 2, "Leisure", "Greenery"),
-            R("상권 나들이", AdjacencyEffect.ServiceCapacity, 0.15f, 1, "Leisure", "Commerce"),
+            R("유동 인구", AdjacencyEffect.ServiceCapacity, 0.25f, 1, "Commerce", "Arrival", inner: InnerFace.FetchHere),
+            R("공원 산책", AdjacencyEffect.ServiceCapacity, 0.15f, 2, "Leisure", "Greenery", inner: InnerFace.RequestLight | InnerFace.RequestBonus),
+            R("상권 나들이", AdjacencyEffect.ServiceCapacity, 0.15f, 1, "Leisure", "Commerce", inner: InnerFace.RequestLight | InnerFace.RequestBonus),
             R("마중", AdjacencyEffect.Passengers, 1f, 1, "Arrival", "Residence"),
             R("현장 학습", AdjacencyEffect.ServiceCapacity, 0.2f, 1, "Education", "Research"),
             // ③ 산업 · 기반
             R("제련 가공", AdjacencyEffect.Production, 0.5f, 1, "Mining", "Processing", "MD_MiningDock"),
-            new Relation { Label = "정비 지원", Effect = AdjacencyEffect.RepairTime, Value = -0.2f, Max = 1, AnyTarget = true, Target = "", TargetTag = "", Neighbor = "", NeighborTag = "Maintenance", Inner = InnerFace.FireDoorExtinguisher },
+            new Relation { Label = "정비 지원", Effect = AdjacencyEffect.RepairTime, Value = -0.2f, Max = 1, AnyTarget = true, Target = "", TargetTag = "", Neighbor = "", NeighborTag = "Maintenance", Inner = InnerFace.FireDoorExtinguisher | InnerFace.RepairQuick },
             R("바로 하역", AdjacencyEffect.CargoAmount, 0.2f, 2, "Cargo", "Stockpile"),
             R("연산 지원", AdjacencyEffect.ResearchSpeed, 0.05f, 2, "Research", "Computing"),
-            R("소음 방해", AdjacencyEffect.ResearchSpeed, -0.05f, 2, "Quiet", "NoiseSource"),
+            R("소음 방해", AdjacencyEffect.ResearchSpeed, -0.05f, 2, "Quiet", "NoiseSource", inner: InnerFace.RequestPenalty | InnerFace.NoiseComplaint),
             R("습기", AdjacencyEffect.ResearchSpeed, -0.03f, 2, "Quiet", "Greenery"),
             R("행정 직결", AdjacencyEffect.PolicyDelay, -0.3f, 1, "Administration", "Center"),
             // ④ 방어
             R("표적 유도", AdjacencyEffect.InterceptChance, 0.25f, 2, "Intercept", "Sensing"),
-            R("엄폐", AdjacencyEffect.HitWeight, -0.3f, 2, "Intercept", "Armor"),
+            R("엄폐", AdjacencyEffect.HitWeight, -0.3f, 2, "Intercept", "Armor", inner: InnerFace.RepairFewer),
             R("실드 연동", AdjacencyEffect.RicochetChance, -0.3f, 2, "Barrier", "Barrier", inner: InnerFace.BreakerBacked),
             R("통제 지원", AdjacencyEffect.SpreadTime, 0.25f, 1, "Control", "Maintenance", inner: InnerFace.MissHalf),
             R("신호 보정", AdjacencyEffect.DecodeSpeed, 0.25f, 2, "Comms", "Sensing"),
@@ -89,6 +89,9 @@ namespace SpaceStation.Editor
             Inside("번짐 차단", "Control", InnerFace.NoSpread),
             Inside("연구 힌트", "Research", InnerFace.BreakerForgiving),
             Inside("전력 완충", "PowerStorage", InnerFace.BreakerOneSwitch), // A5 "옆이 배터리 계열 → 내려간 스위치 1개"
+            // V3 (2026-11-28): 현장 수리
+            Inside("보관 공구", "Stockpile", InnerFace.RepairFewer),
+            Inside("장갑 보강", "Armor", InnerFace.RepairFewer),
         };
 
         [MenuItem("SpaceStation/Adjacency/Setup Relations (CONNECT A8 4)")]

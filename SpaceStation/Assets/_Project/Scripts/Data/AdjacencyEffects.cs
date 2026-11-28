@@ -39,6 +39,26 @@ namespace SpaceStation.Data
         MissHalf = 1 << 12,
         /// <summary>놓친 사고가 이웃 방으로 번지지 않음 (손상 통제실).</summary>
         NoSpread = 1 << 13,
+
+        // V3 (2026-11-28): 현장 수리 · 주민 부탁
+        /// <summary>현장 수리 F 시간 짧게 (정비 베이).</summary>
+        RepairQuick = 1 << 14,
+        /// <summary>현장 수리 손상 지점 하나 적게 (창고 공구 · 장갑 — 여럿이어도 하나, 최소 1).</summary>
+        RepairFewer = 1 << 15,
+        /// <summary>가져다주기 물건이 그 이웃 방에 (옆집 · 옆방).</summary>
+        FetchNearby = 1 << 16,
+        /// <summary>가져다주기 물건을 이 방에서 바로 (상점).</summary>
+        FetchHere = 1 << 17,
+        /// <summary>말동무 보상 ↑ (옆집 이웃).</summary>
+        TalkBonus = 1 << 18,
+        /// <summary>부탁 보상 ↑.</summary>
+        RequestBonus = 1 << 19,
+        /// <summary>부탁이 가벼움 (F 짧게).</summary>
+        RequestLight = 1 << 20,
+        /// <summary>부탁 보상 ↓ (나쁜 이웃 — 소음 · 북적임).</summary>
+        RequestPenalty = 1 << 21,
+        /// <summary>소음 민원 (나쁜 이웃 — 옆 소음원 방에 흡음 덮개 달기, 사용자 결정 2026-11-28).</summary>
+        NoiseComplaint = 1 << 22,
     }
 
     /// <summary>
@@ -51,7 +71,8 @@ namespace SpaceStation.Data
         public const int Count = (int)AdjacencyEffect.DecodeSpeed + 1;
 
         /// <summary>나쁜 이웃이 주는 안쪽 얼굴 (그 밖은 좋은 이웃).</summary>
-        public const InnerFace BadInner = InnerFace.FireTwoFlames | InnerFace.FilterTwo | InnerFace.FilterFrequent | InnerFace.FilterRadiation;
+        public const InnerFace BadInner = InnerFace.FireTwoFlames | InnerFace.FilterTwo | InnerFace.FilterFrequent | InnerFace.FilterRadiation
+                                          | InnerFace.RequestPenalty | InnerFace.NoiseComplaint;
 
         /// <summary>안쪽 얼굴 짧은 설명 ("누출 때 옆방에서도 잠금 · 물 회수"), 여럿이면 " · "로.</summary>
         public static string InnerText(InnerFace face)
@@ -81,6 +102,15 @@ namespace SpaceStation.Data
             Add(InnerFace.MissNoLoss, "놓친 사고를 대신 처리");
             Add(InnerFace.MissHalf, "놓친 사고 손실 절반");
             Add(InnerFace.NoSpread, "놓친 사고가 번지지 않음");
+            Add(InnerFace.RepairQuick, "현장 수리 빨리 (F 짧게)");
+            Add(InnerFace.RepairFewer, "현장 수리 손상 지점 하나 적게");
+            Add(InnerFace.FetchNearby, "가져다주기 물건이 바로 옆방에");
+            Add(InnerFace.FetchHere, "가져다주기 물건을 이 방에서 바로");
+            Add(InnerFace.TalkBonus, "말동무 보상 ↑");
+            Add(InnerFace.RequestLight, "부탁이 가벼움");
+            Add(InnerFace.RequestBonus, "부탁 보상 ↑");
+            Add(InnerFace.RequestPenalty, "부탁 보상 ↓");
+            Add(InnerFace.NoiseComplaint, "소음 민원");
             return sb.ToString();
         }
 

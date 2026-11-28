@@ -3794,3 +3794,18 @@ arrative ← main (2026-11-24, d02dc189) — M-330 ~ M-341. M-336 ~ M-340은 서
 - 시험 `AdjacencyRelationTests` +2
 
 **main에서 확인**: csc 컴파일 (런타임 · 에디터 · EditMode 시험) — 플레이는 tycoon에서 (꾸민 시험 정거장, EditMode 734). main 데이터 = 캠페인 규칙 그대로라 안쪽 얼굴이 없음 (통합 밸런싱 때).
+
+## M-375. 새 관계 ④ V3 — 현장 수리 · 부탁 · 소음 민원 (CONNECT_1121 3번, 2026-11-28, `main` — tycoon과 같은 코드, 데이터는 tycoon만)
+
+결정 (사용자 2026-11-28, 추천안): 소음 민원 = 옆 소음원 · 활기 방 문가 벽에 흡음 덮개 달기.
+
+**main에 넣은 것 (코드만)**
+
+- `InnerFace` V3 아홉 (수리 빨리 · 지점 하나 적게 · 옆방 물건 · 이 방에서 · 말동무 보상 ↑ · 보상 ↑ · 가벼움 · 보상 ↓ · 소음 민원)
+- `RequestKind.Noise` (끝에 더함) · `ResidentRequestRules.Pick(water, fetch, fix, noise, …)` (예전 호출 그대로) · Title · Ask · Thanks
+- `StationSimulation.CompleteResidentRequest(…, scale)` — 만족도 · 연구 포인트 확률에 곱함 (기본 1 = 예전 그대로)
+- `InteriorRequests`: 이웃 관계 → 소음 민원 (흡음 덮개 = 환풍구 모델 연보라, 시끄러운 방의 문가) · 옆방 물건 · 보상 배율 · 가벼움 · 위치 표시 · 패드 표시
+- `InteriorFieldRepair`: 손상 지점 −1 · F 60% · 안내 한 줄
+- 시험 `AdjacencyRelationTests` +1
+
+**main에서 확인**: csc 컴파일 — 플레이는 tycoon에서 (주민 14명 꾸민 시험 정거장, EditMode 735). main 데이터 = 캠페인 규칙 그대로라 안쪽 얼굴이 없음.
