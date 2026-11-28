@@ -191,6 +191,14 @@ namespace SpaceStation.Simulation
         /// <summary>판이 모듈 정보 창에 더하는 한 줄 (null · 빈 글 = 없음). 엔드리스 광맥 = 채굴 도킹의 제자리 · 광맥 생산 비율.</summary>
         public Func<ModuleInstance, string> ModuleInfoText { get; set; }
 
+        /// <summary>
+        /// CONNECT_1121 7번 ③ 공통 고리: 판이 정하는 모듈별 가동률 배율 (null = 1). 엔드리스 공급 사슬 = 대륙급 고급 모듈의 공급 비율.
+        /// 서비스 · 방어 · 화물 가동률, 수리 슬롯, 연구 속도 보너스에 곱해짐 (생산은 <see cref="ModuleProductionScale"/>).
+        /// </summary>
+        public Func<ModuleInstance, float> ModuleStrengthScale { get; set; }
+
+        public float StrengthScaleOf(ModuleInstance module) => ModuleStrengthScale != null ? ModuleStrengthScale(module) : 1f;
+
         /// <summary>12-3c 국가급 상시 정책 (설정에 없으면 null).</summary>
         public PolicySystem Policies { get; }
         /// <summary>12-3c 사회 위기 선택지 (설정에 없으면 null).</summary>

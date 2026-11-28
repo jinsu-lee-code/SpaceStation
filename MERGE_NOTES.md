@@ -3866,3 +3866,17 @@ tycoon이 M-120 · M-122 · M-124 (칸 단위 방사선 · 폭풍 · 안내)를 
 
 ### `tycoon` 합칠 때
 - [x] 2026-11-28 같은 코드 (tycoon 7번 ① 커밋).
+
+## M-380. 판이 정하는 가동률 고리 (CONNECT_1121 7번 ③, 2026-11-28, `main` — tycoon과 같은 코드, 쓰는 쪽은 tycoon만)
+
+tycoon 대륙급 공급 사슬 (사용자 결정 2026-11-28: 고급 모듈이 금속 · 식량 · 물을 계속 먹어야 제 성능, 끊기면 효율만 떨어짐)이 서비스 · 방어 모듈의 효과까지 낮추려고 넣은 공통 고리. 생산은 이미 있는 `ModuleProductionScale`(M-362)을 씀.
+
+**main에 넣은 것 (코드만)**
+
+- `StationSimulation.ModuleStrengthScale` (`Func<ModuleInstance, float>`, null = 1) · `StrengthScaleOf(module)`
+- `StationModuleStats`: 가동률 `Strength` (서비스 정원 · 방어 · 화물 · 모듈 효율 표시) · 연구 속도 보너스 (`ResearchSpeedBonus` 합) · 수리 슬롯 (`RepairSlots` × 배율 내림)에 곱함
+
+**main에서 확인**: csc 컴파일 — main 캠페인은 고리를 쓰지 않음 (null = 예전 그대로). 플레이 · 시험은 tycoon (`SupplyChainTests` · EditMode 770).
+
+### `tycoon` 합칠 때
+- [x] 2026-11-28 같은 코드 (tycoon 7번 ③ 커밋).
