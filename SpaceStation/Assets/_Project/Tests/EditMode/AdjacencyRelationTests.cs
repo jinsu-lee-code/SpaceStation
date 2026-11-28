@@ -173,6 +173,83 @@ namespace SpaceStation.Tests
             }
         }
 
+        [Test]
+        public void InnerFor_FindsFacesAndBadNeighbors_InnerOnlyHasNoOuterEffect()
+        {
+            // CONNECT A5 안쪽 얼굴 (3번 ④ V2): 좋은 관계 = 안쪽 얼굴, 벌칙 관계 = 나쁜 이웃 (번짐), 그늘처럼 이웃을 가리지 않는 관계는 뺌
+            var o2 = Tag("산소원");
+            var heat = Tag("발열원");
+            var core = Tag("중심");
+            var sun = Tag("집광");
+            var oxygen = Module("MD_TOxy", null, o2, sun);
+            var furnace = Module("MD_THeat", null, heat);
+            var hub = Module("MD_TCore", null, core);
+            var set = Rules(
+                AdjacencyRule.Create(AdjacencyEffect.SpreadTime, -0.3f, 2, "인화 위험", targetTag: o2, neighborTag: heat, inner: InnerFace.FireTwoFlames),
+                AdjacencyRule.Create(AdjacencyEffect.InnerOnly, 0f, 1, "코어 처리", neighborTag: core, anyTarget: true, inner: InnerFace.MissNoLoss),
+                AdjacencyRule.Create(AdjacencyEffect.Production, -0.1f, 3, "그늘", targetTag: sun, excludeSameType: true));
+            var system = new AdjacencySystem(set);
+            var grid = new StationGrid();
+            var room = Place(grid, oxygen, 0);
+            var heatRoom = Place(grid, furnace, 1);
+            var coreRoom = Place(grid, hub, -1);
+            system.Recalculate(grid);
+
+            var hits = new List<InnerHit>();
+            system.InnerFor(grid, room, hits);
+            Assert.AreEqual(2, hits.Count, "인화 위험 + 코어 처리 (그늘은 뺌)");
+            var bad = hits.Find(h => h.Bad);
+            Assert.AreSame(heatRoom, bad.Neighbor, "나쁜 이웃 = 발열원 방");
+            Assert.AreEqual(InnerFace.FireTwoFlames, bad.Face);
+            var good = hits.Find(h => !h.Bad);
+            Assert.AreSame(coreRoom, good.Neighbor);
+            Assert.AreEqual(InnerFace.MissNoLoss, good.Face);
+
+            var applied = new List<AppliedAdjacency>();
+            system.Evaluate(furnace, new[] { hub }, applied);
+            Assert.AreEqual(0, applied.Count, "안쪽만 관계(모든 모듈 ← 중심)는 바깥 효과 없음");
+            Assert.AreEqual(1f, system.GetProductionMultiplier(coreRoom), Eps);
+
+            var lines = new List<string>();
+            system.DescribeRulesFor(hub, lines);
+            Assert.AreEqual(1, lines.Count);
+            StringAssert.Contains("안: 놓친 사고를 대신 처리", lines[0]);
+            Assert.AreSame(set.Rules[1], system.FindInnerRule(furnace, InnerFace.MissNoLoss), "아무 방이나 받을 수 있는 안쪽 얼굴");
+            Assert.IsNull(system.FindInnerRule(furnace, InnerFace.FireTwoFlames), "발열원 방은 인화 위험의 대상이 아님");
+        }
+
+        [Test]
+        public void MissIncident_NeighborMods_ChangeLoss()
+        {
+            var config = Create<BalanceConfig>();
+            var grades = Create<StationGradeConfig>();
+            var g = new SerializedObject(grades);
+            g.FindProperty("_grades").arraySize = 1;
+            g.ApplyModifiedPropertiesWithoutUndo();
+            var sim = new StationSimulation(new StationSimulationSettings
+            {
+                Balance = config,
+                Grades = grades,
+                CoreModule = Module("MD_TCoreSim", null),
+                Events = new List<GameEventData>(),
+                Random01 = () => 0.5f,
+                HazardRandom01 = () => 0.99f,
+            });
+            sim.Population.SetSatisfaction(50f);
+            Assert.AreEqual("손실 없음", sim.MissIncident(IncidentKind.Filter, sim.Core, ResourceType.Oxygen, IncidentMiss.NoLoss), "코어가 처리");
+            Assert.AreEqual(50f, sim.Population.Satisfaction, Eps);
+            Assert.AreEqual(0, sim.Incidents.ActiveCount);
+
+            StringAssert.Contains("회수", sim.MissIncident(IncidentKind.Leak, sim.Core, ResourceType.Water, IncidentMiss.Recovered));
+            Assert.AreEqual(0, sim.Incidents.ActiveCount, "샌 물을 회수 = 새는 것 없음");
+            StringAssert.Contains("산소", sim.MissIncident(IncidentKind.Leak, sim.Core, ResourceType.Oxygen, IncidentMiss.Recovered), "산소 누출은 회수 안 됨");
+
+            StringAssert.Contains("만족도 지킴", sim.MissIncident(IncidentKind.DecoLights, sim.Core, ResourceType.Oxygen, IncidentMiss.NoMood));
+            Assert.AreEqual(50f, sim.Population.Satisfaction, Eps, "의료 이웃 = 만족도 지킴");
+            sim.MissIncident(IncidentKind.DecoLights, sim.Core, ResourceType.Oxygen, IncidentMiss.Half);
+            Assert.AreEqual(50f - config.IncidentMissSatisfaction * 0.5f, sim.Population.Satisfaction, Eps, "손상 통제실 ← 정비 = 절반");
+        }
+
         // ---------------- 도우미 ----------------
 
         private sealed class Props

@@ -803,8 +803,8 @@ namespace SpaceStation.Simulation
         /// 11-17 ④ 내부 사고를 놓침 (처리 시간이 지났거나 밖으로 나감, BALANCE 31번): 상한 있는 짧은 손실 후 정비 인력이 처리한 것으로 끝.
         /// 누출 = 물/산소가 나눠서 샘, 차단기 = 그 방 생산 배율, 화재 = 그 방 내구도(5 아래로는 안 내려감) + 만족도, 환기 = 산소 + 만족도. text = 알림용.
         /// </summary>
-        public string MissIncident(IncidentKind kind, ModuleInstance module, ResourceType leakResource = ResourceType.Oxygen)
-            => _interior.MissIncident(kind, module, leakResource);
+        public string MissIncident(IncidentKind kind, ModuleInstance module, ResourceType leakResource = ResourceType.Oxygen, IncidentMiss mods = IncidentMiss.None)
+            => _interior.MissIncident(kind, module, leakResource, mods); // CONNECT A5 결과 단계 (이웃이 손실을 바꿈)
 
         /// <summary>11-17 ③ 요청을 들어준 주민의 기분 보너스 (끝났으면 0).</summary>
         public float CheerOf(Resident resident) => _interior.CheerOf(resident);

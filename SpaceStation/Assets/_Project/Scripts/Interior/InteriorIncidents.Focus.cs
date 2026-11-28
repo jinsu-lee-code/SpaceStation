@@ -21,19 +21,55 @@ namespace SpaceStation.Interior
             if (_active == null || _active.Done || _eye == null)
                 return false;
             room = _active.Room;
-            return FocusBounds(_active, _eye.position, out bounds);
+            return FocusBounds(_active, _eye.position, out bounds, ref room);
         }
 
-        private static bool FocusBounds(Incident a, Vector3 eye, out Bounds bounds)
+        private static bool FocusBounds(Incident a, Vector3 eye, out Bounds bounds, ref ModuleInstance room)
         {
             bounds = default;
             switch (a.Kind)
             {
-                case IncidentKind.Fire:
-                    // 소화기를 아직 안 들었으면 소화기부터
-                    if (!a.Carrying && a.Bottle != null && a.Bottle.activeInHierarchy)
-                        return BoundsOf(a.Bottle, out bounds);
+                case IncidentKind.Leak:
+                    // CONNECT A5 옆방 차단 밸브: 둘 중 가까운 쪽 (그 방의 문을 가리킴)
+                    if (a.Valve2 != null && a.Prop != null
+                        && (a.Valve2.transform.position - eye).sqrMagnitude < (a.Prop.transform.position - eye).sqrMagnitude)
+                    {
+                        room = a.Valve2Room;
+                        return BoundsOf(a.Valve2, out bounds);
+                    }
                     break;
+                case IncidentKind.Fire:
+                {
+                    // 소화기를 아직 안 들었으면 가장 가까운 소화기부터 (CONNECT A5 문 옆 소화기), 들었으면 남은 불길 가운데 가까운 것
+                    GameObject best = null;
+                    float bestD = float.MaxValue;
+                    void Try(GameObject go)
+                    {
+                        if (go == null || !go.activeInHierarchy)
+                            return;
+                        float d = (go.transform.position - eye).sqrMagnitude;
+                        if (d < bestD)
+                        {
+                            bestD = d;
+                            best = go;
+                        }
+                    }
+                    if (!a.Carrying)
+                    {
+                        foreach (var b in a.Bottles)
+                            Try(b);
+                    }
+                    else
+                    {
+                        if (!a.MainOut)
+                            Try(a.Prop);
+                        if (a.Fire2 != null && !a.Fire2.Out)
+                            Try(a.Fire2.Prop);
+                    }
+                    if (best != null)
+                        return BoundsOf(best, out bounds);
+                    break;
+                }
                 case IncidentKind.DecoLights:
                 {
                     GameObject best = null;

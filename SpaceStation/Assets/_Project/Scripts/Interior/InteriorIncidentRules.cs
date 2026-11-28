@@ -87,10 +87,13 @@ namespace SpaceStation.Interior
         }
 
         /// <summary>내려간 스위치(경고등 켜짐) 2~3개.</summary>
-        public static bool[] TripPattern(Random rng)
+        public static bool[] TripPattern(Random rng) => TripPattern(rng, 2 + rng.Next(2));
+
+        /// <summary>내려간 스위치 count개 (CONNECT A5 배터리 옆 방 = 1개).</summary>
+        public static bool[] TripPattern(Random rng, int count)
         {
             var lit = new bool[Switches];
-            int count = 2 + rng.Next(2);
+            count = Math.Max(1, Math.Min(Switches, count));
             while (count > 0)
             {
                 int i = rng.Next(Switches);
